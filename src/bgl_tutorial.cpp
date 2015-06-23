@@ -5,15 +5,16 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 
-using namespace boost;
-
 /**
  * @brief Fuck off
  */
 int main(int, char**)
 {
 	// create a typedef for the Graph type
-	typedef adjacency_list<vecS, vecS, bidirectionalS> Graph;
+	typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS> Graph;
+	typedef boost::graph_traits<Graph>::vertex_iterator vertex_iterator;
+	typedef boost::graph_traits<Graph>::edge_iterator   edge_iterator;
+	typedef boost::property_map<Graph, boost::vertex_index_t>::type IndexMap;
 
 	// Make convenient labels for the vertices
 	enum { A, B, C, D, E, N };
@@ -29,20 +30,46 @@ int main(int, char**)
 						  Edge(C,E),
 						  Edge(B,D),
 						  Edge(D,E) };
-	const int num_edges = sizeof(edge_array)/sizeof(edge_array[0]);
 
 //	// declare a graph object
 //	Graph g(num_vertices);
-
 //	// add the edges to the graph object
 //	for (int i = 0; i < num_edges; ++i) {
 //		add_edge(edge_array[i].first, edge_array[i].second, g);
 //	}
-
-	// define the graph with all edges
+	// define the graph with all edges at once
 	Graph g(edge_array, edge_array + sizeof(edge_array) / sizeof(Edge), num_vertices);
 
-	std::cout << "Num vertices:" << "asas" << std::endl;
+	// Get the property map for vertex indices
+	IndexMap index = boost::get(boost::vertex_index, g);
+
+	// Show vertices
+	std::cout << "Num vertices: " << boost::num_vertices(g) << std::endl;
+	std::cout << "Vertices:";
+	std::pair<vertex_iterator,vertex_iterator> vit = boost::vertices(g);
+	for (; vit.first < vit.second ; vit.first++) {
+		boost::graph_traits<Graph>::vertex_descriptor vertex = *vit.first;
+		std::cout << " " << index[vertex];
+	}
+	std::cout << std::endl;
+
+	// Show edges
+	std::cout << "Num edges: " << boost::num_edges(g) << std::endl;
+	std::cout << "Edges:";
+//	std::pair<edge_iterator,edge_iterator> eit = boost::edges(g);
+//	for (; eit.first != eit.second ; eit.first++) {
+//		boost::graph_traits<Graph>::edge_descriptor edge = *eit.first;
+//		std::cout << " (" << index[boost::source(edge, g)]
+//				  <<  "," << index[boost::target(edge, g)] << ")";
+//	}
+	edge_iterator eit, eit_end;
+	for (boost::tie(eit, eit_end) = boost::edges(g) ; eit != eit_end ; eit++) {
+		boost::graph_traits<Graph>::edge_descriptor edge = *eit;
+		std::cout << " (" << index[boost::source(edge, g)]
+				  <<  "," << index[boost::target(edge, g)] << ")";
+	}
+	std::cout << std::endl;
+
 
 	return 0;
 }
