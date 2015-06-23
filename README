@@ -1,0 +1,10 @@
+
+Finite Improbability Generator (fig tool)
+
+Authors:
+ · Carlos E. Budde
+ · Raúl E. Monti
+
+For now these are just some silly integration tests between Qt-Creator IDE,
+CMake and the Boost Graph Library.
+
