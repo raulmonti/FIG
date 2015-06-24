@@ -62,5 +62,6 @@ ENDIF()
 
 
 # Executable
-ADD_EXECUTABLE(Tuto ${SOURCES_DIR}/bgl_tutorial.cpp)
+#ADD_EXECUTABLE(bgl_test ${SOURCES_DIR}/bgl_basic_graph.cpp)
+ADD_EXECUTABLE(bgl_test ${SOURCES_DIR}/bgl_weighted_graph.cpp)
 
