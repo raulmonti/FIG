@@ -17,7 +17,7 @@ public:
     c = s;
   }
 
-  virtual ~Badcharfound(){}
+  virtual ~Badcharfound() throw() {}
 
 
   virtual const char* what() const throw()
@@ -40,7 +40,7 @@ public:
     c = s;
   }
 
-  virtual ~SyntaxError(){}
+  virtual ~SyntaxError() throw() {}
 
 
   virtual const char* what() const throw()
