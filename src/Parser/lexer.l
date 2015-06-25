@@ -17,7 +17,26 @@
         return parser::NUM;
     }
 
- 
+MODULE  {
+            std::cout << "Saw a Module: " << yytext << std::endl;
+            return parser::KMOD;
+        }
+
+CLKS    {
+            std::cout << "Saw a clocks section: " << yytext << std::endl;
+            return parser::KCS;
+        }
+
+VARS    {
+            std::cout << "Saw a variables section: " << yytext << std::endl;
+            return parser::KVS;
+        }
+
+TRANS   {
+            std::cout << "Saw a transitions section: " << yytext << std::endl;
+            return parser::KTS;
+        }
+
 [a-zA-Z]+ {
         std::cout << "Saw a name: " << yytext << std::endl;
         return parser::NAME;

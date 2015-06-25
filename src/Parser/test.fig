@@ -1,0 +1,13 @@
+MODULE modone
+
+CLKS
+
+VARS
+
+TRANS
+
+MODULE modtwo
+
+TRANS
+
+MODULE modthree

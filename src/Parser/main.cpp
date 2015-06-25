@@ -1,6 +1,10 @@
 #include <iostream>
+#include <sstream>
+#include <fstream>
 #include <string>
+#include <assert.h>
 #include "parser.h"
+
 
 using namespace std;
 
@@ -8,20 +12,21 @@ using namespace std;
 
 
 int 
-main (int /* argc */, char** /* argv */){
+main (int argc, char** argv){
+
+    assert( argc == 2);
 
     cout << "RUNNING THE PARSER" << endl << endl;
-
-    string str2parse;
-    cout << "Write what do you want to parse:" << endl;
-    getline(cin, str2parse);
-
-    str2parse = string("\n\n 2 3 e \n w w e\n");
-
-    cout << "Parsing: " << str2parse << endl << endl;
+    
+    cout << "Parsing file: " << argv[1] << endl << endl;
 
     parser::Parser *parser = new parser::Parser();
-    parser->parse(str2parse);
+
+    ifstream fin(argv[1],ios::binary);
+    stringstream ss;
+    ss << fin.rdbuf();
+
+    parser->parse(& ss);
     delete parser;
 
     return 0;

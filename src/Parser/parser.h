@@ -17,6 +17,10 @@ namespace parser{
 */
 typedef enum    { MEOF    // my end of file symbol
                 , NUM     // float type numbers
+                , KMOD    // MODULE
+                , KCS     // keyword CLK
+                , KVS     // keyword VAR
+                , KTS     // keyword TRANS
                 , NAME    // strings starting with letters
                 , WS      // white spaces (' \t')
                 , NL      // new line ('\n')
@@ -35,7 +39,8 @@ typedef enum    { MEOF    // my end of file symbol
                 } Symbol;
 
 
-static const char symTable[][7] = {"DUM","NUM", "NAME", "WS", "NL", "INT", "MEOF"};
+static const char symTable[][11] =
+    {"EOF","NUM","MODULE","CLKS","VARS","TRANS","NAME","WS","NL","INT"};
 
 
 
@@ -143,18 +148,21 @@ private:
     int 
     grammar();
 
-    /* @Rule: transition section. */
-    int 
-    lookahead();
-
-    /* @Rule: output transition. */
+    /* @Rule: Module */
     int
-    output();
+    rModule();
 
-    /* @Rule: input transition. */
+    /* @Rule: Modules clocks section */
     int
-    input();
+    rClkSec();
 
+    /* @Rule: Modules variables section */
+    int
+    rVarSec();
+
+    /* @Rule: Modules transitions section */
+    int
+    rTraSec();
 
 public:
 
@@ -166,11 +174,13 @@ public:
         lexer->switch_streams((istream *)ss);
     }
 
+
     /* @Parse ...
        @return: ...
     */
     int
-    parse(string str);
+    parse(stringstream *str);
+
     
     /* @Parsing ends when there is no more words to check
        at the lexed vector.

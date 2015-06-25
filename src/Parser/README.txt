@@ -13,7 +13,11 @@
 # COMPILING (and running afterwards):
 #############################################
 
-flex++ lexer.l && g++ -c parser.cpp -std=c++11 && g++ main.cpp lex.yy.o parser.o -o Parser && ./Parser
+1) flex++ lexer.l 
+2) Remove line 22 of lex.yy.cc (#define yyFLexLexer yyFLexLexer)
+3) g++ -c lex.yy.cc && g++ -c parser.cpp -std=c++11 && g++ main.cpp lex.yy.o parser.o -o Parser
+4) ./Parser test.fig
+
 
 
 #############################################

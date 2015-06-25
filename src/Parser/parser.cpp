@@ -119,60 +119,59 @@ Parser::loadLocation(){
 */
 int 
 Parser::grammar(){
-    if (!lookahead()) {
-        throw (new SyntaxError((string("Syntax error at line ")) 
-                  + to_string(getLineNum(lastpos+1)) + string(": '") 
-                  + strvec[lastpos+1]+string("'")));
-    }
-    return 1;
-}
 
-/* @Rule: transition section. */
-int 
-Parser::lookahead(){
-    if(output()){
-        ;
-    }else if(input()){
-        ;
-    }else{
-        return 0;
-    }
-    return 1;
-}
-
-/* @Rule: output transition. */
-int
-Parser::output(){
-    saveLocation();
-    if (accept(NUM)){
-        accept(WS);
-        if (accept(NUM)){
-            accept(WS);
-            expect(NAME);
-            removeLocation();
-            cout << "OUTPUT" << endl;
-            return 1;
+    while(!ended()){
+        if(!rModule()) {
+            throw (new SyntaxError((string("Syntax error at line ")) 
+                        + to_string(getLineNum(lastpos+1)) + string(": '") 
+                        + strvec[lastpos+1]+string("'")));
         }
     }
-    loadLocation();
+    return 1;
+}
+
+/* @Rule: MODULE */
+int
+Parser::rModule(){
+
+    if(accept(KMOD)){
+        expect(NAME); //the module name
+        rClkSec();
+        rVarSec();
+        rTraSec();
+        cout << "Found Module." << endl;
+        return 1;
+    }
     return 0;
 }
 
-/* @Rule: input transition. */
+/* @Rule: MODULES CLOCKS SECTION */
 int
-Parser::input(){
-    saveLocation();
-    if (accept(NUM)){
-        accept(WS);
-        if (accept(NAME)){
-            accept(WS);
-            expect(NUM);
-            removeLocation();
-            cout << "INPUT" << endl;
-            return 1;            
-        }
+Parser::rClkSec(){
+    if(accept(KCS)){
+        cout << "Found clock section." << endl;
+        return 1;
     }
-    loadLocation();
+    return 0;
+}
+
+/* @Rule: MODULES VARIABLES SECTION */
+int
+Parser::rVarSec(){
+    if(accept(KVS)){
+        cout << "Found variables section." << endl;
+        return 1;
+    }
+    return 0;
+}
+
+/* @Rule: MODULES TRANSITIONS SECTION */
+int
+Parser::rTraSec(){
+    if(accept(KTS)){
+        cout << "Found transitions section." << endl;
+        return 1;
+    }
     return 0;
 }
 
@@ -181,32 +180,26 @@ Parser::input(){
    @return: ...
 */
 int
-Parser::parse(string str){
-
+Parser::parse(stringstream *str){
 
     try{
         /* Lex */
-        stringstream *ss = new stringstream();
-        *ss << str;
-        setStream(ss);
+        setStream(str);
 
         int ret;
         do{
             ret = lexer->yylex();
             symvec.push_back(static_cast<Symbol>(ret));
             strvec.push_back(lexer->YYText());
-            cout << "Parser: Symbol: " << ret << endl;
-        }while(ret != 0);    
-
-        delete ss;
+        }while(ret != 0);
 
         /* Parse */
         nextSym();
-        while(!ended()){
-            grammar();
-        }
+        grammar();
+
     }catch(exception *e){
         cout << "Parser: " << e->what() << endl;
+        delete e;
         return 0;
     }
 
