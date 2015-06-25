@@ -86,6 +86,14 @@ private:
     int
     getLineNum(int p);
 
+    /* @Get the column number for the starting position of word at 
+        position @p in the lexed words.
+       @p: the position of the word to ask for. Should be valid
+        position, i.e. >= 0 and < number of words lexed. 
+    */
+    int 
+    getColumnNum(int p);
+
     /* @Ask if the symbol in @sym can be considered a white space
         symbol.
        @return: 1 if yes, 0 if not.

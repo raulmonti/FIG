@@ -39,10 +39,28 @@ Parser::~Parser(){
 int
 Parser::getLineNum(int p){
     assert(p < static_cast<int>(symvec.size()));
-    int result = 0;
+    int result = 1;
     for(int i = 0; i < p; i++){
         if(symvec[i] == NL) result++;
     }
+    return result;
+}
+
+
+/* @Get the column number for the starting position of word at 
+    position @p in the lexed words.
+   @p: the position of the word to ask for. Should be valid
+    position, i.e. >= 0 and < number of words lexed. 
+*/
+int 
+Parser::getColumnNum(int p){
+    assert(p < static_cast<int>(symvec.size()));
+    int result = 1;
+
+    for(int i = p-1; i >= 0 && symvec[i] != NL; i--){
+        result += strvec[i].size();
+    }    
+
     return result;
 }
 
@@ -117,14 +135,18 @@ Parser::loadLocation(){
     recurive descent parser.
    @return: ...
 */
-int 
+int
 Parser::grammar(){
 
     while(!ended()){
         if(!rModule()) {
-            throw (new SyntaxError((string("Syntax error at line ")) 
-                        + to_string(getLineNum(lastpos+1)) + string(": '") 
-                        + strvec[lastpos+1]+string("'")));
+            throw (new SyntaxError((string("Syntax error at line "))
+                        + to_string(getLineNum(lastpos+1))
+                        + string(", and column ")
+                        + to_string (getColumnNum(lastpos+1))
+                        + string(": '")
+                        + strvec[lastpos+1]
+                        + string("'")));
         }
     }
     return 1;
