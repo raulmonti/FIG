@@ -7,6 +7,7 @@
 #include <FlexLexer.h>
 
 
+
 using namespace std;
 
 namespace parser{
@@ -36,11 +37,47 @@ typedef enum    { MEOF    // my end of file symbol
                 , BOP     // || && !
                 , ASG     // =
                 , DOT     // .
+                , DUM     // dummy symbol
                 } Symbol;
 
 
 static const char symTable[][11] =
     {"EOF","NUM","MODULE","CLKS","VARS","TRANS","NAME","WS","NL","INT"};
+
+
+
+class AST
+{
+
+
+public:
+
+    string n;       // name
+    int s;          // symbol
+    vector<AST*> l; // list of childs
+ 
+   
+
+    // Constructor.
+    AST(void);
+
+    AST(string name, int symbol);
+
+    // Destructor.
+    virtual ~AST();
+
+    // @Push back a new child into @l.
+    inline void pb(AST *c)
+    {
+        l.push_back(c);
+    }
+
+};
+
+
+// Node is the same as AST.
+typedef AST Node;
+
 
 
 
@@ -57,15 +94,17 @@ class Parser
        be kept in @symvec at the same position. This is to
        be used later by the parser.
     */
-    std::vector<Symbol> symvec;  // Vector with lexed symbols.
+    std::vector<Symbol> symvec;  // Vector with lexed tokens.
     std::vector<string> strvec;  // Vector with lexed words.
 
     /* */
-    stack<int>  lastk;           // Stack for saving locations to lookahead.
-    Symbol      sym;             // Current stracted symbol.
-    int         pos;             // Actual position of the parser in symvec.
-    int         lastpos;         // Position of the last accepted symbol.
-    bool        skipws;          // Skip white spaces?.
+    stack<int>   lastk;           // Stack for saving locations to lookahead.
+    Symbol       sym;             // Current stracted token.
+    int          pos;             // Actual position of the parser in symvec.
+    int          lastpos;         // Position of the last accepted symbol.
+    string       lastAcc;         // Last accepted token.
+    stack<Node*> astStk;
+    bool         skipws;          // Skip white spaces?.
 
 public:
 
@@ -77,6 +116,21 @@ public:
 
 
 private:
+
+
+    // FIXME Comment this methods
+    int
+    newNode(string str, Symbol sym);
+
+    int
+    saveNode();
+
+    int
+    saveNode(string str, Symbol sym);
+
+    int
+    removeNode();
+
 
     /* @Get the line number for the word at position @p in
         the lexed words.
@@ -154,7 +208,7 @@ private:
        @return: ...
     */
     int 
-    grammar();
+    rGrammar();
 
     /* @Rule: Module */
     int
@@ -187,7 +241,7 @@ public:
        @return: ...
     */
     int
-    parse(stringstream *str);
+    parse(stringstream *str, AST * & result);
 
     
     /* @Parsing ends when there is no more words to check
@@ -204,5 +258,8 @@ public:
 
 
 } // End namespace parser.
+
+std::ostream& operator<< (std::ostream& out, parser::AST const& ast);
+
 
 #endif

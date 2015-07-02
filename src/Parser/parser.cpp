@@ -8,7 +8,26 @@
 #include "exceptions.h"
 
 
+// Overloading for printing ASTs.
+std::ostream& operator<< (std::ostream& out, parser::AST const& ast){
+    cout << "(" << ast.n << ", " << ast.s << ", [";
+
+    for(size_t i = 0; i+1 < (ast.l).size(); i++){
+        parser::AST *a = (ast.l)[i]; 
+        out << *a << ",";
+    }
+
+    if(ast.l.size()>0){
+        parser::AST *a = ast.l[(ast.l).size()-1];
+        out << *a;
+    }
+    cout << "])";
+    return out;
+}
+
+
 using namespace std;
+
 
 
 namespace parser{
@@ -94,6 +113,7 @@ int
 Parser::accept(Symbol s){
     if (sym == s) {
         lastpos = pos;  
+        lastAcc = strvec[pos];
         nextSym();
         return 1;
     }
@@ -136,10 +156,12 @@ Parser::loadLocation(){
    @return: ...
 */
 int
-Parser::grammar(){
+Parser::rGrammar(){
+
+    newNode(string("GRAMMAR"),DUM);
 
     while(!ended()){
-        if(!rModule()) {
+        if(!rModule()){
             throw (new SyntaxError((string("Syntax error at line "))
                         + to_string(getLineNum(lastpos+1))
                         + string(", and column ")
@@ -156,12 +178,19 @@ Parser::grammar(){
 int
 Parser::rModule(){
 
-    if(accept(KMOD)){
-        expect(NAME); //the module name
-        rClkSec();
-        rVarSec();
-        rTraSec();
+    if(accept(KMOD)){                           // Should be
+        // This node is a MODULE node
+        newNode(lastAcc, KMOD);
+        // Get the modules name
+        expect(NAME);                           // Has to be
+        saveNode(lastAcc, NAME);
+        
+        rClkSec();                              // ?
+        rVarSec();                              // ?
+        rTraSec();                              // ?
+
         cout << "Found Module." << endl;
+        saveNode();
         return 1;
     }
     return 0;
@@ -171,6 +200,7 @@ Parser::rModule(){
 int
 Parser::rClkSec(){
     if(accept(KCS)){
+        saveNode(lastAcc, KCS);
         cout << "Found clock section." << endl;
         return 1;
     }
@@ -181,6 +211,7 @@ Parser::rClkSec(){
 int
 Parser::rVarSec(){
     if(accept(KVS)){
+        saveNode(lastAcc, KCS);
         cout << "Found variables section." << endl;
         return 1;
     }
@@ -191,6 +222,7 @@ Parser::rVarSec(){
 int
 Parser::rTraSec(){
     if(accept(KTS)){
+        saveNode(lastAcc, KCS);
         cout << "Found transitions section." << endl;
         return 1;
     }
@@ -198,11 +230,12 @@ Parser::rTraSec(){
 }
 
 
+
 /* @Parse ...
    @return: ...
 */
 int
-Parser::parse(stringstream *str){
+Parser::parse(stringstream *str, AST * & result){
 
     try{
         /* Lex */
@@ -217,7 +250,9 @@ Parser::parse(stringstream *str){
 
         /* Parse */
         nextSym();
-        grammar();
+        if (rGrammar()){
+            result = astStk.top();
+        }
 
     }catch(exception *e){
         cout << "Parser: " << e->what() << endl;
@@ -227,6 +262,59 @@ Parser::parse(stringstream *str){
 
     return 1;
 }
+
+
+
+
+
+int
+Parser::newNode(string str, Symbol sym){
+    
+    Node *node = new Node(str,sym);
+    astStk.push(node);
+}
+
+int
+Parser::saveNode(){
+
+    assert(!astStk.empty());
+
+    // Pop it from the stack.
+    Node *temp =  astStk.top();
+    astStk.pop();
+
+    // And save it to the recursive AST.
+    if (!astStk.empty()){
+        astStk.top()->pb(temp);        
+    }
+}
+
+
+int
+Parser::saveNode(string str,Symbol sym){
+    newNode(str,sym);
+    saveNode();
+    return 1;
+}
+
+
+int
+Parser::removeNode(){
+
+    assert(!astStk.empty());
+    delete astStk.top();
+    astStk.pop();
+
+}
+
+/* ABSTRACT SYNTAX TREE CLASS IMPLEMENTATION */
+
+AST::AST(){};
+
+AST::AST(string name, int symbol): n(name), s(symbol){};
+
+AST::~AST(){};
+
 
 
 }

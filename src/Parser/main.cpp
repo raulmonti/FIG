@@ -3,12 +3,13 @@
 #include <fstream>
 #include <string>
 #include <assert.h>
+#include <stdio.h>
 #include "parser.h"
 
 
 using namespace std;
 
- 
+
 
 
 int 
@@ -26,7 +27,11 @@ main (int argc, char** argv){
     stringstream ss;
     ss << fin.rdbuf();
 
-    parser->parse(& ss);
+    parser::AST * ast;
+    if(parser->parse(& ss, ast)){
+        cout << *ast << endl;
+    }
+
     delete parser;
 
     return 0;
