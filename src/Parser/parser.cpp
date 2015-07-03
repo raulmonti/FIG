@@ -7,10 +7,12 @@
 #include "parser.h"
 #include "exceptions.h"
 
+//TODO load linenumbers into nodes
+
 
 // Overloading for printing ASTs.
 std::ostream& operator<< (std::ostream& out, parser::AST const& ast){
-    cout << "(" << ast.n << ", " << ast.s << ", [";
+    cout << "(" << ast.s << ", " << ast.n << ", [";
 
     for(size_t i = 0; i+1 < (ast.l).size(); i++){
         parser::AST *a = (ast.l)[i]; 
@@ -24,6 +26,7 @@ std::ostream& operator<< (std::ostream& out, parser::AST const& ast){
     cout << "])";
     return out;
 }
+
 
 
 using namespace std;
@@ -99,8 +102,8 @@ Parser::nextSym(void){
     pos++;
     sym = (Symbol)symvec[pos];
 
-    if( skipws && isw() ){ // do we skip whites?
-        lastpos++;         // FIXME should I accept this WS?
+    if( skipws && isw() ){      // do we skip whites?
+        lastpos++;              // FIXME should I accept this WS?
         nextSym();
     }    
 }
@@ -158,7 +161,7 @@ Parser::loadLocation(){
 int
 Parser::rGrammar(){
 
-    newNode(string("GRAMMAR"),DUM);
+    newNode(_DUM,string("GRAMMAR"));
 
     while(!ended()){
         if(!rModule()){
@@ -180,16 +183,16 @@ Parser::rModule(){
 
     if(accept(KMOD)){                           // Should be
         // This node is a MODULE node
-        newNode(lastAcc, KMOD);
+        newNode(_KMOD,lastAcc);
         // Get the modules name
         expect(NAME);                           // Has to be
-        saveNode(lastAcc, NAME);
+        saveNode(_NM,lastAcc);
         
         rClkSec();                              // ?
         rVarSec();                              // ?
         rTraSec();                              // ?
 
-        cout << "Found Module." << endl;
+        __debug__("Found Module.\n");
         saveNode();
         return 1;
     }
@@ -200,19 +203,52 @@ Parser::rModule(){
 int
 Parser::rClkSec(){
     if(accept(KCS)){
-        saveNode(lastAcc, KCS);
-        cout << "Found clock section." << endl;
+        saveNode(_KCS,lastAcc);
+        __debug__("Found clock section.\n");
+        while(rClkDef()){;}       
         return 1;
     }
     return 0;
 }
 
+/* @Rule: CLOCK DEFINITION */
+int
+Parser::rClkDef(){
+
+    newNode(_CLK,string(""));
+    if (accept(NAME)){
+        saveNode(_NM, lastAcc);
+        if(accept(CLN)){
+            saveNode(_CLN, lastAcc);
+            if(rDistr()){
+                expect(SCLN);
+                saveNode(_SCLN, lastAcc);
+                saveNode(); //_CLK
+                return 1;
+            }
+        }
+    }
+    removeNode(); //_CLK
+    return 0;
+}
+
+/* @Rule: DISTRIBUTION */
+int
+Parser::rDistr(){
+    if(accept(NAME)){
+        saveNode(_DSTR, string(lastAcc));
+        return 1;
+    }
+    return 0;
+}
+
+
 /* @Rule: MODULES VARIABLES SECTION */
 int
 Parser::rVarSec(){
     if(accept(KVS)){
-        saveNode(lastAcc, KCS);
-        cout << "Found variables section." << endl;
+        saveNode(_KCS,lastAcc);
+        __debug__("Found variables section.\n");
         return 1;
     }
     return 0;
@@ -222,8 +258,8 @@ Parser::rVarSec(){
 int
 Parser::rTraSec(){
     if(accept(KTS)){
-        saveNode(lastAcc, KCS);
-        cout << "Found transitions section." << endl;
+        saveNode(_KCS,lastAcc);
+        __debug__("Found transitions section.\n");
         return 1;
     }
     return 0;
@@ -239,7 +275,7 @@ Parser::parse(stringstream *str, AST * & result){
 
     try{
         /* Lex */
-        setStream(str);
+        lexer->switch_streams((istream *)str);
 
         int ret;
         do{
@@ -268,9 +304,9 @@ Parser::parse(stringstream *str, AST * & result){
 
 
 int
-Parser::newNode(string str, Symbol sym){
+Parser::newNode(prodSym sym,string str){
     
-    Node *node = new Node(str,sym);
+    Node *node = new Node(sym,str);
     astStk.push(node);
 }
 
@@ -291,8 +327,8 @@ Parser::saveNode(){
 
 
 int
-Parser::saveNode(string str,Symbol sym){
-    newNode(str,sym);
+Parser::saveNode(prodSym sym,string str){
+    newNode(sym,str);
     saveNode();
     return 1;
 }
@@ -307,12 +343,18 @@ Parser::removeNode(){
 
 }
 
+
 /* ABSTRACT SYNTAX TREE CLASS IMPLEMENTATION */
 
 AST::AST(){};
 
-AST::AST(string name, int symbol): n(name), s(symbol){};
+AST::AST(int symbol, string name, int lineno): 
+    n(name),
+    s(symbol),
+    ln(lineno)
+{};
 
+// TODO implement destructor
 AST::~AST(){};
 
 

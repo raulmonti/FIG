@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <FlexLexer.h>
+#include "debug.h"
 
 
 
@@ -13,7 +14,7 @@ using namespace std;
 namespace parser{
 
 
-/* The symbols corresponding to the caracterization of
+/* The symbols corresponding to the characterization of
    each word that is going to be lexed.
 */
 typedef enum    { MEOF    // my end of file symbol
@@ -40,28 +41,35 @@ typedef enum    { MEOF    // my end of file symbol
                 , DUM     // dummy symbol
                 } Symbol;
 
+/* prodSym is used to identify each production of the grammar. The _
+   is used to easily distinguish them from the Symbol type ones.
+*/
+typedef enum    { _EOF, _NUM, _INT, _NM, _KMOD, _KVAR, _KCS, _KTRN, _CLK, 
+                  _CLN, _SCLN, _DSTR,
+                  _DUM
+                } prodSym;
+
 
 static const char symTable[][11] =
     {"EOF","NUM","MODULE","CLKS","VARS","TRANS","NAME","WS","NL","INT"};
 
 
 
+/*** The Abstract Syntax Tree class ***/
+
 class AST
 {
-
-
 public:
 
     string n;       // name
     int s;          // symbol
-    vector<AST*> l; // list of childs
+    int ln;
+    vector<AST*> l; // list of children
  
-   
-
     // Constructor.
     AST(void);
 
-    AST(string name, int symbol);
+    AST(int symbol = _DUM, string name ="", int lineno = -1);
 
     // Destructor.
     virtual ~AST();
@@ -71,9 +79,7 @@ public:
     {
         l.push_back(c);
     }
-
 };
-
 
 // Node is the same as AST.
 typedef AST Node;
@@ -81,16 +87,14 @@ typedef AST Node;
 
 
 
-
-
-/* Parser Class */
+/*** Parser Class ***/
 class Parser
 { 
     /* */
     FlexLexer* lexer;            // The Lexer
 
     /* When lexing a string, each lexed word will be kept in
-       @strvec, and the symbol of the corresponding tipe will
+       @strvec, and the symbol of the corresponding type will
        be kept in @symvec at the same position. This is to
        be used later by the parser.
     */
@@ -99,7 +103,7 @@ class Parser
 
     /* */
     stack<int>   lastk;           // Stack for saving locations to lookahead.
-    Symbol       sym;             // Current stracted token.
+    Symbol       sym;             // Current extracted token.
     int          pos;             // Actual position of the parser in symvec.
     int          lastpos;         // Position of the last accepted symbol.
     string       lastAcc;         // Last accepted token.
@@ -114,22 +118,58 @@ public:
     /**/
     virtual ~Parser();
 
+    /* @Parse: Parse from stream @str, and build the resulting AST into
+       the parameter @result.
+       @return: 1 if successful, 0 otherwise.
+    */
+    int
+    parse(stringstream *str, AST * & result);
 
+    
+    /* @Parsing ends when there is no more words to check
+       at the lexed vector.
+       @return: 1 if parsing ended, 0 otherwise.
+    */
+    inline int
+    ended(){
+        return pos == symvec.size()-1;
+    }
 private:
 
 
-    // FIXME Comment this methods
-    int
-    newNode(string str, Symbol sym);
+/*** Building the AST ***/
 
+    /* @newNode: add a new node to the parsers abstract syntax tree stack.
+       Should be called at the beginning of matching of grammar production,
+       enabling to save the result of parsing.
+       @str: the parsed string for the node.
+       @sym: the grammar type for this parsed string.
+    */
+    int
+    newNode(prodSym sym, string str);
+
+    /* @saveNode: Should be called after a correct match of a grammar
+       production. It attaches the top Node from the stack to its
+       father, and removes it from the stack since it is a completed
+       production.
+    */
     int
     saveNode();
 
+    /* @saveNode: when called with params @str and @sym, it is a shortcut
+       to <newNode(str,sym); saveNode();>
+    */
     int
-    saveNode(string str, Symbol sym);
+    saveNode(prodSym sym, string str);
 
+    /* @removeNode: should be called if the current production was not
+       successfully matched.
+    */
     int
     removeNode();
+
+
+/*** Parsing methods ***/
 
 
     /* @Get the line number for the word at position @p in
@@ -158,8 +198,8 @@ private:
     }
 
     /* @Read the next symbol from the lexed vector and make it
-        abalable in @sym class member. If @skipws then will skip
-        white space symbols and make abalable the next non white 
+        available in @sym class member. If @skipws then will skip
+        white space symbols and make available the next non white 
         one. If the end of the lexed symbols is reached the @sym
         will contain the MEOF symbol.
     */
@@ -177,9 +217,11 @@ private:
     */
     int expect(Symbol s);
 
+
 /*** For looking ahead in the grammar. ***/
 
-    /* @Save state to be able to bacjtrack if a grammar
+
+    /* @Save state to be able to backtrack if a grammar
        is not finally matched.
     */
     inline int
@@ -193,7 +235,7 @@ private:
     loadLocation();
 
     /* @When we do not need to keep the last saved location,
-       mainly beacause the grammar involved whas matched, we
+       mainly because the grammar involved was matched, we
        can remove it from our saved locations.
     */
     inline int
@@ -201,10 +243,12 @@ private:
         lastk.pop();
     }
 
+
 /*** Grammar Rules ***/
 
+
     /* @The starting point of the grammar to be parsed with the
-        recurive descent parser.
+        recursive descent parser.
        @return: ...
     */
     int 
@@ -226,38 +270,22 @@ private:
     int
     rTraSec();
 
-public:
-
-
-    /* Set input stream from which to parse.
-    */
-    inline int
-    setStream(stringstream *ss){
-        lexer->switch_streams((istream *)ss);
-    }
-
-
-    /* @Parse ...
-       @return: ...
-    */
+    /* @Rule: CLOCK DEFINITION */
     int
-    parse(stringstream *str, AST * & result);
+    rClkDef();
 
-    
-    /* @Parsing ends when there is no more words to check
-       at the lexed vector.
-       @return: 1 if parsing ended, 0 otherwise.
-    */
-    inline int
-    ended(){
-        return pos == symvec.size()-1;
-    }
+    /* @Rule: Distribution */
+    int
+    rDistr();
 
 }; // End class Parser.
 
 
 
 } // End namespace parser.
+
+
+/*** '<<' overloading for the AST structure ***/
 
 std::ostream& operator<< (std::ostream& out, parser::AST const& ast);
 

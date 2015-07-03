@@ -1,6 +1,7 @@
 MODULE modone
 
 CLKS
+    clockone:mu; clocktwo:lambda;
 
 VARS
 
@@ -8,6 +9,10 @@ TRANS
 
 MODULE modtwo
 
+CLKS
+    clockthree:delta;
+    clockfour:epsilon;
+$
 TRANS
 
 MODULE modthree

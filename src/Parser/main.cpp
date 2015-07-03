@@ -17,9 +17,9 @@ main (int argc, char** argv){
 
     assert( argc == 2);
 
-    cout << "RUNNING THE PARSER" << endl << endl;
+    cout << ">> Running the parser ..." << endl;
     
-    cout << "Parsing file: " << argv[1] << endl << endl;
+    cout << ">> Parsing file: " << argv[1] << endl ;
 
     parser::Parser *parser = new parser::Parser();
 
@@ -29,7 +29,7 @@ main (int argc, char** argv){
 
     parser::AST * ast;
     if(parser->parse(& ss, ast)){
-        cout << *ast << endl;
+        cout << ">> Result of Parsing:\n\n" <<  *ast << endl << endl;
     }
 
     delete parser;
