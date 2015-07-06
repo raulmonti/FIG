@@ -7,7 +7,7 @@
 #include "parser.h"
 #include "exceptions.h"
 
-//TODO load linenumbers into nodes
+//TODO reset parser method
 
 
 // Overloading for printing ASTs.
@@ -44,6 +44,8 @@ Parser::Parser(void){
     pos   = -1;
     lastpos = pos;
     skipws = true;
+    int lineno = 1;
+    int colnum = 1;
 }
 
 
@@ -61,11 +63,8 @@ Parser::~Parser(){
 int
 Parser::getLineNum(int p){
     assert(p < static_cast<int>(symvec.size()));
-    int result = 1;
-    for(int i = 0; i < p; i++){
-        if(symvec[i] == NL) result++;
-    }
-    return result;
+    
+    return linevec[p];
 }
 
 
@@ -77,13 +76,8 @@ Parser::getLineNum(int p){
 int 
 Parser::getColumnNum(int p){
     assert(p < static_cast<int>(symvec.size()));
-    int result = 1;
 
-    for(int i = p-1; i >= 0 && symvec[i] != NL; i--){
-        result += strvec[i].size();
-    }    
-
-    return result;
+    return colvec[p];
 }
 
 
@@ -183,10 +177,10 @@ Parser::rModule(){
 
     if(accept(KMOD)){                           // Should be
         // This node is a MODULE node
-        newNode(_KMOD,lastAcc);
+        newNode(_KMOD,lastAcc,lineno,colnum);
         // Get the modules name
         expect(NAME);                           // Has to be
-        saveNode(_NM,lastAcc);
+        saveNode(_NM,lastAcc,lineno,colnum);
         
         rClkSec();                              // ?
         rVarSec();                              // ?
@@ -203,7 +197,7 @@ Parser::rModule(){
 int
 Parser::rClkSec(){
     if(accept(KCS)){
-        saveNode(_KCS,lastAcc);
+        saveNode(_KCS,lastAcc,lineno,colnum);
         __debug__("Found clock section.\n");
         while(rClkDef()){;}       
         return 1;
@@ -215,14 +209,14 @@ Parser::rClkSec(){
 int
 Parser::rClkDef(){
 
-    newNode(_CLK,string(""));
+    newNode(_CLK,string(""),lineno,colnum);
     if (accept(NAME)){
-        saveNode(_NM, lastAcc);
+        saveNode(_NM, lastAcc,lineno,colnum);
         if(accept(CLN)){
-            saveNode(_CLN, lastAcc);
+            saveNode(_CLN, lastAcc,lineno,colnum);
             if(rDistr()){
                 expect(SCLN);
-                saveNode(_SCLN, lastAcc);
+                saveNode(_SCLN, lastAcc,lineno,colnum);
                 saveNode(); //_CLK
                 return 1;
             }
@@ -236,7 +230,7 @@ Parser::rClkDef(){
 int
 Parser::rDistr(){
     if(accept(NAME)){
-        saveNode(_DSTR, string(lastAcc));
+        saveNode(_DSTR, string(lastAcc),lineno,colnum);
         return 1;
     }
     return 0;
@@ -247,7 +241,7 @@ Parser::rDistr(){
 int
 Parser::rVarSec(){
     if(accept(KVS)){
-        saveNode(_KCS,lastAcc);
+        saveNode(_KCS,lastAcc,lineno,colnum);
         __debug__("Found variables section.\n");
         return 1;
     }
@@ -258,7 +252,7 @@ Parser::rVarSec(){
 int
 Parser::rTraSec(){
     if(accept(KTS)){
-        saveNode(_KCS,lastAcc);
+        saveNode(_KCS,lastAcc,lineno,colnum);
         __debug__("Found transitions section.\n");
         return 1;
     }
@@ -282,6 +276,17 @@ Parser::parse(stringstream *str, AST * & result){
             ret = lexer->yylex();
             symvec.push_back(static_cast<Symbol>(ret));
             strvec.push_back(lexer->YYText());
+
+            linevec.push_back(lineno);
+            colvec.push_back(colnum);
+
+            if (ret == NL){
+                lineno++;
+                colnum = 0;
+            }else{
+                colnum += lexer->YYLeng();
+            }   
+            
         }while(ret != 0);
 
         /* Parse */
@@ -304,9 +309,9 @@ Parser::parse(stringstream *str, AST * & result){
 
 
 int
-Parser::newNode(prodSym sym,string str){
+Parser::newNode(prodSym sym,string str, int line, int col){
     
-    Node *node = new Node(sym,str);
+    Node *node = new Node(sym,str,line,col);
     astStk.push(node);
 }
 
@@ -327,8 +332,8 @@ Parser::saveNode(){
 
 
 int
-Parser::saveNode(prodSym sym,string str){
-    newNode(sym,str);
+Parser::saveNode(prodSym sym,string str, int line, int col){
+    newNode(sym,str,line,col);
     saveNode();
     return 1;
 }
@@ -348,10 +353,11 @@ Parser::removeNode(){
 
 AST::AST(){};
 
-AST::AST(int symbol, string name, int lineno): 
+AST::AST(int symbol, string name, int line, int col): 
     n(name),
     s(symbol),
-    ln(lineno)
+    ln(line),
+    cl(col)
 {};
 
 // TODO implement destructor

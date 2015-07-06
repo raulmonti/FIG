@@ -10,6 +10,7 @@
 
 /* This tells flex to read only one input file */
 %option noyywrap
+%option yylineno
 
 
 %%
@@ -65,9 +66,7 @@ TRANS   {
 [^[:alnum:]]    {
                     stringstream ss;
                     ss << " at line " << yylineno << endl;
-                    string str;
-                    ss >> str;
-                    str = string(yytext) + str;
+                    string str = string(yytext) + ss.str();
                     throw new Badcharfound(str);
                 }
 

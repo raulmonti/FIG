@@ -63,13 +63,14 @@ public:
 
     string n;       // name
     int s;          // symbol
-    int ln;
+    int ln;         // line number
+    int cl;         // column number
     vector<AST*> l; // list of children
  
     // Constructor.
     AST(void);
 
-    AST(int symbol = _DUM, string name ="", int lineno = -1);
+    AST(int symbol = _DUM, string name ="", int line = 0, int col = 0);
 
     // Destructor.
     virtual ~AST();
@@ -98,8 +99,14 @@ class Parser
        be kept in @symvec at the same position. This is to
        be used later by the parser.
     */
-    std::vector<Symbol> symvec;  // Vector with lexed tokens.
-    std::vector<string> strvec;  // Vector with lexed words.
+    vector<Symbol> symvec;  // Vector with lexed tokens.
+    vector<string> strvec;  // Vector with lexed words.
+    // FIXME the following two vectors may not be needed
+    vector<int>    linevec; // Line number of words from strvec
+    vector<int>    colvec;  // Column number of words from strvec
+    // END FIXME
+    int            lineno;
+    int            colnum;
 
     /* */
     stack<int>   lastk;           // Stack for saving locations to lookahead.
@@ -109,6 +116,8 @@ class Parser
     string       lastAcc;         // Last accepted token.
     stack<Node*> astStk;
     bool         skipws;          // Skip white spaces?.
+
+
 
 public:
 
@@ -146,7 +155,7 @@ private:
        @sym: the grammar type for this parsed string.
     */
     int
-    newNode(prodSym sym, string str);
+    newNode(prodSym sym, string str, int line = 0, int col = 0);
 
     /* @saveNode: Should be called after a correct match of a grammar
        production. It attaches the top Node from the stack to its
@@ -160,7 +169,7 @@ private:
        to <newNode(str,sym); saveNode();>
     */
     int
-    saveNode(prodSym sym, string str);
+    saveNode(prodSym sym, string str, int line = 0, int col = 0);
 
     /* @removeNode: should be called if the current production was not
        successfully matched.

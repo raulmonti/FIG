@@ -19,7 +19,6 @@
      * We will address this in a future release of flex, or omit the C++ scanner
      * altogether.
      */
-//    #define yyFlexLexer yyFlexLexer
 
 /* First, we deal with  platform-specific or compiler-specific issues. */
 
@@ -179,7 +178,20 @@ extern int yyleng;
 #define EOB_ACT_END_OF_FILE 1
 #define EOB_ACT_LAST_MATCH 2
 
-    #define YY_LESS_LINENO(n)
+    /* Note: We specifically omit the test for yy_rule_can_match_eol because it requires
+     *       access to the local variable yy_act. Since yyless() is a macro, it would break
+     *       existing scanners that call yyless() from OUTSIDE yylex. 
+     *       One obvious solution it to make yy_act a global. I tried that, and saw
+     *       a 5% performance hit in a non-yylineno scanner, because yy_act is
+     *       normally declared as a register variable-- so it is not worth it.
+     */
+    #define  YY_LESS_LINENO(n) \
+            do { \
+                int yyl;\
+                for ( yyl = n; yyl < yyleng; ++yyl )\
+                    if ( yytext[yyl] == '\n' )\
+                        --yylineno;\
+            }while(0)
     
 /* Return all but the first "n" matched characters back to the input stream. */
 #define yyless(n) \
@@ -427,6 +439,11 @@ static yyconst flex_int16_t yy_chk[71] =
        35,   35,   35,   35,   35,   35,   35,   35,   35,   35
     } ;
 
+/* Table of booleans, true if rule could match eol. */
+static yyconst flex_int32_t yy_rule_can_match_eol[13] =
+    {   0,
+0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0,     };
+
 /* The intent behind this definition is that it'll catch
  * any uses of REJECT which flex missed.
  */
@@ -443,7 +460,7 @@ static yyconst flex_int16_t yy_chk[71] =
 #include "exceptions.h"
 #include "debug.h" 
 /* This tells flex to read only one input file */
-#line 447 "lex.yy.cc"
+#line 465 "lex.yy.cc"
 
 #define INITIAL 0
 
@@ -548,10 +565,10 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 15 "lexer.l"
+#line 16 "lexer.l"
 
 
-#line 555 "lex.yy.cc"
+#line 573 "lex.yy.cc"
 
 	if ( !(yy_init) )
 		{
@@ -623,6 +640,16 @@ yy_find_action:
 
 		YY_DO_BEFORE_ACTION;
 
+		if ( yy_act != YY_END_OF_BUFFER && yy_rule_can_match_eol[yy_act] )
+			{
+			int yyl;
+			for ( yyl = 0; yyl < yyleng; ++yyl )
+				if ( yytext[yyl] == '\n' )
+					   
+    yylineno++;
+;
+			}
+
 do_action:	/* This label is used only to access EOF actions. */
 
 		switch ( yy_act )
@@ -636,7 +663,7 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 17 "lexer.l"
+#line 18 "lexer.l"
 {
             __debug__("Saw a Number: ");__debug__(yytext);__debug__("\n");
             return parser::NUM;
@@ -644,7 +671,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 22 "lexer.l"
+#line 23 "lexer.l"
 {
             __debug__("Saw a Module: ");__debug__(yytext);__debug__("\n");
             return parser::KMOD;
@@ -652,7 +679,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 27 "lexer.l"
+#line 28 "lexer.l"
 {
             __debug__("Saw a Clock: ");__debug__(yytext);__debug__("\n");
             return parser::KCS;
@@ -660,7 +687,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 32 "lexer.l"
+#line 33 "lexer.l"
 {
             __debug__("Saw a Variable: ");__debug__(yytext);__debug__("\n");
             return parser::KVS;
@@ -668,7 +695,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 37 "lexer.l"
+#line 38 "lexer.l"
 {
             __debug__("Saw a Transition: ");__debug__(yytext);__debug__("\n");
             return parser::KTS;
@@ -676,7 +703,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 42 "lexer.l"
+#line 43 "lexer.l"
 {
             __debug__("Saw a Name: ");__debug__(yytext);__debug__("\n");
             return parser::NAME;
@@ -684,7 +711,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 47 "lexer.l"
+#line 48 "lexer.l"
 {    
             __debug__("Saw a WS: ");__debug__(yytext);__debug__("\n");
             return parser::WS;
@@ -693,7 +720,7 @@ YY_RULE_SETUP
 case 8:
 /* rule 8 can match eol */
 YY_RULE_SETUP
-#line 52 "lexer.l"
+#line 53 "lexer.l"
 { 
             __debug__("Saw a NL: ");__debug__(yytext);__debug__("\n");
             return parser::NL;
@@ -701,7 +728,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 57 "lexer.l"
+#line 58 "lexer.l"
 {
             __debug__("Saw a Colon: ");__debug__(yytext);__debug__("\n");
             return parser::CLN;
@@ -709,7 +736,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 61 "lexer.l"
+#line 62 "lexer.l"
 {
             __debug__("Saw a SemiColon: ");__debug__(yytext);__debug__("\n");
             return parser::SCLN;
@@ -718,22 +745,20 @@ YY_RULE_SETUP
 case 11:
 /* rule 11 can match eol */
 YY_RULE_SETUP
-#line 65 "lexer.l"
+#line 66 "lexer.l"
 {
                     stringstream ss;
                     ss << " at line " << yylineno << endl;
-                    string str;
-                    ss >> str;
-                    str = string(yytext)+str;
+                    string str = string(yytext) + ss.str();
                     throw new Badcharfound(str);
                 }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 75 "lexer.l"
+#line 74 "lexer.l"
 ECHO;
 	YY_BREAK
-#line 737 "lex.yy.cc"
+#line 763 "lex.yy.cc"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1183,6 +1208,10 @@ int yyFlexLexer::yy_get_next_buffer()
 
 	*--yy_cp = (char) c;
 
+    if ( c == '\n' ){
+        --yylineno;
+    }
+
 	(yytext_ptr) = yy_bp;
 	(yy_hold_char) = *yy_cp;
 	(yy_c_buf_p) = yy_cp;
@@ -1251,6 +1280,11 @@ int yyFlexLexer::yy_get_next_buffer()
 	c = *(unsigned char *) (yy_c_buf_p);	/* cast for 8-bit char's */
 	*(yy_c_buf_p) = '\0';	/* preserve yytext */
 	(yy_hold_char) = *++(yy_c_buf_p);
+
+	if ( c == '\n' )
+		   
+    yylineno++;
+;
 
 	return c;
 }
@@ -1633,7 +1667,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 75 "lexer.l"
+#line 74 "lexer.l"
 
 
 

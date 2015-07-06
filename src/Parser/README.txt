@@ -18,7 +18,8 @@
 3) g++ -c lex.yy.cc && g++ -c parser.cpp -std=c++11 && g++ main.cpp lex.yy.o parser.o -o Parser
 4) ./Parser test.fig
 
-
+* Or the fast way:
+* flex++ lexer.l && sed -i '/#define yyFlexLexer yyFlexLexer/d' ./lex.yy.cc && g++ -c lex.yy.cc && g++ -c parser.cpp -std=c++11 && g++ main.cpp lex.yy.o parser.o -o Parser && ./Parser test.fig
 
 #############################################
 # TODO

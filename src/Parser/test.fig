@@ -7,12 +7,12 @@ VARS
 
 TRANS
 
-MODULE modtwo
+MODULE modtwo sfa
 
 CLKS
     clockthree:delta;
     clockfour:epsilon;
-$
 TRANS
+
 
 MODULE modthree
