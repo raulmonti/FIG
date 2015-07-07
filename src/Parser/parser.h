@@ -8,7 +8,6 @@
 #include "debug.h"
 
 
-
 using namespace std;
 
 namespace parser{
@@ -55,6 +54,11 @@ static const char symTable[][11] =
 
 
 
+
+
+
+
+
 /*** The Abstract Syntax Tree class ***/
 
 class AST
@@ -69,7 +73,6 @@ public:
  
     // Constructor.
     AST(void);
-
     AST(int symbol = _DUM, string name ="", int line = 0, int col = 0);
 
     // Destructor.
@@ -82,13 +85,18 @@ public:
     }
 };
 
-// Node is the same as AST.
-typedef AST Node;
+typedef AST Node; // Node is the same as AST.
+
+
+
+
+
 
 
 
 
 /*** Parser Class ***/
+
 class Parser
 { 
     /* */
@@ -101,11 +109,7 @@ class Parser
     */
     vector<Symbol> symvec;  // Vector with lexed tokens.
     vector<string> strvec;  // Vector with lexed words.
-    // FIXME the following two vectors may not be needed
-    vector<int>    linevec; // Line number of words from strvec
-    vector<int>    colvec;  // Column number of words from strvec
-    // END FIXME
-    int            lineno;
+    int            lineno;  
     int            colnum;
 
     /* */

@@ -7,10 +7,9 @@
 #include "parser.h"
 #include "exceptions.h"
 
-//TODO reset parser method
 
 
-// Overloading for printing ASTs.
+/*** Overloading for printing ASTs. ***/
 std::ostream& operator<< (std::ostream& out, parser::AST const& ast){
     cout << "(" << ast.s << ", " << ast.n << ", [";
 
@@ -29,13 +28,14 @@ std::ostream& operator<< (std::ostream& out, parser::AST const& ast){
 
 
 
+
+
 using namespace std;
-
-
 
 namespace parser{
 
 /*** Parser class implementation ***/
+
 
 /* @Parser class constructor.
 */ 
@@ -63,8 +63,11 @@ Parser::~Parser(){
 int
 Parser::getLineNum(int p){
     assert(p < static_cast<int>(symvec.size()));
-    
-    return linevec[p];
+    int result = 1;
+    for(int i = 0; i < p; i++){
+        if(symvec[i] == NL) result++;
+    }
+    return result;
 }
 
 
@@ -76,10 +79,14 @@ Parser::getLineNum(int p){
 int 
 Parser::getColumnNum(int p){
     assert(p < static_cast<int>(symvec.size()));
+    int result = 1;
 
-    return colvec[p];
+    for(int i = p-1; i >= 0 && symvec[i] != NL; i--){
+        result += strvec[i].size();
+    }    
+
+    return result;
 }
-
 
 /* @Get the next symbol from the lexed vector and make it
     available in @sym class member. If @skipws then will skip
@@ -277,9 +284,6 @@ Parser::parse(stringstream *str, AST * & result){
             symvec.push_back(static_cast<Symbol>(ret));
             strvec.push_back(lexer->YYText());
 
-            linevec.push_back(lineno);
-            colvec.push_back(colnum);
-
             if (ret == NL){
                 lineno++;
                 colnum = 0;
@@ -349,7 +353,7 @@ Parser::removeNode(){
 }
 
 
-/* ABSTRACT SYNTAX TREE CLASS IMPLEMENTATION */
+/*** Abstract syntax tree class implementation. ***/
 
 AST::AST(){};
 
@@ -360,9 +364,12 @@ AST::AST(int symbol, string name, int line, int col):
     cl(col)
 {};
 
-// TODO implement destructor
-AST::~AST(){};
 
-
+AST::~AST(){
+    for( int i = 0; i < l.size(); i++){
+        delete l[i];
+        l[i] = NULL;
+    }
+}
 
 }

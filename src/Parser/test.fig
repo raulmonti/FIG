@@ -7,7 +7,7 @@ VARS
 
 TRANS
 
-MODULE modtwo sfa
+MODULE modtwo
 
 CLKS
     clockthree:delta;

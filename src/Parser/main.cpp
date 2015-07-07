@@ -33,6 +33,7 @@ main (int argc, char** argv){
     }
 
     delete parser;
+    delete ast;
 
     return 0;
 }
