@@ -29,8 +29,12 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 PROJECT (fig)
 
 SET(fig_VERSION_MAYOR 0)
-SET(fig_VERSION_MINOR 1)
- 
+SET(fig_VERSION_MINOR 2)
+
+
+
+###  Project directory structure  #############################################
+
 # Default directories configuration
 SET(SOURCES_DIR ${PROJECT_SOURCE_DIR}/src)
 SET(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
@@ -49,9 +53,20 @@ CONFIGURE_FILE (
  
 # Includes
 INCLUDE_DIRECTORIES(${INCLUDE_DIR})
-#INCLUDE_DIRECTORIES(${INCLUDE_DIR}/boost)
 
-# Check for c++11 standard support
+
+ 
+###  Compiler configuration  ##################################################
+ 
+#MESSAGE("Using  C  compiler ${CMAKE_C_COMPILER_ID}")
+#MESSAGE("Using C++ compiler ${CMAKE_CXX_COMPILER_ID}")
+
+# Highly defensive compile flags
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
+# Avoid BGL warnings
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+
+# Demand support for c++11 standard
 INCLUDE(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 IF(COMPILER_SUPPORTS_CXX11)
@@ -61,7 +76,9 @@ ELSE()
 ENDIF()
 
 
-# Executable
+
+###  Build executable  ########################################################
+
 #ADD_EXECUTABLE(bgl_test ${SOURCES_DIR}/bgl_basic_graph.cpp)
 ADD_EXECUTABLE(bgl_test ${SOURCES_DIR}/bgl_weighted_graph.cpp)
 
