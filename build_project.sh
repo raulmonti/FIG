@@ -28,14 +28,27 @@ else
 	fi
 fi
 
-# Choose compiler
-if [ "`which clang`" ]; then CCOMP=clang
-elif [ "`which gcc`" ]; then CCOMP=gcc
-else
-	echo "[ERROR] Nor Clang neither GNU C/C++ compiler was found, aborting."
+# Choose compiler (prefer clang over gcc)
+if [ "`which clang`" ]
+then
+	# We need version 3.4 or later
+	CLANG_VERSION_MAJOR=$(clang --version | grep -o "[0-9]\.[0-9.]*" | head -1)
+	CLANG_VERSION_MINOR=$(echo $CLANG_VERSION_MAJOR | cut -d"." -f 2)
+	CLANG_VERSION_MAJOR=$(echo $CLANG_VERSION_MAJOR | cut -d"." -f 1)
+	if [ $CLANG_VERSION_MAJOR -ge 3 ] && [ $CLANG_VERSION_MINOR -ge 4 ]
+	then
+		CCOMP=clang
+	fi
+elif [ "`which gcc`" ]
+then
+	# Any c++11 compatible version is fine (that's checked in cmake)
+	CCOMP=gcc
+fi
+if [ -z "$CCOMP" ]
+then
+	echo "[ERROR] No compatible clang or gcc version was found, aborting."
 	exit 1
 fi
-CCOMP=gcc  # FIXME Override for now
 
 # Configure and build from inside DIR
 if [ ! -d $DIR ]; then mkdir $DIR; fi

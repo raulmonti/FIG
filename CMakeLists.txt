@@ -58,13 +58,17 @@ INCLUDE_DIRECTORIES(${INCLUDE_DIR})
  
 ###  Compiler configuration  ##################################################
  
-#MESSAGE("Using  C  compiler ${CMAKE_C_COMPILER_ID}")
-#MESSAGE("Using C++ compiler ${CMAKE_CXX_COMPILER_ID}")
-
-# Highly defensive compile flags
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
-# Avoid BGL warnings
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+# If Clang was chosen check for compatible version
+IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	SET(CLANG_VERSION_REQUIRED 3.4)
+	IF(CMAKE_CXX_COMPILER_VERSION VERSION_LESS CLANG_VERSION_REQUIRED)
+		MESSAGE(FATAL_ERROR
+			"Clang compiler version too old (${CMAKE_CXX_COMPILER_VERSION})"
+			" -- ${CMAKE_C_COMPILER} ${CLANG_VERSION_REQUIRED} or greater "
+			"is required.")
+	ENDIF()
+ENDIF()
+MESSAGE("Using ${CMAKE_CXX_COMPILER_ID} compiler version ${CMAKE_CXX_COMPILER_VERSION}")
 
 # Demand support for c++11 standard
 INCLUDE(CheckCXXCompilerFlag)
@@ -74,6 +78,11 @@ IF(COMPILER_SUPPORTS_CXX11)
 ELSE()
 	MESSAGE(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support.")
 ENDIF()
+
+# Highly defensive compile flags
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
+# Avoid BGL warnings due to " = default"
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
 
 
 
