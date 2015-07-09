@@ -68,7 +68,8 @@ IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 			"is required.")
 	ENDIF()
 ENDIF()
-MESSAGE("Using ${CMAKE_CXX_COMPILER_ID} compiler version ${CMAKE_CXX_COMPILER_VERSION}")
+MESSAGE("Using ${CMAKE_CXX_COMPILER_ID} compiler "
+	    "version ${CMAKE_CXX_COMPILER_VERSION}")
 
 # Demand support for c++11 standard
 INCLUDE(CheckCXXCompilerFlag)
@@ -89,5 +90,6 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
 ###  Build executable  ########################################################
 
 #ADD_EXECUTABLE(bgl_test ${SOURCES_DIR}/bgl_basic_graph.cpp)
-ADD_EXECUTABLE(bgl_test ${SOURCES_DIR}/bgl_weighted_graph.cpp)
+#ADD_EXECUTABLE(bgl_test ${SOURCES_DIR}/bgl_weighted_graph.cpp)
+ADD_EXECUTABLE(bgl_test ${SOURCES_DIR}/bgl_graph_structure_change.cpp)
 
