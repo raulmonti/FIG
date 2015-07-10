@@ -4,11 +4,15 @@
 #include <tuple>       // std::tuple<>
 #include <utility>     // std::pair
 #include <algorithm>   // std::for_each, std::swap
+#include <cassert>     // assert()
+#include <cstring>     // strdup()
+#include <ctime>       // clock, CLOCKS_PER_SEC
 #include <unistd.h>    // EXIT_{SUCCESS,FAILURE}
 #include <libgen.h>    // basename()
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/graph_utility.hpp>
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/transpose_graph.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 #include <boost/graph/compressed_sparse_row_graph.hpp>
 
@@ -109,14 +113,14 @@ AdjGraph model;
 
 void TODO(int lineNum)
 {
-	static const string file(basename(const_cast<char*>(string(__FILE__).c_str())));
-	std::stringstream TODO; TODO << file << ":" << lineNum << " -- TODO";
+	std::stringstream TODO;
+	TODO << basename(strdup(__FILE__ ":")) << lineNum << " -- TODO";
 	throw GraphException(TODO.str().c_str());
 }
 
-void populateAdjacencyGraph()
+void populateAdjacencyGraph(AdjGraph& g)
 {
-	if (bgl::num_vertices(model) > 0)
+	if (bgl::num_vertices(g) > 0)
 		return;  // already has something
 
 	// Vertices with properties
@@ -130,12 +134,12 @@ void populateAdjacencyGraph()
 	const int numNodes(sizeof(states)/sizeof(states[0]));
 	// Feed them into the graph
 	for (int i=0 ; i<numNodes ; i++) {
-		bgl::add_vertex(states[i], model);
+		bgl::add_vertex(states[i], g);
 	}
 
 	// Edges with properties
 	typedef std::tuple<int,int,Probability> Edge;
-	auto viMap = bgl::get(bgl::vertex_index, model);
+	auto viMap = bgl::get(bgl::vertex_index, g);
 	const std::vector<Edge> edges = {
 		std::make_tuple(viMap[0], viMap[2], 1.0),
 		std::make_tuple(viMap[1], viMap[1], 0.0),
@@ -152,14 +156,46 @@ void populateAdjacencyGraph()
 		int s, t;
 		Probability p;
 		std::tie(s, t, p) = *it;
-		bgl::add_edge(s, t, p, model);
+		bgl::add_edge(s, t, p, g);
 	}
 }
 
 
-void reverseGraphEdges(AdjGraph& g)
+/**
+ * @brief Create new graph equal to argument but with edges reversed
+ * @remarks Memory  heavy
+ * @remarks Runtime light
+ */
+AdjGraph createTransposedGraph(const AdjGraph& g)
 {
-	TODO(__LINE__);
+	AdjGraph gt;
+	bgl::transpose_graph<AdjGraph, AdjGraph>(g, gt);
+	assert(bgl::num_vertices(g) == bgl::num_vertices(gt));
+	assert(bgl::num_edges(g) == bgl::num_edges(gt));
+	return gt;  // You better be using move semantics, clang/gcc.
+}
+
+
+/**
+ * @brief Reverse all edges from argument
+ * @remarks Memory  light
+ * @remarks Runtime heavy
+ */
+void transposeGraph(AdjGraph& g)
+{
+//	bgl::graph_traits<AdjGraph>::edge_iterator eit, eit_end;
+//	for (bgl::tie(eit, eit_end) = bgl::edges(g) ; eit != eit_end ; eit++) {
+//		bgl::add_edge(bgl::target(*eit,g), bgl::source(*eit,g), g);
+//		bgl::remove_edge(*eit, g);
+//	}
+//	return;
+	AdjGraph _g;
+	BGL_FORALL_EDGES(e, g, AdjGraph) {
+		bgl::add_edge(bgl::target(e,g), bgl::source(e,g), _g);
+		bgl::remove_edge(e, g);
+	}
+	g.clear();
+	g = std::move(_g);
 }
 
 
@@ -175,26 +211,29 @@ CSRGraph crystallizeGraph(const AdjGraph& g)
 
 int main (int, char**)
 {
-	// Create some random mutable graph
-	cout << endl << "  -  -  -  -  -  -  -  -  -  -" << endl << endl;
-	populateAdjacencyGraph();
+	float t;
+
+	cout << endl << "  - Create some random mutable graph" << endl << endl;
+	populateAdjacencyGraph(model);
 	bgl::print_graph(model);
 
-	// Reverse its edges
-	cout << endl << "  -  -  -  -  -  -  -  -  -  -" << endl << endl;
-	reverseGraphEdges(model);
-	bgl::print_graph(model);
+	cout << endl << "  - Reverse its edges ";
+		t = static_cast<float>(clock());
+	model = createTransposedGraph(model);
+		cout << "(" << ((clock()-t)/CLOCKS_PER_SEC) << " s)" << endl << endl;
+		bgl::print_graph(model);
 
-	// Reverse edges again, result whould be as the original graph
-	cout << endl << "  -  -  -  -  -  -  -  -  -  -" << endl << endl;
-	reverseGraphEdges(model);
-	bgl::print_graph(model);
+	cout << endl << "  - Reverse again, obtaining original back ";
+		t = static_cast<float>(clock());
+	transposeGraph(model);
+		cout << "(" << ((clock()-t)/CLOCKS_PER_SEC) << " s)" << endl << endl;
+		bgl::print_graph(model);
 
-	// Compact graph into CSR format
-	cout << endl << "  -  -  -  -  -  -  -  -  -  -" << endl << endl;
+	cout << endl << "  - Compact graph into immutable CSR format ";
+		t = static_cast<float>(clock());
 	CSRGraph finalModel = crystallizeGraph(model);
-	bgl::print_graph(finalModel);
-	cout << endl << endl;
+		cout << "(" << ((clock()-t)/CLOCKS_PER_SEC) << " s)" << endl << endl;
+		bgl::print_graph(finalModel);
 
 	// TODO
 	//     Study BGL visitors?  http://www.boost.org/doc/libs/1_58_0/libs/graph/doc/DijkstraVisitor.html
