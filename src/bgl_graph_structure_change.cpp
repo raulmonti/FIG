@@ -5,6 +5,7 @@
 #include <utility>     // std::pair
 #include <algorithm>   // std::for_each, std::swap
 #include <unistd.h>    // EXIT_{SUCCESS,FAILURE}
+#include <libgen.h>    // basename()
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/graph_utility.hpp>
 #include <boost/graph/adjacency_list.hpp>
@@ -15,6 +16,8 @@
 namespace bgl = boost;
 using std::string;
 using std::vector;
+using std::cout;
+using std::endl;
 typedef std::pair<string,float> Pair;
 
 
@@ -31,19 +34,32 @@ public:
 	GraphException(const char* _msg) : msg(_msg) {}
 };
 
-struct Importance
+struct State
 {
-	Importance() : name(""), importance(0) {}
-	Importance(const string& _name, const float& _importance) :
+	State() : name(""), importance(0) {}
+	State(const string& _name, const float& _importance) :
 		name(_name),
 		importance(_importance)
 	{}
-	Importance(const Pair& imp) :
+	State(const Pair& imp) :
 		name(imp.first),
 		importance(imp.second)
 	{}
+	State(const State& that) :
+		name(that.name),
+		importance(that.importance)
+	{}
+	State(State&& that) noexcept :
+		name(std::move(that.name)),
+		importance(std::move(that.importance))
+	{}
+	State& operator=(State that) {
+		std::swap(name, that.name);
+		std::swap(importance, that.importance);
+		return *this;
+	}
 	string name;
-	float  importance;
+	float importance;
 };
 
 struct Probability
@@ -53,18 +69,33 @@ struct Probability
 		if (0.0 > weight || weight > 1.0)
 			throw GraphException("probability weights ∈ [0,1]");
 	}
-	Probability& operator=(Probability that) {
-		std::swap(weight, that.weight);
-		return *this;
-	}
 	float weight;
 };
 
-typedef bgl::adjacency_list<bgl::vecS,  bgl::vecS, bgl::directedS,
-							Importance, Probability>
-	AdjGraph;
+// template <class OutEdgeListS = vecS, // a Sequence or an AssociativeContainer
+//           class VertexListS = vecS,  // a Sequence or a RandomAccessContainer
+//           class DirectedS = directedS,
+//           class VertexProperty = no_property,
+//           class EdgeProperty = no_property,
+//           class GraphProperty = no_property,
+//           class EdgeListS = listS>
+typedef bgl::adjacency_list<
+	bgl::vecS,
+	bgl::vecS,
+	bgl::directedS,
+	State,
+	Probability>  AdjGraph;
 
-typedef bgl::compressed_sparse_row_graph<> CSRGraph;
+// template<typename Directed = directedS,
+//          typename VertexProperty = no_property,
+//          typename EdgeProperty = no_property,
+//          typename GraphProperty = no_property,
+//          typename Vertex = std::size_t,
+//          typename EdgeIndex = Vertex>
+typedef bgl::compressed_sparse_row_graph<
+	bgl::directedS,
+	State,
+	Probability>  CSRGraph;
 
 
 
@@ -76,23 +107,30 @@ AdjGraph model;
 
 //  Auxiliary functions  //////////////////////////////////////////////////////
 
+void TODO(int lineNum)
+{
+	static const string file(basename(const_cast<char*>(string(__FILE__).c_str())));
+	std::stringstream TODO; TODO << file << ":" << lineNum << " -- TODO";
+	throw GraphException(TODO.str().c_str());
+}
+
 void populateAdjacencyGraph()
 {
 	if (bgl::num_vertices(model) > 0)
 		return;  // already has something
 
 	// Vertices with properties
-	Importance nodesImportance[] = {
+	State states[] = {
 		Pair("Juan", 0.0),
 		Pair("Pepe", 0.0),
 		Pair(  "Ro", 0.0),
 		Pair( "Ita", 0.0),
 		Pair("RARE", 1.0)
 	};
-	const int numNodes(sizeof(nodesImportance)/sizeof(nodesImportance[0]));
+	const int numNodes(sizeof(states)/sizeof(states[0]));
 	// Feed them into the graph
 	for (int i=0 ; i<numNodes ; i++) {
-		bgl::add_vertex(nodesImportance[i], model);
+		bgl::add_vertex(states[i], model);
 	}
 
 	// Edges with properties
@@ -119,19 +157,46 @@ void populateAdjacencyGraph()
 }
 
 
+void reverseGraphEdges(AdjGraph& g)
+{
+	TODO(__LINE__);
+}
+
+
+CSRGraph crystallizeGraph(const AdjGraph& g)
+{
+	TODO(__LINE__);
+	return CSRGraph();
+}
+
+
 
 //  Main program  /////////////////////////////////////////////////////////////
 
 int main (int, char**)
 {
-
+	// Create some random mutable graph
+	cout << endl << "  -  -  -  -  -  -  -  -  -  -" << endl << endl;
 	populateAdjacencyGraph();
-
 	bgl::print_graph(model);
 
+	// Reverse its edges
+	cout << endl << "  -  -  -  -  -  -  -  -  -  -" << endl << endl;
+	reverseGraphEdges(model);
+	bgl::print_graph(model);
+
+	// Reverse edges again, result whould be as the original graph
+	cout << endl << "  -  -  -  -  -  -  -  -  -  -" << endl << endl;
+	reverseGraphEdges(model);
+	bgl::print_graph(model);
+
+	// Compact graph into CSR format
+	cout << endl << "  -  -  -  -  -  -  -  -  -  -" << endl << endl;
+	CSRGraph finalModel = crystallizeGraph(model);
+	bgl::print_graph(finalModel);
+	cout << endl << endl;
+
 	// TODO
-	//     Create adjacency list graph, reverse edges and transform into CSR graph
-	//     Print both structures and compare (check boost::print_graph)
 	//     Study BGL visitors?  http://www.boost.org/doc/libs/1_58_0/libs/graph/doc/DijkstraVisitor.html
 
 	return EXIT_SUCCESS;
