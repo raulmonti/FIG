@@ -133,7 +133,7 @@ typedef bgl::adjacency_list<
 typedef bgl::compressed_sparse_row_graph<
 	bgl::directedS,
 	State,
-	Probability>  CSRGraph;
+	GProbability>  CSRGraph;
 
 
 
@@ -197,8 +197,8 @@ void populateAdjacencyGraph(AdjGraph& g)
 
 /**
  * @brief Create new graph equal to argument but with edges reversed
- * @remarks Memory  heavy
- * @remarks Runtime light
+ * @remarks Mem usage: heavy
+ * @remarks CPU usage: light
  */
 AdjGraph createTransposedGraph(const AdjGraph& g)
 {
@@ -212,8 +212,8 @@ AdjGraph createTransposedGraph(const AdjGraph& g)
 
 /**
  * @brief Reverse all edges from argument
- * @remarks Memory  medium
- * @remarks Runtime heavy
+ * @remarks Mem usage: medium
+ * @remarks CPU usage: heavy
  */
 void transposeGraph(AdjGraph& g)
 {
@@ -248,11 +248,70 @@ void transposeGraph(AdjGraph& g)
 	}
 }
 
-
-CSRGraph crystallizeGraph(const AdjGraph& g)
+/**
+ * @brief Create CSR version of given graph, and erase it
+ * @remarks Argument is voided
+ * @remarks Mem usage: medium
+ * @remarks CPU usage: heavy
+ */
+CSRGraph crystallizeGraph(AdjGraph& g)
 {
-	TODO(__LINE__);
-	return CSRGraph();
+	CSRGraph gg;
+	const size_t CHUNKSIZE(4u);  // Number of edges copied per main loop iteration
+	typedef bgl::graph_traits<AdjGraph>::edge_descriptor EdgeDes;
+	std::set<EdgeDes> edges;
+
+	assert(0u < bgl::num_edges(g));
+
+	// Transfer the edges one CHUNKSIZE at a time, keeping memory requirements low
+	do {
+		const size_t chunkSize = std::min<size_t>(CHUNKSIZE, bgl::num_edges(g));
+		auto from = bgl::edges(g).first, to = from;
+		std::advance(to, chunkSize);
+		edges.insert(from, to);
+
+		/*
+		 * We need to create a bgl::iterator_property_map
+		 * that can iterate through properties of each edge, just like
+		 * "bgl::graph_traits<AdjGraph>::edge_iterator"
+		 * can iterate through the edge descriptor indices.
+		 *
+		 * The goal is to use the long version of the bgl::add_edges template,
+		 * which takes an InputIterator for the edges descriptors
+		 * and an EPIter for the edges undled properties.
+		 *
+		 * See http://goo.gl/2byiWe
+		 */
+
+		bgl::add_edges<bgl::graph_traits<AdjGraph>::edge_iterator,
+					   bgl::iterator_pro CSRGraph>  (from, to, gg);
+
+
+
+
+		// Remove transfered edges from original graph
+		struct processed_edges {
+			const AdjGraph _g_;
+			const std::set<EdgeDes> _e_;
+			processed_edges(const AdjGraph& _g, const processed_edges& _e) : _g_(_g), _e_(_e) {}
+			bool operator()(const EdgeDes& e) const { return _e_.end() != _e_.find(e); }
+		} was_processed(g,edges);
+		bgl::remove_edge_if(was_processed, g);
+		edges.clear();
+
+//		std::pair<bgl::graph_traits<AdjGraph>::edge_iterator,
+//				  bgl::graph_traits<AdjGraph>::edge_iterator> eit;
+//		eit = bgl::edges(g);
+//
+//		const size_t chunkSize = std::min<size_t>(CHUNKSIZE, bgl::num_edges(g));
+//		eit.second = eit.first; std::advance(eit.second, chunkSize);
+//		bgl::add_edges(eit.first, eit.second, gg);
+//		for (unsigned int i=0 ; i < CHUNKSIZE ; i++)
+//			bgl::remove_edge(eit.first++, g);
+	} while (0u < bgl::num_edges(g));
+	g.clear();
+
+	return gg;
 }
 
 
@@ -283,6 +342,7 @@ int main (int, char**)
 	cout << endl << "  - Compact graph into immutable CSR format ";
 		t = static_cast<float>(clock());
 	CSRGraph finalModel = crystallizeGraph(model);
+	model.clear();
 		cout << "(" << ((clock()-t)/CLOCKS_PER_SEC) << " s)" << endl << endl;
 		bgl::print_graph(finalModel);
 
