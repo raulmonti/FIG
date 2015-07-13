@@ -1,7 +1,8 @@
 #include <iostream>    // std::cout
 #include <string>      // std::string
-#include <vector>      // std:::vector<>
+#include <vector>      // std::vector<>
 #include <tuple>       // std::tuple<>
+#include <limits>      // std::numeric_limits<>
 #include <utility>     // std::pair
 #include <algorithm>   // std::for_each, std::swap
 #include <cassert>     // assert()
@@ -66,14 +67,47 @@ struct State
 	float importance;
 };
 
-struct Probability
+struct GProbability
 {
-	Probability() : weight(0.0) {}
-	Probability(float _weight) : weight(_weight) {
-		if (0.0 > weight || weight > 1.0)
-			throw GraphException("probability weights ∈ [0,1]");
+	GProbability() : weight(0.0) {}
+	GProbability(float _weight) : weight(_weight) {
+		if (MIN > weight || weight > MAX) {
+			std::stringstream err;
+			err << "general probability weights ∈ [" << MIN << "," << MAX << "] ";
+			err << "but \"" << weight << "\" was given.";
+			throw GraphException(err.str().c_str());
+		}
 	}
 	float weight;
+	static constexpr float MIN = -1.0;
+	static constexpr float MAX =  1.0;
+};
+
+struct Probability : public GProbability
+{
+	Probability()              : GProbability()        {}
+	Probability(float _weight) : GProbability(_weight) {
+		if (MIN >= weight) {
+			std::stringstream err;
+			err << "general probability weights ∈ (" << MIN << "," << MAX << "] ";
+			err << "but \"" << weight << "\" was given.";
+			throw GraphException(err.str().c_str());
+		}
+	}
+	Probability(GProbability&& that) : Probability(that.weight) {}
+	Probability& operator=(GProbability that) {
+		if (MIN >= that.weight || that.weight > MAX) {
+			std::stringstream err;
+			err << "probability weights ∈ (" << MIN << "," << MAX << "] ";
+			err << "but passed general probability has weight " ;
+			err << "\"" << weight << "\".";
+			throw GraphException(err.str().c_str());
+		}
+		std::swap(weight, that.weight);
+		return *this;
+	}
+	static constexpr float MIN = 0.0;
+	static constexpr float MAX = 1.0;
 };
 
 // template <class OutEdgeListS = vecS, // a Sequence or an AssociativeContainer
@@ -88,7 +122,7 @@ typedef bgl::adjacency_list<
 	bgl::vecS,
 	bgl::directedS,
 	State,
-	Probability>  AdjGraph;
+	GProbability>  AdjGraph;
 
 // template<typename Directed = directedS,
 //          typename VertexProperty = no_property,
@@ -105,7 +139,6 @@ typedef bgl::compressed_sparse_row_graph<
 
 //  Global variables  ////////////////////////////////////////////////////////
 
-AdjGraph model;
 
 
 
@@ -117,6 +150,7 @@ void TODO(int lineNum)
 	TODO << basename(strdup(__FILE__ ":")) << lineNum << " -- TODO";
 	throw GraphException(TODO.str().c_str());
 }
+
 
 void populateAdjacencyGraph(AdjGraph& g)
 {
@@ -142,7 +176,7 @@ void populateAdjacencyGraph(AdjGraph& g)
 	auto viMap = bgl::get(bgl::vertex_index, g);
 	const std::vector<Edge> edges = {
 		std::make_tuple(viMap[0], viMap[2], 1.0),
-		std::make_tuple(viMap[1], viMap[1], 0.0),
+		std::make_tuple(viMap[1], viMap[1], std::numeric_limits<float>::min()),
 		std::make_tuple(viMap[1], viMap[3], 0.6),
 		std::make_tuple(viMap[1], viMap[4], 0.4),
 		std::make_tuple(viMap[2], viMap[1], 0.7),
@@ -178,24 +212,40 @@ AdjGraph createTransposedGraph(const AdjGraph& g)
 
 /**
  * @brief Reverse all edges from argument
- * @remarks Memory  light
+ * @remarks Memory  medium
  * @remarks Runtime heavy
  */
 void transposeGraph(AdjGraph& g)
 {
+	// Mirror all edges keeping track of freshness
 //	bgl::graph_traits<AdjGraph>::edge_iterator eit, eit_end;
 //	for (bgl::tie(eit, eit_end) = bgl::edges(g) ; eit != eit_end ; eit++) {
-//		bgl::add_edge(bgl::target(*eit,g), bgl::source(*eit,g), g);
-//		bgl::remove_edge(*eit, g);
-//	}
-//	return;
-	AdjGraph _g;
+//		auto e = bgl::graph_traits<AdjGraph>::edge_descriptor(*eit);
 	BGL_FORALL_EDGES(e, g, AdjGraph) {
-		bgl::add_edge(bgl::target(e,g), bgl::source(e,g), _g);
-		bgl::remove_edge(e, g);
+		float pweight = g[e].weight;
+		if (0.0 < pweight) {
+			GProbability gp(-1.0*pweight);
+			bgl::add_edge(bgl::target(e,g), bgl::source(e,g), gp, g);
+			// In spite of what is stated here http://goo.gl/Uo1Ohb,
+			// removing edges invalidates the loop iterator
+			// regardless of the chosen EdgeList container type.
+//			bgl::remove_edge(e, g);
+		}
 	}
-	g.clear();
-	g = std::move(_g);
+
+	// Remove original edges
+	struct check_for_old_edges {
+		const AdjGraph& _g_;
+		check_for_old_edges(const AdjGraph& _g) : _g_(_g) {}
+		typedef bgl::graph_traits<AdjGraph>::edge_descriptor EdgeDescriptor;
+		bool operator() (const EdgeDescriptor& e) const { return _g_[e].weight > 0.0; }
+	} is_old_edge(g);
+	bgl::remove_edge_if(is_old_edge, g);
+
+	// Leave graph in valid state
+	BGL_FORALL_EDGES(e, g, AdjGraph) {
+		g[e].weight *= -1.0;
+	}
 }
 
 
@@ -212,6 +262,7 @@ CSRGraph crystallizeGraph(const AdjGraph& g)
 int main (int, char**)
 {
 	float t;
+	AdjGraph model;
 
 	cout << endl << "  - Create some random mutable graph" << endl << endl;
 	populateAdjacencyGraph(model);
