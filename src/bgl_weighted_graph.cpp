@@ -189,3 +189,35 @@ int main(int, char**)
 	return EXIT_SUCCESS;
 }
 
+/*
+ * Output:
+ *
+ * Num vertices: 5
+ * Vertices:
+ *   [0]: (Juan,0)
+ *   [1]: (Pepe,0)
+ *   [2]: (Ro,0)
+ *   [3]: (Ita,0)
+ *   [4]: (RARE,1)
+ *
+ * Num edges: 9
+ * Edges:
+ *   (0,2) = (Juan,  Ro): 1.0
+ *   (1,1) = (Pepe,Pepe): 0.0
+ *   (1,3) = (Pepe, Ita): 0.6
+ *   (1,4) = (Pepe,RARE): 0.4
+ *   (2,1) = (  Ro,Pepe): 0.7
+ *   (2,3) = (  Ro, Ita): 0.3
+ *   (3,4) = ( Ita,RARE): 1.0
+ *   (4,0) = (RARE,Juan): 0.5
+ *   (4,1) = (RARE,Pepe): 0.5
+ *
+ * Distance from rare vertex:
+ *   RARE --> Juan: 0.5
+ *   RARE --> Pepe: 0.5
+ *   RARE -->   Ro: 1.5
+ *   RARE -->  Ita: 1.1
+ *   RARE --> RARE: 0.0
+ *
+ */
+

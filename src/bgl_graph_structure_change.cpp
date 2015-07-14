@@ -1,3 +1,4 @@
+// C++ libs
 #include <iostream>    // std::cout
 #include <string>      // std::string
 #include <vector>      // std::vector<>
@@ -5,18 +6,27 @@
 #include <limits>      // std::numeric_limits<>
 #include <utility>     // std::pair
 #include <algorithm>   // std::for_each, std::swap
+// C libs
 #include <cassert>     // assert()
 #include <cstring>     // strdup()
 #include <ctime>       // clock, CLOCKS_PER_SEC
 #include <unistd.h>    // EXIT_{SUCCESS,FAILURE}
 #include <libgen.h>    // basename()
+// BGL graph types
+#include <boost/graph/adjacency_list.hpp>
+#define BOOST_GRAPH_USE_NEW_CSR_INTERFACE
+#include <boost/graph/compressed_sparse_row_graph.hpp>
+// BGL utils
+#include <boost/config.hpp>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/graph_utility.hpp>
-#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/iteration_macros.hpp>
+#include <boost/graph/properties.hpp>
+#include <boost/property_map/property_map.hpp>
+#include <boost/property_map/property_map_iterator.hpp>
+// BGL algorithms
 #include <boost/graph/transpose_graph.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
-#include <boost/graph/compressed_sparse_row_graph.hpp>
-
 
 namespace bgl = boost;
 using std::string;
@@ -133,7 +143,10 @@ typedef bgl::adjacency_list<
 typedef bgl::compressed_sparse_row_graph<
 	bgl::directedS,
 	State,
-	GProbability>  CSRGraph;
+	GProbability,
+	bgl::no_property,
+	unsigned int,
+	unsigned int> CSRGraph;
 
 
 
@@ -256,62 +269,84 @@ void transposeGraph(AdjGraph& g)
  */
 CSRGraph crystallizeGraph(AdjGraph& g)
 {
-	CSRGraph gg;
-	const size_t CHUNKSIZE(4u);  // Number of edges copied per main loop iteration
 	typedef bgl::graph_traits<AdjGraph>::edge_descriptor EdgeDes;
-	std::set<EdgeDes> edges;
+	typedef std::vector<std::pair<unsigned int, unsigned int>> EdgesVertexIndices;
+	typedef std::vector<GProbability> EdgesProperties;
+
+	std::set<EdgeDes>  edgesDes;
+	EdgesVertexIndices edgesVert;
+	EdgesProperties    edgesProp;
 
 	assert(0u < bgl::num_edges(g));
 
-	// Transfer the edges one CHUNKSIZE at a time, keeping memory requirements low
+	cout << "\n\nOriginal mutable graph:" << endl;
+	for (auto eit = bgl::edges(g) ; eit.first != eit.second ; eit.first++)
+		cout << *eit.first << ": " << g[*eit.first].weight << endl;
+
+//	// This works, but duplicates memory before deleting the original mutable graph
+//	auto eitpair = bgl::edges(g);
+//	for (; eitpair.first != eitpair.second ; eitpair.first++) {
+//		auto e = *eitpair.first;
+//		edgesVert.push_back(std::make_pair<unsigned int, unsigned int>(bgl::source(e,g), bgl::target(e,g)));
+//		edgesProp.push_back(g[e].weight);
+//	}
+//	CSRGraph ggg(bgl::edges_are_unsorted,
+//				 edgesVert.begin(), edgesVert.end(), edgesProp.begin(),
+//				 bgl::num_vertices(g));
+//
+//	edgesVert.clear();
+//	edgesProp.clear();
+//	g.clear();
+//
+//	return std::move(ggg);
+
+	// Transfer edges one CHUNKSIZE at a time, keeping memory overhead at bay
+	const size_t CHUNKSIZE(3u);
+	edgesVert.reserve(CHUNKSIZE);
+	edgesProp.reserve(CHUNKSIZE);
+	CSRGraph gg(bgl::edges_are_unsorted,
+				edgesVert.end(), edgesVert.end(), edgesProp.end(),
+				bgl::num_vertices(g));
 	do {
+		// Gather edges and its properties for this iteration...
 		const size_t chunkSize = std::min<size_t>(CHUNKSIZE, bgl::num_edges(g));
 		auto from = bgl::edges(g).first, to = from;
 		std::advance(to, chunkSize);
-		edges.insert(from, to);
+		edgesDes.insert(from, to);
+		for (; from != to ; from++) {
+			auto p = std::make_pair<int,int>(bgl::source(*from,g), bgl::target(*from,g));
+			edgesVert.push_back(p);
+			edgesProp.push_back(g[*from].weight);
+		}
+		// ...add them to the CSR graph...
+		bgl::add_edges<State, GProbability, bgl::no_property, unsigned int, unsigned int,
+				std::vector<std::pair<unsigned int, unsigned int>>::iterator,
+				std::vector<GProbability>::iterator>
+				(edgesVert.begin(), edgesVert.end(), edgesProp.begin(), edgesProp.end(), gg);
 
-		/*
-		 * We need to create a bgl::iterator_property_map
-		 * that can iterate through properties of each edge, just like
-		 * "bgl::graph_traits<AdjGraph>::edge_iterator"
-		 * can iterate through the edge descriptor indices.
-		 *
-		 * The goal is to use the long version of the bgl::add_edges template,
-		 * which takes an InputIterator for the edges descriptors
-		 * and an EPIter for the edges undled properties.
-		 *
-		 * See http://goo.gl/2byiWe
-		 */
-
-		bgl::add_edges<bgl::graph_traits<AdjGraph>::edge_iterator,
-					   bgl::iterator_pro CSRGraph>  (from, to, gg);
-
-
-
-
-		// Remove transfered edges from original graph
+		// ...and remove them from the original mutable graph.
 		struct processed_edges {
 			const AdjGraph _g_;
 			const std::set<EdgeDes> _e_;
-			processed_edges(const AdjGraph& _g, const processed_edges& _e) : _g_(_g), _e_(_e) {}
+			processed_edges(const AdjGraph& _g, const std::set<EdgeDes>& _e) : _g_(_g), _e_(_e) {}
 			bool operator()(const EdgeDes& e) const { return _e_.end() != _e_.find(e); }
-		} was_processed(g,edges);
+		} was_processed(g, edgesDes);
 		bgl::remove_edge_if(was_processed, g);
-		edges.clear();
 
-//		std::pair<bgl::graph_traits<AdjGraph>::edge_iterator,
-//				  bgl::graph_traits<AdjGraph>::edge_iterator> eit;
-//		eit = bgl::edges(g);
-//
-//		const size_t chunkSize = std::min<size_t>(CHUNKSIZE, bgl::num_edges(g));
-//		eit.second = eit.first; std::advance(eit.second, chunkSize);
-//		bgl::add_edges(eit.first, eit.second, gg);
-//		for (unsigned int i=0 ; i < CHUNKSIZE ; i++)
-//			bgl::remove_edge(eit.first++, g);
+		edgesDes.clear();
+		edgesVert.clear();
+		edgesProp.clear();
+
 	} while (0u < bgl::num_edges(g));
-	g.clear();
 
-	return gg;
+	g.clear();
+	cout << "\nResulting immutable graph:" << endl;
+	for (auto eit = bgl::edges(gg) ; eit.first != eit.second ; eit.first++)
+		cout << "(" << bgl::source(*eit.first, gg)
+			 << "," << bgl::target(*eit.first, gg)
+			 << "): " << gg[*eit.first].weight << endl;
+
+	return std::move(gg);
 }
 
 
@@ -330,20 +365,19 @@ int main (int, char**)
 	cout << endl << "  - Reverse its edges ";
 		t = static_cast<float>(clock());
 	model = createTransposedGraph(model);
-		cout << "(" << ((clock()-t)/CLOCKS_PER_SEC) << " s)" << endl << endl;
+		cout << "[" << ((clock()-t)/CLOCKS_PER_SEC) << " s]" << endl << endl;
 		bgl::print_graph(model);
 
 	cout << endl << "  - Reverse again, obtaining original back ";
 		t = static_cast<float>(clock());
 	transposeGraph(model);
-		cout << "(" << ((clock()-t)/CLOCKS_PER_SEC) << " s)" << endl << endl;
+		cout << "[" << ((clock()-t)/CLOCKS_PER_SEC) << " s]" << endl << endl;
 		bgl::print_graph(model);
 
 	cout << endl << "  - Compact graph into immutable CSR format ";
 		t = static_cast<float>(clock());
 	CSRGraph finalModel = crystallizeGraph(model);
-	model.clear();
-		cout << "(" << ((clock()-t)/CLOCKS_PER_SEC) << " s)" << endl << endl;
+		cout << "[" << ((clock()-t)/CLOCKS_PER_SEC) << " s]" << endl << endl;
 		bgl::print_graph(finalModel);
 
 	// TODO
@@ -351,3 +385,63 @@ int main (int, char**)
 
 	return EXIT_SUCCESS;
 }
+
+/*
+ * Output:
+ *
+ *   - Create some random mutable graph
+ *
+ * 0 --> 2
+ * 1 --> 1 3 4
+ * 2 --> 1 3
+ * 3 --> 4
+ * 4 --> 0 1
+ *
+ *   - Reverse its edges [0 s]
+ *
+ * 0 --> 4
+ * 1 --> 1 2 4
+ * 2 --> 0
+ * 3 --> 1 2
+ * 4 --> 1 3
+ *
+ *   - Reverse again, obtaining original back [0 s]
+ *
+ * 0 --> 2
+ * 1 --> 1 3 4
+ * 2 --> 1 3
+ * 3 --> 4
+ * 4 --> 0 1
+ *
+ *   - Compact graph into immutable CSR format
+ *
+ * Original mutable graph:
+ * (0,2): 1
+ * (1,1): 1.17549e-38
+ * (1,3): 0.6
+ * (1,4): 0.4
+ * (2,1): 0.7
+ * (2,3): 0.3
+ * (3,4): 1
+ * (4,0): 0.5
+ * (4,1): 0.5
+ *
+ * Resulting immutable graph:
+ * (0,2): 1
+ * (1,1): 1.17549e-38
+ * (1,3): 0.6
+ * (1,4): 0.4
+ * (2,1): 0.7
+ * (2,3): 0.3
+ * (3,4): 1
+ * (4,0): 0.5
+ * (4,1): 0.5
+ * [0 s]
+ *
+ * 0 --> 2
+ * 1 --> 1 3 4
+ * 2 --> 1 3
+ * 3 --> 4
+ * 4 --> 0 1
+ *
+ */

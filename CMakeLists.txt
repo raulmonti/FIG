@@ -37,22 +37,23 @@ SET(fig_VERSION_MINOR 2)
 
 # Default directories configuration
 SET(SOURCES_DIR ${PROJECT_SOURCE_DIR}/src)
-SET(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
+SET(HEADERS_DIR ${PROJECT_SOURCE_DIR}/include)
+SET(LIBRARIES_DIR ${PROJECT_SOURCE_DIR}/lib)
 SET(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin)
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/fig)
-## MESSAGE("include dir: ${INCLUDE_DIR}")
-## MESSAGE("sources dir: ${SOURCES_DIR}")
-## MESSAGE("bin dir: ${PROJECT_BINARY_DIR}")
-## MESSAGE("exe dir: ${EXECUTABLE_OUTPUT_PATH}")
 
 # Header file with CMake settings for the source code
 CONFIGURE_FILE (
 	"${SOURCES_DIR}/FigConfig.h.in"
-	"${INCLUDE_DIR}/FigConfig.h"
+	"${HEADERS_DIR}/FigConfig.h"
 )
  
-# Includes
-INCLUDE_DIRECTORIES(${INCLUDE_DIR})
+# Headers
+INCLUDE_DIRECTORIES(${HEADERS_DIR})
+
+## Libraries
+#LINK_DIRECTORIES(${LIBRARIES_DIR})
+# Tip: use find_library() and find_package() instead
 
 
  
