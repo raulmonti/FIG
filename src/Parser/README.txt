@@ -30,5 +30,5 @@ TODO 	parametric skip whites for Parser class.
 SOLVED 	column count for error reporting.
 TODO 	test suit.
 TODO 	reset parser method.
-TODO    leack check
+SOLVED  leack check
 */
