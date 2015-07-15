@@ -39,7 +39,8 @@ then
 	then
 		CCOMP=clang
 	fi
-elif [ "`which gcc`" ]
+fi
+if [ -z "$CCOMP" ] && [ "`which gcc`" ]
 then
 	# Any c++11 compatible version is fine (that's checked in cmake)
 	CCOMP=gcc
