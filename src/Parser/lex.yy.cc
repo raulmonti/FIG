@@ -452,7 +452,15 @@ static yyconst flex_int32_t yy_rule_can_match_eol[13] =
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
 #line 1 "lexer.l"
-#line 3 "lexer.l"
+/**
+
+    Lexing rules for flex lexer.
+    Raul Monti
+    2015
+    FIG project.
+
+**/
+#line 12 "lexer.l"
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -460,7 +468,7 @@ static yyconst flex_int32_t yy_rule_can_match_eol[13] =
 #include "exceptions.h"
 #include "debug.h" 
 /* This tells flex to read only one input file */
-#line 465 "lex.yy.cc"
+#line 473 "lex.yy.cc"
 
 #define INITIAL 0
 
@@ -565,10 +573,10 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 16 "lexer.l"
+#line 25 "lexer.l"
 
 
-#line 573 "lex.yy.cc"
+#line 581 "lex.yy.cc"
 
 	if ( !(yy_init) )
 		{
@@ -663,7 +671,7 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 18 "lexer.l"
+#line 27 "lexer.l"
 {
             __debug__("Saw a Number: ");__debug__(yytext);__debug__("\n");
             return parser::NUM;
@@ -671,7 +679,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 23 "lexer.l"
+#line 32 "lexer.l"
 {
             __debug__("Saw a Module: ");__debug__(yytext);__debug__("\n");
             return parser::KMOD;
@@ -679,7 +687,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 28 "lexer.l"
+#line 37 "lexer.l"
 {
             __debug__("Saw a Clock: ");__debug__(yytext);__debug__("\n");
             return parser::KCS;
@@ -687,7 +695,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 33 "lexer.l"
+#line 42 "lexer.l"
 {
             __debug__("Saw a Variable: ");__debug__(yytext);__debug__("\n");
             return parser::KVS;
@@ -695,7 +703,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 38 "lexer.l"
+#line 47 "lexer.l"
 {
             __debug__("Saw a Transition: ");__debug__(yytext);__debug__("\n");
             return parser::KTS;
@@ -703,7 +711,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 43 "lexer.l"
+#line 52 "lexer.l"
 {
             __debug__("Saw a Name: ");__debug__(yytext);__debug__("\n");
             return parser::NAME;
@@ -711,7 +719,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 48 "lexer.l"
+#line 57 "lexer.l"
 {    
             __debug__("Saw a WS: ");__debug__(yytext);__debug__("\n");
             return parser::WS;
@@ -720,7 +728,7 @@ YY_RULE_SETUP
 case 8:
 /* rule 8 can match eol */
 YY_RULE_SETUP
-#line 53 "lexer.l"
+#line 62 "lexer.l"
 { 
             __debug__("Saw a NL: ");__debug__(yytext);__debug__("\n");
             return parser::NL;
@@ -728,7 +736,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 58 "lexer.l"
+#line 67 "lexer.l"
 {
             __debug__("Saw a Colon: ");__debug__(yytext);__debug__("\n");
             return parser::CLN;
@@ -736,7 +744,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 62 "lexer.l"
+#line 71 "lexer.l"
 {
             __debug__("Saw a SemiColon: ");__debug__(yytext);__debug__("\n");
             return parser::SCLN;
@@ -745,7 +753,7 @@ YY_RULE_SETUP
 case 11:
 /* rule 11 can match eol */
 YY_RULE_SETUP
-#line 66 "lexer.l"
+#line 75 "lexer.l"
 {
                     stringstream ss;
                     ss << " at line " << yylineno << endl;
@@ -755,10 +763,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 74 "lexer.l"
+#line 83 "lexer.l"
 ECHO;
 	YY_BREAK
-#line 763 "lex.yy.cc"
+#line 771 "lex.yy.cc"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1667,7 +1675,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 74 "lexer.l"
+#line 83 "lexer.l"
 
 
 

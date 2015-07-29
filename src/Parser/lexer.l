@@ -1,3 +1,12 @@
+/**
+
+    Lexing rules for flex lexer.
+    Raul Monti
+    2015
+    FIG project.
+
+**/
+
 
 %{
 #include <iostream>

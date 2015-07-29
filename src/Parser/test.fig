@@ -10,8 +10,9 @@ TRANS
 MODULE modtwo
 
 CLKS
-    clockthree:delta;
-    clockfour:epsilon;
+    clockthree: delta;
+    clockfour :epsilon;
+
 TRANS
 
 

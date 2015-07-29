@@ -32,12 +32,16 @@ class SyntaxError: public std::exception
 
 public:
 
-  std::string c;
+  std::string e;    // The error
+  int l;            // Line number
+  int c;            // Column number
 
   SyntaxError(){}
 
-  SyntaxError(std::string s){
-    c = s;
+  SyntaxError(std::string s = "", int lnum = -1, int col = -1){
+    e = s;
+    l = lnum;
+    c = col;
   }
 
   virtual ~SyntaxError() throw() {}
@@ -45,7 +49,9 @@ public:
 
   virtual const char* what() const throw()
   {
-    return c.c_str();
+    std::string str = string("At line ") + std::to_string(l) 
+                    + string(", column ") + std::to_string(c) + string(".");
+    return (e + str).c_str();
   }
 };
 
