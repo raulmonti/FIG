@@ -8,27 +8,26 @@
 #include "exceptions.h"
 
 
+/** Overloading for printing ASTs resulting 
+    from our parsing.
+**/
 
-/** Overloading for printing ASTs. **/
+std::ostream& operator<< (std::ostream& out, AST const& ast){
+    cout << "(" << parser::symTable[ast.tkn] << ", " << ast.lxm << ", <" 
+         << ast.l << "," << ast.c << ">" << ", [";
 
-std::ostream& operator<< (std::ostream& out, parser::AST const& ast){
-    cout << "(" << parser::symTable[ast.s] << ", " << ast.n << ", <" 
-         << ast.ln << "," << ast.cl << ">" << ", [";
-
-    for(size_t i = 0; i+1 < (ast.l).size(); i++){
-        parser::AST *a = (ast.l)[i]; 
+    for(size_t i = 0; i+1 < (ast.list).size(); i++){
+        AST *a = (ast.list)[i]; 
         out << *a << ",";
     }
 
-    if(ast.l.size()>0){
-        parser::AST *a = ast.l[(ast.l).size()-1];
+    if(ast.list.size()>0){
+        AST *a = ast.list[(ast.list).size()-1];
         out << *a;
     }
     cout << "])";
     return out;
 }
-
-
 
 
 using namespace std;
@@ -405,38 +404,5 @@ Parser::removeNode(){
 
 }
 
-
-
-
-/** Abstract syntax tree class implementation. **/
-
-AST::AST(){};
-
-AST::AST(int symbol, string name, int line, int col): 
-    n(name),
-    s(symbol),
-    ln(line),
-    cl(col)
-{};
-
-
-AST::~AST(){
-    for( int i = 0; i < l.size(); i++){
-        delete l[i];
-        l[i] = NULL;
-    }
-}
-
-vector<AST*>
-AST::get_list(prodSym k){
-
-    vector<AST*> result;
-
-    for(int i = 0; i < l.size(); i++){
-        if (l[i]->s == k) result.push_back(l[i]);
-    }
-
-    return result;
-}
 
 }// namespace Parser

@@ -6,6 +6,7 @@
 #include <string>
 #include <FlexLexer.h>
 #include "debug.h"
+#include "ast.h"
 
 
 using namespace std;
@@ -77,42 +78,6 @@ static const char symTable[][11] =
 
 
 
-/** The Abstract Syntax Tree class *******************************************/
-
-
-class AST
-{
-public:
-
-    string n;       // name
-    int s;          // symbol
-    int ln;         // line number
-    int cl;         // column number
-    vector<AST*> l; // list of children
- 
-    // @Constructor.
-    AST(void);
-    AST(int symbol = _DUMMY, string name ="", int line = 0, int col = 0);
-
-    // @Destructor.
-    virtual ~AST();
-
-    // @Push back a new child into @l.
-    inline void pb(AST *c)
-    {
-        l.push_back(c);
-    }
-
-    /* @get_list: et a vector with pointers to every child AST of type K.
-    */
-    vector<AST*>
-    get_list(prodSym K);
-
-};
-
-typedef AST Node; // Node is the same as AST.
-
-
 
 
 /** Parser Class *************************************************************/
@@ -164,6 +129,7 @@ public:
     ended(){
         return pos == tokens.size()-1;
     }
+
 
     /* @printme: print the parsed model as it was given. FIXME useless 
     */
@@ -351,10 +317,6 @@ private:
 } // End namespace parser.
 
 
-
-/** '<<' overloading for the AST structure **/
-
-std::ostream& operator<< (std::ostream& out, parser::AST const& ast);
 
 
 #endif
