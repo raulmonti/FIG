@@ -19,9 +19,15 @@ namespace parser{
 typedef enum    { MEOF    // my end of file symbol
                 , NUM     // float type numbers
                 , KMOD    // keyword MODULE
+                , KEMOD   // keyword ENDMODULE
+                , KLBL    // keyword for label sections
                 , KCS     // keyword CLK
                 , KVS     // keyword VAR
                 , KTS     // keyword TRANS
+                , KNDIST  // keyword Normal
+                , KEDIST  // keyword Exponential
+                , KUDIST  // keyword Uniform
+                , KVTYPE  // keyword Int, Float
                 , NAME    // strings starting with letters
                 , WS      // white spaces (' \t')
                 , NL      // new line ('\n')
@@ -30,14 +36,21 @@ typedef enum    { MEOF    // my end of file symbol
                 , CB      // }
                 , OBT     // [
                 , CBT     // ]
+                , OP      // (
+                , CP      // )
                 , SCLN    // ;
                 , CLN     // :
+                , CMM     // ,
                 , MOP     // + - * / %
                 , COP     // == <= >= != < >
-                , BOP     // || && !
+                , BOP     // || &&
                 , ASG     // =
                 , DOT     // .
-                , DUM     // dummy symbol
+                , ARROW   // >>
+                , RNG     // range ..
+                , MRK     // question ? and exclamation ! marks
+                , LDIR    // label direction (input or output)
+                , DUM     // dummy symbol   
                 } Token;
 
 
@@ -50,17 +63,29 @@ typedef enum{ _EOF            // End of File
             , _DUMMY
             , _MODEL
             , _MODULE
+            , _LBLSEC
             , _VARSEC
             , _TRANSEC
             , _CLOCKSEC
             , _VARIABLE
+            , _LBL
             , _TRANSITION
             , _CLOCK
             , _KEYWORD
             , _NAME
             , _INT
+            , _NUM
             , _SEPARATOR     // ; : , { } [ ] . ...
             , _DISTRIBUTION
+            , _IDENT
+            , _TYPE
+            , _RANGE
+            , _ACTION
+            , _IO           // input or output as ? !
+            , _ENABLECLOCK  // output transition enable clock
+            , _PRECONDITION
+            , _POSTCONDITION
+            , _RESETCLOCKS
             } prodSym;
 
 
@@ -69,9 +94,11 @@ typedef enum{ _EOF            // End of File
    For any enumerate e in prodSym, symTable[e] should return 
    the printable representation of e.
 */
-static const char symTable[][11] =
-    {"EOF","DUMMY","MODEL","MODULE","VARS","TRANS","CLKS","VARIABLE",
-     "TRANSITION","CLOCK","KEYWORD","NAME","INT","SEPARATOR"
+static const char symTable[][15] =
+    {"EOF","DUMMY","MODEL","MODULE","LABELS", 
+     "VARS","TRANS","CLKS","VARIABLE","LABEL",
+     "TRANSITION","CLOCK","KEYWORD","NAME","INT","REAL",
+     "SEPARATOR","IDENTIFIER", "TYPE","RANGE","ACTION"
     };
 
 
@@ -240,16 +267,17 @@ private:
     int accept(Token s);
  
 
-    /* @Consume the next token and trow an exception if it 
+    /* @Consume the next token and trow a SyntaxError exception if it 
         does not match with @s.
        @s: the expected symbol.
+       @str: error string explaining the problem with not matching @s.
+       @ throw: SyntaxError if next token does not match @s.
        @return: 1 if s was matched. Throw an exception otherwise.
     */
-    int expect(Token s);
+    int expect(Token s, string str = "");
 
 
     /** Grammar look ahead. **/
-
 
     /* @saveLocation: save state to be able to backtrack if a grammar
        is not finally matched.
@@ -300,7 +328,7 @@ private:
 
     /* @Rule: Modules transitions section */
     int
-    rTraSec();
+    rTranSec();
 
     /* @Rule: CLOCK DEFINITION */
     int
@@ -309,6 +337,55 @@ private:
     /* @Rule: Distribution */
     int
     rDistr();
+
+    /* @Rule: MODULES LABELS SECTION*/
+    int
+    rLblSec();
+
+    /* @Rule: LABEL DEFINITION */
+    int
+    rLblDef();
+
+    /* @RULE: normal distribution */
+    int
+    rNormDist();
+
+    /* @RULE: exponential distribution */
+    int
+    rExpDist();
+
+    /* @RULE: uniform distribution */
+    int
+    rUniDist();
+
+    /* @Rule: VARIABLE DEFINITION. */
+    int
+    rVarDef();
+
+    /* @Rule: RANGE. */
+    int
+    rRange();
+
+    /* @Rule: ASSIGNMENT. */
+    int
+    rAssig();
+
+    /* @Rule: TRANSITION. */
+    int
+    rTransDef();
+
+    /**/
+    int
+    rFormula();
+
+    /**/
+    int
+    rClkList();
+
+    /**/
+    int
+    rAssigList();
+
 
 }; // End class Parser.
 

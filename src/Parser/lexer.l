@@ -24,54 +24,68 @@
 
 %%
 
-[0-9]+([\.][0-9]+)? {
-            __debug__("Saw a Number: ");__debug__(yytext);__debug__("\n");
-            return parser::NUM;
-        }
+-?[0-9]+([\.][0-9]+)?     { return parser::NUM; }
 
-MODULE  {
-            __debug__("Saw a Module: ");__debug__(yytext);__debug__("\n");
-            return parser::KMOD;
-        }
+MODULE      { return parser::KMOD; }
 
-CLKS    {
-            __debug__("Saw a Clock: ");__debug__(yytext);__debug__("\n");
-            return parser::KCS;
-        }
+ENDMODULE   { return parser::KEMOD; }
 
-VARS    {
-            __debug__("Saw a Variable: ");__debug__(yytext);__debug__("\n");
-            return parser::KVS;
-        }
+LABELS      { return parser::KLBL; }
 
-TRANS   {
-            __debug__("Saw a Transition: ");__debug__(yytext);__debug__("\n");
-            return parser::KTS;
-        }
+CLOCKS      { return parser::KCS; }
 
-[a-zA-Z]+ {
-            __debug__("Saw a Name: ");__debug__(yytext);__debug__("\n");
-            return parser::NAME;
-        }
+VARS        { return parser::KVS; }
 
-[ \t]+ {    
-            __debug__("Saw a WS: ");__debug__(yytext);__debug__("\n");
-            return parser::WS;
-        }
+TRANS       { return parser::KTS; }
 
-\n  { 
-            __debug__("Saw a NL: ");__debug__(yytext);__debug__("\n");
-            return parser::NL;
-        }
+Normal      { return parser::KNDIST; }
 
-:       {
-            __debug__("Saw a Colon: ");__debug__(yytext);__debug__("\n");
-            return parser::CLN;
-        }
-;       {
-            __debug__("Saw a SemiColon: ");__debug__(yytext);__debug__("\n");
-            return parser::SCLN;
-        }
+Exponential { return parser::KEDIST; }
+
+Uniform     { return parser::KUDIST; }
+
+("Int"|"Float")         { return parser::KVTYPE; } 
+
+("input"|"output")      { return parser::LDIR; }
+
+[a-zA-Z][a-zA-Z0-9]*    { return parser::NAME; }
+
+[ \t]+      { return parser::WS; }
+
+\n          { return parser::NL; }
+
+:           { return parser::CLN; }
+
+;           { return parser::SCLN; }
+
+,           { return parser::CMM; }
+
+[{]         { return parser::OB; }
+
+[}]         { return parser::CB; }
+
+[[]         { return parser::OBT; }
+
+[]]         { return parser::CBT; }
+
+[(]         { return parser::OP; }
+
+[)]         { return parser::CP; }
+
+(">>")      { return parser::ARROW; }
+
+("<="|">="|"=="|"<"|">"|"!=")   { return parser::COP; }
+
+("/"|"+"|"-"|"*"|"%")           { return parser::MOP; }
+
+("=")       { return parser::ASG; }
+
+("..")      { return parser::RNG; }
+
+("&&"|"||") { return parser::BOP; }
+
+("?"|"!")   { return parser::MRK; }
+
 [^[:alnum:]]    {
                     stringstream ss;
                     ss << " at line " << yylineno << endl;
