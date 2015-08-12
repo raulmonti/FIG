@@ -41,12 +41,13 @@ typedef enum    { MEOF    // my end of file symbol
                 , SCLN    // ;
                 , CLN     // :
                 , CMM     // ,
-                , MOP     // + - * / %
+                , SUMOP   // + - 
+                , DIVOP   // * / %
                 , COP     // <= >= < >
                 , BOP     // == !=
                 , BOOLV   // true false
                 , BINOP   // || &&
-                , ASSIG     // =
+                , ASSIG   // =
                 , DOT     // .
                 , ARROW   // >>
                 , RNG     // range ..
@@ -88,15 +89,18 @@ typedef enum{ _EOF            // End of File
             , _ENABLECLOCK  // output transition enable clock
             , _PRECONDITION
             , _POSTCONDITION
-            , _RESETCLOCKS
-            , _MFORM
-            , _MVALUE
-            , _BOOLF
-            , _BOOLV
+            , _RESETCLOCKLIST
+            , _RESETCLOCK
+            , _EXPRESSION
+            , _COMPARISON   // a {<,>,<=,>=} b
+            , _SUM
+            , _DIV
+            , _VALUE
             , _OPERATOR
             , _NEGATION     // !
             , _ASSIGL
             , _ASSIG
+            , _BOOLEAN     // true false
             } prodSym;
 
 
@@ -112,10 +116,10 @@ static const char symTable[][25] =
      "SEPARATOR", "DISTRIBUTION",
      "IDENTIFIER", "TYPE","RANGE","ACTION", "INPUT/OUTPUT",
      "ENABLING CLOCK", "PRECONDITION FORMULA", "POSTCONDITION ASSIGNMENT",
-     "CLOCK RESETS", 
-     "MATH FORMULA", "MATH VALUE",
-     "BOOLEAN FORMULA", "BOOLEAN VALUE", "BOOLEAN/MATH OPERATOR",
-     "NEGATION", "ASSIGNMENT LIST", "ASSIGNMENT"
+     "CLOCK RESETS LIST", "CLOCK TO RESET", 
+     "EXPRESSION", "COMPARISON", "SUMMATION",
+     "DIVITION", "VALUE", "BOOLEAN/MATH OPERATOR",
+     "NEGATION", "ASSIGNMENT LIST", "ASSIGNMENT", "TRUE OR FALSE VALUE"
     };
 
 
@@ -393,19 +397,23 @@ private:
 
     /**/
     int
-    rMFormula();
+    rExpression();
 
     /**/
     int
-    rMValue();
+    rComparison();
 
     /**/
     int
-    rBFormula();
+    rSum();
 
     /**/
     int
-    rBValue();
+    rDiv();
+
+    /**/
+    int
+    rValue();
 
     /**/
     int

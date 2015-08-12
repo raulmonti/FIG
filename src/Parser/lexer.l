@@ -75,21 +75,14 @@ Uniform     { return parser::KUDIST; }
 [)]         { return parser::CP; }
 
 (">>")      { return parser::ARROW; }
-
 ("<="|">="|"<"|">")             { return parser::COP; }
-
 ("=="|"!=")                     { return parser::BOP; }
-
-("/"|"+"|"-"|"*"|"%")           { return parser::MOP; }
-
+("+"|"-")                       { return parser::SUMOP; }
+("*"|"/"|"%")                   { return parser::DIVOP; }
 ("=")       { return parser::ASSIG; }
-
 ("..")      { return parser::RNG; }
-
 ("&&"|"||") { return parser::BINOP; }
-
 ("?")       { return parser::QMARK; }
-
 ("!")       { return parser::EMARK; }
 
 [^[:alnum:]]    {

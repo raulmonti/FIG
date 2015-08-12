@@ -14,6 +14,7 @@ CLOCKS
 TRANS
 
     [a] c == 2 && true && false != (3.653  >= 3/9) : x2 >> ;
+    [b?] a == 4 + 2 > c : clockone >> a = 4+2, b = a||b :clockone, clockfour;
 
 MODULE modtwo
 
@@ -32,3 +33,7 @@ VARS
     Float b = 1.2;
     Float c;
     Int d;
+
+TRANS
+
+

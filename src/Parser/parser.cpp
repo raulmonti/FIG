@@ -568,7 +568,7 @@ Parser::rTransDef(){
         newNode(_PRECONDITION,"");
 
         bool b = false;
-        TESTB(rBFormula,b)
+        TESTB(rExpression,b)
         if(b){
             saveNode(); // _PRECONDITION
         }else{
@@ -596,12 +596,7 @@ Parser::rTransDef(){
         }
         if(accept(CLN)){
             saveNode(_SEPARATOR);
-            newNode(_RESETCLOCKS);
-            if(rClkList()){
-                saveNode(); //_RESETCLOCKS
-            }else{
-                removeNode(); //_RESETCLOCKS
-            }
+            rClkList();
         }
         expect(SCLN, "Forgot semicolon to end transition definition?\n");
         saveNode(); // _TRANSITION
@@ -618,7 +613,7 @@ Parser::rAssigList(){
 
     newNode(_ASSIGL);
     if(rAssig()){
-        while(accept(SCLN)){
+        while(accept(CMM)){
             saveNode(_SEPARATOR);
             if(!rAssig()){
                 string msg("Malformed assignment list.\n"
@@ -641,7 +636,7 @@ Parser::rAssig(){
         saveNode(_NAME);
         if(accept(ASSIG)){
             saveNode(_SEPARATOR);
-            if(rBFormula() || rMFormula()){
+            if(rExpression()){
                 saveNode();
                 return 1;
             }
@@ -651,134 +646,138 @@ Parser::rAssig(){
     return 0;
 }
 
+/** Expression rules. **/
 
 /**/
 int
-Parser::rMFormula(){
-    newNode(_MFORM);
-    if(rMValue()){
-        while(accept(MOP)){     
+Parser::rExpression(){
+    newNode(_EXPRESSION,"");
+    if(rComparison()){
+        if(accept(BOP) || accept(BINOP)){
             saveNode(_OPERATOR);
-            if(!rMFormula()){
-                string msg("Unexpected '" + lexemes[pos] + "' in math "
-                           "formula.\n");
-                throw SyntaxError(msg,lines[pos],columns[pos]);
+            if(!rExpression()){
+                string msg("Unexpected word '"+lexemes[pos]+"'.\n");
+                throw new SyntaxError(msg,lines[pos], columns[pos]);
             }
         }
-        saveNode(); //_MFORM
-        return 1;   
+        saveNode(); //_EXPRESSION
+        return 1;
     }
-    removeNode(); //_MFORM
+    removeNode(); //_EXPRESSION
     return 0;
 }
 
 /**/
 int
-Parser::rMValue(){
-    newNode(_MVALUE);
+Parser::rComparison(){
+    newNode(_COMPARISON,"");
+    if(rSum()){
+        if(accept(COP)){
+            saveNode(_OPERATOR);
+            if(!rComparison()){
+                string msg("Unexpected word '"+lexemes[pos]+"'.\n");
+                throw new SyntaxError(msg,lines[pos], columns[pos]);
+            }
+        }
+        saveNode(); //_COMPARISON
+        return 1;
+    }
+    removeNode(); //_COMPARISON
+    return 0;
+}
+
+/**/
+int
+Parser::rSum(){
+    newNode(_SUM,"");
+    if(rDiv()){
+        if(accept(SUMOP)){
+            saveNode(_OPERATOR);
+            if(!rSum()){
+                string msg("Unexpected word '"+lexemes[pos]+"'.\n");
+                throw new SyntaxError(msg,lines[pos], columns[pos]);
+            }
+        }
+        saveNode(); //_SUM
+        return 1;
+    }
+    removeNode(); //_SUM
+    return 0;
+}
+
+/**/
+int
+Parser::rDiv(){
+    newNode(_DIV,"");
+    if(rValue()){
+        if(accept(DIVOP)){
+            saveNode(_OPERATOR);
+            if(!rDiv()){
+                string msg("Unexpected word '"+lexemes[pos]+"'.\n");
+                throw new SyntaxError(msg,lines[pos], columns[pos]);
+            }
+        }
+        saveNode(); //_DIV
+        return 1;
+    }
+    removeNode(); //_DIV
+    return 0;
+}
+
+/**/
+int
+Parser::rValue(){
+    
+    newNode(_VALUE,"");
     if(accept(NUM)){
         saveNode(_NUM);
     }else if(accept(NAME)){
         saveNode(_NAME);
-
+    }else if(accept(BOOLV)){
+        saveNode(_BOOLEAN);
     }else if(accept(OP)){
-        saveNode(_OPERATOR);
-        if(rMFormula()){
-            expect(CP, "Missing ')'.\n");
-            saveNode(_SEPARATOR);
-        }else{
-            removeNode(); //_MVALUE
-            return 0;
+        saveNode(_SEPARATOR);
+        if(!rExpression()){
+            string msg("Unexpected word '"+lexemes[pos]+"'.\n");
+            throw new SyntaxError(msg,lines[pos], columns[pos]);            
         }
-    }else{
-        removeNode(); //_MVALUE
+        expect(CP,"Missing ')'?\n");
+        saveNode(_SEPARATOR);
+    }else if(accept(EMARK)){
+        if(accept(EMARK)){
+            saveNode(_NEGATION);
+            if(!rExpression()){
+                string msg("Unexpected word '"+lexemes[pos]+"'.\n");
+                throw new SyntaxError( msg,lines[pos]
+                                     , columns[pos]);            
+            }
+        }
+    }//else if (accept(-)) ... FIXME
+     else{
+        removeNode(); //_VALUE
         return 0;
     }
-    saveNode(); //_MVALUE
+    saveNode(); //_VALUE
     return 1;
 }
 
-/* @Rule: BOOLEAN FORMULA. */
-int 
-Parser::rBFormula(){
-
-    newNode(_BOOLF);
-    if(rBValue()){
-        if(accept(BOP)||accept(BINOP)){ // Boolean comparison and binary op.
-            saveNode(_OPERATOR);
-            if(!rBFormula()){
-                string str("Unexpected '" + lexemes[pos] + "' in boolean "
-                          "formula.\n");
-                throw new SyntaxError(str,lines[pos], columns[pos]);
-            }
-        }
-        saveNode(); //_BOOLF
-        return 1;
-    }else if(rMValue()){ // Math comparison (> < >= <=)
-        if(accept(COP)){
-            saveNode(_OPERATOR);
-            if(!rMFormula()){
-                string str("Unexpected '" + lexemes[pos] + "' in boolean "
-                          "formula.\n");
-                throw new SyntaxError(str,lines[pos], columns[pos]);
-            }
-            saveNode(); //_BOOLF
-            return 1;
-        }else if(accept(BOP)){ // Boolean comparison
-            saveNode(_OPERATOR);
-            if(!rMFormula()){
-                string str("Unexpected '" + lexemes[pos] + "' in boolean "
-                          "formula.\n");
-                throw new SyntaxError(str,lines[pos], columns[pos]);
-            }
-            saveNode(); //_BOOLF
-            return 1;
-        }
-
-    }
-    removeNode(); // _BOOLF
-    return 0;
-
-}
-
-/* @Rule: BOOLEAN VALUE. */
-int 
-Parser::rBValue(){
-
-    newNode(_BOOLV);
-
-    if(accept(BOOLV)){
-        saveNode(); // _BOOLV
-        return 1;
-    }else if (accept(OP)){
-        saveNode(_SEPARATOR);
-        bool b = false;
-        TESTB(rBFormula, b)
-        if(b){
-            expect(CP,"Missing ')'.\n"); //FIXME not sure about this expect
-            saveNode(_SEPARATOR);
-            saveNode(); // _BOOLV
-            return 1;
-        }
-    }else if(accept(EMARK)){
-        saveNode(_NEGATION);
-        if(!rBValue()){
-            removeNode(); //_BOOLV
-            string msg("Negation of something that is not boolean.\n");
-            throw new SyntaxError(msg, lines[pos], columns[pos]);
-        }
-        saveNode(); //_BOOLV
-        return 1;
-    }
-    removeNode(); // _BOOLV
-    return 0;
-}
-
+/** End Expression rules. **/
 
 /**/
 int
 Parser::rClkList(){
-    return 1;
+    newNode(_RESETCLOCKLIST); //FIXME should be here or outside?
+    if(accept(NAME)){
+        saveNode(_RESETCLOCK);
+        while(accept(CMM)){
+            saveNode(_SEPARATOR);
+            expect(NAME, "Missing clock or spare semicolon.\n");
+        }
+        saveNode();
+        return 1;
+    }
+    removeNode();
+    return 0;
 }
 /* @Parse: parse stream @str and place the resulting AST in @result.
            It is caller responsibility to free the allocated AST 
