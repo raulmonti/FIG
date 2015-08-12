@@ -13,7 +13,7 @@ CLOCKS
 
 TRANS
 
-    [a] a>b : x2 >> a = 2: x1, x2 ;
+    [a] c == 2 && true && false != (3.653  >= 3/9) : x2 >> ;
 
 MODULE modtwo
 

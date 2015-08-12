@@ -1,3 +1,8 @@
+
+************* B R O C K E N ! ! *************
+Dont use get an other version :S
+
+
 #############################################
 # PARSER MODULE FOR FIG
 #############################################
@@ -38,4 +43,9 @@ SOLVED 	column count for error reporting.
 TODO 	test suit.
 TODO 	reset parser method.
 SOLVED  leack check
+TODO    Idea: parser with templates
+TODO    Idea: Buil the AST in a single bunch of method like Accept or Expect,
+        instead of ditributing this work in between every grammar rule. A 
+        stack may be needed for this.
+TODO    Idea: Exception handling using numbers and table with 
 */

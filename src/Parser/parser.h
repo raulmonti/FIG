@@ -42,13 +42,16 @@ typedef enum    { MEOF    // my end of file symbol
                 , CLN     // :
                 , CMM     // ,
                 , MOP     // + - * / %
-                , COP     // == <= >= != < >
-                , BOP     // || &&
-                , ASG     // =
+                , COP     // <= >= < >
+                , BOP     // == !=
+                , BOOLV   // true false
+                , BINOP   // || &&
+                , ASSIG     // =
                 , DOT     // .
                 , ARROW   // >>
                 , RNG     // range ..
-                , MRK     // question ? and exclamation ! marks
+                , EMARK   // !
+                , QMARK   // ?
                 , LDIR    // label direction (input or output)
                 , DUM     // dummy symbol   
                 } Token;
@@ -86,6 +89,14 @@ typedef enum{ _EOF            // End of File
             , _PRECONDITION
             , _POSTCONDITION
             , _RESETCLOCKS
+            , _MFORM
+            , _MVALUE
+            , _BOOLF
+            , _BOOLV
+            , _OPERATOR
+            , _NEGATION     // !
+            , _ASSIGL
+            , _ASSIG
             } prodSym;
 
 
@@ -94,11 +105,17 @@ typedef enum{ _EOF            // End of File
    For any enumerate e in prodSym, symTable[e] should return 
    the printable representation of e.
 */
-static const char symTable[][15] =
+static const char symTable[][25] =
     {"EOF","DUMMY","MODEL","MODULE","LABELS", 
      "VARS","TRANS","CLKS","VARIABLE","LABEL",
      "TRANSITION","CLOCK","KEYWORD","NAME","INT","REAL",
-     "SEPARATOR","IDENTIFIER", "TYPE","RANGE","ACTION"
+     "SEPARATOR", "DISTRIBUTION",
+     "IDENTIFIER", "TYPE","RANGE","ACTION", "INPUT/OUTPUT",
+     "ENABLING CLOCK", "PRECONDITION FORMULA", "POSTCONDITION ASSIGNMENT",
+     "CLOCK RESETS", 
+     "MATH FORMULA", "MATH VALUE",
+     "BOOLEAN FORMULA", "BOOLEAN VALUE", "BOOLEAN/MATH OPERATOR",
+     "NEGATION", "ASSIGNMENT LIST", "ASSIGNMENT"
     };
 
 
@@ -362,13 +379,13 @@ private:
     int
     rVarDef();
 
+    /**/
+    int
+    rInit();
+
     /* @Rule: RANGE. */
     int
     rRange();
-
-    /* @Rule: ASSIGNMENT. */
-    int
-    rAssig();
 
     /* @Rule: TRANSITION. */
     int
@@ -376,7 +393,19 @@ private:
 
     /**/
     int
-    rFormula();
+    rMFormula();
+
+    /**/
+    int
+    rMValue();
+
+    /**/
+    int
+    rBFormula();
+
+    /**/
+    int
+    rBValue();
 
     /**/
     int
@@ -385,6 +414,10 @@ private:
     /**/
     int
     rAssigList();
+
+    /* @Rule: ASSIGNMENT. */
+    int
+    rAssig();
 
 
 }; // End class Parser.

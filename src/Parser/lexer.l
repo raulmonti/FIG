@@ -48,6 +48,8 @@ Uniform     { return parser::KUDIST; }
 
 ("input"|"output")      { return parser::LDIR; }
 
+("true"|"false")        { return parser::BOOLV; }
+
 [a-zA-Z][a-zA-Z0-9]*    { return parser::NAME; }
 
 [ \t]+      { return parser::WS; }
@@ -74,17 +76,21 @@ Uniform     { return parser::KUDIST; }
 
 (">>")      { return parser::ARROW; }
 
-("<="|">="|"=="|"<"|">"|"!=")   { return parser::COP; }
+("<="|">="|"<"|">")             { return parser::COP; }
+
+("=="|"!=")                     { return parser::BOP; }
 
 ("/"|"+"|"-"|"*"|"%")           { return parser::MOP; }
 
-("=")       { return parser::ASG; }
+("=")       { return parser::ASSIG; }
 
 ("..")      { return parser::RNG; }
 
-("&&"|"||") { return parser::BOP; }
+("&&"|"||") { return parser::BINOP; }
 
-("?"|"!")   { return parser::MRK; }
+("?")       { return parser::QMARK; }
+
+("!")       { return parser::EMARK; }
 
 [^[:alnum:]]    {
                     stringstream ss;

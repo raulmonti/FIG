@@ -33,6 +33,10 @@
                        loadLocation();           \
                    }
 
+/* Pure look ahead. */
+#define CHECKB(F,b) saveLocation();                \
+                    if(F()){ b=true;}else{b=false;} \
+                    loadLocation();
 
 
 
@@ -162,10 +166,10 @@ int
 Parser::expect(Token s, string str){
     if (accept(s))
         return 1;
-    string ss = string("Unexpected word: '") + lexemes[pos] 
+    string msg = string("Unexpected word: '") + lexemes[pos] 
               + string("'.\n") + str;
 
-    throw(new SyntaxError(ss, lines[pos], columns[pos]));
+    throw(new SyntaxError(msg, lines[pos], columns[pos]));
 }
 
 
@@ -446,11 +450,11 @@ Parser::rVarSec(){
     return 0;
 }
 
-/* @Rule: ASSIGNMENT. */
+/* @Rule: INITIALIZATION. */
 int
-Parser::rAssig(){
+Parser::rInit(){
 
-    if(accept(ASG)){
+    if(accept(ASSIG)){
         saveNode(_SEPARATOR);
         expect(NUM);
         saveNode(_NUM);
@@ -473,7 +477,7 @@ Parser::rVarDef(){
             expect(NAME, "Missing name at variable definition?\n");
             saveNode(_NAME);
             TEST(rRange);
-            TEST(rAssig);
+            TEST(rInit);
             expect(SCLN, "Missing semicolon at end "
                          "of variable definition?\n");
             saveNode(_SEPARATOR);
@@ -544,7 +548,7 @@ Parser::rTranSec(){
 
 /*
 FIXME TEST and TESTB are not enough. We need to treat the locations
-      also when an exceptions is rise, unless all exceptions are lethal.
+      also when an exceptions is risen, unless all exceptions are lethal.
 */
 
 /* @Rule: TRANSITION. */
@@ -556,18 +560,21 @@ Parser::rTransDef(){
         saveNode(_SEPARATOR);
         if(accept(NAME)){
             saveNode(_ACTION);
-            if(accept(MRK)){
+            if(accept(EMARK)||accept(QMARK)){
                 saveNode(_IO);
             }
         }
-        expect(CBT, "Forgot ']' at transition declaration?\n");
-        
+        expect(CBT, "Forgot ']' at transition declaration?\n");        
         newNode(_PRECONDITION,"");
-        if(rFormula()){
+
+        bool b = false;
+        TESTB(rBFormula,b)
+        if(b){
             saveNode(); // _PRECONDITION
         }else{
             removeNode(); // _PRECONDITION
         }
+
         if(accept(CLN)){
             saveNode(_SEPARATOR);
             newNode(_ENABLECLOCK,"");
@@ -578,7 +585,8 @@ Parser::rTransDef(){
                 removeNode(); // _ENABLECLOCK
             }
         }
-        expect(ARROW,"Forgot arrow at transition declaration?\n");
+        expect(ARROW,"Malformed precondition formula?, or forgot arrow "
+                     "at transition declaration?\n");
         saveNode(_SEPARATOR);
         newNode(_POSTCONDITION);
         if(rAssigList()){
@@ -607,13 +615,163 @@ Parser::rTransDef(){
 /**/
 int
 Parser::rAssigList(){
-    return 1;
+
+    newNode(_ASSIGL);
+    if(rAssig()){
+        while(accept(SCLN)){
+            saveNode(_SEPARATOR);
+            if(!rAssig()){
+                string msg("Malformed assignment list.\n"
+                           "Unexpected " + lexemes[pos]);
+                throw new SyntaxError(msg, lines[pos], columns[pos]);
+            }
+        }
+        saveNode();
+        return 1;
+    }
+    removeNode();
+    return 0;    
 }
 
 /**/
 int
-Parser::rFormula(){
+Parser::rAssig(){
+    newNode(_ASSIG);
+    if(accept(NAME)){
+        saveNode(_NAME);
+        if(accept(ASSIG)){
+            saveNode(_SEPARATOR);
+            if(rBFormula() || rMFormula()){
+                saveNode();
+                return 1;
+            }
+        }
+    }
+    removeNode();
+    return 0;
+}
+
+
+/**/
+int
+Parser::rMFormula(){
+    newNode(_MFORM);
+    if(rMValue()){
+        while(accept(MOP)){     
+            saveNode(_OPERATOR);
+            if(!rMFormula()){
+                string msg("Unexpected '" + lexemes[pos] + "' in math "
+                           "formula.\n");
+                throw SyntaxError(msg,lines[pos],columns[pos]);
+            }
+        }
+        saveNode(); //_MFORM
+        return 1;   
+    }
+    removeNode(); //_MFORM
+    return 0;
+}
+
+/**/
+int
+Parser::rMValue(){
+    newNode(_MVALUE);
+    if(accept(NUM)){
+        saveNode(_NUM);
+    }else if(accept(NAME)){
+        saveNode(_NAME);
+
+    }else if(accept(OP)){
+        saveNode(_OPERATOR);
+        if(rMFormula()){
+            expect(CP, "Missing ')'.\n");
+            saveNode(_SEPARATOR);
+        }else{
+            removeNode(); //_MVALUE
+            return 0;
+        }
+    }else{
+        removeNode(); //_MVALUE
+        return 0;
+    }
+    saveNode(); //_MVALUE
     return 1;
+}
+
+/* @Rule: BOOLEAN FORMULA. */
+int 
+Parser::rBFormula(){
+
+    newNode(_BOOLF);
+    if(rBValue()){
+        if(accept(BOP)||accept(BINOP)){ // Boolean comparison and binary op.
+            saveNode(_OPERATOR);
+            if(!rBFormula()){
+                string str("Unexpected '" + lexemes[pos] + "' in boolean "
+                          "formula.\n");
+                throw new SyntaxError(str,lines[pos], columns[pos]);
+            }
+        }
+        saveNode(); //_BOOLF
+        return 1;
+    }else if(rMValue()){ // Math comparison (> < >= <=)
+        if(accept(COP)){
+            saveNode(_OPERATOR);
+            if(!rMFormula()){
+                string str("Unexpected '" + lexemes[pos] + "' in boolean "
+                          "formula.\n");
+                throw new SyntaxError(str,lines[pos], columns[pos]);
+            }
+            saveNode(); //_BOOLF
+            return 1;
+        }else if(accept(BOP)){ // Boolean comparison
+            saveNode(_OPERATOR);
+            if(!rMFormula()){
+                string str("Unexpected '" + lexemes[pos] + "' in boolean "
+                          "formula.\n");
+                throw new SyntaxError(str,lines[pos], columns[pos]);
+            }
+            saveNode(); //_BOOLF
+            return 1;
+        }
+
+    }
+    removeNode(); // _BOOLF
+    return 0;
+
+}
+
+/* @Rule: BOOLEAN VALUE. */
+int 
+Parser::rBValue(){
+
+    newNode(_BOOLV);
+
+    if(accept(BOOLV)){
+        saveNode(); // _BOOLV
+        return 1;
+    }else if (accept(OP)){
+        saveNode(_SEPARATOR);
+        bool b = false;
+        TESTB(rBFormula, b)
+        if(b){
+            expect(CP,"Missing ')'.\n"); //FIXME not sure about this expect
+            saveNode(_SEPARATOR);
+            saveNode(); // _BOOLV
+            return 1;
+        }
+    }else if(accept(EMARK)){
+        saveNode(_NEGATION);
+        if(!rBValue()){
+            removeNode(); //_BOOLV
+            string msg("Negation of something that is not boolean.\n");
+            throw new SyntaxError(msg, lines[pos], columns[pos]);
+        }
+        saveNode(); //_BOOLV
+        return 1;
+    }
+    removeNode(); // _BOOLV
+    return 0;
 }
 
 
