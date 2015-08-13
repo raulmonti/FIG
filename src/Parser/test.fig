@@ -1,8 +1,15 @@
+/* FIG MODEL EXAMPLE
+   FOR PARSER TESTING PORPOUSE 
+   Raúl Monti 2015
+*/
+
+
+
 MODULE modone
 
 
 LABELS
-    a:input;
+    a:input; 
     b:output;
 
 CLOCKS
@@ -13,17 +20,22 @@ CLOCKS
 
 TRANS
 
+    /* Some transition that * represents / something. */
     [a] c == 2 && true && false != (3.653  >= 3/9) : x2 >> ;
     [b?] a == 4 + 2 > c : clockone >> a = 4+2, b = a||b :clockone, clockfour;
+
+PROPERTY prop1 : ;
 
 MODULE modtwo
 
 CLOCKS
-    clockthree: Exponential(2);
+    clockthree: /* This clock has exponential delay. */
+                Exponential(2);
     clockfour :Normal(-1,-2);
 
 TRANS
 
+PROPERTY prop1 : ;
 
 MODULE modthree
 
@@ -37,3 +49,4 @@ VARS
 TRANS
 
 
+PROPERTY prop1 : ;

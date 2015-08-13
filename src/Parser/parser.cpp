@@ -8,7 +8,7 @@
 #include "exceptions.h"
 
 
-/** Definitions. **/
+/** Definitions. **/ //FIXME check if this are used somewhere. Remove o.w.
 
 /* @TEST: try to match the @production, and return back
     to original position if not. For lookahead purpose.
@@ -191,7 +191,6 @@ Parser::loadLocation(){
 /** Grammar Rules **/
 
 
-
 /* @The starting point of the grammar to be parsed with the
     recursive descent parser.
    @return: 1 if successfully parsed. Throw SyntaxError otherwise.
@@ -202,15 +201,23 @@ Parser::rGrammar(){
     newNode(_MODEL, string(""));
 
     while(!ended()){
-        if(!rModule()){
+
+        bool b = false;
+
+        TESTB(rModule,b) // try to parse module
+
+        if(!b){
+            TESTB(rProperty,b)  // try to parse property
+        }
+        if(!b){
             // Could not match the grammar. Show where we got stuck.
             throw (new SyntaxError(string("Syntax error: '"
                                          + lexemes[pos] + "'\n")
                                   ,getLineNum(pos)
                                   ,getColumnNum(pos)));
-
         }
     }
+    
     return 1;
 }
 
@@ -779,6 +786,31 @@ Parser::rClkList(){
     removeNode();
     return 0;
 }
+
+
+/** Property rules. **/
+
+int
+Parser::rProperty(){
+
+    if(accept(KPROP)){
+        newNode(_PROPERTY,"");
+        saveNode(_KEYWORD);
+        expect(NAME, "Missing property name?\n"); //FIXME maybe no necessary
+        saveNode(_NAME);
+        expect(CLN, "Missing colon after property name?\n");
+        saveNode(_SEPARATOR);
+        expect(SCLN, "Missin semicolon to end property declaration?\n");
+        saveNode(_SEPARATOR);
+        saveNode(); //_PROPERTY
+        return 1;
+    }
+    return 0;
+}   
+
+
+
+
 /* @Parse: parse stream @str and place the resulting AST in @result.
            It is caller responsibility to free the allocated AST 
            @result afterwards.

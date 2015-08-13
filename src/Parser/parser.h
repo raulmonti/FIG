@@ -18,6 +18,7 @@ namespace parser{
 */
 typedef enum    { MEOF    // my end of file symbol
                 , NUM     // float type numbers
+                , KPROP   // Keyword PROPERTY
                 , KMOD    // keyword MODULE
                 , KEMOD   // keyword ENDMODULE
                 , KLBL    // keyword for label sections
@@ -101,6 +102,7 @@ typedef enum{ _EOF            // End of File
             , _ASSIGL
             , _ASSIG
             , _BOOLEAN     // true false
+            , _PROPERTY
             } prodSym;
 
 
@@ -119,7 +121,8 @@ static const char symTable[][25] =
      "CLOCK RESETS LIST", "CLOCK TO RESET", 
      "EXPRESSION", "COMPARISON", "SUMMATION",
      "DIVITION", "VALUE", "BOOLEAN/MATH OPERATOR",
-     "NEGATION", "ASSIGNMENT LIST", "ASSIGNMENT", "TRUE OR FALSE VALUE"
+     "NEGATION", "ASSIGNMENT LIST", "ASSIGNMENT", "TRUE OR FALSE VALUE",
+     "VERIFICATION PROPERTY"
     };
 
 
@@ -427,6 +430,9 @@ private:
     int
     rAssig();
 
+    /**/
+    int
+    rProperty();
 
 }; // End class Parser.
 

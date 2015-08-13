@@ -17,6 +17,8 @@
 #include "debug.h" 
 %}
 
+
+
 /* This tells flex to read only one input file */
 %option noyywrap
 %option yylineno
@@ -24,11 +26,15 @@
 
 %%
 
+"/*"((("*"[^/])?)|[^*])*"*/" { cout << yytext << endl; }
+
 -?[0-9]+([\.][0-9]+)?     { return parser::NUM; }
 
 MODULE      { return parser::KMOD; }
 
 ENDMODULE   { return parser::KEMOD; }
+
+PROPERTY    { return parser::KPROP; }
 
 LABELS      { return parser::KLBL; }
 
@@ -87,7 +93,7 @@ Uniform     { return parser::KUDIST; }
 
 [^[:alnum:]]    {
                     stringstream ss;
-                    ss << " at line " << yylineno << endl;
+                    ss << " at line " << yylineno <<  endl;
                     string str = string(yytext) + ss.str();
                     throw new Badcharfound(str);
                 }
