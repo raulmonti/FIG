@@ -48,13 +48,13 @@ std::ostream& operator<< (std::ostream& out, AST const& ast){
     cout << "(" << parser::symTable[ast.tkn] << ", " << ast.lxm << ", <" 
          << ast.l << "," << ast.c << ">" << ", [";
 
-    for(size_t i = 0; i+1 < (ast.list).size(); i++){
-        AST *a = (ast.list)[i]; 
+    for(size_t i = 0; i+1 < (ast.branches).size(); i++){
+        AST *a = (ast.branches)[i]; 
         out << *a << ",";
     }
 
-    if(ast.list.size()>0){
-        AST *a = ast.list[(ast.list).size()-1];
+    if(ast.branches.size()>0){
+        AST *a = ast.branches[(ast.branches).size()-1];
         out << *a;
     }
     cout << "])";
@@ -97,6 +97,11 @@ Parser::getLineNum(int p){
     int result = 1;
     for(int i = 0; i < p; i++){
         if(tokens[i] == NL) result++;
+        if(tokens[i] == COMMENT){
+            for(int j = 0; j < lexemes[i].size(); j++){
+                if(lexemes[i][j] == '\n'){ result++; }
+            }
+        }
     }
     return result;
 }
@@ -112,6 +117,9 @@ Parser::getColumnNum(int p){
     assert(p < static_cast<int>(tokens.size()));
     int result = 1;
 
+    return columns[pos];
+
+    // FIXME the following does not work with COMMENTs.
     for(int i = p-1; i >= 0 && tokens[i] != NL; i--){
         result += lexemes[i].size();
     }    
@@ -135,7 +143,7 @@ Parser::nextLxm(void){
     pos++;
     tkn = (Token)tokens[pos];
 
-    if( skipws && isw() ){      // do we skip whites?
+    if( (skipws && isw()) || tokens[pos] == COMMENT ){  // do we skip whites?
         //lastpos++;              // FIXME should I accept this WS?
         nextLxm();
     }    
@@ -211,6 +219,11 @@ Parser::rGrammar(){
         }
         if(!b){
             // Could not match the grammar. Show where we got stuck.
+            // FIXME I dont know why I kept methods getLineNum and
+            // getColumnNum, this asserts are to check if they are really
+            // needed (horrible check haha).
+            assert(getLineNum(pos) == lines[pos]);
+            assert(getColumnNum(pos) == columns[pos]);
             throw (new SyntaxError(string("Syntax error: '"
                                          + lexemes[pos] + "'\n")
                                   ,getLineNum(pos)
@@ -228,7 +241,8 @@ Parser::rModule(){
 
     if(accept(KMOD)){                   // Should be
         // This node is a MODULE node
-        newNode(_MODULE, string(""));   /* FIXME can give line and col 
+        newNode(_MODULE, string(""),lines[lastpos],columns[lastpos]);   
+                                        /* FIXME can give line and col 
                                           from lastpos.
                                         */
         saveNode(_KEYWORD);
@@ -314,7 +328,7 @@ int
 Parser::rClkDef(){
 
     if (accept(NAME)){
-        newNode(_CLOCK,string(""));
+        newNode(_CLOCK,string(""),lines[lastpos],columns[lastpos]);
         saveNode(_NAME);
         if(accept(CLN)){
             saveNode(_SEPARATOR);
@@ -659,8 +673,8 @@ Parser::rAssig(){
 int
 Parser::rExpression(){
     newNode(_EXPRESSION,"");
-    if(rComparison()){
-        if(accept(BOP) || accept(BINOP)){
+    if(rEqual()){
+        if(accept(BINOP)){
             saveNode(_OPERATOR);
             if(!rExpression()){
                 string msg("Unexpected word '"+lexemes[pos]+"'.\n");
@@ -673,6 +687,26 @@ Parser::rExpression(){
     removeNode(); //_EXPRESSION
     return 0;
 }
+
+/**/
+int
+Parser::rEqual(){
+    newNode(_EQUALITY,"");
+    if(rComparison()){
+        if(accept(BOP)){
+            saveNode(_OPERATOR);
+            if(!rEqual()){
+                string msg("Unexpected word '"+lexemes[pos]+"'.\n");
+                throw new SyntaxError(msg,lines[pos], columns[pos]);
+            }
+        }
+        saveNode(); //_EQUALITY
+        return 1;
+    }
+    removeNode(); //_EQUALITY
+    return 0;
+}
+
 
 /**/
 int
@@ -738,7 +772,7 @@ Parser::rValue(){
     newNode(_VALUE,"");
     if(accept(NUM)){
         saveNode(_NUM);
-    }else if(accept(NAME)){
+    }else if(accept(NAME)){ // don't know the type
         saveNode(_NAME);
     }else if(accept(BOOLV)){
         saveNode(_BOOLEAN);
@@ -751,13 +785,11 @@ Parser::rValue(){
         expect(CP,"Missing ')'?\n");
         saveNode(_SEPARATOR);
     }else if(accept(EMARK)){
-        if(accept(EMARK)){
-            saveNode(_NEGATION);
-            if(!rExpression()){
-                string msg("Unexpected word '"+lexemes[pos]+"'.\n");
-                throw new SyntaxError( msg,lines[pos]
-                                     , columns[pos]);            
-            }
+        saveNode(_NEGATION);
+        if(!rExpression()){
+            string msg("Unexpected word '"+lexemes[pos]+"'.\n");
+            throw new SyntaxError( msg,lines[pos]
+                                 , columns[pos]);            
         }
     }//else if (accept(-)) ... FIXME
      else{
@@ -800,7 +832,7 @@ Parser::rProperty(){
         saveNode(_NAME);
         expect(CLN, "Missing colon after property name?\n");
         saveNode(_SEPARATOR);
-        expect(SCLN, "Missin semicolon to end property declaration?\n");
+        expect(SCLN, "Missing semicolon to end property declaration?\n");
         saveNode(_SEPARATOR);
         saveNode(); //_PROPERTY
         return 1;
@@ -819,6 +851,7 @@ Parser::rProperty(){
 int
 Parser::parse(stringstream *str, AST * & result){
 
+    // FIXME lineno is already given by the lexer (yylineno)
     int ret;
     int lineno = 1, colnum = 1;
 
@@ -838,6 +871,16 @@ Parser::parse(stringstream *str, AST * & result){
                 if (ret == NL){
                     lineno++;
                     colnum = 1;
+                }else if(ret == COMMENT){ //manually count
+                    string comment = lexer->YYText();
+                    for(int i = 0; i < lexer->YYLeng(); i++){
+                        if(comment[i]=='\n'){
+                            lineno++;
+                            colnum = 1;
+                        }else{
+                            colnum++;
+                        }
+                    }
                 }else{
                     colnum += lexer->YYLeng();
                 }
@@ -882,7 +925,8 @@ Parser::newNode(prodSym tkn,string str, int line, int col){
 int
 Parser::newNode(prodSym tkn){
     
-    Node *node = new Node(tkn,lexemes[lastpos],lines[lastpos],columns[lastpos]);
+    Node *node = new Node( tkn,lexemes[lastpos],lines[lastpos]
+                         , columns[lastpos]);
     astStk.push(node);
 }
 

@@ -55,6 +55,7 @@ typedef enum    { MEOF    // my end of file symbol
                 , EMARK   // !
                 , QMARK   // ?
                 , LDIR    // label direction (input or output)
+                , COMMENT // C style comment (/* ... */)
                 , DUM     // dummy symbol   
                 } Token;
 
@@ -70,11 +71,11 @@ typedef enum{ _EOF            // End of File
             , _MODULE
             , _LBLSEC
             , _VARSEC
-            , _TRANSEC
+            , _TRANSEC          // Transitions section
             , _CLOCKSEC
             , _VARIABLE
             , _LBL
-            , _TRANSITION
+            , _TRANSITION       // Transition
             , _CLOCK
             , _KEYWORD
             , _NAME
@@ -92,7 +93,8 @@ typedef enum{ _EOF            // End of File
             , _POSTCONDITION
             , _RESETCLOCKLIST
             , _RESETCLOCK
-            , _EXPRESSION
+            , _EXPRESSION   // a {&&,||} b
+            , _EQUALITY        // a {==,!=} b
             , _COMPARISON   // a {<,>,<=,>=} b
             , _SUM
             , _DIV
@@ -119,7 +121,7 @@ static const char symTable[][25] =
      "IDENTIFIER", "TYPE","RANGE","ACTION", "INPUT/OUTPUT",
      "ENABLING CLOCK", "PRECONDITION FORMULA", "POSTCONDITION ASSIGNMENT",
      "CLOCK RESETS LIST", "CLOCK TO RESET", 
-     "EXPRESSION", "COMPARISON", "SUMMATION",
+     "EXPRESSION", "EQUALITY", "COMPARISON", "SUMMATION",
      "DIVITION", "VALUE", "BOOLEAN/MATH OPERATOR",
      "NEGATION", "ASSIGNMENT LIST", "ASSIGNMENT", "TRUE OR FALSE VALUE",
      "VERIFICATION PROPERTY"
@@ -404,6 +406,10 @@ private:
 
     /**/
     int
+    rEqual();
+
+    /**/
+    int
     rComparison();
 
     /**/
@@ -441,6 +447,4 @@ private:
 } // End namespace parser.
 
 
-
-
-#endif
+#endif //PARSER_H

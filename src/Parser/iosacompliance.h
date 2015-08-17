@@ -9,7 +9,11 @@
 #define IOSA_COMPLIANCE_H
 
 
+#include<vector>
+#include<string>
+#include<map>
 #include "ast.h"
+
 
 using namespace std;
 
@@ -21,6 +25,14 @@ using namespace std;
 
 class Verifier{
 
+    /**/
+    typedef enum    { mARIT
+                    , mBOOL
+                    } Type; 
+
+    string error_list;
+    // Map from module name to variable name to type:
+    map<string, map<string,Type>> typeMap;
 
 public:
 
@@ -38,6 +50,34 @@ private:
     */
     int
     names_uniqueness(AST* ast); 
+
+    /* @instantaneous_input: check that input transitions have no clock to wait
+                             for. This is in compilance to IOSA first condition.
+       @return:
+       @throw:
+    */
+    int
+    input_output_clocks(AST* ast);
+
+    /* @unique_ouputs: check that clocks are used only once as transition enable
+                       clocks, in compliance to 3rd condition for IOSA.
+       @throw:
+       @result:
+    */
+    int
+    unique_outputs(AST *ast);
+
+    /* @type_check: Type check every expression in @ast. */
+    int
+    type_check(AST *ast);
+
+    /* @get_type: Return type of an expression.
+       @module: the module name (key for the typeMap).
+       @return:
+       @throw:
+    */
+    Type
+    get_type(AST *expr, string module);
 
 };
 

@@ -47,7 +47,7 @@ main (int argc, char** argv){
            like printing each modules name: */
         vector<AST*> modules = ast->get_list(parser::_MODULE);
         for (int i = 0; i < modules.size(); i++){
-            cout << (modules[i])->list[1]->lxm << endl;
+            cout << (modules[i])->branches[1]->lxm << endl;
             //OR
             cout << (modules[i])->get_list(parser::_NAME)[0]->lxm << endl; 
             //OR

@@ -56,5 +56,20 @@ public:
 };
 
 
+class BadAST: public std::exception
+{
+
+public:
+
+  BadAST(){}
+
+  virtual ~BadAST() throw() {}
+
+  virtual const char* what() const throw()
+  {
+    return std::string("WRONG AST!").c_str();
+  }
+};
+
 #endif
 

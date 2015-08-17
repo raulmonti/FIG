@@ -747,7 +747,7 @@ case 1:
 /* rule 1 can match eol */
 YY_RULE_SETUP
 #line 29 "lexer.l"
-{ cout << yytext << endl; }
+{ return parser::COMMENT; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP

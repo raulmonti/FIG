@@ -1,12 +1,17 @@
 /* FIG MODEL EXAMPLE
    FOR PARSER TESTING PORPOUSE 
    Raúl Monti 2015
-*/
+    */
 
 
 
 MODULE modone
 
+
+
+
+
+MODULE modtwo
 
 LABELS
     a:input; 
@@ -16,15 +21,28 @@ CLOCKS
     clockone:Normal(1,1); clocktwo:Exponential(3);
     clockfour: Uniform(6,2);
 
+VARS
 
+    Int a = 2;
 
 TRANS
-
+    
     /* Some transition that * represents / something. */
-    [a] c == 2 && true && false != (3.653  >= 3/9) : x2 >> ;
+    [a] c == 2 && true && false != (3.653  >= 3/9) :  >> ;
     [b?] a == 4 + 2 > c : clockone >> a = 4+2, b = a||b :clockone, clockfour;
+    [] a && t == 4 >> ;
+    [c!] >> ;
+
+
+
+
+
 
 PROPERTY prop1 : ;
+
+
+
+
 
 MODULE modtwo
 
@@ -35,16 +53,26 @@ CLOCKS
 
 TRANS
 
+    [] : c1 >> ;
+    [b] : c1 >> : c2;
+
 PROPERTY prop1 : ;
+
+
+
+
+
 
 MODULE modthree
 
 VARS
 
+    Float c [2..3] = 2;
     Int a [2..5] = 10;
     Float b = 1.2;
     Float c;
     Int d;
+    Float d;
 
 TRANS
 
