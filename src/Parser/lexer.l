@@ -50,7 +50,7 @@ Exponential { return parser::KEDIST; }
 
 Uniform     { return parser::KUDIST; }
 
-("Int"|"Float")         { return parser::KVTYPE; } 
+("Int"|"Float"|"Bool")  { return parser::KVTYPE; } 
 
 ("input"|"output")      { return parser::LDIR; }
 

@@ -472,13 +472,19 @@ Parser::rVarSec(){
 }
 
 /* @Rule: INITIALIZATION. */
+
+//FIXME we may want expressions and not only values for initialization.
+
 int
 Parser::rInit(){
 
     if(accept(ASSIG)){
+        newNode(_INIT,"",lines[lastpos],columns[lastpos]);
         saveNode(_SEPARATOR);
-        expect(NUM);
-        saveNode(_NUM);
+        if(! rExpression()){
+            throw string("Wrong initialization expression.\n");
+        }
+        saveNode();//_INIT
         return 1;
     }
     return 0;
@@ -598,12 +604,8 @@ Parser::rTransDef(){
 
         if(accept(CLN)){
             saveNode(_SEPARATOR);
-            newNode(_ENABLECLOCK,"");
             if(accept(NAME)){
-                saveNode(_NAME);
-                saveNode(); // _ENABLECLOCK
-            }else{
-                removeNode(); // _ENABLECLOCK
+                saveNode(_ENABLECLOCK);
             }
         }
         expect(ARROW,"Malformed precondition formula?, or forgot arrow "
@@ -672,7 +674,7 @@ Parser::rAssig(){
 /**/
 int
 Parser::rExpression(){
-    newNode(_EXPRESSION,"");
+    newNode(_EXPRESSION,"",lines[pos],columns[pos]);
     if(rEqual()){
         if(accept(BINOP)){
             saveNode(_OPERATOR);
@@ -691,7 +693,7 @@ Parser::rExpression(){
 /**/
 int
 Parser::rEqual(){
-    newNode(_EQUALITY,"");
+    newNode(_EQUALITY,"",lines[pos],columns[pos]);
     if(rComparison()){
         if(accept(BOP)){
             saveNode(_OPERATOR);
@@ -711,7 +713,7 @@ Parser::rEqual(){
 /**/
 int
 Parser::rComparison(){
-    newNode(_COMPARISON,"");
+    newNode(_COMPARISON,"",lines[pos],columns[pos]);
     if(rSum()){
         if(accept(COP)){
             saveNode(_OPERATOR);
@@ -730,7 +732,7 @@ Parser::rComparison(){
 /**/
 int
 Parser::rSum(){
-    newNode(_SUM,"");
+    newNode(_SUM,"",lines[pos],columns[pos]);
     if(rDiv()){
         if(accept(SUMOP)){
             saveNode(_OPERATOR);
@@ -749,7 +751,7 @@ Parser::rSum(){
 /**/
 int
 Parser::rDiv(){
-    newNode(_DIV,"");
+    newNode(_DIV,"",lines[pos],columns[pos]);
     if(rValue()){
         if(accept(DIVOP)){
             saveNode(_OPERATOR);
@@ -769,7 +771,7 @@ Parser::rDiv(){
 int
 Parser::rValue(){
     
-    newNode(_VALUE,"");
+    newNode(_VALUE,"",lines[pos],columns[pos]);
     if(accept(NUM)){
         saveNode(_NUM);
     }else if(accept(NAME)){ // don't know the type
@@ -811,6 +813,7 @@ Parser::rClkList(){
         while(accept(CMM)){
             saveNode(_SEPARATOR);
             expect(NAME, "Missing clock or spare semicolon.\n");
+            saveNode(_RESETCLOCK);
         }
         saveNode();
         return 1;

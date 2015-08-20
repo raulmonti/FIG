@@ -24,14 +24,15 @@ int
 Verifier::verify(AST* ast){
 
     error_list = "";
-    names_uniqueness(ast);
-    input_output_clocks(ast); // 1st and 2nd conditions for IOSA
-    unique_outputs(ast);      // 3rd condition for IOSA
+    fill_maps(ast);
+
+//    names_uniqueness(ast);
+    
     type_check(ast);
 
-    if(error_list != ""){
-        throw error_list;
-    }
+    input_output_clocks(ast); // 1st and 2nd conditions for IOSA
+    unique_outputs(ast);      // 3rd condition for IOSA
+    
     return 1;
 }
 
@@ -42,6 +43,8 @@ Verifier::verify(AST* ast){
    @return: 1 if no duplicated name was found.
    @throw: ... if some duplicated name was found.
 */
+
+//FIXME variables and clocks should be called diferent
 
 int
 Verifier::names_uniqueness(AST* ast){
@@ -63,10 +66,14 @@ Verifier::names_uniqueness(AST* ast){
     }
 
 
-    /* Unique variables names inside each module. */
-    //FIXME or should it be between all modules
+    set<AST*,bool(*)(AST*,AST*)> cNames 
+        ([]( AST* a, AST* b){return a->lxm < b->lxm;}); //clock names.
+
+    /* Unique variables and clock names inside each module. */
+    //FIXME or should it be between all modules?
     for(int i = 0; i < modules.size();i++){
-        names.clear(); // check uniquenes only inside modules    
+        names.clear();  // check uniqueness only inside modules    
+        cNames.clear(); // check uniqueness only inside modules    
         AST* var_sec = modules[i]->get_first(parser::_VARSEC);
         if(var_sec){ // Modules have single variable section 
             vector<AST*> vars = var_sec->get_list(parser::_VARIABLE);
@@ -81,34 +88,42 @@ Verifier::names_uniqueness(AST* ast){
                 } 
             } 
         }
-    }
 
-    /* Unique clock names between all modules. */
-    //FIXME or should it be inside each module
-    names.clear();
-    for(int i = 0; i < modules.size();i++){ // For each module
         AST* clk_sec = modules[i]->get_first(parser::_CLOCKSEC);
         if(clk_sec){ // Modules have one or none clock sections
             vector<AST*> clks = clk_sec->get_list(parser::_CLOCK);
             for(int j = 0; j < clks.size(); j++){ // for each clock
                 AST* a_name = clks[j]->get_first(parser::_NAME);
-                if (!names.insert(a_name).second){
-                    AST* duplicated = *names.find(a_name);
+                if (!cNames.insert(a_name).second){
+                    AST* duplicated = *cNames.find(a_name);
                     error_list.append(("[ERROR] Duplicated clock name '")
                         + a_name->p_name() + "', at " + a_name->p_pos() 
                         + ". Previously defined at " 
                         + duplicated->p_pos() + ".\n");
-                } 
+                }
+                if(names.count(a_name)){
+                    AST* duplicated = *names.find(a_name);
+                    error_list.append(("[ERROR] Duplicated variable name '")
+                        + a_name->p_name() + "', at " + duplicated->p_pos() 
+                        + ". Previous clock with same name defined at " 
+                        + a_name->p_pos() + ".\n");
+                }
             }
         }
     }
+
+    if(error_list != ""){
+        throw error_list; // If names are repeated we can not continue ...
+    }
+
+    return 1;
 }
 
 
 /* @input_output_clocks: check that input transitions have no clock to wait
-                         for. This is in compilance to IOSA first condition.
+                         for. This is in compliance to IOSA first condition.
                          Also check that output transitions have exactly one
-                         clock to wait for, in compilance to IOSA second
+                         clock to wait for, in compliance to IOSA second
                          condition.
    @return:
    @throw:
@@ -122,7 +137,8 @@ Verifier::input_output_clocks(AST* ast){
     for(int i = 0; i < modules.size(); i++){
         AST* transSec = modules[i]->get_first(parser::_TRANSEC);
         if(transSec){
-            vector<AST*> transitions = transSec->get_list(parser::_TRANSITION);
+            vector<AST*> transitions = 
+                transSec->get_list(parser::_TRANSITION);
             for(int i = 0; i < transitions.size(); i++){
                 AST* ioAst = transitions[i]->get_first(parser::_IO);
                 if(  ioAst 
@@ -143,6 +159,11 @@ Verifier::input_output_clocks(AST* ast){
             }
         }
     }
+
+    if(error_list != ""){
+        throw error_list; // If names are repeated we can not continue ...
+    }
+
     return result;
 }
 
@@ -183,13 +204,13 @@ Verifier::unique_outputs(AST *ast){
                 AST *enable_c =
                     transitions[i]->get_first(parser::_ENABLECLOCK);
                 if(enable_c){
-                    AST *c = enable_c->get_first(parser::_NAME);
-                    if(!names.insert(c).second){
-                        AST* duplicated = *names.find(c);
+                    if(!names.insert(enable_c).second){
+                        AST* duplicated = *names.find(enable_c);
                         error_list.append(("[ERROR] Same clock can not be "
                             "used twice as enable clock. Clock '")
-                            + c->p_name() + "', at " + duplicated->p_pos()
-                            + " and " + c->p_pos() + ".\n");
+                            + enable_c->p_name() + "', at " 
+                            + duplicated->p_pos()
+                            + " and " + enable_c->p_pos() + ".\n");
                         result = 0;
                     }
                 }
@@ -200,6 +221,37 @@ Verifier::unique_outputs(AST *ast){
 }
 
 
+/* @fill_maps: fill up typeMap and clckMap for @ast.
+*/
+int
+Verifier::fill_maps(AST *ast){
+
+    vector<AST*> modules = ast->get_list(parser::_MODULE);
+    for(int i = 0; i < modules.size(); i++){
+        vector<AST*> variables = modules[i]->get_all_ast(parser::_VARIABLE);
+        vector<AST*> clocks = modules[i]->get_all_ast(parser::_CLOCK);
+        string module = modules[i]->get_lexeme(parser::_NAME);
+        // Fill the variable type maps
+        for(int j=0; j < variables.size(); j++){
+            string name = variables[j]->get_lexeme(parser::_NAME);
+            string type = variables[j]->get_lexeme(parser::_TYPE);
+            if(type == "Int" || type == "Float"){
+                typeMap[module][name] = mARIT;
+            }else if (type == "Bool"){
+                typeMap[module][name] = mBOOL;
+            }else{
+                assert(false);      // FIXME is it good to do this?
+            }
+        }
+        //Fill clocks map
+        for(int j=0; j < clocks.size(); j++){
+            string name = clocks[j]->get_lexeme(parser::_NAME);
+            clckMap[module].insert(name);
+        }
+    }
+    return 1;
+}
+
 int
 Verifier::type_check(AST *ast){
 
@@ -208,24 +260,92 @@ Verifier::type_check(AST *ast){
     for(int i = 0; i < modules.size(); i++){
         vector<AST*> variables = modules[i]->get_all_ast(parser::_VARIABLE);
         vector<AST*> clocks = modules[i]->get_all_ast(parser::_CLOCK);
-        vector<AST*> expressions =
-            modules[i]->get_all_ast(parser::_EXPRESSION);
         string module = modules[i]->get_lexeme(parser::_NAME);
 
-        // Fill the variable type maps
-        for(int j=0; j < variables.size(); j++){
-            string name = variables[j]->get_lexeme(parser::_NAME);
+        // Type check initializations:
+        for(int j=0;j<variables.size();j++){
             string type = variables[j]->get_lexeme(parser::_TYPE);
-            if(type == "int"){
-                typeMap[module][name] = mARIT;
-            }else{
-                typeMap[module][name] = mBOOL;
+            AST* init = variables[j]->get_first(parser::_INIT);
+            if(init){
+                try{
+                    Type t = get_type( init->get_first(parser::_EXPRESSION)
+                                     , module);
+                    if( ((type == "Bool") && t != mBOOL) || 
+                        ((type == "Int" || type == "Float") && t != mARIT)){
+                        AST* v = variables[j]->get_first(parser::_NAME);
+                        throw "[ERROR] Wrong type for initialization of "
+                              "variable '" + v->p_name() + "', at " 
+                              + v->p_pos() + ".\n";
+                    }
+                }catch(string s){
+                    error_list.append(s);
+                }
             }
         }
 
-        for(int j= 0; j < expressions.size(); j++){
-            cout << "type: " << get_type(expressions[j], module) << endl;
+        // Type check transitions preconditions:
+        vector<AST*> trans = modules[i]->get_all_ast(parser::_TRANSITION);
+        for(int j =0; j < trans.size();++j){
+            AST *expr = trans[j]->get_first(parser::_EXPRESSION);
+            if (expr){
+                try{
+                    if( mBOOL != get_type(expr, module)){
+                        throw "[ERRPR] Wrong type for transitions "
+                              "precondition at " + expr->p_pos() 
+                              + ". It should be boolean but found "
+                              "arithmetic instead.\n";
+                    }
+                }catch(string err){
+                    error_list.append(err);
+                }
+            }
         }
+        
+        // Type check assignments in post conditions
+        for(int j = 0; j < trans.size(); ++j){
+            vector<AST*> assigs = trans[j]->get_all_ast(parser::_ASSIG);
+            for(int k = 0; k < assigs.size(); ++k){
+                AST* var = assigs[k]->get_first(parser::_NAME);
+                string vname = var->p_name();
+                AST* expr = assigs[k]->get_first(parser::_EXPRESSION);
+                try{
+                    Type t1 = typeMap[module].at(vname);
+                    Type t2 = get_type(expr,module);
+                    if(t1 != t2){
+                        throw "[ERROR] Wrong type in assignment of variable "
+                              + vname + " at " + var->p_pos() + ".\n";
+                    }
+                }catch(string err){
+                    error_list.append(err);
+                }catch(out_of_range err){
+                    error_list.append( "[ERROR] Undeclared variable " 
+                                     + vname + " at " + var->p_pos() 
+                                     + ".\n");
+                }
+            }
+        }
+
+        // Check that enabling clock and reseting clocks are really clocks
+        for(int j = 0; j < trans.size(); j++){
+            AST* enable = trans[j]->get_first(parser::_ENABLECLOCK);
+            if(enable && !clckMap[module].count(enable->p_name()) ){
+                error_list.append( "[ERROR] No clock named " 
+                                 + enable->p_name() + " at " 
+                                 + enable->p_pos() + ".\n" );
+            }
+            vector<AST*> resets = trans[j]->get_all_ast(parser::_RESETCLOCK);
+            for(int k = 0; k < resets.size(); ++k){
+                if(!clckMap[module].count(resets[k]->p_name())){
+                    error_list.append( "[ERROR] No clock named " 
+                                     + resets[k]->p_name() + " at " 
+                                     + resets[k]->p_pos() + ".\n" );
+                }
+            }
+        }
+    }
+
+    if(error_list != ""){
+        throw error_list; // Need to solve typing to continue.
     }
 
     return result;
@@ -236,12 +356,11 @@ Verifier::type_check(AST *ast){
 
 
 /* @get_type: Return type of an expression.
-   @return:
-   @throw:
+   @return: Type of the expression if it has one.
+   @throw: string with error message if there is something wrong with typing.
 */
 Verifier::Type
 Verifier::get_type(AST *expr, string module){
-    //FIXME verify that I'm not copying maps but passing references.
 
     assert(expr);
     if(expr->tkn == parser::_EXPRESSION){
@@ -252,8 +371,8 @@ Verifier::get_type(AST *expr, string module){
         if(op){
             Type t2 = get_type(expr2, module);
             if(t1 != mBOOL || t1 != t2){
-                error_list.append( "Wrong types for binary operator at " 
-                                 + op->p_pos() + ".\n");
+                throw "[ERROR] Wrong types for binary operator "
+                      "at " + op->p_pos() + ".\n";
             }else{
                 return mBOOL; 
             }
@@ -267,8 +386,8 @@ Verifier::get_type(AST *expr, string module){
         if(op){
             Type t2 = get_type(expr2,module);
             if(t1 != t2){
-                error_list.append( "Wrong types for equality operator at " 
-                                 + op->p_pos() + ".\n");
+                throw "[ERROR] Wrong types for equality "
+                      "operator at " + op->p_pos() + ".\n";
             }else{
                 return mBOOL; 
             }
@@ -282,8 +401,8 @@ Verifier::get_type(AST *expr, string module){
         if(op){
             Type t2 = get_type(expr2,module);
             if(t1 != mARIT || t1 != t2){
-                error_list.append( "Wrong types for arithmetic comparison at " 
-                                 + op->p_pos() + ".\n");
+                throw "[ERROR] Wrong types for arithmetic "
+                      "comparison at " + op->p_pos() + ".\n";
             }else{
                 return mBOOL; 
             }
@@ -297,8 +416,8 @@ Verifier::get_type(AST *expr, string module){
         if(op){
             Type t2 = get_type(expr2,module);
             if(t1 != mARIT || t1 != t2){
-                error_list.append( "Wrong types for arithmetic operation at " 
-                                 + op->p_pos() + ".\n");
+                throw "[ERROR] Wrong types for arithmetic "
+                      "operation at " + op->p_pos() + ".\n";
             }else{
                 return mARIT; 
             }
@@ -313,8 +432,8 @@ Verifier::get_type(AST *expr, string module){
             Type t2 = get_type(expr2,module);
             // FIXME should check division by zero????
             if(t1 != mARIT || t1 != t2){
-                error_list.append( "Wrong types for arithmetic operation at " 
-                                 + op->p_pos() + ".\n");
+                throw "[ERROR] Wrong types for arithmetic "
+                      "operation at " + op->p_pos() + ".\n";
             }else{
                 return mARIT; 
             }
@@ -326,7 +445,14 @@ Verifier::get_type(AST *expr, string module){
         switch (value->tkn){
             case parser::_NAME:
                 // FIXME if variable is not declared...
-                t = (*(typeMap[module].find(value->lxm))).second;
+                if (typeMap[module].count(value->lxm))
+                    t = (*(typeMap[module].find(value->lxm))).second;
+                else if(clckMap[module].count(value->lxm)){
+                    t = mARIT;
+                }else{
+                    throw "[ERROR] Undeclared variable " + value->lxm 
+                          + " at " + value->p_pos() + ".\n";
+                }
                 break;
             case parser::_BOOLEAN:
                 t = mBOOL;
@@ -340,8 +466,8 @@ Verifier::get_type(AST *expr, string module){
             case parser::_NEGATION:
                 t = get_type(expr->get_branch(1),module);
                 if(t != mBOOL){
-                    error_list.append( "Wrong type for negation, at " 
-                                     + value->p_pos() + ".\n");
+                    throw "[ERROR] Wrong type for negation, at " 
+                          + value->p_pos() + ".\n";
                     //t = -1; FIXME change for NOTYPE and do the same for the
                     // rest of the cases where the typing is wrong.
                 }

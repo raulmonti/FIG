@@ -86,6 +86,7 @@ typedef enum{ _EOF            // End of File
             , _IDENT
             , _TYPE
             , _RANGE
+            , _INIT         // initialization of variables
             , _ACTION
             , _IO           // input or output as ? !
             , _ENABLECLOCK  // output transition enable clock
@@ -118,7 +119,8 @@ static const char symTable[][25] =
      "VARS","TRANS","CLKS","VARIABLE","LABEL",
      "TRANSITION","CLOCK","KEYWORD","NAME","INT","REAL",
      "SEPARATOR", "DISTRIBUTION",
-     "IDENTIFIER", "TYPE","RANGE","ACTION", "INPUT/OUTPUT",
+     "IDENTIFIER", "TYPE","RANGE", "INITIALIZATION" ,"ACTION",
+     "INPUT/OUTPUT",
      "ENABLING CLOCK", "PRECONDITION FORMULA", "POSTCONDITION ASSIGNMENT",
      "CLOCK RESETS LIST", "CLOCK TO RESET", 
      "EXPRESSION", "EQUALITY", "COMPARISON", "SUMMATION",

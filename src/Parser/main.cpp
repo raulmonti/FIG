@@ -41,17 +41,19 @@ main (int argc, char** argv){
     /* Parse and point to the resulting AST. */
     AST * ast = NULL;
     if(parser->parse(& ss, ast)){
-        cout << ">> Result of Parsing:\n\n" <<  *ast << endl << endl;
+        __debug__(">> Result of Parsing:\n\n");
+        __debug__(*ast);
+        __debug__("\n\n");
 
         /* Do something with the resulting AST ... 
            like printing each modules name: */
         vector<AST*> modules = ast->get_list(parser::_MODULE);
         for (int i = 0; i < modules.size(); i++){
-            cout << (modules[i])->branches[1]->lxm << endl;
+            //cout << (modules[i])->branches[1]->lxm << endl;
             //OR
-            cout << (modules[i])->get_list(parser::_NAME)[0]->lxm << endl; 
+            //cout << (modules[i])->get_list(parser::_NAME)[0]->lxm << endl; 
             //OR
-            cout << modules[i]->get_list_lexemes(parser::_NAME)[0] << endl;
+            //cout << modules[i]->get_list_lexemes(parser::_NAME)[0] << endl;
         }
 
         try{

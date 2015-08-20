@@ -64,8 +64,9 @@ public:
     vector<AST*>
     get_list(int k);
 
-    /* @get_first: get first child AST with token k.
-       @return: pointer to the found AST, NULL otherwise.
+
+    /* @get_first: walk the tree and get the first node with token k.
+       @return: The found node or NULL otherwise.     
     */
     AST*
     get_first(int k);
@@ -89,9 +90,27 @@ public:
     vector<AST*>
     get_all_ast(int k);
 
+    /* @get_all_ast_ff: (get all ast first found) walk the tree and get every
+                        node with token k, but stop deepening into the branch
+                        as soon as we get such a node. Then searching K2 in a 
+                        tree K1 [k2 [K2, K3], K4 []] will only return the
+                        first K2.
+       @return: a vector of AST pointers to every node with token k, first
+                found.
+    */
+    vector<AST*>
+    get_all_ast_ff(int k);
+
     /* @get_child: Get the ith branch. */
     AST*
     get_branch(int i);
+
+    /* @get_branch_k: get first child AST with token k.
+       @return: pointer to the found AST, NULL otherwise.
+    */
+    AST*
+    get_branch_k(int k);
+
 
 };
 

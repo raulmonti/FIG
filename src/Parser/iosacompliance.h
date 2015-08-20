@@ -11,6 +11,7 @@
 
 #include<vector>
 #include<string>
+#include<set>
 #include<map>
 #include "ast.h"
 
@@ -28,11 +29,14 @@ class Verifier{
     /**/
     typedef enum    { mARIT
                     , mBOOL
+                    , mNOTYPE
                     } Type; 
 
     string error_list;
     // Map from module name to variable name to type:
     map<string, map<string,Type>> typeMap;
+    // Map from modules to clock names:
+    map<string,set<string>> clckMap;
 
 public:
 
@@ -43,6 +47,11 @@ public:
     verify(AST* ast);
 
 private:
+
+    /* @fill_maps: fill up typeMap and clckMap for @ast.
+    */
+    int
+    fill_maps(AST *ast);
 
     /* @names_uniqueness: check that names that should be unique really are.
        @return: 1 if no wrongly duplicated name was found.
