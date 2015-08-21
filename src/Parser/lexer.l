@@ -56,7 +56,7 @@ Uniform     { return parser::KUDIST; }
 
 ("true"|"false")        { return parser::BOOLV; }
 
-[a-zA-Z][a-zA-Z0-9]*    { return parser::NAME; }
+[a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z0-9]+)?    { return parser::NAME; }
 
 [ \t]+      { return parser::WS; }
 

@@ -835,6 +835,11 @@ Parser::rProperty(){
         saveNode(_NAME);
         expect(CLN, "Missing colon after property name?\n");
         saveNode(_SEPARATOR);
+        if(!rExpression()){
+            string msg("Missing expression in property declaration.\n");
+            throw new SyntaxError( msg,lines[pos]
+                                 , columns[pos]);
+        }
         expect(SCLN, "Missing semicolon to end property declaration?\n");
         saveNode(_SEPARATOR);
         saveNode(); //_PROPERTY

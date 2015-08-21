@@ -32,7 +32,6 @@ class Verifier{
                     , mNOTYPE
                     } Type; 
 
-    string error_list;
     // Map from module name to variable name to type:
     map<string, map<string,Type>> typeMap;
     // Map from modules to clock names:
@@ -75,6 +74,14 @@ private:
     */
     int
     unique_outputs(AST *ast);
+
+    /* @unique_inputs: check property (7) for IOSA.
+       @return: 
+       @throw: string with errors message if found that the property may not
+               be met. (just to take as a warning).
+    */
+    int
+    unique_inputs(AST *ast);
 
     /* @type_check: Type check every expression in @ast. */
     int

@@ -17,18 +17,32 @@
 using namespace std;
 
 
-/* @verify: fully verify if @ast compliances with IOSA modeling.
+/* @verify: fully verify if @ast compliances with IOSA modeling. Conditions
+            (5) and (6) are not ensured here, but should be ensured by the
+            simulation engine, i.e. it should provide initial values for
+            clocks in every initial state outgoing transitions, and it should
+            provide self loops for input actions that are no explicitly
+            declared for every state. Condition (4) can be checked by ensuring
+            that we only set clocks when we are about to use them. We can take
+            this as setting clocks in states that have this clocks as enabling
+            clocks for some transition going out of them. Thus this again has
+            to be ensured by the simulation engine and the behavior should be
+            clear to who ever models with our simulator.
    @returns: 1 if it compliances, 0 otherwise.
 */
 int 
 Verifier::verify(AST* ast){
 
-    error_list = "";
     fill_maps(ast);
 
-//    names_uniqueness(ast);
-    
-    type_check(ast);
+    try{
+        unique_inputs(ast);     // throws warning string 
+    }catch(string warning){
+        cout << warning;
+    }
+
+    //names_uniqueness(ast);  // throws string error if sthg is not right    
+    type_check(ast);        // throws string error if sthg is not right
 
     input_output_clocks(ast); // 1st and 2nd conditions for IOSA
     unique_outputs(ast);      // 3rd condition for IOSA
@@ -49,6 +63,7 @@ Verifier::verify(AST* ast){
 int
 Verifier::names_uniqueness(AST* ast){
 
+    string error_list = "";
     vector<AST*> modules = ast->get_list(parser::_MODULE);
     set<AST*,bool(*)(AST*,AST*)> names 
         ([]( AST* a, AST* b){return a->lxm < b->lxm;});
@@ -112,6 +127,20 @@ Verifier::names_uniqueness(AST* ast){
         }
     }
 
+    // Unique property names:
+    names.clear();
+    vector<AST*> properties = ast->get_all_ast(parser::_PROPERTY);
+    for(int i = 0; i < properties.size(); i++){
+        AST *name = properties[i]->get_first(parser::_NAME);
+        if(!names.insert(name).second){
+            AST *duplicated = *names.find(name);
+            error_list.append("[ERROR] Duplicated property name '"
+                + name->p_name() + "' at " + duplicated->p_pos() + " and "
+                + name->p_pos() + ".\n");
+        }
+    }
+
+
     if(error_list != ""){
         throw error_list; // If names are repeated we can not continue ...
     }
@@ -132,6 +161,7 @@ int
 Verifier::input_output_clocks(AST* ast){
     // FIXME this will be easier if we force the users to specify ? or !
     // or if we always parse an IO AST even when there is no ? or !
+    string error_list = "";
     int result = 1;
     vector<AST*> modules = ast->get_list(parser::_MODULE);
     for(int i = 0; i < modules.size(); i++){
@@ -191,6 +221,7 @@ Verifier::unique_outputs(AST *ast){
              method avoiding code repetition and improving efficiency. 
     */
     int result = 1;
+    string error_list = "";
     set<AST*,bool(*)(AST*,AST*)> names 
         ([]( AST* a, AST* b){return a->lxm < b->lxm;});
 
@@ -217,8 +248,59 @@ Verifier::unique_outputs(AST *ast){
             }
         }
     }
+    if (error_list != ""){
+        throw error_list;    
+    }
     return result;
 }
+
+/* @unique_inputs: check property (7) for IOSA.
+   @return: 
+   @throw: string with errors message if found that the property may not
+           be met. (just to take as a warning).
+*/
+int
+Verifier::unique_inputs(AST *ast){
+
+    /*FIXME solving this correctly introduces a reachability problem :S */
+    string error_list = "";
+    int result = 1;
+    set<AST*,bool(*)(AST*,AST*)> names 
+        ([]( AST* a, AST* b){return a->lxm < b->lxm;});
+
+    vector<AST*> modules = ast->get_list(parser::_MODULE);
+    for(int i = 0; i < modules.size(); i++){
+        names.clear();
+        AST* transSec = modules[i]->get_first(parser::_TRANSEC);
+        if(transSec){
+            vector<AST*> transitions = transSec->get_list(parser::_TRANSITION);
+            for(int i = 0; i < transitions.size(); i++){
+                AST *name = transitions[i]->get_first(parser::_NAME);
+                AST *io = transitions[i]->get_first(parser::_IO);
+                if(io && io->p_name() == "?"){
+                    if(!names.insert(name).second){
+                        AST* duplicated = *names.find(name);
+                        error_list.append( "[WARNING] Several input "
+                            "transitions with same action can cause non "
+                            "determinism if their preconditions are not "
+                            "mutually exclusive or their postconditions don't "
+                            "describe the same single state. Check transition '"
+                            + name->p_name() + "', at " 
+                            + duplicated->p_pos()
+                            + " and " + name->p_pos() + ".\n");
+                        result = 0;
+                    }
+                }
+            }
+        }
+    }
+    if(error_list != ""){
+        throw error_list;
+    }
+
+    return result;  
+}
+
 
 
 /* @fill_maps: fill up typeMap and clckMap for @ast.
@@ -226,6 +308,11 @@ Verifier::unique_outputs(AST *ast){
 int
 Verifier::fill_maps(AST *ast){
 
+    /*NOTE: names of variables and clock can be accessed outside of its
+            modules by using <module name>.<variable/clock name>. In the
+            type maps this names will be kept under the special module name 
+            '#property'.
+    */
     vector<AST*> modules = ast->get_list(parser::_MODULE);
     for(int i = 0; i < modules.size(); i++){
         vector<AST*> variables = modules[i]->get_all_ast(parser::_VARIABLE);
@@ -237,8 +324,10 @@ Verifier::fill_maps(AST *ast){
             string type = variables[j]->get_lexeme(parser::_TYPE);
             if(type == "Int" || type == "Float"){
                 typeMap[module][name] = mARIT;
+                typeMap["#property"][module+"."+name] = mARIT;
             }else if (type == "Bool"){
                 typeMap[module][name] = mBOOL;
+                typeMap["#property"][module+"."+name] = mBOOL;
             }else{
                 assert(false);      // FIXME is it good to do this?
             }
@@ -247,6 +336,7 @@ Verifier::fill_maps(AST *ast){
         for(int j=0; j < clocks.size(); j++){
             string name = clocks[j]->get_lexeme(parser::_NAME);
             clckMap[module].insert(name);
+            clckMap["#property"].insert(module+"."+name);
         }
     }
     return 1;
@@ -255,6 +345,7 @@ Verifier::fill_maps(AST *ast){
 int
 Verifier::type_check(AST *ast){
 
+    string error_list = "";
     int result = 1;
     vector<AST*> modules = ast->get_list(parser::_MODULE);
     for(int i = 0; i < modules.size(); i++){
@@ -342,6 +433,20 @@ Verifier::type_check(AST *ast){
                 }
             }
         }
+    }
+
+    // Type check properties:
+    vector<AST*> properties = ast->get_all_ast(parser::_PROPERTY);
+    for(int i = 0; i < properties.size(); i++){
+        AST *exp = properties[i]->get_first(parser::_EXPRESSION);
+        try{
+            if(mBOOL != get_type(exp, "#property")){
+                throw "[ERROR] Found non boolean expression inside property, "
+                      "at " + exp->p_pos() + ".\n";
+            }
+        }catch (string err){
+            error_list.append(err);
+        }    
     }
 
     if(error_list != ""){
@@ -450,8 +555,8 @@ Verifier::get_type(AST *expr, string module){
                 else if(clckMap[module].count(value->lxm)){
                     t = mARIT;
                 }else{
-                    throw "[ERROR] Undeclared variable " + value->lxm 
-                          + " at " + value->p_pos() + ".\n";
+                    throw "[ERROR] Undeclared variable '" + value->lxm 
+                          + "' at " + value->p_pos() + ".\n";
                 }
                 break;
             case parser::_BOOLEAN:
