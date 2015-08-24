@@ -42,7 +42,8 @@ typedef enum    { MEOF    // my end of file symbol
                 , SCLN    // ;
                 , CLN     // :
                 , CMM     // ,
-                , SUMOP   // + - 
+                , PLUS    // +
+                , MINUS   // - 
                 , DIVOP   // * / %
                 , COP     // <= >= < >
                 , BOP     // == !=
@@ -106,6 +107,7 @@ typedef enum{ _EOF            // End of File
             , _ASSIG
             , _BOOLEAN     // true false
             , _PROPERTY
+            , _MINUS       // -
             } prodSym;
 
 
@@ -126,7 +128,7 @@ static const char symTable[][25] =
      "EXPRESSION", "EQUALITY", "COMPARISON", "SUMMATION",
      "DIVITION", "VALUE", "BOOLEAN/MATH OPERATOR",
      "NEGATION", "ASSIGNMENT LIST", "ASSIGNMENT", "TRUE OR FALSE VALUE",
-     "VERIFICATION PROPERTY"
+     "VERIFICATION PROPERTY", "MINUS"
     };
 
 
@@ -155,7 +157,6 @@ class Parser
     Token        tkn;               // Current extracted token.
     int          pos;               // Actual position of the parser in tokens.
     int          lastpos;           // Position of the last accepted lexeme.
-    string       lastAcc;           // Last accepted token. //FIXME deprecated
     stack<Node*> astStk;
     bool         skipws;            // Skip white spaces?.
 
@@ -185,14 +186,6 @@ public:
         return pos == tokens.size()-1;
     }
 
-
-    /* @printme: print the parsed model as it was given. FIXME useless 
-    */
-    inline void printme(){
-        for(int i = 0; i < lexemes.size(); i++){
-            cout << lexemes[i];
-        }
-    }
 
 private:
 
@@ -249,27 +242,6 @@ private:
 
 
     /** Parsing methods **/
-
-    //TODO getLineNum and getColNum are deprecated. If they do not become
-    // useful then remove them.
-
-    /* @Get the line number for the lexeme at position @p in
-        the lexemes vector.
-       @p: the position of the lexeme to ask for. Should be valid
-        position, i.e. >= 0 and < number of lexemes in the vector. 
-    */
-    int
-    getLineNum(int p);
-
-
-    /* @Get the column number for the starting position of lexeme at 
-        position @p in the lexemes vector.
-       @p: the position of the lexeme to ask for. Should be valid
-        position, i.e. >= 0 and < number of lexemes in the vector. 
-    */
-    int 
-    getColumnNum(int p);
-
 
     /* @Ask if the token in @tkn can be considered a white space
         symbol.

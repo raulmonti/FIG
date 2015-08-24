@@ -34,7 +34,7 @@ TRANS
     [b?] a == 4 + false > c : clockone 
      >>  a = 4+2, b = a||b :clockone, clockfour;
     [b?] a && t == 4 >> ;
-    [c!] 3+10/2 : c >> ;
+    [c!] -(3+10/2) : c >> ;
 
 
 

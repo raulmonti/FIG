@@ -71,6 +71,7 @@ main (int argc, char** argv){
     }
 
     delete parser;
+    delete verifier;
 
     return 0;
 }

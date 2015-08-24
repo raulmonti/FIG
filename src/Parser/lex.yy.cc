@@ -345,8 +345,8 @@ int yyFlexLexer::yywrap() { return 1; }
 	*yy_cp = '\0'; \
 	(yy_c_buf_p) = yy_cp;
 
-#define YY_NUM_RULES 39
-#define YY_END_OF_BUFFER 40
+#define YY_NUM_RULES 40
+#define YY_END_OF_BUFFER 41
 /* This struct is not used in this scanner,
    but its presence is necessary. */
 struct yy_trans_info
@@ -356,11 +356,11 @@ struct yy_trans_info
 	};
 static yyconst flex_int16_t yy_accept[142] =
     {   0,
-        0,    0,   40,   38,   17,   18,   37,   32,   38,   26,
-       27,   31,   21,   31,   38,   32,    2,   19,   20,   29,
-       33,   29,   36,   16,   16,   16,   16,   16,   16,   16,
+        0,    0,   41,   39,   17,   18,   38,   33,   39,   26,
+       27,   31,   21,   32,   39,   33,    2,   19,   20,   29,
+       34,   29,   37,   16,   16,   16,   16,   16,   16,   16,
        16,   16,   16,   16,   16,   16,   24,   25,   16,   16,
-       16,   16,   22,   38,   23,   17,   30,   35,    2,   34,
+       16,   16,   22,   39,   23,   17,   30,   36,    2,   35,
         0,    0,   29,   28,    0,   16,   16,   16,   16,   16,
        16,   16,   16,   16,   16,   16,   16,   16,   16,   16,
        16,   16,   16,    0,    0,    2,   16,   16,   16,   16,
@@ -537,11 +537,11 @@ static yyconst flex_int16_t yy_chk[330] =
     } ;
 
 /* Table of booleans, true if rule could match eol. */
-static yyconst flex_int32_t yy_rule_can_match_eol[40] =
+static yyconst flex_int32_t yy_rule_can_match_eol[41] =
     {   0,
 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 
-        };
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 
+    0,     };
 
 /* The intent behind this definition is that it'll catch
  * any uses of REJECT which flex missed.
@@ -923,42 +923,47 @@ YY_RULE_SETUP
 case 31:
 YY_RULE_SETUP
 #line 86 "lexer.l"
-{ return parser::SUMOP; }
+{ return parser::PLUS; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
 #line 87 "lexer.l"
-{ return parser::DIVOP; }
+{ return parser::MINUS; }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 88 "lexer.l"
-{ return parser::ASSIG; }
+#line 89 "lexer.l"
+{ return parser::DIVOP; }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 89 "lexer.l"
-{ return parser::RNG; }
+#line 90 "lexer.l"
+{ return parser::ASSIG; }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 90 "lexer.l"
-{ return parser::BINOP; }
+#line 91 "lexer.l"
+{ return parser::RNG; }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 91 "lexer.l"
-{ return parser::QMARK; }
+#line 92 "lexer.l"
+{ return parser::BINOP; }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 92 "lexer.l"
-{ return parser::EMARK; }
+#line 93 "lexer.l"
+{ return parser::QMARK; }
 	YY_BREAK
 case 38:
-/* rule 38 can match eol */
 YY_RULE_SETUP
 #line 94 "lexer.l"
+{ return parser::EMARK; }
+	YY_BREAK
+case 39:
+/* rule 39 can match eol */
+YY_RULE_SETUP
+#line 96 "lexer.l"
 {
                     stringstream ss;
                     ss << " at line " << yylineno <<  endl;
@@ -966,12 +971,12 @@ YY_RULE_SETUP
                     throw new Badcharfound(str);
                 }
 	YY_BREAK
-case 39:
+case 40:
 YY_RULE_SETUP
-#line 102 "lexer.l"
+#line 104 "lexer.l"
 ECHO;
 	YY_BREAK
-#line 976 "lex.yy.cc"
+#line 981 "lex.yy.cc"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1880,7 +1885,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 102 "lexer.l"
+#line 104 "lexer.l"
 
 
 

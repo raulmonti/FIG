@@ -83,7 +83,9 @@ Uniform     { return parser::KUDIST; }
 (">>")      { return parser::ARROW; }
 ("<="|">="|"<"|">")             { return parser::COP; }
 ("=="|"!=")                     { return parser::BOP; }
-("+"|"-")                       { return parser::SUMOP; }
+("+")                           { return parser::PLUS; }
+("-")                           { return parser::MINUS; }
+
 ("*"|"/"|"%")                   { return parser::DIVOP; }
 ("=")       { return parser::ASSIG; }
 ("..")      { return parser::RNG; }

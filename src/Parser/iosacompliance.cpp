@@ -571,10 +571,15 @@ Verifier::get_type(AST *expr, string module){
             case parser::_NEGATION:
                 t = get_type(expr->get_branch(1),module);
                 if(t != mBOOL){
-                    throw "[ERROR] Wrong type for negation, at " 
+                    throw "[ERROR] Wrong type for boolean negation, at " 
                           + value->p_pos() + ".\n";
-                    //t = -1; FIXME change for NOTYPE and do the same for the
-                    // rest of the cases where the typing is wrong.
+                }
+                break;
+            case parser::_MINUS:
+                t = get_type(expr->get_branch(1),module);
+                if(t != mARIT){
+                    throw "[ERROR] Wrong type for arithmetic negation, at " 
+                          + value->p_pos() + ".\n";
                 }
                 break;
         }

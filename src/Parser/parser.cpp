@@ -8,7 +8,7 @@
 #include "exceptions.h"
 
 
-/** Definitions. **/ //FIXME check if this are used somewhere. Remove o.w.
+/** Definitions. **/
 
 /* @TEST: try to match the @production, and return back
     to original position if not. For lookahead purpose.
@@ -32,12 +32,6 @@
                    }else{                        \
                        loadLocation();           \
                    }
-
-/* Pure look ahead. */
-#define CHECKB(F,b) saveLocation();                \
-                    if(F()){ b=true;}else{b=false;} \
-                    loadLocation();
-
 
 
 /** Overloading for printing ASTs resulting 
@@ -86,48 +80,6 @@ Parser::~Parser(){
 }
 
 
-/* @Get the line number for the lexeme at position @p in
-    the lexemes vector.
-   @p: the position of the lexeme to ask for. Should be valid
-    position, i.e. >= 0 and < number of lexed lexemes. 
-*/
-int
-Parser::getLineNum(int p){
-    assert(p < static_cast<int>(tokens.size()));
-    int result = 1;
-    for(int i = 0; i < p; i++){
-        if(tokens[i] == NL) result++;
-        if(tokens[i] == COMMENT){
-            for(int j = 0; j < lexemes[i].size(); j++){
-                if(lexemes[i][j] == '\n'){ result++; }
-            }
-        }
-    }
-    return result;
-}
-
-
-/* @Get the column number for the starting position of lexeme at 
-    position @p in the lexemes vector.
-   @p: the position of the lexeme to ask for. Should be valid
-    position, i.e. >= 0 and < number of lexed lexemes. 
-*/
-int 
-Parser::getColumnNum(int p){
-    assert(p < static_cast<int>(tokens.size()));
-    int result = 1;
-
-    return columns[pos];
-
-    // FIXME the following does not work with COMMENTs.
-    for(int i = p-1; i >= 0 && tokens[i] != NL; i--){
-        result += lexemes[i].size();
-    }    
-
-    return result;
-}
-
-
 /* @Get the next token from the tokens vector and make it
     available in @tkn class member. If @skipws then it will skip
     white space tokens and make available the next non white 
@@ -143,8 +95,8 @@ Parser::nextLxm(void){
     pos++;
     tkn = (Token)tokens[pos];
 
-    if( (skipws && isw()) || tokens[pos] == COMMENT ){  // do we skip whites?
-        //lastpos++;              // FIXME should I accept this WS?
+    // Skip whites and comments if told too.
+    if( (skipws && isw()) || tokens[pos] == COMMENT ){
         nextLxm();
     }    
 }
@@ -156,8 +108,7 @@ Parser::nextLxm(void){
 int
 Parser::accept(Token s){
     if (tkn == s) {
-        lastpos = pos;  
-        lastAcc = lexemes[pos];
+        lastpos = pos;
         nextLxm();
         return 1;
     }
@@ -219,15 +170,9 @@ Parser::rGrammar(){
         }
         if(!b){
             // Could not match the grammar. Show where we got stuck.
-            // FIXME I dont know why I kept methods getLineNum and
-            // getColumnNum, this asserts are to check if they are really
-            // needed (horrible check haha).
-            assert(getLineNum(pos) == lines[pos]);
-            assert(getColumnNum(pos) == columns[pos]);
-            throw (new SyntaxError(string("Syntax error: '"
-                                         + lexemes[pos] + "'\n")
-                                  ,getLineNum(pos)
-                                  ,getColumnNum(pos)));
+            throw (new SyntaxError( "Syntax error: '" + lexemes[pos] + "'\n"
+                                  , lines[pos]
+                                  , columns[pos]));
         }
     }
     
@@ -242,18 +187,13 @@ Parser::rModule(){
     if(accept(KMOD)){                   // Should be
         // This node is a MODULE node
         newNode(_MODULE, string(""),lines[lastpos],columns[lastpos]);   
-                                        /* FIXME can give line and col 
-                                          from lastpos.
-                                        */
         saveNode(_KEYWORD);
         // Get the modules name
-        expect(NAME);                           // Has to be
+        expect(NAME);                   // Has to be
         saveNode(_NAME);
         
-        /* FIXME: Not using lookahead here :S will work as soon as
-           the distinguishable word is the first one in the productions.
-           Change to using TESTB otherwise.
-        */
+        // Note that the following works because each section has a unique
+        // keyword as begging of its syntax.
         while(rClkSec() || rVarSec() || rTranSec() || rLblSec()){;}
 
         saveNode();
@@ -472,9 +412,6 @@ Parser::rVarSec(){
 }
 
 /* @Rule: INITIALIZATION. */
-
-//FIXME we may want expressions and not only values for initialization.
-
 int
 Parser::rInit(){
 
@@ -734,7 +671,7 @@ int
 Parser::rSum(){
     newNode(_SUM,"",lines[pos],columns[pos]);
     if(rDiv()){
-        if(accept(SUMOP)){
+        if(accept(MINUS)||accept(PLUS)){
             saveNode(_OPERATOR);
             if(!rSum()){
                 string msg("Unexpected word '"+lexemes[pos]+"'.\n");
@@ -793,8 +730,14 @@ Parser::rValue(){
             throw new SyntaxError( msg,lines[pos]
                                  , columns[pos]);            
         }
-    }//else if (accept(-)) ... FIXME
-     else{
+    }else if(accept(MINUS)){
+        saveNode(_MINUS);
+        if(!rExpression()){
+            string msg("Unexpected word '"+lexemes[pos]+"'.\n");
+            throw new SyntaxError( msg,lines[pos]
+                                 , columns[pos]);            
+        }
+    }else{
         removeNode(); //_VALUE
         return 0;
     }
@@ -807,7 +750,7 @@ Parser::rValue(){
 /**/
 int
 Parser::rClkList(){
-    newNode(_RESETCLOCKLIST); //FIXME should be here or outside?
+    newNode(_RESETCLOCKLIST);
     if(accept(NAME)){
         saveNode(_RESETCLOCK);
         while(accept(CMM)){
