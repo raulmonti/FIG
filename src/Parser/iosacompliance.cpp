@@ -381,7 +381,7 @@ Verifier::type_check(AST *ast){
             if (expr){
                 try{
                     if( mBOOL != get_type(expr, module)){
-                        throw "[ERRPR] Wrong type for transitions "
+                        throw "[ERROR] Wrong type for transitions "
                               "precondition at " + expr->p_pos() 
                               + ". It should be boolean but found "
                               "arithmetic instead.\n";
@@ -416,21 +416,13 @@ Verifier::type_check(AST *ast){
             }
         }
 
-        // Check that enabling clock and reseting clocks are really clocks
+        // Check that enabling clocks are really clocks
         for(int j = 0; j < trans.size(); j++){
             AST* enable = trans[j]->get_first(parser::_ENABLECLOCK);
             if(enable && !clckMap[module].count(enable->p_name()) ){
                 error_list.append( "[ERROR] No clock named " 
                                  + enable->p_name() + " at " 
                                  + enable->p_pos() + ".\n" );
-            }
-            vector<AST*> resets = trans[j]->get_all_ast(parser::_RESETCLOCK);
-            for(int k = 0; k < resets.size(); ++k){
-                if(!clckMap[module].count(resets[k]->p_name())){
-                    error_list.append( "[ERROR] No clock named " 
-                                     + resets[k]->p_name() + " at " 
-                                     + resets[k]->p_pos() + ".\n" );
-                }
             }
         }
     }

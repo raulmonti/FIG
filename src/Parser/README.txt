@@ -1,11 +1,14 @@
-
-************* B R O C K E N ! ! *************
-Dont use get an other version :S
-
-
 #############################################
 # PARSER MODULE FOR FIG
 #############################################
+
+                    _-=-_
+                   @ 00 @
+                   |  ) |
+                   | <> |
+                    \__/
+                     ||
+                /´´´´  ````\
 
 #############################################
 # REQUIRES
@@ -50,6 +53,4 @@ TODO    Idea: Exception handling using numbers and table with
 TODO    Check label section in ioscompilance or better remove label section as
         it seams useless.
 TODO    Allow expressions as range limits.
-FIXME   Syntax shouldn't include the explicit reset of clocks. We should ensure
-        condition 4 for IOSA reseting clocks that are about to be used.
 */

@@ -32,7 +32,7 @@ TRANS
     /* Some transition that * represents / something. */
     [a] c == 2 && true && false != (3.653  >= 3/9) :  >> a = 1, c = false ;
     [b?] a == 4 + false > c : clockone 
-     >>  a = 4+2, b = a||b :clockone, clockfour;
+     >>  a = 4+2, b = a||b;
     [b?] a && t == 4 >> ;
     [c!] -(3+10/2) : c >> ;
 
@@ -57,7 +57,7 @@ CLOCKS
 TRANS
 
     [] : c1 >> ;
-    [b] : c1 >> : c2;
+    [b] : c1 >>;
 
 PROPERTY prop1 : 3/2 > modthree.clockthree +1 && false;
 

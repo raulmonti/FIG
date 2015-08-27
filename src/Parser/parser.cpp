@@ -554,10 +554,6 @@ Parser::rTransDef(){
         }else{
             removeNode(); //_POSTCONDITION
         }
-        if(accept(CLN)){
-            saveNode(_SEPARATOR);
-            rClkList();
-        }
         expect(SCLN, "Forgot semicolon to end transition definition?\n");
         saveNode(); // _TRANSITION
         return 1;
@@ -747,23 +743,7 @@ Parser::rValue(){
 
 /** End Expression rules. **/
 
-/**/
-int
-Parser::rClkList(){
-    newNode(_RESETCLOCKLIST);
-    if(accept(NAME)){
-        saveNode(_RESETCLOCK);
-        while(accept(CMM)){
-            saveNode(_SEPARATOR);
-            expect(NAME, "Missing clock or spare semicolon.\n");
-            saveNode(_RESETCLOCK);
-        }
-        saveNode();
-        return 1;
-    }
-    removeNode();
-    return 0;
-}
+
 
 
 /** Property rules. **/
