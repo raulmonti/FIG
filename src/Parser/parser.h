@@ -93,6 +93,8 @@ typedef enum{ _EOF            // End of File
             , _ENABLECLOCK  // output transition enable clock
             , _PRECONDITION
             , _POSTCONDITION
+            , _RESETCLOCKLIST
+            , _RESETCLOCK
             , _EXPRESSION   // a {&&,||} b
             , _EQUALITY        // a {==,!=} b
             , _COMPARISON   // a {<,>,<=,>=} b
@@ -395,6 +397,10 @@ private:
     /**/
     int
     rValue();
+
+    /**/
+    int
+    rClkList();
 
     /**/
     int
