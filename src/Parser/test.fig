@@ -1,0 +1,83 @@
+/* FIG MODEL EXAMPLE
+   FOR PARSER TESTING PORPOUSE 
+   Raúl Monti 2015
+    */
+
+
+
+MODULE modone
+
+
+
+
+
+MODULE modone
+
+LABELS
+    a:input; 
+    b:output;
+
+CLOCKS
+    clockone:Normal(1,1); clocktwo:Exponential(3);
+    clockfour: Uniform(6,2); a:Normal(2,-2);
+
+VARS
+    Bool v = false;
+    Int a = 2;
+    Int c = false || true;
+    Bool b = false;
+
+TRANS
+    
+    /* Some transition that * represents / something. */
+    [a] c == 2 && true && false != (3.653  >= 3/9) :  >> a = 1, c = false ;
+    [b?] a == 4 + false > c : clockone 
+     >>  a = 4+2, b = a||b;
+    [b?] a && t == 4 >> ;
+    [c!] -(3+10/2) : c >> ;
+
+
+
+
+
+
+PROPERTY prop1 :  true;
+
+
+
+
+
+MODULE modthree
+
+CLOCKS
+    clockthree: /* This clock has exponential delay. */
+                Exponential(2);
+    clockfour :Normal(-1,-2);
+
+TRANS
+
+    [] : c1 >> ;
+    [b] : c1 >>;
+
+PROPERTY prop1 : 3/2 > modthree.clockthree +1 && false;
+
+
+
+
+
+
+MODULE modfour
+
+VARS
+
+    Float c [2..3] = 2;
+    Int a [2..5] = false || 8 > 2;
+    Float b = 1.2;
+    Float cc;
+    Int d;
+    Float dd;
+
+TRANS
+
+
+PROPERTY prop1 : false ;
