@@ -1,3 +1,10 @@
+
+# Object files and libraries
+*.o
+*.a
+*.so
+
+# Autosave editor files
 *~
 .*.swp
 .autosave
