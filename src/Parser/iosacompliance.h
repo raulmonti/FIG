@@ -14,30 +14,29 @@
 #include<set>
 #include<map>
 #include "ast.h"
+#include "parsingContext.h"
+#include "smtsolver.h"
 
 
 using namespace std;
 
+namespace parser{
 
 /** Class with verifying methods for 
     compliance with IOSA models parsed 
     into ASTs from the FIG ast module.
 **/
 
+
 class Verifier{
 
-    /**/
-    typedef enum    { mARIT
-                    , mBOOL
-                    , mNOTYPE
-                    } Type; 
-
-    // Map from module name to variable name to type:
-    map<string, map<string,Type>> typeMap;
-    // Map from modules to clock names:
-    map<string,set<string>> clckMap;
+    parsingContext * mPc;
+    SmtSolver mSolver;
 
 public:
+
+    Verifier(parsingContext & pc);
+    virtual ~Verifier(void);
 
     /* @verify: fully verify if @ast compliances with IOSA modeling.
        @returns: 1 if it compliances, 0 otherwise.
@@ -47,7 +46,7 @@ public:
 
 private:
 
-    /* @fill_maps: fill up typeMap and clckMap for @ast.
+    /* @fill_maps: fill up context @mPc for @ast.
     */
     int
     fill_maps(AST *ast);
@@ -83,12 +82,21 @@ private:
     int
     unique_inputs(AST *ast);
 
+
+    /* @check_exhausted_clocks: check compliance to condition 4 from IOSA.
+       @Note: can only partially check due to reachability issues, thus we 
+              report WARNINGS but we don't ensure presence of non-determinism.
+    */
+    int
+    check_exhausted_clocks(AST *ast);
+
+
     /* @type_check: Type check every expression in @ast. */
     int
     type_check(AST *ast);
 
     /* @get_type: Return type of an expression.
-       @module: the module name (key for the typeMap).
+       @module: the module name to which the expression belongs to.
        @return:
        @throw:
     */
@@ -96,5 +104,7 @@ private:
     get_type(AST *expr, string module);
 
 };
+
+}//namespace parser
 
 #endif // IOSA_COMPLIANCE_H

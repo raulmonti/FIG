@@ -12,6 +12,11 @@
 #############################################
 # COMPILING (and running test):
 #############################################
+// WARNING !!!!!!
+// Use build.sh !!!!!!!!!
+// !!!!!!
+
+// The following compilation models are broken:
 
 1) flex++ lexer.l 
 2) Remove line 22 of lex.yy.cc (#define yyFLexLexer yyFLexLexer)
@@ -45,4 +50,7 @@ TODO    Idea: Exception handling using numbers and table with
 TODO    Check label section in ioscompilance or better remove label section as
         it seams useless.
 TODO    Allow expressions as range limits.
+FIXME   Syntax shouldn't include the explicit reset of clocks. We should ensure
+        condition 4 for IOSA reseting clocks that are about to be used.
+FIXME   Presendencia entre - y > anda mal :S
 */

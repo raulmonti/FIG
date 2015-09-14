@@ -59,7 +59,7 @@ public:
     string
     p_name();
 
-    /* @get_branches: get a vector with pointers to every child AST with token k.
+    /* @get_list: get a vector with pointers to every child AST with token k.
     */
     vector<AST*>
     get_list(int k);
@@ -72,7 +72,7 @@ public:
     get_first(int k);
 
 
-    /* @get_branches_lexemes: get a vector with the lexeme of every child AST
+    /* @get_list_lexemes: get a vector with the lexeme of every child AST
         with token k.
     */
     vector<string>

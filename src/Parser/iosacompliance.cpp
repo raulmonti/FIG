@@ -12,9 +12,25 @@
 #include "iosacompliance.h"
 #include "ast.h"
 #include "exceptions.h"
+#include "smtsolver.h"
+#include "parsingContext.h"
 
 
 using namespace std;
+using namespace parser;
+
+
+namespace parser{
+
+
+
+Verifier::Verifier(parsingContext & pc){
+    mPc = & pc;
+}
+
+
+Verifier::~Verifier(void){}
+
 
 
 /* @verify: fully verify if @ast compliances with IOSA modeling. Conditions
@@ -22,12 +38,11 @@ using namespace std;
             simulation engine, i.e. it should provide initial values for
             clocks in every initial state outgoing transitions, and it should
             provide self loops for input actions that are no explicitly
-            declared for every state. Condition (4) can be checked by ensuring
-            that we only set clocks when we are about to use them. We can take
-            this as setting clocks in states that have this clocks as enabling
-            clocks for some transition going out of them. Thus this again has
-            to be ensured by the simulation engine and the behavior should be
-            clear to who ever models with our simulator.
+            declared for every state. Condition (4) cant be checked without
+            reachability checking. Thus we are only giving out warnings to the
+            user and we expect this to be correctly checked by the simulation
+            engine and the behavior should be clear to who ever models with our
+            simulator.
    @returns: 1 if it compliances, 0 otherwise.
 */
 int 
@@ -47,6 +62,8 @@ Verifier::verify(AST* ast){
     input_output_clocks(ast); // 1st and 2nd conditions for IOSA
     unique_outputs(ast);      // 3rd condition for IOSA
     
+    check_exhausted_clocks(ast);
+
     return 1;
 }
 
@@ -64,13 +81,13 @@ int
 Verifier::names_uniqueness(AST* ast){
 
     string error_list = "";
-    vector<AST*> modules = ast->get_list(parser::_MODULE);
+    vector<AST*> modules = ast->get_list(_MODULE);
     set<AST*,bool(*)(AST*,AST*)> names 
         ([]( AST* a, AST* b){return a->lxm < b->lxm;});
 
     /* Unique Modules names. */
     for(int i = 0; i < modules.size();i++){
-        AST* a_name = modules[i]->get_first(parser::NAME);
+        AST* a_name = modules[i]->get_first(NAME);
         if(!names.insert(a_name).second){
             AST* duplicated = *names.find(a_name);
             error_list.append(("[ERROR] Duplicated module name '")
@@ -89,11 +106,11 @@ Verifier::names_uniqueness(AST* ast){
     for(int i = 0; i < modules.size();i++){
         names.clear();  // check uniqueness only inside modules    
         cNames.clear(); // check uniqueness only inside modules    
-        AST* var_sec = modules[i]->get_first(parser::_VARSEC);
+        AST* var_sec = modules[i]->get_first(_VARSEC);
         if(var_sec){ // Modules have single variable section 
-            vector<AST*> vars = var_sec->get_list(parser::_VARIABLE);
+            vector<AST*> vars = var_sec->get_list(_VARIABLE);
             for(int j = 0; j < vars.size(); j++){ // for each clock
-                AST* a_name = vars[j]->get_first(parser::_NAME);
+                AST* a_name = vars[j]->get_first(_NAME);
                 if (!names.insert(a_name).second){
                     AST* duplicated = *names.find(a_name);
                     error_list.append(("[ERROR] Duplicated variable name '")
@@ -104,11 +121,11 @@ Verifier::names_uniqueness(AST* ast){
             } 
         }
 
-        AST* clk_sec = modules[i]->get_first(parser::_CLOCKSEC);
+        AST* clk_sec = modules[i]->get_first(_CLOCKSEC);
         if(clk_sec){ // Modules have one or none clock sections
-            vector<AST*> clks = clk_sec->get_list(parser::_CLOCK);
+            vector<AST*> clks = clk_sec->get_list(_CLOCK);
             for(int j = 0; j < clks.size(); j++){ // for each clock
-                AST* a_name = clks[j]->get_first(parser::_NAME);
+                AST* a_name = clks[j]->get_first(_NAME);
                 if (!cNames.insert(a_name).second){
                     AST* duplicated = *cNames.find(a_name);
                     error_list.append(("[ERROR] Duplicated clock name '")
@@ -129,9 +146,9 @@ Verifier::names_uniqueness(AST* ast){
 
     // Unique property names:
     names.clear();
-    vector<AST*> properties = ast->get_all_ast(parser::_PROPERTY);
+    vector<AST*> properties = ast->get_all_ast(_PROPERTY);
     for(int i = 0; i < properties.size(); i++){
-        AST *name = properties[i]->get_first(parser::_NAME);
+        AST *name = properties[i]->get_first(_NAME);
         if(!names.insert(name).second){
             AST *duplicated = *names.find(name);
             error_list.append("[ERROR] Duplicated property name '"
@@ -163,24 +180,24 @@ Verifier::input_output_clocks(AST* ast){
     // or if we always parse an IO AST even when there is no ? or !
     string error_list = "";
     int result = 1;
-    vector<AST*> modules = ast->get_list(parser::_MODULE);
+    vector<AST*> modules = ast->get_list(_MODULE);
     for(int i = 0; i < modules.size(); i++){
-        AST* transSec = modules[i]->get_first(parser::_TRANSEC);
+        AST* transSec = modules[i]->get_first(_TRANSEC);
         if(transSec){
             vector<AST*> transitions = 
-                transSec->get_list(parser::_TRANSITION);
+                transSec->get_list(_TRANSITION);
             for(int i = 0; i < transitions.size(); i++){
-                AST* ioAst = transitions[i]->get_first(parser::_IO);
+                AST* ioAst = transitions[i]->get_first(_IO);
                 if(  ioAst 
                   && ioAst->p_name() == "?"
-                  && transitions[i]->get_first(parser::_ENABLECLOCK)){
+                  && transitions[i]->get_first(_ENABLECLOCK)){
                     error_list.append("[ERROR] In transition declaration at '"
                         + transitions[i]->p_pos() + "'. Input transitions "
                         "should not have to wait for any clocks.\n");
                     result = 0;
                 }
                 if(  (!ioAst || ioAst->p_name() == "!")
-                  && !transitions[i]->get_first(parser::_ENABLECLOCK)){
+                  && !transitions[i]->get_first(_ENABLECLOCK)){
                     error_list.append("[ERROR] In transition declaration at '"
                         + transitions[i]->p_pos() + "'. Output transitions "
                         "should wait for exactly one clocks.\n");
@@ -225,15 +242,15 @@ Verifier::unique_outputs(AST *ast){
     set<AST*,bool(*)(AST*,AST*)> names 
         ([]( AST* a, AST* b){return a->lxm < b->lxm;});
 
-    vector<AST*> modules = ast->get_list(parser::_MODULE);
+    vector<AST*> modules = ast->get_list(_MODULE);
     for(int i = 0; i < modules.size(); i++){
         names.clear();
-        AST* transSec = modules[i]->get_first(parser::_TRANSEC);
+        AST* transSec = modules[i]->get_first(_TRANSEC);
         if(transSec){
-            vector<AST*> transitions = transSec->get_list(parser::_TRANSITION);
+            vector<AST*> transitions = transSec->get_list(_TRANSITION);
             for(int i = 0; i < transitions.size(); i++){
                 AST *enable_c =
-                    transitions[i]->get_first(parser::_ENABLECLOCK);
+                    transitions[i]->get_first(_ENABLECLOCK);
                 if(enable_c){
                     if(!names.insert(enable_c).second){
                         AST* duplicated = *names.find(enable_c);
@@ -262,21 +279,21 @@ Verifier::unique_outputs(AST *ast){
 int
 Verifier::unique_inputs(AST *ast){
 
-    /*FIXME solving this correctly introduces a reachability problem :S */
+    /*NOTE solving this correctly introduces a reachability problem :S */
     string error_list = "";
     int result = 1;
     set<AST*,bool(*)(AST*,AST*)> names 
         ([]( AST* a, AST* b){return a->lxm < b->lxm;});
 
-    vector<AST*> modules = ast->get_list(parser::_MODULE);
+    vector<AST*> modules = ast->get_list(_MODULE);
     for(int i = 0; i < modules.size(); i++){
         names.clear();
-        AST* transSec = modules[i]->get_first(parser::_TRANSEC);
+        AST* transSec = modules[i]->get_first(_TRANSEC);
         if(transSec){
-            vector<AST*> transitions = transSec->get_list(parser::_TRANSITION);
+            vector<AST*> transitions = transSec->get_list(_TRANSITION);
             for(int i = 0; i < transitions.size(); i++){
-                AST *name = transitions[i]->get_first(parser::_NAME);
-                AST *io = transitions[i]->get_first(parser::_IO);
+                AST *name = transitions[i]->get_first(_ACTION);
+                AST *io = transitions[i]->get_first(_IO);
                 if(io && io->p_name() == "?"){
                     if(!names.insert(name).second){
                         AST* duplicated = *names.find(name);
@@ -303,7 +320,78 @@ Verifier::unique_inputs(AST *ast){
 
 
 
-/* @fill_maps: fill up typeMap and clckMap for @ast.
+/* @check_exhausted_clocks: check compliance to condition 4 from IOSA.
+   @Note: can only partially check due to reachability issues, thus we 
+          report WARNINGS but we don't ensure presence of non-determinism.
+*/
+int
+Verifier::check_exhausted_clocks(AST *ast){
+    string error_list = "";
+    int result = 1;
+    vector<AST*> modules = ast->get_list(_MODULE);
+    vector<AST*> satList;
+
+    for (int i = 0 ; i < modules.size() ; i++){
+        string module = modules[i]->get_lexeme(_NAME);
+        AST* transSec = modules[i]->get_first(_TRANSEC);
+        if(transSec){
+            vector<AST*> transitions = transSec->get_list(_TRANSITION);
+            for(int j = 0; j < transitions.size(); j++){
+                AST* t1 = transitions[j];
+                AST* io = t1->get_first(_IO);
+                string c1 = t1->get_lexeme(_ENABLECLOCK);
+                if (c1 != ""){ // only outputs for t1.
+                    AST* p1 = t1->get_first(_PRECONDITION);
+                    if(p1) satList.push_back(p1); //if p1 != true need to check it
+                    for (int k = 0; k < transitions.size(); ++k){
+                        // FIXME including t1 ???
+                        AST* t2 = transitions[k];
+                        vector<string> cv = t2->get_list_lexemes(_RESETCLOCK);
+                        set<string> rclks(cv.begin(), cv.end());
+
+                        if (rclks.count(c1) > 0) continue;
+
+                        AST* p2 = t2->get_first(_POSTCONDITION);
+                        if(p2){
+                            vector<AST*> p2s = p2->get_list(_ASSIG);
+                            for(int s=0; s < p2s.size(); ++s){
+                                satList.push_back(p2s[s]);
+                            }
+                        }
+                        if(mSolver.sat(satList, module, *mPc)){
+                            // t2 is input trans to state where t1 is out trans
+                            AST* pp2 = t2->get_first(_PRECONDITION);
+                            for(int h = 0; h < transitions.size(); ++h){
+                                AST *t3 = transitions[h];
+                                string c3 = t3->get_lexeme(_ENABLECLOCK);
+                                if(c3 == "") continue; // not an output
+                                if(c1 == c3) break;
+                                AST* p3 = t3->get_first(_PRECONDITION);
+                                satList.clear();
+                                if(pp2) satList.push_back(pp2);
+                                if(p3) satList.push_back(p3);
+                                if(mSolver.sat(satList, module, *mPc)){
+                                    error_list.append("WARNING");
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if(error_list != ""){
+        throw error_list;
+    }
+    return 1;
+}
+
+
+
+
+
+/* @fill_maps: fill the context @mPc for @ast.
 */
 int
 Verifier::fill_maps(AST *ast){
@@ -313,30 +401,30 @@ Verifier::fill_maps(AST *ast){
             type maps this names will be kept under the special module name 
             '#property'.
     */
-    vector<AST*> modules = ast->get_list(parser::_MODULE);
+    vector<AST*> modules = ast->get_list(_MODULE);
     for(int i = 0; i < modules.size(); i++){
-        vector<AST*> variables = modules[i]->get_all_ast(parser::_VARIABLE);
-        vector<AST*> clocks = modules[i]->get_all_ast(parser::_CLOCK);
-        string module = modules[i]->get_lexeme(parser::_NAME);
+        vector<AST*> variables = modules[i]->get_all_ast(_VARIABLE);
+        vector<AST*> clocks = modules[i]->get_all_ast(_CLOCK);
+        string module = modules[i]->get_lexeme(_NAME);
         // Fill the variable type maps
         for(int j=0; j < variables.size(); j++){
-            string name = variables[j]->get_lexeme(parser::_NAME);
-            string type = variables[j]->get_lexeme(parser::_TYPE);
+            string name = variables[j]->get_lexeme(_NAME);
+            string type = variables[j]->get_lexeme(_TYPE);
             if(type == "Int" || type == "Float"){
-                typeMap[module][name] = mARIT;
-                typeMap["#property"][module+"."+name] = mARIT;
+                mPc->add_var(module,name,mARIT);
+                mPc->add_var("#property",module+"."+name,mARIT);
             }else if (type == "Bool"){
-                typeMap[module][name] = mBOOL;
-                typeMap["#property"][module+"."+name] = mBOOL;
+                mPc->add_var(module,name,mBOOL);
+                mPc->add_var("#property",module+"."+name,mBOOL);
             }else{
                 assert(false);      // FIXME is it good to do this?
             }
         }
         //Fill clocks map
         for(int j=0; j < clocks.size(); j++){
-            string name = clocks[j]->get_lexeme(parser::_NAME);
-            clckMap[module].insert(name);
-            clckMap["#property"].insert(module+"."+name);
+            string name = clocks[j]->get_lexeme(_NAME);
+            mPc->add_clock(module, name);
+            mPc->add_clock("#property", module+"."+name);
         }
     }
     return 1;
@@ -347,23 +435,23 @@ Verifier::type_check(AST *ast){
 
     string error_list = "";
     int result = 1;
-    vector<AST*> modules = ast->get_list(parser::_MODULE);
+    vector<AST*> modules = ast->get_list(_MODULE);
     for(int i = 0; i < modules.size(); i++){
-        vector<AST*> variables = modules[i]->get_all_ast(parser::_VARIABLE);
-        vector<AST*> clocks = modules[i]->get_all_ast(parser::_CLOCK);
-        string module = modules[i]->get_lexeme(parser::_NAME);
+        vector<AST*> variables = modules[i]->get_all_ast(_VARIABLE);
+        vector<AST*> clocks = modules[i]->get_all_ast(_CLOCK);
+        string module = modules[i]->get_lexeme(_NAME);
 
         // Type check initializations:
         for(int j=0;j<variables.size();j++){
-            string type = variables[j]->get_lexeme(parser::_TYPE);
-            AST* init = variables[j]->get_first(parser::_INIT);
+            string type = variables[j]->get_lexeme(_TYPE);
+            AST* init = variables[j]->get_first(_INIT);
             if(init){
                 try{
-                    Type t = get_type( init->get_first(parser::_EXPRESSION)
+                    Type t = get_type( init->get_first(_EXPRESSION)
                                      , module);
                     if( ((type == "Bool") && t != mBOOL) || 
                         ((type == "Int" || type == "Float") && t != mARIT)){
-                        AST* v = variables[j]->get_first(parser::_NAME);
+                        AST* v = variables[j]->get_first(_NAME);
                         throw "[ERROR] Wrong type for initialization of "
                               "variable '" + v->p_name() + "', at " 
                               + v->p_pos() + ".\n";
@@ -375,9 +463,9 @@ Verifier::type_check(AST *ast){
         }
 
         // Type check transitions preconditions:
-        vector<AST*> trans = modules[i]->get_all_ast(parser::_TRANSITION);
+        vector<AST*> trans = modules[i]->get_all_ast(_TRANSITION);
         for(int j =0; j < trans.size();++j){
-            AST *expr = trans[j]->get_first(parser::_EXPRESSION);
+            AST *expr = trans[j]->get_first(_EXPRESSION);
             if (expr){
                 try{
                     if( mBOOL != get_type(expr, module)){
@@ -394,13 +482,13 @@ Verifier::type_check(AST *ast){
         
         // Type check assignments in post conditions
         for(int j = 0; j < trans.size(); ++j){
-            vector<AST*> assigs = trans[j]->get_all_ast(parser::_ASSIG);
+            vector<AST*> assigs = trans[j]->get_all_ast(_ASSIG);
             for(int k = 0; k < assigs.size(); ++k){
-                AST* var = assigs[k]->get_first(parser::_NAME);
+                AST* var = assigs[k]->get_first(_NAME);
                 string vname = var->p_name();
-                AST* expr = assigs[k]->get_first(parser::_EXPRESSION);
+                AST* expr = assigs[k]->get_first(_EXPRESSION);
                 try{
-                    Type t1 = typeMap[module].at(vname);
+                    Type t1 = mPc->get_var_type(module,vname);
                     Type t2 = get_type(expr,module);
                     if(t1 != t2){
                         throw "[ERROR] Wrong type in assignment of variable "
@@ -418,15 +506,15 @@ Verifier::type_check(AST *ast){
 
         // Check that enabling clock and reseting clocks are really clocks
         for(int j = 0; j < trans.size(); j++){
-            AST* enable = trans[j]->get_first(parser::_ENABLECLOCK);
-            if(enable && !clckMap[module].count(enable->p_name()) ){
+            AST* enable = trans[j]->get_first(_ENABLECLOCK);
+            if(enable && !mPc->has_clock(module,enable->p_name())){
                 error_list.append( "[ERROR] No clock named " 
                                  + enable->p_name() + " at " 
                                  + enable->p_pos() + ".\n" );
             }
-            vector<AST*> resets = trans[j]->get_all_ast(parser::_RESETCLOCK);
+            vector<AST*> resets = trans[j]->get_all_ast(_RESETCLOCK);
             for(int k = 0; k < resets.size(); ++k){
-                if(!clckMap[module].count(resets[k]->p_name())){
+                if(!mPc->has_clock(module,resets[k]->p_name())){
                     error_list.append( "[ERROR] No clock named " 
                                      + resets[k]->p_name() + " at " 
                                      + resets[k]->p_pos() + ".\n" );
@@ -436,9 +524,9 @@ Verifier::type_check(AST *ast){
     }
 
     // Type check properties:
-    vector<AST*> properties = ast->get_all_ast(parser::_PROPERTY);
+    vector<AST*> properties = ast->get_all_ast(_PROPERTY);
     for(int i = 0; i < properties.size(); i++){
-        AST *exp = properties[i]->get_first(parser::_EXPRESSION);
+        AST *exp = properties[i]->get_first(_EXPRESSION);
         try{
             if(mBOOL != get_type(exp, "#property")){
                 throw "[ERROR] Found non boolean expression inside property, "
@@ -464,11 +552,11 @@ Verifier::type_check(AST *ast){
    @return: Type of the expression if it has one.
    @throw: string with error message if there is something wrong with typing.
 */
-Verifier::Type
+Type
 Verifier::get_type(AST *expr, string module){
 
     assert(expr);
-    if(expr->tkn == parser::_EXPRESSION){
+    if(expr->tkn == _EXPRESSION){
         AST *equality = expr->get_branch(0);
         Type t1 = get_type(equality, module);
         AST *op = expr->get_branch(1);
@@ -483,7 +571,7 @@ Verifier::get_type(AST *expr, string module){
             }
         }
         return t1;
-    }else if(expr->tkn == parser::_EQUALITY){
+    }else if(expr->tkn == _EQUALITY){
         AST *comparison = expr->get_branch(0);
         Type t1 = get_type(comparison,module);
         AST *op = expr->get_branch(1);
@@ -498,7 +586,7 @@ Verifier::get_type(AST *expr, string module){
             }
         }
         return t1;
-    }else if(expr->tkn == parser::_COMPARISON){
+    }else if(expr->tkn == _COMPARISON){
         AST *summation = expr->get_branch(0);
         Type t1 = get_type(summation,module);
         AST *op = expr->get_branch(1);
@@ -513,7 +601,7 @@ Verifier::get_type(AST *expr, string module){
             }
         }
         return t1;
-    }else if(expr->tkn == parser::_SUM){
+    }else if(expr->tkn == _SUM){
         AST *division = expr->get_branch(0);
         Type t1 = get_type(division,module);
         AST *op = expr->get_branch(1);
@@ -528,7 +616,7 @@ Verifier::get_type(AST *expr, string module){
             }
         }
         return t1;
-    }else if(expr->tkn == parser::_DIV){
+    }else if(expr->tkn == _DIV){
         AST *value = expr->get_branch(0);
         Type t1 = get_type(value,module);
         AST *op = expr->get_branch(1);
@@ -544,38 +632,38 @@ Verifier::get_type(AST *expr, string module){
             }
         }
         return t1;
-    }else if(expr->tkn == parser::_VALUE){
+    }else if(expr->tkn == _VALUE){
         AST *value = expr->get_branch(0);
         Type t;
         switch (value->tkn){
-            case parser::_NAME:
+            case _NAME:
                 // FIXME if variable is not declared...
-                if (typeMap[module].count(value->lxm))
-                    t = (*(typeMap[module].find(value->lxm))).second;
-                else if(clckMap[module].count(value->lxm)){
+                if (mPc->has_var(module, value->lxm)){
+                    t = mPc->get_var_type(module,value->lxm);
+                }else if(mPc->has_clock(module,value->lxm)){
                     t = mARIT;
                 }else{
                     throw "[ERROR] Undeclared variable '" + value->lxm 
                           + "' at " + value->p_pos() + ".\n";
                 }
                 break;
-            case parser::_BOOLEAN:
+            case _BOOLEAN:
                 t = mBOOL;
                 break;
-            case parser::_NUM:
+            case _NUM:
                 t = mARIT;
                 break;
-            case parser::_SEPARATOR:
+            case _SEPARATOR:
                 t = get_type(expr->get_branch(1),module);
                 break;
-            case parser::_NEGATION:
+            case _NEGATION:
                 t = get_type(expr->get_branch(1),module);
                 if(t != mBOOL){
                     throw "[ERROR] Wrong type for boolean negation, at " 
                           + value->p_pos() + ".\n";
                 }
                 break;
-            case parser::_MINUS:
+            case _MINUS:
                 t = get_type(expr->get_branch(1),module);
                 if(t != mARIT){
                     throw "[ERROR] Wrong type for arithmetic negation, at " 
@@ -590,3 +678,4 @@ Verifier::get_type(AST *expr, string module){
     assert(0);
 }
 
+} // namespace parser

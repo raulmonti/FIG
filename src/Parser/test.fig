@@ -26,14 +26,15 @@ VARS
     Int a = 2;
     Int c = false || true;
     Bool b = false;
+    Int t = 0;
 
 TRANS
-    
+
+    [b?] a > 0 && t > 0 && a + t + 4 == 9 >> ;
     /* Some transition that * represents / something. */
     [a] c == 2 && true && false != (3.653  >= 3/9) :  >> a = 1, c = false ;
     [b?] a == 4 + false > c : clockone 
      >>  a = 4+2, b = a||b :clockone, clockfour;
-    [b?] a && t == 4 >> ;
     [c!] -(3+10/2) : c >> ;
 
 

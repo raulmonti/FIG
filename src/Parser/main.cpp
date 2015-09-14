@@ -19,6 +19,7 @@
 
 
 using namespace std;
+using namespace parser;
 
 
 int 
@@ -31,7 +32,8 @@ main (int argc, char** argv){
 
     /* Instanciate a parser, and a verifier. */
     parser::Parser *parser = new parser::Parser();
-    Verifier *verifier = new Verifier();
+    parsingContext pc;
+    Verifier *verifier = new Verifier(pc);
 
     /* Get a stream with the model to parse. */
     ifstream fin(argv[1],ios::binary);
