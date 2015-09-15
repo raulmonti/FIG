@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 #include <FlexLexer.h>
-#include "debug.h"
+#include "config.h"
 #include "ast.h"
 
 

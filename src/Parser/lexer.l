@@ -14,7 +14,7 @@
 #include <string>
 #include "parser.h"
 #include "exceptions.h"
-#include "debug.h" 
+#include "config.h" 
 %}
 
 

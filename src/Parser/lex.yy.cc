@@ -565,7 +565,7 @@ static yyconst flex_int32_t yy_rule_can_match_eol[41] =
 #include <string>
 #include "parser.h"
 #include "exceptions.h"
-#include "debug.h" 
+#include "config.h" 
 /* This tells flex to read only one input file */
 #line 572 "lex.yy.cc"
 

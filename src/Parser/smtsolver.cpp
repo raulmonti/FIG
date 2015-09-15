@@ -35,7 +35,7 @@ SmtSolver::ast2expr( AST* formula, string module
 
         if( b0->tkn == _SEPARATOR ){
             assert(b2->tkn == _SEPARATOR);
-            result = ast2expr(b2,module,c,pc);
+            result = ast2expr(b1,module,c,pc);
         }else{
             expr e0 = ast2expr(b0,module,c,pc);
             expr e2 = ast2expr(b2,module,c,pc);
@@ -45,7 +45,7 @@ SmtSolver::ast2expr( AST* formula, string module
             else if (b1->lxm == "/") result = e0 / e2;
             else if (b1->lxm == "||") result = e0 || e2;
             else if (b1->lxm == "&&") result = e0 && e2;
-            else if (b1->lxm == ">") {cout << e0 << " ::: " << e2 << endl;result = e0 > e2;}
+            else if (b1->lxm == ">") result = e0 > e2;
             else if (b1->lxm == "<") result = e0 < e2;
             else if (b1->lxm == ">=") result = e0 >= e2;
             else if (b1->lxm == "<=") result = e0 <= e2;
@@ -87,7 +87,7 @@ SmtSolver::ast2expr( AST* formula, string module
                     result = c.real_const(formula->lxm.c_str());
                 }else{
                     cout << module << " " << formula->lxm << endl;
-                    assert(false);
+                    assert("Nonexistent variable :S" && false);
                 }
                 break;
             }case _NUM:{
@@ -95,13 +95,17 @@ SmtSolver::ast2expr( AST* formula, string module
                 break;
             }case _BOOLEAN:{
                 if(formula->lxm == "true"){
+                    
                     result = c.bool_val(true);
                 }else if(formula->lxm == "false"){
                     result = c.bool_val(false);
                 }else{
-                    assert("Wrong boolean value :S\n" && false);
+                    assert("Wrong boolean value :S" && false);
                 }
                 break;
+            }default:{
+                cout << formula->tkn << endl;
+                assert("Wrong tkn :S" && false);
             }
         }
     }else{
@@ -157,10 +161,7 @@ SmtSolver::sat (vector<AST*> list, string module, parsingContext & pc){
     context c;   // from z3
     solver s(c); // from z3
 
-    cout << "SIZE: " << list.size() << endl;
     for( int i = 0; i < list.size(); ++i){
-
-        cout << "FORM: " << *list[i] << endl;
         expr f = ast2expr(list[i], module, c, pc);
         s.add(f);
     }

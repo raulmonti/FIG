@@ -16,6 +16,7 @@
 #include "ast.h"
 #include "parsingContext.h"
 #include "smtsolver.h"
+#include "config.h"
 
 
 using namespace std;
@@ -89,6 +90,12 @@ private:
     */
     int
     check_exhausted_clocks(AST *ast);
+
+
+    /*@trans_has_exhausted_clock: auxiliary method for check_exhausted_clocks.
+    */
+    bool
+    trans_has_exhausted_clock(AST* t, vector<AST*> & tv, string m);
 
 
     /* @type_check: Type check every expression in @ast. */

@@ -48,24 +48,33 @@ Verifier::~Verifier(void){}
 int 
 Verifier::verify(AST* ast){
 
+    // fill up the parsing context.
     fill_maps(ast);
 
     try{
-        unique_inputs(ast);     // throws warning string 
+        pout << ">> Check names uniqueness...\n";
+        names_uniqueness(ast);    // throws string error if sthg is not right    
+        pout << ">> Check typing...\n";
+        type_check(ast);          // throws string error if sthg is not right
+        pout << ">> Check input uniqueness (3rd IOSA condition)...\n";
+        unique_inputs(ast);       // throws warning string 
+        pout << ">> Check 1st and 2nd IOSA conditions...\n";
+        input_output_clocks(ast); // 1st and 2nd conditions for IOSA
+        pout << ">> Check for non-deterministic outputs...\n";
+        unique_outputs(ast);      // 3rd condition for IOSA        
+        pout << ">> Check exhausted clocks(4th IOSA condition)...\n";
+        check_exhausted_clocks(ast);
+
     }catch(string warning){
+
         cout << warning;
+        return 0;
+
     }
-
-    //names_uniqueness(ast);  // throws string error if sthg is not right    
-    type_check(ast);        // throws string error if sthg is not right
-
-    input_output_clocks(ast); // 1st and 2nd conditions for IOSA
-    unique_outputs(ast);      // 3rd condition for IOSA
-    
-    check_exhausted_clocks(ast);
 
     return 1;
 }
+
 
 
 // FIXME learn to use nicer names for variables!!!!!
@@ -75,7 +84,7 @@ Verifier::verify(AST* ast){
    @throw: ... if some duplicated name was found.
 */
 
-//FIXME variables and clocks should be called diferent
+//FIXME variables and clocks should be called different
 
 int
 Verifier::names_uniqueness(AST* ast){
@@ -338,44 +347,16 @@ Verifier::check_exhausted_clocks(AST *ast){
             vector<AST*> transitions = transSec->get_list(_TRANSITION);
             for(int j = 0; j < transitions.size(); j++){
                 AST* t1 = transitions[j];
-                AST* io = t1->get_first(_IO);
                 string c1 = t1->get_lexeme(_ENABLECLOCK);
                 if (c1 != ""){ // only outputs for t1.
-                    AST* p1 = t1->get_first(_PRECONDITION);
-                    if(p1) satList.push_back(p1); //if p1 != true need to check it
-                    for (int k = 0; k < transitions.size(); ++k){
-                        // FIXME including t1 ???
-                        AST* t2 = transitions[k];
-                        vector<string> cv = t2->get_list_lexemes(_RESETCLOCK);
-                        set<string> rclks(cv.begin(), cv.end());
-
-                        if (rclks.count(c1) > 0) continue;
-
-                        AST* p2 = t2->get_first(_POSTCONDITION);
-                        if(p2){
-                            vector<AST*> p2s = p2->get_list(_ASSIG);
-                            for(int s=0; s < p2s.size(); ++s){
-                                satList.push_back(p2s[s]);
-                            }
-                        }
-                        if(mSolver.sat(satList, module, *mPc)){
-                            // t2 is input trans to state where t1 is out trans
-                            AST* pp2 = t2->get_first(_PRECONDITION);
-                            for(int h = 0; h < transitions.size(); ++h){
-                                AST *t3 = transitions[h];
-                                string c3 = t3->get_lexeme(_ENABLECLOCK);
-                                if(c3 == "") continue; // not an output
-                                if(c1 == c3) break;
-                                AST* p3 = t3->get_first(_PRECONDITION);
-                                satList.clear();
-                                if(pp2) satList.push_back(pp2);
-                                if(p3) satList.push_back(p3);
-                                if(mSolver.sat(satList, module, *mPc)){
-                                    error_list.append("WARNING");
-                                    break;
-                                }
-                            }
-                        }
+                    if (trans_has_exhausted_clock(t1,transitions,module)){
+                        string t1name = t1->get_lexeme(_ACTION);
+                        AST *t1ast = t1->get_first(_SEPARATOR);
+                        error_list.append("[WARNING] Non "
+                        "determinism may be present in the "
+                        "model due to exhausted clock from "
+                        "transition " + t1name + ", at " +
+                        t1ast->p_pos() + "\n" );
                     }
                 }
             }
@@ -387,6 +368,72 @@ Verifier::check_exhausted_clocks(AST *ast){
     return 1;
 }
 
+
+
+/*
+*/
+bool
+Verifier::trans_has_exhausted_clock(AST* t, vector<AST*> & tv, string m){
+
+/*            ---t2-->[]
+             | 
+            []---t1-->[]---t-->[]
+*/
+    bool flag = false; // indicates if t1 is "safe"
+
+    vector<AST*> satList;
+    string c = t->get_lexeme(_ENABLECLOCK);
+    AST* pre = t->get_first(_PRECONDITION);
+
+    for (int i = 0; i < tv.size(); ++i){
+        satList.clear();
+        // if p1 != true need to check it:
+        if(pre) satList.push_back(pre); 
+        // FIXME including t1 ???:
+        AST* t1 = tv[i];
+        // reset clocks for t1:
+        vector<string> cv = t1->get_list_lexemes(_RESETCLOCK);
+        set<string> rclks(cv.begin(), cv.end());
+
+        // If c is not reseted in t1:
+        if (rclks.count(c) > 0){
+            flag = true;
+        }else{
+            // Get t1 postconditions to check sat with t precondition.
+            AST* pos1 = t1->get_first(_POSTCONDITION);
+            if(pos1){
+                vector<AST*> pos1v = pos1->get_list(_ASSIG);
+                satList.insert(satList.end(), pos1v.begin(), pos1v.end());
+            }
+            // if we find state where t1 is input and t output:
+            if(mSolver.sat(satList, m, *mPc)){
+                // Need to find t2 with c and sat precondition wrt t1.
+                AST* pre1 = t1->get_first(_PRECONDITION);
+                for(int j = 0; j < tv.size(); ++j){
+                    AST *t2 = tv[j];
+                    string c2 = t2->get_lexeme(_ENABLECLOCK);
+                    // only interested in outputs
+                    if(c2 != ""){ 
+                        if(c == c2){
+                            AST* pre2 = t2->get_first(_PRECONDITION);
+                            satList.clear();
+                            if(pre1) satList.push_back(pre1);
+                            if(pre2) satList.push_back(pre2);
+                            if(mSolver.sat(satList, m, *mPc)){
+                                flag = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // if t1 was not safe :
+        if (! flag){
+            return true;
+        }
+    }
+    return false;
+}
 
 
 
@@ -469,7 +516,7 @@ Verifier::type_check(AST *ast){
             if (expr){
                 try{
                     if( mBOOL != get_type(expr, module)){
-                        throw "[ERRPR] Wrong type for transitions "
+                        throw "[ERROR] Wrong type for transitions "
                               "precondition at " + expr->p_pos() 
                               + ". It should be boolean but found "
                               "arithmetic instead.\n";
