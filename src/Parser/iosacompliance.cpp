@@ -246,34 +246,57 @@ Verifier::unique_outputs(AST *ast){
              and could be defined and built at the constructor or at @verify
              method avoiding code repetition and improving efficiency. 
     */
+
+    
+    /** ----------- **/
     int result = 1;
     string error_list = "";
-    set<AST*,bool(*)(AST*,AST*)> names 
-        ([]( AST* a, AST* b){return a->lxm < b->lxm;});
-
+    
     vector<AST*> modules = ast->get_list(_MODULE);
-    for(int i = 0; i < modules.size(); i++){
-        names.clear();
-        AST* transSec = modules[i]->get_first(_TRANSEC);
+    for(int k = 0; k < modules.size(); ++k){
+        AST* transSec = modules[k]->get_first(_TRANSEC);
+        string module = modules[k]->get_lexeme(_NAME);
         if(transSec){
             vector<AST*> transitions = transSec->get_list(_TRANSITION);
             for(int i = 0; i < transitions.size(); i++){
-                AST *enable_c =
-                    transitions[i]->get_first(_ENABLECLOCK);
-                if(enable_c){
-                    if(!names.insert(enable_c).second){
-                        AST* duplicated = *names.find(enable_c);
-                        error_list.append(("[ERROR] Same clock can not be "
-                            "used twice as enable clock. Clock '")
-                            + enable_c->p_name() + "', at " 
-                            + duplicated->p_pos()
-                            + " and " + enable_c->p_pos() + ".\n");
-                        result = 0;
+                AST *enable_c1 = transitions[i]->get_first(_ENABLECLOCK);
+                if(enable_c1){    
+                    string name1 = enable_c1->get_lexeme(_NAME);
+                    AST* pre1 = transitions[i]->
+                        get_first(_PRECONDITION);
+                    for(int j = i+1; j < transitions.size(); j++){
+                        AST *enable_c2 =
+                            transitions[j]->get_first(_ENABLECLOCK);
+                        if (enable_c2){
+                            string name2 = enable_c2->get_lexeme(_NAME);
+                            if( name1 == name2 ){
+                                vector<AST*> pre;
+                                AST* pre2 = transitions[j]->
+                                    get_first(_PRECONDITION)->
+                                        get_first(_EXPRESSION);
+                                if(pre1){
+                                    pre.push_back(pre1->get_first(_EXPRESSION));
+                                }                                
+                                if(pre2){
+                                    pre.push_back(pre2->get_first(_EXPRESSION));
+                                }
+                                if(mSolver.sat(pre,module,*mPc)){
+                                    string line1 = transitions[i]->get_line();
+                                    string line2 = transitions[j]->get_line();
+                                    error_list.append("[WARNING] Nondeterminism"
+                                        " may be present if we reach states"
+                                        " where transitions at lines " +  line1
+                                        + " and " + line2 + " are enabled, "
+                                        "since they use the same clock.\n");
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
+
     if (error_list != ""){
         throw error_list;    
     }
@@ -457,10 +480,10 @@ Verifier::fill_maps(AST *ast){
         for(int j=0; j < variables.size(); j++){
             string name = variables[j]->get_lexeme(_NAME);
             string type = variables[j]->get_lexeme(_TYPE);
-            if(type == "Int" || type == "Float"){
+            if(type == "int" || type == "float"){
                 mPc->add_var(module,name,mARIT);
                 mPc->add_var("#property",module+"."+name,mARIT);
-            }else if (type == "Bool"){
+            }else if (type == "bool"){
                 mPc->add_var(module,name,mBOOL);
                 mPc->add_var("#property",module+"."+name,mBOOL);
             }else{
@@ -553,12 +576,15 @@ Verifier::type_check(AST *ast){
 
         // Check that enabling clock and reseting clocks are really clocks
         for(int j = 0; j < trans.size(); j++){
+            // enabling clocks
             AST* enable = trans[j]->get_first(_ENABLECLOCK);
-            if(enable && !mPc->has_clock(module,enable->p_name())){
+            if( enable && 
+                !mPc->has_clock(module,enable->get_first(_NAME)->p_name())){
                 error_list.append( "[ERROR] No clock named " 
                                  + enable->p_name() + " at " 
                                  + enable->p_pos() + ".\n" );
             }
+            // reset clocks
             vector<AST*> resets = trans[j]->get_all_ast(_RESETCLOCK);
             for(int k = 0; k < resets.size(); ++k){
                 if(!mPc->has_clock(module,resets[k]->p_name())){

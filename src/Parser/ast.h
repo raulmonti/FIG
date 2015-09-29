@@ -111,8 +111,18 @@ public:
     AST*
     get_branch_k(int k);
 
+    /*  @get_line: get a string with the line number of this AST.
+    */
+    string 
+    get_line();
+
+    /*  @get_column: get a string with the column number of this AST.
+    */
+    string 
+    get_column();
 
 };
+
 
 typedef AST Node; // Node is the same as AST.
 

@@ -539,12 +539,16 @@ Parser::rTransDef(){
             removeNode(); // _PRECONDITION
         }
 
+        newNode(_ENABLECLOCK);
         if(accept(CLN)){
             saveNode(_SEPARATOR);
-            if(accept(NAME)){
-                saveNode(_ENABLECLOCK);
-            }
+            expect(NAME, "Forgot a clock name?\n");
+            saveNode(_NAME);
+            saveNode(); // _ENABLECLOCK
+        }else{
+            removeNode();   // _ENABLECLOCK
         }
+
         expect(ARROW,"Malformed precondition formula?, or forgot arrow "
                      "at transition declaration?\n");
         saveNode(_SEPARATOR);
@@ -554,10 +558,20 @@ Parser::rTransDef(){
         }else{
             removeNode(); //_POSTCONDITION
         }
+
+        newNode(_RESETCLOCKLIST);
         if(accept(CLN)){
             saveNode(_SEPARATOR);
-            rClkList();
+            if (! rClkList()){
+                throw "Forgot clock section at (" 
+                      + to_string(lines[pos]) + "," 
+                      + to_string(columns[pos]) + ") ?";
+            }
+            saveNode(); // _RESETCLOCKLIST
+        }else{
+            removeNode(); // _RESETCLOCKLIST
         }
+
         expect(SCLN, "Forgot semicolon to end transition definition?\n");
         saveNode(); // _TRANSITION
         return 1;
@@ -750,7 +764,6 @@ Parser::rValue(){
 /**/
 int
 Parser::rClkList(){
-    newNode(_RESETCLOCKLIST);
     if(accept(NAME)){
         saveNode(_RESETCLOCK);
         while(accept(CMM)){
@@ -758,10 +771,8 @@ Parser::rClkList(){
             expect(NAME, "Missing clock or spare semicolon.\n");
             saveNode(_RESETCLOCK);
         }
-        saveNode();
         return 1;
     }
-    removeNode();
     return 0;
 }
 
@@ -849,11 +860,11 @@ Parser::parse(stringstream *str, AST * & result){
         }
 
     }catch(exception *e){
-        cout << "Parser: " << e->what() << endl;
+        cout << "[Parser ERROR] " << e->what() << endl;
         delete e;
         return 0;
     }catch(string s){
-        cout << "Parser: " << s << endl;
+        cout << "[Parser ERROR] " << s << endl;
         return 0;
     }
 

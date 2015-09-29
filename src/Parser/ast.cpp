@@ -174,3 +174,35 @@ AST::get_first(int k){
     return NULL;
 }
 
+/*  @get_line: get a string with the line number of ast.
+
+*/
+string 
+AST::get_line(){
+    string result = "-1";
+    if ( l != -1){
+        result = to_string(l);
+    }else{
+        for( int i = 0; i < branches.size() && result != "-1"; ++i){
+            result = branches[i]->get_line();
+        }
+    }
+    return result;
+}
+
+
+/*  @get_line: get a string with the line number of ast.
+
+*/
+string 
+AST::get_column(){
+    string result = "-1";
+    if ( c != -1){
+        result = to_string(c);
+    }else{
+        for( int i = 0; i < branches.size() && result != "-1"; ++i){
+            result = branches[i]->get_column();
+        }
+    }
+    return result;
+}
