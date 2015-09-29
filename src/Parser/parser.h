@@ -22,7 +22,7 @@ typedef enum    { MEOF    // my end of file symbol
                 , KMOD    // keyword MODULE
                 , KEMOD   // keyword ENDMODULE
                 , KLBL    // keyword for label sections
-                , KCS     // keyword CLK
+                , KCLOCK  // keyword clock
                 , KVS     // keyword VAR
                 , KTS     // keyword TRANS
                 , KNDIST  // keyword Normal
@@ -57,7 +57,7 @@ typedef enum    { MEOF    // my end of file symbol
                 , QMARK   // ?
                 , LDIR    // label direction (input or output)
                 , COMMENT // C style comment (/* ... */)
-                , DUM     // dummy symbol   
+                , DUM     // dummy symbol 
                 } Token;
 
 

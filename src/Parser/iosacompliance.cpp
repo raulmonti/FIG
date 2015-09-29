@@ -517,10 +517,9 @@ Verifier::type_check(AST *ast){
             AST* init = variables[j]->get_first(_INIT);
             if(init){
                 try{
-                    Type t = get_type( init->get_first(_EXPRESSION)
-                                     , module);
-                    if( ((type == "Bool") && t != mBOOL) || 
-                        ((type == "Int" || type == "Float") && t != mARIT)){
+                    Type t = get_type( init->get_first(_EXPRESSION), module);
+                    if( ((type == "bool") && t != mBOOL) || 
+                        ((type == "int" || type == "float") && t != mARIT)){
                         AST* v = variables[j]->get_first(_NAME);
                         throw "[ERROR] Wrong type for initialization of "
                               "variable '" + v->p_name() + "', at " 

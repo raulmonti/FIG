@@ -38,8 +38,6 @@ PROPERTY    { return parser::KPROP; }
 
 LABELS      { return parser::KLBL; }
 
-CLOCKS      { return parser::KCS; }
-
 VARS        { return parser::KVS; }
 
 TRANS       { return parser::KTS; }
@@ -50,7 +48,9 @@ Exponential { return parser::KEDIST; }
 
 Uniform     { return parser::KUDIST; }
 
-("int"|"float"|"bool")  { return parser::KVTYPE; } 
+("int"|"float"|"bool")  { return parser::KVTYPE; }
+
+("clock")               { return parser::KCLOCK; }
 
 ("input"|"output")      { return parser::LDIR; }
 

@@ -194,7 +194,7 @@ Parser::rModule(){
         
         // Note that the following works because each section has a unique
         // keyword as begging of its syntax.
-        while(rClkSec() || rVarSec() || rTranSec() || rLblSec()){;}
+        while(rVarSec() || rTranSec() || rLblSec()){;}
 
         saveNode();
         return 1;
@@ -249,28 +249,15 @@ Parser::rLblDef(){
 }
 
 
-/* @Rule: MODULES CLOCKS SECTION */
-int
-Parser::rClkSec(){
-    if(accept(KCS)){
-        newNode(_CLOCKSEC,string(""));
-        saveNode(_KEYWORD);
-        while(rClkDef()){;}
-        saveNode(); // _CLOCKSEC
-        return 1;
-    }
-    return 0;
-}
-
-
 /* @Rule: CLOCK DEFINITION */
 int
 Parser::rClkDef(){
 
-    if (accept(NAME)){
+    if (accept(KCLOCK)){
         newNode(_CLOCK,string(""),lines[lastpos],columns[lastpos]);
+        expect(NAME, "Did you forget the name of a clock?\n");
         saveNode(_NAME);
-        if(accept(CLN)){
+        if(accept(ASSIG)){
             saveNode(_SEPARATOR);
             if(rDistr()){
                 try{
@@ -404,28 +391,14 @@ Parser::rVarSec(){
     if(accept(KVS)){
         newNode(_VARSEC);
         saveNode(_KEYWORD);
-        while(rVarDef()){;}
+        while(rVarDef() || rClkDef()){;}
         saveNode(); // _VARSEC
         return 1;
     }
     return 0;
 }
 
-/* @Rule: INITIALIZATION. */
-int
-Parser::rInit(){
 
-    if(accept(ASSIG)){
-        newNode(_INIT,"",lines[lastpos],columns[lastpos]);
-        saveNode(_SEPARATOR);
-        if(! rExpression()){
-            throw string("Wrong initialization expression.\n");
-        }
-        saveNode();//_INIT
-        return 1;
-    }
-    return 0;
-}
 
 /* FIXME: The following method gives an example of how to use TEST and
           how to correctly use expect ... apply it to other methods.
@@ -459,6 +432,23 @@ Parser::rVarDef(){
             removeNode(); // _VARDEF
             throw s;
         }
+    }
+    return 0;
+}
+
+
+/* @Rule: INITIALIZATION. */
+int
+Parser::rInit(){
+
+    if(accept(ASSIG)){
+        newNode(_INIT,"",lines[lastpos],columns[lastpos]);
+        saveNode(_SEPARATOR);
+        if(! rExpression()){
+            throw string("Wrong initialization expression.\n");
+        }
+        saveNode();//_INIT
+        return 1;
     }
     return 0;
 }

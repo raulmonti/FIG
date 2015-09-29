@@ -53,7 +53,8 @@ TODO    Allow expressions as range limits.
 FIXME   Syntax shouldn't include the explicit reset of clocks. We should ensure
         condition 4 for IOSA reseting clocks that are about to be used.
 FIXME   Presendencia entre - y > anda mal :S
-FIXME   Bool a bool, Int a int, variables tipo clock y sacar seccion clock
+FIXME   Bool a bool, Int a int, variables tipo clock y sacar seccion clock y
+        dar rangos a las variables.
 DONE    Cambiar >> por  ->, y : es parte de la seccion del reloj habilitador
 TODO    Opcion para no usar sat solver.
 DONE    Propiedad 3, agregar unsat de las guardas.
@@ -62,4 +63,5 @@ TODO    Propiedad 6, construir imput enableness transitions.
 FIXME   Propiedad 7, chequear sat de las guardas.
 FIXME   Should not be able to ask for clock values nor do any comparison against
         them.
+FIXME   Remove LABELS section.
 */

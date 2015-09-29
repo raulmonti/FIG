@@ -13,13 +13,15 @@ LABELS
     d:input;
     c:output;
 
-CLOCKS
-    clockone:  Normal(1,1);
-    clocktwo:  Exponential(3);
-    clockfour: Uniform(6,2);
-    cc:        Normal(2,-2);
-
 VARS
+
+
+    clock clockone =  Normal(1,1);
+    clock clocktwo = Exponential(3);
+    clock clockfour= Uniform(6,2);
+    clock cc=        Normal(2,-2);
+
+
     bool v = false;
     int a = 2;
     bool c = false || true;
@@ -29,7 +31,7 @@ VARS
 TRANS
 
     /* Some transition that * represents / something. */
-    [b!] - 3 > 4 && t==1 : cc ->     : cc;
+    [b!] -3 > 4 && t==1 : cc ->     : cc;
     [a?] true      -> t=1     ;
 
 
@@ -37,10 +39,10 @@ TRANS
 
 MODULE modthree
 
-CLOCKS
-    clockthree: /* This clock has exponential delay. */
+VARS
+    clock clockthree= /* This clock has exponential delay. */
                 Exponential(2);
-    clockfour :Normal(-1,-2);
+    clock clockfour = Normal(-1,-2);
 
 TRANS
 
