@@ -7,11 +7,6 @@
 
 MODULE modone
 
-LABELS
-    a:input; 
-    b:output;
-    d:input;
-    c:output;
 
 VARS
 
@@ -20,8 +15,6 @@ VARS
     clock clocktwo = Exponential(3);
     clock clockfour= Uniform(6,2);
     clock cc=        Normal(2,-2);
-
-
     bool v = false;
     int a = 2;
     bool c = false || true;
@@ -32,7 +25,8 @@ TRANS
 
     /* Some transition that * represents / something. */
     [b!] -3 > 4 && t==1 : cc ->     : cc;
-    [a?] true      -> t=1     ;
+    [a?] a == 9      -> t=1     ;
+    [a?] t == 1 -> a = 9;
 
 
 

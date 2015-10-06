@@ -32,7 +32,6 @@ namespace parser{
 class Verifier{
 
     parsingContext * mPc;
-    SmtSolver mSolver;
 
 public:
 
@@ -109,6 +108,11 @@ private:
     */
     Type
     get_type(AST *expr, string module);
+
+    /*
+    */
+    int
+    check_input_determinism(AST *ast);
 
 };
 

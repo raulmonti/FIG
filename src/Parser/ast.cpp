@@ -179,11 +179,11 @@ AST::get_first(int k){
 */
 string 
 AST::get_line(){
-    string result = "-1";
-    if ( l != -1){
+    string result = "0";
+    if ( l != 0){
         result = to_string(l);
     }else{
-        for( int i = 0; i < branches.size() && result != "-1"; ++i){
+        for( int i = 0; i < branches.size() && result == "0"; ++i){
             result = branches[i]->get_line();
         }
     }
@@ -196,13 +196,22 @@ AST::get_line(){
 */
 string 
 AST::get_column(){
-    string result = "-1";
-    if ( c != -1){
+    string result = "0";
+    if ( c != 0){
         result = to_string(c);
     }else{
-        for( int i = 0; i < branches.size() && result != "-1"; ++i){
+        for( int i = 0; i < branches.size() && result == "0"; ++i){
             result = branches[i]->get_column();
         }
     }
     return result;
 }
+
+
+    /**/
+string
+AST::get_pos(){
+    return get_line() + ":" + get_column();
+}
+
+

@@ -7,13 +7,84 @@
 using namespace std;
 using namespace z3;
 
-
 namespace parser{
 
 
-SmtSolver::SmtSolver(void){}
 
-SmtSolver::~SmtSolver(void){}
+SmtFormula::SmtFormula(SmtFormula *form1, SmtFormula *form2, string optr):
+f1(form1),
+f2(form2),
+op(optr),
+ast(NULL)
+{}
+
+
+SmtFormula::SmtFormula(AST* form, string optr):
+f1(NULL),
+f2(NULL),
+op(optr),
+ast(form)
+{}
+
+
+SmtFormula::~SmtFormula(){
+
+}
+
+
+bool
+SmtFormula::sat(parsingContext & pc, string module){
+
+    context c;
+    solver s(c);
+
+    expr e = build_z3_expr(c, module, pc);
+
+    s.add(e);
+
+    return s.check();
+}
+
+
+expr
+SmtFormula::build_z3_expr(context & c, string module, parsingContext & pc){
+
+    expr result = c.bool_val(true);
+
+    if (is_node()){
+        if(op == "!"){
+            result = ! ast2expr(ast, module, c, pc);
+        }else if(op == "-"){
+            result = - ast2expr(ast, module, c, pc);
+        }else if(op == ""){
+            result = ast2expr(ast,module,c,pc);
+        }else{
+            assert("Not supported unary operator.\n" && false);
+        }
+    }else{
+        expr e0 = f1->build_z3_expr( c, module, pc);
+        expr e2 = f2->build_z3_expr( c, module, pc);
+        if(op == "+")  result = e0 + e2;
+        else if (op == "-") result = e0 - e2;
+        else if (op == "*") result = e0 * e2;
+        else if (op == "/") result = e0 / e2;
+        else if (op == "||") result = e0 || e2;
+        else if (op == "&&") result = e0 && e2;
+        else if (op == ">") result = e0 > e2;
+        else if (op == "<") result = e0 < e2;
+        else if (op == ">=") result = e0 >= e2;
+        else if (op == "<=") result = e0 <= e2;
+        else if (op == "==") result = e0 == e2;
+        else if (op == "=") result = e0 == e2; // FIXME in postconditions we have = instead of == ...
+        else if (op == "!=") result = e0 != e2;
+        else {
+            pout << op << endl;
+            assert("Not supported binary operator.\n" && false);
+        }
+    }
+    return result;
+}
+
 
 
 /* @ast2expr: return a z3 expression representing the boolean @formula. 
@@ -21,7 +92,7 @@ SmtSolver::~SmtSolver(void){}
               the result using a solver afterwards.
 */
 expr
-SmtSolver::ast2expr( AST* formula, string module
+ast2expr( AST* formula, string module
                    , context & c, parsingContext & pc){
 
     //TODO: assert("check that formula is boolean.");
@@ -124,7 +195,7 @@ SmtSolver::ast2expr( AST* formula, string module
 */
 
 bool
-SmtSolver::sat(AST *formula, string module, parsingContext & pc){
+sat(AST *formula, string module, parsingContext & pc){
 
     context c;   // from z3
     solver s(c); // from z3
@@ -156,7 +227,7 @@ SmtSolver::sat(AST *formula, string module, parsingContext & pc){
 /* @sat: check for satisfiability of the conjunction of formulas in @list.
 */
 bool 
-SmtSolver::sat (vector<AST*> list, string module, parsingContext & pc){
+sat (vector<AST*> list, string module, parsingContext & pc){
 
     context c;   // from z3
     solver s(c); // from z3

@@ -194,7 +194,7 @@ Parser::rModule(){
         
         // Note that the following works because each section has a unique
         // keyword as begging of its syntax.
-        while(rVarSec() || rTranSec() || rLblSec()){;}
+        while(rVarSec() || rTranSec() ){;}
 
         saveNode();
         return 1;
@@ -202,51 +202,6 @@ Parser::rModule(){
     return 0;
 }
 
-
-/* @Rule: MODULES LABELS SECTION*/
-int
-Parser::rLblSec(){
-
-    if(accept(KLBL)){
-        newNode(_LBLSEC,string(""));
-        saveNode(_KEYWORD);
-        while(rLblDef()){;}
-        saveNode(); // _LBLSEC
-        return 1;
-    }
-    return 0;
-}
-
-
-/* @Rule: LABEL DEFINITION */
-int
-Parser::rLblDef(){
-
-    if(accept(NAME)){
-        newNode(_LBL);
-        if(accept(CLN)){
-            saveNode(_SEPARATOR);
-            try{
-                expect(LDIR);
-            }catch(SyntaxError *e){
-                cout << e->what() << endl;
-                throw string("Only 'input' and 'output' " \
-                             "are accepted as labels directions.");
-            }
-            saveNode(_IDENT);
-            try{
-                expect(SCLN);
-            }catch(SyntaxError *e){
-                cout << e->what() << endl;
-                throw string("Expected ; to end label declaration.");
-            }
-            saveNode(_SEPARATOR);
-            saveNode(); // _LBL
-            return 1;
-        }
-    }
-    return 0;
-}
 
 
 /* @Rule: CLOCK DEFINITION */
@@ -510,26 +465,25 @@ int
 Parser::rTransDef(){
 
     if(accept(OBT)){
-        newNode(_TRANSITION);
+        newNode(_TRANSITION,"");
         saveNode(_SEPARATOR);
-        if(accept(NAME)){
+        if(accept(NAME)){   
             saveNode(_ACTION);
-            if(accept(EMARK)||accept(QMARK)){
+            if(accept(EMARK) || accept(QMARK)){
                 saveNode(_IO);
             }
         }
-        expect(CBT, "Forgot ']' at transition declaration?\n");        
+        expect(CBT, "Forgot ']' at transition declaration?\n");    
+        saveNode(_SEPARATOR);    
         newNode(_PRECONDITION,"");
 
-        bool b = false;
-        TESTB(rExpression,b)
-        if(b){
+        if(rExpression()){
             saveNode(); // _PRECONDITION
         }else{
             removeNode(); // _PRECONDITION
         }
 
-        newNode(_ENABLECLOCK);
+        newNode(_ENABLECLOCK,"");
         if(accept(CLN)){
             saveNode(_SEPARATOR);
             expect(NAME, "Forgot a clock name?\n");

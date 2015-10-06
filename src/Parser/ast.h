@@ -121,6 +121,10 @@ public:
     string 
     get_column();
 
+    /**/
+    string
+    get_pos();
+
 };
 
 

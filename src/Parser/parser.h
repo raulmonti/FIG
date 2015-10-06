@@ -70,12 +70,9 @@ typedef enum{ _EOF            // End of File
             , _DUMMY
             , _MODEL
             , _MODULE
-            , _LBLSEC
             , _VARSEC
             , _TRANSEC          // Transitions section
-            , _CLOCKSEC
             , _VARIABLE
-            , _LBL
             , _TRANSITION       // Transition
             , _CLOCK
             , _KEYWORD
@@ -117,8 +114,8 @@ typedef enum{ _EOF            // End of File
    the printable representation of e.
 */
 static const char symTable[][25] =
-    {"EOF","DUMMY","MODEL","MODULE","LABELS", 
-     "VARS","TRANS","CLKS","VARIABLE","LABEL",
+    {"EOF","DUMMY","MODEL","MODULE", 
+     "VARS","TRANS","VARIABLE",
      "TRANSITION","CLOCK","KEYWORD","NAME","INT","REAL",
      "SEPARATOR", "DISTRIBUTION",
      "IDENTIFIER", "TYPE","RANGE", "INITIALIZATION" ,"ACTION",

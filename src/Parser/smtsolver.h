@@ -10,33 +10,51 @@
 using namespace std;
 using namespace z3;
 
+
 namespace parser{
 
-class SmtSolver{
+
+class SmtFormula{
+
+    SmtFormula *f1;
+    SmtFormula *f2;
+    string     op;
+    AST        *ast;
 
 public:
 
-    SmtSolver(void);
+    SmtFormula(SmtFormula *form1 = NULL, SmtFormula *form2 = NULL,
+               string optr = "");
 
-    virtual ~SmtSolver(void);
+    SmtFormula(AST* form = NULL, string optr = "");
 
-    /* @sat: check for satisfiability of @formula.
-    */
-    bool sat (AST *formula, string module, parsingContext & pc);
+    virtual ~SmtFormula();
 
-    /* @sat: check for satisfiability of the conjunction of formulas in @list.
-    */
-    bool sat (vector<AST*> list, string module, parsingContext & pc);
+    inline bool is_node(){
+        return ast != NULL;
+    }
+
+    bool sat(parsingContext & pc, string module);
 
 private:
 
-    /* @ast2expr
-    */
-    expr ast2expr( AST* formula, string module
-                 , context & c, parsingContext & pc);
-
-
+    expr build_z3_expr(context & c, string module, parsingContext & pc);
 };
+
+
+
+/* @sat: check for satisfiability of @formula.
+*/
+bool sat (AST *formula, string module, parsingContext & pc);
+
+/* @sat: check for satisfiability of the conjunction of formulas in @list.
+*/
+bool sat (vector<AST*> list, string module, parsingContext & pc);
+
+/* @ast2expr
+*/
+expr ast2expr( AST* formula, string module
+             , context & c, parsingContext & pc);
 
 } // Parser
 
