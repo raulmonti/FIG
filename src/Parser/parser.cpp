@@ -160,22 +160,18 @@ Parser::rGrammar(){
     newNode(_MODEL, string(""));
 
     while(!ended()){
+        if(!rModule()){ // try to parse module
+            if(!rProperty()){ // try to parse property
 
-        bool b = false;
-
-        TESTB(rModule,b) // try to parse module
-
-        if(!b){
-            TESTB(rProperty,b)  // try to parse property
-        }
-        if(!b){
-            // Could not match the grammar. Show where we got stuck.
-            throw (new SyntaxError( "Syntax error: '" + lexemes[pos] + "'\n"
-                                  , lines[pos]
-                                  , columns[pos]));
+                // Could not match the grammar. Show where we got stuck.
+                throw (new SyntaxError( "Syntax error: '" + lexemes[pos] + "'\n"
+                                      , lines[pos]
+                                      , columns[pos]));
+            }
         }
     }
-    
+    //saveNode(); //_MODEL
+
     return 1;
 }
 
@@ -196,7 +192,7 @@ Parser::rModule(){
         // keyword as begging of its syntax.
         while(rVarSec() || rTranSec() ){;}
 
-        saveNode();
+        saveNode(); // _MODULE
         return 1;
     }
     return 0;
@@ -344,7 +340,7 @@ Parser::rUniDist(){
 int
 Parser::rVarSec(){
     if(accept(KVS)){
-        newNode(_VARSEC);
+        newNode(_VARSEC, "");
         saveNode(_KEYWORD);
         while(rVarDef() || rClkDef()){;}
         saveNode(); // _VARSEC
@@ -365,6 +361,21 @@ Parser::rVarDef(){
     if(accept(KVTYPE)){
         newNode(_VARIABLE, "");
         saveNode(_TYPE);
+
+        if(accept(OBT)){
+            newNode(_RANGE, "");
+            saveNode(_SEPARATOR);
+            expect(NUM, "Bad range. Forgot lower limit?\n");
+            saveNode(_NUM);
+            expect(RNG, "Bad range. Forgot .. ?\n");
+            saveNode(_SEPARATOR);
+            expect(NUM, "Bad range. Forgot upper limit?\n");
+            saveNode(_NUM);
+            expect(CBT, "Bad range. Forgot ] ?");
+            saveNode(_SEPARATOR);
+            saveNode(); // _RANGE
+        }
+
         try{
             expect(NAME, "Missing name at variable definition?\n");
             saveNode(_NAME);

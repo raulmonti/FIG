@@ -8,11 +8,9 @@
 #include "config.h"
 #include "ast.h"
 
-
 using namespace std;
 
 namespace parser{
-
 
 /* The token representation for each lexeme. 
 */
@@ -154,7 +152,7 @@ class Parser
     Token        tkn;               // Current extracted token.
     int          pos;               // Actual position of the parser in tokens.
     int          lastpos;           // Position of the last accepted lexeme.
-    stack<Node*> astStk;
+    stack<Node*> astStk;            // Stack for bulding up the AST
     bool         skipws;            // Skip white spaces?.
 
 

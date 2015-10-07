@@ -38,7 +38,7 @@ TODO    Idea: Exception handling using numbers and table with ...
 
 TODO    Allow expressions as range limits.
 FIXME   Presendencia entre - y > anda mal :S
-FIXME   Dar rangos a las variables.
+DONE    Dar rangos a las variables.
 
 TODO    Opcion para no usar sat solver.
 

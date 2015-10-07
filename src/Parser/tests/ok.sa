@@ -16,17 +16,17 @@ VARS
     clock clockfour= Uniform(6,2);
     clock cc=        Normal(2,-2);
     bool v = false;
-    int a = 2;
+    int [3..33] a  = 2;
     bool c = false || true;
     bool b = false;
-    int t = 0;
+    int [0..2] t = 0;
 
 TRANS
 
     /* Some transition that * represents / something. */
     [b!] -3 > 4 && t==1 : cc ->     : cc;
     [a?] a == 9      -> t=1     ;
-    [a?] t == 1 -> a = 9;
+    [a?] a == 1 -> a = 9;
 
 
 
@@ -37,6 +37,7 @@ VARS
     clock clockthree= /* This clock has exponential delay. */
                 Exponential(2);
     clock clockfour = Normal(-1,-2);
+    int [1..16] ii = 6;
 
 TRANS
 

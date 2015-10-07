@@ -48,6 +48,7 @@ int
 Verifier::verify(AST* ast){
 
     // fill up the parsing context.
+    // Also checks for the correct declaration of variables.
     fill_maps(ast);
 
     try{
@@ -65,12 +66,9 @@ Verifier::verify(AST* ast){
         pout << ">> Check 7th IOSA condition...\n";
         check_input_determinism(ast);
 
-
     }catch(string warning){
-
         cout << warning;
         return 0;
-
     }
 
     return 1;
@@ -490,7 +488,8 @@ Verifier::trans_has_exhausted_clock(AST* t, vector<AST*> & tv, string m){
 
 
 
-/* @fill_maps: fill the context @mPc for @ast.
+/* @fill_maps: fill the context @mPc for @ast. Check for variables declarations
+               to be correct.
 */
 int
 Verifier::fill_maps(AST *ast){
@@ -498,9 +497,13 @@ Verifier::fill_maps(AST *ast){
     /*NOTE: names of variables and clock can be accessed outside of its
             modules by using <module name>.<variable/clock name>. In the
             type maps this names will be kept under the special module name 
-            '#property'.
+            '#property'. FIXME: we should not be able to access clock names
+            for comparisons or reading of their values.
     */
-    vector<AST*> modules = ast->get_list(_MODULE);
+
+    string error_list = "";
+
+    vector<AST*> modules = ast->get_all_ast(_MODULE);
     for(int i = 0; i < modules.size(); i++){
         vector<AST*> variables = modules[i]->get_all_ast(_VARIABLE);
         vector<AST*> clocks = modules[i]->get_all_ast(_CLOCK);
@@ -509,7 +512,22 @@ Verifier::fill_maps(AST *ast){
         for(int j=0; j < variables.size(); j++){
             string name = variables[j]->get_lexeme(_NAME);
             string type = variables[j]->get_lexeme(_TYPE);
-            if(type == "int" || type == "float"){
+            if(type == "int"){
+                AST* range = variables[j]->get_first(_RANGE);
+                if(range){
+                    vector<string> limits = range->get_list_lexemes(_NUM);
+                    assert(limits.size() == 2);
+                    if(stoi(limits[0]) > stoi(limits[1])){
+                        string pos = variables[j]->get_pos();
+                        error_list.append("[ERROR] Empty range in variable "
+                            "declaration at " + pos + ".\n");
+                    }
+                }else{
+                    string pos = variables[j]->get_pos();
+                    
+                    error_list.append("[ERROR] Missing range for integer "
+                        "variable declaration at " + pos + module + ".\n");
+                }
                 mPc->add_var(module,name,mARIT);
                 mPc->add_var("#property",module+"."+name,mARIT);
             }else if (type == "bool"){
@@ -526,6 +544,11 @@ Verifier::fill_maps(AST *ast){
             mPc->add_clock("#property", module+"."+name);
         }
     }
+
+    if(error_list != ""){
+        throw error_list;
+    }
+
     return 1;
 }
 
