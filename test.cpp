@@ -7,6 +7,39 @@ using std::cout;
 using std::endl;
 using std::string;
 
+template< typename T_ >
+static void print_all_concrete_states(const State< T_ >& ss)
+{
+	State<T_> s(ss);  // work on a copy of the state
+	size_t cvar(0),   // current variable
+		   N(1);      // total number of concrete states
+	for (size_t i=0 ; i < s.size() ; i++) {
+		s[i] = s[i].min();
+		N *= 1 + s[i].max()-s[i].min();
+	}
+	cout << "Concrete Symbolic" << endl;
+	for (size_t n=0 ; n < N ; n++) {
+		// Print current {concr,symb} state info
+		cout << " " << s.encode_state() << "\t ";
+		for (size_t i=0 ; i < s.size() ; i++)
+			cout << s[i].name() << "=" << s[i].val() << ", ";
+		cout << "\b\b  \b\b" << endl;
+		// Move one symbolic state forward, if there is one left
+		bool moved_from_cvar(false);
+		while (s[cvar].val() == s[cvar].max()) {
+			cvar++;
+			moved_from_cvar = true;
+			if (cvar >= s.size())
+				return;  // covered whole symbolic states, job done
+		}
+		s[cvar] = s[cvar].val()+1;
+		for (size_t i=0 ; i < cvar ; i++)
+			s[i] = s[i].min();
+		if (moved_from_cvar)
+			cvar = 0;
+	}
+}
+
 
 int main()
 {
@@ -59,6 +92,8 @@ int main()
 	assert((*v1) == s1[2]);
 	v1 = s1["noexiste"];
 	assert(nullptr == v1);
-	
+
+	print_all_concrete_states<int>(s1);
+
 	return 0;
 }

@@ -25,14 +25,19 @@ template< typename T_ > using VarDec = std::tuple< string, T_, T_ >;
 template< typename T_ > using VarDef = std::tuple< string, T_, T_, T_ >;
 
 
+
+/// Integral typed Variable defined by an interval
 template< typename T_ >
 class Variable
 {
+	// Friend template class: http://stackoverflow.com/a/8967610
+	template< typename TT_ > friend class State;
+
 	static_assert(std::is_integral<T_>::value,
 	              "ERROR: class Variable<T> can only be instantiated "
 	              "with integral types, e.g. int, short, unsigned.");
 	string name_;
-	T_ val_;
+	T_ offset_;
 	T_ min_;
 	T_ max_;
 
@@ -40,9 +45,8 @@ protected:
 	inline virtual void assert_invariant()
 		{
 			assert(!name_.empty());  // false for fresh variables
-			assert(min_ <= max_);
-			assert(val_ >= min_);
-			assert(val_ <= max_);
+			assert(0 <= offset_);
+			assert(min_ + offset_ <= max_);
 		}
 
 public:  // Constructors XXX
@@ -74,7 +78,7 @@ public:  // Constructors XXX
 		{
 			assert(val >= min_);
 			assert(val <= max_);
-			val_ = val;
+			offset_ = val - min_;
 			return *this;
 		}
 
@@ -82,16 +86,20 @@ public:  // Constructors XXX
 		{
 			assert(val >= min_);
 			assert(val <= max_);
-			val_ = std::move(val);
+			offset_ = val - min_;
 			return *this;
 		}
 
 public:  // Accessors XXX
 
 	inline const string& name() const noexcept { return name_; }
-	inline T_ val() const noexcept { return val_; }
+	inline T_ val() const noexcept { return min_ + offset_; }
 	inline T_ min() const noexcept { return min_; }
 	inline T_ max() const noexcept { return max_; }
+
+protected:
+	inline T_ range()  const noexcept { return max_-min_+1; }  // closed interval
+	inline T_ offset() const noexcept { return offset_; }
 
 public:  // Relational operators XXX
 
@@ -104,26 +112,24 @@ public:  // Relational operators XXX
 
 	inline bool operator==(const Variable< T_ >& that) const
 		{
-			return (compatible(that) && val_ == that.val_);
+			return (compatible(that) && offset_ == that.offset_);
 		}
 
 	inline bool operator!=(const Variable< T_ >& that) const
 		{
-			return (val_ != that.val_ || !compatible(that));
+			return (!compatible(that) || offset_ != that.offset_);
 		}
 };
 
 
 
+/// Symbolic representation of a state, viz. a vector of Variables
 template< typename T_ >
 class State
 {
 	static_assert(std::is_integral<T_>::value,
 	              "ERROR: class State<T> can only be instantiated "
 	              "with integral types, e.g. int, short, unsigned.");
-
-//	friend void swap(State< T_ >& left, State< T_ >& right)
-//		{ std::swap(left.vars_p, right.vars_p); }
 
 protected:
 
@@ -184,11 +190,15 @@ public:  // Accessors XXX
 			return nullptr;
 		}
 
+	// @brief Encode current state (viz. vector of Variables values) as a number,
+	//        i.e. the "concrete" representation of the current state.
+	// @compl Quadratic on the size of State
+	size_t encode_state() const;
 
-	// TODO: {en,de}code_state()
-	//
-	// Transform (symbolic) State to/from (concrete) numeric value
-	// which could be interpreted by the (concrete) importance function.
+	// @brief Decode number into vector of variable values and apply to State,
+	//        i.e. store "symbolically" the "concrete state" n.
+	// @compl Quadratic on the size of State
+	void decode_state(const size_t& n);
 	
 public:  // Relational operators XXX
 

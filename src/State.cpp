@@ -10,13 +10,13 @@
 ////////////////////////////////////////
 
 template< typename T_ >
-Variable< T_ >::Variable() : name_(), val_(), min_(), max_()
+Variable< T_ >::Variable() : name_(), offset_(), min_(), max_()
 { /* empty name indicates fresh variable */ }
 
 template< typename T_ >
 Variable< T_ >::Variable(const VarDec< T_ >& dec) :
 	name_(std::get<0>(dec)),
-	val_(std::get<1>(dec)),
+	offset_(static_cast< T_ >(0)),
 	min_(std::get<1>(dec)),
 	max_(std::get<2>(dec))
 {
@@ -26,7 +26,7 @@ Variable< T_ >::Variable(const VarDec< T_ >& dec) :
 template< typename T_ >
 Variable< T_ >::Variable(const VarDef< T_ >& def) :
 	name_(std::get<0>(def)),
-	val_(std::get<3>(def)),
+	offset_(std::get<3>(def) - std::get<1>(def)),
 	min_(std::get<1>(def)),
 	max_(std::get<2>(def))
 {
@@ -36,7 +36,7 @@ Variable< T_ >::Variable(const VarDef< T_ >& def) :
 template< typename T_ >
 Variable< T_ >::Variable(VarDec< T_ >&& dec) :
 	name_(std::move(std::get<0>(dec))),
-	val_(std::move(std::get<1>(dec))),
+	offset_(static_cast< T_ >(0)),
 	min_(std::move(std::get<1>(dec))),
 	max_(std::move(std::get<2>(dec)))
 {
@@ -46,7 +46,7 @@ Variable< T_ >::Variable(VarDec< T_ >&& dec) :
 template< typename T_ >
 Variable< T_ >::Variable(VarDef< T_ >&& def) :
 	name_(std::move(std::get<0>(def))),
-	val_(std::move(std::get<3>(def))),
+	offset_(std::get<3>(def) - std::get<1>(def)),
 	min_(std::move(std::get<1>(def))),
 	max_(std::move(std::get<2>(def)))
 {
@@ -56,7 +56,7 @@ Variable< T_ >::Variable(VarDef< T_ >&& def) :
 template< typename T_ >
 Variable< T_ >::Variable(const string& name, T_ min, T_ max) :
 	name_(name),
-	val_(min),
+	offset_(min),
 	min_(min),
 	max_(max)
 {
@@ -66,7 +66,7 @@ Variable< T_ >::Variable(const string& name, T_ min, T_ max) :
 template< typename T_ >
 Variable< T_ >::Variable(const string& name, T_ val, T_ min, T_ max) :
 	name_(name),
-	val_(val),
+	offset_(val-min),
 	min_(min),
 	max_(max)
 {
@@ -76,7 +76,7 @@ Variable< T_ >::Variable(const string& name, T_ val, T_ min, T_ max) :
 template< typename T_ >
 Variable< T_ >::Variable(string&& name, T_ min, T_ max) :
 	name_(std::move(name)),
-	val_(std::move(min)),
+	offset_(min),
 	min_(std::move(min)),
 	max_(std::move(max))
 {
@@ -86,7 +86,7 @@ Variable< T_ >::Variable(string&& name, T_ min, T_ max) :
 template< typename T_ >
 Variable< T_ >::Variable(string&& name, T_ val, T_ min, T_ max) :
 	name_(std::move(name)),
-	val_(std::move(val)),
+	offset_(val-min),
 	min_(std::move(min)),
 	max_(std::move(max))
 {
@@ -98,7 +98,7 @@ Variable< T_ >& Variable< T_ >::operator=(Variable< T_ > that)
 {
 	assert(name_.empty());  // can only assign to a fresh variable
 	name_ = std::move(that.name_);
-	val_  = std::move(that.val_);
+	offset_ = std::move(that.offset_);
 	min_  = std::move(that.min_);
 	max_  = std::move(that.max_);
 	return *this;
@@ -109,7 +109,7 @@ Variable< T_ >& Variable< T_ >::operator=(VarDec< T_ > dec)
 {
 	assert(name_.empty());  // can only assign to a fresh variable
 	name_ = std::move(std::get<0>(dec));
-	val_  = std::move(std::get<1>(dec));
+	offset_ = static_cast< T_ >(0);
 	min_  = std::move(std::get<1>(dec));
 	max_  = std::move(std::get<2>(dec));
 	return *this;
@@ -120,7 +120,7 @@ Variable< T_ >& Variable< T_ >::operator=(VarDef< T_ > def)
 {
 	assert(name_.empty());  // can only assign to a fresh variable
 	name_ = std::move(std::get<0>(def));
-	val_  = std::move(std::get<3>(def));
+	offset_  = std::get<3>(def) - std::get<1>(def);
 	min_  = std::move(std::get<1>(def));
 	max_  = std::move(std::get<2>(def));
 	return *this;
@@ -206,6 +206,19 @@ bool State< T_ >::operator==(const State< T_ >& that) const
 	return true;
 }
 
+template< typename T_ >
+size_t State< T_ >::encode_state() const
+{
+	size_t n(0), numVars(size());
+	#pragma omp parallel for reduction(+,n) shared(numVars)
+	for (size_t i=0 ; i < numVars ; i++) {
+		size_t stride(1);
+		for (size_t j = i+1 ; j < numVars; j++)
+			stride *= (*vars_p)[j].range();
+		n += (*vars_p)[i].offset() * stride;
+	}
+	return n;
+}
 
 // State can only be instantiated with following numeric types
 template class State< short              >;

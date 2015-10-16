@@ -1,0 +1,17 @@
+ext/boost/include
+ext/boost/include/predef
+ext/boost/include/predef/architecture
+ext/boost/include/predef/architecture/x86
+ext/boost/include/predef/compiler
+ext/boost/include/predef/detail
+ext/boost/include/predef/language
+ext/boost/include/predef/library
+ext/boost/include/predef/library/c
+ext/boost/include/predef/library/std
+ext/boost/include/predef/os
+ext/boost/include/predef/os/bsd
+ext/boost/include/predef/other
+ext/boost/include/predef/platform
+ext/boost/include/python/detail
+ext/muparser2.2.5/include
+include
