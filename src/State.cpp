@@ -1,5 +1,6 @@
 #include <utility>  // std::move(), std::swap()
 #include <cassert>
+#include <omp.h>
 #include <State.h>
 
 
@@ -187,11 +188,15 @@ bool State< T_ >::compatible(const State< T_ >& that) const
 {
 	if (this->size() != that.size())
 		return false;
+	bool match(true);
 	#pragma omp parallel for
-	for (size_t i=0 ; i < vars_p->size() ; i++)
-		if ( ! that[i].compatible((*vars_p)[i]) )
-			return false;
-	return true;
+	for (size_t i=0 ; i < vars_p->size() ; i++) {
+		if ( ! that[i].compatible((*vars_p)[i]) ) {
+			#pragma omp critical
+			match = false;
+		}
+	}
+	return match;
 }
 
 template< typename T_ >
@@ -199,18 +204,22 @@ bool State< T_ >::operator==(const State< T_ >& that) const
 {
 	if (this->size() != that.size())
 		return false;
+	bool match(true);
 	#pragma omp parallel for
-	for (size_t i=0 ; i < vars_p->size() ; i++)
-		if ( that[i] != (*vars_p)[i] )
-			return false;
-	return true;
+	for (size_t i=0 ; i < vars_p->size() ; i++) {
+		if ( that[i] != (*vars_p)[i] ) {
+			#pragma omp critical
+			match = false;
+		}
+	}
+	return match;
 }
 
 template< typename T_ >
 size_t State< T_ >::encode_state() const
 {
 	size_t n(0), numVars(size());
-	#pragma omp parallel for reduction(+,n) shared(numVars)
+	#pragma omp parallel for reduction(+:n) shared(numVars)
 	for (size_t i=0 ; i < numVars ; i++) {
 		size_t stride(1);
 		for (size_t j = i+1 ; j < numVars; j++)

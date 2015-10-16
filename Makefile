@@ -7,7 +7,8 @@ SOURCES=$(wildcard *.cpp) \
 	$(wildcard ext/*/src/*.cpp)
 OBJECTS=$(SOURCES:%.c=%.o)
 
-CC=clang++
+CC=g++-4.9
+#CC=clang++
 CFLAGS=-Wall -Wextra -pedantic -std=c++11 -ftree-vectorize -O3
 CFLAGS+=-Wno-switch -Wno-reorder -Wno-nested-anon-types
 LDFLAGS=-fopenmp
