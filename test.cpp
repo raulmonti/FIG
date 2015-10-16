@@ -8,22 +8,17 @@ using std::endl;
 using std::string;
 
 template< typename T_ >
-static void print_all_concrete_states(const State< T_ >& ss)
+static void print_all_symbolic(const State< T_ >& ss)
 {
 	State<T_> s(ss);  // work on a copy of the state
-	size_t cvar(0),   // current variable
-		   N(1);      // total number of concrete states
-	for (size_t i=0 ; i < s.size() ; i++) {
+	size_t cvar(0);   // current variable
+	for (size_t i=0 ; i < s.size() ; i++)
 		s[i] = s[i].min();
-		N *= 1 + s[i].max()-s[i].min();
-	}
-	cout << "Concrete Symbolic" << endl;
-	for (size_t n=0 ; n < N ; n++) {
+	cout << endl << "Concr <-- Symb" << endl;
+	for (size_t n=0 ; n < s.concrete_size() ; n++) {
 		// Print current {concr,symb} state info
-		cout << " " << s.encode_state() << "\t ";
-		for (size_t i=0 ; i < s.size() ; i++)
-			cout << s[i].name() << "=" << s[i].val() << ", ";
-		cout << "\b\b  \b\b" << endl;
+		cout << " " << s.encode_state() << "\t  ";
+		s.print_out(cout); cout << endl;
 		// Move one symbolic state forward, if there is one left
 		bool moved_from_cvar(false);
 		while (s[cvar].val() == s[cvar].max()) {
@@ -40,6 +35,19 @@ static void print_all_concrete_states(const State< T_ >& ss)
 	}
 }
 
+template< typename T_ >
+static void print_all_concrete(const State< T_ >& ss)
+{
+	State<T_> s(ss);  // work on a copy of the state
+	cout << endl << "Concr --> Symb" << endl;
+	for (size_t n=0 ; n < s.concrete_size() ; n++) {
+		// Print current concrete state
+		cout << " " << n << "\t  ";
+		// Make it symbolic and print it
+		s.decode_state(n);
+		s.print_out(cout); cout << endl;
+	}
+}
 
 int main()
 {
@@ -93,7 +101,9 @@ int main()
 	v1 = s1["noexiste"];
 	assert(nullptr == v1);
 
-	print_all_concrete_states<int>(s1);
+	print_all_symbolic<int>(s1);
+	print_all_concrete<int>(s1);
+
 
 	return 0;
 }

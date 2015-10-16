@@ -3,6 +3,7 @@
 #include <memory>     // std::shared_ptr
 #include <string>
 #include <algorithm>  // std::find()
+#include <iostream>   // std::ostream
 #include <cassert>
 
 
@@ -37,9 +38,11 @@ class Variable
 	              "ERROR: class Variable<T> can only be instantiated "
 	              "with integral types, e.g. int, short, unsigned.");
 	string name_;
-	T_ offset_;
 	T_ min_;
 	T_ max_;
+
+protected:
+	T_ offset_;  // share with friend class "State"
 
 protected:
 	inline virtual void assert_invariant()
@@ -93,13 +96,10 @@ public:  // Constructors XXX
 public:  // Accessors XXX
 
 	inline const string& name() const noexcept { return name_; }
-	inline T_ val() const noexcept { return min_ + offset_; }
+	inline T_ range() const noexcept { return max_-min_+1; }  // closed interval
 	inline T_ min() const noexcept { return min_; }
 	inline T_ max() const noexcept { return max_; }
-
-protected:
-	inline T_ range()  const noexcept { return max_-min_+1; }  // closed interval
-	inline T_ offset() const noexcept { return offset_; }
+	inline T_ val() const noexcept { return min_ + offset_; }
 
 public:  // Relational operators XXX
 
@@ -130,10 +130,13 @@ class State
 	static_assert(std::is_integral<T_>::value,
 	              "ERROR: class State<T> can only be instantiated "
 	              "with integral types, e.g. int, short, unsigned.");
-
 protected:
 
+	size_t maxConcreteState_;
 	shared_ptr< vector< Variable< T_ > > > vars_p;
+
+protected:
+	void build_concrete_bound();  // compute&store value of maxConcreteState_
 
 public:  // Constructors XXX
 
@@ -153,8 +156,13 @@ public:  // Constructors XXX
 
 public:  // Accessors XXX
 
-	inline unsigned size() const
+	// @brief Symbolic size, i.e. number of variables
+	inline size_t size() const
 		{ return nullptr == vars_p ? 0 : vars_p->size(); }
+
+	// @brief Concrete size, i.e. cross product of all variables ranges
+	inline size_t concrete_size() const
+		{ return maxConcreteState_; }
 
 	// @brief Retrieve i-th variable as const reference
 	// @compl Constant
@@ -190,16 +198,37 @@ public:  // Accessors XXX
 			return nullptr;
 		}
 
+	// @brief Print formatted vector of variables into 'out'
+	inline void print_out(std::ostream& out) const
+		{
+			for (size_t i=0 ; i < size() ; i++)
+				out << (*vars_p)[i].name() << "=" << (*vars_p)[i].val() << ", ";
+			out << "\b\b  \b\b";
+		}
+
 	// @brief Encode current state (viz. vector of Variables values) as a number,
 	//        i.e. the "concrete" representation of the current state.
 	// @compl Quadratic on the size of State
 	size_t encode_state() const;
 
-	// @brief Decode number into vector of variable values and apply to State,
+	// @brief Decode number as vector of Variables values and apply to State,
 	//        i.e. store "symbolically" the "concrete state" n.
+	// @param n  Concrete state to interpret and apply to our symbolic existence
 	// @compl Quadratic on the size of State
 	void decode_state(const size_t& n);
-	
+
+	// @brief Decode number into corresponding Variable value
+	// @param n  Concrete state to interpret
+	// @param i  Variable index whose value (decoded from n) is requested
+	// @compl Linear on the size of State
+	T_ decode_state(const size_t& n, const size_t& i) const;
+
+	// @brief Decode number into corresponding Variable value
+	// @param n  Concrete state to interpret
+	// @param i  Variable name whose value (decoded from n) is requested
+	// @compl Linear on the size of State
+	T_ decode_state(const size_t& n, const std::string& varname) const;
+
 public:  // Relational operators XXX
 
 	// @brief Tell whether 'this' and 'that' hold compatible/same variables

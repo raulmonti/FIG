@@ -147,26 +147,39 @@ template class Variable< unsigned long long >;
 ////////////////////////////////////////
 
 template< typename T_ >
+void State< T_ >::build_concrete_bound()
+{
+	maxConcreteState_ = 1;
+	for (size_t i=0 ; i < size() ; i++)
+		maxConcreteState_ *= (*vars_p)[i].range();
+}
+
+template< typename T_ >
 State< T_ >::State() : vars_p(nullptr) {}
 
 template< typename T_ >
 State< T_ >::State(const vector< VarDec< T_ > >& vars) :
+	maxConcreteState_(0),
 	vars_p(std::make_shared< vector< Variable< T_ > > >(vars.size()))
 {
 	for (size_t i=0 ; i < vars.size() ; i++)
 		(*vars_p)[i] = vars[i];
+	build_concrete_bound();
 }
 
 template< typename T_ >
 State< T_ >::State(const vector< VarDef< T_ > >& vars) :
+	maxConcreteState_(0),
 	vars_p(std::make_shared< vector< Variable< T_ > > >(vars.size()))
 {
 	for (size_t i=0 ; i < vars.size() ; i++)
 		(*vars_p)[i] = vars[i];
+	build_concrete_bound();
 }
 
 template< typename T_ >
-State< T_ >::State(const State< T_ >& that) noexcept
+State< T_ >::State(const State< T_ >& that) noexcept :
+	maxConcreteState_(0)
 {
 	if (0 == that.size())
 		vars_p = nullptr;
@@ -174,12 +187,14 @@ State< T_ >::State(const State< T_ >& that) noexcept
 		vars_p = std::make_shared< vector< Variable< T_ > > >();
 		(*vars_p) = (*that.vars_p);  // copy vector whole
 	}
+	build_concrete_bound();
 }
 
 template< typename T_ >
 State< T_ >& State< T_ >::operator=(State< T_ > that) noexcept
 {
 	std::swap(vars_p, that.vars_p);
+	std::swap(maxConcreteState_, that.maxConcreteState_);
 	return *this;
 }
 
@@ -224,10 +239,59 @@ size_t State< T_ >::encode_state() const
 		size_t stride(1);
 		for (size_t j = i+1 ; j < numVars; j++)
 			stride *= (*vars_p)[j].range();
-		n += (*vars_p)[i].offset() * stride;
+		n += (*vars_p)[i].offset_ * stride;
 	}
 	return n;
 }
+
+template< typename T_ >
+T_ State< T_ >::decode_state(const size_t& n, const size_t& i) const
+{
+	T_ mod(1), div(1), varOffset(0);
+	assert(i < size());
+	assert(n < maxConcreteState_);
+	#pragma omp parallel for reduction (*:mod)
+	for (size_t j = 1 ; j <= i ; j++)
+		mod *= (*vars_p)[j].range();
+	#pragma omp parallel for reduction (*:div)
+	for (size_t j = i+1 ; j < size() ; j++)
+		div *= (*vars_p)[j].range();
+	varOffset = (n % mod) / div;
+	assert(0 <= varOffset);
+	assert(varOffset <= (*vars_p)[i].range());
+	return (*vars_p)[i].min() + varOffset;
+}
+
+template< typename T_ >
+T_ State< T_ >::decode_state(const size_t& n, const std::string& varname) const
+{
+	size_t varpos(0);
+	assert(n < maxConcreteState_);
+	for (; varpos < size() ; varpos++)
+		if (varname == (*vars_p)[varpos].name())
+			break;
+	assert(varpos < size());
+	return decode_state(n, varpos);
+}
+
+template< typename T_ >
+void State< T_ >::decode_state(const size_t& n)
+{
+	assert(n < maxConcreteState_);
+	#pragma omp parallel for shared(n)
+	for (size_t i=0 ; i < size() ; i++) {
+		T_ mod(1), div(1), varOffset(0);
+		for (size_t j = 1 ; j <= i ; j++)
+			mod *= (*vars_p)[j].range();
+		for (size_t j = i+1 ; j < size() ; j++)
+			div *= (*vars_p)[j].range();
+		varOffset = (n % mod) / div;
+		assert(0 <= varOffset);
+		assert(varOffset <= (*vars_p)[i].range());
+		(*vars_p)[i].offset_ = varOffset;
+	}
+}
+
 
 // State can only be instantiated with following numeric types
 template class State< short              >;
