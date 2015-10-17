@@ -247,18 +247,15 @@ size_t State< T_ >::encode_state() const
 template< typename T_ >
 T_ State< T_ >::decode_state(const size_t& n, const size_t& i) const
 {
-	T_ mod(1), div(1), varOffset(0);
+	size_t numVars(size());
+	T_ stride(1), varOffset(0);
 	assert(i < size());
 	assert(n < maxConcreteState_);
-	#pragma omp parallel for reduction (*:mod)
-	for (size_t j = 1 ; j <= i ; j++)
-		mod *= (*vars_p)[j].range();
-	#pragma omp parallel for reduction (*:div)
-	for (size_t j = i+1 ; j < size() ; j++)
-		div *= (*vars_p)[j].range();
-	varOffset = (n % mod) / div;
+	#pragma omp parallel for reduction (*:stride) shared(i,numVars)
+	for (size_t j = i+1 ; j < numVars ; j++)
+		stride *= (*vars_p)[j].range();
+	varOffset = (n / stride) % (*vars_p)[i].range();
 	assert(0 <= varOffset);
-	assert(varOffset <= (*vars_p)[i].range());
 	return (*vars_p)[i].min() + varOffset;
 }
 
@@ -277,17 +274,15 @@ T_ State< T_ >::decode_state(const size_t& n, const std::string& varname) const
 template< typename T_ >
 void State< T_ >::decode_state(const size_t& n)
 {
+	size_t numVars = size();
 	assert(n < maxConcreteState_);
-	#pragma omp parallel for shared(n)
-	for (size_t i=0 ; i < size() ; i++) {
-		T_ mod(1), div(1), varOffset(0);
-		for (size_t j = 1 ; j <= i ; j++)
-			mod *= (*vars_p)[j].range();
-		for (size_t j = i+1 ; j < size() ; j++)
-			div *= (*vars_p)[j].range();
-		varOffset = (n % mod) / div;
+	#pragma omp parallel for shared(n, numVars)
+	for (size_t i=0 ; i < numVars ; i++) {
+		T_ stride(1), varOffset(0);
+		for (size_t j = i+1 ; j < numVars ; j++)
+			stride *= (*vars_p)[j].range();
+		varOffset = (n / stride) % (*vars_p)[i].range();
 		assert(0 <= varOffset);
-		assert(varOffset <= (*vars_p)[i].range());
 		(*vars_p)[i].offset_ = varOffset;
 	}
 }
