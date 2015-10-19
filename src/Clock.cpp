@@ -1,10 +1,10 @@
 //==============================================================================
 //
-//	Clock.cpp
+//  Clock.cpp
 //
-//	Copyleft 2015-
-//	Authors:
-//  * Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
+//  Copyleft 2015-
+//  Authors:
+//  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
 //
 //------------------------------------------------------------------------------
 //
@@ -26,5 +26,30 @@
 //
 //==============================================================================
 
+// C++
+#include <unordered_map>
+#include <random>
+// FIG
+#include <Clock.h>
 
+namespace
+{
+	std::default_random_engine random_gen;
+	std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uniform01(0.0 , 1.0);
+	std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal01(0.0 , 1.0);
+} // namespace
 
+namespace fig
+{
+
+	std::unordered_map< const std::string, const Distribution& >
+	distributions_list ({
+		{"uniform01",
+		  [&random_gen] (fig::ParamList< CLOCK_INTERNAL_TYPE > params) -> CLOCK_INTERNAL_TYPE
+		  { return uniform01(random_gen); }},
+		{"uniformAB",
+		  [&random_gen] (fig::ParamList< CLOCK_INTERNAL_TYPE > params) -> CLOCK_INTERNAL_TYPE
+		  { return params[0] + (params[1] - params[0]) * uniform01(random_gen); }},
+	});
+
+} // namespace fig

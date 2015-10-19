@@ -1,10 +1,10 @@
 //==============================================================================
 //	
-//	%FILENAME%
+//  %FILENAME%
 //
-//	Copyleft %YEAR%-
-//	Authors:
-//  * Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
+//  Copyleft %YEAR%-
+//  Authors:
+//  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
 //
 //------------------------------------------------------------------------------
 //

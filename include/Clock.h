@@ -1,10 +1,10 @@
 //==============================================================================
 //
-//	Clock.h
+//  Clock.h
 //
-//	Copyleft 2015-
-//	Authors:
-//  * Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
+//  Copyleft 2015-
+//  Authors:
+//  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
 //
 //------------------------------------------------------------------------------
 //
@@ -31,8 +31,8 @@
 #define CLOCK_H
 
 // C++
+#include <array>
 #include <string>
-#include <vector>
 #include <unordered_map>
 #include <functional>
 // C
@@ -42,12 +42,20 @@
 namespace fig
 {
 
-typedef float CLOCK_INTERNAL_TYPE;
-template< typename T_ > using ParamList = std::vector< T_ >;  // size: MAX_NUM_P
+#define  NUM_DISTRIBUTION_PARAMS  4u  // argument list for any distribution
 
-typedef std::function< CLOCK_INTERNAL_TYPE (const ParamList< const CLOCK_INTERNAL_TYPE >&) >
-		Distribution;
-std::unordered_map< std::string, Distribution > distributions_list;  // size: NUM_DISTS
+template< typename T_ > using ParamList =
+	std::array< const T_ , NUM_DISTRIBUTION_PARAMS >;
+
+typedef  float  CLOCK_INTERNAL_TYPE;
+
+typedef std::function<
+		CLOCK_INTERNAL_TYPE (const ParamList< const CLOCK_INTERNAL_TYPE >&) >
+	Distribution;
+
+/// List of distributions offered for time sampling
+extern std::unordered_map< const std::string, const Distribution& >
+	distributions_list;
 
 
 /**
@@ -64,19 +72,21 @@ public:
 	Clock(const std::string& distName,
 		  const ParamList< CLOCK_INTERNAL_TYPE >& params) :
 		dist_(distributions_list.at(distName)),  // may throw
+// dummy:		dist_([](const ParamList< const CLOCK_INTERNAL_TYPE >&) { return 0.0;}),
 		distName_(distName),
 		distParams_(params)
 		{
 			assert(!distName_.empty());
-			assert(!distParams_.empty());
 		}
 
 	/// Name of our distribution function
 	inline const std::string& distribution() const { return distName_; }
 
 	/// Sample our distribution function
-	inline const CLOCK_INTERNAL_TYPE sample() const/*RNG state?*/ { return dist_(distParams_); }
+	inline CLOCK_INTERNAL_TYPE sample() const/*RNG state?*/ { return dist_(distParams_); }
+	inline CLOCK_INTERNAL_TYPE operator()() const/*RNG state?*/ {  return dist_(distParams_); }
 };
+
 
 } // namespace fig
 
