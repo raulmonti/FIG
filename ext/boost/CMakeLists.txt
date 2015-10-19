@@ -27,10 +27,11 @@
 PROJECT (fig_ext_boost)
 SET(CWD ${CMAKE_CURRENT_LIST_DIR})
 
-# List include paths
+# List include paths  TODO make recursive http://stackoverflow.com/q/17653738
 SET(HEADERS_DIR
 	${HEADERS_DIR}
 	${CWD}/include
 	CACHE INTERNAL ""  # append persistently for parent CMakeLists
 )
 
+# When using Boost as library: http://stackoverflow.com/a/5631592

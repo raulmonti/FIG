@@ -6,14 +6,14 @@
 ##
 ##------------------------------------------------------------------------------
 ##
-##  This file is part of fig.
+##  This file is part of FIG.
 ##
-##  The Finite Improbability Generator (fig) project is free software;
+##  The Finite Improbability Generator (FIG) project is free software;
 ##  you can redistribute it and/or modify it under the terms of the GNU
 ##  General Public License as published by the Free Software Foundation;
 ##  either version 3 of the License, or (at your option) any later version.
 ##
-##  fig is distributed in the hope that it will be useful,
+##  FIG is distributed in the hope that it will be useful,
 ##	but WITHOUT ANY WARRANTY; without even the implied warranty of
 ##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ##	GNU General Public License for more details.
@@ -88,6 +88,12 @@ ENDIF()
 
 # Highly defensive compile flags
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
+
+# Turn some warnings off
+IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	# "anonymous types declared in an anonymous union"
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-nested-anon-types")
+ENDIF()
 # Avoid BGL warnings due to " = default"
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
 
@@ -96,5 +102,5 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
 ###  Build executable  ########################################################
 
 #ADD_EXECUTABLE(bgl_test ${SOURCES_DIR}/bgl_graph_structure_change.cpp)
-ADD_EXECUTABLE(bgl_test ${SOURCES_DIR}/TADs_instantiation.cpp)
+ADD_EXECUTABLE(classes ${SOURCES_DIR}/TADs_instantiation.cpp)
 
