@@ -33,8 +33,8 @@ SET(HEADERS_DIR
 	${CWD}/include
 	CACHE INTERNAL ""  # append persistently for parent CMakeLists
 )
-#SET(SOURCES_DIR
-#	${SOURCES_DIR}
-#	${CWD}/src
-#)
+
+# Register source files
+AUX_SOURCE_DIRECTORY(${CWD}/src OUR_SOURCES)
+SET(ALL_SOURCES ${ALL_SOURCES} ${OUR_SOURCES} CACHE INTERNAL "")
 

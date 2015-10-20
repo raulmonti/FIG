@@ -54,7 +54,7 @@ typedef std::function<
 	Distribution;
 
 /// List of distributions offered for time sampling
-extern std::unordered_map< const std::string, const Distribution& >
+extern std::unordered_map< std::string, const Distribution& >
 	distributions_list;
 
 

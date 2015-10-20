@@ -27,29 +27,36 @@
 //==============================================================================
 
 // C++
-#include <unordered_map>
 #include <random>
+#include <string>
+#include <unordered_map>
 // FIG
 #include <Clock.h>
 
+
 namespace
 {
-	std::default_random_engine random_gen;
-	std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uniform01(0.0 , 1.0);
-	std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal01(0.0 , 1.0);
+
+std::default_random_engine random_gen;
+std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uniform01(0.0 , 1.0);
+std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal01(0.0 , 1.0);
+
 } // namespace
+
 
 namespace fig
 {
 
-	std::unordered_map< const std::string, const Distribution& >
-	distributions_list ({
-		{"uniform01",
-		  [&random_gen] (fig::ParamList< CLOCK_INTERNAL_TYPE > params) -> CLOCK_INTERNAL_TYPE
-		  { return uniform01(random_gen); }},
-		{"uniformAB",
-		  [&random_gen] (fig::ParamList< CLOCK_INTERNAL_TYPE > params) -> CLOCK_INTERNAL_TYPE
-		  { return params[0] + (params[1] - params[0]) * uniform01(random_gen); }},
-	});
+std::unordered_map< std::string, const Distribution& >
+distributions_list = {
+	{"uniform01",
+	  [/*&random_gen*/]
+	  (const ParamList< CLOCK_INTERNAL_TYPE >& params)
+	  { return uniform01(random_gen); }},
+	{"uniformAB",
+	  [/*&random_gen*/]
+	  (const ParamList< CLOCK_INTERNAL_TYPE >& params)
+	  { return params[0] + (params[1] - params[0]) * uniform01(random_gen); }},
+};
 
 } // namespace fig

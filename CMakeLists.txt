@@ -48,13 +48,19 @@ CONFIGURE_FILE (
 	"${HEADERS_DIR}/FigConfig.h"
 )
 
-# Visit subdirectories
-# Allow subdirectories to append their own header dirs (https://goo.gl/xxIOAM)
+# Allow subdirectories to append their own files and dirs (https://goo.gl/xxIOAM)
 SET(HEADERS_DIR ${HEADERS_DIR} CACHE INTERNAL "")
+SET(ALL_SOURCES CACHE INTERNAL "")
+
+# Visit subdirectories
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/ext)
  
-# Register include paths
+# Register all include paths
 INCLUDE_DIRECTORIES(${HEADERS_DIR})
+
+# Register our own source files toghether with all others
+AUX_SOURCE_DIRECTORY(${SOURCES_DIR} OUR_SOURCES)
+SET(ALL_SOURCES ${ALL_SOURCES} ${OUR_SOURCES} CACHE INTERNAL "")
 
 ## Libraries
 #LINK_DIRECTORIES(${LIBRARIES_DIR})
@@ -102,5 +108,5 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
 ###  Build executable  ########################################################
 
 #ADD_EXECUTABLE(bgl_test ${SOURCES_DIR}/bgl_graph_structure_change.cpp)
-ADD_EXECUTABLE(classes ${SOURCES_DIR}/TADs_instantiation.cpp)
+ADD_EXECUTABLE(classes ${ALL_SOURCES})
 

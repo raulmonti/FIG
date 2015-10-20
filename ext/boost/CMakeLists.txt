@@ -34,4 +34,8 @@ SET(HEADERS_DIR
 	CACHE INTERNAL ""  # append persistently for parent CMakeLists
 )
 
+# Register source files
+AUX_SOURCE_DIRECTORY(${CWD}/src OUR_SOURCES)
+SET(ALL_SOURCES ${ALL_SOURCES} ${OUR_SOURCES} CACHE INTERNAL "")
+
 # When using Boost as library: http://stackoverflow.com/a/5631592
