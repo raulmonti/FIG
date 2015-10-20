@@ -30,6 +30,10 @@
 #ifndef CLOCK_H
 #define CLOCK_H
 
+#if __cplusplus < 201103L
+#  error "C++11 standard required, please compile with -std=c++11\n"
+#endif
+
 // C++
 #include <array>
 #include <string>
@@ -44,18 +48,16 @@ namespace fig
 
 #define  NUM_DISTRIBUTION_PARAMS  4u  // argument list for any distribution
 
-template< typename T_ > using ParamList =
-	std::array< const T_ , NUM_DISTRIBUTION_PARAMS >;
-
 typedef  float  CLOCK_INTERNAL_TYPE;
 
-typedef std::function<
-		CLOCK_INTERNAL_TYPE (const ParamList< const CLOCK_INTERNAL_TYPE >&) >
+typedef std::array< const CLOCK_INTERNAL_TYPE , NUM_DISTRIBUTION_PARAMS >
+	DistributionParameters;
+
+typedef std::function< CLOCK_INTERNAL_TYPE (const DistributionParameters&) >
 	Distribution;
 
 /// List of distributions offered for time sampling
-extern std::unordered_map< std::string, const Distribution& >
-	distributions_list;
+extern std::unordered_map< std::string, Distribution > distributions_list;
 
 
 /**
@@ -63,16 +65,15 @@ extern std::unordered_map< std::string, const Distribution& >
  */
 class Clock
 {
-	const Distribution&  dist_;  // *copy* of one from distribution_list
-	const std::string&   distName_;
-	const ParamList< CLOCK_INTERNAL_TYPE > distParams_;
+	const std::string& distName_;
+	const Distribution& dist_;  // *copy* of one from distribution_list
+	const DistributionParameters distParams_;
 
 public:
 
 	Clock(const std::string& distName,
-		  const ParamList< CLOCK_INTERNAL_TYPE >& params) :
-		dist_(distributions_list.at(distName)),  // may throw
-// dummy:		dist_([](const ParamList< const CLOCK_INTERNAL_TYPE >&) { return 0.0;}),
+		  const DistributionParameters& params) :
+		dist_(distributions_list.at(distName)),  // may throw out_of_range
 		distName_(distName),
 		distParams_(params)
 		{
@@ -82,9 +83,13 @@ public:
 	/// Name of our distribution function
 	inline const std::string& distribution() const { return distName_; }
 
+	/// Parameters characterizing our distribution function
+	inline const DistributionParameters& distribution_params() const
+	{ return distParams_; }
+
 	/// Sample our distribution function
-	inline CLOCK_INTERNAL_TYPE sample() const/*RNG state?*/ { return dist_(distParams_); }
-	inline CLOCK_INTERNAL_TYPE operator()() const/*RNG state?*/ {  return dist_(distParams_); }
+	inline CLOCK_INTERNAL_TYPE sample() const     { return dist_(distParams_); }
+	inline CLOCK_INTERNAL_TYPE operator()() const { return dist_(distParams_); }
 };
 
 

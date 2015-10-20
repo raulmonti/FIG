@@ -30,12 +30,29 @@
 #include <random>
 #include <string>
 #include <unordered_map>
+// C
+#include <cassert>
 // FIG
 #include <Clock.h>
 
 
 namespace
 {
+
+#ifdef NDEBUG
+const unsigned int rngSeed(std::random_device{}());
+#else
+const unsigned int rngSeed(1234567803u);
+#endif
+
+std::mt19937_64  MTrng(rngSeed);
+std::minstd_rand LCrng(rngSeed);
+
+#ifdef HQ_RNG
+auto rng = MTrng;  // Mersenne-Twister high quality RNG
+#else
+auto rng = LCrng;  // Linear-congruential  standard RNG
+#endif
 
 std::default_random_engine random_gen;
 std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uniform01(0.0 , 1.0);
@@ -46,17 +63,17 @@ std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal01(0.0 , 1.0);
 
 namespace fig
 {
+// We don't need to capture global variables in lambda expressions,
+// e.g. the anonymously namespaced "rng" (http://stackoverflow.com/a/20362378)
 
-std::unordered_map< std::string, const Distribution& >
+std::unordered_map< std::string, Distribution >
 distributions_list = {
 	{"uniform01",
-	  [/*&random_gen*/]
-	  (const ParamList< CLOCK_INTERNAL_TYPE >& params)
-	  { return uniform01(random_gen); }},
+	  [] (const DistributionParameters& params)
+	  { return uniform01(rng); }},
 	{"uniformAB",
-	  [/*&random_gen*/]
-	  (const ParamList< CLOCK_INTERNAL_TYPE >& params)
-	  { return params[0] + (params[1] - params[0]) * uniform01(random_gen); }},
+	  [] (const DistributionParameters& params)
+	  { return params[0] + (params[1] - params[0]) * uniform01(rng); }}
 };
 
 } // namespace fig

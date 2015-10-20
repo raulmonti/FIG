@@ -5,6 +5,7 @@
 
 // C++
 #include <iostream>
+#include <exception>
 // C
 #include <cassert>
 // FIG
@@ -13,9 +14,11 @@
 int main()
 {
 	// Clocks
-	fig::ParamList< fig::CLOCK_INTERNAL_TYPE > list = {{10.0, 5.0}};
-	std::cout << fig::distributions_list.at("uniform01")(list) << std::endl;
-	//fig::Clock c(list, fig::distributions_list["uniform"]);
-	//assert(0.0 != c.sample() || 0.0 != c());  // exercise object
+	fig::DistributionParameters params = {{2.0, 5.0}};
+	fig::Clock c("uniformAB", params);
+	assert(0.0 != c.sample() || 0.0 != c());  // exercise object
+	try { fig::Clock c("unexistent_distribution", params); }
+	catch (std::out_of_range e) { /* this was expected */ }
+
 	return 0;
 }

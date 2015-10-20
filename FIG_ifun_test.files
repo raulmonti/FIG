@@ -2541,10 +2541,14 @@ ext/muparser2.2.5/src/muParserCallback.cpp
 ext/muparser2.2.5/src/muParserError.cpp
 ext/muparser2.2.5/src/muParserInt.cpp
 ext/muparser2.2.5/src/muParserTokenReader.cpp
-include/Ifun.h
+include/Clock.h
+include/FigConfig.h
 include/State.h
 src/bgl_tests/bgl_basic_graph.cpp
 src/bgl_tests/bgl_graph_structure_change.cpp
 src/bgl_tests/bgl_weighted_graph.cpp
-src/State.cpp
-test.cpp
+src/ifun_tests/Makefile
+src/ifun_tests/State.cpp
+src/ifun_tests/test.cpp
+src/Clock.cpp
+src/TADs_instantiation.cpp
