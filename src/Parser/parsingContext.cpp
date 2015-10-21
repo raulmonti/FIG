@@ -13,6 +13,14 @@ parsingContext::parsingContext(){
 
 }
 
+
+parsingContext::parsingContext(const parsingContext & pc){
+
+    typeMap = pc.typeMap;
+    clckMap = pc.clckMap;
+
+}
+
 parsingContext::~parsingContext(){
 
 }

@@ -1,19 +1,20 @@
 #ifndef SMT_SOLVER_H
 #define SMT_SOLVER_H
 
-
 #include <z3++.h>
 #include "ast.h"
 #include "parsingContext.h"
 
 
+
 using namespace std;
 using namespace z3;
-
-
 namespace parser{
 
 
+
+///////////////////////////////////////////////////////////////////////////////
+// CLASS
 class SmtFormula{
 
     SmtFormula *f1;
@@ -38,10 +39,20 @@ public:
 
 private:
 
+    /* @brief: use this formula to build a z3 expresion representing it.
+       @c: a context to fill up while building the formula. To be used by z3
+           for sat solving.
+    */
     expr build_z3_expr(context & c, string module, parsingContext & pc);
 };
+///////////////////////////////////////////////////////////////////////////////
 
 
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// MODULE API
 
 /* @sat: check for satisfiability of @formula.
 */
@@ -51,11 +62,49 @@ bool sat (AST *formula, string module, parsingContext & pc);
 */
 bool sat (vector<AST*> list, string module, parsingContext & pc);
 
-/* @ast2expr
+
+/* @brief:   Return a z3 expression corresponding to a boolean formula
+             represented in an AST member. Correctly fill in the z3::context 
+             member, in order to be able to sat-check over the resulting
+             expression afterwards.
+   @formula: The AST member to be translated into a z3::expr.
+   @module:  The name of the module over which to interpret @formula.
+   @c:       The context member to be filled up.
+   @pc:      A parsingContext member from which to take type information for
+             each variable in @formula.
 */
 expr ast2expr( AST* formula, string module
              , context & c, parsingContext & pc);
 
+/*
+*/
+bool check_trans_compat( const AST* g2, const AST *p1, const AST *g1
+                  , const parsingContext & pc
+                  , const string & module );
+
+
+/**/
+bool 
+sat( vector< AST*> current, vector< AST*> next
+   , vector< AST*> assign, const parsingContext & pc
+   , const string & moduleName );
+
+
+/* @brief:  Change every variable <name> in an AST to <#name>, and enrich a 
+            given parsingContext with this new variables and their
+            corresponding types.
+   @ast:    The AST member to be modified.
+   @pc:     The parsingContext member to be enriched.
+   @module: The name of the module where to interpret @ast. 
+
+*/
+void
+variable_duplicate(AST* ast, parsingContext & pc, string module);
+
+///////////////////////////////////////////////////////////////////////////////
+
+
 } // Parser
+
 
 #endif // SMT_SOLVER_H

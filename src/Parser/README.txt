@@ -35,12 +35,10 @@ TODO    Idea: Build the AST in a single bunch of method like Accept or Expect,
         instead of distributing this work in between every grammar rule. A 
         stack may be needed for this.
 TODO    Idea: Exception handling using numbers and table with ...
-
 TODO    Allow expressions as range limits.
-FIXME   Presendencia entre - y > anda mal :S
-DONE    Dar rangos a las variables.
-
 TODO    Opcion para no usar sat solver.
+
+
 
 FIXME   Propiedad 4, arreglar todo , ver foto.
 TODO    Propiedad 6, construir imput enableness transitions.
@@ -50,11 +48,13 @@ FIXME   Propiedad 7, chequear sat de las guardas. Y ! sat (p1 != p2) de las pos
                     [a?] a == 9      -> t=1     ;
                     [a?] t == 1 -> a = 9;
 
-
-
+FIXME   In parser TEST and TESTB are strange, check them out and remove them
+        if they are not really needed.
 FIXME   Should not be able to ask for clock values nor do any comparison against
         them.
 
+DONE   Presendencia entre - y > anda mal :S
+DONE    Dar rangos a las variables.
 DONE    Cambiar >> por  ->, y : es parte de la seccion del reloj habilitador
 DONE    Propiedad 3, agregar unsat de las guardas.
 */

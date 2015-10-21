@@ -8,6 +8,7 @@
 
 #include <set>
 #include <assert.h>
+#include <exception>
 #include "parser.h"
 #include "iosacompliance.h"
 #include "ast.h"
@@ -309,34 +310,128 @@ Verifier::unique_outputs(AST *ast){
 
 
 
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+/* @brief: check if the transition parsed into an AST corresponds to an
+           output transition.
+*/
+bool
+is_output(AST* trans){
+
+    bool result = true;
+    string direction = trans->get_lexeme(_IO);
+    if(direction == "?"){
+        result = false;
+    }
+    return result;
+}
+
+/* @brief: check if @transition1 enabling clock is reseted by @transition2.
+
+*/
+bool
+clock_nreset(AST* trans1, AST* trans2){
+
+    string enableCName = "";
+    try{
+        enableCName = trans1->get_first(_ENABLECLOCK)->get_lexeme(_NAME);
+    }catch(std::exception & e){
+        throw string("Couldn't find clock\n") + e.what();
+    }
+
+    vector<string> resetCList = trans2->get_list_lexemes(_RESETCLOCK);
+    for(int i = 0; i < resetCList.size(); i++){
+        cout << enableCName << " " << resetCList[i] << endl;
+        if(enableCName == resetCList[i]) return true;
+    }
+
+    return false;
+}
+
+
+/* @breif: find out if both transitions have the same enabling clock, if they
+           have any.
+*/
+bool
+same_clock(AST* trans1, AST* trans2){
+
+    string enableC1Name = "";
+    string enableC2Name = "";
+
+    try{
+        enableC1Name = trans1->get_first(_ENABLECLOCK)->get_lexeme(_NAME);
+        enableC2Name = trans2->get_first(_ENABLECLOCK)->get_lexeme(_NAME);
+        if(enableC1Name == enableC2Name) return true;
+    }catch(std::exception & e){
+        return false;
+    }
+
+}
+
+
 /* @check_exhausted_clocks: check compliance to condition 4 from IOSA.
    @Note: can only partially check due to reachability issues, thus we 
           report WARNINGS but we don't ensure presence of non-determinism.
 */
 int
 Verifier::check_exhausted_clocks(AST *ast){
-    string error_list = "";
-    int result = 1;
-    vector<AST*> modules = ast->get_list(_MODULE);
-    vector<AST*> satList;
 
-    for (int i = 0 ; i < modules.size() ; i++){
-        string module = modules[i]->get_lexeme(_NAME);
-        AST* transSec = modules[i]->get_first(_TRANSEC);
-        if(transSec){
-            vector<AST*> transitions = transSec->get_list(_TRANSITION);
-            for(int j = 0; j < transitions.size(); j++){
-                AST* t1 = transitions[j];
-                string c1 = t1->get_lexeme(_ENABLECLOCK);
-                if (c1 != ""){ // only outputs for t1.
-                    if (trans_has_exhausted_clock(t1,transitions,module)){
-                        string t1name = t1->get_lexeme(_ACTION);
-                        AST *t1ast = t1->get_first(_SEPARATOR);
-                        error_list.append("[WARNING] Non "
-                        "determinism may be present in the "
-                        "model due to exhausted clock from "
-                        "transition " + t1name + ", at " +
-                        t1ast->p_pos() + "\n" );
+    string          error_list  = "";
+    int             result      = 1;
+    parsingContext  pc(*mPc);                        // a copy of mPc
+    z3::context     c;
+    z3::solver      s(c);
+    z3::expr        ex          = c.bool_val(true);
+
+    vector<AST*> mods = ast->get_list(_MODULE);
+    for (int i = 0 ; i < mods.size() ; i++){
+        string mname = mods[i]->get_lexeme(_NAME);
+        vector<AST*> transs = mods[i]->get_all_ast(_TRANSITION);
+        for(int i = 0; i < transs.size(); i++){
+            if(is_output(transs[i])){
+                for(int j = 0; j < transs.size(); ++j){
+                    // check that i and j are different transitions and that 
+                    // j does not reset the enabling clock from i.
+                    if(i != j && clock_nreset(transs[i],transs[j])){
+                        AST *g1 = transs[i]->get_first(_PRECONDITION);
+                        if(g1){
+                            ex = ast2expr(g1, mname, c, pc);
+                        }
+                        AST *p2 = transs[j]->get_first(_POSTCONDITION);
+                        if(p2){
+                            vector<AST*> assigns = p2->get_list(_ASSIG);
+                            for(int k = 0; k < assigns.size(); ++k){
+                                AST* var(assigns[k]->branches[0]);
+                                variable_duplicate(var,pc,mname);
+                                AST* val = assigns[k]->branches[2];
+                                z3::expr e1 = ast2expr(var,mname,c,pc);
+                                z3::expr e2 = ast2expr(val,mname,c,pc);
+                                ex = ex && ( e1 == e2 );
+                            }
+                        }
+                        AST *g2(transs[j]->get_first(_PRECONDITION));
+                        if(g2){
+                            variable_duplicate(g2, pc, mname);
+                            ex = ex && ast2expr(g2,mname,c,pc);
+                        }
+                        for(int k = 0; k < transs.size(); ++k){
+                            if(j != k && same_clock(transs[i], transs[k])){
+                                AST *g = transs[k]->get_first(_PRECONDITION);
+                                if(g){
+                                    ex = ex && (! ast2expr(g,mname,c,pc));
+                                }
+                            }
+                        }
+                        s.add(ex);
+                        if(s.check()){
+                            cout << "COMPATIBLE!! " 
+                                 << transs[i]->get_lexeme(_ACTION)
+                                 << " - "
+                                 << transs[j]->get_lexeme(_ACTION)
+                                 << endl;
+                        }
                     }
                 }
             }
@@ -348,6 +443,9 @@ Verifier::check_exhausted_clocks(AST *ast){
     return 1;
 }
 
+
+
+////////////////////////////////////////////////////////////////////////////////
 
 
 

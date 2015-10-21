@@ -29,6 +29,9 @@ class parsingContext{
 public:
 
     parsingContext(void);
+
+    parsingContext(const parsingContext & pc);
+
     virtual ~parsingContext(void);
 
     /*

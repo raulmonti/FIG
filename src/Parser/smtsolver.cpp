@@ -11,6 +11,10 @@ namespace parser{
 
 
 
+////////////////////////////////////////////////////////////////////////////////
+// SmtFormula CLASS IMPLEMENTATION
+////////////////////////////////////////////////////////////////////////////////
+
 SmtFormula::SmtFormula(SmtFormula *form1, SmtFormula *form2, string optr):
 f1(form1),
 f2(form2),
@@ -46,6 +50,7 @@ SmtFormula::sat(parsingContext & pc, string module){
 }
 
 
+
 expr
 SmtFormula::build_z3_expr(context & c, string module, parsingContext & pc){
 
@@ -75,7 +80,8 @@ SmtFormula::build_z3_expr(context & c, string module, parsingContext & pc){
         else if (op == ">=") result = e0 >= e2;
         else if (op == "<=") result = e0 <= e2;
         else if (op == "==") result = e0 == e2;
-        else if (op == "=") result = e0 == e2; // FIXME in postconditions we have = instead of == ...
+        // FIXME in postconditions we have = instead of == ...
+        else if (op == "=") result = e0 == e2; 
         else if (op == "!=") result = e0 != e2;
         else {
             pout << op << endl;
@@ -86,14 +92,31 @@ SmtFormula::build_z3_expr(context & c, string module, parsingContext & pc){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 
-/* @ast2expr: return a z3 expression representing the boolean @formula. 
-              Correctly fill in the context @c, in order to be able to check
-              the result using a solver afterwards.
+
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MODULE API IMPLEMENTATION
+////////////////////////////////////////////////////////////////////////////////
+
+/* @brief:   Return a z3 expression corresponding to a boolean formula
+             represented in an AST member. Correctly fill in the z3::context 
+             member, in order to be able to sat-check over the resulting
+             expression afterwards.
+   @formula: The AST member to be translated into a z3::expr.
+   @module:  The name of the module over which to interpret @formula.
+   @c:       The context member to be filled up.
+   @pc:      A parsingContext member from which to take type information for
+             each variable in @formula.
 */
 expr
 ast2expr( AST* formula, string module
-                   , context & c, parsingContext & pc){
+        , context & c, parsingContext & pc){
 
     //TODO: assert("check that formula is boolean.");
     expr result = c.bool_val(true);
@@ -121,7 +144,9 @@ ast2expr( AST* formula, string module
             else if (b1->lxm == ">=") result = e0 >= e2;
             else if (b1->lxm == "<=") result = e0 <= e2;
             else if (b1->lxm == "==") result = e0 == e2;
-            else if (b1->lxm == "=") result = e0 == e2; // FIXME in postconditions we have = instead of == ...
+            // FIXME Assignments do not correspond to boolean formulas
+            // but this next line helps a lot anyway.
+            else if (b1->lxm == "=") result = e0 == e2;
             else if (b1->lxm == "!=") result = e0 != e2;
             else {
                 cout << b1->lxm << endl;
@@ -257,6 +282,134 @@ sat (vector<AST*> list, string module, parsingContext & pc){
     return bool(result);
 }
 
+
+
+bool 
+check_trans_compat( const AST* g2, const AST *p1, const AST *g1
+                  , const parsingContext & pc
+                  , const string & module ){
+
+    context c;
+    solver s(c);
+    expr p1expr = c.bool_val(true);
+    expr g1expr = c.bool_val(true);
+    expr g2expr = c.bool_val(true);
+    AST *mg2 = NULL;
+    AST *mg1 = NULL;
+    AST *mp1 = NULL;
+    parsingContext mpc(pc);
+
+
+    if(g2){
+        mg2 = new AST(g2);
+        g2expr = ast2expr(mg2, module, c, mpc);
+    }
+    if(p1){
+        mp1 = new AST(p1);
+        vector<AST*> assignList = mp1->get_all_ast(_ASSIG);
+        for(int i = 0; i < assignList.size(); ++i){
+            assert(assignList[i]->branches.size() == 3);
+            variable_duplicate(assignList[i]->branches[0], mpc, module);
+            expr assignExpr = 
+                ast2expr(assignList[i]->branches[0], module, c, mpc);
+            assignExpr = assignExpr == ast2expr( assignList[i]->branches[2]
+                                               , module, c, mpc);
+            p1expr = p1expr && assignExpr;
+        }
+    }
+    if(g1){
+        mg1 = new AST(g1);
+        variable_duplicate( mg1, mpc, module);
+        g1expr = ast2expr(mg1, module, c, mpc);
+    }
+
+    s.add(g2expr && p1expr && g1expr);
+
+    cout << s << endl;
+
+    delete mg1;
+    delete mg2; 
+    delete mp1;
+
+    return s.check();
+}
+
+/**
+bool 
+sat( vector< AST*> current, vector< AST*> next
+   , vector< AST*> assign, const parsingContext & pc
+   , const string & moduleName ){
+
+    context c;
+    solver s(c);
+    expr currentExpr = c.bool_val(true);
+    expr assignExpr = c.bool_val(true);
+    expr nextExpr = c.bool_val(true);
+
+    parsingContext mpc(pc);
+
+
+    for(int i = 0; i < current.size(); ++i){
+        currentExpr = currentExpr & ast2expr(current[i], moduleName, c, mpc);
+    }
+    for(int i = 0; i < assign.size(); ++i){
+        vector<AST*> assignList = assign[i]->get_all_ast(_ASSIG);
+        for(int j = 0; j < assignList.size(); ++j){
+            assert(assignList[j]->branches.size() == 3);
+            AST *assj = new AST(assignList[j]->branches[0]);
+            variable_duplicate( assj, mpc, moduleName);
+            expr assjExpr = ast2expr(assj, moduleName, c, mpc);
+            assjExpr = assjExpr == ast2expr( assignList[i]->branches[2]
+                                               , moduleName, c, mpc);
+            assignExpr = assignExpr && assjExpr;
+            delete assj;
+        }
+    }
+    
+    if(!2next.empty()){
+
+    for(int i = 1; i < next.size(); ++i){
+        AST* nexti = new AST(next[i]);
+        variable_duplicate( nexti, mpc, moduleName);
+        nextExpr = nextExpr && ! ast2expr(nexti, moduleName, c, mpc);
+        delete nexti;
+    }
+
+    s.add(currentExpr && assignExpr && nextExpr);
+
+    cout << s << endl;
+
+
+    return s.check();
+}
+**/
+
+
+/* @brief:  Change every variable <name> in an AST to <#name>, and enrich a 
+            given parsingContext with this new variables and their
+            corresponding types.
+   @ast:    The AST member to be modified.
+   @pc:     The parsingContext member to be enriched.
+   @module: The name of the module where to interpret @ast. 
+
+*/
+void
+variable_duplicate(AST* ast, parsingContext & pc, string module){
+
+    if(ast->tkn == _NAME){
+        // update pc
+        pc.add_var( module, "#"+ast->lxm, pc.get_var_type( module, ast->lxm));
+        // change ast
+        ast->lxm = "#"+ast->lxm;
+    }else{
+        for(int i = 0; i < ast->branches.size(); ++i){
+            variable_duplicate( ast->branches[i], pc, module);
+        }
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 
 } //namespace parser
 

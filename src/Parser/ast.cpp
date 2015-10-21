@@ -9,6 +9,7 @@
 #include "ast.h"
 #include <vector>
 #include <string>
+#include <assert.h>
 
 /** Abstract syntax tree class implementation. **/
 
@@ -20,6 +21,19 @@ AST::AST(int token, string lexeme, int line, int col):
     l(line),
     c(col)
 {};
+
+AST::AST(const AST *copy){
+
+    assert(copy != NULL && "NULL PROBLEM");
+
+    lxm = copy->lxm;
+    tkn = copy->tkn;
+    l   = copy->l;
+    c   = copy->c;
+    for(int i = 0; i < copy->branches.size(); ++i){
+        branches.push_back(new AST(copy->branches[i]));
+    }
+}
 
 
 AST::~AST(){

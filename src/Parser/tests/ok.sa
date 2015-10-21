@@ -24,9 +24,9 @@ VARS
 TRANS
 
     /* Some transition that * represents / something. */
-    [b!] -3 > 4 && t==1 : cc ->     : cc;
-    [a?] a == 9      -> t=1     ;
-    [a?] a == 1 -> a = 9;
+    [b!] -3 > 4 && t==1 : cc ->  t = t+1   : cc;
+    [a?] a == - 9 -> t = 1;
+    [a?] a == 9 -> a = 9;
 
 
 
@@ -41,7 +41,7 @@ VARS
 
 TRANS
 
-    [] : clockthree -> ;
+    [c] : clockthree -> ;
     [b] : clockfour -> : clockfour;
 
 

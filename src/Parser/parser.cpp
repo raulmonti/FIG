@@ -701,7 +701,7 @@ Parser::rValue(){
         }
     }else if(accept(MINUS)){
         saveNode(_MINUS);
-        if(!rExpression()){
+        if(!rValue()){
             string msg("Unexpected word '"+lexemes[pos]+"'.\n");
             throw new SyntaxError( msg,lines[pos]
                                  , columns[pos]);            

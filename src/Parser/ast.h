@@ -37,6 +37,7 @@ public:
     // @Constructor.
     AST(void);
     AST(int token = 0, string lexeme = "", int line = 0, int col = 0);
+    AST(const AST* copy);
 
     // @Destructor.
     virtual ~AST();
