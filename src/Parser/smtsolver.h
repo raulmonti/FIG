@@ -14,7 +14,9 @@ namespace parser{
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// CLASS
+// CLASS SmtFormula
+///////////////////////////////////////////////////////////////////////////////
+
 class SmtFormula{
 
     SmtFormula *f1;
@@ -53,10 +55,7 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////
 // MODULE API
-
-/* @sat: check for satisfiability of @formula.
-*/
-bool sat (AST *formula, string module, parsingContext & pc);
+///////////////////////////////////////////////////////////////////////////////
 
 /* @sat: check for satisfiability of the conjunction of formulas in @list.
 */
@@ -76,18 +75,6 @@ bool sat (vector<AST*> list, string module, parsingContext & pc);
 expr ast2expr( AST* formula, string module
              , context & c, parsingContext & pc);
 
-/*
-*/
-bool check_trans_compat( const AST* g2, const AST *p1, const AST *g1
-                  , const parsingContext & pc
-                  , const string & module );
-
-
-/**/
-bool 
-sat( vector< AST*> current, vector< AST*> next
-   , vector< AST*> assign, const parsingContext & pc
-   , const string & moduleName );
 
 
 /* @brief:  Change every variable <name> in an AST to <#name>, and enrich a 

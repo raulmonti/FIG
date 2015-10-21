@@ -277,8 +277,10 @@ Verifier::unique_outputs(AST *ast){
                             if( name1 == name2 ){
                                 vector<AST*> pre;
                                 AST* pre2 = transitions[j]->
-                                    get_first(_PRECONDITION)->
-                                        get_first(_EXPRESSION);
+                                    get_first(_PRECONDITION);
+                                if(pre2){
+                                    pre2 = pre2->get_first(_EXPRESSION);
+                                }
                                 if(pre1){
                                     pre.push_back(pre1->get_first(_EXPRESSION));
                                 }                                
@@ -328,7 +330,7 @@ is_output(AST* trans){
     return result;
 }
 
-/* @brief: check if @transition1 enabling clock is reseted by @transition2.
+/* @brief: check if @transition1 enabling clock is not reseted by @transition2.
 
 */
 bool
@@ -344,10 +346,10 @@ clock_nreset(AST* trans1, AST* trans2){
     vector<string> resetCList = trans2->get_list_lexemes(_RESETCLOCK);
     for(int i = 0; i < resetCList.size(); i++){
         cout << enableCName << " " << resetCList[i] << endl;
-        if(enableCName == resetCList[i]) return true;
+        if(enableCName == resetCList[i]) return false;
     }
 
-    return false;
+    return true;
 }
 
 
@@ -360,11 +362,17 @@ same_clock(AST* trans1, AST* trans2){
     string enableC1Name = "";
     string enableC2Name = "";
 
-    try{
-        enableC1Name = trans1->get_first(_ENABLECLOCK)->get_lexeme(_NAME);
-        enableC2Name = trans2->get_first(_ENABLECLOCK)->get_lexeme(_NAME);
-        if(enableC1Name == enableC2Name) return true;
-    }catch(std::exception & e){
+    AST* enableC1 = trans1->get_first(_ENABLECLOCK);
+    if(enableC1){
+        enableC1Name = enableC1->get_lexeme(_NAME);
+    }
+    AST* enableC2 = trans2->get_first(_ENABLECLOCK);
+    if(enableC2){
+        enableC2Name = enableC2->get_lexeme(_NAME);
+    }
+    if(enableC1Name != "" && enableC1Name == enableC2Name){
+        return true;
+    }else{
         return false;
     }
 
@@ -401,9 +409,10 @@ Verifier::check_exhausted_clocks(AST *ast){
                         }
                         AST *p2 = transs[j]->get_first(_POSTCONDITION);
                         if(p2){
+
                             vector<AST*> assigns = p2->get_list(_ASSIG);
                             for(int k = 0; k < assigns.size(); ++k){
-                                AST* var(assigns[k]->branches[0]);
+                                AST* var = new AST(assigns[k]->branches[0]);
                                 variable_duplicate(var,pc,mname);
                                 AST* val = assigns[k]->branches[2];
                                 z3::expr e1 = ast2expr(var,mname,c,pc);
@@ -411,12 +420,15 @@ Verifier::check_exhausted_clocks(AST *ast){
                                 ex = ex && ( e1 == e2 );
                             }
                         }
-                        AST *g2(transs[j]->get_first(_PRECONDITION));
-                        if(g2){
+
+                        AST * pre = transs[j]->get_first(_PRECONDITION);
+                        if(pre){
+                            AST *g2 = new AST(pre);
                             variable_duplicate(g2, pc, mname);
                             ex = ex && ast2expr(g2,mname,c,pc);
                         }
                         for(int k = 0; k < transs.size(); ++k){
+
                             if(j != k && same_clock(transs[i], transs[k])){
                                 AST *g = transs[k]->get_first(_PRECONDITION);
                                 if(g){
@@ -426,7 +438,7 @@ Verifier::check_exhausted_clocks(AST *ast){
                         }
                         s.add(ex);
                         if(s.check()){
-                            cout << "COMPATIBLE!! " 
+                            cout << "WARNING!!" 
                                  << transs[i]->get_lexeme(_ACTION)
                                  << " - "
                                  << transs[j]->get_lexeme(_ACTION)

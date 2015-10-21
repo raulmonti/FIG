@@ -91,7 +91,6 @@ SmtFormula::build_z3_expr(context & c, string module, parsingContext & pc){
     return result;
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -218,7 +217,7 @@ ast2expr( AST* formula, string module
              given rules from the @parser module.
    @return: true if satisfiable, false otherwise.
 */
-
+/**
 bool
 sat(AST *formula, string module, parsingContext & pc){
 
@@ -247,10 +246,11 @@ sat(AST *formula, string module, parsingContext & pc){
 
     return bool(result);
 }
-
-
+**/
 /* @sat: check for satisfiability of the conjunction of formulas in @list.
 */
+
+
 bool 
 sat (vector<AST*> list, string module, parsingContext & pc){
 
@@ -283,7 +283,7 @@ sat (vector<AST*> list, string module, parsingContext & pc){
 }
 
 
-
+/**
 bool 
 check_trans_compat( const AST* g2, const AST *p1, const AST *g1
                   , const parsingContext & pc
@@ -333,7 +333,7 @@ check_trans_compat( const AST* g2, const AST *p1, const AST *g1
 
     return s.check();
 }
-
+**/
 /**
 bool 
 sat( vector< AST*> current, vector< AST*> next
