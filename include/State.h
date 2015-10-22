@@ -47,120 +47,145 @@
 namespace fig
 {
 
-//template<typename T> class Variable;
-//
-// // This global-RO-vector should be the unique instance in the whole program
-//std::vector< Variable< int > > variables_g;
-
 // States internal storage type must match that of MuParser library
 typedef  MUP_BASETYPE  STATE_INTERNAL_TYPE;
 
-static_assert(std::is_same<float, MUP_BASETYPE>::value,
-			  "Error: for now we restrict State internal storage to float");
+static_assert(std::is_same<short, MUP_BASETYPE>::value,
+			  "Error: for now we restrict State internal storage to shorts");
 
 /**
- * @brief State (symbolic): a vector of Variable values.
+ * @brief State (instance): an array of Variable values.
  *        Each State is an instantiation of values, which follows the ordering
- *        given in the (unique) global vector of Variables in the system.
- *        A State can be compared to this global vector for consistency checks.
+ *        given in the (unique) GlobalState vector of the system.
+ *        A State can be compared to the GlobalState for consistency checks.
  *        There is a one-to-one correspondence between States and Traials.
  */
 typedef std::vector< STATE_INTERNAL_TYPE > State;
 
 
+
+
 /**
- * @brief Most abstract Variable concept, the one to populate the (unique)
- *        global vector of Variables in the system.
- * @note  This class exists only for value validation of State instances.
+ * @brief Unique vector of Variables in the system (singleton)
+ *        It is used for consitency check of State instances (see above)
+ *        and for conversions between the concrete and symbolic representations
+ *        of a system state.
  */
 template< typename T_ >
-class Variable
+class GlobalState
 {
+	// TODO: review whole, and build as singleton
+
 	static_assert(std::is_integral<T_>::value,
-				  "ERROR: class Variable<T> can only be instantiated "
+				  "ERROR: class GlobalState<T> can only be instantiated "
 				  "with integral types, e.g. int, short, unsigned.");
-
-	Variable(const std::string& thename) : name(thename)
-		{ assert(!name.empty()); }
-
-	Variable(std::string&& thename) : name(std::move(thename))
-		{ assert(!name.empty()); }
-
-	/// @brief Get range, viz. number of distinct values this Variable can take
-	inline const T_& range() const noexcept { return range_; }
-
-	/// @brief Tell whether 'val' is a valid value for this Variable
-	virtual bool is_valid_value(const T_& val) const = 0;
-
-public:
-	const std::string& name;
 protected:
-	/// Number of distinct values this variable can take
-	T_ range_;
-	/// Position in [0, 1, ..., range) for the "current" value of the Variable
-	unsigned offset_;
-};
 
+	size_t maxConcreteState_;
+	shared_ptr< vector< Variable< T_ > > > vars_p;
 
+protected:
+	void build_concrete_bound();  // compute&store value of maxConcreteState_
 
-/*
+public:  // Constructors XXX
 
-  TODO
+	// Void ctor
+	State();
+	// Data ctor
+	State(const vector< VarDec< T_ > >& vars);
+	State(const vector< VarDef< T_ > >& vars);
+	// Copy ctor
+	State(const State< T_ >& that) noexcept;
+	// Move ctor
+	State(State< T_ >&& that) noexcept = default;
+	// Copy assignment with copy&swap (no need for move assignment)
+	State< T_ >& operator=(State< T_ > that) noexcept;
+	// Dtor
+	virtual ~State() {}
 
-  Make a "SymbolicState" class, equal to "State" from the "ifun_tests" branch.
+public:  // Accessors XXX
 
-  Its unique instance will be the system global vector of Variables,
-  which will offer the encode/decode methods used to inspect the Traial states.
+	// @brief Symbolic size, i.e. number of variables
+	inline size_t size() const
+		{ return nullptr == vars_p ? 0 : vars_p->size(); }
 
-  Notice this requires turning a State into a SymbolicState (float <---> int
-  conversion of numVar values). Can we avoid this?
+	// @brief Concrete size, i.e. cross product of all variables ranges
+	inline size_t concrete_size() const
+		{ return maxConcreteState_; }
 
-*/
-
-
-
-
-
-
-
-/**
- * @brief Variable defined by the closed interval [ min_value , max_value ]
- */
-template< typename T_ >
-class VariableInterval : Variable<T_>
-{
-	T_ min_;
-	T_ max_;
-
-public:
-
-	VariableInterval(const std::string& thename, const T_& min, const T_& max) :
-		Variable(thename),
-		min_(min),
-		max_(max)
-	{
-		assert(min_ < max_);
-		range_ = max_ - min_;
-	}
-
-	inline virtual bool is_valid_value(const T_& val) const
-		{ return min_ <= val && val <= max_; }
-};
-
-/// Variable defined by a set of possible values: { val1, val2, ..., valN }
-template< typename T_ >
-class VariableSet : Variable<T_>
-{
-	std::unique_ptr< const std::unordered_set< T_ > > values;
-
-public:
-
-	inline virtual bool valid_value(const T_& val) const
+	// @brief Retrieve i-th variable as const reference
+	// @compl Constant
+	inline const Variable< T_ >& operator[](size_t i) const
 		{
-			for (const auto& e: *values)
-				if (val==e) return true;
-			return false;
+			assert(nullptr != vars_p);
+#		ifndef NDEBUG
+			return const_cast<const Variable< T_ >& >(vars_p->at(i));
+#		else
+			return (*vars_p)[i];
+#		endif
 		}
+
+	// @brief Retrieve i-th variable
+	// @compl Constant
+	inline Variable< T_ >& operator[](size_t i)
+		{
+			assert(nullptr != vars_p);
+#		ifndef NDEBUG
+			return vars_p->at(i);
+#		else
+			return (*vars_p)[i];
+#		endif
+		}
+
+	// @brief Retrieve variable named "varname" if existent
+	// @compl Linear on the size of State
+	inline shared_ptr< Variable< T_ > > operator[](const string& varname)
+		{
+			for (auto& e: *vars_p)
+				if (varname == e.name())
+					return std::make_shared< Variable< T_ >>(e);
+			return nullptr;
+		}
+
+	// @brief Print formatted vector of variables into 'out'
+	inline void print_out(std::ostream& out) const
+		{
+			for (size_t i=0 ; i < size() ; i++)
+				out << (*vars_p)[i].name() << "=" << (*vars_p)[i].val() << ", ";
+			out << "\b\b  \b\b";
+		}
+
+	// @brief Encode current state (viz. vector of Variables values) as a number,
+	//        i.e. the "concrete" representation of the current state.
+	// @compl Quadratic on the size of State
+	size_t encode_state() const;
+
+	// @brief Decode number as vector of Variables values and apply to State,
+	//        i.e. store "symbolically" the "concrete state" n.
+	// @param n  Concrete state to interpret and apply to our symbolic existence
+	// @compl Quadratic on the size of State
+	void decode_state(const size_t& n);
+
+	// @brief Decode number into corresponding Variable value
+	// @param n  Concrete state to interpret
+	// @param i  Variable index whose value (decoded from n) is requested
+	// @compl Linear on the size of State
+	T_ decode_state(const size_t& n, const size_t& i) const;
+
+	// @brief Decode number into corresponding Variable value
+	// @param n  Concrete state to interpret
+	// @param i  Variable name whose value (decoded from n) is requested
+	// @compl Linear on the size of State
+	T_ decode_state(const size_t& n, const std::string& varname) const;
+
+public:  // Relational operators XXX
+
+	// @brief Tell whether 'this' and 'that' hold compatible/same variables
+	// @compl Linear on the size of State
+	bool compatible(const State< T_ >& that) const;
+	bool operator==(const State< T_ >& that) const;
+	inline bool operator!=(const State< T_ >& that) const
+		{ return ( ! (that == *this) ); }
 };
 
 } // namespace fig
