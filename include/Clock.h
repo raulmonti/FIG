@@ -30,10 +30,6 @@
 #ifndef CLOCK_H
 #define CLOCK_H
 
-#if __cplusplus < 201103L
-#  error "C++11 standard required, please compile with -std=c++11\n"
-#endif
-
 // C++
 #include <array>
 #include <string>
@@ -41,6 +37,10 @@
 #include <functional>
 // C
 #include <cassert>
+
+#if __cplusplus < 201103L
+#  error "C++11 standard required, please compile with -std=c++11\n"
+#endif
 
 
 namespace fig

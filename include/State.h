@@ -30,37 +30,49 @@
 #ifndef STATE_H
 #define STATE_H
 
+// C++
+#include <type_traits>  // std::is_same<>
+#include <string>
+#include <vector>
+// C
+#include <cassert>
+// External code
+#include <muParserDef.h>  // MUP_BASETYPE
+
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
 #endif
-
-// C++
-#include <string>
-// C
-#include <cassert>
 
 
 namespace fig
 {
 
-/// State
-template< typename T_ > using State = std::vector< T_ >;
-// State is an instantiation of values for each Variable in 'variables_g'
-// Each Traial will have its unique State, which can be compared to
-// the global vector 'variables_g' for consistency check.
+//template<typename T> class Variable;
+//
+// // This global-RO-vector should be the unique instance in the whole program
+//std::vector< Variable< int > > variables_g;
 
-template<typename T> class Variable;
+// States internal storage type must match that of MuParser library
+typedef  MUP_BASETYPE  STATE_INTERNAL_TYPE;
 
-///////////////////////////////////////////////////////////////////////////////
-// This global-RO-vector should be the unique instance in the whole program
-//////////////////////////////             ////////////////////////////////////
-std::vector< Variable< int > > variables_g;
-//////////////////////////////             ////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
+static_assert(std::is_same<float, MUP_BASETYPE>::value,
+			  "Error: for now we restrict State internal storage to float");
+
+/**
+ * @brief State (symbolic): a vector of Variable values.
+ *        Each State is an instantiation of values, which follows the ordering
+ *        given in the (unique) global vector of Variables in the system.
+ *        A State can be compared to this global vector for consistency checks.
+ *        There is a one-to-one correspondence between States and Traials.
+ */
+typedef std::vector< STATE_INTERNAL_TYPE > State;
 
 
-/// General Variable concept, the one to manipulate in higher abstraction levels
-/// Variable exists only for value validation of State instances
+/**
+ * @brief Most abstract Variable concept, the one to populate the (unique)
+ *        global vector of Variables in the system.
+ * @note  This class exists only for value validation of State instances.
+ */
 template< typename T_ >
 class Variable
 {
@@ -74,19 +86,46 @@ class Variable
 	Variable(std::string&& thename) : name(std::move(thename))
 		{ assert(!name.empty()); }
 
-	/// @brief Get range, viz number of distinct values this Variable can take
+	/// @brief Get range, viz. number of distinct values this Variable can take
 	inline const T_& range() const noexcept { return range_; }
 
 	/// @brief Tell whether 'val' is a valid value for this Variable
-	virtual bool valid_value(const T_& val) const = 0;
+	virtual bool is_valid_value(const T_& val) const = 0;
 
 public:
 	const std::string& name;
 protected:
+	/// Number of distinct values this variable can take
 	T_ range_;
+	/// Position in [0, 1, ..., range) for the "current" value of the Variable
+	unsigned offset_;
 };
 
-/// Variable defined by an interval: [ min_value , max_value ]
+
+
+/*
+
+  TODO
+
+  Make a "SymbolicState" class, equal to "State" from the "ifun_tests" branch.
+
+  Its unique instance will be the system global vector of Variables,
+  which will offer the encode/decode methods used to inspect the Traial states.
+
+  Notice this requires turning a State into a SymbolicState (float <---> int
+  conversion of numVar values). Can we avoid this?
+
+*/
+
+
+
+
+
+
+
+/**
+ * @brief Variable defined by the closed interval [ min_value , max_value ]
+ */
 template< typename T_ >
 class VariableInterval : Variable<T_>
 {
@@ -104,8 +143,8 @@ public:
 		range_ = max_ - min_;
 	}
 
-	inline virtual bool valid_value(const T_& val) const
-		{ return min <= val && val <= max; }
+	inline virtual bool is_valid_value(const T_& val) const
+		{ return min_ <= val && val <= max_; }
 };
 
 /// Variable defined by a set of possible values: { val1, val2, ..., valN }
