@@ -80,14 +80,14 @@ public:
 			assert(!distName_.empty());
 		}
 
-	/// Name of our distribution function
+	/// @brief Name of our distribution function
 	inline const std::string& distribution() const { return distName_; }
 
-	/// Parameters characterizing our distribution function
+	/// @brief Parameters characterizing our distribution function
 	inline const DistributionParameters& distribution_params() const
 	{ return distParams_; }
 
-	/// Sample our distribution function
+	/// @brief Sample our distribution function
 	inline CLOCK_INTERNAL_TYPE sample() const     { return dist_(distParams_); }
 	inline CLOCK_INTERNAL_TYPE operator()() const { return dist_(distParams_); }
 };

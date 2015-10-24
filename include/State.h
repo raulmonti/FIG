@@ -32,6 +32,8 @@
 
 // C++
 #include <type_traits>  // std::is_same<>
+#include <ostream>
+#include <memory>
 #include <string>
 #include <vector>
 // C
@@ -67,27 +69,27 @@ typedef std::vector< STATE_INTERNAL_TYPE > State;
 
 /**
  * @brief Unique vector of Variables in the system (singleton)
- *        It is used for consitency check of State instances (see above)
+ *        It is used for consitency check of State instances (see ::State)
  *        and for conversions between the concrete and symbolic representations
  *        of a system state.
  */
 template< typename T_ >
 class GlobalState
 {
-	// TODO: review whole, and build as singleton
-
 	static_assert(std::is_integral<T_>::value,
 				  "ERROR: class GlobalState<T> can only be instantiated "
 				  "with integral types, e.g. int, short, unsigned.");
-protected:
 
+	/// Variables vector
+	std::vector< Variable< T_ > > vars_;
+
+	/// Concrete size, i.e. cross product of all variables ranges
 	size_t maxConcreteState_;
-	shared_ptr< vector< Variable< T_ > > > vars_p;
 
-protected:
-	void build_concrete_bound();  // compute&store value of maxConcreteState_
+	/// @brief Compute and store value of maxConcreteState_
+	void build_concrete_bound();
 
-public:  // Constructors XXX
+public:  // Constructors
 
 	// Void ctor
 	State();
@@ -101,23 +103,24 @@ public:  // Constructors XXX
 	// Copy assignment with copy&swap (no need for move assignment)
 	State< T_ >& operator=(State< T_ > that) noexcept;
 	// Dtor
-	virtual ~State() {}
+	virtual ~State() { vars_.clear(); }
 
-public:  // Accessors XXX
+public:  // Accessors
 
-	// @brief Symbolic size, i.e. number of variables
+	/// @brief Symbolic size, i.e. number of variables
 	inline size_t size() const
 		{ return nullptr == vars_p ? 0 : vars_p->size(); }
 
-	// @brief Concrete size, i.e. cross product of all variables ranges
-	inline size_t concrete_size() const
-		{ return maxConcreteState_; }
+	/// @brief Concrete size, i.e. cross product of all variables ranges
+	inline size_t concrete_size() const { return maxConcreteState_; }
 
-	// @brief Retrieve i-th variable as const reference
-	// @compl Constant
+	/**
+	 * @brief Retrieve const reference to i-th variable
+	 * @note <b>Complexity:</b> <i>O(1)</i>
+	 */
 	inline const Variable< T_ >& operator[](size_t i) const
 		{
-			assert(nullptr != vars_p);
+			assert (!vars_.empty());
 #		ifndef NDEBUG
 			return const_cast<const Variable< T_ >& >(vars_p->at(i));
 #		else
@@ -125,11 +128,13 @@ public:  // Accessors XXX
 #		endif
 		}
 
-	// @brief Retrieve i-th variable
-	// @compl Constant
+	/** 
+	 * @brief Retrieve reference to i-th variable
+	 * @note <b>Complexity:</b> <i>O(1)</i>
+	 */
 	inline Variable< T_ >& operator[](size_t i)
 		{
-			assert(nullptr != vars_p);
+			assert (!vars_.empty());
 #		ifndef NDEBUG
 			return vars_p->at(i);
 #		else
@@ -137,27 +142,32 @@ public:  // Accessors XXX
 #		endif
 		}
 
-	// @brief Retrieve variable named "varname" if existent
-	// @compl Linear on the size of State
-	inline shared_ptr< Variable< T_ > > operator[](const string& varname)
-		{
-			for (auto& e: *vars_p)
-				if (varname == e.name())
-					return std::make_shared< Variable< T_ >>(e);
-			return nullptr;
-		}
+	/** 
+	 * @brief Retrieve variable named "varname" if existent
+	 * @note <b>Complexity:</b> <i>O(GlobalState.size())</i>
+	 */
+	std::shared_ptr< Variable< T_ > > operator[](const string& varname);
 
-	// @brief Print formatted vector of variables into 'out'
-	inline void print_out(std::ostream& out) const
-		{
-			for (size_t i=0 ; i < size() ; i++)
-				out << (*vars_p)[i].name() << "=" << (*vars_p)[i].val() << ", ";
-			out << "\b\b  \b\b";
-		}
+	/// @brief Print formatted vector of variables into 'out'
+	void print_out(std::ostream& out, bool withNewline = false) const;
 
-	// @brief Encode current state (viz. vector of Variables values) as a number,
-	//        i.e. the "concrete" representation of the current state.
-	// @compl Quadratic on the size of State
+public:  // Relational operators
+
+	/**
+	 * @brief Whether 'this' and 'that' hold same variables with same values
+	 * @note <b>Complexity:</b> <i>O(GlobalState.size()</i>
+	 */
+	bool operator==(const State< T_ >& that) const;
+	inline bool operator!=(const State< T_ >& that) const
+		{ return ( ! (that == *this) ); }
+
+public:  // Encode/Decode facilities between symbolic and concrete representations
+
+	/**
+	 * @brief Encode current state (viz. vector of Variables) as a number,
+	 *        i.e. the "concrete" representation of the current state.
+	 * @note <b>Complexity:</b> <i>O(GlobalState.size()<sup>2</sup></i>
+	 */
 	size_t encode_state() const;
 
 	// @brief Decode number as vector of Variables values and apply to State,
@@ -177,15 +187,6 @@ public:  // Accessors XXX
 	// @param i  Variable name whose value (decoded from n) is requested
 	// @compl Linear on the size of State
 	T_ decode_state(const size_t& n, const std::string& varname) const;
-
-public:  // Relational operators XXX
-
-	// @brief Tell whether 'this' and 'that' hold compatible/same variables
-	// @compl Linear on the size of State
-	bool compatible(const State< T_ >& that) const;
-	bool operator==(const State< T_ >& that) const;
-	inline bool operator!=(const State< T_ >& that) const
-		{ return ( ! (that == *this) ); }
 };
 
 } // namespace fig

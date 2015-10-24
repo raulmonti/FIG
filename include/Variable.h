@@ -53,6 +53,10 @@ namespace fig
 template< typename T_ >
 struct Variable
 {
+	// Friend template class: http://stackoverflow.com/a/8967610
+	template< typename TT_ > friend class GlobalState;
+
+public:  // Constructors
 
 	Variable(const std::string& thename) : name(thename)
 		{ assert(!name.empty()); }
@@ -60,13 +64,24 @@ struct Variable
 	Variable(std::string&& thename) : name(std::move(thename))
 		{ assert(!name.empty()); }
 
-	/// @brief Get range, viz. number of distinct values this Variable can take
-	inline const T_& range() const noexcept { return range_; }
+public:  // Accessors
+
+	inline  T_ range() const noexcept { return range_; }
+	virtual T_ min() const noexcept = 0;
+	virtual T_ max() const noexcept = 0;
+	virtual T_ val() const noexcept = 0;
+
+public:  // Relational operators
+
+	virtual bool operator==(const Variable<T_>& that) const = 0;
+	inline  bool operator!=(const Variable<T_>& that) const
+		{ return !(*this == that);}
 
 	/// @brief Tell whether 'val' is a valid value for this Variable
 	virtual bool is_valid_value(const T_& val) const = 0;
 
-public:
+public:  // Attributes
+
 	const std::string& name;
 
 protected:
@@ -91,20 +106,26 @@ class VariableInterval : Variable<T_>
 	T_ min_;
 	T_ max_;
 
-public:
+public:  // Ctors
 
 	VariableInterval(const std::string& thename, const T_& min, const T_& max) :
 		Variable(thename),
 		min_(min),
 		max_(max)
-	{
-		assert(min_ < max_);
-		range_ = max_ - min_;
-		offset_ = 0;
-	}
+		{
+			assert(min_ < max_);
+			range_ = max_ - min_;
+			offset_ = 0;
+		}
 
 	inline virtual bool is_valid_value(const T_& val) const
 		{ return min_ <= val && val <= max_; }
+
+public:  // Accessors
+	inline T_ range() const noexcept { return max_-min_+1; }  // closed interval
+	inline T_ min() const noexcept { return min_; }
+	inline T_ max() const noexcept { return max_; }
+	inline T_ val() const noexcept { return min_ + offset_; }
 };
 
 
@@ -117,8 +138,6 @@ class VariableSet : Variable<T_>
 	std::unique_ptr< const std::vector< T_ > > values;
 
 public:
-
-	// TODO ctors
 
 	inline virtual bool is_valid_value(const T_& val) const
 		{
