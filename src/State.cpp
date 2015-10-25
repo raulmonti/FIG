@@ -34,8 +34,17 @@ namespace fig
 {
 
 template< typename T_ >
+void
+GlobalState<T_>::build_concrete_bound()
+{
+	maxConcreteState_ = 1;
+	for (size_t i=0 ; i < size() ; i++)
+		maxConcreteState_ *= vars_[i].range_;
+}
+
+template< typename T_ >
 std::shared_ptr< Variable< T_ > >
-GlobalState< T_ >::operator[](const string& varname)
+GlobalState<T_>::operator[](const string& varname)
 {
 	for (auto& e: *vars_p)
 		if (varname == e.name())
@@ -46,7 +55,7 @@ GlobalState< T_ >::operator[](const string& varname)
 
 template< typename T_ >
 void
-GlobalState< T_ >::print_out(std::ostream& out, bool withNewline) const
+GlobalState<T_>::print_out(std::ostream& out, bool withNewline) const
 {
 	for (const auto& var: vars_)
 		out << var.name << "=" << var.value() << ", ";
@@ -59,7 +68,7 @@ GlobalState< T_ >::print_out(std::ostream& out, bool withNewline) const
 
 template< typename T_ >
 bool
-GlobalState< T_ >::operator==(const State< T_ >& that) const
+GlobalState<T_>::operator==(const State< T_ >& that) const
 {
 	if (this->size() != that.size())
 		return false;
@@ -72,7 +81,7 @@ GlobalState< T_ >::operator==(const State< T_ >& that) const
 
 template< typename T_ >
 size_t
-GlobalState< T_ >::encode_state() const
+GlobalState<T_>::encode_state() const
 {
 	size_t n(0), numVars(size());
 	#pragma omp parallel for reduction(+:n) shared(numVars)

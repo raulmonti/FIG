@@ -31,9 +31,10 @@
 #define VARIABLE_H
 
 // C++
-#include <type_traits>  // std::is_intergral<>
+#include <type_traits>  // std::is_integral<>
 #include <string>
 #include <vector>
+#include <tuple>
 // C
 #include <cassert>
 
@@ -58,74 +59,112 @@ struct Variable
 
 public:  // Constructors
 
-	Variable(const std::string& thename) : name(thename)
-		{ assert(!name.empty()); }
-
-	Variable(std::string&& thename) : name(std::move(thename))
-		{ assert(!name.empty()); }
+	Variable(const std::string& thename);
+	Variable(std::string&& thename);
+	virtual ~Variable() {}
 
 public:  // Accessors
 
-	inline  T_ range() const noexcept { return range_; }
+	inline size_t range() const noexcept { return range_; }
 	virtual T_ min() const noexcept = 0;
 	virtual T_ max() const noexcept = 0;
 	virtual T_ val() const noexcept = 0;
 
 public:  // Relational operators
 
+	/// @note Also compares "current value", i.e. offset_
 	virtual bool operator==(const Variable<T_>& that) const = 0;
-	inline  bool operator!=(const Variable<T_>& that) const
-		{ return !(*this == that);}
-
+	inline  bool operator!=(const Variable<T_>& that) const { return !(*this == that);}
 	/// @brief Tell whether 'val' is a valid value for this Variable
 	virtual bool is_valid_value(const T_& val) const = 0;
 
 public:  // Attributes
 
-	const std::string& name;
+	const std::string name;  // FIXME remove const qualifier and implement fresh variables ???
 
 protected:
 	/// Number of distinct values this variable can take
-	T_ range_;
+	size_t range_;
 	/// Position in [0, 1, ..., range) for the "current" value of the Variable
-	T_ offset_;
+	size_t offset_;
+
+public:  // Invariant
+
+#ifndef NDEBUG
+	inline virtual void assert_invariant() const
+		{
+			assert(!name.empty());
+			assert(offset_ < range_);
+		}
+#else
+	inline void assert_invariant() const {}
+#endif
 };
 
 
+/// Variable declaration: name, min, max
+template< typename T_ > using VariableDeclaration =
+	std::tuple< std::string, T_, T_ >;
+
+
+/// Variable definition: name, min, max, initial value
+template< typename T_ > using VariableDefinition =
+	std::tuple< std::string, T_, T_, T_ >;
 
 
 /**
  * @brief Variable defined by the closed interval [ min_value , max_value ]
  */
 template< typename T_ >
-class VariableInterval : Variable<T_>
+class VariableInterval : Variable< T_ >
 {
 	static_assert(std::is_integral<T_>::value,
 				  "ERROR: class VariableInterval<T> can only be instantiated "
 				  "with integral types, e.g. int, short, unsigned.");
-	T_ min_;
-	T_ max_;
+	const T_ min_;
+	const T_ max_;
 
 public:  // Ctors
 
-	VariableInterval(const std::string& thename, const T_& min, const T_& max) :
-		Variable(thename),
-		min_(min),
-		max_(max)
-		{
-			assert(min_ < max_);
-			range_ = max_ - min_;
-			offset_ = 0;
-		}
+	// It should be safe to use compiler's both move and copy ctors
+	// VariableInterval(const VariableInterval& that);
+	// VariableInterval(VariableInterval&& that);
 
-	inline virtual bool is_valid_value(const T_& val) const
-		{ return min_ <= val && val <= max_; }
+	// A bunch of data ctors
+	VariableInterval(const std::string& thename, const T_& min, const T_& max);
+	VariableInterval(const std::string& thename, const T_& min, const T_& max, const T_& val);
+	VariableInterval(std::string&& thename, const T_& min, const T_& max);
+	VariableInterval(std::string&& thename, const T_& min, const T_& max, const T_& val);
+	VariableInterval(const VariableDeclaration< T_ >& dec);
+	VariableInterval(const VariableDefinition< T_ >& def);
+	VariableInterval(VariableDeclaration< T_ >&& dec);
+	VariableInterval(VariableDefinition< T_ >&& def);
+
+	virtual ~VariableInterval() {}
 
 public:  // Accessors
-	inline T_ range() const noexcept { return max_-min_+1; }  // closed interval
+
 	inline T_ min() const noexcept { return min_; }
 	inline T_ max() const noexcept { return max_; }
 	inline T_ val() const noexcept { return min_ + offset_; }
+
+public:  // Relational operators
+
+	virtual bool operator==(const Variable<T_>& that) const;
+	inline virtual bool is_valid_value(const T_& val) const final
+		{ return min_ <= val && val <= max_; }  // http://stackoverflow.com/a/19954164
+
+public:  // Invariant
+
+#ifndef NDEBUG
+	inline virtual void assert_invariant() const
+		{
+			Variable::assert_invariant();
+			assert(min_ <= max_);
+		}
+#else
+	inline void assert_invariant() const {}
+#endif
 };
 
 
@@ -135,16 +174,35 @@ public:  // Accessors
 template< typename T_ >
 class VariableSet : Variable<T_>
 {
-	std::unique_ptr< const std::vector< T_ > > values;
+	std::vector< T_ > values;
+	T_ min_;
+	T_ max_;
 
-public:
+public:  // Ctors/Dtor
 
-	inline virtual bool is_valid_value(const T_& val) const
-		{
-			for (const auto& e: *values)
-				if (val==e) return true;
-			return false;
-		}
+	/// TODO
+	//  Implement constructors
+
+	virtual ~VariableSet() { values.clear(); }
+
+public:  // Accessors
+
+	inline T_ min() const noexcept { return min_; }
+	inline T_ max() const noexcept { return max_; }
+	inline T_ val() const noexcept { return values[offset_]; }
+
+public:  // Relational operators
+
+	virtual bool operator==(const Variable<T_>& that) const;
+	virtual bool is_valid_value(const T_& val) const;
+
+public:  // Invariant
+
+#ifndef NDEBUG
+	virtual void assert_invariant() const;
+#else
+	inline void assert_invariant() const {}
+#endif
 };
 
 } // namespace fig

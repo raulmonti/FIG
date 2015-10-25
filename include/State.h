@@ -40,6 +40,8 @@
 #include <cassert>
 // External code
 #include <muParserDef.h>  // MUP_BASETYPE
+// Project code
+#include <Variable.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -89,7 +91,7 @@ class GlobalState
 	/// @brief Compute and store value of maxConcreteState_
 	void build_concrete_bound();
 
-public:  // Constructors
+public:  // Constructors/Destructor
 
 	// Void ctor
 	State();
@@ -161,11 +163,11 @@ public:  // Relational operators
 	inline bool operator!=(const State< T_ >& that) const
 		{ return ( ! (that == *this) ); }
 
-public:  // Encode/Decode facilities between symbolic and concrete representations
+public:  // Encode/Decode between symbolic and concrete representations
 
 	/**
-	 * @brief Encode current state (viz. vector of Variables) as a number,
-	 *        i.e. the "concrete" representation of the current state.
+	 * @brief Encode current state (a vector of Variables) as a number,
+	 *        i.e. as the "concrete" representation of the current state.
 	 * @note <b>Complexity:</b> <i>O(GlobalState.size()<sup>2</sup></i>
 	 */
 	size_t encode_state() const;
