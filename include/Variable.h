@@ -124,7 +124,7 @@ class VariableInterval : Variable< T_ >
 	const T_ min_;
 	const T_ max_;
 
-public:  // Ctors
+public:  // Ctors/Dtor
 
 	// It should be safe to use compiler's both move and copy ctors
 	// VariableInterval(const VariableInterval& that);
@@ -182,6 +182,9 @@ public:  // Ctors/Dtor
 
 	/// TODO
 	//  Implement constructors
+
+	/// Copy content from any container with our datatype
+	template< class Range > VariableSet(const Range& setOfValues);
 
 	virtual ~VariableSet() { values.clear(); }
 

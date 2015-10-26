@@ -29,6 +29,7 @@
 
 // C++
 #include <utility>  // std::move()
+#include <limits>   // std::numeric_limits
 // C
 #include <cassert>
 // Project code
@@ -192,6 +193,24 @@ VariableInterval<T_>::operator==(const VariableInterval<T_>& that) const
 
 
 //  Set Variable  //////////////////////////////////////////////////////////////
+
+template< typename T_ >
+template< class Set >
+VariableSet<T_>::VariableSet(const Set& setOfValues) :
+	values(std::vector<T_>(setOfValues.size())),
+	min_(std::numeric_limits<T_>::max()),
+	max_(std::numeric_limits<T_>::min())
+{
+	static_assert(std::is_same< T_, typename Set::value_type >::value,
+				  "ERROR: construction container internal data type "
+				  "and this template type (T_) must be the same");
+	size_t i(0u);
+	for (const auto& e: setOfValues) {
+		values[i++] = e;
+		min_ = e < min_ ? e : min_;
+		max_ = e > max_ ? e : max_;
+	}
+}
 
 /// TODO
 //  Implement ctors
