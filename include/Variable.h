@@ -126,10 +126,6 @@ class VariableInterval : Variable< T_ >
 
 public:  // Ctors/Dtor
 
-	// It should be safe to use compiler's both move and copy ctors
-	// VariableInterval(const VariableInterval& that);
-	// VariableInterval(VariableInterval&& that);
-
 	// A bunch of data ctors
 	VariableInterval(const std::string& thename, const T_& min, const T_& max);
 	VariableInterval(const std::string& thename, const T_& min, const T_& max, const T_& val);
@@ -139,6 +135,13 @@ public:  // Ctors/Dtor
 	VariableInterval(const VariableDefinition< T_ >& def);
 	VariableInterval(VariableDeclaration< T_ >&& dec);
 	VariableInterval(VariableDefinition< T_ >&& def);
+
+	// It should be safe to use compiler's both move and copy ctors
+	VariableInterval(const VariableInterval& that) = default;
+	VariableInterval(VariableInterval&& that) = default;
+
+	// Copy assignment with copy&swap
+	VariableInterval<T_>& operator=(VariableInterval<T_> that);
 
 	virtual ~VariableInterval() {}
 
@@ -174,25 +177,34 @@ public:  // Invariant
 template< typename T_ >
 class VariableSet : Variable<T_>
 {
-	std::vector< T_ > values;
+	std::vector< T_ > values_;
 	T_ min_;
 	T_ max_;
 
 public:  // Ctors/Dtor
 
-	/// TODO
-	//  Implement constructors
+	// A bunch of data ctors
+	/// Copy content from any container with internal data type equal to T_
+	template< class Set_ > VariableSet(const Set_& setOfValues);
+	/// Copy content between iterators 'from' and 'to' with internal data type equal to T_
+	template< class Iter_ > VariableSet(Iter_ from, Iter_ to);
+	/// Copy content from static array of specified size
+	VariableSet(const T_ *array, size_t arraySize);
 
-	/// Copy content from any container with our datatype
-	template< class Range > VariableSet(const Range& setOfValues);
+	// It should be safe to use compiler's both move and copy ctors
+	VariableSet(const VariableSet& that) = default;
+	VariableSet(VariableSet&& that) = default;
 
-	virtual ~VariableSet() { values.clear(); }
+	// Copy assignment with copy&swap
+	VariableSet<T_>& operator=(VariableSet<T_> that);
+
+	virtual ~VariableSet() { values_.clear(); }
 
 public:  // Accessors
 
 	inline T_ min() const noexcept { return min_; }
 	inline T_ max() const noexcept { return max_; }
-	inline T_ val() const noexcept { return values[offset_]; }
+	inline T_ val() const noexcept { return values_[offset_]; }
 
 public:  // Relational operators
 

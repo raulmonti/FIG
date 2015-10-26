@@ -91,13 +91,13 @@ class GlobalState
 	/// @brief Compute and store value of maxConcreteState_
 	void build_concrete_bound();
 
-public:  // Constructors/Destructor
+public:  // Ctors/Dtor
 
 	// Void ctor
 	State();
 	// Data ctor
-	State(const vector< VarDec< T_ > >& vars);
-	State(const vector< VarDef< T_ > >& vars);
+	State(const vector< VariableDeclaration< T_ > >& vars);
+	State(const vector< VariableDefinition< T_ > >& vars);
 	// Copy ctor
 	State(const State< T_ >& that) noexcept;
 	// Move ctor
