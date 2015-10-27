@@ -9,12 +9,16 @@
 #include <set>
 #include <assert.h>
 #include <exception>
+#include <tuple>
+#include <vector>
+#include <set>
 #include "parser.h"
 #include "iosacompliance.h"
 #include "ast.h"
 #include "exceptions.h"
 #include "smtsolver.h"
 #include "parsingContext.h"
+
 
 
 using namespace std;
@@ -30,8 +34,11 @@ Verifier::Verifier(parsingContext & pc){
 }
 
 
+
 Verifier::~Verifier(void){}
 
+
+////////////////////////////////////////////////////////////////////////////////
 
 /* @verify: fully verify if @ast compliances with IOSA modeling. Conditions
             (5) and (6) are not ensured here, but should be ensured by the
@@ -77,6 +84,7 @@ Verifier::verify(AST* ast){
 
 
 
+////////////////////////////////////////////////////////////////////////////////
 
 /* @brief:  check that names that should be unique really are.
    @return: 1 if no duplicated name was found.
@@ -156,6 +164,8 @@ Verifier::names_uniqueness(AST* ast){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
+
 /* @brief:  check that input transitions have no clock to wait
             for. This is in compliance to IOSA first condition.
             Also check that output transitions have exactly one
@@ -204,6 +214,8 @@ Verifier::input_output_clocks(AST* ast){
     return result;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
 
 /* FIXME for the 3rd condition for IOSA we can take three different approaches:
      1) we don't allow clocks to appear more than once in a transition
@@ -440,10 +452,49 @@ Verifier::check_exhausted_clocks(AST *ast){
 ////////////////////////////////////////////////////////////////////////////////
 
 
+/* @brief:  interpret a postcondition formula and build the corresponding z3
+            expression.
+   @return:  
+
+*/
+z3::expr
+post2expr(AST* pAst, string mname, parsingContext &pc, z3::context &c){
+
+    z3::expr pExp = c.bool_val(true);
+    set<string> vNameSet;
+
+    // add the valuations given by the postcondition
+    vector<AST*> pList = pAst->get_all_ast(_ASSIG);
+    for(int k = 0; k < pList.size(); ++k){
+        AST* var = new AST(pList[k]->branches[0]);
+        AST* val = pList[k]->branches[2];
+        vNameSet.insert(var->get_lexeme(_NAME));
+        variable_duplicate(var,pc,mname);
+        pExp = pExp && (ast2expr(var,mname,c,pc) == ast2expr(val,mname,c,pc));
+    }
+    // add the remaining conditions (unchanged ones)
+    vector<pair<string,Type>> vlist = pc.get_type_list(mname);
+    for(auto const &it : vlist){
+        string vname = it.first;
+        if(0 >= vNameSet.count(vname) && vname[0] != '#'){
+            if(it.second == mARIT){
+                z3::expr vexpr = c.real_const(string('#'+vname).c_str());
+                pExp = pExp && (vexpr == c.real_const(vname.c_str()));
+            }else if(it.second == mBOOL){
+                z3::expr vexpr = c.bool_const(string('#'+vname).c_str());
+                pExp = pExp && (vexpr == c.bool_const(vname.c_str()));
+            }
+        }
+    }
+
+    return pExp;
+}
+
+
 /* Check condition 7 for IOSA. FIXME!
 
     if act1 = act2:
-        if (sat ( pre1(x) && pre2(x) && (!pos1(x,x') || !pos2(x,x')) ) )
+        if (sat ( pre1(x) && pre2(x) && (pos1(x,x') != pos2(x,x')) ) )
             WARNING.
 */
 int
@@ -472,44 +523,18 @@ Verifier::check_input_determinism(AST *ast){
                 string ti = inputTrans[i]->get_lexeme(_ACTION);
                 string tj = inputTrans[j]->get_lexeme(_ACTION);
                 if(ti == tj){
-                    cout << inputTrans[i]->get_line() << " with " 
-                         << inputTrans[j]->get_line() << endl;
                     // reset solver and expression e
                     e = c.bool_val(true);
                     s.reset();
-
                     AST* gi = inputTrans[i]->get_first(_PRECONDITION);
                     AST* gj = inputTrans[j]->get_first(_PRECONDITION);
                     if(gi) e = e && ast2expr(gi,module,c,pc);
                     if(gj) e = e && ast2expr(gj,module,c,pc);;
-                    vector<AST*> pi = inputTrans[i]->get_all_ast(_ASSIG);
-                    vector<AST*> pj = inputTrans[j]->get_all_ast(_ASSIG);
-                    z3::expr ei = c.bool_val(true);
-                    for(int k = 0; k < pi.size(); ++k){
-                        AST* var = new AST(pi[k]->branches[0]);
-                        // the assignments are over next variables.
-                        variable_duplicate(var,pc,module);
-                        AST* val = pi[k]->branches[2];
-                        z3::expr e1 = ast2expr(var,module,c,pc);
-                        z3::expr e2 = ast2expr(val,module,c,pc);
-                        ei = ei && ( e1 == e2 );
-                    }
-                    z3::expr ej = c.bool_val(true);
-                    for(int k = 0; k < pj.size(); ++k){
-                        AST* var = new AST(pj[k]->branches[0]);
-                        // the assignments are over next variables.
-                        variable_duplicate(var,pc,module);
-                        AST* val = pj[k]->branches[2];
-                        z3::expr e1 = ast2expr(var,module,c,pc);
-                        z3::expr e2 = ast2expr(val,module,c,pc);
-                        ej = ej && ( e1 == e2 );
-                    }
-
-                    e = e && !(ei && ej);
+                    z3::expr ei = post2expr(inputTrans[i],module,pc,c);
+                    z3::expr ej = post2expr(inputTrans[j],module,pc,c);
+                    e = e && (ei != ej);
                     s.add(e);
-                    cout << s << endl;
                     if (s.check()){
-                        cout << "WARNING" << endl;
                         string posi = inputTrans[i]->get_pos();
                         string posj = inputTrans[j]->get_pos();
                         error_list.append("[WARNING] Non determinism "

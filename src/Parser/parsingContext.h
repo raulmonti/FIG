@@ -5,6 +5,7 @@
 #include <string>
 #include <map>
 #include <set>
+#include <tuple>
 
 using namespace std;
 
@@ -58,6 +59,11 @@ public:
     */
     bool
     has_clock(string module, string c);
+
+    /*
+    */
+    vector<pair<string,Type>>
+    get_type_list(string module);
 
 };
 

@@ -64,4 +64,17 @@ parsingContext::has_clock(string module, string c){
     return clckMap[module].count(c) > 0;
 }
 
+/*
+*/
+vector<pair<string,Type>>
+parsingContext::get_type_list(string module){
+
+    vector<pair<string,Type>> result;
+    for(auto const &it: typeMap[module]){
+        result.push_back(pair<string,Type>(it.first,it.second));
+    }
+    return result;
+
+}
+
 }// namespace parser
