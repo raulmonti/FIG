@@ -266,7 +266,6 @@ VariableSet<T_>::VariableSet(Set_&& setOfValues) :
 		max_ = e > max_ ? e : max_;
 	}
 	setOfValues.clear();
-	assert(0 == setOfValues.size());
 	assert_invariant();
 }
 
@@ -280,13 +279,13 @@ VariableSet<T_>::VariableSet(Iter_ from, Iter_ to) :
 {
 	static_assert(std::is_same< T_, typename Iter_::value_type >::value,
 				  "ERROR: construction container internal data type "
-				  "and this template type (T_) must be the same");
+				  "and this template type must be the same");
 	size_t i(0u);
-	for (auto e = *from ; from != to ; e = *(++from)) {
-		values_[i++] = e;
-		min_ = e < min_ ? e : min_;
-		max_ = e > max_ ? e : max_;
-	}
+	do {
+		values_[i++] = *from;
+		min_ = *from < min_ ? *from : min_;
+		max_ = *from > max_ ? *from : max_;
+	} while (++from != to);
 	assert_invariant();
 }
 
@@ -297,11 +296,10 @@ VariableSet<T_>::VariableSet(const T_ *array, size_t arraySize) :
 	min_(std::numeric_limits<T_>::max()),
 	max_(std::numeric_limits<T_>::min())
 {
-	size_t i(0u);
-	for (auto e = array[i] ; i < arraySize ; e = array[i < arraySize ? i : 0]) {
-		values_[i++] = e;
-		min_ = e < min_ ? e : min_;
-		max_ = e > max_ ? e : max_;
+	for (size_t i = 0u ; i < arraySize ; i++) {
+		values_[i] = array[i];
+		min_ = array[i] < min_ ? array[i] : min_;
+		max_ = array[i] > max_ ? array[i] : max_;
 	}
 	assert_invariant();
 }

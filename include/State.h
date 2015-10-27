@@ -33,7 +33,7 @@
 // C++
 #include <type_traits>  // std::is_same<>
 #include <ostream>
-#include <memory>
+#include <memory>  // std::shared_ptr
 #include <string>
 #include <vector>
 // C
@@ -83,7 +83,7 @@ class GlobalState
 				  "with integral types, e.g. int, short, unsigned.");
 
 	/// Variables vector
-	std::vector< Variable< T_ > > vars_;
+	std::vector< std::shared_ptr< Variable< T_ > > > pvars_;
 
 	/// Concrete size, i.e. cross product of all variables ranges
 	size_t maxConcreteState_;
@@ -94,19 +94,14 @@ class GlobalState
 public:  // Ctors/Dtor
 
 	// Void ctor
-	inline GlobalState() : vars_(), maxConcreteState_(0) {}
+	inline GlobalState() : pvars_(), maxConcreteState_(0) {}
 	// Data ctors
-
-	/// TODO
-
-	/// Copy content from any container with internal data type equal to T_
+	/// Copy content from any container with proper internal data type
 	template< class Container_ > GlobalState(const Container_& container);
-	/// Move content from any container with internal data type equal to T_
+	/// Move content from any container with proper internal data type
 	template< class Container_ > GlobalState(Container_&& container);
-	/// Copy content between iterators 'from' and 'to' with internal data type equal to T_
+	/// Copy content between iterators 'from' and 'to' with proper internal data type
 	template< class Iter_ > GlobalState(Iter_ from, Iter_ to);
-	/// Copy content from static array of specified size
-	GlobalState(const typename Variable<T_> *array, size_t arraySize);
 	// Move ctor
 	GlobalState(GlobalState<T_>&& that);
 
@@ -116,55 +111,45 @@ public:  // Ctors/Dtor
 	GlobalState<T_>& operator=(GlobalState<T_> that)        = delete;
 
 	// Dtor
-	virtual ~GlobalState() { vars_.clear(); }
-
-
-	// Data ctor
-	State(const vector< VariableDeclaration< T_ > >& vars);
-	State(const vector< VariableDefinition< T_ > >& vars);
-
+	virtual ~GlobalState() { pvars_.clear(); }
 
 public:  // Accessors
 
 	/// @brief Symbolic size, i.e. number of variables
-	inline size_t size() const noexcept { return vars_.size(); }
+	inline size_t size() const noexcept { return pvars_.size(); }
 
 	/// @brief Concrete size, i.e. cross product of all variables ranges
 	inline size_t concrete_size() const noexcept { return maxConcreteState_; }
 
 	/**
-	 * @brief Retrieve const reference to i-th variable
+	 * @brief Retrieve pointer to i-th variable (const or not)
 	 * @note <b>Complexity:</b> <i>O(1)</i>
+	 * @note Range check with throw only in DEBUG build
 	 */
-	inline const Variable< T_ >& operator[](size_t i) const
+	inline std::shared_ptr< const Variable< T_ > >& operator[](const size_t& i) const
 		{
-			assert (!vars_.empty());
 #		ifndef NDEBUG
-			return const_cast<const Variable< T_ >& >(vars_p->at(i));
+			return pvars_.at(i);
 #		else
-			return (*vars_p)[i];
+			return pvars_[i];
+#		endif
+		}
+	inline std::shared_ptr< Variable< T_ > >& operator[](const size_t& i)
+		{
+#		ifndef NDEBUG
+			return pvars_.at(i);
+#		else
+			return pvars_[i];
 #		endif
 		}
 
 	/** 
-	 * @brief Retrieve reference to i-th variable
-	 * @note <b>Complexity:</b> <i>O(1)</i>
-	 */
-	inline Variable< T_ >& operator[](size_t i)
-		{
-			assert (!vars_.empty());
-#		ifndef NDEBUG
-			return vars_p->at(i);
-#		else
-			return (*vars_p)[i];
-#		endif
-		}
-
-	/** 
-	 * @brief Retrieve variable named "varname" if existent
+	 * @brief Retrieve pointer to variable named "varname" if existent
+	 * @return Pointer to variable "varname", or nullptr if not existent
 	 * @note <b>Complexity:</b> <i>O(GlobalState.size())</i>
 	 */
-	std::shared_ptr< Variable< T_ > > operator[](const string& varname);
+	std::shared_ptr< const Variable< T_ > > operator[](const std::string& varname) const;
+	std::shared_ptr<       Variable< T_ > > operator[](const std::string& varname);
 
 	/// @brief Print formatted vector of variables into 'out'
 	void print_out(std::ostream& out, bool withNewline = false) const;

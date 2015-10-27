@@ -28,7 +28,9 @@
 
 
 // C++
-#include <type_traits>  // std::is_same<>
+#include <type_traits>  // std::is_constructible<>, std::is_convertible<>
+#include <iterator>     // std::distance()
+#include <utility>      // std::move()
 // Project code
 #include <State.h>
 
@@ -39,49 +41,110 @@ template< typename T_ >
 void
 GlobalState<T_>::build_concrete_bound()
 {
-	maxConcreteState_ = 1;
-	for (size_t i=0 ; i < size() ; i++)
-		maxConcreteState_ *= vars_[i].range_;
+	maxConcreteState_ = 1u;
+	for(const auto pvar: pvars_)
+		maxConcreteState_ *= pvar->range_;  // ignore overflow :D
 }
 
 
 template< typename T_ >
 template< class Container_ >
 GlobalState<T_>::GlobalState(const Container_& container) :
-	// We chose VariableInterval<> as implementation for our Variables
-	vars_(std::vector< VariableInterval<T_>>(container.size())),
-	maxConcreteState_(0)
+	pvars_(container.size(), nullptr),
+	maxConcreteState_(1u)
 {
-	static_assert(std::is_assignable< typename VariableInterval<T_>,
-									  Container_::value_type >::value,
-				  "ERROR: GlobalState can only be built from Variables, "
-				  "VariableDefinitions or VariableDeclarations.");
-
-	/*
-	 * TODO
-	 *
-	 *      Review assignment down there. We must ensure it uses
-	 *      the assignment operator from VariableInterval class.
-	 *
-	 *      Maybe instead of creating vars_ in initialization list,
-	 *      we could build a temporary std::vector<VariableInterval>
-	 *      and then move it to vars_
-	 */
-
+	// We chose VariableInterval<> as implementation for our Variables
+	static_assert(std::is_constructible<
+					  typename VariableInterval<T_>,
+					  typename Container_::value_type
+				  >::value,
+				  "ERROR: GlobalState can only be constructed from Variables, "
+				  "VariableDefinitions or VariableDeclarations");
 	size_t i(0u);
 	for (const auto& e: container)
-		vars_[i++] = e;
+		pvars_[i++] = std::make_shared< typename VariableInterval< T_ > >(e);
 	build_concrete_bound();
 }
 
 
 template< typename T_ >
-std::shared_ptr< Variable< T_ > >
-GlobalState<T_>::operator[](const string& varname)
+template< class Container_ >
+GlobalState<T_>::GlobalState(Container_&& container) :
+	pvars_(container.size(), nullptr),
+	maxConcreteState_(1u)
 {
-	for (auto& e: *vars_p)
-		if (varname == e.name())
-			return std::make_shared< Variable< T_ > >(e);
+	// We chose VariableInterval<> as implementation for our Variables
+	static_assert(std::is_convertible<
+					  typename Container_::value_type,
+					  typename std::shared_ptr< VariableInterval<T_> >
+				  >::value,
+				  "ERROR: GlobalState can only be move-constructed from "
+				  "another GlobalState or a container with Variable pointers");
+	size_t i(0u);
+	for (auto& e: container) {
+		pvars_[i++] = std::move(
+			dynamic_cast< std::shared_ptr< VariableInterval< T_ > > >(e));
+		e = nullptr;
+	}
+	build_concrete_bound();
+	container.clear();
+}
+
+
+template< typename T_ >
+template< class Iter_ >
+GlobalState<T_>::GlobalState(Iter_ from, Iter_ to) :
+	pvars_(std::distance(from,to)),
+	maxConcreteState_(1u)
+{
+	// We chose VariableInterval<> as implementation for our Variables
+	static_assert(std::is_constructible<
+					  typename VariableInterval<T_>,
+					  typename Iter_::value_type
+				  >::value,
+				  "ERROR: GlobalState can only be constructed from Variables, "
+				  "VariableDefinitions or VariableDeclarations");
+	size_t i(0);
+	do {
+		pvars_[i++] = std::make_shared< typename VariableInterval<T_> >(*from);
+	} while (++from != to);
+	build_concrete_bound();
+}
+
+
+template< typename T_ >
+GlobalState<T_>::GlobalState(GlobalState<T_>&& that) :
+	pvars_(that.size()),
+	maxConcreteState_(std::move(that.maxConcreteState_))
+{
+	size_t i(0u);
+	for (auto& ptr: that.pvars_) {
+		pvars_[i++] = ptr;
+		ptr = nullptr;
+	}
+	that.pvars_.clear();
+	that.maxConcreteState_ = 0;
+}
+
+
+template< typename T_ >
+std::shared_ptr< const Variable< T_ > >
+GlobalState<T_>::operator[](const std::string& varname) const
+{
+	for (auto pvar: pvars_)
+		if (varname == pvar->name())
+			return pvar;
+	return nullptr;
+}
+
+
+template< typename T_ >
+std::shared_ptr< Variable< T_ > >
+GlobalState<T_>::operator[](const std::string& varname)
+{
+	for (auto pvar: pvars_)
+		if (varname == pvar->name())
+			return pvar;
 	return nullptr;
 }
 
@@ -90,11 +153,11 @@ template< typename T_ >
 void
 GlobalState<T_>::print_out(std::ostream& out, bool withNewline) const
 {
-	for (const auto& var: vars_)
-		out << var.name << "=" << var.value() << ", ";
-	if (!vars_.empty() && withNewline)
+	for (const auto& pvar: pvars_)
+		out << pvar->name << "=" << pvar->value() << ", ";
+	if (!pvars_.empty() && withNewline)
 		out << "\b\b  \b\b\n";
-	else if (!vars_.empty())
+	else if (!pvars_.empty())
 		out << "\b\b  \b\b";
 }
 
@@ -105,8 +168,8 @@ GlobalState<T_>::operator==(const State< T_ >& that) const
 {
 	if (this->size() != that.size())
 		return false;
-	for (size_t i=0 ; i < size() ; i++)
-		if (that[i] != vars_[i])
+	for (size_t i=0 ; i < pvars_.size() ; i++)
+		if (that[i] != pvars_[i])
 			return false;
 	return true;
 }
@@ -121,8 +184,8 @@ GlobalState<T_>::encode_state() const
 	for (size_t i=0 ; i < numVars ; i++) {
 		size_t stride(1);
 		for (size_t j = i+1 ; j < numVars; j++)
-			stride *= vars_[j].range_;
-		n += vars_[i].offset_ * stride;
+			stride *= pvars_[j]->range_;
+		n += pvars_[i]->offset_ * stride;
 	}
 	return n;
 }
