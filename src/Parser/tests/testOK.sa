@@ -1,24 +1,19 @@
 /* FIG MODEL EXAMPLE
    FOR PARSER TESTING PORPOUSE 
    Raúl Monti 2015
-    */
+*/
 
 
 
 MODULE modone
 
-LABELS
-    a:input; 
-    b:output;
-    d:input;
-    c:output;
 
 VARS
     bool v = false;
-    int  a = 2;
+    int[1..10]  a = 2;
     bool c = false || true;
     bool b = false;
-    int  t = 0;
+    int[1..10]  t = 0;
     clock clockone  = Normal(1,1);
     clock clocktwo  = Exponential(3);
     clock clockfour = Uniform(6,2);

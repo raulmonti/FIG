@@ -85,6 +85,11 @@ public:
     string
     get_lexeme(int k);
 
+    /* @brief: recursively retrive every lexeme from every node with token k.
+    */
+    vector<string>
+    get_all_lexemes(int k);
+
     /* @get_all_ast: walk the tree and get every node with token k.
        @return: a vector of AST pointers to every node with token k.     
     */

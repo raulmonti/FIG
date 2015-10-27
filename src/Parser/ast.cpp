@@ -10,6 +10,7 @@
 #include <vector>
 #include <string>
 #include <assert.h>
+#include <iostream>
 
 
 
@@ -80,15 +81,39 @@ AST::get_list_lexemes(int k){
 }
 
 
+vector<string>
+AST::get_all_lexemes(int k){
+
+    vector<string> result;
+
+    if(tkn == k){
+        result.push_back(lxm);
+    }else{
+        for(auto const &it: branches){
+            vector<string> aux = it->get_all_lexemes(k);
+            result.insert(result.end(), aux.begin(), aux.end());
+        }
+    }
+    return result;    
+}
+
+
+
 string
 AST::get_lexeme(int k){
 
+    cout << "!! using get_lexeme !!\n";
+
     string result("");
 
-    for(int i = 0; i < branches.size(); i++){
-        if (branches[i]->tkn == k){
-            result = branches[i]->lxm; 
-            break;
+    if( tkn == k ){
+        result = lxm;
+    }else{
+        for(auto const &it: branches){
+            result = it->get_lexeme(k);
+            if(result != ""){
+                break;
+            }
         }
     }
 

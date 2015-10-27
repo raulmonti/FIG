@@ -12,6 +12,7 @@
 #include <tuple>
 #include <vector>
 #include <set>
+#include <algorithm>
 #include "parser.h"
 #include "iosacompliance.h"
 #include "ast.h"
@@ -20,19 +21,152 @@
 #include "parsingContext.h"
 
 
-
 using namespace std;
-using namespace parser;
-
 
 namespace parser{
 
 
+////////////////////////////////////////////////////////////////////////////////
+// USEFUL FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////
+
+
+/* @brief: check if the transition parsed into an AST corresponds to an
+           output transition.
+*/
+bool
+is_output(AST* trans){
+
+    bool result = true;
+    string direction = trans->get_lexeme(_IO);
+    if(direction == "?"){
+        result = false;
+    }
+    return result;
+}
+
+/* @brief: check if @transition1 enabling clock is not reseted by @transition2.
+
+*/
+bool
+clock_nreset(AST* trans1, AST* trans2){
+
+    string enableCName = "";
+    try{
+        enableCName = trans1->get_first(_ENABLECLOCK)->get_lexeme(_NAME);
+    }catch(std::exception & e){
+        throw string("Couldn't find clock\n") + e.what();
+    }
+
+    vector<string> resetCList = trans2->get_list_lexemes(_RESETCLOCK);
+    for(int i = 0; i < resetCList.size(); i++){
+        if(enableCName == resetCList[i]) return false;
+    }
+
+    return true;
+}
+
+
+/* @brief: find out if both transitions have the same enabling clock, if they
+           have any.
+*/
+bool
+same_clock(AST* trans1, AST* trans2){
+
+    string enableC1Name = "";
+    string enableC2Name = "";
+
+    AST* enableC1 = trans1->get_first(_ENABLECLOCK);
+    if(enableC1){
+        enableC1Name = enableC1->get_lexeme(_NAME);
+    }
+    AST* enableC2 = trans2->get_first(_ENABLECLOCK);
+    if(enableC2){
+        enableC2Name = enableC2->get_lexeme(_NAME);
+    }
+    if(enableC1Name != "" && enableC1Name == enableC2Name){
+        return true;
+    }else{
+        return false;
+    }
+
+}
+
+
+/* @brief: check if two transitions reset the same set of clocks.
+*/
+bool
+same_rclocks(AST* t1, AST* t2){
+
+    vector<string> rc1 = t1->get_all_lexemes(_RESETCLOCK);
+    vector<string> rc2 = t2->get_all_lexemes(_RESETCLOCK);
+    std::sort(rc1.begin(), rc1.end());
+    std::sort(rc2.begin(), rc2.end());
+    return  rc1 == rc2;
+}
+
+
+
+/* @brief: check if transitions produce the same action.
+*/
+bool
+same_action(AST* t1, AST* t2){
+
+    return t1->get_lexeme(_ACTION) == t2->get_lexeme(_ACTION);
+
+}
+
+
+/* @brief:  interpret a postcondition formula and build the corresponding z3
+            expression.
+   @return:  
+
+*/
+z3::expr
+post2expr(AST* pAst, string mname, parsingContext &pc, z3::context &c){
+
+    z3::expr pExp = c.bool_val(true);
+    set<string> vNameSet;
+
+    // add the valuations given by the postcondition
+    vector<AST*> pList = pAst->get_all_ast(_ASSIG);
+    for(int k = 0; k < pList.size(); ++k){
+        AST* var = new AST(pList[k]->branches[0]);
+        AST* val = pList[k]->branches[2];
+        vNameSet.insert(var->get_lexeme(_NAME));
+        variable_duplicate(var,pc,mname);
+        pExp = pExp && (ast2expr(var,mname,c,pc) == ast2expr(val,mname,c,pc));
+    }
+    // add the remaining conditions (unchanged ones)
+    vector<pair<string,Type>> vlist = pc.get_type_list(mname);
+    for(auto const &it : vlist){
+        string vname = it.first;
+        if(0 >= vNameSet.count(vname) && vname[0] != '#'){
+            if(it.second == mARIT){
+                z3::expr vexpr = c.real_const(string('#'+vname).c_str());
+                pExp = pExp && (vexpr == c.real_const(vname.c_str()));
+            }else if(it.second == mBOOL){
+                z3::expr vexpr = c.bool_const(string('#'+vname).c_str());
+                pExp = pExp && (vexpr == c.bool_const(vname.c_str()));
+            }else{
+                assert(false);
+            }
+        }
+    }
+
+    return pExp;
+}
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// VERIFIER CLASS IMPLEMENTATION
+////////////////////////////////////////////////////////////////////////////////
 
 Verifier::Verifier(parsingContext & pc){
     mPc = & pc;
 }
-
 
 
 Verifier::~Verifier(void){}
@@ -158,7 +292,7 @@ Verifier::names_uniqueness(AST* ast){
         }
     }
     if(error_list != ""){
-        throw error_list; // If names are repeated we can not continue ...
+        throw error_list; // If names are repeated we can not continue
     }
     return 1;
 }
@@ -217,20 +351,7 @@ Verifier::input_output_clocks(AST* ast){
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/* FIXME for the 3rd condition for IOSA we can take three different approaches:
-     1) we don't allow clocks to appear more than once in a transition
-        precondition (easy). Only cons is that we can't reuse clocks and thus
-        we loose efficiency. 
-     2) We check that if the clocks are the same then the state preconditions
-        are mutually exclusive (different origin states) or that a state
-        in the intersection set is unreachable (difficult).
-     3) We unify the output transitions with same clocks (should have same
-        actions too and may have unfeasible preconditions after unification).
-
-   @We finally went ahead only with the first part of (2).
-
-   @unique_ouputs: check that clocks are used only once as transition enable
-                   clocks, in compliance to 3rd condition for IOSA.
+/* @brief: check IOSA condition 3. (without reachability check)
    @throw:
    @result:
 */
@@ -241,45 +362,49 @@ Verifier::unique_outputs(AST *ast){
              method avoiding code repetition and improving efficiency. 
     */
 
-    /** ----------- **/
     int result = 1;
     string error_list = "";
-    
+    z3::context c;
+    z3::solver s(c);
+    parsingContext pc(*mPc); // copy the context    
+
     vector<AST*> modules = ast->get_list(_MODULE);
     for(int k = 0; k < modules.size(); ++k){
         string module = modules[k]->get_lexeme(_NAME);
-        vector<AST*> transitions = modules[k]->get_all_ast(_TRANSITION);
-        for(int i = 0; i < transitions.size(); i++){
-            AST *enable_c1 = transitions[i]->get_first(_ENABLECLOCK);
-            if(enable_c1){    
-                string name1 = enable_c1->get_lexeme(_NAME);
-                AST* pre1 = transitions[i]->get_first(_PRECONDITION);
-                for(int j = i+1; j < transitions.size(); j++){
-                    AST *enable_c2 = transitions[j]->get_first(_ENABLECLOCK);
-                    if (enable_c2){
-                        string name2 = enable_c2->get_lexeme(_NAME);
-                        if( name1 == name2 ){
-                            vector<AST*> pre;
-                            AST* pre2 = transitions[j]->
-                                get_first(_PRECONDITION);
-                            if(pre2){
-                                pre2 = pre2->get_first(_EXPRESSION);
-                            }
-                            if(pre1){
-                                pre.push_back(pre1->get_first(_EXPRESSION));
-                            }                                
-                            if(pre2){
-                                pre.push_back(pre2->get_first(_EXPRESSION));
-                            }
-                            if(sat(pre,module,*mPc)){
-                                string line1 = transitions[i]->get_line();
-                                string line2 = transitions[j]->get_line();
-                                error_list.append("[WARNING] Nondeterminism"
-                                    " may be present if we reach states"
-                                    " where transitions at lines " +  line1
-                                    + " and " + line2 + " are enabled, "
-                                    "since they use the same clock.\n");
-                            }
+        vector<AST*> transs = modules[k]->get_all_ast(_TRANSITION);
+        for(int i = 0; i < transs.size(); i++){
+            for(int j = i+1; j < transs.size(); j++){
+                if( same_clock(transs[i], transs[j])){
+                    AST* pre1 = transs[i]->get_first(_PRECONDITION);
+                    AST* pre2 = transs[j]->get_first(_PRECONDITION);
+                    if(pre1) pre1 = pre1->get_first(_EXPRESSION);
+                    if(pre2) pre2 = pre2->get_first(_EXPRESSION);
+                    z3::expr e1 = ast2expr(pre1, module, c, pc);                            
+                    z3::expr e2 = ast2expr(pre2, module, c, pc);
+                    s.reset();
+                    s.add(e1 && e2);
+
+                    if( s.check() ){
+                        string line1 = transs[i]->get_line();
+                        string line2 = transs[j]->get_line();
+                        if(!same_action(transs[i], transs[j])){
+                            error_list.append("[WARNING] diff actions.\n");
+                        }
+                        if(!same_rclocks(transs[i], transs[j])){
+                            error_list.append("[WARNING] diff reset clocks.\n");
+                        }
+                        z3::expr p1 = post2expr(transs[i],module,pc,c);
+                        z3::expr p2 = post2expr(transs[j],module,pc,c);
+                        s.reset();
+                        s.add(e1 && e2 && (p1 != p2));
+                        if(s.check()){
+                            string line1 = transs[i]->get_line();
+                            string line2 = transs[j]->get_line();
+                            error_list.append("[WARNING] Nondeterminism"
+                                " may be present if we reach states"
+                                " where transitions at lines " +  line1
+                                + " and " + line2 + " are enabled, "
+                                "since they use the same clock.\n");
                         }
                     }
                 }
@@ -295,71 +420,6 @@ Verifier::unique_outputs(AST *ast){
 
 
 
-////////////////////////////////////////////////////////////////////////////////
-
-
-
-/* @brief: check if the transition parsed into an AST corresponds to an
-           output transition.
-*/
-bool
-is_output(AST* trans){
-
-    bool result = true;
-    string direction = trans->get_lexeme(_IO);
-    if(direction == "?"){
-        result = false;
-    }
-    return result;
-}
-
-/* @brief: check if @transition1 enabling clock is not reseted by @transition2.
-
-*/
-bool
-clock_nreset(AST* trans1, AST* trans2){
-
-    string enableCName = "";
-    try{
-        enableCName = trans1->get_first(_ENABLECLOCK)->get_lexeme(_NAME);
-    }catch(std::exception & e){
-        throw string("Couldn't find clock\n") + e.what();
-    }
-
-    vector<string> resetCList = trans2->get_list_lexemes(_RESETCLOCK);
-    for(int i = 0; i < resetCList.size(); i++){
-        cout << enableCName << " " << resetCList[i] << endl;
-        if(enableCName == resetCList[i]) return false;
-    }
-
-    return true;
-}
-
-
-/* @brief: find out if both transitions have the same enabling clock, if they
-           have any.
-*/
-bool
-same_clock(AST* trans1, AST* trans2){
-
-    string enableC1Name = "";
-    string enableC2Name = "";
-
-    AST* enableC1 = trans1->get_first(_ENABLECLOCK);
-    if(enableC1){
-        enableC1Name = enableC1->get_lexeme(_NAME);
-    }
-    AST* enableC2 = trans2->get_first(_ENABLECLOCK);
-    if(enableC2){
-        enableC2Name = enableC2->get_lexeme(_NAME);
-    }
-    if(enableC1Name != "" && enableC1Name == enableC2Name){
-        return true;
-    }else{
-        return false;
-    }
-
-}
 
 
 /* @check_exhausted_clocks: check compliance to condition 4 from IOSA.
@@ -452,49 +512,13 @@ Verifier::check_exhausted_clocks(AST *ast){
 ////////////////////////////////////////////////////////////////////////////////
 
 
-/* @brief:  interpret a postcondition formula and build the corresponding z3
-            expression.
-   @return:  
+/* Check condition 7 for IOSA.
 
-*/
-z3::expr
-post2expr(AST* pAst, string mname, parsingContext &pc, z3::context &c){
-
-    z3::expr pExp = c.bool_val(true);
-    set<string> vNameSet;
-
-    // add the valuations given by the postcondition
-    vector<AST*> pList = pAst->get_all_ast(_ASSIG);
-    for(int k = 0; k < pList.size(); ++k){
-        AST* var = new AST(pList[k]->branches[0]);
-        AST* val = pList[k]->branches[2];
-        vNameSet.insert(var->get_lexeme(_NAME));
-        variable_duplicate(var,pc,mname);
-        pExp = pExp && (ast2expr(var,mname,c,pc) == ast2expr(val,mname,c,pc));
-    }
-    // add the remaining conditions (unchanged ones)
-    vector<pair<string,Type>> vlist = pc.get_type_list(mname);
-    for(auto const &it : vlist){
-        string vname = it.first;
-        if(0 >= vNameSet.count(vname) && vname[0] != '#'){
-            if(it.second == mARIT){
-                z3::expr vexpr = c.real_const(string('#'+vname).c_str());
-                pExp = pExp && (vexpr == c.real_const(vname.c_str()));
-            }else if(it.second == mBOOL){
-                z3::expr vexpr = c.bool_const(string('#'+vname).c_str());
-                pExp = pExp && (vexpr == c.bool_const(vname.c_str()));
-            }
-        }
-    }
-
-    return pExp;
-}
-
-
-/* Check condition 7 for IOSA. FIXME!
-
-    if act1 = act2:
-        if (sat ( pre1(x) && pre2(x) && (pos1(x,x') != pos2(x,x')) ) )
+    if (act1 = act2):
+        if (sat ( pre1(x) && pre2(x)  // there is a valuation for both pre 
+               && (pos1(x,x') != pos2(x,x')) // that makes both post different
+                ) 
+           ):
             WARNING.
 */
 int
@@ -534,15 +558,25 @@ Verifier::check_input_determinism(AST *ast){
                     z3::expr ej = post2expr(inputTrans[j],module,pc,c);
                     e = e && (ei != ej);
                     s.add(e);
+
+                    string posi = inputTrans[i]->get_pos();
+                    string posj = inputTrans[j]->get_pos();
                     if (s.check()){
-                        string posi = inputTrans[i]->get_pos();
-                        string posj = inputTrans[j]->get_pos();
                         error_list.append("[WARNING] Non determinism "
                             "may be present due to input transitions "
                             "labeled '"+ ti + "', at " + posi
                             + " and "+ posj + ". Check"
                             " condition 7 for IOSA.\n");
                     }
+                    // also check for clocks that are being reset
+                    if(!same_rclocks(inputTrans[i], inputTrans[j])){
+                        error_list.append("[WARNING] Non determinism "
+                            "may be present due to input transitions "
+                            "labeled '"+ ti + "', at " + posi
+                            + " and "+ posj + " since they don't reset "
+                            + "the same clocks. Check condition 7 for IOSA.\n");
+
+                    }                    
                 }                
             }
         }
@@ -552,75 +586,6 @@ Verifier::check_input_determinism(AST *ast){
     }
     return 1;
 }
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-/*
-*/
-bool
-Verifier::trans_has_exhausted_clock(AST* t, vector<AST*> & tv, string m){
-
-/*            ---t2-->[]
-             | 
-            []---t1-->[]---t-->[]
-*/
-    bool flag = false; // indicates if t1 is "safe"
-
-    vector<AST*> satList;
-    string c = t->get_lexeme(_ENABLECLOCK);
-    AST* pre = t->get_first(_PRECONDITION);
-
-    for (int i = 0; i < tv.size(); ++i){
-        satList.clear();
-        // if p1 != true need to check it:
-        if(pre) satList.push_back(pre); 
-        // FIXME including t1 ???:
-        AST* t1 = tv[i];
-        // reset clocks for t1:
-        vector<string> cv = t1->get_list_lexemes(_RESETCLOCK);
-        set<string> rclks(cv.begin(), cv.end());
-
-        // If c is not reseted in t1:
-        if (rclks.count(c) > 0){
-            flag = true;
-        }else{
-            // Get t1 postconditions to check sat with t precondition.
-            AST* pos1 = t1->get_first(_POSTCONDITION);
-            if(pos1){
-                vector<AST*> pos1v = pos1->get_list(_ASSIG);
-                satList.insert(satList.end(), pos1v.begin(), pos1v.end());
-            }
-            // if we find state where t1 is input and t output:
-            if(sat(satList, m, *mPc)){
-                // Need to find t2 with c and sat precondition wrt t1.
-                AST* pre1 = t1->get_first(_PRECONDITION);
-                for(int j = 0; j < tv.size(); ++j){
-                    AST *t2 = tv[j];
-                    string c2 = t2->get_lexeme(_ENABLECLOCK);
-                    // only interested in outputs
-                    if(c2 != ""){ 
-                        if(c == c2){
-                            AST* pre2 = t2->get_first(_PRECONDITION);
-                            satList.clear();
-                            if(pre1) satList.push_back(pre1);
-                            if(pre2) satList.push_back(pre2);
-                            if(sat(satList, m, *mPc)){
-                                flag = true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        // if t1 was not safe :
-        if (! flag){
-            return true;
-        }
-    }
-    return false;
-}
-
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -664,7 +629,8 @@ Verifier::fill_maps(AST *ast){
                     string pos = variables[j]->get_pos();
                     
                     error_list.append("[ERROR] Missing range for integer "
-                        "variable declaration at " + pos + module + ".\n");
+                        "variable declaration at " + pos + " (" 
+                        + module + ").\n");
                 }
                 mPc->add_var(module,name,mARIT);
                 mPc->add_var("#property",module+"."+name,mARIT);
@@ -948,3 +914,4 @@ Verifier::get_type(AST *expr, string module){
 ////////////////////////////////////////////////////////////////////////////////
 
 } // namespace parser
+

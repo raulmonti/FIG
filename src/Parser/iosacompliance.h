@@ -58,6 +58,7 @@ private:
     int
     names_uniqueness(AST* ast); 
 
+
     /* @instantaneous_input: check that input transitions have no clock to wait
                              for. This is in compilance to IOSA first condition.
        @return:
@@ -66,6 +67,7 @@ private:
     int
     input_output_clocks(AST* ast);
 
+
     /* @unique_ouputs: check that clocks are used only once as transition enable
                        clocks, in compliance to 3rd condition for IOSA.
        @throw:
@@ -73,14 +75,6 @@ private:
     */
     int
     unique_outputs(AST *ast);
-
-    /* @unique_inputs: check property (7) for IOSA.
-       @return: 
-       @throw: string with errors message if found that the property may not
-               be met. (just to take as a warning).
-    */
-    int
-    unique_inputs(AST *ast);
 
 
     /* @check_exhausted_clocks: check compliance to condition 4 from IOSA.
@@ -91,15 +85,10 @@ private:
     check_exhausted_clocks(AST *ast);
 
 
-    /*@trans_has_exhausted_clock: auxiliary method for check_exhausted_clocks.
-    */
-    bool
-    trans_has_exhausted_clock(AST* t, vector<AST*> & tv, string m);
-
-
     /* @type_check: Type check every expression in @ast. */
     int
     type_check(AST *ast);
+
 
     /* @get_type: Return type of an expression.
        @module: the module name to which the expression belongs to.
@@ -108,6 +97,7 @@ private:
     */
     Type
     get_type(AST *expr, string module);
+
 
     /*
     */
