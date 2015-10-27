@@ -94,27 +94,43 @@ class GlobalState
 public:  // Ctors/Dtor
 
 	// Void ctor
-	State();
+	inline GlobalState() : vars_(), maxConcreteState_(0) {}
+	// Data ctors
+
+	/// TODO
+
+	/// Copy content from any container with internal data type equal to T_
+	template< class Container_ > GlobalState(const Container_& container);
+	/// Move content from any container with internal data type equal to T_
+	template< class Container_ > GlobalState(Container_&& container);
+	/// Copy content between iterators 'from' and 'to' with internal data type equal to T_
+	template< class Iter_ > GlobalState(Iter_ from, Iter_ to);
+	/// Copy content from static array of specified size
+	GlobalState(const typename Variable<T_> *array, size_t arraySize);
+	// Move ctor
+	GlobalState(GlobalState<T_>&& that);
+
+	// Reinforce uniqueness (no two GlobalVectors should be ever needed)
+	GlobalState(const GlobalState<T_> &that)                = delete;
+	GlobalState<T_>& operator=(const GlobalState<T_>& that) = delete;
+	GlobalState<T_>& operator=(GlobalState<T_> that)        = delete;
+
+	// Dtor
+	virtual ~GlobalState() { vars_.clear(); }
+
+
 	// Data ctor
 	State(const vector< VariableDeclaration< T_ > >& vars);
 	State(const vector< VariableDefinition< T_ > >& vars);
-	// Copy ctor
-	State(const State< T_ >& that) noexcept;
-	// Move ctor
-	State(State< T_ >&& that) noexcept = default;
-	// Copy assignment with copy&swap (no need for move assignment)
-	State< T_ >& operator=(State< T_ > that) noexcept;
-	// Dtor
-	virtual ~State() { vars_.clear(); }
+
 
 public:  // Accessors
 
 	/// @brief Symbolic size, i.e. number of variables
-	inline size_t size() const
-		{ return nullptr == vars_p ? 0 : vars_p->size(); }
+	inline size_t size() const noexcept { return vars_.size(); }
 
 	/// @brief Concrete size, i.e. cross product of all variables ranges
-	inline size_t concrete_size() const { return maxConcreteState_; }
+	inline size_t concrete_size() const noexcept { return maxConcreteState_; }
 
 	/**
 	 * @brief Retrieve const reference to i-th variable
@@ -153,15 +169,15 @@ public:  // Accessors
 	/// @brief Print formatted vector of variables into 'out'
 	void print_out(std::ostream& out, bool withNewline = false) const;
 
-public:  // Relational operators
-
-	/**
-	 * @brief Whether 'this' and 'that' hold same variables with same values
-	 * @note <b>Complexity:</b> <i>O(GlobalState.size()</i>
-	 */
-	bool operator==(const State< T_ >& that) const;
-	inline bool operator!=(const State< T_ >& that) const
-		{ return ( ! (that == *this) ); }
+// public:  // Relational operators
+//          // Not needed if there's a unique GlobalState instance
+// 	/**
+// 	 * @brief Whether 'this' and 'that' hold same variables with same values
+// 	 * @note <b>Complexity:</b> <i>O(GlobalState.size()</i>
+// 	 */
+// 	bool operator==(const State< T_ >& that) const;
+// 	inline bool operator!=(const State< T_ >& that) const
+// 		{ return ( ! (that == *this) ); }
 
 public:  // Encode/Decode between symbolic and concrete representations
 

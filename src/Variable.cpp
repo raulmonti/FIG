@@ -62,6 +62,17 @@ Variable<T_>::Variable(std::string&& thename) :
 }
 
 
+// Variable can only be instantiated with following numeric types
+template class Variable< short              >;
+//template class Variable< int                >;  // MuParser can't
+template class Variable< long               >;
+template class Variable< long long          >;
+template class Variable< unsigned short     >;
+template class Variable< unsigned int       >;
+template class Variable< unsigned long      >;
+template class Variable< unsigned long long >;
+
+
 
 //  Interval Variable  /////////////////////////////////////////////////////////
 
@@ -204,6 +215,17 @@ VariableInterval<T_>::operator==(const VariableInterval<T_>& that) const
 }
 
 
+// VariableInterval can only be instantiated with following numeric types
+template class VariableInterval< short              >;
+//template class VariableInterval< int                >;   // MuParser can't
+template class VariableInterval< long               >;
+template class VariableInterval< long long          >;
+template class VariableInterval< unsigned short     >;
+template class VariableInterval< unsigned int       >;
+template class VariableInterval< unsigned long      >;
+template class VariableInterval< unsigned long long >;
+
+
 
 //  Set Variable  //////////////////////////////////////////////////////////////
 
@@ -216,13 +238,35 @@ VariableSet<T_>::VariableSet(const Set_& setOfValues) :
 {
 	static_assert(std::is_same< T_, typename Set_::value_type >::value,
 				  "ERROR: construction container internal data type "
-				  "and this template type (T_) must be the same");
+				  "and this template type must be the same");
 	size_t i(0u);
 	for (const auto& e: setOfValues) {
 		values_[i++] = e;
 		min_ = e < min_ ? e : min_;
 		max_ = e > max_ ? e : max_;
 	}
+	assert_invariant();
+}
+
+
+template< typename T_ >
+template< class Set_ >
+VariableSet<T_>::VariableSet(Set_&& setOfValues) :
+	values_(setOfValues.size()),
+	min_(std::numeric_limits<T_>::max()),
+	max_(std::numeric_limits<T_>::min())
+{
+	static_assert(std::is_same< T_, typename Set_::value_type >::value,
+				  "ERROR: construction container internal data type "
+				  "and this template type must be the same");
+	size_t i(0u);
+	for (const auto& e: setOfValues) {
+		values_[i++] = std::move(e);
+		min_ = e < min_ ? e : min_;
+		max_ = e > max_ ? e : max_;
+	}
+	setOfValues.clear();
+	assert(0 == setOfValues.size());
 	assert_invariant();
 }
 
@@ -308,6 +352,18 @@ VariableSet<T_>::assert_invariant() const
 	for (const auto& e: values_)
 		assert(min_ <= e && e <= max_);
 }
+
+
+// VariableSet can only be instantiated with following numeric types
+template class VariableSet< short              >;
+//template class VariableSet< int                >;   // MuParser can't
+template class VariableSet< long               >;
+template class VariableSet< long long          >;
+template class VariableSet< unsigned short     >;
+template class VariableSet< unsigned int       >;
+template class VariableSet< unsigned long      >;
+template class VariableSet< unsigned long long >;
+
 
 
 } // namespace fig

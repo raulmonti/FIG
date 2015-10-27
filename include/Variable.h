@@ -57,7 +57,7 @@ struct Variable
 	// Friend template class: http://stackoverflow.com/a/8967610
 	template< typename TT_ > friend class GlobalState;
 
-public:  // Constructors
+public:  // Ctors/Dtor
 
 	Variable(const std::string& thename);
 	Variable(std::string&& thename);
@@ -80,7 +80,7 @@ public:  // Relational operators
 
 public:  // Attributes
 
-	const std::string name;  // FIXME remove const qualifier and implement fresh variables ???
+	const std::string name;  // TODO remove const qualifier and implement fresh variables ???
 
 protected:
 	/// Number of distinct values this variable can take
@@ -172,7 +172,9 @@ public:  // Invariant
 
 
 /**
- * Variable defined by a set of possible values: { val1, val2, ..., valN }
+ * @brief Variable defined by a set of possible values: { v1, v2, ..., vN }
+ * @note  Useful to handle non-integer values such as, for instance, floats,
+ *        which the class VariableInterval can't handle.
  */
 template< typename T_ >
 class VariableSet : Variable<T_>
@@ -186,6 +188,8 @@ public:  // Ctors/Dtor
 	// A bunch of data ctors
 	/// Copy content from any container with internal data type equal to T_
 	template< class Set_ > VariableSet(const Set_& setOfValues);
+	/// Move content from any container with internal data type equal to T_
+	template< class Set_ > VariableSet(Set_&& setOfValues);
 	/// Copy content between iterators 'from' and 'to' with internal data type equal to T_
 	template< class Iter_ > VariableSet(Iter_ from, Iter_ to);
 	/// Copy content from static array of specified size

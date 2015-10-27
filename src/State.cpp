@@ -27,7 +27,9 @@
 //==============================================================================
 
 
-
+// C++
+#include <type_traits>  // std::is_same<>
+// Project code
 #include <State.h>
 
 namespace fig
@@ -41,6 +43,37 @@ GlobalState<T_>::build_concrete_bound()
 	for (size_t i=0 ; i < size() ; i++)
 		maxConcreteState_ *= vars_[i].range_;
 }
+
+
+template< typename T_ >
+template< class Container_ >
+GlobalState<T_>::GlobalState(const Container_& container) :
+	// We chose VariableInterval<> as implementation for our Variables
+	vars_(std::vector< VariableInterval<T_>>(container.size())),
+	maxConcreteState_(0)
+{
+	static_assert(std::is_assignable< typename VariableInterval<T_>,
+									  Container_::value_type >::value,
+				  "ERROR: GlobalState can only be built from Variables, "
+				  "VariableDefinitions or VariableDeclarations.");
+
+	/*
+	 * TODO
+	 *
+	 *      Review assignment down there. We must ensure it uses
+	 *      the assignment operator from VariableInterval class.
+	 *
+	 *      Maybe instead of creating vars_ in initialization list,
+	 *      we could build a temporary std::vector<VariableInterval>
+	 *      and then move it to vars_
+	 */
+
+	size_t i(0u);
+	for (const auto& e: container)
+		vars_[i++] = e;
+	build_concrete_bound();
+}
+
 
 template< typename T_ >
 std::shared_ptr< Variable< T_ > >
