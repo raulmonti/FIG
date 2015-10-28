@@ -69,6 +69,7 @@ public:  // Accessors
 	virtual T_ min() const noexcept = 0;
 	virtual T_ max() const noexcept = 0;
 	virtual T_ val() const noexcept = 0;
+	virtual T_ val(const size_t& offset) const = 0;
 
 public:  // Relational operators
 
@@ -149,7 +150,8 @@ public:  // Accessors
 
 	inline T_ min() const noexcept { return min_; }
 	inline T_ max() const noexcept { return max_; }
-	inline T_ val() const noexcept { return min_ + offset_; }
+	inline T_ val() const noexcept { return min_ + static_cast<T_>(offset_); }
+	inline T_ val(const size_t& offset) const { return min_ + static_cast<T_>(offset); }
 
 public:  // Relational operators
 
@@ -209,6 +211,7 @@ public:  // Accessors
 	inline T_ min() const noexcept { return min_; }
 	inline T_ max() const noexcept { return max_; }
 	inline T_ val() const noexcept { return values_[offset_]; }
+	inline T_ val(const size_t& offset) const { return values_[offset]; }
 
 public:  // Relational operators
 

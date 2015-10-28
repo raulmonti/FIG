@@ -173,22 +173,28 @@ public:  // Encode/Decode between symbolic and concrete representations
 	 */
 	size_t encode_state() const;
 
-	// @brief Decode number as vector of Variables values and apply to State,
-	//        i.e. store "symbolically" the "concrete state" n.
-	// @param n  Concrete state to interpret and apply to our symbolic existence
-	// @compl Quadratic on the size of State
+	/**
+	 * @brief Decode number as vector of Variables values and apply to State,
+	 *        i.e. store "symbolically" the "concrete state" n.
+	 * @param n  Concrete state to interpret and apply to our symbolic existence
+	 * @note <b>Complexity:</b> <i>O(GlobalState.size()<sup>2</sup></i>
+	 */
 	void decode_state(const size_t& n);
 
-	// @brief Decode number into corresponding Variable value
-	// @param n  Concrete state to interpret
-	// @param i  Variable index whose value (decoded from n) is requested
-	// @compl Linear on the size of State
+	/**
+	 * @brief Decode concrete state 'n' into corresponding Variable value
+	 * @param n  Concrete state to interpret
+	 * @param i  Variable index whose value (decoded from n) is requested
+	 * @note <b>Complexity:</b> <i>O(GlobalState.size())</i>
+	 */
 	T_ decode_state(const size_t& n, const size_t& i) const;
 
-	// @brief Decode number into corresponding Variable value
-	// @param n  Concrete state to interpret
-	// @param i  Variable name whose value (decoded from n) is requested
-	// @compl Linear on the size of State
+	/**
+	 * @brief Decode concrete state 'n' into corresponding Variable value
+	 * @param n  Concrete state to interpret
+	 * @param i  Variable name whose value (decoded from n) is requested
+	 * @note <b>Complexity:</b> <i>O(GlobalState.size())</i>
+	 */
 	T_ decode_state(const size_t& n, const std::string& varname) const;
 };
 

@@ -190,4 +190,50 @@ GlobalState<T_>::encode_state() const
 	return n;
 }
 
+
+template< typename T_ >
+void
+GlobalState<T_>::decode_state(const size_t& n)
+{
+	const size_t numVars(size());
+	assert(n < maxConcreteState_);
+	#pragma omp parallel for shared(n, numVars)
+	for (size_t i=0 ; i < numVars ; i++) {
+		size_t stride(1u);
+		for (size_t j = i+1 ; j < numVars ; j++)
+			stride *= pvars_[j]->range_;
+		pvars_[i]->offset_ = (n / stride) % pvars_[i]->range_;
+	}
+}
+
+
+template< typename T_ >
+T_
+GlobalState<T_>::decode_state(const size_t& n, const size_t& i) const
+{
+
+	size_t numVars(size()), stride(1u), varOffset(0u);
+	assert(i < numVars);
+	assert(n < maxConcreteState_);
+	#pragma omp parallel for reduction (*:stride) shared(i,numVars)
+	for (size_t j = i+1 ; j < numVars ; j++)
+		stride *= pvars_[j]->range_;
+	return pvars_[i]->val((n / stride) % pvars_[i]->range_);
+}
+
+
+template< typename T_ >
+T_
+GlobalState<T_>::decode_state(const size_t& n, const std::string& varname) const
+{
+	size_t varpos(0);
+	assert(n < maxConcreteState_);
+	for (; varpos < size() ; varpos++)
+		if (varname == pvars_[varpos]->name)
+			break;
+	assert(varpos < size());
+	return decode_state(n, varpos);
+}
+
+
 } // namespace fig
