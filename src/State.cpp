@@ -55,14 +55,14 @@ GlobalState<T_>::GlobalState(const Container_& container) :
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_constructible<
-					  typename VariableInterval<T_>,
+					  VariableInterval<T_>,
 					  typename Container_::value_type
 				  >::value,
 				  "ERROR: GlobalState can only be constructed from Variables, "
 				  "VariableDefinitions or VariableDeclarations");
 	size_t i(0u);
 	for (const auto& e: container)
-		pvars_[i++] = std::make_shared< typename VariableInterval< T_ > >(e);
+		pvars_[i++] = std::make_shared< VariableInterval< T_ > >(e);
 	build_concrete_bound();
 }
 
@@ -99,14 +99,14 @@ GlobalState<T_>::GlobalState(Iter_ from, Iter_ to) :
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_constructible<
-					  typename VariableInterval<T_>,
+					  VariableInterval<T_>,
 					  typename Iter_::value_type
 				  >::value,
 				  "ERROR: GlobalState can only be constructed from Variables, "
 				  "VariableDefinitions or VariableDeclarations");
 	size_t i(0);
 	do {
-		pvars_[i++] = std::make_shared< typename VariableInterval<T_> >(*from);
+		pvars_[i++] = std::make_shared< VariableInterval<T_> >(*from);
 	} while (++from != to);
 	build_concrete_bound();
 }
@@ -162,17 +162,18 @@ GlobalState<T_>::print_out(std::ostream& out, bool withNewline) const
 }
 
 
-template< typename T_ >
-bool
-GlobalState<T_>::operator==(const State< T_ >& that) const
-{
-	if (this->size() != that.size())
-		return false;
-	for (size_t i=0 ; i < pvars_.size() ; i++)
-		if (that[i] != pvars_[i])
-			return false;
-	return true;
-}
+// // Not needed if there's a unique GlobalState instance
+// template< typename T_ >
+// bool
+// GlobalState<T_>::operator==(const State< T_ >& that) const
+// {
+// 	if (this->size() != that.size())
+// 		return false;
+// 	for (size_t i=0 ; i < pvars_.size() ; i++)
+// 		if (that[i] != pvars_[i])
+// 			return false;
+// 	return true;
+// }
 
 
 template< typename T_ >
@@ -211,8 +212,7 @@ template< typename T_ >
 T_
 GlobalState<T_>::decode_state(const size_t& n, const size_t& i) const
 {
-
-	size_t numVars(size()), stride(1u), varOffset(0u);
+	size_t numVars(size()), stride(1u);
 	assert(i < numVars);
 	assert(n < maxConcreteState_);
 	#pragma omp parallel for reduction (*:stride) shared(i,numVars)

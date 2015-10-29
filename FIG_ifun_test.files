@@ -2554,3 +2554,4 @@ src/Clock.cpp
 src/TADs_instantiation.cpp
 include/Variable.h
 src/State.cpp
+include/FigException.h

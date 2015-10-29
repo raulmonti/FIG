@@ -35,6 +35,7 @@
 #include <cassert>
 // Project code
 #include <Variable.h>
+#include <FigException.h>
 
 
 namespace fig
@@ -43,8 +44,13 @@ namespace fig
 //  Base Variable  /////////////////////////////////////////////////////////////
 
 template< typename T_ >
+Variable<T_>::Variable()
+{}
+
+
+template< typename T_ >
 Variable<T_>::Variable(const std::string& thename) :
-	name(thename),
+	name_(thename),
 	range_(1),
 	offset_(0)
 {
@@ -54,11 +60,75 @@ Variable<T_>::Variable(const std::string& thename) :
 
 template< typename T_ >
 Variable<T_>::Variable(std::string&& thename) :
-	name(std::move(thename)),
+	name_(std::move(thename)),
 	range_(1),
 	offset_(0)
 {
 	assert_invariant();
+}
+
+
+template< typename T_ >
+Variable<T_>&
+Variable<T_>::operator=(const std::string& thename)
+{
+	if (!name_.empty()) {
+		std::string err("trying to assign to non-fresh variable \"");
+		throw new FigException(err.append(name_).append("\""));
+	}
+	name_ = thename;
+	range_ = 1;
+	offset_ = 0;
+	assert_invariant();
+	return *this;
+}
+
+
+template< typename T_ >
+Variable<T_>&
+Variable<T_>::operator=(std::string&& thename)
+{
+	if (!name_.empty()) {
+		std::string err("trying to assign to non-fresh variable \"");
+		throw new FigException(err.append(name_).append("\""));
+	}
+	name_ = std::move(thename);
+	range_ = 1;
+	offset_ = 0;
+	assert_invariant();
+	return *this;
+}
+
+
+template< typename T_ >
+Variable<T_>&
+Variable<T_>::operator=(const Variable<T_>& that)
+{
+	if (!name_.empty()) {
+		std::string err("trying to assign to non-fresh variable \"");
+		throw new FigException(err.append(name_).append("\""));
+	}
+	name_ = that.name_;
+	range_ = that.range_;
+	offset_ = that.offset_;
+	assert_invariant();
+	return *this;
+}
+
+
+template< typename T_ >
+Variable<T_>&
+Variable<T_>::operator=(Variable<T_>&& that)
+{
+	if (!name_.empty()) {
+		std::string err("trying to assign to non-fresh variable \"");
+		throw new FigException(err.append(name_).append("\""));
+	}
+	name_ = std::move(that.name_);
+	range_ = std::move(that.range_);
+	offset_ = std::move(that.offset_);
+	assert_invariant();
+	return *this;
 }
 
 
@@ -80,12 +150,12 @@ template< typename T_ >
 VariableInterval<T_>::VariableInterval(const std::string& thename,
 									   const T_& min,
 									   const T_& max) :
-	Variable(thename),
+	Variable<T_>(thename),
 	min_(min),
 	max_(max)
 {
-	range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
-	offset_ = 0u;
+	Variable<T_>::offset_ = 0u;
+	Variable<T_>::range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
 	assert_invariant();
 }
 
@@ -95,14 +165,14 @@ VariableInterval<T_>::VariableInterval(const std::string& thename,
 									   const T_& min,
 									   const T_& max,
 									   const T_& val) :
-	Variable(thename),
+	Variable<T_>(thename),
 	min_(min),
 	max_(max)
 {
 	assert(min_ <= val);
 	assert(val <= max_);
-	range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
-	offset_ = val - min_;
+	Variable<T_>::offset_ = val - min_;
+	Variable<T_>::range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
 	assert_invariant();
 }
 
@@ -111,12 +181,12 @@ template< typename T_ >
 VariableInterval<T_>::VariableInterval(std::string&& thename,
 									   const T_& min,
 									   const T_& max) :
-	Variable(thename),
+	Variable<T_>(thename),
 	min_(min),
 	max_(max)
 {
-	range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
-	offset_ = 0u;
+	Variable<T_>::offset_ = 0u;
+	Variable<T_>::range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
 	assert_invariant();
 }
 
@@ -126,92 +196,122 @@ VariableInterval<T_>::VariableInterval(std::string&& thename,
 									   const T_& min,
 									   const T_& max,
 									   const T_& val) :
-	Variable(thename),
+	Variable<T_>(thename),
 	min_(min),
 	max_(max)
 {
 	assert(min_ <= val);
 	assert(val <= max_);
-	range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
-	offset_ = val - min_;
+	Variable<T_>::offset_ = val - min_;
+	Variable<T_>::range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
 	assert_invariant();
 }
 
 
 template< typename T_ >
 VariableInterval<T_>::VariableInterval(const VariableDeclaration< T_ >& dec) :
-	Variable(std::get<0>(dec)),
+	Variable<T_>(std::get<0>(dec)),
 	min_(std::get<1>(dec)),
 	max_(std::get<2>(dec))
 {
-	range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
-	offset_ = 0u;
+	Variable<T_>::offset_ = 0u;
+	Variable<T_>::range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
 	assert_invariant();
 }
 
 
 template< typename T_ >
 VariableInterval<T_>::VariableInterval(const VariableDefinition< T_ >& def) :
-	Variable(std::get<0>(def)),
+	Variable<T_>(std::get<0>(def)),
 	min_(std::get<1>(def)),
 	max_(std::get<2>(def))
 {
 	T_ val(std::get<3>(def));
 	assert(min_ <= val);
 	assert(val <= max_);
-	range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
-	offset_ = val - min_;
+	Variable<T_>::offset_ = val - min_;
+	Variable<T_>::range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
 	assert_invariant();
 }
 
 
 template< typename T_ >
 VariableInterval<T_>::VariableInterval(VariableDeclaration< T_ >&& dec) :
-	Variable(std::move(std::get<0>(dec))),
+	Variable<T_>(std::move(std::get<0>(dec))),
 	min_(std::move(std::get<1>(dec))),
 	max_(std::move(std::get<2>(dec)))
 {
-	range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
-	offset_ = 0u;
+	Variable<T_>::offset_ = 0u;
+	Variable<T_>::range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
 	assert_invariant();
 }
 
 
 template< typename T_ >
 VariableInterval<T_>::VariableInterval(VariableDefinition< T_ >&& def) :
-	Variable(std::move(std::get<0>(def))),
+	Variable<T_>(std::move(std::get<0>(def))),
 	min_(std::move(std::get<1>(def))),
 	max_(std::move(std::get<2>(def)))
 {
 	T_ val(std::move(std::get<3>(def)));
 	assert(min_ <= val);
 	assert(val <= max_);
-	range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
-	offset_ = val - min_;
+	Variable<T_>::offset_ = val - min_;
+	Variable<T_>::range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
 	assert_invariant();
 }
 
 
 template< typename T_ >
 VariableInterval<T_>&
-VariableInterval::operator=(VariableInterval<T_> that)
+VariableInterval<T_>::operator=(VariableInterval<T_> that)
 {
-	std::swap(name, that.name);
-	std::swap(range_, that.range_);
-	std::swap(offset_, that.offset_);
+	Variable<T_>::operator=(std::move(that));  // checks freshness
 	std::swap(min_, that.min_);
 	std::swap(max_, that.max_);
+	std::swap(Variable<T_>::offset_, that.offset_);
+	std::swap(Variable<T_>::range_, that.range_);
+	assert_invariant();
+	return *this;
 }
 
 
 template< typename T_ >
-virtual bool
+VariableInterval<T_>&
+VariableInterval<T_>::operator=(VariableDeclaration<T_> dec)
+{
+	Variable<T_>::operator=(std::move(std::get<0>(dec)));  // checks freshness
+	std::swap(min_, std::get<1>(dec));
+	std::swap(max_, std::get<2>(dec));
+	Variable<T_>::offset_ = 0u;
+	Variable<T_>::range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
+	assert_invariant();
+	return *this;
+}
+
+
+template< typename T_ >
+VariableInterval<T_>&
+VariableInterval<T_>::operator=(VariableDefinition<T_> def)
+{
+	Variable<T_>::operator=(std::move(std::get<0>(def)));  // checks freshness
+	std::swap(min_, std::get<1>(def));
+	std::swap(max_, std::get<2>(def));
+	Variable<T_>::offset_ = std::get<3>(def) - min_;
+	Variable<T_>::range_ = static_cast<size_t>(max_ - min_) + 1;  // closed interval [min,max]
+	assert_invariant();
+	return *this;
+}
+
+
+template< typename T_ >
+bool
 VariableInterval<T_>::operator==(const VariableInterval<T_>& that) const
 {
-	return name == that.name &&
+	return Variable<T_>::name_ == that.name_ &&
 		   min_ == that.min_ &&
 		   max_ == that.max_ &&
-		   offset_ == that.offset_;
+		   Variable<T_>::offset_ == that.offset_;
 }
 
 
@@ -231,7 +331,8 @@ template class VariableInterval< unsigned long long >;
 
 template< typename T_ >
 template< class Set_ >
-VariableSet<T_>::VariableSet(const Set_& setOfValues) :
+VariableSet<T_>::VariableSet(const std::string &thename, const Set_& setOfValues) :
+	Variable<T_>(thename),
 	values_(setOfValues.size()),
 	min_(std::numeric_limits<T_>::max()),
 	max_(std::numeric_limits<T_>::min())
@@ -251,7 +352,8 @@ VariableSet<T_>::VariableSet(const Set_& setOfValues) :
 
 template< typename T_ >
 template< class Set_ >
-VariableSet<T_>::VariableSet(Set_&& setOfValues) :
+VariableSet<T_>::VariableSet(const std::string &thename, Set_&& setOfValues) :
+	Variable<T_>(thename),
 	values_(setOfValues.size()),
 	min_(std::numeric_limits<T_>::max()),
 	max_(std::numeric_limits<T_>::min())
@@ -272,7 +374,8 @@ VariableSet<T_>::VariableSet(Set_&& setOfValues) :
 
 template< typename T_ >
 template< class Iter_ >
-VariableSet<T_>::VariableSet(Iter_ from, Iter_ to) :
+VariableSet<T_>::VariableSet(const std::string &thename, Iter_ from, Iter_ to) :
+	Variable<T_>(thename),
 	values_(std::distance(from,to)),
 	min_(std::numeric_limits<T_>::max()),
 	max_(std::numeric_limits<T_>::min())
@@ -291,7 +394,8 @@ VariableSet<T_>::VariableSet(Iter_ from, Iter_ to) :
 
 
 template< typename T_ >
-VariableSet<T_>::VariableSet(const T_ *array, size_t arraySize) :
+VariableSet<T_>::VariableSet(const std::string &thename, const T_ *array, size_t arraySize) :
+	Variable<T_>(thename),
 	values_(arraySize),
 	min_(std::numeric_limits<T_>::max()),
 	max_(std::numeric_limits<T_>::min())
@@ -309,21 +413,24 @@ template< typename T_ >
 VariableSet<T_>&
 VariableSet<T_>::operator=(VariableSet<T_> that)
 {
-	that.assert_invariant();
-	std::swap(name, that.name);
-	std::swap(range_, that.range_);
-	std::swap(offset_, that.offset_);
+	Variable<T_>::operator=(std::move(that));
+	std::swap(Variable<T_>::range_, that.range_);
+	std::swap(Variable<T_>::offset_, that.offset_);
 	std::swap(values_, that.values_);
 	std::swap(min_, that.min_);
 	std::swap(max_, that.max_);
+	assert_invariant();
+	return *this;
 }
 
 
 template< typename T_ >
-virtual bool
+bool
 VariableSet<T_>::operator==(const VariableSet<T_>& that) const
 {
-	if (name != that.name || range_ != that.range_ || offset_ != that.offset_)
+	if (  Variable<T_>::name_   != that.name_
+	   || Variable<T_>::range_  != that.range_
+	   || Variable<T_>::offset_ != that.offset_)
 		return false;
 	for (size_t i = 0u ; i < values_.size() ; i++)
 		if (values_[i] != that.values_[i])
@@ -333,20 +440,21 @@ VariableSet<T_>::operator==(const VariableSet<T_>& that) const
 
 
 template< typename T_ >
-virtual bool
+bool
 VariableSet<T_>::is_valid_value(const T_& val) const
 {
 	for (const auto& e: values_)
-		if (val==e) return true;
+		if (val==e)
+			return true;
 	return false;
 }
 
 
 template< typename T_ >
-virtual bool
+void
 VariableSet<T_>::assert_invariant() const
 {
-	Variable::assert_invariant();
+	Variable<T_>::assert_invariant();
 	for (const auto& e: values_)
 		assert(min_ <= e && e <= max_);
 }

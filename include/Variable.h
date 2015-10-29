@@ -52,20 +52,30 @@ namespace fig
  * @note  This class exists only for value validation of State instances.
  */
 template< typename T_ >
-struct Variable
+class Variable
 {
 	// Friend template class: http://stackoverflow.com/a/8967610
 	template< typename TT_ > friend class GlobalState;
 
 public:  // Ctors/Dtor
 
+	/// Named variables
 	Variable(const std::string& thename);
 	Variable(std::string&& thename);
+	/// Fresh variable
+	Variable();
+	/// Copy assignment, only applicable to fresh variables
+	Variable& operator=(const std::string& thename);
+	Variable& operator=(std::string&& thename);
+	Variable& operator=(const Variable<T_>& that);
+	Variable& operator=(Variable<T_>&& that);
+
 	virtual ~Variable() {}
 
 public:  // Accessors
 
-	inline size_t range() const noexcept { return range_; }
+	inline const size_t&     range() const noexcept { return range_; }
+	inline const std::string& name() const noexcept { return name_; }
 	virtual T_ min() const noexcept = 0;
 	virtual T_ max() const noexcept = 0;
 	virtual T_ val() const noexcept = 0;
@@ -81,9 +91,10 @@ public:  // Relational operators
 
 public:  // Attributes
 
-	const std::string name;  // TODO remove const qualifier and implement fresh variables ???
 
 protected:
+	/// Name can only be assigned once (fresh variable concept)
+	std::string name_;
 	/// Number of distinct values this variable can take
 	size_t range_;
 	/// Position in [0, 1, ..., range) for the "current" value of the Variable
@@ -92,9 +103,13 @@ protected:
 public:  // Invariant
 
 #ifndef NDEBUG
-	inline virtual void assert_invariant() const
+	/**
+	 * @brief Is this instance a "ready to use" variable?
+	 * @note False for fresh variables!
+	 */
+	inline void assert_invariant() const
 		{
-			assert(!name.empty());
+			assert(!name_.empty());
 			assert(offset_ < range_);
 		}
 #else
@@ -122,8 +137,8 @@ class VariableInterval : Variable< T_ >
 	static_assert(std::is_integral<T_>::value,
 				  "ERROR: class VariableInterval<T> can only be instantiated "
 				  "with integral types, e.g. int, short, unsigned.");
-	const T_ min_;
-	const T_ max_;
+	 T_ min_;
+	 T_ max_;
 
 public:  // Ctors/Dtor
 
@@ -141,8 +156,13 @@ public:  // Ctors/Dtor
 	VariableInterval(const VariableInterval& that) = default;
 	VariableInterval(VariableInterval&& that) = default;
 
-	// Copy assignment with copy&swap
+	/**
+	 * @brief Copy assignment with copy&swap
+	 * @note Only applicable to fresh variables, see Variable::operator=()
+	 */
 	VariableInterval<T_>& operator=(VariableInterval<T_> that);
+	VariableInterval<T_>& operator=(VariableDeclaration<T_> dec);
+	VariableInterval<T_>& operator=(VariableDefinition<T_> def);
 
 	virtual ~VariableInterval() {}
 
@@ -150,12 +170,12 @@ public:  // Accessors
 
 	inline T_ min() const noexcept { return min_; }
 	inline T_ max() const noexcept { return max_; }
-	inline T_ val() const noexcept { return min_ + static_cast<T_>(offset_); }
+	inline T_ val() const noexcept { return min_ + static_cast<T_>(Variable<T_>::offset_); }
 	inline T_ val(const size_t& offset) const { return min_ + static_cast<T_>(offset); }
 
 public:  // Relational operators
 
-	virtual bool operator==(const Variable<T_>& that) const;
+	virtual bool operator==(const VariableInterval<T_>& that) const;
 	inline virtual bool is_valid_value(const T_& val) const final
 		{ return min_ <= val && val <= max_; }  // http://stackoverflow.com/a/19954164
 
@@ -164,7 +184,7 @@ public:  // Invariant
 #ifndef NDEBUG
 	inline virtual void assert_invariant() const
 		{
-			Variable::assert_invariant();
+			Variable<T_>::assert_invariant();
 			assert(min_ <= max_);
 		}
 #else
@@ -189,19 +209,22 @@ public:  // Ctors/Dtor
 
 	// A bunch of data ctors
 	/// Copy content from any container with internal data type equal to T_
-	template< class Set_ > VariableSet(const Set_& setOfValues);
+	template< class Set_ > VariableSet(const std::string& thename, const Set_& setOfValues);
 	/// Move content from any container with internal data type equal to T_
-	template< class Set_ > VariableSet(Set_&& setOfValues);
+	template< class Set_ > VariableSet(const std::string& thename, Set_&& setOfValues);
 	/// Copy content between iterators 'from' and 'to' with internal data type equal to T_
-	template< class Iter_ > VariableSet(Iter_ from, Iter_ to);
+	template< class Iter_ > VariableSet(const std::string& thename, Iter_ from, Iter_ to);
 	/// Copy content from static array of specified size
-	VariableSet(const T_ *array, size_t arraySize);
+	VariableSet(const std::string& thename, const T_ *array, size_t arraySize);
 
 	// It should be safe to use compiler's both move and copy ctors
 	VariableSet(const VariableSet& that) = default;
 	VariableSet(VariableSet&& that) = default;
 
-	// Copy assignment with copy&swap
+	/**
+	 * @brief Copy assignment with copy&swap
+	 * @note Only applicable to fresh variables, see Variable::operator=()
+	 */
 	VariableSet<T_>& operator=(VariableSet<T_> that);
 
 	virtual ~VariableSet() { values_.clear(); }
@@ -210,12 +233,12 @@ public:  // Accessors
 
 	inline T_ min() const noexcept { return min_; }
 	inline T_ max() const noexcept { return max_; }
-	inline T_ val() const noexcept { return values_[offset_]; }
+	inline T_ val() const noexcept { return values_[Variable<T_>::offset_]; }
 	inline T_ val(const size_t& offset) const { return values_[offset]; }
 
 public:  // Relational operators
 
-	virtual bool operator==(const Variable<T_>& that) const;
+	virtual bool operator==(const VariableSet<T_>& that) const;
 	virtual bool is_valid_value(const T_& val) const;
 
 public:  // Invariant
