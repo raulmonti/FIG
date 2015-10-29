@@ -2555,3 +2555,7 @@ src/TADs_instantiation.cpp
 include/Variable.h
 src/State.cpp
 include/FigException.h
+include/VariableInterval.h
+include/VariableSet.h
+src/VariableInterval.cpp
+src/VariableSet.cpp

@@ -33,6 +33,8 @@
 #include <utility>      // std::move()
 // Project code
 #include <State.h>
+#include <VariableInterval.h>
+
 
 namespace fig
 {
