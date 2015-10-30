@@ -31,6 +31,7 @@
 #define VARIABLESET_H
 
 // C++
+#include <limits>  // std::numeric_limits<>
 #include <string>
 #include <vector>
 // Project code
@@ -107,6 +108,89 @@ public:  // Invariant
 	inline void assert_invariant() const {}
 #endif
 };
+
+
+// // // // // // // // // // // // // // // // // // // // // // // // // // //
+
+// Template definitions
+
+// If curious about its presence here take a look at the end of the source file
+
+template< typename T_ >
+template< class Set_ >
+VariableSet<T_>::VariableSet(const std::string &thename, const Set_& setOfValues) :
+	Variable<T_>(thename),
+	values_(setOfValues.size()),
+	min_(std::numeric_limits<T_>::max()),
+	max_(std::numeric_limits<T_>::min())
+{
+	static_assert(std::is_same< T_, typename Set_::value_type >::value,
+				  "ERROR: construction container internal data type "
+				  "and this template type must be the same");
+	Variable<T_>::range_ = setOfValues.size();
+	size_t i(0u);
+	for (const auto& e: setOfValues) {
+		values_[i++] = e;
+		min_ = e < min_ ? e : min_;
+		max_ = e > max_ ? e : max_;
+	}
+	assert_invariant();
+}
+
+
+template< typename T_ >
+template< class Set_ >
+VariableSet<T_>::VariableSet(const std::string &thename, Set_&& setOfValues) :
+	Variable<T_>(std::move(thename)),
+	values_(setOfValues.size()),
+	min_(std::numeric_limits<T_>::max()),
+	max_(std::numeric_limits<T_>::min())
+{
+	/// FIXME
+	/*
+	 * Line below won't compile because "Set_" is interpreted as a type name
+	 * and not as a class/struct name, so when we try to acces the attribute
+	 * "::value_type" the compiler says that types have no such things.
+	 *
+	 * We need to learn how to declare "Set_" as a type dependent on T_.
+	 * Maybe that way we even avoid the need for the static_assert.
+	 */
+	static_assert(std::is_same< T_, typename Set_::value_type >::value,
+				  "ERROR: construction container internal data type "
+				  "and this template type must be the same");
+	Variable<T_>::range_ = setOfValues.size();
+	size_t i(0u);
+	for (const auto& e: setOfValues) {
+		values_[i++] = std::move(e);
+		min_ = e < min_ ? e : min_;
+		max_ = e > max_ ? e : max_;
+	}
+	setOfValues.clear();
+	assert_invariant();
+}
+
+
+template< typename T_ >
+template< class Iter_ >
+VariableSet<T_>::VariableSet(const std::string &thename, Iter_ from, Iter_ to) :
+	Variable<T_>(thename),
+	values_(std::distance(from,to)),
+	min_(std::numeric_limits<T_>::max()),
+	max_(std::numeric_limits<T_>::min())
+{
+	static_assert(std::is_same< T_, typename Iter_::value_type >::value,
+				  "ERROR: construction container internal data type "
+				  "and this template type must be the same");
+	Variable<T_>::range_ = values_.size();
+	size_t i(0u);
+	do {
+		values_[i++] = *from;
+		min_ = *from < min_ ? *from : min_;
+		max_ = *from > max_ ? *from : max_;
+	} while (++from != to);
+	assert_invariant();
+}
+
 
 } // namespace fig
 

@@ -53,8 +53,8 @@ fi
 
 # Configure and build from inside DIR
 if [ ! -d $DIR ]; then mkdir $DIR; fi
-cd $DIR && CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CWD && make
-#cd $DIR && CC=gcc CXX=g++ cmake $CWD && make
+#cd $DIR && CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CWD && make
+cd $DIR && CC=gcc CXX=g++ cmake $CWD && make
 echo "\n  Project built in $PWD\n"
 cd $CWD
 

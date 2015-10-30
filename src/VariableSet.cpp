@@ -42,70 +42,6 @@ namespace fig
 {
 
 template< typename T_ >
-template< class Set_ >
-VariableSet<T_>::VariableSet(const std::string &thename, const Set_& setOfValues) :
-	Variable<T_>(thename),
-	values_(setOfValues.size()),
-	min_(std::numeric_limits<T_>::max()),
-	max_(std::numeric_limits<T_>::min())
-{
-	static_assert(std::is_same< T_, typename Set_::value_type >::value,
-				  "ERROR: construction container internal data type "
-				  "and this template type must be the same");
-	size_t i(0u);
-	for (const auto& e: setOfValues) {
-		values_[i++] = e;
-		min_ = e < min_ ? e : min_;
-		max_ = e > max_ ? e : max_;
-	}
-	assert_invariant();
-}
-
-
-template< typename T_ >
-template< class Set_ >
-VariableSet<T_>::VariableSet(const std::string &thename, Set_&& setOfValues) :
-	Variable<T_>(thename),
-	values_(setOfValues.size()),
-	min_(std::numeric_limits<T_>::max()),
-	max_(std::numeric_limits<T_>::min())
-{
-	static_assert(std::is_same< T_, typename Set_::value_type >::value,
-				  "ERROR: construction container internal data type "
-				  "and this template type must be the same");
-	size_t i(0u);
-	for (const auto& e: setOfValues) {
-		values_[i++] = std::move(e);
-		min_ = e < min_ ? e : min_;
-		max_ = e > max_ ? e : max_;
-	}
-	setOfValues.clear();
-	assert_invariant();
-}
-
-
-template< typename T_ >
-template< class Iter_ >
-VariableSet<T_>::VariableSet(const std::string &thename, Iter_ from, Iter_ to) :
-	Variable<T_>(thename),
-	values_(std::distance(from,to)),
-	min_(std::numeric_limits<T_>::max()),
-	max_(std::numeric_limits<T_>::min())
-{
-	static_assert(std::is_same< T_, typename Iter_::value_type >::value,
-				  "ERROR: construction container internal data type "
-				  "and this template type must be the same");
-	size_t i(0u);
-	do {
-		values_[i++] = *from;
-		min_ = *from < min_ ? *from : min_;
-		max_ = *from > max_ ? *from : max_;
-	} while (++from != to);
-	assert_invariant();
-}
-
-
-template< typename T_ >
 VariableSet<T_>::VariableSet(const std::string &thename, const T_ *array, size_t arraySize) :
 	Variable<T_>(thename),
 	values_(arraySize),
@@ -146,14 +82,13 @@ VariableSet<T_>::operator=(const T_& value)
 	for (size_t i=0 ; i < values_.size() ; i++) {
 		if (value == values_[i]) {
 			Variable<T_>::offset_ = i;
+			assert(i < Variable<T_>::range());
 			return *this;
 		}
 	}
-	if (!is_valid_value(value))
-		throw FigException(std::string("can't assign ")
-			.append(std::to_string(value)).append(" to variable \"")
-			.append(Variable<T_>::name_).append("\", invalid value"));
-	return *this;  // avoid f***ing warnings
+	throw FigException(std::string("can't assign ")
+		.append(std::to_string(value)).append(" to variable \"")
+		.append(Variable<T_>::name_).append("\", invalid value"));
 }
 
 
@@ -214,7 +149,30 @@ template class VariableSet< unsigned short     >;
 template class VariableSet< unsigned int       >;
 template class VariableSet< unsigned long      >;
 template class VariableSet< unsigned long long >;
+template class VariableSet< float              >;
+template class VariableSet< double             >;
+template class VariableSet< long double        >;
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Devs corner *
+ * * * * * * * *
+ *
+ * We could also instantiate the template copy/move ctors like:
+ *
+ * template VariableSet<short>::VariableSet(const std::string &thename,
+ *                                          const std::set<short>&);
+ *
+ * However this would have to span over the cross product given by
+ * valid_types x valid_containers, and that's just too much.
+ *
+ * Most sensible workaround seems to be defining these ctors in the header,
+ * in spite of code bloating and what have you.
+ *
+ * References:
+ *   http://stackoverflow.com/q/115703
+ *   http://stackoverflow.com/a/495056
+ *   https://isocpp.org/wiki/faq/templates#templates-defn-vs-decl
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 } // namespace fig
 

@@ -160,6 +160,9 @@ template class Variable< unsigned short     >;
 template class Variable< unsigned int       >;
 template class Variable< unsigned long      >;
 template class Variable< unsigned long long >;
+template class Variable< float              >;
+template class Variable< double             >;
+template class Variable< long double        >;
 
 
 } // namespace fig
