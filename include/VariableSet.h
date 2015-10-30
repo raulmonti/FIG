@@ -45,7 +45,7 @@ namespace fig
  *        which the class VariableInterval can't handle.
  */
 template< typename T_ >
-class VariableSet : Variable<T_>
+class VariableSet : public Variable<T_>
 {
 	std::vector< T_ > values_;
 	T_ min_;
@@ -53,7 +53,9 @@ class VariableSet : Variable<T_>
 
 public:  // Ctors/Dtor
 
-	// A bunch of data ctors
+	// Fresh variable
+	VariableSet() {}
+	// Named variable
 	/// Copy content from any container with internal data type equal to T_
 	template< class Set_ > VariableSet(const std::string& thename, const Set_& setOfValues);
 	/// Move content from any container with internal data type equal to T_
@@ -69,7 +71,7 @@ public:  // Ctors/Dtor
 
 	/**
 	 * @brief Copy assignment with copy&swap
-	 * @note Only applicable to fresh variables, see Variable::operator=()
+	 * @note Only applicable to fresh variables
 	 */
 	VariableSet<T_>& operator=(VariableSet<T_> that);
 
@@ -82,8 +84,18 @@ public:  // Accessors
 	inline T_ val() const noexcept { return values_[Variable<T_>::offset_]; }
 	inline T_ val(const size_t& offset) const { return values_[offset]; }
 
+public:  // Modifiers
+
+	/**
+	 * @brief Value assignment
+	 * @note  Only applicable to named variables
+	 * @throw FigException if value isn't valid, see is_valid_value()
+	 */
+	virtual VariableSet& operator=(const T_& value);
+
 public:  // Relational operators
 
+	virtual bool operator==(const Variable<T_>& that) const;
 	virtual bool operator==(const VariableSet<T_>& that) const;
 	virtual bool is_valid_value(const T_& val) const;
 

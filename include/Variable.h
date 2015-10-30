@@ -48,8 +48,10 @@ namespace fig
 
 /**
  * @brief Most abstract Variable concept, the one to populate the (unique)
- *        global vector of Variables in the system.
- * @note  This class exists only for value validation of State instances.
+ *        global vector of Variables in the system, "GlobalState"
+ * @note  This class was deviced for value validation of State instances.
+ *
+ * TODO describe fresh/named variable duality
  */
 template< typename T_ >
 class Variable
@@ -59,14 +61,17 @@ class Variable
 
 public:  // Ctors/Dtor
 
-	/// Named variables
+	// Fresh variable (aka unnamed)
+	Variable() {}
+	// Named variable
 	Variable(const std::string& thename);
 	Variable(std::string&& thename);
-	/// Fresh variable
-	Variable();
+	/// Copy and move ctors, only applicable to fresh variables
+	Variable(const Variable<T_>& that);
+	Variable(Variable<T_>&& that);
 	/// Copy assignment, only applicable to fresh variables
-	Variable& operator=(const std::string& thename);
-	Variable& operator=(std::string&& thename);
+	Variable<T_>& operator=(const std::string& thename);
+	Variable<T_>& operator=(std::string&& thename);
 	Variable& operator=(const Variable<T_>& that);
 	Variable& operator=(Variable<T_>&& that);
 
@@ -81,18 +86,25 @@ public:  // Accessors
 	virtual T_ val() const noexcept = 0;
 	virtual T_ val(const size_t& offset) const = 0;
 
+public:  // Modifiers
+
+	/**
+	 * @brief Value assignment
+	 * @note  Only applicable to named variables
+	 * @throw FigException if value isn't valid, see is_valid_value()
+	 */
+	virtual Variable& operator=(const T_& value) = 0;
+
 public:  // Relational operators
 
 	/// @note Also compares "current value", i.e. offset_
 	virtual bool operator==(const Variable<T_>& that) const = 0;
 	inline  bool operator!=(const Variable<T_>& that) const { return !(*this == that);}
-	/// @brief Tell whether 'val' is a valid value for this Variable
+	/// Is 'val' a valid value for this Variable?
 	virtual bool is_valid_value(const T_& val) const = 0;
 
-public:  // Attributes
+protected:  // Attributes
 
-
-protected:
 	/// Name can only be assigned once (fresh variable concept)
 	std::string name_;
 	/// Number of distinct values this variable can take

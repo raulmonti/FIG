@@ -34,6 +34,7 @@
 #include <cassert>
 // Project code
 #include <VariableInterval.h>
+#include <FigException.h>
 
 
 namespace fig
@@ -198,6 +199,35 @@ VariableInterval<T_>::operator=(VariableDefinition<T_> def)
 
 
 template< typename T_ >
+VariableInterval<T_>&
+VariableInterval<T_>::operator=(const T_& value)
+{
+	if (Variable<T_>::name_.empty())
+		throw FigException(std::string("can't assign value to a fresh variable")
+			.append(" (\"").append(Variable<T_>::name_).append("\")"));
+	else if (!is_valid_value(value))
+		throw FigException(std::string("can't assign ")
+			.append(std::to_string(value)).append(" to variable \"")
+			.append(Variable<T_>::name_).append("\", invalid value"));
+	else
+		Variable<T_>::offset_ = value - min_;
+	return *this;
+}
+
+
+template< typename T_ >
+bool
+VariableInterval<T_>::operator==(const Variable<T_>& that) const
+{
+	auto pthat = dynamic_cast<const VariableInterval<T_>*>(&that);
+	if (nullptr == pthat)
+		return false;
+	else
+		return (*this) == (*pthat);
+}
+
+
+template< typename T_ >
 bool
 VariableInterval<T_>::operator==(const VariableInterval<T_>& that) const
 {
@@ -206,6 +236,7 @@ VariableInterval<T_>::operator==(const VariableInterval<T_>& that) const
 		   max_ == that.max_ &&
 		   Variable<T_>::offset_ == that.offset_;
 }
+
 
 
 // VariableInterval can only be instantiated with following numeric types

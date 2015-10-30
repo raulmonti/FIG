@@ -35,6 +35,7 @@
 #include <cassert>
 // Project code
 #include <VariableSet.h>
+#include <FigException.h>
 
 
 namespace fig
@@ -124,7 +125,7 @@ template< typename T_ >
 VariableSet<T_>&
 VariableSet<T_>::operator=(VariableSet<T_> that)
 {
-	Variable<T_>::operator=(std::move(that));
+	Variable<T_>::operator=(std::move(that));  // checks freshness
 	std::swap(Variable<T_>::range_, that.range_);
 	std::swap(Variable<T_>::offset_, that.offset_);
 	std::swap(values_, that.values_);
@@ -132,6 +133,39 @@ VariableSet<T_>::operator=(VariableSet<T_> that)
 	std::swap(max_, that.max_);
 	assert_invariant();
 	return *this;
+}
+
+
+template< typename T_ >
+VariableSet<T_>&
+VariableSet<T_>::operator=(const T_& value)
+{
+	if (Variable<T_>::name_.empty())
+		throw FigException(std::string("can't assign value to a fresh variable")
+			.append(" (\"").append(Variable<T_>::name_).append("\")"));
+	for (size_t i=0 ; i < values_.size() ; i++) {
+		if (value == values_[i]) {
+			Variable<T_>::offset_ = i;
+			return *this;
+		}
+	}
+	if (!is_valid_value(value))
+		throw FigException(std::string("can't assign ")
+			.append(std::to_string(value)).append(" to variable \"")
+			.append(Variable<T_>::name_).append("\", invalid value"));
+	return *this;  // avoid f***ing warnings
+}
+
+
+template< typename T_ >
+bool
+VariableSet<T_>::operator==(const Variable<T_>& that) const
+{
+	auto pthat = dynamic_cast<const VariableSet<T_>*>(&that);
+	if (nullptr == pthat)
+		return false;
+	else
+		return (*this) == (*pthat);
 }
 
 

@@ -65,8 +65,8 @@ extern std::unordered_map< std::string, Distribution > distributions_list;
  */
 class Clock
 {
-	const std::string& distName_;
 	const Distribution& dist_;  // *copy* of one from distribution_list
+	const std::string& distName_;
 	const DistributionParameters distParams_;
 
 public:

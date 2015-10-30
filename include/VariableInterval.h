@@ -56,7 +56,7 @@ template< typename T_ > using VariableDefinition =
  * @brief Variable defined by the closed interval [ min_value , max_value ]
  */
 template< typename T_ >
-class VariableInterval : Variable< T_ >
+class VariableInterval : public Variable< T_ >
 {
 	static_assert(std::is_integral<T_>::value,
 				  "ERROR: class VariableInterval<T> can only be instantiated "
@@ -66,7 +66,9 @@ class VariableInterval : Variable< T_ >
 
 public:  // Ctors/Dtor
 
-	// A bunch of data ctors
+	// Fresh variable (aka unnamed)
+	VariableInterval() {}
+	// Named variable
 	VariableInterval(const std::string& thename, const T_& min, const T_& max);
 	VariableInterval(const std::string& thename, const T_& min, const T_& max, const T_& val);
 	VariableInterval(std::string&& thename, const T_& min, const T_& max);
@@ -97,8 +99,18 @@ public:  // Accessors
 	inline T_ val() const noexcept { return min_ + static_cast<T_>(Variable<T_>::offset_); }
 	inline T_ val(const size_t& offset) const { return min_ + static_cast<T_>(offset); }
 
+public:  // Modifiers
+
+	/**
+	 * @brief Value assignment
+	 * @note  Only applicable to named variables
+	 * @throw FigException if value isn't valid, see is_valid_value()
+	 */
+	virtual VariableInterval& operator=(const T_& value);
+
 public:  // Relational operators
 
+	virtual bool operator==(const Variable<T_>& that) const;
 	virtual bool operator==(const VariableInterval<T_>& that) const;
 	inline virtual bool is_valid_value(const T_& val) const final
 		{ return min_ <= val && val <= max_; }  // http://stackoverflow.com/a/19954164

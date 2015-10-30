@@ -42,11 +42,6 @@ namespace fig
 {
 
 template< typename T_ >
-Variable<T_>::Variable()
-{}
-
-
-template< typename T_ >
 Variable<T_>::Variable(const std::string& thename) :
 	name_(thename),
 	range_(1),
@@ -67,12 +62,38 @@ Variable<T_>::Variable(std::string&& thename) :
 
 
 template< typename T_ >
+Variable<T_>::Variable(const Variable<T_>& that) :
+	range_(that.range_),
+	offset_(that.offset_)
+{
+	if (!name_.empty()) {
+		std::string err("trying to copy-construct the non-fresh variable \"");
+		throw FigException(err.append(name_).append("\""));
+	}
+	name_.assign(that.name_);
+}
+
+
+template< typename T_ >
+Variable<T_>::Variable(Variable<T_>&& that) :
+	range_(std::move(that.range_)),
+	offset_(std::move(that.offset_))
+{
+	if (!name_.empty()) {
+		std::string err("trying to move-construct the non-fresh variable \"");
+		throw FigException(err.append(name_).append("\""));
+	}
+	name_.assign(std::move(that.name_));
+}
+
+
+template< typename T_ >
 Variable<T_>&
 Variable<T_>::operator=(const std::string& thename)
 {
 	if (!name_.empty()) {
-		std::string err("trying to assign to non-fresh variable \"");
-		throw new FigException(err.append(name_).append("\""));
+		std::string err("trying to copy-assign the non-fresh variable \"");
+		throw FigException(err.append(name_).append("\""));
 	}
 	name_ = thename;
 	range_ = 1;
@@ -87,8 +108,8 @@ Variable<T_>&
 Variable<T_>::operator=(std::string&& thename)
 {
 	if (!name_.empty()) {
-		std::string err("trying to assign to non-fresh variable \"");
-		throw new FigException(err.append(name_).append("\""));
+		std::string err("trying to copy-assign the non-fresh variable \"");
+		throw FigException(err.append(name_).append("\""));
 	}
 	name_ = std::move(thename);
 	range_ = 1;
@@ -103,8 +124,8 @@ Variable<T_>&
 Variable<T_>::operator=(const Variable<T_>& that)
 {
 	if (!name_.empty()) {
-		std::string err("trying to assign to non-fresh variable \"");
-		throw new FigException(err.append(name_).append("\""));
+		std::string err("trying to copy-assign the non-fresh variable \"");
+		throw FigException(err.append(name_).append("\""));
 	}
 	name_ = that.name_;
 	range_ = that.range_;
@@ -119,8 +140,8 @@ Variable<T_>&
 Variable<T_>::operator=(Variable<T_>&& that)
 {
 	if (!name_.empty()) {
-		std::string err("trying to assign to non-fresh variable \"");
-		throw new FigException(err.append(name_).append("\""));
+		std::string err("trying to copy-assign the non-fresh variable \"");
+		throw FigException(err.append(name_).append("\""));
 	}
 	name_ = std::move(that.name_);
 	range_ = std::move(that.range_);
