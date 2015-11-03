@@ -42,8 +42,14 @@ namespace fig
 
 /**
  * @brief Variable defined by a set of possible values: { v1, v2, ..., vN }
- * @note  Useful to handle non-integer values such as, for instance, floats,
- *        which the class VariableInterval can't handle.
+ *        Useful to handle non-integer values, such as floats or strings,
+ *        which the class VariableInterval can't cope with.
+ * @note  Offers generic construction from the following STL containers:
+ *        vector, list, forward_list, set, unordered_set, deque.
+ * @note  Will not build from the following STL containers:
+ *        queue, stack, array.
+ * @note  Generic construction is achieved through variadic template templates,
+ *        see: http://eli.thegreenplace.net/2014/variadic-templates-in-c/
  */
 template< typename T_ >
 class VariableSet : public Variable<T_>
@@ -58,11 +64,24 @@ public:  // Ctors/Dtor
 	VariableSet() {}
 	// Named variable
 	/// Copy content from any container with internal data type equal to T_
-	template< class Set_ > VariableSet(const std::string& thename, const Set_& setOfValues);
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	VariableSet(const std::string& thename,
+				const Container<ValueType, OtherContainerArgs...>& values);
 	/// Move content from any container with internal data type equal to T_
-	template< class Set_ > VariableSet(const std::string& thename, Set_&& setOfValues);
-	/// Copy content between iterators 'from' and 'to' with internal data type equal to T_
-	template< class Iter_ > VariableSet(const std::string& thename, Iter_ from, Iter_ to);
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	VariableSet(const std::string &thename,
+				Container<ValueType, OtherContainerArgs...>&& values);
+	/// Copy content between iterators 'from' and 'to' pointing to data type equal to T_
+	template< template< typename, typename... > class Iterator,
+			  typename ValueType,
+			  typename... OtherIteratorArgs >
+	VariableSet(const std::string& thename,
+				Iterator<ValueType, OtherIteratorArgs...> from,
+				Iterator<ValueType, OtherIteratorArgs...> to);
 	/// Copy content from static array of specified size
 	VariableSet(const std::string& thename, const T_ *array, size_t arraySize);
 
@@ -117,70 +136,71 @@ public:  // Invariant
 // If curious about its presence here take a look at the end of the source file
 
 template< typename T_ >
-template< class Set_ >
-VariableSet<T_>::VariableSet(const std::string &thename, const Set_& setOfValues) :
-	Variable<T_>(thename),
-	values_(setOfValues.size()),
-	min_(std::numeric_limits<T_>::max()),
-	max_(std::numeric_limits<T_>::min())
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerParameters >
+// Variadic template templates and Schwarzenegger singing Merry Christmas
+VariableSet<T_>::VariableSet(
+	const std::string& thename,
+	const Container< ValueType, OtherContainerParameters... >& values) :
+		Variable<T_>(thename),
+		min_(std::numeric_limits<T_>::max()),
+		max_(std::numeric_limits<T_>::min())
 {
-	static_assert(std::is_same< T_, typename Set_::value_type >::value,
-				  "ERROR: construction container internal data type "
-				  "and this template type must be the same");
-	Variable<T_>::range_ = setOfValues.size();
-	size_t i(0u);
-	for (const auto& e: setOfValues) {
-		values_[i++] = e;
+	static_assert(std::is_same< T_, ValueType >::value,
+				  "ERROR: type missmatch, container internal data type "
+				  "must match the type of this template class");
+	for(const auto& e: values) {
+		values_.emplace_back(e);
 		min_ = e < min_ ? e : min_;
 		max_ = e > max_ ? e : max_;
 	}
+	Variable<T_>::range_ = values_.size();
 	assert_invariant();
 }
 
 
 template< typename T_ >
-template< class Set_ >
-VariableSet<T_>::VariableSet(const std::string &thename, Set_&& setOfValues) :
-	Variable<T_>(std::move(thename)),
-	values_(setOfValues.size()),
-	min_(std::numeric_limits<T_>::max()),
-	max_(std::numeric_limits<T_>::min())
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+VariableSet<T_>::VariableSet(
+	const std::string& thename,
+	Container<ValueType, OtherContainerArgs...>&& values) :
+		Variable<T_>(std::move(thename)),
+		min_(std::numeric_limits<T_>::max()),
+		max_(std::numeric_limits<T_>::min())
 {
-	/// FIXME
-	/*
-	 * Line below won't compile because "Set_" is interpreted as a type name
-	 * and not as a class/struct name, so when we try to acces the attribute
-	 * "::value_type" the compiler says that types have no such things.
-	 *
-	 * We need to learn how to declare "Set_" as a type dependent on T_.
-	 * Maybe that way we even avoid the need for the static_assert.
-	 */
-	static_assert(std::is_same< T_, typename Set_::value_type >::value,
-				  "ERROR: construction container internal data type "
-				  "and this template type must be the same");
-	Variable<T_>::range_ = setOfValues.size();
-	size_t i(0u);
-	for (const auto& e: setOfValues) {
-		values_[i++] = std::move(e);
+	static_assert(std::is_same< T_, ValueType >::value,
+				  "ERROR: type missmatch, container internal data type "
+				  "must match the type of this template class");
+	for(const auto& e: values) {
+		values_.emplace_back(std::move(e));
 		min_ = e < min_ ? e : min_;
 		max_ = e > max_ ? e : max_;
 	}
-	setOfValues.clear();
+	values.clear();
+	Variable<T_>::range_ = values_.size();
 	assert_invariant();
 }
 
 
 template< typename T_ >
-template< class Iter_ >
-VariableSet<T_>::VariableSet(const std::string &thename, Iter_ from, Iter_ to) :
-	Variable<T_>(thename),
-	values_(std::distance(from,to)),
-	min_(std::numeric_limits<T_>::max()),
-	max_(std::numeric_limits<T_>::min())
+template< template< typename, typename... > class Iterator,
+		  typename ValueType,
+		  typename... OtherIteratorArgs >
+VariableSet<T_>::VariableSet(
+	const std::string& thename,
+	Iterator<ValueType, OtherIteratorArgs...> from,
+	Iterator<ValueType, OtherIteratorArgs...> to) :
+		Variable<T_>(thename),
+		values_(std::distance(from,to)),
+		min_(std::numeric_limits<T_>::max()),
+		max_(std::numeric_limits<T_>::min())
 {
-	static_assert(std::is_same< T_, typename Iter_::value_type >::value,
-				  "ERROR: construction container internal data type "
-				  "and this template type must be the same");
+	static_assert(std::is_same< T_, ValueType >::value,
+				  "ERROR: type missmatch, iterator pointed-to data type "
+				  "must match the type of this template class");
 	Variable<T_>::range_ = values_.size();
 	size_t i(0u);
 	do {

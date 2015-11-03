@@ -130,9 +130,8 @@ test_variable_set()
 		w4 = w1; // should throw
 		throw TestException("previous statement should have thrown");
 	} catch (fig::FigException) { /* this was expected */ }
-	std::vector<VS_TYPE> w2content(wcontent.begin(), wcontent.end());
+	std::list<VS_TYPE> w2content(wcontent.begin(), wcontent.end());
 	fig::VariableSet<VS_TYPE> w5(wname, w2content);
-	assert(w5 == w2);  // notice w2 was built from a set, and w5 from a vector
-	fig::VariableSet<VS_TYPE> w6(wname, std::vector<float>({0.0,1.}));
+	assert(w5 == w2);  // notice w2 was built from a set, and w5 from a list
 }
 
