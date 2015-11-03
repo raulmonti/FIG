@@ -28,9 +28,7 @@
 
 
 // C++
-#include <type_traits>  // std::is_constructible<>, std::is_convertible<>
-#include <iterator>     // std::distance()
-#include <utility>      // std::move()
+#include <utility>  // std::move()
 // Project code
 #include <State.h>
 #include <VariableInterval.h>
@@ -46,71 +44,6 @@ GlobalState<T_>::build_concrete_bound()
 	maxConcreteState_ = 1u;
 	for(const auto pvar: pvars_)
 		maxConcreteState_ *= pvar->range_;  // ignore overflow :D
-}
-
-
-template< typename T_ >
-template< class Container_ >
-GlobalState<T_>::GlobalState(const Container_& container) :
-	pvars_(container.size(), nullptr),
-	maxConcreteState_(1u)
-{
-	// We chose VariableInterval<> as implementation for our Variables
-	static_assert(std::is_constructible<
-					  VariableInterval<T_>,
-					  typename Container_::value_type
-				  >::value,
-				  "ERROR: GlobalState can only be constructed from Variables, "
-				  "VariableDefinitions or VariableDeclarations");
-	size_t i(0u);
-	for (const auto& e: container)
-		pvars_[i++] = std::make_shared< VariableInterval< T_ > >(e);
-	build_concrete_bound();
-}
-
-
-template< typename T_ >
-template< class Container_ >
-GlobalState<T_>::GlobalState(Container_&& container) :
-	pvars_(container.size(), nullptr),
-	maxConcreteState_(1u)
-{
-	// We chose VariableInterval<> as implementation for our Variables
-	static_assert(std::is_convertible<
-					  typename Container_::value_type,
-					  typename std::shared_ptr< VariableInterval<T_> >
-				  >::value,
-				  "ERROR: GlobalState can only be move-constructed from "
-				  "another GlobalState or a container with Variable pointers");
-	size_t i(0u);
-	for (auto& e: container) {
-		pvars_[i++] = std::move(
-			dynamic_cast< std::shared_ptr< VariableInterval< T_ > > >(e));
-		e = nullptr;
-	}
-	build_concrete_bound();
-	container.clear();
-}
-
-
-template< typename T_ >
-template< class Iter_ >
-GlobalState<T_>::GlobalState(Iter_ from, Iter_ to) :
-	pvars_(std::distance(from,to)),
-	maxConcreteState_(1u)
-{
-	// We chose VariableInterval<> as implementation for our Variables
-	static_assert(std::is_constructible<
-					  VariableInterval<T_>,
-					  typename Iter_::value_type
-				  >::value,
-				  "ERROR: GlobalState can only be constructed from Variables, "
-				  "VariableDefinitions or VariableDeclarations");
-	size_t i(0);
-	do {
-		pvars_[i++] = std::make_shared< VariableInterval<T_> >(*from);
-	} while (++from != to);
-	build_concrete_bound();
 }
 
 

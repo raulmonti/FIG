@@ -5,6 +5,7 @@
 
 // C++
 #include <set>
+#include <list>
 #include <vector>
 #include <string>
 #include <iostream>
@@ -17,11 +18,13 @@
 #include <Variable.h>
 #include <VariableSet.h>
 #include <VariableInterval.h>
+#include <State.h>
 
 // Tests forward declarations
 static void test_clock();
 static void test_variable_interval();
 static void test_variable_set();
+static void test_state();
 
 
 int main()
@@ -29,6 +32,7 @@ int main()
 	test_clock();
 	test_variable_interval();
 	test_variable_set();
+	test_state();
 
 	return 0;
 }
@@ -47,7 +51,7 @@ public:
 
 
 static void // ////////////////////////////////////////////////////////////////
-
+//
 test_clock()
 {
 	fig::DistributionParameters params = {{2.0, 5.0}};
@@ -62,7 +66,7 @@ test_clock()
 
 
 static void // ////////////////////////////////////////////////////////////////
-
+//
 test_variable_interval()
 {
 	typedef unsigned long VI_TYPE;
@@ -96,9 +100,8 @@ test_variable_interval()
 }
 
 
-#include <list>
 static void // ////////////////////////////////////////////////////////////////
-
+//
 test_variable_set()
 {
 	typedef short VS_TYPE;
@@ -135,3 +138,10 @@ test_variable_set()
 	assert(w5 == w2);  // notice w2 was built from a set, and w5 from a list
 }
 
+
+static void // ////////////////////////////////////////////////////////////////
+//
+test_state()
+{
+	/// TODO: implement GlobalState member to take values from State instance.
+}

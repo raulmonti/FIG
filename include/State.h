@@ -31,9 +31,11 @@
 #define STATE_H
 
 // C++
-#include <type_traits>  // std::is_same<>
+#include <type_traits>  // std::is_constructible<>, std::is_integral<>
+#include <iterator>     // std::distance()
+#include <utility>      // std::move()
 #include <ostream>
-#include <memory>  // std::shared_ptr
+#include <memory>       // std::shared_ptr<>
 #include <string>
 #include <vector>
 // C
@@ -42,6 +44,7 @@
 #include <muParserDef.h>  // MUP_BASETYPE
 // Project code
 #include <Variable.h>
+#include <VariableInterval.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -57,6 +60,7 @@ typedef  MUP_BASETYPE  STATE_INTERNAL_TYPE;
 static_assert(std::is_same<short, MUP_BASETYPE>::value,
 			  "Error: for now we restrict State internal storage to shorts");
 
+
 /**
  * @brief State (instance): an array of Variable values.
  *        Each State is an instantiation of values, which follows the ordering
@@ -68,12 +72,17 @@ typedef std::vector< STATE_INTERNAL_TYPE > State;
 
 
 
-
 /**
  * @brief Unique vector of Variables in the system (singleton)
- *        It is used for consitency check of State instances (see ::State)
+ *        It is used for consistency check of State instances (see ::State)
  *        and for conversions between the concrete and symbolic representations
  *        of a system state.
+ * @note  Offers generic construction from the following STL containers:
+ *        vector, list, forward_list, set, unordered_set, deque.
+ * @note  Will not build from the following STL containers:
+ *        queue, stack, array.
+ * @note  Generic construction is achieved through variadic template templates,
+ *        see: http://eli.thegreenplace.net/2014/variadic-templates-in-c/
  */
 template< typename T_ >
 class GlobalState
@@ -97,11 +106,21 @@ public:  // Ctors/Dtor
 	inline GlobalState() : pvars_(), maxConcreteState_(0) {}
 	// Data ctors
 	/// Copy content from any container with proper internal data type
-	template< class Container_ > GlobalState(const Container_& container);
+	template< template< typename, typename...> class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	GlobalState(const Container<ValueType, OtherContainerArgs...>& vars);
 	/// Move content from any container with proper internal data type
-	template< class Container_ > GlobalState(Container_&& container);
-	/// Copy content between iterators 'from' and 'to' with proper internal data type
-	template< class Iter_ > GlobalState(Iter_ from, Iter_ to);
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	GlobalState(Container<ValueType, OtherContainerArgs...>&& vars);
+	/// Copy content between iterators 'from' and 'to' pointing to proper data type
+	template< template< typename, typename... > class Iterator,
+			  typename ValueType,
+			  typename... OtherIteratorArgs >
+	GlobalState(Iterator<ValueType, OtherIteratorArgs...> from,
+				Iterator<ValueType, OtherIteratorArgs...> to);
 	// Move ctor
 	GlobalState(GlobalState<T_>&& that);
 
@@ -197,6 +216,72 @@ public:  // Encode/Decode between symbolic and concrete representations
 	 */
 	T_ decode_state(const size_t& n, const std::string& varname) const;
 };
+
+
+// // // // // // // // // // // // // // // // // // // // // // // // // // //
+
+// Template definitions
+
+// If curious about its presence here take a look at the end of VariableSet.cpp
+
+template< typename T_ >
+template< template< typename, typename...> class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+GlobalState<T_>::GlobalState(const Container<ValueType, OtherContainerArgs...> &vars) :
+	maxConcreteState_(1u)
+{
+	// We chose VariableInterval<> as implementation for our Variables
+	static_assert(std::is_constructible< VariableInterval<T_>, ValueType >::value,
+				  "ERROR: GlobalState can only be constructed from Variables, "
+				  "VariableDefinitions or VariableDeclarations");
+	for (const auto& e: vars)
+		pvars_.emplace_back(std::make_shared< VariableInterval< T_ > >( e ));
+	build_concrete_bound();
+}
+
+
+template< typename T_ >
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+GlobalState<T_>::GlobalState(Container<ValueType, OtherContainerArgs...>&& vars) :
+	maxConcreteState_(1u)
+{
+	// We chose VariableInterval<> as implementation for our Variables
+	static_assert(std::is_convertible< VariableInterval<T_>, ValueType >::value,
+				  "ERROR: GlobalState can only be move-constructed from "
+				  "another GlobalState or a container with Variable pointers");
+	for (auto& e: vars) {
+		pvars_.emplace_back(std::move(
+			   dynamic_cast< std::shared_ptr< VariableInterval< T_ > > >( e )));
+		e = nullptr;
+	}
+	build_concrete_bound();
+	vars.clear();
+}
+
+
+template< typename T_ >
+template< template< typename, typename... > class Iterator,
+		  typename ValueType,
+		  typename... OtherIteratorArgs >
+GlobalState<T_>::GlobalState(Iterator<ValueType, OtherIteratorArgs...> from,
+							 Iterator<ValueType, OtherIteratorArgs...> to) :
+	pvars_(std::distance(from,to)),
+	maxConcreteState_(1u)
+{
+	// We chose VariableInterval<> as implementation for our Variables
+	static_assert(std::is_constructible<VariableInterval<T_>, ValueType>::value,
+				  "ERROR: GlobalState can only be constructed from Variables, "
+				  "VariableDefinitions or VariableDeclarations");
+	size_t i(0);
+	do {
+		pvars_[i++] = std::make_shared< VariableInterval<T_> >(*from);
+	} while (++from != to);
+	build_concrete_bound();
+}
+
 
 } // namespace fig
 

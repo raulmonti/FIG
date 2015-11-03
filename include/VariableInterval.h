@@ -39,6 +39,11 @@
 // Project code
 #include <Variable.h>
 
+#if __cplusplus < 201103L
+#  error "C++11 standard required, please compile with -std=c++11\n"
+#endif
+
+
 namespace fig
 {
 

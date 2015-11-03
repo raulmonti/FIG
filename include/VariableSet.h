@@ -31,11 +31,19 @@
 #define VARIABLESET_H
 
 // C++
-#include <limits>  // std::numeric_limits<>
+#include <limits>       // std::numeric_limits<>
+#include <utility>      // std::move()
+#include <iterator>     // std::distance()
+#include <type_traits>  // std::is_same<>
 #include <string>
 #include <vector>
 // Project code
 #include <Variable.h>
+
+#if __cplusplus < 201103L
+#  error "C++11 standard required, please compile with -std=c++11\n"
+#endif
+
 
 namespace fig
 {
