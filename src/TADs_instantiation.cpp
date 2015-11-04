@@ -173,7 +173,7 @@ test_state()
 		make_tuple("y", -20, -19),
 		make_tuple("ay_mama", 200, 4000001)
 	});
-	fig::GlobalState<long> gState(vars);
+	fig::GlobalState<TYPE> gState(vars);
 	assert(gState.size() == vars.size());
 	gState.print_out(std::cout, true);
 	for (size_t i = 0u ; i < gState.size() ; i++) {
@@ -183,4 +183,8 @@ test_state()
 	}
 	auto s = gState.to_state_instance();
 	assert(gState.is_valid_state_instance(*s));
+	fig::GlobalState<TYPE> gState2(vars);
+	fig::GlobalState<TYPE> gState3(std::move(gState));
+	assert(gState  != gState3);
+	assert(gState2 == gState3);
 }

@@ -28,7 +28,9 @@
 
 
 // C++
-#include <utility>  // std::move()
+#include <utility>    // std::move() elements
+#include <iterator>   // std::inserter()
+#include <algorithm>  // std::move() ranges
 // Project code
 #include <State.h>
 #include <VariableInterval.h>
@@ -53,12 +55,13 @@ GlobalState<T_>::GlobalState(GlobalState<T_>&& that) :
 	pvars_(that.size()),
 	maxConcreteState_(std::move(that.maxConcreteState_))
 {
-	size_t i(0u);
-	for (auto& ptr: that.pvars_) {
-		pvars_[i++] = ptr;
-		ptr = nullptr;
-	}
+	std::move(that.pvars_.begin(), that.pvars_.end(), pvars_.begin());
+	positionOfVar_.reserve(that.size());
+	std::move(that.positionOfVar_.begin(), that.positionOfVar_.end(),
+			  std::inserter(positionOfVar_, positionOfVar_.begin()));
+	// Clean that up
 	that.pvars_.clear();
+	that.positionOfVar_.clear();
 	that.maxConcreteState_ = 0;
 }
 
@@ -98,18 +101,18 @@ GlobalState<T_>::print_out(std::ostream& out, bool withNewline) const
 }
 
 
-// // Not needed if there's a unique GlobalState instance
-// template< typename T_ >
-// bool
-// GlobalState<T_>::operator==(const State< T_ >& that) const
-// {
-// 	if (this->size() != that.size())
-// 		return false;
-// 	for (size_t i=0 ; i < pvars_.size() ; i++)
-// 		if (that[i] != pvars_[i])
-// 			return false;
-// 	return true;
-// }
+// FIXME: Not needed if there's a unique GlobalState instance
+template< typename T_ >
+bool
+GlobalState<T_>::operator==(const GlobalState< T_ >& that) const
+{
+	if (this->size() != that.size())
+		return false;
+	for (size_t i=0 ; i < pvars_.size() ; i++)
+		if (*that[i] != *pvars_[i])
+			return false;
+	return true;
+}
 
 
 template< typename T_ >

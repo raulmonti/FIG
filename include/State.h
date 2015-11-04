@@ -38,6 +38,7 @@
 #include <memory>       // std::shared_ptr<>
 #include <string>
 #include <vector>
+#include <unordered_map>
 // C
 #include <cassert>
 // External code
@@ -100,6 +101,9 @@ class GlobalState
 	/// Concrete size, i.e. cross product of all variables ranges
 	size_t maxConcreteState_;
 
+	/// Lookup { varname --> varpos } needed by MathExpressions
+	std::unordered_map<std::string, size_t> positionOfVar_;  // http://stackoverflow.com/a/13799886
+
 	/// @brief Compute and store value of maxConcreteState_
 	void build_concrete_bound();
 
@@ -133,7 +137,7 @@ public:  // Ctors/Dtor
 	GlobalState<T_>& operator=(GlobalState<T_> that)        = delete;
 
 	// Dtor
-	virtual ~GlobalState() { pvars_.clear(); }
+	virtual ~GlobalState() { pvars_.clear(); positionOfVar_.clear(); }
 
 public:  // Accessors
 
@@ -146,11 +150,11 @@ public:  // Accessors
 	/**
 	 * @brief Retrieve pointer to i-th variable (const or not)
 	 * @note <b>Complexity:</b> <i>O(1)</i>
-	 * @throw out_of_range if NDEBUG is not defined and 'i' is out of range
+	 * @throw out_of_range if NRANGECHK is not defined and 'i' is out of range
 	 */
 	inline std::shared_ptr< const Variable< T_ > > operator[](const size_t& i) const
 		{
-#		ifndef NDEBUG
+#		ifndef NRANGECHK
 			return pvars_.at(i);
 #		else
 			return pvars_[i];
@@ -158,7 +162,7 @@ public:  // Accessors
 		}
 	inline std::shared_ptr< Variable< T_ > >& operator[](const size_t& i)
 		{
-#		ifndef NDEBUG
+#		ifndef NRANGECHK
 			return pvars_.at(i);
 #		else
 			return pvars_[i];
@@ -173,18 +177,34 @@ public:  // Accessors
 	std::shared_ptr< const Variable< T_ > > operator[](const std::string& varname) const;
 	std::shared_ptr<       Variable< T_ > > operator[](const std::string& varname);
 
+	/**
+	 * @brief Retrieve position of variable named "varname" if existent
+	 * @note  <b>Complexity:</b> average case is <i>O(1)</i>,
+	 *        worst case (rare) is <i>O(GlobalState.size())</i>
+	 * @throw out_of_range if NRANGECHK is not defined and variable "varname"
+	 *        doesn't exist
+	 */
+	inline size_t position_of_var(const std::string& varname) const
+		{
+#ifndef NRANGECHK
+			return positionOfVar_.at(varname);
+#else
+			return positionOfVar_[varname];  // creates location if inexistent!
+#endif
+		}
+
 	/// @brief Print formatted vector of variables into 'out'
 	void print_out(std::ostream& out, bool withNewline = false) const;
 
-// public:  // Relational operators
-//          // Not needed if there's a unique GlobalState instance
-// 	/**
-// 	 * @brief Whether 'this' and 'that' hold same variables with same values
-// 	 * @note <b>Complexity:</b> <i>O(GlobalState.size()</i>
-// 	 */
-// 	bool operator==(const State< T_ >& that) const;
-// 	inline bool operator!=(const State< T_ >& that) const
-// 		{ return ( ! (that == *this) ); }
+public:  // Relational operators
+		 // FIXME Not needed if there's a unique GlobalState instance
+	/**
+	 * @brief Whether 'this' and 'that' hold same variables with same values
+	 * @note <b>Complexity:</b> <i>O(GlobalState.size()</i>
+	 */
+	bool operator==(const GlobalState< T_ >& that) const;
+	inline bool operator!=(const GlobalState< T_ >& that) const
+		{ return ( ! (that == *this) ); }
 
 public:  // Interaction with ::State instances
 
@@ -266,8 +286,13 @@ GlobalState<T_>::GlobalState(const Container<ValueType, OtherContainerArgs...> &
 	static_assert(std::is_constructible< VariableInterval<T_>, ValueType >::value,
 				  "ERROR: GlobalState can only be constructed from Variables, "
 				  "VariableDefinitions or VariableDeclarations");
-	for (const auto& e: vars)
+	size_t i(0u);
+	auto last = positionOfVar_.begin();
+	for (const auto& e: vars) {
 		pvars_.emplace_back(std::make_shared< VariableInterval< T_ > >( e ));
+		last = positionOfVar_.emplace_hint(last, pvars_[i]->name_, i);
+		++i;
+	}
 	build_concrete_bound();
 }
 
@@ -283,10 +308,14 @@ GlobalState<T_>::GlobalState(Container<ValueType, OtherContainerArgs...>&& vars)
 	static_assert(std::is_convertible< VariableInterval<T_>, ValueType >::value,
 				  "ERROR: GlobalState can only be move-constructed from "
 				  "another GlobalState or a container with Variable pointers");
+	size_t i(0u);
+	auto last = positionOfVar_.begin();
 	for (auto& e: vars) {
 		pvars_.emplace_back(std::move(
 			   dynamic_cast< std::shared_ptr< VariableInterval< T_ > > >( e )));
+		last = positionOfVar_.emplace_hint(last, pvars_[i]->name_, i);
 		e = nullptr;
+		++i;
 	}
 	build_concrete_bound();
 	vars.clear();
@@ -307,8 +336,11 @@ GlobalState<T_>::GlobalState(Iterator<ValueType, OtherIteratorArgs...> from,
 				  "ERROR: GlobalState can only be constructed from Variables, "
 				  "VariableDefinitions or VariableDeclarations");
 	size_t i(0);
+	auto last = positionOfVar_.begin();
 	do {
-		pvars_[i++] = std::make_shared< VariableInterval<T_> >(*from);
+		pvars_[i] = std::make_shared< VariableInterval<T_> >(*from);
+		last = positionOfVar_.emplace_hint(last, pvars_[i]->name_, i);
+		++i;
 	} while (++from != to);
 	build_concrete_bound();
 }

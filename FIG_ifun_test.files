@@ -2559,3 +2559,9 @@ include/VariableInterval.h
 include/VariableSet.h
 src/VariableInterval.cpp
 src/VariableSet.cpp
+include/MathExpression.h
+include/Precondition.h
+include/Postcondition.h
+src/MathExpression.cpp
+src/Precondition.cpp
+src/Postcondition.cpp
