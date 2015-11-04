@@ -31,30 +31,187 @@
 #define MATHEXPRESSION_H
 
 // C++
+#include <type_traits>  // std::is_constructible<>
+#include <iterator>     // std::distance()
+#include <utility>      // std::pair<>, std::move()
 #include <string>
 // External code
 #include <muParser.h>
+// Project code
+#include <State.h>
+
+#if __cplusplus < 201103L
+#  error "C++11 standard required, please compile with -std=c++11\n"
+#endif
 
 
 namespace fig
 {
 
-typedef mu::Parser expression;
+extern GlobalState< STATE_INTERNAL_TYPE > gState;
 
-/// Wrapper for muparser library expressions (http://muparser.beltoforion.de/)
+/**
+ * @brief Mathematical expression with variables mapping
+ * @note  Uses MuParser library (http://muparser.beltoforion.de/)
+ * @note  Offers generic construction from the following STL containers:
+ *        vector, list, forward_list, set, unordered_set, deque.
+ * @note  Will not build from the following STL containers:
+ *        queue, stack, array.
+ */
 class MathExpression
 {
-	const std::string exprStr_;
-	expression        expr_;
+	typedef mu::Parser Expression;
+
+	Expression expr_;
+
+	const std::string& exprStr_;
+
+	/// Names and positions of the variables in our expression.
+	/// The positional order is given by the GlobalState of the system.
+	std::vector< std::pair< const std::string&, unsigned > > varsMap_;
 
 public:
 
-	MathExpression(const std::string& exprStr);
+	/**
+	 * @brief Data ctor from generic lvalue container
+	 * @param exprStr   String with the matemathical expression to evaluate
+	 * @param varnames  Container with names of variables ocurring in exprStr
+	 * @throw out_of_range if NRANGECHK is not defined and 'varnames' contains
+	 *        some variable name not appearing in the system GlobalState
+	 */
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	MathExpression(const std::string& exprStr,
+				   const Container<ValueType, OtherContainerArgs...>& varnames);
+
+	/**
+	 * @brief Data ctor from generic rvalue container
+	 * @param exprStr   String with the matemathical expression to evaluate
+	 * @param varnames  Container with names of variables ocurring in exprStr
+	 * @throw out_of_range if NRANGECHK is not defined and 'varnames' contains
+	 *        some variable name not appearing in the system GlobalState
+	 */
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	MathExpression(const std::string& exprStr,
+				   Container<ValueType, OtherContainerArgs...>&& varnames);
+
+	/**
+	 * @brief Data ctor from iterator range
+	 * @param exprStr  String with the matemathical expression to evaluate
+	 * @param from     Iterator to first  name of variables ocurring in exprStr
+	 * @param to       Iterator past last name of variables ocurring in exprStr
+	 * @throw out_of_range if NRANGECHK is not defined and 'varnames' contains
+	 *        some variable name not appearing in the system GlobalState
+	 */
+	template< template< typename, typename... > class Iterator,
+			  typename ValueType,
+			  typename... OtherIteratorArgs >
+	MathExpression(const std::string& exprStr,
+				   const Iterator<ValueType, OtherIteratorArgs...>& from,
+				   const Iterator<ValueType, OtherIteratorArgs...>& to);
 
 	inline const std::string& expression() const { return exprStr_; }
 };
 
 
+// // // // // // // // // // // // // // // // // // // // // // // // // // //
+
+// Template definitions
+
+// If curious about its presence here take a look at the end of VariableSet.cpp
+
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+MathExpression::MathExpression(
+	const std::string& exprStr,
+	const Container<ValueType, OtherContainerArgs...>& varnames) :
+	exprStr_(exprStr)
+{
+	static_assert(std::is_constructible< std::string, ValueType >::value,
+				  "ERROR: MathExpression needs a container with variable names");
+	// Setup MuParser expression
+	assert(!exprStr_.empty());
+	expr_.SetExpr(exprStr_);
+	// TODO: bind all offered functions over variables
+	//       Notice MuParser already has a few: http://muparser.beltoforion.de/
+	/*
+	expr.DefineFun("MySqr", MySqr);
+	expr.DefineFun("Uni01", Uni01);
+	...
+	*/
+	// Setup variables mapping
+	for (const auto& name: varnames) {
+		assert(std::string::npos != exprStr.find(name));  // trust no one
+		varsMap_.emplace_back(std::make_pair(name, gState.position_of_var(name)));
+	}
+}
+
+
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+MathExpression::MathExpression(
+	const std::string& exprStr,
+	Container<ValueType, OtherContainerArgs...>&& varnames) :
+		exprStr_(exprStr)
+{
+	static_assert(std::is_constructible< std::string, ValueType >::value,
+				  "ERROR: MathExpression needs a container with variable names");
+	// Setup MuParser expression
+	assert(!exprStr_.empty());
+	expr_.SetExpr(exprStr_);
+	// TODO: bind all offered functions over variables
+	//       Notice MuParser already has a few: http://muparser.beltoforion.de/
+	/*
+	expr.DefineFun("MySqr", MySqr);
+	expr.DefineFun("Uni01", Uni01);
+	...
+	*/
+	// Setup variables mapping
+	for (auto& name: varnames) {
+		assert(std::string::npos != exprStr.find(name));  // trust no one
+		varsMap_.emplace_back(std::make_pair(std::move(name),
+											 gState.position_of_var(name)));
+	}
+	varnames.clear();
+}
+
+
+template< template< typename, typename... > class Iterator,
+		  typename ValueType,
+		  typename... OtherIteratorArgs >
+MathExpression::MathExpression(
+	const std::string& exprStr,
+	const Iterator<ValueType, OtherIteratorArgs...>& from,
+	const Iterator<ValueType, OtherIteratorArgs...>& to) :
+		exprStr_(exprStr),
+		varsMap_(std::distance(from,to))
+{
+	static_assert(std::is_constructible< std::string, ValueType >::value,
+				  "ERROR: MathExpression needs iterators pointing to variable names");
+	// Setup MuParser expression
+	assert(!exprStr_.empty());
+	expr_.SetExpr(exprStr_);
+	// TODO: bind all offered functions over variables
+	//       Notice MuParser already has a few: http://muparser.beltoforion.de/
+	/*
+	expr.DefineFun("MySqr", MySqr);
+	expr.DefineFun("Uni01", Uni01);
+	...
+	*/
+	// Setup variables mapping
+	size_t i(0u);
+	do {
+		std::string name = *from;
+		assert(std::string::npos != exprStr.find(name));  // trust no one
+		varsMap_[i++] = std::make_pair(std::move(name),
+									   gState.position_of_var(name));
+	} while (++from != to);
+}
 
 } // namespace fig
 

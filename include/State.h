@@ -279,7 +279,7 @@ template< typename T_ >
 template< template< typename, typename...> class Container,
 		  typename ValueType,
 		  typename... OtherContainerArgs >
-GlobalState<T_>::GlobalState(const Container<ValueType, OtherContainerArgs...> &vars) :
+GlobalState<T_>::GlobalState(const Container<ValueType, OtherContainerArgs...>& vars) :
 	maxConcreteState_(1u)
 {
 	// We chose VariableInterval<> as implementation for our Variables

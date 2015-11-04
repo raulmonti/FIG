@@ -32,17 +32,4 @@
 namespace fig
 {
 
-MathExpression::MathExpression(const std::string& exprStr) :
-	exprStr_(exprStr)
-{
-	assert(!exprStr_.empty());
-	expr_.SetExpr(exprStr_);
-	// Bind all offered functions
-	/*
-	expr.DefineFun("MySqr", MySqr);
-	expr.DefineFun("Uni01", Uni01);
-	...
-	*/
-}
-
 } // namespace fig
