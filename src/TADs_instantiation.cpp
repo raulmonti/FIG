@@ -6,8 +6,10 @@
 // C++
 #include <set>
 #include <list>
+#include <tuple>
 #include <vector>
 #include <string>
+#include <utility>
 #include <iostream>
 #include <exception>
 // C
@@ -19,6 +21,12 @@
 #include <VariableSet.h>
 #include <VariableInterval.h>
 #include <State.h>
+
+// ADL
+using std::to_string;
+using std::make_tuple;
+using std::get;
+
 
 // Tests forward declarations
 static void test_clock();
@@ -47,6 +55,8 @@ class TestException : public std::exception
 	}
 public:
 	TestException(const char* msg) : msg_(msg) {}
+	TestException(const std::string& msg) : msg_(msg) {}
+	TestException(std::string&& msg) : msg_(std::move(msg)) {}
 };
 
 
@@ -59,9 +69,9 @@ test_clock()
 	assert(0.0 != c.sample() || 0.0 != c());  // exercise object
 	try {
 		fig::Clock c("unexistent_distribution", params);  // should throw
-		throw TestException("previous definition should have thrown");
-	}
-	catch (std::out_of_range) {	/* this was expected */ }
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (std::out_of_range) { /* this was expected */ }
 }
 
 
@@ -78,19 +88,24 @@ test_variable_interval()
 		v1 = l;
 		v1.assert_invariant();
 	}
+	v1 = v1.max() + 1; // should NOT throw, leaves v1 in invalid state
+	v1 = v1.max();     // return v1 to valid state to avoid asserts
 	try {
-		v1 = v1.max() + 1; // should throw
-		throw TestException("previous statement should have thrown");
+		v1.assign(v1.max() + 1); // should throw
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
 	} catch (fig::FigException) { /* this was expected */ }
 	fig::VariableInterval<VI_TYPE> v2;  // fresh variable
 	try {
 		v2 = v1.min();  // should throw
-		throw TestException("previous statement should have thrown");
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
 	} catch (fig::FigException) { /* this was expected */ }
 	v2 = v1;
 	try {
 		v2 = v1; // should throw
-		throw TestException("previous statement should have thrown");
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
 	} catch (fig::FigException) { /* this was expected */ }
 	assert(v2 == v1);
 	auto v3(v2);
@@ -115,9 +130,12 @@ test_variable_set()
 		w1 = w1.val(i);
 		w1.assert_invariant();
 	}
+	w1 = w1.max() + 1; // should NOT throw, leaves w1 in invalid state
+	w1 = w1.max();     // return w1 to valid state to avoid asserts
 	try {
-		w1 = w1.min() - 1; // should throw
-		throw TestException("previous statement should have thrown");
+		w1.assign(w1.max() + 1); // should throw
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
 	} catch (fig::FigException) { /* this was expected */ }
 	fig::VariableSet<VS_TYPE> w2(wname, wcontent.begin(), wcontent.end());
 	assert(w2 != w1);  // current value of w1 is not the initial in wcontent
@@ -126,12 +144,14 @@ test_variable_set()
 	fig::VariableSet<VS_TYPE> w4;  // fresh variable
 	try {
 		w4 = w1.min();  // should throw
-		throw TestException("previous statement should have thrown");
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
 	} catch (fig::FigException) { /* this was expected */ }
 	w4 = w1;
 	try {
 		w4 = w1; // should throw
-		throw TestException("previous statement should have thrown");
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
 	} catch (fig::FigException) { /* this was expected */ }
 	std::list<VS_TYPE> w2content(wcontent.begin(), wcontent.end());
 	fig::VariableSet<VS_TYPE> w5(wname, w2content);
@@ -143,5 +163,24 @@ static void // ////////////////////////////////////////////////////////////////
 //
 test_state()
 {
-	/// TODO: implement GlobalState member to take values from State instance.
+	/// TODO
+ ///
+ ///  Complete this test
+ ///
+	typedef long TYPE;
+	std::vector<fig::VariableDeclaration<TYPE>> vars({
+		make_tuple("x", 0, 10),
+		make_tuple("y", -20, -19),
+		make_tuple("ay_mama", 200, 4000001)
+	});
+	fig::GlobalState<long> gState(vars);
+	assert(gState.size() == vars.size());
+	gState.print_out(std::cout, true);
+	for (size_t i = 0u ; i < gState.size() ; i++) {
+		assert(get<0>(vars[i]) == gState[i]->name());
+		assert(get<1>(vars[i]) == gState[i]->min());
+		assert(get<2>(vars[i]) == gState[i]->max());
+	}
+	auto s = gState.to_state_instance();
+	assert(gState.is_valid_state_instance(*s));
 }

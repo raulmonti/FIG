@@ -38,6 +38,7 @@
 #include <cassert>
 // Project code
 #include <Variable.h>
+#include <FigException.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -59,6 +60,7 @@ template< typename T_ > using VariableDefinition =
 
 /**
  * @brief Variable defined by the closed interval [ min_value , max_value ]
+ *        Can only handle discrete types => the template parameter must be integral
  */
 template< typename T_ >
 class VariableInterval : public Variable< T_ >
@@ -106,23 +108,35 @@ public:  // Accessors
 
 public:  // Modifiers
 
-	/**
-	 * @brief Value assignment
-	 * @note  Only applicable to named variables
-	 * @throw FigException if value isn't valid, see is_valid_value()
-	 */
-	virtual VariableInterval& operator=(const T_& value);
+	/// @copydoc Variable::operator=()
+	inline virtual VariableInterval& operator=(const T_& value) final
+		{
+#ifndef NDEBUG
+			if (Variable<T_>::name_.empty())
+				throw FigException(std::string("can't assign value to a fresh variable")
+					.append(" (\"").append(Variable<T_>::name_).append("\")"));
+#endif
+			Variable<T_>::offset_ = value - min_;
+			return *this;
+		}
+
+	/// @copydoc Variable::assign()
+	virtual void assign(const T_& value);
 
 public:  // Relational operators
 
+	/// @copydoc Variable::operator==()
 	virtual bool operator==(const Variable<T_>& that) const;
 	virtual bool operator==(const VariableInterval<T_>& that) const;
+
+	/// @copydoc Variable::is_valid_value()
 	inline virtual bool is_valid_value(const T_& val) const final
 		{ return min_ <= val && val <= max_; }  // http://stackoverflow.com/a/19954164
 
 public:  // Invariant
 
 #ifndef NDEBUG
+	/// @copydoc Variable::assert_invariant()
 	inline virtual void assert_invariant() const
 		{
 			Variable<T_>::assert_invariant();

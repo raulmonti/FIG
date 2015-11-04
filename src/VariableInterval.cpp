@@ -199,8 +199,8 @@ VariableInterval<T_>::operator=(VariableDefinition<T_> def)
 
 
 template< typename T_ >
-VariableInterval<T_>&
-VariableInterval<T_>::operator=(const T_& value)
+void
+VariableInterval<T_>::assign(const T_& value)
 {
 	if (Variable<T_>::name_.empty())
 		throw FigException(std::string("can't assign value to a fresh variable")
@@ -211,7 +211,6 @@ VariableInterval<T_>::operator=(const T_& value)
 			.append(Variable<T_>::name_).append("\", invalid value"));
 	else
 		Variable<T_>::offset_ = value - min_;
-	return *this;
 }
 
 

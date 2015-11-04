@@ -62,9 +62,10 @@ static_assert(std::is_same<short, MUP_BASETYPE>::value,
 
 
 /**
- * @brief State (instance): an array of Variable values.
+ * @brief State (instance)
+ *        An array of Variable values.
  *        Each State is an instantiation of values, which follows the ordering
- *        given in the (unique) GlobalState vector of the system.
+ *        given in the (unique) ::GlobalState vector of the system.
  *        A State can be compared to the GlobalState for consistency checks.
  *        There is a one-to-one correspondence between States and Traials.
  */
@@ -87,6 +88,8 @@ typedef std::vector< STATE_INTERNAL_TYPE > State;
 template< typename T_ >
 class GlobalState
 {
+	// Since we implement with VariableInterval<T_> for the time being,
+	// we forward here its type restrictions.
 	static_assert(std::is_integral<T_>::value,
 				  "ERROR: class GlobalState<T> can only be instantiated "
 				  "with integral types, e.g. int, short, unsigned.");
@@ -143,9 +146,9 @@ public:  // Accessors
 	/**
 	 * @brief Retrieve pointer to i-th variable (const or not)
 	 * @note <b>Complexity:</b> <i>O(1)</i>
-	 * @note Range check with throw only in DEBUG build
+	 * @throw out_of_range if NDEBUG is not defined and 'i' is out of range
 	 */
-	inline std::shared_ptr< const Variable< T_ > >& operator[](const size_t& i) const
+	inline std::shared_ptr< const Variable< T_ > > operator[](const size_t& i) const
 		{
 #		ifndef NDEBUG
 			return pvars_.at(i);
@@ -183,12 +186,40 @@ public:  // Accessors
 // 	inline bool operator!=(const State< T_ >& that) const
 // 		{ return ( ! (that == *this) ); }
 
+public:  // Interaction with ::State instances
+
+	/**
+	 * @brief Are the values in 's' valid w.r.t. us?
+	 * @note <b>Complexity:</b> <i>O(GlobalState.size())</i>
+	 */
+	bool is_valid_state_instance(State s) const;
+
+	/**
+	 * @brief Copy values for our Variables from the ::State instance 's'.
+	 *        Optionally check for validity of 's' beforehand.
+	 * @note <b>Complexity:</b> <i>O(GlobalState.size())</i>
+	 * @throw FigException if checking validity and invalid value found
+	 */
+	void copy_from_state_instance(const State& s, bool checkValidity = false);
+
+	/**
+	 * @brief Copy our Variables values to the ::State instance 's'.
+	 * @note <b>Complexity:</b> <i>O(GlobalState.size())</i>
+	 */
+	void copy_to_state_instance(State s) const;
+
+	/**
+	 * @brief Create a fresh ::State instance reflecting our Variables values
+	 * @note <b>Complexity:</b> <i>O(GlobalState.size())</i>
+	 */
+	std::unique_ptr<State> to_state_instance() const;
+
 public:  // Encode/Decode between symbolic and concrete representations
 
 	/**
 	 * @brief Encode current state (a vector of Variables) as a number,
 	 *        i.e. as the "concrete" representation of the current state.
-	 * @note <b>Complexity:</b> <i>O(GlobalState.size()<sup>2</sup></i>
+	 * @note <b>Complexity:</b> <i>O(GlobalState.size()<sup>2</sup>)</i>
 	 */
 	size_t encode_state() const;
 
@@ -196,7 +227,7 @@ public:  // Encode/Decode between symbolic and concrete representations
 	 * @brief Decode number as vector of Variables values and apply to State,
 	 *        i.e. store "symbolically" the "concrete state" n.
 	 * @param n  Concrete state to interpret and apply to our symbolic existence
-	 * @note <b>Complexity:</b> <i>O(GlobalState.size()<sup>2</sup></i>
+	 * @note <b>Complexity:</b> <i>O(GlobalState.size()<sup>2</sup>)</i>
 	 */
 	void decode_state(const size_t& n);
 

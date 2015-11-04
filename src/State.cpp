@@ -32,6 +32,7 @@
 // Project code
 #include <State.h>
 #include <VariableInterval.h>
+#include <FigException.h>
 
 
 namespace fig
@@ -67,7 +68,7 @@ std::shared_ptr< const Variable< T_ > >
 GlobalState<T_>::operator[](const std::string& varname) const
 {
 	for (auto pvar: pvars_)
-		if (varname == pvar->name())
+		if (varname == pvar->name_)
 			return pvar;
 	return nullptr;
 }
@@ -78,7 +79,7 @@ std::shared_ptr< Variable< T_ > >
 GlobalState<T_>::operator[](const std::string& varname)
 {
 	for (auto pvar: pvars_)
-		if (varname == pvar->name())
+		if (varname == pvar->name_)
 			return pvar;
 	return nullptr;
 }
@@ -89,7 +90,7 @@ void
 GlobalState<T_>::print_out(std::ostream& out, bool withNewline) const
 {
 	for (const auto& pvar: pvars_)
-		out << pvar->name << "=" << pvar->value() << ", ";
+		out << pvar->name_ << "=" << pvar->val() << ", ";
 	if (!pvars_.empty() && withNewline)
 		out << "\b\b  \b\b\n";
 	else if (!pvars_.empty())
@@ -109,6 +110,57 @@ GlobalState<T_>::print_out(std::ostream& out, bool withNewline) const
 // 			return false;
 // 	return true;
 // }
+
+
+template< typename T_ >
+bool
+GlobalState<T_>::is_valid_state_instance(State s) const
+{
+	if (s.size() != size())
+		return false;
+	for (size_t i = 0u ; i < size() ; i++)
+		if (!pvars_[i]->is_valid_value(s[i]))
+			return false;
+	return true;
+}
+
+
+template< typename T_ >
+void
+GlobalState<T_>::copy_from_state_instance(const State &s, bool checkValidity)
+{
+	if (s.size() != size())
+		throw FigException("attempted to copy values from an invalid state");
+	if (checkValidity) {
+		for (size_t i = 0u ; i < size() ; i++)
+			pvars_[i]->assign(s[i]);
+	} else {
+		for (size_t i = 0u ; i < size() ; i++)
+			(*pvars_[i]) = s[i];
+	}
+}
+
+
+template< typename T_ >
+void
+GlobalState<T_>::copy_to_state_instance(State s) const
+{
+	if (s.size() != size())
+		throw FigException("attempted to copy values to an invalid state");
+	for (size_t i = 0u ; i < size() ; i++)
+		s[i] = pvars_[i]->val();
+}
+
+
+template< typename T_ >
+std::unique_ptr<State>
+GlobalState<T_>::to_state_instance() const
+{
+	std::unique_ptr<State> s(new State(size()));
+	for (size_t i = 0u ; i < size() ; i++)
+		(*s)[i] = pvars_[i]->val();
+	return s;
+}
 
 
 template< typename T_ >
@@ -164,11 +216,20 @@ GlobalState<T_>::decode_state(const size_t& n, const std::string& varname) const
 	size_t varpos(0);
 	assert(n < maxConcreteState_);
 	for (; varpos < size() ; varpos++)
-		if (varname == pvars_[varpos]->name)
+		if (varname == pvars_[varpos]->name_)
 			break;
 	assert(varpos < size());
 	return decode_state(n, varpos);
 }
 
+// GlobalState can only be instantiated with following integral types
+template class GlobalState< short              >;
+//template class GlobalState< int                >;   // MuParser can't
+template class GlobalState< long               >;
+template class GlobalState< long long          >;
+template class GlobalState< unsigned short     >;
+template class GlobalState< unsigned int       >;
+template class GlobalState< unsigned long      >;
+template class GlobalState< unsigned long long >;
 
 } // namespace fig

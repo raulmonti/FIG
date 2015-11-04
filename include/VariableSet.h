@@ -99,7 +99,7 @@ public:  // Ctors/Dtor
 
 	/**
 	 * @brief Copy assignment with copy&swap
-	 * @note Only applicable to fresh variables
+	 * @note Only applicable to fresh variables, see Variable::operator=()
 	 */
 	VariableSet<T_>& operator=(VariableSet<T_> that);
 
@@ -114,22 +114,26 @@ public:  // Accessors
 
 public:  // Modifiers
 
-	/**
-	 * @brief Value assignment
-	 * @note  Only applicable to named variables
-	 * @throw FigException if value isn't valid, see is_valid_value()
-	 */
+	/// @copydoc Variable::operator=()
+	/// @note If 'value' is invalid then it won't be applied
 	virtual VariableSet& operator=(const T_& value);
+
+	/// @copydoc Variable::assign()
+	virtual void assign(const T_& value);
 
 public:  // Relational operators
 
+	/// @copydoc Variable::operator==()
 	virtual bool operator==(const Variable<T_>& that) const;
 	virtual bool operator==(const VariableSet<T_>& that) const;
+
+	/// @copydoc Variable::is_valid_value()
 	virtual bool is_valid_value(const T_& val) const;
 
 public:  // Invariant
 
 #ifndef NDEBUG
+	/// @copydoc Variable::assert_invariant()
 	virtual void assert_invariant() const;
 #else
 	inline void assert_invariant() const {}

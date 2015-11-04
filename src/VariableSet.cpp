@@ -76,6 +76,26 @@ template< typename T_ >
 VariableSet<T_>&
 VariableSet<T_>::operator=(const T_& value)
 {
+#ifndef NDEBUG
+	if (Variable<T_>::name_.empty())
+		throw FigException(std::string("can't assign value to a fresh variable")
+			.append(" (\"").append(Variable<T_>::name_).append("\")"));
+#endif
+	for (size_t i=0 ; i < values_.size() ; i++) {
+		if (value == values_[i]) {
+			Variable<T_>::offset_ = i;
+			assert(i < Variable<T_>::range());
+			return *this;
+		}
+	}
+	return *this;  // ignore invalid values
+}
+
+
+template< typename T_ >
+void
+VariableSet<T_>::assign(const T_& value)
+{
 	if (Variable<T_>::name_.empty())
 		throw FigException(std::string("can't assign value to a fresh variable")
 			.append(" (\"").append(Variable<T_>::name_).append("\")"));
@@ -83,7 +103,7 @@ VariableSet<T_>::operator=(const T_& value)
 		if (value == values_[i]) {
 			Variable<T_>::offset_ = i;
 			assert(i < Variable<T_>::range());
-			return *this;
+			return;
 		}
 	}
 	throw FigException(std::string("can't assign ")

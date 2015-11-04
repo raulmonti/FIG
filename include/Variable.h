@@ -91,16 +91,23 @@ public:  // Modifiers
 	/**
 	 * @brief Value assignment
 	 * @note  Only applicable to named variables
-	 * @throw FigException if value isn't valid, see is_valid_value()
 	 */
 	virtual Variable& operator=(const T_& value) = 0;
+
+	/**
+	 * @brief Value assignment with prior validity check
+	 * @note  Only applicable to named variables
+	 * @throw FigException if 'value' is invalid, see is_valid_value()
+	 */
+	virtual void assign(const T_& value) = 0;
 
 public:  // Relational operators
 
 	/// @note Also compares "current value", i.e. offset_
 	virtual bool operator==(const Variable<T_>& that) const = 0;
 	inline  bool operator!=(const Variable<T_>& that) const { return !(*this == that);}
-	/// Is 'val' a valid value for this Variable?
+
+	/// @brief Is 'val' a valid value for this Variable?
 	virtual bool is_valid_value(const T_& val) const = 0;
 
 protected:  // Attributes
