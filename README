@@ -1,10 +1,17 @@
+Finite Improbability Generator (FIG tool)
 
-Finite Improbability Generator (fig tool)
+@author  Carlos E. Budde
+@author  Raúl E. Monti
 
-Authors:
- · Carlos E. Budde
- · Raúl E. Monti
+  The FIG tool is sofware developed in FaMAF, UNC, Argentina, whose goal is to
+estimate the probability of rare events using importance splitting techniques.
 
-For now these are just some silly integration tests between Qt-Creator IDE,
-CMake and the Boost Graph Library.
+  This tool is designed as the simulation engine backend of a wider toolset
+which implements Input/Output Stochastic Automate (IOSA) models. For a detailed
+and formal description of those systems and this project visit the group's
+webpage at http://dsg.famaf.unc.edu.ar.
+
+  The project is entirely written in C++ and to date runs on linux systems only.
+FIG is free, open source software released under the terms of the GNU General
+Public License version 3. FIG's logo is the Fig of Gold.
 
