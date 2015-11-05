@@ -27,11 +27,34 @@
 //==============================================================================
 
 
+// C++
+#include <iostream>
+// Project code
 #include <MathExpression.h>
 
 
 namespace fig
 {
 
+// ADL
+using std::cerr;
+using std::endl;
+
+
+void MathExpression::parse_our_expression()
+{
+	assert(!exprStr_.empty());
+	try {
+		expr_.SetExpr(exprStr_);
+	} catch (mu::Parser::exception_type &e) {
+		cerr << "Failed parsing expression" << endl;
+		cerr << "    message:  " << e.GetMsg()   << endl;
+		cerr << "    formula:  " << e.GetExpr()  << endl;
+		cerr << "    token:    " << e.GetToken() << endl;
+		cerr << "    position: " << e.GetPos()   << endl;
+		cerr << "    errc:     " << e.GetCode()  << endl;
+		throw FigException("ERROR: bad mathematical expression");
+	}
+}
 
 } // namespace fig

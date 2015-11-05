@@ -29,6 +29,7 @@
 
 // C++
 #include <iostream>
+#include <exception>
 // Project code
 #include <Precondition.h>
 #include <FigException.h>
@@ -45,10 +46,10 @@ void
 Precondition::fake_evaluation()
 {
 	STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
-	for (const auto& var: MathExpression::varsMap_)
-		MathExpression::expr_.DefineVar(var.first, &dummy);
 	try {
-		MathExpression::expr_.Eval();
+		for (const auto& var: varsMap_)
+			expr_.DefineVar(var.first, &dummy);
+		expr_.Eval();
 	} catch (mu::Parser::exception_type &e) {
 		cerr << "Failed parsing expression" << endl;
 		cerr << "    message:  " << e.GetMsg()   << endl;
@@ -65,13 +66,11 @@ bool
 Precondition::operator()(const Traial& traial)
 {
 	// Bind Traial's state to our expression...
-	for (const auto& pair: MathExpression::varsMap_)
-		MathExpression::expr_
-			.DefineVar(pair.first,
-					   const_cast<STATE_INTERNAL_TYPE*>(
-						   &traial.state[pair.second]));
+	for (const auto& pair: varsMap_)
+		expr_.DefineVar(pair.first,  const_cast<STATE_INTERNAL_TYPE*>(
+						&traial.state[pair.second]));
 	// ...and evaluate
-	return static_cast<bool>(MathExpression::expr_.Eval());
+	return static_cast<bool>(expr_.Eval());
 }
 
 }

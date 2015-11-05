@@ -22,6 +22,7 @@
 #include <VariableInterval.h>
 #include <State.h>
 #include <MathExpression.h>
+#include <Precondition.h>
 
 // ADL
 using std::to_string;
@@ -35,6 +36,7 @@ static void test_variable_interval();
 static void test_variable_set();
 static void test_state();
 static void test_math_expression();
+static void test_precondition();
 
 
 int main()
@@ -44,6 +46,7 @@ int main()
 	test_variable_set();
 	test_state();
 	test_math_expression();
+	test_precondition();
 
 	return 0;
 }
@@ -195,21 +198,24 @@ test_state()
 }
 
 
-// ////////////////////////////////////////////////////////////////////////////
+// Global variables needed/handy for expressions tests  ///////////////////////
 //
-// MathExpression requires an externally defined GlobalState named "gState"
+
+const std::string expressionString1("x^y < x+y-1");
+const std::set<std::string> varnames1({"x","y"});
 
 std::set< fig::VariableDeclaration< fig::STATE_INTERNAL_TYPE > > vars({
 	make_tuple("x", -1912, -1000),
 	make_tuple("y", 0, 12),
 	make_tuple("otra", 13, 14)
 });
+// MathExpression requires an externally defined GlobalState "fig::gState"
 namespace fig
 {
 	GlobalState< fig::STATE_INTERNAL_TYPE > gState(vars);
 }
 
-static void
+static void // ////////////////////////////////////////////////////////////////
 //
 test_math_expression()
 {
@@ -217,11 +223,19 @@ test_math_expression()
  ///
  ///  Complete this test
  ///
-	typedef fig::STATE_INTERNAL_TYPE TYPE;
+	fig::MathExpression expr1(expressionString1, varnames1);
+	assert(expressionString1 == expr1.expression());
+}
 
-	const std::string expressionString("x^y == log(1)");
-	std::set<std::string> varnames({"x","y"});
 
-	fig::MathExpression expr1(expressionString, varnames);
-	assert(expressionString == expr1.expression());
+static void // ////////////////////////////////////////////////////////////////
+//
+test_precondition()
+{
+	/// TODO
+ ///
+ ///  Complete this test
+ ///
+	fig::Precondition pre1(expressionString1, varnames1);
+	assert(expressionString1 == pre1.expression());
 }

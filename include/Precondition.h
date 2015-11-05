@@ -46,8 +46,8 @@ class Precondition : public MathExpression
 {
 	/**
 	 * @brief Perform a fake evaluation to exercise our expression
-	 * @note  Mostly used to reveal parsing errors in the expression
-	 * @throw FigException if badly parsed MathExpression
+	 * @note  Useful to reveal parsing errors in MathExpression
+	 * @throw FigException if badly parsed expression
 	 */
 	void fake_evaluation();
 
@@ -67,7 +67,7 @@ public:  // Ctors
 	Precondition(const std::string& exprStr,
 				 Container<ValueType, OtherContainerArgs...>&& varnames);
 
-	/// @copydoc MathExpression::MathExpression(const std::string&,
+	/// @copydoc MathExpression::MathExpression(const std::string&, Iterator<>, Iterator<>)
 	template< template< typename, typename... > class Iterator,
 			  typename ValueType,
 			  typename... OtherIteratorArgs >
@@ -98,8 +98,10 @@ Precondition::Precondition(
 	const Container<ValueType, OtherContainerArgs...>& varnames) :
 		MathExpression(exprStr, varnames)
 {
+#ifndef NDEBUG
 	// Reveal parsing errors in this early stage
 	fake_evaluation();
+#endif
 }
 
 
@@ -109,10 +111,12 @@ template< template< typename, typename... > class Container,
 Precondition::Precondition(
 	const std::string& exprStr,
 	Container<ValueType, OtherContainerArgs...>&& varnames) :
-		MathExpression(exprStr, varnames)
+		MathExpression(exprStr, std::move(varnames))
 {
+#ifndef NDEBUG
 	// Reveal parsing errors in this early stage
 	fake_evaluation();
+#endif
 }
 
 
@@ -125,8 +129,10 @@ Precondition::Precondition(
 	Iterator<ValueType, OtherIteratorArgs...> to) :
 		MathExpression(exprStr, from, to)
 {
+#ifndef NDEBUG
 	// Reveal parsing errors in this early stage
 	fake_evaluation();
+#endif
 }
 
 } // namespace fig

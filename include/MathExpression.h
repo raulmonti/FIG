@@ -70,7 +70,7 @@ protected:
 
 	/// Names and positions of the variables in our expression.
 	/// The positional order is given by the GlobalState of the system.
-	std::vector< std::pair< const std::string&, unsigned > > varsMap_;
+	std::vector< std::pair< const std::string, size_t > > varsMap_;
 
 public:  // Ctors
 
@@ -118,6 +118,14 @@ public:  // Ctors
 public:  // Accessors
 
 	inline const std::string& expression() const { return exprStr_; }
+
+private:  // Class utils
+
+	/**
+	 * @brief Set 'exprStr_' as the expression to MuParser's 'expr_'
+	 * @throw FigException if badly formatted mathematical expression
+	 */
+	void parse_our_expression();
 };
 
 
@@ -138,11 +146,11 @@ MathExpression::MathExpression(
 	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: MathExpression needs a container with variable names");
 	// Setup MuParser expression
-	assert(!exprStr_.empty());
-	expr_.SetExpr(exprStr_);
-	// TODO: bind all offered functions over variables
-	//       Notice MuParser already has a few: http://muparser.beltoforion.de/
+	parse_our_expression();
 	/*
+	 *  TODO:
+	 *       bind all offered functions over variables
+	 *       Notice MuParser already has a few: http://muparser.beltoforion.de/
 	expr.DefineFun("MySqr", MySqr);
 	expr.DefineFun("Uni01", Uni01);
 	...
@@ -166,11 +174,11 @@ MathExpression::MathExpression(
 	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: MathExpression needs a container with variable names");
 	// Setup MuParser expression
-	assert(!exprStr_.empty());
-	expr_.SetExpr(exprStr_);
-	// TODO: bind all offered functions over variables
-	//       Notice MuParser already has a few: http://muparser.beltoforion.de/
+	parse_our_expression();
 	/*
+	 *  TODO:
+	 *       bind all offered functions over variables
+	 *       Notice MuParser already has a few: http://muparser.beltoforion.de/
 	expr.DefineFun("MySqr", MySqr);
 	expr.DefineFun("Uni01", Uni01);
 	...
@@ -198,11 +206,11 @@ MathExpression::MathExpression(
 	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: MathExpression needs iterators pointing to variable names");
 	// Setup MuParser expression
-	assert(!exprStr_.empty());
-	expr_.SetExpr(exprStr_);
-	// TODO: bind all offered functions over variables
-	//       Notice MuParser already has a few: http://muparser.beltoforion.de/
+	parse_our_expression();
 	/*
+	 *  TODO:
+	 *       bind all offered functions over variables
+	 *       Notice MuParser already has a few: http://muparser.beltoforion.de/
 	expr.DefineFun("MySqr", MySqr);
 	expr.DefineFun("Uni01", Uni01);
 	...
