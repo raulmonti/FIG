@@ -21,6 +21,7 @@
 #include <VariableSet.h>
 #include <VariableInterval.h>
 #include <State.h>
+#include <MathExpression.h>
 
 // ADL
 using std::to_string;
@@ -33,6 +34,7 @@ static void test_clock();
 static void test_variable_interval();
 static void test_variable_set();
 static void test_state();
+static void test_math_expression();
 
 
 int main()
@@ -41,6 +43,7 @@ int main()
 	test_variable_interval();
 	test_variable_set();
 	test_state();
+	test_math_expression();
 
 	return 0;
 }
@@ -168,7 +171,7 @@ test_state()
  ///  Complete this test
  ///
 	typedef long TYPE;
-	std::vector<fig::VariableDeclaration<TYPE>> vars({
+	std::list<fig::VariableDeclaration<TYPE>> vars({
 		make_tuple("x", 0, 10),
 		make_tuple("y", -20, -19),
 		make_tuple("ay_mama", 200, 4000001)
@@ -176,10 +179,12 @@ test_state()
 	fig::GlobalState<TYPE> gState(vars);
 	assert(gState.size() == vars.size());
 	gState.print_out(std::cout, true);
-	for (size_t i = 0u ; i < gState.size() ; i++) {
-		assert(get<0>(vars[i]) == gState[i]->name());
-		assert(get<1>(vars[i]) == gState[i]->min());
-		assert(get<2>(vars[i]) == gState[i]->max());
+	size_t i(0u);
+	for (const auto& e: vars) {
+		assert(get<0>(e) == gState[i]->name());
+		assert(get<1>(e) == gState[i]->min());
+		assert(get<2>(e) == gState[i]->max());
+		++i;
 	}
 	auto s = gState.to_state_instance();
 	assert(gState.is_valid_state_instance(*s));
@@ -187,4 +192,36 @@ test_state()
 	fig::GlobalState<TYPE> gState3(std::move(gState));
 	assert(gState  != gState3);
 	assert(gState2 == gState3);
+}
+
+
+// ////////////////////////////////////////////////////////////////////////////
+//
+// MathExpression requires an externally defined GlobalState named "gState"
+
+std::set< fig::VariableDeclaration< fig::STATE_INTERNAL_TYPE > > vars({
+	make_tuple("x", -1912, -1000),
+	make_tuple("y", 0, 12),
+	make_tuple("otra", 13, 14)
+});
+namespace fig
+{
+	GlobalState< fig::STATE_INTERNAL_TYPE > gState(vars);
+}
+
+static void
+//
+test_math_expression()
+{
+	/// TODO
+ ///
+ ///  Complete this test
+ ///
+	typedef fig::STATE_INTERNAL_TYPE TYPE;
+
+	const std::string expressionString("x^y == log(1)");
+	std::set<std::string> varnames({"x","y"});
+
+	fig::MathExpression expr1(expressionString, varnames);
+	assert(expressionString == expr1.expression());
 }

@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  MathExpression.cpp
+//  Traial.h
 //
 //  Copyleft 2015-
 //  Authors:
@@ -27,11 +27,26 @@
 //==============================================================================
 
 
-#include <MathExpression.h>
+#ifndef TRAIAL_H
+#define TRAIAL_H
+
+#include <State.h>
 
 
 namespace fig
 {
 
+/**
+ * @brief Simulation kernel (or 'trial trail')
+ *        Holds the state of the variables and the set clocks values,
+ *        i.e. all that is needed to run through the user's model.
+ */
+struct Traial
+{
+	/// Variables values instantiation (same order as in GlobalState 'gState')
+	State state;
+};
 
 } // namespace fig
+
+#endif // TRAIAL_H

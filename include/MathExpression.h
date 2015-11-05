@@ -60,6 +60,8 @@ extern GlobalState< STATE_INTERNAL_TYPE > gState;
  */
 class MathExpression
 {
+protected:
+
 	typedef mu::Parser Expression;
 
 	Expression expr_;
@@ -70,7 +72,7 @@ class MathExpression
 	/// The positional order is given by the GlobalState of the system.
 	std::vector< std::pair< const std::string&, unsigned > > varsMap_;
 
-public:
+public:  // Ctors
 
 	/**
 	 * @brief Data ctor from generic lvalue container
@@ -103,15 +105,17 @@ public:
 	 * @param exprStr  String with the matemathical expression to evaluate
 	 * @param from     Iterator to first  name of variables ocurring in exprStr
 	 * @param to       Iterator past last name of variables ocurring in exprStr
-	 * @throw out_of_range if NRANGECHK is not defined and 'varnames' contains
-	 *        some variable name not appearing in the system GlobalState
+	 * @throw out_of_range if NRANGECHK is not defined and there is some
+	 *        variable name not appearing in the system GlobalState
 	 */
 	template< template< typename, typename... > class Iterator,
 			  typename ValueType,
 			  typename... OtherIteratorArgs >
 	MathExpression(const std::string& exprStr,
-				   const Iterator<ValueType, OtherIteratorArgs...>& from,
-				   const Iterator<ValueType, OtherIteratorArgs...>& to);
+				   Iterator<ValueType, OtherIteratorArgs...> from,
+				   Iterator<ValueType, OtherIteratorArgs...> to);
+
+public:  // Accessors
 
 	inline const std::string& expression() const { return exprStr_; }
 };
@@ -129,7 +133,7 @@ template< template< typename, typename... > class Container,
 MathExpression::MathExpression(
 	const std::string& exprStr,
 	const Container<ValueType, OtherContainerArgs...>& varnames) :
-	exprStr_(exprStr)
+		exprStr_(exprStr)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: MathExpression needs a container with variable names");
@@ -186,8 +190,8 @@ template< template< typename, typename... > class Iterator,
 		  typename... OtherIteratorArgs >
 MathExpression::MathExpression(
 	const std::string& exprStr,
-	const Iterator<ValueType, OtherIteratorArgs...>& from,
-	const Iterator<ValueType, OtherIteratorArgs...>& to) :
+	Iterator<ValueType, OtherIteratorArgs...> from,
+	Iterator<ValueType, OtherIteratorArgs...> to) :
 		exprStr_(exprStr),
 		varsMap_(std::distance(from,to))
 {

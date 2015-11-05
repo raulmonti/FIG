@@ -27,4 +27,51 @@
 //==============================================================================
 
 
+// C++
+#include <iostream>
+// Project code
+#include <Precondition.h>
+#include <FigException.h>
 
+
+namespace fig
+{
+
+// ADL
+using std::cerr;
+using std::endl;
+
+void
+Precondition::fake_evaluation()
+{
+	STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
+	for (const auto& var: MathExpression::varsMap_)
+		MathExpression::expr_.DefineVar(var.first, &dummy);
+	try {
+		MathExpression::expr_.Eval();
+	} catch (mu::Parser::exception_type &e) {
+		cerr << "Failed parsing expression" << endl;
+		cerr << "    message:  " << e.GetMsg()   << endl;
+		cerr << "    formula:  " << e.GetExpr()  << endl;
+		cerr << "    token:    " << e.GetToken() << endl;
+		cerr << "    position: " << e.GetPos()   << endl;
+		cerr << "    errc:     " << e.GetCode()  << endl;
+		throw FigException("ERROR: bad expression for precondition");
+	}
+}
+
+
+bool
+Precondition::operator()(const Traial& traial)
+{
+	// Bind Traial's state to our expression...
+	for (const auto& pair: MathExpression::varsMap_)
+		MathExpression::expr_
+			.DefineVar(pair.first,
+					   const_cast<STATE_INTERNAL_TYPE*>(
+						   &traial.state[pair.second]));
+	// ...and evaluate
+	return static_cast<bool>(MathExpression::expr_.Eval());
+}
+
+}
