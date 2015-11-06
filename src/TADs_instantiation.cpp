@@ -16,6 +16,7 @@
 #include <cassert>
 // Project code
 #include <FigException.h>
+#include <Label.h>
 #include <Clock.h>
 #include <Variable.h>
 #include <VariableSet.h>
@@ -32,6 +33,7 @@ using std::get;
 
 
 // Tests forward declarations
+static void test_label();
 static void test_clock();
 static void test_variable_interval();
 static void test_variable_set();
@@ -43,6 +45,7 @@ static void test_postcondition();
 
 int main()
 {
+	test_label();
 	test_clock();
 	test_variable_interval();
 	test_variable_set();
@@ -67,6 +70,28 @@ public:
 	TestException(const std::string& msg) : msg_(msg) {}
 	TestException(std::string&& msg) : msg_(std::move(msg)) {}
 };
+
+
+static void // ////////////////////////////////////////////////////////////////
+//
+test_label()
+{
+	fig::Label tau;
+	assert(tau.is_input());
+	assert(tau.is_tau());
+
+	fig::Label input("a", false);
+	assert(!input.is_tau());
+	assert(input.is_input());
+	assert(tau != input);
+
+	fig::Label output("a", true);
+	assert(!output.is_tau());
+	assert(!output.is_input());
+	assert(tau != output);
+	assert(input == output);
+	assert(!output.same_as(input));
+}
 
 
 static void // ////////////////////////////////////////////////////////////////
@@ -226,6 +251,8 @@ test_math_expression()
 	/// TODO
  ///
  ///  Complete this test
+ ///
+ ///  FIXME: why can't we use builtin functions like log() or cos() ?
  ///
 	fig::MathExpression expr1(expressionString1, varnames1);
 	assert(expressionString1 == expr1.expression());
