@@ -52,6 +52,12 @@ extern GlobalState< STATE_INTERNAL_TYPE > gState;
 
 /**
  * @brief Mathematical expression with variables mapping
+ *
+ *        This class assumes a GlobalState variable named 'gState'
+ *        was defined somewhere within the fig namespace.
+ *        Such instance is needed for defining a unique order of the
+ *        mapped variables for all objects of this class.
+ *
  * @note  Uses MuParser library (http://muparser.beltoforion.de/)
  * @note  Offers generic construction from the following STL containers:
  *        vector, list, forward_list, set, unordered_set, deque.

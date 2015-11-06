@@ -23,6 +23,7 @@
 #include <State.h>
 #include <MathExpression.h>
 #include <Precondition.h>
+#include <Postcondition.h>
 
 // ADL
 using std::to_string;
@@ -37,6 +38,7 @@ static void test_variable_set();
 static void test_state();
 static void test_math_expression();
 static void test_precondition();
+static void test_postcondition();
 
 
 int main()
@@ -47,6 +49,7 @@ int main()
 	test_state();
 	test_math_expression();
 	test_precondition();
+	test_postcondition();
 
 	return 0;
 }
@@ -202,6 +205,7 @@ test_state()
 //
 
 const std::string expressionString1("x^y < x+y-1");
+const std::string expressionString2("x=y,y=x^2");
 const std::set<std::string> varnames1({"x","y"});
 
 std::set< fig::VariableDeclaration< fig::STATE_INTERNAL_TYPE > > vars({
@@ -236,6 +240,19 @@ test_precondition()
  ///
  ///  Complete this test
  ///
-	fig::Precondition pre1(expressionString1, varnames1);
-	assert(expressionString1 == pre1.expression());
+	fig::Precondition pre(expressionString1, varnames1);
+	assert(expressionString1 == pre.expression());
+}
+
+
+static void // ////////////////////////////////////////////////////////////////
+//
+test_postcondition()
+{
+	/// TODO
+ ///
+ ///  Complete this test
+ ///
+	fig::Postcondition pos(expressionString2, 2, varnames1);
+	assert(expressionString2 == pos.expression());
 }

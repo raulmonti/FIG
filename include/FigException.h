@@ -36,6 +36,7 @@
 namespace fig
 {
 
+/// Very primitive exception support
 class FigException : public std::exception
 {
 	std::string msg_;

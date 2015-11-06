@@ -63,8 +63,9 @@ static_assert(std::is_same<short, MUP_BASETYPE>::value,
 
 
 /**
- * @brief State (instance)
- *        An array of Variable values.
+ * @brief State (instance):
+ *        an array of Variable values.
+ *
  *        Each State is an instantiation of values, which follows the ordering
  *        given in the (unique) ::GlobalState vector of the system.
  *        A State can be compared to the GlobalState for consistency checks.
@@ -75,10 +76,12 @@ typedef std::vector< STATE_INTERNAL_TYPE > State;
 
 
 /**
- * @brief Unique vector of Variables in the system (singleton)
- *        It is used for consistency check of State instances (see ::State)
- *        and for conversions between the concrete and symbolic representations
- *        of a system state.
+ * @brief Unique vector of Variables in the system
+ *
+ *        GlobalState is used for consistency check of State instances
+ *        (see fig::State) and for conversions between the concrete and symbolic
+ *        representations of a system state.
+ *
  * @note  Offers generic construction from the following STL containers:
  *        vector, list, forward_list, set, unordered_set, deque.
  * @note  Will not build from the following STL containers:
@@ -89,11 +92,13 @@ typedef std::vector< STATE_INTERNAL_TYPE > State;
 template< typename T_ >
 class GlobalState
 {
+	/// @cond DEV
 	// Since we implement with VariableInterval<T_> for the time being,
 	// we forward here its type restrictions.
 	static_assert(std::is_integral<T_>::value,
 				  "ERROR: class GlobalState<T> can only be instantiated "
 				  "with integral types, e.g. int, short, unsigned.");
+	/// @endcond
 
 	/// Variables vector
 	std::vector< std::shared_ptr< Variable< T_ > > > pvars_;
@@ -104,7 +109,7 @@ class GlobalState
 	/// Lookup { varname --> varpos } needed by MathExpressions
 	std::unordered_map<std::string, size_t> positionOfVar_;  // http://stackoverflow.com/a/13799886
 
-	/// @brief Compute and store value of maxConcreteState_
+	/// @brief Compute and store value of GlobalState::maxConcreteState_
 	void build_concrete_bound();
 
 public:  // Ctors/Dtor
@@ -172,7 +177,7 @@ public:  // Accessors
 	/** 
 	 * @brief Retrieve pointer to variable named "varname" if existent
 	 * @return Pointer to variable "varname", or nullptr if not existent
-	 * @note <b>Complexity:</b> <i>O(GlobalState.size())</i>
+	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
 	std::shared_ptr< const Variable< T_ > > operator[](const std::string& varname) const;
 	std::shared_ptr<       Variable< T_ > > operator[](const std::string& varname);
@@ -180,7 +185,7 @@ public:  // Accessors
 	/**
 	 * @brief Retrieve position of variable named "varname" if existent
 	 * @note  <b>Complexity:</b> average case is <i>O(1)</i>,
-	 *        worst case (rare) is <i>O(GlobalState.size())</i>
+	 *        worst case (rare) is <i>O(size())</i>
 	 * @throw out_of_range if NRANGECHK is not defined and variable "varname"
 	 *        doesn't exist
 	 */
@@ -200,7 +205,7 @@ public:  // Relational operators
 		 // FIXME Not needed if there's a unique GlobalState instance
 	/**
 	 * @brief Whether 'this' and 'that' hold same variables with same values
-	 * @note <b>Complexity:</b> <i>O(GlobalState.size()</i>
+	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
 	bool operator==(const GlobalState< T_ >& that) const;
 	inline bool operator!=(const GlobalState< T_ >& that) const
@@ -210,27 +215,27 @@ public:  // Interaction with ::State instances
 
 	/**
 	 * @brief Are the values in 's' valid w.r.t. us?
-	 * @note <b>Complexity:</b> <i>O(GlobalState.size())</i>
+	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
 	bool is_valid_state_instance(State s) const;
 
 	/**
 	 * @brief Copy values for our Variables from the ::State instance 's'.
 	 *        Optionally check for validity of 's' beforehand.
-	 * @note <b>Complexity:</b> <i>O(GlobalState.size())</i>
+	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 * @throw FigException if checking validity and invalid value found
 	 */
 	void copy_from_state_instance(const State& s, bool checkValidity = false);
 
 	/**
 	 * @brief Copy our Variables values to the ::State instance 's'.
-	 * @note <b>Complexity:</b> <i>O(GlobalState.size())</i>
+	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
 	void copy_to_state_instance(State s) const;
 
 	/**
 	 * @brief Create a fresh ::State instance reflecting our Variables values
-	 * @note <b>Complexity:</b> <i>O(GlobalState.size())</i>
+	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
 	std::unique_ptr<State> to_state_instance() const;
 
@@ -239,7 +244,7 @@ public:  // Encode/Decode between symbolic and concrete representations
 	/**
 	 * @brief Encode current state (a vector of Variables) as a number,
 	 *        i.e. as the "concrete" representation of the current state.
-	 * @note <b>Complexity:</b> <i>O(GlobalState.size()<sup>2</sup>)</i>
+	 * @note <b>Complexity:</b> <i>O(size()<sup>2</sup>)</i>
 	 */
 	size_t encode_state() const;
 
@@ -247,7 +252,7 @@ public:  // Encode/Decode between symbolic and concrete representations
 	 * @brief Decode number as vector of Variables values and apply to State,
 	 *        i.e. store "symbolically" the "concrete state" n.
 	 * @param n  Concrete state to interpret and apply to our symbolic existence
-	 * @note <b>Complexity:</b> <i>O(GlobalState.size()<sup>2</sup>)</i>
+	 * @note <b>Complexity:</b> <i>O(size()<sup>2</sup>)</i>
 	 */
 	void decode_state(const size_t& n);
 
@@ -255,7 +260,7 @@ public:  // Encode/Decode between symbolic and concrete representations
 	 * @brief Decode concrete state 'n' into corresponding Variable value
 	 * @param n  Concrete state to interpret
 	 * @param i  Variable index whose value (decoded from n) is requested
-	 * @note <b>Complexity:</b> <i>O(GlobalState.size())</i>
+	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
 	T_ decode_state(const size_t& n, const size_t& i) const;
 
@@ -263,7 +268,7 @@ public:  // Encode/Decode between symbolic and concrete representations
 	 * @brief Decode concrete state 'n' into corresponding Variable value
 	 * @param n  Concrete state to interpret
 	 * @param i  Variable name whose value (decoded from n) is requested
-	 * @note <b>Complexity:</b> <i>O(GlobalState.size())</i>
+	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
 	T_ decode_state(const size_t& n, const std::string& varname) const;
 };

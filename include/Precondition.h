@@ -53,21 +53,23 @@ class Precondition : public MathExpression
 
 public:  // Ctors
 
-	/// @copydoc MathExpression::MathExpression(const std::string&, const Container<>&)
+	/// @copydoc MathExpression::MathExpression
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
 	Precondition(const std::string& exprStr,
 				 const Container<ValueType, OtherContainerArgs...>& varnames);
 
-	/// @copydoc MathExpression::MathExpression(const std::string&, Container<>&&)
+	/// Data ctor from generic rvalue container
+	/// @see Equivalent ctor in MathExpression
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
 	Precondition(const std::string& exprStr,
 				 Container<ValueType, OtherContainerArgs...>&& varnames);
 
-	/// @copydoc MathExpression::MathExpression(const std::string&, Iterator<>, Iterator<>)
+	/// Data ctor from iterator range
+	/// @see Equivalent ctor in MathExpression
 	template< template< typename, typename... > class Iterator,
 			  typename ValueType,
 			  typename... OtherIteratorArgs >
@@ -77,9 +79,13 @@ public:  // Ctors
 
 public:  // Accessors
 
-	inline const std::string& expression() const { return MathExpression::expression(); }
+	inline const std::string& expression() const { return exprStr_; }
 
-	/// @brief Compute truth value in the current state of this traial
+	/**
+	 * @brief Compute truth value in the current state of this traial
+	 * @return Wether traial's internal state satisfies our expression
+	 * @throw mu::ParserError
+	 */
 	bool operator()(const Traial& traial);
 };
 

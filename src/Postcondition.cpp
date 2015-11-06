@@ -27,4 +27,35 @@
 //==============================================================================
 
 
+#include <Postcondition.h>
 
+
+namespace fig
+{
+
+// ADL
+using std::cerr;
+using std::endl;
+
+void
+Postcondition::fake_evaluation()
+{
+	STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
+	try {
+		for (const auto& var: varsMap_)
+			expr_.DefineVar(var.first, &dummy);
+		STATE_INTERNAL_TYPE* ptr = expr_.Eval(numUpdates_);
+		// MuParser library handles memory, leave ptr alone
+		ptr = nullptr;  // avoid 'unused' compiler warning
+	} catch (mu::Parser::exception_type &e) {
+		cerr << "Failed parsing expression" << endl;
+		cerr << "    message:  " << e.GetMsg()   << endl;
+		cerr << "    formula:  " << e.GetExpr()  << endl;
+		cerr << "    token:    " << e.GetToken() << endl;
+		cerr << "    position: " << e.GetPos()   << endl;
+		cerr << "    errc:     " << e.GetCode()  << endl;
+		throw FigException("ERROR: bad expression for precondition");
+	}
+}
+
+} // namespace fig

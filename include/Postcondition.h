@@ -30,4 +30,128 @@
 #ifndef POSTCONDITION_H
 #define POSTCONDITION_H
 
+// Project code
+#include <MathExpression.h>
+#include <Traial.h>
+
+
+namespace fig
+{
+
+/**
+ * @brief Transition postcondition:
+ *        a list of comma separated updates on variables values
+ */
+class Postcondition : public MathExpression
+{
+	/// Number of variables updated by this postcondition
+	int numUpdates_;
+
+	/**
+	 * @brief Perform a fake evaluation to exercise our expression
+	 * @note  Useful to reveal parsing errors in MathExpression
+	 * @throw FigException if badly parsed expression
+	 */
+	void fake_evaluation();
+
+public:  // Ctors
+
+	/// @copydoc MathExpression::MathExpression
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	Postcondition(const std::string& exprStr,
+				  const size_t& numUpdates,
+				  const Container<ValueType, OtherContainerArgs...>& varnames);
+
+	/// Data ctor from generic rvalue container
+	/// @see Equivalent ctor in MathExpression
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	Postcondition(const std::string& exprStr,
+				  const size_t& numUpdates,
+				  Container<ValueType, OtherContainerArgs...>&& varnames);
+
+	/// Data ctor from iterator range
+	/// @see Equivalent ctor in MathExpression
+	template< template< typename, typename... > class Iterator,
+			  typename ValueType,
+			  typename... OtherIteratorArgs >
+	Postcondition(const std::string& exprStr,
+				  const size_t& numUpdates,
+				  Iterator<ValueType, OtherIteratorArgs...> from,
+				  Iterator<ValueType, OtherIteratorArgs...> to);
+
+public:  // Accessors
+
+	inline const std::string& expression() const { return exprStr_; }
+
+	/**
+	 * @brief Update Traial's internal State instance
+	 * @throw mu::ParserError
+	 */
+	bool operator()(Traial& traial);
+};
+
+
+// // // // // // // // // // // // // // // // // // // // // // // // // // //
+
+// Template definitions
+
+// If curious about its presence here take a look at the end of VariableSet.cpp
+
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+Postcondition::Postcondition(
+	const std::string& exprStr,
+	const size_t& numUpdates,
+	const Container<ValueType, OtherContainerArgs...>& varnames) :
+		MathExpression(exprStr, varnames),
+		numUpdates_(numUpdates)
+{
+#ifndef NDEBUG
+	// Reveal parsing errors in this early stage
+	fake_evaluation();
+#endif
+}
+
+
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+Postcondition::Postcondition(
+	const std::string& exprStr,
+	const size_t& numUpdates,
+	Container<ValueType, OtherContainerArgs...>&& varnames) :
+		MathExpression(exprStr, std::move(varnames)),
+		numUpdates_(numUpdates)
+{
+#ifndef NDEBUG
+	// Reveal parsing errors in this early stage
+	fake_evaluation();
+#endif
+}
+
+
+template< template< typename, typename... > class Iterator,
+		  typename ValueType,
+		  typename... OtherIteratorArgs >
+Postcondition::Postcondition(
+	const std::string& exprStr,
+	const size_t& numUpdates,
+	Iterator<ValueType, OtherIteratorArgs...> from,
+	Iterator<ValueType, OtherIteratorArgs...> to) :
+		MathExpression(exprStr, from, to),
+		numUpdates_(numUpdates)
+{
+#ifndef NDEBUG
+	// Reveal parsing errors in this early stage
+	fake_evaluation();
+#endif
+}
+
+} // namespace fig
+
 #endif // POSTCONDITION_H
