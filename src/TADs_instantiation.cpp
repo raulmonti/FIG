@@ -229,19 +229,20 @@ test_state()
 // Global variables needed/handy for expressions tests  ///////////////////////
 //
 
-const std::string expressionString1("x^y < x+y-1");
-const std::string expressionString2("x=y,y=x^2");
+const std::string pre1str("x^y < x+y-1");
+const std::string pos1str("x=y, y=x^2");  // updates are accumulative: y = y^2
 const std::set<std::string> varnames1({"x","y"});
 
-std::set< fig::VariableDeclaration< fig::STATE_INTERNAL_TYPE > > vars({
-	make_tuple("x", -1912, -1000),
-	make_tuple("y", 0, 12),
-	make_tuple("otra", 13, 14)
-});
 // MathExpression requires an externally defined GlobalState "fig::gState"
 namespace fig
 {
-	GlobalState< fig::STATE_INTERNAL_TYPE > gState(vars);
+typedef fig::VariableInterval< fig::STATE_INTERNAL_TYPE > VarType;
+GlobalState< STATE_INTERNAL_TYPE > gState(
+	std::vector< VarType >{
+		VarType("x", -1912, -1000),
+		VarType("otra", 13, 14),
+		VarType("y", 0, 12)
+	});
 }
 
 static void // ////////////////////////////////////////////////////////////////
@@ -254,8 +255,8 @@ test_math_expression()
  ///
  ///  FIXME: why can't we use builtin functions like log() or cos() ?
  ///
-	fig::MathExpression expr1(expressionString1, varnames1);
-	assert(expressionString1 == expr1.expression());
+	fig::MathExpression expr1(pre1str, varnames1);
+	assert(pre1str == expr1.expression());
 }
 
 
@@ -267,8 +268,8 @@ test_precondition()
  ///
  ///  Complete this test
  ///
-	fig::Precondition pre(expressionString1, varnames1);
-	assert(expressionString1 == pre.expression());
+	fig::Precondition pre1(pre1str, varnames1);
+	assert(pre1str == pre1.expression());
 }
 
 
@@ -280,6 +281,6 @@ test_postcondition()
  ///
  ///  Complete this test
  ///
-	fig::Postcondition pos(expressionString2, 2, varnames1);
-	assert(expressionString2 == pos.expression());
+	fig::Postcondition pos1(pos1str, 2, varnames1);
+	assert(pos1str == pos1.expression());
 }

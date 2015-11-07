@@ -21,7 +21,7 @@
 //	GNU General Public License for more details.
 //
 //	You should have received a copy of the GNU General Public License
-//	along with PRISM; if not, write to the Free Software Foundation,
+//	along with FIG; if not, write to the Free Software Foundation,
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
@@ -116,23 +116,33 @@ public:  // Ctors/Dtor
 
 	// Void ctor
 	inline GlobalState() : pvars_(), maxConcreteState_(0) {}
+
 	// Data ctors
 	/// Copy content from any container with proper internal data type
 	template< template< typename, typename...> class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
 	GlobalState(const Container<ValueType, OtherContainerArgs...>& vars);
+
 	/// Move content from any container with proper internal data type
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
 	GlobalState(Container<ValueType, OtherContainerArgs...>&& vars);
+
+	/// Move content from any container with pointers to proper internal data type
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	GlobalState(Container<ValueType*, OtherContainerArgs...>&& vars);
+
 	/// Copy content between iterators 'from' and 'to' pointing to proper data type
 	template< template< typename, typename... > class Iterator,
 			  typename ValueType,
 			  typename... OtherIteratorArgs >
 	GlobalState(Iterator<ValueType, OtherIteratorArgs...> from,
 				Iterator<ValueType, OtherIteratorArgs...> to);
+
 	// Move ctor
 	GlobalState(GlobalState<T_>&& that);
 
@@ -289,8 +299,8 @@ GlobalState<T_>::GlobalState(const Container<ValueType, OtherContainerArgs...>& 
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_constructible< VariableInterval<T_>, ValueType >::value,
-				  "ERROR: GlobalState can only be constructed from Variables, "
-				  "VariableDefinitions or VariableDeclarations");
+				  "ERROR: type missmatch. GlobalState can only be constructed "
+				  "from Variables, VariableDefinitions or VariableDeclarations");
 	size_t i(0u);
 	auto last = positionOfVar_.begin();
 	for (const auto& e: vars) {
@@ -302,6 +312,7 @@ GlobalState<T_>::GlobalState(const Container<ValueType, OtherContainerArgs...>& 
 }
 
 
+// This is the move ctor from object references
 template< typename T_ >
 template< template< typename, typename... > class Container,
 		  typename ValueType,
@@ -311,13 +322,38 @@ GlobalState<T_>::GlobalState(Container<ValueType, OtherContainerArgs...>&& vars)
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_convertible< VariableInterval<T_>, ValueType >::value,
-				  "ERROR: GlobalState can only be move-constructed from "
-				  "another GlobalState or a container with Variable pointers");
+				  "ERROR: type missmatch. GlobalState can only be move-"
+				  "constructed from another GlobalState or from a container "
+				  "with instances or raw pointers to VariableInterval objects");
 	size_t i(0u);
 	auto last = positionOfVar_.begin();
 	for (auto& e: vars) {
-		pvars_.emplace_back(std::move(
-			   dynamic_cast< std::shared_ptr< VariableInterval< T_ > > >( e )));
+		pvars_.emplace_back( std::make_shared< VariableInterval<T_> >( std::move( e ) ) );
+		last = positionOfVar_.emplace_hint(last, pvars_[i]->name_, i);
+		++i;
+	}
+	build_concrete_bound();
+	vars.clear();
+}
+
+
+// This is the move ctor from object (raw) pointers
+template< typename T_ >
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+GlobalState<T_>::GlobalState(Container<ValueType*, OtherContainerArgs...>&& vars) :
+	maxConcreteState_(1u)
+{
+	// We chose VariableInterval<> as implementation for our Variables
+	static_assert(std::is_convertible< VariableInterval<T_>, ValueType >::value,
+				  "ERROR: type missmatch. GlobalState can only be move-"
+				  "constructed from another GlobalState or from a container "
+				  "with instances or raw pointers to VariableInterval objects");
+	size_t i(0u);
+	auto last = positionOfVar_.begin();
+	for (auto& e: vars) {
+		pvars_.emplace_back(std::shared_ptr< VariableInterval< T_ > >( e ));
 		last = positionOfVar_.emplace_hint(last, pvars_[i]->name_, i);
 		e = nullptr;
 		++i;
@@ -338,8 +374,8 @@ GlobalState<T_>::GlobalState(Iterator<ValueType, OtherIteratorArgs...> from,
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_constructible<VariableInterval<T_>, ValueType>::value,
-				  "ERROR: GlobalState can only be constructed from Variables, "
-				  "VariableDefinitions or VariableDeclarations");
+				  "ERROR: type missmatch. GlobalState can only be constructed "
+				  "from Variables, VariableDefinitions or VariableDeclarations");
 	size_t i(0);
 	auto last = positionOfVar_.begin();
 	do {

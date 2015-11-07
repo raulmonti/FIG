@@ -21,7 +21,7 @@
 //	GNU General Public License for more details.
 //
 //	You should have received a copy of the GNU General Public License
-//	along with PRISM; if not, write to the Free Software Foundation,
+//	along with FIG; if not, write to the Free Software Foundation,
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
@@ -129,6 +129,8 @@ private:  // Class utils
 
 	/**
 	 * @brief Set 'exprStr_' as the expression to MuParser's 'expr_'
+	 * @details After successfully parsing the expression string,
+	 *          all offered builtin functions are bound to 'expr_'
 	 * @throw FigException if badly formatted mathematical expression
 	 */
 	void parse_our_expression();
@@ -153,14 +155,6 @@ MathExpression::MathExpression(
 				  "ERROR: MathExpression needs a container with variable names");
 	// Setup MuParser expression
 	parse_our_expression();
-	/*
-	 *  TODO:
-	 *       bind all offered functions over variables
-	 *       Notice MuParser already has a few: http://muparser.beltoforion.de/
-	expr.DefineFun("MySqr", MySqr);
-	expr.DefineFun("Uni01", Uni01);
-	...
-	*/
 	// Setup variables mapping
 	for (const auto& name: varnames) {
 		assert(std::string::npos != exprStr.find(name));  // trust no one
@@ -181,14 +175,6 @@ MathExpression::MathExpression(
 				  "ERROR: MathExpression needs a container with variable names");
 	// Setup MuParser expression
 	parse_our_expression();
-	/*
-	 *  TODO:
-	 *       bind all offered functions over variables
-	 *       Notice MuParser already has a few: http://muparser.beltoforion.de/
-	expr.DefineFun("MySqr", MySqr);
-	expr.DefineFun("Uni01", Uni01);
-	...
-	*/
 	// Setup variables mapping
 	for (auto& name: varnames) {
 		assert(std::string::npos != exprStr.find(name));  // trust no one
@@ -213,14 +199,6 @@ MathExpression::MathExpression(
 				  "ERROR: MathExpression needs iterators pointing to variable names");
 	// Setup MuParser expression
 	parse_our_expression();
-	/*
-	 *  TODO:
-	 *       bind all offered functions over variables
-	 *       Notice MuParser already has a few: http://muparser.beltoforion.de/
-	expr.DefineFun("MySqr", MySqr);
-	expr.DefineFun("Uni01", Uni01);
-	...
-	*/
 	// Setup variables mapping
 	size_t i(0u);
 	do {

@@ -21,7 +21,7 @@
 //	GNU General Public License for more details.
 //
 //	You should have received a copy of the GNU General Public License
-//	along with PRISM; if not, write to the Free Software Foundation,
+//	along with FIG; if not, write to the Free Software Foundation,
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
@@ -70,6 +70,7 @@ public:  // Ctors/Dtor
 
 	// Fresh variable
 	VariableSet() {}
+
 	// Named variable
 	/// Copy content from any container with internal data type equal to T_
 	template< template< typename, typename... > class Container,
@@ -77,12 +78,21 @@ public:  // Ctors/Dtor
 			  typename... OtherContainerArgs >
 	VariableSet(const std::string& thename,
 				const Container<ValueType, OtherContainerArgs...>& values);
+
 	/// Move content from any container with internal data type equal to T_
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
 	VariableSet(const std::string &thename,
 				Container<ValueType, OtherContainerArgs...>&& values);
+
+	/// Move content from any container with internal data type equal to T_*
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	VariableSet(const std::string &thename,
+				Container<ValueType*, OtherContainerArgs...>&& values);
+
 	/// Copy content between iterators 'from' and 'to' pointing to data type equal to T_
 	template< template< typename, typename... > class Iterator,
 			  typename ValueType,
@@ -90,6 +100,7 @@ public:  // Ctors/Dtor
 	VariableSet(const std::string& thename,
 				Iterator<ValueType, OtherIteratorArgs...> from,
 				Iterator<ValueType, OtherIteratorArgs...> to);
+
 	/// Copy content from static array of specified size
 	VariableSet(const std::string& thename, const T_ *array, size_t arraySize);
 
@@ -160,7 +171,7 @@ VariableSet<T_>::VariableSet(
 		max_(std::numeric_limits<T_>::min())
 {
 	static_assert(std::is_same< T_, ValueType >::value,
-				  "ERROR: type missmatch, container internal data type "
+				  "ERROR: type missmatch. Container internal data type "
 				  "must match the type of this template class");
 	for(const auto& e: values) {
 		values_.emplace_back(e);
@@ -172,6 +183,7 @@ VariableSet<T_>::VariableSet(
 }
 
 
+// This is the move ctor from object references
 template< typename T_ >
 template< template< typename, typename... > class Container,
 		  typename ValueType,
@@ -184,12 +196,39 @@ VariableSet<T_>::VariableSet(
 		max_(std::numeric_limits<T_>::min())
 {
 	static_assert(std::is_same< T_, ValueType >::value,
-				  "ERROR: type missmatch, container internal data type "
+				  "ERROR: type missmatch. Container internal data type "
 				  "must match the type of this template class");
-	for(const auto& e: values) {
+	for(auto& e: values) {
 		values_.emplace_back(std::move(e));
 		min_ = e < min_ ? e : min_;
 		max_ = e > max_ ? e : max_;
+	}
+	values.clear();
+	Variable<T_>::range_ = values_.size();
+	assert_invariant();
+}
+
+
+// This is the move ctor from object pointers
+template< typename T_ >
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+VariableSet<T_>::VariableSet(
+	const std::string& thename,
+	Container<ValueType*, OtherContainerArgs...>&& values) :
+		Variable<T_>(std::move(thename)),
+		min_(std::numeric_limits<T_>::max()),
+		max_(std::numeric_limits<T_>::min())
+{
+	static_assert(std::is_same< T_, ValueType >::value,
+				  "ERROR: type missmatch. Container internal data type pointer "
+				  "must match the type of this template class");
+	for(const auto& e: values) {
+		values_.emplace_back(std::move(*e));
+		min_ = e < min_ ? e : min_;
+		max_ = e > max_ ? e : max_;
+		e = nullptr;
 	}
 	values.clear();
 	Variable<T_>::range_ = values_.size();
@@ -211,7 +250,7 @@ VariableSet<T_>::VariableSet(
 		max_(std::numeric_limits<T_>::min())
 {
 	static_assert(std::is_same< T_, ValueType >::value,
-				  "ERROR: type missmatch, iterator pointed-to data type "
+				  "ERROR: type missmatch. Iterator pointed-to data type "
 				  "must match the type of this template class");
 	Variable<T_>::range_ = values_.size();
 	size_t i(0u);

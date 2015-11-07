@@ -21,7 +21,7 @@
 //	GNU General Public License for more details.
 //
 //	You should have received a copy of the GNU General Public License
-//	along with PRISM; if not, write to the Free Software Foundation,
+//	along with FIG; if not, write to the Free Software Foundation,
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
@@ -40,7 +40,17 @@ namespace fig
 
 /**
  * @brief Transition postcondition:
- *        a list of comma separated updates on variables values
+ *        a list of comma separated updates on variables values.
+ *
+ *        Each 'update' consists of a single variable name on the LHS,
+ *        the symbol '=' and any properly typed expression on the RHS.
+ *        For instance the following string specifies two updates:
+ *
+ *        "x = max(x,10), y = x^3"
+ *
+ *        Updates are accumulative, so for instance in the string above
+ *        variable 'y' will be assigned the third power of the new value
+ *        of variable 'x' after the "max(x,10)" assignment.
  */
 class Postcondition : public MathExpression
 {
@@ -88,10 +98,10 @@ public:  // Accessors
 	inline const std::string& expression() const { return exprStr_; }
 
 	/**
-	 * @brief Update Traial's internal State instance
+	 * @brief Update traial's internal State instance
 	 * @throw mu::ParserError
 	 */
-	bool operator()(Traial& traial);
+	void operator()(Traial& traial);
 };
 
 

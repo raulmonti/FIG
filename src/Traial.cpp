@@ -1,8 +1,8 @@
 //==============================================================================
-//	
-//  %FILENAME%
 //
-//  Copyleft %YEAR%-
+//  Traial.cpp
+//
+//  Copyleft 2015-
 //  Authors:
 //  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
 //
@@ -19,10 +19,31 @@
 //	but WITHOUT ANY WARRANTY; without even the implied warranty of
 //	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //	GNU General Public License for more details.
-//	
+//
 //	You should have received a copy of the GNU General Public License
 //	along with FIG; if not, write to the Free Software Foundation,
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
 
+
+#include <Traial.h>
+
+
+namespace fig
+{
+
+const Traial::Timeout&
+Traial::next_timeout(bool reorder)
+{
+	if (reorder)
+		reorder_clocks();
+
+	/// TODO
+ ///
+ /// Fill up
+ ///
+
+}
+
+} // namespace fig

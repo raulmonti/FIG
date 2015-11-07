@@ -21,7 +21,7 @@
 //	GNU General Public License for more details.
 //
 //	You should have received a copy of the GNU General Public License
-//	along with PRISM; if not, write to the Free Software Foundation,
+//	along with FIG; if not, write to the Free Software Foundation,
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
@@ -46,6 +46,14 @@ void MathExpression::parse_our_expression()
 	assert(!exprStr_.empty());
 	try {
 		expr_.SetExpr(exprStr_);
+		/*
+		 *  TODO:
+		 *       bind all offered functions over variables
+		 *       Notice MuParser already has a few: http://muparser.beltoforion.de/
+		expr.DefineFun("MySqr", MySqr);
+		expr.DefineFun("Uni01", Uni01);
+		...
+		*/
 	} catch (mu::Parser::exception_type &e) {
 		cerr << "Failed parsing expression" << endl;
 		cerr << "    message:  " << e.GetMsg()   << endl;

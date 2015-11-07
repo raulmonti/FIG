@@ -2566,3 +2566,8 @@ src/MathExpression.cpp
 src/Precondition.cpp
 src/Postcondition.cpp
 include/Traial.h
+include/Label.h
+src/Label.cpp
+src/Transition.cpp
+include/Transition.h
+src/Traial.cpp

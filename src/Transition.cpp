@@ -1,8 +1,8 @@
 //==============================================================================
-//	
-//  %FILENAME%
 //
-//  Copyleft %YEAR%-
+//  Transition.cpp
+//
+//  Copyleft 2015-
 //  Authors:
 //  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
 //
@@ -19,10 +19,45 @@
 //	but WITHOUT ANY WARRANTY; without even the implied warranty of
 //	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //	GNU General Public License for more details.
-//	
+//
 //	You should have received a copy of the GNU General Public License
 //	along with FIG; if not, write to the Free Software Foundation,
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
 
+
+// C++
+#include <string>
+#include <vector>
+// Project code
+#include <Transition.h>
+#include <Clock.h>
+#include <FigException.h>
+
+
+namespace fig
+{
+
+extern std::vector<Clock> gClocks;
+
+void
+Transition::handle_clocks(Traial&         traial,
+						  const unsigned& firstClock,
+						  const unsigned& numClocks,
+						  const float&    timeLapse) const
+{
+//	for (unsigned i = firstClock ; i < firstClock + numClocks ; i++) {
+//		if (must_reset(i))
+//			traial.clocks_[i] = gClocks[i].sample();
+//		else
+//			traial.clocks_[i] -= timeLapse;
+//#ifndef NTIMECHK
+//		if (0.0f > traial.clocks[i])
+//			throw FigException(std::string("negative value for clock \"")
+//							   .append(gClocks[i].name()).append("\""));
+//#endif
+//	}
+}
+
+} // namespace fig

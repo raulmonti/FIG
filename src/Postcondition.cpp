@@ -21,12 +21,15 @@
 //	GNU General Public License for more details.
 //
 //	You should have received a copy of the GNU General Public License
-//	along with PRISM; if not, write to the Free Software Foundation,
+//	along with FIG; if not, write to the Free Software Foundation,
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
 
 
+// C++
+#include <iostream>
+// Project code
 #include <Postcondition.h>
 
 
@@ -56,6 +59,19 @@ Postcondition::fake_evaluation()
 		cerr << "    errc:     " << e.GetCode()  << endl;
 		throw FigException("ERROR: bad expression for precondition");
 	}
+}
+
+
+void
+Postcondition::operator()(Traial& traial)
+{
+	// Bind Traial's state to our expression...
+	for (const auto& pair: varsMap_)
+		expr_.DefineVar(pair.first,  const_cast<STATE_INTERNAL_TYPE*>(
+						&traial.state[pair.second]));
+	// ...and evaluate
+	expr_.Eval(numUpdates_);
+	assert(expr_.GetNumResults() == numUpdates_);
 }
 
 } // namespace fig
