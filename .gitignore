@@ -1,4 +1,13 @@
+# Editors temp files
 *~
 .*.swp
+
+# IDEs temp files
 *.user
+FIG*.config
+FIG*.creator
+FIG*.files
+FIG*.includes
+
+# Build
 bin
