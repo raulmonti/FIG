@@ -1,6 +1,7 @@
 # Editors temp files
 *~
 .*.swp
+*.autosave
 
 # IDEs temp files
 *.user

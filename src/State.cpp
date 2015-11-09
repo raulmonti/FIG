@@ -31,7 +31,7 @@
 #include <utility>    // std::move() elements
 #include <iterator>   // std::inserter()
 #include <algorithm>  // std::move() ranges
-// Project code
+// FIG
 #include <State.h>
 #include <VariableInterval.h>
 #include <FigException.h>

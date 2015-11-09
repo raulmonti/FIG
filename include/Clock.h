@@ -37,6 +37,8 @@
 #include <functional>
 // C
 #include <cassert>
+// FIG
+#include <core_typedefs.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -46,46 +48,54 @@
 namespace fig
 {
 
-#define  NUM_DISTRIBUTION_PARAMS  4u  // argument list for any distribution
 
-typedef  float  CLOCK_INTERNAL_TYPE;
-
-typedef std::array< const CLOCK_INTERNAL_TYPE , NUM_DISTRIBUTION_PARAMS >
-	DistributionParameters;
-
-typedef std::function< CLOCK_INTERNAL_TYPE (const DistributionParameters&) >
-	Distribution;
-
-/// List of distributions offered for time sampling
+/// Global container with distributions offered for time sampling
 extern std::unordered_map< std::string, Distribution > distributions_list;
 
 
 /**
- * IOSAs' clock, the internal stochastic time passage mechanism.
+ * @brief Internal stochastic time passage mechanism for IOSA modules
+ *
+ *        Clocks have a name and a Distribution which can be sampled.
+ *        Each clock object belongs to a single ModuleInstance in the system.
+ *
+ * @note  This class assumes there's a global map, named "distribution_list",
+ *        from distribution names to \ref Distribution "distributions".
+ *        Such map is needed to assign the stochastic distributions
+ *        to the Clock objects.
  */
 class Clock
 {
+public:  // Attributes
+
+	const std::string& name;
+	const std::string& distName;
+
+private:
+
 	const Distribution& dist_;  // *copy* of one from distribution_list
-	const std::string& distName_;
 	const DistributionParameters distParams_;
 
-public:
+public:  // Ctors
 
-	Clock(const std::string& distName,
+	Clock(const std::string& clockName,
+		  const std::string& distName,
 		  const DistributionParameters& params) :
+		name(clockName),
 		dist_(distributions_list.at(distName)),  // may throw out_of_range
-		distName_(distName),
+		distName(distName),
 		distParams_(params)
 		{
-			assert(!distName_.empty());
+			assert(!distName.empty());
 		}
 
-	/// @brief Name of our distribution function
-	inline const std::string& distribution() const { return distName_; }
+public:  // Accessors
 
 	/// @brief Parameters characterizing our distribution function
 	inline const DistributionParameters& distribution_params() const
-	{ return distParams_; }
+		{ return distParams_; }
+
+public:  // Utils
 
 	/// @brief Sample our distribution function
 	inline CLOCK_INTERNAL_TYPE sample() const     { return dist_(distParams_); }

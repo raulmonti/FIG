@@ -39,10 +39,10 @@
 namespace
 {
 
-#ifdef NDEBUG
-const unsigned int rngSeed(std::random_device{}());
+#ifndef NDEBUG
+const unsigned int rngSeed(1234567803u);  // repeatable outcome
 #else
-const unsigned int rngSeed(1234567803u);
+const unsigned int rngSeed(std::random_device{}());
 #endif
 
 std::mt19937_64  MTrng(rngSeed);

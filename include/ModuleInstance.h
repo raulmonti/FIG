@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  MathExpression.cpp
+//  ModuleInstance.h
 //
 //  Copyleft 2015-
 //  Authors:
@@ -27,42 +27,39 @@
 //==============================================================================
 
 
-// C++
-#include <iostream>
-// FIG
-#include <MathExpression.h>
+#ifndef MODULEINSTANCE_H
+#define MODULEINSTANCE_H
+
+#include <Module.h>
 
 
 namespace fig
 {
 
-// ADL
-using std::cerr;
-using std::endl;
-
-
-void MathExpression::parse_our_expression()
+/**
+ * @brief Single system module, possibly open regarding synchronization
+ *        \ref Label "labels"
+ *
+ *        A module consists of \ref Variable "variables" which determine its
+ *        state, \ref Clock "clocks" which mark time passage and can be reset,
+ *        and \ref Transition "transitions" which describe the change dynamics
+ *        of those components.
+ */
+class ModuleInstance : public Module
 {
-	assert(!exprStr_.empty());
-	try {
-		expr_.SetExpr(exprStr_);
-		/*
-		 *  TODO:
-		 *       bind all offered functions over variables
-		 *       Notice MuParser already has a few: http://muparser.beltoforion.de/
-		expr.DefineFun("MySqr", MySqr);
-		expr.DefineFun("Uni01", Uni01);
-		...
-		*/
-	} catch (mu::Parser::exception_type &e) {
-		cerr << "Failed parsing expression" << endl;
-		cerr << "    message:  " << e.GetMsg()   << endl;
-		cerr << "    formula:  " << e.GetExpr()  << endl;
-		cerr << "    token:    " << e.GetToken() << endl;
-		cerr << "    position: " << e.GetPos()   << endl;
-		cerr << "    errc:     " << e.GetCode()  << endl;
-		throw FigException("ERROR: bad mathematical expression");
-	}
-}
+
+public:  // Utils
+
+	virtual std::shared_ptr<const Label> jump(const std::string& clockName,
+											  const CLOCK_INTERNAL_TYPE& elapsedTime,
+											  Traial& traial) const;
+
+	virtual void jump(const Label& label,
+					  const CLOCK_INTERNAL_TYPE& elapsedTime,
+					  Traial& traial) const;
+};
 
 } // namespace fig
+
+#endif // MODULEINSTANCE_H
+

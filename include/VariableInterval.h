@@ -36,7 +36,8 @@
 #include <type_traits>  // std::is_integral<>
 // C
 #include <cassert>
-// Project code
+// FIG
+#include <core_typedefs.h>
 #include <Variable.h>
 #include <FigException.h>
 
@@ -47,16 +48,6 @@
 
 namespace fig
 {
-
-/// Variable declaration: name, min, max
-template< typename T_ > using VariableDeclaration =
-	std::tuple< std::string, T_, T_ >;
-
-
-/// Variable definition: name, min, max, initial value
-template< typename T_ > using VariableDefinition =
-	std::tuple< std::string, T_, T_, T_ >;
-
 
 /**
  * @brief Variable defined by the closed interval [ min_value , max_value ]

@@ -29,7 +29,7 @@
 
 // C++
 #include <iostream>
-// Project code
+// FIG
 #include <Postcondition.h>
 
 

@@ -31,7 +31,7 @@
 #include <utility>
 // C
 #include <cassert>
-// Project code
+// FIG
 #include <Label.h>
 #include <FigException.h>
 

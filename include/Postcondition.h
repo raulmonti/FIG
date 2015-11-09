@@ -30,7 +30,7 @@
 #ifndef POSTCONDITION_H
 #define POSTCONDITION_H
 
-// Project code
+// FIG
 #include <MathExpression.h>
 #include <Traial.h>
 

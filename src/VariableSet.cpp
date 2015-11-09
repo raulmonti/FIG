@@ -33,7 +33,7 @@
 #include <type_traits>  // std::is_same<>
 // C
 #include <cassert>
-// Project code
+// FIG
 #include <VariableSet.h>
 #include <FigException.h>
 

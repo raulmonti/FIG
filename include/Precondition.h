@@ -30,7 +30,7 @@
 #ifndef PRECONDITION_H
 #define PRECONDITION_H
 
-// Project code
+// FIG
 #include <MathExpression.h>
 #include <Traial.h>
 

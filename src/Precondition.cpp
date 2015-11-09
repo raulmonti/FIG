@@ -30,7 +30,7 @@
 // C++
 #include <iostream>
 #include <exception>
-// Project code
+// FIG
 #include <Precondition.h>
 #include <FigException.h>
 

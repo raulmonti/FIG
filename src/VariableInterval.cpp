@@ -32,7 +32,7 @@
 #include <utility>  // std::move()
 // C
 #include <cassert>
-// Project code
+// FIG
 #include <VariableInterval.h>
 #include <FigException.h>
 

@@ -41,9 +41,8 @@
 #include <unordered_map>
 // C
 #include <cassert>
-// External code
-#include <muParserDef.h>  // MUP_BASETYPE
-// Project code
+// FIG
+#include <core_typedefs.h>
 #include <Variable.h>
 #include <VariableInterval.h>
 
@@ -55,24 +54,19 @@
 namespace fig
 {
 
-// States internal storage type must match that of MuParser library
-typedef  MUP_BASETYPE  STATE_INTERNAL_TYPE;
-
-static_assert(std::is_same<short, MUP_BASETYPE>::value,
+static_assert(std::is_same<short, STATE_INTERNAL_TYPE>::value,
 			  "Error: for now we restrict State internal storage to shorts");
-
 
 /**
  * @brief State (instance):
  *        an array of Variable values.
  *
  *        Each State is an instantiation of values, which follows the ordering
- *        given in the (unique) ::GlobalState vector of the system.
+ *        given in the (unique) GlobalState of the system.
  *        A State can be compared to the GlobalState for consistency checks.
- *        There is a one-to-one correspondence between States and Traials.
+ *        There is a one-to-one correspondence between State and Traial objects.
  */
 typedef std::vector< STATE_INTERNAL_TYPE > State;
-
 
 
 /**

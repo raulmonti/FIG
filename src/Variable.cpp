@@ -33,7 +33,7 @@
 #include <iterator>  // std::distance
 // C
 #include <cassert>
-// Project code
+// FIG
 #include <Variable.h>
 #include <FigException.h>
 

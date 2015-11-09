@@ -34,7 +34,8 @@
 #include <string>
 // C
 #include <cassert>
-// Project code
+// FIG
+#include <core_typedefs.h>
 #include <Label.h>
 #include <Traial.h>
 #include <Precondition.h>
@@ -43,10 +44,6 @@
 
 namespace fig
 {
-
-/// Bit flag to identify resetting clocks.
-/// This bounds the max # of clocks in the model
-typedef uintmax_t Bitflag;
 
 /**
  * @brief IOSA module transition
@@ -79,14 +76,6 @@ class Transition
 	/// Clocks to reset when transition is taken
 	Bitflag resetClocks_;
 
-	/// Is the clock at position 'pos' marked for reset?
-	inline bool must_reset(const unsigned& pos) const
-		{
-			assert(pos < 8*sizeof(Bitflag));  // check for overflow
-			return static_cast<bool>(
-					   resetClocks_ & ((static_cast<Bitflag>(1)) << pos));
-		}
-
 public:  // Ctors
 
 	/// TODO
@@ -102,7 +91,7 @@ public:  // Accessors
  ///
 
 	/// Clocks to reset when transition is taken
-	const Bitflag& resetClocks() const;
+    inline const Bitflag& resetClocks() const noexcept { return resetClocks_; }
 
 public:  // Utils
 
@@ -122,6 +111,16 @@ public:  // Utils
 					   const unsigned& firstClock,
 					   const unsigned& numClocks,
 					   const float&    timeLapse) const;
+
+private:  // Utils
+
+	/// Is the clock at position 'pos' marked for reset?
+    inline bool must_reset(const unsigned& pos) const
+        {
+            assert(pos < 8*sizeof(Bitflag));  // check for overflow
+            return static_cast<bool>(
+                       resetClocks_ & ((static_cast<Bitflag>(1)) << pos));
+        }
 };
 
 } // namespace fig

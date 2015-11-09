@@ -32,14 +32,15 @@
 
 // C++
 #include <vector>
-// Project code
+// FIG
 #include <State.h>
 
 
 namespace fig
 {
 
-class Transition;
+// class Transition;  // Wird diese Deklaration nötig?
+class ModuleInstance;
 
 /**
  * @brief Simulation kernel (or 'trial trail')
@@ -57,7 +58,7 @@ public:  // Types and attributes
 	struct Timeout
 	{
 		/// Module where the expired clock exists
-		std::shared_ptr< const SymbolicModule > module;
+		std::shared_ptr< const ModuleInstance > module;
 		/// Clock's name
 		const std::string& name;
 		/// Clock's time value
@@ -67,7 +68,7 @@ public:  // Types and attributes
 	/// Variables values instantiation (same order as in GlobalState 'gState')
 	State state;
 
-private:
+protected:
 
 	/// Clocks values instantiation (same order as in 'gClocks')
 	std::vector< Timeout > clocks_;

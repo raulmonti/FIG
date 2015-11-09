@@ -30,10 +30,10 @@
 // C++
 #include <string>
 #include <vector>
-// Project code
-#include <Transition.h>
+// FIG
 #include <Clock.h>
 #include <FigException.h>
+#include <Transition.h>
 
 
 namespace fig
@@ -47,17 +47,17 @@ Transition::handle_clocks(Traial&         traial,
 						  const unsigned& numClocks,
 						  const float&    timeLapse) const
 {
-//	for (unsigned i = firstClock ; i < firstClock + numClocks ; i++) {
-//		if (must_reset(i))
-//			traial.clocks_[i] = gClocks[i].sample();
-//		else
-//			traial.clocks_[i] -= timeLapse;
-//#ifndef NTIMECHK
-//		if (0.0f > traial.clocks[i])
-//			throw FigException(std::string("negative value for clock \"")
-//							   .append(gClocks[i].name()).append("\""));
-//#endif
-//	}
+	for (unsigned i = firstClock ; i < firstClock + numClocks ; i++) {
+		if (must_reset(i))
+			traial.clocks_[i].value = gClocks[i].sample();
+		else
+			traial.clocks_[i].value -= timeLapse;
+#ifndef NTIMECHK
+		if (0.0f > traial.clocks_[i].value)
+			throw FigException(std::string("negative value for clock \"")
+							   .append(gClocks[i].name).append("\""));
+#endif
+	}
 }
 
 } // namespace fig

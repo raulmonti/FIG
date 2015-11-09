@@ -37,7 +37,7 @@
 #include <type_traits>  // std::is_same<>
 #include <string>
 #include <vector>
-// Project code
+// FIG
 #include <Variable.h>
 
 #if __cplusplus < 201103L
@@ -50,8 +50,10 @@ namespace fig
 
 /**
  * @brief Variable defined by a set of possible values: { v1, v2, ..., vN }
+ *
  *        Useful to handle non-integer values, such as floats or strings,
  *        which the class VariableInterval can't cope with.
+ *
  * @note  Offers generic construction from the following STL containers:
  *        vector, list, forward_list, set, unordered_set, deque.
  * @note  Will not build from the following STL containers:

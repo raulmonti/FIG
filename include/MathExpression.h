@@ -37,7 +37,7 @@
 #include <string>
 // External code
 #include <muParser.h>
-// Project code
+// FIG
 #include <State.h>
 
 #if __cplusplus < 201103L

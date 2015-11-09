@@ -14,7 +14,7 @@
 #include <exception>
 // C
 #include <cassert>
-// Project code
+// FIG
 #include <FigException.h>
 #include <Label.h>
 #include <Clock.h>
@@ -99,10 +99,10 @@ static void // ////////////////////////////////////////////////////////////////
 test_clock()
 {
 	fig::DistributionParameters params = {{2.0, 5.0}};
-	fig::Clock c("uniformAB", params);
+    fig::Clock c("c", "uniformAB", params);
 	assert(0.0 != c.sample() || 0.0 != c());  // exercise object
 	try {
-		fig::Clock c("unexistent_distribution", params);  // should throw
+        fig::Clock c2("c2", "unexistent_distribution", params);  // should throw
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (std::out_of_range) { /* this was expected */ }
