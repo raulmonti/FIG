@@ -152,7 +152,8 @@ MathExpression::MathExpression(
 		exprStr_(exprStr)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
-				  "ERROR: MathExpression needs a container with variable names");
+				  "ERROR: type missmatch. MathExpression needs a container "
+				  "with variable names");
 	// Setup MuParser expression
 	parse_our_expression();
 	// Setup variables mapping
@@ -172,7 +173,8 @@ MathExpression::MathExpression(
 		exprStr_(exprStr)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
-				  "ERROR: MathExpression needs a container with variable names");
+				  "ERROR: type missmatch. MathExpression needs a container "
+				  "with variable names");
 	// Setup MuParser expression
 	parse_our_expression();
 	// Setup variables mapping
@@ -196,7 +198,8 @@ MathExpression::MathExpression(
 		varsMap_(std::distance(from,to))
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
-				  "ERROR: MathExpression needs iterators pointing to variable names");
+				  "ERROR: type missmatch MathExpression needs iterators "
+				  "pointing to variable names");
 	// Setup MuParser expression
 	parse_our_expression();
 	// Setup variables mapping

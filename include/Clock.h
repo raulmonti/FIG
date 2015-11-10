@@ -82,8 +82,8 @@ public:  // Ctors
 		  const std::string& distName,
 		  const DistributionParameters& params) :
 		name(clockName),
-		dist_(distributions_list.at(distName)),  // may throw out_of_range
 		distName(distName),
+		dist_(distributions_list.at(distName)),  // may throw out_of_range
 		distParams_(params)
 		{
 			assert(!distName.empty());
