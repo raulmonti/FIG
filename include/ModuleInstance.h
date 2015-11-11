@@ -54,6 +54,11 @@ namespace fig
  *        state, \ref Clock "clocks" which mark time passage and can be reset,
  *        and \ref Transition "transitions" which describe the change dynamics
  *        of those components.
+ *
+ * @note  Offers generic construction from the following STL containers:
+ *        vector, list, forward_list, set, unordered_set, deque.
+ * @note  Will not build from the following STL containers:
+ *        queue, stack, array.
  */
 class ModuleInstance : public Module
 {

@@ -27,35 +27,35 @@
 //==============================================================================
 
 
+// C++
+#include <algorithm>  // std::sort()
+// FIG
 #include <Traial.h>
 
 
 namespace fig
 {
 
-const Traial::Timeout&
-Traial::next_timeout(bool reorder)
-{
-	if (reorder)
-		reorder_clocks();
-
-	/// TODO
- ///
- /// Fill up
- ///
-
-}
-
-
 void
 Traial::reorder_clocks()
 {
+	// Sort timeouts_ vector according to registered clock values
+	std::sort(timeouts_.begin(), timeouts_.end(),
+		[](const Timeout* first,
+		   const Timeout* second)
+		{
+			assert(nullptr != first && nullptr != second);
+			return first->value < second->value;
+		});
 
-	/// TODO
- ///
- /// Fill up
- ///
-
+	// Find first not-null clock, or record '-1' if all are null
+	for (int i=0 ; i < clocks_.size() || ((firstNotNull_ = -1) && false) ; i++) {
+		assert(nullptr != timeouts_[i]);
+		if (timeouts_[i]->value > 0.0f) {
+			firstNotNull_ = i;
+			break;
+		}
+	}
 }
 
 } // namespace fig

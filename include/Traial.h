@@ -59,7 +59,7 @@ public:  // Types and attributes
 	struct Timeout
 	{
 		/// Module where the expired clock exists
-		std::shared_ptr< const ModuleInstance > module;
+		const ModuleInstance* module;  // yeah baby, deep down we like it raw
 		/// Clock's name
 		const std::string& name;
 		/// Clock's time value
@@ -74,8 +74,15 @@ protected:
 	/// Clocks values instantiation (same order as in 'gClocks')
 	std::vector< Timeout > clocks_;
 
-	/// Time-increasing-ordered view of 'clocks_' vector
-	std::vector< std::shared_ptr< const Timeout > > timeouts_;
+private:
+
+	/// Time-increasing-ordered view of 'clocks_' vector.
+	/// Acces for friends is safely granted through next_timeout()
+	std::vector< const Timeout* > timeouts_;
+
+	/// Pointer to first not-null \ref Clock "clock" in timeouts_.
+	/// Negative if all are null.
+	int firstNotNull_;
 
 public:  // Ctors
 
@@ -91,11 +98,19 @@ protected:  // Utils
 	/**
 	 * @brief Retrieve next not-null expiring clock
 	 * @param reorder  Whether to reorder internal clocks prior the retrieval
-	 * @note <b>Complexity:</b> <i>O(m log(m))</i> if reorder, <i>O(m)</i>
+	 * @note <b>Complexity:</b> <i>O(m log(m))</i> if reorder, <i>O(1)</i>
 	 *       otherwise, where 'm' is the number of clocks in the system.
+	 * @throw FigException if all our clocks have null value
 	 */
-	const Timeout&
-	next_timeout(bool reorder = true);
+	inline const Timeout&
+	next_timeout(bool reorder = true)
+		{
+			if (reorder)
+				reorder_clocks();
+			if (0 > firstNotNull_)
+				throw FigException("all clocks are null!");
+			return *timeouts_[firstNotNull_];
+		}
 
 private:
 

@@ -63,6 +63,11 @@ extern std::vector<Clock> gClocks;
  *        was defined somewhere within the fig namespace.
  *        Such instance is needed for reseting the clock values
  *        with the appropiate distributions.
+ *
+ * @note  Offers generic construction from the following STL containers:
+ *        vector, list, forward_list, set, unordered_set, deque.
+ * @note  Will not build from the following STL containers:
+ *        queue, stack, array.
  */
 class Transition
 {
