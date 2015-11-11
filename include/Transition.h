@@ -32,18 +32,23 @@
 
 // C++
 #include <string>
+#include <sstream>
+#include <exception>
 // C
 #include <cassert>
 // FIG
-#include <core_typedefs.h>
+#include <core_typedefs.h>  // Bitflag
 #include <Label.h>
-#include <Traial.h>
+#include <Clock.h>
 #include <Precondition.h>
 #include <Postcondition.h>
+#include <Traial.h>
 
 
 namespace fig
 {
+
+extern std::vector<Clock> gClocks;
 
 /**
  * @brief IOSA module transition
@@ -61,10 +66,11 @@ namespace fig
  */
 class Transition
 {
-	/// Transition label, could also be tau (viz. empty)
+	/// Synchronization label, could also be tau (viz. empty)
 	Label label_;
 
-	/// Clock regulating transition applicability (empty for input transitions)
+	/// Name of the clock regulating transition applicability
+	/// (empty for input transitions)
 	std::string triggeringClock_;
 
 	/// Precondition regulating transition applicability
@@ -78,20 +84,72 @@ class Transition
 
 public:  // Ctors
 
-	/// TODO
- ///
- ///  Fill up
- ///
+	/**
+	 * @brief Copy ctor (copies {pre,post}conditions)
+	 *
+	 * @param label            @copydoc label_
+	 * @param triggeringClock  @copydoc triggeringClock_
+	 * @param pre              @copydoc pre_
+	 * @param pos              @copydoc pos_
+	 * @param resetClocks      Container with the indices of the clocks to reset
+	 *                         when this transition is taken, following the
+	 *                         order declared by the global vector 'gClocks'
+	 *
+	 * @throw out_of_range if NRANGECHK is not defined and there is
+	 *        an invalid clock index in the resetClocks container
+	 *
+	 * @note The resetting clocks information is stored as a Bitflag
+	 */
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	Transition(const Label& label,
+			   const std::string& triggeringClock,
+			   const Precondition& pre,
+			   const Postcondition& pos,
+			   const Container<ValueType, OtherContainerArgs...>& resetClocks);
+
+	/**
+	 * @brief Move ctor (move-constructs {pre,post}conditions)
+	 *
+	 * @param label            @copydoc label_
+	 * @param triggeringClock  @copydoc triggeringClock_
+	 * @param pre              @copydoc pre_
+	 * @param pos              @copydoc pos_
+	 * @param resetClocks      Container with the indices of the clocks to reset
+	 *                         when this transition is taken, following the
+	 *                         order declared by the global vector 'gClocks'
+	 *
+	 * @throw out_of_range if NRANGECHK is not defined and there is
+	 *        an invalid clock index in the resetClocks container
+	 *
+	 * @note The resetting clocks information is stored as a Bitflag
+	 */
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	Transition(const Label& label,
+			   const std::string& triggeringClock,
+			   Precondition&& pre,
+			   Postcondition&& pos,
+			   const Container<ValueType, OtherContainerArgs...>& resetClocks);
 
 public:  // Accessors
 
-	/// TODO
- ///
- ///  Fill up
- ///
+	/// @copydoc Transition::label_
+	inline const Label& label() const noexcept { return label_; }
 
-	/// Clocks to reset when transition is taken
-    inline const Bitflag& resetClocks() const noexcept { return resetClocks_; }
+	/// @copydoc Transition::triggeringClock_
+	inline const std::string& triggeringClock() const noexcept { return triggeringClock_; }
+
+	/// @copydoc Transition::pre_
+	inline Precondition pre() const noexcept { return pre_; }
+
+	/// @copydoc Transition::pos_
+	inline Postcondition pos() const noexcept { return pos_; }
+
+	/// @copydoc Transition::resetClocks_
+	inline const Bitflag& resetClocks() const noexcept { return resetClocks_; }
 
 public:  // Utils
 
@@ -103,16 +161,19 @@ public:  // Utils
 	 * @param numClocks   Number of clocks to visit
 	 * @param timeLapse   Amount of time elapsed for the non-reseting clocks
 	 *
-	 * @note <b>Complexity:</b> <i>O(numClocks)</i>
 	 * @throw FigException if NTIMECHK was not defined and some clock
 	 *        was assigned a negative value
+	 *
+	 * @note <b>Complexity:</b> <i>O(numClocks)</i>
+	 * @note The clocks in the specified range which we have marked for reset
+	 *       will have their value resampled from the appropiate distribution
 	 */
 	void handle_clocks(Traial&         traial,
 					   const unsigned& firstClock,
 					   const unsigned& numClocks,
 					   const float&    timeLapse) const;
 
-private:  // Utils
+private:
 
 	/// Is the clock at position 'pos' marked for reset?
     inline bool must_reset(const unsigned& pos) const
@@ -122,6 +183,90 @@ private:  // Utils
                        resetClocks_ & ((static_cast<Bitflag>(1)) << pos));
         }
 };
+
+// // // // // // // // // // // // // // // // // // // // // // // // // // //
+
+// Template definitions
+
+// If curious about its presence here take a look at the end of VariableSet.cpp
+
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+Transition::Transition(
+	const Label& label,
+	const std::string& triggeringClock,
+	const Precondition& pre,
+	const Postcondition& pos,
+	const Container<ValueType, OtherContainerArgs...>& resetClocks) :
+		label_(label),
+		triggeringClock_(triggeringClock),
+		pre_(pre),
+		pos_(pos),
+		resetClocks_(static_cast<Bitflag>(0u))
+{
+	static_assert(std::is_constructible< unsigned, ValueType >::value,
+				  "ERROR: type missmatch. Transition ctor needs a container "
+				  "with the (positive) indices of the resetting clocks");
+	assert(!label_.is_input() || !triggeringClock.empty());  // input => no triggering clock
+
+	// Encode in Bitflag the resetting clock indices
+	for(const unsigned& idx: resetClocks) {
+#ifndef NRANGECHK
+		if (8*sizeof(Bitflag) <= idx) {
+			std::stringstream errMsg;
+			errMsg << "invalid clock index: " << idx;
+			throw std::out_of_range(errMsg.str());
+		} else if (gClocks.size() <= idx) {
+			std::stringstream errMsg;
+			errMsg << "there is no clock with index \"" << idx;
+			errMsg  << "\", clocks range up to index " << gClocks.size();
+			throw std::out_of_range(errMsg.str());
+		}
+#endif
+		resetClocks_ |= static_cast<Bitflag>(1u) << idx;
+	}
+}
+
+
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+Transition::Transition(
+	const Label& label,
+	const std::string& triggeringClock,
+	Precondition&& pre,
+	Postcondition&& pos,
+	const Container<ValueType, OtherContainerArgs...>& resetClocks) :
+		label_(label),
+		triggeringClock_(triggeringClock),
+		pre_(std::move(pre)),
+		pos_(std::move(pos)),
+		resetClocks_(static_cast<Bitflag>(0u))
+{
+	static_assert(std::is_constructible< unsigned, ValueType >::value,
+				  "ERROR: type missmatch. Transition ctor needs a container "
+				  "with the (positive) indices of the resetting clocks");
+	assert(!label_.is_input() || !triggeringClock.empty());  // input => no triggering clock
+
+	// Encode in Bitflag the resetting clock indices
+	for(const unsigned& idx: resetClocks) {
+#ifndef NRANGECHK
+		if (8*sizeof(Bitflag) <= idx) {
+			std::stringstream errMsg;
+			errMsg << "invalid clock index: " << idx;
+			throw std::out_of_range(errMsg.str());
+		} else if (gClocks.size() <= idx) {
+			std::stringstream errMsg;
+			errMsg << "there is no clock with index \"" << idx;
+			errMsg  << "\", clocks range up to index " << gClocks.size();
+			throw std::out_of_range(errMsg.str());
+		}
+#endif
+		resetClocks_ |= static_cast<Bitflag>(1u) << idx;
+	}
+}
+
 
 } // namespace fig
 

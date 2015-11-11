@@ -39,8 +39,6 @@
 namespace fig
 {
 
-extern std::vector<Clock> gClocks;
-
 void
 Transition::handle_clocks(Traial&         traial,
 						  const unsigned& firstClock,

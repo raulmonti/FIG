@@ -33,7 +33,7 @@
 // C++
 #include <vector>
 #include <unordered_map>
-#include <type_traits>  // std::is_constructible<>
+#include <type_traits>  // std::is_same<>, std::is_constructible<>
 // FIG
 #include <Module.h>
 #include <Transition.h>
@@ -71,23 +71,23 @@ class ModuleInstance : public Module
 
 	// Our transitions
 	std::unordered_map< std::string,
-						const std::vector< std::shared_ptr< const Transition> > >
+						std::vector< std::shared_ptr< const Transition> > >
 		transitions_by_clock_;
 	// TODO: tell input/output apart here?
-	std::unordered_map< Label,
-						const std::vector< std::shared_ptr< const Transition> > >
+	std::unordered_map< std::string,
+						std::vector< std::shared_ptr< const Transition> > >
 		transitions_by_label_;
 
 public:  // Ctors
 
 	/**
-	 * @brief Copy ctor from \ref Transition "transitions" container
+	 * @brief Copy ctor from lvalue container with \ref Transition "transitions"
 	 *
 	 * @param firstVar     Position in GlobalState of our first Variable
 	 * @param numVars      Number of \ref Variable "variables" in this module
 	 * @param firstClock   Position in global 'gClocks' of our first Clock
 	 * @param numClocks    Number of \ref Clock "clocks" in this module
-	 * @param transitions  Transitions defined in this module   // TODO always populate with std::make_shared() !!!
+	 * @param transitions  Transitions defined in this module
 	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
@@ -97,22 +97,64 @@ public:  // Ctors
 				   const unsigned& firstClock,
 				   const unsigned& numClocks,
 				   const Container< ValueType, OtherContainerArgs... >& transitions);
-	:
-		firstVar_(firstVar),
-		numVars_(numVars),
-		firstClock_(numClocks),
-		numClocks_(numClocks)
-	{
-		assert(0 < numVars_);
-		assert(0 < numClocks_);
-		assert(0 < transitions_.size());
-		for (const auto& tp: transitions) {
-			// Register by label   TODO: tell input/output apart?
-			transitions_by_label_[tp->label].emplace_back(tp);
-			// Register by clock (name)
-			transitions_by_clock_[tp->triggeringClock].emplace_back(tp);
-		}
-	}
+
+	/**
+	 * @brief Move ctor from rvalue container with \ref Transition "transition"
+	 *        objects
+	 *
+	 * @param firstVar     Position in GlobalState of our first Variable
+	 * @param numVars      Number of \ref Variable "variables" in this module
+	 * @param firstClock   Position in global 'gClocks' of our first Clock
+	 * @param numClocks    Number of \ref Clock "clocks" in this module
+	 * @param transitions  Transitions defined in this module
+	 */
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	ModuleInstance(const unsigned& firstVar,
+				   const unsigned& numVars,
+				   const unsigned& firstClock,
+				   const unsigned& numClocks,
+				   Container< ValueType, OtherContainerArgs... >&& transitions);
+
+	/**
+	 * @brief Move ctor from rvalue container with raw pointers to
+	 *        \ref Transition "transitions"
+	 *
+	 * @param firstVar     Position in GlobalState of our first Variable
+	 * @param numVars      Number of \ref Variable "variables" in this module
+	 * @param firstClock   Position in global 'gClocks' of our first Clock
+	 * @param numClocks    Number of \ref Clock "clocks" in this module
+	 * @param transitions  Transitions defined in this module
+	 */
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	ModuleInstance(const unsigned& firstVar,
+				   const unsigned& numVars,
+				   const unsigned& firstClock,
+				   const unsigned& numClocks,
+				   Container< ValueType*, OtherContainerArgs... >&& transitions);
+
+	/**
+	 * @brief Copy ctor from \ref Transition "transitions" iterator range
+	 *
+	 * @param firstVar    Position in GlobalState of our first Variable
+	 * @param numVars     Number of \ref Variable "variables" in this module
+	 * @param firstClock  Position in global 'gClocks' of our first Clock
+	 * @param numClocks   Number of \ref Clock "clocks" in this module
+	 * @param from        Iterator to  first transition defined in this module
+	 * @param to          Iterator past last transition defined in this module
+	 */
+	template< template< typename, typename... > class Iterator,
+			  typename ValueType,
+			  typename... OtherIteratorArgs >
+	ModuleInstance(const unsigned& firstVar,
+				   const unsigned& numVars,
+				   const unsigned& firstClock,
+				   const unsigned& numClocks,
+				   Iterator< ValueType, OtherIteratorArgs... > from,
+				   Iterator< ValueType, OtherIteratorArgs... > to);
 
 
 public:  // Utils
@@ -144,78 +186,104 @@ ModuleInstance::ModuleInstance(
 	const Container< ValueType, OtherContainerArgs... >& transitions) :
 		firstVar_(firstVar),
 		numVars_(numVars),
-		firstClock_(numClocks),
+		firstClock_(firstClock),
 		numClocks_(numClocks)
 {
-	static_assert(std::is_constructible< Transition, ValueType >::value,
-				  "ERROR: type missmatch. ModuleInstance copy ctor needs "
-				  "a container with Transitions to copy");
+	static_assert(std::is_same< Transition, ValueType >::value,
+				  "ERROR: type missmatch. ModuleInstance can only be copy-"
+				  "constructed from a container with Transition objects");
 
-
-	// TODO: fill this ctor and define the others
-	//
-	//       Take care to properly use move semantics whenever possible.
-	//
-	//       Also, we want both transitions_by_label_ and transitions_by_clock_
-	//       to have shared_ptr to dynamically allocated transitions owned
-	//       by us and referenced in those two maps.
-	//
-	//       It can be tricky to take ownership of transitions from the
-	//       containers with which they created us, take care to do it right.
-	//
-
-
-	/*
-
-	  Dummy test to take ownership of objects,
-	  and keep stored in std::shared_ptr.
-
-
-struct S1
-{
-	const std::string& str;
-
-	S1(const char* ss) : str(ss) {}
-	S1(const std::string& ss) : str(ss) {}
-};
-
-struct S2
-{
-	std::shared_ptr< S1 > S1_ptr;
-
-	S2(S1* s1) : S1_ptr(std::shared_ptr<S1>(s1))
-	{
-		std::cout << "From raw ptr" << std::endl;
-		s1 = nullptr;
+	for(const auto& tr: transitions) {
+		auto ptr = std::make_shared<Transition>(tr);
+		transitions_by_label_[tr.label().str].emplace_back(ptr);
+		transitions_by_clock_[tr.triggeringClock()].emplace_back(ptr);
 	}
+}
 
-	S2(S1&& s1) : S1_ptr(std::move(std::make_shared<S1>(s1)))
-	{
-		std::cout << "Move ctor" << std::endl;
-	}
-};
 
-int main()
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+ModuleInstance::ModuleInstance(
+	const unsigned& firstVar,
+	const unsigned& numVars,
+	const unsigned& firstClock,
+	const unsigned& numClocks,
+	Container< ValueType, OtherContainerArgs... >&& transitions) :
+		firstVar_(firstVar),
+		numVars_(numVars),
+		firstClock_(firstClock),
+		numClocks_(numClocks)
 {
-	std::string str("s1");
-//	S1* s1_ptr = new S1("s1");
-//	S2 s2(s1_ptr);
-	S2 s2(S1("s1"));
-	assert(nullptr != s2.S1_ptr);
-//	std::cout << (*(s2.S1_ptr)).str << std::endl;
-	return 0;
+	static_assert(std::is_same< Transition, ValueType >::value,
+				  "ERROR: type missmatch. ModuleInstance can only be move-"
+				  "constructed from a container with instances or raw pointers "
+				  "to Transition objects");
 
-
-	*/
-
-
-
-	for (const auto& tp: transitions) {
-		// Register by label   TODO: tell input/output apart?
-		transitions_by_label_[tp->label].emplace_back(tp);
-		// Register by clock (name)
-		transitions_by_clock_[tp->triggeringClock].emplace_back(tp);
+	for(const auto& tr: transitions) {
+		auto ptr = std::make_shared<Transition>(tr);
+		transitions_by_label_[tr.label().str].emplace_back(ptr);
+		transitions_by_clock_[tr.triggeringClock()].emplace_back(ptr);
 	}
+	transitions.clear();
+}
+
+
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+ModuleInstance::ModuleInstance(
+	const unsigned& firstVar,
+	const unsigned& numVars,
+	const unsigned& firstClock,
+	const unsigned& numClocks,
+	Container< ValueType*, OtherContainerArgs... >&& transitions) :
+		firstVar_(firstVar),
+		numVars_(numVars),
+		firstClock_(firstClock),
+		numClocks_(numClocks)
+{
+	static_assert(std::is_same< Transition, ValueType >::value,
+				  "ERROR: type missmatch. ModuleInstance can only be move-"
+				  "constructed from a container with instances or raw pointers "
+				  "to Transition objects");
+
+	for(auto tr_ptr: transitions) {
+		auto ptr = std::shared_ptr<Transition>(tr_ptr);
+		assert(nullptr != ptr);
+		transitions_by_label_[tr_ptr->label().str].emplace_back(ptr);
+		transitions_by_clock_[tr_ptr->triggeringClock()].emplace_back(ptr);
+		tr_ptr = nullptr;
+	}
+	transitions.clear();
+}
+
+
+template< template< typename, typename... > class Iterator,
+		  typename ValueType,
+		  typename... OtherIteratorArgs >
+ModuleInstance::ModuleInstance(
+	const unsigned& firstVar,
+	const unsigned& numVars,
+	const unsigned& firstClock,
+	const unsigned& numClocks,
+	Iterator< ValueType, OtherIteratorArgs... > from,
+	Iterator< ValueType, OtherIteratorArgs... > to) :
+		firstVar_(firstVar),
+		numVars_(numVars),
+		firstClock_(firstClock),
+		numClocks_(numClocks)
+{
+	static_assert(std::is_same< Transition, ValueType >::value,
+				  "ERROR: type missmatch. ModuleInstance ctor needs iterators "
+				  "poiting to Transition objects");
+
+	do {
+		const Transition& tr = *from;
+		auto ptr = std::make_shared<Transition>(tr);
+		transitions_by_label_[tr.label().str].emplace_back(ptr);
+		transitions_by_clock_[tr.triggeringClock()].emplace_back(ptr);
+	} while (++from != to);
 }
 
 } // namespace fig

@@ -45,8 +45,9 @@ class ModuleInstance;
 /**
  * @brief Simulation kernel (or 'trial trail')
  *
- *        Holds the state of the variables and the set clocks values,
- *        i.e. all that is needed to run through the user's model.
+ *        Holds the state of the variables and the clocks values,
+ *        i.e. all that is needed to run a simulation through the user's
+ *        system model.
  */
 class Traial
 {

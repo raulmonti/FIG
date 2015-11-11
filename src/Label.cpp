@@ -40,19 +40,19 @@ namespace fig
 {
 
 Label::Label(const std::string& str, bool isOutput) :
-	str_(str),
+	str(str),
 	output_(isOutput)
 {
-	if (isOutput && str_.empty())
+	if (isOutput && this->str.empty())
 		throw FigException("can't construct an empty output label");
 }
 
 
 Label::Label(std::string&& str, bool isOutput) :
-	str_(std::move(str)),
+	str(std::move(str)),
 	output_(isOutput)
 {
-	if (isOutput && str_.empty())
+	if (isOutput && this->str.empty())
 		throw FigException("can't construct an empty output label");
 }
 

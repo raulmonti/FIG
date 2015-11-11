@@ -47,9 +47,8 @@ void MathExpression::parse_our_expression()
 	try {
 		expr_.SetExpr(exprStr_);
 		/*
-		 *  TODO:
-		 *       bind all offered functions over variables
-		 *       Notice MuParser already has a few: http://muparser.beltoforion.de/
+		 *  TODO: bind all offered functions over variables
+		 *        Notice MuParser already has a few: http://muparser.beltoforion.de/
 		expr.DefineFun("MySqr", MySqr);
 		expr.DefineFun("Uni01", Uni01);
 		...
@@ -61,7 +60,7 @@ void MathExpression::parse_our_expression()
 		cerr << "    token:    " << e.GetToken() << endl;
 		cerr << "    position: " << e.GetPos()   << endl;
 		cerr << "    errc:     " << e.GetCode()  << endl;
-		throw FigException("ERROR: bad mathematical expression");
+		throw FigException("bad mathematical expression");
 	}
 }
 

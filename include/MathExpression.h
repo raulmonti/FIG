@@ -35,6 +35,7 @@
 #include <iterator>     // std::distance()
 #include <utility>      // std::pair<>, std::move()
 #include <string>
+#include <exception>    // out_of_range exception
 // External code
 #include <muParser.h>
 // FIG
@@ -82,8 +83,11 @@ public:  // Ctors
 
 	/**
 	 * @brief Data ctor from generic lvalue container
+	 *
 	 * @param exprStr   String with the matemathical expression to evaluate
 	 * @param varnames  Container with names of variables ocurring in exprStr
+	 *
+	 * @throw FigException if exprStr doesn't define a valid expression
 	 * @throw out_of_range if NRANGECHK is not defined and 'varnames' contains
 	 *        some variable name not appearing in the system GlobalState
 	 */
@@ -95,8 +99,11 @@ public:  // Ctors
 
 	/**
 	 * @brief Data ctor from generic rvalue container
+	 *
 	 * @param exprStr   String with the matemathical expression to evaluate
 	 * @param varnames  Container with names of variables ocurring in exprStr
+	 *
+	 * @throw FigException if exprStr doesn't define a valid expression
 	 * @throw out_of_range if NRANGECHK is not defined and 'varnames' contains
 	 *        some variable name not appearing in the system GlobalState
 	 */
@@ -108,9 +115,12 @@ public:  // Ctors
 
 	/**
 	 * @brief Data ctor from iterator range
+	 *
 	 * @param exprStr  String with the matemathical expression to evaluate
-	 * @param from     Iterator to first  name of variables ocurring in exprStr
+	 * @param from     Iterator to  first name of variables ocurring in exprStr
 	 * @param to       Iterator past last name of variables ocurring in exprStr
+	 *
+	 * @throw FigException if exprStr doesn't define a valid expression
 	 * @throw out_of_range if NRANGECHK is not defined and there is some
 	 *        variable name not appearing in the system GlobalState
 	 */
@@ -158,7 +168,11 @@ MathExpression::MathExpression(
 	parse_our_expression();
 	// Setup variables mapping
 	for (const auto& name: varnames) {
-		assert(std::string::npos != exprStr.find(name));  // trust no one
+#ifndef NRANGECHK
+		if (std::string::npos == exprStr.find(name))
+			throw std::out_of_range(std::string("invalid variable name: \"")
+									.append(name).append("\""));
+#endif
 		varsMap_.emplace_back(std::make_pair(name, gState.position_of_var(name)));
 	}
 }
@@ -179,7 +193,11 @@ MathExpression::MathExpression(
 	parse_our_expression();
 	// Setup variables mapping
 	for (auto& name: varnames) {
-		assert(std::string::npos != exprStr.find(name));  // trust no one
+#ifndef NRANGECHK
+		if (std::string::npos == exprStr.find(name))
+			throw std::out_of_range(std::string("invalid variable name: \"")
+									.append(name).append("\""));
+#endif
 		varsMap_.emplace_back(std::make_pair(std::move(name),
 											 gState.position_of_var(name)));
 	}
@@ -198,7 +216,7 @@ MathExpression::MathExpression(
 		varsMap_(std::distance(from,to))
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
-				  "ERROR: type missmatch MathExpression needs iterators "
+				  "ERROR: type missmatch. MathExpression needs iterators "
 				  "pointing to variable names");
 	// Setup MuParser expression
 	parse_our_expression();
@@ -206,7 +224,11 @@ MathExpression::MathExpression(
 	size_t i(0u);
 	do {
 		std::string name = *from;
-		assert(std::string::npos != exprStr.find(name));  // trust no one
+#ifndef NRANGECHK
+		if (std::string::npos == exprStr.find(name))
+			throw std::out_of_range(std::string("invalid variable name: \"")
+									.append(name).append("\""));
+#endif
 		varsMap_[i++] = std::make_pair(std::move(name),
 									   gState.position_of_var(name));
 	} while (++from != to);

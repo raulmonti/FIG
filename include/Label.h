@@ -48,8 +48,12 @@ namespace fig
  */
 class Label
 {
+public:  // Attributes
+
 	/// Label per se
-	const std::string str_;
+	const std::string str;
+
+public:
 
 	/// Label cathegory. Notice input is "not output", thus 'tau' is input.
 	bool output_;
@@ -81,7 +85,7 @@ public:  // Relational operators
 	 * @see   same_as()
 	 */
 	inline bool operator==(const Label& that) const noexcept
-		{ return str_ == that.str_; }
+		{ return str == that.str; }
 	inline bool operator!=(const Label& that) const noexcept
 		{ return !(*this == that); }
 
@@ -91,10 +95,10 @@ public:  // Relational operators
 	 * @see   operator==()
 	 */
 	inline bool same_as(const Label& that) const noexcept
-		{ return output_ == that.output_ && str_ == that.str_; }
+		{ return output_ == that.output_ && str == that.str; }
 
 public:  // Accessors
-	inline bool is_tau()    const noexcept { return str_.empty(); }
+	inline bool is_tau()    const noexcept { return str.empty(); }
 	inline bool is_input()  const noexcept { return !output_; }
 	inline bool is_output() const noexcept { return  output_; }
 };

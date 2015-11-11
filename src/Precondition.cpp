@@ -57,7 +57,7 @@ Precondition::fake_evaluation()
 		cerr << "    token:    " << e.GetToken() << endl;
 		cerr << "    position: " << e.GetPos()   << endl;
 		cerr << "    errc:     " << e.GetCode()  << endl;
-		throw FigException("ERROR: bad expression for precondition");
+		throw FigException("bad expression for precondition");
 	}
 }
 

@@ -49,7 +49,7 @@ Postcondition::fake_evaluation()
 			expr_.DefineVar(var.first, &dummy);
 		STATE_INTERNAL_TYPE* ptr = expr_.Eval(numUpdates_);
 		// MuParser library handles memory, leave ptr alone
-		ptr = nullptr;  // avoid 'unused' compiler warning
+		if (ptr) ptr = nullptr;  // dodge compiler warning
 	} catch (mu::Parser::exception_type &e) {
 		cerr << "Failed parsing expression" << endl;
 		cerr << "    message:  " << e.GetMsg()   << endl;
@@ -57,7 +57,7 @@ Postcondition::fake_evaluation()
 		cerr << "    token:    " << e.GetToken() << endl;
 		cerr << "    position: " << e.GetPos()   << endl;
 		cerr << "    errc:     " << e.GetCode()  << endl;
-		throw FigException("ERROR: bad expression for precondition");
+		throw FigException("bad expression for postcondition");
 	}
 }
 

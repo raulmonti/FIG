@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  Traial.cpp
+//  ModuleInstance.cpp
 //
 //  Copyleft 2015-
 //  Authors:
@@ -27,33 +27,35 @@
 //==============================================================================
 
 
-#include <Traial.h>
+#include <ModuleInstance.h>
 
 
 namespace fig
 {
 
-const Traial::Timeout&
-Traial::next_timeout(bool reorder)
+std::shared_ptr<const Label>
+ModuleInstance::jump(const std::string& clockName,
+					 const CLOCK_INTERNAL_TYPE& elapsedTime,
+					 Traial& traial) const
 {
-	if (reorder)
-		reorder_clocks();
 
 	/// TODO
  ///
- /// Fill up
+ /// Fill up with blackboard algorithm
  ///
 
 }
 
 
 void
-Traial::reorder_clocks()
+ModuleInstance::jump(const Label& label,
+					 const CLOCK_INTERNAL_TYPE& elapsedTime,
+					 Traial& traial) const
 {
 
 	/// TODO
  ///
- /// Fill up
+ /// Fill up with blackboard algorithm
  ///
 
 }
