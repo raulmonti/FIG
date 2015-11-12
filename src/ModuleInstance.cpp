@@ -39,10 +39,7 @@ ModuleInstance::jump(const std::string& clockName,
 					 Traial& traial) const
 {
 
-	/// TODO
- ///
- /// Fill up with blackboard algorithm
- ///
+	/// TODO: fill up with blackboard algorithm
 
 }
 
@@ -53,10 +50,7 @@ ModuleInstance::jump(const Label& label,
 					 Traial& traial) const
 {
 
-	/// TODO
- ///
- /// Fill up with blackboard algorithm
- ///
+	/// TODO: fill up with blackboard algorithm
 
 }
 

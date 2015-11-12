@@ -34,10 +34,14 @@
 #include <vector>
 // FIG
 #include <State.h>
+#include <Clock.h>
 
 
 namespace fig
 {
+
+extern GlobalState< STATE_INTERNAL_TYPE > gState;
+extern std::vector< Clock >               gClocks;
 
 // class Transition;  // Wird diese Deklaration nötig?
 class ModuleInstance;
@@ -48,6 +52,18 @@ class ModuleInstance;
  *        Holds the state of the variables and the clocks values,
  *        i.e. all that is needed to run a simulation through the user's
  *        system model.
+ *        Traials should be administered through a
+ *        <a href="https://sourcemaking.com/design_patterns/object_pool">
+ *        resources pool</a>, to offer very fast creation/release of the
+ *        instances.
+ *
+ * @note  This class assumes a GlobalState variable named 'gState'
+ *        was defined somewhere within the fig namespace.
+ *        Such instance may be needed for initializations on creation.
+ *
+ * @note  This class assumes a global std::vector<Clock> named 'gClocks'
+ *        was defined somewhere within the fig namespace.
+ *        Such instance may be needed for initializations on creation.
  */
 class Traial
 {
@@ -59,7 +75,7 @@ public:  // Types and attributes
 	struct Timeout
 	{
 		/// Module where the expired clock exists
-		const ModuleInstance* module;  // yeah baby, deep down we like it raw
+		std::shared_ptr<const ModuleInstance> module;
 		/// Clock's name
 		const std::string& name;
 		/// Clock's time value
@@ -77,29 +93,42 @@ protected:
 private:
 
 	/// Time-increasing-ordered view of 'clocks_' vector.
-	/// Acces for friends is safely granted through next_timeout()
-	std::vector< const Timeout* > timeouts_;
+	/// Access for friends is safely granted through next_timeout()
+	std::vector< const Timeout* > timeouts_;  // yeah baby, deep down we like it raw
 
 	/// Pointer to first not-null \ref Clock "clock" in timeouts_.
 	/// Negative if all are null.
 	int firstNotNull_;
 
-public:  // Ctors
+public:  // Ctors/Dtor
 
-	/// TODO
- ///
- ///  Fill up
+	/**
+	 * @brief Data ctor
+	 *
+	 * @param initState   Whether to initialize our state with gState info
+	 * @param initClocks  Whether to initialize some clocks
+	 * @param whichClocks Which clocks to initialize if initClocks is true
+	 */
+	Traial(bool initState = false,
+		   bool initClocks = false,
+		   Bitflag whichClocks = static_cast<Bitflag>(0u));
+
+	/// TODO: define all ctors
  ///
  ///  This has to be lightning fast, many will be created/destroyed
  ///
+ ///  How do we initialize the clock and variable values?
+ ///
+
+	~Traial() { timeouts_.clear(); clocks_.clear(); }
 
 protected:  // Utils
 
 	/**
 	 * @brief Retrieve next not-null expiring clock
 	 * @param reorder  Whether to reorder internal clocks prior the retrieval
-	 * @note <b>Complexity:</b> <i>O(m log(m))</i> if reorder, <i>O(1)</i>
-	 *       otherwise, where 'm' is the number of clocks in the system.
+	 * @note  <b>Complexity:</b> <i>O(m log(m))</i> if reorder, <i>O(1)</i>
+	 *        otherwise, where 'm' is the number of clocks in the system.
 	 * @throw FigException if all our clocks have null value
 	 */
 	inline const Timeout&

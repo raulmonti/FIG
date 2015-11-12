@@ -41,6 +41,7 @@ static void test_state();
 static void test_math_expression();
 static void test_precondition();
 static void test_postcondition();
+static void test_transition();
 
 
 int main()
@@ -53,6 +54,7 @@ int main()
 	test_math_expression();
 	test_precondition();
 	test_postcondition();
+	test_transition();
 
 	return 0;
 }
@@ -226,7 +228,7 @@ test_state()
 }
 
 
-// Global variables needed/handy for expressions tests  ///////////////////////
+// Global variables needed by some modules  ///////////////////////////////////
 //
 
 const std::string pre1str("x^y < x+y-1");
@@ -244,6 +246,13 @@ GlobalState< STATE_INTERNAL_TYPE > gState(
 		VarType("y", 0, 12)
 	});
 }
+
+// Transition requires an externally defined std::vector<Clock> "fig::gClocks"
+namespace fig
+{
+std::vector<Clock> gClocks;
+}
+
 
 static void // ////////////////////////////////////////////////////////////////
 //
@@ -283,4 +292,15 @@ test_postcondition()
  ///
 	fig::Postcondition pos1(pos1str, 2, varnames1);
 	assert(pos1str == pos1.expression());
+}
+
+
+static void // ////////////////////////////////////////////////////////////////
+//
+test_transition()
+{
+	/// TODO
+ ///
+ ///  Complete this test
+ ///
 }

@@ -50,8 +50,12 @@ namespace fig
 {
 
 /**
- * @brief Variable defined by the closed interval [ min_value , max_value ]
- *        Can only handle discrete types => the template parameter must be integral
+ * @brief Variable implementation defined by the closed interval:
+ *        [ min_value , max_value ]
+ *
+ *        This implementation can only handle discrete types,
+ *        so the template parameter must be integral.
+ *        For a more flexible implementation see VariableSet.
  */
 template< typename T_ >
 class VariableInterval : public Variable< T_ >
@@ -59,8 +63,6 @@ class VariableInterval : public Variable< T_ >
 	static_assert(std::is_integral<T_>::value,
 				  "ERROR: class VariableInterval<T> can only be instantiated "
 				  "with integral types, e.g. int, short, unsigned.");
-	 T_ min_;
-	 T_ max_;
 
 public:  // Ctors/Dtor
 
@@ -92,10 +94,10 @@ public:  // Ctors/Dtor
 
 public:  // Accessors
 
-	inline T_ min() const noexcept { return min_; }
-	inline T_ max() const noexcept { return max_; }
-	inline T_ val() const noexcept { return min_ + static_cast<T_>(Variable<T_>::offset_); }
-	inline T_ val(const size_t& offset) const { return min_ + static_cast<T_>(offset); }
+	inline T_ val() const noexcept
+		{ return Variable<T_>::min_ + static_cast<T_>(Variable<T_>::offset_); }
+	inline T_ val(const size_t& offset) const
+		{ return Variable<T_>::min_ + static_cast<T_>(offset); }
 
 public:  // Modifiers
 
@@ -107,7 +109,7 @@ public:  // Modifiers
 				throw FigException(std::string("can't assign value to a fresh variable")
 					.append(" (\"").append(Variable<T_>::name_).append("\")"));
 #endif
-			Variable<T_>::offset_ = value - min_;
+			Variable<T_>::offset_ = value - Variable<T_>::min_;
 			return *this;
 		}
 
@@ -122,20 +124,9 @@ public:  // Relational operators
 
 	/// @copydoc Variable::is_valid_value()
 	inline virtual bool is_valid_value(const T_& val) const final
-		{ return min_ <= val && val <= max_; }  // http://stackoverflow.com/a/19954164
+		{ return Variable<T_>::min_ <= val && val <= Variable<T_>::max_; }  // http://stackoverflow.com/a/19954164
 
-public:  // Invariant
-
-#ifndef NDEBUG
-	/// @copydoc Variable::assert_invariant()
-	inline virtual void assert_invariant() const
-		{
-			Variable<T_>::assert_invariant();
-			assert(min_ <= max_);
-		}
-#else
-	inline void assert_invariant() const {}
-#endif
+// Same invariant as in base class
 };
 
 } // namesace fig

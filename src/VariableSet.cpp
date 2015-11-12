@@ -43,16 +43,20 @@ namespace fig
 
 template< typename T_ >
 VariableSet<T_>::VariableSet(const std::string &thename, const T_ *array, size_t arraySize) :
-	Variable<T_>(thename),
-	values_(arraySize),
-	min_(std::numeric_limits<T_>::max()),
-	max_(std::numeric_limits<T_>::min())
+	Variable<T_>(thename,
+				 std::numeric_limits<T_>::max(),
+				 std::numeric_limits<T_>::min(),
+				 static_cast<T_>(0)),
+	values_(arraySize)
 {
 	for (size_t i = 0u ; i < arraySize ; i++) {
 		values_[i] = array[i];
-		min_ = array[i] < min_ ? array[i] : min_;
-		max_ = array[i] > max_ ? array[i] : max_;
+		Variable<T_>::min_ = array[i] < Variable<T_>::min_ ? array[i] : Variable<T_>::min_;
+		Variable<T_>::max_ = array[i] > Variable<T_>::max_ ? array[i] : Variable<T_>::max_;
 	}
+	Variable<T_>::offset_ = 0;
+	Variable<T_>::range_  = values_.size();
+	Variable<T_>::ini_    = values_[Variable<T_>::offset_];
 	assert_invariant();
 }
 
@@ -62,11 +66,7 @@ VariableSet<T_>&
 VariableSet<T_>::operator=(VariableSet<T_> that)
 {
 	Variable<T_>::operator=(std::move(that));  // checks freshness
-	std::swap(Variable<T_>::range_, that.range_);
-	std::swap(Variable<T_>::offset_, that.offset_);
 	std::swap(values_, that.values_);
-	std::swap(min_, that.min_);
-	std::swap(max_, that.max_);
 	assert_invariant();
 	return *this;
 }
@@ -129,6 +129,9 @@ bool
 VariableSet<T_>::operator==(const VariableSet<T_>& that) const
 {
 	if (  Variable<T_>::name_   != that.name_
+	   || Variable<T_>::min_    != that.min_
+	   || Variable<T_>::max_    != that.max_
+	   || Variable<T_>::ini_    != that.ini_
 	   || Variable<T_>::range_  != that.range_
 	   || Variable<T_>::offset_ != that.offset_)
 		return false;
@@ -156,7 +159,7 @@ VariableSet<T_>::assert_invariant() const
 {
 	Variable<T_>::assert_invariant();
 	for (const auto& e: values_)
-		assert(min_ <= e && e <= max_);
+		assert(Variable<T_>::min_ <= e && e <= Variable<T_>::max_);
 }
 
 

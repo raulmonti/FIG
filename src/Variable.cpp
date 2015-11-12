@@ -42,8 +42,11 @@ namespace fig
 {
 
 template< typename T_ >
-Variable<T_>::Variable(const std::string& thename) :
+Variable<T_>::Variable(const std::string& thename, T_ themin, T_ themax, T_ theini) :
 	name_(thename),
+	min_(themin),
+	max_(themax),
+	ini_(theini),
 	range_(1),
 	offset_(0)
 {
@@ -52,8 +55,11 @@ Variable<T_>::Variable(const std::string& thename) :
 
 
 template< typename T_ >
-Variable<T_>::Variable(std::string&& thename) :
+Variable<T_>::Variable(std::string&& thename, T_ themin, T_ themax, T_ theini) :
 	name_(std::move(thename)),
+	min_(themin),
+	max_(themax),
+	ini_(theini),
 	range_(1),
 	offset_(0)
 {
@@ -63,6 +69,9 @@ Variable<T_>::Variable(std::string&& thename) :
 
 template< typename T_ >
 Variable<T_>::Variable(const Variable<T_>& that) :
+	min_(that.min_),
+	max_(that.max_),
+	ini_(that.ini_),
 	range_(that.range_),
 	offset_(that.offset_)
 {
@@ -76,6 +85,9 @@ Variable<T_>::Variable(const Variable<T_>& that) :
 
 template< typename T_ >
 Variable<T_>::Variable(Variable<T_>&& that) :
+	min_(that.min_),
+	max_(that.max_),
+	ini_(that.ini_),
 	range_(std::move(that.range_)),
 	offset_(std::move(that.offset_))
 {
@@ -89,46 +101,17 @@ Variable<T_>::Variable(Variable<T_>&& that) :
 
 template< typename T_ >
 Variable<T_>&
-Variable<T_>::operator=(const std::string& thename)
-{
-	if (!name_.empty()) {
-		std::string err("trying to copy-assign the non-fresh variable \"");
-		throw FigException(err.append(name_).append("\""));
-	}
-	name_ = thename;
-	range_ = 1;
-	offset_ = 0;
-	assert_invariant();
-	return *this;
-}
-
-
-template< typename T_ >
-Variable<T_>&
-Variable<T_>::operator=(std::string&& thename)
-{
-	if (!name_.empty()) {
-		std::string err("trying to copy-assign the non-fresh variable \"");
-		throw FigException(err.append(name_).append("\""));
-	}
-	name_ = std::move(thename);
-	range_ = 1;
-	offset_ = 0;
-	assert_invariant();
-	return *this;
-}
-
-
-template< typename T_ >
-Variable<T_>&
 Variable<T_>::operator=(const Variable<T_>& that)
 {
 	if (!name_.empty()) {
 		std::string err("trying to copy-assign the non-fresh variable \"");
 		throw FigException(err.append(name_).append("\""));
 	}
-	name_ = that.name_;
-	range_ = that.range_;
+	name_   = that.name_;
+	min_    = that.min_;
+	max_    = that.max_;
+	ini_    = that.ini_;
+	range_  = that.range_;
 	offset_ = that.offset_;
 	assert_invariant();
 	return *this;
@@ -143,8 +126,11 @@ Variable<T_>::operator=(Variable<T_>&& that)
 		std::string err("trying to copy-assign the non-fresh variable \"");
 		throw FigException(err.append(name_).append("\""));
 	}
-	name_ = std::move(that.name_);
-	range_ = std::move(that.range_);
+	name_   = std::move(that.name_);
+	min_    = std::move(that.min_);
+	max_    = std::move(that.max_);
+	ini_    = std::move(that.ini_);
+	range_  = std::move(that.range_);
 	offset_ = std::move(that.offset_);
 	assert_invariant();
 	return *this;

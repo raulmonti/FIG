@@ -49,10 +49,11 @@ namespace fig
 {
 
 /**
- * @brief Variable defined by a set of possible values: { v1, v2, ..., vN }
+ * @brief Variable implementation defined by a set of possible values:
+ *        { v1, v2, ..., vN }
  *
  *        Useful to handle non-integer values, such as floats or strings,
- *        which the class VariableInterval can't cope with.
+ *        which the VariableInterval class can't cope with.
  *
  * @note  Offers generic construction from the following STL containers:
  *        vector, list, forward_list, set, unordered_set, deque.
@@ -65,8 +66,6 @@ template< typename T_ >
 class VariableSet : public Variable<T_>
 {
 	std::vector< T_ > values_;
-	T_ min_;
-	T_ max_;
 
 public:  // Ctors/Dtor
 
@@ -120,8 +119,6 @@ public:  // Ctors/Dtor
 
 public:  // Accessors
 
-	inline T_ min() const noexcept { return min_; }
-	inline T_ max() const noexcept { return max_; }
 	inline T_ val() const noexcept { return values_[Variable<T_>::offset_]; }
 	inline T_ val(const size_t& offset) const { return values_[offset]; }
 
@@ -168,19 +165,28 @@ template< template< typename, typename... > class Container,
 VariableSet<T_>::VariableSet(
 	const std::string& thename,
 	const Container< ValueType, OtherContainerParameters... >& values) :
-		Variable<T_>(thename),
-		min_(std::numeric_limits<T_>::max()),
-		max_(std::numeric_limits<T_>::min())
+		Variable<T_>(thename,
+					 static_cast<T_>(0),
+					 static_cast<T_>(0),
+					 static_cast<T_>(0))
 {
 	static_assert(std::is_same< T_, ValueType >::value,
 				  "ERROR: type missmatch. Container internal data type "
 				  "must match the type of this template class");
+
+	Variable<T_>::min_ = std::numeric_limits<T_>::max();
+	Variable<T_>::max_ = std::numeric_limits<T_>::min();
+
 	for(const auto& e: values) {
 		values_.emplace_back(e);
-		min_ = e < min_ ? e : min_;
-		max_ = e > max_ ? e : max_;
+		Variable<T_>::min_ = e < Variable<T_>::min_ ? e : Variable<T_>::min_;
+		Variable<T_>::max_ = e > Variable<T_>::max_ ? e : Variable<T_>::max_;
 	}
-	Variable<T_>::range_ = values_.size();
+
+	Variable<T_>::offset_ = 0;
+	Variable<T_>::range_  = values_.size();
+	Variable<T_>::ini_    = values_[Variable<T_>::offset_];
+
 	assert_invariant();
 }
 
@@ -193,20 +199,29 @@ template< template< typename, typename... > class Container,
 VariableSet<T_>::VariableSet(
 	const std::string& thename,
 	Container<ValueType, OtherContainerArgs...>&& values) :
-		Variable<T_>(std::move(thename)),
-		min_(std::numeric_limits<T_>::max()),
-		max_(std::numeric_limits<T_>::min())
+		Variable<T_>(thename,
+					 static_cast<T_>(0),
+					 static_cast<T_>(0),
+					 static_cast<T_>(0))
 {
 	static_assert(std::is_same< T_, ValueType >::value,
 				  "ERROR: type missmatch. Container internal data type "
 				  "must match the type of this template class");
+
+	Variable<T_>::min_ = std::numeric_limits<T_>::max();
+	Variable<T_>::max_ = std::numeric_limits<T_>::min();
+
 	for(auto& e: values) {
 		values_.emplace_back(std::move(e));
-		min_ = e < min_ ? e : min_;
-		max_ = e > max_ ? e : max_;
+		Variable<T_>::min_ = e < Variable<T_>::min_ ? e : Variable<T_>::min_;
+		Variable<T_>::max_ = e > Variable<T_>::max_ ? e : Variable<T_>::max_;
 	}
 	values.clear();
-	Variable<T_>::range_ = values_.size();
+
+	Variable<T_>::offset_ = 0;
+	Variable<T_>::range_  = values_.size();
+	Variable<T_>::ini_    = values_[Variable<T_>::offset_];
+
 	assert_invariant();
 }
 
@@ -219,21 +234,30 @@ template< template< typename, typename... > class Container,
 VariableSet<T_>::VariableSet(
 	const std::string& thename,
 	Container<ValueType*, OtherContainerArgs...>&& values) :
-		Variable<T_>(std::move(thename)),
-		min_(std::numeric_limits<T_>::max()),
-		max_(std::numeric_limits<T_>::min())
+		Variable<T_>(thename,
+					 static_cast<T_>(0),
+					 static_cast<T_>(0),
+					 static_cast<T_>(0))
 {
 	static_assert(std::is_same< T_, ValueType >::value,
 				  "ERROR: type missmatch. Container internal data type pointer "
 				  "must match the type of this template class");
+
+	Variable<T_>::min_ = std::numeric_limits<T_>::max();
+	Variable<T_>::max_ = std::numeric_limits<T_>::min();
+
 	for(const auto& e: values) {
 		values_.emplace_back(std::move(*e));
-		min_ = e < min_ ? e : min_;
-		max_ = e > max_ ? e : max_;
+		Variable<T_>::min_ = e < Variable<T_>::min_ ? e : Variable<T_>::min_;
+		Variable<T_>::max_ = e > Variable<T_>::max_ ? e : Variable<T_>::max_;
 		e = nullptr;
 	}
 	values.clear();
-	Variable<T_>::range_ = values_.size();
+
+	Variable<T_>::offset_ = 0;
+	Variable<T_>::range_  = values_.size();
+	Variable<T_>::ini_    = values_[Variable<T_>::offset_];
+
 	assert_invariant();
 }
 
@@ -246,21 +270,30 @@ VariableSet<T_>::VariableSet(
 	const std::string& thename,
 	Iterator<ValueType, OtherIteratorArgs...> from,
 	Iterator<ValueType, OtherIteratorArgs...> to) :
-		Variable<T_>(thename),
-		values_(std::distance(from,to)),
-		min_(std::numeric_limits<T_>::max()),
-		max_(std::numeric_limits<T_>::min())
+		Variable<T_>(thename,
+					 static_cast<T_>(0),
+					 static_cast<T_>(0),
+					 static_cast<T_>(0)),
+		values_(std::distance(from,to))
 {
 	static_assert(std::is_same< T_, ValueType >::value,
 				  "ERROR: type missmatch. Iterator pointed-to data type "
 				  "must match the type of this template class");
-	Variable<T_>::range_ = values_.size();
+
+	Variable<T_>::min_ = std::numeric_limits<T_>::max();
+	Variable<T_>::max_ = std::numeric_limits<T_>::min();
+
 	size_t i(0u);
 	do {
 		values_[i++] = *from;
-		min_ = *from < min_ ? *from : min_;
-		max_ = *from > max_ ? *from : max_;
+		Variable<T_>::min_ = *from < Variable<T_>::min_ ? *from : Variable<T_>::min_;
+		Variable<T_>::max_ = *from > Variable<T_>::max_ ? *from : Variable<T_>::max_;
 	} while (++from != to);
+
+	Variable<T_>::offset_ = 0;
+	Variable<T_>::range_  = values_.size();
+	Variable<T_>::ini_    = values_[Variable<T_>::offset_];
+
 	assert_invariant();
 }
 

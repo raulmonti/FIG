@@ -47,11 +47,11 @@ namespace fig
 {
 
 /**
- * @brief Most abstract Variable concept, the one to populate the (unique)
- *        global vector of Variables in the system, "GlobalState"
- * @note  This class was deviced for value validation of State instances.
+ * @brief Abstract variable concept.
  *
- * TODO describe fresh/named variable duality
+ *        The GlobalState of the system is composed of these.
+ *
+ * @todo Describe fresh/named variable duality
  */
 template< typename T_ >
 class Variable
@@ -59,19 +59,32 @@ class Variable
 	// Friend template class: http://stackoverflow.com/a/8967610
 	template< typename TT_ > friend class GlobalState;
 
+protected:  // Attributes
+
+	/// Name can only be assigned once (fresh variable concept)
+	std::string name_;
+	/// Minimum value for this variable
+	T_ min_;
+	/// Maximum value for this variable
+	T_ max_;
+	/// Initial value for this variable
+	T_ ini_;
+	/// Number of distinct values this variable can take
+	size_t range_;
+	/// Position in [0, 1, ..., range) for the "current" value of the Variable
+	size_t offset_;
+
 public:  // Ctors/Dtor
 
 	// Fresh variable (aka unnamed)
 	Variable() {}
 	// Named variable
-	Variable(const std::string& thename);
-	Variable(std::string&& thename);
+	Variable(const std::string& thename, T_ themin, T_ themax, T_ theini);
+	Variable(std::string&& thename, T_ themin, T_ themax, T_ theini);
 	/// Copy and move ctors, only applicable to fresh variables
 	Variable(const Variable<T_>& that);
 	Variable(Variable<T_>&& that);
 	/// Copy assignment, only applicable to fresh variables
-	Variable<T_>& operator=(const std::string& thename);
-	Variable<T_>& operator=(std::string&& thename);
 	Variable& operator=(const Variable<T_>& that);
 	Variable& operator=(Variable<T_>&& that);
 
@@ -79,11 +92,19 @@ public:  // Ctors/Dtor
 
 public:  // Accessors
 
-	inline const size_t&     range() const noexcept { return range_; }
+	/// @copydoc name_
 	inline const std::string& name() const noexcept { return name_; }
-	virtual T_ min() const noexcept = 0;
-	virtual T_ max() const noexcept = 0;
+	/// @copydoc min_
+	inline const T_& min() const noexcept { return min_; }
+	/// @copydoc max_
+	inline const T_& max() const noexcept { return max_; }
+	/// @copydoc ini_
+	inline const T_& ini() const noexcept { return ini_; }
+	/// @copydoc range_
+	inline const size_t& range() const noexcept { return range_; }
+	/// Current value
 	virtual T_ val() const noexcept = 0;
+	/// Value corresponding to passed offset
 	virtual T_ val(const size_t& offset) const = 0;
 
 public:  // Modifiers
@@ -110,15 +131,6 @@ public:  // Relational operators
 	/// @brief Is 'val' a valid value for this Variable?
 	virtual bool is_valid_value(const T_& val) const = 0;
 
-protected:  // Attributes
-
-	/// Name can only be assigned once (fresh variable concept)
-	std::string name_;
-	/// Number of distinct values this variable can take
-	size_t range_;
-	/// Position in [0, 1, ..., range) for the "current" value of the Variable
-	size_t offset_;
-
 public:  // Invariant
 
 #ifndef NDEBUG
@@ -129,6 +141,8 @@ public:  // Invariant
 	inline void assert_invariant() const
 		{
 			assert(!name_.empty());
+			assert(min_ <= ini_);
+			assert(ini_ <= max_);
 			assert(offset_ < range_);
 		}
 #else

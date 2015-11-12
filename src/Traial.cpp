@@ -36,6 +36,17 @@
 namespace fig
 {
 
+Traial::Traial(bool initState, bool initClocks, Bitflag whichClocks) :
+	state(gState.size()),
+	timeouts_(gClocks.size(), nullptr)
+{
+	if (initState) {
+		/// TODO: implement this data ctor
+		assert(false);
+	}
+}
+
+
 void
 Traial::reorder_clocks()
 {
