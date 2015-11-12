@@ -28,7 +28,8 @@
 
 
 // C++
-#include <algorithm>  // std::sort()
+#include <algorithm>   // std::sort()
+#include <functional>  // std::function
 // FIG
 #include <Traial.h>
 
@@ -40,9 +41,24 @@ Traial::Traial(bool initState, bool initClocks, Bitflag whichClocks) :
 	state(gState.size()),
 	timeouts_(gClocks.size(), nullptr)
 {
+	size_t i(0u);
+	std::function must_reset = [](const size_t& i) {
+		return initClocks &&
+				(whichClocks & (static_cast<Bitflag>(1u) << i));
+	};
 	if (initState) {
-		/// TODO: implement this data ctor
-		assert(false);
+		i = 0;
+		for (auto& var: gState)
+			state[i++] = var.ini();
+	}
+	i = 0;
+	clocks_.reserve(gClocks.size());
+	for (const auto& clk: gClocks) {
+		clocks_.emplace_back(clk.module,
+							 clk.name,
+							 must_reset(i) ? clk.sample() : 0.0f);
+		timeouts_[i] = &clocks_[i];
+		i++;
 	}
 }
 
@@ -60,9 +76,9 @@ Traial::reorder_clocks()
 		});
 
 	// Find first not-null clock, or record '-1' if all are null
-	for (int i=0 ; i < clocks_.size() || ((firstNotNull_ = -1) && false) ; i++) {
+	for (unsigned i=0 ; i < clocks_.size() || ((firstNotNull_ = -1) && false) ; i++) {
 		assert(nullptr != timeouts_[i]);
-		if (timeouts_[i]->value > 0.0f) {
+		if (0.0f < timeouts_[i]->value) {
 			firstNotNull_ = i;
 			break;
 		}

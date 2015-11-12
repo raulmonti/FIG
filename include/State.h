@@ -235,7 +235,7 @@ public:  // Interaction with ::State instances
 	 * @brief Copy our Variables values to the ::State instance 's'.
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
-	void copy_to_state_instance(State s) const;
+	void copy_to_state_instance(State& s) const;
 
 	/**
 	 * @brief Create a fresh ::State instance reflecting our Variables values

@@ -31,10 +31,9 @@
 #define CLOCK_H
 
 // C++
-#include <array>
 #include <string>
+#include <memory>  // std::shared_ptr<>
 #include <unordered_map>
-#include <functional>
 // C
 #include <cassert>
 // FIG
@@ -48,6 +47,7 @@
 namespace fig
 {
 
+class ModuleInstance;  // Fwd declaration for internal pointer
 
 /// Global container with distributions offered for time sampling
 extern std::unordered_map< std::string, Distribution > distributions_list;
@@ -70,6 +70,8 @@ public:  // Attributes
 
 	const std::string& name;
 	const std::string& distName;
+	std::shared_ptr<const ModuleInstance> module;
+	/// @todo: TODO integrate new attribute 'module' in this class
 
 private:
 

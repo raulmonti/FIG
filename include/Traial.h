@@ -80,6 +80,11 @@ public:  // Types and attributes
 		const std::string& name;
 		/// Clock's time value
 		float value;
+		/// Data ctor
+		Timeout(std::shared_ptr<const ModuleInstance> themodule,
+				const std::string& thename,
+				const float& thevalue) :
+			module(themodule), name(thename), value(thevalue) {}
 	};
 
 	/// Variables values instantiation (same order as in GlobalState 'gState')
@@ -113,11 +118,10 @@ public:  // Ctors/Dtor
 		   bool initClocks = false,
 		   Bitflag whichClocks = static_cast<Bitflag>(0u));
 
-	/// TODO: define all ctors
+	/// @todo: TODO define all ctors
  ///
- ///  This has to be lightning fast, many will be created/destroyed
- ///
- ///  How do we initialize the clock and variable values?
+ ///  This has to be lightning fast, many will be created/destroyed.
+ ///  Suggestion: use resource pool design, see class doxygen.
  ///
 
 	~Traial() { timeouts_.clear(); clocks_.clear(); }

@@ -146,7 +146,7 @@ GlobalState<T_>::copy_from_state_instance(const State &s, bool checkValidity)
 
 template< typename T_ >
 void
-GlobalState<T_>::copy_to_state_instance(State s) const
+GlobalState<T_>::copy_to_state_instance(State& s) const
 {
 	if (s.size() != size())
 		throw FigException("attempted to copy values to an invalid state");
