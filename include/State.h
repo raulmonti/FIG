@@ -186,6 +186,16 @@ public:  // Accessors
 	std::shared_ptr< const Variable< T_ > > operator[](const std::string& varname) const;
 	std::shared_ptr<       Variable< T_ > > operator[](const std::string& varname);
 
+	/// begin() for range iteration
+	typename std::vector< std::shared_ptr< Variable<T_> > >::const_iterator
+	begin() const
+		{ return pvars_.begin(); }
+
+	/// end() for range iteration
+	typename std::vector< std::shared_ptr< Variable<T_> > >::const_iterator
+	end() const
+		{ return pvars_.end(); }
+
 	/**
 	 * @brief Retrieve position of variable named "varname" if existent
 	 * @note  <b>Complexity:</b> average case is <i>O(1)</i>,

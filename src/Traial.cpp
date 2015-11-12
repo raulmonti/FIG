@@ -37,19 +37,34 @@
 namespace fig
 {
 
+Traial::Traial() :
+	state(gState.size()),
+	timeouts_(gClocks.size(), nullptr)
+{
+	clocks_.reserve(gClocks.size());
+	size_t i(0u);
+	for (const auto& clk: gClocks) {
+		clocks_.emplace_back(clk.module, clk.name, 0.0f);
+		timeouts_[i] = &clocks_[i];
+		i++;
+	}
+}
+
+
 Traial::Traial(bool initState, bool initClocks, Bitflag whichClocks) :
 	state(gState.size()),
 	timeouts_(gClocks.size(), nullptr)
 {
 	size_t i(0u);
-	std::function must_reset = [](const size_t& i) {
+	std::function<bool(const size_t&)>
+	must_reset = [&initClocks, &whichClocks](const size_t& i) {
 		return initClocks &&
 				(whichClocks & (static_cast<Bitflag>(1u) << i));
 	};
 	if (initState) {
 		i = 0;
-		for (auto& var: gState)
-			state[i++] = var.ini();
+		for (auto& varp: gState)
+			state[i++] = varp->ini();
 	}
 	i = 0;
 	clocks_.reserve(gClocks.size());

@@ -107,6 +107,9 @@ private:
 
 public:  // Ctors/Dtor
 
+	/// Void ctor for resources pool
+	Traial();
+
 	/**
 	 * @brief Data ctor
 	 *
