@@ -121,13 +121,11 @@ public:  // Ctors/Dtor
 		   bool initClocks = false,
 		   Bitflag whichClocks = static_cast<Bitflag>(0u));
 
-	/// @todo: TODO define all ctors
- ///
- ///  This has to be lightning fast, many will be created/destroyed.
- ///  Suggestion: use resource pool design, see class doxygen.
- ///
+	/// @todo: TODO define copy ctor,       test it works well with TraialPool
+	/// @todo: TODO define move ctor,       test it works well with TraialPool
+	/// @todo: TODO define copy assignment, test it works well with TraialPool
 
-	~Traial() { timeouts_.clear(); clocks_.clear(); }
+	~Traial();
 
 protected:  // Utils
 

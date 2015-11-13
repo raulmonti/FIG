@@ -78,6 +78,17 @@ Traial::Traial(bool initState, bool initClocks, Bitflag whichClocks) :
 }
 
 
+Traial::~Traial()
+{
+//	timeouts_.clear();
+//	clocks_.clear();
+
+//	Deleting the vectors would be linear in their size.
+//	Since traials should only be deleted after simulations conclusion,
+///	@warning we ingnore this memory leak due to its short life.
+}
+
+
 void
 Traial::reorder_clocks()
 {
