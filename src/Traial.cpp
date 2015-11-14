@@ -28,7 +28,9 @@
 
 
 // C++
-#include <algorithm>   // std::sort()
+#include <numeric>     // std::iota()
+#include <utility>     // std::move()
+#include <algorithm>   // std::sort(), std::swap()
 #include <functional>  // std::function
 // FIG
 #include <Traial.h>
@@ -39,42 +41,67 @@ namespace fig
 
 Traial::Traial() :
 	state(gState.size()),
-	timeouts_(gClocks.size(), nullptr)
+	orderedIndex_(gClocks.size())
 {
+	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 	clocks_.reserve(gClocks.size());
-	size_t i(0u);
-	for (const auto& clk: gClocks) {
+	for (const auto& clk: gClocks)
 		clocks_.emplace_back(clk.module, clk.name, 0.0f);
-		timeouts_[i] = &clocks_[i];
-		i++;
-	}
 }
 
 
-Traial::Traial(bool initState, bool initClocks, Bitflag whichClocks) :
+Traial::Traial(bool initState,
+			   bool initClocks,
+			   Bitflag whichClocks,
+			   bool orderTimeouts) :
 	state(gState.size()),
-	timeouts_(gClocks.size(), nullptr)
+	orderedIndex_(gClocks.size())
 {
 	size_t i(0u);
-	std::function<bool(const size_t&)>
-	must_reset = [&initClocks, &whichClocks](const size_t& i) {
-		return initClocks &&
-				(whichClocks & (static_cast<Bitflag>(1u) << i));
-	};
+	std::function<bool(const size_t&)> must_reset =
+		[&](const size_t& i)
+		{
+			return initClocks && (whichClocks & (static_cast<Bitflag>(1u) << i));
+		};
 	if (initState) {
 		i = 0;
 		for (auto& varp: gState)
 			state[i++] = varp->ini();
 	}
-	i = 0;
+	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 	clocks_.reserve(gClocks.size());
-	for (const auto& clk: gClocks) {
+	i = 0;
+	for (const auto& clk: gClocks)
 		clocks_.emplace_back(clk.module,
 							 clk.name,
-							 must_reset(i) ? clk.sample() : 0.0f);
-		timeouts_[i] = &clocks_[i];
-		i++;
-	}
+							 must_reset(i++) ? clk.sample() : 0.0f);
+	if (orderTimeouts)
+		reorder_clocks();
+}
+
+
+Traial::Traial(const Traial& that) :
+	state(that.state),
+	clocks_(that.clocks_),
+	orderedIndex_(that.orderedIndex_),
+	firstNotNull_(that.firstNotNull_)
+{}
+
+
+Traial::Traial(Traial&& that) :
+	state(std::move(that.state)),
+	clocks_(std::move(that.clocks_)),
+	orderedIndex_(std::move(that.orderedIndex_)),
+	firstNotNull_(std::move(that.firstNotNull_))
+{}
+
+
+Traial& Traial::operator=(Traial that)
+{
+	std::swap(state, that.state);
+	std::swap(clocks_, that.clocks_);
+	std::swap(orderedIndex_, that.orderedIndex_);
+	std::swap(firstNotNull_, that.firstNotNull_);
 }
 
 
@@ -85,27 +112,25 @@ Traial::~Traial()
 
 //	Deleting the vectors would be linear in their size.
 //	Since traials should only be deleted after simulations conclusion,
-///	@warning we ingnore this memory leak due to its short life.
+///	@warning we ingnore this (potential?) memory leak due to its short life.
 }
 
 
 void
 Traial::reorder_clocks()
 {
-	// Sort timeouts_ vector according to registered clock values
-	std::sort(timeouts_.begin(), timeouts_.end(),
-		[](const Timeout* first,
-		   const Timeout* second)
+	// Sort orderedIndex_ vector according to our current clock values
+	std::sort(begin(orderedIndex_), end(orderedIndex_),
+		[&](const unsigned& left,
+			const unsigned& right)
 		{
-			assert(nullptr != first && nullptr != second);
-			return first->value < second->value;
-		});
-
+			return clocks_[left].value < clocks_[right].value;
+		}
+	);
 	// Find first not-null clock, or record '-1' if all are null
 	for (unsigned i=0 ; i < clocks_.size() || ((firstNotNull_ = -1) && false) ; i++) {
-		assert(nullptr != timeouts_[i]);
-		if (0.0f < timeouts_[i]->value) {
-			firstNotNull_ = i;
+		if (0.0f < clocks_[orderedIndex_[i]].value) {
+			firstNotNull_ = orderedIndex_[i];
 			break;
 		}
 	}

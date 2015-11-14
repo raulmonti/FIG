@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  TraialsPool.cpp
+//  TraialPool.cpp
 //
 //  Copyleft 2015-
 //  Authors:
@@ -27,7 +27,7 @@
 //==============================================================================
 
 
-#include <TraialsPool.h>
+#include <TraialPool.h>
 
 
 namespace fig
@@ -37,9 +37,47 @@ std::unique_ptr< TraialPool > TraialPool::instance_ = nullptr;
 
 size_t TraialPool::initialSize_ = (1u) << 12;  // 4K
 
-size_t TraialPool::sizeIncrement_ = TraialPool::initialSize_ / 10;
+size_t TraialPool::sizeChunkIncrement_ = TraialPool::initialSize_ >> 3;  // 1/8
 
-/// @todo implement methods below the comment "Access to resources" in header
-///       according to documentation in place
+std::forward_list< std::unique_ptr< Traial > > TraialPool::available_traials_;
+
+
+TraialPool::TraialPool()
+{
+	for(unsigned i = 0 ; i < initialSize_ ; i++)
+		available_traials_.emplace_front(new Traial);
+}
+
+
+TraialPool::~TraialPool()
+{
+//	available_traials_.clear();
+
+//	Deleting this vector would be linear in its size.
+//	Since the TraialPool should only be deleted after simulations conclusion,
+///	@warning we ingnore this (potential?) memory leak due to its short life.
+}
+
+
+std::unique_ptr<Traial> TraialPool::get_traial()
+{
+	if (available_traials_.empty())
+		for(unsigned i = 0 ; i < sizeChunkIncrement_; i++)
+			available_traials_.emplace_front(new Traial);
+	std::unique_ptr< Traial > traial_p(nullptr);
+	available_traials_.front().swap(traial_p);
+	available_traials_.pop_front();
+	return traial_p;
+}
+
+
+void TraialPool::return_traial(std::unique_ptr<Traial>& traial_p)
+{
+	assert(nullptr != traial_p);
+	available_traials_.emplace_front();
+	available_traials_.front().swap(traial_p);
+	assert(nullptr == traial_p);
+}
+
 
 } // namespace fig

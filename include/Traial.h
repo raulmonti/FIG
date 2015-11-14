@@ -32,7 +32,10 @@
 
 // C++
 #include <vector>
+#include <memory>     // std::shared_ptr<>
+#include <algorithm>  // std::swap()
 // FIG
+#include <core_typedefs.h>
 #include <State.h>
 #include <Clock.h>
 
@@ -43,7 +46,6 @@ namespace fig
 extern GlobalState< STATE_INTERNAL_TYPE > gState;
 extern std::vector< Clock >               gClocks;
 
-// class Transition;  // Wird diese Deklaration nötig?
 class ModuleInstance;
 
 /**
@@ -52,9 +54,8 @@ class ModuleInstance;
  *        Holds the state of the variables and the clocks values,
  *        i.e. all that is needed to run a simulation through the user's
  *        system model.
- *        Traials should be administered through a
- *        <a href="https://sourcemaking.com/design_patterns/object_pool">
- *        resources pool</a>, to offer very fast creation/release of the
+ *        Traials should be handled with the TraialPool, to ensure fast
+ *        acquisition/release (instead of creation/destruction) of the
  *        instances.
  *
  * @note  This class assumes a GlobalState variable named 'gState'
@@ -69,7 +70,7 @@ class Traial
 {
 	friend class Transition;
 
-public:  // Types and attributes
+protected:
 
 	/// Paraphernalia needed on clock expiration
 	struct Timeout
@@ -80,28 +81,36 @@ public:  // Types and attributes
 		const std::string& name;
 		/// Clock's time value
 		float value;
+
 		/// Data ctor
 		Timeout(std::shared_ptr<const ModuleInstance> themodule,
 				const std::string& thename,
 				const float& thevalue) :
 			module(themodule), name(thename), value(thevalue) {}
+		// Other ctors
+		Timeout(const Timeout& that)            = default;
+		Timeout(Timeout&& that)                 = default;
+		Timeout& operator=(const Timeout& that) = default;
+		Timeout& operator=(Timeout&& that)      = default;
 	};
+
+public:  // Attributes
 
 	/// Variables values instantiation (same order as in GlobalState 'gState')
 	State state;
 
 protected:
 
-	/// Clocks values instantiation (same order as in 'gClocks')
+	/// \ref Clock "Clocks" values instantiation (same order as in 'gClocks')
 	std::vector< Timeout > clocks_;
 
 private:
 
 	/// Time-increasing-ordered view of 'clocks_' vector.
 	/// Access for friends is safely granted through next_timeout()
-	std::vector< const Timeout* > timeouts_;  // yeah baby, deep down we like it raw
+	std::vector< unsigned > orderedIndex_;
 
-	/// Pointer to first not-null \ref Clock "clock" in timeouts_.
+	/// Position of smallest not-null Clock value in clocks_.
 	/// Negative if all are null.
 	int firstNotNull_;
 
@@ -113,17 +122,26 @@ public:  // Ctors/Dtor
 	/**
 	 * @brief Data ctor
 	 *
-	 * @param initState   Whether to initialize our state with gState info
-	 * @param initClocks  Whether to initialize some clocks
-	 * @param whichClocks Which clocks to initialize if initClocks is true
+	 * @param initState     Whether to initialize our state with gState info
+	 * @param initClocks    Whether to initialize some clocks
+	 * @param whichClocks   Which clocks to initialize if initClocks is true
+	 * @param orderTimeouts Whether to order the timeouts after initializations
+	 *
+	 * @warning By default, and regardless of clocks initialization,
+	 *          the timeouts won't be ordered. To force ordering call with
+	 *          last parameter set to <b>true</b>.
 	 */
-	Traial(bool initState = false,
+	Traial(bool initState,
 		   bool initClocks = false,
-		   Bitflag whichClocks = static_cast<Bitflag>(0u));
+		   Bitflag whichClocks = static_cast<Bitflag>(0u),
+		   bool orderTimeouts = false);
 
-	/// @todo: TODO define copy ctor,       test it works well with TraialPool
-	/// @todo: TODO define move ctor,       test it works well with TraialPool
-	/// @todo: TODO define copy assignment, test it works well with TraialPool
+	Traial(const Traial& that);
+
+	Traial(Traial&& that);
+
+	/// Copy assignment with copy&swap idiom
+	Traial& operator=(Traial that);
 
 	~Traial();
 
@@ -143,7 +161,7 @@ protected:  // Utils
 				reorder_clocks();
 			if (0 > firstNotNull_)
 				throw FigException("all clocks are null!");
-			return *timeouts_[firstNotNull_];
+			return clocks_[firstNotNull_];
 		}
 
 private:

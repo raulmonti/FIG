@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  TraialsPool.h
+//  TraialPool.h
 //
 //  Copyleft 2015-
 //  Authors:
@@ -27,8 +27,8 @@
 //==============================================================================
 
 
-#ifndef TRAIALSPOOL_H
-#define TRAIALSPOOL_H
+#ifndef TRAIALPOOL_H
+#define TRAIALPOOL_H
 
 // C++
 #include <forward_list>
@@ -52,6 +52,9 @@ namespace fig
  *
  * @note  The pool itself follows the singleton design pattern,
  *        thus unifying the access policy to these resources.
+ *
+ * @todo  If possible, keep Traials references instead of pointers internally,
+ *        and implement all functionality using C++ move semantics.
  */
 class TraialPool
 {
@@ -59,7 +62,7 @@ class TraialPool
 	static std::unique_ptr< TraialPool > instance_;
 
 	/// Resources available for users
-	static std::forward_list< Traial > available_traials_;
+	static std::forward_list< std::unique_ptr< Traial > > available_traials_;
 
 	/// Size of available_traials_ on pool creation
 	static size_t initialSize_;
@@ -69,7 +72,7 @@ class TraialPool
 	static size_t sizeChunkIncrement_;
 
 	/// Private ctor (singleton design pattern)
-	TraialPool() : available_traials_(initialSize_) {}
+	TraialPool();
 
 	/// Proclaim to the four winds the uniqueness of the single instance
 	TraialPool(const TraialPool& that)            = delete;
@@ -85,17 +88,32 @@ public:  // Access to TraialPool
 		return *instance_;
 	}
 
-	~TraialPool() { available_traials_.clear(); }
+	~TraialPool();
 
 public:  // Access to resources (viz Traials)
 
 	/**
-	 * @brief  Obtain single Traial to simulate with
-	 * @return Traial instance, possibly dirty with old internal data
-	 * @note   <b>Complexity:</b> <i>O(1)</i> if free resources are available,
-	 *         <i>O(sizeIncrement_)</i> if new resources need to be allocated.
+	 * @brief Obtain single Traial to simulate with
+	 * @return Traial pointer, possibly dirty with old internal data
+	 * @note <b>Complexity:</b> <i>O(1)</i> if free resources are available,
+	 *       <i>O(sizeChunkIncrement_)</i> if new resources need to be allocated.
 	 */
-	Traial& get_traial();
+	std::unique_ptr< Traial > get_traial();
+
+	/**
+	 * @brief Give back single Traial to the pool
+	 * @warning Argument becomes nullptr after call
+	 */
+	void return_traial(std::unique_ptr<Traial>& traial_p);
+
+
+
+
+/// @todo Review and implement members from here downwards
+///       Consider we now hold unique_ptr< Traial >, not references
+
+
+
 
 	/**
 	 * @brief  Obtain specified amount of copies of given Traial instance
@@ -110,17 +128,8 @@ public:  // Access to resources (viz Traials)
 	 *         available, <i>O(max(numCopies,sizeIncrement_))</i>
 	 *         if new resources need to be allocated.
 	 */
-	std::forward_list< Traial > get_traial_copies(const Traial& traial,
-												  const unsigned& numCopies);
-
-	/**
-	 * @brief Give back single Traial to the pool
-	 * @note <b>Complexity:</b> <i>O(1)</i>
-	 */
-	void return_traial(Traial&& traial);
-
-	/// @copydoc return_traial()
-	void return_traial(Traial* traial);
+	std::forward_list< std::unique_ptr< Traial > >
+	get_traial_copies(const Traial& traial, const unsigned& numCopies);
 
 	/**
 	 * @brief Give back a bunch of \ref Traial "traials" to the pool
@@ -130,19 +139,19 @@ public:  // Access to resources (viz Traials)
 	 * @note  Traial instances in container argument should not be used again
 	 * @note  <b>Complexity:</b> <i>O(size(traials))</i>
 	 * \ifnot NDEBUG
-	 * @note  Container is devoided
+	 *   @note  Container is devoided
 	 * \endif
 	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
-	return_traials(Container<ValueType, OtherContainerArgs...>&& traials);
+	void return_traials(Container<ValueType, OtherContainerArgs...>&& traials);
 
 	/// @copydoc return_traials()
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
-	return_traials(Container<ValueType*, OtherContainerArgs...>&& traials);
+	void return_traials(Container<ValueType*, OtherContainerArgs...>&& traials);
 
 public:  // Utils
 
@@ -163,6 +172,7 @@ public:  // Utils
 template< template< typename, typename... > class Container,
 		  typename ValueType,
 		  typename... OtherContainerArgs >
+void
 TraialPool::return_traials(Container<ValueType, OtherContainerArgs...>&& traials)
 {
 	static_assert(std::is_same< Traial, ValueType >::value, "ERROR: type "
@@ -178,6 +188,7 @@ TraialPool::return_traials(Container<ValueType, OtherContainerArgs...>&& traials
 template< template< typename, typename... > class Container,
 		  typename ValueType,
 		  typename... OtherContainerArgs >
+void
 TraialPool::return_traials(Container<ValueType*, OtherContainerArgs...>&& traials)
 {
 	static_assert(std::is_same< Traial, ValueType >::value, "ERROR: type "
@@ -193,5 +204,5 @@ TraialPool::return_traials(Container<ValueType*, OtherContainerArgs...>&& traial
 
 } // namespace fig
 
-#endif // TRAIALSPOOL_H
+#endif // TRAIALPOOL_H
 
