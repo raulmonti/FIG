@@ -34,6 +34,8 @@
 #include <vector>
 #include <memory>     // std::shared_ptr<>
 #include <algorithm>  // std::swap()
+#include <numeric>    // std::iota()
+#include <utility>    // std::move()
 // FIG
 #include <core_typedefs.h>
 #include <State.h>
@@ -117,7 +119,13 @@ private:
 public:  // Ctors/Dtor
 
 	/// Void ctor for resources pool
-	Traial();
+	inline Traial() : state(gState.size()), orderedIndex_(gClocks.size())
+		{
+			std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
+			clocks_.reserve(gClocks.size());
+			for (const auto& clk: gClocks)
+				clocks_.emplace_back(clk.module, clk.name, 0.0f);
+		}
 
 	/**
 	 * @brief Data ctor
@@ -136,12 +144,31 @@ public:  // Ctors/Dtor
 		   Bitflag whichClocks = static_cast<Bitflag>(0u),
 		   bool orderTimeouts = false);
 
-	Traial(const Traial& that);
+	/// Copy ctor
+	inline Traial(const Traial& that) :
+		state(that.state),
+		clocks_(that.clocks_),
+		orderedIndex_(that.orderedIndex_),
+		firstNotNull_(that.firstNotNull_)
+		{}
 
-	Traial(Traial&& that);
+	/// Move ctor
+	inline Traial(Traial&& that) :
+		state(std::move(that.state)),
+		clocks_(std::move(that.clocks_)),
+		orderedIndex_(std::move(that.orderedIndex_)),
+		firstNotNull_(std::move(that.firstNotNull_))
+		{}
 
 	/// Copy assignment with copy&swap idiom
-	Traial& operator=(Traial that);
+	inline Traial& operator=(Traial that)
+		{
+			std::swap(state, that.state);
+			std::swap(clocks_, that.clocks_);
+			std::swap(orderedIndex_, that.orderedIndex_);
+			std::swap(firstNotNull_, that.firstNotNull_);
+			return *this;
+		}
 
 	~Traial();
 

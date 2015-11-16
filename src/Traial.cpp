@@ -28,9 +28,7 @@
 
 
 // C++
-#include <numeric>     // std::iota()
-#include <utility>     // std::move()
-#include <algorithm>   // std::sort(), std::swap()
+#include <algorithm>   // std::sort()
 #include <functional>  // std::function
 // FIG
 #include <Traial.h>
@@ -38,17 +36,6 @@
 
 namespace fig
 {
-
-Traial::Traial() :
-	state(gState.size()),
-	orderedIndex_(gClocks.size())
-{
-	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
-	clocks_.reserve(gClocks.size());
-	for (const auto& clk: gClocks)
-		clocks_.emplace_back(clk.module, clk.name, 0.0f);
-}
-
 
 Traial::Traial(bool initState,
 			   bool initClocks,
@@ -77,31 +64,6 @@ Traial::Traial(bool initState,
 							 must_reset(i++) ? clk.sample() : 0.0f);
 	if (orderTimeouts)
 		reorder_clocks();
-}
-
-
-Traial::Traial(const Traial& that) :
-	state(that.state),
-	clocks_(that.clocks_),
-	orderedIndex_(that.orderedIndex_),
-	firstNotNull_(that.firstNotNull_)
-{}
-
-
-Traial::Traial(Traial&& that) :
-	state(std::move(that.state)),
-	clocks_(std::move(that.clocks_)),
-	orderedIndex_(std::move(that.orderedIndex_)),
-	firstNotNull_(std::move(that.firstNotNull_))
-{}
-
-
-Traial& Traial::operator=(Traial that)
-{
-	std::swap(state, that.state);
-	std::swap(clocks_, that.clocks_);
-	std::swap(orderedIndex_, that.orderedIndex_);
-	std::swap(firstNotNull_, that.firstNotNull_);
 }
 
 

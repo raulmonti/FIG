@@ -102,18 +102,10 @@ public:  // Access to resources (viz Traials)
 
 	/**
 	 * @brief Give back single Traial to the pool
+	 * @note <b>Complexity:</b> <i>O(1)</i>
 	 * @warning Argument becomes nullptr after call
 	 */
 	void return_traial(std::unique_ptr<Traial>& traial_p);
-
-
-
-
-/// @todo Review and implement members from here downwards
-///       Consider we now hold unique_ptr< Traial >, not references
-
-
-
 
 	/**
 	 * @brief  Obtain specified amount of copies of given Traial instance
@@ -129,23 +121,28 @@ public:  // Access to resources (viz Traials)
 	 *         if new resources need to be allocated.
 	 */
 	std::forward_list< std::unique_ptr< Traial > >
-	get_traial_copies(const Traial& traial, const unsigned& numCopies);
+	get_traial_copies(const Traial& traial, unsigned numCopies);
 
 	/**
 	 * @brief Give back a bunch of \ref Traial "traials" to the pool
 	 *
 	 * @param traials  Container with the traials to return
 	 *
-	 * @note  Traial instances in container argument should not be used again
+	 * @note  Container argument 'traials' can contain either raw or unique
+	 *        pointers to Traial objects:
+	 *        <ul>
+	 *        <li> In the first case 'pass by rvalue' is assumed and the
+	 *             container is devoided;</li>
+	 *        <li> In the second case 'pass by lvalue' is assumed and all the
+	 *             pointers in 'traials' are set to 'nullptr'.</li>
+	 *        </ul>
+	 *        These measures avoid potential memory corruption issues.
 	 * @note  <b>Complexity:</b> <i>O(size(traials))</i>
-	 * \ifnot NDEBUG
-	 *   @note  Container is devoided
-	 * \endif
 	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
-	void return_traials(Container<ValueType, OtherContainerArgs...>&& traials);
+	void return_traials(Container<ValueType, OtherContainerArgs...>& traials);
 
 	/// @copydoc return_traials()
 	template< template< typename, typename... > class Container,
@@ -173,15 +170,16 @@ template< template< typename, typename... > class Container,
 		  typename ValueType,
 		  typename... OtherContainerArgs >
 void
-TraialPool::return_traials(Container<ValueType, OtherContainerArgs...>&& traials)
+TraialPool::return_traials(Container<ValueType, OtherContainerArgs...>& traials)
 {
-	static_assert(std::is_same< Traial, ValueType >::value, "ERROR: type "
-				  "missmatch. Only Traials can be returned to the TraialPool.");
-	for (auto& t: traials)
-		available_traials_.push_front(std::move(t));
-#ifndef NDEBUG
-	traials.clear();  // linear in size()!
-#endif
+	static_assert(std::is_same< std::unique_ptr< Traial >, ValueType >::value,
+				  "ERROR: type missmatch. Only Traial pointers, either raw or "
+				  "unique, can be returned to the TraialPool.");
+	for (auto& uptr: traials) {
+		available_traials_.emplace_front();
+		uptr.swap(available_traials_.front());
+		assert(nullptr == uptr);
+	}
 }
 
 
@@ -191,15 +189,12 @@ template< template< typename, typename... > class Container,
 void
 TraialPool::return_traials(Container<ValueType*, OtherContainerArgs...>&& traials)
 {
-	static_assert(std::is_same< Traial, ValueType >::value, "ERROR: type "
-				  "missmatch. Only Traials can be returned to the TraialPool.");
-	for (auto ptr: traials) {
-		available_traials_.push_front(std::move(*ptr));
-		ptr = nullptr;
-	}
-#ifndef NDEBUG
-	traials.clear();  // linear in size()!
-#endif
+	static_assert(std::is_same< Traial, ValueType >::value,
+				  "ERROR: type missmatch. Only Traial pointers, either raw or "
+				  "unique, can be returned to the TraialPool.");
+	for (auto ptr: traials)
+		available_traials_.emplace_front(ptr);
+	traials.clear();  // keep user from tampering with those dangerous pointers
 }
 
 } // namespace fig

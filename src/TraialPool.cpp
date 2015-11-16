@@ -80,4 +80,30 @@ void TraialPool::return_traial(std::unique_ptr<Traial>& traial_p)
 }
 
 
+std::forward_list< std::unique_ptr< Traial > >
+TraialPool::get_traial_copies(const Traial& traial, unsigned numCopies)
+{
+	std::forward_list< std::unique_ptr< Traial > > result;
+	assert(sizeChunkIncrement_ > numCopies);  // wouldn't make sense otherwise
+	// Transfer available resources
+	for(; !available_traials_.empty() && 0u < numCopies ; numCopies--) {
+		result.emplace_front();
+		available_traials_.front().swap(result.front());
+		available_traials_.pop_front();
+		result.front()->operator=(traial);  // copy 'traial' values
+	}
+	// Run out of traials but more needed?
+	if (available_traials_.empty() && 0u < numCopies) {
+		for(unsigned i = 0 ; i < sizeChunkIncrement_ - numCopies; i++)
+			available_traials_.emplace_front(new Traial);
+		for(; 0u < numCopies ; numCopies--)
+			result.emplace_front(new Traial(traial));
+	}
+	return result;
+	/* TODO: as an alternative implementation consider using std::list,
+	 *       instead of std::forward_list, and its splice() method
+	 *       in combination with size() and std::advance()
+	 */
+}
+
 } // namespace fig
