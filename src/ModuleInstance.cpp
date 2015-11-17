@@ -33,14 +33,26 @@
 namespace fig
 {
 
-std::shared_ptr<const Label>
+const Label&
 ModuleInstance::jump(const std::string& clockName,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,
 					 Traial& traial) const
 {
-
-	/// @todo: TODO fill up with blackboard algorithm
-
+	auto transitions = transitions_by_clock_[clockName];
+	for(auto& tr_ptr: transitions) {
+		if (tr_ptr->pre(traial)) { // If the traial satisfies this precondition
+			tr_ptr->pos(traial);   // apply postcondition to its state
+			tr_ptr->handle_clocks( // and update all our clocks.
+				traial,
+				firstClock_,
+				numClocks_,
+				elapsedTime);
+			// Finally notify the output label fired
+			assert(tr_ptr->label().is_output());
+			return tr_ptr->label();
+		}
+	}
+	return Label;  // No transition triggered => broadcast tau
 }
 
 
@@ -49,9 +61,19 @@ ModuleInstance::jump(const Label& label,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,
 					 Traial& traial) const
 {
-
-	/// @todo: TODO fill up with blackboard algorithm
-
+	assert(label.is_output());
+	auto transitions = transitions_by_label_[label.str];
+	for(auto& tr_ptr: transitions) {
+		if (tr_ptr->pre(traial)) { // If the traial satisfies this precondition
+			tr_ptr->pos(traial);   // apply postcondition to its state
+			tr_ptr->handle_clocks( // and update all our clocks.
+				traial,
+				firstClock_,
+				numClocks_,
+				elapsedTime);
+			break;  // Only one transition could be enabled, we trust Raúl
+		}
+	}
 }
 
 } // namespace fig

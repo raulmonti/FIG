@@ -164,9 +164,9 @@ public:  // Ctors
 
 public:  // Utils
 
-	virtual std::shared_ptr<const Label> jump(const std::string& clockName,
-											  const CLOCK_INTERNAL_TYPE& elapsedTime,
-											  Traial& traial) const;
+	virtual const Label& jump(const std::string& clockName,
+							  const CLOCK_INTERNAL_TYPE& elapsedTime,
+							  Traial& traial) const;
 
 	virtual void jump(const Label& label,
 					  const CLOCK_INTERNAL_TYPE& elapsedTime,

@@ -64,20 +64,22 @@ public:  // Utils
 	 * @param elapsedTime  Time lapse for the clock to expire
 	 * @param traial       Instance of Traial to update
 	 *
-	 * @return Pointer to output label fired by the transition taken,
-	 *         or nullptr if no transition was enabled.
+	 * @return Pointer to output label fired by the transition taken.
+	 *         If none was enabled then 'tau' is returned.
 	 *
 	 * @note <b>Complexity:</b> <i>O(t+c+v)</i>, where
-	 *       't' is the number of transitions of this module,
-	 *       'c' is the number of   clocks    of this module and
-	 *       'v' is the number of  variables  of this module
+	 *       <ul>
+	 *       <li> <i>t</i> is the number of transitions of this module,</li>
+	 *       <li> <i>c</i> is the number of   clocks    of this module and</li>
+	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
+	 *       </ul>
 	 *
 	 * @note Modifies sections both in State and clock-vector within "traial"
 	 *       which correspond to variables and clocks from this module.
 	 */
-	virtual std::shared_ptr<const Label> jump(const std::string& clockName,
-											  const CLOCK_INTERNAL_TYPE& elapsedTime,
-											  Traial& traial) const = 0;
+	virtual const Label& jump(const std::string& clockName,
+							  const CLOCK_INTERNAL_TYPE& elapsedTime,
+							  Traial& traial) const = 0;
 
 	/**
 	 * @brief Passive module jump following "label" label
@@ -87,9 +89,11 @@ public:  // Utils
 	 * @param traial       Instance of Traial to update
 	 *
 	 * @note <b>Complexity:</b> <i>O(t+c+v)</i>, where
-	 *       't' is the number of transitions of this module,
-	 *       'c' is the number of   clocks    of this module and
-	 *       'v' is the number of  variables  of this module
+	 *       <ul>
+	 *       <li> <i>t</i> is the number of transitions of this module,</li>
+	 *       <li> <i>c</i> is the number of   clocks    of this module and</li>
+	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
+	 *       </ul>
 	 *
 	 * @note Modifies sections both in State and clock-vector within "traial"
 	 *       which correspond to variables and clocks from this module.

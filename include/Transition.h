@@ -78,12 +78,14 @@ class Transition
 	/// (empty for input transitions)
 	std::string triggeringClock_;
 
+public:
 	/// Precondition regulating transition applicability
-	Precondition pre_;
+	Precondition pre;
 
 	/// Updates to perform when transition is taken
-	Postcondition pos_;
+	Postcondition pos;
 
+private:
 	/// Clocks to reset when transition is taken
 	Bitflag resetClocks_;
 
@@ -139,19 +141,13 @@ public:  // Ctors
 			   Postcondition&& pos,
 			   const Container<ValueType, OtherContainerArgs...>& resetClocks);
 
-public:  // Accessors
+public:  // Accessors to private attributes
 
 	/// @copydoc Transition::label_
 	inline const Label& label() const noexcept { return label_; }
 
 	/// @copydoc Transition::triggeringClock_
 	inline const std::string& triggeringClock() const noexcept { return triggeringClock_; }
-
-	/// @copydoc Transition::pre_
-	inline Precondition pre() const noexcept { return pre_; }
-
-	/// @copydoc Transition::pos_
-	inline Postcondition pos() const noexcept { return pos_; }
 
 	/// @copydoc Transition::resetClocks_
 	inline const Bitflag& resetClocks() const noexcept { return resetClocks_; }
