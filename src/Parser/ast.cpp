@@ -102,10 +102,7 @@ AST::get_all_lexemes(int k){
 string
 AST::get_lexeme(int k){
 
-    cout << "!! using get_lexeme !!\n";
-
     string result("");
-
     if( tkn == k ){
         result = lxm;
     }else{

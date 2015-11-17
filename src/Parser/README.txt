@@ -53,7 +53,7 @@ FIXME   In parser TEST and TESTB are strange, check them out and remove them
 FIXME   Should not be able to ask for clock values nor do any comparison against
         them.
 
-DONE   Presendencia entre - y > anda mal :S
+DONE    Presendencia entre - y > anda mal :S
 DONE    Dar rangos a las variables.
 DONE    Cambiar >> por  ->, y : es parte de la seccion del reloj habilitador
 DONE    Propiedad 3, agregar unsat de las guardas.

@@ -21,6 +21,17 @@
 #include "parsingContext.h"
 
 
+
+/*FIXME decide if the following definition is useful and do the same with
+        the rest of long error messages if so.
+*/
+
+#define W_0(l1,l2) "[WARNING] Nondeterminism may be present if we reach states"\
+                   " where transitions at lines " +  l1 + " and " + l2 + \
+                   " are enabled, since they use the same clock and they" \
+                   " may reach different states. Check IOSA condition 3.\n"
+
+
 using namespace std;
 
 namespace parser{
@@ -308,6 +319,7 @@ Verifier::names_uniqueness(AST* ast){
    @return:
    @throw:
 */
+
 int
 Verifier::input_output_clocks(AST* ast){
     // FIXME this will be easier if we force the users to specify ? or !
@@ -354,7 +366,12 @@ Verifier::input_output_clocks(AST* ast){
 /* @brief: check IOSA condition 3. (without reachability check)
    @throw:
    @result:
+
+   @algorithm: if(  (c1 == c2) 
+                 && sat(pre1 && pre2)
+                 && (a1 != a2 || C'1 != C'2 || s1 != s2) ) : WARNING
 */
+
 int
 Verifier::unique_outputs(AST *ast){
     /* FIXME some things like the set names and vector modules are used a lot
@@ -388,23 +405,29 @@ Verifier::unique_outputs(AST *ast){
                         string line1 = transs[i]->get_line();
                         string line2 = transs[j]->get_line();
                         if(!same_action(transs[i], transs[j])){
-                            error_list.append("[WARNING] diff actions.\n");
+                            error_list.append("[WARNING] Nondeterminism"
+                                " may be present if we reach states"
+                                " where transitions at lines " +  line1
+                                + " and " + line2 + " are enabled, "
+                                "since they use the same clock and they"
+                                " produce different actions. Check "
+                                " IOSA condition 3.\n");
                         }
                         if(!same_rclocks(transs[i], transs[j])){
-                            error_list.append("[WARNING] diff reset clocks.\n");
+                            error_list.append("[WARNING] Nondeterminism"
+                                " may be present if we reach states"
+                                " where transitions at lines " +  line1
+                                + " and " + line2 + " are enabled, "
+                                "since they use the same clock and they"
+                                " reset different clocks. Check "
+                                " IOSA condition 3.\n");
                         }
                         z3::expr p1 = post2expr(transs[i],module,pc,c);
                         z3::expr p2 = post2expr(transs[j],module,pc,c);
                         s.reset();
                         s.add(e1 && e2 && (p1 != p2));
                         if(s.check()){
-                            string line1 = transs[i]->get_line();
-                            string line2 = transs[j]->get_line();
-                            error_list.append("[WARNING] Nondeterminism"
-                                " may be present if we reach states"
-                                " where transitions at lines " +  line1
-                                + " and " + line2 + " are enabled, "
-                                "since they use the same clock.\n");
+                            error_list.append(W_0(line1,line2));
                         }
                     }
                 }
@@ -417,9 +440,6 @@ Verifier::unique_outputs(AST *ast){
     }
     return result;
 }
-
-
-
 
 
 /* @check_exhausted_clocks: check compliance to condition 4 from IOSA.
@@ -511,7 +531,6 @@ Verifier::check_exhausted_clocks(AST *ast){
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
 /* Check condition 7 for IOSA.
 
     if (act1 = act2):
@@ -521,6 +540,7 @@ Verifier::check_exhausted_clocks(AST *ast){
            ):
             WARNING.
 */
+
 int
 Verifier::check_input_determinism(AST *ast){
 
