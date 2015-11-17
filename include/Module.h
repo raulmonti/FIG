@@ -79,7 +79,7 @@ public:  // Utils
 	 */
 	virtual const Label& jump(const std::string& clockName,
 							  const CLOCK_INTERNAL_TYPE& elapsedTime,
-							  Traial& traial) const = 0;
+							  Traial& traial) = 0;
 
 	/**
 	 * @brief Passive module jump following "label" label
@@ -100,7 +100,7 @@ public:  // Utils
 	 */
 	virtual void jump(const Label& label,
 					  const CLOCK_INTERNAL_TYPE& elapsedTime,
-					  Traial& traial) const = 0;
+					  Traial& traial) = 0;
 };
 
 } // namespace fig

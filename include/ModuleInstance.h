@@ -76,11 +76,11 @@ class ModuleInstance : public Module
 
 	// Our transitions
 	std::unordered_map< std::string,
-						std::vector< std::shared_ptr< const Transition> > >
+						std::vector< std::shared_ptr< Transition> > >
 		transitions_by_clock_;
 	// TODO: tell input/output apart here?
 	std::unordered_map< std::string,
-						std::vector< std::shared_ptr< const Transition> > >
+						std::vector< std::shared_ptr< Transition> > >
 		transitions_by_label_;
 
 public:  // Ctors
@@ -166,11 +166,11 @@ public:  // Utils
 
 	virtual const Label& jump(const std::string& clockName,
 							  const CLOCK_INTERNAL_TYPE& elapsedTime,
-							  Traial& traial) const;
+							  Traial& traial);
 
 	virtual void jump(const Label& label,
 					  const CLOCK_INTERNAL_TYPE& elapsedTime,
-					  Traial& traial) const;
+					  Traial& traial);
 };
 
 

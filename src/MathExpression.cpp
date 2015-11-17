@@ -33,19 +33,43 @@
 #include <MathExpression.h>
 
 
+/**
+ * Functions offered to the end user for mathematical expressions
+ */
+namespace
+{
+
+/// Minimum between 2 values
+template< typename _T >
+inline _T min2(_T x1, _T x2)
+{
+	return x1 < x2 ? x1 : x2;
+}
+
+/// Minimum between 3 values
+template< typename _T >
+inline _T min3(_T x1, _T x2, _T x3)
+{
+}
+
+	/// @todo: TODO implement generic version with std::min()    <algorithm>
+	///        and parameter pack expansion
+
+} // namespace
+
 namespace fig
 {
 
-// ADL
 using std::cerr;
 using std::endl;
-
 
 void MathExpression::parse_our_expression()
 {
 	assert(!exprStr_.empty());
 	try {
 		expr_.SetExpr(exprStr_);
+
+		expr_.DefineFun("min", min2<STATE_INTERNAL_TYPE>);
 		/*
 		 *  TODO: bind all offered functions over variables
 		 *        Notice MuParser already has a few: http://muparser.beltoforion.de/

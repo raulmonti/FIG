@@ -100,8 +100,10 @@ IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	# "anonymous types declared in an anonymous union"
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-nested-anon-types")
 ENDIF()
-# Avoid BGL warnings due to " = default"
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+# Avoid MuParser warnings due to deprecated auto_ptr (TODO: update library?)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+# # Avoid BGL warnings due to " = default"
+# SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
 
 
 

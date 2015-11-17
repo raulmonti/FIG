@@ -36,7 +36,7 @@ namespace fig
 const Label&
 ModuleInstance::jump(const std::string& clockName,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,
-					 Traial& traial) const
+					 Traial& traial)
 {
 	auto transitions = transitions_by_clock_[clockName];
 	for(auto& tr_ptr: transitions) {
@@ -52,14 +52,14 @@ ModuleInstance::jump(const std::string& clockName,
 			return tr_ptr->label();
 		}
 	}
-	return Label;  // No transition triggered => broadcast tau
+	return std::move(Label());  // No transition triggered => broadcast tau
 }
 
 
 void
 ModuleInstance::jump(const Label& label,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,
-					 Traial& traial) const
+					 Traial& traial)
 {
 	assert(label.is_output());
 	auto transitions = transitions_by_label_[label.str];

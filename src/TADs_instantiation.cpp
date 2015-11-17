@@ -231,7 +231,7 @@ test_state()
 // Global variables needed by some modules  ///////////////////////////////////
 //
 
-const std::string pre1str("x^y < x+y-1");
+const std::string pre1str("x^y < min(x,y,_pi)");
 const std::string pos1str("x=y, y=x^2");  // updates are accumulative: y = y^2
 const std::set<std::string> varnames1({"x","y"});
 

@@ -71,6 +71,8 @@ extern std::vector<Clock> gClocks;
  */
 class Transition
 {
+	friend class ModuleInstance;
+
 	/// Synchronization label, could also be tau (viz. empty)
 	Label label_;
 
@@ -78,7 +80,7 @@ class Transition
 	/// (empty for input transitions)
 	std::string triggeringClock_;
 
-public:
+protected:
 	/// Precondition regulating transition applicability
 	Precondition pre;
 
@@ -152,7 +154,7 @@ public:  // Accessors to private attributes
 	/// @copydoc Transition::resetClocks_
 	inline const Bitflag& resetClocks() const noexcept { return resetClocks_; }
 
-public:  // Utils
+protected:  // Utils
 
 	/**
 	 * @brief Reset and/or make time elapse in specified range of clocks
@@ -202,8 +204,8 @@ Transition::Transition(
 	const Container<ValueType, OtherContainerArgs...>& resetClocks) :
 		label_(label),
 		triggeringClock_(triggeringClock),
-		pre_(pre),
-		pos_(pos),
+		pre(pre),
+		pos(pos),
 		resetClocks_(static_cast<Bitflag>(0u))
 {
 	static_assert(std::is_constructible< unsigned, ValueType >::value,
@@ -241,8 +243,8 @@ Transition::Transition(
 	const Container<ValueType, OtherContainerArgs...>& resetClocks) :
 		label_(label),
 		triggeringClock_(triggeringClock),
-		pre_(std::move(pre)),
-		pos_(std::move(pos)),
+		pre(std::move(pre)),
+		pos(std::move(pos)),
 		resetClocks_(static_cast<Bitflag>(0u))
 {
 	static_assert(std::is_constructible< unsigned, ValueType >::value,
