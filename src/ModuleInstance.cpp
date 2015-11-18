@@ -40,9 +40,9 @@ ModuleInstance::jump(const std::string& clockName,
 {
 	auto transitions = transitions_by_clock_[clockName];
 	for(auto& tr_ptr: transitions) {
-		if (tr_ptr->pre(traial)) { // If the traial satisfies this precondition
-			tr_ptr->pos(traial);   // apply postcondition to its state
-			tr_ptr->handle_clocks( // and update all our clocks.
+		if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
+			tr_ptr->pos(traial.state);   // apply postcondition to its state
+			tr_ptr->handle_clocks(       // and update all our clocks.
 				traial,
 				firstClock_,
 				numClocks_,
@@ -64,9 +64,9 @@ ModuleInstance::jump(const Label& label,
 	assert(label.is_output());
 	auto transitions = transitions_by_label_[label.str];
 	for(auto& tr_ptr: transitions) {
-		if (tr_ptr->pre(traial)) { // If the traial satisfies this precondition
-			tr_ptr->pos(traial);   // apply postcondition to its state
-			tr_ptr->handle_clocks( // and update all our clocks.
+		if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
+			tr_ptr->pos(traial.state);   // apply postcondition to its state
+			tr_ptr->handle_clocks(       // and update all our clocks.
 				traial,
 				firstClock_,
 				numClocks_,

@@ -63,12 +63,12 @@ Precondition::fake_evaluation()
 
 
 bool
-Precondition::operator()(const Traial& traial)
+Precondition::operator()(const State& state)
 {
-	// Bind Traial's state to our expression...
+	// Bind state's variables to our expression...
 	for (const auto& pair: varsMap_)
 		expr_.DefineVar(pair.first,  const_cast<STATE_INTERNAL_TYPE*>(
-						&traial.state[pair.second]));
+						&state[pair.second]));
 	// ...and evaluate
 	return static_cast<bool>(expr_.Eval());
 }

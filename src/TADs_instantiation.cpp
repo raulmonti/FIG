@@ -199,10 +199,6 @@ static void // ////////////////////////////////////////////////////////////////
 //
 test_state()
 {
-	/// TODO
- ///
- ///  Complete this test
- ///
 	typedef long TYPE;
 	std::list<fig::VariableDeclaration<TYPE>> vars({
 		make_tuple("x", 0, 10),
@@ -231,10 +227,6 @@ test_state()
 // Global variables needed by some modules  ///////////////////////////////////
 //
 
-const std::string pre1str("x^y < min(x,y,_pi)");
-const std::string pos1str("x=y, y=x^2");  // updates are accumulative: y = y^2
-const std::set<std::string> varnames1({"x","y"});
-
 // MathExpression requires an externally defined GlobalState "fig::gState"
 namespace fig
 {
@@ -258,14 +250,32 @@ static void // ////////////////////////////////////////////////////////////////
 //
 test_math_expression()
 {
-	/// TODO
- ///
- ///  Complete this test
- ///
- ///  FIXME: why can't we use builtin functions like log() or cos() ?
- ///
-	fig::MathExpression expr1(pre1str, varnames1);
-	assert(pre1str == expr1.expression());
+	// Correct expressions
+	const std::string str1("x^y > max(x,y)");
+	const std::string str2("x=y, y=x^2");  // updates are accumulative: y = y^2
+	const std::set<std::string> varnames({"x","y"});
+	fig::MathExpression expr1(str1, varnames);
+	assert(str1 == expr1.expression());
+	fig::MathExpression expr2(str2, varnames);
+	assert(str2 == expr2.expression());
+
+	// Incorrect creation data
+	const std::string str3("x-y-z < _pi^2");
+	const std::set<std::string> varnames3({"x","y"});  // forgot "z"
+	try {
+		fig::MathExpression expr3(str3, varnames3);  // shouldn't throw anyway
+		assert(str3 == expr3.expression());
+	} catch (std::exception) {
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "shouldn't have thrown!"));
+	}
+	const std::string str4("x+y == _pi-0");
+	const std::set<std::string> varnames4({"x","y","z"});  // "z" doesn't exist
+	try {
+		fig::MathExpression expr4(str4, varnames4);
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (std::out_of_range) { /* this was expected */ }
 }
 
 
@@ -273,12 +283,24 @@ static void // ////////////////////////////////////////////////////////////////
 //
 test_precondition()
 {
-	/// TODO
- ///
- ///  Complete this test
- ///
-	fig::Precondition pre1(pre1str, varnames1);
-	assert(pre1str == pre1.expression());
+	const std::string str1("x^y > max(x,y)");
+	const std::set<std::string> varnames1({"x","y"});
+	fig::Precondition pre1(str1, varnames1);
+
+	// Positions of variables in State instances are determined by the
+	// unique GlobalState 'gState' object
+	fig::State s1 = {/*x=*/ 0, /*otra=*/ 99, /*y=*/ 1};
+	assert(!pre1(s1));
+	fig::State s2 = {/*x=*/ 1, /*otra=*/ -9, /*y=*/ 0};
+	assert(!pre1(s2));
+
+	const std::string str2("x^y >= max(x,y)");
+	const std::set<std::string> varnames2({"x","y"});
+	fig::Precondition pre2(str2, varnames2);
+	assert(pre2(s2));
+	fig::State s3 = {/*x=*/ 3, /*otra=*/ std::numeric_limits<short>::max(),
+					 /*y=*/ 9};
+	assert(pre2(s3));
 }
 
 
@@ -290,8 +312,8 @@ test_postcondition()
  ///
  ///  Complete this test
  ///
-	fig::Postcondition pos1(pos1str, 2, varnames1);
-	assert(pos1str == pos1.expression());
+//	fig::Postcondition pos1(pos1str, 2, varnames1);
+//	assert(pos1str == pos1.expression());
 }
 
 

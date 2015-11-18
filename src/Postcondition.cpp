@@ -63,12 +63,12 @@ Postcondition::fake_evaluation()
 
 
 void
-Postcondition::operator()(Traial& traial)
+Postcondition::operator()(State& state)
 {
 	// Bind Traial's state to our expression...
 	for (const auto& pair: varsMap_)
 		expr_.DefineVar(pair.first,  const_cast<STATE_INTERNAL_TYPE*>(
-						&traial.state[pair.second]));
+						&state[pair.second]));
 	// ...and evaluate
 	expr_.Eval(numUpdates_);
 	assert(expr_.GetNumResults() == numUpdates_);

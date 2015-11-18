@@ -32,7 +32,7 @@
 
 // FIG
 #include <MathExpression.h>
-#include <Traial.h>
+#include <State.h>
 
 
 namespace fig
@@ -98,10 +98,10 @@ public:  // Accessors
 	inline const std::string& expression() const { return exprStr_; }
 
 	/**
-	 * @brief Update traial's internal State instance
+	 * @brief Update state's variables values according to our expression
 	 * @throw mu::ParserError
 	 */
-	void operator()(Traial& traial);
+	void operator()(State& state);
 };
 
 
