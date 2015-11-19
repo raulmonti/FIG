@@ -26,7 +26,6 @@
 #include <Precondition.h>
 #include <Postcondition.h>
 
-// ADL
 using std::to_string;
 using std::make_tuple;
 using std::get;
@@ -44,22 +43,6 @@ static void test_postcondition();
 static void test_transition();
 
 
-int main()
-{
-	test_label();
-	test_clock();
-	test_variable_interval();
-	test_variable_set();
-	test_state();
-	test_math_expression();
-	test_precondition();
-	test_postcondition();
-	test_transition();
-
-	return 0;
-}
-
-// ////////////////////////////////////////////////////////////////////////////
 class TestException : public std::exception
 {
 	std::string msg_;
@@ -72,6 +55,36 @@ public:
 	TestException(const std::string& msg) : msg_(msg) {}
 	TestException(std::string&& msg) : msg_(std::move(msg)) {}
 };
+
+
+int main()
+{
+	std::cout << "\nIgnore ALL following messages BUT the last line\n" << std::endl;
+
+	try {
+		test_label();
+		test_clock();
+		test_variable_interval();
+		test_variable_set();
+		test_state();
+		test_math_expression();
+		test_precondition();
+		test_postcondition();
+		test_transition();
+
+	} catch (TestException& e) {
+		std::cout << "Some test failed, details follow." << std::endl;
+		throw e;
+
+	} catch (fig::FigException& e) {
+		std::cout << "Some test failed unexpectedly, details follow." << std::endl;
+		throw e;
+	}
+
+	std::cout << "\nAll tests were successfull!\n" << std::endl;
+
+	return 0;
+}
 
 
 static void // ////////////////////////////////////////////////////////////////
@@ -286,6 +299,7 @@ test_precondition()
 	const std::string str1("x^y > max(x,y)");
 	const std::set<std::string> varnames1({"x","y"});
 	fig::Precondition pre1(str1, varnames1);
+	assert(str1 == pre1.expression());
 
 	// Positions of variables in State instances are determined by the
 	// unique GlobalState 'gState' object
@@ -301,6 +315,18 @@ test_precondition()
 	fig::State s3 = {/*x=*/ 3, /*otra=*/ std::numeric_limits<short>::max(),
 					 /*y=*/ 9};
 	assert(pre2(s3));
+	fig::State s4 = {/*x=*/ 2, /*otra=*/ std::numeric_limits<short>::min(),
+					 /*y=*/ 16};
+	assert(!pre2(s4));  // since MUP_BASETYPE is short, 2^16 should overflow
+
+	// Incorrect creation data
+	const std::string str3("x-y-z < _pi^2");
+	const std::list<std::string> varnames3({"x","y"});  // forgot "z"
+	try {
+		fig::Precondition pre3(str3, varnames3);  // should throw due to unexpected "z"
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (fig::FigException) { /* this was expected */ }
 }
 
 
@@ -308,10 +334,20 @@ static void // ////////////////////////////////////////////////////////////////
 //
 test_postcondition()
 {
-	/// TODO
- ///
- ///  Complete this test
- ///
+	const std::string str1("x = 2*y , y = x^_pi");  // 2 updates
+	const std::set<std::string> varnames1({"x","y"});
+	fig::Postcondition pos1(str1, 2, varnames1);
+
+	// Positions of variables in State instances are determined by the
+	// unique GlobalState 'gState' object
+	fig::State s1 = {/*x=*/ 0, /*otra=*/ 99, /*y=*/ 1};
+	pos1(s1);
+
+	/// @todo: fix the accumulative update issue
+	/// e.g. here below we should have 0 == y == s1[2], since x^pi == 0^pi == 0
+	assert(2 == s1[0] && 8 == s1[2]);
+
+	/// @todo: TODO Complete this test
 //	fig::Postcondition pos1(pos1str, 2, varnames1);
 //	assert(pos1str == pos1.expression());
 }
@@ -321,8 +357,5 @@ static void // ////////////////////////////////////////////////////////////////
 //
 test_transition()
 {
-	/// TODO
- ///
- ///  Complete this test
- ///
+	/// @todo: TODO Complete this test
 }

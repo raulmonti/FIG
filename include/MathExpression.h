@@ -137,7 +137,7 @@ public:  // Ctors
 
 public:  // Accessors
 
-	inline const std::string& expression() const { return exprStr_; }
+	virtual inline const std::string& expression() const { return exprStr_; }
 
 private:  // Class utils
 

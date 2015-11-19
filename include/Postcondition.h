@@ -42,15 +42,33 @@ namespace fig
  * @brief Transition postcondition:
  *        a list of comma separated updates on variables values.
  *
- *        Each 'update' consists of a single variable name on the LHS,
- *        the symbol '=' and any properly typed expression on the RHS.
+ *        Each 'update' consists of a regular MathExpression and,
+ *        with a vector of variable names passed on construction,
+ *        the user indicates which variable will hold the result
+ *        of each update.
+ *
  *        For instance the following string specifies two updates:
  *
- *        "x = max(x,10), y = x^3"
+ *        "max(x,10), x^3"
  *
- *        Updates are accumulative, so for instance in the string above
- *        variable 'y' will be assigned the third power of the new value
- *        of variable 'x' after the "max(x,10)" assignment.
+ *        If the corresponding array of variable names to update is "[x,y]",
+ *        then the postcondition updates will be evaluated as follows:
+ *
+ *        x_copy = x
+ *        y_copy = y
+ *        x = max(x_copy,10)
+ *        y = x_copy^3
+ *
+ *        Continuing with this example, for the state [x,y] = [2,0]
+ *        the resulting values would be [10,8].
+ *        Notice 'y' was assigned 8 == 2^3, since the value of 'x' prior
+ *        its own update, namely 'x_copy == 2', was used for the evaluation
+ *        of the MathExpressions on the RHS of the updates.
+ *
+ * @todo: reflect this description in the class implementation,
+ *        which right now does NOT do this.
+ *        Notice we need to add a new private class attribute
+ *        "vector<string> updateVars" or so, and change the ctors.
  */
 class Postcondition : public MathExpression
 {
@@ -94,8 +112,6 @@ public:  // Ctors
 				  Iterator<ValueType, OtherIteratorArgs...> to);
 
 public:  // Accessors
-
-	inline const std::string& expression() const { return exprStr_; }
 
 	/**
 	 * @brief Update state's variables values according to our expression

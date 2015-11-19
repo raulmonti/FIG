@@ -79,8 +79,6 @@ public:  // Ctors
 
 public:  // Accessors
 
-	inline const std::string& expression() const { return exprStr_; }
-
 	/**
 	 * @brief Compute truth value of our expression for given state
 	 * @throw mu::ParserError
