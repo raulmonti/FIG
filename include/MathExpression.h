@@ -216,8 +216,7 @@ MathExpression::MathExpression(
 	const std::string& exprStr,
 	Iterator<ValueType, OtherIteratorArgs...> from,
 	Iterator<ValueType, OtherIteratorArgs...> to) :
-		exprStr_(exprStr),
-		varsMap_(std::distance(from,to))
+		exprStr_(exprStr)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: type missmatch. MathExpression needs iterators "
@@ -225,7 +224,7 @@ MathExpression::MathExpression(
 	// Setup MuParser expression
 	parse_our_expression();
 	// Setup variables mapping
-	size_t i(0u);
+	varsMap_.reserve(std::distance(from,to));
 	do {
 		std::string name = *from;
 #ifndef NRANGECHK
@@ -233,8 +232,8 @@ MathExpression::MathExpression(
 			throw std::out_of_range(std::string("invalid variable name: \"")
 									.append(name).append("\""));
 #endif
-		varsMap_[i++] = std::make_pair(std::move(name),
-									   gState.position_of_var(name));
+		varsMap_.emplace_back(std::make_pair(std::move(name),
+											 gState.position_of_var(name)));
 	} while (++from != to);
 }
 

@@ -334,18 +334,38 @@ static void // ////////////////////////////////////////////////////////////////
 //
 test_postcondition()
 {
-	const std::string str1("x = 2*y , y = x^_pi");  // 2 updates
-	const std::set<std::string> varnames1({"x","y"});
-	fig::Postcondition pos1(str1, 2, varnames1);
+	const std::string str1("2*y , x^_pi");  // 2 updates
+	const std::set<std::string> varNames1({"x","y"});
+	const std::list<std::string> varUpdates1({"x","y"});  // apply updates to 'x' and 'y' resp.
+	fig::Postcondition pos1(str1, varNames1, varUpdates1);
 
 	// Positions of variables in State instances are determined by the
 	// unique GlobalState 'gState' object
 	fig::State s1 = {/*x=*/ 0, /*otra=*/ 99, /*y=*/ 1};
 	pos1(s1);
+	assert(2 == s1[0] && 0 == s1[2]);
+	fig::Postcondition pos2(str1,
+							varNames1.begin(), varNames1.end(),
+							varUpdates1.begin(), varUpdates1.end());
+	fig::State s2 = {/*x=*/ 0, /*otra=*/ 99, /*y=*/ 1};
+	assert(pos2.expression() == pos1.expression());
+	pos2(s2);
+	assert(s1 == s2);
+	fig::Postcondition pos3(pos2);
+	pos2(s1);
+	pos3(s2);
+	assert(s1 == s2);
 
-	/// @todo: fix the accumulative update issue
-	/// e.g. here below we should have 0 == y == s1[2], since x^pi == 0^pi == 0
-	assert(2 == s1[0] && 8 == s1[2]);
+	// Incorrect creation data
+	const std::string str4("x-y-z, _pi^2");
+	const std::list<std::string> varNames4({"x","y"});  // forgot "z"
+	const std::list<std::string> varUpdates4({"x","y"});  // apply updates to 'x' and 'y' resp.
+	static_assert(std::is_same<decltype(varUpdates4), const std::list<std::string>>::value, "ERROR");
+	try {
+		fig::Precondition pos4(str4, varNames4, varUpdates4);  // should throw due to unexpected "z"
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (fig::FigException) { /* this was expected */ }
 
 	/// @todo: TODO Complete this test
 //	fig::Postcondition pos1(pos1str, 2, varnames1);

@@ -30,6 +30,10 @@
 #ifndef POSTCONDITION_H
 #define POSTCONDITION_H
 
+// C++
+#include <vector>
+#include <iterator>  // std::distance()
+#include <type_traits>  // std::is_constructible<>
 // FIG
 #include <MathExpression.h>
 #include <State.h>
@@ -54,26 +58,25 @@ namespace fig
  *        If the corresponding array of variable names to update is "[x,y]",
  *        then the postcondition updates will be evaluated as follows:
  *
- *        x_copy = x
- *        y_copy = y
- *        x = max(x_copy,10)
- *        y = x_copy^3
+ *        x_copy = x         <br>
+ *        y_copy = y         <br>
+ *        x = max(x_copy,10) <br>
+ *        y = x_copy^3       <br>
  *
  *        Continuing with this example, for the state [x,y] = [2,0]
  *        the resulting values would be [10,8].
- *        Notice 'y' was assigned 8 == 2^3, since the value of 'x' prior
+ *        Notice 'y' is assigned 8 == 2^3, since the value of 'x' prior
  *        its own update, namely 'x_copy == 2', was used for the evaluation
  *        of the MathExpressions on the RHS of the updates.
- *
- * @todo: reflect this description in the class implementation,
- *        which right now does NOT do this.
- *        Notice we need to add a new private class attribute
- *        "vector<string> updateVars" or so, and change the ctors.
  */
 class Postcondition : public MathExpression
 {
 	/// Number of variables updated by this postcondition
 	int numUpdates_;
+
+	/// Positions of the variables to which the updates will be applied,
+	/// following the unique order given in the GlobalState 'gState'
+	std::vector<size_t> updatesPositions_;
 
 	/**
 	 * @brief Perform a fake evaluation to exercise our expression
@@ -84,32 +87,68 @@ class Postcondition : public MathExpression
 
 public:  // Ctors
 
-	/// @copydoc MathExpression::MathExpression
-	template< template< typename, typename... > class Container,
-			  typename ValueType,
-			  typename... OtherContainerArgs >
+	/**
+	 * @brief Data ctor from generic lvalue containers
+	 *
+	 * @param exprStr    String with the comma-separated updates to evaluate
+	 * @param varNames   Container with names of all variables ocurring in exprStr
+	 * @param updateVars Container with the names of the variables taking the updates
+	 *
+	 * @note The content of updateVars is interpreted possitionally w.r.t.
+	 *       the exprStr, e.g. input data: ("x^2,Rand[0,1]", {x}, {y,x})
+	 *       means that on each update, 'y' will be assigned the square of 'x',
+	 *       and 'x' will be assigned some random value between 0 and 1.
+	 *
+	 * @throw FigException if exprStr doesn't define a valid expression
+	 * \ifnot NRANGECHK
+	 *   @throw out_of_range if either 'varNames' or 'updateVars' contain
+	 *          a variable name not appearing in the system GlobalState
+	 * \endif
+	 */
+	template< template< typename, typename... > class Container1,
+				  typename ValueType1,
+				  typename... OtherContainerArgs1,
+			  template< typename, typename... > class Container2,
+				  typename ValueType2,
+				  typename... OtherContainerArgs2
+			>
 	Postcondition(const std::string& exprStr,
-				  const size_t& numUpdates,
-				  const Container<ValueType, OtherContainerArgs...>& varnames);
+				  const Container1<ValueType1, OtherContainerArgs1...>& varNames,
+				  const Container2<ValueType2, OtherContainerArgs2...>& updateVars);
 
-	/// Data ctor from generic rvalue container
-	/// @see Equivalent ctor in MathExpression
-	template< template< typename, typename... > class Container,
-			  typename ValueType,
-			  typename... OtherContainerArgs >
+	/**
+	 * @brief Data ctor from iterator ranges
+	 *
+	 * @param exprStr String with the comma-separated updates to evaluate
+	 * @param from1   Iterator to  first name of variables ocurring in exprStr
+	 * @param to1     Iterator past last name of variables ocurring in exprStr
+	 * @param from2   Iterator to  first name of the variables taking the updates
+	 * @param to2     Iterator past last name of the variables taking the updates
+	 *
+	 * @note The variables whose names are given in the range [from2, to2)
+	 *       are interpreted possitionally w.r.t. the exprStr, e.g. input
+	 *       data equivalent to: ("x^2,Rand[0,1]", {y,x}) means that
+	 *       on each update, 'y' will be assigned the square of 'x',
+	 *       and 'x' will be assigned some random value between 0 and 1.
+	 *
+	 * @throw FigException if exprStr doesn't define a valid expression
+	 * \ifnot NRANGECHK
+	 *   @throw out_of_range if either 'varNames' or 'updateVars' contain
+	 *          a variable name not appearing in the system GlobalState
+	 * \endif
+	 */
+	template< template< typename, typename... > class Iterator1,
+				  typename ValueType1,
+				  typename... OtherIteratorArgs1,
+			  template< typename, typename... > class Iterator2,
+				  typename ValueType2,
+				  typename... OtherIteratorArgs2
+			>
 	Postcondition(const std::string& exprStr,
-				  const size_t& numUpdates,
-				  Container<ValueType, OtherContainerArgs...>&& varnames);
-
-	/// Data ctor from iterator range
-	/// @see Equivalent ctor in MathExpression
-	template< template< typename, typename... > class Iterator,
-			  typename ValueType,
-			  typename... OtherIteratorArgs >
-	Postcondition(const std::string& exprStr,
-				  const size_t& numUpdates,
-				  Iterator<ValueType, OtherIteratorArgs...> from,
-				  Iterator<ValueType, OtherIteratorArgs...> to);
+				  Iterator1<ValueType1, OtherIteratorArgs1...> from1,
+				  Iterator1<ValueType1, OtherIteratorArgs1...> to1,
+				  Iterator2<ValueType2, OtherIteratorArgs2...> from2,
+				  Iterator2<ValueType2, OtherIteratorArgs2...> to2);
 
 public:  // Accessors
 
@@ -127,16 +166,26 @@ public:  // Accessors
 
 // If curious about its presence here take a look at the end of VariableSet.cpp
 
-template< template< typename, typename... > class Container,
-		  typename ValueType,
-		  typename... OtherContainerArgs >
+template< template< typename, typename... > class Container1,
+			  typename ValueType1,
+			  typename... OtherContainerArgs1,
+		  template< typename, typename... > class Container2,
+			  typename ValueType2,
+			  typename... OtherContainerArgs2
+		>
 Postcondition::Postcondition(
 	const std::string& exprStr,
-	const size_t& numUpdates,
-	const Container<ValueType, OtherContainerArgs...>& varnames) :
-		MathExpression(exprStr, varnames),
-		numUpdates_(numUpdates)
+	const Container1<ValueType1, OtherContainerArgs1...>& varNames,
+	const Container2<ValueType2, OtherContainerArgs2...>& updateVars) :
+		MathExpression(exprStr, varNames)
 {
+	static_assert(std::is_constructible< std::string, ValueType2 >::value,
+				  "ERROR: type missmatch. Postcondition needs containers "
+				  "with variable names");
+	// Setup updates mapping in updatesPositions_
+	for (const auto& name: updateVars)
+		updatesPositions_.emplace_back(gState.position_of_var(name));
+	numUpdates_ = static_cast<int>(updatesPositions_.size());
 #ifndef NDEBUG
 	// Reveal parsing errors in this early stage
 	fake_evaluation();
@@ -144,34 +193,29 @@ Postcondition::Postcondition(
 }
 
 
-template< template< typename, typename... > class Container,
-		  typename ValueType,
-		  typename... OtherContainerArgs >
+template< template< typename, typename... > class Iterator1,
+			  typename ValueType1,
+			  typename... OtherIteratorArgs1,
+		  template< typename, typename... > class Iterator2,
+			  typename ValueType2,
+			  typename... OtherIteratorArgs2
+		>
 Postcondition::Postcondition(
 	const std::string& exprStr,
-	const size_t& numUpdates,
-	Container<ValueType, OtherContainerArgs...>&& varnames) :
-		MathExpression(exprStr, std::move(varnames)),
-		numUpdates_(numUpdates)
+	Iterator1<ValueType1, OtherIteratorArgs1...> from1,
+	Iterator1<ValueType1, OtherIteratorArgs1...> to1,
+	Iterator2<ValueType2, OtherIteratorArgs2...> from2,
+	Iterator2<ValueType2, OtherIteratorArgs2...> to2) :
+		MathExpression(exprStr, from1, to1),
+		numUpdates_(static_cast<int>(std::distance(from2, to2)))
 {
-#ifndef NDEBUG
-	// Reveal parsing errors in this early stage
-	fake_evaluation();
-#endif
-}
-
-
-template< template< typename, typename... > class Iterator,
-		  typename ValueType,
-		  typename... OtherIteratorArgs >
-Postcondition::Postcondition(
-	const std::string& exprStr,
-	const size_t& numUpdates,
-	Iterator<ValueType, OtherIteratorArgs...> from,
-	Iterator<ValueType, OtherIteratorArgs...> to) :
-		MathExpression(exprStr, from, to),
-		numUpdates_(numUpdates)
-{
+	static_assert(std::is_constructible< std::string, ValueType2 >::value,
+				  "ERROR: type missmatch. Postcondition needs iterators "
+				  "pointing to variable names");
+	// Setup updates mapping in updatesPositions_
+	do {
+		updatesPositions_.emplace_back(gState.position_of_var(*from2));
+	} while (++from2 != to2);
 #ifndef NDEBUG
 	// Reveal parsing errors in this early stage
 	fake_evaluation();

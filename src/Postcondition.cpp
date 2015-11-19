@@ -36,7 +36,6 @@
 namespace fig
 {
 
-// ADL
 using std::cerr;
 using std::endl;
 
@@ -48,6 +47,7 @@ Postcondition::fake_evaluation()
 		for (const auto& var: varsMap_)
 			expr_.DefineVar(var.first, &dummy);
 		STATE_INTERNAL_TYPE* ptr = expr_.Eval(numUpdates_);
+		assert(expr_.GetNumResults() == numUpdates_);
 		// MuParser library handles memory, leave ptr alone
 		if (ptr) ptr = nullptr;  // dodge compiler warning
 	} catch (mu::Parser::exception_type &e) {
@@ -65,13 +65,15 @@ Postcondition::fake_evaluation()
 void
 Postcondition::operator()(State& state)
 {
-	// Bind Traial's state to our expression...
+	// Bind state variables to our expression...
 	for (const auto& pair: varsMap_)
 		expr_.DefineVar(pair.first,  const_cast<STATE_INTERNAL_TYPE*>(
 						&state[pair.second]));
-	// ...and evaluate
-	expr_.Eval(numUpdates_);
-	assert(expr_.GetNumResults() == numUpdates_);
+	// ...evaluate...
+	STATE_INTERNAL_TYPE* updates = expr_.Eval(numUpdates_);
+	// ...and reflect in state
+	for (int i = 0 ; i < numUpdates_ ; i++)
+		state[updatesPositions_[i]] = updates[i];
 }
 
 } // namespace fig

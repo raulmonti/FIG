@@ -200,8 +200,9 @@ public:  // Accessors
 	 * @brief Retrieve position of variable named "varname" if existent
 	 * @note  <b>Complexity:</b> average case is <i>O(1)</i>,
 	 *        worst case (rare) is <i>O(size())</i>
-	 * @throw out_of_range if NRANGECHK is not defined and variable "varname"
-	 *        doesn't exist
+	 * \ifnot NRANGECHK
+	 *   @throw out_of_range if variable "varname" doesn't exist
+	 * \endif
 	 */
 	inline size_t position_of_var(const std::string& varname) const
 		{
