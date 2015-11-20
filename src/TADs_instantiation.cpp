@@ -9,6 +9,7 @@
 #include <tuple>
 #include <vector>
 #include <string>
+#include <sstream>
 #include <utility>
 #include <iostream>
 #include <exception>
@@ -54,12 +55,14 @@ public:
 	TestException(const char* msg) : msg_(msg) {}
 	TestException(const std::string& msg) : msg_(msg) {}
 	TestException(std::string&& msg) : msg_(std::move(msg)) {}
+	inline const std::string& msg() { return msg_; }
 };
 
 
 int main()
 {
-	std::cout << "\nIgnore ALL following messages BUT the last line\n" << std::endl;
+	std::cout << "\nIgnore ALL following messages BUT the last line.\n"
+			  << std::endl;
 
 	try {
 		test_label();
@@ -73,15 +76,22 @@ int main()
 		test_transition();
 
 	} catch (TestException& e) {
-		std::cout << "Some test failed, details follow." << std::endl;
-		throw e;
+		std::stringstream errMsg("Some test failed, details follow:\n");
+		errMsg << e.msg();
+		std::cout << errMsg.str() << "\n\nCheck above for failed test.\n"
+				  << std::endl;
+		exit(EXIT_FAILURE);
 
 	} catch (fig::FigException& e) {
-		std::cout << "Some test failed unexpectedly, details follow." << std::endl;
-		throw e;
+		std::stringstream errMsg("Something failed unexpectedly, details follow:\n");
+		errMsg << e.msg();
+		std::cout << errMsg.str() << "\n\nCheck above for unexpected error.\n"
+				  << std::endl;
+		exit(EXIT_FAILURE);
 	}
 
-	std::cout << "\nAll tests were successfull!\n" << std::endl;
+	std::cout << "\nAll tests were successfull!\n"
+			  << std::endl;
 
 	return 0;
 }
@@ -273,19 +283,19 @@ test_math_expression()
 	assert(str2 == expr2.expression());
 
 	// Incorrect creation data
-	const std::string str3("x-y-z < _pi^2");
-	const std::set<std::string> varnames3({"x","y"});  // forgot "z"
 	try {
-		fig::MathExpression expr3(str3, varnames3);  // shouldn't throw anyway
-		assert(str3 == expr3.expression());
+		const std::string str("x-y-z < _pi^2");
+		const std::set<std::string> varnames({"x","y"});  // forgot "z"
+		fig::MathExpression expr(str, varnames);  // shouldn't throw anyway
+		assert(str == expr.expression());
 	} catch (std::exception) {
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "shouldn't have thrown!"));
 	}
-	const std::string str4("x+y == _pi-0");
-	const std::set<std::string> varnames4({"x","y","z"});  // "z" doesn't exist
 	try {
-		fig::MathExpression expr4(str4, varnames4);
+		const std::string str("x+y == _pi-0");
+		const std::set<std::string> varnames({"x","y","noexiste"});
+		fig::MathExpression expr(str, varnames);
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (std::out_of_range) { /* this was expected */ }
@@ -320,13 +330,20 @@ test_precondition()
 	assert(!pre2(s4));  // since MUP_BASETYPE is short, 2^16 should overflow
 
 	// Incorrect creation data
-	const std::string str3("x-y-z < _pi^2");
-	const std::list<std::string> varnames3({"x","y"});  // forgot "z"
 	try {
-		fig::Precondition pre3(str3, varnames3);  // should throw due to unexpected "z"
+		const std::string str("x-y-z < _pi^2");
+		const std::list<std::string> varnames({"x","y"});  // forgot "z"
+		fig::Precondition pre(str, varnames);  // should throw due to unexpected "z"
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (fig::FigException) { /* this was expected */ }
+	try {
+		const std::string str("x-y-z < _pi^2");
+		const std::list<std::string> varnames({"x","noexiste","y"});
+		fig::Precondition pre(str, varnames);
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (std::out_of_range) { /* this was expected */ }
 }
 
 
@@ -342,13 +359,14 @@ test_postcondition()
 	// Positions of variables in State instances are determined by the
 	// unique GlobalState 'gState' object
 	fig::State s1 = {/*x=*/ 0, /*otra=*/ 99, /*y=*/ 1};
+	auto s2(s1);  // for later
 	pos1(s1);
-	assert(2 == s1[0] && 0 == s1[2]);
-	fig::Postcondition pos2(str1,
-							varNames1.begin(), varNames1.end(),
-							varUpdates1.begin(), varUpdates1.end());
-	fig::State s2 = {/*x=*/ 0, /*otra=*/ 99, /*y=*/ 1};
+	assert(2 == s1[0]);  // x ==  2*y  ==  2*1  == 2
+	assert(0 == s1[2]);  // y == x^_pi == 0^_pi == 0
+	fig::Postcondition pos2(str1, varNames1.begin(), varNames1.end(),
+								  varUpdates1.begin(), varUpdates1.end());
 	assert(pos2.expression() == pos1.expression());
+	assert(s1 != s2);
 	pos2(s2);
 	assert(s1 == s2);
 	fig::Postcondition pos3(pos2);
@@ -356,20 +374,38 @@ test_postcondition()
 	pos3(s2);
 	assert(s1 == s2);
 
+	const std::string str4("x^y, 2 - y^(max(x,y))");
+	const auto varNames4(varNames1);
+	const auto varUpdates4(varUpdates1);  // apply updates to 'x' and 'y' resp.
+	fig::Postcondition pos4(str4, varNames4, varUpdates4);
+	fig::State s4 = {/*x*/ 2, /*otra*/ 1115 , /*y*/ 0};
+	pos4(s4);
+	assert(1 == s4[0]);  // x == x^y == 2^0 == 1
+	assert(2 == s4[2]);  // y == 2 - y^max(x,y) == 2 - 0^max(2,0) == 2
+	pos4(s4);
+	assert(1 == s4[0]);  // x == x^y == 1^2 == 1
+	assert(-2 == s4[2]);  // y == 2 - y^max(x,y) == 2 - 2^max(1,2) == -2
+	pos4(s4);
+	assert(1 == s4[0]);  // x == x^y == 1^-2 == (short)1/2 == 1
+	assert(4 == s4[2]);  // y == 2 - y^max(x,y) == 2 - (-2)^max(1,-2) == 4
+
 	// Incorrect creation data
-	const std::string str4("x-y-z, _pi^2");
-	const std::list<std::string> varNames4({"x","y"});  // forgot "z"
-	const std::list<std::string> varUpdates4({"x","y"});  // apply updates to 'x' and 'y' resp.
-	static_assert(std::is_same<decltype(varUpdates4), const std::list<std::string>>::value, "ERROR");
 	try {
-		fig::Precondition pos4(str4, varNames4, varUpdates4);  // should throw due to unexpected "z"
+		const std::string str("x-y-z, _pi^2");
+		const std::list<std::string> varNames({"x","y"});  // forgot "z"
+		auto varUpdates(varUpdates1);
+		fig::Postcondition pos(str, varNames, varUpdates);  // should throw due to unexpected "z"
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (fig::FigException) { /* this was expected */ }
-
-	/// @todo: TODO Complete this test
-//	fig::Postcondition pos1(pos1str, 2, varnames1);
-//	assert(pos1str == pos1.expression());
+	try {
+		const std::string str("x-y-z, _pi^2");
+		const std::list<std::string> varNames({"x","y","z"});
+		const std::list<std::string> varUpdates({"noexiste","z"});
+		fig::Postcondition pos(str, varNames, varUpdates);
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (std::out_of_range) { /* this was expected */ }
 }
 
 

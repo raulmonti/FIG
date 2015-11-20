@@ -306,7 +306,11 @@ namespace mu
                 bOptimized = true;
               }
               break;
-              
+
+		default:
+			// Do nothing, viz. don't optimize with bytecode
+			break;
+
         } // switch a_Oprt
       }
     }

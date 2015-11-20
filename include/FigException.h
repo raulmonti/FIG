@@ -48,6 +48,7 @@ public:
 	FigException(const char* msg) : msg_(msg) {}
 	FigException(const std::string& msg) : msg_(msg) {}
 	FigException(std::string&& msg) : msg_(std::move(msg)) {}
+	inline const std::string& msg() { return msg_; }
 };
 
 }

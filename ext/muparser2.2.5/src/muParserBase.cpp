@@ -858,7 +858,11 @@ namespace mu
             Error(ecTOO_FEW_PARAMS, m_pTokenReader->GetPos(), funTok.GetAsString());
 
           m_vRPN.AddFun(funTok.GetFuncAddr(), (funTok.GetArgCount()==-1) ? -iArgNumerical : iArgNumerical);
-          break;
+		  break;
+
+	default:
+		Error(ecUNEXPECTED_OPERATOR, m_pTokenReader->GetPos(), funTok.GetAsString());
+		break;
     }
 
     // Push dummy value representing the function result to the stack
