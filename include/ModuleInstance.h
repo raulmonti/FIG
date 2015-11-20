@@ -63,7 +63,7 @@ namespace fig
 class ModuleInstance : public Module
 {
 	// Our range of variables
-	/// Position in GlobalState of our first Variable
+	/// Position in State of our first Variable
 	const unsigned firstVar_;
 	/// Number of \ref Variable "variables" in this module
 	const unsigned numVars_;
@@ -88,7 +88,7 @@ public:  // Ctors
 	/**
 	 * @brief Copy ctor from lvalue container with \ref Transition "transitions"
 	 *
-	 * @param firstVar     Position in GlobalState of our first Variable
+	 * @param firstVar     Position in State of our first Variable
 	 * @param numVars      Number of \ref Variable "variables" in this module
 	 * @param firstClock   Position in global 'gClocks' of our first Clock
 	 * @param numClocks    Number of \ref Clock "clocks" in this module
@@ -107,7 +107,7 @@ public:  // Ctors
 	 * @brief Move ctor from rvalue container with \ref Transition "transition"
 	 *        objects
 	 *
-	 * @param firstVar     Position in GlobalState of our first Variable
+	 * @param firstVar     Position in State of our first Variable
 	 * @param numVars      Number of \ref Variable "variables" in this module
 	 * @param firstClock   Position in global 'gClocks' of our first Clock
 	 * @param numClocks    Number of \ref Clock "clocks" in this module
@@ -126,7 +126,7 @@ public:  // Ctors
 	 * @brief Move ctor from rvalue container with raw pointers to
 	 *        \ref Transition "transitions"
 	 *
-	 * @param firstVar     Position in GlobalState of our first Variable
+	 * @param firstVar     Position in State of our first Variable
 	 * @param numVars      Number of \ref Variable "variables" in this module
 	 * @param firstClock   Position in global 'gClocks' of our first Clock
 	 * @param numClocks    Number of \ref Clock "clocks" in this module
@@ -144,7 +144,7 @@ public:  // Ctors
 	/**
 	 * @brief Copy ctor from \ref Transition "transitions" iterator range
 	 *
-	 * @param firstVar    Position in GlobalState of our first Variable
+	 * @param firstVar    Position in State of our first Variable
 	 * @param numVars     Number of \ref Variable "variables" in this module
 	 * @param firstClock  Position in global 'gClocks' of our first Clock
 	 * @param numClocks   Number of \ref Clock "clocks" in this module

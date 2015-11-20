@@ -74,7 +74,7 @@ public:  // Utils
 	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
 	 *       </ul>
 	 *
-	 * @note Modifies sections both in State and clock-vector within "traial"
+	 * @note Modifies sections both in StateInstance and clock-vector within "traial"
 	 *       which correspond to variables and clocks from this module.
 	 */
 	virtual const Label& jump(const std::string& clockName,
@@ -95,7 +95,7 @@ public:  // Utils
 	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
 	 *       </ul>
 	 *
-	 * @note Modifies sections both in State and clock-vector within "traial"
+	 * @note Modifies sections both in StateInstance and clock-vector within "traial"
 	 *       which correspond to variables and clocks from this module.
 	 */
 	virtual void jump(const Label& label,

@@ -42,7 +42,7 @@ namespace fig
 
 template< typename T_ >
 void
-GlobalState<T_>::build_concrete_bound()
+State<T_>::build_concrete_bound()
 {
 	maxConcreteState_ = 1u;
 	for(const auto pvar: pvars_)
@@ -51,7 +51,7 @@ GlobalState<T_>::build_concrete_bound()
 
 
 template< typename T_ >
-GlobalState<T_>::GlobalState(GlobalState<T_>&& that) :
+State<T_>::State(State<T_>&& that) :
 	pvars_(that.size()),
 	maxConcreteState_(std::move(that.maxConcreteState_))
 {
@@ -68,7 +68,7 @@ GlobalState<T_>::GlobalState(GlobalState<T_>&& that) :
 
 template< typename T_ >
 std::shared_ptr< const Variable< T_ > >
-GlobalState<T_>::operator[](const std::string& varname) const
+State<T_>::operator[](const std::string& varname) const
 {
 	for (auto pvar: pvars_)
 		if (varname == pvar->name_)
@@ -79,7 +79,7 @@ GlobalState<T_>::operator[](const std::string& varname) const
 
 template< typename T_ >
 std::shared_ptr< Variable< T_ > >
-GlobalState<T_>::operator[](const std::string& varname)
+State<T_>::operator[](const std::string& varname)
 {
 	for (auto pvar: pvars_)
 		if (varname == pvar->name_)
@@ -90,7 +90,7 @@ GlobalState<T_>::operator[](const std::string& varname)
 
 template< typename T_ >
 void
-GlobalState<T_>::print_out(std::ostream& out, bool withNewline) const
+State<T_>::print_out(std::ostream& out, bool withNewline) const
 {
 	for (const auto& pvar: pvars_)
 		out << pvar->name_ << "=" << pvar->val() << ", ";
@@ -101,10 +101,10 @@ GlobalState<T_>::print_out(std::ostream& out, bool withNewline) const
 }
 
 
-// FIXME: Not needed if there's a unique GlobalState instance
+// FIXME: Not needed if there's a unique State instance
 template< typename T_ >
 bool
-GlobalState<T_>::operator==(const GlobalState< T_ >& that) const
+State<T_>::operator==(const State< T_ >& that) const
 {
 	if (this->size() != that.size())
 		return false;
@@ -117,7 +117,7 @@ GlobalState<T_>::operator==(const GlobalState< T_ >& that) const
 
 template< typename T_ >
 bool
-GlobalState<T_>::is_valid_state_instance(State s) const
+State<T_>::is_valid_state_instance(StateInstance s) const
 {
 	if (s.size() != size())
 		return false;
@@ -130,7 +130,7 @@ GlobalState<T_>::is_valid_state_instance(State s) const
 
 template< typename T_ >
 void
-GlobalState<T_>::copy_from_state_instance(const State &s, bool checkValidity)
+State<T_>::copy_from_state_instance(const StateInstance &s, bool checkValidity)
 {
 	if (s.size() != size())
 		throw FigException("attempted to copy values from an invalid state");
@@ -146,7 +146,7 @@ GlobalState<T_>::copy_from_state_instance(const State &s, bool checkValidity)
 
 template< typename T_ >
 void
-GlobalState<T_>::copy_to_state_instance(State& s) const
+State<T_>::copy_to_state_instance(StateInstance& s) const
 {
 	if (s.size() != size())
 		throw FigException("attempted to copy values to an invalid state");
@@ -156,10 +156,10 @@ GlobalState<T_>::copy_to_state_instance(State& s) const
 
 
 template< typename T_ >
-std::unique_ptr<State>
-GlobalState<T_>::to_state_instance() const
+std::unique_ptr< StateInstance >
+State<T_>::to_state_instance() const
 {
-	std::unique_ptr<State> s(new State(size()));
+	std::unique_ptr< StateInstance > s(new StateInstance(size()));
 	for (size_t i = 0u ; i < size() ; i++)
 		(*s)[i] = pvars_[i]->val();
 	return s;
@@ -168,7 +168,7 @@ GlobalState<T_>::to_state_instance() const
 
 template< typename T_ >
 size_t
-GlobalState<T_>::encode_state() const
+State<T_>::encode_state() const
 {
 	size_t n(0), numVars(size());
 	#pragma omp parallel for reduction(+:n) shared(numVars)
@@ -184,7 +184,7 @@ GlobalState<T_>::encode_state() const
 
 template< typename T_ >
 void
-GlobalState<T_>::decode_state(const size_t& n)
+State<T_>::decode_state(const size_t& n)
 {
 	const size_t numVars(size());
 	assert(n < maxConcreteState_);
@@ -200,7 +200,7 @@ GlobalState<T_>::decode_state(const size_t& n)
 
 template< typename T_ >
 T_
-GlobalState<T_>::decode_state(const size_t& n, const size_t& i) const
+State<T_>::decode_state(const size_t& n, const size_t& i) const
 {
 	size_t numVars(size()), stride(1u);
 	assert(i < numVars);
@@ -214,7 +214,7 @@ GlobalState<T_>::decode_state(const size_t& n, const size_t& i) const
 
 template< typename T_ >
 T_
-GlobalState<T_>::decode_state(const size_t& n, const std::string& varname) const
+State<T_>::decode_state(const size_t& n, const std::string& varname) const
 {
 	size_t varpos(0);
 	assert(n < maxConcreteState_);
@@ -225,14 +225,14 @@ GlobalState<T_>::decode_state(const size_t& n, const std::string& varname) const
 	return decode_state(n, varpos);
 }
 
-// GlobalState can only be instantiated with following integral types
-template class GlobalState< short              >;
-//template class GlobalState< int                >;   // MuParser can't
-template class GlobalState< long               >;
-template class GlobalState< long long          >;
-template class GlobalState< unsigned short     >;
-template class GlobalState< unsigned int       >;
-template class GlobalState< unsigned long      >;
-template class GlobalState< unsigned long long >;
+// State can only be instantiated with following integral types
+template class State< short              >;
+//template class State< int                >;   // MuParser can't
+template class State< long               >;
+template class State< long long          >;
+template class State< unsigned short     >;
+template class State< unsigned int       >;
+template class State< unsigned long      >;
+template class State< unsigned long long >;
 
 } // namespace fig

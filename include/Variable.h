@@ -49,7 +49,7 @@ namespace fig
 /**
  * @brief Abstract variable concept.
  *
- *        The GlobalState of the system is composed of these.
+ *        The State of the system is composed of these.
  *
  * @todo Describe fresh/named variable duality
  */
@@ -57,7 +57,7 @@ template< typename T_ >
 class Variable
 {
 	// Friend template class: http://stackoverflow.com/a/8967610
-	template< typename TT_ > friend class GlobalState;
+	template< typename TT_ > friend class State;
 
 protected:  // Attributes
 

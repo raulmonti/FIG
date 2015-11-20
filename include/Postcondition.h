@@ -75,7 +75,7 @@ class Postcondition : public MathExpression
 	int numUpdates_;
 
 	/// Positions of the variables to which the updates will be applied,
-	/// following the unique order given in the GlobalState 'gState'
+	/// following the unique order given in the State 'gState'
 	std::vector<size_t> updatesPositions_;
 
 	/**
@@ -102,7 +102,7 @@ public:  // Ctors
 	 * @throw FigException if exprStr doesn't define a valid expression
 	 * \ifnot NRANGECHK
 	 *   @throw out_of_range if either 'varNames' or 'updateVars' contain
-	 *          a variable name not appearing in the system GlobalState
+	 *          a variable name not appearing in the system State
 	 * \endif
 	 */
 	template< template< typename, typename... > class Container1,
@@ -134,7 +134,7 @@ public:  // Ctors
 	 * @throw FigException if exprStr doesn't define a valid expression
 	 * \ifnot NRANGECHK
 	 *   @throw out_of_range if either 'varNames' or 'updateVars' contain
-	 *          a variable name not appearing in the system GlobalState
+	 *          a variable name not appearing in the system State
 	 * \endif
 	 */
 	template< template< typename, typename... > class Iterator1,
@@ -156,7 +156,7 @@ public:  // Accessors
 	 * @brief Update state's variables values according to our expression
 	 * @throw mu::ParserError
 	 */
-	void operator()(State& state);
+	void operator()(StateInstance& state);
 };
 
 

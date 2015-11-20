@@ -49,7 +49,7 @@
 namespace fig
 {
 
-extern GlobalState< STATE_INTERNAL_TYPE > gState;
+extern State< STATE_INTERNAL_TYPE > gState;
 
 /**
  * @brief Mathematical expression with variables mapping
@@ -59,7 +59,7 @@ extern GlobalState< STATE_INTERNAL_TYPE > gState;
  *        It requires a separate explicit specification of which literals
  *        within that expression refer to variables names.
  *
- * @note  This class assumes a GlobalState variable named 'gState'
+ * @note  This class assumes a State variable named 'gState'
  *        was defined somewhere within the fig namespace.
  *        Such instance is needed for defining a unique order of the
  *        mapped variables for all objects of this class.
@@ -80,7 +80,7 @@ protected:
 	const std::string& exprStr_;
 
 	/// Names and positions of the variables in our expression.
-	/// The positional order is given by the GlobalState of the system.
+	/// The positional order is given by the State of the system.
 	std::vector< std::pair< const std::string, size_t > > varsMap_;
 
 public:  // Ctors
@@ -93,7 +93,7 @@ public:  // Ctors
 	 *
 	 * @throw FigException if exprStr doesn't define a valid expression
 	 * @throw out_of_range if NRANGECHK is not defined and 'varnames' contains
-	 *        some variable name not appearing in the system GlobalState
+	 *        some variable name not appearing in the system State
 	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
@@ -109,7 +109,7 @@ public:  // Ctors
 	 *
 	 * @throw FigException if exprStr doesn't define a valid expression
 	 * @throw out_of_range if NRANGECHK is not defined and 'varnames' contains
-	 *        some variable name not appearing in the system GlobalState
+	 *        some variable name not appearing in the system State
 	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
@@ -126,7 +126,7 @@ public:  // Ctors
 	 *
 	 * @throw FigException if exprStr doesn't define a valid expression
 	 * @throw out_of_range if NRANGECHK is not defined and there is some
-	 *        variable name not appearing in the system GlobalState
+	 *        variable name not appearing in the system State
 	 */
 	template< template< typename, typename... > class Iterator,
 			  typename ValueType,

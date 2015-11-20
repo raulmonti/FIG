@@ -42,7 +42,7 @@
  * @brief "fig" is the core namespace of the FIG project.
  *
  *         All classes needed for the description of the user's system model
- *         and later simulations on it, e.g. Clock, GlobalState, Transition,
+ *         and later simulations on it, e.g. Clock, State, Transition,
  *         ModuleInstance and so on, exist within this namespace.
  */
 namespace fig
@@ -91,10 +91,10 @@ template< typename T_ > using VariableDefinition =
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //
 //
-// State and GlobalState
+// StateInstance and State
 //
 
-/// States internal storage type
+/// StateInstances internal storage type
 /// @warning Must match that of MuParser library
 typedef  MUP_BASETYPE  STATE_INTERNAL_TYPE;
 

@@ -228,7 +228,7 @@ test_state()
 		make_tuple("y", -20, -19),
 		make_tuple("ay_mama", 200, 4000001)
 	});
-	fig::GlobalState<TYPE> gState(vars);
+	fig::State<TYPE> gState(vars);
 	assert(gState.size() == vars.size());
 	gState.print_out(std::cout, true);
 	size_t i(0u);
@@ -240,8 +240,8 @@ test_state()
 	}
 	auto s = gState.to_state_instance();
 	assert(gState.is_valid_state_instance(*s));
-	fig::GlobalState<TYPE> gState2(vars);
-	fig::GlobalState<TYPE> gState3(std::move(gState));
+	fig::State<TYPE> gState2(vars);
+	fig::State<TYPE> gState3(std::move(gState));
 	assert(gState  != gState3);
 	assert(gState2 == gState3);
 }
@@ -250,11 +250,11 @@ test_state()
 // Global variables needed by some modules  ///////////////////////////////////
 //
 
-// MathExpression requires an externally defined GlobalState "fig::gState"
+// MathExpression requires an externally defined State "fig::gState"
 namespace fig
 {
 typedef fig::VariableInterval< fig::STATE_INTERNAL_TYPE > VarType;
-GlobalState< STATE_INTERNAL_TYPE > gState(
+State< STATE_INTERNAL_TYPE > gState(
 	std::vector< VarType >{
 		VarType("x", -1912, -1000),
 		VarType("otra", 13, 14),
@@ -311,21 +311,21 @@ test_precondition()
 	fig::Precondition pre1(str1, varnames1);
 	assert(str1 == pre1.expression());
 
-	// Positions of variables in State instances are determined by the
-	// unique GlobalState 'gState' object
-	fig::State s1 = {/*x=*/ 0, /*otra=*/ 99, /*y=*/ 1};
+	// Positions of variables in StateInstance are determined by the
+	// unique State 'gState' object
+	fig::StateInstance s1 = {/*x=*/ 0, /*otra=*/ 99, /*y=*/ 1};
 	assert(!pre1(s1));
-	fig::State s2 = {/*x=*/ 1, /*otra=*/ -9, /*y=*/ 0};
+	fig::StateInstance s2 = {/*x=*/ 1, /*otra=*/ -9, /*y=*/ 0};
 	assert(!pre1(s2));
 
 	const std::string str2("x^y >= max(x,y)");
 	const std::set<std::string> varnames2({"x","y"});
 	fig::Precondition pre2(str2, varnames2);
 	assert(pre2(s2));
-	fig::State s3 = {/*x=*/ 3, /*otra=*/ std::numeric_limits<short>::max(),
+	fig::StateInstance s3 = {/*x=*/ 3, /*otra=*/ std::numeric_limits<short>::max(),
 					 /*y=*/ 9};
 	assert(pre2(s3));
-	fig::State s4 = {/*x=*/ 2, /*otra=*/ std::numeric_limits<short>::min(),
+	fig::StateInstance s4 = {/*x=*/ 2, /*otra=*/ std::numeric_limits<short>::min(),
 					 /*y=*/ 16};
 	assert(!pre2(s4));  // since MUP_BASETYPE is short, 2^16 should overflow
 
@@ -356,9 +356,9 @@ test_postcondition()
 	const std::list<std::string> varUpdates1({"x","y"});  // apply updates to 'x' and 'y' resp.
 	fig::Postcondition pos1(str1, varNames1, varUpdates1);
 
-	// Positions of variables in State instances are determined by the
-	// unique GlobalState 'gState' object
-	fig::State s1 = {/*x=*/ 0, /*otra=*/ 99, /*y=*/ 1};
+	// Positions of variables in StateInstance are determined by the
+	// unique State 'gState' object
+	fig::StateInstance s1 = {/*x=*/ 0, /*otra=*/ 99, /*y=*/ 1};
 	auto s2(s1);  // for later
 	pos1(s1);
 	assert(2 == s1[0]);  // x ==  2*y  ==  2*1  == 2
@@ -378,7 +378,7 @@ test_postcondition()
 	const auto varNames4(varNames1);
 	const auto varUpdates4(varUpdates1);  // apply updates to 'x' and 'y' resp.
 	fig::Postcondition pos4(str4, varNames4, varUpdates4);
-	fig::State s4 = {/*x*/ 2, /*otra*/ 1115 , /*y*/ 0};
+	fig::StateInstance s4 = {/*x*/ 2, /*otra*/ 1115 , /*y*/ 0};
 	pos4(s4);
 	assert(1 == s4[0]);  // x == x^y == 2^0 == 1
 	assert(2 == s4[2]);  // y == 2 - y^max(x,y) == 2 - 0^max(2,0) == 2

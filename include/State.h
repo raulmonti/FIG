@@ -55,24 +55,24 @@ namespace fig
 {
 
 static_assert(std::is_same<short, STATE_INTERNAL_TYPE>::value,
-			  "Error: for now we restrict State internal storage to shorts");
+			  "Error: for now we restrict states internal storage to shorts");
 
 /**
- * @brief State (instance):
- *        an array of Variable values.
+ * @brief Assignment of values to the Variables (a logical <i>valuation</i>)
  *
- *        Each State is an instantiation of values, which follows the ordering
- *        given in the (unique) GlobalState of the system.
- *        A State can be compared to the GlobalState for consistency checks.
- *        There is a one-to-one correspondence between State and Traial objects.
+ *        This is an instantiation of values, which follows the ordering
+ *        given in the (unique) State of the system.
+ *        A StateInstance can be compared to the State for consistency
+ *        checks. There is a one-to-one correspondence between StateInstance
+ *        and Traial objects.
  */
-typedef std::vector< STATE_INTERNAL_TYPE > State;
+typedef std::vector< STATE_INTERNAL_TYPE > StateInstance;
 
 
 /**
  * @brief Unique vector of Variables in the system
  *
- *        GlobalState is used for consistency check of State instances
+ *        State is used for consistency check of StateInstance instances
  *        (see fig::State) and for conversions between the concrete and symbolic
  *        representations of a system state.
  *
@@ -84,13 +84,13 @@ typedef std::vector< STATE_INTERNAL_TYPE > State;
  *        see: http://eli.thegreenplace.net/2014/variadic-templates-in-c/
  */
 template< typename T_ >
-class GlobalState
+class State
 {
 	/// @cond DEV
 	// Since we implement with VariableInterval<T_> for the time being,
 	// we forward here its type restrictions.
 	static_assert(std::is_integral<T_>::value,
-				  "ERROR: class GlobalState<T> can only be instantiated "
+				  "ERROR: class State<T> can only be instantiated "
 				  "with integral types, e.g. int, short, unsigned.");
 	/// @endcond
 
@@ -103,50 +103,50 @@ class GlobalState
 	/// Lookup { varname --> varpos } needed by MathExpressions
 	std::unordered_map<std::string, size_t> positionOfVar_;  // http://stackoverflow.com/a/13799886
 
-	/// @brief Compute and store value of GlobalState::maxConcreteState_
+	/// @brief Compute and store value of State::maxConcreteState_
 	void build_concrete_bound();
 
 public:  // Ctors/Dtor
 
 	// Void ctor
-	inline GlobalState() : pvars_(), maxConcreteState_(0) {}
+	inline State() : pvars_(), maxConcreteState_(0) {}
 
 	// Data ctors
 	/// Copy content from any container with proper internal data type
 	template< template< typename, typename...> class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
-	GlobalState(const Container<ValueType, OtherContainerArgs...>& vars);
+	State(const Container<ValueType, OtherContainerArgs...>& vars);
 
 	/// Move content from any container with proper internal data type
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
-	GlobalState(Container<ValueType, OtherContainerArgs...>&& vars);
+	State(Container<ValueType, OtherContainerArgs...>&& vars);
 
 	/// Move content from any container with pointers to proper internal data type
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
-	GlobalState(Container<ValueType*, OtherContainerArgs...>&& vars);
+	State(Container<ValueType*, OtherContainerArgs...>&& vars);
 
 	/// Copy content between iterators 'from' and 'to' pointing to proper data type
 	template< template< typename, typename... > class Iterator,
 			  typename ValueType,
 			  typename... OtherIteratorArgs >
-	GlobalState(Iterator<ValueType, OtherIteratorArgs...> from,
+	State(Iterator<ValueType, OtherIteratorArgs...> from,
 				Iterator<ValueType, OtherIteratorArgs...> to);
 
 	// Move ctor
-	GlobalState(GlobalState<T_>&& that);
+	State(State<T_>&& that);
 
 	// Reinforce uniqueness (no two GlobalVectors should be ever needed)
-	GlobalState(const GlobalState<T_> &that)                = delete;
-	GlobalState<T_>& operator=(const GlobalState<T_>& that) = delete;
-	GlobalState<T_>& operator=(GlobalState<T_> that)        = delete;
+	State(const State<T_> &that)                = delete;
+	State<T_>& operator=(const State<T_>& that) = delete;
+	State<T_>& operator=(State<T_> that)        = delete;
 
 	// Dtor
-	virtual ~GlobalState() { pvars_.clear(); positionOfVar_.clear(); }
+	virtual ~State() { pvars_.clear(); positionOfVar_.clear(); }
 
 public:  // Accessors
 
@@ -217,13 +217,13 @@ public:  // Accessors
 	void print_out(std::ostream& out, bool withNewline = false) const;
 
 public:  // Relational operators
-		 // FIXME Not needed if there's a unique GlobalState instance
+		 // FIXME Not needed if there's a unique State instance
 	/**
 	 * @brief Whether 'this' and 'that' hold same variables with same values
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
-	bool operator==(const GlobalState< T_ >& that) const;
-	inline bool operator!=(const GlobalState< T_ >& that) const
+	bool operator==(const State< T_ >& that) const;
+	inline bool operator!=(const State< T_ >& that) const
 		{ return ( ! (that == *this) ); }
 
 public:  // Interaction with ::State instances
@@ -232,7 +232,7 @@ public:  // Interaction with ::State instances
 	 * @brief Are the values in 's' valid w.r.t. us?
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
-	bool is_valid_state_instance(State s) const;
+	bool is_valid_state_instance(StateInstance s) const;
 
 	/**
 	 * @brief Copy values for our Variables from the ::State instance 's'.
@@ -240,19 +240,19 @@ public:  // Interaction with ::State instances
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 * @throw FigException if checking validity and invalid value found
 	 */
-	void copy_from_state_instance(const State& s, bool checkValidity = false);
+	void copy_from_state_instance(const StateInstance& s, bool checkValidity = false);
 
 	/**
 	 * @brief Copy our Variables values to the ::State instance 's'.
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
-	void copy_to_state_instance(State& s) const;
+	void copy_to_state_instance(StateInstance& s) const;
 
 	/**
 	 * @brief Create a fresh ::State instance reflecting our Variables values
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
-	std::unique_ptr<State> to_state_instance() const;
+	std::unique_ptr< StateInstance > to_state_instance() const;
 
 public:  // Encode/Decode between symbolic and concrete representations
 
@@ -264,7 +264,7 @@ public:  // Encode/Decode between symbolic and concrete representations
 	size_t encode_state() const;
 
 	/**
-	 * @brief Decode number as vector of Variables values and apply to State,
+	 * @brief Decode number as vector of Variables values and apply to StateInstance,
 	 *        i.e. store "symbolically" the "concrete state" n.
 	 * @param n  Concrete state to interpret and apply to our symbolic existence
 	 * @note <b>Complexity:</b> <i>O(size()<sup>2</sup>)</i>
@@ -299,12 +299,12 @@ template< typename T_ >
 template< template< typename, typename...> class Container,
 		  typename ValueType,
 		  typename... OtherContainerArgs >
-GlobalState<T_>::GlobalState(const Container<ValueType, OtherContainerArgs...>& vars) :
+State<T_>::State(const Container<ValueType, OtherContainerArgs...>& vars) :
 	maxConcreteState_(1u)
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_constructible< VariableInterval<T_>, ValueType >::value,
-				  "ERROR: type missmatch. GlobalState can only be constructed "
+				  "ERROR: type missmatch. State can only be constructed "
 				  "from Variables, VariableDefinitions or VariableDeclarations");
 	size_t i(0u);
 	auto last = positionOfVar_.begin();
@@ -322,13 +322,13 @@ template< typename T_ >
 template< template< typename, typename... > class Container,
 		  typename ValueType,
 		  typename... OtherContainerArgs >
-GlobalState<T_>::GlobalState(Container<ValueType, OtherContainerArgs...>&& vars) :
+State<T_>::State(Container<ValueType, OtherContainerArgs...>&& vars) :
 	maxConcreteState_(1u)
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_convertible< VariableInterval<T_>, ValueType >::value,
-				  "ERROR: type missmatch. GlobalState can only be move-"
-				  "constructed from another GlobalState or from a container "
+				  "ERROR: type missmatch. State can only be move-"
+				  "constructed from another State or from a container "
 				  "with instances or raw pointers to VariableInterval objects");
 	size_t i(0u);
 	auto last = positionOfVar_.begin();
@@ -347,13 +347,13 @@ template< typename T_ >
 template< template< typename, typename... > class Container,
 		  typename ValueType,
 		  typename... OtherContainerArgs >
-GlobalState<T_>::GlobalState(Container<ValueType*, OtherContainerArgs...>&& vars) :
+State<T_>::State(Container<ValueType*, OtherContainerArgs...>&& vars) :
 	maxConcreteState_(1u)
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_convertible< VariableInterval<T_>, ValueType >::value,
-				  "ERROR: type missmatch. GlobalState can only be move-"
-				  "constructed from another GlobalState or from a container "
+				  "ERROR: type missmatch. State can only be move-"
+				  "constructed from another State or from a container "
 				  "with instances or raw pointers to VariableInterval objects");
 	size_t i(0u);
 	auto last = positionOfVar_.begin();
@@ -372,14 +372,14 @@ template< typename T_ >
 template< template< typename, typename... > class Iterator,
 		  typename ValueType,
 		  typename... OtherIteratorArgs >
-GlobalState<T_>::GlobalState(Iterator<ValueType, OtherIteratorArgs...> from,
+State<T_>::State(Iterator<ValueType, OtherIteratorArgs...> from,
 							 Iterator<ValueType, OtherIteratorArgs...> to) :
 	pvars_(std::distance(from,to)),
 	maxConcreteState_(1u)
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_constructible<VariableInterval<T_>, ValueType>::value,
-				  "ERROR: type missmatch. GlobalState can only be constructed "
+				  "ERROR: type missmatch. State can only be constructed "
 				  "from Variables, VariableDefinitions or VariableDeclarations");
 	size_t i(0);
 	auto last = positionOfVar_.begin();

@@ -40,7 +40,7 @@ namespace fig
 
 /**
  * @brief Transition precondition:
- *        a boolean guard on variables of the GlobalState "gState"
+ *        a boolean guard on variables of the State "gState"
  */
 class Precondition : public MathExpression
 {
@@ -83,7 +83,7 @@ public:  // Accessors
 	 * @brief Compute truth value of our expression for given state
 	 * @throw mu::ParserError
 	 */
-	bool operator()(const State& state);
+	bool operator()(const StateInstance& state);
 };
 
 

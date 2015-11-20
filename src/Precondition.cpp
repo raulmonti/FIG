@@ -63,7 +63,7 @@ Precondition::fake_evaluation()
 
 
 bool
-Precondition::operator()(const State& state)
+Precondition::operator()(const StateInstance& state)
 {
 	// Bind state's variables to our expression...
 	for (const auto& pair: varsMap_)

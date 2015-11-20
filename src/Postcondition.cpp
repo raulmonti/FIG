@@ -63,7 +63,7 @@ Postcondition::fake_evaluation()
 
 
 void
-Postcondition::operator()(State& state)
+Postcondition::operator()(StateInstance& state)
 {
 	// Bind state variables to our expression...
 	for (const auto& pair: varsMap_)

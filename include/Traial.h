@@ -45,7 +45,7 @@
 namespace fig
 {
 
-extern GlobalState< STATE_INTERNAL_TYPE > gState;
+extern State< STATE_INTERNAL_TYPE > gState;
 extern std::vector< Clock >               gClocks;
 
 class ModuleInstance;
@@ -60,7 +60,7 @@ class ModuleInstance;
  *        acquisition/release (instead of creation/destruction) of the
  *        instances.
  *
- * @note  This class assumes a GlobalState variable named 'gState'
+ * @note  This class assumes a State variable named 'gState'
  *        was defined somewhere within the fig namespace.
  *        Such instance may be needed for initializations on creation.
  *
@@ -98,8 +98,8 @@ protected:
 
 public:  // Attributes
 
-	/// Variables values instantiation (same order as in GlobalState 'gState')
-	State state;
+	/// Variables values instantiation (same order as in State 'gState')
+	StateInstance state;
 
 protected:
 
