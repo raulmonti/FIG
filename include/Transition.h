@@ -32,8 +32,10 @@
 
 // C++
 #include <string>
-#include <sstream>
+#include <sstream>    // std::stringstream
+#include <iterator>   // std::begin(), std::end()
 #include <exception>
+#include <algorithm>  // std::find_if()
 // C
 #include <cassert>
 // FIG
@@ -43,6 +45,10 @@
 #include <Precondition.h>
 #include <Postcondition.h>
 #include <Traial.h>
+
+// ADL
+using std::begin;
+using std::end;
 
 
 namespace fig
@@ -104,8 +110,10 @@ public:  // Ctors
 	 *                         when this transition is taken, following the
 	 *                         order declared by the global vector 'gClocks'
 	 *
-	 * @throw out_of_range if NRANGECHK is not defined and there is
-	 *        an invalid clock index in the resetClocks container
+	 * @throw FigException if triggeringClock specifies an invalid Clock name
+	 * \ifnot NRANGECHK
+	 *   @throw out_of_range if there is an invalid clock index in 'resetClocks'
+	 * \endif
 	 *
 	 * @note The resetting clocks information is stored as a Bitflag
 	 */
@@ -119,7 +127,7 @@ public:  // Ctors
 			   const Container<ValueType, OtherContainerArgs...>& resetClocks);
 
 	/**
-	 * @brief Move ctor (move-constructs {pre,post}conditions)
+	 * @brief Move ctor (moves {pre,post}conditions)
 	 *
 	 * @param label            @copydoc label_
 	 * @param triggeringClock  @copydoc triggeringClock_
@@ -129,8 +137,10 @@ public:  // Ctors
 	 *                         when this transition is taken, following the
 	 *                         order declared by the global vector 'gClocks'
 	 *
-	 * @throw out_of_range if NRANGECHK is not defined and there is
-	 *        an invalid clock index in the resetClocks container
+	 * @throw FigException if triggeringClock specifies an invalid Clock name
+	 * \ifnot NRANGECHK
+	 *   @throw out_of_range if there is an invalid clock index in 'resetClocks'
+	 * \endif
 	 *
 	 * @note The resetting clocks information is stored as a Bitflag
 	 */
@@ -143,7 +153,7 @@ public:  // Ctors
 			   Postcondition&& pos,
 			   const Container<ValueType, OtherContainerArgs...>& resetClocks);
 
-public:  // Accessors to private attributes
+public:  // Read access to some attributes
 
 	/// @copydoc Transition::label_
 	inline const Label& label() const noexcept { return label_; }
@@ -164,8 +174,9 @@ protected:  // Utils
 	 * @param numClocks   Number of clocks to visit
 	 * @param timeLapse   Amount of time elapsed for the non-reseting clocks
 	 *
-	 * @throw FigException if NTIMECHK was not defined and some clock
-	 *        was assigned a negative value
+	 * \ifnot NTIMECHK
+	 *   @throw FigException if some clock was assigned a negative value
+	 * \endif
 	 *
 	 * @note <b>Complexity:</b> <i>O(numClocks)</i>
 	 * @note The clocks in the specified range which we have marked for reset
@@ -211,7 +222,12 @@ Transition::Transition(
 	static_assert(std::is_constructible< unsigned, ValueType >::value,
 				  "ERROR: type missmatch. Transition ctor needs a container "
 				  "with the (positive) indices of the resetting clocks");
-	assert(!label_.is_input() || !triggeringClock.empty());  // input => no triggering clock
+	if (!triggeringClock.empty() &&
+			end(gClocks) == std::find_if(begin(gClocks), end(gClocks),
+				[&] (const Clock& clk) { return triggeringClock == clk.name; }) )
+		throw FigException(std::string("\"").append(triggeringClock)
+						   .append("\" is not a valid Clock name"));
+	assert(!label_.is_input() != triggeringClock.empty());  // input XOR no triggering clock
 
 	// Encode in Bitflag the resetting clock indices
 	for(const unsigned& idx: resetClocks) {
@@ -229,6 +245,8 @@ Transition::Transition(
 #endif
 		resetClocks_ |= static_cast<Bitflag>(1u) << idx;
 	}
+	assert(static_cast<Bitflag>(0u) != resetClocks_ ||
+				begin(resetClocks) == end(resetClocks));
 }
 
 
@@ -250,7 +268,12 @@ Transition::Transition(
 	static_assert(std::is_constructible< unsigned, ValueType >::value,
 				  "ERROR: type missmatch. Transition ctor needs a container "
 				  "with the (positive) indices of the resetting clocks");
-	assert(!label_.is_input() || !triggeringClock.empty());  // input => no triggering clock
+	if (!triggeringClock.empty() &&
+			end(gClocks) == std::find_if(begin(gClocks), end(gClocks),
+				[&] (const Clock& clk) { return triggeringClock == clk.name; }) )
+		throw FigException(std::string("\"").append(triggeringClock)
+						   .append("\" is not a valid Clock name"));
+	assert(!label_.is_input() != triggeringClock.empty());  // input XOR no triggering clock
 
 	// Encode in Bitflag the resetting clock indices
 	for(const unsigned& idx: resetClocks) {
@@ -268,6 +291,8 @@ Transition::Transition(
 #endif
 		resetClocks_ |= static_cast<Bitflag>(1u) << idx;
 	}
+	assert(static_cast<Bitflag>(0u) != resetClocks_ ||
+				begin(resetClocks) == end(resetClocks));
 }
 
 

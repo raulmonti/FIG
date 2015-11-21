@@ -52,7 +52,6 @@ class ModuleInstance;  // Fwd declaration for internal pointer
 /// Global container with distributions offered for time sampling
 extern std::unordered_map< std::string, Distribution > distributions_list;
 
-
 /**
  * @brief Internal stochastic time passage mechanism for IOSA modules
  *
@@ -68,14 +67,14 @@ class Clock
 {
 public:  // Attributes
 
-	const std::string& name;
-	const std::string& distName;
+	const std::string name;
+	const std::string distName;
 	std::shared_ptr<const ModuleInstance> module;
 	/// @todo: TODO integrate new attribute 'module' in this class
 
 private:
 
-	const Distribution& dist_;  // *copy* of one from distribution_list
+	const Distribution dist_;  // *copy* of one from distribution_list
 	const DistributionParameters distParams_;
 
 public:  // Ctors
@@ -85,11 +84,27 @@ public:  // Ctors
 		  const DistributionParameters& params) :
 		name(clockName),
 		distName(distName),
+		module(nullptr),  // TODO implement!!!
 		dist_(distributions_list.at(distName)),  // may throw out_of_range
 		distParams_(params)
 		{
-			assert(!distName.empty());
+			assert(!clockName.empty());
 		}
+
+	Clock(const Clock& that) = default;
+	Clock(Clock&& that)      = default;
+	Clock& operator=(const Clock& that) = delete;
+	Clock& operator=(Clock&& that)      = delete;
+//	Clock& operator=(Clock that)
+//	{
+//		std::swap(name, that.name);
+//		std::swap(dist_, that.dist_);
+//		std::swap(distName, that.distName);
+//		std::swap(distParams_, that.distParams_);
+//		std::swap(module, that.module);
+//		std::cerr << "Clock copy assignment" << std::endl;
+//		return *this;
+//	}
 
 public:  // Accessors
 
@@ -100,7 +115,7 @@ public:  // Accessors
 public:  // Utils
 
 	/// @brief Sample our distribution function
-	inline CLOCK_INTERNAL_TYPE sample() const     { return dist_(distParams_); }
+	inline CLOCK_INTERNAL_TYPE sample()     const { return dist_(distParams_); }
 	inline CLOCK_INTERNAL_TYPE operator()() const { return dist_(distParams_); }
 };
 

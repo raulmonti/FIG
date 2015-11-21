@@ -40,7 +40,11 @@ namespace fig
 
 /**
  * @brief Transition precondition:
- *        a boolean guard on variables of the State "gState"
+ *        a boolean guard with predicates over variables values.
+ *
+ *        The names of the variables appearing in the expression string
+ *        of a Precondition must refer to existing Variables in the global
+ *        State of the system, 'gState'.
  */
 class Precondition : public MathExpression
 {

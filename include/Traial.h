@@ -60,7 +60,7 @@ class ModuleInstance;
  *        acquisition/release (instead of creation/destruction) of the
  *        instances.
  *
- * @note  This class assumes a State variable named 'gState'
+ * @note  This class assumes a global State named 'gState'
  *        was defined somewhere within the fig namespace.
  *        Such instance may be needed for initializations on creation.
  *
@@ -98,7 +98,7 @@ protected:
 
 public:  // Attributes
 
-	/// Variables values instantiation (same order as in State 'gState')
+	/// Variables values instantiation (same order as in the global State 'gState')
 	StateInstance state;
 
 protected:

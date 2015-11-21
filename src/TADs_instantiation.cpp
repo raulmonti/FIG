@@ -9,6 +9,7 @@
 #include <tuple>
 #include <vector>
 #include <string>
+#include <numeric>
 #include <sstream>
 #include <utility>
 #include <iostream>
@@ -26,9 +27,12 @@
 #include <MathExpression.h>
 #include <Precondition.h>
 #include <Postcondition.h>
+#include <Transition.h>
 
 using std::to_string;
 using std::make_tuple;
+using std::begin;
+using std::end;
 using std::get;
 
 
@@ -76,17 +80,19 @@ int main()
 		test_transition();
 
 	} catch (TestException& e) {
-		std::stringstream errMsg("Some test failed, details follow:\n");
+		std::stringstream errMsg;
+		errMsg << "\nSome test failed: ";
 		errMsg << e.msg();
-		std::cout << errMsg.str() << "\n\nCheck above for failed test.\n"
-				  << std::endl;
+		errMsg << "\n\nCheck above for failed test.\n";
+		std::cout << errMsg.str() << std::endl;
 		exit(EXIT_FAILURE);
 
 	} catch (fig::FigException& e) {
-		std::stringstream errMsg("Something failed unexpectedly, details follow:\n");
+		std::stringstream errMsg;
+		errMsg << "\nSomething failed unexpectedly: ";
 		errMsg << e.msg();
-		std::cout << errMsg.str() << "\n\nCheck above for unexpected error.\n"
-				  << std::endl;
+		errMsg << "\n\nCheck above for unexpected error.\n";
+		std::cout << errMsg.str() << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -250,7 +256,7 @@ test_state()
 // Global variables needed by some modules  ///////////////////////////////////
 //
 
-// MathExpression requires an externally defined State "fig::gState"
+// MathExpression requires an externally defined global State "fig::gState"
 namespace fig
 {
 typedef fig::VariableInterval< fig::STATE_INTERNAL_TYPE > VarType;
@@ -262,10 +268,10 @@ State< STATE_INTERNAL_TYPE > gState(
 	});
 }
 
-// Transition requires an externally defined std::vector<Clock> "fig::gClocks"
+// Transition requires an externally defined vector of Clocks "fig::gClocks"
 namespace fig
 {
-std::vector<Clock> gClocks;
+std::vector< Clock > gClocks;
 }
 
 
@@ -386,7 +392,7 @@ test_postcondition()
 	assert(1 == s4[0]);  // x == x^y == 1^2 == 1
 	assert(-2 == s4[2]);  // y == 2 - y^max(x,y) == 2 - 2^max(1,2) == -2
 	pos4(s4);
-	assert(1 == s4[0]);  // x == x^y == 1^-2 == (short)1/2 == 1
+	assert(1 == s4[0]);  // x == x^y == 1^-2 == (short)(1/2) == 1
 	assert(4 == s4[2]);  // y == 2 - y^max(x,y) == 2 - (-2)^max(1,-2) == 4
 
 	// Incorrect creation data
@@ -413,5 +419,48 @@ static void // ////////////////////////////////////////////////////////////////
 //
 test_transition()
 {
+	const fig::Label tau;
+	fig::Precondition  pre("x<y", std::set<std::string>({"x","y"}));
+	fig::Postcondition pos("x+1", std::set<std::string>({"x"}),
+								  std::set<std::string>({"x"}));
+
+//	fig::Transition trans(tau, "clockName",  // would fail assertion
+//		pre, pos, std::set<int>());
+	fig::Transition trans1(tau, "", pre, pos, std::set<int>());
+	assert(tau == trans1.label());
+	assert(trans1.triggeringClock().empty());
+	assert(static_cast<fig::Bitflag>(0u) == trans1.resetClocks());
+
+	// Populate global clocks vector
+	typedef fig::DistributionParameters Params;
+	fig::gClocks.emplace_back("c1", "uniform", Params {});
+	fig::gClocks.emplace_back("c2", "uniformAB", Params {{-10.0f, 10.0f}});
+	fig::gClocks.emplace_back("c3", "exponential", Params {{5.0f}});
+
+	fig::Label input("a");
+	fig::Transition trans2(input, "", pre, pos, std::set<int>({0}));
+	fig::Label output("a", true);
+	std::set<int> resetClocks3 = { 2 };
+//	fig::Transition trans(output, "",  // would fail assertion
+//		pre, pos, std::set<int>());
+	fig::Transition trans3(output, "c2", pre, pos, resetClocks3);
+	assert(static_cast<fig::Bitflag>(0u) != trans3.resetClocks());
+	std::vector<size_t> resetClocks4(fig::gClocks.size());
+	std::iota(begin(resetClocks4), end(resetClocks4), 0);  // 0, 1, ..., gClocks.size()
+	fig::Transition trans4(output, "c1", pre, pos, resetClocks4);
+	assert(static_cast<fig::Bitflag>(0u) != trans4.resetClocks());
+
+	// Incorrect creation data
+	try {
+		fig::Transition trans(output, "invalid_clock_name", pre, pos, resetClocks3);
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (fig::FigException) { /* this was expected */ }
+	try {
+		fig::Transition trans(tau, "", pre, pos, std::set<int>({0,4}));
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (std::out_of_range) { /* this was expected */ }
+
 	/// @todo: TODO Complete this test
 }

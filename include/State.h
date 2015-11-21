@@ -217,7 +217,7 @@ public:  // Accessors
 	void print_out(std::ostream& out, bool withNewline = false) const;
 
 public:  // Relational operators
-		 // FIXME Not needed if there's a unique State instance
+		 // NOTE Not needed if there's a unique State instance
 	/**
 	 * @brief Whether 'this' and 'that' hold same variables with same values
 	 * @note <b>Complexity:</b> <i>O(size())</i>

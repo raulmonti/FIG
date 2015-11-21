@@ -75,7 +75,7 @@ class Postcondition : public MathExpression
 	int numUpdates_;
 
 	/// Positions of the variables to which the updates will be applied,
-	/// following the unique order given in the State 'gState'
+	/// following the unique order given in the global State 'gState'
 	std::vector<size_t> updatesPositions_;
 
 	/**

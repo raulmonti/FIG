@@ -59,7 +59,7 @@ extern State< STATE_INTERNAL_TYPE > gState;
  *        It requires a separate explicit specification of which literals
  *        within that expression refer to variables names.
  *
- * @note  This class assumes a State variable named 'gState'
+ * @note  This class assumes a global State named 'gState'
  *        was defined somewhere within the fig namespace.
  *        Such instance is needed for defining a unique order of the
  *        mapped variables for all objects of this class.
