@@ -37,6 +37,7 @@
 // FIG
 #include <Module.h>
 #include <Transition.h>
+//#include <ImportanceFunction.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -78,7 +79,7 @@ class ModuleInstance : public Module
 	std::unordered_map< std::string,
 						std::vector< std::shared_ptr< Transition> > >
 		transitions_by_clock_;
-	// TODO: tell input/output apart here?
+	// NOTE: tell input/output apart here?
 	std::unordered_map< std::string,
 						std::vector< std::shared_ptr< Transition> > >
 		transitions_by_label_;
@@ -164,13 +165,53 @@ public:  // Ctors
 
 public:  // Utils
 
-	virtual const Label& jump(const std::string& clockName,
-							  const CLOCK_INTERNAL_TYPE& elapsedTime,
-							  Traial& traial);
+	virtual inline void accept(ImportanceFunction& ifun)
+		{ ifun.assess_importance(this); }
 
-	virtual void jump(const Label& label,
+	/**
+	 * @brief Active module jump caused by expiration of our clock "clockName"
+	 *
+	 * @param clockName    Name of the clock (from this model!) which expires
+	 * @param elapsedTime  Time lapse for the clock to expire
+	 * @param traial       Instance of Traial to update
+	 *
+	 * @return Pointer to output label fired by the transition taken.
+	 *         If none was enabled then 'tau' is returned.
+	 *
+	 * @note <b>Complexity:</b> <i>O(t+c+v)</i>, where
+	 *       <ul>
+	 *       <li> <i>t</i> is the number of transitions of this module,</li>
+	 *       <li> <i>c</i> is the number of   clocks    of this module and</li>
+	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
+	 *       </ul>
+	 *
+	 * @note Modifies sections both in StateInstance and clock-vector within "traial"
+	 *       which correspond to variables and clocks from this module.
+	 */
+	const Label& jump(const std::string& clockName,
 					  const CLOCK_INTERNAL_TYPE& elapsedTime,
 					  Traial& traial);
+
+	/**
+	 * @brief Passive module jump following "label" label
+	 *
+	 * @param label        Output label triggered by current active jump
+	 * @param elapsedTime  Time lapse for the clock to expire
+	 * @param traial       Instance of Traial to update
+	 *
+	 * @note <b>Complexity:</b> <i>O(t+c+v)</i>, where
+	 *       <ul>
+	 *       <li> <i>t</i> is the number of transitions of this module,</li>
+	 *       <li> <i>c</i> is the number of   clocks    of this module and</li>
+	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
+	 *       </ul>
+	 *
+	 * @note Modifies sections both in StateInstance and clock-vector within "traial"
+	 *       which correspond to variables and clocks from this module.
+	 */
+	void jump(const Label& label,
+			  const CLOCK_INTERNAL_TYPE& elapsedTime,
+			  Traial& traial);
 };
 
 

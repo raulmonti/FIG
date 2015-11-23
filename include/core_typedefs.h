@@ -91,11 +91,11 @@ template< typename T_ > using VariableDefinition =
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //
 //
-// StateInstance and State
+// State and StateInstance
 //
 
 /// StateInstances internal storage type
-/// @warning Must match that of MuParser library
+/// @warning Must match, or be compatible with, that of MuParser library
 typedef  MUP_BASETYPE  STATE_INTERNAL_TYPE;
 
 //
@@ -108,6 +108,17 @@ typedef  MUP_BASETYPE  STATE_INTERNAL_TYPE;
 /// Bit flag to identify resetting clocks
 /// @warning This bounds the max # of clocks in the model
 typedef  uintmax_t  Bitflag;
+
+//
+//
+// // // // // // // // // // // // // // // // // // // // // // // // // //
+//
+// Importance
+//
+
+/// Type used to assess the importance of a single concrete state
+/// @warning This bounds the max # of clocks in the model
+typedef short ImportanceValue;
 
 //
 //

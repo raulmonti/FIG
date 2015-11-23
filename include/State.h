@@ -80,8 +80,9 @@ typedef std::vector< STATE_INTERNAL_TYPE > StateInstance;
  *        vector, list, forward_list, set, unordered_set, deque.
  * @note  Will not build from the following STL containers:
  *        queue, stack, array.
- * @note  Generic construction is achieved through variadic template templates,
- *        see: http://eli.thegreenplace.net/2014/variadic-templates-in-c/
+ * @note  Generic construction is achieved through
+ *        <a href="http://eli.thegreenplace.net/2014/variadic-templates-in-c/">
+ *        variadic template templates</a>.
  */
 template< typename T_ >
 class State
