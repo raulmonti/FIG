@@ -965,7 +965,7 @@ YY_RULE_SETUP
                     stringstream ss;
                     ss << " at line " << yylineno <<  endl;
                     string str = string(yytext) + ss.str();
-                    throw new Badcharfound(str);
+                    throw new BadSymbol(str.c_str());
                 }
 	YY_BREAK
 case 40:

@@ -80,24 +80,24 @@ Uniform     { return parser::KUDIST; }
 
 [)]         { return parser::CP; }
 
-("->")      { return parser::ARROW; }
-("<="|">="|"<"|">")             { return parser::COP; }
-("=="|"!=")                     { return parser::BOP; }
-("+")                           { return parser::PLUS; }
-("-")                           { return parser::MINUS; }
+("->")              { return parser::ARROW; }
+("<="|">="|"<"|">") { return parser::COP; }
+("=="|"!=")         { return parser::BOP; }
+("+")               { return parser::PLUS; }
+("-")               { return parser::MINUS; }
 
-("*"|"/"|"%")                   { return parser::DIVOP; }
-("=")       { return parser::ASSIG; }
-("..")      { return parser::RNG; }
-("&&"|"||") { return parser::BINOP; }
-("?")       { return parser::QMARK; }
-("!")       { return parser::EMARK; }
+("*"|"/"|"%")   { return parser::DIVOP; }
+("=")           { return parser::ASSIG; }
+("..")          { return parser::RNG; }
+("&&"|"||")     { return parser::BINOP; }
+("?")           { return parser::QMARK; }
+("!")           { return parser::EMARK; }
 
 [^[:alnum:]]    {
                     stringstream ss;
                     ss << " at line " << yylineno <<  endl;
                     string str = string(yytext) + ss.str();
-                    throw new Badcharfound(str);
+                    throw new BadSymbol(str.c_str());
                 }
 
 

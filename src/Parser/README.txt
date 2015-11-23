@@ -37,11 +37,12 @@ TODO    Idea: Build the AST in a single bunch of method like Accept or Expect,
 TODO    Idea: Exception handling using numbers and table with ...
 TODO    Allow expressions as range limits.
 TODO    Opcion para no usar sat solver.
+TODO    Clean the exceptions file.
 
 
 
-FIXME   Propiedad 4, arreglar todo , ver foto.
-TODO    Propiedad 6, construir imput enableness transitions.
+FIXME   Iosa compliance with property 4. Check 'iosacompliance.cpp'.
+TODO    Build input-enable transition to comply with IOSA 6th property.
 FIXME   Propiedad 7, chequear sat de las guardas. Y ! sat (p1 != p2) de las pos
         tomando en cuenta la g1 y g2 ... un bolonqui importante.
             El problema esta en casos como:

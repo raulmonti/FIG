@@ -1,3 +1,12 @@
+//==============================================================================
+//
+//    Parser module for FIG
+//    Raul Monti
+//    2015
+//
+//==============================================================================
+
+
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -34,9 +43,10 @@
                    }
 
 
-/** Overloading for printing ASTs resulting 
-    from our parsing.
-**/
+//==============================================================================
+
+/** @brief Overloading for printing ASTs resulting from our parsing.
+ */
 
 std::ostream& operator<< (std::ostream& out, AST const& ast){
     cout << "(" << parser::symTable[ast.tkn] << ", " << ast.lxm << ", <" 
@@ -58,13 +68,14 @@ std::ostream& operator<< (std::ostream& out, AST const& ast){
 
 using namespace std;
 
+
+// Parser class implementation =================================================
+
 namespace parser{
 
-/** Parser class implementation **/
 
-
-/* @Parser class constructor.
-*/ 
+/** @brief Parser class constructor.
+ */ 
 Parser::Parser(void){
     lexer       = new yyFlexLexer;
     pos         = -1;
@@ -73,19 +84,19 @@ Parser::Parser(void){
 }
 
 
-/* @Parser class destructor.
-*/ 
+/** @brief Parser class destructor.
+ */ 
 Parser::~Parser(){
     delete lexer;
 }
 
 
-/* @Get the next token from the tokens vector and make it
-    available in @tkn class member. If @skipws then it will skip
-    white space tokens and make available the next non white 
-    one. If the end of the tokens vector is reached the @tkn
-    will contain the MEOF token.
-*/
+/** @brief Get the next token from the tokens vector and make it
+ *  available in @tkn class member. If @skipws then it will skip
+ *  white space tokens and make available the next non white 
+ *  one. If the end of the tokens vector is reached the @tkn
+ *  will contain the MEOF token.
+ */
 void
 Parser::nextLxm(void){
 

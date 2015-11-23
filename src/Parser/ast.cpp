@@ -1,10 +1,11 @@
-/**
+//==============================================================================
+//
+//    Abstract syntax tree module
+//    Raul Monti
+//    2015
+//
+//==============================================================================
 
-    Abstract syntax tree module
-    Raul Monti
-    2015
-
-**/
 
 #include "ast.h"
 #include <vector>
@@ -13,10 +14,24 @@
 #include <iostream>
 
 
+//============================================================================== 
+// Abstract syntax tree class implementation. ==================================
+//==============================================================================
 
-/** Abstract syntax tree class implementation. **/
+
+/**
+ * @brief: Constructor.
+ */
 
 AST::AST(){};
+
+
+//==============================================================================
+
+
+/**
+ * @brief: Constructor.
+ */
 
 AST::AST(int token, string lexeme, int line, int col): 
     lxm(lexeme),
@@ -24,6 +39,13 @@ AST::AST(int token, string lexeme, int line, int col):
     l(line),
     c(col)
 {};
+
+
+//==============================================================================
+
+/**
+ * @brief: Constructor.
+ */
 
 AST::AST(const AST *copy){
 
@@ -39,12 +61,27 @@ AST::AST(const AST *copy){
 }
 
 
+//==============================================================================
+
+
+/**
+ * @brief: Destroyer. 
+ */
+
 AST::~AST(){
     for( int i = 0; i < branches.size(); i++){
         delete branches[i];
         branches[i] = NULL;
     }
 }
+
+
+//==============================================================================
+
+
+/**
+ * @brief: get this AST branches with token @k. 
+ */
 
 vector<AST*>
 AST::get_list(int k){
@@ -58,8 +95,14 @@ AST::get_list(int k){
     return result;
 }
 
-/* @get_branch_k: get first child AST with token k.
-*/
+
+//==============================================================================
+
+
+/** @brief: get first child AST with token @k.
+ *  @return: pointer to the found AST, NULL otherwise.
+ */
+
 AST*
 AST::get_branch_k(int k){
     for(int i = 0; i < branches.size(); i++){
@@ -67,6 +110,14 @@ AST::get_branch_k(int k){
     }
     return NULL;
 }
+
+
+//==============================================================================
+
+
+/**
+ * @brief: get a list with the lexemes of every branch with token @k.
+ */
 
 vector<string>
 AST::get_list_lexemes(int k){
@@ -80,6 +131,13 @@ AST::get_list_lexemes(int k){
     return result;    
 }
 
+
+//==============================================================================
+
+
+/**
+ * @brief: recursively retrieve every lexeme from every node with token @k.
+ */
 
 vector<string>
 AST::get_all_lexemes(int k){
@@ -98,6 +156,13 @@ AST::get_all_lexemes(int k){
 }
 
 
+//==============================================================================
+
+
+/** 
+ * @brief: Get the lexeme of the first child AST with token @k.
+ * @return: "" if not found, the lexeme as a string otherwise.
+ */
 
 string
 AST::get_lexeme(int k){
@@ -117,7 +182,14 @@ AST::get_lexeme(int k){
     return result;    
 }
 
-/* Human readable string version of this AST Node (without childs). */
+
+//==============================================================================
+
+
+/**
+ * @brief: Human readable string version of this AST Node (without childs).
+ */
+
 string
 AST::p_node(void){
     string result = lxm;
@@ -125,22 +197,42 @@ AST::p_node(void){
     return result;
 }
 
-/* Printable position. */
+
+//==============================================================================
+
+
+/**
+ * @deprecated: use get_pos() instead.
+ * @brief: Printable position.
+ */
+
 string
 AST::p_pos(){
-    return to_string(l) + ":" + to_string(c);
+    return get_pos();
 }
 
-/* Printable name. */
+
+//==============================================================================
+
+
+/**
+ * @brief: Printable name.
+ */
+
 string
 AST::p_name(){
     return lxm;
 }
 
 
-/* @get_all_ast: walk the tree and get every node with token k.
-   @return: a vector of AST pointers to every node with token k.     
-*/
+//==============================================================================
+
+
+/**
+ * @brief: walk the tree and get every node with token @k.
+ * @return: a vector of AST pointers to every node with token @k found.     
+ */
+
 vector<AST*>
 AST::get_all_ast(int k){
 
@@ -156,12 +248,16 @@ AST::get_all_ast(int k){
 }
 
 
-/* @get_all_ast_ff: (get all ast first found) walk the tree and get every
-                    node with token k, but stop deepening into the branch
-                    as soon as we get such a node. Then searching K2 in a tree 
-                    K1 [k2 [K2, K3], K4 []] will only return the first K2.
-   @return: a vector of AST pointers to every node with token k, first found.
-*/
+//==============================================================================
+
+/**
+ * @brief: (get all ast first found) walk the tree and get every
+ *         node with token k, but stop deepening into the branch
+ *         as soon as we get such a node. Then searching K2 in a tree 
+ *         K1 [k2 [K2, K3], K4 []] will only return the first K2.
+ * @return: a vector of AST pointers to every node with token k, first found.
+ */
+
 vector<AST*>
 AST::get_all_ast_ff(int k){
 
@@ -179,7 +275,13 @@ AST::get_all_ast_ff(int k){
 }
 
 
-/* @get_branch: Get the ith child. */
+//==============================================================================
+
+
+/**
+ *  @brief: Get the i-th branch.
+ */
+
 AST*
 AST::get_branch(int i){
 
@@ -191,10 +293,13 @@ AST::get_branch(int i){
 }
 
 
+//==============================================================================
 
-/* @get_first: walk the tree and get the first node with token k.
-   @return: The found node or NULL otherwise.     
-*/
+/** 
+ * @brief: walk the tree and get the first node with token @k.
+ * @return: The found node or NULL no node with token k can be found.     
+ */
+
 AST*
 AST::get_first(int k){
 
@@ -212,9 +317,13 @@ AST::get_first(int k){
     return NULL;
 }
 
-/*  @get_line: get a string with the line number of ast.
 
-*/
+//==============================================================================
+
+/**
+ * @brief: get a string with the line number of this AST instance.
+ */
+
 string 
 AST::get_line(){
     string result = "0";
@@ -228,10 +337,12 @@ AST::get_line(){
     return result;
 }
 
+//==============================================================================
 
-/*  @get_line: get a string with the line number of ast.
+/**
+ * @brief: get a string with the line number of this AST instance.
+ */
 
-*/
 string 
 AST::get_column(){
     string result = "0";
@@ -246,10 +357,15 @@ AST::get_column(){
 }
 
 
-    /**/
+//==============================================================================
+
+/** 
+ * @brief: get the line and column of this AST instance, separated by a colon.
+ */
+
 string
 AST::get_pos(){
     return get_line() + ":" + get_column();
 }
 
-
+//==============================================================================

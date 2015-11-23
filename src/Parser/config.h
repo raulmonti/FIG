@@ -1,3 +1,12 @@
+//==============================================================================
+//
+// Configuration file for FIG project 'Parser module'.
+// Raul Monti
+// 2015
+//
+//==============================================================================
+
+
 #ifndef CONFIG_H
 #define CONFIG_H
 
@@ -21,8 +30,9 @@
 #endif
 
 
-
 using namespace std;
+
+
 
 namespace parser{
 

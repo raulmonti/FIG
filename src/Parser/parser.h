@@ -1,3 +1,12 @@
+//==============================================================================
+//
+//    Parser module for FIG
+//    Raul Monti
+//    2015
+//
+//==============================================================================
+
+
 #ifndef PARSER_H
 #define PARSER_H
 
@@ -129,10 +138,7 @@ static const char symTable[][25] =
 
 
 
-
-
-
-/** Parser Class *************************************************************/
+// Parser Class ================================================================
 
 class Parser
 { 
@@ -159,23 +165,26 @@ class Parser
 
 public:
 
-    /**/
+    /** 
+     */
     Parser(void);
 
-    /**/
+    /**
+     */
     virtual ~Parser();
 
-    /* @Parse: Parse from stream @str, and build the resulting AST into
-       the parameter @result.
-       @return: 1 if successful, 0 otherwise.
-    */
+    /**
+     *  @brief Parse from stream @str, and build the resulting AST into
+     *  the parameter @result.
+     *  @return 1 if successful, 0 otherwise.
+     */
     int
     parse(stringstream *str, AST * & result);
 
     
-    /*  @ended: check if we ran out of lexemes to parse.
-        @return: 1 if parsing ended, 0 otherwise.
-    */
+    /**  @brief check if we ran out of lexemes to parse.
+     *   @return 1 if parsing ended, 0 otherwise.
+     */
     inline int
     ended(){
         return pos == tokens.size()-1;
@@ -187,23 +196,24 @@ private:
 
     /** Building the AST **/
 
-    /* @newNode: prepare a new node for abstract syntax tree.
-       Should be called at the beginning of matching of grammar production,
-       enabling to save the result of parsing afterwards using @saveNode
-       method.
-       @str: the parsed string for the node.
-       @tkn: the grammar type for this parsed string.
-       @line, @col: line and column number respectively.
-    */
+    /** @brief prepare a new node for abstract syntax tree.
+     *  Should be called at the beginning of matching of grammar production,
+     *  enabling to save the result of parsing afterwards using @saveNode
+     *  method.
+     *  @param str The parsed string for the node.
+     *  @param tkn The grammar type for this parsed string.
+     *  @param line Line number. 
+     *  @param col Column number.
+     */
     int
     newNode(prodSym tkn, string str, int line = 0, int col = 0);
 
 
-    /* @newNode: when called only with parameter @tkn, it is
-       a shortcut for building a new node with the last accepted
-       lexeme.
-       @tkn: the grammar type for this parsed string.
-    */
+    /** @param newNode When called only with parameter @tkn, it is
+     *  a shortcut for building a new node with the last accepted
+     *  lexeme.
+     *  @param tkn The grammar type for this parsed string.
+     */
     int
     newNode(prodSym tkn);
 

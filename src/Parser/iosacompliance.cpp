@@ -1,10 +1,10 @@
-/**
-
-    IOSA compliance module for FIG
-    Raul Monti
-    2015
-
-**/
+//==============================================================================
+//
+//  IOSA compliance module for FIG
+//  Raul Monti
+//  2015
+//
+//==============================================================================
 
 #include <set>
 #include <assert.h>
@@ -37,14 +37,14 @@ using namespace std;
 namespace parser{
 
 
-////////////////////////////////////////////////////////////////////////////////
-// USEFUL FUNCTIONS
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
+// Useful Functions ============================================================
+//==============================================================================
 
 
-/* @brief: check if the transition parsed into an AST corresponds to an
-           output transition.
-*/
+/** @brief: check if the transition parsed into an AST corresponds to an
+ *          output transition.
+ */
 bool
 is_output(AST* trans){
 
@@ -56,9 +56,10 @@ is_output(AST* trans){
     return result;
 }
 
-/* @brief: check if @transition1 enabling clock is not reseted by @transition2.
 
-*/
+/**
+ *  @brief Check if @trans1 enabling clock is not reseted by @trans2.
+ */
 bool
 clock_nreset(AST* trans1, AST* trans2){
 
@@ -78,9 +79,10 @@ clock_nreset(AST* trans1, AST* trans2){
 }
 
 
-/* @brief: find out if both transitions have the same enabling clock, if they
-           have any.
-*/
+/** 
+ *  @brief Find out if both transitions have the same enabling clock, if they
+ *         have any.
+ */
 bool
 same_clock(AST* trans1, AST* trans2){
 
@@ -104,8 +106,9 @@ same_clock(AST* trans1, AST* trans2){
 }
 
 
-/* @brief: check if two transitions reset the same set of clocks.
-*/
+/**
+ *  @brief Check if two transitions reset the same set of clocks.
+ */
 bool
 same_rclocks(AST* t1, AST* t2){
 
@@ -118,8 +121,9 @@ same_rclocks(AST* t1, AST* t2){
 
 
 
-/* @brief: check if transitions produce the same action.
-*/
+/**
+ *  @brief Check if transitions produce the same action.
+ */
 bool
 same_action(AST* t1, AST* t2){
 
@@ -128,11 +132,11 @@ same_action(AST* t1, AST* t2){
 }
 
 
-/* @brief:  interpret a postcondition formula and build the corresponding z3
-            expression.
-   @return:  
-
-*/
+/**
+ * @brief  interpret a postcondition formula and build the corresponding z3
+ *          expression.
+ * @return  
+ */
 z3::expr
 post2expr(AST* pAst, string mname, parsingContext &pc, z3::context &c){
 
@@ -171,54 +175,59 @@ post2expr(AST* pAst, string mname, parsingContext &pc, z3::context &c){
 
 
 
-////////////////////////////////////////////////////////////////////////////////
-// VERIFIER CLASS IMPLEMENTATION
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
+// VERIFIER CLASS IMPLEMENTATION ===============================================
+//==============================================================================
 
+/**
+ *
+ */
 Verifier::Verifier(parsingContext & pc){
     mPc = & pc;
 }
 
-
+/**
+ *
+ */
 Verifier::~Verifier(void){}
 
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 
-/* @verify: fully verify if @ast compliances with IOSA modeling. Conditions
-            (5) and (6) are not ensured here, but should be ensured by the
-            simulation engine, i.e. it should provide initial values for
-            clocks in every initial state outgoing transitions, and it should
-            provide self loops for input actions that are no explicitly
-            declared for every state. Condition (4) cant be checked without
-            reachability checking. Thus we are only giving out warnings to the
-            user and we expect this to be correctly checked by the simulation
-            engine and the behavior should be clear to who ever models with our
-            simulator.
-   @returns: 1 if it compliances, 0 otherwise.
-*/
+/**
+ * @brief   Fully verify if @ast compliances with IOSA modeling. Conditions
+ *          (5) and (6) are not ensured here, but should be ensured by the
+ *          simulation engine, i.e. it should provide initial values for
+ *          clocks in every initial state outgoing transitions, and it should
+ *          provide self loops for input actions that are no explicitly
+ *          declared for every state. Condition (4) cant be checked without
+ *          reachability checking. Thus we are only giving out warnings to the
+ *          user and we expect this to be correctly checked by the simulation
+ *          engine and the behavior should be clear to who ever models with our
+ *          simulator.
+ *  @return 1 if it compliances
+ *  @return 0 otherwise.
+ */
 int 
 Verifier::verify(AST* ast){
 
-    // fill up the parsing context.
-    // Also checks for the correct declaration of variables.
+    /* Fill up the parsing context.
+       Also checks for the correct declaration of variables. */
     fill_maps(ast);
 
     try{
         pout << ">> Check names uniqueness...\n";
-        names_uniqueness(ast);    // throws string error if sthg is not right    
+        names_uniqueness(ast);
         pout << ">> Check typing...\n";
-        type_check(ast);          // throws string error if sthg is not right
-
+        type_check(ast);
         pout << ">> Check 1st and 2nd IOSA conditions...\n";
-        input_output_clocks(ast); // 1st and 1nd conditions for IOSA
+        input_output_clocks(ast);
         pout << ">> Check 3rd IOSA condition...\n";
-        unique_outputs(ast);      // 3rd condition for IOSA        
+        unique_outputs(ast);
         pout << ">> Check 4th IOSA condition...\n";
         check_exhausted_clocks(ast);
         pout << ">> Check 7th IOSA condition...\n";
         check_input_determinism(ast);
-
     }catch(string warning){
         cout << warning;
         return 0;
@@ -229,12 +238,14 @@ Verifier::verify(AST* ast){
 
 
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 
-/* @brief:  check that names that should be unique really are.
-   @return: 1 if no duplicated name was found.
-   @throw:  string if some duplicated name was found.
-*/
+
+/**
+ * @brief  check that names that should be unique really are.
+ * @return 1 if no duplicated name was found.
+ * @throw  string if some duplicated name was found.
+ */
 int
 Verifier::names_uniqueness(AST* ast){
 
@@ -256,9 +267,9 @@ Verifier::names_uniqueness(AST* ast){
     }
     /* Unique variables and clock names inside each module. */
     set<AST*,bool(*)(AST*,AST*)> cNames 
-        ([]( AST* a, AST* b){return a->lxm < b->lxm;}); //clock names.
+        ([]( AST* a, AST* b){return a->lxm < b->lxm;}); /*Clock names.*/
     for(int i = 0; i < modules.size();i++){
-        names.clear();  // check uniqueness only inside modules    
+        names.clear();  /*Check uniqueness only inside modules.*/
         cNames.clear();
         vector<AST*> vars = modules[i]->get_all_ast(_VARIABLE);
         for(int j = 0; j < vars.size(); j++){ // for each clock
@@ -272,7 +283,7 @@ Verifier::names_uniqueness(AST* ast){
             } 
         } 
         vector<AST*> clks = modules[i]->get_all_ast(_CLOCK);
-        for(int j = 0; j < clks.size(); j++){ // for each clock
+        for(int j = 0; j < clks.size(); j++){ /*For each clock.*/
             AST* a_name = clks[j]->get_first(_NAME);
             if (!cNames.insert(a_name).second){
                 AST* duplicated = *cNames.find(a_name);
@@ -290,7 +301,7 @@ Verifier::names_uniqueness(AST* ast){
             }
         }
     }
-    // Unique property names:
+    /*Unique property names:*/
     names.clear();
     vector<AST*> properties = ast->get_all_ast(_PROPERTY);
     for(int i = 0; i < properties.size(); i++){
@@ -303,23 +314,23 @@ Verifier::names_uniqueness(AST* ast){
         }
     }
     if(error_list != ""){
-        throw error_list; // If names are repeated we can not continue
+        throw error_list; /*If names are repeated we can not continue.*/
     }
     return 1;
 }
 
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 
-/* @brief:  check that input transitions have no clock to wait
-            for. This is in compliance to IOSA first condition.
-            Also check that output transitions have exactly one
-            clock to wait for, in compliance to IOSA second
-            condition.
-   @return:
-   @throw:
-*/
-
+/**
+ *  @brief  Check that input transitions have no clock to wait
+ *          for. This is in compliance to IOSA first condition.
+ *          Also check that output transitions have exactly one
+ *          clock to wait for, in compliance to IOSA second
+ *          condition.
+ *  @return
+ *  @throw
+ */
 int
 Verifier::input_output_clocks(AST* ast){
     // FIXME this will be easier if we force the users to specify ? or !
@@ -361,16 +372,16 @@ Verifier::input_output_clocks(AST* ast){
 }
 
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 
-/* @brief: check IOSA condition 3. (without reachability check)
-   @throw:
-   @result:
-
-   @algorithm: if(  (c1 == c2) 
+/**
+ * @brief: check IOSA condition 3. (without reachability check)
+ * @throw:
+ * @result:
+ * @algorithm: if(  (c1 == c2) 
                  && sat(pre1 && pre2)
                  && (a1 != a2 || C'1 != C'2 || s1 != s2) ) : WARNING
-*/
+ */
 
 int
 Verifier::unique_outputs(AST *ast){
@@ -442,16 +453,20 @@ Verifier::unique_outputs(AST *ast){
 }
 
 
-/* @check_exhausted_clocks: check compliance to condition 4 from IOSA.
-   @Note: can only partially check due to reachability issues, thus we 
-          report WARNINGS but we don't ensure presence of non-determinism.
-*/
+//==============================================================================
+
+/**
+ * @brief Check compliance to condition 4 from IOSA.
+ * @Note: Can only partially check due to reachability issues, thus we 
+ *        report WARNINGS but we don't ensure presence of non-determinism.
+ */
+
 int
 Verifier::check_exhausted_clocks(AST *ast){
 
     string          error_list  = "";
     int             result      = 1;
-    parsingContext  pc(*mPc);                        // a copy of mPc
+    parsingContext  pc(*mPc);                       /*A copy of mPc.*/
     z3::context     c;
     z3::solver      s(c);
     z3::expr        ex          = c.bool_val(true);
@@ -463,13 +478,13 @@ Verifier::check_exhausted_clocks(AST *ast){
         for(int i = 0; i < transs.size(); i++){
             if(is_output(transs[i])){
                 for(int j = 0; j < transs.size(); ++j){
-                    // check that i and j are different transitions and that 
-                    // j does not reset the enabling clock from i.
+                    /*Check that i and j are different transitions and that 
+                      j does not reset the enabling clock from i.*/
                     if(i != j && clock_nreset(transs[i],transs[j])){
                         AST *pre = transs[i]->get_first(_PRECONDITION);
                         if(pre){
                             AST *g1 = new AST(pre);
-                            // g1 is evaluated after the transition
+                            /*g1 is evaluated after the transition.*/
                             variable_duplicate(g1,pc,mname);
                             ex = ast2expr(g1, mname, c, pc);
                         }
@@ -479,7 +494,7 @@ Verifier::check_exhausted_clocks(AST *ast){
                             vector<AST*> assigns = p2->get_list(_ASSIG);
                             for(int k = 0; k < assigns.size(); ++k){
                                 AST* var = new AST(assigns[k]->branches[0]);
-                                // the assignments are over next variables.
+                                /*The assignments are over next variables.*/
                                 variable_duplicate(var,pc,mname);
                                 AST* val = assigns[k]->branches[2];
                                 z3::expr e1 = ast2expr(var,mname,c,pc);
@@ -492,9 +507,9 @@ Verifier::check_exhausted_clocks(AST *ast){
                             ex = ex && ast2expr(g2,mname,c,pc);
                         }
                         for(int k = 0; k < transs.size(); ++k){
-                            // !g for guards of every output transitions 
-                            // going out from the same state as j
-                            // and same clock as i.
+                            /* !g for guards of every output transitions 
+                               going out from the same state as j
+                               and same clock as i. */
                             if(j != k && same_clock(transs[i], transs[k])){
                                 AST *g = transs[k]->get_first(_PRECONDITION);
                                 if(g){
@@ -529,17 +544,17 @@ Verifier::check_exhausted_clocks(AST *ast){
 
 
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 
-/* Check condition 7 for IOSA.
-
-    if (act1 = act2):
-        if (sat ( pre1(x) && pre2(x)  // there is a valuation for both pre 
-               && (pos1(x,x') != pos2(x,x')) // that makes both post different
-                ) 
-           ):
-            WARNING.
-*/
+/**
+ *  @brief Check condition 7 for IOSA.
+ *  @algorithm 
+ *      if (act1 = act2):
+ *          if (sat ( pre1(x) && pre2(x)  //There is a valuation for both pre 
+ *              && (pos1(x,x') != pos2(x,x'))) //that makes both post different
+ *              ):
+ *              WARNING.
+ */
 
 int
 Verifier::check_input_determinism(AST *ast){
@@ -608,16 +623,19 @@ Verifier::check_input_determinism(AST *ast){
 }
 
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 
 
-/* @fill_maps: fill the context @mPc for @ast. Check for variables declarations
-               to be correct.
-*/
+/**
+ * @brief Fill the context @mPc for @ast. Check for variables declarations
+ *        to be correct.
+ */
+
 int
 Verifier::fill_maps(AST *ast){
 
-    /*NOTE: names of variables and clock can be accessed outside of its
+    /*
+      NOTE: names of variables and clock can be accessed outside of its
             modules by using <module name>.<variable/clock name>. In the
             type maps this names will be kept under the special module name 
             '#property'. FIXME: we should not be able to access clock names
@@ -677,8 +695,13 @@ Verifier::fill_maps(AST *ast){
 }
 
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 
+/**
+ *  @brief Type check expressions in the model.
+ *  @throw String error.
+ *  @param ast Should be an AST instance of a parsed model.
+ */
 
 int
 Verifier::type_check(AST *ast){
@@ -753,7 +776,7 @@ Verifier::type_check(AST *ast){
             }
         }
 
-        // Check that enabling clock and reseting clocks are really clocks
+        /* Check that enabling clock and reseting clocks are really clocks */
         for(int j = 0; j < trans.size(); j++){
             // enabling clocks
             AST* enable = trans[j]->get_first(_ENABLECLOCK);
@@ -775,7 +798,7 @@ Verifier::type_check(AST *ast){
         }
     }
 
-    // Type check properties:
+    /* Type check properties */
     vector<AST*> properties = ast->get_all_ast(_PROPERTY);
     for(int i = 0; i < properties.size(); i++){
         AST *exp = properties[i]->get_first(_EXPRESSION);
@@ -790,20 +813,22 @@ Verifier::type_check(AST *ast){
     }
 
     if(error_list != ""){
-        throw error_list; // Need to solve typing to continue.
+        throw error_list;
     }
 
     return result;
 }
 
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 
 
-/* @get_type: Return type of an expression.
-   @return: Type of the expression if it has one.
-   @throw: string with error message if there is something wrong with typing.
-*/
+/**
+ *  @brief Return type of an expression.
+ *  @return Type of the expression if it has one.
+ *  @throw String with error message if there is something wrong with typing.
+ */
+
 Type
 Verifier::get_type(AST *expr, string module){
 
@@ -889,7 +914,6 @@ Verifier::get_type(AST *expr, string module){
         Type t;
         switch (value->tkn){
             case _NAME:
-                // FIXME if variable is not declared...
                 if (mPc->has_var(module, value->lxm)){
                     t = mPc->get_var_type(module,value->lxm);
                 }else if(mPc->has_clock(module,value->lxm)){
@@ -922,6 +946,9 @@ Verifier::get_type(AST *expr, string module){
                           + value->p_pos() + ".\n";
                 }
                 break;
+            default:
+                assert(false);
+                break;
         }
         return t;
     }else{
@@ -931,7 +958,7 @@ Verifier::get_type(AST *expr, string module){
 }
 
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 
 } // namespace parser
 
