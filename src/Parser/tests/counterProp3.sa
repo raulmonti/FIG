@@ -1,0 +1,26 @@
+
+MODULE prop3testModule
+
+
+VARS
+
+clock x = Normal(0,1);
+clock z = Normal(0,1);
+clock w = Normal(0,1);
+clock y = Exponential(0.2);
+int[0..2] a = 0;
+
+TRANS
+
+/* No warning because no sat of preconditions. */
+[t1!]  a == 1 : x -> a = 2 ;
+[t2!]  a == 3 : x -> a = 1 : y;
+/* Warning because of different actions. */
+[t6] a == 0 : z -> a = 5;
+[t7] a == 0 : z -> a = 5;
+/* Warning because of different reset clocks. */
+[t9] a == 0 : w -> a = 5 :x;
+[t9] a == 0 : w -> a = 5 :y;
+/* Warning because reaching different states. */
+[t4] a == 0 : y -> a = 5 :x;
+[t5] a == 0 : y -> a = 6 :x;
