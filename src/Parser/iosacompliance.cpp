@@ -70,7 +70,7 @@ clock_nreset(AST* trans1, AST* trans2){
         throw string("Couldn't find clock\n") + e.what();
     }
 
-    vector<string> resetCList = trans2->get_list_lexemes(_RESETCLOCK);
+    vector<string> resetCList = trans2->get_all_lexemes(_RESETCLOCK);
     for(int i = 0; i < resetCList.size(); i++){
         if(enableCName == resetCList[i]) return false;
     }
@@ -478,6 +478,7 @@ Verifier::check_exhausted_clocks(AST *ast){
         for(int i = 0; i < transs.size(); i++){
             if(is_output(transs[i])){
                 for(int j = 0; j < transs.size(); ++j){
+                    s.reset();
                     /*Check that i and j are different transitions and that 
                       j does not reset the enabling clock from i.*/
                     if(i != j && clock_nreset(transs[i],transs[j])){
@@ -490,8 +491,7 @@ Verifier::check_exhausted_clocks(AST *ast){
                         }
                         AST *p2 = transs[j]->get_first(_POSTCONDITION);
                         if(p2){
-
-                            vector<AST*> assigns = p2->get_list(_ASSIG);
+                            vector<AST*> assigns = p2->get_all_ast(_ASSIG);
                             for(int k = 0; k < assigns.size(); ++k){
                                 AST* var = new AST(assigns[k]->branches[0]);
                                 /*The assignments are over next variables.*/
@@ -509,7 +509,8 @@ Verifier::check_exhausted_clocks(AST *ast){
                         for(int k = 0; k < transs.size(); ++k){
                             /* !g for guards of every output transitions 
                                going out from the same state as j
-                               and same clock as i. */
+                               and same clock as i.
+                            */
                             if(j != k && same_clock(transs[i], transs[k])){
                                 AST *g = transs[k]->get_first(_PRECONDITION);
                                 if(g){
