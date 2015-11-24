@@ -134,8 +134,8 @@ same_action(AST* t1, AST* t2){
 
 /**
  * @brief  interpret a postcondition formula and build the corresponding z3
- *          expression.
- * @return  
+ *         expression.
+ * @return z3 expresion representing the postcondition.
  */
 z3::expr
 post2expr(AST* pAst, string mname, parsingContext &pc, z3::context &c){
@@ -143,7 +143,7 @@ post2expr(AST* pAst, string mname, parsingContext &pc, z3::context &c){
     z3::expr pExp = c.bool_val(true);
     set<string> vNameSet;
 
-    // add the valuations given by the postcondition
+    /* add the valuations given by the postcondition */
     vector<AST*> pList = pAst->get_all_ast(_ASSIG);
     for(int k = 0; k < pList.size(); ++k){
         AST* var = new AST(pList[k]->branches[0]);
@@ -152,7 +152,7 @@ post2expr(AST* pAst, string mname, parsingContext &pc, z3::context &c){
         variable_duplicate(var,pc,mname);
         pExp = pExp && (ast2expr(var,mname,c,pc) == ast2expr(val,mname,c,pc));
     }
-    // add the remaining conditions (unchanged ones)
+    /* add the remaining conditions (unchanged ones) */
     vector<pair<string,Type>> vlist = pc.get_type_list(mname);
     for(auto const &it : vlist){
         string vname = it.first;

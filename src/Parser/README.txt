@@ -53,6 +53,7 @@ FIXME   In parser TEST and TESTB are strange, check them out and remove them
         if they are not really needed.
 FIXME   Should not be able to ask for clock values nor do any comparison against
         them.
+FIXME   [a?] -> t=1; throws syntax error :S
 
 DONE    Presendencia entre - y > anda mal :S
 DONE    Dar rangos a las variables.
