@@ -49,11 +49,6 @@ namespace fig
  *
  *        The system model described by the user is implemented as a
  *        ModuleNetwork, composed of ModuleInstance objects.
- *
- * @note This class family follows the
- *       <a href="https://sourcemaking.com/design_patterns/composite">
- *       composite design pattern</a>. The objects from the derived classes
- *       are the elements visited by the ImportanceFunction instances.
  */
 class Module
 {
@@ -61,54 +56,8 @@ class Module
 public:  // Utils
 
 	/// Have the importance of our states assessed by this importance function
-	/// @note For the <a href="https://sourcemaking.com/design_patterns/visitor">
-	///       visitor design pattern</a>.
+	/// @see ImportanceFunction
 	virtual void accept(ImportanceFunction& ifun) = 0;
-
-//	/**
-//	 * @brief Active module jump caused by expiration of our clock "clockName"
-//	 *
-//	 * @param clockName    Name of the clock (from this model!) which expires
-//	 * @param elapsedTime  Time lapse for the clock to expire
-//	 * @param traial       Instance of Traial to update
-//	 *
-//	 * @return Pointer to output label fired by the transition taken.
-//	 *         If none was enabled then 'tau' is returned.
-//	 *
-//	 * @note <b>Complexity:</b> <i>O(t+c+v)</i>, where
-//	 *       <ul>
-//	 *       <li> <i>t</i> is the number of transitions of this module,</li>
-//	 *       <li> <i>c</i> is the number of   clocks    of this module and</li>
-//	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
-//	 *       </ul>
-//	 *
-//	 * @note Modifies sections both in StateInstance and clock-vector within "traial"
-//	 *       which correspond to variables and clocks from this module.
-//	 */
-//	virtual const Label& jump(const std::string& clockName,
-//							  const CLOCK_INTERNAL_TYPE& elapsedTime,
-//							  Traial& traial) = 0;
-//
-//	/**
-//	 * @brief Passive module jump following "label" label
-//	 *
-//	 * @param label        Output label triggered by current active jump
-//	 * @param elapsedTime  Time lapse for the clock to expire
-//	 * @param traial       Instance of Traial to update
-//	 *
-//	 * @note <b>Complexity:</b> <i>O(t+c+v)</i>, where
-//	 *       <ul>
-//	 *       <li> <i>t</i> is the number of transitions of this module,</li>
-//	 *       <li> <i>c</i> is the number of   clocks    of this module and</li>
-//	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
-//	 *       </ul>
-//	 *
-//	 * @note Modifies sections both in StateInstance and clock-vector within "traial"
-//	 *       which correspond to variables and clocks from this module.
-//	 */
-//	virtual void jump(const Label& label,
-//					  const CLOCK_INTERNAL_TYPE& elapsedTime,
-//					  Traial& traial) = 0;
 };
 
 } // namespace fig

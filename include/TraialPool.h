@@ -50,8 +50,10 @@ namespace fig
  *        <a href="https://sourcemaking.com/design_patterns/object_pool">
  *        resource pool</a>.
  *
- * @note  The pool itself follows the singleton design pattern,
- *        thus unifying the access policy to these resources.
+ * @note  The pool itself follows the
+ *        <a href="https://sourcemaking.com/design_patterns/singleton">
+ *        singleton design pattern</a>, thus unifying the access policy
+ *        to these resources.
  *
  * @todo  If possible, keep Traials references instead of pointers internally,
  *        and implement all functionality using C++ move semantics.

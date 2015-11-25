@@ -40,6 +40,7 @@
 #include <core_typedefs.h>
 #include <State.h>
 #include <Clock.h>
+#include <ModuleNetwork.h>
 
 
 namespace fig
@@ -125,8 +126,12 @@ public:  // Ctors/Dtor
 		{
 			std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 			clocks_.reserve(gClocks.size());
+			ModuleNetwork& net = ModuleNetwork::get_instance();
+			size_t pos(0u);
 			for (const auto& clk: gClocks)
-				clocks_.emplace_back(clk.module, clk.name, 0.0f);
+				clocks_.emplace_back(net.module_of_clock_at(pos++),
+									 clk.name,
+									 0.0f);
 		}
 
 	/**

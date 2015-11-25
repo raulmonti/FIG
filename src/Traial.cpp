@@ -57,11 +57,14 @@ Traial::Traial(bool initState,
 	}
 	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 	clocks_.reserve(gClocks.size());
+	ModuleNetwork& net = ModuleNetwork::get_instance();
 	i = 0;
-	for (const auto& clk: gClocks)
-		clocks_.emplace_back(clk.module,
+	for (const auto& clk: gClocks) {
+		clocks_.emplace_back(net.module_of_clock_at(i),
 							 clk.name,
-							 must_reset(i++) ? clk.sample() : 0.0f);
+							 must_reset(i) ? clk.sample() : 0.0f);
+		i++;
+	}
 	if (orderTimeouts)
 		reorder_clocks();
 }

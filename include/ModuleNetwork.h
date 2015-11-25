@@ -32,9 +32,11 @@
 
 // C++
 #include <vector>
+#include <memory>
 // FIG
 #include <core_typedefs.h>
 #include <Module.h>
+#include <ModuleInstance.h>
 #include <State.h>
 #include <Variable.h>
 #include <Clock.h>
@@ -50,17 +52,86 @@ namespace fig
  *
  *        This class holds a memory-contiguous view of the global \ref State
  *        "state": a vector with <i>a copy of</i> the variables from all the
- *        modules composing the network. The same is done with the \ref Clock
- *        "clocks".
+ *        constituent modules. In contrast, \ref Clock "clocks" are kept
+ *        locally inside each \ref ModuleInstance "module instance".
  *
- * @todo TODO fill this doxygen doc, and implement class!!!
+ * @note  There should be exactly one ModuleNetwork at all times,
+ *        which starts out empty and is sequentially filled with
+ *        ModuleInstance objects as these are created. For that reason
+ *        this class follows the
+ *        <a href="https://sourcemaking.com/design_patterns/singleton">
+ *        singleton design pattern</a>.
  */
 class ModuleNetwork : public Module
 {
+	friend class Traial;
+	friend class ImportanceFunctionConcreteSplit;
+	friend class ImportanceFunctionConcreteCoupled;
+
+	/// Single existent instance of the class (singleton design pattern)
+	static std::unique_ptr< ModuleNetwork > instance_;
+
+	/// Private ctor (singleton design pattern)
+	/// @todo Implement!
+	ModuleNetwork();
+
+	/// Proclaim to the four winds the uniqueness of the single instance
+	ModuleNetwork(const ModuleNetwork& that)            = delete;
+	ModuleNetwork(ModuleNetwork&& that)                 = delete;
+	ModuleNetwork& operator=(const ModuleNetwork& that) = delete;
+
+protected:  // Attributes shared with the ImportanceFunction visitors
+
 	/// Unified, memory-contiguous global vector of \ref Variable "variables"
 	State< STATE_INTERNAL_TYPE > gState;
 
+	/// The modules network per se
+	std::vector< std::shared_ptr< ModuleInstance > > modules;
+
+public:  // Access to ModuleNetwork
+
+	/// Global access point to the unique instance of this pool
+	static ModuleNetwork& get_instance() {
+		if (nullptr == instance_)
+			instance_ = std::unique_ptr< ModuleNetwork >(new ModuleNetwork);
+		return *instance_;
+	}
+
+	~ModuleNetwork();
+
+public:  // Populating facilities
+
+	/**
+	 * @brief Add a new \ref ModuleInstance "module" to the network
+	 * @param module D-Pointer to the new module to include in the network
+	 * @note The argument is reset to nullptr during call for safety reasons.
+	 *       The module instance is thus effectively stolen.
+	 *
+	 * @todo TODO implement!
+	 */
+	void add_module(ModuleInstance** module);
+
+	/// @todo remove_module() facility? Seems pointless and troublesome to me
+
+protected:  // Utils
+
+	/**
+	 * @brief Facility for Traial::Timeout construction
+	 * @param pos Position of the clock according to the internal Traial vector
+	 * @return Pointer to the ModuleInstance which owns the clock located
+	 *         at that (global) position, or nullptr on error
+	 * \ifnot NRANGECHK
+	 *   @throw std::out_of_range if 'pos' goes beyond scope
+	 * \endif
+	 */
+	inline std::shared_ptr< ModuleInstance > module_of_clock_at(const size_t& pos)
+		{
+			/// @todo TODO implement!
+			return nullptr;
+		}
+
 public:
+
 	virtual inline void accept(ImportanceFunction& ifun)
 		{ ifun.assess_importance(this); }
 };

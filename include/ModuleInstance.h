@@ -84,9 +84,14 @@ class ModuleInstance : public Module
 
 protected:  // Local info to be handled by the ModuleNetwork
 
-	/// Index of our first clock as it appears in the global vector
-	/// maintained by the ModuleNetwork
-	const unsigned firstClock_;
+	/// Position of this module in the global ModuleNetwork
+	unsigned globalIndex_;
+
+	/// Index of our first clock as it would appear in a global array,
+	/// where the clocks from all the modules were placed side by side.
+	/// This is needed by Traial for mantaining the clocks internal time.
+	unsigned firstClock_;
+
 //  TODO: erase below?
 //	// Our range of variables in the global state of the network
 //	/// Position in State of our first Variable
@@ -94,7 +99,11 @@ protected:  // Local info to be handled by the ModuleNetwork
 //	/// Number of \ref Variable "variables" in this module
 //	const unsigned numVars_;
 
-public:  // Ctors
+public:
+
+	const std::string name;
+
+public:  // Ctors/Dtor and populating facilities
 
 	/// @todo TODO implement all five ctors anew
 
@@ -105,15 +114,17 @@ public:  // Ctors
 	 *        without defining the transitions.
 	 *        Those can be later filled up with add_transition()
 	 *
-	 * @param state  Variables defined in this module
-	 * @param clocks Clocks defined in this module
+	 * @param thename  Module name
+	 * @param state    Variables defined in this module
+	 * @param clocks   Clocks defined in this module
 	 *
 	 * @note All values are copied, no move ctors are offered
 	 */
 	template< template< typename, typename... > class Container1,
 			  typename ValueType1,
 			  typename... OtherContainerArgs1 >
-	ModuleInstance(const State& state,
+	ModuleInstance(const std::string& thename,
+				   const State& state,
 				   const Container1< ValueType1, OtherContainerArgs1... >& clocks);
 
 	/**
@@ -123,6 +134,7 @@ public:  // Ctors
 	 *        and also the transitions localized in this module.
 	 *        Still more transitions can be later added with add_transition()
 	 *
+	 * @param thename     Module name
 	 * @param state       Variables defined in this module
 	 * @param clocks      Clocks defined in this module
 	 * @param transitions Transitions defined in this module
@@ -135,7 +147,8 @@ public:  // Ctors
 	template< template< typename, typename... > class Container2,
 			  typename ValueType2,
 			  typename... OtherContainerArgs2 >
-	ModuleInstance(const State& state,
+	ModuleInstance(const std::string& thename,
+				   const State& state,
 				   const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 				   const Container2< ValueType2, OtherContainerArgs2... >& transitions);
 
@@ -147,6 +160,7 @@ public:  // Ctors
 	 *        and also the transitions localized in this module.
 	 *        Still more transitions can be later added with add_transition()
 	 *
+	 * @param thename     Module name
 	 * @param state       Variables defined in this module
 	 * @param clocks      Clocks defined in this module
 	 * @param transitions Transitions defined in this module
@@ -159,7 +173,8 @@ public:  // Ctors
 	template< template< typename, typename... > class Container2,
 			  typename ValueType2,
 			  typename... OtherContainerArgs2 >
-	ModuleInstance(const State& state,
+	ModuleInstance(const std::string& thename,
+				   const State& state,
 				   const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 				   Container2< ValueType2, OtherContainerArgs2... >&& transitions);
 
@@ -171,6 +186,7 @@ public:  // Ctors
 	 *        and also the transitions localized in this module.
 	 *        Still more transitions can be later added with add_transition()
 	 *
+	 * @param thename     Module name
 	 * @param state       Variables defined in this module
 	 * @param clocks      Clocks defined in this module
 	 * @param transitions Transitions defined in this module
@@ -183,7 +199,8 @@ public:  // Ctors
 	template< template< typename, typename... > class Container2,
 			  typename ValueType2,
 			  typename... OtherContainerArgs2 >
-	ModuleInstance(const State& state,
+	ModuleInstance(const std::string& thename,
+				   const State& state,
 				   const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 				   Container2< ValueType2*, OtherContainerArgs2... >&& transitions);
 
@@ -194,10 +211,11 @@ public:  // Ctors
 	 *        and also the transitions localized in this module.
 	 *        Still more transitions can be later added with add_transition()
 	 *
-	 * @param state   Variables defined in this module
-	 * @param clocks  Clocks defined in this module
-	 * @param from    Iterator to  first transition defined in this module
-	 * @param to      Iterator past last transition defined in this module
+	 * @param thename  Module name
+	 * @param state    Variables defined in this module
+	 * @param clocks   Clocks defined in this module
+	 * @param from     Iterator  to  first transition defined in this module
+	 * @param to       Iterator past last  transition defined in this module
 	 *
 	 * @note All arguments are copied
 	 */
@@ -207,12 +225,11 @@ public:  // Ctors
 	template< template< typename, typename... > class Iterator,
 			  typename ValueTypeIterator,
 			  typename... OtherIteratorArgs >
-	ModuleInstance(const State& state,
+	ModuleInstance(const std::string& thename,
+				   const State& state,
 				   const Container< ValueTypeContainer, OtherContainerArgs... >& clocks,
 				   Iterator< ValueTypeIterator, OtherIteratorArgs... > from,
 				   Iterator< ValueTypeIterator, OtherIteratorArgs... > to);
-
-public:  // Utils
 
 	/**
 	 * @brief Add a new transition to this module
@@ -226,8 +243,10 @@ public:  // Utils
 	 */
 	void add_transition(const Transition& transition);
 
-	/// @copydoc add_transition();
+	/// @copydoc add_transition()
 	void add_transition(Transition&& transition);
+
+public:  // Utils
 
 	virtual inline void accept(ImportanceFunction& ifun)
 		{ ifun.assess_importance(this); }

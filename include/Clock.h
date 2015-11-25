@@ -69,8 +69,6 @@ public:  // Attributes
 
 	const std::string name;
 	const std::string distName;
-	std::shared_ptr<const ModuleInstance> module;
-	/// @todo: TODO integrate new attribute 'module' in this class
 
 private:
 
@@ -84,7 +82,6 @@ public:  // Ctors
 		  const DistributionParameters& params) :
 		name(clockName),
 		distName(distName),
-		module(nullptr),  // TODO implement!!!
 		dist_(distributions_list.at(distName)),  // may throw out_of_range
 		distParams_(params)
 		{

@@ -62,10 +62,9 @@ public:
 
 	virtual void assess_importance(ModuleNetwork* net)
 		{
-			throw FigException("Concrete importance function for split "
-							   "modules can't be applied to a \"coupled\" "
-							   "ModuleNetwork. Take a look at "
-							   "ImportanceFunctionConcreteCoupled instead.");
+			assert(nullptr != net);
+			for (auto& mod: net->modules)
+				assess_importance(mod);  // Visit each module individually
 		}
 
 	virtual void assess_importance(ModuleInstance* mod)
