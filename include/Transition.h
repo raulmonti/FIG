@@ -40,6 +40,7 @@
 #include <cassert>
 // FIG
 #include <core_typedefs.h>  // Bitflag
+#include <FigException.h>
 #include <Label.h>
 #include <Clock.h>
 #include <Precondition.h>
@@ -169,23 +170,32 @@ protected:  // Utils
 	/**
 	 * @brief Reset and/or make time elapse in specified range of clocks
 	 *
-	 * @param traial      Traial whose clock values will be affected
-	 * @param firstClock  First affected clock
-	 * @param numClocks   Number of clocks to visit
-	 * @param timeLapse   Amount of time elapsed for the non-reseting clocks
+	 *        Always within the specified range, the clocks declared in
+	 *        resetClocks() will have their time value resampled from the
+	 *        appropiate stochastic distribution. The rest will undergo an
+	 *        advance in their internal time of 'timeLapse' units.
+	 *
+	 * @param traial     Traial whose clock values will be affected
+	 * @param fromClock  Iterator pointing  to  the first affected clock
+	 * @param toClock    Iterator pointing past the last  affected clock
+	 * @param firstClock Index of the first affected clock in the global
+	 *                   vector held in ModuleNetwork
+	 * @param timeLapse  Amount of time elapsed for the non-reseting clocks
 	 *
 	 * \ifnot NTIMECHK
 	 *   @throw FigException if some clock was assigned a negative value
 	 * \endif
 	 *
-	 * @note <b>Complexity:</b> <i>O(numClocks)</i>
-	 * @note The clocks in the specified range which we have marked for reset
-	 *       will have their value resampled from the appropiate distribution
+	 * @note <b>Complexity:</b> <i>O(std::distance(from,to))</i>
 	 */
-	void handle_clocks(Traial&         traial,
+	template< template< typename, typename... > class Iterator,
+			  typename ValueType,
+			  typename... OtherIteratorArgs >
+	void handle_clocks(Traial& traial,
+					   Iterator<ValueType, OtherIteratorArgs...> fromClock,
+					   Iterator<ValueType, OtherIteratorArgs...> toClock,
 					   const unsigned& firstClock,
-					   const unsigned& numClocks,
-					   const float&    timeLapse) const;
+					   const float& timeLapse) const;
 
 private:
 
@@ -293,6 +303,36 @@ Transition::Transition(
 	}
 	assert(static_cast<Bitflag>(0u) != resetClocks_ ||
 				begin(resetClocks) == end(resetClocks));
+}
+
+
+template< template< typename, typename... > class Iterator,
+		  typename ValueType,
+		  typename... OtherIteratorArgs >
+void
+Transition::handle_clocks(Traial& traial,
+						  Iterator<ValueType, OtherIteratorArgs...> fromClock,
+						  Iterator<ValueType, OtherIteratorArgs...> toClock,
+						  const unsigned& firstClock,
+						  const float& timeLapse) const
+{
+	static_assert(std::is_same< Clock, ValueType >::value,
+				  "ERROR: type missmatch. handle_clocks() takes iterators "
+				  "pointing to Clock objects.");
+	unsigned thisClock(firstClock);
+	while (fromClock != toClock) {
+		if (must_reset(thisClock))
+			traial.clocks_[thisClock].value = fromClock->sample();
+		else
+			traial.clocks_[thisClock].value -= timeLapse;
+#ifndef NTIMECHK
+		if (0.0f > traial.clocks_[thisClock].value)
+			throw FigException(std::string("negative value for clock \"")
+							   .append(fromClock->name).append("\""));
+#endif
+		thisClock++;
+		fromClock++;
+	}
 }
 
 

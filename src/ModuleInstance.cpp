@@ -44,10 +44,11 @@ ModuleInstance::jump(const std::string& clockName,
 			tr_ptr->pos(traial.state);   // apply postcondition to its state
 			tr_ptr->handle_clocks(       // and update all our clocks.
 				traial,
+				lClocks_.begin(),
+				lClocks_.end(),
 				firstClock_,
-				numClocks_,
 				elapsedTime);
-			// Finally notify the output label fired
+			// Finally notify the broadcasted output label
 			assert(tr_ptr->label().is_output());
 			return tr_ptr->label();
 		}
@@ -71,7 +72,7 @@ ModuleInstance::jump(const Label& label,
 				firstClock_,
 				numClocks_,
 				elapsedTime);
-			break;  // Only one transition could be enabled, we trust Raúl
+			break;  // Only one transition could've been enabled, we trust Raúl
 		}
 	}
 }

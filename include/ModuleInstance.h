@@ -35,9 +35,10 @@
 #include <unordered_map>
 #include <type_traits>  // std::is_same<>, std::is_constructible<>
 // FIG
+#include <core_typedefs.h>
 #include <Module.h>
+#include <State.h>
 #include <Transition.h>
-//#include <ImportanceFunction.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -63,107 +64,170 @@ namespace fig
  */
 class ModuleInstance : public Module
 {
-	// Our range of variables
-	/// Position in State of our first Variable
-	const unsigned firstVar_;
-	/// Number of \ref Variable "variables" in this module
-	const unsigned numVars_;
+	friend class ModuleNetwork;
 
-	// Our range of clocks
-	/// Position in the global 'gClocks' of our first Clock
-	const unsigned firstClock_;
-	/// Number of \ref Clock "clocks" in this module
-	const unsigned numClocks_;
+	/// Local \ref Variable "variables"
+	State< STATE_INTERNAL_TYPE > lState_;
 
-	// Our transitions
+	/// Local \ref Clock "clocks"
+	std::vector< Clock > lClocks_;
+
+	/// Transitions semi-ordered by their triggering \ref Clock "clock"
 	std::unordered_map< std::string,
 						std::vector< std::shared_ptr< Transition> > >
 		transitions_by_clock_;
-	// NOTE: tell input/output apart here?
+
+	/// Transitions semi-ordered by their synchronization \ref Label "label"
 	std::unordered_map< std::string,
 						std::vector< std::shared_ptr< Transition> > >
 		transitions_by_label_;
 
+protected:  // Local info to be handled by the ModuleNetwork
+
+	/// Index of our first clock as it appears in the global vector
+	/// maintained by the ModuleNetwork
+	const unsigned firstClock_;
+//  TODO: erase below?
+//	// Our range of variables in the global state of the network
+//	/// Position in State of our first Variable
+//	const unsigned firstVar_;
+//	/// Number of \ref Variable "variables" in this module
+//	const unsigned numVars_;
+
 public:  // Ctors
+
+	/// @todo TODO implement all five ctors anew
+
+	/**
+	 * @brief Basic ctor
+	 *
+	 *        Builds only the local arrays of variables and clocks,
+	 *        without defining the transitions.
+	 *        Those can be later filled up with add_transition()
+	 *
+	 * @param state  Variables defined in this module
+	 * @param clocks Clocks defined in this module
+	 *
+	 * @note All values are copied, no move ctors are offered
+	 */
+	template< template< typename, typename... > class Container1,
+			  typename ValueType1,
+			  typename... OtherContainerArgs1 >
+	ModuleInstance(const State& state,
+				   const Container1< ValueType1, OtherContainerArgs1... >& clocks);
 
 	/**
 	 * @brief Copy ctor from lvalue container with \ref Transition "transitions"
 	 *
-	 * @param firstVar     Position in State of our first Variable
-	 * @param numVars      Number of \ref Variable "variables" in this module
-	 * @param firstClock   Position in global 'gClocks' of our first Clock
-	 * @param numClocks    Number of \ref Clock "clocks" in this module
-	 * @param transitions  Transitions defined in this module
+	 *        Builds the local arrays of variables and clocks,
+	 *        and also the transitions localized in this module.
+	 *        Still more transitions can be later added with add_transition()
+	 *
+	 * @param state       Variables defined in this module
+	 * @param clocks      Clocks defined in this module
+	 * @param transitions Transitions defined in this module
+	 *
+	 * @note All arguments are copied
 	 */
-	template< template< typename, typename... > class Container,
-			  typename ValueType,
-			  typename... OtherContainerArgs >
-	ModuleInstance(const unsigned& firstVar,
-				   const unsigned& numVars,
-				   const unsigned& firstClock,
-				   const unsigned& numClocks,
-				   const Container< ValueType, OtherContainerArgs... >& transitions);
+	template< template< typename, typename... > class Container1,
+			  typename ValueType1,
+			  typename... OtherContainerArgs1 >
+	template< template< typename, typename... > class Container2,
+			  typename ValueType2,
+			  typename... OtherContainerArgs2 >
+	ModuleInstance(const State& state,
+				   const Container1< ValueType1, OtherContainerArgs1... >& clocks,
+				   const Container2< ValueType2, OtherContainerArgs2... >& transitions);
 
 	/**
 	 * @brief Move ctor from rvalue container with \ref Transition "transition"
 	 *        objects
 	 *
-	 * @param firstVar     Position in State of our first Variable
-	 * @param numVars      Number of \ref Variable "variables" in this module
-	 * @param firstClock   Position in global 'gClocks' of our first Clock
-	 * @param numClocks    Number of \ref Clock "clocks" in this module
-	 * @param transitions  Transitions defined in this module
+	 *        Builds the local arrays of variables and clocks,
+	 *        and also the transitions localized in this module.
+	 *        Still more transitions can be later added with add_transition()
+	 *
+	 * @param state       Variables defined in this module
+	 * @param clocks      Clocks defined in this module
+	 * @param transitions Transitions defined in this module
+	 *
+	 * @note Variables and clocks are copied, transitions are moved
 	 */
-	template< template< typename, typename... > class Container,
-			  typename ValueType,
-			  typename... OtherContainerArgs >
-	ModuleInstance(const unsigned& firstVar,
-				   const unsigned& numVars,
-				   const unsigned& firstClock,
-				   const unsigned& numClocks,
-				   Container< ValueType, OtherContainerArgs... >&& transitions);
+	template< template< typename, typename... > class Container1,
+			  typename ValueType1,
+			  typename... OtherContainerArgs1 >
+	template< template< typename, typename... > class Container2,
+			  typename ValueType2,
+			  typename... OtherContainerArgs2 >
+	ModuleInstance(const State& state,
+				   const Container1< ValueType1, OtherContainerArgs1... >& clocks,
+				   Container2< ValueType2, OtherContainerArgs2... >&& transitions);
 
 	/**
 	 * @brief Move ctor from rvalue container with raw pointers to
 	 *        \ref Transition "transitions"
 	 *
-	 * @param firstVar     Position in State of our first Variable
-	 * @param numVars      Number of \ref Variable "variables" in this module
-	 * @param firstClock   Position in global 'gClocks' of our first Clock
-	 * @param numClocks    Number of \ref Clock "clocks" in this module
-	 * @param transitions  Transitions defined in this module
+	 *        Builds the local arrays of variables and clocks,
+	 *        and also the transitions localized in this module.
+	 *        Still more transitions can be later added with add_transition()
+	 *
+	 * @param state       Variables defined in this module
+	 * @param clocks      Clocks defined in this module
+	 * @param transitions Transitions defined in this module
+	 *
+	 * @note Variables and clocks are copied, transitions are moved
 	 */
-	template< template< typename, typename... > class Container,
-			  typename ValueType,
-			  typename... OtherContainerArgs >
-	ModuleInstance(const unsigned& firstVar,
-				   const unsigned& numVars,
-				   const unsigned& firstClock,
-				   const unsigned& numClocks,
-				   Container< ValueType*, OtherContainerArgs... >&& transitions);
+	template< template< typename, typename... > class Container1,
+			  typename ValueType1,
+			  typename... OtherContainerArgs1 >
+	template< template< typename, typename... > class Container2,
+			  typename ValueType2,
+			  typename... OtherContainerArgs2 >
+	ModuleInstance(const State& state,
+				   const Container1< ValueType1, OtherContainerArgs1... >& clocks,
+				   Container2< ValueType2*, OtherContainerArgs2... >&& transitions);
 
 	/**
 	 * @brief Copy ctor from \ref Transition "transitions" iterator range
 	 *
-	 * @param firstVar    Position in State of our first Variable
-	 * @param numVars     Number of \ref Variable "variables" in this module
-	 * @param firstClock  Position in global 'gClocks' of our first Clock
-	 * @param numClocks   Number of \ref Clock "clocks" in this module
-	 * @param from        Iterator to  first transition defined in this module
-	 * @param to          Iterator past last transition defined in this module
+	 *        Builds the local arrays of variables and clocks,
+	 *        and also the transitions localized in this module.
+	 *        Still more transitions can be later added with add_transition()
+	 *
+	 * @param state   Variables defined in this module
+	 * @param clocks  Clocks defined in this module
+	 * @param from    Iterator to  first transition defined in this module
+	 * @param to      Iterator past last transition defined in this module
+	 *
+	 * @note All arguments are copied
 	 */
+	template< template< typename, typename... > class Container,
+			  typename ValueTypeContainer,
+			  typename... OtherContainerArgs >
 	template< template< typename, typename... > class Iterator,
-			  typename ValueType,
+			  typename ValueTypeIterator,
 			  typename... OtherIteratorArgs >
-	ModuleInstance(const unsigned& firstVar,
-				   const unsigned& numVars,
-				   const unsigned& firstClock,
-				   const unsigned& numClocks,
-				   Iterator< ValueType, OtherIteratorArgs... > from,
-				   Iterator< ValueType, OtherIteratorArgs... > to);
-
+	ModuleInstance(const State& state,
+				   const Container< ValueTypeContainer, OtherContainerArgs... >& clocks,
+				   Iterator< ValueTypeIterator, OtherIteratorArgs... > from,
+				   Iterator< ValueTypeIterator, OtherIteratorArgs... > to);
 
 public:  // Utils
+
+	/**
+	 * @brief Add a new transition to this module
+	 * @param transition Transition to copy/move
+	 * \ifnot NDEBUG
+	 *   @throw FigException if there's a variable or clock in 'transition'
+	 *                       which doesn't belong to this module
+	 * \endif
+	 *
+	 * @todo TODO implement this shit!
+	 */
+	void add_transition(const Transition& transition);
+
+	/// @copydoc add_transition();
+	void add_transition(Transition&& transition);
 
 	virtual inline void accept(ImportanceFunction& ifun)
 		{ ifun.assess_importance(this); }

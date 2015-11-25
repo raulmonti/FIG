@@ -101,7 +101,6 @@ State<T_>::print_out(std::ostream& out, bool withNewline) const
 }
 
 
-// FIXME: Not needed if there's a unique State instance
 template< typename T_ >
 bool
 State<T_>::operator==(const State< T_ >& that) const

@@ -30,8 +30,14 @@
 #ifndef MODULENETWORK_H
 #define MODULENETWORK_H
 
+// C++
+#include <vector>
+// FIG
+#include <core_typedefs.h>
 #include <Module.h>
-//#include <ImportanceFunction.h>
+#include <State.h>
+#include <Variable.h>
+#include <Clock.h>
 
 
 namespace fig
@@ -39,11 +45,21 @@ namespace fig
 
 
 /**
- * @brief The ModuleNetwork class
+ * @brief Network of \ref ModuleInstance "module instances" synchronized
+ *        through input/output \ref Label "labels".
+ *
+ *        This class holds a memory-contiguous view of the global \ref State
+ *        "state": a vector with <i>a copy of</i> the variables from all the
+ *        modules composing the network. The same is done with the \ref Clock
+ *        "clocks".
+ *
  * @todo TODO fill this doxygen doc, and implement class!!!
  */
 class ModuleNetwork : public Module
 {
+	/// Unified, memory-contiguous global vector of \ref Variable "variables"
+	State< STATE_INTERNAL_TYPE > gState;
+
 public:
 	virtual inline void accept(ImportanceFunction& ifun)
 		{ ifun.assess_importance(this); }

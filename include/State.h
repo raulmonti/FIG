@@ -218,7 +218,6 @@ public:  // Accessors
 	void print_out(std::ostream& out, bool withNewline = false) const;
 
 public:  // Relational operators
-		 // NOTE Not needed if there's a unique State instance
 	/**
 	 * @brief Whether 'this' and 'that' hold same variables with same values
 	 * @note <b>Complexity:</b> <i>O(size())</i>
@@ -227,7 +226,7 @@ public:  // Relational operators
 	inline bool operator!=(const State< T_ >& that) const
 		{ return ( ! (that == *this) ); }
 
-public:  // Interaction with ::State instances
+public:  // Interaction with state instances
 
 	/**
 	 * @brief Are the values in 's' valid w.r.t. us?

@@ -19,7 +19,7 @@ fi
 MAIN_PAGE="mainpage.dox"
 rm -f ${MAIN_PAGE}
 echo -n "/*! \mainpage " >> ${MAIN_PAGE}
-cat ../README            >> ${MAIN_PAGE}
+cat ../README.md         >> ${MAIN_PAGE}
 echo -e "\n*/"           >> ${MAIN_PAGE}
 doxygen Doxyfile
 

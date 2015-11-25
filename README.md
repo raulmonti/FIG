@@ -1,4 +1,5 @@
 Finite Improbability Generator (FIG tool)
+=========================================
 
 @author  Carlos E. Budde
 @author  Raúl E. Monti

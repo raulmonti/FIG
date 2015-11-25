@@ -39,12 +39,22 @@
 namespace fig
 {
 
+template< template< typename, typename... > class Iterator,
+		  typename ValueType,
+		  typename... OtherIteratorArgs >
 void
-Transition::handle_clocks(Traial&         traial,
+Transition::handle_clocks(Traial& traial,
+						  Iterator<ValueType, OtherIteratorArgs...> fromClock,
+						  Iterator<ValueType, OtherIteratorArgs...> toClock,
 						  const unsigned& firstClock,
-						  const unsigned& numClocks,
-						  const float&    timeLapse) const
+						  const float& timeLapse) const
 {
+	static_assert( std::is_same< Clock, ValueType >::value,
+				   "ERROR: type missmatch. handle_clocks() takes iterators "
+				   "pointing to instances of (or pointers to) Clock objects.");
+	while (*fromClock != toClock) {
+
+	}
 	for (unsigned i = firstClock ; i < firstClock + numClocks ; i++) {
 		if (must_reset(i))
 			traial.clocks_[i].value = gClocks[i].sample();

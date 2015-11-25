@@ -98,12 +98,14 @@ protected:
 
 public:  // Attributes
 
-	/// Variables values instantiation (same order as in the global State 'gState')
+	/// \ref Variable "Variables" values instantiation
+	/// (same order as in the global State 'ModuleNetwork::gState')
 	StateInstance state;
 
 protected:
 
-	/// \ref Clock "Clocks" values instantiation (same order as in 'gClocks')
+	/// \ref Clock "Clocks" values instantiation
+	/// (same order as in the global vector 'ModuleNetwork::gClocks')
 	std::vector< Timeout > clocks_;
 
 private:

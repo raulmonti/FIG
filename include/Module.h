@@ -49,6 +49,11 @@ namespace fig
  *
  *        The system model described by the user is implemented as a
  *        ModuleNetwork, composed of ModuleInstance objects.
+ *
+ * @note This class family follows the
+ *       <a href="https://sourcemaking.com/design_patterns/composite">
+ *       composite design pattern</a>. The objects from the derived classes
+ *       are the elements visited by the ImportanceFunction instances.
  */
 class Module
 {
