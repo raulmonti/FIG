@@ -27,11 +27,34 @@
 //==============================================================================
 
 
+// C++
+#include <string>
+#include <algorithm>  // find_if()
+// FIG
+#include <FigException.h>
 #include <ModuleInstance.h>
 
 
 namespace fig
 {
+
+void
+ModuleInstance::add_transition(const Transition& transition)
+{
+
+#ifndef NDEBUG
+	auto clockFound = std::find_if(lClocks_.begin(),
+								   lClocks_.end(),
+								   [&] (const Clock& c)
+								   { c.name == transition.triggeringClock(); });
+	if (lClocks_.end() == clockFound)
+		throw FigException(std::string("triggering clock \"")
+						   .append(transition.triggeringClock())
+						   .append("\" does not reside in module \"")
+						   .append(name).append("\""));
+#endif
+}
+
 
 const Label&
 ModuleInstance::jump(const std::string& clockName,
@@ -75,6 +98,17 @@ ModuleInstance::jump(const Label& label,
 			break;  // Only one transition could've been enabled, we trust Raúl
 		}
 	}
+}
+
+
+bool
+ModuleInstance::is_our_clock(const Clock& c)
+{
+	auto clockFound = std::find_if(lClocks_.begin(),
+								   lClocks_.end(),
+								   [&] (const Clock& clk)
+								   { c.name == clk.name; });
+	return lClocks_.end() != clockFound;
 }
 
 } // namespace fig

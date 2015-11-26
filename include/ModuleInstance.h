@@ -82,22 +82,30 @@ class ModuleInstance : public Module
 						std::vector< std::shared_ptr< Transition> > >
 		transitions_by_label_;
 
-protected:  // Local info to be handled by the ModuleNetwork
-
 	/// Position of this module in the global ModuleNetwork
-	unsigned globalIndex_;
+	int globalIndex_;
 
 	/// Index of our first clock as it would appear in a global array,
 	/// where the clocks from all the modules were placed side by side.
-	/// This is needed by Traial for mantaining the clocks internal time.
-	unsigned firstClock_;
+	/// @note This is needed by Traial for mantaining the clocks internal time.
+	int firstClock_;
 
-//  TODO: erase below?
-//	// Our range of variables in the global state of the network
-//	/// Position in State of our first Variable
-//	const unsigned firstVar_;
-//	/// Number of \ref Variable "variables" in this module
-//	const unsigned numVars_;
+protected:
+
+	/**
+	 * @brief Inform this module has been added to the network
+	 *
+	 *        The ModuleNetwork uses this method to fill up the global-aware
+	 *        information needed during later simulations.
+	 *
+	 * @param globalIndex  @copydoc globalIndex_
+	 * @param firstClock   @copydoc firstClock_
+	 *
+	 * @throw FigException if called more than once
+	 *
+	 * @todo TODO implement! Remember to invoke christalize() in our transitions
+	 */
+	void mark_added(const int& globalIndex, const int& firstClock);
 
 public:
 
@@ -295,6 +303,11 @@ public:  // Utils
 	void jump(const Label& label,
 			  const CLOCK_INTERNAL_TYPE& elapsedTime,
 			  Traial& traial);
+
+private:
+
+	/// Does the clock reside in this ModuleInstance?
+	bool is_our_clock(const Clock& c ??? );
 };
 
 

@@ -107,19 +107,19 @@ public:  // Populating facilities
 	 * @note The argument is reset to nullptr during call for safety reasons.
 	 *       The module instance is thus effectively stolen.
 	 *
-	 * @todo TODO implement!
+	 * @todo TODO implement! Remember to invoke mark_added() in the module
 	 */
 	void add_module(ModuleInstance** module);
 
 	/// @todo remove_module() facility? Seems pointless and troublesome to me
 
-protected:  // Utils
+protected:  // Utilities offered to Traials
 
 	/**
 	 * @brief Facility for Traial::Timeout construction
-	 * @param pos Position of the clock according to the internal Traial vector
+	 * @param pos Global position of the clock, as in any Traial's internal vector
 	 * @return Pointer to the ModuleInstance which owns the clock located
-	 *         at that (global) position, or nullptr on error
+	 *         at the (global) position 'pos', or nullptr on error
 	 * \ifnot NRANGECHK
 	 *   @throw std::out_of_range if 'pos' goes beyond scope
 	 * \endif

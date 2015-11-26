@@ -36,6 +36,7 @@
 #include <iterator>   // std::begin(), std::end()
 #include <exception>
 #include <algorithm>  // std::find_if()
+#include <unordered_map>
 // C
 #include <cassert>
 // FIG
@@ -55,8 +56,6 @@ using std::end;
 namespace fig
 {
 
-extern std::vector<Clock> gClocks;
-
 /**
  * @brief IOSA module transition
  *
@@ -65,11 +64,6 @@ extern std::vector<Clock> gClocks;
  *        a postcondition with variables updates and a set of clocks to reset
  *        when the transition is taken.
  *        For a formal definition visit http://dsg.famaf.unc.edu.ar.
- *
- * @note  This class assumes a global std::vector<Clock> named 'gClocks'
- *        was defined somewhere within the fig namespace.
- *        Such instance is needed for reseting the clock values
- *        with the appropiate distributions.
  *
  * @note  Offers generic construction from the following STL containers:
  *        vector, list, forward_list, set, unordered_set, deque.
@@ -94,9 +88,11 @@ protected:
 	/// Updates to perform when transition is taken
 	Postcondition pos;
 
-private:
 	/// Clocks to reset when transition is taken
-	Bitflag resetClocks_;
+	union {
+		std::vector< std::string > list;  // carbon version
+		Bitflag index;  // christal version
+	} resetClocks_;
 
 public:  // Ctors
 
@@ -107,9 +103,7 @@ public:  // Ctors
 	 * @param triggeringClock  @copydoc triggeringClock_
 	 * @param pre              @copydoc pre_
 	 * @param pos              @copydoc pos_
-	 * @param resetClocks      Container with the indices of the clocks to reset
-	 *                         when this transition is taken, following the
-	 *                         order declared by the global vector 'gClocks'
+	 * @param resetClocks      Names of the clocks to reset when this transition is taken
 	 *
 	 * @throw FigException if triggeringClock specifies an invalid Clock name
 	 * \ifnot NRANGECHK
@@ -165,7 +159,43 @@ public:  // Read access to some attributes
 	/// @copydoc Transition::resetClocks_
 	inline const Bitflag& resetClocks() const noexcept { return resetClocks_; }
 
-protected:  // Utils
+protected:  // Utilities offered to ModuleInstance
+
+	/**
+	 * @brief Compress reset clocks "carbon version" as a Bitflag
+	 * @param clocksGlobalPositions Mapping of the clock names to their
+	 *                              respective positions in a global array
+	 * @throw FigException If called twice or some reset clock was not mapped
+	 * \ifnot NRANGECHK
+	 *   @throw out_of_range if some invalid clock index was given
+	 * \endif
+	 */
+	inline void christalize(const std::unordered_map< std::string, unsigned >&
+							clocksGlobalPositions)
+	{
+		Bitflag indexedPositions(static_cast<Bitflag>(0u));
+		unsigned idx(0u);
+		// Encode as Bitflag the global positions of the clocks to reset
+		for(const auto& clockName: resetClocks_.list) {
+#ifndef NRANGECHK
+			idx = clocksGlobalPositions.at(clockName);
+			if (8*sizeof(Bitflag) <= idx) {
+				std::stringstream errMsg;
+				errMsg << "invalid clock index: " << idx;
+				throw std::out_of_range(errMsg.str());
+			}
+#else
+			idx = clocksGlobalPositions[clockName];
+#endif
+			indexedPositions |= static_cast<Bitflag>(1u) << idx;
+		}
+		assert(static_cast<Bitflag>(0u) != indexedPositions ||
+					begin(resetClocksList_) == end(resetClocksList_));
+		// Discard carbon and store christal version
+		resetClocksList_.clear();
+		// FIXME careful with union! Does following work?
+		std::swap(indexedPositions, resetClocks_.index);
+	}
 
 	/**
 	 * @brief Reset and/or make time elapse in specified range of clocks
@@ -229,9 +259,9 @@ Transition::Transition(
 		pos(pos),
 		resetClocks_(static_cast<Bitflag>(0u))
 {
-	static_assert(std::is_constructible< unsigned, ValueType >::value,
-				  "ERROR: type missmatch. Transition ctor needs a container "
-				  "with the (positive) indices of the resetting clocks");
+	static_assert(std::is_constructible< std::string, ValueType >::value,
+				  "ERROR: type missmatch. Transition ctor needs a "
+				  "container with the names of the resetting clocks");
 	if (!triggeringClock.empty() &&
 			end(gClocks) == std::find_if(begin(gClocks), end(gClocks),
 				[&] (const Clock& clk) { return triggeringClock == clk.name; }) )

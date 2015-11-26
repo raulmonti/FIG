@@ -107,6 +107,8 @@ typedef  MUP_BASETYPE  STATE_INTERNAL_TYPE;
 
 /// Bit flag to identify resetting clocks
 /// @warning This bounds the max # of clocks in the model
+/// @note In <a href="http://goo.gl/hXmnBQ">Boost's multiprecision library</a>
+///       there are ints of up to 1024 bits.
 typedef  uintmax_t  Bitflag;
 
 //
