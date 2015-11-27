@@ -41,18 +41,47 @@ namespace fig
 void
 ModuleInstance::add_transition(const Transition& transition)
 {
-
 #ifndef NDEBUG
-	auto clockFound = std::find_if(lClocks_.begin(),
-								   lClocks_.end(),
-								   [&] (const Clock& c)
-								   { c.name == transition.triggeringClock(); });
-	if (lClocks_.end() == clockFound)
+	if(0 <= globalIndex_ || 0 <= firstClock_)
+		throw FigException("this module has already been added to the network");
+	if (!is_our_clock(transition.triggeringClock()))
 		throw FigException(std::string("triggering clock \"")
 						   .append(transition.triggeringClock())
 						   .append("\" does not reside in module \"")
 						   .append(name).append("\""));
+	for (const auto& clockName: transition.resetClocksList())
+		if (!is_our_clock(clockName))
+			throw FigException(std::string("reset clock \"").append(clockName)
+							   .append("\" does not reside in module \"")
+							   .append(name).append("\""));
 #endif
+	auto ptr = std::make_shared<Transition>(transition);
+	transitions_by_label_[transition.label().str].emplace_back(ptr);
+	transitions_by_clock_[transition.triggeringClock()].emplace_back(ptr);
+}
+
+
+void
+ModuleInstance::add_transition(Transition&& transition)
+{
+#ifndef NDEBUG
+	if(0 <= globalIndex_ || 0 <= firstClock_)
+		throw FigException("this module has already been added to the network");
+	if (!is_our_clock(transition.triggeringClock()))
+		throw FigException(std::string("triggering clock \"")
+						   .append(transition.triggeringClock())
+						   .append("\" does not reside in module \"")
+						   .append(name).append("\""));
+	for (const auto& clockName: transition.resetClocksList())
+		if (!is_our_clock(clockName))
+			throw FigException(std::string("reset clock \"").append(clockName)
+							   .append("\" does not reside in module \"")
+							   .append(name).append("\""));
+#endif
+	auto ptr = std::make_shared<Transition>(std::forward<Transition>(transition));
+	// shared_ptr from rvalue: http://stackoverflow.com/q/15917475
+	transitions_by_label_[transition.label().str].emplace_back(ptr);
+	transitions_by_clock_[transition.triggeringClock()].emplace_back(ptr);
 }
 
 
@@ -102,12 +131,12 @@ ModuleInstance::jump(const Label& label,
 
 
 bool
-ModuleInstance::is_our_clock(const Clock& c)
+ModuleInstance::is_our_clock(const std::string& clockName)
 {
 	auto clockFound = std::find_if(lClocks_.begin(),
 								   lClocks_.end(),
 								   [&] (const Clock& clk)
-								   { c.name == clk.name; });
+								   { return clockName == clk.name; });
 	return lClocks_.end() != clockFound;
 }
 

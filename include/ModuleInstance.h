@@ -82,6 +82,8 @@ class ModuleInstance : public Module
 						std::vector< std::shared_ptr< Transition> > >
 		transitions_by_label_;
 
+private:  // Global info to be defined by the ModuleNetwork
+
 	/// Position of this module in the global ModuleNetwork
 	int globalIndex_;
 
@@ -93,13 +95,16 @@ class ModuleInstance : public Module
 protected:
 
 	/**
-	 * @brief Inform this module has been added to the network
+	 * @brief Report this module has been added to the network
 	 *
 	 *        The ModuleNetwork uses this method to fill up the global-aware
 	 *        information needed during later simulations.
 	 *
 	 * @param globalIndex  @copydoc globalIndex_
 	 * @param firstClock   @copydoc firstClock_
+	 *
+	 * @warning No more transitions can be added with add_transition()
+	 *          after this invocation
 	 *
 	 * @throw FigException if called more than once
 	 *
@@ -242,12 +247,12 @@ public:  // Ctors/Dtor and populating facilities
 	/**
 	 * @brief Add a new transition to this module
 	 * @param transition Transition to copy/move
+	 * @warning Do not invoke after mark_added()
 	 * \ifnot NDEBUG
+	 *   @throw FigException if this module has already been added to the network
 	 *   @throw FigException if there's a variable or clock in 'transition'
 	 *                       which doesn't belong to this module
 	 * \endif
-	 *
-	 * @todo TODO implement this shit!
 	 */
 	void add_transition(const Transition& transition);
 
@@ -307,7 +312,7 @@ public:  // Utils
 private:
 
 	/// Does the clock reside in this ModuleInstance?
-	bool is_our_clock(const Clock& c ??? );
+	bool is_our_clock(const std::string& clockName);
 };
 
 

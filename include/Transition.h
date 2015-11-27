@@ -48,6 +48,8 @@
 #include <Postcondition.h>
 #include <Traial.h>
 
+
+using std::out_of_range;
 // ADL
 using std::begin;
 using std::end;
@@ -90,11 +92,12 @@ protected:
 
 	/// Clocks to reset when transition is taken
 	union {
-		std::vector< std::string > list;  // carbon version
-		Bitflag index;  // christal version
-	} resetClocks_;
+		std::vector< std::string > resetClocksList_;  // carbon version
+		Bitflag resetClocks_;  // crystal version
+	} __attribute__((aligned(8)));
+	enum { CARBON, CRYSTAL } resetClocksData_ __attribute__((aligned(8)));
 
-public:  // Ctors
+public:  // Ctors/Dtor
 
 	/**
 	 * @brief Copy ctor (copies {pre,post}conditions)
@@ -105,12 +108,8 @@ public:  // Ctors
 	 * @param pos              @copydoc pos_
 	 * @param resetClocks      Names of the clocks to reset when this transition is taken
 	 *
-	 * @throw FigException if triggeringClock specifies an invalid Clock name
-	 * \ifnot NRANGECHK
-	 *   @throw out_of_range if there is an invalid clock index in 'resetClocks'
-	 * \endif
-	 *
-	 * @note The resetting clocks information is stored as a Bitflag
+	 * @note The resetting clocks information is stored as a vector,
+	 *       to be compressed as Bitflag on *the* call to crystallize()
 	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
@@ -148,6 +147,18 @@ public:  // Ctors
 			   Postcondition&& pos,
 			   const Container<ValueType, OtherContainerArgs...>& resetClocks);
 
+	/// Copy ctor
+	Transition(const Transition&);
+
+	/// Move ctor
+	Transition(Transition&&);
+
+	/// Copy assignment with copy&swap
+	Transition& operator=(Transition);
+
+	/// Dtor
+	~Transition();
+
 public:  // Read access to some attributes
 
 	/// @copydoc Transition::label_
@@ -157,45 +168,35 @@ public:  // Read access to some attributes
 	inline const std::string& triggeringClock() const noexcept { return triggeringClock_; }
 
 	/// @copydoc Transition::resetClocks_
-	inline const Bitflag& resetClocks() const noexcept { return resetClocks_; }
+	/// as a list of clocks names
+	inline const std::vector< std::string >& resetClocksList() const noexcept
+		{ assert(CARBON == resetClocksData_); return resetClocksList_; }
+
+	/// @copydoc Transition::resetClocks_
+	/// encoded as Bitflag
+	inline const Bitflag& resetClocks() const noexcept
+		{ assert(CRYSTAL == resetClocksData_); return resetClocks_; }
 
 protected:  // Utilities offered to ModuleInstance
 
 	/**
 	 * @brief Compress reset clocks "carbon version" as a Bitflag
-	 * @param clocksGlobalPositions Mapping of the clock names to their
+	 *
+	 * @param clocksGlobalPositions Mapping of the reset clock names to their
 	 *                              respective positions in a global array
-	 * @throw FigException If called twice or some reset clock was not mapped
+	 *
+	 * @warning Intended as callback to be called <b>exactly once</b>
+	 *
+	 * \ifnot NDEBUG
+	 *   @throw FigException If called more than once
+	 * \endif
 	 * \ifnot NRANGECHK
 	 *   @throw out_of_range if some invalid clock index was given
+	 *                       or some reset clock wasn't mapped
 	 * \endif
 	 */
-	inline void christalize(const std::unordered_map< std::string, unsigned >&
-							clocksGlobalPositions)
-	{
-		Bitflag indexedPositions(static_cast<Bitflag>(0u));
-		unsigned idx(0u);
-		// Encode as Bitflag the global positions of the clocks to reset
-		for(const auto& clockName: resetClocks_.list) {
-#ifndef NRANGECHK
-			idx = clocksGlobalPositions.at(clockName);
-			if (8*sizeof(Bitflag) <= idx) {
-				std::stringstream errMsg;
-				errMsg << "invalid clock index: " << idx;
-				throw std::out_of_range(errMsg.str());
-			}
-#else
-			idx = clocksGlobalPositions[clockName];
-#endif
-			indexedPositions |= static_cast<Bitflag>(1u) << idx;
-		}
-		assert(static_cast<Bitflag>(0u) != indexedPositions ||
-					begin(resetClocksList_) == end(resetClocksList_));
-		// Discard carbon and store christal version
-		resetClocksList_.clear();
-		// FIXME careful with union! Does following work?
-		std::swap(indexedPositions, resetClocks_.index);
-	}
+	inline void crystallize(const std::unordered_map< std::string, unsigned >&
+							clocksGlobalPositions);
 
 	/**
 	 * @brief Reset and/or make time elapse in specified range of clocks
@@ -257,36 +258,17 @@ Transition::Transition(
 		triggeringClock_(triggeringClock),
 		pre(pre),
 		pos(pos),
-		resetClocks_(static_cast<Bitflag>(0u))
+		resetClocksList_(),
+		resetClocksData_(CARBON)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: type missmatch. Transition ctor needs a "
 				  "container with the names of the resetting clocks");
-	if (!triggeringClock.empty() &&
-			end(gClocks) == std::find_if(begin(gClocks), end(gClocks),
-				[&] (const Clock& clk) { return triggeringClock == clk.name; }) )
-		throw FigException(std::string("\"").append(triggeringClock)
-						   .append("\" is not a valid Clock name"));
 	assert(!label_.is_input() != triggeringClock.empty());  // input XOR no triggering clock
-
-	// Encode in Bitflag the resetting clock indices
-	for(const unsigned& idx: resetClocks) {
-#ifndef NRANGECHK
-		if (8*sizeof(Bitflag) <= idx) {
-			std::stringstream errMsg;
-			errMsg << "invalid clock index: " << idx;
-			throw std::out_of_range(errMsg.str());
-		} else if (gClocks.size() <= idx) {
-			std::stringstream errMsg;
-			errMsg << "there is no clock with index \"" << idx;
-			errMsg  << "\", clocks range up to index " << gClocks.size();
-			throw std::out_of_range(errMsg.str());
-		}
-#endif
-		resetClocks_ |= static_cast<Bitflag>(1u) << idx;
-	}
-	assert(static_cast<Bitflag>(0u) != resetClocks_ ||
-				begin(resetClocks) == end(resetClocks));
+	// Copy reset clocks names
+	resetClocksList_.reserve(std::distance(begin(resetClocks), end(resetClocks)));
+	for(const auto& clockName: resetClocks)
+		resetClocksList_.emplace_back(clockName);
 }
 
 
@@ -303,36 +285,17 @@ Transition::Transition(
 		triggeringClock_(triggeringClock),
 		pre(std::move(pre)),
 		pos(std::move(pos)),
-		resetClocks_(static_cast<Bitflag>(0u))
+		resetClocksList_(),
+		resetClocksData_(CARBON)
 {
-	static_assert(std::is_constructible< unsigned, ValueType >::value,
-				  "ERROR: type missmatch. Transition ctor needs a container "
-				  "with the (positive) indices of the resetting clocks");
-	if (!triggeringClock.empty() &&
-			end(gClocks) == std::find_if(begin(gClocks), end(gClocks),
-				[&] (const Clock& clk) { return triggeringClock == clk.name; }) )
-		throw FigException(std::string("\"").append(triggeringClock)
-						   .append("\" is not a valid Clock name"));
+	static_assert(std::is_constructible< std::string, ValueType >::value,
+				  "ERROR: type missmatch. Transition ctor needs a "
+				  "container with the names of the resetting clocks");
 	assert(!label_.is_input() != triggeringClock.empty());  // input XOR no triggering clock
-
-	// Encode in Bitflag the resetting clock indices
-	for(const unsigned& idx: resetClocks) {
-#ifndef NRANGECHK
-		if (8*sizeof(Bitflag) <= idx) {
-			std::stringstream errMsg;
-			errMsg << "invalid clock index: " << idx;
-			throw std::out_of_range(errMsg.str());
-		} else if (gClocks.size() <= idx) {
-			std::stringstream errMsg;
-			errMsg << "there is no clock with index \"" << idx;
-			errMsg  << "\", clocks range up to index " << gClocks.size();
-			throw std::out_of_range(errMsg.str());
-		}
-#endif
-		resetClocks_ |= static_cast<Bitflag>(1u) << idx;
-	}
-	assert(static_cast<Bitflag>(0u) != resetClocks_ ||
-				begin(resetClocks) == end(resetClocks));
+	// Copy reset clocks names
+	resetClocksList_.reserve(std::distance(begin(resetClocks), end(resetClocks)));
+	for(const auto& clockName: resetClocks)
+		resetClocksList_.emplace_back(clockName);
 }
 
 
