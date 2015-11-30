@@ -70,11 +70,11 @@ typedef std::vector< STATE_INTERNAL_TYPE > StateInstance;
 
 
 /**
- * @brief Unique vector of Variables in the system
+ * @brief Set of \ref Variable "variables" managed by a Module
  *
- *        State is used for consistency check of StateInstance instances
- *        (see fig::State) and for conversions between the concrete and symbolic
- *        representations of a system state.
+ *        This TAD is mostly used for consistency check of the Traials'
+ *        \ref StateInstance "state instances", and for conversions between
+ *        the concrete and symbolic representations of a system state.
  *
  * @note  Offers generic construction from the following STL containers:
  *        vector, list, forward_list, set, unordered_set, deque.
@@ -104,7 +104,7 @@ class State
 	/// Lookup { varname --> varpos } needed by MathExpressions
 	std::unordered_map<std::string, size_t> positionOfVar_;  // http://stackoverflow.com/a/13799886
 
-	/// @brief Compute and store value of State::maxConcreteState_
+	/// @brief Compute and store value of maxConcreteState_
 	void build_concrete_bound();
 
 public:  // Ctors/Dtor
@@ -138,16 +138,39 @@ public:  // Ctors/Dtor
 	State(Iterator<ValueType, OtherIteratorArgs...> from,
 				Iterator<ValueType, OtherIteratorArgs...> to);
 
-	// Move ctor
+	/// Copy ctor
+	State(const State<T_> &that);
+
+	/// Move ctor
 	State(State<T_>&& that);
 
-	// Reinforce uniqueness (no two GlobalVectors should be ever needed)
-	State(const State<T_> &that)                = delete;
-	State<T_>& operator=(const State<T_>& that) = delete;
-	State<T_>& operator=(State<T_> that)        = delete;
+	/// Copy assignment with copy&swap
+ /// @todo: TODO implement
+	State<T_>& operator=(State<T_> that);
 
-	// Dtor
+	/// Dtor
 	virtual ~State() { pvars_.clear(); positionOfVar_.clear(); }
+
+public:  // Modifyers
+
+	/**
+	 * @brief Append variables of 'tail', effectively increasing our size
+	 *        by tail.size()
+	 * \ifnot NDEBUG
+	 *   @throw FigException if some variable in 'tail' already existed in this state
+	 * \endif
+	 *
+	 * @todo TODO implement
+	 */
+	void append(const State& tail);
+
+	/**
+	 * @copydoc append()
+	 * @note 'tail' is emptied from its variables, yet not invalidated
+	 *
+	 * @todo TODO implement
+	 */
+	void append(State&& tail);
 
 public:  // Accessors
 

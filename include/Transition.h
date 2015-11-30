@@ -84,7 +84,7 @@ class Transition
 	std::string triggeringClock_;
 
 protected:
-	/// Precondition regulating transition applicability
+	/// Guard regulating transition applicability
 	Precondition pre;
 
 	/// Updates to perform when transition is taken
@@ -94,19 +94,19 @@ protected:
 	union {
 		std::vector< std::string > resetClocksList_;  // carbon version
 		Bitflag resetClocks_;  // crystal version
-	} __attribute__((aligned(8)));
-	enum { CARBON, CRYSTAL } resetClocksData_ __attribute__((aligned(8)));
+	} __attribute__((aligned(4)));
+	enum { CARBON, CRYSTAL } resetClocksData_ __attribute__((aligned(4)));
 
 public:  // Ctors/Dtor
 
 	/**
-	 * @brief Copy ctor (copies {pre,post}conditions)
+	 * @brief Data ctor (copies/moves {pre,post}conditions)
 	 *
 	 * @param label            @copydoc label_
 	 * @param triggeringClock  @copydoc triggeringClock_
-	 * @param pre              @copydoc pre_
-	 * @param pos              @copydoc pos_
-	 * @param resetClocks      Names of the clocks to reset when this transition is taken
+	 * @param pre              @copydoc pre
+	 * @param pos              @copydoc pos
+	 * @param resetClocks      Names of the clocks to reset when transition is taken
 	 *
 	 * @note The resetting clocks information is stored as a vector,
 	 *       to be compressed as Bitflag on *the* call to crystallize()
@@ -120,24 +120,7 @@ public:  // Ctors/Dtor
 			   const Postcondition& pos,
 			   const Container<ValueType, OtherContainerArgs...>& resetClocks);
 
-	/**
-	 * @brief Move ctor (moves {pre,post}conditions)
-	 *
-	 * @param label            @copydoc label_
-	 * @param triggeringClock  @copydoc triggeringClock_
-	 * @param pre              @copydoc pre_
-	 * @param pos              @copydoc pos_
-	 * @param resetClocks      Container with the indices of the clocks to reset
-	 *                         when this transition is taken, following the
-	 *                         order declared by the global vector 'gClocks'
-	 *
-	 * @throw FigException if triggeringClock specifies an invalid Clock name
-	 * \ifnot NRANGECHK
-	 *   @throw out_of_range if there is an invalid clock index in 'resetClocks'
-	 * \endif
-	 *
-	 * @note The resetting clocks information is stored as a Bitflag
-	 */
+	/// @copydoc fig::Transition::Transition()
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
@@ -161,19 +144,17 @@ public:  // Ctors/Dtor
 
 public:  // Read access to some attributes
 
-	/// @copydoc Transition::label_
+	/// @copydoc label_
 	inline const Label& label() const noexcept { return label_; }
 
-	/// @copydoc Transition::triggeringClock_
+	/// @copydoc triggeringClock_
 	inline const std::string& triggeringClock() const noexcept { return triggeringClock_; }
 
-	/// @copydoc Transition::resetClocks_
-	/// as a list of clocks names
+	/// Clocks to reset when transition is taken, as a list of clocks names
 	inline const std::vector< std::string >& resetClocksList() const noexcept
 		{ assert(CARBON == resetClocksData_); return resetClocksList_; }
 
-	/// @copydoc Transition::resetClocks_
-	/// encoded as Bitflag
+	/// Clocks to reset when transition is taken, encoded as Bitflag
 	inline const Bitflag& resetClocks() const noexcept
 		{ assert(CRYSTAL == resetClocksData_); return resetClocks_; }
 

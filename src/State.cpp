@@ -36,6 +36,10 @@
 #include <VariableInterval.h>
 #include <FigException.h>
 
+// ADL
+using std::move;
+using std::copy;
+
 
 namespace fig
 {
@@ -51,18 +55,36 @@ State<T_>::build_concrete_bound()
 
 
 template< typename T_ >
-State<T_>::State(State<T_>&& that) :
-	pvars_(that.size()),
-	maxConcreteState_(std::move(that.maxConcreteState_))
+State<T_>::State(const State<T_>& that) :
+	pvars_(that.pvars_),
+	maxConcreteState_(that.maxConcreteState_)
 {
-	std::move(that.pvars_.begin(), that.pvars_.end(), pvars_.begin());
 	positionOfVar_.reserve(that.size());
-	std::move(that.positionOfVar_.begin(), that.positionOfVar_.end(),
-			  std::inserter(positionOfVar_, positionOfVar_.begin()));
+	copy(that.positionOfVar_.begin(), that.positionOfVar_.end(),
+		 std::inserter(positionOfVar_, positionOfVar_.begin()));
+}
+
+
+template< typename T_ >
+State<T_>::State(State<T_>&& that) :
+	pvars_(move(that.pvars_)),
+	maxConcreteState_(move(that.maxConcreteState_))
+{
+	positionOfVar_.reserve(that.size());
+	move(that.positionOfVar_.begin(), that.positionOfVar_.end(),
+		 std::inserter(positionOfVar_, positionOfVar_.begin()));
 	// Clean that up
 	that.pvars_.clear();
 	that.positionOfVar_.clear();
 	that.maxConcreteState_ = 0;
+}
+
+
+template< typename T_ >
+State<T_>& operator=(State<T_> that)
+{
+	/// @todo: TODO implement
+	throw FigException("TODO");
 }
 
 

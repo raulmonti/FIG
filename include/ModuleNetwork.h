@@ -103,13 +103,17 @@ public:  // Populating facilities
 
 	/**
 	 * @brief Add a new \ref ModuleInstance "module" to the network
-	 * @param module D-Pointer to the new module to include in the network
+	 * @param module Pointer with the new module to add
 	 * @note The argument is reset to nullptr during call for safety reasons.
 	 *       The module instance is thus effectively stolen.
 	 *
 	 * @todo TODO implement! Remember to invoke mark_added() in the module
 	 */
 	void add_module(ModuleInstance** module);
+
+	/// @copydoc add_module()
+	/// @note The argument should have been allocated with std::make_shared()
+	void add_module(std::shared_ptr< ModuleInstance > module);
 
 	/// @todo remove_module() facility? Seems pointless and troublesome to me
 

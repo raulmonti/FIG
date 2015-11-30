@@ -32,6 +32,8 @@
 
 // C++
 #include <vector>
+#include <iterator>   // std::begin(), std::end()
+#include <algorithm>  // std::find_if(), std::copy() range
 #include <unordered_map>
 #include <type_traits>  // std::is_same<>, std::is_constructible<>
 // FIG
@@ -43,6 +45,11 @@
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
 #endif
+
+// ADL
+using std::begin;
+using std::end;
+using std::copy;
 
 
 namespace fig
@@ -117,8 +124,6 @@ public:
 	const std::string name;
 
 public:  // Ctors/Dtor and populating facilities
-
-	/// @todo TODO implement all five ctors anew
 
 	/**
 	 * @brief Basic ctor
@@ -312,7 +317,14 @@ public:  // Utils
 private:
 
 	/// Does the clock reside in this ModuleInstance?
-	bool is_our_clock(const std::string& clockName);
+	inline bool is_our_clock(const std::string& clockName)
+		{
+			auto clockFound = std::find_if(begin(lClocks_),
+										   end(lClocks_),
+										   [&] (const Clock& clk)
+										   { return clockName == clk.name; });
+			return end(lClocks_) != clockFound;
+		}
 };
 
 
@@ -322,24 +334,51 @@ private:
 
 // If curious about its presence here take a look at the end of VariableSet.cpp
 
-template< template< typename, typename... > class Container,
-		  typename ValueType,
-		  typename... OtherContainerArgs >
+template< template< typename, typename... > class Container1,
+		  typename ValueType1,
+		  typename... OtherContainerArgs1 >
 ModuleInstance::ModuleInstance(
-	const unsigned& firstVar,
-	const unsigned& numVars,
-	const unsigned& firstClock,
-	const unsigned& numClocks,
-	const Container< ValueType, OtherContainerArgs... >& transitions) :
-		firstVar_(firstVar),
-		numVars_(numVars),
-		firstClock_(firstClock),
-		numClocks_(numClocks)
+	const std::string& thename,
+	const State& state,
+	const Container1< ValueType1, OtherContainerArgs1... >& clocks) :
+		name(thename),
+		lState_(state),
+		globalIndex_(-1),
+		firstClock_(-1)
 {
-	static_assert(std::is_same< Transition, ValueType >::value,
+	// Copy clocks
+	static_assert(std::is_constructible< Clock, ValueType1 >::value,
+				  "ERROR: type missmatch. ModuleInstance ctors require a "
+				  "container with the clocks defined in this module");
+	copy(begin(clocks), end(clocks), begin(lClocks_));
+}
+
+
+template< template< typename, typename... > class Container1,
+		  typename ValueType1,
+		  typename... OtherContainerArgs1 >
+template< template< typename, typename... > class Container2,
+		  typename ValueType2,
+		  typename... OtherContainerArgs2 >
+ModuleInstance::ModuleInstance(
+	const std::string& thename,
+	const State& state,
+	const Container1< ValueType1, OtherContainerArgs1... >& clocks,
+	const Container2< ValueType2, OtherContainerArgs2... >& transitions) :
+		name(thename),
+		lState_(state),
+		globalIndex_(-1),
+		firstClock_(-1)
+{
+	// Copy clocks
+	static_assert(std::is_constructible< Clock, ValueType1 >::value,
+				  "ERROR: type missmatch. ModuleInstance ctors require a "
+				  "container with the clocks defined in this module");
+	copy(begin(clocks), end(clocks), begin(lClocks_));
+	// Copy transitions
+	static_assert(std::is_same< Transition, ValueType2 >::value,
 				  "ERROR: type missmatch. ModuleInstance can only be copy-"
 				  "constructed from a container with Transition objects");
-
 	for(const auto& tr: transitions) {
 		auto ptr = std::make_shared<Transition>(tr);
 		transitions_by_label_[tr.label().str].emplace_back(ptr);
@@ -348,27 +387,34 @@ ModuleInstance::ModuleInstance(
 }
 
 
-template< template< typename, typename... > class Container,
-		  typename ValueType,
-		  typename... OtherContainerArgs >
+template< template< typename, typename... > class Container1,
+		  typename ValueType1,
+		  typename... OtherContainerArgs1 >
+template< template< typename, typename... > class Container2,
+		  typename ValueType2,
+		  typename... OtherContainerArgs2 >
 ModuleInstance::ModuleInstance(
-	const unsigned& firstVar,
-	const unsigned& numVars,
-	const unsigned& firstClock,
-	const unsigned& numClocks,
-	Container< ValueType, OtherContainerArgs... >&& transitions) :
-		firstVar_(firstVar),
-		numVars_(numVars),
-		firstClock_(firstClock),
-		numClocks_(numClocks)
+	const std::string& thename,
+	const State& state,
+	const Container1< ValueType1, OtherContainerArgs1... >& clocks,
+	Container2< ValueType2, OtherContainerArgs2... >&& transitions) :
+		name(thename),
+		lState_(state),
+		globalIndex_(-1),
+		firstClock_(-1)
 {
-	static_assert(std::is_same< Transition, ValueType >::value,
+	// Copy clocks
+	static_assert(std::is_constructible< Clock, ValueType1 >::value,
+				  "ERROR: type missmatch. ModuleInstance ctors require a "
+				  "container with the clocks defined in this module");
+	copy(begin(clocks), end(clocks), begin(lClocks_));
+	// Move transitions
+	static_assert(std::is_same< Transition, ValueType2 >::value,
 				  "ERROR: type missmatch. ModuleInstance can only be move-"
 				  "constructed from a container with instances or raw pointers "
 				  "to Transition objects");
-
-	for(const auto& tr: transitions) {
-		auto ptr = std::make_shared<Transition>(tr);
+	for(auto&& tr: transitions) {
+		auto ptr = std::make_shared<Transition>(std::forward<Transition>(tr));
 		transitions_by_label_[tr.label().str].emplace_back(ptr);
 		transitions_by_clock_[tr.triggeringClock()].emplace_back(ptr);
 	}
@@ -376,25 +422,32 @@ ModuleInstance::ModuleInstance(
 }
 
 
-template< template< typename, typename... > class Container,
-		  typename ValueType,
-		  typename... OtherContainerArgs >
+template< template< typename, typename... > class Container1,
+		  typename ValueType1,
+		  typename... OtherContainerArgs1 >
+template< template< typename, typename... > class Container2,
+		  typename ValueType2,
+		  typename... OtherContainerArgs2 >
 ModuleInstance::ModuleInstance(
-	const unsigned& firstVar,
-	const unsigned& numVars,
-	const unsigned& firstClock,
-	const unsigned& numClocks,
-	Container< ValueType*, OtherContainerArgs... >&& transitions) :
-		firstVar_(firstVar),
-		numVars_(numVars),
-		firstClock_(firstClock),
-		numClocks_(numClocks)
+	const std::string& thename,
+	const State& state,
+	const Container1< ValueType1, OtherContainerArgs1... >& clocks,
+	Container2< ValueType2*, OtherContainerArgs2... >&& transitions) :
+		name(thename),
+		lState_(state),
+		globalIndex_(-1),
+		firstClock_(-1)
 {
-	static_assert(std::is_same< Transition, ValueType >::value,
+	// Copy clocks
+	static_assert(std::is_constructible< Clock, ValueType1 >::value,
+				  "ERROR: type missmatch. ModuleInstance ctors require a "
+				  "container with the clocks defined in this module");
+	copy(begin(clocks), end(clocks), begin(lClocks_));
+	// Move transitions
+	static_assert(std::is_same< Transition, ValueType2 >::value,
 				  "ERROR: type missmatch. ModuleInstance can only be move-"
 				  "constructed from a container with instances or raw pointers "
 				  "to Transition objects");
-
 	for(auto tr_ptr: transitions) {
 		auto ptr = std::shared_ptr<Transition>(tr_ptr);
 		assert(nullptr != ptr);
@@ -406,25 +459,32 @@ ModuleInstance::ModuleInstance(
 }
 
 
+template< template< typename, typename... > class Container,
+		  typename ValueTypeContainer,
+		  typename... OtherContainerArgs >
 template< template< typename, typename... > class Iterator,
-		  typename ValueType,
+		  typename ValueTypeIterator,
 		  typename... OtherIteratorArgs >
 ModuleInstance::ModuleInstance(
-	const unsigned& firstVar,
-	const unsigned& numVars,
-	const unsigned& firstClock,
-	const unsigned& numClocks,
-	Iterator< ValueType, OtherIteratorArgs... > from,
-	Iterator< ValueType, OtherIteratorArgs... > to) :
-		firstVar_(firstVar),
-		numVars_(numVars),
-		firstClock_(firstClock),
-		numClocks_(numClocks)
+	const std::string& thename,
+	const State& state,
+	const Container< ValueTypeContainer, OtherContainerArgs... >& clocks,
+	Iterator< ValueTypeIterator, OtherIteratorArgs... > from,
+	Iterator< ValueTypeIterator, OtherIteratorArgs... > to) :
+		name(thename),
+		lState_(state),
+		globalIndex_(-1),
+		firstClock_(-1)
 {
-	static_assert(std::is_same< Transition, ValueType >::value,
+	// Copy clocks
+	static_assert(std::is_constructible< Clock, ValueTypeContainer >::value,
+				  "ERROR: type missmatch. ModuleInstance ctors require a "
+				  "container with the clocks defined in this module");
+	copy(begin(clocks), end(clocks), begin(lClocks_));
+	// Move transitions
+	static_assert(std::is_same< Transition, ValueTypeIterator >::value,
 				  "ERROR: type missmatch. ModuleInstance ctor needs iterators "
 				  "poiting to Transition objects");
-
 	do {
 		const Transition& tr = *from;
 		auto ptr = std::make_shared<Transition>(tr);

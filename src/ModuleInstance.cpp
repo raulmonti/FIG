@@ -129,15 +129,4 @@ ModuleInstance::jump(const Label& label,
 	}
 }
 
-
-bool
-ModuleInstance::is_our_clock(const std::string& clockName)
-{
-	auto clockFound = std::find_if(lClocks_.begin(),
-								   lClocks_.end(),
-								   [&] (const Clock& clk)
-								   { return clockName == clk.name; });
-	return lClocks_.end() != clockFound;
-}
-
 } // namespace fig
