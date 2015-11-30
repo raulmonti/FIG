@@ -126,6 +126,8 @@ public:
 
 	const std::string name;
 
+	const size_t numClocks;
+
 public:  // Ctors/Dtor and populating facilities
 
 	/**
@@ -345,6 +347,7 @@ ModuleInstance::ModuleInstance(
 	const State& state,
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks) :
 		name(thename),
+		numClocks(std::distance(begin(clocks), end(clocks))),
 		lState_(state),
 		globalIndex_(-1),
 		firstClock_(-1)
@@ -369,6 +372,7 @@ ModuleInstance::ModuleInstance(
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 	const Container2< ValueType2, OtherContainerArgs2... >& transitions) :
 		name(thename),
+		numClocks(std::distance(begin(clocks), end(clocks))),
 		lState_(state),
 		globalIndex_(-1),
 		firstClock_(-1)
@@ -402,6 +406,7 @@ ModuleInstance::ModuleInstance(
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 	Container2< ValueType2, OtherContainerArgs2... >&& transitions) :
 		name(thename),
+		numClocks(std::distance(begin(clocks), end(clocks))),
 		lState_(state),
 		globalIndex_(-1),
 		firstClock_(-1)
@@ -437,6 +442,7 @@ ModuleInstance::ModuleInstance(
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 	Container2< ValueType2*, OtherContainerArgs2... >&& transitions) :
 		name(thename),
+		numClocks(std::distance(begin(clocks), end(clocks))),
 		lState_(state),
 		globalIndex_(-1),
 		firstClock_(-1)
@@ -475,6 +481,7 @@ ModuleInstance::ModuleInstance(
 	Iterator< ValueTypeIterator, OtherIteratorArgs... > from,
 	Iterator< ValueTypeIterator, OtherIteratorArgs... > to) :
 		name(thename),
+		numClocks(std::distance(begin(clocks), end(clocks))),
 		lState_(state),
 		globalIndex_(-1),
 		firstClock_(-1)

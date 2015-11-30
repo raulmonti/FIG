@@ -61,6 +61,8 @@ namespace fig
  *        this class follows the
  *        <a href="https://sourcemaking.com/design_patterns/singleton">
  *        singleton design pattern</a>.
+ *
+ * @todo remove_module() facility? Seems pointless and troublesome to me
  */
 class ModuleNetwork : public Module
 {
@@ -72,8 +74,7 @@ class ModuleNetwork : public Module
 	static std::unique_ptr< ModuleNetwork > instance_;
 
 	/// Private ctor (singleton design pattern)
-	/// @todo Implement!
-	ModuleNetwork();
+	ModuleNetwork() : gState(), lastClockIndex_(0u) {}
 
 	/// Proclaim to the four winds the uniqueness of the single instance
 	ModuleNetwork(const ModuleNetwork& that)            = delete;
@@ -87,6 +88,11 @@ protected:  // Attributes shared with the ImportanceFunction visitors
 
 	/// The modules network per se
 	std::vector< std::shared_ptr< ModuleInstance > > modules;
+
+private:
+
+	/// Global position of the last clock from the last added module
+	size_t lastClockIndex_;
 
 public:  // Access to ModuleNetwork
 
@@ -106,16 +112,12 @@ public:  // Populating facilities
 	 * @param module Pointer with the new module to add
 	 * @note The argument is reset to nullptr during call for safety reasons.
 	 *       The module instance is thus effectively stolen.
-	 *
-	 * @todo TODO implement! Remember to invoke mark_added() in the module
 	 */
 	void add_module(ModuleInstance** module);
 
 	/// @copydoc add_module()
 	/// @note The argument should have been allocated with std::make_shared()
-	void add_module(std::shared_ptr< ModuleInstance > module);
-
-	/// @todo remove_module() facility? Seems pointless and troublesome to me
+	void add_module(std::shared_ptr< ModuleInstance >& module);
 
 protected:  // Utilities offered to Traials
 

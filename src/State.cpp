@@ -37,22 +37,15 @@
 #include <FigException.h>
 
 // ADL
+using std::swap;
 using std::move;
 using std::copy;
+using std::begin;
+using std::end;
 
 
 namespace fig
 {
-
-template< typename T_ >
-void
-State<T_>::build_concrete_bound()
-{
-	maxConcreteState_ = 1u;
-	for(const auto pvar: pvars_)
-		maxConcreteState_ *= pvar->range_;  // ignore overflow :D
-}
-
 
 template< typename T_ >
 State<T_>::State(const State<T_>& that) :
@@ -81,10 +74,33 @@ State<T_>::State(State<T_>&& that) :
 
 
 template< typename T_ >
-State<T_>& operator=(State<T_> that)
+State<T_>& State<T_>::operator=(State<T_> that)
 {
-	/// @todo: TODO implement
-	throw FigException("TODO");
+	swap(pvars_, that.pvars_);
+	swap(maxConcreteState_, that.maxConcreteState_);
+	swap(positionOfVar_, that.positionOfVar_);
+//  TODO erase below or erase above?
+//	positionOfVar_.clear();
+//	positionOfVar_.reserve(pvars_.size());
+//	move(that.positionOfVar_.begin(), that.positionOfVar_.end(),
+//		 std::inserter(positionOfVar_, positionOfVar_.begin()));
+}
+
+
+template< typename T_ >
+void
+State<T_>::append(const State& tail)
+{
+#ifndef NDEBUG
+	for (const auto var_ptr: tail)
+		if (is_our_var(var_ptr->name()))
+			throw FigException(std::string("variable \"")
+							   .append(var_ptr->name())
+							   .append("\" already exists in this state"));
+#endif
+	pvars_.insert(pvars_.end(), begin(tail), end(tail));
+	positionOfVar_.insert(begin(tail.positionOfVar_), end(tail.positionOfVar_));
+	build_concrete_bound();
 }
 
 

@@ -104,9 +104,6 @@ class State
 	/// Lookup { varname --> varpos } needed by MathExpressions
 	std::unordered_map<std::string, size_t> positionOfVar_;  // http://stackoverflow.com/a/13799886
 
-	/// @brief Compute and store value of maxConcreteState_
-	void build_concrete_bound();
-
 public:  // Ctors/Dtor
 
 	// Void ctor
@@ -145,7 +142,6 @@ public:  // Ctors/Dtor
 	State(State<T_>&& that);
 
 	/// Copy assignment with copy&swap
- /// @todo: TODO implement
 	State<T_>& operator=(State<T_> that);
 
 	/// Dtor
@@ -159,25 +155,15 @@ public:  // Modifyers
 	 * \ifnot NDEBUG
 	 *   @throw FigException if some variable in 'tail' already existed in this state
 	 * \endif
-	 *
-	 * @todo TODO implement
 	 */
 	void append(const State& tail);
 
-	/**
-	 * @copydoc append()
-	 * @note 'tail' is emptied from its variables, yet not invalidated
-	 *
-	 * @todo TODO implement
-	 */
-	void append(State&& tail);
-
 public:  // Accessors
 
-	/// @brief Symbolic size, i.e. number of variables
+	/// Symbolic size, i.e. number of variables
 	inline size_t size() const noexcept { return pvars_.size(); }
 
-	/// @brief Concrete size, i.e. cross product of all variables ranges
+	/// Concrete size, i.e. cross product of all variables ranges
 	inline size_t concrete_size() const noexcept { return maxConcreteState_; }
 
 	/**
@@ -309,6 +295,26 @@ public:  // Encode/Decode between symbolic and concrete representations
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
 	T_ decode_state(const size_t& n, const std::string& varname) const;
+
+private:  // Utils
+
+	/// Compute and store value of maxConcreteState_
+	inline void build_concrete_bound()
+		{
+			maxConcreteState_ = 1u;
+			for(const auto pvar: pvars_)
+				maxConcreteState_ *= pvar->range_;  // ignore overflow :D
+		}
+
+	/// Do we have a variable with such name?
+	inline bool is_our_var(const std::string& varName)
+		{
+			auto varFound = std::find_if(begin(pvars_),
+										 end(pvars_),
+										 [&] (const std::shared_ptr<Variable>& var_ptr)
+										 { return varName == var_ptr->name(); });
+			return end(pvars_) != varFound;
+		}
 };
 
 
