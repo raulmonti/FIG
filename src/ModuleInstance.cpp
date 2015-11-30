@@ -30,6 +30,9 @@
 // C++
 #include <string>
 #include <algorithm>  // find_if()
+#include <unordered_map>
+// C
+#include <cassert>
 // FIG
 #include <FigException.h>
 #include <ModuleInstance.h>
@@ -38,11 +41,41 @@
 namespace fig
 {
 
+const State< STATE_INTERNAL_TYPE >&
+ModuleInstance::mark_added(const int& globalIndex, const int& firstClock)
+{
+	assert(0 <= globalIndex);
+	assert(0 <= firstClock);
+	if (0 <= globalIndex_ || 0 <= firstClock_)
+#ifndef NDEBUG
+		throw FigException("this module has already been added to the network");
+#else
+		return;
+#endif
+
+	globalIndex_ = globalIndex;
+	firstClock_ = firstClock;
+
+	// Compress all our transitions
+	std::unordered_map< std::string, unsigned > clocksGlobalPositions;
+	clocksGlobalPositions.reserve(lClocks_.size());
+	unsigned clockGlobalPos = firstClock;
+	for (const auto& clk: lClocks_)
+		clocksGlobalPositions[clk.name] = clockGlobalPos++;
+	for (auto& pair: transitions_by_label_)
+		for (auto& tr_ptr: pair.second)
+			tr_ptr->crystallize(clocksGlobalPositions);
+	clocksGlobalPositions.clear();
+
+	return lState_;
+}
+
+
 void
 ModuleInstance::add_transition(const Transition& transition)
 {
 #ifndef NDEBUG
-	if(0 <= globalIndex_ || 0 <= firstClock_)
+	if (0 <= globalIndex_ || 0 <= firstClock_)
 		throw FigException("this module has already been added to the network");
 	if (!is_our_clock(transition.triggeringClock()))
 		throw FigException(std::string("triggering clock \"")
@@ -54,6 +87,9 @@ ModuleInstance::add_transition(const Transition& transition)
 			throw FigException(std::string("reset clock \"").append(clockName)
 							   .append("\" does not reside in module \"")
 							   .append(name).append("\""));
+#else
+	if (0 <= globalIndex_ || 0 <= firstClock_)
+		return;
 #endif
 	auto ptr = std::make_shared<Transition>(transition);
 	transitions_by_label_[transition.label().str].emplace_back(ptr);
@@ -65,7 +101,7 @@ void
 ModuleInstance::add_transition(Transition&& transition)
 {
 #ifndef NDEBUG
-	if(0 <= globalIndex_ || 0 <= firstClock_)
+	if (0 <= globalIndex_ || 0 <= firstClock_)
 		throw FigException("this module has already been added to the network");
 	if (!is_our_clock(transition.triggeringClock()))
 		throw FigException(std::string("triggering clock \"")
@@ -77,6 +113,9 @@ ModuleInstance::add_transition(Transition&& transition)
 			throw FigException(std::string("reset clock \"").append(clockName)
 							   .append("\" does not reside in module \"")
 							   .append(name).append("\""));
+#else
+	if (0 <= globalIndex_ || 0 <= firstClock_)
+		return;
 #endif
 	auto ptr = std::make_shared<Transition>(std::forward<Transition>(transition));
 	// shared_ptr from rvalue: http://stackoverflow.com/q/15917475

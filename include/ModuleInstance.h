@@ -110,14 +110,17 @@ protected:
 	 * @param globalIndex  @copydoc globalIndex_
 	 * @param firstClock   @copydoc firstClock_
 	 *
+	 * @return Const reference to our local state, to append to the global one
+	 *
 	 * @warning No more transitions can be added with add_transition()
 	 *          after this invocation
 	 *
-	 * @throw FigException if called more than once
-	 *
-	 * @todo TODO implement! Remember to invoke christalize() in our transitions
+	 * \ifnot NDEBUG
+	 *   @throw FigException if called more than once
+	 * \endif
 	 */
-	void mark_added(const int& globalIndex, const int& firstClock);
+	const State< STATE_INTERNAL_TYPE >&
+	mark_added(const int& globalIndex, const int& firstClock);
 
 public:
 
