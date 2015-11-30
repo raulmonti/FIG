@@ -9,7 +9,6 @@
 #include <tuple>
 #include <vector>
 #include <string>
-#include <numeric>
 #include <sstream>
 #include <utility>
 #include <iostream>
@@ -268,12 +267,6 @@ State< STATE_INTERNAL_TYPE > gState(
 	});
 }
 
-// Transition requires an externally defined vector of Clocks "fig::gClocks"
-namespace fig
-{
-std::vector< Clock > gClocks;
-}
-
 
 static void // ////////////////////////////////////////////////////////////////
 //
@@ -425,29 +418,25 @@ test_transition()
 								  std::set<std::string>({"x"}));
 
 //	fig::Transition trans(tau, "clockName",  // would fail assertion
-//		pre, pos, std::set<int>());
-	fig::Transition trans1(tau, "", pre, pos, std::set<int>());
+//		pre, pos, std::set<std::string>());
+	fig::Transition trans1(tau, "", pre, pos, std::set<std::string>());
 	assert(tau == trans1.label());
 	assert(trans1.triggeringClock().empty());
 	assert(static_cast<fig::Bitflag>(0u) == trans1.resetClocks());
 
 	// Populate global clocks vector
 	typedef fig::DistributionParameters Params;
-	fig::gClocks.emplace_back("c1", "uniform", Params {});
-	fig::gClocks.emplace_back("c2", "uniformAB", Params {{-10.0f, 10.0f}});
-	fig::gClocks.emplace_back("c3", "exponential", Params {{5.0f}});
-
+	std::list< std::string > clockNames = {"c1", "c2", "c3"};
 	fig::Label input("a");
-	fig::Transition trans2(input, "", pre, pos, std::set<int>({0}));
+	fig::Transition trans2(input, "", pre, pos, std::set<std::string>(clockNames[0]));
 	fig::Label output("a", true);
-	std::set<int> resetClocks3 = { 2 };
+	std::set<std::string> resetClocks3 = { clockNames[2] };
 //	fig::Transition trans(output, "",  // would fail assertion
-//		pre, pos, std::set<int>());
-	fig::Transition trans3(output, "c2", pre, pos, resetClocks3);
+//		pre, pos, std::set<std::string>());
+	fig::Transition trans3(output, clockNames[1], pre, pos, resetClocks3);
 	assert(static_cast<fig::Bitflag>(0u) != trans3.resetClocks());
-	std::vector<size_t> resetClocks4(fig::gClocks.size());
-	std::iota(begin(resetClocks4), end(resetClocks4), 0);  // 0, 1, ..., gClocks.size()
-	fig::Transition trans4(output, "c1", pre, pos, resetClocks4);
+	std::vector<std::string> resetClocks4(clockNames);
+	fig::Transition trans4(output, clockNames[1], pre, pos, resetClocks4);
 	assert(static_cast<fig::Bitflag>(0u) != trans4.resetClocks());
 
 	// Incorrect creation data
@@ -457,7 +446,8 @@ test_transition()
 													   "should have thrown"));
 	} catch (fig::FigException) { /* this was expected */ }
 	try {
-		fig::Transition trans(tau, "", pre, pos, std::set<int>({0,4}));
+		fig::Transition trans(tau, "", pre, pos,
+							  std::set<std::string>({"c1","invalid_clock_name"}));
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (std::out_of_range) { /* this was expected */ }

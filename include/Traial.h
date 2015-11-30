@@ -47,7 +47,7 @@ namespace fig
 {
 
 extern State< STATE_INTERNAL_TYPE > gState;
-extern std::vector< Clock >               gClocks;
+extern std::vector< Clock >         gClocks;
 
 class ModuleInstance;
 

@@ -112,6 +112,7 @@ public:  // Populating facilities
 	 * @param module Pointer with the new module to add
 	 * @note The argument is reset to nullptr during call for safety reasons.
 	 *       The module instance is thus effectively stolen.
+	 * @deprecated
 	 */
 	void add_module(ModuleInstance** module);
 

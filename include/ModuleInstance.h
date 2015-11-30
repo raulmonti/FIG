@@ -104,13 +104,15 @@ protected:
 	/**
 	 * @brief Report this module has been added to the network
 	 *
-	 *        The ModuleNetwork uses this method to fill up the global-aware
+	 *        Used by the ModuleNetwork to fill up the global-aware
 	 *        information needed during later simulations.
 	 *
 	 * @param globalIndex  @copydoc globalIndex_
 	 * @param firstClock   @copydoc firstClock_
 	 *
 	 * @return Const reference to our local state, to append to the global one
+	 *
+	 * @warning Intended as callback to be called <b>exactly once</b>
 	 *
 	 * @warning No more transitions can be added with add_transition()
 	 *          after this invocation

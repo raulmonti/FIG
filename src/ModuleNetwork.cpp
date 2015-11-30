@@ -33,6 +33,17 @@
 namespace fig
 {
 
+ModuleNetwork::~ModuleNetwork()
+{
+//	modules.clear();
+
+//	Deleting this vector would be linear in its size.
+//	Since the ModuleNetwork should only be deleted after simulations conclusion,
+///	@warning we ingnore this (potential?) memory leak due to its short life.
+}
+}
+
+
 void
 ModuleNetwork::add_module(ModuleInstance** module)
 {

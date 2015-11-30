@@ -32,6 +32,7 @@
 
 // C++
 #include <type_traits>  // std::is_constructible<>, std::is_integral<>
+#include <algorithm>    // std::find_if()
 #include <iterator>     // std::distance()
 #include <utility>      // std::move()
 #include <ostream>
@@ -309,10 +310,10 @@ private:  // Utils
 	/// Do we have a variable with such name?
 	inline bool is_our_var(const std::string& varName)
 		{
-			auto varFound = std::find_if(begin(pvars_),
-										 end(pvars_),
-										 [&] (const std::shared_ptr<Variable>& var_ptr)
-										 { return varName == var_ptr->name(); });
+			auto varFound = std::find_if(
+								begin(pvars_), end(pvars_),
+								[&] (const std::shared_ptr<Variable<STATE_INTERNAL_TYPE>>& var_ptr)
+								{ return varName == var_ptr->name(); });
 			return end(pvars_) != varFound;
 		}
 };

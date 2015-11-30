@@ -207,7 +207,7 @@ protected:  // Utilities offered to ModuleInstance
 					   Iterator<ValueType, OtherIteratorArgs...> fromClock,
 					   Iterator<ValueType, OtherIteratorArgs...> toClock,
 					   const unsigned& firstClock,
-					   const float& timeLapse) const;
+					   const CLOCK_INTERNAL_TYPE& timeLapse) const;
 
 private:
 
@@ -288,7 +288,7 @@ Transition::handle_clocks(Traial& traial,
 						  Iterator<ValueType, OtherIteratorArgs...> fromClock,
 						  Iterator<ValueType, OtherIteratorArgs...> toClock,
 						  const unsigned& firstClock,
-						  const float& timeLapse) const
+						  const CLOCK_INTERNAL_TYPE& timeLapse) const
 {
 	static_assert(std::is_same< Clock, ValueType >::value,
 				  "ERROR: type missmatch. handle_clocks() takes iterators "

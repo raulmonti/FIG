@@ -52,12 +52,11 @@ namespace fig
  * @see ImportanceFunction
  * @see ImportanceFunctionConcrete
  * @see ImportanceFunctionConcreteCoupled
+ *
+ * @todo Implement, in our next life maybe?
  */
 class ImportanceFunctionConcreteSplit : public ImportanceFunctionConcrete
 {
-
-	/// @todo Implement, in our next life maybe?
-
 public:
 
 	virtual void assess_importance(ModuleNetwork* net)
