@@ -110,9 +110,8 @@ Transition::~Transition()
 }
 
 
-inline void
-Transition::crystallize(const std::unordered_map< std::string, unsigned >&
-						clocksGlobalPositions)
+void
+Transition::crystallize(const PositionsMap& globalClocks)
 {
 	Bitflag indexedPositions(static_cast<Bitflag>(0u));
 
@@ -126,7 +125,7 @@ Transition::crystallize(const std::unordered_map< std::string, unsigned >&
 	// Encode as Bitflag the global positions of the clocks to reset
 	for(const auto& clockName: resetClocksList_) {
 #ifndef NRANGECHK
-		unsigned idx = clocksGlobalPositions.at(clockName);
+		unsigned idx = globalClocks.at(clockName);
 		if (8*sizeof(Bitflag) <= idx) {
 			std::stringstream errMsg;
 			errMsg << "invalid clock index: " << idx << " -- Indices can range";
@@ -135,7 +134,7 @@ Transition::crystallize(const std::unordered_map< std::string, unsigned >&
 			throw out_of_range;
 		}
 #else
-		unsigned idx = clocksGlobalPositions[clockName];
+		unsigned idx = globalClocks[clockName];
 #endif
 		indexedPositions |= static_cast<Bitflag>(1u) << idx;
 	}

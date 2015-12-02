@@ -28,16 +28,19 @@
 
 
 // C++
+#include <utility>  // std::swap()
 #include <iostream>
 // FIG
 #include <Postcondition.h>
 
+using std::cerr;
+using std::endl;
+// ADL
+using std::swap;
+
 
 namespace fig
 {
-
-using std::cerr;
-using std::endl;
 
 void
 Postcondition::fake_evaluation()
@@ -59,6 +62,31 @@ Postcondition::fake_evaluation()
 		cerr << "    errc:     " << e.GetCode()  << endl;
 		throw FigException("bad expression for postcondition");
 	}
+}
+
+
+void
+Postcondition::pin_up_vars(const PositionsMap &globalVars)
+{
+	// Map general expression variables
+	MathExpression::pin_up_vars(globalVars);
+	// Map update variables
+	assert(NAMES == updatesData_);
+	std::vector< size_t > positions(updatesNames_.size());
+	size_t i(0u);
+	for (const auto& name: updatesNames_)
+#ifndef NRANGECHK
+		positions_[i++] = globalVars.at(name);
+#else
+		positions_[i++] = globalVars[name];
+#endif
+	updatesNames_.~vector< std::string >();
+	new (&updatesPositions_) std::vector< size_t >;
+	swap(positions, updatesPositions_);
+	updatesData_ = POSITIONS;
+#ifndef NDEBUG
+	fake_evaluation();  // Reveal parsing errors in this early stage
+#endif
 }
 
 

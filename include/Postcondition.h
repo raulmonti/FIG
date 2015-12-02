@@ -32,11 +32,17 @@
 
 // C++
 #include <vector>
-#include <iterator>  // std::distance()
+#include <iterator>     // std::distance(), std::begin()
+#include <algorithm>    // std::copy() ranges
 #include <type_traits>  // std::is_constructible<>
 // FIG
 #include <MathExpression.h>
 #include <State.h>
+
+// ADL
+using std::copy;
+using std::begin;
+using std::end;
 
 
 namespace fig
@@ -71,12 +77,19 @@ namespace fig
  */
 class Postcondition : public MathExpression
 {
+	friend class Transition;  // for variables mapping callback
+
 	/// Number of variables updated by this postcondition
 	int numUpdates_;
 
-	/// Positions of the variables to which the updates will be applied,
-	/// following the unique order given in the global State 'gState'
-	std::vector<size_t> updatesPositions_;
+	union {
+		/// Names of the variables to which the updates will be applied.
+		std::vector<std::string> updatesNames_;
+		/// Positions of the variables to which the updates will be applied.
+		/// The positional order is ("later") given by the global system State.
+		std::vector<size_t> updatesPositions_;
+	} __attribute__((aligned(4)));
+	enum { NAMES, POSITIONS } updatesData_ __attribute__((aligned(4)));
 
 	/**
 	 * @brief Perform a fake evaluation to exercise our expression
@@ -150,6 +163,17 @@ public:  // Ctors
 				  Iterator2<ValueType2, OtherIteratorArgs2...> from2,
 				  Iterator2<ValueType2, OtherIteratorArgs2...> to2);
 
+protected:  // Modifyers
+
+	/**
+	 * @copydoc fig::MathExpression::pin_up_vars()
+	 * \ifnot NDEBUG
+	 *   @throw FigException if there was some error with our math expression
+	 * \endif
+	 * @note Maps also the positions of the update variables
+	 */
+	void pin_up_vars(const PositionsMap &globalVars);
+
 public:  // Accessors
 
 	/**
@@ -177,19 +201,16 @@ Postcondition::Postcondition(
 	const std::string& exprStr,
 	const Container1<ValueType1, OtherContainerArgs1...>& varNames,
 	const Container2<ValueType2, OtherContainerArgs2...>& updateVars) :
-		MathExpression(exprStr, varNames)
+		MathExpression(exprStr, varNames),
+		updatesNames_(),
+		updatesData_(NAMES)
 {
 	static_assert(std::is_constructible< std::string, ValueType2 >::value,
 				  "ERROR: type missmatch. Postcondition needs containers "
 				  "with variable names");
-	// Setup updates mapping in updatesPositions_
-	for (const auto& name: updateVars)
-		updatesPositions_.emplace_back(gState.position_of_var(name));
-	numUpdates_ = static_cast<int>(updatesPositions_.size());
-#ifndef NDEBUG
-	// Reveal parsing errors in this early stage
-	fake_evaluation();
-#endif
+	// Register update variables names
+	copy(begin(updateVars), end(updateVars), begin(updatesNames_));
+	numUpdates_ = static_cast<int>(updatesNames_.size());
 }
 
 
@@ -207,19 +228,16 @@ Postcondition::Postcondition(
 	Iterator2<ValueType2, OtherIteratorArgs2...> from2,
 	Iterator2<ValueType2, OtherIteratorArgs2...> to2) :
 		MathExpression(exprStr, from1, to1),
-		numUpdates_(static_cast<int>(std::distance(from2, to2)))
+		numUpdates_(static_cast<int>(std::distance(from2, to2))),
+		updatesNames_(numUpdates_),
+		updatesData_(NAMES)
 {
 	static_assert(std::is_constructible< std::string, ValueType2 >::value,
 				  "ERROR: type missmatch. Postcondition needs iterators "
 				  "pointing to variable names");
-	// Setup updates mapping in updatesPositions_
-	do {
-		updatesPositions_.emplace_back(gState.position_of_var(*from2));
-	} while (++from2 != to2);
-#ifndef NDEBUG
-	// Reveal parsing errors in this early stage
-	fake_evaluation();
-#endif
+	// Register update variables names
+	for (unsigned i = 0u ; from2 != to2 ; from2++, i++)
+		updatesNames_[i] = *from2;
 }
 
 } // namespace fig

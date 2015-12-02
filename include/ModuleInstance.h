@@ -105,7 +105,7 @@ protected:
 	 * @brief Report this module has been added to the network
 	 *
 	 *        Used by the ModuleNetwork to fill up the global-aware
-	 *        information needed during later simulations.
+	 *        information needed later during simulations.
 	 *
 	 * @param globalIndex  @copydoc globalIndex_
 	 * @param firstClock   @copydoc firstClock_

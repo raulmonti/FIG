@@ -53,8 +53,8 @@ State<T_>::State(const State<T_>& that) :
 	maxConcreteState_(that.maxConcreteState_)
 {
 	positionOfVar_.reserve(that.size());
-	copy(that.positionOfVar_.begin(), that.positionOfVar_.end(),
-		 std::inserter(positionOfVar_, positionOfVar_.begin()));
+	copy(begin(that.positionOfVar_), end(that.positionOfVar_),
+		 std::inserter(positionOfVar_, begin(positionOfVar_)));
 }
 
 
@@ -64,8 +64,8 @@ State<T_>::State(State<T_>&& that) :
 	maxConcreteState_(move(that.maxConcreteState_))
 {
 	positionOfVar_.reserve(that.size());
-	move(that.positionOfVar_.begin(), that.positionOfVar_.end(),
-		 std::inserter(positionOfVar_, positionOfVar_.begin()));
+	move(begin(that.positionOfVar_), end(that.positionOfVar_),
+		 std::inserter(positionOfVar_, begin(positionOfVar_)));
 	// Clean that up
 	that.pvars_.clear();
 	that.positionOfVar_.clear();
@@ -98,7 +98,7 @@ State<T_>::append(const State& tail)
 							   .append(var_ptr->name())
 							   .append("\" already exists in this state"));
 #endif
-	pvars_.insert(pvars_.end(), begin(tail), end(tail));
+	pvars_.insert(end(pvars_), begin(tail), end(tail));
 	positionOfVar_.insert(begin(tail.positionOfVar_), end(tail.positionOfVar_));
 	build_concrete_bound();
 }

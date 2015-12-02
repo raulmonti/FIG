@@ -34,13 +34,12 @@
 #include <Precondition.h>
 #include <FigException.h>
 
+using std::cerr;
+using std::endl;
+
 
 namespace fig
 {
-
-// ADL
-using std::cerr;
-using std::endl;
 
 void
 Precondition::fake_evaluation()

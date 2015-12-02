@@ -111,6 +111,11 @@ typedef  MUP_BASETYPE  STATE_INTERNAL_TYPE;
 ///       there are ints of up to 1024 bits.
 typedef  uintmax_t  Bitflag;
 
+/// Mapping of clock and variable (names) to their respective positions
+/// in the global arrays handled by the Traials. This is generally known
+/// only after all modules have been added to the ModuleNetwork.
+typedef std::unordered_map< std::string, size_t > PositionsMap;
+
 //
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //

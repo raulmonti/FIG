@@ -80,8 +80,8 @@ protected:
 	const std::string& exprStr_;
 
 	/// Names and positions of the variables in our expression.
-	/// The positional order is given by the State of the system.
-	std::vector< std::pair< const std::string, size_t > > varsMap_;
+	/// The positional order is ("later") given by the global system State.
+	std::vector< std::pair< const std::string, int > > varsMap_;
 
 public:  // Ctors
 
@@ -92,8 +92,10 @@ public:  // Ctors
 	 * @param varnames  Container with names of variables ocurring in exprStr
 	 *
 	 * @throw FigException if exprStr doesn't define a valid expression
-	 * @throw out_of_range if NRANGECHK is not defined and 'varnames' contains
-	 *        some variable name not appearing in the system State
+	 * \ifnot NRANGECHK
+	 *   @throw out_of_range if names of variables not appearing
+	 *                       in our expression were passed
+	 * \endif
 	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
@@ -108,8 +110,10 @@ public:  // Ctors
 	 * @param varnames  Container with names of variables ocurring in exprStr
 	 *
 	 * @throw FigException if exprStr doesn't define a valid expression
-	 * @throw out_of_range if NRANGECHK is not defined and 'varnames' contains
-	 *        some variable name not appearing in the system State
+	 * \ifnot NRANGECHK
+	 *   @throw out_of_range if names of variables not appearing
+	 *                       in our expression were passed
+	 * \endif
 	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
@@ -125,8 +129,10 @@ public:  // Ctors
 	 * @param to       Iterator past last name of variables ocurring in exprStr
 	 *
 	 * @throw FigException if exprStr doesn't define a valid expression
-	 * @throw out_of_range if NRANGECHK is not defined and there is some
-	 *        variable name not appearing in the system State
+	 * \ifnot NRANGECHK
+	 *   @throw out_of_range if names of variables not appearing
+	 *                       in our expression were passed
+	 * \endif
 	 */
 	template< template< typename, typename... > class Iterator,
 			  typename ValueType,
@@ -134,6 +140,29 @@ public:  // Ctors
 	MathExpression(const std::string& exprStr,
 				   Iterator<ValueType, OtherIteratorArgs...> from,
 				   Iterator<ValueType, OtherIteratorArgs...> to);
+
+protected:  // Modifyers
+
+	/**
+	 * @brief Register the global-system-state position of our variables
+	 *
+	 * @param globalVars Mapping of our variables names to their
+	 *                   respective positions in a global array
+	 *
+	 * @warning Intended as callback to be called <b>exactly once</b>
+	 * \ifnot NRANGECHK
+	 *   @throw out_of_range if some of our variables isn't mapped
+	 * \endif
+	 */
+	inline void pin_up_vars(const PositionsMap& globalVars)
+		{
+			for(auto& pair: varsMap_)
+#ifndef NRANGECHK
+				pair.second = globalVars.at(pair.first);
+#else
+				pair.second = globalVars[pair.first];
+#endif
+		}
 
 public:  // Accessors
 
@@ -170,14 +199,15 @@ MathExpression::MathExpression(
 				  "with variable names");
 	// Setup MuParser expression
 	parse_our_expression();
-	// Setup variables mapping
+	// Register our variables
 	for (const auto& name: varnames) {
 #ifndef NRANGECHK
 		if (std::string::npos == exprStr.find(name))
 			throw std::out_of_range(std::string("invalid variable name: \"")
 									.append(name).append("\""));
 #endif
-		varsMap_.emplace_back(std::make_pair(name, gState.position_of_var(name)));
+		varsMap_.emplace_back(std::move(std::make_pair(name, -1)));
+		// Real mapping is later done with pin_up_vars()
 	}
 }
 
@@ -195,15 +225,15 @@ MathExpression::MathExpression(
 				  "with variable names");
 	// Setup MuParser expression
 	parse_our_expression();
-	// Setup variables mapping
+	// Register our variables
 	for (auto& name: varnames) {
 #ifndef NRANGECHK
 		if (std::string::npos == exprStr.find(name))
 			throw std::out_of_range(std::string("invalid variable name: \"")
 									.append(name).append("\""));
 #endif
-		varsMap_.emplace_back(std::make_pair(std::move(name),
-											 gState.position_of_var(name)));
+		varsMap_.emplace_back(std::move(std::make_pair(std::move(name), -1)));
+		// Real mapping is later done with pin_up_vars()
 	}
 	varnames.clear();
 }
@@ -223,18 +253,18 @@ MathExpression::MathExpression(
 				  "pointing to variable names");
 	// Setup MuParser expression
 	parse_our_expression();
-	// Setup variables mapping
+	// Register our variables
 	varsMap_.reserve(std::distance(from,to));
-	do {
+	for (; from != to ; from++) {
 		std::string name = *from;
 #ifndef NRANGECHK
 		if (std::string::npos == exprStr.find(name))
 			throw std::out_of_range(std::string("invalid variable name: \"")
 									.append(name).append("\""));
 #endif
-		varsMap_.emplace_back(std::make_pair(std::move(name),
-											 gState.position_of_var(name)));
-	} while (++from != to);
+		varsMap_.emplace_back(std::move(std::make_pair(name, -1)));
+		// Real mapping is later done with pin_up_vars()
+	}
 }
 
 } // namespace fig

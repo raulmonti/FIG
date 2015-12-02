@@ -108,8 +108,8 @@ public:  // Ctors/Dtor
 	 * @param pos              @copydoc pos
 	 * @param resetClocks      Names of the clocks to reset when transition is taken
 	 *
-	 * @note The resetting clocks information is stored as a vector,
-	 *       to be compressed as Bitflag on *the* call to crystallize()
+	 * @note Resulting transition isn't fit for simulations.
+	 *       Global information still has to be provided through callback()
 	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
@@ -161,23 +161,26 @@ public:  // Read access to some attributes
 protected:  // Utilities offered to ModuleInstance
 
 	/**
-	 * @brief Compress reset clocks "carbon version" as a Bitflag
+	 * @brief Provide the global info needed for simulations
 	 *
-	 * @param clocksGlobalPositions Mapping of the reset clock names to their
-	 *                              respective positions in a global array
+	 * @param globalClocks  Map of clock    names to their global positions
+	 * @param globalVars    Map of variable names to their global positions
 	 *
-	 * @warning Intended as callback to be called <b>exactly once</b>
-	 *
+	 * @warning This should be called exactly once
 	 * \ifnot NDEBUG
-	 *   @throw FigException If called more than once
+	 *   @throw FigException if called more than once
 	 * \endif
 	 * \ifnot NRANGECHK
-	 *   @throw out_of_range if some invalid clock index was given
-	 *                       or some reset clock wasn't mapped
+	 *   @throw out_of_range if some invalid mapping was found
 	 * \endif
 	 */
-	inline void crystallize(const std::unordered_map< std::string, unsigned >&
-							clocksGlobalPositions);
+	inline void callback(const PositionsMap& globalClocks,
+						 const PositionsMap& globalVars)
+		{
+			crystallize(globalClocks);
+			pre.pin_up_vars(globalVars);
+			pos.pin_up_vars(globalVars);
+		}
 
 	/**
 	 * @brief Reset and/or make time elapse in specified range of clocks
@@ -218,6 +221,23 @@ private:
             return static_cast<bool>(
                        resetClocks_ & ((static_cast<Bitflag>(1)) << pos));
         }
+
+	/**
+	 * @brief Compress reset clocks "carbon version" as a Bitflag
+	 *
+	 * @param globalClocks Mapping of the reset clock names to their
+	 *                     respective positions in a global array
+	 *
+	 * @warning Intended as callback to be called <b>exactly once</b>
+	 * \ifnot NDEBUG
+	 *   @throw FigException if called more than once
+	 * \endif
+	 * \ifnot NRANGECHK
+	 *   @throw out_of_range if some invalid clock index was given
+	 *                       or some reset clock wasn't mapped
+	 * \endif
+	 */
+	void crystallize(const PositionsMap& globalClocks);
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //

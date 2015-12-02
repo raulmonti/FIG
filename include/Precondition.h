@@ -48,6 +48,8 @@ namespace fig
  */
 class Precondition : public MathExpression
 {
+	friend class Transition;  // for variables mapping callback
+
 	/**
 	 * @brief Perform a fake evaluation to exercise our expression
 	 * @note  Useful to reveal parsing errors in MathExpression
@@ -61,25 +63,47 @@ public:  // Ctors
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
-	Precondition(const std::string& exprStr,
-				 const Container<ValueType, OtherContainerArgs...>& varnames);
+	inline Precondition(const std::string& exprStr,
+						const Container<ValueType, OtherContainerArgs...>& varnames) :
+		MathExpression(exprStr, varnames)
+		{}
 
 	/// Data ctor from generic rvalue container
 	/// @see Equivalent ctor in MathExpression
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
-	Precondition(const std::string& exprStr,
-				 Container<ValueType, OtherContainerArgs...>&& varnames);
+	inline Precondition(const std::string& exprStr,
+						Container<ValueType, OtherContainerArgs...>&& varnames) :
+		MathExpression(exprStr, varnames)
+		{}
 
 	/// Data ctor from iterator range
 	/// @see Equivalent ctor in MathExpression
 	template< template< typename, typename... > class Iterator,
 			  typename ValueType,
 			  typename... OtherIteratorArgs >
-	Precondition(const std::string& exprStr,
-				 Iterator<ValueType, OtherIteratorArgs...> from,
-				 Iterator<ValueType, OtherIteratorArgs...> to);
+	inline Precondition(const std::string& exprStr,
+						Iterator<ValueType, OtherIteratorArgs...> from,
+						Iterator<ValueType, OtherIteratorArgs...> to) :
+		MathExpression(exprStr, varnames)
+		{}
+
+protected:  // Modifyers
+
+	/**
+	 * @copydoc fig::MathExpression::pin_up_vars()
+	 * \ifnot NDEBUG
+	 *   @throw FigException if there was some error with our math expression
+	 * \endif
+	 */
+	inline void pin_up_vars(const PositionsMap &globalVars)
+		{
+			MathExpression::pin_up_vars(globalVars);
+#ifndef NDEBUG
+			fake_evaluation();  // Reveal parsing errors in this early stage
+#endif
+		}
 
 public:  // Accessors
 
@@ -89,58 +113,6 @@ public:  // Accessors
 	 */
 	bool operator()(const StateInstance& state);
 };
-
-
-// // // // // // // // // // // // // // // // // // // // // // // // // // //
-
-// Template definitions
-
-// If curious about its presence here take a look at the end of VariableSet.cpp
-
-template< template< typename, typename... > class Container,
-		  typename ValueType,
-		  typename... OtherContainerArgs >
-Precondition::Precondition(
-	const std::string& exprStr,
-	const Container<ValueType, OtherContainerArgs...>& varnames) :
-		MathExpression(exprStr, varnames)
-{
-#ifndef NDEBUG
-	// Reveal parsing errors in this early stage
-	fake_evaluation();
-#endif
-}
-
-
-template< template< typename, typename... > class Container,
-		  typename ValueType,
-		  typename... OtherContainerArgs >
-Precondition::Precondition(
-	const std::string& exprStr,
-	Container<ValueType, OtherContainerArgs...>&& varnames) :
-		MathExpression(exprStr, std::move(varnames))
-{
-#ifndef NDEBUG
-	// Reveal parsing errors in this early stage
-	fake_evaluation();
-#endif
-}
-
-
-template< template< typename, typename... > class Iterator,
-		  typename ValueType,
-		  typename... OtherIteratorArgs >
-Precondition::Precondition(
-	const std::string& exprStr,
-	Iterator<ValueType, OtherIteratorArgs...> from,
-	Iterator<ValueType, OtherIteratorArgs...> to) :
-		MathExpression(exprStr, from, to)
-{
-#ifndef NDEBUG
-	// Reveal parsing errors in this early stage
-	fake_evaluation();
-#endif
-}
 
 } // namespace fig
 

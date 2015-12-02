@@ -64,6 +64,7 @@ ModuleInstance::mark_added(const int& globalIndex, const int& firstClock)
 		clocksGlobalPositions[clk.name] = clockGlobalPos++;
 	for (auto& pair: transitions_by_label_)
 		for (auto& tr_ptr: pair.second)
+			/// @todo TODO invoke callback() instead of crystallize()
 			tr_ptr->crystallize(clocksGlobalPositions);
 	clocksGlobalPositions.clear();
 
@@ -160,8 +161,9 @@ ModuleInstance::jump(const Label& label,
 			tr_ptr->pos(traial.state);   // apply postcondition to its state
 			tr_ptr->handle_clocks(       // and update all our clocks.
 				traial,
+				lClocks_.begin(),
+				lClocks_.end(),
 				firstClock_,
-				numClocks_,
 				elapsedTime);
 			break;  // Only one transition could've been enabled, we trust Raúl
 		}
