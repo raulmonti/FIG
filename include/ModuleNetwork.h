@@ -74,7 +74,7 @@ class ModuleNetwork : public Module
 	static std::unique_ptr< ModuleNetwork > instance_;
 
 	/// Private ctor (singleton design pattern)
-	ModuleNetwork() : gState(), lastClockIndex_(0u) {}
+	ModuleNetwork() : gState(), lastClockIndex_(0u), sealed(false) {}
 
 	/// Proclaim to the four winds the uniqueness of the single instance
 	ModuleNetwork(const ModuleNetwork& that)            = delete;
@@ -94,6 +94,9 @@ private:
 	/// Global position of the last clock from the last added module
 	size_t lastClockIndex_;
 
+	/// Whether the system module has already been sealed for simulations
+	bool sealed;
+
 public:  // Access to ModuleNetwork
 
 	/// Global access point to the unique instance of this pool
@@ -112,13 +115,45 @@ public:  // Populating facilities
 	 * @param module Pointer with the new module to add
 	 * @note The argument is reset to nullptr during call for safety reasons.
 	 *       The module instance is thus effectively stolen.
-	 * @deprecated
+	 * @deprecated Use the \ref add_module(std::shared_ptr<ModuleInstance>&)
+	 *             "shared_ptr version" instead
 	 */
 	void add_module(ModuleInstance** module);
 
-	/// @copydoc add_module()
-	/// @note The argument should have been allocated with std::make_shared()
+	/**
+	 * @brief Add a new \ref ModuleInstance "module" to the network
+	 * @param module Pointer with the new module to add
+	 * @note The argument should have been allocated with std::make_shared()
+	 * @note The argument is reset to nullptr during call for safety reasons.
+	 *       The module instance is thus effectively stolen.
+	 */
 	void add_module(std::shared_ptr< ModuleInstance >& module);
+
+public:  // Utils
+
+	virtual inline void accept(ImportanceFunction& ifun)
+		{ ifun.assess_importance(this); }
+
+	/**
+	 * @brief Shut the system model to begin with simulations
+	 *
+	 *        Information, about the global position of the \ref Clock "clocks"
+	 *        and \ref Variable "variables" which belong to each individual
+	 *        \ref ModuleInstance "module", has to be built and broadcasted
+	 *        along the network. This is for instance required to allow
+	 *        modules reading the state of some other module's variables,
+	 *        which could be needed for some transition preconditions.
+	 *
+	 * @note This member should be called by the user exactly once,
+	 *       after all \ref ModuleInstance "module instances" have been added
+	 *       to the network and right before the beginning of simulations.
+	 *
+	 * @warning No more modules can be added with add_module() after this invocation
+	 * \ifnot NDEBUG
+	 *   @throw FigException if called more than once
+	 * \endif
+	 */
+	void seal();
 
 protected:  // Utilities offered to Traials
 
@@ -136,11 +171,6 @@ protected:  // Utilities offered to Traials
 			/// @todo TODO implement!
 			return nullptr;
 		}
-
-public:
-
-	virtual inline void accept(ImportanceFunction& ifun)
-		{ ifun.assess_importance(this); }
 };
 
 } // namespace fig

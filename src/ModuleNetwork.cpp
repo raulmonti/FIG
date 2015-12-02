@@ -41,7 +41,6 @@ ModuleNetwork::~ModuleNetwork()
 //	Since the ModuleNetwork should only be deleted after simulations conclusion,
 ///	@warning we ingnore this (potential?) memory leak due to its short life.
 }
-}
 
 
 void
@@ -63,6 +62,14 @@ ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 	gState.append(state);
 	lastClockIndex_ += module->numClocks;
 	module = nullptr;
+}
+
+
+void
+ModuleNetwork::seal()
+{
+	for(auto& module_ptr: modules)
+		module_ptr->seal(&State::positionOfVar_, gState);
 }
 
 } // namespace fig

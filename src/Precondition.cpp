@@ -61,6 +61,16 @@ Precondition::fake_evaluation()
 }
 
 
+void
+Precondition::pin_up_vars(const PositionsMap &globalVars)
+{
+	MathExpression::pin_up_vars(globalVars);
+#ifndef NDEBUG
+	fake_evaluation();  // Reveal parsing errors in this early stage
+#endif
+}
+
+
 bool
 Precondition::operator()(const StateInstance& state)
 {

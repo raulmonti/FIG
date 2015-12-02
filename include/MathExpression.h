@@ -166,7 +166,7 @@ protected:  // Modifyers
 
 public:  // Accessors
 
-	virtual inline const std::string& expression() const { return exprStr_; }
+	inline const std::string& expression() const { return exprStr_; }
 
 private:  // Class utils
 

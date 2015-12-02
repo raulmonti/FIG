@@ -94,16 +94,10 @@ protected:  // Modifyers
 	/**
 	 * @copydoc fig::MathExpression::pin_up_vars()
 	 * \ifnot NDEBUG
-	 *   @throw FigException if there was some error with our math expression
+	 *   @throw FigException if there was some error in our math expression
 	 * \endif
 	 */
-	inline void pin_up_vars(const PositionsMap &globalVars)
-		{
-			MathExpression::pin_up_vars(globalVars);
-#ifndef NDEBUG
-			fake_evaluation();  // Reveal parsing errors in this early stage
-#endif
-		}
+	void pin_up_vars(const PositionsMap &globalVars);
 
 public:  // Accessors
 

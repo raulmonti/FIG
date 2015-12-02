@@ -52,23 +52,38 @@ ModuleInstance::mark_added(const int& globalIndex, const int& firstClock)
 #else
 		return;
 #endif
-
 	globalIndex_ = globalIndex;
 	firstClock_ = firstClock;
+	return lState_;
+}
 
-	// Compress all our transitions
-	std::unordered_map< std::string, unsigned > clocksGlobalPositions;
-	clocksGlobalPositions.reserve(lClocks_.size());
+
+void
+ModuleInstance::seal(const PositionsMap& globalVars)
+{
+	assert(0 <= globalIndex_);
+	assert(0 <= firstClock_);
+	// Map our clocks to their global positions
+	std::unordered_map< std::string, unsigned > localClocks;
+	localClocks.reserve(lClocks_.size());
 	unsigned clockGlobalPos = firstClock;
 	for (const auto& clk: lClocks_)
-		clocksGlobalPositions[clk.name] = clockGlobalPos++;
+		localClocks[clk.name] = clockGlobalPos++;
+	// Callback all our transitions
 	for (auto& pair: transitions_by_label_)
 		for (auto& tr_ptr: pair.second)
-			/// @todo TODO invoke callback() instead of crystallize()
-			tr_ptr->crystallize(clocksGlobalPositions);
-	clocksGlobalPositions.clear();
+			tr_ptr->callback(localClocks, globalVars);
+	localClocks.clear();
+}
 
-	return lState_;
+
+void
+ModuleInstance::seal(
+	std::function<size_t(const fig::State&,const std::string&)> posOfVar,
+	const fig::State& globalState)
+{
+	/// @todo TODO implement, needs version of Transition::callback()
+	///       which accepts std::function<>
 }
 
 

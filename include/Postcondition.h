@@ -168,7 +168,7 @@ protected:  // Modifyers
 	/**
 	 * @copydoc fig::MathExpression::pin_up_vars()
 	 * \ifnot NDEBUG
-	 *   @throw FigException if there was some error with our math expression
+	 *   @throw FigException if there was some error in our math expression
 	 * \endif
 	 * @note Maps also the positions of the update variables
 	 */

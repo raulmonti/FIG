@@ -32,8 +32,9 @@
 
 // C++
 #include <vector>
-#include <iterator>   // std::begin(), std::end()
-#include <algorithm>  // std::find_if(), std::copy() range
+#include <iterator>     // std::begin(), std::end()
+#include <algorithm>    // std::find_if(), std::copy() range
+#include <functional>   // std::function
 #include <unordered_map>
 #include <type_traits>  // std::is_same<>, std::is_constructible<>
 // FIG
@@ -89,6 +90,12 @@ class ModuleInstance : public Module
 						std::vector< std::shared_ptr< Transition> > >
 		transitions_by_label_;
 
+public:
+
+	const std::string name;
+
+	const size_t numClocks;
+
 private:  // Global info to be defined by the ModuleNetwork
 
 	/// Position of this module in the global ModuleNetwork
@@ -98,37 +105,6 @@ private:  // Global info to be defined by the ModuleNetwork
 	/// where the clocks from all the modules were placed side by side.
 	/// @note This is needed by Traial for mantaining the clocks internal time.
 	int firstClock_;
-
-protected:
-
-	/**
-	 * @brief Report this module has been added to the network
-	 *
-	 *        Used by the ModuleNetwork to fill up the global-aware
-	 *        information needed later during simulations.
-	 *
-	 * @param globalIndex  @copydoc globalIndex_
-	 * @param firstClock   @copydoc firstClock_
-	 *
-	 * @return Const reference to our local state, to append to the global one
-	 *
-	 * @warning Intended as callback to be called <b>exactly once</b>
-	 *
-	 * @warning No more transitions can be added with add_transition()
-	 *          after this invocation
-	 *
-	 * \ifnot NDEBUG
-	 *   @throw FigException if called more than once
-	 * \endif
-	 */
-	const State< STATE_INTERNAL_TYPE >&
-	mark_added(const int& globalIndex, const int& firstClock);
-
-public:
-
-	const std::string name;
-
-	const size_t numClocks;
 
 public:  // Ctors/Dtor and populating facilities
 
@@ -320,7 +296,6 @@ public:  // Utils
 	void jump(const Label& label,
 			  const CLOCK_INTERNAL_TYPE& elapsedTime,
 			  Traial& traial);
-
 private:
 
 	/// Does the clock reside in this ModuleInstance?
@@ -332,6 +307,48 @@ private:
 										   { return clockName == clk.name; });
 			return end(lClocks_) != clockFound;
 		}
+
+protected:  // Callback utilities offered to the ModuleNetwork
+
+	/**
+	 * @brief Report this module has been added to the network
+	 *
+	 *        Used by the ModuleNetwork to fill up the global-aware
+	 *        information needed later during simulations.
+	 *
+	 * @param globalIndex  @copydoc globalIndex_
+	 * @param firstClock   @copydoc firstClock_
+	 *
+	 * @return Const reference to our local state, to append to the global one
+	 *
+	 * @warning No more transitions can be added with add_transition()
+	 *          after this invocation
+	 * @warning Intended as callback to be called <b>exactly once</b>
+	 * \ifnot NDEBUG
+	 *   @throw FigException if called more than once
+	 * \endif
+	 */
+	const State< STATE_INTERNAL_TYPE >&
+	mark_added(const int& globalIndex, const int& firstClock);
+
+	/**
+	 * @brief Fill up the global-aware information needed by simulations
+	 * @param globalVars Map of variable names to their global positions
+	 * @warning Intended as callback to be called <b>exactly once</b>
+	 * @warning mark_added() must have been called beforehand
+	 */
+	void seal(const PositionsMap& globalVars);
+
+	/**
+	 * @brief Fill up the global-aware information needed by simulations
+	 * @param posOfVar    Member function of State which given a variable name
+	 *                    returns the position where this resides internally
+	 * @param globalState Global state instance, owner of the member function
+	 * @warning Intended as callback to be called <b>exactly once</b>
+	 * @warning mark_added() must have been called beforehand
+	 */
+	void seal(std::function<size_t(const fig::State&,const std::string&)> posOfVar,
+			  const fig::State& globalState);
 };
 
 
