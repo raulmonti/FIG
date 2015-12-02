@@ -174,6 +174,16 @@ protected:  // Modifyers
 	 */
 	void pin_up_vars(const PositionsMap &globalVars);
 
+	/**
+	 * @copydoc fig::MathExpression::pin_up_vars()
+	 * \ifnot NDEBUG
+	 *   @throw FigException if there was some error in our math expression
+	 * \endif
+	 * @note Maps also the positions of the update variables
+	 */
+	void pin_up_vars(std::function<size_t(const fig::State&,const std::string&)> posOfVar,
+					 const fig::State& globalState);
+
 public:  // Accessors
 
 	/**

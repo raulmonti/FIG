@@ -36,6 +36,7 @@
 #include <utility>      // std::pair<>, std::move()
 #include <string>
 #include <exception>    // out_of_range exception
+#include <functional>
 // External code
 #include <muParser.h>
 // FIG
@@ -142,6 +143,26 @@ public:  // Ctors
 				   Iterator<ValueType, OtherIteratorArgs...> to);
 
 protected:  // Modifyers
+
+	/**
+	 * @brief Register the global-system-state position of our variables
+	 *
+	 * @param posOfVar    Member function of State which given a variable name
+	 *                    returns the position where this resides internally
+	 * @param globalState Global state instance, owner of the member function
+	 *
+	 * @warning Intended as callback to be called <b>exactly once</b>
+	 * \ifnot NRANGECHK
+	 *   @throw out_of_range if some of our variables isn't mapped
+	 * \endif
+	 */
+	inline void pin_up_vars(
+			std::function<size_t(const fig::State&,const std::string&)> posOfVar,
+			const fig::State& globalState)
+		{
+			for(auto& pair: varsMap_)
+				pair.second = posOfVar(globalState, pair.first);
+		}
 
 	/**
 	 * @brief Register the global-system-state position of our variables

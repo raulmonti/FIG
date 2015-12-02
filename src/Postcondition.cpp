@@ -76,10 +76,33 @@ Postcondition::pin_up_vars(const PositionsMap &globalVars)
 	size_t i(0u);
 	for (const auto& name: updatesNames_)
 #ifndef NRANGECHK
-		positions_[i++] = globalVars.at(name);
+		positions[i++] = globalVars.at(name);
 #else
-		positions_[i++] = globalVars[name];
+		positions[i++] = globalVars[name];
 #endif
+	updatesNames_.~vector< std::string >();
+	new (&updatesPositions_) std::vector< size_t >;
+	swap(positions, updatesPositions_);
+	updatesData_ = POSITIONS;
+#ifndef NDEBUG
+	fake_evaluation();  // Reveal parsing errors in this early stage
+#endif
+}
+
+
+void
+Postcondition::pin_up_vars(
+	std::function<size_t(const fig::State&,const std::string&)> posOfVar,
+	const fig::State& globalState)
+{
+	// Map general expression variables
+	MathExpression::pin_up_vars(posOfVar, globalState);
+	// Map update variables
+	assert(NAMES == updatesData_);
+	std::vector< size_t > positions(updatesNames_.size());
+	size_t i(0u);
+	for (const auto& name: updatesNames_)
+		positions[i++] = posOfVar(globalState, name);
 	updatesNames_.~vector< std::string >();
 	new (&updatesPositions_) std::vector< size_t >;
 	swap(positions, updatesPositions_);

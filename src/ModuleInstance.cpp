@@ -41,52 +41,6 @@
 namespace fig
 {
 
-const State< STATE_INTERNAL_TYPE >&
-ModuleInstance::mark_added(const int& globalIndex, const int& firstClock)
-{
-	assert(0 <= globalIndex);
-	assert(0 <= firstClock);
-	if (0 <= globalIndex_ || 0 <= firstClock_)
-#ifndef NDEBUG
-		throw FigException("this module has already been added to the network");
-#else
-		return;
-#endif
-	globalIndex_ = globalIndex;
-	firstClock_ = firstClock;
-	return lState_;
-}
-
-
-void
-ModuleInstance::seal(const PositionsMap& globalVars)
-{
-	assert(0 <= globalIndex_);
-	assert(0 <= firstClock_);
-	// Map our clocks to their global positions
-	std::unordered_map< std::string, unsigned > localClocks;
-	localClocks.reserve(lClocks_.size());
-	unsigned clockGlobalPos = firstClock;
-	for (const auto& clk: lClocks_)
-		localClocks[clk.name] = clockGlobalPos++;
-	// Callback all our transitions
-	for (auto& pair: transitions_by_label_)
-		for (auto& tr_ptr: pair.second)
-			tr_ptr->callback(localClocks, globalVars);
-	localClocks.clear();
-}
-
-
-void
-ModuleInstance::seal(
-	std::function<size_t(const fig::State&,const std::string&)> posOfVar,
-	const fig::State& globalState)
-{
-	/// @todo TODO implement, needs version of Transition::callback()
-	///       which accepts std::function<>
-}
-
-
 void
 ModuleInstance::add_transition(const Transition& transition)
 {
@@ -183,6 +137,77 @@ ModuleInstance::jump(const Label& label,
 			break;  // Only one transition could've been enabled, we trust Raúl
 		}
 	}
+}
+
+
+bool
+ModuleInstance::is_our_clock(const std::string& clockName)
+{
+	auto clockFound = std::find_if(begin(lClocks_),
+								   end(lClocks_),
+								   [&] (const Clock& clk)
+								   { return clockName == clk.name; });
+	return end(lClocks_) != clockFound;
+}
+
+
+PositionsMap
+ModuleInstance::map_our_clocks()
+{
+	PositionsMap localClocks;
+	if (0 > firstClock_)
+		// mark_added() hasn't been called yet, there's nothing we can do
+		return localClocks;
+	localClocks.reserve(lClocks_.size());
+	unsigned clockGlobalPos = firstClock;
+	for (const auto& clk: lClocks_)
+		localClocks[clk.name] = clockGlobalPos++;
+	return localClocks;
+}
+
+
+const State< STATE_INTERNAL_TYPE >&
+ModuleInstance::mark_added(const int& globalIndex, const int& firstClock)
+{
+	assert(0 <= globalIndex);
+	assert(0 <= firstClock);
+	if (0 <= globalIndex_ || 0 <= firstClock_)
+#ifndef NDEBUG
+		throw FigException("this module has already been added to the network");
+#else
+		return;
+#endif
+	globalIndex_ = globalIndex;
+	firstClock_ = firstClock;
+	return lState_;
+}
+
+
+void
+ModuleInstance::seal(const PositionsMap& globalVars)
+{
+	assert(0 <= globalIndex_);
+	assert(0 <= firstClock_);
+	// Callback all our transitions
+	auto localClocks = map_our_clocks();
+	for (auto& pair: transitions_by_label_)
+		for (auto& tr_ptr: pair.second)
+			tr_ptr->callback(localClocks, globalVars);
+}
+
+
+void
+ModuleInstance::seal(
+	std::function<size_t(const fig::State&,const std::string&)> posOfVar,
+	const fig::State& globalState)
+{
+	assert(0 <= globalIndex_);
+	assert(0 <= firstClock_);
+	// Callback all our transitions
+	auto localClocks = map_our_clocks();
+	for (auto& pair: transitions_by_label_)
+		for (auto& tr_ptr: pair.second)
+			tr_ptr->callback(localClocks, posOfVar, globalState);
 }
 
 } // namespace fig

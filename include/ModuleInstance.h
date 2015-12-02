@@ -299,14 +299,11 @@ public:  // Utils
 private:
 
 	/// Does the clock reside in this ModuleInstance?
-	inline bool is_our_clock(const std::string& clockName)
-		{
-			auto clockFound = std::find_if(begin(lClocks_),
-										   end(lClocks_),
-										   [&] (const Clock& clk)
-										   { return clockName == clk.name; });
-			return end(lClocks_) != clockFound;
-		}
+	bool is_our_clock(const std::string& clockName);
+
+	/// Build mapping of our clock names to their global positions
+	/// @note Requires mark_added() to have been called beforehand
+	PositionsMap map_our_clocks();
 
 protected:  // Callback utilities offered to the ModuleNetwork
 
@@ -341,8 +338,8 @@ protected:  // Callback utilities offered to the ModuleNetwork
 
 	/**
 	 * @brief Fill up the global-aware information needed by simulations
-	 * @param posOfVar    Member function of State which given a variable name
-	 *                    returns the position where this resides internally
+	 * @param posOfVar Member function of State which given a variable name
+	 *                 returns the position where this resides internally
 	 * @param globalState Global state instance, owner of the member function
 	 * @warning Intended as callback to be called <b>exactly once</b>
 	 * @warning mark_added() must have been called beforehand

@@ -33,6 +33,7 @@
 // C++
 #include <vector>
 #include <memory>
+#include <functional>
 // FIG
 #include <core_typedefs.h>
 #include <Module.h>
@@ -115,6 +116,7 @@ public:  // Populating facilities
 	 * @param module Pointer with the new module to add
 	 * @note The argument is reset to nullptr during call for safety reasons.
 	 *       The module instance is thus effectively stolen.
+	 * @warning Do not invoke after seal()
 	 * @deprecated Use the \ref add_module(std::shared_ptr<ModuleInstance>&)
 	 *             "shared_ptr version" instead
 	 */
@@ -126,6 +128,7 @@ public:  // Populating facilities
 	 * @note The argument should have been allocated with std::make_shared()
 	 * @note The argument is reset to nullptr during call for safety reasons.
 	 *       The module instance is thus effectively stolen.
+	 * @warning Do not invoke after seal()
 	 */
 	void add_module(std::shared_ptr< ModuleInstance >& module);
 
@@ -144,7 +147,7 @@ public:  // Utils
 	 *        modules reading the state of some other module's variables,
 	 *        which could be needed for some transition preconditions.
 	 *
-	 * @note This member should be called by the user exactly once,
+	 * @note This member function should be called by the user exactly once,
 	 *       after all \ref ModuleInstance "module instances" have been added
 	 *       to the network and right before the beginning of simulations.
 	 *

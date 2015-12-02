@@ -183,6 +183,31 @@ protected:  // Utilities offered to ModuleInstance
 		}
 
 	/**
+	 * @brief Provide the global info needed for simulations
+	 *
+	 * @param globalClocks Map of clock names to their global positions
+	 * @param posOfVar     Member function of State which given a variable name
+	 *                     returns the position where this resides internally
+	 * @param globalState  Global state instance, owner of the member function
+	 *
+	 * @warning This should be called exactly once
+	 * \ifnot NDEBUG
+	 *   @throw FigException if called more than once
+	 * \endif
+	 * \ifnot NRANGECHK
+	 *   @throw out_of_range if some invalid mapping was found
+	 * \endif
+	 */
+	inline void callback(const PositionsMap& globalClocks,
+						 std::function<size_t(const fig::State&,const std::string&)> posOfVar,
+						 const fig::State& globalState)
+		{
+			crystallize(globalClocks);
+			pre.pin_up_vars(posOfVar, globalState);
+			pos.pin_up_vars(posOfVar, globalState);
+		}
+
+	/**
 	 * @brief Reset and/or make time elapse in specified range of clocks
 	 *
 	 *        Always within the specified range, the clocks declared in
