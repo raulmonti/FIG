@@ -107,7 +107,7 @@ static void // ////////////////////////////////////////////////////////////////
 test_label()
 {
 	fig::Label tau;
-	assert(tau.is_input());
+	assert(tau.is_output());
 	assert(tau.is_tau());
 
 	fig::Label input("a", false);
@@ -118,6 +118,7 @@ test_label()
 	fig::Label output("a", true);
 	assert(!output.is_tau());
 	assert(!output.is_input());
+	assert(output.is_output());
 	assert(tau != output);
 	assert(input == output);
 	assert(!output.same_as(input));

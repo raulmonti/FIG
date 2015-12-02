@@ -54,31 +54,43 @@ public:  // Attributes
 	const std::string str;
 
 	/// Create output labels by default
-	static constexpr bool default_output = false;
+	static constexpr bool default_output = true;
 
 private:
 
-	/// Label cathegory. Notice input is "not output", thus 'tau' is input.
+	/// Label cathegory. Notice input is "not output"
 	bool output_;
 
 public: // Ctors
 
-	/// Tau (aka. empty) labels are input
-	Label() : output_(default_output) {}
+	/// Tau (aka. empty) labels are silent outputs
+	Label() : output_(true) {}
 
 	/**
 	 * @brief Copy data ctor
 	 * @note  Notice output labels can not be empty
 	 * @throw FigException if str.empty() and isOutput
 	 */
-	Label(const std::string& str, bool isOutput = default_output);
+	Label(const std::string& str, bool isOutput = default_output) :
+		str(str),
+		output_(isOutput)
+		{
+			if (!isOutput && this->str.empty())
+				throw FigException("can't construct an empty input label");
+		}
 
 	/**
 	 * @brief Move data ctor
 	 * @note  Notice output labels can not be empty
 	 * @throw FigException if str.empty() and isOutput
 	 */
-	Label(std::string&& str, bool isOutput = default_output);
+	Label(std::string&& str, bool isOutput = default_output) :
+		str(str),
+		output_(isOutput)
+		{
+			if (!isOutput && this->str.empty())
+				throw FigException("can't construct an empty input label");
+		}
 
 public:  // Relational operators
 
