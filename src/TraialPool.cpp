@@ -33,6 +33,8 @@
 namespace fig
 {
 
+// Static variables initialization
+
 std::unique_ptr< TraialPool > TraialPool::instance_ = nullptr;
 
 size_t TraialPool::initialSize_ = (1u) << 12;  // 4K
@@ -41,11 +43,17 @@ size_t TraialPool::sizeChunkIncrement_ = TraialPool::initialSize_ >> 3;  // 1/8
 
 std::forward_list< std::unique_ptr< Traial > > TraialPool::available_traials_;
 
+size_t TraialPool::numVariables = 0u;
+
+size_t TraialPool::numClocks = 0u;
+
+
+// TraialPool class member functions
 
 TraialPool::TraialPool()
 {
 	for(unsigned i = 0 ; i < initialSize_ ; i++)
-		available_traials_.emplace_front(new Traial);
+		available_traials_.emplace_front(new Traial(numVariables, numClocks));
 }
 
 

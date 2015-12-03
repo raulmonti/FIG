@@ -60,6 +60,8 @@ namespace fig
  */
 class TraialPool
 {
+	friend class ModuleNetwork;
+
 	/// Single existent instance of the pool (singleton design pattern)
 	static std::unique_ptr< TraialPool > instance_;
 
@@ -81,10 +83,20 @@ class TraialPool
 	TraialPool(TraialPool&& that)                 = delete;
 	TraialPool& operator=(const TraialPool& that) = delete;
 
+protected:  // Global info handled by the ModuleNetwork
+
+	/// Size of the (symbolic) system global state
+	static size_t numVariables;
+
+	/// Number of clocks in the whole system model
+	static size_t numClocks;
+
 public:  // Access to TraialPool
 
 	/// Global access point to the unique instance of this pool
+	/// @warning ModuleNetwork must have been sealed beforehand
 	static TraialPool& get_instance() {
+		assert(0u < numVariables && 0u < numClocks);
 		if (nullptr == instance_)
 			instance_ = std::unique_ptr< TraialPool >(new TraialPool);
 		return *instance_;

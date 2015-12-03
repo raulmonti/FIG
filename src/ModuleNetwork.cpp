@@ -28,6 +28,7 @@
 
 
 #include <ModuleNetwork.h>
+#include <TraialPool.h>
 
 
 namespace fig
@@ -68,8 +69,15 @@ ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 void
 ModuleNetwork::seal()
 {
-	for(auto& module_ptr: modules)
+	size_t numClocks(0u);
+	// Seal all the modules
+	for(auto& module_ptr: modules) {
 		module_ptr->seal(&State::positionOfVar_, gState);
+		numClocks += module_ptr->numClocks;
+	}
+	// Fill other global info
+	TraialPool::numVariables = gState.size();
+	TraialPool::numClocks = numClocks;
 }
 
 } // namespace fig

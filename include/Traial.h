@@ -114,7 +114,9 @@ private:
 public:  // Ctors/Dtor
 
 	/// Void ctor for resources pool
-	inline Traial() : state(gState.size()), orderedIndex_(gClocks.size())
+	inline Traial(const size_t& stateSize, const size_t& numClocks) :
+			state(stateSize),
+			orderedIndex_(numClocks)
 		{
 			std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 			clocks_.reserve(gClocks.size());
