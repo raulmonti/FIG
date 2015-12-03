@@ -33,6 +33,7 @@
 // C++
 #include <array>
 #include <tuple>
+#include <unordered_map>
 #include <functional>
 // External code
 #include <muParserDef.h>  // MUP_BASETYPE

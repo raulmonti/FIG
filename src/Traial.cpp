@@ -37,8 +37,7 @@
 namespace fig
 {
 
-Traial::Traial(bool initState,
-			   bool initClocks,
+Traial::Traial(bool initClocks,
 			   Bitflag whichClocks,
 			   bool orderTimeouts) :
 	state(gState.size()),
@@ -50,11 +49,6 @@ Traial::Traial(bool initState,
 		{
 			return initClocks && (whichClocks & (static_cast<Bitflag>(1u) << i));
 		};
-	if (initState) {
-		i = 0;
-		for (auto& varp: gState)
-			state[i++] = varp->ini();
-	}
 	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 	clocks_.reserve(gClocks.size());
 	ModuleNetwork& net = ModuleNetwork::get_instance();

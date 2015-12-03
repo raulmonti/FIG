@@ -50,8 +50,6 @@
 namespace fig
 {
 
-extern State< STATE_INTERNAL_TYPE > gState;
-
 /**
  * @brief Mathematical expression with variables mapping
  *
@@ -59,11 +57,6 @@ extern State< STATE_INTERNAL_TYPE > gState;
  *        the <a href="http://muparser.beltoforion.de/">MuParser library</a>.
  *        It requires a separate explicit specification of which literals
  *        within that expression refer to variables names.
- *
- * @note  This class assumes a global State named 'gState'
- *        was defined somewhere within the fig namespace.
- *        Such instance is needed for defining a unique order of the
- *        mapped variables for all objects of this class.
  *
  * @note  Offers generic construction from the following STL containers:
  *        vector, list, forward_list, set, unordered_set, deque.
@@ -156,9 +149,10 @@ protected:  // Modifyers
 	 *   @throw out_of_range if some of our variables isn't mapped
 	 * \endif
 	 */
-	inline void pin_up_vars(
-			std::function<size_t(const fig::State&,const std::string&)> posOfVar,
-			const fig::State& globalState)
+	inline void pin_up_vars(std::function<size_t(const fig::State<STATE_INTERNAL_TYPE>&,
+												 const std::string&)
+										 > posOfVar,
+							const fig::State<STATE_INTERNAL_TYPE>& globalState)
 		{
 			for(auto& pair: varsMap_)
 				pair.second = posOfVar(globalState, pair.first);

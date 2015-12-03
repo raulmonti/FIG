@@ -344,8 +344,10 @@ protected:  // Callback utilities offered to the ModuleNetwork
 	 * @warning Intended as callback to be called <b>exactly once</b>
 	 * @warning mark_added() must have been called beforehand
 	 */
-	void seal(std::function<size_t(const fig::State&,const std::string&)> posOfVar,
-			  const fig::State& globalState);
+	void seal(std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
+									const std::string&)
+						   > posOfVar,
+			  const fig::State<STATE_INTERNAL_TYPE>& globalState);
 };
 
 

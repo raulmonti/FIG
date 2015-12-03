@@ -60,14 +60,6 @@ class ModuleInstance;
  *        Traials should be handled with the TraialPool, to ensure fast
  *        acquisition/release (instead of creation/destruction) of the
  *        instances.
- *
- * @note  This class assumes a global State named 'gState'
- *        was defined somewhere within the fig namespace.
- *        Such instance may be needed for initializations on creation.
- *
- * @note  This class assumes a global std::vector<Clock> named 'gClocks'
- *        was defined somewhere within the fig namespace.
- *        Such instance may be needed for initializations on creation.
  */
 class Traial
 {
@@ -100,7 +92,7 @@ protected:
 public:  // Attributes
 
 	/// \ref Variable "Variables" values instantiation
-	/// (same order as in the global State 'ModuleNetwork::gState')
+	/// (same order as in the system global state)
 	StateInstance state;
 
 protected:
@@ -137,7 +129,6 @@ public:  // Ctors/Dtor
 	/**
 	 * @brief Data ctor
 	 *
-	 * @param initState     Whether to initialize our state with gState info
 	 * @param initClocks    Whether to initialize some clocks
 	 * @param whichClocks   Which clocks to initialize if initClocks is true
 	 * @param orderTimeouts Whether to order the timeouts after initializations
@@ -146,8 +137,7 @@ public:  // Ctors/Dtor
 	 *          the timeouts won't be ordered. To force ordering call with
 	 *          last parameter set to <b>true</b>.
 	 */
-	Traial(bool initState,
-		   bool initClocks = false,
+	Traial(bool initClocks = false,
 		   Bitflag whichClocks = static_cast<Bitflag>(0u),
 		   bool orderTimeouts = false);
 

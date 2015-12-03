@@ -198,8 +198,10 @@ ModuleInstance::seal(const PositionsMap& globalVars)
 
 void
 ModuleInstance::seal(
-	std::function<size_t(const fig::State&,const std::string&)> posOfVar,
-	const fig::State& globalState)
+	std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
+						  const std::string&)
+				 > posOfVar,
+	const fig::State<STATE_INTERNAL_TYPE>& globalState)
 {
 	assert(0 <= globalIndex_);
 	assert(0 <= firstClock_);

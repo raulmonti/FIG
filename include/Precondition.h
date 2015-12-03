@@ -86,7 +86,7 @@ public:  // Ctors
 	inline Precondition(const std::string& exprStr,
 						Iterator<ValueType, OtherIteratorArgs...> from,
 						Iterator<ValueType, OtherIteratorArgs...> to) :
-		MathExpression(exprStr, varnames)
+		MathExpression(exprStr, from, to)
 		{}
 
 protected:  // Modifyers
@@ -105,8 +105,10 @@ protected:  // Modifyers
 	 *   @throw FigException if there was some error in our math expression
 	 * \endif
 	 */
-	void pin_up_vars(std::function<size_t(const fig::State&,const std::string&)> posOfVar,
-					 const fig::State& globalState);
+	void pin_up_vars(std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
+										   const std::string&)
+								  > posOfVar,
+					 const fig::State<STATE_INTERNAL_TYPE>& globalState);
 
 public:  // Accessors
 

@@ -199,8 +199,10 @@ protected:  // Utilities offered to ModuleInstance
 	 * \endif
 	 */
 	inline void callback(const PositionsMap& globalClocks,
-						 std::function<size_t(const fig::State&,const std::string&)> posOfVar,
-						 const fig::State& globalState)
+						 std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
+											   const std::string&)
+									  > posOfVar,
+						 const fig::State<STATE_INTERNAL_TYPE>& globalState)
 		{
 			crystallize(globalClocks);
 			pre.pin_up_vars(posOfVar, globalState);

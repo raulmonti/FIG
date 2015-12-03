@@ -181,8 +181,10 @@ protected:  // Modifyers
 	 * \endif
 	 * @note Maps also the positions of the update variables
 	 */
-	void pin_up_vars(std::function<size_t(const fig::State&,const std::string&)> posOfVar,
-					 const fig::State& globalState);
+	void pin_up_vars(std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>,
+										   const std::string&)
+								  > posOfVar,
+					 const fig::State<STATE_INTERNAL_TYPE>& globalState);
 
 public:  // Accessors
 
