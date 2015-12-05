@@ -27,7 +27,14 @@
 //==============================================================================
 
 
+// C++
+#include <iterator>
+// FIG
 #include <TraialPool.h>
+
+// ADL
+using std::begin;
+using std::end;
 
 
 namespace fig
@@ -71,7 +78,7 @@ std::unique_ptr<Traial> TraialPool::get_traial()
 {
 	if (available_traials_.empty())
 		for(unsigned i = 0 ; i < sizeChunkIncrement_; i++)
-			available_traials_.emplace_front(new Traial);
+			available_traials_.emplace_front(new Traial(numVariables, numClocks));
 	std::unique_ptr< Traial > traial_p(nullptr);
 	available_traials_.front().swap(traial_p);
 	available_traials_.pop_front();
@@ -103,7 +110,7 @@ TraialPool::get_traial_copies(const Traial& traial, unsigned numCopies)
 	// Run out of traials but more needed?
 	if (available_traials_.empty() && 0u < numCopies) {
 		for(unsigned i = 0 ; i < sizeChunkIncrement_ - numCopies; i++)
-			available_traials_.emplace_front(new Traial);
+			available_traials_.emplace_front(new Traial(numVariables, numClocks));
 		for(; 0u < numCopies ; numCopies--)
 			result.emplace_front(new Traial(traial));
 	}
@@ -112,6 +119,17 @@ TraialPool::get_traial_copies(const Traial& traial, unsigned numCopies)
 	 *       instead of std::forward_list, and its splice() method
 	 *       in combination with size() and std::advance()
 	 */
+}
+
+
+void
+TraialPool::ensure_resources(const size_t& numResources)
+{
+	for (auto available = std::distance(begin(available_traials_),
+										end(available_traials_))
+		; available < numResources
+		; available++ )
+		available_traials_.emplace_front(new Traial(numVariables, numClocks));
 }
 
 } // namespace fig

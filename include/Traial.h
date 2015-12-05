@@ -34,7 +34,6 @@
 #include <vector>
 #include <memory>     // std::shared_ptr<>
 #include <algorithm>  // std::swap()
-#include <numeric>    // std::iota()
 #include <utility>    // std::move()
 // FIG
 #include <core_typedefs.h>
@@ -45,9 +44,6 @@
 
 namespace fig
 {
-
-extern State< STATE_INTERNAL_TYPE > gState;
-extern std::vector< Clock >         gClocks;
 
 class ModuleInstance;
 
@@ -76,7 +72,6 @@ protected:
 		const std::string& name;
 		/// Clock's time value
 		float value;
-
 		/// Data ctor
 		Timeout(std::shared_ptr<const ModuleInstance> themodule,
 				const std::string& thename,
@@ -98,7 +93,8 @@ public:  // Attributes
 protected:
 
 	/// \ref Clock "Clocks" values instantiation
-	/// (same order as in the global vector 'ModuleNetwork::gClocks')
+	/// (order given by each \ref ModuleInstance "module" internals,
+	/// and in which order these were added to the network)
 	std::vector< Timeout > clocks_;
 
 private:
@@ -113,24 +109,19 @@ private:
 
 public:  // Ctors/Dtor
 
-	/// Void ctor for resources pool
-	inline Traial(const size_t& stateSize, const size_t& numClocks) :
-			state(stateSize),
-			orderedIndex_(numClocks)
-		{
-			std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
-			clocks_.reserve(gClocks.size());
-			ModuleNetwork& net = ModuleNetwork::get_instance();
-			size_t pos(0u);
-			for (const auto& clk: gClocks)
-				clocks_.emplace_back(net.module_of_clock_at(pos++),
-									 clk.name,
-									 0.0f);
-		}
+	/**
+	 * @brief Void ctor for resources pool
+	 * @param stateSize Symbolic size of the global state,
+	 *                  i.e. # of variables counting from all modules
+	 * @param numClocks Number of clocks in the whole system (from all modules)
+	 */
+	Traial(const size_t& stateSize, const size_t& numClocks);
 
 	/**
 	 * @brief Data ctor
 	 *
+	 * @param stateSize     Symbolic size of the global state
+	 * @param numClocks     Number of clocks in the whole system
 	 * @param initClocks    Whether to initialize some clocks
 	 * @param whichClocks   Which clocks to initialize if initClocks is true
 	 * @param orderTimeouts Whether to order the timeouts after initializations
@@ -139,7 +130,9 @@ public:  // Ctors/Dtor
 	 *          the timeouts won't be ordered. To force ordering call with
 	 *          last parameter set to <b>true</b>.
 	 */
-	Traial(bool initClocks = false,
+	Traial(const size_t& stateSize,
+		   const size_t& numClocks,
+		   bool initClocks = false,
 		   Bitflag whichClocks = static_cast<Bitflag>(0u),
 		   bool orderTimeouts = false);
 
@@ -195,7 +188,7 @@ private:
 	/**
 	 * @brief Sort our clocks in increasing-value order for next_timeout()
 	 * @note <b>Complexity:</b> <i>O(m log(m))</i>, where
-	 *       m is the length of the global vector 'gClocks'
+	 *       m is the total number of clocks in the system
 	 */
 	void
 	reorder_clocks();

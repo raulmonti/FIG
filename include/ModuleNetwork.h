@@ -145,7 +145,7 @@ public:  // Utils
 	 *        \ref ModuleInstance "module", has to be built and broadcasted
 	 *        along the network. This is for instance required to allow
 	 *        modules reading the state of some other module's variables,
-	 *        which could be needed for some transition preconditions.
+	 *        which could be needed for some transitions precondition.
 	 *
 	 * @note This member function should be called by the user exactly once,
 	 *       after all \ref ModuleInstance "module instances" have been added
@@ -157,23 +157,6 @@ public:  // Utils
 	 * \endif
 	 */
 	void seal();
-
-protected:  // Utilities offered to Traials
-
-	/**
-	 * @brief Facility for Traial::Timeout construction
-	 * @param pos Global position of the clock, as in any Traial's internal vector
-	 * @return Pointer to the ModuleInstance which owns the clock located
-	 *         at the (global) position 'pos', or nullptr on error
-	 * \ifnot NRANGECHK
-	 *   @throw std::out_of_range if 'pos' goes beyond scope
-	 * \endif
-	 */
-	inline std::shared_ptr< ModuleInstance > module_of_clock_at(const size_t& pos)
-		{
-			/// @todo TODO implement!
-			return nullptr;
-		}
 };
 
 } // namespace fig

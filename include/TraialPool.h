@@ -167,10 +167,10 @@ public:  // Access to resources (viz Traials)
 public:  // Utils
 
 	/**
-	 * @brief Make sure at least numResources are available for users
-	 *        acquisition without then need for in-between allocations.
+	 * @brief Make sure at least numResources Traials are available for users
+	 *        without the need for in-between allocations.
 	 */
-	void ensure_resources(const size_t numResources);
+	void ensure_resources(const size_t& numResources);
 };
 
 

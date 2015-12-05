@@ -252,6 +252,9 @@ public:  // Utils
 	virtual inline void accept(ImportanceFunction& ifun)
 		{ ifun.assess_importance(this); }
 
+	/// Get all clocks residing in this module as a const vector
+	inline const std::vector< Clock > clocks() { return lClocks_; }
+
 	/**
 	 * @brief Active module jump caused by expiration of our clock "clockName"
 	 *

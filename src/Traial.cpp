@@ -30,35 +30,51 @@
 // C++
 #include <algorithm>   // std::sort()
 #include <functional>  // std::function
+#include <iterator>    // std::begin(), std::end()
+#include <numeric>     // std::iota()
 // FIG
 #include <Traial.h>
+
+// ADL
+using std::begin;
+using std::end;
 
 
 namespace fig
 {
 
-Traial::Traial(bool initClocks,
+Traial::Traial(const size_t& stateSize, const size_t& numClocks) :
+	state(stateSize),
+	orderedIndex_(numClocks)
+{
+	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
+	clocks_.reserve(numClocks);
+	for (const auto& module_ptr: ModuleNetwork::get_instance().modules)
+		for (const auto& clock: module_ptr->clocks())
+			clocks_.emplace_back(module_ptr, clock.name, 0.0f);
+}
+
+
+Traial::Traial(const size_t& stateSize,
+			   const size_t& numClocks,
+			   bool initClocks,
 			   Bitflag whichClocks,
 			   bool orderTimeouts) :
-	state(gState.size()),
-	orderedIndex_(gClocks.size())
+	state(stateSize),
+	orderedIndex_(numClocks)
 {
 	size_t i(0u);
 	std::function<bool(const size_t&)> must_reset =
 		[&](const size_t& i)
-		{
-			return initClocks && (whichClocks & (static_cast<Bitflag>(1u) << i));
-		};
+		{ return initClocks && (whichClocks & (static_cast<Bitflag>(1u) << i)); };
 	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
-	clocks_.reserve(gClocks.size());
-	ModuleNetwork& net = ModuleNetwork::get_instance();
+	clocks_.reserve(numClocks);
 	i = 0;
-	for (const auto& clk: gClocks) {
-		clocks_.emplace_back(net.module_of_clock_at(i),
-							 clk.name,
-							 must_reset(i) ? clk.sample() : 0.0f);
-		i++;
-	}
+	for (const auto& module_ptr: ModuleNetwork::get_instance().modules)
+		for (const auto& clock: module_ptr->clocks())
+			clocks_.emplace_back(module_ptr,
+								 clock.name,
+								 must_reset(i++) ? clock.sample() : 0.0f);
 	if (orderTimeouts)
 		reorder_clocks();
 }
