@@ -47,6 +47,10 @@
 #include <Variable.h>
 #include <VariableInterval.h>
 
+// ADL
+using std::begin;
+using std::end;
+
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
 #endif
@@ -102,7 +106,7 @@ class State
 	/// Concrete size, i.e. cross product of all variables ranges
 	size_t maxConcreteState_;
 
-	/// Lookup { varname --> varpos } needed by MathExpressions
+	/// Lookup { varname --> varpos }
 	std::unordered_map<std::string, size_t> positionOfVar_;  // http://stackoverflow.com/a/13799886
 
 public:  // Ctors/Dtor
@@ -200,12 +204,12 @@ public:  // Accessors
 	/// begin() for range iteration
 	typename std::vector< std::shared_ptr< Variable<T_> > >::const_iterator
 	begin() const
-		{ return pvars_.begin(); }
+		{ return std::begin(pvars_); }
 
 	/// end() for range iteration
 	typename std::vector< std::shared_ptr< Variable<T_> > >::const_iterator
 	end() const
-		{ return pvars_.end(); }
+		{ return std::end(pvars_); }
 
 	/**
 	 * @brief Retrieve position of variable named "varname" if existent
@@ -311,10 +315,10 @@ private:  // Utils
 	inline bool is_our_var(const std::string& varName)
 		{
 			auto varFound = std::find_if(
-								begin(pvars_), end(pvars_),
-								[&] (const std::shared_ptr<Variable<STATE_INTERNAL_TYPE>>& var_ptr)
+								::begin(pvars_), ::end(pvars_),
+								[&] (const std::shared_ptr<Variable<T_>>& var_ptr)
 								{ return varName == var_ptr->name(); });
-			return end(pvars_) != varFound;
+			return ::end(pvars_) != varFound;
 		}
 };
 
@@ -337,7 +341,7 @@ State<T_>::State(const Container<ValueType, OtherContainerArgs...>& vars) :
 				  "ERROR: type missmatch. State can only be constructed "
 				  "from Variables, VariableDefinitions or VariableDeclarations");
 	size_t i(0u);
-	auto last = positionOfVar_.begin();
+	auto last = ::begin(positionOfVar_);
 	for (const auto& e: vars) {
 		pvars_.emplace_back(std::make_shared< VariableInterval< T_ > >( e ));
 		last = positionOfVar_.emplace_hint(last, pvars_[i]->name_, i);
@@ -361,7 +365,7 @@ State<T_>::State(Container<ValueType, OtherContainerArgs...>&& vars) :
 				  "constructed from another State or from a container "
 				  "with instances or raw pointers to VariableInterval objects");
 	size_t i(0u);
-	auto last = positionOfVar_.begin();
+	auto last = ::begin(positionOfVar_);
 	for (auto& e: vars) {
 		pvars_.emplace_back( std::make_shared< VariableInterval<T_> >( std::move( e ) ) );
 		last = positionOfVar_.emplace_hint(last, pvars_[i]->name_, i);
@@ -386,7 +390,7 @@ State<T_>::State(Container<ValueType*, OtherContainerArgs...>&& vars) :
 				  "constructed from another State or from a container "
 				  "with instances or raw pointers to VariableInterval objects");
 	size_t i(0u);
-	auto last = positionOfVar_.begin();
+	auto last = begin(positionOfVar_);
 	for (auto& e: vars) {
 		pvars_.emplace_back(std::shared_ptr< VariableInterval< T_ > >( e ));
 		last = positionOfVar_.emplace_hint(last, pvars_[i]->name_, i);
@@ -412,7 +416,7 @@ State<T_>::State(Iterator<ValueType, OtherIteratorArgs...> from,
 				  "ERROR: type missmatch. State can only be constructed "
 				  "from Variables, VariableDefinitions or VariableDeclarations");
 	size_t i(0);
-	auto last = positionOfVar_.begin();
+	auto last = begin(positionOfVar_);
 	do {
 		pvars_[i] = std::make_shared< VariableInterval<T_> >(*from);
 		last = positionOfVar_.emplace_hint(last, pvars_[i]->name_, i);

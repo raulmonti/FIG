@@ -28,11 +28,11 @@
 
 
 // C++
-#include <iostream>
+#include <sstream>    // std::stringstream
+#include <stdexcept>  // std::out_of_range
 // FIG
 #include <Transition.h>
 
-using std::out_of_range;
 // ADL
 using std::begin;
 using std::end;
@@ -77,24 +77,24 @@ Transition::Transition(Transition&& that) :
 }
 
 
-Transition&
-Transition::operator=(Transition that)
-{
-	std::swap(label_, that.label_);
-	std::swap(triggeringClock_, that.triggeringClock_);
-	std::swap(pre, that.pre);
-	std::swap(pos, that.pos);
-	std::swap(resetClocksData_, that.resetClocksData_);
-	switch (resetClocksData_) {
-	case CARBON:
-		std::swap(resetClocksList_, that.resetClocksList_);
-		break;
-	case CRYSTAL:
-		std::swap(resetClocks_, that.resetClocks_);
-		break;
-	}
-	return *this;
-}
+// Transition&
+// Transition::operator=(Transition that)
+// {
+// 	std::swap(label_, that.label_);
+// 	std::swap(triggeringClock_, that.triggeringClock_);
+// 	std::swap(pre, that.pre);
+// 	std::swap(pos, that.pos);
+// 	std::swap(resetClocksData_, that.resetClocksData_);
+// 	switch (resetClocksData_) {
+// 	case CARBON:
+// 		std::swap(resetClocksList_, that.resetClocksList_);
+// 		break;
+// 	case CRYSTAL:
+// 		std::swap(resetClocks_, that.resetClocks_);
+// 		break;
+// 	}
+// 	return *this;
+// }
 
 
 Transition::~Transition()
@@ -128,10 +128,9 @@ Transition::crystallize(const PositionsMap& globalClocks)
 		unsigned idx = globalClocks.at(clockName);
 		if (8*sizeof(Bitflag) <= idx) {
 			std::stringstream errMsg;
-			errMsg << "invalid clock index: " << idx << " -- Indices can range";
-			errMsg << " up to " << 8*sizeof(Bitflag);
-			std::cerr << errMsg;
-			throw out_of_range;
+			errMsg << "invalid clock index: " << idx;
+			errMsg << " -- Indices can range up to " << 8*sizeof(Bitflag);
+			throw std::out_of_range(errMsg.str());
 		}
 #else
 		unsigned idx = globalClocks[clockName];

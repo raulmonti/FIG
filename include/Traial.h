@@ -39,7 +39,6 @@
 #include <core_typedefs.h>
 #include <State.h>
 #include <Clock.h>
-#include <ModuleNetwork.h>
 
 
 namespace fig
@@ -132,7 +131,7 @@ public:  // Ctors/Dtor
 	 */
 	Traial(const size_t& stateSize,
 		   const size_t& numClocks,
-		   bool initClocks = false,
+		   bool initClocks,
 		   Bitflag whichClocks = static_cast<Bitflag>(0u),
 		   bool orderTimeouts = false);
 

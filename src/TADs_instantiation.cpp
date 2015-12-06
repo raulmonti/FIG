@@ -427,9 +427,9 @@ test_transition()
 
 	// Populate global clocks vector
 	typedef fig::DistributionParameters Params;
-	std::list< std::string > clockNames = {"c1", "c2", "c3"};
+	std::vector< std::string > clockNames = {"c1", "c2", "c3"};
 	fig::Label input("a");
-	fig::Transition trans2(input, "", pre, pos, std::set<std::string>(clockNames[0]));
+	fig::Transition trans2(input, "", pre, pos, std::set<std::string>({clockNames[0]}));
 	fig::Label output("a", true);
 	std::set<std::string> resetClocks3 = { clockNames[2] };
 //	fig::Transition trans(output, "",  // would fail assertion

@@ -34,6 +34,7 @@
 #include <numeric>     // std::iota()
 // FIG
 #include <Traial.h>
+#include <ModuleNetwork.h>
 
 // ADL
 using std::begin;

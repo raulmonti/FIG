@@ -32,10 +32,9 @@
 
 // C++
 #include <string>
-#include <sstream>    // std::stringstream
 #include <iterator>   // std::begin(), std::end()
-#include <exception>
 #include <algorithm>  // std::find_if()
+#include <functional>
 #include <unordered_map>
 // C
 #include <cassert>
@@ -49,7 +48,6 @@
 #include <Traial.h>
 
 
-using std::out_of_range;
 // ADL
 using std::begin;
 using std::end;
@@ -136,8 +134,8 @@ public:  // Ctors/Dtor
 	/// Move ctor
 	Transition(Transition&&);
 
-	/// Copy assignment with copy&swap
-	Transition& operator=(Transition);
+	/// Can't copy assign Label due to its const string name
+	Transition& operator=(Transition) = delete;
 
 	/// Dtor
 	~Transition();
@@ -241,14 +239,6 @@ protected:  // Utilities offered to ModuleInstance
 
 private:
 
-	/// Is the clock at position 'pos' marked for reset?
-    inline bool must_reset(const unsigned& pos) const
-        {
-            assert(pos < 8*sizeof(Bitflag));  // check for overflow
-            return static_cast<bool>(
-                       resetClocks_ & ((static_cast<Bitflag>(1)) << pos));
-        }
-
 	/**
 	 * @brief Compress reset clocks "carbon version" as a Bitflag
 	 *
@@ -337,9 +327,17 @@ Transition::handle_clocks(Traial& traial,
 						  const unsigned& firstClock,
 						  const CLOCK_INTERNAL_TYPE& timeLapse) const
 {
+	// Is the clock at position 'pos' marked for reset?
+//	std::function<bool(const unsigned&)> must_reset =
+	auto must_reset =
+		[&] (const unsigned& pos) -> bool
+		{
+			assert(pos < 8*sizeof(Bitflag));  // check for overflow
+			return resetClocks_ & ((static_cast<Bitflag>(1)) << pos);
+		};
 	static_assert(std::is_same< Clock, ValueType >::value,
 				  "ERROR: type missmatch. handle_clocks() takes iterators "
-				  "pointing to Clock objects.");
+				  "pointing to Clock objects");
 	unsigned thisClock(firstClock);
 	while (fromClock != toClock) {
 		if (must_reset(thisClock))

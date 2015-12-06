@@ -72,7 +72,7 @@ ModuleNetwork::seal()
 	size_t numClocks(0u);
 	// Seal all the modules
 	for(auto& module_ptr: modules) {
-		module_ptr->seal(&State::positionOfVar_, gState);
+		module_ptr->seal(&State<STATE_INTERNAL_TYPE>::position_of_var, gState);
 		numClocks += module_ptr->numClocks;
 	}
 	// Fill other global info

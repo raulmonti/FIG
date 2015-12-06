@@ -32,6 +32,7 @@
 
 // C++
 #include <vector>
+#include <memory>       // std::shared_ptr
 #include <iterator>     // std::begin(), std::end()
 #include <algorithm>    // std::find_if(), std::copy() range
 #include <functional>   // std::function
@@ -40,6 +41,7 @@
 // FIG
 #include <core_typedefs.h>
 #include <Module.h>
+#include <Clock.h>
 #include <State.h>
 #include <Transition.h>
 
@@ -55,6 +57,8 @@ using std::copy;
 
 namespace fig
 {
+
+class Traial;
 
 /**
  * @brief Single system module, possibly open regarding synchronization
@@ -82,12 +86,12 @@ class ModuleInstance : public Module
 
 	/// Transitions semi-ordered by their triggering \ref Clock "clock"
 	std::unordered_map< std::string,
-						std::vector< std::shared_ptr< Transition> > >
+						std::vector< std::shared_ptr< Transition > > >
 		transitions_by_clock_;
 
 	/// Transitions semi-ordered by their synchronization \ref Label "label"
 	std::unordered_map< std::string,
-						std::vector< std::shared_ptr< Transition> > >
+						std::vector< std::shared_ptr< Transition > > >
 		transitions_by_label_;
 
 public:
@@ -125,7 +129,7 @@ public:  // Ctors/Dtor and populating facilities
 			  typename ValueType1,
 			  typename... OtherContainerArgs1 >
 	ModuleInstance(const std::string& thename,
-				   const State& state,
+				   const State< STATE_INTERNAL_TYPE >& state,
 				   const Container1< ValueType1, OtherContainerArgs1... >& clocks);
 
 	/**
@@ -141,15 +145,18 @@ public:  // Ctors/Dtor and populating facilities
 	 * @param transitions Transitions defined in this module
 	 *
 	 * @note All arguments are copied
+	 * @note This is template of variadic templates <3
 	 */
-	template< template< typename, typename... > class Container1,
-			  typename ValueType1,
-			  typename... OtherContainerArgs1 >
-	template< template< typename, typename... > class Container2,
-			  typename ValueType2,
-			  typename... OtherContainerArgs2 >
+	template<
+		template< typename, typename... > class Container1,
+			typename ValueType1,
+			typename... OtherContainerArgs1,
+		template< typename, typename... > class Container2,
+			typename ValueType2,
+			typename... OtherContainerArgs2
+	>
 	ModuleInstance(const std::string& thename,
-				   const State& state,
+				   const State< STATE_INTERNAL_TYPE >& state,
 				   const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 				   const Container2< ValueType2, OtherContainerArgs2... >& transitions);
 
@@ -167,15 +174,18 @@ public:  // Ctors/Dtor and populating facilities
 	 * @param transitions Transitions defined in this module
 	 *
 	 * @note Variables and clocks are copied, transitions are moved
+	 * @note This is template of variadic templates <3
 	 */
-	template< template< typename, typename... > class Container1,
-			  typename ValueType1,
-			  typename... OtherContainerArgs1 >
-	template< template< typename, typename... > class Container2,
-			  typename ValueType2,
-			  typename... OtherContainerArgs2 >
+	template<
+		template< typename, typename... > class Container1,
+			typename ValueType1,
+			typename... OtherContainerArgs1,
+		template< typename, typename... > class Container2,
+			typename ValueType2,
+			typename... OtherContainerArgs2
+	>
 	ModuleInstance(const std::string& thename,
-				   const State& state,
+				   const State< STATE_INTERNAL_TYPE >& state,
 				   const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 				   Container2< ValueType2, OtherContainerArgs2... >&& transitions);
 
@@ -193,15 +203,18 @@ public:  // Ctors/Dtor and populating facilities
 	 * @param transitions Transitions defined in this module
 	 *
 	 * @note Variables and clocks are copied, transitions are moved
+	 * @note This is template of variadic templates <3
 	 */
-	template< template< typename, typename... > class Container1,
-			  typename ValueType1,
-			  typename... OtherContainerArgs1 >
-	template< template< typename, typename... > class Container2,
-			  typename ValueType2,
-			  typename... OtherContainerArgs2 >
+	template<
+		template< typename, typename... > class Container1,
+			typename ValueType1,
+			typename... OtherContainerArgs1,
+		template< typename, typename... > class Container2,
+			typename ValueType2,
+			typename... OtherContainerArgs2
+	>
 	ModuleInstance(const std::string& thename,
-				   const State& state,
+				   const State< STATE_INTERNAL_TYPE >& state,
 				   const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 				   Container2< ValueType2*, OtherContainerArgs2... >&& transitions);
 
@@ -219,15 +232,18 @@ public:  // Ctors/Dtor and populating facilities
 	 * @param to       Iterator past last  transition defined in this module
 	 *
 	 * @note All arguments are copied
+	 * @note This is template of variadic templates <3
 	 */
-	template< template< typename, typename... > class Container,
-			  typename ValueTypeContainer,
-			  typename... OtherContainerArgs >
-	template< template< typename, typename... > class Iterator,
-			  typename ValueTypeIterator,
-			  typename... OtherIteratorArgs >
+	template<
+		template< typename, typename... > class Container,
+			typename ValueTypeContainer,
+			typename... OtherContainerArgs,
+		template< typename, typename... > class Iterator,
+			typename ValueTypeIterator,
+			typename... OtherIteratorArgs
+	>
 	ModuleInstance(const std::string& thename,
-				   const State& state,
+				   const State< STATE_INTERNAL_TYPE >& state,
 				   const Container< ValueTypeContainer, OtherContainerArgs... >& clocks,
 				   Iterator< ValueTypeIterator, OtherIteratorArgs... > from,
 				   Iterator< ValueTypeIterator, OtherIteratorArgs... > to);
@@ -365,11 +381,11 @@ template< template< typename, typename... > class Container1,
 		  typename... OtherContainerArgs1 >
 ModuleInstance::ModuleInstance(
 	const std::string& thename,
-	const State& state,
+	const State< STATE_INTERNAL_TYPE >& state,
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks) :
+		lState_(state),
 		name(thename),
 		numClocks(std::distance(begin(clocks), end(clocks))),
-		lState_(state),
 		globalIndex_(-1),
 		firstClock_(-1)
 {
@@ -381,20 +397,21 @@ ModuleInstance::ModuleInstance(
 }
 
 
-template< template< typename, typename... > class Container1,
-		  typename ValueType1,
-		  typename... OtherContainerArgs1 >
-template< template< typename, typename... > class Container2,
-		  typename ValueType2,
-		  typename... OtherContainerArgs2 >
+template<
+	template< typename, typename... > class Container1,
+		typename ValueType1,
+		typename... OtherContainerArgs1,
+	template< typename, typename... > class Container2,
+		typename ValueType2,
+		typename... OtherContainerArgs2 >
 ModuleInstance::ModuleInstance(
 	const std::string& thename,
-	const State& state,
+	const State< STATE_INTERNAL_TYPE >& state,
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 	const Container2< ValueType2, OtherContainerArgs2... >& transitions) :
+		lState_(state),
 		name(thename),
 		numClocks(std::distance(begin(clocks), end(clocks))),
-		lState_(state),
 		globalIndex_(-1),
 		firstClock_(-1)
 {
@@ -415,20 +432,21 @@ ModuleInstance::ModuleInstance(
 }
 
 
-template< template< typename, typename... > class Container1,
-		  typename ValueType1,
-		  typename... OtherContainerArgs1 >
-template< template< typename, typename... > class Container2,
-		  typename ValueType2,
-		  typename... OtherContainerArgs2 >
+template<
+	template< typename, typename... > class Container1,
+		typename ValueType1,
+		typename... OtherContainerArgs1,
+	template< typename, typename... > class Container2,
+		typename ValueType2,
+		typename... OtherContainerArgs2 >
 ModuleInstance::ModuleInstance(
 	const std::string& thename,
-	const State& state,
+	const State< STATE_INTERNAL_TYPE >& state,
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 	Container2< ValueType2, OtherContainerArgs2... >&& transitions) :
+		lState_(state),
 		name(thename),
 		numClocks(std::distance(begin(clocks), end(clocks))),
-		lState_(state),
 		globalIndex_(-1),
 		firstClock_(-1)
 {
@@ -451,20 +469,21 @@ ModuleInstance::ModuleInstance(
 }
 
 
-template< template< typename, typename... > class Container1,
-		  typename ValueType1,
-		  typename... OtherContainerArgs1 >
-template< template< typename, typename... > class Container2,
-		  typename ValueType2,
-		  typename... OtherContainerArgs2 >
+template<
+	template< typename, typename... > class Container1,
+		typename ValueType1,
+		typename... OtherContainerArgs1,
+	template< typename, typename... > class Container2,
+		typename ValueType2,
+		typename... OtherContainerArgs2 >
 ModuleInstance::ModuleInstance(
 	const std::string& thename,
-	const State& state,
+	const State< STATE_INTERNAL_TYPE >& state,
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 	Container2< ValueType2*, OtherContainerArgs2... >&& transitions) :
+		lState_(state),
 		name(thename),
 		numClocks(std::distance(begin(clocks), end(clocks))),
-		lState_(state),
 		globalIndex_(-1),
 		firstClock_(-1)
 {
@@ -489,21 +508,22 @@ ModuleInstance::ModuleInstance(
 }
 
 
-template< template< typename, typename... > class Container,
-		  typename ValueTypeContainer,
-		  typename... OtherContainerArgs >
-template< template< typename, typename... > class Iterator,
-		  typename ValueTypeIterator,
-		  typename... OtherIteratorArgs >
+template<
+	template< typename, typename... > class Container,
+		typename ValueTypeContainer,
+		typename... OtherContainerArgs,
+	template< typename, typename... > class Iterator,
+		typename ValueTypeIterator,
+		typename... OtherIteratorArgs >
 ModuleInstance::ModuleInstance(
 	const std::string& thename,
-	const State& state,
+	const State< STATE_INTERNAL_TYPE >& state,
 	const Container< ValueTypeContainer, OtherContainerArgs... >& clocks,
 	Iterator< ValueTypeIterator, OtherIteratorArgs... > from,
 	Iterator< ValueTypeIterator, OtherIteratorArgs... > to) :
+		lState_(state),
 		name(thename),
 		numClocks(std::distance(begin(clocks), end(clocks))),
-		lState_(state),
 		globalIndex_(-1),
 		firstClock_(-1)
 {

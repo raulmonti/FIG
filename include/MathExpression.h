@@ -35,7 +35,7 @@
 #include <iterator>     // std::distance()
 #include <utility>      // std::pair<>, std::move()
 #include <string>
-#include <exception>    // out_of_range exception
+#include <stdexcept>    // std::out_of_range
 #include <functional>
 // External code
 #include <muParser.h>
@@ -71,13 +71,13 @@ protected:
 
 	Expression expr_;
 
-	const std::string& exprStr_;
+	std::string exprStr_;
 
 	/// Names and positions of the variables in our expression.
 	/// The positional order is ("later") given by the global system State.
-	std::vector< std::pair< const std::string, int > > varsMap_;
+	std::vector< std::pair< std::string, int > > varsMap_;
 
-public:  // Ctors
+public:  // Ctors/Dtor
 
 	/**
 	 * @brief Data ctor from generic lvalue container
@@ -134,6 +134,8 @@ public:  // Ctors
 	MathExpression(const std::string& exprStr,
 				   Iterator<ValueType, OtherIteratorArgs...> from,
 				   Iterator<ValueType, OtherIteratorArgs...> to);
+
+	inline virtual ~MathExpression() { varsMap_.clear(); expr_.~Parser(); }
 
 protected:  // Modifyers
 

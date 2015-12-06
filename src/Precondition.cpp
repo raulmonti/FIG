@@ -29,7 +29,6 @@
 
 // C++
 #include <iostream>
-#include <exception>
 // FIG
 #include <Precondition.h>
 #include <FigException.h>

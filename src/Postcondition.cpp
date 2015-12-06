@@ -42,6 +42,69 @@ using std::swap;
 namespace fig
 {
 
+Postcondition::Postcondition(const Postcondition& that) :
+	MathExpression(that),
+	numUpdates_(that.numUpdates_),
+	updatesData_(that.updatesData_)
+{
+	switch (updatesData_) {
+	case NAMES:
+		updatesNames_ = that.updatesNames_;
+		break;
+	case POSITIONS:
+		updatesPositions_ = that.updatesPositions_;
+		break;
+	}
+}
+
+
+Postcondition::Postcondition(Postcondition&& that) :
+	MathExpression(std::forward<MathExpression&&>(that)),
+	numUpdates_(std::move(that.numUpdates_)),
+	updatesData_(std::move(that.updatesData_))
+{
+	switch (updatesData_) {
+	case NAMES:
+		swap(updatesNames_, that.updatesNames_);
+		break;
+	case POSITIONS:
+		swap(updatesPositions_, that.updatesPositions_);
+		break;
+	}
+}
+
+
+Postcondition&
+Postcondition::operator =(Postcondition that)
+{
+	MathExpression::operator=(std::move(that));
+	swap(numUpdates_, that.numUpdates_);
+	swap(updatesData_, that.updatesData_);
+	switch (updatesData_) {
+	case NAMES:
+		swap(updatesNames_, that.updatesNames_);
+		break;
+	case POSITIONS:
+		swap(updatesPositions_, that.updatesPositions_);
+		break;
+	}
+	return *this;
+}
+
+
+Postcondition::~Postcondition()
+{
+	switch (updatesData_) {
+	case NAMES:
+		updatesNames_.~vector< std::string >();
+		break;
+	case POSITIONS:
+		updatesPositions_.~vector< size_t >();
+		break;
+	}
+}
+
+
 void
 Postcondition::fake_evaluation()
 {

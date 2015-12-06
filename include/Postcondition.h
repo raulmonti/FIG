@@ -98,7 +98,7 @@ class Postcondition : public MathExpression
 	 */
 	void fake_evaluation();
 
-public:  // Ctors
+public:  // Ctors/Dtor
 
 	/**
 	 * @brief Data ctor from generic lvalue containers
@@ -118,13 +118,14 @@ public:  // Ctors
 	 *          a variable name not appearing in the system State
 	 * \endif
 	 */
-	template< template< typename, typename... > class Container1,
-				  typename ValueType1,
-				  typename... OtherContainerArgs1,
-			  template< typename, typename... > class Container2,
-				  typename ValueType2,
-				  typename... OtherContainerArgs2
-			>
+	template<
+		template< typename, typename... > class Container1,
+			typename ValueType1,
+			typename... OtherContainerArgs1,
+		template< typename, typename... > class Container2,
+			typename ValueType2,
+			typename... OtherContainerArgs2
+	>
 	Postcondition(const std::string& exprStr,
 				  const Container1<ValueType1, OtherContainerArgs1...>& varNames,
 				  const Container2<ValueType2, OtherContainerArgs2...>& updateVars);
@@ -150,18 +151,31 @@ public:  // Ctors
 	 *          a variable name not appearing in the system State
 	 * \endif
 	 */
-	template< template< typename, typename... > class Iterator1,
-				  typename ValueType1,
-				  typename... OtherIteratorArgs1,
-			  template< typename, typename... > class Iterator2,
-				  typename ValueType2,
-				  typename... OtherIteratorArgs2
-			>
+	template<
+		template< typename, typename... > class Iterator1,
+			typename ValueType1,
+			typename... OtherIteratorArgs1,
+		template< typename, typename... > class Iterator2,
+			typename ValueType2,
+			typename... OtherIteratorArgs2
+	>
 	Postcondition(const std::string& exprStr,
 				  Iterator1<ValueType1, OtherIteratorArgs1...> from1,
 				  Iterator1<ValueType1, OtherIteratorArgs1...> to1,
 				  Iterator2<ValueType2, OtherIteratorArgs2...> from2,
 				  Iterator2<ValueType2, OtherIteratorArgs2...> to2);
+
+	/// Copy ctor
+	Postcondition(const Postcondition& that);
+
+	/// Move ctor
+	Postcondition(Postcondition&& that);
+
+	/// Copy assignment with copy&swap
+	Postcondition& operator=(Postcondition that);
+
+	/// Dtor
+	virtual ~Postcondition();
 
 protected:  // Modifyers
 
@@ -181,7 +195,7 @@ protected:  // Modifyers
 	 * \endif
 	 * @note Maps also the positions of the update variables
 	 */
-	void pin_up_vars(std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>,
+	void pin_up_vars(std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
 										   const std::string&)
 								  > posOfVar,
 					 const fig::State<STATE_INTERNAL_TYPE>& globalState);

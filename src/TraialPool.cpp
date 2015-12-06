@@ -125,8 +125,8 @@ TraialPool::get_traial_copies(const Traial& traial, unsigned numCopies)
 void
 TraialPool::ensure_resources(const size_t& numResources)
 {
-	for (auto available = std::distance(begin(available_traials_),
-										end(available_traials_))
+	for (size_t available = std::distance(begin(available_traials_),
+										  end(available_traials_))
 		; available < numResources
 		; available++ )
 		available_traials_.emplace_front(new Traial(numVariables, numClocks));

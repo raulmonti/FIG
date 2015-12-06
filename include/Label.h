@@ -30,7 +30,10 @@
 #ifndef LABEL_H
 #define LABEL_H
 
+// C++
 #include <string>
+// FIG
+#include <FigException.h>
 
 
 namespace fig

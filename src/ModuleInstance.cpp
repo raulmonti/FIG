@@ -29,13 +29,18 @@
 
 // C++
 #include <string>
-#include <algorithm>  // find_if()
-#include <unordered_map>
+#include <iterator>   // std::begin(), std::end()
+#include <algorithm>  // std::find_if()
 // C
 #include <cassert>
 // FIG
 #include <FigException.h>
 #include <ModuleInstance.h>
+#include <Traial.h>
+
+// ADL
+using std::begin;
+using std::end;
 
 
 namespace fig
@@ -100,13 +105,13 @@ ModuleInstance::jump(const std::string& clockName,
 					 Traial& traial)
 {
 	auto transitions = transitions_by_clock_[clockName];
-	for(auto& tr_ptr: transitions) {
+	for (auto& tr_ptr: transitions) {
 		if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
 			tr_ptr->pos(traial.state);   // apply postcondition to its state
 			tr_ptr->handle_clocks(       // and update all our clocks.
 				traial,
-				lClocks_.begin(),
-				lClocks_.end(),
+				begin(lClocks_),
+				end(lClocks_),
 				firstClock_,
 				elapsedTime);
 			// Finally notify the broadcasted output label
@@ -124,14 +129,16 @@ ModuleInstance::jump(const Label& label,
 					 Traial& traial)
 {
 	assert(label.is_output());
+	if (label.is_tau())
+		return;
 	auto transitions = transitions_by_label_[label.str];
-	for(auto& tr_ptr: transitions) {
+	for (auto& tr_ptr: transitions) {
 		if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
 			tr_ptr->pos(traial.state);   // apply postcondition to its state
 			tr_ptr->handle_clocks(       // and update all our clocks.
 				traial,
-				lClocks_.begin(),
-				lClocks_.end(),
+				begin(lClocks_),
+				end(lClocks_),
 				firstClock_,
 				elapsedTime);
 			break;  // Only one transition could've been enabled, we trust Raúl
@@ -159,7 +166,7 @@ ModuleInstance::map_our_clocks()
 		// mark_added() hasn't been called yet, there's nothing we can do
 		return localClocks;
 	localClocks.reserve(lClocks_.size());
-	unsigned clockGlobalPos = firstClock;
+	unsigned clockGlobalPos = firstClock_;
 	for (const auto& clk: lClocks_)
 		localClocks[clk.name] = clockGlobalPos++;
 	return localClocks;
