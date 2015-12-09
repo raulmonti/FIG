@@ -1,15 +1,12 @@
-MODULE modone
+module modone
 
+    x : clock;
+    y : clock;
+    z : clock;
+    t : [0..3] init 0;
 
-VARS
+    [a!] t==0  @ z -> (t'=1);
+    [b!] t==0  @ y -> (t'=2);
+    [c!] t==2  @ x -> (t'=3);
 
-    clock x=        Normal(2,-2);
-    clock y=        Normal(2,-2);
-    clock z=        Normal(2,-2);
-    int [0..3]      t = 0;
-
-TRANS
-
-    [a!] t==0  : z -> t=1;
-    [b!] t==0  : y -> t=2;
-    [c!] t==2  : x -> t=3;
+end module

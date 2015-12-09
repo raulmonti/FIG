@@ -6,24 +6,19 @@
 #include <map>
 #include <set>
 #include <tuple>
+#include "iosacompliance.h"
 
 using namespace std;
 
 namespace parser{
 
 
-/**/
-typedef enum    { mARIT
-                , mBOOL
-                , mNOTYPE
-                } Type; 
-
 
 
 class parsingContext{
 
     // Map from module name to variable name to type:
-    map<string, map<string,Type>> typeMap;
+    map<string, map<string,int>> typeMap;
     // Map from modules to clock names:
     map<string,set<string>> clckMap;
 
@@ -38,7 +33,7 @@ public:
     /*
     */
     bool
-    add_var(string module, string name, Type t);
+    add_var(string module, string name, int t);
 
     /*
     */
@@ -52,7 +47,7 @@ public:
 
     /*
     */
-    parser::Type
+    int
     get_var_type(string module, string name);
 
     /*
@@ -62,7 +57,7 @@ public:
 
     /*
     */
-    vector<pair<string,Type>>
+    vector<pair<string,int>>
     get_type_list(string module);
 
 };

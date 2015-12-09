@@ -13,14 +13,21 @@
 #include<string>
 #include<set>
 #include<map>
+#include<utility> // for pair type
 #include "ast.h"
-#include "parsingContext.h"
 #include "smtsolver.h"
 #include "config.h"
 
 using namespace std;
 
 namespace parser{
+
+/**/
+typedef enum    { T_ARIT
+                , T_BOOL
+                , T_CLOCK
+                , T_NOTYPE
+                } Type; 
 
 
 //==============================================================================
@@ -30,7 +37,8 @@ namespace parser{
 
 class Verifier{
 
-    parsingContext * mPc;
+    /* Map from variable/clock/const name to (type, module) */
+    map< string, pair<Type,string> > mPc;
 
 public:
 

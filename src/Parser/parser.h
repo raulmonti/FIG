@@ -26,17 +26,18 @@ namespace parser{
 typedef enum    { MEOF    // my end of file symbol
                 , NUM     // float type numbers
                 , KPROP   // Keyword PROPERTY
-                , KMOD    // keyword MODULE
-                , KEMOD   // keyword ENDMODULE
-                , KLBL    // keyword for label sections
+                , KMOD    // keyword "module"
+                , KEMOD   // keyword "end module"
                 , KCLOCK  // keyword clock
-                , KVS     // keyword VAR
-                , KTS     // keyword TRANS
                 , KNDIST  // keyword Normal
                 , KEDIST  // keyword Exponential
                 , KUDIST  // keyword Uniform
-                , KVTYPE  // keyword Int, Float
+                , KINIT   // Keyword "init"
+                , ITYPE   // keyword Int
+                , BTYPE   // Keyword Bool
+                , KCONST  // keyword const
                 , NAME    // strings starting with letters
+                , XNAME   // strings starting with letters and ended by '.
                 , WS      // white spaces (' \t')
                 , NL      // new line ('\n')
                 , INT     // integer
@@ -55,15 +56,17 @@ typedef enum    { MEOF    // my end of file symbol
                 , COP     // <= >= < >
                 , BOP     // == !=
                 , BOOLV   // true false
-                , BINOP   // || &&
+                , AMP     // &
+                , MID     // |
                 , ASSIG   // =
                 , DOT     // .
-                , ARROW   // >>
+                , ARROW   // ->
                 , RNG     // range ..
                 , EMARK   // !
                 , QMARK   // ?
-                , LDIR    // label direction (input or output)
                 , COMMENT // C style comment (/* ... */)
+                , AT      // @
+                , AP      // '
                 , DUM     // dummy symbol 
                 } Token;
 
@@ -77,11 +80,11 @@ typedef enum{ _EOF            // End of File
             , _DUMMY
             , _MODEL
             , _MODULE
-            , _VARSEC
-            , _TRANSEC          // Transitions section
+            , _CONST
             , _VARIABLE
             , _TRANSITION       // Transition
             , _CLOCK
+            , _SETC
             , _KEYWORD
             , _NAME
             , _INT
@@ -121,9 +124,8 @@ typedef enum{ _EOF            // End of File
    the printable representation of e.
 */
 static const char symTable[][25] =
-    {"EOF","DUMMY","MODEL","MODULE", 
-     "VARS","TRANS","VARIABLE",
-     "TRANSITION","CLOCK","KEYWORD","NAME","INT","REAL",
+    {"EOF","DUMMY","MODEL","MODULE", "CONSTANT", "VARIABLE",
+     "TRANSITION","CLOCK", "SET CLOCK", "KEYWORD","NAME","INT","REAL",
      "SEPARATOR", "DISTRIBUTION",
      "IDENTIFIER", "TYPE","RANGE", "INITIALIZATION" ,"ACTION",
      "INPUT/OUTPUT",
@@ -323,17 +325,15 @@ private:
     int
     rModule();
 
-    /* @Rule: Modules clocks section */
+    /**
+     * @brief rule for constant declarations.
+     */
     int
-    rClkSec();
+    rConstant();
 
-    /* @Rule: Modules variables section */
+    /* @Rule:  Clock seting */
     int
-    rVarSec();
-
-    /* @Rule: Modules transitions section */
-    int
-    rTranSec();
+    rSetClock();
 
     /* @Rule: CLOCK DEFINITION */
     int
@@ -342,14 +342,6 @@ private:
     /* @Rule: Distribution */
     int
     rDistr();
-
-    /* @Rule: MODULES LABELS SECTION*/
-    int
-    rLblSec();
-
-    /* @Rule: LABEL DEFINITION */
-    int
-    rLblDef();
 
     /* @RULE: normal distribution */
     int
@@ -366,14 +358,6 @@ private:
     /* @Rule: VARIABLE DEFINITION. */
     int
     rVarDef();
-
-    /**/
-    int
-    rInit();
-
-    /* @Rule: RANGE. */
-    int
-    rRange();
 
     /* @Rule: TRANSITION. */
     int
@@ -402,14 +386,6 @@ private:
     /**/
     int
     rValue();
-
-    /**/
-    int
-    rClkList();
-
-    /**/
-    int
-    rAssigList();
 
     /* @Rule: ASSIGNMENT. */
     int

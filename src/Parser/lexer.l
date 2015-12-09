@@ -30,31 +30,29 @@
 
 -?[0-9]+([\.][0-9]+)?     { return parser::NUM; }
 
-MODULE      { return parser::KMOD; }
+module          { return parser::KMOD; }
 
-ENDMODULE   { return parser::KEMOD; }
+("const")       {return parser::KCONST; }
 
-PROPERTY    { return parser::KPROP; }
+("end module")  { return parser::KEMOD; }
 
-LABELS      { return parser::KLBL; }
+init        { return parser::KINIT; }
 
-VARS        { return parser::KVS; }
+Norm        { return parser::KNDIST; }
 
-TRANS       { return parser::KTS; }
+Exp         { return parser::KEDIST; }
 
-Normal      { return parser::KNDIST; }
+Uni         { return parser::KUDIST; }
 
-Exponential { return parser::KEDIST; }
+("int")     { return parser::ITYPE; }
+("bool")    { return parser::BTYPE; }
 
-Uniform     { return parser::KUDIST; }
-
-("int"|"float"|"bool")  { return parser::KVTYPE; }
-
-("clock")               { return parser::KCLOCK; }
-
-("input"|"output")      { return parser::LDIR; }
+("clock")       {return parser::KCLOCK; }
 
 ("true"|"false")        { return parser::BOOLV; }
+
+
+[a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z0-9]+)?'   { return parser::XNAME; }
 
 [a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z0-9]+)?    { return parser::NAME; }
 
@@ -67,6 +65,10 @@ Uniform     { return parser::KUDIST; }
 ;           { return parser::SCLN; }
 
 ,           { return parser::CMM; }
+
+@           { return parser::AT; }
+
+'           { return parser::AP; }
 
 [{]         { return parser::OB; }
 
@@ -89,7 +91,8 @@ Uniform     { return parser::KUDIST; }
 ("*"|"/"|"%")   { return parser::DIVOP; }
 ("=")           { return parser::ASSIG; }
 ("..")          { return parser::RNG; }
-("&&"|"||")     { return parser::BINOP; }
+("&")           { return parser::AMP; }
+("|")           { return parser::MID; }
 ("?")           { return parser::QMARK; }
 ("!")           { return parser::EMARK; }
 

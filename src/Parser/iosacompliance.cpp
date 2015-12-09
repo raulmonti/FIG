@@ -18,12 +18,10 @@
 #include "ast.h"
 #include "exceptions.h"
 #include "smtsolver.h"
-#include "parsingContext.h"
 
 
-
-/*FIXME decide if the following definition is useful and do the same with
-        the rest of long error messages if so.
+/*TODO decide if the following definition is useful and do the same with
+       the rest of long error messages if so.
 */
 
 #define W_0(l1,l2) "[WARNING] Nondeterminism may be present if we reach states"\
@@ -42,7 +40,7 @@ namespace parser{
 //==============================================================================
 
 
-/** @brief: check if the transition parsed into an AST corresponds to an
+/** @brief  Check if the transition parsed into an AST corresponds to an
  *          output transition.
  */
 bool
@@ -211,8 +209,7 @@ Verifier::~Verifier(void){}
 int 
 Verifier::verify(AST* ast){
 
-    /* Fill up the parsing context.
-       Also checks for the correct declaration of variables. */
+    /* Fill up a type map (mPc) for variables, constants, and clocks. */
     fill_maps(ast);
 
     try{
@@ -250,71 +247,40 @@ int
 Verifier::names_uniqueness(AST* ast){
 
     string error_list = "";
-    vector<AST*> modules = ast->get_list(_MODULE);
     set<AST*,bool(*)(AST*,AST*)> names 
         ([]( AST* a, AST* b){return a->lxm < b->lxm;});
+    vector<AST*> modules = ast->get_list(_MODULE);
+    vector<AST*> constants = ast->get_list(_CONST);
+    vector<AST*> variables = ast->get_list(_VARIABLE);
+    vector<AST*> clocks = ast->get_list(_CLOCK);
 
-    /* Unique Modules names. */
+    vector<AST*> nameList;    
     for(int i = 0; i < modules.size(); ++i){
-        AST* a_name = modules[i]->get_first(_NAME);
-        if(!names.insert(a_name).second){
-            AST* duplicated = *names.find(a_name);
-            error_list.append(("[ERROR] Duplicated module name '")
-                + a_name->p_name() + "', at " + a_name->p_pos() 
-                + ". Previously defined at " 
+        nameList.push_back(modules[i]->get_first(_NAME));
+    }
+    for(int i = 0; i < constants.size(); ++i){
+        nameList.push_back(constants[i]->get_first(_NAME));
+    }
+    for(int i = 0; i < variables.size(); ++i){
+        nameList.push_back(variables[i]->get_first(_NAME));
+    }
+    for(int i = 0; i < clocks.size(); ++i){
+        nameList.push_back(clocks[i]->get_first(_NAME));
+    }
+
+    for(int i = 0; i < nameList.size(); ++i){
+        if(!names.insert(nameList[i]).second){
+            AST* duplicated = *names.find(nameList[i]);
+            error_list.append(("[ERROR] Duplicated name '")
+                + nameList[i]->p_name() + "', at " + nameList[i]->p_pos() 
+                + ". Previously found at " 
                 + duplicated->p_pos() + ".\n");
         }
     }
-    /* Unique variables and clock names inside each module. */
-    set<AST*,bool(*)(AST*,AST*)> cNames 
-        ([]( AST* a, AST* b){return a->lxm < b->lxm;}); /*Clock names.*/
-    for(int i = 0; i < modules.size();i++){
-        names.clear();  /*Check uniqueness only inside modules.*/
-        cNames.clear();
-        vector<AST*> vars = modules[i]->get_all_ast(_VARIABLE);
-        for(int j = 0; j < vars.size(); j++){ // for each clock
-            AST* a_name = vars[j]->get_first(_NAME);
-            if (!names.insert(a_name).second){
-                AST* duplicated = *names.find(a_name);
-                error_list.append(("[ERROR] Duplicated variable name '")
-                    + a_name->p_name() + "', at " + a_name->p_pos() 
-                    + ". Previously defined at " 
-                    + duplicated->p_pos() + ".\n");
-            } 
-        } 
-        vector<AST*> clks = modules[i]->get_all_ast(_CLOCK);
-        for(int j = 0; j < clks.size(); j++){ /*For each clock.*/
-            AST* a_name = clks[j]->get_first(_NAME);
-            if (!cNames.insert(a_name).second){
-                AST* duplicated = *cNames.find(a_name);
-                error_list.append(("[ERROR] Duplicated clock name '")
-                    + a_name->p_name() + "', at " + a_name->p_pos() 
-                    + ". Previously defined at " 
-                    + duplicated->p_pos() + ".\n");
-            }
-            if(names.count(a_name)){
-                AST* duplicated = *names.find(a_name);
-                error_list.append(("[ERROR] Duplicated variable name '")
-                    + a_name->p_name() + "', at " + duplicated->p_pos() 
-                    + ". Previous clock with same name defined at " 
-                    + a_name->p_pos() + ".\n");
-            }
-        }
-    }
-    /*Unique property names:*/
-    names.clear();
-    vector<AST*> properties = ast->get_all_ast(_PROPERTY);
-    for(int i = 0; i < properties.size(); i++){
-        AST *name = properties[i]->get_first(_NAME);
-        if(!names.insert(name).second){
-            AST *duplicated = *names.find(name);
-            error_list.append("[ERROR] Duplicated property name '"
-                + name->p_name() + "' at " + duplicated->p_pos() + " and "
-                + name->p_pos() + ".\n");
-        }
-    }
+
+    // Exception id found duplicated names:
     if(error_list != ""){
-        throw error_list; /*If names are repeated we can not continue.*/
+        throw error_list;
     }
     return 1;
 }
@@ -626,6 +592,23 @@ Verifier::check_input_determinism(AST *ast){
 
 //==============================================================================
 
+/**
+ * @brief Translate the parsed type string into a type in our Type enumeration.
+ */
+Type
+str2Type(string str){
+    string result = "";
+    if(str == "int"){
+        result = T_ARIT;
+    }else if(str == "bool"){
+        result = T_BOOL;
+    }else if(str == "clock"){
+        result = T_CLOCK;
+    }else{
+        result = T_NOTYPE;
+    }
+    return result;
+}
 
 /**
  * @brief Fill the context @mPc for @ast. Check for variables declarations
@@ -635,56 +618,44 @@ Verifier::check_input_determinism(AST *ast){
 int
 Verifier::fill_maps(AST *ast){
 
-    /*
-      NOTE: names of variables and clock can be accessed outside of its
-            modules by using <module name>.<variable/clock name>. In the
-            type maps this names will be kept under the special module name 
-            '#property'. FIXME: we should not be able to access clock names
-            for comparisons or reading of their values.
-    */
-
     string error_list = "";
 
+    vector<AST*> constants = ast->get_all_ast(_CONST);
     vector<AST*> modules = ast->get_all_ast(_MODULE);
+    
+    // Fill map with constants.
+    for(int i = 0; i < constants.size(); ++i){
+        string name = constants[i]->get_lexeme(_NAME);
+        Type t = str2Type(constants[i]->get_lexeme(_TYPE));
+        mPc.insert( pair(name,pair(  t,"")));
+    }
+
     for(int i = 0; i < modules.size(); i++){
         vector<AST*> variables = modules[i]->get_all_ast(_VARIABLE);
         vector<AST*> clocks = modules[i]->get_all_ast(_CLOCK);
         string module = modules[i]->get_lexeme(_NAME);
-        // Fill the variable type maps
+        // Fill map with variables.
         for(int j=0; j < variables.size(); j++){
             string name = variables[j]->get_lexeme(_NAME);
             string type = variables[j]->get_lexeme(_TYPE);
-            if(type == "int"){
-                AST* range = variables[j]->get_first(_RANGE);
-                if(range){
-                    vector<string> limits = range->get_list_lexemes(_NUM);
-                    assert(limits.size() == 2);
-                    if(stoi(limits[0]) > stoi(limits[1])){
-                        string pos = variables[j]->get_pos();
-                        error_list.append("[ERROR] Empty range in variable "
-                            "declaration at " + pos + ".\n");
-                    }
-                }else{
-                    string pos = variables[j]->get_pos();
-                    
-                    error_list.append("[ERROR] Missing range for integer "
-                        "variable declaration at " + pos + " (" 
-                        + module + ").\n");
-                }
-                mPc->add_var(module,name,mARIT);
-                mPc->add_var("#property",module+"."+name,mARIT);
-            }else if (type == "bool"){
-                mPc->add_var(module,name,mBOOL);
-                mPc->add_var("#property",module+"."+name,mBOOL);
+            if(type == "Bool"){
+                mPc.insert(pair(name,pair(T_BOOL,module)));
             }else{
-                assert(false);      // FIXME is it good to do this?
-            }
+                AST* range = variables[j]->get_first(_RANGE);
+                assert(range);
+                vector<string> limits = range->get_list_lexemes(_NUM);
+                assert(limits.size() == 2);
+                if(stoi(limits[0]) > stoi(limits[1])){
+                    string pos = variables[j]->get_pos();
+                    error_list.append("[ERROR] Empty range in variable "
+                        "declaration at " + pos + ".\n");
+                }
+                mPc.insert(pair(name,pair(T_ARIT,module)));
         }
-        //Fill clocks map
+        // Fill map with clocks. 
         for(int j=0; j < clocks.size(); j++){
             string name = clocks[j]->get_lexeme(_NAME);
-            mPc->add_clock(module, name);
-            mPc->add_clock("#property", module+"."+name);
+            mPc.insert(pair(name, pair(T_CLOCK, module)));
         }
     }
 
@@ -701,7 +672,7 @@ Verifier::fill_maps(AST *ast){
 /**
  *  @brief Type check expressions in the model.
  *  @throw String error.
- *  @param ast Should be an AST instance of a parsed model.
+ *  @param [in] ast Should be an AST instance of a parsed model.
  */
 
 int
@@ -709,73 +680,62 @@ Verifier::type_check(AST *ast){
 
     string error_list = "";
     int result = 1;
-    vector<AST*> modules = ast->get_list(_MODULE);
-    for(int i = 0; i < modules.size(); i++){
-        vector<AST*> variables = modules[i]->get_all_ast(_VARIABLE);
-        vector<AST*> clocks = modules[i]->get_all_ast(_CLOCK);
-        string module = modules[i]->get_lexeme(_NAME);
 
-        // Type check initializations:
-        for(int j=0;j<variables.size();j++){
-            string type = variables[j]->get_lexeme(_TYPE);
-            AST* init = variables[j]->get_first(_INIT);
-            if(init){
-                try{
-                    Type t = get_type( init->get_first(_EXPRESSION), module);
-                    if( ((type == "bool") && t != mBOOL) || 
-                        ((type == "int" || type == "float") && t != mARIT)){
-                        AST* v = variables[j]->get_first(_NAME);
-                        throw "[ERROR] Wrong type for initialization of "
-                              "variable '" + v->p_name() + "', at " 
-                              + v->p_pos() + ".\n";
-                    }
-                }catch(string s){
-                    error_list.append(s);
-                }
+    vector<AST*> variables = ast->get_all_ast(_VARIABLE);
+    vector<AST*> clocks = ast->get_all_ast(_CLOCK);
+
+    for(int i=0;i<variables.size();i++){
+        string vname = variables[i]->get_lexeme(_NAME);
+        Type v_t = mPc[vname].first;
+        AST* init = variables[j]->get_first(_INIT);
+        if(init){
+            Type e_t = get_type( init->get_first(_EXPRESSION));
+            if(v_t != e_t){
+                error_list.append( "[ERROR] Wrong type for "
+                    "initialization of variable '" + vname 
+                    + "', at " + v->p_pos() + ".\n");
             }
         }
+    }
 
-        // Type check transitions preconditions:
-        vector<AST*> trans = modules[i]->get_all_ast(_TRANSITION);
-        for(int j =0; j < trans.size();++j){
-            AST *expr = trans[j]->get_first(_EXPRESSION);
-            if (expr){
-                try{
-                    if( mBOOL != get_type(expr, module)){
-                        throw "[ERROR] Wrong type for transitions "
-                              "precondition at " + expr->p_pos() 
-                              + ". It should be boolean but found "
-                              "arithmetic instead.\n";
-                    }
-                }catch(string err){
-                    error_list.append(err);
-                }
+    // Type check transitions preconditions:
+    vector<AST*> trans = ast->get_all_ast(_TRANSITION);
+    for(int i =0; i < trans.size(); ++i){
+        AST *expr = trans[i]->get_first(_EXPRESSION);
+        if (expr){
+            if( T_BOOL != get_type(expr, module)){
+                error_list.append( "[ERROR] Wrong type for transitions "
+                    "precondition at " + expr->p_pos() 
+                    + ". It should be boolean but found "
+                    "arithmetic instead.\n");
             }
         }
+    }
         
-        // Type check assignments in post conditions
-        for(int j = 0; j < trans.size(); ++j){
-            vector<AST*> assigs = trans[j]->get_all_ast(_ASSIG);
-            for(int k = 0; k < assigs.size(); ++k){
-                AST* var = assigs[k]->get_first(_NAME);
-                string vname = var->p_name();
-                AST* expr = assigs[k]->get_first(_EXPRESSION);
-                try{
-                    Type t1 = mPc->get_var_type(module,vname);
-                    Type t2 = get_type(expr,module);
-                    if(t1 != t2){
-                        throw "[ERROR] Wrong type in assignment of variable "
-                              + vname + " at " + var->p_pos() + ".\n";
-                    }
-                }catch(string err){
-                    error_list.append(err);
-                }catch(out_of_range err){
-                    error_list.append( "[ERROR] Undeclared variable " 
-                                     + vname + " at " + var->p_pos() 
-                                     + ".\n");
+    // Type check assignments in post conditions
+    for(int i = 0; i < trans.size(); ++i){
+        vector<AST*> assigs = trans[i]->get_all_ast(_ASSIG);
+        vector<AST*> assigs = trans[i]->get_all_ast(_SETC);
+        for(int j = 0; j < assigs.size(); ++j){
+            AST* var = assigs[j]->get_first(_NAME);
+            string vname = assigs[j]->get_lexeme(_NAME);
+            AST* expr = assigs[j]->get_first(_EXPRESSION);
+            try{
+                Type t_v = mPc[vname].first;
+                Type t_e = get_type(expr);
+                if(t_v != t_e){
+                    throw "[ERROR] Wrong type in assignment of variable "
+                          + vname + " at " + var->p_pos() + ".\n";
                 }
+            }catch(string err){
+                error_list.append(err);
+            }catch(out_of_range err){
+                error_list.append( "[ERROR] Undeclared variable " 
+                                 + vname + " at " + var->p_pos() 
+                                 + ".\n");
             }
         }
+    }
 
         /* Check that enabling clock and reseting clocks are really clocks */
         for(int j = 0; j < trans.size(); j++){
