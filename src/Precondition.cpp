@@ -55,7 +55,8 @@ Precondition::fake_evaluation()
 		cerr << "    token:    " << e.GetToken() << endl;
 		cerr << "    position: " << e.GetPos()   << endl;
 		cerr << "    errc:     " << e.GetCode()  << endl;
-		throw FigException("bad expression for precondition");
+		throw FigException("bad expression for precondition, "
+						   "did you remember to map all the variables?");
 	}
 }
 
@@ -83,9 +84,14 @@ Precondition::pin_up_vars(
 #endif
 }
 
+
 bool
 Precondition::operator()(const StateInstance& state)
 {
+#ifndef NDEBUG
+	if (!pinned())
+		throw FigException("pin_up_vars() hasn't been called yet");
+#endif
 	// Bind state's variables to our expression...
 	for (const auto& pair: varsMap_)
 		expr_.DefineVar(pair.first,  const_cast<STATE_INTERNAL_TYPE*>(

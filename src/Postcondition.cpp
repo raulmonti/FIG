@@ -123,7 +123,8 @@ Postcondition::fake_evaluation()
 		cerr << "    token:    " << e.GetToken() << endl;
 		cerr << "    position: " << e.GetPos()   << endl;
 		cerr << "    errc:     " << e.GetCode()  << endl;
-		throw FigException("bad expression for postcondition");
+		throw FigException("bad expression for postcondition, "
+						   "did you remember to map all the variables?");
 	}
 }
 
@@ -181,6 +182,10 @@ Postcondition::pin_up_vars(
 void
 Postcondition::operator()(StateInstance& state)
 {
+#ifndef NDEBUG
+	if (!pinned())
+		throw FigException("pin_up_vars() hasn't been called yet");
+#endif
 	// Bind state variables to our expression...
 	for (const auto& pair: varsMap_)
 		expr_.DefineVar(pair.first,  const_cast<STATE_INTERNAL_TYPE*>(

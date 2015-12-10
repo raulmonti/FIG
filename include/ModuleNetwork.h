@@ -31,6 +31,7 @@
 #define MODULENETWORK_H
 
 // C++
+#include <mutex>  // std::call_once(), std::once_flag
 #include <vector>
 #include <memory>
 #include <functional>
@@ -41,6 +42,10 @@
 #include <State.h>
 #include <Variable.h>
 #include <Clock.h>
+
+#if __cplusplus < 201103L
+#  error "C++11 standard required, please compile with -std=c++11\n"
+#endif
 
 
 namespace fig
@@ -61,7 +66,10 @@ namespace fig
  *        ModuleInstance objects as these are created. For that reason
  *        this class follows the
  *        <a href="https://sourcemaking.com/design_patterns/singleton">
- *        singleton design pattern</a>.
+ *        singleton design pattern</a>. It was implemented using C++11
+ *        facilities to make it
+ *        <a href="http://silviuardelean.ro/2012/06/05/few-singleton-approaches/">
+ *        thread safe</a>.
  *
  * @todo remove_module() facility? Seems pointless and troublesome to me
  */
@@ -74,8 +82,11 @@ class ModuleNetwork : public Module
 	/// Single existent instance of the class (singleton design pattern)
 	static std::unique_ptr< ModuleNetwork > instance_;
 
+	/// Single instance thread safety
+	static std::once_flag singleInstance_;
+
 	/// Private ctor (singleton design pattern)
-	ModuleNetwork() : gState(), lastClockIndex_(0u), sealed(false) {}
+	ModuleNetwork() : gState(), lastClockIndex_(0u), sealed_(false) {}
 
 	/// Proclaim to the four winds the uniqueness of the single instance
 	ModuleNetwork(const ModuleNetwork& that)            = delete;
@@ -92,20 +103,22 @@ protected:  // Attributes shared with the ImportanceFunction visitors
 
 private:
 
-	/// Global position of the last clock from the last added module
+	/// Global position of the last clock from the last added module,
+	/// useful only during network construction phase, i.e. before seal()
 	size_t lastClockIndex_;
 
-	/// Whether the system module has already been sealed for simulations
-	bool sealed;
+	/// Whether this system model has already been sealed for simulations
+	bool sealed_;
 
 public:  // Access to ModuleNetwork
 
 	/// Global access point to the unique instance of this pool
-	static ModuleNetwork& get_instance() {
-		if (nullptr == instance_)
-			instance_ = std::unique_ptr< ModuleNetwork >(new ModuleNetwork);
-		return *instance_;
-	}
+	static ModuleNetwork& get_instance()
+		{
+			std::call_once(singleInstance_,
+						   [] () { instance_.reset(new ModuleNetwork); });
+			return *instance_;
+		}
 
 	~ModuleNetwork();
 
@@ -157,6 +170,9 @@ public:  // Utils
 	 * \endif
 	 */
 	void seal();
+
+	/// @copydoc sealed_
+	inline bool sealed() const noexcept { return sealed_; }
 };
 
 } // namespace fig

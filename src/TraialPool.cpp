@@ -44,6 +44,8 @@ namespace fig
 
 std::unique_ptr< TraialPool > TraialPool::instance_ = nullptr;
 
+std::once_flag TraialPool::singleInstance_;
+
 size_t TraialPool::initialSize_ = (1u) << 12;  // 4K
 
 size_t TraialPool::sizeChunkIncrement_ = TraialPool::initialSize_ >> 3;  // 1/8

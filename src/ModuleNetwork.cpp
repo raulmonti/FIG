@@ -34,6 +34,15 @@
 namespace fig
 {
 
+// Static variables initialization
+
+std::unique_ptr< ModuleNetwork > ModuleNetwork::instance_ = nullptr;
+
+std::once_flag ModuleNetwork::singleInstance_;
+
+
+// ModuleNetwork class member functions
+
 ModuleNetwork::~ModuleNetwork()
 {
 //	modules.clear();
@@ -70,6 +79,13 @@ void
 ModuleNetwork::seal()
 {
 	size_t numClocks(0u);
+	if (sealed_)
+#ifndef NDEBUG
+		throw FigException("ModuleNetwork has been sealed before");
+#else
+		return;
+#endif
+	sealed_ = true;
 	// Seal all the modules
 	for(auto& module_ptr: modules) {
 		module_ptr->seal(&State<STATE_INTERNAL_TYPE>::position_of_var, gState);

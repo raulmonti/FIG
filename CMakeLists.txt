@@ -29,7 +29,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 PROJECT (fig)
 
 SET(fig_VERSION_MAYOR 0)
-SET(fig_VERSION_MINOR 3)
+SET(fig_VERSION_MINOR 4)
 
 
 
@@ -92,6 +92,10 @@ ELSE()
 	MESSAGE(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support.")
 ENDIF()
 
+
+ 
+###  Compile flags  ###########################################################
+
 # Highly defensive compile flags
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 
@@ -102,8 +106,18 @@ IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 ENDIF()
 # Avoid MuParser warnings due to deprecated auto_ptr (TODO: update library?)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
-# # Avoid BGL warnings due to " = default"
-# SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+## # Avoid BGL warnings due to " = default"
+## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+
+
+
+###  Link flags  ##############################################################
+
+# GNU pthreads
+SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pthread" )
+
+## # OpenMP -- Unsupported by clang!
+## SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
 
 
 

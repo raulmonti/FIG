@@ -89,7 +89,8 @@ public:  // Ctors
 		MathExpression(exprStr, from, to)
 		{}
 
-protected:  // Modifyers
+//protected:  // Modifyers
+public:  // Public only for testing
 
 	/**
 	 * @copydoc fig::MathExpression::pin_up_vars(const PositionMap&)
@@ -114,7 +115,12 @@ public:  // Accessors
 
 	/**
 	 * @brief Compute truth value of our expression for given state
+	 * @note pin_up_vars() should have been called before to register the
+	 *       position of the expression's variables in the global State
 	 * @throw mu::ParserError
+	 * @ifnot NDEBUG
+	 *   @throw FigException if pin_up_vars() hasn't been called yet
+	 * @endif
 	 */
 	bool operator()(const StateInstance& state);
 };

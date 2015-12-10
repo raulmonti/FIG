@@ -47,6 +47,9 @@
 #include <Postcondition.h>
 #include <Traial.h>
 
+#if __cplusplus < 201103L
+#  error "C++11 standard required, please compile with -std=c++11\n"
+#endif
 
 // ADL
 using std::begin;
@@ -229,7 +232,7 @@ protected:  // Utilities offered to ModuleInstance
 	 * @note <b>Complexity:</b> <i>O(std::distance(from,to))</i>
 	 */
 	template< template< typename, typename... > class Iterator,
-			  typename ValueType,
+			  typename ValueType = Clock,
 			  typename... OtherIteratorArgs >
 	void handle_clocks(Traial& traial,
 					   Iterator<ValueType, OtherIteratorArgs...> fromClock,
@@ -335,7 +338,7 @@ Transition::handle_clocks(Traial& traial,
 			assert(pos < 8*sizeof(Bitflag));  // check for overflow
 			return resetClocks_ & ((static_cast<Bitflag>(1)) << pos);
 		};
-	static_assert(std::is_same< Clock, ValueType >::value,
+	static_assert(std::is_same< Clock*, ValueType >::value,
 				  "ERROR: type missmatch. handle_clocks() takes iterators "
 				  "pointing to Clock objects");
 	unsigned thisClock(firstClock);

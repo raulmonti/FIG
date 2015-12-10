@@ -204,7 +204,12 @@ public:  // Accessors
 
 	/**
 	 * @brief Update state's variables values according to our expression
+	 * @note pin_up_vars() should have been called before to register the
+	 *       position of the expression's variables in the global State
 	 * @throw mu::ParserError
+	 * @ifnot NDEBUG
+	 *   @throw FigException if pin_up_vars() hasn't been called yet
+	 * @endif
 	 */
 	void operator()(StateInstance& state);
 };

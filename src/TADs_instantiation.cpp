@@ -76,6 +76,8 @@ int main()
 		test_math_expression();
 		test_precondition();
 		test_postcondition();
+		/// @todo TODO: erase below
+		exit(EXIT_SUCCESS);
 		test_transition();
 
 	} catch (TestException& e) {
@@ -253,29 +255,13 @@ test_state()
 }
 
 
-// Global variables needed by some modules  ///////////////////////////////////
-//
-
-// MathExpression requires an externally defined global State "fig::gState"
-namespace fig
-{
-typedef fig::VariableInterval< fig::STATE_INTERNAL_TYPE > VarType;
-State< STATE_INTERNAL_TYPE > gState(
-	std::vector< VarType >{
-		VarType("x", -1912, -1000),
-		VarType("otra", 13, 14),
-		VarType("y", 0, 12)
-	});
-}
-
-
 static void // ////////////////////////////////////////////////////////////////
 //
 test_math_expression()
 {
 	// Correct expressions
 	const std::string str1("x^y > max(x,y)");
-	const std::string str2("x=y, y=x^2");  // updates are accumulative: y = y^2
+	const std::string str2("y, x^2");
 	const std::set<std::string> varnames({"x","y"});
 	fig::MathExpression expr1(str1, varnames);
 	assert(str1 == expr1.expression());
@@ -292,6 +278,7 @@ test_math_expression()
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "shouldn't have thrown!"));
 	}
+
 	try {
 		const std::string str("x+y == _pi-0");
 		const std::set<std::string> varnames({"x","y","noexiste"});
@@ -311,8 +298,16 @@ test_precondition()
 	fig::Precondition pre1(str1, varnames1);
 	assert(str1 == pre1.expression());
 
-	// Positions of variables in StateInstance are determined by the
-	// unique State 'gState' object
+// typedef fig::VariableInterval< fig::STATE_INTERNAL_TYPE > VarType;
+// State< STATE_INTERNAL_TYPE > gState(
+// 	std::vector< VarType >{
+// 		VarType("x", -1912, -1000),
+// 		VarType("otra", 13, 14),
+// 		VarType("y", 0, 12)
+// 	});
+
+	const fig::PositionsMap varsMap({ {"x",0}, {"y",2}, {"otra",1} });
+	pre1.pin_up_vars(varsMap);
 	fig::StateInstance s1 = {/*x=*/ 0, /*otra=*/ 99, /*y=*/ 1};
 	assert(!pre1(s1));
 	fig::StateInstance s2 = {/*x=*/ 1, /*otra=*/ -9, /*y=*/ 0};
@@ -321,22 +316,14 @@ test_precondition()
 	const std::string str2("x^y >= max(x,y)");
 	const std::set<std::string> varnames2({"x","y"});
 	fig::Precondition pre2(str2, varnames2);
+	pre2.pin_up_vars(varsMap);
 	assert(pre2(s2));
-	fig::StateInstance s3 = {/*x=*/ 3, /*otra=*/ std::numeric_limits<short>::max(),
-					 /*y=*/ 9};
+	fig::StateInstance s3 = {/*x=*/ 3, /*otra=*/ std::numeric_limits<short>::max(), /*y=*/ 9};
 	assert(pre2(s3));
-	fig::StateInstance s4 = {/*x=*/ 2, /*otra=*/ std::numeric_limits<short>::min(),
-					 /*y=*/ 16};
+	fig::StateInstance s4 = {/*x=*/ 2, /*otra=*/ std::numeric_limits<short>::min(), /*y=*/ 16};
 	assert(!pre2(s4));  // since MUP_BASETYPE is short, 2^16 should overflow
 
 	// Incorrect creation data
-	try {
-		const std::string str("x-y-z < _pi^2");
-		const std::list<std::string> varnames({"x","y"});  // forgot "z"
-		fig::Precondition pre(str, varnames);  // should throw due to unexpected "z"
-		throw TestException(to_string(__LINE__).append(": previous statement "
-													   "should have thrown"));
-	} catch (fig::FigException) { /* this was expected */ }
 	try {
 		const std::string str("x-y-z < _pi^2");
 		const std::list<std::string> varnames({"x","noexiste","y"});
@@ -344,6 +331,33 @@ test_precondition()
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (std::out_of_range) { /* this was expected */ }
+	try {
+		const std::string str("x-y-z < _pi^2");
+		const std::list<std::string> varnames({"x","y","z"});
+		fig::StateInstance s(10,0);
+		fig::Precondition pre(str, varnames);
+		assert(pre(s));  // should throw since the vars weren't pinned
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (fig::FigException) { /* this was expected */ }
+	try {
+		const std::string str("x-y-z < _pi^2");
+		const std::list<std::string> varnames({"x","y","z"});
+		fig::Precondition pre(str, varnames);
+		pre.pin_up_vars(fig::PositionsMap({{"x",0}}));  // forgot to map "y" and "z"
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (std::out_of_range) { /* this was expected */ }
+	try {
+		const std::string str("x-y-z < _pi^2");
+		const std::list<std::string> varnames({"x","y"});  // forgot "z"
+		fig::Precondition pre(str, varnames);
+		pre.pin_up_vars(fig::PositionsMap({{"x",0},{"y",1}}));
+		fig::StateInstance s(10,0);
+		pre(s1);  // should throw since "z" wasn't mapped
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (fig::FigException) { /* this was expected */ }
 }
 
 

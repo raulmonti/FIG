@@ -65,9 +65,13 @@ Traial::Traial(const size_t& stateSize,
 	orderedIndex_(numClocks)
 {
 	size_t i(0u);
-	std::function<bool(const size_t&)> must_reset =
-		[&](const size_t& i)
-		{ return initClocks && (whichClocks & (static_cast<Bitflag>(1u) << i)); };
+//	std::function<bool(const size_t&)> must_reset =
+	auto must_reset =
+		[&] (const size_t& i) -> bool
+		{
+			return initClocks &&
+					(whichClocks & (static_cast<Bitflag>(1u) << i));
+		};
 	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 	clocks_.reserve(numClocks);
 	i = 0;

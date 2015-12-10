@@ -34,8 +34,13 @@
 #include <forward_list>
 #include <type_traits>  // std::is_same<>
 #include <memory>       // std::unique_ptr<>
+#include <mutex>        // std::call_once(), std::once_flag
 // FIG
 #include <Traial.h>
+
+#if __cplusplus < 201103L
+#  error "C++11 standard required, please compile with -std=c++11\n"
+#endif
 
 
 namespace fig
@@ -52,8 +57,10 @@ namespace fig
  *
  * @note  The pool itself follows the
  *        <a href="https://sourcemaking.com/design_patterns/singleton">
- *        singleton design pattern</a>, thus unifying the access policy
- *        to these resources.
+ *        singleton design pattern</a>, thus unifying the access policy to
+ *        these resources. It was implemented using C++11 facilities to make it
+ *        <a href="http://silviuardelean.ro/2012/06/05/few-singleton-approaches/">
+ *        thread safe</a>.
  *
  * @todo  If possible, keep Traials references instead of pointers internally,
  *        and implement all functionality using C++ move semantics.
@@ -64,6 +71,9 @@ class TraialPool
 
 	/// Single existent instance of the pool (singleton design pattern)
 	static std::unique_ptr< TraialPool > instance_;
+
+	/// Single instance thread safety
+	static std::once_flag singleInstance_;
 
 	/// Resources available for users
 	static std::forward_list< std::unique_ptr< Traial > > available_traials_;
@@ -97,8 +107,8 @@ public:  // Access to TraialPool
 	/// @warning ModuleNetwork must have been sealed beforehand
 	static TraialPool& get_instance() {
 		assert(0u < numVariables && 0u < numClocks);
-		if (nullptr == instance_)
-			instance_ = std::unique_ptr< TraialPool >(new TraialPool);
+		std::call_once(singleInstance_,
+					   [] () {instance_.reset(new TraialPool);});
 		return *instance_;
 	}
 

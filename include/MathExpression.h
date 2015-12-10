@@ -69,13 +69,18 @@ protected:
 
 	typedef mu::Parser Expression;
 
-	Expression expr_;
-
+	/// String describing the mathematical expression
 	std::string exprStr_;
+
+	/// Mathematical expression per se
+	Expression expr_;
 
 	/// Names and positions of the variables in our expression.
 	/// The positional order is ("later") given by the global system State.
 	std::vector< std::pair< std::string, int > > varsMap_;
+
+	/// Whether the positional order of the variables has already been defined
+	bool pinned_;
 
 public:  // Ctors/Dtor
 
@@ -135,8 +140,6 @@ public:  // Ctors/Dtor
 				   Iterator<ValueType, OtherIteratorArgs...> from,
 				   Iterator<ValueType, OtherIteratorArgs...> to);
 
-	inline virtual ~MathExpression() { varsMap_.clear(); expr_.~Parser(); }
-
 protected:  // Modifyers
 
 	/**
@@ -158,6 +161,7 @@ protected:  // Modifyers
 		{
 			for(auto& pair: varsMap_)
 				pair.second = posOfVar(globalState, pair.first);
+			pinned_ = true;
 		}
 
 	/**
@@ -179,11 +183,16 @@ protected:  // Modifyers
 #else
 				pair.second = globalVars[pair.first];
 #endif
+			pinned_ = true;
 		}
 
 public:  // Accessors
 
-	inline const std::string& expression() const { return exprStr_; }
+	/// @copydoc exprStr_
+	inline const std::string& expression() const noexcept { return exprStr_; }
+
+	/// @copydoc pinned_
+	inline const bool& pinned() const noexcept { return pinned_; }
 
 private:  // Class utils
 
@@ -209,7 +218,8 @@ template< template< typename, typename... > class Container,
 MathExpression::MathExpression(
 	const std::string& exprStr,
 	const Container<ValueType, OtherContainerArgs...>& varnames) :
-		exprStr_(exprStr)
+		exprStr_(exprStr),
+		pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: type missmatch. MathExpression needs a container "
@@ -235,7 +245,8 @@ template< template< typename, typename... > class Container,
 MathExpression::MathExpression(
 	const std::string& exprStr,
 	Container<ValueType, OtherContainerArgs...>&& varnames) :
-		exprStr_(exprStr)
+		exprStr_(exprStr),
+		pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: type missmatch. MathExpression needs a container "
@@ -263,7 +274,8 @@ MathExpression::MathExpression(
 	const std::string& exprStr,
 	Iterator<ValueType, OtherIteratorArgs...> from,
 	Iterator<ValueType, OtherIteratorArgs...> to) :
-		exprStr_(exprStr)
+		exprStr_(exprStr),
+		pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: type missmatch. MathExpression needs iterators "
