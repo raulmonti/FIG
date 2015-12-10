@@ -294,9 +294,8 @@ static void // ////////////////////////////////////////////////////////////////
 test_precondition()
 {
 	const std::string str1("x^y > max(x,y)");
-	const std::set<std::string> varnames1({"x","y"});
-	fig::Precondition pre1(str1, varnames1);
-	assert(str1 == pre1.expression());
+	const std::set<std::string> varnames1({"x","y"});  // vars appearing in str1
+	const fig::PositionsMap varsMap({ {"x",0}, {"y",2}, {"otra",1} });
 
 // typedef fig::VariableInterval< fig::STATE_INTERNAL_TYPE > VarType;
 // State< STATE_INTERNAL_TYPE > gState(
@@ -306,7 +305,8 @@ test_precondition()
 // 		VarType("y", 0, 12)
 // 	});
 
-	const fig::PositionsMap varsMap({ {"x",0}, {"y",2}, {"otra",1} });
+	fig::Precondition pre1(str1, varnames1);
+	assert(str1 == pre1.expression());
 	pre1.pin_up_vars(varsMap);
 	fig::StateInstance s1 = {/*x=*/ 0, /*otra=*/ 99, /*y=*/ 1};
 	assert(!pre1(s1));
@@ -366,27 +366,34 @@ static void // ////////////////////////////////////////////////////////////////
 test_postcondition()
 {
 	const std::string str1("2*y , x^_pi");  // 2 updates
-	const std::set<std::string> varNames1({"x","y"});
+	const std::set<std::string> varNames1({"x","y"});  // vars appearing in str1
 	const std::list<std::string> varUpdates1({"x","y"});  // apply updates to 'x' and 'y' resp.
-	fig::Postcondition pos1(str1, varNames1, varUpdates1);
+	const fig::PositionsMap varsMap({ {"y",2}, {"x",0}, {"otra",1}, {"w",9999} });
 
-	// Positions of variables in StateInstance are determined by the
-	// unique State 'gState' object
+	fig::Postcondition pos1(str1, varNames1, varUpdates1);
+	assert(str1 == pos1.expression());
+	pos1.pin_up_vars(varsMap);
 	fig::StateInstance s1 = {/*x=*/ 0, /*otra=*/ 99, /*y=*/ 1};
 	auto s2(s1);  // for later
 	pos1(s1);
 	assert(2 == s1[0]);  // x ==  2*y  ==  2*1  == 2
 	assert(0 == s1[2]);  // y == x^_pi == 0^_pi == 0
+
 	fig::Postcondition pos2(str1, varNames1.begin(), varNames1.end(),
 								  varUpdates1.begin(), varUpdates1.end());
 	assert(pos2.expression() == pos1.expression());
 	assert(s1 != s2);
+	pos2.pin_up_vars(varsMap);
 	pos2(s2);
 	assert(s1 == s2);
+
 	fig::Postcondition pos3(pos2);
 	pos2(s1);
 	pos3(s2);
 	assert(s1 == s2);
+
+		/// @todo TODO: erase below
+		exit(EXIT_SUCCESS);
 
 	const std::string str4("x^y, 2 - y^(max(x,y))");
 	const auto varNames4(varNames1);

@@ -141,7 +141,7 @@ public:  // Ctors/Dtor
 	 *
 	 * @note The variables whose names are given in the range [from2, to2)
 	 *       are interpreted possitionally w.r.t. the exprStr, e.g. input
-	 *       data equivalent to: ("x^2,Rand[0,1]", {y,x}) means that
+	 *       data equivalent to: ("x^2,Rand[0,1]", {x}, {y,x}) means that
 	 *       on each update, 'y' will be assigned the square of 'x',
 	 *       and 'x' will be assigned some random value between 0 and 1.
 	 *
@@ -177,7 +177,8 @@ public:  // Ctors/Dtor
 	/// Dtor
 	virtual ~Postcondition();
 
-protected:  // Modifyers
+//protected:  // Modifyers
+public:  // Public only for testing
 
 	/**
 	 * @copydoc fig::MathExpression::pin_up_vars()
@@ -240,7 +241,7 @@ Postcondition::Postcondition(
 				  "ERROR: type missmatch. Postcondition needs containers "
 				  "with variable names");
 	// Register update variables names
-	copy(begin(updateVars), end(updateVars), begin(updatesNames_));
+	updatesNames_.insert(begin(updatesNames_), begin(updateVars), end(updateVars));
 	numUpdates_ = static_cast<int>(updatesNames_.size());
 }
 
@@ -259,16 +260,15 @@ Postcondition::Postcondition(
 	Iterator2<ValueType2, OtherIteratorArgs2...> from2,
 	Iterator2<ValueType2, OtherIteratorArgs2...> to2) :
 		MathExpression(exprStr, from1, to1),
-		numUpdates_(static_cast<int>(std::distance(from2, to2))),
-		updatesNames_(numUpdates_),
+		updatesNames_(),
 		updatesData_(NAMES)
 {
 	static_assert(std::is_constructible< std::string, ValueType2 >::value,
 				  "ERROR: type missmatch. Postcondition needs iterators "
 				  "pointing to variable names");
 	// Register update variables names
-	for (unsigned i = 0u ; from2 != to2 ; from2++, i++)
-		updatesNames_[i] = *from2;
+	updatesNames_.insert(begin(updatesNames_), from2, to2);
+	numUpdates_ = static_cast<int>(updatesNames_.size());
 }
 
 } // namespace fig

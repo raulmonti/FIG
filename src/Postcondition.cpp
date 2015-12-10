@@ -28,7 +28,8 @@
 
 
 // C++
-#include <utility>  // std::swap()
+#include <utility>   // std::swap()
+#include <iterator>  // std::begin(), std::end()
 #include <iostream>
 // FIG
 #include <Postcondition.h>
@@ -37,6 +38,15 @@ using std::cerr;
 using std::endl;
 // ADL
 using std::swap;
+using std::begin;
+using std::end;
+
+
+namespace
+{
+template< typename T_ > struct tag;
+// TODO see http://stackoverflow.com/a/31754955
+}
 
 
 namespace fig
@@ -49,12 +59,19 @@ Postcondition::Postcondition(const Postcondition& that) :
 {
 	switch (updatesData_) {
 	case NAMES:
-		updatesNames_ = that.updatesNames_;
+		new (&updatesNames_) std::vector< std::string >;
+		updatesNames_.insert(begin(updatesNames_),
+							 begin(that.updatesNames_),
+							 end(that.updatesNames_));
 		break;
 	case POSITIONS:
-		updatesPositions_ = that.updatesPositions_;
+		new (&updatesPositions_) std::vector< int >;
+		updatesPositions_.insert(begin(updatesPositions_),
+								 begin(that.updatesPositions_),
+								 end(that.updatesPositions_));
 		break;
 	}
+	assert(false);
 }
 
 

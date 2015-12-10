@@ -30,13 +30,13 @@
 #ifndef PRECONDITION_H
 #define PRECONDITION_H
 
-// FIG
 #include <MathExpression.h>
+#include <core_typedefs.h>
 #include <State.h>
+
 
 namespace fig
 {
-
 
 /**
  * @brief Transition precondition:
