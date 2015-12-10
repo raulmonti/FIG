@@ -22,13 +22,6 @@ using namespace std;
 
 namespace parser{
 
-/**/
-typedef enum    { T_ARIT
-                , T_BOOL
-                , T_CLOCK
-                , T_NOTYPE
-                } Type; 
-
 
 //==============================================================================
 // Class with verifying methods for compliance with IOSA models parsed into ====
@@ -38,7 +31,7 @@ typedef enum    { T_ARIT
 class Verifier{
 
     /* Map from variable/clock/const name to (type, module) */
-    map< string, pair<Type,string> > mPc;
+    parsingContext mPc;
 
 public:
 
@@ -47,7 +40,7 @@ public:
      * @param [in] pc A parsing context instance to fill in with parsed 
      *        information.
      */
-    Verifier(parsingContext & pc);
+    Verifier();
 
     /**
      * @brief IOSA compliance verifier class destroyer.
@@ -63,6 +56,19 @@ public:
     verify(AST* ast);
 
 private:
+
+    /**
+     *
+     */
+    bool
+    is_clock(AST* c);
+
+    /**
+     *
+     */
+    bool
+    is_var(AST* c);
+
 
     /**
      * @brief Fill up context @mPc for @ast.
@@ -118,12 +124,12 @@ private:
 
     /** 
      *  @brief Return type of an expression.
-     *  @param [in] module The module name to which the expression belongs to.
+     *  @param
      *  @return
      *  @throw
      */
     Type
-    get_type(AST *expr, string module);
+    get_type(AST *expr);
 
 
     /**

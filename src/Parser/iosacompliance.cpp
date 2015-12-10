@@ -68,9 +68,9 @@ clock_nreset(AST* trans1, AST* trans2){
         throw string("Couldn't find clock\n") + e.what();
     }
 
-    vector<string> resetCList = trans2->get_all_lexemes(_RESETCLOCK);
+    vector<AST*> resetCList = trans2->get_all_ast(_SETC);
     for(int i = 0; i < resetCList.size(); i++){
-        if(enableCName == resetCList[i]) return false;
+        if(enableCName+"'" == resetCList[i]->get_lexeme(_NAME)) return false;
     }
 
     return true;
@@ -109,9 +109,14 @@ same_clock(AST* trans1, AST* trans2){
  */
 bool
 same_rclocks(AST* t1, AST* t2){
-
-    vector<string> rc1 = t1->get_all_lexemes(_RESETCLOCK);
-    vector<string> rc2 = t2->get_all_lexemes(_RESETCLOCK);
+    vector<string> rc1;
+    vector<string> rc2;
+    for(auto const &it: t1->get_all_ast(_SETC)){
+        rc1.push_back(it->get_lexeme(_NAME));
+    }
+    for(auto const &it: t2->get_all_ast(_SETC)){
+        rc2.push_back(it->get_lexeme(_NAME));
+    }
     std::sort(rc1.begin(), rc1.end());
     std::sort(rc2.begin(), rc2.end());
     return  rc1 == rc2;
@@ -136,31 +141,35 @@ same_action(AST* t1, AST* t2){
  * @return z3 expresion representing the postcondition.
  */
 z3::expr
-post2expr(AST* pAst, string mname, parsingContext &pc, z3::context &c){
+post2expr(AST* pAst, parsingContext &pc, z3::context &c){
 
     z3::expr pExp = c.bool_val(true);
     set<string> vNameSet;
 
     /* add the valuations given by the postcondition */
     vector<AST*> pList = pAst->get_all_ast(_ASSIG);
-    for(int k = 0; k < pList.size(); ++k){
-        AST* var = new AST(pList[k]->branches[0]);
-        AST* val = pList[k]->branches[2];
-        vNameSet.insert(var->get_lexeme(_NAME));
-        variable_duplicate(var,pc,mname);
-        pExp = pExp && (ast2expr(var,mname,c,pc) == ast2expr(val,mname,c,pc));
+    for(int i = 0; i < pList.size(); ++i){
+        AST* var = new AST(pList[i]->get_first(_NAME));
+        AST* val = pList[i]->get_first(_EXPRESSION);
+        vNameSet.insert(pList[i]->get_lexeme(_NAME));
+        pExp = pExp && (ast2expr(var,c,pc) == ast2expr(val,c,pc));
     }
     /* add the remaining conditions (unchanged ones) */
-    vector<pair<string,Type>> vlist = pc.get_type_list(mname);
-    for(auto const &it : vlist){
+    for(auto const &it : pc){
         string vname = it.first;
-        if(0 >= vNameSet.count(vname) && vname[0] != '#'){
-            if(it.second == mARIT){
-                z3::expr vexpr = c.real_const(string('#'+vname).c_str());
-                pExp = pExp && (vexpr == c.real_const(vname.c_str()));
-            }else if(it.second == mBOOL){
-                z3::expr vexpr = c.bool_const(string('#'+vname).c_str());
-                pExp = pExp && (vexpr == c.bool_const(vname.c_str()));
+        Type t = it.second.first;
+
+        if( t != T_CLOCK && t != T_NOTYPE &&
+            vname[vname.size()-1] == '\'' && 
+            vNameSet.count(vname) <= 0){
+            if(t == T_ARIT){
+                z3::expr vexpr = c.real_const(vname.c_str());
+                pExp = pExp && (vexpr == 
+                       c.real_const(vname.substr(0,vname.size()-1).c_str()));
+            }else if(t == T_BOOL){
+                z3::expr vexpr = c.bool_const(vname.c_str());
+                pExp = pExp && (vexpr == 
+                       c.bool_const(vname.substr(0,vname.size()-1).c_str()));
             }else{
                 assert(false);
             }
@@ -172,7 +181,6 @@ post2expr(AST* pAst, string mname, parsingContext &pc, z3::context &c){
 
 
 
-
 //==============================================================================
 // VERIFIER CLASS IMPLEMENTATION ===============================================
 //==============================================================================
@@ -180,8 +188,7 @@ post2expr(AST* pAst, string mname, parsingContext &pc, z3::context &c){
 /**
  *
  */
-Verifier::Verifier(parsingContext & pc){
-    mPc = & pc;
+Verifier::Verifier(){
 }
 
 /**
@@ -234,6 +241,32 @@ Verifier::verify(AST* ast){
 }
 
 
+
+//==============================================================================
+
+
+/**
+ *
+ */
+bool
+Verifier::is_clock(AST* c){
+
+    auto const it = mPc.find(c->get_first(_NAME)->p_name());
+    return !(it == mPc.end() || it->second.first != T_CLOCK);
+
+}
+
+/**
+ *
+ */
+bool
+Verifier::is_var(AST* c){
+
+    auto const it = mPc.find(c->get_first(_NAME)->p_name());
+    return ( it != mPc.end() && 
+             (it->second.first == T_ARIT || it->second.first == T_BOOL));
+
+}
 
 //==============================================================================
 
@@ -302,30 +335,23 @@ Verifier::input_output_clocks(AST* ast){
     // FIXME this will be easier if we force the users to specify ? or !
     // or if we always parse an IO AST even when there is no ? or !
     string error_list = "";
-    int result = 1;
     vector<AST*> modules = ast->get_list(_MODULE);
     for(int i = 0; i < modules.size(); i++){
-        AST* transSec = modules[i]->get_first(_TRANSEC);
-        if(transSec){
-            vector<AST*> transitions = 
-                transSec->get_list(_TRANSITION);
-            for(int i = 0; i < transitions.size(); i++){
-                AST* ioAst = transitions[i]->get_first(_IO);
-                if(ioAst && ioAst->p_name() == "?"
-                  && transitions[i]->get_first(_ENABLECLOCK)){
-                    error_list.append("[ERROR] In transition declaration at '"
-                        + transitions[i]->get_pos() + "'. Input transitions "
-                        "should not have to wait for any clocks.\n");
-                    result = 0;
-                }
-                if(  (!ioAst || ioAst->p_name() == "!")
-                  && !transitions[i]->get_first(_ENABLECLOCK)){
-                    error_list.append("[ERROR] In transition declaration at '"
-                        + transitions[i]->get_pos() + 
-                        "'. Output transitions should wait for exactly one "
-                        "clock.\n");
-                    result = 0;
-                }
+        vector<AST*> transitions = modules[i]->get_list(_TRANSITION);
+        for(int i = 0; i < transitions.size(); i++){
+            AST* ioAst = transitions[i]->get_first(_IO);
+            if( ioAst->p_name() == "?" && 
+                transitions[i]->get_first(_ENABLECLOCK)){
+                error_list.append("[ERROR] In transition declaration at '"
+                    + transitions[i]->get_pos() + "'. Input transitions "
+                    "should not have to wait for any clocks.\n");
+            }
+            if( ioAst->p_name() == "!" &&
+                !transitions[i]->get_first(_ENABLECLOCK)){
+                error_list.append("[ERROR] In transition declaration at '"
+                    + transitions[i]->get_pos() + 
+                    "'. Output transitions should wait for exactly one "
+                    "clock.\n");
             }
         }
     }
@@ -333,8 +359,7 @@ Verifier::input_output_clocks(AST* ast){
     if(error_list != ""){
         throw error_list; // If names are repeated we can not continue ...
     }
-
-    return result;
+    return 1;
 }
 
 
@@ -351,33 +376,26 @@ Verifier::input_output_clocks(AST* ast){
 
 int
 Verifier::unique_outputs(AST *ast){
-    /* FIXME some things like the set names and vector modules are used a lot
-             and could be defined and built at the constructor or at @verify
-             method avoiding code repetition and improving efficiency. 
-    */
-
     int result = 1;
     string error_list = "";
     z3::context c;
     z3::solver s(c);
-    parsingContext pc(*mPc); // copy the context    
 
     vector<AST*> modules = ast->get_list(_MODULE);
-    for(int k = 0; k < modules.size(); ++k){
-        string module = modules[k]->get_lexeme(_NAME);
-        vector<AST*> transs = modules[k]->get_all_ast(_TRANSITION);
-        for(int i = 0; i < transs.size(); i++){
-            for(int j = i+1; j < transs.size(); j++){
+    for(int i = 0; i < modules.size(); ++i){
+        string module = modules[i]->get_lexeme(_NAME);
+        vector<AST*> transs = modules[i]->get_all_ast(_TRANSITION);
+        for(int i = 0; i < transs.size(); ++i){
+            for(int j = i+1; j < transs.size(); ++j){
                 if( same_clock(transs[i], transs[j])){
                     AST* pre1 = transs[i]->get_first(_PRECONDITION);
                     AST* pre2 = transs[j]->get_first(_PRECONDITION);
                     if(pre1) pre1 = pre1->get_first(_EXPRESSION);
                     if(pre2) pre2 = pre2->get_first(_EXPRESSION);
-                    z3::expr e1 = ast2expr(pre1, module, c, pc);                            
-                    z3::expr e2 = ast2expr(pre2, module, c, pc);
+                    z3::expr e1 = ast2expr(pre1, c, mPc);                            
+                    z3::expr e2 = ast2expr(pre2, c, mPc);
                     s.reset();
                     s.add(e1 && e2);
-
                     if( s.check() ){
                         string line1 = transs[i]->get_line();
                         string line2 = transs[j]->get_line();
@@ -399,8 +417,8 @@ Verifier::unique_outputs(AST *ast){
                                 " reset different clocks. Check "
                                 " IOSA condition 3.\n");
                         }
-                        z3::expr p1 = post2expr(transs[i],module,pc,c);
-                        z3::expr p2 = post2expr(transs[j],module,pc,c);
+                        z3::expr p1 = post2expr(transs[i],mPc,c);
+                        z3::expr p2 = post2expr(transs[j],mPc,c);
                         s.reset();
                         s.add(e1 && e2 && (p1 != p2));
                         if(s.check()){
@@ -423,23 +441,33 @@ Verifier::unique_outputs(AST *ast){
 
 /**
  * @brief Check compliance to condition 4 from IOSA.
- * @Note: Can only partially check due to reachability issues, thus we 
+ * @Note  Can only partially check due to reachability issues, thus we 
  *        report WARNINGS but we don't ensure presence of non-determinism.
- */
+ */       
+
+/*
+                {C}   {x}
+        []---t2--->[]---t1--->[]
+     {x}|
+       t3
+       |
+      []
+
+    TEST:
+    x not in C && sat(pre_1(x') && pos_2(x,x') && pre(x) && (!pre_3(x)) ...) 
+
+*/
 
 int
 Verifier::check_exhausted_clocks(AST *ast){
 
     string          error_list  = "";
-    int             result      = 1;
-    parsingContext  pc(*mPc);                       /*A copy of mPc.*/
     z3::context     c;
     z3::solver      s(c);
     z3::expr        ex          = c.bool_val(true);
 
     vector<AST*> mods = ast->get_list(_MODULE);
     for (int i = 0 ; i < mods.size() ; i++){
-        string mname = mods[i]->get_lexeme(_NAME);
         vector<AST*> transs = mods[i]->get_all_ast(_TRANSITION);
         for(int i = 0; i < transs.size(); i++){
             if(is_output(transs[i])){
@@ -452,25 +480,17 @@ Verifier::check_exhausted_clocks(AST *ast){
                         if(pre){
                             AST *g1 = new AST(pre);
                             /*g1 is evaluated after the transition.*/
-                            variable_duplicate(g1,pc,mname);
-                            ex = ast2expr(g1, mname, c, pc);
+                            variable_duplicate(g1);
+                            ex = ast2expr(g1,c,mPc);
+                            delete g1;
                         }
                         AST *p2 = transs[j]->get_first(_POSTCONDITION);
                         if(p2){
-                            vector<AST*> assigns = p2->get_all_ast(_ASSIG);
-                            for(int k = 0; k < assigns.size(); ++k){
-                                AST* var = new AST(assigns[k]->branches[0]);
-                                /*The assignments are over next variables.*/
-                                variable_duplicate(var,pc,mname);
-                                AST* val = assigns[k]->branches[2];
-                                z3::expr e1 = ast2expr(var,mname,c,pc);
-                                z3::expr e2 = ast2expr(val,mname,c,pc);
-                                ex = ex && ( e1 == e2 );
-                            }
+                            ex = ex && (post2expr(p2,mPc,c));
                         }
                         AST * g2 = transs[j]->get_first(_PRECONDITION);
                         if(g2){
-                            ex = ex && ast2expr(g2,mname,c,pc);
+                            ex = ex && ast2expr(g2,c,mPc);
                         }
                         for(int k = 0; k < transs.size(); ++k){
                             /* !g for guards of every output transitions 
@@ -480,11 +500,15 @@ Verifier::check_exhausted_clocks(AST *ast){
                             if(j != k && same_clock(transs[i], transs[k])){
                                 AST *g = transs[k]->get_first(_PRECONDITION);
                                 if(g){
-                                    ex = ex && (! ast2expr(g,mname,c,pc));
+                                    ex = ex && (! ast2expr(g,c,mPc));
                                 }
                             }
                         }
                         s.add(ex);
+
+                        cout << "Check Exahusted Clocks TESTING: " << endl;
+                        cout << s << endl;
+
                         if(s.check()){
                             string namei = transs[i]->get_lexeme(_ACTION);
                             string namej = transs[j]->get_lexeme(_ACTION);
@@ -527,18 +551,14 @@ int
 Verifier::check_input_determinism(AST *ast){
 
     string error_list = "";
-    int result = 1;
-    parsingContext pc(*mPc);
     vector<AST*> modules = ast->get_list(_MODULE);
     z3::context c;
     z3::expr e = c.bool_val(true);
     z3::solver s(c);
 
     for(int m = 0; m < modules.size(); ++m){
-        AST* mod = modules[m];
-        string module = mod->get_lexeme(_NAME);
         vector<AST*> inputTrans;
-        vector<AST*> trans = mod->get_all_ast(_TRANSITION);
+        vector<AST*> trans = modules[m]->get_all_ast(_TRANSITION);
         for(int t = 0; t < trans.size(); ++t){
             if(!is_output(trans[t])){
                 inputTrans.push_back(trans[t]);
@@ -554,12 +574,15 @@ Verifier::check_input_determinism(AST *ast){
                     s.reset();
                     AST* gi = inputTrans[i]->get_first(_PRECONDITION);
                     AST* gj = inputTrans[j]->get_first(_PRECONDITION);
-                    if(gi) e = e && ast2expr(gi,module,c,pc);
-                    if(gj) e = e && ast2expr(gj,module,c,pc);;
-                    z3::expr ei = post2expr(inputTrans[i],module,pc,c);
-                    z3::expr ej = post2expr(inputTrans[j],module,pc,c);
+                    if(gi) e = e && ast2expr(gi,c,mPc);
+                    if(gj) e = e && ast2expr(gj,c,mPc);;
+                    z3::expr ei = post2expr(inputTrans[i],mPc,c);
+                    z3::expr ej = post2expr(inputTrans[j],mPc,c);
                     e = e && (ei != ej);
                     s.add(e);
+
+                    cout << "Check Input Determ TESTING: " << endl;
+                    cout << s << endl;
 
                     string posi = inputTrans[i]->get_pos();
                     string posj = inputTrans[j]->get_pos();
@@ -597,7 +620,7 @@ Verifier::check_input_determinism(AST *ast){
  */
 Type
 str2Type(string str){
-    string result = "";
+    Type result;
     if(str == "int"){
         result = T_ARIT;
     }else if(str == "bool"){
@@ -627,7 +650,7 @@ Verifier::fill_maps(AST *ast){
     for(int i = 0; i < constants.size(); ++i){
         string name = constants[i]->get_lexeme(_NAME);
         Type t = str2Type(constants[i]->get_lexeme(_TYPE));
-        mPc.insert( pair(name,pair(  t,"")));
+        mPc.insert( pvtm(name,ptm(t,"")));
     }
 
     for(int i = 0; i < modules.size(); i++){
@@ -639,7 +662,9 @@ Verifier::fill_maps(AST *ast){
             string name = variables[j]->get_lexeme(_NAME);
             string type = variables[j]->get_lexeme(_TYPE);
             if(type == "Bool"){
-                mPc.insert(pair(name,pair(T_BOOL,module)));
+                mPc.insert(pvtm(name,ptm(T_BOOL,module)));
+                // The variable in <next state>
+                mPc.insert(pvtm(name+"'",ptm(T_BOOL,module)));
             }else{
                 AST* range = variables[j]->get_first(_RANGE);
                 assert(range);
@@ -650,12 +675,14 @@ Verifier::fill_maps(AST *ast){
                     error_list.append("[ERROR] Empty range in variable "
                         "declaration at " + pos + ".\n");
                 }
-                mPc.insert(pair(name,pair(T_ARIT,module)));
+                mPc.insert(pvtm(name,ptm(T_ARIT,module)));
+                mPc.insert(pvtm(name+"'",ptm(T_ARIT,module)));
+            }
         }
         // Fill map with clocks. 
         for(int j=0; j < clocks.size(); j++){
             string name = clocks[j]->get_lexeme(_NAME);
-            mPc.insert(pair(name, pair(T_CLOCK, module)));
+            mPc.insert(pvtm(name, ptm(T_CLOCK, module)));
         }
     }
 
@@ -687,13 +714,13 @@ Verifier::type_check(AST *ast){
     for(int i=0;i<variables.size();i++){
         string vname = variables[i]->get_lexeme(_NAME);
         Type v_t = mPc[vname].first;
-        AST* init = variables[j]->get_first(_INIT);
+        AST* init = variables[i]->get_first(_INIT);
         if(init){
             Type e_t = get_type( init->get_first(_EXPRESSION));
             if(v_t != e_t){
                 error_list.append( "[ERROR] Wrong type for "
                     "initialization of variable '" + vname 
-                    + "', at " + v->p_pos() + ".\n");
+                    + "', at " + variables[i]->p_pos() + ".\n");
             }
         }
     }
@@ -703,7 +730,7 @@ Verifier::type_check(AST *ast){
     for(int i =0; i < trans.size(); ++i){
         AST *expr = trans[i]->get_first(_EXPRESSION);
         if (expr){
-            if( T_BOOL != get_type(expr, module)){
+            if( T_BOOL != get_type(expr)){
                 error_list.append( "[ERROR] Wrong type for transitions "
                     "precondition at " + expr->p_pos() 
                     + ". It should be boolean but found "
@@ -715,7 +742,6 @@ Verifier::type_check(AST *ast){
     // Type check assignments in post conditions
     for(int i = 0; i < trans.size(); ++i){
         vector<AST*> assigs = trans[i]->get_all_ast(_ASSIG);
-        vector<AST*> assigs = trans[i]->get_all_ast(_SETC);
         for(int j = 0; j < assigs.size(); ++j){
             AST* var = assigs[j]->get_first(_NAME);
             string vname = assigs[j]->get_lexeme(_NAME);
@@ -737,48 +763,34 @@ Verifier::type_check(AST *ast){
         }
     }
 
-        /* Check that enabling clock and reseting clocks are really clocks */
-        for(int j = 0; j < trans.size(); j++){
-            // enabling clocks
-            AST* enable = trans[j]->get_first(_ENABLECLOCK);
-            if( enable && 
-                !mPc->has_clock(module,enable->get_first(_NAME)->p_name())){
+    /* Check that enabling clock and reseting clocks are really clocks */
+    for(int j = 0; j < trans.size(); j++){
+        // enabling clocks
+        AST* enable = trans[j]->get_first(_ENABLECLOCK);
+        auto const it = mPc.find(enable->get_first(_NAME)->p_name());
+        if( enable && (it == mPc.end() || it->second.first != T_CLOCK )){
+            error_list.append( "[ERROR] No clock named " 
+                             + enable->p_name() + " at " 
+                             + enable->p_pos() + ".\n" );
+        }
+        // reset clocks
+        vector<AST*> resets = trans[j]->get_all_ast(_RESETCLOCK);
+        for(int k = 0; k < resets.size(); ++k){
+            auto const it = mPc.find(resets[k]->get_first(_NAME)->p_name());
+            if(it == mPc.end() || it->second.first != T_CLOCK){
                 error_list.append( "[ERROR] No clock named " 
-                                 + enable->p_name() + " at " 
-                                 + enable->p_pos() + ".\n" );
-            }
-            // reset clocks
-            vector<AST*> resets = trans[j]->get_all_ast(_RESETCLOCK);
-            for(int k = 0; k < resets.size(); ++k){
-                if(!mPc->has_clock(module,resets[k]->p_name())){
-                    error_list.append( "[ERROR] No clock named " 
-                                     + resets[k]->p_name() + " at " 
-                                     + resets[k]->p_pos() + ".\n" );
-                }
+                                 + resets[k]->p_name() + " at " 
+                                 + resets[k]->p_pos() + ".\n" );
             }
         }
     }
-
-    /* Type check properties */
-    vector<AST*> properties = ast->get_all_ast(_PROPERTY);
-    for(int i = 0; i < properties.size(); i++){
-        AST *exp = properties[i]->get_first(_EXPRESSION);
-        try{
-            if(mBOOL != get_type(exp, "#property")){
-                throw "[ERROR] Found non boolean expression inside property, "
-                      "at " + exp->p_pos() + ".\n";
-            }
-        }catch (string err){
-            error_list.append(err);
-        }    
-    }
-
     if(error_list != ""){
         throw error_list;
     }
 
     return result;
 }
+
 
 
 //==============================================================================
@@ -791,82 +803,82 @@ Verifier::type_check(AST *ast){
  */
 
 Type
-Verifier::get_type(AST *expr, string module){
+Verifier::get_type(AST *expr){
 
     assert(expr);
     if(expr->tkn == _EXPRESSION){
         AST *equality = expr->get_branch(0);
-        Type t1 = get_type(equality, module);
+        Type t1 = get_type(equality);
         AST *op = expr->get_branch(1);
         AST *expr2 = expr->get_branch(2);
         if(op){
-            Type t2 = get_type(expr2, module);
-            if(t1 != mBOOL || t1 != t2){
+            Type t2 = get_type(expr2);
+            if(t1 != T_BOOL || t1 != t2){
                 throw "[ERROR] Wrong types for binary operator "
                       "at " + op->p_pos() + ".\n";
             }else{
-                return mBOOL; 
+                return T_BOOL; 
             }
         }
         return t1;
     }else if(expr->tkn == _EQUALITY){
         AST *comparison = expr->get_branch(0);
-        Type t1 = get_type(comparison,module);
+        Type t1 = get_type(comparison);
         AST *op = expr->get_branch(1);
         AST *expr2 = expr->get_branch(2);
         if(op){
-            Type t2 = get_type(expr2,module);
+            Type t2 = get_type(expr2);
             if(t1 != t2){
                 throw "[ERROR] Wrong types for equality "
                       "operator at " + op->p_pos() + ".\n";
             }else{
-                return mBOOL; 
+                return T_BOOL; 
             }
         }
         return t1;
     }else if(expr->tkn == _COMPARISON){
         AST *summation = expr->get_branch(0);
-        Type t1 = get_type(summation,module);
+        Type t1 = get_type(summation);
         AST *op = expr->get_branch(1);
         AST *expr2 = expr->get_branch(2);
         if(op){
-            Type t2 = get_type(expr2,module);
-            if(t1 != mARIT || t1 != t2){
+            Type t2 = get_type(expr2);
+            if(t1 != T_ARIT || t1 != t2){
                 throw "[ERROR] Wrong types for arithmetic "
                       "comparison at " + op->p_pos() + ".\n";
             }else{
-                return mBOOL; 
+                return T_BOOL; 
             }
         }
         return t1;
     }else if(expr->tkn == _SUM){
         AST *division = expr->get_branch(0);
-        Type t1 = get_type(division,module);
+        Type t1 = get_type(division);
         AST *op = expr->get_branch(1);
         AST *expr2 = expr->get_branch(2);
         if(op){
-            Type t2 = get_type(expr2,module);
-            if(t1 != mARIT || t1 != t2){
+            Type t2 = get_type(expr2);
+            if(t1 != T_ARIT || t1 != t2){
                 throw "[ERROR] Wrong types for arithmetic "
                       "operation at " + op->p_pos() + ".\n";
             }else{
-                return mARIT; 
+                return T_ARIT; 
             }
         }
         return t1;
     }else if(expr->tkn == _DIV){
         AST *value = expr->get_branch(0);
-        Type t1 = get_type(value,module);
+        Type t1 = get_type(value);
         AST *op = expr->get_branch(1);
         AST *expr2 = expr->get_branch(2);
         if(op){
-            Type t2 = get_type(expr2,module);
+            Type t2 = get_type(expr2);
             // FIXME should check division by zero????
-            if(t1 != mARIT || t1 != t2){
+            if(t1 != T_ARIT || t1 != t2){
                 throw "[ERROR] Wrong types for arithmetic "
                       "operation at " + op->p_pos() + ".\n";
             }else{
-                return mARIT; 
+                return T_ARIT; 
             }
         }
         return t1;
@@ -875,34 +887,32 @@ Verifier::get_type(AST *expr, string module){
         Type t;
         switch (value->tkn){
             case _NAME:
-                if (mPc->has_var(module, value->lxm)){
-                    t = mPc->get_var_type(module,value->lxm);
-                }else if(mPc->has_clock(module,value->lxm)){
-                    t = mARIT;
+                if (is_var(value)){
+                    t = mPc[value->lxm].first;
                 }else{
                     throw "[ERROR] Undeclared variable '" + value->lxm 
                           + "' at " + value->p_pos() + ".\n";
                 }
                 break;
             case _BOOLEAN:
-                t = mBOOL;
+                t = T_BOOL;
                 break;
             case _NUM:
-                t = mARIT;
+                t = T_ARIT;
                 break;
             case _SEPARATOR:
-                t = get_type(expr->get_branch(1),module);
+                t = get_type(expr->get_branch(1));
                 break;
             case _NEGATION:
-                t = get_type(expr->get_branch(1),module);
-                if(t != mBOOL){
+                t = get_type(expr->get_branch(1));
+                if(t != T_BOOL){
                     throw "[ERROR] Wrong type for boolean negation, at " 
                           + value->p_pos() + ".\n";
                 }
                 break;
             case _MINUS:
-                t = get_type(expr->get_branch(1),module);
-                if(t != mARIT){
+                t = get_type(expr->get_branch(1));
+                if(t != T_ARIT){
                     throw "[ERROR] Wrong type for arithmetic negation, at " 
                           + value->p_pos() + ".\n";
                 }

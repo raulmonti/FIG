@@ -34,8 +34,7 @@ main (int argc, char** argv){
 
     /* Instanciate a parser, and a verifier. */
     parser::Parser *parser = new parser::Parser();
-    parsingContext pc;
-    Verifier *verifier = new Verifier(pc);
+    Verifier *verifier = new Verifier();
 
     /* Get a stream with the model to parse. */
     ifstream fin(argv[1],ios::binary);

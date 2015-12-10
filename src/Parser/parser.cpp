@@ -326,7 +326,13 @@ Parser::rTransDef(){
             saveNode(_ACTION);
             if(accept(EMARK) || accept(QMARK)){
                 saveNode(_IO);
+            }else{
+                // silent transitions are output.
+                saveNode(_IO,"!");
             }
+        }else{
+            // silent transition.
+            saveNode(_ACTION,"");
         }
         expect(CBT, "Forgot ']' at transition declaration?\n");    
         saveNode(_SEPARATOR);    
@@ -533,46 +539,6 @@ Parser::rUniDist(){
 }
 
 
-//==============================================================================
-
-
-/**
- * @Brief Rule RANGE. TODO remove if not used
- */
-/*int
-Parser::rRange(){
-
-    if(accept(OBT)){
-        newNode(_RANGE, "");
-        if(accept(NUM)){
-            saveNode(_NUM);
-        }
-        if(accept(RNG)){
-            saveNode(_SEPARATOR);
-            try{
-                expect(NUM);
-                saveNode(_NUM);
-                expect(CBT);
-                saveNode(_SEPARATOR);
-            }catch(SyntaxError *e){
-                removeNode(); // _RANGE
-                cout << e->what() << endl;
-                throw string( "Bad range.");
-            }
-            saveNode(); // _RANGE
-            return 1;
-        }
-
-        removeNode(); // _RANGE
-    }
-    return 0;
-
-}
-
-*/
-
-
-
 /** Expression rules. **/
 
 /**/
@@ -713,27 +679,6 @@ Parser::rValue(){
 }
 
 
-
-
-
-/** End Expression rules. **/
-
-/**/
-/* TODO remove if not used
-int
-Parser::rClkList(){
-    if(accept(NAME)){
-        saveNode(_RESETCLOCK);
-        while(accept(CMM)){
-            saveNode(_SEPARATOR);
-            expect(NAME, "Missing clock or spare semicolon.\n");
-            saveNode(_RESETCLOCK);
-        }
-        return 1;
-    }
-    return 0;
-}
-*/
 
 /** Property rules. **/
 

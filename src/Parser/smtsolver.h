@@ -2,16 +2,25 @@
 #define SMT_SOLVER_H
 
 #include <z3++.h>
+#include <map>
 #include "ast.h"
-#include "parsingContext.h"
-
-
 
 using namespace std;
 using namespace z3;
 namespace parser{
 
-
+/**
+ */
+typedef enum    { T_ARIT
+                , T_BOOL
+                , T_CLOCK
+                , T_NOTYPE
+                } Type; 
+/**
+ */
+typedef pair<Type,string> ptm; //pair type, module
+typedef pair<string,ptm> pvtm; // pair variable, (type,module)
+typedef map< string, ptm > parsingContext;
 
 ///////////////////////////////////////////////////////////////////////////////
 // CLASS SmtFormula
@@ -37,7 +46,7 @@ public:
         return ast != NULL;
     }
 
-    bool sat(parsingContext & pc, string module);
+    bool sat(parsingContext & pc);
 
 private:
 
@@ -45,7 +54,7 @@ private:
        @c: a context to fill up while building the formula. To be used by z3
            for sat solving.
     */
-    expr build_z3_expr(context & c, string module, parsingContext & pc);
+    expr build_z3_expr(context & c, parsingContext & pc);
 };
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -59,7 +68,7 @@ private:
 
 /* @sat: check for satisfiability of the conjunction of formulas in @list.
 */
-bool sat (vector<AST*> list, string module, parsingContext & pc);
+bool sat (vector<AST*> list, parsingContext & pc);
 
 
 /* @brief:   Return a z3 expression corresponding to a boolean formula
@@ -72,8 +81,7 @@ bool sat (vector<AST*> list, string module, parsingContext & pc);
    @pc:      A parsingContext member from which to take type information for
              each variable in @formula.
 */
-expr ast2expr( AST* formula, string module
-             , context & c, parsingContext & pc);
+expr ast2expr( AST* formula, context & c, parsingContext & pc);
 
 
 
@@ -86,7 +94,7 @@ expr ast2expr( AST* formula, string module
 
 */
 void
-variable_duplicate(AST* ast, parsingContext & pc, string module);
+variable_duplicate(AST* ast);
 
 ///////////////////////////////////////////////////////////////////////////////
 
