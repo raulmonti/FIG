@@ -52,7 +52,7 @@ Traial::Traial(const size_t& stateSize, const size_t& numClocks) :
 	clocks_.reserve(numClocks);
 	for (const auto& module_ptr: ModuleNetwork::get_instance().modules)
 		for (const auto& clock: module_ptr->clocks())
-			clocks_.emplace_back(module_ptr, clock.name, 0.0f);
+			clocks_.emplace_back(module_ptr, clock.name(), 0.0f);
 }
 
 
@@ -78,7 +78,7 @@ Traial::Traial(const size_t& stateSize,
 	for (const auto& module_ptr: ModuleNetwork::get_instance().modules)
 		for (const auto& clock: module_ptr->clocks())
 			clocks_.emplace_back(module_ptr,
-								 clock.name,
+								 clock.name(),
 								 must_reset(i++) ? clock.sample() : 0.0f);
 	if (orderTimeouts)
 		reorder_clocks();

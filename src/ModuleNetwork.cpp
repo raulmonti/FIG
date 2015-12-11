@@ -59,7 +59,7 @@ ModuleNetwork::add_module(ModuleInstance** module)
 	modules.emplace_back(*module);
 	auto state = (*module)->mark_added(modules.size()-1, lastClockIndex_);
 	gState.append(state);
-	lastClockIndex_ += (*module)->numClocks;
+	lastClockIndex_ += (*module)->clocks().size();
 	*module = nullptr;
 }
 
@@ -70,7 +70,7 @@ ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 	modules.push_back(module);
 	auto state = module->mark_added(modules.size()-1, lastClockIndex_);
 	gState.append(state);
-	lastClockIndex_ += module->numClocks;
+	lastClockIndex_ += module->clocks().size();
 	module = nullptr;
 }
 
@@ -89,7 +89,7 @@ ModuleNetwork::seal()
 	// Seal all the modules
 	for(auto& module_ptr: modules) {
 		module_ptr->seal(&State<STATE_INTERNAL_TYPE>::position_of_var, gState);
-		numClocks += module_ptr->numClocks;
+		numClocks += module_ptr->clocks().size();
 	}
 	// Fill other global info
 	TraialPool::numVariables = gState.size();

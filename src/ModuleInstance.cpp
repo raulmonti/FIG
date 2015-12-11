@@ -150,10 +150,12 @@ ModuleInstance::jump(const Label& label,
 bool
 ModuleInstance::is_our_clock(const std::string& clockName)
 {
+	if (clockName.empty())
+		return true;
 	auto clockFound = std::find_if(begin(lClocks_),
 								   end(lClocks_),
 								   [&] (const Clock& clk)
-								   { return clockName == clk.name; });
+								   { return clockName == clk.name(); });
 	return end(lClocks_) != clockFound;
 }
 
@@ -168,7 +170,7 @@ ModuleInstance::map_our_clocks()
 	localClocks.reserve(lClocks_.size());
 	unsigned clockGlobalPos = firstClock_;
 	for (const auto& clk: lClocks_)
-		localClocks[clk.name] = clockGlobalPos++;
+		localClocks[clk.name()] = clockGlobalPos++;
 	return localClocks;
 }
 

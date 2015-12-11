@@ -61,7 +61,7 @@ typedef  float  CLOCK_INTERNAL_TYPE;
 
 /// Fixed-size array of distribution parameters,
 /// needed to sample any Distribution.
-typedef std::array< const CLOCK_INTERNAL_TYPE , NUM_DISTRIBUTION_PARAMS >
+typedef std::array< CLOCK_INTERNAL_TYPE , NUM_DISTRIBUTION_PARAMS >
     DistributionParameters;
 
 /// Arbitrary stochastic distribution mapping to the real line

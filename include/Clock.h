@@ -65,48 +65,46 @@ extern std::unordered_map< std::string, Distribution > distributions_list;
  */
 class Clock
 {
-public:  // Attributes
+	/// Clock name
+	std::string name_;
 
-	const std::string name;
-	const std::string distName;
+	/// Clock's distribution name
+	std::string distName_;
 
-private:
+	/// Clock's distribution
+	Distribution dist_;  // *copy* of one from distribution_list
 
-	const Distribution dist_;  // *copy* of one from distribution_list
-	const DistributionParameters distParams_;
+	/// Clock's distribution paremeters
+	DistributionParameters distParams_;
 
 public:  // Ctors
 
 	Clock(const std::string& clockName,
 		  const std::string& distName,
 		  const DistributionParameters& params) :
-		name(clockName),
-		distName(distName),
+		name_(clockName),
+		distName_(distName),
 		dist_(distributions_list.at(distName)),  // may throw out_of_range
 		distParams_(params)
 		{
 			assert(!clockName.empty());
 		}
 
-	Clock(const Clock& that) = default;
-	Clock(Clock&& that)      = default;
-	Clock& operator=(const Clock& that) = delete;
-	Clock& operator=(Clock&& that)      = delete;
-//	Clock& operator=(Clock that)
-//	{
-//		std::swap(name, that.name);
-//		std::swap(dist_, that.dist_);
-//		std::swap(distName, that.distName);
-//		std::swap(distParams_, that.distParams_);
-//		std::swap(module, that.module);
-//		std::cerr << "Clock copy assignment" << std::endl;
-//		return *this;
-//	}
+	Clock(const Clock& that)            = default;
+	Clock(Clock&& that)                 = default;
+	Clock& operator=(const Clock& that) = default;
+	Clock& operator=(Clock&& that)      = default;
 
 public:  // Accessors
 
-	/// @brief Parameters characterizing our distribution function
-	inline const DistributionParameters& distribution_params() const
+	/// @copydoc name_
+	const std::string& name() const noexcept { return name_; }
+
+	/// @copydoc distName_
+	const std::string& dist_name() const noexcept { return distName_; }
+
+	/// @copydoc distParams_
+	inline const DistributionParameters& distribution_params() const noexcept
 		{ return distParams_; }
 
 public:  // Utils

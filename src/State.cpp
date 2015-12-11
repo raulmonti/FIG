@@ -129,14 +129,22 @@ State<T_>::operator[](const std::string& varname)
 
 template< typename T_ >
 void
-State<T_>::print_out(std::ostream& out, bool withNewline) const
+State<T_>::print_out(std::ostream& out, bool condensed) const
 {
-	for (const auto& pvar: pvars_)
-		out << pvar->name_ << "=" << pvar->val() << ", ";
-	if (!pvars_.empty() && withNewline)
-		out << "\b\b  \b\b\n";
-	else if (!pvars_.empty())
-		out << "\b\b  \b\b";
+	if (condensed) {
+		for (const auto& pvar: pvars_)
+			out << pvar->name_ << "=" << pvar->val() << ", ";
+		if (!pvars_.empty())
+			out << "\b\b  \b\b" << std::endl;
+	} else {
+		for (const auto& pvar: pvars_)
+			out << pvar->name_ << " = "
+				<< pvar->val() << " : ("
+				<< pvar->min() << ", "
+				<< pvar->max() << ", "
+				<< pvar->ini() << ")"
+				<< std::endl;
+	}
 }
 
 

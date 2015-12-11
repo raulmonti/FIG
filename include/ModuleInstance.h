@@ -98,8 +98,6 @@ public:
 
 	const std::string name;
 
-	const size_t numClocks;
-
 private:  // Global info to be defined by the ModuleNetwork
 
 	/// Position of this module in the global ModuleNetwork
@@ -269,7 +267,7 @@ public:  // Utils
 		{ ifun.assess_importance(this); }
 
 	/// Get all clocks residing in this module as a const vector
-	inline const std::vector< Clock > clocks() { return lClocks_; }
+	inline const std::vector< Clock >& clocks() { return lClocks_; }
 
 	/**
 	 * @brief Active module jump caused by expiration of our clock "clockName"
@@ -324,7 +322,8 @@ private:
 	/// @note Requires mark_added() to have been called beforehand
 	PositionsMap map_our_clocks();
 
-protected:  // Callback utilities offered to the ModuleNetwork
+//protected:  // Callback utilities offered to the ModuleNetwork
+public:  // Public only for testing
 
 	/**
 	 * @brief Report this module has been added to the network
@@ -385,7 +384,6 @@ ModuleInstance::ModuleInstance(
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks) :
 		lState_(state),
 		name(thename),
-		numClocks(std::distance(begin(clocks), end(clocks))),
 		globalIndex_(-1),
 		firstClock_(-1)
 {
@@ -393,7 +391,7 @@ ModuleInstance::ModuleInstance(
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
 				  "ERROR: type missmatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
-	copy(begin(clocks), end(clocks), begin(lClocks_));
+	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
 }
 
 
@@ -411,7 +409,6 @@ ModuleInstance::ModuleInstance(
 	const Container2< ValueType2, OtherContainerArgs2... >& transitions) :
 		lState_(state),
 		name(thename),
-		numClocks(std::distance(begin(clocks), end(clocks))),
 		globalIndex_(-1),
 		firstClock_(-1)
 {
@@ -419,7 +416,7 @@ ModuleInstance::ModuleInstance(
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
 				  "ERROR: type missmatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
-	copy(begin(clocks), end(clocks), begin(lClocks_));
+	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
 	// Copy transitions
 	static_assert(std::is_same< Transition, ValueType2 >::value,
 				  "ERROR: type missmatch. ModuleInstance can only be copy-"
@@ -446,7 +443,6 @@ ModuleInstance::ModuleInstance(
 	Container2< ValueType2, OtherContainerArgs2... >&& transitions) :
 		lState_(state),
 		name(thename),
-		numClocks(std::distance(begin(clocks), end(clocks))),
 		globalIndex_(-1),
 		firstClock_(-1)
 {
@@ -454,7 +450,7 @@ ModuleInstance::ModuleInstance(
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
 				  "ERROR: type missmatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
-	copy(begin(clocks), end(clocks), begin(lClocks_));
+	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
 	// Move transitions
 	static_assert(std::is_same< Transition, ValueType2 >::value,
 				  "ERROR: type missmatch. ModuleInstance can only be move-"
@@ -483,7 +479,6 @@ ModuleInstance::ModuleInstance(
 	Container2< ValueType2*, OtherContainerArgs2... >&& transitions) :
 		lState_(state),
 		name(thename),
-		numClocks(std::distance(begin(clocks), end(clocks))),
 		globalIndex_(-1),
 		firstClock_(-1)
 {
@@ -491,7 +486,7 @@ ModuleInstance::ModuleInstance(
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
 				  "ERROR: type missmatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
-	copy(begin(clocks), end(clocks), begin(lClocks_));
+	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
 	// Move transitions
 	static_assert(std::is_same< Transition, ValueType2 >::value,
 				  "ERROR: type missmatch. ModuleInstance can only be move-"
@@ -523,7 +518,6 @@ ModuleInstance::ModuleInstance(
 	Iterator< ValueTypeIterator, OtherIteratorArgs... > to) :
 		lState_(state),
 		name(thename),
-		numClocks(std::distance(begin(clocks), end(clocks))),
 		globalIndex_(-1),
 		firstClock_(-1)
 {
@@ -531,7 +525,7 @@ ModuleInstance::ModuleInstance(
 	static_assert(std::is_constructible< Clock, ValueTypeContainer >::value,
 				  "ERROR: type missmatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
-	copy(begin(clocks), end(clocks), begin(lClocks_));
+	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
 	// Move transitions
 	static_assert(std::is_same< Transition, ValueTypeIterator >::value,
 				  "ERROR: type missmatch. ModuleInstance ctor needs iterators "

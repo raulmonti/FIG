@@ -27,6 +27,7 @@
 #include <Precondition.h>
 #include <Postcondition.h>
 #include <Transition.h>
+#include <ModuleInstance.h>
 
 using std::to_string;
 using std::make_tuple;
@@ -45,6 +46,7 @@ static void test_math_expression();
 static void test_precondition();
 static void test_postcondition();
 static void test_transition();
+static void test_module_instance();
 
 
 class TestException : public std::exception
@@ -77,6 +79,7 @@ int main()
 		test_precondition();
 		test_postcondition();
 		test_transition();
+		test_module_instance();
 
 	} catch (TestException& e) {
 		std::stringstream errMsg;
@@ -236,7 +239,9 @@ test_state()
 	});
 	fig::State<TYPE> gState(vars);
 	assert(gState.size() == vars.size());
-	gState.print_out(std::cout, true);
+	gState.print_out(std::cout);
+	std::cout << std::endl;
+
 	size_t i(0u);
 	for (const auto& e: vars) {
 		assert(get<0>(e) == gState[i]->name());
@@ -244,6 +249,7 @@ test_state()
 		assert(get<2>(e) == gState[i]->max());
 		++i;
 	}
+
 	auto s = gState.to_state_instance();
 	assert(gState.is_valid_state_instance(*s));
 	fig::State<TYPE> gState2(vars);
@@ -421,14 +427,6 @@ test_postcondition()
 	try {
 		const std::string str("x-y-z, _pi^2");
 		const std::list<std::string> varNames({"x","y","z"});
-		const std::list<std::string> varUpdates({"noexiste","z"});
-		fig::Postcondition pos(str, varNames, varUpdates);
-		throw TestException(to_string(__LINE__).append(": previous statement "
-													   "should have thrown"));
-	} catch (std::out_of_range) { /* this was expected */ }
-	try {
-		const std::string str("x-y-z, _pi^2");
-		const std::list<std::string> varNames({"x","y","z"});
 		const std::list<std::string> varUpdates({"z","x"});
 		fig::Postcondition pos(str, varNames, varUpdates);
 		fig::StateInstance s(9,0);
@@ -544,4 +542,73 @@ test_transition()
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (fig::FigException) { /* this was expected */ }
+}
+
+
+static void // ////////////////////////////////////////////////////////////////
+//
+test_module_instance()
+{
+	using fig::Label;
+	using fig::Clock;
+	using fig::Precondition;
+	using fig::Postcondition;
+	using fig::Transition;
+
+	typedef std::vector<std::string>  VarNames;
+	typedef std::vector<std::string>  ClkNames;
+	typedef fig::State<fig::STATE_INTERNAL_TYPE>               State;
+	typedef fig::VariableDefinition<fig::STATE_INTERNAL_TYPE>  VarDef;
+
+	// State
+	const auto vars1(VarNames({{"p"},{"q"}}));
+	const auto vars2(VarNames({{"err"},{"num_lost"}}));
+	const auto varsAll(VarNames({{"p"},{"q"},{"err"},{"num_lost"}}));
+	const State module1Vars(std::set<VarDef>({
+		std::make_tuple("p", 0, 1, 1),
+		std::make_tuple("q", -10, 10, -10),
+		std::make_tuple("err", 0, 1, 0),
+		std::make_tuple("num_lost", 0, 20, 0),
+	}));
+
+	// Clocks
+	const std::vector< Clock > module1Clocks({
+		{"c1", "uniform", fig::DistributionParameters({})},
+		{"c2", "uniformAB", fig::DistributionParameters({{-10,10}})},
+		{"c3", "exponential", fig::DistributionParameters({{3}})},
+	});
+
+	// Transitions
+	std::list< Transition > transitions;
+	transitions.emplace_front(
+		Label(),  // tau
+		"c1",
+		Precondition("p*q >= max(p,q)", vars1),
+		Postcondition("min(10,q+1), 1-p", vars1, VarNames({{"q"},{"p"}})),
+		ClkNames({{"c1"},{"c2"}})
+	);
+	transitions.emplace_front(
+		Label("a", false),  // input
+		"",
+		Precondition("true", VarNames({})),
+		Postcondition("p, num_lost+1", VarNames({{"p"},{"num_lost"}}), vars2),
+		ClkNames({{"c3"}})
+	);
+	transitions.emplace_front(
+		Label("b"),  // output
+		"c2",
+		Precondition("1==p || q<0", vars1),
+		Postcondition("1, -10, 0", VarNames({}), VarNames({{"err"},{"q"},{"num_lost"}})),
+		ClkNames({{"c3"},{"c1"}})
+	);
+
+	// Module incremental construction
+	fig::ModuleInstance module1("module1", module1Vars, module1Clocks);
+	for (const auto& tr: transitions)
+		module1.add_transition(tr);
+	//   ...  all-at-once construction
+	fig::ModuleInstance module2("module2", module1Vars, module1Clocks, transitions);
+
+	/// @todo TODO complete this test
+	exit(EXIT_FAILURE);
 }

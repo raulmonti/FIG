@@ -369,7 +369,7 @@ Transition::handle_clocks(Traial& traial,
 #ifndef NTIMECHK
 		if (0.0f > traial.clocks_[thisClock].value)
 			throw FigException(std::string("negative value for clock \"")
-							   .append(fromClock->name).append("\""));
+							   .append(fromClock->name()).append("\""));
 #endif
 		thisClock++;
 		fromClock++;

@@ -138,7 +138,7 @@ public:  // Ctors/Dtor
 			  typename ValueType,
 			  typename... OtherIteratorArgs >
 	State(Iterator<ValueType, OtherIteratorArgs...> from,
-				Iterator<ValueType, OtherIteratorArgs...> to);
+		  Iterator<ValueType, OtherIteratorArgs...> to);
 
 	/// Copy ctor
 	State(const State<T_> &that);
@@ -228,8 +228,12 @@ public:  // Accessors
 #endif
 		}
 
-	/// @brief Print formatted vector of variables into 'out'
-	void print_out(std::ostream& out, bool withNewline = false) const;
+	/**
+	 * @brief Print formatted vector of variables into 'out'
+	 * @param out        Output stream where printing will take place
+	 * @param condensed  Whether to print a summarized version of the data
+	 */
+	void print_out(std::ostream& out, bool condensed = false) const;
 
 public:  // Relational operators
 	/**
@@ -360,7 +364,7 @@ State<T_>::State(Container<ValueType, OtherContainerArgs...>&& vars) :
 	maxConcreteState_(1u)
 {
 	// We chose VariableInterval<> as implementation for our Variables
-	static_assert(std::is_convertible< VariableInterval<T_>, ValueType >::value,
+	static_assert(std::is_constructible< VariableInterval<T_>, ValueType >::value,
 				  "ERROR: type missmatch. State can only be move-"
 				  "constructed from another State or from a container "
 				  "with instances or raw pointers to VariableInterval objects");
@@ -385,7 +389,7 @@ State<T_>::State(Container<ValueType*, OtherContainerArgs...>&& vars) :
 	maxConcreteState_(1u)
 {
 	// We chose VariableInterval<> as implementation for our Variables
-	static_assert(std::is_convertible< VariableInterval<T_>, ValueType >::value,
+	static_assert(std::is_constructible< VariableInterval<T_>, ValueType >::value,
 				  "ERROR: type missmatch. State can only be move-"
 				  "constructed from another State or from a container "
 				  "with instances or raw pointers to VariableInterval objects");
