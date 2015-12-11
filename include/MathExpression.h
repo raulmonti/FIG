@@ -233,7 +233,7 @@ MathExpression::MathExpression(
 			throw std::out_of_range(std::string("invalid variable name: \"")
 									.append(name).append("\""));
 #endif
-		varsMap_.emplace_back(std::move(std::make_pair(name, -1)));
+		varsMap_.emplace_back(std::make_pair(name, -1));  // copy elision
 		// Real mapping is later done with pin_up_vars()
 	}
 }
@@ -260,7 +260,7 @@ MathExpression::MathExpression(
 			throw std::out_of_range(std::string("invalid variable name: \"")
 									.append(name).append("\""));
 #endif
-		varsMap_.emplace_back(std::move(std::make_pair(std::move(name), -1)));
+		varsMap_.emplace_back(std::make_pair(std::move(name), -1));  // copy elision
 		// Real mapping is later done with pin_up_vars()
 	}
 	varnames.clear();
@@ -291,7 +291,7 @@ MathExpression::MathExpression(
 			throw std::out_of_range(std::string("invalid variable name: \"")
 									.append(name).append("\""));
 #endif
-		varsMap_.emplace_back(std::move(std::make_pair(name, -1)));
+		varsMap_.emplace_back(std::make_pair(name, -1));  // copy elision
 		// Real mapping is later done with pin_up_vars()
 	}
 }

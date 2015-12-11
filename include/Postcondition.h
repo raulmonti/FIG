@@ -243,6 +243,12 @@ Postcondition::Postcondition(
 	// Register update variables names
 	updatesNames_.insert(begin(updatesNames_), begin(updateVars), end(updateVars));
 	numUpdates_ = static_cast<int>(updatesNames_.size());
+#ifndef NRANGECHK
+	for (const auto& varname: updateVars)
+		if (std::string::npos == exprStr.find(varname))
+			throw std::out_of_range(std::string("invalid variable name: \"")
+									.append(varname).append("\""));
+#endif
 }
 
 
@@ -269,6 +275,12 @@ Postcondition::Postcondition(
 	// Register update variables names
 	updatesNames_.insert(begin(updatesNames_), from2, to2);
 	numUpdates_ = static_cast<int>(updatesNames_.size());
+#ifndef NRANGECHK
+	for (; from2 != to2 ; from2++)
+		if (std::string::npos == exprStr.find(*from2))
+			throw std::out_of_range(std::string("invalid variable name: \"")
+									.append(*from2).append("\""));
+#endif
 }
 
 } // namespace fig

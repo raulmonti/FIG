@@ -76,8 +76,6 @@ int main()
 		test_math_expression();
 		test_precondition();
 		test_postcondition();
-		/// @todo TODO: erase below
-		exit(EXIT_SUCCESS);
 		test_transition();
 
 	} catch (TestException& e) {
@@ -297,14 +295,6 @@ test_precondition()
 	const std::set<std::string> varnames1({"x","y"});  // vars appearing in str1
 	const fig::PositionsMap varsMap({ {"x",0}, {"y",2}, {"otra",1} });
 
-// typedef fig::VariableInterval< fig::STATE_INTERNAL_TYPE > VarType;
-// State< STATE_INTERNAL_TYPE > gState(
-// 	std::vector< VarType >{
-// 		VarType("x", -1912, -1000),
-// 		VarType("otra", 13, 14),
-// 		VarType("y", 0, 12)
-// 	});
-
 	fig::Precondition pre1(str1, varnames1);
 	assert(str1 == pre1.expression());
 	pre1.pin_up_vars(varsMap);
@@ -323,7 +313,14 @@ test_precondition()
 	fig::StateInstance s4 = {/*x=*/ 2, /*otra=*/ std::numeric_limits<short>::min(), /*y=*/ 16};
 	assert(!pre2(s4));  // since MUP_BASETYPE is short, 2^16 should overflow
 
-	// Incorrect creation data
+	auto pre3(pre1);
+	assert(pre3.expression() == pre1.expression());
+	assert(pre3.pinned() == pre1.pinned());
+	auto pre4 = pre2;
+	assert(pre4.expression() == pre2.expression());
+	assert(pre4.pinned() == pre2.pinned());
+
+	// Invalid creation data or usage
 	try {
 		const std::string str("x-y-z < _pi^2");
 		const std::list<std::string> varnames({"x","noexiste","y"});
@@ -334,9 +331,8 @@ test_precondition()
 	try {
 		const std::string str("x-y-z < _pi^2");
 		const std::list<std::string> varnames({"x","y","z"});
-		fig::StateInstance s(10,0);
 		fig::Precondition pre(str, varnames);
-		assert(pre(s));  // should throw since the vars weren't pinned
+		assert(pre(fig::StateInstance(9,0)));  // should throw since the vars weren't pinned
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (fig::FigException) { /* this was expected */ }
@@ -353,8 +349,7 @@ test_precondition()
 		const std::list<std::string> varnames({"x","y"});  // forgot "z"
 		fig::Precondition pre(str, varnames);
 		pre.pin_up_vars(fig::PositionsMap({{"x",0},{"y",1}}));
-		fig::StateInstance s(10,0);
-		pre(s1);  // should throw since "z" wasn't mapped
+		pre(fig::StateInstance(9,0));  // should throw since "z" wasn't mapped
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (fig::FigException) { /* this was expected */ }
@@ -387,38 +382,42 @@ test_postcondition()
 	pos2(s2);
 	assert(s1 == s2);
 
-	fig::Postcondition pos3(pos2);
+	auto pos3(pos2);
+	assert(pos3.expression() == pos2.expression());
+	assert(pos3.pinned() == pos2.pinned());
 	pos2(s1);
 	pos3(s2);
 	assert(s1 == s2);
 
-		/// @todo TODO: erase below
-		exit(EXIT_SUCCESS);
+	auto pos4 = pos1;
+	assert(pos4.expression() == pos1.expression());
+	assert(pos4.pinned() == pos1.pinned());
 
 	const std::string str4("x^y, 2 - y^(max(x,y))");
 	const auto varNames4(varNames1);
 	const auto varUpdates4(varUpdates1);  // apply updates to 'x' and 'y' resp.
-	fig::Postcondition pos4(str4, varNames4, varUpdates4);
+	fig::Postcondition pos5(str4, varNames4, varUpdates4);
 	fig::StateInstance s4 = {/*x*/ 2, /*otra*/ 1115 , /*y*/ 0};
-	pos4(s4);
+	pos5.pin_up_vars(varsMap);
+	pos5(s4);
 	assert(1 == s4[0]);  // x == x^y == 2^0 == 1
 	assert(2 == s4[2]);  // y == 2 - y^max(x,y) == 2 - 0^max(2,0) == 2
-	pos4(s4);
-	assert(1 == s4[0]);  // x == x^y == 1^2 == 1
+	pos5(s4);
+	assert(1 == s4[0]);   // x == x^y == 1^2 == 1
 	assert(-2 == s4[2]);  // y == 2 - y^max(x,y) == 2 - 2^max(1,2) == -2
-	pos4(s4);
+	pos5(s4);
 	assert(1 == s4[0]);  // x == x^y == 1^-2 == (short)(1/2) == 1
 	assert(4 == s4[2]);  // y == 2 - y^max(x,y) == 2 - (-2)^max(1,-2) == 4
 
-	// Incorrect creation data
+	// Invalid creation data or usage
 	try {
 		const std::string str("x-y-z, _pi^2");
-		const std::list<std::string> varNames({"x","y"});  // forgot "z"
-		auto varUpdates(varUpdates1);
-		fig::Postcondition pos(str, varNames, varUpdates);  // should throw due to unexpected "z"
+		const std::list<std::string> varNames({"x","y","z","noexiste"});
+		const std::list<std::string> varUpdates({"z","z"});
+		fig::Postcondition pos(str, varNames, varUpdates);
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
-	} catch (fig::FigException) { /* this was expected */ }
+	} catch (std::out_of_range) { /* this was expected */ }
 	try {
 		const std::string str("x-y-z, _pi^2");
 		const std::list<std::string> varNames({"x","y","z"});
@@ -427,6 +426,36 @@ test_postcondition()
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (std::out_of_range) { /* this was expected */ }
+	try {
+		const std::string str("x-y-z, _pi^2");
+		const std::list<std::string> varNames({"x","y","z"});
+		const std::list<std::string> varUpdates({"z","x"});
+		fig::Postcondition pos(str, varNames, varUpdates);
+		fig::StateInstance s(9,0);
+		pos(s);  // should throw since the vars weren't pinned
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (fig::FigException) { /* this was expected */ }
+	try {
+		const std::string str("x-y-z, _pi^2");
+		const std::list<std::string> varNames({"x","y","z"});
+		const std::list<std::string> varUpdates({"z","x"});
+		fig::Postcondition pos(str, varNames, varUpdates);
+		pos.pin_up_vars(fig::PositionsMap({{"x",0}}));  // forgot to map "y" and "z"
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (std::out_of_range) { /* this was expected */ }
+	try {
+		const std::string str("x-y-z, _pi^2");
+		const std::list<std::string> varNames({"x","y"});  // forgot "z"
+		const std::list<std::string> varUpdates({"z","x"});
+		fig::Postcondition pos(str, varNames, varUpdates);
+		pos.pin_up_vars(fig::PositionsMap({{"x",0},{"y",2},{"z",999}}));
+		fig::StateInstance s(9,0);
+		pos(s);  // should throw since "z" wasn't mapped
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (fig::FigException) { /* this was expected */ }
 }
 
 
@@ -434,45 +463,85 @@ static void // ////////////////////////////////////////////////////////////////
 //
 test_transition()
 {
+	typedef std::vector<std::string> ResetClocksList;
 	const fig::Label tau;
+	const fig::Label input("a", false);
+	const fig::Label output("a", true);
+	const std::vector< std::string > clockNames({"c1", "c2", "c3"});
 	fig::Precondition  pre("x<y", std::set<std::string>({"x","y"}));
 	fig::Postcondition pos("x+1", std::set<std::string>({"x"}),
 								  std::set<std::string>({"x"}));
 
-//	fig::Transition trans(tau, "clockName",  // would fail assertion
-//		pre, pos, std::set<std::string>());
-	fig::Transition trans1(tau, "", pre, pos, std::set<std::string>());
+//	fig::Transition trans(tau, "" /* fails assertion */, pre, pos, ResetClocksList());
+	fig::Transition trans1(tau, "anyClock", pre, pos, ResetClocksList());
 	assert(tau == trans1.label());
-	assert(trans1.triggeringClock().empty());
+	assert(!trans1.triggeringClock().empty());
+	assert(trans1.resetClocksList().empty());
 	assert(static_cast<fig::Bitflag>(0u) == trans1.resetClocks());
 
-	// Populate global clocks vector
-	typedef fig::DistributionParameters Params;
-	std::vector< std::string > clockNames = {"c1", "c2", "c3"};
-	fig::Label input("a");
-	fig::Transition trans2(input, "", pre, pos, std::set<std::string>({clockNames[0]}));
-	fig::Label output("a", true);
-	std::set<std::string> resetClocks3 = { clockNames[2] };
-//	fig::Transition trans(output, "",  // would fail assertion
-//		pre, pos, std::set<std::string>());
-	fig::Transition trans3(output, clockNames[1], pre, pos, resetClocks3);
-	assert(static_cast<fig::Bitflag>(0u) != trans3.resetClocks());
-	std::vector<std::string> resetClocks4(clockNames);
-	fig::Transition trans4(output, clockNames[1], pre, pos, resetClocks4);
-	assert(static_cast<fig::Bitflag>(0u) != trans4.resetClocks());
+	const ResetClocksList resetClocks2({clockNames[0]});
+	auto pre2(pre);
+	auto pos2(pos);
+//	fig::Transition trans(input, "anyClock" /* fails assertion */, pre, pos, ResetClocksList());
+	fig::Transition trans2(input, "", std::move(pre2), std::move(pos2), resetClocks2);
+	assert(trans2.triggeringClock().empty());
+	assert(!trans2.resetClocksList().empty());
 
-	// Incorrect creation data
+	const ResetClocksList resetClocks3(clockNames);
+//	fig::Transition trans(output, "",  /* fails assertion */, pre, pos, ResetClocksList());
+	fig::Transition trans3(output, clockNames[1], pre, pos, resetClocks3);
+	assert(!trans3.resetClocksList().empty());
+	assert(resetClocks3 == trans3.resetClocksList());
+	trans3.callback(fig::PositionsMap({{"c1",0},{"c2",1},{"c3",63}}),
+					fig::PositionsMap({{"x",11},{"y",3}}));
+	assert(static_cast<fig::Bitflag>(0u) != trans3.resetClocks());
+	assert(trans3.resetClocksList().empty());
+
+	auto trans4(trans2);
+	assert(trans4.triggeringClock() == trans2.triggeringClock());
+	assert(trans4.resetClocksList() == trans2.resetClocksList());
+	assert(trans4.resetClocks()     == trans2.resetClocks());
+	auto trans5(std::move(fig::Transition(trans3)));  // force move ctor
+	assert(trans5.triggeringClock() == trans3.triggeringClock());
+	assert(trans5.resetClocksList() == trans3.resetClocksList());
+	assert(trans5.resetClocks()     == trans3.resetClocks());
+
+	// Invalid creation data or usage
 	try {
-		fig::Transition trans(output, "invalid_clock_name", pre, pos, resetClocks3);
-		throw TestException(to_string(__LINE__).append(": previous statement "
-													   "should have thrown"));
-	} catch (fig::FigException) { /* this was expected */ }
-	try {
-		fig::Transition trans(tau, "", pre, pos,
-							  std::set<std::string>({"c1","invalid_clock_name"}));
+		fig::Transition trans(output, "c1", pre, pos, ResetClocksList());
+		trans.callback(fig::PositionsMap(),  // should throw since "c1" wasn't mapped
+					   fig::PositionsMap({{"x",0},{"y",1}}));
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (std::out_of_range) { /* this was expected */ }
-
-	/// @todo: TODO Complete this test
+	try {
+		fig::Transition trans(input, "", pre, pos, ResetClocksList({"c1"}));
+		trans.callback(fig::PositionsMap(),  // should throw since "c1" wasn't mapped
+					   fig::PositionsMap({{"x",0},{"y",1}}));
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (std::out_of_range) { /* this was expected */ }
+	try {
+		fig::Transition trans(tau, "c2", pre, pos, ResetClocksList({"c1"}));
+		auto invalidClockIndex = 8 * sizeof(fig::Bitflag);
+		trans.callback(fig::PositionsMap({{"c1",invalidClockIndex}}),
+					   fig::PositionsMap({{"x",0},{"y",1}}));
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (std::out_of_range) { /* this was expected */ }
+	try {
+		fig::Transition trans(input, "", pre, pos, ResetClocksList());
+		trans.callback(fig::PositionsMap(), fig::PositionsMap());
+		// callback should've thrown since "pre" and "pos" vars weren't mapped
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (std::out_of_range) { /* this was expected*/ }
+	try {
+		fig::Transition trans(input, "", pre, pos, ResetClocksList());
+		trans.callback(fig::PositionsMap(), fig::PositionsMap({{"x",0},{"y",1}}));
+		trans.callback(fig::PositionsMap(), fig::PositionsMap({{"x",0},{"y",1}}));
+		// second callback invocation should've thrown
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (fig::FigException) { /* this was expected */ }
 }

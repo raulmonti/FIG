@@ -32,6 +32,7 @@
 
 // C++
 #include <string>
+#include <utility>    // std::move(), std::forward<>()
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // std::find_if()
 #include <functional>
@@ -66,7 +67,9 @@ namespace fig
  *        a precondition on variable values and maybe a clock enabling it, and
  *        a postcondition with variables updates and a set of clocks to reset
  *        when the transition is taken.
- *        For a formal definition visit http://dsg.famaf.unc.edu.ar.
+ *        For a formal definition of the IOSA formalism and these transitions
+ *        please visit the <a href="http://dsg.famaf.unc.edu.ar">
+ *        Dependable System Group's webpage</a>.
  *
  * @note  Offers generic construction from the following STL containers:
  *        vector, list, forward_list, set, unordered_set, deque.
@@ -137,8 +140,10 @@ public:  // Ctors/Dtor
 	/// Move ctor
 	Transition(Transition&&);
 
-	/// Can't copy assign Label due to its const string name
-	Transition& operator=(Transition) = delete;
+	/// Can't copy assign due to Label's const string
+	Transition& operator=(const Transition&) = delete;
+	/// Can't move assign due to Label's const string
+	Transition& operator=(Transition&&)      = delete;
 
 	/// Dtor
 	~Transition();
@@ -152,14 +157,25 @@ public:  // Read access to some attributes
 	inline const std::string& triggeringClock() const noexcept { return triggeringClock_; }
 
 	/// Clocks to reset when transition is taken, as a list of clocks names
-	inline const std::vector< std::string >& resetClocksList() const noexcept
-		{ assert(CARBON == resetClocksData_); return resetClocksList_; }
+	inline const std::vector< std::string > resetClocksList() const noexcept
+		{
+			if (CARBON == resetClocksData_)
+				return resetClocksList_;
+			else
+				return std::vector< std::string >();
+		}
 
 	/// Clocks to reset when transition is taken, encoded as Bitflag
 	inline const Bitflag& resetClocks() const noexcept
-		{ assert(CRYSTAL == resetClocksData_); return resetClocks_; }
+		{
+			if (CRYSTAL == resetClocksData_)
+				return resetClocks_;
+			else
+				return std::move(static_cast<Bitflag>(0u));
+		}
 
-protected:  // Utilities offered to ModuleInstance
+//protected:  // Utilities offered to ModuleInstance
+public:  // Public only for testing
 
 	/**
 	 * @brief Provide the global info needed for simulations
@@ -240,7 +256,7 @@ protected:  // Utilities offered to ModuleInstance
 					   const unsigned& firstClock,
 					   const CLOCK_INTERNAL_TYPE& timeLapse) const;
 
-private:
+private:  // Utils
 
 	/**
 	 * @brief Compress reset clocks "carbon version" as a Bitflag
@@ -254,7 +270,8 @@ private:
 	 * \endif
 	 * \ifnot NRANGECHK
 	 *   @throw out_of_range if some invalid clock index was given
-	 *                       or some reset clock wasn't mapped
+	 *                       or some reset clock wasn't mapped,
+	 *                       including the triggering clock
 	 * \endif
 	 */
 	void crystallize(const PositionsMap& globalClocks);
@@ -285,11 +302,12 @@ Transition::Transition(
 	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: type missmatch. Transition ctor needs a "
 				  "container with the names of the resetting clocks");
-	assert(!label_.is_input() != triggeringClock.empty());  // input XOR no triggering clock
+	// Input enabledness: no triggering clock for input labels
+	assert(label_.is_input() == triggeringClock.empty());
 	// Copy reset clocks names
-	resetClocksList_.reserve(std::distance(begin(resetClocks), end(resetClocks)));
-	for(const auto& clockName: resetClocks)
-		resetClocksList_.emplace_back(clockName);
+	resetClocksList_.insert(begin(resetClocksList_),
+							begin(resetClocks),
+							end(resetClocks));
 }
 
 
@@ -304,19 +322,20 @@ Transition::Transition(
 	const Container<ValueType, OtherContainerArgs...>& resetClocks) :
 		label_(label),
 		triggeringClock_(triggeringClock),
-		pre(std::move(pre)),
-		pos(std::move(pos)),
+		pre(std::forward<fig::Precondition&&>(pre)),
+		pos(std::forward<fig::Postcondition&&>(pos)),
 		resetClocksList_(),
 		resetClocksData_(CARBON)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: type missmatch. Transition ctor needs a "
 				  "container with the names of the resetting clocks");
-	assert(!label_.is_input() != triggeringClock.empty());  // input XOR no triggering clock
+	// Input enabledness: no triggering clock for input labels
+	assert(label_.is_input() == triggeringClock.empty());
 	// Copy reset clocks names
-	resetClocksList_.reserve(std::distance(begin(resetClocks), end(resetClocks)));
-	for(const auto& clockName: resetClocks)
-		resetClocksList_.emplace_back(clockName);
+	resetClocksList_.insert(begin(resetClocksList_),
+							begin(resetClocks),
+							end(resetClocks));
 }
 
 

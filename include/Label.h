@@ -95,6 +95,16 @@ public: // Ctors
 				throw FigException("can't construct an empty input label");
 		}
 
+	/// Copy ctor
+	Label(const Label& that) = default;
+	/// Move ctor
+	Label(Label&& that)      = default;
+
+	/// Can't copy assign due to const string member
+	Label& operator=(const Label&) = delete;
+	/// Can't move assign due to const string member
+	Label& operator=(Label&&)      = delete;
+
 public:  // Relational operators
 
 	/**

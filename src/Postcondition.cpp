@@ -42,13 +42,6 @@ using std::begin;
 using std::end;
 
 
-namespace
-{
-template< typename T_ > struct tag;
-// TODO see http://stackoverflow.com/a/31754955
-}
-
-
 namespace fig
 {
 
@@ -65,13 +58,12 @@ Postcondition::Postcondition(const Postcondition& that) :
 							 end(that.updatesNames_));
 		break;
 	case POSITIONS:
-		new (&updatesPositions_) std::vector< int >;
+		new (&updatesPositions_) std::vector< size_t >;
 		updatesPositions_.insert(begin(updatesPositions_),
 								 begin(that.updatesPositions_),
 								 end(that.updatesPositions_));
 		break;
 	}
-	assert(false);
 }
 
 
@@ -82,9 +74,11 @@ Postcondition::Postcondition(Postcondition&& that) :
 {
 	switch (updatesData_) {
 	case NAMES:
+		new (&updatesNames_) std::vector< std::string >;
 		swap(updatesNames_, that.updatesNames_);
 		break;
 	case POSITIONS:
+		new (&updatesPositions_) std::vector< size_t >;
 		swap(updatesPositions_, that.updatesPositions_);
 		break;
 	}
@@ -92,7 +86,7 @@ Postcondition::Postcondition(Postcondition&& that) :
 
 
 Postcondition&
-Postcondition::operator =(Postcondition that)
+Postcondition::operator=(Postcondition that)
 {
 	MathExpression::operator=(std::move(that));
 	swap(numUpdates_, that.numUpdates_);

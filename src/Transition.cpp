@@ -50,9 +50,11 @@ Transition::Transition(const Transition& that) :
 {
 	switch (resetClocksData_) {
 	case CARBON:
+		new (&resetClocksList_) std::vector< std::string >;
 		resetClocksList_ = that.resetClocksList_;
 		break;
 	case CRYSTAL:
+		new (&resetClocks_) Bitflag;
 		resetClocks_ = that.resetClocks_;
 		break;
 	}
@@ -68,9 +70,11 @@ Transition::Transition(Transition&& that) :
 {
 	switch (resetClocksData_) {
 	case CARBON:
+		new (&resetClocksList_) std::vector< std::string >;
 		std::swap(resetClocksList_, that.resetClocksList_);
 		break;
 	case CRYSTAL:
+		new (&resetClocks_) Bitflag;
 		std::swap(resetClocks_, that.resetClocks_);
 		break;
 	}
@@ -113,8 +117,6 @@ Transition::~Transition()
 void
 Transition::crystallize(const PositionsMap& globalClocks)
 {
-	Bitflag indexedPositions(static_cast<Bitflag>(0u));
-
 	if (CRYSTAL == resetClocksData_)
 #ifndef NDEBUG
 		throw FigException("crystallize had already been called before");
@@ -123,10 +125,11 @@ Transition::crystallize(const PositionsMap& globalClocks)
 #endif
 
 	// Encode as Bitflag the global positions of the clocks to reset
+	Bitflag indexedPositions(static_cast<Bitflag>(0u));
 	for(const auto& clockName: resetClocksList_) {
 #ifndef NRANGECHK
 		unsigned idx = globalClocks.at(clockName);
-		if (8*sizeof(Bitflag) <= idx) {
+		if (8*sizeof(Bitflag) < idx) {
 			std::stringstream errMsg;
 			errMsg << "invalid clock index: " << idx;
 			errMsg << " -- Indices can range up to " << 8*sizeof(Bitflag);
@@ -139,11 +142,23 @@ Transition::crystallize(const PositionsMap& globalClocks)
 	}
 	assert((static_cast<Bitflag>(0u) != indexedPositions) !=
 			(begin(resetClocksList_) == end(resetClocksList_)));
+
 	// Discard carbon and store crystal version
 	resetClocksList_.~vector< std::string >();
 	new (&resetClocks_) Bitflag;
 	std::swap(indexedPositions, resetClocks_);
 	resetClocksData_ = CRYSTAL;
+
+	// As a courtesy, check mapping of triggering clock, if any
+#ifndef NRANGECHK
+	if (!triggeringClock_.empty() &&
+			end(globalClocks) == globalClocks.find(triggeringClock_)) {
+		std::stringstream errMsg;
+		errMsg << "triggering clock \"" << triggeringClock_;
+		errMsg << "\" wasn't found in the global clocks map";
+		throw std::out_of_range(errMsg.str());
+	}
+#endif
 }
 
 } // namespace fig
