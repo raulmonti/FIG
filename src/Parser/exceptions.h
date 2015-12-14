@@ -14,6 +14,31 @@
 #include <string>
 
 
+
+//==============================================================================
+
+class ProgramError: public std::exception
+{
+
+    const char* except;
+
+public:
+
+    ProgramError(const char* msg)
+    {
+        except = msg;
+    }
+
+    virtual ~ProgramError(){};
+
+    virtual const char* what() const throw()
+    {
+        return except;
+    }
+
+};
+
+
 //==============================================================================
 
 class IOSAComplianceExc: public std::exception

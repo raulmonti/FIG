@@ -22,42 +22,6 @@ typedef pair<Type,string> ptm; //pair type, module
 typedef pair<string,ptm> pvtm; // pair variable, (type,module)
 typedef map< string, ptm > parsingContext;
 
-///////////////////////////////////////////////////////////////////////////////
-// CLASS SmtFormula
-///////////////////////////////////////////////////////////////////////////////
-
-class SmtFormula{
-
-    SmtFormula *f1;
-    SmtFormula *f2;
-    string     op;
-    AST        *ast;
-
-public:
-
-    SmtFormula(SmtFormula *form1 = NULL, SmtFormula *form2 = NULL,
-               string optr = "");
-
-    SmtFormula(AST* form = NULL, string optr = "");
-
-    virtual ~SmtFormula();
-
-    inline bool is_node(){
-        return ast != NULL;
-    }
-
-    bool sat(parsingContext & pc);
-
-private:
-
-    /* @brief: use this formula to build a z3 expresion representing it.
-       @c: a context to fill up while building the formula. To be used by z3
-           for sat solving.
-    */
-    expr build_z3_expr(context & c, parsingContext & pc);
-};
-///////////////////////////////////////////////////////////////////////////////
-
 
 
 
@@ -65,10 +29,6 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // MODULE API
 ///////////////////////////////////////////////////////////////////////////////
-
-/* @sat: check for satisfiability of the conjunction of formulas in @list.
-*/
-bool sat (vector<AST*> list, parsingContext & pc);
 
 
 /* @brief:   Return a z3 expression corresponding to a boolean formula

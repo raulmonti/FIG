@@ -180,6 +180,30 @@ post2expr(AST* pAst, parsingContext &pc, z3::context &c){
 }
 
 
+//==============================================================================
+
+/**
+ */
+pair<int,int>
+get_limits(AST* ast, string var){
+
+    pair<int,int> result;
+
+    vector<AST*> vars = ast->get_all_ast(_VARIABLE);
+    for(auto const &it: vars){
+        if(it->get_lexeme(_NAME) == var || it->get_lexeme(_NAME)+'\'' == var){
+            vector<string> limits = 
+                it->get_first(_RANGE)->get_all_lexemes(_NUM);
+            assert(limits.size() == 2);
+            result.first = atoi(limits[0].c_str());
+            result.second = atoi(limits[1].c_str());
+            return result;
+        }
+    }
+    throw ProgramError(("Can't find variable " + var + " limits.").c_str());
+}
+
+
 
 //==============================================================================
 // VERIFIER CLASS IMPLEMENTATION ===============================================
@@ -246,6 +270,26 @@ Verifier::verify(AST* ast){
 
 
 /**
+ */
+z3::expr
+Verifier::limits2expr(AST* ast, z3::context &c){
+    z3:expr result = c.bool_const("true");
+    for(auto const &it: mPc){
+        string var = it.first;
+        Type t = it.second.first;
+        if(t == T_ARIT){
+            pair<int,int> limits = get_limits(ast,var);
+            result = result && 
+                (limits.first <= c.real_const(var.c_str()) &&
+                 c.real_const(var.c_str()) <= limits.second);
+        }
+    }
+    return result;
+
+}
+
+
+/**
  *
  */
 bool
@@ -282,10 +326,10 @@ Verifier::names_uniqueness(AST* ast){
     string error_list = "";
     set<AST*,bool(*)(AST*,AST*)> names 
         ([]( AST* a, AST* b){return a->lxm < b->lxm;});
-    vector<AST*> modules = ast->get_list(_MODULE);
-    vector<AST*> constants = ast->get_list(_CONST);
-    vector<AST*> variables = ast->get_list(_VARIABLE);
-    vector<AST*> clocks = ast->get_list(_CLOCK);
+    vector<AST*> modules = ast->get_all_ast(_MODULE);
+    vector<AST*> constants = ast->get_all_ast(_CONST);
+    vector<AST*> variables = ast->get_all_ast(_VARIABLE);
+    vector<AST*> clocks = ast->get_all_ast(_CLOCK);
 
     vector<AST*> nameList;    
     for(int i = 0; i < modules.size(); ++i){
@@ -395,7 +439,7 @@ Verifier::unique_outputs(AST *ast){
                     z3::expr e1 = ast2expr(pre1, c, mPc);                            
                     z3::expr e2 = ast2expr(pre2, c, mPc);
                     s.reset();
-                    s.add(e1 && e2);
+                    s.add(e1 && e2 && limits2expr(ast,c));
                     if( s.check() ){
                         string line1 = transs[i]->get_line();
                         string line2 = transs[j]->get_line();
@@ -420,7 +464,7 @@ Verifier::unique_outputs(AST *ast){
                         z3::expr p1 = post2expr(transs[i],mPc,c);
                         z3::expr p2 = post2expr(transs[j],mPc,c);
                         s.reset();
-                        s.add(e1 && e2 && (p1 != p2));
+                        s.add(e1 && e2 && (p1 != p2) && limits2expr(ast,c));
                         if(s.check()){
                             error_list.append(W_0(line1,line2));
                         }
@@ -437,6 +481,7 @@ Verifier::unique_outputs(AST *ast){
 }
 
 
+
 //==============================================================================
 
 /**
@@ -448,10 +493,12 @@ Verifier::unique_outputs(AST *ast){
 /*
                 {C}   {x}
         []---t2--->[]---t1--->[]
-     {x}|
-       t3
-       |
-      []
+      {x}\
+         \
+         t3
+         \
+         v
+         []
 
     TEST:
     x not in C && sat(pre_1(x') && pos_2(x,x') && pre(x) && (!pre_3(x)) ...) 
@@ -504,11 +551,7 @@ Verifier::check_exhausted_clocks(AST *ast){
                                 }
                             }
                         }
-                        s.add(ex);
-
-                        cout << "Check Exahusted Clocks TESTING: " << endl;
-                        cout << s << endl;
-
+                        s.add(ex && limits2expr(ast,c));
                         if(s.check()){
                             string namei = transs[i]->get_lexeme(_ACTION);
                             string namej = transs[j]->get_lexeme(_ACTION);
@@ -579,7 +622,7 @@ Verifier::check_input_determinism(AST *ast){
                     z3::expr ei = post2expr(inputTrans[i],mPc,c);
                     z3::expr ej = post2expr(inputTrans[j],mPc,c);
                     e = e && (ei != ej);
-                    s.add(e);
+                    s.add(e && limits2expr(ast,c));
 
                     cout << "Check Input Determ TESTING: " << endl;
                     cout << s << endl;
@@ -661,7 +704,7 @@ Verifier::fill_maps(AST *ast){
         for(int j=0; j < variables.size(); j++){
             string name = variables[j]->get_lexeme(_NAME);
             string type = variables[j]->get_lexeme(_TYPE);
-            if(type == "Bool"){
+            if(type == "bool"){
                 mPc.insert(pvtm(name,ptm(T_BOOL,module)));
                 // The variable in <next state>
                 mPc.insert(pvtm(name+"'",ptm(T_BOOL,module)));
@@ -716,7 +759,7 @@ Verifier::type_check(AST *ast){
         Type v_t = mPc[vname].first;
         AST* init = variables[i]->get_first(_INIT);
         if(init){
-            Type e_t = get_type( init->get_first(_EXPRESSION));
+            Type e_t = get_type(init->get_first(_EXPRESSION));
             if(v_t != e_t){
                 error_list.append( "[ERROR] Wrong type for "
                     "initialization of variable '" + vname 
@@ -738,7 +781,7 @@ Verifier::type_check(AST *ast){
             }
         }
     }
-        
+
     // Type check assignments in post conditions
     for(int i = 0; i < trans.size(); ++i){
         vector<AST*> assigs = trans[i]->get_all_ast(_ASSIG);
@@ -767,11 +810,13 @@ Verifier::type_check(AST *ast){
     for(int j = 0; j < trans.size(); j++){
         // enabling clocks
         AST* enable = trans[j]->get_first(_ENABLECLOCK);
-        auto const it = mPc.find(enable->get_first(_NAME)->p_name());
-        if( enable && (it == mPc.end() || it->second.first != T_CLOCK )){
-            error_list.append( "[ERROR] No clock named " 
-                             + enable->p_name() + " at " 
-                             + enable->p_pos() + ".\n" );
+        if(enable){
+            auto const it = mPc.find(enable->get_first(_NAME)->p_name());
+            if( enable && (it == mPc.end() || it->second.first != T_CLOCK )){
+                error_list.append( "[ERROR] No clock named " 
+                                 + enable->p_name() + " at " 
+                                 + enable->p_pos() + ".\n" );
+            }
         }
         // reset clocks
         vector<AST*> resets = trans[j]->get_all_ast(_RESETCLOCK);

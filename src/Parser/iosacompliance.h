@@ -69,6 +69,11 @@ private:
     bool
     is_var(AST* c);
 
+    /**
+     *
+     */
+    z3::expr
+    limits2expr(AST* ast, z3::context &c);
 
     /**
      * @brief Fill up context @mPc for @ast.

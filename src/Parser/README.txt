@@ -27,7 +27,8 @@ Read main.cpp file for an example.
 
 /*
 TODO    work with constants.
-TODO    add limit conditions for integer values when testing for exahusted
+
+DONE    add limit conditions for integer values when testing for exahusted
         clocks and other properties for IOSA.
 
 TODO 	parametric skip whites for Parser class.
