@@ -56,6 +56,7 @@ namespace fig
  * @brief Network of \ref ModuleInstance "module instances" synchronized
  *        through input/output \ref Label "labels".
  *
+ *        This is the user's system model.
  *        This class holds a memory-contiguous view of the global \ref State
  *        "state": a vector with <i>a copy of</i> the variables from all the
  *        constituent modules. In contrast, \ref Clock "clocks" are kept
@@ -85,11 +86,8 @@ class ModuleNetwork : public Module
 	/// Single instance thread safety
 	static std::once_flag singleInstance_;
 
-	/// Private ctor (singleton design pattern)
+	/// Private ctors (singleton design pattern)
 	ModuleNetwork() : gState(), lastClockIndex_(0u), sealed_(false) {}
-
-	/// Proclaim to the four winds the uniqueness of the single instance
-	ModuleNetwork(const ModuleNetwork& that)            = delete;
 	ModuleNetwork(ModuleNetwork&& that)                 = delete;
 	ModuleNetwork& operator=(const ModuleNetwork& that) = delete;
 
@@ -113,12 +111,15 @@ private:
 public:  // Access to ModuleNetwork
 
 	/// Global access point to the unique instance of this pool
-	static ModuleNetwork& get_instance()
+	static inline ModuleNetwork& get_instance()
 		{
 			std::call_once(singleInstance_,
 						   [] () { instance_.reset(new ModuleNetwork); });
 			return *instance_;
 		}
+
+	/// Allow syntax "auto net = fig::ModuleNetwork::get_instance();"
+	inline ModuleNetwork(const ModuleNetwork& that) {} // { instance_.swap(that.instance_); }
 
 	~ModuleNetwork();
 

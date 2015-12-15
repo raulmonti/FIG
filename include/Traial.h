@@ -163,7 +163,8 @@ public:  // Ctors/Dtor
 
 	~Traial();
 
-protected:  // Utils
+//protected:  // Utils
+public:  // Public only for testing
 
 	/**
 	 * @brief Retrieve next not-null expiring clock

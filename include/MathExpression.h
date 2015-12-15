@@ -149,7 +149,7 @@ protected:  // Modifyers
 	 *                    returns the position where this resides internally
 	 * @param globalState Global state instance, owner of the member function
 	 *
-	 * @warning Intended as callback to be called <b>exactly once</b>
+	 * @warning Asynchronous callback to be called <b>exactly once</b>
 	 * \ifnot NRANGECHK
 	 *   @throw out_of_range if some of our variables isn't mapped
 	 * \endif
@@ -170,7 +170,7 @@ protected:  // Modifyers
 	 * @param globalVars Mapping of our variables names to their
 	 *                   respective positions in a global array
 	 *
-	 * @warning Intended as callback to be called <b>exactly once</b>
+	 * @warning Asynchronous callback to be called <b>exactly once</b>
 	 * \ifnot NRANGECHK
 	 *   @throw out_of_range if some of our variables isn't mapped
 	 * \endif
@@ -198,8 +198,8 @@ private:  // Class utils
 
 	/**
 	 * @brief Set 'exprStr_' as the expression to MuParser's 'expr_'
-	 * @details After successfully parsing the expression string,
-	 *          all offered builtin functions are bound to 'expr_'
+	 * @note  After successfully parsing the expression string,
+	 *        all offered builtin functions are bound to 'expr_'
 	 * @throw FigException if badly formatted mathematical expression
 	 */
 	void parse_our_expression();

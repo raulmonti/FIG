@@ -78,22 +78,24 @@ class TraialPool
 	/// Resources available for users
 	static std::forward_list< std::unique_ptr< Traial > > available_traials_;
 
+public:
+
 	/// Size of available_traials_ on pool creation
-	static size_t initialSize_;
+	static const size_t initialSize = (1u) << 12;  // 4K
 
 	/// How many new resources to allocate when either get_traial_copies() or
 	/// get_traial() is invoked and available_traials_ is empty.
-	static size_t sizeChunkIncrement_;
+	static const size_t sizeChunkIncrement = initialSize >> 3;  // 1/8
 
-	/// Private ctor (singleton design pattern)
+private:
+
+	/// Private ctors (singleton design pattern)
 	TraialPool();
-
-	/// Proclaim to the four winds the uniqueness of the single instance
-	TraialPool(const TraialPool& that)            = delete;
 	TraialPool(TraialPool&& that)                 = delete;
 	TraialPool& operator=(const TraialPool& that) = delete;
 
-protected:  // Global info handled by the ModuleNetwork
+//protected:  // Global info handled by the ModuleNetwork
+public:  // Public only for testing
 
 	/// Size of the (symbolic) system global state
 	static size_t numVariables;
@@ -105,12 +107,16 @@ public:  // Access to TraialPool
 
 	/// Global access point to the unique instance of this pool
 	/// @warning ModuleNetwork must have been sealed beforehand
-	static TraialPool& get_instance() {
-		assert(0u < numVariables && 0u < numClocks);
-		std::call_once(singleInstance_,
-					   [] () {instance_.reset(new TraialPool);});
-		return *instance_;
-	}
+	static inline TraialPool& get_instance()
+		{
+			assert(0u < numVariables && 0u < numClocks);
+			std::call_once(singleInstance_,
+						   [] () {instance_.reset(new TraialPool);});
+			return *instance_;
+		}
+
+	/// Allow syntax "auto tpool = fig::TraialPool::get_instance();"
+	inline TraialPool(const TraialPool& that) {} // { instance_.swap(that.instance_); }
 
 	~TraialPool();
 
@@ -120,7 +126,7 @@ public:  // Access to resources (viz Traials)
 	 * @brief Obtain single Traial to simulate with
 	 * @return Traial pointer, possibly dirty with old internal data
 	 * @note <b>Complexity:</b> <i>O(1)</i> if free resources are available,
-	 *       <i>O(sizeChunkIncrement_)</i> if new resources need to be allocated.
+	 *       <i>O(sizeChunkIncrement)</i> if new resources need to be allocated.
 	 */
 	std::unique_ptr< Traial > get_traial();
 
@@ -147,6 +153,12 @@ public:  // Access to resources (viz Traials)
 	std::forward_list< std::unique_ptr< Traial > >
 	get_traial_copies(const Traial& traial, unsigned numCopies);
 
+	/// @copydoc get_traial_copies()
+	/// @note Version offered for easy combination with get_traial()
+	inline std::forward_list< std::unique_ptr< Traial > >
+	get_traial_copies(const std::unique_ptr< Traial >& traial_p, unsigned numCopies)
+		{ return get_traial_copies(*traial_p, numCopies); }
+
 	/**
 	 * @brief Give back a bunch of \ref Traial "traials" to the pool
 	 *
@@ -155,12 +167,12 @@ public:  // Access to resources (viz Traials)
 	 * @note  Container argument 'traials' can contain either raw or unique
 	 *        pointers to Traial objects:
 	 *        <ul>
-	 *        <li> In the first case 'pass by rvalue' is assumed and the
-	 *             container is devoided;</li>
+	 *        <li> In the first case 'pass by rvalue' is assumed;</li>
 	 *        <li> In the second case 'pass by lvalue' is assumed and all the
 	 *             pointers in 'traials' are set to 'nullptr'.</li>
 	 *        </ul>
-	 *        These measures avoid potential memory corruption issues.
+	 *        In both cases the container is devoided. These measures aim at
+	 *        avoiding potential memory corruption issues.
 	 * @note  <b>Complexity:</b> <i>O(size(traials))</i>
 	 */
 	template< template< typename, typename... > class Container,
@@ -176,11 +188,14 @@ public:  // Access to resources (viz Traials)
 
 public:  // Utils
 
-	/**
-	 * @brief Make sure at least numResources Traials are available for users
-	 *        without the need for in-between allocations.
-	 */
+	/// Make sure at least 'numResources' \ref Traial "traials" are available,
+	/// without the need for in-between allocations when requested.
+	/// @note <b>Complexity:</b> <i>O(numResources)</i>
 	void ensure_resources(const size_t& numResources);
+
+	/// How many \ref Traial "traials" are currently available?
+	/// @note <b>Complexity:</b> <i>O(num_resources())</i>
+	size_t num_resources() const noexcept;
 };
 
 
@@ -204,6 +219,7 @@ TraialPool::return_traials(Container<ValueType, OtherContainerArgs...>& traials)
 		uptr.swap(available_traials_.front());
 		assert(nullptr == uptr);
 	}
+	traials.clear();
 }
 
 

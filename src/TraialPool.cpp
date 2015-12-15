@@ -46,10 +46,6 @@ std::unique_ptr< TraialPool > TraialPool::instance_ = nullptr;
 
 std::once_flag TraialPool::singleInstance_;
 
-size_t TraialPool::initialSize_ = (1u) << 12;  // 4K
-
-size_t TraialPool::sizeChunkIncrement_ = TraialPool::initialSize_ >> 3;  // 1/8
-
 std::forward_list< std::unique_ptr< Traial > > TraialPool::available_traials_;
 
 size_t TraialPool::numVariables = 0u;
@@ -61,7 +57,7 @@ size_t TraialPool::numClocks = 0u;
 
 TraialPool::TraialPool()
 {
-	for(unsigned i = 0 ; i < initialSize_ ; i++)
+	for(unsigned i = 0 ; i < initialSize ; i++)
 		available_traials_.emplace_front(new Traial(numVariables, numClocks));
 }
 
@@ -79,7 +75,7 @@ TraialPool::~TraialPool()
 std::unique_ptr<Traial> TraialPool::get_traial()
 {
 	if (available_traials_.empty())
-		for(unsigned i = 0 ; i < sizeChunkIncrement_; i++)
+		for(unsigned i = 0 ; i < sizeChunkIncrement; i++)
 			available_traials_.emplace_front(new Traial(numVariables, numClocks));
 	std::unique_ptr< Traial > traial_p(nullptr);
 	available_traials_.front().swap(traial_p);
@@ -101,7 +97,7 @@ std::forward_list< std::unique_ptr< Traial > >
 TraialPool::get_traial_copies(const Traial& traial, unsigned numCopies)
 {
 	std::forward_list< std::unique_ptr< Traial > > result;
-	assert(sizeChunkIncrement_ > numCopies);  // wouldn't make sense otherwise
+	assert(sizeChunkIncrement > numCopies);  // wouldn't make sense otherwise
 	// Transfer available resources
 	for(; !available_traials_.empty() && 0u < numCopies ; numCopies--) {
 		result.emplace_front();
@@ -111,7 +107,7 @@ TraialPool::get_traial_copies(const Traial& traial, unsigned numCopies)
 	}
 	// Run out of traials but more needed?
 	if (available_traials_.empty() && 0u < numCopies) {
-		for(unsigned i = 0 ; i < sizeChunkIncrement_ - numCopies; i++)
+		for(unsigned i = 0 ; i < sizeChunkIncrement - numCopies; i++)
 			available_traials_.emplace_front(new Traial(numVariables, numClocks));
 		for(; 0u < numCopies ; numCopies--)
 			result.emplace_front(new Traial(traial));
@@ -132,6 +128,13 @@ TraialPool::ensure_resources(const size_t& numResources)
 		; available < numResources
 		; available++ )
 		available_traials_.emplace_front(new Traial(numVariables, numClocks));
+}
+
+
+size_t
+TraialPool::num_resources() const noexcept
+{
+	return std::distance(begin(available_traials_), end(available_traials_));
 }
 
 } // namespace fig

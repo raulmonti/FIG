@@ -108,6 +108,9 @@ private:  // Global info to be defined by the ModuleNetwork
 	/// @note This is needed by Traial for mantaining the clocks internal time.
 	int firstClock_;
 
+	/// Is the module ready for simulations?
+	bool sealed_;
+
 public:  // Ctors/Dtor and populating facilities
 
 	/**
@@ -263,11 +266,20 @@ public:  // Ctors/Dtor and populating facilities
 
 public:  // Utils
 
-	virtual inline void accept(ImportanceFunction& ifun)
-		{ ifun.assess_importance(this); }
+	/// Number of variables defined in this module
+	inline size_t num_vars() const noexcept { return lState_.size(); }
+
+	/// Number of clocks defined in this module
+	inline size_t num_clocks() const noexcept { return lClocks_.size(); }
 
 	/// Get all clocks residing in this module as a const vector
-	inline const std::vector< Clock >& clocks() { return lClocks_; }
+	inline const std::vector< Clock >& clocks() const { return lClocks_; }
+
+	/// Has this module been \ref seal() "sealed" already?
+	inline bool sealed() const noexcept { return sealed_; }
+
+	virtual inline void accept(ImportanceFunction& ifun)
+		{ ifun.assess_importance(this); }
 
 	/**
 	 * @brief Active module jump caused by expiration of our clock "clockName"
@@ -285,9 +297,13 @@ public:  // Utils
 	 *       <li> <i>c</i> is the number of   clocks    of this module and</li>
 	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
 	 *       </ul>
-	 *
 	 * @note Modifies sections both in StateInstance and clock-vector within "traial"
 	 *       which correspond to variables and clocks from this module.
+	 *
+	 * @warning seal() must have been called beforehand
+	 * \ifnot NDEBUG
+	 *   @throw FigException if the module hasn't been sealed yet
+	 * \endif
 	 */
 	const Label& jump(const std::string& clockName,
 					  const CLOCK_INTERNAL_TYPE& elapsedTime,
@@ -306,9 +322,13 @@ public:  // Utils
 	 *       <li> <i>c</i> is the number of   clocks    of this module and</li>
 	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
 	 *       </ul>
-	 *
 	 * @note Modifies sections both in StateInstance and clock-vector within "traial"
 	 *       which correspond to variables and clocks from this module.
+	 *
+	 * @warning seal() must have been called beforehand
+	 * \ifnot NDEBUG
+	 *   @throw FigException if the module hasn't been sealed yet
+	 * \endif
 	 */
 	void jump(const Label& label,
 			  const CLOCK_INTERNAL_TYPE& elapsedTime,
@@ -319,7 +339,7 @@ private:
 	bool is_our_clock(const std::string& clockName);
 
 	/// Build mapping of our clock names to their global positions
-	/// @note Requires mark_added() to have been called beforehand
+	/// @warning mark_added() must have been called beforehand
 	PositionsMap map_our_clocks();
 
 //protected:  // Callback utilities offered to the ModuleNetwork
@@ -338,7 +358,7 @@ public:  // Public only for testing
 	 *
 	 * @warning No more transitions can be added with add_transition()
 	 *          after this invocation
-	 * @warning Intended as callback to be called <b>exactly once</b>
+	 * @warning Synchronous callback to be called <b>exactly once</b>
 	 * \ifnot NDEBUG
 	 *   @throw FigException if called more than once
 	 * \endif
@@ -349,8 +369,11 @@ public:  // Public only for testing
 	/**
 	 * @brief Fill up the global-aware information needed by simulations
 	 * @param globalVars Map of variable names to their global positions
-	 * @warning Intended as callback to be called <b>exactly once</b>
+	 * @warning Asynchronous callback to be called <b>exactly once</b>
 	 * @warning mark_added() must have been called beforehand
+	 * \ifnot NDEBUG
+	 *   @throw FigException if called more than once
+	 * \endif
 	 */
 	void seal(const PositionsMap& globalVars);
 
@@ -359,8 +382,11 @@ public:  // Public only for testing
 	 * @param posOfVar Member function of State which given a variable name
 	 *                 returns the position where this resides internally
 	 * @param globalState Global state instance, owner of the member function
-	 * @warning Intended as callback to be called <b>exactly once</b>
+	 * @warning Asynchronous callback to be called <b>exactly once</b>
 	 * @warning mark_added() must have been called beforehand
+	 * \ifnot NDEBUG
+	 *   @throw FigException if called more than once
+	 * \endif
 	 */
 	void seal(std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
 									const std::string&)
@@ -385,7 +411,8 @@ ModuleInstance::ModuleInstance(
 		lState_(state),
 		name(thename),
 		globalIndex_(-1),
-		firstClock_(-1)
+		firstClock_(-1),
+		sealed_(false)
 {
 	// Copy clocks
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
@@ -410,7 +437,8 @@ ModuleInstance::ModuleInstance(
 		lState_(state),
 		name(thename),
 		globalIndex_(-1),
-		firstClock_(-1)
+		firstClock_(-1),
+		sealed_(false)
 {
 	// Copy clocks
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
@@ -444,7 +472,8 @@ ModuleInstance::ModuleInstance(
 		lState_(state),
 		name(thename),
 		globalIndex_(-1),
-		firstClock_(-1)
+		firstClock_(-1),
+		sealed_(false)
 {
 	// Copy clocks
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
@@ -480,7 +509,8 @@ ModuleInstance::ModuleInstance(
 		lState_(state),
 		name(thename),
 		globalIndex_(-1),
-		firstClock_(-1)
+		firstClock_(-1),
+		sealed_(false)
 {
 	// Copy clocks
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
@@ -519,7 +549,8 @@ ModuleInstance::ModuleInstance(
 		lState_(state),
 		name(thename),
 		globalIndex_(-1),
-		firstClock_(-1)
+		firstClock_(-1),
+		sealed_(false)
 {
 	// Copy clocks
 	static_assert(std::is_constructible< Clock, ValueTypeContainer >::value,

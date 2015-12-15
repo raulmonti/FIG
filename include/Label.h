@@ -61,12 +61,12 @@ public:  // Attributes
 
 private:
 
-	/// Label cathegory. Notice input is "not output"
+	/// Label type. Inputs are "non-outputs"
 	bool output_;
 
 public: // Ctors
 
-	/// Tau (aka. empty) labels are silent outputs
+	/// Taus (aka empty labels) are silent outputs
 	Label() : output_(true) {}
 
 	/**

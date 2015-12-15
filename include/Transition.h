@@ -180,10 +180,16 @@ public:  // Public only for testing
 	/**
 	 * @brief Provide the global info needed for simulations
 	 *
+	 *        Acts as an asynchronous callback: the transition remains
+	 *        "decompressed" until all \ref ModuleInstance "modules" have
+	 *        been added to the \ref ModuleNetwork "network". The network
+	 *        is then \ref ModuleNetwork::seal() "sealed", eventually
+	 *        triggering this member function.
+	 *
 	 * @param globalClocks  Map of clock    names to their global positions
 	 * @param globalVars    Map of variable names to their global positions
 	 *
-	 * @warning This should be called exactly once
+	 * @warning This should be called <b>exactly once</b>
 	 * \ifnot NDEBUG
 	 *   @throw FigException if called more than once
 	 * \endif
@@ -202,12 +208,18 @@ public:  // Public only for testing
 	/**
 	 * @brief Provide the global info needed for simulations
 	 *
+	 *        Acts as an asynchronous callback: the transition remains
+	 *        "decompressed" until all \ref ModuleInstance "modules" have
+	 *        been added to the \ref ModuleNetwork "network". The network
+	 *        is then \ref ModuleNetwork::seal() "sealed", eventually
+	 *        triggering this member function.
+	 *
 	 * @param globalClocks Map of clock names to their global positions
 	 * @param posOfVar     Member function of State which given a variable name
 	 *                     returns the position where this resides internally
 	 * @param globalState  Global state instance, owner of the member function
 	 *
-	 * @warning This should be called exactly once
+	 * @warning This should be called <b>exactly once</b>
 	 * \ifnot NDEBUG
 	 *   @throw FigException if called more than once
 	 * \endif
@@ -229,18 +241,21 @@ public:  // Public only for testing
 	/**
 	 * @brief Reset and/or make time elapse in specified range of clocks
 	 *
-	 *        Always within the specified range, the clocks declared in
-	 *        resetClocks() will have their time value resampled from the
-	 *        appropiate stochastic distribution. The rest will undergo an
-	 *        advance in their internal time of 'timeLapse' units.
+	 *        During a simulation run, and within the specified range,
+	 *        the \ref resetClocks() "reset clocks" of this transition
+	 *        will have their time value resampled from the corresponding
+	 *        stochastic distributions. All other clocks in the specified
+	 *        range will undergo an advance in their internal time of
+	 *        'timeLapse' units.
 	 *
 	 * @param traial     Traial whose clock values will be affected
 	 * @param fromClock  Iterator pointing  to  the first affected clock
 	 * @param toClock    Iterator pointing past the last  affected clock
 	 * @param firstClock Index of the first affected clock in the global
-	 *                   vector held in ModuleNetwork
+	 *                   vector of clocks
 	 * @param timeLapse  Amount of time elapsed for the non-reseting clocks
 	 *
+	 * @warning callback() must have been called beforehand
 	 * \ifnot NTIMECHK
 	 *   @throw FigException if some clock was assigned a negative value
 	 * \endif
@@ -360,6 +375,11 @@ Transition::handle_clocks(Traial& traial,
 	static_assert(std::is_same< Clock*, ValueType >::value,
 				  "ERROR: type missmatch. handle_clocks() takes iterators "
 				  "pointing to Clock objects");
+	// Make sure callback() has been called already
+	assert(CRYSTAL == resetClocksData_);
+	assert(pre.pinned());
+	assert(pos.pinned());
+	// Handle clocks
 	unsigned thisClock(firstClock);
 	while (fromClock != toClock) {
 		if (must_reset(thisClock))

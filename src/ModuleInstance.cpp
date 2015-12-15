@@ -104,6 +104,12 @@ ModuleInstance::jump(const std::string& clockName,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,
 					 Traial& traial)
 {
+	if (!sealed_)
+#ifndef NDEBUG
+		throw FigException("this module hasn't been sealed yet");
+#else
+		return
+#endif
 	auto transitions = transitions_by_clock_[clockName];
 	for (auto& tr_ptr: transitions) {
 		if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
@@ -128,6 +134,12 @@ ModuleInstance::jump(const Label& label,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,
 					 Traial& traial)
 {
+	if (!sealed_)
+#ifndef NDEBUG
+		throw FigException("this module hasn't been sealed yet");
+#else
+		return
+#endif
 	assert(label.is_output());
 	if (label.is_tau())
 		return;
@@ -197,6 +209,13 @@ ModuleInstance::seal(const PositionsMap& globalVars)
 {
 	assert(0 <= globalIndex_);
 	assert(0 <= firstClock_);
+	if (sealed_)
+#ifndef NDEBUG
+		throw FigException("this module has already been sealed");
+#else
+		return;
+#endif
+	sealed_ = true;
 	// Callback all our transitions
 	auto localClocks = map_our_clocks();
 	for (auto& pair: transitions_by_label_)
@@ -214,6 +233,13 @@ ModuleInstance::seal(
 {
 	assert(0 <= globalIndex_);
 	assert(0 <= firstClock_);
+	if (sealed_)
+#ifndef NDEBUG
+		throw FigException("this module has already been sealed");
+#else
+		return;
+#endif
+	sealed_ = true;
 	// Callback all our transitions
 	auto localClocks = map_our_clocks();
 	for (auto& pair: transitions_by_label_)

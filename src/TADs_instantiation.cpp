@@ -17,8 +17,10 @@
 #include <cassert>
 // FIG
 #include <FigException.h>
-#include <Label.h>
 #include <Clock.h>
+#include <Label.h>
+#include <ILabel.h>
+#include <OLabel.h>
 #include <Variable.h>
 #include <VariableSet.h>
 #include <VariableInterval.h>
@@ -27,6 +29,7 @@
 #include <Precondition.h>
 #include <Postcondition.h>
 #include <Transition.h>
+#include <TraialPool.h>
 #include <ModuleInstance.h>
 
 using std::to_string;
@@ -46,6 +49,7 @@ static void test_math_expression();
 static void test_precondition();
 static void test_postcondition();
 static void test_transition();
+static void test_traials();
 static void test_module_instance();
 
 
@@ -66,6 +70,17 @@ public:
 
 int main()
 {
+
+	/**
+	 * Several of these tests are incremental white box,
+	 * and rely on public access to private/protected members of the classes.
+	 *
+	 * This test suite will only compile if the classes are properly modified
+	 * to grant the required public access of such members.
+	 * This allows an incremental and decoupled testing of most classes,
+	 * even though the hierarchy structure has a strongly coupled design.
+	 */
+
 	std::cout << "\nIgnore ALL following messages BUT the last line.\n"
 			  << std::endl;
 
@@ -79,6 +94,7 @@ int main()
 		test_precondition();
 		test_postcondition();
 		test_transition();
+		test_traials();
 		test_module_instance();
 
 	} catch (TestException& e) {
@@ -547,10 +563,64 @@ test_transition()
 
 static void // ////////////////////////////////////////////////////////////////
 //
+test_traials()
+{
+	// Needed for TraialPool initialization
+	fig::TraialPool::numClocks = 4;
+	fig::TraialPool::numVariables = 13;
+
+	// TraialPool singleton nature
+	auto tp = fig::TraialPool::get_instance();
+	assert(fig::TraialPool::initialSize == tp.num_resources());
+	auto tp2(fig::TraialPool::get_instance());
+	assert(tp.num_resources() == tp2.num_resources());
+	auto t = tp.get_traial();
+	assert(tp.num_resources() == tp2.num_resources());
+	fig::TraialPool& tp3 = fig::TraialPool::get_instance();
+	assert(tp.num_resources() == tp3.num_resources());
+	tp2.return_traial(t);
+	assert(nullptr == t);
+	assert(tp.num_resources() == tp2.num_resources());
+	assert(tp.num_resources() == tp3.num_resources());
+
+	// TraialPool functionality: managing Traials
+	const size_t N = 10;
+	tp.ensure_resources(N);
+	t = tp.get_traial();
+	const auto numTraials = tp.num_resources();
+	auto traialsList = tp.get_traial_copies(t, N);
+	assert(std::distance(begin(traialsList), end(traialsList)) == N);
+	for (const auto& uptr: traialsList)
+		assert(t->state == uptr->state);
+	tp.return_traials(traialsList);
+	assert(std::distance(begin(traialsList), end(traialsList)) == 0);
+	assert(numTraials == tp.num_resources());
+
+	// Traial genesis outside TraialPool  XXX  ONLY FOR TESTING  XXX
+	fig::Traial t2(*t);
+	assert(t2.state == t->state);
+	auto t3 = t2;
+	assert(t3.state == t2.state);
+	fig::Traial t4(std::move(t3));
+	assert(t4.state == t2.state);
+
+	// Traials functionality: handle the expiring clocks queue
+	try {
+		auto to = t->next_timeout(true); // all is uninitialized, clocks null
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (fig::FigException) { /* this was expected */ }
+}
+
+
+static void // ////////////////////////////////////////////////////////////////
+//
 test_module_instance()
 {
-	using fig::Label;
 	using fig::Clock;
+	using fig::Label;
+	using fig::ILabel;
+	using fig::OLabel;
 	using fig::Precondition;
 	using fig::Postcondition;
 	using fig::Transition;
@@ -561,9 +631,6 @@ test_module_instance()
 	typedef fig::VariableDefinition<fig::STATE_INTERNAL_TYPE>  VarDef;
 
 	// State
-	const auto vars1(VarNames({{"p"},{"q"}}));
-	const auto vars2(VarNames({{"err"},{"num_lost"}}));
-	const auto varsAll(VarNames({{"p"},{"q"},{"err"},{"num_lost"}}));
 	const State module1Vars(std::set<VarDef>({
 		std::make_tuple("p", 0, 1, 1),
 		std::make_tuple("q", -10, 10, -10),
@@ -572,7 +639,7 @@ test_module_instance()
 	}));
 
 	// Clocks
-	const std::vector< Clock > module1Clocks({
+	const std::deque< Clock > module1Clocks({
 		{"c1", "uniform", fig::DistributionParameters({})},
 		{"c2", "uniformAB", fig::DistributionParameters({{-10,10}})},
 		{"c3", "exponential", fig::DistributionParameters({{3}})},
@@ -580,6 +647,7 @@ test_module_instance()
 
 	// Transitions
 	std::list< Transition > transitions;
+	const auto vars1(VarNames({{"p"},{"q"}}));
 	transitions.emplace_front(
 		Label(),  // tau
 		"c1",
@@ -588,18 +656,19 @@ test_module_instance()
 		ClkNames({{"c1"},{"c2"}})
 	);
 	transitions.emplace_front(
-		Label("a", false),  // input
+		ILabel("a"),  // input
 		"",
-		Precondition("true", VarNames({})),
-		Postcondition("p, num_lost+1", VarNames({{"p"},{"num_lost"}}), vars2),
+		Precondition("1", VarNames({})),  // true == '1'
+		Postcondition("p, num_lost+1", VarNames({{"p"},{"num_lost"}}),
+					  VarNames({{"err"},{"num_lost"}})),
 		ClkNames({{"c3"}})
 	);
 	transitions.emplace_front(
-		Label("b"),  // output
+		OLabel("b"),  // output
 		"c2",
 		Precondition("1==p || q<0", vars1),
 		Postcondition("1, -10, 0", VarNames({}), VarNames({{"err"},{"q"},{"num_lost"}})),
-		ClkNames({{"c3"},{"c1"}})
+		ClkNames()
 	);
 
 	// Module incremental construction
@@ -609,6 +678,35 @@ test_module_instance()
 	//   ...  all-at-once construction
 	fig::ModuleInstance module2("module2", module1Vars, module1Clocks, transitions);
 
-	/// @todo TODO complete this test
-	exit(EXIT_FAILURE);
+	// Module operations
+	auto state = module1.mark_added(0, 0);
+	assert(state == module1Vars);
+	try {
+		module1.mark_added(0,0);  // invoking for second time should throw
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (fig::FigException) { /* this was expected */ }
+	try {
+		module1.add_transition(transitions.front());
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (fig::FigException) { /* this was expected */ }
+
+	fig::PositionsMap globalState;
+	globalState["p"] = state.position_of_var("p");
+	globalState["q"] = state.position_of_var("q");
+	globalState["err"] = state.position_of_var("err");
+	globalState["num_lost"] = state.position_of_var("num_lost");
+	module1.seal(globalState);
+	assert(module1.sealed());
+	assert(!module2.sealed());
+
+	auto t_ptr = fig::TraialPool::get_instance().get_traial();
+	module1.jump(OLabel("r"), 1.0, *t_ptr);
+	try {
+		module2.jump(OLabel("r"), 1.0, *t_ptr);  // module2 wasn't sealed
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (fig::FigException) { /* this was expected */ }
+	fig::TraialPool::get_instance().return_traial(t_ptr);
 }
