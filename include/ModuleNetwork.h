@@ -77,6 +77,29 @@ class ModuleNetwork : public Module
 	friend class ImportanceFunctionConcreteSplit;
 	friend class ImportanceFunctionConcreteCoupled;
 
+protected:  // Attributes shared with the ImportanceFunction visitors
+
+	/// Unified, memory-contiguous global vector of \ref Variable "variables"
+	static State< STATE_INTERNAL_TYPE > gState;
+
+	/// Global position and distribution of the \ref Clock "initial clocks"
+	static std::unordered_map< size_t, const Clock& > initialClocks;
+
+	/// The modules network per se
+	static std::vector< std::shared_ptr< ModuleInstance > > modules;
+
+private:
+
+	/// Total number of clocks, considering all modules in the network
+	static size_t numClocks_;
+
+	/// Global position of the last clock from the last added module,
+	/// useful only during network construction phase, i.e. before seal()
+	static size_t lastClockIndex_;
+
+	/// Whether the system model has already been sealed for simulations
+	static bool sealed_;
+
 	/// Single existent instance of the class (singleton design pattern)
 	static std::unique_ptr< ModuleNetwork > instance_;
 
@@ -84,31 +107,11 @@ class ModuleNetwork : public Module
 	static std::once_flag singleInstance_;
 
 	/// Private ctors (singleton design pattern)
-	ModuleNetwork() : gState(), initialClocks(), lastClockIndex_(0u), sealed_(false) {}
+	ModuleNetwork() {}
 	ModuleNetwork(ModuleNetwork&& that)                 = delete;
 	ModuleNetwork& operator=(const ModuleNetwork& that) = delete;
 
-protected:  // Attributes shared with the ImportanceFunction visitors
-
-	/// Unified, memory-contiguous global vector of \ref Variable "variables"
-	State< STATE_INTERNAL_TYPE > gState;
-
-	/// Global position and distribution of the \ref Clock "initial clocks"
-	std::unordered_map< size_t, const Clock& > initialClocks;
-
-	/// The modules network per se
-	std::vector< std::shared_ptr< ModuleInstance > > modules;
-
-private:
-
-	/// Global position of the last clock from the last added module,
-	/// useful only during network construction phase, i.e. before seal()
-	size_t lastClockIndex_;
-
-	/// Whether this system model has already been sealed for simulations
-	bool sealed_;
-
-public:  // Access to ModuleNetwork
+public:  // Access to the ModuleNetwork instance
 
 	/// Global access point to the unique instance of this pool
 	static inline ModuleNetwork& get_instance()
@@ -152,9 +155,6 @@ public:  // Utils
 	virtual inline void accept(ImportanceFunction& ifun)
 		{ ifun.assess_importance(this); }
 
-	/// @copydoc sealed_
-	inline bool sealed() const noexcept { return sealed_; }
-
 	/**
 	 * @brief Shut the system model to begin with simulations
 	 *
@@ -164,6 +164,9 @@ public:  // Utils
 	 *        along the network. This is for instance required to allow
 	 *        modules reading the state of some other module's variables,
 	 *        which could be needed for some transitions precondition.
+	 *
+	 * @param initialClocksNames Container with the names of the clocks which
+	 *                           need to be reset on system initialization
 	 *
 	 * @note This member function should be called by the user exactly once,
 	 *       after all \ref ModuleInstance "module instances" have been added
@@ -178,6 +181,19 @@ public:  // Utils
 			  typename ValueType,
 			  typename... OtherContainerArgs >
 	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames);
+
+	/// @copydoc sealed_
+	inline bool sealed() const noexcept { return sealed_; }
+
+	/// @copydoc numClocks_
+	inline size_t num_clocks() const noexcept { return numClocks_; }
+
+	/// Symbolic global state size, i.e. number of variables in the system model
+	inline size_t state_size() const noexcept { return gState.size(); }
+
+	/// Concrete global state size, i.e. cross product of the ranges
+	/// of all the variables in the system model
+	inline size_t concrete_state_size() const noexcept { return gState.concrete_size(); }
 };
 
 } // namespace fig

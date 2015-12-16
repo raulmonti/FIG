@@ -103,10 +103,11 @@ public:  // Public only for testing
 	/// Number of clocks in the whole system model
 	static size_t numClocks;
 
-public:  // Access to TraialPool
+public:  // Access to the TraialPool instance
 
 	/// Global access point to the unique instance of this pool
-	/// @warning ModuleNetwork must have been sealed beforehand
+	/// @warning The system model must have been \ref ModuleNetowrk::seal()
+	///          "sealed" beforehand
 	static inline TraialPool& get_instance()
 		{
 			assert(0u < numVariables && 0u < numClocks);

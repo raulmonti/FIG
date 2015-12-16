@@ -480,32 +480,32 @@ static void // ////////////////////////////////////////////////////////////////
 //
 test_transition()
 {
-	typedef std::vector<std::string> ResetClocksList;
+	typedef std::vector<std::string> NamesList;
 	const fig::Label tau;
 	const fig::Label input("a", false);
 	const fig::Label output("a", true);
-	const std::vector< std::string > clockNames({"c1", "c2", "c3"});
+	const NamesList clockNames({"c1", "c2", "c3"});
 	fig::Precondition  pre("x<y", std::set<std::string>({"x","y"}));
 	fig::Postcondition pos("x+1", std::set<std::string>({"x"}),
 								  std::set<std::string>({"x"}));
 
-//	fig::Transition trans(tau, "" /* fails assertion */, pre, pos, ResetClocksList());
-	fig::Transition trans1(tau, "anyClock", pre, pos, ResetClocksList());
+//	fig::Transition trans(tau, "" /* fails assertion */, pre, pos, NamesList());
+	fig::Transition trans1(tau, "anyClock", pre, pos, NamesList());
 	assert(tau == trans1.label());
 	assert(!trans1.triggeringClock().empty());
 	assert(trans1.resetClocksList().empty());
 	assert(static_cast<fig::Bitflag>(0u) == trans1.resetClocks());
 
-	const ResetClocksList resetClocks2({clockNames[0]});
+	const NamesList resetClocks2({clockNames[0]});
 	auto pre2(pre);
 	auto pos2(pos);
-//	fig::Transition trans(input, "anyClock" /* fails assertion */, pre, pos, ResetClocksList());
+//	fig::Transition trans(input, "anyClock" /* fails assertion */, pre, pos, NamesList());
 	fig::Transition trans2(input, "", std::move(pre2), std::move(pos2), resetClocks2);
 	assert(trans2.triggeringClock().empty());
 	assert(!trans2.resetClocksList().empty());
 
-	const ResetClocksList resetClocks3(clockNames);
-//	fig::Transition trans(output, "",  /* fails assertion */, pre, pos, ResetClocksList());
+	const NamesList resetClocks3(clockNames);
+//	fig::Transition trans(output, "",  /* fails assertion */, pre, pos, NamesList());
 	fig::Transition trans3(output, clockNames[1], pre, pos, resetClocks3);
 	assert(!trans3.resetClocksList().empty());
 	assert(resetClocks3 == trans3.resetClocksList());
@@ -525,21 +525,21 @@ test_transition()
 
 	// Invalid creation data or usage
 	try {
-		fig::Transition trans(output, "c1", pre, pos, ResetClocksList());
+		fig::Transition trans(output, "c1", pre, pos, NamesList());
 		trans.callback(fig::PositionsMap(),  // should throw since "c1" wasn't mapped
 					   fig::PositionsMap({{"x",0},{"y",1}}));
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (std::out_of_range) { /* this was expected */ }
 	try {
-		fig::Transition trans(input, "", pre, pos, ResetClocksList({"c1"}));
+		fig::Transition trans(input, "", pre, pos, NamesList({"c1"}));
 		trans.callback(fig::PositionsMap(),  // should throw since "c1" wasn't mapped
 					   fig::PositionsMap({{"x",0},{"y",1}}));
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (std::out_of_range) { /* this was expected */ }
 	try {
-		fig::Transition trans(tau, "c2", pre, pos, ResetClocksList({"c1"}));
+		fig::Transition trans(tau, "c2", pre, pos, NamesList({"c1"}));
 		auto invalidClockIndex = 8 * sizeof(fig::Bitflag);
 		trans.callback(fig::PositionsMap({{"c1",invalidClockIndex}}),
 					   fig::PositionsMap({{"x",0},{"y",1}}));
@@ -547,14 +547,14 @@ test_transition()
 													   "should have thrown"));
 	} catch (std::out_of_range) { /* this was expected */ }
 	try {
-		fig::Transition trans(input, "", pre, pos, ResetClocksList());
+		fig::Transition trans(input, "", pre, pos, NamesList());
 		trans.callback(fig::PositionsMap(), fig::PositionsMap());
 		// callback should've thrown since "pre" and "pos" vars weren't mapped
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (std::out_of_range) { /* this was expected*/ }
 	try {
-		fig::Transition trans(input, "", pre, pos, ResetClocksList());
+		fig::Transition trans(input, "", pre, pos, NamesList());
 		trans.callback(fig::PositionsMap(), fig::PositionsMap({{"x",0},{"y",1}}));
 		trans.callback(fig::PositionsMap(), fig::PositionsMap({{"x",0},{"y",1}}));
 		// second callback invocation should've thrown
@@ -628,8 +628,7 @@ test_module_instance()
 	using fig::Postcondition;
 	using fig::Transition;
 
-	typedef std::vector<std::string>  VarNames;
-	typedef std::vector<std::string>  ClkNames;
+	typedef std::vector<std::string>  NamesList;
 	typedef fig::State<fig::STATE_INTERNAL_TYPE>               State;
 	typedef fig::VariableDefinition<fig::STATE_INTERNAL_TYPE>  VarDef;
 
@@ -650,28 +649,28 @@ test_module_instance()
 
 	// Transitions
 	std::list< Transition > transitions;
-	const auto vars1(VarNames({{"p"},{"q"}}));
+	const auto vars1(NamesList({{"p"},{"q"}}));
 	transitions.emplace_front(
 		Label(),  // tau
 		"c1",
 		Precondition("p*q >= max(p,q)", vars1),
-		Postcondition("min(10,q+1), 1-p", vars1, VarNames({{"q"},{"p"}})),
-		ClkNames({{"c1"},{"c2"}})
+		Postcondition("min(10,q+1), 1-p", vars1, NamesList({{"q"},{"p"}})),
+		NamesList({{"c1"},{"c2"}})
 	);
 	transitions.emplace_front(
 		ILabel("a"),  // input
 		"",
-		Precondition("1", VarNames({})),  // true == '1'
-		Postcondition("p, num_lost+1", VarNames({{"p"},{"num_lost"}}),
-					  VarNames({{"err"},{"num_lost"}})),
-		ClkNames({{"c3"}})
+		Precondition("1", NamesList({})),  // true == '1'
+		Postcondition("p, num_lost+1", NamesList({{"p"},{"num_lost"}}),
+					  NamesList({{"err"},{"num_lost"}})),
+		NamesList({{"c3"}})
 	);
 	transitions.emplace_front(
 		OLabel("b"),  // output
 		"c2",
 		Precondition("1==p || q<0", vars1),
-		Postcondition("1, -10, 0", VarNames({}), VarNames({{"err"},{"q"},{"num_lost"}})),
-		ClkNames()
+		Postcondition("1, -10, 0", NamesList({}), NamesList({{"err"},{"q"},{"num_lost"}})),
+		NamesList()
 	);
 
 	// Module incremental construction
@@ -816,7 +815,7 @@ test_module_network()
 				   Postcondition("q+1", NamesList({{"q"}}), NamesList({{"q"}})),
 				   NamesList()));
 
-	// Network
+	// Network construction
 	auto model = Model::get_instance();
 	model.add_module(module1);
 	assert(nullptr == module1);
@@ -825,7 +824,9 @@ test_module_network()
 	model.seal(NamesList({{"c1"}}));
 	assert(model.sealed());
 
-
+	// Network dynamics
+	std::unique_ptr<Traial> t(new Traial(model.state_size(), model.num_clocks()));
+	t->initialize();
 	/// @todo TODO complete this test
-	std::cerr << "\nComplete ModuleNetwork test!" << std::endl;
+	std::cerr << "\nTest ModuleNetwork dynamics" << std::endl;
 }

@@ -55,6 +55,18 @@ namespace fig
 
 // Static variables initialization
 
+State< STATE_INTERNAL_TYPE > ModuleNetwork::gState;
+
+std::unordered_map< size_t, const Clock& > ModuleNetwork::initialClocks;
+
+std::vector< std::shared_ptr< ModuleInstance > > ModuleNetwork::modules;
+
+size_t ModuleNetwork::numClocks_ = 0u;
+
+size_t ModuleNetwork::lastClockIndex_ = 0u;
+
+bool ModuleNetwork::sealed_ = false;
+
 std::unique_ptr< ModuleNetwork > ModuleNetwork::instance_ = nullptr;
 
 std::once_flag ModuleNetwork::singleInstance_;
