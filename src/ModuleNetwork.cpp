@@ -49,7 +49,7 @@ ModuleNetwork::~ModuleNetwork()
 
 //	Deleting this vector would be linear in its size.
 //	Since the ModuleNetwork should only be deleted after simulations conclusion,
-///	@warning we ingnore this (potential?) memory leak due to its short life.
+///	@warning we ignore this (potential?) memory leak due to its short life.
 }
 
 
@@ -72,28 +72,6 @@ ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 	gState.append(state);
 	lastClockIndex_ += module->clocks().size();
 	module = nullptr;
-}
-
-
-void
-ModuleNetwork::seal()
-{
-	size_t numClocks(0u);
-	if (sealed_)
-#ifndef NDEBUG
-		throw FigException("ModuleNetwork has been sealed before");
-#else
-		return;
-#endif
-	sealed_ = true;
-	// Seal all the modules
-	for(auto& module_ptr: modules) {
-		module_ptr->seal(&State<STATE_INTERNAL_TYPE>::position_of_var, gState);
-		numClocks += module_ptr->clocks().size();
-	}
-	// Fill other global info
-	TraialPool::numVariables = gState.size();
-	TraialPool::numClocks = numClocks;
 }
 
 } // namespace fig

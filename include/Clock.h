@@ -74,7 +74,7 @@ class Clock
 	/// Clock's distribution
 	Distribution dist_;  // *copy* of one from distribution_list
 
-	/// Clock's distribution paremeters
+	/// Clock's distribution parameters
 	DistributionParameters distParams_;
 
 public:  // Ctors

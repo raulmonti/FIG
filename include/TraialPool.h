@@ -116,7 +116,8 @@ public:  // Access to TraialPool
 		}
 
 	/// Allow syntax "auto tpool = fig::TraialPool::get_instance();"
-	inline TraialPool(const TraialPool& that) {} // { instance_.swap(that.instance_); }
+	inline TraialPool(const TraialPool& that) {}
+		// { instance_.swap(that.instance_); }
 
 	~TraialPool();
 

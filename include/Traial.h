@@ -33,12 +33,22 @@
 // C++
 #include <vector>
 #include <memory>     // std::shared_ptr<>
-#include <algorithm>  // std::swap()
+#include <iterator>   // std::begin(), std::end()
+#include <algorithm>  // std::swap(), std::find()
 #include <utility>    // std::move()
+#include <numeric>    // std::iota()
 // FIG
 #include <core_typedefs.h>
 #include <State.h>
 #include <Clock.h>
+
+#if __cplusplus < 201103L
+#  error "C++11 standard required, please compile with -std=c++11\n"
+#endif
+
+// ADL
+using std::begin;
+using std::end;
 
 
 namespace fig
@@ -119,21 +129,28 @@ public:  // Ctors/Dtor
 	/**
 	 * @brief Data ctor
 	 *
-	 * @param stateSize     Symbolic size of the global state
+	 * @param stateSize     Symbolic size of the global State
 	 * @param numClocks     Number of clocks in the whole system
-	 * @param initClocks    Whether to initialize some clocks
-	 * @param whichClocks   Which clocks to initialize if initClocks is true
+	 * @param whichClocks   Which clocks to initialize, if any
 	 * @param orderTimeouts Whether to order the timeouts after initializations
 	 *
-	 * @warning By default, and regardless of clocks initialization,
-	 *          the timeouts won't be ordered. To force ordering call with
-	 *          last parameter set to <b>true</b>.
+	 * @note By default, and regardless of clocks initialization,
+	 *       the timeouts won't be ordered. To force ordering call
+	 *       with last parameter set to <b>true</b>.
 	 */
 	Traial(const size_t& stateSize,
 		   const size_t& numClocks,
-		   bool initClocks,
-		   Bitflag whichClocks = static_cast<Bitflag>(0u),
+		   Bitflag whichClocks,
 		   bool orderTimeouts = false);
+
+//	/// @copydoc Traial(const size_t&, const size_t&, fig::Bitflag, bool)
+//	template< template< typename, typename... > class Container,
+//			  typename ValueType,
+//			  typename... OtherContainerArgs >
+//	Traial(const size_t& stateSize,
+//		   const size_t& numClocks,
+//		   const Container<ValueType, OtherContainerArgs...>& whichClocks,
+//		   bool orderTimeouts = false);
 
 	/// Copy ctor
 	inline Traial(const Traial& that) :
@@ -163,7 +180,25 @@ public:  // Ctors/Dtor
 
 	~Traial();
 
-//protected:  // Utils
+public:  // Utils
+
+	/**
+	 * @brief Reset traial to the initial conditions of the system model
+	 *
+	 *        When a new simulation starts, the \ref Variable "system variables"
+	 *        should begin at their initial values, and the \ref Clock "initial
+	 *        clocks" should be reset with their corresponding distributions.
+	 *        This member function resets the Traial instance to comply
+	 *        with such initial conditions.
+	 *
+	 * @warning ModuleNetwork::seal() must have been called beforehand
+	 * \ifnot NDEBUG
+	 *   @throw FigException if the system model hasn't been sealed yet
+	 * \endif
+	 */
+	void initialize();
+
+//protected:
 public:  // Public only for testing
 
 	/**
@@ -193,6 +228,42 @@ private:
 	void
 	reorder_clocks();
 };
+
+// // // // // // // // // // // // // // // // // // // // // // // // // // //
+
+// Template definitions
+
+// If curious about its presence here take a look at the end of VariableSet.cpp
+
+// template< template< typename, typename... > class Container,
+// 		  typename ValueType,
+// 		  typename... OtherContainerArgs >
+// Traial::Traial(const size_t& stateSize,
+// 			   const size_t& numClocks,
+// 			   const Container <ValueType, OtherContainerArgs...>& whichClocks,
+// 			   bool orderTimeouts) :
+// 	state(stateSize),
+// 	orderedIndex_(numClocks)
+// {
+// 	auto must_reset =
+// 		[&] (const std::string& name) -> bool
+// 		{
+// 			return std::find(begin(whichClocks), end(whichClocks), name)
+// 					   != end(whichClocks) ;
+// 		};
+// 	static_assert(std::is_convertible< std::string, ValueType >::value,
+// 				  "ERROR: type missmatch. Traial data ctor needs a container "
+// 				  "with clock names");
+// 	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
+// 	clocks_.reserve(numClocks);
+// 	for (const auto& module_ptr: ModuleNetwork::get_instance().modules)
+// 		for (const auto& clock: module_ptr->clocks())
+// 			clocks_.emplace_back(module_ptr,
+// 								 clock.name(),
+// 								 must_reset(clock.name()) ? clock.sample() : 0.0f);
+// 	if (orderTimeouts)
+// 		reorder_clocks();
+// }
 
 } // namespace fig
 

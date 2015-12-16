@@ -105,7 +105,7 @@ private:  // Global info to be defined by the ModuleNetwork
 
 	/// Index of our first clock as it would appear in a global array,
 	/// where the clocks from all the modules were placed side by side.
-	/// @note This is needed by Traial for mantaining the clocks internal time.
+	/// This is needed by Traial for mantaining the clocks internal time.
 	int firstClock_;
 
 	/// Is the module ready for simulations?
@@ -356,9 +356,10 @@ public:  // Public only for testing
 	 *
 	 * @return Const reference to our local state, to append to the global one
 	 *
+	 * @note Synchronous callback to be called <b>exactly once</b>
+	 *
 	 * @warning No more transitions can be added with add_transition()
 	 *          after this invocation
-	 * @warning Synchronous callback to be called <b>exactly once</b>
 	 * \ifnot NDEBUG
 	 *   @throw FigException if called more than once
 	 * \endif
@@ -368,8 +369,11 @@ public:  // Public only for testing
 
 	/**
 	 * @brief Fill up the global-aware information needed by simulations
+	 *
 	 * @param globalVars Map of variable names to their global positions
-	 * @warning Asynchronous callback to be called <b>exactly once</b>
+	 *
+	 * @note Asynchronous callback to be called <b>exactly once</b>
+	 *
 	 * @warning mark_added() must have been called beforehand
 	 * \ifnot NDEBUG
 	 *   @throw FigException if called more than once
@@ -379,10 +383,13 @@ public:  // Public only for testing
 
 	/**
 	 * @brief Fill up the global-aware information needed by simulations
+	 *
 	 * @param posOfVar Member function of State which given a variable name
 	 *                 returns the position where this resides internally
 	 * @param globalState Global state instance, owner of the member function
-	 * @warning Asynchronous callback to be called <b>exactly once</b>
+	 *
+	 * @note Asynchronous callback to be called <b>exactly once</b>
+	 *
 	 * @warning mark_added() must have been called beforehand
 	 * \ifnot NDEBUG
 	 *   @throw FigException if called more than once

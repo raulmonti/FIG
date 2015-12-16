@@ -31,6 +31,7 @@
 #include <Transition.h>
 #include <TraialPool.h>
 #include <ModuleInstance.h>
+#include <ModuleNetwork.h>
 
 using std::to_string;
 using std::make_tuple;
@@ -51,6 +52,7 @@ static void test_postcondition();
 static void test_transition();
 static void test_traials();
 static void test_module_instance();
+static void test_module_network();
 
 
 class TestException : public std::exception
@@ -96,6 +98,7 @@ int main()
 		test_transition();
 		test_traials();
 		test_module_instance();
+		test_module_network();
 
 	} catch (TestException& e) {
 		std::stringstream errMsg;
@@ -688,6 +691,7 @@ test_module_instance()
 	} catch (fig::FigException) { /* this was expected */ }
 	try {
 		module1.add_transition(transitions.front());
+		// can't add transition after marking module as added
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (fig::FigException) { /* this was expected */ }
@@ -709,4 +713,52 @@ test_module_instance()
 													   "should have thrown"));
 	} catch (fig::FigException) { /* this was expected */ }
 	fig::TraialPool::get_instance().return_traial(t_ptr);
+}
+
+
+static void // ////////////////////////////////////////////////////////////////
+//
+test_module_network()
+{
+	using fig::Clock;
+	using fig::Traial;
+	using fig::Precondition;
+	using fig::Postcondition;
+	using fig::Transition;
+
+	typedef fig::ModuleInstance Module;
+	typedef fig::ModuleNetwork  Model;
+
+	assert(!Model::get_instance().sealed());
+
+	/* * * * * * * * * * * * * * * * * * * * * * * *
+	 *                                             *
+	 *  System model to build:                     *
+	 *                                             *
+	 *  Module1                                    *
+	 *    Variables                                *
+	 *      int p : [0..2] = 0                     *
+	 *      clock c1 : Uniform(0,1)                *
+	 *    Transitions                              *
+	 *      [a!] p=0 @ c1 --> p = p+1, {}          *
+	 *      [b?] p=1      --> p = p-1, {c1}        *
+	 *      [c?] p=1      --> p = p+1, {}          *
+	 *  EndModule1                                 *
+	 *                                             *
+	 *  Module2                                    *
+	 *    Variables                                *
+	 *      int q : [0..2] = 0                     *
+	 *      clock c2 : Normal(2,1)                 *
+	 *      clock c3 : Exponential(3)              *
+	 *    Transitions                              *
+	 *      [a?] q=0      --> q = q+1, {c2,c3}     *
+	 *      [b!] q=1 @ c2 --> q = q-1, {}          *
+	 *      [c!] q=1 @ c3 --> q = q+1, {}          *
+	 *  EndModule2                                 *
+	 *                                             *
+	 *  Deadlock when p == q == 2                  *
+	 *  Initial clocks: c1 from Module1            *
+	 *  Question: mean time to deadlock?           *
+	 *                                             *
+	 * * * * * * * * * * * * * * * * * * * * * * * */
 }

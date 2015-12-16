@@ -58,7 +58,6 @@ Traial::Traial(const size_t& stateSize, const size_t& numClocks) :
 
 Traial::Traial(const size_t& stateSize,
 			   const size_t& numClocks,
-			   bool initClocks,
 			   Bitflag whichClocks,
 			   bool orderTimeouts) :
 	state(stateSize),
@@ -68,10 +67,7 @@ Traial::Traial(const size_t& stateSize,
 //	std::function<bool(const size_t&)> must_reset =
 	auto must_reset =
 		[&] (const size_t& i) -> bool
-		{
-			return initClocks &&
-					(whichClocks & (static_cast<Bitflag>(1u) << i));
-		};
+		{ return whichClocks & (static_cast<Bitflag>(1u) << i); };
 	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 	clocks_.reserve(numClocks);
 	i = 0;
@@ -93,6 +89,16 @@ Traial::~Traial()
 //	Deleting the vectors would be linear in their size.
 //	Since traials should only be deleted after simulations conclusion,
 ///	@warning we ingnore this (potential?) memory leak due to its short life.
+}
+
+
+void
+Traial::initialize()
+{
+	auto net = ModuleNetwork::get_instance();
+	net.gState.copy_to_state_instance(state);
+	for (auto& pos_clk_pair: net.initialClocks)
+		clocks_[pos_clk_pair.first].value = pos_clk_pair.second.sample();
 }
 
 

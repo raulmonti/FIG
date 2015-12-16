@@ -33,19 +33,27 @@
 // C++
 #include <mutex>  // std::call_once(), std::once_flag
 #include <vector>
-#include <memory>
-#include <functional>
+#include <memory>     // std::unique_ptr<>
+#include <iterator>   // std::begin(), std::end()
+#include <algorithm>  // std::find_if()
+#include <unordered_map>
 // FIG
 #include <core_typedefs.h>
+#include <Clock.h>
+#include <Variable.h>
+#include <State.h>
 #include <Module.h>
 #include <ModuleInstance.h>
-#include <State.h>
-#include <Variable.h>
-#include <Clock.h>
+#include <TraialPool.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
 #endif
+
+// ADL
+using std::find_if;
+using std::begin;
+using std::end;
 
 
 namespace fig
@@ -87,7 +95,7 @@ class ModuleNetwork : public Module
 	static std::once_flag singleInstance_;
 
 	/// Private ctors (singleton design pattern)
-	ModuleNetwork() : gState(), lastClockIndex_(0u), sealed_(false) {}
+	ModuleNetwork() : gState(), initialClocks(), lastClockIndex_(0u), sealed_(false) {}
 	ModuleNetwork(ModuleNetwork&& that)                 = delete;
 	ModuleNetwork& operator=(const ModuleNetwork& that) = delete;
 
@@ -95,6 +103,9 @@ protected:  // Attributes shared with the ImportanceFunction visitors
 
 	/// Unified, memory-contiguous global vector of \ref Variable "variables"
 	State< STATE_INTERNAL_TYPE > gState;
+
+	/// Global position and distribution of the \ref Clock "initial clocks"
+	std::unordered_map< size_t, const Clock& > initialClocks;
 
 	/// The modules network per se
 	std::vector< std::shared_ptr< ModuleInstance > > modules;
@@ -119,7 +130,8 @@ public:  // Access to ModuleNetwork
 		}
 
 	/// Allow syntax "auto net = fig::ModuleNetwork::get_instance();"
-	inline ModuleNetwork(const ModuleNetwork& that) {} // { instance_.swap(that.instance_); }
+	inline ModuleNetwork(const ModuleNetwork& that) {}
+		// { instance_.swap(that.instance_); }
 
 	~ModuleNetwork();
 
@@ -151,6 +163,9 @@ public:  // Utils
 	virtual inline void accept(ImportanceFunction& ifun)
 		{ ifun.assess_importance(this); }
 
+	/// @copydoc sealed_
+	inline bool sealed() const noexcept { return sealed_; }
+
 	/**
 	 * @brief Shut the system model to begin with simulations
 	 *
@@ -170,11 +185,61 @@ public:  // Utils
 	 *   @throw FigException if called more than once
 	 * \endif
 	 */
-	void seal();
-
-	/// @copydoc sealed_
-	inline bool sealed() const noexcept { return sealed_; }
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames);
 };
+
+// // // // // // // // // // // // // // // // // // // // // // // // // // //
+
+// Template definitions
+
+// If curious about its presence here take a look at the end of VariableSet.cpp
+
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+void
+ModuleNetwork::seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames)
+{
+	size_t numClocksReviewed(0u);
+	static_assert(std::is_convertible< std::string, ValueType >::value,
+				  "ERROR: type missmatch. ModuleNetwork::seal() needs "
+				  "a container with the initial clock names");
+	if (sealed_)
+#ifndef NDEBUG
+		throw FigException("the ModuleNetwork has already been sealed");
+#else
+		return;
+#endif
+	sealed_ = true;
+	initialClocks.reserve(std::distance(begin(initialClocksNames),
+										end(initialClocksNames)));
+	// For each module in the network...
+	for (auto& module_ptr: modules) {
+		size_t clockLocalPos(0u);
+		// ... seal it ...
+		module_ptr->seal(&State<STATE_INTERNAL_TYPE>::position_of_var, gState);
+		// ... search for initial clocks within ...
+		auto module_clocks = module_ptr->clocks();
+		for (const auto& initClkName: initialClocksNames) {
+			auto clkIter = find_if(begin(module_clocks),
+								   end(module_clocks),
+								   [&] (const Clock& clk) -> bool
+								   { return clk.name() == initClkName; });
+			// ... and if found, register position and distribution
+			if (clkIter != end(module_clocks))
+				initialClocks[numClocksReviewed + clockLocalPos] = (*clkIter);
+			clockLocalPos++;
+		}
+		assert(module_ptr->num_clocks() == clockLocalPos);
+		numClocksReviewed += module_ptr->num_clocks();
+	}
+	// Fill other global info
+	TraialPool::numVariables = gState.size();
+	TraialPool::numClocks = numClocksReviewed;
+}
 
 } // namespace fig
 
