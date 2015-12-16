@@ -634,7 +634,7 @@ test_module_instance()
 	typedef fig::VariableDefinition<fig::STATE_INTERNAL_TYPE>  VarDef;
 
 	// State
-	const State module1Vars(std::set<VarDef>({
+	const State moduleVars(std::set<VarDef>({
 		std::make_tuple("p", 0, 1, 1),
 		std::make_tuple("q", -10, 10, -10),
 		std::make_tuple("err", 0, 1, 0),
@@ -642,7 +642,7 @@ test_module_instance()
 	}));
 
 	// Clocks
-	const std::deque< Clock > module1Clocks({
+	const std::deque< Clock > moduleClocks({
 		{"c1", "uniform", fig::DistributionParameters({})},
 		{"c2", "uniformAB", fig::DistributionParameters({{-10,10}})},
 		{"c3", "exponential", fig::DistributionParameters({{3}})},
@@ -675,15 +675,15 @@ test_module_instance()
 	);
 
 	// Module incremental construction
-	fig::ModuleInstance module1("module1", module1Vars, module1Clocks);
+	fig::ModuleInstance module1("module1", moduleVars, moduleClocks);
 	for (const auto& tr: transitions)
 		module1.add_transition(tr);
 	//   ...  all-at-once construction
-	fig::ModuleInstance module2("module2", module1Vars, module1Clocks, transitions);
+	fig::ModuleInstance module2("module2", moduleVars, moduleClocks, transitions);
 
 	// Module operations
 	auto state = module1.mark_added(0, 0);
-	assert(state == module1Vars);
+	assert(state == moduleVars);
 	try {
 		module1.mark_added(0,0);  // invoking for second time should throw
 		throw TestException(to_string(__LINE__).append(": previous statement "
@@ -721,13 +721,19 @@ static void // ////////////////////////////////////////////////////////////////
 test_module_network()
 {
 	using fig::Clock;
+	using fig::OLabel;
+	using fig::ILabel;
 	using fig::Traial;
 	using fig::Precondition;
 	using fig::Postcondition;
 	using fig::Transition;
 
-	typedef fig::ModuleInstance Module;
-	typedef fig::ModuleNetwork  Model;
+	typedef fig::ModuleInstance                                 Module;
+	typedef fig::ModuleNetwork                                  Model;
+	typedef fig::DistributionParameters                         DistParams;
+	typedef fig::State<fig::STATE_INTERNAL_TYPE>                State;
+	typedef fig::VariableDeclaration<fig::STATE_INTERNAL_TYPE>  VarDec;
+	typedef std::list<std::string>  NamesList;
 
 	assert(!Model::get_instance().sealed());
 
@@ -761,4 +767,65 @@ test_module_network()
 	 *  Question: mean time to deadlock?           *
 	 *                                             *
 	 * * * * * * * * * * * * * * * * * * * * * * * */
+
+	// Module1
+	const State module1Vars = std::vector<VarDec>({{std::make_tuple("p", 0, 2)}});
+	const std::vector<Clock> module1Clocks({{"c1", "uniform", DistParams()}});
+	auto module1 = std::make_shared<Module>("Module1", module1Vars, module1Clocks);
+	module1->add_transition(
+		Transition(OLabel("a"),
+				   "c1",
+				   Precondition("p==0", NamesList({{"p"}})),
+				   Postcondition("p+1", NamesList({{"p"}}), NamesList({{"p"}})),
+				   NamesList()));
+	module1->add_transition(
+		Transition(ILabel("b"),
+				   "",
+				   Precondition("p==1", NamesList({{"p"}})),
+				   Postcondition("p-1", NamesList({{"p"}}), NamesList({{"p"}})),
+				   NamesList({"c1"})));
+	module1->add_transition(
+		Transition(ILabel("c"),
+				   "",
+				   Precondition("p==1", NamesList({{"p"}})),
+				   Postcondition("p+1", NamesList({{"p"}}), NamesList({{"p"}})),
+				   NamesList()));
+
+	// Module2
+	const State module2Vars = std::vector<VarDec>({{std::make_tuple("q", 0, 2)}});
+	const std::vector<Clock> module2Clocks({
+		{"c2", "normalMV", DistParams({{2.0, 1.0}})},
+		{"c3", "exponential", DistParams({{3.0}})}    });
+	auto module2 = std::make_shared<Module>("Module2", module2Vars, module2Clocks);
+	module2->add_transition(
+		Transition(ILabel("a"),
+				   "",
+				   Precondition("q==0", NamesList({{"q"}})),
+				   Postcondition("q+1", NamesList({{"q"}}), NamesList({{"q"}})),
+				   NamesList({{"c2"},{"c3"}})));
+	module2->add_transition(
+		Transition(OLabel("b"),
+				   "c2",
+				   Precondition("q==1", NamesList({{"q"}})),
+				   Postcondition("q-1", NamesList({{"q"}}), NamesList({{"q"}})),
+				   NamesList()));
+	module2->add_transition(
+		Transition(OLabel("c"),
+				   "c3",
+				   Precondition("q==1", NamesList({{"q"}})),
+				   Postcondition("q+1", NamesList({{"q"}}), NamesList({{"q"}})),
+				   NamesList()));
+
+	// Network
+	auto model = Model::get_instance();
+	model.add_module(module1);
+	assert(nullptr == module1);
+	model.add_module(module2);
+	assert(nullptr == module2);
+	model.seal(NamesList({{"c1"}}));
+	assert(model.sealed());
+
+
+	/// @todo TODO complete this test
+	std::cerr << "\nComplete ModuleNetwork test!" << std::endl;
 }

@@ -34,8 +34,6 @@
 #include <mutex>  // std::call_once(), std::once_flag
 #include <vector>
 #include <memory>     // std::unique_ptr<>
-#include <iterator>   // std::begin(), std::end()
-#include <algorithm>  // std::find_if()
 #include <unordered_map>
 // FIG
 #include <core_typedefs.h>
@@ -45,15 +43,6 @@
 #include <Module.h>
 #include <ModuleInstance.h>
 #include <TraialPool.h>
-
-#if __cplusplus < 201103L
-#  error "C++11 standard required, please compile with -std=c++11\n"
-#endif
-
-// ADL
-using std::find_if;
-using std::begin;
-using std::end;
 
 
 namespace fig
@@ -190,56 +179,6 @@ public:  // Utils
 			  typename... OtherContainerArgs >
 	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames);
 };
-
-// // // // // // // // // // // // // // // // // // // // // // // // // // //
-
-// Template definitions
-
-// If curious about its presence here take a look at the end of VariableSet.cpp
-
-template< template< typename, typename... > class Container,
-		  typename ValueType,
-		  typename... OtherContainerArgs >
-void
-ModuleNetwork::seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames)
-{
-	size_t numClocksReviewed(0u);
-	static_assert(std::is_convertible< std::string, ValueType >::value,
-				  "ERROR: type missmatch. ModuleNetwork::seal() needs "
-				  "a container with the initial clock names");
-	if (sealed_)
-#ifndef NDEBUG
-		throw FigException("the ModuleNetwork has already been sealed");
-#else
-		return;
-#endif
-	sealed_ = true;
-	initialClocks.reserve(std::distance(begin(initialClocksNames),
-										end(initialClocksNames)));
-	// For each module in the network...
-	for (auto& module_ptr: modules) {
-		size_t clockLocalPos(0u);
-		// ... seal it ...
-		module_ptr->seal(&State<STATE_INTERNAL_TYPE>::position_of_var, gState);
-		// ... search for initial clocks within ...
-		auto module_clocks = module_ptr->clocks();
-		for (const auto& initClkName: initialClocksNames) {
-			auto clkIter = find_if(begin(module_clocks),
-								   end(module_clocks),
-								   [&] (const Clock& clk) -> bool
-								   { return clk.name() == initClkName; });
-			// ... and if found, register position and distribution
-			if (clkIter != end(module_clocks))
-				initialClocks[numClocksReviewed + clockLocalPos] = (*clkIter);
-			clockLocalPos++;
-		}
-		assert(module_ptr->num_clocks() == clockLocalPos);
-		numClocksReviewed += module_ptr->num_clocks();
-	}
-	// Fill other global info
-	TraialPool::numVariables = gState.size();
-	TraialPool::numClocks = numClocksReviewed;
-}
 
 } // namespace fig
 

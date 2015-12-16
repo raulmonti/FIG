@@ -73,7 +73,13 @@ std::unordered_map< std::string, Distribution > distributions_list =
 	  { return params[0] + (params[1] - params[0]) * uniform01(rng); }},
 	{"exponential",
 	  [] (const DistributionParameters& params)
-	  { return exponential1(rng) / params[0]; }}  // Grisel me dijo que es así
+	  { return exponential1(rng) / params[0]; }},  // Grisel me dijo que es así
+	{"normal",
+	  [] (const DistributionParameters& params)
+	  { return normal01(rng); }},
+	{"normalMV",
+	  [] (const DistributionParameters& params)
+	  { return normal01(rng) * params[1] + params[0]; }}
 };
 
 } // namespace fig

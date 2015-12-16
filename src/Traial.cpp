@@ -96,8 +96,14 @@ void
 Traial::initialize()
 {
 	auto net = ModuleNetwork::get_instance();
+	if (!net.sealed())
+#ifndef NDEBUG
+		throw FigException("ModuleNetwork hasn't been sealed yet");
+#else
+		return;  // we can't do anything without the global data
+#endif
 	net.gState.copy_to_state_instance(state);
-	for (auto& pos_clk_pair: net.initialClocks)
+	for (const auto& pos_clk_pair: net.initialClocks)
 		clocks_[pos_clk_pair.first].value = pos_clk_pair.second.sample();
 }
 
