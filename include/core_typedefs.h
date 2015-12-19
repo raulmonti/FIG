@@ -57,12 +57,13 @@ namespace fig
 #define  NUM_DISTRIBUTION_PARAMS  4u  // Arglist length for any distribution
 
 /// Time resolution (choice of floating point precision)
-typedef  float  CLOCK_INTERNAL_TYPE;
+///
+typedef  float                                           CLOCK_INTERNAL_TYPE;
 
-/// Fixed-size array of distribution parameters,
-/// needed to sample any Distribution.
+/// Fixed-size array of distribution parameters, needed to sample Distributions
 typedef std::array< CLOCK_INTERNAL_TYPE , NUM_DISTRIBUTION_PARAMS >
-    DistributionParameters;
+///
+													  DistributionParameters;
 
 /// Arbitrary stochastic distribution mapping to the real line
 /// @note To sample a Distribution the only argument needed is a single
@@ -70,7 +71,8 @@ typedef std::array< CLOCK_INTERNAL_TYPE , NUM_DISTRIBUTION_PARAMS >
 ///       regardless of the actual number of parameters the mathematical
 ///       entity may need.
 typedef std::function< CLOCK_INTERNAL_TYPE (const DistributionParameters&) >
-    Distribution;
+///
+																Distribution;
 
 //
 //
@@ -80,13 +82,13 @@ typedef std::function< CLOCK_INTERNAL_TYPE (const DistributionParameters&) >
 //
 
 /// Variable declaration: name, min, max
-template< typename T_ > using VariableDeclaration =
-    std::tuple< std::string, T_, T_ >;
+template< typename T_ > using                             VariableDeclaration
+	= std::tuple< std::string, T_, T_ >;
 
 
 /// Variable definition: name, min, max, initial value
-template< typename T_ > using VariableDefinition =
-    std::tuple< std::string, T_, T_, T_ >;
+template< typename T_ > using                              VariableDefinition
+	= std::tuple< std::string, T_, T_, T_ >;
 
 //
 //
@@ -97,7 +99,8 @@ template< typename T_ > using VariableDefinition =
 
 /// StateInstances internal storage type
 /// @warning Must match, or be compatible with, that of MuParser library
-typedef  MUP_BASETYPE  STATE_INTERNAL_TYPE;
+///
+typedef  MUP_BASETYPE                                    STATE_INTERNAL_TYPE;
 
 //
 //
@@ -110,12 +113,14 @@ typedef  MUP_BASETYPE  STATE_INTERNAL_TYPE;
 /// @warning This bounds the max # of clocks in the model
 /// @note In <a href="http://goo.gl/hXmnBQ">Boost's multiprecision library</a>
 ///       there are ints of up to 1024 bits.
-typedef  uintmax_t  Bitflag;
+///
+typedef  uintmax_t                                                  Bitflag;
 
 /// Mapping of clock and variable (names) to their respective positions
 /// in the global arrays handled by the Traials. This is generally known
 /// only after all modules have been added to the ModuleNetwork.
-typedef std::unordered_map< std::string, size_t > PositionsMap;
+///
+typedef  std::unordered_map< std::string, size_t >              PositionsMap;
 
 //
 //
@@ -124,9 +129,10 @@ typedef std::unordered_map< std::string, size_t > PositionsMap;
 // Importance
 //
 
-/// Type used to assess the importance of a single concrete state
-/// @warning This bounds the max # of clocks in the model
-typedef short ImportanceValue;
+/// Primitive type used to assess the importance of a single concrete state
+/// @warning This bounds the number of representable importance levels
+///
+typedef short                                                ImportanceValue;
 
 //
 //

@@ -30,13 +30,17 @@
 #ifndef IMPORTANCEFUNCTIONCONCRETE_H
 #define IMPORTANCEFUNCTIONCONCRETE_H
 
+// C+
+#include <vector>
+// FIG
 #include <core_typedefs.h>
-#include <State.h>
 #include <ImportanceFunction.h>
 
 
 namespace fig
 {
+
+class State;
 
 /**
  * @brief Abstract importance function for concrete importance assessment
@@ -51,7 +55,7 @@ namespace fig
  */
 class ImportanceFunctionConcrete : public ImportanceFunction
 {
-	ImportanceValue* statesImportance;
+	std::vector< ImportanceValue > statesImportance;
 
 protected:
 	/// @todo TODO implement algorithm from sheet,

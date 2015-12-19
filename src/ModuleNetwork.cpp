@@ -149,7 +149,7 @@ ModuleNetwork::seal(const Container<ValueType, OtherContainerArgs...>& initialCl
 	TraialPool::numClocks = numClocksReviewed;
 }
 
-// ModuleNetwork::seal() can only be be invoked with the following containers
+// ModuleNetwork::seal() can only be invoked with the following containers
 template void ModuleNetwork::seal(const std::set<std::string>&);
 template void ModuleNetwork::seal(const std::list<std::string>&);
 template void ModuleNetwork::seal(const std::deque<std::string>&);

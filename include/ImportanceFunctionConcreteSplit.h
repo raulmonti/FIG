@@ -53,7 +53,7 @@ namespace fig
  * @see ImportanceFunctionConcrete
  * @see ImportanceFunctionConcreteCoupled
  *
- * @todo Implement, in our next life maybe?
+ * @todo Implement, test, get results and publish !!!
  */
 class ImportanceFunctionConcreteSplit : public ImportanceFunctionConcrete
 {

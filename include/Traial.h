@@ -69,6 +69,7 @@ class ModuleInstance;
 class Traial
 {
 	friend class Transition;
+	friend class ModuleNetwork;
 
 protected:
 
@@ -120,9 +121,9 @@ public:  // Ctors/Dtor
 
 	/**
 	 * @brief Void ctor for resources pool
-	 * @param stateSize Symbolic size of the global state,
-	 *                  i.e. # of variables counting from all modules
-	 * @param numClocks Number of clocks in the whole system (from all modules)
+	 * @param stateSize Symbolic size of the global state, i.e. # of variables
+	 *        in the system model (counting from all modules)
+	 * @param numClocks # of clocks in the system model (counting from all modules)
 	 */
 	Traial(const size_t& stateSize, const size_t& numClocks);
 
@@ -143,14 +144,14 @@ public:  // Ctors/Dtor
 		   Bitflag whichClocks,
 		   bool orderTimeouts = false);
 
-//	/// @copydoc Traial(const size_t&, const size_t&, fig::Bitflag, bool)
-//	template< template< typename, typename... > class Container,
-//			  typename ValueType,
-//			  typename... OtherContainerArgs >
-//	Traial(const size_t& stateSize,
-//		   const size_t& numClocks,
-//		   const Container<ValueType, OtherContainerArgs...>& whichClocks,
-//		   bool orderTimeouts = false);
+	/// @copydoc Traial(const size_t&, const size_t&, fig::Bitflag, bool)
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	Traial(const size_t& stateSize,
+		   const size_t& numClocks,
+		   const Container<ValueType, OtherContainerArgs...>& whichClocks,
+		   bool orderTimeouts = false);
 
 	/// Copy ctor
 	inline Traial(const Traial& that) :
@@ -228,42 +229,6 @@ private:
 	void
 	reorder_clocks();
 };
-
-// // // // // // // // // // // // // // // // // // // // // // // // // // //
-
-// Template definitions
-
-// If curious about its presence here take a look at the end of VariableSet.cpp
-
-// template< template< typename, typename... > class Container,
-// 		  typename ValueType,
-// 		  typename... OtherContainerArgs >
-// Traial::Traial(const size_t& stateSize,
-// 			   const size_t& numClocks,
-// 			   const Container <ValueType, OtherContainerArgs...>& whichClocks,
-// 			   bool orderTimeouts) :
-// 	state(stateSize),
-// 	orderedIndex_(numClocks)
-// {
-// 	auto must_reset =
-// 		[&] (const std::string& name) -> bool
-// 		{
-// 			return std::find(begin(whichClocks), end(whichClocks), name)
-// 					   != end(whichClocks) ;
-// 		};
-// 	static_assert(std::is_convertible< std::string, ValueType >::value,
-// 				  "ERROR: type missmatch. Traial data ctor needs a container "
-// 				  "with clock names");
-// 	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
-// 	clocks_.reserve(numClocks);
-// 	for (const auto& module_ptr: ModuleNetwork::get_instance().modules)
-// 		for (const auto& clock: module_ptr->clocks())
-// 			clocks_.emplace_back(module_ptr,
-// 								 clock.name(),
-// 								 must_reset(clock.name()) ? clock.sample() : 0.0f);
-// 	if (orderTimeouts)
-// 		reorder_clocks();
-// }
 
 } // namespace fig
 

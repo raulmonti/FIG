@@ -32,6 +32,12 @@
 #include <functional>  // std::function
 #include <iterator>    // std::begin(), std::end()
 #include <numeric>     // std::iota()
+#include <set>
+#include <list>
+#include <deque>
+#include <vector>
+#include <forward_list>
+#include <unordered_set>
 // FIG
 #include <Traial.h>
 #include <ModuleNetwork.h>
@@ -79,6 +85,41 @@ Traial::Traial(const size_t& stateSize,
 	if (orderTimeouts)
 		reorder_clocks();
 }
+
+
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+Traial::Traial(const size_t& stateSize,
+			   const size_t& numClocks,
+			   const Container <ValueType, OtherContainerArgs...>& whichClocks,
+			   bool orderTimeouts) :
+	state(stateSize),
+	orderedIndex_(numClocks)
+{
+	auto must_reset =
+		[&] (const std::string& name) -> bool
+		{ return std::find(begin(whichClocks),end(whichClocks),name) != end(whichClocks); };
+	static_assert(std::is_convertible< std::string, ValueType >::value,
+				  "ERROR: type missmatch. Traial data ctor needs a container "
+				  "with clock names");
+	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
+	clocks_.reserve(numClocks);
+	for (const auto& module_ptr: ModuleNetwork::get_instance().modules)
+		for (const auto& clock: module_ptr->clocks())
+			clocks_.emplace_back(module_ptr,
+								 clock.name(),
+								 must_reset(clock.name()) ? clock.sample() : 0.0f);
+	if (orderTimeouts)
+		reorder_clocks();
+}
+// Traial() template ctor can only be invoked with the following containers
+template Traial::Traial(const size_t&, const size_t&, const std::set<std::string>&, bool);
+template Traial::Traial(const size_t&, const size_t&, const std::list<std::string>&, bool);
+template Traial::Traial(const size_t&, const size_t&, const std::deque<std::string>&, bool);
+template Traial::Traial(const size_t&, const size_t&, const std::vector<std::string>&, bool);
+template Traial::Traial(const size_t&, const size_t&, const std::forward_list<std::string>&, bool);
+template Traial::Traial(const size_t&, const size_t&, const std::unordered_set<std::string>&, bool);
 
 
 Traial::~Traial()
