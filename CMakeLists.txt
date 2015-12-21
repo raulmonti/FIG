@@ -55,7 +55,6 @@ INCLUDE_DIRECTORIES(${HEADERS_DIR})
 #LINK_DIRECTORIES(${LIBRARIES_DIR})
 # Tip: use find_library() and find_package() instead
 
-
  
 ###  Compiler configuration  ##################################################
  

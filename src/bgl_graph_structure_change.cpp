@@ -27,7 +27,6 @@
 // BGL algorithms
 #include <boost/graph/transpose_graph.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
-
 namespace bgl = boost;
 using std::string;
 using std::vector;
@@ -149,12 +148,6 @@ typedef bgl::compressed_sparse_row_graph<
 	unsigned int> CSRGraph;
 
 
-
-//  Global variables  ////////////////////////////////////////////////////////
-
-
-
-
 //  Auxiliary functions  //////////////////////////////////////////////////////
 
 void TODO(int lineNum)
@@ -163,7 +156,6 @@ void TODO(int lineNum)
 	TODO << basename(strdup(__FILE__ ":")) << lineNum << " -- TODO";
 	throw GraphException(TODO.str().c_str());
 }
-
 
 void populateAdjacencyGraph(AdjGraph& g)
 {
@@ -358,27 +350,31 @@ int main (int, char**)
 	float t;
 	AdjGraph model;
 
+
 	cout << endl << "  - Create some random mutable graph" << endl << endl;
 	populateAdjacencyGraph(model);
 	bgl::print_graph(model);
 
 	cout << endl << "  - Reverse its edges ";
-		t = static_cast<float>(clock());
+	t = static_cast<float>(clock());
 	model = createTransposedGraph(model);
-		cout << "[" << ((clock()-t)/CLOCKS_PER_SEC) << " s]" << endl << endl;
-		bgl::print_graph(model);
+	cout << "[" << ((clock()-t)/CLOCKS_PER_SEC) << " s]" << endl << endl;
+	bgl::print_graph(model);
 
 	cout << endl << "  - Reverse again, obtaining original back ";
-		t = static_cast<float>(clock());
+	t = static_cast<float>(clock());
 	transposeGraph(model);
-		cout << "[" << ((clock()-t)/CLOCKS_PER_SEC) << " s]" << endl << endl;
-		bgl::print_graph(model);
+
+	cout << "[" << ((clock()-t)/CLOCKS_PER_SEC) << " s]" << endl << endl;
+	bgl::print_graph(model);
 
 	cout << endl << "  - Compact graph into immutable CSR format ";
 		t = static_cast<float>(clock());
 	CSRGraph finalModel = crystallizeGraph(model);
-		cout << "[" << ((clock()-t)/CLOCKS_PER_SEC) << " s]" << endl << endl;
-		bgl::print_graph(finalModel);
+
+	cout << "[" << ((clock()-t)/CLOCKS_PER_SEC) << " s]" << endl << endl;
+
+	bgl::print_graph(finalModel);
 
 	// TODO
 	//     Study BGL visitors?  http://www.boost.org/doc/libs/1_58_0/libs/graph/doc/DijkstraVisitor.html
@@ -445,3 +441,4 @@ int main (int, char**)
  * 4 --> 0 1
  *
  */
+
