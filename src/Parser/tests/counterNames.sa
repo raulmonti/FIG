@@ -1,0 +1,24 @@
+module M1
+
+    a:[1..2] init 2;
+    b: bool init false;
+    c: bool;
+    d: clock;
+
+    [t1!] ->;
+
+
+end module
+
+
+module M1
+
+    a:[1..2] init 2;
+    e: bool init false;
+    e: bool;
+    c: clock;
+    e: clock;
+
+    [t1!] -> ;
+
+end module

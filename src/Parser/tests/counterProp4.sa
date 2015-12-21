@@ -1,0 +1,62 @@
+
+/* WARNING FOR THIS MODULE. */
+module modone
+
+    x : clock;
+    y : clock;
+    z : clock;
+    t : [0..3] init 0;
+
+    [a!] t==0  @ z -> (t'=1);
+    [b!] t==0  @ y -> (t'=2);
+    [c!] t==2  @ x -> (t'=3);
+
+end module
+
+
+
+/* NO WARNING FOR THIS MODULE. SAVED BY RESETING CLOCK IN <b2>. */
+module modone2
+
+    x2 : clock;
+    y2 : clock;
+    z2 : clock;
+    t2 : [0..3] init 0;
+
+    [a2!] t2==0  @ z2 -> (t2'=1);
+    [b2!] t2==0  @ y2 -> (t2'=2) & (x2'=Norm(1,1));
+    [c2!] t2==2  @ x2 -> (t2'=3);
+
+end module
+
+
+
+/* NO WARNING FOR THIS MODULE. SAVED BY ESCAPING WITH <a3>. */
+module modone3
+
+    x3 : clock;
+    y3 : clock;
+    z3 : clock;
+    t3 : [0..3] init 0;
+
+    [a3!] t3==0  @ x3 -> (t3'=1);
+    [b3!] t3==0  @ y3 -> (t3'=2);
+    [c3!] t3==2  @ x3 -> (t3'=3);
+
+end module
+
+
+
+/* WARNING FOR THIS MODULE. */
+module modone4
+
+    x4 : clock;
+    y4 : clock;
+    z4 : clock;
+    t4 : [0..3] init 0;
+
+    [a4!] t4< 2  @ x4 -> (t4'=1);
+    [b4!] t4< 3  @ y4 -> (t4'=2);
+    [c4!] t4==2  @ x4 -> (t4'=3);
+
+end module

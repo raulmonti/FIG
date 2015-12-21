@@ -1,0 +1,17 @@
+MODULE prop4testModule
+
+
+VARS
+
+clock x = Normal(0,1);
+clock y = Exponential(0.2);
+int[0..2] a = 0;
+
+TRANS
+
+
+[t1?]  a == 1 : x -> a = 2 ;
+[t2!]  a == 3     -> a = 1 : y;
+[t3a!] a == 0 : x -> a = 5;
+[t3b!] a == 0 : y -> a = 5;
+

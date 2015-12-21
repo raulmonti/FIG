@@ -1,3 +1,12 @@
+//==============================================================================
+//
+//    Parser module for FIG
+//    Raul Monti
+//    2015
+//
+//==============================================================================
+
+
 #ifndef PARSER_H
 #define PARSER_H
 
@@ -5,31 +14,30 @@
 #include <vector>
 #include <string>
 #include <FlexLexer.h>
-#include "debug.h"
+#include "config.h"
 #include "ast.h"
-
 
 using namespace std;
 
 namespace parser{
-
 
 /* The token representation for each lexeme. 
 */
 typedef enum    { MEOF    // my end of file symbol
                 , NUM     // float type numbers
                 , KPROP   // Keyword PROPERTY
-                , KMOD    // keyword MODULE
-                , KEMOD   // keyword ENDMODULE
-                , KLBL    // keyword for label sections
-                , KCS     // keyword CLK
-                , KVS     // keyword VAR
-                , KTS     // keyword TRANS
+                , KMOD    // keyword "module"
+                , KEMOD   // keyword "end module"
+                , KCLOCK  // keyword clock
                 , KNDIST  // keyword Normal
                 , KEDIST  // keyword Exponential
                 , KUDIST  // keyword Uniform
-                , KVTYPE  // keyword Int, Float
+                , KINIT   // Keyword "init"
+                , ITYPE   // keyword Int
+                , BTYPE   // Keyword Bool
+                , KCONST  // keyword const
                 , NAME    // strings starting with letters
+                , XNAME   // strings starting with letters and ended by '.
                 , WS      // white spaces (' \t')
                 , NL      // new line ('\n')
                 , INT     // integer
@@ -48,16 +56,18 @@ typedef enum    { MEOF    // my end of file symbol
                 , COP     // <= >= < >
                 , BOP     // == !=
                 , BOOLV   // true false
-                , BINOP   // || &&
+                , AMP     // &
+                , MID     // |
                 , ASSIG   // =
                 , DOT     // .
-                , ARROW   // >>
+                , ARROW   // ->
                 , RNG     // range ..
                 , EMARK   // !
                 , QMARK   // ?
-                , LDIR    // label direction (input or output)
                 , COMMENT // C style comment (/* ... */)
-                , DUM     // dummy symbol   
+                , AT      // @
+                , AP      // '
+                , DUM     // dummy symbol 
                 } Token;
 
 
@@ -70,14 +80,11 @@ typedef enum{ _EOF            // End of File
             , _DUMMY
             , _MODEL
             , _MODULE
-            , _LBLSEC
-            , _VARSEC
-            , _TRANSEC          // Transitions section
-            , _CLOCKSEC
+            , _CONST
             , _VARIABLE
-            , _LBL
             , _TRANSITION       // Transition
             , _CLOCK
+            , _SETC
             , _KEYWORD
             , _NAME
             , _INT
@@ -93,6 +100,8 @@ typedef enum{ _EOF            // End of File
             , _ENABLECLOCK  // output transition enable clock
             , _PRECONDITION
             , _POSTCONDITION
+            , _RESETCLOCKLIST
+            , _RESETCLOCK
             , _EXPRESSION   // a {&&,||} b
             , _EQUALITY        // a {==,!=} b
             , _COMPARISON   // a {<,>,<=,>=} b
@@ -115,9 +124,8 @@ typedef enum{ _EOF            // End of File
    the printable representation of e.
 */
 static const char symTable[][25] =
-    {"EOF","DUMMY","MODEL","MODULE","LABELS", 
-     "VARS","TRANS","CLKS","VARIABLE","LABEL",
-     "TRANSITION","CLOCK","KEYWORD","NAME","INT","REAL",
+    {"EOF","DUMMY","MODEL","MODULE", "CONSTANT", "VARIABLE",
+     "TRANSITION","CLOCK", "SET CLOCK", "KEYWORD","NAME","INT","REAL",
      "SEPARATOR", "DISTRIBUTION",
      "IDENTIFIER", "TYPE","RANGE", "INITIALIZATION" ,"ACTION",
      "INPUT/OUTPUT",
@@ -132,10 +140,7 @@ static const char symTable[][25] =
 
 
 
-
-
-
-/** Parser Class *************************************************************/
+// Parser Class ================================================================
 
 class Parser
 { 
@@ -155,30 +160,33 @@ class Parser
     Token        tkn;               // Current extracted token.
     int          pos;               // Actual position of the parser in tokens.
     int          lastpos;           // Position of the last accepted lexeme.
-    stack<Node*> astStk;
+    stack<Node*> astStk;            // Stack for bulding up the AST
     bool         skipws;            // Skip white spaces?.
 
 
 
 public:
 
-    /**/
+    /** 
+     */
     Parser(void);
 
-    /**/
+    /**
+     */
     virtual ~Parser();
 
-    /* @Parse: Parse from stream @str, and build the resulting AST into
-       the parameter @result.
-       @return: 1 if successful, 0 otherwise.
-    */
+    /**
+     *  @brief Parse from stream @str, and build the resulting AST into
+     *  the parameter @result.
+     *  @return 1 if successful, 0 otherwise.
+     */
     int
     parse(stringstream *str, AST * & result);
 
     
-    /*  @ended: check if we ran out of lexemes to parse.
-        @return: 1 if parsing ended, 0 otherwise.
-    */
+    /**  @brief check if we ran out of lexemes to parse.
+     *   @return 1 if parsing ended, 0 otherwise.
+     */
     inline int
     ended(){
         return pos == tokens.size()-1;
@@ -190,23 +198,24 @@ private:
 
     /** Building the AST **/
 
-    /* @newNode: prepare a new node for abstract syntax tree.
-       Should be called at the beginning of matching of grammar production,
-       enabling to save the result of parsing afterwards using @saveNode
-       method.
-       @str: the parsed string for the node.
-       @tkn: the grammar type for this parsed string.
-       @line, @col: line and column number respectively.
-    */
+    /** @brief prepare a new node for abstract syntax tree.
+     *  Should be called at the beginning of matching of grammar production,
+     *  enabling to save the result of parsing afterwards using @saveNode
+     *  method.
+     *  @param str The parsed string for the node.
+     *  @param tkn The grammar type for this parsed string.
+     *  @param line Line number. 
+     *  @param col Column number.
+     */
     int
     newNode(prodSym tkn, string str, int line = 0, int col = 0);
 
 
-    /* @newNode: when called only with parameter @tkn, it is
-       a shortcut for building a new node with the last accepted
-       lexeme.
-       @tkn: the grammar type for this parsed string.
-    */
+    /** @param newNode When called only with parameter @tkn, it is
+     *  a shortcut for building a new node with the last accepted
+     *  lexeme.
+     *  @param tkn The grammar type for this parsed string.
+     */
     int
     newNode(prodSym tkn);
 
@@ -316,17 +325,15 @@ private:
     int
     rModule();
 
-    /* @Rule: Modules clocks section */
+    /**
+     * @brief rule for constant declarations.
+     */
     int
-    rClkSec();
+    rConstant();
 
-    /* @Rule: Modules variables section */
+    /* @Rule:  Clock seting */
     int
-    rVarSec();
-
-    /* @Rule: Modules transitions section */
-    int
-    rTranSec();
+    rSetClock();
 
     /* @Rule: CLOCK DEFINITION */
     int
@@ -335,14 +342,6 @@ private:
     /* @Rule: Distribution */
     int
     rDistr();
-
-    /* @Rule: MODULES LABELS SECTION*/
-    int
-    rLblSec();
-
-    /* @Rule: LABEL DEFINITION */
-    int
-    rLblDef();
 
     /* @RULE: normal distribution */
     int
@@ -359,14 +358,6 @@ private:
     /* @Rule: VARIABLE DEFINITION. */
     int
     rVarDef();
-
-    /**/
-    int
-    rInit();
-
-    /* @Rule: RANGE. */
-    int
-    rRange();
 
     /* @Rule: TRANSITION. */
     int
@@ -395,10 +386,6 @@ private:
     /**/
     int
     rValue();
-
-    /**/
-    int
-    rAssigList();
 
     /* @Rule: ASSIGNMENT. */
     int

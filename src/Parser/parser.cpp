@@ -1,3 +1,12 @@
+//==============================================================================
+//
+//    Parser module for FIG
+//    Raul Monti
+//    2015
+//
+//==============================================================================
+
+
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -8,35 +17,10 @@
 #include "exceptions.h"
 
 
-/** Definitions. **/
+//==============================================================================
 
-/* @TEST: try to match the @production, and return back
-    to original position if not. For lookahead purpose.
-*/
-#define TEST(F) saveLocation();             \
-                if(static_cast<bool>(F())){ \
-                    removeLocation();       \
-                }else{                      \
-                    loadLocation();         \
-                }
-
-
-/* @TEST: try to match the @production, and return back
-    to original position if not. For lookahead purpose.
-    place in @b the returned value of @F.
-*/
-#define TESTB(F,b) saveLocation();               \
-                   b = static_cast<bool>(F());   \
-                   if(b){                        \
-                       removeLocation();         \
-                   }else{                        \
-                       loadLocation();           \
-                   }
-
-
-/** Overloading for printing ASTs resulting 
-    from our parsing.
-**/
+/** @brief Overloading for printing ASTs resulting from our parsing.
+ */
 
 std::ostream& operator<< (std::ostream& out, AST const& ast){
     cout << "(" << parser::symTable[ast.tkn] << ", " << ast.lxm << ", <" 
@@ -58,13 +42,16 @@ std::ostream& operator<< (std::ostream& out, AST const& ast){
 
 using namespace std;
 
+
+
+
+// Parser class implementation =================================================
+
 namespace parser{
 
-/** Parser class implementation **/
 
-
-/* @Parser class constructor.
-*/ 
+/** @brief Parser class constructor.
+ */ 
 Parser::Parser(void){
     lexer       = new yyFlexLexer;
     pos         = -1;
@@ -73,19 +60,19 @@ Parser::Parser(void){
 }
 
 
-/* @Parser class destructor.
-*/ 
+/** @brief Parser class destructor.
+ */ 
 Parser::~Parser(){
     delete lexer;
 }
 
 
-/* @Get the next token from the tokens vector and make it
-    available in @tkn class member. If @skipws then it will skip
-    white space tokens and make available the next non white 
-    one. If the end of the tokens vector is reached the @tkn
-    will contain the MEOF token.
-*/
+/** @brief Get the next token from the tokens vector and make it
+ *  available in @tkn class member. If @skipws then it will skip
+ *  white space tokens and make available the next non white 
+ *  one. If the end of the tokens vector is reached the @tkn
+ *  will contain the MEOF token.
+ */
 void
 Parser::nextLxm(void){
 
@@ -115,12 +102,13 @@ Parser::accept(Token s){
     return 0;    
 }
  
-/* @Consume the next token and trow an exception if it 
-    does not match with @s.
-   @s: the expected token.
-   @throws: SyntaxError() if @s is not matched.
-   @return: 1 if s was matched.
-*/
+/**
+ * @Brief Consume the next token and trow an exception if it 
+ * does not match with @s.
+ * @param [in] s The expected token.
+ * @throw SyntaxError() if @s is not matched.
+ * @return 1 if s was matched.
+ */
 int
 Parser::expect(Token s, string str){
     if (accept(s))
@@ -132,12 +120,13 @@ Parser::expect(Token s, string str){
 }
 
 
-/** For looking ahead in the grammar. **/
+//==============================================================================
 
 
-
-/* @When grammar did not match, return to the saved state.
-*/
+/** 
+ * @Brief When grammar did not match, return to the saved state.
+ * @Note For looking ahead in the grammar.
+ */
 int 
 Parser::loadLocation(){
     pos = lastk.top();
@@ -147,158 +136,309 @@ Parser::loadLocation(){
 
 
 
-/** Grammar Rules **/
+
+//==============================================================================
+// Grammar Rules
+//==============================================================================
 
 
-/* @The starting point of the grammar to be parsed with the
-    recursive descent parser.
-   @return: 1 if successfully parsed. Throw SyntaxError otherwise.
-*/
+/**
+ * @brief  The starting point of the grammar to be parsed with the
+ *         recursive descent parser.
+ * @return 1 if successfully parsed. Throw SyntaxError otherwise.
+ */
 int
 Parser::rGrammar(){
 
     newNode(_MODEL, string(""));
-
     while(!ended()){
-
-        bool b = false;
-
-        TESTB(rModule,b) // try to parse module
-
-        if(!b){
-            TESTB(rProperty,b)  // try to parse property
-        }
-        if(!b){
-            // Could not match the grammar. Show where we got stuck.
-            throw (new SyntaxError( "Syntax error: '" + lexemes[pos] + "'\n"
-                                  , lines[pos]
-                                  , columns[pos]));
+        // try to parse module
+        if(!rModule()){
+            // try to parse a global constant
+            if(!rConstant()){
+                // Could not match the grammar. Show where we got stuck.
+                throw (new SyntaxError( "Syntax error: '" + lexemes[pos] + "'\n"
+                                      , lines[pos]
+                                      , columns[pos]));
+            }
         }
     }
-    
+
     return 1;
 }
 
 
-/* @Rule: MODULE */
+
+//==============================================================================
+
+
+/**
+ * @brief Rule CONSTANT.
+ */
+int
+Parser::rConstant(){
+    
+    if(accept(KCONST)){
+        newNode(_CONST, "", lines[lastpos],columns[lastpos]);
+        saveNode(_KEYWORD);
+        if(!accept(ITYPE)){
+            expect(BTYPE, "Missing type for constant declaration.\n");
+        }
+        saveNode(_TYPE);
+        expect(NAME, "Missing name for constant declaration.\n");
+        saveNode(_NAME);
+        expect(ASSIG, "Missing '='.\n");
+        saveNode(_SEPARATOR);
+        if(!rExpression()){
+            // FIXME this should throw a malformed expression exception.            
+            return 0;
+        }
+        expect(SCLN, "Missing ';'.\n");
+        saveNode(); // _CONST
+        return 1;
+    }
+
+    return 0;
+}
+
+
+//==============================================================================
+
+
+/**
+ * @brief Rule MODULE.
+ */
 int
 Parser::rModule(){
 
-    if(accept(KMOD)){                   // Should be
+    if(accept(KMOD)){
         // This node is a MODULE node
         newNode(_MODULE, string(""),lines[lastpos],columns[lastpos]);   
         saveNode(_KEYWORD);
         // Get the modules name
         expect(NAME);                   // Has to be
         saveNode(_NAME);
-        
-        // Note that the following works because each section has a unique
-        // keyword as begging of its syntax.
-        while(rClkSec() || rVarSec() || rTranSec() || rLblSec()){;}
-
-        saveNode();
+        // body
+        while(rVarDef() || rClkDef() || rTransDef() ){;}
+        // close the module
+        expect(KEMOD, "Did you forget to close a module?.\n");
+        saveNode(_SEPARATOR);
+        saveNode(); // _MODULE
         return 1;
     }
     return 0;
 }
 
 
-/* @Rule: MODULES LABELS SECTION*/
-int
-Parser::rLblSec(){
-
-    if(accept(KLBL)){
-        newNode(_LBLSEC,string(""));
-        saveNode(_KEYWORD);
-        while(rLblDef()){;}
-        saveNode(); // _LBLSEC
-        return 1;
-    }
-    return 0;
-}
+//==============================================================================
 
 
-/* @Rule: LABEL DEFINITION */
-int
-Parser::rLblDef(){
-
-    if(accept(NAME)){
-        newNode(_LBL);
-        if(accept(CLN)){
-            saveNode(_SEPARATOR);
-            try{
-                expect(LDIR);
-            }catch(SyntaxError *e){
-                cout << e->what() << endl;
-                throw string("Only 'input' and 'output' " \
-                             "are accepted as labels directions.");
-            }
-            saveNode(_IDENT);
-            try{
-                expect(SCLN);
-            }catch(SyntaxError *e){
-                cout << e->what() << endl;
-                throw string("Expected ; to end label declaration.");
-            }
-            saveNode(_SEPARATOR);
-            saveNode(); // _LBL
-            return 1;
-        }
-    }
-    return 0;
-}
-
-
-/* @Rule: MODULES CLOCKS SECTION */
-int
-Parser::rClkSec(){
-    if(accept(KCS)){
-        newNode(_CLOCKSEC,string(""));
-        saveNode(_KEYWORD);
-        while(rClkDef()){;}
-        saveNode(); // _CLOCKSEC
-        return 1;
-    }
-    return 0;
-}
-
-
-/* @Rule: CLOCK DEFINITION */
+/**
+ * @brief Rule CLOCK DEFINITION.
+ */
+ 
 int
 Parser::rClkDef(){
-
+    saveLocation();
     if (accept(NAME)){
-        newNode(_CLOCK,string(""),lines[lastpos],columns[lastpos]);
+        newNode(_CLOCK, "",lines[lastpos],columns[lastpos]);
         saveNode(_NAME);
-        if(accept(CLN)){
+        expect(CLN, "Missing ':'.\n");
+        saveNode(_SEPARATOR);
+        if(accept(KCLOCK)){
+            saveNode(_TYPE);
+            expect(SCLN, "Missing ';'.\n");
             saveNode(_SEPARATOR);
-            if(rDistr()){
-                try{
-                    expect(SCLN);
-                }catch(SyntaxError *e){
-                    removeNode(); //_CLOCK
-                    cout << e->what() << endl;
-                    throw string( "Expected semicolon to end "\
-                                  "clock definition.\n");
-                }
-                saveNode(_SEPARATOR);
-                saveNode(); //_CLOCK
-                return 1;
-            }else{
-                removeNode(); //_CLOCK
-                throw string( "Expected clock distribution. Got '"
-                            + lexemes[pos] + "' instead.\nAt line "
-                            + to_string(lines[pos]) + " and column " 
-                            + to_string(columns[pos]));
-            }
+            saveNode(); // _CLOCK
+            removeLocation();
+            return 1;
         }
         removeNode(); //_CLOCK
+
+    }
+    loadLocation();
+    return 0;
+}
+
+
+//==============================================================================
+
+
+/** 
+ * @Brief Rule VARIABLE DEFINITION.
+ */
+int
+Parser::rVarDef(){
+    saveLocation();
+    if(accept(NAME)){
+        newNode(_VARIABLE, "",lines[lastpos],columns[lastpos]);
+        saveNode(_NAME);
+        expect(CLN, "Missing ':'.\n");
+        if(accept(BTYPE)){
+            saveNode(_TYPE);
+        }else if(accept(OBT)){
+            newNode(_RANGE, "");
+            saveNode(_SEPARATOR);
+            expect(NUM, "Bad range. Forgot lower limit?\n");
+            saveNode(_NUM);
+            expect(RNG, "Bad range. Forgot .. ?\n");
+            saveNode(_SEPARATOR);
+            expect(NUM, "Bad range. Forgot upper limit?\n");
+            saveNode(_NUM);
+            expect(CBT, "Bad range. Forgot ] ?");
+            saveNode(_SEPARATOR);
+            saveNode(); // _RANGE
+        }else{
+            loadLocation();
+            removeNode(); // _VARIABLE
+            return 0;
+        }
+        // Optional initialization
+        if(accept(KINIT)){
+            newNode(_INIT);
+            saveNode(_KEYWORD);
+            rExpression();
+            saveNode(); // _INIT
+        }
+        expect(SCLN,"Missing ';'.\n");
+        saveNode(); // _VARIABLE
+        removeLocation();
+        return 1;
+    }
+    loadLocation();
+    return 0;
+}
+
+
+//==============================================================================
+
+
+/**
+ * @Brief Rule TRANSITION. 
+ */
+int
+Parser::rTransDef(){
+
+    if(accept(OBT)){
+        newNode(_TRANSITION,"");
+        saveNode(_SEPARATOR);
+        if(accept(NAME)){   
+            saveNode(_ACTION);
+            if(accept(EMARK) || accept(QMARK)){
+                saveNode(_IO);
+            }else{
+                // silent transitions are output.
+                saveNode(_IO,"!");
+            }
+        }else{
+            // silent transition.
+            saveNode(_ACTION,"");
+        }
+        expect(CBT, "Forgot ']' at transition declaration?\n");    
+        saveNode(_SEPARATOR);    
+        newNode(_PRECONDITION,"");
+        if(rExpression()){
+            saveNode(); // _PRECONDITION
+        }else{
+            removeNode(); // _PRECONDITION
+        }
+
+        newNode(_ENABLECLOCK,"");
+        if(accept(AT)){
+            saveNode(_SEPARATOR);
+            expect(NAME, "Forgot a clock name?\n");
+            saveNode(_NAME);
+            saveNode(); // _ENABLECLOCK
+        }else{
+            removeNode();   // _ENABLECLOCK
+        }
+
+        expect(ARROW,"Malformed precondition formula?, or forgot arrow "
+                     "at transition declaration?\n");
+        saveNode(_SEPARATOR);
+        newNode(_POSTCONDITION);
+
+        if(rAssig() || rSetClock()){
+            while(accept(AMP)){
+                saveNode(_SEPARATOR);
+                if(!(rAssig() || rSetClock())){
+                    return 0;
+                }
+            }
+        }
+        
+        saveNode(); //_POSTCONDITION
+        expect(SCLN, "Forgot semicolon to end transition definition?\n");
+        saveNode(); // _TRANSITION
+        return 1;
+
     }
     return 0;
 }
 
 
-/* @Rule: DISTRIBUTION */
+//==============================================================================
+
+/**
+ */
+int
+Parser::rAssig(){
+    saveLocation();
+    if(accept(OP)){
+        newNode(_ASSIG);
+        saveNode(_SEPARATOR);
+        expect(XNAME, "Missing <next name>.\n");
+        saveNode(_NAME);
+        expect(ASSIG, "Missing '='.\n");
+        saveNode(_SEPARATOR);
+        if(rExpression()){
+            expect(CP, "Missing ')'.\n");
+            saveNode(_SEPARATOR);
+            saveNode(); // _ASSIG
+            removeLocation();
+            return 1;
+        }
+        removeNode(); // _ASSIG
+    }
+    loadLocation();
+    return 0;
+}
+
+
+//==============================================================================
+
+/**
+ */
+int
+Parser::rSetClock(){
+    saveLocation();
+    if(accept(OP)){
+        newNode(_SETC);
+        saveNode(_SEPARATOR);
+        expect(XNAME, "Missing <next name>.\n");
+        saveNode(_NAME);
+        expect(ASSIG, "Missing '='.\n");
+        saveNode(_SEPARATOR);
+        if(rDistr()){
+            expect(CP, "Missing ')'.\n");
+            saveNode(_SEPARATOR);
+            saveNode(); // _ASSIG
+            removeLocation();
+            return 1;
+        }
+        removeNode(); // _ASSIG
+    }
+    loadLocation();
+    return 0;
+}
+
+
+//==============================================================================
+
+
+/**
+ * @Breif Rule DISTRIBUTION 
+ */
 int
 Parser::rDistr(){
 
@@ -398,209 +538,6 @@ Parser::rUniDist(){
     return 0;
 }
 
-/* @Rule: MODULES VARIABLES SECTION. */
-int
-Parser::rVarSec(){
-    if(accept(KVS)){
-        newNode(_VARSEC);
-        saveNode(_KEYWORD);
-        while(rVarDef()){;}
-        saveNode(); // _VARSEC
-        return 1;
-    }
-    return 0;
-}
-
-/* @Rule: INITIALIZATION. */
-int
-Parser::rInit(){
-
-    if(accept(ASSIG)){
-        newNode(_INIT,"",lines[lastpos],columns[lastpos]);
-        saveNode(_SEPARATOR);
-        if(! rExpression()){
-            throw string("Wrong initialization expression.\n");
-        }
-        saveNode();//_INIT
-        return 1;
-    }
-    return 0;
-}
-
-/* FIXME: The following method gives an example of how to use TEST and
-          how to correctly use expect ... apply it to other methods.
-*/
-/* @Rule: VARIABLE DEFINITION. */
-int
-Parser::rVarDef(){
-
-    if(accept(KVTYPE)){
-        newNode(_VARIABLE, "");
-        saveNode(_TYPE);
-        try{
-            expect(NAME, "Missing name at variable definition?\n");
-            saveNode(_NAME);
-            TEST(rRange);
-            TEST(rInit);
-            expect(SCLN, "Missing semicolon at end "
-                         "of variable definition?\n");
-            saveNode(_SEPARATOR);
-            saveNode(); //_VARDEF
-            return 1;
-        }catch(SyntaxError *e){
-            removeNode(); // _VARDEF
-            cout << e->what() << endl;
-            delete e; // FIXME do this with every other cought exception 
-            throw string( "Wrong variable definition? "
-                          "Expected variable definition syntax is: "
-                          "'<TYPE> <NAME> ([<VAL>..<VAL>])? (= <VAL>)? ;'"
-                          ".\n");
-        }catch(string s){
-            removeNode(); // _VARDEF
-            throw s;
-        }
-    }
-    return 0;
-}
-
-
-/* @Rule: RANGE */
-int
-Parser::rRange(){
-
-    if(accept(OBT)){
-        newNode(_RANGE, "");
-        if(accept(NUM)){
-            saveNode(_NUM);
-        }
-        if(accept(RNG)){
-            saveNode(_SEPARATOR);
-            try{
-                expect(NUM);
-                saveNode(_NUM);
-                expect(CBT);
-                saveNode(_SEPARATOR);
-            }catch(SyntaxError *e){
-                removeNode(); // _RANGE
-                cout << e->what() << endl;
-                throw string( "Bad range.");
-            }
-            saveNode(); // _RANGE
-            return 1;
-        }
-
-        removeNode(); // _RANGE
-    }
-    return 0;
-
-}
-
-
-/* @Rule: MODULES TRANSITIONS SECTION. */
-int
-Parser::rTranSec(){
-    if(accept(KTS)){
-        newNode(_TRANSEC);
-        saveNode(_KEYWORD);
-        bool b = true;
-        while(b){ TESTB(rTransDef,b); }
-        saveNode(); // _TRANSEC
-        return 1;
-    }
-    return 0;
-}
-
-/*
-FIXME TEST and TESTB are not enough. We need to treat the locations
-      also when an exceptions is risen, unless all exceptions are lethal.
-*/
-
-/* @Rule: TRANSITION. */
-int
-Parser::rTransDef(){
-
-    if(accept(OBT)){
-        newNode(_TRANSITION);
-        saveNode(_SEPARATOR);
-        if(accept(NAME)){
-            saveNode(_ACTION);
-            if(accept(EMARK)||accept(QMARK)){
-                saveNode(_IO);
-            }
-        }
-        expect(CBT, "Forgot ']' at transition declaration?\n");        
-        newNode(_PRECONDITION,"");
-
-        bool b = false;
-        TESTB(rExpression,b)
-        if(b){
-            saveNode(); // _PRECONDITION
-        }else{
-            removeNode(); // _PRECONDITION
-        }
-
-        if(accept(CLN)){
-            saveNode(_SEPARATOR);
-            if(accept(NAME)){
-                saveNode(_ENABLECLOCK);
-            }
-        }
-        expect(ARROW,"Malformed precondition formula?, or forgot arrow "
-                     "at transition declaration?\n");
-        saveNode(_SEPARATOR);
-        newNode(_POSTCONDITION);
-        if(rAssigList()){
-            saveNode(); //_POSTCONDITION
-        }else{
-            removeNode(); //_POSTCONDITION
-        }
-        expect(SCLN, "Forgot semicolon to end transition definition?\n");
-        saveNode(); // _TRANSITION
-        return 1;
-
-    }
-    return 0;
-}
-
-
-/**/
-int
-Parser::rAssigList(){
-
-    newNode(_ASSIGL);
-    if(rAssig()){
-        while(accept(CMM)){
-            saveNode(_SEPARATOR);
-            if(!rAssig()){
-                string msg("Malformed assignment list.\n"
-                           "Unexpected " + lexemes[pos]);
-                throw new SyntaxError(msg, lines[pos], columns[pos]);
-            }
-        }
-        saveNode();
-        return 1;
-    }
-    removeNode();
-    return 0;    
-}
-
-/**/
-int
-Parser::rAssig(){
-    newNode(_ASSIG);
-    if(accept(NAME)){
-        saveNode(_NAME);
-        if(accept(ASSIG)){
-            saveNode(_SEPARATOR);
-            if(rExpression()){
-                saveNode();
-                return 1;
-            }
-        }
-    }
-    removeNode();
-    return 0;
-}
 
 /** Expression rules. **/
 
@@ -609,7 +546,7 @@ int
 Parser::rExpression(){
     newNode(_EXPRESSION,"",lines[pos],columns[pos]);
     if(rEqual()){
-        if(accept(BINOP)){
+        if(accept(AMP) || accept(MID)){
             saveNode(_OPERATOR);
             if(!rExpression()){
                 string msg("Unexpected word '"+lexemes[pos]+"'.\n");
@@ -728,7 +665,7 @@ Parser::rValue(){
         }
     }else if(accept(MINUS)){
         saveNode(_MINUS);
-        if(!rExpression()){
+        if(!rValue()){
             string msg("Unexpected word '"+lexemes[pos]+"'.\n");
             throw new SyntaxError( msg,lines[pos]
                                  , columns[pos]);            
@@ -740,9 +677,6 @@ Parser::rValue(){
     saveNode(); //_VALUE
     return 1;
 }
-
-/** End Expression rules. **/
-
 
 
 
@@ -829,11 +763,11 @@ Parser::parse(stringstream *str, AST * & result){
         }
 
     }catch(exception *e){
-        cout << "Parser: " << e->what() << endl;
+        cout << "[Parser ERROR] " << e->what() << endl;
         delete e;
         return 0;
     }catch(string s){
-        cout << "Parser: " << s << endl;
+        cout << "[Parser ERROR] " << s << endl;
         return 0;
     }
 

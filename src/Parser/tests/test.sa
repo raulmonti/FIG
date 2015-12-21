@@ -22,19 +22,20 @@ CLOCKS
     clockfour: Uniform(6,2); a:Normal(2,-2);
 
 VARS
-    Bool v = false;
-    Int a = 2;
-    Int c = false || true;
-    Bool b = false;
+    bool v = false;
+    int a = 2;
+    int c = false || true;
+    bool b = false;
+    int t = 0;
 
 TRANS
-    
+
+    [b?] a > 0 && t > 0 && a + t + 4 == 9 -> ;
     /* Some transition that * represents / something. */
-    [a] c == 2 && true && false != (3.653  >= 3/9) :  >> a = 1, c = false ;
+    [a] c == 2 && true && false != (3.653  >= 3/9) : a  -> a = 1, c = false ;
     [b?] a == 4 + false > c : clockone 
-     >>  a = 4+2, b = a||b;
-    [b?] a && t == 4 >> ;
-    [c!] -(3+10/2) : c >> ;
+     ->  a = 4+2, b = a||b :clockone, clockfour;
+    [c!] -(3+10/2) : c -> ;
 
 
 
@@ -56,8 +57,8 @@ CLOCKS
 
 TRANS
 
-    [] : c1 >> ;
-    [b] : c1 >>;
+    [] : c1 -> ;
+    [b] : c1 -> : c2;
 
 PROPERTY prop1 : 3/2 > modthree.clockthree +1 && false;
 
@@ -70,12 +71,12 @@ MODULE modfour
 
 VARS
 
-    Float c [2..3] = 2;
-    Int a [2..5] = false || 8 > 2;
-    Float b = 1.2;
-    Float cc;
-    Int d;
-    Float dd;
+    float c [2..3] = 2;
+    int a [2..5] = false || 8 > 2;
+    float b = 1.2;
+    float cc;
+    int d;
+    float dd;
 
 TRANS
 

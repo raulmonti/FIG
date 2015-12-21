@@ -14,7 +14,7 @@
 #include <string>
 #include "parser.h"
 #include "exceptions.h"
-#include "debug.h" 
+#include "config.h" 
 %}
 
 
@@ -30,31 +30,29 @@
 
 -?[0-9]+([\.][0-9]+)?     { return parser::NUM; }
 
-MODULE      { return parser::KMOD; }
+module          { return parser::KMOD; }
 
-ENDMODULE   { return parser::KEMOD; }
+("const")       {return parser::KCONST; }
 
-PROPERTY    { return parser::KPROP; }
+("end module")  { return parser::KEMOD; }
 
-LABELS      { return parser::KLBL; }
+init        { return parser::KINIT; }
 
-CLOCKS      { return parser::KCS; }
+Norm        { return parser::KNDIST; }
 
-VARS        { return parser::KVS; }
+Exp         { return parser::KEDIST; }
 
-TRANS       { return parser::KTS; }
+Uni         { return parser::KUDIST; }
 
-Normal      { return parser::KNDIST; }
+("int")     { return parser::ITYPE; }
+("bool")    { return parser::BTYPE; }
 
-Exponential { return parser::KEDIST; }
-
-Uniform     { return parser::KUDIST; }
-
-("Int"|"Float"|"Bool")  { return parser::KVTYPE; } 
-
-("input"|"output")      { return parser::LDIR; }
+("clock")       {return parser::KCLOCK; }
 
 ("true"|"false")        { return parser::BOOLV; }
+
+
+[a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z0-9]+)?'   { return parser::XNAME; }
 
 [a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z0-9]+)?    { return parser::NAME; }
 
@@ -68,6 +66,10 @@ Uniform     { return parser::KUDIST; }
 
 ,           { return parser::CMM; }
 
+@           { return parser::AT; }
+
+'           { return parser::AP; }
+
 [{]         { return parser::OB; }
 
 [}]         { return parser::CB; }
@@ -80,24 +82,25 @@ Uniform     { return parser::KUDIST; }
 
 [)]         { return parser::CP; }
 
-(">>")      { return parser::ARROW; }
-("<="|">="|"<"|">")             { return parser::COP; }
-("=="|"!=")                     { return parser::BOP; }
-("+")                           { return parser::PLUS; }
-("-")                           { return parser::MINUS; }
+("->")              { return parser::ARROW; }
+("<="|">="|"<"|">") { return parser::COP; }
+("=="|"!=")         { return parser::BOP; }
+("+")               { return parser::PLUS; }
+("-")               { return parser::MINUS; }
 
-("*"|"/"|"%")                   { return parser::DIVOP; }
-("=")       { return parser::ASSIG; }
-("..")      { return parser::RNG; }
-("&&"|"||") { return parser::BINOP; }
-("?")       { return parser::QMARK; }
-("!")       { return parser::EMARK; }
+("*"|"/"|"%")   { return parser::DIVOP; }
+("=")           { return parser::ASSIG; }
+("..")          { return parser::RNG; }
+("&")           { return parser::AMP; }
+("|")           { return parser::MID; }
+("?")           { return parser::QMARK; }
+("!")           { return parser::EMARK; }
 
 [^[:alnum:]]    {
                     stringstream ss;
                     ss << " at line " << yylineno <<  endl;
                     string str = string(yytext) + ss.str();
-                    throw new Badcharfound(str);
+                    throw new BadSymbol(str.c_str());
                 }
 
 

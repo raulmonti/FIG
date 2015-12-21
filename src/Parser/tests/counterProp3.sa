@@ -1,0 +1,26 @@
+
+module prop3testModule
+
+
+    x : clock;
+    w : clock;
+    y : clock;
+    z : clock;
+    a : [0..2] init 0;
+
+
+/* No warning because no sat of preconditions. */
+[t1!]  a == 1 @ x -> (a' = 2);
+[t2!]  a == 3 @ x -> (a' = 1) & (y' = Norm(0,1));
+/* Warning because of different actions. */
+[t6] a == 0 @ z -> (a' = 5);
+[t7] a == 0 @ z -> (a' = 5);
+/* Warning because of different reset clocks. */
+[t9] a == 0 @ w -> (a' = 5) & (x'=Exp(1));
+[t9] a == 0 @ w -> (a' = 5) & (y'=Norm(2,3));
+/* Warning because reaching different states. */
+[t4] a == 0 @ y -> (a' = 5) & (x'=Norm(2,3));
+[t5] a == 0 @ y -> (a' = 6) & (x'=Exp(2));
+
+
+end module

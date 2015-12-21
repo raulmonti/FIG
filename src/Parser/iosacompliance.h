@@ -1,100 +1,150 @@
-/**
+//==============================================================================
+//
+//  IOSA compliance module for FIG
+//  Raul Monti
+//  2015
+//
+//==============================================================================
 
-    IOSA compliance module for FIG
-    Raul Monti
-    2015
-
-**/
 #ifndef IOSA_COMPLIANCE_H
 #define IOSA_COMPLIANCE_H
-
 
 #include<vector>
 #include<string>
 #include<set>
 #include<map>
+#include<utility> // for pair type
 #include "ast.h"
-
+#include "smtsolver.h"
+#include "config.h"
 
 using namespace std;
 
+namespace parser{
 
-/** Class with verifying methods for 
-    compliance with IOSA models parsed 
-    into ASTs from the FIG ast module.
-**/
+
+//==============================================================================
+// Class with verifying methods for compliance with IOSA models parsed into ====
+// ASTs from the FIG ast module.                                            ====
+//==============================================================================
 
 class Verifier{
 
-    /**/
-    typedef enum    { mARIT
-                    , mBOOL
-                    , mNOTYPE
-                    } Type; 
-
-    // Map from module name to variable name to type:
-    map<string, map<string,Type>> typeMap;
-    // Map from modules to clock names:
-    map<string,set<string>> clckMap;
+    /* Map from variable/clock/const name to (type, module) */
+    parsingContext mPc;
 
 public:
 
-    /* @verify: fully verify if @ast compliances with IOSA modeling.
-       @returns: 1 if it compliances, 0 otherwise.
-    */
+    /**
+     * @brief IOSA compliance verifier class constructor.
+     * @param [in] pc A parsing context instance to fill in with parsed 
+     *        information.
+     */
+    Verifier();
+
+    /**
+     * @brief IOSA compliance verifier class destroyer.
+     */
+    virtual ~Verifier(void);
+
+    /**
+     * @brief  fully verify if @ast compliances with IOSA modeling.
+     * @return 1 if it compliances.
+     * @return 0 if something went wrong.
+     */
     int 
     verify(AST* ast);
 
 private:
 
-    /* @fill_maps: fill up typeMap and clckMap for @ast.
-    */
+    /**
+     *
+     */
+    bool
+    is_clock(AST* c);
+
+    /**
+     *
+     */
+    bool
+    is_var(AST* c);
+
+    /**
+     *
+     */
+    z3::expr
+    limits2expr(AST* ast, z3::context &c);
+
+    /**
+     * @brief Fill up context @mPc for @ast.
+     */
     int
     fill_maps(AST *ast);
 
-    /* @names_uniqueness: check that names that should be unique really are.
-       @return: 1 if no wrongly duplicated name was found.
-       @throw: ... if some wrongly duplicated name was found.
-    */
+    /**
+     * @brief  check that names that should be unique really are.
+     * @return 1 if no wrongly duplicated name was found.
+     * @throw  ... if some wrongly duplicated name was found.
+     */
     int
     names_uniqueness(AST* ast); 
 
-    /* @instantaneous_input: check that input transitions have no clock to wait
-                             for. This is in compilance to IOSA first condition.
-       @return:
-       @throw:
+    /** 
+     * @brief check that input transitions have no clock to wait
+     *        for. This is in compilance to IOSA first condition.
+     * @return
+     * @throw
     */
     int
     input_output_clocks(AST* ast);
 
-    /* @unique_ouputs: check that clocks are used only once as transition enable
-                       clocks, in compliance to 3rd condition for IOSA.
-       @throw:
-       @result:
-    */
+
+    /**
+     * @brief check that clocks are used only once as transition enable
+     *        clocks, in compliance to 3rd condition for IOSA.
+     * @throw
+     * @result
+     */
     int
     unique_outputs(AST *ast);
 
-    /* @unique_inputs: check property (7) for IOSA.
-       @return: 
-       @throw: string with errors message if found that the property may not
-               be met. (just to take as a warning).
-    */
-    int
-    unique_inputs(AST *ast);
 
-    /* @type_check: Type check every expression in @ast. */
+    /** 
+     *  @brief Check compliance to condition 4 from IOSA.
+     *  @Note Can only partially check due to reachability issues, thus we 
+     *        report WARNINGS but we don't ensure presence of non-determinism.
+     */
+    int
+    check_exhausted_clocks(AST *ast);
+
+
+    /**
+     *  @brief Type check expressions in the model.
+     *  @throw String error.
+     *  @param [in] ast Should be an AST instance of a parsed model.
+     */
     int
     type_check(AST *ast);
 
-    /* @get_type: Return type of an expression.
-       @module: the module name (key for the typeMap).
-       @return:
-       @throw:
-    */
+
+    /** 
+     *  @brief Return type of an expression.
+     *  @param
+     *  @return
+     *  @throw
+     */
     Type
-    get_type(AST *expr, string module);
+    get_type(AST *expr);
+
+
+    /**
+     *  @brief Check condition 7 for IOSA.
+     */
+    int
+    check_input_determinism(AST *ast);
 
 };
+
+}//namespace parser
 
 #endif // IOSA_COMPLIANCE_H

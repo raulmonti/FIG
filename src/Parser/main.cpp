@@ -1,11 +1,11 @@
-/**
-
-    Running example for the parser.
-    Raul Monti
-    2015
-    FIG project.
-
-**/
+//==============================================================================
+//
+//  Running example for the parser.
+//  Raul Monti
+//  2015
+//  FIG project.
+//
+//==============================================================================
 
 #include <iostream>
 #include <sstream>
@@ -16,9 +16,12 @@
 #include "parser.h"
 #include "ast.h"
 #include "iosacompliance.h"
+#include <exception>
+#include "exceptions.h"
 
 
 using namespace std;
+using namespace parser;
 
 
 int 

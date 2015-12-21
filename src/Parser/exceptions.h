@@ -1,8 +1,69 @@
+//==============================================================================
+//
+// Exceptions file for FIG project 'Parser module'.
+// Raul Monti
+// 2015
+//
+//==============================================================================
+
+
 #ifndef EXCEPTIONS_H
 #define EXCEPTIONS_H
 
 #include <exception>
 #include <string>
+
+
+
+//==============================================================================
+
+class ProgramError: public std::exception
+{
+
+    const char* except;
+
+public:
+
+    ProgramError(const char* msg)
+    {
+        except = msg;
+    }
+
+    virtual ~ProgramError(){};
+
+    virtual const char* what() const throw()
+    {
+        return except;
+    }
+
+};
+
+
+//==============================================================================
+
+class IOSAComplianceExc: public std::exception
+{
+
+    const char* except;
+
+public:
+
+    IOSAComplianceExc(const char* msg)
+    {
+        except = msg;
+    }
+
+    virtual ~IOSAComplianceExc(){};
+
+    virtual const char* what() const throw()
+    {
+        return except;
+    }
+
+};
+
+
+//==============================================================================
 
 class Badcharfound: public std::exception
 {
@@ -25,6 +86,37 @@ public:
     return std::string("ERROR! Found bad character: ").append(c).c_str();
   }
 };
+
+
+//==============================================================================
+
+class BadSymbol: public std::exception
+{
+
+public:
+
+    const char* except;
+
+public:
+
+    BadSymbol(const char* msg)
+    {
+        except = msg;
+    }
+
+    virtual ~BadSymbol(){};
+
+    virtual const char* what() const throw()
+    {
+        string buff("BadSymbol Exception!\n");
+        buff += string(except);
+        return buff.c_str();
+    }
+
+};
+
+
+//==============================================================================
 
 
 class SyntaxError: public std::exception
@@ -56,6 +148,9 @@ public:
 };
 
 
+//==============================================================================
+
+
 class BadAST: public std::exception
 {
 
@@ -71,5 +166,6 @@ public:
   }
 };
 
-#endif
+
+#endif // EXCEPTIONS_H
 
