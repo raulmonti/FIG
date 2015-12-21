@@ -1,0 +1,9 @@
+module M1
+
+
+    a:[0..99] init 0>2;
+
+
+    [b!] true | a @ c -> (a'=false);
+
+end module

@@ -623,10 +623,6 @@ Verifier::check_input_determinism(AST *ast){
                     z3::expr ej = post2expr(inputTrans[j],mPc,c);
                     e = e && (ei != ej);
                     s.add(e && limits2expr(ast,c));
-
-                    cout << "Check Input Determ TESTING: " << endl;
-                    cout << s << endl;
-
                     string posi = inputTrans[i]->get_pos();
                     string posj = inputTrans[j]->get_pos();
                     if (s.check()){
@@ -771,8 +767,9 @@ Verifier::type_check(AST *ast){
     // Type check transitions preconditions:
     vector<AST*> trans = ast->get_all_ast(_TRANSITION);
     for(int i =0; i < trans.size(); ++i){
-        AST *expr = trans[i]->get_first(_EXPRESSION);
-        if (expr){
+        AST *pre = trans[i]->get_first(_PRECONDITION);
+        if (pre){
+            AST *expr = pre->get_first(_EXPRESSION);
             if( T_BOOL != get_type(expr)){
                 error_list.append( "[ERROR] Wrong type for transitions "
                     "precondition at " + expr->p_pos() 
@@ -859,8 +856,8 @@ Verifier::get_type(AST *expr){
         if(op){
             Type t2 = get_type(expr2);
             if(t1 != T_BOOL || t1 != t2){
-                throw "[ERROR] Wrong types for binary operator "
-                      "at " + op->p_pos() + ".\n";
+                throw "[ERROR] Wrong types for binary operator '" + op->p_name()
+                      + "', at " + op->p_pos() + ".\n";
             }else{
                 return T_BOOL; 
             }
