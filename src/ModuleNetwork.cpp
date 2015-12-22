@@ -157,4 +157,35 @@ template void ModuleNetwork::seal(const std::vector<std::string>&);
 template void ModuleNetwork::seal(const std::forward_list<std::string>&);
 template void ModuleNetwork::seal(const std::unordered_set<std::string>&);
 
+
+void
+ModuleNetwork::simulation_step(Traial& traial, Event stopCondition)
+{
+	do {
+		auto timeout = traial.next_timeout();
+		// Active jump in the module whose clock timed-out
+		auto label = timeout.module->jump(timeout.name, timeout.value, traial);
+		if (label.is_tau())
+			goto end_of_jump;  // nobody reacts to taus
+		for (auto module: modules)
+			// Passive jumps in the modules listening to label
+			if (module->name != timeout.module->name)
+				module->jump(label, timeout.value, traial);
+		end_of_jump:; // NOP
+	} while ( false /* inspect(traial) == stopCondition */ );
+
+	/// @todo TODO define "Event inspect(const Traial&)"
+	///
+	///       It should use the current ImportanceFunction to assess
+	///       the importance of the current Traial.state.
+	///
+	///       It may also need info like the THRESHOLDS_DOWN_TOLERANCE
+	///       or the maximum simulation time, which we will store in the
+	///       SimulationEngine currently used, or something like that.
+	///
+	///       Maybe the "inspect()" routine should belong to the ModelSuite
+	///       singleton instance, which has direct access to all these info.
+	///       Will that mess the class hierarchy system?
+}
+
 } // namespace fig

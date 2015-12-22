@@ -59,9 +59,9 @@ class ModuleInstance;
 /**
  * @brief Simulation kernel (or 'trial trail')
  *
- *        Holds the state of the variables and the clocks values,
- *        i.e. all that is needed to run a simulation through the user's
- *        system model.
+ *        Simulations are embodied through instances of this class.
+ *        A Traial holds the state of the variables and the clocks values,
+ *        i.e. all that is needed to "run through" the user's system model.
  *        Traials should be handled with the TraialPool, to ensure fast
  *        acquisition/release (instead of creation/destruction) of the
  *        instances.

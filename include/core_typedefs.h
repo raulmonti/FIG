@@ -137,6 +137,39 @@ typedef short                                                ImportanceValue;
 //
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //
+//
+// Simulation
+//
+
+/// Bit flag to identify the recognized events during simulation
+///
+typedef short                                                          Event;
+
+/// Simulation event types
+///
+enum EventType {
+	EV_REFERENCE  = 1<< 0,
+	EV_STOP       = 1<< 1,
+	EV_RARE       = 1<< 2,
+	EV_THR_UP     = 1<< 3,
+	EV_THR_DOWN   = 1<< 4
+};
+
+inline bool IS_REFERENCE_EVENT(const Event& e) { return e & EV_REFERENCE; }
+inline bool IS_STOP_EVENT     (const Event& e) { return e & EV_STOP;      }
+inline bool IS_RARE_EVENT     (const Event& e) { return e & EV_RARE;      }
+inline bool IS_THR_UP_EVENT   (const Event& e) { return e & EV_THR_UP;    }
+inline bool IS_THR_DOWN_EVENT (const Event& e) { return e & EV_THR_DOWN;  }
+
+inline void SET_REFERENCE_EVENT(Event& e) { e |= EV_REFERENCE; }
+inline void SET_STOP_EVENT     (Event& e) { e |= EV_STOP;      }
+inline void SET_RARE_EVENT     (Event& e) { e |= EV_RARE;      }
+inline void SET_THR_UP_EVENT   (Event& e) { e |= EV_THR_UP;    }
+inline void SET_THR_DOWN_EVENT (Event& e) { e |= EV_THR_DOWN;  }
+
+//
+//
+// // // // // // // // // // // // // // // // // // // // // // // // // //
 
 } // namespace fig
 

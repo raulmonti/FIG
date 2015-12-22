@@ -152,6 +152,19 @@ public:  // Populating facilities
 
 public:  // Utils
 
+	/// @copydoc sealed_
+	inline bool sealed() const noexcept { return sealed_; }
+
+	/// @copydoc numClocks_
+	inline size_t num_clocks() const noexcept { return numClocks_; }
+
+	/// Symbolic global state size, i.e. number of variables in the system model
+	inline size_t state_size() const noexcept { return gState.size(); }
+
+	/// Concrete global state size, i.e. cross product of the ranges
+	/// of all the variables in the system model
+	inline size_t concrete_state_size() const noexcept { return gState.concrete_size(); }
+
 	virtual inline void accept(ImportanceFunction& ifun)
 		{ ifun.assess_importance(this); }
 
@@ -182,18 +195,19 @@ public:  // Utils
 			  typename... OtherContainerArgs >
 	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames);
 
-	/// @copydoc sealed_
-	inline bool sealed() const noexcept { return sealed_; }
-
-	/// @copydoc numClocks_
-	inline size_t num_clocks() const noexcept { return numClocks_; }
-
-	/// Symbolic global state size, i.e. number of variables in the system model
-	inline size_t state_size() const noexcept { return gState.size(); }
-
-	/// Concrete global state size, i.e. cross product of the ranges
-	/// of all the variables in the system model
-	inline size_t concrete_state_size() const noexcept { return gState.concrete_size(); }
+	/**
+	 * @brief Advance a traial until some stopping criterion is met
+	 *
+	 *        Starting from the state stored in traial, this routine
+	 *        performs synchronized jumps in the \ref ModuleInstance
+	 *        "modules composing the system", until the stopCondition
+	 *        Event is observed. All relevant information of the
+	 *        simulation run is kept inside the given Traial.
+	 *
+	 * @param traial         Traial instance keeping track of the simulation
+	 * @param stopCondition  Event marking the end of the simulation step
+	 */
+	void simulation_step(Traial& traial, Event stopCondition);
 };
 
 } // namespace fig
