@@ -1,32 +1,34 @@
 #!/bin/sh
 
+##==============================================================================
+##
+##  build_project.sh
+##	
+##	Copyleft 2015-
+##	Authors:
+##  * Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
+##
+##------------------------------------------------------------------------------
+##
+##  This file is part of FIG.
+##
+##  The Finite Improbability Generator (FIG) project is free software;
+##  you can redistribute it and/or modify it under the terms of the GNU
+##  General Public License as published by the Free Software Foundation;
+##  either version 3 of the License, or (at your option) any later version.
+##
+##  FIG is distributed in the hope that it will be useful,
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##	GNU General Public License for more details.
+##	
+##	You should have received a copy of the GNU General Public License
+##	along with FIG; if not, write to the Free Software Foundation,
+##	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+##
+##==============================================================================
+
 set -e
-
-# Check dependencies
-if [ ! -f CMakeLists.txt ]
-then
-	echo "[ERROR] Couldn't find CMakeLists.txt file in current dir, aborting."
-	exit 1
-else
-	CWD=$PWD
-fi
-
-# Locate CMake's build sub-directory
-DIR=$(grep -i "SET[[:blank:]]*([[:blank:]]*PROJECT_BINARY_DIR" CMakeLists.txt)
-if [ -z "$DIR" ]
-then
-	echo "[ERROR] Couldn't find CMake's build directory, aborting."
-	exit 1
-else
-	DIR=$(echo $DIR | cut -d"/" -f 2)
-	if [ -z "$DIR" ]
-	then
-		echo "[ERROR] Only SUB-directories are supported for builds, aborting."
-		exit 1
-	else
-		DIR=$(echo $DIR | grep -o "[0-9a-zA-Z/_\-\.]" | tr '\n' '\0')
-	fi
-fi
 
 # Choose compiler (prefer clang over gcc)
 if [ "`which clang`" ]
@@ -51,10 +53,70 @@ then
 	exit 1
 fi
 
-# Configure and build from inside DIR
-if [ ! -d $DIR ]; then mkdir $DIR; fi
-cd $DIR && CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CWD && make
-echo "\n  Project built in $PWD\n"
+# Recognize requested build
+if [ $# -eq 0 ]
+then
+	echo "Called with no arguments, building main project"
+	DIR=""
+elif [ $# -eq 1 ]
+then
+	if [ "$1" = "main" ]
+	then
+		echo "Building main project"
+		DIR=""
+	elif [ "$1" = "test_tads" ]
+	then
+		echo "Building tests for TADs"
+		DIR="tests/tads/"
+	elif [ "$1" = "test_parser" ]
+	then
+		echo "Building tests for parser"
+		DIR="tests/parser/"
+	else
+		echo "[ERROR] Unrecognized build option \"$1\""
+		echo "        Available builds are: main test_tads test_parser"
+		exit 1
+	fi
+else
+	echo "[ERROR] call with at most one argument specifying the build type"
+	echo "        Available builds are: main test_tads test_parser"
+	exit 1
+fi
+
+# Check there's a CMake build file in the corresponding directory
+if [ ! -f ${DIR}CMakeLists.txt ]
+then
+	if [ -z $DIR ]; then DIR="current directory"; fi
+	echo "[ERROR] Couldn't find CMakeLists.txt file in $DIR, aborting."
+	exit 1
+else
+	CWD=$PWD
+	CMAKE_DIR=$PWD/$DIR
+fi
+
+# Locate CMake's build sub-directory
+BUILD_DIR=$(grep -i "SET[[:blank:]]*([[:blank:]]*PROJECT_BINARY_DIR" \
+            ${DIR}CMakeLists.txt)
+if [ -z "$BUILD_DIR" ]
+then
+	echo "[ERROR] Couldn't find CMake's build directory, aborting."
+	exit 1
+else
+	BUILD_DIR=$(echo $BUILD_DIR | cut -d"/" -f 2)
+	if [ -z "$BUILD_DIR" ]
+	then
+		echo "[ERROR] Only SUB-directories are supported for builds, aborting."
+		exit 1
+	else
+		BUILD_DIR=$(echo $BUILD_DIR | grep -o "[0-9a-zA-Z/_\-\.]" | tr '\n' '\0')
+	fi
+fi
+
+# Configure and build from inside BUILD_DIR
+if [ ! -d $BUILD_DIR ]; then mkdir $BUILD_DIR; fi
+#cd $BUILD_DIR && CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR && make && \
+cd $BUILD_DIR && CC=gcc CXX=g++ cmake $CMAKE_DIR && make && \
+echo -e "\n  Project built in $BUILD_DIR\n"
 cd $CWD
 
 exit 0
