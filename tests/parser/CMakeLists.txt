@@ -28,7 +28,7 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
-PROJECT (fig)
+PROJECT (fig_test_parser)
 
 SET(fig_VERSION_MAYOR 0)
 SET(fig_VERSION_MINOR 4)
@@ -38,11 +38,11 @@ SET(fig_VERSION_MINOR 4)
 ###  Project directory structure  #############################################
 
 # Default directories configuration
-SET(SOURCES_DIR ${PROJECT_SOURCE_DIR}/src)
-SET(HEADERS_DIR ${PROJECT_SOURCE_DIR}/include)
-SET(LIBRARIES_DIR ${PROJECT_SOURCE_DIR}/lib)
-SET(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin)
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/fig)
+SET(SOURCES_DIR ${PROJECT_SOURCE_DIR}/../../src)
+SET(HEADERS_DIR ${PROJECT_SOURCE_DIR}/../../include)
+SET(LIBRARIES_DIR ${PROJECT_SOURCE_DIR}/../../lib)
+SET(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/../../bin)
+SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/test)
 
 # Header file with CMake settings for the source code
 CONFIGURE_FILE (
@@ -50,23 +50,34 @@ CONFIGURE_FILE (
 	"${HEADERS_DIR}/FigConfig.h"
 )
 
-# Allow subdirectories to append their own files and dirs (https://goo.gl/xxIOAM)
+# Allow subdirectories to append their files and dirs (https://goo.gl/xxIOAM)
 SET(HEADERS_DIR ${HEADERS_DIR} CACHE INTERNAL "")
 SET(ALL_SOURCES CACHE INTERNAL "")
 
-# Visit subdirectories
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/ext)
+# Visit necessary subdirectories
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/z3 ${PROJECT_BINARY_DIR}/z3)
  
 # Register all include paths
 INCLUDE_DIRECTORIES(${HEADERS_DIR})
 
-# Register our own source files toghether with all others
-AUX_SOURCE_DIRECTORY(${SOURCES_DIR} OUR_SOURCES)
-SET(ALL_SOURCES ${ALL_SOURCES} ${OUR_SOURCES} CACHE INTERNAL "")
+# Register the source files (only those required for this test)
+SET(REQUIRED_SOURCES "${SOURCES_DIR}/ast.cpp"
+                     "${SOURCES_DIR}/parser.cpp"
+                     "${SOURCES_DIR}/smtsolver.cpp"
+                     "${SOURCES_DIR}/iosacompliance.cpp")
+SET(ALL_SOURCES ${ALL_SOURCES} ${REQUIRED_SOURCES} CACHE INTERNAL "")
 
-## Libraries
-#LINK_DIRECTORIES(${LIBRARIES_DIR})
-# Tip: use find_library() and find_package() instead
+# Register also the source files from this test
+AUX_SOURCE_DIRECTORY(${PROJECT_SOURCE_DIR} TEST_SOURCES)
+SET(ALL_SOURCES ${ALL_SOURCES} ${TEST_SOURCES} CACHE INTERNAL "")
+
+# Remove project's main.cpp, we have ours (http://stackoverflow.com/a/16450083)
+LIST(REMOVE_ITEM ALL_SOURCES ${SOURCES_DIR}/main.cpp)
+
+## # Libraries
+## LINK_DIRECTORIES(${LIBRARIES_DIR})
+##  Tip: use find_library() and find_package() instead
+
 
  
 ###  Compiler configuration  ##################################################
@@ -105,10 +116,6 @@ IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	# "anonymous types declared in an anonymous union"
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-nested-anon-types")
 ENDIF()
-# Avoid MuParser warnings due to deprecated auto_ptr (TODO: update library?)
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
-## # Avoid BGL warnings due to " = default"
-## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
 
 
 
@@ -116,12 +123,6 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 
 # Z3
 SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -lz3" )
-
-# GNU pthreads
-SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pthread" )
-
-## # OpenMP -- Unsupported by clang!
-## SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
 
 
 
@@ -137,5 +138,5 @@ ADD_CUSTOM_COMMAND(
 	DEPENDS ${LEXER_L}
 )
 
-ADD_EXECUTABLE(fig ${ALL_SOURCES} ${LEXER_CC})
+ADD_EXECUTABLE(test_parser ${ALL_SOURCES} ${LEXER_CC})
 
