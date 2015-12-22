@@ -74,12 +74,12 @@ then
 		DIR="tests/parser/"
 	else
 		echo "[ERROR] Unrecognized build option \"$1\""
-		echo "        Available builds are: main test_tads test_parser"
+		echo "        Available builds are:  main  test_tads  test_parser"
 		exit 1
 	fi
 else
 	echo "[ERROR] call with at most one argument specifying the build type"
-	echo "        Available builds are: main test_tads test_parser"
+	echo "        Available builds are:  main  test_tads  test_parser"
 	exit 1
 fi
 
@@ -96,13 +96,13 @@ fi
 
 # Locate CMake's build sub-directory
 BUILD_DIR=$(grep -i "SET[[:blank:]]*([[:blank:]]*PROJECT_BINARY_DIR" \
-            ${DIR}CMakeLists.txt)
+                    ${DIR}CMakeLists.txt)
 if [ -z "$BUILD_DIR" ]
 then
 	echo "[ERROR] Couldn't find CMake's build directory, aborting."
 	exit 1
 else
-	BUILD_DIR=$(echo $BUILD_DIR | cut -d"/" -f 2)
+	BUILD_DIR=$(echo $BUILD_DIR | gawk 'BEGIN {FS="/"};{print $NF}')
 	if [ -z "$BUILD_DIR" ]
 	then
 		echo "[ERROR] Only SUB-directories are supported for builds, aborting."
@@ -114,8 +114,8 @@ fi
 
 # Configure and build from inside BUILD_DIR
 if [ ! -d $BUILD_DIR ]; then mkdir $BUILD_DIR; fi
-#cd $BUILD_DIR && CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR && make && \
-cd $BUILD_DIR && CC=gcc CXX=g++ cmake $CMAKE_DIR && make && \
+cd $BUILD_DIR && CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR && make && \
+#cd $BUILD_DIR && CC=gcc CXX=g++ cmake $CMAKE_DIR && make && \
 echo -e "\n  Project built in $BUILD_DIR\n"
 cd $CWD
 

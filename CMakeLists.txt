@@ -115,6 +115,9 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 
 ###  Link flags  ##############################################################
 
+# Z3
+SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -lz3" )
+
 # GNU pthreads
 SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pthread" )
 
@@ -125,6 +128,15 @@ SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pthread" )
 
 ###  Build executable  ########################################################
 
-#ADD_EXECUTABLE(bgl_test ${SOURCES_DIR}/bgl_graph_structure_change.cpp)
-ADD_EXECUTABLE(classes ${ALL_SOURCES})
+SET(LEXER_L  "${SOURCES_DIR}/lexer.l")
+SET(LEXER_CC "./lex.yy.cc")  # generated inside PROJECT_BINARY_DIR
+
+ADD_CUSTOM_COMMAND(
+	OUTPUT ${LEXER_CC}
+	COMMAND flex++ ${LEXER_L}
+	COMMAND sed -i "/#define yyFlexLexer yyFlexLexer/d" ${LEXER_CC}
+	DEPENDS ${LEXER_L}
+)
+
+ADD_EXECUTABLE(fig ${ALL_SOURCES} ${LEXER_CC})
 

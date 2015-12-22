@@ -28,7 +28,7 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
-PROJECT (fig_test_tads)
+PROJECT (fig_test_parser)
 
 SET(fig_VERSION_MAYOR 0)
 SET(fig_VERSION_MINOR 4)
@@ -55,26 +55,16 @@ SET(HEADERS_DIR ${HEADERS_DIR} CACHE INTERNAL "")
 SET(ALL_SOURCES CACHE INTERNAL "")
 
 # Visit necessary subdirectories
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/muparser2.2.5
-                 ${PROJECT_BINARY_DIR}/muparser2.2.5)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/z3 ${PROJECT_BINARY_DIR}/z3)
  
 # Register all include paths
 INCLUDE_DIRECTORIES(${HEADERS_DIR})
 
 # Register the source files (only those required for this test)
-SET(REQUIRED_SOURCES "${SOURCES_DIR}/Clock.cpp"
-                     "${SOURCES_DIR}/Variable.cpp"
-                     "${SOURCES_DIR}/VariableInterval.cpp"
-                     "${SOURCES_DIR}/VariableSet.cpp"
-                     "${SOURCES_DIR}/State.cpp"
-                     "${SOURCES_DIR}/MathExpression.cpp"
-                     "${SOURCES_DIR}/Precondition.cpp"
-                     "${SOURCES_DIR}/Postcondition.cpp"
-                     "${SOURCES_DIR}/Transition.cpp"
-                     "${SOURCES_DIR}/ModuleInstance.cpp"
-                     "${SOURCES_DIR}/ModuleNetwork.cpp"
-                     "${SOURCES_DIR}/Traial.cpp"
-                     "${SOURCES_DIR}/TraialPool.cpp")
+SET(REQUIRED_SOURCES "${SOURCES_DIR}/ast.cpp"
+                     "${SOURCES_DIR}/parser.cpp"
+                     "${SOURCES_DIR}/smtsolver.cpp"
+                     "${SOURCES_DIR}/iosacompliance.cpp")
 SET(ALL_SOURCES ${ALL_SOURCES} ${REQUIRED_SOURCES} CACHE INTERNAL "")
 
 # Register also the source files from this test
@@ -126,24 +116,27 @@ IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	# "anonymous types declared in an anonymous union"
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-nested-anon-types")
 ENDIF()
-# Avoid MuParser warnings due to deprecated auto_ptr (TODO: update library?)
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
-## # Avoid BGL warnings due to " = default"
-## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
 
 
 
 ###  Link flags  ##############################################################
 
-# GNU pthreads
-SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pthread" )
-
-## # OpenMP -- Unsupported by clang!
-## SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
+# Z3
+SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -lz3" )
 
 
 
 ###  Build executable  ########################################################
 
-ADD_EXECUTABLE(test_tads ${ALL_SOURCES})
+SET(LEXER_L  "${SOURCES_DIR}/lexer.l")
+SET(LEXER_CC "./lex.yy.cc")  # generated inside PROJECT_BINARY_DIR
+
+ADD_CUSTOM_COMMAND(
+	OUTPUT ${LEXER_CC}
+	COMMAND flex++ ${LEXER_L}
+	COMMAND sed -i "/#define yyFlexLexer yyFlexLexer/d" ${LEXER_CC}
+	DEPENDS ${LEXER_L}
+)
+
+ADD_EXECUTABLE(test_parser ${ALL_SOURCES} ${LEXER_CC})
 
