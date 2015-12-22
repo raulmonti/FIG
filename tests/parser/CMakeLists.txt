@@ -129,7 +129,7 @@ SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -lz3" )
 ###  Build executable  ########################################################
 
 SET(LEXER_L  "${SOURCES_DIR}/lexer.l")
-SET(LEXER_CC "./lex.yy.cc")  # generated inside PROJECT_BINARY_DIR
+SET(LEXER_CC "${PROJECT_BINARY_DIR}/lex.yy.cc")
 
 ADD_CUSTOM_COMMAND(
 	OUTPUT ${LEXER_CC}
