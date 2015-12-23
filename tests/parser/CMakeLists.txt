@@ -44,6 +44,12 @@ SET(LIBRARIES_DIR ${PROJECT_SOURCE_DIR}/../../lib)
 SET(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/../../bin)
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/test)
 
+MESSAGE("SOURCES_DIR: ${SOURCES_DIR}")
+MESSAGE("HEADERS_DIR: ${HEADERS_DIR}")
+MESSAGE("LIBRARIES_DIR: ${LIBRARIES_DIR}")
+MESSAGE("PROJECT_BINARY_DIR: ${PROJECT_BINARY_DIR}")
+MESSAGE("EXECUTABLE_OUTPUT_PATH: ${EXECUTABLE_OUTPUT_PATH}")
+
 # Header file with CMake settings for the source code
 CONFIGURE_FILE (
 	"${SOURCES_DIR}/FigConfig.h.in"
@@ -72,7 +78,7 @@ AUX_SOURCE_DIRECTORY(${PROJECT_SOURCE_DIR} TEST_SOURCES)
 SET(ALL_SOURCES ${ALL_SOURCES} ${TEST_SOURCES} CACHE INTERNAL "")
 
 # Remove project's main.cpp, we have ours (http://stackoverflow.com/a/16450083)
-LIST(REMOVE_ITEM ALL_SOURCES ${SOURCES_DIR}/main.cpp)
+#LIST(REMOVE_ITEM ALL_SOURCES ${SOURCES_DIR}/main.cpp)
 
 ## # Libraries
 ## LINK_DIRECTORIES(${LIBRARIES_DIR})
@@ -109,7 +115,7 @@ ENDIF()
 ###  Compile flags  ###########################################################
 
 # Highly defensive compile flags
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 
 # Turn some warnings off
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -129,8 +135,8 @@ SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -lz3" )
 ###  Build executable  ########################################################
 
 SET(LEXER_L  "${SOURCES_DIR}/lexer.l")
-SET(LEXER_CC "./lex.yy.cc")  # generated inside PROJECT_BINARY_DIR
-
+SET(LEXER_CC "${PROJECT_BINARY_DIR}/lex.yy.cc")
+# Generate lexer with flex
 ADD_CUSTOM_COMMAND(
 	OUTPUT ${LEXER_CC}
 	COMMAND flex++ ${LEXER_L}
@@ -138,5 +144,7 @@ ADD_CUSTOM_COMMAND(
 	DEPENDS ${LEXER_L}
 )
 
-ADD_EXECUTABLE(test_parser ${ALL_SOURCES} ${LEXER_CC})
+ADD_EXECUTABLE(test_parser ${LEXER_CC} ${ALL_SOURCES})
+
+TARGET_LINK_LIBRARIES(test_parser z3)
 
