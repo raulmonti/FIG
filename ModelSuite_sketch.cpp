@@ -19,17 +19,18 @@ public:
 	void process_batch(std::list<string> importanceStrategies,
 	                   std::list<string> simulationStrategies)
 	{
-		// For each importance strategy
-		for (auto impStrat: importanceStrategies) {
-			auto impFun = iFuns[impStrat]->assess(model);
-			// For each simulation strategy
-			for (auto simStrat: simulationStrategies) {
-				auto engine = simulators[simStrat];
-				if (!engine.is_compatible_importance(impStrat)
-					continue;
-				// For each property
-				for (auto prop: properties) {
-					if (!engine.is_compatible_property(prop->type))
+		// For each property
+		for (auto prop: properties) {
+			// For each importance strategy (null, auto, ad hoc...)
+			for (auto impStrat: importanceStrategies) {
+				// FIXME: notice impFun assessment requires the Property
+				auto impFun = iFuns[impStrat]->assess(model, prop);
+				set_current_ifun(impFun);  // access by "Event inspect(Traial)"
+				// For each simulation strategy (nosplit, restart...)
+				for (auto simStrat: simulationStrategies) {
+					auto engine = simulators[simStrat];
+					if (!engine.is_compatible_importance(impStrat) ||
+						!engine.is_compatible_property(prop->type))
 						continue;
 					if (goal.is_value())
 						for (auto confCrit: goal.confidence_criteria())
@@ -37,10 +38,9 @@ public:
 					else
 						for (auto budget: goal.budgets())
 							estimate_budget(prop, impFun, engine, budget);
-					log_last_estimation();
 				}
+				impFun.release_resources();
 			}
-			impFun.release_resources();
 		}
 	}
 	
@@ -59,7 +59,7 @@ public:
 			else
 				ci.update(estimate.value);
 		} while (!ci.satisfied_criterion());
-		register_estimation(ci, omp_get_wtime() - startTime);
+		log_estimation(ci, omp_get_wtime()-startTime, engine, impFun);
 	}
 	
 	void estimate_budget(const Property&           prop,
@@ -69,7 +69,7 @@ public:
 	{
 		ConfidenceInterval ci;
 		long timeBudget = budget.seconds();
-		auto timeout = [&] () { register_estimation(ci, timeBudget); };
+		auto timeout = [&](){ log_estimation(ci, timeBudget, engine, impFun); };
 		signal(SIGALRM, &timeout);  // #include <csignal>
 		alarm(timeBudget);          // #include <unistd.h>
 		engine.simulate(prop, impFun, ci);
