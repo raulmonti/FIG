@@ -307,7 +307,7 @@ public:  // Utils
 	 */
 	const Label& jump(const std::string& clockName,
 					  const CLOCK_INTERNAL_TYPE& elapsedTime,
-					  Traial& traial);
+					  Traial& traial) const;
 
 	/**
 	 * @brief Passive module jump following "label" label
@@ -332,15 +332,15 @@ public:  // Utils
 	 */
 	void jump(const Label& label,
 			  const CLOCK_INTERNAL_TYPE& elapsedTime,
-			  Traial& traial);
+			  Traial& traial) const;
 private:
 
 	/// Does the clock reside in this ModuleInstance?
-	bool is_our_clock(const std::string& clockName);
+	bool is_our_clock(const std::string& clockName) const;
 
 	/// Build mapping of our clock names to their global positions
 	/// @warning mark_added() must have been called beforehand
-	PositionsMap map_our_clocks();
+	PositionsMap map_our_clocks() const;
 
 //protected:  // Callback utilities offered to the ModuleNetwork
 public:  // Public only for testing

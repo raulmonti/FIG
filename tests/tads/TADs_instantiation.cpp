@@ -705,9 +705,9 @@ test_module_instance()
 	assert(!module2.sealed());
 
 	auto t_ptr = fig::TraialPool::get_instance().get_traial();
-	module1.jump(OLabel("r"), 1.0, *t_ptr);
+	module1.jump(OLabel("b"), 1.0, *t_ptr);
 	try {
-		module2.jump(OLabel("r"), 1.0, *t_ptr);  // module2 wasn't sealed
+		module2.jump(OLabel("badlabel"), 1.0, *t_ptr);  // module2 wasn't sealed
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (fig::FigException) { /* this was expected */ }
@@ -828,5 +828,5 @@ test_module_network()
 	std::unique_ptr<Traial> t(new Traial(model.state_size(), model.num_clocks()));
 	t->initialize();
 	/// @todo TODO complete this test
-	std::cerr << "\nTest ModuleNetwork dynamics" << std::endl;
+	std::cerr << "\nTODO: test ModuleNetwork dynamics" << std::endl;
 }

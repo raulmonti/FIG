@@ -51,6 +51,9 @@ namespace fig
 {
 
 Traial::Traial(const size_t& stateSize, const size_t& numClocks) :
+	importance(0),
+	creationImportance(0),
+	lifeTime(0.0),
 	state(stateSize),
 	orderedIndex_(numClocks)
 {
@@ -66,6 +69,9 @@ Traial::Traial(const size_t& stateSize,
 			   const size_t& numClocks,
 			   Bitflag whichClocks,
 			   bool orderTimeouts) :
+	importance(0),
+	creationImportance(0),
+	lifeTime(0.0),
 	state(stateSize),
 	orderedIndex_(numClocks)
 {
@@ -94,6 +100,9 @@ Traial::Traial(const size_t& stateSize,
 			   const size_t& numClocks,
 			   const Container <ValueType, OtherContainerArgs...>& whichClocks,
 			   bool orderTimeouts) :
+	importance(0),
+	creationImportance(0),
+	lifeTime(0.0),
 	state(stateSize),
 	orderedIndex_(numClocks)
 {
@@ -146,6 +155,11 @@ Traial::initialize()
 	net.gState.copy_to_state_instance(state);
 	for (const auto& pos_clk_pair: net.initialClocks)
 		clocks_[pos_clk_pair.first].value = pos_clk_pair.second.sample();
+
+	/// @todo TODO determine importance with current importanceFunction
+
+	creationImportance = importance;
+	lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
 }
 
 

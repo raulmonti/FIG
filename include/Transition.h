@@ -372,7 +372,7 @@ Transition::handle_clocks(Traial& traial,
 			assert(pos < 8*sizeof(Bitflag));  // check for overflow
 			return resetClocks_ & ((static_cast<Bitflag>(1)) << pos);
 		};
-	static_assert(std::is_same< Clock*, ValueType >::value,
+	static_assert(std::is_convertible< Clock*, ValueType >::value,
 				  "ERROR: type missmatch. handle_clocks() takes iterators "
 				  "pointing to Clock objects");
 	// Make sure callback() has been called already

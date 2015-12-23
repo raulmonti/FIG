@@ -102,15 +102,16 @@ ModuleInstance::add_transition(Transition&& transition)
 const Label&
 ModuleInstance::jump(const std::string& clockName,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,
-					 Traial& traial)
+					 Traial& traial) const
 {
 	if (!sealed_)
 #ifndef NDEBUG
 		throw FigException("this module hasn't been sealed yet");
 #else
-		return
+		return;
 #endif
-	auto transitions = transitions_by_clock_[clockName];
+	assert(is_our_clock(clockName));
+	auto transitions = transitions_by_clock_.at(clockName);
 	for (auto& tr_ptr: transitions) {
 		if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
 			tr_ptr->pos(traial.state);   // apply postcondition to its state
@@ -132,18 +133,21 @@ ModuleInstance::jump(const std::string& clockName,
 void
 ModuleInstance::jump(const Label& label,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,
-					 Traial& traial)
+					 Traial& traial) const
 {
 	if (!sealed_)
 #ifndef NDEBUG
 		throw FigException("this module hasn't been sealed yet");
 #else
-		return
+		return;
 #endif
 	assert(label.is_output());
 	if (label.is_tau())
 		return;
-	auto transitions = transitions_by_label_[label.str];
+#ifndef NDEBUG
+	try {
+#endif
+	auto transitions = transitions_by_label_.at(label.str);
 	for (auto& tr_ptr: transitions) {
 		if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
 			tr_ptr->pos(traial.state);   // apply postcondition to its state
@@ -156,11 +160,18 @@ ModuleInstance::jump(const Label& label,
 			break;  // Only one transition could've been enabled, we trust Raúl
 		}
 	}
+#ifndef NDEBUG
+	} catch (std::out_of_range) {
+		throw FigException(std::string("output label \"").append(label.str)
+						   .append("\" wasn't found among the transitions ")
+						   .append("of module \"").append(name).append("\""));
+	}
+#endif
 }
 
 
 bool
-ModuleInstance::is_our_clock(const std::string& clockName)
+ModuleInstance::is_our_clock(const std::string& clockName) const
 {
 	if (clockName.empty())
 		return true;
@@ -173,7 +184,7 @@ ModuleInstance::is_our_clock(const std::string& clockName)
 
 
 PositionsMap
-ModuleInstance::map_our_clocks()
+ModuleInstance::map_our_clocks() const
 {
 	PositionsMap localClocks;
 	if (0 > firstClock_)
