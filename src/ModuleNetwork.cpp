@@ -39,6 +39,7 @@
 // FIG
 #include <ModuleNetwork.h>
 #include <TraialPool.h>
+#include <SimulationEngine.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -159,33 +160,23 @@ template void ModuleNetwork::seal(const std::unordered_set<std::string>&);
 
 
 void
-ModuleNetwork::simulation_step(Traial& traial, Event stopCondition)
+ModuleNetwork::simulation_step(Traial& traial,
+                               SimulationEngine* const engine) const
 {
+    // Jump...
 	do {
 		auto timeout = traial.next_timeout();
 		// Active jump in the module whose clock timed-out
 		auto label = timeout.module->jump(timeout.name, timeout.value, traial);
 		if (label.is_tau())
-			goto end_of_jump;  // nobody reacts to taus
+            continue;
 		for (auto module: modules)
-			// Passive jumps in the modules listening to label
 			if (module->name != timeout.module->name)
-				module->jump(label, timeout.value, traial);
-		end_of_jump:; // NOP
-	} while ( false /* inspect(traial) == stopCondition */ );
-
-	/// @todo TODO define "Event inspect(const Traial&)"
-	///
-	///       It should use the current ImportanceFunction to assess
-	///       the importance of the current Traial.state.
-	///
-	///       It may also need info like the THRESHOLDS_DOWN_TOLERANCE
-	///       or the maximum simulation time, which we will store in the
-	///       SimulationEngine currently used, or something like that.
-	///
-	///       Maybe the "inspect()" routine should belong to the ModelSuite
-	///       singleton instance, which has direct access to all these info.
-	///       Will that mess the class hierarchy system?
+                // Passive jumps in the modules listening to label
+                module->jump(label, timeout.value, traial);
+    } while ( !engine->eventTriggered(traial) );
+    // ...until a relevant event is triggered
 }
+
 
 } // namespace fig

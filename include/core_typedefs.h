@@ -148,6 +148,7 @@ typedef short                                                          Event;
 /// Simulation event types
 ///
 enum EventType {
+    EV_NONE       = 0,
 	EV_REFERENCE  = 1<< 0,
 	EV_STOP       = 1<< 1,
 	EV_RARE       = 1<< 2,

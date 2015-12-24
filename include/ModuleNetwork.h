@@ -34,6 +34,7 @@
 #include <mutex>  // std::call_once(), std::once_flag
 #include <vector>
 #include <memory>     // std::unique_ptr<>
+#include <functional>
 #include <unordered_map>
 // FIG
 #include <core_typedefs.h>
@@ -48,6 +49,7 @@
 namespace fig
 {
 
+class SimulationEngine;
 
 /**
  * @brief Network of \ref ModuleInstance "module instances" synchronized
@@ -200,14 +202,14 @@ public:  // Utils
 	 *
 	 *        Starting from the state stored in traial, this routine
 	 *        performs synchronized jumps in the \ref ModuleInstance
-	 *        "modules composing the system", until the stopCondition
-	 *        Event is observed. All relevant information of the
-	 *        simulation run is kept inside the given Traial.
+	 *        "modules composing the system", until some event relevant
+	 *        for the current simulation strategy is triggered.
+	 *        Information regarding the simulation run is kept in traial.
 	 *
-	 * @param traial         Traial instance keeping track of the simulation
-	 * @param stopCondition  Event marking the end of the simulation step
+	 * @param traial Traial instance keeping track of the simulation
+	 * @param engine Semantics of the current simulation strategy
 	 */
-	void simulation_step(Traial& traial, Event stopCondition);
+	void simulation_step(Traial& traial, SimulationEngine* const engine) const;
 };
 
 } // namespace fig
