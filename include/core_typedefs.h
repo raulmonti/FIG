@@ -138,6 +138,25 @@ typedef short                                                ImportanceValue;
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //
 //
+// Properties
+//
+
+/// Supported logical property types
+///
+enum PropertyType
+{
+    TRANSIENT = 0,    // P( !stop U goal       )
+    THROUGHPUT,       // S( label / total_time )
+    AVAILABILITY,     // S(  prop / total_time )
+    PROPORTION,       // S(  prop / reference  )
+    BOUNDED,          // P( F[<=time] goal     )
+    NUM_PROPERTIES
+};
+
+//
+//
+// // // // // // // // // // // // // // // // // // // // // // // // // //
+//
 // Simulation
 //
 
@@ -147,26 +166,27 @@ typedef short                                                          Event;
 
 /// Simulation event types
 ///
-enum EventType {
-    EV_NONE       = 0,
-	EV_REFERENCE  = 1<< 0,
-	EV_STOP       = 1<< 1,
-	EV_RARE       = 1<< 2,
-	EV_THR_UP     = 1<< 3,
-	EV_THR_DOWN   = 1<< 4
+enum EventType
+{
+    NONE       = 0,
+    REFERENCE  = 1<< 0,
+    STOP       = 1<< 1,
+    RARE       = 1<< 2,
+    THR_UP     = 1<< 3,
+    THR_DOWN   = 1<< 4
 };
 
-inline bool IS_REFERENCE_EVENT(const Event& e) { return e & EV_REFERENCE; }
-inline bool IS_STOP_EVENT     (const Event& e) { return e & EV_STOP;      }
-inline bool IS_RARE_EVENT     (const Event& e) { return e & EV_RARE;      }
-inline bool IS_THR_UP_EVENT   (const Event& e) { return e & EV_THR_UP;    }
-inline bool IS_THR_DOWN_EVENT (const Event& e) { return e & EV_THR_DOWN;  }
+inline bool IS_REFERENCE_EVENT(const Event& e) { return e & EventType::REFERENCE; }
+inline bool IS_STOP_EVENT     (const Event& e) { return e & EventType::STOP;      }
+inline bool IS_RARE_EVENT     (const Event& e) { return e & EventType::RARE;      }
+inline bool IS_THR_UP_EVENT   (const Event& e) { return e & EventType::THR_UP;    }
+inline bool IS_THR_DOWN_EVENT (const Event& e) { return e & EventType::THR_DOWN;  }
 
-inline void SET_REFERENCE_EVENT(Event& e) { e |= EV_REFERENCE; }
-inline void SET_STOP_EVENT     (Event& e) { e |= EV_STOP;      }
-inline void SET_RARE_EVENT     (Event& e) { e |= EV_RARE;      }
-inline void SET_THR_UP_EVENT   (Event& e) { e |= EV_THR_UP;    }
-inline void SET_THR_DOWN_EVENT (Event& e) { e |= EV_THR_DOWN;  }
+inline void SET_REFERENCE_EVENT(Event& e) { e |= EventType::REFERENCE; }
+inline void SET_STOP_EVENT     (Event& e) { e |= EventType::STOP;      }
+inline void SET_RARE_EVENT     (Event& e) { e |= EventType::RARE;      }
+inline void SET_THR_UP_EVENT   (Event& e) { e |= EventType::THR_UP;    }
+inline void SET_THR_DOWN_EVENT (Event& e) { e |= EventType::THR_DOWN;  }
 
 //
 //

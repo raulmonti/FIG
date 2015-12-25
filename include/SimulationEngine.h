@@ -32,14 +32,13 @@
 
 #include <core_typedefs.h>
 #include <ImportanceFunction.h>
+#include <Property.h>
 #include <Traial.h>
 
 
 namespace fig
 {
 
-/// @todo TODO define Property class and erase this dummy
-class Property;
 /// @todo TODO define ConfidenceInterval class and erase this dummy
 class ConfidenceInterval;
 /// @todo TODO define StoppingCondition class and erase this dummy
