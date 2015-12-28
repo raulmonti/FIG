@@ -61,6 +61,22 @@ public:  // Attributes
     // Which type of property is it
     const PropertyType type;
 
+public:  // Ctors
+
+    Property(const std::string& theexpression, PropertyType thetype) :
+        expression(theexpression),
+        type(thetype)
+        {}
+    Property(const Property& that) = default;
+    Property(Property&& that)      = default;
+
+    /// Can't have empty ctor due to const data members
+    Property()                                = delete;
+    /// Can't have copy assignment due to const data members
+    Property& operator=(const Property& that) = delete;
+    /// Can't have move assignment due to const data members
+    Property& operator=(Property&& that)      = delete;
+
 public:  // Utils
 
     /// Is the property satisfied by the given valuation of the variables?

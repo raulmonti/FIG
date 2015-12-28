@@ -145,12 +145,20 @@ typedef short                                                ImportanceValue;
 ///
 enum PropertyType
 {
-    TRANSIENT = 0,    // P( !stop U goal       )
-    THROUGHPUT,       // S( label / total_time )
-    AVAILABILITY,     // S(  prop / total_time )
-    PROPORTION,       // S(  prop / reference  )
-    BOUNDED,          // P( F[<=time] goal     )
-    NUM_PROPERTIES
+	/// P( !stop U goal )
+	TRANSIENT = 0,
+
+	/// S( label / total_time )
+	THROUGHPUT,
+
+	/// S( rare_event / total_time )
+	AVAILABILITY,
+
+	/// S( rare_event / reference )
+	PROPORTION,
+
+	/// P( F[<=time] goal )  @todo TODO redefine this name
+	BOUNDED_REACHABILITY
 };
 
 //

@@ -50,7 +50,63 @@ class PropertyTransient : public Property
 {
     MathExpression stop;
     MathExpression goal;
+
+public:  // Ctors
+
+    template< template< typename, typename... > class Container,
+              typename ValueType,
+              typename... OtherContainerArgs >
+    PropertyTransient(const std::string& stopExpr,
+                      const Container<ValueType, OtherContainerArgs...>& stopExprVars,
+                      const std::string& goalExpr,
+                      const Container<ValueType, OtherContainerArgs...>& goalExprVars);
+
+    template< template< typename, typename... > class Iterator,
+              typename ValueType,
+              typename... OtherIteratorArgs >
+    PropertyTransient(const std::string& stopExpr,
+                      Iterator<ValueType, OtherIteratorArgs...> stopExprVarsFrom,
+                      Iterator<ValueType, OtherIteratorArgs...> stopExprVarsTo,
+                      const std::string& goalExpr,
+                      Iterator<ValueType, OtherIteratorArgs...> goalExprVarsFrom,
+                      Iterator<ValueType, OtherIteratorArgs...> goalExprVarsTo);
+
+    /// Can't have empty ctor due to const data members
+    PropertyTransient()                                         = delete;
+    /// Can't have copy assignment due to const data members
+    PropertyTransient& operator=(const PropertyTransient& that) = delete;
+    /// Can't have move assignment due to const data members
+    PropertyTransient& operator=(PropertyTransient&& that)      = delete;
+
+public:  // Utils
+
+     virtual bool satisfied_by(const StateInstance &s) const;
 };
+
+// // // // // // // // // // // // // // // // // // // // // // // // // // //
+
+// Template definitions
+
+// If curious about its presence here take a look at the end of VariableSet.cpp
+
+template< template< typename, typename... > class Iterator,
+          typename ValueType,
+          typename... OtherIteratorArgs >
+PropertyTransient::PropertyTransient(
+    const std::string& stopExpr,
+    Iterator<ValueType, OtherIteratorArgs...> stopExprVarsFrom,
+    Iterator<ValueType, OtherIteratorArgs...> stopExprVarsTo,
+    const std::string& goalExpr,
+    Iterator<ValueType, OtherIteratorArgs...> goalExprVarsFrom,
+    Iterator<ValueType, OtherIteratorArgs...> goalExprVarsTo) :
+        Property(std::string("P( !(").append(stopExpr).append(") U ("
+                                     .append(goalExpr).append(") )")),
+                 PropertyType::TRANSIENT),
+        stop(stopExpr, stopExprVarsFrom, stopExprVarsTo),
+        goal(goalExpr, goalExprVarsFrom, goalExprVarsTo)
+{
+
+}
 
 } // namespace fig
 

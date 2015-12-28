@@ -30,6 +30,9 @@
 #ifndef SIMULATIONENGINE_H
 #define SIMULATIONENGINE_H
 
+// C++
+#include <memory>
+// FIG
 #include <core_typedefs.h>
 #include <ImportanceFunction.h>
 #include <Property.h>
@@ -56,31 +59,57 @@ class SimulationEngine
 protected:
 
     /// Importance function currently built
-    ImportanceFunction* const currentIfun;
+    std::shared_ptr< const ImportanceFunction > impFun;
+
+    /// Property whose value is trying to be estimated
+    std::shared_ptr< const Property > property;
 
 public:
 
     /**
-     * @brief Simulate in model for given property making a specified effort
-     * @param prop   Property whose value is trying to be estimated
-     * @param ifun   Currently built importance function
-     * @param effort Number of runs or simulation time for which
-     *               this simulation will be run
-     * @return Estimated value for the property at the end of this simulation
+     * @brief Register the property and importance function
+     *        which will be used in the following simulations
+     * @param prop Property whose value is to be estimated
+     * @param ifun Importance function which will be used to that effect
+     * @throw FigException if either the Property or the ImportanceFunction
+     *                     are incompatible with this SimulationEngine
+     * @see cleanup()
      */
-    virtual double simulate(const Property& prop,
-                            const ImportanceFunction& ifun,
-                            const StoppingCondition& effort) const = 0;
+    virtual void setup(const Property& prop,
+                       const ImportanceFunction& ifun);
+
+    /// Deregister the last Property and ImportanceFunction which were setup
+    /// @see setup()
+    void cleanup() noexcept;
 
     /**
-     * @brief Simulate in model for given property until interrupted
-     * @param prop Property whose value is trying to be estimated
-     * @param ifun Currently built importance function
-     * @param ci   ConfidenceInterval regularly updated with estimation info
+     * @brief Simulate in model until the specified 'effort' is made
+     *
+     *        The property whose value is being estimated as well as the
+     *        importance function used are taken from the last call to setup()
+     *
+     * @param effort Number of runs or simulation time for which
+     *               this simulation will be run
+     *
+     * @return Estimated value for the property at the end of this simulation
+     *
+     * @throw FigException if setup() hasn't been called, yet or after the
+     *                     last invokation to cleanup()
      */
-    virtual void simulate(const Property& prop,
-                          const ImportanceFunction& ifun,
-                          ConfidenceInterval& ci) const = 0;
+    virtual double simulate(const StoppingCondition& effort) const = 0;
+
+    /**
+     * @brief Simulate in model until externally interrupted
+     *
+     *        The property whose value is being estimated as well as the
+     *        importance function used are taken from the last call to setup()
+     *
+     * @param ci ConfidenceInterval regularly updated with estimation info
+     *
+     * @throw FigException if setup() hasn't been called, yet or after the
+     *                     last invokation to cleanup()
+     */
+    virtual void simulate(ConfidenceInterval& ci) const = 0;
 
     /**
      * @brief Were the last events triggered by the given Traial
@@ -89,14 +118,12 @@ public:
      */
     virtual bool eventTriggered(const Traial& traial) const = 0;
 
-    /// @todo TODO define "Event inspect(const Traial&)"
+    /// @todo TODO define "eventTriggered(const Traial&)"
     ///
     ///       It should use the current ImportanceFunction to assess
     ///       the importance of the current Traial.state.
-    ///
     ///       It may also need info like the THRESHOLDS_DOWN_TOLERANCE
-    ///       or the maximum simulation time, which we will store in the
-    ///       SimulationEngine currently used, or something like that.
+    ///       or the maximum simulation time
 };
 
 } // namespace fig

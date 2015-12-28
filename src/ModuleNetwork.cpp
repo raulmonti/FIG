@@ -169,11 +169,11 @@ ModuleNetwork::simulation_step(Traial& traial,
 		// Active jump in the module whose clock timed-out
 		auto label = timeout.module->jump(timeout.name, timeout.value, traial);
 		if (label.is_tau())
-            continue;
-		for (auto module: modules)
-			if (module->name != timeout.module->name)
-                // Passive jumps in the modules listening to label
-                module->jump(label, timeout.value, traial);
+			continue;
+		// Passive jumps in the modules listening to label
+		for (auto module_ptr: modules)
+			if (module_ptr->name != timeout.module->name)
+				module_ptr->jump(label, timeout.value, traial);
     } while ( !engine->eventTriggered(traial) );
     // ...until a relevant event is triggered
 }

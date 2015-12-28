@@ -34,10 +34,21 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <type_traits>  // std::is_constructible<>
 #include <unordered_map>
 // FIG
 #include <ModuleNetwork.h>
+#include <Property.h>
 #include <ImportanceFunction.h>
+#include <SimulationEngine.h>
+
+#if __cplusplus < 201103L
+#  error "C++11 standard required, please compile with -std=c++11\n"
+#endif
+
+// ADL
+using std::begin;
+using std::end;
 
 
 namespace fig
@@ -48,17 +59,21 @@ class ModelSuite
 	/// User's system model
 	static ModuleNetwork model;
 	
-//	/// Properties to estimate
-//	static std::vector<Property> properties;
+	/// Properties to estimate
+	static std::vector<Property&> properties;
 	
 //	/// Confidence criteria or time budgets bounding simulations
 //	static StoppingCondition goal;
 	
 	/// Importance functions available
-	static std::unordered_map< std::string, ImportanceFunction* > iFuns;
+	static std::unordered_map<
+		std::string,
+		std::shared_ptr< ImportanceFunction > > impFuns;
 	
-//	/// Simulation engines available
-//	static std::unordered_map< std::string, SimulationEngine& >   simulators;
+	/// Simulation engines available
+	static std::unordered_map<
+		std::string,
+		SimulationEngine& > simulators;
 
 	/// Single existent instance of the class (singleton design pattern)
 	static std::unique_ptr< ModelSuite > instance_;
@@ -93,28 +108,87 @@ public:  // Stubs for ModuleNetwork
 
 	/// @todo TODO copy all relevant public functions from ModuleNetwork
 
+public:  // Simulation utils
+
+	template<
+		template< typename, typename... > class Container1,
+			typename ValueType1,
+			typename... OtherArgs1,
+		template< typename, typename... > class Container2,
+			typename ValueType2,
+			typename... OtherArgs2
+	>
+	void process_batch(const Container1<ValueType1, OtherArgs2...>& importanceStrategies,
+					   const Container2<ValueType2, OtherArgs2...>& simulationStrategies);
+
 public:  // Current simulation configuration
 
-	/**
-	 * @brief Register importance function to use in the following estimations
-	 * @details Grants access to importance info needed by some classes
-	 *          during simulations.
-	 * @param ifun Currently built importance function (null, auto, ad hoc...)
-	 * @see ModuleNetwork::inspect()
-	 */
-	void set_current_ifun(const ImportanceFunction& ifun);
-
+//
+//	Are these needed?
+//
+//	/**
+//	 * @brief Register importance function to use in the following estimations
+//	 * @details Grants access to importance info needed by some classes
+//	 *          during simulations.
+//	 * @param ifun Currently built importance function (null, auto, ad hoc...)
+//	 * @see ModuleNetwork::inspect()
+//	 */
+//	void set_current_ifun(const ImportanceFunction& ifun);
+//
 //	/**
 //	 * @brief Register simulation engine to use in the following estimations
 //	 * @param engine Simulation engine (nosplit, restart...)
 //	 * @note  This grants access to information for those classes
 //	 *        which need it during simulations
-//	 *
-//	 * Is this needed?
-//	 *
 //	 */
 //	void set_current_engine(const SimulationEngine& engine);
 };
+
+// // // // // // // // // // // // // // // // // // // // // // // // // // //
+
+// Template definitions
+
+// If curious about its presence here take a look at the end of VariableSet.cpp
+
+template<
+	template< typename, typename... > class Container1,
+		typename ValueType1,
+		typename... OtherArgs1,
+	template< typename, typename... > class Container2,
+		typename ValueType2,
+		typename... OtherArgs2
+>
+void
+ModelSuite::process_batch(
+	const Container1<ValueType1, OtherArgs1...>& importanceStrategies,
+	const Container2<ValueType2, OtherArgs2...>& simulationStrategies)
+{
+	static_assert(std::is_constructible< std::string, ValueType1 >::value,
+				  "ERROR: type missmatch. ModelSuite::process_batch() takes "
+				  "two containers with strings, the first describing the "
+				  "importance strategies to use during simulations.");
+	static_assert(std::is_constructible< std::string, ValueType2 >::value,
+				  "ERROR: type missmatch. ModelSuite::process_batch() takes "
+				  "two containers with strings, the second describing the "
+				  "simulation strategies to use during simulations.");
+	// For each property
+	for (const Property& prop: properties) {
+		// For each importance strategy (null, auto, ad hoc...)
+		for (const std::string impStrat: importanceStrategies) {
+			auto impFun = impFuns[impStrat]->assess_importance(model, prop);
+			assert(impFun.ready());
+			// For each simulation strategy (no split, restart...)
+			for (const std::string simStrat: simulationStrategies) {
+				SimulationEngine& engine = simulators[simStrat];
+				engine.setup(prop, impFun);  // Throws if incompatible
+
+			/// @todo TODO complete with pseudocode from ModelSuite_sketch.cpp
+			///            located in the base dir of the git repo
+
+			}
+		}
+	}
+}
 
 } // namespace fig
 

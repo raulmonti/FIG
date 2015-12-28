@@ -85,14 +85,14 @@ class ModuleInstance : public Module
 	std::vector< Clock > lClocks_;
 
 	/// Transitions semi-ordered by their triggering \ref Clock "clock"
-	std::unordered_map< std::string,
-						std::vector< std::shared_ptr< Transition > > >
-		transitions_by_clock_;
+	std::unordered_map<
+		std::string,
+		std::vector< std::shared_ptr< Transition > > > transitions_by_clock_;
 
 	/// Transitions semi-ordered by their synchronization \ref Label "label"
-	std::unordered_map< std::string,
-						std::vector< std::shared_ptr< Transition > > >
-		transitions_by_label_;
+	std::unordered_map<
+		std::string,
+		std::vector< std::shared_ptr< Transition > > > transitions_by_label_;
 
 public:
 
