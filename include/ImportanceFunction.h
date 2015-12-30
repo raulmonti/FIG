@@ -54,6 +54,7 @@ class Property;
  */
 class ImportanceFunction
 {
+	/// Can this instance be used for simulations?
 	bool readyForSimulations;
 
 public:
@@ -61,7 +62,7 @@ public:
 	ImportanceFunction() : readyForSimulations(false) {}
 
 	/**
-	 * @brief Can this instance be used for simulations?
+	 * @copydoc readyForSimulations
 	 *
 	 *        This starts out false and becomes true after a successfull call
 	 *        to one of the importance assessment functions.
@@ -82,6 +83,9 @@ public:
 	 * @return Reference to an instance of a base class of the
 	 *         ImportanceFunction family class,
 	 *         which can be used during simulations
+	 *
+	 * @note After a successfull invocation the ImportanceFunction
+	 *       is ready() to be used during simulations
 	 */
 	virtual ImportanceFunction&
 	assess_importance(ModuleInstance* mod, Property* const prop) = 0;
@@ -97,11 +101,15 @@ public:
 	 * @return Reference to an instance of a base class of the
 	 *         ImportanceFunction family class,
 	 *         which can be used during simulations
+	 *
+	 * @note After a successfull invocation the ImportanceFunction
+	 *       is ready() to be used during simulations
 	 */
 	virtual ImportanceFunction&
 	assess_importance(ModuleNetwork* net, Property* const prop) = 0;
 
 	/// Release any memory allocated in the heap
+	/// @note After this invocation the ImportanceFunction is no longer ready()
 	virtual void clear() = 0;
 };
 

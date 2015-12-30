@@ -152,12 +152,12 @@ enum PropertyType
 	THROUGHPUT,
 
 	/// S( rare_event / total_time )
-	AVAILABILITY,
+	RATE,
 
 	/// S( rare_event / reference )
-	PROPORTION,
+	PROPORTION,  // or RATIO?
 
-	/// P( F[<=time] goal )  @todo TODO redefine this name
+	/// P( F[<=time] goal )
 	BOUNDED_REACHABILITY
 };
 

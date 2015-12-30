@@ -45,7 +45,7 @@ namespace fig
 /// @todo TODO define ConfidenceInterval class and erase this dummy
 class ConfidenceInterval;
 /// @todo TODO define StoppingCondition class and erase this dummy
-class StoppingCondition;
+class StoppingConditions;
 
 /**
  * @brief Abstract base simulation engine
@@ -58,29 +58,52 @@ class SimulationEngine
 {
 protected:
 
-    /// Importance function currently built
-    std::shared_ptr< const ImportanceFunction > impFun;
-
     /// Property whose value is trying to be estimated
-    std::shared_ptr< const Property > property;
+    Property* const property;
 
-public:
+    /// Importance function currently built
+    ImportanceFunction* const impFun;
+
+public:  // Ctors/Dtor
+
+    /// No data ctor, only empty ctor provided
+    SimulationEngine() : impFun(nullptr), property(nullptr) {}
+    /// Default copy ctor
+    SimulationEngine(const SimulationEngine& that) = default;
+    /// Default move ctor
+    SimulationEngine(SimulationEngine&& that) = default;
+    /// Copy assignment with copy&swap
+    SimulationEngine& operator=(SimulationEngine that)
+        { std::swap(property, that.property); std::swap(impFun, that.impFun); }
+    /// Virtual dtor
+    virtual ~SimulationEngine() { unload(); }
+
+public:  // Engine setup
+
+	/// @brief Is this engine ready for simulations?
+	/// @details True after a successfull call to load().
+	///          False again after a call to unload().
+	inline bool loaded() const noexcept
+		{ return property != nullptr && impFun != nullptr; }
 
     /**
      * @brief Register the property and importance function
      *        which will be used in the following simulations
-     * @param prop Property whose value is to be estimated
-     * @param ifun Importance function which will be used to that effect
+     * @param prop  Property whose value is to be estimated
+     * @param ifun  Importance function which will be used to that effect
      * @throw FigException if either the Property or the ImportanceFunction
      *                     are incompatible with this SimulationEngine
-     * @see cleanup()
+     * @see unload()
      */
-    virtual void setup(const Property& prop,
-                       const ImportanceFunction& ifun);
+    virtual void load(const Property& prop, const ImportanceFunction& ifun)
+        { property = &prop; impFun = &ifun; }
 
     /// Deregister the last Property and ImportanceFunction which were setup
-    /// @see setup()
-    void cleanup() noexcept;
+    /// @see load()
+    inline void unload() noexcept
+        { property = nullptr; impFun = nullptr; }
+
+public:  // Simulation utils
 
     /**
      * @brief Simulate in model until the specified 'effort' is made
@@ -93,10 +116,9 @@ public:
      *
      * @return Estimated value for the property at the end of this simulation
      *
-     * @throw FigException if setup() hasn't been called, yet or after the
-     *                     last invokation to cleanup()
+     * @throw FigException if the engine wasn't \ref loaded() "ready"
      */
-    virtual double simulate(const StoppingCondition& effort) const = 0;
+    virtual double simulate(const StoppingConditions& effort) const = 0;
 
     /**
      * @brief Simulate in model until externally interrupted
@@ -106,15 +128,14 @@ public:
      *
      * @param ci ConfidenceInterval regularly updated with estimation info
      *
-     * @throw FigException if setup() hasn't been called, yet or after the
-     *                     last invokation to cleanup()
+     * @throw FigException if the engine wasn't \ref loaded() "ready"
      */
     virtual void simulate(ConfidenceInterval& ci) const = 0;
 
     /**
      * @brief Were the last events triggered by the given Traial
      *        relevant for this simulation engine?
-     * @param traial Embodiment of a simulation run through the system model
+     * @param traial Embodiment of a simulation running through the system model
      */
     virtual bool eventTriggered(const Traial& traial) const = 0;
 

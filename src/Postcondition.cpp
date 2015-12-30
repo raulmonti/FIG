@@ -117,7 +117,7 @@ Postcondition::~Postcondition()
 
 
 void
-Postcondition::fake_evaluation()
+Postcondition::fake_evaluation() const
 {
 	STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
 	try {
@@ -191,7 +191,7 @@ Postcondition::pin_up_vars(
 
 
 void
-Postcondition::operator()(StateInstance& state)
+Postcondition::operator()(StateInstance& state) const
 {
 #ifndef NDEBUG
 	if (!pinned())

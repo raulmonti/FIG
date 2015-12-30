@@ -54,6 +54,12 @@ using std::end;
 namespace fig
 {
 
+/// @todo TODO define ConfidenceInterval class and erase this dummy
+class ConfidenceInterval;
+/// @todo TODO define StoppingCondition class and erase this dummy
+class StoppingConditions;
+
+
 class ModelSuite
 {
 	/// User's system model
@@ -62,8 +68,8 @@ class ModelSuite
 	/// Properties to estimate
 	static std::vector<Property&> properties;
 	
-//	/// Confidence criteria or time budgets bounding simulations
-//	static StoppingCondition goal;
+	/// Confidence criteria or time budgets bounding simulations
+	static StoppingConditions simulationBounds;
 	
 	/// Importance functions available
 	static std::unordered_map<
@@ -110,6 +116,19 @@ public:  // Stubs for ModuleNetwork
 
 public:  // Simulation utils
 
+	/**
+	 * @brief Estimate the value of the \ref Property "stored properties"
+	 *        with all combinations of importance and simulation strategies.
+	 *
+	 *        Consider one Property at a time and, for each simulation strategy,
+	 *        importance function and stopping condition requested, estimate
+	 *        its value and log the results.
+	 *
+	 * @param importanceStrategies Names of the importance functions  to test
+	 * @param simulationStrategies Names of the simulation strategies to test
+	 *
+	 * @see process_interactive()
+	 */
 	template<
 		template< typename, typename... > class Container1,
 			typename ValueType1,
@@ -121,27 +140,23 @@ public:  // Simulation utils
 	void process_batch(const Container1<ValueType1, OtherArgs2...>& importanceStrategies,
 					   const Container2<ValueType2, OtherArgs2...>& simulationStrategies);
 
-public:  // Current simulation configuration
+	/// @todo TODO design and implement
+	void process_interactive();
 
-//
-//	Are these needed?
-//
-//	/**
-//	 * @brief Register importance function to use in the following estimations
-//	 * @details Grants access to importance info needed by some classes
-//	 *          during simulations.
-//	 * @param ifun Currently built importance function (null, auto, ad hoc...)
-//	 * @see ModuleNetwork::inspect()
-//	 */
-//	void set_current_ifun(const ImportanceFunction& ifun);
-//
-//	/**
-//	 * @brief Register simulation engine to use in the following estimations
-//	 * @param engine Simulation engine (nosplit, restart...)
-//	 * @note  This grants access to information for those classes
-//	 *        which need it during simulations
-//	 */
-//	void set_current_engine(const SimulationEngine& engine);
+	/**
+	 * @brief Estimate the value of a property using a specific combination of
+	 *        importance function and simulation strategy
+	 *
+	 *        Estimations are performed for all the \ref StoppingConditions
+	 *        "simulation bounds" requested for experimentation
+	 *
+	 * @param engine SimulationEngine already loaded with a Property and an ImportanceFunction
+	 * @param bounds List of stopping conditions to experiment with
+	 *
+	 * @throw FigException if engine wasn't \ref SimulationEngine::loaded()
+	 *                     "ready" for simulations
+	 */
+	void estimate(const SimulationEngine& engine, const StoppingConditions& bounds);
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -171,20 +186,26 @@ ModelSuite::process_batch(
 				  "ERROR: type missmatch. ModelSuite::process_batch() takes "
 				  "two containers with strings, the second describing the "
 				  "simulation strategies to use during simulations.");
-	// For each property
+	// For each property ...
 	for (const Property& prop: properties) {
-		// For each importance strategy (null, auto, ad hoc...)
+		// ... for each importance strategy (null, auto, ad hoc, etc) ...
 		for (const std::string impStrat: importanceStrategies) {
 			auto impFun = impFuns[impStrat]->assess_importance(model, prop);
 			assert(impFun.ready());
-			// For each simulation strategy (no split, restart...)
+			// ... and each simulation strategy (no split, restart, etc) ...
 			for (const std::string simStrat: simulationStrategies) {
 				SimulationEngine& engine = simulators[simStrat];
-				engine.setup(prop, impFun);  // Throws if incompatible
-
-			/// @todo TODO complete with pseudocode from ModelSuite_sketch.cpp
-			///            located in the base dir of the git repo
-
+				try {
+					engine.setup(prop, impFun);
+				} catch (FigException& e) {
+					continue;
+					/// @todo TODO log the skipping of this combination
+					///       Either the property or the importance function are
+					///       incompatible with the current simulation engine
+				}
+				// ... estimate the property value for every stopping condition
+				estimate(engine, simulationBounds);
+				engine.cleanup();
 			}
 		}
 	}

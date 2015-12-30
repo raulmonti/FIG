@@ -34,6 +34,7 @@
 #include <string>
 // FIG
 #include <core_typedefs.h>
+#include <Precondition.h>
 #include <State.h>
 
 
@@ -44,7 +45,7 @@ namespace fig
  * @brief Abstract base logical property
  *
  *        Properties are what the user wants to study about the system model
- *        he provides. There are different kinds of them but in general they
+ *        provided. There are different kinds of them but in general they
  *        speak about the propability of certain events chain taking place.
  *        FIG estimates these values through efficient simulation.
  *
@@ -52,13 +53,19 @@ namespace fig
  */
 class Property
 {
+    friend class ModelSuite;  // for variables mapping callback
+
+protected:
+
+    /// Nasty hack to avoid code duplication (talk of poor design...)
+    typedef  Precondition  Formula;
 
 public:  // Attributes
 
-    // Property per se in string form
+    /// Property per se in string form
     const std::string expression;
 
-    // Which type of property is it
+    /// Which type of property it is
     const PropertyType type;
 
 public:  // Ctors
@@ -77,9 +84,45 @@ public:  // Ctors
     /// Can't have move assignment due to const data members
     Property& operator=(Property&& that)      = delete;
 
+protected:  // Modifyers
+
+	/**
+	 * @copydoc fig::MathExpression::pin_up_vars(const PositionMap&)
+	 * \ifnot NDEBUG
+	 *   @throw FigException if there was some error in our math expressions
+	 * \endif
+	 */
+	virtual void pin_up_vars(const PositionsMap &globalVars) = 0;
+
+	/**
+	 * @copydoc fig::MathExpression::pin_up_vars()
+	 * \ifnot NDEBUG
+	 *   @throw FigException if there was some error in our math expressions
+	 * \endif
+	 */
+	virtual void pin_up_vars(std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
+												   const std::string&)
+										  > posOfVar,
+							 const fig::State<STATE_INTERNAL_TYPE>& globalState) = 0;
+
 public:  // Utils
 
-    /// Is the property satisfied by the given valuation of the variables?
+    /**
+     * @brief Is the property satisfied by the given variables valuation?
+     *
+     *        This considers the internal subformula from P(phi) or S(psi),
+     *        i.e. whether "phi" or "psi" are satisfied by "s"
+     *
+     * @param s  Valuation of the module/model variables to use
+     *
+     * @note pin_up_vars() should have been called before to register the
+     *       position of the expression's variables in the global State
+     *
+     * @throw mu::ParserError
+     * @ifnot NDEBUG
+     *   @throw FigException if pin_up_vars() hasn't been called yet
+     * @endif
+     */
     virtual bool satisfied_by(const StateInstance& s) const = 0;
 };
 

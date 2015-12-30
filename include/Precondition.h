@@ -50,12 +50,10 @@ class Precondition : public MathExpression
 {
 	friend class Transition;  // for variables mapping callback
 
-	/**
-	 * @brief Perform a fake evaluation to exercise our expression
-	 * @note  Useful to reveal parsing errors in MathExpression
-	 * @throw FigException if badly parsed expression
-	 */
-	void fake_evaluation();
+	/// @brief Perform a fake evaluation to exercise our expression
+	/// @note  Useful to reveal parsing errors in MathExpression
+	/// @throw FigException if badly parsed expression
+	void fake_evaluation() const;
 
 public:  // Ctors
 
@@ -122,7 +120,7 @@ public:  // Accessors
 	 *   @throw FigException if pin_up_vars() hasn't been called yet
 	 * @endif
 	 */
-	bool operator()(const StateInstance& state);
+	bool operator()(const StateInstance& state) const;
 };
 
 } // namespace fig

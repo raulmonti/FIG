@@ -95,6 +95,7 @@ void MathExpression::parse_our_expression()
 		/*
 		 *  TODO: bind all offered functions over variables
 		 *        Notice MuParser already has a few: http://muparser.beltoforion.de/
+		 *        But some are only available for floating point internal types
 		expr.DefineFun("MySqr", MySqr);
 		expr.DefineFun("Uni01", Uni01);
 		...

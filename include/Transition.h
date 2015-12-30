@@ -88,6 +88,7 @@ class Transition
 	std::string triggeringClock_;
 
 protected:
+
 	/// Guard regulating transition applicability
 	Precondition pre;
 
