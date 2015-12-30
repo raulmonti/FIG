@@ -45,9 +45,6 @@
 #include <ModuleInstance.h>
 #include <TraialPool.h>
 
-// TODO erase below
-#include <iostream>
-#include <utility>
 
 namespace fig
 {
@@ -105,16 +102,7 @@ public:  // Ctors/Dtor
 	ModuleNetwork(const ModuleNetwork& that);
 
 	/// Default move ctor
-	ModuleNetwork(ModuleNetwork&& that) :// = default;
-		gState(std::move(that.gState)),
-		initialClocks(std::move(that.initialClocks)),
-		modules(std::move(that.modules)),
-		numClocks_(std::move(that.numClocks_)),
-		lastClockIndex_(std::move(that.lastClockIndex_)),
-		sealed_(std::move(that.sealed_))
-	{
-		std::cerr << "ModuleNetwork move ctor" << std::endl;
-	}
+	ModuleNetwork(ModuleNetwork&& that) = default;
 
 
 	/// Can't copy assign since Transitions can't
@@ -193,6 +181,13 @@ public:  // Utils
 			  typename... OtherContainerArgs >
 	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames);
 
+	/// @brief Get a copy of the initial state of the system
+	/// @warning seal() must have been called beforehand
+	/// \ifnot NDEBUG
+	///   @throw FigException if seal() hasn't been called yet
+	/// \endif
+	std::unique_ptr< StateInstance > initial_state() const;
+
 	/**
 	 * @brief Advance a traial until some stopping criterion is met
 	 *
@@ -204,6 +199,11 @@ public:  // Utils
 	 *
 	 * @param traial Traial instance keeping track of the simulation
 	 * @param engine Semantics of the current simulation strategy
+	 *
+	 * @warning seal() must have been called beforehand
+	 * \ifnot NDEBUG
+	 *   @throw FigException if seal() hasn't been called yet
+	 * \endif
 	 */
 	void simulation_step(Traial& traial, const SimulationEngine* engine) const;
 };

@@ -829,7 +829,7 @@ test_module_network()
 		throw TestException(to_string(__LINE__).append(": previous statement "
 													   "should have thrown"));
 	} catch (fig::FigException) { /* this was expected */ }
-	network.gState.copy_to_state_instance(t->state);                // Manually
+	t->state = *(network.initial_state());                          // Manually
 	t->creationImportance = static_cast<fig::ImportanceValue> (0);  // fake
 	t->importance = t->creationImportance;                          // Traial's
 	t->lifeTime = static_cast<fig::CLOCK_INTERNAL_TYPE> (0.0);      // initialization

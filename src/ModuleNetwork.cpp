@@ -51,9 +51,6 @@ using std::begin;
 using std::end;
 
 
-// TODO erase below
-#include <iostream>
-
 namespace fig
 {
 
@@ -75,8 +72,6 @@ ModuleNetwork::ModuleNetwork(const ModuleNetwork& that) :
 	modules.reserve(that.modules.size());
 	for (auto module_ptr: that.modules)
 		modules.emplace_back(std::make_shared<ModuleInstance>(*module_ptr));
-	// TODO erase below
-	std::cerr << "HELP, SOMEBODY PLEASE HELP !!!" << std::endl;
 }
 
 
@@ -164,11 +159,30 @@ template void ModuleNetwork::seal(const std::forward_list<std::string>&);
 template void ModuleNetwork::seal(const std::unordered_set<std::string>&);
 
 
+std::unique_ptr< StateInstance >
+ModuleNetwork::initial_state() const
+{
+	if (!sealed())
+#ifndef NDEBUG
+		throw FigException("ModuleNetwork hasn't been sealed yet");
+#else
+		return;
+#endif
+	return gState.to_state_instance();
+}
+
+
 void
 ModuleNetwork::simulation_step(Traial& traial,
 							   const SimulationEngine* engine) const
 {
 	assert(nullptr != engine);
+	if (!sealed())
+#ifndef NDEBUG
+		throw FigException("ModuleNetwork hasn't been sealed yet");
+#else
+		return;
+#endif
     // Jump...
 	do {
 		auto timeout = traial.next_timeout();
