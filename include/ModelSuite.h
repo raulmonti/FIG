@@ -34,6 +34,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <functional>   // std::reference_wrapper<>
 #include <type_traits>  // std::is_constructible<>
 #include <unordered_map>
 // FIG
@@ -54,19 +55,32 @@ using std::end;
 namespace fig
 {
 
-/// @todo TODO define ConfidenceInterval class and erase this dummy
-class ConfidenceInterval;
 /// @todo TODO define StoppingCondition class and erase this dummy
 class StoppingConditions;
 
 
+/**
+ *
+ * @note  There should be exactly one ModelSuite at all times,
+ *        which starts out empty and gets filled with \ref Property
+ *        "properties" and \ref ModuleInstance "module instances"
+ *        as these are parsed and created. For that reason this class
+ *        follows the
+ *        <a href="https://sourcemaking.com/design_patterns/singleton">
+ *        singleton design pattern</a>. It was implemented using C++11
+ *        facilities to make it
+ *        <a href="http://silviuardelean.ro/2012/06/05/few-singleton-approaches/">
+ *        thread safe</a>.
+ */
 class ModelSuite
 {
+	friend class Traial;
+
 	/// User's system model
-	static ModuleNetwork model;
+	static std::unique_ptr< ModuleNetwork > model;
 	
 	/// Properties to estimate
-	static std::vector<Property&> properties;
+	static std::vector< Reference< Property > > properties;
 	
 	/// Confidence criteria or time budgets bounding simulations
 	static StoppingConditions simulationBounds;
@@ -79,7 +93,7 @@ class ModelSuite
 	/// Simulation engines available
 	static std::unordered_map<
 		std::string,
-		SimulationEngine& > simulators;
+		Reference< SimulationEngine > > simulators;
 
 	/// Single existent instance of the class (singleton design pattern)
 	static std::unique_ptr< ModelSuite > instance_;
@@ -94,7 +108,7 @@ class ModelSuite
 
 public:  // Access to the ModelSuite instance
 
-	/// Global access point to the unique instance of this pool
+	/// Global access point to the unique instance of this class
 	static inline ModelSuite& get_instance()
 		{
 			std::call_once(singleInstance_,
@@ -103,16 +117,37 @@ public:  // Access to the ModelSuite instance
 		}
 
 	/// Allow syntax "auto varname = fig::ModelSuite::get_instance();"
-	inline ModelSuite(const ModelSuite& that) {}
+	inline ModelSuite(const ModelSuite& that) { instance_.swap(that.instance_); }
 
 	~ModelSuite();
+
+public:  // Modifyers
+
+	/// @copydoc ModuleNetwork::seal()
+	/// @todo TODO implement and document properly
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames);
 
 public:  // Stubs for ModuleNetwork
 
 	/// @copydoc ModuleNetwork::add_module(std::shared_ptr<ModuleInstance>&)
-	void add_module(std::shared_ptr< ModuleInstance >& module);
+	inline void add_module(std::shared_ptr< ModuleInstance >& module)
+		{ model->add_module(module); }
 
-	/// @todo TODO copy all relevant public functions from ModuleNetwork
+	/// @copydoc ModuleNetwork::sealed()
+	inline bool sealed() const noexcept { return model->sealed(); }
+
+	/// @copydoc ModuleNetwork::num_clocks()
+	inline size_t num_clocks() const noexcept { return model->num_clocks(); }
+
+	/// @copydoc ModuleNetwork::state_size()
+	inline size_t state_size() const noexcept { return model->state_size(); }
+
+	/// @copydoc ModuleNetwork::concrete_state_size()
+	inline size_t concrete_state_size() const noexcept
+		{ return model->concrete_state_size(); }
 
 public:  // Simulation utils
 
@@ -137,7 +172,7 @@ public:  // Simulation utils
 			typename ValueType2,
 			typename... OtherArgs2
 	>
-	void process_batch(const Container1<ValueType1, OtherArgs2...>& importanceStrategies,
+	void process_batch(const Container1<ValueType1, OtherArgs1...>& importanceStrategies,
 					   const Container2<ValueType2, OtherArgs2...>& simulationStrategies);
 
 	/// @todo TODO design and implement
@@ -190,23 +225,33 @@ ModelSuite::process_batch(
 	for (const Property& prop: properties) {
 		// ... for each importance strategy (null, auto, ad hoc, etc) ...
 		for (const std::string impStrat: importanceStrategies) {
-			auto impFun = impFuns[impStrat]->assess_importance(model, prop);
-			assert(impFun.ready());
+			if (end(impFuns) == impFuns.find(impStrat)) {
+				/// @todo TODO log the inexistence of this importance function
+				continue;
+			}
+			auto impFun = impFuns[impStrat];
+			impFun->assess_importance(model.get(), &prop);
+			assert(impFun->ready());
 			// ... and each simulation strategy (no split, restart, etc) ...
 			for (const std::string simStrat: simulationStrategies) {
+				if (end(simulators) == simulators.find(simStrat)) {
+					/// @todo TODO log the inexistence of this engine
+					continue;
+				}
 				SimulationEngine& engine = simulators[simStrat];
 				try {
-					engine.setup(prop, impFun);
+					engine.load(prop, impFun);
 				} catch (FigException& e) {
-					continue;
 					/// @todo TODO log the skipping of this combination
 					///       Either the property or the importance function are
 					///       incompatible with the current simulation engine
+					continue;
 				}
-				// ... estimate the property value for every stopping condition
+				// ... estimate the property value for all stopping conditions
 				estimate(engine, simulationBounds);
-				engine.cleanup();
+				engine.unload();
 			}
+			impFun->clear();
 		}
 	}
 }

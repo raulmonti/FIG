@@ -80,15 +80,11 @@ public:
 	 * @param mod  Module whose reachable states will have their importance assessed
 	 * @param prop Property guiding the function for the importance assessment
 	 *
-	 * @return Reference to an instance of a base class of the
-	 *         ImportanceFunction family class,
-	 *         which can be used during simulations
-	 *
 	 * @note After a successfull invocation the ImportanceFunction
 	 *       is ready() to be used during simulations
 	 */
-	virtual ImportanceFunction&
-	assess_importance(ModuleInstance* mod, Property* const prop) = 0;
+	virtual void assess_importance(const ModuleInstance* mod,
+								   const Property* prop) = 0;
 
 	/**
 	 * @brief Assess the importance of the reachable states of the whole
@@ -98,15 +94,11 @@ public:
 	 * @param net  System model (or coupled network of modules)
 	 * @param prop Property guiding the function for the importance assessment
 	 *
-	 * @return Reference to an instance of a base class of the
-	 *         ImportanceFunction family class,
-	 *         which can be used during simulations
-	 *
 	 * @note After a successfull invocation the ImportanceFunction
 	 *       is ready() to be used during simulations
 	 */
-	virtual ImportanceFunction&
-	assess_importance(ModuleNetwork* net, Property* const prop) = 0;
+	virtual void assess_importance(const ModuleNetwork* net,
+								   const Property* prop) = 0;
 
 	/// Release any memory allocated in the heap
 	/// @note After this invocation the ImportanceFunction is no longer ready()

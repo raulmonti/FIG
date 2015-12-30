@@ -40,7 +40,7 @@
 #include <unordered_set>
 // FIG
 #include <Traial.h>
-#include <ModuleNetwork.h>
+#include <ModelSuite.h>
 
 // ADL
 using std::begin;
@@ -59,7 +59,7 @@ Traial::Traial(const size_t& stateSize, const size_t& numClocks) :
 {
 	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 	clocks_.reserve(numClocks);
-	for (const auto& module_ptr: ModuleNetwork::get_instance().modules)
+	for (const auto& module_ptr: ModelSuite::get_instance().model->modules)
 		for (const auto& clock: module_ptr->clocks())
 			clocks_.emplace_back(module_ptr, clock.name(), 0.0f);
 }
@@ -83,7 +83,7 @@ Traial::Traial(const size_t& stateSize,
 	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 	clocks_.reserve(numClocks);
 	i = 0;
-	for (const auto& module_ptr: ModuleNetwork::get_instance().modules)
+	for (const auto& module_ptr: ModelSuite::get_instance().model->modules)
 		for (const auto& clock: module_ptr->clocks())
 			clocks_.emplace_back(module_ptr,
 								 clock.name(),
@@ -114,7 +114,7 @@ Traial::Traial(const size_t& stateSize,
 				  "with clock names");
 	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 	clocks_.reserve(numClocks);
-	for (const auto& module_ptr: ModuleNetwork::get_instance().modules)
+	for (const auto& module_ptr: ModelSuite::get_instance().model->modules)
 		for (const auto& clock: module_ptr->clocks())
 			clocks_.emplace_back(module_ptr,
 								 clock.name(),
@@ -145,15 +145,15 @@ Traial::~Traial()
 void
 Traial::initialize()
 {
-	auto net = ModuleNetwork::get_instance();
-	if (!net.sealed())
+	auto& net(ModelSuite::get_instance().model);
+	if (!net->sealed())
 #ifndef NDEBUG
 		throw FigException("ModuleNetwork hasn't been sealed yet");
 #else
 		return;  // we can't do anything without the global data
 #endif
-	net.gState.copy_to_state_instance(state);
-	for (const auto& pos_clk_pair: net.initialClocks)
+	net->gState.copy_to_state_instance(state);
+	for (const auto& pos_clk_pair: net->initialClocks)
 		clocks_[pos_clk_pair.first].value = pos_clk_pair.second.sample();
 
 	/// @todo TODO determine importance with current importanceFunction

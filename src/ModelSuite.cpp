@@ -27,18 +27,34 @@
 //==============================================================================
 
 
-// C++
-#include <set>
-#include <list>
-#include <deque>
-#include <vector>
-#include <forward_list>
-#include <unordered_set>
-// FIG
 #include <ModelSuite.h>
 
 
 namespace fig
 {
+
+// Static variables initialization
+
+std::unique_ptr< ModuleNetwork > ModelSuite::model(new ModuleNetwork);
+
+std::vector< Reference< Property > > ModelSuite::properties;
+
+class StoppingConditions {}; /// @todo TODO implement class and erase this dummy
+StoppingConditions ModelSuite::simulationBounds;
+
+std::unordered_map< std::string, std::shared_ptr< ImportanceFunction > >
+	ModelSuite::impFuns;
+
+std::unordered_map< std::string, Reference< SimulationEngine > >
+	ModelSuite::simulators;
+
+std::unique_ptr< ModelSuite > ModelSuite::instance_ = nullptr;
+
+std::once_flag ModelSuite::singleInstance_;
+
+
+// ModelSuite class member functions
+
+ModelSuite::~ModelSuite() { /* not much to do around here... */ }
 
 } // namespace fig

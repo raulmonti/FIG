@@ -59,22 +59,23 @@ class SimulationEngine
 protected:
 
     /// Property whose value is trying to be estimated
-    Property* const property;
+    const Property* property;
 
     /// Importance function currently built
-    ImportanceFunction* const impFun;
+    std::shared_ptr< const ImportanceFunction > impFun;
 
 public:  // Ctors/Dtor
 
     /// No data ctor, only empty ctor provided
-    SimulationEngine() : impFun(nullptr), property(nullptr) {}
+    SimulationEngine() : property(nullptr), impFun(nullptr) {}
     /// Default copy ctor
     SimulationEngine(const SimulationEngine& that) = default;
     /// Default move ctor
     SimulationEngine(SimulationEngine&& that) = default;
-    /// Copy assignment with copy&swap
-    SimulationEngine& operator=(SimulationEngine that)
-        { std::swap(property, that.property); std::swap(impFun, that.impFun); }
+    /// Default copy assignment
+    SimulationEngine& operator=(const SimulationEngine& that) = default;
+    /// Default move assignment
+    SimulationEngine& operator=(SimulationEngine&& that) = default;
     /// Virtual dtor
     virtual ~SimulationEngine() { unload(); }
 
@@ -84,19 +85,23 @@ public:  // Engine setup
 	/// @details True after a successfull call to load().
 	///          False again after a call to unload().
 	inline bool loaded() const noexcept
-		{ return property != nullptr && impFun != nullptr; }
+		{ return nullptr != property && nullptr != impFun; }
+
+	/// @copydoc loaded()
+	inline bool ready() const noexcept { return loaded(); }
 
     /**
      * @brief Register the property and importance function
      *        which will be used in the following simulations
      * @param prop  Property whose value is to be estimated
-     * @param ifun  Importance function which will be used to that effect
+     * @param ifun  ImportanceFunction which will be used for estimations
      * @throw FigException if either the Property or the ImportanceFunction
      *                     are incompatible with this SimulationEngine
      * @see unload()
      */
-    virtual void load(const Property& prop, const ImportanceFunction& ifun)
-        { property = &prop; impFun = &ifun; }
+    virtual void load(const Property& prop,
+                      std::shared_ptr< const ImportanceFunction > ifun)
+        { property = &prop; impFun = ifun; }
 
     /// Deregister the last Property and ImportanceFunction which were setup
     /// @see load()
@@ -109,7 +114,7 @@ public:  // Simulation utils
      * @brief Simulate in model until the specified 'effort' is made
      *
      *        The property whose value is being estimated as well as the
-     *        importance function used are taken from the last call to setup()
+     *        importance function used are taken from the last call to load()
      *
      * @param effort Number of runs or simulation time for which
      *               this simulation will be run
@@ -124,7 +129,7 @@ public:  // Simulation utils
      * @brief Simulate in model until externally interrupted
      *
      *        The property whose value is being estimated as well as the
-     *        importance function used are taken from the last call to setup()
+     *        importance function used are taken from the last call to load()
      *
      * @param ci ConfidenceInterval regularly updated with estimation info
      *

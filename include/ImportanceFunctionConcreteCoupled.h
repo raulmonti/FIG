@@ -58,8 +58,9 @@ class ImportanceFunctionConcreteCoupled : public ImportanceFunctionConcrete
 {
 
 public:
-	virtual ImportanceFunction& assess_importance(ModuleInstance* mod,
-												  Property* const prop)
+
+	virtual void assess_importance(const ModuleInstance* mod,
+								   const Property* prop)
 		{
 			throw FigException("Concrete importance function for a coupled "
 							   "model can't be applied to a single \"split\" "
@@ -67,8 +68,8 @@ public:
 							   "ImportanceFunctionConcreteSplit instead.");
 		}
 
-	virtual ImportanceFunction& assess_importance(ModuleNetwork* net,
-												  Property* const prop)
+	virtual void assess_importance(const ModuleNetwork* net,
+								   const Property* prop)
 		{
 			/// @todo TODO implement
 			throw FigException("TODO");

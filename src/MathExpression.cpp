@@ -48,31 +48,31 @@ namespace
 ///        or std::vector<>, or else with variadic arguments.
 
 /// Minimum between N values
-template< typename _T >
-inline _T min(std::initializer_list<_T> parameters)
+template< typename T_ >
+inline T_ min(std::initializer_list<T_> parameters)
 {
-	return std::min<_T>(parameters);
+	return std::min<T_>(parameters);
 }
 
 /// Maximum between N values
-template< typename _T >
-inline _T max(std::initializer_list<_T> parameters)
+template< typename T_ >
+inline T_ max(std::initializer_list<T_> parameters)
 {
-	return std::max<_T>(parameters);
+	return std::max<T_>(parameters);
 }
 
 /// Minimum between 2 values
-template< typename _T >
-inline _T min2(_T a, _T b)
+template< typename T_ >
+inline T_ min2(T_ a, T_ b)
 {
-	return std::min<_T>(a, b);
+	return std::min<T_>(a, b);
 }
 
 /// Maximum between 2 values
-template< typename _T >
-inline _T max2(_T a, _T b)
+template< typename T_ >
+inline T_ max2(T_ a, T_ b)
 {
-	return std::max<_T>(a, b);
+	return std::max<T_>(a, b);
 }
 
 } // namespace

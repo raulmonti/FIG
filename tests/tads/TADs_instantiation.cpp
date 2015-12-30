@@ -728,13 +728,10 @@ test_module_network()
 	using fig::Transition;
 
 	typedef fig::ModuleInstance                                 Module;
-	typedef fig::ModuleNetwork                                  Model;
 	typedef fig::DistributionParameters                         DistParams;
 	typedef fig::State<fig::STATE_INTERNAL_TYPE>                State;
 	typedef fig::VariableDeclaration<fig::STATE_INTERNAL_TYPE>  VarDec;
 	typedef std::list<std::string>  NamesList;
-
-	assert(!Model::get_instance().sealed());
 
 	/* * * * * * * * * * * * * * * * * * * * * * * *
 	 *                                             *
@@ -816,17 +813,29 @@ test_module_network()
 				   NamesList()));
 
 	// Network construction
-	auto model = Model::get_instance();
-	model.add_module(module1);
+	fig::ModuleNetwork network;
+	assert(!network.sealed());
+	network.add_module(module1);
 	assert(nullptr == module1);
-	model.add_module(module2);
+	network.add_module(module2);
 	assert(nullptr == module2);
-	model.seal(NamesList({{"c1"}}));
-	assert(model.sealed());
+	network.seal(NamesList({{"c1"}}));
+	assert(network.sealed());
 
 	// Network dynamics
-	std::unique_ptr<Traial> t(new Traial(model.state_size(), model.num_clocks()));
-	t->initialize();
+	std::unique_ptr<Traial> t(new Traial(network.state_size(), network.num_clocks()));
+	try {
+		t->initialize();  // looks into ModelSuite::model => not sealed
+		throw TestException(to_string(__LINE__).append(": previous statement "
+													   "should have thrown"));
+	} catch (fig::FigException) { /* this was expected */ }
+	network.gState.copy_to_state_instance(t->state);                // Manually
+	t->creationImportance = static_cast<fig::ImportanceValue> (0);  // fake
+	t->importance = t->creationImportance;                          // Traial's
+	t->lifeTime = static_cast<fig::CLOCK_INTERNAL_TYPE> (0.0);      // initialization
+
+	// network.simulation_step(t, engine ??? );  Implement SimulationEngine !!!
+
 	/// @todo TODO complete this test
 	std::cerr << "\nTODO: test ModuleNetwork dynamics" << std::endl;
 }

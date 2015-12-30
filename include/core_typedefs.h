@@ -199,6 +199,16 @@ inline void SET_THR_DOWN_EVENT (Event& e) { e |= EventType::THR_DOWN;  }
 //
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //
+//
+// Miscellanea
+//
+
+/// Allow containers with references (http://stackoverflow.com/a/23488449)
+template< typename T_ > using Reference = std::reference_wrapper<T_>;
+
+//
+//
+// // // // // // // // // // // // // // // // // // // // // // // // // //
 
 } // namespace fig
 

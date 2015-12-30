@@ -123,8 +123,10 @@ Postcondition::fake_evaluation() const
 	try {
 		for (const auto& var: varsMap_)
 			expr_.DefineVar(var.first, &dummy);
-		STATE_INTERNAL_TYPE* ptr = expr_.Eval(numUpdates_);
-		assert(expr_.GetNumResults() == numUpdates_);
+		int numUpdates(numUpdates_);
+		STATE_INTERNAL_TYPE* ptr = expr_.Eval(numUpdates);
+		assert(numUpdates_ == numUpdates);
+		assert(expr_.GetNumResults() == numUpdates);
 		// MuParser library handles memory, leave ptr alone
 		if (ptr) ptr = nullptr;  // dodge compiler warning
 	} catch (mu::Parser::exception_type &e) {
@@ -202,7 +204,9 @@ Postcondition::operator()(StateInstance& state) const
 		expr_.DefineVar(pair.first,  const_cast<STATE_INTERNAL_TYPE*>(
 						&state[pair.second]));
 	// ...evaluate...
-	STATE_INTERNAL_TYPE* updates = expr_.Eval(numUpdates_);
+	int numUpdates(numUpdates_);
+	STATE_INTERNAL_TYPE* updates = expr_.Eval(numUpdates);
+	assert(numUpdates_ == numUpdates);
 	// ...and reflect in state
 	for (int i = 0 ; i < numUpdates_ ; i++)
 		state[updatesPositions_[i]] = updates[i];

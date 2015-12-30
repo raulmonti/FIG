@@ -51,29 +51,34 @@ using std::begin;
 using std::end;
 
 
+// TODO erase below
+#include <iostream>
+
 namespace fig
 {
 
-// Static variables initialization
-
-State< STATE_INTERNAL_TYPE > ModuleNetwork::gState;
-
-std::unordered_map< size_t, const Clock& > ModuleNetwork::initialClocks;
-
-std::vector< std::shared_ptr< ModuleInstance > > ModuleNetwork::modules;
-
-size_t ModuleNetwork::numClocks_ = 0u;
-
-size_t ModuleNetwork::lastClockIndex_ = 0u;
-
-bool ModuleNetwork::sealed_ = false;
-
-std::unique_ptr< ModuleNetwork > ModuleNetwork::instance_ = nullptr;
-
-std::once_flag ModuleNetwork::singleInstance_;
+ModuleNetwork::ModuleNetwork() :
+	numClocks_(0u),
+	lastClockIndex_(0u),
+	sealed_(false)
+{}
 
 
-// ModuleNetwork class member functions
+ModuleNetwork::ModuleNetwork(const ModuleNetwork& that) :
+	gState(that.gState),
+	initialClocks(that.initialClocks),
+	numClocks_(that.numClocks_),
+	lastClockIndex_(that.lastClockIndex_),
+	sealed_(that.sealed_)
+{
+	// Efectively *copy* all modules, not just their pointers
+	modules.reserve(that.modules.size());
+	for (auto module_ptr: that.modules)
+		modules.emplace_back(std::make_shared<ModuleInstance>(*module_ptr));
+	// TODO erase below
+	std::cerr << "HELP, SOMEBODY PLEASE HELP !!!" << std::endl;
+}
+
 
 ModuleNetwork::~ModuleNetwork()
 {
@@ -161,8 +166,9 @@ template void ModuleNetwork::seal(const std::unordered_set<std::string>&);
 
 void
 ModuleNetwork::simulation_step(Traial& traial,
-                               SimulationEngine* const engine) const
+							   const SimulationEngine* engine) const
 {
+	assert(nullptr != engine);
     // Jump...
 	do {
 		auto timeout = traial.next_timeout();

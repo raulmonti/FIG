@@ -30,15 +30,8 @@
 #ifndef MODULE_H
 #define MODULE_H
 
-// C++
-#include <memory>
-#include <vector>
-#include <string>
-// FIG
-#include <core_typedefs.h>  // CLOCK_INTERNAL_TYPE
-#include <Label.h>
-#include <Traial.h>
 #include <ImportanceFunction.h>
+#include <Property.h>
 
 
 namespace fig
@@ -49,15 +42,21 @@ namespace fig
  *
  *        The system model described by the user is implemented as a
  *        ModuleNetwork, composed of ModuleInstance objects.
+ *
+ * @note The accept member function implements the
+ *       <a href="https://sourcemaking.com/design_patterns/visitor">
+ *       visitor design pattern</a>, where the visitor is the
+ *       ImportanceFunction and the visited elements are instances
+ *       of the classes which derive from Module.
  */
 class Module
 {
 
 public:  // Utils
 
-	/// Have the importance of our states assessed by this importance function
-	/// @see ImportanceFunction
-	virtual void accept(ImportanceFunction& ifun) = 0;
+	/// Have the importance of our states assessed by this ImportanceFunction
+	/// according to the given Property
+	virtual void accept(ImportanceFunction& ifun, Property* const prop) = 0;
 };
 
 } // namespace fig
