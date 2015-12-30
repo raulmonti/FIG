@@ -59,6 +59,7 @@ namespace fig
 {
 
 class Traial;
+class Property;
 
 /**
  * @brief Single system module, possibly open regarding synchronization
@@ -85,14 +86,14 @@ class ModuleInstance : public Module
 	std::vector< Clock > lClocks_;
 
 	/// Transitions semi-ordered by their triggering \ref Clock "clock"
-	std::unordered_map< std::string,
-						std::vector< std::shared_ptr< Transition > > >
-		transitions_by_clock_;
+	std::unordered_map<
+		std::string,
+		std::vector< std::shared_ptr< Transition > > > transitions_by_clock_;
 
 	/// Transitions semi-ordered by their synchronization \ref Label "label"
-	std::unordered_map< std::string,
-						std::vector< std::shared_ptr< Transition > > >
-		transitions_by_label_;
+	std::unordered_map<
+		std::string,
+		std::vector< std::shared_ptr< Transition > > > transitions_by_label_;
 
 public:
 
@@ -146,7 +147,7 @@ public:  // Ctors/Dtor and populating facilities
 	 * @param transitions Transitions defined in this module
 	 *
 	 * @note All arguments are copied
-	 * @note This is template of variadic templates <3
+	 * @note This is a template of variadic templates <3
 	 */
 	template<
 		template< typename, typename... > class Container1,
@@ -175,7 +176,7 @@ public:  // Ctors/Dtor and populating facilities
 	 * @param transitions Transitions defined in this module
 	 *
 	 * @note Variables and clocks are copied, transitions are moved
-	 * @note This is template of variadic templates <3
+	 * @note This is a template of variadic templates <3
 	 */
 	template<
 		template< typename, typename... > class Container1,
@@ -204,7 +205,7 @@ public:  // Ctors/Dtor and populating facilities
 	 * @param transitions Transitions defined in this module
 	 *
 	 * @note Variables and clocks are copied, transitions are moved
-	 * @note This is template of variadic templates <3
+	 * @note This is a template of variadic templates <3
 	 */
 	template<
 		template< typename, typename... > class Container1,
@@ -233,7 +234,7 @@ public:  // Ctors/Dtor and populating facilities
 	 * @param to       Iterator past last  transition defined in this module
 	 *
 	 * @note All arguments are copied
-	 * @note This is template of variadic templates <3
+	 * @note This is a template of variadic templates <3
 	 */
 	template<
 		template< typename, typename... > class Container,
@@ -248,6 +249,20 @@ public:  // Ctors/Dtor and populating facilities
 				   const Container< ValueTypeContainer, OtherContainerArgs... >& clocks,
 				   Iterator< ValueTypeIterator, OtherIteratorArgs... > from,
 				   Iterator< ValueTypeIterator, OtherIteratorArgs... > to);
+
+	/// Default copy ctor
+	/// @note This shares the transitions with 'that', which should be safe
+	///       since Transition doesn't have an internal state
+	ModuleInstance(const ModuleInstance& that) = default;
+
+	/// Default move ctor
+	ModuleInstance(ModuleInstance&& that) = default;
+
+	/// Can't copy assign since Transitions can't
+	ModuleInstance& operator=(const ModuleInstance&) = delete;
+
+	/// Can't move assign since Transitions can't
+	ModuleInstance& operator=(ModuleInstance&&) = delete;
 
 	/**
 	 * @brief Add a new transition to this module
@@ -278,8 +293,8 @@ public:  // Utils
 	/// Has this module been \ref seal() "sealed" already?
 	inline bool sealed() const noexcept { return sealed_; }
 
-	virtual inline void accept(ImportanceFunction& ifun)
-		{ ifun.assess_importance(this); }
+	virtual inline void accept(ImportanceFunction& ifun, Property* const prop)
+		{ ifun.assess_importance(this, prop); }
 
 	/**
 	 * @brief Active module jump caused by expiration of our clock "clockName"
@@ -307,7 +322,7 @@ public:  // Utils
 	 */
 	const Label& jump(const std::string& clockName,
 					  const CLOCK_INTERNAL_TYPE& elapsedTime,
-					  Traial& traial);
+					  Traial& traial) const;
 
 	/**
 	 * @brief Passive module jump following "label" label
@@ -332,15 +347,15 @@ public:  // Utils
 	 */
 	void jump(const Label& label,
 			  const CLOCK_INTERNAL_TYPE& elapsedTime,
-			  Traial& traial);
+			  Traial& traial) const;
 private:
 
 	/// Does the clock reside in this ModuleInstance?
-	bool is_our_clock(const std::string& clockName);
+	bool is_our_clock(const std::string& clockName) const;
 
 	/// Build mapping of our clock names to their global positions
 	/// @warning mark_added() must have been called beforehand
-	PositionsMap map_our_clocks();
+	PositionsMap map_our_clocks() const;
 
 //protected:  // Callback utilities offered to the ModuleNetwork
 public:  // Public only for testing

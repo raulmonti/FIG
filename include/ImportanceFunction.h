@@ -36,6 +36,7 @@ namespace fig
 
 class ModuleInstance;
 class ModuleNetwork;
+class Property;
 
 /**
  * @brief Abstract base importance assessor (or function)
@@ -53,9 +54,55 @@ class ModuleNetwork;
  */
 class ImportanceFunction
 {
+	/// Can this instance be used for simulations?
+	bool readyForSimulations;
+
 public:
-	virtual void assess_importance(ModuleInstance* mod) = 0;
-	virtual void assess_importance(ModuleNetwork*  net) = 0;
+
+	ImportanceFunction() : readyForSimulations(false) {}
+
+	/**
+	 * @copydoc readyForSimulations
+	 *
+	 *        This starts out false and becomes true after a successfull call
+	 *        to one of the importance assessment functions.
+	 *        It becomes false again after a call to clear()
+	 *
+	 * @see assess_importance(ModuleInstance*, Property*)
+	 * @see assess_importance(ModuleNetwork*,  Property*)
+	 */
+	inline bool ready() const noexcept { return readyForSimulations; }
+
+	/**
+	 * @brief Assess the importance of the states on this \ref ModuleInstance
+	 *        "module", according to the given \ref Property "logical property"
+	 *
+	 * @param mod  Module whose reachable states will have their importance assessed
+	 * @param prop Property guiding the function for the importance assessment
+	 *
+	 * @note After a successfull invocation the ImportanceFunction
+	 *       is ready() to be used during simulations
+	 */
+	virtual void assess_importance(const ModuleInstance* mod,
+								   const Property* prop) = 0;
+
+	/**
+	 * @brief Assess the importance of the reachable states of the whole
+	 *        \ref ModuleNetwork "system model", according to the given
+	 *        \ref Property "logical property"
+	 *
+	 * @param net  System model (or coupled network of modules)
+	 * @param prop Property guiding the function for the importance assessment
+	 *
+	 * @note After a successfull invocation the ImportanceFunction
+	 *       is ready() to be used during simulations
+	 */
+	virtual void assess_importance(const ModuleNetwork* net,
+								   const Property* prop) = 0;
+
+	/// Release any memory allocated in the heap
+	/// @note After this invocation the ImportanceFunction is no longer ready()
+	virtual void clear() = 0;
 };
 
 } // namespace fig

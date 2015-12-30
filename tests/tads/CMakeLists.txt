@@ -73,6 +73,7 @@ SET(REQUIRED_SOURCES "${SOURCES_DIR}/Clock.cpp"
                      "${SOURCES_DIR}/Transition.cpp"
                      "${SOURCES_DIR}/ModuleInstance.cpp"
                      "${SOURCES_DIR}/ModuleNetwork.cpp"
+                     "${SOURCES_DIR}/ModelSuite.cpp"
                      "${SOURCES_DIR}/Traial.cpp"
                      "${SOURCES_DIR}/TraialPool.cpp")
 SET(ALL_SOURCES ${ALL_SOURCES} ${REQUIRED_SOURCES} CACHE INTERNAL "")

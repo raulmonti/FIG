@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  Module.h
+//  ModelSuite.cpp
 //
 //  Copyleft 2015-
 //  Authors:
@@ -27,39 +27,34 @@
 //==============================================================================
 
 
-#ifndef MODULE_H
-#define MODULE_H
-
-#include <ImportanceFunction.h>
-#include <Property.h>
+#include <ModelSuite.h>
 
 
 namespace fig
 {
 
-/**
- * @brief Abstract base module class
- *
- *        The system model described by the user is implemented as a
- *        ModuleNetwork, composed of ModuleInstance objects.
- *
- * @note The accept member function implements the
- *       <a href="https://sourcemaking.com/design_patterns/visitor">
- *       visitor design pattern</a>, where the visitor is the
- *       ImportanceFunction and the visited elements are instances
- *       of the classes which derive from Module.
- */
-class Module
-{
+// Static variables initialization
 
-public:  // Utils
+std::unique_ptr< ModuleNetwork > ModelSuite::model(new ModuleNetwork);
 
-	/// Have the importance of our states assessed by this ImportanceFunction
-	/// according to the given Property
-	virtual void accept(ImportanceFunction& ifun, Property* const prop) = 0;
-};
+std::vector< Reference< Property > > ModelSuite::properties;
+
+class StoppingConditions {}; /// @todo TODO implement class and erase this dummy
+StoppingConditions ModelSuite::simulationBounds;
+
+std::unordered_map< std::string, std::shared_ptr< ImportanceFunction > >
+	ModelSuite::impFuns;
+
+std::unordered_map< std::string, Reference< SimulationEngine > >
+	ModelSuite::simulators;
+
+std::unique_ptr< ModelSuite > ModelSuite::instance_ = nullptr;
+
+std::once_flag ModelSuite::singleInstance_;
+
+
+// ModelSuite class member functions
+
+ModelSuite::~ModelSuite() { /* not much to do around here... */ }
 
 } // namespace fig
-
-#endif // MODULE_H
-

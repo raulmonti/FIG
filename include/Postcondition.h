@@ -91,12 +91,10 @@ class Postcondition : public MathExpression
 	} __attribute__((aligned(4)));
 	enum { NAMES, POSITIONS } updatesData_ __attribute__((aligned(4)));
 
-	/**
-	 * @brief Perform a fake evaluation to exercise our expression
-	 * @note  Useful to reveal parsing errors in MathExpression
-	 * @throw FigException if badly parsed expression
-	 */
-	void fake_evaluation();
+	/// @brief Perform a fake evaluation to exercise our expression
+	/// @note  Useful to reveal parsing errors in MathExpression
+	/// @throw FigException if badly parsed expression
+	void fake_evaluation() const;
 
 public:  // Ctors/Dtor
 
@@ -212,7 +210,7 @@ public:  // Accessors
 	 *   @throw FigException if pin_up_vars() hasn't been called yet
 	 * @endif
 	 */
-	void operator()(StateInstance& state);
+	void operator()(StateInstance& state) const;
 };
 
 

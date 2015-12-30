@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  Module.h
+//  SimulationEngineNosplit.h
 //
 //  Copyleft 2015-
 //  Authors:
@@ -27,39 +27,26 @@
 //==============================================================================
 
 
-#ifndef MODULE_H
-#define MODULE_H
+#ifndef SIMLUATIONENGINENOSPLIT_H
+#define SIMLUATIONENGINENOSPLIT_H
 
-#include <ImportanceFunction.h>
-#include <Property.h>
+#include <SimulationEngine.h>
 
 
 namespace fig
 {
 
-/**
- * @brief Abstract base module class
- *
- *        The system model described by the user is implemented as a
- *        ModuleNetwork, composed of ModuleInstance objects.
- *
- * @note The accept member function implements the
- *       <a href="https://sourcemaking.com/design_patterns/visitor">
- *       visitor design pattern</a>, where the visitor is the
- *       ImportanceFunction and the visited elements are instances
- *       of the classes which derive from Module.
- */
-class Module
+class SimulationEngineNosplit : public SimulationEngine
 {
 
-public:  // Utils
+public:
 
-	/// Have the importance of our states assessed by this ImportanceFunction
-	/// according to the given Property
-	virtual void accept(ImportanceFunction& ifun, Property* const prop) = 0;
+    virtual double simulate(const Property& prop,
+                            const ImportanceFunction& ifun,
+                            const StoppingCondition& effort) const;
 };
 
 } // namespace fig
 
-#endif // MODULE_H
+#endif // SIMLUATIONENGINENOSPLIT_H
 

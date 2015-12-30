@@ -41,7 +41,7 @@ namespace fig
 {
 
 void
-Precondition::fake_evaluation()
+Precondition::fake_evaluation() const
 {
 	STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
 	try {
@@ -86,7 +86,7 @@ Precondition::pin_up_vars(
 
 
 bool
-Precondition::operator()(const StateInstance& state)
+Precondition::operator()(const StateInstance& state) const
 {
 #ifndef NDEBUG
 	if (!pinned())

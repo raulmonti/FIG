@@ -34,6 +34,7 @@
 #include <mutex>  // std::call_once(), std::once_flag
 #include <vector>
 #include <memory>     // std::unique_ptr<>
+#include <functional>
 #include <unordered_map>
 // FIG
 #include <core_typedefs.h>
@@ -44,30 +45,25 @@
 #include <ModuleInstance.h>
 #include <TraialPool.h>
 
+// TODO erase below
+#include <iostream>
+#include <utility>
 
 namespace fig
 {
 
+class SimulationEngine;
+class Property;
 
 /**
  * @brief Network of \ref ModuleInstance "module instances" synchronized
  *        through input/output \ref Label "labels".
  *
  *        This is the user's system model.
- *        This class holds a memory-contiguous view of the global \ref State
- *        "state": a vector with <i>a copy of</i> the variables from all the
+ *        This class holds a memory-contiguous view of the \ref State "global
+ *        state": a vector with <i>a copy of</i> the variables from all the
  *        constituent modules. In contrast, \ref Clock "clocks" are kept
  *        locally inside each \ref ModuleInstance "module instance".
- *
- * @note  There should be exactly one ModuleNetwork at all times,
- *        which starts out empty and is sequentially filled with
- *        ModuleInstance objects as these are created. For that reason
- *        this class follows the
- *        <a href="https://sourcemaking.com/design_patterns/singleton">
- *        singleton design pattern</a>. It was implemented using C++11
- *        facilities to make it
- *        <a href="http://silviuardelean.ro/2012/06/05/few-singleton-approaches/">
- *        thread safe</a>.
  *
  * @todo remove_module() facility? Seems pointless and troublesome to me
  */
@@ -77,53 +73,55 @@ class ModuleNetwork : public Module
 	friend class ImportanceFunctionConcreteSplit;
 	friend class ImportanceFunctionConcreteCoupled;
 
-protected:  // Attributes shared with the ImportanceFunction visitors
+private:  // Attributes shared with our firends
 
 	/// Unified, memory-contiguous global vector of \ref Variable "variables"
-	static State< STATE_INTERNAL_TYPE > gState;
+	State< STATE_INTERNAL_TYPE > gState;
 
 	/// Global position and distribution of the \ref Clock "initial clocks"
-	static std::unordered_map< size_t, const Clock& > initialClocks;
+	std::unordered_map< size_t, const Clock& > initialClocks;
 
 	/// The modules network per se
-	static std::vector< std::shared_ptr< ModuleInstance > > modules;
+	std::vector< std::shared_ptr< ModuleInstance > > modules;
 
 private:
 
 	/// Total number of clocks, considering all modules in the network
-	static size_t numClocks_;
+	size_t numClocks_;
 
 	/// Global position of the last clock from the last added module,
 	/// useful only during network construction phase, i.e. before seal()
-	static size_t lastClockIndex_;
+	size_t lastClockIndex_;
 
 	/// Whether the system model has already been sealed for simulations
-	static bool sealed_;
+	bool sealed_;
 
-	/// Single existent instance of the class (singleton design pattern)
-	static std::unique_ptr< ModuleNetwork > instance_;
+public:  // Ctors/Dtor
 
-	/// Single instance thread safety
-	static std::once_flag singleInstance_;
+	/// No data ctor, only empty ctor provided
+	ModuleNetwork();
 
-	/// Private ctors (singleton design pattern)
-	ModuleNetwork() {}
-	ModuleNetwork(ModuleNetwork&& that)                 = delete;
-	ModuleNetwork& operator=(const ModuleNetwork& that) = delete;
+	/// Copy ctor copies all internal modules, not their pointers
+	ModuleNetwork(const ModuleNetwork& that);
 
-public:  // Access to the ModuleNetwork instance
+	/// Default move ctor
+	ModuleNetwork(ModuleNetwork&& that) :// = default;
+		gState(std::move(that.gState)),
+		initialClocks(std::move(that.initialClocks)),
+		modules(std::move(that.modules)),
+		numClocks_(std::move(that.numClocks_)),
+		lastClockIndex_(std::move(that.lastClockIndex_)),
+		sealed_(std::move(that.sealed_))
+	{
+		std::cerr << "ModuleNetwork move ctor" << std::endl;
+	}
 
-	/// Global access point to the unique instance of this pool
-	static inline ModuleNetwork& get_instance()
-		{
-			std::call_once(singleInstance_,
-						   [] () { instance_.reset(new ModuleNetwork); });
-			return *instance_;
-		}
 
-	/// Allow syntax "auto net = fig::ModuleNetwork::get_instance();"
-	inline ModuleNetwork(const ModuleNetwork& that) {}
-		// { instance_.swap(that.instance_); }
+	/// Can't copy assign since Transitions can't
+	ModuleNetwork& operator=(const ModuleNetwork&) = delete;
+
+	/// Can't move assign since Transitions can't
+	ModuleNetwork& operator=(ModuleNetwork&&) = delete;
 
 	~ModuleNetwork();
 
@@ -152,8 +150,21 @@ public:  // Populating facilities
 
 public:  // Utils
 
-	virtual inline void accept(ImportanceFunction& ifun)
-		{ ifun.assess_importance(this); }
+	/// @copydoc sealed_
+	inline bool sealed() const noexcept { return sealed_; }
+
+	/// @copydoc numClocks_
+	inline size_t num_clocks() const noexcept { return numClocks_; }
+
+	/// Symbolic global state size, i.e. number of variables in the system model
+	inline size_t state_size() const noexcept { return gState.size(); }
+
+	/// Concrete global state size, i.e. cross product of the ranges
+	/// of all the variables in the system model
+	inline size_t concrete_state_size() const noexcept { return gState.concrete_size(); }
+
+	virtual inline void accept(ImportanceFunction& ifun, Property* const prop)
+		{ ifun.assess_importance(this, prop); }
 
 	/**
 	 * @brief Shut the system model to begin with simulations
@@ -182,18 +193,19 @@ public:  // Utils
 			  typename... OtherContainerArgs >
 	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames);
 
-	/// @copydoc sealed_
-	inline bool sealed() const noexcept { return sealed_; }
-
-	/// @copydoc numClocks_
-	inline size_t num_clocks() const noexcept { return numClocks_; }
-
-	/// Symbolic global state size, i.e. number of variables in the system model
-	inline size_t state_size() const noexcept { return gState.size(); }
-
-	/// Concrete global state size, i.e. cross product of the ranges
-	/// of all the variables in the system model
-	inline size_t concrete_state_size() const noexcept { return gState.concrete_size(); }
+	/**
+	 * @brief Advance a traial until some stopping criterion is met
+	 *
+	 *        Starting from the state stored in traial, this routine
+	 *        performs synchronized jumps in the \ref ModuleInstance
+	 *        "modules composing the system", until some event relevant
+	 *        for the current simulation strategy is triggered.
+	 *        Information regarding the simulation run is kept in traial.
+	 *
+	 * @param traial Traial instance keeping track of the simulation
+	 * @param engine Semantics of the current simulation strategy
+	 */
+	void simulation_step(Traial& traial, const SimulationEngine* engine) const;
 };
 
 } // namespace fig

@@ -59,9 +59,9 @@ class ModuleInstance;
 /**
  * @brief Simulation kernel (or 'trial trail')
  *
- *        Holds the state of the variables and the clocks values,
- *        i.e. all that is needed to run a simulation through the user's
- *        system model.
+ *        Simulations are embodied through instances of this class.
+ *        A Traial holds the state of the variables and the clocks values,
+ *        i.e. all that is needed to "run through" the user's system model.
  *        Traials should be handled with the TraialPool, to ensure fast
  *        acquisition/release (instead of creation/destruction) of the
  *        instances.
@@ -77,24 +77,33 @@ protected:
 	struct Timeout
 	{
 		/// Module where the expired clock exists
-		std::shared_ptr<const ModuleInstance> module;
+		const std::shared_ptr<const ModuleInstance> module;
 		/// Clock's name
 		const std::string& name;
 		/// Clock's time value
 		float value;
 		/// Data ctor
-		Timeout(std::shared_ptr<const ModuleInstance> themodule,
+		Timeout(std::shared_ptr<ModuleInstance> themodule,
 				const std::string& thename,
 				const float& thevalue) :
 			module(themodule), name(thename), value(thevalue) {}
 		// Other ctors
-		Timeout(const Timeout& that)            = default;
-		Timeout(Timeout&& that)                 = default;
-		Timeout& operator=(const Timeout& that) = default;
-		Timeout& operator=(Timeout&& that)      = default;
+		Timeout(const Timeout& that) = default;
+		Timeout(Timeout&& that)      = default;
+		Timeout& operator=(const Timeout& that) = delete;
+		Timeout& operator=(Timeout&& that)      = delete;
 	};
 
 public:  // Attributes
+
+	/// Importance/Threshold level where the Traial currently is
+	ImportanceValue importance;
+
+	/// Importance/Threshold level where the Traial was born
+	ImportanceValue creationImportance;
+
+	/// Time this Traial has been running around the system model
+	CLOCK_INTERNAL_TYPE lifeTime;
 
 	/// \ref Variable "Variables" values instantiation
 	/// (same order as in the system global state)

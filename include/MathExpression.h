@@ -73,7 +73,7 @@ protected:
 	std::string exprStr_;
 
 	/// Mathematical expression per se
-	Expression expr_;
+	mutable Expression expr_;
 
 	/// Names and positions of the variables in our expression.
 	/// The positional order is ("later") given by the global system State.

@@ -137,6 +137,78 @@ typedef short                                                ImportanceValue;
 //
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //
+//
+// Properties
+//
+
+/// Supported logical property types
+///
+enum PropertyType
+{
+	/// P( !stop U goal )
+	TRANSIENT = 0,
+
+	/// S( label / total_time )
+	THROUGHPUT,
+
+	/// S( rare_event / total_time )
+	RATE,
+
+	/// S( rare_event / reference )
+	PROPORTION,  // or RATIO?
+
+	/// P( F[<=time] goal )
+	BOUNDED_REACHABILITY
+};
+
+//
+//
+// // // // // // // // // // // // // // // // // // // // // // // // // //
+//
+// Simulation
+//
+
+/// Bit flag to identify the recognized events during simulation
+///
+typedef short                                                          Event;
+
+/// Simulation event types
+///
+enum EventType
+{
+    NONE       = 0,
+    REFERENCE  = 1<< 0,
+    STOP       = 1<< 1,
+    RARE       = 1<< 2,
+    THR_UP     = 1<< 3,
+    THR_DOWN   = 1<< 4
+};
+
+inline bool IS_REFERENCE_EVENT(const Event& e) { return e & EventType::REFERENCE; }
+inline bool IS_STOP_EVENT     (const Event& e) { return e & EventType::STOP;      }
+inline bool IS_RARE_EVENT     (const Event& e) { return e & EventType::RARE;      }
+inline bool IS_THR_UP_EVENT   (const Event& e) { return e & EventType::THR_UP;    }
+inline bool IS_THR_DOWN_EVENT (const Event& e) { return e & EventType::THR_DOWN;  }
+
+inline void SET_REFERENCE_EVENT(Event& e) { e |= EventType::REFERENCE; }
+inline void SET_STOP_EVENT     (Event& e) { e |= EventType::STOP;      }
+inline void SET_RARE_EVENT     (Event& e) { e |= EventType::RARE;      }
+inline void SET_THR_UP_EVENT   (Event& e) { e |= EventType::THR_UP;    }
+inline void SET_THR_DOWN_EVENT (Event& e) { e |= EventType::THR_DOWN;  }
+
+//
+//
+// // // // // // // // // // // // // // // // // // // // // // // // // //
+//
+// Miscellanea
+//
+
+/// Allow containers with references (http://stackoverflow.com/a/23488449)
+template< typename T_ > using Reference = std::reference_wrapper<T_>;
+
+//
+//
+// // // // // // // // // // // // // // // // // // // // // // // // // //
 
 } // namespace fig
 
