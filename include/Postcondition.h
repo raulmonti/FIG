@@ -213,7 +213,6 @@ public:  // Accessors
 	void operator()(StateInstance& state) const;
 };
 
-
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
 
 // Template definitions

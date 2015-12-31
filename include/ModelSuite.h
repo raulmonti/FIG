@@ -34,7 +34,6 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <functional>   // std::reference_wrapper<>
 #include <type_traits>  // std::is_constructible<>
 #include <unordered_map>
 // FIG

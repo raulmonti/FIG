@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  SimulationEngineNosplit.h
+//  SimulationEngineNosplit.cpp
 //
 //  Copyleft 2015-
 //  Authors:
@@ -27,26 +27,16 @@
 //==============================================================================
 
 
-#ifndef SIMLUATIONENGINENOSPLIT_H
-#define SIMLUATIONENGINENOSPLIT_H
-
-#include <SimulationEngine.h>
+#include <SimulationEngineNosplit.h>
 
 
 namespace fig
 {
 
-class SimulationEngineNosplit : public SimulationEngine
+double SimulationEngineNosplit::simulate(const StoppingConditions& effort) const
 {
 
-public:
+}
 
-    virtual double simulate(const Property& prop,
-                            const ImportanceFunction& ifun,
-                            const StoppingCondition& effort) const;
-};
 
 } // namespace fig
-
-#endif // SIMLUATIONENGINENOSPLIT_H
-

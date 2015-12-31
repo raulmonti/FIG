@@ -140,6 +140,10 @@ public:  // Simulation utils
     /**
      * @brief Were the last events triggered by the given Traial
      *        relevant for this simulation engine?
+     *
+     *        The property whose value is being estimated as well as the
+     *        importance function used are taken from the last call to load()
+     *
      * @param traial Embodiment of a simulation running through the system model
      */
     virtual bool eventTriggered(const Traial& traial) const = 0;

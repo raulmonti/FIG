@@ -34,7 +34,7 @@
 #include <array>
 #include <tuple>
 #include <unordered_map>
-#include <functional>
+#include <functional>     // std::function<>, std::reference_wrapper<>
 // External code
 #include <muParserDef.h>  // MUP_BASETYPE
 
