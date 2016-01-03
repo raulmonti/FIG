@@ -56,7 +56,6 @@ namespace fig
 
 ModuleNetwork::ModuleNetwork() :
 	numClocks_(0u),
-	lastClockIndex_(0u),
 	sealed_(false)
 {}
 
@@ -65,7 +64,6 @@ ModuleNetwork::ModuleNetwork(const ModuleNetwork& that) :
 	gState(that.gState),
 	initialClocks(that.initialClocks),
 	numClocks_(that.numClocks_),
-	lastClockIndex_(that.lastClockIndex_),
 	sealed_(that.sealed_)
 {
 	// Efectively *copy* all modules, not just their pointers
@@ -89,9 +87,9 @@ void
 ModuleNetwork::add_module(ModuleInstance** module)
 {
 	modules.emplace_back(*module);
-	auto state = (*module)->mark_added(modules.size()-1, lastClockIndex_);
+	auto state = (*module)->mark_added(modules.size()-1, numClocks_);
 	gState.append(state);
-	lastClockIndex_ += (*module)->clocks().size();
+	numClocks_ += (*module)->clocks().size();
 	*module = nullptr;
 }
 
@@ -100,9 +98,9 @@ void
 ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 {
 	modules.push_back(module);
-	auto state = module->mark_added(modules.size()-1, lastClockIndex_);
+	auto state = module->mark_added(modules.size()-1, numClocks_);
 	gState.append(state);
-	lastClockIndex_ += module->clocks().size();
+	numClocks_ += module->clocks().size();
 	module = nullptr;
 }
 
@@ -115,7 +113,7 @@ ModuleNetwork::seal(const Container<ValueType, OtherContainerArgs...>& initialCl
 {
 	size_t numClocksReviewed(0u);
 	static_assert(std::is_convertible< std::string, ValueType >::value,
-				  "ERROR: type missmatch. ModuleNetwork::seal() needs "
+				  "ERROR: type mismatch. ModuleNetwork::seal() needs "
 				  "a container with the initial clock names");
 	if (sealed_)
 #ifndef NDEBUG
@@ -194,7 +192,7 @@ ModuleNetwork::simulation_step(Traial& traial,
 		for (auto module_ptr: modules)
 			if (module_ptr->name != timeout.module->name)
 				module_ptr->jump(label, timeout.value, traial);
-    } while ( !engine->eventTriggered(traial) );
+	} while ( !engine->eventTriggered(traial) );
     // ...until a relevant event is triggered
 }
 

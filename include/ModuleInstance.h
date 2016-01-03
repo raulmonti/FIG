@@ -438,7 +438,7 @@ ModuleInstance::ModuleInstance(
 {
 	// Copy clocks
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
-				  "ERROR: type missmatch. ModuleInstance ctors require a "
+				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
 }
@@ -464,12 +464,12 @@ ModuleInstance::ModuleInstance(
 {
 	// Copy clocks
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
-				  "ERROR: type missmatch. ModuleInstance ctors require a "
+				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
 	// Copy transitions
 	static_assert(std::is_same< Transition, ValueType2 >::value,
-				  "ERROR: type missmatch. ModuleInstance can only be copy-"
+				  "ERROR: type mismatch. ModuleInstance can only be copy-"
 				  "constructed from a container with Transition objects");
 	for(const auto& tr: transitions) {
 		auto ptr = std::make_shared<Transition>(tr);
@@ -499,12 +499,12 @@ ModuleInstance::ModuleInstance(
 {
 	// Copy clocks
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
-				  "ERROR: type missmatch. ModuleInstance ctors require a "
+				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
 	// Move transitions
 	static_assert(std::is_same< Transition, ValueType2 >::value,
-				  "ERROR: type missmatch. ModuleInstance can only be move-"
+				  "ERROR: type mismatch. ModuleInstance can only be move-"
 				  "constructed from a container with instances or raw pointers "
 				  "to Transition objects");
 	for(auto&& tr: transitions) {
@@ -536,12 +536,12 @@ ModuleInstance::ModuleInstance(
 {
 	// Copy clocks
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
-				  "ERROR: type missmatch. ModuleInstance ctors require a "
+				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
 	// Move transitions
 	static_assert(std::is_same< Transition, ValueType2 >::value,
-				  "ERROR: type missmatch. ModuleInstance can only be move-"
+				  "ERROR: type mismatch. ModuleInstance can only be move-"
 				  "constructed from a container with instances or raw pointers "
 				  "to Transition objects");
 	for(auto tr_ptr: transitions) {
@@ -576,12 +576,12 @@ ModuleInstance::ModuleInstance(
 {
 	// Copy clocks
 	static_assert(std::is_constructible< Clock, ValueTypeContainer >::value,
-				  "ERROR: type missmatch. ModuleInstance ctors require a "
+				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
 	// Move transitions
 	static_assert(std::is_same< Transition, ValueTypeIterator >::value,
-				  "ERROR: type missmatch. ModuleInstance ctor needs iterators "
+				  "ERROR: type mismatch. ModuleInstance ctor needs iterators "
 				  "poiting to Transition objects");
 	do {
 		const Transition& tr = *from;

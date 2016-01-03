@@ -70,7 +70,7 @@ class ModuleNetwork : public Module
 	friend class ImportanceFunctionConcreteSplit;
 	friend class ImportanceFunctionConcreteCoupled;
 
-private:  // Attributes shared with our firends
+private:  // Attributes shared with our friends
 
 	/// Unified, memory-contiguous global vector of \ref Variable "variables"
 	State< STATE_INTERNAL_TYPE > gState;
@@ -86,10 +86,6 @@ private:
 	/// Total number of clocks, considering all modules in the network
 	size_t numClocks_;
 
-	/// Global position of the last clock from the last added module,
-	/// useful only during network construction phase, i.e. before seal()
-	size_t lastClockIndex_;
-
 	/// Whether the system model has already been sealed for simulations
 	bool sealed_;
 
@@ -103,7 +99,6 @@ public:  // Ctors/Dtor
 
 	/// Default move ctor
 	ModuleNetwork(ModuleNetwork&& that) = default;
-
 
 	/// Can't copy assign since Transitions can't
 	ModuleNetwork& operator=(const ModuleNetwork&) = delete;
@@ -136,7 +131,7 @@ public:  // Populating facilities
 	 */
 	void add_module(std::shared_ptr< ModuleInstance >& module);
 
-public:  // Utils
+public:  // Accessors
 
 	/// @copydoc sealed_
 	inline bool sealed() const noexcept { return sealed_; }
@@ -151,8 +146,22 @@ public:  // Utils
 	/// of all the variables in the system model
 	inline size_t concrete_state_size() const noexcept { return gState.concrete_size(); }
 
+	/// @copydoc gState
+	inline const State<STATE_INTERNAL_TYPE>& global_state() const { return gState; }
+
+public:  // Utils
+
 	virtual inline void accept(ImportanceFunction& ifun, Property* const prop)
 		{ ifun.assess_importance(this, prop); }
+
+	/**
+	 * @brief Get a copy of the initial state of the system
+	 * @warning seal() must have been called beforehand
+	 * \ifnot NDEBUG
+	 *   @throw FigException if seal() hasn't been called yet
+	 * \endif
+	 */
+	std::unique_ptr< StateInstance > initial_state() const;
 
 	/**
 	 * @brief Shut the system model to begin with simulations
@@ -180,13 +189,6 @@ public:  // Utils
 			  typename ValueType,
 			  typename... OtherContainerArgs >
 	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames);
-
-	/// @brief Get a copy of the initial state of the system
-	/// @warning seal() must have been called beforehand
-	/// \ifnot NDEBUG
-	///   @throw FigException if seal() hasn't been called yet
-	/// \endif
-	std::unique_ptr< StateInstance > initial_state() const;
 
 	/**
 	 * @brief Advance a traial until some stopping criterion is met

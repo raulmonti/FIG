@@ -235,7 +235,7 @@ Postcondition::Postcondition(
 		updatesData_(NAMES)
 {
 	static_assert(std::is_constructible< std::string, ValueType2 >::value,
-				  "ERROR: type missmatch. Postcondition needs containers "
+				  "ERROR: type mismatch. Postcondition needs containers "
 				  "with variable names");
 	// Register update variables names
 	updatesNames_.insert(begin(updatesNames_), begin(updateVars), end(updateVars));
@@ -261,7 +261,7 @@ Postcondition::Postcondition(
 		updatesData_(NAMES)
 {
 	static_assert(std::is_constructible< std::string, ValueType2 >::value,
-				  "ERROR: type missmatch. Postcondition needs iterators "
+				  "ERROR: type mismatch. Postcondition needs iterators "
 				  "pointing to variable names");
 	// Register update variables names
 	updatesNames_.insert(begin(updatesNames_), from2, to2);

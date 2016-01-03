@@ -71,12 +71,6 @@ public:  // Ctors/Dtor
 	/// @see StoppingConditions
 	StoppingConditions() {}
 
-	/// Template ctor from generic container, partially specialized below
-	template< template< typename, typename... > class Container,
-			  typename ValueType,
-			  typename... OtherContainerArgs >
-	StoppingConditions(const Container<ValueType, OtherContainerArgs...>&);
-
 	/**
 	 * @brief Data ctor for confidence criteria pairs from lvalue container
 	 *
@@ -111,13 +105,6 @@ public:  // Ctors/Dtor
 	StoppingConditions(const Container< unsigned long,
 										OtherContainerArgs...
 									  >& timeBudgets);
-
-	/// Template ctor from generic iterators, partially specialized below
-	template< template< typename, typename... > class Iterator,
-			  typename ValueType,
-			  typename... OtherIteratorArgs >
-	StoppingConditions(Iterator<ValueType, OtherIteratorArgs...>,
-					   Iterator<ValueType, OtherIteratorArgs...>);
 
 	/**
 	 * @brief Data ctor for confidence criteria pairs from iterator range
@@ -243,60 +230,7 @@ public:  // Utils
 
 // Template definitions
 
-// Here to easily cope with partial template specialization
-
-template< template< typename, typename... > class Container,
-		  typename ValueType,
-		  typename... OtherContainerArgs >
-StoppingConditions::StoppingConditions(const Container< ValueType,
-														OtherContainerArgs...
-													  >&)
-{
-	static_assert(std::is_same<ValueType, unsigned long>::value ||
-				  std::is_same<ValueType, std::pair<double, double>>::value,
-				  "ERROR: type missmatch. StoppingConditions can only be "
-				  "built from containers with either unsigned long or "
-				  "std::pair<double,double> elements.");
-}
-
-
-template< template< typename... > class Container,
-		  typename... OtherContainerArgs >
-StoppingConditions::StoppingConditions(const Container< std::pair<double,double>,
-														OtherContainerArgs...
-													  >& confidenceCriteria)
-{
-	confidenceCriteria_.insert(begin(confidenceCriteria_),
-							   begin(confidenceCriteria),
-							   end(confidenceCriteria));
-}
-
-
-template< template< typename... > class Container,
-		  typename... OtherContainerArgs >
-StoppingConditions::StoppingConditions(const Container< unsigned long,
-														OtherContainerArgs...
-													  >& timeBudgets)
-{
-	timeBudgets_.insert(begin(timeBudgets_),
-						begin(timeBudgets),
-						end(timeBudgets));
-}
-
-
-template< template< typename, typename... > class Iterator,
-		  typename ValueType,
-		  typename... OtherIteratorArgs >
-StoppingConditions::StoppingConditions(Iterator<ValueType,OtherIteratorArgs...>,
-									   Iterator<ValueType,OtherIteratorArgs...>)
-{
-	static_assert(std::is_same<ValueType, unsigned long>::value ||
-				  std::is_same<ValueType, std::pair<double, double>>::value,
-				  "ERROR: type missmatch. StoppingConditions can only be "
-				  "built from iterators pointing to either unsigned long or "
-				  "std::pair<double,double> elements.");
-}
-
+// If curious about its presence here take a look at the end of VariableSet.cpp
 
 template< template< typename... > class Iterator,
 		  typename... OtherIteratorArgs >

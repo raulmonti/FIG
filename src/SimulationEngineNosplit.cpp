@@ -27,16 +27,55 @@
 //==============================================================================
 
 
+#include <core_typedefs.h>
 #include <SimulationEngineNosplit.h>
+#include <StoppingConditions.h>
+#include <FigException.h>
+#include <PropertyTransient.h>
 
 
 namespace fig
 {
 
-double SimulationEngineNosplit::simulate(const StoppingConditions& effort) const
+double
+SimulationEngineNosplit::simulate(const size_t &numRuns) const
 {
+	double result;
 
+	if (!loaded())
+#ifndef NDEBUG
+		throw FigException("engine wasn't loaded, can't simulate");
+#else
+		return;
+#endif
+
+	return result;
 }
 
+
+bool
+SimulationEngineNosplit::eventTriggered(const Traial& traial) const
+{
+	switch (property->type) {
+	case PropertyType::TRANSIENT:
+	{
+		auto prop = static_cast<const PropertyTransient*>(property);
+		if (prop->is_goal(traial.state) ||
+			prop->is_stop(traial.state))
+			return true;
+	}
+		break;
+	case PropertyType::THROUGHPUT:
+	case PropertyType::RATE:
+	case PropertyType::PROPORTION:
+	case PropertyType::BOUNDED_REACHABILITY:
+		throw FigException("property type isn't supported yet");
+		break;
+	default:
+		throw FigException("invalid property type");
+		break;
+	}
+	return false;
+}
 
 } // namespace fig

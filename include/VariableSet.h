@@ -171,7 +171,7 @@ VariableSet<T_>::VariableSet(
 					 static_cast<T_>(0))
 {
 	static_assert(std::is_same< T_, ValueType >::value,
-				  "ERROR: type missmatch. Container internal data type "
+				  "ERROR: type mismatch. Container internal data type "
 				  "must match the type of this template class");
 
 	Variable<T_>::min_ = std::numeric_limits<T_>::max();
@@ -205,7 +205,7 @@ VariableSet<T_>::VariableSet(
 					 static_cast<T_>(0))
 {
 	static_assert(std::is_same< T_, ValueType >::value,
-				  "ERROR: type missmatch. Container internal data type "
+				  "ERROR: type mismatch. Container internal data type "
 				  "must match the type of this template class");
 
 	Variable<T_>::min_ = std::numeric_limits<T_>::max();
@@ -240,7 +240,7 @@ VariableSet<T_>::VariableSet(
 					 static_cast<T_>(0))
 {
 	static_assert(std::is_same< T_, ValueType >::value,
-				  "ERROR: type missmatch. Container internal data type pointer "
+				  "ERROR: type mismatch. Container internal data type pointer "
 				  "must match the type of this template class");
 
 	Variable<T_>::min_ = std::numeric_limits<T_>::max();
@@ -277,7 +277,7 @@ VariableSet<T_>::VariableSet(
 		values_(std::distance(from,to))
 {
 	static_assert(std::is_same< T_, ValueType >::value,
-				  "ERROR: type missmatch. Iterator pointed-to data type "
+				  "ERROR: type mismatch. Iterator pointed-to data type "
 				  "must match the type of this template class");
 
 	Variable<T_>::min_ = std::numeric_limits<T_>::max();

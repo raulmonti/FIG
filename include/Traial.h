@@ -71,7 +71,8 @@ class Traial
 	friend class Transition;
 	friend class ModuleNetwork;
 
-protected:
+//protected:
+public:  // Public only for testing
 
 	/// Paraphernalia needed on clock expiration
 	struct Timeout
@@ -109,7 +110,8 @@ public:  // Attributes
 	/// (same order as in the system global state)
 	StateInstance state;
 
-protected:
+//protected:
+public:  // Public only for testing
 
 	/// \ref Clock "Clocks" values instantiation
 	/// (order given by each \ref ModuleInstance "module" internals,
@@ -201,7 +203,7 @@ public:  // Utils
 	 *        This member function resets the Traial instance to comply
 	 *        with such initial conditions.
 	 *
-	 * @warning ModuleNetwork::seal() must have been called beforehand
+	 * @warning ModelSuite::seal() must have been called beforehand
 	 * \ifnot NDEBUG
 	 *   @throw FigException if the system model hasn't been sealed yet
 	 * \endif

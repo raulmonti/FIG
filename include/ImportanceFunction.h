@@ -30,6 +30,8 @@
 #ifndef IMPORTANCEFUNCTION_H
 #define IMPORTANCEFUNCTION_H
 
+#include <string>
+
 
 namespace fig
 {
@@ -57,9 +59,17 @@ class ImportanceFunction
 	/// Can this instance be used for simulations?
 	bool readyForSimulations;
 
+protected:
+
+	/// Importance strategy implemented by this function
+	std::string name_;
+
 public:
 
 	ImportanceFunction() : readyForSimulations(false) {}
+
+	/// @copydoc name_
+	inline const std::string& name() const noexcept { return name_; }
 
 	/**
 	 * @copydoc readyForSimulations

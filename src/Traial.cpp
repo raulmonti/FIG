@@ -110,7 +110,7 @@ Traial::Traial(const size_t& stateSize,
 		[&] (const std::string& name) -> bool
 		{ return std::find(begin(whichClocks),end(whichClocks),name) != end(whichClocks); };
 	static_assert(std::is_convertible< std::string, ValueType >::value,
-				  "ERROR: type missmatch. Traial data ctor needs a container "
+				  "ERROR: type mismatch. Traial data ctor needs a container "
 				  "with clock names");
 	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 	clocks_.reserve(numClocks);

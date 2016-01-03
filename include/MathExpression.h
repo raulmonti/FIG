@@ -222,7 +222,7 @@ MathExpression::MathExpression(
 		pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
-				  "ERROR: type missmatch. MathExpression needs a container "
+				  "ERROR: type mismatch. MathExpression needs a container "
 				  "with variable names");
 	// Setup MuParser expression
 	parse_our_expression();
@@ -249,7 +249,7 @@ MathExpression::MathExpression(
 		pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
-				  "ERROR: type missmatch. MathExpression needs a container "
+				  "ERROR: type mismatch. MathExpression needs a container "
 				  "with variable names");
 	// Setup MuParser expression
 	parse_our_expression();
@@ -278,7 +278,7 @@ MathExpression::MathExpression(
 		pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
-				  "ERROR: type missmatch. MathExpression needs iterators "
+				  "ERROR: type mismatch. MathExpression needs iterators "
 				  "pointing to variable names");
 	// Setup MuParser expression
 	parse_our_expression();

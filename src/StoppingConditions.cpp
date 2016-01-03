@@ -28,14 +28,65 @@
 
 
 // C++
-#include <utility>  // std::swap
+#include <set>
+#include <list>
+#include <deque>
+#include <vector>
+#include <forward_list>
+#include <unordered_set>
+#include <iterator>  // std::begin, std::end
+#include <utility>   // std::swap
 // FIG
 #include <StoppingConditions.h>
 #include <FigException.h>
 
+// ADL
+using std::begin;
+using std::end;
+
 
 namespace fig
 {
+
+template< template< typename... > class Container,
+		  typename... OtherContainerArgs >
+StoppingConditions::StoppingConditions(const Container< std::pair<double,double>,
+														OtherContainerArgs...
+													  >& confidenceCriteria)
+{
+	confidenceCriteria_.insert(begin(confidenceCriteria_),
+							   begin(confidenceCriteria),
+							   end(confidenceCriteria));
+}
+
+// Value StoppingConditions can only be created from the following containers
+template StoppingConditions::StoppingConditions(const std::set<std::pair<double,double>>&);
+template StoppingConditions::StoppingConditions(const std::list<std::pair<double,double>>&);
+template StoppingConditions::StoppingConditions(const std::deque<std::pair<double,double>>&);
+template StoppingConditions::StoppingConditions(const std::vector<std::pair<double,double>>&);
+template StoppingConditions::StoppingConditions(const std::forward_list<std::pair<double,double>>&);
+// template StoppingConditions::StoppingConditions(const std::unordered_set<std::pair<double,double>>&);
+
+
+template< template< typename... > class Container,
+		  typename... OtherContainerArgs >
+StoppingConditions::StoppingConditions(const Container< unsigned long,
+														OtherContainerArgs...
+													  >& timeBudgets)
+{
+	timeBudgets_.insert(begin(timeBudgets_),
+						begin(timeBudgets),
+						end(timeBudgets));
+}
+
+// Time StoppingConditions can only be created from the following containers
+template StoppingConditions::StoppingConditions(const std::set<unsigned long>&);
+template StoppingConditions::StoppingConditions(const std::list<unsigned long>&);
+template StoppingConditions::StoppingConditions(const std::deque<unsigned long>&);
+template StoppingConditions::StoppingConditions(const std::vector<unsigned long>&);
+template StoppingConditions::StoppingConditions(const std::forward_list<unsigned long>&);
+template StoppingConditions::StoppingConditions(const std::unordered_set<unsigned long>&);
+
 
 StoppingConditions& StoppingConditions::operator=(StoppingConditions that)
 {

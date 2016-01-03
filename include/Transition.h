@@ -316,7 +316,7 @@ Transition::Transition(
 		resetClocksData_(CARBON)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
-				  "ERROR: type missmatch. Transition ctor needs a "
+				  "ERROR: type mismatch. Transition ctor needs a "
 				  "container with the names of the resetting clocks");
 	// Input enabledness: no triggering clock for input labels
 	assert(label_.is_input() == triggeringClock.empty());
@@ -344,7 +344,7 @@ Transition::Transition(
 		resetClocksData_(CARBON)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
-				  "ERROR: type missmatch. Transition ctor needs a "
+				  "ERROR: type mismatch. Transition ctor needs a "
 				  "container with the names of the resetting clocks");
 	// Input enabledness: no triggering clock for input labels
 	assert(label_.is_input() == triggeringClock.empty());
@@ -374,7 +374,7 @@ Transition::handle_clocks(Traial& traial,
 			return resetClocks_ & ((static_cast<Bitflag>(1)) << pos);
 		};
 	static_assert(std::is_convertible< Clock*, ValueType >::value,
-				  "ERROR: type missmatch. handle_clocks() takes iterators "
+				  "ERROR: type mismatch. handle_clocks() takes iterators "
 				  "pointing to Clock objects");
 	// Make sure callback() has been called already
 	assert(CRYSTAL == resetClocksData_);

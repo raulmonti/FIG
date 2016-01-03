@@ -31,6 +31,7 @@
 #define SIMULATIONENGINE_H
 
 // C++
+#include <string>
 #include <memory>
 // FIG
 #include <core_typedefs.h>
@@ -42,9 +43,7 @@
 namespace fig
 {
 
-/// @todo TODO define ConfidenceInterval class and erase this dummy
 class ConfidenceInterval;
-/// @todo TODO define StoppingCondition class and erase this dummy
 class StoppingConditions;
 
 /**
@@ -57,6 +56,9 @@ class StoppingConditions;
 class SimulationEngine
 {
 protected:
+
+    /// Simulation strategy implemented by this engine
+    std::string name_;
 
     /// Property whose value is trying to be estimated
     const Property* property;
@@ -108,22 +110,35 @@ public:  // Engine setup
     inline void unload() noexcept
         { property = nullptr; impFun = nullptr; }
 
+public:  // Accessors
+
+    /// @copydoc name_
+    inline const std::string& name() const noexcept { return name_; }
+
+    /// Property currently loaded in the engine, or void string if none is.
+    inline const std::string current_prop() const noexcept
+        { if (nullptr != property) return property->expression; else return ""; }
+
+    /// Importance strategy of the function currently loaded in the engine,
+    /// or void string if none is.
+    inline const std::string current_ifun() const noexcept
+        { if (nullptr != impFun) return impFun->name(); else return ""; }
+
 public:  // Simulation utils
 
     /**
-     * @brief Simulate in model until the specified 'effort' is made
+     * @brief Simulate in model certain number of independent runs
      *
      *        The property whose value is being estimated as well as the
      *        importance function used are taken from the last call to load()
      *
-     * @param effort Number of runs or simulation time for which
-     *               this simulation will be run
+     * @param numRuns Number of indepdendent runs to perform
      *
      * @return Estimated value for the property at the end of this simulation
      *
      * @throw FigException if the engine wasn't \ref loaded() "ready"
      */
-    virtual double simulate(const StoppingConditions& effort) const = 0;
+    virtual double simulate(const size_t& numRuns) const = 0;
 
     /**
      * @brief Simulate in model until externally interrupted
@@ -147,13 +162,6 @@ public:  // Simulation utils
      * @param traial Embodiment of a simulation running through the system model
      */
     virtual bool eventTriggered(const Traial& traial) const = 0;
-
-    /// @todo TODO define "eventTriggered(const Traial&)"
-    ///
-    ///       It should use the current ImportanceFunction to assess
-    ///       the importance of the current Traial.state.
-    ///       It may also need info like the THRESHOLDS_DOWN_TOLERANCE
-    ///       or the maximum simulation time
 };
 
 } // namespace fig
