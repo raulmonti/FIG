@@ -116,7 +116,8 @@ public:  // Access to the ModelSuite instance
 		}
 
 	/// Allow syntax "auto varname = fig::ModelSuite::get_instance();"
-	inline ModelSuite(const ModelSuite& that) { instance_.swap(that.instance_); }
+	inline ModelSuite(const ModelSuite&) {}
+		// { instance_.swap(that.instance_); }
 
 	~ModelSuite();
 

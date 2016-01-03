@@ -66,7 +66,7 @@ namespace fig
 std::unordered_map< std::string, Distribution > distributions_list =
 {
 	{"uniform",
-	  [] (const DistributionParameters& params)
+	  [] (const DistributionParameters&)
 	  { return uniform01(rng); }},
 	{"uniformAB",
 	  [] (const DistributionParameters& params)
@@ -75,7 +75,7 @@ std::unordered_map< std::string, Distribution > distributions_list =
 	  [] (const DistributionParameters& params)
 	  { return exponential1(rng) / params[0]; }},  // Grisel me dijo que es así
 	{"normal",
-	  [] (const DistributionParameters& params)
+	  [] (const DistributionParameters&)
 	  { return normal01(rng); }},
 	{"normalMV",
 	  [] (const DistributionParameters& params)

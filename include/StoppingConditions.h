@@ -32,6 +32,7 @@
 #include <vector>
 #include <utility>
 #include <iterator>     // std::begin, std::end
+#include <type_traits>  // std::is_same<>
 
 // ADL
 using std::begin;
@@ -70,43 +71,29 @@ public:  // Ctors/Dtor
 	/// @see StoppingConditions
 	StoppingConditions() {}
 
+	/// Template ctor from generic container, partially specialized below
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	StoppingConditions(const Container<ValueType, OtherContainerArgs...>&);
+
 	/**
 	 * @brief Data ctor for confidence criteria pairs from lvalue container
 	 *
 	 *        This ctor builds the StoppingConditions for "value simulations".
-	 *        The passed data is interpreted as std::pair<double,double>.
-	 *        The first components are interpreted as confidence coefficients
-	 *        (in the open range (0.0,1.0)), and the second components are
-	 *        interpreted as the matching precisions.
+	 *        The first component of each element in the container
+	 *        is interpreted as confidence coefficients (in the open range
+	 *        (0.0,1.0)), and the second component as the matching precision.
 	 *
 	 * @param confidenceCriteria Container with the confidence criteria pairs
 	 *
 	 * @see StoppingConditions
 	 */
-	template< template< typename PAIR_, typename... > class Container,
-			  typename PAIR_,
+	template< template< typename... > class Container,
 			  typename... OtherContainerArgs >
-	StoppingConditions(const Container< std::pair<double,double>, OtherContainerArgs... >& confidenceCriteria);
-
-	/**
-	 * @brief Data ctor for confidence criteria pairs from iterator range
-	 *
-	 *        This ctor builds the StoppingConditions for "value simulations".
-	 *        The passed data is interpreted as std::pair<double,double>.
-	 *        The first components are interpreted as confidence coefficients
-	 *        (in the open range (0.0,1.0)), and the second components are
-	 *        interpreted as the matching precisions.
-	 *
-	 * @param from   Iterator to  the first confidence criterion pair
-	 * @param to     Iterator past the last confidence criterion pair
-	 *
-	 * @see StoppingConditions
-	 */
-	template< template< typename PAIR_, typename... > class Iterator,
-			  typename PAIR_,
-			  typename... OtherIteratorArgs >
-	StoppingConditions(Iterator<PAIR_, OtherIteratorArgs...> from,
-					   Iterator<PAIR_, OtherIteratorArgs...> to);
+	StoppingConditions(const Container< std::pair<double,double>,
+										OtherContainerArgs...
+									  >& confidenceCriteria);
 
 	/**
 	 * @brief Data ctor for time budgets from lvalue container
@@ -119,35 +106,67 @@ public:  // Ctors/Dtor
 	 *
 	 * @see StoppingConditions
 	 */
-	template< template< typename ULONG_, typename... > class Container,
-			  typename ULONG_,
+	template< template< typename... > class Container,
 			  typename... OtherContainerArgs >
-	StoppingConditions(const Container< unsigned long, OtherContainerArgs... >& timeBudgets);
+	StoppingConditions(const Container< unsigned long,
+										OtherContainerArgs...
+									  >& timeBudgets);
 
-//	/**
-//	 * @brief Data ctor for time budgets from iterator range
-//	 *
-//	 *        This ctor builds the StoppingConditions for "time simulations".
-//	 *        The passed data is interpreted as wall clock time values,
-//	 *        in seconds, which will bound the simulations running time.
-//	 *
-//	 * @param from   Iterator to  the first time budget, in seconds
-//	 * @param to     Iterator past the last time budget, in seconds
-//	 *
-//	 * @see StoppingConditions
-//	 */
-//	template< template< typename ULONG_, typename... > class Iterator,
-//			  typename ULONG_,
-//			  typename... OtherIteratorArgs >
-//	StoppingConditions(Iterator<ULONG_, OtherIteratorArgs...> from,
-//					   Iterator<ULONG_, OtherIteratorArgs...> to);
+	/// Template ctor from generic iterators, partially specialized below
+	template< template< typename, typename... > class Iterator,
+			  typename ValueType,
+			  typename... OtherIteratorArgs >
+	StoppingConditions(Iterator<ValueType, OtherIteratorArgs...>,
+					   Iterator<ValueType, OtherIteratorArgs...>);
+
+	/**
+	 * @brief Data ctor for confidence criteria pairs from iterator range
+	 *
+	 *        This ctor builds the StoppingConditions for "value simulations".
+	 *        The first component of each element is interpreted as confidence
+	 *        coefficients (in the open range (0.0,1.0)), and the second
+	 *        component as the matching precision.
+	 *
+	 * @param from   Iterator to  the first confidence criterion pair
+	 * @param to     Iterator past the last confidence criterion pair
+	 *
+	 * @see StoppingConditions
+	 */
+	template< template< typename... > class Iterator,
+			  typename... OtherIteratorArgs >
+	StoppingConditions(Iterator<std::pair<double,double>,
+								OtherIteratorArgs...> from,
+					   Iterator<std::pair<double,double>,
+								OtherIteratorArgs...> to);
+
+	/**
+	 * @brief Data ctor for time budgets from iterator range
+	 *
+	 *        This ctor builds the StoppingConditions for "time simulations".
+	 *        The passed data is interpreted as wall clock time values,
+	 *        in seconds, which will bound the simulations running time.
+	 *
+	 * @param from   Iterator to  the first time budget, in seconds
+	 * @param to     Iterator past the last time budget, in seconds
+	 *
+	 * @see StoppingConditions
+	 */
+	template< template< typename... > class Iterator,
+			  typename... OtherIteratorArgs >
+	StoppingConditions(Iterator<unsigned long,
+								OtherIteratorArgs...> from,
+					   Iterator<unsigned long,
+								OtherIteratorArgs...> to);
 
 	/// Default copy ctor
 	StoppingConditions(const StoppingConditions& that) = default;
+
 	/// Default move ctor
 	StoppingConditions(StoppingConditions&& that) = default;
+
 	/// Copy assignment with copy&swap
 	StoppingConditions& operator=(StoppingConditions that);
+
 	/// Default dtor
 	~StoppingConditions() = default;
 
@@ -199,9 +218,15 @@ public:  // Utils
 	/// @see StoppingConditions
 	inline bool is_value() const noexcept { return !confidenceCriteria_.empty(); }
 
+	/// Alias for is_value()
+	inline bool is_confidence_criteria() const noexcept { return is_value(); }
+
 	/// Are these stopping conditions for "time simulations"?
 	/// @see StoppingConditions
 	inline bool is_time()  const noexcept { return !timeBudgets_.empty(); }
+
+	/// Alias for is_time()
+	inline bool is_time_budgets() const noexcept { return is_time(); }
 
 	/// @return Value stopping conditions, or "confidence criteria".
 	///         Empty if this instance holds time budgets.
@@ -218,33 +243,79 @@ public:  // Utils
 
 // Template definitions
 
-// If curious about its presence here take a look at the end of VariableSet.cpp
+// Here to easily cope with partial template specialization
 
-template< template< typename PAIR_, typename... > class Iterator,
-		  typename PAIR_,
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+StoppingConditions::StoppingConditions(const Container< ValueType,
+														OtherContainerArgs...
+													  >&)
+{
+	static_assert(std::is_same<ValueType, unsigned long>::value ||
+				  std::is_same<ValueType, std::pair<double, double>>::value,
+				  "ERROR: type missmatch. StoppingConditions can only be "
+				  "built from containers with either unsigned long or "
+				  "std::pair<double,double> elements.");
+}
+
+
+template< template< typename... > class Container,
+		  typename... OtherContainerArgs >
+StoppingConditions::StoppingConditions(const Container< std::pair<double,double>,
+														OtherContainerArgs...
+													  >& confidenceCriteria)
+{
+	confidenceCriteria_.insert(begin(confidenceCriteria_),
+							   begin(confidenceCriteria),
+							   end(confidenceCriteria));
+}
+
+
+template< template< typename... > class Container,
+		  typename... OtherContainerArgs >
+StoppingConditions::StoppingConditions(const Container< unsigned long,
+														OtherContainerArgs...
+													  >& timeBudgets)
+{
+	timeBudgets_.insert(begin(timeBudgets_),
+						begin(timeBudgets),
+						end(timeBudgets));
+}
+
+
+template< template< typename, typename... > class Iterator,
+		  typename ValueType,
+		  typename... OtherIteratorArgs >
+StoppingConditions::StoppingConditions(Iterator<ValueType,OtherIteratorArgs...>,
+									   Iterator<ValueType,OtherIteratorArgs...>)
+{
+	static_assert(std::is_same<ValueType, unsigned long>::value ||
+				  std::is_same<ValueType, std::pair<double, double>>::value,
+				  "ERROR: type missmatch. StoppingConditions can only be "
+				  "built from iterators pointing to either unsigned long or "
+				  "std::pair<double,double> elements.");
+}
+
+
+template< template< typename... > class Iterator,
 		  typename... OtherIteratorArgs >
 StoppingConditions::StoppingConditions(
-	Iterator<PAIR_, OtherIteratorArgs...> from,
-	Iterator<PAIR_, OtherIteratorArgs...> to)
+	Iterator<std::pair<double,double>, OtherIteratorArgs...> from,
+	Iterator<std::pair<double,double>, OtherIteratorArgs...> to)
 {
-	static_assert(std::is_constructible<std::pair<double,double>, PAIR_>::value,
-				  "ERROR: type missmatch. StoppingConditions for confidence "
-				  "criteria takes iterators pointing to std::pair<double,double>");
 	confidenceCriteria_.insert(begin(confidenceCriteria_), from, to);
 }
 
-// template< template< typename ULONG_, typename... > class Iterator,
-// 		  typename ULONG_,
-// 		  typename... OtherIteratorArgs >
-// StoppingConditions::StoppingConditions(
-// 	Iterator<ULONG_, OtherIteratorArgs...> from,
-// 	Iterator<ULONG_, OtherIteratorArgs...> to)
-// {
-// 	static_assert(std::is_constructible<std::pair<double,double>, PAIR_>::value,
-// 				  "ERROR: type missmatch. StoppingConditions for time budgets "
-// 				  "takes iterators pointing to unsigned long data");
-// 	timeBudgets_.insert(begin(timeBudgets_), from, to);
-// }
+
+template< template< typename... > class Iterator,
+		  typename... OtherIteratorArgs >
+StoppingConditions::StoppingConditions(
+	Iterator<unsigned long, OtherIteratorArgs...> from,
+	Iterator<unsigned long, OtherIteratorArgs...> to)
+{
+	timeBudgets_.insert(begin(timeBudgets_), from, to);
+}
 
 } // namespace fig
 
