@@ -179,7 +179,7 @@ public:  // Ctors/Dtor
 public:  // Public only for testing
 
 	/**
-	 * @copydoc fig::MathExpression::pin_up_vars()
+	 * @copydoc fig::MathExpression::pin_up_vars(const PositionsMap&)
 	 * \ifnot NDEBUG
 	 *   @throw FigException if there was some error in our math expression
 	 * \endif
@@ -194,10 +194,7 @@ public:  // Public only for testing
 	 * \endif
 	 * @note Maps also the positions of the update variables
 	 */
-	void pin_up_vars(std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
-										   const std::string&)
-								  > posOfVar,
-					 const fig::State<STATE_INTERNAL_TYPE>& globalState);
+	void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState);
 
 public:  // Accessors
 

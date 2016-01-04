@@ -28,6 +28,7 @@
 
 // C++
 #include <random>
+#include <numeric>  // std::max<>
 #include <unordered_map>
 // FIG
 #include <Clock.h>
@@ -76,10 +77,10 @@ std::unordered_map< std::string, Distribution > distributions_list =
 	  { return exponential1(rng) / params[0]; }},  // Grisel me dijo que es así
 	{"normal",
 	  [] (const DistributionParameters&)
-	  { return normal01(rng); }},
+	  { return std::max<double>(0.0, normal01(rng)); }},
 	{"normalMV",
 	  [] (const DistributionParameters& params)
-	  { return normal01(rng) * params[1] + params[0]; }}
+	  { return std::max<double>(0.0, normal01(rng) * params[1] + params[0]); }}
 };
 
 } // namespace fig

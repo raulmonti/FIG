@@ -150,14 +150,10 @@ protected:  // Modifyers
 			goal.pin_up_vars(globalVars);
 		}
 
-	inline virtual void pin_up_vars(
-			std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
-								  const std::string&)
-						 > posOfVar,
-			const fig::State<STATE_INTERNAL_TYPE>& globalState)
+	inline virtual void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 		{
-			stop.pin_up_vars(posOfVar, globalState);
-			goal.pin_up_vars(posOfVar, globalState);
+			stop.pin_up_vars(globalState);
+			goal.pin_up_vars(globalState);
 		}
 
 public:  // Utils

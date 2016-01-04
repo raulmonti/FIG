@@ -168,20 +168,16 @@ Postcondition::pin_up_vars(const PositionsMap &globalVars)
 
 
 void
-Postcondition::pin_up_vars(
-	std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
-						  const std::string&)
-				 > posOfVar,
-	const fig::State<STATE_INTERNAL_TYPE>& globalState)
+Postcondition::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 {
 	// Map general expression variables
-	MathExpression::pin_up_vars(posOfVar, globalState);
+	MathExpression::pin_up_vars(globalState);
 	// Map update variables
 	assert(NAMES == updatesData_);
 	std::vector< size_t > positions(updatesNames_.size());
 	size_t i(0u);
 	for (const auto& name: updatesNames_)
-		positions[i++] = posOfVar(globalState, name);
+		positions[i++] = globalState.position_of_var(name);
 	updatesNames_.~vector< std::string >();
 	new (&updatesPositions_) std::vector< size_t >;
 	swap(positions, updatesPositions_);

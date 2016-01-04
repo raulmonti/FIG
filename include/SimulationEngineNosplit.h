@@ -53,7 +53,7 @@ public:  // Inherited virtual simulation functions
 
 	virtual double simulate(const size_t& numRuns) const;
 
-	virtual void simulate(ConfidenceInterval& ci) const {}
+	virtual void simulate(ConfidenceInterval&) const {}
 
 	virtual bool eventTriggered(const Traial& traial) const;
 };

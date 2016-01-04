@@ -72,13 +72,9 @@ Precondition::pin_up_vars(const PositionsMap &globalVars)
 
 
 void
-Precondition::pin_up_vars(
-	std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
-						 const std::string&)
-				 > posOfVar,
-	const fig::State<STATE_INTERNAL_TYPE>& globalState)
+Precondition::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 {
-	MathExpression::pin_up_vars(posOfVar, globalState);
+	MathExpression::pin_up_vars(globalState);
 #ifndef NDEBUG
 	fake_evaluation();  // Reveal parsing errors in this early stage
 #endif

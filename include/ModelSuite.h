@@ -146,8 +146,7 @@ public:  // Modifyers
 	{
 		model->seal(initialClocksNames);
 		for (Property& prop: properties)
-			prop.pin_up_vars(&State<STATE_INTERNAL_TYPE>::position_of_var,
-							 model->global_state());
+			prop.pin_up_vars(model->global_state());
 	}
 
 public:  // Stubs for ModuleNetwork
@@ -167,7 +166,7 @@ public:  // Stubs for ModuleNetwork
 
 public:  // Delete the following when moving on from basic_TADs branch
 	/// @todo TODO delete this function
-	void simulation_step(Traial& traial, const SimulationEngine* engine) const
+	inline void simulation_step(Traial& traial, const SimulationEngine* engine) const
 		{ model->simulation_step(traial, engine); }
 
 public:  // Simulation utils

@@ -43,7 +43,7 @@ namespace fig
 
 Transition::Transition(const Transition& that) :
 	label_(that.label_),
-	triggeringClock_(that.triggeringClock_),
+	triggeringClock(that.triggeringClock),
 	pre(that.pre),
 	pos(that.pos),
 	resetClocksData_(that.resetClocksData_)
@@ -63,7 +63,7 @@ Transition::Transition(const Transition& that) :
 
 Transition::Transition(Transition&& that) :
 	label_(std::move(that.label_)),
-	triggeringClock_(std::move(that.triggeringClock_)),
+	triggeringClock(std::move(that.triggeringClock)),
 	pre(std::move(that.pre)),
 	pos(std::move(that.pos)),
 	resetClocksData_(std::move(that.resetClocksData_))
@@ -85,7 +85,7 @@ Transition::Transition(Transition&& that) :
 // Transition::operator=(Transition that)
 // {
 // 	std::swap(label_, that.label_);
-// 	std::swap(triggeringClock_, that.triggeringClock_);
+// 	std::swap(triggeringClock, that.triggeringClock);
 // 	std::swap(pre, that.pre);
 // 	std::swap(pos, that.pos);
 // 	std::swap(resetClocksData_, that.resetClocksData_);
@@ -151,10 +151,10 @@ Transition::crystallize(const PositionsMap& globalClocks)
 
 	// As a courtesy, check mapping of triggering clock, if any
 #ifndef NRANGECHK
-	if (!triggeringClock_.empty() &&
-			end(globalClocks) == globalClocks.find(triggeringClock_)) {
+	if (!triggeringClock.empty() &&
+			end(globalClocks) == globalClocks.find(triggeringClock)) {
 		std::stringstream errMsg;
-		errMsg << "triggering clock \"" << triggeringClock_;
+		errMsg << "triggering clock \"" << triggeringClock;
 		errMsg << "\" wasn't found in the global clocks map";
 		throw std::out_of_range(errMsg.str());
 	}

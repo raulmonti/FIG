@@ -495,7 +495,7 @@ test_transition()
 //	fig::Transition trans(tau, "" /* fails assertion */, pre, pos, NamesList());
 	fig::Transition trans1(tau, "anyClock", pre, pos, NamesList());
 	assert(tau == trans1.label());
-	assert(!trans1.triggeringClock().empty());
+	assert(!trans1.triggeringClock.empty());
 	assert(trans1.resetClocksList().empty());
 	assert(static_cast<fig::Bitflag>(0u) == trans1.resetClocks());
 
@@ -504,7 +504,7 @@ test_transition()
 	auto pos2(pos);
 //	fig::Transition trans(input, "anyClock" /* fails assertion */, pre, pos, NamesList());
 	fig::Transition trans2(input, "", std::move(pre2), std::move(pos2), resetClocks2);
-	assert(trans2.triggeringClock().empty());
+	assert(trans2.triggeringClock.empty());
 	assert(!trans2.resetClocksList().empty());
 
 	const NamesList resetClocks3(clockNames);
@@ -518,11 +518,11 @@ test_transition()
 	assert(trans3.resetClocksList().empty());
 
 	auto trans4(trans2);
-	assert(trans4.triggeringClock() == trans2.triggeringClock());
+	assert(trans4.triggeringClock == trans2.triggeringClock);
 	assert(trans4.resetClocksList() == trans2.resetClocksList());
 	assert(trans4.resetClocks()     == trans2.resetClocks());
 	auto trans5(std::move(fig::Transition(trans3)));  // force move ctor
-	assert(trans5.triggeringClock() == trans3.triggeringClock());
+	assert(trans5.triggeringClock == trans3.triggeringClock);
 	assert(trans5.resetClocksList() == trans3.resetClocksList());
 	assert(trans5.resetClocks()     == trans3.resetClocks());
 
@@ -793,7 +793,7 @@ test_module_network()
 	// Module2
 	const State module2Vars = std::vector<VarDec>({{std::make_tuple("q", 0, 2)}});
 	const std::vector<Clock> module2Clocks({
-		{"c2", "normalMV", DistParams({{2.0, 1.0}})},
+		{"c2", "normalMV", DistParams({{5.0, 0.5}})},
 		{"c3", "exponential", DistParams({{3.0}})}    });
 	auto module2 = std::make_shared<Module>("Module2", module2Vars, module2Clocks);
 	module2->add_transition(
@@ -839,4 +839,7 @@ test_module_network()
 	fig::SimulationEngine* engine_ptr = new fig::SimulationEngineNosplit;
 	engine_ptr->load(property, nullptr);
 	model.simulation_step(*t, engine_ptr);
+	// The property should make this simulation step finish
+	// as soon as the deadlock is reached, i.e. p == q == 2.
+	delete engine_ptr;
 }

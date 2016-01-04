@@ -38,9 +38,9 @@ namespace fig
 {
 
 double
-SimulationEngineNosplit::simulate(const size_t &numRuns) const
+SimulationEngineNosplit::simulate(const size_t&) const
 {
-	double result;
+	double result(0.0);
 
 	if (!loaded())
 #ifndef NDEBUG

@@ -35,7 +35,6 @@
 #include <utility>    // std::move(), std::forward<>()
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // std::find_if()
-#include <functional>
 #include <unordered_map>
 // C
 #include <cassert>
@@ -83,9 +82,11 @@ class Transition
 	/// Synchronization label, could also be tau (viz. empty)
 	Label label_;
 
+public:
+
 	/// Name of the clock regulating transition applicability
 	/// (empty for input transitions)
-	std::string triggeringClock_;
+	const std::string triggeringClock;
 
 protected:
 
@@ -108,7 +109,7 @@ public:  // Ctors/Dtor
 	 * @brief Data ctor (copies/moves {pre,post}conditions)
 	 *
 	 * @param label            @copydoc label_
-	 * @param triggeringClock  @copydoc triggeringClock_
+	 * @param triggeringClock  @copydoc triggeringClock
 	 * @param pre              @copydoc pre
 	 * @param pos              @copydoc pos
 	 * @param resetClocks      Names of the clocks to reset when transition is taken
@@ -153,9 +154,6 @@ public:  // Read access to some attributes
 
 	/// @copydoc label_
 	inline const Label& label() const noexcept { return label_; }
-
-	/// @copydoc triggeringClock_
-	inline const std::string& triggeringClock() const noexcept { return triggeringClock_; }
 
 	/// Clocks to reset when transition is taken, as a list of clocks names
 	inline const std::vector< std::string > resetClocksList() const noexcept
@@ -215,10 +213,9 @@ public:  // Public only for testing
 	 *        is then \ref ModuleNetwork::seal() "sealed", eventually
 	 *        triggering this member function.
 	 *
-	 * @param globalClocks Map of clock names to their global positions
-	 * @param posOfVar     Member function of State which given a variable name
-	 *                     returns the position where this resides internally
-	 * @param globalState  Global state instance, owner of the member function
+	 * @param globalClocks  Map of clock names to their global positions
+	 * @param globalState   State with the position of the variables of this
+	 *                      transition within the global state of the system
 	 *
 	 * @warning This should be called <b>exactly once</b>
 	 * \ifnot NDEBUG
@@ -229,14 +226,11 @@ public:  // Public only for testing
 	 * \endif
 	 */
 	inline void callback(const PositionsMap& globalClocks,
-						 std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
-											   const std::string&)
-									  > posOfVar,
 						 const fig::State<STATE_INTERNAL_TYPE>& globalState)
 		{
 			crystallize(globalClocks);
-			pre.pin_up_vars(posOfVar, globalState);
-			pos.pin_up_vars(posOfVar, globalState);
+			pre.pin_up_vars(globalState);
+			pos.pin_up_vars(globalState);
 		}
 
 	/**
@@ -257,9 +251,6 @@ public:  // Public only for testing
 	 * @param timeLapse  Amount of time elapsed for the non-reseting clocks
 	 *
 	 * @warning callback() must have been called beforehand
-	 * \ifnot NTIMECHK
-	 *   @throw FigException if some clock was assigned a negative value
-	 * \endif
 	 *
 	 * @note <b>Complexity:</b> <i>O(std::distance(from,to))</i>
 	 */
@@ -309,7 +300,7 @@ Transition::Transition(
 	const Postcondition& pos,
 	const Container<ValueType, OtherContainerArgs...>& resetClocks) :
 		label_(label),
-		triggeringClock_(triggeringClock),
+		triggeringClock(triggeringClock),
 		pre(pre),
 		pos(pos),
 		resetClocksList_(),
@@ -337,7 +328,7 @@ Transition::Transition(
 	Postcondition&& pos,
 	const Container<ValueType, OtherContainerArgs...>& resetClocks) :
 		label_(label),
-		triggeringClock_(triggeringClock),
+		triggeringClock(triggeringClock),
 		pre(std::forward<fig::Precondition&&>(pre)),
 		pos(std::forward<fig::Postcondition&&>(pos)),
 		resetClocksList_(),
@@ -387,16 +378,11 @@ Transition::handle_clocks(Traial& traial,
 			traial.clocks_[thisClock].value = fromClock->sample();
 		else
 			traial.clocks_[thisClock].value -= timeLapse;
-#ifndef NTIMECHK
-		if (0.0f > traial.clocks_[thisClock].value)
-			throw FigException(std::string("negative value for clock \"")
-							   .append(fromClock->name()).append("\""));
-#endif
+			// that could be negative, but it's unimportant at this stage
 		thisClock++;
 		fromClock++;
 	}
 }
-
 
 } // namespace fig
 

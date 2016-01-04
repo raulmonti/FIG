@@ -36,7 +36,6 @@
 #include <utility>      // std::pair<>, std::move()
 #include <string>
 #include <stdexcept>    // std::out_of_range
-#include <functional>
 // External code
 #include <muParser.h>
 // FIG
@@ -145,22 +144,17 @@ protected:  // Modifyers
 	/**
 	 * @brief Register the global-system-state position of our variables
 	 *
-	 * @param posOfVar    Member function of State which given a variable name
-	 *                    returns the position where this resides internally
-	 * @param globalState Global state instance, owner of the member function
+	 * @param globalState State who knows all the variables mappings required
 	 *
 	 * @warning Asynchronous callback to be called <b>exactly once</b>
 	 * \ifnot NRANGECHK
 	 *   @throw out_of_range if some of our variables isn't mapped
 	 * \endif
 	 */
-	inline void pin_up_vars(std::function<size_t(const fig::State<STATE_INTERNAL_TYPE>&,
-												 const std::string&)
-										 > posOfVar,
-							const fig::State<STATE_INTERNAL_TYPE>& globalState)
+	inline void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 		{
 			for(auto& pair: varsMap_)
-				pair.second = posOfVar(globalState, pair.first);
+				pair.second = globalState.position_of_var(pair.first);
 			pinned_ = true;
 		}
 

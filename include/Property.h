@@ -100,10 +100,7 @@ protected:  // Modifyers
 	 *   @throw FigException if there was some error in our math expressions
 	 * \endif
 	 */
-	virtual void pin_up_vars(std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
-												   const std::string&)
-										  > posOfVar,
-							 const fig::State<STATE_INTERNAL_TYPE>& globalState) = 0;
+	virtual void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState) = 0;
 
 public:  // Utils
 

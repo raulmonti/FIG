@@ -52,9 +52,9 @@ ModuleInstance::add_transition(const Transition& transition)
 #ifndef NDEBUG
 	if (0 <= globalIndex_ || 0 <= firstClock_)
 		throw FigException("this module has already been added to the network");
-	if (!is_our_clock(transition.triggeringClock()))
+	if (!is_our_clock(transition.triggeringClock))
 		throw FigException(std::string("triggering clock \"")
-						   .append(transition.triggeringClock())
+						   .append(transition.triggeringClock)
 						   .append("\" does not reside in module \"")
 						   .append(name).append("\""));
 	for (const auto& clockName: transition.resetClocksList())
@@ -68,7 +68,7 @@ ModuleInstance::add_transition(const Transition& transition)
 #endif
 	auto ptr = std::make_shared<Transition>(transition);
 	transitions_by_label_[transition.label().str].emplace_back(ptr);
-	transitions_by_clock_[transition.triggeringClock()].emplace_back(ptr);
+	transitions_by_clock_[transition.triggeringClock].emplace_back(ptr);
 }
 
 
@@ -78,9 +78,9 @@ ModuleInstance::add_transition(Transition&& transition)
 #ifndef NDEBUG
 	if (0 <= globalIndex_ || 0 <= firstClock_)
 		throw FigException("this module has already been added to the network");
-	if (!is_our_clock(transition.triggeringClock()))
+	if (!is_our_clock(transition.triggeringClock))
 		throw FigException(std::string("triggering clock \"")
-						   .append(transition.triggeringClock())
+						   .append(transition.triggeringClock)
 						   .append("\" does not reside in module \"")
 						   .append(name).append("\""));
 	for (const auto& clockName: transition.resetClocksList())
@@ -95,7 +95,7 @@ ModuleInstance::add_transition(Transition&& transition)
 	auto ptr = std::make_shared<Transition>(std::forward<Transition>(transition));
 	// shared_ptr from rvalue: http://stackoverflow.com/q/15917475
 	transitions_by_label_[transition.label().str].emplace_back(ptr);
-	transitions_by_clock_[transition.triggeringClock()].emplace_back(ptr);
+	transitions_by_clock_[transition.triggeringClock].emplace_back(ptr);
 }
 
 
@@ -236,11 +236,7 @@ ModuleInstance::seal(const PositionsMap& globalVars)
 
 
 void
-ModuleInstance::seal(
-	std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
-						  const std::string&)
-				 > posOfVar,
-	const fig::State<STATE_INTERNAL_TYPE>& globalState)
+ModuleInstance::seal(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 {
 	assert(0 <= globalIndex_);
 	assert(0 <= firstClock_);
@@ -255,7 +251,7 @@ ModuleInstance::seal(
 	auto localClocks = map_our_clocks();
 	for (auto& pair: transitions_by_label_)
 		for (auto& tr_ptr: pair.second)
-			tr_ptr->callback(localClocks, posOfVar, globalState);
+			tr_ptr->callback(localClocks, globalState);
 }
 
 } // namespace fig

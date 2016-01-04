@@ -104,10 +104,7 @@ public:  // Public only for testing
 	 *   @throw FigException if there was some error in our math expression
 	 * \endif
 	 */
-	void pin_up_vars(std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
-										   const std::string&)
-								  > posOfVar,
-					 const fig::State<STATE_INTERNAL_TYPE>& globalState);
+	void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState);
 
 public:  // Accessors
 
