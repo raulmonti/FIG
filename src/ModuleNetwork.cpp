@@ -97,6 +97,12 @@ ModuleNetwork::add_module(ModuleInstance** module)
 void
 ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 {
+	if (sealed_)
+#ifndef NDEBUG
+		throw FigException("ModuleNetwork has already been sealed");
+#else
+		return;
+#endif
 	modules.push_back(module);
 	auto state = module->mark_added(modules.size()-1, numClocks_);
 	gState.append(state);

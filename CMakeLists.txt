@@ -74,7 +74,7 @@ SET(ALL_SOURCES ${ALL_SOURCES} ${OUR_SOURCES} CACHE INTERNAL "")
  
 # If Clang was chosen check for compatible version
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-	SET(CLANG_VERSION_REQUIRED 3.4)
+	SET(CLANG_VERSION_REQUIRED 3.7)
 	IF(CMAKE_CXX_COMPILER_VERSION VERSION_LESS CLANG_VERSION_REQUIRED)
 		MESSAGE(FATAL_ERROR
 			"Clang compiler version too old (${CMAKE_CXX_COMPILER_VERSION})"
@@ -108,8 +108,21 @@ IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 ENDIF()
 # Avoid MuParser warnings due to deprecated auto_ptr (TODO: update library?)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
-## # Avoid BGL warnings due to " = default"
-## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+
+## # Clang needs to be told where to look for OpenMP headers
+## IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+## #	FIND_PACKAGE(OpenMP REQUIRED)
+## 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+## 	EXECUTE_PROCESS(COMMAND find /usr/lib/ -name "omp.h"
+## 	                COMMAND tail -n 1
+## 	                COMMAND xargs dirname
+## 	                OUTPUT_VARIABLE LATEST_OMP_H_DIR)
+## 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${LATEST_OMP_H_DIR}")
+## ENDIF()
+##
+##  Above isn't working!
+##  A special version of Clang with OpenMP activated is required.
+##  We just pasted gcc's "omp.h" into our include paths.
 
 
 
@@ -121,8 +134,8 @@ SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -lz3" )
 # GNU pthreads
 SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pthread" )
 
-## # OpenMP -- Unsupported by clang!
-## SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
+# OpenMP
+SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
 
 
 

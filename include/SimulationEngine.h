@@ -138,7 +138,7 @@ public:  // Simulation utils
      *
      * @throw FigException if the engine wasn't \ref loaded() "ready"
      */
-    virtual double simulate(const size_t& numRuns) const = 0;
+    virtual double simulate(const size_t& numRuns = 1) const = 0;
 
     /**
      * @brief Simulate in model until externally interrupted

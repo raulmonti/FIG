@@ -27,10 +27,17 @@
 //==============================================================================
 
 
+// C++
+#include <set>
+#include <list>
+#include <deque>
+#include <vector>
+#include <forward_list>
+#include <unordered_set>
 // C
 #include <csignal>   // signal()
 #include <unistd.h>  // alarm()
-//#include <omp.h>     // omp_get_wtime()
+#include <omp.h>     // omp_get_wtime()
 // FIG
 #include <ModelSuite.h>
 
@@ -74,6 +81,41 @@ void ModelSuite::add_property(Property& property)
 }
 
 
+void ModelSuite::add_property(Property&& property)
+{
+	properties.push_back(property);
+}
+
+
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+void
+ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames)
+{
+	static_assert(std::is_convertible< std::string, ValueType >::value,
+				  "ERROR: type mismatch. ModelSuite::seal() needs "
+				  "a container with the initial clock names as strings");
+	if (model->sealed())
+#ifndef NDEBUG
+		throw FigException("the ModelSuite has already been sealed");
+#else
+		return;
+#endif
+	model->seal(initialClocksNames);
+	for (Property& prop: properties)
+		prop.pin_up_vars(model->global_state());
+}
+
+// ModuleSuite::seal() can only be invoked with the following containers
+template void ModelSuite::seal(const std::set<std::string>&);
+template void ModelSuite::seal(const std::list<std::string>&);
+template void ModelSuite::seal(const std::deque<std::string>&);
+template void ModelSuite::seal(const std::vector<std::string>&);
+template void ModelSuite::seal(const std::forward_list<std::string>&);
+template void ModelSuite::seal(const std::unordered_set<std::string>&);
+
+
 void
 ModelSuite::estimate(const SimulationEngine& engine,
 					 const StoppingConditions& bounds)
@@ -100,7 +142,7 @@ ModelSuite::estimate(const SimulationEngine& engine,
 //		for (const auto& criterion: bounds.confidence_criteria()) {
 //			ConfidenceInterval ci(criterion);
 //			size_t numRuns = min_batch_size(engine.name(), engine.current_ifun());
-//			double startTime = omp_get_wtime();
+			double startTime = omp_get_wtime();
 //			do {
 //				double estimation = engine.simulate(numRuns);
 //				if (estimation >= 0.0)

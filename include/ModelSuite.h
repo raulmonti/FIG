@@ -132,8 +132,18 @@ public:  // Populating facilities
 	/// @copydoc ModuleNetwork::add_module(std::shared_ptr<ModuleInstance>&)
 	void add_module(std::shared_ptr< ModuleInstance >&);
 
-	/// @todo TODO revise implementation and document
+	/**
+	 * Add a new property to estimate during experimentation
+	 * @see PropertyType
+	 * @warning Do not invoke after seal()
+	 * \ifnot NDEBUG
+	 *   @throw FigException if the network has already been sealed()
+	 * \endif
+	 */
 	void add_property(Property& property);
+
+	/// @copydoc add_property()
+	void add_property(Property&& property);
 
 public:  // Modifyers
 
@@ -142,12 +152,7 @@ public:  // Modifyers
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
-	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames)
-	{
-		model->seal(initialClocksNames);
-		for (Property& prop: properties)
-			prop.pin_up_vars(model->global_state());
-	}
+	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames);
 
 public:  // Stubs for ModuleNetwork
 

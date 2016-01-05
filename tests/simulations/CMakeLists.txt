@@ -57,6 +57,8 @@ SET(ALL_SOURCES CACHE INTERNAL "")
 # Visit necessary subdirectories
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/muparser2.2.5
                  ${PROJECT_BINARY_DIR}/muparser2.2.5)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/openmp
+                 ${PROJECT_BINARY_DIR}/openmp)
  
 # Register all include paths
 INCLUDE_DIRECTORIES(${HEADERS_DIR})
@@ -82,9 +84,6 @@ SET(ALL_SOURCES ${ALL_SOURCES} ${REQUIRED_SOURCES} CACHE INTERNAL "")
 # Register also the source files from this test
 AUX_SOURCE_DIRECTORY(${PROJECT_SOURCE_DIR} TEST_SOURCES)
 SET(ALL_SOURCES ${ALL_SOURCES} ${TEST_SOURCES} CACHE INTERNAL "")
-
-# Remove project's main.cpp, we have ours (http://stackoverflow.com/a/16450083)
-LIST(REMOVE_ITEM ALL_SOURCES ${SOURCES_DIR}/main.cpp)
 
 ## # Libraries
 ## LINK_DIRECTORIES(${LIBRARIES_DIR})
@@ -141,6 +140,10 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 ## 	                OUTPUT_VARIABLE LATEST_OMP_H_DIR)
 ## 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${LATEST_OMP_H_DIR}")
 ## ENDIF()
+##
+##  Above isn't working!
+##  A special version of Clang with OpenMP activated is required.
+##  We just pasted gcc's "omp.h" into our include paths.
 
 
 
@@ -149,12 +152,12 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 # GNU pthreads
 SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pthread" )
 
-## # OpenMP -- Problems with Clang!
-## SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
+# OpenMP
+SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
 
 
 
 ###  Build executable  ########################################################
 
-ADD_EXECUTABLE(test_tads ${ALL_SOURCES})
+ADD_EXECUTABLE(test_simulations ${ALL_SOURCES})
 

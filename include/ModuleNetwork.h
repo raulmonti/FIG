@@ -128,6 +128,9 @@ public:  // Populating facilities
 	 * @note The argument is reset to nullptr during call for safety reasons.
 	 *       The module instance is thus effectively stolen.
 	 * @warning Do not invoke after seal()
+	 * \ifnot NDEBUG
+	 *   @throw FigException if the network has already been sealed()
+	 * \endif
 	 */
 	void add_module(std::shared_ptr< ModuleInstance >& module);
 

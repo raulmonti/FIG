@@ -46,7 +46,7 @@ const unsigned int rngSeed(std::random_device{}());
 std::mt19937_64  MTrng(rngSeed);
 std::minstd_rand LCrng(rngSeed);
 
-#ifndef NHQ_RNG
+#ifndef HQ_RNG
 auto rng = LCrng;  // Linear-congruential  standard RNG
 #else
 auto rng = MTrng;  // Mersenne-Twister high quality RNG
