@@ -94,8 +94,7 @@ private:
 	TraialPool(TraialPool&& that)                 = delete;
 	TraialPool& operator=(const TraialPool& that) = delete;
 
-//protected:  // Global info handled by the ModuleNetwork
-public:  // Public only for testing
+private:  // Global info handled by the ModuleNetwork
 
 	/// Size of the (symbolic) system global state
 	static size_t numVariables;

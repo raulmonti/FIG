@@ -173,8 +173,7 @@ public:  // Read access to some attributes
 				return std::move(static_cast<Bitflag>(0u));
 		}
 
-//protected:  // Utilities offered to ModuleInstance
-public:  // Public only for testing
+protected:  // Utilities offered to ModuleInstance
 
 	/**
 	 * @brief Provide the global info needed for simulations

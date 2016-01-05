@@ -71,8 +71,7 @@ class Traial
 	friend class Transition;
 	friend class ModuleNetwork;
 
-//protected:
-public:  // Public only for testing
+protected:
 
 	/// Paraphernalia needed on clock expiration
 	struct Timeout
@@ -110,8 +109,7 @@ public:  // Attributes
 	/// (same order as in the system global state)
 	StateInstance state;
 
-//protected:
-public:  // Public only for testing
+protected:
 
 	/// \ref Clock "Clocks" values instantiation
 	/// (order given by each \ref ModuleInstance "module" internals,
@@ -210,8 +208,7 @@ public:  // Utils
 	 */
 	void initialize();
 
-//protected:
-public:  // Public only for testing
+protected:
 
 	/**
 	 * @brief Retrieve next not-null expiring clock

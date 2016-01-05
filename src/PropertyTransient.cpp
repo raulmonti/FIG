@@ -1,8 +1,8 @@
 //==============================================================================
 //
-//  SimulationEngineNosplit.cpp
+//  PropertyTransient.cpp
 //
-//  Copyleft 2015-
+//  Copyleft 2016-
 //  Authors:
 //  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
 //
@@ -27,62 +27,39 @@
 //==============================================================================
 
 
-#include <core_typedefs.h>
-#include <SimulationEngineNosplit.h>
-#include <StoppingConditions.h>
-#include <FigException.h>
 #include <PropertyTransient.h>
-#include <ModelSuite.h>
 
 
 namespace fig
 {
 
-double
-SimulationEngineNosplit::simulate(const size_t& numRuns) const
+const std::string&
+PropertyTransient::stop_expression() const noexcept
 {
-	if (!loaded())
-#ifndef NDEBUG
-		throw FigException("engine wasn't loaded, can't simulate");
-#else
-		return;
-#endif
-
-	auto traial = TraialPool::get_instance().get_traial();
-//	#pragma omp parallel for
-	for (size_t i = 0 ; i < numRuns ; i++) {
-		traial->initialize();
-
-		/// @todo TODO implement no-split simulation
-	}
-
-	return result;
+	return stop.expression();
 }
 
 
-bool
-SimulationEngineNosplit::eventTriggered(const Traial& traial) const
+const std::string&
+PropertyTransient::goal_expression() const noexcept
 {
-	switch (property->type) {
-	case PropertyType::TRANSIENT:
-	{
-		auto prop = static_cast<const PropertyTransient*>(property);
-		if (prop->is_goal(traial.state) ||
-			prop->is_stop(traial.state))
-			return true;
-	}
-		break;
-	case PropertyType::THROUGHPUT:
-	case PropertyType::RATE:
-	case PropertyType::PROPORTION:
-	case PropertyType::BOUNDED_REACHABILITY:
-		throw FigException("property type isn't supported yet");
-		break;
-	default:
-		throw FigException("invalid property type");
-		break;
-	}
-	return false;
+	return goal.expression();
+}
+
+
+void
+PropertyTransient::pin_up_vars(const PositionsMap &globalVars)
+{
+	stop.pin_up_vars(globalVars);
+	goal.pin_up_vars(globalVars);
+}
+
+
+void
+PropertyTransient::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
+{
+	stop.pin_up_vars(globalVars);
+	goal.pin_up_vars(globalVars);
 }
 
 } // namespace fig

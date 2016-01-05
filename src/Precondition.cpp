@@ -84,9 +84,12 @@ Precondition::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 bool
 Precondition::operator()(const StateInstance& state) const
 {
-#ifndef NDEBUG
 	if (!pinned())
+#ifndef NDEBUG
 		throw FigException("pin_up_vars() hasn't been called yet");
+#else
+		cerr << "pin_up_vars() hasn't been called yet" << endl;
+		return false;
 #endif
 	// Bind state's variables to our expression...
 	for (const auto& pair: varsMap_)

@@ -357,8 +357,7 @@ private:
 	/// @warning mark_added() must have been called beforehand
 	PositionsMap map_our_clocks() const;
 
-//protected:  // Callback utilities offered to the ModuleNetwork
-public:  // Public only for testing
+private:  // Callback utilities offered to the ModuleNetwork
 
 	/**
 	 * @brief Report this module has been added to the network

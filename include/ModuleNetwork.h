@@ -167,7 +167,7 @@ public:  // Utils
 	std::unique_ptr< StateInstance > initial_state() const;
 
 	/**
-	 * @brief Shut the system model to begin with simulations
+	 * @brief Shut the network and fill in internal global data.
 	 *
 	 *        Information, about the global position of the \ref Clock "clocks"
 	 *        and \ref Variable "variables" which belong to each individual
@@ -179,9 +179,8 @@ public:  // Utils
 	 * @param initialClocksNames Container with the names of the clocks which
 	 *                           need to be reset on system initialization
 	 *
-	 * @note This member function should be called by the user exactly once,
-	 *       after all \ref ModuleInstance "module instances" have been added
-	 *       to the network and right before the beginning of simulations.
+	 * @note This member function must be called after all \ref ModuleInstance
+	 *       "module instances" have been added to the network.
 	 *
 	 * @warning No more modules can be added with add_module() after this invocation
 	 * \ifnot NDEBUG

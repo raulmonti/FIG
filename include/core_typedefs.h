@@ -33,6 +33,7 @@
 // C++
 #include <array>
 #include <tuple>
+#include <string>
 #include <unordered_map>
 #include <functional>     // std::function<>, std::reference_wrapper<>
 // External code
@@ -195,6 +196,20 @@ inline void SET_STOP_EVENT     (Event& e) { e |= EventType::STOP;      }
 inline void SET_RARE_EVENT     (Event& e) { e |= EventType::RARE;      }
 inline void SET_THR_UP_EVENT   (Event& e) { e |= EventType::THR_UP;    }
 inline void SET_THR_DOWN_EVENT (Event& e) { e |= EventType::THR_DOWN;  }
+
+//
+//
+// // // // // // // // // // // // // // // // // // // // // // // // // //
+//
+// Engines
+//
+
+std::array< std::string, 2 >
+SimulationEngineNames =
+{
+	"nosplit",
+	"restart"
+};
 
 //
 //

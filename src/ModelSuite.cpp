@@ -34,6 +34,7 @@
 #include <vector>
 #include <forward_list>
 #include <unordered_set>
+#include <type_traits>  // std::is_convertible<>
 // C
 #include <csignal>   // signal()
 #include <unistd.h>  // alarm()
@@ -47,7 +48,7 @@ namespace fig
 
 // Static variables initialization
 
-std::unique_ptr< ModuleNetwork > ModelSuite::model(new ModuleNetwork);
+std::unique_ptr< ModuleNetwork > ModelSuite::model(std::make_shared<ModuleNetwork>());
 
 std::vector< Reference< Property > > ModelSuite::properties;
 
@@ -102,9 +103,17 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 #else
 		return;
 #endif
+
+	// Notify the internal structures
 	model->seal(initialClocksNames);
 	for (Property& prop: properties)
 		prop.pin_up_vars(model->global_state());
+
+	// Build the simulation engines
+	/// @todo TODO automatic mapping from names to simulation engines
+	///       The idea is to have the correspondence name <--> engine
+	///       in a single file (either here or better in core_typedefs.h)
+	///       See http://stackoverflow.com/a/582456
 }
 
 // ModuleSuite::seal() can only be invoked with the following containers
@@ -152,7 +161,7 @@ ModelSuite::estimate(const SimulationEngine& engine,
 //			} while (!ci.satisfied_criterion());
 //			log_(ci,
 //				 omp_get_wtime() - startTime,
-//				 engine.name,
+//				 engine.name(),
 //				 engine.current_ifun());
 //		}
 	}

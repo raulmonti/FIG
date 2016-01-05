@@ -33,11 +33,18 @@
 // C++
 #include <string>
 #include <memory>
+#include <iterator>   // std::begin, std::end
+#include <algorithm>  // std::find()
+// C
+#include <cassert>
 // FIG
 #include <core_typedefs.h>
-#include <ImportanceFunction.h>
-#include <Property.h>
-#include <Traial.h>
+#include <FigException.h>
+
+// ADL
+using std::begin;
+using std::end;
+using std::find;
 
 
 namespace fig
@@ -45,6 +52,10 @@ namespace fig
 
 class ConfidenceInterval;
 class StoppingConditions;
+class ModuleNetwork;
+class ImportanceFunction;
+class Property;
+class Traial;
 
 /**
  * @brief Abstract base simulation engine
@@ -60,6 +71,8 @@ protected:
     /// Simulation strategy implemented by this engine
     std::string name_;
 
+    std::shared_ptr< const ModuleNetwork > network_;
+
     /// Property whose value is trying to be estimated
     const Property* property;
 
@@ -68,8 +81,22 @@ protected:
 
 public:  // Ctors/Dtor
 
-    /// No data ctor, only empty ctor provided
-    SimulationEngine() : property(nullptr), impFun(nullptr) {}
+    /// Data ctor
+    /// @throw FigException if the name doesn't match a valid engine
+    SimulationEngine(const std::string& name,
+                     std::shared_ptr< const ModuleNetwork>& network) :
+        name_(name),
+        network_(network),
+        property(nullptr),
+        impFun(nullptr)
+        {
+            if (find(begin(SimulationEngineNames),
+                     end(SimulationEngineNames),
+                     name) == end(SimulationEngineNames))
+                throw FigException(std::string("invalid engine name \"")
+                                   .append(name).append("\", see inside ")
+                                   .append("core_typedefs.h for valid names"));
+        }
     /// Default copy ctor
     SimulationEngine(const SimulationEngine& that) = default;
     /// Default move ctor

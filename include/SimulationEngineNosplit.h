@@ -47,7 +47,13 @@ namespace fig
  */
 class SimulationEngineNosplit : public SimulationEngine
 {
-public:  // Ctors/Dtor
+public:  // Ctor
+
+	/// Data ctor
+	/// @todo TODO should be invoked by the ModelSuite who provides 'network'
+	SimulationEngineNosplit(std::shared_ptr<const ModuleNetwork> network) :
+		SimulationEngine("No_split", network)
+		{}
 
 public:  // Inherited virtual simulation functions
 

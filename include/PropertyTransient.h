@@ -32,7 +32,6 @@
 
 #include <core_typedefs.h>
 #include <Property.h>
-#include <State.h>
 
 
 namespace fig
@@ -142,19 +141,21 @@ public:  // Ctors
     /// Can't have move assignment due to const data members from Property
     PropertyTransient& operator=(PropertyTransient&& that)      = delete;
 
+public:  // Accessors
+
+    /// String expression of the "stop" subformula of this property
+    /// @see PropertyTransient::stop
+    const std::string& stop_expression() const noexcept;
+
+    /// String expression of the "goal" subformula of this property
+    /// @see PropertyTransient::goal
+    const std::string& goal_expression() const noexcept;
+
 protected:  // Modifyers
 
-	inline virtual void pin_up_vars(const PositionsMap &globalVars)
-		{
-			stop.pin_up_vars(globalVars);
-			goal.pin_up_vars(globalVars);
-		}
+	virtual void pin_up_vars(const PositionsMap &globalVars);
 
-	inline virtual void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
-		{
-			stop.pin_up_vars(globalState);
-			goal.pin_up_vars(globalState);
-		}
+	virtual void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState);
 
 public:  // Utils
 
@@ -162,9 +163,11 @@ public:  // Utils
         { return !is_stop(s) || is_goal(s); }  // weak until... is it OK?
 
 	/// Is the "stop" subformula satisfied by the given variables valuation?
+	/// @see PropertyTransient::stop
 	inline bool is_stop(const StateInstance& s) const { return stop(s); }
 
 	/// Is the "goal" subformula satisfied by the given variables valuation?
+	/// @see PropertyTransient::goal
 	inline bool is_goal(const StateInstance& s) const { return goal(s); }
 };
 

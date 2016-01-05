@@ -78,8 +78,8 @@ class ModelSuite
 {
 	friend class Traial;
 
-	/// User's system model
-	static std::unique_ptr< ModuleNetwork > model;
+	/// Network of user-defined modules, viz. the system model
+	static std::shared_ptr< ModuleNetwork > model;
 	
 	/// Properties to estimate
 	static std::vector< Reference< Property > > properties;
@@ -147,8 +147,30 @@ public:  // Populating facilities
 
 public:  // Modifyers
 
-	/// @copydoc ModuleNetwork::seal()
-	/// @todo TODO implement and document properly
+	/**
+	 * @brief Shut the system model to begin with simulations
+	 *
+	 *        Once everything was built and attached to the ModelSuite, global
+	 *        information needs to be broadcasted among the internal objects
+	 *        to allow cross-referencing (e.g. of variables) while simulating.
+	 *        To that purpose seal() must be called by the user exactly once,
+	 *        after all \ref Property "properties" and \ref ModuleInstance
+	 *        "module instances" have been added to the ModelSuite,
+	 *
+	 * @param initialClocksNames Container with the names of the clocks which
+	 *                           need to be reset on system initialization
+	 *
+	 * @note seal() must have been invoked before the beginning of simulations,
+	 *       also to create the \ref SimulationEngine "engines" and
+	 *       \ref ImportanceFunction "importance functions" required.
+	 *
+	 * @warning No more modules or properties can be added after this invocation
+	 * \ifnot NDEBUG
+	 *   @throw FigException if called more than once
+	 * \endif
+	 *
+	 * @see ModuleNetwork::seal()
+	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
@@ -168,11 +190,6 @@ public:  // Stubs for ModuleNetwork
 	/// @copydoc ModuleNetwork::concrete_state_size()
 	inline size_t concrete_state_size() const noexcept
 		{ return model->concrete_state_size(); }
-
-public:  // Delete the following when moving on from basic_TADs branch
-	/// @todo TODO delete this function
-	inline void simulation_step(Traial& traial, const SimulationEngine* engine) const
-		{ model->simulation_step(traial, engine); }
 
 public:  // Simulation utils
 
