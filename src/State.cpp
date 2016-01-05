@@ -99,8 +99,13 @@ State<T_>::append(const State& tail)
 							   .append(var_ptr->name())
 							   .append("\" already exists in this state"));
 #endif
+	size_t oldSize(pvars_.size());
 	pvars_.insert(::end(pvars_), ::begin(tail), ::end(tail));
 	positionOfVar_.insert(::begin(tail.positionOfVar_), ::end(tail.positionOfVar_));
+	// Compute new variables global positions,
+	// taking into account the offset from the ones we already have
+	for (const auto& pair: tail.positionOfVar_)
+		positionOfVar_[pair.first] += oldSize;
 	build_concrete_bound();
 }
 

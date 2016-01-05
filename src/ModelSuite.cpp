@@ -27,6 +27,11 @@
 //==============================================================================
 
 
+// C
+#include <csignal>   // signal()
+#include <unistd.h>  // alarm()
+//#include <omp.h>     // omp_get_wtime()
+// FIG
 #include <ModelSuite.h>
 
 
@@ -39,7 +44,6 @@ std::unique_ptr< ModuleNetwork > ModelSuite::model(new ModuleNetwork);
 
 std::vector< Reference< Property > > ModelSuite::properties;
 
-class StoppingConditions {}; /// @todo TODO implement class and erase this dummy
 StoppingConditions ModelSuite::simulationBounds;
 
 std::unordered_map< std::string, std::shared_ptr< ImportanceFunction > >
@@ -56,5 +60,60 @@ std::once_flag ModelSuite::singleInstance_;
 // ModelSuite class member functions
 
 ModelSuite::~ModelSuite() { /* not much to do around here... */ }
+
+
+void ModelSuite::add_module(std::shared_ptr< ModuleInstance >& module)
+{
+	model->add_module(module);
+}
+
+
+void ModelSuite::add_property(Property& property)
+{
+	properties.push_back(property);
+}
+
+
+void
+ModelSuite::estimate(const SimulationEngine& engine,
+					 const StoppingConditions& bounds)
+{
+	if (bounds.is_time()) {
+
+		// Simulation bounds are wall clock time limits
+//		ConfidenceInterval ci;
+//		log_.set_for_times();
+//		for (const unsigned long& wallTimeInSeconds: bounds.time_budgets()) {
+//			auto timeout = [&]() { log_(ci,
+//										wallTimeInSeconds,
+//										engine.name(),
+//										engine.current_ifun()); };
+//			signal(SIGALRM, &timeout);
+//			alarm(wallTimeInSeconds);
+//			engine.simulate(ci);
+//		}
+
+	} else {
+
+		// Simulation bounds are confidence criteria
+//		log.set_for_values();
+//		for (const auto& criterion: bounds.confidence_criteria()) {
+//			ConfidenceInterval ci(criterion);
+//			size_t numRuns = min_batch_size(engine.name(), engine.current_ifun());
+//			double startTime = omp_get_wtime();
+//			do {
+//				double estimation = engine.simulate(numRuns);
+//				if (estimation >= 0.0)
+//					ci.update(estimation);
+//				else
+//					increase_batch_size(numRuns, engine.name(), engine.current_ifun());
+//			} while (!ci.satisfied_criterion());
+//			log_(ci,
+//				 omp_get_wtime() - startTime,
+//				 engine.name,
+//				 engine.current_ifun());
+//		}
+	}
+}
 
 } // namespace fig

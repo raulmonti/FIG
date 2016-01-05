@@ -75,7 +75,8 @@ SET(REQUIRED_SOURCES "${SOURCES_DIR}/Clock.cpp"
                      "${SOURCES_DIR}/ModuleNetwork.cpp"
                      "${SOURCES_DIR}/ModelSuite.cpp"
                      "${SOURCES_DIR}/Traial.cpp"
-                     "${SOURCES_DIR}/TraialPool.cpp")
+                     "${SOURCES_DIR}/TraialPool.cpp"
+                     "${SOURCES_DIR}/SimulationEngineNosplit.cpp")
 SET(ALL_SOURCES ${ALL_SOURCES} ${REQUIRED_SOURCES} CACHE INTERNAL "")
 
 # Register also the source files from this test
@@ -95,7 +96,7 @@ LIST(REMOVE_ITEM ALL_SOURCES ${SOURCES_DIR}/main.cpp)
  
 # If Clang was chosen check for compatible version
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-	SET(CLANG_VERSION_REQUIRED 3.4)
+	SET(CLANG_VERSION_REQUIRED 3.7)
 	IF(CMAKE_CXX_COMPILER_VERSION VERSION_LESS CLANG_VERSION_REQUIRED)
 		MESSAGE(FATAL_ERROR
 			"Clang compiler version too old (${CMAKE_CXX_COMPILER_VERSION})"
@@ -129,8 +130,17 @@ IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 ENDIF()
 # Avoid MuParser warnings due to deprecated auto_ptr (TODO: update library?)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
-## # Avoid BGL warnings due to " = default"
-## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+
+## # Clang needs to be told where to look for OpenMP headers
+## IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+## #	FIND_PACKAGE(OpenMP REQUIRED)
+## 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+## 	EXECUTE_PROCESS(COMMAND find /usr/lib/ -name "omp.h"
+## 	                COMMAND tail -n 1
+## 	                COMMAND xargs dirname
+## 	                OUTPUT_VARIABLE LATEST_OMP_H_DIR)
+## 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${LATEST_OMP_H_DIR}")
+## ENDIF()
 
 
 
@@ -139,7 +149,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 # GNU pthreads
 SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pthread" )
 
-## # OpenMP -- Unsupported by clang!
+## # OpenMP -- Problems with Clang!
 ## SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
 
 

@@ -342,7 +342,7 @@ State<T_>::State(const Container<ValueType, OtherContainerArgs...>& vars) :
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_constructible< VariableInterval<T_>, ValueType >::value,
-				  "ERROR: type missmatch. State can only be constructed "
+				  "ERROR: type mismatch. State can only be constructed "
 				  "from Variables, VariableDefinitions or VariableDeclarations");
 	size_t i(0u);
 	auto last = ::begin(positionOfVar_);
@@ -365,7 +365,7 @@ State<T_>::State(Container<ValueType, OtherContainerArgs...>&& vars) :
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_constructible< VariableInterval<T_>, ValueType >::value,
-				  "ERROR: type missmatch. State can only be move-"
+				  "ERROR: type mismatch. State can only be move-"
 				  "constructed from another State or from a container "
 				  "with instances or raw pointers to VariableInterval objects");
 	size_t i(0u);
@@ -390,7 +390,7 @@ State<T_>::State(Container<ValueType*, OtherContainerArgs...>&& vars) :
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_constructible< VariableInterval<T_>, ValueType >::value,
-				  "ERROR: type missmatch. State can only be move-"
+				  "ERROR: type mismatch. State can only be move-"
 				  "constructed from another State or from a container "
 				  "with instances or raw pointers to VariableInterval objects");
 	size_t i(0u);
@@ -417,7 +417,7 @@ State<T_>::State(Iterator<ValueType, OtherIteratorArgs...> from,
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_constructible<VariableInterval<T_>, ValueType>::value,
-				  "ERROR: type missmatch. State can only be constructed "
+				  "ERROR: type mismatch. State can only be constructed "
 				  "from Variables, VariableDefinitions or VariableDeclarations");
 	size_t i(0);
 	auto last = begin(positionOfVar_);

@@ -34,7 +34,6 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <functional>   // std::reference_wrapper<>
 #include <type_traits>  // std::is_constructible<>
 #include <unordered_map>
 // FIG
@@ -42,6 +41,7 @@
 #include <Property.h>
 #include <ImportanceFunction.h>
 #include <SimulationEngine.h>
+#include <StoppingConditions.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -55,11 +55,13 @@ using std::end;
 namespace fig
 {
 
-/// @todo TODO define StoppingCondition class and erase this dummy
-class StoppingConditions;
-
-
 /**
+ * @brief One class to bring them all, and in the FIG tool bind them.
+ *
+ *        ModelSuite holds most components required for the estimation of the
+ *        properties values on the user provided system model.
+ *        It is FIG's general access point for launching and controlling
+ *        simulations, as well as recording the resulting data.
  *
  * @note  There should be exactly one ModelSuite at all times,
  *        which starts out empty and gets filled with \ref Property
@@ -95,6 +97,9 @@ class ModelSuite
 		std::string,
 		Reference< SimulationEngine > > simulators;
 
+//	/// Log
+//	static WTF? log_;
+
 	/// Single existent instance of the class (singleton design pattern)
 	static std::unique_ptr< ModelSuite > instance_;
 
@@ -117,9 +122,18 @@ public:  // Access to the ModelSuite instance
 		}
 
 	/// Allow syntax "auto varname = fig::ModelSuite::get_instance();"
-	inline ModelSuite(const ModelSuite& that) { instance_.swap(that.instance_); }
+	inline ModelSuite(const ModelSuite&) {}
+		// { instance_.swap(that.instance_); }
 
 	~ModelSuite();
+
+public:  // Populating facilities
+
+	/// @copydoc ModuleNetwork::add_module(std::shared_ptr<ModuleInstance>&)
+	void add_module(std::shared_ptr< ModuleInstance >&);
+
+	/// @todo TODO revise implementation and document
+	void add_property(Property& property);
 
 public:  // Modifyers
 
@@ -128,13 +142,14 @@ public:  // Modifyers
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
-	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames);
+	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames)
+	{
+		model->seal(initialClocksNames);
+		for (Property& prop: properties)
+			prop.pin_up_vars(model->global_state());
+	}
 
 public:  // Stubs for ModuleNetwork
-
-	/// @copydoc ModuleNetwork::add_module(std::shared_ptr<ModuleInstance>&)
-	inline void add_module(std::shared_ptr< ModuleInstance >& module)
-		{ model->add_module(module); }
 
 	/// @copydoc ModuleNetwork::sealed()
 	inline bool sealed() const noexcept { return model->sealed(); }
@@ -148,6 +163,11 @@ public:  // Stubs for ModuleNetwork
 	/// @copydoc ModuleNetwork::concrete_state_size()
 	inline size_t concrete_state_size() const noexcept
 		{ return model->concrete_state_size(); }
+
+public:  // Delete the following when moving on from basic_TADs branch
+	/// @todo TODO delete this function
+	inline void simulation_step(Traial& traial, const SimulationEngine* engine) const
+		{ model->simulation_step(traial, engine); }
 
 public:  // Simulation utils
 
@@ -179,11 +199,14 @@ public:  // Simulation utils
 	void process_interactive();
 
 	/**
-	 * @brief Estimate the value of a property using a specific combination of
-	 *        importance function and simulation strategy
+	 * @brief Estimate the value of a property.
 	 *
+	 *        The estimation is performed using a single simulation strategy.
+	 *        The importance function to use and the property to estimate
+	 *        must have been loaded beforehand into the SimulationEngine.
 	 *        Estimations are performed for all the \ref StoppingConditions
-	 *        "simulation bounds" requested for experimentation
+	 *        "simulation bounds" requested for experimentation, and logged
+	 *        as they are produced.
 	 *
 	 * @param engine SimulationEngine already loaded with a Property and an ImportanceFunction
 	 * @param bounds List of stopping conditions to experiment with
@@ -214,11 +237,11 @@ ModelSuite::process_batch(
 	const Container2<ValueType2, OtherArgs2...>& simulationStrategies)
 {
 	static_assert(std::is_constructible< std::string, ValueType1 >::value,
-				  "ERROR: type missmatch. ModelSuite::process_batch() takes "
+				  "ERROR: type mismatch. ModelSuite::process_batch() takes "
 				  "two containers with strings, the first describing the "
 				  "importance strategies to use during simulations.");
 	static_assert(std::is_constructible< std::string, ValueType2 >::value,
-				  "ERROR: type missmatch. ModelSuite::process_batch() takes "
+				  "ERROR: type mismatch. ModelSuite::process_batch() takes "
 				  "two containers with strings, the second describing the "
 				  "simulation strategies to use during simulations.");
 	// For each property ...

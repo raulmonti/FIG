@@ -27,8 +27,8 @@
 //==============================================================================
 
 
-#ifndef SIMLUATIONENGINENOSPLIT_H
-#define SIMLUATIONENGINENOSPLIT_H
+#ifndef SIMULATIONENGINENOSPLIT_H
+#define SIMULATIONENGINENOSPLIT_H
 
 #include <SimulationEngine.h>
 
@@ -36,17 +36,29 @@
 namespace fig
 {
 
+/**
+ * @brief Engine for classical Monte Carlo simulation
+ *
+ *        This engine implements the standard "blind strategy", where
+ *        each Traial is pushed forward following the model dynamics and
+ *        without any kind of splitting. The importance function is thus
+ *        disregarded. Only the property provides the most basic guiding
+ *        information: whether the simulation should keep going or not.
+ */
 class SimulationEngineNosplit : public SimulationEngine
 {
+public:  // Ctors/Dtor
 
-public:
+public:  // Inherited virtual simulation functions
 
-    virtual double simulate(const Property& prop,
-                            const ImportanceFunction& ifun,
-                            const StoppingCondition& effort) const;
+	virtual double simulate(const size_t& numRuns) const;
+
+	virtual void simulate(ConfidenceInterval&) const {}
+
+	virtual bool eventTriggered(const Traial& traial) const;
 };
 
 } // namespace fig
 
-#endif // SIMLUATIONENGINENOSPLIT_H
+#endif // SIMULATIONENGINENOSPLIT_H
 

@@ -51,15 +51,11 @@ using std::begin;
 using std::end;
 
 
-// TODO erase below
-#include <iostream>
-
 namespace fig
 {
 
 ModuleNetwork::ModuleNetwork() :
 	numClocks_(0u),
-	lastClockIndex_(0u),
 	sealed_(false)
 {}
 
@@ -68,15 +64,12 @@ ModuleNetwork::ModuleNetwork(const ModuleNetwork& that) :
 	gState(that.gState),
 	initialClocks(that.initialClocks),
 	numClocks_(that.numClocks_),
-	lastClockIndex_(that.lastClockIndex_),
 	sealed_(that.sealed_)
 {
 	// Efectively *copy* all modules, not just their pointers
 	modules.reserve(that.modules.size());
 	for (auto module_ptr: that.modules)
 		modules.emplace_back(std::make_shared<ModuleInstance>(*module_ptr));
-	// TODO erase below
-	std::cerr << "HELP, SOMEBODY PLEASE HELP !!!" << std::endl;
 }
 
 
@@ -94,9 +87,9 @@ void
 ModuleNetwork::add_module(ModuleInstance** module)
 {
 	modules.emplace_back(*module);
-	auto state = (*module)->mark_added(modules.size()-1, lastClockIndex_);
+	auto state = (*module)->mark_added(modules.size()-1, numClocks_);
 	gState.append(state);
-	lastClockIndex_ += (*module)->clocks().size();
+	numClocks_ += (*module)->clocks().size();
 	*module = nullptr;
 }
 
@@ -105,9 +98,9 @@ void
 ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 {
 	modules.push_back(module);
-	auto state = module->mark_added(modules.size()-1, lastClockIndex_);
+	auto state = module->mark_added(modules.size()-1, numClocks_);
 	gState.append(state);
-	lastClockIndex_ += module->clocks().size();
+	numClocks_ += module->clocks().size();
 	module = nullptr;
 }
 
@@ -120,7 +113,7 @@ ModuleNetwork::seal(const Container<ValueType, OtherContainerArgs...>& initialCl
 {
 	size_t numClocksReviewed(0u);
 	static_assert(std::is_convertible< std::string, ValueType >::value,
-				  "ERROR: type missmatch. ModuleNetwork::seal() needs "
+				  "ERROR: type mismatch. ModuleNetwork::seal() needs "
 				  "a container with the initial clock names");
 	if (sealed_)
 #ifndef NDEBUG
@@ -134,7 +127,7 @@ ModuleNetwork::seal(const Container<ValueType, OtherContainerArgs...>& initialCl
 	// For each module in the network...
 	for (auto& module_ptr: modules) {
 		// ... seal it ...
-		module_ptr->seal(&State<STATE_INTERNAL_TYPE>::position_of_var, gState);
+		module_ptr->seal(gState);
 		// ... search for initial clocks within ...
 		auto module_clocks = module_ptr->clocks();
 		for (const auto& initClkName: initialClocksNames) {
@@ -164,11 +157,30 @@ template void ModuleNetwork::seal(const std::forward_list<std::string>&);
 template void ModuleNetwork::seal(const std::unordered_set<std::string>&);
 
 
+std::unique_ptr< StateInstance >
+ModuleNetwork::initial_state() const
+{
+	if (!sealed())
+#ifndef NDEBUG
+		throw FigException("ModuleNetwork hasn't been sealed yet");
+#else
+		return;
+#endif
+	return gState.to_state_instance();
+}
+
+
 void
 ModuleNetwork::simulation_step(Traial& traial,
 							   const SimulationEngine* engine) const
 {
 	assert(nullptr != engine);
+	if (!sealed())
+#ifndef NDEBUG
+		throw FigException("ModuleNetwork hasn't been sealed yet");
+#else
+		return;
+#endif
     // Jump...
 	do {
 		auto timeout = traial.next_timeout();
@@ -180,7 +192,7 @@ ModuleNetwork::simulation_step(Traial& traial,
 		for (auto module_ptr: modules)
 			if (module_ptr->name != timeout.module->name)
 				module_ptr->jump(label, timeout.value, traial);
-    } while ( !engine->eventTriggered(traial) );
+	} while ( !engine->eventTriggered(traial) );
     // ...until a relevant event is triggered
 }
 

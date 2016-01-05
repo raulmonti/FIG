@@ -45,9 +45,6 @@
 #include <ModuleInstance.h>
 #include <TraialPool.h>
 
-// TODO erase below
-#include <iostream>
-#include <utility>
 
 namespace fig
 {
@@ -73,7 +70,7 @@ class ModuleNetwork : public Module
 	friend class ImportanceFunctionConcreteSplit;
 	friend class ImportanceFunctionConcreteCoupled;
 
-private:  // Attributes shared with our firends
+private:  // Attributes shared with our friends
 
 	/// Unified, memory-contiguous global vector of \ref Variable "variables"
 	State< STATE_INTERNAL_TYPE > gState;
@@ -89,10 +86,6 @@ private:
 	/// Total number of clocks, considering all modules in the network
 	size_t numClocks_;
 
-	/// Global position of the last clock from the last added module,
-	/// useful only during network construction phase, i.e. before seal()
-	size_t lastClockIndex_;
-
 	/// Whether the system model has already been sealed for simulations
 	bool sealed_;
 
@@ -105,17 +98,7 @@ public:  // Ctors/Dtor
 	ModuleNetwork(const ModuleNetwork& that);
 
 	/// Default move ctor
-	ModuleNetwork(ModuleNetwork&& that) :// = default;
-		gState(std::move(that.gState)),
-		initialClocks(std::move(that.initialClocks)),
-		modules(std::move(that.modules)),
-		numClocks_(std::move(that.numClocks_)),
-		lastClockIndex_(std::move(that.lastClockIndex_)),
-		sealed_(std::move(that.sealed_))
-	{
-		std::cerr << "ModuleNetwork move ctor" << std::endl;
-	}
-
+	ModuleNetwork(ModuleNetwork&& that) = default;
 
 	/// Can't copy assign since Transitions can't
 	ModuleNetwork& operator=(const ModuleNetwork&) = delete;
@@ -148,7 +131,7 @@ public:  // Populating facilities
 	 */
 	void add_module(std::shared_ptr< ModuleInstance >& module);
 
-public:  // Utils
+public:  // Accessors
 
 	/// @copydoc sealed_
 	inline bool sealed() const noexcept { return sealed_; }
@@ -163,8 +146,22 @@ public:  // Utils
 	/// of all the variables in the system model
 	inline size_t concrete_state_size() const noexcept { return gState.concrete_size(); }
 
+	/// @copydoc gState
+	inline const State<STATE_INTERNAL_TYPE>& global_state() const { return gState; }
+
+public:  // Utils
+
 	virtual inline void accept(ImportanceFunction& ifun, Property* const prop)
 		{ ifun.assess_importance(this, prop); }
+
+	/**
+	 * @brief Get a copy of the initial state of the system
+	 * @warning seal() must have been called beforehand
+	 * \ifnot NDEBUG
+	 *   @throw FigException if seal() hasn't been called yet
+	 * \endif
+	 */
+	std::unique_ptr< StateInstance > initial_state() const;
 
 	/**
 	 * @brief Shut the system model to begin with simulations
@@ -204,6 +201,11 @@ public:  // Utils
 	 *
 	 * @param traial Traial instance keeping track of the simulation
 	 * @param engine Semantics of the current simulation strategy
+	 *
+	 * @warning seal() must have been called beforehand
+	 * \ifnot NDEBUG
+	 *   @throw FigException if seal() hasn't been called yet
+	 * \endif
 	 */
 	void simulation_step(Traial& traial, const SimulationEngine* engine) const;
 };

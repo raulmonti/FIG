@@ -399,9 +399,8 @@ public:  // Public only for testing
 	/**
 	 * @brief Fill up the global-aware information needed by simulations
 	 *
-	 * @param posOfVar Member function of State which given a variable name
-	 *                 returns the position where this resides internally
-	 * @param globalState Global state instance, owner of the member function
+	 * @param globalState State with the position of the variables of this
+	 *                    module within the global state of the system
 	 *
 	 * @note Asynchronous callback to be called <b>exactly once</b>
 	 *
@@ -410,10 +409,7 @@ public:  // Public only for testing
 	 *   @throw FigException if called more than once
 	 * \endif
 	 */
-	void seal(std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
-									const std::string&)
-						   > posOfVar,
-			  const fig::State<STATE_INTERNAL_TYPE>& globalState);
+	void seal(const fig::State<STATE_INTERNAL_TYPE>& globalState);
 };
 
 
@@ -438,7 +434,7 @@ ModuleInstance::ModuleInstance(
 {
 	// Copy clocks
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
-				  "ERROR: type missmatch. ModuleInstance ctors require a "
+				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
 }
@@ -464,17 +460,17 @@ ModuleInstance::ModuleInstance(
 {
 	// Copy clocks
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
-				  "ERROR: type missmatch. ModuleInstance ctors require a "
+				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
 	// Copy transitions
 	static_assert(std::is_same< Transition, ValueType2 >::value,
-				  "ERROR: type missmatch. ModuleInstance can only be copy-"
+				  "ERROR: type mismatch. ModuleInstance can only be copy-"
 				  "constructed from a container with Transition objects");
 	for(const auto& tr: transitions) {
 		auto ptr = std::make_shared<Transition>(tr);
 		transitions_by_label_[tr.label().str].emplace_back(ptr);
-		transitions_by_clock_[tr.triggeringClock()].emplace_back(ptr);
+		transitions_by_clock_[tr.triggeringClock].emplace_back(ptr);
 	}
 }
 
@@ -499,18 +495,18 @@ ModuleInstance::ModuleInstance(
 {
 	// Copy clocks
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
-				  "ERROR: type missmatch. ModuleInstance ctors require a "
+				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
 	// Move transitions
 	static_assert(std::is_same< Transition, ValueType2 >::value,
-				  "ERROR: type missmatch. ModuleInstance can only be move-"
+				  "ERROR: type mismatch. ModuleInstance can only be move-"
 				  "constructed from a container with instances or raw pointers "
 				  "to Transition objects");
 	for(auto&& tr: transitions) {
 		auto ptr = std::make_shared<Transition>(std::forward<Transition>(tr));
 		transitions_by_label_[tr.label().str].emplace_back(ptr);
-		transitions_by_clock_[tr.triggeringClock()].emplace_back(ptr);
+		transitions_by_clock_[tr.triggeringClock].emplace_back(ptr);
 	}
 	transitions.clear();
 }
@@ -536,19 +532,19 @@ ModuleInstance::ModuleInstance(
 {
 	// Copy clocks
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
-				  "ERROR: type missmatch. ModuleInstance ctors require a "
+				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
 	// Move transitions
 	static_assert(std::is_same< Transition, ValueType2 >::value,
-				  "ERROR: type missmatch. ModuleInstance can only be move-"
+				  "ERROR: type mismatch. ModuleInstance can only be move-"
 				  "constructed from a container with instances or raw pointers "
 				  "to Transition objects");
 	for(auto tr_ptr: transitions) {
 		auto ptr = std::shared_ptr<Transition>(tr_ptr);
 		assert(nullptr != ptr);
 		transitions_by_label_[tr_ptr->label().str].emplace_back(ptr);
-		transitions_by_clock_[tr_ptr->triggeringClock()].emplace_back(ptr);
+		transitions_by_clock_[tr_ptr->triggeringClock].emplace_back(ptr);
 		tr_ptr = nullptr;
 	}
 	transitions.clear();
@@ -576,18 +572,18 @@ ModuleInstance::ModuleInstance(
 {
 	// Copy clocks
 	static_assert(std::is_constructible< Clock, ValueTypeContainer >::value,
-				  "ERROR: type missmatch. ModuleInstance ctors require a "
+				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
 	// Move transitions
 	static_assert(std::is_same< Transition, ValueTypeIterator >::value,
-				  "ERROR: type missmatch. ModuleInstance ctor needs iterators "
+				  "ERROR: type mismatch. ModuleInstance ctor needs iterators "
 				  "poiting to Transition objects");
 	do {
 		const Transition& tr = *from;
 		auto ptr = std::make_shared<Transition>(tr);
 		transitions_by_label_[tr.label().str].emplace_back(ptr);
-		transitions_by_clock_[tr.triggeringClock()].emplace_back(ptr);
+		transitions_by_clock_[tr.triggeringClock].emplace_back(ptr);
 	} while (++from != to);
 }
 

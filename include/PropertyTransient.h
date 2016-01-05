@@ -86,8 +86,8 @@ public:  // Ctors
 					  const Container1<ValueType1, OtherArgs1...>& stopExprVars,
 					  const std::string& goalExpr,
 					  const Container2<ValueType2, OtherArgs2...>& goalExprVars) :
-		Property(std::string("P( !(").append(stopExpr).append(") U ("
-									 .append(goalExpr).append(") )")),
+		Property(std::string("P( !(").append(stopExpr).append(") U (")
+									 .append(goalExpr).append(") )"),
 				 PropertyType::TRANSIENT),
 		stop(stopExpr, stopExprVars),
 		goal(goalExpr, goalExprVars)
@@ -123,8 +123,8 @@ public:  // Ctors
 					  const std::string& goalExpr,
 					  Iterator2<ValueType2, OtherArgs2...> goalExprVarsFrom,
 					  Iterator2<ValueType2, OtherArgs2...> goalExprVarsTo) :
-		Property(std::string("P( !(").append(stopExpr).append(") U ("
-									 .append(goalExpr).append(") )")),
+		Property(std::string("P( !(").append(stopExpr).append(") U (")
+									 .append(goalExpr).append(") )"),
 				 PropertyType::TRANSIENT),
 		stop(stopExpr, stopExprVarsFrom, stopExprVarsTo),
 		goal(goalExpr, goalExprVarsFrom, goalExprVarsTo)
@@ -150,14 +150,10 @@ protected:  // Modifyers
 			goal.pin_up_vars(globalVars);
 		}
 
-	inline virtual void pin_up_vars(
-			std::function< size_t(const fig::State<STATE_INTERNAL_TYPE>&,
-								  const std::string&)
-						 > posOfVar,
-			const fig::State<STATE_INTERNAL_TYPE>& globalState)
+	inline virtual void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 		{
-			stop.pin_up_vars(posOfVar, globalState);
-			goal.pin_up_vars(posOfVar, globalState);
+			stop.pin_up_vars(globalState);
+			goal.pin_up_vars(globalState);
 		}
 
 public:  // Utils
