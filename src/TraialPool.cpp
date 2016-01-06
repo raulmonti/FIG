@@ -28,7 +28,14 @@
 
 
 // C++
-#include <iterator>
+#include <set>
+#include <list>
+#include <deque>
+#include <vector>
+#include <forward_list>
+#include <unordered_set>
+#include <iterator>    // std::begin(), std::end()
+#include <functional>  // std::ref()
 // FIG
 #include <TraialPool.h>
 
@@ -46,7 +53,13 @@ std::unique_ptr< TraialPool > TraialPool::instance_ = nullptr;
 
 std::once_flag TraialPool::singleInstance_;
 
-std::forward_list< std::unique_ptr< Traial > > TraialPool::available_traials_;
+std::vector< Traial > TraialPool::traials_;
+
+std::forward_list< Reference< Traial > > TraialPool::available_traials_;
+
+const size_t TraialPool::initialSize = (1u) << 12;  // 4K
+
+const size_t TraialPool::sizeChunkIncrement = TraialPool::initialSize >> 3;  // initialSize/8
 
 size_t TraialPool::numVariables = 0u;
 
@@ -57,77 +70,110 @@ size_t TraialPool::numClocks = 0u;
 
 TraialPool::TraialPool()
 {
-	for(unsigned i = 0 ; i < initialSize ; i++)
-		available_traials_.emplace_front(new Traial(numVariables, numClocks));
+	ensure_resources(initialSize);
+}
+
+
+TraialPool&
+TraialPool::get_instance()
+{
+	if (0u >= numVariables && 0u >= numClocks)
+#ifndef NDEBUG
+		throw FigException("can't build the TraialPool since the "
+						   "ModelSuite hasn't been sealed yet");
+#endif
+	std::call_once(singleInstance_,
+				   [] () {instance_.reset(new TraialPool);});
+	return *instance_;
 }
 
 
 TraialPool::~TraialPool()
 {
 //	available_traials_.clear();
+//	traials_.clear();
 
-//	Deleting this vector would be linear in its size.
+//	Deleting these containers would be linear in their sizes.
 //	Since the TraialPool should only be deleted after simulations conclusion,
 ///	@warning we ingnore this (potential?) memory leak due to its short life.
 }
 
 
-std::unique_ptr<Traial> TraialPool::get_traial()
+Traial&
+TraialPool::get_traial()
 {
 	if (available_traials_.empty())
-		for(unsigned i = 0 ; i < sizeChunkIncrement; i++)
-			available_traials_.emplace_front(new Traial(numVariables, numClocks));
-	std::unique_ptr< Traial > traial_p(nullptr);
-	available_traials_.front().swap(traial_p);
+		ensure_resources(sizeChunkIncrement);  // Need to create more Traials
+	Traial& traial(available_traials_.front());
 	available_traials_.pop_front();
-	return traial_p;
-}
-
-
-void TraialPool::return_traial(std::unique_ptr<Traial>& traial_p)
-{
-	assert(nullptr != traial_p);
-	available_traials_.emplace_front();
-	available_traials_.front().swap(traial_p);
-	assert(nullptr == traial_p);
-}
-
-
-std::forward_list< std::unique_ptr< Traial > >
-TraialPool::get_traial_copies(const Traial& traial, unsigned numCopies)
-{
-	std::forward_list< std::unique_ptr< Traial > > result;
-	assert(sizeChunkIncrement > numCopies);  // wouldn't make sense otherwise
-	// Transfer available resources
-	for(; !available_traials_.empty() && 0u < numCopies ; numCopies--) {
-		result.emplace_front();
-		available_traials_.front().swap(result.front());
-		available_traials_.pop_front();
-		result.front()->operator=(traial);  // copy 'traial' values
-	}
-	// Run out of traials but more needed?
-	if (available_traials_.empty() && 0u < numCopies) {
-		for(unsigned i = 0 ; i < sizeChunkIncrement - numCopies; i++)
-			available_traials_.emplace_front(new Traial(numVariables, numClocks));
-		for(; 0u < numCopies ; numCopies--)
-			result.emplace_front(new Traial(traial));
-	}
-	return result;
-	/* TODO: as an alternative implementation consider using std::list,
-	 *       instead of std::forward_list, and its splice() method
-	 *       in combination with size() and std::advance()
-	 */
+	return traial;
 }
 
 
 void
-TraialPool::ensure_resources(const size_t& numResources)
+TraialPool::return_traial(Traial&& traial)
 {
-	for (size_t available = std::distance(begin(available_traials_),
-										  end(available_traials_))
-		; available < numResources
-		; available++ )
-		available_traials_.emplace_front(new Traial(numVariables, numClocks));
+	available_traials_.push_front(traial);
+}
+
+
+std::forward_list< Reference< Traial > >
+TraialPool::get_traial_copies(const Traial& traial, unsigned numCopies)
+{
+	std::forward_list< Reference< Traial > > result;
+	assert(sizeChunkIncrement > numCopies);  // wouldn't make sense otherwise
+	ensure_resources(numCopies);
+	for (unsigned i = 0u ; i < numCopies ; i++) {
+		result.push_front(available_traials_.front());
+		available_traials_.pop_front();
+		static_cast<Traial&>(result.front()) = traial;  // copy 'traial' values
+	}
+	return result;
+}
+
+
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+void
+TraialPool::return_traials(Container<ValueType, OtherContainerArgs...>& traials)
+{
+	static_assert(std::is_same< Reference<Traial>, ValueType >::value,
+				  "ERROR: type mismatch. Only Traial references can be "
+				  "returned to the TraialPool.");
+	for (Traial& t: traials)
+		available_traials_.push_front(t);
+	traials.clear();  // keep user from tampering with those references
+}
+
+// TraialPool::return_traials() can only be invoked with the following containers
+template void TraialPool::return_traials(std::set< Reference<Traial> >&);
+template void TraialPool::return_traials(std::list< Reference<Traial> >&);
+template void TraialPool::return_traials(std::deque< Reference<Traial> >&);
+template void TraialPool::return_traials(std::vector< Reference<Traial> >&);
+
+// Specialization for forward_list, up to 2x faster
+template <>
+void
+TraialPool::return_traials(std::forward_list< Reference< Traial > >& list)
+{
+	for (auto it = list.begin() ; it != list.end() ; it++) {
+		available_traials_.push_front(*it);
+		list.pop_front();  // 'it' got invalidated
+	}
+}
+
+
+void
+TraialPool::ensure_resources(const size_t& requiredResources)
+{
+	const size_t oldSize = traials_.size();
+	const size_t newSize = oldSize + std::max<long>(0, requiredResources - num_resources());
+	traials_.reserve(newSize);
+	for(size_t i = oldSize ; i < newSize ; i++) {
+		traials_.emplace_back(numVariables, numClocks);
+		available_traials_.emplace_front(std::ref(traials_[i]));
+	}
 }
 
 

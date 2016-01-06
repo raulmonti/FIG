@@ -31,6 +31,7 @@
 #define SIMULATIONENGINE_H
 
 // C++
+#include <sstream>
 #include <string>
 #include <memory>
 #include <iterator>   // std::begin, std::end
@@ -40,6 +41,8 @@
 // FIG
 #include <core_typedefs.h>
 #include <FigException.h>
+#include <Property.h>
+#include <ImportanceFunction.h>
 
 // ADL
 using std::begin;
@@ -53,8 +56,6 @@ namespace fig
 class ConfidenceInterval;
 class StoppingConditions;
 class ModuleNetwork;
-class ImportanceFunction;
-class Property;
 class Traial;
 
 /**
@@ -66,6 +67,12 @@ class Traial;
  */
 class SimulationEngine
 {
+public:
+
+	/// Names of the simulation engines offered to the user,
+	/// as he should requested them through the CLI/GUI.
+	static const std::array< std::string, 1 > names;
+
 protected:
 
     /// Simulation strategy implemented by this engine
@@ -84,19 +91,7 @@ public:  // Ctors/Dtor
     /// Data ctor
     /// @throw FigException if the name doesn't match a valid engine
     SimulationEngine(const std::string& name,
-                     std::shared_ptr< const ModuleNetwork>& network) :
-        name_(name),
-        network_(network),
-        property(nullptr),
-        impFun(nullptr)
-        {
-            if (find(begin(SimulationEngineNames),
-                     end(SimulationEngineNames),
-                     name) == end(SimulationEngineNames))
-                throw FigException(std::string("invalid engine name \"")
-                                   .append(name).append("\", see inside ")
-                                   .append("core_typedefs.h for valid names"));
-        }
+                     std::shared_ptr< const ModuleNetwork>& network);
     /// Default copy ctor
     SimulationEngine(const SimulationEngine& that) = default;
     /// Default move ctor
@@ -106,15 +101,14 @@ public:  // Ctors/Dtor
     /// Default move assignment
     SimulationEngine& operator=(SimulationEngine&& that) = default;
     /// Virtual dtor
-    virtual ~SimulationEngine() { unload(); }
+    virtual ~SimulationEngine();
 
 public:  // Engine setup
 
 	/// @brief Is this engine ready for simulations?
 	/// @details True after a successfull call to load().
 	///          False again after a call to unload().
-	inline bool loaded() const noexcept
-		{ return nullptr != property && nullptr != impFun; }
+	bool loaded() const noexcept;
 
 	/// @copydoc loaded()
 	inline bool ready() const noexcept { return loaded(); }
@@ -128,14 +122,12 @@ public:  // Engine setup
      *                     are incompatible with this SimulationEngine
      * @see unload()
      */
-    virtual void load(const Property& prop,
-                      std::shared_ptr< const ImportanceFunction > ifun)
-        { property = &prop; impFun = ifun; }
+    void load(const Property& prop,
+              std::shared_ptr< const ImportanceFunction > ifun) noexcept;
 
     /// Deregister the last Property and ImportanceFunction which were setup
     /// @see load()
-    inline void unload() noexcept
-        { property = nullptr; impFun = nullptr; }
+    void unload() noexcept;
 
 public:  // Accessors
 
@@ -161,7 +153,8 @@ public:  // Simulation utils
      *
      * @param numRuns Number of indepdendent runs to perform
      *
-     * @return Estimated value for the property at the end of this simulation
+     * @return Estimated value for the property at the end of this simulation,
+     *         or negative value if something went wrong.
      *
      * @throw FigException if the engine wasn't \ref loaded() "ready"
      */

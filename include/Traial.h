@@ -77,21 +77,16 @@ protected:
 	struct Timeout
 	{
 		/// Module where the expired clock exists
-		const std::shared_ptr<const ModuleInstance> module;
+		std::shared_ptr<const ModuleInstance> module;
 		/// Clock's name
-		const std::string& name;
+		std::string name;
 		/// Clock's time value
 		float value;
 		/// Data ctor
-		Timeout(std::shared_ptr<ModuleInstance> themodule,
+		Timeout(std::shared_ptr<const ModuleInstance> themodule,
 				const std::string& thename,
 				const float& thevalue) :
 			module(themodule), name(thename), value(thevalue) {}
-		// Other ctors
-		Timeout(const Timeout& that) = default;
-		Timeout(Timeout&& that)      = default;
-		Timeout& operator=(const Timeout& that) = delete;
-		Timeout& operator=(Timeout&& that)      = delete;
 	};
 
 public:  // Attributes
@@ -162,31 +157,36 @@ public:  // Ctors/Dtor
 		   const Container<ValueType, OtherContainerArgs...>& whichClocks,
 		   bool orderTimeouts = false);
 
-	/// Copy ctor
-	inline Traial(const Traial& that) :
-		state(that.state),
-		clocks_(that.clocks_),
-		orderedIndex_(that.orderedIndex_),
-		firstNotNull_(that.firstNotNull_)
-		{}
+	/// Copy ctor disabled to void accidental copies,
+	/// only the TraialPool should explicitly create/destroy Traials
+	Traial(const Traial&) = delete;  // Instantiate with 'Traial&', not 'auto'
+//		state(that.state),
+//		clocks_(that.clocks_),
+//		orderedIndex_(that.orderedIndex_),
+//		firstNotNull_(that.firstNotNull_)
+//		{}
 
 	/// Move ctor
-	inline Traial(Traial&& that) :
-		state(std::move(that.state)),
-		clocks_(std::move(that.clocks_)),
-		orderedIndex_(std::move(that.orderedIndex_)),
-		firstNotNull_(std::move(that.firstNotNull_))
-		{}
+	Traial(Traial&& that) = default;
+//		state(std::move(that.state)),
+//		clocks_(std::move(that.clocks_)),
+//		orderedIndex_(std::move(that.orderedIndex_)),
+//		firstNotNull_(std::move(that.firstNotNull_))
+//		{}
 
-	/// Copy assignment with copy&swap idiom
-	inline Traial& operator=(Traial that)
-		{
-			std::swap(state, that.state);
-			std::swap(clocks_, that.clocks_);
-			std::swap(orderedIndex_, that.orderedIndex_);
-			std::swap(firstNotNull_, that.firstNotNull_);
-			return *this;
-		}
+	/// Copy assignment
+	Traial& operator=(const Traial&) = default;
+
+	/// Move assignemnt
+	Traial& operator=(Traial&&) = default;
+//	inline Traial& operator=(Traial that)
+//		{
+//			std::swap(state, that.state);
+//			std::swap(clocks_, that.clocks_);
+//			std::swap(orderedIndex_, that.orderedIndex_);
+//			std::swap(firstNotNull_, that.firstNotNull_);
+//			return *this;
+//		}
 
 	~Traial();
 

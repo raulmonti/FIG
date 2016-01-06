@@ -31,6 +31,7 @@
 #define IMPORTANCEFUNCTION_H
 
 #include <string>
+#include <memory>
 
 
 namespace fig
@@ -93,7 +94,7 @@ public:
 	 * @note After a successfull invocation the ImportanceFunction
 	 *       is ready() to be used during simulations
 	 */
-	virtual void assess_importance(const ModuleInstance* mod,
+	virtual void assess_importance(const ModuleInstance& mod,
 								   const Property* prop) = 0;
 
 	/**
@@ -107,7 +108,7 @@ public:
 	 * @note After a successfull invocation the ImportanceFunction
 	 *       is ready() to be used during simulations
 	 */
-	virtual void assess_importance(const ModuleNetwork* net,
+	virtual void assess_importance(const ModuleNetwork& net,
 								   const Property* prop) = 0;
 
 	/// Release any memory allocated in the heap

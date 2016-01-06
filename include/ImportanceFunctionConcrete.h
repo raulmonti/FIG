@@ -35,12 +35,11 @@
 // FIG
 #include <core_typedefs.h>
 #include <ImportanceFunction.h>
+#include <State.h>
 
 
 namespace fig
 {
-
-class State;
 
 /**
  * @brief Abstract importance function for concrete importance assessment
@@ -61,7 +60,7 @@ protected:
 	/// @todo TODO implement algorithm from sheet,
 	///       the one with 'state[]' and 'redges[]' arrays.
 	///       Attribute "statesImportance" would play the role of 'state[]'
-	virtual void assess_importance(State& s);
+	virtual void assess_importance(State<STATE_INTERNAL_TYPE>& s);
 };
 
 } // namespace fig

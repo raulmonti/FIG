@@ -35,12 +35,21 @@
 #include <forward_list>
 #include <unordered_set>
 #include <type_traits>  // std::is_convertible<>
+#include <iterator>     // std::begin(), std::end()
 // C
 #include <csignal>   // signal()
 #include <unistd.h>  // alarm()
 #include <omp.h>     // omp_get_wtime()
 // FIG
 #include <ModelSuite.h>
+#include <SimulationEngine.h>
+#include <SimulationEngineNosplit.h>
+#include <ImportanceFunctionConcreteSplit.h>
+#include <ImportanceFunctionConcreteCoupled.h>
+
+// ADL
+using std::begin;
+using std::end;
 
 
 namespace fig
@@ -48,7 +57,7 @@ namespace fig
 
 // Static variables initialization
 
-std::unique_ptr< ModuleNetwork > ModelSuite::model(std::make_shared<ModuleNetwork>());
+std::shared_ptr< ModuleNetwork > ModelSuite::model(std::make_shared<ModuleNetwork>());
 
 std::vector< Reference< Property > > ModelSuite::properties;
 
@@ -109,11 +118,21 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 	for (Property& prop: properties)
 		prop.pin_up_vars(model->global_state());
 
-	// Build the simulation engines
-	/// @todo TODO automatic mapping from names to simulation engines
-	///       The idea is to have the correspondence name <--> engine
-	///       in a single file (either here or better in core_typedefs.h)
-	///       See http://stackoverflow.com/a/582456
+	// Build the simulation engines and the importance functions
+	/// @todo TODO resolve this initializations, which aren't compiling
+	//simulators.emplace("nosplit", SimulationEngineNosplit(model));
+	//impFuns["concrete_split"]   = std::make_shared< ImportanceFunctionConcreteSplit >();
+	//impFuns["concrete_coupled"] = std::make_shared< ImportanceFunctionConcreteCoupled >();
+
+#ifndef NDEBUG
+	// Check all offered engines and functions were actually instantiated
+	for (const auto& engineName: SimulationEngine::names)
+		if (end(simulators) == simulators.find(engineName))
+			throw FigException(std::string("hey, hey you ...  HEY, DEVELOPER!")
+							   .append(" You forgot to create the '")
+							   .append(engineName).append("'' engine"));
+	/// @todo TODO same lookup shit for importance functions
+#endif
 }
 
 // ModuleSuite::seal() can only be invoked with the following containers
@@ -165,6 +184,40 @@ ModelSuite::estimate(const SimulationEngine& engine,
 //				 engine.current_ifun());
 //		}
 	}
+}
+
+
+const std::vector< std::string >&
+ModelSuite::available_simulators()
+{
+	static std::vector< std::string > simulatorsNames;
+	if (simulatorsNames.empty() && !simulators.empty()) {
+		simulatorsNames.reserve(simulators.size());
+		for (const auto& pair: simulators)
+			simulatorsNames.push_back(pair.first);
+	} else if (simulators.empty()) {
+		std::cerr << "ModelSuite hasn't been sealed, "
+				  << "no simulation engines are available yet."
+				  << std::endl;
+	}
+	return simulatorsNames;
+}
+
+
+const std::vector< std::string >&
+ModelSuite::available_importance_functions()
+{
+	static std::vector< std::string > ifunsNames;
+	if (ifunsNames.empty() && !impFuns.empty()) {
+		ifunsNames.reserve(impFuns.size());
+		for (const auto& pair: impFuns)
+			ifunsNames.push_back(pair.first);
+	} else if (impFuns.empty()) {
+		std::cerr << "ModelSuite hasn't been sealed, "
+				  << "no importance functions are available yet."
+				  << std::endl;
+	}
+	return ifunsNames;
 }
 
 } // namespace fig

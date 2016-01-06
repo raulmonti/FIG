@@ -41,19 +41,23 @@ namespace fig
 double
 SimulationEngineNosplit::simulate(const size_t& numRuns) const
 {
+	double result(0.0);
+
 	if (!loaded())
 #ifndef NDEBUG
 		throw FigException("engine wasn't loaded, can't simulate");
 #else
-		return;
+		return -1.0;
 #endif
 
-	auto traial = TraialPool::get_instance().get_traial();
-//	#pragma omp parallel for
+	Traial& traial = TraialPool::get_instance().get_traial();
+//	#pragma omp parallel for  // we HAVE TO do this, it's stupid not to
 	for (size_t i = 0 ; i < numRuns ; i++) {
-		traial->initialize();
+		traial.initialize();
+		network_->simulation_step(traial, this);
 
-		/// @todo TODO implement no-split simulation
+		/// @todo TODO implement no-split simulation ASAP
+
 	}
 
 	return result;

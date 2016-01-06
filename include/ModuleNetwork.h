@@ -155,7 +155,7 @@ public:  // Accessors
 public:  // Utils
 
 	virtual inline void accept(ImportanceFunction& ifun, Property* const prop)
-		{ ifun.assess_importance(this, prop); }
+		{ ifun.assess_importance(*this, prop); }
 
 	/**
 	 * @brief Get a copy of the initial state of the system

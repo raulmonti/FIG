@@ -294,7 +294,7 @@ public:  // Utils
 	inline bool sealed() const noexcept { return sealed_; }
 
 	virtual inline void accept(ImportanceFunction& ifun, Property* const prop)
-		{ ifun.assess_importance(this, prop); }
+		{ ifun.assess_importance(*this, prop); }
 
 	/**
 	 * @brief Active module jump caused by expiration of our clock "clockName"

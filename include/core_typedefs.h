@@ -201,20 +201,6 @@ inline void SET_THR_DOWN_EVENT (Event& e) { e |= EventType::THR_DOWN;  }
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //
 //
-// Engines
-//
-
-std::array< std::string, 2 >
-SimulationEngineNames =
-{
-	"nosplit",
-	"restart"
-};
-
-//
-//
-// // // // // // // // // // // // // // // // // // // // // // // // // //
-//
 // Miscellanea
 //
 

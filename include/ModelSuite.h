@@ -237,6 +237,16 @@ public:  // Simulation utils
 	 *                     "ready" for simulations
 	 */
 	void estimate(const SimulationEngine& engine, const StoppingConditions& bounds);
+
+private:  // Class utils
+
+	/// Names of available simulation engines,
+	/// as they should be requested by the user.
+	const std::vector< std::string >& available_simulators();
+
+	/// Names of available importance function strategies,
+	/// as they should be requested by the user.
+	const std::vector< std::string >& available_importance_functions();
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -275,7 +285,7 @@ ModelSuite::process_batch(
 				continue;
 			}
 			auto impFun = impFuns[impStrat];
-			impFun->assess_importance(model.get(), &prop);
+			impFun->assess_importance(*model.get(), &prop);
 			assert(impFun->ready());
 			// ... and each simulation strategy (no split, restart, etc) ...
 			for (const std::string simStrat: simulationStrategies) {

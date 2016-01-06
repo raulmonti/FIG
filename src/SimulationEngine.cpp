@@ -1,8 +1,8 @@
 //==============================================================================
 //
-//  SimulationEngineNosplit.h
+//  SimulationEngine.cpp
 //
-//  Copyleft 2015-
+//  Copyleft 2016-
 //  Authors:
 //  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
 //
@@ -27,45 +27,65 @@
 //==============================================================================
 
 
-#ifndef SIMULATIONENGINENOSPLIT_H
-#define SIMULATIONENGINENOSPLIT_H
-
 #include <SimulationEngine.h>
-#include <ModuleNetwork.h>
 
 
 namespace fig
 {
 
-/**
- * @brief Engine for classical Monte Carlo simulation
- *
- *        This engine implements the standard "blind strategy", where
- *        each Traial is pushed forward following the model dynamics and
- *        without any kind of splitting. The importance function is thus
- *        disregarded. Only the property provides the most basic guiding
- *        information: whether the simulation should keep going or not.
- */
-class SimulationEngineNosplit : public SimulationEngine
+const std::array< std::string, 1 > SimulationEngine::names =
 {
-public:  // Ctor
-
-	/// Data ctor
-	/// @todo TODO should be invoked by the ModelSuite who provides 'network'
-	SimulationEngineNosplit(std::shared_ptr<const ModuleNetwork> network) :
-		SimulationEngine("No_split", network)
-		{ assert(network->sealed()); }
-
-public:  // Inherited virtual simulation functions
-
-	virtual double simulate(const size_t& numRuns) const;
-
-	virtual void simulate(ConfidenceInterval&) const {}
-
-	virtual bool eventTriggered(const Traial& traial) const;
+	"nosplit"
 };
 
+
+SimulationEngine::SimulationEngine(
+	const std::string& name,
+	std::shared_ptr< const ModuleNetwork>& network) :
+		name_(name),
+		network_(network),
+		property(nullptr),
+		impFun(nullptr)
+{
+	if (find(begin(names), end(names), name) == end(names)) {
+		std::stringstream errMsg;
+		errMsg << "invalid engine name \"" << name << "\". ";
+		errMsg << "Available engines are";
+		for (const auto& name: names)
+			errMsg << " \"" << name << "\"";
+		errMsg << "\n";
+		throw FigException(errMsg.str());
+	}
+}
+
+
+SimulationEngine::~SimulationEngine()
+{
+	unload();
+}
+
+
+bool
+SimulationEngine::loaded() const noexcept
+{
+	return nullptr != property && nullptr != impFun;
+}
+
+
+void
+SimulationEngine::load(const Property& prop,
+					   std::shared_ptr< const ImportanceFunction > ifun) noexcept
+{
+	property = &prop;
+	impFun = ifun;
+}
+
+
+void
+SimulationEngine::unload() noexcept
+{
+	property = nullptr;
+	impFun = nullptr;
+}
+
 } // namespace fig
-
-#endif // SIMULATIONENGINENOSPLIT_H
-

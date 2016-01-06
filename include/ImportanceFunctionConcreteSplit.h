@@ -59,19 +59,17 @@ class ImportanceFunctionConcreteSplit : public ImportanceFunctionConcrete
 {
 public:
 
-	virtual void assess_importance(const ModuleInstance* mod,
+	virtual void assess_importance(const ModuleInstance& mod,
 								   const Property* prop)
 		{
 			throw FigException("TODO");
 		}
 
-	virtual void assess_importance(const ModuleNetwork* net,
+	virtual void assess_importance(const ModuleNetwork& net,
 								   const Property* prop)
 		{
-			assert(nullptr != net);
-			for (auto& mod: net->modules)
-				assess_importance(mod);  // Visit each module individually
-			return *this;
+			for (auto& mod: net.modules)
+				assess_importance(*mod, prop);  // Visit each module individually
 		}
 };
 
