@@ -178,9 +178,8 @@ ModuleNetwork::initial_state() const
 
 void
 ModuleNetwork::simulation_step(Traial& traial,
-							   const SimulationEngine* engine) const
+							   const SimulationEngine& engine) const
 {
-	assert(nullptr != engine);
 	if (!sealed())
 #ifndef NDEBUG
 		throw FigException("ModuleNetwork hasn't been sealed yet");
@@ -198,7 +197,7 @@ ModuleNetwork::simulation_step(Traial& traial,
 		for (auto module_ptr: modules)
 			if (module_ptr->name != timeout.module->name)
 				module_ptr->jump(label, timeout.value, traial);
-	} while ( !engine->eventTriggered(traial) );
+	} while ( !engine.eventTriggered(traial) );
     // ...until a relevant event is triggered
 }
 

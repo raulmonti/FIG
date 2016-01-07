@@ -31,7 +31,6 @@
 #define IMPORTANCEFUNCTION_H
 
 #include <string>
-#include <memory>
 
 
 namespace fig

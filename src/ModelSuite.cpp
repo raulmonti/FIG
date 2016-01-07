@@ -59,14 +59,14 @@ namespace fig
 
 std::shared_ptr< ModuleNetwork > ModelSuite::model(std::make_shared<ModuleNetwork>());
 
-std::vector< Reference< Property > > ModelSuite::properties;
+std::vector< std::shared_ptr< Property > > ModelSuite::properties;
 
 StoppingConditions ModelSuite::simulationBounds;
 
 std::unordered_map< std::string, std::shared_ptr< ImportanceFunction > >
 	ModelSuite::impFuns;
 
-std::unordered_map< std::string, Reference< SimulationEngine > >
+std::unordered_map< std::string, std::shared_ptr< SimulationEngine > >
 	ModelSuite::simulators;
 
 std::unique_ptr< ModelSuite > ModelSuite::instance_ = nullptr;
@@ -85,13 +85,7 @@ void ModelSuite::add_module(std::shared_ptr< ModuleInstance >& module)
 }
 
 
-void ModelSuite::add_property(Property& property)
-{
-	properties.push_back(property);
-}
-
-
-void ModelSuite::add_property(Property&& property)
+void ModelSuite::add_property(std::shared_ptr<Property> property)
 {
 	properties.push_back(property);
 }
@@ -115,20 +109,19 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 
 	// Notify the internal structures
 	model->seal(initialClocksNames);
-	for (Property& prop: properties)
-		prop.pin_up_vars(model->global_state());
+	for (auto prop: properties)
+		prop->pin_up_vars(model->global_state());
 
 	// Build the simulation engines and the importance functions
-	/// @todo TODO resolve this initializations, which aren't compiling
-	//simulators.emplace("nosplit", SimulationEngineNosplit(model));
-	//impFuns["concrete_split"]   = std::make_shared< ImportanceFunctionConcreteSplit >();
-	//impFuns["concrete_coupled"] = std::make_shared< ImportanceFunctionConcreteCoupled >();
+	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
+//	impFuns["concrete_split"]   = std::make_shared< ImportanceFunctionConcreteSplit >();
+//	impFuns["concrete_coupled"] = std::make_shared< ImportanceFunctionConcreteCoupled >();
 
 #ifndef NDEBUG
 	// Check all offered engines and functions were actually instantiated
 	for (const auto& engineName: SimulationEngine::names)
 		if (end(simulators) == simulators.find(engineName))
-			throw FigException(std::string("hey, hey you ...  HEY, DEVELOPER!")
+			throw FigException(std::string("hey..., hey you ...  HEY, DEVELOPER!")
 							   .append(" You forgot to create the '")
 							   .append(engineName).append("'' engine"));
 	/// @todo TODO same lookup shit for importance functions
@@ -142,6 +135,40 @@ template void ModelSuite::seal(const std::deque<std::string>&);
 template void ModelSuite::seal(const std::vector<std::string>&);
 template void ModelSuite::seal(const std::forward_list<std::string>&);
 template void ModelSuite::seal(const std::unordered_set<std::string>&);
+
+
+const std::vector< std::string >&
+ModelSuite::available_simulators()
+{
+	static std::vector< std::string > simulatorsNames;
+	if (simulatorsNames.empty() && !simulators.empty()) {
+		simulatorsNames.reserve(simulators.size());
+		for (const auto& pair: simulators)
+			simulatorsNames.push_back(pair.first);
+	} else if (simulators.empty()) {
+		std::cerr << "ModelSuite hasn't been sealed, "
+				  << "no simulation engines are available yet."
+				  << std::endl;
+	}
+	return simulatorsNames;
+}
+
+
+const std::vector< std::string >&
+ModelSuite::available_importance_functions()
+{
+	static std::vector< std::string > ifunsNames;
+	if (ifunsNames.empty() && !impFuns.empty()) {
+		ifunsNames.reserve(impFuns.size());
+		for (const auto& pair: impFuns)
+			ifunsNames.push_back(pair.first);
+	} else if (impFuns.empty()) {
+		std::cerr << "ModelSuite hasn't been sealed, "
+				  << "no importance functions are available yet."
+				  << std::endl;
+	}
+	return ifunsNames;
+}
 
 
 void
@@ -184,40 +211,6 @@ ModelSuite::estimate(const SimulationEngine& engine,
 //				 engine.current_ifun());
 //		}
 	}
-}
-
-
-const std::vector< std::string >&
-ModelSuite::available_simulators()
-{
-	static std::vector< std::string > simulatorsNames;
-	if (simulatorsNames.empty() && !simulators.empty()) {
-		simulatorsNames.reserve(simulators.size());
-		for (const auto& pair: simulators)
-			simulatorsNames.push_back(pair.first);
-	} else if (simulators.empty()) {
-		std::cerr << "ModelSuite hasn't been sealed, "
-				  << "no simulation engines are available yet."
-				  << std::endl;
-	}
-	return simulatorsNames;
-}
-
-
-const std::vector< std::string >&
-ModelSuite::available_importance_functions()
-{
-	static std::vector< std::string > ifunsNames;
-	if (ifunsNames.empty() && !impFuns.empty()) {
-		ifunsNames.reserve(impFuns.size());
-		for (const auto& pair: impFuns)
-			ifunsNames.push_back(pair.first);
-	} else if (impFuns.empty()) {
-		std::cerr << "ModelSuite hasn't been sealed, "
-				  << "no importance functions are available yet."
-				  << std::endl;
-	}
-	return ifunsNames;
 }
 
 } // namespace fig

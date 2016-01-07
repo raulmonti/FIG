@@ -82,7 +82,7 @@ class ModelSuite
 	static std::shared_ptr< ModuleNetwork > model;
 	
 	/// Properties to estimate
-	static std::vector< Reference< Property > > properties;
+	static std::vector< std::shared_ptr< Property > > properties;
 	
 	/// Confidence criteria or time budgets bounding simulations
 	static StoppingConditions simulationBounds;
@@ -95,7 +95,7 @@ class ModelSuite
 	/// Simulation engines available
 	static std::unordered_map<
 		std::string,
-		Reference< SimulationEngine > > simulators;
+		std::shared_ptr< SimulationEngine > > simulators;
 
 //	/// Log
 //	static WTF? log_;
@@ -140,10 +140,7 @@ public:  // Populating facilities
 	 *   @throw FigException if the network has already been sealed()
 	 * \endif
 	 */
-	void add_property(Property& property);
-
-	/// @copydoc add_property()
-	void add_property(Property&& property);
+	void add_property(std::shared_ptr<Property> property);
 
 public:  // Modifyers
 
@@ -191,6 +188,16 @@ public:  // Stubs for ModuleNetwork
 	inline size_t concrete_state_size() const noexcept
 		{ return model->concrete_state_size(); }
 
+public:  // Utils
+
+	/// Names of available simulation engines,
+	/// as they should be requested by the user.
+	const std::vector< std::string >& available_simulators();
+
+	/// Names of available importance function strategies,
+	/// as they should be requested by the user.
+	const std::vector< std::string >& available_importance_functions();
+
 public:  // Simulation utils
 
 	/**
@@ -237,16 +244,6 @@ public:  // Simulation utils
 	 *                     "ready" for simulations
 	 */
 	void estimate(const SimulationEngine& engine, const StoppingConditions& bounds);
-
-private:  // Class utils
-
-	/// Names of available simulation engines,
-	/// as they should be requested by the user.
-	const std::vector< std::string >& available_simulators();
-
-	/// Names of available importance function strategies,
-	/// as they should be requested by the user.
-	const std::vector< std::string >& available_importance_functions();
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -293,9 +290,9 @@ ModelSuite::process_batch(
 					/// @todo TODO log the inexistence of this engine
 					continue;
 				}
-				SimulationEngine& engine = simulators[simStrat];
+				auto engine = simulators[simStrat];
 				try {
-					engine.load(prop, impFun);
+					engine->load(prop, impFun);
 				} catch (FigException& e) {
 					/// @todo TODO log the skipping of this combination
 					///       Either the property or the importance function are
@@ -303,8 +300,8 @@ ModelSuite::process_batch(
 					continue;
 				}
 				// ... estimate the property value for all stopping conditions
-				estimate(engine, simulationBounds);
-				engine.unload();
+				estimate(*engine, simulationBounds);
+				engine->unload();
 			}
 			impFun->clear();
 		}

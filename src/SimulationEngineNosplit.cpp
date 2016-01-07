@@ -41,6 +41,7 @@ namespace fig
 double
 SimulationEngineNosplit::simulate(const size_t& numRuns) const
 {
+	assert(numRuns > 0u);
 	double result(0.0);
 
 	if (!loaded())
@@ -50,14 +51,33 @@ SimulationEngineNosplit::simulate(const size_t& numRuns) const
 		return -1.0;
 #endif
 
-	Traial& traial = TraialPool::get_instance().get_traial();
-//	#pragma omp parallel for  // we HAVE TO do this, it's stupid not to
-	for (size_t i = 0 ; i < numRuns ; i++) {
-		traial.initialize();
-		network_->simulation_step(traial, this);
+	switch (property->type) {
 
-		/// @todo TODO implement no-split simulation ASAP
+	case PropertyType::TRANSIENT: {
+		auto prop = static_cast<const PropertyTransient*>(property);
+		size_t numSuccesses(0u);
+//		#pragma omp parallel  // we MUST parallelize this, it's stupid not to
+		Traial& traial = TraialPool::get_instance().get_traial();
+		for (size_t i = 0 ; i < numRuns ; i++) {
+			traial.initialize();
+			network_->simulation_step(traial, *this);
+			if (prop->is_goal(traial.state))
+				numSuccesses++;
+		}
+		TraialPool::get_instance().return_traial(std::move(traial));
+		result = static_cast<double>(numSuccesses) / numRuns;
+		} break;
 
+	case PropertyType::THROUGHPUT:
+	case PropertyType::RATE:
+	case PropertyType::PROPORTION:
+	case PropertyType::BOUNDED_REACHABILITY:
+		throw FigException("property type isn't supported yet");
+		break;
+
+	default:
+		throw FigException("invalid property type");
+		break;
 	}
 
 	return result;
@@ -68,20 +88,21 @@ bool
 SimulationEngineNosplit::eventTriggered(const Traial& traial) const
 {
 	switch (property->type) {
-	case PropertyType::TRANSIENT:
-	{
+
+	case PropertyType::TRANSIENT: {
 		auto prop = static_cast<const PropertyTransient*>(property);
 		if (prop->is_goal(traial.state) ||
 			prop->is_stop(traial.state))
 			return true;
-	}
-		break;
+		} break;
+
 	case PropertyType::THROUGHPUT:
 	case PropertyType::RATE:
 	case PropertyType::PROPORTION:
 	case PropertyType::BOUNDED_REACHABILITY:
 		throw FigException("property type isn't supported yet");
 		break;
+
 	default:
 		throw FigException("invalid property type");
 		break;

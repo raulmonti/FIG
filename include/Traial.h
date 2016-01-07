@@ -68,10 +68,9 @@ class ModuleInstance;
  */
 class Traial
 {
-	friend class Transition;
-	friend class ModuleNetwork;
+	friend class Transition;  // allow Transitions to handle our clocks
 
-protected:
+public:
 
 	/// Paraphernalia needed on clock expiration
 	struct Timeout
@@ -104,14 +103,12 @@ public:  // Attributes
 	/// (same order as in the system global state)
 	StateInstance state;
 
-protected:
+private:
 
 	/// \ref Clock "Clocks" values instantiation
 	/// (order given by each \ref ModuleInstance "module" internals,
 	/// and in which order these were added to the network)
 	std::vector< Timeout > clocks_;
-
-private:
 
 	/// Time-increasing-ordered view of 'clocks_' vector.
 	/// Access for friends is safely granted through next_timeout()
@@ -121,7 +118,7 @@ private:
 	/// Negative if all are null.
 	int firstNotNull_;
 
-public:  // Ctors/Dtor
+public:  // Ctors/Dtor: TraialPool should be the only to create Traials
 
 	/**
 	 * @brief Void ctor for resources pool
@@ -160,33 +157,15 @@ public:  // Ctors/Dtor
 	/// Copy ctor disabled to void accidental copies,
 	/// only the TraialPool should explicitly create/destroy Traials
 	Traial(const Traial&) = delete;  // Instantiate with 'Traial&', not 'auto'
-//		state(that.state),
-//		clocks_(that.clocks_),
-//		orderedIndex_(that.orderedIndex_),
-//		firstNotNull_(that.firstNotNull_)
-//		{}
 
 	/// Move ctor
 	Traial(Traial&& that) = default;
-//		state(std::move(that.state)),
-//		clocks_(std::move(that.clocks_)),
-//		orderedIndex_(std::move(that.orderedIndex_)),
-//		firstNotNull_(std::move(that.firstNotNull_))
-//		{}
 
 	/// Copy assignment
 	Traial& operator=(const Traial&) = default;
 
 	/// Move assignemnt
 	Traial& operator=(Traial&&) = default;
-//	inline Traial& operator=(Traial that)
-//		{
-//			std::swap(state, that.state);
-//			std::swap(clocks_, that.clocks_);
-//			std::swap(orderedIndex_, that.orderedIndex_);
-//			std::swap(firstNotNull_, that.firstNotNull_);
-//			return *this;
-//		}
 
 	~Traial();
 
@@ -207,8 +186,6 @@ public:  // Utils
 	 * \endif
 	 */
 	void initialize();
-
-protected:
 
 	/**
 	 * @brief Retrieve next not-null expiring clock
