@@ -54,7 +54,7 @@ SimulationEngineNosplit::simulate(const size_t& numRuns) const
 	switch (property->type) {
 
 	case PropertyType::TRANSIENT: {
-		auto prop = static_cast<const PropertyTransient*>(property);
+		auto prop = dynamic_cast<const PropertyTransient*>(property);
 		size_t numSuccesses(0u);
 //		#pragma omp parallel  // we MUST parallelize this, it's stupid not to
 		Traial& traial = TraialPool::get_instance().get_traial();
@@ -72,7 +72,8 @@ SimulationEngineNosplit::simulate(const size_t& numRuns) const
 	case PropertyType::RATE:
 	case PropertyType::PROPORTION:
 	case PropertyType::BOUNDED_REACHABILITY:
-		throw FigException("property type isn't supported yet");
+		throw FigException(std::string("property type isn't supported by ")
+						   .append(name_).append(" simulation yet"));
 		break;
 
 	default:
@@ -85,7 +86,7 @@ SimulationEngineNosplit::simulate(const size_t& numRuns) const
 
 
 bool
-SimulationEngineNosplit::eventTriggered(const Traial& traial) const
+SimulationEngineNosplit::event_triggered(const Traial& traial) const
 {
 	switch (property->type) {
 

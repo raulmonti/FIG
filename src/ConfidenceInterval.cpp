@@ -119,15 +119,34 @@ ConfidenceInterval::ConfidenceInterval(double confidence,
 	estimate_(0.0),
 	variance_(std::numeric_limits<double>::infinity()),
 	halfWidth_(std::numeric_limits<double>::infinity()),
-	statOversample(1.0),
-	varCorrection(1.0)
+	statOversample_(1.0),
+	varCorrection_(1.0)
 {
 	if (0.0 >= precision)
 		throw FigException("requires precision > 0.0");
+	if (percent && 1.0 <= precision)
+		throw FigException("dynamic precision must ∈ (0.0, 1.0)");
 	if (0.0 >= confidence || 1.0 <= confidence)
 		throw FigException("requires confidence coefficient ∈ (0.0, 1.0)");
-	if (std::isnan(quantile))
-		throw FigException("error computing confidence quantile");
+}
+
+
+void
+ConfidenceInterval::set_statistical_oversampling(const double& statOversamp)
+{
+	if (1.0 > statOversamp)
+		throw FigException("the statistical oversampling factor should scale "
+						   "*up* the minimum # of rare events required");
+	statOversample_ = statOversamp;
+}
+
+
+void
+ConfidenceInterval::set_variance_correction(const double& varCorrection)
+{
+	if (0.0 > varCorrection)
+		throw FigException("the variance correction factor must be positive");
+	varCorrection_ = varCorrection;
 }
 
 
@@ -144,7 +163,7 @@ double
 ConfidenceInterval::confidence_quantile(const double& cc)
 {
 	double quantile = probit((1.0+cc)/2.0);
-	if (std::isnan(quantile))
+	if (std::isnan(quantile) || std::isinf(quantile))
 		throw FigException("error computing confidence quantile");
 	return quantile;
 }

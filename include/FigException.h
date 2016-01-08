@@ -32,24 +32,45 @@
 
 #include <exception>
 #include <utility>
+#include <string>
+
 
 namespace fig
 {
 
-/// Very primitive exception support
+/// Custom exception, use through macro defined at the end of this file
 class FigException : public std::exception
 {
 	std::string msg_;
-	inline virtual const char* what() const throw()
+
+	inline virtual const char* what() const noexcept
 	{
 		return std::string("FigException raised: ").append(msg_).c_str();
 	}
+
+	inline void compose_msg(const char* file, int line)
+	{
+		msg_.append(" @ ").append(file).append(":").append(std::to_string(line));
+	}
+
 public:
-	FigException(const char* msg) : msg_(msg) {}
-	FigException(const std::string& msg) : msg_(msg) {}
-	FigException(std::string&& msg) : msg_(std::move(msg)) {}
+
+	FigException(const char* msg, const char* file, int line) :
+		msg_(msg)
+		{ compose_msg(file, line); }
+
+	FigException(const std::string& msg, const char* file, int line) :
+		msg_(msg)
+		{ compose_msg(file, line);}
+
+	FigException(std::string&& msg, const char* file, int line) :
+		msg_(std::move(msg))
+		{ compose_msg(file, line); }
+
 	inline const std::string& msg() { return msg_; }
 };
+
+#define  throw_FigException(msg) throw FigException((msg), __FILE__, __LINE__)
 
 }
 

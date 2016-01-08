@@ -197,8 +197,8 @@ ModuleNetwork::simulation_step(Traial& traial,
 		for (auto module_ptr: modules)
 			if (module_ptr->name != timeout.module->name)
 				module_ptr->jump(label, timeout.value, traial);
-	} while ( !engine.eventTriggered(traial) );
-    // ...until a relevant event is triggered
+	} while ( !engine.event_triggered(traial) );
+	// ...until a relevant event is observed
 }
 
 

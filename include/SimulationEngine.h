@@ -181,7 +181,7 @@ public:  // Simulation utils
      *
      * @param traial Embodiment of a simulation running through the system model
      */
-    virtual bool eventTriggered(const Traial& traial) const = 0;
+    virtual bool event_triggered(const Traial& traial) const = 0;
 };
 
 } // namespace fig

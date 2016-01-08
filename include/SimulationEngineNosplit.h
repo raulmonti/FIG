@@ -62,7 +62,7 @@ public:  // Inherited virtual simulation functions
 
 	virtual void simulate(ConfidenceInterval&) const {}
 
-	virtual bool eventTriggered(const Traial& traial) const;
+	virtual bool event_triggered(const Traial& traial) const;
 };
 
 } // namespace fig

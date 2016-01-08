@@ -37,8 +37,8 @@ namespace fig
 {
 
 /**
- * Abstract base class for the confidence interval which is to be built
- * around the probability's estimated value.
+ * @brief Abstract base class for the confidence interval which is to be built
+ *        around the probability's estimated value.
  */
 class ConfidenceInterval
 {
@@ -70,18 +70,19 @@ private:  // Attributes: estimation thus far
 	/// Semi-precision corresponding to the current estimation
 	double halfWidth_;
 
-public:  // Attributes: estimation correction factors
+private:  // Attributes: estimation correction factors
 
-	/// Minimum required number of "successfull" simulations
-	double statOversample;
+	/// Minimum number of observed rare events
+	/// required to consider a simulation as succesfull
+	double statOversample_;
 
 	/// Calibration of the relative weight of simulation runs
-	double varCorrection;
+	double varCorrection_;
 
-public:  // Ctors/Dtor
+public:  // Ctor
 
 	/**
-	 * Data ctor
+	 * Only data ctor provided
 	 * @param confidence       Interval's confidence coefficient ∈ (0.0, 1.0)
 	 * @param precision        Interval's desired full width > 0.0
 	 * @param dynamicPrecision Is the precision a percentage of the estimate?
@@ -89,10 +90,58 @@ public:  // Ctors/Dtor
 	 */
 	ConfidenceInterval(double confidence, double precision, bool dynamicPrecision = false);
 
-public:  // Utils
+public:  // Accessors
 
-	/// Update CI with a new value estimated for the property under study
+	/// @copydoc numSamples_
+	inline const long& num_samples() const noexcept { return numSamples_; }
+
+	/// @copydoc estimate_
+	inline const double& point_estimate() const noexcept { return estimate_; }
+
+	/// @copydoc variance_
+	inline const double& estimation_variance() const noexcept { return variance_; }
+
+	/// @copydoc statOversample_
+	inline const double& statistical_oversampling() const noexcept { return statOversample_; }
+
+	/// @copydoc varCorrection_
+	inline const double& variance_correction() const noexcept { return varCorrection_; }
+
+public:  // Modifyers
+
+	/// Increase the statistical oversampling factor for event counting.
+	/// @note Typically needed when rare events can occur at any importance level
+	/// @see statistical_oversampling()
+	void set_statistical_oversampling(const double& statOversamp);
+
+	/// Set the variance correction factor for interval precision computation.
+	/// @note Typically needed when rare events can occur at any importance level
+	/// @see variance_correction()
+	void set_variance_correction(const double& varCorrection);
+
+	/**
+	 * @brief Update current estimation with a new sample value.
+	 * @param newEstimate New value estimated for the property under study
+	 * @note Considered as one single new value fed into the estimation,
+	 *       i.e. only one experiment was ran to come up with 'newEstimate'
+	 * @throw FigException if detected possible overflow
+	 * @see update(const double&, const double&)
+	 */
 	virtual void update(const double& newEstimate) = 0;
+
+	/**
+	 * @brief Update current estimation with several new sample values.
+	 * @param newEstimates Condensation of the property's estimated values
+	 *                     resulting from several experiments
+	 * @param logNumNewEstimates Natural logarithm of the # of experiments ran
+	 * @note The logarithm is used to avoid commonplace overflows
+	 * @throw FigException if detected possible overflow
+	 * @see update(const double&)
+	 */
+	virtual void update(const double& newEstimates,
+						const double& logNumNewEstimates) = 0;
+
+public:  // Utils
 
 	/**
 	 * Do we have enough measurements to apply the theory?
@@ -107,10 +156,10 @@ public:  // Utils
 	 *
 	 * @see is_valid()
 	 */
-	virtual bool min_samples_covered() = 0;
+	virtual bool min_samples_covered() const noexcept = 0;
 
 	/**
-	 * Does current estimation satisfy the interval's creation criteria?
+	 * Does current estimation satisfy the interval's confidence criteria?
 	 *
 	 * If the minimum # of samples to satisfy the theory assumptions hasn't
 	 * been covered yet, this method will return <b>false</b>. Ohterwise the
@@ -123,15 +172,6 @@ public:  // Utils
 	 */
 	bool is_valid() const noexcept;
 
-	/// @copydoc numSamples_
-	inline const long& num_samples() const noexcept { return numSamples_; }
-
-	/// @copydoc estimate_
-	inline const double& point_estimate() const noexcept { return estimate_; }
-
-	/// @copydoc variance_
-	inline const double& estimation_variance() const noexcept { return variance_; }
-
 	/// Theoretical width for creation's confidence coefficient
 	/// @copydoc value_simulations_
 	inline double precision() const noexcept
@@ -139,7 +179,7 @@ public:  // Utils
 
 	/// Achieved width for requested confidence coefficient
 	/// @copydoc time_simulations_
-	virtual double precision(double confidence) const = 0;
+	virtual double precision(const double& confco) const = 0;
 
 	/// Theoretical lower limit for creation's confidence coefficient
 	/// @copydoc value_simulations_
@@ -148,8 +188,8 @@ public:  // Utils
 
 	/// Achieved lower limit for requested confidence coefficient
 	/// @copydoc time_simulations_
-	inline double lowerLimit(double confidence) const
-		{ return std::max(0.0, estimate_ - precision(confidence)/2.0); }
+	inline double lowerLimit(const double& confco) const
+		{ return std::max(0.0, estimate_ - precision(confco)/2.0); }
 
 	/// Theoretical upper limit for creation's confidence coefficient
 	/// @copydoc value_simulations_
@@ -158,8 +198,8 @@ public:  // Utils
 
 	/// Achieved upper limit for requested confidence coefficient
 	/// @copydoc time_simulations_
-	inline double upperLimit(double confidence) const
-		{ return std::min(1.0, estimate_ + precision(confidence)/2.0); }
+	inline double upperLimit(const double& confco) const
+		{ return std::min(1.0, estimate_ + precision(confco)/2.0); }
 
 protected:
 
@@ -187,14 +227,14 @@ protected:
 	 *       it is only valid for "sufficiently large" samples,
 	 *       typically n > 30.
 	 *
-	 * @throw FigException
+	 * @throw FigException if quantile couldn't be correctly computed
 	 */
 	static double confidence_quantile(const double& cc);
 
 private:
 
 	/// @note Typically used for "value simulations", viz. when estimations
-	///       finish as soon as certain confidence criteria is met.
+	///       finish as soon as certain confidence criterion is met.
 	static bool value_simulations_;  // defined only to copy the doc!
 
 	/// @note Typically used for "time simulations", viz. when estimations
