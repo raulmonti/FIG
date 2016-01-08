@@ -154,7 +154,7 @@ public:  // Accessors
 
 public:  // Utils
 
-	virtual inline void accept(ImportanceFunction& ifun, Property* const prop)
+	virtual inline void accept(ImportanceFunction& ifun, const Property& prop)
 		{ ifun.assess_importance(*this, prop); }
 
 	/**

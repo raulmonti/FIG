@@ -76,7 +76,7 @@ public:  // Utils
 
 	virtual bool min_samples_covered() const noexcept;
 
-	virtual double precision(double confidence) const;
+	virtual double precision(const double& confco) const;
 };
 
 } // namespace fig

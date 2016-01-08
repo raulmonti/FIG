@@ -59,7 +59,7 @@ double erf_inv(const double& y)
 	if (-1.0 > y || 1.0 < y)  // Argument out of range
 		x = std::numeric_limits<double>::quiet_NaN();
 
-	if (1.0 == abs(y)) {
+	if (1.0 == std::abs(y)) {
 		// We're not in for extremes, ask Billy Joel for that
 		x = std::numeric_limits<double>::quiet_NaN();
 
@@ -123,11 +123,11 @@ ConfidenceInterval::ConfidenceInterval(double confidence,
 	varCorrection_(1.0)
 {
 	if (0.0 >= precision)
-		throw FigException("requires precision > 0.0");
+		throw_FigException("requires precision > 0.0");
 	if (percent && 1.0 <= precision)
-		throw FigException("dynamic precision must ∈ (0.0, 1.0)");
+		throw_FigException("dynamic precision must ∈ (0.0, 1.0)");
 	if (0.0 >= confidence || 1.0 <= confidence)
-		throw FigException("requires confidence coefficient ∈ (0.0, 1.0)");
+		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
 }
 
 
@@ -135,7 +135,7 @@ void
 ConfidenceInterval::set_statistical_oversampling(const double& statOversamp)
 {
 	if (1.0 > statOversamp)
-		throw FigException("the statistical oversampling factor should scale "
+		throw_FigException("the statistical oversampling factor should scale "
 						   "*up* the minimum # of rare events required");
 	statOversample_ = statOversamp;
 }
@@ -145,7 +145,7 @@ void
 ConfidenceInterval::set_variance_correction(const double& varCorrection)
 {
 	if (0.0 > varCorrection)
-		throw FigException("the variance correction factor must be positive");
+		throw_FigException("the variance correction factor must be positive");
 	varCorrection_ = varCorrection;
 }
 
@@ -164,7 +164,7 @@ ConfidenceInterval::confidence_quantile(const double& cc)
 {
 	double quantile = probit((1.0+cc)/2.0);
 	if (std::isnan(quantile) || std::isinf(quantile))
-		throw FigException("error computing confidence quantile");
+		throw_FigException("error computing confidence quantile");
 	return quantile;
 }
 

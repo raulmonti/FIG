@@ -79,7 +79,7 @@ TraialPool::get_instance()
 {
 	if (0u >= numVariables && 0u >= numClocks)
 #ifndef NDEBUG
-		throw FigException("can't build the TraialPool since the "
+		throw_FigException("can't build the TraialPool since the "
 						   "ModelSuite hasn't been sealed yet");
 #endif
 	std::call_once(singleInstance_,

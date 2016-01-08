@@ -107,7 +107,7 @@ void MathExpression::parse_our_expression()
 		cerr << "    token:    " << e.GetToken() << endl;
 		cerr << "    position: " << e.GetPos()   << endl;
 		cerr << "    errc:     " << e.GetCode()  << endl;
-		throw FigException("bad mathematical expression");
+		throw_FigException("bad mathematical expression");
 	}
 }
 

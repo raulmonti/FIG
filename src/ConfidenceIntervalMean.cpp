@@ -51,7 +51,7 @@ ConfidenceIntervalMean::update(const double &newMean)
 	// Incremental computation of mean and variance (http://goo.gl/ytk6B)
 	double delta = newMean - estimate_;
 	if (++numSamples_ < 0)
-		throw FigException("numSamples_ became negative, overflow?");
+		throw_FigException("numSamples_ became negative, overflow?");
 	estimate_ += delta/numSamples_;
 	M2 += delta*(newMean-estimate_);
 	variance_ = numSamples_ < 2 ? variance_ : M2/(numSamples_-1);
@@ -71,7 +71,7 @@ double
 ConfidenceIntervalMean::precision(const double &confco) const
 {
 	if (0.0 >= confco || 1.0 <= confco)
-		throw FigException("requires confidence coefficient ∈ (0.0, 1.0)");
+		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
 	return 2.0 * ConfidenceInterval::confidence_quantile(confco)
 			   * sqrt(variance_/numSamples_);
 }

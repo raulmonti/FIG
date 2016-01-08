@@ -136,7 +136,7 @@ Postcondition::fake_evaluation() const
 		cerr << "    token:    " << e.GetToken() << endl;
 		cerr << "    position: " << e.GetPos()   << endl;
 		cerr << "    errc:     " << e.GetCode()  << endl;
-		throw FigException("bad expression for postcondition, "
+		throw_FigException("bad expression for postcondition, "
 						   "did you remember to map all the variables?");
 	}
 }
@@ -193,7 +193,7 @@ Postcondition::operator()(StateInstance& state) const
 {
 	if (!pinned())
 #ifndef NDEBUG
-		throw FigException("pin_up_vars() hasn't been called yet");
+		throw_FigException("pin_up_vars() hasn't been called yet");
 #else
 		cerr << "pin_up_vars() hasn't been called yet" << endl;
 		return;

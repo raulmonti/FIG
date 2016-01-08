@@ -274,7 +274,7 @@ ModelSuite::process_batch(
 				  "two containers with strings, the second describing the "
 				  "simulation strategies to use during simulations.");
 	// For each property ...
-	for (const Property& prop: properties) {
+	for (const auto prop: properties) {
 		// ... for each importance strategy (null, auto, ad hoc, etc) ...
 		for (const std::string impStrat: importanceStrategies) {
 			if (end(impFuns) == impFuns.find(impStrat)) {
@@ -282,7 +282,7 @@ ModelSuite::process_batch(
 				continue;
 			}
 			auto impFun = impFuns[impStrat];
-			impFun->assess_importance(*model.get(), &prop);
+			impFun->assess_importance(*model.get(), *prop);
 			assert(impFun->ready());
 			// ... and each simulation strategy (no split, restart, etc) ...
 			for (const std::string simStrat: simulationStrategies) {
@@ -292,7 +292,7 @@ ModelSuite::process_batch(
 				}
 				auto engine = simulators[simStrat];
 				try {
-					engine->load(prop, impFun);
+					engine->load(*prop, impFun);
 				} catch (FigException& e) {
 					/// @todo TODO log the skipping of this combination
 					///       Either the property or the importance function are

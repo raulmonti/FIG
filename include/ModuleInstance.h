@@ -293,7 +293,7 @@ public:  // Utils
 	/// Has this module been \ref seal() "sealed" already?
 	inline bool sealed() const noexcept { return sealed_; }
 
-	virtual inline void accept(ImportanceFunction& ifun, Property* const prop)
+	virtual inline void accept(ImportanceFunction& ifun, const Property& prop)
 		{ ifun.assess_importance(*this, prop); }
 
 	/**

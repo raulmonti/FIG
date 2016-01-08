@@ -102,7 +102,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 				  "a container with the initial clock names as strings");
 	if (model->sealed())
 #ifndef NDEBUG
-		throw FigException("the ModelSuite has already been sealed");
+		throw_FigException("the ModelSuite has already been sealed");
 #else
 		return;
 #endif
@@ -121,7 +121,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 	// Check all offered engines and functions were actually instantiated
 	for (const auto& engineName: SimulationEngine::names)
 		if (end(simulators) == simulators.find(engineName))
-			throw FigException(std::string("hey..., hey you ...  HEY, DEVELOPER!")
+			throw_FigException(std::string("hey..., hey you ...  HEY, DEVELOPER!")
 							   .append(" You forgot to create the '")
 							   .append(engineName).append("'' engine"));
 	/// @todo TODO same lookup shit for importance functions

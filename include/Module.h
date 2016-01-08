@@ -56,7 +56,7 @@ public:  // Utils
 
 	/// Have the importance of our states assessed by this ImportanceFunction
 	/// according to the given Property
-	virtual void accept(ImportanceFunction& ifun, Property* const prop) = 0;
+	virtual void accept(ImportanceFunction& ifun, const Property& prop) = 0;
 };
 
 } // namespace fig

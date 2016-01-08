@@ -42,7 +42,7 @@ namespace fig
 class ILabel : public Label
 {
 public:
-	ILabel() { throw FigException("can't construct an empty input label"); }
+	ILabel() { throw_FigException("can't construct an empty input label"); }
 	ILabel(const std::string& str) : Label(str, false) {}
 	ILabel(std::string&& str)      : Label(str, false) {}
 };

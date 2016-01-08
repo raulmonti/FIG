@@ -46,7 +46,7 @@ SimulationEngineNosplit::simulate(const size_t& numRuns) const
 
 	if (!loaded())
 #ifndef NDEBUG
-		throw FigException("engine wasn't loaded, can't simulate");
+		throw_FigException("engine wasn't loaded, can't simulate");
 #else
 		return -1.0;
 #endif
@@ -72,12 +72,12 @@ SimulationEngineNosplit::simulate(const size_t& numRuns) const
 	case PropertyType::RATE:
 	case PropertyType::PROPORTION:
 	case PropertyType::BOUNDED_REACHABILITY:
-		throw FigException(std::string("property type isn't supported by ")
+		throw_FigException(std::string("property type isn't supported by ")
 						   .append(name_).append(" simulation yet"));
 		break;
 
 	default:
-		throw FigException("invalid property type");
+		throw_FigException("invalid property type");
 		break;
 	}
 
@@ -101,11 +101,11 @@ SimulationEngineNosplit::event_triggered(const Traial& traial) const
 	case PropertyType::RATE:
 	case PropertyType::PROPORTION:
 	case PropertyType::BOUNDED_REACHABILITY:
-		throw FigException("property type isn't supported yet");
+		throw_FigException("property type isn't supported yet");
 		break;
 
 	default:
-		throw FigException("invalid property type");
+		throw_FigException("invalid property type");
 		break;
 	}
 	return false;

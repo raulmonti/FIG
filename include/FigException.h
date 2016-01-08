@@ -30,6 +30,10 @@
 #ifndef FIGEXCEPTION_H
 #define FIGEXCEPTION_H
 
+// C
+#include <libgen.h>  // basename(), dirname()
+#include <cstring>   // strndup()
+// C++
 #include <exception>
 #include <utility>
 #include <string>
@@ -43,14 +47,18 @@ class FigException : public std::exception
 {
 	std::string msg_;
 
-	inline virtual const char* what() const noexcept
-	{
-		return std::string("FigException raised: ").append(msg_).c_str();
-	}
+	inline virtual const char* what() const noexcept { return msg_.c_str(); }
 
-	inline void compose_msg(const char* file, int line)
+	inline void compose_msg(const char* fullpath0, int line)
 	{
-		msg_.append(" @ ").append(file).append(":").append(std::to_string(line));
+		const size_t maxlen(1u<<7);
+		auto fullpath1 = strndup(fullpath0, maxlen);
+		auto fullpath2 = strndup(fullpath0, maxlen);
+		msg_ = msg_.append(" @ ").append(basename(fullpath1))
+				   .append(":").append(std::to_string(line))
+				   .append("\nThrown from dir ").append(dirname(fullpath2));
+		free(fullpath1);
+		free(fullpath2);
 	}
 
 public:

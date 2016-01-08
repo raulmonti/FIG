@@ -106,7 +106,7 @@ public:  // Modifiers
 		{
 #ifndef NDEBUG
 			if (Variable<T_>::name_.empty())
-				throw FigException(std::string("can't assign value to a fresh variable")
+				throw_FigException(std::string("can't assign value to a fresh variable")
 					.append(" (\"").append(Variable<T_>::name_).append("\")"));
 #endif
 			Variable<T_>::offset_ = value - Variable<T_>::min_;

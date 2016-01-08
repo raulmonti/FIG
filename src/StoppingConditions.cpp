@@ -103,7 +103,7 @@ StoppingConditions::add_confidence_criterion(const std::pair<double, double>& cr
 {
 	if (!timeBudgets_.empty())
 #ifndef NDEBUG
-		throw FigException("this was a time stopping condition, "
+		throw_FigException("this was a time stopping condition, "
 						   "can't mix that with confidence criteria");
 #else
 		return;
@@ -118,7 +118,7 @@ StoppingConditions::add_confidence_criterion(const double& confCo,
 {
 	if (!timeBudgets_.empty())
 #ifndef NDEBUG
-		throw FigException("this was a time stopping condition, "
+		throw_FigException("this was a time stopping condition, "
 						   "can't mix that with confidence criteria");
 #else
 		return;
@@ -132,7 +132,7 @@ StoppingConditions::add_time_budget(const unsigned long& seconds)
 {
 	if (!confidenceCriteria_.empty())
 #ifndef NDEBUG
-		throw FigException("this was a value stopping condition, "
+		throw_FigException("this was a value stopping condition, "
 						   "can't mix that with time budgets");
 #else
 		return;

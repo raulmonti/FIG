@@ -94,7 +94,7 @@ public:
 	 *       is ready() to be used during simulations
 	 */
 	virtual void assess_importance(const ModuleInstance& mod,
-								   const Property* prop) = 0;
+								   const Property& prop) = 0;
 
 	/**
 	 * @brief Assess the importance of the reachable states of the whole
@@ -108,7 +108,7 @@ public:
 	 *       is ready() to be used during simulations
 	 */
 	virtual void assess_importance(const ModuleNetwork& net,
-								   const Property* prop) = 0;
+								   const Property& prop) = 0;
 
 	/// Release any memory allocated in the heap
 	/// @note After this invocation the ImportanceFunction is no longer ready()

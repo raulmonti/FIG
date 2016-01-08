@@ -30,6 +30,7 @@
 #include <cassert>
 // FIG
 //#include <fig.h>  // we won't be using the parser yet
+#include <FigException.h>
 #include <ModelSuite.h>
 #include <TraialPool.h>
 
@@ -72,6 +73,8 @@ int main()
 	 *  Prob( q1+q2 > 0 U q2 == 8 ) ?                    *
 	 *                                                   *
 	 * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+	throw_FigException("TODO: this test!");
 
 	return 0;
 }

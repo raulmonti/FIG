@@ -35,7 +35,7 @@ namespace fig
 
 const std::array< std::string, 1 > SimulationEngine::names =
 {
-	"nosplit"
+	{"nosplit"}
 };
 
 
@@ -54,7 +54,7 @@ SimulationEngine::SimulationEngine(
 		for (const auto& name: names)
 			errMsg << " \"" << name << "\"";
 		errMsg << "\n";
-		throw FigException(errMsg.str());
+		throw_FigException(errMsg.str());
 	}
 }
 

@@ -58,8 +58,8 @@ PropertyTransient::pin_up_vars(const PositionsMap &globalVars)
 void
 PropertyTransient::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 {
-	stop.pin_up_vars(globalVars);
-	goal.pin_up_vars(globalVars);
+	stop.pin_up_vars(globalState);
+	goal.pin_up_vars(globalState);
 }
 
 } // namespace fig

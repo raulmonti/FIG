@@ -99,7 +99,7 @@ ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 {
 	if (sealed_)
 #ifndef NDEBUG
-		throw FigException("ModuleNetwork has already been sealed");
+		throw_FigException("ModuleNetwork has already been sealed");
 #else
 		return;
 #endif
@@ -123,7 +123,7 @@ ModuleNetwork::seal(const Container<ValueType, OtherContainerArgs...>& initialCl
 				  "a container with the initial clock names");
 	if (sealed_)
 #ifndef NDEBUG
-		throw FigException("the ModuleNetwork has already been sealed");
+		throw_FigException("the ModuleNetwork has already been sealed");
 #else
 		return;
 #endif
@@ -168,7 +168,7 @@ ModuleNetwork::initial_state() const
 {
 	if (!sealed())
 #ifndef NDEBUG
-		throw FigException("ModuleNetwork hasn't been sealed yet");
+		throw_FigException("ModuleNetwork hasn't been sealed yet");
 #else
 		return;
 #endif
@@ -182,7 +182,7 @@ ModuleNetwork::simulation_step(Traial& traial,
 {
 	if (!sealed())
 #ifndef NDEBUG
-		throw FigException("ModuleNetwork hasn't been sealed yet");
+		throw_FigException("ModuleNetwork hasn't been sealed yet");
 #else
 		return;
 #endif

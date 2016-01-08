@@ -78,7 +78,7 @@ VariableSet<T_>::operator=(const T_& value)
 {
 #ifndef NDEBUG
 	if (Variable<T_>::name_.empty())
-		throw FigException(std::string("can't assign value to a fresh variable")
+		throw_FigException(std::string("can't assign value to a fresh variable")
 			.append(" (\"").append(Variable<T_>::name_).append("\")"));
 #endif
 	for (size_t i=0 ; i < values_.size() ; i++) {
@@ -97,7 +97,7 @@ void
 VariableSet<T_>::assign(const T_& value)
 {
 	if (Variable<T_>::name_.empty())
-		throw FigException(std::string("can't assign value to a fresh variable")
+		throw_FigException(std::string("can't assign value to a fresh variable")
 			.append(" (\"").append(Variable<T_>::name_).append("\")"));
 	for (size_t i=0 ; i < values_.size() ; i++) {
 		if (value == values_[i]) {
@@ -106,7 +106,7 @@ VariableSet<T_>::assign(const T_& value)
 			return;
 		}
 	}
-	throw FigException(std::string("can't assign ")
+	throw_FigException(std::string("can't assign ")
 		.append(std::to_string(value)).append(" to variable \"")
 		.append(Variable<T_>::name_).append("\", invalid value"));
 }

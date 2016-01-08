@@ -195,10 +195,10 @@ void
 VariableInterval<T_>::assign(const T_& value)
 {
 	if (Variable<T_>::name_.empty())
-		throw FigException(std::string("can't assign value to a fresh variable")
+		throw_FigException(std::string("can't assign value to a fresh variable")
 			.append(" (\"").append(Variable<T_>::name_).append("\")"));
 	else if (!is_valid_value(value))
-		throw FigException(std::string("can't assign ")
+		throw_FigException(std::string("can't assign ")
 			.append(std::to_string(value)).append(" to variable \"")
 			.append(Variable<T_>::name_).append("\", invalid value"));
 	else

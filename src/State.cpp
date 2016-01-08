@@ -95,7 +95,7 @@ State<T_>::append(const State& tail)
 #ifndef NDEBUG
 	for (const auto var_ptr: tail)
 		if (is_our_var(var_ptr->name()))
-			throw FigException(std::string("variable \"")
+			throw_FigException(std::string("variable \"")
 							   .append(var_ptr->name())
 							   .append("\" already exists in this state"));
 #endif
@@ -184,7 +184,7 @@ void
 State<T_>::copy_from_state_instance(const StateInstance &s, bool checkValidity)
 {
 	if (s.size() != size())
-		throw FigException("attempted to copy values from an invalid state");
+		throw_FigException("attempted to copy values from an invalid state");
 	if (checkValidity) {
 		for (size_t i = 0u ; i < size() ; i++)
 			pvars_[i]->assign(s[i]);
@@ -200,7 +200,7 @@ void
 State<T_>::copy_to_state_instance(StateInstance& s) const
 {
 	if (s.size() != size())
-		throw FigException("attempted to copy values to an invalid state");
+		throw_FigException("attempted to copy values to an invalid state");
 	for (size_t i = 0u ; i < size() ; i++)
 		s[i] = pvars_[i]->val();
 }

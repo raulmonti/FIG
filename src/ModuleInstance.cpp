@@ -51,15 +51,15 @@ ModuleInstance::add_transition(const Transition& transition)
 {
 #ifndef NDEBUG
 	if (0 <= globalIndex_ || 0 <= firstClock_)
-		throw FigException("this module has already been added to the network");
+		throw_FigException("this module has already been added to the network");
 	if (!is_our_clock(transition.triggeringClock))
-		throw FigException(std::string("triggering clock \"")
+		throw_FigException(std::string("triggering clock \"")
 						   .append(transition.triggeringClock)
 						   .append("\" does not reside in module \"")
 						   .append(name).append("\""));
 	for (const auto& clockName: transition.resetClocksList())
 		if (!is_our_clock(clockName))
-			throw FigException(std::string("reset clock \"").append(clockName)
+			throw_FigException(std::string("reset clock \"").append(clockName)
 							   .append("\" does not reside in module \"")
 							   .append(name).append("\""));
 #else
@@ -77,15 +77,15 @@ ModuleInstance::add_transition(Transition&& transition)
 {
 #ifndef NDEBUG
 	if (0 <= globalIndex_ || 0 <= firstClock_)
-		throw FigException("this module has already been added to the network");
+		throw_FigException("this module has already been added to the network");
 	if (!is_our_clock(transition.triggeringClock))
-		throw FigException(std::string("triggering clock \"")
+		throw_FigException(std::string("triggering clock \"")
 						   .append(transition.triggeringClock)
 						   .append("\" does not reside in module \"")
 						   .append(name).append("\""));
 	for (const auto& clockName: transition.resetClocksList())
 		if (!is_our_clock(clockName))
-			throw FigException(std::string("reset clock \"").append(clockName)
+			throw_FigException(std::string("reset clock \"").append(clockName)
 							   .append("\" does not reside in module \"")
 							   .append(name).append("\""));
 #else
@@ -106,7 +106,7 @@ ModuleInstance::jump(const std::string& clockName,
 {
 	if (!sealed_)
 #ifndef NDEBUG
-		throw FigException("this module hasn't been sealed yet");
+		throw_FigException("this module hasn't been sealed yet");
 #else
 		return;
 #endif
@@ -137,7 +137,7 @@ ModuleInstance::jump(const Label& label,
 {
 	if (!sealed_)
 #ifndef NDEBUG
-		throw FigException("this module hasn't been sealed yet");
+		throw_FigException("this module hasn't been sealed yet");
 #else
 		return;
 #endif
@@ -162,7 +162,7 @@ ModuleInstance::jump(const Label& label,
 	}
 #ifndef NDEBUG
 	} catch (std::out_of_range) {
-		throw FigException(std::string("output label \"").append(label.str)
+		throw_FigException(std::string("output label \"").append(label.str)
 						   .append("\" wasn't found among the transitions ")
 						   .append("of module \"").append(name).append("\""));
 	}
@@ -205,7 +205,7 @@ ModuleInstance::mark_added(const int& globalIndex, const int& firstClock)
 	assert(0 <= firstClock);
 	if (0 <= globalIndex_ || 0 <= firstClock_)
 #ifndef NDEBUG
-		throw FigException("this module has already been added to the network");
+		throw_FigException("this module has already been added to the network");
 #else
 		return;
 #endif
@@ -222,7 +222,7 @@ ModuleInstance::seal(const PositionsMap& globalVars)
 	assert(0 <= firstClock_);
 	if (sealed_)
 #ifndef NDEBUG
-		throw FigException("this module has already been sealed");
+		throw_FigException("this module has already been sealed");
 #else
 		return;
 #endif
@@ -242,7 +242,7 @@ ModuleInstance::seal(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 	assert(0 <= firstClock_);
 	if (sealed_)
 #ifndef NDEBUG
-		throw FigException("this module has already been sealed");
+		throw_FigException("this module has already been sealed");
 #else
 		return;
 #endif

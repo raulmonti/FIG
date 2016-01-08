@@ -56,7 +56,7 @@ public:  // Attributes: CI fingerprint
 	/// Probit value for chosen confidence
 	const double quantile;
 
-private:  // Attributes: estimation thus far
+protected:  // Attributes: estimation thus far
 
 	/// Number of samples fed so far via update()
 	long numSamples_;
@@ -70,7 +70,7 @@ private:  // Attributes: estimation thus far
 	/// Semi-precision corresponding to the current estimation
 	double halfWidth_;
 
-private:  // Attributes: estimation correction factors
+protected:  // Attributes: estimation correction factors
 
 	/// Minimum number of observed rare events
 	/// required to consider a simulation as succesfull

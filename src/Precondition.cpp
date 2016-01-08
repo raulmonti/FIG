@@ -55,7 +55,7 @@ Precondition::fake_evaluation() const
 		cerr << "    token:    " << e.GetToken() << endl;
 		cerr << "    position: " << e.GetPos()   << endl;
 		cerr << "    errc:     " << e.GetCode()  << endl;
-		throw FigException("bad expression for precondition, "
+		throw_FigException("bad expression for precondition, "
 						   "did you remember to map all the variables?");
 	}
 }
@@ -86,7 +86,7 @@ Precondition::operator()(const StateInstance& state) const
 {
 	if (!pinned())
 #ifndef NDEBUG
-		throw FigException("pin_up_vars() hasn't been called yet");
+		throw_FigException("pin_up_vars() hasn't been called yet");
 #else
 		cerr << "pin_up_vars() hasn't been called yet" << endl;
 		return false;

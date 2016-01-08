@@ -148,7 +148,7 @@ Traial::initialize()
 	auto& net(ModelSuite::get_instance().model);
 	if (!net->sealed())
 #ifndef NDEBUG
-		throw FigException("ModuleNetwork hasn't been sealed yet");
+		throw_FigException("ModuleNetwork hasn't been sealed yet");
 #else
 		return;  // we can't do anything without the global data
 #endif

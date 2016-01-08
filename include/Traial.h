@@ -200,7 +200,7 @@ public:  // Utils
 			if (reorder)
 				reorder_clocks();
 			if (0 > firstNotNull_)
-				throw FigException("all clocks are null!");
+				throw_FigException("all clocks are null!");
 			return clocks_[firstNotNull_];
 		}
 

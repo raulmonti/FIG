@@ -79,7 +79,7 @@ public: // Ctors
 		output_(isOutput)
 		{
 			if (!isOutput && this->str.empty())
-				throw FigException("can't construct an empty input label");
+				throw_FigException("can't construct an empty input label");
 		}
 
 	/**
@@ -92,7 +92,7 @@ public: // Ctors
 		output_(isOutput)
 		{
 			if (!isOutput && this->str.empty())
-				throw FigException("can't construct an empty input label");
+				throw_FigException("can't construct an empty input label");
 		}
 
 	/// Copy ctor
