@@ -13,13 +13,32 @@
 #include <stack>
 #include <vector>
 #include <string>
+#include <map>
 #include <FlexLexer.h>
 #include "config.h"
 #include "ast.h"
 
+
 using namespace std;
 
 namespace parser{
+
+
+/**
+ */
+typedef enum    { T_ARIT
+                , T_BOOL
+                , T_CLOCK
+                , T_NOTYPE
+                } Type; 
+
+/**
+ */
+typedef pair<Type,string> ptm; //pair type, module
+typedef pair<string,ptm> pvtm; // pair variable, (type,module)
+typedef map< string, ptm > parsingContext;
+
+
 
 /* The token representation for each lexeme. 
 */
@@ -163,8 +182,9 @@ class Parser
     stack<Node*> astStk;            // Stack for bulding up the AST
     bool         skipws;            // Skip white spaces?.
 
-
-
+    /* Results from parsing: */
+    AST            *ast;            // resulting parsed model as an AST
+    parsingContext  mPc;            // Map with type informartion for ast
 public:
 
     /** 
@@ -180,8 +200,8 @@ public:
      *  the parameter @result.
      *  @return 1 if successful, 0 otherwise.
      */
-    int
-    parse(stringstream *str, AST * & result);
+    const pair< AST*, parsingContext>
+    parse(stringstream *str);
 
     
     /**  @brief check if we ran out of lexemes to parse.
@@ -189,14 +209,28 @@ public:
      */
     inline int
     ended(){
-        return pos == tokens.size()-1;
+        return pos == (int)tokens.size()-1;
     }
 
 
 private:
 
+    /**
+     * @brief Translate the parsed type string into a type in our Type enumeration.
+     */
+    Type
+    str2Type(string str);
+    
+    
+    /**
+     * @brief Fill the context @mPc for @ast. Check for variables declarations
+     *        to be correct.
+     */
+    int
+    fill_context();
 
-    /** Building the AST **/
+
+    /* Building the AST */
 
     /** @brief prepare a new node for abstract syntax tree.
      *  Should be called at the beginning of matching of grammar production,
@@ -289,7 +323,7 @@ private:
     /* @saveLocation: save state to be able to backtrack if a grammar
        is not finally matched.
     */
-    inline int
+    inline void
     saveLocation(){
         lastk.push(pos);
     }
@@ -297,7 +331,7 @@ private:
 
     /* @loadLocation: When grammar did not match, return to the saved state.
     */
-    int 
+    void 
     loadLocation();
 
 
@@ -305,7 +339,7 @@ private:
        saved location, normaly because the grammar involved
        was matched, we should remove it from our saved locations.
     */
-    inline int
+    inline void
     removeLocation(){
         lastk.pop();
     }

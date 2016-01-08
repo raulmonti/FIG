@@ -53,7 +53,7 @@ public:
      * @return 0 if something went wrong.
      */
     int 
-    verify(AST* ast);
+    verify( AST* ast, const parsingContext);
 
 private:
 

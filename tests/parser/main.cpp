@@ -42,15 +42,15 @@ main (int argc, char** argv){
     ss << fin.rdbuf();
 
     /* Parse and point to the resulting AST. */
-    AST * ast = NULL;
-    if(parser->parse(& ss, ast)){
+    const pair<AST*, parsingContext> pp = parser->parse(& ss);
+    if(pp.first){
         __debug__(">> Result of Parsing:\n\n");
-        __debug__(*ast);
+        __debug__(pp.first);
         __debug__("\n\n");
 
         /* Do something with the resulting AST ... 
            like printing each modules name: */
-        vector<AST*> modules = ast->get_list(parser::_MODULE);
+        vector<AST*> modules = pp.first->get_list(parser::_MODULE);
         for (int i = 0; i < modules.size(); i++){
             //cout << (modules[i])->branches[1]->lxm << endl;
             //OR
@@ -60,7 +60,7 @@ main (int argc, char** argv){
         }
 
         try{
-            verifier->verify(ast);
+            verifier->verify(pp.first, pp.second);
 
         }catch(string e){
 
@@ -68,8 +68,8 @@ main (int argc, char** argv){
         }
 
         /* We are in charge of deleting the AST. */
-        if (ast != NULL){
-            delete ast;
+        if (pp.first != NULL){
+            delete pp.first;
         }
     }
 

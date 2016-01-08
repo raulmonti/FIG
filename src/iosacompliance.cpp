@@ -8,7 +8,7 @@
 
 #include <set>
 #include <assert.h>
-#include <exception>
+#include <stdexcept>
 #include <tuple>
 #include <vector>
 #include <set>
@@ -238,10 +238,9 @@ Verifier::~Verifier(void){}
  *  @return 0 otherwise.
  */
 int 
-Verifier::verify(AST* ast){
+Verifier::verify( AST* ast, const parsingContext pc){
 
-    /* Fill up a type map (mPc) for variables, constants, and clocks. */
-    fill_maps(ast);
+    mPc = pc;
 
     try{
         pout << ">> Check names uniqueness...\n";
@@ -652,86 +651,6 @@ Verifier::check_input_determinism(AST *ast){
 }
 
 
-//==============================================================================
-
-/**
- * @brief Translate the parsed type string into a type in our Type enumeration.
- */
-Type
-str2Type(string str){
-    Type result;
-    if(str == "int"){
-        result = T_ARIT;
-    }else if(str == "bool"){
-        result = T_BOOL;
-    }else if(str == "clock"){
-        result = T_CLOCK;
-    }else{
-        result = T_NOTYPE;
-    }
-    return result;
-}
-
-/**
- * @brief Fill the context @mPc for @ast. Check for variables declarations
- *        to be correct.
- */
-
-int
-Verifier::fill_maps(AST *ast){
-
-    string error_list = "";
-
-    vector<AST*> constants = ast->get_all_ast(_CONST);
-    vector<AST*> modules = ast->get_all_ast(_MODULE);
-    
-    // Fill map with constants.
-    for(int i = 0; i < constants.size(); ++i){
-        string name = constants[i]->get_lexeme(_NAME);
-        Type t = str2Type(constants[i]->get_lexeme(_TYPE));
-        mPc.insert( pvtm(name,ptm(t,"")));
-    }
-
-    for(int i = 0; i < modules.size(); i++){
-        vector<AST*> variables = modules[i]->get_all_ast(_VARIABLE);
-        vector<AST*> clocks = modules[i]->get_all_ast(_CLOCK);
-        string module = modules[i]->get_lexeme(_NAME);
-        // Fill map with variables.
-        for(int j=0; j < variables.size(); j++){
-            string name = variables[j]->get_lexeme(_NAME);
-            string type = variables[j]->get_lexeme(_TYPE);
-            if(type == "bool"){
-                mPc.insert(pvtm(name,ptm(T_BOOL,module)));
-                // The variable in <next state>
-                mPc.insert(pvtm(name+"'",ptm(T_BOOL,module)));
-            }else{
-                AST* range = variables[j]->get_first(_RANGE);
-                assert(range);
-                vector<string> limits = range->get_list_lexemes(_NUM);
-                assert(limits.size() == 2);
-                if(stoi(limits[0]) > stoi(limits[1])){
-                    string pos = variables[j]->get_pos();
-                    error_list.append("[ERROR] Empty range in variable "
-                        "declaration at " + pos + ".\n");
-                }
-                mPc.insert(pvtm(name,ptm(T_ARIT,module)));
-                mPc.insert(pvtm(name+"'",ptm(T_ARIT,module)));
-            }
-        }
-        // Fill map with clocks. 
-        for(int j=0; j < clocks.size(); j++){
-            string name = clocks[j]->get_lexeme(_NAME);
-            mPc.insert(pvtm(name, ptm(T_CLOCK, module)));
-        }
-    }
-
-    if(error_list != ""){
-        throw error_list;
-    }
-
-    return 1;
-}
-
 
 //==============================================================================
 
@@ -795,7 +714,7 @@ Verifier::type_check(AST *ast){
                 }
             }catch(string err){
                 error_list.append(err);
-            }catch(out_of_range err){
+            }catch(const out_of_range err){
                 error_list.append( "[ERROR] Undeclared variable " 
                                  + vname + " at " + var->p_pos() 
                                  + ".\n");

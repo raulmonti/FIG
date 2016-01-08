@@ -9,20 +9,6 @@ using namespace std;
 using namespace z3;
 namespace parser{
 
-/**
- */
-typedef enum    { T_ARIT
-                , T_BOOL
-                , T_CLOCK
-                , T_NOTYPE
-                } Type; 
-/**
- */
-typedef pair<Type,string> ptm; //pair type, module
-typedef pair<string,ptm> pvtm; // pair variable, (type,module)
-typedef map< string, ptm > parsingContext;
-
-
 
 
 

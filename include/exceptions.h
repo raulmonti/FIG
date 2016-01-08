@@ -29,7 +29,7 @@ public:
         except = msg;
     }
 
-    virtual ~ProgramError(){};
+    virtual ~ProgramError() throw() {};
 
     virtual const char* what() const throw()
     {
@@ -53,7 +53,7 @@ public:
         except = msg;
     }
 
-    virtual ~IOSAComplianceExc(){};
+    virtual ~IOSAComplianceExc() throw(){};
 
     virtual const char* what() const throw()
     {
@@ -104,7 +104,7 @@ public:
         except = msg;
     }
 
-    virtual ~BadSymbol(){};
+    virtual ~BadSymbol()throw(){};
 
     virtual const char* what() const throw()
     {
