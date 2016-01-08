@@ -27,13 +27,13 @@ using namespace parser;
 int 
 main (int argc, char** argv){
 
-    assert( argc == 2);
+    assert(argc == 2);
 
     cout << ">> Running the parser ..." << endl;
     cout << ">> Parsing file: " << argv[1] << endl ;
 
     /* Instanciate a parser, and a verifier. */
-    parser::Parser *parser = new parser::Parser();
+    Parser   *parser   = new Parser();
     Verifier *verifier = new Verifier();
 
     /* Get a stream with the model to parse. */

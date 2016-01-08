@@ -69,7 +69,6 @@ INCLUDE_DIRECTORIES(${HEADERS_DIR})
 # Register the source files (only those required for this test)
 SET(REQUIRED_SOURCES "${SOURCES_DIR}/ast.cpp"
                      "${SOURCES_DIR}/parser.cpp"
-                     "${SOURCES_DIR}/smtsolver.cpp"
                      "${SOURCES_DIR}/iosacompliance.cpp")
 SET(ALL_SOURCES ${ALL_SOURCES} ${REQUIRED_SOURCES} CACHE INTERNAL "")
 

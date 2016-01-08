@@ -34,7 +34,8 @@ TODO    Decide if the module named smtsolver is really needed or if it can be
 TODO    Build input-enable transition to comply with IOSA 6th property.
 TODO    Complete the counterexample tests for iosacompliance.
 TODO    Test modules for parallel compatibility (disjoint output labels).
-
+TODO    AUTOMATIC tests instead of counterexample texts that we have for the
+        parser.
 
 
 
