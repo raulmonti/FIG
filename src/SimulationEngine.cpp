@@ -73,10 +73,10 @@ SimulationEngine::loaded() const noexcept
 
 
 void
-SimulationEngine::load(const Property& prop,
-					   std::shared_ptr< const ImportanceFunction > ifun) noexcept
+SimulationEngine::load(std::shared_ptr<const Property> prop,
+                       std::shared_ptr< const ImportanceFunction > ifun) noexcept
 {
-	property = &prop;
+    property = prop;
 	impFun = ifun;
 }
 

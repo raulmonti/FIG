@@ -81,7 +81,7 @@ protected:
     std::shared_ptr< const ModuleNetwork > network_;
 
     /// Property whose value is trying to be estimated
-    const Property* property;
+    std::shared_ptr< const Property> property;
 
     /// Importance function currently built
     std::shared_ptr< const ImportanceFunction > impFun;
@@ -122,7 +122,7 @@ public:  // Engine setup
      *                     are incompatible with this SimulationEngine
      * @see unload()
      */
-    void load(const Property& prop,
+    void load(std::shared_ptr< const Property> prop,
               std::shared_ptr< const ImportanceFunction > ifun) noexcept;
 
     /// Deregister the last Property and ImportanceFunction which were setup

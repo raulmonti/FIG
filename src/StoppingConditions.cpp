@@ -50,7 +50,7 @@ namespace fig
 
 template< template< typename... > class Container,
 		  typename... OtherContainerArgs >
-StoppingConditions::StoppingConditions(const Container< std::pair<double,double>,
+StoppingConditions::StoppingConditions(const Container< std::tuple<double,double,bool>,
 														OtherContainerArgs...
 													  >& confidenceCriteria)
 {
@@ -60,12 +60,12 @@ StoppingConditions::StoppingConditions(const Container< std::pair<double,double>
 }
 
 // Value StoppingConditions can only be created from the following containers
-template StoppingConditions::StoppingConditions(const std::set<std::pair<double,double>>&);
-template StoppingConditions::StoppingConditions(const std::list<std::pair<double,double>>&);
-template StoppingConditions::StoppingConditions(const std::deque<std::pair<double,double>>&);
-template StoppingConditions::StoppingConditions(const std::vector<std::pair<double,double>>&);
-template StoppingConditions::StoppingConditions(const std::forward_list<std::pair<double,double>>&);
-// template StoppingConditions::StoppingConditions(const std::unordered_set<std::pair<double,double>>&);
+template StoppingConditions::StoppingConditions(const std::set<std::tuple<double,double,bool>>&);
+template StoppingConditions::StoppingConditions(const std::list<std::tuple<double,double,bool>>&);
+template StoppingConditions::StoppingConditions(const std::deque<std::tuple<double,double,bool>>&);
+template StoppingConditions::StoppingConditions(const std::vector<std::tuple<double,double,bool>>&);
+template StoppingConditions::StoppingConditions(const std::forward_list<std::tuple<double,double,bool>>&);
+// template StoppingConditions::StoppingConditions(const std::unordered_set<std::tuple<double,double,bool>>&);
 
 
 template< template< typename... > class Container,
@@ -99,7 +99,7 @@ StoppingConditions& StoppingConditions::operator=(StoppingConditions that)
 
 
 void
-StoppingConditions::add_confidence_criterion(const std::pair<double, double>& criterion)
+StoppingConditions::add_confidence_criterion(const std::tuple<double,double,bool>& criterion)
 {
 	if (!timeBudgets_.empty())
 #ifndef NDEBUG
@@ -114,7 +114,8 @@ StoppingConditions::add_confidence_criterion(const std::pair<double, double>& cr
 
 void
 StoppingConditions::add_confidence_criterion(const double& confCo,
-											 const double& prec)
+                                             const double& prec,
+                                             const bool& dynPrec)
 {
 	if (!timeBudgets_.empty())
 #ifndef NDEBUG
@@ -123,7 +124,7 @@ StoppingConditions::add_confidence_criterion(const double& confCo,
 #else
 		return;
 #endif
-	confidenceCriteria_.emplace_back(confCo, prec);
+    confidenceCriteria_.emplace_back(confCo, prec, dynPrec);
 }
 
 

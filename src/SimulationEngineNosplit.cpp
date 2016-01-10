@@ -54,7 +54,8 @@ SimulationEngineNosplit::simulate(const size_t& numRuns) const
 	switch (property->type) {
 
 	case PropertyType::TRANSIENT: {
-		auto prop = dynamic_cast<const PropertyTransient*>(property);
+        auto prop = std::static_pointer_cast<PropertyTransient>(property);
+        assert(nullptr != prop);
 		size_t numSuccesses(0u);
 //		#pragma omp parallel  // we MUST parallelize this, it's stupid not to
 		Traial& traial = TraialPool::get_instance().get_traial();

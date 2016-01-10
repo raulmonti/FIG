@@ -46,6 +46,7 @@
 #include <SimulationEngineNosplit.h>
 #include <ImportanceFunctionConcreteSplit.h>
 #include <ImportanceFunctionConcreteCoupled.h>
+#include <ConfidenceInterval.h>
 
 // ADL
 using std::begin;
@@ -172,7 +173,8 @@ ModelSuite::available_importance_functions()
 
 
 void
-ModelSuite::estimate(const SimulationEngine& engine,
+ModelSuite::estimate(const Property& property,
+                     const SimulationEngine& engine,
 					 const StoppingConditions& bounds)
 {
 	if (bounds.is_time()) {
@@ -195,7 +197,7 @@ ModelSuite::estimate(const SimulationEngine& engine,
 		// Simulation bounds are confidence criteria
 //		log.set_for_values();
 //		for (const auto& criterion: bounds.confidence_criteria()) {
-//			ConfidenceInterval ci(criterion);
+            ConfidenceInterval ci(criterion);
 //			size_t numRuns = min_batch_size(engine.name(), engine.current_ifun());
 			double startTime = omp_get_wtime();
 //			do {

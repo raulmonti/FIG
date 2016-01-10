@@ -30,6 +30,7 @@
 #define MODELSUITE_H
 
 // C++
+#include <tuple>
 #include <mutex>  // std::call_once(), std::once_flag
 #include <vector>
 #include <string>
@@ -200,6 +201,47 @@ public:  // Utils
 
 public:  // Simulation utils
 
+
+	/*  *  *  *  *  *  *  *  *      TODO      *  *  *  *  *  *  *  *  *  *
+	 *
+	 *  a) Build ConfidenceInterval on the spot for each loop in estimate()
+	 *
+	 *     For that we need the Property to identify which CI to build,
+	 *     which suggests to pass it as parameter to estimate()
+	 *     But then we may not need it "loaded" into the engine.
+	 *     This leads to the following:
+	 *
+	 *  b) Remove Property from the parameters loaded into the SimulationEngine
+	 *
+	 *     Then only the ImportanceFunction will be loaded, and the Property
+	 *     will always be passed as (reference) parameter through the functions.
+	 *     Only problem is that the Property member was used inside the
+	 *     event_triggered() virtual function. Which leads to:
+	 *
+	 *  c) Pass Property& as parameter to ModuleNetwork::simulation_step()
+	 *
+	 *     This member function is called from within each inherited
+	 *     SimulationEngine::simulate(), which in turn will receive this
+	 *     Property& as parameter, so the idea is feasible.
+	 *     Is it elegant though?
+	 *     Why should a simulation require a property to advance one step?
+	 *
+	 *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  */
+
+
+    /**
+
+      @todo TODO implement this helper  /  move to cpp as static?
+
+     * @brief
+     * @param criterion
+     * @return
+     * @throw FigException if the engine wasn't \ref loaded() "ready"
+     */
+    std::shared_ptr<ConfidenceInterval> empty_confidence_interval(
+            const std::tuple<double,double,bool>& criterion =
+            std::make_tuple(.99999, .00001, true)) const;
+
 	/**
 	 * @brief Estimate the value of the \ref Property "stored properties"
 	 *        with all combinations of importance and simulation strategies.
@@ -210,6 +252,8 @@ public:  // Simulation utils
 	 *
 	 * @param importanceStrategies Names of the importance functions  to test
 	 * @param simulationStrategies Names of the simulation strategies to test
+	 *
+	 * @note The model must have been \ref seal() "sealed" beforehand
 	 *
 	 * @see process_interactive()
 	 */
@@ -243,7 +287,9 @@ public:  // Simulation utils
 	 * @throw FigException if engine wasn't \ref SimulationEngine::loaded()
 	 *                     "ready" for simulations
 	 */
-	void estimate(const SimulationEngine& engine, const StoppingConditions& bounds);
+	void estimate(const Property& property,
+				  const SimulationEngine& engine,
+				  const StoppingConditions& bounds) const;
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -273,8 +319,12 @@ ModelSuite::process_batch(
 				  "ERROR: type mismatch. ModelSuite::process_batch() takes "
 				  "two containers with strings, the second describing the "
 				  "simulation strategies to use during simulations.");
+	if (!sealed())
+		throw_FigException("model hasn't been sealed yet");
+
 	// For each property ...
 	for (const auto prop: properties) {
+
 		// ... for each importance strategy (null, auto, ad hoc, etc) ...
 		for (const std::string impStrat: importanceStrategies) {
 			if (end(impFuns) == impFuns.find(impStrat)) {
@@ -282,17 +332,18 @@ ModelSuite::process_batch(
 				continue;
 			}
 			auto impFun = impFuns[impStrat];
-			impFun->assess_importance(*model.get(), *prop);
+			impFun->assess_importance(*model, *prop);
 			assert(impFun->ready());
+
 			// ... and each simulation strategy (no split, restart, etc) ...
 			for (const std::string simStrat: simulationStrategies) {
 				if (end(simulators) == simulators.find(simStrat)) {
 					/// @todo TODO log the inexistence of this engine
 					continue;
 				}
-				auto engine = simulators[simStrat];
+				auto engine = *simulators[simStrat];
 				try {
-					engine->load(*prop, impFun);
+					engine.load(*prop, impFun);
 				} catch (FigException& e) {
 					/// @todo TODO log the skipping of this combination
 					///       Either the property or the importance function are
