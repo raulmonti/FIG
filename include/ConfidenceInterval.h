@@ -174,8 +174,7 @@ public:  // Utils
 
 	/// Theoretical width for creation's confidence coefficient
 	/// @copydoc value_simulations_
-	inline double precision() const noexcept
-		{ return 2.0 * errorMargin * (percent ? estimate_ : 1.0); }
+	double precision() const noexcept;
 
 	/// Achieved width for requested confidence coefficient
 	/// @copydoc time_simulations_
@@ -183,23 +182,24 @@ public:  // Utils
 
 	/// Theoretical lower limit for creation's confidence coefficient
 	/// @copydoc value_simulations_
-	inline double lowerLimit() const
-		{ return std::max(0.0, estimate_ - precision()/2.0); }
+	double lowerLimit() const;
 
 	/// Achieved lower limit for requested confidence coefficient
 	/// @copydoc time_simulations_
-	inline double lowerLimit(const double& confco) const
-		{ return std::max(0.0, estimate_ - precision(confco)/2.0); }
+	double lowerLimit(const double& confco) const;
 
 	/// Theoretical upper limit for creation's confidence coefficient
 	/// @copydoc value_simulations_
-	inline double upperLimit() const
-		{ return std::min(1.0, estimate_ + precision()/2.0); }
+	double upperLimit() const;
 
 	/// Achieved upper limit for requested confidence coefficient
 	/// @copydoc time_simulations_
-	inline double upperLimit(const double& confco) const
-		{ return std::min(1.0, estimate_ + precision(confco)/2.0); }
+	double upperLimit(const double& confco) const;
+
+	/// Discard all estimation info to start anew
+	/// @note This erases the current \ref statOversample_ "statistical oversampling"
+	///       and \ref varCorrection_ "variance correction" values as well
+	virtual void reset() noexcept;
 
 protected:
 

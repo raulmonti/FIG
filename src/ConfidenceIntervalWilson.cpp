@@ -113,4 +113,12 @@ ConfidenceIntervalWilson::precision(const double &confco) const
 			   / (numSamplesTimesVarCorrection + quantile*quantile);
 }
 
+
+void
+ConfidenceIntervalWilson::reset() noexcept
+{
+    numRares_ = 0.0;
+    logNumSamples_ = 0.0;
+}
+
 } // namespace fig

@@ -160,6 +160,53 @@ ConfidenceInterval::is_valid() const noexcept
 
 
 double
+ConfidenceInterval::precision() const noexcept
+{
+    return 2.0 * errorMargin * (percent ? estimate_ : 1.0);
+}
+
+
+double
+ConfidenceInterval::lowerLimit() const
+{
+    return std::max(0.0, estimate_ - precision()/2.0);
+}
+
+
+double
+ConfidenceInterval::lowerLimit(const double& confco) const
+{
+    return std::max(0.0, estimate_ - precision(confco)/2.0);
+}
+
+
+double
+ConfidenceInterval::upperLimit() const
+{
+    return std::min(1.0, estimate_ + precision()/2.0);
+}
+
+
+double
+ConfidenceInterval::upperLimit(const double& confco) const
+{
+    return std::min(1.0, estimate_ + precision(confco)/2.0);
+}
+
+
+void
+ConfidenceInterval::reset() noexcept
+{
+    numSamples_ = 0;
+    estimate_ = 0.0;
+    variance_ = std::numeric_limits<double>::infinity();
+    halfWidth_ = std::numeric_limits<double>::infinity();
+    statOversample_ = 1.0;
+    varCorrection_ = 1.0;
+}
+
+
+double
 ConfidenceInterval::confidence_quantile(const double& cc)
 {
 	double quantile = probit((1.0+cc)/2.0);

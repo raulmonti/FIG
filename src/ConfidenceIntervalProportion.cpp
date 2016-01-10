@@ -95,4 +95,12 @@ ConfidenceIntervalProportion::precision(const double &confco) const
 			   * sqrt( exp( log(variance_) - (logNumSamples_ + log(varCorrection_))));
 }
 
+
+void
+ConfidenceIntervalProportion::reset() noexcept
+{
+    numRares_ = 0.0;
+    logNumSamples_ = 0.0;
+}
+
 } // namespace fig

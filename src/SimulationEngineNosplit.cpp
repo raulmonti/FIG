@@ -38,8 +38,15 @@
 namespace fig
 {
 
+SimulationEngineNosplit::SimulationEngineNosplit(
+    std::shared_ptr<const ModuleNetwork> network) :
+        SimulationEngine("nosplit", network)
+{ /* Not much to do around here */ }
+
+
 double
-SimulationEngineNosplit::simulate(const size_t& numRuns) const
+SimulationEngineNosplit::simulate(const Property &property,
+                                  const size_t& numRuns) const
 {
 	assert(numRuns > 0u);
 	double result(0.0);
@@ -51,18 +58,17 @@ SimulationEngineNosplit::simulate(const size_t& numRuns) const
 		return -1.0;
 #endif
 
-	switch (property->type) {
+    switch (property.type) {
 
 	case PropertyType::TRANSIENT: {
-        auto prop = std::static_pointer_cast<PropertyTransient>(property);
-        assert(nullptr != prop);
+        auto transientProp = dynamic_cast<const PropertyTransient&>(property);
 		size_t numSuccesses(0u);
 //		#pragma omp parallel  // we MUST parallelize this, it's stupid not to
 		Traial& traial = TraialPool::get_instance().get_traial();
 		for (size_t i = 0 ; i < numRuns ; i++) {
 			traial.initialize();
-			network_->simulation_step(traial, *this);
-			if (prop->is_goal(traial.state))
+            network_->simulation_step(traial, *this, property);
+            if (transientProp->is_goal(traial.state))
 				numSuccesses++;
 		}
 		TraialPool::get_instance().return_traial(std::move(traial));
@@ -87,14 +93,15 @@ SimulationEngineNosplit::simulate(const size_t& numRuns) const
 
 
 bool
-SimulationEngineNosplit::event_triggered(const Traial& traial) const
+SimulationEngineNosplit::event_triggered(const Property &property,
+                                         const Traial& traial) const
 {
-	switch (property->type) {
+    switch (property.type) {
 
 	case PropertyType::TRANSIENT: {
-		auto prop = static_cast<const PropertyTransient*>(property);
-		if (prop->is_goal(traial.state) ||
-			prop->is_stop(traial.state))
+        auto transientProp = dynamic_cast<const PropertyTransient&>(property);
+        if (transientProp->is_goal(traial.state) ||
+            transientProp->is_stop(traial.state))
 			return true;
 		} break;
 

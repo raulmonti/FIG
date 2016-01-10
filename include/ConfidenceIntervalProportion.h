@@ -95,6 +95,8 @@ public:  // Utils
 	virtual bool min_samples_covered() const noexcept;
 
 	virtual double precision(const double& confco) const;
+
+	virtual void reset() noexcept;
 };
 
 } // namespace fig

@@ -178,7 +178,8 @@ ModuleNetwork::initial_state() const
 
 void
 ModuleNetwork::simulation_step(Traial& traial,
-							   const SimulationEngine& engine) const
+                               const SimulationEngine& engine,
+                               const Property &property) const
 {
 	if (!sealed())
 #ifndef NDEBUG
@@ -197,7 +198,7 @@ ModuleNetwork::simulation_step(Traial& traial,
 		for (auto module_ptr: modules)
 			if (module_ptr->name != timeout.module->name)
 				module_ptr->jump(label, timeout.value, traial);
-	} while ( !engine.event_triggered(traial) );
+    } while ( !engine.event_triggered(property, traial) );
 	// ...until a relevant event is observed
 }
 

@@ -209,7 +209,9 @@ public:  // Utils
 	 *   @throw FigException if seal() hasn't been called yet
 	 * \endif
 	 */
-	void simulation_step(Traial& traial, const SimulationEngine& engine) const;
+	void simulation_step(Traial& traial,
+						 const SimulationEngine& engine,
+						 const Property& property) const;
 };
 
 } // namespace fig

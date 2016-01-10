@@ -76,4 +76,11 @@ ConfidenceIntervalMean::precision(const double &confco) const
 			   * sqrt(variance_/numSamples_);
 }
 
+
+void
+ConfidenceIntervalMean::reset() noexcept
+{
+    M2 = 0.0;
+}
+
 } // namespace fig

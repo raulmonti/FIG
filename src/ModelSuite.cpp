@@ -30,27 +30,104 @@
 // C++
 #include <set>
 #include <list>
+#include <tuple>
 #include <deque>
 #include <vector>
 #include <forward_list>
 #include <unordered_set>
 #include <type_traits>  // std::is_convertible<>
 #include <iterator>     // std::begin(), std::end()
+#include <string>
 // C
 #include <csignal>   // signal()
 #include <unistd.h>  // alarm()
 #include <omp.h>     // omp_get_wtime()
 // FIG
 #include <ModelSuite.h>
+#include <FigException.h>
+#include <Property.h>
+#include <StoppingConditions.h>
 #include <SimulationEngine.h>
 #include <SimulationEngineNosplit.h>
 #include <ImportanceFunctionConcreteSplit.h>
 #include <ImportanceFunctionConcreteCoupled.h>
 #include <ConfidenceInterval.h>
+#include <ConfidenceIntervalMean.h>
+#include <ConfidenceIntervalProportion.h>
+#include <ConfidenceIntervalWilson.h>
 
 // ADL
 using std::begin;
 using std::end;
+
+
+namespace
+{
+/**
+ * @brief Build a ConfidenceInterval of the required type
+ *
+ *        Each PropertyType must be estimated using a special kind of
+ *        ConfidenceInterval. This helper function returns a new (i.e. without
+ *        estimation data) interval of the correct kind for the property,
+ *        and also with the specified confidence coefficient and precision.
+ *        If such confidence criteria isn't specified then a "time simulation"
+ *        is assumed and the interval is built with the tightest constraints.
+ *
+ * @param property  Property whose value is being estimated
+ * @param criterion Confidence criterion to satisfy, if any
+ * @param hint      Suggestion as to which kind of ConfidenceInterval to build
+ *
+ * @return Fresh ConfidenceInterval tailored for the given property
+ *
+ * @throw FigException unrecognized property type or hint
+ */
+std::unique_ptr< fig::ConfidenceInterval >
+build_empty_confidence_interval(
+    const fig::Property& property,
+    const std::tuple<double,double,bool>& criterion = std::make_tuple(.99999, .00001, true),
+    const std::string& hint = "")
+{
+    switch (property.type) {
+    case fig::PropertyType::TRANSIENT:
+        if (hint.empty())  // default to most precise
+            return std::unique_ptr< fig::ConfidenceInterval >(
+                    new fig::ConfidenceIntervalWilson(std::get<0>(criterion),
+                                                      std::get<1>(criterion),
+                                                      std::get<2>(criterion)));
+        else if ("wilson" == hint)
+            return std::unique_ptr< fig::ConfidenceInterval >(
+                    new fig::ConfidenceIntervalWilson(std::get<0>(criterion),
+                                                      std::get<1>(criterion),
+                                                      std::get<2>(criterion)));
+        else if ("proportion" == hint)
+            return std::unique_ptr< fig::ConfidenceInterval >(
+                    new fig::ConfidenceIntervalProportion(std::get<0>(criterion),
+                                                          std::get<1>(criterion),
+                                                          std::get<2>(criterion)));
+        else
+            throw_FigException(std::string("unrecognized hint \"").
+                               append(hint).append("\""));
+        break;
+
+    case fig::PropertyType::THROUGHPUT:
+    case fig::PropertyType::RATE:
+    case fig::PropertyType::PROPORTION:
+    case fig::PropertyType::BOUNDED_REACHABILITY:
+        throw_FigException("property type isn't supported yet");
+        break;
+
+    default:
+        throw_FigException("unrecognized property type");
+        break;
+    }
+    // Following only to avoid warnings :(
+    return std::unique_ptr< fig::ConfidenceIntervalMean >(
+               new fig::ConfidenceIntervalProportion(std::get<0>(criterion),
+                                                     std::get<1>(criterion),
+                                                     std::get<2>(criterion)));
+}
+
+} // namespace
 
 
 namespace fig
@@ -175,43 +252,46 @@ ModelSuite::available_importance_functions()
 void
 ModelSuite::estimate(const Property& property,
                      const SimulationEngine& engine,
-					 const StoppingConditions& bounds)
+                     const StoppingConditions& bounds) const
 {
 	if (bounds.is_time()) {
 
 		// Simulation bounds are wall clock time limits
-//		ConfidenceInterval ci;
 //		log_.set_for_times();
-//		for (const unsigned long& wallTimeInSeconds: bounds.time_budgets()) {
-//			auto timeout = [&]() { log_(ci,
+        auto ci_ptr = build_empty_confidence_interval(property);
+        for (const unsigned long& wallTimeInSeconds: bounds.time_budgets()) {
+//			auto timeout = [&]() { log_(*ci_ptr,
 //										wallTimeInSeconds,
 //										engine.name(),
-//										engine.current_ifun()); };
+//										engine.current_ifun());
+//			                        ci_ptr->reset();
+//			                     };
 //			signal(SIGALRM, &timeout);
-//			alarm(wallTimeInSeconds);
-//			engine.simulate(ci);
-//		}
+            alarm(wallTimeInSeconds);
+            engine.simulate(property, *ci_ptr);
+        }
 
 	} else {
 
 		// Simulation bounds are confidence criteria
 //		log.set_for_values();
-//		for (const auto& criterion: bounds.confidence_criteria()) {
-            ConfidenceInterval ci(criterion);
+        for (const auto& criterion: bounds.confidence_criteria()) {
+            auto ci_ptr = build_empty_confidence_interval(property, criterion);
+            size_t numRuns = 0;
 //			size_t numRuns = min_batch_size(engine.name(), engine.current_ifun());
 			double startTime = omp_get_wtime();
-//			do {
-//				double estimation = engine.simulate(numRuns);
-//				if (estimation >= 0.0)
-//					ci.update(estimation);
+            do {
+                double estimation = engine.simulate(property, numRuns);
+                if (estimation >= 0.0)
+                    ci_ptr->update(estimation);
 //				else
 //					increase_batch_size(numRuns, engine.name(), engine.current_ifun());
-//			} while (!ci.satisfied_criterion());
-//			log_(ci,
+            } while (!ci_ptr->is_valid());
+//			log_(*ci_ptr,
 //				 omp_get_wtime() - startTime,
 //				 engine.name(),
 //				 engine.current_ifun());
-//		}
+        }
 	}
 }
 

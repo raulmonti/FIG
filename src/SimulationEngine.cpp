@@ -27,7 +27,19 @@
 //==============================================================================
 
 
+
+// C++
+#include <sstream>
+#include <iterator>   // std::begin, std::end
+#include <algorithm>  // std::find()
+// FIG
 #include <SimulationEngine.h>
+#include <FigException.h>
+
+// ADL
+using std::begin;
+using std::end;
+using std::find;
 
 
 namespace fig
@@ -35,16 +47,15 @@ namespace fig
 
 const std::array< std::string, 1 > SimulationEngine::names =
 {
-	{"nosplit"}
+    {"nosplit"}  // Standard Monte Carlo simulations, without splitting
 };
 
 
 SimulationEngine::SimulationEngine(
 	const std::string& name,
-	std::shared_ptr< const ModuleNetwork>& network) :
+    std::shared_ptr< const ModuleNetwork> network) :
 		name_(name),
 		network_(network),
-		property(nullptr),
 		impFun(nullptr)
 {
 	if (find(begin(names), end(names), name) == end(names)) {
@@ -56,35 +67,34 @@ SimulationEngine::SimulationEngine(
 		errMsg << "\n";
 		throw_FigException(errMsg.str());
 	}
+    if (!network->sealed())
+        throw_FigException("ModuleNetwork hasn't been sealed yet");
 }
 
 
 SimulationEngine::~SimulationEngine()
 {
-	unload();
+    unbind();
 }
 
 
 bool
-SimulationEngine::loaded() const noexcept
+SimulationEngine::bound() const noexcept
 {
-	return nullptr != property && nullptr != impFun;
+    return nullptr != impFun;
 }
 
 
 void
-SimulationEngine::load(std::shared_ptr<const Property> prop,
-                       std::shared_ptr< const ImportanceFunction > ifun) noexcept
+SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun) noexcept
 {
-    property = prop;
 	impFun = ifun;
 }
 
 
 void
-SimulationEngine::unload() noexcept
+SimulationEngine::unbind() noexcept
 {
-	property = nullptr;
 	impFun = nullptr;
 }
 

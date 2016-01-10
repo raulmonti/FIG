@@ -35,14 +35,13 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <iterator>     // std::begin(), std::end()
 #include <type_traits>  // std::is_constructible<>
 #include <unordered_map>
 // FIG
 #include <ModuleNetwork.h>
-#include <Property.h>
 #include <ImportanceFunction.h>
 #include <SimulationEngine.h>
-#include <StoppingConditions.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -55,6 +54,9 @@ using std::end;
 
 namespace fig
 {
+
+class Property;
+class StoppingConditions;
 
 /**
  * @brief One class to bring them all, and in the FIG tool bind them.
@@ -201,47 +203,6 @@ public:  // Utils
 
 public:  // Simulation utils
 
-
-	/*  *  *  *  *  *  *  *  *      TODO      *  *  *  *  *  *  *  *  *  *
-	 *
-	 *  a) Build ConfidenceInterval on the spot for each loop in estimate()
-	 *
-	 *     For that we need the Property to identify which CI to build,
-	 *     which suggests to pass it as parameter to estimate()
-	 *     But then we may not need it "loaded" into the engine.
-	 *     This leads to the following:
-	 *
-	 *  b) Remove Property from the parameters loaded into the SimulationEngine
-	 *
-	 *     Then only the ImportanceFunction will be loaded, and the Property
-	 *     will always be passed as (reference) parameter through the functions.
-	 *     Only problem is that the Property member was used inside the
-	 *     event_triggered() virtual function. Which leads to:
-	 *
-	 *  c) Pass Property& as parameter to ModuleNetwork::simulation_step()
-	 *
-	 *     This member function is called from within each inherited
-	 *     SimulationEngine::simulate(), which in turn will receive this
-	 *     Property& as parameter, so the idea is feasible.
-	 *     Is it elegant though?
-	 *     Why should a simulation require a property to advance one step?
-	 *
-	 *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  */
-
-
-    /**
-
-      @todo TODO implement this helper  /  move to cpp as static?
-
-     * @brief
-     * @param criterion
-     * @return
-     * @throw FigException if the engine wasn't \ref loaded() "ready"
-     */
-    std::shared_ptr<ConfidenceInterval> empty_confidence_interval(
-            const std::tuple<double,double,bool>& criterion =
-            std::make_tuple(.99999, .00001, true)) const;
-
 	/**
 	 * @brief Estimate the value of the \ref Property "stored properties"
 	 *        with all combinations of importance and simulation strategies.
@@ -343,7 +304,7 @@ ModelSuite::process_batch(
 				}
 				auto engine = *simulators[simStrat];
 				try {
-					engine.load(*prop, impFun);
+					engine.bind(impFun);
 				} catch (FigException& e) {
 					/// @todo TODO log the skipping of this combination
 					///       Either the property or the importance function are
@@ -351,8 +312,8 @@ ModelSuite::process_batch(
 					continue;
 				}
 				// ... estimate the property value for all stopping conditions
-				estimate(*engine, simulationBounds);
-				engine->unload();
+				estimate(*prop, engine, simulationBounds);
+				engine.unbind();
 			}
 			impFun->clear();
 		}

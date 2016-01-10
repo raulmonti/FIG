@@ -51,18 +51,18 @@ class SimulationEngineNosplit : public SimulationEngine
 public:  // Ctor
 
 	/// Data ctor
-	/// @todo TODO should be invoked by the ModelSuite who provides 'network'
 	SimulationEngineNosplit(std::shared_ptr<const ModuleNetwork> network) :
-		SimulationEngine("No_split", network)
-		{ assert(network->sealed()); }
+		SimulationEngine("nosplit", network)
+		{}
 
 public:  // Inherited virtual simulation functions
 
-	virtual double simulate(const size_t& numRuns) const;
+	virtual double simulate(const Property& property, const size_t& numRuns) const;
 
-	virtual void simulate(ConfidenceInterval&) const {}
+	virtual void simulate(const Property&, ConfidenceInterval&) const {}
 
-	virtual bool event_triggered(const Traial& traial) const;
+	virtual bool event_triggered(const Property& property,
+								 const Traial& traial) const;
 };
 
 } // namespace fig
