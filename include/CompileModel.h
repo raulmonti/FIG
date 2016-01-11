@@ -19,7 +19,7 @@ namespace fig{
  * @rise ...
  */
 void
-CompileModel(const AST* astModel);
+CompileModel(AST* astModel);
    
 
 }

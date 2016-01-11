@@ -15,10 +15,10 @@ module Queue1
     clkArr : clock;         /* Uniform(0,2) */                 
     clkPass : clock;        /* Exponential(5) */              
 
-    [arr!] q1 < 10 @ clkArr -> (q1'=q1+1) & (clkArr'= Uni(0,2));  
-    [pass!] q1 > 0 @ clkPass -> (q1'=q1-1) & (clkPass'= Exp(5));
+    [arr!] q1 < 10 @ clkArr -> (q1'=q1+1) & (clkArr'= uniform(0,2));  
+    [pass!] q1 > 0 @ clkPass -> (q1'=q1-1) & (clkPass'= exponential(5));
 
-end module                                        
+endmodule                                       
 
 module Queue2
 
@@ -27,7 +27,7 @@ module Queue2
 
     [pass?] q2<8 -> (q2'=q2+1);
     [pass?] q2==8 -> (q2'=8);
-    [exit!] q2 > 0 @ clkExit -> (q2'=q2-1) & (clkExit'=Norm(4,1));         
+    [exit!] q2 > 0 @ clkExit -> (q2'=q2-1) & (clkExit'= normal(4,1));         
 
-end module
+endmodule
                                                         

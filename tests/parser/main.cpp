@@ -18,6 +18,7 @@
 #include "iosacompliance.h"
 #include <exception>
 #include "exceptions.h"
+#include "CompileModel.h"
 
 
 using namespace std;
@@ -61,11 +62,14 @@ main (int argc, char** argv){
 
         try{
             verifier->verify(pp.first, pp.second);
+            fig::CompileModel(pp.first);
 
         }catch(string e){
 
             cout << e << endl;
         }
+
+
 
         /* We are in charge of deleting the AST. */
         if (pp.first != NULL){

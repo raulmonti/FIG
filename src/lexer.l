@@ -34,15 +34,15 @@ module          { return parser::KMOD; }
 
 ("const")       {return parser::KCONST; }
 
-("end module")  { return parser::KEMOD; }
+("endmodule")  { return parser::KEMOD; }
 
 init        { return parser::KINIT; }
 
-Norm        { return parser::KNDIST; }
+normal        { return parser::KNDIST; }
 
-Exp         { return parser::KEDIST; }
+exponential         { return parser::KEDIST; }
 
-Uni         { return parser::KUDIST; }
+uniform         { return parser::KUDIST; }
 
 ("int")     { return parser::ITYPE; }
 ("bool")    { return parser::BTYPE; }

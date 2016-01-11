@@ -62,14 +62,32 @@ SET(ALL_SOURCES CACHE INTERNAL "")
 
 # Visit necessary subdirectories
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/z3 ${PROJECT_BINARY_DIR}/z3)
- 
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/muparser2.2.5
+                 ${PROJECT_BINARY_DIR}/muparser2.2.5)
+  
 # Register all include paths
 INCLUDE_DIRECTORIES(${HEADERS_DIR})
 
 # Register the source files (only those required for this test)
 SET(REQUIRED_SOURCES "${SOURCES_DIR}/ast.cpp"
                      "${SOURCES_DIR}/parser.cpp"
-                     "${SOURCES_DIR}/iosacompliance.cpp")
+                     "${SOURCES_DIR}/iosacompliance.cpp"
+                     "${SOURCES_DIR}/CompileModel.cpp"
+                     "${SOURCES_DIR}/Clock.cpp"
+                     "${SOURCES_DIR}/Variable.cpp"
+                     "${SOURCES_DIR}/VariableInterval.cpp"
+                     "${SOURCES_DIR}/VariableSet.cpp"
+                     "${SOURCES_DIR}/State.cpp"
+                     "${SOURCES_DIR}/MathExpression.cpp"
+                     "${SOURCES_DIR}/Precondition.cpp"
+                     "${SOURCES_DIR}/Postcondition.cpp"
+                     "${SOURCES_DIR}/Transition.cpp"
+                     "${SOURCES_DIR}/ModuleInstance.cpp"
+                     "${SOURCES_DIR}/ModuleNetwork.cpp"
+                     "${SOURCES_DIR}/ModelSuite.cpp"
+                     "${SOURCES_DIR}/Traial.cpp"
+                     "${SOURCES_DIR}/TraialPool.cpp"
+                     "${SOURCES_DIR}/SimulationEngineNosplit.cpp")
 SET(ALL_SOURCES ${ALL_SOURCES} ${REQUIRED_SOURCES} CACHE INTERNAL "")
 
 # Register also the source files from this test
@@ -114,7 +132,7 @@ ENDIF()
 ###  Compile flags  ###########################################################
 
 # Highly defensive compile flags
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ") # -Wall -Wextra")
 
 # Turn some warnings off
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
