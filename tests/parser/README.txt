@@ -41,7 +41,8 @@ TODO    AUTOMATIC tests instead of counterexample texts that we have for the
 TODO    Full syntactic support for Carlos clock distributions.
 TODO    Improve efficiency and correctness by using const when needed and avoid
         copying when not needed.
-
+TODO    Initialize variables with constant expressions and not only numbers.
+TODO    Bad typing should quit the parser, as well as bad naming. 
 
 
 

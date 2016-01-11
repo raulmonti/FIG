@@ -795,15 +795,16 @@ Verifier::type_check(AST *ast){
     vector<AST*> variables = ast->get_all_ast(_VARIABLE);
     vector<AST*> clocks = ast->get_all_ast(_CLOCK);
 
+    // Check variable initialization.
     for(int i=0;i<variables.size();i++){
         string vname = variables[i]->get_lexeme(_NAME);
         Type v_t = mPc[vname].first;
         AST* init = variables[i]->get_first(_INIT);
         if(init){
-            Type e_t = get_type(init->get_first(_EXPRESSION));
-            if(v_t != e_t){
+            string v = init->get_lexeme(_NUM); 
+            if(v_t == T_BOOL && v != "1" && v != "0"){
                 error_list.append( "[ERROR] Wrong type for "
-                    "initialization of variable '" + vname 
+                    "initialization of boolean variable '" + vname 
                     + "', at " + variables[i]->p_pos() + ".\n");
             }
         }

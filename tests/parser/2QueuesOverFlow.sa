@@ -13,7 +13,7 @@ module Queue1
 
     q1 : [0..10] init 1;                         
     clkArr : clock;         /* Uniform(0,2) */                 
-    clkPass : clock;        /* Exponential(5) */              
+    clkPass : clock;        /* Exponential(5) */ 
 
     [arr!] q1 < 10 @ clkArr -> (q1'=q1+1) & (clkArr'= uniform(0,2));  
     [pass!] q1 > 0 @ clkPass -> (q1'=q1-1) & (clkPass'= exponential(5));

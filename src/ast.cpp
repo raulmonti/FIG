@@ -369,3 +369,17 @@ AST::get_pos(){
 }
 
 //==============================================================================
+
+/**
+ * TODO
+ */
+string
+AST::toString(){
+
+    string result = lxm;
+    for(const auto &it: branches){
+        string aux = it->toString();
+        result.insert(result.end(),aux.begin(),aux.end());
+    }
+    return result;
+}

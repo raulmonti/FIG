@@ -297,7 +297,9 @@ Parser::rVarDef(){
         if(accept(KINIT)){
             newNode(_INIT);
             saveNode(_KEYWORD);
-            rExpression();
+            //rExpression(); TODO
+            expect(NUM, "Missing initial value.");
+            saveNode(_NUM);
             saveNode(); // _INIT
         }
         expect(SCLN,"Missing ';'.\n");
@@ -327,12 +329,13 @@ Parser::rTransDef(){
             if(accept(EMARK) || accept(QMARK)){
                 saveNode(_IO);
             }else{
-                // silent transitions are output.
+                // No mark transitions are output.
                 saveNode(_IO,"!");
             }
         }else{
             // silent transition.
             saveNode(_ACTION,"");
+            saveNode(_IO,"!");
         }
         expect(CBT, "Forgot ']' at transition declaration?\n");    
         saveNode(_SEPARATOR);    
