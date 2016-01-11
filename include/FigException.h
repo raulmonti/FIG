@@ -78,8 +78,10 @@ public:
 	inline const std::string& msg() { return msg_; }
 };
 
-#define  throw_FigException(msg) throw FigException((msg), __FILE__, __LINE__)
+} // namespace fig
 
-}
+
+#define  throw_FigException(msg) throw fig::FigException((msg), __FILE__, __LINE__)
+
 
 #endif // FIGEXCEPTION_H

@@ -51,9 +51,7 @@ class SimulationEngineNosplit : public SimulationEngine
 public:  // Ctor
 
 	/// Data ctor
-	SimulationEngineNosplit(std::shared_ptr<const ModuleNetwork> network) :
-		SimulationEngine("nosplit", network)
-		{}
+	SimulationEngineNosplit(std::shared_ptr<const ModuleNetwork> network);
 
 public:  // Inherited virtual simulation functions
 

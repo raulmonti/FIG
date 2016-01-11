@@ -35,6 +35,7 @@
 // FIG
 #include <SimulationEngine.h>
 #include <FigException.h>
+#include <ModuleNetwork.h>
 
 // ADL
 using std::begin;

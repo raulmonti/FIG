@@ -69,13 +69,15 @@ namespace
  *        Each PropertyType must be estimated using a special kind of
  *        ConfidenceInterval. This helper function returns a new (i.e. without
  *        estimation data) interval of the correct kind for the property,
- *        and also with the specified confidence coefficient and precision.
+ *        and also with the specified confidence criterion.
  *        If such confidence criteria isn't specified then a "time simulation"
  *        is assumed and the interval is built with the tightest constraints.
  *
- * @param property  Property whose value is being estimated
- * @param criterion Confidence criterion to satisfy, if any
- * @param hint      Suggestion as to which kind of ConfidenceInterval to build
+ * @param property         Property whose value is being estimated
+ * @param confidenceCo     Interval's confidence coefficient ∈ (0.0, 1.0)
+ * @param precision        Interval's desired full width > 0.0
+ * @param dynamicPrecision Is the precision a percentage of the estimate?
+ * @param hint             Suggestion of which kind of ConfidenceInterval to build
  *
  * @return Fresh ConfidenceInterval tailored for the given property
  *
@@ -84,30 +86,32 @@ namespace
 std::unique_ptr< fig::ConfidenceInterval >
 build_empty_confidence_interval(
     const fig::Property& property,
-    const std::tuple<double,double,bool>& criterion = std::make_tuple(.99999, .00001, true),
+	const double& confidenceCo = 0.99999,
+	const double& precision = 0.00001,
+	const bool& dynamicPrecision = true,
     const std::string& hint = "")
 {
     switch (property.type) {
     case fig::PropertyType::TRANSIENT:
         if (hint.empty())  // default to most precise
             return std::unique_ptr< fig::ConfidenceInterval >(
-                    new fig::ConfidenceIntervalWilson(std::get<0>(criterion),
-                                                      std::get<1>(criterion),
-                                                      std::get<2>(criterion)));
+					new fig::ConfidenceIntervalWilson(confidenceCo,
+													  precision,
+													  dynamicPrecision));
         else if ("wilson" == hint)
             return std::unique_ptr< fig::ConfidenceInterval >(
-                    new fig::ConfidenceIntervalWilson(std::get<0>(criterion),
-                                                      std::get<1>(criterion),
-                                                      std::get<2>(criterion)));
+					new fig::ConfidenceIntervalWilson(confidenceCo,
+													  precision,
+													  dynamicPrecision));
         else if ("proportion" == hint)
             return std::unique_ptr< fig::ConfidenceInterval >(
-                    new fig::ConfidenceIntervalProportion(std::get<0>(criterion),
-                                                          std::get<1>(criterion),
-                                                          std::get<2>(criterion)));
+					new fig::ConfidenceIntervalProportion(confidenceCo,
+														  precision,
+														  dynamicPrecision));
         else
-            throw_FigException(std::string("unrecognized hint \"").
-                               append(hint).append("\""));
-        break;
+			throw_FigException(std::string("unrecognized hint \"").
+							   append(hint).append("\""));
+		break;
 
     case fig::PropertyType::THROUGHPUT:
     case fig::PropertyType::RATE:
@@ -121,10 +125,10 @@ build_empty_confidence_interval(
         break;
     }
     // Following only to avoid warnings :(
-    return std::unique_ptr< fig::ConfidenceIntervalMean >(
-               new fig::ConfidenceIntervalProportion(std::get<0>(criterion),
-                                                     std::get<1>(criterion),
-                                                     std::get<2>(criterion)));
+	return std::unique_ptr< fig::ConfidenceInterval >(
+			   new fig::ConfidenceIntervalMean(confidenceCo,
+											   precision,
+											   dynamicPrecision));
 }
 
 } // namespace
@@ -276,7 +280,10 @@ ModelSuite::estimate(const Property& property,
 		// Simulation bounds are confidence criteria
 //		log.set_for_values();
         for (const auto& criterion: bounds.confidence_criteria()) {
-            auto ci_ptr = build_empty_confidence_interval(property, criterion);
+			auto ci_ptr = build_empty_confidence_interval(property,
+														  std::get<0>(criterion),
+														  std::get<1>(criterion),
+														  std::get<2>(criterion));
             size_t numRuns = 0;
 //			size_t numRuns = min_batch_size(engine.name(), engine.current_ifun());
 			double startTime = omp_get_wtime();

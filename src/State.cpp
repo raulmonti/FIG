@@ -239,7 +239,7 @@ State<T_>::decode_state(const size_t& n)
 {
 	const size_t numVars(size());
 	assert(n < maxConcreteState_);
-	#pragma omp parallel for shared(n, numVars)
+	#pragma omp parallel for default(shared)
 	for (size_t i=0 ; i < numVars ; i++) {
 		size_t stride(1u);
 		for (size_t j = i+1 ; j < numVars ; j++)

@@ -51,9 +51,9 @@ SimulationEngineNosplit::simulate(const Property &property,
 	assert(numRuns > 0u);
 	double result(0.0);
 
-	if (!loaded())
+	if (!bound())
 #ifndef NDEBUG
-		throw_FigException("engine wasn't loaded, can't simulate");
+		throw_FigException("engine isn't bound to any importance function");
 #else
 		return -1.0;
 #endif
@@ -68,7 +68,7 @@ SimulationEngineNosplit::simulate(const Property &property,
 		for (size_t i = 0 ; i < numRuns ; i++) {
 			traial.initialize();
             network_->simulation_step(traial, *this, property);
-            if (transientProp->is_goal(traial.state))
+			if (transientProp.is_goal(traial.state))
 				numSuccesses++;
 		}
 		TraialPool::get_instance().return_traial(std::move(traial));
@@ -100,8 +100,8 @@ SimulationEngineNosplit::event_triggered(const Property &property,
 
 	case PropertyType::TRANSIENT: {
         auto transientProp = dynamic_cast<const PropertyTransient&>(property);
-        if (transientProp->is_goal(traial.state) ||
-            transientProp->is_stop(traial.state))
+		if (transientProp.is_goal(traial.state) ||
+			transientProp.is_stop(traial.state))
 			return true;
 		} break;
 

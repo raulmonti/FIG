@@ -30,7 +30,6 @@
 #define MODELSUITE_H
 
 // C++
-#include <tuple>
 #include <mutex>  // std::call_once(), std::once_flag
 #include <vector>
 #include <string>
@@ -302,7 +301,7 @@ ModelSuite::process_batch(
 					/// @todo TODO log the inexistence of this engine
 					continue;
 				}
-				auto engine = *simulators[simStrat];
+				SimulationEngine& engine = *simulators[simStrat];
 				try {
 					engine.bind(impFun);
 				} catch (FigException& e) {
