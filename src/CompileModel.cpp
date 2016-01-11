@@ -19,14 +19,16 @@ typedef fig::VariableDefinition<fig::STATE_INTERNAL_TYPE>  varDec;
 namespace{
 
 /**
- * TODO
+ * brief Solve a formula and return the value. In boolean formulas 1 would be
+ *       true and 0 false.
+ * note  For the moment @formula is composed of just a _NUM AST.
  */
-const int
-solve(const AST* formula){
+int
+solve(AST* formula){
 
-    //TODO
+    //FIXME for now initialization is just a number.
     int result = 0;
-
+    result = atoi(formula->get_lexeme(_NUM).c_str());
     return result;
 }
 
@@ -79,7 +81,6 @@ CompileClocks(const vector<AST*> transitions)
     for(const auto &it: clocks){
         string name = (it->get_lexeme(_NAME));
         name.pop_back();
-        cout << "DEBUG: " << name << endl;
         string distrib = it->get_first(_DISTRIBUTION)->get_lexeme(_NAME);
         vector<string> params = 
             it->get_first(_DISTRIBUTION)->get_all_lexemes(_NUM);
@@ -100,11 +101,60 @@ CompileClocks(const vector<AST*> transitions)
 /**
  * TODO
  **/
+fig::Transition
+CompileTransition(AST* trans){
+
+    string action = trans->get_lexeme(_ACTION);
+    bool io = trans->get_lexeme(_IO) == "!";
+    string eclk = "";
+    if(io){
+        eclk = trans->get_first(_ENABLECLOCK)->get_lexeme(_NAME);
+    }
+    AST* ASTpre = trans->get_first(_PRECONDITION);
+    string pre = ASTpre->toString();
+    auto nl = ASTpre->get_all_lexemes(_NAME);
+    vector<AST*> assigs = trans->get_all_ast(_ASSIG);
+    string lassig; // left side of assignment
+    vector<string> rassig; // right side of assignment
+    vector<string> variables;
+    for(const auto &it: assigs){
+        string name = it->get_lexeme(_NAME);
+        name.pop_back();
+        AST* ASTassig = it->get_first(_EXPRESSION); 
+        string assig = ASTassig->toString();
+        lassig += assig;
+        lassig += ",";
+        rassig.push_back(assig);
+        vector<string> vars = ASTassig->get_all_lexemes(_NAME);
+        variables.insert(variables.end(), vars.begin(), vars.end());
+    }
+    if(lassig != ""){
+        lassig.pop_back();    
+    }
+    vector<string> setcs;
+    for(const auto &it: trans->get_all_ast(_SETC)){
+        string sc = it->get_lexeme(_NAME);
+        sc.pop_back();
+        setcs.push_back(sc);
+    }
+
+    fig::Transition result( Label(action,io)
+                          , eclk
+                          , Precondition(pre, nl)
+                          , Postcondition(lassig,rassig,variables)
+                          , setcs);
+
+    return result;
+}
+
+
+
+/**
+ * TODO
+ **/
 std::shared_ptr<ModuleInstance> 
 CompileModule(AST* module)
 {
-
-    
     string name = module->get_lexeme(_NAME);
     vector<AST*> variables = module->get_all_ast(_VARIABLE);
     vector<AST*> transitions = module->get_all_ast(_TRANSITION);
@@ -113,7 +163,10 @@ CompileModule(AST* module)
                                 ,CompileVars(variables)
                                 ,CompileClocks(transitions));
 
-    //TODO transitions
+    for(const auto &it: transitions){
+        auto transition = CompileTransition(it);
+        result->add_transition(transition);
+    }
     return result;
 }
 
@@ -138,7 +191,7 @@ CompileModel(AST* astModel){
         auto module = CompileModule(it);
         model.add_module(module);
     }
-    // TODO seal
+    //TODO SEAL
 }
 
 } // namespace fig
