@@ -10,9 +10,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
-
 #include <assert.h>
-
 #include "parser.h"
 #include "exceptions.h"
 
@@ -57,6 +55,7 @@ Parser::Parser(void){
     pos         = -1;
     lastpos     = pos;
     skipws      = true;
+    ast         = NULL;
 }
 
 
@@ -127,7 +126,7 @@ Parser::expect(Token s, string str){
  * @Brief When grammar did not match, return to the saved state.
  * @Note For looking ahead in the grammar.
  */
-int 
+void 
 Parser::loadLocation(){
     pos = lastk.top();
     lastk.pop();
@@ -707,15 +706,16 @@ Parser::rProperty(){
 }   
 
 
+////////////////////////////////////////////////////////////////////////////////
 
-
-/* @Parse: parse stream @str and place the resulting AST in @result.
-           It is caller responsibility to free the allocated AST 
-           @result afterwards.
-   @return: 0 if something went wrong (print exception), 1 otherwise.
-*/
-int
-Parser::parse(stringstream *str, AST * & result){
+/**
+ * @brief  Parse stream @str and place the resulting AST in @result.
+ *         It is caller responsibility to free the allocated AST 
+ *         @result afterwards.
+ * @return 0 if something went wrong (print exception), 1 otherwise.
+ */
+const pair< AST*, parsingContext> 
+Parser::parse(stringstream *str){
 
     // FIXME lineno is already given by the lexer (yylineno)
     int ret;
@@ -760,24 +760,114 @@ Parser::parse(stringstream *str, AST * & result){
         /* Parse */
         nextLxm();
         if (rGrammar()){
-            result = astStk.top();
+            ast = astStk.top();
         }
+
+        //
+        fill_context();
+        //
 
     }catch(exception *e){
         cout << "[Parser ERROR] " << e->what() << endl;
         delete e;
-        return 0;
     }catch(string s){
         cout << "[Parser ERROR] " << s << endl;
-        return 0;
+    }
+    return make_pair( ast, mPc );
+}
+
+
+//==============================================================================
+
+
+/**
+ * @brief Fill the context @mPc for @ast. Check for variables declarations
+ *        to be correct.
+ */
+int
+Parser::fill_context(){
+
+    assert(ast && "Now parsed AST found.");
+
+    string error_list = "";
+    vector<AST*> constants = ast->get_all_ast(_CONST);
+    vector<AST*> modules = ast->get_all_ast(_MODULE);
+    
+    // Fill map with constants.
+    for(int i = 0; i < constants.size(); ++i){
+        string name = constants[i]->get_lexeme(_NAME);
+        Type t = str2Type(constants[i]->get_lexeme(_TYPE));
+        mPc.insert( pvtm(name,ptm(t,"")));
+    }
+
+    for(int i = 0; i < modules.size(); i++){
+        vector<AST*> variables = modules[i]->get_all_ast(_VARIABLE);
+        vector<AST*> clocks = modules[i]->get_all_ast(_CLOCK);
+        string module = modules[i]->get_lexeme(_NAME);
+        // Fill map with variables.
+        for(int j=0; j < variables.size(); j++){
+            string name = variables[j]->get_lexeme(_NAME);
+            string type = variables[j]->get_lexeme(_TYPE);
+            if(type == "bool"){
+                mPc.insert(pvtm(name,ptm(T_BOOL,module)));
+                // The variable in <next state>
+                mPc.insert(pvtm(name+"'",ptm(T_BOOL,module)));
+            }else{
+                AST* range = variables[j]->get_first(_RANGE);
+                assert(range);
+                vector<string> limits = range->get_list_lexemes(_NUM);
+                assert(limits.size() == 2);
+                if(stoi(limits[0]) > stoi(limits[1])){
+                    string pos = variables[j]->get_pos();
+                    error_list.append("[ERROR] Empty range in variable "
+                        "declaration at " + pos + ".\n");
+                }
+                mPc.insert(pvtm(name,ptm(T_ARIT,module)));
+                mPc.insert(pvtm(name+"'",ptm(T_ARIT,module)));
+            }
+        }
+        // Fill map with clocks. 
+        for(int j=0; j < clocks.size(); j++){
+            string name = clocks[j]->get_lexeme(_NAME);
+            mPc.insert(pvtm(name, ptm(T_CLOCK, module)));
+        }
+    }
+
+    if(error_list != ""){
+        throw error_list;
     }
 
     return 1;
 }
 
 
+//==============================================================================
 
-/** AST construction methods **/
+/**
+ * @brief Translate the parsed type string into a type in our Type enumeration.
+ */
+Type
+Parser::str2Type(string str){
+    Type result;
+    if(str == "int"){
+        result = T_ARIT;
+    }else if(str == "bool"){
+        result = T_BOOL;
+    }else if(str == "clock"){
+        result = T_CLOCK;
+    }else{
+        result = T_NOTYPE;
+    }
+    return result;
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// AST construction methods
+//
+////////////////////////////////////////////////////////////////////////////////
 
 
 int
@@ -837,6 +927,7 @@ Parser::removeNode(){
     astStk.pop();
 
 }
+
 
 
 }// namespace Parser
