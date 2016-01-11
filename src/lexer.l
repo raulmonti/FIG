@@ -28,7 +28,7 @@
 
 "/*"((("*"[^/])?)|[^*])*"*/" { return parser::COMMENT; }
 
--?[0-9]+([\.][0-9]+)?     { return parser::NUM; }
+[0-9]+([\.][0-9]+)?     { return parser::NUM; }
 
 module          { return parser::KMOD; }
 

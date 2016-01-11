@@ -263,7 +263,8 @@ Parser::rClkDef(){
 
 //==============================================================================
 
-
+//TODO Depict here how variables are being parsed. Do the same with the
+//     rest of the rulles. 
 /** 
  * @Brief Rule VARIABLE DEFINITION.
  */

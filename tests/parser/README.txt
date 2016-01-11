@@ -28,12 +28,14 @@ Read main.cpp file for an example.
 
 #-------------------------------------------------------------------------------
 /*
+TODO    Check that clocks have unique distribution in between transitions.
 TODO    work with constants.
 TODO    Decide if the module named smtsolver is really needed or if it can be
         taken into iosacompliance module.
 TODO    Build input-enable transition to comply with IOSA 6th property.
 TODO    Complete the counterexample tests for iosacompliance.
 TODO    Test modules for parallel compatibility (disjoint output labels).
+
 
 
 
@@ -61,6 +63,10 @@ TODO    Idea: Build the AST in a single bunch of method like Accept or Expect,
 TODO    Allow expressions as range limits.
 TODO    Opcion para no usar sat solver.
 TODO    Clean the exceptions file.
+TODO    When discover a WARNING wrt IOSA compliance, give away some valuation
+        explaining the mistake.
+TODO    Some Parser Errors report are not very nice, they look ambiguous fix
+        them.
 
 
 #-------------------------------------------------------------------------------
