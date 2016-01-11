@@ -293,8 +293,10 @@ public:  // Utils
 	/// Has this module been \ref seal() "sealed" already?
 	inline bool sealed() const noexcept { return sealed_; }
 
-	virtual inline void accept(ImportanceFunction& ifun, const Property& prop)
-		{ ifun.assess_importance(*this, prop); }
+	virtual inline void accept(ImportanceFunction& ifun,
+							   const Property& prop,
+							   const std::string& strategy)
+		{ ifun.assess_importance(*this, prop, strategy); }
 
 	/**
 	 * @brief Active module jump caused by expiration of our clock "clockName"

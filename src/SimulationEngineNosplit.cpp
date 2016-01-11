@@ -38,9 +38,10 @@
 namespace fig
 {
 
+// Available engine names in SimulationEngine::names
 SimulationEngineNosplit::SimulationEngineNosplit(
     std::shared_ptr<const ModuleNetwork> network) :
-        SimulationEngine("nosplit", network)
+		SimulationEngine("nosplit", network)
 { /* Not much to do around here */ }
 
 

@@ -154,8 +154,10 @@ public:  // Accessors
 
 public:  // Utils
 
-	virtual inline void accept(ImportanceFunction& ifun, const Property& prop)
-		{ ifun.assess_importance(*this, prop); }
+	virtual inline void accept(ImportanceFunction& ifun,
+							   const Property& prop,
+							   const std::string& strategy)
+		{ ifun.assess_importance(*this, prop, strategy); }
 
 	/**
 	 * @brief Get a copy of the initial state of the system

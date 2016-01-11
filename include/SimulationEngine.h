@@ -62,7 +62,7 @@ public:
 	/// Names of the simulation engines offered to the user,
 	/// as he should requested them through the CLI/GUI.
     /// Defined in SimulationEngine.cpp
-    static const std::array< std::string, 1 > names;
+    static const std::array< std::string, 2 > names;
 
 protected:
 
@@ -111,13 +111,15 @@ public:  // Engine setup
 
     /**
      * @brief Register the importance function which will be used in the
-     *        following simulations
-     * @param ifun  ImportanceFunction which will be used for estimations
-     * @throw FigException if the ImportanceFunction is somehow incompatible
-     *                     with this SimulationEngine
+     *        following estimations
+     * @param ifun  ImportanceFunction to use, \ref ImportanceFunction::ready()
+     *              "ready for simulations"
+     * @throw FigException if the ImportanceFunction isn't
+     *                     \ref ImportanceFunction::ready() "ready",
+     *                     or if it is incompatible with this engine
      * @see unbind()
      */
-    void bind(std::shared_ptr< const ImportanceFunction > ifun) noexcept;
+    virtual void bind(std::shared_ptr< const ImportanceFunction > ifun);
 
     /// Deregister the last ImportanceFunction which was tied to us
     /// @see bind()

@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  SimulationEngine.cpp
+//  ImportanceFunction.cpp
 //
 //  Copyleft 2016-
 //  Authors:
@@ -27,15 +27,13 @@
 //==============================================================================
 
 
-
 // C++
 #include <sstream>
 #include <iterator>   // std::begin, std::end
 #include <algorithm>  // std::find()
 // FIG
-#include <SimulationEngine.h>
+#include <ImportanceFunction.h>
 #include <FigException.h>
-#include <ModuleNetwork.h>
 
 // ADL
 using std::begin;
@@ -48,66 +46,64 @@ namespace fig
 
 // Static variables initialization
 
-const std::array< std::string, 2 > SimulationEngine::names =
+const std::array< std::string, 2 > ImportanceFunction::names =
 {
-	// Standard Monte Carlo simulations, without splitting
-	{"nosplit"},
+	// See ImportanceFunctionConcreteCoupled class
+	{"concrete_coupled"},
 
-	// RESTART-like importance splitting, from the Villén-Altamirano brothers
-	{"restart"}
+	// See ImportanceFunctionConcreteSplit class
+	{"concrete_split"}
 };
 
 
-// SimulationEngine class member functions
+const std::array< std::string, 3 > ImportanceFunction::strategies =
+{
+	// Flat importance, i.e. null ImportanceValue for all states
+	{""},
 
-SimulationEngine::SimulationEngine(
-	const std::string& name,
-    std::shared_ptr< const ModuleNetwork> network) :
-		name_(name),
-		network_(network),
-		impFun(nullptr)
+	// Automatically built importance, with backwards BFS
+	{"auto"},
+
+	// User defined importance, by means of some function over the states
+	{"adhoc"}
+};
+
+
+// ImportanceFunction class member functions
+
+ImportanceFunction::ImportanceFunction(const std::string& name) :
+	name_(name),
+	readyForSimulations(false)
 {
 	if (find(begin(names), end(names), name) == end(names)) {
 		std::stringstream errMsg;
-		errMsg << "invalid engine name \"" << name << "\". ";
-		errMsg << "Available engines are";
+		errMsg << "invalid importance function name \"" << name << "\". ";
+		errMsg << "Available importance functions are";
 		for (const auto& name: names)
 			errMsg << " \"" << name << "\"";
 		errMsg << "\n";
 		throw_FigException(errMsg.str());
 	}
-    if (!network->sealed())
-        throw_FigException("ModuleNetwork hasn't been sealed yet");
 }
 
 
-SimulationEngine::~SimulationEngine()
+ImportanceFunction::~ImportanceFunction()
 {
-    unbind();
+	clear();  // Release any memory allocated in the heap
+}
+
+
+const std::string&
+ImportanceFunction::name() const noexcept
+{
+	return name_;
 }
 
 
 bool
-SimulationEngine::bound() const noexcept
+ImportanceFunction::ready() const noexcept
 {
-    return nullptr != impFun;
-}
-
-
-void
-SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun)
-{
-	if (!ifun->ready())
-		throw_FigException("ImportanceFunction isn't ready for simulations");
-	else
-		impFun = ifun;
-}
-
-
-void
-SimulationEngine::unbind() noexcept
-{
-	impFun = nullptr;
+	return readyForSimulations;
 }
 
 } // namespace fig

@@ -1,8 +1,8 @@
 //==============================================================================
 //
-//  Module.h
+//  ImportanceFunctionConcreteCoupled.cpp
 //
-//  Copyleft 2015-
+//  Copyleft 2016-
 //  Authors:
 //  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
 //
@@ -27,41 +27,41 @@
 //==============================================================================
 
 
-#ifndef MODULE_H
-#define MODULE_H
+#include <ImportanceFunctionConcreteCoupled.h>
+#include <FigException.h>
 
-#include <ImportanceFunction.h>
-#include <Property.h>
+
+namespace
+{
+void assess_null_importance
+
+	std::vector< ImportanceValue > statesImportance;
+} // namespace
 
 
 namespace fig
 {
 
-/**
- * @brief Abstract base module class
- *
- *        The system model described by the user is implemented as a
- *        ModuleNetwork, composed of ModuleInstance objects.
- *
- * @note The accept member function implements the
- *       <a href="https://sourcemaking.com/design_patterns/visitor">
- *       visitor design pattern</a>, where the visitor is the
- *       ImportanceFunction and the visited elements are instances
- *       of the classes which derive from Module.
- */
-class Module
+void
+ImportanceFunctionConcreteCoupled::assess_importance(
+	const ModuleNetwork& net,
+	const Property& prop,
+	const std::string& strategy)
 {
+	switch (strategy) {
+	case "":
 
-public:  // Utils
-
-	/// Have the importance of our states assessed by this ImportanceFunction,
-	/// according to the given Property and strategy
-	virtual void accept(ImportanceFunction& ifun,
-						const Property& property,
-						const std::string& startegy) = 0;
-};
+		break;
+	case "auto":
+	case "ad hoc":
+		throw_FigException(std::string("imporance strategy \"").append(strategy)
+						   .append("\" isn't supported yet"));
+		break;
+	default:
+		throw_FigException(std::string("unrecognized importance strategy \"")
+						   .append(strategy).append("\""));
+		break;
+	}
+}
 
 } // namespace fig
-
-#endif // MODULE_H
-

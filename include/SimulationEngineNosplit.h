@@ -53,6 +53,10 @@ public:  // Ctor
 	/// Data ctor
 	SimulationEngineNosplit(std::shared_ptr<const ModuleNetwork> network);
 
+public:  // Inherited virtual setup functions
+
+//	virtual void bind();  // We can hook up with any, no check needed
+
 public:  // Inherited virtual simulation functions
 
 	virtual double simulate(const Property& property, const size_t& numRuns) const;

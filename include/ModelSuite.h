@@ -208,9 +208,10 @@ public:  // Simulation utils
 	 *
 	 *        Consider one Property at a time and, for each simulation strategy,
 	 *        importance function and stopping condition requested, estimate
-	 *        its value and log the results.
+	 *        the property's value and log the results.
 	 *
-	 * @param importanceStrategies Names of the importance functions  to test
+	 * @param importanceSpecifications String pairs "(name,strategy)" of the
+	 *                                 importance functions to test
 	 * @param simulationStrategies Names of the simulation strategies to test
 	 *
 	 * @note The model must have been \ref seal() "sealed" beforehand
@@ -225,7 +226,7 @@ public:  // Simulation utils
 			typename ValueType2,
 			typename... OtherArgs2
 	>
-	void process_batch(const Container1<ValueType1, OtherArgs1...>& importanceStrategies,
+	void process_batch(const Container1<ValueType1, OtherArgs1...>& importanceSpecifications,
 					   const Container2<ValueType2, OtherArgs2...>& simulationStrategies);
 
 	/// @todo TODO design and implement
@@ -268,16 +269,17 @@ template<
 >
 void
 ModelSuite::process_batch(
-	const Container1<ValueType1, OtherArgs1...>& importanceStrategies,
+	const Container1<ValueType1, OtherArgs1...>& importanceSpecifications,
 	const Container2<ValueType2, OtherArgs2...>& simulationStrategies)
 {
-	static_assert(std::is_constructible< std::string, ValueType1 >::value,
+	typename std::pair< std::string, std::string > pair_ss;
+	static_assert(std::is_constructible< pair_ss, ValueType1 >::value,
 				  "ERROR: type mismatch. ModelSuite::process_batch() takes "
-				  "two containers with strings, the first describing the "
-				  "importance strategies to use during simulations.");
+				  "two containers, the first with strings pairs describing the "
+				  "importance functions and strategies to use during simulations.");
 	static_assert(std::is_constructible< std::string, ValueType2 >::value,
 				  "ERROR: type mismatch. ModelSuite::process_batch() takes "
-				  "two containers with strings, the second describing the "
+				  "two containers, the second with strings describing the "
 				  "simulation strategies to use during simulations.");
 	if (!sealed())
 		throw_FigException("model hasn't been sealed yet");
@@ -285,17 +287,19 @@ ModelSuite::process_batch(
 	// For each property ...
 	for (const auto prop: properties) {
 
-		// ... for each importance strategy (null, auto, ad hoc, etc) ...
-		for (const std::string impStrat: importanceStrategies) {
-			if (end(impFuns) == impFuns.find(impStrat)) {
+		// ... for each importance specification (null, auto, ad hoc, etc) ...
+		for (const pair_ss& impFunSpec: importanceSpecifications) {
+			std::string impFunName, impFunStrategy;
+			std::tie(impFunName, impFunStrategy) = impFunSpec;
+			if (end(impFuns) == impFuns.find(impFunName)) {
 				/// @todo TODO log the inexistence of this importance function
 				continue;
 			}
 			auto impFun = impFuns[impStrat];
-			impFun->assess_importance(*model, *prop);
+			impFun->assess_importance(*model, *prop, impFunStrategy);
 			assert(impFun->ready());
 
-			// ... and each simulation strategy (no split, restart, etc) ...
+			// ... and each simulation strategy (nosplit, restart, etc) ...
 			for (const std::string simStrat: simulationStrategies) {
 				if (end(simulators) == simulators.find(simStrat)) {
 					/// @todo TODO log the inexistence of this engine

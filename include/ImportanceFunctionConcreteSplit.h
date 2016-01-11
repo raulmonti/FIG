@@ -60,16 +60,18 @@ class ImportanceFunctionConcreteSplit : public ImportanceFunctionConcrete
 public:
 
 	virtual void assess_importance(const ModuleInstance& mod,
-								   const Property& prop)
+								   const Property& prop,
+								   const std::string& strategy = "")
 		{
 			throw_FigException("TODO");
 		}
 
 	virtual void assess_importance(const ModuleNetwork& net,
-								   const Property& prop)
+								   const Property& prop,
+								   const std::string& strategy = "")
 		{
-			for (auto& mod: net.modules)
-				assess_importance(*mod, prop);  // Visit each module individually
+			for (auto& mod: net.modules)  // Visit each module individually
+				assess_importance(*mod, prop, strategy);
 		}
 };
 
