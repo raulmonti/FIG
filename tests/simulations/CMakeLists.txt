@@ -84,7 +84,10 @@ SET(REQUIRED_SOURCES "${SOURCES_DIR}/Clock.cpp"
                      "${SOURCES_DIR}/ConfidenceInterval.cpp"
                      "${SOURCES_DIR}/ConfidenceIntervalMean.cpp"
                      "${SOURCES_DIR}/ConfidenceIntervalProportion.cpp"
-                     "${SOURCES_DIR}/ConfidenceIntervalWilson.cpp")
+                     "${SOURCES_DIR}/ConfidenceIntervalWilson.cpp"
+                     "${SOURCES_DIR}/ImportanceFunction.cpp"
+                     "${SOURCES_DIR}/ImportanceFunctionConcrete.cpp"
+                     "${SOURCES_DIR}/ImportanceFunctionConcreteCoupled.cpp")
 SET(ALL_SOURCES ${ALL_SOURCES} ${REQUIRED_SOURCES} CACHE INTERNAL "")
 
 # Register also the source files from this test
@@ -129,7 +132,23 @@ ENDIF()
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 
 # OpenMP
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+##	FIND_PACKAGE(OpenMP REQUIRED)  # doesn't work
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp=libgomp")
+ELSE()
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+ENDIF()
+## # Clang needs to be told where to look for OpenMP headers
+## IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+## 	EXECUTE_PROCESS(COMMAND find /usr/lib/ -name "omp.h"
+## 	                COMMAND tail -n 1
+## 	                COMMAND xargs dirname
+## 	                OUTPUT_VARIABLE LATEST_OMP_H_DIR)
+## 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${LATEST_OMP_H_DIR}")
+## ENDIF()
+## That's not working!
+## A special version of Clang with OpenMP activated seems to be required.
+## We just pasted gcc's "omp.h" into ext/openmp/include
 
 # Turn some warnings off
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -138,21 +157,6 @@ IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 ENDIF()
 # Avoid MuParser warnings due to deprecated auto_ptr (TODO: update library?)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
-
-## # Clang needs to be told where to look for OpenMP headers
-## IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-## #	FIND_PACKAGE(OpenMP REQUIRED)
-## 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-## 	EXECUTE_PROCESS(COMMAND find /usr/lib/ -name "omp.h"
-## 	                COMMAND tail -n 1
-## 	                COMMAND xargs dirname
-## 	                OUTPUT_VARIABLE LATEST_OMP_H_DIR)
-## 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${LATEST_OMP_H_DIR}")
-## ENDIF()
-##
-##  Above isn't working!
-##  A special version of Clang with OpenMP activated is required.
-##  We just pasted gcc's "omp.h" into our include paths.
 
 
 

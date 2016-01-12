@@ -30,10 +30,9 @@
 #ifndef IMPORTANCEFUNCTIONCONCRETECOUPLED_H
 #define IMPORTANCEFUNCTIONCONCRETECOUPLED_H
 
-#include <FigException.h>
 #include <ImportanceFunctionConcrete.h>
-#include <ModuleInstance.h>
-#include <ModuleNetwork.h>
+#include <State.h>
+#include <FigException.h>
 
 
 namespace fig
@@ -56,8 +55,23 @@ namespace fig
  */
 class ImportanceFunctionConcreteCoupled : public ImportanceFunctionConcrete
 {
+	// Make overloads explicit, otherwise Clang whines like a whore
+	using ImportanceFunction::assess_importance;
+	using ImportanceFunctionConcrete::assess_importance;
 
-public:
+	/// Copy of the global state of the model (i.e. the network of modules)
+	mutable State< STATE_INTERNAL_TYPE > globalStateCopy_;
+
+	/// For interaction with base class ImportanceFunctionConcrete
+	const unsigned importanceInfoIndex_;
+
+public:  // Ctor/Dtor
+
+	ImportanceFunctionConcreteCoupled();
+
+	virtual ~ImportanceFunctionConcreteCoupled();
+
+public:  // Utils
 
 	virtual void assess_importance(const ModuleInstance&,
 								   const Property&,
@@ -73,7 +87,9 @@ public:
 								   const Property& prop,
 								   const std::string& strategy = "");
 
-	virtual void clear();
+	virtual ImportanceValue importance_of(const StateInstance& state) const;
+
+	virtual void clear() noexcept;
 };
 
 } // namespace fig

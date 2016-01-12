@@ -28,19 +28,25 @@
 
 
 #include <ImportanceFunctionConcreteCoupled.h>
-#include <FigException.h>
-
-
-namespace
-{
-void assess_null_importance
-
-	std::vector< ImportanceValue > statesImportance;
-} // namespace
+#include <ModuleNetwork.h>
 
 
 namespace fig
 {
+
+// Available function names in ImportanceFunction::names
+ImportanceFunctionConcreteCoupled::ImportanceFunctionConcreteCoupled() :
+	ImportanceFunctionConcrete("concrete_coupled"),
+	globalStateCopy_(),
+	importanceInfoIndex_(0u)
+{ /* Not much to do around here */ }
+
+
+ImportanceFunctionConcreteCoupled::~ImportanceFunctionConcreteCoupled()
+{
+	clear();
+}
+
 
 void
 ImportanceFunctionConcreteCoupled::assess_importance(
@@ -48,20 +54,31 @@ ImportanceFunctionConcreteCoupled::assess_importance(
 	const Property& prop,
 	const std::string& strategy)
 {
-	switch (strategy) {
-	case "":
+	globalStateCopy_ = net.global_state();
+	// Use member function inherited from ImportanceFunctionConcrete
+	assess_importance(globalStateCopy_, prop, strategy, importanceInfoIndex_);
+}
 
-		break;
-	case "auto":
-	case "ad hoc":
-		throw_FigException(std::string("imporance strategy \"").append(strategy)
-						   .append("\" isn't supported yet"));
-		break;
-	default:
-		throw_FigException(std::string("unrecognized importance strategy \"")
-						   .append(strategy).append("\""));
-		break;
-	}
+
+ImportanceValue
+ImportanceFunctionConcreteCoupled::importance_of(const StateInstance& state) const
+{
+#ifndef NDEBUG
+	assert(ready());
+	globalStateCopy_.copy_from_state_instance(state, true);
+#else
+	globalStateCopy_.copy_from_state_instance(state, false);
+#endif
+	return modulesConcreteImportance[importanceInfoIndex_]
+									[globalStateCopy_.encode_state()];
+}
+
+
+void
+ImportanceFunctionConcreteCoupled::clear() noexcept
+{
+	globalStateCopy_ = State< STATE_INTERNAL_TYPE >();
+	ImportanceFunctionConcrete::clear();
 }
 
 } // namespace fig

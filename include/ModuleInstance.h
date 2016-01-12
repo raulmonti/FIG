@@ -279,7 +279,7 @@ public:  // Ctors/Dtor and populating facilities
 	/// @copydoc add_transition()
 	void add_transition(Transition&& transition);
 
-public:  // Utils
+public:  // Accessors
 
 	/// Number of variables defined in this module
 	inline size_t num_vars() const noexcept { return lState_.size(); }
@@ -292,6 +292,12 @@ public:  // Utils
 
 	/// Has this module been \ref seal() "sealed" already?
 	inline bool sealed() const noexcept { return sealed_; }
+
+	/// @copydoc globalIndex_
+	/// Negative value until the module is added to the network.
+	inline int global_index() const noexcept { return globalIndex_; }
+
+public:  // Utils
 
 	virtual inline void accept(ImportanceFunction& ifun,
 							   const Property& prop,

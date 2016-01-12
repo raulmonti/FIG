@@ -272,7 +272,7 @@ ModelSuite::process_batch(
 	const Container1<ValueType1, OtherArgs1...>& importanceSpecifications,
 	const Container2<ValueType2, OtherArgs2...>& simulationStrategies)
 {
-	typename std::pair< std::string, std::string > pair_ss;
+	typedef std::pair< std::string, std::string > pair_ss;
 	static_assert(std::is_constructible< pair_ss, ValueType1 >::value,
 				  "ERROR: type mismatch. ModelSuite::process_batch() takes "
 				  "two containers, the first with strings pairs describing the "
@@ -295,7 +295,7 @@ ModelSuite::process_batch(
 				/// @todo TODO log the inexistence of this importance function
 				continue;
 			}
-			auto impFun = impFuns[impStrat];
+			auto impFun = impFuns[impFunName];
 			impFun->assess_importance(*model, *prop, impFunStrategy);
 			assert(impFun->ready());
 

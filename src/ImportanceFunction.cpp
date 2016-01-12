@@ -47,26 +47,27 @@ namespace fig
 // Static variables initialization
 
 const std::array< std::string, 2 > ImportanceFunction::names =
-{
+{{
 	// See ImportanceFunctionConcreteCoupled class
-	{"concrete_coupled"},
+	"concrete_coupled",
 
 	// See ImportanceFunctionConcreteSplit class
-	{"concrete_split"}
-};
+	"concrete_split"
+}};
 
 
-const std::array< std::string, 3 > ImportanceFunction::strategies =
-{
+const std::array< std::string, 4 > ImportanceFunction::strategies =
+{{
 	// Flat importance, i.e. null ImportanceValue for all states
-	{""},
+	"",
+	"flat",
 
 	// Automatically built importance, with backwards BFS
-	{"auto"},
+	"auto",
 
 	// User defined importance, by means of some function over the states
-	{"adhoc"}
-};
+	"adhoc"
+}};
 
 
 // ImportanceFunction class member functions
@@ -84,12 +85,6 @@ ImportanceFunction::ImportanceFunction(const std::string& name) :
 		errMsg << "\n";
 		throw_FigException(errMsg.str());
 	}
-}
-
-
-ImportanceFunction::~ImportanceFunction()
-{
-	clear();  // Release any memory allocated in the heap
 }
 
 

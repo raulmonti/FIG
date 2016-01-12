@@ -57,6 +57,10 @@ namespace fig
  */
 class ImportanceFunctionConcreteSplit : public ImportanceFunctionConcrete
 {
+	// Make overloads explicit, otherwise Clang whines like a whore
+	using ImportanceFunction::assess_importance;
+	using ImportanceFunctionConcrete::assess_importance;
+
 public:
 
 	virtual void assess_importance(const ModuleInstance& mod,

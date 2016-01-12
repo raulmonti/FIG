@@ -196,8 +196,8 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 
 	// Build the simulation engines and the importance functions
 	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
+	impFuns["concrete_coupled"] = std::make_shared< ImportanceFunctionConcreteCoupled >();
 //	impFuns["concrete_split"]   = std::make_shared< ImportanceFunctionConcreteSplit >();
-//	impFuns["concrete_coupled"] = std::make_shared< ImportanceFunctionConcreteCoupled >();
 
 #ifndef NDEBUG
 	// Check all offered engines and functions were actually instantiated
@@ -205,8 +205,12 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 		if (end(simulators) == simulators.find(engineName))
 			throw_FigException(std::string("hey..., hey you ...  HEY, DEVELOPER!")
 							   .append(" You forgot to create the '")
-							   .append(engineName).append("'' engine"));
-	/// @todo TODO same lookup shit for importance functions
+							   .append(engineName).append("' engine"));
+	for (const auto& ifunName: ImportanceFunction::names)
+		if(end(impFuns) == impFuns.find(ifunName))
+			throw_FigException(std::string("hey..., hey you ...  HEY, DEVELOPER!")
+							   .append(" You forgot to create the '")
+							   .append(ifunName).append("' importance function"));
 #endif
 }
 

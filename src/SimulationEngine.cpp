@@ -49,13 +49,13 @@ namespace fig
 // Static variables initialization
 
 const std::array< std::string, 2 > SimulationEngine::names =
-{
+{{
 	// Standard Monte Carlo simulations, without splitting
-	{"nosplit"},
+	"nosplit",
 
 	// RESTART-like importance splitting, from the Villén-Altamirano brothers
-	{"restart"}
-};
+	"restart"
+}};
 
 
 // SimulationEngine class member functions

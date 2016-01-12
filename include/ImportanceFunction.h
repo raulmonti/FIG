@@ -30,7 +30,12 @@
 #ifndef IMPORTANCEFUNCTION_H
 #define IMPORTANCEFUNCTION_H
 
+// C++
 #include <string>
+#include <array>
+// FIG
+#include <core_typedefs.h>
+#include <State.h>
 
 
 namespace fig
@@ -50,8 +55,8 @@ class Property;
  *        from <i>each other</i> (reachable) system state.
  *
  *        Besides from the "name" which specifies the ImportanceFunction
- *        derived class, importance assessment require the choice of a
- *        "strategy" (none, auto, ad hoc...) to decide how the relative
+ *        derived class, importance assessment requires the choice of a
+ *        "strategy" (flat, auto, ad hoc...) to decide how the relative
  *        importance between states will be measured.
  *
  * @note This class family follows the
@@ -71,7 +76,7 @@ public:
 	/// Importance assessment strategies offered to the user,
 	/// as he should requested them through the CLI/GUI.
 	/// Defined in ImportanceFunction.cpp
-	static const std::array< std::string, 3 > strategies;
+	static const std::array< std::string, 4 > strategies;
 
 private:
 
@@ -92,7 +97,7 @@ public:  // Ctor/Dtor
 	ImportanceFunction(const std::string& name);
 
 	/// Dtor
-	virtual ~ImportanceFunction();
+	virtual ~ImportanceFunction() {}
 
 public:  // Accessors
 
@@ -120,10 +125,12 @@ public:  // Utils
 	 *
 	 * @param mod      Module whose reachable states will have their importance assessed
 	 * @param prop     Property guiding the importance assessment
-	 * @param strategy Strategy of the assessment (none, auto, ad hoc...)
+	 * @param strategy Strategy of the assessment (flat, auto, ad hoc...)
 	 *
 	 * @note After a successfull invocation the ImportanceFunction
 	 *       is ready() to be used during simulations
+	 *
+	 * @see assess_importance(const ModuleNetwork&, const Property&, const std::string&)
 	 */
 	virtual void assess_importance(const ModuleInstance& mod,
 								   const Property& prop,
@@ -136,10 +143,12 @@ public:  // Utils
 	 *
 	 * @param net      System model (or coupled network of modules)
 	 * @param prop     Property guiding the importance assessment
-	 * @param strategy Strategy of the assessment (none, auto, ad hoc...)
+	 * @param strategy Strategy of the assessment (flat, auto, ad hoc...)
 	 *
 	 * @note After a successfull invocation the ImportanceFunction
 	 *       is ready() to be used during simulations
+	 *
+	 * @see assess_importance(const ModuleInstance&, const Property&, const std::string&)
 	 */
 	virtual void assess_importance(const ModuleNetwork& net,
 								   const Property& prop,
@@ -147,13 +156,12 @@ public:  // Utils
 
 	/// Release any memory allocated in the heap
 	/// @note After this invocation the ImportanceFunction is no longer ready()
-	virtual void clear() = 0;
+	virtual void clear() noexcept = 0;
 
-protected:  // Utils for derived classes
-
-	/// @todo TODO choose parameters and implement
-	/// Assign null ImportanceValue to all the states of an abstract Module
-	void assess_null_importance();
+	/// @brief Tell the pre-computed importance of the given StateInstance
+	/// @note All reachable states importance should have already been assessed
+	/// @see assess_importance()
+	virtual ImportanceValue importance_of(const StateInstance& state) const = 0;
 };
 
 } // namespace fig
