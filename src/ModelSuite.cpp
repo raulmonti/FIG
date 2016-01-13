@@ -36,7 +36,8 @@
 #include <forward_list>
 #include <unordered_set>
 #include <type_traits>  // std::is_convertible<>
-#include <iterator>     // std::begin(), std::end()
+#include <algorithm>    // std::find();
+#include <iterator>     // std::begin(), std::end(), std::distance()
 #include <string>
 // C
 #include <csignal>   // signal()
@@ -57,6 +58,7 @@
 #include <ConfidenceIntervalWilson.h>
 
 // ADL
+using std::find;
 using std::begin;
 using std::end;
 
@@ -129,6 +131,41 @@ build_empty_confidence_interval(
 			   new fig::ConfidenceIntervalMean(confidenceCo,
 											   precision,
 											   dynamicPrecision));
+}
+
+
+/**
+ * @brief Tell minimum number of simulation runs requested to estimate
+ *        the value of a property, for the specified fig::SimulationEngine
+ *        and fig::ImportanceFunction pair
+ * @param engineName Valid engine name, i.e. one from fig::SimulationEngine::names
+ * @param ifunName   Valid importance function name, i.e. one from
+ *                   fig::ImportanceFunction::names
+ */
+size_t
+min_batch_size(const std::string& engineName, const std::string& ifunName)
+{
+	// Build internal table once: x axis follows engine names definition order
+	//                            y axis follows impFun names definition order
+	static constexpr auto& engineNames(fig::SimulationEngine::names);
+	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
+//	Following compiles with Clang but not with gcc -- keep checking
+//	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
+	static const size_t batch_sizes[1][1] = {
+		{1u<<10} //, 1u<<9
+	};
+	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
+	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
+	// Check given engine and importance function names are valid
+	if (engineIt == end(engineNames))
+		throw_FigException(std::string("invalid engine name \"")
+						   .append(engineName).append("\""));
+	if (ifunIt == end(ifunNames))
+		throw_FigException(std::string("invalid importance function name \"")
+						   .append(ifunName).append("\""));
+	// Return corresponding entry from table
+	return batch_sizes[std::distance(begin(engineNames), engineIt)]
+					  [std::distance(begin(ifunNames), ifunIt)];
 }
 
 } // namespace
@@ -288,8 +325,7 @@ ModelSuite::estimate(const Property& property,
 														  std::get<0>(criterion),
 														  std::get<1>(criterion),
 														  std::get<2>(criterion));
-            size_t numRuns = 0;
-//			size_t numRuns = min_batch_size(engine.name(), engine.current_ifun());
+			size_t numRuns = min_batch_size(engine.name(), engine.current_ifun());
 			double startTime = omp_get_wtime();
             do {
                 double estimation = engine.simulate(property, numRuns);

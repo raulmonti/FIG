@@ -57,6 +57,7 @@ ImportanceFunctionConcreteCoupled::assess_importance(
 	globalStateCopy_ = net.global_state();
 	// Use member function inherited from ImportanceFunctionConcrete
 	assess_importance(globalStateCopy_, prop, strategy, importanceInfoIndex_);
+	readyForSimulations = true;
 }
 
 
@@ -79,6 +80,7 @@ ImportanceFunctionConcreteCoupled::clear() noexcept
 {
 	globalStateCopy_ = State< STATE_INTERNAL_TYPE >();
 	ImportanceFunctionConcrete::clear();
+	readyForSimulations = false;
 }
 
 } // namespace fig

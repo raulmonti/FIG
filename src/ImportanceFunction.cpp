@@ -46,13 +46,13 @@ namespace fig
 
 // Static variables initialization
 
-const std::array< std::string, 2 > ImportanceFunction::names =
+const std::array< std::string, 1 > ImportanceFunction::names =
 {{
 	// See ImportanceFunctionConcreteCoupled class
-	"concrete_coupled",
+	"concrete_coupled"
 
-	// See ImportanceFunctionConcreteSplit class
-	"concrete_split"
+//	// See ImportanceFunctionConcreteSplit class
+//	"concrete_split"
 }};
 
 

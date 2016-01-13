@@ -62,7 +62,7 @@ public:
 	/// Names of the simulation engines offered to the user,
 	/// as he should requested them through the CLI/GUI.
     /// Defined in SimulationEngine.cpp
-    static const std::array< std::string, 2 > names;
+    static const std::array< std::string, 1 > names;
 
 protected:
 

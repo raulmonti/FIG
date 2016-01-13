@@ -55,7 +55,7 @@ namespace fig
  *        The second we call "time simulations" for obvious reasons.
  *
  *        A single instance of the StoppingConditions class can hold several
- *        end-of-simulation criteria, but either of the "value" or the "time"
+ *        end-of-simulation criteria, but either of the "value" or of the "time"
  *        kind, not a Mischung.
  */
 class StoppingConditions

@@ -71,7 +71,7 @@ public:
 	/// Names of the importance functions offered to the user,
 	/// as he should requested them through the CLI/GUI.
 	/// Defined in ImportanceFunction.cpp
-	static const std::array< std::string, 2 > names;
+	static const std::array< std::string, 1 > names;
 
 	/// Importance assessment strategies offered to the user,
 	/// as he should requested them through the CLI/GUI.
@@ -83,6 +83,8 @@ private:
 	/// Importance function implemented by this instance
 	/// Check ImportanceFunction::names for available options.
 	std::string name_;
+
+protected:
 
 	/// Can this instance be used for simulations?
 	bool readyForSimulations;

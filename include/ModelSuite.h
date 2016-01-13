@@ -132,7 +132,7 @@ public:  // Access to the ModelSuite instance
 public:  // Populating facilities
 
 	/// @copydoc ModuleNetwork::add_module(std::shared_ptr<ModuleInstance>&)
-	void add_module(std::shared_ptr< ModuleInstance >&);
+	void add_module(std::shared_ptr<ModuleInstance>&);
 
 	/**
 	 * Add a new property to estimate during experimentation
@@ -142,7 +142,7 @@ public:  // Populating facilities
 	 *   @throw FigException if the network has already been sealed()
 	 * \endif
 	 */
-	void add_property(std::shared_ptr<Property> property);
+	void add_property(std::shared_ptr<Property>);
 
 public:  // Modifyers
 
@@ -190,6 +190,9 @@ public:  // Stubs for ModuleNetwork
 	inline size_t concrete_state_size() const noexcept
 		{ return model->concrete_state_size(); }
 
+	/// @todo TODO erase as soon as we move on from simulations tests
+	inline std::shared_ptr< const ModuleNetwork > modules_network() const { return model; }
+
 public:  // Utils
 
 	/// Names of available simulation engines,
@@ -236,17 +239,17 @@ public:  // Simulation utils
 	 * @brief Estimate the value of a property.
 	 *
 	 *        The estimation is performed using a single simulation strategy.
-	 *        The importance function to use and the property to estimate
-	 *        must have been loaded beforehand into the SimulationEngine.
+	 *        The importance function to use must have been previously bound
+	 *        to the SimulationEngine.
 	 *        Estimations are performed for all the \ref StoppingConditions
 	 *        "simulation bounds" requested for experimentation, and logged
 	 *        as they are produced.
 	 *
-	 * @param engine SimulationEngine already loaded with a Property and an ImportanceFunction
+	 * @param engine SimulationEngine already tied to an ImportanceFunction
 	 * @param bounds List of stopping conditions to experiment with
 	 *
-	 * @throw FigException if engine wasn't \ref SimulationEngine::loaded()
-	 *                     "ready" for simulations
+	 * @throw FigException if engine wasn't \ref SimulationEngine::bound()
+	 *                     "ready for simulations"
 	 */
 	void estimate(const Property& property,
 				  const SimulationEngine& engine,
@@ -287,7 +290,7 @@ ModelSuite::process_batch(
 	// For each property ...
 	for (const auto prop: properties) {
 
-		// ... for each importance specification (null, auto, ad hoc, etc) ...
+		// ... each importance specification ...
 		for (const pair_ss& impFunSpec: importanceSpecifications) {
 			std::string impFunName, impFunStrategy;
 			std::tie(impFunName, impFunStrategy) = impFunSpec;
@@ -299,7 +302,7 @@ ModelSuite::process_batch(
 			impFun->assess_importance(*model, *prop, impFunStrategy);
 			assert(impFun->ready());
 
-			// ... and each simulation strategy (nosplit, restart, etc) ...
+			// ... and each simulation strategy ...
 			for (const std::string simStrat: simulationStrategies) {
 				if (end(simulators) == simulators.find(simStrat)) {
 					/// @todo TODO log the inexistence of this engine
@@ -314,7 +317,7 @@ ModelSuite::process_batch(
 					///       incompatible with the current simulation engine
 					continue;
 				}
-				// ... estimate the property value for all stopping conditions
+				// ... estimate the property's value for all stopping conditions
 				estimate(*prop, engine, simulationBounds);
 				engine.unbind();
 			}
