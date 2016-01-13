@@ -169,6 +169,17 @@ public:
     string
     toString();
 
+    /**
+     * TODO
+     */
+    friend bool
+    operator==(AST &ast1,AST &ast2);
+
+    /**
+     * TODO
+     */
+    friend bool
+    operator!=(AST &ast1,AST &ast2);
 };
 
 

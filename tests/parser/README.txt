@@ -29,7 +29,7 @@ Read main.cpp file for an example.
 #-------------------------------------------------------------------------------
 /*
 DONE    Change "end module" for "endmodule" in our syntax.
-TODO    Check that clocks have unique distribution in between transitions.
+DONE    Check that clocks have unique distribution in between transitions.
 TODO    work with constants.
 TODO    Decide if the module named smtsolver is really needed or if it can be
         taken into iosacompliance module.

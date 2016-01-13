@@ -850,6 +850,7 @@ Verifier::type_check(AST *ast){
     }
 
     /* Check that enabling clock and reseting clocks are really clocks */
+    map<string, AST*> rclocks;
     for(int j = 0; j < trans.size(); j++){
         // enabling clocks
         AST* enable = trans[j]->get_first(_ENABLECLOCK);
@@ -862,13 +863,28 @@ Verifier::type_check(AST *ast){
             }
         }
         // reset clocks
-        vector<AST*> resets = trans[j]->get_all_ast(_RESETCLOCK);
+
+        vector<AST*> resets = trans[j]->get_all_ast(_SETC);
         for(int k = 0; k < resets.size(); ++k){
-            auto const it = mPc.find(resets[k]->get_first(_NAME)->p_name());
+            string name = resets[k]->get_first(_NAME)->p_name();
+            name.pop_back();
+            AST* distr = resets[k]->get_first(_DISTRIBUTION);
+            auto const it = mPc.find(name);
             if(it == mPc.end() || it->second.first != T_CLOCK){
-                error_list.append( "[ERROR] No clock named " 
-                                 + resets[k]->p_name() + " at " 
-                                 + resets[k]->p_pos() + ".\n" );
+                error_list.append( "[ERROR] No clock named " + name 
+                                 + " at " + resets[k]->p_pos() + ".\n" );
+            }else{
+
+                auto ret = rclocks.insert(make_pair(name, distr));
+                if(!ret.second){
+                    if(*distr != *ret.first->second){
+                        string pos1 = distr->get_pos();
+                        string pos2 = ret.first->second->get_pos();
+                        error_list.append("[ERROR] Different distributions "
+                            "have been defined for clock '" + name + "', at " +
+                            pos1 + " and " + pos2 + ".\n");
+                    }
+                }
             }
         }
     }
@@ -878,7 +894,6 @@ Verifier::type_check(AST *ast){
 
     return result;
 }
-
 
 
 //==============================================================================

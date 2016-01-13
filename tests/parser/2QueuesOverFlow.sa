@@ -26,7 +26,7 @@ module Queue2
     clkExit : clock;        /* Normal(4,1) */                  
 
     [pass?] q2<8 -> (q2'=q2+1);
-    [pass?] q2==8 -> (q2'=8);
+    [pass?] q2==8 -> (q2'=8) & (clkExit'= normal(4,1));
     [exit!] q2 > 0 @ clkExit -> (q2'=q2-1) & (clkExit'= normal(4,1));         
 
 endmodule

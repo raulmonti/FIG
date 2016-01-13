@@ -383,3 +383,31 @@ AST::toString(){
     }
     return result;
 }
+
+
+//==============================================================================
+
+bool
+operator==(AST &ast1, AST &ast2){
+
+if( ast1.lxm == ast2.lxm &&
+    ast1.tkn == ast2.tkn &&
+    ast1.branches.size() == ast2.branches.size())
+{
+    for(int i = 0; i < ast1.branches.size(); ++i){
+        if(!(*ast1.branches[i] == *ast2.branches[i])){
+            return false;
+        }
+    }
+    return true;
+}
+return false;
+}
+
+bool
+operator!=(AST &ast1, AST &ast2){
+    return !(ast1==ast2);
+}
+
+
+
