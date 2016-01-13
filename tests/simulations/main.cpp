@@ -25,16 +25,19 @@
 //==============================================================================
 
 // C/C++
+#include <list>
 #include <vector>
 #include <string>
+#include <memory>
+#include <iostream>
 #include <cassert>
 // FIG
 //#include <fig.h>  // we won't be using the parser yet
-#include <FigException.h>
 #include <ModelSuite.h>
 #include <TraialPool.h>
-
-using namespace fig;
+#include <ILabel.h>
+#include <OLabel.h>
+#include <FigException.h>
 
 
 int main()
@@ -74,7 +77,44 @@ int main()
 	 *                                                   *
 	 * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-	throw_FigException("TODO: this test!");
+	// Types names
+	using fig::Clock;
+	using fig::ILabel;
+	using fig::OLabel;
+	using fig::Precondition;
+	using fig::Postcondition;
+	using fig::Transition;
+	using fig::ModuleInstance;
+	using fig::ModelSuite;
+	typedef fig::VariableDefinition<fig::STATE_INTERNAL_TYPE> VarDef;
+	typedef fig::State<fig::STATE_INTERNAL_TYPE>              State;
+	typedef std::list< std::string >                          NamesList;
+
+	// Reusable variables
+	ModelSuite& model = fig::ModelSuite::get_instance();
+	std::shared_ptr< ModuleInstance > module(nullptr);
+
+	// Model construction
+	std::cout << "Building the first module" << std::endl;
+	State vars1 = std::vector< VarDef >({std::make_tuple("q1",0,10,1)});
+	std::vector< Clock > clocks1 = {{"clkArr",  "uniformAB",   {{0.0, 2.0}}},
+									{"clkPass", "exponential", {{5.0}}}};
+	module = std::make_shared< ModuleInstance >("Queue1", vars1, clocks1);
+	module->add_transition(
+		OLabel("arr"),
+		"clkArr",
+		Precondition("q1 < 10", NamesList({"q1"})),
+		Postcondition("q1+1", NamesList({"q1"}), NamesList({"q1"})),
+		NamesList({"clkArr"}));
+	module->add_transition(
+		OLabel("pass"),
+		"clkPass",
+		Precondition("q1 > 0", NamesList({"q1"})),
+		Postcondition("q1-1", NamesList({"q1"}), NamesList({"q1"})),
+		NamesList({"clkPass"}));
+	model.add_module(module);
+
+	throw_FigException("TODO: finish this test!");
 
 	return 0;
 }

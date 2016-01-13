@@ -279,6 +279,31 @@ public:  // Ctors/Dtor and populating facilities
 	/// @copydoc add_transition()
 	void add_transition(Transition&& transition);
 
+	/**
+	 * Add a new transition to this model, built from the forwarded arguments
+	 *
+	 * @param label           @copydoc Transition::label_
+	 * @param triggeringClock @copydoc Transition::triggeringClock
+	 * @param pre             @copydoc Transition::pre
+	 * @param pos             @copydoc Transition::pos
+	 * @param resetClocks     Names of the clocks to reset when transition is taken
+	 *
+	 * @warning Do not invoke after mark_added()
+	 * \ifnot NDEBUG
+	 *   @throw FigException if this module has already been added to the network
+	 *   @throw FigException if there's a variable or clock which doesn't belong
+	 *                       to this module
+	 * \endif
+	 */
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	void add_transition(const Label& label,
+						const std::string& triggeringClock,
+						const Precondition& pre,
+						const Postcondition& pos,
+						const Container<ValueType, OtherContainerArgs...>& resetClocks);
+
 public:  // Accessors
 
 	/// Number of variables defined in this module

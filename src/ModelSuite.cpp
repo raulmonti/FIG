@@ -214,7 +214,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 #endif
 }
 
-// ModuleSuite::seal() can only be invoked with the following containers
+// ModelSuite::seal() can only be invoked with the following containers
 template void ModelSuite::seal(const std::set<std::string>&);
 template void ModelSuite::seal(const std::list<std::string>&);
 template void ModelSuite::seal(const std::deque<std::string>&);

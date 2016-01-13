@@ -28,6 +28,12 @@
 
 
 // C++
+#include <set>
+#include <list>
+#include <deque>
+#include <vector>
+#include <forward_list>
+#include <unordered_set>
 #include <string>
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // std::find_if()
@@ -97,6 +103,59 @@ ModuleInstance::add_transition(Transition&& transition)
 	transitions_by_label_[transition.label().str].emplace_back(ptr);
 	transitions_by_clock_[transition.triggeringClock].emplace_back(ptr);
 }
+
+
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+void
+ModuleInstance::add_transition(
+	const Label& label,
+	const std::string& triggeringClock,
+	const Precondition& pre,
+	const Postcondition& pos,
+	const Container<ValueType, OtherContainerArgs...>& resetClocks)
+{
+	add_transition(Transition(
+		std::forward<const Label&>(label),
+		std::forward<const std::string&>(triggeringClock),
+		std::forward<const Precondition&>(pre),
+		std::forward<const Postcondition&>(pos),
+		std::forward<const Container<ValueType, OtherContainerArgs...>&>(resetClocks)
+	));
+}
+
+// ModuleInstance::add_transition(...) can only be invoked with the following containers
+template void ModuleInstance::add_transition(const Label& label,
+											 const std::string& triggeringClock,
+											 const Precondition& pre,
+											 const Postcondition& pos,
+											 const std::set< std::string >& resetClocks);
+template void ModuleInstance::add_transition(const Label& label,
+											 const std::string& triggeringClock,
+											 const Precondition& pre,
+											 const Postcondition& pos,
+											 const std::list< std::string >& resetClocks);
+template void ModuleInstance::add_transition(const Label& label,
+											 const std::string& triggeringClock,
+											 const Precondition& pre,
+											 const Postcondition& pos,
+											 const std::deque< std::string >& resetClocks);
+template void ModuleInstance::add_transition(const Label& label,
+											 const std::string& triggeringClock,
+											 const Precondition& pre,
+											 const Postcondition& pos,
+											 const std::vector< std::string >& resetClocks);
+template void ModuleInstance::add_transition(const Label& label,
+											 const std::string& triggeringClock,
+											 const Precondition& pre,
+											 const Postcondition& pos,
+											 const std::forward_list< std::string >& resetClocks);
+template void ModuleInstance::add_transition(const Label& label,
+											 const std::string& triggeringClock,
+											 const Precondition& pre,
+											 const Postcondition& pos,
+											 const std::unordered_set< std::string >& resetClocks);
 
 
 const Label&
