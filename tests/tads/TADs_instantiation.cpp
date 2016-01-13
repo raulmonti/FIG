@@ -319,6 +319,11 @@ static void // ////////////////////////////////////////////////////////////////
 //
 test_precondition()
 {
+	fig::Precondition pre0("", std::set<std::string>());
+	assert("" == pre0.expression());
+	pre0.pin_up_vars(fig::PositionsMap());  // nothing to declare, officer
+	assert(pre0(fig::StateInstance()));     // empty state will do in this case
+
 	const std::string str1("x^y > max(x,y)");
 	const std::set<std::string> varnames1({"x","y"});  // vars appearing in str1
 	const fig::PositionsMap varsMap({ {"x",0}, {"y",2}, {"otra",1} });
@@ -388,6 +393,13 @@ static void // ////////////////////////////////////////////////////////////////
 //
 test_postcondition()
 {
+	fig::Postcondition pos0("", std::set<std::string>(), std::set<std::string>());
+	assert("" == pos0.expression());
+	pos0.pin_up_vars(fig::PositionsMap());  // nothing to declare
+	fig::StateInstance s0 = {0, -12}, s0_copy(s0);
+	pos0(s0);
+	assert(s0 == s0_copy);
+
 	const std::string str1("2*y , x^_pi");  // 2 updates
 	const std::set<std::string> varNames1({"x","y"});  // vars appearing in str1
 	const std::list<std::string> varUpdates1({"x","y"});  // apply updates to 'x' and 'y' resp.

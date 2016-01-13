@@ -5,6 +5,10 @@
 
 # IDEs temp files
 *.user
+fig*.config
+fig*.creator
+fig*.files
+fig*.includes
 FIG*.config
 FIG*.creator
 FIG*.files

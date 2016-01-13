@@ -64,6 +64,9 @@ namespace fig
  */
 class MathExpression
 {
+	/// String stored internally when given an empty expression
+	static const std::string emptyExpressionString;
+
 protected:
 
 	typedef mu::Parser Expression;
@@ -151,12 +154,7 @@ protected:  // Modifyers
 	 *   @throw out_of_range if some of our variables isn't mapped
 	 * \endif
 	 */
-	inline void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
-		{
-			for(auto& pair: varsMap_)
-				pair.second = globalState.position_of_var(pair.first);
-			pinned_ = true;
-		}
+	void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState);
 
 	/**
 	 * @brief Register the global-system-state position of our variables
@@ -169,21 +167,13 @@ protected:  // Modifyers
 	 *   @throw out_of_range if some of our variables isn't mapped
 	 * \endif
 	 */
-	inline void pin_up_vars(const PositionsMap& globalVars)
-		{
-			for(auto& pair: varsMap_)
-#ifndef NRANGECHK
-				pair.second = globalVars.at(pair.first);
-#else
-				pair.second = globalVars[pair.first];
-#endif
-			pinned_ = true;
-		}
+	void pin_up_vars(const PositionsMap& globalVars);
 
 public:  // Accessors
 
 	/// @copydoc exprStr_
-	inline const std::string& expression() const noexcept { return exprStr_; }
+	inline const std::string expression() const noexcept
+		{ return emptyExpressionString == exprStr_ ? "" : exprStr_; }
 
 	/// @copydoc pinned_
 	inline const bool& pinned() const noexcept { return pinned_; }
@@ -212,7 +202,7 @@ template< template< typename, typename... > class Container,
 MathExpression::MathExpression(
 	const std::string& exprStr,
 	const Container<ValueType, OtherContainerArgs...>& varnames) :
-		exprStr_(exprStr),
+		exprStr_("" == exprStr ? emptyExpressionString : exprStr),
 		pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
@@ -239,7 +229,7 @@ template< template< typename, typename... > class Container,
 MathExpression::MathExpression(
 	const std::string& exprStr,
 	Container<ValueType, OtherContainerArgs...>&& varnames) :
-		exprStr_(exprStr),
+		exprStr_("" == exprStr ? emptyExpressionString : exprStr),
 		pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
@@ -268,7 +258,7 @@ MathExpression::MathExpression(
 	const std::string& exprStr,
 	Iterator<ValueType, OtherIteratorArgs...> from,
 	Iterator<ValueType, OtherIteratorArgs...> to) :
-		exprStr_(exprStr),
+		exprStr_("" == exprStr ? emptyExpressionString : exprStr),
 		pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
