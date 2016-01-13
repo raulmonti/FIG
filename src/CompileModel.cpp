@@ -148,6 +148,56 @@ CompileTransition(AST* trans){
 }
 
 
+/**
+ * TODO
+ */
+bool
+is_input(AST* transition){
+    return("?" == transition->get_lexeme(_IO));
+}
+
+/**
+ * TODO
+ */
+vector<fig::Transition>
+build_input_enable( vector<AST*> transitions)
+{
+    vector<fig::Transition> result;
+    map<string, vector<AST*>> labelToPre;
+    for(const auto &it: transitions){
+        if(is_input(it)){
+            string l = it->get_lexeme(_ACTION);
+            AST* pre = it->get_first(_PRECONDITION);
+            auto ret = labelToPre.find(l);
+            if(ret == labelToPre.end()){
+                labelToPre[l] = vector<AST*>(1,pre);
+            }else{
+                labelToPre[l].push_back(pre);
+            }
+        }
+    }
+    for(const auto &it: labelToPre){
+        string pre = "true";
+        vector<string> preVars;        
+        for(const auto &itpre: it.second){
+            pre += "& !(";
+            pre += itpre->toString();
+            pre += ")";
+            vector<string> aux = itpre->get_all_lexemes(_NAME);
+            preVars.insert(preVars.end(),aux.begin(),aux.end());
+        }
+        vector <string> dummy;
+        fig::Transition t(Label(it.first,false)
+                         , ""
+                         , Precondition(pre,preVars)
+                         , Postcondition("",dummy,dummy)
+                         , dummy
+                         );
+        result.push_back(t);
+    }
+    
+    return result;
+}
 
 /**
  * TODO
@@ -166,6 +216,9 @@ CompileModule(AST* module)
     for(const auto &it: transitions){
         auto transition = CompileTransition(it);
         result->add_transition(transition);
+    }
+    for(const auto &it: build_input_enable(transitions)){
+        result->add_transition(it);
     }
     return result;
 }

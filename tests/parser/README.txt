@@ -31,7 +31,7 @@ Read main.cpp file for an example.
 DONE    Change "end module" for "endmodule" in our syntax.
 DONE    Check that clocks have unique distribution in between transitions.
 TODO    work with constants.
-TODO    Decide if the module named smtsolver is really needed or if it can be
+DONE    Decide if the module named smtsolver is really needed or if it can be
         taken into iosacompliance module.
 TODO    Build input-enable transition to comply with IOSA 6th property.
 TODO    Complete the counterexample tests for iosacompliance.
