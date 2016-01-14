@@ -59,7 +59,7 @@ ConfidenceIntervalProportion::update(const double& newResults,
 									 const double& logNumNewExperiments)
 {
 	// Check for possible overflows
-	if (numRares_ + newResults == numRares_)
+	if (0.0 < newResults && numRares_ + newResults == numRares_)
 		throw_FigException("can't increase numRares_ count, overflow?");
 	if (std::isinf(logNumNewExperiments) || std::isnan(logNumNewExperiments))
 		throw_FigException("invalid logNumNewExperiments, overflow?");

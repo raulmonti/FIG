@@ -67,7 +67,7 @@ SimulationEngineNosplit::simulate(const Property &property,
 //		#pragma omp parallel  // we MUST parallelize this, it's stupid not to
 		Traial& traial = TraialPool::get_instance().get_traial();
 		for (size_t i = 0 ; i < numRuns ; i++) {
-			traial.initialize();
+			traial.initialize(network_, impFun_);
             network_->simulation_step(traial, *this, property);
 			if (transientProp.is_goal(traial.state))
 				numSuccesses++;

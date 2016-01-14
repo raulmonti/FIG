@@ -135,7 +135,7 @@ ModuleNetwork::seal(const Container<ValueType, OtherContainerArgs...>& initialCl
 		// ... seal it ...
 		module_ptr->seal(gState);
 		// ... search for initial clocks within ...
-		auto module_clocks = module_ptr->clocks();
+		const auto& module_clocks = module_ptr->clocks();
 		for (const auto& initClkName: initialClocksNames) {
 			auto clkIter = find_if(begin(module_clocks),
 								   end(module_clocks),
@@ -187,19 +187,36 @@ ModuleNetwork::simulation_step(Traial& traial,
 #else
 		return;
 #endif
+
+	/// @todo TODO erase debug print below
+	std::cerr << "Starting at state ";
+	for (const auto & e: traial.state)
+		std::cerr << e << "  ";
+	std::cerr << std::endl;
+	///////////////////////////////////////
+
     // Jump...
 	do {
 		auto timeout = traial.next_timeout();
 		// Active jump in the module whose clock timed-out
 		auto label = timeout.module->jump(timeout.name, timeout.value, traial);
 		if (label.is_tau())
-			continue;
+			goto time_advance;
 		// Passive jumps in the modules listening to label
 		for (auto module_ptr: modules)
 			if (module_ptr->name != timeout.module->name)
 				module_ptr->jump(label, timeout.value, traial);
+		time_advance:
+			traial.lifeTime += timeout.value;
     } while ( !engine.event_triggered(property, traial) );
 	// ...until a relevant event is observed
+
+	/// @todo TODO erase debug print below
+	std::cerr << "Ended at state ";
+	for (const auto & e: traial.state)
+		std::cerr << e << "  ";
+	std::cerr << std::endl;
+	///////////////////////////////////////
 }
 
 

@@ -65,7 +65,7 @@ SimulationEngine::SimulationEngine(
     std::shared_ptr< const ModuleNetwork> network) :
 		name_(name),
 		network_(network),
-		impFun(nullptr)
+		impFun_(nullptr)
 {
 	if (find(begin(names), end(names), name) == end(names)) {
 		std::stringstream errMsg;
@@ -90,7 +90,7 @@ SimulationEngine::~SimulationEngine()
 bool
 SimulationEngine::bound() const noexcept
 {
-    return nullptr != impFun;
+	return nullptr != impFun_;
 }
 
 
@@ -100,14 +100,14 @@ SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun)
 	if (!ifun->ready())
 		throw_FigException("ImportanceFunction isn't ready for simulations");
 	else
-		impFun = ifun;
+		impFun_ = ifun;
 }
 
 
 void
 SimulationEngine::unbind() noexcept
 {
-	impFun = nullptr;
+	impFun_ = nullptr;
 }
 
 } // namespace fig

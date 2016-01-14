@@ -138,21 +138,29 @@ build_empty_confidence_interval(
  * @brief Tell minimum number of simulation runs requested to estimate
  *        the value of a property, for the specified fig::SimulationEngine
  *        and fig::ImportanceFunction pair
+ *
  * @param engineName Valid engine name, i.e. one from fig::SimulationEngine::names
  * @param ifunName   Valid importance function name, i.e. one from
  *                   fig::ImportanceFunction::names
+ *
+ * @return Minimum batch size for this engine and importance function pair,
+ *         i.e. number of consecutive simulations to run during estimations
+ *
+ * @see increase_batch_size()
  */
 size_t
 min_batch_size(const std::string& engineName, const std::string& ifunName)
 {
-	// Build internal table once: x axis follows engine names definition order
-	//                            y axis follows impFun names definition order
+	// Build internal table once: rows follow engine names definition order
+	//                            cols follow impFun names definition order
 	static constexpr auto& engineNames(fig::SimulationEngine::names);
 	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
-//	Following compiles with Clang but not with gcc -- keep checking
+//	FIXME: following compiles with Clang but not with gcc -- keep checking
 //	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
 	static const size_t batch_sizes[1][1] = {
-		{1u<<10} //, 1u<<9
+		{ 1u<<10 /*, 1u<<8 */ }  /* ,  ==> nosplit x {concrete_coupled, concrete_split}
+		{ 1u<<7, 1u<<5 }          *    ==> restart x {concrete_coupled, concrete_split}
+								  */
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -166,6 +174,48 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 	// Return corresponding entry from table
 	return batch_sizes[std::distance(begin(engineNames), engineIt)]
 					  [std::distance(begin(ifunNames), ifunIt)];
+}
+
+
+/**
+ * @brief Increment the number of consecutive simulations to run
+ *        in order to get an estimate of the property's value
+ *
+ * @param numRuns    Current number of consecutive simulations, to be increased
+ * @param engineName Valid engine name, i.e. one from fig::SimulationEngine::names
+ * @param ifunName   Valid importance function name, i.e. one from
+ *                   fig::ImportanceFunction::names
+ *
+ * @see min_batch_size()
+ */
+void
+increase_batch_size(size_t& numRuns,
+					const std::string& engineName,
+					const std::string& ifunName)
+{
+	// Build internal table once: rows follow engine names definition order
+	//                            cols follow impFun names definition order
+	static constexpr auto& engineNames(fig::SimulationEngine::names);
+	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
+//	FIXME: following compiles with Clang but not with gcc -- keep checking
+//	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
+	static const size_t batch_sizes[1][1] = {
+		{ 4u /*, 3u */ }  /* ,  ==> nosplit x {concrete_coupled, concrete_split}
+		{ 2u, 2u }         *    ==> restart x {concrete_coupled, concrete_split}
+						   */
+	};
+	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
+	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
+	// Check given engine and importance function names are valid
+	if (engineIt == end(engineNames))
+		throw_FigException(std::string("invalid engine name \"")
+						   .append(engineName).append("\""));
+	if (ifunIt == end(ifunNames))
+		throw_FigException(std::string("invalid importance function name \"")
+						   .append(ifunName).append("\""));
+	// Update numRuns with corresponding entry from table
+	numRuns *= batch_sizes[std::distance(begin(engineNames), engineIt)]
+						  [std::distance(begin(ifunNames), ifunIt)];
 }
 
 } // namespace
@@ -328,12 +378,27 @@ ModelSuite::estimate(const Property& property,
 			size_t numRuns = min_batch_size(engine.name(), engine.current_ifun());
 			double startTime = omp_get_wtime();
             do {
-                double estimation = engine.simulate(property, numRuns);
-                if (estimation >= 0.0)
-                    ci_ptr->update(estimation);
-//				else
-//					increase_batch_size(numRuns, engine.name(), engine.current_ifun());
-            } while (!ci_ptr->is_valid());
+				double estimate = engine.simulate(property, numRuns);
+				std::cerr << "After " << numRuns
+						  << " simulations got estimate " << estimate
+						  << std::endl;
+				if (0.0 > estimate)
+					throw_FigException("invalid simulation result");
+				else
+					ci_ptr->update(estimate);
+				if (0.0 == estimate)
+					increase_batch_size(numRuns, engine.name(), engine.current_ifun());
+			} while (!ci_ptr->is_valid());
+			// TODO: implement proper log and discard following shell print
+			std::cout << "Finished estimation of property \"" << property.expression;
+			std::cout << "\" for confidence coefficient " << ci_ptr->confidence;
+			std::cout << " and precision " << (2.0*ci_ptr->errorMargin) << std::endl;
+			std::cout << "Resulting estimate: " << ci_ptr->point_estimate() << std::endl;
+			std::cout << "Corresponding confidence interval: [ ";
+			std::cout << ci_ptr->lower_limit() << " , ";
+			std::cout << ci_ptr->upper_limit() << " ] " << std::endl;
+			std::cout << "Estimation took " << (omp_get_wtime()-startTime);
+			std::cout << " seconds" << std::endl;
 //			log_(*ci_ptr,
 //				 omp_get_wtime() - startTime,
 //				 engine.name(),

@@ -41,6 +41,8 @@
 // FIG
 #include <Traial.h>
 #include <ModelSuite.h>
+#include <ModuleNetwork.h>
+#include <ImportanceFunction.h>
 
 // ADL
 using std::begin;
@@ -143,21 +145,24 @@ Traial::~Traial()
 
 
 void
-Traial::initialize()
+Traial::initialize(std::shared_ptr< const ModuleNetwork > network,
+				   std::shared_ptr< const ImportanceFunction > impFun)
 {
-	auto& net(ModelSuite::get_instance().model);
-	if (!net->sealed())
+	assert(nullptr != network);
+	assert(nullptr != impFun);
+	if (!network->sealed())
 #ifndef NDEBUG
 		throw_FigException("ModuleNetwork hasn't been sealed yet");
 #else
 		return;  // we can't do anything without the global data
 #endif
-	net->gState.copy_to_state_instance(state);
-	for (const auto& pos_clk_pair: net->initialClocks)
+	// Initialize variables value
+	network->gState.copy_to_state_instance(state);
+	// Sample initial clocks
+	for (const auto& pos_clk_pair: network->initialClocks)
 		clocks_[pos_clk_pair.first].value = pos_clk_pair.second.sample();
-
-	/// @todo TODO determine importance with current importanceFunction
-
+	// Initialize importance and simulation time
+	importance = impFun->importance_of(state);
 	creationImportance = importance;
 	lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
 }

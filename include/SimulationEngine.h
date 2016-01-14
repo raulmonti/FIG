@@ -74,7 +74,7 @@ protected:
     std::shared_ptr< const ModuleNetwork > network_;
 
     /// Importance function currently built
-    std::shared_ptr< const ImportanceFunction > impFun;
+    std::shared_ptr< const ImportanceFunction > impFun_;
 
 public:  // Ctors/Dtor
 
@@ -133,7 +133,7 @@ public:  // Accessors
     /// Importance strategy of the function currently bound to the engine,
     /// or void string if none is.
     inline const std::string current_ifun() const noexcept
-        { if (nullptr != impFun) return impFun->name(); else return ""; }
+        { if (nullptr != impFun_) return impFun_->name(); else return ""; }
 
 public:  // Simulation utils
 

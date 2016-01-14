@@ -55,6 +55,8 @@ namespace fig
 {
 
 class ModuleInstance;
+class ModuleNetwork;
+class ImportanceFunction;
 
 /**
  * @brief Simulation kernel (or 'trial trail')
@@ -180,12 +182,16 @@ public:  // Utils
 	 *        This member function resets the Traial instance to comply
 	 *        with such initial conditions.
 	 *
+	 * @param network ModuleNetwork already sealed
+	 * @param impFun  ImportanceFunction currently on use for simulations
+	 *
 	 * @warning ModelSuite::seal() must have been called beforehand
 	 * \ifnot NDEBUG
 	 *   @throw FigException if the system model hasn't been sealed yet
 	 * \endif
 	 */
-	void initialize();
+	void initialize(std::shared_ptr< const ModuleNetwork > network,
+					std::shared_ptr< const ImportanceFunction > impFun);
 
 	/**
 	 * @brief Retrieve next not-null expiring clock

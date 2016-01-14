@@ -250,6 +250,7 @@ public:  // Simulation utils
 	 *
 	 * @throw FigException if engine wasn't \ref SimulationEngine::bound()
 	 *                     "ready for simulations"
+	 * @throw FigException if a simulation gave an invalid result
 	 */
 	void estimate(const Property& property,
 				  const SimulationEngine& engine,

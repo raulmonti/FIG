@@ -31,6 +31,7 @@
 #include <memory>
 #include <iostream>
 #include <cassert>
+#include <type_traits>
 // FIG
 //#include <fig.h>  // we won't be using the parser yet
 #include <ILabel.h>
@@ -73,8 +74,8 @@ int main()
 	 *  Module Queue1                                    *
 	 *                                                   *
 	 *      int q1 : [0..10] = 1                         *
-	 *      clock clkArr  : Uniform(0,2)                 *
-	 *      clock clkPass : Exponential(5)               *
+	 *      clock clkArr  : Uniform(0,4)                 *
+	 *      clock clkPass : Normal(2,1)                  *
 	 *                                                   *
 	 *      [arr!]  q1 < 10 @ clkArr  --> q1++ {clkArr}  *
 	 *      [pass!] q1 > 0  @ clkPass --> q1-- {clkPass} *
@@ -83,25 +84,25 @@ int main()
 	 *                                                   *
 	 *  Module Queue2                                    *
 	 *                                                   *
-	 *      int q2 : [0..8] = 0                          *
-	 *      clock clkExit : Normal(4,1)                  *
+	 *      int q2 : [0..5] = 0                          *
+	 *      clock clkExit : Exponential(3)               *
 	 *                                                   *
-	 *      [pass?] q2 < 8           --> q2++ {}         *
-	 *      [pass?] q2 == 8          --> q2=8 {}         *
+	 *      [pass?] q2 < 5           --> q2++ {}         *
+	 *      [pass?] q2 == 5          --> q2=5 {}         *
 	 *      [exit!] q2 > 0 @ clkExit --> q2-- {clkExit}  *
 	 *                                                   *
 	 *  EndModule                                        *
 	 *                                                   *
 	 *  Initial clocks: clkArr and clkPass in Queue1     *
-	 *  Prob( q1+q2 > 0 U q2 == 8 ) ?                    *
+	 *  Prob( q1+q2 > 0 U q2 == 5 ) ?                    *
 	 *                                                   *
 	 * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 	// Module "Queue1"
 	std::cout << "Building the first module" << std::endl;
-	State vars1 = std::vector< VarDef >({std::make_tuple("q1",0,10,1)});
-	std::vector< Clock > clocks1 = {{"clkArr",  "uniformAB",   {{0.0, 2.0}}},
-									{"clkPass", "exponential", {{5.0}}}};
+	State vars1 = std::vector< VarDef >({std::make_tuple("q1", 0, 10, 1)});
+	std::vector< Clock > clocks1 = {{"clkArr",  "uniformAB", {{0.0, 4.0}}},
+									{"clkPass", "normalMV",  {{2.0, 1.0}}}};
 	module = std::make_shared< ModuleInstance >("Queue1", vars1, clocks1);
 	module->add_transition(
 		OLabel("arr"),
@@ -120,20 +121,20 @@ int main()
 
 	// Module "Queue2"
 	std::cout << "Building the second module" << std::endl;
-	State vars2 = std::vector< VarDef >({std::make_tuple("q2",0,8,0)});
-	std::vector< Clock > clocks2 = {{"clkExit", "normalMV",   {{4.0, 1.0}}}};
+	State vars2 = std::vector< VarDef >({std::make_tuple("q2", 0, 5, 0)});
+	std::vector< Clock > clocks2 = {{"clkExit", "exponential", {{3.0}}}};
 	module = std::make_shared< ModuleInstance >("Queue2", vars2, clocks2);
 	module->add_transition(
 		ILabel("pass"),
 		"",
-		Precondition("q2 < 8", NamesList({"q2"})),
+		Precondition("q2 < 5", NamesList({"q2"})),
 		Postcondition("q2+1", NamesList({"q2"}), NamesList({"q2"})),
 		NamesList());
 	module->add_transition(
 		ILabel("pass"),
 		"",
-		Precondition("q2 == 8", NamesList({"q2"})),
-		Postcondition("8", NamesList(), NamesList({"q2"})),
+		Precondition("q2 == 5", NamesList({"q2"})),
+		Postcondition("5", NamesList(), NamesList({"q2"})),
 		NamesList());
 	module->add_transition(
 		OLabel("exit"),
@@ -147,8 +148,8 @@ int main()
 	// Property
 	std::cout << "Building the property" << std::endl;
 	auto property_ptr(std::make_shared< fig::PropertyTransient >(
-			"q1+q2 > 0", NamesList({"q1","q2"}),  // stopping condition
-			"q2 == 8"  , NamesList({"q2"})       // goal
+			"q1+q2 == 0", NamesList({"q1","q2"}),  // stopping condition
+			"q2 == 5", NamesList({"q2"})  // goal
 	));
 	model.add_property(property_ptr);
 	assert(nullptr != property_ptr);
@@ -157,23 +158,28 @@ int main()
 	model.seal(NamesList({"clkArr", "clkPass"}));  // initial clocks' names
 	std::cout << "Building an importance function" << std::endl;
 	auto ifun_ptr = std::make_shared< fig::ImportanceFunctionConcreteCoupled >();
-	const std::string importanceStrategy = "flat";
-	ifun_ptr->assess_importance(*model.modules_network(),
-								*property_ptr,
-								importanceStrategy);
+	assert(nullptr != ifun_ptr);
+	ifun_ptr->assess_importance(*model.modules_network(), *property_ptr, "flat");
 	std::cout << "Building a simulation engine" << std::endl;
-	std::shared_ptr< fig::SimulationEngine > engine_ptr =
-		std::make_shared< fig::SimulationEngineNosplit >(model.modules_network());
+	auto engine_ptr = std::make_shared< fig::SimulationEngineNosplit >(
+						  model.modules_network());
+	assert(nullptr != engine_ptr);
 	engine_ptr->bind(ifun_ptr);
 	std::cout << "Building simulation bounds" << std::endl;
 	fig::StoppingConditions stop_by_value;
-	stop_by_value.add_confidence_criterion(0.9, 0.2, true);
+	stop_by_value.add_confidence_criterion(0.8, 0.2, true);
 	assert(stop_by_value.is_confidence_criteria());
 	fig::StoppingConditions stop_by_time;
 	stop_by_time.add_time_budget(30ul);
 	assert(stop_by_time.is_time_budgets());
 	
 	// Simulation
+	std::cout << "Single, warm up simulation... "; std::cout.flush();
+	double estimate = engine_ptr->simulate(*property_ptr, 1u);
+	std::cout << "resulted in the estimate " << estimate << std::endl;
+	std::cout << "Second single simulation... "; std::cout.flush();
+	estimate = engine_ptr->simulate(*property_ptr, 1u);
+	std::cout << "resulted in the esteimate " << estimate << std::endl;
 	std::cout << "Simulating until desired accuracy is reached" << std::endl;
 	model.estimate(*property_ptr, *engine_ptr, stop_by_value);
 	std::cout << "Simulating for certain fixed amount of time" << std::endl;

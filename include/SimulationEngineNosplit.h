@@ -55,11 +55,12 @@ public:  // Ctor
 
 public:  // Inherited virtual setup functions
 
-//	virtual void bind();  // We can hook up with any, no check needed
+//	virtual void bind(...);  // We can hook up with any, no check needed
 
 public:  // Inherited virtual simulation functions
 
-	virtual double simulate(const Property& property, const size_t& numRuns) const;
+	virtual double simulate(const Property& property,
+							const size_t& numRuns = 1) const;
 
 	virtual void simulate(const Property&, ConfidenceInterval&) const {}
 

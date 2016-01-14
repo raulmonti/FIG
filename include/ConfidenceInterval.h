@@ -182,19 +182,19 @@ public:  // Utils
 
 	/// Theoretical lower limit for creation's confidence coefficient
 	/// @copydoc value_simulations_
-	double lowerLimit() const;
+	double lower_limit() const;
 
 	/// Achieved lower limit for requested confidence coefficient
 	/// @copydoc time_simulations_
-	double lowerLimit(const double& confco) const;
+	double lower_limit(const double& confco) const;
 
 	/// Theoretical upper limit for creation's confidence coefficient
 	/// @copydoc value_simulations_
-	double upperLimit() const;
+	double upper_limit() const;
 
 	/// Achieved upper limit for requested confidence coefficient
 	/// @copydoc time_simulations_
-	double upperLimit(const double& confco) const;
+	double upper_limit(const double& confco) const;
 
 	/// Discard all estimation info to start anew
 	/// @note This erases the current \ref statOversample_ "statistical oversampling"

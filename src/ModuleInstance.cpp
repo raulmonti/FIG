@@ -163,15 +163,14 @@ ModuleInstance::jump(const std::string& clockName,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,
 					 Traial& traial) const
 {
-	if (!sealed_)
 #ifndef NDEBUG
+	if (!sealed_)
 		throw_FigException("this module hasn't been sealed yet");
-#else
-		return;
 #endif
-	assert(is_our_clock(clockName));
-	auto transitions = transitions_by_clock_.at(clockName);
-	for (auto& tr_ptr: transitions) {
+	const auto iter = transitions_by_clock_.find(clockName);
+	assert(end(transitions_by_clock_) != iter);  // deny foreign clocks
+	const auto& transitions = iter->second;
+	for (const auto& tr_ptr: transitions) {
 		if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
 			tr_ptr->pos(traial.state);   // apply postcondition to its state
 			tr_ptr->handle_clocks(       // and update all our clocks.
@@ -194,20 +193,16 @@ ModuleInstance::jump(const Label& label,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,
 					 Traial& traial) const
 {
-	if (!sealed_)
 #ifndef NDEBUG
+	if (!sealed_)
 		throw_FigException("this module hasn't been sealed yet");
-#else
-		return;
 #endif
 	assert(label.is_output());
-	if (label.is_tau())
-		return;
-#ifndef NDEBUG
-	try {
-#endif
-	auto transitions = transitions_by_label_.at(label.str);
-	for (auto& tr_ptr: transitions) {
+	const auto iter = transitions_by_label_.find(label.str);
+	if (label.is_tau() || end(transitions_by_label_) == iter)
+		return;   // taus and foreign labels are ignored
+	const auto& transitions = iter->second;
+	for (const auto& tr_ptr: transitions) {
 		if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
 			tr_ptr->pos(traial.state);   // apply postcondition to its state
 			tr_ptr->handle_clocks(       // and update all our clocks.
@@ -219,13 +214,6 @@ ModuleInstance::jump(const Label& label,
 			break;  // Only one transition could've been enabled, we trust Raúl
 		}
 	}
-#ifndef NDEBUG
-	} catch (std::out_of_range) {
-		throw_FigException(std::string("output label \"").append(label.str)
-						   .append("\" wasn't found among the transitions ")
-						   .append("of module \"").append(name).append("\""));
-	}
-#endif
 }
 
 
