@@ -373,14 +373,19 @@ Transition::handle_clocks(Traial& traial,
 	// Handle clocks
 	unsigned thisClock(firstClock);
 	while (fromClock != toClock) {
-		if (must_reset(thisClock))
-			traial.clocks_[thisClock].value = fromClock->sample();
-		else
-			traial.clocks_[thisClock].value -= timeLapse;
-			// that could be negative, but it's unimportant at this stage
-		thisClock++;
-		fromClock++;
-	}
+        if (must_reset(thisClock)) {
+            traial.clocks_[thisClock].value = fromClock->sample();
+            std::cerr << "    Resampled clock " << traial.clocks_[thisClock].name
+                      << ": " << traial.clocks_[thisClock].value << "\n";
+        } else {
+            traial.clocks_[thisClock].value -= timeLapse;
+            std::cerr << "    Advanced clock " << traial.clocks_[thisClock].name
+                      << ": " << traial.clocks_[thisClock].value << "\n";
+            // that could be negative, but it's unimportant at this stage
+        }
+        fromClock++;
+        thisClock++;
+    }
 }
 
 } // namespace fig

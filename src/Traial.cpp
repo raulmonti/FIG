@@ -158,7 +158,9 @@ Traial::initialize(std::shared_ptr< const ModuleNetwork > network,
 #endif
 	// Initialize variables value
 	network->gState.copy_to_state_instance(state);
-	// Sample initial clocks
+    // Initialize clocks (reset all and then resample any initial clock)
+    for (auto& timeout : clocks_)
+        timeout.value = 0.0f;
 	for (const auto& pos_clk_pair: network->initialClocks)
 		clocks_[pos_clk_pair.first].value = pos_clk_pair.second.sample();
 	// Initialize importance and simulation time

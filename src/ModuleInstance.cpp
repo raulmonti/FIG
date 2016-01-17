@@ -52,6 +52,9 @@ using std::end;
 namespace fig
 {
 
+const Label ModuleInstance::tau_;
+
+
 void
 ModuleInstance::add_transition(const Transition& transition)
 {
@@ -167,24 +170,29 @@ ModuleInstance::jump(const std::string& clockName,
 	if (!sealed_)
 		throw_FigException("this module hasn't been sealed yet");
 #endif
-	const auto iter = transitions_by_clock_.find(clockName);
+        std::cerr << "Jumping with " << clockName
+                  << " for " << elapsedTime << " time units" << std::endl;
+    const auto iter = transitions_by_clock_.find(clockName);
 	assert(end(transitions_by_clock_) != iter);  // deny foreign clocks
 	const auto& transitions = iter->second;
 	for (const auto& tr_ptr: transitions) {
 		if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
 			tr_ptr->pos(traial.state);   // apply postcondition to its state
-			tr_ptr->handle_clocks(       // and update all our clocks.
-				traial,
-				begin(lClocks_),
-				end(lClocks_),
-				firstClock_,
-				elapsedTime);
-			// Finally notify the broadcasted output label
-			assert(tr_ptr->label().is_output());
-			return tr_ptr->label();
+            tr_ptr->handle_clocks(       // and update clocks according to it.
+                traial,
+                begin(lClocks_),
+                end(lClocks_),
+                firstClock_,
+                elapsedTime);
+            // Finally broadcast the output label triggered
+            assert(tr_ptr->label().is_output());
+            return tr_ptr->label();
 		}
 	}
-	return std::move(Label());  // No transition triggered => broadcast tau
+    // No transition was enabled => advance all clocks and broadcast tau
+    std::cerr << "  *) No enabled transition\n";
+    traial.kill_time(firstClock_, num_clocks(), elapsedTime);
+    return ModuleInstance::tau_;
 }
 
 
@@ -197,23 +205,29 @@ ModuleInstance::jump(const Label& label,
 	if (!sealed_)
 		throw_FigException("this module hasn't been sealed yet");
 #endif
-	assert(label.is_output());
+        std::cerr << "Reacting to \"" << label.str
+                  << "\" for " << elapsedTime << " time units" << std::endl;
+    assert(label.is_output());
 	const auto iter = transitions_by_label_.find(label.str);
-	if (label.is_tau() || end(transitions_by_label_) == iter)
-		return;   // taus and foreign labels are ignored
-	const auto& transitions = iter->second;
-	for (const auto& tr_ptr: transitions) {
-		if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
-			tr_ptr->pos(traial.state);   // apply postcondition to its state
-			tr_ptr->handle_clocks(       // and update all our clocks.
-				traial,
-				begin(lClocks_),
-				end(lClocks_),
-				firstClock_,
-				elapsedTime);
-			break;  // Only one transition could've been enabled, we trust Raúl
-		}
-	}
+    // Foreign labels and taus won't touch us
+    if (!label.is_tau() && end(transitions_by_label_) != iter) {
+        const auto& transitions = iter->second;
+        for (const auto& tr_ptr: transitions) {
+            if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
+                tr_ptr->pos(traial.state);   // apply postcondition to its state
+                tr_ptr->handle_clocks(       // and update clocks according to it.
+                   traial,
+                   begin(lClocks_),
+                   end(lClocks_),
+                   firstClock_,
+                   elapsedTime);
+                return;  // At most one transition could've been enabled, trust Raúl
+            }
+       }
+    }
+    // No transition was enabled? Then just advance all clocks
+    std::cerr << "  *) Tau or foreign label\n";
+    traial.kill_time(firstClock_, num_clocks(), elapsedTime);
 }
 
 

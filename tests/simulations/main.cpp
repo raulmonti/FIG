@@ -62,41 +62,41 @@ int main()
 	fig::ModelSuite& model = fig::ModelSuite::get_instance();
 	std::shared_ptr< ModuleInstance > module(nullptr);
 
-	/* * * * * * * * * * * * * * * * * * * * * * * * * * *
-	 *                                                   *
-	 *  System to test: tandem queue                     *
-	 *                                                   *
-	 *  'arr'  tells a new package arrives at q1         *
-	 *  'pass' tells a package passes from q1 to q2      *
-	 *  'exit' tells a package exits q2                  *
-	 *  Initial clocks: {clkArr,clkPass} in Queue1       *
-	 *                                                   *
-	 *  Module Queue1                                    *
-	 *                                                   *
-	 *      int q1 : [0..10] = 1                         *
-	 *      clock clkArr  : Uniform(0,4)                 *
-	 *      clock clkPass : Normal(2,1)                  *
-	 *                                                   *
-	 *      [arr!]  q1 < 10 @ clkArr  --> q1++ {clkArr}  *
-	 *      [pass!] q1 > 0  @ clkPass --> q1-- {clkPass} *
-	 *                                                   *
-	 *  EndModule                                        *
-	 *                                                   *
-	 *  Module Queue2                                    *
-	 *                                                   *
-	 *      int q2 : [0..5] = 0                          *
-	 *      clock clkExit : Exponential(3)               *
-	 *                                                   *
-	 *      [pass?] q2 < 5           --> q2++ {}         *
-	 *      [pass?] q2 == 5          --> q2=5 {}         *
-	 *      [exit!] q2 > 0 @ clkExit --> q2-- {clkExit}  *
-	 *                                                   *
-	 *  EndModule                                        *
-	 *                                                   *
-	 *  Initial clocks: clkArr and clkPass in Queue1     *
-	 *  Prob( q1+q2 > 0 U q2 == 5 ) ?                    *
-	 *                                                   *
-	 * * * * * * * * * * * * * * * * * * * * * * * * * * */
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 *                                                     *
+	 *  System to test: tandem queue                       *
+	 *                                                     *
+	 *  'arr'  tells a new package arrives at q1           *
+	 *  'pass' tells a package passes from q1 to q2        *
+	 *  'exit' tells a package exits q2                    *
+	 *                                                     *
+	 *  Module Queue1                                      *
+	 *                                                     *
+	 *      int q1 : [0..10] = 1                           *
+	 *      clock clkArr  : Uniform(0,4)                   *
+	 *      clock clkPass : Normal(2,1)                    *
+	 *                                                     *
+	 *      [arr!]  q1 < 10  @ clkArr  --> q1++  {clkArr}  *
+	 *      [arr!]  q1 == 10 @ clkArr  --> q1=10 {clkArr}  *
+	 *      [pass!] q1 > 0   @ clkPass --> q1--  {clkPass} *
+	 *                                                     *
+	 *  EndModule                                          *
+	 *                                                     *
+	 *  Module Queue2                                      *
+	 *                                                     *
+	 *      int q2 : [0..5] = 0                            *
+	 *      clock clkExit : Exponential(3)                 *
+	 *                                                     *
+	 *      [pass?] q2 < 5           --> q2++ {}           *
+	 *      [pass?] q2 == 5          --> q2=5 {}           *
+	 *      [exit!] q2 > 0 @ clkExit --> q2-- {clkExit}    *
+	 *                                                     *
+	 *  EndModule                                          *
+	 *                                                     *
+	 *  Initial clocks: {clkArr,clkPass} in Queue1         *
+	 *  Prob( q1+q2 > 0 U q2 == 5 ) ?                      *
+	 *                                                     *
+	 * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 	// Module "Queue1"
 	std::cout << "Building the first module" << std::endl;
@@ -109,6 +109,12 @@ int main()
 		"clkArr",
 		Precondition("q1 < 10", NamesList({"q1"})),
 		Postcondition("q1+1", NamesList({"q1"}), NamesList({"q1"})),
+		NamesList({"clkArr"}));
+	module->add_transition(
+		OLabel("arr"),
+		"clkArr",
+		Precondition("q1 == 10", NamesList({"q1"})),
+		Postcondition("10", NamesList(), NamesList({"q1"})),
 		NamesList({"clkArr"}));
 	module->add_transition(
 		OLabel("pass"),

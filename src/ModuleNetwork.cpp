@@ -198,16 +198,13 @@ ModuleNetwork::simulation_step(Traial& traial,
     // Jump...
 	do {
 		auto timeout = traial.next_timeout();
-		// Active jump in the module whose clock timed-out
+        // Active jump in the module whose clock timed-out
 		auto label = timeout.module->jump(timeout.name, timeout.value, traial);
-		if (label.is_tau())
-			goto time_advance;
 		// Passive jumps in the modules listening to label
 		for (auto module_ptr: modules)
 			if (module_ptr->name != timeout.module->name)
 				module_ptr->jump(label, timeout.value, traial);
-		time_advance:
-			traial.lifeTime += timeout.value;
+        traial.lifeTime += timeout.value;
     } while ( !engine.event_triggered(property, traial) );
 	// ...until a relevant event is observed
 

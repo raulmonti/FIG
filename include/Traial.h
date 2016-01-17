@@ -70,7 +70,7 @@ class ImportanceFunction;
  */
 class Traial
 {
-	friend class Transition;  // allow Transitions to handle our clocks
+    friend class Transition;  // allow them to handle our clocks
 
 public:
 
@@ -206,9 +206,32 @@ public:  // Utils
 			if (reorder)
 				reorder_clocks();
 			if (0 > firstNotNull_)
-				throw_FigException("all clocks are null!");
+                throw_FigException("all clocks are null! Deadlock?");
 			return clocks_[firstNotNull_];
 		}
+
+    /**
+     * @brief Make time elapse in specified range of clocks
+     *
+     *        The range [firstClock, firstClock+numClocks) should specify
+     *        the global indices of all the clocks in a ModuleInstance,
+     *        whose internal times need to be advanced in this Traial.
+     *
+     * @param firstClock First clock's index in the affected ModuleInstance
+     * @param numClocks  Number of clocks of the affected ModuleInstance
+     * @param timeLapse  Amount of time to kill
+     */
+    inline void
+    kill_time(const size_t& firstClock,
+              const size_t& numClocks,
+              const CLOCK_INTERNAL_TYPE& timeLapse)
+        {
+            for (size_t i = firstClock ; i < firstClock + numClocks ; i++) {
+                clocks_[i].value -= timeLapse;
+                std::cerr << "    Advanced clock " << clocks_[i].name
+                          << ": " << clocks_[i].value << "\n";
+            }
+        }
 
 private:
 
