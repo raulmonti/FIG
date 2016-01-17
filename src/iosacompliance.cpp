@@ -369,10 +369,14 @@ Verifier::verify( AST* ast, const parsingContext pc){
                *       think of a way arround
                */
     try{
+        // general IOSA properties
         pout << ">> Check names uniqueness...\n";
         names_uniqueness(ast);
         pout << ">> Check typing...\n";
         type_check(ast);
+        pout << ">> Check constants...\n";
+        check_constants(ast);
+        // IOSA determinism properties
         pout << ">> Check 1st and 2nd IOSA conditions...\n";
         input_output_clocks(ast);
         pout << ">> Check 3rd IOSA condition...\n";
@@ -412,6 +416,38 @@ Verifier::limits2expr(AST* ast, z3::context &c){
     return result;
 
 }
+
+
+//==============================================================================
+
+
+/**
+ * @brief Check that every constant definition in @ast is correct, i.e 
+ *        it does not depend of variables, and it is free of circular
+ *        dependencies.
+ * @throw String error if found something wrong.
+ */
+void
+Verifier::check_constants(AST* ast)
+{
+    string error_list = "";
+    vector<AST *> cs = ast->get_all_ast(_CONST);
+    for(const auto &it1: cs){
+        AST* expr = it1->get_first(_EXPRESSION);
+        assert(expr);
+        for(const auto &it2: expr->get_all_ast(_NAME)){
+            if(mPc[it2->get_lexeme(_NAME)].second != ""){
+                error_list.append("[ERROR] Non constant assignment" 
+                                  " for constant " + it1->get_lexeme(_NAME) 
+                                  + " at " + it2->get_pos() + ".\n");
+            }
+        }
+    }
+    if(error_list != ""){
+        throw error_list;
+    }
+}
+
 
 
 /**

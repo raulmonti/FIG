@@ -111,8 +111,12 @@ CompileTransition(AST* trans){
         eclk = trans->get_first(_ENABLECLOCK)->get_lexeme(_NAME);
     }
     AST* ASTpre = trans->get_first(_PRECONDITION);
-    string pre = ASTpre->toString();
-    auto nl = ASTpre->get_all_lexemes(_NAME);
+    string pre = "";
+    vector<string> nl;
+    if(ASTpre){
+        pre = ASTpre->toString();
+        nl = ASTpre->get_all_lexemes(_NAME);
+    }
     vector<AST*> assigs = trans->get_all_ast(_ASSIG);
     string lassig; // left side of assignment
     vector<string> rassig; // right side of assignment
@@ -121,12 +125,14 @@ CompileTransition(AST* trans){
         string name = it->get_lexeme(_NAME);
         name.pop_back();
         AST* ASTassig = it->get_first(_EXPRESSION); 
-        string assig = ASTassig->toString();
-        lassig += assig;
-        lassig += ",";
-        rassig.push_back(assig);
-        vector<string> vars = ASTassig->get_all_lexemes(_NAME);
-        variables.insert(variables.end(), vars.begin(), vars.end());
+        if(ASTassig){        
+            string assig = ASTassig->toString();
+            lassig += assig;
+            lassig += ",";
+            rassig.push_back(assig);
+            vector<string> vars = ASTassig->get_all_lexemes(_NAME);
+            variables.insert(variables.end(), vars.begin(), vars.end());
+        }
     }
     if(lassig != ""){
         lassig.pop_back();    
@@ -180,11 +186,13 @@ build_input_enable( vector<AST*> transitions)
         string pre = "true";
         vector<string> preVars;        
         for(const auto &itpre: it.second){
-            pre += "& !(";
-            pre += itpre->toString();
-            pre += ")";
-            vector<string> aux = itpre->get_all_lexemes(_NAME);
-            preVars.insert(preVars.end(),aux.begin(),aux.end());
+            if(itpre){
+                pre += "& !(";
+                pre += itpre->toString();
+                pre += ")";
+                vector<string> aux = itpre->get_all_lexemes(_NAME);
+                preVars.insert(preVars.end(),aux.begin(),aux.end());
+            }
         }
         vector <string> dummy;
         fig::Transition t(Label(it.first,false)

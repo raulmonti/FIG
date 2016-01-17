@@ -375,7 +375,6 @@ AST::get_pos(){
  */
 string
 AST::toString(){
-
     string result = lxm;
     for(const auto &it: branches){
         string aux = it->toString();

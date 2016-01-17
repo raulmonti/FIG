@@ -145,6 +145,14 @@ private:
     int
     check_input_determinism(AST *ast);
 
+    /**
+     * @brief Check that every constant definition in @ast is correct, i.e 
+     *        it does not depend of variables, and it is free of circular
+     *        dependencies.
+     */
+    void
+    check_constants(AST* ast);
+
 };
 
 }//namespace parser
@@ -177,6 +185,8 @@ expr ast2expr( AST* formula, context & c, parsingContext & pc);
 */
 void
 variable_duplicate(AST* ast);
+
+
 
 } // namespace
 
