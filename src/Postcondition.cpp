@@ -34,8 +34,6 @@
 // FIG
 #include <Postcondition.h>
 
-using std::cerr;
-using std::endl;
 // ADL
 using std::swap;
 using std::begin;
@@ -125,17 +123,17 @@ Postcondition::fake_evaluation() const
 			expr_.DefineVar(var.first, &dummy);
 		int numUpdates(numUpdates_);
 		STATE_INTERNAL_TYPE* ptr = expr_.Eval(numUpdates);
-		assert(numUpdates_ == numUpdates);
+		assert(numUpdates_ == numUpdates || expression() == "");
 		assert(expr_.GetNumResults() == numUpdates);
 		// MuParser library handles memory, leave ptr alone
 		if (ptr) ptr = nullptr;  // dodge compiler warning
 	} catch (mu::Parser::exception_type &e) {
-		cerr << "Failed parsing expression" << endl;
-		cerr << "    message:  " << e.GetMsg()   << endl;
-		cerr << "    formula:  " << e.GetExpr()  << endl;
-		cerr << "    token:    " << e.GetToken() << endl;
-		cerr << "    position: " << e.GetPos()   << endl;
-		cerr << "    errc:     " << e.GetCode()  << endl;
+		std::cerr << "Failed parsing expression" << std::endl;
+		std::cerr << "    message:  " << e.GetMsg()   << std::endl;
+		std::cerr << "    formula:  " << e.GetExpr()  << std::endl;
+		std::cerr << "    token:    " << e.GetToken() << std::endl;
+		std::cerr << "    position: " << e.GetPos()   << std::endl;
+		std::cerr << "    errc:     " << e.GetCode()  << std::endl;
 		throw_FigException("bad expression for postcondition, "
 						   "did you remember to map all the variables?");
 	}
@@ -191,12 +189,9 @@ Postcondition::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 void
 Postcondition::operator()(StateInstance& state) const
 {
-	if (!pinned())
 #ifndef NDEBUG
+	if (!pinned())
 		throw_FigException("pin_up_vars() hasn't been called yet");
-#else
-		cerr << "pin_up_vars() hasn't been called yet" << endl;
-		return;
 #endif
 	// Bind state variables to our expression...
 	for (const auto& pair: varsMap_)
@@ -205,7 +200,7 @@ Postcondition::operator()(StateInstance& state) const
 	// ...evaluate...
 	int numUpdates(numUpdates_);
 	STATE_INTERNAL_TYPE* updates = expr_.Eval(numUpdates);
-	assert(numUpdates_ == numUpdates);
+	assert(numUpdates_ == numUpdates || expression() == "");
 	// ...and reflect in state
 	for (int i = 0 ; i < numUpdates_ ; i++)
 		state[updatesPositions_[i]] = updates[i];

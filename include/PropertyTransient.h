@@ -145,11 +145,11 @@ public:  // Accessors
 
     /// String expression of the "stop" subformula of this property
     /// @see PropertyTransient::stop
-    const std::string& stop_expression() const noexcept;
+    const std::string stop_expression() const noexcept;
 
     /// String expression of the "goal" subformula of this property
     /// @see PropertyTransient::goal
-    const std::string& goal_expression() const noexcept;
+    const std::string goal_expression() const noexcept;
 
 protected:  // Modifyers
 

@@ -62,66 +62,87 @@ int main()
 	fig::ModelSuite& model = fig::ModelSuite::get_instance();
 	std::shared_ptr< ModuleInstance > module(nullptr);
 
-	/* * * * * * * * * * * * * * * * * * * * * * * * * * * *
-	 *                                                     *
-	 *  System to test: tandem queue                       *
-	 *                                                     *
-	 *  'arr'  tells a new package arrives at q1           *
-	 *  'pass' tells a package passes from q1 to q2        *
-	 *  'exit' tells a package exits q2                    *
-	 *                                                     *
-	 *  Module Queue1                                      *
-	 *                                                     *
-	 *      int q1 : [0..10] = 1                           *
-	 *      clock clkArr  : Uniform(0,4)                   *
-	 *      clock clkPass : Normal(2,1)                    *
-	 *                                                     *
-	 *      [arr!]  q1 < 10  @ clkArr  --> q1++  {clkArr}  *
-	 *      [arr!]  q1 == 10 @ clkArr  --> q1=10 {clkArr}  *
-	 *      [pass!] q1 > 0   @ clkPass --> q1--  {clkPass} *
-	 *                                                     *
-	 *  EndModule                                          *
-	 *                                                     *
-	 *  Module Queue2                                      *
-	 *                                                     *
-	 *      int q2 : [0..5] = 0                            *
-	 *      clock clkExit : Exponential(3)                 *
-	 *                                                     *
-	 *      [pass?] q2 < 5           --> q2++ {}           *
-	 *      [pass?] q2 == 5          --> q2=5 {}           *
-	 *      [exit!] q2 > 0 @ clkExit --> q2-- {clkExit}    *
-	 *                                                     *
-	 *  EndModule                                          *
-	 *                                                     *
-	 *  Initial clocks: {clkArr,clkPass} in Queue1         *
-	 *  Prob( q1+q2 > 0 U q2 == 5 ) ?                      *
-	 *                                                     *
-	 * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 *                                                             *
+	 *  System to test: tandem queue                               *
+	 *                                                             *
+	 *  'arr'  tells a new package arrives at q1                   *
+	 *  'pass' tells a package passes from q1 to q2                *
+	 *  'exit' tells a package exits q2                            *
+	 *                                                             *
+	 *  Module Queue1                                              *
+	 *                                                             *
+	 *      int q1 : [0..9] = 1                                    *
+	 *      clock clkArr  : Uniform(0,4)                           *
+	 *      clock clkPass : Normal(2,1)                            *
+	 *                                                             *
+	 *      [arr!]  q1 == 0   @ clkArr  --> q1++ {clkArr, clkPass} *
+	 *      [arr!] 0 < q1 < 9 @ clkArr  --> q1++ {clkArr}          *
+	 *      [arr!]  q1 == 9   @ clkArr  -->      {clkArr}          *
+	 *      [pass!] q1 >  1   @ clkPass --> q1-- {clkPass}         *
+	 *      [pass!] q1 == 1   @ clkPass --> q1-- {}                *
+	 *                                                             *
+	 *  EndModule                                                  *
+	 *                                                             *
+	 *  Module Queue2                                              *
+	 *                                                             *
+	 *      int q2 : [0..5] = 0                                    *
+	 *      clock clkExit : Exponential(3)                         *
+	 *                                                             *
+	 *      [pass?] q2 == 0           --> q2++ {clkExit}           *
+	 *      [pass?] 0 < q2 < 5        --> q2++ {}                  *
+	 *      [pass?] q2 == 5           -->      {}  KABOOOM!        *
+	 *      [exit!] q2 >  1 @ clkExit --> q2-- {clkExit}           *
+	 *      [exit!] q2 == 1 @ clkExit --> q2-- {}                  *
+	 *                                                             *
+	 *  EndModule                                                  *
+	 *                                                             *
+	 *  Initial clocks: {clkArr,clkPass} in Queue1                 *
+	 *  Prob( q1+q2 > 0 U q2 == 5 ) ?                              *
+	 *                                                             *
+	 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 	// Module "Queue1"
 	std::cout << "Building the first module" << std::endl;
-	State vars1 = std::vector< VarDef >({std::make_tuple("q1", 0, 10, 1)});
+	State vars1 = std::vector< VarDef >({std::make_tuple("q1", 0, 9, 1)});
 	std::vector< Clock > clocks1 = {{"clkArr",  "uniformAB", {{0.0, 4.0}}},
 									{"clkPass", "normalMV",  {{2.0, 1.0}}}};
 	module = std::make_shared< ModuleInstance >("Queue1", vars1, clocks1);
+	// [arr!] q1 == 0 @ clkArr --> q1++ {clkArr, clkPass}
 	module->add_transition(
 		OLabel("arr"),
 		"clkArr",
-		Precondition("q1 < 10", NamesList({"q1"})),
+		Precondition("q1 == 0", NamesList({"q1"})),
+		Postcondition("1", NamesList(), NamesList({"q1"})),
+		NamesList({"clkArr", "clkPass"}));
+	// [arr!] 0 < q1 < 9 @ clkArr --> q1++ {clkArr}
+	module->add_transition(
+		OLabel("arr"),
+		"clkArr",
+		Precondition("q1 < 9", NamesList({"q1"})),
 		Postcondition("q1+1", NamesList({"q1"}), NamesList({"q1"})),
 		NamesList({"clkArr"}));
+	// [arr!] q1 == 9 @ clkArr --> {clkArr}
 	module->add_transition(
 		OLabel("arr"),
 		"clkArr",
-		Precondition("q1 == 10", NamesList({"q1"})),
-		Postcondition("10", NamesList(), NamesList({"q1"})),
+		Precondition("q1 == 9", NamesList({"q1"})),
+		Postcondition("", NamesList(), NamesList()),
 		NamesList({"clkArr"}));
+	// [pass!] q1 > 1 @ clkPass --> q1-- {clkPass}
 	module->add_transition(
 		OLabel("pass"),
 		"clkPass",
-		Precondition("q1 > 0", NamesList({"q1"})),
+		Precondition("q1 > 1", NamesList({"q1"})),
 		Postcondition("q1-1", NamesList({"q1"}), NamesList({"q1"})),
 		NamesList({"clkPass"}));
+	// [pass!] q1 == 1 @ clkPass --> q1=0 {}
+	module->add_transition(
+		OLabel("pass"),
+		"clkPass",
+		Precondition("q1 == 1", NamesList({"q1"})),
+		Postcondition("0", NamesList(), NamesList({"q1"})),
+		NamesList());
 	model.add_module(module);
 	assert(nullptr == module);
 
@@ -130,23 +151,40 @@ int main()
 	State vars2 = std::vector< VarDef >({std::make_tuple("q2", 0, 5, 0)});
 	std::vector< Clock > clocks2 = {{"clkExit", "exponential", {{3.0}}}};
 	module = std::make_shared< ModuleInstance >("Queue2", vars2, clocks2);
+	// [pass?] q2 == 0 --> q2++ {clkExit}
 	module->add_transition(
 		ILabel("pass"),
 		"",
-		Precondition("q2 < 5", NamesList({"q2"})),
+		Precondition("q2 == 0", NamesList({"q2"})),
+		Postcondition("1", NamesList(), NamesList({"q2"})),
+		NamesList({"clkExit"}));
+	// [pass?] 0 < q2 < 5 --> q2++ {}
+	module->add_transition(
+		ILabel("pass"),
+		"",
+		Precondition("0 < q2 && q2 < 5", NamesList({"q2"})),
 		Postcondition("q2+1", NamesList({"q2"}), NamesList({"q2"})),
 		NamesList());
+	// [pass?] q2 == 5 --> {}  "rare event"
 	module->add_transition(
 		ILabel("pass"),
 		"",
 		Precondition("q2 == 5", NamesList({"q2"})),
-		Postcondition("5", NamesList(), NamesList({"q2"})),
+		Postcondition("", NamesList(), NamesList()),
 		NamesList());
+	// [exit!] q2 > 1 @ clkExit --> q2-- {clkExit}
 	module->add_transition(
 		OLabel("exit"),
 		"clkExit",
-		Precondition("q2 > 0", NamesList({"q2"})),
+		Precondition("q2 > 1", NamesList({"q2"})),
 		Postcondition("q2-1", NamesList({"q2"}), NamesList({"q2"})),
+		NamesList({"clkExit"}));
+	// [exit!] q2 == 1 @ clkExit --> q2-- {}
+	module->add_transition(
+		OLabel("exit"),
+		"clkExit",
+		Precondition("q2 == 1", NamesList({"q2"})),
+		Postcondition("0", NamesList(), NamesList({"q2"})),
 		NamesList({"clkExit"}));
 	model.add_module(module);
 	assert(nullptr == module);
@@ -185,7 +223,7 @@ int main()
 	std::cout << "resulted in the estimate " << estimate << std::endl;
 	std::cout << "Second single simulation... "; std::cout.flush();
 	estimate = engine_ptr->simulate(*property_ptr, 1u);
-	std::cout << "resulted in the esteimate " << estimate << std::endl;
+	std::cout << "resulted in the estimate " << estimate << std::endl;
 	std::cout << "Simulating until desired accuracy is reached" << std::endl;
 	model.estimate(*property_ptr, *engine_ptr, stop_by_value);
 	std::cout << "Simulating for certain fixed amount of time" << std::endl;

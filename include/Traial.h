@@ -226,11 +226,8 @@ public:  // Utils
               const size_t& numClocks,
               const CLOCK_INTERNAL_TYPE& timeLapse)
         {
-            for (size_t i = firstClock ; i < firstClock + numClocks ; i++) {
+			for (size_t i = firstClock ; i < firstClock + numClocks ; i++)
                 clocks_[i].value -= timeLapse;
-                std::cerr << "    Advanced clock " << clocks_[i].name
-                          << ": " << clocks_[i].value << "\n";
-            }
         }
 
 private:

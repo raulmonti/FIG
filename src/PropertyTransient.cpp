@@ -33,14 +33,14 @@
 namespace fig
 {
 
-const std::string&
+const std::string
 PropertyTransient::stop_expression() const noexcept
 {
 	return stop.expression();
 }
 
 
-const std::string&
+const std::string
 PropertyTransient::goal_expression() const noexcept
 {
 	return goal.expression();

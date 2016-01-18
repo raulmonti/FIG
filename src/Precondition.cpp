@@ -33,9 +33,6 @@
 #include <Precondition.h>
 #include <FigException.h>
 
-using std::cerr;
-using std::endl;
-
 
 namespace fig
 {
@@ -49,12 +46,12 @@ Precondition::fake_evaluation() const
 			expr_.DefineVar(var.first, &dummy);
 		expr_.Eval();
 	} catch (mu::Parser::exception_type &e) {
-		cerr << "Failed parsing expression" << endl;
-		cerr << "    message:  " << e.GetMsg()   << endl;
-		cerr << "    formula:  " << e.GetExpr()  << endl;
-		cerr << "    token:    " << e.GetToken() << endl;
-		cerr << "    position: " << e.GetPos()   << endl;
-		cerr << "    errc:     " << e.GetCode()  << endl;
+		std::cerr << "Failed parsing expression" << std::endl;
+		std::cerr << "    message:  " << e.GetMsg()   << std::endl;
+		std::cerr << "    formula:  " << e.GetExpr()  << std::endl;
+		std::cerr << "    token:    " << e.GetToken() << std::endl;
+		std::cerr << "    position: " << e.GetPos()   << std::endl;
+		std::cerr << "    errc:     " << e.GetCode()  << std::endl;
 		throw_FigException("bad expression for precondition, "
 						   "did you remember to map all the variables?");
 	}
@@ -84,12 +81,9 @@ Precondition::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 bool
 Precondition::operator()(const StateInstance& state) const
 {
-	if (!pinned())
 #ifndef NDEBUG
+	if (!pinned())
 		throw_FigException("pin_up_vars() hasn't been called yet");
-#else
-		cerr << "pin_up_vars() hasn't been called yet" << endl;
-		return false;
 #endif
 	// Bind state's variables to our expression...
 	for (const auto& pair: varsMap_)

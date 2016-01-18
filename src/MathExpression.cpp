@@ -81,12 +81,36 @@ inline T_ max2(T_ a, T_ b)
 namespace fig
 {
 
-using std::cerr;
-using std::endl;
+const std::string MathExpression::emptyExpressionString = "1";
+
+
+void
+MathExpression::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
+{
+	for(auto& pair: varsMap_)
+		pair.second = globalState.position_of_var(pair.first);
+	pinned_ = true;
+}
+
+
+void
+MathExpression::pin_up_vars(const PositionsMap& globalVars)
+{
+	for(auto& pair: varsMap_)
+#ifndef NRANGECHK
+		pair.second = globalVars.at(pair.first);
+#else
+		pair.second = globalVars[pair.first];
+#endif
+	pinned_ = true;
+}
+
 
 void MathExpression::parse_our_expression()
 {
-	assert(!exprStr_.empty());
+	assert(!exprStr_.empty());  // expression emptyness is checked later
+//	if (exprStr_.empty())
+//		return;
 	try {
 		expr_.SetExpr(exprStr_);
 
@@ -101,12 +125,12 @@ void MathExpression::parse_our_expression()
 		...
 		*/
 	} catch (mu::Parser::exception_type &e) {
-		cerr << "Failed parsing expression" << endl;
-		cerr << "    message:  " << e.GetMsg()   << endl;
-		cerr << "    formula:  " << e.GetExpr()  << endl;
-		cerr << "    token:    " << e.GetToken() << endl;
-		cerr << "    position: " << e.GetPos()   << endl;
-		cerr << "    errc:     " << e.GetCode()  << endl;
+		std::cerr << "Failed parsing expression" << std::endl;
+		std::cerr << "    message:  " << e.GetMsg()   << std::endl;
+		std::cerr << "    formula:  " << e.GetExpr()  << std::endl;
+		std::cerr << "    token:    " << e.GetToken() << std::endl;
+		std::cerr << "    position: " << e.GetPos()   << std::endl;
+		std::cerr << "    errc:     " << e.GetCode()  << std::endl;
 		throw_FigException("bad mathematical expression");
 	}
 }
