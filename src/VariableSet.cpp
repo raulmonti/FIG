@@ -153,6 +153,7 @@ VariableSet<T_>::is_valid_value(const T_& val) const
 }
 
 
+#ifndef NDEBUG
 template< typename T_ >
 void
 VariableSet<T_>::assert_invariant() const
@@ -161,6 +162,9 @@ VariableSet<T_>::assert_invariant() const
 	for (const auto& e: values_)
 		assert(Variable<T_>::min_ <= e && e <= Variable<T_>::max_);
 }
+#else
+// inlined in header
+#endif
 
 
 // VariableSet can only be instantiated with following numeric types

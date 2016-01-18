@@ -349,10 +349,16 @@ ModelSuite::estimate(const Property& property,
                      const SimulationEngine& engine,
                      const StoppingConditions& bounds) const
 {
+	/// @todo TODO: implement proper log and discard following shell print
+	std::cerr << "Estimating " << property.expression << ",\n";
+	std::cerr << " using simulation engine \"" << engine.name() << "\"\n";
+	std::cerr << " and importance function \"" << engine.current_imp_fun() << "\"\n";
+	std::cerr << " built using strategy    \"" << engine.current_imp_strat() << "\"\n";
+
 	if (bounds.is_time()) {
 
 		// Simulation bounds are wall clock time limits
-//		log_.set_for_times();
+//		log_.set_for_times(engine);
         auto ci_ptr = build_empty_confidence_interval(property);
         for (const unsigned long& wallTimeInSeconds: bounds.time_budgets()) {
 //			auto timeout = [&]() { log_(*ci_ptr,
@@ -369,36 +375,41 @@ ModelSuite::estimate(const Property& property,
 	} else {
 
 		// Simulation bounds are confidence criteria
-//		log.set_for_values();
+//		log.set_for_values(engine);
         for (const auto& criterion: bounds.confidence_criteria()) {
 			auto ci_ptr = build_empty_confidence_interval(property,
 														  std::get<0>(criterion),
 														  std::get<1>(criterion),
 														  std::get<2>(criterion));
-			size_t numRuns = min_batch_size(engine.name(), engine.current_ifun());
+			size_t numRuns = min_batch_size(engine.name(), engine.current_imp_fun());
+			/// @todo TODO: implement proper log and discard following shell print
+			std::cerr << "   Requested precision  ";
+			std::cerr << ((ci_ptr->percent ? 200  : 2) * ci_ptr->errorMargin);
+			std::cerr << (ci_ptr->percent ? "%\n" : "\n");
+			std::cerr << "   and confidence level " << 100*ci_ptr->confidence;
+			std::cerr << "%\n";
 			double startTime = omp_get_wtime();
             do {
 				double estimate = engine.simulate(property, numRuns);
-				std::cerr << "After " << numRuns
-						  << " simulations got estimate " << estimate
-						  << std::endl;
 				if (0.0 > estimate)
 					throw_FigException("invalid simulation result");
 				else
 					ci_ptr->update(estimate);
-				if (0.0 == estimate)
-					increase_batch_size(numRuns, engine.name(), engine.current_ifun());
+				if (0.0 == estimate) {
+					increase_batch_size(numRuns, engine.name(), engine.current_imp_fun());
+					std::cerr << "-";
+				} else {
+					std::cerr << "+";
+				}
 			} while (!ci_ptr->is_valid());
-			// TODO: implement proper log and discard following shell print
-			std::cout << "Finished estimation of property \"" << property.expression;
-			std::cout << "\" for confidence coefficient " << ci_ptr->confidence;
-			std::cout << " and precision " << (2.0*ci_ptr->errorMargin) << std::endl;
-			std::cout << "Resulting estimate: " << ci_ptr->point_estimate() << std::endl;
-			std::cout << "Corresponding confidence interval: [ ";
-			std::cout << ci_ptr->lower_limit() << " , ";
-			std::cout << ci_ptr->upper_limit() << " ] " << std::endl;
-			std::cout << "Estimation took " << (omp_get_wtime()-startTime);
-			std::cout << " seconds" << std::endl;
+			/// @todo TODO: implement proper log and discard following shell print
+			std::cerr << std::endl;
+			std::cerr << "   · Computed estimate: " << ci_ptr->point_estimate() << std::endl;
+			std::cerr << "   · Confidence interval: [ ";
+			std::cerr << ci_ptr->lower_limit() << " , ";
+			std::cerr << ci_ptr->upper_limit() << " ] " << std::endl;
+			std::cerr << "   · Estimation time: " << (omp_get_wtime()-startTime);
+			std::cerr << " seconds\n";
 //			log_(*ci_ptr,
 //				 omp_get_wtime() - startTime,
 //				 engine.name(),

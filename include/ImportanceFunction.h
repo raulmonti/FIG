@@ -89,6 +89,9 @@ protected:
 	/// Can this instance be used for simulations?
 	bool readyForSimulations;
 
+	/// Last used strategy to assess the importance with this function
+	std::string strategy_;
+
 public:  // Ctor/Dtor
 
 	/**
@@ -117,6 +120,10 @@ public:  // Accessors
 	 * @see assess_importance(ModuleNetwork*,  Property*)
 	 */
 	bool ready() const noexcept;
+
+	/// @copydoc strategy_
+	/// @returns Empty string if function isn't ready(), strategy name otherwise
+	const std::string& strategy() const noexcept;
 
 public:  // Utils
 
@@ -156,14 +163,14 @@ public:  // Utils
 								   const Property& prop,
 								   const std::string& strategy = "") = 0;
 
-	/// Release any memory allocated in the heap
-	/// @note After this invocation the ImportanceFunction is no longer ready()
-	virtual void clear() noexcept = 0;
-
 	/// @brief Tell the pre-computed importance of the given StateInstance
 	/// @note All reachable states importance should have already been assessed
 	/// @see assess_importance()
 	virtual ImportanceValue importance_of(const StateInstance& state) const = 0;
+
+	/// Release any memory allocated in the heap
+	/// @note After this invocation the ImportanceFunction is no longer ready()
+	virtual void clear() noexcept = 0;
 };
 
 } // namespace fig

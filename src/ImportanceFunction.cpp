@@ -101,4 +101,11 @@ ImportanceFunction::ready() const noexcept
 	return readyForSimulations;
 }
 
+
+const std::string&
+ImportanceFunction::strategy() const noexcept
+{
+	return strategy_;
+}
+
 } // namespace fig

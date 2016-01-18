@@ -130,10 +130,17 @@ public:  // Accessors
     /// @copydoc name_
     inline const std::string& name() const noexcept { return name_; }
 
+    /// Importance function currently bound to the engine,
+    /// or void string if none is.
+    inline const std::string current_imp_fun() const noexcept
+        { if (nullptr != impFun_) return impFun_->name(); else return ""; }
+
     /// Importance strategy of the function currently bound to the engine,
     /// or void string if none is.
-    inline const std::string current_ifun() const noexcept
-        { if (nullptr != impFun_) return impFun_->name(); else return ""; }
+    /// @note If current ImportanceFunction isn't ready for simulations,
+    ///       then this function also returns an empty string
+    inline const std::string current_imp_strat() const noexcept
+        { if (nullptr != impFun_) return impFun_->strategy(); else return ""; }
 
 public:  // Simulation utils
 

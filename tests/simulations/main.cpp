@@ -73,8 +73,8 @@ int main()
 	 *  Module Queue1                                              *
 	 *                                                             *
 	 *      int q1 : [0..9] = 1                                    *
-	 *      clock clkArr  : Uniform(0,4)                           *
-	 *      clock clkPass : Normal(2,1)                            *
+	 *      clock clkArr  : Normal(2,1)                            *
+	 *      clock clkPass : Uniform(0,5)                           *
 	 *                                                             *
 	 *      [arr!]  q1 == 0   @ clkArr  --> q1++ {clkArr, clkPass} *
 	 *      [arr!] 0 < q1 < 9 @ clkArr  --> q1++ {clkArr}          *
@@ -87,7 +87,7 @@ int main()
 	 *  Module Queue2                                              *
 	 *                                                             *
 	 *      int q2 : [0..5] = 0                                    *
-	 *      clock clkExit : Exponential(3)                         *
+	 *      clock clkExit : Exponential(0.23)                      *
 	 *                                                             *
 	 *      [pass?] q2 == 0           --> q2++ {clkExit}           *
 	 *      [pass?] 0 < q2 < 5        --> q2++ {}                  *
@@ -105,8 +105,8 @@ int main()
 	// Module "Queue1"
 	std::cout << "Building the first module" << std::endl;
 	State vars1 = std::vector< VarDef >({std::make_tuple("q1", 0, 9, 1)});
-	std::vector< Clock > clocks1 = {{"clkArr",  "uniformAB", {{0.0, 4.0}}},
-									{"clkPass", "normalMV",  {{2.0, 1.0}}}};
+	std::vector< Clock > clocks1 = {{"clkArr",  "normalMV",  {{2.0, 1.0}}},
+									{"clkPass", "uniformAB", {{0.0, 5.0}}}};
 	module = std::make_shared< ModuleInstance >("Queue1", vars1, clocks1);
 	// [arr!] q1 == 0 @ clkArr --> q1++ {clkArr, clkPass}
 	module->add_transition(
@@ -149,7 +149,7 @@ int main()
 	// Module "Queue2"
 	std::cout << "Building the second module" << std::endl;
 	State vars2 = std::vector< VarDef >({std::make_tuple("q2", 0, 5, 0)});
-	std::vector< Clock > clocks2 = {{"clkExit", "exponential", {{3.0}}}};
+	std::vector< Clock > clocks2 = {{"clkExit", "exponential", {{0.23}}}};
 	module = std::make_shared< ModuleInstance >("Queue2", vars2, clocks2);
 	// [pass?] q2 == 0 --> q2++ {clkExit}
 	module->add_transition(
@@ -211,7 +211,7 @@ int main()
 	engine_ptr->bind(ifun_ptr);
 	std::cout << "Building simulation bounds" << std::endl;
 	fig::StoppingConditions stop_by_value;
-	stop_by_value.add_confidence_criterion(0.8, 0.2, true);
+	stop_by_value.add_confidence_criterion(0.8, 0.5, true);
 	assert(stop_by_value.is_confidence_criteria());
 	fig::StoppingConditions stop_by_time;
 	stop_by_time.add_time_budget(30ul);
@@ -226,7 +226,7 @@ int main()
 	std::cout << "resulted in the estimate " << estimate << std::endl;
 	std::cout << "Simulating until desired accuracy is reached" << std::endl;
 	model.estimate(*property_ptr, *engine_ptr, stop_by_value);
-	std::cout << "Simulating for certain fixed amount of time" << std::endl;
+	std::cout << "Simulating for fixed time span" << std::endl;
 	model.estimate(*property_ptr, *engine_ptr, stop_by_time);
 
 	// Cleanup

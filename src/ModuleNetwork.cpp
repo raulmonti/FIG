@@ -166,11 +166,9 @@ template void ModuleNetwork::seal(const std::unordered_set<std::string>&);
 std::unique_ptr< StateInstance >
 ModuleNetwork::initial_state() const
 {
-	if (!sealed())
 #ifndef NDEBUG
+	if (!sealed())
 		throw_FigException("ModuleNetwork hasn't been sealed yet");
-#else
-		return;
 #endif
 	return gState.to_state_instance();
 }
@@ -188,18 +186,23 @@ ModuleNetwork::simulation_step(Traial& traial,
 		return;
 #endif
 
-	/// @todo TODO erase debug print below
-	std::cerr << "Starting at state ";
-	for (const auto & e: traial.state)
-		std::cerr << e << "  ";
-	std::cerr << std::endl;
-	///////////////////////////////////////
+//	/// @todo TODO erase debug print below
+//	std::cerr << "Starting at state ";
+//	for (const auto & e: traial.state)
+//		std::cerr << e << "  ";
+//	std::cerr << "----------------------------------------------" << std::endl;
+//	///////////////////////////////////////
 
     // Jump...
 	do {
 		auto timeout = traial.next_timeout();
         // Active jump in the module whose clock timed-out
 		auto label = timeout.module->jump(timeout.name, timeout.value, traial);
+//		/// @todo TODO erase debug print below
+//		std::cerr << "State:";
+//		for (auto& v: traial.state) std::cerr << " " << v;
+//		std::cerr << std::endl;
+//		///////////////////////////////////////
 		// Passive jumps in the modules listening to label
 		for (auto module_ptr: modules)
 			if (module_ptr->name != timeout.module->name)
@@ -208,12 +211,12 @@ ModuleNetwork::simulation_step(Traial& traial,
     } while ( !engine.event_triggered(property, traial) );
 	// ...until a relevant event is observed
 
-	/// @todo TODO erase debug print below
-	std::cerr << "Ended at state ";
-	for (const auto & e: traial.state)
-		std::cerr << e << "  ";
-	std::cerr << std::endl;
-	///////////////////////////////////////
+//	/// @todo TODO erase debug print below
+//	std::cerr << "Ended at state ";
+//	for (const auto & e: traial.state)
+//		std::cerr << e << "  ";
+//	std::cerr << "----------------------------------------------" << std::endl;
+//	///////////////////////////////////////
 }
 
 
