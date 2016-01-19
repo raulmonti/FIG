@@ -65,7 +65,8 @@ SimulationEngine::SimulationEngine(
     std::shared_ptr< const ModuleNetwork> network) :
 		name_(name),
 		network_(network),
-		impFun_(nullptr)
+		impFun_(nullptr),
+		interrupted(false)
 {
 	if (find(begin(names), end(names), name) == end(names)) {
 		std::stringstream errMsg;

@@ -37,6 +37,8 @@
 namespace fig
 {
 
+class PropertyTransient;
+
 /**
  * @brief Engine for classical Monte Carlo simulation
  *
@@ -62,10 +64,18 @@ public:  // Inherited virtual simulation functions
 	virtual double simulate(const Property& property,
 							const size_t& numRuns = 1) const;
 
-	virtual void simulate(const Property&, ConfidenceInterval&) const {}
+	virtual void simulate(const Property& property,
+						  const size_t& batchSize,
+						  ConfidenceInterval& interval) const;
 
 	virtual bool event_triggered(const Property& property,
 								 const Traial& traial) const;
+
+private:  // Simulation helper functions
+
+	double transient_simulation(const PropertyTransient& property,
+								const size_t& numRuns,
+								Traial& traial) const;
 };
 
 } // namespace fig

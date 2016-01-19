@@ -57,6 +57,8 @@ class Traial;
  */
 class SimulationEngine
 {
+    friend class ModelSuite;  // for interruptions signaling
+
 public:
 
 	/// Names of the simulation engines offered to the user,
@@ -75,6 +77,11 @@ protected:
 
     /// Importance function currently built
     std::shared_ptr< const ImportanceFunction > impFun_;
+
+private:
+
+    /// Were we just interrupted in an estimation timeout?
+    mutable bool interrupted;
 
 public:  // Ctors/Dtor
 
@@ -170,13 +177,15 @@ public:  // Simulation utils
      *        run indefinitely until they're externally interrupted.
      *        The importance function used is taken from the last call to bind()
      *
-     * @param property Property whose value is being estimated
-     * @param interval ConfidenceInterval regularly updated with estimation info
+     * @param property  Property whose value is being estimated
+     * @param batchSize Number of consecutive simulations for each interval update
+     * @param interval  ConfidenceInterval regularly updated with estimation info
      *
      * @throw FigException if the engine wasn't \ref bound() "bound" to any
      *                     ImportanceFunction
      */
     virtual void simulate(const Property& property,
+                          const size_t& batchSize,
                           ConfidenceInterval& interval) const = 0;
 
     /**

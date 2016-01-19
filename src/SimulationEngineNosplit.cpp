@@ -33,6 +33,7 @@
 #include <FigException.h>
 #include <PropertyTransient.h>
 #include <ModelSuite.h>
+#include <ConfidenceInterval.h>
 
 
 namespace fig
@@ -62,18 +63,12 @@ SimulationEngineNosplit::simulate(const Property &property,
     switch (property.type) {
 
 	case PropertyType::TRANSIENT: {
-        auto transientProp = dynamic_cast<const PropertyTransient&>(property);
-		size_t numSuccesses(0u);
 //		#pragma omp parallel  // we MUST parallelize this, it's stupid not to
 		Traial& traial = TraialPool::get_instance().get_traial();
-		for (size_t i = 0 ; i < numRuns ; i++) {
-			traial.initialize(network_, impFun_);
-            network_->simulation_step(traial, *this, property);
-			if (transientProp.is_goal(traial.state))
-				numSuccesses++;
-		}
+		result = transient_simulation(dynamic_cast<const PropertyTransient&>(property),
+									  numRuns,
+									  traial);
 		TraialPool::get_instance().return_traial(std::move(traial));
-		result = static_cast<double>(numSuccesses) / numRuns;
 		} break;
 
 	case PropertyType::THROUGHPUT:
@@ -90,6 +85,49 @@ SimulationEngineNosplit::simulate(const Property &property,
 	}
 
 	return result;
+}
+
+
+void
+SimulationEngineNosplit::simulate(const Property& property,
+								  const size_t& batchSize,
+								  ConfidenceInterval& interval) const
+{
+	if (!bound())
+#ifndef NDEBUG
+		throw_FigException("engine isn't bound to any importance function");
+#else
+		return -1.0;
+#endif
+
+	switch (property.type) {
+
+	case PropertyType::TRANSIENT: {
+		assert (!interrupted);
+		Traial& traial = TraialPool::get_instance().get_traial();
+		while (!interrupted) {
+			double newEstimate =
+				transient_simulation(dynamic_cast<const PropertyTransient&>(property),
+									 batchSize,
+									 traial);
+			if (!interrupted)
+				interval.update(newEstimate);
+		}
+		TraialPool::return_traial(std::move(traial));
+		} break;
+
+	case PropertyType::THROUGHPUT:
+	case PropertyType::RATE:
+	case PropertyType::PROPORTION:
+	case PropertyType::BOUNDED_REACHABILITY:
+		throw_FigException(std::string("property type isn't supported by ")
+						   .append(name_).append(" simulation yet"));
+		break;
+
+	default:
+		throw_FigException("invalid property type");
+		break;
+	}
 }
 
 
@@ -119,5 +157,22 @@ SimulationEngineNosplit::event_triggered(const Property &property,
 	}
 	return false;
 }
+
+
+double
+SimulationEngineNosplit::transient_simulation(const PropertyTransient& property,
+											  const size_t& numRuns,
+											  Traial& traial) const
+{
+	long numSuccesses(0);
+	for (size_t i = 0u ; i < numRuns ; i++) {
+		traial.initialize(network_, impFun_);
+		network_->simulation_step(traial, *this, property);
+		if (property.is_goal(traial.state))
+			numSuccesses++;
+	}
+	return static_cast<double>(numSuccesses) / numRuns;
+}
+
 
 } // namespace fig

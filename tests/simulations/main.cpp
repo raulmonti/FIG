@@ -214,20 +214,20 @@ int main()
 	stop_by_value.add_confidence_criterion(0.8, 0.5, true);
 	assert(stop_by_value.is_confidence_criteria());
 	fig::StoppingConditions stop_by_time;
-	stop_by_time.add_time_budget(30ul);
+	stop_by_time.add_time_budget(10ul);
 	assert(stop_by_time.is_time_budgets());
 	
 	// Simulation
-	std::cout << "Single, warm up simulation... "; std::cout.flush();
+	std::cout << "\nSingle, warm up simulation... "; std::cout.flush();
 	double estimate = engine_ptr->simulate(*property_ptr, 1u);
 	std::cout << "resulted in the estimate " << estimate << std::endl;
 	std::cout << "Second single simulation... "; std::cout.flush();
 	estimate = engine_ptr->simulate(*property_ptr, 1u);
 	std::cout << "resulted in the estimate " << estimate << std::endl;
-	std::cout << "Simulating until desired accuracy is reached" << std::endl;
-	model.estimate(*property_ptr, *engine_ptr, stop_by_value);
-	std::cout << "Simulating for fixed time span" << std::endl;
+	std::cout << "\nSimulating for fixed time span" << std::endl;
 	model.estimate(*property_ptr, *engine_ptr, stop_by_time);
+	std::cout << "\nSimulating until desired accuracy is reached" << std::endl;
+	model.estimate(*property_ptr, *engine_ptr, stop_by_value);
 
 	// Cleanup
 	engine_ptr->unbind();
