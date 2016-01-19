@@ -155,11 +155,6 @@ private:
 
 };
 
-}//namespace parser
-
-
-
-namespace{
 
 /* @brief:   Return a z3 expression corresponding to a boolean formula
              represented in an AST member. Correctly fill in the z3::context 
@@ -171,7 +166,8 @@ namespace{
    @pc:      A parsingContext member from which to take type information for
              each variable in @formula.
 */
-expr ast2expr( AST* formula, context & c, parsingContext & pc);
+z3::expr
+ast2expr(AST* formula, context & c, const parsingContext & pc);
 
 
 
@@ -187,8 +183,8 @@ void
 variable_duplicate(AST* ast);
 
 
+}//namespace parser
 
-} // namespace
 
 
 #endif // IOSA_COMPLIANCE_H

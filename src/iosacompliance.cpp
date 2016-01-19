@@ -30,12 +30,7 @@
 
 
 using namespace std;
-
-
-//==============================================================================
-//==============================================================================
-
-namespace{
+namespace parser{
 
 /** @brief  Check if the transition parsed into an AST corresponds to an
  *          output transition.
@@ -213,7 +208,7 @@ get_limits(AST* ast, string var){
  */
 //FIXME Use exceptions here instead of assert and cout
 expr
-ast2expr( AST* formula, context & c, parsingContext & pc){
+ast2expr( AST* formula, context & c, const parsingContext & pc){
 
     //TODO: assert("check that formula is boolean.");
     expr result = c.bool_val(true);
@@ -267,7 +262,7 @@ ast2expr( AST* formula, context & c, parsingContext & pc){
         switch (formula->tkn){
             case _NAME:{
                 try{
-                    int t = pc[formula->lxm].first;
+                    int t = pc.at(formula->lxm).first;
                     // It is a variable
                     if ( t == T_ARIT){
                         result = c.real_const(formula->lxm.c_str());
@@ -298,6 +293,7 @@ ast2expr( AST* formula, context & c, parsingContext & pc){
             }
         }
     }else{
+        cout << *formula << endl;
         assert("Wrong number of branches :S\n" && false);
     }
 
@@ -322,12 +318,6 @@ variable_duplicate(AST* ast){
         }
     }
 }
-
-} //namespace
-
-
-
-namespace parser{
 
 
 //==============================================================================

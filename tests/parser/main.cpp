@@ -43,7 +43,7 @@ main (int argc, char** argv){
     ss << fin.rdbuf();
 
     /* Parse and point to the resulting AST. */
-    const pair<AST*, parsingContext> pp = parser->parse(& ss);
+    pair<AST*, parsingContext> pp = parser->parse(& ss);
     if(pp.first){
         __debug__(">> Result of Parsing:\n\n");
         __debug__(pp.first);
@@ -62,7 +62,7 @@ main (int argc, char** argv){
 
         try{
             verifier->verify(pp.first, pp.second);
-            fig::CompileModel(pp.first);
+            fig::CompileModel(pp.first, pp.second);
 
         }catch(string e){
 

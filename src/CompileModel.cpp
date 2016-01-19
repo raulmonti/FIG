@@ -1,11 +1,17 @@
 /*
  */
 
+#include <set>
+#include <vector>
+#include <map>
 #include "CompileModel.h"
 #include "State.h"
 #include "Clock.h"
 #include "parser.h"
 #include "ModelSuite.h"
+#include "iosacompliance.h" // ast2expr
+#include "FigException.h"
+#include <z3++.h>
 
 
 using namespace fig;
@@ -16,20 +22,97 @@ using namespace parser;
 typedef fig::State<fig::STATE_INTERNAL_TYPE>                state;
 typedef fig::VariableDefinition<fig::STATE_INTERNAL_TYPE>  varDec;
 
+
+
 namespace{
 
 /**
- * brief Solve a formula and return the value. In boolean formulas 1 would be
- *       true and 0 false.
- * note  For the moment @formula is composed of just a _NUM AST.
+ * TODO
  */
-int
-solve(AST* formula){
-
-    //FIXME for now initialization is just a number.
-    int result = 0;
-    result = atoi(formula->get_lexeme(_NUM).c_str());
+map<string,string>
+solve_constant_defs(vector<AST*> defs, const parsingContext &pc){
+    z3::context c;
+    z3::solver s(c);
+    vector<string> names;
+    vector<expr> exprs;
+    map<string,string> result;
+    for(const auto &it: defs){
+        string n = it->get_lexeme(_NAME);
+        names.push_back(n);
+        z3::expr v(c);
+        if(pc.at(n).first==T_ARIT){
+            v = c.real_const(n.c_str());
+        }else{
+            v = c.bool_const(n.c_str());
+        }
+        exprs.push_back(v);
+        z3::expr e = ast2expr(it->get_first(_EXPRESSION),c,pc);
+        s.add(v == e);
+    }
+    assert(sat==s.check());
+    auto m = s.get_model();
+    for(int i = 0; i < exprs.size(); ++i){
+        if(pc.at(names[i]).first==T_ARIT){
+            result[names[i]] = Z3_get_numeral_string(
+                                c
+                               ,m.eval(exprs[i],false));
+        }else{
+            if(Z3_get_bool_value(c,m.eval(exprs[i],false))){
+                result[names[i]] = "true";
+            }else{
+                result[names[i]] = "false";
+            }
+        }
+    }
     return result;
+}
+
+
+
+
+void
+rec_circ_depend(string start, const map<string, vector<string>> &depend){
+
+    static set<string> stack;
+    auto ret = stack.insert(start);
+    if(!ret.second){
+        string err = "";
+        for(const auto &it: stack){
+            err += it;
+            err += " ";
+        }
+        stack.clear();
+        throw FigException(err);
+    }
+    for(const auto &it: depend.at(start)){
+        rec_circ_depend(it, depend);
+    }
+    stack.erase(start);
+}
+
+
+void
+check_no_const_circular_depend(AST* model)
+{
+    vector<AST*> aux = model->get_all_ast(_CONST);
+    map<string, vector<string>> depend;
+
+    for(const auto &it: aux){
+        string name = it->get_lexeme(_NAME);
+        AST* expr = it->get_first(_EXPRESSION);
+        vector<string> depends = expr->get_all_lexemes(_NAME);
+        depend[name] = depends;
+    }
+
+    for(const auto &it: depend){
+        try{
+            rec_circ_depend(it.first, depend);
+        }catch(FigException &e){
+            throw FigException("[ERROR] Circular dependency on definition"
+                               " of constant " + it.first + ". Stack: " + 
+                               e.msg());
+        }
+    }
 }
 
 
@@ -38,7 +121,7 @@ solve(AST* formula){
  * TODO
  **/
 const state
-CompileVars(const vector<AST*> varList)
+CompileVars(const vector<AST*> varList, const parsingContext &pc)
 {
     vector<varDec> result;
     for(auto const &it: varList){
@@ -46,7 +129,7 @@ CompileVars(const vector<AST*> varList)
         assert(name != "");
         vector<string> limits = {{"0","0"}};
         int init = 0;
-        AST* ASTtype = it->get_first(_TYPE);
+        Type t = pc.at(name).first;
         AST* ASTrange = it->get_first(_RANGE);
         AST* ASTinit = it->get_first(_INIT);
         if(ASTrange){
@@ -54,7 +137,11 @@ CompileVars(const vector<AST*> varList)
             assert(limits.size() == 2);
         }
         if(ASTinit){
-            init = solve(ASTinit);
+            AST* num = ASTinit->get_first(_NUM);
+            AST* boo = ASTinit->get_first(_BOOLEAN);
+            AST* con = ASTinit->get_first(_NAME);
+            if(num != ""){
+                init = atoi(
         }
         result.push_back(make_tuple(name
                                    ,atoi(limits[0].c_str())
@@ -234,18 +321,29 @@ CompileModule(AST* module)
 } //namespace
 
 
+
+
+
+
+
 namespace fig{
 
 /**
  * @brief Compile the model in the AST to a FIG simulation model.
  * @param [in] astModel A valid IOSA model.
- * @rise ...
+ * @throw FigException
  */
 void
-CompileModel(AST* astModel){
+CompileModel(AST* astModel, const parsingContext &pc){
    
 	auto model = fig::ModelSuite::get_instance();
 	assert(!model.sealed());
+
+    // replace constants
+    check_no_const_circular_depend(astModel);
+    vector<AST*> consts = astModel->get_all_ast(_CONST);
+    solve_constant_defs(consts, pc);
+    
 
     vector<AST*> modules = astModel->get_all_ast(_MODULE);
     for(auto const &it: modules){

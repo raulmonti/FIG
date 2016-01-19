@@ -297,9 +297,14 @@ Parser::rVarDef(){
         if(accept(KINIT)){
             newNode(_INIT);
             saveNode(_KEYWORD);
-            //rExpression(); TODO
-            expect(NUM, "Missing initial value.");
-            saveNode(_NUM);
+            if(accept(NAME)){
+                saveNode(_NAME);
+            }else if(accept(BOOLV)){
+                saveNode(_BOOLEAN);
+            }else{
+                expect(NUM, "Missing initial value.");
+                saveNode(_NUM);
+            }
             saveNode(); // _INIT
         }
         expect(SCLN,"Missing ';'.\n");
