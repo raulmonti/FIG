@@ -48,6 +48,11 @@ using namespace std;
 namespace parser{
 
 
+// Class static definitions 
+vector<string> Parser::lexemes;
+vector<Token>  Parser::tokens;
+
+
 /** @brief Parser class constructor.
  */ 
 Parser::Parser(void){

@@ -32,8 +32,6 @@
 
 using namespace std;
 
-
-
 namespace parser{
 
 static stringstream dummy_out;

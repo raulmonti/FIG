@@ -19,6 +19,7 @@
 #include <exception>
 #include "exceptions.h"
 #include "CompileModel.h"
+#include "PreCompiler.h"
 
 
 using namespace std;
@@ -35,6 +36,7 @@ main (int argc, char** argv){
 
     /* Instanciate a parser, and a verifier. */
     Parser   *parser   = new Parser();
+    Precompiler *prec  = new Precompiler();
     Verifier *verifier = new Verifier();
 
     /* Get a stream with the model to parse. */
@@ -61,15 +63,16 @@ main (int argc, char** argv){
         }
 
         try{
-            verifier->verify(pp.first, pp.second);
-            fig::CompileModel(pp.first, pp.second);
+            stringstream pss;
+            pss << prec->pre_compile(pp.first,pp.second);
+            pp = parser->parse(&pss);
+            verifier->verify(pp.first,pp.second);
+            fig::CompileModel(pp.first,pp.second);
 
         }catch(string e){
 
             cout << e << endl;
         }
-
-
 
         /* We are in charge of deleting the AST. */
         if (pp.first != NULL){

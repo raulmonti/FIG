@@ -166,8 +166,8 @@ class Parser
        @lexemes, and its representing token will
        be kept in @tokens at the same position.
     */
-    vector<Token>  tokens;          // Vector with tokens.
-    vector<string> lexemes;          // Vector with lexemes.
+    static vector<Token>  tokens;   // Vector with tokens.
+    static vector<string> lexemes;  // Vector with lexemes.
     vector<int>    lines;
     vector<int>    columns;
 
@@ -191,6 +191,22 @@ public:
     /**
      */
     virtual ~Parser();
+
+    /**
+     */
+    inline const static vector<string>&
+    get_lexemes()
+    {
+        return lexemes;
+    }
+
+    /**
+     */
+    inline const static vector<Token>&
+    get_tokens()
+    {
+        return tokens;
+    }
 
     /**
      *  @brief Parse from stream @str, and build the resulting AST into
