@@ -78,8 +78,6 @@ protected:
     /// Importance function currently built
     std::shared_ptr< const ImportanceFunction > impFun_;
 
-private:
-
     /// Were we just interrupted in an estimation timeout?
     mutable bool interrupted;
 

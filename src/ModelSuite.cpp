@@ -46,6 +46,7 @@
 // FIG
 #include <ModelSuite.h>
 #include <FigException.h>
+#include <SignalSetter.h>
 #include <Property.h>
 #include <StoppingConditions.h>
 #include <SimulationEngine.h>
@@ -65,9 +66,6 @@ using std::end;
 
 namespace
 {
-
-/// Global pointer used for signal handling (http://stackoverflow.com/q/10816107)
-std::unique_ptr< fig::ConfidenceInterval > g_ci_ptr(nullptr);
 
 /**
  * @brief Build a ConfidenceInterval of the required type
@@ -228,6 +226,9 @@ increase_batch_size(size_t& numRuns,
 namespace fig
 {
 
+/// To catch timeout interruptions
+thread_local SignalHandlerType SignalHandler;
+
 // Static variables initialization
 
 std::shared_ptr< ModuleNetwork > ModelSuite::model(std::make_shared<ModuleNetwork>());
@@ -363,43 +364,39 @@ ModelSuite::estimate(const Property& property,
 
 		// Simulation bounds are wall clock time limits
 //		log_.time_estimation(engine);
+		bool& timedout = engine.interrupted;
 		auto ci_ptr = build_empty_confidence_interval(property);
-		g_ci_ptr.swap(ci_ptr);  // :'(
         for (const unsigned long& wallTimeInSeconds: bounds.time_budgets()) {
 			/// @todo TODO: implement proper log and discard following shell print
 			std::cerr << "   Estimation time: " << wallTimeInSeconds << " s\n";
-			auto timeout = [/*&*/](int sig) {
-				assert(SIGALRM == sig);
-				/// @todo TODO: implement proper log and discard following shell print
-				std::cerr << "   · Computed estimate: "
-						  << g_ci_ptr->point_estimate() << std::endl;
-				std::cerr << "   · 90% confidence interval: [ "
-						  << g_ci_ptr->lower_limit(0.90) << " , "
-						  << g_ci_ptr->upper_limit(0.90) << " ] " << std::endl;
-				std::cerr << "   · 95% confidence interval: [ "
-						  << g_ci_ptr->lower_limit(0.95) << " , "
-						  << g_ci_ptr->upper_limit(0.95) << " ] " << std::endl;
-				std::cerr << "   · 99% confidence interval: [ "
-						  << g_ci_ptr->lower_limit(0.99) << " , "
-						  << g_ci_ptr->upper_limit(0.99) << " ] " << std::endl;
-
-				engine.interrupted = true;  /// FIXME: lambda can't capture!
-				/// @todo TODO allow this lambda sighandler to capture variables
-				///       http://stackoverflow.com/q/10816107
-
-//				log_(*ci_ptr,
-//				wallTimeInSeconds,
-//				engine.name(),
-//				engine.current_ifun());
-//			    ci_ptr->reset();
-			};
-			engine.interrupted = false;
-			signal(SIGALRM, timeout);
-            alarm(wallTimeInSeconds);
+			SignalSetter handler(SIGALRM, [&ci_ptr, &timedout] (const int sig)
+				{
+					assert(SIGALRM == sig);
+					/// @todo TODO: implement proper log and discard following shell print
+					std::cerr << "   · Computed estimate: "
+							  << ci_ptr->point_estimate() << std::endl;
+					std::cerr << "   · 90% confidence interval: [ "
+							  << ci_ptr->lower_limit(0.90) << " , "
+							  << ci_ptr->upper_limit(0.90) << " ] " << std::endl;
+					std::cerr << "   · 95% confidence interval: [ "
+							  << ci_ptr->lower_limit(0.95) << " , "
+							  << ci_ptr->upper_limit(0.95) << " ] " << std::endl;
+					std::cerr << "   · 99% confidence interval: [ "
+							  << ci_ptr->lower_limit(0.99) << " , "
+							  << ci_ptr->upper_limit(0.99) << " ] " << std::endl;
+					ci_ptr->reset();
+					timedout = true;
+//					log_(*ci_ptr,
+//					     wallTimeInSeconds,
+//					     engine.name(),
+//					     engine.current_ifun());
+				}
+			);
+			timedout = false;
+			alarm(wallTimeInSeconds);
 			engine.simulate(property,
 							min_batch_size(engine.name(), engine.current_imp_fun()),
-							*g_ci_ptr);
-			engine.interrupted = false;
+							*ci_ptr);
 		}
 
 	} else {
@@ -438,6 +435,7 @@ ModelSuite::estimate(const Property& property,
 			std::cerr << "   · Confidence interval: [ "
 					  << ci_ptr->lower_limit() << " , "
 					  << ci_ptr->upper_limit() << " ] " << std::endl;
+			std::cerr << "   · Precision: " << ci_ptr->precision() << std::endl;
 			std::cerr << "   · Estimation time: " << (omp_get_wtime()-startTime)
 					  << " seconds" << std::endl;
 //			log_(*ci_ptr,

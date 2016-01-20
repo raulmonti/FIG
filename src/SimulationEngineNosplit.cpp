@@ -113,7 +113,7 @@ SimulationEngineNosplit::simulate(const Property& property,
 			if (!interrupted)
 				interval.update(newEstimate);
 		}
-		TraialPool::return_traial(std::move(traial));
+		TraialPool::get_instance().return_traial(std::move(traial));
 		} break;
 
 	case PropertyType::THROUGHPUT:
