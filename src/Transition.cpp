@@ -119,7 +119,7 @@ Transition::crystallize(const PositionsMap& globalClocks)
 {
 	if (CRYSTAL == resetClocksData_)
 #ifndef NDEBUG
-		throw FigException("crystallize had already been called before");
+		throw_FigException("crystallize had already been called before");
 #else
 		return;
 #endif

@@ -32,21 +32,23 @@
 
 // C+
 #include <vector>
+#include <string>
 // FIG
 #include <core_typedefs.h>
 #include <ImportanceFunction.h>
+#include <State.h>
 
 
 namespace fig
 {
 
-class State;
+class Property;
 
 /**
  * @brief Abstract importance function for concrete importance assessment
  *
  *        The assessment is "concrete" because we build and mantain an
- *        internal array with the importance of each reachable concrete state.
+ *        internal vector with the importance of each reachable concrete state.
  *        This can be extremely heavy on memory: precisely the size of the
  *        concrete state space of the assessed element (ModuleInstance or
  *        ModuleNetwork)
@@ -55,13 +57,58 @@ class State;
  */
 class ImportanceFunctionConcrete : public ImportanceFunction
 {
-	std::vector< ImportanceValue > statesImportance;
-
 protected:
-	/// @todo TODO implement algorithm from sheet,
-	///       the one with 'state[]' and 'redges[]' arrays.
-	///       Attribute "statesImportance" would play the role of 'state[]'
-	virtual void assess_importance(State& s);
+
+	// Make overloads explicit, otherwise Clang whines like a whore
+	using ImportanceFunction::assess_importance;
+
+protected:  // Attributes
+
+	typedef std::vector< ImportanceValue > ImportanceVec;
+
+	/// Concrete importance assessment for the whole system model
+	std::vector< ImportanceVec > modulesConcreteImportance;
+
+public:  // Ctor/Dtor
+
+	/// Data ctor
+	ImportanceFunctionConcrete(const std::string& name);
+
+	/// Dtor
+	virtual ~ImportanceFunctionConcrete();
+
+protected:  // Utils
+
+	/**
+	 * @brief Populate an internal importance vector
+	 *
+	 *        For the given "property" and following the "strategy" specified,
+	 *        analyse the symbolic "state" and compute the importance of the
+	 *        corresponding concrete states. The resulting information will
+	 *        be stored internally at position "index".
+	 *
+	 * @param state    Vector of variables representing the state of a Module
+	 * @param property Logical property identifying the special states
+	 * @param strategy Importance assessment strategy to follow
+	 * @param index    Internal location where resulting info will be kept
+	 *
+	 * @note This allocates (tons of) memory internally
+	 * @note To assess again for same index with different strategy or property,
+	 *       release first the internal info through clear(const unsigned&)
+	 *
+	 * @throw bad_alloc    if system's memory wasn't enough for internal storage
+	 * @throw FigException if there's already importance info for this index
+	 */
+	virtual void assess_importance(const State<STATE_INTERNAL_TYPE>& symbState,
+								   const Property& property,
+								   const std::string& strategy,
+								   const unsigned& index = 0);
+
+	/// Erase all internal importance information and free resources
+	virtual void clear() noexcept;
+
+	/// Erase any internal importance information stored at position "index"
+	virtual void clear(const unsigned& index) noexcept;
 };
 
 } // namespace fig

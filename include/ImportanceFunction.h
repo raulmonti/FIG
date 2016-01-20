@@ -30,7 +30,12 @@
 #ifndef IMPORTANCEFUNCTION_H
 #define IMPORTANCEFUNCTION_H
 
+// C++
 #include <string>
+#include <array>
+// FIG
+#include <core_typedefs.h>
+#include <State.h>
 
 
 namespace fig
@@ -49,6 +54,11 @@ class Property;
  *        are in charge of assessing how likely it is to visit such set
  *        from <i>each other</i> (reachable) system state.
  *
+ *        Besides from the "name" which specifies the ImportanceFunction
+ *        derived class, importance assessment requires the choice of a
+ *        "strategy" (flat, auto, ad hoc...) to decide how the relative
+ *        importance between states will be measured.
+ *
  * @note This class family follows the
  *       <a href="https://sourcemaking.com/design_patterns/visitor">
  *       visitor design pattern</a>. The visited elements are instances
@@ -56,20 +66,49 @@ class Property;
  */
 class ImportanceFunction
 {
+public:
+
+	/// Names of the importance functions offered to the user,
+	/// as he should requested them through the CLI/GUI.
+	/// Defined in ImportanceFunction.cpp
+	static const std::array< std::string, 1 > names;
+
+	/// Importance assessment strategies offered to the user,
+	/// as he should requested them through the CLI/GUI.
+	/// Defined in ImportanceFunction.cpp
+	static const std::array< std::string, 4 > strategies;
+
+private:
+
+	/// Importance function implemented by this instance
+	/// Check ImportanceFunction::names for available options.
+	std::string name_;
+
+protected:
+public:
+
 	/// Can this instance be used for simulations?
 	bool readyForSimulations;
 
-protected:
+	/// Last used strategy to assess the importance with this function
+	std::string strategy_;
 
-	/// Importance strategy implemented by this function
-	std::string name_;
+public:  // Ctor/Dtor
 
-public:
+	/**
+	 * Data ctor
+	 * @param name @copydoc name_
+	 * @throw FigException if the name doesn't match a valid function
+	 */
+	ImportanceFunction(const std::string& name);
 
-	ImportanceFunction() : readyForSimulations(false) {}
+	/// Dtor
+	virtual ~ImportanceFunction() {}
+
+public:  // Accessors
 
 	/// @copydoc name_
-	inline const std::string& name() const noexcept { return name_; }
+	const std::string& name() const noexcept;
 
 	/**
 	 * @copydoc readyForSimulations
@@ -81,38 +120,58 @@ public:
 	 * @see assess_importance(ModuleInstance*, Property*)
 	 * @see assess_importance(ModuleNetwork*,  Property*)
 	 */
-	inline bool ready() const noexcept { return readyForSimulations; }
+	bool ready() const noexcept;
+
+	/// @copydoc strategy_
+	/// @returns Empty string if function isn't ready(), strategy name otherwise
+	const std::string& strategy() const noexcept;
+
+public:  // Utils
 
 	/**
 	 * @brief Assess the importance of the states on this \ref ModuleInstance
-	 *        "module", according to the given \ref Property "logical property"
+	 *        "module", according to the \ref Property "logical property" and
+	 *        strategy specified.
 	 *
-	 * @param mod  Module whose reachable states will have their importance assessed
-	 * @param prop Property guiding the function for the importance assessment
+	 * @param mod      Module whose reachable states will have their importance assessed
+	 * @param prop     Property guiding the importance assessment
+	 * @param strategy Strategy of the assessment (flat, auto, ad hoc...)
 	 *
 	 * @note After a successfull invocation the ImportanceFunction
 	 *       is ready() to be used during simulations
+	 *
+	 * @see assess_importance(const ModuleNetwork&, const Property&, const std::string&)
 	 */
-	virtual void assess_importance(const ModuleInstance* mod,
-								   const Property* prop) = 0;
+	virtual void assess_importance(const ModuleInstance& mod,
+								   const Property& prop,
+								   const std::string& strategy = "") = 0;
 
 	/**
 	 * @brief Assess the importance of the reachable states of the whole
-	 *        \ref ModuleNetwork "system model", according to the given
-	 *        \ref Property "logical property"
+	 *        \ref ModuleNetwork "system model", according to the
+	 *        \ref Property "logical property" and strategy specified.
 	 *
-	 * @param net  System model (or coupled network of modules)
-	 * @param prop Property guiding the function for the importance assessment
+	 * @param net      System model (or coupled network of modules)
+	 * @param prop     Property guiding the importance assessment
+	 * @param strategy Strategy of the assessment (flat, auto, ad hoc...)
 	 *
 	 * @note After a successfull invocation the ImportanceFunction
 	 *       is ready() to be used during simulations
+	 *
+	 * @see assess_importance(const ModuleInstance&, const Property&, const std::string&)
 	 */
-	virtual void assess_importance(const ModuleNetwork* net,
-								   const Property* prop) = 0;
+	virtual void assess_importance(const ModuleNetwork& net,
+								   const Property& prop,
+								   const std::string& strategy = "") = 0;
+
+	/// @brief Tell the pre-computed importance of the given StateInstance
+	/// @note All reachable states importance should have already been assessed
+	/// @see assess_importance()
+	virtual ImportanceValue importance_of(const StateInstance& state) const = 0;
 
 	/// Release any memory allocated in the heap
 	/// @note After this invocation the ImportanceFunction is no longer ready()
-	virtual void clear() = 0;
+	virtual void clear() noexcept = 0;
 };
 
 } // namespace fig

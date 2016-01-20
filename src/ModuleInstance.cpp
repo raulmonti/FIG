@@ -28,6 +28,12 @@
 
 
 // C++
+#include <set>
+#include <list>
+#include <deque>
+#include <vector>
+#include <forward_list>
+#include <unordered_set>
 #include <string>
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // std::find_if()
@@ -46,20 +52,23 @@ using std::end;
 namespace fig
 {
 
+const Label ModuleInstance::tau_;
+
+
 void
 ModuleInstance::add_transition(const Transition& transition)
 {
 #ifndef NDEBUG
 	if (0 <= globalIndex_ || 0 <= firstClock_)
-		throw FigException("this module has already been added to the network");
+		throw_FigException("this module has already been added to the network");
 	if (!is_our_clock(transition.triggeringClock))
-		throw FigException(std::string("triggering clock \"")
+		throw_FigException(std::string("triggering clock \"")
 						   .append(transition.triggeringClock)
 						   .append("\" does not reside in module \"")
 						   .append(name).append("\""));
 	for (const auto& clockName: transition.resetClocksList())
 		if (!is_our_clock(clockName))
-			throw FigException(std::string("reset clock \"").append(clockName)
+			throw_FigException(std::string("reset clock \"").append(clockName)
 							   .append("\" does not reside in module \"")
 							   .append(name).append("\""));
 #else
@@ -77,15 +86,15 @@ ModuleInstance::add_transition(Transition&& transition)
 {
 #ifndef NDEBUG
 	if (0 <= globalIndex_ || 0 <= firstClock_)
-		throw FigException("this module has already been added to the network");
+		throw_FigException("this module has already been added to the network");
 	if (!is_our_clock(transition.triggeringClock))
-		throw FigException(std::string("triggering clock \"")
+		throw_FigException(std::string("triggering clock \"")
 						   .append(transition.triggeringClock)
 						   .append("\" does not reside in module \"")
 						   .append(name).append("\""));
 	for (const auto& clockName: transition.resetClocksList())
 		if (!is_our_clock(clockName))
-			throw FigException(std::string("reset clock \"").append(clockName)
+			throw_FigException(std::string("reset clock \"").append(clockName)
 							   .append("\" does not reside in module \"")
 							   .append(name).append("\""));
 #else
@@ -99,34 +108,91 @@ ModuleInstance::add_transition(Transition&& transition)
 }
 
 
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+void
+ModuleInstance::add_transition(
+	const Label& label,
+	const std::string& triggeringClock,
+	const Precondition& pre,
+	const Postcondition& pos,
+	const Container<ValueType, OtherContainerArgs...>& resetClocks)
+{
+	add_transition(Transition(
+		std::forward<const Label&>(label),
+		std::forward<const std::string&>(triggeringClock),
+		std::forward<const Precondition&>(pre),
+		std::forward<const Postcondition&>(pos),
+		std::forward<const Container<ValueType, OtherContainerArgs...>&>(resetClocks)
+	));
+}
+
+// ModuleInstance::add_transition(...) can only be invoked with the following containers
+template void ModuleInstance::add_transition(const Label& label,
+											 const std::string& triggeringClock,
+											 const Precondition& pre,
+											 const Postcondition& pos,
+											 const std::set< std::string >& resetClocks);
+template void ModuleInstance::add_transition(const Label& label,
+											 const std::string& triggeringClock,
+											 const Precondition& pre,
+											 const Postcondition& pos,
+											 const std::list< std::string >& resetClocks);
+template void ModuleInstance::add_transition(const Label& label,
+											 const std::string& triggeringClock,
+											 const Precondition& pre,
+											 const Postcondition& pos,
+											 const std::deque< std::string >& resetClocks);
+template void ModuleInstance::add_transition(const Label& label,
+											 const std::string& triggeringClock,
+											 const Precondition& pre,
+											 const Postcondition& pos,
+											 const std::vector< std::string >& resetClocks);
+template void ModuleInstance::add_transition(const Label& label,
+											 const std::string& triggeringClock,
+											 const Precondition& pre,
+											 const Postcondition& pos,
+											 const std::forward_list< std::string >& resetClocks);
+template void ModuleInstance::add_transition(const Label& label,
+											 const std::string& triggeringClock,
+											 const Precondition& pre,
+											 const Postcondition& pos,
+											 const std::unordered_set< std::string >& resetClocks);
+
+
 const Label&
 ModuleInstance::jump(const std::string& clockName,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,
 					 Traial& traial) const
 {
-	if (!sealed_)
 #ifndef NDEBUG
-		throw FigException("this module hasn't been sealed yet");
-#else
-		return;
+	if (!sealed_)
+		throw_FigException("this module hasn't been sealed yet");
 #endif
-	assert(is_our_clock(clockName));
-	auto transitions = transitions_by_clock_.at(clockName);
-	for (auto& tr_ptr: transitions) {
+//		std::cerr << name << ": jumping with " << clockName
+//				  << " for " << elapsedTime << " time units" << std::endl;
+	const auto iter = transitions_by_clock_.find(clockName);
+	assert(end(transitions_by_clock_) != iter);  // deny foreign clocks
+	const auto& transitions = iter->second;
+	for (const auto& tr_ptr: transitions) {
 		if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
 			tr_ptr->pos(traial.state);   // apply postcondition to its state
-			tr_ptr->handle_clocks(       // and update all our clocks.
-				traial,
-				begin(lClocks_),
-				end(lClocks_),
-				firstClock_,
-				elapsedTime);
-			// Finally notify the broadcasted output label
-			assert(tr_ptr->label().is_output());
-			return tr_ptr->label();
+            tr_ptr->handle_clocks(       // and update clocks according to it.
+                traial,
+                begin(lClocks_),
+                end(lClocks_),
+                firstClock_,
+                elapsedTime);
+            // Finally broadcast the output label triggered
+            assert(tr_ptr->label().is_output());
+            return tr_ptr->label();
 		}
 	}
-	return std::move(Label());  // No transition triggered => broadcast tau
+    // No transition was enabled => advance all clocks and broadcast tau
+//	std::cerr << " (*) no enabled transition\n";
+	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
+    return ModuleInstance::tau_;
 }
 
 
@@ -135,38 +201,33 @@ ModuleInstance::jump(const Label& label,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,
 					 Traial& traial) const
 {
+#ifndef NDEBUG
 	if (!sealed_)
-#ifndef NDEBUG
-		throw FigException("this module hasn't been sealed yet");
-#else
-		return;
+		throw_FigException("this module hasn't been sealed yet");
 #endif
+//		std::cerr << name << ": reacting to \"" << label.str
+//				  << "\" for " << elapsedTime << " time units" << std::endl;
 	assert(label.is_output());
-	if (label.is_tau())
-		return;
-#ifndef NDEBUG
-	try {
-#endif
-	auto transitions = transitions_by_label_.at(label.str);
-	for (auto& tr_ptr: transitions) {
-		if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
-			tr_ptr->pos(traial.state);   // apply postcondition to its state
-			tr_ptr->handle_clocks(       // and update all our clocks.
-				traial,
-				begin(lClocks_),
-				end(lClocks_),
-				firstClock_,
-				elapsedTime);
-			break;  // Only one transition could've been enabled, we trust Raúl
-		}
-	}
-#ifndef NDEBUG
-	} catch (std::out_of_range) {
-		throw FigException(std::string("output label \"").append(label.str)
-						   .append("\" wasn't found among the transitions ")
-						   .append("of module \"").append(name).append("\""));
-	}
-#endif
+	const auto iter = transitions_by_label_.find(label.str);
+    // Foreign labels and taus won't touch us
+    if (!label.is_tau() && end(transitions_by_label_) != iter) {
+        const auto& transitions = iter->second;
+        for (const auto& tr_ptr: transitions) {
+            if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
+                tr_ptr->pos(traial.state);   // apply postcondition to its state
+                tr_ptr->handle_clocks(       // and update clocks according to it.
+                   traial,
+                   begin(lClocks_),
+                   end(lClocks_),
+                   firstClock_,
+                   elapsedTime);
+                return;  // At most one transition could've been enabled, trust Raúl
+            }
+       }
+    }
+    // No transition was enabled? Then just advance all clocks
+//	std::cerr << " (*) tau or foreign label\n";
+	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
 }
 
 
@@ -205,9 +266,9 @@ ModuleInstance::mark_added(const int& globalIndex, const int& firstClock)
 	assert(0 <= firstClock);
 	if (0 <= globalIndex_ || 0 <= firstClock_)
 #ifndef NDEBUG
-		throw FigException("this module has already been added to the network");
+		throw_FigException("this module has already been added to the network");
 #else
-		return;
+		return lState_;
 #endif
 	globalIndex_ = globalIndex;
 	firstClock_ = firstClock;
@@ -222,7 +283,7 @@ ModuleInstance::seal(const PositionsMap& globalVars)
 	assert(0 <= firstClock_);
 	if (sealed_)
 #ifndef NDEBUG
-		throw FigException("this module has already been sealed");
+		throw_FigException("this module has already been sealed");
 #else
 		return;
 #endif
@@ -242,7 +303,7 @@ ModuleInstance::seal(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 	assert(0 <= firstClock_);
 	if (sealed_)
 #ifndef NDEBUG
-		throw FigException("this module has already been sealed");
+		throw_FigException("this module has already been sealed");
 #else
 		return;
 #endif

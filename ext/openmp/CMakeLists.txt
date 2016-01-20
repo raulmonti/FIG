@@ -24,11 +24,17 @@
 ##
 ##==============================================================================
 
-PROJECT (fig_ext)
+PROJECT (fig_ext_openmp)
+SET(CWD ${CMAKE_CURRENT_LIST_DIR})
 
-# Include all direct subdirectories
-ADD_SUBDIRECTORY(z3)
-#ADD_SUBDIRECTORY(boost)
-ADD_SUBDIRECTORY(openmp)
-ADD_SUBDIRECTORY(muparser2.2.5)
+# List include paths
+SET(HEADERS_DIR
+	${HEADERS_DIR}
+	${CWD}/include
+	CACHE INTERNAL ""  # append persistently for parent CMakeLists
+)
+
+## # Register source files
+## AUX_SOURCE_DIRECTORY(${CWD}/src OUR_SOURCES)
+## SET(ALL_SOURCES ${ALL_SOURCES} ${OUR_SOURCES} CACHE INTERNAL "")
 

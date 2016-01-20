@@ -57,21 +57,25 @@ namespace fig
  */
 class ImportanceFunctionConcreteSplit : public ImportanceFunctionConcrete
 {
+	// Make overloads explicit, otherwise Clang whines like a whore
+	using ImportanceFunction::assess_importance;
+	using ImportanceFunctionConcrete::assess_importance;
+
 public:
 
-	virtual void assess_importance(const ModuleInstance* mod,
-								   const Property* prop)
+	virtual void assess_importance(const ModuleInstance& mod,
+								   const Property& prop,
+								   const std::string& strategy = "")
 		{
-			throw FigException("TODO");
+			throw_FigException("TODO");
 		}
 
-	virtual void assess_importance(const ModuleNetwork* net,
-								   const Property* prop)
+	virtual void assess_importance(const ModuleNetwork& net,
+								   const Property& prop,
+								   const std::string& strategy = "")
 		{
-			assert(nullptr != net);
-			for (auto& mod: net->modules)
-				assess_importance(mod);  // Visit each module individually
-			return *this;
+			for (auto& mod: net.modules)  // Visit each module individually
+				assess_importance(*mod, prop, strategy);
 		}
 };
 

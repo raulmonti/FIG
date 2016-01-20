@@ -173,8 +173,7 @@ public:  // Read access to some attributes
 				return std::move(static_cast<Bitflag>(0u));
 		}
 
-//protected:  // Utilities offered to ModuleInstance
-public:  // Public only for testing
+protected:  // Utilities offered to ModuleInstance
 
 	/**
 	 * @brief Provide the global info needed for simulations
@@ -375,13 +374,13 @@ Transition::handle_clocks(Traial& traial,
 	unsigned thisClock(firstClock);
 	while (fromClock != toClock) {
 		if (must_reset(thisClock))
-			traial.clocks_[thisClock].value = fromClock->sample();
+            traial.clocks_[thisClock].value = fromClock->sample();
 		else
-			traial.clocks_[thisClock].value -= timeLapse;
-			// that could be negative, but it's unimportant at this stage
-		thisClock++;
-		fromClock++;
-	}
+            traial.clocks_[thisClock].value -= timeLapse;
+            // that could be negative, but it's unimportant at this stage
+        fromClock++;
+        thisClock++;
+    }
 }
 
 } // namespace fig

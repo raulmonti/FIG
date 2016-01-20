@@ -97,6 +97,12 @@ ModuleNetwork::add_module(ModuleInstance** module)
 void
 ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 {
+	if (sealed_)
+#ifndef NDEBUG
+		throw_FigException("ModuleNetwork has already been sealed");
+#else
+		return;
+#endif
 	modules.push_back(module);
 	auto state = module->mark_added(modules.size()-1, numClocks_);
 	gState.append(state);
@@ -117,7 +123,7 @@ ModuleNetwork::seal(const Container<ValueType, OtherContainerArgs...>& initialCl
 				  "a container with the initial clock names");
 	if (sealed_)
 #ifndef NDEBUG
-		throw FigException("the ModuleNetwork has already been sealed");
+		throw_FigException("the ModuleNetwork has already been sealed");
 #else
 		return;
 #endif
@@ -129,7 +135,7 @@ ModuleNetwork::seal(const Container<ValueType, OtherContainerArgs...>& initialCl
 		// ... seal it ...
 		module_ptr->seal(gState);
 		// ... search for initial clocks within ...
-		auto module_clocks = module_ptr->clocks();
+		const auto& module_clocks = module_ptr->clocks();
 		for (const auto& initClkName: initialClocksNames) {
 			auto clkIter = find_if(begin(module_clocks),
 								   end(module_clocks),
@@ -160,11 +166,9 @@ template void ModuleNetwork::seal(const std::unordered_set<std::string>&);
 std::unique_ptr< StateInstance >
 ModuleNetwork::initial_state() const
 {
-	if (!sealed())
 #ifndef NDEBUG
-		throw FigException("ModuleNetwork hasn't been sealed yet");
-#else
-		return;
+	if (!sealed())
+		throw_FigException("ModuleNetwork hasn't been sealed yet");
 #endif
 	return gState.to_state_instance();
 }
@@ -172,28 +176,47 @@ ModuleNetwork::initial_state() const
 
 void
 ModuleNetwork::simulation_step(Traial& traial,
-							   const SimulationEngine* engine) const
+                               const SimulationEngine& engine,
+                               const Property &property) const
 {
-	assert(nullptr != engine);
 	if (!sealed())
 #ifndef NDEBUG
-		throw FigException("ModuleNetwork hasn't been sealed yet");
+		throw_FigException("ModuleNetwork hasn't been sealed yet");
 #else
 		return;
 #endif
+
+//	/// @todo TODO erase debug print below
+//	std::cerr << "Starting at state ";
+//	for (const auto & e: traial.state)
+//		std::cerr << e << "  ";
+//	std::cerr << "----------------------------------------------" << std::endl;
+//	///////////////////////////////////////
+
     // Jump...
 	do {
 		auto timeout = traial.next_timeout();
-		// Active jump in the module whose clock timed-out
+        // Active jump in the module whose clock timed-out
 		auto label = timeout.module->jump(timeout.name, timeout.value, traial);
-		if (label.is_tau())
-			continue;
+//		/// @todo TODO erase debug print below
+//		std::cerr << "State:";
+//		for (auto& v: traial.state) std::cerr << " " << v;
+//		std::cerr << std::endl;
+//		///////////////////////////////////////
 		// Passive jumps in the modules listening to label
 		for (auto module_ptr: modules)
 			if (module_ptr->name != timeout.module->name)
 				module_ptr->jump(label, timeout.value, traial);
-	} while ( !engine->eventTriggered(traial) );
-    // ...until a relevant event is triggered
+        traial.lifeTime += timeout.value;
+    } while ( !engine.event_triggered(property, traial) );
+	// ...until a relevant event is observed
+
+//	/// @todo TODO erase debug print below
+//	std::cerr << "Ended at state ";
+//	for (const auto & e: traial.state)
+//		std::cerr << e << "  ";
+//	std::cerr << "----------------------------------------------" << std::endl;
+//	///////////////////////////////////////
 }
 
 

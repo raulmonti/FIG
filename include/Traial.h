@@ -55,6 +55,8 @@ namespace fig
 {
 
 class ModuleInstance;
+class ModuleNetwork;
+class ImportanceFunction;
 
 /**
  * @brief Simulation kernel (or 'trial trail')
@@ -68,31 +70,24 @@ class ModuleInstance;
  */
 class Traial
 {
-	friend class Transition;
-	friend class ModuleNetwork;
+    friend class Transition;  // allow them to handle our clocks
 
-//protected:
-public:  // Public only for testing
+public:
 
 	/// Paraphernalia needed on clock expiration
 	struct Timeout
 	{
 		/// Module where the expired clock exists
-		const std::shared_ptr<const ModuleInstance> module;
+		std::shared_ptr<const ModuleInstance> module;
 		/// Clock's name
-		const std::string& name;
+		std::string name;
 		/// Clock's time value
 		float value;
 		/// Data ctor
-		Timeout(std::shared_ptr<ModuleInstance> themodule,
+		Timeout(std::shared_ptr<const ModuleInstance> themodule,
 				const std::string& thename,
 				const float& thevalue) :
 			module(themodule), name(thename), value(thevalue) {}
-		// Other ctors
-		Timeout(const Timeout& that) = default;
-		Timeout(Timeout&& that)      = default;
-		Timeout& operator=(const Timeout& that) = delete;
-		Timeout& operator=(Timeout&& that)      = delete;
 	};
 
 public:  // Attributes
@@ -110,15 +105,12 @@ public:  // Attributes
 	/// (same order as in the system global state)
 	StateInstance state;
 
-//protected:
-public:  // Public only for testing
+private:
 
 	/// \ref Clock "Clocks" values instantiation
 	/// (order given by each \ref ModuleInstance "module" internals,
 	/// and in which order these were added to the network)
 	std::vector< Timeout > clocks_;
-
-private:
 
 	/// Time-increasing-ordered view of 'clocks_' vector.
 	/// Access for friends is safely granted through next_timeout()
@@ -128,7 +120,7 @@ private:
 	/// Negative if all are null.
 	int firstNotNull_;
 
-public:  // Ctors/Dtor
+public:  // Ctors/Dtor: TraialPool should be the only to create Traials
 
 	/**
 	 * @brief Void ctor for resources pool
@@ -164,31 +156,18 @@ public:  // Ctors/Dtor
 		   const Container<ValueType, OtherContainerArgs...>& whichClocks,
 		   bool orderTimeouts = false);
 
-	/// Copy ctor
-	inline Traial(const Traial& that) :
-		state(that.state),
-		clocks_(that.clocks_),
-		orderedIndex_(that.orderedIndex_),
-		firstNotNull_(that.firstNotNull_)
-		{}
+	/// Copy ctor disabled to avoid accidental copies,
+	/// only the TraialPool should explicitly create/destroy Traials
+	Traial(const Traial&) = delete;  // Instantiate with 'Traial&', not 'auto'
 
 	/// Move ctor
-	inline Traial(Traial&& that) :
-		state(std::move(that.state)),
-		clocks_(std::move(that.clocks_)),
-		orderedIndex_(std::move(that.orderedIndex_)),
-		firstNotNull_(std::move(that.firstNotNull_))
-		{}
+	Traial(Traial&& that) = default;
 
-	/// Copy assignment with copy&swap idiom
-	inline Traial& operator=(Traial that)
-		{
-			std::swap(state, that.state);
-			std::swap(clocks_, that.clocks_);
-			std::swap(orderedIndex_, that.orderedIndex_);
-			std::swap(firstNotNull_, that.firstNotNull_);
-			return *this;
-		}
+	/// Copy assignment
+	Traial& operator=(const Traial&) = default;
+
+	/// Move assignemnt
+	Traial& operator=(Traial&&) = default;
 
 	~Traial();
 
@@ -203,15 +182,16 @@ public:  // Utils
 	 *        This member function resets the Traial instance to comply
 	 *        with such initial conditions.
 	 *
+	 * @param network ModuleNetwork already sealed
+	 * @param impFun  ImportanceFunction currently on use for simulations
+	 *
 	 * @warning ModelSuite::seal() must have been called beforehand
 	 * \ifnot NDEBUG
 	 *   @throw FigException if the system model hasn't been sealed yet
 	 * \endif
 	 */
-	void initialize();
-
-//protected:
-public:  // Public only for testing
+	void initialize(std::shared_ptr< const ModuleNetwork > network,
+					std::shared_ptr< const ImportanceFunction > impFun);
 
 	/**
 	 * @brief Retrieve next not-null expiring clock
@@ -226,9 +206,29 @@ public:  // Public only for testing
 			if (reorder)
 				reorder_clocks();
 			if (0 > firstNotNull_)
-				throw FigException("all clocks are null!");
+                throw_FigException("all clocks are null! Deadlock?");
 			return clocks_[firstNotNull_];
 		}
+
+    /**
+     * @brief Make time elapse in specified range of clocks
+     *
+     *        The range [firstClock, firstClock+numClocks) should specify
+     *        the global indices of all the clocks in a ModuleInstance,
+     *        whose internal times need to be advanced in this Traial.
+     *
+     * @param firstClock First clock's index in the affected ModuleInstance
+     * @param numClocks  Number of clocks of the affected ModuleInstance
+     * @param timeLapse  Amount of time to kill
+     */
+    inline void
+    kill_time(const size_t& firstClock,
+              const size_t& numClocks,
+              const CLOCK_INTERNAL_TYPE& timeLapse)
+        {
+			for (size_t i = firstClock ; i < firstClock + numClocks ; i++)
+                clocks_[i].value -= timeLapse;
+        }
 
 private:
 

@@ -79,6 +79,9 @@ class ModuleInstance : public Module
 {
 	friend class ModuleNetwork;
 
+    /// Tau label to allow reference passing
+    static const Label tau_;
+
 	/// Local \ref Variable "variables"
 	State< STATE_INTERNAL_TYPE > lState_;
 
@@ -279,7 +282,32 @@ public:  // Ctors/Dtor and populating facilities
 	/// @copydoc add_transition()
 	void add_transition(Transition&& transition);
 
-public:  // Utils
+	/**
+	 * Add a new transition to this model, built from the forwarded arguments
+	 *
+	 * @param label           @copydoc Transition::label_
+	 * @param triggeringClock @copydoc Transition::triggeringClock
+	 * @param pre             @copydoc Transition::pre
+	 * @param pos             @copydoc Transition::pos
+	 * @param resetClocks     Names of the clocks to reset when transition is taken
+	 *
+	 * @warning Do not invoke after mark_added()
+	 * \ifnot NDEBUG
+	 *   @throw FigException if this module has already been added to the network
+	 *   @throw FigException if there's a variable or clock which doesn't belong
+	 *                       to this module
+	 * \endif
+	 */
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherContainerArgs >
+	void add_transition(const Label& label,
+						const std::string& triggeringClock,
+						const Precondition& pre,
+						const Postcondition& pos,
+						const Container<ValueType, OtherContainerArgs...>& resetClocks);
+
+public:  // Accessors
 
 	/// Number of variables defined in this module
 	inline size_t num_vars() const noexcept { return lState_.size(); }
@@ -293,8 +321,16 @@ public:  // Utils
 	/// Has this module been \ref seal() "sealed" already?
 	inline bool sealed() const noexcept { return sealed_; }
 
-	virtual inline void accept(ImportanceFunction& ifun, Property* const prop)
-		{ ifun.assess_importance(this, prop); }
+	/// @copydoc globalIndex_
+	/// Negative value until the module is added to the network.
+	inline int global_index() const noexcept { return globalIndex_; }
+
+public:  // Utils
+
+	virtual inline void accept(ImportanceFunction& ifun,
+							   const Property& prop,
+							   const std::string& strategy)
+		{ ifun.assess_importance(*this, prop, strategy); }
 
 	/**
 	 * @brief Active module jump caused by expiration of our clock "clockName"
@@ -357,8 +393,7 @@ private:
 	/// @warning mark_added() must have been called beforehand
 	PositionsMap map_our_clocks() const;
 
-//protected:  // Callback utilities offered to the ModuleNetwork
-public:  // Public only for testing
+private:  // Callback utilities offered to the ModuleNetwork
 
 	/**
 	 * @brief Report this module has been added to the network

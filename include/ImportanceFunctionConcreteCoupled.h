@@ -30,10 +30,9 @@
 #ifndef IMPORTANCEFUNCTIONCONCRETECOUPLED_H
 #define IMPORTANCEFUNCTIONCONCRETECOUPLED_H
 
-#include <FigException.h>
 #include <ImportanceFunctionConcrete.h>
-#include <ModuleInstance.h>
-#include <ModuleNetwork.h>
+#include <State.h>
+#include <FigException.h>
 
 
 namespace fig
@@ -56,24 +55,41 @@ namespace fig
  */
 class ImportanceFunctionConcreteCoupled : public ImportanceFunctionConcrete
 {
+	// Make overloads explicit, otherwise Clang whines like a whore
+	using ImportanceFunction::assess_importance;
+	using ImportanceFunctionConcrete::assess_importance;
 
-public:
+	/// Copy of the global state of the model (i.e. the network of modules)
+	mutable State< STATE_INTERNAL_TYPE > globalStateCopy_;
 
-	virtual void assess_importance(const ModuleInstance* mod,
-								   const Property* prop)
+	/// For interaction with base class ImportanceFunctionConcrete
+	const unsigned importanceInfoIndex_;
+
+public:  // Ctor/Dtor
+
+	ImportanceFunctionConcreteCoupled();
+
+	virtual ~ImportanceFunctionConcreteCoupled();
+
+public:  // Utils
+
+	virtual void assess_importance(const ModuleInstance&,
+								   const Property&,
+								   const std::string&)
 		{
-			throw FigException("Concrete importance function for a coupled "
+			throw_FigException("Concrete importance function for a coupled "
 							   "model can't be applied to a single \"split\" "
 							   "ModuleInstance. Take a look at "
 							   "ImportanceFunctionConcreteSplit instead.");
 		}
 
-	virtual void assess_importance(const ModuleNetwork* net,
-								   const Property* prop)
-		{
-			/// @todo TODO implement
-			throw FigException("TODO");
-		}
+	virtual void assess_importance(const ModuleNetwork& net,
+								   const Property& prop,
+								   const std::string& strategy = "");
+
+	virtual ImportanceValue importance_of(const StateInstance& state) const;
+
+	virtual void clear() noexcept;
 };
 
 } // namespace fig

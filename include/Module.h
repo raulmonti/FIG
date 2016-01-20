@@ -54,9 +54,11 @@ class Module
 
 public:  // Utils
 
-	/// Have the importance of our states assessed by this ImportanceFunction
-	/// according to the given Property
-	virtual void accept(ImportanceFunction& ifun, Property* const prop) = 0;
+	/// Have the importance of our states assessed by this ImportanceFunction,
+	/// according to the given Property and strategy
+	virtual void accept(ImportanceFunction& ifun,
+						const Property& property,
+						const std::string& startegy) = 0;
 };
 
 } // namespace fig
