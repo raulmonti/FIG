@@ -62,9 +62,11 @@ protected:
 	// Make overloads explicit, otherwise Clang whines like a whore
 	using ImportanceFunction::assess_importance;
 
-protected:  // Attributes
+public:
 
 	typedef std::vector< ImportanceValue > ImportanceVec;
+
+protected:  // Attributes
 
 	/// Concrete importance assessment for the whole system model
 	std::vector< ImportanceVec > modulesConcreteImportance;
@@ -87,7 +89,8 @@ protected:  // Utils
 	 *        corresponding concrete states. The resulting information will
 	 *        be stored internally at position "index".
 	 *
-	 * @param state    Vector of variables representing the state of a Module
+	 * @param state    Vector of variables representing the state of a Module.
+	 *                 Its current valuation is considered the initial state.
 	 * @param property Logical property identifying the special states
 	 * @param strategy Importance assessment strategy to follow
 	 * @param index    Internal location where resulting info will be kept

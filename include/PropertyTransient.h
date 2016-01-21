@@ -159,9 +159,6 @@ protected:  // Modifyers
 
 public:  // Utils
 
-    inline virtual bool satisfied_by(const StateInstance& s) const
-        { return !is_stop(s) || is_goal(s); }  // weak until... is it OK?
-
 	/// Is the "stop" subformula satisfied by the given variables valuation?
 	/// @see PropertyTransient::stop
 	inline bool is_stop(const StateInstance& s) const { return stop(s); }
@@ -169,6 +166,12 @@ public:  // Utils
 	/// Is the "goal" subformula satisfied by the given variables valuation?
 	/// @see PropertyTransient::goal
 	inline bool is_goal(const StateInstance& s) const { return goal(s); }
+
+    inline virtual bool satisfied_by(const StateInstance& s) const
+        { return !is_stop(s) || is_goal(s); }  // weak until... is it OK?
+
+    inline virtual bool is_rare(const StateInstance& s) const
+        { return is_goal(s); }
 };
 
 } // namespace fig

@@ -132,7 +132,8 @@ public:  // Utils
 	 *        "module", according to the \ref Property "logical property" and
 	 *        strategy specified.
 	 *
-	 * @param mod      Module whose reachable states will have their importance assessed
+	 * @param mod      Module whose reachable states will have their importance
+	 *                 assessed. Its current state is considered initial.
 	 * @param prop     Property guiding the importance assessment
 	 * @param strategy Strategy of the assessment (flat, auto, ad hoc...)
 	 *
@@ -151,6 +152,7 @@ public:  // Utils
 	 *        \ref Property "logical property" and strategy specified.
 	 *
 	 * @param net      System model (or coupled network of modules)
+	 *                 Its current state is taken as the model's initial state.
 	 * @param prop     Property guiding the importance assessment
 	 * @param strategy Strategy of the assessment (flat, auto, ad hoc...)
 	 *
