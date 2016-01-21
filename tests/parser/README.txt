@@ -33,9 +33,9 @@ DONE    Check that clocks have unique distribution in between transitions.
 DONE    work with constants.
 DONE    Decide if the module named smtsolver is really needed or if it can be
         taken into iosacompliance module.
-TODO    Parser clear() method.
+DONE    Parser clear() method.
 TODO    Check all the constants resolution process.
-TODO    Build input-enable transition to comply with IOSA 6th property.
+DONE    Build input-enable transition to comply with IOSA 6th property.
 TODO    Complete the counterexample tests for iosacompliance.
 TODO    Test modules for parallel compatibility (disjoint output labels).
 TODO    AUTOMATIC tests instead of counterexample texts that we have for the
@@ -45,7 +45,7 @@ TODO    Improve efficiency and correctness by using const when needed and avoid
         copying when not needed.
 TODO    Initialize variables with constant expressions and not only numbers.
 TODO    Bad typing should quit the parser, as well as bad naming. 
-
+TODO    Verify initializations out of range for variables.
 
 
 #-------------------------------------------------------------------------------

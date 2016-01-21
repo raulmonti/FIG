@@ -71,6 +71,33 @@ Parser::~Parser(){
 }
 
 
+void
+Parser::clear(void)
+{
+    pos = -1;
+    lastpos = -1;
+    skipws = true;
+    ast = NULL;
+    tokens.clear();
+    lexemes.clear();
+    lines.clear();
+    columns.clear();
+    while(!lastk.empty()){
+        lastk.pop();
+    }
+    while(!astStk.empty()){
+        astStk.pop();
+    }
+    if(ast){
+        delete ast;
+        ast = NULL;
+    }
+    mPc.clear();
+}
+
+
+
+
 /** @brief Get the next token from the tokens vector and make it
  *  available in @tkn class member. If @skipws then it will skip
  *  white space tokens and make available the next non white 

@@ -184,11 +184,13 @@ class Parser
     parsingContext  mPc;            // Map with type informartion for ast
 public:
 
-    /** 
+    /**
+     * @brief Ctor.
      */
     Parser(void);
 
     /**
+     * @brief Dtor.
      */
     virtual ~Parser();
 
@@ -216,7 +218,12 @@ public:
     const pair< AST*, parsingContext>
     parse(stringstream *str);
 
-    
+    /**
+     * @brief Clear all the information introduced in this parser.
+     */
+    void
+    clear(void);
+
     /**  @brief check if we ran out of lexemes to parse.
      *   @return 1 if parsing ended, 0 otherwise.
      */

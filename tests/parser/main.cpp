@@ -65,6 +65,7 @@ main (int argc, char** argv){
         try{
             stringstream pss;
             pss << prec->pre_compile(pp.first,pp.second);
+            parser->clear();
             pp = parser->parse(&pss);
             verifier->verify(pp.first,pp.second);
             fig::CompileModel(pp.first,pp.second);

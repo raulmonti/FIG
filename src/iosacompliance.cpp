@@ -17,6 +17,7 @@
 #include "iosacompliance.h"
 #include "ast.h"
 #include "exceptions.h"
+#include "FigException.h"
 
 
 /*TODO decide if the following definition is useful and do the same with
@@ -30,6 +31,9 @@
 
 
 using namespace std;
+using namespace fig;
+
+
 namespace parser{
 
 /** @brief  Check if the transition parsed into an AST corresponds to an
@@ -192,7 +196,7 @@ get_limits(AST* ast, string var){
             return result;
         }
     }
-    throw ProgramError(("Can't find variable " + var + " limits.").c_str());
+    throw FigException("Can't find variable " + var + " limits.");
 }
 
 

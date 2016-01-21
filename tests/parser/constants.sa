@@ -5,7 +5,7 @@ const bool c4 = c3 > c1;
 
 module mod1
 
-a : [0..10] init 0;
+a : [0..10] init c3;
 
 [l?]  a > c2 -> ;
 
