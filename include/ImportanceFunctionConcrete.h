@@ -43,6 +43,7 @@ namespace fig
 {
 
 class Property;
+class Transition;
 
 /**
  * @brief Abstract importance function for concrete importance assessment
@@ -89,11 +90,12 @@ protected:  // Utils
 	 *        corresponding concrete states. The resulting information will
 	 *        be stored internally at position "index".
 	 *
-	 * @param state    Vector of variables representing the state of a Module.
-	 *                 Its current valuation is considered the initial state.
-	 * @param property Logical property identifying the special states
-	 * @param strategy Importance assessment strategy to follow
-	 * @param index    Internal location where resulting info will be kept
+	 * @param symbState Vector of variables representing the state of a Module.
+	 *                  Its current valuation is considered the initial state.
+	 * @param trans     All the transitions of the Module, in any order
+	 * @param property  Logical property identifying the special states
+	 * @param strategy  Importance assessment strategy to follow
+	 * @param index     Internal location where resulting info will be kept
 	 *
 	 * @note This allocates (tons of) memory internally
 	 * @note To assess again for same index with different strategy or property,
@@ -103,6 +105,7 @@ protected:  // Utils
 	 * @throw FigException if there's already importance info for this index
 	 */
 	virtual void assess_importance(const State<STATE_INTERNAL_TYPE>& symbState,
+								   const std::vector<std::shared_ptr<Transition>>& trans,
 								   const Property& property,
 								   const std::string& strategy,
 								   const unsigned& index = 0);

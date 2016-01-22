@@ -119,6 +119,9 @@ public:  // Utils
      */
     virtual bool satisfied_by(const StateInstance& s) const = 0;
 
+    /// @copydoc satisfied_by()
+    virtual bool satisfied_by(const State<STATE_INTERNAL_TYPE>& s) const = 0;
+
     /**
      * @brief Is this state considered "rare" for importance simulation?
      *
@@ -133,6 +136,9 @@ public:  // Utils
      * @endif
      */
     virtual bool is_rare(const StateInstance& s) const = 0;
+
+    /// @copydoc is_rare()
+    virtual bool is_rare(const State<STATE_INTERNAL_TYPE>& s) const = 0;
 };
 
 } // namespace fig

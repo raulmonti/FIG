@@ -84,17 +84,6 @@ ModuleNetwork::~ModuleNetwork()
 
 
 void
-ModuleNetwork::add_module(ModuleInstance** module)
-{
-	modules.emplace_back(*module);
-	auto state = (*module)->mark_added(modules.size()-1, numClocks_);
-	gState.append(state);
-	numClocks_ += (*module)->clocks().size();
-	*module = nullptr;
-}
-
-
-void
 ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 {
 	if (sealed_)
@@ -107,6 +96,10 @@ ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 	auto state = module->mark_added(modules.size()-1, numClocks_);
 	gState.append(state);
 	numClocks_ += module->clocks().size();
+	transitions_.reserve(transitions_.size() + module->transitions_.size());
+	transitions_.insert(transitions_.end(),
+						module->transitions_.begin(),
+						module->transitions_.end());
 	module = nullptr;
 }
 
@@ -163,7 +156,7 @@ template void ModuleNetwork::seal(const std::forward_list<std::string>&);
 template void ModuleNetwork::seal(const std::unordered_set<std::string>&);
 
 
-std::unique_ptr< StateInstance >
+StateInstance
 ModuleNetwork::initial_state() const
 {
 #ifndef NDEBUG

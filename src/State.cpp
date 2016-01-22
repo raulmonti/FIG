@@ -207,19 +207,18 @@ State<T_>::copy_to_state_instance(StateInstance& s) const
 
 
 template< typename T_ >
-std::unique_ptr< StateInstance >
-State<T_>::to_state_instance() const
+StateInstance State<T_>::to_state_instance() const
 {
-	std::unique_ptr< StateInstance > s(new StateInstance(size()));
+	StateInstance s(size());
 	for (size_t i = 0u ; i < size() ; i++)
-		(*s)[i] = pvars_[i]->val();
+		s[i] = pvars_[i]->val();
 	return s;
 }
 
 
 template< typename T_ >
 size_t
-State<T_>::encode_state() const
+State<T_>::encode() const
 {
 	size_t n(0), numVars(size());
 	#pragma omp parallel for reduction(+:n) shared(numVars)
@@ -234,8 +233,8 @@ State<T_>::encode_state() const
 
 
 template< typename T_ >
-void
-State<T_>::decode_state(const size_t& n)
+const State<T_>&
+State<T_>::decode(const size_t& n)
 {
 	const size_t numVars(size());
 	assert(n < maxConcreteState_);
@@ -246,12 +245,13 @@ State<T_>::decode_state(const size_t& n)
 			stride *= pvars_[j]->range_;
 		pvars_[i]->offset_ = (n / stride) % pvars_[i]->range_;
 	}
+	return *this;
 }
 
 
 template< typename T_ >
 T_
-State<T_>::decode_state(const size_t& n, const size_t& i) const
+State<T_>::decode(const size_t& n, const size_t& i) const
 {
 	size_t numVars(size()), stride(1u);
 	assert(i < numVars);
@@ -265,7 +265,7 @@ State<T_>::decode_state(const size_t& n, const size_t& i) const
 
 template< typename T_ >
 T_
-State<T_>::decode_state(const size_t& n, const std::string& varname) const
+State<T_>::decode(const size_t& n, const std::string& varname) const
 {
 	size_t varpos(0);
 	assert(n < maxConcreteState_);
@@ -273,7 +273,7 @@ State<T_>::decode_state(const size_t& n, const std::string& varname) const
 		if (varname == pvars_[varpos]->name_)
 			break;
 	assert(varpos < size());
-	return decode_state(n, varpos);
+	return decode(n, varpos);
 }
 
 // State can only be instantiated with following integral types

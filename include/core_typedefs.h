@@ -127,13 +127,44 @@ typedef  std::unordered_map< std::string, size_t >              PositionsMap;
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //
 //
-// Importance
+// Importance and simulation events
 //
 
 /// Primitive type used to assess the importance of a single concrete state
 /// @warning This bounds the number of representable importance levels
 ///
-typedef short                                                ImportanceValue;
+typedef  unsigned short                                      ImportanceValue;
+
+/// Bit flag to identify the recognized events during simulation
+///
+typedef  ImportanceValue                                               Event;
+
+/// Simulation event types
+///
+enum EventType
+{
+	NONE       = 0,
+	RARE       = 1<<(8*sizeof(Event)-1),
+	STOP       = 1<<(8*sizeof(Event)-2),
+	REFERENCE  = 1<<(8*sizeof(Event)-3),
+	THR_UP     = 1<<(8*sizeof(Event)-4),
+	THR_DOWN   = 1<<(8*sizeof(Event)-5)
+};
+
+inline ImportanceValue UNMASK(const ImportanceValue& val) noexcept
+{ return val & ~(static_cast<ImportanceValue>(RARE|STOP|REFERENCE|THR_UP|THR_DOWN)); }
+
+inline bool IS_RARE_EVENT     (const Event& e) { return e & EventType::RARE;      }
+inline bool IS_STOP_EVENT     (const Event& e) { return e & EventType::STOP;      }
+inline bool IS_REFERENCE_EVENT(const Event& e) { return e & EventType::REFERENCE; }
+inline bool IS_THR_UP_EVENT   (const Event& e) { return e & EventType::THR_UP;    }
+inline bool IS_THR_DOWN_EVENT (const Event& e) { return e & EventType::THR_DOWN;  }
+
+inline void SET_RARE_EVENT     (Event& e) { e |= EventType::RARE;      }
+inline void SET_STOP_EVENT     (Event& e) { e |= EventType::STOP;      }
+inline void SET_REFERENCE_EVENT(Event& e) { e |= EventType::REFERENCE; }
+inline void SET_THR_UP_EVENT   (Event& e) { e |= EventType::THR_UP;    }
+inline void SET_THR_DOWN_EVENT (Event& e) { e |= EventType::THR_DOWN;  }
 
 //
 //
@@ -161,41 +192,6 @@ enum PropertyType
 	/// P( F[<=time] goal )
 	BOUNDED_REACHABILITY
 };
-
-//
-//
-// // // // // // // // // // // // // // // // // // // // // // // // // //
-//
-// Simulation
-//
-
-/// Bit flag to identify the recognized events during simulation
-///
-typedef short                                                          Event;
-
-/// Simulation event types
-///
-enum EventType
-{
-    NONE       = 0,
-    REFERENCE  = 1<< 0,
-    STOP       = 1<< 1,
-    RARE       = 1<< 2,
-    THR_UP     = 1<< 3,
-    THR_DOWN   = 1<< 4
-};
-
-inline bool IS_REFERENCE_EVENT(const Event& e) { return e & EventType::REFERENCE; }
-inline bool IS_STOP_EVENT     (const Event& e) { return e & EventType::STOP;      }
-inline bool IS_RARE_EVENT     (const Event& e) { return e & EventType::RARE;      }
-inline bool IS_THR_UP_EVENT   (const Event& e) { return e & EventType::THR_UP;    }
-inline bool IS_THR_DOWN_EVENT (const Event& e) { return e & EventType::THR_DOWN;  }
-
-inline void SET_REFERENCE_EVENT(Event& e) { e |= EventType::REFERENCE; }
-inline void SET_STOP_EVENT     (Event& e) { e |= EventType::STOP;      }
-inline void SET_RARE_EVENT     (Event& e) { e |= EventType::RARE;      }
-inline void SET_THR_UP_EVENT   (Event& e) { e |= EventType::THR_UP;    }
-inline void SET_THR_DOWN_EVENT (Event& e) { e |= EventType::THR_DOWN;  }
 
 //
 //

@@ -170,8 +170,14 @@ public:  // Utils
     inline virtual bool satisfied_by(const StateInstance& s) const
         { return !is_stop(s) || is_goal(s); }  // weak until... is it OK?
 
+    inline virtual bool satisfied_by(const State<STATE_INTERNAL_TYPE>& s) const
+        { return satisfied_by(s.to_state_instance()); }
+
     inline virtual bool is_rare(const StateInstance& s) const
         { return is_goal(s); }
+
+    inline virtual bool is_rare(const State<STATE_INTERNAL_TYPE>& s) const
+        { return is_rare(s.to_state_instance()); }
 };
 
 } // namespace fig

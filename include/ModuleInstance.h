@@ -504,6 +504,7 @@ ModuleInstance::ModuleInstance(
 				  "constructed from a container with Transition objects");
 	for(const auto& tr: transitions) {
 		auto ptr = std::make_shared<Transition>(tr);
+		transitions_.emplace_back(ptr);
 		transitions_by_label_[tr.label().str].emplace_back(ptr);
 		transitions_by_clock_[tr.triggeringClock].emplace_back(ptr);
 	}
@@ -540,6 +541,7 @@ ModuleInstance::ModuleInstance(
 				  "to Transition objects");
 	for(auto&& tr: transitions) {
 		auto ptr = std::make_shared<Transition>(std::forward<Transition>(tr));
+		transitions_.emplace_back(ptr);
 		transitions_by_label_[tr.label().str].emplace_back(ptr);
 		transitions_by_clock_[tr.triggeringClock].emplace_back(ptr);
 	}
@@ -578,6 +580,7 @@ ModuleInstance::ModuleInstance(
 	for(auto tr_ptr: transitions) {
 		auto ptr = std::shared_ptr<Transition>(tr_ptr);
 		assert(nullptr != ptr);
+		transitions_.emplace_back(ptr);
 		transitions_by_label_[tr_ptr->label().str].emplace_back(ptr);
 		transitions_by_clock_[tr_ptr->triggeringClock].emplace_back(ptr);
 		tr_ptr = nullptr;
@@ -617,6 +620,7 @@ ModuleInstance::ModuleInstance(
 	do {
 		const Transition& tr = *from;
 		auto ptr = std::make_shared<Transition>(tr);
+		transitions_.emplace_back(ptr);
 		transitions_by_label_[tr.label().str].emplace_back(ptr);
 		transitions_by_clock_[tr.triggeringClock].emplace_back(ptr);
 	} while (++from != to);

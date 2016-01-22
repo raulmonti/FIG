@@ -56,7 +56,11 @@ ImportanceFunctionConcreteCoupled::assess_importance(
 {
 	globalStateCopy_ = net.global_state();
 	// Use member function inherited from ImportanceFunctionConcrete
-	assess_importance(globalStateCopy_, prop, strategy, importanceInfoIndex_);
+	assess_importance(net.gState,
+					  net.transitions_,
+					  prop,
+					  strategy,
+					  importanceInfoIndex_);
 	readyForSimulations = true;
 	strategy_ = strategy;
 }
@@ -71,8 +75,8 @@ ImportanceFunctionConcreteCoupled::importance_of(const StateInstance& state) con
 #else
 	globalStateCopy_.copy_from_state_instance(state, false);
 #endif
-	return modulesConcreteImportance[importanceInfoIndex_]
-									[globalStateCopy_.encode_state()];
+	return UNMASK(modulesConcreteImportance[importanceInfoIndex_]
+										   [globalStateCopy_.encode()]);
 }
 
 

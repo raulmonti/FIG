@@ -113,17 +113,6 @@ public:  // Populating facilities
 	/**
 	 * @brief Add a new \ref ModuleInstance "module" to the network
 	 * @param module Pointer with the new module to add
-	 * @note The argument is reset to nullptr during call for safety reasons.
-	 *       The module instance is thus effectively stolen.
-	 * @warning Do not invoke after seal()
-	 * @deprecated Use the \ref add_module(std::shared_ptr<ModuleInstance>&)
-	 *             "shared_ptr version" instead
-	 */
-	void add_module(ModuleInstance** module);
-
-	/**
-	 * @brief Add a new \ref ModuleInstance "module" to the network
-	 * @param module Pointer with the new module to add
 	 * @note The argument should have been allocated with std::make_shared()
 	 * @note The argument is reset to nullptr during call for safety reasons.
 	 *       The module instance is thus effectively stolen.
@@ -166,7 +155,7 @@ public:  // Utils
 	 *   @throw FigException if seal() hasn't been called yet
 	 * \endif
 	 */
-	std::unique_ptr< StateInstance > initial_state() const;
+	StateInstance initial_state() const;
 
 	/**
 	 * @brief Shut the network and fill in internal global data.

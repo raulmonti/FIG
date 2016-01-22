@@ -30,12 +30,18 @@
 #ifndef MODULE_H
 #define MODULE_H
 
+// C++
+#include <vector>
+#include <memory>
+// FIG
 #include <ImportanceFunction.h>
 #include <Property.h>
 
 
 namespace fig
 {
+
+class Transition;
 
 /**
  * @brief Abstract base module class
@@ -51,6 +57,11 @@ namespace fig
  */
 class Module
 {
+protected:
+
+	/// All the transitions of the Module, with no particular order.
+	/// @note Needed to traverse the state space, e.g. when building auto ifun
+	std::vector< std::shared_ptr< Transition > > transitions_;
 
 public:  // Utils
 

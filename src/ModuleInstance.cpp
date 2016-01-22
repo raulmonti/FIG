@@ -76,6 +76,7 @@ ModuleInstance::add_transition(const Transition& transition)
 		return;
 #endif
 	auto ptr = std::make_shared<Transition>(transition);
+	transitions_.emplace_back(ptr);
 	transitions_by_label_[transition.label().str].emplace_back(ptr);
 	transitions_by_clock_[transition.triggeringClock].emplace_back(ptr);
 }
@@ -101,8 +102,9 @@ ModuleInstance::add_transition(Transition&& transition)
 	if (0 <= globalIndex_ || 0 <= firstClock_)
 		return;
 #endif
-	auto ptr = std::make_shared<Transition>(std::forward<Transition>(transition));
 	// shared_ptr from rvalue: http://stackoverflow.com/q/15917475
+	auto ptr = std::make_shared<Transition>(std::forward<Transition>(transition));
+	transitions_.emplace_back(ptr);
 	transitions_by_label_[transition.label().str].emplace_back(ptr);
 	transitions_by_clock_[transition.triggeringClock].emplace_back(ptr);
 }
