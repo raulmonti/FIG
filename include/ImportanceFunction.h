@@ -125,6 +125,10 @@ public:  // Accessors
 	/// @returns Empty string if function isn't ready(), strategy name otherwise
 	const std::string& strategy() const noexcept;
 
+	/// Whether this instance stores importance values for the concrete state
+	/// space (as opposed to the symbolic state space)
+	const virtual bool concrete() const noexcept = 0;
+
 public:  // Utils
 
 	/**

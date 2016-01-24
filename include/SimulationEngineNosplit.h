@@ -71,6 +71,9 @@ public:  // Inherited virtual simulation functions
 	virtual bool event_triggered(const Property& property,
 								 const Traial& traial) const;
 
+	virtual bool event_triggered_concrete(const Property& property,
+										  const Traial& traial) const;
+
 private:  // Simulation helper functions
 
 	double transient_simulation(const PropertyTransient& property,

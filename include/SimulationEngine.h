@@ -43,6 +43,7 @@
 namespace fig
 {
 
+class ImportanceFunctionConcrete;
 class ConfidenceInterval;
 class StoppingConditions;
 class ModuleNetwork;
@@ -75,11 +76,20 @@ protected:
     /// User's system model, already sealed
     std::shared_ptr< const ModuleNetwork > network_;
 
+    /// Copy of the network's global state
+    State<STATE_INTERNAL_TYPE> globalState_;
+
     /// Importance function currently built
     std::shared_ptr< const ImportanceFunction > impFun_;
 
+    /// Concrete importance function currently built, if any
+    std::shared_ptr< const ImportanceFunctionConcrete > cImpFun_;
+
     /// Were we just interrupted in an estimation timeout?
     mutable bool interrupted;
+
+    /// Last events triggered by current simulation
+    mutable thread_local Event lastEvents_;
 
 public:  // Ctors/Dtor
 
@@ -197,6 +207,20 @@ public:  // Simulation utils
      */
     virtual bool event_triggered(const Property& property,
                                  const Traial& traial) const = 0;
+
+    /**
+     * @brief Were the last events triggered by the given Traial
+     *        relevant for this property and simulation strategy?
+     *
+     * @param property Property whose value is being estimated
+     * @param traial   Embodiment of a simulation running through the system model
+     *
+     * @note The importance function used is taken from the last call to bind()
+     * @note This function assumes a \ref ImportanceFunctionConcrete
+     *       "concrete importance function" is currently bound to the engine
+     */
+    virtual bool event_triggered_concrete(const Property& property,
+                                          const Traial& traial) const = 0;
 };
 
 } // namespace fig

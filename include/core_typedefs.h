@@ -130,12 +130,13 @@ typedef  std::unordered_map< std::string, size_t >              PositionsMap;
 // Importance and simulation events
 //
 
-/// Primitive type used to assess the importance of a single concrete state
+/// Primitive type used to assess the importance of a single *concrete* state
 /// @warning This bounds the number of representable importance levels
 ///
 typedef  unsigned short                                      ImportanceValue;
 
 /// Bit flag to identify the recognized events during simulation
+/// @note Same as ImportanceValue to store this info in the ImportanceFunction
 ///
 typedef  ImportanceValue                                               Event;
 
@@ -143,13 +144,16 @@ typedef  ImportanceValue                                               Event;
 ///
 enum EventType
 {
-	NONE       = 0,
-	RARE       = 1<<(8*sizeof(Event)-1),
-	STOP       = 1<<(8*sizeof(Event)-2),
-	REFERENCE  = 1<<(8*sizeof(Event)-3),
-	THR_UP     = 1<<(8*sizeof(Event)-4),
-	THR_DOWN   = 1<<(8*sizeof(Event)-5)
+    NONE       = 0,
+    RARE       = 1u<<(8*sizeof(Event)-1),
+    STOP       = 1u<<(8*sizeof(Event)-2),
+    REFERENCE  = 1u<<(8*sizeof(Event)-3),
+    THR_UP     = 1u<<(8*sizeof(Event)-4),
+    THR_DOWN   = 1u<<(8*sizeof(Event)-5)
 };
+
+inline Event MASK(const ImportanceValue& val) noexcept
+{ return static_cast<Event>(val) & (RARE|STOP|REFERENCE|THR_UP|THR_DOWN); }
 
 inline ImportanceValue UNMASK(const ImportanceValue& val) noexcept
 { return val & ~(static_cast<ImportanceValue>(RARE|STOP|REFERENCE|THR_UP|THR_DOWN)); }

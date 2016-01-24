@@ -80,6 +80,10 @@ public:  // Ctor/Dtor
 	/// Dtor
 	virtual ~ImportanceFunctionConcrete();
 
+public:  // Accessors
+
+	const inline virtual bool concrete() const noexcept { return true; }
+
 protected:  // Utils
 
 	/**
@@ -109,6 +113,11 @@ protected:  // Utils
 								   const Property& property,
 								   const std::string& strategy,
 								   const unsigned& index = 0);
+
+	/// @brief Tell the events triggered by this state, if any
+	/// @note All reachable states importance should have already been assessed
+	inline Event events_of(const State<STATE_INTERNAL_TYPE>& state) const
+		{ return MASK(modulesConcreteImportance[state.encode()]); }
 
 	/// Erase all internal importance information and free resources
 	virtual void clear() noexcept;
