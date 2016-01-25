@@ -189,11 +189,14 @@ public:  // Utils
 	 *        Starting from the state stored in traial, this routine
 	 *        performs synchronized jumps in the \ref ModuleInstance
 	 *        "modules composing the system", until some event relevant
-	 *        for the current simulation strategy is triggered.
+	 *        for the current property and simulation strategy is triggered.
 	 *        Information regarding the simulation run is kept in traial.
 	 *
-	 * @param traial Traial instance keeping track of the simulation
-	 * @param engine Semantics of the current simulation strategy
+	 * @param traial   Traial instance keeping track of the simulation
+	 * @param property Property whose value is currently being estimated
+	 * @param engine   Semantics of the current simulation strategy
+	 * @param event_triggered SimulationEngine member function pointer
+	 *                        which tells when a simulation step has ended
 	 *
 	 * @warning seal() must have been called beforehand
 	 * \ifnot NDEBUG
@@ -201,8 +204,10 @@ public:  // Utils
 	 * \endif
 	 */
 	void simulation_step(Traial& traial,
+						 const Property& property,
 						 const SimulationEngine& engine,
-						 const Property& property) const;
+						 bool (SimulationEngine::*event_triggered)
+							  (const Property&, const Traial&) const) const;
 };
 
 } // namespace fig

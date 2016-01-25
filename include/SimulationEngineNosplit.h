@@ -68,8 +68,8 @@ public:  // Inherited virtual simulation functions
 						  const size_t& batchSize,
 						  ConfidenceInterval& interval) const;
 
-	virtual bool event_triggered(const Property& property,
-								 const Traial& traial) const;
+	virtual bool event_triggered_generic(const Property& property,
+										 const Traial& traial) const;
 
 	virtual bool event_triggered_concrete(const Property& property,
 										  const Traial& traial) const;

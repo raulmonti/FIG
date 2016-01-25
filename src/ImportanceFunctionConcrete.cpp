@@ -35,6 +35,7 @@
 #include <FigException.h>
 #include <Transition.h>
 #include <Property.h>
+#include <PropertyTransient.h>
 
 
 namespace
@@ -46,6 +47,7 @@ using fig::StateInstance;
 using fig::ImportanceValue;
 using State = fig::State< fig::STATE_INTERNAL_TYPE >;
 using ImportanceVec = fig::ImportanceFunctionConcrete::ImportanceVec;
+typedef ImportanceVec EventVec;
 typedef unsigned STATE_T;
 
 
@@ -74,6 +76,122 @@ adjacent_states(const State& state,
 
 
 /**
+ * @brief Build reversed edges of a Module
+ *
+ *        Starting from the initial "state" provided and following the
+ *        given list of transitions "trans", compute the reachable edges
+ *        of the inherent Module and store them reversed.
+ *
+ * @param state  Symbolic state with the initial valuation of the Module
+ * @param trans  All the transitions of the Module, order unimportant
+ * @param visits Vector used to mark visited states (<b>modified</b>)
+ *
+ * @return Vector of size "state.concrete_size()", whose i'th position has all
+ *         the states that reach the i'th concrete state according to "trans"
+ *
+ * @note "visits" should be provided empty, and is reallocated
+ *       to the size of "state.concrete_size()"
+ *
+ * @warning <b>Memory complexity</b>: <i>O(N*M)</i>, where
+ *          <ul>
+ *          <li><i>N</i> = state.concrete_size() and</li>
+ *          <li><i>M</i> is the number of edges of the module</li>
+ *          </ul>
+ *          Thus in the worst case scenario this allocates
+ *          N<sup>3</sup>*<b>sizeof</b>(STATE_T) bytes.
+ *          However that'd require the Module to have a dense transition matrix,
+ *          which is seldom the case.
+ */
+std::vector< std::forward_list< STATE_T > >
+reversed_edges_DFS(State state,
+				   const std::vector< std::shared_ptr< Transition > >& trans,
+				   ImportanceVec& visits)
+{
+	const ImportanceValue NOT_VISITED(fig::EventType::STOP);
+	const ImportanceValue     VISITED(0);
+
+	assert(NOT_VISITED != VISITED);
+	assert(visits.size() == 0u);
+
+	// STL's forward_list is the perfect stack
+	std::forward_list< STATE_T > toVisit;
+	toVisit.push_front(state.encode());  // initial state
+	std::vector< std::forward_list< STATE_T > > rEdges(state.concrete_size());
+	ImportanceVec(state.concrete_size(), NOT_VISITED).swap(visits);
+
+	// DFS
+	while (!toVisit.empty()) {
+		STATE_T currentState = toVisit.front();
+		toVisit.pop_front();
+		visits[currentState] = VISITED;
+		state.decode(currentState);
+		auto nextStatesList = adjacent_states(state, trans);
+		for (const auto& s: nextStatesList)
+			rEdges[s].push_front(currentState);  // s <-- currentState
+		// Push into the 'toVisit' stack only the new unvisited states
+		for (auto it = nextStatesList.begin(),
+				  prev = nextStatesList.before_begin()
+			; it != nextStatesList.end()
+			; prev++, it++) {
+			if (VISITED == visits[*it]) {
+				nextStatesList.remove(*it);  // it was invalidated
+				it = prev;
+				it++;
+			}
+		}
+		toVisit.splice_after(toVisit.before_begin(), std::move(nextStatesList));
+	}
+
+	return rEdges;
+}
+
+
+/**
+ * Label concrete states with the Event masks corresponding to the Property
+ *
+ * @param state    Any valid State of the Module
+ * @param cStates  Concrete states vector to label with Event masks (<b>modified</b>)
+ * @param property Property identifying the special states
+ *
+ * @note cState will be left of size "state.concrete_size()",
+ *       and its content will be modified to contain only those values
+ *       defined in fig::EventType.
+ */
+void
+label_states(State state,
+			 EventVec& cStates,
+			 const Property& property)
+{
+	cStates.resize(state.concrete_size());
+
+	switch (property.type) {
+
+	case fig::PropertyType::TRANSIENT: {
+		auto transientProp = static_cast<const fig::PropertyTransient&>(property);
+		for (size_t i = 0u ; i < state.concrete_size() ; i++) {
+			cStates[i] = fig::EventType::NONE;
+			if (transientProp.is_rare(state.decode(i)))
+				fig::SET_RARE_EVENT(cStates[i]);
+			if (transientProp.is_stop(state.decode(i)))
+				fig::SET_STOP_EVENT(cStates[i]);
+		}
+		} break;
+
+	case fig::PropertyType::THROUGHPUT:
+	case fig::PropertyType::RATE:
+	case fig::PropertyType::PROPORTION:
+	case fig::PropertyType::BOUNDED_REACHABILITY:
+		throw_FigException("property type isn't supported yet");
+		break;
+
+	default:
+		throw_FigException("invalid property type");
+		break;
+	}
+}
+
+
+/**
  * @brief Assign null importance for all states in concrete vector
  * @param state    Symbolic state of this Module, in any valuation
  * @param impVec   Vector where the importance will be stored
@@ -84,20 +202,23 @@ assess_importance_flat(State state,
 					   ImportanceVec& impVec,
 					   const Property& property)
 {
-	ImportanceVec(state.concrete_size(),
-				  static_cast<ImportanceValue>(0)).swap(impVec);
-	for (size_t i = 0 ; i < state.concrete_size() ; i++)
-		if (property.is_rare(state.decode(i)))
-			fig::SET_RARE_EVENT(impVec[i]);
+	// Build vector the size of the concrete state space ...
+	ImportanceVec(state.concrete_size()).swap(impVec);
+	// ... and label according to the property
+	label_states(state, impVec, property);
 }
 
 
 /**
- * @brief Assign automatic importance for reachable states in concrete vector
+ * Assign automatic importance for reachable states in concrete vector
+ *
  * @param state    Symbolic state of this Module, at its initial valuation
  * @param trans    All the transitions of this Module
- * @param ivec     Vector where the importance will be stored
+ * @param impVec   Vector where the importance will be stored (<b>modified</b>)
  * @param property Property identifying the special states
+ *
+ * @note "impVec" should be provided empty, and is reallocated
+ *       to the size of "state.concrete_size()"
  */
 void
 assess_importance_auto(State state,
@@ -112,54 +233,17 @@ assess_importance_auto(State state,
 	assert(NOT_VISITED != fig::EventType::RARE);
 	assert(impVec.size() == 0u);
 
-	ImportanceVec& visitedStates = impVec;
-	ImportanceVec(state.concrete_size(), NOT_VISITED).swap(visitedStates);
+	// Step 1: run DFS from initial state to compute reachable reversed edges
+	std::vector< std::forward_list< STATE_T > > reverseEdges =
+			reversed_edges_DFS(state, trans, impVec);
 
-	std::forward_list< STATE_T > toVisit;
-	toVisit.push_front(state.encode());  // initial state
-	std::vector< std::forward_list< STATE_T > > rEdges(state.concrete_size());
+	// Step 2: label concrete states according to the property
+	label_states(state, impVec, property);
 
-	// Step 1: run DFS to store reversed edges in "rEdges[]"
-	while (!toVisit.empty()) {
-		STATE_T currentState = toVisit.front();
-		toVisit.pop_front();
-		visitedStates[currentState] = VISITED;
-		state.decode(currentState);
-		auto nextStatesList = adjacent_states(state, trans);
-		for (const auto& s: nextStatesList)
-			rEdges[s].push_front(currentState);  // s <-- currentState
-		// Push into the 'toVisit' stack only the new unvisited states
-		for (auto it = nextStatesList.begin(),
-				  prev = nextStatesList.before_begin()
-			; it != nextStatesList.end()
-			; prev++, it++) {
-			if (VISITED == visitedStates[*it]) {
-				nextStatesList.remove(*it);  // invalidates it
-				it = prev;
-				it++;
-			}
-		}
-		toVisit.splice_after(toVisit.before_begin(), std::move(nextStatesList));
-	}
-
-	// Step 2: mark rare states, the foundings of importance assessment
-	std::forward_list< STATE_T > rareStates;
-	for (STATE_T i = 0 ; i < state.concrete_size() ; i++) {
-		if (property.is_rare(state.decode(i))) {
-			impVec[i] = 0;
-			rareStates.push_front(i);
-		} else {
-			impVec[i] = NOT_VISITED;
-		}
-		/// @todo TODO: switch per 'property' and mark other events than rare?
-	}
-
-	// Step 3: run BFS to store distances in "ivec[]" using "rEdges[]"
-
+	// Step 3: run BFS to compute distance from rare states using reversed edges
 	/// @todo TODO implement algorithm from sheet,
 	///       the one with 'state[]' and 'redges[]' arrays.
 	///       "ivec[]" would be the 'state[]'
-
 }
 
 } // namespace

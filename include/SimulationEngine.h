@@ -77,7 +77,7 @@ protected:
     std::shared_ptr< const ModuleNetwork > network_;
 
     /// Copy of the network's global state
-    State<STATE_INTERNAL_TYPE> globalState_;
+    mutable State<STATE_INTERNAL_TYPE> globalState_;
 
     /// Importance function currently built
     std::shared_ptr< const ImportanceFunction > impFun_;
@@ -89,7 +89,7 @@ protected:
     mutable bool interrupted;
 
     /// Last events triggered by current simulation
-    mutable thread_local Event lastEvents_;
+    mutable /*thread_local*/ Event lastEvents_;
 
 public:  // Ctors/Dtor
 
@@ -203,10 +203,13 @@ public:  // Simulation utils
      * @param property Property whose value is being estimated
      * @param traial   Embodiment of a simulation running through the system model
      *
-     * @note The importance function used is taken from the last call to bind()
+     * @note The ImportanceFunction used is taken from the last call to bind()
+     * @note Makes no assumption about the ImportanceFunction altogether
+     *
+     * @see event_triggered_concrete()
      */
-    virtual bool event_triggered(const Property& property,
-                                 const Traial& traial) const = 0;
+    virtual bool event_triggered_generic(const Property& property,
+                                         const Traial& traial) const = 0;
 
     /**
      * @brief Were the last events triggered by the given Traial
@@ -215,9 +218,11 @@ public:  // Simulation utils
      * @param property Property whose value is being estimated
      * @param traial   Embodiment of a simulation running through the system model
      *
-     * @note The importance function used is taken from the last call to bind()
+     * @note The ImportanceFunction used is taken from the last call to bind()
      * @note This function assumes a \ref ImportanceFunctionConcrete
      *       "concrete importance function" is currently bound to the engine
+     *
+     * @see event_triggered_symbolic()
      */
     virtual bool event_triggered_concrete(const Property& property,
                                           const Traial& traial) const = 0;

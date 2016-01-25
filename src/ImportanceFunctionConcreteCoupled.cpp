@@ -55,12 +55,11 @@ ImportanceFunctionConcreteCoupled::assess_importance(
 	const std::string& strategy)
 {
 	globalStateCopy_ = net.global_state();
-	// Use member function inherited from ImportanceFunctionConcrete
-	assess_importance(net.gState,
-					  net.transitions_,
-					  prop,
-					  strategy,
-					  importanceInfoIndex_);
+	ImportanceFunctionConcrete::assess_importance(net.gState,
+												  net.transitions_,
+												  prop,
+												  strategy,
+												  importanceInfoIndex_);
 	readyForSimulations = true;
 	strategy_ = strategy;
 }

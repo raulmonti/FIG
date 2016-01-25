@@ -127,7 +127,7 @@ public:  // Accessors
 
 	/// Whether this instance stores importance values for the concrete state
 	/// space (as opposed to the symbolic state space)
-	const virtual bool concrete() const noexcept = 0;
+	virtual bool concrete() const noexcept = 0;
 
 public:  // Utils
 

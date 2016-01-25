@@ -133,13 +133,13 @@ SimulationEngineNosplit::simulate(const Property& property,
 
 
 bool
-SimulationEngineNosplit::event_triggered(const Property &property,
-                                         const Traial& traial) const
+SimulationEngineNosplit::event_triggered_generic(const Property &property,
+												 const Traial& traial) const
 {
     switch (property.type) {
 
     case PropertyType::TRANSIENT: {
-        auto transientProp = dynamic_cast<const PropertyTransient&>(property);
+		auto transientProp = static_cast<const PropertyTransient&>(property);
         if (transientProp.is_goal(traial.state) ||
             transientProp.is_stop(traial.state))
             return true;
@@ -169,10 +169,10 @@ SimulationEngineNosplit::event_triggered_concrete(const Property &property,
 
     switch (property.type) {
 
-	case PropertyType::TRANSIENT: {
+	case PropertyType::TRANSIENT:
         if (IS_RARE_EVENT(lastEvents_) || IS_STOP_EVENT(lastEvents_))
 			return true;
-		} break;
+		break;
 
 	case PropertyType::THROUGHPUT:
 	case PropertyType::RATE:
@@ -195,11 +195,14 @@ SimulationEngineNosplit::transient_simulation(const PropertyTransient& property,
 											  Traial& traial) const
 {
 	long numSuccesses(0);
-    // For efficiency, distinguish when operating with a concrete ifun
+	// For the sake of efficiency, distinguish when operating with a concrete ifun
     if (impFun_->concrete()) {
         for (size_t i = 0u ; i < numRuns ; i++) {
             traial.initialize(network_, impFun_);
-            network_->simulation_step(traial, *this, property);
+			network_->simulation_step(traial,
+									  property,
+									  *this,
+									  &SimulationEngine::event_triggered_concrete);
             // Last call to "event_triggered_concrete" updated lastEvents_
             if (IS_RARE_EVENT(lastEvents_))
                 numSuccesses++;
@@ -207,7 +210,10 @@ SimulationEngineNosplit::transient_simulation(const PropertyTransient& property,
     } else {
         for (size_t i = 0u ; i < numRuns ; i++) {
             traial.initialize(network_, impFun_);
-            network_->simulation_step(traial, *this, property);
+			network_->simulation_step(traial,
+									  property,
+									  *this,
+									  &SimulationEngine::event_triggered_generic);
             if (property.is_goal(traial.state))
                 numSuccesses++;
         }

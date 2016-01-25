@@ -55,10 +55,6 @@ namespace fig
  */
 class ImportanceFunctionConcreteCoupled : public ImportanceFunctionConcrete
 {
-	// Make overloads explicit, otherwise Clang whines like a whore
-	using ImportanceFunction::assess_importance;
-	using ImportanceFunctionConcrete::assess_importance;
-
 	/// Copy of the global state of the model (i.e. the network of modules)
 	mutable State< STATE_INTERNAL_TYPE > globalStateCopy_;
 

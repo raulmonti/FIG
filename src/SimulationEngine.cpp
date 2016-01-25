@@ -29,6 +29,7 @@
 
 
 // C++
+#include <memory>     // std::dynamic_pointer_cast<>
 #include <sstream>
 #include <iterator>   // std::begin, std::end
 #include <algorithm>  // std::find()
@@ -36,6 +37,7 @@
 #include <SimulationEngine.h>
 #include <FigException.h>
 #include <ModuleNetwork.h>
+#include <ImportanceFunctionConcrete.h>
 
 // ADL
 using std::begin;
@@ -105,7 +107,7 @@ SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun)
 		throw_FigException("ImportanceFunction isn't ready for simulations");
     impFun_ = ifun;
     if (ifun->concrete())
-        cImpFun_ = dynamic_cast< ImportanceFunctionConcrete >(ifun);
+		cImpFun_ = std::dynamic_pointer_cast<const ImportanceFunctionConcrete>(ifun);
 }
 
 

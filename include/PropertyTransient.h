@@ -163,9 +163,17 @@ public:  // Utils
 	/// @see PropertyTransient::stop
 	inline bool is_stop(const StateInstance& s) const { return stop(s); }
 
+	/// @copydoc is_stop()
+	inline bool is_stop(const State<STATE_INTERNAL_TYPE>& s) const
+		{ return is_stop(s.to_state_instance()); }
+
 	/// Is the "goal" subformula satisfied by the given variables valuation?
 	/// @see PropertyTransient::goal
 	inline bool is_goal(const StateInstance& s) const { return goal(s); }
+
+	/// @copydoc is_goal()
+	inline bool is_goal(const State<STATE_INTERNAL_TYPE>& s) const
+		{ return is_goal(s.to_state_instance()); }
 
     inline virtual bool satisfied_by(const StateInstance& s) const
         { return !is_stop(s) || is_goal(s); }  // weak until... is it OK?
