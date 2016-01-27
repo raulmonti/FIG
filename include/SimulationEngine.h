@@ -85,6 +85,15 @@ protected:
     /// Concrete importance function currently built, if any
     std::shared_ptr< const ImportanceFunctionConcrete > cImpFun_;
 
+    /// 1 + Number of replicas made of a simulation run when it crosses
+    /// an importance threshold upwards (i.e. gaining on importance)
+    /// @see ThresholdsBuilder
+    unsigned splitsPerThreshold_;
+
+    /// Number of importance thresholds a simulation run must cross downwards
+    /// (i.e. loosing on importance) to be discarded
+    unsigned dieOutDepth_;
+
     /// Were we just interrupted in an estimation timeout?
     mutable bool interrupted;
 
@@ -140,6 +149,16 @@ public:  // Engine setup
     /// @see bind()
     void unbind() noexcept;
 
+    /// Set the value of splitsPerThreshold_
+    /// @see splitsPerThreshold_
+    /// @throw FigException if the value is invalid for the particular derived class
+    virtual void set_splits_per_threshold(unsigned splitsPerThreshold) = 0;
+
+    /// Set the value of dieOutDepth_
+    /// @see dieOutDepth_
+    /// @throw FigException if the value is invalid for the particular derived class
+    virtual void set_die_out_depth(unsigned dieOutDepth) = 0;
+
 public:  // Accessors
 
     /// @copydoc name_
@@ -156,6 +175,16 @@ public:  // Accessors
     ///       then this function also returns an empty string
     inline const std::string current_imp_strat() const noexcept
         { if (nullptr != impFun_) return impFun_->strategy(); else return ""; }
+
+    /// Get the value of splitsPerThreshold_
+    /// @see splitsPerThreshold_
+    inline const unsigned& get_splits_per_threshold() const noexcept
+        { return splitsPerThreshold_; }
+
+    /// Get the value of dieOutDepth_
+    /// @see dieOutDepth_
+    inline const unsigned& get_die_out_depth() const noexcept
+        { return dieOutDepth_; }
 
 public:  // Simulation utils
 

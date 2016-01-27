@@ -28,6 +28,7 @@
 
 
 // C++
+#include <tuple>
 #include <queue>
 #include <vector>
 #include <forward_list>
@@ -38,6 +39,7 @@
 #include <Transition.h>
 #include <Property.h>
 #include <PropertyTransient.h>
+#include <ModelSuite.h>
 
 // ADL
 using std::begin;
@@ -92,7 +94,8 @@ adjacent_states(const State& state,
  * @param trans  All the transitions of the Module, order unimportant
  * @param visits Vector used to mark visited states <b>(modified)</b>
  *
- * @return Vector of size "state.concrete_size()", whose i'th position has all
+ * @return Concrete states' graph reversed adjacency list, viz. a vector
+ *         the size of the concrete state space, whose i'th position has all
  *         the states that reach the i'th concrete state according to "trans"
  *
  * @note "visits" should be provided empty, and is reallocated
@@ -108,7 +111,7 @@ adjacent_states(const State& state,
  *          However that'd require the Module to have a dense transition matrix,
  *          which is seldom the case.
  */
-std::vector< std::forward_list< STATE_T > >
+fig::AdjacencyList
 reversed_edges_DFS(State state,
 				   const std::vector< std::shared_ptr< Transition > >& trans,
 				   ImportanceVec& visits)
@@ -122,7 +125,7 @@ reversed_edges_DFS(State state,
 	// STL's forward_list is the perfect stack
 	std::forward_list< STATE_T > toVisit;
 	toVisit.push_front(state.encode());  // initial state
-	std::vector< std::forward_list< STATE_T > > rEdges(state.concrete_size());
+	fig::AdjacencyList rEdges(state.concrete_size());
 	ImportanceVec(state.concrete_size(), NOT_VISITED).swap(visits);
 
 	// DFS
@@ -147,30 +150,32 @@ reversed_edges_DFS(State state,
 
 
 /**
- * @brief Compute distance from all states to the rare set.
+ * @brief Compute importance of all concrete states in the Module.
  *
  *        Using 'reverseEdges' to perform a backwards reachability search,
- *        label all concrete states in 'distanceVec' with their distance
- *        to the nearest rare state.<br>
- *        All states in 'raresQueue' should be marked as rare in 'distanceVec',
- *        viz. for (auto s: raresQueue) assert(fig::IS_RARE_EVENT(distanceVec[s]))<br>
- *        BFS search stops as soon as the 'initialState' is encountered in the
- *        backwards search. All unreached states are left in 'distanceVec'
- *        with a value strictly greater than the maximum distance returned.
+ *        compute the distance from every concrete state in 'cStates'
+ *        to the nearest rare state. The inversion of those values is
+ *        taken as the importance of the states.<br>
+ *
+ * @pre  All states in 'raresQueue' should be marked as rare in 'cStates',
+ *       viz. for (auto s: raresQueue) assert(fig::IS_RARE_EVENT(cStates[s]))
  *
  * @param reverseEdges Reversed edges of the Module, as built by reversed_edges_DFS()
  * @param raresQueue   Queue with all the (concrete) rare states of the Module <b>(modified)</b>
  * @param initialState Single (concrete) initial state of the Module
- * @param distanceVec  Concrete states vector where distances are stored <b>(modified)</b>
+ * @param cStates      Concrete states vector where the importance is stored <b>(modified)</b>
  *
- * @return Maximum distance from any state to the rare set,
- *         i.e. distance from initialState to the nearest rare state
+ * @note BFS search stops as soon as the 'initialState' is encountered in the
+ *       backwards search, since no state can have a lower importance than the
+ *       initial one.
+ *
+ * @return Maximum importance, i.e. importance of any rare state
  */
 ImportanceValue
-rares_distance_BFS(const std::vector< std::forward_list< STATE_T > >& reverseEdges,
-				   std::queue< STATE_T >& raresQueue,
-				   const size_t initialState,
-				   ImportanceVec& distanceVec)
+build_importance_BFS(const fig::AdjacencyList& reverseEdges,
+					 std::queue< STATE_T >& raresQueue,
+					 const size_t initialState,
+					 ImportanceVec& cStates)
 {
 	assert(raresQueue.size() > 0);
 //	assert(std::find(begin(raresQueue), end(raresQueue), initialState)
@@ -185,11 +190,11 @@ rares_distance_BFS(const std::vector< std::forward_list< STATE_T > >& reverseEdg
 
 	// Initially: 0 distance for rare states
 	//            maximum representable distance for the rest
-	for (STATE_T s = 0u ; s < distanceVec.size() ; s++) {
-		if (fig::IS_RARE_EVENT(distanceVec[s]))
-			distanceVec[s] = 0 | fig::MASK(distanceVec[s]);
+	for (STATE_T s = 0u ; s < cStates.size() ; s++) {
+		if (fig::IS_RARE_EVENT(cStates[s]))
+			cStates[s] = 0 | fig::MASK(cStates[s]);
 		else
-			distanceVec[s] = NOT_VISITED | fig::MASK(distanceVec[s]);
+			cStates[s] = NOT_VISITED | fig::MASK(cStates[s]);
 	}
 
 	// BFS
@@ -198,13 +203,13 @@ rares_distance_BFS(const std::vector< std::forward_list< STATE_T > >& reverseEdg
 	while (!(initialReached || statesToCheck.empty())) {
 		STATE_T s = statesToCheck.front();
 		statesToCheck.pop();
-		ImportanceValue levelBFS = fig::UNMASK(distanceVec[s]) + 1;
+		ImportanceValue levelBFS = fig::UNMASK(cStates[s]) + 1;
 		// For each state reaching 's'...
 		for (const STATE_T& reachingS: reverseEdges[s]) {
 			// ...if we're visiting it for the first time...
-			if (NOT_VISITED == distanceVec[reachingS]) {
+			if (NOT_VISITED == cStates[reachingS]) {
 				// ...label it with distance from rare set...
-				distanceVec[reachingS] = levelBFS | fig::MASK(distanceVec[reachingS]);
+				cStates[reachingS] = levelBFS | fig::MASK(cStates[reachingS]);
 				// ...and enqueue it, unless we're done.
 				if (initialState == reachingS)
 					initialReached = true;
@@ -213,17 +218,24 @@ rares_distance_BFS(const std::vector< std::forward_list< STATE_T > >& reverseEdg
 			}
 		}
 	}
+	std::queue< STATE_T >().swap(statesToCheck);  // free memory
 
 	assert(initialReached);
-	const ImportanceValue maxDepth(distanceVec[initialState]);
+	const ImportanceValue maxDistance(cStates[initialState]);
 	// Is ImportanceValue bit-representation big enough?
-	if (maxDepth & ALL_MASKS || maxDepth >= NOT_VISITED)
+	if (maxDistance & ALL_MASKS || maxDistance >= NOT_VISITED)
 		throw_FigException("too many importance levels were found");
 
-	// Free memory
-	std::queue< STATE_T >().swap(raresQueue);
+	// Invert values in 'cStates' to obtain the importance
+	#pragma omp parallel for default(shared)
+	for (STATE_T s = 0u ; s < cStates.size() ; s++) {
+		ImportanceValue dist = fig::UNMASK(cStates[s]);
+		cStates[s] = fig::MASK(cStates[s])
+				   | (dist >= maxDistance ? static_cast<ImportanceValue>(0u)
+										  : static_cast<ImportanceValue>(maxDistance - dist));
+	}
 
-	return maxDepth;
+	return maxDistance;
 }
 
 
@@ -304,7 +316,7 @@ assess_importance_flat(State state,
 
 
 /**
- * Assign automatic importance for reachable states in concrete vector
+ * Assign automatic importance to reachable states in concrete vector
  *
  * @param state    Symbolic state of this Module, at its initial valuation
  * @param trans    All the transitions of this Module
@@ -320,26 +332,30 @@ assess_importance_auto(const State& state,
 					   ImportanceVec& impVec,
 					   const Property& property)
 {
+	assert(state.size() > 0u);
+	assert(trans.size() > 0u);
 	assert(impVec.size() == 0u);
 
 	// Step 1: run DFS from initial state to compute reachable reversed edges
-	std::vector< std::forward_list< STATE_T > > reverseEdges =
-			reversed_edges_DFS(state, trans, impVec);
+	fig::AdjacencyList reverseEdges = reversed_edges_DFS(state, trans, impVec);
 
 	// Step 2: label concrete states according to the property
 	auto raresQueue = label_states(state, impVec, property, true);
 
-	// Step 3: run BFS to compute distance from rare states using reversed edges
-	auto maxDistance = rares_distance_BFS(reverseEdges, raresQueue, state.encode(), impVec);
+	// Step 3: run BFS to compute importance of every concrete state
+	ImportanceValue maxImportance = build_importance_BFS(reverseEdges,
+														 raresQueue,
+														 state.encode(),
+														 impVec);
 
-	// Step 4: invert values in "impVec" to obtain states importance
-	#pragma omp parallel for default(shared)
-	for (STATE_T s = 0u ; s < impVec.size() ; s++) {
-		ImportanceValue dist = fig::UNMASK(impVec[s]);
-		impVec[s] = fig::MASK(impVec[s])
-				  | (dist >= maxDistance ? static_cast<ImportanceValue>(0u)
-										 : static_cast<ImportanceValue>(maxDistance - dist));
-	}
+	// Step 4: build thresholds from computed importance
+	auto model = fig::ModelSuite::get_instance();
+	auto tuneData = std::make_tuple(static_cast<unsigned>(trans.size()),
+									static_cast<unsigned>(maxImportance),
+									static_cast<unsigned>(/*splitsPerThreshold???*/));
+	model.tune_thresholds_builder(state, tuneData);
+	auto edges = invert_edges(reverseEdges);
+	model.build_thresholds_concrete(edges, impVec);
 }
 
 } // namespace

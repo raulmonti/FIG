@@ -55,6 +55,7 @@ namespace fig
 {
 
 class Property;
+class ThresholdsBuilder;
 class StoppingConditions;
 
 /**
@@ -98,6 +99,9 @@ class ModelSuite
 	static std::unordered_map<
 		std::string,
 		std::shared_ptr< SimulationEngine > > simulators;
+
+	/// Thresholds builder
+	std::shared_ptr< ThresholdsBuilder > thresholdsBuilder;
 
 //	/// Log
 //	static WTF? log_;
@@ -192,6 +196,23 @@ public:  // Stubs for ModuleNetwork
 
 	/// @todo TODO erase as soon as we move on from simulations tests
 	inline std::shared_ptr< const ModuleNetwork > modules_network() const { return model; }
+
+public:  // Stubs for ThresholdsBuilder
+
+	template< typename T_ >
+	inline void tune_thresholds_builder(const State<STATE_INTERNAL_TYPE>& state,
+										const T_* initData = nullptr)
+		{
+			assert(nullptr != thresholdsBuilder);
+			thresholdsBuilder->tune(state, initData);
+		}
+
+	inline void build_thresholds_concrete(const AdjacencyList& edges,
+										  std::vector< ImportanceValue >& impVec) const
+		{
+			assert(nullptr != thresholdsBuilder);
+			thresholdsBuilder->build_thresholds_concrete(edges, impVec);
+		}
 
 public:  // Utils
 

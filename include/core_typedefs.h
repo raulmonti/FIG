@@ -31,10 +31,12 @@
 #define CORE_TYPEDEFS_H
 
 // C++
-#include <array>
 #include <tuple>
-#include <string>
+#include <array>
+#include <vector>
+#include <forward_list>
 #include <unordered_map>
+#include <string>
 #include <functional>     // std::function<>, std::reference_wrapper<>
 // External code
 #include <muParserDef.h>  // MUP_BASETYPE
@@ -102,6 +104,9 @@ template< typename T_ > using                              VariableDefinition
 /// @warning Must match, or be compatible with, that of MuParser library
 ///
 typedef  MUP_BASETYPE                                    STATE_INTERNAL_TYPE;
+
+/// Adjacency list for concrete states transitions graph
+typedef std::vector< std::forward_list< unsigned > >           AdjacencyList;
 
 //
 //
