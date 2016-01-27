@@ -64,6 +64,10 @@ namespace fig
  */
 class MathExpression
 {
+	/// Is the expression empty?
+	/// @note Needed since MuParser doesn't tolerate empty string expressions
+	bool empty_;
+
 	/// String stored internally when given an empty expression
 	static const std::string emptyExpressionString;
 
@@ -172,8 +176,7 @@ protected:  // Modifyers
 public:  // Accessors
 
 	/// @copydoc exprStr_
-	inline const std::string expression() const noexcept
-		{ return emptyExpressionString == exprStr_ ? "" : exprStr_; }
+	inline const std::string expression() const noexcept { return empty_ ? "" : exprStr_; }
 
 	/// @copydoc pinned_
 	inline const bool& pinned() const noexcept { return pinned_; }
@@ -202,6 +205,7 @@ template< template< typename, typename... > class Container,
 MathExpression::MathExpression(
 	const std::string& exprStr,
 	const Container<ValueType, OtherContainerArgs...>& varnames) :
+		empty_("" == exprStr ? true : false),
 		exprStr_("" == exprStr ? emptyExpressionString : exprStr),
 		pinned_(false)
 {
@@ -229,6 +233,7 @@ template< template< typename, typename... > class Container,
 MathExpression::MathExpression(
 	const std::string& exprStr,
 	Container<ValueType, OtherContainerArgs...>&& varnames) :
+		empty_("" == exprStr ? true : false),
 		exprStr_("" == exprStr ? emptyExpressionString : exprStr),
 		pinned_(false)
 {
@@ -258,6 +263,7 @@ MathExpression::MathExpression(
 	const std::string& exprStr,
 	Iterator<ValueType, OtherIteratorArgs...> from,
 	Iterator<ValueType, OtherIteratorArgs...> to) :
+		empty_("" == exprStr ? true : false),
 		exprStr_("" == exprStr ? emptyExpressionString : exprStr),
 		pinned_(false)
 {

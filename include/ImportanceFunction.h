@@ -123,7 +123,7 @@ public:  // Accessors
 
 	/// @copydoc strategy_
 	/// @returns Empty string if function isn't ready(), strategy name otherwise
-	const std::string& strategy() const noexcept;
+	const std::string strategy() const noexcept;
 
 	/// Whether this instance stores importance values for the concrete state
 	/// space (as opposed to the symbolic state space)

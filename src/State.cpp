@@ -33,7 +33,6 @@
 #include <algorithm>  // std::move() ranges
 // FIG
 #include <State.h>
-#include <VariableInterval.h>
 #include <FigException.h>
 
 // ADL
@@ -46,17 +45,6 @@ using std::end;
 
 namespace fig
 {
-
-template< typename T_ >
-State<T_>::State(const State<T_>& that) :
-	pvars_(that.pvars_),
-	maxConcreteState_(that.maxConcreteState_)
-{
-	positionOfVar_.reserve(that.size());
-	copy(::begin(that.positionOfVar_), ::end(that.positionOfVar_),
-		 std::inserter(positionOfVar_, ::begin(positionOfVar_)));
-}
-
 
 template< typename T_ >
 State<T_>::State(State<T_>&& that) :
@@ -107,6 +95,18 @@ State<T_>::append(const State& tail)
 	for (const auto& pair: tail.positionOfVar_)
 		positionOfVar_[pair.first] += oldSize;
 	build_concrete_bound();
+}
+
+
+template< typename T_ >
+void
+State<T_>::shallow_copy(State<T_>& that)
+{
+	pvars_ = that.pvars_;  // here lies the shallowness
+	maxConcreteState_ = that.maxConcreteState_;
+	positionOfVar_.reserve(that.size());
+	copy(::begin(that.positionOfVar_), ::end(that.positionOfVar_),
+		 std::inserter(positionOfVar_, ::begin(positionOfVar_)));
 }
 
 
@@ -285,5 +285,27 @@ template class State< unsigned short     >;
 template class State< unsigned int       >;
 template class State< unsigned long      >;
 template class State< unsigned long long >;
+
+
+template< typename T_ >
+void
+State<T_>::build_concrete_bound()
+{
+	maxConcreteState_ = 1u;
+	for(const auto pvar: pvars_)
+		maxConcreteState_ *= pvar->range_;  // ignore overflow :D
+}
+
+
+template< typename T_ >
+bool
+State<T_>::is_our_var(const std::string& varName)
+{
+	auto varFound = std::find_if(
+						::begin(pvars_), ::end(pvars_),
+						[&] (const std::shared_ptr<Variable<T_>>& var_ptr)
+						{ return varName == var_ptr->name(); });
+	return ::end(pvars_) != varFound;
+}
 
 } // namespace fig

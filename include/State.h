@@ -141,7 +141,9 @@ public:  // Ctors/Dtor
 		  Iterator<ValueType, OtherIteratorArgs...> to);
 
 	/// Copy ctor
-	State(const State<T_> &that);
+	/// @note Deep copy by default: variables are duplicated
+	/// @see shallow_copy()
+	State(const State<T_>& that);
 
 	/// Move ctor
 	State(State<T_>&& that);
@@ -170,6 +172,12 @@ public:  // Accessors
 
 	/// Concrete size, i.e. cross product of all variables ranges
 	inline size_t concrete_size() const noexcept { return maxConcreteState_; }
+
+	/// Make shallow copy from 'that', i.e. share its variables through pointers
+	/// @note 'that' isn't modified, but it's not const qualified since
+	///       future changes to 'this' will alter the values in 'that'
+	/// @see State(const State&)
+	void shallow_copy(State<T_>& that);
 
 	/**
 	 * @brief Retrieve pointer to i-th variable (const or not)
@@ -308,22 +316,10 @@ public:  // Encode/Decode between symbolic and concrete representations
 private:  // Utils
 
 	/// Compute and store value of maxConcreteState_
-	inline void build_concrete_bound()
-		{
-			maxConcreteState_ = 1u;
-			for(const auto pvar: pvars_)
-				maxConcreteState_ *= pvar->range_;  // ignore overflow :D
-		}
+	void build_concrete_bound();
 
 	/// Do we have a variable with such name?
-	inline bool is_our_var(const std::string& varName)
-		{
-			auto varFound = std::find_if(
-								::begin(pvars_), ::end(pvars_),
-								[&] (const std::shared_ptr<Variable<T_>>& var_ptr)
-								{ return varName == var_ptr->name(); });
-			return ::end(pvars_) != varFound;
-		}
+	bool is_our_var(const std::string& varName);
 };
 
 
@@ -427,6 +423,23 @@ State<T_>::State(Iterator<ValueType, OtherIteratorArgs...> from,
 		++i;
 	} while (++from != to);
 	build_concrete_bound();
+}
+
+
+template< typename T_ >
+State<T_>::State(const State<T_>& that) :
+	pvars_(that.pvars_.size()),
+	maxConcreteState_(that.maxConcreteState_)
+{
+	// Here lies the depth in this copy
+	for (size_t i = 0u ; i < that.pvars_.size() ; i++) {
+		// We chose VariableInterval<> as implementation for our Variables
+		auto var_ptr(std::dynamic_pointer_cast< VariableInterval<T_> >(that.pvars_[i]));
+		pvars_[i] = std::make_shared< VariableInterval< T_ > >(*var_ptr);
+	}
+	positionOfVar_.reserve(that.size());
+	copy(::begin(that.positionOfVar_), ::end(that.positionOfVar_),
+		 std::inserter(positionOfVar_, ::begin(positionOfVar_)));
 }
 
 

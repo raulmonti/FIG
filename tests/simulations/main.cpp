@@ -119,7 +119,7 @@ int main()
 	module->add_transition(
 		OLabel("arr"),
 		"clkArr",
-		Precondition("q1 < 9", NamesList({"q1"})),
+		Precondition("0 < q1 && q1 < 9", NamesList({"q1"})),
 		Postcondition("q1+1", NamesList({"q1"}), NamesList({"q1"})),
 		NamesList({"clkArr"}));
 	// [arr!] q1 == 9 @ clkArr --> {clkArr}
@@ -203,7 +203,7 @@ int main()
 	std::cout << "Building an importance function" << std::endl;
 	auto ifun_ptr = std::make_shared< fig::ImportanceFunctionConcreteCoupled >();
 	assert(nullptr != ifun_ptr);
-	ifun_ptr->assess_importance(*model.modules_network(), *property_ptr, "flat");
+	ifun_ptr->assess_importance(*model.modules_network(), *property_ptr, "auto");
 	std::cout << "Building a simulation engine" << std::endl;
 	auto engine_ptr = std::make_shared< fig::SimulationEngineNosplit >(
 						  model.modules_network());

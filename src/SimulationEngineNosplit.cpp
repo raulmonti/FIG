@@ -140,9 +140,7 @@ SimulationEngineNosplit::event_triggered_generic(const Property &property,
 
     case PropertyType::TRANSIENT: {
 		auto transientProp = static_cast<const PropertyTransient&>(property);
-        if (transientProp.is_goal(traial.state) ||
-            transientProp.is_stop(traial.state))
-            return true;
+		return transientProp.is_goal(traial.state) || transientProp.is_stop(traial.state);
         } break;
 
     case PropertyType::THROUGHPUT:
@@ -170,8 +168,7 @@ SimulationEngineNosplit::event_triggered_concrete(const Property &property,
     switch (property.type) {
 
 	case PropertyType::TRANSIENT:
-        if (IS_RARE_EVENT(lastEvents_) || IS_STOP_EVENT(lastEvents_))
-			return true;
+		return IS_RARE_EVENT(lastEvents_) || IS_STOP_EVENT(lastEvents_);
 		break;
 
 	case PropertyType::THROUGHPUT:

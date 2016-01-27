@@ -102,10 +102,10 @@ ImportanceFunction::ready() const noexcept
 }
 
 
-const std::string&
+const std::string
 ImportanceFunction::strategy() const noexcept
 {
-	return strategy_;
+	return "" == strategy_ ? "flat" : strategy_;
 }
 
 } // namespace fig

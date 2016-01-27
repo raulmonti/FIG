@@ -129,22 +129,16 @@ reversed_edges_DFS(State state,
 	while (!toVisit.empty()) {
 		STATE_T currentState = toVisit.front();
 		toVisit.pop_front();
-		visits[currentState] = VISITED;
+		if (VISITED == visits[currentState])
+			continue;
+		visits[currentState] = VISITED;  // visiting currentState
 		state.decode(currentState);
 		auto nextStatesList = adjacent_states(state, trans);
 		for (const auto& s: nextStatesList)
 			rEdges[s].push_front(currentState);  // s <-- currentState
 		// Push into the 'toVisit' stack only the new unvisited states
-		for (auto it = nextStatesList.begin(),
-				  prev = nextStatesList.before_begin()
-			; it != nextStatesList.end()
-			; prev++, it++) {
-			if (VISITED == visits[*it]) {
-				nextStatesList.remove(*it);  // it was invalidated
-				it = prev;
-				it++;
-			}
-		}
+		nextStatesList.remove_if( [&] (const STATE_T& s) -> bool
+								  { return VISITED == visits[s]; } );
 		toVisit.splice_after(toVisit.before_begin(), std::move(nextStatesList));
 	}
 
@@ -204,7 +198,7 @@ rares_distance_BFS(const std::vector< std::forward_list< STATE_T > >& reverseEdg
 	while (!(initialReached || statesToCheck.empty())) {
 		STATE_T s = statesToCheck.front();
 		statesToCheck.pop();
-		ImportanceValue levelBFS = distanceVec[s] + 1;
+		ImportanceValue levelBFS = fig::UNMASK(distanceVec[s]) + 1;
 		// For each state reaching 's'...
 		for (const STATE_T& reachingS: reverseEdges[s]) {
 			// ...if we're visiting it for the first time...
