@@ -79,8 +79,6 @@ SET(REQUIRED_SOURCES "${SOURCES_DIR}/Clock.cpp"
                      "${SOURCES_DIR}/Traial.cpp"
                      "${SOURCES_DIR}/TraialPool.cpp"
                      "${SOURCES_DIR}/PropertyTransient.cpp"
-                     "${SOURCES_DIR}/SimulationEngine.cpp"
-                     "${SOURCES_DIR}/SimulationEngineNosplit.cpp"
                      "${SOURCES_DIR}/StoppingConditions.cpp"
                      "${SOURCES_DIR}/ConfidenceInterval.cpp"
                      "${SOURCES_DIR}/ConfidenceIntervalMean.cpp"
@@ -88,7 +86,11 @@ SET(REQUIRED_SOURCES "${SOURCES_DIR}/Clock.cpp"
                      "${SOURCES_DIR}/ConfidenceIntervalWilson.cpp"
                      "${SOURCES_DIR}/ImportanceFunction.cpp"
                      "${SOURCES_DIR}/ImportanceFunctionConcrete.cpp"
-                     "${SOURCES_DIR}/ImportanceFunctionConcreteCoupled.cpp")
+                     "${SOURCES_DIR}/ImportanceFunctionConcreteCoupled.cpp"
+                     "${SOURCES_DIR}/ThresholdsBuilder.cpp"
+                     "${SOURCES_DIR}/ThresholdsBuilderAMS.cpp"
+                     "${SOURCES_DIR}/SimulationEngine.cpp"
+                     "${SOURCES_DIR}/SimulationEngineNosplit.cpp")
 SET(ALL_SOURCES ${ALL_SOURCES} ${REQUIRED_SOURCES} CACHE INTERNAL "")
 
 # Register also the source files from this test

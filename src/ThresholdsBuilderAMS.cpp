@@ -29,8 +29,12 @@
 
 // C
 #include <cmath>
+// C++
+#include <memory>
 // FIG
 #include <ThresholdsBuilderAMS.h>
+#include <ModelSuite.h>
+#include <SimulationEngineNosplit.h>
 
 
 namespace fig
@@ -50,7 +54,7 @@ ThresholdsBuilderAMS::tune(const size_t&   numStates,
 	//   Number of states and transitions in the model play a role too.
 	const unsigned explFactor = 50;
 	const unsigned statesExtra = std::min<unsigned>(numStates/explFactor, 100);
-	const unsigned transExtra = std::min<unsigned>(numTrans/(2*explFactor), 150);
+	const unsigned transExtra = std::min<unsigned>(2*numTrans/explFactor, 150);
 	n_  = std::ceil(std::log(maxImportance)) * explFactor + statesExtra + transExtra;
 
 	// Heuristic for 'k_':
@@ -64,12 +68,15 @@ ThresholdsBuilderAMS::tune(const size_t&   numStates,
 
 void
 ThresholdsBuilderAMS::build_thresholds_concrete(
-	const size_t &initialState,
-	const AdjacencyList& edges,
+	const ImportanceFunctionConcrete &impFun,
 	std::vector< ImportanceValue >& impVec) const
 {
+	auto net = ModelSuite::get_instance().modules_network();
+
+	auto engine_ptr = std::make_shared< SimulationEngineNosplit >(net);
+	std::shared_ptr< const ImportanceFunction > impFun_ptr(impFun);
+
 	/// @todo TODO translate code from bluemoon's "AMS::get_thresholds" in PR_AMS.cc
 }
-
 
 } // namespace fig

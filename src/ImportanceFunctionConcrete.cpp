@@ -325,8 +325,10 @@ assess_importance_flat(State state,
  *
  * @note "impVec" should be provided empty, and is reallocated
  *       to the size of "state.concrete_size()"
+ *
+ * @return Maximum importance, i.e. importance of any rare state
  */
-void
+ImportanceValue
 assess_importance_auto(const State& state,
 					   const std::vector< std::shared_ptr< Transition > >& trans,
 					   ImportanceVec& impVec,
@@ -352,15 +354,10 @@ assess_importance_auto(const State& state,
 														 raresQueue,
 														 state.encode(),
 														 impVec);
+	// Free memory ab sofort!
+	fig::AdjacencyList().swap(reverseEdges);
 
-	// Step 4: build thresholds from computed importance
-	auto model = fig::ModelSuite::get_instance();
-	auto tuneData = std::make_tuple(static_cast<unsigned>(trans.size()),
-									static_cast<unsigned>(maxImportance),
-									static_cast<unsigned>(/*splitsPerThreshold???*/));
-	model.tune_thresholds_builder(state, &tuneData);
-	auto edges = invert_edges(reverseEdges);
-	model.build_thresholds_concrete(edges, impVec);
+	return maxImportance;
 }
 
 } // namespace
@@ -397,15 +394,17 @@ ImportanceFunctionConcrete::assess_importance(
 
 	// Compute importance according to the chosen strategy
 	if ("" == strategy || "flat" == strategy) {
-		assess_importance_flat(symbState,
-							   modulesConcreteImportance[index],
-							   property);
+		maxImportance_ =
+			assess_importance_flat(symbState,
+								   modulesConcreteImportance[index],
+								   property);
 
 	} else if ("auto" == strategy) {
-		assess_importance_auto(symbState,
-							   trans,
-							   modulesConcreteImportance[index],
-							   property);
+		maxImportance_ =
+			assess_importance_auto(symbState,
+								   trans,
+								   modulesConcreteImportance[index],
+								   property);
 
 	} else if ("adhoc" == strategy) {
 		throw_FigException(std::string("importance strategy \"").append(strategy)

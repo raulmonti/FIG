@@ -92,6 +92,9 @@ protected:
 	/// Last used strategy to assess the importance with this function
 	std::string strategy_;
 
+	/// Maximum importance assigned during the last assessment
+	ImportanceValue maxImportance_;
+
 public:  // Ctor/Dtor
 
 	/**
@@ -124,6 +127,9 @@ public:  // Accessors
 	/// @copydoc strategy_
 	/// @returns Empty string if function isn't ready(), strategy name otherwise
 	const std::string strategy() const noexcept;
+
+	/// @copydoc maxImportance_
+	const ImportanceValue& max_importance() const noexcept;
 
 	/// Whether this instance stores importance values for the concrete state
 	/// space (as opposed to the symbolic state space)

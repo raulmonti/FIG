@@ -63,6 +63,26 @@ protected:
 	/// @note Needed to traverse the state space, e.g. when building auto ifun
 	std::vector< std::shared_ptr< Transition > > transitions_;
 
+public:  // Accessors
+
+	/// Number of clocks defined in this Module
+	virtual size_t num_clocks() const noexcept = 0;
+
+	/// Number of (symbolic) transitions of this Module, i.e. the transitions
+	/// defined syntactically by the user in the IOSA model description
+	inline const size_t num_transitions() const noexcept
+		{ return transitions_.size(); }
+
+	/// Symbolic global state size, i.e. number of variables in the Module
+	virtual size_t state_size() const noexcept = 0;
+
+	/// Concrete global state size, i.e. cross product of the ranges
+	/// of all the variables in the system model
+	virtual size_t concrete_state_size() const noexcept = 0;
+
+	/// Whether this Module has already been sealed for simulations
+	virtual bool sealed() const noexcept = 0;
+
 public:  // Utils
 
 	/// Have the importance of our states assessed by this ImportanceFunction,

@@ -32,12 +32,14 @@
 // C++
 #include <vector>
 // FIG
-#include <core_typedefs.h>
 #include <State.h>
 
 
 namespace fig
 {
+
+typename ImportanceValue;
+class ImportanceFunctionConcrete;
 
 /**
  * @brief Asbtract base builder of importance thresholds.
@@ -54,6 +56,13 @@ class ThresholdsBuilder
 {
 public:
 
+	/// Names of the (derived) thresholds builders offered to the user,
+	/// as he should requested them through the CLI/GUI.
+	/// Defined in ThresholdsBuilder.cpp
+	static const std::array< std::string, 1 > names;
+
+public:
+
 	/**
 	 * @brief Tune up internals according to the state space and
 	 *        (potentially) any other data specific to the derived class.
@@ -68,25 +77,25 @@ public:
 		 const T_* tuneData = nullptr) = 0;
 
 	/**
-	 * @brief Build thresholds from given concrete vector of importance values
+	 * @brief Build thresholds from given concrete importance function.
 	 *
-	 *        The thresholds are built in the passed 'impVec' vector,
-	 *        destroying the original importance information.
-	 *        Thus 'impVec[i]' will hold the level of the i-th concrete state,
+	 *        The thresholds are built in 'impVec', which holds the importance
+	 *        of the concrete states and is actually an internal vector from
+	 *        the passed concrete importance function 'impFun'.
+	 *        Original importance information is destroyed: after the call
+	 *        'impVec[i]' will hold the level of the i-th concrete state,
 	 *        where the j-th level is composed of all the states between the
 	 *        j-th and the (j+1)-th thresholds.
 	 *        The result can be regarded as a coarser version of the original
 	 *        importance values which were fed into the routine.
 	 *
-	 * @param initialState Single initial (concrete) state of the Module
-	 * @param edges  AdjacencyList for the concrete-states transition graph
+	 * @param impFun Importance function Single initial (concrete) state of the Module
 	 * @param impVec Vector with the computed importance of every concrete state <b>(modified)</b>
 	 *
 	 * @throw FigException if unsupported by the ThresholdsBuilder derived class
 	 */
 	virtual void
-	build_thresholds_concrete(const size_t& initialState,
-							  const AdjacencyList& edges,
+	build_thresholds_concrete(const ImportanceFunctionConcrete& impFun,
 							  std::vector< ImportanceValue >& impVec) const = 0;
 };
 

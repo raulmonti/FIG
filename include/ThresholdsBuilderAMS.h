@@ -29,12 +29,13 @@
 #ifndef THRESHOLDSBUILDERAMS_H
 #define THRESHOLDSBUILDERAMS_H
 
+// C
+#include <cassert>
 // C++
 #include <tuple>
 #include <type_traits>  // std::is_constructible<>
 // FIG
 #include <ThresholdsBuilder.h>
-#include <FigException.h>
 
 
 namespace fig
@@ -50,8 +51,8 @@ using get = std::get;
  *        Given a state space and an importance function on it, AMS aims to
  *        locate the thresholds so that all the probabilities 'P_i' are roughly
  *        the same. Here 'P_i' is defined as the conditional probability of a
- *        simulation run going up the i-th importance threshold, given that it
- *        started at the (i-1)-th importance threshold.
+ *        simulation run traversing the i-th level upwards, that is, going up
+ *        the i-th importance threshold having started at the (i-1)-th threshold.
  */
 class ThresholdsBuilderAMS : public ThresholdsBuilder
 {
@@ -96,8 +97,7 @@ public:
 			  const unsigned& splitsPerThr);
 
 	virtual void
-	build_thresholds_concrete(const size_t& initialState,
-							  const AdjacencyList& edges,
+	build_thresholds_concrete(const ImportanceFunctionConcrete& impFun,
 							  std::vector< ImportanceValue >& impVec) const;
 };
 

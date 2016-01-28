@@ -310,16 +310,18 @@ public:  // Ctors/Dtor and populating facilities
 public:  // Accessors
 
 	/// Number of variables defined in this module
-	inline size_t num_vars() const noexcept { return lState_.size(); }
+	inline size_t num_vars() const noexcept { return state_size(); }
 
-	/// Number of clocks defined in this module
-	inline size_t num_clocks() const noexcept { return lClocks_.size(); }
+	inline virtual size_t num_clocks() const noexcept { return lClocks_.size(); }
+
+	inline virtual size_t state_size() const noexcept { return lState_.size(); }
+
+	inline virtual size_t concrete_state_size() const noexcept { return lState_.concrete_size(); }
+
+	inline virtual bool sealed() const noexcept { return sealed_; }
 
 	/// Get all clocks residing in this module as a const vector
 	inline const std::vector< Clock >& clocks() const { return lClocks_; }
-
-	/// Has this module been \ref seal() "sealed" already?
-	inline bool sealed() const noexcept { return sealed_; }
 
 	/// @copydoc globalIndex_
 	/// Negative value until the module is added to the network.

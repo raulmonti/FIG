@@ -53,6 +53,8 @@
 #include <SimulationEngineNosplit.h>
 #include <ImportanceFunctionConcreteSplit.h>
 #include <ImportanceFunctionConcreteCoupled.h>
+#include <ThresholdsBuilder.h>
+#include <ThresholdsBuilderAMS.h>
 #include <ConfidenceInterval.h>
 #include <ConfidenceIntervalMean.h>
 #include <ConfidenceIntervalProportion.h>
@@ -240,6 +242,9 @@ StoppingConditions ModelSuite::simulationBounds;
 std::unordered_map< std::string, std::shared_ptr< ImportanceFunction > >
 	ModelSuite::impFuns;
 
+std::unordered_map< std::string, std::shared_ptr< ThresholdsBuilder > >
+	ModelSuite::thrBuilders;
+
 std::unordered_map< std::string, std::shared_ptr< SimulationEngine > >
 	ModelSuite::simulators;
 
@@ -286,23 +291,33 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 	for (auto prop: properties)
 		prop->pin_up_vars(model->global_state());
 
-	// Build the simulation engines and the importance functions
-	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
+	// Build offered importance functions
 	impFuns["concrete_coupled"] = std::make_shared< ImportanceFunctionConcreteCoupled >();
-//	impFuns["concrete_split"]   = std::make_shared< ImportanceFunctionConcreteSplit >();
+
+	// Build offered thresholds builders
+	thrBuilders["ams"] = std::make_shared< ThresholdsBuilderAMS >();
+
+	// Build offered simulation engines
+	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
 
 #ifndef NDEBUG
-	// Check all offered engines and functions were actually instantiated
-	for (const auto& engineName: SimulationEngine::names)
-		if (end(simulators) == simulators.find(engineName))
-			throw_FigException(std::string("hey..., hey you ...  HEY, DEVELOPER!")
-							   .append(" You forgot to create the '")
-							   .append(engineName).append("' engine"));
+	// Check all offered importance functions, thresholds builders and
+	// simulation engines were actually instantiated
 	for (const auto& ifunName: ImportanceFunction::names)
 		if(end(impFuns) == impFuns.find(ifunName))
 			throw_FigException(std::string("hey..., hey you ...  HEY, DEVELOPER!")
 							   .append(" You forgot to create the '")
 							   .append(ifunName).append("' importance function"));
+	for (const auto& thrBuildName: ThresholdsBuilder::names)
+		if(end(thrBuilders) == thrBuilders.find(thrBuildName))
+			throw_FigException(std::string("hey..., hey you ...  HEY, DEVELOPER!")
+							   .append(" You forgot to create the '")
+							   .append(thrBuildName).append("' thresholds builder"));
+	for (const auto& engineName: SimulationEngine::names)
+		if (end(simulators) == simulators.find(engineName))
+			throw_FigException(std::string("hey..., hey you ...  HEY, DEVELOPER!")
+							   .append(" You forgot to create the '")
+							   .append(engineName).append("' engine"));
 #endif
 }
 
@@ -325,7 +340,7 @@ ModelSuite::available_simulators()
 			simulatorsNames.push_back(pair.first);
 	} else if (simulators.empty()) {
 		std::cerr << "ModelSuite hasn't been sealed, "
-				  << "no simulation engines are available yet."
+				  << "no simulation engine is available yet."
 				  << std::endl;
 	}
 	return simulatorsNames;
@@ -342,10 +357,92 @@ ModelSuite::available_importance_functions()
 			ifunsNames.push_back(pair.first);
 	} else if (impFuns.empty()) {
 		std::cerr << "ModelSuite hasn't been sealed, "
-				  << "no importance functions are available yet."
+				  << "no importance function is available yet."
 				  << std::endl;
 	}
 	return ifunsNames;
+}
+
+
+const std::vector< std::string >&
+ModelSuite::available_importance_strategies()
+{
+	static std::vector< std::string > importanceAssessmentStrategies;
+	if (importanceAssessmentStrategies.empty()) {
+		importanceAssessmentStrategies.reserve(ImportanceFunction::strategies.size());
+		for (const auto& strategy: ImportanceFunction::strategies)
+			importanceAssessmentStrategies.push_back(strategy);
+	}
+	return importanceAssessmentStrategies;
+}
+
+
+const std::vector< std::string >&
+ModelSuite::available_thresholds_techniques()
+{
+	static std::vector< std::string > thresholdsBuildersTechniques;
+	if (thresholdsBuildersTechniques.empty() && !thrBuilders.empty()) {
+		thresholdsBuildersTechniques.reserve(thrBuilders.size());
+		for (const auto& pair: thrBuilders)
+			thresholdsBuildersTechniques.push_back(pair.first);
+	} else if (thrBuilders.empty()) {
+		std::cerr << "ModelSuite hasn't been sealed, "
+				  << "no thresholds builder is available yet."
+				  << std::endl;
+	}
+	return thresholdsBuildersTechniques;
+}
+
+
+std::shared_ptr< ImportanceFunction >
+ModelSuite::build_importance_function(const std::string& name,
+									  const std::string& strategy,
+									  const Property& property,
+									  bool force)
+{
+	if (end(impFuns) == impFuns.find(name))
+		throw_FigException(std::string("inexistent importance function \"")
+						   .append(name).append("\" Call \"available_")
+						   .append("importance_functions()\" for a list of ")
+						   .append("available options."));
+	if (std::find(ImportanceFunction::strategies, strategy) ==
+			end(ImportanceFunction::strategies))
+		throw_FigException(std::string("inexistent importance assessment ")
+						   .append("strategy \"").append(name).append("\" Call")
+						   .append(" \"available_importance_strategies()\" ")
+						   .append("for a list of available options."));
+
+	std::shared_ptr< ImportanceFunction > ifun_ptr = impFuns[name];
+	if (force || strategy != ifun_ptr->strategy() || !ifun_ptr->ready()) {
+		ifun_ptr->clear();
+		ifun_ptr->assess_importance(model, property, strategy);
+	}
+
+	assert(strategy == ifun_ptr->strategy());
+	assert(ifun_ptr->ready());
+	return ifun_ptr;
+}
+
+
+void
+ModelSuite::build_thresholds(const std::string& technique,
+							 std::shared_ptr< ImportanceFunction > ifun)
+{
+	if (end(thrBuilders) == thrBuilders.find(technique))
+		throw_FigException(std::string("inexistent threshold building ")
+						   .append("technique \"").append(technique).append("\"")
+						   .append("Call \"available_thresholds_techniques()\" ")
+						   .append("for a list of available options."));
+
+	std::shared_ptr< ThresholdsBuilder > thrb_ptr = thrBuilders[technique];
+	thrb_ptr->tune(model, ifun->max_importance(), /*splitsPerThreshold?*/);
+	thrb_ptr->build_thresholds_concrete(model->initial_concrete_state(), ifun);
+
+	//	auto tuneData = std::make_tuple(static_cast<unsigned>(trans.size()),
+	//									static_cast<unsigned>(maxImportance),
+	//									static_cast<unsigned>(/*splitsPerThreshold???*/));
+	//	tune_thresholds_builder(state, &tuneData);
+	//	build_thresholds_concrete(state.encode(), impVec);
 }
 
 

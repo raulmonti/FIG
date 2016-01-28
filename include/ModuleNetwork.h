@@ -125,18 +125,14 @@ public:  // Populating facilities
 
 public:  // Accessors
 
-	/// @copydoc sealed_
-	inline bool sealed() const noexcept { return sealed_; }
-
 	/// @copydoc numClocks_
-	inline size_t num_clocks() const noexcept { return numClocks_; }
+	inline virtual size_t num_clocks() const noexcept { return numClocks_; }
 
-	/// Symbolic global state size, i.e. number of variables in the system model
-	inline size_t state_size() const noexcept { return gState.size(); }
+	inline virtual size_t state_size() const noexcept { return gState.size(); }
 
-	/// Concrete global state size, i.e. cross product of the ranges
-	/// of all the variables in the system model
-	inline size_t concrete_state_size() const noexcept { return gState.concrete_size(); }
+	inline virtual size_t concrete_state_size() const noexcept { return gState.concrete_size(); }
+
+	inline virtual bool sealed() const noexcept { return sealed_; }
 
 	/// @copydoc gState
 	inline const State<STATE_INTERNAL_TYPE>& global_state() const { return gState; }
@@ -149,13 +145,23 @@ public:  // Utils
 		{ ifun.assess_importance(*this, prop, strategy); }
 
 	/**
-	 * @brief Get a copy of the initial state of the system
+	 * Get a copy of the initial state of the system
 	 * @warning seal() must have been called beforehand
 	 * \ifnot NDEBUG
 	 *   @throw FigException if seal() hasn't been called yet
 	 * \endif
 	 */
 	StateInstance initial_state() const;
+
+	/**
+	 * Initial concrete state of the system, i.e. a number between zero
+	 * and concrete_state_size() enconding the initial_state()
+	 * @warning seal() must have been called beforehand
+	 * \ifnot NDEBUG
+	 *   @throw FigException if seal() hasn't been called yet
+	 * \endif
+	 */
+	size_t initial_concrete_state() const;
 
 	/**
 	 * @brief Shut the network and fill in internal global data.

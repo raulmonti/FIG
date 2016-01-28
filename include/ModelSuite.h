@@ -94,14 +94,16 @@ class ModelSuite
 	static std::unordered_map<
 		std::string,
 		std::shared_ptr< ImportanceFunction > > impFuns;
-	
+
+	/// Thresholds builders available
+	static std::unordered_map<
+		std::string,
+		std::shared_ptr< ThresholdsBuilder > thrBuilders;
+
 	/// Simulation engines available
 	static std::unordered_map<
 		std::string,
 		std::shared_ptr< SimulationEngine > > simulators;
-
-	/// Thresholds builder
-	std::shared_ptr< ThresholdsBuilder > thresholdsBuilder;
 
 //	/// Log
 //	static WTF? log_;
@@ -194,25 +196,9 @@ public:  // Stubs for ModuleNetwork
 	inline size_t concrete_state_size() const noexcept
 		{ return model->concrete_state_size(); }
 
-	/// @todo TODO erase as soon as we move on from simulations tests
-	inline std::shared_ptr< const ModuleNetwork > modules_network() const { return model; }
-
-public:  // Stubs for ThresholdsBuilder
-
-	template< typename T_ >
-	inline void tune_thresholds_builder(const State<STATE_INTERNAL_TYPE>& state,
-										const T_* initData = nullptr)
-		{
-			assert(nullptr != thresholdsBuilder);
-			thresholdsBuilder->tune(state, initData);
-		}
-
-	inline void build_thresholds_concrete(const AdjacencyList& edges,
-										  std::vector< ImportanceValue >& impVec) const
-		{
-			assert(nullptr != thresholdsBuilder);
-			thresholdsBuilder->build_thresholds_concrete(edges, impVec);
-		}
+	/// @copydoc ModuleNetwork
+	inline std::shared_ptr< const ModuleNetwork > modules_network() const noexcept
+		{ return model; }
 
 public:  // Utils
 
@@ -220,11 +206,88 @@ public:  // Utils
 	/// as they should be requested by the user.
 	const std::vector< std::string >& available_simulators();
 
-	/// Names of available importance function strategies,
+	/// Names of available importance function,
 	/// as they should be requested by the user.
 	const std::vector< std::string >& available_importance_functions();
 
+	/// Importance assessment strategies,
+	/// as they should be requested by the user.
+	const std::vector< std::string >& available_importance_strategies();
+
+	/// Thresholds building techniques,
+	/// as they should be requested by the user.
+	const std::vector< std::string >& available_thresholds_techniques();
+
+	/**
+	 * Assess importance for the currently loaded user model
+	 *
+	 * @param name     Any from available_importance_functions()
+	 * @param strategy Any from available_importance_strategies()
+	 * @param property Property whose value is to be estimated,
+	 *                 defining the states of interest
+	 * @param force    Assess importance again, even if it importance info
+	 *                 already exists for this importance function and strategy
+	 *
+	 * @return Pointer to the resulting (and \ref ImportanceFunction::ready()
+	 *         "ready for simulations") importance function
+	 *
+	 * @throw FigException if 'name' or 'strategy' are invalid
+	 */
+	std::shared_ptr< ImportanceFunction >
+	build_importance_function(const std::string& name,
+							  const std::string& strategy,
+							  const Property& property,
+							  bool force = false);
+
+	/**
+	 * @brief Build thresholds from precomputed importance information
+	 *
+	 *        The thresholds are built in the ImportanceFunction itself,
+	 *        smashing the finely grained importance values and replacing them
+	 *        with the coarsely grained threshold levels.
+	 *
+	 * @param technique Any from available_thresholds_techniques()
+	 * @param ifun      ImportanceFunction \ref ImportanceFunction::ready()
+	 *                  "ready for simulations"
+	 *
+	 * @throw FigException if the technique is incompatible with the ImportanceFunction
+	 */
+	void
+	build_thresholds(const std::string& technique,
+					 std::shared_ptr< ImportanceFunction > ifun);
+
+	/// @todo TODO document and implement, in that order!
+	std::shared_ptr< SimulationEngine >
+	prepare_simulation_engine(const std::string& engineName,
+							  std::shared_ptr< const ImportanceFunction > ifun);
+
+	/// @todo TODO document and implement, in that order!
+	void
+	release_resources(const std::string& impFunName,
+					  const std::string& engineName) noexcept;
+
 public:  // Simulation utils
+
+	/**
+	 * @brief Estimate the value of a property.
+	 *
+	 *        The estimation is performed using a single simulation strategy.
+	 *        The importance function to use must have been previously bound
+	 *        to the SimulationEngine.
+	 *        Estimations are performed for all the \ref StoppingConditions
+	 *        "simulation bounds" requested for experimentation, and logged
+	 *        as they are produced.
+	 *
+	 * @param engine SimulationEngine already tied to an ImportanceFunction
+	 * @param bounds List of stopping conditions to experiment with
+	 *
+	 * @throw FigException if engine wasn't \ref SimulationEngine::bound()
+	 *                     "ready for simulations"
+	 * @throw FigException if a simulation gave an invalid result
+	 */
+	void estimate(const Property& property,
+				  const SimulationEngine& engine,
+				  const StoppingConditions& bounds) const;
 
 	/**
 	 * @brief Estimate the value of the \ref Property "stored properties"
@@ -253,29 +316,8 @@ public:  // Simulation utils
 	void process_batch(const Container1<ValueType1, OtherArgs1...>& importanceSpecifications,
 					   const Container2<ValueType2, OtherArgs2...>& simulationStrategies);
 
-	/// @todo TODO design and implement
+	/// @todo TODO design and implement interactive processing
 	void process_interactive();
-
-	/**
-	 * @brief Estimate the value of a property.
-	 *
-	 *        The estimation is performed using a single simulation strategy.
-	 *        The importance function to use must have been previously bound
-	 *        to the SimulationEngine.
-	 *        Estimations are performed for all the \ref StoppingConditions
-	 *        "simulation bounds" requested for experimentation, and logged
-	 *        as they are produced.
-	 *
-	 * @param engine SimulationEngine already tied to an ImportanceFunction
-	 * @param bounds List of stopping conditions to experiment with
-	 *
-	 * @throw FigException if engine wasn't \ref SimulationEngine::bound()
-	 *                     "ready for simulations"
-	 * @throw FigException if a simulation gave an invalid result
-	 */
-	void estimate(const Property& property,
-				  const SimulationEngine& engine,
-				  const StoppingConditions& bounds) const;
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -323,6 +365,7 @@ ModelSuite::process_batch(
 			auto impFun = impFuns[impFunName];
 			impFun->assess_importance(*model, *prop, impFunStrategy);
 			assert(impFun->ready());
+			build_thresholds("ams", impFun);  // only implemented heuristic so far
 
 			// ... and each simulation strategy ...
 			for (const std::string simStrat: simulationStrategies) {
