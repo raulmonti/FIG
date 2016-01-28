@@ -338,6 +338,11 @@ assess_importance_auto(const State& state,
 
 	// Step 1: run DFS from initial state to compute reachable reversed edges
 	fig::AdjacencyList reverseEdges = reversed_edges_DFS(state, trans, impVec);
+	/// @todo NOTE: there's a more memory friendly way,
+	///       without holding the whole adjacency list in a variable.
+	///       It requires to build the reaching states for each concrete state
+	///       on each step of build_importance_BFS(), on demand,
+	///       and discard them when the BFS step is finished.
 
 	// Step 2: label concrete states according to the property
 	auto raresQueue = label_states(state, impVec, property, true);
@@ -353,7 +358,7 @@ assess_importance_auto(const State& state,
 	auto tuneData = std::make_tuple(static_cast<unsigned>(trans.size()),
 									static_cast<unsigned>(maxImportance),
 									static_cast<unsigned>(/*splitsPerThreshold???*/));
-	model.tune_thresholds_builder(state, tuneData);
+	model.tune_thresholds_builder(state, &tuneData);
 	auto edges = invert_edges(reverseEdges);
 	model.build_thresholds_concrete(edges, impVec);
 }

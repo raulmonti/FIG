@@ -55,26 +55,38 @@ class ThresholdsBuilder
 public:
 
 	/**
-	 * @brief Tune up internals according to the size of the state space
-	 *        and potentially any other data specific to the derived class.
-	 * @param state    Symbolic state of the Module
-	 * @param initData Tuning data specific to the particular derived class
+	 * @brief Tune up internals according to the state space and
+	 *        (potentially) any other data specific to the derived class.
+	 * @param state    Symbolic state of the Module, in any valuation
+	 * @param tuneData Tuning data specific to the particular derived class
 	 * @throw FigException if 'initData' was incompatible with the
 	 *                     ThresholdsBuilder derived class
 	 */
 	template< typename T_ >
 	virtual void
 	tune(const State<STATE_INTERNAL_TYPE>& state,
-		 const T_* initData = nullptr) = 0;
+		 const T_* tuneData = nullptr) = 0;
 
 	/**
 	 * @brief Build thresholds from given concrete vector of importance values
+	 *
+	 *        The thresholds are built in the passed 'impVec' vector,
+	 *        destroying the original importance information.
+	 *        Thus 'impVec[i]' will hold the level of the i-th concrete state,
+	 *        where the j-th level is composed of all the states between the
+	 *        j-th and the (j+1)-th thresholds.
+	 *        The result can be regarded as a coarser version of the original
+	 *        importance values which were fed into the routine.
+	 *
+	 * @param initialState Single initial (concrete) state of the Module
 	 * @param edges  AdjacencyList for the concrete-states transition graph
-	 * @param impVec Vector with the computed importance of every concrete state
+	 * @param impVec Vector with the computed importance of every concrete state <b>(modified)</b>
+	 *
 	 * @throw FigException if unsupported by the ThresholdsBuilder derived class
 	 */
 	virtual void
-	build_thresholds_concrete(const AdjacencyList& edges,
+	build_thresholds_concrete(const size_t& initialState,
+							  const AdjacencyList& edges,
 							  std::vector< ImportanceValue >& impVec) const = 0;
 };
 

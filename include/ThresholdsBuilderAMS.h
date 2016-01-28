@@ -72,14 +72,13 @@ public:
 	template< typename T_ >
 	virtual void
 	tune(const State<STATE_INTERNAL_TYPE>& state,
-		 const T_* initData = nullptr)
+		 const T_* tuneData = nullptr)
 		{
-			if (!std::is_convertible< std::tuple<unsigned,unsigned,unsigned>, T>::value)
-				throw_FigException("ERROR: type mismatch. Invalid tune data "
-								   "for ThresholdsBuilderAMS");
-			auto data = *reinterpret_cast< const std::tuple<unsigned,
-															unsigned,
-															unsigned>* >(initData);
+			typedef  std::tuple<unsigned, unsigned, unsigned>  ThreeU;
+			static_assert(std::is_convertible< T, ThreeU>::value, "ERROR: "
+						  "type mismatch. Invalid tune data for ThresholdsBuilderAMS");
+			assert(nullptr != tuneData);
+			auto data = *static_cast< const ThreeU* >(tuneData);
 			tune(state.concrete_size(), get<0>(data), get<1>(data), get<2>(data));
 		}
 
@@ -97,7 +96,8 @@ public:
 			  const unsigned& splitsPerThr);
 
 	virtual void
-	build_thresholds_concrete(const AdjacencyList& edges,
+	build_thresholds_concrete(const size_t& initialState,
+							  const AdjacencyList& edges,
 							  std::vector< ImportanceValue >& impVec) const;
 };
 
