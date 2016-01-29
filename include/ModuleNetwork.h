@@ -135,33 +135,21 @@ public:  // Accessors
 	inline virtual bool sealed() const noexcept { return sealed_; }
 
 	/// @copydoc gState
-	inline const State<STATE_INTERNAL_TYPE>& global_state() const { return gState; }
+	inline const State<STATE_INTERNAL_TYPE>& global_state() const noexcept { return gState; }
+
+	/// Modules composing the network, as const pointers
+	inline const std::vector< std::shared_ptr< const ModuleInstance > >
+	get_modules() const noexcept { return modules; }
 
 public:  // Utils
 
-	virtual inline void accept(ImportanceFunction& ifun,
-							   const Property& prop,
-							   const std::string& strategy)
-		{ ifun.assess_importance(*this, prop, strategy); }
+	virtual StateInstance initial_state() const;
 
-	/**
-	 * Get a copy of the initial state of the system
-	 * @warning seal() must have been called beforehand
-	 * \ifnot NDEBUG
-	 *   @throw FigException if seal() hasn't been called yet
-	 * \endif
-	 */
-	StateInstance initial_state() const;
+	virtual size_t initial_concrete_state() const;
 
-	/**
-	 * Initial concrete state of the system, i.e. a number between zero
-	 * and concrete_state_size() enconding the initial_state()
-	 * @warning seal() must have been called beforehand
-	 * \ifnot NDEBUG
-	 *   @throw FigException if seal() hasn't been called yet
-	 * \endif
-	 */
-	size_t initial_concrete_state() const;
+	virtual void accept(ImportanceFunction& ifun,
+						const Property& prop,
+						const std::string& strategy) const;
 
 	/**
 	 * @brief Shut the network and fill in internal global data.

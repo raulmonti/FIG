@@ -30,7 +30,9 @@
 #define THRESHOLDSBUILDER_H
 
 // C++
+#include <array>
 #include <vector>
+#include <string>
 // FIG
 #include <State.h>
 
@@ -39,6 +41,7 @@ namespace fig
 {
 
 typename ImportanceValue;
+class Module;
 class ImportanceFunctionConcrete;
 
 /**
@@ -64,17 +67,16 @@ public:
 public:
 
 	/**
-	 * @brief Tune up internals according to the state space and
-	 *        (potentially) any other data specific to the derived class.
-	 * @param state    Symbolic state of the Module, in any valuation
-	 * @param tuneData Tuning data specific to the particular derived class
-	 * @throw FigException if 'initData' was incompatible with the
-	 *                     ThresholdsBuilder derived class
+	 * Tune up internals for next threshold building
+	 * @param module Either a ModuleInstance or the ModuleNetwork
+	 * @param maxImportance Maximum importance value found in the last
+	 *                      importance assessment made to the Module
+	 * @param splitsPerThreshold 1 + Number of replicas from a simulation run
+	 *                           made on a "threshold level up" event
 	 */
-	template< typename T_ >
-	virtual void
-	tune(const State<STATE_INTERNAL_TYPE>& state,
-		 const T_* tuneData = nullptr) = 0;
+	virtual void tune(const Module& module,
+					  const ImportanceValue& maxImportance,
+					  const unsigned& splitsPerThreshold) noexcept = 0;
 
 	/**
 	 * @brief Build thresholds from given concrete importance function.
@@ -95,7 +97,7 @@ public:
 	 * @throw FigException if unsupported by the ThresholdsBuilder derived class
 	 */
 	virtual void
-	build_thresholds_concrete(const ImportanceFunctionConcrete& impFun,
+	build_thresholds_concrete(ImportanceFunctionConcrete& impFun,
 							  std::vector< ImportanceValue >& impVec) const = 0;
 };
 

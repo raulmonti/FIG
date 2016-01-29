@@ -216,10 +216,16 @@ public:  // Utils
 
 	/// Thresholds building techniques,
 	/// as they should be requested by the user.
-	const std::vector< std::string >& available_thresholds_techniques();
+	const std::vector< std::string >& available_threshold_techniques();
 
 	/**
-	 * Assess importance for the currently loaded user model
+	 * @brief Assess importance for the currently loaded user model
+	 *
+	 *        Notice this returns an instance holding internal
+	 *        \ref ImportanceFunction::has_importance_info() "importance
+	 *        information" but not quite \ref ImportanceFunction::ready()
+	 *        "ready for simulations", since the thresholds haven't been
+	 *        built yet.
 	 *
 	 * @param name     Any from available_importance_functions()
 	 * @param strategy Any from available_importance_strategies()
@@ -228,8 +234,7 @@ public:  // Utils
 	 * @param force    Assess importance again, even if it importance info
 	 *                 already exists for this importance function and strategy
 	 *
-	 * @return Pointer to the resulting (and \ref ImportanceFunction::ready()
-	 *         "ready for simulations") importance function
+	 * @return Pointer to the resulting importance function
 	 *
 	 * @throw FigException if 'name' or 'strategy' are invalid
 	 */
@@ -244,13 +249,16 @@ public:  // Utils
 	 *
 	 *        The thresholds are built in the ImportanceFunction itself,
 	 *        smashing the finely grained importance values and replacing them
-	 *        with the coarsely grained threshold levels.
+	 *        with coarsely grained threshold levels.
+	 *        After a successfull call the passed ImportanceFunction is
+	 *        \ref ImportanceFunction::ready() "ready for simulations".
 	 *
-	 * @param technique Any from available_thresholds_techniques()
+	 * @param technique Any from available_threshold_techniques()
 	 * @param ifun      ImportanceFunction \ref ImportanceFunction::ready()
 	 *                  "ready for simulations"
 	 *
-	 * @throw FigException if the technique is incompatible with the ImportanceFunction
+	 * @throw FigException if "technique" is invalid or incompatible with
+	 *                     the ImportanceFunction
 	 */
 	void
 	build_thresholds(const std::string& technique,
@@ -258,7 +266,7 @@ public:  // Utils
 
 	/// @todo TODO document and implement, in that order!
 	std::shared_ptr< SimulationEngine >
-	prepare_simulation_engine(const std::string& engineName,
+	prepare_simulation_engine(const std::string& name,
 							  std::shared_ptr< const ImportanceFunction > ifun);
 
 	/// @todo TODO document and implement, in that order!
@@ -364,8 +372,9 @@ ModelSuite::process_batch(
 			}
 			auto impFun = impFuns[impFunName];
 			impFun->assess_importance(*model, *prop, impFunStrategy);
-			assert(impFun->ready());
+			assert(impFun->has_importance_info());
 			build_thresholds("ams", impFun);  // only implemented heuristic so far
+			assert(impFun->ready());
 
 			// ... and each simulation strategy ...
 			for (const std::string simStrat: simulationStrategies) {

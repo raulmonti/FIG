@@ -167,6 +167,26 @@ ModuleNetwork::initial_state() const
 }
 
 
+size_t
+ModuleNetwork::initial_concrete_state() const
+{
+#ifndef NDEBUG
+	if (!sealed())
+		throw_FigException("ModuleNetwork hasn't been sealed yet");
+#endif
+	return gState.encode();
+}
+
+
+void
+ModuleNetwork::accept(ImportanceFunction& ifun,
+					  const Property& prop,
+					  const std::string& strategy) const
+{
+	ifun.assess_importance(*this, prop, strategy);
+}
+
+
 void
 ModuleNetwork::simulation_step(Traial& traial,
 							   const Property &property,

@@ -329,10 +329,13 @@ public:  // Accessors
 
 public:  // Utils
 
-	virtual inline void accept(ImportanceFunction& ifun,
-							   const Property& prop,
-							   const std::string& strategy)
-		{ ifun.assess_importance(*this, prop, strategy); }
+	virtual StateInstance initial_state() const;
+
+	virtual size_t initial_concrete_state() const;
+
+	virtual void accept(ImportanceFunction& ifun,
+						const Property& prop,
+						const std::string& strategy) const;
 
 	/**
 	 * @brief Active module jump caused by expiration of our clock "clockName"

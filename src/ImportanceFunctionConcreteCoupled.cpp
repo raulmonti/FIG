@@ -60,7 +60,7 @@ ImportanceFunctionConcreteCoupled::assess_importance(
 												  prop,
 												  strategy,
 												  importanceInfoIndex_);
-	readyForSimulations = true;
+	hasImportanceInfo_ = true;
 	strategy_ = strategy;
 }
 
@@ -69,7 +69,7 @@ ImportanceValue
 ImportanceFunctionConcreteCoupled::importance_of(const StateInstance& state) const
 {
 #ifndef NDEBUG
-	assert(ready());
+	assert(has_importance_info());
 	globalStateCopy_.copy_from_state_instance(state, true);
 #else
 	globalStateCopy_.copy_from_state_instance(state, false);
@@ -84,8 +84,10 @@ ImportanceFunctionConcreteCoupled::clear() noexcept
 {
 	globalStateCopy_ = State< STATE_INTERNAL_TYPE >();
 	ImportanceFunctionConcrete::clear();
-	readyForSimulations = false;
+	hasImportanceInfo_ = false;
+	readyForSims_ = false;
 	strategy_ = "";
+	maxImportance_ = 0u;
 }
 
 } // namespace fig

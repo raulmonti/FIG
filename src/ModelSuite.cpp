@@ -378,7 +378,7 @@ ModelSuite::available_importance_strategies()
 
 
 const std::vector< std::string >&
-ModelSuite::available_thresholds_techniques()
+ModelSuite::available_threshold_techniques()
 {
 	static std::vector< std::string > thresholdsBuildersTechniques;
 	if (thresholdsBuildersTechniques.empty() && !thrBuilders.empty()) {
@@ -431,12 +431,16 @@ ModelSuite::build_thresholds(const std::string& technique,
 	if (end(thrBuilders) == thrBuilders.find(technique))
 		throw_FigException(std::string("inexistent threshold building ")
 						   .append("technique \"").append(technique).append("\"")
-						   .append("Call \"available_thresholds_techniques()\" ")
+						   .append("Call \"available_threshold_techniques()\" ")
 						   .append("for a list of available options."));
 
-	std::shared_ptr< ThresholdsBuilder > thrb_ptr = thrBuilders[technique];
-	thrb_ptr->tune(model, ifun->max_importance(), /*splitsPerThreshold?*/);
-	thrb_ptr->build_thresholds_concrete(model->initial_concrete_state(), ifun);
+	thrBuilders[technique]->build_thresholds(*model, ifun, /*splitsPerThreshold?*/);
+
+
+
+//	std::shared_ptr< ThresholdsBuilder > thrb_ptr = thrBuilders[technique];
+//	thrb_ptr->tune(*model, ifun->max_importance(), /*splitsPerThreshold?*/);
+//	thrb_ptr->build_thresholds_concrete(model->initial_concrete_state(), ifun);
 
 	//	auto tuneData = std::make_tuple(static_cast<unsigned>(trans.size()),
 	//									static_cast<unsigned>(maxImportance),

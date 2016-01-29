@@ -30,18 +30,19 @@
 #ifndef MODULE_H
 #define MODULE_H
 
-// C++
 #include <vector>
 #include <memory>
-// FIG
-#include <ImportanceFunction.h>
-#include <Property.h>
+#include <string>
 
 
 namespace fig
 {
 
+class Property;
 class Transition;
+class StateInstance;
+class ImportanceFunction;
+class ThresholdsBuilder;
 
 /**
  * @brief Abstract base module class
@@ -70,8 +71,7 @@ public:  // Accessors
 
 	/// Number of (symbolic) transitions of this Module, i.e. the transitions
 	/// defined syntactically by the user in the IOSA model description
-	inline const size_t num_transitions() const noexcept
-		{ return transitions_.size(); }
+	inline const size_t num_transitions() const noexcept { return transitions_.size(); }
 
 	/// Symbolic global state size, i.e. number of variables in the Module
 	virtual size_t state_size() const noexcept = 0;
@@ -85,11 +85,31 @@ public:  // Accessors
 
 public:  // Utils
 
+	/// Get a copy of the initial state of the system
+	/// @warning Module should be sealed()
+	/// \ifnot NDEBUG
+	///   @throw FigException if Module hasn't been sealed() yet
+	/// \endif
+	virtual StateInstance initial_state() const = 0;
+
+	/// Initial concrete state of the system, i.e. a number between zero
+	/// and concrete_state_size() enconding the initial_state()
+	/// @warning Module should be sealed()
+	/// \ifnot NDEBUG
+	///   @throw FigException if Module hasn't been sealed() yet
+	/// \endif
+	virtual size_t initial_concrete_state() const = 0;
+
 	/// Have the importance of our states assessed by this ImportanceFunction,
 	/// according to the given Property and strategy
 	virtual void accept(ImportanceFunction& ifun,
 						const Property& property,
-						const std::string& startegy) = 0;
+						const std::string& startegy) const = 0;
+
+	/// Build the thresholds for importance splitting simulation
+	/// on the passed importance function, using this Module as base.
+	virtual void accept(const ThresholdsBuilder& thrBuilder,
+						ImportanceFunction& ifun) const = 0;
 };
 
 } // namespace fig

@@ -74,7 +74,9 @@ const std::array< std::string, 4 > ImportanceFunction::strategies =
 
 ImportanceFunction::ImportanceFunction(const std::string& name) :
 	name_(name),
-	readyForSimulations(false),
+	hasImportanceInfo_(false),
+	readyForSims_(false),
+	strategy_(""),
 	maxImportance_(0u)
 {
 	if (find(begin(names), end(names), name) == end(names)) {
@@ -97,24 +99,32 @@ ImportanceFunction::name() const noexcept
 
 
 bool
+ImportanceFunction::has_importance_info() const noexcept
+{
+	return hasImportanceInfo_;
+}
+
+
+bool
 ImportanceFunction::ready() const noexcept
 {
-	return readyForSimulations;
+	return readyForSims_;
 }
 
 
 const std::string
 ImportanceFunction::strategy() const noexcept
 {
-	return ready() ? ("" == strategy_ ? "flat" : strategy_)
-				   : "";
+	return has_importance_info() ? ("" == strategy_ ? "flat" : strategy_)
+								 : "";
 }
 
 
 const ImportanceValue&
 ImportanceFunction::max_importance() const noexcept
 {
-	return maxImportance_;
+	return has_importance_info() ? maxImportance_
+								 : static_cast<ImportanceValue>(0u);
 }
 
 } // namespace fig

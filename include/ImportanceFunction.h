@@ -66,6 +66,8 @@ class Property;
  */
 class ImportanceFunction
 {
+	friend class ThresholdsBuilder;
+
 public:
 
 	/// Names of the importance functions offered to the user,
@@ -86,8 +88,11 @@ private:
 
 protected:
 
+	/// Do we hold importance information from last assessment?
+	bool hasImportanceInfo_;
+
 	/// Can this instance be used for simulations?
-	bool readyForSimulations;
+	bool readyForSims_;
 
 	/// Last used strategy to assess the importance with this function
 	std::string strategy_;
@@ -113,14 +118,24 @@ public:  // Accessors
 	const std::string& name() const noexcept;
 
 	/**
-	 * @copydoc readyForSimulations
+	 * @copydoc hasImportanceInfo_
 	 *
-	 *        This starts out false and becomes true after a successfull call
-	 *        to one of the importance assessment functions.
-	 *        It becomes false again after a call to clear()
+	 *  This starts out false and becomes true after a successfull call
+	 *  to either one of the importance assessment functions.
+	 *  It becomes false again after a call to clear()
 	 *
-	 * @see assess_importance(ModuleInstance*, Property*)
-	 * @see assess_importance(ModuleNetwork*,  Property*)
+	 * @see assess_importance(const ModuleInstance&, const Property&, const std::string&)
+	 * @see assess_importance(const ModuleNetwork&, const Property&, const std::string&)
+	 */
+	bool has_importance_info() const noexcept;
+
+	/**
+	 * @copydoc readyForSims_
+	 *
+	 *  This requires having had the thresholds built in addition to
+	 *  holding \ref has_inportance_info() "importance information"
+	 *
+	 * @see has_importance_info()
 	 */
 	bool ready() const noexcept;
 
@@ -181,7 +196,9 @@ public:  // Utils
 	virtual ImportanceValue importance_of(const StateInstance& state) const = 0;
 
 	/// Release any memory allocated in the heap
-	/// @note After this invocation the ImportanceFunction is no longer ready()
+	/// @note After this invocation the ImportanceFunction doesn't hold
+	///       \ref has_importance_info() "importance information" any longer
+	///       and it's thus not \ref ready() "ready for simulations"
 	virtual void clear() noexcept = 0;
 };
 

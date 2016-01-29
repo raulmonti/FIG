@@ -74,8 +74,8 @@ public:
 								   const Property& prop,
 								   const std::string& strategy = "")
 		{
-			for (auto& mod: net.modules)  // Visit each module individually
-				assess_importance(*mod, prop, strategy);
+			for (auto mod_ptr: net.modules)  // Visit each module individually
+				assess_importance(*mod_ptr, prop, strategy);
 		}
 };
 

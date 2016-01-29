@@ -163,6 +163,37 @@ template void ModuleInstance::add_transition(const Label& label,
 											 const std::unordered_set< std::string >& resetClocks);
 
 
+StateInstance
+ModuleInstance::initial_state() const
+{
+#ifndef NDEBUG
+	if (!sealed())
+		throw_FigException("ModuleInstance hasn't been sealed yet");
+#endif
+	return lState_.to_state_instance();
+}
+
+
+size_t
+ModuleInstance::initial_concrete_state() const
+{
+#ifndef NDEBUG
+	if (!sealed())
+		throw_FigException("ModuleInstance hasn't been sealed yet");
+#endif
+	return lState_.encode();
+}
+
+
+void
+ModuleInstance::accept(ImportanceFunction& ifun,
+					  const Property& prop,
+					  const std::string& strategy) const
+{
+	ifun.assess_importance(*this, prop, strategy);
+}
+
+
 const Label&
 ModuleInstance::jump(const std::string& clockName,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,
