@@ -42,6 +42,7 @@ namespace fig
 {
 
 using get = std::get;
+class ModuleNetwork;
 
 /**
  * @brief ThresholdsBuilder implementing Adaptive Multilevel Splitting (AMS)
@@ -70,18 +71,8 @@ class ThresholdsBuilderAMS : public ThresholdsBuilder
 
 public:
 
-	template< typename T_ >
-	virtual void
-	tune(const State<STATE_INTERNAL_TYPE>& state,
-		 const T_* tuneData = nullptr)
-		{
-			typedef  std::tuple<unsigned, unsigned, unsigned>  ThreeU;
-			static_assert(std::is_convertible< T, ThreeU>::value, "ERROR: "
-						  "type mismatch. Invalid tune data for ThresholdsBuilderAMS");
-			assert(nullptr != tuneData);
-			auto data = *static_cast< const ThreeU* >(tuneData);
-			tune(state.concrete_size(), get<0>(data), get<1>(data), get<2>(data));
-		}
+	/// Void ctor
+	ThresholdsBuilderAMS() : n_(0u), k_(0u), numThresholds_(-1), minRareLvl_(-1) {}
 
 	/**
 	 * @brief Choose values for n_ and k_ depending on the nature of the Module
@@ -91,13 +82,15 @@ public:
 	 * @param maxImportance  Maximum ImportanceValue computed
 	 * @param splitsPerThr   Number of splits upon a threshold level-up
 	 */
-	void tune(const size_t&   numStates,
-			  const unsigned& numTrans,
-			  const unsigned& maxImportance,
+	void tune(const size_t& numStates,
+			  const size_t& numTrans,
+			  const ImportanceValue& maxImportance,
 			  const unsigned& splitsPerThr);
 
 	virtual void
-	build_thresholds_concrete(const ImportanceFunctionConcrete& impFun,
+	build_thresholds_concrete(const ModuleNetwork& network,
+							  const unsigned& splitsPerThreshold,
+							  ImportanceFunctionConcrete& impFun,
 							  std::vector< ImportanceValue >& impVec) const;
 };
 

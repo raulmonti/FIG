@@ -41,6 +41,7 @@
 namespace fig
 {
 
+class ThresholdsBuilder;
 class ModuleInstance;
 class ModuleNetwork;
 class Property;
@@ -66,8 +67,6 @@ class Property;
  */
 class ImportanceFunction
 {
-	friend class ThresholdsBuilder;
-
 public:
 
 	/// Names of the importance functions offered to the user,
@@ -96,6 +95,9 @@ protected:
 
 	/// Last used strategy to assess the importance with this function
 	std::string strategy_;
+
+	/// Last used technique to build the importance thresholds in this function
+	std::string thresholdsTechnique_;
 
 	/// Maximum importance assigned during the last assessment
 	ImportanceValue maxImportance_;
@@ -132,18 +134,26 @@ public:  // Accessors
 	/**
 	 * @copydoc readyForSims_
 	 *
-	 *  This requires having had the thresholds built in addition to
-	 *  holding \ref has_inportance_info() "importance information"
+	 *  This requires having had the \ref build_thresholds() "thresholds built"
+	 *  in addition to holding \ref has_importance_info() "importance information"
 	 *
 	 * @see has_importance_info()
 	 */
 	bool ready() const noexcept;
 
 	/// @copydoc strategy_
-	/// @returns Empty string if function isn't ready(), strategy name otherwise
+	/// @returns Empty string if function doesn't has_importance_info(),
+	///          last used strategy otherwise
 	const std::string strategy() const noexcept;
 
+	/// @copydoc thresholdsTechnique_
+	/// @returns Empty string if function isn't ready(),
+	///          last thresholds building technique used otherwise
+	const std::string thresholds_technique() const noexcept;
+
 	/// @copydoc maxImportance_
+	/// @returns Zero if function doesn't has_importance_info(),
+	///          last maximum assessed importance otherwise
 	const ImportanceValue& max_importance() const noexcept;
 
 	/// Whether this instance stores importance values for the concrete state
@@ -161,15 +171,21 @@ public:  // Utils
 	 *                 assessed. Its current state is considered initial.
 	 * @param prop     Property guiding the importance assessment
 	 * @param strategy Strategy of the assessment (flat, auto, ad hoc...)
+	 * @param force    Whether to force the computation, even if this
+	 *                 ImportanceFunction already has importance information
+	 *                 for the specified assessment strategy.
 	 *
-	 * @note After a successfull invocation the ImportanceFunction
-	 *       is ready() to be used during simulations
+	 * @note After a successfull invocation the ImportanceFunction holds
+	 *       internally the computed \ref has_importance_info()
+	 *       "importance information" for the passed assessment strategy.
 	 *
 	 * @see assess_importance(const ModuleNetwork&, const Property&, const std::string&)
+	 * @see has_importance_info()
 	 */
 	virtual void assess_importance(const ModuleInstance& mod,
 								   const Property& prop,
-								   const std::string& strategy = "") = 0;
+								   const std::string& strategy = "",
+								   bool force = false) = 0;
 
 	/**
 	 * @brief Assess the importance of the reachable states of the whole
@@ -180,18 +196,48 @@ public:  // Utils
 	 *                 Its current state is taken as the model's initial state.
 	 * @param prop     Property guiding the importance assessment
 	 * @param strategy Strategy of the assessment (flat, auto, ad hoc...)
+	 * @param force    Whether to force the computation, even if this
+	 *                 ImportanceFunction already has importance information
+	 *                 for the specified assessment strategy.
 	 *
-	 * @note After a successfull invocation the ImportanceFunction
-	 *       is ready() to be used during simulations
+	 * @note After a successfull invocation the ImportanceFunction holds
+	 *       internally the computed \ref has_importance_info()
+	 *       "importance information" for the passed assessment strategy.
 	 *
 	 * @see assess_importance(const ModuleInstance&, const Property&, const std::string&)
+	 * @see has_importance_info()
 	 */
 	virtual void assess_importance(const ModuleNetwork& net,
 								   const Property& prop,
-								   const std::string& strategy = "") = 0;
+								   const std::string& strategy = "",
+								   bool force = false) = 0;
+
+	/**
+	 * @brief Build thresholds from precomputed importance information
+	 *
+	 *        The thresholds are built in the ImportanceFunction itself,
+	 *        smashing the finely grained importance values and replacing them
+	 *        with coarsely grained threshold levels.
+	 *        After a successfull call this ImportanceFunction instance is
+	 *        \ref ImportanceFunction::ready() "ready for simulations".
+	 *
+	 * @param tb  ThresholdsBuilder to use
+	 * @param net User's system model, i.e. network of modules
+	 * @param splitsPerThreshold 1 + Number of replicas from a simulation run
+	 *                           made on a "threshold level up" event
+	 *
+	 * @throw FigException if there was no precomputed \ref has_importance_info()
+	 *                     "importance information"
+	 *
+	 * @see ready()
+	 */
+	virtual void build_thresholds(const ThresholdsBuilder& tb,
+								  const ModuleNetwork& net,
+								  const unsigned& splitsPerThreshold) = 0;
 
 	/// @brief Tell the pre-computed importance of the given StateInstance
-	/// @note All reachable states importance should have already been assessed
+	/// @note This instance should hold \ref has_importance_info()
+	///       "importance information"
 	/// @see assess_importance()
 	virtual ImportanceValue importance_of(const StateInstance& state) const = 0;
 

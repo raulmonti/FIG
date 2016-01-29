@@ -29,19 +29,16 @@
 #ifndef THRESHOLDSBUILDER_H
 #define THRESHOLDSBUILDER_H
 
-// C++
 #include <array>
 #include <vector>
 #include <string>
-// FIG
-#include <State.h>
 
 
 namespace fig
 {
 
 typename ImportanceValue;
-class Module;
+class ModuleNetwork;
 class ImportanceFunctionConcrete;
 
 /**
@@ -67,18 +64,6 @@ public:
 public:
 
 	/**
-	 * Tune up internals for next threshold building
-	 * @param module Either a ModuleInstance or the ModuleNetwork
-	 * @param maxImportance Maximum importance value found in the last
-	 *                      importance assessment made to the Module
-	 * @param splitsPerThreshold 1 + Number of replicas from a simulation run
-	 *                           made on a "threshold level up" event
-	 */
-	virtual void tune(const Module& module,
-					  const ImportanceValue& maxImportance,
-					  const unsigned& splitsPerThreshold) noexcept = 0;
-
-	/**
 	 * @brief Build thresholds from given concrete importance function.
 	 *
 	 *        The thresholds are built in 'impVec', which holds the importance
@@ -91,13 +76,18 @@ public:
 	 *        The result can be regarded as a coarser version of the original
 	 *        importance values which were fed into the routine.
 	 *
-	 * @param impFun Importance function Single initial (concrete) state of the Module
-	 * @param impVec Vector with the computed importance of every concrete state <b>(modified)</b>
+	 * @param network User's system model, i.e. network of modules
+	 * @param splitsPerThreshold 1 + Number of replicas from a simulation run
+	 *                           made on a "threshold level up" event
+	 * @param impFun Concrete ImportanceFunction whith importance information <b>(modified)</b>
+	 * @param impVec Vector from impFun where the thresholds will be stored <b>(modified)</b>
 	 *
 	 * @throw FigException if unsupported by the ThresholdsBuilder derived class
 	 */
 	virtual void
-	build_thresholds_concrete(ImportanceFunctionConcrete& impFun,
+	build_thresholds_concrete(const ModuleNetwork& network,
+							  const unsigned& splitsPerThreshold,
+							  ImportanceFunctionConcrete& impFun,
 							  std::vector< ImportanceValue >& impVec) const = 0;
 };
 

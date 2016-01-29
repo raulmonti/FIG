@@ -204,19 +204,35 @@ public:  // Utils
 
 	/// Names of available simulation engines,
 	/// as they should be requested by the user.
-	const std::vector< std::string >& available_simulators();
+	const std::vector< std::string >& available_simulators() const;
 
 	/// Names of available importance function,
 	/// as they should be requested by the user.
-	const std::vector< std::string >& available_importance_functions();
+	const std::vector< std::string >& available_importance_functions() const;
 
 	/// Importance assessment strategies,
 	/// as they should be requested by the user.
-	const std::vector< std::string >& available_importance_strategies();
+	const std::vector< std::string >& available_importance_strategies() const;
 
 	/// Thresholds building techniques,
 	/// as they should be requested by the user.
-	const std::vector< std::string >& available_threshold_techniques();
+	const std::vector< std::string >& available_threshold_techniques() const;
+
+	/// Is 'engineName' the name of an available simulation engine?
+	/// @see available_simulators()
+	bool exists_simulator(const std::string& engineName) const;
+
+	/// Is 'ifunName' the name of an available importance function?
+	/// @see available_importance_functions()
+	bool exists_importance_function(const std::string& ifunName) const;
+
+	/// Is 'ifunStrategy' an available importance assessment strategy?
+	/// @see available_importance_strategies()
+	bool exists_importance_strategy(const std::string& impStrategy) const;
+
+	/// Is 'thrTechnique' an available thresholds building technique?
+	/// @see available_threshold_techniques()
+	bool exists_threshold_technique(const std::string& thrTechnique) const;
 
 	/**
 	 * @brief Assess importance for the currently loaded user model
@@ -231,14 +247,12 @@ public:  // Utils
 	 * @param strategy Any from available_importance_strategies()
 	 * @param property Property whose value is to be estimated,
 	 *                 defining the states of interest
-	 * @param force    Assess importance again, even if it importance info
-	 *                 already exists for this importance function and strategy
-	 *
-	 * @return Pointer to the resulting importance function
+	 * @param force    Assess importance again, even if importance info already
+	 *                 exists for this importance function and strategy
 	 *
 	 * @throw FigException if 'name' or 'strategy' are invalid
 	 */
-	std::shared_ptr< ImportanceFunction >
+	void
 	build_importance_function(const std::string& name,
 							  const std::string& strategy,
 							  const Property& property,
@@ -250,19 +264,29 @@ public:  // Utils
 	 *        The thresholds are built in the ImportanceFunction itself,
 	 *        smashing the finely grained importance values and replacing them
 	 *        with coarsely grained threshold levels.
-	 *        After a successfull call the passed ImportanceFunction is
+	 *        After a successfull call the corresponding ImportanceFunction is
 	 *        \ref ImportanceFunction::ready() "ready for simulations".
 	 *
 	 * @param technique Any from available_threshold_techniques()
-	 * @param ifun      ImportanceFunction \ref ImportanceFunction::ready()
-	 *                  "ready for simulations"
+	 * @param ifunName  Any from available_importance_functions(),
+	 *                  refering to an ImportanceFunction which has
+	 *                  \ref ImportanceFunction::has_importance_info()
+	 *                  "importance information"
+	 * @param force     Build thresholds again, even if they already have been
+	 *                  for this importance function and technique
 	 *
-	 * @throw FigException if "technique" is invalid or incompatible with
-	 *                     the ImportanceFunction
+	 * @throw FigException if "technique" or "ifunName" are invalid
+	 * @throw FigException if the ImportanceFunction "ifunName" doesn't have
+	 *                     \ref ImportanceFunction::has_importance_info()
+	 *                     "importance information"
+	 * @throw FigException if "technique" is incompatible with "ifunName"
+	 *
+	 * @see build_importance_function()
 	 */
 	void
 	build_thresholds(const std::string& technique,
-					 std::shared_ptr< ImportanceFunction > ifun);
+					 const std::string& ifunName,
+					 bool force = true);
 
 	/// @todo TODO document and implement, in that order!
 	std::shared_ptr< SimulationEngine >
@@ -366,25 +390,26 @@ ModelSuite::process_batch(
 		for (const pair_ss& impFunSpec: importanceSpecifications) {
 			std::string impFunName, impFunStrategy;
 			std::tie(impFunName, impFunStrategy) = impFunSpec;
-			if (end(impFuns) == impFuns.find(impFunName)) {
+			if (!exists_importance_function(impFunName)) {
 				/// @todo TODO log the inexistence of this importance function
 				continue;
+			} else if (!exists_importance_strategy(impFunStrategy)) {
+				/// @todo TODO log the inexistence of this importance assessment strategy
+				continue;
 			}
-			auto impFun = impFuns[impFunName];
-			impFun->assess_importance(*model, *prop, impFunStrategy);
-			assert(impFun->has_importance_info());
-			build_thresholds("ams", impFun);  // only implemented heuristic so far
-			assert(impFun->ready());
+			build_importance_function(impFunName, impFunStrategy, *prop);
+			build_thresholds("ams", impFunName);  // only implemented technique so far
 
 			// ... and each simulation strategy ...
 			for (const std::string simStrat: simulationStrategies) {
-				if (end(simulators) == simulators.find(simStrat)) {
+				if (!exists_simulator(simStrat)) {
 					/// @todo TODO log the inexistence of this engine
 					continue;
 				}
+				auto ifun_ptr = impFuns[impFunName];
 				SimulationEngine& engine = *simulators[simStrat];
 				try {
-					engine.bind(impFun);
+					engine.bind(ifun_ptr);
 				} catch (FigException& e) {
 					/// @todo TODO log the skipping of this combination
 					///       Either the property or the importance function are

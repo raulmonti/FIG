@@ -41,11 +41,15 @@ namespace fig
 {
 
 void
-ThresholdsBuilderAMS::tune(const size_t&   numStates,
-						   const unsigned& numTrans,
-						   const unsigned& maxImportance,
+ThresholdsBuilderAMS::tune(const size_t& numStates,
+						   const size_t& numTrans,
+						   const ImportanceValue& maxImportance,
 						   const unsigned& splitsPerThr)
 {
+	assert(0u < numStates);
+	assert(0u < numTrans);
+	assert(0u < splitsPerThr);
+
 	/// @todo FIXME code imported from bluemoon -- Change to something more solid
 
 	// Heuristic for 'n_':
@@ -62,16 +66,22 @@ ThresholdsBuilderAMS::tune(const size_t&   numStates,
 	//   where levelUpProb == k_/n_
 	k_ = std::round(n_ / static_cast<float>(splitsPerThr));
 
+	assert(0u < k_);
 	assert(k_ < n_);
 }
 
 
 void
 ThresholdsBuilderAMS::build_thresholds_concrete(
-	const ImportanceFunctionConcrete &impFun,
+	const fig::ModuleNetwork& network,
+	const unsigned &splitsPerThreshold,
+	ImportanceFunctionConcrete& impFun,
 	std::vector< ImportanceValue >& impVec) const
 {
-	auto net = ModelSuite::get_instance().modules_network();
+	tune(network.concrete_state_size(),
+		 network.num_transitions(),
+		 impFun.max_importance(),
+		 splitsPerThreshold);
 
 	auto engine_ptr = std::make_shared< SimulationEngineNosplit >(net);
 	std::shared_ptr< const ImportanceFunction > impFun_ptr(impFun);

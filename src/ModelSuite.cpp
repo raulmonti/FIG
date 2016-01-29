@@ -331,7 +331,7 @@ template void ModelSuite::seal(const std::unordered_set<std::string>&);
 
 
 const std::vector< std::string >&
-ModelSuite::available_simulators()
+ModelSuite::available_simulators() const
 {
 	static std::vector< std::string > simulatorsNames;
 	if (simulatorsNames.empty() && !simulators.empty()) {
@@ -348,7 +348,7 @@ ModelSuite::available_simulators()
 
 
 const std::vector< std::string >&
-ModelSuite::available_importance_functions()
+ModelSuite::available_importance_functions() const
 {
 	static std::vector< std::string > ifunsNames;
 	if (ifunsNames.empty() && !impFuns.empty()) {
@@ -365,7 +365,7 @@ ModelSuite::available_importance_functions()
 
 
 const std::vector< std::string >&
-ModelSuite::available_importance_strategies()
+ModelSuite::available_importance_strategies() const
 {
 	static std::vector< std::string > importanceAssessmentStrategies;
 	if (importanceAssessmentStrategies.empty()) {
@@ -378,7 +378,7 @@ ModelSuite::available_importance_strategies()
 
 
 const std::vector< std::string >&
-ModelSuite::available_threshold_techniques()
+ModelSuite::available_threshold_techniques() const
 {
 	static std::vector< std::string > thresholdsBuildersTechniques;
 	if (thresholdsBuildersTechniques.empty() && !thrBuilders.empty()) {
@@ -394,59 +394,112 @@ ModelSuite::available_threshold_techniques()
 }
 
 
-std::shared_ptr< ImportanceFunction >
+bool
+ModelSuite::exists_simulator(const std::string& engineName) const
+{
+	const auto& availableSimulators = available_simulators();  // may throw
+	if (find(begin(availableSimulators), end(availableSimulators), engineName)
+			== end(availableSimulators))
+		return false;
+	else
+		return true;
+}
+
+
+bool
+ModelSuite::exists_importance_function(const std::string& ifunName) const
+{
+	const auto& availableIfuns = available_importance_functions();  // may throw
+	if (find(begin(availableIfuns), end(availableIfuns), ifunName)
+			== end(availableIfuns))
+		return false;
+	else
+		return true;
+}
+
+
+bool
+ModelSuite::exists_importance_strategy(const std::string& impStrategy) const
+{
+	const auto& availableIStrategies = available_importance_strategies();  // may throw
+	if (find(begin(availableIStrategies), end(availableIStrategies), impStrategy)
+			== end(availableIStrategies))
+		return false;
+	else
+		return true;
+}
+
+
+bool
+ModelSuite::exists_threshold_technique(const std::string& thrTechnique) const
+{
+	const auto& availableThrBuilders = available_threshold_techniques();  // may throw
+	if (find(begin(availableThrBuilders), end(availableThrBuilders), thrTechnique)
+			== end(availableThrBuilders))
+		return false;
+	else
+		return true;
+}
+
+
+void
 ModelSuite::build_importance_function(const std::string& name,
 									  const std::string& strategy,
 									  const Property& property,
 									  bool force)
 {
-	if (end(impFuns) == impFuns.find(name))
+	if (!exists_importance_function(name))
 		throw_FigException(std::string("inexistent importance function \"")
 						   .append(name).append("\" Call \"available_")
 						   .append("importance_functions()\" for a list of ")
 						   .append("available options."));
-	if (std::find(ImportanceFunction::strategies, strategy) ==
-			end(ImportanceFunction::strategies))
+	if (!exists_importance_strategy(strategy))
 		throw_FigException(std::string("inexistent importance assessment ")
-						   .append("strategy \"").append(name).append("\" Call")
-						   .append(" \"available_importance_strategies()\" ")
+						   .append("strategy \"").append(strategy).append("\" ")
+						   .append("Call \"available_importance_strategies()\" ")
 						   .append("for a list of available options."));
 
-	std::shared_ptr< ImportanceFunction > ifun_ptr = impFuns[name];
-	if (force || strategy != ifun_ptr->strategy() || !ifun_ptr->ready()) {
-		ifun_ptr->clear();
-		ifun_ptr->assess_importance(model, property, strategy);
+	ImportanceFunction& ifun = *impFuns[name];
+	if (force || strategy != ifun.strategy() || !ifun.has_importance_info()) {
+		ifun.clear();
+		ifun.assess_importance(*model, property, strategy);
 	}
 
-	assert(strategy == ifun_ptr->strategy());
-	assert(ifun_ptr->ready());
-	return ifun_ptr;
+	assert(strategy == ifun.strategy());
+	assert(ifun.has_importance_info());
 }
 
 
 void
 ModelSuite::build_thresholds(const std::string& technique,
-							 std::shared_ptr< ImportanceFunction > ifun)
+							 const std::string& ifunName,
+							 bool force)
 {
-	if (end(thrBuilders) == thrBuilders.find(technique))
+	if (!exists_threshold_technique(technique))
 		throw_FigException(std::string("inexistent threshold building ")
 						   .append("technique \"").append(technique).append("\"")
 						   .append("Call \"available_threshold_techniques()\" ")
 						   .append("for a list of available options."));
+	if (!exists_importance_function(ifunName))
+		throw_FigException(std::string("inexistent importance function \"")
+						   .append(ifunName).append("\" Call \"available_")
+						   .append("importance_functions()\" for a list of ")
+						   .append("available options."));
 
-	thrBuilders[technique]->build_thresholds(*model, ifun, /*splitsPerThreshold?*/);
+	ThresholdsBuilder& thrBuilder = *thrBuilders[technique];
+	ImportanceFunction& ifun = *impFuns[ifunName];
 
+	if (!ifun.has_importance_info())
+		throw_FigException(std::string("importance function \"").append(ifunName)
+						   .append("\" doesn't have importance information ")
+						   .append("yet. Call \"build_importance_function()\" ")
+						   .append("beforehand"));
 
+	if (force || ifun.thresholds_technique() != technique)
+		ifun.build_thresholds(thrBuilder, *model, 0u/*splitsPerThreshold?*/);
 
-//	std::shared_ptr< ThresholdsBuilder > thrb_ptr = thrBuilders[technique];
-//	thrb_ptr->tune(*model, ifun->max_importance(), /*splitsPerThreshold?*/);
-//	thrb_ptr->build_thresholds_concrete(model->initial_concrete_state(), ifun);
-
-	//	auto tuneData = std::make_tuple(static_cast<unsigned>(trans.size()),
-	//									static_cast<unsigned>(maxImportance),
-	//									static_cast<unsigned>(/*splitsPerThreshold???*/));
-	//	tune_thresholds_builder(state, &tuneData);
-	//	build_thresholds_concrete(state.encode(), impVec);
+	assert(technique == ifun.thresholds_technique());
+	assert(ifun->ready());
 }
 
 

@@ -71,7 +71,8 @@ public:  // Utils
 
 	virtual void assess_importance(const ModuleInstance&,
 								   const Property&,
-								   const std::string&)
+								   const std::string&,
+								   bool)
 		{
 			throw_FigException("Concrete importance function for a coupled "
 							   "model can't be applied to a single \"split\" "
@@ -81,7 +82,12 @@ public:  // Utils
 
 	virtual void assess_importance(const ModuleNetwork& net,
 								   const Property& prop,
-								   const std::string& strategy = "");
+								   const std::string& strategy = "",
+								   bool force = false);
+
+	virtual void build_thresholds(const ThresholdsBuilder& tb,
+								  const ModuleNetwork& net,
+								  const unsigned& splitsPerThreshold);
 
 	virtual ImportanceValue importance_of(const StateInstance& state) const;
 

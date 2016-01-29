@@ -77,6 +77,7 @@ ImportanceFunction::ImportanceFunction(const std::string& name) :
 	hasImportanceInfo_(false),
 	readyForSims_(false),
 	strategy_(""),
+	thresholdsTechnique_(""),
 	maxImportance_(0u)
 {
 	if (find(begin(names), end(names), name) == end(names)) {
@@ -117,6 +118,13 @@ ImportanceFunction::strategy() const noexcept
 {
 	return has_importance_info() ? ("" == strategy_ ? "flat" : strategy_)
 								 : "";
+}
+
+
+const std::string
+ImportanceFunction::thresholds_technique() const noexcept
+{
+	return ready() ? thresholdsTechnique_ : "";
 }
 
 

@@ -65,17 +65,19 @@ public:
 
 	virtual void assess_importance(const ModuleInstance& mod,
 								   const Property& prop,
-								   const std::string& strategy = "")
+								   const std::string& strategy = "",
+								   bool force = false)
 		{
 			throw_FigException("TODO");
 		}
 
 	virtual void assess_importance(const ModuleNetwork& net,
 								   const Property& prop,
-								   const std::string& strategy = "")
+								   const std::string& strategy = "",
+								   bool force = false)
 		{
 			for (auto mod_ptr: net.modules)  // Visit each module individually
-				assess_importance(*mod_ptr, prop, strategy);
+				assess_importance(*mod_ptr, prop, strategy, force);
 		}
 };
 

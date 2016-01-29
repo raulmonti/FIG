@@ -105,11 +105,6 @@ public:  // Utils
 	virtual void accept(ImportanceFunction& ifun,
 						const Property& property,
 						const std::string& startegy) const = 0;
-
-	/// Build the thresholds for importance splitting simulation
-	/// on the passed importance function, using this Module as base.
-	virtual void accept(const ThresholdsBuilder& thrBuilder,
-						ImportanceFunction& ifun) const = 0;
 };
 
 } // namespace fig

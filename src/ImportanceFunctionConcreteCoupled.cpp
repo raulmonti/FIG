@@ -29,6 +29,7 @@
 
 #include <ImportanceFunctionConcreteCoupled.h>
 #include <ModuleNetwork.h>
+#include <ThresholdsBuilder.h>
 
 
 namespace fig
@@ -52,16 +53,36 @@ void
 ImportanceFunctionConcreteCoupled::assess_importance(
 	const ModuleNetwork& net,
 	const Property& prop,
-	const std::string& strategy)
+	const std::string& strategy,
+	bool force)
 {
-	globalStateCopy_ = net.global_state();
-	ImportanceFunctionConcrete::assess_importance(net.gState,
-												  net.transitions_,
-												  prop,
-												  strategy,
-												  importanceInfoIndex_);
+	if (force || strategy_ != strategy) {
+		globalStateCopy_ = net.global_state();
+		ImportanceFunctionConcrete::assess_importance(net.gState,
+													  net.transitions_,
+													  prop,
+													  strategy,
+													  importanceInfoIndex_);
+	}
 	hasImportanceInfo_ = true;
 	strategy_ = strategy;
+}
+
+
+void
+ImportanceFunctionConcreteCoupled::build_thresholds(
+	const ThresholdsBuilder& tb,
+	const ModuleNetwork& net,
+	const unsigned& splitsPerThreshold)
+{
+	if (!has_importance_info())
+		throw_FigException(std::string("importance function \"").append(name())
+						   .append("\" doesn't yet have importance information"));
+
+	tb.build_thresholds_concrete(net,
+								 splitsPerThreshold,
+								 *this,
+								 modulesConcreteImportance[importanceInfoIndex_]);
 }
 
 
