@@ -72,17 +72,18 @@ ImportanceFunctionConcreteCoupled::assess_importance(
 void
 ImportanceFunctionConcreteCoupled::build_thresholds(
 	const ThresholdsBuilder& tb,
-	const ModuleNetwork& net,
 	const unsigned& splitsPerThreshold)
 {
 	if (!has_importance_info())
 		throw_FigException(std::string("importance function \"").append(name())
 						   .append("\" doesn't yet have importance information"));
 
-	tb.build_thresholds_concrete(net,
-								 splitsPerThreshold,
-								 *this,
-								 modulesConcreteImportance[importanceInfoIndex_]);
+	tb.build_thresholds_concrete(splitsPerThreshold,
+								 maxImportance_,  /* modified */
+								 minRareImportance_,  /* modified */
+								 modulesConcreteImportance[importanceInfoIndex_] /* modified*/ );
+	readyForSims_ = true;
+	thresholdsTechnique_ = tb.name;
 }
 
 
@@ -103,12 +104,14 @@ ImportanceFunctionConcreteCoupled::importance_of(const StateInstance& state) con
 void
 ImportanceFunctionConcreteCoupled::clear() noexcept
 {
-	globalStateCopy_ = State< STATE_INTERNAL_TYPE >();
 	ImportanceFunctionConcrete::clear();
+	globalStateCopy_ = State< STATE_INTERNAL_TYPE >();
 	hasImportanceInfo_ = false;
 	readyForSims_ = false;
 	strategy_ = "";
-	maxImportance_ = 0u;
+	thresholdsTechnique_ = "";
+	maxImportance_ = static_cast<ImportanceValue>(0u);
+	minRareImportance_ = static_cast<ImportanceValue>(0u);
 }
 
 } // namespace fig

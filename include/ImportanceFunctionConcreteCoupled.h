@@ -86,7 +86,6 @@ public:  // Utils
 								   bool force = false);
 
 	virtual void build_thresholds(const ThresholdsBuilder& tb,
-								  const ModuleNetwork& net,
 								  const unsigned& splitsPerThreshold);
 
 	virtual ImportanceValue importance_of(const StateInstance& state) const;

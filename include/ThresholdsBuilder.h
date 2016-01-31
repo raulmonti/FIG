@@ -29,17 +29,16 @@
 #ifndef THRESHOLDSBUILDER_H
 #define THRESHOLDSBUILDER_H
 
+// C++
 #include <array>
 #include <vector>
 #include <string>
+// FIG
+#include <core_typedefs.h>
 
 
 namespace fig
 {
-
-typename ImportanceValue;
-class ModuleNetwork;
-class ImportanceFunctionConcrete;
 
 /**
  * @brief Asbtract base builder of importance thresholds.
@@ -49,8 +48,8 @@ class ImportanceFunctionConcrete;
  *        For instance in the RESTART method everytime a simulation crosses a
  *        threshold "upwards", i.e. gaining on importance, the state is saved
  *        and the simulation run is replicated a predefined number of times.
- *        Oppositely, when a threshold is crossed "downwards", i.e. loosing on
- *        importance, the simulation run is discarded.
+ *        Oppositely, when a simulation crosses a threshold "downwards"
+ *        loosing on importance, it is discarded.
  */
 class ThresholdsBuilder
 {
@@ -61,7 +60,14 @@ public:
 	/// Defined in ThresholdsBuilder.cpp
 	static const std::array< std::string, 1 > names;
 
+	/// Thresholds building technique implemented by this instance
+	/// Check ThresholdsBuilder::names for available options.
+	const std::string name;
+
 public:
+
+	/// Ctor
+	ThresholdsBuilder(const std::string thename);
 
 	/**
 	 * @brief Build thresholds from given concrete importance function.
@@ -76,18 +82,17 @@ public:
 	 *        The result can be regarded as a coarser version of the original
 	 *        importance values which were fed into the routine.
 	 *
-	 * @param network User's system model, i.e. network of modules
-	 * @param splitsPerThreshold 1 + Number of replicas from a simulation run
-	 *                           made on a "threshold level up" event
-	 * @param impFun Concrete ImportanceFunction whith importance information <b>(modified)</b>
+	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
+	 *                           "threshold level up" event
+	 * @todo TODO Update for new signature
 	 * @param impVec Vector from impFun where the thresholds will be stored <b>(modified)</b>
 	 *
 	 * @throw FigException if unsupported by the ThresholdsBuilder derived class
 	 */
 	virtual void
-	build_thresholds_concrete(const ModuleNetwork& network,
-							  const unsigned& splitsPerThreshold,
-							  ImportanceFunctionConcrete& impFun,
+	build_thresholds_concrete(const unsigned& splitsPerThreshold,
+							  ImportanceValue& maxImportance,
+							  ImportanceValue& minRareImportance,
 							  std::vector< ImportanceValue >& impVec) const = 0;
 };
 

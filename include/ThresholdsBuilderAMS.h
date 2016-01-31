@@ -29,20 +29,14 @@
 #ifndef THRESHOLDSBUILDERAMS_H
 #define THRESHOLDSBUILDERAMS_H
 
-// C
-#include <cassert>
-// C++
-#include <tuple>
-#include <type_traits>  // std::is_constructible<>
-// FIG
 #include <ThresholdsBuilder.h>
 
 
 namespace fig
 {
 
-using get = std::get;
 class ModuleNetwork;
+typename ImportanceValue;
 
 /**
  * @brief ThresholdsBuilder implementing Adaptive Multilevel Splitting (AMS)
@@ -63,16 +57,16 @@ class ThresholdsBuilderAMS : public ThresholdsBuilder
 	/// Number of surviving simulations to consider
 	unsigned k_;
 
-	/// Number of thresholds built on last invocation
-	int numThresholds_;
-
-	/// Lowest level containing a rare state, from last invocation
-	int minRareLvl_;
+//	/// Number of thresholds built on last invocation
+//	int numThresholds_;
+//
+//	/// Lowest level containing a rare state, from last invocation
+//	int minRareLvl_;
 
 public:
 
 	/// Void ctor
-	ThresholdsBuilderAMS() : n_(0u), k_(0u), numThresholds_(-1), minRareLvl_(-1) {}
+	ThresholdsBuilderAMS();
 
 	/**
 	 * @brief Choose values for n_ and k_ depending on the nature of the Module
@@ -88,8 +82,7 @@ public:
 			  const unsigned& splitsPerThr);
 
 	virtual void
-	build_thresholds_concrete(const ModuleNetwork& network,
-							  const unsigned& splitsPerThreshold,
+	build_thresholds_concrete(const unsigned& splitsPerThreshold,
 							  ImportanceFunctionConcrete& impFun,
 							  std::vector< ImportanceValue >& impVec) const;
 };

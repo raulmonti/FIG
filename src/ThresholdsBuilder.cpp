@@ -27,7 +27,16 @@
 //==============================================================================
 
 
+// C++
+#include <algorithm>
+#include <iterator>
+// FIG
 #include <ThresholdsBuilder.h>
+#include <FigException.h>
+
+// ADL
+using std::begin;
+using std::end;
 
 
 namespace fig
@@ -44,5 +53,19 @@ const std::array< std::string, 1 > ThresholdsBuilder::names =
 
 
 // ThresholdsBuilder class member functions
+
+ThresholdsBuilder::ThresholdsBuilder(const std::string& thename) :
+	name(thename)
+{
+	if (std::find(begin(names), end(names), name) == end(names)) {
+		std::stringstream errMsg;
+		errMsg << "invalid threshold building technique \"" << name << "\". ";
+		errMsg << "Available techniques are";
+		for (const auto& name: names)
+			errMsg << " \"" << name << "\"";
+		errMsg << "\n";
+		throw_FigException(errMsg.str());
+	}
+}
 
 } // namespace fig

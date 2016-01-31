@@ -95,19 +95,19 @@ adjacent_states(const State& state,
  * @param visits Vector used to mark visited states <b>(modified)</b>
  *
  * @return Concrete states' graph reversed adjacency list, viz. a vector
- *         the size of the concrete state space, whose i'th position has all
- *         the states that reach the i'th concrete state according to "trans"
+ *         the size of the concrete state space, whose i-th position has all
+ *         the states that reach the i-th concrete state according to "trans"
  *
  * @note "visits" should be provided empty, and is reallocated
  *       to the size of "state.concrete_size()"
  *
  * @warning <b>Memory complexity</b>: <i>O(N*M)</i>, where
  *          <ul>
- *          <li><i>N</i> = state.concrete_size() and</li>
- *          <li><i>M</i> is the number of edges of the module</li>
+ *          <li><i>N</i> is the \ref State.concrete_size() "concrete size" of "state" and</li>
+ *          <li><i>M</i> is the number of <b>concrete edges</b> of the module</li>
  *          </ul>
  *          Thus in the worst case scenario this allocates
- *          N<sup>3</sup>*<b>sizeof</b>(STATE_T) bytes.
+ *          <b>sizeof</b>(unsigned)*N<sup>3</sup> bytes.
  *          However that'd require the Module to have a dense transition matrix,
  *          which is seldom the case.
  */
@@ -303,15 +303,16 @@ label_states(State state,
  * @param impVec   Vector where the importance will be stored <b>(modified)</b>
  * @param property Property identifying the special states
  */
-void
+ImportanceValue
 assess_importance_flat(State state,
 					   ImportanceVec& impVec,
 					   const Property& property)
 {
-	// Build vector the size of the concrete state space ...
+	// Build vector the size of concrete state space filled with zeros ...
 	ImportanceVec(state.concrete_size()).swap(impVec);
 	// ... and label according to the property
 	label_states(state, impVec, property);
+	return static_cast<ImportanceValue>(0u);
 }
 
 
@@ -354,8 +355,7 @@ assess_importance_auto(const State& state,
 														 raresQueue,
 														 state.encode(),
 														 impVec);
-	// Free memory ab sofort!
-	fig::AdjacencyList().swap(reverseEdges);
+	fig::AdjacencyList().swap(reverseEdges);  // free mem!
 
 	return maxImportance;
 }
@@ -398,6 +398,7 @@ ImportanceFunctionConcrete::assess_importance(
 			assess_importance_flat(symbState,
 								   modulesConcreteImportance[index],
 								   property);
+		minRareImportance_ = static_cast<ImportanceValue>(0u);
 
 	} else if ("auto" == strategy) {
 		maxImportance_ =
@@ -405,6 +406,7 @@ ImportanceFunctionConcrete::assess_importance(
 								   trans,
 								   modulesConcreteImportance[index],
 								   property);
+		minRareImportance_ = maxImportance_;  // should we check?
 
 	} else if ("adhoc" == strategy) {
 		throw_FigException(std::string("importance strategy \"").append(strategy)

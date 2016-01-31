@@ -496,7 +496,7 @@ ModelSuite::build_thresholds(const std::string& technique,
 						   .append("beforehand"));
 
 	if (force || ifun.thresholds_technique() != technique)
-		ifun.build_thresholds(thrBuilder, *model, 0u/*splitsPerThreshold?*/);
+		ifun.build_thresholds(thrBuilder, 0u/*splitsPerThreshold?*/);
 
 	assert(technique == ifun.thresholds_technique());
 	assert(ifun->ready());

@@ -192,6 +192,9 @@ public:  // Utils
 	 * @param event_triggered SimulationEngine member function pointer
 	 *                        which tells when a simulation step has ended
 	 *
+	 * @note Unrelated to simulation(), this routine was deviced for
+	 *       estimating the value of a Property.
+	 *
 	 * @warning seal() must have been called beforehand
 	 * \ifnot NDEBUG
 	 *   @throw FigException if seal() hasn't been called yet
@@ -202,6 +205,34 @@ public:  // Utils
 						 const SimulationEngine& engine,
 						 bool (SimulationEngine::*event_triggered)
 							  (const Property&, const Traial&) const) const;
+
+	/**
+	 * @brief Advance traial while predicate evaluates to true
+	 *
+	 *        Starting from the state stored in traial, this routine
+	 *        performs synchronized jumps in the \ref ModuleInstance
+	 *        "modules composing the system" as long as the predicate
+	 *        remains true. Simulation information is kept in traial.
+	 *
+	 * @param traial Traial instance keeping track of the simulation
+	 * @param engine Semantics of the current simulation strategy
+	 * @param pred   Predicate telling when to stop jumping
+	 *
+	 * @return Maximum importance achieved during simulation
+	 *
+	 * @note Unrelated to simulation_step(), this routine was deviced for
+	 *       \ref ThresholdsBuilder "thresholds builders" which require
+	 *       exercising the ModuleNetwork dynamics.
+	 *
+	 * @warning seal() must have been called beforehand
+	 * \ifnot NDEBUG
+	 *   @throw FigException if seal() hasn't been called yet
+	 * \endif
+	 */
+	template< class Predicate >
+	ImportanceValue simulation(Traial& traial,
+							   const SimulationEngine& engine,
+							   Predicate predicate);
 };
 
 } // namespace fig

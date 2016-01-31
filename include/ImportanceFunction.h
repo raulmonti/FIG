@@ -102,6 +102,9 @@ protected:
 	/// Maximum importance assigned during the last assessment
 	ImportanceValue maxImportance_;
 
+	/// Importance of the rare state with lowest importance from last assessment
+	ImportanceValue minRareImportance_;
+
 public:  // Ctor/Dtor
 
 	/**
@@ -154,7 +157,12 @@ public:  // Accessors
 	/// @copydoc maxImportance_
 	/// @returns Zero if function doesn't has_importance_info(),
 	///          last maximum assessed importance otherwise
-	const ImportanceValue& max_importance() const noexcept;
+	ImportanceValue max_importance() const noexcept;
+
+	/// @copydoc minRareImportance_
+	/// @returns Zero if function doesn't has_importance_info(),
+	///          minimum ImportanceValue of a rare state otherwise
+	ImportanceValue min_rare_importance() const noexcept;
 
 	/// Whether this instance stores importance values for the concrete state
 	/// space (as opposed to the symbolic state space)
@@ -222,9 +230,8 @@ public:  // Utils
 	 *        \ref ImportanceFunction::ready() "ready for simulations".
 	 *
 	 * @param tb  ThresholdsBuilder to use
-	 * @param net User's system model, i.e. network of modules
-	 * @param splitsPerThreshold 1 + Number of replicas from a simulation run
-	 *                           made on a "threshold level up" event
+	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
+	 *                           "threshold level up" event
 	 *
 	 * @throw FigException if there was no precomputed \ref has_importance_info()
 	 *                     "importance information"
@@ -232,7 +239,6 @@ public:  // Utils
 	 * @see ready()
 	 */
 	virtual void build_thresholds(const ThresholdsBuilder& tb,
-								  const ModuleNetwork& net,
 								  const unsigned& splitsPerThreshold) = 0;
 
 	/// @brief Tell the pre-computed importance of the given StateInstance

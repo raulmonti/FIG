@@ -128,10 +128,18 @@ ImportanceFunction::thresholds_technique() const noexcept
 }
 
 
-const ImportanceValue&
+ImportanceValue
 ImportanceFunction::max_importance() const noexcept
 {
 	return has_importance_info() ? maxImportance_
+								 : static_cast<ImportanceValue>(0u);
+}
+
+
+ImportanceValue
+ImportanceFunction::min_rare_importance() const noexcept
+{
+	return has_importance_info() ? minRareImportance_
 								 : static_cast<ImportanceValue>(0u);
 }
 

@@ -31,6 +31,7 @@
 #include <cmath>
 // C++
 #include <memory>
+#include <algorithm>  // std::sort()
 // FIG
 #include <ThresholdsBuilderAMS.h>
 #include <ModelSuite.h>
@@ -39,6 +40,15 @@
 
 namespace fig
 {
+
+ThresholdsBuilderAMS::ThresholdsBuilderAMS() :
+	ThresholdsBuilder("ams"),
+	n_(0u),
+	k_(0u
+//    numThresholds_(-1),
+//    minRareLvl_(-1)
+{ /* Not much to do around here */ }
+
 
 void
 ThresholdsBuilderAMS::tune(const size_t& numStates,
@@ -73,14 +83,15 @@ ThresholdsBuilderAMS::tune(const size_t& numStates,
 
 void
 ThresholdsBuilderAMS::build_thresholds_concrete(
-	const fig::ModuleNetwork& network,
-	const unsigned &splitsPerThreshold,
-	ImportanceFunctionConcrete& impFun,
+	const unsigned& splitsPerThreshold,
+	ImportanceValue& maxImportance,
+	ImportanceValue& minRareImportance,
 	std::vector< ImportanceValue >& impVec) const
 {
+	const auto& network = *ModelSuite::get_instance().modules_network();
 	tune(network.concrete_state_size(),
 		 network.num_transitions(),
-		 impFun.max_importance(),
+		 maxImportance,
 		 splitsPerThreshold);
 
 	auto engine_ptr = std::make_shared< SimulationEngineNosplit >(net);
