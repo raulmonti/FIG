@@ -235,4 +235,43 @@ ModuleNetwork::simulation_step(Traial& traial,
 }
 
 
+// Predicate specialization for "template<...> ModuleNetwork::simulation(...)"
+typedef bool(*KeepRunning)(const Traial&);
+
+template<>
+ImportanceValue
+ModuleNetwork::simulation(Traial& traial,
+
+						  KeepRunning pred) const
+{
+	if (!sealed())
+#ifndef NDEBUG
+		throw_FigException("ModuleNetwork hasn't been sealed yet");
+#else
+		return;
+#endif
+
+	ImportanceValue maxImportance(traial.importance);
+	StateInstance stateWithMaxImportance = traial.state;
+
+	while ( pred(traial) ) {
+		auto timeout = traial.next_timeout();
+		// Active jump in the module whose clock timed-out
+		auto label = timeout.module->jump(timeout.name, timeout.value, traial);
+		// Passive jumps in the modules listening to label
+		for (auto module_ptr: modules)
+			if (module_ptr->name != timeout.module->name)
+				module_ptr->jump(label, timeout.value, traial);
+		// Update importance info
+		traial.lifeTime += timeout.value;
+		if (traial.importance > maxImportance) {
+			maxImportance = traial.importance;
+			stateWithMaxImportance = traial.state;
+		}
+	}
+
+	traial.state = stateWithMaxImportance;
+	return maxImportance;
+}
+
 } // namespace fig

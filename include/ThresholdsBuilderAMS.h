@@ -29,6 +29,9 @@
 #ifndef THRESHOLDSBUILDERAMS_H
 #define THRESHOLDSBUILDERAMS_H
 
+// C++
+#include <vector>
+// FIG
 #include <ThresholdsBuilder.h>
 
 
@@ -36,7 +39,6 @@ namespace fig
 {
 
 class ModuleNetwork;
-typename ImportanceValue;
 
 /**
  * @brief ThresholdsBuilder implementing Adaptive Multilevel Splitting (AMS)
@@ -57,16 +59,14 @@ class ThresholdsBuilderAMS : public ThresholdsBuilder
 	/// Number of surviving simulations to consider
 	unsigned k_;
 
+	/// Thresholds importance values
+	std::vector< ImportanceValue > thresholds_;
+
 //	/// Number of thresholds built on last invocation
 //	int numThresholds_;
 //
 //	/// Lowest level containing a rare state, from last invocation
 //	int minRareLvl_;
-
-public:
-
-	/// Void ctor
-	ThresholdsBuilderAMS();
 
 	/**
 	 * @brief Choose values for n_ and k_ depending on the nature of the Module
@@ -81,9 +81,15 @@ public:
 			  const ImportanceValue& maxImportance,
 			  const unsigned& splitsPerThr);
 
-	virtual void
+public:
+
+	/// Void ctor
+	ThresholdsBuilderAMS();
+
+	virtual unsigned
 	build_thresholds_concrete(const unsigned& splitsPerThreshold,
-							  ImportanceFunctionConcrete& impFun,
+							  ImportanceValue& maxImportance,
+							  ImportanceValue& minRareImportance,
 							  std::vector< ImportanceValue >& impVec) const;
 };
 

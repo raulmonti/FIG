@@ -212,10 +212,12 @@ public:  // Utils
 	 *        Starting from the state stored in traial, this routine
 	 *        performs synchronized jumps in the \ref ModuleInstance
 	 *        "modules composing the system" as long as the predicate
-	 *        remains true. Simulation information is kept in traial.
+	 *        remains true.<br>
+	 *        At function exit the traial's internal state is the one
+	 *        realizing the maximum importance achieved.
 	 *
 	 * @param traial Traial instance keeping track of the simulation
-	 * @param engine Semantics of the current simulation strategy
+	 * @param fun    Traial update function applied on each jump iteration
 	 * @param pred   Predicate telling when to stop jumping
 	 *
 	 * @return Maximum importance achieved during simulation
@@ -231,8 +233,10 @@ public:  // Utils
 	 */
 	template< class Predicate >
 	ImportanceValue simulation(Traial& traial,
-							   const SimulationEngine& engine,
-							   Predicate predicate);
+							   UpdateFun fun,
+							   Predicate pred) const;
+
+	typedef void(*UpdateFun)(Traial&);
 };
 
 } // namespace fig

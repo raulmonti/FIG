@@ -30,6 +30,7 @@
 // C
 #include <cmath>
 // C++
+#include <vector>
 #include <memory>
 #include <algorithm>  // std::sort()
 // FIG
@@ -38,13 +39,33 @@
 #include <SimulationEngineNosplit.h>
 
 
+namespace
+{
+
+/// @todo TODO document and implement
+std::vector< fig::Reference< fig::Traial > >
+get_traials(unsigned numTraials, const fig::StateInstance& initialState)
+{
+	std::vector< fig::Reference< fig::Traial > > traials;
+
+	// ???
+
+	for (unsigned i = 0u ; i < n_ ; i++)
+		traials[i].state = network.initial_state();
+	return traials;
+}
+
+} // namespace
+
+
 namespace fig
 {
 
 ThresholdsBuilderAMS::ThresholdsBuilderAMS() :
 	ThresholdsBuilder("ams"),
 	n_(0u),
-	k_(0u
+	k_(0u),
+	thresholds_()
 //    numThresholds_(-1),
 //    minRareLvl_(-1)
 { /* Not much to do around here */ }
@@ -59,6 +80,9 @@ ThresholdsBuilderAMS::tune(const size_t& numStates,
 	assert(0u < numStates);
 	assert(0u < numTrans);
 	assert(0u < splitsPerThr);
+
+	std::vector< ImportanceValue >().swap(thresholds_);
+	thresholds_.reserve(maxImportance/2);
 
 	/// @todo FIXME code imported from bluemoon -- Change to something more solid
 
@@ -81,23 +105,49 @@ ThresholdsBuilderAMS::tune(const size_t& numStates,
 }
 
 
-void
+unsigned
 ThresholdsBuilderAMS::build_thresholds_concrete(
 	const unsigned& splitsPerThreshold,
 	ImportanceValue& maxImportance,
 	ImportanceValue& minRareImportance,
 	std::vector< ImportanceValue >& impVec) const
 {
-	const auto& network = *ModelSuite::get_instance().modules_network();
+	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 	tune(network.concrete_state_size(),
 		 network.num_transitions(),
 		 maxImportance,
 		 splitsPerThreshold);
 
-	auto engine_ptr = std::make_shared< SimulationEngineNosplit >(net);
-	std::shared_ptr< const ImportanceFunction > impFun_ptr(impFun);
+	assert(thresholds_.size() == 0u);
+	assert(thresholds_.capacity() > 0u);
+
 
 	/// @todo TODO translate code from bluemoon's "AMS::get_thresholds" in PR_AMS.cc
+
+
+	auto lesser = [](const Traial& lhs, const Traial& rhs)
+				  { return lhs.importance < rhs.importance; };
+	auto traials = get_traials(n, network.initial_state());
+
+	// First AMS iteration is atypical and thus separated from main loop
+	simulate(network, traials, n_, thresholds_);
+	std::sort(begin(traials), end(traials), lesser);
+	thresholds_.push_back(traials[k_-1].importance);
+
+	// AMS main loop
+	do {
+		// Relaunch all simulations below the lastly built threshold (n_-k_)
+		for (unsigned i = n_-k_ ; i < n_ ; i++)
+			traials[i].state = traials[k_-1].state;
+		simulate(network, traials, n_-k_, thresholds_);
+		// From all simulations, k_-th order importance is the new threshold
+		std::sort(begin(traials), end(traials), lesser);
+		thresholds_.push_back(traials[k_-1].importance);
+	} while (thresholds_[thresholds_.size()-1] < maxImportance);
+
+	return_traials(traials);
+
+	return maxImportance;  // FIXME sure about this???
 }
 
 } // namespace fig

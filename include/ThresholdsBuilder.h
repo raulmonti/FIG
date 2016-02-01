@@ -87,9 +87,11 @@ public:
 	 * @todo TODO Update for new signature
 	 * @param impVec Vector from impFun where the thresholds will be stored <b>(modified)</b>
 	 *
+	 * @return Number of thresholds built ( == new value of maxImportance)
+	 *
 	 * @throw FigException if unsupported by the ThresholdsBuilder derived class
 	 */
-	virtual void
+	virtual unsigned
 	build_thresholds_concrete(const unsigned& splitsPerThreshold,
 							  ImportanceValue& maxImportance,
 							  ImportanceValue& minRareImportance,
