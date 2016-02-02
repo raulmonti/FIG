@@ -88,9 +88,8 @@ public:
 
 	virtual unsigned
 	build_thresholds_concrete(const unsigned& splitsPerThreshold,
-							  ImportanceValue& maxImportance,
-							  ImportanceValue& minRareImportance,
-							  std::vector< ImportanceValue >& impVec) const;
+							  const ImportanceValue& maxImportance,
+							  std::vector< ImportanceValue >& impVec);
 };
 
 } // namespace fig

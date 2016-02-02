@@ -72,30 +72,31 @@ public:
 	/**
 	 * @brief Build thresholds from given concrete importance function.
 	 *
-	 *        The thresholds are built in 'impVec', which holds the importance
-	 *        of the concrete states and is actually an internal vector from
-	 *        the passed concrete importance function 'impFun'.
+	 *        The thresholds are built in 'impVec', which on invocation holds
+	 *        the importance of the concrete states and is actually an internal
+	 *        vector from some concrete importance function.
 	 *        Original importance information is destroyed: after the call
 	 *        'impVec[i]' will hold the level of the i-th concrete state,
 	 *        where the j-th level is composed of all the states between the
 	 *        j-th and the (j+1)-th thresholds.
 	 *        The result can be regarded as a coarser version of the original
-	 *        importance values which were fed into the routine.
+	 *        importance values which 'impVec' held before this invocation.
 	 *
 	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
 	 *                           "threshold level up" event
-	 * @todo TODO Update for new signature
-	 * @param impVec Vector from impFun where the thresholds will be stored <b>(modified)</b>
+	 * @param maxImportance Maximum ImportanceValue stored in impVec
+	 * @param impVec Vector with importance info for all concrete states,
+	 *               where the thresholds will be stored <b>(modified)</b>
 	 *
-	 * @return Number of thresholds built ( == new value of maxImportance)
+	 * @return Number of thresholds built (i.e. new "maxImportance" value)
 	 *
-	 * @throw FigException if unsupported by the ThresholdsBuilder derived class
+	 * @throw FigException if method is unsupported by the derived class
+	 * @throw FigException if thresholds building failed
 	 */
 	virtual unsigned
 	build_thresholds_concrete(const unsigned& splitsPerThreshold,
-							  ImportanceValue& maxImportance,
-							  ImportanceValue& minRareImportance,
-							  std::vector< ImportanceValue >& impVec) const = 0;
+							  const ImportanceValue& maxImportance,
+							  std::vector< ImportanceValue >& impVec) = 0;
 };
 
 } // namespace fig

@@ -213,11 +213,12 @@ public:  // Utils
 	 *        performs synchronized jumps in the \ref ModuleInstance
 	 *        "modules composing the system" as long as the predicate
 	 *        remains true.<br>
-	 *        At function exit the traial's internal state is the one
-	 *        realizing the maximum importance achieved.
+	 *        At function exit the traial internals are left at the peak:
+	 *        its importance is the maximum achieved and its state is
+	 *        the variables valuation realizing that importance.
 	 *
 	 * @param traial Traial instance keeping track of the simulation
-	 * @param fun    Traial update function applied on each jump iteration
+	 * @param update Traial update function applied on each jump iteration
 	 * @param pred   Predicate telling when to stop jumping
 	 *
 	 * @return Maximum importance achieved during simulation
@@ -232,9 +233,9 @@ public:  // Utils
 	 * \endif
 	 */
 	template< class Predicate >
-	ImportanceValue simulation(Traial& traial,
-							   UpdateFun fun,
-							   Predicate pred) const;
+	ImportanceValue peak_simulation(Traial& traial,
+									UpdateFun update,
+									Predicate pred) const;
 
 	typedef void(*UpdateFun)(Traial&);
 };

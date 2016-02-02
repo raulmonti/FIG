@@ -235,14 +235,14 @@ ModuleNetwork::simulation_step(Traial& traial,
 }
 
 
-// Predicate specialization for "template<...> ModuleNetwork::simulation(...)"
+// Predicate specialization for "template<...> ModuleNetwork::peak_simulation()"
 typedef bool(*KeepRunning)(const Traial&);
 
 template<>
 ImportanceValue
-ModuleNetwork::simulation(Traial& traial,
-
-						  KeepRunning pred) const
+ModuleNetwork::peak_simulation(Traial& traial,
+							   UpdateFun update,
+							   KeepRunning pred) const
 {
 	if (!sealed())
 #ifndef NDEBUG
@@ -252,7 +252,7 @@ ModuleNetwork::simulation(Traial& traial,
 #endif
 
 	ImportanceValue maxImportance(traial.importance);
-	StateInstance stateWithMaxImportance = traial.state;
+	StateInstance maxImportanceState(traial.state);
 
 	while ( pred(traial) ) {
 		auto timeout = traial.next_timeout();
@@ -262,16 +262,18 @@ ModuleNetwork::simulation(Traial& traial,
 		for (auto module_ptr: modules)
 			if (module_ptr->name != timeout.module->name)
 				module_ptr->jump(label, timeout.value, traial);
-		// Update importance info
+		// Update traial internals
 		traial.lifeTime += timeout.value;
-		if (traial.importance > maxImportance) {
+		update(traial);
+		if (UNMASK(traial.importance) > UNMASK(maxImportance)) {
 			maxImportance = traial.importance;
-			stateWithMaxImportance = traial.state;
+			maxImportanceState = traial.state;
 		}
 	}
 
-	traial.state = stateWithMaxImportance;
-	return maxImportance;
+	traial.importance = maxImportance;
+	traial.state = maxImportanceState;
+	return UNMASK(maxImportance);
 }
 
 } // namespace fig
