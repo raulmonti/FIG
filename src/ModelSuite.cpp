@@ -339,9 +339,8 @@ ModelSuite::available_simulators() const
 		for (const auto& pair: simulators)
 			simulatorsNames.push_back(pair.first);
 	} else if (simulators.empty()) {
-		std::cerr << "ModelSuite hasn't been sealed, "
-				  << "no simulation engine is available yet."
-				  << std::endl;
+		throw_FigException("ModelSuite hasn't been sealed, "
+						   "no simulation engine is available yet.");
 	}
 	return simulatorsNames;
 }
@@ -356,9 +355,8 @@ ModelSuite::available_importance_functions() const
 		for (const auto& pair: impFuns)
 			ifunsNames.push_back(pair.first);
 	} else if (impFuns.empty()) {
-		std::cerr << "ModelSuite hasn't been sealed, "
-				  << "no importance function is available yet."
-				  << std::endl;
+		throw_FigException("ModelSuite hasn't been sealed, "
+						   "no importance function is available yet.");
 	}
 	return ifunsNames;
 }
@@ -386,59 +384,58 @@ ModelSuite::available_threshold_techniques() const
 		for (const auto& pair: thrBuilders)
 			thresholdsBuildersTechniques.push_back(pair.first);
 	} else if (thrBuilders.empty()) {
-		std::cerr << "ModelSuite hasn't been sealed, "
-				  << "no thresholds builder is available yet."
-				  << std::endl;
+		throw_FigException("ModelSuite hasn't been sealed, "
+						   "no thresholds builder is available yet.");
 	}
 	return thresholdsBuildersTechniques;
 }
 
 
 bool
-ModelSuite::exists_simulator(const std::string& engineName) const
+ModelSuite::exists_simulator(const std::string& engineName) const noexcept
 {
-	const auto& availableSimulators = available_simulators();  // may throw
-	if (find(begin(availableSimulators), end(availableSimulators), engineName)
-			== end(availableSimulators))
-		return false;
-	else
-		return true;
+	try {
+		const auto& simulators = available_simulators();
+		if (find(begin(simulators), end(simulators), engineName) != end(simulators))
+			return true;
+	} catch (FigException) { /* Model isn't sealed, nothing exists yet */ }
+	return false;
 }
 
 
 bool
-ModelSuite::exists_importance_function(const std::string& ifunName) const
+ModelSuite::exists_importance_function(const std::string& ifunName) const noexcept
 {
-	const auto& availableIfuns = available_importance_functions();  // may throw
-	if (find(begin(availableIfuns), end(availableIfuns), ifunName)
-			== end(availableIfuns))
-		return false;
-	else
-		return true;
+	try {
+		const auto& impFuns = available_importance_functions();
+		if (find(begin(impFuns), end(impFuns), ifunName) != end(impFuns))
+			return true;
+	} catch (FigException) { /* Model isn't sealed, nothing exists yet */ }
+	return false;
 }
 
 
 bool
-ModelSuite::exists_importance_strategy(const std::string& impStrategy) const
+ModelSuite::exists_importance_strategy(const std::string& impStrategy) const noexcept
 {
-	const auto& availableIStrategies = available_importance_strategies();  // may throw
-	if (find(begin(availableIStrategies), end(availableIStrategies), impStrategy)
-			== end(availableIStrategies))
-		return false;
-	else
-		return true;
+	try {
+		const auto& impStrats = available_importance_strategies();
+		if (find(begin(impStrats), end(impStrats), impStrategy) != end(impStrats))
+			return true;
+	} catch (FigException) { /* Model isn't sealed, nothing exists yet */ }
+	return false;
 }
 
 
 bool
-ModelSuite::exists_threshold_technique(const std::string& thrTechnique) const
+ModelSuite::exists_threshold_technique(const std::string& thrTechnique) const noexcept
 {
-	const auto& availableThrBuilders = available_threshold_techniques();  // may throw
-	if (find(begin(availableThrBuilders), end(availableThrBuilders), thrTechnique)
-			== end(availableThrBuilders))
-		return false;
-	else
-		return true;
+	try {
+		const auto& thrTechs = available_threshold_techniques();
+		if (find(begin(thrTechs), end(thrTechs), thrTechnique) != end(thrTechs))
+			return true;
+	} catch (FigException) { /* Model isn't sealed, nothing exists yet */ }
+	return false;
 }
 
 
@@ -496,10 +493,59 @@ ModelSuite::build_thresholds(const std::string& technique,
 						   .append("beforehand"));
 
 	if (force || ifun.thresholds_technique() != technique)
-		ifun.build_thresholds(thrBuilder, 0u/*splitsPerThreshold?*/);
+		ifun.build_thresholds(thrBuilder, 2u/*splitsPerThreshold?*/);
 
 	assert(technique == ifun.thresholds_technique());
-	assert(ifun->ready());
+	assert(ifun.ready());
+}
+
+
+std::shared_ptr< const SimulationEngine >
+ModelSuite::prepare_simulation_engine(const std::string& engineName,
+									  const std::string& ifunName)
+{
+	if (!exists_simulator(engineName))
+		throw_FigException(std::string("inexistent simulation engine \"")
+						   .append(engineName).append("\" Call \"available_")
+						   .append("simulators()\" for a list of ")
+						   .append("available options."));
+	if (!exists_importance_function(ifunName))
+		throw_FigException(std::string("inexistent importance function \"")
+						   .append(ifunName).append("\" Call \"available_")
+						   .append("importance_functions()\" for a list of ")
+						   .append("available options."));
+
+	auto engine_ptr = simulators[engineName];
+	auto ifun_ptr = impFuns[ifunName];
+
+	if (!ifun_ptr->has_importance_info())
+		throw_FigException(std::string("importance function \"").append(ifunName)
+						   .append("\" isn't yet ready for simulations. Call ")
+						   .append("\"build_importance_function()\" and ")
+						   .append("\"build_thresholds()\" beforehand"));
+
+	if (engine_ptr->bound())
+		engine_ptr->unbind();
+	engine_ptr->bind(ifun_ptr);
+	assert(engine_ptr->bound());
+	assert(ifunName == engine_ptr->current_imp_fun());
+
+	return engine_ptr;
+}
+
+
+void
+ModelSuite::release_resources(const std::string& ifunName,
+							  const std::string& engineName) noexcept
+{
+	if (exists_importance_function(ifunName)) {
+		impFuns[ifunName]->clear();
+		assert(!impFuns[ifunName]->has_importance_info());
+	}
+	if (exists_simulator(engineName)) {
+		simulators[engineName]->unbind();
+		assert(!simulators[engineName]->bound());
+	}
 }
 
 

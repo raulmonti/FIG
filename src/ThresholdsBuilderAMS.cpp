@@ -29,6 +29,7 @@
 
 // C
 #include <cmath>
+#include <cassert>
 // C++
 #include <vector>
 #include <memory>
@@ -37,42 +38,40 @@
 #include <unordered_map>
 // FIG
 #include <ThresholdsBuilderAMS.h>
-#include <ModuleNetwork.h>
+#include <ImportanceFunctionConcrete.h>
 #include <ModelSuite.h>
-#include <SimulationEngineNosplit.h>
 
 
 namespace
 {
 
 typedef  std::vector< fig::Reference< fig::Traial > >  TraialsVec;
-using State = fig::State< fig::STATE_INTERNAL_TYPE >;
 using fig::ImportanceValue;
 
 /// Min simulation length (in # of jumps) to find new thresholds
-const unsigned MIN_SIM_EFFORT = 1u<<10;  // 1K
+const unsigned MIN_SIM_EFFORT = 1u<<7;  // 128
 
 /// Max # of failures allowed when searching for a new threshold
 const unsigned MAX_NUM_FAILURES = 10u;
 
 /**
  * Get initialized traial instances
- * @param numTraials   Number of Traials to retrieve from the TraialPool
- * @param initialState State to which all traials will be initialized
+ * @param numTraials Number of Traials to retrieve from the TraialPool
+ * @param network    User's system model, i.e. a network of modules
+ * @param impFun     ImportanceFunction with \ref ImportanceFunction::has_importance_info()
+ *                   "importance info" to use for initialization
  * @return std::vector of references to initialized Traial instances
  */
 TraialsVec
 get_traials(const unsigned& numTraials,
-			const fig::StateInstance& initialState,
-			const ImportanceValue& initialImportance)
+			const fig::ModuleNetwork& network,
+			const fig::ImportanceFunction& impFun)
 {
-	std::vector< fig::Reference< fig::Traial > > traials;
-	fig::TraialPool& tpool = fig::TraialPool::get_instance();
-	traials.push_back(tpool.get_traial());
-	traials[0].state = initialState;
-	traials[0].importance = initialImportance;
-	auto traialsList = tpool.get_traial_copies(traials[0], numTraials-1);
-	traials.insert(traials.begin(), traialsList.begin(), traials.end());
+	TraialsVec traials;
+	fig::TraialPool::get_instance().get_traials(traials, numTraials);
+	assert(traials.size() == numTraials);
+	for (fig::Traial& t: traials)
+		t.initialize(network, impFun);
 	return traials;
 }
 
@@ -86,28 +85,27 @@ get_traials(const unsigned& numTraials,
  *        The importance assigned to the states visited is taken from 'impVec'
  *
  * @param network   User's system model, i.e. a network of modules
+ * @param impFun    ImportanceFunction with \ref ImportanceFunction::has_importance_info()
+ *                  "importance info" for all concrete states
  * @param traials   Vector of size >= numSims with references to Traials
  * @param numSims   Number of Traials to simulate with
  * @param simEffort Number of synchronized jumps each simulation will incur in
- * @param impVec    Vector with importance info for all concrete states
  */
 void
 simulate(const fig::ModuleNetwork& network,
+		 const fig::ImportanceFunction& impFun,
 		 TraialsVec& traials,
 		 const unsigned& numSims,
-		 const unsigned& simEffort,
-		 const std::vector< ImportanceValue >& impVec)
+		 const unsigned& simEffort)
 {
 	unsigned jumpsLeft;
-	State s = network.global_state();
 
-	// Device function pointers according to the supported signatures
+	// Function pointers matching supported signatures (ModuleNetwork.cpp)
 	auto predicate = [&](const fig::Traial&) -> bool {
-		return --jumpsLeft == 0u;
+		return --jumpsLeft > 0u;
 	};
 	auto update = [&](fig::Traial& t) -> void {
-		s.copy_from_state_instance(t.state);
-		t.importance = impVec[s.encode()];
+		t.importance = impFun.importance_of(t.state);
 	};
 	// Notice we actually use lambdas with captures, which are incompatible
 	// with free function pointers (http://stackoverflow.com/q/7852101)
@@ -145,8 +143,9 @@ replace_importance_with_thresholds(std::vector< ImportanceValue >& impVec,
 	imp2thr.reserve(maxImportance);
 	ImportanceValue currentThr(0u);
 	// Build "importance-to-thresholds" mapping
-	for (ImportanceValue i = static_cast<ImportanceValue>(0u) ; i < maxImportance ; i++) {
-		while (thrImp[currentThr] <= i)
+	for (ImportanceValue i = static_cast<ImportanceValue>(0u) ; i <= maxImportance ; i++) {
+		while (thrImp[currentThr] <= i
+			   && currentThr < thrImp.size())
 			currentThr++;
 		imp2thr[i] = currentThr;
 	}
@@ -170,8 +169,6 @@ ThresholdsBuilderAMS::ThresholdsBuilderAMS() :
 	n_(0u),
 	k_(0u),
 	thresholds_()
-//    numThresholds_(-1),
-//    minRareLvl_(-1)
 { /* Not much to do around here */ }
 
 
@@ -214,44 +211,50 @@ ThresholdsBuilderAMS::tune(const size_t& numStates,
 unsigned
 ThresholdsBuilderAMS::build_thresholds_concrete(
 	const unsigned& splitsPerThreshold,
-	const ImportanceValue& maxImportance,
+	ImportanceFunctionConcrete& impFun,
 	std::vector< ImportanceValue >& impVec)
 {
-	if (maxImportance < static_cast<ImportanceValue>(2u))
+	if (impFun.max_importance() < static_cast<ImportanceValue>(2u))
 		return 1u;  // not worth it
 
 	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 	tune(network.concrete_state_size(),
 		 network.num_transitions(),
-		 maxImportance,
+		 impFun.max_importance(),
 		 splitsPerThreshold);
 
 	unsigned failures(0u);
 	unsigned simEffort(MIN_SIM_EFFORT);
 	auto lesser = [](const Traial& lhs, const Traial& rhs)
 				  { return UNMASK(lhs.importance) < UNMASK(rhs.importance); };
-	TraialsVec traials = get_traials(n_,
-									 network.initial_state(),
-									 static_cast<ImportanceValue>(0u));
+	TraialsVec traials = get_traials(n_, network, impFun);
 
 	// First AMS iteration is atypical and thus separated from main loop
-	simulate(network, traials, n_, simEffort, impVec);
-	std::sort(begin(traials), end(traials), lesser);
-	assert(static_cast<ImportanceValue>(0u) < UNMASK(traials[n_-k_].importance));
-	assert(UNMASK(traials[n_-k_].importance) < maxImportance);
-	thresholds_.push_back(UNMASK(traials[n_-k_].importance));
+	Traial& kTraial = traials[n_-k_];
+	do {
+		simulate(network, impFun, traials, n_, simEffort);
+		std::sort(begin(traials), end(traials), lesser);
+		kTraial = traials[n_-k_];
+		simEffort *= 2;
+	} while (static_cast<ImportanceValue>(0u) == UNMASK(kTraial.importance));
+	if (UNMASK(kTraial.importance) >= impFun.max_importance())
+		throw_FigException("first iteration of AMS reached max importance, "
+						   "rare event doesn't seem rare enough.");
+	thresholds_.push_back(UNMASK(kTraial.importance));
+	simEffort = MIN_SIM_EFFORT;
 
 	// AMS main loop
-	while (thresholds_.back() < maxImportance) {
+	while (thresholds_.back() < impFun.max_importance()) {
 		// Relaunch all n_-k_ simulations below previously built threshold
 		for (unsigned i = 0u ; i < n_-k_ ; i++)
-			traials[i].state = traials[n_-k_].state;
-		simulate(network, traials, n_-k_, simEffort, impVec);
+			static_cast<Traial&>(traials[i]) = kTraial;
+		simulate(network, impFun, traials, n_-k_, simEffort);
 		// New k_-th order peak importance should be the new threshold
 		std::sort(begin(traials), end(traials), lesser);
-		if (UNMASK(traials[n_-k_].importance) > thresholds_.back()) {
+		kTraial = traials[n_-k_];
+		if (UNMASK(kTraial.importance) > thresholds_.back()) {
 			// Found valid new threshold
-			thresholds_.push_back(UNMASK(traials[n_-k_].importance));
+			thresholds_.push_back(UNMASK(kTraial.importance));
 			simEffort = MIN_SIM_EFFORT;
 			failures = 0u;
 		} else {
@@ -263,7 +266,9 @@ ThresholdsBuilderAMS::build_thresholds_concrete(
 	}
 
 	TraialPool::get_instance().return_traials(traials);
-	return replace_importance_with_thresholds(impVec, maxImportance, thresholds_);
+	return replace_importance_with_thresholds(impVec,
+											  impFun.max_importance(),
+											  thresholds_);
 
 	exit_with_fail:
 		std::stringstream errMsg;

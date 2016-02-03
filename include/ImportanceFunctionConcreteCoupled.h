@@ -85,7 +85,7 @@ public:  // Utils
 								   const std::string& strategy = "",
 								   bool force = false);
 
-	virtual void build_thresholds(const ThresholdsBuilder& tb,
+	virtual void build_thresholds(ThresholdsBuilder& tb,
 								  const unsigned& splitsPerThreshold);
 
 	virtual ImportanceValue importance_of(const StateInstance& state) const;

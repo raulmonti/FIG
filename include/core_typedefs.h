@@ -97,7 +97,7 @@ template< typename T_ > using                              VariableDefinition
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //
 //
-// State and StateInstance
+// State
 //
 
 /// StateInstances internal storage type
@@ -105,8 +105,13 @@ template< typename T_ > using                              VariableDefinition
 ///
 typedef  MUP_BASETYPE                                    STATE_INTERNAL_TYPE;
 
+/// Assignment of values to Variables (a logical <i>valuation</i>)
+/// following the order given in some State. A StateInstance can be
+/// compared to the State it comes from to check consistency.
+typedef  std::vector< STATE_INTERNAL_TYPE >                    StateInstance;
+
 /// Adjacency list for concrete states transitions graph
-typedef std::vector< std::forward_list< unsigned > >           AdjacencyList;
+typedef  std::vector< std::forward_list< unsigned > >          AdjacencyList;
 
 //
 //

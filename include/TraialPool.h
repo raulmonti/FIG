@@ -120,10 +120,10 @@ public:  // Access to the TraialPool instance
 public:  // Access to resources (viz Traials)
 
 	/**
-	 * @brief Obtain single Traial to simulate with
+	 * @brief Obtain single (dirty) Traial to simulate with
 	 * @details Instantiate in the following way:
 	 *          \code
-	 *          Traial& varname = TraialPool::get_instance().get_traial()
+	 *          Traial& varname = TraialPool::get_instance().get_traial();
 	 *          \endcode
 	 *          Don't use the 'auto' keyword to define the variable.
 	 * @return Dirty Traial
@@ -140,7 +140,22 @@ public:  // Access to resources (viz Traials)
 	void return_traial(Traial&& traial);
 
 	/**
-	 * @brief  Obtain specified amount of copies of given Traial instance
+	 * Obtain specified amount of (dirty) Traial instances
+	 *
+	 * @param cont       Container where traials are to be stored
+	 * @param numTraials Number of \ref Traial "traials" requested
+	 *
+	 * @note <b>Complexity:</b> <i>O(numTraials)</i> if free resources are
+	 *       available, <i>O(max(numTraials,sizeIncrement_))</i>
+	 *       if new resources need to be allocated.
+	 */
+	template< template< typename... > class Container,
+			  typename... OtherArgs >
+	void get_traials(Container< Reference<Traial>, OtherArgs...>& cont,
+					 const unsigned& numTraials);
+
+	/**
+	 * Obtain specified amount of copies of given Traial instance
 	 *
 	 * @param  traial    Traial instance whose internals will be copied
 	 * @param  numCopies Number of \ref Traial "traials" requested
@@ -161,10 +176,9 @@ public:  // Access to resources (viz Traials)
 	 * @note The container is devoided to avoid potential memory corruption issues
 	 * @note <b>Complexity:</b> <i>O(size(traials))</i>
 	 */
-	template< template< typename, typename... > class Container,
-			  typename ValueType,
-			  typename... OtherContainerArgs >
-	void return_traials(Container<ValueType, OtherContainerArgs...>& traials);
+	template< template< typename... > class Container,
+			  typename... OtherArgs >
+	void return_traials(Container< Reference<Traial>, OtherArgs...>& traials);
 
 public:  // Utils
 

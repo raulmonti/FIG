@@ -137,10 +137,6 @@ public:  // Accessors
 	/// @copydoc gState
 	inline const State<STATE_INTERNAL_TYPE>& global_state() const noexcept { return gState; }
 
-	/// Modules composing the network, as const pointers
-	inline const std::vector< std::shared_ptr< const ModuleInstance > >
-	get_modules() const noexcept { return modules; }
-
 public:  // Utils
 
 	virtual StateInstance initial_state() const;
@@ -207,12 +203,12 @@ public:  // Utils
 							  (const Property&, const Traial&) const) const;
 
 	/**
-	 * @brief Advance traial while predicate evaluates to true
+	 * @brief Advance a traial and keep track of maximum importance reached
 	 *
 	 *        Starting from the state stored in traial, this routine
 	 *        performs synchronized jumps in the \ref ModuleInstance
-	 *        "modules composing the system" as long as the predicate
-	 *        remains true.<br>
+	 *        "modules composing the system" as long as the given
+	 *        Predicate remains true.<br>
 	 *        At function exit the traial internals are left at the peak:
 	 *        its importance is the maximum achieved and its state is
 	 *        the variables valuation realizing that importance.
@@ -232,13 +228,63 @@ public:  // Utils
 	 *   @throw FigException if seal() hasn't been called yet
 	 * \endif
 	 */
-	template< class Predicate >
+	template< class Predicate, class Update >
 	ImportanceValue peak_simulation(Traial& traial,
-									UpdateFun update,
+									Update update,
 									Predicate pred) const;
+}; // class ModuleNetwork
 
-	typedef void(*UpdateFun)(Traial&);
-};
+
+
+
+/// @note Defined here to allow lambda functions with captures as template parameters
+template< class Predicate, class Update >
+ImportanceValue
+ModuleNetwork::peak_simulation(Traial& traial,
+							   Update update,
+							   Predicate pred) const
+{
+	if (!sealed())
+#ifndef NDEBUG
+		throw_FigException("ModuleNetwork hasn't been sealed yet");
+#else
+		return;
+#endif
+
+	ImportanceValue maxImportance(traial.importance);
+	StateInstance maxImportanceState(traial.state);
+
+	while ( pred(traial) ) {
+		auto timeout = traial.next_timeout();
+		// Active jump in the module whose clock timed-out
+		auto label = timeout.module->jump(timeout.name, timeout.value, traial);
+		// Passive jumps in the modules listening to label
+		for (auto module_ptr: modules)
+			if (module_ptr->name != timeout.module->name)
+				module_ptr->jump(label, timeout.value, traial);
+		// Update traial internals
+		traial.lifeTime += timeout.value;
+		update(traial);
+		if (UNMASK(traial.importance) > UNMASK(maxImportance)) {
+			maxImportance = traial.importance;
+			maxImportanceState = traial.state;
+		}
+	}
+	traial.importance = maxImportance;
+	traial.state = maxImportanceState;
+
+	return UNMASK(maxImportance);
+}
+
+/// Update traial function specialization for "template<...> ModuleNetwork::peak_simulation()"
+typedef void(*UpdateFun)(Traial&);
+
+/// Predicate specialization for "template<...> ModuleNetwork::peak_simulation()"
+typedef bool(*KeepRunning)(const Traial&);
+
+template<> ImportanceValue ModuleNetwork::peak_simulation(Traial&,
+														  UpdateFun,
+														  KeepRunning) const;
 
 } // namespace fig
 

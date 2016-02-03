@@ -42,6 +42,7 @@
 // FIG
 #include <FigException.h>
 #include <ModuleInstance.h>
+#include <ImportanceFunction.h>
 #include <Traial.h>
 
 // ADL

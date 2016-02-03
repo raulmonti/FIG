@@ -40,9 +40,9 @@
 #include <type_traits>  // std::is_same<>, std::is_constructible<>
 // FIG
 #include <core_typedefs.h>
+#include <State.h>
 #include <Module.h>
 #include <Clock.h>
-#include <State.h>
 #include <Transition.h>
 
 #if __cplusplus < 201103L

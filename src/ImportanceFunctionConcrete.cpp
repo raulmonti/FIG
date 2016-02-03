@@ -308,10 +308,14 @@ assess_importance_flat(State state,
 					   ImportanceVec& impVec,
 					   const Property& property)
 {
+	assert(state.size() > 0u);
+	assert(impVec.size() == 0u);
+
 	// Build vector the size of concrete state space filled with zeros ...
 	ImportanceVec(state.concrete_size()).swap(impVec);
 	// ... and label according to the property
 	label_states(state, impVec, property);
+
 	return static_cast<ImportanceValue>(0u);
 }
 
@@ -387,7 +391,7 @@ ImportanceFunctionConcrete::assess_importance(
 	const unsigned& index)
 {
 	if (modulesConcreteImportance.size() <= index)
-		modulesConcreteImportance.resize(index);
+		modulesConcreteImportance.resize(index+1);
 	else if (modulesConcreteImportance[index].size() > 0u)
 		throw_FigException(std::string("importance info already exists at ")
 						   .append(" position").append(std::to_string(index)));

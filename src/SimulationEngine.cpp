@@ -70,8 +70,8 @@ SimulationEngine::SimulationEngine(
         globalState_(network->global_state()),
 		impFun_(nullptr),
         cImpFun_(nullptr),
-		splitsPerThreshold_(1),
-		dieOutDepth_(1u),
+//		splitsPerThreshold_(1),
+//		dieOutDepth_(1u),
         interrupted(false),
         lastEvents_(EventType::NONE)
 {

@@ -238,7 +238,7 @@ public:  // Utils
 	 *
 	 * @see ready()
 	 */
-	virtual void build_thresholds(const ThresholdsBuilder& tb,
+	virtual void build_thresholds(ThresholdsBuilder& tb,
 								  const unsigned& splitsPerThreshold) = 0;
 
 	/// @brief Tell the pre-computed importance of the given StateInstance

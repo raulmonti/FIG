@@ -32,24 +32,6 @@
 #include <ThresholdsBuilder.h>
 
 
-namespace
-{
-
-using fig::ImportanceValue;
-using ImportanceVec = fig::ImportanceFunctionConcrete::ImportanceVec;
-
-ImportanceValue find_min_rare_importance(const ImportanceVec& impVec)
-{
-	ImportanceValue minImp(std::numeric_limits<ImportanceValue>::max);
-	for (size_t i = 0u ; i < impVec.size() ; i++)
-		if (fig::IS_RARE_EVENT(impVec[i]) && fig::UNMASK(impVec[i]) < minImp)
-			minImp = fig::UNMASK(impVec[i]);
-	return minImp;
-}
-
-} // namespace
-
-
 namespace fig
 {
 
@@ -89,7 +71,7 @@ ImportanceFunctionConcreteCoupled::assess_importance(
 
 void
 ImportanceFunctionConcreteCoupled::build_thresholds(
-	const ThresholdsBuilder& tb,
+	ThresholdsBuilder& tb,
 	const unsigned& splitsPerThreshold)
 {
 	if (!has_importance_info())
@@ -98,12 +80,12 @@ ImportanceFunctionConcreteCoupled::build_thresholds(
 
 	ImportanceVec& impVec = modulesConcreteImportance[importanceInfoIndex_];
 	unsigned numThresholds = tb.build_thresholds_concrete(splitsPerThreshold,
-														  maxImportance_,
+														  *this,
 														  impVec);
 	thresholdsTechnique_ = tb.name;
-	maxImportance_ = numThresholds;
+	maxImportance_ = numThresholds-1;
 	// Find lowest threshold level where we can find a rare state
-	minRareImportance_ = std::numeric_limits<ImportanceValue>::max;
+	minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
 	for (size_t i = 0u ; i < impVec.size() ; i++)
 		if (IS_RARE_EVENT(impVec[i]) && UNMASK(impVec[i]) < minRareImportance_)
 			minRareImportance_ = UNMASK(impVec[i]);

@@ -31,7 +31,6 @@
 #include <memory>
 #include <iostream>
 #include <cassert>
-#include <type_traits>
 // FIG
 //#include <fig.h>  // we won't be using the parser yet
 #include <ILabel.h>
@@ -41,7 +40,6 @@
 #include <PropertyTransient.h>
 #include <StoppingConditions.h>
 #include <SimulationEngineNosplit.h>
-#include <ImportanceFunctionConcreteCoupled.h>
 
 
 int main()
@@ -72,13 +70,13 @@ int main()
 	 *                                                             *
 	 *  Module Queue1                                              *
 	 *                                                             *
-	 *      int q1 : [0..9] = 1                                    *
-	 *      clock clkArr  : Normal(2,1)                            *
+	 *      int q1 : [0..7] = 1                                    *
+	 *      clock clkArr  : Normal(9,1)                            *
 	 *      clock clkPass : Uniform(0,5)                           *
 	 *                                                             *
 	 *      [arr!]  q1 == 0   @ clkArr  --> q1++ {clkArr, clkPass} *
-	 *      [arr!] 0 < q1 < 9 @ clkArr  --> q1++ {clkArr}          *
-	 *      [arr!]  q1 == 9   @ clkArr  -->      {clkArr}          *
+	 *      [arr!] 0 < q1 < 7 @ clkArr  --> q1++ {clkArr}          *
+	 *      [arr!]  q1 == 7   @ clkArr  -->      {clkArr}          *
 	 *      [pass!] q1 >  1   @ clkPass --> q1-- {clkPass}         *
 	 *      [pass!] q1 == 1   @ clkPass --> q1-- {}                *
 	 *                                                             *
@@ -87,7 +85,7 @@ int main()
 	 *  Module Queue2                                              *
 	 *                                                             *
 	 *      int q2 : [0..5] = 0                                    *
-	 *      clock clkExit : Exponential(0.23)                      *
+	 *      clock clkExit : Exponential(0.18)                      *
 	 *                                                             *
 	 *      [pass?] q2 == 0           --> q2++ {clkExit}           *
 	 *      [pass?] 0 < q2 < 5        --> q2++ {}                  *
@@ -104,8 +102,8 @@ int main()
 
 	// Module "Queue1"
 	std::cout << "Building the first module" << std::endl;
-	State vars1 = std::vector< VarDef >({std::make_tuple("q1", 0, 9, 1)});
-	std::vector< Clock > clocks1 = {{"clkArr",  "normalMV",  {{2.0, 1.0}}},
+	State vars1 = std::vector< VarDef >({std::make_tuple("q1", 0, 7, 1)});
+	std::vector< Clock > clocks1 = {{"clkArr",  "normalMV",  {{9.0, 1.0}}},
 									{"clkPass", "uniformAB", {{0.0, 5.0}}}};
 	module = std::make_shared< ModuleInstance >("Queue1", vars1, clocks1);
 	// [arr!] q1 == 0 @ clkArr --> q1++ {clkArr, clkPass}
@@ -115,18 +113,18 @@ int main()
 		Precondition("q1 == 0", NamesList({"q1"})),
 		Postcondition("1", NamesList(), NamesList({"q1"})),
 		NamesList({"clkArr", "clkPass"}));
-	// [arr!] 0 < q1 < 9 @ clkArr --> q1++ {clkArr}
+	// [arr!] 0 < q1 < 7 @ clkArr --> q1++ {clkArr}
 	module->add_transition(
 		OLabel("arr"),
 		"clkArr",
-		Precondition("0 < q1 && q1 < 9", NamesList({"q1"})),
+		Precondition("0 < q1 && q1 < 7", NamesList({"q1"})),
 		Postcondition("q1+1", NamesList({"q1"}), NamesList({"q1"})),
 		NamesList({"clkArr"}));
-	// [arr!] q1 == 9 @ clkArr --> {clkArr}
+	// [arr!] q1 == 7 @ clkArr --> {clkArr}
 	module->add_transition(
 		OLabel("arr"),
 		"clkArr",
-		Precondition("q1 == 9", NamesList({"q1"})),
+		Precondition("q1 == 7", NamesList({"q1"})),
 		Postcondition("", NamesList(), NamesList()),
 		NamesList({"clkArr"}));
 	// [pass!] q1 > 1 @ clkPass --> q1-- {clkPass}
@@ -149,7 +147,7 @@ int main()
 	// Module "Queue2"
 	std::cout << "Building the second module" << std::endl;
 	State vars2 = std::vector< VarDef >({std::make_tuple("q2", 0, 5, 0)});
-	std::vector< Clock > clocks2 = {{"clkExit", "exponential", {{0.23}}}};
+	std::vector< Clock > clocks2 = {{"clkExit", "exponential", {{0.18}}}};
 	module = std::make_shared< ModuleInstance >("Queue2", vars2, clocks2);
 	// [pass?] q2 == 0 --> q2++ {clkExit}
 	module->add_transition(
@@ -199,16 +197,19 @@ int main()
 	assert(nullptr != property_ptr);
 
 	// Simulation preliminaries
-	model.seal(NamesList({"clkArr", "clkPass"}));  // initial clocks' names
-	std::cout << "Building an importance function" << std::endl;
-	auto ifun_ptr = std::make_shared< fig::ImportanceFunctionConcreteCoupled >();
-	assert(nullptr != ifun_ptr);
-	ifun_ptr->assess_importance(*model.modules_network(), *property_ptr, "auto");
-	std::cout << "Building a simulation engine" << std::endl;
-	auto engine_ptr = std::make_shared< fig::SimulationEngineNosplit >(
-						  model.modules_network());
-	assert(nullptr != engine_ptr);
-	engine_ptr->bind(ifun_ptr);
+	const NamesList initialClocks({"clkArr", "clkPass"});
+	const std::string ifunName = "concrete_coupled";
+	const std::string ifunStrategy = "auto";
+	const std::string thrTechnique = "ams";
+	const std::string engineName = "nosplit";
+	model.seal(initialClocks);
+	std::cout << "Building an  importance function" << std::endl;
+	model.build_importance_function(ifunName, ifunStrategy, *property_ptr);
+	std::cout << "Building the thresholds" << std::endl;
+	model.build_thresholds(thrTechnique, ifunName);
+	std::cout << "Building a   simulation engine" << std::endl;
+	auto engine_ptr = model.prepare_simulation_engine(engineName, ifunName);
+	assert(engine_ptr->bound());
 	std::cout << "Building simulation bounds" << std::endl;
 	fig::StoppingConditions stop_by_value;
 	stop_by_value.add_confidence_criterion(0.8, 0.5, true);
@@ -230,8 +231,8 @@ int main()
 	model.estimate(*property_ptr, *engine_ptr, stop_by_value);
 
 	// Cleanup
-	engine_ptr->unbind();
-	ifun_ptr->clear();
+	std::cout << "Releasing resources" << std::endl;
+	model.release_resources(ifunName, engineName);
 
 	return 0;
 }

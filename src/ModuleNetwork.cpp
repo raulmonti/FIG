@@ -234,46 +234,4 @@ ModuleNetwork::simulation_step(Traial& traial,
 //	///////////////////////////////////////
 }
 
-
-// Predicate specialization for "template<...> ModuleNetwork::peak_simulation()"
-typedef bool(*KeepRunning)(const Traial&);
-
-template<>
-ImportanceValue
-ModuleNetwork::peak_simulation(Traial& traial,
-							   UpdateFun update,
-							   KeepRunning pred) const
-{
-	if (!sealed())
-#ifndef NDEBUG
-		throw_FigException("ModuleNetwork hasn't been sealed yet");
-#else
-		return;
-#endif
-
-	ImportanceValue maxImportance(traial.importance);
-	StateInstance maxImportanceState(traial.state);
-
-	while ( pred(traial) ) {
-		auto timeout = traial.next_timeout();
-		// Active jump in the module whose clock timed-out
-		auto label = timeout.module->jump(timeout.name, timeout.value, traial);
-		// Passive jumps in the modules listening to label
-		for (auto module_ptr: modules)
-			if (module_ptr->name != timeout.module->name)
-				module_ptr->jump(label, timeout.value, traial);
-		// Update traial internals
-		traial.lifeTime += timeout.value;
-		update(traial);
-		if (UNMASK(traial.importance) > UNMASK(maxImportance)) {
-			maxImportance = traial.importance;
-			maxImportanceState = traial.state;
-		}
-	}
-
-	traial.importance = maxImportance;
-	traial.state = maxImportanceState;
-	return UNMASK(maxImportance);
-}
-
 } // namespace fig

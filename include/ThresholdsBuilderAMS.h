@@ -62,12 +62,6 @@ class ThresholdsBuilderAMS : public ThresholdsBuilder
 	/// Thresholds importance values
 	std::vector< ImportanceValue > thresholds_;
 
-//	/// Number of thresholds built on last invocation
-//	int numThresholds_;
-//
-//	/// Lowest level containing a rare state, from last invocation
-//	int minRareLvl_;
-
 	/**
 	 * @brief Choose values for n_ and k_ depending on the nature of the Module
 	 *        (states and transitions space size) and the simulation.
@@ -88,7 +82,7 @@ public:
 
 	virtual unsigned
 	build_thresholds_concrete(const unsigned& splitsPerThreshold,
-							  const ImportanceValue& maxImportance,
+							  ImportanceFunctionConcrete& impFun,
 							  std::vector< ImportanceValue >& impVec);
 };
 

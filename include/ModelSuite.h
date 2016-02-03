@@ -98,7 +98,7 @@ class ModelSuite
 	/// Thresholds builders available
 	static std::unordered_map<
 		std::string,
-		std::shared_ptr< ThresholdsBuilder > thrBuilders;
+		std::shared_ptr< ThresholdsBuilder > > thrBuilders;
 
 	/// Simulation engines available
 	static std::unordered_map<
@@ -220,19 +220,19 @@ public:  // Utils
 
 	/// Is 'engineName' the name of an available simulation engine?
 	/// @see available_simulators()
-	bool exists_simulator(const std::string& engineName) const;
+	bool exists_simulator(const std::string& engineName) const noexcept;
 
 	/// Is 'ifunName' the name of an available importance function?
 	/// @see available_importance_functions()
-	bool exists_importance_function(const std::string& ifunName) const;
+	bool exists_importance_function(const std::string& ifunName) const noexcept;
 
 	/// Is 'ifunStrategy' an available importance assessment strategy?
 	/// @see available_importance_strategies()
-	bool exists_importance_strategy(const std::string& impStrategy) const;
+	bool exists_importance_strategy(const std::string& impStrategy) const noexcept;
 
 	/// Is 'thrTechnique' an available thresholds building technique?
 	/// @see available_threshold_techniques()
-	bool exists_threshold_technique(const std::string& thrTechnique) const;
+	bool exists_threshold_technique(const std::string& thrTechnique) const noexcept;
 
 	/**
 	 * @brief Assess importance for the currently loaded user model
@@ -251,6 +251,8 @@ public:  // Utils
 	 *                 exists for this importance function and strategy
 	 *
 	 * @throw FigException if 'name' or 'strategy' are invalid
+	 *
+	 * @see build_thresholds()
 	 */
 	void
 	build_importance_function(const std::string& name,
@@ -288,15 +290,49 @@ public:  // Utils
 					 const std::string& ifunName,
 					 bool force = true);
 
-	/// @todo TODO document and implement, in that order!
-	std::shared_ptr< SimulationEngine >
-	prepare_simulation_engine(const std::string& name,
-							  std::shared_ptr< const ImportanceFunction > ifun);
+	/**
+	 * @brief Set a SimulationEngine ready for upcoming estimations
+	 *
+	 *        Bind the ImportanceFunction 'ifunName' to the SimulationEngine
+	 *        'engineName', if compatible. The ImportanceFunction must be
+	 *        \ref ImportanceFunction::ready() "ready for simulations".
+	 *        After a successfull call the returned engine can be used
+	 *        with estimate().
+	 *
+	 * @param engineName Any from available_simulators()
+	 * @param ifunName   Any from available_importance_functions(),
+	 *                   refering to an ImportanceFunction which is
+	 *                   \ref ImportanceFunction::ready() "ready for simulations"
+	 *
+	 * @return Pointer to the SimulationEngine to be used for estimations
+	 *
+	 * @throw FigException if "engineName" or "ifunName" are invalid
+	 * @throw FigException if the ImportanceFunction "ifunName" isn't
+	 *                     \ref ImportanceFunction::ready() "ready for
+	 *                     simulations"
+	 * @throw FigException if "engineName" is incompatible with "ifunName"
+	 *
+	 * @see build_importance_function()
+	 * @see build_thresholds()
+	 */
+	std::shared_ptr< const SimulationEngine >
+	prepare_simulation_engine(const std::string& engineName,
+							  const std::string& ifunName);
 
-	/// @todo TODO document and implement, in that order!
+	/**
+	 * @brief Release memory resources and decouple internals
+	 *
+	 *        After this call the ImportanceFunction 'ifunName' won't have
+	 *        \ref ImportanceFunction::has_importance_info() "importance
+	 *        information" any longer and the SimulationEngine 'engineName'
+	 *        will be \ref SimulationEngine::bound() "unbound".
+	 *
+	 * @param ifunName   Name of the ImportanceFunction to clear
+	 * @param engineName Name of the SimulationEngine to unbind
+	 */
 	void
-	release_resources(const std::string& impFunName,
-					  const std::string& engineName) noexcept;
+	release_resources(const std::string& ifunName,
+					  const std::string& engineName = "") noexcept;
 
 public:  // Simulation utils
 
@@ -406,21 +442,19 @@ ModelSuite::process_batch(
 					/// @todo TODO log the inexistence of this engine
 					continue;
 				}
-				auto ifun_ptr = impFuns[impFunName];
-				SimulationEngine& engine = *simulators[simStrat];
+				std::shared_ptr< const SimulationEngine > engine_ptr;
 				try {
-					engine.bind(ifun_ptr);
+					engine_ptr = prepare_simulation_engine(simStrat, impFunName);
 				} catch (FigException& e) {
 					/// @todo TODO log the skipping of this combination
-					///       Either the property or the importance function are
-					///       incompatible with the current simulation engine
+					///       This importance function is incompatible with
+					///       the current simulation engine
 					continue;
 				}
 				// ... estimate the property's value for all stopping conditions
-				estimate(*prop, engine, simulationBounds);
-				engine.unbind();
+				estimate(*prop, *engine_ptr, simulationBounds);
 			}
-			impFun->clear();
+			release_resources(impFunName);
 		}
 	}
 }

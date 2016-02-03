@@ -63,18 +63,6 @@ static_assert(std::is_same<short, STATE_INTERNAL_TYPE>::value,
 			  "Error: for now we restrict states internal storage to shorts");
 
 /**
- * @brief Assignment of values to the Variables (a logical <i>valuation</i>)
- *
- *        This is an instantiation of values, which follows the ordering
- *        given in the (unique) State of the system.
- *        A StateInstance can be compared to the State for consistency
- *        checks. There is a one-to-one correspondence between StateInstance
- *        and Traial objects.
- */
-typedef std::vector< STATE_INTERNAL_TYPE > StateInstance;
-
-
-/**
  * @brief Set of \ref Variable "variables" managed by a Module
  *
  *        This TAD is mostly used for consistency check of the Traials'

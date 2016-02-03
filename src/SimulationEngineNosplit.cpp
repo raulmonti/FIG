@@ -195,7 +195,7 @@ SimulationEngineNosplit::transient_simulation(const PropertyTransient& property,
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
     if (impFun_->concrete()) {
         for (size_t i = 0u ; i < numRuns ; i++) {
-            traial.initialize(network_, impFun_);
+			traial.initialize(*network_, *impFun_);
 			network_->simulation_step(traial,
 									  property,
 									  *this,
@@ -206,7 +206,7 @@ SimulationEngineNosplit::transient_simulation(const PropertyTransient& property,
         }
     } else {
         for (size_t i = 0u ; i < numRuns ; i++) {
-            traial.initialize(network_, impFun_);
+			traial.initialize(*network_, *impFun_);
 			network_->simulation_step(traial,
 									  property,
 									  *this,

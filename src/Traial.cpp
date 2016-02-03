@@ -102,9 +102,9 @@ Traial::Traial(const size_t& stateSize,
 			   const size_t& numClocks,
 			   const Container <ValueType, OtherContainerArgs...>& whichClocks,
 			   bool orderTimeouts) :
-	importance(0),
-	creationImportance(0),
-	lifeTime(0.0),
+	importance(static_cast<ImportanceValue>(0u)),
+	creationImportance(static_cast<ImportanceValue>(0u)),
+	lifeTime(static_cast<CLOCK_INTERNAL_TYPE>(0.0)),
 	state(stateSize),
 	orderedIndex_(numClocks)
 {
@@ -145,26 +145,24 @@ Traial::~Traial()
 
 
 void
-Traial::initialize(std::shared_ptr< const ModuleNetwork > network,
-				   std::shared_ptr< const ImportanceFunction > impFun)
+Traial::initialize(const ModuleNetwork& network,
+				   const ImportanceFunction& impFun)
 {
-	assert(nullptr != network);
-	assert(nullptr != impFun);
-	if (!network->sealed())
+	if (!network.sealed())
 #ifndef NDEBUG
 		throw_FigException("ModuleNetwork hasn't been sealed yet");
 #else
 		return;  // we can't do anything without the global data
 #endif
 	// Initialize variables value
-	network->gState.copy_to_state_instance(state);
+	network.gState.copy_to_state_instance(state);
     // Initialize clocks (reset all and then resample any initial clock)
     for (auto& timeout : clocks_)
         timeout.value = 0.0f;
-	for (const auto& pos_clk_pair: network->initialClocks)
+	for (const auto& pos_clk_pair: network.initialClocks)
 		clocks_[pos_clk_pair.first].value = pos_clk_pair.second.sample();
 	// Initialize importance and simulation time
-	importance = impFun->importance_of(state);
+	importance = impFun.importance_of(state);
 	creationImportance = importance;
 	lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
 }

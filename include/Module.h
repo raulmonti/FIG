@@ -30,9 +30,12 @@
 #ifndef MODULE_H
 #define MODULE_H
 
+// C++
 #include <vector>
 #include <memory>
 #include <string>
+// FIG
+#include <core_typedefs.h>
 
 
 namespace fig
@@ -40,7 +43,6 @@ namespace fig
 
 class Property;
 class Transition;
-class StateInstance;
 class ImportanceFunction;
 class ThresholdsBuilder;
 
@@ -71,7 +73,7 @@ public:  // Accessors
 
 	/// Number of (symbolic) transitions of this Module, i.e. the transitions
 	/// defined syntactically by the user in the IOSA model description
-	inline const size_t num_transitions() const noexcept { return transitions_.size(); }
+	inline size_t num_transitions() const noexcept { return transitions_.size(); }
 
 	/// Symbolic global state size, i.e. number of variables in the Module
 	virtual size_t state_size() const noexcept = 0;

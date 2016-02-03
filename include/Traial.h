@@ -190,8 +190,8 @@ public:  // Utils
 	 *   @throw FigException if the system model hasn't been sealed yet
 	 * \endif
 	 */
-	void initialize(std::shared_ptr< const ModuleNetwork > network,
-					std::shared_ptr< const ImportanceFunction > impFun);
+	void initialize(const ModuleNetwork& network,
+					const ImportanceFunction& impFun);
 
 	/**
 	 * @brief Retrieve next not-null expiring clock

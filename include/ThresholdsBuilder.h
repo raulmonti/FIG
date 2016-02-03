@@ -40,6 +40,8 @@
 namespace fig
 {
 
+class ImportanceFunctionConcrete;
+
 /**
  * @brief Asbtract base builder of importance thresholds.
  *
@@ -67,26 +69,26 @@ public:
 public:
 
 	/// Ctor
-	ThresholdsBuilder(const std::string thename);
+	ThresholdsBuilder(const std::string& thename);
 
 	/**
 	 * @brief Build thresholds from given concrete importance function.
 	 *
-	 *        The thresholds are built in 'impVec', which on invocation holds
-	 *        the importance of the concrete states and is actually an internal
-	 *        vector from some concrete importance function.
+	 *        The thresholds are built in 'impVec', which is 'impFun's
+	 *        internal vector of ImportanceValue. This means 'impVec' holds
+	 *        the importance of the concrete states from some Module.
 	 *        Original importance information is destroyed: after the call
 	 *        'impVec[i]' will hold the level of the i-th concrete state,
 	 *        where the j-th level is composed of all the states between the
 	 *        j-th and the (j+1)-th thresholds.
 	 *        The result can be regarded as a coarser version of the original
-	 *        importance values which 'impVec' held before this invocation.
+	 *        importance information which 'impFun' held before this call.
 	 *
 	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
 	 *                           "threshold level up" event
-	 * @param maxImportance Maximum ImportanceValue stored in impVec
-	 * @param impVec Vector with importance info for all concrete states,
-	 *               where the thresholds will be stored <b>(modified)</b>
+	 * @param impFun ImportanceFunction where thresholds will be built <b>(modified)</b>
+	 * @param impVec Internal vector of impFun with ImportanceValue of concrete
+	 *               states, where the thresholds will be stored <b>(modified)</b>
 	 *
 	 * @return Number of thresholds built (i.e. new "maxImportance" value)
 	 *
@@ -95,7 +97,7 @@ public:
 	 */
 	virtual unsigned
 	build_thresholds_concrete(const unsigned& splitsPerThreshold,
-							  const ImportanceValue& maxImportance,
+							  ImportanceFunctionConcrete& impFun,
 							  std::vector< ImportanceValue >& impVec) = 0;
 };
 
