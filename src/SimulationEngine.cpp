@@ -53,10 +53,10 @@ namespace fig
 const std::array< std::string, 1 > SimulationEngine::names =
 {{
 	// Standard Monte Carlo simulations, without splitting
-	"nosplit"
+	"nosplit",
 
-//	// RESTART-like importance splitting, from the Villén-Altamirano brothers
-//	"restart"
+	// RESTART-like importance splitting, from the Villén-Altamirano brothers
+	"restart"
 }};
 
 
@@ -70,8 +70,6 @@ SimulationEngine::SimulationEngine(
         globalState_(network->global_state()),
 		impFun_(nullptr),
         cImpFun_(nullptr),
-//		splitsPerThreshold_(1),
-//		dieOutDepth_(1u),
         interrupted(false),
         lastEvents_(EventType::NONE)
 {
