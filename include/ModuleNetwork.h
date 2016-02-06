@@ -197,9 +197,11 @@ public:  // Utils
 	 *   @throw FigException if seal() hasn't been called yet
 	 * \endif
 	 */
-	template< class Simulator, typename TraialMonitor >
+	template< typename DerivedProperty,
+			  class Simulator,
+			  class TraialMonitor >
 	void simulation_step(Traial& traial,
-						 const Property& property,
+						 const DerivedProperty& property,
 						 const Simulator& engine,
 						 TraialMonitor watch_events) const;
 

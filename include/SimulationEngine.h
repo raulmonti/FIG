@@ -35,20 +35,19 @@
 #include <string>
 #include <memory>
 // FIG
-#include <core_typedefs.h>
-#include <Property.h>
-#include <ImportanceFunction.h>
+#include <State.h>
 
 
 namespace fig
 {
 
+class ImportanceFunction;
 class ImportanceFunctionConcrete;
-class ConfidenceInterval;
-class StoppingConditions;
+class Property;
 class PropertyTransient;
 class ModuleNetwork;
 class Traial;
+class ConfidenceInterval;
 
 /**
  * @brief Abstract base simulation engine
@@ -204,24 +203,18 @@ protected:  // Simulation helper functions
 	 * Run several independent transient-like simulations
 	 * @param property PropertyTransient with events of interest (goal & stop)
 	 * @param numRuns  Amount of successive independent simulations to run
-	 * @param traial   Traial "seed" to start simulations with
 	 * @return Estimation of the Prob( !stop U goal )
 	 */
 	virtual double transient_simulations(const PropertyTransient& property,
-										 const size_t& numRuns,
-										 Traial& traial) const = 0;
+                                         const size_t& numRuns) const = 0;
 
 public:  // Traial observers/updaters
 
     /**
-     * @brief Observe and track the deeds of a Traial.
-     *
-     *        Interpret and mark the events triggered by the given Traial
+     * @brief Interpret and mark the transient events triggered by a Traial
      *        in its most recent traversal through the system model.
-     *        The question answered is: " were these events relevant
-     *        for this property and simulation strategy? "
      *
-     * @param property Property whose value is being estimated
+     * @param property PropertyTransient with events of interest (goal & stop)
      * @param traial   Embodiment of a simulation running through the system model
      *
      * @return Whether a \ref ModuleNetwork::simulation_step() "simulation step"
@@ -229,7 +222,7 @@ public:  // Traial observers/updaters
      *
      * @note  The ImportanceFunction used is taken from the last call to bind()
      */
-    virtual bool event_triggered(const Property& property,
+    virtual bool transient_event(const PropertyTransient& property,
                                  Traial& traial) const = 0;
 };
 

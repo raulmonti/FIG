@@ -39,6 +39,7 @@
 // FIG
 #include <ModuleNetwork.h>
 #include <TraialPool.h>
+#include <ImportanceFunction.h>
 #include <SimulationEngine.h>
 #include <SimulationEngineNosplit.h>
 #include <SimulationEngineRestart.h>
@@ -189,12 +190,14 @@ ModuleNetwork::accept(ImportanceFunction& ifun,
 }
 
 
-template< class Simulator, typename TraialMonitor >
+template< typename DerivedProperty,
+          class Simulator,
+          class TraialMonitor >
 void
 ModuleNetwork::simulation_step(Traial& traial,
-							   const Property &property,
-							   const Simulator& engine,
-							   TraialMonitor watch_events) const
+                               const DerivedProperty& property,
+                               const Simulator& engine,
+                               TraialMonitor watch_events) const
 {
 	if (!sealed())
 #ifndef NDEBUG
@@ -238,21 +241,25 @@ ModuleNetwork::simulation_step(Traial& traial,
 //	///////////////////////////////////////
 }
 
-/// "Nosplit" TraialMonitor specialization for "template<...> ModuleNetwork::simulation_step()"
-typedef bool(SimulationEngineNosplit::*nosplit_events)(const Property&, Traial&) const;
+/// "SimulationEngineNosplit + PropertyTransient" TraialMonitor specialization
+/// for "template<...> ModuleNetwork::simulation_step()"
+typedef bool(SimulationEngineNosplit::*nosplit_transient_event)
+    (const PropertyTransient&, Traial&) const;
 
-/// "Restart" TraialMonitor specialization for "template<...> ModuleNetwork::simulation_step()"
-typedef bool(SimulationEngineRestart::*restart_events)(const Property&, Traial&) const;
+/// "SimulationEngineRestart + PropertyTransient" TraialMonitor specialization
+/// for "template<...> ModuleNetwork::simulation_step()"
+typedef bool(SimulationEngineRestart::*restart_transient_event)
+    (const PropertyTransient&, Traial&) const;
 
 // ModuleNetwork::simulation_step() can only be invoked with the following
-// "Simulator" and "TraialMonitor" combinations
+// "DerivedProperty", "Simulator" and "TraialMonitor" combinations
 template void ModuleNetwork::simulation_step(Traial&,
-											 const Property&,
+                                             const PropertyTransient&,
 											 const SimulationEngineNosplit&,
-											 nosplit_events) const;
+                                             nosplit_transient_event) const;
 template void ModuleNetwork::simulation_step(Traial&,
-											 const Property&,
+                                             const PropertyTransient&,
 											 const SimulationEngineRestart&,
-											 restart_events) const;
+                                             restart_transient_event) const;
 
 } // namespace fig

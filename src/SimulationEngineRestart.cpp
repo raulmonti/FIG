@@ -80,20 +80,17 @@ SimulationEngineRestart::set_die_out_depth(unsigned dieOutDepth)
 
 double
 SimulationEngineRestart::transient_simulations(const PropertyTransient& property,
-											   const size_t& numRuns,
-											   Traial& traial) const
+											   const size_t& numRuns) const
 {
 	long numSuccesses(0);
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	if (impFun_->concrete()) {
 		for (size_t i = 0u ; i < numRuns ; i++) {
-			traial.initialize(*network_, *impFun_);
 			/// @todo TODO copy from rarevent.cc:580
 			throw_FigException("TODO: copy from rarevent.cc:580");
 		}
 	} else {
 		for (size_t i = 0u ; i < numRuns ; i++) {
-			traial.initialize(*network_, *impFun_);
 			throw_FigException("TODO: copy from rarevent.cc:580");
 		}
 	}

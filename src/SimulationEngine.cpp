@@ -35,9 +35,11 @@
 #include <algorithm>  // std::find()
 // FIG
 #include <SimulationEngine.h>
+#include <ImportanceFunction.h>
+#include <ImportanceFunctionConcrete.h>
+#include <Property.h>
 #include <PropertyTransient.h>
 #include <ConfidenceInterval.h>
-#include <ImportanceFunctionConcrete.h>
 #include <ModuleNetwork.h>
 #include <FigException.h>
 #include <TraialPool.h>
@@ -165,11 +167,8 @@ SimulationEngine::simulate(const Property &property,
 	switch (property.type) {
 
 	case PropertyType::TRANSIENT: {
-		Traial& traial = TraialPool::get_instance().get_traial();
 		result = transient_simulations(dynamic_cast<const PropertyTransient&>(property),
-									   numRuns,
-									   traial);
-		TraialPool::get_instance().return_traial(std::move(traial));
+                                       numRuns);
 		} break;
 
 	case PropertyType::THROUGHPUT:
@@ -205,16 +204,13 @@ SimulationEngine::simulate(const Property& property,
 
 	case PropertyType::TRANSIENT: {
 		assert (!interrupted);
-		Traial& traial = TraialPool::get_instance().get_traial();
 		while (!interrupted) {
 			double newEstimate =
 				transient_simulations(dynamic_cast<const PropertyTransient&>(property),
-									  batchSize,
-									  traial);
+                                      batchSize);
 			if (!interrupted)
 				interval.update(newEstimate);
 		}
-		TraialPool::get_instance().return_traial(std::move(traial));
 		} break;
 
 	case PropertyType::THROUGHPUT:

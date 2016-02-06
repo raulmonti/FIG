@@ -32,6 +32,9 @@
 
 #include <SimulationEngine.h>
 #include <ModuleNetwork.h>
+#include <State.h>
+#include <PropertyTransient.h>
+#include <ImportanceFunctionConcrete.h>
 
 
 namespace fig
@@ -62,8 +65,7 @@ public:  // Engine setup
 protected:  // Simulation helper functions
 
 	virtual double transient_simulations(const PropertyTransient& property,
-										 const size_t& numRuns,
-										 Traial& traial) const;
+										 const size_t& numRuns) const;
 
 	/// Run single transient simulation starting from Traial's current state,
 	/// making no assumptions about the internal ImportanceFunction whatsoever.
@@ -79,16 +81,27 @@ protected:  // Simulation helper functions
 
 public:  // Traial observers/updaters
 
-	/// @copydoc SimulationEngine::event_triggered()
+	/// @copydoc SimulationEngine::transient_event()
 	/// @note Makes no assumption about the ImportanceFunction altogether
-	virtual bool event_triggered(const Property& property,
-								 Traial& traial) const;
+	/// @note Attempted inline in a desperate seek of efficiency
+	inline virtual bool transient_event(const PropertyTransient& property,
+										Traial& traial) const
+		{
+			return property.is_goal(traial.state) ||
+					property.is_stop(traial.state);
+		}
 
-	/// @copydoc SimulationEngine::event_triggered()
+	/// @copydoc SimulationEngine::transient_event()
 	/// @note This function assumes a \ref ImportanceFunctionConcrete
 	///       "concrete importance function" is currently bound to the engine
-	bool event_triggered_concrete(const Property& property,
-								  Traial& traial) const;
+	/// @note Attempted inline in a desperate seek of efficiency
+	inline bool transient_event_concrete(const PropertyTransient&,
+										 Traial& traial) const
+		{
+			globalState_.copy_from_state_instance(traial.state);
+			lastEvents_ = cImpFun_->events_of(globalState_);
+			return IS_RARE_EVENT(lastEvents_) || IS_STOP_EVENT(lastEvents_);
+		}
 };
 
 } // namespace fig
