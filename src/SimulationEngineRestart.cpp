@@ -82,19 +82,50 @@ double
 SimulationEngineRestart::transient_simulations(const PropertyTransient& property,
 											   const size_t& numRuns) const
 {
-	long numSuccesses(0);
+	assert(0u < numRuns);
+	std::vector<long> numHits(impFun_->num_thresholds(), 0);
+	std::stack< Reference< Traial > > stack;
+	auto tpool = TraialPool::get_instance();
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	if (impFun_->concrete()) {
 		for (size_t i = 0u ; i < numRuns ; i++) {
-			/// @todo TODO copy from rarevent.cc:580
-			throw_FigException("TODO: copy from rarevent.cc:580");
+			tpool.get_traials(stack, 1u);
+			stack.top().initialize(network_, impFun_);
+			transient_simulation_concrete(property, stack, numHits);
+			assert(stack.empty());
 		}
 	} else {
 		for (size_t i = 0u ; i < numRuns ; i++) {
-			throw_FigException("TODO: copy from rarevent.cc:580");
+			tpool.get_traials(stack, 1u);
+			stack.top().initialize(network_, impFun_);
+			transient_simulation_concrete(property, stack, numHits);
+			assert(stack.empty());
 		}
 	}
-	return static_cast<double>(numSuccesses) / numRuns;
+	/// @todo TODO copy result computation from rarevent.cc:941
+	return ???;
+}
+
+
+void
+SimulationEngineRestart::transient_simulation_generic(
+	const PropertyTransient& property,
+	std::stack< Reference <Traial> >& stack,
+	std::vector< long >& numHits)
+{
+	/// @todo TODO copy from rarevent.cc:580
+	throw_FigException("TODO: copy from rarevent.cc:893");
+}
+
+
+void
+SimulationEngineRestart::transient_simulation_concrete(
+	const PropertyTransient& property,
+	std::stack< Reference <Traial> >& stack,
+	std::vector< long >& numHits)
+{
+	/// @todo TODO copy from rarevent.cc:580
+	throw_FigException("TODO: copy from rarevent.cc:893");
 }
 
 } // namespace fig

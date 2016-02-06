@@ -149,11 +149,6 @@ public:  // Accessors
 	///          last used strategy otherwise
 	const std::string strategy() const noexcept;
 
-	/// @copydoc thresholdsTechnique_
-	/// @returns Empty string if function isn't ready(),
-	///          last thresholds building technique used otherwise
-	const std::string thresholds_technique() const noexcept;
-
 	/// @copydoc maxImportance_
 	/// @returns Zero if function doesn't has_importance_info(),
 	///          last maximum assessed importance otherwise
@@ -167,6 +162,16 @@ public:  // Accessors
 	/// Whether this instance stores importance values for the concrete state
 	/// space (as opposed to the symbolic state space)
 	virtual bool concrete() const noexcept = 0;
+
+	/// @copydoc thresholdsTechnique_
+	/// @returns Empty string if function isn't ready(),
+	///          last thresholds building technique used otherwise
+	const std::string thresholds_technique() const noexcept;
+
+	/// Number of thresholds built on last call to build_thresholds()
+	/// @throw FigException if this instance isn't \ref ready()
+	///                     "ready for simulations"
+	unsigned num_thresholds() const;
 
 public:  // Utils
 

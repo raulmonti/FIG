@@ -86,17 +86,29 @@ protected:  // Simulation helper functions
 	virtual double transient_simulations(const PropertyTransient& property,
 										 const size_t& numRuns) const;
 
-//	/// Run single transient simulation starting from Traial's current state,
-//	/// making no assumptions about the internal ImportanceFunction whatsoever.
-//	/// @return 1 if reached a 'goal' state, 0 if reached a 'stop' state
-//	long transient_simulation_generic(const PropertyTransient& property,
-//									  Traial& traial);
-//
-//	/// Run single transient simulation starting from Traial's current state,
-//	/// assuming we're bound to an ImportanceFunctionConcrete.
-//	/// @return 1 if reached a 'goal' state, 0 if reached a 'stop' state
-//	long transient_simulation_concrete(const PropertyTransient& property,
-//									   Traial& traial);
+	/**
+	 * Run single transient simulation starting from given Traials stack,
+	 * making no assumptions about the internal ImportanceFunction whatsoever.
+	 * @param property PropertyTransient with events of interest (goal & stop)
+	 * @param stack    Stack of initialized Traials for RESTART simulation
+	 * @param numHits  Register updated with the number of goal events
+	 *                 found on each threshold level
+	 */
+	void transient_simulation_generic(const PropertyTransient& property,
+									  std::stack< Reference <Traial> >& stack,
+									  std::vector< long >& numHits);
+
+	/**
+	 * Run single transient simulation starting from given Traials stack,
+	 * assuming we're bound to an ImportanceFunctionConcrete.
+	 * @param property PropertyTransient with events of interest (goal & stop)
+	 * @param stack    Stack of initialized Traials for RESTART simulation
+	 * @param numHits  Register updated with the number of goal events
+	 *                 found on each threshold level
+	 */
+	void transient_simulation_concrete(const PropertyTransient& property,
+									   std::stack< Reference <Traial> >& stack,
+									   std::vector< long >& numHits);
 
 public:  // Traial observers/updaters
 

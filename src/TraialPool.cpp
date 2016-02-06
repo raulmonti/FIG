@@ -31,6 +31,7 @@
 #include <set>
 #include <list>
 #include <deque>
+#include <stack>
 #include <vector>
 #include <forward_list>
 #include <unordered_set>
@@ -133,6 +134,7 @@ TraialPool::get_traials(Container<Reference<Traial>, OtherArgs...>& cont,
 // TraialPool::get_traials() generic version can only be invoked with the following containers
 template void TraialPool::get_traials(std::list< Reference<Traial> >&, const unsigned&);
 template void TraialPool::get_traials(std::deque< Reference<Traial> >&, const unsigned&);
+template void TraialPool::get_traials(std::stack< Reference<Traial> >&, const unsigned&);
 template void TraialPool::get_traials(std::vector< Reference<Traial> >&, const unsigned&);
 
 // TraialPool::get_traials() specialization for STL std::forward_list<>

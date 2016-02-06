@@ -52,6 +52,7 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
                                                const size_t& numRuns) const
 {
 	long numSuccesses(0);
+    assert(0u < numRuns);
     Traial& traial = TraialPool::get_instance().get_traial();
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
     if (impFun_->concrete()) {
@@ -95,7 +96,7 @@ SimulationEngineNosplit::transient_simulation_concrete(
 							  property,
 							  *this,
                               &SimulationEngineNosplit::transient_event_concrete);
-	// Last call to "event_triggered_concrete()" updated "lastEvents_"
+    // Last call to "transient_event_concrete()" updated "lastEvents_"
 	return IS_RARE_EVENT(lastEvents_) ? 1 : 0;
 }
 

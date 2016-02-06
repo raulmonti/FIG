@@ -201,7 +201,7 @@ protected:  // Simulation helper functions
 
 	/**
 	 * Run several independent transient-like simulations
-	 * @param property PropertyTransient with events of interest (goal & stop)
+     * @param property PropertyTransient with events of interest (goal & stop)
 	 * @param numRuns  Amount of successive independent simulations to run
 	 * @return Estimation of the Prob( !stop U goal )
 	 */
