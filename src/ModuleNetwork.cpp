@@ -40,6 +40,8 @@
 #include <ModuleNetwork.h>
 #include <TraialPool.h>
 #include <SimulationEngine.h>
+#include <SimulationEngineNosplit.h>
+#include <SimulationEngineRestart.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -187,12 +189,12 @@ ModuleNetwork::accept(ImportanceFunction& ifun,
 }
 
 
+template< class Simulator, typename TraialMonitor >
 void
 ModuleNetwork::simulation_step(Traial& traial,
 							   const Property &property,
-							   const SimulationEngine& engine,
-							   bool (SimulationEngine::*event_triggered)
-									(const Property&, const Traial&) const) const
+							   const Simulator& engine,
+							   TraialMonitor watch_events) const
 {
 	if (!sealed())
 #ifndef NDEBUG
@@ -213,17 +215,19 @@ ModuleNetwork::simulation_step(Traial& traial,
 		auto timeout = traial.next_timeout();
         // Active jump in the module whose clock timed-out
 		auto label = timeout.module->jump(timeout.name, timeout.value, traial);
+
 //		/// @todo TODO erase debug print below
 //		std::cerr << "State:";
 //		for (auto& v: traial.state) std::cerr << " " << v;
 //		std::cerr << std::endl;
 //		///////////////////////////////////////
+
 		// Passive jumps in the modules listening to label
 		for (auto module_ptr: modules)
 			if (module_ptr->name != timeout.module->name)
 				module_ptr->jump(label, timeout.value, traial);
         traial.lifeTime += timeout.value;
-	} while ( !(engine.*event_triggered)(property, traial) );
+	} while ( !(engine.*watch_events)(property, traial) );
 	// ...until a relevant event is observed
 
 //	/// @todo TODO erase debug print below
@@ -233,5 +237,22 @@ ModuleNetwork::simulation_step(Traial& traial,
 //	std::cerr << "----------------------------------------------" << std::endl;
 //	///////////////////////////////////////
 }
+
+/// "Nosplit" TraialMonitor specialization for "template<...> ModuleNetwork::simulation_step()"
+typedef bool(SimulationEngineNosplit::*nosplit_events)(const Property&, Traial&) const;
+
+/// "Restart" TraialMonitor specialization for "template<...> ModuleNetwork::simulation_step()"
+typedef bool(SimulationEngineRestart::*restart_events)(const Property&, Traial&) const;
+
+// ModuleNetwork::simulation_step() can only be invoked with the following
+// "Simulator" and "TraialMonitor" combinations
+template void ModuleNetwork::simulation_step(Traial&,
+											 const Property&,
+											 const SimulationEngineNosplit&,
+											 nosplit_events) const;
+template void ModuleNetwork::simulation_step(Traial&,
+											 const Property&,
+											 const SimulationEngineRestart&,
+											 restart_events) const;
 
 } // namespace fig

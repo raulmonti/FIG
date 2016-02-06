@@ -28,6 +28,8 @@
 
 
 #include <SimulationEngineRestart.h>
+#include <PropertyTransient.h>
+#include <TraialPool.h>
 #include <FigException.h>
 
 
@@ -46,6 +48,20 @@ SimulationEngineRestart::SimulationEngineRestart(
 
 
 void
+SimulationEngineRestart::bind(std::shared_ptr< const ImportanceFunction > ifun_ptr)
+{
+	const std::string impStrategy(ifun_ptr->strategy());
+	if (impStrategy == "")
+		throw_FigException("ImportanceFunction doesn't seem to have "
+						   "internal importance information");
+	else if (impStrategy == "flat")
+		throw_FigException("RESTART simulation engine requires an importance "
+						   "building strategy other than \"flat\"");
+	SimulationEngine::bind(ifun_ptr);
+}
+
+
+void
 SimulationEngineRestart::set_splits_per_threshold(unsigned splitsPerThreshold)
 {
 	if (splitsPerThreshold < 2u)
@@ -59,6 +75,29 @@ void
 SimulationEngineRestart::set_die_out_depth(unsigned dieOutDepth)
 {
 	dieOutDepth_ = dieOutDepth;
+}
+
+
+double
+SimulationEngineRestart::transient_simulations(const PropertyTransient& property,
+											   const size_t& numRuns,
+											   Traial& traial) const
+{
+	long numSuccesses(0);
+	// For the sake of efficiency, distinguish when operating with a concrete ifun
+	if (impFun_->concrete()) {
+		for (size_t i = 0u ; i < numRuns ; i++) {
+			traial.initialize(*network_, *impFun_);
+			/// @todo TODO copy from rarevent.cc:580
+			throw_FigException("TODO: copy from rarevent.cc:580");
+		}
+	} else {
+		for (size_t i = 0u ; i < numRuns ; i++) {
+			traial.initialize(*network_, *impFun_);
+			throw_FigException("TODO: copy from rarevent.cc:580");
+		}
+	}
+	return static_cast<double>(numSuccesses) / numRuns;
 }
 
 } // namespace fig

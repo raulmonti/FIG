@@ -46,6 +46,7 @@ namespace fig
 class ImportanceFunctionConcrete;
 class ConfidenceInterval;
 class StoppingConditions;
+class PropertyTransient;
 class ModuleNetwork;
 class Traial;
 
@@ -65,7 +66,7 @@ public:
 	/// Names of the simulation engines offered to the user,
 	/// as he should requested them through the CLI/GUI.
     /// Defined in SimulationEngine.cpp
-    static const std::array< std::string, 1 > names;
+    static const std::array< std::string, 2 > names;
 
 protected:
 
@@ -148,19 +149,17 @@ public:  // Engine setup
 public:  // Accessors
 
     /// @copydoc name_
-    inline const std::string& name() const noexcept { return name_; }
+    const std::string& name() const noexcept;
 
     /// Importance function currently bound to the engine,
     /// or void string if none is.
-    inline const std::string current_imp_fun() const noexcept
-        { if (nullptr != impFun_) return impFun_->name(); else return ""; }
+    const std::string current_imp_fun() const noexcept;
 
     /// Importance strategy of the function currently bound to the engine,
     /// or void string if none is.
-	inline const std::string current_imp_strat() const noexcept
-        { if (nullptr != impFun_) return impFun_->strategy(); else return ""; }
+    const std::string current_imp_strat() const noexcept;
 
-public:  // Simulation utils
+public:  // Simulation functions
 
     /**
      * @brief Simulate in model certain number of independent runs
@@ -178,8 +177,8 @@ public:  // Simulation utils
      * @throw FigException if the engine wasn't \ref bound() "bound" to any
      *                     ImportanceFunction
      */
-    virtual double simulate(const Property& property,
-                            const size_t& numRuns = 1) const = 0;
+    double simulate(const Property& property,
+                    const size_t& numRuns = 1) const;
 
     /**
      * @brief Simulate in model until externally interrupted
@@ -195,40 +194,43 @@ public:  // Simulation utils
      * @throw FigException if the engine wasn't \ref bound() "bound" to any
      *                     ImportanceFunction
      */
-    virtual void simulate(const Property& property,
-                          const size_t& batchSize,
-                          ConfidenceInterval& interval) const = 0;
+    void simulate(const Property& property,
+                  const size_t& batchSize,
+                  ConfidenceInterval& interval) const;
+
+protected:  // Simulation helper functions
+
+	/**
+	 * Run several independent transient-like simulations
+	 * @param property PropertyTransient with events of interest (goal & stop)
+	 * @param numRuns  Amount of successive independent simulations to run
+	 * @param traial   Traial "seed" to start simulations with
+	 * @return Estimation of the Prob( !stop U goal )
+	 */
+	virtual double transient_simulations(const PropertyTransient& property,
+										 const size_t& numRuns,
+										 Traial& traial) const = 0;
+
+public:  // Traial observers/updaters
 
     /**
-     * @brief Were the last events triggered by the given Traial
-     *        relevant for this property and simulation strategy?
+     * @brief Observe and track the deeds of a Traial.
+     *
+     *        Interpret and mark the events triggered by the given Traial
+     *        in its most recent traversal through the system model.
+     *        The question answered is: " were these events relevant
+     *        for this property and simulation strategy? "
      *
      * @param property Property whose value is being estimated
      * @param traial   Embodiment of a simulation running through the system model
      *
-     * @note The ImportanceFunction used is taken from the last call to bind()
-     * @note Makes no assumption about the ImportanceFunction altogether
+     * @return Whether a \ref ModuleNetwork::simulation_step() "simulation step"
+     *         has finished and the Traial should be further inspected.
      *
-     * @see event_triggered_concrete()
+     * @note  The ImportanceFunction used is taken from the last call to bind()
      */
-    virtual bool event_triggered_generic(const Property& property,
-                                         const Traial& traial) const = 0;
-
-    /**
-     * @brief Were the last events triggered by the given Traial
-     *        relevant for this property and simulation strategy?
-     *
-     * @param property Property whose value is being estimated
-     * @param traial   Embodiment of a simulation running through the system model
-     *
-     * @note The ImportanceFunction used is taken from the last call to bind()
-     * @note This function assumes a \ref ImportanceFunctionConcrete
-     *       "concrete importance function" is currently bound to the engine
-     *
-     * @see event_triggered_symbolic()
-     */
-    virtual bool event_triggered_concrete(const Property& property,
-                                          const Traial& traial) const = 0;
+    virtual bool event_triggered(const Property& property,
+                                 Traial& traial) const = 0;
 };
 
 } // namespace fig

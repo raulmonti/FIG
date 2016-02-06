@@ -35,14 +35,16 @@
 #include <algorithm>  // std::find()
 // FIG
 #include <SimulationEngine.h>
-#include <FigException.h>
-#include <ModuleNetwork.h>
+#include <PropertyTransient.h>
+#include <ConfidenceInterval.h>
 #include <ImportanceFunctionConcrete.h>
+#include <ModuleNetwork.h>
+#include <FigException.h>
+#include <TraialPool.h>
 
 // ADL
 using std::begin;
 using std::end;
-using std::find;
 
 
 namespace fig
@@ -50,7 +52,7 @@ namespace fig
 
 // Static variables initialization
 
-const std::array< std::string, 1 > SimulationEngine::names =
+const std::array< std::string, 2 > SimulationEngine::names =
 {{
 	// Standard Monte Carlo simulations, without splitting
 	"nosplit",
@@ -73,7 +75,7 @@ SimulationEngine::SimulationEngine(
         interrupted(false),
         lastEvents_(EventType::NONE)
 {
-	if (find(begin(names), end(names), name) == end(names)) {
+	if (std::find(begin(names), end(names), name) == end(names)) {
 		std::stringstream errMsg;
 		errMsg << "invalid engine name \"" << name << "\". ";
 		errMsg << "Available engines are";
@@ -116,6 +118,117 @@ SimulationEngine::unbind() noexcept
 {
     impFun_  = nullptr;
     cImpFun_ = nullptr;
+}
+
+
+const std::string&
+SimulationEngine::name() const noexcept
+{
+	return name_;
+}
+
+
+const std::string
+SimulationEngine::current_imp_fun() const noexcept
+{
+	if (nullptr != impFun_)
+		return impFun_->name();
+	else
+		return "";
+}
+
+
+const std::string
+SimulationEngine::current_imp_strat() const noexcept
+{
+	if (nullptr != impFun_)
+		return impFun_->strategy();
+	else
+		return "";
+}
+
+
+double
+SimulationEngine::simulate(const Property &property,
+						   const size_t& numRuns) const
+{
+	assert(numRuns > 0u);
+	double result(0.0);
+
+	if (!bound())
+#ifndef NDEBUG
+		throw_FigException("engine isn't bound to any importance function");
+#else
+		return -1.0;
+#endif
+
+	switch (property.type) {
+
+	case PropertyType::TRANSIENT: {
+		Traial& traial = TraialPool::get_instance().get_traial();
+		result = transient_simulations(dynamic_cast<const PropertyTransient&>(property),
+									   numRuns,
+									   traial);
+		TraialPool::get_instance().return_traial(std::move(traial));
+		} break;
+
+	case PropertyType::THROUGHPUT:
+	case PropertyType::RATE:
+	case PropertyType::PROPORTION:
+	case PropertyType::BOUNDED_REACHABILITY:
+		throw_FigException(std::string("property type isn't supported by ")
+						   .append(name_).append(" simulation yet"));
+		break;
+
+	default:
+		throw_FigException("invalid property type");
+		break;
+	}
+
+	return result;
+}
+
+
+void
+SimulationEngine::simulate(const Property& property,
+						   const size_t& batchSize,
+						   ConfidenceInterval& interval) const
+{
+	if (!bound())
+#ifndef NDEBUG
+		throw_FigException("engine isn't bound to any importance function");
+#else
+		return -1.0;
+#endif
+
+	switch (property.type) {
+
+	case PropertyType::TRANSIENT: {
+		assert (!interrupted);
+		Traial& traial = TraialPool::get_instance().get_traial();
+		while (!interrupted) {
+			double newEstimate =
+				transient_simulations(dynamic_cast<const PropertyTransient&>(property),
+									  batchSize,
+									  traial);
+			if (!interrupted)
+				interval.update(newEstimate);
+		}
+		TraialPool::get_instance().return_traial(std::move(traial));
+		} break;
+
+	case PropertyType::THROUGHPUT:
+	case PropertyType::RATE:
+	case PropertyType::PROPORTION:
+	case PropertyType::BOUNDED_REACHABILITY:
+		throw_FigException(std::string("property type isn't supported by ")
+						   .append(name_).append(" simulation yet"));
+		break;
+
+	default:
+		throw_FigException("invalid property type");
+		break;
+	}
 }
 
 } // namespace fig

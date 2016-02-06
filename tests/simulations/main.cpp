@@ -210,7 +210,7 @@ int main()
 	std::cout << "Building a   simulation engine" << std::endl;
 	auto engine_ptr = model.prepare_simulation_engine(engineName, ifunName);
 	assert(engine_ptr->bound());
-	std::cout << "Building simulation bounds" << std::endl;
+	std::cout << "Building the simulation bounds" << std::endl;
 	fig::StoppingConditions stop_by_value;
 	stop_by_value.add_confidence_criterion(0.8, 0.5, true);
 	assert(stop_by_value.is_confidence_criteria());

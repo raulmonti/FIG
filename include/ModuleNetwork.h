@@ -184,9 +184,10 @@ public:  // Utils
 	 *
 	 * @param traial   Traial instance keeping track of the simulation
 	 * @param property Property whose value is currently being estimated
-	 * @param engine   Semantics of the current simulation strategy
-	 * @param event_triggered SimulationEngine member function pointer
-	 *                        which tells when a simulation step has ended
+	 * @param engine   Semantics of the current simulation strategy,
+	 *                 viz. object of any class derived from SimulationEngine
+	 * @param watch_events Member function of 'engine' telling when
+	 *                     is a simulation step considered finished
 	 *
 	 * @note Unrelated to simulation(), this routine was deviced for
 	 *       estimating the value of a Property.
@@ -196,11 +197,11 @@ public:  // Utils
 	 *   @throw FigException if seal() hasn't been called yet
 	 * \endif
 	 */
+	template< class Simulator, typename TraialMonitor >
 	void simulation_step(Traial& traial,
 						 const Property& property,
-						 const SimulationEngine& engine,
-						 bool (SimulationEngine::*event_triggered)
-							  (const Property&, const Traial&) const) const;
+						 const Simulator& engine,
+						 TraialMonitor watch_events) const;
 
 	/**
 	 * @brief Advance a traial and keep track of maximum importance reached

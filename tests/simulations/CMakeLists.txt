@@ -90,6 +90,7 @@ SET(REQUIRED_SOURCES "${SOURCES_DIR}/Clock.cpp"
                      "${SOURCES_DIR}/ThresholdsBuilder.cpp"
                      "${SOURCES_DIR}/ThresholdsBuilderAMS.cpp"
                      "${SOURCES_DIR}/SimulationEngine.cpp"
+                     "${SOURCES_DIR}/SimulationEngineRestart.cpp"
                      "${SOURCES_DIR}/SimulationEngineNosplit.cpp")
 SET(ALL_SOURCES ${ALL_SOURCES} ${REQUIRED_SOURCES} CACHE INTERNAL "")
 

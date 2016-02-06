@@ -51,6 +51,7 @@
 #include <StoppingConditions.h>
 #include <SimulationEngine.h>
 #include <SimulationEngineNosplit.h>
+#include <SimulationEngineRestart.h>
 #include <ImportanceFunctionConcreteSplit.h>
 #include <ImportanceFunctionConcreteCoupled.h>
 #include <ThresholdsBuilder.h>
@@ -161,10 +162,9 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
 //	FIXME: following compiles with Clang but not with gcc -- keep checking
 //	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
-	static const size_t batch_sizes[1][1] = {
-		{ 1u<<10 /*, 1u<<8 */ }  /* ,  ==> nosplit x {concrete_coupled, concrete_split}
-		{ 1u<<7, 1u<<5 }          *    ==> restart x {concrete_coupled, concrete_split}
-								  */
+	static const size_t batch_sizes[2][1] = {
+		{ 1u<<10 /*, 1u<<8 */ },  // nosplit x {concrete_coupled, concrete_split}
+		{ 1u<<7  /*, 1u<<5 */ }   // restart x {concrete_coupled, concrete_split}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -203,10 +203,9 @@ increase_batch_size(size_t& numRuns,
 	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
 //	FIXME: following compiles with Clang but not with gcc -- keep checking
 //	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
-	static const size_t batch_sizes[1][1] = {
-		{ 4u /*, 3u */ }  /* ,  ==> nosplit x {concrete_coupled, concrete_split}
-		{ 2u, 2u }         *    ==> restart x {concrete_coupled, concrete_split}
-						   */
+	static const size_t batch_sizes[2][1] = {
+		{ 4u /*, 3u */ },  // nosplit x {concrete_coupled, concrete_split}
+		{ 2u /*, 2u */ }   // restart x {concrete_coupled, concrete_split}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -299,6 +298,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 
 	// Build offered simulation engines
 	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
+	simulators["restart"] = std::make_shared< SimulationEngineRestart >(model);
 
 #ifndef NDEBUG
 	// Check all offered importance functions, thresholds builders and

@@ -55,30 +55,40 @@ public:  // Ctor
 	/// Data ctor
 	SimulationEngineNosplit(std::shared_ptr<const ModuleNetwork> network);
 
-public:  // Inherited virtual setup functions
+public:  // Engine setup
 
 //	virtual void bind(...);  // We can hook up with any, no check needed
 
-public:  // Inherited virtual simulation functions
+protected:  // Simulation helper functions
 
-	virtual double simulate(const Property& property,
-							const size_t& numRuns = 1) const;
+	virtual double transient_simulations(const PropertyTransient& property,
+										 const size_t& numRuns,
+										 Traial& traial) const;
 
-	virtual void simulate(const Property& property,
-						  const size_t& batchSize,
-						  ConfidenceInterval& interval) const;
+	/// Run single transient simulation starting from Traial's current state,
+	/// making no assumptions about the internal ImportanceFunction whatsoever.
+	/// @return 1 if reached a 'goal' state, 0 if reached a 'stop' state
+	long transient_simulation_generic(const PropertyTransient& property,
+									  Traial& traial) const;
 
-	virtual bool event_triggered_generic(const Property& property,
-										 const Traial& traial) const;
+	/// Run single transient simulation starting from Traial's current state,
+	/// assuming we're bound to an ImportanceFunctionConcrete.
+	/// @return 1 if reached a 'goal' state, 0 if reached a 'stop' state
+	long transient_simulation_concrete(const PropertyTransient& property,
+									   Traial& traial) const;
 
-	virtual bool event_triggered_concrete(const Property& property,
-										  const Traial& traial) const;
+public:  // Traial observers/updaters
 
-private:  // Simulation helper functions
+	/// @copydoc SimulationEngine::event_triggered()
+	/// @note Makes no assumption about the ImportanceFunction altogether
+	virtual bool event_triggered(const Property& property,
+								 Traial& traial) const;
 
-	double transient_simulation(const PropertyTransient& property,
-								const size_t& numRuns,
-								Traial& traial) const;
+	/// @copydoc SimulationEngine::event_triggered()
+	/// @note This function assumes a \ref ImportanceFunctionConcrete
+	///       "concrete importance function" is currently bound to the engine
+	bool event_triggered_concrete(const Property& property,
+								  Traial& traial) const;
 };
 
 } // namespace fig

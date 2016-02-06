@@ -98,7 +98,7 @@ public:  // Attributes
 	/// Importance/Threshold level where the Traial was born
 	ImportanceValue creationImportance;
 
-	/// Time this Traial has been running around the system model
+	/// Time span this Traial has been running around the system model
 	CLOCK_INTERNAL_TYPE lifeTime;
 
 	/// \ref Variable "Variables" values instantiation
@@ -198,6 +198,7 @@ public:  // Utils
 	 * @param reorder  Whether to reorder internal clocks prior the retrieval
 	 * @note  <b>Complexity:</b> <i>O(m log(m))</i> if reorder, <i>O(1)</i>
 	 *        otherwise, where 'm' is the number of clocks in the system.
+	 * @note  Attempted inlined for efficiency, sorry
 	 * @throw FigException if all our clocks have null value
 	 */
 	inline const Timeout&
@@ -220,7 +221,9 @@ public:  // Utils
      * @param firstClock First clock's index in the affected ModuleInstance
      * @param numClocks  Number of clocks of the affected ModuleInstance
      * @param timeLapse  Amount of time to kill
-     */
+	 *
+	 * @note  Attempted inlined for efficiency, sorry
+	 */
     inline void
     kill_time(const size_t& firstClock,
               const size_t& numClocks,
