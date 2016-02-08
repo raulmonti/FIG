@@ -118,12 +118,15 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			// The following events are treated as mutually exclusive
 			// Checking order is relevant!
 			if (IS_STOP_EVENT(e) || IS_THR_DOWN_EVENT(e)) {
-				// Traial hit the wall or went down => kill it
+				// Traial reached a stop event or went down => kill it
 				stack.pop();
+
 			} else if (IS_RARE_EVENT(e)) {
 				// Reached rare event => count and kill
 				rareEventsCount[traial.importance]++;
 				stack.pop();
+				/// @todo TODO consider splitting before count and kill
+
 			} else if (IS_THR_UP_EVENT(e)) {
 				// Could have gone up several thresholds => split accordingly
 				for (unsigned short i = 1u
@@ -133,9 +136,12 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 					unsigned thisLevelRetrials =
 						std::round(std::pow(splitsPerThreshold_, i)
 									- std::pow(splitsPerThreshold_, i-1));
-					tpool.get_traial_copies(stack, traial, thisLevelRetrials);
+					tpool.get_traial_copies(stack,
+											traial,
+											prevThr + static_cast<ImportanceValue>(i),
+											thisLevelRetrials);
 				}
-				continue;  // attend the offsprings
+				// Offsprings are on top of stack now: continue attending them
 			}
 		}
 	}

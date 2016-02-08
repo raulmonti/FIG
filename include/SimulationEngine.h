@@ -76,14 +76,8 @@ protected:
     /// User's system model, already sealed
     std::shared_ptr< const ModuleNetwork > network_;
 
-    /// Copy of the network's global state
-    mutable State<STATE_INTERNAL_TYPE> globalState_;
-
     /// Importance function currently built
     std::shared_ptr< const ImportanceFunction > impFun_;
-
-    /// Concrete importance function currently built, if any
-    std::shared_ptr< const ImportanceFunctionConcrete > cImpFun_;
 
     /// Were we just interrupted in an estimation timeout?
     mutable bool interrupted;

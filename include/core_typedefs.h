@@ -155,10 +155,20 @@ typedef  ImportanceValue                                               Event;
 enum EventType
 {
     NONE       = 0,
+
+    /// Property's target, e.g. "goal" event for transient simulations
     RARE       = 1u<<(8*sizeof(Event)-1),
+
+    /// Simulation finished, e.g. "stop" event for transient simulations
     STOP       = 1u<<(8*sizeof(Event)-2),
+
+    /// Time elapsed, e.g. "reference" event for proportion simulations
     REFERENCE  = 1u<<(8*sizeof(Event)-3),
+
+    /// When a Traial jumps to a higher (on importance) threshold level
     THR_UP     = 1u<<(8*sizeof(Event)-4),
+
+    /// When a Traial jumps to a lower (on importance) threshold level
     THR_DOWN   = 1u<<(8*sizeof(Event)-5)
 };
 

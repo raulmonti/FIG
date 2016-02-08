@@ -181,39 +181,48 @@ template< template< typename... > class Container,
 void
 TraialPool::get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
                               const Traial& traial,
+                              const ImportanceValue &creationImportance,
                               const unsigned& numCopies)
 {
     assert(sizeChunkIncrement > numCopies);  // wouldn't make sense otherwise
     ensure_resources(numCopies);
     for (unsigned i = 0u ; i < numCopies ; i++) {
-        cont.emplace(end(cont), available_traials_.front());
-        static_cast<Traial&>(available_traials_.front()) = traial;
+        Traial& t = available_traials_.front();
         available_traials_.pop_front();
+        t = traial;
+        t.creationImportance = creationImportance;
+        cont.emplace(end(cont), t);
     }
 }
 // TraialPool::get_traial_copies() generic version can only be invoked with the following containers
 template void TraialPool::get_traial_copies(std::list< Reference<Traial> >&,
                                             const Traial&,
+                                            const ImportanceValue &creationImportance,
                                             const unsigned&);
 template void TraialPool::get_traial_copies(std::deque< Reference<Traial> >&,
                                             const Traial&,
+                                            const ImportanceValue &creationImportance,
                                             const unsigned&);
 template void TraialPool::get_traial_copies(std::vector< Reference<Traial> >&,
                                             const Traial&,
+                                            const ImportanceValue &creationImportance,
                                             const unsigned&);
 
 // TraialPool::get_traial_copies() specialization for STL std::stack<>
 template<> void
 TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
                               const Traial& traial,
+                              const ImportanceValue &creationImportance,
                               const unsigned& numCopies)
 {
     assert(sizeChunkIncrement > numCopies);  // wouldn't make sense otherwise
     ensure_resources(numCopies);
     for (unsigned i = 0u ; i < numCopies ; i++) {
-        stack.emplace(available_traials_.front());
-        static_cast<Traial&>(stack.top()) = traial;
+        Traial& t = available_traials_.front();
         available_traials_.pop_front();
+        t = traial;
+        t.creationImportance = creationImportance;
+        stack.emplace(t);
     }
 }
 
@@ -221,14 +230,17 @@ TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
 template<> void
 TraialPool::get_traial_copies(std::forward_list< Reference<Traial> >& flist,
                               const Traial& traial,
+                              const ImportanceValue &creationImportance,
                               const unsigned& numCopies)
 {
     assert(sizeChunkIncrement > numCopies);  // wouldn't make sense otherwise
     ensure_resources(numCopies);
     for (unsigned i = 0u ; i < numCopies ; i++) {
-        flist.push_front(available_traials_.front());
-        static_cast<Traial&>(available_traials_.front()) = traial;
+        Traial& t = available_traials_.front();
         available_traials_.pop_front();
+        t = traial;
+        t.creationImportance = creationImportance;
+        flist.push_front(t);
     }
 }
 

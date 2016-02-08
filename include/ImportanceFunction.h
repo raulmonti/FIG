@@ -246,10 +246,26 @@ public:  // Utils
 	virtual void build_thresholds(ThresholdsBuilder& tb,
 								  const unsigned& splitsPerThreshold) = 0;
 
-	/// @brief Tell the pre-computed importance of the given StateInstance
-	/// @note This instance should hold \ref has_importance_info()
-	///       "importance information"
-	/// @see assess_importance()
+	/**
+	 * Retrieve all pre-computed information about the given StateInstance,
+	 * potentially containing some event masks.
+	 * @return ImportanceValue possibly mixed with Event information
+	 * @note This instance should hold \ref has_importance_info()
+	 *       "importance information"
+	 * @see assess_importance()
+	 * @see importance_of()
+	 */
+	virtual ImportanceValue info_of(const StateInstance& state) const = 0;
+
+	/**
+	 * Tell the pre-computed importance of the given StateInstance,
+	 * free from any event mask kept internally.
+	 * @return Unmasked ImportanceValue requested
+	 * @note This instance should hold \ref has_importance_info()
+	 *       "importance information"
+	 * @see assess_importance()
+	 * @see info_of()
+	 */
 	virtual ImportanceValue importance_of(const StateInstance& state) const = 0;
 
 	/// Release any memory allocated in the heap

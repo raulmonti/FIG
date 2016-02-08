@@ -182,12 +182,15 @@ public:  // Utils
 	 *        for the current property and simulation strategy is triggered.
 	 *        Information regarding the simulation run is kept in traial.
 	 *
-	 * @param traial   Traial instance keeping track of the simulation
+	 * @param traial   Traial instance keeping track of the simulation <b>(modified)</b>
 	 * @param property Property whose value is currently being estimated
 	 * @param engine   Semantics of the current simulation strategy,
 	 *                 viz. object of any class derived from SimulationEngine
 	 * @param watch_events Member function of 'engine' telling when
 	 *                     is a simulation step considered finished
+	 *
+	 * @return Events observed/marked by the 'watch_event' member function
+	 *         when a finishing event for this simulation step is triggered.
 	 *
 	 * @note Unrelated to simulation(), this routine was deviced for
 	 *       estimating the value of a Property.
@@ -216,7 +219,7 @@ public:  // Utils
 	 *        its importance is the maximum achieved and its state is
 	 *        the variables valuation realizing that importance.
 	 *
-	 * @param traial Traial instance keeping track of the simulation
+	 * @param traial Traial instance keeping track of the simulation <b>(modified)</b>
 	 * @param update Traial update function applied on each jump iteration
 	 * @param pred   Predicate telling when to stop jumping
 	 *

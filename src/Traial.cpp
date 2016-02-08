@@ -162,7 +162,7 @@ Traial::initialize(const ModuleNetwork& network,
 	for (const auto& pos_clk_pair: network.initialClocks)
 		clocks_[pos_clk_pair.first].value = pos_clk_pair.second.sample();
 	// Initialize importance and simulation time
-	importance = impFun.importance_of(state);
+    importance = UNMASK(impFun.importance_of(state));
 	creationImportance = importance;
 	lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
 }

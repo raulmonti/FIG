@@ -93,20 +93,6 @@ ImportanceFunctionConcreteCoupled::build_thresholds(
 }
 
 
-ImportanceValue
-ImportanceFunctionConcreteCoupled::importance_of(const StateInstance& state) const
-{
-#ifndef NDEBUG
-	assert(has_importance_info());
-	globalStateCopy_.copy_from_state_instance(state, true);
-#else
-	globalStateCopy_.copy_from_state_instance(state, false);
-#endif
-	return UNMASK(modulesConcreteImportance[importanceInfoIndex_]
-										   [globalStateCopy_.encode()]);
-}
-
-
 void
 ImportanceFunctionConcreteCoupled::clear() noexcept
 {

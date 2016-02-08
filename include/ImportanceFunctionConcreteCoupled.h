@@ -88,7 +88,26 @@ public:  // Utils
 	virtual void build_thresholds(ThresholdsBuilder& tb,
 								  const unsigned& splitsPerThreshold);
 
-	virtual ImportanceValue importance_of(const StateInstance& state) const;
+	/// @copydoc ImportanceFunction::info_of()
+	/// @note Attempted inline in a desperate need for speed
+	inline virtual ImportanceValue info_of(const StateInstance& state) const
+		{
+#       ifndef NDEBUG
+			assert(has_importance_info());
+			globalStateCopy_.copy_from_state_instance(state, true);
+#       else
+			globalStateCopy_.copy_from_state_instance(state, false);
+#       endif
+			return modulesConcreteImportance[importanceInfoIndex_]
+											[globalStateCopy_.encode()];
+		}
+
+	/// @copydoc ImportanceFunction::importance_of()
+	/// @note Attempted inline in a desperate need for speed
+	inline virtual ImportanceValue importance_of(const StateInstance& state) const
+		{
+			return UNMASK(info_of(state));
+		}
 
 	virtual void clear() noexcept;
 };

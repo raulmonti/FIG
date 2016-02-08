@@ -76,10 +76,10 @@ public:  // Traial observers/updaters
 										Traial& traial,
 										Event& e) const
 		{
-			e = property.is_goal(traial.state) ? EventType::RARE
+			e = property.is_stop(traial.state) ? EventType::STOP
 											   : EventType::NONE;
-			if (property.is_stop(traial.state))
-				SET_STOP_EVENT(e);
+			if (property.is_rare(traial.state))
+				SET_RARE_EVENT(e);
 			return EventType::NONE != e;
 		}
 
@@ -91,8 +91,7 @@ public:  // Traial observers/updaters
 										 Traial& traial,
 										 Event& e) const
 		{
-			globalState_.copy_from_state_instance(traial.state);
-			e = cImpFun_->events_of(globalState_);
+			e = MASK(impFun_->info_of(traial.state));
 			return IS_RARE_EVENT(e) || IS_STOP_EVENT(e);
 		}
 };

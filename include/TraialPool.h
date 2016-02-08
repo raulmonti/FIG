@@ -159,6 +159,7 @@ public:  // Access to resources (viz Traials)
      *
      * @param cont      Container where Traial copies are to be stored
      * @param traial    Traial instance whose internals will be copied
+     * @param creationImportance Creation importance to assign to the copies
      * @param numCopies Number of \ref Traial "traials" requested
      *
      * @note <b>Complexity:</b> <i>O(numCopies)</i> if free resources are
@@ -169,6 +170,7 @@ public:  // Access to resources (viz Traials)
 			  typename... OtherArgs >
     void get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
                            const Traial& traial,
+                           const ImportanceValue& creationImportance,
                            const unsigned& numCopies);
 
 	/**

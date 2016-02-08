@@ -104,28 +104,52 @@ public:  // Traial observers/updaters
 
 	/// @copydoc SimulationEngine::transient_event()
 	/// @note Makes no assumption about the ImportanceFunction altogether
-	/// @note Attempted inline in a desperate seek of efficiency
+	/// @note Attempted inline in a desperate need for speed
 	inline virtual bool transient_event(const PropertyTransient& property,
 										Traial& traial,
 										Event& e) const
 		{
-			throw_FigException("TODO: implement");
-			return property.is_goal(traial.state) ||
-					property.is_stop(traial.state);
+			// Event marking is done in accordance with the checks performed
+			// in the transient_simulations() virtual member function
+			if (property.is_stop(traial.state)) {
+				e = EventType::STOP;
+			} else {
+				ImportanceValue newThr = impFun_->importance_of(traial.state);
+				if (traial.creationImportance > newThr + dieOutDepth_) {
+					e = EventType::THR_DOWN;
+				} else if (property.is_rare(traial.state)) {
+					e = EventType::RARE;
+				} else if (traial.importance < newThr) {
+					e = EventType::THR_UP;
+				}
+				traial.importance = newThr;
+			}
+			return EventType::NONE != e;
 		}
 
 	/// @copydoc SimulationEngine::transient_event()
 	/// @note This function assumes a \ref ImportanceFunctionConcrete
 	///       "concrete importance function" is currently bound to the engine
-	/// @note Attempted inline in a desperate seek of efficiency
+	/// @note Attempted inline in a desperate need for speed
 	inline bool transient_event_concrete(const PropertyTransient&,
 										 Traial& traial,
 										 Event& e) const
 		{
-			throw_FigException("TODO: implement");
-			globalState_.copy_from_state_instance(traial.state);
-			e = cImpFun_->events_of(globalState_);
-			return IS_RARE_EVENT(e) || IS_STOP_EVENT(e);
+			// Event marking is done in accordance with the checks performed
+			// in the transient_simulations() virtual member function
+			auto newStateInfo = impFun_->info_of(traial.state);
+			e = MASK(newStateInfo);
+			if (!IS_STOP_EVENT(e)) {
+				ImportanceValue newThr = UNMASK(newStateInfo);
+				if (traial.creationImportance > newThr + dieOutDepth_) {
+					SET_THR_DOWN_EVENT(e);
+				} else if (traial.importance < newThr) {
+					SET_THR_UP_EVENT(e);
+				}
+				traial.importance = newThr;
+				// rare event info is already marked inside 'e'
+			}
+			return EventType::NONE != e;
 		}
 };
 
