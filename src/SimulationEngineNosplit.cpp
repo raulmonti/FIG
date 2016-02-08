@@ -51,53 +51,31 @@ double
 SimulationEngineNosplit::transient_simulations(const PropertyTransient& property,
                                                const size_t& numRuns) const
 {
-	long numSuccesses(0);
     assert(0u < numRuns);
+    long numSuccesses(0);
     Traial& traial = TraialPool::get_instance().get_traial();
+
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
-    if (impFun_->concrete()) {
-//		#pragma omp parallel  // we MUST parallelize this, it's stupid not to
-		for (size_t i = 0u ; i < numRuns ; i++) {
-			traial.initialize(*network_, *impFun_);
-			numSuccesses += transient_simulation_concrete(property, traial);
-		}
-	} else {
-//		#pragma omp parallel  // we MUST parallelize this, it's stupid not to
-		for (size_t i = 0u ; i < numRuns ; i++) {
-			traial.initialize(*network_, *impFun_);
-			numSuccesses += transient_simulation_generic(property, traial);
-		}
-	}
+    bool (SimulationEngineNosplit::*watch_events)
+         (const PropertyTransient&, Traial&, Event&) const;
+    if (impFun_->concrete())
+        watch_events = &SimulationEngineNosplit::transient_event_concrete;
+    else
+        watch_events = &SimulationEngineNosplit::transient_event;
+
+    // Perform 'numRuns' standard Monte Carlo simulations
+    for (size_t i = 0u ; i < numRuns ; i++) {
+        traial.initialize(*network_, *impFun_);
+        Event e = network_->simulation_step(traial, property, *this, watch_events);
+        numSuccesses += IS_RARE_EVENT(e) ? 1l : 0l;
+    }
     TraialPool::get_instance().return_traial(std::move(traial));
-    return static_cast<double>(numSuccesses) / numRuns;
-}
 
-
-long
-SimulationEngineNosplit::transient_simulation_generic(
-	const PropertyTransient& property,
-	Traial& traial) const
-{
-	network_->simulation_step(traial,
-							  property,
-							  *this,
-                              &SimulationEngineNosplit::transient_event);
-	// Check current state events via the property
-	return property.is_goal(traial.state) ? 1 : 0;
-}
-
-
-long
-SimulationEngineNosplit::transient_simulation_concrete(
-	const PropertyTransient& property,
-	Traial& traial) const
-{
-	network_->simulation_step(traial,
-							  property,
-							  *this,
-                              &SimulationEngineNosplit::transient_event_concrete);
-    // Last call to "transient_event_concrete()" updated "lastEvents_"
-	return IS_RARE_EVENT(lastEvents_) ? 1 : 0;
+    // Return estimate or its negative value
+    if (numSuccesses < ModelSuite::MIN_COUNT_RARE_EVENTS)
+        return -static_cast<double>(numSuccesses) / numRuns;
+    else
+        return  static_cast<double>(numSuccesses) / numRuns;
 }
 
 } // namespace fig

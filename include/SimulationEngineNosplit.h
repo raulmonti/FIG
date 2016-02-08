@@ -43,9 +43,9 @@ namespace fig
 class PropertyTransient;
 
 /**
- * @brief Engine for classical Monte Carlo simulation
+ * @brief Engine for standard Monte Carlo simulations
  *
- *        This engine implements the standard "blind strategy", where
+ *        This engine implements the classical "blind strategy", where
  *        each Traial is pushed forward following the model dynamics and
  *        without any kind of splitting. The importance function is thus
  *        disregarded. Only the property provides the most basic guiding
@@ -67,28 +67,20 @@ protected:  // Simulation helper functions
 	virtual double transient_simulations(const PropertyTransient& property,
 										 const size_t& numRuns) const;
 
-	/// Run single transient simulation starting from Traial's current state,
-	/// making no assumptions about the internal ImportanceFunction whatsoever.
-	/// @return 1 if reached a 'goal' state, 0 if reached a 'stop' state
-	long transient_simulation_generic(const PropertyTransient& property,
-									  Traial& traial) const;
-
-	/// Run single transient simulation starting from Traial's current state,
-	/// assuming we're bound to an ImportanceFunctionConcrete.
-	/// @return 1 if reached a 'goal' state, 0 if reached a 'stop' state
-	long transient_simulation_concrete(const PropertyTransient& property,
-									   Traial& traial) const;
-
 public:  // Traial observers/updaters
 
 	/// @copydoc SimulationEngine::transient_event()
 	/// @note Makes no assumption about the ImportanceFunction altogether
 	/// @note Attempted inline in a desperate seek of efficiency
 	inline virtual bool transient_event(const PropertyTransient& property,
-										Traial& traial) const
+										Traial& traial,
+										Event& e) const
 		{
-			return property.is_goal(traial.state) ||
-					property.is_stop(traial.state);
+			e = property.is_goal(traial.state) ? EventType::RARE
+											   : EventType::NONE;
+			if (property.is_stop(traial.state))
+				SET_STOP_EVENT(e);
+			return EventType::NONE != e;
 		}
 
 	/// @copydoc SimulationEngine::transient_event()
@@ -96,11 +88,12 @@ public:  // Traial observers/updaters
 	///       "concrete importance function" is currently bound to the engine
 	/// @note Attempted inline in a desperate seek of efficiency
 	inline bool transient_event_concrete(const PropertyTransient&,
-										 Traial& traial) const
+										 Traial& traial,
+										 Event& e) const
 		{
 			globalState_.copy_from_state_instance(traial.state);
-			lastEvents_ = cImpFun_->events_of(globalState_);
-			return IS_RARE_EVENT(lastEvents_) || IS_STOP_EVENT(lastEvents_);
+			e = cImpFun_->events_of(globalState_);
+			return IS_RARE_EVENT(e) || IS_STOP_EVENT(e);
 		}
 };
 

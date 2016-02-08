@@ -41,6 +41,20 @@ namespace fig
 
 class PropertyTransient;
 
+/**
+ * @brief Engine for RESTART importance-splitting simulations
+ *
+ *        This engine implements the importance splitting strategy developed
+ *        by Manuel and José Villén-Altamirano.<br>
+ *        In RESTART a Traial advances until it reaches a predefined importance
+ *        threshold and tries to cross it "upwards", i.e. gaining on importance.
+ *        At that point the state is saved and the Traial is replicated some
+ *        predefined number of times. Each replica follows from them own its
+ *        own independent simulation path.<br>
+ *        To lighten the overhead in the number of simulation runs,
+ *        all Traials going down the importance threshold where they were
+ *        created, i.e. loosing on importance, are discarded.
+ */
 class SimulationEngineRestart : public SimulationEngine
 {
 	/// 1 + Number of replicas made of a Traial when it crosses
@@ -86,37 +100,14 @@ protected:  // Simulation helper functions
 	virtual double transient_simulations(const PropertyTransient& property,
 										 const size_t& numRuns) const;
 
-	/**
-	 * Run single transient simulation starting from given Traials stack,
-	 * making no assumptions about the internal ImportanceFunction whatsoever.
-	 * @param property PropertyTransient with events of interest (goal & stop)
-	 * @param stack    Stack of initialized Traials for RESTART simulation
-	 * @param numHits  Register updated with the number of goal events
-	 *                 found on each threshold level
-	 */
-	void transient_simulation_generic(const PropertyTransient& property,
-									  std::stack< Reference <Traial> >& stack,
-									  std::vector< long >& numHits);
-
-	/**
-	 * Run single transient simulation starting from given Traials stack,
-	 * assuming we're bound to an ImportanceFunctionConcrete.
-	 * @param property PropertyTransient with events of interest (goal & stop)
-	 * @param stack    Stack of initialized Traials for RESTART simulation
-	 * @param numHits  Register updated with the number of goal events
-	 *                 found on each threshold level
-	 */
-	void transient_simulation_concrete(const PropertyTransient& property,
-									   std::stack< Reference <Traial> >& stack,
-									   std::vector< long >& numHits);
-
 public:  // Traial observers/updaters
 
 	/// @copydoc SimulationEngine::transient_event()
 	/// @note Makes no assumption about the ImportanceFunction altogether
 	/// @note Attempted inline in a desperate seek of efficiency
 	inline virtual bool transient_event(const PropertyTransient& property,
-										Traial& traial) const
+										Traial& traial,
+										Event& e) const
 		{
 			throw_FigException("TODO: implement");
 			return property.is_goal(traial.state) ||
@@ -128,12 +119,13 @@ public:  // Traial observers/updaters
 	///       "concrete importance function" is currently bound to the engine
 	/// @note Attempted inline in a desperate seek of efficiency
 	inline bool transient_event_concrete(const PropertyTransient&,
-										 Traial& traial) const
+										 Traial& traial,
+										 Event& e) const
 		{
-			globalState_.copy_from_state_instance(traial.state);
-			lastEvents_ = cImpFun_->events_of(globalState_);
 			throw_FigException("TODO: implement");
-			return IS_RARE_EVENT(lastEvents_) || IS_STOP_EVENT(lastEvents_);
+			globalState_.copy_from_state_instance(traial.state);
+			e = cImpFun_->events_of(globalState_);
+			return IS_RARE_EVENT(e) || IS_STOP_EVENT(e);
 		}
 };
 

@@ -124,8 +124,8 @@ ConfidenceInterval::ConfidenceInterval(double confidence,
 {
 	if (0.0 >= precision)
 		throw_FigException("requires precision > 0.0");
-	if (percent && 1.0 <= precision)
-		throw_FigException("dynamic precision must ∈ (0.0, 1.0)");
+//	if (percent && 1.0 <= precision)
+//		throw_FigException("dynamic precision must ∈ (0.0, 1.0)");
 	if (0.0 >= confidence || 1.0 <= confidence)
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
 }

@@ -193,11 +193,10 @@ ModuleNetwork::accept(ImportanceFunction& ifun,
 template< typename DerivedProperty,
           class Simulator,
           class TraialMonitor >
-void
-ModuleNetwork::simulation_step(Traial& traial,
-                               const DerivedProperty& property,
-                               const Simulator& engine,
-                               TraialMonitor watch_events) const
+Event ModuleNetwork::simulation_step(Traial& traial,
+                                     const DerivedProperty& property,
+                                     const Simulator& engine,
+                                     TraialMonitor watch_events) const
 {
 	if (!sealed())
 #ifndef NDEBUG
@@ -212,6 +211,8 @@ ModuleNetwork::simulation_step(Traial& traial,
 //		std::cerr << e << "  ";
 //	std::cerr << "----------------------------------------------" << std::endl;
 //	///////////////////////////////////////
+
+    Event e;
 
     // Jump...
 	do {
@@ -230,7 +231,7 @@ ModuleNetwork::simulation_step(Traial& traial,
 			if (module_ptr->name != timeout.module->name)
 				module_ptr->jump(label, timeout.value, traial);
         traial.lifeTime += timeout.value;
-	} while ( !(engine.*watch_events)(property, traial) );
+    } while ( !(engine.*watch_events)(property, traial, e) );
 	// ...until a relevant event is observed
 
 //	/// @todo TODO erase debug print below
@@ -239,27 +240,29 @@ ModuleNetwork::simulation_step(Traial& traial,
 //		std::cerr << e << "  ";
 //	std::cerr << "----------------------------------------------" << std::endl;
 //	///////////////////////////////////////
+
+    return e;
 }
 
 /// "SimulationEngineNosplit + PropertyTransient" TraialMonitor specialization
 /// for "template<...> ModuleNetwork::simulation_step()"
 typedef bool(SimulationEngineNosplit::*nosplit_transient_event)
-    (const PropertyTransient&, Traial&) const;
+    (const PropertyTransient&, Traial&, Event&) const;
 
 /// "SimulationEngineRestart + PropertyTransient" TraialMonitor specialization
 /// for "template<...> ModuleNetwork::simulation_step()"
 typedef bool(SimulationEngineRestart::*restart_transient_event)
-    (const PropertyTransient&, Traial&) const;
+    (const PropertyTransient&, Traial&, Event&) const;
 
 // ModuleNetwork::simulation_step() can only be invoked with the following
 // "DerivedProperty", "Simulator" and "TraialMonitor" combinations
-template void ModuleNetwork::simulation_step(Traial&,
-                                             const PropertyTransient&,
-											 const SimulationEngineNosplit&,
-                                             nosplit_transient_event) const;
-template void ModuleNetwork::simulation_step(Traial&,
-                                             const PropertyTransient&,
-											 const SimulationEngineRestart&,
-                                             restart_transient_event) const;
+template Event ModuleNetwork::simulation_step(Traial&,
+                                              const PropertyTransient&,
+                                              const SimulationEngineNosplit&,
+                                              nosplit_transient_event) const;
+template Event ModuleNetwork::simulation_step(Traial&,
+                                              const PropertyTransient&,
+                                              const SimulationEngineRestart&,
+                                              restart_transient_event) const;
 
 } // namespace fig

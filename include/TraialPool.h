@@ -139,36 +139,37 @@ public:  // Access to resources (viz Traials)
 	 */
 	void return_traial(Traial&& traial);
 
-	/**
-	 * Obtain specified amount of (dirty) Traial instances
-	 *
-	 * @param cont       Container where traials are to be stored
-	 * @param numTraials Number of \ref Traial "traials" requested
-	 *
-	 * @note <b>Complexity:</b> <i>O(numTraials)</i> if free resources are
-	 *       available, <i>O(max(numTraials,sizeIncrement_))</i>
-	 *       if new resources need to be allocated.
-	 */
-	template< template< typename... > class Container,
-			  typename... OtherArgs >
-	void get_traials(Container< Reference<Traial>, OtherArgs...>& cont,
-					 const unsigned& numTraials);
+    /**
+     * Obtain specified amount of (dirty) Traial instances
+     *
+     * @param cont       Container where traials are to be stored
+     * @param numTraials Number of \ref Traial "traials" requested
+     *
+     * @note <b>Complexity:</b> <i>O(numTraials)</i> if free resources are
+     *       available, <i>O(max(numTraials,sizeIncrement_))</i>
+     *       if new resources need to be allocated.
+     */
+    template< template< typename... > class Container,
+              typename... OtherArgs >
+    void get_traials(Container< Reference<Traial>, OtherArgs...>& cont,
+                     const unsigned& numTraials);
 
 	/**
-	 * Obtain specified amount of copies of given Traial instance
-	 *
-	 * @param  traial    Traial instance whose internals will be copied
-	 * @param  numCopies Number of \ref Traial "traials" requested
-	 *
-	 * @return <a href="http://www.cplusplus.com/reference/forward_list/forward_list/">
-	 *         C++ STL forward list</a> with requested copies of traial
-	 *
-	 * @note   <b>Complexity:</b> <i>O(numCopies)</i> if free resources are
-	 *         available, <i>O(max(numCopies,sizeIncrement_))</i>
-	 *         if new resources need to be allocated.
-	 */
-	std::forward_list< Reference< Traial > >
-	get_traial_copies(const Traial& traial, unsigned numCopies);
+     * Obtain specified amount of copies of given Traial instance
+     *
+     * @param cont      Container where Traial copies are to be stored
+     * @param traial    Traial instance whose internals will be copied
+     * @param numCopies Number of \ref Traial "traials" requested
+     *
+     * @note <b>Complexity:</b> <i>O(numCopies)</i> if free resources are
+     *       available, <i>O(max(numCopies,sizeIncrement_))</i>
+     *       if new resources need to be allocated.
+     */
+	template< template< typename... > class Container,
+			  typename... OtherArgs >
+    void get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
+                           const Traial& traial,
+                           const unsigned& numCopies);
 
 	/**
 	 * @brief Give back a bunch of \ref Traial "traials" to the pool

@@ -28,6 +28,8 @@
 
 
 
+// C
+#include <cmath>
 // C++
 #include <memory>     // std::dynamic_pointer_cast<>
 #include <sstream>
@@ -74,8 +76,7 @@ SimulationEngine::SimulationEngine(
         globalState_(network->global_state()),
 		impFun_(nullptr),
         cImpFun_(nullptr),
-        interrupted(false),
-        lastEvents_(EventType::NONE)
+        interrupted(false)
 {
 	if (std::find(begin(names), end(names), name) == end(names)) {
 		std::stringstream errMsg;
@@ -205,13 +206,14 @@ SimulationEngine::simulate(const Property& property,
 	case PropertyType::TRANSIENT: {
 		assert (!interrupted);
 		while (!interrupted) {
-			double newEstimate =
+            std::cerr << "+";
+            double newEstimate =
 				transient_simulations(dynamic_cast<const PropertyTransient&>(property),
                                       batchSize);
 			if (!interrupted)
-				interval.update(newEstimate);
+                interval.update(std::abs(newEstimate));
 		}
-		} break;
+        } break;
 
 	case PropertyType::THROUGHPUT:
 	case PropertyType::RATE:

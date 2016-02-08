@@ -134,8 +134,20 @@ TraialPool::get_traials(Container<Reference<Traial>, OtherArgs...>& cont,
 // TraialPool::get_traials() generic version can only be invoked with the following containers
 template void TraialPool::get_traials(std::list< Reference<Traial> >&, const unsigned&);
 template void TraialPool::get_traials(std::deque< Reference<Traial> >&, const unsigned&);
-template void TraialPool::get_traials(std::stack< Reference<Traial> >&, const unsigned&);
 template void TraialPool::get_traials(std::vector< Reference<Traial> >&, const unsigned&);
+
+// TraialPool::get_traials() specialization for STL std::stack<>
+template<> void
+TraialPool::get_traials(std::stack< Reference<Traial> >& stack,
+                        const unsigned& numTraials)
+{
+    assert(sizeChunkIncrement > numTraials);  // wouldn't make sense otherwise
+    ensure_resources(numTraials);
+    for (unsigned i = 0u ; i < numTraials ; i++) {
+        stack.emplace(available_traials_.front());
+        available_traials_.pop_front();
+    }
+}
 
 // TraialPool::get_traials() specialization for STL std::forward_list<>
 template<> void
@@ -164,14 +176,60 @@ TraialPool::get_traials(std::forward_list< Reference<Traial> >& flist,
 // }
 
 
-std::forward_list< Reference< Traial > >
-TraialPool::get_traial_copies(const Traial& traial, unsigned numCopies)
+template< template< typename... > class Container,
+          typename... OtherArgs >
+void
+TraialPool::get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
+                              const Traial& traial,
+                              const unsigned& numCopies)
 {
-	std::forward_list< Reference< Traial > > result;
-	get_traials(result, numCopies);
-	for (Traial& t: result)
-		t = traial;  // copy 'traial' values
-	return result;
+    assert(sizeChunkIncrement > numCopies);  // wouldn't make sense otherwise
+    ensure_resources(numCopies);
+    for (unsigned i = 0u ; i < numCopies ; i++) {
+        cont.emplace(end(cont), available_traials_.front());
+        static_cast<Traial&>(available_traials_.front()) = traial;
+        available_traials_.pop_front();
+    }
+}
+// TraialPool::get_traial_copies() generic version can only be invoked with the following containers
+template void TraialPool::get_traial_copies(std::list< Reference<Traial> >&,
+                                            const Traial&,
+                                            const unsigned&);
+template void TraialPool::get_traial_copies(std::deque< Reference<Traial> >&,
+                                            const Traial&,
+                                            const unsigned&);
+template void TraialPool::get_traial_copies(std::vector< Reference<Traial> >&,
+                                            const Traial&,
+                                            const unsigned&);
+
+// TraialPool::get_traial_copies() specialization for STL std::stack<>
+template<> void
+TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
+                              const Traial& traial,
+                              const unsigned& numCopies)
+{
+    assert(sizeChunkIncrement > numCopies);  // wouldn't make sense otherwise
+    ensure_resources(numCopies);
+    for (unsigned i = 0u ; i < numCopies ; i++) {
+        stack.emplace(available_traials_.front());
+        static_cast<Traial&>(stack.top()) = traial;
+        available_traials_.pop_front();
+    }
+}
+
+// TraialPool::get_traial_copies() specialization for STL std::forward_list<>
+template<> void
+TraialPool::get_traial_copies(std::forward_list< Reference<Traial> >& flist,
+                              const Traial& traial,
+                              const unsigned& numCopies)
+{
+    assert(sizeChunkIncrement > numCopies);  // wouldn't make sense otherwise
+    ensure_resources(numCopies);
+    for (unsigned i = 0u ; i < numCopies ; i++) {
+        flist.push_front(available_traials_.front());
+        static_cast<Traial&>(available_traials_.front()) = traial;
+        available_traials_.pop_front();
+    }
 }
 
 

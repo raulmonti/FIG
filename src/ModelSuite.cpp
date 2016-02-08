@@ -224,11 +224,13 @@ increase_batch_size(size_t& numRuns,
 } // namespace
 
 
+
 namespace fig
 {
 
 /// To catch timeout interruptions
 thread_local SignalHandlerType SignalHandler;
+
 
 // Static variables initialization
 
@@ -250,6 +252,8 @@ std::unordered_map< std::string, std::shared_ptr< SimulationEngine > >
 std::unique_ptr< ModelSuite > ModelSuite::instance_ = nullptr;
 
 std::once_flag ModelSuite::singleInstance_;
+
+const unsigned ModelSuite::MIN_COUNT_RARE_EVENTS = (1u<<3);
 
 
 // ModelSuite class member functions
@@ -572,7 +576,8 @@ ModelSuite::estimate(const Property& property,
 			SignalSetter handler(SIGALRM, [&ci_ptr, &timedout] (const int sig)
 				{
 					assert(SIGALRM == sig);
-					/// @todo TODO: implement proper log and discard following shell print
+                    /// @todo TODO: implement proper log and discard following shell print
+                    std::cerr << std::endl;
 					std::cerr << "   · Computed estimate: "
 							  << ci_ptr->point_estimate() << std::endl;
 					std::cerr << "   · 90% confidence interval: [ "
@@ -583,7 +588,7 @@ ModelSuite::estimate(const Property& property,
 							  << ci_ptr->upper_limit(0.95) << " ] " << std::endl;
 					std::cerr << "   · 99% confidence interval: [ "
 							  << ci_ptr->lower_limit(0.99) << " , "
-							  << ci_ptr->upper_limit(0.99) << " ] " << std::endl;
+                              << ci_ptr->upper_limit(0.99) << " ] " << std::endl;
 					ci_ptr->reset();
 					timedout = true;
 //					log_(*ci_ptr,
@@ -618,16 +623,14 @@ ModelSuite::estimate(const Property& property,
 			double startTime = omp_get_wtime();
             do {
 				double estimate = engine.simulate(property, numRuns);
-				if (0.0 > estimate)
-					throw_FigException("invalid simulation result");
-				else
-					ci_ptr->update(estimate);
-				if (0.0 == estimate) {
-					increase_batch_size(numRuns, engine.name(), engine.current_imp_fun());
-					std::cerr << "-";
-				} else {
-					std::cerr << "+";
-				}
+                if (0.0 >= estimate) {
+                    ci_ptr->update(-estimate);
+                    std::cerr << "-";
+                    increase_batch_size(numRuns, engine.name(), engine.current_imp_fun());
+                } else {
+                    ci_ptr->update(estimate);
+                    std::cerr << "+";
+                }
 			} while (!ci_ptr->is_valid());
 			/// @todo TODO: implement proper log and discard following shell print
 			std::cerr << std::endl;

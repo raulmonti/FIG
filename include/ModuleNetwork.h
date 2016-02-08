@@ -200,10 +200,10 @@ public:  // Utils
 	template< typename DerivedProperty,
 			  class Simulator,
 			  class TraialMonitor >
-	void simulation_step(Traial& traial,
-						 const DerivedProperty& property,
-						 const Simulator& engine,
-						 TraialMonitor watch_events) const;
+	Event simulation_step(Traial& traial,
+						  const DerivedProperty& property,
+						  const Simulator& engine,
+						  TraialMonitor watch_events) const;
 
 	/**
 	 * @brief Advance a traial and keep track of maximum importance reached

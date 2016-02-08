@@ -88,9 +88,6 @@ protected:
     /// Were we just interrupted in an estimation timeout?
     mutable bool interrupted;
 
-    /// Last events triggered by current simulation
-    mutable /*thread_local*/ Event lastEvents_;
-
 public:  // Ctors/Dtor
 
     /**
@@ -188,7 +185,7 @@ public:  // Simulation functions
      *
      * @param property  Property whose value is being estimated
      * @param batchSize Number of consecutive simulations for each interval update
-     * @param interval  ConfidenceInterval regularly updated with estimation info
+     * @param interval  ConfidenceInterval regularly updated with estimation info <b>(modified)</b>
      *
      * @throw FigException if the engine wasn't \ref bound() "bound" to any
      *                     ImportanceFunction
@@ -200,10 +197,20 @@ public:  // Simulation functions
 protected:  // Simulation helper functions
 
 	/**
-	 * Run several independent transient-like simulations
+     * @brief Run several independent transient-like simulations
+     *
+     *        Using a specific simulation strategy perform 'numRuns'
+     *        transient simulation runs. These will end when either
+     *        a 'goal' or 'stop' event is observed.
+     *
      * @param property PropertyTransient with events of interest (goal & stop)
 	 * @param numRuns  Amount of successive independent simulations to run
-	 * @return Estimation of the Prob( !stop U goal )
+     *
+     * @return Estimation of the Prob( !stop U goal ),
+     *         or its negative value if less than
+     *         ModelSuite::MIN_COUNT_RARE_EVENTS rare events were observed.
+     *
+     * @see PropertyTransient
 	 */
 	virtual double transient_simulations(const PropertyTransient& property,
                                          const size_t& numRuns) const = 0;
@@ -215,7 +222,8 @@ public:  // Traial observers/updaters
      *        in its most recent traversal through the system model.
      *
      * @param property PropertyTransient with events of interest (goal & stop)
-     * @param traial   Embodiment of a simulation running through the system model
+     * @param traial   Embodiment of a simulation running through the system model <b>(modified)</b>
+     * @param e        Variable to update with observed events <b>(modified)</b>
      *
      * @return Whether a \ref ModuleNetwork::simulation_step() "simulation step"
      *         has finished and the Traial should be further inspected.
@@ -223,7 +231,8 @@ public:  // Traial observers/updaters
      * @note  The ImportanceFunction used is taken from the last call to bind()
      */
     virtual bool transient_event(const PropertyTransient& property,
-                                 Traial& traial) const = 0;
+                                 Traial& traial,
+                                 Event& e) const = 0;
 };
 
 } // namespace fig
