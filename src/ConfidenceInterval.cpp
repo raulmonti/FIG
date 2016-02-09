@@ -101,6 +101,7 @@ double probit(const double& y)
 } // namespace
 
 
+
 namespace fig
 {
 

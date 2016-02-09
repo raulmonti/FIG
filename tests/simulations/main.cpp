@@ -215,7 +215,7 @@ int main()
 	stop_by_value.add_confidence_criterion(0.5, 1.0, true);
 	assert(stop_by_value.is_confidence_criteria());
 	fig::StoppingConditions stop_by_time;
-	stop_by_time.add_time_budget(15ul);
+	stop_by_time.add_time_budget(10ul);
 	assert(stop_by_time.is_time_budgets());
 	
 	// Simulation

@@ -32,6 +32,7 @@
 #include <list>
 #include <tuple>
 #include <deque>
+#include <array>
 #include <vector>
 #include <forward_list>
 #include <unordered_set>
@@ -40,8 +41,7 @@
 #include <iterator>     // std::begin(), std::end(), std::distance()
 #include <string>
 // C
-#include <csignal>   // signal()
-#include <unistd.h>  // alarm()
+#include <unistd.h>  // alarm(), exit()
 #include <omp.h>     // omp_get_wtime()
 // FIG
 #include <ModelSuite.h>
@@ -221,6 +221,32 @@ increase_batch_size(size_t& numRuns,
 						  [std::distance(begin(ifunNames), ifunIt)];
 }
 
+
+/**
+ * @brief Print/Log confidence intervals around an estimate
+ *        for the given confidence criteria
+ * @param ci ConfidenceInterval with the current estimate to show
+ * @param confidenceCoefficients Confidence criteria to build the intervals
+ * @note This should be implemented as a reentrant function,
+ *       as it may be called from within signal handlers.
+ */
+void
+interrupt_print(const fig::ConfidenceInterval& ci,
+                const std::vector<float>& confidenceCoefficients)
+{
+    /// @todo TODO: implement proper reentrant logging and discard following shell print
+    std::cerr << std::endl << "   · Computed estimate: "
+              << ci.point_estimate() << std::endl;
+    for (const float& confCo: confidenceCoefficients) {
+        std::cerr << "   · " << confCo*100 << "% precision: "
+                  << ci.precision(confCo) << std::endl;
+        std::cerr << "     " << confCo*100 << "% confidence interval: [ "
+                  << ci.lower_limit(confCo) << " , "
+                  << ci.upper_limit(confCo) << " ] " << std::endl;
+    }
+    std::cerr << std::endl;
+}
+
 } // namespace
 
 
@@ -228,8 +254,8 @@ increase_batch_size(size_t& numRuns,
 namespace fig
 {
 
-/// To catch timeout interruptions
-thread_local SignalHandlerType SignalHandler;
+/// To catch interruptions (timeout, ^C, etc)
+thread_local std::array< SignalHandlerType, MAX_SIGNUM_HANDLED > SignalHandlers;
 
 
 // Static variables initialization
@@ -248,6 +274,30 @@ std::unordered_map< std::string, std::shared_ptr< ThresholdsBuilder > >
 
 std::unordered_map< std::string, std::shared_ptr< SimulationEngine > >
 	ModelSuite::simulators;
+
+const ConfidenceInterval* ModelSuite::interruptCI_ = nullptr;
+
+const std::vector< float > ModelSuite::confCoToShow_ = {0.8, 0.9, 0.95, 0.99};
+
+SignalSetter ModelSuite::SIGINThandler_(SIGINT, [] (const int signal) {
+        assert(SIGINT == signal);
+        /// @todo TODO: implement proper reentrant logging and discard following shell print
+        std::cerr << "\nCaught SIGINT, stopping estimations.\n";
+        if (nullptr != ModelSuite::interruptCI_)
+            interrupt_print(*ModelSuite::interruptCI_, ModelSuite::confCoToShow_);
+        exit((1<<7)+SIGINT);
+    }
+);
+
+SignalSetter ModelSuite::SIGTERMhandler_(SIGTERM, [] (const int signal) {
+        assert(SIGTERM == signal);
+        /// @todo TODO: implement proper reentrant logging and discard following shell print
+        std::cerr << "\nCaught SIGTERM, stopping estimations.\n";
+        if (nullptr != ModelSuite::interruptCI_)
+            interrupt_print(*ModelSuite::interruptCI_, ModelSuite::confCoToShow_);
+        exit((1<<7)+SIGTERM);
+    }
+);
 
 std::unique_ptr< ModelSuite > ModelSuite::instance_ = nullptr;
 
@@ -570,31 +620,16 @@ ModelSuite::estimate(const Property& property,
 //		log_.time_estimation(engine);
 		bool& timedout = engine.interrupted;
 		auto ci_ptr = build_empty_confidence_interval(property);
+        interruptCI_ = ci_ptr.get();  // bad boy
         for (const unsigned long& wallTimeInSeconds: bounds.time_budgets()) {
 			/// @todo TODO: implement proper log and discard following shell print
 			std::cerr << "   Estimation time: " << wallTimeInSeconds << " s\n";
 			SignalSetter handler(SIGALRM, [&ci_ptr, &timedout] (const int sig)
 				{
-					assert(SIGALRM == sig);
-                    /// @todo TODO: implement proper log and discard following shell print
-                    std::cerr << std::endl;
-					std::cerr << "   · Computed estimate: "
-							  << ci_ptr->point_estimate() << std::endl;
-					std::cerr << "   · 90% confidence interval: [ "
-							  << ci_ptr->lower_limit(0.90) << " , "
-							  << ci_ptr->upper_limit(0.90) << " ] " << std::endl;
-					std::cerr << "   · 95% confidence interval: [ "
-							  << ci_ptr->lower_limit(0.95) << " , "
-							  << ci_ptr->upper_limit(0.95) << " ] " << std::endl;
-					std::cerr << "   · 99% confidence interval: [ "
-							  << ci_ptr->lower_limit(0.99) << " , "
-                              << ci_ptr->upper_limit(0.99) << " ] " << std::endl;
+                    assert(SIGALRM == sig);
+                    interrupt_print(*ci_ptr, ModelSuite::confCoToShow_);
 					ci_ptr->reset();
 					timedout = true;
-//					log_(*ci_ptr,
-//					     wallTimeInSeconds,
-//					     engine.name(),
-//					     engine.current_ifun());
 				}
 			);
 			timedout = false;
@@ -603,6 +638,7 @@ ModelSuite::estimate(const Property& property,
 							min_batch_size(engine.name(), engine.current_imp_fun()),
 							*ci_ptr);
 		}
+        interruptCI_ = nullptr;
 
 	} else {
 
@@ -612,7 +648,8 @@ ModelSuite::estimate(const Property& property,
 			auto ci_ptr = build_empty_confidence_interval(property,
 														  std::get<0>(criterion),
 														  std::get<1>(criterion),
-														  std::get<2>(criterion));
+                                                          std::get<2>(criterion));
+            interruptCI_ = ci_ptr.get();  // bad boy
 			/// @todo TODO: implement proper log and discard following shell print
 			std::cerr << "   Requested precision  "
 					  << ((ci_ptr->percent ? 200  : 2) * ci_ptr->errorMargin)
@@ -646,7 +683,8 @@ ModelSuite::estimate(const Property& property,
 //				 engine.name(),
 //				 engine.current_ifun());
         }
-	}
+        interruptCI_ = nullptr;
+    }
 }
 
 } // namespace fig

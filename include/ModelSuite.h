@@ -57,6 +57,7 @@ namespace fig
 class Property;
 class ThresholdsBuilder;
 class StoppingConditions;
+class SignalSetter;
 
 /**
  * @brief One class to bring them all, and in the FIG tool bind them.
@@ -89,7 +90,7 @@ class ModelSuite
 	
 	/// Confidence criteria or time budgets bounding simulations
 	static StoppingConditions simulationBounds;
-	
+
 	/// Importance functions available
 	static std::unordered_map<
 		std::string,
@@ -108,7 +109,23 @@ class ModelSuite
 //	/// Log
 //	static WTF? log_;
 
-	/// Single existent instance of the class (singleton design pattern)
+	// Interruptions handling
+
+	/// Signal handler for when we're interrupted (e.g. ^C) mid-estimation
+	static SignalSetter SIGINThandler_;
+
+	/// Signal handler for when we're terminated (e.g. kill) mid-estimation
+	static SignalSetter SIGTERMhandler_;
+
+	/// ConfidenceInterval to show currently reached estimation if interrupted
+	static const ConfidenceInterval* interruptCI_;
+
+	/// Practical confidence coefficients to show if interrupted
+	static const std::vector< float > confCoToShow_;
+
+	// Singleton design-pattern specifics
+
+	/// Single existent instance of the class
 	static std::unique_ptr< ModelSuite > instance_;
 
 	/// Single instance thread safety
