@@ -56,6 +56,13 @@ SimulationEngineRestart::SimulationEngineRestart(
 { /* Not much to do around here */ }
 
 
+unsigned
+SimulationEngineRestart::splits_per_threshold() const noexcept
+{
+	return splitsPerThreshold_;
+}
+
+
 void
 SimulationEngineRestart::bind(std::shared_ptr< const ImportanceFunction > ifun_ptr)
 {
@@ -88,12 +95,22 @@ SimulationEngineRestart::set_die_out_depth(unsigned dieOutDepth)
 
 
 double
+SimulationEngineRestart::log_experiments_per_sim() const
+{
+	if (!bound())
+		throw_FigException("engine isn't bound to any importance function");
+	// log( splitsPerThreshold ^ numThresholds )
+	return impFun_->num_thresholds() * std::log(splitsPerThreshold_);
+}
+
+
+double
 SimulationEngineRestart::transient_simulations(const PropertyTransient& property,
 											   const size_t& numRuns) const
 {
 	assert(0u < numRuns);
 	unsigned numThresholds(impFun_->num_thresholds());
-	std::valarray<long> rareEventsCount(numThresholds, 0l);
+	std::valarray<long> rareEventsCount(numThresholds+1, 0l);
 	std::stack< Reference< Traial > > stack;
 	auto tpool = TraialPool::get_instance();
 
@@ -145,20 +162,24 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			}
 		}
 	}
-	double estimate(0.0);
 	assert(0l <= rareEventsCount.sum());
 
-	// To estimate, weigh counts by their threshold level's relative importance
-	for (unsigned i = 0u ; i < numThresholds ; i++)
-		estimate += rareEventsCount[i] * std::pow(splitsPerThreshold_, numThresholds-i-1u);
-	assert(estimate >= 0.0);
+	// To estimate, weigh each count by the relative importance
+	// of the threshold level it belongs to.
+	// This upscale must be balanced in the ConfidenceInterval update.
+	double weighedRaresCount(0.0);
+	for (unsigned i = 0u ; i <= numThresholds ; i++)
+		weighedRaresCount += rareEventsCount[i]
+							  * std::pow(splitsPerThreshold_, numThresholds-i);
+	assert(0.0 <= weighedRaresCount);
 	if (ModelSuite::MIN_COUNT_RARE_EVENTS > rareEventsCount.sum()) {
 		/// @todo TODO proper log in technical log
-		std::cerr << "Too few rare events generated (" << rareEventsCount.sum() << ")\n";
-		estimate *= -1.0;
+		std::cerr << "Too few rare events generated (" << rareEventsCount.sum()
+				  << ") in " << numRuns << " simulations\n";
+		weighedRaresCount *= -1.0;
 	}
 
-	return estimate;
+	return weighedRaresCount;
 }
 
 } // namespace fig

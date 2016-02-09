@@ -57,9 +57,7 @@ class PropertyTransient;
  */
 class SimulationEngineRestart : public SimulationEngine
 {
-	/// 1 + Number of replicas made of a Traial when it crosses
-	/// an importance threshold upwards (i.e. gaining on importance)
-	/// @see ThresholdsBuilder
+	/// @copydoc SimulationEngine::splits_per_threshold()
 	unsigned splitsPerThreshold_;
 
 	/// Number of importance thresholds a simulation run must cross downwards
@@ -75,12 +73,10 @@ public:  // Ctor
 
 public:  // Accessors
 
-	/// @copydoc splitsPerThreshold_
-	inline const unsigned& get_splits_per_threshold() const noexcept
-		{ return splitsPerThreshold_; }
+	virtual unsigned splits_per_threshold() const noexcept;
 
 	/// @copydoc dieOutDepth_
-	inline const unsigned& get_die_out_depth() const noexcept
+	inline const unsigned& die_out_depth() const noexcept
 		{ return dieOutDepth_; }
 
 public:  // Engine setup
@@ -96,6 +92,8 @@ public:  // Engine setup
 	void set_die_out_depth(unsigned dieOutDepth);
 
 protected:  // Simulation helper functions
+
+	virtual double log_experiments_per_sim() const;
 
 	virtual double transient_simulations(const PropertyTransient& property,
 										 const size_t& numRuns) const;

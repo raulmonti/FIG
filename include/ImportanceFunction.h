@@ -151,12 +151,12 @@ public:  // Accessors
 
 	/// @copydoc maxImportance_
 	/// @returns Zero if function doesn't has_importance_info(),
-	///          last maximum assessed importance otherwise
+	///          last maximum ImportanceValue assessed importance (or threshold level) otherwise
 	ImportanceValue max_importance() const noexcept;
 
 	/// @copydoc minRareImportance_
 	/// @returns Zero if function doesn't has_importance_info(),
-	///          minimum ImportanceValue of a rare state otherwise
+	///          minimum ImportanceValue (or threshold level) of a rare state otherwise
 	ImportanceValue min_rare_importance() const noexcept;
 
 	/// Whether this instance stores importance values for the concrete state

@@ -27,6 +27,9 @@
 //==============================================================================
 
 
+// C
+#include <cmath>  // std::log
+// FIG
 #include <core_typedefs.h>
 #include <SimulationEngineNosplit.h>
 #include <StoppingConditions.h>
@@ -47,12 +50,28 @@ SimulationEngineNosplit::SimulationEngineNosplit(
 { /* Not much to do around here */ }
 
 
+unsigned
+SimulationEngineNosplit::splits_per_threshold() const noexcept
+{
+	return 1u;
+}
+
+
+double
+SimulationEngineNosplit::log_experiments_per_sim() const
+{
+	if (!bound())
+		throw_FigException("engine isn't bound to any importance function");
+	return std::log(1.0);
+}
+
+
 double
 SimulationEngineNosplit::transient_simulations(const PropertyTransient& property,
                                                const size_t& numRuns) const
 {
     assert(0u < numRuns);
-    long numSuccesses(0);
+	long raresCount(0);
     Traial& traial = TraialPool::get_instance().get_traial();
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
@@ -67,15 +86,15 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
     for (size_t i = 0u ; i < numRuns ; i++) {
         traial.initialize(*network_, *impFun_);
         Event e = network_->simulation_step(traial, property, *this, watch_events);
-        numSuccesses += IS_RARE_EVENT(e) ? 1l : 0l;
+		raresCount += IS_RARE_EVENT(e) ? 1l : 0l;
     }
     TraialPool::get_instance().return_traial(std::move(traial));
 
     // Return estimate or its negative value
-    if (numSuccesses < ModelSuite::MIN_COUNT_RARE_EVENTS)
-        return -static_cast<double>(numSuccesses) / numRuns;
+	if (raresCount < ModelSuite::MIN_COUNT_RARE_EVENTS)
+		return -static_cast<double>(raresCount);
     else
-        return  static_cast<double>(numSuccesses) / numRuns;
+		return  static_cast<double>(raresCount);
 }
 
 } // namespace fig

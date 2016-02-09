@@ -78,8 +78,7 @@ public:  // Modifyers
 	 * @throw FigException if detected possible overflow
 	 * @see update(const double&)
 	 */
-	inline virtual void update(const double& newMeans, const double&)
-		{ update(newMeans); }
+	inline virtual void update(const double& newMeans, const double&) { update(newMeans); }
 
 public:  // Utils
 

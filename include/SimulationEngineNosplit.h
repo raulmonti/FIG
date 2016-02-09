@@ -58,11 +58,17 @@ public:  // Ctor
 	/// Data ctor
 	SimulationEngineNosplit(std::shared_ptr<const ModuleNetwork> network);
 
+public:  // Accessors
+
+	virtual unsigned splits_per_threshold() const noexcept;
+
 public:  // Engine setup
 
 //	virtual void bind(...);  // We can hook up with any, no check needed
 
 protected:  // Simulation helper functions
+
+	virtual double log_experiments_per_sim() const;
 
 	virtual double transient_simulations(const PropertyTransient& property,
 										 const size_t& numRuns) const;

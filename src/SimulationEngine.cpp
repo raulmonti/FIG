@@ -146,26 +146,29 @@ SimulationEngine::current_imp_strat() const noexcept
 }
 
 
-double
+bool
 SimulationEngine::simulate(const Property &property,
-						   const size_t& numRuns) const
+						   const size_t& numRuns,
+						   ConfidenceInterval& interval) const
 {
-	assert(numRuns > 0u);
-	double result(0.0);
-
+	assert(0ul < numRuns);
 	if (!bound())
-#ifndef NDEBUG
 		throw_FigException("engine isn't bound to any importance function");
-#else
-		return -1.0;
-#endif
 
 	switch (property.type) {
 
 	case PropertyType::TRANSIENT: {
-		result = transient_simulations(dynamic_cast<const PropertyTransient&>(property),
-                                       numRuns);
-		} break;
+		double raresCount =
+			transient_simulations(dynamic_cast<const PropertyTransient&>(property),
+								  numRuns);
+		// numExperiments = batchSize * splitsPerThreshold ^ numThresholds
+		interval.update(std::abs(raresCount),
+						std::log(numRuns) + log_experiments_per_sim());
+		if (0.0 <= raresCount)
+			return false;
+		else
+			return true;  // please increase 'numRuns'
+		}
 
 	case PropertyType::THROUGHPUT:
 	case PropertyType::RATE:
@@ -173,42 +176,49 @@ SimulationEngine::simulate(const Property &property,
 	case PropertyType::BOUNDED_REACHABILITY:
 		throw_FigException(std::string("property type isn't supported by ")
 						   .append(name_).append(" simulation yet"));
-		break;
+		return false;
 
 	default:
 		throw_FigException("invalid property type");
-		break;
+		return false;
 	}
-
-	return result;
 }
 
 
 void
 SimulationEngine::simulate(const Property& property,
-						   const size_t& batchSize,
-						   ConfidenceInterval& interval) const
+						   size_t batchSize,
+						   ConfidenceInterval& interval,
+						   void (*batch_inc)(size_t&, ConstStr&, ConstStr&)) const
 {
+	assert(0ul < batchSize);
 	if (!bound())
-#ifndef NDEBUG
 		throw_FigException("engine isn't bound to any importance function");
-#else
-		return -1.0;
-#endif
 
 	switch (property.type) {
 
-	case PropertyType::TRANSIENT: {
+	case PropertyType::TRANSIENT:
 		assert (!interrupted);
 		while (!interrupted) {
-            std::cerr << "+";
-            double newEstimate =
+			double raresCount =
 				transient_simulations(dynamic_cast<const PropertyTransient&>(property),
                                       batchSize);
-			if (!interrupted)
-                interval.update(std::abs(newEstimate));
+			if (!interrupted) {
+				// numExperiments = batchSize * splitsPerThreshold ^ numThresholds
+				interval.update(std::abs(raresCount),
+								std::log(batchSize) + log_experiments_per_sim());
+				if (0.0 >= raresCount) {
+					std::cerr << "-";
+					if (nullptr != batch_inc)
+						batch_inc(batchSize, name_, impFun_->name());
+					else
+						batchSize *= 2;  // you left us with no other option
+				} else {
+					std::cerr << "+";
+				}
+			}
 		}
-        } break;
+		break;
 
 	case PropertyType::THROUGHPUT:
 	case PropertyType::RATE:

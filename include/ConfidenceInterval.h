@@ -72,8 +72,8 @@ protected:  // Attributes: estimation thus far
 
 protected:  // Attributes: estimation correction factors
 
-	/// Minimum number of observed rare events
-	/// required to consider a simulation as succesfull
+	/// Min # of samples needed to cover this interval's theoretical hypothesis
+	/// @see min_samples_covered()
 	double statOversample_;
 
 	/// Calibration of the relative weight of simulation runs
@@ -110,36 +110,37 @@ public:  // Accessors
 public:  // Modifyers
 
 	/// Increase the statistical oversampling factor for event counting.
-	/// @note Typically needed when rare events can occur at any importance level
+	/// @note Typically needed when rare events can occur in any threshold level
 	/// @see statistical_oversampling()
 	void set_statistical_oversampling(const double& statOversamp);
 
 	/// Set the variance correction factor for interval precision computation.
-	/// @note Typically needed when rare events can occur at any importance level
+	/// @note Typically needed when rare events can occur in any threshold level
 	/// @see variance_correction()
 	void set_variance_correction(const double& varCorrection);
 
 	/**
 	 * @brief Update current estimation with a new sample value.
-	 * @param newEstimate New value estimated for the property under study
+	 * @param newSample Result obtained from the last simulation experiment
 	 * @note Considered as one single new value fed into the estimation,
 	 *       i.e. only one experiment was ran to come up with 'newEstimate'
 	 * @throw FigException if detected possible overflow
 	 * @see update(const double&, const double&)
 	 */
-	virtual void update(const double& newEstimate) = 0;
+	virtual void update(const double& newSample) = 0;
 
 	/**
 	 * @brief Update current estimation with several new sample values.
-	 * @param newEstimates Condensation of the property's estimated values
-	 *                     resulting from several experiments
-	 * @param logNumNewEstimates Natural logarithm of the # of experiments ran
+	 * @param newSamples Condensation of the results obtained from several
+	 *                   simulation experiments ran.
+	 * @param logNumNewExperiments Natural logarithm of the (virtual) number
+	 *                             of experiments ran
 	 * @note The logarithm is used to avoid commonplace overflows
 	 * @throw FigException if detected possible overflow
 	 * @see update(const double&)
 	 */
-	virtual void update(const double& newEstimates,
-						const double& logNumNewEstimates) = 0;
+	virtual void update(const double& newSamples,
+						const double& logNumNewExperiments) = 0;
 
 public:  // Utils
 
@@ -166,7 +167,7 @@ public:  // Utils
 	 * result will depend on wether the desired precision has been reached.
 	 *
 	 * @return Whether the desired precision has been reached for the
-	 *         confidence coefficient requested
+	 *         confidence coefficient passed on creation
 	 *
 	 * @see min_samples_covered()
 	 */

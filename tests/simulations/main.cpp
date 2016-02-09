@@ -201,7 +201,7 @@ int main()
 	const std::string ifunName = "concrete_coupled";
 	const std::string ifunStrategy = "auto";
 	const std::string thrTechnique = "ams";
-	const std::string engineName = "nosplit";
+	const std::string engineName = "restart";
 	model.seal(initialClocks);
 	std::cout << "Building an  importance function" << std::endl;
 	model.build_importance_function(ifunName, ifunStrategy, *property_ptr);
@@ -210,28 +210,22 @@ int main()
 	std::cout << "Building a   simulation engine" << std::endl;
 	auto engine_ptr = model.prepare_simulation_engine(engineName, ifunName);
 	assert(engine_ptr->bound());
-	std::cout << "Building the simulation bounds" << std::endl;
+	std::cout << "Building the simulation bounds\n" << std::endl;
 	fig::StoppingConditions stop_by_value;
-	stop_by_value.add_confidence_criterion(0.5, 1.0, true);
+	stop_by_value.add_confidence_criterion(0.8, 0.1, true);
 	assert(stop_by_value.is_confidence_criteria());
 	fig::StoppingConditions stop_by_time;
-	stop_by_time.add_time_budget(10ul);
+	stop_by_time.add_time_budget(6ul);
 	assert(stop_by_time.is_time_budgets());
 	
-	// Simulation
-	std::cout << "\nSingle, warm up simulation... "; std::cout.flush();
-	double estimate = engine_ptr->simulate(*property_ptr, 1u);
-	std::cout << "resulted in the estimate " << estimate << std::endl;
-	std::cout << "Second single simulation... "; std::cout.flush();
-	estimate = engine_ptr->simulate(*property_ptr, 1u);
-	std::cout << "resulted in the estimate " << estimate << std::endl;
-	std::cout << "\nSimulating for fixed time span" << std::endl;
+	// Simulations
+	std::cout << "Simulating for fixed time span" << std::endl;
 	model.estimate(*property_ptr, *engine_ptr, stop_by_time);
-	std::cout << "\nSimulating until desired accuracy is reached" << std::endl;
+	std::cout << "Simulating until desired accuracy is reached" << std::endl;
 	model.estimate(*property_ptr, *engine_ptr, stop_by_value);
 
 	// Cleanup
-	std::cout << "Releasing resources" << std::endl;
+	std::cout << "\nReleasing resources" << std::endl;
 	model.release_resources(ifunName, engineName);
 
 	return 0;

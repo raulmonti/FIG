@@ -42,6 +42,7 @@
 #include <string>
 // C
 #include <unistd.h>  // alarm(), exit()
+#include <cmath>     // std::pow()
 #include <omp.h>     // omp_get_wtime()
 // FIG
 #include <ModelSuite.h>
@@ -74,13 +75,15 @@ namespace
  * @brief Build a ConfidenceInterval of the required type
  *
  *        Each PropertyType must be estimated using a special kind of
- *        ConfidenceInterval. This helper function returns a new (i.e. without
- *        estimation data) interval of the correct kind for the property,
- *        and also with the specified confidence criterion.
- *        If such confidence criteria isn't specified then a "time simulation"
- *        is assumed and the interval is built with the tightest constraints.
+ *        ConfidenceInterval. The nature of the \ref fig::ImportanceFunction
+ *        "importance function" also affects internal scalings.
+ *        This helper function returns a new (i.e. without estimation data)
+ *        interval of the correct kind for the property, and also with the
+ *        proper internal adjustments and specified confidence criterion.
  *
- * @param property         Property whose value is being estimated
+ * @param propertyType     Type of the property whose value is being estimated
+ * @param splitsPerThreshold @copydoc fig::SimulationEngine::splits_per_threshold()
+ * @param impFun           fig::ImportanceFunction to use for estimations
  * @param confidenceCo     Interval's confidence coefficient ∈ (0.0, 1.0)
  * @param precision        Interval's desired full width > 0.0
  * @param dynamicPrecision Is the precision a percentage of the estimate?
@@ -88,37 +91,47 @@ namespace
  *
  * @return Fresh ConfidenceInterval tailored for the given property
  *
- * @throw FigException unrecognized property type or hint
+ * @note If no confidence criteria is passed then a "time simulation"
+ *       is assumed and the interval is built with the tightest constraints.
+ *
+ * @throw FigException if property type or hint isn't valid
  */
 std::unique_ptr< fig::ConfidenceInterval >
 build_empty_confidence_interval(
-    const fig::Property& property,
+	const fig::PropertyType& propertyType,
+	const unsigned& splitsPerThreshold,
+	const fig::ImportanceFunction& impFun,
 	const double& confidenceCo = 0.99999,
 	const double& precision = 0.00001,
 	const bool& dynamicPrecision = true,
     const std::string& hint = "")
 {
-    switch (property.type) {
-    case fig::PropertyType::TRANSIENT:
-        if (hint.empty())  // default to most precise
-            return std::unique_ptr< fig::ConfidenceInterval >(
-					new fig::ConfidenceIntervalWilson(confidenceCo,
-													  precision,
-													  dynamicPrecision));
-        else if ("wilson" == hint)
-            return std::unique_ptr< fig::ConfidenceInterval >(
-					new fig::ConfidenceIntervalWilson(confidenceCo,
-													  precision,
-													  dynamicPrecision));
+	std::unique_ptr< fig::ConfidenceInterval > ci_ptr(nullptr);
+
+	switch (propertyType) {
+	case fig::PropertyType::TRANSIENT: {
+		if (hint.empty()  // default to most precise
+			|| "wilson" == hint)
+			ci_ptr.reset(new fig::ConfidenceIntervalWilson(confidenceCo,
+														   precision,
+														   dynamicPrecision));
         else if ("proportion" == hint)
-            return std::unique_ptr< fig::ConfidenceInterval >(
-					new fig::ConfidenceIntervalProportion(confidenceCo,
-														  precision,
-														  dynamicPrecision));
+			ci_ptr.reset(new fig::ConfidenceIntervalProportion(confidenceCo,
+															   precision,
+															   dynamicPrecision));
         else
-			throw_FigException(std::string("unrecognized hint \"").
-							   append(hint).append("\""));
-		break;
+			throw_FigException(std::string("invalid CI hint \"").append(hint)
+							   .append("\" for transient property"));
+		// The statistical oversampling incurred here is bounded:
+		//  · from below by splitsPerThreshold ^ minRareImportance,
+		//  · from above by splitsPerThreshold ^ numThresholds.
+		double minStatOversamp = std::pow(splitsPerThreshold,
+										  impFun.min_rare_importance());
+		double maxStatOversamp = std::pow(splitsPerThreshold,
+										  impFun.num_thresholds());
+		ci_ptr->set_statistical_oversampling(maxStatOversamp);
+		ci_ptr->set_variance_correction(minStatOversamp/maxStatOversamp);
+		} break;
 
     case fig::PropertyType::THROUGHPUT:
     case fig::PropertyType::RATE:
@@ -131,11 +144,8 @@ build_empty_confidence_interval(
         throw_FigException("unrecognized property type");
         break;
     }
-    // Following only to avoid warnings :(
-	return std::unique_ptr< fig::ConfidenceInterval >(
-			   new fig::ConfidenceIntervalMean(confidenceCo,
-											   precision,
-											   dynamicPrecision));
+
+	return ci_ptr;
 }
 
 
@@ -560,12 +570,12 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
 {
 	if (!exists_simulator(engineName))
 		throw_FigException(std::string("inexistent simulation engine \"")
-						   .append(engineName).append("\" Call \"available_")
+						   .append(engineName).append("\". Call \"available_")
 						   .append("simulators()\" for a list of ")
 						   .append("available options."));
 	if (!exists_importance_function(ifunName))
 		throw_FigException(std::string("inexistent importance function \"")
-						   .append(ifunName).append("\" Call \"available_")
+						   .append(ifunName).append("\". Call \"available_")
 						   .append("importance_functions()\" for a list of ")
 						   .append("available options."));
 
@@ -617,9 +627,12 @@ ModelSuite::estimate(const Property& property,
 	if (bounds.is_time()) {
 
 		// Simulation bounds are wall clock time limits
-//		log_.time_estimation(engine);
+//		log_.setfor_time_estimation();
 		bool& timedout = engine.interrupted;
-		auto ci_ptr = build_empty_confidence_interval(property);
+		auto ci_ptr = build_empty_confidence_interval(
+						  property.type,
+						  engine.splits_per_threshold(),
+						  *impFuns[engine.current_imp_fun()]);
         interruptCI_ = ci_ptr.get();  // bad boy
         for (const unsigned long& wallTimeInSeconds: bounds.time_budgets()) {
 			/// @todo TODO: implement proper log and discard following shell print
@@ -636,19 +649,23 @@ ModelSuite::estimate(const Property& property,
 			alarm(wallTimeInSeconds);
 			engine.simulate(property,
 							min_batch_size(engine.name(), engine.current_imp_fun()),
-							*ci_ptr);
+							*ci_ptr,
+							&increase_batch_size);
 		}
         interruptCI_ = nullptr;
 
 	} else {
 
 		// Simulation bounds are confidence criteria
-//		log.value_estimation(engine);
+//		log.setfor_value_estimation();
         for (const auto& criterion: bounds.confidence_criteria()) {
-			auto ci_ptr = build_empty_confidence_interval(property,
-														  std::get<0>(criterion),
-														  std::get<1>(criterion),
-                                                          std::get<2>(criterion));
+			auto ci_ptr = build_empty_confidence_interval(
+							  property.type,
+							  engine.splits_per_threshold(),
+							  *impFuns[engine.current_imp_fun()],
+							  std::get<0>(criterion),
+							  std::get<1>(criterion),
+							  std::get<2>(criterion));
             interruptCI_ = ci_ptr.get();  // bad boy
 			/// @todo TODO: implement proper log and discard following shell print
 			std::cerr << "   Requested precision  "
@@ -658,17 +675,17 @@ ModelSuite::estimate(const Property& property,
 					  << "%" << std::endl;
 			size_t numRuns = min_batch_size(engine.name(), engine.current_imp_fun());
 			double startTime = omp_get_wtime();
-            do {
-				double estimate = engine.simulate(property, numRuns);
-                if (0.0 >= estimate) {
-                    ci_ptr->update(-estimate);
-                    std::cerr << "-";
-                    increase_batch_size(numRuns, engine.name(), engine.current_imp_fun());
-                } else {
-                    ci_ptr->update(estimate);
-                    std::cerr << "+";
-                }
+
+			do {
+				bool increaseBatch = engine.simulate(property, numRuns, *ci_ptr);
+				if (increaseBatch) {
+					std::cerr << "-";
+					increase_batch_size(numRuns, engine.name(), engine.current_imp_fun());
+				} else {
+					std::cerr << "+";
+				}
 			} while (!ci_ptr->is_valid());
+
 			/// @todo TODO: implement proper log and discard following shell print
 			std::cerr << std::endl;
 			std::cerr << "   · Computed estimate: " << ci_ptr->point_estimate() << std::endl;

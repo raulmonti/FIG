@@ -132,9 +132,9 @@ unsigned
 ImportanceFunction::num_thresholds() const
 {
     if (!ready())
-        throw_FigException("this ImportanceFunction didn't have "
-                           "the thresholds built in it yet");
-    return maxImportance_ + 1u;
+		throw_FigException("this ImportanceFunction hasn't "
+						   "any thresholds built in it yet");
+	return maxImportance_;
 }
 
 

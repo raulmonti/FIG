@@ -60,6 +60,8 @@ class SimulationEngine
 {
     friend class ModelSuite;  // for interruptions signaling
 
+    typedef const std::string ConstStr;
+
 public:
 
 	/// Names of the simulation engines offered to the user,
@@ -141,13 +143,18 @@ public:  // Accessors
     /// @copydoc name_
     const std::string& name() const noexcept;
 
-    /// Importance function currently bound to the engine,
+    /// Name of the ImportanceFunction currently bound to the engine,
     /// or void string if none is.
     const std::string current_imp_fun() const noexcept;
 
     /// Importance strategy of the function currently bound to the engine,
     /// or void string if none is.
     const std::string current_imp_strat() const noexcept;
+
+	/// 1 + Number of replicas made of a Traial when it crosses
+	/// an importance threshold upwards (i.e. gaining on importance)
+	/// @see ThresholdsBuilder
+	virtual unsigned splits_per_threshold() const noexcept = 0;
 
 public:  // Simulation functions
 
@@ -160,15 +167,16 @@ public:  // Simulation functions
      *
      * @param property Property whose value is being estimated
      * @param numRuns  Number of indepdendent runs to perform
+     * @param interval ConfidenceInterval updated with estimation info <b>(modified)</b>
      *
-     * @return Estimated value for the property at the end of this simulation,
-     *         or negative value if something went wrong.
+     * @return Whether 'numRuns' wasn't large enough and ought to be increased
      *
      * @throw FigException if the engine wasn't \ref bound() "bound" to any
      *                     ImportanceFunction
      */
-    double simulate(const Property& property,
-                    const size_t& numRuns = 1) const;
+    bool simulate(const Property& property,
+                  const size_t& numRuns,
+                  ConfidenceInterval& interval) const;
 
     /**
      * @brief Simulate in model until externally interrupted
@@ -180,15 +188,23 @@ public:  // Simulation functions
      * @param property  Property whose value is being estimated
      * @param batchSize Number of consecutive simulations for each interval update
      * @param interval  ConfidenceInterval regularly updated with estimation info <b>(modified)</b>
+     * @param batch_inc Function to increment 'batchSize' in case simulations
+     *                  aren't yielding useful results due to its length
      *
      * @throw FigException if the engine wasn't \ref bound() "bound" to any
      *                     ImportanceFunction
      */
     void simulate(const Property& property,
-                  const size_t& batchSize,
-                  ConfidenceInterval& interval) const;
+                  size_t batchSize,
+                  ConfidenceInterval& interval,
+                  void (*batch_inc)(size_t&, ConstStr&, ConstStr&)) const;
 
 protected:  // Simulation helper functions
+
+	/// Logarithm of the number of experiments virtually performed
+	/// on each internal iteration of a simulate() function
+	/// @throw FigException if the engine wasn't bound() to an ImportanceFunction
+	virtual double log_experiments_per_sim() const = 0;
 
 	/**
      * @brief Run several independent transient-like simulations
@@ -200,9 +216,8 @@ protected:  // Simulation helper functions
      * @param property PropertyTransient with events of interest (goal & stop)
 	 * @param numRuns  Amount of successive independent simulations to run
      *
-     * @return Estimation of the Prob( !stop U goal ),
-     *         or its negative value if less than
-     *         ModelSuite::MIN_COUNT_RARE_EVENTS rare events were observed.
+     * @return Number of 'goal' events observed, or its negative value
+     *         if less than ModelSuite::MIN_COUNT_RARE_EVENTS were observed.
      *
      * @see PropertyTransient
 	 */
