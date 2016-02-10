@@ -173,8 +173,8 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 //	FIXME: following compiles with Clang but not with gcc -- keep checking
 //	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
 	static const size_t batch_sizes[2][1] = {
-		{ 1u<<10 /*, 1u<<8 */ },  // nosplit x {concrete_coupled, concrete_split}
-		{ 1u<<7  /*, 1u<<5 */ }   // restart x {concrete_coupled, concrete_split}
+		{ 1u<<11 /*, 1u<<8 */ },  // nosplit x {concrete_coupled, concrete_split}
+		{ 1u<<9  /*, 1u<<5 */ }   // restart x {concrete_coupled, concrete_split}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);

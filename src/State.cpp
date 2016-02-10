@@ -183,8 +183,13 @@ template< typename T_ >
 void
 State<T_>::copy_from_state_instance(const StateInstance &s, bool checkValidity)
 {
-	if (s.size() != size())
+	if (s.size() != size()) {
+#ifndef NDEBUG
+		std::cerr << "State of size " << size() << " attempted to copy from "
+				  << "StateInstance with " << s.size() << " variables.\n";
+#endif
 		throw_FigException("attempted to copy values from an invalid state");
+	}
 	if (checkValidity) {
 		for (size_t i = 0u ; i < size() ; i++)
 			pvars_[i]->assign(s[i]);

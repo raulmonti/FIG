@@ -54,7 +54,7 @@ namespace fig
 
 Traial::Traial(const size_t& stateSize, const size_t& numClocks) :
 	importance(0),
-	creationImportance(0),
+	depth(0),
 	lifeTime(0.0),
 	state(stateSize),
 	orderedIndex_(numClocks)
@@ -72,13 +72,12 @@ Traial::Traial(const size_t& stateSize,
 			   Bitflag whichClocks,
 			   bool orderTimeouts) :
 	importance(0),
-	creationImportance(0),
+	depth(0),
 	lifeTime(0.0),
 	state(stateSize),
 	orderedIndex_(numClocks)
 {
 	size_t i(0u);
-//	std::function<bool(const size_t&)> must_reset =
 	auto must_reset =
 		[&] (const size_t& i) -> bool
 		{ return whichClocks & (static_cast<Bitflag>(1u) << i); };
@@ -103,7 +102,7 @@ Traial::Traial(const size_t& stateSize,
 			   const Container <ValueType, OtherContainerArgs...>& whichClocks,
 			   bool orderTimeouts) :
 	importance(static_cast<ImportanceValue>(0u)),
-	creationImportance(static_cast<ImportanceValue>(0u)),
+	depth(0),
 	lifeTime(static_cast<CLOCK_INTERNAL_TYPE>(0.0)),
 	state(stateSize),
 	orderedIndex_(numClocks)
@@ -144,6 +143,16 @@ Traial::~Traial()
 }
 
 
+std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >
+Traial::clocks_values() const
+{
+	std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >values(clocks_.size());
+	for (size_t i = 0ul ; i < values.size() ; i++)
+		values[i] = std::make_pair(clocks_[i].name, clocks_[i].value);
+	return values;
+}
+
+
 void
 Traial::initialize(const ModuleNetwork& network,
 				   const ImportanceFunction& impFun)
@@ -155,7 +164,7 @@ Traial::initialize(const ModuleNetwork& network,
 		return;  // we can't do anything without the global data
 #endif
 	// Initialize variables value
-	network.gState.copy_to_state_instance(state);
+	network.global_state().copy_to_state_instance(state);
     // Initialize clocks (reset all and then resample any initial clock)
     for (auto& timeout : clocks_)
         timeout.value = 0.0f;
@@ -163,7 +172,7 @@ Traial::initialize(const ModuleNetwork& network,
 		clocks_[pos_clk_pair.first].value = pos_clk_pair.second.sample();
 	// Initialize importance and simulation time
     importance = UNMASK(impFun.importance_of(state));
-	creationImportance = importance;
+	depth = 0;
 	lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
 }
 

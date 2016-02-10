@@ -31,12 +31,12 @@
 #define TRAIAL_H
 
 // C++
+#include <string>
 #include <vector>
 #include <memory>     // std::shared_ptr<>
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // std::swap(), std::find()
-#include <utility>    // std::move()
-#include <numeric>    // std::iota()
+#include <utility>    // std::move(), std::pair<>
 // FIG
 #include <core_typedefs.h>
 #include <State.h>
@@ -95,8 +95,8 @@ public:  // Attributes
 	/// Importance/Threshold level where the Traial currently is
 	ImportanceValue importance;
 
-	/// Importance/Threshold level where the Traial was born
-	ImportanceValue creationImportance;
+	/// How far down the current importance is w.r.t. the creation importance
+	short depth;
 
 	/// Time span this Traial has been running around the system model
 	CLOCK_INTERNAL_TYPE lifeTime;
@@ -170,6 +170,12 @@ public:  // Ctors/Dtor: TraialPool should be the only to create Traials
 	Traial& operator=(Traial&&) = default;
 
 	~Traial();
+
+public:  // Accessors
+
+	/// Get the current time values of the clocks (attached to their names)
+	std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >
+	clocks_values() const;
 
 public:  // Utils
 

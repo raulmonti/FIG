@@ -145,33 +145,31 @@ public:  // Access to resources (viz Traials)
      * @param cont       Container where traials are to be stored
      * @param numTraials Number of \ref Traial "traials" requested
      *
-     * @note <b>Complexity:</b> <i>O(numTraials)</i> if free resources are
-     *       available, <i>O(max(numTraials,sizeIncrement_))</i>
+     * @note <b>Complexity:</b> <i>O(numTraials)</i> if enough free resources
+     *       are available, <i>O(max(numTraials,sizeChunkIncrement_))</i>
      *       if new resources need to be allocated.
      */
     template< template< typename... > class Container,
               typename... OtherArgs >
     void get_traials(Container< Reference<Traial>, OtherArgs...>& cont,
-                     const unsigned& numTraials);
+                     unsigned numTraials);
 
 	/**
-     * Obtain specified amount of copies of given Traial instance
+	 * Obtain specified amount of copies of given Traial instance with 0 depth
      *
      * @param cont      Container where Traial copies are to be stored
      * @param traial    Traial instance whose internals will be copied
-     * @param creationImportance Creation importance to assign to the copies
      * @param numCopies Number of \ref Traial "traials" requested
      *
-     * @note <b>Complexity:</b> <i>O(numCopies)</i> if free resources are
-     *       available, <i>O(max(numCopies,sizeIncrement_))</i>
+     * @note <b>Complexity:</b> <i>O(numCopies)</i> if enough free resources
+     *       are available, <i>O(max(numCopies,sizeChunkIncrement_))</i>
      *       if new resources need to be allocated.
      */
 	template< template< typename... > class Container,
 			  typename... OtherArgs >
     void get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
                            const Traial& traial,
-                           const ImportanceValue& creationImportance,
-                           const unsigned& numCopies);
+                           unsigned numCopies);
 
 	/**
 	 * @brief Give back a bunch of \ref Traial "traials" to the pool
@@ -187,7 +185,7 @@ public:  // Utils
 
 	/// Make sure at least 'requiredResources' \ref Traial "traials" are
 	/// available, without the need for in-between allocations when requested.
-	/// @note <b>Complexity:</b> <i>O(requiredResources)</i>
+	/// @note <b>Complexity:</b> <i>O(max(requiredResources,num_resources()))</i>
 	void ensure_resources(const size_t& requiredResources);
 
 	/// How many \ref Traial "traials" are currently available?

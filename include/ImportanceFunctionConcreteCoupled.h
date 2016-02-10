@@ -109,6 +109,8 @@ public:  // Utils
 			return UNMASK(info_of(state));
 		}
 
+	virtual void print_out(std::ostream& out) const;
+
 	virtual void clear() noexcept;
 };
 

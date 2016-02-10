@@ -122,43 +122,55 @@ template< template< typename... > class Container,
 		  typename... OtherArgs >
 void
 TraialPool::get_traials(Container<Reference<Traial>, OtherArgs...>& cont,
-						const unsigned& numTraials)
+						unsigned numTraials)
 {
-	assert(sizeChunkIncrement > numTraials);  // wouldn't make sense otherwise
-	ensure_resources(numTraials);
-	for (unsigned i = 0u ; i < numTraials ; i++) {
+	assert(0u < numTraials++);
+	retrieve_traials:
+	while (!available_traials_.empty() && 0u < --numTraials) {
 		cont.emplace(end(cont), available_traials_.front());
 		available_traials_.pop_front();
 	}
+	if (0u < numTraials) {
+		ensure_resources(std::max<unsigned>(numTraials, sizeChunkIncrement));
+		goto retrieve_traials;
+	}
 }
 // TraialPool::get_traials() generic version can only be invoked with the following containers
-template void TraialPool::get_traials(std::list< Reference<Traial> >&, const unsigned&);
-template void TraialPool::get_traials(std::deque< Reference<Traial> >&, const unsigned&);
-template void TraialPool::get_traials(std::vector< Reference<Traial> >&, const unsigned&);
+template void TraialPool::get_traials(std::list< Reference<Traial> >&, unsigned);
+template void TraialPool::get_traials(std::deque< Reference<Traial> >&, unsigned);
+template void TraialPool::get_traials(std::vector< Reference<Traial> >&, unsigned);
 
 // TraialPool::get_traials() specialization for STL std::stack<>
 template<> void
 TraialPool::get_traials(std::stack< Reference<Traial> >& stack,
-                        const unsigned& numTraials)
+						unsigned numTraials)
 {
-    assert(sizeChunkIncrement > numTraials);  // wouldn't make sense otherwise
-    ensure_resources(numTraials);
-    for (unsigned i = 0u ; i < numTraials ; i++) {
-        stack.emplace(available_traials_.front());
-        available_traials_.pop_front();
-    }
+	assert(0u < numTraials++);
+	retrieve_traials:
+	while (!available_traials_.empty() && 0u < --numTraials) {
+		stack.emplace(available_traials_.front());
+		available_traials_.pop_front();
+	}
+	if (0u < numTraials) {
+		ensure_resources(std::max<unsigned>(numTraials, sizeChunkIncrement));
+		goto retrieve_traials;
+	}
 }
 
 // TraialPool::get_traials() specialization for STL std::forward_list<>
 template<> void
 TraialPool::get_traials(std::forward_list< Reference<Traial> >& flist,
-						const unsigned& numTraials)
+						unsigned numTraials)
 {
-	assert(sizeChunkIncrement > numTraials);  // wouldn't make sense otherwise
-	ensure_resources(numTraials);
-	for (unsigned i = 0u ; i < numTraials ; i++) {
+	assert(0u < numTraials++);
+	retrieve_traials:
+	while (!available_traials_.empty() && 0u < --numTraials) {
 		flist.push_front(available_traials_.front());
 		available_traials_.pop_front();
+	}
+	if (0u < numTraials) {
+		ensure_resources(std::max<unsigned>(numTraials, sizeChunkIncrement));
+		goto retrieve_traials;
 	}
 }
 
@@ -180,68 +192,74 @@ template< template< typename... > class Container,
           typename... OtherArgs >
 void
 TraialPool::get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
-                              const Traial& traial,
-                              const ImportanceValue &creationImportance,
-                              const unsigned& numCopies)
+							  const Traial& traial,
+							  unsigned numCopies)
 {
-    assert(sizeChunkIncrement > numCopies);  // wouldn't make sense otherwise
-    ensure_resources(numCopies);
-    for (unsigned i = 0u ; i < numCopies ; i++) {
-        Traial& t = available_traials_.front();
-        available_traials_.pop_front();
-        t = traial;
-        t.creationImportance = creationImportance;
-        cont.emplace(end(cont), t);
-    }
+	assert(0u < numCopies++);
+	retrieve_traials:
+	while (!available_traials_.empty() && 0u < --numCopies) {
+		Traial& t = available_traials_.front();
+		available_traials_.pop_front();
+		t = traial;
+		t.depth = 0;
+		cont.emplace(end(cont), t);
+	}
+	if (0u < numCopies) {
+		ensure_resources(std::max<unsigned>(numCopies, sizeChunkIncrement));
+		goto retrieve_traials;
+	}
 }
 // TraialPool::get_traial_copies() generic version can only be invoked with the following containers
 template void TraialPool::get_traial_copies(std::list< Reference<Traial> >&,
                                             const Traial&,
-                                            const ImportanceValue &creationImportance,
-                                            const unsigned&);
+											unsigned);
 template void TraialPool::get_traial_copies(std::deque< Reference<Traial> >&,
                                             const Traial&,
-                                            const ImportanceValue &creationImportance,
-                                            const unsigned&);
+											unsigned);
 template void TraialPool::get_traial_copies(std::vector< Reference<Traial> >&,
                                             const Traial&,
-                                            const ImportanceValue &creationImportance,
-                                            const unsigned&);
+											unsigned);
 
 // TraialPool::get_traial_copies() specialization for STL std::stack<>
 template<> void
 TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
                               const Traial& traial,
-                              const ImportanceValue &creationImportance,
-                              const unsigned& numCopies)
+							  unsigned numCopies)
 {
-    assert(sizeChunkIncrement > numCopies);  // wouldn't make sense otherwise
-    ensure_resources(numCopies);
-    for (unsigned i = 0u ; i < numCopies ; i++) {
-        Traial& t = available_traials_.front();
+	assert(0u < numCopies++);
+	retrieve_traials:
+	while (!available_traials_.empty() && 0u < --numCopies) {
+		Traial& t = available_traials_.front();
         available_traials_.pop_front();
         t = traial;
-        t.creationImportance = creationImportance;
+		t.depth = 0;
         stack.emplace(t);
     }
+	if (0u < numCopies) {
+		ensure_resources(std::max<unsigned>(numCopies, sizeChunkIncrement));
+		goto retrieve_traials;
+	}
 }
 
 // TraialPool::get_traial_copies() specialization for STL std::forward_list<>
 template<> void
 TraialPool::get_traial_copies(std::forward_list< Reference<Traial> >& flist,
                               const Traial& traial,
-                              const ImportanceValue &creationImportance,
-                              const unsigned& numCopies)
+							  unsigned numCopies)
 {
-    assert(sizeChunkIncrement > numCopies);  // wouldn't make sense otherwise
-    ensure_resources(numCopies);
-    for (unsigned i = 0u ; i < numCopies ; i++) {
-        Traial& t = available_traials_.front();
+	assert(0u < numCopies++);
+	retrieve_traials:
+	while (!available_traials_.empty() && 0u < --numCopies) {
+		Traial& t = available_traials_.front();
         available_traials_.pop_front();
         t = traial;
-        t.creationImportance = creationImportance;
+		t.depth = 0;
         flist.push_front(t);
     }
+	if (0u < numCopies) {
+		ensure_resources(std::max<unsigned>(numCopies, sizeChunkIncrement));
+		goto retrieve_traials;
+	}
 }
 
 

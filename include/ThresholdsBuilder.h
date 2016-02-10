@@ -74,13 +74,14 @@ public:
 	/**
 	 * @brief Build thresholds from given concrete importance function.
 	 *
-	 *        The thresholds are built in 'impVec', which is 'impFun's
-	 *        internal vector of ImportanceValue. This means 'impVec' holds
-	 *        the importance of the concrete states from some Module.
-	 *        Original importance information is destroyed: after the call
-	 *        'impVec[i]' will hold the level of the i-th concrete state,
-	 *        where the j-th level is composed of all the states between the
-	 *        j-th and the (j+1)-th thresholds.
+	 *        The thresholds are built in 'impVec', which is the internal
+	 *        vector where 'impFun' holds its importance information.
+	 *        For ImportanceFunctionConcrete this means 'impVec' holds the
+	 *        ImportanceValue of every concrete state from some Module.
+	 *        Original importance information is destroyed: after this call
+	 *        'impVec[i]' will hold the i-th concrete state's threshold level,
+	 *        where the j-th threshold level is composed of all the states
+	 *        between the j-th and the (j+1)-th thresholds.
 	 *        The result can be regarded as a coarser version of the original
 	 *        importance information which 'impFun' held before this call.
 	 *
@@ -90,7 +91,8 @@ public:
 	 * @param impVec Internal vector of impFun with ImportanceValue of concrete
 	 *               states, where the thresholds will be stored <b>(modified)</b>
 	 *
-	 * @return Number of thresholds built (i.e. new "maxImportance" value)
+	 * @return Resulting number of threshold levels
+	 *         (i.e. new "maxImportance" value)
 	 *
 	 * @throw FigException if method is unsupported by the derived class
 	 * @throw FigException if thresholds building failed

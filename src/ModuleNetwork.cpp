@@ -198,21 +198,18 @@ Event ModuleNetwork::simulation_step(Traial& traial,
                                      const Simulator& engine,
                                      TraialMonitor watch_events) const
 {
+	Event e(EventType::NONE);
+
 	if (!sealed())
 #ifndef NDEBUG
 		throw_FigException("ModuleNetwork hasn't been sealed yet");
 #else
-		return;
+		return e;
 #endif
 
-//	/// @todo TODO erase debug print below
-//	std::cerr << "Starting at state ";
-//	for (const auto & e: traial.state)
-//		std::cerr << e << "  ";
-//	std::cerr << "----------------------------------------------" << std::endl;
+//	/// @todo TODO erase debug var below
+//	State<STATE_INTERNAL_TYPE> state = gState;
 //	///////////////////////////////////////
-
-    Event e;
 
     // Jump...
 	do {
@@ -220,18 +217,18 @@ Event ModuleNetwork::simulation_step(Traial& traial,
         // Active jump in the module whose clock timed-out
 		auto label = timeout.module->jump(timeout.name, timeout.value, traial);
 
-//		/// @todo TODO erase debug print below
-//		std::cerr << "State:";
-//		for (auto& v: traial.state) std::cerr << " " << v;
-//		std::cerr << std::endl;
-//		///////////////////////////////////////
-
 		// Passive jumps in the modules listening to label
 		for (auto module_ptr: modules)
 			if (module_ptr->name != timeout.module->name)
 				module_ptr->jump(label, timeout.value, traial);
-        traial.lifeTime += timeout.value;
-    } while ( !(engine.*watch_events)(property, traial, e) );
+		traial.lifeTime += timeout.value;
+
+//		/// @todo TODO erase debug print below
+//		state.copy_from_state_instance(traial.state);
+//		std::cerr << " --> " << state.encode();
+//		///////////////////////////////////////
+
+	} while ( !(engine.*watch_events)(property, traial, e) );
 	// ...until a relevant event is observed
 
 //	/// @todo TODO erase debug print below

@@ -79,17 +79,47 @@ ImportanceFunctionConcreteCoupled::build_thresholds(
 						   .append("\" doesn't yet have importance information"));
 
 	ImportanceVec& impVec = modulesConcreteImportance[importanceInfoIndex_];
-	unsigned numThresholds = tb.build_thresholds_concrete(splitsPerThreshold,
-														  *this,
-														  impVec);
+	maxImportance_ = tb.build_thresholds_concrete(splitsPerThreshold,
+												  *this,
+												  impVec);
 	thresholdsTechnique_ = tb.name;
-	maxImportance_ = numThresholds-1;
 	// Find lowest threshold level where we can find a rare state
 	minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
 	for (size_t i = 0u ; i < impVec.size() ; i++)
 		if (IS_RARE_EVENT(impVec[i]) && UNMASK(impVec[i]) < minRareImportance_)
 			minRareImportance_ = UNMASK(impVec[i]);
 	readyForSims_ = true;
+}
+
+
+void
+ImportanceFunctionConcreteCoupled::print_out(std::ostream& out) const
+{
+	if (!has_importance_info()) {
+		out << "\nImportance function \"" << name() << "\" doesn't yet have "
+			   "any importance information to print." << std::endl;
+		return;
+	}
+	out << "\nPrinting importance function \"" << name() << "\" values.\n";
+	if (ready())
+		out << "Legend: ( concrete_state_value[*~^] , threshold_level )\n";
+	else
+		out << "Legend: ( concrete_state_value[*~^] , importance_value )\n";
+	out << "where\n"
+		<< "      *  denotes a state is RARE,\n"
+		<< "      ~  denotes a state is STOP,\n"
+		<< "      ^  denotes a state is REFERENCE.\n";
+	out << "Values:" << std::endl;
+	const ImportanceVec& impVec = modulesConcreteImportance[importanceInfoIndex_];
+	for (size_t i = 0ul ; i < impVec.size() ; i++) {
+		out << "(" << i;
+		out << (IS_RARE_EVENT     (impVec[i]) ? "*" : "");
+		out << (IS_STOP_EVENT     (impVec[i]) ? "~" : "");
+		out << (IS_REFERENCE_EVENT(impVec[i]) ? "^" : "");
+		out << "," << UNMASK(impVec[i]) << ") ";
+		out.flush();
+	}
+	out << "\b" << std::endl;
 }
 
 

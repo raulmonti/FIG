@@ -83,11 +83,11 @@ public:  // Engine setup
 
 	virtual void bind(std::shared_ptr< const ImportanceFunction >);
 
-	/// @see splitsPerThreshold_
+	/// @see splits_per_threshold()
 	/// @throw FigException if the value is invalid
 	void set_splits_per_threshold(unsigned splitsPerThreshold);
 
-	/// @see dieOutDepth_
+	/// @see die_out_depth()
 	/// @throw FigException if the value is invalid
 	void set_die_out_depth(unsigned dieOutDepth);
 
@@ -113,11 +113,15 @@ public:  // Traial observers/updaters
 				e = EventType::STOP;
 			} else {
 				ImportanceValue newThr = impFun_->importance_of(traial.state);
-				if (traial.creationImportance > newThr + dieOutDepth_) {
-					e = EventType::THR_DOWN;
+				if (newThr < traial.importance) {
+					// Went down... too far?
+					if (++traial.depth > static_cast<short>(dieOutDepth_))
+						e = EventType::THR_DOWN;
 				} else if (property.is_rare(traial.state)) {
 					e = EventType::RARE;
-				} else if (traial.importance < newThr) {
+				} else if (newThr > traial.importance) {
+					// Store in 'depth' the negative # of thresholds crossed
+					traial.depth = traial.importance - newThr;
 					e = EventType::THR_UP;
 				}
 				traial.importance = newThr;
@@ -138,10 +142,14 @@ public:  // Traial observers/updaters
 			auto newStateInfo = impFun_->info_of(traial.state);
 			e = MASK(newStateInfo);
 			if (!IS_STOP_EVENT(e)) {
-				ImportanceValue newThr = UNMASK(newStateInfo);
-				if (traial.creationImportance > newThr + dieOutDepth_) {
-					SET_THR_DOWN_EVENT(e);
-				} else if (traial.importance < newThr) {
+				const ImportanceValue newThr = UNMASK(newStateInfo);
+				if (newThr < traial.importance) {
+					// Went down... too far?
+					if (++traial.depth > static_cast<short>(dieOutDepth_))
+						SET_THR_DOWN_EVENT(e);
+				} else if (newThr > traial.importance) {
+					// Store in 'depth' the negative # of thresholds crossed
+					traial.depth = traial.importance - newThr;
 					SET_THR_UP_EVENT(e);
 				}
 				traial.importance = newThr;

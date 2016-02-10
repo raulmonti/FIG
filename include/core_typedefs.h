@@ -166,10 +166,10 @@ enum EventType
     REFERENCE  = 1u<<(8*sizeof(Event)-3),
 
     /// When a Traial jumps to a higher (on importance) threshold level
-    THR_UP     = 1u<<(8*sizeof(Event)-4),
+	THR_UP     = 1u<<(8*sizeof(Event)-4),
 
     /// When a Traial jumps to a lower (on importance) threshold level
-    THR_DOWN   = 1u<<(8*sizeof(Event)-5)
+	THR_DOWN   = 1u<<(8*sizeof(Event)-5)
 };
 
 inline Event MASK(const ImportanceValue& val) noexcept

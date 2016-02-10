@@ -31,6 +31,7 @@
 #define IMPORTANCEFUNCTION_H
 
 // C++
+#include <ostream>
 #include <string>
 #include <array>
 // FIG
@@ -268,10 +269,22 @@ public:  // Utils
 	 */
 	virtual ImportanceValue importance_of(const StateInstance& state) const = 0;
 
-	/// Release any memory allocated in the heap
-	/// @note After this invocation the ImportanceFunction doesn't hold
-	///       \ref has_importance_info() "importance information" any longer
-	///       and it's thus not \ref ready() "ready for simulations"
+	/**
+	 * @brief Print formatted internal importance information
+	 * @details States are printed along their importance (or threshold level)
+	 *          If events masks are present they are somehow marked,
+	 *          and a legend is included to interpret the marking.
+	 * @param out Output stream where printing will take place
+	 * @warning This can be <b>a lot</b> of printing, use with care.
+	 */
+	virtual void print_out(std::ostream& out) const = 0;
+
+	/**
+	 * @brief Release any memory allocated in the heap
+	 * @note After this invocation the ImportanceFunction doesn't hold
+	 *       \ref has_importance_info() "importance information" any longer
+	 *       and it's thus not \ref ready() "ready for simulations"
+	 */
 	virtual void clear() noexcept = 0;
 };
 
