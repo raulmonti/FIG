@@ -32,50 +32,147 @@
 #include <StoppingConditions.h>
 #include <FigException.h>
 #include <PropertyTransient.h>
+#include <ModelSuite.h>
+#include <ConfidenceInterval.h>
 
 
 namespace fig
 {
 
+// Available engine names in SimulationEngine::names
+SimulationEngineNosplit::SimulationEngineNosplit(
+    std::shared_ptr<const ModuleNetwork> network) :
+		SimulationEngine("nosplit", network)
+{ /* Not much to do around here */ }
+
+
 double
-SimulationEngineNosplit::simulate(const size_t&) const
+SimulationEngineNosplit::simulate(const Property &property,
+                                  const size_t& numRuns) const
 {
+	assert(numRuns > 0u);
 	double result(0.0);
 
-	if (!loaded())
+	if (!bound())
 #ifndef NDEBUG
-		throw FigException("engine wasn't loaded, can't simulate");
+		throw_FigException("engine isn't bound to any importance function");
 #else
-		return;
+		return -1.0;
 #endif
+
+    switch (property.type) {
+
+	case PropertyType::TRANSIENT: {
+//		#pragma omp parallel  // we MUST parallelize this, it's stupid not to
+		Traial& traial = TraialPool::get_instance().get_traial();
+		result = transient_simulation(dynamic_cast<const PropertyTransient&>(property),
+									  numRuns,
+									  traial);
+		TraialPool::get_instance().return_traial(std::move(traial));
+		} break;
+
+	case PropertyType::THROUGHPUT:
+	case PropertyType::RATE:
+	case PropertyType::PROPORTION:
+	case PropertyType::BOUNDED_REACHABILITY:
+		throw_FigException(std::string("property type isn't supported by ")
+						   .append(name_).append(" simulation yet"));
+		break;
+
+	default:
+		throw_FigException("invalid property type");
+		break;
+	}
 
 	return result;
 }
 
 
-bool
-SimulationEngineNosplit::eventTriggered(const Traial& traial) const
+void
+SimulationEngineNosplit::simulate(const Property& property,
+								  const size_t& batchSize,
+								  ConfidenceInterval& interval) const
 {
-	switch (property->type) {
-	case PropertyType::TRANSIENT:
-	{
-		auto prop = static_cast<const PropertyTransient*>(property);
-		if (prop->is_goal(traial.state) ||
-			prop->is_stop(traial.state))
-			return true;
-	}
-		break;
+	if (!bound())
+#ifndef NDEBUG
+		throw_FigException("engine isn't bound to any importance function");
+#else
+		return -1.0;
+#endif
+
+	switch (property.type) {
+
+	case PropertyType::TRANSIENT: {
+		assert (!interrupted);
+		Traial& traial = TraialPool::get_instance().get_traial();
+		while (!interrupted) {
+			double newEstimate =
+				transient_simulation(dynamic_cast<const PropertyTransient&>(property),
+									 batchSize,
+									 traial);
+			if (!interrupted)
+				interval.update(newEstimate);
+		}
+		TraialPool::get_instance().return_traial(std::move(traial));
+		} break;
+
 	case PropertyType::THROUGHPUT:
 	case PropertyType::RATE:
 	case PropertyType::PROPORTION:
 	case PropertyType::BOUNDED_REACHABILITY:
-		throw FigException("property type isn't supported yet");
+		throw_FigException(std::string("property type isn't supported by ")
+						   .append(name_).append(" simulation yet"));
 		break;
+
 	default:
-		throw FigException("invalid property type");
+		throw_FigException("invalid property type");
+		break;
+	}
+}
+
+
+bool
+SimulationEngineNosplit::event_triggered(const Property &property,
+                                         const Traial& traial) const
+{
+    switch (property.type) {
+
+	case PropertyType::TRANSIENT: {
+        auto transientProp = dynamic_cast<const PropertyTransient&>(property);
+		if (transientProp.is_goal(traial.state) ||
+			transientProp.is_stop(traial.state))
+			return true;
+		} break;
+
+	case PropertyType::THROUGHPUT:
+	case PropertyType::RATE:
+	case PropertyType::PROPORTION:
+	case PropertyType::BOUNDED_REACHABILITY:
+		throw_FigException("property type isn't supported yet");
+		break;
+
+	default:
+		throw_FigException("invalid property type");
 		break;
 	}
 	return false;
 }
+
+
+double
+SimulationEngineNosplit::transient_simulation(const PropertyTransient& property,
+											  const size_t& numRuns,
+											  Traial& traial) const
+{
+	long numSuccesses(0);
+	for (size_t i = 0u ; i < numRuns ; i++) {
+		traial.initialize(network_, impFun_);
+		network_->simulation_step(traial, *this, property);
+		if (property.is_goal(traial.state))
+			numSuccesses++;
+	}
+	return static_cast<double>(numSuccesses) / numRuns;
+}
+
 
 } // namespace fig

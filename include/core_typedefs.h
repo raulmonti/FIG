@@ -33,6 +33,7 @@
 // C++
 #include <array>
 #include <tuple>
+#include <string>
 #include <unordered_map>
 #include <functional>     // std::function<>, std::reference_wrapper<>
 // External code
@@ -114,7 +115,7 @@ typedef  MUP_BASETYPE                                    STATE_INTERNAL_TYPE;
 /// @note In <a href="http://goo.gl/hXmnBQ">Boost's multiprecision library</a>
 ///       there are ints of up to 1024 bits.
 ///
-typedef  uintmax_t                                                  Bitflag;
+typedef  uintmax_t                                                   Bitflag;
 
 /// Mapping of clock and variable (names) to their respective positions
 /// in the global arrays handled by the Traials. This is generally known

@@ -57,6 +57,8 @@ SET(ALL_SOURCES CACHE INTERNAL "")
 # Visit necessary subdirectories
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/muparser2.2.5
                  ${PROJECT_BINARY_DIR}/muparser2.2.5)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/openmp
+                 ${PROJECT_BINARY_DIR}/openmp)
  
 # Register all include paths
 INCLUDE_DIRECTORIES(${HEADERS_DIR})
@@ -76,15 +78,21 @@ SET(REQUIRED_SOURCES "${SOURCES_DIR}/Clock.cpp"
                      "${SOURCES_DIR}/ModelSuite.cpp"
                      "${SOURCES_DIR}/Traial.cpp"
                      "${SOURCES_DIR}/TraialPool.cpp"
-                     "${SOURCES_DIR}/SimulationEngineNosplit.cpp")
+                     "${SOURCES_DIR}/PropertyTransient.cpp"
+                     "${SOURCES_DIR}/SimulationEngine.cpp"
+                     "${SOURCES_DIR}/SimulationEngineNosplit.cpp"
+                     "${SOURCES_DIR}/ImportanceFunction.cpp"
+                     "${SOURCES_DIR}/ImportanceFunctionConcrete.cpp"
+                     "${SOURCES_DIR}/ImportanceFunctionConcreteCoupled.cpp"
+                     "${SOURCES_DIR}/ConfidenceInterval.cpp"
+                     "${SOURCES_DIR}/ConfidenceIntervalMean.cpp"
+                     "${SOURCES_DIR}/ConfidenceIntervalWilson.cpp"
+                     "${SOURCES_DIR}/ConfidenceIntervalProportion.cpp")
 SET(ALL_SOURCES ${ALL_SOURCES} ${REQUIRED_SOURCES} CACHE INTERNAL "")
 
 # Register also the source files from this test
 AUX_SOURCE_DIRECTORY(${PROJECT_SOURCE_DIR} TEST_SOURCES)
 SET(ALL_SOURCES ${ALL_SOURCES} ${TEST_SOURCES} CACHE INTERNAL "")
-
-# Remove project's main.cpp, we have ours (http://stackoverflow.com/a/16450083)
-LIST(REMOVE_ITEM ALL_SOURCES ${SOURCES_DIR}/main.cpp)
 
 ## # Libraries
 ## LINK_DIRECTORIES(${LIBRARIES_DIR})
@@ -123,6 +131,31 @@ ENDIF()
 # Highly defensive compile flags
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 
+## # Debug
+## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
+## # No-Debug
+## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
+
+# OpenMP
+IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+##	FIND_PACKAGE(OpenMP REQUIRED)  # doesn't work
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp=libgomp")
+ELSE()
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+ENDIF()
+## # Clang needs to be told where to look for OpenMP headers
+## IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+## 	EXECUTE_PROCESS(COMMAND find /usr/lib/ -name "omp.h"
+## 	                COMMAND tail -n 1
+## 	                COMMAND xargs dirname
+## 	                OUTPUT_VARIABLE LATEST_OMP_H_DIR)
+## 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${LATEST_OMP_H_DIR}")
+## ENDIF()
+## That's not working!
+## A special version of Clang with OpenMP activated seems to be required.
+## We just pasted gcc's "omp.h" into ext/openmp/include
+
 # Turn some warnings off
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	# "anonymous types declared in an anonymous union"
@@ -131,17 +164,6 @@ ENDIF()
 # Avoid MuParser warnings due to deprecated auto_ptr (TODO: update library?)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 
-## # Clang needs to be told where to look for OpenMP headers
-## IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-## #	FIND_PACKAGE(OpenMP REQUIRED)
-## 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-## 	EXECUTE_PROCESS(COMMAND find /usr/lib/ -name "omp.h"
-## 	                COMMAND tail -n 1
-## 	                COMMAND xargs dirname
-## 	                OUTPUT_VARIABLE LATEST_OMP_H_DIR)
-## 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${LATEST_OMP_H_DIR}")
-## ENDIF()
-
 
 
 ###  Link flags  ##############################################################
@@ -149,8 +171,8 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 # GNU pthreads
 SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pthread" )
 
-## # OpenMP -- Problems with Clang!
-## SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
+# OpenMP
+SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
 
 
 

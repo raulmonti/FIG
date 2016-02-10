@@ -34,14 +34,13 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <iterator>     // std::begin(), std::end()
 #include <type_traits>  // std::is_constructible<>
 #include <unordered_map>
 // FIG
 #include <ModuleNetwork.h>
-#include <Property.h>
 #include <ImportanceFunction.h>
 #include <SimulationEngine.h>
-#include <StoppingConditions.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -54,6 +53,9 @@ using std::end;
 
 namespace fig
 {
+
+class Property;
+class StoppingConditions;
 
 /**
  * @brief One class to bring them all, and in the FIG tool bind them.
@@ -78,11 +80,11 @@ class ModelSuite
 {
 	friend class Traial;
 
-	/// User's system model
-	static std::unique_ptr< ModuleNetwork > model;
-	
+	/// Network of user-defined modules, viz. the system model
+	static std::shared_ptr< ModuleNetwork > model;
+
 	/// Properties to estimate
-	static std::vector< Reference< Property > > properties;
+	static std::vector< std::shared_ptr< Property > > properties;
 	
 	/// Confidence criteria or time budgets bounding simulations
 	static StoppingConditions simulationBounds;
@@ -95,7 +97,7 @@ class ModelSuite
 	/// Simulation engines available
 	static std::unordered_map<
 		std::string,
-		Reference< SimulationEngine > > simulators;
+		std::shared_ptr< SimulationEngine > > simulators;
 
 //	/// Log
 //	static WTF? log_;
@@ -130,24 +132,48 @@ public:  // Access to the ModelSuite instance
 public:  // Populating facilities
 
 	/// @copydoc ModuleNetwork::add_module(std::shared_ptr<ModuleInstance>&)
-	void add_module(std::shared_ptr< ModuleInstance >&);
+	void add_module(std::shared_ptr<ModuleInstance>&);
 
-	/// @todo TODO revise implementation and document
-	void add_property(Property& property);
+	/**
+	 * Add a new property to estimate during experimentation
+	 * @see PropertyType
+	 * @warning Do not invoke after seal()
+	 * \ifnot NDEBUG
+	 *   @throw FigException if the network has already been sealed()
+	 * \endif
+	 */
+	void add_property(std::shared_ptr<Property>);
 
 public:  // Modifyers
 
-	/// @copydoc ModuleNetwork::seal()
-	/// @todo TODO implement and document properly
+	/**
+	 * @brief Shut the system model to begin with simulations
+	 *
+	 *        Once everything was built and attached to the ModelSuite, global
+	 *        information needs to be broadcasted among the internal objects
+	 *        to allow cross-referencing (e.g. of variables) while simulating.
+	 *        To that purpose seal() must be called by the user exactly once,
+	 *        after all \ref Property "properties" and \ref ModuleInstance
+	 *        "module instances" have been added to the ModelSuite,
+	 *
+	 * @param initialClocksNames Container with the names of the clocks which
+	 *                           need to be reset on system initialization
+	 *
+	 * @note seal() must have been invoked before the beginning of simulations,
+	 *       also to create the \ref SimulationEngine "engines" and
+	 *       \ref ImportanceFunction "importance functions" required.
+	 *
+	 * @warning No more modules or properties can be added after this invocation
+	 * \ifnot NDEBUG
+	 *   @throw FigException if called more than once
+	 * \endif
+	 *
+	 * @see ModuleNetwork::seal()
+	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
 			  typename... OtherContainerArgs >
-	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames)
-	{
-		model->seal(initialClocksNames);
-		for (Property& prop: properties)
-			prop.pin_up_vars(model->global_state());
-	}
+	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames);
 
 public:  // Stubs for ModuleNetwork
 
@@ -164,10 +190,18 @@ public:  // Stubs for ModuleNetwork
 	inline size_t concrete_state_size() const noexcept
 		{ return model->concrete_state_size(); }
 
-public:  // Delete the following when moving on from basic_TADs branch
-	/// @todo TODO delete this function
-	inline void simulation_step(Traial& traial, const SimulationEngine* engine) const
-		{ model->simulation_step(traial, engine); }
+	/// @todo TODO erase as soon as we move on from simulations tests
+	inline std::shared_ptr< const ModuleNetwork > modules_network() const { return model; }
+
+public:  // Utils
+
+	/// Names of available simulation engines,
+	/// as they should be requested by the user.
+	const std::vector< std::string >& available_simulators();
+
+	/// Names of available importance function strategies,
+	/// as they should be requested by the user.
+	const std::vector< std::string >& available_importance_functions();
 
 public:  // Simulation utils
 
@@ -177,10 +211,13 @@ public:  // Simulation utils
 	 *
 	 *        Consider one Property at a time and, for each simulation strategy,
 	 *        importance function and stopping condition requested, estimate
-	 *        its value and log the results.
+	 *        the property's value and log the results.
 	 *
-	 * @param importanceStrategies Names of the importance functions  to test
+	 * @param importanceSpecifications String pairs "(name,strategy)" of the
+	 *                                 importance functions to test
 	 * @param simulationStrategies Names of the simulation strategies to test
+	 *
+	 * @note The model must have been \ref seal() "sealed" beforehand
 	 *
 	 * @see process_interactive()
 	 */
@@ -192,7 +229,7 @@ public:  // Simulation utils
 			typename ValueType2,
 			typename... OtherArgs2
 	>
-	void process_batch(const Container1<ValueType1, OtherArgs1...>& importanceStrategies,
+	void process_batch(const Container1<ValueType1, OtherArgs1...>& importanceSpecifications,
 					   const Container2<ValueType2, OtherArgs2...>& simulationStrategies);
 
 	/// @todo TODO design and implement
@@ -202,19 +239,22 @@ public:  // Simulation utils
 	 * @brief Estimate the value of a property.
 	 *
 	 *        The estimation is performed using a single simulation strategy.
-	 *        The importance function to use and the property to estimate
-	 *        must have been loaded beforehand into the SimulationEngine.
+	 *        The importance function to use must have been previously bound
+	 *        to the SimulationEngine.
 	 *        Estimations are performed for all the \ref StoppingConditions
 	 *        "simulation bounds" requested for experimentation, and logged
 	 *        as they are produced.
 	 *
-	 * @param engine SimulationEngine already loaded with a Property and an ImportanceFunction
+	 * @param engine SimulationEngine already tied to an ImportanceFunction
 	 * @param bounds List of stopping conditions to experiment with
 	 *
-	 * @throw FigException if engine wasn't \ref SimulationEngine::loaded()
-	 *                     "ready" for simulations
+	 * @throw FigException if engine wasn't \ref SimulationEngine::bound()
+	 *                     "ready for simulations"
+	 * @throw FigException if a simulation gave an invalid result
 	 */
-	void estimate(const SimulationEngine& engine, const StoppingConditions& bounds);
+	void estimate(const Property& property,
+				  const SimulationEngine& engine,
+				  const StoppingConditions& bounds) const;
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -233,46 +273,54 @@ template<
 >
 void
 ModelSuite::process_batch(
-	const Container1<ValueType1, OtherArgs1...>& importanceStrategies,
+	const Container1<ValueType1, OtherArgs1...>& importanceSpecifications,
 	const Container2<ValueType2, OtherArgs2...>& simulationStrategies)
 {
-	static_assert(std::is_constructible< std::string, ValueType1 >::value,
+	typedef std::pair< std::string, std::string > pair_ss;
+	static_assert(std::is_constructible< pair_ss, ValueType1 >::value,
 				  "ERROR: type mismatch. ModelSuite::process_batch() takes "
-				  "two containers with strings, the first describing the "
-				  "importance strategies to use during simulations.");
+				  "two containers, the first with strings pairs describing the "
+				  "importance functions and strategies to use during simulations.");
 	static_assert(std::is_constructible< std::string, ValueType2 >::value,
 				  "ERROR: type mismatch. ModelSuite::process_batch() takes "
-				  "two containers with strings, the second describing the "
+				  "two containers, the second with strings describing the "
 				  "simulation strategies to use during simulations.");
+	if (!sealed())
+		throw_FigException("model hasn't been sealed yet");
+
 	// For each property ...
-	for (const Property& prop: properties) {
-		// ... for each importance strategy (null, auto, ad hoc, etc) ...
-		for (const std::string impStrat: importanceStrategies) {
-			if (end(impFuns) == impFuns.find(impStrat)) {
+	for (const auto prop: properties) {
+
+		// ... each importance specification ...
+		for (const pair_ss& impFunSpec: importanceSpecifications) {
+			std::string impFunName, impFunStrategy;
+			std::tie(impFunName, impFunStrategy) = impFunSpec;
+			if (end(impFuns) == impFuns.find(impFunName)) {
 				/// @todo TODO log the inexistence of this importance function
 				continue;
 			}
-			auto impFun = impFuns[impStrat];
-			impFun->assess_importance(model.get(), &prop);
+			auto impFun = impFuns[impFunName];
+			impFun->assess_importance(*model, *prop, impFunStrategy);
 			assert(impFun->ready());
-			// ... and each simulation strategy (no split, restart, etc) ...
+
+			// ... and each simulation strategy ...
 			for (const std::string simStrat: simulationStrategies) {
 				if (end(simulators) == simulators.find(simStrat)) {
 					/// @todo TODO log the inexistence of this engine
 					continue;
 				}
-				SimulationEngine& engine = simulators[simStrat];
+				SimulationEngine& engine = *simulators[simStrat];
 				try {
-					engine.load(prop, impFun);
+					engine.bind(impFun);
 				} catch (FigException& e) {
 					/// @todo TODO log the skipping of this combination
 					///       Either the property or the importance function are
 					///       incompatible with the current simulation engine
 					continue;
 				}
-				// ... estimate the property value for all stopping conditions
-				estimate(engine, simulationBounds);
-				engine.unload();
+				// ... estimate the property's value for all stopping conditions
+				estimate(*prop, engine, simulationBounds);
+				engine.unbind();
 			}
 			impFun->clear();
 		}

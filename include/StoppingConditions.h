@@ -29,6 +29,7 @@
 #ifndef STOPPINGCONDITIONS_H
 #define STOPPINGCONDITIONS_H
 
+#include <tuple>
 #include <vector>
 #include <utility>
 #include <iterator>     // std::begin, std::end
@@ -46,21 +47,21 @@ namespace fig
  * @brief Criteria to stop simulations
  *
  *        There are two basic ways to tell a simulation has run long enough:
- *        either it has achieved the desired confidence criteria, or it has
+ *        either it has achieved some desired confidence criterion, or it has
  *        reached the wall time limit imposed by the user.
- *        The first we call "value simulations", since the goal is to estimate
+ *        The first we call "value simulations" since the goal is to estimate
  *        the property's value with a specified accuracy, regardless of how
  *        long that may take.
  *        The second we call "time simulations" for obvious reasons.
  *
  *        A single instance of the StoppingConditions class can hold several
- *        end-of-simulation criteria, but either of the "value" or the "time"
+ *        end-of-simulation criteria, but either of the "value" or of the "time"
  *        kind, not a Mischung.
  */
 class StoppingConditions
 {
 	/// List of confidence coefficients and precision values to experiment with
-	std::vector< std::pair< double, double > > confidenceCriteria_;
+	std::vector< std::tuple< double, double, bool > > confidenceCriteria_;
 
 	/// List of wall clock time values (in seconds) to experiment with
 	std::vector< unsigned long > timeBudgets_;
@@ -72,20 +73,22 @@ public:  // Ctors/Dtor
 	StoppingConditions() {}
 
 	/**
-	 * @brief Data ctor for confidence criteria pairs from lvalue container
+	 * @brief Data ctor for confidence criteria tuples from lvalue container
 	 *
 	 *        This ctor builds the StoppingConditions for "value simulations".
 	 *        The first component of each element in the container
-	 *        is interpreted as confidence coefficients (in the open range
-	 *        (0.0,1.0)), and the second component as the matching precision.
+	 *        is interpreted as a confidence coefficient (in the open range
+	 *        (0.0,1.0)), the second as the matching precision, and the third
+	 *        as whether the precision is expressed as a percentage of the
+	 *        estimate.
 	 *
-	 * @param confidenceCriteria Container with the confidence criteria pairs
+	 * @param confidenceCriteria Container with the confidence criteria tuples
 	 *
 	 * @see StoppingConditions
 	 */
 	template< template< typename... > class Container,
 			  typename... OtherContainerArgs >
-	StoppingConditions(const Container< std::pair<double,double>,
+	StoppingConditions(const Container< std::tuple<double,double,bool>,
 										OtherContainerArgs...
 									  >& confidenceCriteria);
 
@@ -107,23 +110,24 @@ public:  // Ctors/Dtor
 									  >& timeBudgets);
 
 	/**
-	 * @brief Data ctor for confidence criteria pairs from iterator range
+	 * @brief Data ctor for confidence criteria tuples from iterator range
 	 *
 	 *        This ctor builds the StoppingConditions for "value simulations".
-	 *        The first component of each element is interpreted as confidence
-	 *        coefficients (in the open range (0.0,1.0)), and the second
-	 *        component as the matching precision.
+	 *        The first component of each element is interpreted as a confidence
+	 *        coefficient (in the open range (0.0,1.0)), the second as the
+	 *        matching precision, and the third as whether the precision is
+	 *        expressed as a percentage of the estimate.
 	 *
-	 * @param from   Iterator to  the first confidence criterion pair
-	 * @param to     Iterator past the last confidence criterion pair
+	 * @param from   Iterator to  the first confidence criterion tuple
+	 * @param to     Iterator past the last confidence criterion tuple
 	 *
 	 * @see StoppingConditions
 	 */
 	template< template< typename... > class Iterator,
 			  typename... OtherIteratorArgs >
-	StoppingConditions(Iterator<std::pair<double,double>,
+	StoppingConditions(Iterator<std::tuple<double,double,bool>,
 								OtherIteratorArgs...> from,
-					   Iterator<std::pair<double,double>,
+					   Iterator<std::tuple<double,double,bool>,
 								OtherIteratorArgs...> to);
 
 	/**
@@ -163,8 +167,9 @@ public:  // Populating facilities
 	 * @brief Include one more confidence criterion to experiment with
 	 * @param criterion New confidence criterion to add, whose first component
 	 *                  will be interpreted as a confidence coefficient (in the
-	 *                  open range (0.0,1.0)), and whose second component will
-	 *                  be interpreted as the desired precision.
+	 *                  open range (0.0,1.0)), second component as the desired
+	 *                  precision, and third component as whether the precision
+	 *                  is actually expressed as a percentage of the estimate.
 	 * @warning Only applicable if we hold \ref is_value() "value conditions"
 	 *          or if the instance is still empty of any condition (empty ctor)
 	 * \ifnot NDEBUG
@@ -172,12 +177,13 @@ public:  // Populating facilities
 	 *                       \ref is_value() "time stopping conditions"
 	 * \endif
 	 */
-	void add_confidence_criterion(const std::pair<double, double>& criterion);
+	void add_confidence_criterion(const std::tuple<double,double,bool>& criterion);
 
 	/**
 	 * @brief Include one more confidence criterion to experiment with
-	 * @param confCo Confidence coefficient (in the open range (0.0,1.0))
-	 * @param prec   Precision
+	 * @param confCo  Confidence coefficient (in the open range (0.0,1.0))
+	 * @param prec    Precision
+	 * @param dynPrec Is the precision expressed as a percentage of the estimate?
 	 * @warning Only applicable if we hold \ref is_value() "value conditions"
 	 *          or if the instance is still empty of any condition (empty ctor)
 	 * \ifnot NDEBUG
@@ -185,7 +191,9 @@ public:  // Populating facilities
 	 *                       \ref is_value() "time stopping conditions"
 	 * \endif
 	 */
-	void add_confidence_criterion(const double& confCo, const double& prec);
+	void add_confidence_criterion(const double& confCo,
+								  const double& prec,
+								  const bool& dynPrec);
 
 	/**
 	 * @brief Include one wall time limit more to experiment with
@@ -217,7 +225,7 @@ public:  // Utils
 
 	/// @return Value stopping conditions, or "confidence criteria".
 	///         Empty if this instance holds time budgets.
-	inline const std::vector< std::pair<double,double> >&
+	inline const std::vector< std::tuple<double,double,bool> >&
 	confidence_criteria() const noexcept { return confidenceCriteria_; }
 
 	/// @return Time stopping conditions, or "time budgets".
@@ -235,8 +243,8 @@ public:  // Utils
 template< template< typename... > class Iterator,
 		  typename... OtherIteratorArgs >
 StoppingConditions::StoppingConditions(
-	Iterator<std::pair<double,double>, OtherIteratorArgs...> from,
-	Iterator<std::pair<double,double>, OtherIteratorArgs...> to)
+	Iterator<std::tuple<double,double,bool>, OtherIteratorArgs...> from,
+	Iterator<std::tuple<double,double,bool>, OtherIteratorArgs...> to)
 {
 	confidenceCriteria_.insert(begin(confidenceCriteria_), from, to);
 }

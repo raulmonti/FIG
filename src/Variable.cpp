@@ -77,7 +77,7 @@ Variable<T_>::Variable(const Variable<T_>& that) :
 {
 	if (!name_.empty()) {
 		std::string err("trying to copy-construct the non-fresh variable \"");
-		throw FigException(err.append(name_).append("\""));
+		throw_FigException(err.append(name_).append("\""));
 	}
 	name_.assign(that.name_);
 }
@@ -93,7 +93,7 @@ Variable<T_>::Variable(Variable<T_>&& that) :
 {
 	if (!name_.empty()) {
 		std::string err("trying to move-construct the non-fresh variable \"");
-		throw FigException(err.append(name_).append("\""));
+		throw_FigException(err.append(name_).append("\""));
 	}
 	name_.assign(std::move(that.name_));
 }
@@ -105,7 +105,7 @@ Variable<T_>::operator=(const Variable<T_>& that)
 {
 	if (!name_.empty()) {
 		std::string err("trying to copy-assign the non-fresh variable \"");
-		throw FigException(err.append(name_).append("\""));
+		throw_FigException(err.append(name_).append("\""));
 	}
 	name_   = that.name_;
 	min_    = that.min_;
@@ -124,7 +124,7 @@ Variable<T_>::operator=(Variable<T_>&& that)
 {
 	if (!name_.empty()) {
 		std::string err("trying to copy-assign the non-fresh variable \"");
-		throw FigException(err.append(name_).append("\""));
+		throw_FigException(err.append(name_).append("\""));
 	}
 	name_   = std::move(that.name_);
 	min_    = std::move(that.min_);

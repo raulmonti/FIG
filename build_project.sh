@@ -33,11 +33,11 @@ set -e
 # Choose compiler (prefer clang over gcc)
 if [ "`which clang`" ]
 then
-	# We need version 3.4 or later
+	# We need version 3.7 or later
 	CLANG_VERSION_MAJOR=$(clang --version | grep -o "[0-9]\.[0-9.]*" | head -1)
 	CLANG_VERSION_MINOR=$(echo $CLANG_VERSION_MAJOR | cut -d"." -f 2)
 	CLANG_VERSION_MAJOR=$(echo $CLANG_VERSION_MAJOR | cut -d"." -f 1)
-	if [ $CLANG_VERSION_MAJOR -ge 3 ] && [ $CLANG_VERSION_MINOR -ge 4 ]
+	if [ $CLANG_VERSION_MAJOR -ge 3 ] && [ $CLANG_VERSION_MINOR -ge 7 ]
 	then
 		CCOMP=clang
 	fi
@@ -66,20 +66,30 @@ then
 		DIR=""
 	elif [ "$1" = "test_tads" ]
 	then
-		echo "Building tests for TADs"
+		echo "Building tests for TADs instantiation"
 		DIR="tests/tads/"
 	elif [ "$1" = "test_parser" ]
 	then
 		echo "Building tests for parser"
 		DIR="tests/parser/"
+	elif [ "$1" = "test_sims" ]
+	then
+		echo "Building tests for simulations"
+		DIR="tests/simulations/"
 	else
 		echo "[ERROR] Unrecognized build option \"$1\""
-		echo "        Available builds are:  main  test_tads  test_parser"
+		echo "        Available builds are: main"
+		echo "                              test_tads"
+		echo "                              test_parser"
+		echo "                              test_sims"
 		exit 1
 	fi
 else
 	echo "[ERROR] call with at most one argument specifying the build type"
-	echo "        Available builds are:  main  test_tads  test_parser"
+	echo "        Available builds are: main"
+	echo "                              test_tads"
+	echo "                              test_parser"
+	echo "                              test_sims"
 	exit 1
 fi
 
@@ -114,8 +124,8 @@ fi
 
 # Configure and build from inside BUILD_DIR
 if [ ! -d $BUILD_DIR ]; then mkdir $BUILD_DIR; fi
-#cd $BUILD_DIR && CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR && make && \
-cd $BUILD_DIR && CC=gcc CXX=g++ cmake $CMAKE_DIR && make && \
+cd $BUILD_DIR && CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR && make && \
+#cd $BUILD_DIR && CC=gcc CXX=g++ cmake $CMAKE_DIR && make && \
 echo -e "\n  Project built in $BUILD_DIR\n"
 cd $CWD
 

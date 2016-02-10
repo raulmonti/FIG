@@ -31,13 +31,13 @@
 #define SIMULATIONENGINE_H
 
 // C++
+#include <array>
 #include <string>
 #include <memory>
 // FIG
 #include <core_typedefs.h>
-#include <ImportanceFunction.h>
 #include <Property.h>
-#include <Traial.h>
+#include <ImportanceFunction.h>
 
 
 namespace fig
@@ -45,6 +45,8 @@ namespace fig
 
 class ConfidenceInterval;
 class StoppingConditions;
+class ModuleNetwork;
+class Traial;
 
 /**
  * @brief Abstract base simulation engine
@@ -55,21 +57,41 @@ class StoppingConditions;
  */
 class SimulationEngine
 {
+    friend class ModelSuite;  // for interruptions signaling
+
+public:
+
+	/// Names of the simulation engines offered to the user,
+	/// as he should requested them through the CLI/GUI.
+    /// Defined in SimulationEngine.cpp
+    static const std::array< std::string, 1 > names;
+
 protected:
 
-    /// Simulation strategy implemented by this engine
+    /// Simulation strategy implemented by this engine.
+    /// Check SimulationEngine::names for available options.
     std::string name_;
 
-    /// Property whose value is trying to be estimated
-    const Property* property;
+    /// User's system model, already sealed
+    std::shared_ptr< const ModuleNetwork > network_;
 
     /// Importance function currently built
-    std::shared_ptr< const ImportanceFunction > impFun;
+    std::shared_ptr< const ImportanceFunction > impFun_;
+
+    /// Were we just interrupted in an estimation timeout?
+    mutable bool interrupted;
 
 public:  // Ctors/Dtor
 
-    /// No data ctor, only empty ctor provided
-    SimulationEngine() : property(nullptr), impFun(nullptr) {}
+    /**
+     * Data ctor
+     * @param name @copydoc name_
+     * @param network @copydoc network_
+     * @throw FigException if the name doesn't match a valid engine
+     * @throw FigException if the system model hasn't been sealed yet
+     */
+    SimulationEngine(const std::string& name,
+                     std::shared_ptr<const ModuleNetwork> network);
     /// Default copy ctor
     SimulationEngine(const SimulationEngine& that) = default;
     /// Default move ctor
@@ -79,89 +101,102 @@ public:  // Ctors/Dtor
     /// Default move assignment
     SimulationEngine& operator=(SimulationEngine&& that) = default;
     /// Virtual dtor
-    virtual ~SimulationEngine() { unload(); }
+    virtual ~SimulationEngine();
 
 public:  // Engine setup
 
-	/// @brief Is this engine ready for simulations?
-	/// @details True after a successfull call to load().
-	///          False again after a call to unload().
-	inline bool loaded() const noexcept
-		{ return nullptr != property && nullptr != impFun; }
+    /// @brief Is this engine tied up to an ImportanceFunction,
+    ///        and thus ready for simulations?
+    /// @details True after a successfull call to bind().
+    ///          False again after a call to unbind().
+    bool bound() const noexcept;
 
-	/// @copydoc loaded()
-	inline bool ready() const noexcept { return loaded(); }
+    /// Alias for bound()
+    inline bool ready() const noexcept { return bound(); }
 
     /**
-     * @brief Register the property and importance function
-     *        which will be used in the following simulations
-     * @param prop  Property whose value is to be estimated
-     * @param ifun  ImportanceFunction which will be used for estimations
-     * @throw FigException if either the Property or the ImportanceFunction
-     *                     are incompatible with this SimulationEngine
-     * @see unload()
+     * @brief Register the importance function which will be used in the
+     *        following estimations
+     * @param ifun  ImportanceFunction to use, \ref ImportanceFunction::ready()
+     *              "ready for simulations"
+     * @throw FigException if the ImportanceFunction isn't
+     *                     \ref ImportanceFunction::ready() "ready",
+     *                     or if it is incompatible with this engine
+     * @see unbind()
      */
-    virtual void load(const Property& prop,
-                      std::shared_ptr< const ImportanceFunction > ifun)
-        { property = &prop; impFun = ifun; }
+    virtual void bind(std::shared_ptr< const ImportanceFunction > ifun);
 
-    /// Deregister the last Property and ImportanceFunction which were setup
-    /// @see load()
-    inline void unload() noexcept
-        { property = nullptr; impFun = nullptr; }
+    /// Deregister the last ImportanceFunction which was tied to us
+    /// @see bind()
+    void unbind() noexcept;
 
 public:  // Accessors
 
     /// @copydoc name_
     inline const std::string& name() const noexcept { return name_; }
 
-    /// Property currently loaded in the engine, or void string if none is.
-    inline const std::string current_prop() const noexcept
-        { if (nullptr != property) return property->expression; else return ""; }
-
-    /// Importance strategy of the function currently loaded in the engine,
+    /// Importance function currently bound to the engine,
     /// or void string if none is.
-    inline const std::string current_ifun() const noexcept
-        { if (nullptr != impFun) return impFun->name(); else return ""; }
+    inline const std::string current_imp_fun() const noexcept
+        { if (nullptr != impFun_) return impFun_->name(); else return ""; }
+
+    /// Importance strategy of the function currently bound to the engine,
+    /// or void string if none is.
+    /// @note If current ImportanceFunction isn't ready for simulations,
+    ///       then this function also returns an empty string
+    inline const std::string current_imp_strat() const noexcept
+        { if (nullptr != impFun_) return impFun_->strategy(); else return ""; }
 
 public:  // Simulation utils
 
     /**
      * @brief Simulate in model certain number of independent runs
      *
-     *        The property whose value is being estimated as well as the
-     *        importance function used are taken from the last call to load()
+     *        This is intended for "value simulations", viz. when estimations
+     *        finish as soon as certain confidence criterion is met.
+     *        The importance function used is taken from the last call to bind()
      *
-     * @param numRuns Number of indepdendent runs to perform
+     * @param property Property whose value is being estimated
+     * @param numRuns  Number of indepdendent runs to perform
      *
-     * @return Estimated value for the property at the end of this simulation
+     * @return Estimated value for the property at the end of this simulation,
+     *         or negative value if something went wrong.
      *
-     * @throw FigException if the engine wasn't \ref loaded() "ready"
+     * @throw FigException if the engine wasn't \ref bound() "bound" to any
+     *                     ImportanceFunction
      */
-    virtual double simulate(const size_t& numRuns) const = 0;
+    virtual double simulate(const Property& property,
+                            const size_t& numRuns = 1) const = 0;
 
     /**
      * @brief Simulate in model until externally interrupted
      *
-     *        The property whose value is being estimated as well as the
-     *        importance function used are taken from the last call to load()
+     *        This is intended for "time simulations", viz. when estimations
+     *        run indefinitely until they're externally interrupted.
+     *        The importance function used is taken from the last call to bind()
      *
-     * @param ci ConfidenceInterval regularly updated with estimation info
+     * @param property  Property whose value is being estimated
+     * @param batchSize Number of consecutive simulations for each interval update
+     * @param interval  ConfidenceInterval regularly updated with estimation info
      *
-     * @throw FigException if the engine wasn't \ref loaded() "ready"
+     * @throw FigException if the engine wasn't \ref bound() "bound" to any
+     *                     ImportanceFunction
      */
-    virtual void simulate(ConfidenceInterval& ci) const = 0;
+    virtual void simulate(const Property& property,
+                          const size_t& batchSize,
+                          ConfidenceInterval& interval) const = 0;
 
     /**
      * @brief Were the last events triggered by the given Traial
-     *        relevant for this simulation engine?
+     *        relevant for this property and simulation strategy?
      *
-     *        The property whose value is being estimated as well as the
-     *        importance function used are taken from the last call to load()
+     * @param property Property whose value is being estimated
+     * @param traial   Embodiment of a simulation running through the system model
      *
-     * @param traial Embodiment of a simulation running through the system model
+     * @note The importance function used is taken from the last call to bind()
      */
-    virtual bool eventTriggered(const Traial& traial) const = 0;
+    virtual bool event_triggered(const Property& property,
+                                 const Traial& traial) const = 0;
 };
 
 } // namespace fig

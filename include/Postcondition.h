@@ -175,8 +175,7 @@ public:  // Ctors/Dtor
 	/// Dtor
 	virtual ~Postcondition();
 
-//protected:  // Modifyers
-public:  // Public only for testing
+protected:  // Modifyers
 
 	/**
 	 * @copydoc fig::MathExpression::pin_up_vars(const PositionsMap&)

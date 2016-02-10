@@ -1,8 +1,8 @@
 //==============================================================================
 //
-//  ILabel.h
+//  PropertyTransient.cpp
 //
-//  Copyleft 2015-
+//  Copyleft 2016-
 //  Authors:
 //  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
 //
@@ -27,27 +27,39 @@
 //==============================================================================
 
 
-#ifndef ILABEL_H
-#define ILABEL_H
-
-#include <Label.h>
-#include <FigException.h>
+#include <PropertyTransient.h>
 
 
 namespace fig
 {
 
-/// Input \ref Label "label"
-/// @see OLabel
-class ILabel : public Label
+const std::string
+PropertyTransient::stop_expression() const noexcept
 {
-public:
-	ILabel() { throw_FigException("can't construct an empty input label"); }
-	ILabel(const std::string& str) : Label(str, false) {}
-	ILabel(std::string&& str)      : Label(str, false) {}
-};
+	return stop.expression();
+}
+
+
+const std::string
+PropertyTransient::goal_expression() const noexcept
+{
+	return goal.expression();
+}
+
+
+void
+PropertyTransient::pin_up_vars(const PositionsMap &globalVars)
+{
+	stop.pin_up_vars(globalVars);
+	goal.pin_up_vars(globalVars);
+}
+
+
+void
+PropertyTransient::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
+{
+	stop.pin_up_vars(globalState);
+	goal.pin_up_vars(globalState);
+}
 
 } // namespace fig
-
-#endif // ILABEL_H
-

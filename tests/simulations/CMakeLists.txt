@@ -28,7 +28,7 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
-PROJECT (fig)
+PROJECT (fig_test_tads)
 
 SET(fig_VERSION_MAYOR 0)
 SET(fig_VERSION_MINOR 4)
@@ -38,11 +38,11 @@ SET(fig_VERSION_MINOR 4)
 ###  Project directory structure  #############################################
 
 # Default directories configuration
-SET(SOURCES_DIR ${PROJECT_SOURCE_DIR}/src)
-SET(HEADERS_DIR ${PROJECT_SOURCE_DIR}/include)
-SET(LIBRARIES_DIR ${PROJECT_SOURCE_DIR}/lib)
-SET(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin)
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/fig)
+SET(SOURCES_DIR ${PROJECT_SOURCE_DIR}/../../src)
+SET(HEADERS_DIR ${PROJECT_SOURCE_DIR}/../../include)
+SET(LIBRARIES_DIR ${PROJECT_SOURCE_DIR}/../../lib)
+SET(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/../../bin)
+SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/test)
 
 # Header file with CMake settings for the source code
 CONFIGURE_FILE (
@@ -50,23 +50,55 @@ CONFIGURE_FILE (
 	"${HEADERS_DIR}/FigConfig.h"
 )
 
-# Allow subdirectories to append their own files and dirs (https://goo.gl/xxIOAM)
+# Allow subdirectories to append their files and dirs (https://goo.gl/xxIOAM)
 SET(HEADERS_DIR ${HEADERS_DIR} CACHE INTERNAL "")
 SET(ALL_SOURCES CACHE INTERNAL "")
 
-# Visit subdirectories
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/ext)
+# Visit necessary subdirectories
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/muparser2.2.5
+                 ${PROJECT_BINARY_DIR}/muparser2.2.5)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/openmp
+                 ${PROJECT_BINARY_DIR}/openmp)
  
 # Register all include paths
 INCLUDE_DIRECTORIES(${HEADERS_DIR})
 
-# Register our own source files toghether with all others
-AUX_SOURCE_DIRECTORY(${SOURCES_DIR} OUR_SOURCES)
-SET(ALL_SOURCES ${ALL_SOURCES} ${OUR_SOURCES} CACHE INTERNAL "")
+# Register the source files (only those required for this test)
+SET(REQUIRED_SOURCES "${SOURCES_DIR}/Clock.cpp"
+                     "${SOURCES_DIR}/Variable.cpp"
+                     "${SOURCES_DIR}/VariableInterval.cpp"
+                     "${SOURCES_DIR}/VariableSet.cpp"
+                     "${SOURCES_DIR}/State.cpp"
+                     "${SOURCES_DIR}/MathExpression.cpp"
+                     "${SOURCES_DIR}/Precondition.cpp"
+                     "${SOURCES_DIR}/Postcondition.cpp"
+                     "${SOURCES_DIR}/Transition.cpp"
+                     "${SOURCES_DIR}/ModuleInstance.cpp"
+                     "${SOURCES_DIR}/ModuleNetwork.cpp"
+                     "${SOURCES_DIR}/ModelSuite.cpp"
+                     "${SOURCES_DIR}/Traial.cpp"
+                     "${SOURCES_DIR}/TraialPool.cpp"
+                     "${SOURCES_DIR}/PropertyTransient.cpp"
+                     "${SOURCES_DIR}/SimulationEngine.cpp"
+                     "${SOURCES_DIR}/SimulationEngineNosplit.cpp"
+                     "${SOURCES_DIR}/StoppingConditions.cpp"
+                     "${SOURCES_DIR}/ConfidenceInterval.cpp"
+                     "${SOURCES_DIR}/ConfidenceIntervalMean.cpp"
+                     "${SOURCES_DIR}/ConfidenceIntervalProportion.cpp"
+                     "${SOURCES_DIR}/ConfidenceIntervalWilson.cpp"
+                     "${SOURCES_DIR}/ImportanceFunction.cpp"
+                     "${SOURCES_DIR}/ImportanceFunctionConcrete.cpp"
+                     "${SOURCES_DIR}/ImportanceFunctionConcreteCoupled.cpp")
+SET(ALL_SOURCES ${ALL_SOURCES} ${REQUIRED_SOURCES} CACHE INTERNAL "")
+
+# Register also the source files from this test
+AUX_SOURCE_DIRECTORY(${PROJECT_SOURCE_DIR} TEST_SOURCES)
+SET(ALL_SOURCES ${ALL_SOURCES} ${TEST_SOURCES} CACHE INTERNAL "")
 
 ## # Libraries
 ## LINK_DIRECTORIES(${LIBRARIES_DIR})
 ##  Tip: use find_library() and find_package() instead
+
 
  
 ###  Compiler configuration  ##################################################
@@ -137,9 +169,6 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 
 ###  Link flags  ##############################################################
 
-# Z3
-SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -lz3" )
-
 # GNU pthreads
 SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pthread" )
 
@@ -150,15 +179,5 @@ SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
 
 ###  Build executable  ########################################################
 
-SET(LEXER_L  "${SOURCES_DIR}/lexer.l")
-SET(LEXER_CC "${PROJECT_BINARY_DIR}/lex.yy.cc")
-
-ADD_CUSTOM_COMMAND(
-	OUTPUT ${LEXER_CC}
-	COMMAND flex++ ${LEXER_L}
-	COMMAND sed -i "/#define yyFlexLexer yyFlexLexer/d" ${LEXER_CC}
-	DEPENDS ${LEXER_L}
-)
-
-ADD_EXECUTABLE(fig ${ALL_SOURCES} ${LEXER_CC})
+ADD_EXECUTABLE(test_simulations ${ALL_SOURCES})
 

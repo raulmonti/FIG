@@ -131,7 +131,7 @@ void MathExpression::parse_our_expression()
 		std::cerr << "    token:    " << e.GetToken() << std::endl;
 		std::cerr << "    position: " << e.GetPos()   << std::endl;
 		std::cerr << "    errc:     " << e.GetCode()  << std::endl;
-		throw FigException("bad mathematical expression");
+		throw_FigException("bad mathematical expression");
 	}
 }
 

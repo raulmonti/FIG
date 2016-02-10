@@ -30,27 +30,58 @@
 #ifndef FIGEXCEPTION_H
 #define FIGEXCEPTION_H
 
+// C
+#include <libgen.h>  // basename(), dirname()
+#include <cstring>   // strndup()
+// C++
 #include <exception>
 #include <utility>
+#include <string>
+
 
 namespace fig
 {
 
-/// Very primitive exception support
+/// Custom exception, use through macro defined at the end of this file
 class FigException : public std::exception
 {
 	std::string msg_;
-	inline virtual const char* what() const throw()
+
+	inline virtual const char* what() const noexcept { return msg_.c_str(); }
+
+	inline void compose_msg(const char* fullpath0, int line)
 	{
-		return std::string("FigException raised: ").append(msg_).c_str();
+		const size_t maxlen(1u<<7);
+		auto fullpath1 = strndup(fullpath0, maxlen);
+		auto fullpath2 = strndup(fullpath0, maxlen);
+		msg_ = msg_.append("\n@ ").append(basename(fullpath1))
+				   .append(":").append(std::to_string(line))
+				   .append("\nThrown from dir ").append(dirname(fullpath2));
+		free(fullpath1);
+		free(fullpath2);
 	}
+
 public:
-	FigException(const char* msg) : msg_(msg) {}
-	FigException(const std::string& msg) : msg_(msg) {}
-	FigException(std::string&& msg) : msg_(std::move(msg)) {}
+
+	FigException(const char* msg, const char* file, int line) :
+		msg_(msg)
+		{ compose_msg(file, line); }
+
+	FigException(const std::string& msg, const char* file, int line) :
+		msg_(msg)
+		{ compose_msg(file, line);}
+
+	FigException(std::string&& msg, const char* file, int line) :
+		msg_(std::move(msg))
+		{ compose_msg(file, line); }
+
 	inline const std::string& msg() { return msg_; }
 };
 
-}
+} // namespace fig
+
+
+#define  throw_FigException(msg) throw fig::FigException((msg), __FILE__, __LINE__)
+
 
 #endif // FIGEXCEPTION_H
