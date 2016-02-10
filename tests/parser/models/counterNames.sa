@@ -13,7 +13,7 @@ end module
 
 module M1
 
-    a:[1..2] init 2;
+    a: [1..2] init 2;
     e: bool init false;
     e: bool;
     c: clock;

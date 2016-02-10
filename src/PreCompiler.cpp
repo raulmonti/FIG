@@ -71,7 +71,7 @@ rec_circ_depend(string start, const map<string, vector<string>> &depend){
             err += " ";
         }
         stack.clear();
-        throw FigException(err);
+        throw_FigException(err);
     }
     for(const auto &it: depend.at(start)){
         rec_circ_depend(it, depend);
@@ -99,7 +99,7 @@ check_no_const_circular_depend(const vector<AST*> &consts)
         try{
             rec_circ_depend(it.first, depend);
         }catch(FigException &e){
-            throw FigException("[ERROR] Circular dependency on definition"
+            throw_FigException("[ERROR] Circular dependency on definition"
                                " of constant " + it.first + ". Stack: " + 
                                e.msg());
         }

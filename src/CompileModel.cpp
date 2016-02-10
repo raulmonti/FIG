@@ -16,17 +16,10 @@ using namespace std;
 using namespace parser;
 
 
-typedef fig::State<fig::STATE_INTERNAL_TYPE>                state;
-typedef fig::VariableDefinition<fig::STATE_INTERNAL_TYPE>  varDec;
-
 
 
 namespace{
 
-
-/**
- * TODO
- **/
 const state
 CompileVars(const vector<AST*> varList  )
 {
@@ -60,10 +53,8 @@ CompileVars(const vector<AST*> varList  )
     return result;
 }
 
+//==============================================================================
 
-/**
- * brief Get a vector with each clock from the model. 
- **/
 const vector<Clock>
 CompileClocks(const vector<AST*> transitions)
 {
@@ -93,12 +84,11 @@ CompileClocks(const vector<AST*> transitions)
     return result;
 }
 
+//==============================================================================
 
-/**
- * TODO
- **/
 fig::Transition
-CompileTransition(AST* trans){
+CompileTransition(AST* trans)
+{
 
     string action = trans->get_lexeme(_ACTION);
     bool io = trans->get_lexeme(_IO) == "!";
@@ -150,24 +140,15 @@ CompileTransition(AST* trans){
 }
 
 
-/**
- * TODO
- */
-bool
-is_input(AST* transition){
-    return("?" == transition->get_lexeme(_IO));
-}
+//==============================================================================
 
-/**
- * TODO
- */
 vector<fig::Transition>
 build_input_enable( vector<AST*> transitions)
 {
     vector<fig::Transition> result;
     map<string, vector<AST*>> labelToPre;
     for(const auto &it: transitions){
-        if(is_input(it)){
+        if("?" == it->get_lexeme(_IO)){ // is it input?
             string l = it->get_lexeme(_ACTION);
             AST* pre = it->get_first(_PRECONDITION);
             auto ret = labelToPre.find(l);
@@ -203,9 +184,8 @@ build_input_enable( vector<AST*> transitions)
     return result;
 }
 
-/**
- * TODO
- **/
+//==============================================================================
+
 std::shared_ptr<ModuleInstance> 
 CompileModule(AST* module)
 {
@@ -214,8 +194,8 @@ CompileModule(AST* module)
     vector<AST*> transitions = module->get_all_ast(_TRANSITION);
 
     auto result = make_shared<ModuleInstance>(name
-                                ,CompileVars(variables)
-                                ,CompileClocks(transitions));
+                                             ,CompileVars(variables)
+                                             ,CompileClocks(transitions));
 
     for(const auto &it: transitions){
         auto transition = CompileTransition(it);
@@ -233,8 +213,6 @@ CompileModule(AST* module)
 
 
 
-
-
 namespace fig{
 
 /**
@@ -243,8 +221,8 @@ namespace fig{
  * @throw FigException
  */
 void
-CompileModel(AST* astModel, const parsingContext &pc){
-   
+CompileModel(AST* astModel, const parsingContext &pc)
+{   
 	auto model = fig::ModelSuite::get_instance();
 	assert(!model.sealed());
 
@@ -253,7 +231,7 @@ CompileModel(AST* astModel, const parsingContext &pc){
         auto module = CompileModule(it);
         model.add_module(module);
     }
-    //TODO SEAL
+    model.seal(NamesList({}));
 }
 
 } // namespace fig

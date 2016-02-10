@@ -20,47 +20,37 @@
 #include "exceptions.h"
 #include "CompileModel.h"
 #include "PreCompiler.h"
-
+#include <stdlib.h>
 
 using namespace std;
 using namespace parser;
 
+//==============================================================================
 
-int 
-main (int argc, char** argv){
 
-    assert(argc == 2);
 
-    cout << ">> Running the parser ..." << endl;
-    cout << ">> Parsing file: " << argv[1] << endl ;
 
-    /* Instanciate a parser, and a verifier. */
-    Parser   *parser   = new Parser();
-    Precompiler *prec  = new Precompiler();
-    Verifier *verifier = new Verifier();
+void
+compile(string filename)
+{
+    //FIXME check that filename is valid
+
+    auto parser   = new Parser();
+    auto prec     = new Precompiler();
+    auto verifier = new Verifier();
 
     /* Get a stream with the model to parse. */
-    ifstream fin(argv[1],ios::binary);
+    ifstream fin(filename,ios::binary);
     stringstream ss;
     ss << fin.rdbuf();
-
-    /* Parse and point to the resulting AST. */
+    /* Parse. */
     pair<AST*, parsingContext> pp = parser->parse(& ss);
+    /* Verify. */
+    cout << filename << "\n" << *pp.first << endl;
     if(pp.first){
-        __debug__(">> Result of Parsing:\n\n");
+        __debug__("[DEBUG] Result of Parsing:\n\n");
         __debug__(pp.first);
-        __debug__("\n\n");
-
-        /* Do something with the resulting AST ... 
-           like printing each modules name: */
-        vector<AST*> modules = pp.first->get_list(parser::_MODULE);
-        for (int i = 0; i < modules.size(); i++){
-            //cout << (modules[i])->branches[1]->lxm << endl;
-            //OR
-            //cout << (modules[i])->get_list(parser::_NAME)[0]->lxm << endl; 
-            //OR
-            //cout << modules[i]->get_list_lexemes(parser::_NAME)[0] << endl;
-        }
+        __debug__("[DEBUG]\n");
 
         try{
             stringstream pss;
@@ -69,21 +59,55 @@ main (int argc, char** argv){
             pp = parser->parse(&pss);
             verifier->verify(pp.first,pp.second);
             fig::CompileModel(pp.first,pp.second);
-
-        }catch(string e){
-
-            cout << e << endl;
-        }
-
-        /* We are in charge of deleting the AST. */
-        if (pp.first != NULL){
+        }catch(std::exception &e){
             delete pp.first;
+            delete parser;
+            delete verifier;
+            delete prec;      
+            throw e;
+        }catch(string &e){
+            delete pp.first;        
+            delete parser;
+            delete verifier;
+            delete prec;
+            throw e;
         }
     }
 
+    /* We are in charge of deleting the AST. */
     delete parser;
     delete verifier;
+    delete prec;
+    delete pp.first;
+}
 
+void
+test_names(string filename)
+{
+    cout << "[TESTING] NAMES ..." << endl;
+    try{
+        compile(filename);
+    }catch(std::exception e){
+        cout << e.what() << endl;
+        assert(false);
+    }
+    cout << "[TESTING] NAMES NOT PASSED" << endl;
+}
+
+
+int 
+main (int argc, char** argv){
+
+    char name[4096];
+    realpath("tests/parser/models/counterNames.sa",name);
+    string modelsPath(name);
+
+    test_names(modelsPath + "/counterNames.sa");
     return 0;
 }
+
+
+
+
+
 

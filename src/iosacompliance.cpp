@@ -196,7 +196,7 @@ get_limits(AST* ast, string var){
             return result;
         }
     }
-    throw FigException("Can't find variable " + var + " limits.");
+    throw_FigException("Can't find variable " + var + " limits.");
 }
 
 
@@ -356,7 +356,7 @@ Verifier::~Verifier(void){}
  *  @return 1 if it complies.
  *  @return 0 otherwise.
  */
-int 
+void 
 Verifier::verify( AST* ast, const parsingContext pc){
 
     mPc = pc; /* FIXME shouldn't do this copy, it comes from refactoring.
@@ -380,11 +380,9 @@ Verifier::verify( AST* ast, const parsingContext pc){
         pout << ">> Check 7th IOSA condition...\n";
         check_input_determinism(ast);
     }catch(string warning){
-        cout << warning;
-        return 0;
+        throw warning;
     }
 
-    return 1;
 }
 
 

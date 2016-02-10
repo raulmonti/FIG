@@ -51,10 +51,8 @@ public:
 
     /**
      * @brief  fully verify if @ast compliances with IOSA modeling.
-     * @return 1 if it compliances.
-     * @return 0 if something went wrong.
      */
-    int 
+    void 
     verify( AST* ast, const parsingContext);
 
 private:

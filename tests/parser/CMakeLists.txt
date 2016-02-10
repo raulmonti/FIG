@@ -88,7 +88,18 @@ SET(REQUIRED_SOURCES "${SOURCES_DIR}/ast.cpp"
                      "${SOURCES_DIR}/ModelSuite.cpp"
                      "${SOURCES_DIR}/Traial.cpp"
                      "${SOURCES_DIR}/TraialPool.cpp"
-                     "${SOURCES_DIR}/SimulationEngineNosplit.cpp")
+                     "${SOURCES_DIR}/SimulationEngineNosplit.cpp"
+                     "${SOURCES_DIR}/PropertyTransient.cpp"
+                     "${SOURCES_DIR}/SimulationEngine.cpp"
+                     "${SOURCES_DIR}/SimulationEngineNosplit.cpp"
+                     "${SOURCES_DIR}/StoppingConditions.cpp"
+                     "${SOURCES_DIR}/ConfidenceInterval.cpp"
+                     "${SOURCES_DIR}/ConfidenceIntervalMean.cpp"
+                     "${SOURCES_DIR}/ConfidenceIntervalProportion.cpp"
+                     "${SOURCES_DIR}/ConfidenceIntervalWilson.cpp"
+                     "${SOURCES_DIR}/ImportanceFunction.cpp"
+                     "${SOURCES_DIR}/ImportanceFunctionConcrete.cpp"
+                     "${SOURCES_DIR}/ImportanceFunctionConcreteCoupled.cpp")
 SET(ALL_SOURCES ${ALL_SOURCES} ${REQUIRED_SOURCES} CACHE INTERNAL "")
 
 # Register also the source files from this test
@@ -148,7 +159,11 @@ ENDIF()
 # Z3
 SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -lz3" )
 
+# GNU pthreads
+SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pthread" )
 
+# OpenMP
+SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
 
 ###  Build executable  ########################################################
 
