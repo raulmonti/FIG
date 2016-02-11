@@ -82,7 +82,7 @@ ConfidenceIntervalProportion::update(const double& newResults,
 bool
 ConfidenceIntervalProportion::min_samples_covered() const noexcept
 {
-	return numRares_ > 10 * statOversample_;
+	return numRares_ > 30 * statOversample_;
 }
 
 

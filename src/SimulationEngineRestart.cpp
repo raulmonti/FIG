@@ -205,12 +205,12 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			}
 		}
 	}
-	assert(0u <= raresCount.sum());
 
 	// To estimate, weigh each count by the relative importance
 	// of the threshold level it belongs to.
 	// This upscale must be balanced in the ConfidenceInterval update.
 	double weighedRaresCount(0.0);
+	assert(numThresholds == 2);
 	for (unsigned i = 0u ; i <= numThresholds ; i++)
 		weighedRaresCount += raresCount[i]
 							  * std::pow(splitsPerThreshold_, numThresholds-i+1);
@@ -219,8 +219,8 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	assert(0.0 <= weighedRaresCount);
 	if (ModelSuite::MIN_COUNT_RARE_EVENTS > raresCount.sum()) {
 		/// @todo TODO proper log in technical log
-		std::cerr << "Too few rare events generated (" << raresCount.sum()
-				  << ") in " << numRuns << " simulations\n";
+//		std::cerr << "Too few rare events generated (" << raresCount.sum()
+//				  << ") in " << numRuns << " simulations\n";
 		weighedRaresCount *= -1.0;
 	}
 

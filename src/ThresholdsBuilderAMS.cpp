@@ -102,6 +102,9 @@ simulate(const fig::ModuleNetwork& network,
 
 	// Function pointers matching supported signatures (ModuleNetwork.cpp)
 	auto predicate = [&](const fig::Traial&) -> bool {
+		/// @todo NOTE: try also stopping when we reach max importance
+		/// @todo NOTE: try also stopping when we reach min importance
+		/// @todo NOTE: try also stopping when we reach importance when started "this retrial"
 		return --jumpsLeft > 0u;
 	};
 	auto update = [&](fig::Traial& t) -> void {
@@ -215,7 +218,7 @@ ThresholdsBuilderAMS::build_thresholds_concrete(
 	std::vector< ImportanceValue >& impVec)
 {
 	if (impFun.max_importance() < static_cast<ImportanceValue>(2u))
-		return 1u;  // not worth it
+		return static_cast<unsigned>(impFun.max_importance());  // not worth it
 
 	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 	tune(network.concrete_state_size(),

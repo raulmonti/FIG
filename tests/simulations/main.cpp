@@ -202,6 +202,7 @@ int main()
 	const std::string ifunStrategy = "auto";
 	const std::string thrTechnique = "ams";
 	const std::string engineName = "restart";
+
 	model.seal(initialClocks);
 	std::cout << "Building an  importance function" << std::endl;
 	model.build_importance_function(ifunName, ifunStrategy, *property_ptr);
@@ -215,11 +216,12 @@ int main()
 	stop_by_value.add_confidence_criterion(0.8, 0.1, true);
 	assert(stop_by_value.is_confidence_criteria());
 	fig::StoppingConditions stop_by_time;
-	stop_by_time.add_time_budget(6ul);
+	stop_by_time.add_time_budget(2ul);
+	stop_by_time.add_time_budget(7ul);
 	assert(stop_by_time.is_time_budgets());
 	
 	// Simulations
-	std::cout << "Simulating for fixed time span" << std::endl;
+	std::cout << "Simulating for fixed time spans" << std::endl;
 	model.estimate(*property_ptr, *engine_ptr, stop_by_time);
 	std::cout << "Simulating until desired accuracy is reached" << std::endl;
 	model.estimate(*property_ptr, *engine_ptr, stop_by_value);

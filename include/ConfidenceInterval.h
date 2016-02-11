@@ -30,6 +30,7 @@
 #ifndef CONFIDENCEINTERVAL_H
 #define CONFIDENCEINTERVAL_H
 
+#include <string>
 #include <algorithm>  // std::max(), std::min()
 
 
@@ -43,6 +44,9 @@ namespace fig
 class ConfidenceInterval
 {
 public:  // Attributes: CI fingerprint
+	
+	/// Some name identifying which kind of CI this is
+	const std::string name;
 
 	/// Desired precision half-width
 	const double errorMargin;
@@ -76,19 +80,23 @@ protected:  // Attributes: estimation correction factors
 	/// @see min_samples_covered()
 	double statOversample_;
 
-	/// Calibration of the relative weight of simulation runs
+	/// Calibration of the relative weight of the experimental samples fed
 	double varCorrection_;
 
 public:  // Ctor
 
 	/**
 	 * Only data ctor provided
+	 * @param thename          @copydoc name
 	 * @param confidence       Interval's confidence coefficient ∈ (0.0, 1.0)
 	 * @param precision        Interval's desired full width > 0.0
 	 * @param dynamicPrecision Is the precision a percentage of the estimate?
 	 * @throw FigException if either 'confidence' or 'precision' is invalid
 	 */
-	ConfidenceInterval(double confidence, double precision, bool dynamicPrecision = false);
+	ConfidenceInterval(const std::string& name,
+					   double confidence,
+					   double precision,
+					   bool dynamicPrecision = false);
 
 public:  // Accessors
 

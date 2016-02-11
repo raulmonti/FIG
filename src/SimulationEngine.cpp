@@ -167,7 +167,7 @@ SimulationEngine::simulate(const Property &property,
 		if (0.0 <= raresCount)
 			return false;
 		else
-			return true;  // please increase 'numRuns'
+			return true;  // you'd better increase 'numRuns'
 		}
 
 	case PropertyType::THROUGHPUT:

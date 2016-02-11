@@ -115,7 +115,7 @@ build_empty_confidence_interval(
 			ci_ptr.reset(new fig::ConfidenceIntervalWilson(confidenceCo,
 														   precision,
 														   dynamicPrecision));
-        else if ("proportion" == hint)
+		else if ("proportion" == hint)
 			ci_ptr.reset(new fig::ConfidenceIntervalProportion(confidenceCo,
 															   precision,
 															   dynamicPrecision));
@@ -173,8 +173,8 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 //	FIXME: following compiles with Clang but not with gcc -- keep checking
 //	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
 	static const size_t batch_sizes[2][1] = {
-		{ 1u<<11 /*, 1u<<8 */ },  // nosplit x {concrete_coupled, concrete_split}
-		{ 1u<<9  /*, 1u<<5 */ }   // restart x {concrete_coupled, concrete_split}
+		{ 1u<<11 /*, 1u<<9 */ },  // nosplit x {concrete_coupled, concrete_split}
+		{ 1u<<9  /*, 1u<<8 */ }   // restart x {concrete_coupled, concrete_split}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -214,7 +214,7 @@ increase_batch_size(size_t& numRuns,
 //	FIXME: following compiles with Clang but not with gcc -- keep checking
 //	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
 	static const size_t batch_sizes[2][1] = {
-		{ 4u /*, 3u */ },  // nosplit x {concrete_coupled, concrete_split}
+		{ 3u /*, 3u */ },  // nosplit x {concrete_coupled, concrete_split}
 		{ 2u /*, 2u */ }   // restart x {concrete_coupled, concrete_split}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);

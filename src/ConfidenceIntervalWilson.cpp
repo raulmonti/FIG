@@ -98,7 +98,7 @@ ConfidenceIntervalWilson::update(const double& newResults,
 bool
 ConfidenceIntervalWilson::min_samples_covered() const noexcept
 {
-	return numRares_ > 10 * statOversample_;
+	return numRares_ > 30 * statOversample_;
 }
 
 
