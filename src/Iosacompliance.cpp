@@ -13,10 +13,10 @@
 #include <vector>
 #include <set>
 #include <algorithm>
-#include "parser.h"
-#include "iosacompliance.h"
-#include "ast.h"
-#include "exceptions.h"
+#include "Parser.h"
+#include "Iosacompliance.h"
+#include "Ast.h"
+#include "Exceptions.h"
 #include "FigException.h"
 
 
@@ -380,7 +380,7 @@ Verifier::verify( AST* ast, const parsingContext pc){
         pout << ">> Check 7th IOSA condition...\n";
         check_input_determinism(ast);
     }catch(string warning){
-        throw warning;
+        throw_FigException(warning);
     }
 
 }

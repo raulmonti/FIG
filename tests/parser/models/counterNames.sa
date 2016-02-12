@@ -8,7 +8,7 @@ module M1
     [t1!] ->;
 
 
-end module
+endmodule
 
 
 module M1
@@ -21,4 +21,4 @@ module M1
 
     [t1!] -> ;
 
-end module
+endmodule

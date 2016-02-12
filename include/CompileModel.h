@@ -5,11 +5,11 @@
 #define COMPILE_MODEL_H
 
 #include <vector>
-#include "ast.h"
+#include "Ast.h"
 #include "ModuleInstance.h"
 #include "Clock.h"
 #include "State.h"
-#include "parser.h"
+#include "Parser.h"
 
 using namespace fig;
 using namespace std;

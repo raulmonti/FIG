@@ -4,9 +4,9 @@
 #include "CompileModel.h"
 #include "State.h"
 #include "Clock.h"
-#include "parser.h"
+#include "Parser.h"
 #include "ModelSuite.h"
-#include "iosacompliance.h" // ast2expr
+#include "Iosacompliance.h" // ast2expr
 #include "FigException.h"
 #include <z3++.h>
 

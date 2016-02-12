@@ -12,7 +12,9 @@ module modone
     [d?] t==0 -> (t'=1);
     [d?] t==0 -> (t'=2);
     /* WARNING: */
-    [e?] t==0 -> (t'=1) & (x'=Norm(0,2)) & (y'=Exp(-1)) & (z'=Exp(2));
+    [e?] t==0 -> (t'=1) & (x'=normal(0,2)) 
+                        & (y'=exponential(1)) 
+                        & (z'=exponential(2));
     [e?] t==0 -> (t'=1);
     /* WARNING: */
     [h?] q==3 -> (t'=q);
@@ -33,4 +35,4 @@ module modone
     [f?] q==2 -> (t'=q);
     [f?] t==1 -> (t'=2);
 
-end module
+endmodule

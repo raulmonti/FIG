@@ -14,9 +14,9 @@
 #include<set>
 #include<map>
 #include<utility> // for pair type
-#include "ast.h"
+#include "Ast.h"
 #include "config.h"
-#include "parser.h"
+#include "Parser.h"
 #include <z3++.h>
 
 using namespace std;

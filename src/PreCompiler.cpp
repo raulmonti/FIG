@@ -1,6 +1,6 @@
 #include "PreCompiler.h"
-#include "parser.h"
-#include "iosacompliance.h" // ast2expr
+#include "Parser.h"
+#include "Iosacompliance.h" // ast2expr
 #include "FigException.h"
 #include <z3++.h>
 #include <vector>

@@ -1,8 +1,8 @@
 #ifndef PRECOMPILER_H
 #define PRECOMPILER_H
 
-#include "ast.h"
-#include "parser.h"
+#include "Ast.h"
+#include "Parser.h"
 #include <map>
 
 using namespace std;

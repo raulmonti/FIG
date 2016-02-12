@@ -2,7 +2,7 @@
 #include <iostream>
 // FIG
 #include <ModuleNetwork.h>
-#include <parser.h>
+#include <Parser.h>
 
 int main(int argc, char** argv)
 {

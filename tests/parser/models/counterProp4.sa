@@ -11,7 +11,7 @@ module modone
     [b!] t==0  @ y -> (t'=2);
     [c!] t==2  @ x -> (t'=3);
 
-end module
+endmodule
 
 
 
@@ -24,10 +24,10 @@ module modone2
     t2 : [0..3] init 0;
 
     [a2!] t2==0  @ z2 -> (t2'=1);
-    [b2!] t2==0  @ y2 -> (t2'=2) & (x2'=Norm(1,1));
+    [b2!] t2==0  @ y2 -> (t2'=2) & (x2'=normal(1,1));
     [c2!] t2==2  @ x2 -> (t2'=3);
 
-end module
+endmodule
 
 
 
@@ -43,7 +43,7 @@ module modone3
     [b3!] t3==0  @ y3 -> (t3'=2);
     [c3!] t3==2  @ x3 -> (t3'=3);
 
-end module
+endmodule
 
 
 
@@ -59,4 +59,4 @@ module modone4
     [b4!] t4< 3  @ y4 -> (t4'=2);
     [c4!] t4==2  @ x4 -> (t4'=3);
 
-end module
+endmodule

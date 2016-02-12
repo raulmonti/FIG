@@ -11,9 +11,9 @@
 #include <iostream>
 #include <sstream>
 #include <assert.h>
-#include "parser.h"
-#include "exceptions.h"
-
+#include "Parser.h"
+#include "Exceptions.h"
+#include "FigException.h"
 
 //==============================================================================
 
@@ -508,7 +508,6 @@ Parser::rNormDist(){
             return 1;
         }catch(SyntaxError *e){
             removeNode(); // _DISTRIBUTION
-            cout << e->what() << endl;
             throw string( "Normal distributions are expected to have the "
                           "following syntax: 'Normal(<NUMBER>,<NUMBER>)\n" );
         }
@@ -536,7 +535,6 @@ Parser::rExpDist(){
             return 1;
         }catch(SyntaxError *e){
             removeNode(); // _DISTRIBUTION
-            cout << e->what() << endl;
             throw string( "Exponential distributions are expected to have "
                           "the following syntax: 'Exponential(<NUMBER>)\n");
         }
@@ -569,7 +567,6 @@ Parser::rUniDist(){
             return 1;
         }catch(SyntaxError *e){
             removeNode(); // _DISTRIBUTION
-            cout << e->what() << endl;
             throw string( "Uniform distributions are expected to have the "
                           "following syntax: 'Uniform(<NUMBER>,<NUMBER>)\n"
                         );
@@ -760,7 +757,8 @@ Parser::parse(stringstream *str){
     // FIXME lineno is already given by the lexer (yylineno)
     int ret;
     int lineno = 1, colnum = 1;
-
+    // clear this structure    
+    clear();
     try{
         /* Lex */
         lexer->switch_streams((istream *)str);
@@ -808,10 +806,9 @@ Parser::parse(stringstream *str){
         //
 
     }catch(exception *e){
-        cout << "[Parser ERROR] " << e->what() << endl;
-        delete e;
+        throw_FigException(e->what());
     }catch(string s){
-        cout << "[Parser ERROR] " << s << endl;
+        throw_FigException(s);
     }
     return make_pair( ast, mPc );
 }

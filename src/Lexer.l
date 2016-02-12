@@ -12,8 +12,8 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "parser.h"
-#include "exceptions.h"
+#include "Parser.h"
+#include "Exceptions.h"
 #include "config.h" 
 %}
 

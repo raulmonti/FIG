@@ -13,7 +13,7 @@
 #include <sstream>
 
 
-#define __PARSER_VERBOSE__
+//#define __PARSER_VERBOSE__
 //#define __PARSER_DEBUG__
 
 #ifdef __PARSER_DEBUG__

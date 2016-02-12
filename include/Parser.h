@@ -16,7 +16,7 @@
 #include <map>
 #include <FlexLexer.h>
 #include "config.h"
-#include "ast.h"
+#include "Ast.h"
 
 
 using namespace std;
@@ -182,6 +182,7 @@ class Parser
     /* Results from parsing: */
     AST            *ast;            // resulting parsed model as an AST
     parsingContext  mPc;            // Map with type informartion for ast
+
 public:
 
     /**

@@ -69,9 +69,9 @@ ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/muparser2.2.5
 INCLUDE_DIRECTORIES(${HEADERS_DIR})
 
 # Register the source files (only those required for this test)
-SET(REQUIRED_SOURCES "${SOURCES_DIR}/ast.cpp"
-                     "${SOURCES_DIR}/parser.cpp"
-                     "${SOURCES_DIR}/iosacompliance.cpp"
+SET(REQUIRED_SOURCES "${SOURCES_DIR}/Ast.cpp"
+                     "${SOURCES_DIR}/Parser.cpp"
+                     "${SOURCES_DIR}/Iosacompliance.cpp"
                      "${SOURCES_DIR}/CompileModel.cpp"
                      "${SOURCES_DIR}/PreCompiler.cpp"
                      "${SOURCES_DIR}/Clock.cpp"
@@ -167,7 +167,7 @@ SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
 
 ###  Build executable  ########################################################
 
-SET(LEXER_L  "${SOURCES_DIR}/lexer.l")
+SET(LEXER_L  "${SOURCES_DIR}/Lexer.l")
 SET(LEXER_CC "${PROJECT_BINARY_DIR}/lex.yy.cc")
 
 # Generate lexer with flex

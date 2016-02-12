@@ -28,6 +28,7 @@ Read main.cpp file for an example.
 
 #-------------------------------------------------------------------------------
 /*
+TODO    Capitalize modules names.
 DONE    Change "end module" for "endmodule" in our syntax.
 DONE    Check that clocks have unique distribution in between transitions.
 DONE    work with constants.
