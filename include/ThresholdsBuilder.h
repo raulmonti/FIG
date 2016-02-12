@@ -40,6 +40,7 @@
 namespace fig
 {
 
+class ImportanceFunction;
 class ImportanceFunctionConcrete;
 
 /**
@@ -72,7 +73,7 @@ public:
 	ThresholdsBuilder(const std::string& thename);
 
 	/**
-	 * @brief Build thresholds from given concrete importance function.
+	 * @brief Build thresholds inside given concrete importance function.
 	 *
 	 *        The thresholds are built in 'impVec', which is the internal
 	 *        vector where 'impFun' holds its importance information.
@@ -92,15 +93,35 @@ public:
 	 *               states, where the thresholds will be stored <b>(modified)</b>
 	 *
 	 * @return Resulting number of threshold levels
-	 *         (i.e. new "maxImportance" value)
+	 *         (i.e. new "maxImportance" value for 'impFun')
 	 *
 	 * @throw FigException if method is unsupported by the derived class
 	 * @throw FigException if thresholds building failed
 	 */
 	virtual unsigned
-	build_thresholds_concrete(const unsigned& splitsPerThreshold,
-							  ImportanceFunctionConcrete& impFun,
-							  std::vector< ImportanceValue >& impVec) = 0;
+	build_thresholds_in_situ(const unsigned& splitsPerThreshold,
+							 ImportanceFunctionConcrete& impFun,
+							 std::vector< ImportanceValue >& impVec) = 0;
+
+	/**
+	 * @brief Build thresholds based on given importance function
+	 *
+	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
+	 *                           "threshold level up" event
+	 * @param impFun ImportanceFunction with internal
+	 *               \ref ImportanceFunction::has_importance_info() "importance
+	 *               information" to use for the task
+	 *
+	 * @return Thresholds vector as explained in the details.: result's i-th location will hold the i-th concrete state's threshold level,
+	 *        where the j-th threshold level is composed of all the states
+	 *        between the j-th and the (j+1)-th thresholds.
+	 *
+	 * @throw FigException if method is unsupported by the derived class
+	 * @throw FigException if thresholds building failed
+	 */
+	virtual std::vector< ImportanceValue >
+	build_thresholds_detached(const unsigned& splitsPerThreshold,
+							  const ImportanceFunction& impFun) = 0;
 };
 
 } // namespace fig

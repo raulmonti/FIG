@@ -46,13 +46,16 @@ namespace fig
 
 // Static variables initialization
 
-const std::array< std::string, 1 > ImportanceFunction::names =
+const std::array< std::string, 2 > ImportanceFunction::names =
 {{
 	// See ImportanceFunctionConcreteCoupled class
-	"concrete_coupled"
+	"concrete_coupled",
 
 //	// See ImportanceFunctionConcreteSplit class
 //	"concrete_split"
+
+	 // See ImportanceFunctionAlgebraic class
+	 "algebraic"
 }};
 
 
@@ -68,6 +71,46 @@ const std::array< std::string, 4 > ImportanceFunction::strategies =
 	// User defined importance, by means of some function over the states
 	"adhoc"
 }};
+
+
+
+// ImportanceFunction internal "Formula" class
+
+std::vector< std::string > emptyFormulaVarnames;
+
+
+ImportanceFunction::Formula::Formula() : MathExpression("", emptyFormulaVarnames)
+{ /* Not much to do around here */ }
+
+
+void
+ImportanceFunction::Formula::reset(const std::string& formula,
+								   const std::vector< std::string >& varnames,
+								   const State<STATE_INTERNAL_TYPE>& globalState)
+{
+	exprStr_ = formula;
+	empty_ = "" == formula;
+	parse_our_expression();  // updates expr_
+	varsMap_.clear();
+	for (const auto& name: varnames) {
+#ifndef NRANGECHK
+		if (std::string::npos == exprStr.find(name))
+			throw std::out_of_range(std::string("invalid variable name: \"")
+									.append(name).append("\""));
+#endif
+		varsMap_.emplace_back(       // copy elision
+				std::make_pair(name, globalState.position_of_var(name)));
+	}
+	pinned_ = true;
+}
+
+
+STATE_INTERNAL_TYPE
+ImportanceFunction::Formula::operator()(const StateInstance& state) const
+{
+	/// @todo TODO: implement!
+}
+
 
 
 // ImportanceFunction class member functions

@@ -97,7 +97,7 @@ public:  // Traial observers/updaters
 										 Traial& traial,
 										 Event& e) const
 		{
-			e = MASK(impFun_->info_of(traial.state));
+			e = MASK(cImpFun_->info_of(traial.state));
 			return IS_RARE_EVENT(e) || IS_STOP_EVENT(e);
 		}
 };

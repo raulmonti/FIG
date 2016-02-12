@@ -37,6 +37,7 @@
 // FIG
 #include <core_typedefs.h>
 #include <State.h>
+#include <MathExpression.h>
 
 
 namespace fig
@@ -60,20 +61,36 @@ class Property;
  *        derived class, importance assessment requires the choice of a
  *        "strategy" (flat, auto, ad hoc...) to decide how the relative
  *        importance between states will be measured.
- *
- * @note This class family follows the
- *       <a href="https://sourcemaking.com/design_patterns/visitor">
- *       visitor design pattern</a>. The visited elements are instances
- *       of the classes which derive from Module.
  */
 class ImportanceFunction
 {
+protected:
+
+	/// Mathematical formula to evaluate the importance of symbolic states
+	class Formula : public MathExpression
+	{
+		Formula();
+
+		/// Reset internal mathematical expression to the given formula
+		/// @param formula     String with mathematical expression to evaluate
+		/// @param varnames    Names of variables ocurring in exprStr
+		/// @param globalState State of the whole system model
+		/// @throw FigException if badly formatted mathematical expression
+		/// @throw out_of_range if 'varnames' has names not in exprStr
+		void reset(const std::string& formula,
+				   const std::vector< std::string >& varnames,
+				   const State<STATE_INTERNAL_TYPE>& globalState);
+
+		/// Evaluate current formula expression on given symbolic state
+		STATE_INTERNAL_TYPE operator()(const StateInstance& state) const;
+	};
+
 public:
 
 	/// Names of the importance functions offered to the user,
 	/// as he should requested them through the CLI/GUI.
 	/// Defined in ImportanceFunction.cpp
-	static const std::array< std::string, 1 > names;
+	static const std::array< std::string, 2 > names;
 
 	/// Importance assessment strategies offered to the user,
 	/// as he should requested them through the CLI/GUI.
@@ -88,7 +105,7 @@ private:
 
 protected:
 
-	/// Do we hold importance information from last assessment?
+	/// Do we hold importance information to assess the states' importance?
 	bool hasImportanceInfo_;
 
 	/// Can this instance be used for simulations?
@@ -105,6 +122,9 @@ protected:
 
 	/// Importance of the rare state with lowest importance from last assessment
 	ImportanceValue minRareImportance_;
+
+	/// Algebraic formula for ad hoc importance strategy
+	Formula assessor_;
 
 public:  // Ctor/Dtor
 
@@ -126,12 +146,11 @@ public:  // Accessors
 	/**
 	 * @copydoc hasImportanceInfo_
 	 *
-	 *  This starts out false and becomes true after a successfull call
-	 *  to either one of the importance assessment functions.
+	 *  This becomes true only after a successfull call to either
+	 *  ImportanceFunctionConcrete::assess_importance() or
+	 *  ImportanceFunctionAlgebraic::set_formula(),
+	 *  depending on the derived class this object is an instance of.<br>
 	 *  It becomes false again after a call to clear()
-	 *
-	 * @see assess_importance(const ModuleInstance&, const Property&, const std::string&)
-	 * @see assess_importance(const ModuleNetwork&, const Property&, const std::string&)
 	 */
 	bool has_importance_info() const noexcept;
 
@@ -160,8 +179,9 @@ public:  // Accessors
 	///          minimum ImportanceValue (or threshold level) of a rare state otherwise
 	ImportanceValue min_rare_importance() const noexcept;
 
-	/// Whether this instance stores importance values for the concrete state
-	/// space (as opposed to the symbolic state space)
+	/// Whether this instance keeps an internal std::vector<ImportanceValue>,
+	/// i.e. has info for the concrete state space,
+	///      as opposed to the symbolic state space.
 	virtual bool concrete() const noexcept = 0;
 
 	/// @copydoc thresholdsTechnique_
@@ -174,57 +194,37 @@ public:  // Accessors
 	///                     "ready for simulations"
 	unsigned num_thresholds() const;
 
+	/**
+	 * Tell the pre-computed importance of the given StateInstance.
+	 * @return ImportanceValue requested
+	 * \ifnot NDEBUG
+	 *   @throw FigException if there's no \ref has_importance_info()
+	 *                       "importance information" currently
+	 * \endif
+	 */
+	virtual ImportanceValue importance_of(const StateInstance& state) const = 0;
+
+	/**
+	 * Tell the threshold level to which given StateInstance belongs.
+	 * @return ImportanceValue requested
+	 * \ifnot NDEBUG
+	 *   @throw FigException if this instance isn't \ref ready()
+	 *                       "ready for simulations"
+	 * \endif
+	 */
+	virtual ImportanceValue level_of(const StateInstance& state) const = 0;
+
+	/**
+	 * @brief Print formatted internal importance information
+	 * @details States are printed along their importance (or threshold level)
+	 *          If events masks are present they are somehow marked,
+	 *          and a legend is included to interpret the marking.
+	 * @param out Output stream where printing will take place
+	 * @warning This can be <b>a lot</b> of printing, use with care.
+	 */
+	virtual void print_out(std::ostream& out) const = 0;
+
 public:  // Utils
-
-	/**
-	 * @brief Assess the importance of the states on this \ref ModuleInstance
-	 *        "module", according to the \ref Property "logical property" and
-	 *        strategy specified.
-	 *
-	 * @param mod      Module whose reachable states will have their importance
-	 *                 assessed. Its current state is considered initial.
-	 * @param prop     Property guiding the importance assessment
-	 * @param strategy Strategy of the assessment (flat, auto, ad hoc...)
-	 * @param force    Whether to force the computation, even if this
-	 *                 ImportanceFunction already has importance information
-	 *                 for the specified assessment strategy.
-	 *
-	 * @note After a successfull invocation the ImportanceFunction holds
-	 *       internally the computed \ref has_importance_info()
-	 *       "importance information" for the passed assessment strategy.
-	 *
-	 * @see assess_importance(const ModuleNetwork&, const Property&, const std::string&)
-	 * @see has_importance_info()
-	 */
-	virtual void assess_importance(const ModuleInstance& mod,
-								   const Property& prop,
-								   const std::string& strategy = "",
-								   bool force = false) = 0;
-
-	/**
-	 * @brief Assess the importance of the reachable states of the whole
-	 *        \ref ModuleNetwork "system model", according to the
-	 *        \ref Property "logical property" and strategy specified.
-	 *
-	 * @param net      System model (or coupled network of modules)
-	 *                 Its current state is taken as the model's initial state.
-	 * @param prop     Property guiding the importance assessment
-	 * @param strategy Strategy of the assessment (flat, auto, ad hoc...)
-	 * @param force    Whether to force the computation, even if this
-	 *                 ImportanceFunction already has importance information
-	 *                 for the specified assessment strategy.
-	 *
-	 * @note After a successfull invocation the ImportanceFunction holds
-	 *       internally the computed \ref has_importance_info()
-	 *       "importance information" for the passed assessment strategy.
-	 *
-	 * @see assess_importance(const ModuleInstance&, const Property&, const std::string&)
-	 * @see has_importance_info()
-	 */
-	virtual void assess_importance(const ModuleNetwork& net,
-								   const Property& prop,
-								   const std::string& strategy = "",
-								   bool force = false) = 0;
 
 	/**
 	 * @brief Build thresholds from precomputed importance information
@@ -246,38 +246,6 @@ public:  // Utils
 	 */
 	virtual void build_thresholds(ThresholdsBuilder& tb,
 								  const unsigned& splitsPerThreshold) = 0;
-
-	/**
-	 * Retrieve all pre-computed information about the given StateInstance,
-	 * potentially containing some event masks.
-	 * @return ImportanceValue possibly mixed with Event information
-	 * @note This instance should hold \ref has_importance_info()
-	 *       "importance information"
-	 * @see assess_importance()
-	 * @see importance_of()
-	 */
-	virtual ImportanceValue info_of(const StateInstance& state) const = 0;
-
-	/**
-	 * Tell the pre-computed importance of the given StateInstance,
-	 * free from any event mask kept internally.
-	 * @return Unmasked ImportanceValue requested
-	 * @note This instance should hold \ref has_importance_info()
-	 *       "importance information"
-	 * @see assess_importance()
-	 * @see info_of()
-	 */
-	virtual ImportanceValue importance_of(const StateInstance& state) const = 0;
-
-	/**
-	 * @brief Print formatted internal importance information
-	 * @details States are printed along their importance (or threshold level)
-	 *          If events masks are present they are somehow marked,
-	 *          and a legend is included to interpret the marking.
-	 * @param out Output stream where printing will take place
-	 * @warning This can be <b>a lot</b> of printing, use with care.
-	 */
-	virtual void print_out(std::ostream& out) const = 0;
 
 	/**
 	 * @brief Release any memory allocated in the heap

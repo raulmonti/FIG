@@ -67,33 +67,17 @@ public:  // Ctor/Dtor
 
 	virtual ~ImportanceFunctionConcreteCoupled();
 
-public:  // Utils
+public:  // Accessors
 
-	virtual void assess_importance(const ModuleInstance&,
-								   const Property&,
-								   const std::string&,
-								   bool)
-		{
-			throw_FigException("Concrete importance function for a coupled "
-							   "model can't be applied to a single \"split\" "
-							   "ModuleInstance. Take a look at "
-							   "ImportanceFunctionConcreteSplit instead.");
-		}
-
-	virtual void assess_importance(const ModuleNetwork& net,
-								   const Property& prop,
-								   const std::string& strategy = "",
-								   bool force = false);
-
-	virtual void build_thresholds(ThresholdsBuilder& tb,
-								  const unsigned& splitsPerThreshold);
-
-	/// @copydoc ImportanceFunction::info_of()
+	/// @copydoc ImportanceFunctionConcrete::info_of()
 	/// @note Attempted inline in a desperate need for speed
 	inline virtual ImportanceValue info_of(const StateInstance& state) const
 		{
 #       ifndef NDEBUG
-			assert(has_importance_info());
+			if (!has_importance_info())
+				throw_FigException(std::string("importance function \"")
+								   .append(name()).append("\" doesn't ")
+								   .append("hold importance information."));
 			globalStateCopy_.copy_from_state_instance(state, true);
 #       else
 			globalStateCopy_.copy_from_state_instance(state, false);
@@ -109,7 +93,31 @@ public:  // Utils
 			return UNMASK(info_of(state));
 		}
 
+	/// @copydoc ImportanceFunction::level_of()
+	/// @note Attempted inline in a desperate need for speed
+	inline virtual ImportanceValue level_of(const StateInstance &state) const
+		{
+#       ifndef NDEBUG
+			if (!ready())
+				throw_FigException(std::string("importance function \"")
+								   .append(name()).append("\" isn't ")
+								   .append("ready for simulations."));
+#		endif
+			// Internal vector currently holds threshold levels
+			return UNMASK(info_of(state));
+		}
+
 	virtual void print_out(std::ostream& out) const;
+
+public:  // Utils
+
+	virtual void assess_importance(const ModuleNetwork& net,
+								   const Property& prop,
+								   const std::string& strategy = "",
+								   bool force = false);
+
+	virtual void build_thresholds(ThresholdsBuilder& tb,
+								  const unsigned& splitsPerThreshold);
 
 	virtual void clear() noexcept;
 };

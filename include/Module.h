@@ -51,12 +51,6 @@ class ThresholdsBuilder;
  *
  *        The system model described by the user is implemented as a
  *        ModuleNetwork, composed of ModuleInstance objects.
- *
- * @note The accept member function implements the
- *       <a href="https://sourcemaking.com/design_patterns/visitor">
- *       visitor design pattern</a>, where the visitor is the
- *       ImportanceFunction and the visited elements are instances
- *       of the classes which derive from Module.
  */
 class Module
 {
@@ -101,12 +95,6 @@ public:  // Utils
 	///   @throw FigException if Module hasn't been sealed() yet
 	/// \endif
 	virtual size_t initial_concrete_state() const = 0;
-
-	/// Have the importance of our states assessed by this ImportanceFunction,
-	/// according to the given Property and strategy
-	virtual void accept(ImportanceFunction& ifun,
-						const Property& property,
-						const std::string& startegy) const = 0;
 };
 
 } // namespace fig

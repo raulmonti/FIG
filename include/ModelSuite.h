@@ -259,35 +259,42 @@ public:  // Utils
 	/**
 	 * @brief Assess importance for the currently loaded user model
 	 *
-	 *        Notice this returns an instance holding internal
-	 *        \ref ImportanceFunction::has_importance_info() "importance
-	 *        information" but not quite \ref ImportanceFunction::ready()
-	 *        "ready for simulations", since the thresholds haven't been
-	 *        built yet.
+	 *        Notice this leaves the corresponding ImportanceFunction
+	 *        with internal \ref ImportanceFunction::has_importance_info()
+	 *        "importance information" but not quite
+	 *        \ref ImportanceFunction::ready() "ready for simulations",
+	 *        since the thresholds haven't been built yet.
 	 *
 	 * @param name     Any from available_importance_functions()
 	 * @param strategy Any from available_importance_strategies()
-	 * @param property Property whose value is to be estimated,
-	 *                 defining the states of interest
+	 * @param assessor When building a \ref ImportanceFunctionConcrete
+	 *                 "concrete importance function" this should be
+	 *                 the Property whose value is to be estimated;
+	 *                 when building an \ref ImportanceFunctionAlgebraic
+	 *                 "algebraic importance function" this should be a pair
+	 *                 (expression_string, vector_of_varnames) needed to build
+	 *                 the MathExpression defining the adhoc algebraic formula.
 	 * @param force    Assess importance again, even if importance info already
 	 *                 exists for this importance function and strategy
 	 *
 	 * @throw FigException if 'name' or 'strategy' are invalid
+	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
 	 *
 	 * @see build_thresholds()
 	 */
+	template< class ImpFunBasics >
 	void
 	build_importance_function(const std::string& name,
 							  const std::string& strategy,
-							  const Property& property,
+							  const ImpFunBasics& assessor,
 							  bool force = false);
 
 	/**
 	 * @brief Build thresholds from precomputed importance information
 	 *
-	 *        The thresholds are built in the ImportanceFunction itself,
-	 *        smashing the finely grained importance values and replacing them
-	 *        with coarsely grained threshold levels.
+	 *        The thresholds are built and kept inside the ImportanceFunction.
+	 *        From this point on the finely grained importance values are
+	 *        replaced with coarsely grained threshold levels.
 	 *        After a successfull call the corresponding ImportanceFunction is
 	 *        \ref ImportanceFunction::ready() "ready for simulations".
 	 *

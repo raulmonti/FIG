@@ -104,7 +104,7 @@ simulate(const fig::ModuleNetwork& network,
 	auto predicate = [&](const fig::Traial&) -> bool {
 		/// @todo NOTE: try also stopping when we reach max importance
 		/// @todo NOTE: try also stopping when we reach min importance
-		/// @todo NOTE: try also stopping when we reach importance when started "this retrial"
+		/// @todo NOTE: try also stopping when we reach importance == "this retrial start importance"
 		return --jumpsLeft > 0u;
 	};
 	auto update = [&](fig::Traial& t) -> void {
@@ -212,7 +212,7 @@ ThresholdsBuilderAMS::tune(const size_t& numStates,
 
 
 unsigned
-ThresholdsBuilderAMS::build_thresholds_concrete(
+ThresholdsBuilderAMS::build_thresholds_in_situ(
 	const unsigned& splitsPerThreshold,
 	ImportanceFunctionConcrete& impFun,
 	std::vector< ImportanceValue >& impVec)

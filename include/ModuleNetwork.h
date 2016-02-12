@@ -143,10 +143,6 @@ public:  // Utils
 
 	virtual size_t initial_concrete_state() const;
 
-	virtual void accept(ImportanceFunction& ifun,
-						const Property& prop,
-						const std::string& strategy) const;
-
 	/**
 	 * @brief Shut the network and fill in internal global data.
 	 *

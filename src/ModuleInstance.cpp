@@ -186,15 +186,6 @@ ModuleInstance::initial_concrete_state() const
 }
 
 
-void
-ModuleInstance::accept(ImportanceFunction& ifun,
-					  const Property& prop,
-					  const std::string& strategy) const
-{
-	ifun.assess_importance(*this, prop, strategy);
-}
-
-
 const Label&
 ModuleInstance::jump(const std::string& clockName,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,

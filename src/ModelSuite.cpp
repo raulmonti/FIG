@@ -53,6 +53,8 @@
 #include <SimulationEngine.h>
 #include <SimulationEngineNosplit.h>
 #include <SimulationEngineRestart.h>
+#include <ImportanceFunction.h>
+#include <ImportanceFunctionAlgebraic.h>
 #include <ImportanceFunctionConcreteSplit.h>
 #include <ImportanceFunctionConcreteCoupled.h>
 #include <ThresholdsBuilder.h>
@@ -503,7 +505,8 @@ ModelSuite::exists_threshold_technique(const std::string& thrTechnique) const no
 }
 
 
-void
+template<>  // For concrete importance functions
+void        // which are built from the Porperty to be estimated.
 ModelSuite::build_importance_function(const std::string& name,
 									  const std::string& strategy,
 									  const Property& property,
@@ -511,23 +514,75 @@ ModelSuite::build_importance_function(const std::string& name,
 {
 	if (!exists_importance_function(name))
 		throw_FigException(std::string("inexistent importance function \"")
-						   .append(name).append("\" Call \"available_")
+						   .append(name).append("\". Call \"available_")
 						   .append("importance_functions()\" for a list of ")
 						   .append("available options."));
 	if (!exists_importance_strategy(strategy))
 		throw_FigException(std::string("inexistent importance assessment ")
-						   .append("strategy \"").append(strategy).append("\" ")
+						   .append("strategy \"").append(strategy).append("\". ")
 						   .append("Call \"available_importance_strategies()\" ")
 						   .append("for a list of available options."));
 
-	ImportanceFunction& ifun = *impFuns[name];
-	if (force || strategy != ifun.strategy() || !ifun.has_importance_info()) {
-		ifun.clear();
-		ifun.assess_importance(*model, property, strategy);
+	auto cImpFun = std::dynamic_pointer_cast< ImportanceFunctionConcrete >(
+					   impFuns[name]);
+	if (nullptr == cImpFun)
+		throw_FigException(std::string("build_importance_function() was called ")
+						   .append("with a Property, which works only for ")
+						   .append("concrete importance functions. \"")
+						   .append(name).append("\" is no such function."));
+
+	if (force
+		|| strategy != cImpFun->strategy()
+		|| !cImpFun->has_importance_info())
+	{
+		cImpFun->clear();
+		cImpFun->assess_importance(*model, property, strategy);
 	}
 
-	assert(strategy == ifun.strategy());
-	assert(ifun.has_importance_info());
+	assert(strategy == cImpFun->strategy());
+	assert(cImpFun->has_importance_info());
+}
+
+
+template<>  // For algebraic importance functions
+void        // which are built from some algebraic formula
+ModelSuite::build_importance_function(const std::string& name,
+									  const std::string& strategy,
+									  std::pair< const std::string&,
+												 const std::vector< std::string >&
+									  > exprPair,
+									  bool force)
+{
+	if (!exists_importance_function(name))
+		throw_FigException(std::string("inexistent importance function \"")
+						   .append(name).append("\". Call \"available_")
+						   .append("importance_functions()\" for a list of ")
+						   .append("available options."));
+	if (!exists_importance_strategy(strategy))
+		throw_FigException(std::string("inexistent importance assessment ")
+						   .append("strategy \"").append(strategy).append("\". ")
+						   .append("Call \"available_importance_strategies()\" ")
+						   .append("for a list of available options."));
+
+	auto aImpFun = std::dynamic_pointer_cast< ImportanceFunctionAlgebraic >(
+					   impFuns[name]);
+	if (nullptr == aImpFun)
+		throw_FigException(std::string("build_importance_function() was called ")
+						   .append("with a pair (expression_string, ")
+						   .append("vector_of_varnames), which works only for ")
+						   .append("algebraic importance functions. \"")
+						   .append(name).append("\" is no such function."));
+
+	if (force
+		|| strategy != aImpFun->strategy()
+		|| !aImpFun->has_importance_info())
+	{
+		aImpFun->clear();
+		aImpFun->set_formula(exprPair.first, exprPair.second, strategy);
+	}
+
+	assert(strategy == aImpFun->strategy());
+	assert(aImpFun->has_importance_info());
 }
 
 
@@ -538,12 +593,12 @@ ModelSuite::build_thresholds(const std::string& technique,
 {
 	if (!exists_threshold_technique(technique))
 		throw_FigException(std::string("inexistent threshold building ")
-						   .append("technique \"").append(technique).append("\"")
-						   .append("Call \"available_threshold_techniques()\" ")
-						   .append("for a list of available options."));
+						   .append("technique \"").append(technique)
+						   .append("\". Call \"available_threshold_techniques()")
+						   .append("\" for a list of available options."));
 	if (!exists_importance_function(ifunName))
 		throw_FigException(std::string("inexistent importance function \"")
-						   .append(ifunName).append("\" Call \"available_")
+						   .append(ifunName).append("\". Call \"available_")
 						   .append("importance_functions()\" for a list of ")
 						   .append("available options."));
 

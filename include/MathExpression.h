@@ -64,10 +64,6 @@ namespace fig
  */
 class MathExpression
 {
-	/// Is the expression empty?
-	/// @note Needed since MuParser doesn't tolerate empty string expressions
-	bool empty_;
-
 	/// String stored internally when given an empty expression
 	static const std::string emptyExpressionString;
 
@@ -77,6 +73,10 @@ protected:
 
 	/// String describing the mathematical expression
 	std::string exprStr_;
+
+	/// Is the expression empty?
+	/// @note Needed since MuParser doesn't tolerate empty string expressions
+	bool empty_;
 
 	/// Mathematical expression per se
 	mutable Expression expr_;
@@ -111,7 +111,7 @@ public:  // Ctors/Dtor
 	/**
 	 * @brief Data ctor from generic rvalue container
 	 *
-	 * @param exprStr   String with the matemathical expression to evaluate
+	 * @param exprStr   String with the mathematical expression to evaluate
 	 * @param varnames  Container with names of variables ocurring in exprStr
 	 *
 	 * @throw FigException if exprStr doesn't define a valid expression
@@ -129,7 +129,7 @@ public:  // Ctors/Dtor
 	/**
 	 * @brief Data ctor from iterator range
 	 *
-	 * @param exprStr  String with the matemathical expression to evaluate
+	 * @param exprStr  String with the mathematical expression to evaluate
 	 * @param from     Iterator to  first name of variables ocurring in exprStr
 	 * @param to       Iterator past last name of variables ocurring in exprStr
 	 *
@@ -181,7 +181,7 @@ public:  // Accessors
 	/// @copydoc pinned_
 	inline const bool& pinned() const noexcept { return pinned_; }
 
-private:  // Class utils
+protected:  // Class utils
 
 	/**
 	 * @brief Set 'exprStr_' as the expression to MuParser's 'expr_'

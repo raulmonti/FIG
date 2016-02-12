@@ -181,15 +181,6 @@ ModuleNetwork::initial_concrete_state() const
 }
 
 
-void
-ModuleNetwork::accept(ImportanceFunction& ifun,
-					  const Property& prop,
-					  const std::string& strategy) const
-{
-	ifun.assess_importance(*this, prop, strategy);
-}
-
-
 template< typename DerivedProperty,
           class Simulator,
           class TraialMonitor >

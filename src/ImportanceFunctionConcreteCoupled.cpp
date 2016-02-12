@@ -79,9 +79,9 @@ ImportanceFunctionConcreteCoupled::build_thresholds(
 						   .append("\" doesn't yet have importance information"));
 
 	ImportanceVec& impVec = modulesConcreteImportance[importanceInfoIndex_];
-	maxImportance_ = tb.build_thresholds_concrete(splitsPerThreshold,
-												  *this,
-												  impVec);
+	maxImportance_ = tb.build_thresholds_in_situ(splitsPerThreshold,
+												 *this,
+												 impVec);
 	thresholdsTechnique_ = tb.name;
 	// Find lowest threshold level where we can find a rare state
 	minRareImportance_ = std::numeric_limits<ImportanceValue>::max();

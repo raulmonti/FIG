@@ -53,20 +53,39 @@ namespace fig
  * @see ImportanceFunctionConcrete
  * @see ImportanceFunctionConcreteCoupled
  *
- * @todo Implement, test, get results and publish !!!
+ * @todo TODO: Implement, test, get results and publish !!!
  */
 class ImportanceFunctionConcreteSplit : public ImportanceFunctionConcrete
 {
 	// Make overloads explicit, otherwise Clang whines like a whore
-	using ImportanceFunction::assess_importance;
 	using ImportanceFunctionConcrete::assess_importance;
 
 public:
 
-	virtual void assess_importance(const ModuleInstance& mod,
-								   const Property& prop,
-								   const std::string& strategy = "",
-								   bool force = false)
+	/**
+	 * @brief Assess the importance of the states on this \ref ModuleInstance
+	 *        "module", according to the \ref Property "logical property" and
+	 *        strategy specified.
+	 *
+	 * @param mod      Module whose reachable states will have their importance
+	 *                 assessed. Its current state is considered initial.
+	 * @param prop     Property guiding the importance assessment
+	 * @param strategy Strategy of the assessment (flat, auto, ad hoc...)
+	 * @param force    Whether to force the computation, even if this
+	 *                 ImportanceFunction already has importance information
+	 *                 for the specified assessment strategy.
+	 *
+	 * @note After a successfull invocation the ImportanceFunction holds
+	 *       internally the computed \ref has_importance_info()
+	 *       "importance information" for the passed assessment strategy.
+	 *
+	 * @see assess_importance(const ModuleNetwork&, const Property&, const std::string&)
+	 * @see has_importance_info()
+	 */
+	void assess_importance(const ModuleInstance& mod,
+						   const Property& prop,
+						   const std::string& strategy = "",
+						   bool force = false)
 		{
 			throw_FigException("TODO");
 		}

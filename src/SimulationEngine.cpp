@@ -74,6 +74,7 @@ SimulationEngine::SimulationEngine(
 		name_(name),
 		network_(network),
 		impFun_(nullptr),
+		cImpFun_(nullptr),
         interrupted(false)
 {
 	if (std::find(begin(names), end(names), name) == end(names)) {
@@ -109,6 +110,8 @@ SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun)
 	if (!ifun->ready())
 		throw_FigException("ImportanceFunction isn't ready for simulations");
     impFun_ = ifun;
+	if (ifun->concrete())
+		cImpFun_ = std::dynamic_pointer_cast<const ImportanceFunctionConcrete>(ifun);
 }
 
 
@@ -116,6 +119,7 @@ void
 SimulationEngine::unbind() noexcept
 {
     impFun_  = nullptr;
+	cImpFun_ = nullptr;
 }
 
 

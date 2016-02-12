@@ -48,21 +48,20 @@ class Transition;
 /**
  * @brief Abstract importance function for concrete importance assessment
  *
- *        The assessment is "concrete" because we build and mantain an
- *        internal vector with the importance of each reachable concrete state.
+ *        The assessment is "concrete" because an internal vector is built and
+ *        mantained with the ImportanceValue of each reachable concrete state,
+ *        viz. importance information for the "concrete state space" is kept.<br>
  *        This can be extremely heavy on memory: precisely the size of the
  *        concrete state space of the assessed element (ModuleInstance or
- *        ModuleNetwork)
+ *        ModuleNetwork). On the other hand it can considerably more CPU
+ *        efficient than on-the-fly importance assessment as
+ *        \ref ImportanceFunctionAlgebraic "algebraic importance functions" do.
  *
  * @see ImportanceFunction
+ * @see ImportanceFunctionAlgebraic
  */
 class ImportanceFunctionConcrete : public ImportanceFunction
 {
-protected:
-
-	// Make overloads explicit, otherwise Clang whines like a whore
-	using ImportanceFunction::assess_importance;
-
 public:
 
 	typedef std::vector< ImportanceValue > ImportanceVec;
@@ -84,18 +83,50 @@ public:  // Accessors
 
 	inline virtual bool concrete() const noexcept { return true; }
 
+	/**
+	 * Retrieve all pre-computed information about the given StateInstance.
+	 * This includes the state importance and some event masks.
+	 * @return ImportanceValue possibly mixed with Event information
+	 * \ifnot NDEBUG
+	 *   @throw FigException if there's no \ref has_importance_info()
+	 *                       "importance information" currently
+	 * \endif
+	 * @see assess_importance()
+	 * @see importance_of()
+	 */
+	inline virtual ImportanceValue info_of(const StateInstance& state) const = 0;
+
 public:  // Utils
 
-	/// @brief Tell the events triggered by this state, if any
-	/// @note All reachable states importance should have already been assessed
-	inline Event events_of(const State<STATE_INTERNAL_TYPE>& state,
-						   const unsigned& index = 0) const
-		{ return MASK(modulesConcreteImportance[index][state.encode()]); }
+	/**
+	 * @brief Assess the importance of the reachable states of the whole
+	 *        \ref ModuleNetwork "system model", according to the
+	 *        \ref Property "logical property" and strategy specified.
+	 *
+	 * @param net      System model (or coupled network of modules)
+	 *                 Its current state is taken as the model's initial state.
+	 * @param prop     Property guiding the importance assessment
+	 * @param strategy Strategy of the assessment (flat, auto, ad hoc...)
+	 * @param force    Whether to force the computation, even if this
+	 *                 ImportanceFunction already has importance information
+	 *                 for the specified assessment strategy.
+	 *
+	 * @note After a successfull invocation the ImportanceFunction holds
+	 *       internally the computed \ref has_importance_info()
+	 *       "importance information" for the passed assessment strategy.
+	 *
+	 * @see assess_importance(const ModuleInstance&, const Property&, const std::string&)
+	 * @see has_importance_info()
+	 */
+	virtual void assess_importance(const ModuleNetwork& net,
+								   const Property& prop,
+								   const std::string& strategy = "",
+								   bool force = false) = 0;
 
 	/// Erase all internal importance information and free resources
 	virtual void clear() noexcept;
 
-	/// Erase any internal importance information stored at position "index"
+	/// Erase internal importance information stored at position "index"
 	virtual void clear(const unsigned& index) noexcept;
 
 protected:  // Utils for derived classes
