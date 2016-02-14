@@ -184,18 +184,18 @@ ThresholdsBuilderAMS::build_thresholds(const unsigned& splitsPerThreshold,
 	assert(thresholds_[0] == impFun.min_importance());
 	assert(thresholds_.back() > impFun.max_importance());
 
-	result.resize(impFun.max_importance());
+	result.resize(impFun.max_importance() + 1ul);
 	for (ImportanceValue i = impFun.min_importance()
-		 ; i < impFun.max_importance()
+		 ; i <= impFun.max_importance()
 		 ; i++)
 	{
-		while (i >= thresholds_[currThr+1])
+		while (currThr < thresholds_.size()-1 && i >= thresholds_[currThr+1])
 			currThr++;
 		result[i] = static_cast<ImportanceValue>(currThr);
 	}
 
 	assert(result[impFun.min_importance()] == static_cast<ImportanceValue>(0u));
-	assert(result[impFun.max_importance()-1] ==
+	assert(result[impFun.max_importance()] ==
 			static_cast<ImportanceValue>(thresholds_.size()-2));
 	std::vector< ImportanceValue >().swap(thresholds_);  // free mem
 
@@ -208,9 +208,16 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	const unsigned& splitsPerThreshold,
 	const ImportanceFunction& impFun)
 {
-	if (impFun.max_importance() - impFun.min_importance()
+	// Special small cases
+	if (impFun.min_importance() == impFun.max_importance()) {
+		// Usually "flat" strategy
+		std::vector< ImportanceValue >(2ul).swap(thresholds_);
+		thresholds_[0] = impFun.max_importance();
+		thresholds_[1] = impFun.max_importance() + static_cast<ImportanceValue>(1u);
+		return;
+	} else if (impFun.max_importance() - impFun.min_importance()
 			< static_cast<ImportanceValue>(2u)) {
-		// not worth the trouble, just say we have two levels
+		// Too few importance levels: just say we have a single threshold
 		std::vector< ImportanceValue >(3ul).swap(thresholds_);
 		thresholds_[0] = impFun.min_importance();
 		thresholds_[1] = impFun.max_importance();

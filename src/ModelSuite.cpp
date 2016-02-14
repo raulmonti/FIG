@@ -769,7 +769,7 @@ ModelSuite::estimate(const Property& property,
 							  std::get<2>(criterion));
             interruptCI_ = ci_ptr.get();  // bad boy
 			/// @todo TODO: implement proper log and discard following shell print
-			std::cerr << "   Requested precision  "
+            std::cerr << "\n   Requested precision  "
 					  << ((ci_ptr->percent ? 200  : 2) * ci_ptr->errorMargin)
 					  << (ci_ptr->percent ? "%\n" : "\n");
 			std::cerr << "   and confidence level " << 100*ci_ptr->confidence
@@ -795,7 +795,7 @@ ModelSuite::estimate(const Property& property,
 					  << ci_ptr->upper_limit() << " ] " << std::endl;
 			std::cerr << "   · Precision: " << ci_ptr->precision() << std::endl;
 			std::cerr << "   · Estimation time: " << (omp_get_wtime()-startTime)
-					  << " seconds" << std::endl;
+                      << " seconds" << std::endl;
 //			log_(*ci_ptr,
 //				 omp_get_wtime() - startTime,
 //				 engine.name(),

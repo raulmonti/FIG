@@ -126,10 +126,10 @@ ImportanceFunctionAlgebraic::set_formula(
 		maxImportance_ = importance;
 		minRareImportance_ = importance;
 	} else {
-		minImportance_ = std::numeric_limits<ImportanceValue>::max();
-		maxImportance_ = std::numeric_limits<ImportanceValue>::min();
-		minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
-		#pragma omp parallel for reduction(min:minImportance_) private(gStateCopy)
+		ImportanceValue imin = std::numeric_limits<ImportanceValue>::max();
+		ImportanceValue imax = std::numeric_limits<ImportanceValue>::min();
+		ImportanceValue iminRare = std::numeric_limits<ImportanceValue>::max();
+		#pragma omp parallel for reduction(min:imin) private(gStateCopy)
 		for (size_t i = 0ul ; i < gState.concrete_size() ; i++) {
 			const StateInstance symbState = gStateCopy.decode(i).to_state_instance();
 			const ImportanceValue importance = adhocFun_(symbState);
@@ -138,12 +138,15 @@ ImportanceFunctionAlgebraic::set_formula(
 			if (property.is_rare(symbState) && importance < minRareImportance_)
 				minRareImportance_ = importance;
 		}
-		#pragma omp parallel for reduction(max:maxImportance_) private(gStateCopy)
+		#pragma omp parallel for reduction(max:imax) private(gStateCopy)
 		for (size_t i = 0ul ; i < gState.concrete_size() ; i++) {
 			auto importance = adhocFun_(gStateCopy.decode(i).to_state_instance());
 			maxImportance_ = importance > maxImportance_ ? importance
 														 : maxImportance_;
 		}
+		minImportance_ = imin;
+		maxImportance_ = imax;
+		minRareImportance_ = iminRare;
 	}
 
 	assert(minImportance_ <= minRareImportance_);
