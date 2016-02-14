@@ -69,20 +69,29 @@ protected:
 	/// Mathematical formula to evaluate the importance of symbolic states
 	class Formula : public MathExpression
 	{
+	public:
+
+		/// Empty ctor
 		Formula();
 
-		/// Reset internal mathematical expression to the given formula
+		/// Set internal mathematical expression to the given formula
 		/// @param formula     String with mathematical expression to evaluate
 		/// @param varnames    Names of variables ocurring in exprStr
 		/// @param globalState State of the whole system model
 		/// @throw FigException if badly formatted mathematical expression
 		/// @throw out_of_range if 'varnames' has names not in 'formula'
-		void reset(const std::string& formula,
-				   const std::vector< std::string >& varnames,
-				   const State<STATE_INTERNAL_TYPE>& globalState);
+		template< template< typename... > class Container, typename... OtherArgs >
+		void set(const std::string& formula,
+				 const Container< std::string, OtherArgs... >& varnames,
+				 const State<STATE_INTERNAL_TYPE>& globalState);
+
+		/// Reset internal mathematical expression to (void) creation values
+		void reset() noexcept;
 
 		/// Evaluate current formula expression on given symbolic state
-		STATE_INTERNAL_TYPE operator()(const StateInstance& state) const;
+		/// @throw mu::Parser::exception_type if undefined internal
+		///        mathematical expression.
+		ImportanceValue operator()(const StateInstance& state) const;
 	};
 
 public:
@@ -127,7 +136,7 @@ protected:
 	ImportanceValue minRareImportance_;
 
 	/// Algebraic formula for ad hoc importance strategy
-	Formula adhocFormula_;
+	Formula adhocFun_;
 
 public:  // Ctor/Dtor
 
@@ -223,8 +232,7 @@ public:  // Accessors
 	virtual ImportanceValue importance_of(const StateInstance& state) const = 0;
 
 	/**
-	 * Tell the threshold level to which given StateInstance belongs.
-	 * @return ImportanceValue requested
+	 * Threshold level to which given StateInstance belongs.
 	 * \ifnot NDEBUG
 	 *   @throw FigException if this instance isn't \ref ready()
 	 *                       "ready for simulations"
@@ -233,14 +241,24 @@ public:  // Accessors
 	virtual ImportanceValue level_of(const StateInstance& state) const = 0;
 
 	/**
+	 * Threshold level to which given ImportanceValue belongs.
+	 * \ifnot NDEBUG
+	 *   @throw FigException if this instance isn't \ref ready()
+	 *                       "ready for simulations"
+	 * \endif
+	 */
+	virtual ImportanceValue level_of(const ImportanceValue& val) const = 0;
+
+	/**
 	 * @brief Print formatted internal importance information
 	 * @details States are printed along their importance (or threshold level)
 	 *          If events masks are present they are somehow marked,
 	 *          and a legend is included to interpret the marking.
 	 * @param out Output stream where printing will take place
+	 * @param s   Global system state, i.e. with all variables of the model
 	 * @warning This can be <b>a lot</b> of printing, use with care.
 	 */
-	virtual void print_out(std::ostream& out) const = 0;
+	virtual void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE> s) const = 0;
 
 public:  // Utils
 

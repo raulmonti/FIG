@@ -341,7 +341,7 @@ public:  // Utils
 	build_importance_function_adhoc(const std::string& ifunName,
 									const Property& property,
 									const std::string& formulaExprStr,
-									const Container<std::string, OtherArgs>& varnames,
+									const Container<std::string, OtherArgs...>& varnames,
 									bool force = false);
 
 	/**
@@ -519,7 +519,14 @@ ModelSuite::process_batch(
 				/// @todo TODO log the inexistence of this importance assessment strategy
 				continue;
 			}
-			build_importance_function(impFunName, impFunStrategy, *prop);
+			if (impFunStrategy.empty() || "flat" == impFunStrategy)
+				build_importance_function_flat(impFunName, *prop);
+			else if ("auto" == impFunStrategy)
+				build_importance_function_auto(impFunName, *prop);
+			else
+				throw_FigException("only automatically constructible importance "
+								   "function strategies can be passed here, "
+								   "i.e. \"flat\" or \"auto\".");
 			build_thresholds("ams", impFunName);  // only implemented technique so far
 
 			// ... and each simulation strategy ...

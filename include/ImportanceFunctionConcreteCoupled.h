@@ -102,7 +102,7 @@ public:  // Accessors
 			return UNMASK(info_of(state));
 		}
 
-	/// @copydoc ImportanceFunction::level_of()
+	/// @copydoc ImportanceFunction::level_of(const StateInstance&)
 	/// @note Attempted inline in a desperate need for speed
 	inline virtual ImportanceValue level_of(const StateInstance &state) const
 		{
@@ -116,17 +116,32 @@ public:  // Accessors
 			return UNMASK(info_of(state));
 		}
 
-	virtual void print_out(std::ostream& out) const;
+	/// @copydoc ImportanceFunction::level_of(const ImportanceValue&)
+	/// @note Attempted inline in a desperate need for speed
+	inline virtual ImportanceValue level_of(const ImportanceValue& val) const
+		{
+#       ifndef NDEBUG
+			if (!ready())
+				throw_FigException(std::string("importance function \"")
+								   .append(name()).append("\" isn't ")
+								   .append("ready for simulations."));
+#		endif
+			// Internal vector currently holds threshold levels
+			assert(val >= min_importance());
+			assert(val <= max_importance());
+			return val;
+		}
+
+	virtual void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE>) const;
 
 public:  // Utils
 
 	virtual void assess_importance(const Property& prop,
 								   const std::string& strategy = "");
 
-	template< template< typename... > class Container, typename... OtherArgs >
 	virtual void assess_importance(const Property& prop,
 								   const std::string& formulaExprStr,
-								   const Container<std::string,OtherArgs...>& varnames);
+								   const std::vector<std::string>& varnames);
 
 	virtual void build_thresholds(ThresholdsBuilder& tb,
 								  const unsigned& splitsPerThreshold);

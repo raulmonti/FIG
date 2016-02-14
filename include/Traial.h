@@ -93,7 +93,7 @@ public:
 public:  // Attributes
 
 	/// Importance/Threshold level where the Traial currently is
-	ImportanceValue importance;
+    ImportanceValue level;
 
 	/// How far down the current importance is w.r.t. the creation importance
 	short depth;

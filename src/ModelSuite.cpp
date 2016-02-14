@@ -529,7 +529,11 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
                 .assess_importance(property, "flat");
         else
             static_cast<ImportanceFunctionAlgebraic&>(ifun)
-                .set_formula("0", std::vector<std::string>(), model->global_state());
+                .set_formula("flat",
+                             "0",
+                             std::vector<std::string>(),
+                             model->global_state(),
+                             property);
     }
 
     assert(ifun.has_importance_info());
@@ -572,7 +576,7 @@ ModelSuite::build_importance_function_adhoc(
     const std::string& ifunName,
     const Property& property,
     const std::string& formulaExprStr,
-    const Container<std::string, OtherArgs>& varnames,
+    const Container<std::string, OtherArgs...>& varnames,
     bool force)
 {
     if (!exists_importance_function(ifunName))
@@ -586,12 +590,18 @@ ModelSuite::build_importance_function_adhoc(
 
     if (force || !ifun.has_importance_info() || "adhoc" != ifun.strategy()) {
         ifun.clear();
-        if (ifun.concrete())
+        if (ifun.concrete()) {
+            std::vector<std::string> varnamesVec(begin(varnames), end(varnames));
             static_cast<ImportanceFunctionConcrete&>(ifun)
-                .assess_importance(property, formulaExprStr, varnames);
-        else
+                .assess_importance(property, formulaExprStr, varnamesVec);
+        } else {
             static_cast<ImportanceFunctionAlgebraic&>(ifun)
-                .set_formula(formulaExprStr, varnames, model->global_state());
+                .set_formula("adhoc",
+                             formulaExprStr,
+                             varnames,
+                             model->global_state(),
+                             property);
+        }
     }
 
     assert(ifun.has_importance_info());

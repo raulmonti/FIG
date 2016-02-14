@@ -28,6 +28,12 @@
 
 
 // C++
+#include <set>
+#include <list>
+#include <deque>
+#include <vector>
+#include <forward_list>
+#include <unordered_set>
 #include <sstream>
 #include <iterator>   // std::begin, std::end
 #include <algorithm>  // std::find()
@@ -81,18 +87,20 @@ ImportanceFunction::Formula::Formula() :
 { /* Not much to do around here */ }
 
 
+template< template< typename... > class Container, typename... OtherArgs >
 void
-ImportanceFunction::Formula::reset(const std::string& formula,
-								   const std::vector< std::string >& varnames,
-								   const State<STATE_INTERNAL_TYPE>& globalState)
+ImportanceFunction::Formula::set(
+    const std::string& formula,
+    const Container<std::string, OtherArgs...>& varnames,
+    const State<STATE_INTERNAL_TYPE>& globalState)
 {
-	exprStr_ = formula;
 	empty_ = "" == formula;
-	parse_our_expression();  // updates expr_
+    exprStr_ = empty_ ? MathExpression::emptyExpressionString : formula;
+    parse_our_expression();  // updates expr_
 	varsMap_.clear();
 	for (const auto& name: varnames) {
 #ifndef NRANGECHK
-		if (std::string::npos == exprStr.find(name))
+        if (std::string::npos == exprStr_.find(name))
 			throw std::out_of_range(std::string("invalid variable name: \"")
 									.append(name).append("\""));
 #endif
@@ -118,8 +126,39 @@ ImportanceFunction::Formula::reset(const std::string& formula,
     }
 }
 
+// ImportanceFunction::Formula::set() can only be invoked with the following containers
+template void ImportanceFunction::Formula::set(const std::string&,
+                                               const std::set<std::string>&,
+                                               const State<STATE_INTERNAL_TYPE>&);
+template void ImportanceFunction::Formula::set(const std::string&,
+                                               const std::list<std::string>&,
+                                               const State<STATE_INTERNAL_TYPE>&);
+template void ImportanceFunction::Formula::set(const std::string&,
+                                               const std::deque<std::string>&,
+                                               const State<STATE_INTERNAL_TYPE>&);
+template void ImportanceFunction::Formula::set(const std::string&,
+                                               const std::vector<std::string>&,
+                                               const State<STATE_INTERNAL_TYPE>&);
+template void ImportanceFunction::Formula::set(const std::string&,
+                                               const std::forward_list<std::string>&,
+                                               const State<STATE_INTERNAL_TYPE>&);
+template void ImportanceFunction::Formula::set(const std::string&,
+                                               const std::unordered_set<std::string>&,
+                                               const State<STATE_INTERNAL_TYPE>&);
 
-STATE_INTERNAL_TYPE
+
+void
+ImportanceFunction::Formula::reset() noexcept
+{
+    empty_ = true;
+    exprStr_ = MathExpression::emptyExpressionString;
+    try { parse_our_expression(); } catch (FigException&) {}
+    varsMap_.clear();
+    pinned_ = false;
+}
+
+
+ImportanceValue
 ImportanceFunction::Formula::operator()(const StateInstance& state) const
 {
     // Bind symbolic state variables to the current expression...
@@ -127,7 +166,7 @@ ImportanceFunction::Formula::operator()(const StateInstance& state) const
         expr_.DefineVar(pair.first,  const_cast<STATE_INTERNAL_TYPE*>(
                         &state[pair.second]));
     // ...and evaluate
-    return expr_.Eval();
+    return static_cast<ImportanceValue>(expr_.Eval());
 }
 
 
@@ -143,7 +182,7 @@ ImportanceFunction::ImportanceFunction(const std::string& name) :
     minImportance_(static_cast<ImportanceValue>(0u)),
     maxImportance_(static_cast<ImportanceValue>(0u)),
     minRareImportance_(static_cast<ImportanceValue>(0u)),
-    adhocFormula_()
+    adhocFun_()
 {
 	if (find(begin(names), end(names), name) == end(names)) {
 		std::stringstream errMsg;

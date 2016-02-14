@@ -36,6 +36,8 @@
 #include <unordered_set>
 // FIG
 #include <ImportanceFunctionAlgebraic.h>
+#include <ThresholdsBuilder.h>
+#include <Property.h>
 
 
 namespace fig
@@ -62,7 +64,35 @@ ImportanceFunctionAlgebraic::importance_of(const StateInstance& state) const
 						   .append(name()).append("\" doesn't ")
 						   .append("hold importance information."));
 #endif
-	return adhocFormula_(state);
+	return adhocFun_(state);
+}
+
+
+ImportanceValue
+ImportanceFunctionAlgebraic::level_of(const StateInstance& state) const
+{
+#ifndef NDEBUG
+	if (!ready())
+		throw_FigException(std::string("importance function \"")
+						   .append(name()).append("\" isn't ")
+						   .append("ready for simulations."));
+#endif
+	return importance2threshold_[adhocFun_(state)];
+}
+
+
+ImportanceValue
+ImportanceFunctionAlgebraic::level_of(const ImportanceValue& val) const
+{
+#ifndef NDEBUG
+	if (!ready())
+		throw_FigException(std::string("importance function \"")
+						   .append(name()).append("\" isn't ")
+						   .append("ready for simulations."));
+#endif
+	assert(val >= min_importance());
+	assert(val <= max_importance());
+	return importance2threshold_[val];
 }
 
 
@@ -72,40 +102,135 @@ ImportanceFunctionAlgebraic::set_formula(
 	const std::string& strategy,
 	const std::string& formulaExprStr,
 	const Container<std::string, OtherArgs...>& varnames,
-	const State<STATE_INTERNAL_TYPE>& gState)
+	const State<STATE_INTERNAL_TYPE>& gState,
+	const Property& property)
 {
-	try {
-		adhocFormula_.reset(formulaExprStr, varnames, gState);
+    if ("auto" == strategy)
+        throw_FigException("importance strategy \"auto\" can only be be used "
+                           "with concrete importance functions; this routine "
+                           "should not have been invoked for such strategy.");
+    try {
+        adhocFun_.set(formulaExprStr, varnames, gState);
 	} catch (std::out_of_range& e) {
 		throw_FigException(std::string("something went wrong while setting ")
-						   .append(" the formula \"").append(formulaExprStr)
+						   .append(" the function \"").append(formulaExprStr)
 						   .append("\" for ad hoc importance assessment: ")
 						   .append(e.what()));
 	}
+
+	// Find extreme importance values for this ad hoc function
+	auto gStateCopy = gState;
+	if (strategy.empty() || "flat" == strategy) {
+		ImportanceValue importance = adhocFun_(gStateCopy.to_state_instance());
+		minImportance_ = importance;
+		maxImportance_ = importance;
+		minRareImportance_ = importance;
+	} else {
+		minImportance_ = std::numeric_limits<ImportanceValue>::max();
+		maxImportance_ = std::numeric_limits<ImportanceValue>::min();
+		minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
+		#pragma omp parallel for reduction(min:minImportance_) private(gStateCopy)
+		for (size_t i = 0ul ; i < gState.concrete_size() ; i++) {
+			const StateInstance symbState = gStateCopy.decode(i).to_state_instance();
+			const ImportanceValue importance = adhocFun_(symbState);
+			minImportance_ = importance < minImportance_ ? importance
+														 : minImportance_;
+			if (property.is_rare(symbState) && importance < minRareImportance_)
+				minRareImportance_ = importance;
+		}
+		#pragma omp parallel for reduction(max:maxImportance_) private(gStateCopy)
+		for (size_t i = 0ul ; i < gState.concrete_size() ; i++) {
+			auto importance = adhocFun_(gStateCopy.decode(i).to_state_instance());
+			maxImportance_ = importance > maxImportance_ ? importance
+														 : maxImportance_;
+		}
+	}
+
+	assert(minImportance_ <= minRareImportance_);
+	assert(minRareImportance_ <= maxImportance_);
 	hasImportanceInfo_ = true;
 	strategy_ = strategy;
 }
 
 // ImportanceFunctionAlgebraic::set_formula() can only be invoked
 // with the following containers
-template<> void ImportanceFunctionAlgebraic::set_formula(
+template void ImportanceFunctionAlgebraic::set_formula(
     const std::string&, const std::string&, const std::set<std::string>&,
-    const State<STATE_INTERNAL_TYPE>&);
-template<> void ImportanceFunctionAlgebraic::set_formula(
+    const State<STATE_INTERNAL_TYPE>&, const Property&);
+template void ImportanceFunctionAlgebraic::set_formula(
     const std::string&, const std::string&, const std::list<std::string>&,
-    const State<STATE_INTERNAL_TYPE>&);
-template<> void ImportanceFunctionAlgebraic::set_formula(
+    const State<STATE_INTERNAL_TYPE>&, const Property&);
+template void ImportanceFunctionAlgebraic::set_formula(
     const std::string&, const std::string&, const std::deque<std::string>&,
-    const State<STATE_INTERNAL_TYPE>&);
-template<> void ImportanceFunctionAlgebraic::set_formula(
+    const State<STATE_INTERNAL_TYPE>&, const Property&);
+template void ImportanceFunctionAlgebraic::set_formula(
     const std::string&, const std::string&, const std::vector<std::string>&,
-    const State<STATE_INTERNAL_TYPE>&);
-template<> void ImportanceFunctionAlgebraic::set_formula(
+    const State<STATE_INTERNAL_TYPE>&, const Property&);
+template void ImportanceFunctionAlgebraic::set_formula(
     const std::string&, const std::string&, const std::forward_list<std::string>&,
-    const State<STATE_INTERNAL_TYPE>&);
-template<> void ImportanceFunctionAlgebraic::set_formula(
+    const State<STATE_INTERNAL_TYPE>&, const Property&);
+template void ImportanceFunctionAlgebraic::set_formula(
     const std::string&, const std::string&, const std::unordered_set<std::string>&,
-    const State<STATE_INTERNAL_TYPE>&);
+    const State<STATE_INTERNAL_TYPE>&, const Property&);
 
+
+void
+ImportanceFunctionAlgebraic::build_thresholds(
+    ThresholdsBuilder& tb,
+    const unsigned& splitsPerThreshold)
+{
+	if (!has_importance_info())
+		throw_FigException(std::string("importance function \"").append(name())
+						   .append("\" doesn't yet have importance information"));
+	std::vector< ImportanceValue >().swap(importance2threshold_);
+	importance2threshold_ = tb.build_thresholds(splitsPerThreshold, *this);
+	assert(!importance2threshold_.empty());
+	thresholdsTechnique_ = tb.name;
+	readyForSims_ = true;
+}
+
+
+void
+ImportanceFunctionAlgebraic::print_out(std::ostream& out,
+									   State<STATE_INTERNAL_TYPE> s) const
+{
+	if (!has_importance_info()) {
+		out << "\nImportance function \"" << name() << "\" doesn't yet have "
+			   "any importance information to print." << std::endl;
+		return;
+	}
+	auto print_state = [&out](const StateInstance& symbState) {
+		out << "/";
+		for (const auto& val: symbState)
+			out << val << ",";
+		out << "\b\\";
+	};
+	out << "\nPrinting importance function \"" << name() << "\" values.\n";
+	out << "Legend: (/symbolic,state,valuation\\ importance_value)\n";
+	out << "Values:" << std::endl;
+	for (size_t i = 0ul ; i < s.concrete_size() ; i++) {
+		const StateInstance symbState = s.decode(i).to_state_instance();
+		out << "(";
+		print_state(symbState);
+		out << " " << importance_of(symbState) << ") ";
+		out.flush();
+	}
+	out << "\b" << std::endl;
+}
+
+
+void
+ImportanceFunctionAlgebraic::clear() noexcept
+{
+	adhocFun_.reset();
+	strategy_ = "";
+	hasImportanceInfo_ = false;
+	std::vector< ImportanceValue >().swap(importance2threshold_);
+	thresholdsTechnique_ = "";
+	readyForSims_ = false;
+	minImportance_ = static_cast<ImportanceValue>(0u);
+	maxImportance_ = static_cast<ImportanceValue>(0u);
+	minRareImportance_ = static_cast<ImportanceValue>(0u);
+}
 
 } // namespace fig

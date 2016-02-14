@@ -108,7 +108,7 @@ simulate(const fig::ModuleNetwork& network,
 		return --jumpsLeft > 0u;
 	};
 	auto update = [&](fig::Traial& t) -> void {
-		t.importance = impFun.importance_of(t.state);
+		t.level = impFun.importance_of(t.state);
 	};
 	// Notice we actually use lambdas with captures, which are incompatible
 	// with free function pointers (http://stackoverflow.com/q/7852101)
@@ -229,7 +229,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	std::vector< ImportanceValue >().swap(thresholds_);
 	thresholds_.reserve(impFun.max_importance()/3);
 	auto lesser = [](const Traial& lhs, const Traial& rhs)
-				  { return lhs.importance < rhs.importance; };
+				  { return lhs.level < rhs.level; };
 	TraialsVec traials = get_traials(n_, network, impFun);
 
 	// First AMS iteration is atypical and thus separated from main loop
@@ -240,11 +240,11 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 		std::sort(begin(traials), end(traials), lesser);
 		kTraial = traials[n_-k_];
 		simEffort *= 2;
-	} while (thresholds_.back() == kTraial.importance);
-	if (impFun.max_importance() <= kTraial.importance)
+	} while (thresholds_.back() == kTraial.level);
+	if (impFun.max_importance() <= kTraial.level)
 		throw_FigException("first iteration of AMS reached max importance, "
 						   "rare event doesn't seem rare enough.");
-	thresholds_.push_back(kTraial.importance);
+	thresholds_.push_back(kTraial.level);
 	simEffort = MIN_SIM_EFFORT;
 
 	// AMS main loop
@@ -256,9 +256,9 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 		// New k_-th order peak importance should be the new threshold
 		std::sort(begin(traials), end(traials), lesser);
 		kTraial = traials[n_-k_];
-		if (thresholds_.back() < kTraial.importance) {
+		if (thresholds_.back() < kTraial.level) {
 			// Found valid new threshold
-			thresholds_.push_back(kTraial.importance);
+			thresholds_.push_back(kTraial.level);
 			simEffort = MIN_SIM_EFFORT;
 			failures = 0u;
 		} else {

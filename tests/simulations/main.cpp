@@ -197,38 +197,48 @@ int main()
 	assert(nullptr != property_ptr);
 
 	// Simulation preliminaries
-	const NamesList initialClocks({"clkArr", "clkPass"});
-	const std::string ifunName = "concrete_coupled";
-	const std::string ifunStrategy = "auto";
-	const std::string thrTechnique = "ams";
-	const std::string engineName = "restart";
-
-	model.seal(initialClocks);
-	std::cout << "Building an  importance function" << std::endl;
-	model.build_importance_function(ifunName, ifunStrategy, *property_ptr);
-	std::cout << "Building the thresholds" << std::endl;
-	model.build_thresholds(thrTechnique, ifunName);
-	std::cout << "Building a   simulation engine" << std::endl;
-	auto engine_ptr = model.prepare_simulation_engine(engineName, ifunName);
-	assert(engine_ptr->bound());
-	std::cout << "Building the simulation bounds\n" << std::endl;
-	fig::StoppingConditions stop_by_value;
-	stop_by_value.add_confidence_criterion(0.9, 0.1, true);
-	assert(stop_by_value.is_confidence_criteria());
+	model.seal(NamesList({"clkArr", "clkPass"}));
+	std::cout << "Building the importance functions" << std::endl;
+	const std::string flatIfunName("algebraic");
+	const std::string autoIfunName("concrete_coupled");
+	model.build_importance_function_flat(flatIfunName, *property_ptr);
+	model.build_importance_function_auto(autoIfunName, *property_ptr);
+	std::cout << "Building its thresholds" << std::endl;
+	model.build_thresholds("ams", flatIfunName);
+	model.build_thresholds("ams", autoIfunName);
+	
+	// Time simulations
+	std::cout << "Simulating for fixed time spans" << std::endl;
 	fig::StoppingConditions stop_by_time;
 	stop_by_time.add_time_budget(2ul);
 	stop_by_time.add_time_budget(7ul);
-	assert(stop_by_time.is_time_budgets());
-	
-	// Simulations
-	std::cout << "Simulating for fixed time spans" << std::endl;
+	std::cout << "...with \"flat\" ifun and \"nosplit\" engine..." << std::endl;
+	auto engine_ptr = model.prepare_simulation_engine("nosplit", flatIfunName);
+	assert(engine_ptr->bound());
 	model.estimate(*property_ptr, *engine_ptr, stop_by_time);
+	std::cout << "...with \"auto\" ifun and \"restart\" engine..." << std::endl;
+	engine_ptr = model.prepare_simulation_engine("restart", autoIfunName);
+	assert(engine_ptr->bound());
+	model.estimate(*property_ptr, *engine_ptr, stop_by_time);
+
+	// Value simulations
 	std::cout << "Simulating until desired accuracy is reached" << std::endl;
+	fig::StoppingConditions stop_by_value;
+	stop_by_value.add_confidence_criterion(0.7, 0.5, true);
+	stop_by_value.add_confidence_criterion(0.9, 0.1, true);
+	std::cout << "...with \"flat\" ifun and \"nosplit\" engine..." << std::endl;
+	engine_ptr = model.prepare_simulation_engine("nosplit", flatIfunName);
+	assert(engine_ptr->bound());
+	model.estimate(*property_ptr, *engine_ptr, stop_by_value);
+	std::cout << "...with \"auto\" ifun and \"restart\" engine..." << std::endl;
+	engine_ptr = model.prepare_simulation_engine("restart", autoIfunName);
+	assert(engine_ptr->bound());
 	model.estimate(*property_ptr, *engine_ptr, stop_by_value);
 
 	// Cleanup
 	std::cout << "\nReleasing resources" << std::endl;
-	model.release_resources(ifunName, engineName);
+	model.release_resources(flatIfunName, "nosplit");
+	model.release_resources(autoIfunName, "restart");
 
 	return 0;
 }

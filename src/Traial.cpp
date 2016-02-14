@@ -53,8 +53,8 @@ namespace fig
 {
 
 Traial::Traial(const size_t& stateSize, const size_t& numClocks) :
-	importance(0),
-	depth(0),
+    level(static_cast<ImportanceValue>(0u)),
+    depth(0),
 	lifeTime(0.0),
 	state(stateSize),
 	orderedIndex_(numClocks)
@@ -71,8 +71,8 @@ Traial::Traial(const size_t& stateSize,
 			   const size_t& numClocks,
 			   Bitflag whichClocks,
 			   bool orderTimeouts) :
-	importance(0),
-	depth(0),
+    level(static_cast<ImportanceValue>(0u)),
+    depth(0),
 	lifeTime(0.0),
 	state(stateSize),
 	orderedIndex_(numClocks)
@@ -101,7 +101,7 @@ Traial::Traial(const size_t& stateSize,
 			   const size_t& numClocks,
 			   const Container <ValueType, OtherContainerArgs...>& whichClocks,
 			   bool orderTimeouts) :
-	importance(static_cast<ImportanceValue>(0u)),
+    level(static_cast<ImportanceValue>(0u)),
 	depth(0),
 	lifeTime(static_cast<CLOCK_INTERNAL_TYPE>(0.0)),
 	state(stateSize),
@@ -171,7 +171,14 @@ Traial::initialize(const ModuleNetwork& network,
 	for (const auto& pos_clk_pair: network.initialClocks)
 		clocks_[pos_clk_pair.first].value = pos_clk_pair.second.sample();
 	// Initialize importance and simulation time
-    importance = UNMASK(impFun.importance_of(state));
+    if (impFun.ready())
+        level = impFun.level_of(state);
+    else if (impFun.has_importance_info())
+        level = impFun.importance_of(state);
+    else
+        throw_FigException(std::string("importance function \"")
+                           .append(impFun.name()).append("\" doesn't have ")
+                           .append("importance info; can't initialize Traial"));
 	depth = 0;
 	lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
 }

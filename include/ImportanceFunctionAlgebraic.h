@@ -75,7 +75,9 @@ public:  // Accessors
 
 	virtual ImportanceValue level_of(const StateInstance& state) const;
 
-	virtual void print_out(std::ostream& out) const;
+	virtual ImportanceValue level_of(const ImportanceValue& val) const;
+
+	virtual void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE> s) const;
 
 public:  // Utils
 
@@ -83,10 +85,12 @@ public:  // Utils
 	 * @brief Set a new mathematical formula to assess the importance
 	 *        of the symbolic states in the system model.
 	 *
+	 * @param strategy       Importance assessment strategy ("flat" or "adhoc")
 	 * @param formulaExprStr String with the new mathematical expression
 	 * @param varnames       Names of variables ocurring in formulaExprStr,
 	 *                       viz. substrings in it that refer to variable names
 	 * @param gState         Global state of the system model, in any valuation
+	 * @param property       Property identifying the rare states
 	 *
 	 * @note After a successfull invocation this ImportanceFunction
 	 *       is considered to hold \ref has_importance_info() "importance
@@ -99,7 +103,8 @@ public:  // Utils
 	void set_formula(const std::string& strategy,
 					 const std::string& formulaExprStr,
 					 const Container< std::string, OtherArgs... >& varnames,
-					 const State<STATE_INTERNAL_TYPE>& gState);
+					 const State<STATE_INTERNAL_TYPE>& gState,
+					 const Property& property);
 
 	virtual void build_thresholds(ThresholdsBuilder& tb,
 								  const unsigned& splitsPerThreshold);

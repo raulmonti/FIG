@@ -135,7 +135,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			(this->*watch_events)(property, traial, e);
 			if (IS_RARE_EVENT(e)) {
 				// We are? Then count and kill
-				raresCount[traial.importance]++;
+				raresCount[traial.level]++;
 				tpool.return_traial(std::move(traial));
 				stack.pop();
 				continue;

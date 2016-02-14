@@ -94,7 +94,7 @@ public:  // Accessors
 	 * @see assess_importance()
 	 * @see importance_of()
 	 */
-	inline virtual ImportanceValue info_of(const StateInstance& state) const = 0;
+	virtual ImportanceValue info_of(const StateInstance& state) const = 0;
 
 public:  // Utils
 
@@ -141,10 +141,9 @@ public:  // Utils
 	 *
 	 * @see has_importance_info()
 	 */
-	template< template< typename... > class Container, typename... OtherArgs >
 	virtual void assess_importance(const Property& prop,
 								   const std::string& formulaExprStr,
-								   const Container<std::string,OtherArgs...>& varnames) = 0;
+								   const std::vector<std::string>& varnames) = 0;
 
 	/// Erase all internal importance information and free resources
 	virtual void clear() noexcept;

@@ -70,12 +70,11 @@ ImportanceFunctionConcreteCoupled::assess_importance(
 }
 
 
-template< template< typename... > class Container, typename... OtherArgs >
-virtual void
+void
 ImportanceFunctionConcreteCoupled::assess_importance(
     const Property& prop,
     const std::string& formulaExprStr,
-    const Container<std::string,OtherArgs...>& varnames)
+    const std::vector<std::string>& varnames)
 {
     /// @todo TODO: implement concrete ifun with ad hoc importance assessment
 }
@@ -94,19 +93,21 @@ ImportanceFunctionConcreteCoupled::build_thresholds(
     // Build translator from importance to threshold-level
     std::vector< ImportanceValue > imp2thr =
             tb.build_thresholds(splitsPerThreshold, *this);
+    assert(!imp2thr.empty());
+    minImportance_ = imp2thr[0];
     maxImportance_ = imp2thr.back();
     thresholdsTechnique_ = tb.name;
 
     // Replace importance info with the new thresholds info
     #pragma omp parallel for default(shared)
-    for (size_t s = 0u ; s < impVec.size() ; s++) {
-        fig::Event mask = fig::MASK(impVec[s]);
-        impVec[s] = mask | imp2thr[impVec[s]];
+    for (size_t i = 0ul ; i < impVec.size() ; i++) {
+        fig::Event mask = fig::MASK(impVec[i]);
+        impVec[i] = mask | imp2thr[impVec[i]];
     }
 
 	// Find lowest threshold level where we can find a rare state
 	minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
-	for (size_t i = 0u ; i < impVec.size() ; i++)
+    for (size_t i = 0ul ; i < impVec.size() ; i++)
 		if (IS_RARE_EVENT(impVec[i]) && UNMASK(impVec[i]) < minRareImportance_)
 			minRareImportance_ = UNMASK(impVec[i]);
 
@@ -115,7 +116,8 @@ ImportanceFunctionConcreteCoupled::build_thresholds(
 
 
 void
-ImportanceFunctionConcreteCoupled::print_out(std::ostream& out) const
+ImportanceFunctionConcreteCoupled::print_out(std::ostream& out,
+                                             State<STATE_INTERNAL_TYPE>) const
 {
 	if (!has_importance_info()) {
 		out << "\nImportance function \"" << name() << "\" doesn't yet have "
@@ -153,7 +155,8 @@ ImportanceFunctionConcreteCoupled::clear() noexcept
 	readyForSims_ = false;
 	strategy_ = "";
 	thresholdsTechnique_ = "";
-	maxImportance_ = static_cast<ImportanceValue>(0u);
+    minImportance_ = static_cast<ImportanceValue>(0u);
+    maxImportance_ = static_cast<ImportanceValue>(0u);
 	minRareImportance_ = static_cast<ImportanceValue>(0u);
 }
 

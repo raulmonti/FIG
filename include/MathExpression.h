@@ -64,12 +64,12 @@ namespace fig
  */
 class MathExpression
 {
-	/// String stored internally when given an empty expression
-	static const std::string emptyExpressionString;
-
 protected:
 
-	typedef mu::Parser Expression;
+    typedef mu::Parser Expression;
+
+    /// String stored internally when given an empty expression
+    static const std::string emptyExpressionString;
 
 	/// String describing the mathematical expression
 	std::string exprStr_;
@@ -205,9 +205,9 @@ template< template< typename, typename... > class Container,
 MathExpression::MathExpression(
 	const std::string& exprStr,
 	const Container<ValueType, OtherContainerArgs...>& varnames) :
-		empty_("" == exprStr ? true : false),
 		exprStr_("" == exprStr ? emptyExpressionString : exprStr),
-		pinned_(false)
+        empty_("" == exprStr ? true : false),
+        pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: type mismatch. MathExpression needs a container "
@@ -233,9 +233,9 @@ template< template< typename, typename... > class Container,
 MathExpression::MathExpression(
 	const std::string& exprStr,
 	Container<ValueType, OtherContainerArgs...>&& varnames) :
-		empty_("" == exprStr ? true : false),
 		exprStr_("" == exprStr ? emptyExpressionString : exprStr),
-		pinned_(false)
+        empty_("" == exprStr ? true : false),
+        pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: type mismatch. MathExpression needs a container "
@@ -263,9 +263,9 @@ MathExpression::MathExpression(
 	const std::string& exprStr,
 	Iterator<ValueType, OtherIteratorArgs...> from,
 	Iterator<ValueType, OtherIteratorArgs...> to) :
-		empty_("" == exprStr ? true : false),
 		exprStr_("" == exprStr ? emptyExpressionString : exprStr),
-		pinned_(false)
+        empty_("" == exprStr ? true : false),
+        pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: type mismatch. MathExpression needs iterators "

@@ -253,7 +253,7 @@ ModuleNetwork::peak_simulation(Traial& traial,
 		return;
 #endif
 
-	ImportanceValue maxImportance(traial.importance);
+	ImportanceValue maxImportance(traial.level);
 	StateInstance maxImportanceState(traial.state);
 
 	while ( pred(traial) ) {
@@ -267,12 +267,12 @@ ModuleNetwork::peak_simulation(Traial& traial,
 		// Update traial internals
 		traial.lifeTime += timeout.value;
 		update(traial);
-		if (UNMASK(traial.importance) > UNMASK(maxImportance)) {
-			maxImportance = traial.importance;
+		if (UNMASK(traial.level) > UNMASK(maxImportance)) {
+			maxImportance = traial.level;
 			maxImportanceState = traial.state;
 		}
 	}
-	traial.importance = maxImportance;
+	traial.level = maxImportance;
 	traial.state = maxImportanceState;
 
 	return UNMASK(maxImportance);
