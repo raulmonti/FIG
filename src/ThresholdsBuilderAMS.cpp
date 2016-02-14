@@ -121,47 +121,8 @@ simulate(const fig::ModuleNetwork& network,
 	}
 }
 
-
-/**
- * @brief Replace importance information with thresholds information
- *
- *        After this call 'impVec' will have the threshold level of every
- *        concrete state, where the j-th threshold level is composed of all
- *        the states between the j-th and the (j+1)-th threshold.
- *        The result can be regarded as a coarser version of the original
- *        importance information which 'impVec' held before this call.
- *
- * @param impVec Vector with the ImportanceValue of every concrete state
- * @param maxImportance Maximum ImportanceValue stored in impVec
- * @param thrImp Its j-th location is the ImportanceValue of the j-th threshold
- *
- * @return Number of thresholds
- */
-unsigned
-replace_importance_with_thresholds(std::vector< ImportanceValue >& impVec,
-								   const ImportanceValue& maxImportance,
-								   const std::vector< ImportanceValue >& thrImp)
-{
-	std::unordered_map<ImportanceValue, ImportanceValue> imp2thr;
-	imp2thr.reserve(maxImportance);
-	ImportanceValue currentThr(0u);
-	// Build "importance-to-thresholds" mapping
-	for (ImportanceValue i = static_cast<ImportanceValue>(0u) ; i <= maxImportance ; i++) {
-		while (thrImp[currentThr] <= i
-			   && currentThr < thrImp.size())
-			currentThr++;
-		imp2thr[i] = currentThr;
-	}
-	// Translate
-	#pragma omp parallel for default(shared)
-	for (size_t s = 0u ; s < impVec.size() ; s++) {
-		fig::Event mask = fig::MASK(impVec[s]);
-		impVec[s] = mask | imp2thr[fig::UNMASK(impVec[s])];
-	}
-	return thrImp.size();
-}
-
 } // namespace
+
 
 
 namespace fig
@@ -211,14 +172,51 @@ ThresholdsBuilderAMS::tune(const size_t& numStates,
 }
 
 
-unsigned
-ThresholdsBuilderAMS::build_thresholds_in_situ(
-	const unsigned& splitsPerThreshold,
-	ImportanceFunctionConcrete& impFun,
-	std::vector< ImportanceValue >& impVec)
+std::vector< ImportanceValue >
+ThresholdsBuilderAMS::build_thresholds(const unsigned& splitsPerThreshold,
+									   const ImportanceFunction& impFun)
 {
-	if (impFun.max_importance() < static_cast<ImportanceValue>(2u))
-		return static_cast<unsigned>(impFun.max_importance());  // not worth it
+	unsigned currThr(0ul);
+	std::vector< ImportanceValue > result;
+
+	build_thresholds_vector(splitsPerThreshold, impFun);
+	assert(!thresholds_.empty());
+	assert(thresholds_[0] == impFun.min_importance());
+	assert(thresholds_.back() > impFun.max_importance());
+
+	result.resize(impFun.max_importance());
+	for (ImportanceValue i = impFun.min_importance()
+		 ; i < impFun.max_importance()
+		 ; i++)
+	{
+		while (i >= thresholds_[currThr+1])
+			currThr++;
+		result[i] = static_cast<ImportanceValue>(currThr);
+	}
+
+	assert(result[impFun.min_importance()] == static_cast<ImportanceValue>(0u));
+	assert(result[impFun.max_importance()-1] ==
+			static_cast<ImportanceValue>(thresholds_.size()-2));
+	std::vector< ImportanceValue >().swap(thresholds_);  // free mem
+
+	return result;
+}
+
+
+void
+ThresholdsBuilderAMS::build_thresholds_vector(
+	const unsigned& splitsPerThreshold,
+	const ImportanceFunction& impFun)
+{
+	if (impFun.max_importance() - impFun.min_importance()
+			< static_cast<ImportanceValue>(2u)) {
+		// not worth the trouble, just say we have two levels
+		std::vector< ImportanceValue >(3ul).swap(thresholds_);
+		thresholds_[0] = impFun.min_importance();
+		thresholds_[1] = impFun.max_importance();
+		thresholds_[2] = impFun.max_importance() + static_cast<ImportanceValue>(1u);
+		return;
+	}
 
 	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 	tune(network.concrete_state_size(),
@@ -228,22 +226,25 @@ ThresholdsBuilderAMS::build_thresholds_in_situ(
 
 	unsigned failures(0u);
 	unsigned simEffort(MIN_SIM_EFFORT);
+	std::vector< ImportanceValue >().swap(thresholds_);
+	thresholds_.reserve(impFun.max_importance()/3);
 	auto lesser = [](const Traial& lhs, const Traial& rhs)
-				  { return UNMASK(lhs.importance) < UNMASK(rhs.importance); };
+				  { return lhs.importance < rhs.importance; };
 	TraialsVec traials = get_traials(n_, network, impFun);
 
 	// First AMS iteration is atypical and thus separated from main loop
+	thresholds_.push_back(impFun.min_importance());
 	Traial& kTraial = traials[n_-k_];
 	do {
 		simulate(network, impFun, traials, n_, simEffort);
 		std::sort(begin(traials), end(traials), lesser);
 		kTraial = traials[n_-k_];
 		simEffort *= 2;
-	} while (static_cast<ImportanceValue>(0u) == UNMASK(kTraial.importance));
-	if (UNMASK(kTraial.importance) >= impFun.max_importance())
+	} while (thresholds_.back() == kTraial.importance);
+	if (impFun.max_importance() <= kTraial.importance)
 		throw_FigException("first iteration of AMS reached max importance, "
 						   "rare event doesn't seem rare enough.");
-	thresholds_.push_back(UNMASK(kTraial.importance));
+	thresholds_.push_back(kTraial.importance);
 	simEffort = MIN_SIM_EFFORT;
 
 	// AMS main loop
@@ -255,9 +256,9 @@ ThresholdsBuilderAMS::build_thresholds_in_situ(
 		// New k_-th order peak importance should be the new threshold
 		std::sort(begin(traials), end(traials), lesser);
 		kTraial = traials[n_-k_];
-		if (UNMASK(kTraial.importance) > thresholds_.back()) {
+		if (thresholds_.back() < kTraial.importance) {
 			// Found valid new threshold
-			thresholds_.push_back(UNMASK(kTraial.importance));
+			thresholds_.push_back(kTraial.importance);
 			simEffort = MIN_SIM_EFFORT;
 			failures = 0u;
 		} else {
@@ -269,9 +270,9 @@ ThresholdsBuilderAMS::build_thresholds_in_situ(
 	}
 
 	TraialPool::get_instance().return_traials(traials);
-	return replace_importance_with_thresholds(impVec,
-											  impFun.max_importance(),
-											  thresholds_);
+	thresholds_.push_back(impFun.max_importance()
+						  + static_cast<ImportanceValue>(1u));
+	return;
 
 	exit_with_fail:
 		std::stringstream errMsg;

@@ -27,6 +27,14 @@
 //==============================================================================
 
 
+// C++
+#include <set>
+#include <list>
+#include <deque>
+#include <vector>
+#include <forward_list>
+#include <unordered_set>
+// FIG
 #include <ImportanceFunctionAlgebraic.h>
 
 
@@ -35,7 +43,7 @@ namespace fig
 
 ImportanceFunctionAlgebraic::ImportanceFunctionAlgebraic() :
 	ImportanceFunction("algebraic"),
-	invertedThresholds_()
+	importance2threshold_()
 { /* Not much to do around here */ }
 
 
@@ -45,10 +53,59 @@ ImportanceFunctionAlgebraic::~ImportanceFunctionAlgebraic()
 }
 
 
-void
-ImportanceFunctionAlgebraic::set_formula(const std::string& formulaExprStr, const std::vector<std::__cxx11::string> varNames)
+ImportanceValue
+ImportanceFunctionAlgebraic::importance_of(const StateInstance& state) const
 {
-	/// @todo TODO: pin-up-vars in Formula ("assessor" member)
+#ifndef NDEBUG
+	if (!has_importance_info())
+		throw_FigException(std::string("importance function \"")
+						   .append(name()).append("\" doesn't ")
+						   .append("hold importance information."));
+#endif
+	return adhocFormula_(state);
 }
+
+
+template< template< typename... > class Container, typename... OtherArgs >
+void
+ImportanceFunctionAlgebraic::set_formula(
+	const std::string& strategy,
+	const std::string& formulaExprStr,
+	const Container<std::string, OtherArgs...>& varnames,
+	const State<STATE_INTERNAL_TYPE>& gState)
+{
+	try {
+		adhocFormula_.reset(formulaExprStr, varnames, gState);
+	} catch (std::out_of_range& e) {
+		throw_FigException(std::string("something went wrong while setting ")
+						   .append(" the formula \"").append(formulaExprStr)
+						   .append("\" for ad hoc importance assessment: ")
+						   .append(e.what()));
+	}
+	hasImportanceInfo_ = true;
+	strategy_ = strategy;
+}
+
+// ImportanceFunctionAlgebraic::set_formula() can only be invoked
+// with the following containers
+template<> void ImportanceFunctionAlgebraic::set_formula(
+    const std::string&, const std::string&, const std::set<std::string>&,
+    const State<STATE_INTERNAL_TYPE>&);
+template<> void ImportanceFunctionAlgebraic::set_formula(
+    const std::string&, const std::string&, const std::list<std::string>&,
+    const State<STATE_INTERNAL_TYPE>&);
+template<> void ImportanceFunctionAlgebraic::set_formula(
+    const std::string&, const std::string&, const std::deque<std::string>&,
+    const State<STATE_INTERNAL_TYPE>&);
+template<> void ImportanceFunctionAlgebraic::set_formula(
+    const std::string&, const std::string&, const std::vector<std::string>&,
+    const State<STATE_INTERNAL_TYPE>&);
+template<> void ImportanceFunctionAlgebraic::set_formula(
+    const std::string&, const std::string&, const std::forward_list<std::string>&,
+    const State<STATE_INTERNAL_TYPE>&);
+template<> void ImportanceFunctionAlgebraic::set_formula(
+    const std::string&, const std::string&, const std::unordered_set<std::string>&,
+    const State<STATE_INTERNAL_TYPE>&);
+
 
 } // namespace fig

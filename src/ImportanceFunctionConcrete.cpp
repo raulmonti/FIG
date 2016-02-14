@@ -262,7 +262,7 @@ label_states(State state,
 	cStates.resize(state.concrete_size());
 
 	// First mark rares
-	for (size_t i = 0u ; i < state.concrete_size() ; i++) {
+    for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
 		cStates[i] = fig::EventType::NONE;
 		if (property.is_rare(state.decode(i))) {
 			fig::SET_RARE_EVENT(cStates[i]);
@@ -276,7 +276,7 @@ label_states(State state,
 
 	case fig::PropertyType::TRANSIENT: {
 		auto transientProp = static_cast<const fig::PropertyTransient&>(property);
-		for (size_t i = 0u ; i < state.concrete_size() ; i++)
+        for (size_t i = 0ul ; i < state.concrete_size() ; i++)
 			if (transientProp.is_stop(state.decode(i)))
 				fig::SET_STOP_EVENT(cStates[i]);
 		} break;
@@ -308,8 +308,8 @@ assess_importance_flat(State state,
 					   ImportanceVec& impVec,
 					   const Property& property)
 {
-	assert(state.size() > 0u);
-	assert(impVec.size() == 0u);
+    assert(state.size() > 0ul);
+    assert(impVec.size() == 0ul);
 
 	// Build vector the size of concrete state space filled with zeros ...
 	ImportanceVec(state.concrete_size()).swap(impVec);
@@ -339,9 +339,9 @@ assess_importance_auto(const State& state,
 					   ImportanceVec& impVec,
 					   const Property& property)
 {
-	assert(state.size() > 0u);
-	assert(trans.size() > 0u);
-	assert(impVec.size() == 0u);
+    assert(state.size() > 0ul);
+    assert(trans.size() > 0ul);
+    assert(impVec.size() == 0ul);
 
 	// Step 1: run DFS from initial state to compute reachable reversed edges
 	fig::AdjacencyList reverseEdges = reversed_edges_DFS(state, trans, impVec);
@@ -365,6 +365,7 @@ assess_importance_auto(const State& state,
 }
 
 } // namespace
+
 
 
 namespace fig
@@ -392,7 +393,7 @@ ImportanceFunctionConcrete::assess_importance(
 {
 	if (modulesConcreteImportance.size() <= index)
 		modulesConcreteImportance.resize(index+1);
-	else if (modulesConcreteImportance[index].size() > 0u)
+    else if (modulesConcreteImportance[index].size() > 0ul)
 		throw_FigException(std::string("importance info already exists at ")
 						   .append(" position").append(std::to_string(index)));
 
@@ -402,20 +403,26 @@ ImportanceFunctionConcrete::assess_importance(
 			assess_importance_flat(symbState,
 								   modulesConcreteImportance[index],
 								   property);
-		minRareImportance_ = static_cast<ImportanceValue>(0u);
+        // Invariant of flat importance function:
+        minImportance_ = maxImportance_;
+        minRareImportance_ = maxImportance_;
 
 	} else if ("auto" == strategy) {
 		maxImportance_ =
 			assess_importance_auto(symbState,
 								   trans,
 								   modulesConcreteImportance[index],
-								   property);
+                                   property);
+        // For auto importance functions the initial state has always
+        // the lowest importance, and all rare states have the highest:
+        minImportance_ = modulesConcreteImportance[index][symbState.encode()];
 		minRareImportance_ = maxImportance_;  // should we check?
 
-	} else if ("adhoc" == strategy) {
-		throw_FigException(std::string("importance strategy \"").append(strategy)
-						   .append("\" isn't supported yet"));
-	} else
+    } else if ("adhoc" == strategy)
+        throw_FigException("importance strategy \"adhoc\" requires a user "
+                           "defined formula expression; this routine should "
+                           "not have been invoked for such strategy.");
+    else
 		throw_FigException(std::string("unrecognized importance strategy \"")
 						   .append(strategy).append("\""));
 }

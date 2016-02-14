@@ -43,7 +43,7 @@ ConfidenceIntervalWilson::ConfidenceIntervalWilson(
 	double confidence,
 	double precision,
 	bool dynamicPrecision) :
-		ConfidenceInterval(confidence, precision, dynamicPrecision),
+        ConfidenceInterval("proportion_wilson", confidence, precision, dynamicPrecision),
 		squantile_(quantile*quantile),
 		numRares_(0.0),
 		logNumSamples_(0.0)
@@ -98,7 +98,7 @@ ConfidenceIntervalWilson::update(const double& newResults,
 bool
 ConfidenceIntervalWilson::min_samples_covered() const noexcept
 {
-	return numRares_ > 30 * statOversample_;
+    return numRares_ > 30 * statOversample_;
 }
 
 

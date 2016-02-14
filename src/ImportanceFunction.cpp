@@ -76,10 +76,8 @@ const std::array< std::string, 4 > ImportanceFunction::strategies =
 
 // ImportanceFunction internal "Formula" class
 
-std::vector< std::string > emptyFormulaVarnames;
-
-
-ImportanceFunction::Formula::Formula() : MathExpression("", emptyFormulaVarnames)
+ImportanceFunction::Formula::Formula() :
+    MathExpression("", std::vector<std::string>() )
 { /* Not much to do around here */ }
 
 
@@ -102,13 +100,34 @@ ImportanceFunction::Formula::reset(const std::string& formula,
 				std::make_pair(name, globalState.position_of_var(name)));
 	}
 	pinned_ = true;
+    // Fake an evaluation to reveal parsing errors now
+    STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
+    try {
+        for (const auto& pair: varsMap_)
+            expr_.DefineVar(pair.first, &dummy);
+        dummy = expr_.Eval();
+    } catch (mu::Parser::exception_type &e) {
+        std::cerr << "Failed parsing expression" << std::endl;
+        std::cerr << "    message:  " << e.GetMsg()   << std::endl;
+        std::cerr << "    formula:  " << e.GetExpr()  << std::endl;
+        std::cerr << "    token:    " << e.GetToken() << std::endl;
+        std::cerr << "    position: " << e.GetPos()   << std::endl;
+        std::cerr << "    errc:     " << e.GetCode()  << std::endl;
+        throw_FigException("bad expression for ImportanceFunction::Formula, "
+                           "did you remember to map all the variables?");
+    }
 }
 
 
 STATE_INTERNAL_TYPE
 ImportanceFunction::Formula::operator()(const StateInstance& state) const
 {
-	/// @todo TODO: implement!
+    // Bind symbolic state variables to the current expression...
+    for (const auto& pair: varsMap_)
+        expr_.DefineVar(pair.first,  const_cast<STATE_INTERNAL_TYPE*>(
+                        &state[pair.second]));
+    // ...and evaluate
+    return expr_.Eval();
 }
 
 
@@ -121,7 +140,10 @@ ImportanceFunction::ImportanceFunction(const std::string& name) :
 	readyForSims_(false),
 	strategy_(""),
 	thresholdsTechnique_(""),
-	maxImportance_(0u)
+    minImportance_(static_cast<ImportanceValue>(0u)),
+    maxImportance_(static_cast<ImportanceValue>(0u)),
+    minRareImportance_(static_cast<ImportanceValue>(0u)),
+    adhocFormula_()
 {
 	if (find(begin(names), end(names), name) == end(names)) {
 		std::stringstream errMsg;
@@ -178,6 +200,14 @@ ImportanceFunction::num_thresholds() const
 		throw_FigException("this ImportanceFunction hasn't "
 						   "any thresholds built in it yet");
 	return maxImportance_;
+}
+
+
+ImportanceValue
+ImportanceFunction::min_importance() const noexcept
+{
+    return has_importance_info() ? minImportance_
+                                 : static_cast<ImportanceValue>(0u);
 }
 
 

@@ -73,55 +73,31 @@ public:
 	ThresholdsBuilder(const std::string& thename);
 
 	/**
-	 * @brief Build thresholds inside given concrete importance function.
-	 *
-	 *        The thresholds are built in 'impVec', which is the internal
-	 *        vector where 'impFun' holds its importance information.
-	 *        For ImportanceFunctionConcrete this means 'impVec' holds the
-	 *        ImportanceValue of every concrete state from some Module.
-	 *        Original importance information is destroyed: after this call
-	 *        'impVec[i]' will hold the i-th concrete state's threshold level,
-	 *        where the j-th threshold level is composed of all the states
-	 *        between the j-th and the (j+1)-th thresholds.
-	 *        The result can be regarded as a coarser version of the original
-	 *        importance information which 'impFun' held before this call.
-	 *
-	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
-	 *                           "threshold level up" event
-	 * @param impFun ImportanceFunction where thresholds will be built <b>(modified)</b>
-	 * @param impVec Internal vector of impFun with ImportanceValue of concrete
-	 *               states, where the thresholds will be stored <b>(modified)</b>
-	 *
-	 * @return Resulting number of threshold levels
-	 *         (i.e. new "maxImportance" value for 'impFun')
-	 *
-	 * @throw FigException if method is unsupported by the derived class
-	 * @throw FigException if thresholds building failed
-	 */
-	virtual unsigned
-	build_thresholds_in_situ(const unsigned& splitsPerThreshold,
-							 ImportanceFunctionConcrete& impFun,
-							 std::vector< ImportanceValue >& impVec) = 0;
-
-	/**
 	 * @brief Build thresholds based on given importance function
+	 *
+	 *        Return an importance-to-threshold_level map: the i-th position
+	 *        of the resulting vector will hold the threshold level
+	 *        corresponding to the i-th ImportanceValue from impFun.
+	 *        Here the j-th threshold level is composed of all the states
+	 *        to which impFun assigns an ImportanceValue between (including)
+	 *        threshold j and (excluding) threshold j+1.
 	 *
 	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
 	 *                           "threshold level up" event
 	 * @param impFun ImportanceFunction with internal
-	 *               \ref ImportanceFunction::has_importance_info() "importance
-	 *               information" to use for the task
+	 *               \ref ImportanceFunction::has_importance_info()
+	 *               "importance information" to use for the task
 	 *
-	 * @return Thresholds vector as explained in the details.: result's i-th location will hold the i-th concrete state's threshold level,
-	 *        where the j-th threshold level is composed of all the states
-	 *        between the j-th and the (j+1)-th thresholds.
+	 * @return Vector with threshold levels as explained in the details.
 	 *
-	 * @throw FigException if method is unsupported by the derived class
+	 * @note The effective number of thresholds built
+	 *       equals the value in the last position of the returned vector
+	 *
 	 * @throw FigException if thresholds building failed
 	 */
 	virtual std::vector< ImportanceValue >
-	build_thresholds_detached(const unsigned& splitsPerThreshold,
-							  const ImportanceFunction& impFun) = 0;
+	build_thresholds(const unsigned& splitsPerThreshold,
+					 const ImportanceFunction& impFun) = 0;
 };
 
 } // namespace fig

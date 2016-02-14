@@ -122,71 +122,36 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	else
 		watch_events = &SimulationEngineRestart::transient_event;
 
-//	/// @todo TODO erase debug var below
-//	State<STATE_INTERNAL_TYPE> state = network_->global_state();
-//	///////////////////////////////////////
-
 	// Perform 'numRuns' RESTART importance-splitting simulations
 	for (size_t i = 0u ; i < numRuns ; i++) {
 		tpool.get_traials(stack, 1u);
 		static_cast<Traial&>(stack.top()).initialize(*network_, *impFun_);
 
 		while (!stack.empty()) {
+			Event e(EventType::NONE);
 			Traial& traial = stack.top();
 
-//			/// @todo TODO erase debug print below
-//			state.copy_from_state_instance(traial.state);
-//			std::cerr << "Starting from " << state.encode() << " with clocks";
-//			auto clocks = traial.clocks_values();
-//			for (const auto& pair: clocks)
-//				std::cerr << " " << pair.first << ":" << pair.second;
-//			std::cerr << std::endl;
-//			///////////////////////////////////////
-
-			Event e = network_->simulation_step(traial, property, *this, watch_events);
+			// Check whether we're standing on a rare event first
+			(this->*watch_events)(property, traial, e);
+			if (IS_RARE_EVENT(e)) {
+				// We are? Then count and kill
+				raresCount[traial.importance]++;
+				tpool.return_traial(std::move(traial));
+				stack.pop();
+				continue;
+			}
+			// We aren't? Then keep dancing
+			e = network_->simulation_step(traial, property, *this, watch_events);
 
 			// The following events are treated as mutually exclusive
 			// Checking order is relevant!
 			if (IS_STOP_EVENT(e) || IS_THR_DOWN_EVENT(e)) {
-
-//				/// @todo TODO erase debug print below
-//				state.copy_from_state_instance(traial.state);
-//				std::cerr << "\nKilled when moved into " << state.encode();
-//				std::cerr << " (" << (IS_STOP_EVENT(e)?"stop":"thrDown") << ")\n";
-//				///////////////////////////////////////
-
 				// Traial reached a stop event or went down => kill it
 				tpool.return_traial(std::move(traial));
 				stack.pop();
-
-			} else if (IS_RARE_EVENT(e)) {
-				// Reached rare event => count and kill
-				raresCount[traial.importance]++;
-				tpool.return_traial(std::move(traial));
-				stack.pop();
-//				/// @todo TODO erase debug print below
-//				state.copy_from_state_instance(traial.state);
-//				std::cerr << "\nRare event state " << state.encode();
-//				std::cerr << "\nSo far generated " << rareEventsCount.sum()
-//						  << " rare events.\n";
-//				///////////////////////////////////////
-				/// @todo NOTE consider splitting before count and kill
-
 			} else if (IS_THR_UP_EVENT(e)) {
 				// Could have gone up several thresholds => split accordingly
 				assert(traial.depth < 0);
-//				assert(prevThr < traial.importance);
-
-//				/// @todo TODO erase debug print below
-//				state.copy_from_state_instance(traial.state);
-//				std::cerr << "\nLevel up when moved into " << state.encode()
-//						  << " with clocks";
-//				auto clocks = traial.clocks_values();
-//				for (const auto& pair: clocks)
-//					std::cerr << " " << pair.first << ":" << pair.second;
-//				std::cerr << std::endl;
-//				///////////////////////////////////////
-
 				for (ImportanceValue i = static_cast<ImportanceValue>(1u)
 					; i <= -traial.depth  // # thresholds crossed
 					; i++)
@@ -203,6 +168,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 				}
 				// Offsprings are on top of stack now: continue attending them
 			}
+			// RARE events are checked first thing on the next main iteration
 		}
 	}
 
@@ -213,9 +179,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	assert(numThresholds == 2);
 	for (unsigned i = 0u ; i <= numThresholds ; i++)
 		weighedRaresCount += raresCount[i]
-							  * std::pow(splitsPerThreshold_, numThresholds-i+1);
-							  /// @bug FIXME Why do we need that '+1' after i ?
-//							  * std::pow(splitsPerThreshold_, numThresholds-i);
+							  * std::pow(splitsPerThreshold_, numThresholds-i);
 	assert(0.0 <= weighedRaresCount);
 	if (ModelSuite::MIN_COUNT_RARE_EVENTS > raresCount.sum()) {
 		/// @todo TODO proper log in technical log

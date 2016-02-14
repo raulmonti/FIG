@@ -58,13 +58,22 @@ class ImportanceFunctionConcreteCoupled : public ImportanceFunctionConcrete
 	/// Copy of the global state of the model (i.e. the network of modules)
 	mutable State< STATE_INTERNAL_TYPE > globalStateCopy_;
 
+	/// Initial state of all variables in the model (i.e. the network of modules)
+	const StateInstance globalInitialValuation_;
+
+	/// Reference to all the transitions of the model (i.e. the network of modules)
+	const std::vector<std::shared_ptr<Transition>>& globalTransitions_;
+
 	/// For interaction with base class ImportanceFunctionConcrete
 	const unsigned importanceInfoIndex_;
 
 public:  // Ctor/Dtor
 
-	ImportanceFunctionConcreteCoupled();
+	/// @brief Data ctor
+	/// @param model System model, whose current state is taken as initial
+	ImportanceFunctionConcreteCoupled(const ModuleNetwork& model);
 
+	/// Dtor
 	virtual ~ImportanceFunctionConcreteCoupled();
 
 public:  // Accessors
@@ -111,10 +120,13 @@ public:  // Accessors
 
 public:  // Utils
 
-	virtual void assess_importance(const ModuleNetwork& net,
-								   const Property& prop,
-								   const std::string& strategy = "",
-								   bool force = false);
+	virtual void assess_importance(const Property& prop,
+								   const std::string& strategy = "");
+
+	template< template< typename... > class Container, typename... OtherArgs >
+	virtual void assess_importance(const Property& prop,
+								   const std::string& formulaExprStr,
+								   const Container<std::string,OtherArgs...>& varnames);
 
 	virtual void build_thresholds(ThresholdsBuilder& tb,
 								  const unsigned& splitsPerThreshold);

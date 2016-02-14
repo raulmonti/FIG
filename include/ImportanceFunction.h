@@ -76,7 +76,7 @@ protected:
 		/// @param varnames    Names of variables ocurring in exprStr
 		/// @param globalState State of the whole system model
 		/// @throw FigException if badly formatted mathematical expression
-		/// @throw out_of_range if 'varnames' has names not in exprStr
+		/// @throw out_of_range if 'varnames' has names not in 'formula'
 		void reset(const std::string& formula,
 				   const std::vector< std::string >& varnames,
 				   const State<STATE_INTERNAL_TYPE>& globalState);
@@ -105,7 +105,7 @@ private:
 
 protected:
 
-	/// Do we hold importance information to assess the states' importance?
+	/// Do we hold importance information about the states?
 	bool hasImportanceInfo_;
 
 	/// Can this instance be used for simulations?
@@ -117,6 +117,9 @@ protected:
 	/// Last used technique to build the importance thresholds in this function
 	std::string thresholdsTechnique_;
 
+	/// Minimum importance assigned during the last assessment
+	ImportanceValue minImportance_;
+
 	/// Maximum importance assigned during the last assessment
 	ImportanceValue maxImportance_;
 
@@ -124,7 +127,7 @@ protected:
 	ImportanceValue minRareImportance_;
 
 	/// Algebraic formula for ad hoc importance strategy
-	Formula assessor_;
+	Formula adhocFormula_;
 
 public:  // Ctor/Dtor
 
@@ -169,14 +172,28 @@ public:  // Accessors
 	///          last used strategy otherwise
 	const std::string strategy() const noexcept;
 
+	/// @copydoc minImportance_
+	/// @returns Zero if function doesn't has_importance_info(),
+	///          last minimum ImportanceValue assessed importance otherwise
+	/// @note If thresholds were \ref TresholdsBuilder::build_thresholds_in_situ()
+	///       "built in situ" the value returned will be that of the lowest
+	///       threshold level.
+	ImportanceValue min_importance() const noexcept;
+
 	/// @copydoc maxImportance_
 	/// @returns Zero if function doesn't has_importance_info(),
-	///          last maximum ImportanceValue assessed importance (or threshold level) otherwise
+	///          last maximum ImportanceValue assessed importance otherwise
+	/// @note If thresholds were \ref TresholdsBuilder::build_thresholds_in_situ()
+	///       "built in situ" the value returned will be that of the highest
+	///       threshold level.
 	ImportanceValue max_importance() const noexcept;
 
 	/// @copydoc minRareImportance_
 	/// @returns Zero if function doesn't has_importance_info(),
-	///          minimum ImportanceValue (or threshold level) of a rare state otherwise
+	///          minimum ImportanceValue of a rare state otherwise
+	/// @note If thresholds were \ref TresholdsBuilder::build_thresholds_in_situ()
+	///       "built in situ" the value returned will be the lowest threshold
+	///       level containing a rare state.
 	ImportanceValue min_rare_importance() const noexcept;
 
 	/// Whether this instance keeps an internal std::vector<ImportanceValue>,
@@ -197,6 +214,7 @@ public:  // Accessors
 	/**
 	 * Tell the pre-computed importance of the given StateInstance.
 	 * @return ImportanceValue requested
+	 * @note This returns the importance alone without any kind of Event mask
 	 * \ifnot NDEBUG
 	 *   @throw FigException if there's no \ref has_importance_info()
 	 *                       "importance information" currently
@@ -229,13 +247,13 @@ public:  // Utils
 	/**
 	 * @brief Build thresholds from precomputed importance information
 	 *
-	 *        The thresholds are built in the ImportanceFunction itself,
-	 *        smashing the finely grained importance values and replacing them
-	 *        with coarsely grained threshold levels.
-	 *        After a successfull call this ImportanceFunction instance is
-	 *        \ref ImportanceFunction::ready() "ready for simulations".
+	 *        The thresholds may be kept separately or built on top of the
+	 *        importance information. In any case after a successfull call
+	 *        this instance is \ref ImportanceFunction::ready() "ready for
+	 *        simulations": \ref SimulationEngine "simulation engines" will use
+	 *        the thresholds info when coupled with this ImportanceFunction.
 	 *
-	 * @param tb  ThresholdsBuilder to use
+	 * @param tb                 ThresholdsBuilder to use
 	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
 	 *                           "threshold level up" event
 	 *
@@ -247,12 +265,11 @@ public:  // Utils
 	virtual void build_thresholds(ThresholdsBuilder& tb,
 								  const unsigned& splitsPerThreshold) = 0;
 
-	/**
-	 * @brief Release any memory allocated in the heap
-	 * @note After this invocation the ImportanceFunction doesn't hold
-	 *       \ref has_importance_info() "importance information" any longer
-	 *       and it's thus not \ref ready() "ready for simulations"
-	 */
+	/// @brief  Release memory allocated in the heap
+	/// @details This destroys any importance and thresholds info:
+	///          the ImportanceFunction won't hold \ref has_importance_info()
+	///          "importance information" any longer and will thus not be
+	///          \ref ready() "ready for simulations" either.
 	virtual void clear() noexcept = 0;
 };
 

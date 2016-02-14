@@ -213,7 +213,7 @@ int main()
 	assert(engine_ptr->bound());
 	std::cout << "Building the simulation bounds\n" << std::endl;
 	fig::StoppingConditions stop_by_value;
-	stop_by_value.add_confidence_criterion(0.8, 0.1, true);
+	stop_by_value.add_confidence_criterion(0.9, 0.1, true);
 	assert(stop_by_value.is_confidence_criteria());
 	fig::StoppingConditions stop_by_time;
 	stop_by_time.add_time_budget(2ul);

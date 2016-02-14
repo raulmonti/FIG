@@ -109,11 +109,11 @@ bool ConfidenceInterval::value_simulations_;  // defined only to copy the doc!
 bool ConfidenceInterval::time_simulations_;   // defined only to copy the doc!
 
 
-ConfidenceInterval::ConfidenceInterval(const std::string& name,
+ConfidenceInterval::ConfidenceInterval(const std::string& thename,
 									   double confidence,
 									   double precision,
 									   bool dynamicPrecision) :
-	name_(name),
+    name(thename),
 	errorMargin(precision/2.0),
 	percent(dynamicPrecision),
 	confidence(confidence),

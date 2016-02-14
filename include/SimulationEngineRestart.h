@@ -117,12 +117,12 @@ public:  // Traial observers/updaters
 					// Went down... too far?
 					if (++traial.depth > static_cast<short>(dieOutDepth_))
 						e = EventType::THR_DOWN;
-				} else if (property.is_rare(traial.state)) {
-					e = EventType::RARE;
 				} else if (newThr > traial.importance) {
 					// Store in 'depth' the negative # of thresholds crossed
 					traial.depth = traial.importance - newThr;
 					e = EventType::THR_UP;
+				} else if (property.is_rare(traial.state)) {
+					e = EventType::RARE;
 				}
 				traial.importance = newThr;
 			}

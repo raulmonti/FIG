@@ -56,12 +56,15 @@ namespace fig
  */
 class ImportanceFunctionAlgebraic : public ImportanceFunction
 {
-	std::vector< ImportanceValue > invertedThresholds_;
+    /// Translator from state ImportanceValue to threshold level
+    std::vector< ImportanceValue > importance2threshold_;
 
 public:  // Ctor/Dtor
 
+	/// Empty ctor
 	ImportanceFunctionAlgebraic();
 
+	/// Dtor
 	virtual ~ImportanceFunctionAlgebraic();
 
 public:  // Accessors
@@ -76,13 +79,27 @@ public:  // Accessors
 
 public:  // Utils
 
-
-	/// Set a new mathematical formula to assess the importance of the
-	/// symbolic states in the system model.
-	/// @param formulaExprStr String with the new mathematical expression
-	/// @param varnames       Names of variables ocurring in formulaExprStr
-	void set_formula(const std::string& formulaExprStr,
-					 const std::vector< std::string > varnames);
+	/**
+	 * @brief Set a new mathematical formula to assess the importance
+	 *        of the symbolic states in the system model.
+	 *
+	 * @param formulaExprStr String with the new mathematical expression
+	 * @param varnames       Names of variables ocurring in formulaExprStr,
+	 *                       viz. substrings in it that refer to variable names
+	 * @param gState         Global state of the system model, in any valuation
+	 *
+	 * @note After a successfull invocation this ImportanceFunction
+	 *       is considered to hold \ref has_importance_info() "importance
+	 *       information" for the passed assessment strategy.
+	 *
+	 * @throw FigException if badly formatted 'formulaExprStr' or 'varnames'
+	 *                     has names not appearing in 'formulaExprStr'
+	 */
+	template< template< typename... > class Container, typename... OtherArgs >
+	void set_formula(const std::string& strategy,
+					 const std::string& formulaExprStr,
+					 const Container< std::string, OtherArgs... >& varnames,
+					 const State<STATE_INTERNAL_TYPE>& gState);
 
 	virtual void build_thresholds(ThresholdsBuilder& tb,
 								  const unsigned& splitsPerThreshold);

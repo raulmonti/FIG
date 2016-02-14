@@ -258,36 +258,91 @@ public:  // Utils
 
 	/**
 	 * @brief Assess importance for the currently loaded user model
+	 *        using the "flat" strategy
 	 *
-	 *        Notice this leaves the corresponding ImportanceFunction
-	 *        with internal \ref ImportanceFunction::has_importance_info()
+	 *        This leaves the ImportanceFunction "ifunName" with internal
+	 *        \ref ImportanceFunction::has_importance_info()
 	 *        "importance information" but not quite
 	 *        \ref ImportanceFunction::ready() "ready for simulations",
 	 *        since the thresholds haven't been built yet.
 	 *
-	 * @param name     Any from available_importance_functions()
-	 * @param strategy Any from available_importance_strategies()
-	 * @param assessor When building a \ref ImportanceFunctionConcrete
-	 *                 "concrete importance function" this should be
-	 *                 the Property whose value is to be estimated;
-	 *                 when building an \ref ImportanceFunctionAlgebraic
-	 *                 "algebraic importance function" this should be a pair
-	 *                 (expression_string, vector_of_varnames) needed to build
-	 *                 the MathExpression defining the adhoc algebraic formula.
-	 * @param force    Assess importance again, even if importance info already
-	 *                 exists for this importance function and strategy
+	 * @param ifunName Any from available_importance_functions()
+	 * @param property The Property whose value is to be estimated
+	 * @param force    Assess importance again, even if importance info
+	 *                 already exists for this importance function and strategy
 	 *
-	 * @throw FigException if 'name' or 'strategy' are invalid
+	 * @throw FigException if 'ifunName' is invalid or incompatible with the
+	 *                     "flat" importance assessment strategy.
 	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
 	 *
 	 * @see build_thresholds()
 	 */
-	template< class ImpFunBasics >
 	void
-	build_importance_function(const std::string& name,
-							  const std::string& strategy,
-							  const ImpFunBasics& assessor,
-							  bool force = false);
+	build_importance_function_flat(const std::string& ifunName,
+								   const Property& property,
+								   bool force = false);
+
+	/**
+	 * @brief Assess importance for the currently loaded user model
+	 *        using the "auto" strategy
+	 *
+	 *        This leaves the ImportanceFunction "ifunName" with internal
+	 *        \ref ImportanceFunction::has_importance_info()
+	 *        "importance information" but not quite
+	 *        \ref ImportanceFunction::ready() "ready for simulations",
+	 *        since the thresholds haven't been built yet.
+	 *
+	 * @param ifunName Any from available_importance_functions()
+	 * @param property The Property whose value is to be estimated
+	 * @param force    Assess importance again, even if importance info
+	 *                 already exists for this importance function and strategy
+	 *
+	 * @throw FigException if 'ifunName' is invalid or incompatible with the
+	 *                     "auto" importance assessment strategy.
+	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
+	 *
+	 * @see build_thresholds()
+	 */
+	void
+	build_importance_function_auto(const std::string& ifunName,
+								   const Property& property,
+								   bool force = false);
+
+	/**
+	 * @brief Assess importance for the currently loaded user model
+	 *        using the "adhoc" strategy
+	 *
+	 *        This leaves the ImportanceFunction "ifunName" with internal
+	 *        \ref ImportanceFunction::has_importance_info()
+	 *        "importance information" but not quite
+	 *        \ref ImportanceFunction::ready() "ready for simulations",
+	 *        since the thresholds haven't been built yet.
+	 *
+	 * @param ifunName  Any from available_importance_functions()
+	 * @param property  The Property whose value is to be estimated
+	 * @param formulaExprStr  Mathematical formula to assess the states'
+	 *                        importance, expressed as a string
+	 * @param varnames  Names of variables ocurring in 'formulaExprStr',
+	 *                  i.e. which substrings in the formula expression
+	 *                  are actually variable names.
+	 * @param force     Assess importance again, even if importance info
+	 *                  already exists for this importance function and strategy
+	 *
+	 * @throw FigException if 'ifunName' is invalid or incompatible with the
+	 *                     "adhoc" importance assessment strategy.
+	 * @throw FigException if badly formatted 'formulaExprStr' or 'varnames'
+	 *                     has names not appearing in 'formulaExprStr'
+	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
+	 *
+	 * @see build_thresholds()
+	 */
+	template< template< typename... > class Container, typename... OtherArgs >
+	void
+	build_importance_function_adhoc(const std::string& ifunName,
+									const Property& property,
+									const std::string& formulaExprStr,
+									const Container<std::string, OtherArgs>& varnames,
+									bool force = false);
 
 	/**
 	 * @brief Build thresholds from precomputed importance information
@@ -312,7 +367,9 @@ public:  // Utils
 	 *                     "importance information"
 	 * @throw FigException if "technique" is incompatible with "ifunName"
 	 *
-	 * @see build_importance_function()
+	 * @see build_importance_function_flat()
+	 * @see build_importance_function_auto()
+	 * @see build_importance_function_adhoc()
 	 */
 	void
 	build_thresholds(const std::string& technique,

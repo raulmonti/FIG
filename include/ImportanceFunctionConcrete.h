@@ -99,29 +99,52 @@ public:  // Accessors
 public:  // Utils
 
 	/**
-	 * @brief Assess the importance of the reachable states of the whole
-	 *        \ref ModuleNetwork "system model", according to the
+	 * @brief Assess the importance of the reachable concrete states of the
+	 *        whole \ref ModuleNetwork "system model", according to the
 	 *        \ref Property "logical property" and strategy specified.
 	 *
-	 * @param net      System model (or coupled network of modules)
-	 *                 Its current state is taken as the model's initial state.
-	 * @param prop     Property guiding the importance assessment
-	 * @param strategy Strategy of the assessment (flat, auto, ad hoc...)
-	 * @param force    Whether to force the computation, even if this
-	 *                 ImportanceFunction already has importance information
-	 *                 for the specified assessment strategy.
+	 * @param prop     Property identifying the special states
+	 * @param strategy Importance assessment strategy, currently "flat" or "auto"
 	 *
 	 * @note After a successfull invocation the ImportanceFunction holds
 	 *       internally the computed \ref has_importance_info()
 	 *       "importance information" for the passed assessment strategy.
+	 * @note To use the "adhoc" importance assessment strategy
+	 *       call the other assess_importance() member function
 	 *
-	 * @see assess_importance(const ModuleInstance&, const Property&, const std::string&)
 	 * @see has_importance_info()
 	 */
-	virtual void assess_importance(const ModuleNetwork& net,
-								   const Property& prop,
-								   const std::string& strategy = "",
-								   bool force = false) = 0;
+	virtual void assess_importance(const Property& prop,
+								   const std::string& strategy = "") = 0;
+
+	/**
+	 * @brief Assess the importance of the reachable concrete states of the
+	 *        whole \ref ModuleNetwork "system model", according to the
+	 *        \ref Property "logical property" and using the "adhoc"
+	 *        importance assessment strategy.
+	 *
+	 * @param prop     Property identifying the special states
+	 * @param formulaExprStr  Mathematical formula to assess the states'
+	 *                        importance, expressed as a string
+	 * @param varnames Names of variables ocurring in 'formulaExprStr',
+	 *                 i.e. which substrings in the formula expression
+	 *                 are actually variable names.
+	 *
+	 * @note After a successfull invocation the ImportanceFunction holds
+	 *       internally the computed \ref has_importance_info()
+	 *       "importance information" for the passed assessment strategy.
+	 * @note To use other importance assessment strategies (e.g. "flat")
+	 *       call the other assess_importance() member function
+	 *
+	 * @throw FigException if badly formatted 'formulaExprStr' or 'varnames'
+	 *                     has names not appearing in 'formulaExprStr'
+	 *
+	 * @see has_importance_info()
+	 */
+	template< template< typename... > class Container, typename... OtherArgs >
+	virtual void assess_importance(const Property& prop,
+								   const std::string& formulaExprStr,
+								   const Container<std::string,OtherArgs...>& varnames) = 0;
 
 	/// Erase all internal importance information and free resources
 	virtual void clear() noexcept;

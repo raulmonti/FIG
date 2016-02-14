@@ -87,7 +87,7 @@ public:  // Ctor
 
 	/**
 	 * Only data ctor provided
-	 * @param thename          @copydoc name
+	 * @param name             @copydoc name
 	 * @param confidence       Interval's confidence coefficient ∈ (0.0, 1.0)
 	 * @param precision        Interval's desired full width > 0.0
 	 * @param dynamicPrecision Is the precision a percentage of the estimate?

@@ -36,10 +36,13 @@ namespace fig
 {
 
 // Available function names in ImportanceFunction::names
-ImportanceFunctionConcreteCoupled::ImportanceFunctionConcreteCoupled() :
-	ImportanceFunctionConcrete("concrete_coupled"),
-	globalStateCopy_(),
-	importanceInfoIndex_(0u)
+ImportanceFunctionConcreteCoupled::ImportanceFunctionConcreteCoupled(
+    const ModuleNetwork &model) :
+        ImportanceFunctionConcrete("concrete_coupled"),
+        globalStateCopy_(model.global_state()),
+        globalInitialValuation_(model.global_state().to_state_instance()),
+        globalTransitions_(model.transitions_),
+        importanceInfoIndex_(0u)
 { /* Not much to do around here */ }
 
 
@@ -51,21 +54,30 @@ ImportanceFunctionConcreteCoupled::~ImportanceFunctionConcreteCoupled()
 
 void
 ImportanceFunctionConcreteCoupled::assess_importance(
-	const ModuleNetwork& net,
 	const Property& prop,
-	const std::string& strategy,
-	bool force)
+    const std::string& strategy)
 {
-	if (force || strategy_ != strategy) {
-		globalStateCopy_ = net.global_state();
-		ImportanceFunctionConcrete::assess_importance(net.gState,
-													  net.transitions_,
-													  prop,
-													  strategy,
-													  importanceInfoIndex_);
-	}
+    if (hasImportanceInfo_)
+        clear();
+    globalStateCopy_.copy_from_state_instance(globalInitialValuation_);
+    ImportanceFunctionConcrete::assess_importance(globalStateCopy_,
+                                                  globalTransitions_,
+                                                  prop,
+                                                  strategy,
+                                                  importanceInfoIndex_);
 	hasImportanceInfo_ = true;
 	strategy_ = strategy;
+}
+
+
+template< template< typename... > class Container, typename... OtherArgs >
+virtual void
+ImportanceFunctionConcreteCoupled::assess_importance(
+    const Property& prop,
+    const std::string& formulaExprStr,
+    const Container<std::string,OtherArgs...>& varnames)
+{
+    /// @todo TODO: implement concrete ifun with ad hoc importance assessment
 }
 
 
@@ -77,18 +89,28 @@ ImportanceFunctionConcreteCoupled::build_thresholds(
 	if (!has_importance_info())
 		throw_FigException(std::string("importance function \"").append(name())
 						   .append("\" doesn't yet have importance information"));
+    ImportanceVec& impVec = modulesConcreteImportance[importanceInfoIndex_];
 
-	ImportanceVec& impVec = modulesConcreteImportance[importanceInfoIndex_];
-	maxImportance_ = tb.build_thresholds_in_situ(splitsPerThreshold,
-												 *this,
-												 impVec);
-	thresholdsTechnique_ = tb.name;
+    // Build translator from importance to threshold-level
+    std::vector< ImportanceValue > imp2thr =
+            tb.build_thresholds(splitsPerThreshold, *this);
+    maxImportance_ = imp2thr.back();
+    thresholdsTechnique_ = tb.name;
+
+    // Replace importance info with the new thresholds info
+    #pragma omp parallel for default(shared)
+    for (size_t s = 0u ; s < impVec.size() ; s++) {
+        fig::Event mask = fig::MASK(impVec[s]);
+        impVec[s] = mask | imp2thr[impVec[s]];
+    }
+
 	// Find lowest threshold level where we can find a rare state
 	minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
 	for (size_t i = 0u ; i < impVec.size() ; i++)
 		if (IS_RARE_EVENT(impVec[i]) && UNMASK(impVec[i]) < minRareImportance_)
 			minRareImportance_ = UNMASK(impVec[i]);
-	readyForSims_ = true;
+
+    readyForSims_ = true;
 }
 
 
@@ -127,7 +149,6 @@ void
 ImportanceFunctionConcreteCoupled::clear() noexcept
 {
 	ImportanceFunctionConcrete::clear();
-	globalStateCopy_ = State< STATE_INTERNAL_TYPE >();
 	hasImportanceInfo_ = false;
 	readyForSims_ = false;
 	strategy_ = "";

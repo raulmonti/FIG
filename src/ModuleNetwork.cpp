@@ -198,10 +198,6 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 		return e;
 #endif
 
-//	/// @todo TODO erase debug var below
-//	State<STATE_INTERNAL_TYPE> state = gState;
-//	///////////////////////////////////////
-
     // Jump...
 	do {
 		auto timeout = traial.next_timeout();
@@ -214,20 +210,8 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 				module_ptr->jump(label, timeout.value, traial);
 		traial.lifeTime += timeout.value;
 
-//		/// @todo TODO erase debug print below
-//		state.copy_from_state_instance(traial.state);
-//		std::cerr << " --> " << state.encode();
-//		///////////////////////////////////////
-
 	} while ( !(engine.*watch_events)(property, traial, e) );
 	// ...until a relevant event is observed
-
-//	/// @todo TODO erase debug print below
-//	std::cerr << "Ended at state ";
-//	for (const auto & e: traial.state)
-//		std::cerr << e << "  ";
-//	std::cerr << "----------------------------------------------" << std::endl;
-//	///////////////////////////////////////
 
     return e;
 }

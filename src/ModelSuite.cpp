@@ -357,7 +357,10 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 		prop->pin_up_vars(model->global_state());
 
 	// Build offered importance functions
-	impFuns["concrete_coupled"] = std::make_shared< ImportanceFunctionConcreteCoupled >();
+    impFuns["concrete_coupled"] =
+            std::make_shared< ImportanceFunctionConcreteCoupled >(*model);
+    impFuns["algebraic"] =
+            std::make_shared< ImportanceFunctionAlgebraic >();
 
 	// Build offered thresholds builders
 	thrBuilders["ams"] = std::make_shared< ThresholdsBuilderAMS >();
@@ -505,85 +508,117 @@ ModelSuite::exists_threshold_technique(const std::string& thrTechnique) const no
 }
 
 
-template<>  // For concrete importance functions
-void        // which are built from the Porperty to be estimated.
-ModelSuite::build_importance_function(const std::string& name,
-									  const std::string& strategy,
-									  const Property& property,
-									  bool force)
+void
+ModelSuite::build_importance_function_flat(const std::string& ifunName,
+                                           const Property& property,
+                                           bool force)
 {
-	if (!exists_importance_function(name))
-		throw_FigException(std::string("inexistent importance function \"")
-						   .append(name).append("\". Call \"available_")
-						   .append("importance_functions()\" for a list of ")
-						   .append("available options."));
-	if (!exists_importance_strategy(strategy))
-		throw_FigException(std::string("inexistent importance assessment ")
-						   .append("strategy \"").append(strategy).append("\". ")
-						   .append("Call \"available_importance_strategies()\" ")
-						   .append("for a list of available options."));
+    if (!exists_importance_function(ifunName))
+        throw_FigException(std::string("inexistent importance function \"")
+                           .append(ifunName).append("\". Call \"available_")
+                           .append("importance_functions()\" for a list ")
+                           .append("of available options."));
 
-	auto cImpFun = std::dynamic_pointer_cast< ImportanceFunctionConcrete >(
-					   impFuns[name]);
-	if (nullptr == cImpFun)
-		throw_FigException(std::string("build_importance_function() was called ")
-						   .append("with a Property, which works only for ")
-						   .append("concrete importance functions. \"")
-						   .append(name).append("\" is no such function."));
+    ImportanceFunction& ifun = *impFuns[ifunName];
+    // "flat" strategy is compatible with all ImportanceFunction derived types
 
-	if (force
-		|| strategy != cImpFun->strategy()
-		|| !cImpFun->has_importance_info())
-	{
-		cImpFun->clear();
-		cImpFun->assess_importance(*model, property, strategy);
-	}
+    if (force || !ifun.has_importance_info() || "flat" != ifun.strategy()) {
+        ifun.clear();
+        if (ifun.concrete())
+            static_cast<ImportanceFunctionConcrete&>(ifun)
+                .assess_importance(property, "flat");
+        else
+            static_cast<ImportanceFunctionAlgebraic&>(ifun)
+                .set_formula("0", std::vector<std::string>(), model->global_state());
+    }
 
-	assert(strategy == cImpFun->strategy());
-	assert(cImpFun->has_importance_info());
+    assert(ifun.has_importance_info());
+    assert("flat" == ifun.strategy());
 }
 
 
-template<>  // For algebraic importance functions
-void        // which are built from some algebraic formula
-ModelSuite::build_importance_function(const std::string& name,
-									  const std::string& strategy,
-									  std::pair< const std::string&,
-												 const std::vector< std::string >&
-									  > exprPair,
-									  bool force)
+void
+ModelSuite::build_importance_function_auto(const std::string& ifunName,
+                                           const Property& property,
+                                           bool force)
 {
-	if (!exists_importance_function(name))
-		throw_FigException(std::string("inexistent importance function \"")
-						   .append(name).append("\". Call \"available_")
-						   .append("importance_functions()\" for a list of ")
-						   .append("available options."));
-	if (!exists_importance_strategy(strategy))
-		throw_FigException(std::string("inexistent importance assessment ")
-						   .append("strategy \"").append(strategy).append("\". ")
-						   .append("Call \"available_importance_strategies()\" ")
-						   .append("for a list of available options."));
+    if (!exists_importance_function(ifunName))
+        throw_FigException(std::string("inexistent importance function \"")
+                           .append(ifunName).append("\". Call \"available_")
+                           .append("importance_functions()\" for a list ")
+                           .append("of available options."));
 
-	auto aImpFun = std::dynamic_pointer_cast< ImportanceFunctionAlgebraic >(
-					   impFuns[name]);
-	if (nullptr == aImpFun)
-		throw_FigException(std::string("build_importance_function() was called ")
-						   .append("with a pair (expression_string, ")
-						   .append("vector_of_varnames), which works only for ")
-						   .append("algebraic importance functions. \"")
-						   .append(name).append("\" is no such function."));
+    ImportanceFunction& ifun = *impFuns[ifunName];
+    if (!ifun.concrete())
+        throw_FigException(std::string("requested to build a non-concrete ")
+                           .append("importance function (\"").append(ifunName)
+                           .append("\") using the \"auto\" importance ")
+                           .append("assessment strategy"));
 
-	if (force
-		|| strategy != aImpFun->strategy()
-		|| !aImpFun->has_importance_info())
-	{
-		aImpFun->clear();
-		aImpFun->set_formula(exprPair.first, exprPair.second, strategy);
-	}
+    if (force || !ifun.has_importance_info() || "auto" != ifun.strategy()) {
+        ifun.clear();
+        static_cast<ImportanceFunctionConcrete&>(ifun)
+                .assess_importance(property, "auto");
+    }
 
-	assert(strategy == aImpFun->strategy());
-	assert(aImpFun->has_importance_info());
+    assert(ifun.has_importance_info());
+    assert("auto" == ifun.strategy());
 }
+
+
+template< template< typename... > class Container, typename... OtherArgs >
+void
+ModelSuite::build_importance_function_adhoc(
+    const std::string& ifunName,
+    const Property& property,
+    const std::string& formulaExprStr,
+    const Container<std::string, OtherArgs>& varnames,
+    bool force)
+{
+    if (!exists_importance_function(ifunName))
+        throw_FigException(std::string("inexistent importance function \"")
+                           .append(ifunName).append("\". Call \"available_")
+                           .append("importance_functions()\" for a list ")
+                           .append("of available options."));
+
+    ImportanceFunction& ifun = *impFuns[ifunName];
+    // "adhoc" strategy is compatible with all ImportanceFunction derived types
+
+    if (force || !ifun.has_importance_info() || "adhoc" != ifun.strategy()) {
+        ifun.clear();
+        if (ifun.concrete())
+            static_cast<ImportanceFunctionConcrete&>(ifun)
+                .assess_importance(property, formulaExprStr, varnames);
+        else
+            static_cast<ImportanceFunctionAlgebraic&>(ifun)
+                .set_formula(formulaExprStr, varnames, model->global_state());
+    }
+
+    assert(ifun.has_importance_info());
+    assert("adhoc" == ifun.strategy());
+
+}
+
+// ModelSuite::build_importance_function_adhoc() can only be invoked
+// with the following containers
+template<> void ModelSuite::build_importance_function_adhoc(
+    const std::string&, const Property&, const std::string&,
+    const std::set<std::string>&, bool);
+template<> void ModelSuite::build_importance_function_adhoc(
+    const std::string&, const Property&, const std::string&,
+    const std::list<std::string>&, bool);
+template<> void ModelSuite::build_importance_function_adhoc(
+    const std::string&, const Property&, const std::string&,
+    const std::deque<std::string>&, bool);
+template<> void ModelSuite::build_importance_function_adhoc(
+    const std::string&, const Property&, const std::string&,
+    const std::vector<std::string>&, bool);
+template<> void ModelSuite::build_importance_function_adhoc(
+    const std::string&, const Property&, const std::string&,
+    const std::forward_list<std::string>&, bool);
+template<> void ModelSuite::build_importance_function_adhoc(
+    const std::string&, const Property&, const std::string&,
+    const std::unordered_set<std::string>&, bool);
 
 
 void
@@ -608,14 +643,15 @@ ModelSuite::build_thresholds(const std::string& technique,
 	if (!ifun.has_importance_info())
 		throw_FigException(std::string("importance function \"").append(ifunName)
 						   .append("\" doesn't have importance information ")
-						   .append("yet. Call \"build_importance_function()\" ")
-						   .append("beforehand"));
+                           .append("yet. Call any of the \"build_importance_")
+                           .append("function_xxx()\" routines with \"")
+                           .append(ifunName).append("\" beforehand"));
 
 	if (force || ifun.thresholds_technique() != technique)
 		ifun.build_thresholds(thrBuilder, 2u/*splitsPerThreshold?*/);
 
-	assert(technique == ifun.thresholds_technique());
-	assert(ifun.ready());
+    assert(ifun.ready());
+    assert(technique == ifun.thresholds_technique());
 }
 
 
