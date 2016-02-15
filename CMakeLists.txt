@@ -5,6 +5,7 @@
 ##	Copyleft 2015-
 ##	Authors:
 ##  * Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
+##  * Raul E. Monti <raulmonti88@gmail.com> (Universidad Nacional de Córdoba)
 ##
 ##------------------------------------------------------------------------------
 ##
@@ -30,8 +31,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 PROJECT (fig)
 
-SET(fig_VERSION_MAYOR 0)
-SET(fig_VERSION_MINOR 4)
+SET(fig_VERSION_MAJOR 0)
+SET(fig_VERSION_MINOR 42)
 
 
 
@@ -108,13 +109,13 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 
 # OpenMP
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-##	FIND_PACKAGE(OpenMP REQUIRED)  # doesn't work
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp=libgomp")
 ELSE()
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 ENDIF()
 ## # Clang needs to be told where to look for OpenMP headers
 ## IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+##	FIND_PACKAGE(OpenMP REQUIRED)  # doesn't work
 ## 	EXECUTE_PROCESS(COMMAND find /usr/lib/ -name "omp.h"
 ## 	                COMMAND tail -n 1
 ## 	                COMMAND xargs dirname
@@ -150,7 +151,7 @@ SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
 
 ###  Build executable  ########################################################
 
-SET(LEXER_L  "${SOURCES_DIR}/lexer.l")
+SET(LEXER_L  "${SOURCES_DIR}/Lexer.l")
 SET(LEXER_CC "${PROJECT_BINARY_DIR}/lex.yy.cc")
 
 ADD_CUSTOM_COMMAND(

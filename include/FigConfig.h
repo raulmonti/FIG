@@ -1,3 +1,3 @@
-// the configured options and settings for Tutorial
-#define fig_VERSION_MAJOR 
-#define fig_VERSION_MINOR 4
+// FIG tool current version
+#define fig_VERSION_MAJOR 0
+#define fig_VERSION_MINOR 42

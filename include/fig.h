@@ -55,15 +55,17 @@
 #define FIG_H
 
 // Base
+#include "config.h"
 #include "core_typedefs.h"
-#include "exceptions.h"
+#include "Exceptions.h"
+#include "FigConfig.h"
 #include "FigException.h"
 // Parser
-#include "ast.h"
-#include "config.h"
-#include "parser.h"
-#include "smtsolver.h"
-#include "iosacompliance.h"
+#include "Ast.h"
+#include "Parser.h"
+#include "Iosacompliance.h"
+#include "PreCompiler.h"
+#include "CompileModel.h"
 // Basic ADTs
 #include "Clock.h"
 #include "Label.h"
@@ -81,12 +83,14 @@
 #include "Traial.h"
 // Importance functions
 #include "ImportanceFunction.h"
+//#include "ImportanceFunctionAlgebraic.h"
 #include "ImportanceFunctionConcrete.h"
 #include "ImportanceFunctionConcreteSplit.h"
 #include "ImportanceFunctionConcreteCoupled.h"
 // Simulation engines
 #include "SimulationEngine.h"
 #include "SimulationEngineNosplit.h"
+//#include "SimulationEngineRestart.h"
 // Composite ADTs
 #include "Transition.h"
 #include "ModuleInstance.h"
