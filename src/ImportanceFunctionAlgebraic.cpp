@@ -133,16 +133,14 @@ ImportanceFunctionAlgebraic::set_formula(
 		for (size_t i = 0ul ; i < gState.concrete_size() ; i++) {
 			const StateInstance symbState = gStateCopy.decode(i).to_state_instance();
 			const ImportanceValue importance = adhocFun_(symbState);
-			minImportance_ = importance < minImportance_ ? importance
-														 : minImportance_;
-			if (property.is_rare(symbState) && importance < minRareImportance_)
-				minRareImportance_ = importance;
+			imin = importance < minImportance_ ? importance : minImportance_;
+			if (property.is_rare(symbState) && importance < iminRare)
+				iminRare = importance;
 		}
 		#pragma omp parallel for reduction(max:imax) private(gStateCopy)
 		for (size_t i = 0ul ; i < gState.concrete_size() ; i++) {
 			auto importance = adhocFun_(gStateCopy.decode(i).to_state_instance());
-			maxImportance_ = importance > maxImportance_ ? importance
-														 : maxImportance_;
+			imax = importance > maxImportance_ ? importance : maxImportance_;
 		}
 		minImportance_ = imin;
 		maxImportance_ = imax;
@@ -188,6 +186,13 @@ ImportanceFunctionAlgebraic::build_thresholds(
 	std::vector< ImportanceValue >().swap(importance2threshold_);
 	importance2threshold_ = tb.build_thresholds(splitsPerThreshold, *this);
 	assert(!importance2threshold_.empty());
+
+	/// @todo TODO erase debug print below
+	std::cerr << "Resulting thresholds ad hoc:";
+	for (size_t i = 0 ; i < importance2threshold_.size() ; i++)
+		std::cerr << " (" << i << "," << importance2threshold_[i] << ")";
+	std::cerr << std::endl;
+
 	thresholdsTechnique_ = tb.name;
 	readyForSims_ = true;
 }

@@ -191,9 +191,9 @@ public:  // Utils
 	 * @param network ModuleNetwork already sealed
 	 * @param impFun  ImportanceFunction currently on use for simulations
 	 *
-	 * @warning ModelSuite::seal() must have been called beforehand
 	 * \ifnot NDEBUG
 	 *   @throw FigException if the system model hasn't been sealed yet
+	 *                       or the ImportanceFunction has no importance info
 	 * \endif
 	 */
 	void initialize(const ModuleNetwork& network,

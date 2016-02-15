@@ -176,7 +176,6 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	// of the threshold level it belongs to.
 	// This upscale must be balanced in the ConfidenceInterval update.
 	double weighedRaresCount(0.0);
-	assert(numThresholds == 2);
 	for (unsigned i = 0u ; i <= numThresholds ; i++)
 		weighedRaresCount += raresCount[i]
 							  * std::pow(splitsPerThreshold_, numThresholds-i);

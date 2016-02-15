@@ -95,6 +95,12 @@ ImportanceFunctionConcreteCoupled::build_thresholds(
             tb.build_thresholds(splitsPerThreshold, *this);
     assert(!imp2thr.empty());
 
+	/// @todo TODO erase debug print below
+	std::cerr << "Resulting thresholds auto:";
+	for (size_t i = 0 ; i < imp2thr.size() ; i++)
+		std::cerr << " (" << i << "," << imp2thr[i] << ")";
+	std::cerr << std::endl;
+
     // Replace importance info with the new thresholds info
     #pragma omp parallel for default(shared)
     for (size_t i = 0ul ; i < impVec.size() ; i++) {
@@ -102,15 +108,17 @@ ImportanceFunctionConcreteCoupled::build_thresholds(
         impVec[i] = MASK(imp) | imp2thr[UNMASK(imp)];
     }
 
-	// Find lowest threshold level where we can find a rare state
+	// Update limits
+	minImportance_ = imp2thr[0];
+	maxImportance_ = imp2thr.back();
 	minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
     for (size_t i = 0ul ; i < impVec.size() ; i++)
 		if (IS_RARE_EVENT(impVec[i]) && UNMASK(impVec[i]) < minRareImportance_)
 			minRareImportance_ = UNMASK(impVec[i]);
+	assert(minImportance_ <= minRareImportance_);
+	assert(minRareImportance_ <= maxImportance_);
 
-    minImportance_ = imp2thr[0];
-    maxImportance_ = imp2thr.back();
-    thresholdsTechnique_ = tb.name;
+	thresholdsTechnique_ = tb.name;
     readyForSims_ = true;
 }
 

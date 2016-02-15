@@ -611,22 +611,22 @@ ModelSuite::build_importance_function_adhoc(
 
 // ModelSuite::build_importance_function_adhoc() can only be invoked
 // with the following containers
-template<> void ModelSuite::build_importance_function_adhoc(
+template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
     const std::set<std::string>&, bool);
-template<> void ModelSuite::build_importance_function_adhoc(
+template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
     const std::list<std::string>&, bool);
-template<> void ModelSuite::build_importance_function_adhoc(
+template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
     const std::deque<std::string>&, bool);
-template<> void ModelSuite::build_importance_function_adhoc(
+template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
     const std::vector<std::string>&, bool);
-template<> void ModelSuite::build_importance_function_adhoc(
+template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
     const std::forward_list<std::string>&, bool);
-template<> void ModelSuite::build_importance_function_adhoc(
+template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
     const std::unordered_set<std::string>&, bool);
 
@@ -723,7 +723,8 @@ ModelSuite::estimate(const Property& property,
 	std::cerr << "Estimating " << property.expression << ",\n";
 	std::cerr << " using simulation engine \"" << engine.name() << "\"\n";
 	std::cerr << " and importance function \"" << engine.current_imp_fun() << "\"\n";
-	std::cerr << " built using strategy    \"" << engine.current_imp_strat() << "\"\n";
+	std::cerr << " built using strategy    \"" << engine.current_imp_strat() << "\" ";
+	std::cerr << impFuns[engine.current_imp_fun()]->adhoc_fun() << std::endl;
 
 	if (bounds.is_time()) {
 

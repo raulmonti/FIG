@@ -226,6 +226,14 @@ ImportanceFunction::strategy() const noexcept
 
 
 const std::string
+ImportanceFunction::adhoc_fun() const noexcept
+{
+	return has_importance_info() && "adhoc" == strategy_ ? adhocFun_.expression()
+														 : "";
+}
+
+
+const std::string
 ImportanceFunction::thresholds_technique() const noexcept
 {
 	return ready() ? thresholdsTechnique_ : "";

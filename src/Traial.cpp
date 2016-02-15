@@ -157,11 +157,16 @@ void
 Traial::initialize(const ModuleNetwork& network,
 				   const ImportanceFunction& impFun)
 {
-	if (!network.sealed())
 #ifndef NDEBUG
+	if (!network.sealed())
 		throw_FigException("ModuleNetwork hasn't been sealed yet");
+	else if (!impFun.has_importance_info())
+		throw_FigException(std::string("importance function \"")
+						  .append(impFun.name()).append("\" doesn't have ")
+						  .append("importance info; can't initialize Traial"));
 #else
-		return;  // we can't do anything without the global data
+	if (! (network.sealed() && impFun.has_importance_info()) )
+		return;  // we can't do anything without that data
 #endif
 	// Initialize variables value
 	network.global_state().copy_to_state_instance(state);
@@ -171,14 +176,8 @@ Traial::initialize(const ModuleNetwork& network,
 	for (const auto& pos_clk_pair: network.initialClocks)
 		clocks_[pos_clk_pair.first].value = pos_clk_pair.second.sample();
 	// Initialize importance and simulation time
-    if (impFun.ready())
-        level = impFun.level_of(state);
-    else if (impFun.has_importance_info())
-        level = impFun.importance_of(state);
-    else
-        throw_FigException(std::string("importance function \"")
-                           .append(impFun.name()).append("\" doesn't have ")
-                           .append("importance info; can't initialize Traial"));
+	level = impFun.ready() ? impFun.level_of(state)
+						   : impFun.importance_of(state);
 	depth = 0;
 	lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
 }

@@ -79,9 +79,6 @@ class ModuleInstance : public Module
 {
 	friend class ModuleNetwork;
 
-    /// Tau label to allow reference passing
-    static const Label tau_;
-
 	/// Local \ref Variable "variables"
 	State< STATE_INTERNAL_TYPE > lState_;
 

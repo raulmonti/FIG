@@ -181,27 +181,32 @@ public:  // Accessors
 	///          last used strategy otherwise
 	const std::string strategy() const noexcept;
 
+	/// @returns Algebraic formula for ad hoc importance assessment if function
+	///          has_importance_info() and current strategy is "adhoc",
+	///          empty string otherwise
+	const std::string adhoc_fun() const noexcept;
+
 	/// @copydoc minImportance_
 	/// @returns Zero if function doesn't has_importance_info(),
 	///          last minimum ImportanceValue assessed importance otherwise
-	/// @note If thresholds were \ref TresholdsBuilder::build_thresholds_in_situ()
-	///       "built in situ" the value returned will be that of the lowest
+	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds were
+	///       built" "in situ" the value returned will be that of the lowest
 	///       threshold level.
 	ImportanceValue min_importance() const noexcept;
 
 	/// @copydoc maxImportance_
 	/// @returns Zero if function doesn't has_importance_info(),
 	///          last maximum ImportanceValue assessed importance otherwise
-	/// @note If thresholds were \ref TresholdsBuilder::build_thresholds_in_situ()
-	///       "built in situ" the value returned will be that of the highest
+	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds were
+	///       built" "in situ" the value returned will be that of the highest
 	///       threshold level.
 	ImportanceValue max_importance() const noexcept;
 
 	/// @copydoc minRareImportance_
 	/// @returns Zero if function doesn't has_importance_info(),
 	///          minimum ImportanceValue of a rare state otherwise
-	/// @note If thresholds were \ref TresholdsBuilder::build_thresholds_in_situ()
-	///       "built in situ" the value returned will be the lowest threshold
+	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds were
+	///       built" "in situ" the value returned will be the lowest threshold
 	///       level containing a rare state.
 	ImportanceValue min_rare_importance() const noexcept;
 
@@ -233,19 +238,27 @@ public:  // Accessors
 
 	/**
 	 * Threshold level to which given StateInstance belongs.
+	 * @note The j-th threshold level is composed of all the states to which
+	 *       the ImportanceFunction assigns an ImportanceValue between the
+	 *       values of threshold 'j' (included) and 'j+1' (excluded)
 	 * \ifnot NDEBUG
 	 *   @throw FigException if this instance isn't \ref ready()
 	 *                       "ready for simulations"
 	 * \endif
+	 * @see ThresholdsBuilder::build_thresholds()
 	 */
 	virtual ImportanceValue level_of(const StateInstance& state) const = 0;
 
 	/**
 	 * Threshold level to which given ImportanceValue belongs.
+	 * @note The j-th threshold level is composed of all the states to which
+	 *       the ImportanceFunction assigns an ImportanceValue between the
+	 *       values of threshold 'j' (included) and 'j+1' (excluded)
 	 * \ifnot NDEBUG
 	 *   @throw FigException if this instance isn't \ref ready()
 	 *                       "ready for simulations"
 	 * \endif
+	 * @see ThresholdsBuilder::build_thresholds()
 	 */
 	virtual ImportanceValue level_of(const ImportanceValue& val) const = 0;
 

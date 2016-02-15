@@ -208,20 +208,14 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	const unsigned& splitsPerThreshold,
 	const ImportanceFunction& impFun)
 {
-	// Special small cases
-	if (impFun.min_importance() == impFun.max_importance()) {
-		// Usually "flat" strategy
-		std::vector< ImportanceValue >(2ul).swap(thresholds_);
-		thresholds_[0] = impFun.max_importance();
-		thresholds_[1] = impFun.max_importance() + static_cast<ImportanceValue>(1u);
-		return;
-	} else if (impFun.max_importance() - impFun.min_importance()
-			< static_cast<ImportanceValue>(2u)) {
-		// Too few importance levels: just say we have a single threshold
-		std::vector< ImportanceValue >(3ul).swap(thresholds_);
-		thresholds_[0] = impFun.min_importance();
-		thresholds_[1] = impFun.max_importance();
-		thresholds_[2] = impFun.max_importance() + static_cast<ImportanceValue>(1u);
+	const ImportanceValue impRange = impFun.max_importance() - impFun.min_importance();
+	if (impRange < static_cast<ImportanceValue>(2u)) {
+		// Too few importance levels: default to max possible # of thresholds
+		std::vector< ImportanceValue >(impRange+2u).swap(thresholds_);
+		thresholds_[0u] = impFun.min_importance();
+		thresholds_[1u] = impFun.max_importance();
+		thresholds_[impRange+1u] = impFun.max_importance()
+								   + static_cast<ImportanceValue>(1u);
 		return;
 	}
 
