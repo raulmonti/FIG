@@ -139,7 +139,7 @@ ConfidenceInterval::set_statistical_oversampling(const double& statOversamp)
 {
 	if (1.0 > statOversamp)
 		throw_FigException("the statistical oversampling factor should scale "
-						   "*up* the minimum # of rare events required");
+						   "*up* the minimum # of experimental samples needed");
 	statOversample_ = statOversamp;
 }
 

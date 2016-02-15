@@ -135,6 +135,9 @@ protected:
 	/// Importance of the rare state with lowest importance from last assessment
 	ImportanceValue minRareImportance_;
 
+	/// Number of thresholds built on last call to build_thresholds()
+	unsigned numThresholds_;
+
 	/// Algebraic formula for ad hoc importance strategy
 	Formula adhocFun_;
 
@@ -220,10 +223,10 @@ public:  // Accessors
 	///          last thresholds building technique used otherwise
 	const std::string thresholds_technique() const noexcept;
 
-	/// Number of thresholds built on last call to build_thresholds()
+	/// @copydoc numThresholds_
 	/// @throw FigException if this instance isn't \ref ready()
 	///                     "ready for simulations"
-	unsigned num_thresholds() const;
+	const unsigned& num_thresholds() const;
 
 	/**
 	 * Tell the pre-computed importance of the given StateInstance.

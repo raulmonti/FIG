@@ -76,8 +76,7 @@ public:  // Accessors
 	virtual unsigned splits_per_threshold() const noexcept;
 
 	/// @copydoc dieOutDepth_
-	inline const unsigned& die_out_depth() const noexcept
-		{ return dieOutDepth_; }
+	const unsigned& die_out_depth() const noexcept;
 
 public:  // Engine setup
 
@@ -112,19 +111,19 @@ public:  // Traial observers/updaters
 			if (property.is_stop(traial.state)) {
 				e = EventType::STOP;
 			} else {
-				ImportanceValue newThr = impFun_->level_of(traial.state);
-				if (newThr < traial.level) {
+				ImportanceValue newThrLvl = impFun_->level_of(traial.state);
+				if (newThrLvl < traial.level) {
 					// Went down... too far?
 					if (++traial.depth > static_cast<short>(dieOutDepth_))
 						e = EventType::THR_DOWN;
-				} else if (newThr > traial.level) {
+				} else if (newThrLvl > traial.level) {
 					// Store in 'depth' the negative # of thresholds crossed
-					traial.depth = traial.level - newThr;
+					traial.depth = traial.level - newThrLvl;
 					e = EventType::THR_UP;
 				} else if (property.is_rare(traial.state)) {
 					e = EventType::RARE;
 				}
-				traial.level = newThr;
+				traial.level = newThrLvl;
 			}
 			return EventType::NONE != e;
 		}
@@ -142,17 +141,17 @@ public:  // Traial observers/updaters
 			auto newStateInfo = cImpFun_->info_of(traial.state);
 			e = MASK(newStateInfo);
 			if (!IS_STOP_EVENT(e)) {
-				const ImportanceValue newThr = UNMASK(newStateInfo);
-				if (newThr < traial.level) {
+				const ImportanceValue newThrLvl = UNMASK(newStateInfo);
+				if (newThrLvl < traial.level) {
 					// Went down... too far?
 					if (++traial.depth > static_cast<short>(dieOutDepth_))
 						SET_THR_DOWN_EVENT(e);
-				} else if (newThr > traial.level) {
+				} else if (newThrLvl > traial.level) {
 					// Store in 'depth' the negative # of thresholds crossed
-					traial.depth = traial.level - newThr;
+					traial.depth = traial.level - newThrLvl;
 					SET_THR_UP_EVENT(e);
 				}
-				traial.level = newThr;
+				traial.level = newThrLvl;
 				// rare event info is already marked inside 'e'
 			}
 			return EventType::NONE != e;

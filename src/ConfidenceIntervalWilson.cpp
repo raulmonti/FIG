@@ -34,7 +34,10 @@
 #include <ConfidenceIntervalWilson.h>
 #include <FigException.h>
 
-#include <iostream>
+using std::log;
+using std::exp;
+using std::sqrt;
+
 
 namespace fig
 {
@@ -63,22 +66,22 @@ ConfidenceIntervalWilson::update(const double& newResults,
 {
 	// Check for possible overflows
 	if (0.0 < newResults && numRares_ + newResults == numRares_)
-		throw_FigException("can't increase numRares_ count, overflow?");
+		throw_FigException("can't increase numRares_ count; overflow?");
 	if (std::isinf(logNumNewExperiments) || std::isnan(logNumNewExperiments))
-		throw_FigException("invalid logNumNewExperiments, overflow?");
+		throw_FigException("invalid logNumNewExperiments; overflow?");
 
 	numRares_ += newResults;
 
 	// Compute logarithm of the updated # of samples ( old + new )
 	logNumSamples_ += log(1.0 + exp(logNumNewExperiments - logNumSamples_));
 	if (std::isinf(logNumSamples_) || std::isnan(logNumSamples_))
-		throw_FigException("failed updating logNumSamples_, overflow?");
+		throw_FigException("failed updating logNumSamples_; overflow?");
 
 	// Compute the updated estimate
 	double logEstimate = log(numRares_ + squantile_/2.0) - logNumSamples_
 						 - log(1.0 + exp(log(squantile_)-logNumSamples_));
 	if (std::isinf(logEstimate) || std::isnan(logEstimate))
-		throw_FigException("failed computing logEstimate, overflow?");
+		throw_FigException("failed computing logEstimate; overflow?");
 	estimate_ = exp(logEstimate);
 	assert(!std::isinf(estimate_) && !std::isnan(estimate_));
 
@@ -86,8 +89,10 @@ ConfidenceIntervalWilson::update(const double& newResults,
 	const double phat = exp(log(numRares_) - logNumSamples_);
 	variance_ = phat * (1.0-phat);
 	const double numSamplesTimesVarCorrection = exp(logNumSamples_ + log(varCorrection_));
-	if (0.0 > numSamplesTimesVarCorrection)
-		throw_FigException("internal variable became negative, overflow?");
+	if (std::isinf(numSamplesTimesVarCorrection) ||
+		std::isnan(numSamplesTimesVarCorrection) ||
+			0.0 > numSamplesTimesVarCorrection)
+		throw_FigException("invalid internal variable value; overflow?");
 	halfWidth_ = quantile * sqrt(numSamplesTimesVarCorrection)
 			* sqrt(variance_ + squantile_/(4.0*numSamplesTimesVarCorrection))
 			/ (numSamplesTimesVarCorrection + squantile_);
@@ -118,6 +123,7 @@ ConfidenceIntervalWilson::precision(const double &confco) const
 void
 ConfidenceIntervalWilson::reset() noexcept
 {
+	ConfidenceInterval::reset();
     numRares_ = 0.0;
     logNumSamples_ = 0.0;
 }

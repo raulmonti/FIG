@@ -99,6 +99,7 @@ ConfidenceIntervalProportion::precision(const double &confco) const
 void
 ConfidenceIntervalProportion::reset() noexcept
 {
+	ConfidenceInterval::reset();
     numRares_ = 0.0;
     logNumSamples_ = 0.0;
 }

@@ -65,6 +65,8 @@ ImportanceFunctionConcreteCoupled::assess_importance(
                                                   prop,
                                                   strategy,
                                                   importanceInfoIndex_);
+	assert(minImportance_ <= minRareImportance_);
+	assert(minRareImportance_ <= maxImportance_);
 	hasImportanceInfo_ = true;
 	strategy_ = strategy;
 }
@@ -72,9 +74,9 @@ ImportanceFunctionConcreteCoupled::assess_importance(
 
 void
 ImportanceFunctionConcreteCoupled::assess_importance(
-    const Property& prop,
-    const std::string& formulaExprStr,
-    const std::vector<std::string>& varnames)
+	const Property&,
+	const std::string&,
+	const std::vector<std::string>&)
 {
     /// @todo TODO: implement concrete ifun with ad hoc importance assessment
 }
@@ -88,27 +90,23 @@ ImportanceFunctionConcreteCoupled::build_thresholds(
 	if (!has_importance_info())
 		throw_FigException(std::string("importance function \"").append(name())
 						   .append("\" doesn't yet have importance information"));
-    ImportanceVec& impVec = modulesConcreteImportance[importanceInfoIndex_];
 
     // Build translator from importance to threshold-level
     std::vector< ImportanceValue > imp2thr =
             tb.build_thresholds(splitsPerThreshold, *this);
     assert(!imp2thr.empty());
-
-	/// @todo TODO erase debug print below
-	std::cerr << "Resulting thresholds auto:";
-	for (size_t i = 0 ; i < imp2thr.size() ; i++)
-		std::cerr << " (" << i << "," << imp2thr[i] << ")";
-	std::cerr << std::endl;
+	assert(imp2thr[0] == static_cast<ImportanceValue>(0u));
+	assert(imp2thr[0] <= imp2thr.back());
 
     // Replace importance info with the new thresholds info
-    #pragma omp parallel for default(shared)
+	ImportanceVec& impVec = modulesConcreteImportance[importanceInfoIndex_];
+	#pragma omp parallel for default(shared)
     for (size_t i = 0ul ; i < impVec.size() ; i++) {
         ImportanceValue imp = impVec[i];
         impVec[i] = MASK(imp) | imp2thr[UNMASK(imp)];
     }
 
-	// Update limits
+	// Update limits since old importance values were discarded
 	minImportance_ = imp2thr[0];
 	maxImportance_ = imp2thr.back();
 	minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
@@ -118,6 +116,7 @@ ImportanceFunctionConcreteCoupled::build_thresholds(
 	assert(minImportance_ <= minRareImportance_);
 	assert(minRareImportance_ <= maxImportance_);
 
+	numThresholds_ = imp2thr.back();
 	thresholdsTechnique_ = tb.name;
     readyForSims_ = true;
 }

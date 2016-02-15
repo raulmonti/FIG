@@ -80,6 +80,7 @@ ConfidenceIntervalMean::precision(const double &confco) const
 void
 ConfidenceIntervalMean::reset() noexcept
 {
+	ConfidenceInterval::reset();
     M2 = 0.0;
 }
 

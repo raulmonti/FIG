@@ -240,13 +240,13 @@ ImportanceFunction::thresholds_technique() const noexcept
 }
 
 
-unsigned
+const unsigned&
 ImportanceFunction::num_thresholds() const
 {
     if (!ready())
 		throw_FigException("this ImportanceFunction hasn't "
 						   "any thresholds built in it yet");
-	return maxImportance_;
+	return numThresholds_;
 }
 
 

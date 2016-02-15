@@ -50,13 +50,6 @@ SimulationEngineNosplit::SimulationEngineNosplit(
 { /* Not much to do around here */ }
 
 
-unsigned
-SimulationEngineNosplit::splits_per_threshold() const noexcept
-{
-	return 1u;
-}
-
-
 double
 SimulationEngineNosplit::log_experiments_per_sim() const
 {

@@ -731,22 +731,20 @@ ModelSuite::estimate(const Property& property,
 		// Simulation bounds are wall clock time limits
 //		log_.setfor_time_estimation();
 		bool& timedout = engine.interrupted;
-		auto ci_ptr = build_empty_confidence_interval(
-						  property.type,
-						  engine.splits_per_threshold(),
-						  *impFuns[engine.current_imp_fun()]);
-        interruptCI_ = ci_ptr.get();  // bad boy
-        for (const unsigned long& wallTimeInSeconds: bounds.time_budgets()) {
+		for (const unsigned long& wallTimeInSeconds: bounds.time_budgets()) {
+			auto ci_ptr = build_empty_confidence_interval(
+							  property.type,
+							  engine.splits_per_threshold(),
+							  *impFuns[engine.current_imp_fun()]);
+			interruptCI_ = ci_ptr.get();  // bad boy
 			/// @todo TODO: implement proper log and discard following shell print
 			std::cerr << "   Estimation time: " << wallTimeInSeconds << " s\n";
-			SignalSetter handler(SIGALRM, [&ci_ptr, &timedout] (const int sig)
-				{
-                    assert(SIGALRM == sig);
-                    interrupt_print(*ci_ptr, ModelSuite::confCoToShow_);
-					ci_ptr->reset();
-					timedout = true;
-				}
-			);
+			SignalSetter handler(SIGALRM, [&ci_ptr, &timedout] (const int sig){
+				assert(SIGALRM == sig);
+				interrupt_print(*ci_ptr, ModelSuite::confCoToShow_);
+				//ci_ptr->reset();
+				timedout = true;
+			});
 			timedout = false;
 			alarm(wallTimeInSeconds);
 			engine.simulate(property,
@@ -754,7 +752,7 @@ ModelSuite::estimate(const Property& property,
 							*ci_ptr,
 							&increase_batch_size);
 		}
-        interruptCI_ = nullptr;
+		interruptCI_ = nullptr;
 
 	} else {
 
@@ -797,6 +795,7 @@ ModelSuite::estimate(const Property& property,
 			std::cerr << "   · Precision: " << ci_ptr->precision() << std::endl;
 			std::cerr << "   · Estimation time: " << (omp_get_wtime()-startTime)
                       << " seconds" << std::endl;
+			std::cerr << std::endl;
 //			log_(*ci_ptr,
 //				 omp_get_wtime() - startTime,
 //				 engine.name(),

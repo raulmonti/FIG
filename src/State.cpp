@@ -47,13 +47,30 @@ namespace fig
 {
 
 template< typename T_ >
+State<T_>::State(const State<T_>& that) :
+	pvars_(that.pvars_.size()),
+	maxConcreteState_(that.maxConcreteState_)
+{
+	// Here lies the depth in this copy
+	for (size_t i = 0u ; i < that.pvars_.size() ; i++) {
+		// We chose VariableInterval<> as implementation for our Variables
+		auto var_ptr(std::dynamic_pointer_cast< VariableInterval<T_> >(that.pvars_[i]));
+		pvars_[i] = std::make_shared< VariableInterval< T_ > >(*var_ptr);
+	}
+	positionOfVar_.reserve(that.size());
+	copy(::begin(that.positionOfVar_), ::end(that.positionOfVar_),
+		 std::inserter(positionOfVar_, ::begin(positionOfVar_)));
+}
+
+
+template< typename T_ >
 State<T_>::State(State<T_>&& that) :
 	pvars_(move(that.pvars_)),
 	maxConcreteState_(move(that.maxConcreteState_))
 {
 	positionOfVar_.reserve(that.size());
-	move(::begin(that.positionOfVar_), ::end(that.positionOfVar_),
-		 std::inserter(positionOfVar_, ::begin(positionOfVar_)));
+	std::move(::begin(that.positionOfVar_), ::end(that.positionOfVar_),
+			  std::inserter(positionOfVar_, ::begin(positionOfVar_)));
 	// Clean that up
 	that.pvars_.clear();
 	that.positionOfVar_.clear();
@@ -70,8 +87,8 @@ State<T_>& State<T_>::operator=(State<T_> that)
 //  TODO erase below or erase above?
 //	positionOfVar_.clear();
 //	positionOfVar_.reserve(pvars_.size());
-//	move(that.positionOfVar_.begin(), that.positionOfVar_.end(),
-//		 std::inserter(positionOfVar_, positionOfVar_.begin()));
+//	std::move(::begin(that.positionOfVar_), ::end(that.positionOfVar_),
+//			  std::inserter(positionOfVar_, ::begin(positionOfVar_)));
 	return *this;
 }
 

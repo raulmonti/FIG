@@ -63,6 +63,13 @@ SimulationEngineRestart::splits_per_threshold() const noexcept
 }
 
 
+const unsigned&
+SimulationEngineRestart::die_out_depth() const noexcept
+{
+	return dieOutDepth_;
+}
+
+
 void
 SimulationEngineRestart::bind(std::shared_ptr< const ImportanceFunction > ifun_ptr)
 {
@@ -149,6 +156,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 				// Traial reached a stop event or went down => kill it
 				tpool.return_traial(std::move(traial));
 				stack.pop();
+
 			} else if (IS_THR_UP_EVENT(e)) {
 				// Could have gone up several thresholds => split accordingly
 				assert(traial.depth < 0);
@@ -156,7 +164,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 					; i <= -traial.depth  // # thresholds crossed
 					; i++)
 				{
-					unsigned thisLevelRetrials =
+					const unsigned thisLevelRetrials =
 						std::round((splitsPerThreshold_ - 1u)
 									* std::pow(splitsPerThreshold_, i-1));
 					assert(0u < thisLevelRetrials);
@@ -168,7 +176,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 				}
 				// Offsprings are on top of stack now: continue attending them
 			}
-			// RARE events are checked first thing on the next main iteration
+			// RARE events are checked first thing in next iteration
 		}
 	}
 
@@ -181,7 +189,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 							  * std::pow(splitsPerThreshold_, numThresholds-i);
 	assert(0.0 <= weighedRaresCount);
 	if (ModelSuite::MIN_COUNT_RARE_EVENTS > raresCount.sum()) {
-		/// @todo TODO proper log in technical log
+		/// @todo TODO proper logging in technical log
 //		std::cerr << "Too few rare events generated (" << raresCount.sum()
 //				  << ") in " << numRuns << " simulations\n";
 		weighedRaresCount *= -1.0;

@@ -378,7 +378,7 @@ State<T_>::State(Container<ValueType*, OtherContainerArgs...>&& vars) :
 				  "constructed from another State or from a container "
 				  "with instances or raw pointers to VariableInterval objects");
 	size_t i(0u);
-	auto last = begin(positionOfVar_);
+	auto last = ::begin(positionOfVar_);
 	for (auto& e: vars) {
 		pvars_.emplace_back(std::shared_ptr< VariableInterval< T_ > >( e ));
 		last = positionOfVar_.emplace_hint(last, pvars_[i]->name_, i);
@@ -404,7 +404,7 @@ State<T_>::State(Iterator<ValueType, OtherIteratorArgs...> from,
 				  "ERROR: type mismatch. State can only be constructed "
 				  "from Variables, VariableDefinitions or VariableDeclarations");
 	size_t i(0);
-	auto last = begin(positionOfVar_);
+	auto last = ::begin(positionOfVar_);
 	do {
 		pvars_[i] = std::make_shared< VariableInterval<T_> >(*from);
 		last = positionOfVar_.emplace_hint(last, pvars_[i]->name_, i);
@@ -412,24 +412,6 @@ State<T_>::State(Iterator<ValueType, OtherIteratorArgs...> from,
 	} while (++from != to);
 	build_concrete_bound();
 }
-
-
-template< typename T_ >
-State<T_>::State(const State<T_>& that) :
-	pvars_(that.pvars_.size()),
-	maxConcreteState_(that.maxConcreteState_)
-{
-	// Here lies the depth in this copy
-	for (size_t i = 0u ; i < that.pvars_.size() ; i++) {
-		// We chose VariableInterval<> as implementation for our Variables
-		auto var_ptr(std::dynamic_pointer_cast< VariableInterval<T_> >(that.pvars_[i]));
-		pvars_[i] = std::make_shared< VariableInterval< T_ > >(*var_ptr);
-	}
-	positionOfVar_.reserve(that.size());
-	copy(::begin(that.positionOfVar_), ::end(that.positionOfVar_),
-		 std::inserter(positionOfVar_, ::begin(positionOfVar_)));
-}
-
 
 } // namespace fig
 

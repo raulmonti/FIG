@@ -165,7 +165,7 @@ SimulationEngine::simulate(const Property &property,
 		double raresCount =
 			transient_simulations(dynamic_cast<const PropertyTransient&>(property),
 								  numRuns);
-		// numExperiments = batchSize * splitsPerThreshold ^ numThresholds
+		// numExperiments = numRuns * splitsPerThreshold ^ numThresholds
 		interval.update(std::abs(raresCount),
 						std::log(numRuns) + log_experiments_per_sim());
 		if (0.0 <= raresCount)

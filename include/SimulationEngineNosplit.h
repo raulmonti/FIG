@@ -60,7 +60,7 @@ public:  // Ctor
 
 public:  // Accessors
 
-	virtual unsigned splits_per_threshold() const noexcept;
+	virtual unsigned splits_per_threshold() const noexcept { return 1u; }
 
 public:  // Engine setup
 
