@@ -31,12 +31,12 @@
 #define TRAIAL_H
 
 // C++
+#include <string>
 #include <vector>
 #include <memory>     // std::shared_ptr<>
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // std::swap(), std::find()
-#include <utility>    // std::move()
-#include <numeric>    // std::iota()
+#include <utility>    // std::move(), std::pair<>
 // FIG
 #include <core_typedefs.h>
 #include <State.h>
@@ -93,12 +93,12 @@ public:
 public:  // Attributes
 
 	/// Importance/Threshold level where the Traial currently is
-	ImportanceValue importance;
+    ImportanceValue level;
 
-	/// Importance/Threshold level where the Traial was born
-	ImportanceValue creationImportance;
+	/// How far down the current importance is w.r.t. the creation importance
+	short depth;
 
-	/// Time this Traial has been running around the system model
+	/// Time span this Traial has been running around the system model
 	CLOCK_INTERNAL_TYPE lifeTime;
 
 	/// \ref Variable "Variables" values instantiation
@@ -171,6 +171,12 @@ public:  // Ctors/Dtor: TraialPool should be the only to create Traials
 
 	~Traial();
 
+public:  // Accessors
+
+	/// Get the current time values of the clocks (attached to their names)
+	std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >
+	clocks_values() const;
+
 public:  // Utils
 
 	/**
@@ -185,19 +191,20 @@ public:  // Utils
 	 * @param network ModuleNetwork already sealed
 	 * @param impFun  ImportanceFunction currently on use for simulations
 	 *
-	 * @warning ModelSuite::seal() must have been called beforehand
 	 * \ifnot NDEBUG
 	 *   @throw FigException if the system model hasn't been sealed yet
+	 *                       or the ImportanceFunction has no importance info
 	 * \endif
 	 */
-	void initialize(std::shared_ptr< const ModuleNetwork > network,
-					std::shared_ptr< const ImportanceFunction > impFun);
+	void initialize(const ModuleNetwork& network,
+					const ImportanceFunction& impFun);
 
 	/**
 	 * @brief Retrieve next not-null expiring clock
 	 * @param reorder  Whether to reorder internal clocks prior the retrieval
 	 * @note  <b>Complexity:</b> <i>O(m log(m))</i> if reorder, <i>O(1)</i>
 	 *        otherwise, where 'm' is the number of clocks in the system.
+	 * @note  Attempted inlined for efficiency, sorry
 	 * @throw FigException if all our clocks have null value
 	 */
 	inline const Timeout&
@@ -220,7 +227,9 @@ public:  // Utils
      * @param firstClock First clock's index in the affected ModuleInstance
      * @param numClocks  Number of clocks of the affected ModuleInstance
      * @param timeLapse  Amount of time to kill
-     */
+	 *
+	 * @note  Attempted inlined for efficiency, sorry
+	 */
     inline void
     kill_time(const size_t& firstClock,
               const size_t& numClocks,

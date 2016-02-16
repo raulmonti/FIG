@@ -31,10 +31,12 @@
 #define CORE_TYPEDEFS_H
 
 // C++
-#include <array>
 #include <tuple>
-#include <string>
+#include <array>
+#include <vector>
+#include <forward_list>
 #include <unordered_map>
+#include <string>
 #include <functional>     // std::function<>, std::reference_wrapper<>
 // External code
 #include <muParserDef.h>  // MUP_BASETYPE
@@ -95,13 +97,21 @@ template< typename T_ > using                              VariableDefinition
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //
 //
-// State and StateInstance
+// State
 //
 
 /// StateInstances internal storage type
 /// @warning Must match, or be compatible with, that of MuParser library
 ///
 typedef  MUP_BASETYPE                                    STATE_INTERNAL_TYPE;
+
+/// Assignment of values to Variables (a logical <i>valuation</i>)
+/// following the order given in some State. A StateInstance can be
+/// compared to the State it comes from to check consistency.
+typedef  std::vector< STATE_INTERNAL_TYPE >                    StateInstance;
+
+/// Adjacency list for concrete states transitions graph
+typedef  std::vector< std::forward_list< unsigned > >          AdjacencyList;
 
 //
 //
@@ -127,13 +137,58 @@ typedef  std::unordered_map< std::string, size_t >              PositionsMap;
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //
 //
-// Importance
+// Importance and simulation events
 //
 
-/// Primitive type used to assess the importance of a single concrete state
+/// Primitive type used to assess the importance of a single *concrete* state
 /// @warning This bounds the number of representable importance levels
 ///
-typedef short                                                ImportanceValue;
+typedef  unsigned short                                      ImportanceValue;
+
+/// Bit flag to identify the recognized events during simulation
+/// @note Same as ImportanceValue to store this info in the ImportanceFunction
+///
+typedef  ImportanceValue                                               Event;
+
+/// Simulation event types
+///
+enum EventType
+{
+    NONE       = 0,
+
+    /// Property's target, e.g. "goal" event for transient simulations
+    RARE       = 1u<<(8*sizeof(Event)-1),
+
+    /// Simulation finished, e.g. "stop" event for transient simulations
+    STOP       = 1u<<(8*sizeof(Event)-2),
+
+    /// Time elapsed, e.g. "reference" event for proportion simulations
+    REFERENCE  = 1u<<(8*sizeof(Event)-3),
+
+    /// When a Traial jumps to a higher (on importance) threshold level
+	THR_UP     = 1u<<(8*sizeof(Event)-4),
+
+    /// When a Traial jumps to a lower (on importance) threshold level
+	THR_DOWN   = 1u<<(8*sizeof(Event)-5)
+};
+
+inline Event MASK(const ImportanceValue& val) noexcept
+{ return static_cast<Event>(val) & (RARE|STOP|REFERENCE|THR_UP|THR_DOWN); }
+
+inline ImportanceValue UNMASK(const ImportanceValue& val) noexcept
+{ return val & ~(static_cast<ImportanceValue>(RARE|STOP|REFERENCE|THR_UP|THR_DOWN)); }
+
+inline bool IS_RARE_EVENT     (const Event& e) { return e & EventType::RARE;      }
+inline bool IS_STOP_EVENT     (const Event& e) { return e & EventType::STOP;      }
+inline bool IS_REFERENCE_EVENT(const Event& e) { return e & EventType::REFERENCE; }
+inline bool IS_THR_UP_EVENT   (const Event& e) { return e & EventType::THR_UP;    }
+inline bool IS_THR_DOWN_EVENT (const Event& e) { return e & EventType::THR_DOWN;  }
+
+inline void SET_RARE_EVENT     (Event& e) { e |= EventType::RARE;      }
+inline void SET_STOP_EVENT     (Event& e) { e |= EventType::STOP;      }
+inline void SET_REFERENCE_EVENT(Event& e) { e |= EventType::REFERENCE; }
+inline void SET_THR_UP_EVENT   (Event& e) { e |= EventType::THR_UP;    }
+inline void SET_THR_DOWN_EVENT (Event& e) { e |= EventType::THR_DOWN;  }
 
 //
 //
@@ -161,41 +216,6 @@ enum PropertyType
 	/// P( F[<=time] goal )
 	BOUNDED_REACHABILITY
 };
-
-//
-//
-// // // // // // // // // // // // // // // // // // // // // // // // // //
-//
-// Simulation
-//
-
-/// Bit flag to identify the recognized events during simulation
-///
-typedef short                                                          Event;
-
-/// Simulation event types
-///
-enum EventType
-{
-    NONE       = 0,
-    REFERENCE  = 1<< 0,
-    STOP       = 1<< 1,
-    RARE       = 1<< 2,
-    THR_UP     = 1<< 3,
-    THR_DOWN   = 1<< 4
-};
-
-inline bool IS_REFERENCE_EVENT(const Event& e) { return e & EventType::REFERENCE; }
-inline bool IS_STOP_EVENT     (const Event& e) { return e & EventType::STOP;      }
-inline bool IS_RARE_EVENT     (const Event& e) { return e & EventType::RARE;      }
-inline bool IS_THR_UP_EVENT   (const Event& e) { return e & EventType::THR_UP;    }
-inline bool IS_THR_DOWN_EVENT (const Event& e) { return e & EventType::THR_DOWN;  }
-
-inline void SET_REFERENCE_EVENT(Event& e) { e |= EventType::REFERENCE; }
-inline void SET_STOP_EVENT     (Event& e) { e |= EventType::STOP;      }
-inline void SET_RARE_EVENT     (Event& e) { e |= EventType::RARE;      }
-inline void SET_THR_UP_EVENT   (Event& e) { e |= EventType::THR_UP;    }
-inline void SET_THR_DOWN_EVENT (Event& e) { e |= EventType::THR_DOWN;  }
 
 //
 //

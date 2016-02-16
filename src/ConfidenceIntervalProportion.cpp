@@ -41,7 +41,7 @@ ConfidenceIntervalProportion::ConfidenceIntervalProportion(
 	double confidence,
 	double precision,
 	bool dynamicPrecision) :
-		ConfidenceInterval(confidence, precision, dynamicPrecision),
+        ConfidenceInterval("proportion_std", confidence, precision, dynamicPrecision),
 		numRares_(0.0),
 		logNumSamples_(0.0)
 { /* Not much to do around here */ }
@@ -82,7 +82,7 @@ ConfidenceIntervalProportion::update(const double& newResults,
 bool
 ConfidenceIntervalProportion::min_samples_covered() const noexcept
 {
-	return numRares_ > 10 * statOversample_;
+    return numRares_ > 30 * statOversample_;
 }
 
 
@@ -99,6 +99,7 @@ ConfidenceIntervalProportion::precision(const double &confco) const
 void
 ConfidenceIntervalProportion::reset() noexcept
 {
+	ConfidenceInterval::reset();
     numRares_ = 0.0;
     logNumSamples_ = 0.0;
 }

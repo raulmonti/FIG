@@ -29,16 +29,20 @@
 
 #include <ImportanceFunctionConcreteCoupled.h>
 #include <ModuleNetwork.h>
+#include <ThresholdsBuilder.h>
 
 
 namespace fig
 {
 
 // Available function names in ImportanceFunction::names
-ImportanceFunctionConcreteCoupled::ImportanceFunctionConcreteCoupled() :
-	ImportanceFunctionConcrete("concrete_coupled"),
-	globalStateCopy_(),
-	importanceInfoIndex_(0u)
+ImportanceFunctionConcreteCoupled::ImportanceFunctionConcreteCoupled(
+    const ModuleNetwork &model) :
+        ImportanceFunctionConcrete("concrete_coupled"),
+        globalStateCopy_(model.global_state()),
+        globalInitialValuation_(model.global_state().to_state_instance()),
+        globalTransitions_(model.transitions_),
+        importanceInfoIndex_(0u)
 { /* Not much to do around here */ }
 
 
@@ -50,39 +54,117 @@ ImportanceFunctionConcreteCoupled::~ImportanceFunctionConcreteCoupled()
 
 void
 ImportanceFunctionConcreteCoupled::assess_importance(
-	const ModuleNetwork& net,
 	const Property& prop,
-	const std::string& strategy)
+    const std::string& strategy)
 {
-	globalStateCopy_ = net.global_state();
-	// Use member function inherited from ImportanceFunctionConcrete
-	assess_importance(globalStateCopy_, prop, strategy, importanceInfoIndex_);
-	readyForSimulations = true;
+    if (hasImportanceInfo_)
+        clear();
+    globalStateCopy_.copy_from_state_instance(globalInitialValuation_);
+    ImportanceFunctionConcrete::assess_importance(globalStateCopy_,
+                                                  globalTransitions_,
+                                                  prop,
+                                                  strategy,
+                                                  importanceInfoIndex_);
+	assert(minImportance_ <= minRareImportance_);
+	assert(minRareImportance_ <= maxImportance_);
+	hasImportanceInfo_ = true;
 	strategy_ = strategy;
 }
 
 
-ImportanceValue
-ImportanceFunctionConcreteCoupled::importance_of(const StateInstance& state) const
+void
+ImportanceFunctionConcreteCoupled::assess_importance(
+	const Property&,
+	const std::string&,
+	const std::vector<std::string>&)
 {
-#ifndef NDEBUG
-	assert(ready());
-	globalStateCopy_.copy_from_state_instance(state, true);
-#else
-	globalStateCopy_.copy_from_state_instance(state, false);
-#endif
-	return modulesConcreteImportance[importanceInfoIndex_]
-									[globalStateCopy_.encode_state()];
+    /// @todo TODO: implement concrete ifun with ad hoc importance assessment
+}
+
+
+void
+ImportanceFunctionConcreteCoupled::build_thresholds(
+	ThresholdsBuilder& tb,
+	const unsigned& splitsPerThreshold)
+{
+	if (!has_importance_info())
+		throw_FigException(std::string("importance function \"").append(name())
+						   .append("\" doesn't yet have importance information"));
+
+    // Build translator from importance to threshold-level
+    std::vector< ImportanceValue > imp2thr =
+            tb.build_thresholds(splitsPerThreshold, *this);
+    assert(!imp2thr.empty());
+	assert(imp2thr[0] == static_cast<ImportanceValue>(0u));
+	assert(imp2thr[0] <= imp2thr.back());
+
+    // Replace importance info with the new thresholds info
+	ImportanceVec& impVec = modulesConcreteImportance[importanceInfoIndex_];
+	#pragma omp parallel for default(shared)
+    for (size_t i = 0ul ; i < impVec.size() ; i++) {
+        ImportanceValue imp = impVec[i];
+        impVec[i] = MASK(imp) | imp2thr[UNMASK(imp)];
+    }
+
+	// Update limits since old importance values were discarded
+	minImportance_ = imp2thr[0];
+	maxImportance_ = imp2thr.back();
+	minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
+    for (size_t i = 0ul ; i < impVec.size() ; i++)
+		if (IS_RARE_EVENT(impVec[i]) && UNMASK(impVec[i]) < minRareImportance_)
+			minRareImportance_ = UNMASK(impVec[i]);
+	assert(minImportance_ <= minRareImportance_);
+	assert(minRareImportance_ <= maxImportance_);
+
+	numThresholds_ = imp2thr.back();
+	thresholdsTechnique_ = tb.name;
+    readyForSims_ = true;
+}
+
+
+void
+ImportanceFunctionConcreteCoupled::print_out(std::ostream& out,
+                                             State<STATE_INTERNAL_TYPE>) const
+{
+	if (!has_importance_info()) {
+		out << "\nImportance function \"" << name() << "\" doesn't yet have "
+			   "any importance information to print." << std::endl;
+		return;
+	}
+	out << "\nPrinting importance function \"" << name() << "\" values.\n";
+	if (ready())
+		out << "Legend: ( concrete_state_value[*~^] , threshold_level )\n";
+	else
+		out << "Legend: ( concrete_state_value[*~^] , importance_value )\n";
+	out << "where\n"
+		<< "      *  denotes a state is RARE,\n"
+		<< "      ~  denotes a state is STOP,\n"
+		<< "      ^  denotes a state is REFERENCE.\n";
+	out << "Values:" << std::endl;
+	const ImportanceVec& impVec = modulesConcreteImportance[importanceInfoIndex_];
+	for (size_t i = 0ul ; i < impVec.size() ; i++) {
+		out << "(" << i;
+		out << (IS_RARE_EVENT     (impVec[i]) ? "*" : "");
+		out << (IS_STOP_EVENT     (impVec[i]) ? "~" : "");
+		out << (IS_REFERENCE_EVENT(impVec[i]) ? "^" : "");
+		out << "," << UNMASK(impVec[i]) << ") ";
+		out.flush();
+	}
+	out << "\b" << std::endl;
 }
 
 
 void
 ImportanceFunctionConcreteCoupled::clear() noexcept
 {
-	globalStateCopy_ = State< STATE_INTERNAL_TYPE >();
 	ImportanceFunctionConcrete::clear();
-	readyForSimulations = false;
+	hasImportanceInfo_ = false;
+	readyForSims_ = false;
 	strategy_ = "";
+	thresholdsTechnique_ = "";
+    minImportance_ = static_cast<ImportanceValue>(0u);
+    maxImportance_ = static_cast<ImportanceValue>(0u);
+	minRareImportance_ = static_cast<ImportanceValue>(0u);
 }
 
 } // namespace fig

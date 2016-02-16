@@ -101,6 +101,7 @@ double probit(const double& y)
 } // namespace
 
 
+
 namespace fig
 {
 
@@ -108,9 +109,11 @@ bool ConfidenceInterval::value_simulations_;  // defined only to copy the doc!
 bool ConfidenceInterval::time_simulations_;   // defined only to copy the doc!
 
 
-ConfidenceInterval::ConfidenceInterval(double confidence,
+ConfidenceInterval::ConfidenceInterval(const std::string& thename,
+									   double confidence,
 									   double precision,
 									   bool dynamicPrecision) :
+    name(thename),
 	errorMargin(precision/2.0),
 	percent(dynamicPrecision),
 	confidence(confidence),
@@ -124,8 +127,8 @@ ConfidenceInterval::ConfidenceInterval(double confidence,
 {
 	if (0.0 >= precision)
 		throw_FigException("requires precision > 0.0");
-	if (percent && 1.0 <= precision)
-		throw_FigException("dynamic precision must ∈ (0.0, 1.0)");
+//	if (percent && 1.0 <= precision)
+//		throw_FigException("dynamic precision must ∈ (0.0, 1.0)");
 	if (0.0 >= confidence || 1.0 <= confidence)
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
 }
@@ -136,7 +139,7 @@ ConfidenceInterval::set_statistical_oversampling(const double& statOversamp)
 {
 	if (1.0 > statOversamp)
 		throw_FigException("the statistical oversampling factor should scale "
-						   "*up* the minimum # of rare events required");
+						   "*up* the minimum # of experimental samples needed");
 	statOversample_ = statOversamp;
 }
 

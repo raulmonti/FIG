@@ -31,16 +31,19 @@
 #define IMPORTANCEFUNCTION_H
 
 // C++
+#include <ostream>
 #include <string>
 #include <array>
 // FIG
 #include <core_typedefs.h>
 #include <State.h>
+#include <MathExpression.h>
 
 
 namespace fig
 {
 
+class ThresholdsBuilder;
 class ModuleInstance;
 class ModuleNetwork;
 class Property;
@@ -58,20 +61,45 @@ class Property;
  *        derived class, importance assessment requires the choice of a
  *        "strategy" (flat, auto, ad hoc...) to decide how the relative
  *        importance between states will be measured.
- *
- * @note This class family follows the
- *       <a href="https://sourcemaking.com/design_patterns/visitor">
- *       visitor design pattern</a>. The visited elements are instances
- *       of the classes which derive from Module.
  */
 class ImportanceFunction
 {
+protected:
+
+	/// Mathematical formula to evaluate the importance of symbolic states
+	class Formula : public MathExpression
+	{
+	public:
+
+		/// Empty ctor
+		Formula();
+
+		/// Set internal mathematical expression to the given formula
+		/// @param formula     String with mathematical expression to evaluate
+		/// @param varnames    Names of variables ocurring in exprStr
+		/// @param globalState State of the whole system model
+		/// @throw FigException if badly formatted mathematical expression
+		/// @throw out_of_range if 'varnames' has names not in 'formula'
+		template< template< typename... > class Container, typename... OtherArgs >
+		void set(const std::string& formula,
+				 const Container< std::string, OtherArgs... >& varnames,
+				 const State<STATE_INTERNAL_TYPE>& globalState);
+
+		/// Reset internal mathematical expression to (void) creation values
+		void reset() noexcept;
+
+		/// Evaluate current formula expression on given symbolic state
+		/// @throw mu::Parser::exception_type if undefined internal
+		///        mathematical expression.
+		ImportanceValue operator()(const StateInstance& state) const;
+	};
+
 public:
 
 	/// Names of the importance functions offered to the user,
 	/// as he should requested them through the CLI/GUI.
 	/// Defined in ImportanceFunction.cpp
-	static const std::array< std::string, 1 > names;
+	static const std::array< std::string, 2 > names;
 
 	/// Importance assessment strategies offered to the user,
 	/// as he should requested them through the CLI/GUI.
@@ -87,11 +115,32 @@ private:
 protected:
 public:
 
+	/// Do we hold importance information about the states?
+	bool hasImportanceInfo_;
+
 	/// Can this instance be used for simulations?
-	bool readyForSimulations;
+	bool readyForSims_;
 
 	/// Last used strategy to assess the importance with this function
 	std::string strategy_;
+
+	/// Last used technique to build the importance thresholds in this function
+	std::string thresholdsTechnique_;
+
+	/// Minimum importance assigned during the last assessment
+	ImportanceValue minImportance_;
+
+	/// Maximum importance assigned during the last assessment
+	ImportanceValue maxImportance_;
+
+	/// Importance of the rare state with lowest importance from last assessment
+	ImportanceValue minRareImportance_;
+
+	/// Number of thresholds built on last call to build_thresholds()
+	unsigned numThresholds_;
+
+	/// Algebraic formula for ad hoc importance strategy
+	Formula adhocFun_;
 
 public:  // Ctor/Dtor
 
@@ -111,66 +160,151 @@ public:  // Accessors
 	const std::string& name() const noexcept;
 
 	/**
-	 * @copydoc readyForSimulations
+	 * @copydoc hasImportanceInfo_
 	 *
-	 *        This starts out false and becomes true after a successfull call
-	 *        to one of the importance assessment functions.
-	 *        It becomes false again after a call to clear()
+	 *  This becomes true only after a successfull call to either
+	 *  ImportanceFunctionConcrete::assess_importance() or
+	 *  ImportanceFunctionAlgebraic::set_formula(),
+	 *  depending on the derived class this object is an instance of.<br>
+	 *  It becomes false again after a call to clear()
+	 */
+	bool has_importance_info() const noexcept;
+
+	/**
+	 * @copydoc readyForSims_
 	 *
-	 * @see assess_importance(ModuleInstance*, Property*)
-	 * @see assess_importance(ModuleNetwork*,  Property*)
+	 *  This requires having had the \ref build_thresholds() "thresholds built"
+	 *  in addition to holding \ref has_importance_info() "importance information"
+	 *
+	 * @see has_importance_info()
 	 */
 	bool ready() const noexcept;
 
 	/// @copydoc strategy_
-	/// @returns Empty string if function isn't ready(), strategy name otherwise
-	const std::string& strategy() const noexcept;
+	/// @returns Empty string if function doesn't has_importance_info(),
+	///          last used strategy otherwise
+	const std::string strategy() const noexcept;
+
+	/// @returns Algebraic formula for ad hoc importance assessment if function
+	///          has_importance_info() and current strategy is "adhoc",
+	///          empty string otherwise
+	const std::string adhoc_fun() const noexcept;
+
+	/// @copydoc minImportance_
+	/// @returns Zero if function doesn't has_importance_info(),
+	///          last minimum ImportanceValue assessed importance otherwise
+	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds were
+	///       built" "in situ" the value returned will be that of the lowest
+	///       threshold level.
+	ImportanceValue min_importance() const noexcept;
+
+	/// @copydoc maxImportance_
+	/// @returns Zero if function doesn't has_importance_info(),
+	///          last maximum ImportanceValue assessed importance otherwise
+	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds were
+	///       built" "in situ" the value returned will be that of the highest
+	///       threshold level.
+	ImportanceValue max_importance() const noexcept;
+
+	/// @copydoc minRareImportance_
+	/// @returns Zero if function doesn't has_importance_info(),
+	///          minimum ImportanceValue of a rare state otherwise
+	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds were
+	///       built" "in situ" the value returned will be the lowest threshold
+	///       level containing a rare state.
+	ImportanceValue min_rare_importance() const noexcept;
+
+	/// Whether this instance keeps an internal std::vector<ImportanceValue>,
+	/// i.e. has info for the concrete state space,
+	///      as opposed to the symbolic state space.
+	virtual bool concrete() const noexcept = 0;
+
+	/// @copydoc thresholdsTechnique_
+	/// @returns Empty string if function isn't ready(),
+	///          last thresholds building technique used otherwise
+	const std::string thresholds_technique() const noexcept;
+
+	/// @copydoc numThresholds_
+	/// @throw FigException if this instance isn't \ref ready()
+	///                     "ready for simulations"
+	const unsigned& num_thresholds() const;
+
+	/**
+	 * Tell the pre-computed importance of the given StateInstance.
+	 * @return ImportanceValue requested
+	 * @note This returns the importance alone without any kind of Event mask
+	 * \ifnot NDEBUG
+	 *   @throw FigException if there's no \ref has_importance_info()
+	 *                       "importance information" currently
+	 * \endif
+	 */
+	virtual ImportanceValue importance_of(const StateInstance& state) const = 0;
+
+	/**
+	 * Threshold level to which given StateInstance belongs.
+	 * @note The j-th threshold level is composed of all the states to which
+	 *       the ImportanceFunction assigns an ImportanceValue between the
+	 *       values of threshold 'j' (included) and 'j+1' (excluded)
+	 * \ifnot NDEBUG
+	 *   @throw FigException if this instance isn't \ref ready()
+	 *                       "ready for simulations"
+	 * \endif
+	 * @see ThresholdsBuilder::build_thresholds()
+	 */
+	virtual ImportanceValue level_of(const StateInstance& state) const = 0;
+
+	/**
+	 * Threshold level to which given ImportanceValue belongs.
+	 * @note The j-th threshold level is composed of all the states to which
+	 *       the ImportanceFunction assigns an ImportanceValue between the
+	 *       values of threshold 'j' (included) and 'j+1' (excluded)
+	 * \ifnot NDEBUG
+	 *   @throw FigException if this instance isn't \ref ready()
+	 *                       "ready for simulations"
+	 * \endif
+	 * @see ThresholdsBuilder::build_thresholds()
+	 */
+	virtual ImportanceValue level_of(const ImportanceValue& val) const = 0;
+
+	/**
+	 * @brief Print formatted internal importance information
+	 * @details States are printed along their importance (or threshold level)
+	 *          If events masks are present they are somehow marked,
+	 *          and a legend is included to interpret the marking.
+	 * @param out Output stream where printing will take place
+	 * @param s   Global system state, i.e. with all variables of the model
+	 * @warning This can be <b>a lot</b> of printing, use with care.
+	 */
+	virtual void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE> s) const = 0;
 
 public:  // Utils
 
 	/**
-	 * @brief Assess the importance of the states on this \ref ModuleInstance
-	 *        "module", according to the \ref Property "logical property" and
-	 *        strategy specified.
+	 * @brief Build thresholds from precomputed importance information
 	 *
-	 * @param mod      Module whose reachable states will have their importance assessed
-	 * @param prop     Property guiding the importance assessment
-	 * @param strategy Strategy of the assessment (flat, auto, ad hoc...)
+	 *        The thresholds may be kept separately or built on top of the
+	 *        importance information. In any case after a successfull call
+	 *        this instance is \ref ImportanceFunction::ready() "ready for
+	 *        simulations": \ref SimulationEngine "simulation engines" will use
+	 *        the thresholds info when coupled with this ImportanceFunction.
 	 *
-	 * @note After a successfull invocation the ImportanceFunction
-	 *       is ready() to be used during simulations
+	 * @param tb                 ThresholdsBuilder to use
+	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
+	 *                           "threshold level up" event
 	 *
-	 * @see assess_importance(const ModuleNetwork&, const Property&, const std::string&)
+	 * @throw FigException if there was no precomputed \ref has_importance_info()
+	 *                     "importance information"
+	 *
+	 * @see ready()
 	 */
-	virtual void assess_importance(const ModuleInstance& mod,
-								   const Property& prop,
-								   const std::string& strategy = "") = 0;
+	virtual void build_thresholds(ThresholdsBuilder& tb,
+								  const unsigned& splitsPerThreshold) = 0;
 
-	/**
-	 * @brief Assess the importance of the reachable states of the whole
-	 *        \ref ModuleNetwork "system model", according to the
-	 *        \ref Property "logical property" and strategy specified.
-	 *
-	 * @param net      System model (or coupled network of modules)
-	 * @param prop     Property guiding the importance assessment
-	 * @param strategy Strategy of the assessment (flat, auto, ad hoc...)
-	 *
-	 * @note After a successfull invocation the ImportanceFunction
-	 *       is ready() to be used during simulations
-	 *
-	 * @see assess_importance(const ModuleInstance&, const Property&, const std::string&)
-	 */
-	virtual void assess_importance(const ModuleNetwork& net,
-								   const Property& prop,
-								   const std::string& strategy = "") = 0;
-
-	/// @brief Tell the pre-computed importance of the given StateInstance
-	/// @note All reachable states importance should have already been assessed
-	/// @see assess_importance()
-	virtual ImportanceValue importance_of(const StateInstance& state) const = 0;
-
-	/// Release any memory allocated in the heap
-	/// @note After this invocation the ImportanceFunction is no longer ready()
+	/// @brief  Release memory allocated in the heap
+	/// @details This destroys any importance and thresholds info:
+	///          the ImportanceFunction won't hold \ref has_importance_info()
+	///          "importance information" any longer and will thus not be
+	///          \ref ready() "ready for simulations" either.
 	virtual void clear() noexcept = 0;
 };
 

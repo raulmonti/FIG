@@ -63,18 +63,6 @@ static_assert(std::is_same<short, STATE_INTERNAL_TYPE>::value,
 			  "Error: for now we restrict states internal storage to shorts");
 
 /**
- * @brief Assignment of values to the Variables (a logical <i>valuation</i>)
- *
- *        This is an instantiation of values, which follows the ordering
- *        given in the (unique) State of the system.
- *        A StateInstance can be compared to the State for consistency
- *        checks. There is a one-to-one correspondence between StateInstance
- *        and Traial objects.
- */
-typedef std::vector< STATE_INTERNAL_TYPE > StateInstance;
-
-
-/**
  * @brief Set of \ref Variable "variables" managed by a Module
  *
  *        This TAD is mostly used for consistency check of the Traials'
@@ -141,7 +129,9 @@ public:  // Ctors/Dtor
 		  Iterator<ValueType, OtherIteratorArgs...> to);
 
 	/// Copy ctor
-	State(const State<T_> &that);
+	/// @note Deep copy by default: variables are duplicated
+	/// @see shallow_copy()
+	State(const State<T_>& that);
 
 	/// Move ctor
 	State(State<T_>&& that);
@@ -170,6 +160,12 @@ public:  // Accessors
 
 	/// Concrete size, i.e. cross product of all variables ranges
 	inline size_t concrete_size() const noexcept { return maxConcreteState_; }
+
+	/// Make shallow copy from 'that', i.e. share its variables through pointers
+	/// @note 'that' isn't modified, but it's not const qualified since
+	///       future changes to 'this' will alter the values in 'that'
+	/// @see State(const State&)
+	void shallow_copy(State<T_>& that);
 
 	/**
 	 * @brief Retrieve pointer to i-th variable (const or not)
@@ -261,16 +257,16 @@ public:  // Interaction with state instances
 	void copy_from_state_instance(const StateInstance& s, bool checkValidity = false);
 
 	/**
-	 * @brief Copy our Variables values to the ::State instance 's'.
+	 * @brief Copy our \ref Variable "variables" values to the StateInstance 's'
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
 	void copy_to_state_instance(StateInstance& s) const;
 
 	/**
-	 * @brief Create a fresh ::State instance reflecting our Variables values
+	 * @brief Get a StateInstance reflecting our \ref Variable "variables" values
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
-	std::unique_ptr< StateInstance > to_state_instance() const;
+	StateInstance to_state_instance() const;
 
 public:  // Encode/Decode between symbolic and concrete representations
 
@@ -279,7 +275,7 @@ public:  // Encode/Decode between symbolic and concrete representations
 	 *        i.e. as the "concrete" representation of the current state.
 	 * @note <b>Complexity:</b> <i>O(size()<sup>2</sup>)</i>
 	 */
-	size_t encode_state() const;
+	size_t encode() const;
 
 	/**
 	 * @brief Decode number as vector of Variables values and apply to StateInstance,
@@ -287,7 +283,7 @@ public:  // Encode/Decode between symbolic and concrete representations
 	 * @param n  Concrete state to interpret and apply to our symbolic existence
 	 * @note <b>Complexity:</b> <i>O(size()<sup>2</sup>)</i>
 	 */
-	void decode_state(const size_t& n);
+	const State<T_>& decode(const size_t& n);
 
 	/**
 	 * @brief Decode concrete state 'n' into corresponding Variable value
@@ -295,7 +291,7 @@ public:  // Encode/Decode between symbolic and concrete representations
 	 * @param i  Variable index whose value (decoded from n) is requested
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
-	T_ decode_state(const size_t& n, const size_t& i) const;
+	T_ decode(const size_t& n, const size_t& i) const;
 
 	/**
 	 * @brief Decode concrete state 'n' into corresponding Variable value
@@ -303,27 +299,15 @@ public:  // Encode/Decode between symbolic and concrete representations
 	 * @param i  Variable name whose value (decoded from n) is requested
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
-	T_ decode_state(const size_t& n, const std::string& varname) const;
+	T_ decode(const size_t& n, const std::string& varname) const;
 
 private:  // Utils
 
 	/// Compute and store value of maxConcreteState_
-	inline void build_concrete_bound()
-		{
-			maxConcreteState_ = 1u;
-			for(const auto pvar: pvars_)
-				maxConcreteState_ *= pvar->range_;  // ignore overflow :D
-		}
+	void build_concrete_bound();
 
 	/// Do we have a variable with such name?
-	inline bool is_our_var(const std::string& varName)
-		{
-			auto varFound = std::find_if(
-								::begin(pvars_), ::end(pvars_),
-								[&] (const std::shared_ptr<Variable<T_>>& var_ptr)
-								{ return varName == var_ptr->name(); });
-			return ::end(pvars_) != varFound;
-		}
+	bool is_our_var(const std::string& varName);
 };
 
 
@@ -394,7 +378,7 @@ State<T_>::State(Container<ValueType*, OtherContainerArgs...>&& vars) :
 				  "constructed from another State or from a container "
 				  "with instances or raw pointers to VariableInterval objects");
 	size_t i(0u);
-	auto last = begin(positionOfVar_);
+	auto last = ::begin(positionOfVar_);
 	for (auto& e: vars) {
 		pvars_.emplace_back(std::shared_ptr< VariableInterval< T_ > >( e ));
 		last = positionOfVar_.emplace_hint(last, pvars_[i]->name_, i);
@@ -420,7 +404,7 @@ State<T_>::State(Iterator<ValueType, OtherIteratorArgs...> from,
 				  "ERROR: type mismatch. State can only be constructed "
 				  "from Variables, VariableDefinitions or VariableDeclarations");
 	size_t i(0);
-	auto last = begin(positionOfVar_);
+	auto last = ::begin(positionOfVar_);
 	do {
 		pvars_[i] = std::make_shared< VariableInterval<T_> >(*from);
 		last = positionOfVar_.emplace_hint(last, pvars_[i]->name_, i);
@@ -428,7 +412,6 @@ State<T_>::State(Iterator<ValueType, OtherIteratorArgs...> from,
 	} while (++from != to);
 	build_concrete_bound();
 }
-
 
 } // namespace fig
 

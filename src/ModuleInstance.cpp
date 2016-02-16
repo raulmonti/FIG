@@ -42,6 +42,7 @@
 // FIG
 #include <FigException.h>
 #include <ModuleInstance.h>
+#include <ImportanceFunction.h>
 #include <Traial.h>
 
 // ADL
@@ -49,11 +50,11 @@ using std::begin;
 using std::end;
 
 
+namespace { const fig::Label tau; }
+
+
 namespace fig
 {
-
-const Label ModuleInstance::tau_;
-
 
 void
 ModuleInstance::add_transition(const Transition& transition)
@@ -76,6 +77,7 @@ ModuleInstance::add_transition(const Transition& transition)
 		return;
 #endif
 	auto ptr = std::make_shared<Transition>(transition);
+	transitions_.emplace_back(ptr);
 	transitions_by_label_[transition.label().str].emplace_back(ptr);
 	transitions_by_clock_[transition.triggeringClock].emplace_back(ptr);
 }
@@ -101,8 +103,9 @@ ModuleInstance::add_transition(Transition&& transition)
 	if (0 <= globalIndex_ || 0 <= firstClock_)
 		return;
 #endif
-	auto ptr = std::make_shared<Transition>(std::forward<Transition>(transition));
 	// shared_ptr from rvalue: http://stackoverflow.com/q/15917475
+	auto ptr = std::make_shared<Transition>(std::forward<Transition>(transition));
+	transitions_.emplace_back(ptr);
 	transitions_by_label_[transition.label().str].emplace_back(ptr);
 	transitions_by_clock_[transition.triggeringClock].emplace_back(ptr);
 }
@@ -161,6 +164,28 @@ template void ModuleInstance::add_transition(const Label& label,
 											 const std::unordered_set< std::string >& resetClocks);
 
 
+StateInstance
+ModuleInstance::initial_state() const
+{
+#ifndef NDEBUG
+	if (!sealed())
+		throw_FigException("ModuleInstance hasn't been sealed yet");
+#endif
+	return lState_.to_state_instance();
+}
+
+
+size_t
+ModuleInstance::initial_concrete_state() const
+{
+#ifndef NDEBUG
+	if (!sealed())
+		throw_FigException("ModuleInstance hasn't been sealed yet");
+#endif
+	return lState_.encode();
+}
+
+
 const Label&
 ModuleInstance::jump(const std::string& clockName,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,
@@ -170,8 +195,6 @@ ModuleInstance::jump(const std::string& clockName,
 	if (!sealed_)
 		throw_FigException("this module hasn't been sealed yet");
 #endif
-//		std::cerr << name << ": jumping with " << clockName
-//				  << " for " << elapsedTime << " time units" << std::endl;
 	const auto iter = transitions_by_clock_.find(clockName);
 	assert(end(transitions_by_clock_) != iter);  // deny foreign clocks
 	const auto& transitions = iter->second;
@@ -190,9 +213,8 @@ ModuleInstance::jump(const std::string& clockName,
 		}
 	}
     // No transition was enabled => advance all clocks and broadcast tau
-//	std::cerr << " (*) no enabled transition\n";
 	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
-    return ModuleInstance::tau_;
+	return tau;
 }
 
 
@@ -205,8 +227,6 @@ ModuleInstance::jump(const Label& label,
 	if (!sealed_)
 		throw_FigException("this module hasn't been sealed yet");
 #endif
-//		std::cerr << name << ": reacting to \"" << label.str
-//				  << "\" for " << elapsedTime << " time units" << std::endl;
 	assert(label.is_output());
 	const auto iter = transitions_by_label_.find(label.str);
     // Foreign labels and taus won't touch us
@@ -226,7 +246,6 @@ ModuleInstance::jump(const Label& label,
        }
     }
     // No transition was enabled? Then just advance all clocks
-//	std::cerr << " (*) tau or foreign label\n";
 	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
 }
 

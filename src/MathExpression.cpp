@@ -81,6 +81,7 @@ inline T_ max2(T_ a, T_ b)
 namespace fig
 {
 
+/// @note Matches MuParser "true"
 const std::string MathExpression::emptyExpressionString = "1";
 
 

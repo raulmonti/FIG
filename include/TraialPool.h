@@ -95,7 +95,6 @@ private:
 	TraialPool& operator=(const TraialPool& that) = delete;
 
 private:  // Global info handled by the ModuleNetwork
-public:
 
 	/// Size of the (symbolic) system global state
 	static size_t numVariables;
@@ -121,10 +120,10 @@ public:  // Access to the TraialPool instance
 public:  // Access to resources (viz Traials)
 
 	/**
-	 * @brief Obtain single Traial to simulate with
+	 * @brief Obtain single (dirty) Traial to simulate with
 	 * @details Instantiate in the following way:
 	 *          \code
-	 *          Traial& varname = TraialPool::get_instance().get_traial()
+	 *          Traial& varname = TraialPool::get_instance().get_traial();
 	 *          \endcode
 	 *          Don't use the 'auto' keyword to define the variable.
 	 * @return Dirty Traial
@@ -140,21 +139,37 @@ public:  // Access to resources (viz Traials)
 	 */
 	void return_traial(Traial&& traial);
 
+    /**
+     * Obtain specified amount of (dirty) Traial instances
+     *
+     * @param cont       Container where traials are to be stored
+     * @param numTraials Number of \ref Traial "traials" requested
+     *
+     * @note <b>Complexity:</b> <i>O(numTraials)</i> if enough free resources
+     *       are available, <i>O(max(numTraials,sizeChunkIncrement_))</i>
+     *       if new resources need to be allocated.
+     */
+    template< template< typename... > class Container,
+              typename... OtherArgs >
+    void get_traials(Container< Reference<Traial>, OtherArgs...>& cont,
+                     unsigned numTraials);
+
 	/**
-	 * @brief  Obtain specified amount of copies of given Traial instance
-	 *
-	 * @param  traial    Traial instance whose internals will be copied
-	 * @param  numCopies Number of \ref Traial "traials" requested
-	 *
-	 * @return <a href="http://www.cplusplus.com/reference/forward_list/forward_list/">
-	 *         C++ STL forward list</a> with requested copies of traial
-	 *
-	 * @note   <b>Complexity:</b> <i>O(numCopies)</i> if free resources are
-	 *         available, <i>O(max(numCopies,sizeIncrement_))</i>
-	 *         if new resources need to be allocated.
-	 */
-	std::forward_list< Reference< Traial > >
-	get_traial_copies(const Traial& traial, unsigned numCopies);
+	 * Obtain specified amount of copies of given Traial instance with 0 depth
+     *
+     * @param cont      Container where Traial copies are to be stored
+     * @param traial    Traial instance whose internals will be copied
+     * @param numCopies Number of \ref Traial "traials" requested
+     *
+     * @note <b>Complexity:</b> <i>O(numCopies)</i> if enough free resources
+     *       are available, <i>O(max(numCopies,sizeChunkIncrement_))</i>
+     *       if new resources need to be allocated.
+     */
+	template< template< typename... > class Container,
+			  typename... OtherArgs >
+    void get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
+                           const Traial& traial,
+                           unsigned numCopies);
 
 	/**
 	 * @brief Give back a bunch of \ref Traial "traials" to the pool
@@ -162,16 +177,15 @@ public:  // Access to resources (viz Traials)
 	 * @note The container is devoided to avoid potential memory corruption issues
 	 * @note <b>Complexity:</b> <i>O(size(traials))</i>
 	 */
-	template< template< typename, typename... > class Container,
-			  typename ValueType,
-			  typename... OtherContainerArgs >
-	void return_traials(Container<ValueType, OtherContainerArgs...>& traials);
+	template< template< typename... > class Container,
+			  typename... OtherArgs >
+	void return_traials(Container< Reference<Traial>, OtherArgs...>& traials);
 
 public:  // Utils
 
 	/// Make sure at least 'requiredResources' \ref Traial "traials" are
 	/// available, without the need for in-between allocations when requested.
-	/// @note <b>Complexity:</b> <i>O(requiredResources)</i>
+	/// @note <b>Complexity:</b> <i>O(max(requiredResources,num_resources()))</i>
 	void ensure_resources(const size_t& requiredResources);
 
 	/// How many \ref Traial "traials" are currently available?

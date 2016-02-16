@@ -23,7 +23,7 @@
  * @brief: Constructor.
  */
 
-AST::AST(){};
+AST::AST(){}
 
 
 //==============================================================================
@@ -38,7 +38,7 @@ AST::AST(int token, string lexeme, int line, int col):
     tkn(token),
     l(line),
     c(col)
-{};
+{}
 
 
 //==============================================================================
@@ -286,7 +286,7 @@ AST*
 AST::get_branch(int i){
 
     AST *result = NULL;
-    if(i >= 0 && i < branches.size()){
+	if(i >= 0 && i < static_cast<int>(branches.size())){
         result = branches[i];
     }
     return result;

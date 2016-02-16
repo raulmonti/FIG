@@ -28,19 +28,27 @@
 
 
 
+// C
+#include <cmath>
 // C++
+#include <memory>     // std::dynamic_pointer_cast<>
 #include <sstream>
 #include <iterator>   // std::begin, std::end
 #include <algorithm>  // std::find()
 // FIG
 #include <SimulationEngine.h>
-#include <FigException.h>
+#include <ImportanceFunction.h>
+#include <ImportanceFunctionConcrete.h>
+#include <Property.h>
+#include <PropertyTransient.h>
+#include <ConfidenceInterval.h>
 #include <ModuleNetwork.h>
+#include <FigException.h>
+#include <TraialPool.h>
 
 // ADL
 using std::begin;
 using std::end;
-using std::find;
 
 
 namespace fig
@@ -48,13 +56,13 @@ namespace fig
 
 // Static variables initialization
 
-const std::array< std::string, 1 > SimulationEngine::names =
+const std::array< std::string, 2 > SimulationEngine::names =
 {{
 	// Standard Monte Carlo simulations, without splitting
-	"nosplit"
+	"nosplit",
 
-//	// RESTART-like importance splitting, from the Villén-Altamirano brothers
-//	"restart"
+	// RESTART-like importance splitting, from the Villén-Altamirano brothers
+	"restart"
 }};
 
 
@@ -66,9 +74,10 @@ SimulationEngine::SimulationEngine(
 		name_(name),
 		network_(network),
 		impFun_(nullptr),
-		interrupted(false)
+		cImpFun_(nullptr),
+        interrupted(false)
 {
-	if (find(begin(names), end(names), name) == end(names)) {
+	if (std::find(begin(names), end(names), name) == end(names)) {
 		std::stringstream errMsg;
 		errMsg << "invalid engine name \"" << name << "\". ";
 		errMsg << "Available engines are";
@@ -101,15 +110,133 @@ SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun)
 	assert(nullptr != ifun);
 	if (!ifun->ready())
 		throw_FigException("ImportanceFunction isn't ready for simulations");
-	else
-		impFun_ = ifun;
+    impFun_ = ifun;
+	if (ifun->concrete())
+		cImpFun_ = std::dynamic_pointer_cast<const ImportanceFunctionConcrete>(ifun);
 }
 
 
 void
 SimulationEngine::unbind() noexcept
 {
-	impFun_ = nullptr;
+    impFun_  = nullptr;
+	cImpFun_ = nullptr;
+}
+
+
+const std::string&
+SimulationEngine::name() const noexcept
+{
+	return name_;
+}
+
+
+const std::string
+SimulationEngine::current_imp_fun() const noexcept
+{
+	if (nullptr != impFun_)
+		return impFun_->name();
+	else
+		return "";
+}
+
+
+const std::string
+SimulationEngine::current_imp_strat() const noexcept
+{
+	if (nullptr != impFun_)
+		return impFun_->strategy();
+	else
+		return "";
+}
+
+
+bool
+SimulationEngine::simulate(const Property &property,
+						   const size_t& numRuns,
+						   ConfidenceInterval& interval) const
+{
+	assert(0ul < numRuns);
+	if (!bound())
+		throw_FigException("engine isn't bound to any importance function");
+
+	switch (property.type) {
+
+	case PropertyType::TRANSIENT: {
+		double raresCount =
+			transient_simulations(dynamic_cast<const PropertyTransient&>(property),
+								  numRuns);
+		// numExperiments = numRuns * splitsPerThreshold ^ numThresholds
+		interval.update(std::abs(raresCount),
+						std::log(numRuns) + log_experiments_per_sim());
+		if (0.0 <= raresCount)
+			return false;
+		else
+			return true;  // you'd better increase 'numRuns'
+		}
+
+	case PropertyType::THROUGHPUT:
+	case PropertyType::RATE:
+	case PropertyType::PROPORTION:
+	case PropertyType::BOUNDED_REACHABILITY:
+		throw_FigException(std::string("property type isn't supported by ")
+						   .append(name_).append(" simulation yet"));
+		return false;
+
+	default:
+		throw_FigException("invalid property type");
+		return false;
+	}
+}
+
+
+void
+SimulationEngine::simulate(const Property& property,
+						   size_t batchSize,
+						   ConfidenceInterval& interval,
+						   void (*batch_inc)(size_t&, ConstStr&, ConstStr&)) const
+{
+	assert(0ul < batchSize);
+	if (!bound())
+		throw_FigException("engine isn't bound to any importance function");
+
+	switch (property.type) {
+
+	case PropertyType::TRANSIENT:
+		assert (!interrupted);
+		while (!interrupted) {
+			double raresCount =
+				transient_simulations(dynamic_cast<const PropertyTransient&>(property),
+                                      batchSize);
+			if (!interrupted) {
+				// numExperiments = batchSize * splitsPerThreshold ^ numThresholds
+				interval.update(std::abs(raresCount),
+								std::log(batchSize) + log_experiments_per_sim());
+				if (0.0 >= raresCount) {
+					std::cerr << "-";
+					if (nullptr != batch_inc)
+						batch_inc(batchSize, name_, impFun_->name());
+					else
+						batchSize *= 2;  // you left us with no other option
+				} else {
+					std::cerr << "+";
+				}
+			}
+		}
+		break;
+
+	case PropertyType::THROUGHPUT:
+	case PropertyType::RATE:
+	case PropertyType::PROPORTION:
+	case PropertyType::BOUNDED_REACHABILITY:
+		throw_FigException(std::string("property type isn't supported by ")
+						   .append(name_).append(" simulation yet"));
+		break;
+
+	default:
+		throw_FigException("invalid property type");
+		break;
+	}
 }
 
 } // namespace fig

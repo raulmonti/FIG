@@ -288,7 +288,7 @@ test_state()
 	}
 
 	auto s = gState.to_state_instance();
-	assert(gState.is_valid_state_instance(*s));
+	assert(gState.is_valid_state_instance(s));
 	fig::State<TYPE> gState2(vars);
 	fig::State<TYPE> gState3(std::move(gState));
 	assert(gState  != gState3);
@@ -638,7 +638,8 @@ test_traials()
 //	tp.ensure_resources(N);
 //	t = tp.get_traial();
 //	const auto numTraials = tp.num_resources();
-//	auto traialsList = tp.get_traial_copies(t, N);
+//	std::list< fig::Reference< fig::Traial > > traialsList;
+//	tp.get_traial_copies(traialsList, t, N);
 //	assert(std::distance(begin(traialsList), end(traialsList)) == N);
 //	for (const fig::Traial& uptr: traialsList)
 //		assert(t.state == uptr.state);
@@ -762,7 +763,8 @@ static void // ////////////////////////////////////////////////////////////////
 //
 test_module_network()
 {
-	//  To test, declare "model" as public in fig::ModelSuite
+	//  To test, declare "model" and the vectors "impFun" and "simulators"
+	//  as public in fig::ModelSuite
 
 //	std::cout << "Testing fig::ModuleNetwork" << std::endl;
 //
@@ -879,13 +881,21 @@ test_module_network()
 //
 //	// Network dynamics
 //	// What follows is messy at best, these tests have reached a clear limit
+//	const std::string impFunName("concrete_coupled");
+//	const std::string engineName("nosplit");
+//	model.build_importance_function_flat(impFunName, *property);
+//	model.build_thresholds("ams", impFunName);
+//	model.prepare_simulation_engine(engineName, impFunName);
+//	auto impFun = model.impFuns[impFunName];
+//	auto engine = model.simulators[engineName];
 //	std::unique_ptr<Traial> t(new Traial(model.state_size(), model.num_clocks()));
-//	auto impFun = std::make_shared< fig::ImportanceFunctionConcreteCoupled >();
-//	impFun->assess_importance(*model.model, *property);
-//	t->initialize(model.model, impFun);
-//	fig::SimulationEngineNosplit engine(model.model);
-//	model.model->simulation_step(*t, engine, *property);
+//	t->initialize(*model.model, *impFun);
+//	model.model->simulation_step(*t, *property,
+//								 dynamic_cast<fig::SimulationEngineNosplit&>(*engine),
+//								 &fig::SimulationEngineNosplit::transient_event);
 //	// The property should make this simulation step finish
 //	// as soon as the deadlock is reached, i.e. p == q == 2.
-//	impFun->clear();
+//	impFun = nullptr;
+//	engine = nullptr;
+//	model.release_resources(impFunName, engineName);
 }

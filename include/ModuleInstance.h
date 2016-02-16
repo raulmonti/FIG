@@ -40,9 +40,9 @@
 #include <type_traits>  // std::is_same<>, std::is_constructible<>
 // FIG
 #include <core_typedefs.h>
+#include <State.h>
 #include <Module.h>
 #include <Clock.h>
-#include <State.h>
 #include <Transition.h>
 
 #if __cplusplus < 201103L
@@ -78,9 +78,6 @@ class Property;
 class ModuleInstance : public Module
 {
 	friend class ModuleNetwork;
-
-    /// Tau label to allow reference passing
-    static const Label tau_;
 
 	/// Local \ref Variable "variables"
 	State< STATE_INTERNAL_TYPE > lState_;
@@ -310,16 +307,18 @@ public:  // Ctors/Dtor and populating facilities
 public:  // Accessors
 
 	/// Number of variables defined in this module
-	inline size_t num_vars() const noexcept { return lState_.size(); }
+	inline size_t num_vars() const noexcept { return state_size(); }
 
-	/// Number of clocks defined in this module
-	inline size_t num_clocks() const noexcept { return lClocks_.size(); }
+	inline virtual size_t num_clocks() const noexcept { return lClocks_.size(); }
+
+	inline virtual size_t state_size() const noexcept { return lState_.size(); }
+
+	inline virtual size_t concrete_state_size() const noexcept { return lState_.concrete_size(); }
+
+	inline virtual bool sealed() const noexcept { return sealed_; }
 
 	/// Get all clocks residing in this module as a const vector
 	inline const std::vector< Clock >& clocks() const { return lClocks_; }
-
-	/// Has this module been \ref seal() "sealed" already?
-	inline bool sealed() const noexcept { return sealed_; }
 
 	/// @copydoc globalIndex_
 	/// Negative value until the module is added to the network.
@@ -327,10 +326,9 @@ public:  // Accessors
 
 public:  // Utils
 
-	virtual inline void accept(ImportanceFunction& ifun,
-							   const Property& prop,
-							   const std::string& strategy)
-		{ ifun.assess_importance(*this, prop, strategy); }
+	virtual StateInstance initial_state() const;
+
+	virtual size_t initial_concrete_state() const;
 
 	/**
 	 * @brief Active module jump caused by expiration of our clock "clockName"
@@ -504,6 +502,7 @@ ModuleInstance::ModuleInstance(
 				  "constructed from a container with Transition objects");
 	for(const auto& tr: transitions) {
 		auto ptr = std::make_shared<Transition>(tr);
+		transitions_.emplace_back(ptr);
 		transitions_by_label_[tr.label().str].emplace_back(ptr);
 		transitions_by_clock_[tr.triggeringClock].emplace_back(ptr);
 	}
@@ -540,6 +539,7 @@ ModuleInstance::ModuleInstance(
 				  "to Transition objects");
 	for(auto&& tr: transitions) {
 		auto ptr = std::make_shared<Transition>(std::forward<Transition>(tr));
+		transitions_.emplace_back(ptr);
 		transitions_by_label_[tr.label().str].emplace_back(ptr);
 		transitions_by_clock_[tr.triggeringClock].emplace_back(ptr);
 	}
@@ -578,6 +578,7 @@ ModuleInstance::ModuleInstance(
 	for(auto tr_ptr: transitions) {
 		auto ptr = std::shared_ptr<Transition>(tr_ptr);
 		assert(nullptr != ptr);
+		transitions_.emplace_back(ptr);
 		transitions_by_label_[tr_ptr->label().str].emplace_back(ptr);
 		transitions_by_clock_[tr_ptr->triggeringClock].emplace_back(ptr);
 		tr_ptr = nullptr;
@@ -617,6 +618,7 @@ ModuleInstance::ModuleInstance(
 	do {
 		const Transition& tr = *from;
 		auto ptr = std::make_shared<Transition>(tr);
+		transitions_.emplace_back(ptr);
 		transitions_by_label_[tr.label().str].emplace_back(ptr);
 		transitions_by_clock_[tr.triggeringClock].emplace_back(ptr);
 	} while (++from != to);

@@ -55,7 +55,9 @@ namespace fig
 {
 
 class Property;
+class ThresholdsBuilder;
 class StoppingConditions;
+class SignalSetter;
 
 /**
  * @brief One class to bring them all, and in the FIG tool bind them.
@@ -88,12 +90,17 @@ class ModelSuite
 	
 	/// Confidence criteria or time budgets bounding simulations
 	static StoppingConditions simulationBounds;
-	
+
 	/// Importance functions available
 	static std::unordered_map<
 		std::string,
 		std::shared_ptr< ImportanceFunction > > impFuns;
-	
+
+	/// Thresholds builders available
+	static std::unordered_map<
+		std::string,
+		std::shared_ptr< ThresholdsBuilder > > thrBuilders;
+
 	/// Simulation engines available
 	static std::unordered_map<
 		std::string,
@@ -102,7 +109,23 @@ class ModelSuite
 //	/// Log
 //	static WTF? log_;
 
-	/// Single existent instance of the class (singleton design pattern)
+	// Interruptions handling
+
+	/// Signal handler for when we're interrupted (e.g. ^C) mid-estimation
+	static SignalSetter SIGINThandler_;
+
+	/// Signal handler for when we're terminated (e.g. kill) mid-estimation
+	static SignalSetter SIGTERMhandler_;
+
+	/// ConfidenceInterval to show currently reached estimation if interrupted
+	static const ConfidenceInterval* interruptCI_;
+
+	/// Practical confidence coefficients to show if interrupted
+	static const std::vector< float > confCoToShow_;
+
+	// Singleton design-pattern specifics
+
+	/// Single existent instance of the class
 	static std::unique_ptr< ModelSuite > instance_;
 
 	/// Single instance thread safety
@@ -112,6 +135,11 @@ class ModelSuite
 	ModelSuite() {}
 	ModelSuite(ModelSuite&& that)                 = delete;
 	ModelSuite& operator=(const ModelSuite& that) = delete;
+
+public:  // Global access to general constants
+
+	/// Minimum amount of generated rare events to consider a simulation "good"
+	static const unsigned MIN_COUNT_RARE_EVENTS;
 
 public:  // Access to the ModelSuite instance
 
@@ -190,20 +218,230 @@ public:  // Stubs for ModuleNetwork
 	inline size_t concrete_state_size() const noexcept
 		{ return model->concrete_state_size(); }
 
-	/// @todo TODO erase as soon as we move on from simulations tests
-	inline std::shared_ptr< const ModuleNetwork > modules_network() const { return model; }
+	/// @copydoc ModuleNetwork
+	inline std::shared_ptr< const ModuleNetwork > modules_network() const noexcept
+		{ return model; }
 
 public:  // Utils
 
 	/// Names of available simulation engines,
 	/// as they should be requested by the user.
-	const std::vector< std::string >& available_simulators();
+	const std::vector< std::string >& available_simulators() const;
 
-	/// Names of available importance function strategies,
+	/// Names of available importance function,
 	/// as they should be requested by the user.
-	const std::vector< std::string >& available_importance_functions();
+	const std::vector< std::string >& available_importance_functions() const;
+
+	/// Importance assessment strategies,
+	/// as they should be requested by the user.
+	const std::vector< std::string >& available_importance_strategies() const;
+
+	/// Thresholds building techniques,
+	/// as they should be requested by the user.
+	const std::vector< std::string >& available_threshold_techniques() const;
+
+	/// Is 'engineName' the name of an available simulation engine?
+	/// @see available_simulators()
+	bool exists_simulator(const std::string& engineName) const noexcept;
+
+	/// Is 'ifunName' the name of an available importance function?
+	/// @see available_importance_functions()
+	bool exists_importance_function(const std::string& ifunName) const noexcept;
+
+	/// Is 'ifunStrategy' an available importance assessment strategy?
+	/// @see available_importance_strategies()
+	bool exists_importance_strategy(const std::string& impStrategy) const noexcept;
+
+	/// Is 'thrTechnique' an available thresholds building technique?
+	/// @see available_threshold_techniques()
+	bool exists_threshold_technique(const std::string& thrTechnique) const noexcept;
+
+	/**
+	 * @brief Assess importance for the currently loaded user model
+	 *        using the "flat" strategy
+	 *
+	 *        This leaves the ImportanceFunction "ifunName" with internal
+	 *        \ref ImportanceFunction::has_importance_info()
+	 *        "importance information" but not quite
+	 *        \ref ImportanceFunction::ready() "ready for simulations",
+	 *        since the thresholds haven't been built yet.
+	 *
+	 * @param ifunName Any from available_importance_functions()
+	 * @param property The Property whose value is to be estimated
+	 * @param force    Assess importance again, even if importance info
+	 *                 already exists for this importance function and strategy
+	 *
+	 * @throw FigException if 'ifunName' is invalid or incompatible with the
+	 *                     "flat" importance assessment strategy.
+	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
+	 *
+	 * @see build_thresholds()
+	 */
+	void
+	build_importance_function_flat(const std::string& ifunName,
+								   const Property& property,
+								   bool force = false);
+
+	/**
+	 * @brief Assess importance for the currently loaded user model
+	 *        using the "auto" strategy
+	 *
+	 *        This leaves the ImportanceFunction "ifunName" with internal
+	 *        \ref ImportanceFunction::has_importance_info()
+	 *        "importance information" but not quite
+	 *        \ref ImportanceFunction::ready() "ready for simulations",
+	 *        since the thresholds haven't been built yet.
+	 *
+	 * @param ifunName Any from available_importance_functions()
+	 * @param property The Property whose value is to be estimated
+	 * @param force    Assess importance again, even if importance info
+	 *                 already exists for this importance function and strategy
+	 *
+	 * @throw FigException if 'ifunName' is invalid or incompatible with the
+	 *                     "auto" importance assessment strategy.
+	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
+	 *
+	 * @see build_thresholds()
+	 */
+	void
+	build_importance_function_auto(const std::string& ifunName,
+								   const Property& property,
+								   bool force = false);
+
+	/**
+	 * @brief Assess importance for the currently loaded user model
+	 *        using the "adhoc" strategy
+	 *
+	 *        This leaves the ImportanceFunction "ifunName" with internal
+	 *        \ref ImportanceFunction::has_importance_info()
+	 *        "importance information" but not quite
+	 *        \ref ImportanceFunction::ready() "ready for simulations",
+	 *        since the thresholds haven't been built yet.
+	 *
+	 * @param ifunName  Any from available_importance_functions()
+	 * @param property  The Property whose value is to be estimated
+	 * @param formulaExprStr  Mathematical formula to assess the states'
+	 *                        importance, expressed as a string
+	 * @param varnames  Names of variables ocurring in 'formulaExprStr',
+	 *                  i.e. which substrings in the formula expression
+	 *                  are actually variable names.
+	 * @param force     Assess importance again, even if importance info
+	 *                  already exists for this importance function and strategy
+	 *
+	 * @throw FigException if 'ifunName' is invalid or incompatible with the
+	 *                     "adhoc" importance assessment strategy.
+	 * @throw FigException if badly formatted 'formulaExprStr' or 'varnames'
+	 *                     has names not appearing in 'formulaExprStr'
+	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
+	 *
+	 * @see build_thresholds()
+	 */
+	template< template< typename... > class Container, typename... OtherArgs >
+	void
+	build_importance_function_adhoc(const std::string& ifunName,
+									const Property& property,
+									const std::string& formulaExprStr,
+									const Container<std::string, OtherArgs...>& varnames,
+									bool force = false);
+
+	/**
+	 * @brief Build thresholds from precomputed importance information
+	 *
+	 *        The thresholds are built and kept inside the ImportanceFunction.
+	 *        From this point on the finely grained importance values are
+	 *        replaced with coarsely grained threshold levels.
+	 *        After a successfull call the corresponding ImportanceFunction is
+	 *        \ref ImportanceFunction::ready() "ready for simulations".
+	 *
+	 * @param technique Any from available_threshold_techniques()
+	 * @param ifunName  Any from available_importance_functions(),
+	 *                  refering to an ImportanceFunction which has
+	 *                  \ref ImportanceFunction::has_importance_info()
+	 *                  "importance information"
+	 * @param force     Build thresholds again, even if they already have been
+	 *                  for this importance function and technique
+	 *
+	 * @throw FigException if "technique" or "ifunName" are invalid
+	 * @throw FigException if the ImportanceFunction "ifunName" doesn't have
+	 *                     \ref ImportanceFunction::has_importance_info()
+	 *                     "importance information"
+	 * @throw FigException if "technique" is incompatible with "ifunName"
+	 *
+	 * @see build_importance_function_flat()
+	 * @see build_importance_function_auto()
+	 * @see build_importance_function_adhoc()
+	 */
+	void
+	build_thresholds(const std::string& technique,
+					 const std::string& ifunName,
+					 bool force = true);
+
+	/**
+	 * @brief Set a SimulationEngine ready for upcoming estimations
+	 *
+	 *        Bind the ImportanceFunction 'ifunName' to the SimulationEngine
+	 *        'engineName', if compatible. The ImportanceFunction must be
+	 *        \ref ImportanceFunction::ready() "ready for simulations".
+	 *        After a successfull call the returned engine can be used
+	 *        with estimate().
+	 *
+	 * @param engineName Any from available_simulators()
+	 * @param ifunName   Any from available_importance_functions(),
+	 *                   refering to an ImportanceFunction which is
+	 *                   \ref ImportanceFunction::ready() "ready for simulations"
+	 *
+	 * @return Pointer to the SimulationEngine to be used for estimations
+	 *
+	 * @throw FigException if "engineName" or "ifunName" are invalid
+	 * @throw FigException if the ImportanceFunction "ifunName" isn't
+	 *                     \ref ImportanceFunction::ready() "ready for
+	 *                     simulations"
+	 * @throw FigException if "engineName" is incompatible with "ifunName"
+	 *
+	 * @see build_importance_function()
+	 * @see build_thresholds()
+	 */
+	std::shared_ptr< const SimulationEngine >
+	prepare_simulation_engine(const std::string& engineName,
+							  const std::string& ifunName);
+
+	/**
+	 * @brief Release memory resources and decouple internals
+	 *
+	 *        After this call the ImportanceFunction 'ifunName' won't have
+	 *        \ref ImportanceFunction::has_importance_info() "importance
+	 *        information" any longer and the SimulationEngine 'engineName'
+	 *        will be \ref SimulationEngine::bound() "unbound".
+	 *
+	 * @param ifunName   Name of the ImportanceFunction to clear
+	 * @param engineName Name of the SimulationEngine to unbind
+	 */
+	void
+	release_resources(const std::string& ifunName,
+					  const std::string& engineName = "") noexcept;
 
 public:  // Simulation utils
+
+	/**
+	 * @brief Estimate the value of a property.
+	 *
+	 *        The estimation is performed using a single simulation strategy.
+	 *        The importance function to use must have been previously bound
+	 *        to the SimulationEngine.
+	 *        Estimations are performed for all the \ref StoppingConditions
+	 *        "simulation bounds" requested for experimentation, and logged
+	 *        as they are produced.
+	 *
+	 * @param engine SimulationEngine already tied to an ImportanceFunction
+	 * @param bounds List of stopping conditions to experiment with
+	 *
+	 * @throw FigException if engine wasn't \ref SimulationEngine::bound()
+	 *                     "ready for simulations"
+	 * @throw FigException if a simulation gave an invalid result
+	 */
+	void estimate(const Property& property,
+				  const SimulationEngine& engine,
+				  const StoppingConditions& bounds) const;
 
 	/**
 	 * @brief Estimate the value of the \ref Property "stored properties"
@@ -232,29 +470,8 @@ public:  // Simulation utils
 	void process_batch(const Container1<ValueType1, OtherArgs1...>& importanceSpecifications,
 					   const Container2<ValueType2, OtherArgs2...>& simulationStrategies);
 
-	/// @todo TODO design and implement
+	/// @todo TODO design and implement interactive processing
 	void process_interactive();
-
-	/**
-	 * @brief Estimate the value of a property.
-	 *
-	 *        The estimation is performed using a single simulation strategy.
-	 *        The importance function to use must have been previously bound
-	 *        to the SimulationEngine.
-	 *        Estimations are performed for all the \ref StoppingConditions
-	 *        "simulation bounds" requested for experimentation, and logged
-	 *        as they are produced.
-	 *
-	 * @param engine SimulationEngine already tied to an ImportanceFunction
-	 * @param bounds List of stopping conditions to experiment with
-	 *
-	 * @throw FigException if engine wasn't \ref SimulationEngine::bound()
-	 *                     "ready for simulations"
-	 * @throw FigException if a simulation gave an invalid result
-	 */
-	void estimate(const Property& property,
-				  const SimulationEngine& engine,
-				  const StoppingConditions& bounds) const;
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -295,34 +512,42 @@ ModelSuite::process_batch(
 		for (const pair_ss& impFunSpec: importanceSpecifications) {
 			std::string impFunName, impFunStrategy;
 			std::tie(impFunName, impFunStrategy) = impFunSpec;
-			if (end(impFuns) == impFuns.find(impFunName)) {
+			if (!exists_importance_function(impFunName)) {
 				/// @todo TODO log the inexistence of this importance function
 				continue;
+			} else if (!exists_importance_strategy(impFunStrategy)) {
+				/// @todo TODO log the inexistence of this importance assessment strategy
+				continue;
 			}
-			auto impFun = impFuns[impFunName];
-			impFun->assess_importance(*model, *prop, impFunStrategy);
-			assert(impFun->ready());
+			if (impFunStrategy.empty() || "flat" == impFunStrategy)
+				build_importance_function_flat(impFunName, *prop);
+			else if ("auto" == impFunStrategy)
+				build_importance_function_auto(impFunName, *prop);
+			else
+				throw_FigException("only automatically constructible importance "
+								   "function strategies can be passed here, "
+								   "i.e. \"flat\" or \"auto\".");
+			build_thresholds("ams", impFunName);  // only implemented technique so far
 
 			// ... and each simulation strategy ...
 			for (const std::string simStrat: simulationStrategies) {
-				if (end(simulators) == simulators.find(simStrat)) {
+				if (!exists_simulator(simStrat)) {
 					/// @todo TODO log the inexistence of this engine
 					continue;
 				}
-				SimulationEngine& engine = *simulators[simStrat];
+				std::shared_ptr< const SimulationEngine > engine_ptr;
 				try {
-					engine.bind(impFun);
+					engine_ptr = prepare_simulation_engine(simStrat, impFunName);
 				} catch (FigException& e) {
 					/// @todo TODO log the skipping of this combination
-					///       Either the property or the importance function are
-					///       incompatible with the current simulation engine
+					///       This importance function is incompatible with
+					///       the current simulation engine
 					continue;
 				}
 				// ... estimate the property's value for all stopping conditions
-				estimate(*prop, engine, simulationBounds);
-				engine.unbind();
+				estimate(*prop, *engine_ptr, simulationBounds);
 			}
-			impFun->clear();
+			release_resources(impFunName);
 		}
 	}
 }

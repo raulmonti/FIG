@@ -40,7 +40,7 @@ namespace fig
 ConfidenceIntervalMean::ConfidenceIntervalMean(double confidence,
 											   double precision,
 											   bool dynamicPrecision) :
-	ConfidenceInterval(confidence, precision, dynamicPrecision),
+    ConfidenceInterval("mean_std", confidence, precision, dynamicPrecision),
 	M2(0.0)
 { /* Not much to do around here... */ }
 
@@ -80,6 +80,7 @@ ConfidenceIntervalMean::precision(const double &confco) const
 void
 ConfidenceIntervalMean::reset() noexcept
 {
+	ConfidenceInterval::reset();
     M2 = 0.0;
 }
 

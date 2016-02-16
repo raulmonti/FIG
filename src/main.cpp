@@ -32,8 +32,7 @@
 #include <sstream>
 #include <fstream>
 #include <string>
-#include <cstdio>
-#include <stdlib.h>
+#include <cassert>
 
 #include <fig.h>
 
@@ -45,8 +44,8 @@ int main(int argc, char** argv)
 	print_intro(std::cout);
 
     if (argc <= 1) {
-		std::cerr << "ERROR: must call with the name of the file containing\n"
-		             "       the user's model described in IOSA syntax.\n";
+		std::cerr << "ERROR: must call with the name of the file\n"
+					 "       with the model described in IOSA syntax.\n";
 		exit(EXIT_FAILURE);
 	}
 
@@ -54,31 +53,34 @@ int main(int argc, char** argv)
     Verifier    verifier    = Verifier();
     Precompiler precompiler = Precompiler();
 
-    /* read the model */
-    ifstream fin(argv[1], ios::binary);
-    stringstream ss;
+	// Read the model
+	std::ifstream fin(argv[1], ios::binary);
+	std::stringstream ss;
     ss << fin.rdbuf();
-    /* parse the model */
-    pair<AST*, parsingContext> pp = parser.parse(& ss);
-    if(pp.first){
-        try{
-            stringstream pss;
-            /* solve constants (precompile) */
+	// Parse the model
+	std::pair<AST*, parsingContext> pp = parser.parse(& ss);
+	if (pp.first) {
+		try {
+			std::stringstream pss;
+			// Solve constants (precompile)
             pss << precompiler.pre_compile(pp.first,pp.second);
             delete pp.first;
-            /* parse again (with solved constants) */
+			// Parse again with solved constants
             pp = parser.parse(&pss);
-            /* verify IOSA compliance and other stuff */
+			// Verify IOSA compliance and other stuff
             verifier.verify(pp.first,pp.second);
-            /* compile to a simulation model */
-            fig::CompileModel(pp.first,pp.second);
-        }catch(FigException &e){
+			// Compile to a simulation model
+			fig::CompileModel(pp.first,pp.second);
+		} catch (fig::FigException &e) {
             delete pp.first;   
             throw e;
         }
     }
     /** TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO **/
     /** HERE WE SHOULD SIMULATE AND DO ALL THE STUFF CARLOS KNOWS ABOUT. **/
+
+	auto model = fig::ModelSuite::get_instance();
+	assert(model.sealed());
 
     /* Free the parsed model */
     delete pp.first;

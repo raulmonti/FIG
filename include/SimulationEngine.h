@@ -35,18 +35,19 @@
 #include <string>
 #include <memory>
 // FIG
-#include <core_typedefs.h>
-#include <Property.h>
-#include <ImportanceFunction.h>
+#include <State.h>
 
 
 namespace fig
 {
 
-class ConfidenceInterval;
-class StoppingConditions;
+class ImportanceFunction;
+class ImportanceFunctionConcrete;
+class Property;
+class PropertyTransient;
 class ModuleNetwork;
 class Traial;
+class ConfidenceInterval;
 
 /**
  * @brief Abstract base simulation engine
@@ -59,12 +60,14 @@ class SimulationEngine
 {
     friend class ModelSuite;  // for interruptions signaling
 
+    typedef const std::string ConstStr;
+
 public:
 
 	/// Names of the simulation engines offered to the user,
 	/// as he should requested them through the CLI/GUI.
     /// Defined in SimulationEngine.cpp
-    static const std::array< std::string, 1 > names;
+    static const std::array< std::string, 2 > names;
 
 protected:
 
@@ -77,6 +80,9 @@ protected:
 
     /// Importance function currently built
     std::shared_ptr< const ImportanceFunction > impFun_;
+
+	/// Concrete importance function currently built, if any
+	std::shared_ptr< const ImportanceFunctionConcrete > cImpFun_;
 
     /// Were we just interrupted in an estimation timeout?
     mutable bool interrupted;
@@ -115,8 +121,13 @@ public:  // Engine setup
     inline bool ready() const noexcept { return bound(); }
 
     /**
-     * @brief Register the importance function which will be used in the
-     *        following estimations
+     * @brief Couple with an ImportanceFunction for future estimations
+     *
+     *        Attach passed ImportanceFunction, which must be
+     *        \ref ImportanceFunction::ready() "ready for simulations",
+     *        to be used by this engine in estimations to come.
+     *        Any previously bound ImportanceFunction is kicked out.
+     *
      * @param ifun  ImportanceFunction to use, \ref ImportanceFunction::ready()
      *              "ready for simulations"
      * @throw FigException if the ImportanceFunction isn't
@@ -133,21 +144,22 @@ public:  // Engine setup
 public:  // Accessors
 
     /// @copydoc name_
-    inline const std::string& name() const noexcept { return name_; }
+    const std::string& name() const noexcept;
 
-    /// Importance function currently bound to the engine,
+    /// Name of the ImportanceFunction currently bound to the engine,
     /// or void string if none is.
-    inline const std::string current_imp_fun() const noexcept
-        { if (nullptr != impFun_) return impFun_->name(); else return ""; }
+    const std::string current_imp_fun() const noexcept;
 
     /// Importance strategy of the function currently bound to the engine,
     /// or void string if none is.
-    /// @note If current ImportanceFunction isn't ready for simulations,
-    ///       then this function also returns an empty string
-    inline const std::string current_imp_strat() const noexcept
-        { if (nullptr != impFun_) return impFun_->strategy(); else return ""; }
+    const std::string current_imp_strat() const noexcept;
 
-public:  // Simulation utils
+	/// 1 + Number of replicas made of a Traial when it crosses
+	/// an importance threshold upwards (i.e. gaining on importance)
+	/// @see ThresholdsBuilder
+	virtual unsigned splits_per_threshold() const noexcept = 0;
+
+public:  // Simulation functions
 
     /**
      * @brief Simulate in model certain number of independent runs
@@ -158,15 +170,16 @@ public:  // Simulation utils
      *
      * @param property Property whose value is being estimated
      * @param numRuns  Number of indepdendent runs to perform
+     * @param interval ConfidenceInterval updated with estimation info <b>(modified)</b>
      *
-     * @return Estimated value for the property at the end of this simulation,
-     *         or negative value if something went wrong.
+     * @return Whether 'numRuns' wasn't large enough and ought to be increased
      *
      * @throw FigException if the engine wasn't \ref bound() "bound" to any
      *                     ImportanceFunction
      */
-    virtual double simulate(const Property& property,
-                            const size_t& numRuns = 1) const = 0;
+    bool simulate(const Property& property,
+                  const size_t& numRuns,
+                  ConfidenceInterval& interval) const;
 
     /**
      * @brief Simulate in model until externally interrupted
@@ -177,26 +190,61 @@ public:  // Simulation utils
      *
      * @param property  Property whose value is being estimated
      * @param batchSize Number of consecutive simulations for each interval update
-     * @param interval  ConfidenceInterval regularly updated with estimation info
+     * @param interval  ConfidenceInterval regularly updated with estimation info <b>(modified)</b>
+     * @param batch_inc Function to increment 'batchSize' in case simulations
+     *                  aren't yielding useful results due to its length
      *
      * @throw FigException if the engine wasn't \ref bound() "bound" to any
      *                     ImportanceFunction
      */
-    virtual void simulate(const Property& property,
-                          const size_t& batchSize,
-                          ConfidenceInterval& interval) const = 0;
+    void simulate(const Property& property,
+                  size_t batchSize,
+                  ConfidenceInterval& interval,
+                  void (*batch_inc)(size_t&, ConstStr&, ConstStr&)) const;
+
+protected:  // Simulation helper functions
+
+	/// Logarithm of the number of experiments virtually performed
+	/// on each internal iteration of a simulate() function
+	/// @throw FigException if the engine wasn't bound() to an ImportanceFunction
+	virtual double log_experiments_per_sim() const = 0;
+
+	/**
+     * @brief Run several independent transient-like simulations
+     *
+     *        Using a specific simulation strategy perform 'numRuns'
+     *        transient simulation runs. These will end when either
+     *        a 'goal' or 'stop' event is observed.
+     *
+     * @param property PropertyTransient with events of interest (goal & stop)
+	 * @param numRuns  Amount of successive independent simulations to run
+     *
+     * @return Number of 'goal' events observed, or its negative value
+     *         if less than ModelSuite::MIN_COUNT_RARE_EVENTS were observed.
+     *
+     * @see PropertyTransient
+	 */
+	virtual double transient_simulations(const PropertyTransient& property,
+                                         const size_t& numRuns) const = 0;
+
+public:  // Traial observers/updaters
 
     /**
-     * @brief Were the last events triggered by the given Traial
-     *        relevant for this property and simulation strategy?
+     * @brief Interpret and mark the transient events triggered by a Traial
+     *        in its most recent traversal through the system model.
      *
-     * @param property Property whose value is being estimated
-     * @param traial   Embodiment of a simulation running through the system model
+     * @param property PropertyTransient with events of interest (goal & stop)
+     * @param traial   Embodiment of a simulation running through the system model <b>(modified)</b>
+     * @param e        Variable to update with observed events <b>(modified)</b>
      *
-     * @note The importance function used is taken from the last call to bind()
+     * @return Whether a \ref ModuleNetwork::simulation_step() "simulation step"
+     *         has finished and the Traial should be further inspected.
+     *
+     * @note  The ImportanceFunction used is taken from the last call to bind()
      */
-    virtual bool event_triggered(const Property& property,
-                                 const Traial& traial) const = 0;
+    virtual bool transient_event(const PropertyTransient& property,
+                                 Traial& traial,
+                                 Event& e) const = 0;
 };
 
 } // namespace fig

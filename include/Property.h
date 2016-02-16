@@ -107,9 +107,6 @@ public:  // Utils
     /**
      * @brief Is the property satisfied by the given variables valuation?
      *
-     *        This considers the internal subformula from P(phi) or S(psi),
-     *        i.e. whether "phi" or "psi" are satisfied by "s"
-     *
      * @param s  Valuation of the module/model variables to use
      *
      * @note pin_up_vars() should have been called before to register the
@@ -121,6 +118,27 @@ public:  // Utils
      * @endif
      */
     virtual bool satisfied_by(const StateInstance& s) const = 0;
+
+    /// @copydoc satisfied_by()
+    virtual bool satisfied_by(const State<STATE_INTERNAL_TYPE>& s) const = 0;
+
+    /**
+     * @brief Is this state considered "rare" for importance simulation?
+     *
+     * @param s  Valuation of the module/model variables to use
+     *
+     * @note pin_up_vars() should have been called before to register the
+     *       position of the expression's variables in the global State
+     *
+     * @throw mu::ParserError
+     * @ifnot NDEBUG
+     *   @throw FigException if pin_up_vars() hasn't been called yet
+     * @endif
+     */
+    virtual bool is_rare(const StateInstance& s) const = 0;
+
+    /// @copydoc is_rare()
+    virtual bool is_rare(const State<STATE_INTERNAL_TYPE>& s) const = 0;
 };
 
 } // namespace fig

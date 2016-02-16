@@ -88,7 +88,7 @@ public:
 	/// (empty for input transitions)
 	const std::string triggeringClock;
 
-protected:
+private:
 
 	/// Guard regulating transition applicability
 	Precondition pre;
@@ -154,6 +154,12 @@ public:  // Read access to some attributes
 
 	/// @copydoc label_
 	inline const Label& label() const noexcept { return label_; }
+
+	/// @copydoc pre
+	inline const Precondition& precondition() const noexcept { return pre; }
+
+	/// @copydoc pos
+	inline const Postcondition& postcondition() const noexcept { return pos; }
 
 	/// Clocks to reset when transition is taken, as a list of clocks names
 	inline const std::vector< std::string > resetClocksList() const noexcept

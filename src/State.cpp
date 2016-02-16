@@ -33,7 +33,6 @@
 #include <algorithm>  // std::move() ranges
 // FIG
 #include <State.h>
-#include <VariableInterval.h>
 #include <FigException.h>
 
 // ADL
@@ -49,9 +48,15 @@ namespace fig
 
 template< typename T_ >
 State<T_>::State(const State<T_>& that) :
-	pvars_(that.pvars_),
+	pvars_(that.pvars_.size()),
 	maxConcreteState_(that.maxConcreteState_)
 {
+	// Here lies the depth in this copy
+	for (size_t i = 0u ; i < that.pvars_.size() ; i++) {
+		// We chose VariableInterval<> as implementation for our Variables
+		auto var_ptr(std::dynamic_pointer_cast< VariableInterval<T_> >(that.pvars_[i]));
+		pvars_[i] = std::make_shared< VariableInterval< T_ > >(*var_ptr);
+	}
 	positionOfVar_.reserve(that.size());
 	copy(::begin(that.positionOfVar_), ::end(that.positionOfVar_),
 		 std::inserter(positionOfVar_, ::begin(positionOfVar_)));
@@ -64,8 +69,8 @@ State<T_>::State(State<T_>&& that) :
 	maxConcreteState_(move(that.maxConcreteState_))
 {
 	positionOfVar_.reserve(that.size());
-	move(::begin(that.positionOfVar_), ::end(that.positionOfVar_),
-		 std::inserter(positionOfVar_, ::begin(positionOfVar_)));
+	std::move(::begin(that.positionOfVar_), ::end(that.positionOfVar_),
+			  std::inserter(positionOfVar_, ::begin(positionOfVar_)));
 	// Clean that up
 	that.pvars_.clear();
 	that.positionOfVar_.clear();
@@ -82,8 +87,8 @@ State<T_>& State<T_>::operator=(State<T_> that)
 //  TODO erase below or erase above?
 //	positionOfVar_.clear();
 //	positionOfVar_.reserve(pvars_.size());
-//	move(that.positionOfVar_.begin(), that.positionOfVar_.end(),
-//		 std::inserter(positionOfVar_, positionOfVar_.begin()));
+//	std::move(::begin(that.positionOfVar_), ::end(that.positionOfVar_),
+//			  std::inserter(positionOfVar_, ::begin(positionOfVar_)));
 	return *this;
 }
 
@@ -107,6 +112,18 @@ State<T_>::append(const State& tail)
 	for (const auto& pair: tail.positionOfVar_)
 		positionOfVar_[pair.first] += oldSize;
 	build_concrete_bound();
+}
+
+
+template< typename T_ >
+void
+State<T_>::shallow_copy(State<T_>& that)
+{
+	pvars_ = that.pvars_;  // here lies the shallowness
+	maxConcreteState_ = that.maxConcreteState_;
+	positionOfVar_.reserve(that.size());
+	copy(::begin(that.positionOfVar_), ::end(that.positionOfVar_),
+		 std::inserter(positionOfVar_, ::begin(positionOfVar_)));
 }
 
 
@@ -183,8 +200,13 @@ template< typename T_ >
 void
 State<T_>::copy_from_state_instance(const StateInstance &s, bool checkValidity)
 {
-	if (s.size() != size())
-		throw_FigException("attempted to copy values from an incompatible state");
+	if (s.size() != size()) {
+#ifndef NDEBUG
+		std::cerr << "State of size " << size() << " attempted to copy from "
+				  << "StateInstance with " << s.size() << " variables.\n";
+#endif
+		throw_FigException("attempted to copy values from an invalid state");
+	}
 	if (checkValidity) {
 		for (size_t i = 0u ; i < size() ; i++)
 			pvars_[i]->assign(s[i]);
@@ -207,19 +229,18 @@ State<T_>::copy_to_state_instance(StateInstance& s) const
 
 
 template< typename T_ >
-std::unique_ptr< StateInstance >
-State<T_>::to_state_instance() const
+StateInstance State<T_>::to_state_instance() const
 {
-	std::unique_ptr< StateInstance > s(new StateInstance(size()));
+	StateInstance s(size());
 	for (size_t i = 0u ; i < size() ; i++)
-		(*s)[i] = pvars_[i]->val();
+		s[i] = pvars_[i]->val();
 	return s;
 }
 
 
 template< typename T_ >
 size_t
-State<T_>::encode_state() const
+State<T_>::encode() const
 {
 	size_t n(0), numVars(size());
 	#pragma omp parallel for reduction(+:n) shared(numVars)
@@ -234,8 +255,8 @@ State<T_>::encode_state() const
 
 
 template< typename T_ >
-void
-State<T_>::decode_state(const size_t& n)
+const State<T_>&
+State<T_>::decode(const size_t& n)
 {
 	const size_t numVars(size());
 	assert(n < maxConcreteState_);
@@ -246,12 +267,13 @@ State<T_>::decode_state(const size_t& n)
 			stride *= pvars_[j]->range_;
 		pvars_[i]->offset_ = (n / stride) % pvars_[i]->range_;
 	}
+	return *this;
 }
 
 
 template< typename T_ >
 T_
-State<T_>::decode_state(const size_t& n, const size_t& i) const
+State<T_>::decode(const size_t& n, const size_t& i) const
 {
 	size_t numVars(size()), stride(1u);
 	assert(i < numVars);
@@ -265,7 +287,7 @@ State<T_>::decode_state(const size_t& n, const size_t& i) const
 
 template< typename T_ >
 T_
-State<T_>::decode_state(const size_t& n, const std::string& varname) const
+State<T_>::decode(const size_t& n, const std::string& varname) const
 {
 	size_t varpos(0);
 	assert(n < maxConcreteState_);
@@ -273,7 +295,7 @@ State<T_>::decode_state(const size_t& n, const std::string& varname) const
 		if (varname == pvars_[varpos]->name_)
 			break;
 	assert(varpos < size());
-	return decode_state(n, varpos);
+	return decode(n, varpos);
 }
 
 // State can only be instantiated with following integral types
@@ -285,5 +307,27 @@ template class State< unsigned short     >;
 template class State< unsigned int       >;
 template class State< unsigned long      >;
 template class State< unsigned long long >;
+
+
+template< typename T_ >
+void
+State<T_>::build_concrete_bound()
+{
+	maxConcreteState_ = 1u;
+	for(const auto pvar: pvars_)
+		maxConcreteState_ *= pvar->range_;  // ignore overflow :D
+}
+
+
+template< typename T_ >
+bool
+State<T_>::is_our_var(const std::string& varName)
+{
+	auto varFound = std::find_if(
+						::begin(pvars_), ::end(pvars_),
+						[&] (const std::shared_ptr<Variable<T_>>& var_ptr)
+						{ return varName == var_ptr->name(); });
+	return ::end(pvars_) != varFound;
+}
 
 } // namespace fig

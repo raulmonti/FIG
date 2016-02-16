@@ -53,8 +53,8 @@ namespace fig
 {
 
 Traial::Traial(const size_t& stateSize, const size_t& numClocks) :
-	importance(0),
-	creationImportance(0),
+    level(static_cast<ImportanceValue>(0u)),
+    depth(0),
 	lifeTime(0.0),
 	state(stateSize),
 	orderedIndex_(numClocks)
@@ -71,14 +71,13 @@ Traial::Traial(const size_t& stateSize,
 			   const size_t& numClocks,
 			   Bitflag whichClocks,
 			   bool orderTimeouts) :
-	importance(0),
-	creationImportance(0),
+    level(static_cast<ImportanceValue>(0u)),
+    depth(0),
 	lifeTime(0.0),
 	state(stateSize),
 	orderedIndex_(numClocks)
 {
 	size_t i(0u);
-//	std::function<bool(const size_t&)> must_reset =
 	auto must_reset =
 		[&] (const size_t& i) -> bool
 		{ return whichClocks & (static_cast<Bitflag>(1u) << i); };
@@ -102,9 +101,9 @@ Traial::Traial(const size_t& stateSize,
 			   const size_t& numClocks,
 			   const Container <ValueType, OtherContainerArgs...>& whichClocks,
 			   bool orderTimeouts) :
-	importance(0),
-	creationImportance(0),
-	lifeTime(0.0),
+    level(static_cast<ImportanceValue>(0u)),
+	depth(0),
+	lifeTime(static_cast<CLOCK_INTERNAL_TYPE>(0.0)),
 	state(stateSize),
 	orderedIndex_(numClocks)
 {
@@ -144,28 +143,42 @@ Traial::~Traial()
 }
 
 
-void
-Traial::initialize(std::shared_ptr< const ModuleNetwork > network,
-				   std::shared_ptr< const ImportanceFunction > impFun)
+std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >
+Traial::clocks_values() const
 {
-	assert(nullptr != network);
-	assert(nullptr != impFun);
-	if (!network->sealed())
+	std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >values(clocks_.size());
+	for (size_t i = 0ul ; i < values.size() ; i++)
+		values[i] = std::make_pair(clocks_[i].name, clocks_[i].value);
+	return values;
+}
+
+
+void
+Traial::initialize(const ModuleNetwork& network,
+				   const ImportanceFunction& impFun)
+{
 #ifndef NDEBUG
+	if (!network.sealed())
 		throw_FigException("ModuleNetwork hasn't been sealed yet");
+	else if (!impFun.has_importance_info())
+		throw_FigException(std::string("importance function \"")
+						  .append(impFun.name()).append("\" doesn't have ")
+						  .append("importance info; can't initialize Traial"));
 #else
-		return;  // we can't do anything without the global data
+	if (! (network.sealed() && impFun.has_importance_info()) )
+		return;  // we can't do anything without that data
 #endif
 	// Initialize variables value
-	network->gState.copy_to_state_instance(state);
-    // Initialize clocks (reset all and then resample any initial clock)
+	network.global_state().copy_to_state_instance(state);
+	// Initialize clocks (reset all and then resample initials)
     for (auto& timeout : clocks_)
         timeout.value = 0.0f;
-	for (const auto& pos_clk_pair: network->initialClocks)
+	for (const auto& pos_clk_pair: network.initialClocks)
 		clocks_[pos_clk_pair.first].value = pos_clk_pair.second.sample();
 	// Initialize importance and simulation time
-	importance = impFun->importance_of(state);
-	creationImportance = importance;
+	level = impFun.ready() ? impFun.level_of(state)
+						   : impFun.importance_of(state);
+	depth = 0;
 	lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
 }
 

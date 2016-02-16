@@ -30,35 +30,71 @@
 #ifndef MODULE_H
 #define MODULE_H
 
-#include <ImportanceFunction.h>
-#include <Property.h>
+// C++
+#include <vector>
+#include <memory>
+#include <string>
+// FIG
+#include <core_typedefs.h>
 
 
 namespace fig
 {
+
+class Property;
+class Transition;
+class ImportanceFunction;
+class ThresholdsBuilder;
 
 /**
  * @brief Abstract base module class
  *
  *        The system model described by the user is implemented as a
  *        ModuleNetwork, composed of ModuleInstance objects.
- *
- * @note The accept member function implements the
- *       <a href="https://sourcemaking.com/design_patterns/visitor">
- *       visitor design pattern</a>, where the visitor is the
- *       ImportanceFunction and the visited elements are instances
- *       of the classes which derive from Module.
  */
 class Module
 {
+protected:
+
+	/// All the transitions of the Module, with no particular order.
+	/// @note Needed to traverse the state space, e.g. when building auto ifun
+	std::vector< std::shared_ptr< Transition > > transitions_;
+
+public:  // Accessors
+
+	/// Number of clocks defined in this Module
+	virtual size_t num_clocks() const noexcept = 0;
+
+	/// Number of (symbolic) transitions of this Module, i.e. the transitions
+	/// defined syntactically by the user in the IOSA model description
+	inline size_t num_transitions() const noexcept { return transitions_.size(); }
+
+	/// Symbolic global state size, i.e. number of variables in the Module
+	virtual size_t state_size() const noexcept = 0;
+
+	/// Concrete global state size, i.e. cross product of the ranges
+	/// of all the variables in the system model
+	virtual size_t concrete_state_size() const noexcept = 0;
+
+	/// Whether this Module has already been sealed for simulations
+	virtual bool sealed() const noexcept = 0;
 
 public:  // Utils
 
-	/// Have the importance of our states assessed by this ImportanceFunction,
-	/// according to the given Property and strategy
-	virtual void accept(ImportanceFunction& ifun,
-						const Property& property,
-						const std::string& startegy) = 0;
+	/// Get a copy of the initial state of the system
+	/// @warning Module should be sealed()
+	/// \ifnot NDEBUG
+	///   @throw FigException if Module hasn't been sealed() yet
+	/// \endif
+	virtual StateInstance initial_state() const = 0;
+
+	/// Initial concrete state of the system, i.e. a number between zero
+	/// and concrete_state_size() enconding the initial_state()
+	/// @warning Module should be sealed()
+	/// \ifnot NDEBUG
+	///   @throw FigException if Module hasn't been sealed() yet
+	/// \endif
+	virtual size_t initial_concrete_state() const = 0;
 };
 
 } // namespace fig

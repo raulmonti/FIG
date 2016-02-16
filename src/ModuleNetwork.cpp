@@ -39,7 +39,10 @@
 // FIG
 #include <ModuleNetwork.h>
 #include <TraialPool.h>
+#include <ImportanceFunction.h>
 #include <SimulationEngine.h>
+#include <SimulationEngineNosplit.h>
+#include <SimulationEngineRestart.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -84,17 +87,6 @@ ModuleNetwork::~ModuleNetwork()
 
 
 void
-ModuleNetwork::add_module(ModuleInstance** module)
-{
-	modules.emplace_back(*module);
-	auto state = (*module)->mark_added(modules.size()-1, numClocks_);
-	gState.append(state);
-	numClocks_ += (*module)->clocks().size();
-	*module = nullptr;
-}
-
-
-void
 ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 {
 	if (sealed_)
@@ -107,6 +99,10 @@ ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 	auto state = module->mark_added(modules.size()-1, numClocks_);
 	gState.append(state);
 	numClocks_ += module->clocks().size();
+	transitions_.reserve(transitions_.size() + module->transitions_.size());
+	transitions_.insert(transitions_.end(),
+						module->transitions_.begin(),
+						module->transitions_.end());
 	module = nullptr;
 }
 
@@ -163,7 +159,7 @@ template void ModuleNetwork::seal(const std::forward_list<std::string>&);
 template void ModuleNetwork::seal(const std::unordered_set<std::string>&);
 
 
-std::unique_ptr< StateInstance >
+StateInstance
 ModuleNetwork::initial_state() const
 {
 #ifndef NDEBUG
@@ -174,50 +170,71 @@ ModuleNetwork::initial_state() const
 }
 
 
-void
-ModuleNetwork::simulation_step(Traial& traial,
-                               const SimulationEngine& engine,
-                               const Property &property) const
+size_t
+ModuleNetwork::initial_concrete_state() const
 {
+#ifndef NDEBUG
+	if (!sealed())
+		throw_FigException("ModuleNetwork hasn't been sealed yet");
+#endif
+	return gState.encode();
+}
+
+
+template< typename DerivedProperty,
+          class Simulator,
+          class TraialMonitor >
+Event ModuleNetwork::simulation_step(Traial& traial,
+                                     const DerivedProperty& property,
+                                     const Simulator& engine,
+                                     TraialMonitor watch_events) const
+{
+	Event e(EventType::NONE);
+
 	if (!sealed())
 #ifndef NDEBUG
 		throw_FigException("ModuleNetwork hasn't been sealed yet");
 #else
-		return;
+		return e;
 #endif
-
-//	/// @todo TODO erase debug print below
-//	std::cerr << "Starting at state ";
-//	for (const auto & e: traial.state)
-//		std::cerr << e << "  ";
-//	std::cerr << "----------------------------------------------" << std::endl;
-//	///////////////////////////////////////
 
     // Jump...
 	do {
 		auto timeout = traial.next_timeout();
         // Active jump in the module whose clock timed-out
 		auto label = timeout.module->jump(timeout.name, timeout.value, traial);
-//		/// @todo TODO erase debug print below
-//		std::cerr << "State:";
-//		for (auto& v: traial.state) std::cerr << " " << v;
-//		std::cerr << std::endl;
-//		///////////////////////////////////////
+
 		// Passive jumps in the modules listening to label
 		for (auto module_ptr: modules)
 			if (module_ptr->name != timeout.module->name)
 				module_ptr->jump(label, timeout.value, traial);
-        traial.lifeTime += timeout.value;
-    } while ( !engine.event_triggered(property, traial) );
+		traial.lifeTime += timeout.value;
+
+	} while ( !(engine.*watch_events)(property, traial, e) );
 	// ...until a relevant event is observed
 
-//	/// @todo TODO erase debug print below
-//	std::cerr << "Ended at state ";
-//	for (const auto & e: traial.state)
-//		std::cerr << e << "  ";
-//	std::cerr << "----------------------------------------------" << std::endl;
-//	///////////////////////////////////////
+    return e;
 }
 
+/// "SimulationEngineNosplit + PropertyTransient" TraialMonitor specialization
+/// for "template<...> ModuleNetwork::simulation_step()"
+typedef bool(SimulationEngineNosplit::*nosplit_transient_event)
+    (const PropertyTransient&, Traial&, Event&) const;
+
+/// "SimulationEngineRestart + PropertyTransient" TraialMonitor specialization
+/// for "template<...> ModuleNetwork::simulation_step()"
+typedef bool(SimulationEngineRestart::*restart_transient_event)
+    (const PropertyTransient&, Traial&, Event&) const;
+
+// ModuleNetwork::simulation_step() can only be invoked with the following
+// "DerivedProperty", "Simulator" and "TraialMonitor" combinations
+template Event ModuleNetwork::simulation_step(Traial&,
+                                              const PropertyTransient&,
+                                              const SimulationEngineNosplit&,
+                                              nosplit_transient_event) const;
+template Event ModuleNetwork::simulation_step(Traial&,
+                                              const PropertyTransient&,
+                                              const SimulationEngineRestart&,
+                                              restart_transient_event) const;
 
 } // namespace fig

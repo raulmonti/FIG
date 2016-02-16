@@ -113,17 +113,6 @@ public:  // Populating facilities
 	/**
 	 * @brief Add a new \ref ModuleInstance "module" to the network
 	 * @param module Pointer with the new module to add
-	 * @note The argument is reset to nullptr during call for safety reasons.
-	 *       The module instance is thus effectively stolen.
-	 * @warning Do not invoke after seal()
-	 * @deprecated Use the \ref add_module(std::shared_ptr<ModuleInstance>&)
-	 *             "shared_ptr version" instead
-	 */
-	void add_module(ModuleInstance** module);
-
-	/**
-	 * @brief Add a new \ref ModuleInstance "module" to the network
-	 * @param module Pointer with the new module to add
 	 * @note The argument should have been allocated with std::make_shared()
 	 * @note The argument is reset to nullptr during call for safety reasons.
 	 *       The module instance is thus effectively stolen.
@@ -136,37 +125,23 @@ public:  // Populating facilities
 
 public:  // Accessors
 
-	/// @copydoc sealed_
-	inline bool sealed() const noexcept { return sealed_; }
-
 	/// @copydoc numClocks_
-	inline size_t num_clocks() const noexcept { return numClocks_; }
+	inline virtual size_t num_clocks() const noexcept { return numClocks_; }
 
-	/// Symbolic global state size, i.e. number of variables in the system model
-	inline size_t state_size() const noexcept { return gState.size(); }
+	inline virtual size_t state_size() const noexcept { return gState.size(); }
 
-	/// Concrete global state size, i.e. cross product of the ranges
-	/// of all the variables in the system model
-	inline size_t concrete_state_size() const noexcept { return gState.concrete_size(); }
+	inline virtual size_t concrete_state_size() const noexcept { return gState.concrete_size(); }
+
+	inline virtual bool sealed() const noexcept { return sealed_; }
 
 	/// @copydoc gState
-	inline const State<STATE_INTERNAL_TYPE>& global_state() const { return gState; }
+	inline const State<STATE_INTERNAL_TYPE>& global_state() const noexcept { return gState; }
 
 public:  // Utils
 
-	virtual inline void accept(ImportanceFunction& ifun,
-							   const Property& prop,
-							   const std::string& strategy)
-		{ ifun.assess_importance(*this, prop, strategy); }
+	virtual StateInstance initial_state() const;
 
-	/**
-	 * @brief Get a copy of the initial state of the system
-	 * @warning seal() must have been called beforehand
-	 * \ifnot NDEBUG
-	 *   @throw FigException if seal() hasn't been called yet
-	 * \endif
-	 */
-	std::unique_ptr< StateInstance > initial_state() const;
+	virtual size_t initial_concrete_state() const;
 
 	/**
 	 * @brief Shut the network and fill in internal global data.
@@ -200,21 +175,118 @@ public:  // Utils
 	 *        Starting from the state stored in traial, this routine
 	 *        performs synchronized jumps in the \ref ModuleInstance
 	 *        "modules composing the system", until some event relevant
-	 *        for the current simulation strategy is triggered.
+	 *        for the current property and simulation strategy is triggered.
 	 *        Information regarding the simulation run is kept in traial.
 	 *
-	 * @param traial Traial instance keeping track of the simulation
-	 * @param engine Semantics of the current simulation strategy
+	 * @param traial   Traial instance keeping track of the simulation <b>(modified)</b>
+	 * @param property Property whose value is currently being estimated
+	 * @param engine   Semantics of the current simulation strategy,
+	 *                 viz. object of any class derived from SimulationEngine
+	 * @param watch_events Member function of 'engine' telling when
+	 *                     is a simulation step considered finished
+	 *
+	 * @return Events observed/marked by the 'watch_event' member function
+	 *         when a finishing event for this simulation step is triggered.
+	 *
+	 * @note Unrelated to simulation(), this routine was deviced for
+	 *       estimating the value of a Property.
 	 *
 	 * @warning seal() must have been called beforehand
 	 * \ifnot NDEBUG
 	 *   @throw FigException if seal() hasn't been called yet
 	 * \endif
 	 */
-	void simulation_step(Traial& traial,
-						 const SimulationEngine& engine,
-						 const Property& property) const;
-};
+	template< typename DerivedProperty,
+			  class Simulator,
+			  class TraialMonitor >
+	Event simulation_step(Traial& traial,
+						  const DerivedProperty& property,
+						  const Simulator& engine,
+						  TraialMonitor watch_events) const;
+
+	/**
+	 * @brief Advance a traial and keep track of maximum importance reached
+	 *
+	 *        Starting from the state stored in traial, this routine
+	 *        performs synchronized jumps in the \ref ModuleInstance
+	 *        "modules composing the system" as long as the given
+	 *        Predicate remains true.<br>
+	 *        At function exit the traial internals are left at the peak:
+	 *        its importance is the maximum achieved and its state is
+	 *        the variables valuation realizing that importance.
+	 *
+	 * @param traial Traial instance keeping track of the simulation <b>(modified)</b>
+	 * @param update Traial update function applied on each jump iteration
+	 * @param pred   Predicate telling when to stop jumping
+	 *
+	 * @return Maximum importance achieved during simulation
+	 *
+	 * @note Unrelated to simulation_step(), this routine was deviced for
+	 *       \ref ThresholdsBuilder "thresholds builders" which require
+	 *       exercising the ModuleNetwork dynamics.
+	 *
+	 * @warning seal() must have been called beforehand
+	 * \ifnot NDEBUG
+	 *   @throw FigException if seal() hasn't been called yet
+	 * \endif
+	 */
+	template< class Predicate, class Update >
+	ImportanceValue peak_simulation(Traial& traial,
+									Update update,
+									Predicate pred) const;
+}; // class ModuleNetwork
+
+
+
+
+/// @note Defined here to allow lambda functions with captures as template parameters
+template< class Predicate, class Update >
+ImportanceValue
+ModuleNetwork::peak_simulation(Traial& traial,
+							   Update update,
+							   Predicate pred) const
+{
+	if (!sealed())
+#ifndef NDEBUG
+		throw_FigException("ModuleNetwork hasn't been sealed yet");
+#else
+		return;
+#endif
+
+	ImportanceValue maxImportance(traial.level);
+	StateInstance maxImportanceState(traial.state);
+
+	while ( pred(traial) ) {
+		auto timeout = traial.next_timeout();
+		// Active jump in the module whose clock timed-out
+		auto label = timeout.module->jump(timeout.name, timeout.value, traial);
+		// Passive jumps in the modules listening to label
+		for (auto module_ptr: modules)
+			if (module_ptr->name != timeout.module->name)
+				module_ptr->jump(label, timeout.value, traial);
+		// Update traial internals
+		traial.lifeTime += timeout.value;
+		update(traial);
+		if (UNMASK(traial.level) > UNMASK(maxImportance)) {
+			maxImportance = traial.level;
+			maxImportanceState = traial.state;
+		}
+	}
+	traial.level = maxImportance;
+	traial.state = maxImportanceState;
+
+	return UNMASK(maxImportance);
+}
+
+/// Update traial function specialization for "template<...> ModuleNetwork::peak_simulation()"
+typedef void(*UpdateFun)(Traial&);
+
+/// Predicate specialization for "template<...> ModuleNetwork::peak_simulation()"
+typedef bool(*KeepRunning)(const Traial&);
+
+template<> ImportanceValue ModuleNetwork::peak_simulation(Traial&,
+														  UpdateFun,
+														  KeepRunning) const;
 
 } // namespace fig
 

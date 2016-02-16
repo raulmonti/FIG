@@ -55,39 +55,96 @@ namespace fig
  */
 class ImportanceFunctionConcreteCoupled : public ImportanceFunctionConcrete
 {
-	// Make overloads explicit, otherwise Clang whines like a whore
-	using ImportanceFunction::assess_importance;
-	using ImportanceFunctionConcrete::assess_importance;
-
 	/// Copy of the global state of the model (i.e. the network of modules)
 	mutable State< STATE_INTERNAL_TYPE > globalStateCopy_;
+
+	/// Initial state of all variables in the model (i.e. the network of modules)
+	const StateInstance globalInitialValuation_;
+
+	/// Reference to all the transitions of the model (i.e. the network of modules)
+	const std::vector<std::shared_ptr<Transition>>& globalTransitions_;
 
 	/// For interaction with base class ImportanceFunctionConcrete
 	const unsigned importanceInfoIndex_;
 
 public:  // Ctor/Dtor
 
-	ImportanceFunctionConcreteCoupled();
+	/// @brief Data ctor
+	/// @param model System model, whose current state is taken as initial
+	ImportanceFunctionConcreteCoupled(const ModuleNetwork& model);
 
+	/// Dtor
 	virtual ~ImportanceFunctionConcreteCoupled();
+
+public:  // Accessors
+
+	/// @copydoc ImportanceFunctionConcrete::info_of()
+	/// @note Attempted inline in a desperate need for speed
+	inline virtual ImportanceValue info_of(const StateInstance& state) const
+		{
+#       ifndef NDEBUG
+			if (!has_importance_info())
+				throw_FigException(std::string("importance function \"")
+								   .append(name()).append("\" doesn't ")
+								   .append("hold importance information."));
+			globalStateCopy_.copy_from_state_instance(state, true);
+#       else
+			globalStateCopy_.copy_from_state_instance(state, false);
+#       endif
+			return modulesConcreteImportance[importanceInfoIndex_]
+											[globalStateCopy_.encode()];
+		}
+
+	/// @copydoc ImportanceFunction::importance_of()
+	/// @note Attempted inline in a desperate need for speed
+	inline virtual ImportanceValue importance_of(const StateInstance& state) const
+		{
+			return UNMASK(info_of(state));
+		}
+
+	/// @copydoc ImportanceFunction::level_of(const StateInstance&)
+	/// @note Attempted inline in a desperate need for speed
+	inline virtual ImportanceValue level_of(const StateInstance &state) const
+		{
+#       ifndef NDEBUG
+			if (!ready())
+				throw_FigException(std::string("importance function \"")
+								   .append(name()).append("\" isn't ")
+								   .append("ready for simulations."));
+#		endif
+			// Internal vector currently holds threshold levels
+			return UNMASK(info_of(state));
+		}
+
+	/// @copydoc ImportanceFunction::level_of(const ImportanceValue&)
+	/// @note Attempted inline in a desperate need for speed
+	inline virtual ImportanceValue level_of(const ImportanceValue& val) const
+		{
+#       ifndef NDEBUG
+			if (!ready())
+				throw_FigException(std::string("importance function \"")
+								   .append(name()).append("\" isn't ")
+								   .append("ready for simulations."));
+#		endif
+			// Internal vector currently holds threshold levels
+			assert(val >= min_importance());
+			assert(val <= max_importance());
+			return val;
+		}
+
+	virtual void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE>) const;
 
 public:  // Utils
 
-	virtual void assess_importance(const ModuleInstance&,
-								   const Property&,
-								   const std::string&)
-		{
-			throw_FigException("Concrete importance function for a coupled "
-							   "model can't be applied to a single \"split\" "
-							   "ModuleInstance. Take a look at "
-							   "ImportanceFunctionConcreteSplit instead.");
-		}
-
-	virtual void assess_importance(const ModuleNetwork& net,
-								   const Property& prop,
+	virtual void assess_importance(const Property& prop,
 								   const std::string& strategy = "");
 
-	virtual ImportanceValue importance_of(const StateInstance& state) const;
+	virtual void assess_importance(const Property& prop,
+								   const std::string& formulaExprStr,
+								   const std::vector<std::string>& varnames);
+
+	virtual void build_thresholds(ThresholdsBuilder& tb,
+								  const unsigned& splitsPerThreshold);
 
 	virtual void clear() noexcept;
 };

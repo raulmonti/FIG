@@ -128,8 +128,12 @@ ENDIF()
 
 # Turn some warnings off
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	# From MuParser-2.2.5 library -- http://muparser.beltoforion.de/:
 	# "anonymous types declared in an anonymous union"
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-nested-anon-types")
+	# From flex-2.5 generated file "lex.yy.cc":
+	# 'register' storage class specifier is deprecated
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register")
 ENDIF()
 # Avoid MuParser warnings due to deprecated auto_ptr (TODO: update library?)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")

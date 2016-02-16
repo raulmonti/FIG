@@ -35,6 +35,7 @@
 // C
 #include <csignal>  // std::signal()
 // C++
+#include <array>
 #include <utility>  // std::swap()
 #include <functional>
 
@@ -46,14 +47,21 @@ namespace fig
 /// way more versatile than the POSIX-C standard
 typedef std::function<void(int)> SignalHandlerType;
 
-/// Defined in the calling thread
-extern thread_local SignalHandlerType SignalHandler;
+/// Highest index among the handled signals (SIGINT=2, SIGALRM=14, SIGTERM=15)
+constexpr int MAX_SIGNUM_HANDLED = 15;
+// needs c++14: constexpr int MAX_SIGNUM_HANDLED = std::max<int>({SIGINT, SIGALRM, SIGTERM});
+
+/// Must be defined in the calling thread's compile unit (i.e. the cpp file)
+/// @note Idea for multiple handlers taken from
+///       <a href="http://stackoverflow.com/a/10819579">this SO answer by
+///       Arpegius</a>.
+extern thread_local std::array< SignalHandlerType, MAX_SIGNUM_HANDLED > SignalHandlers;
 
 /// C API's signature for signal handling, used by SignalSetter
 void handle_signal(int const i)
 {
-	if (SignalHandler)
-		SignalHandler(i);
+	if (SignalHandlers[i-1])
+		SignalHandlers[i-1](i);
 }
 
 /**
@@ -98,7 +106,7 @@ class SignalSetter
 	/// C API's signature for signal handling
 	typedef void(*CHandlerType)(int);
 
-	/// POSIX-C signal (SIGSEGV, SIGABRT, SIGALRM, etc)
+	/// POSIX-C signal (SIGINT, SIGABRT, SIGALRM, etc)
 	int signal_;
 
 	/// C API signal handler
@@ -123,13 +131,15 @@ public:
 		cHandler_(0),
 		handler_(sh)
 	{
+		assert(signal_ <= MAX_SIGNUM_HANDLED);
 		cHandler_ = std::signal(signal_, &handle_signal);
-		std::swap(SignalHandler, handler_);
+		// Register this handler_ in its proper position
+		std::swap(SignalHandlers[signal-1], handler_);
 	}
 
 	~SignalSetter() {
 		std::signal(signal_, cHandler_);
-		std::swap(SignalHandler, handler_);
+		std::swap(SignalHandlers[signal_-1], handler_);
 	}
 };
 
