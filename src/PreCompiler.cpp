@@ -41,7 +41,7 @@ Precompiler::solve_constant_defs(vector<AST*> defs, const parsingContext &pc)
     }
     assert(sat==s.check());
     auto m = s.get_model();
-    for(int i = 0; i < exprs.size(); ++i){
+	for(size_t i = 0; i < exprs.size(); ++i){
         if(pc.at(names[i]).first==T_ARIT){
             Precompiler::mConstTable[names[i]] = 
                 Z3_get_numeral_string(c, m.eval(exprs[i],false));
@@ -122,11 +122,11 @@ Precompiler::pre_compile(AST* ast, const parsingContext &pc)
     
     // Replace constants by values and constants definitions by blanks.
     auto lexemes = Parser::get_lexemes();
-    for(int i = 0; i < lexemes.size(); ++i){
+	for(size_t i = 0; i < lexemes.size(); ++i){
         if(lexemes[i] == "const"){
             while(lexemes[i] != ";"){
                 if(lexemes[i] != "\n" && lexemes[i] != "\t"){
-                    for(int j = 0; j < lexemes[i].size(); ++j){
+					for(size_t j = 0; j < lexemes[i].size(); ++j){
                         result += " ";
                     }
                 }else{

@@ -33,36 +33,5 @@ CompileModel(AST* astModel, const parsingContext &pc);
 
 }
 
-namespace{
-
-/**
- *
- */
-const state
-CompileVars(const vector<AST*> varList  );
-
-
-/**
- *
- */
-const vector<Clock>
-CompileClocks(const vector<AST*> transitions);
-
-
-/**
- *
- */
-fig::Transition
-CompileTransition(AST* trans);
-
-
-/**
- *
- */
-std::shared_ptr<ModuleInstance> 
-CompileModule(AST* module);
-
-} //namespace
-
 #endif
 

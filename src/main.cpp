@@ -45,7 +45,7 @@ int main(int argc, char** argv)
 	print_intro(std::cout);
 
     if (argc <= 1) {
-		std::cerr << "ERROR: must call with the name of the file containing "
+		std::cerr << "ERROR: must call with the name of the file containing\n"
 		             "       the user's model described in IOSA syntax.\n";
 		exit(EXIT_FAILURE);
 	}
@@ -88,13 +88,14 @@ int main(int argc, char** argv)
 
 void print_intro(std::ostream& out)
 {
+	out << std::endl;
 	out << " ~~~~~~~~~ \n";
 	out << "  · FIG ·  \n";
 	out << " ~~~~~~~~~ \n";
 	out << "           \n";
 	out << " This is the Finite Improbability Generator.\n";
-	out << " Version:  " << fig_VERSION_MAJOR << "." << fig_VERSION_MINOR << "\n";
-	out << " Authors:  Budde, Carlos E.  < cbudde@famaf.unc.edu.ar >\n";
-	out << "           Monti, Raúl E.    < raulmonti88@gmail.com >\n";
+	out << " Version: " << fig_VERSION_MAJOR << "." << fig_VERSION_MINOR << "\n";
+	out << " Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n";
+	out << "          Monti, Raúl E.   <raulmonti88@gmail.com>\n";
 	out << std::endl;
 }

@@ -108,7 +108,7 @@ void
 Parser::nextLxm(void){
 
     assert(pos < static_cast<int>(tokens.size()));
-    assert(pos < tokens.size()-1 || (Token)tokens[pos] == MEOF);
+	assert(pos < static_cast<int>(tokens.size())-1 || (Token)tokens[pos] == MEOF);
 
     pos++;
     tkn = (Token)tokens[pos];
@@ -831,18 +831,18 @@ Parser::fill_context(){
     vector<AST*> modules = ast->get_all_ast(_MODULE);
     
     // Fill map with constants.
-    for(int i = 0; i < constants.size(); ++i){
+	for(size_t i = 0; i < constants.size(); ++i){
         string name = constants[i]->get_lexeme(_NAME);
         Type t = str2Type(constants[i]->get_lexeme(_TYPE));
         mPc.insert( pvtm(name,ptm(t,"")));
     }
 
-    for(int i = 0; i < modules.size(); i++){
+	for(size_t i = 0; i < modules.size(); i++){
         vector<AST*> variables = modules[i]->get_all_ast(_VARIABLE);
         vector<AST*> clocks = modules[i]->get_all_ast(_CLOCK);
         string module = modules[i]->get_lexeme(_NAME);
         // Fill map with variables.
-        for(int j=0; j < variables.size(); j++){
+		for(size_t j=0; j < variables.size(); j++){
             string name = variables[j]->get_lexeme(_NAME);
             string type = variables[j]->get_lexeme(_TYPE);
             if(type == "bool"){
@@ -864,7 +864,7 @@ Parser::fill_context(){
             }
         }
         // Fill map with clocks. 
-        for(int j=0; j < clocks.size(); j++){
+		for(size_t j=0; j < clocks.size(); j++){
             string name = clocks[j]->get_lexeme(_NAME);
             mPc.insert(pvtm(name, ptm(T_CLOCK, module)));
         }
@@ -907,7 +907,7 @@ Parser::str2Type(string str){
 ////////////////////////////////////////////////////////////////////////////////
 
 
-int
+void
 Parser::newNode(prodSym tkn,string str, int line, int col){
     
     Node *node = new Node(tkn,str,line,col);
@@ -915,7 +915,7 @@ Parser::newNode(prodSym tkn,string str, int line, int col){
 }
 
 
-int
+void
 Parser::newNode(prodSym tkn){
     
     Node *node = new Node( tkn,lexemes[lastpos],lines[lastpos]
@@ -924,7 +924,7 @@ Parser::newNode(prodSym tkn){
 }
 
 
-int
+void
 Parser::saveNode(){
 
     assert(!astStk.empty());
@@ -940,23 +940,21 @@ Parser::saveNode(){
 }
 
 
-int
+void
 Parser::saveNode(prodSym tkn){
     newNode(tkn,lexemes[lastpos],lines[lastpos],columns[lastpos]);
     saveNode();
-    return 1;
 }
 
 
-int
+void
 Parser::saveNode(prodSym tkn,string str, int line, int col){
     newNode(tkn,str,line,col);
     saveNode();
-    return 1;
 }
 
 
-int
+void
 Parser::removeNode(){
 
     assert(!astStk.empty());

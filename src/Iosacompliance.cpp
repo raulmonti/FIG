@@ -65,7 +65,7 @@ clock_nreset(AST* trans1, AST* trans2){
     }
 
     vector<AST*> resetCList = trans2->get_all_ast(_SETC);
-    for(int i = 0; i < resetCList.size(); i++){
+	for(size_t i = 0; i < resetCList.size(); i++){
         if(enableCName+"'" == resetCList[i]->get_lexeme(_NAME)) return false;
     }
 
@@ -144,7 +144,7 @@ post2expr(AST* pAst, parsingContext &pc, z3::context &c){
 
     /* add the valuations given by the postcondition */
     vector<AST*> pList = pAst->get_all_ast(_ASSIG);
-    for(int i = 0; i < pList.size(); ++i){
+	for(size_t i = 0; i < pList.size(); ++i){
         AST* var = new AST(pList[i]->get_first(_NAME));
         AST* val = pList[i]->get_first(_EXPRESSION);
         vNameSet.insert(pList[i]->get_lexeme(_NAME));
@@ -317,7 +317,7 @@ variable_duplicate(AST* ast){
     if(ast->tkn == _NAME){
         ast->lxm = ast->lxm+"'";
     }else{
-        for(int i = 0; i < ast->branches.size(); ++i){
+		for(size_t i = 0; i < ast->branches.size(); ++i){
             variable_duplicate( ast->branches[i]);
         }
     }
@@ -394,7 +394,7 @@ Verifier::verify( AST* ast, const parsingContext pc){
  */
 z3::expr
 Verifier::limits2expr(AST* ast, z3::context &c){
-    z3:expr result = c.bool_const("true");
+	z3::expr result = c.bool_const("true");
     for(auto const &it: mPc){
         string var = it.first;
         Type t = it.second.first;
@@ -485,20 +485,20 @@ Verifier::names_uniqueness(AST* ast){
     vector<AST*> clocks = ast->get_all_ast(_CLOCK);
 
     vector<AST*> nameList;    
-    for(int i = 0; i < modules.size(); ++i){
+	for(size_t i = 0; i < modules.size(); ++i){
         nameList.push_back(modules[i]->get_first(_NAME));
     }
-    for(int i = 0; i < constants.size(); ++i){
+	for(size_t i = 0; i < constants.size(); ++i){
         nameList.push_back(constants[i]->get_first(_NAME));
     }
-    for(int i = 0; i < variables.size(); ++i){
+	for(size_t i = 0; i < variables.size(); ++i){
         nameList.push_back(variables[i]->get_first(_NAME));
     }
-    for(int i = 0; i < clocks.size(); ++i){
+	for(size_t i = 0; i < clocks.size(); ++i){
         nameList.push_back(clocks[i]->get_first(_NAME));
     }
 
-    for(int i = 0; i < nameList.size(); ++i){
+	for(size_t i = 0; i < nameList.size(); ++i){
         if(!names.insert(nameList[i]).second){
             AST* duplicated = *names.find(nameList[i]);
             error_list.append(("[ERROR] Duplicated name '")
@@ -533,20 +533,20 @@ Verifier::input_output_clocks(AST* ast){
     // or if we always parse an IO AST even when there is no ? or !
     string error_list = "";
     vector<AST*> modules = ast->get_list(_MODULE);
-    for(int i = 0; i < modules.size(); i++){
+	for(size_t i = 0; i < modules.size(); i++){
         vector<AST*> transitions = modules[i]->get_list(_TRANSITION);
-        for(int i = 0; i < transitions.size(); i++){
-            AST* ioAst = transitions[i]->get_first(_IO);
+		for(size_t j = 0; j < transitions.size(); j++){
+			AST* ioAst = transitions[j]->get_first(_IO);
             if( ioAst->p_name() == "?" && 
-                transitions[i]->get_first(_ENABLECLOCK)){
+				transitions[j]->get_first(_ENABLECLOCK)){
                 error_list.append("[ERROR] In transition declaration at '"
-                    + transitions[i]->get_pos() + "'. Input transitions "
+					+ transitions[j]->get_pos() + "'. Input transitions "
                     "should not have to wait for any clocks.\n");
             }
             if( ioAst->p_name() == "!" &&
-                !transitions[i]->get_first(_ENABLECLOCK)){
+				!transitions[j]->get_first(_ENABLECLOCK)){
                 error_list.append("[ERROR] In transition declaration at '"
-                    + transitions[i]->get_pos() + 
+					+ transitions[j]->get_pos() +
                     "'. Output transitions should wait for exactly one "
                     "clock.\n");
             }
@@ -579,11 +579,10 @@ Verifier::unique_outputs(AST *ast){
     z3::solver s(c);
 
     vector<AST*> modules = ast->get_list(_MODULE);
-    for(int i = 0; i < modules.size(); ++i){
-        string module = modules[i]->get_lexeme(_NAME);
+	for(size_t i = 0; i < modules.size(); ++i){
         vector<AST*> transs = modules[i]->get_all_ast(_TRANSITION);
-        for(int i = 0; i < transs.size(); ++i){
-            for(int j = i+1; j < transs.size(); ++j){
+		for(size_t i = 0; i < transs.size(); ++i){
+			for(size_t j = i+1; j < transs.size(); ++j){
                 if( same_clock(transs[i], transs[j])){
                     AST* pre1 = transs[i]->get_first(_PRECONDITION);
                     AST* pre2 = transs[j]->get_first(_PRECONDITION);
@@ -667,11 +666,11 @@ Verifier::check_exhausted_clocks(AST *ast){
     z3::expr        ex          = c.bool_val(true);
 
     vector<AST*> mods = ast->get_list(_MODULE);
-    for (int i = 0 ; i < mods.size() ; i++){
+	for (size_t i = 0 ; i < mods.size() ; i++){
         vector<AST*> transs = mods[i]->get_all_ast(_TRANSITION);
-        for(int i = 0; i < transs.size(); i++){
+		for(size_t i = 0; i < transs.size(); i++){
             if(is_output(transs[i])){
-                for(int j = 0; j < transs.size(); ++j){
+				for(size_t j = 0; j < transs.size(); ++j){
                     s.reset();
                     /*Check that i and j are different transitions and that 
                       j does not reset the enabling clock from i.*/
@@ -692,7 +691,7 @@ Verifier::check_exhausted_clocks(AST *ast){
                         if(g2){
                             ex = ex && ast2expr(g2,c,mPc);
                         }
-                        for(int k = 0; k < transs.size(); ++k){
+						for(size_t k = 0; k < transs.size(); ++k){
                             /* !g for guards of every output transitions 
                                going out from the same state as j
                                and same clock as i.
@@ -752,16 +751,16 @@ Verifier::check_input_determinism(AST *ast){
     z3::expr e = c.bool_val(true);
     z3::solver s(c);
 
-    for(int m = 0; m < modules.size(); ++m){
+	for(size_t m = 0; m < modules.size(); ++m){
         vector<AST*> inputTrans;
         vector<AST*> trans = modules[m]->get_all_ast(_TRANSITION);
-        for(int t = 0; t < trans.size(); ++t){
+		for(size_t t = 0; t < trans.size(); ++t){
             if(!is_output(trans[t])){
                 inputTrans.push_back(trans[t]);
             }
         }
-        for(int i = 0; i < inputTrans.size(); ++i){
-            for(int j = i+1; j < inputTrans.size(); ++j){
+		for(size_t i = 0; i < inputTrans.size(); ++i){
+			for(size_t j = i+1; j < inputTrans.size(); ++j){
                 string ti = inputTrans[i]->get_lexeme(_ACTION);
                 string tj = inputTrans[j]->get_lexeme(_ACTION);
                 if(ti == tj){
@@ -821,10 +820,10 @@ Verifier::type_check(AST *ast){
     int result = 1;
 
     vector<AST*> variables = ast->get_all_ast(_VARIABLE);
-    vector<AST*> clocks = ast->get_all_ast(_CLOCK);
+//  vector<AST*> clocks = ast->get_all_ast(_CLOCK);
 
     // Check variable initialization.
-    for(int i=0;i<variables.size();i++){
+	for(size_t i=0;i<variables.size();i++){
         string vname = variables[i]->get_lexeme(_NAME);
         Type v_t = mPc[vname].first;
         AST* init = variables[i]->get_first(_INIT);
@@ -840,7 +839,7 @@ Verifier::type_check(AST *ast){
 
     // Type check transitions preconditions:
     vector<AST*> trans = ast->get_all_ast(_TRANSITION);
-    for(int i =0; i < trans.size(); ++i){
+	for(size_t i =0; i < trans.size(); ++i){
         AST *pre = trans[i]->get_first(_PRECONDITION);
         if (pre){
             AST *expr = pre->get_first(_EXPRESSION);
@@ -854,9 +853,9 @@ Verifier::type_check(AST *ast){
     }
 
     // Type check assignments in post conditions
-    for(int i = 0; i < trans.size(); ++i){
+	for(size_t i = 0; i < trans.size(); ++i){
         vector<AST*> assigs = trans[i]->get_all_ast(_ASSIG);
-        for(int j = 0; j < assigs.size(); ++j){
+		for(size_t j = 0; j < assigs.size(); ++j){
             AST* var = assigs[j]->get_first(_NAME);
             string vname = assigs[j]->get_lexeme(_NAME);
             AST* expr = assigs[j]->get_first(_EXPRESSION);
@@ -879,7 +878,7 @@ Verifier::type_check(AST *ast){
 
     /* Check that enabling clock and reseting clocks are really clocks */
     map<string, AST*> rclocks;
-    for(int j = 0; j < trans.size(); j++){
+	for(size_t j = 0; j < trans.size(); j++){
         // enabling clocks
         AST* enable = trans[j]->get_first(_ENABLECLOCK);
         if(enable){
@@ -893,7 +892,7 @@ Verifier::type_check(AST *ast){
         // reset clocks
 
         vector<AST*> resets = trans[j]->get_all_ast(_SETC);
-        for(int k = 0; k < resets.size(); ++k){
+		for(size_t k = 0; k < resets.size(); ++k){
             string name = resets[k]->get_first(_NAME)->p_name();
             name.pop_back();
             AST* distr = resets[k]->get_first(_DISTRIBUTION);

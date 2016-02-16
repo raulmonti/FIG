@@ -55,7 +55,7 @@ AST::AST(const AST *copy){
     tkn = copy->tkn;
     l   = copy->l;
     c   = copy->c;
-    for(int i = 0; i < copy->branches.size(); ++i){
+	for(size_t i = 0; i < copy->branches.size(); ++i){
         branches.push_back(new AST(copy->branches[i]));
     }
 }
@@ -69,7 +69,7 @@ AST::AST(const AST *copy){
  */
 
 AST::~AST(){
-    for( int i = 0; i < branches.size(); i++){
+	for( size_t i = 0; i < branches.size(); i++){
         delete branches[i];
         branches[i] = NULL;
     }
@@ -88,7 +88,7 @@ AST::get_list(int k){
 
     vector<AST*> result;
 
-    for(int i = 0; i < branches.size(); i++){
+	for(size_t i = 0; i < branches.size(); i++){
         if (branches[i]->tkn == k) result.push_back(branches[i]);
     }
 
@@ -105,7 +105,7 @@ AST::get_list(int k){
 
 AST*
 AST::get_branch_k(int k){
-    for(int i = 0; i < branches.size(); i++){
+	for(size_t i = 0; i < branches.size(); i++){
         if (branches[i]->tkn == k) return branches[i];
     }
     return NULL;
@@ -124,7 +124,7 @@ AST::get_list_lexemes(int k){
 
     vector<string> result;
 
-    for(int i = 0; i < branches.size(); i++){
+	for(size_t i = 0; i < branches.size(); i++){
         if (branches[i]->tkn == k) result.push_back(branches[i]->lxm);
     }
 
@@ -240,7 +240,7 @@ AST::get_all_ast(int k){
     if(tkn == k){
         result.push_back(this);
     }
-    for(int i = 0; i < branches.size(); i++){
+	for(size_t i = 0; i < branches.size(); i++){
         vector<AST*> rec = branches[i]->get_all_ast(k);
         result.insert( result.end(), rec.begin(), rec.end() );
     }
@@ -266,7 +266,7 @@ AST::get_all_ast_ff(int k){
         result.push_back(this);
     }else{
 
-        for(int i = 0; i < branches.size(); i++){
+		for(size_t i = 0; i < branches.size(); i++){
             vector<AST*> rec = branches[i]->get_all_ast_ff(k);
             result.insert( result.end(), rec.begin(), rec.end() );
         }
@@ -307,7 +307,7 @@ AST::get_first(int k){
     if(tkn == k){
         return this;
     }else{
-        for(int i = 0; i < branches.size(); i++){
+		for(size_t i = 0; i < branches.size(); i++){
             AST* first = branches[i]->get_first(k);
             if(first){
                 return first;
@@ -330,7 +330,7 @@ AST::get_line(){
     if ( l != 0){
         result = to_string(l);
     }else{
-        for( int i = 0; i < branches.size() && result == "0"; ++i){
+		for( size_t i = 0; i < branches.size() && result == "0"; ++i){
             result = branches[i]->get_line();
         }
     }
@@ -349,7 +349,7 @@ AST::get_column(){
     if ( c != 0){
         result = to_string(c);
     }else{
-        for( int i = 0; i < branches.size() && result == "0"; ++i){
+		for( size_t i = 0; i < branches.size() && result == "0"; ++i){
             result = branches[i]->get_column();
         }
     }
@@ -393,7 +393,7 @@ if( ast1.lxm == ast2.lxm &&
     ast1.tkn == ast2.tkn &&
     ast1.branches.size() == ast2.branches.size())
 {
-    for(int i = 0; i < ast1.branches.size(); ++i){
+	for(size_t i = 0; i < ast1.branches.size(); ++i){
         if(!(*ast1.branches[i] == *ast2.branches[i])){
             return false;
         }

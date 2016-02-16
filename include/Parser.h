@@ -262,7 +262,7 @@ private:
      *  @param line Line number. 
      *  @param col Column number.
      */
-    int
+    void
     newNode(prodSym tkn, string str, int line = 0, int col = 0);
 
 
@@ -271,7 +271,7 @@ private:
      *  lexeme.
      *  @param tkn The grammar type for this parsed string.
      */
-    int
+    void
     newNode(prodSym tkn);
 
 
@@ -279,27 +279,27 @@ private:
        saving the production into the AST.
        @line, @col: line and column number respectively.
     */
-    int
+    void
     saveNode();
 
     /* @saveNode: when called only with parameters @tkn
        it is a shortcut to to saving a new node with the last accepted
        lexeme.
     */
-    int
+    void
     saveNode(prodSym tkn);
 
     /* @saveNode: when called with parameters @str, @tkn, @line, and @col
        it is a shortcut to <newNode(str,tkn,line,col); saveNode();>
     */
-    int
+    void
     saveNode(prodSym tkn, string str, int line = 0, int col = 0);
 
 
     /* @removeNode: should be called if the current production was not
        successfully matched.
     */
-    int
+    void
     removeNode();
 
 
