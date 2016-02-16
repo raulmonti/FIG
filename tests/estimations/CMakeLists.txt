@@ -5,7 +5,6 @@
 ##	Copyleft 2015-
 ##	Authors:
 ##  * Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
-##  * Raul E. Monti <raulmonti88@gmail.com> (Universidad Nacional de Córdoba)
 ##
 ##------------------------------------------------------------------------------
 ##
@@ -29,7 +28,7 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
-PROJECT (fig)
+PROJECT (fig_test_estimations)
 
 SET(fig_VERSION_MAJOR 0)
 SET(fig_VERSION_MINOR 42)
@@ -39,11 +38,11 @@ SET(fig_VERSION_MINOR 42)
 ###  Project directory structure  #############################################
 
 # Default directories configuration
-SET(SOURCES_DIR ${PROJECT_SOURCE_DIR}/src)
-SET(HEADERS_DIR ${PROJECT_SOURCE_DIR}/include)
-SET(LIBRARIES_DIR ${PROJECT_SOURCE_DIR}/lib)
-SET(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin)
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/fig)
+SET(SOURCES_DIR ${PROJECT_SOURCE_DIR}/../../src)
+SET(HEADERS_DIR ${PROJECT_SOURCE_DIR}/../../include)
+SET(LIBRARIES_DIR ${PROJECT_SOURCE_DIR}/../../lib)
+SET(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/../../bin)
+SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/test)
 
 # Header file with CMake settings for the source code
 CONFIGURE_FILE (
@@ -56,21 +55,29 @@ SET(HEADERS_DIR ${HEADERS_DIR} CACHE INTERNAL "")
 SET(ALL_SOURCES ${SOURCES_DIR} CACHE INTERNAL "")
 
 # Visit subdirectories
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/ext)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext
+                 ${PROJECT_BINARY_DIR}/ext)
  
-# Register all main include paths
+# Register all include paths
 INCLUDE_DIRECTORIES(${HEADERS_DIR})
 
-# Register all main source files
+# Register all source files, this test is big enough
 AUX_SOURCE_DIRECTORY(${SOURCES_DIR} MAIN_SOURCE_FILES)
 SET(ALL_SOURCES ${ALL_SOURCES} ${MAIN_SOURCE_FILES} CACHE INTERNAL "")
+
+# Remove project's main.cpp, we have ours (http://stackoverflow.com/a/16450083)
+LIST(REMOVE_ITEM ALL_SOURCES ${SOURCES_DIR}/main.cpp)
+
+# Register source files from this test (e.g. our main.cpp)
+AUX_SOURCE_DIRECTORY(${PROJECT_SOURCE_DIR} TEST_SOURCES)
+SET(ALL_SOURCES ${ALL_SOURCES} ${TEST_SOURCES} CACHE INTERNAL "")
 
 ## # Libraries
 ## LINK_DIRECTORIES(${LIBRARIES_DIR})
 ##  Tip: use find_library() and find_package() instead
 
- 
 
+ 
 ###  Compiler configuration  ##################################################
  
 # If Clang was chosen check for compatible version
@@ -166,5 +173,5 @@ ADD_CUSTOM_COMMAND(
 	DEPENDS ${LEXER_L}
 )
 
-ADD_EXECUTABLE(fig ${ALL_SOURCES} ${LEXER_CC})
+ADD_EXECUTABLE(test_estimations ${ALL_SOURCES} ${LEXER_CC})
 
