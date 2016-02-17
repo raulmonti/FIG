@@ -47,8 +47,6 @@ class FigException : public std::exception
 {
 	std::string msg_;
 
-	inline virtual const char* what() const noexcept { return msg_.c_str(); }
-
 	inline void compose_msg(const char* fullpath0, int line)
 	{
 		const size_t maxlen(1u<<7);
@@ -76,6 +74,8 @@ public:
 		{ compose_msg(file, line); }
 
 	inline const std::string& msg() const { return msg_; }
+
+	inline virtual const char* what() const noexcept { return msg_.c_str(); }
 };
 
 } // namespace fig

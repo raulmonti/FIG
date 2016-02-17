@@ -73,10 +73,10 @@ test_names(string path)
     cout << "[TEST] " << filename << "..." << endl;
     try{
         compile(path);
-    }catch(FigException &e){
+    }catch(FigError &e){
         cout << "[TEST] " << filename << " passed." << endl;
-        cout << "======================\n" << e.msg() 
-             << "\n======================\n" << endl;
+        cout << "======================\n" << e.what() 
+             << "======================\n" << endl;
         return;
     }catch(...){
         assert(false);
@@ -93,10 +93,10 @@ test_iosa_condition_1_2(string path)
     cout << "[TEST] " << filename << "..." << endl;
     try{
         compile(path);
-    }catch(FigException &e){
+    }catch(const FigError &e){
         cout << "[TEST] " << filename << " passed." << endl;
-        cout << "======================\n" << e.msg() 
-             << "\n======================\n" << endl;
+        cout << "======================\n" << e.what() 
+             << "======================\n" << endl;
         return;
     }catch(...){
         assert(false);
@@ -113,15 +113,15 @@ test_iosa_condition_3(string path)
     cout << "[TEST] " << filename << "..." << endl;
     try{
         compile(path);
-    }catch(FigException &e){
+    }catch(const FigWarning &e){
         cout << "[TEST] " << filename << " passed." << endl;
-        cout << "======================\n" << e.msg() 
-             << "\n======================\n" << endl;
+        cout << "======================\n" << e.what() 
+             << "======================\n" << endl;
         return;
     }catch(...){
         assert(false);
     }
-    cout << "[TEST] " << filename << "NOT passed!!" << endl;
+    cout << "[TEST] " << filename << " NOT passed!!" << endl;
 }
 
 //==============================================================================
@@ -133,15 +133,15 @@ test_iosa_condition_4(string path)
     cout << "[TEST] " << filename << "..." << endl;
     try{
         compile(path);
-    }catch(FigException &e){
+    }catch(const FigWarning &e){
         cout << "[TEST] " << filename << " passed." << endl;
-        cout << "======================\n" << e.msg() 
-             << "\n======================\n" << endl;
+        cout << "======================\n" << e.what() 
+             << "======================\n" << endl;
         return;
     }catch(...){
         assert(false);
     }
-    cout << "[TEST] " << filename << "NOT passed!!" << endl;
+    cout << "[TEST] " << filename << " NOT passed!!" << endl;
 }
 
 //==============================================================================
@@ -153,15 +153,15 @@ test_iosa_condition_7(string path)
     cout << "[TEST] " << filename << "..." << endl;
     try{
         compile(path);
-    }catch(FigException &e){
+    }catch(const FigWarning &e){
         cout << "[TEST] " << filename << " passed." << endl;
-        cout << "======================\n" << e.msg() 
-             << "\n======================\n" << endl;
+        cout << "======================\n" << e.what() 
+             << "======================\n" << endl;
         return;
     }catch(...){
         assert(false);
     }
-    cout << "[TEST] " << filename << "NOT passed!!" << endl;
+    cout << "[TEST] " << filename << " NOT passed!!" << endl;
 }
 
 //==============================================================================
@@ -176,9 +176,16 @@ test_tandem_queue(string path)
         cout << "[TEST] " << filename << " passed." << endl;
         return;
     }catch(const FigException &e){
-        cout << "[TEST] " << filename << "NOT passed!!" << endl;
-        cout << "======================\n" << e.msg()
-             << "\n======================\n" << endl;
+        cout << "[TEST] " << filename << " NOT passed!!" << endl;
+        cout << "======================\n" << e.what()
+             << "======================\n" << endl;
+    }catch(const FigError &e){
+        cout << "[TEST] " << filename << " NOT passed!!" << endl;
+        cout << "======================\n" << e.what()
+             << "======================\n" << endl;
+    }catch(const std::exception &e){
+        cout << "[TEST] " << filename << " passed." << endl;
+        cout << e.what() << endl;
     }catch(...){
         assert(false);
     }

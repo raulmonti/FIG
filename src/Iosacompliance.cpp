@@ -36,6 +36,18 @@ using namespace fig;
 
 namespace parser{
 
+
+/**
+ * TODO
+ */
+bool
+is_const_exp(AST* ex)
+{
+    assert(ex->tkn == _EXPRESSION);
+    return ex->get_all_ast(_NAME).empty();
+}
+
+
 /** @brief  Check if the transition parsed into an AST corresponds to an
  *          output transition.
  */
@@ -178,27 +190,24 @@ post2expr(AST* pAst, parsingContext &pc, z3::context &c){
 
 //==============================================================================
 
-/**
- */
-pair<int,int>
+pair<AST*,AST*>
 get_limits(AST* ast, string var){
 
-    pair<int,int> result;
+    pair<AST*,AST*> result;
 
     vector<AST*> vars = ast->get_all_ast(_VARIABLE);
     for(auto const &it: vars){
         if(it->get_lexeme(_NAME) == var || it->get_lexeme(_NAME)+'\'' == var){
-            vector<string> limits = 
-                it->get_first(_RANGE)->get_all_lexemes(_NUM);
+            vector<AST*> limits = 
+                it->get_first(_RANGE)->get_all_ast(_EXPRESSION);
             assert(limits.size() == 2);
-            result.first = atoi(limits[0].c_str());
-            result.second = atoi(limits[1].c_str());
+            result.first = limits[0];
+            result.second = limits[1];
             return result;
         }
     }
     throw_FigException("Can't find variable " + var + " limits.");
 }
-
 
 /** 
  * @brief:   Return a z3 expression corresponding to a boolean formula
@@ -234,7 +243,7 @@ ast2expr( AST* formula, context & c, const parsingContext & pc){
             else if (b1->lxm == "*") result = e0 * e2;
             else if (b1->lxm == "/") result = e0 / e2;
             else if (b1->lxm == "||") result = e0 || e2;
-            else if (b1->lxm == "&&") result = e0 && e2;
+            else if (b1->lxm == "&") result = e0 && e2;
             else if (b1->lxm == ">") result = e0 > e2;
             else if (b1->lxm == "<") result = e0 < e2;
             else if (b1->lxm == ">=") result = e0 >= e2;
@@ -369,7 +378,7 @@ Verifier::verify( AST* ast, const parsingContext pc){
         pout << ">> Check typing...\n";
         type_check(ast);
         pout << ">> Check constants...\n";
-        check_constants(ast);
+        //check_constants(ast);
         // IOSA determinism properties
         pout << ">> Check 1st and 2nd IOSA conditions...\n";
         input_output_clocks(ast);
@@ -399,10 +408,10 @@ Verifier::limits2expr(AST* ast, z3::context &c){
         string var = it.first;
         Type t = it.second.first;
         if(t == T_ARIT){
-            pair<int,int> limits = get_limits(ast,var);
+            pair<AST*,AST*> limits = get_limits(ast,var);
             result = result && 
-                (limits.first <= c.real_const(var.c_str()) &&
-                 c.real_const(var.c_str()) <= limits.second);
+                (ast2expr(limits.first,c,mPc) <= c.real_const(var.c_str()) &&
+                 c.real_const(var.c_str()) <= ast2expr(limits.second,c,mPc));
         }
     }
     return result;
@@ -412,14 +421,14 @@ Verifier::limits2expr(AST* ast, z3::context &c){
 
 //==============================================================================
 
-
+// FIXME Deprecated
 /**
  * @brief Check that every constant definition in @ast is correct, i.e 
  *        it does not depend of variables, and it is free of circular
  *        dependencies.
  * @throw String error if found something wrong.
  */
-void
+/*void
 Verifier::check_constants(AST* ast)
 {
     string error_list = "";
@@ -436,10 +445,10 @@ Verifier::check_constants(AST* ast)
         }
     }
     if(error_list != ""){
-        throw error_list;
+        throw FigError(error_list);
     }
 }
-
+*/
 
 
 /**
@@ -510,7 +519,7 @@ Verifier::names_uniqueness(AST* ast){
 
     // Exception id found duplicated names:
     if(error_list != ""){
-        throw error_list;
+        throw FigError(error_list);
     }
     return 1;
 }
@@ -554,7 +563,7 @@ Verifier::input_output_clocks(AST* ast){
     }
 
     if(error_list != ""){
-        throw error_list; // If names are repeated we can not continue ...
+        throw FigError(error_list); 
     }
     return 1;
 }
@@ -627,7 +636,7 @@ Verifier::unique_outputs(AST *ast){
     }
 
     if (error_list != ""){
-        throw error_list;    
+        throw FigWarning(error_list);    
     }
     return result;
 }
@@ -723,7 +732,7 @@ Verifier::check_exhausted_clocks(AST *ast){
         }
     }
     if(error_list != ""){
-        throw error_list;
+        throw FigWarning(error_list);
     }
     return 1;
 }
@@ -798,7 +807,7 @@ Verifier::check_input_determinism(AST *ast){
         }
     }
     if(error_list != ""){
-        throw error_list;
+        throw FigWarning(error_list);
     }
     return 1;
 }
@@ -820,21 +829,59 @@ Verifier::type_check(AST *ast){
     int result = 1;
 
     vector<AST*> variables = ast->get_all_ast(_VARIABLE);
-//  vector<AST*> clocks = ast->get_all_ast(_CLOCK);
 
-    // Check variable initialization.
+    // Check variable initialization; and range (in case of aritmetic type).
 	for(size_t i=0;i<variables.size();i++){
         string vname = variables[i]->get_lexeme(_NAME);
         Type v_t = mPc[vname].first;
-        AST* init = variables[i]->get_first(_INIT);
-        if(init){
-            string v = init->get_lexeme(_NUM); 
-            if(v_t == T_BOOL && v != "1" && v != "0"){
-                error_list.append( "[ERROR] Wrong type for "
-                    "initialization of boolean variable '" + vname 
-                    + "', at " + variables[i]->p_pos() + ".\n");
+        Type i_t = T_NOTYPE;
+        AST* ASTinit = variables[i]->get_first(_INIT);
+        string init = "";
+        AST* iexp = NULL;
+        // check initialization
+        if(ASTinit){
+            iexp = ASTinit->get_first(_EXPRESSION);
+            assert(iexp);
+            i_t = get_type(iexp);
+            init = solve_const_expr(iexp,mPc);
+            if(i_t != v_t){
+                error_list.append("[ERROR] Wrong type for variable "
+                                  "initialization at "
+                                  + variables[i]->get_pos() + ".\n");
             }
         }
+        // check range in case of aritmetic type.
+        if(v_t == T_ARIT){
+            AST* range = variables[i]->get_first(_RANGE);
+            vector<AST*> limits = range->get_list(_EXPRESSION);
+            assert(limits.size()==2);
+            if(T_ARIT != get_type(limits[0])){
+                error_list.append("[ERROR] Wrong type for integer range at "
+                                  + limits[0]->get_pos() + ".\n");
+            }
+            if(T_ARIT != get_type(limits[1])){
+                error_list.append("[ERROR] Wrong type for integer range at "
+                                  + limits[1]->get_pos() + ".\n");
+
+            }
+            int ll = stoi(solve_const_expr(limits[0],mPc));
+            int ul = stoi(solve_const_expr(limits[1],mPc));
+            if( ll > ul){
+                error_list.append("[ERROR] Empty range for variable definition "
+                                  "at " + variables[i]->get_pos() + ".\n");
+            }
+            if(ASTinit && i_t == T_ARIT){
+                int in = stoi(init);
+                if(ll>in || in>ul){
+                    error_list.append("[ERROR] Initialization out of range for "
+                                      "variable definition at "
+                                      + iexp->get_pos() + ".\n");
+                }
+            }
+        }else if(v_t != T_BOOL){
+            assert(false && "WRONG TYPE FOR VARIABLE");
+        }
+ 
     }
 
     // Type check transitions preconditions:
@@ -864,14 +911,13 @@ Verifier::type_check(AST *ast){
                 Type t_e = get_type(expr);
                 if(t_v != t_e){
                     throw "[ERROR] Wrong type in assignment of variable "
-                          + vname + " at " + var->p_pos() + ".\n";
+                        + vname + " at " + var->p_pos() + ".\n";
                 }
             }catch(string err){
                 error_list.append(err);
             }catch(const out_of_range err){
                 error_list.append( "[ERROR] Undeclared variable " 
-                                 + vname + " at " + var->p_pos() 
-                                 + ".\n");
+                     + vname + " at " + var->p_pos() + ".\n");
             }
         }
     }
@@ -885,12 +931,10 @@ Verifier::type_check(AST *ast){
             auto const it = mPc.find(enable->get_first(_NAME)->p_name());
             if( enable && (it == mPc.end() || it->second.first != T_CLOCK )){
                 error_list.append( "[ERROR] No clock named " 
-                                 + enable->p_name() + " at " 
-                                 + enable->p_pos() + ".\n" );
+                    + enable->p_name() + " at " + enable->p_pos() + ".\n" );
             }
         }
         // reset clocks
-
         vector<AST*> resets = trans[j]->get_all_ast(_SETC);
 		for(size_t k = 0; k < resets.size(); ++k){
             string name = resets[k]->get_first(_NAME)->p_name();
@@ -901,7 +945,12 @@ Verifier::type_check(AST *ast){
                 error_list.append( "[ERROR] No clock named " + name 
                                  + " at " + resets[k]->p_pos() + ".\n" );
             }else{
-
+                AST* exp = distr->get_first(_EXPRESSION);
+                if(!is_const_exp(exp)){
+                    error_list.append("Non constant expression found as "
+                        "distribution parameter at " + exp->get_pos() + ".\n");
+                }
+                // Check unique distribution for each clock.
                 auto ret = rclocks.insert(make_pair(name, distr));
                 if(!ret.second){
                     if(*distr != *ret.first->second){
@@ -916,12 +965,11 @@ Verifier::type_check(AST *ast){
         }
     }
     if(error_list != ""){
-        throw error_list;
+        throw FigError(error_list);
     }
 
     return result;
 }
-
 
 //==============================================================================
 
@@ -933,8 +981,8 @@ Verifier::type_check(AST *ast){
  */
 
 Type
-Verifier::get_type(AST *expr){
-
+Verifier::get_type(AST *expr)
+{
     assert(expr);
     if(expr->tkn == _EXPRESSION){
         AST *equality = expr->get_branch(0);
@@ -1053,12 +1101,55 @@ Verifier::get_type(AST *expr){
         }
         return t;
     }else{
-        assert(0);
+        cout << expr->tkn << " " << expr->lxm << endl;
+        assert(false);
     }
     assert(0);
 }
 
 
+//==============================================================================
+
+string
+Verifier::solve_const_expr(AST* ex, const parsingContext &pc)
+{
+    if(ex->get_all_ast(_NAME).size() != 0){
+        throw FigNotConstant( "Found not constant expression <" + ex->toString() 
+                              + ">."
+                            , stoi(ex->get_line())
+                            , stoi(ex->get_column()));
+    }
+    
+    string result;
+    z3::context c;
+    z3::solver s(c);
+
+    z3::expr res(c);
+    Type t = get_type(ex);
+    if(t==T_ARIT){
+        res = c.real_const("#");
+    }else{
+        assert(t==T_BOOL);
+        res = c.bool_const("#");
+    }
+    z3::expr e = ast2expr(ex,c,pc);
+    s.add(res == e);
+    
+    assert(sat==s.check());
+    auto m = s.get_model();
+
+    // TODO round down to closest int.
+    if(t==T_ARIT){
+        result = Z3_get_numeral_string(c, m.eval(res,false));
+    }else{
+        if(Z3_get_bool_value(c,m.eval(res,false))){
+            result = "true";
+        }else{
+            result = "false";
+        }
+    }
+    return result;
+}
 //==============================================================================
 
 } // namespace parser

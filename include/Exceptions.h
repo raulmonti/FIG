@@ -118,8 +118,34 @@ public:
 
 //==============================================================================
 
+class FigBaseException: public std::exception
+{
+protected:
 
-class FigSyntaxError: public std::exception
+    std::string e_;
+
+public:
+
+    FigBaseException(){}
+
+    FigBaseException(std::string s, int l = -1, int c = -1): e_(s)
+    {
+        e_ += string("At line ") + std::to_string(l) 
+            + string(", column ") + std::to_string(c) + string(".");
+    }
+    virtual ~FigBaseException() throw() {}
+
+    virtual const char* what() const throw()
+    {
+        return e_.c_str();
+    }    
+};
+
+
+//==============================================================================
+
+
+class FigSyntaxError: public FigBaseException
 {
 
 private:
@@ -145,9 +171,68 @@ public:
     }
 };
 
+//==============================================================================
+
+class FigNotConstant: public FigBaseException
+{
+
+private:
+
+    std::string e_;    // The error
+
+public:
+
+    FigNotConstant(std::string s = "", int l = -1, int c = -1): e_(s)
+    {
+        e_ += string(" At line ") + std::to_string(l) 
+            + string(", column ") + std::to_string(c) + string(".");
+    }
+
+    virtual ~FigNotConstant() throw() {}
+
+
+    virtual const char* what() const throw()
+    {
+        return e_.c_str();
+    }
+};
 
 //==============================================================================
 
+class FigError: public FigBaseException
+{
+protected:
+    std::string e_;
+public:
+
+    FigError(){}
+    FigError(std::string s): e_(s){}
+    virtual ~FigError(){}
+    virtual const char* what() const throw()
+    {
+        return e_.c_str();
+    }
+};
+
+//==============================================================================
+
+class FigWarning: public FigBaseException
+{
+protected:
+    std::string e_;
+public:
+
+    FigWarning(){}
+    FigWarning(std::string s): e_(s){}
+    virtual ~FigWarning(){}
+    virtual const char* what() const throw()
+    {
+        return e_.c_str();
+    }
+
+};
+
+//==============================================================================
 
 class BadAST: public std::exception
 {

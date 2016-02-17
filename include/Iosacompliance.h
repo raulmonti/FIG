@@ -151,6 +151,10 @@ private:
     void
     check_constants(AST* ast);
 
+    /** TODO
+    */
+    string
+    solve_const_expr(AST* ex, const parsingContext &pc);
 };
 
 

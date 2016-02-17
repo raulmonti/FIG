@@ -311,12 +311,10 @@ Parser::rVarDef(){
         }else if(accept(OBT)){
             newNode(_RANGE, "");
             saveNode(_SEPARATOR);
-            expect(NUM, "Bad range. Forgot lower limit?\n");
-            saveNode(_NUM);
+            rExpression(); // lower limit
             expect(RNG, "Bad range. Forgot .. ?\n");
             saveNode(_SEPARATOR);
-            expect(NUM, "Bad range. Forgot upper limit?\n");
-            saveNode(_NUM);
+            rExpression(); // upper limit
             expect(CBT, "Bad range. Forgot ] ?");
             saveNode(_SEPARATOR);
             saveNode(); // _RANGE
@@ -329,13 +327,8 @@ Parser::rVarDef(){
         if(accept(KINIT)){
             newNode(_INIT);
             saveNode(_KEYWORD);
-            if(accept(NAME)){
-                saveNode(_NAME);
-            }else if(accept(BOOLV)){
-                saveNode(_BOOLEAN);
-            }else{
-                expect(NUM, "Missing initial value.");
-                saveNode(_NUM);
+            if(!rExpression()){
+                throw FigSyntaxError("Missing initial value TODO!");                
             }
             saveNode(); // _INIT
         }
@@ -496,12 +489,10 @@ Parser::rNormDist(){
         try{
             expect(OP);
             saveNode(_SEPARATOR);
-            expect(NUM);
-            saveNode(_NUM);
+            rExpression();
             expect(CMM);
             saveNode(_SEPARATOR);
-            expect(NUM);
-            saveNode(_NUM);
+            rExpression();
             expect(CP);
             saveNode(_SEPARATOR);
             saveNode(); // _DISTRIBUTION
@@ -509,7 +500,8 @@ Parser::rNormDist(){
         }catch(const FigSyntaxError &e){
             removeNode(); // _DISTRIBUTION
             throw string( "Normal distributions are expected to have the "
-                          "following syntax: 'normal(<NUMBER>,<NUMBER>)\n" );
+                          "following syntax: 'normal(<EXPRESSION>"
+                          ",<EXPRESSION>)\n" );
         }
     }
     return 0;
@@ -527,8 +519,7 @@ Parser::rExpDist(){
         try{
             expect(OP);
             saveNode(_SEPARATOR);
-            expect(NUM);
-            saveNode(_NUM);
+            rExpression();
             expect(CP);
             saveNode(_SEPARATOR);
             saveNode(); // _DISTRIBUTION
@@ -536,7 +527,7 @@ Parser::rExpDist(){
         }catch(const FigSyntaxError &e){
             removeNode(); // _DISTRIBUTION
             throw string( "Exponential distributions are expected to have "
-                          "the following syntax: 'exponential(<NUMBER>)\n");
+                          "the following syntax: 'exponential(<EXPRESSION>)\n");
         }
     }
     return 0;
@@ -555,12 +546,10 @@ Parser::rUniDist(){
         try{
             expect(OP);
             saveNode(_SEPARATOR);
-            expect(NUM);
-            saveNode(_NUM);
+            rExpression();
             expect(CMM);
             saveNode(_SEPARATOR);
-            expect(NUM);
-            saveNode(_NUM);
+            rExpression();
             expect(CP);
             saveNode(_SEPARATOR);
             saveNode(); // _DISTRIBUTION
@@ -568,7 +557,8 @@ Parser::rUniDist(){
         }catch(const FigSyntaxError &e){
             removeNode(); // _DISTRIBUTION
             throw string( "Uniform distributions are expected to have the "
-                          "following syntax: 'uniform(<NUMBER>,<NUMBER>)\n"
+                          "following syntax: 'uniform(<EXPRESSION>"
+                          ",<EXPRESSION>)\n"
                         );
         }
     }
@@ -853,6 +843,8 @@ Parser::fill_context(){
                 // The variable in <next state>
                 mPc.insert(pvtm(name+"'",ptm(T_BOOL,module)));
             }else{
+                /* FIXME wee dont check this here, but afterwards 
+                         when we have solved the constant expressions.
                 AST* range = variables[j]->get_first(_RANGE);
                 assert(range);
                 vector<string> limits = range->get_list_lexemes(_NUM);
@@ -861,7 +853,7 @@ Parser::fill_context(){
                     string pos = variables[j]->get_pos();
                     error_list.append("[ERROR] Empty range in variable "
                         "declaration at " + pos + ".\n");
-                }
+                }*/
                 mPc.insert(pvtm(name,ptm(T_ARIT,module)));
                 mPc.insert(pvtm(name+"'",ptm(T_ARIT,module)));
             }
