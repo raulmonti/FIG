@@ -46,14 +46,14 @@ class Property;
 class Transition;
 
 /**
- * @brief Abstract importance function for concrete importance assessment
+ * @brief Abstract ImportanceFunction for concrete importance assessment
  *
- *        The assessment is "concrete" because an internal vector is built and
+ *        The assessment is "concrete" because internal vectors are built and
  *        mantained with the ImportanceValue of each reachable concrete state,
  *        viz. importance information for the "concrete state space" is kept.<br>
  *        This can be extremely heavy on memory: precisely the size of the
- *        concrete state space of the assessed element (ModuleInstance or
- *        ModuleNetwork). On the other hand it can considerably more CPU
+ *        concrete state space of the assessed elements (ModuleInstance or
+ *        ModuleNetwork). On the other hand it can be considerably more CPU
  *        efficient than on-the-fly importance assessment as
  *        \ref ImportanceFunctionAlgebraic "algebraic importance functions" do.
  *
@@ -68,7 +68,7 @@ public:
 
 protected:  // Attributes
 
-	/// Concrete importance assessment for the whole system model
+	/// Concrete importance assessment for all the modules in the system model
 	std::vector< ImportanceVec > modulesConcreteImportance;
 
 public:  // Ctor/Dtor

@@ -39,8 +39,8 @@ namespace fig
 {
 
 /**
- * @brief Importance function for the concrete importance assessment
- *        of a ModuleNetwork.
+ * @brief ImportanceFunction for the concrete importance assessment
+ *        of a fully coupled ModuleNetwork.
  *
  *        Assesses the importance of the concrete state space resulting from
  *        the parallel composition of all the modules in the system,
@@ -64,7 +64,7 @@ class ImportanceFunctionConcreteCoupled : public ImportanceFunctionConcrete
 	/// Reference to all the transitions of the model (i.e. the network of modules)
 	const std::vector<std::shared_ptr<Transition>>& globalTransitions_;
 
-	/// For interaction with base class ImportanceFunctionConcrete
+	/// Single location used from ImportanceFunctionConcrete::
 	const unsigned importanceInfoIndex_;
 
 public:  // Ctor/Dtor

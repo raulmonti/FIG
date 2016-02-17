@@ -543,8 +543,9 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
 
 void
 ModelSuite::build_importance_function_auto(const std::string& ifunName,
-                                           const Property& property,
-                                           bool force)
+										   const Property& property,
+										   const std::string& mergeFun,
+										   bool force = false)
 {
     if (!exists_importance_function(ifunName))
         throw_FigException(std::string("inexistent importance function \"")

@@ -294,6 +294,8 @@ public:  // Utils
 	 *
 	 * @param ifunName Any from available_importance_functions()
 	 * @param property The Property whose value is to be estimated
+	 * @param mergeFun For "split" ImportanceFunction this string specifies
+	 *                 the function combining the modules importances.
 	 * @param force    Assess importance again, even if importance info
 	 *                 already exists for this importance function and strategy
 	 *
@@ -306,6 +308,7 @@ public:  // Utils
 	void
 	build_importance_function_auto(const std::string& ifunName,
 								   const Property& property,
+								   const std::string& mergeFun = "",
 								   bool force = false);
 
 	/**

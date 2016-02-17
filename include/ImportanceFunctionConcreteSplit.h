@@ -40,14 +40,14 @@ namespace fig
 {
 
 /**
- * @brief Importance function for the concrete importance assessment
- *        of a single ModuleInstance.
+ * @brief ImportanceFunction for the concrete importance assessment
+ *        of the ModuleInstance objects composing the ModuleNetwork.
  *
- *        Assesses the importance of the concrete state space of a single
- *        module, viz the "split" view of the user model.
- *        This requires a ModuleInstance with its \ref State "symbolic state",
- *        namely an array with its \ref Variable "variables", independently
- *        of the states of the other modules.
+ *        Assesses the importance of the concrete state space of every
+ *        individual module, viz. the "split" view of the user model.
+ *        This requires access to all \ref ModuleInstance "system modules"
+ *        with their \ref State "symbolic states", namely the arrays with
+ *        the \ref Variable "variables" uniquely defined in each of them.
  *
  * @see ImportanceFunction
  * @see ImportanceFunctionConcrete
@@ -57,9 +57,6 @@ namespace fig
  */
 class ImportanceFunctionConcreteSplit : public ImportanceFunctionConcrete
 {
-	// Make overloads explicit, otherwise Clang whines like a whore
-	using ImportanceFunctionConcrete::assess_importance;
-
 public:
 
 	/**
