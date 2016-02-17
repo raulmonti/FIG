@@ -75,7 +75,7 @@ public:
 		msg_(std::move(msg))
 		{ compose_msg(file, line); }
 
-	inline const std::string& msg() { return msg_; }
+	inline const std::string& msg() const { return msg_; }
 };
 
 } // namespace fig

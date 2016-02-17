@@ -119,32 +119,30 @@ public:
 //==============================================================================
 
 
-class SyntaxError: public std::exception
+class FigSyntaxError: public std::exception
 {
+
+private:
+
+    std::string e_;    // The error
 
 public:
 
-  std::string e;    // The error
-  int l;            // Line number
-  int c;            // Column number
+    FigSyntaxError(){}
 
-  SyntaxError(){}
+    FigSyntaxError(std::string s = "", int l = -1, int c = -1): e_(s)
+    {
+        e_ += string("At line ") + std::to_string(l) 
+            + string(", column ") + std::to_string(c) + string(".");
+    }
 
-  SyntaxError(std::string s = "", int lnum = -1, int col = -1){
-    e = s;
-    l = lnum;
-    c = col;
-  }
-
-  virtual ~SyntaxError() throw() {}
+    virtual ~FigSyntaxError() throw() {}
 
 
-  virtual const char* what() const throw()
-  {
-    std::string str = string("At line ") + std::to_string(l) 
-                    + string(", column ") + std::to_string(c) + string(".");
-    return (e + str).c_str();
-  }
+    virtual const char* what() const throw()
+    {
+        return e_.c_str();
+    }
 };
 
 

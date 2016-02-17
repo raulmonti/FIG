@@ -165,6 +165,25 @@ test_iosa_condition_7(string path)
 }
 
 //==============================================================================
+void
+test_tandem_queue(string path)
+{
+    string filename = path.substr( path.find_last_of('/') + 1
+                                 , string::npos);
+    cout << "[TEST] " << filename << "..." << endl;
+    try{
+        compile(path);
+        cout << "[TEST] " << filename << " passed." << endl;
+        return;
+    }catch(const FigException &e){
+        cout << "[TEST] " << filename << "NOT passed!!" << endl;
+        cout << "======================\n" << e.msg()
+             << "\n======================\n" << endl;
+    }catch(...){
+        assert(false);
+    }
+}
+//==============================================================================
 int 
 main (int argc, char** argv){
 
@@ -177,6 +196,7 @@ main (int argc, char** argv){
     test_iosa_condition_3(modelsPath + "/counterProp3.sa");
     test_iosa_condition_4(modelsPath + "/counterProp4.sa");
     test_iosa_condition_7(modelsPath + "/counterProp7.sa");
+    test_tandem_queue(modelsPath + "/tandem_queue.sa");
 
     return 0;
 }
