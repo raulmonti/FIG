@@ -1,6 +1,6 @@
 /*
  * Tandem queue for the FIG tool
- * Budde, Monti, D'Argenio 2016
+ * Budde, Monti, D'Argenio | 2016
  *
  * {-
  * Stochastic continuous-time tandem queue concept:
@@ -23,25 +23,25 @@
 /* -- Values taken from Marnix Garvels' PhD Thesis:            */
 /* -- "The splitting method in rare event simulation", p. 85.  */
 
-const int c;                /* -- Queues capacity              */
-const double lambda = 3;	/* -- rate(--> q1           )      */
-const double    mu1 = 2;	/* -- rate(    q1 --> q2    )      */
-const double    mu2 = 6;	/* -- rate(           q2 -->)      */
+const int c = 8;	/* -- Queues capacity: 8, 10, 12, 14   */
+const int lambda = 3;	/* -- rate(--> q1           )          */
+const int    mu1 = 2;	/* -- rate(    q1 --> q2    )          */
+const int    mu2 = 6;	/* -- rate(           q2 -->)          */
 
 /* -- The following values are in p. 61 of the same work:      */
-/* -- const double lambda = 1;                                 */
-/* -- const double    mu1 = 4;                                 */
-/* -- const double    mu2 = 2;                                 */
+/* -- const int lambda = 1;                                    */
+/* -- const int    mu1 = 4;                                    */
+/* -- const int    mu2 = 2;                                    */
 
 
 module Queue1                                    
 
     q1 : [0..c-1];
-    clkArr : clock;         /* -- Exponential(lambda)          */
-    clkPass : clock;        /* -- Exponential(mu1)             */
+    clkArr  : clock;	/* -- Exponential(lambda)              */
+    clkPass : clock;	/* -- Exponential(mu1)                 */
 
-	/* -- Package arrival */
-    [arr!]  q1 == 0    @ clkArr -> (q1'=q1+1) &
+    /* -- Package arrival */
+    [arr!]  q1 == 0    @ clkArr -> (q1'=1) &
                                    (clkArr' = exponential(lambda)) &
                                    (clkPass' = exponential(mu1));
     [arr!]  0 < q1 &&
@@ -52,7 +52,7 @@ module Queue1
     /* -- Package passage */
     [pass!] q1 >  1    @ clkPass -> (q1'=q1-1) &
                                     (clkPass' = exponential(mu1));
-    [pass!] q1 == 1    @ clkPass -> (q1'=q1-1);
+    [pass!] q1 == 1    @ clkPass -> (q1'=0);
 
 endmodule                                       
 
@@ -60,11 +60,11 @@ endmodule
 module Queue2
 
     q2 : [0..c-1] init 1;
-	lost : [0..1];        /* -- Package: (0:recvd) (1:lost)    */
-    clkExit : clock;      /* -- Exponential(mu2)               */
+    lost : [0..1];	/* -- Package: (0:recvd) (1:lost)       */
+    clkExit : clock;	/* -- Exponential(mu2)                  */
 
     /* -- Package passage */
-    [pass?] q2 == 0    -> (q2'=q2+1) &
+    [pass?] q2 == 0    -> (q2'=1)    &
                           (lost'=0)  &
                           (clkExit' = exponential(mu2));
     [pass?] 0 < q2 &&
@@ -75,8 +75,8 @@ module Queue2
     /* -- Package exit */
     [exit!] q2 >  1 @ clkExit -> (q2'=q2-1) &
                                  (lost'=0)  &
-                                 (clkExit'= normal(4,1));
-    [exit!] q2 == 1 @ clkExit -> (q2'=q2-1) &
+                                 (clkExit'= exponential(mu2));
+    [exit!] q2 == 1 @ clkExit -> (q2'=0)    &
                                  (lost'=0);
 
 endmodule
