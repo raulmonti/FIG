@@ -80,6 +80,7 @@ public:  // Accessors
 
 	/// @copydoc ImportanceFunctionConcrete::info_of()
 	/// @note Attempted inline in a desperate need for speed
+	/// @note <b>Complexity:</b> <i>O(size(state)<sup>2</sup>)</i>
 	inline virtual ImportanceValue info_of(const StateInstance& state) const
 		{
 #       ifndef NDEBUG
@@ -97,6 +98,7 @@ public:  // Accessors
 
 	/// @copydoc ImportanceFunction::importance_of()
 	/// @note Attempted inline in a desperate need for speed
+	/// @note <b>Complexity:</b> <i>O(size(state)<sup>2</sup>)</i>
 	inline virtual ImportanceValue importance_of(const StateInstance& state) const
 		{
 			return UNMASK(info_of(state));
@@ -104,6 +106,7 @@ public:  // Accessors
 
 	/// @copydoc ImportanceFunction::level_of(const StateInstance&)
 	/// @note Attempted inline in a desperate need for speed
+	/// @note <b>Complexity:</b> same as ImportanceFunctionConcreteCoupled::info_of()
 	inline virtual ImportanceValue level_of(const StateInstance &state) const
 		{
 #       ifndef NDEBUG
@@ -118,6 +121,7 @@ public:  // Accessors
 
 	/// @copydoc ImportanceFunction::level_of(const ImportanceValue&)
 	/// @note Attempted inline in a desperate need for speed
+	/// @note <b>Complexity:</b> <i>O(1)</i>
 	inline virtual ImportanceValue level_of(const ImportanceValue& val) const
 		{
 #       ifndef NDEBUG
@@ -145,8 +149,6 @@ public:  // Utils
 
 	virtual void build_thresholds(ThresholdsBuilder& tb,
 								  const unsigned& splitsPerThreshold);
-
-	virtual void clear() noexcept;
 };
 
 } // namespace fig

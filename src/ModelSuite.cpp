@@ -545,13 +545,18 @@ void
 ModelSuite::build_importance_function_auto(const std::string& ifunName,
 										   const Property& property,
 										   const std::string& mergeFun,
-										   bool force = false)
+										   bool force)
 {
     if (!exists_importance_function(ifunName))
         throw_FigException(std::string("inexistent importance function \"")
                            .append(ifunName).append("\". Call \"available_")
                            .append("importance_functions()\" for a list ")
                            .append("of available options."));
+
+
+	/// @todo TODO: implement split ImportanceFunction assessment
+	throw_FigException("implement split ImportanceFunction assessment");
+
 
     ImportanceFunction& ifun = *impFuns[ifunName];
     if (!ifun.concrete())

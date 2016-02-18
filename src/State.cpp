@@ -198,22 +198,35 @@ State<T_>::is_valid_state_instance(StateInstance s) const
 
 template< typename T_ >
 void
-State<T_>::copy_from_state_instance(const StateInstance &s, bool checkValidity)
+State<T_>::extract_from_state_instance(const StateInstance& s,
+									   const size_t& ipos,
+									   bool checkValidity)
 {
-	if (s.size() != size()) {
+	const size_t fpos(ipos + size());
+	if (s.size() < fpos) {
 #ifndef NDEBUG
-		std::cerr << "State of size " << size() << " attempted to copy from "
-				  << "StateInstance with " << s.size() << " variables.\n";
+		std::cerr << "Attemped to extract state of size " << size()
+				  << " from position " << ipos << " of a StateInstace"
+				  << " with only " << s.size() << " variables.\n";
 #endif
 		throw_FigException("attempted to copy values from an invalid state");
 	}
+	size_t j(0ul);
 	if (checkValidity) {
-		for (size_t i = 0u ; i < size() ; i++)
-			pvars_[i]->assign(s[i]);
+		for (size_t i = ipos ; i < fpos ; i++)
+			pvars_[j++]->assign(s[i]);
 	} else {
-		for (size_t i = 0u ; i < size() ; i++)
-			(*pvars_[i]) = s[i];
+		for (size_t i = ipos ; i < fpos ; i++)
+			(*pvars_[j++]) = s[i];
 	}
+}
+
+
+template< typename T_ >
+void
+State<T_>::copy_from_state_instance(const StateInstance &s, bool checkValidity)
+{
+	extract_from_state_instance(s, 0ul, checkValidity);
 }
 
 

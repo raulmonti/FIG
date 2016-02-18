@@ -48,7 +48,7 @@ ImportanceFunctionConcreteCoupled::ImportanceFunctionConcreteCoupled(
 
 ImportanceFunctionConcreteCoupled::~ImportanceFunctionConcreteCoupled()
 {
-	clear();
+	ImportanceFunctionConcrete::clear();
 }
 
 
@@ -78,6 +78,7 @@ ImportanceFunctionConcreteCoupled::assess_importance(
 	const std::string&,
 	const std::vector<std::string>&)
 {
+	throw_FigException("TODO: ad hoc assessment and concrete storage");
     /// @todo TODO: implement concrete ifun with ad hoc importance assessment
 }
 
@@ -151,20 +152,6 @@ ImportanceFunctionConcreteCoupled::print_out(std::ostream& out,
 		out.flush();
 	}
 	out << "\b" << std::endl;
-}
-
-
-void
-ImportanceFunctionConcreteCoupled::clear() noexcept
-{
-	ImportanceFunctionConcrete::clear();
-	hasImportanceInfo_ = false;
-	readyForSims_ = false;
-	strategy_ = "";
-	thresholdsTechnique_ = "";
-    minImportance_ = static_cast<ImportanceValue>(0u);
-    maxImportance_ = static_cast<ImportanceValue>(0u);
-	minRareImportance_ = static_cast<ImportanceValue>(0u);
 }
 
 } // namespace fig

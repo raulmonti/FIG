@@ -303,6 +303,7 @@ public:  // Utils
 	 *                     "auto" importance assessment strategy.
 	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
 	 *
+	 * @see ImportanceFunctionConcreteSplit::set_merge_fun()
 	 * @see build_thresholds()
 	 */
 	void

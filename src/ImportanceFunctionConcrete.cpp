@@ -54,7 +54,7 @@ using fig::Transition;
 using fig::StateInstance;
 using fig::ImportanceValue;
 using State = fig::State< fig::STATE_INTERNAL_TYPE >;
-using ImportanceVec = fig::ImportanceFunctionConcrete::ImportanceVec;
+using ImportanceVec = fig::ImportanceFunction::ImportanceVec;
 typedef ImportanceVec EventVec;
 typedef unsigned STATE_T;
 
@@ -435,6 +435,7 @@ ImportanceFunctionConcrete::clear() noexcept
 	for (unsigned i = 0u ; i < modulesConcreteImportance.size() ; i++)
 		this->clear(i);
 	std::vector<ImportanceVec>().swap(modulesConcreteImportance);
+	ImportanceFunction::clear();
 }
 
 

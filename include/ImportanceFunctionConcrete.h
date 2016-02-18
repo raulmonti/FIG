@@ -62,10 +62,6 @@ class Transition;
  */
 class ImportanceFunctionConcrete : public ImportanceFunction
 {
-public:
-
-	typedef std::vector< ImportanceValue > ImportanceVec;
-
 protected:  // Attributes
 
 	/// Concrete importance assessment for all the modules in the system model
@@ -120,7 +116,7 @@ public:  // Utils
 	/**
 	 * @brief Assess the importance of the reachable concrete states of the
 	 *        whole \ref ModuleNetwork "system model", according to the
-	 *        \ref Property "logical property" and using the "adhoc"
+	 *        \ref Property "logical property" and using an ad hoc
 	 *        importance assessment strategy.
 	 *
 	 * @param prop     Property identifying the special states
@@ -145,11 +141,8 @@ public:  // Utils
 								   const std::string& formulaExprStr,
 								   const std::vector<std::string>& varnames) = 0;
 
-	/// Erase all internal importance information and free resources
+	/// Erase all internal importance information (free resources along the way)
 	virtual void clear() noexcept;
-
-	/// Erase internal importance information stored at position "index"
-	virtual void clear(const unsigned& index) noexcept;
 
 protected:  // Utils for derived classes
 
@@ -180,6 +173,9 @@ protected:  // Utils for derived classes
 						   const Property& property,
 						   const std::string& strategy,
 						   const unsigned& index = 0);
+
+	/// Erase internal importance information stored at position "index"
+	virtual void clear(const unsigned& index) noexcept;
 };
 
 } // namespace fig

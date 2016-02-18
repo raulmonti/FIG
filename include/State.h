@@ -249,9 +249,25 @@ public:  // Interaction with state instances
 	bool is_valid_state_instance(StateInstance s) const;
 
 	/**
-	 * @brief Copy values for our Variables from the ::State instance 's'.
+	 * @brief Copy values for our Variables from passed StateInstance
+	 *        starting from its position 'ipos'.
 	 *        Optionally check for validity of 's' beforehand.
+	 * @param s    StateInstance to copy values from
+	 * @param ipos Initial position of 's' from which the values will be extracted
 	 * @note <b>Complexity:</b> <i>O(size())</i>
+	 * @throw FigException if s.size() < ipos + size()
+	 * @throw FigException if checking validity and invalid value found
+	 */
+	void extract_from_state_instance(const StateInstance& s,
+									 const size_t& ipos = 0ul,
+									 bool checkValidity = false);
+
+	/**
+	 * @brief Copy values for our Variables from passed StateInstance.
+	 *        Optionally check for validity of 's' beforehand.
+	 * @param s StateInstance, same size as this State, to copy all values from
+	 * @note <b>Complexity:</b> <i>O(size())</i>
+	 * @throw FigException if StateInstance with different size passed
 	 * @throw FigException if checking validity and invalid value found
 	 */
 	void copy_from_state_instance(const StateInstance& s, bool checkValidity = false);

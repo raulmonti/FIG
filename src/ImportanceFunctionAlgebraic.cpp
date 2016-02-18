@@ -106,9 +106,8 @@ ImportanceFunctionAlgebraic::set_formula(
 	const Property& property)
 {
     if ("auto" == strategy)
-        throw_FigException("importance strategy \"auto\" can only be be used "
-                           "with concrete importance functions; this routine "
-                           "should not have been invoked for such strategy.");
+		throw_FigException("importance strategy \"auto\" can only be used "
+						   "with concrete importance functions");
     try {
 		userFun_.set(formulaExprStr, varnames, gState);
 	} catch (std::out_of_range& e) {

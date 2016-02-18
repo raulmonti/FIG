@@ -30,6 +30,11 @@
 #ifndef IMPORTANCEFUNCTIONCONCRETESPLIT_H
 #define IMPORTANCEFUNCTIONCONCRETESPLIT_H
 
+// C++
+#include <array>
+#include <vector>
+#include <string>
+// FIG
 #include <FigException.h>
 #include <ImportanceFunctionConcrete.h>
 #include <ModuleInstance.h>
@@ -52,49 +57,116 @@ namespace fig
  * @see ImportanceFunction
  * @see ImportanceFunctionConcrete
  * @see ImportanceFunctionConcreteCoupled
- *
- * @todo TODO: Implement, test, get results and publish !!!
  */
 class ImportanceFunctionConcreteSplit : public ImportanceFunctionConcrete
 {
 public:
 
-	/**
-	 * @brief Assess the importance of the states on this \ref ModuleInstance
-	 *        "module", according to the \ref Property "logical property" and
-	 *        strategy specified.
-	 *
-	 * @param mod      Module whose reachable states will have their importance
-	 *                 assessed. Its current state is considered initial.
-	 * @param prop     Property guiding the importance assessment
-	 * @param strategy Strategy of the assessment (flat, auto, ad hoc...)
-	 * @param force    Whether to force the computation, even if this
-	 *                 ImportanceFunction already has importance information
-	 *                 for the specified assessment strategy.
-	 *
-	 * @note After a successfull invocation the ImportanceFunction holds
-	 *       internally the computed \ref has_importance_info()
-	 *       "importance information" for the passed assessment strategy.
-	 *
-	 * @see assess_importance(const ModuleNetwork&, const Property&, const std::string&)
-	 * @see has_importance_info()
-	 */
-	void assess_importance(const ModuleInstance& mod,
-						   const Property& prop,
-						   const std::string& strategy = "",
-						   bool force = false)
+	/// Valid operands for combining the "split modules" importance values
+	static const std::array< std::string, 4 > mergeOperands;
+
+private:
+
+	/// Local importance computed for each ("split") ModuleInstance
+	mutable std::vector< ImportanceValue > localValues_;
+
+	/// Copy of the local states of the system \ref ModuleInstance "modules"
+	mutable std::vector< State< STATE_INTERNAL_TYPE > > localStatesCopies_;
+
+	/// Names of the \ref ModuleInstance "system modules"
+	static std::vector< std::string > modulesNames_;
+
+	/// Mapping of the \ref ModuleInstance "system modules" names to the
+	/// module's position in the coupled \ref ModuleNetwork "system model"
+	static PositionsMap modulesMap_;
+
+	/// Position, in a global system state, of the first variable of each module
+	static std::vector< unsigned short > globalVarsIPos_;
+
+    /// Translator from a global state ImportanceValue to its threshold level
+    std::vector< ImportanceValue > importance2threshold_;
+
+public:  // Ctor/Dtor
+
+	/// @brief Data ctor
+	/// @param model System model, whose current state is taken as initial
+	ImportanceFunctionConcreteSplit(const ModuleNetwork& model);
+
+	/// Dtor
+	virtual ~ImportanceFunctionConcreteSplit();
+
+public:  // Accessors
+
+	/// @copydoc ImportanceFunctionConcrete::info_of()
+	/// @note <b>Complexity:</b> <i>O(size(state))</i> +
+	///                          <i>O(mu::Parser::Eval(localValues_))</i>
+	virtual ImportanceValue info_of(const StateInstance& state) const;
+
+	/// @copydoc ImportanceFunctionConcrete::importance_of()
+	/// @note <b>Complexity:</b> <i>O(size(state))</i> +
+	///                          <i>O(mu::Parser::Eval(localValues_))</i>
+	virtual ImportanceValue importance_of(const StateInstance& state) const;
+
+	/// @copydoc ImportanceFunction::level_of(const StateInstance&)
+	/// @note Attempted inline in a desperate need for speed
+	/// @note <b>Complexity:</b> same as ImportanceFunctionConcreteSplit::importance_of()
+	inline virtual ImportanceValue level_of(const StateInstance& state) const
 		{
-			throw_FigException("TODO");
+#		ifndef NDEBUG
+			if (!ready())
+				throw_FigException(std::string("importance function \"")
+								   .append(name()).append("\" isn't ")
+								   .append("ready for simulations."));
+#		endif
+			return importance2threshold_[importance_of(state)];
 		}
 
-	virtual void assess_importance(const ModuleNetwork& net,
-								   const Property& prop,
-								   const std::string& strategy = "",
-								   bool force = false)
+	/// @copydoc ImportanceFunction::level_of(const ImportanceValue&)
+	/// @note Attempted inline in a desperate need for speed
+	/// @note <b>Complexity:</b> <i>O(1)</i>
+	inline virtual ImportanceValue level_of(const ImportanceValue& val) const
 		{
-			for (auto mod_ptr: net.modules)  // Visit each module individually
-				assess_importance(*mod_ptr, prop, strategy, force);
+#		ifndef NDEBUG
+			if (!ready())
+				throw_FigException(std::string("importance function \"")
+								   .append(name()).append("\" isn't ")
+								   .append("ready for simulations."));
+#		endif
+			assert(val >= min_importance());
+			assert(val <= max_importance());
+			return importance2threshold_[val];
 		}
+
+public:  // Utils
+
+	/**
+	 * @brief Set the function to use for combining the stored importance
+	 *        values of the \ref ModuleInstance "split modules".
+	 * @param mergeFunExpr Algebraic expression to use as merging function.
+	 *                     This can either be a single operand which would be
+	 *                     applied to all modules (e.g. "max", "+"), or a fully
+	 *                     defined function with explicit module names
+	 *                     (e.g. "5*Queue1+Queue2")
+	 */
+	void set_merge_fun(std::string mergeFunExpr);
+
+	virtual void assess_importance(const Property& prop,
+								   const std::string& strategy = "");
+
+	virtual void assess_importance(const Property& prop,
+								   const std::string& formulaExprStr,
+								   const std::vector<std::string>& varnames);
+
+	virtual void build_thresholds(ThresholdsBuilder& tb,
+								  const unsigned& splitsPerThreshold);
+
+private:  // Class utils
+
+	/// Compose a merge function which combines all modules' importance
+	/// by means of some given (valid) algebraic operand
+	/// @throw FigException if 'mergeOperand' is not in mergeOperands
+	/// @see mergeOperands
+	std::string compose_merge_function(const std::string& mergeOperand) const;
 };
 
 } // namespace fig
