@@ -21,30 +21,36 @@ using namespace parser;
 namespace{
 
 const state
-CompileVars(const vector<AST*> varList  )
+CompileVars(const vector<AST*> varList, const parsingContext &pc)
 {
     vector<varDec> result;
     for(auto const &it: varList){
         string name = it->get_lexeme(_NAME);
         assert(name != "");
-        vector<string> limits = {{"0","0"}};
+        vector<string> limits(2,"0");
         int init = 0;
         AST* ASTrange = it->get_first(_RANGE);
         AST* ASTinit = it->get_first(_INIT);
         if(ASTrange){
-            limits = ASTrange->get_list_lexemes(_NUM);
-            assert(limits.size() == 2);
+            vector<AST*> ASTlimits = ASTrange->get_all_ast(_EXPRESSION);
+            assert(ASTlimits.size() == 2);
+            limits[0] = solve_const_expr(ASTlimits[0],pc);
+            limits[1] = solve_const_expr(ASTlimits[1],pc);
         }
+
         if(ASTinit){
-            string num = ASTinit->get_lexeme(_NUM);
-            string boo = ASTinit->get_lexeme(_BOOLEAN);
-            if(num != ""){
-                init = atoi(num.c_str());
+            AST* ASTexp = ASTinit->get_first(_EXPRESSION);
+            Type t = get_type(ASTexp,pc);
+            string exp = solve_const_expr(ASTexp,pc);
+            if(t == T_ARIT){
+                init = atoi(exp.c_str());
             }else{
-                assert(boo != "");
-                init = (boo == "true");
+                init = (exp == "true");
             }
         }
+
+        cout << "##### " << limits[0] << " " << limits[1] << " " << init << endl; 
+
         result.push_back(make_tuple(name
                                    ,atoi(limits[0].c_str())
                                    ,atoi(limits[1].c_str())
@@ -187,14 +193,14 @@ build_input_enable( vector<AST*> transitions)
 //==============================================================================
 
 std::shared_ptr<ModuleInstance> 
-CompileModule(AST* module)
+CompileModule(AST* module, const parsingContext &pc)
 {
     string name = module->get_lexeme(_NAME);
     vector<AST*> variables = module->get_all_ast(_VARIABLE);
     vector<AST*> transitions = module->get_all_ast(_TRANSITION);
 
     auto result = make_shared<ModuleInstance>(name
-                                             ,CompileVars(variables)
+                                             ,CompileVars(variables,pc)
                                              ,CompileClocks(transitions));
 
     for(const auto &it: transitions){
@@ -223,12 +229,12 @@ namespace fig{
 void
 CompileModel(AST* astModel, const parsingContext &pc)
 {   
+    assert(astModel);
 	auto model = fig::ModelSuite::get_instance();
 	assert(!model.sealed());
-
     vector<AST*> modules = astModel->get_all_ast(_MODULE);
     for(auto const &it: modules){
-        auto module = CompileModule(it);
+        auto module = CompileModule(it,pc);
         model.add_module(module);
     }
     model.seal(NamesList({}));

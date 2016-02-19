@@ -463,13 +463,13 @@ Verifier::is_clock(AST* c){
 }
 
 /**
- *
+ * FIXME reorder methods declaration in the whole module
  */
 bool
-Verifier::is_var(AST* c){
-
-    auto const it = mPc.find(c->get_first(_NAME)->p_name());
-    return ( it != mPc.end() && 
+is_var(AST* c, const parsingContext &pc)
+{
+    auto const it = pc.find(c->get_first(_NAME)->p_name());
+    return ( it != pc.end() && 
              (it->second.first == T_ARIT || it->second.first == T_BOOL));
 
 }
@@ -842,7 +842,7 @@ Verifier::type_check(AST *ast){
         if(ASTinit){
             iexp = ASTinit->get_first(_EXPRESSION);
             assert(iexp);
-            i_t = get_type(iexp);
+            i_t = get_type(iexp,mPc);
             init = solve_const_expr(iexp,mPc);
             if(i_t != v_t){
                 error_list.append("[ERROR] Wrong type for variable "
@@ -855,17 +855,18 @@ Verifier::type_check(AST *ast){
             AST* range = variables[i]->get_first(_RANGE);
             vector<AST*> limits = range->get_list(_EXPRESSION);
             assert(limits.size()==2);
-            if(T_ARIT != get_type(limits[0])){
+            if(T_ARIT != get_type(limits[0],mPc)){
                 error_list.append("[ERROR] Wrong type for integer range at "
                                   + limits[0]->get_pos() + ".\n");
             }
-            if(T_ARIT != get_type(limits[1])){
+            if(T_ARIT != get_type(limits[1],mPc)){
                 error_list.append("[ERROR] Wrong type for integer range at "
                                   + limits[1]->get_pos() + ".\n");
 
             }
             int ll = stoi(solve_const_expr(limits[0],mPc));
             int ul = stoi(solve_const_expr(limits[1],mPc));
+            cout << ll << "mmmmm" << ul << endl;
             if( ll > ul){
                 error_list.append("[ERROR] Empty range for variable definition "
                                   "at " + variables[i]->get_pos() + ".\n");
@@ -890,7 +891,7 @@ Verifier::type_check(AST *ast){
         AST *pre = trans[i]->get_first(_PRECONDITION);
         if (pre){
             AST *expr = pre->get_first(_EXPRESSION);
-            if( T_BOOL != get_type(expr)){
+            if( T_BOOL != get_type(expr,mPc)){
                 error_list.append( "[ERROR] Wrong type for transitions "
                     "precondition at " + expr->p_pos() 
                     + ". It should be boolean but found "
@@ -908,7 +909,7 @@ Verifier::type_check(AST *ast){
             AST* expr = assigs[j]->get_first(_EXPRESSION);
             try{
                 Type t_v = mPc[vname].first;
-                Type t_e = get_type(expr);
+                Type t_e = get_type(expr,mPc);
                 if(t_v != t_e){
                     throw "[ERROR] Wrong type in assignment of variable "
                         + vname + " at " + var->p_pos() + ".\n";
@@ -973,24 +974,22 @@ Verifier::type_check(AST *ast){
 
 //==============================================================================
 
-
 /**
  *  @brief Return type of an expression.
  *  @return Type of the expression if it has one.
  *  @throw String with error message if there is something wrong with typing.
  */
-
 Type
-Verifier::get_type(AST *expr)
+get_type(AST *expr, const parsingContext &pc)
 {
     assert(expr);
     if(expr->tkn == _EXPRESSION){
         AST *equality = expr->get_branch(0);
-        Type t1 = get_type(equality);
+        Type t1 = get_type(equality,pc);
         AST *op = expr->get_branch(1);
         AST *expr2 = expr->get_branch(2);
         if(op){
-            Type t2 = get_type(expr2);
+            Type t2 = get_type(expr2,pc);
             if(t1 != T_BOOL || t1 != t2){
                 throw "[ERROR] Wrong types for binary operator '" + op->p_name()
                       + "', at " + op->p_pos() + ".\n";
@@ -1001,11 +1000,11 @@ Verifier::get_type(AST *expr)
         return t1;
     }else if(expr->tkn == _EQUALITY){
         AST *comparison = expr->get_branch(0);
-        Type t1 = get_type(comparison);
+        Type t1 = get_type(comparison,pc);
         AST *op = expr->get_branch(1);
         AST *expr2 = expr->get_branch(2);
         if(op){
-            Type t2 = get_type(expr2);
+            Type t2 = get_type(expr2,pc);
             if(t1 != t2){
                 throw "[ERROR] Wrong types for equality "
                       "operator at " + op->p_pos() + ".\n";
@@ -1016,11 +1015,11 @@ Verifier::get_type(AST *expr)
         return t1;
     }else if(expr->tkn == _COMPARISON){
         AST *summation = expr->get_branch(0);
-        Type t1 = get_type(summation);
+        Type t1 = get_type(summation,pc);
         AST *op = expr->get_branch(1);
         AST *expr2 = expr->get_branch(2);
         if(op){
-            Type t2 = get_type(expr2);
+            Type t2 = get_type(expr2,pc);
             if(t1 != T_ARIT || t1 != t2){
                 throw "[ERROR] Wrong types for arithmetic "
                       "comparison at " + op->p_pos() + ".\n";
@@ -1031,11 +1030,11 @@ Verifier::get_type(AST *expr)
         return t1;
     }else if(expr->tkn == _SUM){
         AST *division = expr->get_branch(0);
-        Type t1 = get_type(division);
+        Type t1 = get_type(division,pc);
         AST *op = expr->get_branch(1);
         AST *expr2 = expr->get_branch(2);
         if(op){
-            Type t2 = get_type(expr2);
+            Type t2 = get_type(expr2,pc);
             if(t1 != T_ARIT || t1 != t2){
                 throw "[ERROR] Wrong types for arithmetic "
                       "operation at " + op->p_pos() + ".\n";
@@ -1046,11 +1045,11 @@ Verifier::get_type(AST *expr)
         return t1;
     }else if(expr->tkn == _DIV){
         AST *value = expr->get_branch(0);
-        Type t1 = get_type(value);
+        Type t1 = get_type(value,pc);
         AST *op = expr->get_branch(1);
         AST *expr2 = expr->get_branch(2);
         if(op){
-            Type t2 = get_type(expr2);
+            Type t2 = get_type(expr2,pc);
             // FIXME should check division by zero????
             if(t1 != T_ARIT || t1 != t2){
                 throw "[ERROR] Wrong types for arithmetic "
@@ -1065,8 +1064,8 @@ Verifier::get_type(AST *expr)
         Type t;
         switch (value->tkn){
             case _NAME:
-                if (is_var(value)){
-                    t = mPc[value->lxm].first;
+                if (is_var(value,pc)){
+                    t = pc.at(value->lxm).first;
                 }else{
                     throw "[ERROR] Undeclared variable '" + value->lxm 
                           + "' at " + value->p_pos() + ".\n";
@@ -1079,17 +1078,17 @@ Verifier::get_type(AST *expr)
                 t = T_ARIT;
                 break;
             case _SEPARATOR:
-                t = get_type(expr->get_branch(1));
+                t = get_type(expr->get_branch(1),pc);
                 break;
             case _NEGATION:
-                t = get_type(expr->get_branch(1));
+                t = get_type(expr->get_branch(1),pc);
                 if(t != T_BOOL){
                     throw "[ERROR] Wrong type for boolean negation, at " 
                           + value->p_pos() + ".\n";
                 }
                 break;
             case _MINUS:
-                t = get_type(expr->get_branch(1));
+                t = get_type(expr->get_branch(1),pc);
                 if(t != T_ARIT){
                     throw "[ERROR] Wrong type for arithmetic negation, at " 
                           + value->p_pos() + ".\n";
@@ -1111,21 +1110,21 @@ Verifier::get_type(AST *expr)
 //==============================================================================
 
 string
-Verifier::solve_const_expr(AST* ex, const parsingContext &pc)
+solve_const_expr(AST* ex, const parsingContext &pc)
 {
-    if(ex->get_all_ast(_NAME).size() != 0){
+    if(!is_const_exp(ex)){
         throw FigNotConstant( "Found not constant expression <" + ex->toString() 
                               + ">."
                             , stoi(ex->get_line())
                             , stoi(ex->get_column()));
     }
-    
+
     string result;
     z3::context c;
     z3::solver s(c);
 
     z3::expr res(c);
-    Type t = get_type(ex);
+    Type t = get_type(ex,pc);
     if(t==T_ARIT){
         res = c.real_const("#");
     }else{
@@ -1138,7 +1137,7 @@ Verifier::solve_const_expr(AST* ex, const parsingContext &pc)
     assert(sat==s.check());
     auto m = s.get_model();
 
-    // TODO round down to closest int.
+    // FIXME round down to closest int.
     if(t==T_ARIT){
         result = Z3_get_numeral_string(c, m.eval(res,false));
     }else{

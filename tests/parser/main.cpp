@@ -48,15 +48,26 @@ compile(string filename)
         __debug__("[DEBUG]\n");
 
         try{
+            cout << -1 << endl;
             stringstream pss;
             pss << prec.pre_compile(pp.first,pp.second);
+            cout << pss.str() << endl; // FIXME DEBUG
             parser.clear();
             pp = parser.parse(&pss);
+            cout << 0 << endl;
             verifier.verify(pp.first,pp.second);
-            fig::CompileModel(pp.first,pp.second);
-        }catch(FigException &e){
+        }catch(const FigException &e){
+            cout << 1 << endl;
             delete pp.first;   
             throw e;
+        }catch(const FigError &e){
+            cout << 2 << endl;
+            delete pp.first;   
+            throw e;
+        }catch(const FigWarning &e){
+            cout << e.what() << endl;
+            cout << "[MSG] Compiling ..." << endl;
+            fig::CompileModel(pp.first,pp.second);
         }
     }
 
@@ -118,6 +129,9 @@ test_iosa_condition_3(string path)
         cout << "======================\n" << e.what() 
              << "======================\n" << endl;
         return;
+    }catch(const std::exception &e){
+        cout << e.what() << endl;
+        assert(false);
     }catch(...){
         assert(false);
     }
@@ -200,9 +214,9 @@ main (int argc, char** argv){
 
     test_names(modelsPath + "/counterNames.sa");
     test_iosa_condition_1_2(modelsPath + "/counterProp1y2.sa");
-    test_iosa_condition_3(modelsPath + "/counterProp3.sa");
-    test_iosa_condition_4(modelsPath + "/counterProp4.sa");
-    test_iosa_condition_7(modelsPath + "/counterProp7.sa");
+   // test_iosa_condition_3(modelsPath + "/counterProp3.sa");
+   // test_iosa_condition_4(modelsPath + "/counterProp4.sa");
+   // test_iosa_condition_7(modelsPath + "/counterProp7.sa");
     test_tandem_queue(modelsPath + "/tandem_queue.sa");
 
     return 0;
