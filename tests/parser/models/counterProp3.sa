@@ -10,8 +10,8 @@ module prop3testModule
 
 
 /*Dummys for defining cloks distributions*/
-[i?] -> (z'=normal(1,1));
-[ii?] -> (w'=normal(1,1));  
+[i?] -> (a' = a+2)&(z'=normal(1,1));
+[ii?] -> (a' = a+2)&(w'=normal(1,1));  
 
 /* No warning because no sat of preconditions. */
 [t1!]  a == 1 @ x -> (a' = 2);
