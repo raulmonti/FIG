@@ -227,35 +227,39 @@ ast2expr( AST* formula, context & c, const parsingContext & pc){
     expr result = c.bool_val(true);
 
     int bsize = formula->branches.size();
-    if( bsize == 3){
+    if( bsize >= 3){
         AST *b0 = formula->branches[0];
-        AST *b1 = formula->branches[1];
-        AST *b2 = formula->branches[2];
-
         if( b0->tkn == _SEPARATOR ){
+            assert(formula->branches.size() == 3);
+            AST *b1 = formula->branches[1];
+            AST *b2 = formula->branches[2];
             assert(b2->tkn == _SEPARATOR);
             result = ast2expr(b1,c,pc);
         }else{
-            expr e0 = ast2expr(b0,c,pc);
-            expr e2 = ast2expr(b2,c,pc);
-            if(b1->lxm == "+")  result = e0 + e2;
-            else if (b1->lxm == "-") result = e0 - e2;
-            else if (b1->lxm == "*") result = e0 * e2;
-            else if (b1->lxm == "/") result = e0 / e2;
-            else if (b1->lxm == "||") result = e0 || e2;
-            else if (b1->lxm == "&") result = e0 && e2;
-            else if (b1->lxm == ">") result = e0 > e2;
-            else if (b1->lxm == "<") result = e0 < e2;
-            else if (b1->lxm == ">=") result = e0 >= e2;
-            else if (b1->lxm == "<=") result = e0 <= e2;
-            else if (b1->lxm == "==") result = e0 == e2;
-            // FIXME Assignments do not correspond to boolean formulas
-            // but this next line helps a lot anyway.
-            else if (b1->lxm == "=") result = e0 == e2;
-            else if (b1->lxm == "!=") result = e0 != e2;
-            else {
-                cout << b1->lxm << endl;
-                assert("Wrong symbol!!!\n" && false);
+            result = ast2expr(b0,c,pc);
+            for(size_t i = 1; i < formula->branches.size()-1 ; i=i+2){
+                AST *b1 = formula->branches[i];
+                AST *b2 = formula->branches[i+1];
+                expr e2 = ast2expr(b2,c,pc);
+                if(b1->lxm == "+")  result = result + e2;
+                else if (b1->lxm == "-") result = result - e2;
+                else if (b1->lxm == "*") result = result * e2;
+                else if (b1->lxm == "/") result = result / e2;
+                else if (b1->lxm == "||") result = result || e2;
+                else if (b1->lxm == "&") result = result && e2;
+                else if (b1->lxm == ">") result = result > e2;
+                else if (b1->lxm == "<") result = result < e2;
+                else if (b1->lxm == ">=") result = result >= e2;
+                else if (b1->lxm == "<=") result = result <= e2;
+                else if (b1->lxm == "==") result = result == e2;
+                // FIXME Assignments do not correspond to boolean formulas
+                // but this next line helps a lot anyway.
+                else if (b1->lxm == "=") result = result == e2;
+                else if (b1->lxm == "!=") result = result != e2;
+                else {
+                    cout << b1->lxm << endl;
+                    assert("Wrong symbol!!!\n" && false);
+                }
             }
         }
     }else if (bsize == 2){
@@ -866,7 +870,6 @@ Verifier::type_check(AST *ast){
             }
             int ll = stoi(solve_const_expr(limits[0],mPc));
             int ul = stoi(solve_const_expr(limits[1],mPc));
-            cout << ll << "mmmmm" << ul << endl;
             if( ll > ul){
                 error_list.append("[ERROR] Empty range for variable definition "
                                   "at " + variables[i]->get_pos() + ".\n");
@@ -965,6 +968,23 @@ Verifier::type_check(AST *ast){
             }
         }
     }
+    // Every enabling clock should have a defined distribution ...
+    vector<AST*> eclist = ast->get_all_ast(_ENABLECLOCK);
+    vector<AST*> rclist = ast->get_all_ast(_SETC);
+    set<string>  rcset;
+    for(const auto &it: rclist){
+        string name = it->get_lexeme(_NAME);
+        name.pop_back();
+        rcset.insert(name);
+    }
+    for(const auto &it: eclist){
+        string name = it->get_lexeme(_NAME);
+        if(rcset.find(name) == rcset.end()){
+            error_list.append("No distribution found for clock " + name +
+                " at " + it->get_pos() + "\n");
+        }
+    }
+
     if(error_list != ""){
         throw FigError(error_list);
     }

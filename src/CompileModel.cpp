@@ -6,7 +6,7 @@
 #include "Clock.h"
 #include "Parser.h"
 #include "ModelSuite.h"
-#include "Iosacompliance.h" // ast2expr
+#include "Iosacompliance.h"
 #include "FigException.h"
 #include <z3++.h>
 
@@ -48,9 +48,6 @@ CompileVars(const vector<AST*> varList, const parsingContext &pc)
                 init = (exp == "true");
             }
         }
-
-        cout << "##### " << limits[0] << " " << limits[1] << " " << init << endl; 
-
         result.push_back(make_tuple(name
                                    ,atoi(limits[0].c_str())
                                    ,atoi(limits[1].c_str())
@@ -141,7 +138,6 @@ CompileTransition(AST* trans)
                           , Precondition(pre, nl)
                           , Postcondition(lassig,rassig,variables)
                           , setcs);
-
     return result;
 }
 

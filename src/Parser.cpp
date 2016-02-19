@@ -573,9 +573,9 @@ int
 Parser::rExpression(){
     newNode(_EXPRESSION,"",lines[pos],columns[pos]);
     if(rEqual()){
-        if(accept(AMP) || accept(MID)){
+        while(accept(AMP) || accept(MID)){
             saveNode(_OPERATOR);
-            if(!rExpression()){
+            if(!rEqual()){
                 string msg("Unexpected word '"+lexemes[pos]+"'.\n");
                 throw FigSyntaxError(msg,lines[pos], columns[pos]);
             }
@@ -592,9 +592,9 @@ int
 Parser::rEqual(){
     newNode(_EQUALITY,"",lines[pos],columns[pos]);
     if(rComparison()){
-        if(accept(BOP)){
+        while(accept(BOP)){
             saveNode(_OPERATOR);
-            if(!rEqual()){
+            if(!rComparison()){
                 string msg("Unexpected word '"+lexemes[pos]+"'.\n");
                 throw FigSyntaxError(msg,lines[pos], columns[pos]);
             }
@@ -612,9 +612,9 @@ int
 Parser::rComparison(){
     newNode(_COMPARISON,"",lines[pos],columns[pos]);
     if(rSum()){
-        if(accept(COP)){
+        while(accept(COP)){
             saveNode(_OPERATOR);
-            if(!rComparison()){
+            if(!rSum()){
                 string msg("Unexpected word '"+lexemes[pos]+"'.\n");
                 throw FigSyntaxError(msg,lines[pos], columns[pos]);
             }
@@ -631,9 +631,9 @@ int
 Parser::rSum(){
     newNode(_SUM,"",lines[pos],columns[pos]);
     if(rDiv()){
-        if(accept(MINUS)||accept(PLUS)){
+        while(accept(MINUS)||accept(PLUS)){
             saveNode(_OPERATOR);
-            if(!rSum()){
+            if(!rDiv()){
                 string msg("Unexpected word '"+lexemes[pos]+"'.\n");
                 throw FigSyntaxError(msg,lines[pos], columns[pos]);
             }
@@ -650,9 +650,9 @@ int
 Parser::rDiv(){
     newNode(_DIV,"",lines[pos],columns[pos]);
     if(rValue()){
-        if(accept(DIVOP)){
+        while(accept(DIVOP)){
             saveNode(_OPERATOR);
-            if(!rDiv()){
+            if(!rValue()){
                 string msg("Unexpected word '"+lexemes[pos]+"'.\n");
                 throw FigSyntaxError(msg,lines[pos], columns[pos]);
             }
