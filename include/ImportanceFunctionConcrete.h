@@ -67,10 +67,20 @@ protected:  // Attributes
 	/// Concrete importance assessment for all the modules in the system model
 	std::vector< ImportanceVec > modulesConcreteImportance;
 
+	/// \ref ModuleNetwork "Model"'s global State at its initial valuation,
+	/// needed for the "auto" strategy
+	const State<STATE_INTERNAL_TYPE>& globalState;
+
+	/// Reference to all the \ref ModuleNetwork "model"'s transitions,
+	/// needed for the "auto" strategy
+	const std::vector<std::shared_ptr<Transition>>& globalTransitions;
+
 public:  // Ctor/Dtor
 
 	/// Data ctor
-	ImportanceFunctionConcrete(const std::string& name);
+	ImportanceFunctionConcrete(const std::string& name,
+							   const State<STATE_INTERNAL_TYPE>& state,
+							   const std::vector<std::shared_ptr<Transition>>& trans);
 
 	/// Dtor
 	virtual ~ImportanceFunctionConcrete();
@@ -99,14 +109,18 @@ public:  // Utils
 	 *        whole \ref ModuleNetwork "system model", according to the
 	 *        \ref Property "logical property" and strategy specified.
 	 *
+	 *        Any \ref has_importance_info() "importance information" previously
+	 *        computed is discarded. After a successfull invocation the
+	 *        ImportanceFunction holds internally the importance corresponding
+	 *        to the Property and assessment strategy given.
+	 * 
 	 * @param prop     Property identifying the special states
 	 * @param strategy Importance assessment strategy, currently "flat" or "auto"
 	 *
-	 * @note After a successfull invocation the ImportanceFunction holds
-	 *       internally the computed \ref has_importance_info()
-	 *       "importance information" for the passed assessment strategy.
 	 * @note To use the "adhoc" importance assessment strategy
 	 *       call the other assess_importance() member function
+	 * 
+	 * @throw bad_alloc if system's memory wasn't enough for internal storage
 	 *
 	 * @see has_importance_info()
 	 */
@@ -119,21 +133,24 @@ public:  // Utils
 	 *        \ref Property "logical property" and using an ad hoc
 	 *        importance assessment strategy.
 	 *
+	 *        Any \ref has_importance_info() "importance information" previously
+	 *        computed is discarded. After a successfull invocation the
+	 *        ImportanceFunction holds internally the importance corresponding
+	 *        to the passed ad hoc importance assessment function.
+	 *
 	 * @param prop     Property identifying the special states
 	 * @param formulaExprStr  Mathematical formula to assess the states'
 	 *                        importance, expressed as a string
 	 * @param varnames Names of variables ocurring in 'formulaExprStr',
 	 *                 i.e. which substrings in the formula expression
 	 *                 are actually variable names.
-	 *
-	 * @note After a successfull invocation the ImportanceFunction holds
-	 *       internally the computed \ref has_importance_info()
-	 *       "importance information" for the passed assessment strategy.
+	 * 
 	 * @note To use other importance assessment strategies (e.g. "flat")
 	 *       call the other assess_importance() member function
 	 *
 	 * @throw FigException if badly formatted 'formulaExprStr' or 'varnames'
 	 *                     has names not appearing in 'formulaExprStr'
+	 * @throw bad_alloc if system's memory wasn't enough for internal storage
 	 *
 	 * @see has_importance_info()
 	 */
@@ -165,6 +182,9 @@ protected:  // Utils for derived classes
 	 * @note To assess again for same index with different strategy or property,
 	 *       release first the internal info through clear(const unsigned&)
 	 *
+	 * @warning The values of the internal inherited attributes minImportance_,
+	 *          maxImportance_ and minRareImportance_ are updated.
+	 *
 	 * @throw bad_alloc    if system's memory wasn't enough for internal storage
 	 * @throw FigException if there's already importance info for this index
 	 */
@@ -173,9 +193,6 @@ protected:  // Utils for derived classes
 						   const Property& property,
 						   const std::string& strategy,
 						   const unsigned& index = 0);
-
-	/// Erase internal importance information stored at position "index"
-	virtual void clear(const unsigned& index) noexcept;
 };
 
 } // namespace fig

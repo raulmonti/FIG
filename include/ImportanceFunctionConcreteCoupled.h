@@ -58,12 +58,6 @@ class ImportanceFunctionConcreteCoupled : public ImportanceFunctionConcrete
 	/// Copy of the global state of the model (i.e. the network of modules)
 	mutable State< STATE_INTERNAL_TYPE > globalStateCopy_;
 
-	/// Initial state of all variables in the model (i.e. the network of modules)
-	const StateInstance globalInitialValuation_;
-
-	/// Reference to all the transitions of the model (i.e. the network of modules)
-	const std::vector<std::shared_ptr<Transition>>& globalTransitions_;
-
 	/// Single location used from ImportanceFunctionConcrete::
 	const unsigned importanceInfoIndex_;
 

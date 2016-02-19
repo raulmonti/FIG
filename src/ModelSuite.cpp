@@ -339,9 +339,9 @@ template< template< typename, typename... > class Container,
 		  typename ValueType,
 		  typename... OtherContainerArgs >
 void
-ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames)
+ModelSuite::seal(const Container<std::string, OtherContainerArgs>& initialClocksNames)
 {
-	static_assert(std::is_convertible< std::string, ValueType >::value,
+	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: type mismatch. ModelSuite::seal() needs "
 				  "a container with the initial clock names as strings");
 	if (model->sealed())
@@ -352,13 +352,24 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 #endif
 
 	// Notify the internal structures
-	model->seal(initialClocksNames);
+	if (std::distance(begin(initialClocksNames), end(initialClocksNames)) == 0ul) {
+		// No initial clocks specified => all are treated as initial
+		std::vector< std::string > allClocksNames(model->num_clocks());
+		size_t i(0ul);
+		for (const fig::Clock& clock: model->clocks())
+			allClocksNames[i] = clock.name();
+		model->seal(allClocksNames);
+	} else {
+		model->seal(initialClocksNames);
+	}
 	for (auto prop: properties)
 		prop->pin_up_vars(model->global_state());
 
 	// Build offered importance functions
-    impFuns["concrete_coupled"] =
-            std::make_shared< ImportanceFunctionConcreteCoupled >(*model);
+	impFuns["concrete_coupled"] =
+			std::make_shared< ImportanceFunctionConcreteCoupled >(*model);
+	impFuns["concrete_split"] =
+			std::make_shared< ImportanceFunctionConcreteSplit >(*model);
     impFuns["algebraic"] =
             std::make_shared< ImportanceFunctionAlgebraic >();
 
@@ -553,11 +564,6 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
                            .append("importance_functions()\" for a list ")
                            .append("of available options."));
 
-
-	/// @todo TODO: implement split ImportanceFunction assessment
-	throw_FigException("implement split ImportanceFunction assessment");
-
-
     ImportanceFunction& ifun = *impFuns[ifunName];
     if (!ifun.concrete())
         throw_FigException(std::string("requested to build a non-concrete ")
@@ -567,8 +573,10 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 
     if (force || !ifun.has_importance_info() || "auto" != ifun.strategy()) {
         ifun.clear();
-        static_cast<ImportanceFunctionConcrete&>(ifun)
-                .assess_importance(property, "auto");
+		if (ifunName == "concrete_split")
+			static_cast<ImportanceFunctionConcreteSplit&>(ifun).set_merge_fun(mergeFun);
+		static_cast<ImportanceFunctionConcrete&>(ifun)
+				.assess_importance(property, "auto");
     }
 
     assert(ifun.has_importance_info());
@@ -612,7 +620,6 @@ ModelSuite::build_importance_function_adhoc(
 
     assert(ifun.has_importance_info());
     assert("adhoc" == ifun.strategy());
-
 }
 
 // ModelSuite::build_importance_function_adhoc() can only be invoked

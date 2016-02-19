@@ -185,7 +185,8 @@ public:  // Modifyers
 	 *        "module instances" have been added to the ModelSuite,
 	 *
 	 * @param initialClocksNames Container with the names of the clocks which
-	 *                           need to be reset on system initialization
+	 *                           need to be reset on system initialization.
+	 *                           If empty then all are considered initial.
 	 *
 	 * @note seal() must have been invoked before the beginning of simulations,
 	 *       also to create the \ref SimulationEngine "engines" and
@@ -202,6 +203,9 @@ public:  // Modifyers
 			  typename ValueType,
 			  typename... OtherContainerArgs >
 	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames);
+
+	/// Just like seal(), taking all system clocks as initial
+	inline void seal() { seal(std::vector<std::string>()); }
 
 public:  // Stubs for ModuleNetwork
 

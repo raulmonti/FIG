@@ -38,10 +38,10 @@ namespace fig
 // Available function names in ImportanceFunction::names
 ImportanceFunctionConcreteCoupled::ImportanceFunctionConcreteCoupled(
     const ModuleNetwork &model) :
-        ImportanceFunctionConcrete("concrete_coupled"),
+		ImportanceFunctionConcrete("concrete_coupled",
+								   model.global_state(),
+								   model.transitions_),
         globalStateCopy_(model.global_state()),
-        globalInitialValuation_(model.global_state().to_state_instance()),
-        globalTransitions_(model.transitions_),
         importanceInfoIndex_(0u)
 { /* Not much to do around here */ }
 
@@ -58,10 +58,9 @@ ImportanceFunctionConcreteCoupled::assess_importance(
     const std::string& strategy)
 {
     if (hasImportanceInfo_)
-        clear();
-    globalStateCopy_.copy_from_state_instance(globalInitialValuation_);
-    ImportanceFunctionConcrete::assess_importance(globalStateCopy_,
-                                                  globalTransitions_,
+		ImportanceFunctionConcrete::clear();
+	ImportanceFunctionConcrete::assess_importance(globalState,
+												  globalTransitions,
                                                   prop,
                                                   strategy,
                                                   importanceInfoIndex_);
@@ -78,7 +77,7 @@ ImportanceFunctionConcreteCoupled::assess_importance(
 	const std::string&,
 	const std::vector<std::string>&)
 {
-	throw_FigException("TODO: ad hoc assessment and concrete storage");
+	throw_FigException("TODO: ad hoc assessment and coupled concrete storage");
     /// @todo TODO: implement concrete ifun with ad hoc importance assessment
 }
 

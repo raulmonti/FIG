@@ -30,7 +30,8 @@
 // C++
 #include <vector>
 #include <sstream>
-#include <iterator>   // std::begin, std::end
+#include <numeric>    // std::numeric_limits<>()
+#include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // std::find()
 // FIG
 #include <ImportanceFunction.h>
@@ -234,6 +235,36 @@ ImportanceFunction::clear() noexcept
 	minRareImportance_ = static_cast<ImportanceValue>(0u);
 	numThresholds_ = 0u;
 	userFun_.reset();
+}
+
+
+void
+ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
+										const Property& property)
+{
+	const size_t concreteStateSpaceSize(state.concrete_size());
+	minImportance_ = std::numeric_limits<ImportanceValue>::max();
+	maxImportance_ = std::numeric_limits<ImportanceValue>::min();
+	minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
+
+//	#pragma omp parallel for default(shared) private(gStateCopy) reduction(min:imin,iminRare)
+	for (size_t i = 0ul ; i < concreteStateSpaceSize ; i++) {
+		assert(gStateCopy.size() == gState.size());
+		const StateInstance symbState = state.decode(i).to_state_instance();
+		const ImportanceValue importance = importance_of(symbState);
+		minImportance_ = importance < minImportance_ ? importance
+													 : minImportance_;
+		if (property.is_rare(symbState) && importance < minRareImportance_)
+			minRareImportance_ = importance;
+	}
+
+//	#pragma omp parallel for default(shared) private(gStateCopy) reduction(max:imax)
+	for (size_t i = 0ul ; i < concreteStateSpaceSize ; i++) {
+		const ImportanceValue importance =
+				importance_of(gStateCopy.decode(i).to_state_instance());
+		maxImportance_ = importance > maxImportance_ ? importance
+													 : maxImportance_;
+	}
 }
 
 } // namespace fig

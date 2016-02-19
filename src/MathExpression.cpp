@@ -109,9 +109,7 @@ MathExpression::pin_up_vars(const PositionsMap& globalVars)
 
 void MathExpression::parse_our_expression()
 {
-	assert(!exprStr_.empty());  // expression emptyness is checked later
-//	if (exprStr_.empty())
-//		return;
+	assert(!exprStr_.empty());
 	try {
 		expr_.SetExpr(exprStr_);
 

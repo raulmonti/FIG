@@ -320,6 +320,27 @@ public:  // Utils
 	///          "importance information" any longer and will thus not be
 	///          \ref ready() "ready for simulations" either.
 	virtual void clear() noexcept;
+
+public:  // Utils for derived classes
+
+	/**
+	 * @brief Find extreme \ref ImportanceValue "importance values" for the
+	 *        current importance assessment of this ImportanceFunction.
+	 *
+	 *        On successfull invocation the values of the internal attributes
+	 *        minImportance_, maxImportance_ and minRareImportance_ are left
+	 *        as they should for the importance information currently held.
+	 *
+	 * @param state    State whose whole concrete space will be explored
+	 * @param property Property identifying the rare State valuations
+	 *
+	 * @note <b>Complexity:</b> <i>O(state.concrete_size() * state.size())</i>
+	 *
+	 * @throw FigException if there was no \ref has_importance_info()
+	 *                     "importance information"
+	 */
+	void find_extreme_values(State<STATE_INTERNAL_TYPE> state,
+							 const Property& property);
 };
 
 
@@ -332,7 +353,7 @@ public:  // Utils
 
 template< template< typename... > class Container,
 					typename... OtherArgs,
-		  class Mapper
+		  typename Mapper
 >
 void
 ImportanceFunction::Formula::set(
@@ -340,25 +361,28 @@ ImportanceFunction::Formula::set(
 	const Container<std::string, OtherArgs...>& varnames,
 	const Mapper& obj)
 {
-	empty_ = "" == formula;
-	exprStr_ = empty_ ? MathExpression::emptyExpressionString : formula;
+	static_assert(std::is_same<PositionsMap, Mapper>::value ||
+				  std::is_assignable<State<STATE_INTERNAL_TYPE>, Mapper>::value,
+				  "ERROR: type mismatch. ImportanceFunction::Formula::set() can"
+				  " only be called with a State<...> object or a PositionsMap.");
+	if ("" == formula || formula.length() == 0ul)
+		throw_FigException("can't define an empty user function");
+
+	empty_ = false;
+	exprStr_ = formula;
 	parse_our_expression();  // updates expr_
 	varsMap_.clear();
 	std::function<size_t(const std::string&)> pos_of_var;
-	if (std::is_assignable<State<STATE_INTERNAL_TYPE>, Mapper>::value)
-		pos_of_var = std::bind(&State<STATE_INTERNAL_TYPE>::position_of_var,
-							   obj, std::placeholders::_1);
-	else if (std::is_same<fig::PositionsMap, Mapper>::value)
+	if (std::is_same<PositionsMap, Mapper>::value)
 		pos_of_var = [&obj](const std::string& varName) { return obj[varName]; };
 	else
-		static_assert(false, "ERROR: type mismatch. ImportanceFunction::Formula"
-					  "::set() can only be called with a State<...> object "
-					  "or a PositionsMap.");
+		pos_of_var = std::bind(&State<STATE_INTERNAL_TYPE>::position_of_var,
+							   obj, std::placeholders::_1);
 	for (const auto& name: varnames)
 		if (std::string::npos != formula.find(name))  // name occurs in formula
 			varsMap_.emplace_back(std::make_pair(name, pos_of_var(name)));
 	pinned_ = true;
-	// Fake an evaluation to reveal parsing errors now... I said NOW!
+	// Fake an evaluation to reveal parsing errors but now... I said NOW!
 	STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
 	try {
 		for (const auto& pair: varsMap_)

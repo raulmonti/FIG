@@ -159,6 +159,13 @@ template void ModuleNetwork::seal(const std::forward_list<std::string>&);
 template void ModuleNetwork::seal(const std::unordered_set<std::string>&);
 
 
+std::vector< const Clock& >
+ModuleNetwork::clocks() const
+{
+	/// @todo TODO: implement
+}
+
+
 StateInstance
 ModuleNetwork::initial_state() const
 {

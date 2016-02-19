@@ -95,7 +95,7 @@ State<T_>& State<T_>::operator=(State<T_> that)
 
 template< typename T_ >
 void
-State<T_>::append(const State& tail)
+State<T_>::append(const State<T_>& tail)
 {
 #ifndef NDEBUG
 	for (const auto var_ptr: tail)
@@ -112,6 +112,24 @@ State<T_>::append(const State& tail)
 	for (const auto& pair: tail.positionOfVar_)
 		positionOfVar_[pair.first] += oldSize;
 	build_concrete_bound();
+}
+
+
+template< typename T_ >
+void
+State<T_>::get_valuation(const State<T_>& that)
+{
+	for (auto our_pvar: pvars_) {
+		auto thatVar = std::find_if(::begin(that), ::end(that),
+									[&] (const std::shared_ptr<Variable<T_>>& pvar)
+									{ return our_pvar->name() == pvar->name(); });
+		if (::end(that) != thatVar)
+			(*our_pvar) = (*thatVar)->val();
+		else
+			throw_FigException(std::string("tried to get_valuation() from ")
+							   .append("incompatible State, variable \"")
+							   .append(our_pvar->name()).append("\" not found"));
+	}
 }
 
 

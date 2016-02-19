@@ -67,7 +67,11 @@ public:
 
 private:
 
-	/// Local importance computed for each ("split") ModuleInstance
+	/// Number of \ref ModuleInstance "system modules"
+	const size_t numModules_;
+
+	/// Temporal storage for the local importance
+	/// computed for each ("split") ModuleInstance
 	mutable std::vector< ImportanceValue > localValues_;
 
 	/// Copy of the local states of the system \ref ModuleInstance "modules"
@@ -147,6 +151,7 @@ public:  // Utils
 	 *                     applied to all modules (e.g. "max", "+"), or a fully
 	 *                     defined function with explicit module names
 	 *                     (e.g. "5*Queue1+Queue2")
+	 * @throw FigException if invalid or badly formatted function expression
 	 */
 	void set_merge_fun(std::string mergeFunExpr);
 

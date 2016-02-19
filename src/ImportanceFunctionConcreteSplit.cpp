@@ -27,11 +27,14 @@
 //==============================================================================
 
 
+// C
+#include <cctype>     // std::isspace()
 // C++
-#include <iterator>  // std::begin(), std::end()
-#include <algorithm>
+#include <iterator>   // std::begin(), std::end()
+#include <algorithm>  // find_if_not()
 // FIG
 #include <ImportanceFunctionConcreteSplit.h>
+#include <ModelSuite.h>
 
 // ADL
 using std::begin;
@@ -76,37 +79,41 @@ std::vector< std::string > ImportanceFunctionConcreteSplit::modulesNames_;
 
 PositionsMap ImportanceFunctionConcreteSplit::modulesMap_;
 
+std::vector< unsigned short > ImportanceFunctionConcreteSplit::globalVarsIPos_;
+
 
 
 // ImportanceFunctionConcreteSplit class member functions
 
 ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 	const ModuleNetwork &model) :
-		ImportanceFunctionConcrete("concrete_split"),
-		localValues_(model.modules.size()),
-		localStatesCopies_(model.modules.size()),
-		globalVarsIPos_(model.modules.size()),
+		ImportanceFunctionConcrete("concrete_split",
+								   model.global_state(),
+								   model.transitions_),
+		numModules_(model.modules.size()),
+		localValues_(numModules_),
+		localStatesCopies_(numModules_),
 		importance2threshold_()
 {
 	bool initialize(false);  // initialize (non-const) static class members?
 	if (modulesNames_.size() == 0ul) {
 		initialize = true;
-		modulesNames_.resize(model.modules.size());
-		modulesMap_.reserve(model.modules.size());
+		modulesNames_.resize(numModules_);
+		modulesMap_.reserve(numModules_);
+		globalVarsIPos_.resize(numModules_);
 	}
-	for (size_t i = 0ul ; i < localStatesCopies_.size() ; i++) {
+	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		assert(model.modules[i]->global_index() == static_cast<int>(i));
 		localStatesCopies_[i] = model.modules[i]->local_state();
-		globalVarsIPos_[i] = 0ul == i ? 0u
-									  : globalVarsIPos_[i-1]
-										+ model.modules[i-1]->state_size();
 		if (initialize) {
-			modulesNames_[i] = model.modules[i]->name;
-			modulesMap_[modulesNames_[i]] = i;
+			const std::string& moduleName(model.modules[i]->name);
+			modulesNames_[i] = moduleName;
+			modulesMap_[moduleName] = i;
+			globalVarsIPos_[i] = 0ul == i ? 0u
+										  : globalVarsIPos_[i-1]
+											+ model.modules[i-1]->state_size();
 		}
 	}
-	assert(modulesNames_.size() == model.modules.size());
-	assert(modulesMap_.size() == model.modules.size());
 }
 
 
@@ -130,7 +137,7 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 						   .append("hold importance information."));
 #endif
 	Event e(EventType::NONE);
-	for (size_t i = 0ul ; i < localStatesCopies_.size() ; i++) {
+	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		auto& localState = localStatesCopies_[i];
 #ifndef NDEBUG
 		localState.extract_from_state_instance(state, globalVarsIPos_[i], true);
@@ -154,7 +161,7 @@ ImportanceFunctionConcreteSplit::importance_of(const StateInstance& state) const
 						   .append(name()).append("\" doesn't ")
 						   .append("hold importance information."));
 #endif
-	for (size_t i = 0ul ; i < localStatesCopies_.size() ; i++) {
+	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		auto& localState = localStatesCopies_[i];
 #ifndef NDEBUG
 		localState.extract_from_state_instance(state, globalVarsIPos_[i], true);
@@ -170,7 +177,7 @@ ImportanceFunctionConcreteSplit::importance_of(const StateInstance& state) const
 void
 ImportanceFunctionConcreteSplit::set_merge_fun(std::string mergeFunExpr)
 {
-	if (mergeFunExpr.size() <= 3)  // given an operand, make it a function
+	if (mergeFunExpr.length() <= 3ul)  // given an operand => make it a function
 		mergeFunExpr = compose_merge_function(mergeFunExpr);
 	try {
 		userFun_.set(mergeFunExpr, modulesNames_, modulesMap_);
@@ -180,8 +187,6 @@ ImportanceFunctionConcreteSplit::set_merge_fun(std::string mergeFunExpr)
 						   .append("\" for auto split importance assessment: ")
 						   .append(e.what()));
 	}
-
-	/// @todo TODO: finish implementation
 }
 
 
@@ -197,28 +202,109 @@ ImportanceFunctionConcreteSplit::compose_merge_function(
 						   .append("function. See valid options in Importance")
 						   .append("FunctionConcreteSplit::mergeOperands"));
 	std::string mergeFun;
-	if (mergeOperand.size() == 1ul) {
+	if (mergeOperand.length() == 1ul) {
 		// Must be either '+' or '*'
 		const std::string op(std::string(" ")
 							 .append(trim(mergeOperand))
 							 .append(" "));
 		for (const auto& mName: modulesNames_)
 			mergeFun.append(mName).append(op);
-		mergeFun.resize(mergeFun.size()-2ul);
+		mergeFun.resize(mergeFun.size() - op.length());
 	} else {
 		// Must be either 'max' or 'min'
-		assert(mergeOperand.size() == 3ul);
+		assert(mergeOperand.length() == 3ul);
 		const std::string op(trim(mergeOperand).append("("));
 		for (const auto& mName: modulesNames_)
 			mergeFun.append(op).append(mName).append(", ");
 		// mergeFun == "min(name1, min(name2, ..., min(nameN, "
-		mergeFun.resize(mergeFun.size() - std::string("min(, ").length()
-										- modulesNames_.back().length());
+		mergeFun.resize(mergeFun.size() - op.length()
+										- modulesNames_.back().length()
+										- std::string(", ").length());
 		mergeFun.append(modulesNames_.back());
-		for (size_t i = 0ul ; i < modulesNames_.size()-1ul ; i++)
-			mergeFun.append(")");
+		mergeFun.append(modulesNames_.size()-1ul, ')');
 	}
 	return mergeFun;
+}
+
+
+void
+ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
+												   const std::string& strategy)
+{
+	if (userFun_.expression().length() < numModules_)
+		throw_FigException(std::string("can't assess importance in function \"")
+						   .append(name()).append("\" since current merging ")
+						   .append(" function is invalid (\"")
+						   .append(userFun_.expression()).append("\")"));
+	if (hasImportanceInfo_)
+		ImportanceFunctionConcrete::clear();
+	modulesConcreteImportance.resize(numModules_);
+	const ModuleNetwork& network = ModelSuite::get_instance().modules_network();
+
+	// Assess each module importance individually from the rest
+	for (size_t index = 0ul ; index < numModules_ ; index++) {
+		auto& localState = localStatesCopies_[index];
+		localState.get_valuation(globalState);  // set at local initial valuation
+
+		/// @todo TODO: wait for Raúl to implement the Property simplification
+
+//		std::unique_ptr< Property > localProp =
+//				simplify_for_module(prop, *network.modules[i]);
+//		ImportanceFunctionConcrete::assess_importance(localState,
+//													  globalTransitions,
+//													  *localProp,
+//													  strategy,
+//													  index);
+		assert(minImportance_ <= minRareImportance_);
+		assert(minRareImportance_ <= maxImportance_);
+	}
+	hasImportanceInfo_ = true;
+	strategy_ = strategy;
+
+	// Find extreme importance values for current assessment
+	if (strategy.empty() || "flat" == strategy) {
+		const ImportanceValue importance =
+				importance_of(globalState.to_state_instance());
+		minImportance_ = importance;
+		maxImportance_ = importance;
+		minRareImportance_ = importance;
+	} else {
+		find_extreme_values(globalState, property);  // *very* CPU intensive
+	}
+	assert(minImportance_ <= minRareImportance_);
+	assert(minRareImportance_ <= maxImportance_);
+}
+
+
+void
+ImportanceFunctionConcreteSplit::assess_importance(
+	const Property&,
+	const std::string&,
+	const std::vector<std::string>&)
+{
+	throw_FigException("TODO: ad hoc assessment and split concrete storage");
+	/// @todo TODO: implement concrete ifun with ad hoc importance assessment
+}
+
+
+void
+ImportanceFunctionConcreteSplit::build_thresholds(
+	ThresholdsBuilder& tb,
+	const unsigned& splitsPerThreshold)
+{
+	if (!has_importance_info())
+		throw_FigException(std::string("importance function \"").append(name())
+						   .append("\" doesn't yet have importance information"));
+
+	std::vector< ImportanceValue >().swap(importance2threshold_);
+	importance2threshold_ = tb.build_thresholds(splitsPerThreshold, *this);
+	assert(!importance2threshold_.empty());
+	assert(importance2threshold_[0] == static_cast<ImportanceValue>(0u));
+	assert(importance2threshold_[0] <= importance2threshold_.back());
+
+	numThresholds_ = importance2threshold_.back();
+	thresholdsTechnique_ = tb.name;
+	readyForSims_ = true;
 }
 
 } // namespace fig

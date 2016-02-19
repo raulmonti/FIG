@@ -151,7 +151,16 @@ public:  // Modifyers
 	 *   @throw FigException if some variable in 'tail' already existed in this state
 	 * \endif
 	 */
-	void append(const State& tail);
+	void append(const State<T_>& tail);
+
+	/**
+	 * @brief Copy values for our Variables from passed State
+	 * @details Notice 'that' should contain a superset of our variables
+	 * @param that State to copy our variables' values from
+	 * @note <b>Complexity:</b> <i>O(size()*size(that))</i>
+	 * @throw FigException if 'that' doesn't hold values for all our variables
+	 */
+	void get_valuation(const State<T_>& that);
 
 public:  // Accessors
 

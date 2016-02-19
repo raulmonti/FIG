@@ -116,39 +116,21 @@ ImportanceFunctionAlgebraic::set_formula(
 						   .append("\" for ad hoc importance assessment: ")
 						   .append(e.what()));
 	}
+	hasImportanceInfo_ = true;
+	strategy_ = strategy;
+
 	// Find extreme importance values for this ad hoc function
-	State<STATE_INTERNAL_TYPE> gStateCopy = gState;
 	if (strategy.empty() || "flat" == strategy) {
-		ImportanceValue importance = userFun_(gStateCopy.to_state_instance());
+		const ImportanceValue importance =
+				importance_of(gState.to_state_instance());
 		minImportance_ = importance;
 		maxImportance_ = importance;
 		minRareImportance_ = importance;
 	} else {
-		minImportance_ = std::numeric_limits<ImportanceValue>::max();
-		maxImportance_ = std::numeric_limits<ImportanceValue>::min();
-		minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
-//		#pragma omp parallel for default(shared) private(gStateCopy) reduction(min:imin,iminRare)
-		for (size_t i = 0ul ; i < gState.concrete_size() ; i++) {
-			assert(gStateCopy.size() == gState.size());
-			const StateInstance symbState = gStateCopy.decode(i).to_state_instance();
-			const ImportanceValue importance = userFun_(symbState);
-			minImportance_ = importance < minImportance_ ? importance
-														 : minImportance_;
-			if (property.is_rare(symbState) && importance < minRareImportance_)
-				minRareImportance_ = importance;
-		}
-//		#pragma omp parallel for default(shared) private(gStateCopy) reduction(max:imax)
-		for (size_t i = 0ul ; i < gState.concrete_size() ; i++) {
-			const ImportanceValue importance =
-					userFun_(gStateCopy.decode(i).to_state_instance());
-			maxImportance_ = importance > maxImportance_ ? importance
-														 : maxImportance_;
-		}
+		find_extreme_values(gState, property);  // *very* CPU intensive
 	}
 	assert(minImportance_ <= minRareImportance_);
 	assert(minRareImportance_ <= maxImportance_);
-	hasImportanceInfo_ = true;
-	strategy_ = strategy;
 }
 
 // ImportanceFunctionAlgebraic::set_formula() can only be invoked
