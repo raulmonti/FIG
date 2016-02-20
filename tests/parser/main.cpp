@@ -53,9 +53,17 @@ compile(string filename)
             parser.clear();
             pp = parser.parse(&pss);
             verifier.verify(pp.first,pp.second);
-            fig::CompileModel(pp.first,pp.second);
-        }catch(FigException &e){
+        }catch(const FigException &e){
             delete pp.first;   
+            throw e;
+        }catch(const FigError &e){
+            delete pp.first;   
+            throw e;
+        }catch(const FigWarning &e){
+            cout << "======================\n" << e.what() 
+            << "======================\n";
+            cout << "[MSG] Compiling ..." << endl;
+            fig::CompileModel(pp.first,pp.second);
             throw e;
         }
     }
@@ -73,10 +81,10 @@ test_names(string path)
     cout << "[TEST] " << filename << "..." << endl;
     try{
         compile(path);
-    }catch(FigException &e){
+    }catch(FigError &e){
         cout << "[TEST] " << filename << " passed." << endl;
-        cout << "======================\n" << e.msg() 
-             << "\n======================\n" << endl;
+        cout << "======================\n" << e.what() 
+             << "======================\n" << endl;
         return;
     }catch(...){
         assert(false);
@@ -93,10 +101,10 @@ test_iosa_condition_1_2(string path)
     cout << "[TEST] " << filename << "..." << endl;
     try{
         compile(path);
-    }catch(FigException &e){
+    }catch(const FigError &e){
         cout << "[TEST] " << filename << " passed." << endl;
-        cout << "======================\n" << e.msg() 
-             << "\n======================\n" << endl;
+        cout << "======================\n" << e.what() 
+             << "======================\n" << endl;
         return;
     }catch(...){
         assert(false);
@@ -113,15 +121,11 @@ test_iosa_condition_3(string path)
     cout << "[TEST] " << filename << "..." << endl;
     try{
         compile(path);
-    }catch(FigException &e){
+    }catch(const FigWarning &e){
         cout << "[TEST] " << filename << " passed." << endl;
-        cout << "======================\n" << e.msg() 
-             << "\n======================\n" << endl;
         return;
-    }catch(...){
-        assert(false);
     }
-    cout << "[TEST] " << filename << "NOT passed!!" << endl;
+    cout << "[TEST] " << filename << " NOT passed!!" << endl;
 }
 
 //==============================================================================
@@ -133,15 +137,11 @@ test_iosa_condition_4(string path)
     cout << "[TEST] " << filename << "..." << endl;
     try{
         compile(path);
-    }catch(FigException &e){
+    }catch(const FigWarning &e){
         cout << "[TEST] " << filename << " passed." << endl;
-        cout << "======================\n" << e.msg() 
-             << "\n======================\n" << endl;
         return;
-    }catch(...){
-        assert(false);
     }
-    cout << "[TEST] " << filename << "NOT passed!!" << endl;
+    cout << "[TEST] " << filename << " NOT passed!!" << endl;
 }
 
 //==============================================================================
@@ -153,17 +153,27 @@ test_iosa_condition_7(string path)
     cout << "[TEST] " << filename << "..." << endl;
     try{
         compile(path);
-    }catch(FigException &e){
+    }catch(const FigWarning &e){
         cout << "[TEST] " << filename << " passed." << endl;
-        cout << "======================\n" << e.msg() 
-             << "\n======================\n" << endl;
         return;
     }catch(...){
         assert(false);
     }
-    cout << "[TEST] " << filename << "NOT passed!!" << endl;
+    cout << "[TEST] " << filename << " NOT passed!!" << endl;
 }
 
+//==============================================================================
+void
+test_tandem_queue(string path)
+{
+    string filename = path.substr( path.find_last_of('/') + 1
+                                 , string::npos);
+    cout << "[TEST] " << filename << "..." << endl;
+    compile(path);
+    cout << "[TEST] " << filename << " passed." << endl;
+    return;
+    
+}
 //==============================================================================
 int 
 main (int argc, char** argv){
@@ -177,6 +187,7 @@ main (int argc, char** argv){
     test_iosa_condition_3(modelsPath + "/counterProp3.sa");
     test_iosa_condition_4(modelsPath + "/counterProp4.sa");
     test_iosa_condition_7(modelsPath + "/counterProp7.sa");
+    test_tandem_queue(modelsPath + "/tandem_queue.sa");
 
     return 0;
 }

@@ -17,7 +17,7 @@
 //#define __PARSER_DEBUG__
 
 #ifdef __PARSER_DEBUG__
-#define __debug__(x) cout << x;
+#define __debug__(x) std::cerr << x;
 #else
 #define __debug__(x) ;
 #endif

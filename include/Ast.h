@@ -158,7 +158,8 @@ public:
     get_column();
 
     /** 
-     * @brief: get the line and column of this AST instance, separated by a colon.
+     * @brief: get the line and column of this AST instance, separated by a 
+     *         colon.
      */
     string
     get_pos();

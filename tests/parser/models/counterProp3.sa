@@ -9,6 +9,10 @@ module prop3testModule
     a : [0..2] init 0;
 
 
+/*Dummys for defining cloks distributions*/
+[i?] -> (z'=normal(1,1));
+[ii?] -> (w'=normal(1,1));  
+
 /* No warning because no sat of preconditions. */
 [t1!]  a == 1 @ x -> (a' = 2);
 [t2!]  a == 3 @ x -> (a' = 1) & (y' = exponential(1));

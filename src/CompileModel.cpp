@@ -6,7 +6,7 @@
 #include "Clock.h"
 #include "Parser.h"
 #include "ModelSuite.h"
-#include "Iosacompliance.h" // ast2expr
+#include "Iosacompliance.h"
 #include "FigException.h"
 #include <z3++.h>
 
@@ -21,28 +21,31 @@ using namespace parser;
 namespace{
 
 const state
-CompileVars(const vector<AST*> varList  )
+CompileVars(const vector<AST*> varList, const parsingContext &pc)
 {
     vector<varDec> result;
     for(auto const &it: varList){
         string name = it->get_lexeme(_NAME);
         assert(name != "");
-        vector<string> limits = {{"0","0"}};
+        vector<string> limits(2,"0");
         int init = 0;
         AST* ASTrange = it->get_first(_RANGE);
         AST* ASTinit = it->get_first(_INIT);
         if(ASTrange){
-            limits = ASTrange->get_list_lexemes(_NUM);
-            assert(limits.size() == 2);
+            vector<AST*> ASTlimits = ASTrange->get_all_ast(_EXPRESSION);
+            assert(ASTlimits.size() == 2);
+            limits[0] = solve_const_expr(ASTlimits[0],pc);
+            limits[1] = solve_const_expr(ASTlimits[1],pc);
         }
+
         if(ASTinit){
-            string num = ASTinit->get_lexeme(_NUM);
-            string boo = ASTinit->get_lexeme(_BOOLEAN);
-            if(num != ""){
-                init = atoi(num.c_str());
+            AST* ASTexp = ASTinit->get_first(_EXPRESSION);
+            Type t = get_type(ASTexp,pc);
+            string exp = solve_const_expr(ASTexp,pc);
+            if(t == T_ARIT){
+                init = atoi(exp.c_str());
             }else{
-                assert(boo != "");
-                init = (boo == "true");
+                init = (exp == "true");
             }
         }
         result.push_back(make_tuple(name
@@ -110,12 +113,12 @@ CompileTransition(AST* trans)
     for(const auto &it: assigs){
         string name = it->get_lexeme(_NAME);
         name.pop_back();
-        AST* ASTassig = it->get_first(_EXPRESSION); 
+        AST* ASTassig = it->get_first(_EXPRESSION);
         if(ASTassig){        
             string assig = ASTassig->toString();
             lassig += assig;
             lassig += ",";
-            rassig.push_back(assig);
+            rassig.push_back(name);
             vector<string> vars = ASTassig->get_all_lexemes(_NAME);
             variables.insert(variables.end(), vars.begin(), vars.end());
         }
@@ -129,13 +132,11 @@ CompileTransition(AST* trans)
         sc.pop_back();
         setcs.push_back(sc);
     }
-
     fig::Transition result( Label(action,io)
                           , eclk
                           , Precondition(pre, nl)
-                          , Postcondition(lassig,rassig,variables)
+                          , Postcondition(lassig,variables,rassig)
                           , setcs);
-
     return result;
 }
 
@@ -187,14 +188,14 @@ build_input_enable( vector<AST*> transitions)
 //==============================================================================
 
 std::shared_ptr<ModuleInstance> 
-CompileModule(AST* module)
+CompileModule(AST* module, const parsingContext &pc)
 {
     string name = module->get_lexeme(_NAME);
     vector<AST*> variables = module->get_all_ast(_VARIABLE);
     vector<AST*> transitions = module->get_all_ast(_TRANSITION);
 
     auto result = make_shared<ModuleInstance>(name
-                                             ,CompileVars(variables)
+                                             ,CompileVars(variables,pc)
                                              ,CompileClocks(transitions));
 
     for(const auto &it: transitions){
@@ -223,12 +224,12 @@ namespace fig{
 void
 CompileModel(AST* astModel, const parsingContext &pc)
 {   
+    assert(astModel);
 	auto model = fig::ModelSuite::get_instance();
 	assert(!model.sealed());
-
     vector<AST*> modules = astModel->get_all_ast(_MODULE);
     for(auto const &it: modules){
-        auto module = CompileModule(it);
+        auto module = CompileModule(it,pc);
         model.add_module(module);
     }
     model.seal(NamesList({}));

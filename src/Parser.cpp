@@ -137,7 +137,7 @@ Parser::accept(Token s){
  * @Brief Consume the next token and trow an exception if it 
  * does not match with @s.
  * @param [in] s The expected token.
- * @throw SyntaxError() if @s is not matched.
+ * @throw FigSyntaxError() if @s is not matched.
  * @return 1 if s was matched.
  */
 int
@@ -147,7 +147,7 @@ Parser::expect(Token s, string str){
     string msg = string("Unexpected word: '") + lexemes[pos] 
               + string("'.\n") + str;
 
-    throw(new SyntaxError(msg, lines[pos], columns[pos]));
+    throw(FigSyntaxError(msg, lines[pos], columns[pos]));
 }
 
 
@@ -176,7 +176,7 @@ Parser::loadLocation(){
 /**
  * @brief  The starting point of the grammar to be parsed with the
  *         recursive descent parser.
- * @return 1 if successfully parsed. Throw SyntaxError otherwise.
+ * @return 1 if successfully parsed. Throw FigSyntaxError otherwise.
  */
 int
 Parser::rGrammar(){
@@ -188,9 +188,9 @@ Parser::rGrammar(){
             // try to parse a global constant
             if(!rConstant()){
                 // Could not match the grammar. Show where we got stuck.
-                throw (new SyntaxError( "Syntax error: '" + lexemes[pos] + "'\n"
-                                      , lines[pos]
-                                      , columns[pos]));
+                throw (FigSyntaxError( "Syntax error: '" + lexemes[pos] + "'\n"
+                                     , lines[pos]
+                                     , columns[pos]));
             }
         }
     }
@@ -311,12 +311,10 @@ Parser::rVarDef(){
         }else if(accept(OBT)){
             newNode(_RANGE, "");
             saveNode(_SEPARATOR);
-            expect(NUM, "Bad range. Forgot lower limit?\n");
-            saveNode(_NUM);
+            rExpression(); // lower limit
             expect(RNG, "Bad range. Forgot .. ?\n");
             saveNode(_SEPARATOR);
-            expect(NUM, "Bad range. Forgot upper limit?\n");
-            saveNode(_NUM);
+            rExpression(); // upper limit
             expect(CBT, "Bad range. Forgot ] ?");
             saveNode(_SEPARATOR);
             saveNode(); // _RANGE
@@ -329,13 +327,8 @@ Parser::rVarDef(){
         if(accept(KINIT)){
             newNode(_INIT);
             saveNode(_KEYWORD);
-            if(accept(NAME)){
-                saveNode(_NAME);
-            }else if(accept(BOOLV)){
-                saveNode(_BOOLEAN);
-            }else{
-                expect(NUM, "Missing initial value.");
-                saveNode(_NUM);
+            if(!rExpression()){
+                throw FigSyntaxError("Missing initial value TODO!");                
             }
             saveNode(); // _INIT
         }
@@ -496,20 +489,19 @@ Parser::rNormDist(){
         try{
             expect(OP);
             saveNode(_SEPARATOR);
-            expect(NUM);
-            saveNode(_NUM);
+            rExpression();
             expect(CMM);
             saveNode(_SEPARATOR);
-            expect(NUM);
-            saveNode(_NUM);
+            rExpression();
             expect(CP);
             saveNode(_SEPARATOR);
             saveNode(); // _DISTRIBUTION
             return 1;
-        }catch(SyntaxError *e){
+        }catch(const FigSyntaxError &e){
             removeNode(); // _DISTRIBUTION
             throw string( "Normal distributions are expected to have the "
-                          "following syntax: 'Normal(<NUMBER>,<NUMBER>)\n" );
+                          "following syntax: 'normal(<EXPRESSION>"
+                          ",<EXPRESSION>)\n" );
         }
     }
     return 0;
@@ -527,16 +519,15 @@ Parser::rExpDist(){
         try{
             expect(OP);
             saveNode(_SEPARATOR);
-            expect(NUM);
-            saveNode(_NUM);
+            rExpression();
             expect(CP);
             saveNode(_SEPARATOR);
             saveNode(); // _DISTRIBUTION
             return 1;
-        }catch(SyntaxError *e){
+        }catch(const FigSyntaxError &e){
             removeNode(); // _DISTRIBUTION
             throw string( "Exponential distributions are expected to have "
-                          "the following syntax: 'Exponential(<NUMBER>)\n");
+                          "the following syntax: 'exponential(<EXPRESSION>)\n");
         }
     }
     return 0;
@@ -555,20 +546,19 @@ Parser::rUniDist(){
         try{
             expect(OP);
             saveNode(_SEPARATOR);
-            expect(NUM);
-            saveNode(_NUM);
+            rExpression();
             expect(CMM);
             saveNode(_SEPARATOR);
-            expect(NUM);
-            saveNode(_NUM);
+            rExpression();
             expect(CP);
             saveNode(_SEPARATOR);
             saveNode(); // _DISTRIBUTION
             return 1;
-        }catch(SyntaxError *e){
+        }catch(const FigSyntaxError &e){
             removeNode(); // _DISTRIBUTION
             throw string( "Uniform distributions are expected to have the "
-                          "following syntax: 'Uniform(<NUMBER>,<NUMBER>)\n"
+                          "following syntax: 'uniform(<EXPRESSION>"
+                          ",<EXPRESSION>)\n"
                         );
         }
     }
@@ -583,11 +573,11 @@ int
 Parser::rExpression(){
     newNode(_EXPRESSION,"",lines[pos],columns[pos]);
     if(rEqual()){
-        if(accept(AMP) || accept(MID)){
+        while(accept(AMP) || accept(MID)){
             saveNode(_OPERATOR);
-            if(!rExpression()){
+            if(!rEqual()){
                 string msg("Unexpected word '"+lexemes[pos]+"'.\n");
-                throw new SyntaxError(msg,lines[pos], columns[pos]);
+                throw FigSyntaxError(msg,lines[pos], columns[pos]);
             }
         }
         saveNode(); //_EXPRESSION
@@ -602,11 +592,11 @@ int
 Parser::rEqual(){
     newNode(_EQUALITY,"",lines[pos],columns[pos]);
     if(rComparison()){
-        if(accept(BOP)){
+        while(accept(BOP)){
             saveNode(_OPERATOR);
-            if(!rEqual()){
+            if(!rComparison()){
                 string msg("Unexpected word '"+lexemes[pos]+"'.\n");
-                throw new SyntaxError(msg,lines[pos], columns[pos]);
+                throw FigSyntaxError(msg,lines[pos], columns[pos]);
             }
         }
         saveNode(); //_EQUALITY
@@ -622,11 +612,11 @@ int
 Parser::rComparison(){
     newNode(_COMPARISON,"",lines[pos],columns[pos]);
     if(rSum()){
-        if(accept(COP)){
+        while(accept(COP)){
             saveNode(_OPERATOR);
-            if(!rComparison()){
+            if(!rSum()){
                 string msg("Unexpected word '"+lexemes[pos]+"'.\n");
-                throw new SyntaxError(msg,lines[pos], columns[pos]);
+                throw FigSyntaxError(msg,lines[pos], columns[pos]);
             }
         }
         saveNode(); //_COMPARISON
@@ -641,11 +631,11 @@ int
 Parser::rSum(){
     newNode(_SUM,"",lines[pos],columns[pos]);
     if(rDiv()){
-        if(accept(MINUS)||accept(PLUS)){
+        while(accept(MINUS)||accept(PLUS)){
             saveNode(_OPERATOR);
-            if(!rSum()){
+            if(!rDiv()){
                 string msg("Unexpected word '"+lexemes[pos]+"'.\n");
-                throw new SyntaxError(msg,lines[pos], columns[pos]);
+                throw FigSyntaxError(msg,lines[pos], columns[pos]);
             }
         }
         saveNode(); //_SUM
@@ -660,11 +650,11 @@ int
 Parser::rDiv(){
     newNode(_DIV,"",lines[pos],columns[pos]);
     if(rValue()){
-        if(accept(DIVOP)){
+        while(accept(DIVOP)){
             saveNode(_OPERATOR);
-            if(!rDiv()){
+            if(!rValue()){
                 string msg("Unexpected word '"+lexemes[pos]+"'.\n");
-                throw new SyntaxError(msg,lines[pos], columns[pos]);
+                throw FigSyntaxError(msg,lines[pos], columns[pos]);
             }
         }
         saveNode(); //_DIV
@@ -689,7 +679,7 @@ Parser::rValue(){
         saveNode(_SEPARATOR);
         if(!rExpression()){
             string msg("Unexpected word '"+lexemes[pos]+"'.\n");
-            throw new SyntaxError(msg,lines[pos], columns[pos]);            
+            throw FigSyntaxError(msg,lines[pos], columns[pos]);            
         }
         expect(CP,"Missing ')'?\n");
         saveNode(_SEPARATOR);
@@ -697,14 +687,14 @@ Parser::rValue(){
         saveNode(_NEGATION);
         if(!rExpression()){
             string msg("Unexpected word '"+lexemes[pos]+"'.\n");
-            throw new SyntaxError( msg,lines[pos]
+            throw FigSyntaxError( msg,lines[pos]
                                  , columns[pos]);            
         }
     }else if(accept(MINUS)){
         saveNode(_MINUS);
         if(!rValue()){
             string msg("Unexpected word '"+lexemes[pos]+"'.\n");
-            throw new SyntaxError( msg,lines[pos]
+            throw FigSyntaxError( msg,lines[pos]
                                  , columns[pos]);            
         }
     }else{
@@ -731,7 +721,7 @@ Parser::rProperty(){
         saveNode(_SEPARATOR);
         if(!rExpression()){
             string msg("Missing expression in property declaration.\n");
-            throw new SyntaxError( msg,lines[pos]
+            throw FigSyntaxError( msg,lines[pos]
                                  , columns[pos]);
         }
         expect(SCLN, "Missing semicolon to end property declaration?\n");
@@ -805,10 +795,13 @@ Parser::parse(stringstream *str){
         fill_context();
         //
 
-    }catch(exception *e){
-        throw_FigException(e->what());
-    }catch(string s){
+    }catch(const FigSyntaxError &e){
+        throw_FigException(e.what());
+    }catch(const string s){
         throw_FigException(s);
+    }catch(const exception &e){
+        cout << e.what() << endl;
+        assert(false);
     }
     return make_pair( ast, mPc );
 }
@@ -850,6 +843,8 @@ Parser::fill_context(){
                 // The variable in <next state>
                 mPc.insert(pvtm(name+"'",ptm(T_BOOL,module)));
             }else{
+                /* FIXME wee dont check this here, but afterwards 
+                         when we have solved the constant expressions.
                 AST* range = variables[j]->get_first(_RANGE);
                 assert(range);
                 vector<string> limits = range->get_list_lexemes(_NUM);
@@ -858,7 +853,7 @@ Parser::fill_context(){
                     string pos = variables[j]->get_pos();
                     error_list.append("[ERROR] Empty range in variable "
                         "declaration at " + pos + ".\n");
-                }
+                }*/
                 mPc.insert(pvtm(name,ptm(T_ARIT,module)));
                 mPc.insert(pvtm(name+"'",ptm(T_ARIT,module)));
             }

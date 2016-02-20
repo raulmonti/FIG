@@ -63,11 +63,6 @@ private:
     bool
     is_clock(AST* c);
 
-    /**
-     *
-     */
-    bool
-    is_var(AST* c);
 
     /**
      *
@@ -127,14 +122,7 @@ private:
     type_check(AST *ast);
 
 
-    /** 
-     *  @brief Return type of an expression.
-     *  @param
-     *  @return
-     *  @throw
-     */
-    Type
-    get_type(AST *expr);
+
 
 
     /**
@@ -151,8 +139,27 @@ private:
     void
     check_constants(AST* ast);
 
+
 };
 
+
+bool
+is_var(AST* c, const parsingContext &pc);
+
+/** 
+ *  @brief Return type of an expression.
+ *  @param
+ *  @return
+ *  @throw
+ */
+Type
+get_type(AST *expr, const parsingContext &pc);
+
+
+/** TODO
+*/
+string
+solve_const_expr(AST* ex, const parsingContext &pc);
 
 /* @brief:   Return a z3 expression corresponding to a boolean formula
              represented in an AST member. Correctly fill in the z3::context 
