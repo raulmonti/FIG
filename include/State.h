@@ -215,14 +215,7 @@ public:  // Accessors
 	 *   @throw out_of_range if variable "varname" doesn't exist
 	 * \endif
 	 */
-	inline size_t position_of_var(const std::string& varname) const
-		{
-#ifndef NRANGECHK
-			return positionOfVar_.at(varname);
-#else
-			return positionOfVar_[varname];  // creates location if inexistent!
-#endif
-		}
+    size_t position_of_var(const std::string& varname) const;
 
 	/**
 	 * @brief Print formatted vector of variables into 'out'
