@@ -30,7 +30,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 PROJECT (fig_test_parser)
 
-SET(fig_VERSION_MAYOR 0)
+SET(fig_VERSION_MAJOR 0)
 SET(fig_VERSION_MINOR 4)
 
 
@@ -103,6 +103,7 @@ SET(REQUIRED_SOURCES "${SOURCES_DIR}/Ast.cpp"
                      "${SOURCES_DIR}/ImportanceFunction.cpp"
                      "${SOURCES_DIR}/ImportanceFunctionAlgebraic.cpp"
                      "${SOURCES_DIR}/ImportanceFunctionConcrete.cpp"
+                     "${SOURCES_DIR}/ImportanceFunctionConcreteSplit.cpp"
                      "${SOURCES_DIR}/ImportanceFunctionConcreteCoupled.cpp"
                      "${SOURCES_DIR}/ThresholdsBuilder.cpp"
                      "${SOURCES_DIR}/ThresholdsBuilderAMS.cpp")

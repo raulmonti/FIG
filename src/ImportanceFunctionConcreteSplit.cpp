@@ -35,7 +35,6 @@
 // FIG
 #include <ImportanceFunctionConcreteSplit.h>
 #include <ThresholdsBuilder.h>
-#include <ModelSuite.h>
 
 // ADL
 using std::begin;
@@ -277,7 +276,7 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	if (hasImportanceInfo_)
 		ImportanceFunctionConcrete::clear();
 	modulesConcreteImportance.resize(numModules_);
-    const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
+//    const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 
 	// Assess each module importance individually from the rest
 	for (size_t index = 0ul ; index < numModules_ ; index++) {
@@ -287,7 +286,7 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		/// @todo TODO: wait for Raúl to implement the Property simplification
 
 //		std::unique_ptr< Property > localProp =
-//				simplify_for_module(prop, *network.modules[i]);
+//				simplify_for_variables(prop, localStatesCopies_[index]);
 //		ImportanceFunctionConcrete::assess_importance(localState,
 //													  globalTransitions,
 //													  *localProp,

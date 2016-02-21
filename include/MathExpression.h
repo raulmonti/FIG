@@ -64,19 +64,22 @@ namespace fig
  */
 class MathExpression
 {
+    /// MuParser library value for logical 'true'
+    static const mu::value_type muParserTrue;
+
+    /// MuParser library value for logical 'false'
+    static const mu::value_type muParserFalse;
+
 protected:
 
     typedef mu::Parser Expression;
 
-    /// String stored internally when given an empty expression
-    static const std::string emptyExpressionString;
-
-	/// String describing the mathematical expression
-	std::string exprStr_;
-
 	/// Is the expression empty?
 	/// @note Needed since MuParser doesn't tolerate empty string expressions
 	bool empty_;
+
+    /// String describing the mathematical expression
+    std::string exprStr_;
 
 	/// Mathematical expression per se
 	mutable Expression expr_;
@@ -183,6 +186,9 @@ public:  // Accessors
 
 protected:  // Class utils
 
+    /// Return a "MuParser friendly" formatted version of the expression string
+    std::string muparser_format(const std::string& expr) const;
+
 	/**
 	 * @brief Set 'exprStr_' as the expression to MuParser's 'expr_'
 	 * @note  After successfully parsing the expression string,
@@ -199,63 +205,6 @@ protected:  // Class utils
 
 // If curious about its presence here take a look at the end of VariableSet.cpp
 
-template< template< typename, typename... > class Container,
-		  typename ValueType,
-		  typename... OtherContainerArgs >
-MathExpression::MathExpression(
-	const std::string& exprStr,
-	const Container<ValueType, OtherContainerArgs...>& varnames) :
-		exprStr_("" == exprStr ? emptyExpressionString : exprStr),
-        empty_("" == exprStr ? true : false),
-        pinned_(false)
-{
-	static_assert(std::is_constructible< std::string, ValueType >::value,
-				  "ERROR: type mismatch. MathExpression needs a container "
-				  "with variable names");
-	// Setup MuParser expression
-	parse_our_expression();
-	// Register our variables
-	for (const auto& name: varnames) {
-#ifndef NRANGECHK
-		if (std::string::npos == exprStr.find(name))
-			throw std::out_of_range(std::string("invalid variable name: \"")
-									.append(name).append("\""));
-#endif
-		varsMap_.emplace_back(std::make_pair(name, -1));  // copy elision
-		// Real mapping is later done with pin_up_vars()
-	}
-}
-
-
-template< template< typename, typename... > class Container,
-		  typename ValueType,
-		  typename... OtherContainerArgs >
-MathExpression::MathExpression(
-	const std::string& exprStr,
-	Container<ValueType, OtherContainerArgs...>&& varnames) :
-		exprStr_("" == exprStr ? emptyExpressionString : exprStr),
-        empty_("" == exprStr ? true : false),
-        pinned_(false)
-{
-	static_assert(std::is_constructible< std::string, ValueType >::value,
-				  "ERROR: type mismatch. MathExpression needs a container "
-				  "with variable names");
-	// Setup MuParser expression
-	parse_our_expression();
-	// Register our variables
-	for (auto& name: varnames) {
-#ifndef NRANGECHK
-		if (std::string::npos == exprStr.find(name))
-			throw std::out_of_range(std::string("invalid variable name: \"")
-									.append(name).append("\""));
-#endif
-		varsMap_.emplace_back(std::make_pair(std::move(name), -1));  // copy elision
-		// Real mapping is later done with pin_up_vars()
-	}
-	varnames.clear();
-}
-
-
 template< template< typename, typename... > class Iterator,
 		  typename ValueType,
 		  typename... OtherIteratorArgs >
@@ -263,8 +212,8 @@ MathExpression::MathExpression(
 	const std::string& exprStr,
 	Iterator<ValueType, OtherIteratorArgs...> from,
 	Iterator<ValueType, OtherIteratorArgs...> to) :
-		exprStr_("" == exprStr ? emptyExpressionString : exprStr),
-        empty_("" == exprStr ? true : false),
+        empty_("" == exprStr),
+        exprStr_(muparser_format(exprStr)),
         pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,

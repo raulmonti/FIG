@@ -188,7 +188,7 @@ void
 ImportanceFunction::Formula::reset() noexcept
 {
     empty_ = true;
-    exprStr_ = MathExpression::emptyExpressionString;
+    exprStr_ = "1";
     try { parse_our_expression(); } catch (FigException&) {}
     varsMap_.clear();
     pinned_ = false;

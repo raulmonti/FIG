@@ -28,6 +28,12 @@
 
 
 // C++
+#include <set>
+#include <list>
+#include <deque>
+#include <vector>
+#include <forward_list>
+#include <unordered_set>
 #include <iostream>
 #include <algorithm>  // std::min<>(), std::max<>()
 #include <initializer_list>
@@ -81,8 +87,94 @@ inline T_ max2(T_ a, T_ b)
 namespace fig
 {
 
-/// @note Matches MuParser "true"
-const std::string MathExpression::emptyExpressionString = "1";
+const mu::value_type MathExpression::muParserTrue = static_cast<mu::value_type>(1);
+
+const mu::value_type MathExpression::muParserFalse = static_cast<mu::value_type>(0);
+
+
+template< template< typename, typename... > class Container,
+          typename ValueType,
+          typename... OtherContainerArgs >
+MathExpression::MathExpression(
+    const std::string& exprStr,
+    const Container<ValueType, OtherContainerArgs...>& varnames) :
+        empty_("" == exprStr),
+        exprStr_(muparser_format(exprStr)),
+        pinned_(false)
+{
+    static_assert(std::is_constructible< std::string, ValueType >::value,
+                  "ERROR: type mismatch. MathExpression needs a container "
+                  "with variable names");
+    // Setup MuParser expression
+    parse_our_expression();
+    // Register our variables
+    for (const auto& name: varnames) {
+#ifndef NRANGECHK
+        if (std::string::npos == exprStr.find(name))
+            throw std::out_of_range(std::string("invalid variable name: \"")
+                                    .append(name).append("\""));
+#endif
+        varsMap_.emplace_back(std::make_pair(name, -1));  // copy elision
+        // Real mapping is later done with pin_up_vars()
+    }
+}
+
+// MathExpression can only be constructed with the following lvalue containers
+template MathExpression::MathExpression(const std::string&,
+                                        const std::set<std::string>&);
+template MathExpression::MathExpression(const std::string&,
+                                        const std::list<std::string>&);
+template MathExpression::MathExpression(const std::string&,
+                                        const std::deque<std::string>&);
+template MathExpression::MathExpression(const std::string&,
+                                        const std::vector<std::string>&);
+template MathExpression::MathExpression(const std::string&,
+                                        const std::forward_list<std::string>&);
+template MathExpression::MathExpression(const std::string&,
+                                        const std::unordered_set<std::string>&);
+
+
+template< template< typename, typename... > class Container,
+          typename ValueType,
+          typename... OtherContainerArgs >
+MathExpression::MathExpression(
+    const std::string& exprStr,
+    Container<ValueType, OtherContainerArgs...>&& varnames) :
+        empty_("" == exprStr),
+        exprStr_(muparser_format(exprStr)),
+        pinned_(false)
+{
+    static_assert(std::is_constructible< std::string, ValueType >::value,
+                  "ERROR: type mismatch. MathExpression needs a container "
+                  "with variable names");
+    // Setup MuParser expression
+    parse_our_expression();
+    // Register our variables
+    for (auto& name: varnames) {
+#ifndef NRANGECHK
+        if (std::string::npos == exprStr.find(name))
+            throw std::out_of_range(std::string("invalid variable name: \"")
+                                    .append(name).append("\""));
+#endif
+        varsMap_.emplace_back(std::make_pair(std::move(name), -1));  // copy elision
+        // Real mapping is later done with pin_up_vars()
+    }
+    varnames.clear();
+}
+
+// MathExpression can only be constructed with the following rvalue containers
+template MathExpression::MathExpression(const std::string&,
+                                        std::set<std::string>&&);
+template MathExpression::MathExpression(const std::string&,
+                                        std::list<std::string>&&);
+template MathExpression::MathExpression(const std::string&,
+                                        std::deque<std::string>&&);
+template MathExpression::MathExpression(const std::string&,
+                                        std::vector<std::string>&&);
+template MathExpression::MathExpression(const std::string&,
+                                        std::forward_list<std::string>&&);
+template MathExpression::MathExpression(const std::string&,
+                                        std::unordered_set<std::string>&&);
 
 
 void
@@ -107,7 +199,39 @@ MathExpression::pin_up_vars(const PositionsMap& globalVars)
 }
 
 
-void MathExpression::parse_our_expression()
+std::string
+MathExpression::muparser_format(const std::string& expr) const
+{
+    using std::to_string;
+    static const std::string strTrue("true");
+    static const std::string strFalse("false");
+
+    if ("" == expr || expr.empty())
+        return to_string(muParserTrue);  // should be an empty Precondition
+
+    std::string muParserExpr(expr);
+
+    // Replace all occurrences of "true" with MuParser's 'true'
+    size_t start_pos(0ul);
+    while((start_pos = muParserExpr.find(strTrue, start_pos))
+            != std::string::npos) {
+        muParserExpr.replace(start_pos, strTrue.length(), to_string(muParserTrue));
+        start_pos += strTrue.length();
+    }
+    // Replace all occurrences of "false" with MuParser's 'false'
+    start_pos = 0ul;
+    while((start_pos = muParserExpr.find(strFalse, start_pos))
+            != std::string::npos) {
+        muParserExpr.replace(start_pos, strFalse.length(), to_string(muParserFalse));
+        start_pos += strFalse.length();
+    }
+
+    return muParserExpr;
+}
+
+
+void
+MathExpression::parse_our_expression()
 {
 	assert(!exprStr_.empty());
 	try {
