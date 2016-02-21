@@ -34,8 +34,6 @@
 #include <ostream>
 #include <string>
 #include <array>
-#include <functional>   // std::function<>, std::bind()
-#include <type_traits>  // std::is_assignable<>
 // FIG
 #include <core_typedefs.h>
 #include <State.h>
@@ -342,63 +340,6 @@ public:  // Utils for derived classes
 	void find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 							 const Property& property);
 };
-
-
-
-// // // // // // // // // // // // // // // // // // // // // // // // // // //
-
-// Template definitions
-
-// If curious about its presence here take a look at the end of VariableSet.cpp
-
-template< template< typename... > class Container,
-					typename... OtherArgs,
-		  typename Mapper
->
-void
-ImportanceFunction::Formula::set(
-	const std::string& formula,
-	const Container<std::string, OtherArgs...>& varnames,
-	const Mapper& obj)
-{
-	static_assert(std::is_same<PositionsMap, Mapper>::value ||
-				  std::is_assignable<State<STATE_INTERNAL_TYPE>, Mapper>::value,
-				  "ERROR: type mismatch. ImportanceFunction::Formula::set() can"
-				  " only be called with a State<...> object or a PositionsMap.");
-	if ("" == formula || formula.length() == 0ul)
-		throw_FigException("can't define an empty user function");
-
-	empty_ = false;
-	exprStr_ = formula;
-	parse_our_expression();  // updates expr_
-	varsMap_.clear();
-	std::function<size_t(const std::string&)> pos_of_var;
-	if (std::is_same<PositionsMap, Mapper>::value)
-		pos_of_var = [&obj](const std::string& varName) { return obj[varName]; };
-	else
-		pos_of_var = std::bind(&State<STATE_INTERNAL_TYPE>::position_of_var,
-							   obj, std::placeholders::_1);
-	for (const auto& name: varnames)
-		if (std::string::npos != formula.find(name))  // name occurs in formula
-			varsMap_.emplace_back(std::make_pair(name, pos_of_var(name)));
-	pinned_ = true;
-	// Fake an evaluation to reveal parsing errors but now... I said NOW!
-	STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
-	try {
-		for (const auto& pair: varsMap_)
-			expr_.DefineVar(pair.first, &dummy);
-		dummy = expr_.Eval();
-	} catch (mu::Parser::exception_type &e) {
-		std::cerr << "Failed parsing expression" << std::endl;
-		std::cerr << "    message:  " << e.GetMsg()   << std::endl;
-		std::cerr << "    formula:  " << e.GetExpr()  << std::endl;
-		std::cerr << "    token:    " << e.GetToken() << std::endl;
-		std::cerr << "    position: " << e.GetPos()   << std::endl;
-		std::cerr << "    errc:     " << e.GetCode()  << std::endl;
-		throw_FigException("bad expression for ImportanceFunction::Formula, "
-						   "did you remember to map all the variables?");
-	}
-}
 
 } // namespace fig
 

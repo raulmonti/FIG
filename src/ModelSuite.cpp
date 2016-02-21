@@ -339,7 +339,7 @@ template< template< typename, typename... > class Container,
 		  typename ValueType,
 		  typename... OtherContainerArgs >
 void
-ModelSuite::seal(const Container<std::string, OtherContainerArgs>& initialClocksNames)
+ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: type mismatch. ModelSuite::seal() needs "
@@ -356,8 +356,8 @@ ModelSuite::seal(const Container<std::string, OtherContainerArgs>& initialClocks
 		// No initial clocks specified => all are treated as initial
 		std::vector< std::string > allClocksNames(model->num_clocks());
 		size_t i(0ul);
-		for (const fig::Clock& clock: model->clocks())
-			allClocksNames[i] = clock.name();
+        for (const Clock& clock: model->clocks())
+            allClocksNames[i++] = clock.name();
 		model->seal(allClocksNames);
 	} else {
 		model->seal(initialClocksNames);

@@ -141,6 +141,8 @@ public:  // Accessors
 			return importance2threshold_[val];
 		}
 
+	virtual void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE> s) const;
+
 public:  // Utils
 
 	/**

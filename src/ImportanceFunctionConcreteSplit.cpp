@@ -34,6 +34,7 @@
 #include <algorithm>  // find_if_not()
 // FIG
 #include <ImportanceFunctionConcreteSplit.h>
+#include <ThresholdsBuilder.h>
 #include <ModelSuite.h>
 
 // ADL
@@ -175,6 +176,15 @@ ImportanceFunctionConcreteSplit::importance_of(const StateInstance& state) const
 
 
 void
+ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
+                                           State<STATE_INTERNAL_TYPE> s) const
+{
+    /// @todo TODO implement like for ConcreteCoupled
+    throw_FigException("IOU");
+}
+
+
+void
 ImportanceFunctionConcreteSplit::set_merge_fun(std::string mergeFunExpr)
 {
 	if (mergeFunExpr.length() <= 3ul)  // given an operand => make it a function
@@ -239,7 +249,7 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	if (hasImportanceInfo_)
 		ImportanceFunctionConcrete::clear();
 	modulesConcreteImportance.resize(numModules_);
-	const ModuleNetwork& network = ModelSuite::get_instance().modules_network();
+    const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 
 	// Assess each module importance individually from the rest
 	for (size_t index = 0ul ; index < numModules_ ; index++) {
@@ -269,7 +279,7 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		maxImportance_ = importance;
 		minRareImportance_ = importance;
 	} else {
-		find_extreme_values(globalState, property);  // *very* CPU intensive
+        find_extreme_values(globalState, prop);  // *very* CPU intensive
 	}
 	assert(minImportance_ <= minRareImportance_);
 	assert(minRareImportance_ <= maxImportance_);
