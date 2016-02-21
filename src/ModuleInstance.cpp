@@ -279,18 +279,26 @@ ModuleInstance::map_our_clocks() const
 
 
 const State< STATE_INTERNAL_TYPE >&
-ModuleInstance::mark_added(const int& globalIndex, const int& firstClock)
+ModuleInstance::mark_added(const int& globalIndex,
+                           const int& firstVar,
+                           const int& firstClock)
 {
 	assert(0 <= globalIndex);
-	assert(0 <= firstClock);
-	if (0 <= globalIndex_ || 0 <= firstClock_)
+    assert(0 <= firstVar);
+    assert(0 <= firstClock);
+    if (0 <= globalIndex_) {
 #ifndef NDEBUG
-		throw_FigException("this module has already been added to the network");
+        throw_FigException(std::string("module already added to the network at ")
+                           .append("position ").append(std::to_string(globalIndex)));
 #else
-		return lState_;
+        std::cerr << "This module has already been added to the network "
+                     " at position " << globalIndex << std::endl;
+        return lState_;
 #endif
-	globalIndex_ = globalIndex;
-	firstClock_ = firstClock;
+    }
+    globalIndex_ = globalIndex;
+    firstVar_    = firstVar;
+    firstClock_  = firstClock;
 	return lState_;
 }
 

@@ -96,7 +96,7 @@ ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 		return;
 #endif
 	modules.push_back(module);
-	auto state = module->mark_added(modules.size()-1, numClocks_);
+    auto state = module->mark_added(modules.size()-1, gState.size(), numClocks_);
 	gState.append(state);
 	numClocks_ += module->clocks().size();
 	transitions_.reserve(transitions_.size() + module->transitions_.size());
