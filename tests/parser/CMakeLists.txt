@@ -64,6 +64,8 @@ SET(ALL_SOURCES CACHE INTERNAL "")
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/z3 ${PROJECT_BINARY_DIR}/z3)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/muparser2.2.5
                  ${PROJECT_BINARY_DIR}/muparser2.2.5)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/openmp
+                 ${PROJECT_BINARY_DIR}/openmp)
   
 # Register all include paths
 INCLUDE_DIRECTORIES(${HEADERS_DIR})
@@ -149,6 +151,23 @@ ENDIF()
 
 # Highly defensive compile flags
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ") # -Wall -Wextra")
+
+# Debug (gdb)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
+## # No-Debug
+## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
+
+## # Parser debug prints
+## ADD_DEFINITIONS(-D__PARSER_DEBUG__)
+
+# OpenMP
+IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+##	FIND_PACKAGE(OpenMP REQUIRED)  # doesn't work
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp=libgomp")
+ELSE()
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+ENDIF()
 
 # Turn some warnings off
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

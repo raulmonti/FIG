@@ -31,6 +31,7 @@
 #include <utility>    // std::move() elements
 #include <iterator>   // std::inserter()
 #include <algorithm>  // std::move() ranges
+#include <sstream>
 // FIG
 #include <State.h>
 #include <FigException.h>
@@ -146,6 +147,25 @@ State<T_>::operator[](const std::string& varname)
 		if (varname == pvar->name_)
 			return pvar;
 	return nullptr;
+}
+
+
+template< typename T_ >
+size_t
+State<T_>::position_of_var(const std::string& varname) const
+{
+#ifndef NRANGECHK
+    try {
+        return positionOfVar_.at(varname);
+    } catch (std::out_of_range&) {
+        std::stringstream ss;
+        ss << "fig::State::position_of_var(): variable not found in state (\"";
+        ss << varname << "\")";
+        throw std::out_of_range(ss.str());
+    }
+#else
+    return positionOfVar_[varname];  // creates location if inexistent!
+#endif
 }
 
 

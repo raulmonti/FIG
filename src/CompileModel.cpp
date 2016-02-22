@@ -114,15 +114,16 @@ CompileTransition(AST* trans)
     for(const auto &it: assigs){
         string name = it->get_lexeme(_NAME);
         name.pop_back();
-        cout << "##" << name << endl;
-        AST* ASTassig = it->get_first(_EXPRESSION); 
-        assert(ASTassig);        
-        string assig = ASTassig->toString();
-        lassig += assig;
-        lassig += ",";
-        rassig.push_back(name);
-        vector<string> vars = ASTassig->get_all_lexemes(_NAME);
-        variables.insert(variables.end(), vars.begin(), vars.end());
+        AST* ASTassig = it->get_first(_EXPRESSION);
+        if(ASTassig){        
+            string assig = ASTassig->toString();
+            lassig += assig;
+            lassig += ",";
+            rassig.push_back(name);
+            vector<string> vars = ASTassig->get_all_lexemes(_NAME);
+            variables.insert(variables.end(), vars.begin(), vars.end());
+        }
+
     }
     if(lassig != ""){
         lassig.pop_back();    
@@ -133,18 +134,10 @@ CompileTransition(AST* trans)
         sc.pop_back();
         setcs.push_back(sc);
     }
-
-    cout << "#3 " << lassig << endl;
-    for(const auto &it: rassig){
-        cout << "#4 " << it << endl;
-    }
-    for(const auto &it: variables){
-        cout << "#5 " << it << endl;
-    }
     fig::Transition result( Label(action,io)
                           , eclk
                           , Precondition(pre, nl)
-                          , Postcondition(lassig,rassig,variables)
+                          , Postcondition(lassig,variables,rassig)
                           , setcs);
     return result;
 }
