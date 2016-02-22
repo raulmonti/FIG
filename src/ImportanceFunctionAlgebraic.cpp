@@ -191,17 +191,18 @@ ImportanceFunctionAlgebraic::print_out(std::ostream& out,
 			out << val << ",";
 		out << "\b\\";
 	};
-	out << "\nPrinting importance function \"" << name() << "\" values.\n";
-	out << "Legend: (/symbolic,state,valuation\\ importance_value)\n";
-	out << "Values:" << std::endl;
+    out << "\nPrinting importance function \"" << name() << "\" values.";
+    out << "\nImportance assessment strategy: " << strategy();
+    out << "\nLegend: (/symbolic,state,valuation\\ importance_value)";
+    out << "\nValues for coupled model:";
 	for (size_t i = 0ul ; i < s.concrete_size() ; i++) {
 		const StateInstance symbState = s.decode(i).to_state_instance();
-		out << "(";
+        out << " (";
 		print_state(symbState);
-		out << " " << importance_of(symbState) << ") ";
+        out << " " << importance_of(symbState) << ")";
 		out.flush();
 	}
-	out << "\b" << std::endl;
+    out << std::endl;
 }
 
 

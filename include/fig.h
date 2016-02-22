@@ -57,8 +57,8 @@
 // Base
 #include "config.h"
 #include "core_typedefs.h"
-#include "Exceptions.h"
 #include "FigConfig.h"
+#include "Exceptions.h"
 #include "FigException.h"
 // Parser
 #include "Ast.h"
@@ -83,14 +83,14 @@
 #include "Traial.h"
 // Importance functions
 #include "ImportanceFunction.h"
-//#include "ImportanceFunctionAlgebraic.h"
+#include "ImportanceFunctionAlgebraic.h"
 #include "ImportanceFunctionConcrete.h"
 #include "ImportanceFunctionConcreteSplit.h"
 #include "ImportanceFunctionConcreteCoupled.h"
 // Simulation engines
 #include "SimulationEngine.h"
 #include "SimulationEngineNosplit.h"
-//#include "SimulationEngineRestart.h"
+#include "SimulationEngineRestart.h"
 // Composite ADTs
 #include "Transition.h"
 #include "ModuleInstance.h"

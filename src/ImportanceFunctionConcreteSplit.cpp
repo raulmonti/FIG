@@ -35,7 +35,6 @@
 // FIG
 #include <ImportanceFunctionConcreteSplit.h>
 #include <ThresholdsBuilder.h>
-#include <ModelSuite.h>
 
 // ADL
 using std::begin;
@@ -110,9 +109,8 @@ ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 			const std::string& moduleName(model.modules[i]->name);
 			modulesNames_[i] = moduleName;
 			modulesMap_[moduleName] = i;
-			globalVarsIPos_[i] = 0ul == i ? 0u
-										  : globalVarsIPos_[i-1]
-											+ model.modules[i-1]->state_size();
+            globalVarsIPos_[i] = static_cast<unsigned short>(
+                        model.modules[i]->first_var_gpos());
 		}
 	}
 }
@@ -179,8 +177,37 @@ void
 ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
                                            State<STATE_INTERNAL_TYPE> s) const
 {
-    /// @todo TODO implement like for ConcreteCoupled
-    throw_FigException("IOU");
+    if (!has_importance_info()) {
+        out << "\nImportance function \"" << name() << "\" doesn't yet have "
+               "any importance information to print." << std::endl;
+        return;
+    }
+    out << "\nPrinting importance function \"" << name() << "\" values.";
+    out << "\nImportance assessment strategy: " << strategy();
+    out << "\nImportance merging function: " << userFun_.expression();
+    out << "\nLegend: ( concrete_state[*~^] , importance_value )";
+    out << "\nwhere"
+        << "\n      *  denotes a state is RARE,"
+        << "\n      ~  denotes a state is STOP,"
+        << "\n      ^  denotes a state is REFERENCE.";
+    for (size_t i = 0ul ; i < numModules_ ; i++) {
+        out << "\nValues for module \"" << modulesNames_[i] << "\":";
+        const ImportanceVec& impVec = modulesConcreteImportance[i];
+        for (size_t i = 0ul ; i < impVec.size() ; i++) {
+            out << " (" << i;
+            out << (IS_RARE_EVENT     (impVec[i]) ? "*" : "");
+            out << (IS_STOP_EVENT     (impVec[i]) ? "~" : "");
+            out << (IS_REFERENCE_EVENT(impVec[i]) ? "^" : "");
+            out << "," << UNMASK(impVec[i]) << ")";
+        }
+        out.flush();
+    }
+    if (ready()) {
+        out << "\nImportanceValue to threshold level conversion:";
+        for (size_t i = 0ul ; i < importance2threshold_.size() ; i++)
+            out << " (" << i << ":" << importance2threshold_[i] << ")";
+    }
+    out << std::endl;
 }
 
 
@@ -249,7 +276,7 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	if (hasImportanceInfo_)
 		ImportanceFunctionConcrete::clear();
 	modulesConcreteImportance.resize(numModules_);
-    const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
+//    const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 
 	// Assess each module importance individually from the rest
 	for (size_t index = 0ul ; index < numModules_ ; index++) {
@@ -259,7 +286,7 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		/// @todo TODO: wait for Raúl to implement the Property simplification
 
 //		std::unique_ptr< Property > localProp =
-//				simplify_for_module(prop, *network.modules[i]);
+//				simplify_for_variables(prop, localStatesCopies_[index]);
 //		ImportanceFunctionConcrete::assess_importance(localState,
 //													  globalTransitions,
 //													  *localProp,

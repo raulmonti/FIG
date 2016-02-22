@@ -104,9 +104,14 @@ private:  // Global info to be defined by the ModuleNetwork
 	/// Position of this module in the global ModuleNetwork
 	int globalIndex_;
 
+    /// Index of our first Variable as it would appear in a global State,
+    /// where the variables from all the modules were placed contiguously.
+    /// @note Needed by ImportanceFunctionConcreteSplit
+    int firstVar_;
+
 	/// Index of our first clock as it would appear in a global array,
-	/// where the clocks from all the modules were placed side by side.
-	/// This is needed by Traial for mantaining the clocks internal time.
+    /// where the clocks from all the modules were placed contiguously.
+    /// @note Needed by Traial for mantaining the clocks internal time.
 	int firstClock_;
 
 	/// Is the module ready for simulations?
@@ -306,7 +311,8 @@ public:  // Ctors/Dtor and populating facilities
 
 public:  // Accessors
 
-	/// Number of variables defined in this module
+    /// Number of variables defined in this module
+    /// @note Same as state_size()
 	inline size_t num_vars() const noexcept { return state_size(); }
 
 	inline virtual size_t num_clocks() const noexcept { return lClocks_.size(); }
@@ -324,8 +330,16 @@ public:  // Accessors
 	inline const std::vector< Clock >& clocks() const { return lClocks_; }
 
 	/// @copydoc globalIndex_
-	/// Negative value until the module is added to the network.
+    /// @note Negative value until the module is added to the network.
 	inline int global_index() const noexcept { return globalIndex_; }
+
+    /// @copydoc firstVar_
+    /// @note Negative value until the module is added to the network.
+    inline const int& first_var_gpos() const noexcept { return firstVar_; }
+
+    /// @copydoc firstClock_
+    /// @note Negative value until the module is added to the network.
+    inline const int& first_clock_gpos() const noexcept { return firstClock_; }
 
 public:  // Utils
 
@@ -403,6 +417,7 @@ private:  // Callback utilities offered to the ModuleNetwork
 	 *        information needed later during simulations.
 	 *
 	 * @param globalIndex  @copydoc globalIndex_
+     * @param firstVar     @copydoc firstVar_
 	 * @param firstClock   @copydoc firstClock_
 	 *
 	 * @return Const reference to our local state, to append to the global one
@@ -416,7 +431,7 @@ private:  // Callback utilities offered to the ModuleNetwork
 	 * \endif
 	 */
 	const State< STATE_INTERNAL_TYPE >&
-	mark_added(const int& globalIndex, const int& firstClock);
+    mark_added(const int& globalIndex, const int& firstVar, const int& firstClock);
 
 	/**
 	 * @brief Fill up the global-aware information needed by simulations
@@ -465,7 +480,8 @@ ModuleInstance::ModuleInstance(
 		lState_(state),
 		name(thename),
 		globalIndex_(-1),
-		firstClock_(-1),
+        firstVar_(-1),
+        firstClock_(-1),
 		sealed_(false)
 {
 	// Copy clocks
@@ -491,7 +507,8 @@ ModuleInstance::ModuleInstance(
 		lState_(state),
 		name(thename),
 		globalIndex_(-1),
-		firstClock_(-1),
+        firstVar_(-1),
+        firstClock_(-1),
 		sealed_(false)
 {
 	// Copy clocks
@@ -527,7 +544,8 @@ ModuleInstance::ModuleInstance(
 		lState_(state),
 		name(thename),
 		globalIndex_(-1),
-		firstClock_(-1),
+        firstVar_(-1),
+        firstClock_(-1),
 		sealed_(false)
 {
 	// Copy clocks
@@ -565,7 +583,8 @@ ModuleInstance::ModuleInstance(
 		lState_(state),
 		name(thename),
 		globalIndex_(-1),
-		firstClock_(-1),
+        firstVar_(-1),
+        firstClock_(-1),
 		sealed_(false)
 {
 	// Copy clocks
@@ -606,6 +625,7 @@ ModuleInstance::ModuleInstance(
 		lState_(state),
 		name(thename),
 		globalIndex_(-1),
+        firstVar_(-1),
 		firstClock_(-1),
 		sealed_(false)
 {

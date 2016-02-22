@@ -20,8 +20,6 @@
 #include "FigException.h"
 
 
-#define wout std::cout
-
 /*TODO decide if the following definition is useful and do the same with
        the rest of long error messages if so.
 */
@@ -377,7 +375,6 @@ Verifier::verify( AST* ast, const parsingContext pc){
     mPc = pc; /* FIXME shouldn't do this copy, it comes from refactoring.
                *       think of a way arround
                */
-
     // general IOSA properties
     pout << ">> Check names uniqueness...\n";
     names_uniqueness(ast);
@@ -394,7 +391,6 @@ Verifier::verify( AST* ast, const parsingContext pc){
     check_exhausted_clocks(ast);
     pout << ">> Check 7th IOSA condition...\n";
     check_input_determinism(ast);
-
 }
 
 
@@ -1057,14 +1053,14 @@ get_type(AST *expr, const parsingContext &pc)
                 t = get_type(expr->get_branch(1),pc);
                 if(t != T_BOOL){
                     throw_FigException("[ERROR] Wrong type for boolean"
-                        + " negation, at " + value->p_pos() + ".\n");
+                        " negation, at " + value->p_pos() + ".\n");
                 }
                 break;
             case _MINUS:
                 t = get_type(expr->get_branch(1),pc);
                 if(t != T_ARIT){
                     throw_FigException("[ERROR] Wrong type for arithmetic "
-                        + "negation, at " + value->p_pos() + ".\n");
+                        "negation, at " + value->p_pos() + ".\n");
                 }
                 break;
             default:

@@ -29,6 +29,10 @@
 #define pout dummy_out
 #endif
 
+// Warning output
+#define wout std::cout
+// Testing output
+#define tout std::cout
 
 using namespace std;
 

@@ -7,6 +7,7 @@
 #include "Parser.h"
 #include "ModelSuite.h"
 #include "Iosacompliance.h"
+#include "Exceptions.h"
 #include "FigException.h"
 #include <z3++.h>
 
@@ -230,11 +231,12 @@ CompileModel(AST* astModel, const parsingContext &pc)
 	auto model = fig::ModelSuite::get_instance();
 	assert(!model.sealed());
     vector<AST*> modules = astModel->get_all_ast(_MODULE);
-    for(auto const &it: modules){
-        auto module = CompileModule(it,pc);
-        model.add_module(module);
-    }
-    model.seal(NamesList({}));
+	for(const auto& it: modules){
+		std::shared_ptr< ModuleInstance > module(nullptr);
+		module = CompileModule(it,pc);
+		model.add_module(module);
+	}
+	model.seal();
 }
 
 } // namespace fig

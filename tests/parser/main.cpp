@@ -21,6 +21,7 @@
 #include "CompileModel.h"
 #include "PreCompiler.h"
 #include <stdlib.h>
+#include "config.h"
 
 using namespace std;
 using namespace parser;
@@ -56,14 +57,6 @@ compile(string filename)
         }catch(const FigException &e){
             delete pp.first;   
             throw e;
-        }catch(const FigError &e){
-            delete pp.first;   
-            throw e;
-        }catch(const FigWarning &e){
-            cout << "======================\n" << e.what() 
-            << "======================\n";
-            fig::CompileModel(pp.first,pp.second);
-            throw e;
         }
     }
 
@@ -80,13 +73,11 @@ test_names(string path)
     cout << "[TEST] " << filename << "..." << endl;
     try{
         compile(path);
-    }catch(FigError &e){
+    }catch(const FigException &e){
         cout << "[TEST] " << filename << " passed." << endl;
         cout << "======================\n" << e.what() 
              << "======================\n" << endl;
         return;
-    }catch(...){
-        assert(false);
     }
     cout << "[TEST] " << filename << " NOT passed!!" << endl;
 }
@@ -100,7 +91,7 @@ test_iosa_condition_1_2(string path)
     cout << "[TEST] " << filename << "..." << endl;
     try{
         compile(path);
-    }catch(const FigError &e){
+    }catch(const FigException &e){
         cout << "[TEST] " << filename << " passed." << endl;
         cout << "======================\n" << e.what() 
              << "======================\n" << endl;
@@ -120,11 +111,15 @@ test_iosa_condition_3(string path)
     cout << "[TEST] " << filename << "..." << endl;
     try{
         compile(path);
-    }catch(const FigWarning &e){
-        cout << "[TEST] " << filename << " passed." << endl<<endl;
+        cout << "[TEST] " << filename << " passed.\n\n";
+    }catch(const std::exception &e){
+        cout << "[TEST] " << filename << " NOT passed!!\n" << endl;
+        cout << "======================\n" << e.what() 
+             << "======================\n" << endl;
         return;
     }
-    cout << "[TEST] " << filename << " NOT passed!!\n" << endl;
+
+
 }
 
 //==============================================================================
@@ -136,9 +131,7 @@ test_iosa_condition_4(string path)
     cout << "[TEST] " << filename << "..." << endl;
     try{
         compile(path);
-    }catch(const FigWarning &e){
-        cout << "[TEST] " << filename << " passed." << endl;
-        return;
+        cout << "[TEST] " << filename << " passed.\n\n";
     }catch(const std::exception &e){
         cout << "[TEST] " << filename << " NOT passed!!" << endl;
         cout << "======================\n" << e.what() 
@@ -155,14 +148,13 @@ test_iosa_condition_7(string path)
     cout << "[TEST] " << filename << "..." << endl;
     try{
         compile(path);
-    }catch(const FigWarning &e){
-        cout << "[TEST] " << filename << " passed." << endl;
-        return;
+        cout << "[TEST] " << filename << " passed.\n\n";
     }catch(const std::exception &e){
+        cout << "[TEST] " << filename << " NOT passed!!\n";
         cout << "======================\n" << e.what() 
-        << "======================\n";
+        << "======================\n\n";
     }
-    cout << "[TEST] " << filename << " NOT passed!!\n" << endl;
+
 }
 
 //==============================================================================
@@ -172,8 +164,14 @@ test_tandem_queue(string path)
     string filename = path.substr( path.find_last_of('/') + 1
                                  , string::npos);
     cout << "[TEST] " << filename << "..." << endl;
-    compile(path);
-    cout << "[TEST] " << filename << " passed." << endl;
+    try{
+        compile(path);
+        cout << "[TEST] " << filename << " passed." << endl;
+    }catch(const std::exception &e){
+        cout << "[TEST] " << filename << " NOT passed!!\n";
+        cout << "======================\n" << e.what() 
+        << "======================\n\n";
+    }
     return;
     
 }
@@ -183,14 +181,17 @@ main (int argc, char** argv){
 
     char name[4096];
     realpath("tests/parser/models",name);
-    string modelsPath(name);
+    string TestModelsPath(name);
+    realpath("models",name);
+    string CarlosModelsPath(name);
 
 //    test_names(modelsPath + "/counterNames.sa");
 //    test_iosa_condition_1_2(modelsPath + "/counterProp1y2.sa");
 //    test_iosa_condition_3(modelsPath + "/counterProp3.sa");
 //    test_iosa_condition_4(modelsPath + "/counterProp4.sa");
 //    test_iosa_condition_7(modelsPath + "/counterProp7.sa");
-    test_tandem_queue(modelsPath + "/tandem_queue.sa");
+    tout << "[TEST] ****** TESTING FIG EXAMPLES ******\n\n"; 
+    test_tandem_queue(CarlosModelsPath + "/tandem_queue.sa");
 
     return 0;
 }

@@ -188,7 +188,7 @@ void
 ImportanceFunction::Formula::reset() noexcept
 {
     empty_ = true;
-    exprStr_ = MathExpression::emptyExpressionString;
+    exprStr_ = "1";
     try { parse_our_expression(); } catch (FigException&) {}
     varsMap_.clear();
     pinned_ = false;
@@ -344,13 +344,12 @@ void
 ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 										const Property& property)
 {
-	const size_t concreteStateSpaceSize(state.concrete_size());
 	minImportance_ = std::numeric_limits<ImportanceValue>::max();
 	maxImportance_ = std::numeric_limits<ImportanceValue>::min();
 	minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
 
 //	#pragma omp parallel for default(shared) private(gStateCopy) reduction(min:imin,iminRare)
-	for (size_t i = 0ul ; i < concreteStateSpaceSize ; i++) {
+	for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
 		const StateInstance symbState = state.decode(i).to_state_instance();
 		const ImportanceValue importance = importance_of(symbState);
 		minImportance_ = importance < minImportance_ ? importance
@@ -360,7 +359,7 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 	}
 
 //	#pragma omp parallel for default(shared) private(gStateCopy) reduction(max:imax)
-	for (size_t i = 0ul ; i < concreteStateSpaceSize ; i++) {
+	for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
 		const ImportanceValue importance =
                 importance_of(state.decode(i).to_state_instance());
 		maxImportance_ = importance > maxImportance_ ? importance

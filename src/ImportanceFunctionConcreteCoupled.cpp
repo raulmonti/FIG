@@ -131,26 +131,27 @@ ImportanceFunctionConcreteCoupled::print_out(std::ostream& out,
 			   "any importance information to print." << std::endl;
 		return;
 	}
-	out << "\nPrinting importance function \"" << name() << "\" values.\n";
-	if (ready())
-		out << "Legend: ( concrete_state_value[*~^] , threshold_level )\n";
-	else
-		out << "Legend: ( concrete_state_value[*~^] , importance_value )\n";
-	out << "where\n"
-		<< "      *  denotes a state is RARE,\n"
-		<< "      ~  denotes a state is STOP,\n"
-		<< "      ^  denotes a state is REFERENCE.\n";
-	out << "Values:" << std::endl;
-	const ImportanceVec& impVec = modulesConcreteImportance[importanceInfoIndex_];
+    out << "\nPrinting importance function \"" << name() << "\" values.";
+    out << "\nImportance assessment strategy: " << strategy();
+    if (ready())
+        out << "\nLegend: ( concrete_state[*~^] , threshold_level )";
+    else
+        out << "\nLegend: ( concrete_state[*~^] , importance_value )";
+    out << "\nwhere"
+        << "\n      *  denotes a state is RARE,"
+        << "\n      ~  denotes a state is STOP,"
+        << "\n      ^  denotes a state is REFERENCE.";
+    out << "\nValues for coupled model:";
+    const ImportanceVec& impVec = modulesConcreteImportance[importanceInfoIndex_];
 	for (size_t i = 0ul ; i < impVec.size() ; i++) {
-		out << "(" << i;
+        out << " (" << i;
 		out << (IS_RARE_EVENT     (impVec[i]) ? "*" : "");
 		out << (IS_STOP_EVENT     (impVec[i]) ? "~" : "");
 		out << (IS_REFERENCE_EVENT(impVec[i]) ? "^" : "");
-		out << "," << UNMASK(impVec[i]) << ") ";
+        out << "," << UNMASK(impVec[i]) << ")";
 		out.flush();
 	}
-	out << "\b" << std::endl;
+    out << std::endl;
 }
 
 } // namespace fig

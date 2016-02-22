@@ -204,7 +204,7 @@ public:  // Modifyers
 			  typename... OtherContainerArgs >
 	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames);
 
-	/// Just like seal(), taking all system clocks as initial
+	/// Alias for seal() taking all system clocks as initial
 	inline void seal() { seal(std::vector<std::string>()); }
 
 public:  // Stubs for ModuleNetwork

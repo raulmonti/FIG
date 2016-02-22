@@ -100,7 +100,7 @@ uniform         { return parser::KUDIST; }
                     stringstream ss;
                     ss << " at line " << yylineno <<  endl;
                     string str = string(yytext) + ss.str();
-                    throw new BadSymbol(str.c_str());
+                    throw BadSymbol(str.c_str());
                 }
 
 

@@ -36,6 +36,8 @@
 
 #include <fig.h>
 
+using fig::FigException;
+
 static void print_intro(std::ostream& out);
 
 
@@ -64,17 +66,29 @@ int main(int argc, char** argv)
 			std::stringstream pss;
 			// Solve constants (precompile)
             pss << precompiler.pre_compile(pp.first,pp.second);
-            delete pp.first;
+			delete pp.first;
 			// Parse again with solved constants
             pp = parser.parse(&pss);
+			std::cerr << "REMEN\n";
 			// Verify IOSA compliance and other stuff
             verifier.verify(pp.first,pp.second);
+			std::cerr << "REMEN\n";
 			// Compile to a simulation model
 			fig::CompileModel(pp.first,pp.second);
-		} catch (fig::FigException &e) {
+			std::cerr << "REMEN\n";
+		} catch (const FigWarning& w) {
+			// Since this is "just a warning" we'll limit ourselves to showing it
+			std::cerr << "********\n";
+			std::cerr << "Warnings were generated while compiling the model.\n";
+			std::cerr << w.what();
+			std::cerr << "********\n";
+		} catch (const FigError& e) {
+			delete pp.first;
+			throw e;
+		} catch (const FigException& e) {
             delete pp.first;   
             throw e;
-        }
+		}
     }
     /** TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO **/
     /** HERE WE SHOULD SIMULATE AND DO ALL THE STUFF CARLOS KNOWS ABOUT. **/

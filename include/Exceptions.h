@@ -17,79 +17,6 @@
 
 //==============================================================================
 
-class ProgramError: public std::exception
-{
-
-    const char* except;
-
-public:
-
-    ProgramError(const char* msg)
-    {
-        except = msg;
-    }
-
-    virtual ~ProgramError() throw() {};
-
-    virtual const char* what() const throw()
-    {
-        return except;
-    }
-
-};
-
-
-//==============================================================================
-
-class IOSAComplianceExc: public std::exception
-{
-
-    const char* except;
-
-public:
-
-    IOSAComplianceExc(const char* msg)
-    {
-        except = msg;
-    }
-
-    virtual ~IOSAComplianceExc() throw(){};
-
-    virtual const char* what() const throw()
-    {
-        return except;
-    }
-
-};
-
-
-//==============================================================================
-
-class Badcharfound: public std::exception
-{
-
-public:
-
-  std::string c;
-
-  Badcharfound(){}
-
-  Badcharfound(std::string s){
-    c = s;
-  }
-
-  virtual ~Badcharfound() throw() {}
-
-
-  virtual const char* what() const throw()
-  {
-    return std::string("ERROR! Found bad character: ").append(c).c_str();
-  }
-};
-
-
-//==============================================================================
-
 class BadSymbol: public std::exception
 {
 
@@ -195,58 +122,6 @@ public:
     {
         return e_.c_str();
     }
-};
-
-//==============================================================================
-
-class FigError: public FigBaseException
-{
-protected:
-    std::string e_;
-public:
-
-    FigError(){}
-    FigError(std::string s): e_(s){}
-    virtual ~FigError(){}
-    virtual const char* what() const throw()
-    {
-        return e_.c_str();
-    }
-};
-
-//==============================================================================
-
-class FigWarning: public FigBaseException
-{
-protected:
-    std::string e_;
-public:
-
-    FigWarning(){}
-    FigWarning(std::string s): e_(s){}
-    virtual ~FigWarning(){}
-    virtual const char* what() const throw()
-    {
-        return e_.c_str();
-    }
-
-};
-
-//==============================================================================
-
-class BadAST: public std::exception
-{
-
-public:
-
-  BadAST(){}
-
-  virtual ~BadAST() throw() {}
-
-  virtual const char* what() const throw()
-  {
-    return std::string("WRONG AST!").c_str();
-  }
 };
 
 

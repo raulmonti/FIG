@@ -64,8 +64,7 @@ public:  // Ctors
 			  typename... OtherContainerArgs >
 	inline Precondition(const std::string& exprStr,
 						const Container<ValueType, OtherContainerArgs...>& varnames) :
-        MathExpression(exprStr == "true" ? emptyExpressionString : exprStr,
-                       varnames)
+        MathExpression(exprStr, varnames)
 		{}
 
 	/// Data ctor from generic rvalue container
@@ -75,8 +74,7 @@ public:  // Ctors
 			  typename... OtherContainerArgs >
 	inline Precondition(const std::string& exprStr,
 						Container<ValueType, OtherContainerArgs...>&& varnames) :
-        MathExpression(exprStr == "true" ? emptyExpressionString : exprStr,
-                       varnames)
+        MathExpression(exprStr, varnames)
         {}
 
 	/// Data ctor from iterator range
@@ -87,9 +85,7 @@ public:  // Ctors
 	inline Precondition(const std::string& exprStr,
 						Iterator<ValueType, OtherIteratorArgs...> from,
 						Iterator<ValueType, OtherIteratorArgs...> to) :
-        MathExpression(exprStr == "true" ? emptyExpressionString : exprStr,
-                       from,
-                       to)
+        MathExpression(exprStr, from, to)
         {}
 
 protected:  // Modifyers
