@@ -7,6 +7,7 @@
 #include "Parser.h"
 #include "ModelSuite.h"
 #include "Iosacompliance.h"
+#include "Exceptions.h"
 #include "FigException.h"
 #include <z3++.h>
 
@@ -228,11 +229,21 @@ CompileModel(AST* astModel, const parsingContext &pc)
 	auto model = fig::ModelSuite::get_instance();
 	assert(!model.sealed());
     vector<AST*> modules = astModel->get_all_ast(_MODULE);
-    for(auto const &it: modules){
-        auto module = CompileModule(it,pc);
-        model.add_module(module);
-    }
-    model.seal(NamesList({}));
+	for(const auto& it: modules){
+		std::shared_ptr< ModuleInstance > module(nullptr);
+		try {
+			module = CompileModule(it,pc);
+		} catch (const FigWarning& w) {
+			// Since this is "just a warning" we'll limit ourselves to showing it
+			std::cerr << "********\n";
+			std::cerr << "Warnings were generated when compiling module \"";
+			std::cerr << module->name << "\":\n";
+			std::cerr << w.what();
+			std::cerr << "********\n";
+		}
+		model.add_module(module);
+	}
+	model.seal();
 }
 
 } // namespace fig

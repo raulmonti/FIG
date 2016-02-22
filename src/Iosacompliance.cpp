@@ -392,8 +392,12 @@ Verifier::verify( AST* ast, const parsingContext pc){
         check_exhausted_clocks(ast);
         pout << ">> Check 7th IOSA condition...\n";
         check_input_determinism(ast);
-    }catch(string warning){
-        throw_FigException(warning);
+	} catch (const FigWarning& w) {
+		// Since this is "just a warning" we'll limit ourselves to showing it
+		std::cerr << "********\n";
+		std::cerr << "Warnings regarding IOSA properties compliance:\n";
+		std::cerr << w.what();
+		std::cerr << "********\n";
     }
 
 }
