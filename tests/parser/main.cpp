@@ -62,7 +62,6 @@ compile(string filename)
         }catch(const FigWarning &e){
             cout << "======================\n" << e.what() 
             << "======================\n";
-            cout << "[MSG] Compiling ..." << endl;
             fig::CompileModel(pp.first,pp.second);
             throw e;
         }
@@ -122,10 +121,10 @@ test_iosa_condition_3(string path)
     try{
         compile(path);
     }catch(const FigWarning &e){
-        cout << "[TEST] " << filename << " passed." << endl;
+        cout << "[TEST] " << filename << " passed." << endl<<endl;
         return;
     }
-    cout << "[TEST] " << filename << " NOT passed!!" << endl;
+    cout << "[TEST] " << filename << " NOT passed!!\n" << endl;
 }
 
 //==============================================================================
@@ -140,8 +139,11 @@ test_iosa_condition_4(string path)
     }catch(const FigWarning &e){
         cout << "[TEST] " << filename << " passed." << endl;
         return;
+    }catch(const std::exception &e){
+        cout << "[TEST] " << filename << " NOT passed!!" << endl;
+        cout << "======================\n" << e.what() 
+        << "======================\n" << endl;
     }
-    cout << "[TEST] " << filename << " NOT passed!!" << endl;
 }
 
 //==============================================================================
@@ -156,10 +158,11 @@ test_iosa_condition_7(string path)
     }catch(const FigWarning &e){
         cout << "[TEST] " << filename << " passed." << endl;
         return;
-    }catch(...){
-        assert(false);
+    }catch(const std::exception &e){
+        cout << "======================\n" << e.what() 
+        << "======================\n";
     }
-    cout << "[TEST] " << filename << " NOT passed!!" << endl;
+    cout << "[TEST] " << filename << " NOT passed!!\n" << endl;
 }
 
 //==============================================================================
@@ -184,9 +187,9 @@ main (int argc, char** argv){
 
     test_names(modelsPath + "/counterNames.sa");
     test_iosa_condition_1_2(modelsPath + "/counterProp1y2.sa");
-    test_iosa_condition_3(modelsPath + "/counterProp3.sa");
+//    test_iosa_condition_3(modelsPath + "/counterProp3.sa");
     test_iosa_condition_4(modelsPath + "/counterProp4.sa");
-    test_iosa_condition_7(modelsPath + "/counterProp7.sa");
+//    test_iosa_condition_7(modelsPath + "/counterProp7.sa");
     test_tandem_queue(modelsPath + "/tandem_queue.sa");
 
     return 0;

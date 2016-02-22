@@ -104,6 +104,7 @@ SET(REQUIRED_SOURCES "${SOURCES_DIR}/Ast.cpp"
                      "${SOURCES_DIR}/ImportanceFunctionAlgebraic.cpp"
                      "${SOURCES_DIR}/ImportanceFunctionConcrete.cpp"
                      "${SOURCES_DIR}/ImportanceFunctionConcreteCoupled.cpp"
+                     "${SOURCES_DIR}/ImportanceFunctionConcreteSplit.cpp"
                      "${SOURCES_DIR}/ThresholdsBuilder.cpp"
                      "${SOURCES_DIR}/ThresholdsBuilderAMS.cpp")
 SET(ALL_SOURCES ${ALL_SOURCES} ${REQUIRED_SOURCES} CACHE INTERNAL "")

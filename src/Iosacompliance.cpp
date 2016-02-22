@@ -980,8 +980,8 @@ Verifier::type_check(AST *ast){
     for(const auto &it: eclist){
         string name = it->get_lexeme(_NAME);
         if(rcset.find(name) == rcset.end()){
-            error_list.append("No distribution found for clock " + name +
-                " at " + it->get_pos() + "\n");
+            error_list.append("[ERROR] No distribution found for clock "
+                + name + " at " + it->get_pos() + "\n");
         }
     }
 

@@ -74,6 +74,8 @@ int main(int argc, char** argv)
 		} catch (fig::FigException &e) {
             delete pp.first;   
             throw e;
+        }catch(const FigWarning &e){
+            
         }
     }
     /** TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO **/
