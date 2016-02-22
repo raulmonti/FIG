@@ -100,7 +100,7 @@ private:
      * @throw
      * @result
      */
-    int
+    void
     unique_outputs(AST *ast);
 
 
@@ -109,7 +109,7 @@ private:
      *  @Note Can only partially check due to reachability issues, thus we 
      *        report WARNINGS but we don't ensure presence of non-determinism.
      */
-    int
+    void
     check_exhausted_clocks(AST *ast);
 
 
@@ -122,13 +122,10 @@ private:
     type_check(AST *ast);
 
 
-
-
-
     /**
      *  @brief Check condition 7 for IOSA.
      */
-    int
+    void
     check_input_determinism(AST *ast);
 
     /**

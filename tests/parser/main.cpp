@@ -185,10 +185,10 @@ main (int argc, char** argv){
     realpath("tests/parser/models",name);
     string modelsPath(name);
 
-    test_names(modelsPath + "/counterNames.sa");
-    test_iosa_condition_1_2(modelsPath + "/counterProp1y2.sa");
+//    test_names(modelsPath + "/counterNames.sa");
+//    test_iosa_condition_1_2(modelsPath + "/counterProp1y2.sa");
 //    test_iosa_condition_3(modelsPath + "/counterProp3.sa");
-    test_iosa_condition_4(modelsPath + "/counterProp4.sa");
+//    test_iosa_condition_4(modelsPath + "/counterProp4.sa");
 //    test_iosa_condition_7(modelsPath + "/counterProp7.sa");
     test_tandem_queue(modelsPath + "/tandem_queue.sa");
 

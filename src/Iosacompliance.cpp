@@ -20,6 +20,8 @@
 #include "FigException.h"
 
 
+#define wout std::cout
+
 /*TODO decide if the following definition is useful and do the same with
        the rest of long error messages if so.
 */
@@ -375,26 +377,23 @@ Verifier::verify( AST* ast, const parsingContext pc){
     mPc = pc; /* FIXME shouldn't do this copy, it comes from refactoring.
                *       think of a way arround
                */
-    try{
-        // general IOSA properties
-        pout << ">> Check names uniqueness...\n";
-        names_uniqueness(ast);
-        pout << ">> Check typing...\n";
-        type_check(ast);
-        pout << ">> Check constants...\n";
-        //check_constants(ast);
-        // IOSA determinism properties
-        pout << ">> Check 1st and 2nd IOSA conditions...\n";
-        input_output_clocks(ast);
-        pout << ">> Check 3rd IOSA condition...\n";
-        unique_outputs(ast);
-        pout << ">> Check 4th IOSA condition...\n";
-        check_exhausted_clocks(ast);
-        pout << ">> Check 7th IOSA condition...\n";
-        check_input_determinism(ast);
-    }catch(string warning){
-        throw_FigException(warning);
-    }
+
+    // general IOSA properties
+    pout << ">> Check names uniqueness...\n";
+    names_uniqueness(ast);
+    pout << ">> Check typing...\n";
+    type_check(ast);
+    pout << ">> Check constants...\n";
+    //check_constants(ast);
+    // IOSA determinism properties
+    pout << ">> Check 1st and 2nd IOSA conditions...\n";
+    input_output_clocks(ast);
+    pout << ">> Check 3rd IOSA condition...\n";
+    unique_outputs(ast);
+    pout << ">> Check 4th IOSA condition...\n";
+    check_exhausted_clocks(ast);
+    pout << ">> Check 7th IOSA condition...\n";
+    check_input_determinism(ast);
 
 }
 
@@ -424,36 +423,6 @@ Verifier::limits2expr(AST* ast, z3::context &c){
 
 
 //==============================================================================
-
-// FIXME Deprecated
-/**
- * @brief Check that every constant definition in @ast is correct, i.e 
- *        it does not depend of variables, and it is free of circular
- *        dependencies.
- * @throw String error if found something wrong.
- */
-/*void
-Verifier::check_constants(AST* ast)
-{
-    string error_list = "";
-    vector<AST *> cs = ast->get_all_ast(_CONST);
-    for(const auto &it1: cs){
-        AST* expr = it1->get_first(_EXPRESSION);
-        assert(expr);
-        for(const auto &it2: expr->get_all_ast(_NAME)){
-            if(mPc[it2->get_lexeme(_NAME)].second != ""){
-                error_list.append("[ERROR] Non constant assignment" 
-                                  " for constant " + it1->get_lexeme(_NAME) 
-                                  + " at " + it2->get_pos() + ".\n");
-            }
-        }
-    }
-    if(error_list != ""){
-        throw FigError(error_list);
-    }
-}
-*/
-
 
 /**
  *
@@ -523,7 +492,7 @@ Verifier::names_uniqueness(AST* ast){
 
     // Exception id found duplicated names:
     if(error_list != ""){
-        throw FigError(error_list);
+        throw_FigException(error_list);
     }
     return 1;
 }
@@ -567,7 +536,7 @@ Verifier::input_output_clocks(AST* ast){
     }
 
     if(error_list != ""){
-        throw FigError(error_list); 
+        throw_FigException(error_list); 
     }
     return 1;
 }
@@ -584,10 +553,8 @@ Verifier::input_output_clocks(AST* ast){
                  && (a1 != a2 || C'1 != C'2 || s1 != s2) ) : WARNING
  */
 
-int
+void
 Verifier::unique_outputs(AST *ast){
-    int result = 1;
-    string error_list = "";
     z3::context c;
     z3::solver s(c);
 
@@ -609,40 +576,35 @@ Verifier::unique_outputs(AST *ast){
                         string line1 = transs[i]->get_line();
                         string line2 = transs[j]->get_line();
                         if(!same_action(transs[i], transs[j])){
-                            error_list.append("[WARNING] Nondeterminism"
+                            wout << "[WARNING] Nondeterminism"
                                 " may be present if we reach states"
                                 " where transitions at lines " +  line1
                                 + " and " + line2 + " are enabled, "
                                 "since they use the same clock and they"
                                 " produce different actions. Check "
-                                " IOSA condition 3.\n");
+                                " IOSA condition 3.\n";
                         }
                         if(!same_rclocks(transs[i], transs[j])){
-                            error_list.append("[WARNING] Nondeterminism"
+                            wout << "[WARNING] Nondeterminism"
                                 " may be present if we reach states"
                                 " where transitions at lines " +  line1
                                 + " and " + line2 + " are enabled, "
                                 "since they use the same clock and they"
                                 " reset different clocks. Check "
-                                " IOSA condition 3.\n");
+                                " IOSA condition 3.\n";
                         }
                         z3::expr p1 = post2expr(transs[i],mPc,c);
                         z3::expr p2 = post2expr(transs[j],mPc,c);
                         s.reset();
                         s.add(e1 && e2 && (p1 != p2) && limits2expr(ast,c));
                         if(s.check()){
-                            error_list.append(W_0(line1,line2));
+                            wout << W_0(line1,line2);
                         }
                     }
                 }
             }
         }
     }
-
-    if (error_list != ""){
-        throw FigWarning(error_list);    
-    }
-    return result;
 }
 
 
@@ -670,10 +632,9 @@ Verifier::unique_outputs(AST *ast){
 
 */
 
-int
+void
 Verifier::check_exhausted_clocks(AST *ast){
 
-    string          error_list  = "";
     z3::context     c;
     z3::solver      s(c);
     z3::expr        ex          = c.bool_val(true);
@@ -722,23 +683,19 @@ Verifier::check_exhausted_clocks(AST *ast){
                             string namej = transs[j]->get_lexeme(_ACTION);
                             string linei = transs[i]->get_line();
                             string linej = transs[j]->get_line();
-                            error_list.append("[WARNING] it is possible that"
+                            wout << "[WARNING] it is possible that"
                                    " transition " + namei
                                  + " at line " + linei + " could be reached "
                                  + "with its clock exhausted via transition " 
                                  + namej + " at line " + linej + ", possibly " 
                                  + "causing non determinisim. Check IOSA "
-                                 + "condition 4.\n");
+                                 + "condition 4.\n";
                         }
                     }
                 }
             }
         }
     }
-    if(error_list != ""){
-        throw FigWarning(error_list);
-    }
-    return 1;
 }
 
 
@@ -755,7 +712,7 @@ Verifier::check_exhausted_clocks(AST *ast){
  *              WARNING.
  */
 
-int
+void
 Verifier::check_input_determinism(AST *ast){
 
     string error_list = "";
@@ -791,29 +748,25 @@ Verifier::check_input_determinism(AST *ast){
                     string posi = inputTrans[i]->get_pos();
                     string posj = inputTrans[j]->get_pos();
                     if (s.check()){
-                        error_list.append("[WARNING] Non determinism "
+                        wout << "[WARNING] Non determinism "
                             "may be present due to input transitions "
                             "labeled '"+ ti + "', at " + posi
                             + " and "+ posj + ". Check"
-                            " condition 7 for IOSA.\n");
+                            " condition 7 for IOSA.\n";
                     }
                     // also check for clocks that are being reset
                     if(!same_rclocks(inputTrans[i], inputTrans[j])){
-                        error_list.append("[WARNING] Non determinism "
+                        wout << "[WARNING] Non determinism "
                             "may be present due to input transitions "
                             "labeled '"+ ti + "', at " + posi
                             + " and "+ posj + " since they don't reset "
-                            + "the same clocks. Check condition 7 for IOSA.\n");
+                            + "the same clocks. Check condition 7 for IOSA.\n";
 
                     }                    
                 }                
             }
         }
     }
-    if(error_list != ""){
-        throw FigWarning(error_list);
-    }
-    return 1;
 }
 
 
@@ -986,7 +939,7 @@ Verifier::type_check(AST *ast){
     }
 
     if(error_list != ""){
-        throw FigError(error_list);
+        throw_FigException(error_list);
     }
 
     return result;
@@ -1011,8 +964,8 @@ get_type(AST *expr, const parsingContext &pc)
         if(op){
             Type t2 = get_type(expr2,pc);
             if(t1 != T_BOOL || t1 != t2){
-                throw "[ERROR] Wrong types for binary operator '" + op->p_name()
-                      + "', at " + op->p_pos() + ".\n";
+                throw_FigException("[ERROR] Wrong types for binary operator '" 
+                    + op->p_name() + "', at " + op->p_pos() + ".\n");
             }else{
                 return T_BOOL; 
             }
@@ -1026,8 +979,8 @@ get_type(AST *expr, const parsingContext &pc)
         if(op){
             Type t2 = get_type(expr2,pc);
             if(t1 != t2){
-                throw "[ERROR] Wrong types for equality "
-                      "operator at " + op->p_pos() + ".\n";
+                throw_FigException("[ERROR] Wrong types for equality "
+                    "operator at " + op->p_pos() + ".\n");
             }else{
                 return T_BOOL; 
             }
@@ -1041,8 +994,8 @@ get_type(AST *expr, const parsingContext &pc)
         if(op){
             Type t2 = get_type(expr2,pc);
             if(t1 != T_ARIT || t1 != t2){
-                throw "[ERROR] Wrong types for arithmetic "
-                      "comparison at " + op->p_pos() + ".\n";
+                throw_FigException("[ERROR] Wrong types for arithmetic "
+                    "comparison at " + op->p_pos() + ".\n");
             }else{
                 return T_BOOL; 
             }
@@ -1056,8 +1009,8 @@ get_type(AST *expr, const parsingContext &pc)
         if(op){
             Type t2 = get_type(expr2,pc);
             if(t1 != T_ARIT || t1 != t2){
-                throw "[ERROR] Wrong types for arithmetic "
-                      "operation at " + op->p_pos() + ".\n";
+                throw_FigException("[ERROR] Wrong types for arithmetic "
+                    "operation at " + op->p_pos() + ".\n");
             }else{
                 return T_ARIT; 
             }
@@ -1072,8 +1025,8 @@ get_type(AST *expr, const parsingContext &pc)
             Type t2 = get_type(expr2,pc);
             // FIXME should check division by zero????
             if(t1 != T_ARIT || t1 != t2){
-                throw "[ERROR] Wrong types for arithmetic "
-                      "operation at " + op->p_pos() + ".\n";
+                throw_FigException("[ERROR] Wrong types for arithmetic "
+                    "operation at " + op->p_pos() + ".\n");
             }else{
                 return T_ARIT; 
             }
@@ -1087,8 +1040,8 @@ get_type(AST *expr, const parsingContext &pc)
                 if (is_var(value,pc)){
                     t = pc.at(value->lxm).first;
                 }else{
-                    throw "[ERROR] Undeclared variable '" + value->lxm 
-                          + "' at " + value->p_pos() + ".\n";
+                    throw_FigException("[ERROR] Undeclared variable '" 
+                        + value->lxm + "' at " + value->p_pos() + ".\n");
                 }
                 break;
             case _BOOLEAN:
@@ -1103,15 +1056,15 @@ get_type(AST *expr, const parsingContext &pc)
             case _NEGATION:
                 t = get_type(expr->get_branch(1),pc);
                 if(t != T_BOOL){
-                    throw "[ERROR] Wrong type for boolean negation, at " 
-                          + value->p_pos() + ".\n";
+                    throw_FigException("[ERROR] Wrong type for boolean"
+                        + " negation, at " + value->p_pos() + ".\n");
                 }
                 break;
             case _MINUS:
                 t = get_type(expr->get_branch(1),pc);
                 if(t != T_ARIT){
-                    throw "[ERROR] Wrong type for arithmetic negation, at " 
-                          + value->p_pos() + ".\n";
+                    throw_FigException("[ERROR] Wrong type for arithmetic "
+                        + "negation, at " + value->p_pos() + ".\n");
                 }
                 break;
             default:
