@@ -185,7 +185,8 @@ public:  // Modifyers
 	 *        "module instances" have been added to the ModelSuite,
 	 *
 	 * @param initialClocksNames Container with the names of the clocks which
-	 *                           need to be reset on system initialization
+	 *                           need to be reset on system initialization.
+	 *                           If empty then all are considered initial.
 	 *
 	 * @note seal() must have been invoked before the beginning of simulations,
 	 *       also to create the \ref SimulationEngine "engines" and
@@ -202,6 +203,9 @@ public:  // Modifyers
 			  typename ValueType,
 			  typename... OtherContainerArgs >
 	void seal(const Container<ValueType, OtherContainerArgs...>& initialClocksNames);
+
+	/// Just like seal(), taking all system clocks as initial
+	inline void seal() { seal(std::vector<std::string>()); }
 
 public:  // Stubs for ModuleNetwork
 
@@ -294,6 +298,8 @@ public:  // Utils
 	 *
 	 * @param ifunName Any from available_importance_functions()
 	 * @param property The Property whose value is to be estimated
+	 * @param mergeFun For "split" ImportanceFunction this string specifies
+	 *                 the function combining the modules importances.
 	 * @param force    Assess importance again, even if importance info
 	 *                 already exists for this importance function and strategy
 	 *
@@ -301,11 +307,13 @@ public:  // Utils
 	 *                     "auto" importance assessment strategy.
 	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
 	 *
+	 * @see ImportanceFunctionConcreteSplit::set_merge_fun()
 	 * @see build_thresholds()
 	 */
 	void
 	build_importance_function_auto(const std::string& ifunName,
 								   const Property& property,
+								   const std::string& mergeFun = "",
 								   bool force = false);
 
 	/**

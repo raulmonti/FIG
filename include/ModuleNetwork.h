@@ -137,6 +137,9 @@ public:  // Accessors
 	/// @copydoc gState
 	inline const State<STATE_INTERNAL_TYPE>& global_state() const noexcept { return gState; }
 
+	/// Get vector of const references to all the system clocks
+	std::vector< Reference< const Clock > > clocks() const;
+
 public:  // Utils
 
 	virtual StateInstance initial_state() const;

@@ -64,9 +64,14 @@ class Property;
  */
 class ImportanceFunction
 {
+public:
+
+	typedef std::vector< ImportanceValue > ImportanceVec;
+
 protected:
 
-	/// Mathematical formula to evaluate the importance of symbolic states
+	/// Mathematical formula to evaluate an algebraic expression,
+	/// e.g. ad hoc function or combination of split importance values.
 	class Formula : public MathExpression
 	{
 	public:
@@ -75,15 +80,17 @@ protected:
 		Formula();
 
 		/// Set internal mathematical expression to the given formula
-		/// @param formula     String with mathematical expression to evaluate
-		/// @param varnames    Names of variables ocurring in exprStr
-		/// @param globalState State of the whole system model
+		/// @param formula  String with mathematical expression to evaluate
+		/// @param varnames Names of variables ocurring in exprStr
+		/// @param obj      Either a global State<...> or a PositionsMap
+		///                 mapping all names in 'varnames' to positions
 		/// @throw FigException if badly formatted mathematical expression
-		/// @throw out_of_range if 'varnames' has names not in 'formula'
-		template< template< typename... > class Container, typename... OtherArgs >
+		template< template< typename... > class Container,
+							typename... OtherArgs,
+				  class Mapper >
 		void set(const std::string& formula,
 				 const Container< std::string, OtherArgs... >& varnames,
-				 const State<STATE_INTERNAL_TYPE>& globalState);
+				 const Mapper& obj);
 
 		/// Reset internal mathematical expression to (void) creation values
 		void reset() noexcept;
@@ -92,6 +99,11 @@ protected:
 		/// @throw mu::Parser::exception_type if undefined internal
 		///        mathematical expression.
 		ImportanceValue operator()(const StateInstance& state) const;
+
+		/// Evaluate current formula expression on given vector
+		/// @throw mu::Parser::exception_type if undefined internal
+		///        mathematical expression.
+		ImportanceValue operator()(const ImportanceVec& localImportances) const;
 	};
 
 public:
@@ -99,7 +111,7 @@ public:
 	/// Names of the importance functions offered to the user,
 	/// as he should requested them through the CLI/GUI.
 	/// Defined in ImportanceFunction.cpp
-	static const std::array< std::string, 2 > names;
+	static const std::array< std::string, 3 > names;
 
 	/// Importance assessment strategies offered to the user,
 	/// as he should requested them through the CLI/GUI.
@@ -113,7 +125,6 @@ private:
 	std::string name_;
 
 protected:
-public:
 
 	/// Do we hold importance information about the states?
 	bool hasImportanceInfo_;
@@ -139,8 +150,9 @@ public:
 	/// Number of thresholds built on last call to build_thresholds()
 	unsigned numThresholds_;
 
-	/// Algebraic formula for ad hoc importance strategy
-	Formula adhocFun_;
+	/// Algebraic formula defined by the user.
+	/// Useful both for ad hoc strategy and concrete_split functions
+	Formula userFun_;
 
 public:  // Ctor/Dtor
 
@@ -300,12 +312,33 @@ public:  // Utils
 	virtual void build_thresholds(ThresholdsBuilder& tb,
 								  const unsigned& splitsPerThreshold) = 0;
 
-	/// @brief  Release memory allocated in the heap
+	/// @brief  Release memory allocated in the heap during importance assessment
 	/// @details This destroys any importance and thresholds info:
 	///          the ImportanceFunction won't hold \ref has_importance_info()
 	///          "importance information" any longer and will thus not be
 	///          \ref ready() "ready for simulations" either.
-	virtual void clear() noexcept = 0;
+	virtual void clear() noexcept;
+
+public:  // Utils for derived classes
+
+	/**
+	 * @brief Find extreme \ref ImportanceValue "importance values" for the
+	 *        current importance assessment of this ImportanceFunction.
+	 *
+	 *        On successfull invocation the values of the internal attributes
+	 *        minImportance_, maxImportance_ and minRareImportance_ are left
+	 *        as they should for the importance information currently held.
+	 *
+	 * @param state    State whose whole concrete space will be explored
+	 * @param property Property identifying the rare State valuations
+	 *
+	 * @note <b>Complexity:</b> <i>O(state.concrete_size() * state.size())</i>
+	 *
+	 * @throw FigException if there was no \ref has_importance_info()
+	 *                     "importance information"
+	 */
+	void find_extreme_values(State<STATE_INTERNAL_TYPE> state,
+							 const Property& property);
 };
 
 } // namespace fig

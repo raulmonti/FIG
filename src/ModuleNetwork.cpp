@@ -159,6 +159,20 @@ template void ModuleNetwork::seal(const std::forward_list<std::string>&);
 template void ModuleNetwork::seal(const std::unordered_set<std::string>&);
 
 
+std::vector< Reference< const Clock > >
+ModuleNetwork::clocks() const
+{
+    std::vector< Reference< const Clock > > allClocks;
+    for (auto module_ptr: modules) {
+        allClocks.reserve(allClocks.size() + module_ptr->num_clocks());
+        for (const Clock& clk: module_ptr->clocks())
+            allClocks.push_back(clk);
+    }
+    assert(allClocks.size() == numClocks_);
+    return allClocks;
+}
+
+
 StateInstance
 ModuleNetwork::initial_state() const
 {

@@ -39,8 +39,8 @@ namespace fig
 {
 
 /**
- * @brief Importance function for the concrete importance assessment
- *        of a ModuleNetwork.
+ * @brief ImportanceFunction for the concrete importance assessment
+ *        of a fully coupled ModuleNetwork.
  *
  *        Assesses the importance of the concrete state space resulting from
  *        the parallel composition of all the modules in the system,
@@ -58,13 +58,7 @@ class ImportanceFunctionConcreteCoupled : public ImportanceFunctionConcrete
 	/// Copy of the global state of the model (i.e. the network of modules)
 	mutable State< STATE_INTERNAL_TYPE > globalStateCopy_;
 
-	/// Initial state of all variables in the model (i.e. the network of modules)
-	const StateInstance globalInitialValuation_;
-
-	/// Reference to all the transitions of the model (i.e. the network of modules)
-	const std::vector<std::shared_ptr<Transition>>& globalTransitions_;
-
-	/// For interaction with base class ImportanceFunctionConcrete
+	/// Single location used from ImportanceFunctionConcrete::
 	const unsigned importanceInfoIndex_;
 
 public:  // Ctor/Dtor
@@ -80,6 +74,7 @@ public:  // Accessors
 
 	/// @copydoc ImportanceFunctionConcrete::info_of()
 	/// @note Attempted inline in a desperate need for speed
+	/// @note <b>Complexity:</b> <i>O(size(state)<sup>2</sup>)</i>
 	inline virtual ImportanceValue info_of(const StateInstance& state) const
 		{
 #       ifndef NDEBUG
@@ -97,6 +92,7 @@ public:  // Accessors
 
 	/// @copydoc ImportanceFunction::importance_of()
 	/// @note Attempted inline in a desperate need for speed
+	/// @note <b>Complexity:</b> <i>O(size(state)<sup>2</sup>)</i>
 	inline virtual ImportanceValue importance_of(const StateInstance& state) const
 		{
 			return UNMASK(info_of(state));
@@ -104,6 +100,7 @@ public:  // Accessors
 
 	/// @copydoc ImportanceFunction::level_of(const StateInstance&)
 	/// @note Attempted inline in a desperate need for speed
+	/// @note <b>Complexity:</b> same as ImportanceFunctionConcreteCoupled::info_of()
 	inline virtual ImportanceValue level_of(const StateInstance &state) const
 		{
 #       ifndef NDEBUG
@@ -118,6 +115,7 @@ public:  // Accessors
 
 	/// @copydoc ImportanceFunction::level_of(const ImportanceValue&)
 	/// @note Attempted inline in a desperate need for speed
+	/// @note <b>Complexity:</b> <i>O(1)</i>
 	inline virtual ImportanceValue level_of(const ImportanceValue& val) const
 		{
 #       ifndef NDEBUG
@@ -145,8 +143,6 @@ public:  // Utils
 
 	virtual void build_thresholds(ThresholdsBuilder& tb,
 								  const unsigned& splitsPerThreshold);
-
-	virtual void clear() noexcept;
 };
 
 } // namespace fig

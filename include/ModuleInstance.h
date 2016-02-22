@@ -317,6 +317,9 @@ public:  // Accessors
 
 	inline virtual bool sealed() const noexcept { return sealed_; }
 
+	/// @copydoc lState_
+	inline const State<STATE_INTERNAL_TYPE>& local_state() const noexcept { return lState_; }
+
 	/// Get all clocks residing in this module as a const vector
 	inline const std::vector< Clock >& clocks() const { return lClocks_; }
 

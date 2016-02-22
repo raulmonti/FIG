@@ -64,7 +64,7 @@ ImportanceFunctionAlgebraic::importance_of(const StateInstance& state) const
 						   .append(name()).append("\" doesn't ")
 						   .append("hold importance information."));
 #endif
-	return adhocFun_(state);
+	return userFun_(state);
 }
 
 
@@ -77,7 +77,7 @@ ImportanceFunctionAlgebraic::level_of(const StateInstance& state) const
 						   .append(name()).append("\" isn't ")
 						   .append("ready for simulations."));
 #endif
-	return importance2threshold_[adhocFun_(state)];
+	return importance2threshold_[userFun_(state)];
 }
 
 
@@ -106,50 +106,31 @@ ImportanceFunctionAlgebraic::set_formula(
 	const Property& property)
 {
     if ("auto" == strategy)
-        throw_FigException("importance strategy \"auto\" can only be be used "
-                           "with concrete importance functions; this routine "
-                           "should not have been invoked for such strategy.");
+		throw_FigException("importance strategy \"auto\" can only be used "
+						   "with concrete importance functions");
     try {
-        adhocFun_.set(formulaExprStr, varnames, gState);
+		userFun_.set(formulaExprStr, varnames, gState);
 	} catch (std::out_of_range& e) {
 		throw_FigException(std::string("something went wrong while setting ")
 						   .append(" the function \"").append(formulaExprStr)
 						   .append("\" for ad hoc importance assessment: ")
 						   .append(e.what()));
 	}
+	hasImportanceInfo_ = true;
+	strategy_ = strategy;
+
 	// Find extreme importance values for this ad hoc function
-	State<STATE_INTERNAL_TYPE> gStateCopy = gState;
 	if (strategy.empty() || "flat" == strategy) {
-		ImportanceValue importance = adhocFun_(gStateCopy.to_state_instance());
+		const ImportanceValue importance =
+				importance_of(gState.to_state_instance());
 		minImportance_ = importance;
 		maxImportance_ = importance;
 		minRareImportance_ = importance;
 	} else {
-		minImportance_ = std::numeric_limits<ImportanceValue>::max();
-		maxImportance_ = std::numeric_limits<ImportanceValue>::min();
-		minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
-//		#pragma omp parallel for default(shared) private(gStateCopy) reduction(min:imin,iminRare)
-		for (size_t i = 0ul ; i < gState.concrete_size() ; i++) {
-			assert(gStateCopy.size() == gState.size());
-			const StateInstance symbState = gStateCopy.decode(i).to_state_instance();
-			const ImportanceValue importance = adhocFun_(symbState);
-			minImportance_ = importance < minImportance_ ? importance
-														 : minImportance_;
-			if (property.is_rare(symbState) && importance < minRareImportance_)
-				minRareImportance_ = importance;
-		}
-//		#pragma omp parallel for default(shared) private(gStateCopy) reduction(max:imax)
-		for (size_t i = 0ul ; i < gState.concrete_size() ; i++) {
-			const ImportanceValue importance =
-					adhocFun_(gStateCopy.decode(i).to_state_instance());
-			maxImportance_ = importance > maxImportance_ ? importance
-														 : maxImportance_;
-		}
+		find_extreme_values(gState, property);  // *very* CPU intensive
 	}
 	assert(minImportance_ <= minRareImportance_);
 	assert(minRareImportance_ <= maxImportance_);
-	hasImportanceInfo_ = true;
-	strategy_ = strategy;
 }
 
 // ImportanceFunctionAlgebraic::set_formula() can only be invoked
@@ -227,7 +208,7 @@ ImportanceFunctionAlgebraic::print_out(std::ostream& out,
 void
 ImportanceFunctionAlgebraic::clear() noexcept
 {
-	adhocFun_.reset();
+	userFun_.reset();
 	strategy_ = "";
 	hasImportanceInfo_ = false;
 	std::vector< ImportanceValue >().swap(importance2threshold_);

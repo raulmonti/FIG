@@ -56,33 +56,37 @@ fi
 # Recognize requested build
 if [ $# -eq 0 ]
 then
-	echo "Called with no arguments, building main project"
-	echo ""
+	echo; echo "Called with no arguments, building main project"; echo
 	DIR=""
 elif [ $# -eq 1 ]
 then
 	if [ "$1" = "main" ]
 	then
-		echo "Building main project"
+		echo; echo "Building main project"; echo
 		DIR=""
 	elif [ "$1" = "test_tads" ]
 	then
-		echo "Building tests for TADs instantiation"
+		echo; echo "Building tests for TADs instantiation"; echo
 		DIR="tests/tads/"
 	elif [ "$1" = "test_parser" ]
 	then
-		echo "Building tests for parser"
+		echo; echo "Building tests for parser"; echo
 		DIR="tests/parser/"
 	elif [ "$1" = "test_sims" ]
 	then
-		echo "Building tests for simulations"
+		echo; echo "Building tests for simulations"; echo
 		DIR="tests/simulations/"
+	elif [ "$1" = "test_est" ]
+	then
+		echo; echo "Building tests for estimations"; echo
+		DIR="tests/estimations/"
 	else
 		echo "[ERROR] Unrecognized build option \"$1\""
 		echo "        Available builds are: main"
 		echo "                              test_tads"
 		echo "                              test_parser"
 		echo "                              test_sims"
+		echo "                              test_est"
 		exit 1
 	fi
 else
@@ -91,6 +95,7 @@ else
 	echo "                              test_tads"
 	echo "                              test_parser"
 	echo "                              test_sims"
+	echo "                              test_est"
 	exit 1
 fi
 
@@ -125,8 +130,8 @@ fi
 
 # Configure and build from inside BUILD_DIR
 if [ ! -d $BUILD_DIR ]; then mkdir $BUILD_DIR; fi
-cd $BUILD_DIR && CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR && make && \
-#cd $BUILD_DIR && CC=gcc CXX=g++ cmake $CMAKE_DIR && make && \
+#cd $BUILD_DIR && CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR && make && \
+cd $BUILD_DIR && CC=gcc CXX=g++ cmake $CMAKE_DIR && make && \
 echo -e "\n  Project built in $BUILD_DIR\n"
 cd $CWD
 

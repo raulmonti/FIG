@@ -71,8 +71,13 @@ public:  // Accessors
 
 	inline virtual bool concrete() const noexcept { return false; }
 
+	/// @copydoc ImportanceFunction::importance_of()
+	/// @note <b>Complexity:</b> <i>O(size(state))</i> +
+	///                          <i>O(mu::Parser::Eval(state))</i>
 	virtual ImportanceValue importance_of(const StateInstance& state) const;
 
+	/// @copydoc ImportanceFunction::level_of(const StateInstance&)
+	/// @note <b>Complexity:</b> same as ImportanceFunctionAlgebraic::importance_of()
 	virtual ImportanceValue level_of(const StateInstance& state) const;
 
 	virtual ImportanceValue level_of(const ImportanceValue& val) const;

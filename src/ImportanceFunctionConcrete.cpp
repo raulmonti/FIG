@@ -54,7 +54,7 @@ using fig::Transition;
 using fig::StateInstance;
 using fig::ImportanceValue;
 using State = fig::State< fig::STATE_INTERNAL_TYPE >;
-using ImportanceVec = fig::ImportanceFunctionConcrete::ImportanceVec;
+using ImportanceVec = fig::ImportanceFunction::ImportanceVec;
 typedef ImportanceVec EventVec;
 typedef unsigned STATE_T;
 
@@ -264,7 +264,7 @@ label_states(State state,
 	// First mark rares
     for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
 		cStates[i] = fig::EventType::NONE;
-		if (property.is_rare(state.decode(i))) {
+		if (property.is_rare(state.decode(i))) {  /// @todo what if state is local ???
 			fig::SET_RARE_EVENT(cStates[i]);
 			if (returnRares)
 				raresQueue.push(i);
@@ -304,7 +304,7 @@ label_states(State state,
  * @param property Property identifying the special states
  */
 ImportanceValue
-assess_importance_flat(State state,
+assess_importance_flat(const State& state,
 					   ImportanceVec& impVec,
 					   const Property& property)
 {
@@ -371,9 +371,14 @@ assess_importance_auto(const State& state,
 namespace fig
 {
 
-ImportanceFunctionConcrete::ImportanceFunctionConcrete(const std::string& name) :
-	ImportanceFunction(name),
-	modulesConcreteImportance(1u)
+ImportanceFunctionConcrete::ImportanceFunctionConcrete(
+	const std::string& name,
+	const State< STATE_INTERNAL_TYPE >& state,
+	const std::vector< std::shared_ptr<Transition> >& trans) :
+		ImportanceFunction(name),
+		modulesConcreteImportance(1u),
+		globalState(state),
+		globalTransitions(trans)
 { /* Not much to do around here */ }
 
 
@@ -433,18 +438,11 @@ void
 ImportanceFunctionConcrete::clear() noexcept
 {
 	for (unsigned i = 0u ; i < modulesConcreteImportance.size() ; i++)
-		this->clear(i);
-	std::vector<ImportanceVec>().swap(modulesConcreteImportance);
-}
-
-
-void
-ImportanceFunctionConcrete::clear(const unsigned& index) noexcept
-{
-	if (modulesConcreteImportance.size() > index)
-		ImportanceVec().swap(modulesConcreteImportance[index]);
+		ImportanceVec().swap(modulesConcreteImportance[i]);
 		// Clear vector and ensure reallocation to 0 capacity
 		// http://www.cplusplus.com/reference/vector/vector/clear/
+	std::vector<ImportanceVec>().swap(modulesConcreteImportance);
+	ImportanceFunction::clear();
 }
 
 } // namespace fig

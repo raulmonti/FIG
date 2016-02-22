@@ -46,14 +46,14 @@ class Property;
 class Transition;
 
 /**
- * @brief Abstract importance function for concrete importance assessment
+ * @brief Abstract ImportanceFunction for concrete importance assessment
  *
- *        The assessment is "concrete" because an internal vector is built and
+ *        The assessment is "concrete" because internal vectors are built and
  *        mantained with the ImportanceValue of each reachable concrete state,
  *        viz. importance information for the "concrete state space" is kept.<br>
  *        This can be extremely heavy on memory: precisely the size of the
- *        concrete state space of the assessed element (ModuleInstance or
- *        ModuleNetwork). On the other hand it can considerably more CPU
+ *        concrete state space of the assessed elements (ModuleInstance or
+ *        ModuleNetwork). On the other hand it can be considerably more CPU
  *        efficient than on-the-fly importance assessment as
  *        \ref ImportanceFunctionAlgebraic "algebraic importance functions" do.
  *
@@ -62,19 +62,25 @@ class Transition;
  */
 class ImportanceFunctionConcrete : public ImportanceFunction
 {
-public:
-
-	typedef std::vector< ImportanceValue > ImportanceVec;
-
 protected:  // Attributes
 
-	/// Concrete importance assessment for the whole system model
+	/// Concrete importance assessment for all the modules in the system model
 	std::vector< ImportanceVec > modulesConcreteImportance;
+
+	/// \ref ModuleNetwork "Model"'s global State at its initial valuation,
+	/// needed for the "auto" strategy
+	const State<STATE_INTERNAL_TYPE>& globalState;
+
+	/// Reference to all the \ref ModuleNetwork "model"'s transitions,
+	/// needed for the "auto" strategy
+	const std::vector<std::shared_ptr<Transition>>& globalTransitions;
 
 public:  // Ctor/Dtor
 
 	/// Data ctor
-	ImportanceFunctionConcrete(const std::string& name);
+	ImportanceFunctionConcrete(const std::string& name,
+							   const State<STATE_INTERNAL_TYPE>& state,
+							   const std::vector<std::shared_ptr<Transition>>& trans);
 
 	/// Dtor
 	virtual ~ImportanceFunctionConcrete();
@@ -103,14 +109,18 @@ public:  // Utils
 	 *        whole \ref ModuleNetwork "system model", according to the
 	 *        \ref Property "logical property" and strategy specified.
 	 *
+	 *        Any \ref has_importance_info() "importance information" previously
+	 *        computed is discarded. After a successfull invocation the
+	 *        ImportanceFunction holds internally the importance corresponding
+	 *        to the Property and assessment strategy given.
+	 * 
 	 * @param prop     Property identifying the special states
 	 * @param strategy Importance assessment strategy, currently "flat" or "auto"
 	 *
-	 * @note After a successfull invocation the ImportanceFunction holds
-	 *       internally the computed \ref has_importance_info()
-	 *       "importance information" for the passed assessment strategy.
 	 * @note To use the "adhoc" importance assessment strategy
 	 *       call the other assess_importance() member function
+	 * 
+	 * @throw bad_alloc if system's memory wasn't enough for internal storage
 	 *
 	 * @see has_importance_info()
 	 */
@@ -120,8 +130,13 @@ public:  // Utils
 	/**
 	 * @brief Assess the importance of the reachable concrete states of the
 	 *        whole \ref ModuleNetwork "system model", according to the
-	 *        \ref Property "logical property" and using the "adhoc"
+	 *        \ref Property "logical property" and using an ad hoc
 	 *        importance assessment strategy.
+	 *
+	 *        Any \ref has_importance_info() "importance information" previously
+	 *        computed is discarded. After a successfull invocation the
+	 *        ImportanceFunction holds internally the importance corresponding
+	 *        to the passed ad hoc importance assessment function.
 	 *
 	 * @param prop     Property identifying the special states
 	 * @param formulaExprStr  Mathematical formula to assess the states'
@@ -129,15 +144,13 @@ public:  // Utils
 	 * @param varnames Names of variables ocurring in 'formulaExprStr',
 	 *                 i.e. which substrings in the formula expression
 	 *                 are actually variable names.
-	 *
-	 * @note After a successfull invocation the ImportanceFunction holds
-	 *       internally the computed \ref has_importance_info()
-	 *       "importance information" for the passed assessment strategy.
+	 * 
 	 * @note To use other importance assessment strategies (e.g. "flat")
 	 *       call the other assess_importance() member function
 	 *
 	 * @throw FigException if badly formatted 'formulaExprStr' or 'varnames'
 	 *                     has names not appearing in 'formulaExprStr'
+	 * @throw bad_alloc if system's memory wasn't enough for internal storage
 	 *
 	 * @see has_importance_info()
 	 */
@@ -145,11 +158,8 @@ public:  // Utils
 								   const std::string& formulaExprStr,
 								   const std::vector<std::string>& varnames) = 0;
 
-	/// Erase all internal importance information and free resources
+	/// Erase all internal importance information (free resources along the way)
 	virtual void clear() noexcept;
-
-	/// Erase internal importance information stored at position "index"
-	virtual void clear(const unsigned& index) noexcept;
 
 protected:  // Utils for derived classes
 
@@ -171,6 +181,9 @@ protected:  // Utils for derived classes
 	 * @note This allocates (tons of) memory internally
 	 * @note To assess again for same index with different strategy or property,
 	 *       release first the internal info through clear(const unsigned&)
+	 *
+	 * @warning The values of the internal inherited attributes minImportance_,
+	 *          maxImportance_ and minRareImportance_ are updated.
 	 *
 	 * @throw bad_alloc    if system's memory wasn't enough for internal storage
 	 * @throw FigException if there's already importance info for this index

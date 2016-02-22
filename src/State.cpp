@@ -96,7 +96,7 @@ State<T_>& State<T_>::operator=(State<T_> that)
 
 template< typename T_ >
 void
-State<T_>::append(const State& tail)
+State<T_>::append(const State<T_>& tail)
 {
 #ifndef NDEBUG
 	for (const auto var_ptr: tail)
@@ -113,6 +113,24 @@ State<T_>::append(const State& tail)
 	for (const auto& pair: tail.positionOfVar_)
 		positionOfVar_[pair.first] += oldSize;
 	build_concrete_bound();
+}
+
+
+template< typename T_ >
+void
+State<T_>::get_valuation(const State<T_>& that)
+{
+	for (auto our_pvar: pvars_) {
+		auto thatVar = std::find_if(::begin(that), ::end(that),
+									[&] (const std::shared_ptr<Variable<T_>>& pvar)
+									{ return our_pvar->name() == pvar->name(); });
+		if (::end(that) != thatVar)
+			(*our_pvar) = (*thatVar)->val();
+		else
+			throw_FigException(std::string("tried to get_valuation() from ")
+							   .append("incompatible State, variable \"")
+							   .append(our_pvar->name()).append("\" not found"));
+	}
 }
 
 
@@ -218,22 +236,35 @@ State<T_>::is_valid_state_instance(StateInstance s) const
 
 template< typename T_ >
 void
-State<T_>::copy_from_state_instance(const StateInstance &s, bool checkValidity)
+State<T_>::extract_from_state_instance(const StateInstance& s,
+									   const size_t& ipos,
+									   bool checkValidity)
 {
-	if (s.size() != size()) {
+	const size_t fpos(ipos + size());
+	if (s.size() < fpos) {
 #ifndef NDEBUG
-		std::cerr << "State of size " << size() << " attempted to copy from "
-				  << "StateInstance with " << s.size() << " variables.\n";
+		std::cerr << "Attemped to extract state of size " << size()
+				  << " from position " << ipos << " of a StateInstace"
+				  << " with only " << s.size() << " variables.\n";
 #endif
 		throw_FigException("attempted to copy values from an invalid state");
 	}
+	size_t j(0ul);
 	if (checkValidity) {
-		for (size_t i = 0u ; i < size() ; i++)
-			pvars_[i]->assign(s[i]);
+		for (size_t i = ipos ; i < fpos ; i++)
+			pvars_[j++]->assign(s[i]);
 	} else {
-		for (size_t i = 0u ; i < size() ; i++)
-			(*pvars_[i]) = s[i];
+		for (size_t i = ipos ; i < fpos ; i++)
+			(*pvars_[j++]) = s[i];
 	}
+}
+
+
+template< typename T_ >
+void
+State<T_>::copy_from_state_instance(const StateInstance &s, bool checkValidity)
+{
+	extract_from_state_instance(s, 0ul, checkValidity);
 }
 
 

@@ -35,11 +35,15 @@
 #include <forward_list>
 #include <unordered_set>
 #include <sstream>
-#include <iterator>   // std::begin, std::end
+#include <numeric>    // std::numeric_limits<>()
+#include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // std::find()
+#include <functional>   // std::function<>, std::bind()
+#include <type_traits>  // std::is_assignable<>
 // FIG
 #include <ImportanceFunction.h>
 #include <FigException.h>
+#include <Property.h>
 
 // ADL
 using std::begin;
@@ -47,21 +51,41 @@ using std::end;
 using std::find;
 
 
+namespace
+{
+
+std::function<size_t(const std::string&)>
+wrap_mapper(const fig::PositionsMap& obj)
+{
+    return [&obj](const std::string& varName) { return obj.at(varName); };
+}
+
+std::function<size_t(const std::string&)>
+wrap_mapper(const fig::State<fig::STATE_INTERNAL_TYPE>& obj)
+{
+    return std::bind(&fig::State<fig::STATE_INTERNAL_TYPE>::position_of_var,
+                     obj, std::placeholders::_1);
+}
+
+} // namespace
+
+
+
 namespace fig
 {
 
 // Static variables initialization
 
-const std::array< std::string, 2 > ImportanceFunction::names =
+const std::array< std::string, 3 > ImportanceFunction::names =
 {{
 	// See ImportanceFunctionConcreteCoupled class
 	"concrete_coupled",
 
-//	// See ImportanceFunctionConcreteSplit class
-//	"concrete_split"
+	// See ImportanceFunctionConcreteSplit class
+	"concrete_split",
 
-	 // See ImportanceFunctionAlgebraic class
-	 "algebraic"
+	// See ImportanceFunctionAlgebraic class
+	"algebraic"
 }};
 
 
@@ -87,28 +111,33 @@ ImportanceFunction::Formula::Formula() :
 { /* Not much to do around here */ }
 
 
-template< template< typename... > class Container, typename... OtherArgs >
+template< template< typename... > class Container,
+                    typename... OtherArgs,
+          typename Mapper
+>
 void
 ImportanceFunction::Formula::set(
     const std::string& formula,
     const Container<std::string, OtherArgs...>& varnames,
-    const State<STATE_INTERNAL_TYPE>& globalState)
+    const Mapper& obj)
 {
-	empty_ = "" == formula;
-    exprStr_ = empty_ ? MathExpression::emptyExpressionString : formula;
+    static_assert(std::is_same<PositionsMap, Mapper>::value ||
+                  std::is_convertible<State<STATE_INTERNAL_TYPE>, Mapper>::value,
+                  "ERROR: type mismatch. ImportanceFunction::Formula::set() can"
+                  " only be called with a State<...> object or a PositionsMap.");
+    if ("" == formula || formula.length() == 0ul)
+        throw_FigException("can't define an empty user function");
+
+    empty_ = false;
+    exprStr_ = formula;
     parse_our_expression();  // updates expr_
-	varsMap_.clear();
-	for (const auto& name: varnames) {
-#ifndef NRANGECHK
-        if (std::string::npos == exprStr_.find(name))
-			throw std::out_of_range(std::string("invalid variable name: \"")
-									.append(name).append("\""));
-#endif
-		varsMap_.emplace_back(       // copy elision
-				std::make_pair(name, globalState.position_of_var(name)));
-	}
-	pinned_ = true;
-    // Fake an evaluation to reveal parsing errors now
+    varsMap_.clear();
+    auto pos_of_var = wrap_mapper(obj);
+    for (const auto& name: varnames)
+        if (std::string::npos != formula.find(name))  // name occurs in formula
+            varsMap_.emplace_back(std::make_pair(name, pos_of_var(name)));
+    pinned_ = true;
+    // Fake an evaluation to reveal parsing errors but now... I said NOW!
     STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
     try {
         for (const auto& pair: varsMap_)
@@ -126,25 +155,33 @@ ImportanceFunction::Formula::set(
     }
 }
 
-// ImportanceFunction::Formula::set() can only be invoked with the following containers
-template void ImportanceFunction::Formula::set(const std::string&,
-                                               const std::set<std::string>&,
-                                               const State<STATE_INTERNAL_TYPE>&);
-template void ImportanceFunction::Formula::set(const std::string&,
-                                               const std::list<std::string>&,
-                                               const State<STATE_INTERNAL_TYPE>&);
-template void ImportanceFunction::Formula::set(const std::string&,
-                                               const std::deque<std::string>&,
-                                               const State<STATE_INTERNAL_TYPE>&);
-template void ImportanceFunction::Formula::set(const std::string&,
-                                               const std::vector<std::string>&,
-                                               const State<STATE_INTERNAL_TYPE>&);
-template void ImportanceFunction::Formula::set(const std::string&,
-                                               const std::forward_list<std::string>&,
-                                               const State<STATE_INTERNAL_TYPE>&);
-template void ImportanceFunction::Formula::set(const std::string&,
-                                               const std::unordered_set<std::string>&,
-                                               const State<STATE_INTERNAL_TYPE>&);
+// ImportanceFunction::Formula::set() can only be invoked
+// with the following Container and Mapper types
+typedef State<STATE_INTERNAL_TYPE> state_t;
+template void ImportanceFunction::Formula::set(
+    const std::string&, const std::set<std::string>&, const PositionsMap&);
+template void ImportanceFunction::Formula::set(
+    const std::string&, const std::set<std::string>&, const state_t&);
+template void ImportanceFunction::Formula::set(
+    const std::string&, const std::list<std::string>&, const PositionsMap&);
+template void ImportanceFunction::Formula::set(
+    const std::string&, const std::list<std::string>&, const state_t&);
+template void ImportanceFunction::Formula::set(
+    const std::string&, const std::deque<std::string>&, const PositionsMap&);
+template void ImportanceFunction::Formula::set(
+    const std::string&, const std::deque<std::string>&, const state_t&);
+template void ImportanceFunction::Formula::set(
+    const std::string&, const std::vector<std::string>&, const PositionsMap&);
+template void ImportanceFunction::Formula::set(
+    const std::string&, const std::vector<std::string>&, const state_t&);
+template void ImportanceFunction::Formula::set(
+    const std::string&, const std::forward_list<std::string>&, const PositionsMap&);
+template void ImportanceFunction::Formula::set(
+    const std::string&, const std::forward_list<std::string>&, const state_t&);
+template void ImportanceFunction::Formula::set(
+    const std::string&, const std::unordered_set<std::string>&, const PositionsMap&);
+template void ImportanceFunction::Formula::set(
+    const std::string&, const std::unordered_set<std::string>&, const state_t&);
 
 
 void
@@ -170,6 +207,19 @@ ImportanceFunction::Formula::operator()(const StateInstance& state) const
 }
 
 
+ImportanceValue
+ImportanceFunction::Formula::operator()(const ImportanceVec& localImportances) const
+{
+	// Bind symbolic state variables to the current expression...
+	for (const auto& pair: varsMap_)
+        expr_.DefineVar(pair.first, reinterpret_cast<STATE_INTERNAL_TYPE*>(
+                                    const_cast<ImportanceValue*>(
+                                    &localImportances[pair.second])));
+	// ...and evaluate
+	return static_cast<ImportanceValue>(expr_.Eval());
+}
+
+
 
 // ImportanceFunction class member functions
 
@@ -182,7 +232,8 @@ ImportanceFunction::ImportanceFunction(const std::string& name) :
     minImportance_(static_cast<ImportanceValue>(0u)),
     maxImportance_(static_cast<ImportanceValue>(0u)),
     minRareImportance_(static_cast<ImportanceValue>(0u)),
-    adhocFun_()
+	numThresholds_(0u),
+	userFun_()
 {
 	if (find(begin(names), end(names), name) == end(names)) {
 		std::stringstream errMsg;
@@ -228,7 +279,7 @@ ImportanceFunction::strategy() const noexcept
 const std::string
 ImportanceFunction::adhoc_fun() const noexcept
 {
-	return has_importance_info() && "adhoc" == strategy_ ? adhocFun_.expression()
+	return has_importance_info() && "adhoc" == strategy_ ? userFun_.expression()
 														 : "";
 }
 
@@ -271,6 +322,50 @@ ImportanceFunction::min_rare_importance() const noexcept
 {
 	return has_importance_info() ? minRareImportance_
 								 : static_cast<ImportanceValue>(0u);
+}
+
+
+void
+ImportanceFunction::clear() noexcept
+{
+	hasImportanceInfo_ = false;
+	readyForSims_ = false;
+	strategy_ = "";
+	thresholdsTechnique_ = "";
+	minImportance_ = static_cast<ImportanceValue>(0u);
+	maxImportance_ = static_cast<ImportanceValue>(0u);
+	minRareImportance_ = static_cast<ImportanceValue>(0u);
+	numThresholds_ = 0u;
+	userFun_.reset();
+}
+
+
+void
+ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
+										const Property& property)
+{
+	const size_t concreteStateSpaceSize(state.concrete_size());
+	minImportance_ = std::numeric_limits<ImportanceValue>::max();
+	maxImportance_ = std::numeric_limits<ImportanceValue>::min();
+	minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
+
+//	#pragma omp parallel for default(shared) private(gStateCopy) reduction(min:imin,iminRare)
+	for (size_t i = 0ul ; i < concreteStateSpaceSize ; i++) {
+		const StateInstance symbState = state.decode(i).to_state_instance();
+		const ImportanceValue importance = importance_of(symbState);
+		minImportance_ = importance < minImportance_ ? importance
+													 : minImportance_;
+		if (property.is_rare(symbState) && importance < minRareImportance_)
+			minRareImportance_ = importance;
+	}
+
+//	#pragma omp parallel for default(shared) private(gStateCopy) reduction(max:imax)
+	for (size_t i = 0ul ; i < concreteStateSpaceSize ; i++) {
+		const ImportanceValue importance =
+                importance_of(state.decode(i).to_state_instance());
+		maxImportance_ = importance > maxImportance_ ? importance
+													 : maxImportance_;
+	}
 }
 
 } // namespace fig
