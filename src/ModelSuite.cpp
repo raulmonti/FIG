@@ -137,7 +137,7 @@ build_empty_confidence_interval(
 
     case fig::PropertyType::THROUGHPUT:
     case fig::PropertyType::RATE:
-    case fig::PropertyType::PROPORTION:
+    case fig::PropertyType::RATIO:
     case fig::PropertyType::BOUNDED_REACHABILITY:
         throw_FigException("property type isn't supported yet");
         break;

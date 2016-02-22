@@ -40,22 +40,29 @@ namespace fig
 /**
  * @copydoc TRANSIENT
  *
- *     Transient properties speak of the probability of reaching some goal
- *     before something bad happens.
- *     These can be generally categorized as "safety properties" and are
- *     described by the PCTL formula "P(!stop U goal)". Here "stop"
- *     implies an unsafe event has taken place and activity must stop,
- *     whereas "goal" means the final condition event has been observed.
+ * @details Transient properties describe finite execution traces.
+ *          For instance "safety properties" described by the PCTL formula
+ *          P(!stop U goal), which expresses the probability of remaining
+ *          in safe "non-stopping" states until a goal is reached, are
+ *          transient properties.<br>
+ *          The general idea is to visit only states that satisfy a set of
+ *          conditions (described by the logical expression "expr1", say),
+ *          until a state that satisfies another set of conditions (described
+ *          by "expr2", say) is visited.
+ *          Execution is thus terminated when a state that doesn't satisfy
+ *          "expr1" or that satisfies "expr2" is visited, whichever happens first.
  */
 class PropertyTransient : public Property
 {
-    /// Event triggered when the simulation should be "prematurely interrupted"
-    /// (it kinda failed)
-    Property::Formula stop;
+    /// This should be continuously satisfied, otherwise the simulation is
+    /// "prematurely interrupted" (it kinda failed)
+    /// This is the subformula on the LHS of the 'UNTIL'
+    Property::Formula expr1_;
 
-    /// Event triggered when the simulation reached the final destination
+    /// When this becomes true the simulation reached its "final destination"
     /// (it kinda succeeded)
-    Property::Formula goal;
+    /// This is the subformula on the RHS of the 'UNTIL'
+    Property::Formula expr2_;
 
 public:  // Ctors
 
@@ -81,15 +88,15 @@ public:  // Ctors
 			typename ValueType2,
 			typename... OtherArgs2
 	>
-	PropertyTransient(const std::string& stopExpr,
-					  const Container1<ValueType1, OtherArgs1...>& stopExprVars,
-					  const std::string& goalExpr,
-					  const Container2<ValueType2, OtherArgs2...>& goalExprVars) :
-		Property(std::string("P( !(").append(stopExpr).append(") U (")
-									 .append(goalExpr).append(") )"),
+	PropertyTransient(const std::string& expr1,
+					  const Container1<ValueType1, OtherArgs1...>& expr1Vars,
+					  const std::string& expr2,
+					  const Container2<ValueType2, OtherArgs2...>& expr2Vars) :
+		Property(std::string("P( (").append(expr1).append(") U (")
+									.append(expr2).append(") )"),
 				 PropertyType::TRANSIENT),
-		stop(stopExpr, stopExprVars),
-		goal(goalExpr, goalExprVars)
+		expr1_(expr1, expr1Vars),
+		expr2_(expr2, expr2Vars)
 		{}
 
 	/**
@@ -116,17 +123,17 @@ public:  // Ctors
 			typename ValueType2,
 			typename... OtherArgs2
 	>
-	PropertyTransient(const std::string& stopExpr,
-					  Iterator1<ValueType1, OtherArgs1...> stopExprVarsFrom,
-					  Iterator1<ValueType1, OtherArgs1...> stopExprVarsTo,
-					  const std::string& goalExpr,
-					  Iterator2<ValueType2, OtherArgs2...> goalExprVarsFrom,
-					  Iterator2<ValueType2, OtherArgs2...> goalExprVarsTo) :
-		Property(std::string("P( !(").append(stopExpr).append(") U (")
-									 .append(goalExpr).append(") )"),
+	PropertyTransient(const std::string& expr1,
+					  Iterator1<ValueType1, OtherArgs1...> expr1VarsFrom,
+					  Iterator1<ValueType1, OtherArgs1...> expr1VarsTo,
+					  const std::string& expr2,
+					  Iterator2<ValueType2, OtherArgs2...> expr2VarsFrom,
+					  Iterator2<ValueType2, OtherArgs2...> expr2VarsTo) :
+		Property(std::string("P( (").append(expr1).append(") U (")
+									.append(expr2).append(") )"),
 				 PropertyType::TRANSIENT),
-		stop(stopExpr, stopExprVarsFrom, stopExprVarsTo),
-		goal(goalExpr, goalExprVarsFrom, goalExprVarsTo)
+		expr1_(expr1, expr1VarsFrom, expr1VarsTo),
+		expr2_(expr2, expr2VarsFrom, expr2VarsTo)
 		{}
 
     /// Default copy ctor
@@ -143,13 +150,13 @@ public:  // Ctors
 
 public:  // Accessors
 
-    /// String expression of the "stop" subformula of this property
-    /// @see PropertyTransient::stop
-    const std::string stop_expression() const noexcept;
+    /// String expression of the "expr1" subformula of this property
+    /// @see PropertyTransient::expr1_
+    const std::string expression1() const noexcept;
 
-    /// String expression of the "goal" subformula of this property
-    /// @see PropertyTransient::goal
-    const std::string goal_expression() const noexcept;
+    /// String expression of the "expr2" subformula of this property
+    /// @see PropertyTransient::expr2_
+    const std::string expression2() const noexcept;
 
 protected:  // Modifyers
 
@@ -159,33 +166,27 @@ protected:  // Modifyers
 
 public:  // Utils
 
-	/// Is the "stop" subformula satisfied by the given variables valuation?
-	/// @see PropertyTransient::stop
-	inline bool is_stop(const StateInstance& s) const { return stop(s); }
+	/// Is the "expr1" subformula satisfied by the given variables valuation?
+	/// @see PropertyTransient::expr1_
+	inline bool expr1(const StateInstance& s) const { return expr1_(s); }
 
-	/// @copydoc is_stop()
-	inline bool is_stop(const State<STATE_INTERNAL_TYPE>& s) const
-		{ return is_stop(s.to_state_instance()); }
+	/// @copydoc expr1()
+	inline bool expr1(const State<STATE_INTERNAL_TYPE>& s) const
+		{ return expr1(s.to_state_instance()); }
 
-	/// Is the "goal" subformula satisfied by the given variables valuation?
-	/// @see PropertyTransient::goal
-	inline bool is_goal(const StateInstance& s) const { return goal(s); }
+	/// Is the "expr2" subformula satisfied by the given variables valuation?
+	/// @see PropertyTransient::expr2_
+	inline bool expr2(const StateInstance& s) const { return expr2_(s); }
 
-	/// @copydoc is_goal()
-	inline bool is_goal(const State<STATE_INTERNAL_TYPE>& s) const
-		{ return is_goal(s.to_state_instance()); }
-
-    inline virtual bool satisfied_by(const StateInstance& s) const
-        { return !is_stop(s) || is_goal(s); }  // weak until... is it OK?
-
-    inline virtual bool satisfied_by(const State<STATE_INTERNAL_TYPE>& s) const
-        { return satisfied_by(s.to_state_instance()); }
+	/// @copydoc expr2()
+	inline bool expr2(const State<STATE_INTERNAL_TYPE>& s) const
+		{ return expr2(s.to_state_instance()); }
 
     inline virtual bool is_rare(const StateInstance& s) const
-        { return is_goal(s); }
+        { return expr2(s); }
 
     inline virtual bool is_rare(const State<STATE_INTERNAL_TYPE>& s) const
-        { return is_rare(s.to_state_instance()); }
+        { return expr2(s.to_state_instance()); }
 };
 
 } // namespace fig

@@ -34,32 +34,32 @@ namespace fig
 {
 
 const std::string
-PropertyTransient::stop_expression() const noexcept
+PropertyTransient::expression1() const noexcept
 {
-	return stop.expression();
+	return expr1_.expression();
 }
 
 
 const std::string
-PropertyTransient::goal_expression() const noexcept
+PropertyTransient::expression2() const noexcept
 {
-	return goal.expression();
+	return expr2_.expression();
 }
 
 
 void
 PropertyTransient::pin_up_vars(const PositionsMap &globalVars)
 {
-	stop.pin_up_vars(globalVars);
-	goal.pin_up_vars(globalVars);
+	expr1_.pin_up_vars(globalVars);
+	expr2_.pin_up_vars(globalVars);
 }
 
 
 void
 PropertyTransient::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 {
-	stop.pin_up_vars(globalState);
-	goal.pin_up_vars(globalState);
+	expr1_.pin_up_vars(globalState);
+	expr2_.pin_up_vars(globalState);
 }
 
 } // namespace fig

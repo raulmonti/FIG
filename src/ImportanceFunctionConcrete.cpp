@@ -277,13 +277,13 @@ label_states(State state,
 	case fig::PropertyType::TRANSIENT: {
 		auto transientProp = static_cast<const fig::PropertyTransient&>(property);
         for (size_t i = 0ul ; i < state.concrete_size() ; i++)
-			if (transientProp.is_stop(state.decode(i)))
+			if (!transientProp.expr1(state.decode(i)))
 				fig::SET_STOP_EVENT(cStates[i]);
 		} break;
 
 	case fig::PropertyType::THROUGHPUT:
 	case fig::PropertyType::RATE:
-	case fig::PropertyType::PROPORTION:
+	case fig::PropertyType::RATIO:
 	case fig::PropertyType::BOUNDED_REACHABILITY:
 		throw_FigException("property type isn't supported yet");
 		break;

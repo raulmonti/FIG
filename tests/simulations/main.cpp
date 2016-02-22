@@ -190,7 +190,7 @@ int main()
 	// Property
 	std::cout << "Building the property" << std::endl;
 	auto property_ptr(std::make_shared< fig::PropertyTransient >(
-			"q1+q2 == 0", NamesList({"q1","q2"}),  // stopping condition
+			"q1+q2 != 0", NamesList({"q1","q2"}),  // non-stopping condition
 			"q2 == 5", NamesList({"q2"})  // goal
 	));
 	model.add_property(property_ptr);

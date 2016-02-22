@@ -108,7 +108,7 @@ public:  // Traial observers/updaters
 		{
 			// Event marking is done in accordance with the checks performed
 			// in the transient_simulations() virtual member function
-			if (property.is_stop(traial.state)) {
+			if (!property.expr1(traial.state)) {
 				e = EventType::STOP;
 			} else {
 				ImportanceValue newThrLvl = impFun_->level_of(traial.state);
