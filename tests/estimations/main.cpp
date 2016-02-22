@@ -36,69 +36,39 @@
 
 #include <fig.h>
 
-using fig::FigException;
-
 static void print_intro(std::ostream& out);
+static void build_model(const char* filepath, Parser &parser);
 
 
 int main(int argc, char** argv)
 {
+	//  Intro  // // // // // // // // // // // // // // // // // //
 	print_intro(std::cout);
-
-    if (argc <= 1) {
+	if (argc <= 1) {
 		std::cerr << "ERROR: must call with the name of the file\n"
 					 "       with the model described in IOSA syntax.\n";
 		exit(EXIT_FAILURE);
 	}
 
-    Parser      parser      = Parser();
-    Verifier    verifier    = Verifier();
-    Precompiler precompiler = Precompiler();
+	//  Parse user model   // // // // // // // // // // // // // //
+	Parser parser;
+	build_model(const_cast<const char*>(argv[1]), parser);
+	auto model = fig::ModelSuite::get_instance();
+	if (!model.sealed()) {
+		std::cerr << "ERROR: unexpectedly failed to build the model.\n";
+		exit(EXIT_FAILURE);
+	}
 
-	// Read the model
-	std::ifstream fin(argv[1], ios::binary);
-	std::stringstream ss;
-    ss << fin.rdbuf();
-	// Parse the model
-	std::pair<AST*, parsingContext> pp = parser.parse(& ss);
-	if (pp.first) {
-		try {
-			std::stringstream pss;
-			// Solve constants (precompile)
-            pss << precompiler.pre_compile(pp.first,pp.second);
-			delete pp.first;
-			// Parse again with solved constants
-            pp = parser.parse(&pss);
-			std::cerr << "REMEN\n";
-			// Verify IOSA compliance and other stuff
-            verifier.verify(pp.first,pp.second);
-			std::cerr << "REMEN\n";
-			// Compile to a simulation model
-			fig::CompileModel(pp.first,pp.second);
-			std::cerr << "REMEN\n";
-		} catch (const FigWarning& w) {
-			// Since this is "just a warning" we'll limit ourselves to showing it
-			std::cerr << "********\n";
-			std::cerr << "Warnings were generated while compiling the model.\n";
-			std::cerr << w.what();
-			std::cerr << "********\n";
-		} catch (const FigError& e) {
-			delete pp.first;
-			throw e;
-		} catch (const FigException& e) {
-            delete pp.first;   
-            throw e;
-		}
-    }
     /** TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO **/
     /** HERE WE SHOULD SIMULATE AND DO ALL THE STUFF CARLOS KNOWS ABOUT. **/
 
-	auto model = fig::ModelSuite::get_instance();
-	assert(model.sealed());
+	std::cerr << "\nWell don't just stare, DO SOMETHING!\n\n";
 
-    /* Free the parsed model */
-    delete pp.first;
-	return 0;
+
+	//  Release resources  // // // // // // // // // // // // // //
+	parser.clear();
+
+	return EXIT_SUCCESS;
 }
 
 
@@ -114,4 +84,35 @@ void print_intro(std::ostream& out)
 	out << " Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n";
 	out << "          Monti, Raúl E.   <raulmonti88@gmail.com>\n";
 	out << std::endl;
+}
+
+
+void build_model(const char* filepath, Parser& parser)
+{
+
+	Verifier    verifier    = Verifier();
+	Precompiler precompiler = Precompiler();
+
+	// Read the model
+	std::ifstream fin(filepath, ios::binary);
+	std::stringstream ss;
+	ss << fin.rdbuf();
+	// Parse the model
+	std::pair<AST*, parsingContext> pp = parser.parse(&ss);
+	if (pp.first) {
+		try {
+			std::stringstream pss;
+			// Solve constants (precompile)
+			pss << precompiler.pre_compile(pp.first,pp.second);
+			// Parse again with solved constants
+			pp = parser.parse(&pss);
+			// Verify IOSA compliance and other stuff
+			verifier.verify(pp.first,pp.second);
+			// Compile to a simulation model
+			fig::CompileModel(pp.first,pp.second);
+		} catch (const fig::FigException& e) {
+			delete pp.first;
+			throw e;
+		}
+	}
 }

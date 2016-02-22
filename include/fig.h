@@ -57,9 +57,10 @@
 // Base
 #include "config.h"
 #include "core_typedefs.h"
-#include "FigConfig.h"
+#include "string_utils.h"
 #include "Exceptions.h"
 #include "FigException.h"
+#include "FigConfig.h"
 // Parser
 #include "Ast.h"
 #include "Parser.h"

@@ -41,6 +41,7 @@
 #include <cstdarg>  // va_start, va_arg
 // FIG
 #include <MathExpression.h>
+#include <string_utils.h>
 
 
 /**
@@ -87,18 +88,13 @@ inline T_ max2(T_ a, T_ b)
 namespace fig
 {
 
-const mu::value_type MathExpression::muParserTrue = static_cast<mu::value_type>(1);
-
-const mu::value_type MathExpression::muParserFalse = static_cast<mu::value_type>(0);
-
-
 template< template< typename, typename... > class Container,
           typename ValueType,
           typename... OtherContainerArgs >
 MathExpression::MathExpression(
     const std::string& exprStr,
     const Container<ValueType, OtherContainerArgs...>& varnames) :
-        empty_("" == exprStr),
+		empty_(trim(exprStr).empty()),
         exprStr_(muparser_format(exprStr)),
         pinned_(false)
 {
@@ -107,7 +103,7 @@ MathExpression::MathExpression(
                   "with variable names");
     // Setup MuParser expression
     parse_our_expression();
-    // Register our variables
+	// Register our variables
     for (const auto& name: varnames) {
 #ifndef NRANGECHK
         if (std::string::npos == exprStr.find(name))
@@ -140,7 +136,7 @@ template< template< typename, typename... > class Container,
 MathExpression::MathExpression(
     const std::string& exprStr,
     Container<ValueType, OtherContainerArgs...>&& varnames) :
-        empty_("" == exprStr),
+		empty_(trim(exprStr).empty()),
         exprStr_(muparser_format(exprStr)),
         pinned_(false)
 {
@@ -202,31 +198,13 @@ MathExpression::pin_up_vars(const PositionsMap& globalVars)
 std::string
 MathExpression::muparser_format(const std::string& expr) const
 {
-    using std::to_string;
-    static const std::string strTrue("true");
-    static const std::string strFalse("false");
-
-    if ("" == expr || expr.empty())
-        return to_string(muParserTrue);  // should be an empty Precondition
-
+	if (trim(expr).empty())
+		return "true";
     std::string muParserExpr(expr);
-
-    // Replace all occurrences of "true" with MuParser's 'true'
-    size_t start_pos(0ul);
-    while((start_pos = muParserExpr.find(strTrue, start_pos))
-            != std::string::npos) {
-        muParserExpr.replace(start_pos, strTrue.length(), to_string(muParserTrue));
-        start_pos += strTrue.length();
-    }
-    // Replace all occurrences of "false" with MuParser's 'false'
-    start_pos = 0ul;
-    while((start_pos = muParserExpr.find(strFalse, start_pos))
-            != std::string::npos) {
-        muParserExpr.replace(start_pos, strFalse.length(), to_string(muParserFalse));
-        start_pos += strFalse.length();
-    }
-
-    return muParserExpr;
+	// It's easier to do this syntactic change than to define the operators
+	replace_substring(muParserExpr, "&", "&&");  // should only appear single
+	replace_substring(muParserExpr, "|", "||");  // should only appear single
+	return muParserExpr;
 }
 
 
@@ -234,9 +212,17 @@ void
 MathExpression::parse_our_expression()
 {
 	assert(!exprStr_.empty());
+
+	typedef mu::value_type mp_type_;
+
 	try {
 		expr_.SetExpr(exprStr_);
-
+		// Define constants
+		expr_.DefineConst("true",  1);
+		expr_.DefineConst("false", 0);
+		// Define operators
+		expr_.DefineInfixOprt("!", [](mp_type_ v) -> mp_type_ { return !v; } );
+		// Define functions offered for variables
 		expr_.DefineFun("min", min2<STATE_INTERNAL_TYPE>);
 		expr_.DefineFun("max", max2<STATE_INTERNAL_TYPE>);
 		/*

@@ -64,7 +64,7 @@ module Queue2
 	clkExit: clock; 		/* -- Exponential(mu2) */
 
     /* -- Package passage */
-	[pass?] q2 == 0   -> (q2'  = 1)       &
+	[pass?] q2 == 0   -> (q2'  = 1)     &
 						 (lost'= false) &
 						 (clkExit'= exponential(mu2));
     [pass?] 0 < q2 &

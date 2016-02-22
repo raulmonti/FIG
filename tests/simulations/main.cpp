@@ -117,7 +117,7 @@ int main()
 	module->add_transition(
 		OLabel("arr"),
 		"clkArr",
-		Precondition("0 < q1 && q1 < 7", NamesList({"q1"})),
+		Precondition("0 < q1 & q1 < 7", NamesList({"q1"})),
 		Postcondition("q1+1", NamesList({"q1"}), NamesList({"q1"})),
 		NamesList({"clkArr"}));
 	// [arr!] q1 == 7 @ clkArr --> {clkArr}
@@ -160,7 +160,7 @@ int main()
 	module->add_transition(
 		ILabel("pass"),
 		"",
-		Precondition("0 < q2 && q2 < 5", NamesList({"q2"})),
+		Precondition("0 < q2 & q2 < 5", NamesList({"q2"})),
 		Postcondition("q2+1", NamesList({"q2"}), NamesList({"q2"})),
 		NamesList());
 	// [pass?] q2 == 5 --> {}  "rare event"

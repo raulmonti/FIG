@@ -77,7 +77,6 @@ Parser::clear(void)
     pos = -1;
     lastpos = -1;
     skipws = true;
-    ast = NULL;
     tokens.clear();
     lexemes.clear();
     lines.clear();

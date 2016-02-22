@@ -64,7 +64,8 @@ ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/openmp
 INCLUDE_DIRECTORIES(${HEADERS_DIR})
 
 # Register the source files (only those required for this test)
-SET(REQUIRED_SOURCES "${SOURCES_DIR}/Clock.cpp"
+SET(REQUIRED_SOURCES "${SOURCES_DIR}/string_utils.cpp"
+                     "${SOURCES_DIR}/Clock.cpp"
                      "${SOURCES_DIR}/Variable.cpp"
                      "${SOURCES_DIR}/VariableInterval.cpp"
                      "${SOURCES_DIR}/VariableSet.cpp"
@@ -87,6 +88,7 @@ SET(REQUIRED_SOURCES "${SOURCES_DIR}/Clock.cpp"
                      "${SOURCES_DIR}/ImportanceFunction.cpp"
                      "${SOURCES_DIR}/ImportanceFunctionAlgebraic.cpp"
                      "${SOURCES_DIR}/ImportanceFunctionConcrete.cpp"
+                     "${SOURCES_DIR}/ImportanceFunctionConcreteSplit.cpp"
                      "${SOURCES_DIR}/ImportanceFunctionConcreteCoupled.cpp"
                      "${SOURCES_DIR}/ThresholdsBuilder.cpp"
                      "${SOURCES_DIR}/ThresholdsBuilderAMS.cpp"
