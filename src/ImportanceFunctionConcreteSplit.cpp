@@ -277,7 +277,7 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	strategy_ = strategy;
 
 	// Find extreme importance values for current assessment
-	if (strategy.empty() || "flat" == strategy) {
+	if ("flat" == strategy) {
 		const ImportanceValue importance =
 				importance_of(globalState.to_state_instance());
 		minImportance_ = importance;

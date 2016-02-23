@@ -116,7 +116,7 @@ public:
 	/// Importance assessment strategies offered to the user,
 	/// as he should requested them through the CLI/GUI.
 	/// Defined in ImportanceFunction.cpp
-	static const std::array< std::string, 4 > strategies;
+	static const std::array< std::string, 3 > strategies;
 
 private:
 

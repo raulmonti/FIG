@@ -403,7 +403,7 @@ ImportanceFunctionConcrete::assess_importance(
 						   .append(" position").append(std::to_string(index)));
 
 	// Compute importance according to the chosen strategy
-	if ("" == strategy || "flat" == strategy) {
+	if ("flat" == strategy) {
 		maxImportance_ =
 			assess_importance_flat(symbState,
 								   modulesConcreteImportance[index],
@@ -428,8 +428,10 @@ ImportanceFunctionConcrete::assess_importance(
                            "defined formula expression; this routine should "
                            "not have been invoked for such strategy.");
 	} else {
-		throw_FigException(std::string("unrecognized importance strategy \"")
-						   .append(strategy).append("\""));
+		throw_FigException(std::string("unrecognized importance assessment ")
+						   .append("strategy \"").append(strategy).append("\"")
+						   .append(". See available options with ModelSuite::")
+						   .append("available_importance_strategies()"));
 	}
 }
 
