@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  PropertyTransient.cpp
+//  string_utils.h
 //
 //  Copyleft 2016-
 //  Authors:
@@ -26,40 +26,30 @@
 //
 //==============================================================================
 
+#ifndef STRING_UTILS_H
+#define STRING_UTILS_H
 
-#include <PropertyTransient.h>
+#include <string>
 
-
-namespace fig
-{
-
-const std::string
-PropertyTransient::expression1() const noexcept
-{
-	return expr1_.expression();
-}
-
-
-const std::string
-PropertyTransient::expression2() const noexcept
-{
-	return expr2_.expression();
-}
-
-
+/**
+ * @brief Replace in "str" all occurrences of "from" for "to"
+ * @param s    String to have the substitutions made
+ * @param from Substring from "str" to search for
+ * @param to   String for which "from" will be replaced in "str"
+ * @note Taken from <a href="http://stackoverflow.com/a/3418285">
+ *       this SO answer Michael Mrozek</a>.
+ */
 void
-PropertyTransient::pin_up_vars(const PositionsMap &globalVars)
-{
-	expr1_.pin_up_vars(globalVars);
-	expr2_.pin_up_vars(globalVars);
-}
+replace_substring(std::string& s,
+				  const std::string& from,
+				  const std::string& to);
 
+/**
+ * @brief Remove whitespace from begin and end of string
+ * @note Taken from <a href="http://stackoverflow.com/a/17976541">
+ *       this SO answer by David G</a>.
+ */
+std::string
+trim(const std::string &s);
 
-void
-PropertyTransient::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
-{
-	expr1_.pin_up_vars(globalState);
-	expr2_.pin_up_vars(globalState);
-}
-
-} // namespace fig
+#endif // STRING_UTILS_H

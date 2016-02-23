@@ -40,6 +40,7 @@
 #include <muParser.h>
 // FIG
 #include <State.h>
+#include <string_utils.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -64,12 +65,6 @@ namespace fig
  */
 class MathExpression
 {
-    /// MuParser library value for logical 'true'
-    static const mu::value_type muParserTrue;
-
-    /// MuParser library value for logical 'false'
-    static const mu::value_type muParserFalse;
-
 protected:
 
     typedef mu::Parser Expression;
@@ -212,7 +207,7 @@ MathExpression::MathExpression(
 	const std::string& exprStr,
 	Iterator<ValueType, OtherIteratorArgs...> from,
 	Iterator<ValueType, OtherIteratorArgs...> to) :
-        empty_("" == exprStr),
+		empty_(trim(exprStr).empty()),
         exprStr_(muparser_format(exprStr)),
         pinned_(false)
 {

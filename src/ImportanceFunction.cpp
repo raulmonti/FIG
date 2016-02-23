@@ -89,10 +89,9 @@ const std::array< std::string, 3 > ImportanceFunction::names =
 }};
 
 
-const std::array< std::string, 4 > ImportanceFunction::strategies =
+const std::array< std::string, 3 > ImportanceFunction::strategies =
 {{
 	// Flat importance, i.e. null ImportanceValue for all states
-	"",
 	"flat",
 
 	// Automatically built importance, with backwards BFS
@@ -271,8 +270,7 @@ ImportanceFunction::ready() const noexcept
 const std::string
 ImportanceFunction::strategy() const noexcept
 {
-	return has_importance_info() ? ("" == strategy_ ? "flat" : strategy_)
-								 : "";
+	return has_importance_info() ? strategy_ : "";
 }
 
 

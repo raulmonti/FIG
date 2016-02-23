@@ -42,7 +42,6 @@
 #  error "C++11 standard required, please compile with -std=c++11\n"
 #endif
 
-
 namespace fig
 {
 

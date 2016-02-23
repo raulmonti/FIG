@@ -27,39 +27,17 @@
 //==============================================================================
 
 
-// C
-#include <cctype>     // std::isspace()
 // C++
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // find_if_not()
 // FIG
 #include <ImportanceFunctionConcreteSplit.h>
 #include <ThresholdsBuilder.h>
+#include <string_utils.h>
 
 // ADL
 using std::begin;
 using std::end;
-
-
-namespace
-{
-
-/// @brief Remove whitespace from begin and end of string
-/// @note Taken from <a href="http://stackoverflow.com/a/17976541">
-///       this answer in SO by David G</a>.
-inline std::string trim(const std::string &s)
-{
-	auto wsfront = std::find_if_not(s.begin(),
-									s.end(),
-									[](int c){return std::isspace(c);});
-	return std::string(wsfront,
-					   std::find_if_not(s.rbegin(),
-										std::string::const_reverse_iterator(wsfront),
-										[](int c){return std::isspace(c);}).base());
-}
-
-} // namespace
-
 
 
 namespace fig
@@ -299,7 +277,7 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	strategy_ = strategy;
 
 	// Find extreme importance values for current assessment
-	if (strategy.empty() || "flat" == strategy) {
+	if ("flat" == strategy) {
 		const ImportanceValue importance =
 				importance_of(globalState.to_state_instance());
 		minImportance_ = importance;

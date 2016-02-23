@@ -158,7 +158,7 @@ public:  // Utils
 	void set_merge_fun(std::string mergeFunExpr);
 
 	virtual void assess_importance(const Property& prop,
-								   const std::string& strategy = "");
+								   const std::string& strategy = "flat");
 
 	virtual void assess_importance(const Property& prop,
 								   const std::string& formulaExprStr,

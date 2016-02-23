@@ -82,9 +82,9 @@ public:  // Traial observers/updaters
 										Traial& traial,
 										Event& e) const
 		{
-			e = property.is_stop(traial.state) ? EventType::STOP
-											   : EventType::NONE;
-			if (property.is_rare(traial.state))
+			e = !property.expr1(traial.state) ? EventType::STOP
+											  : EventType::NONE;
+			if (property.expr2(traial.state))
 				SET_RARE_EVENT(e);
 			return EventType::NONE != e;
 		}

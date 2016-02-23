@@ -34,11 +34,16 @@
 #include <vector>
 #include <forward_list>
 #include <unordered_set>
+#include <algorithm>  // std::find()
+#include <iterator>   // std::begin(), std::end()
 // FIG
 #include <ImportanceFunctionAlgebraic.h>
 #include <ThresholdsBuilder.h>
 #include <Property.h>
 
+// ADL
+using std::begin;
+using std::end;
 
 namespace fig
 {
@@ -108,6 +113,13 @@ ImportanceFunctionAlgebraic::set_formula(
     if ("auto" == strategy)
 		throw_FigException("importance strategy \"auto\" can only be used "
 						   "with concrete importance functions");
+	else if (std::find(begin(ImportanceFunction::strategies),
+					   end(ImportanceFunction::strategies),
+					   strategy) == end(ImportanceFunction::strategies))
+		throw_FigException(std::string("unrecognized importance assessment ")
+						   .append("strategy \"").append(strategy).append("\"")
+						   .append(". See available options with ModelSuite::")
+						   .append("available_importance_strategies()"));
     try {
 		userFun_.set(formulaExprStr, varnames, gState);
 	} catch (std::out_of_range& e) {
@@ -120,7 +132,7 @@ ImportanceFunctionAlgebraic::set_formula(
 	strategy_ = strategy;
 
 	// Find extreme importance values for this ad hoc function
-	if (strategy.empty() || "flat" == strategy) {
+	if ("flat" == strategy) {
 		const ImportanceValue importance =
 				importance_of(gState.to_state_instance());
 		minImportance_ = importance;

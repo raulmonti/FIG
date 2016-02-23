@@ -135,7 +135,7 @@ public:  // Accessors
 public:  // Utils
 
 	virtual void assess_importance(const Property& prop,
-								   const std::string& strategy = "");
+								   const std::string& strategy = "flat");
 
 	virtual void assess_importance(const Property& prop,
 								   const std::string& formulaExprStr,

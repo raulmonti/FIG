@@ -177,7 +177,7 @@ SimulationEngine::simulate(const Property &property,
 
 	case PropertyType::THROUGHPUT:
 	case PropertyType::RATE:
-	case PropertyType::PROPORTION:
+	case PropertyType::RATIO:
 	case PropertyType::BOUNDED_REACHABILITY:
 		throw_FigException(std::string("property type isn't supported by ")
 						   .append(name_).append(" simulation yet"));
@@ -227,7 +227,7 @@ SimulationEngine::simulate(const Property& property,
 
 	case PropertyType::THROUGHPUT:
 	case PropertyType::RATE:
-	case PropertyType::PROPORTION:
+	case PropertyType::RATIO:
 	case PropertyType::BOUNDED_REACHABILITY:
 		throw_FigException(std::string("property type isn't supported by ")
 						   .append(name_).append(" simulation yet"));

@@ -277,13 +277,13 @@ label_states(State state,
 	case fig::PropertyType::TRANSIENT: {
 		auto transientProp = static_cast<const fig::PropertyTransient&>(property);
         for (size_t i = 0ul ; i < state.concrete_size() ; i++)
-			if (transientProp.is_stop(state.decode(i)))
+			if (!transientProp.expr1(state.decode(i)))
 				fig::SET_STOP_EVENT(cStates[i]);
 		} break;
 
 	case fig::PropertyType::THROUGHPUT:
 	case fig::PropertyType::RATE:
-	case fig::PropertyType::PROPORTION:
+	case fig::PropertyType::RATIO:
 	case fig::PropertyType::BOUNDED_REACHABILITY:
 		throw_FigException("property type isn't supported yet");
 		break;
@@ -403,7 +403,7 @@ ImportanceFunctionConcrete::assess_importance(
 						   .append(" position").append(std::to_string(index)));
 
 	// Compute importance according to the chosen strategy
-	if ("" == strategy || "flat" == strategy) {
+	if ("flat" == strategy) {
 		maxImportance_ =
 			assess_importance_flat(symbState,
 								   modulesConcreteImportance[index],
@@ -428,8 +428,10 @@ ImportanceFunctionConcrete::assess_importance(
                            "defined formula expression; this routine should "
                            "not have been invoked for such strategy.");
 	} else {
-		throw_FigException(std::string("unrecognized importance strategy \"")
-						   .append(strategy).append("\""));
+		throw_FigException(std::string("unrecognized importance assessment ")
+						   .append("strategy \"").append(strategy).append("\"")
+						   .append(". See available options with ModelSuite::")
+						   .append("available_importance_strategies()"));
 	}
 }
 

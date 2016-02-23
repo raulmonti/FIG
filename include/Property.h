@@ -79,9 +79,9 @@ public:  // Ctors
 
     /// Can't have empty ctor due to const data members
     Property()                                = delete;
-    /// Can't have copy assignment due to const data members
+    /// Can't copy assign due to const data members
     Property& operator=(const Property& that) = delete;
-    /// Can't have move assignment due to const data members
+    /// Can't move assign due to const data members
     Property& operator=(Property&& that)      = delete;
 
 protected:  // Modifyers
@@ -103,24 +103,6 @@ protected:  // Modifyers
 	virtual void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState) = 0;
 
 public:  // Utils
-
-    /**
-     * @brief Is the property satisfied by the given variables valuation?
-     *
-     * @param s  Valuation of the module/model variables to use
-     *
-     * @note pin_up_vars() should have been called before to register the
-     *       position of the expression's variables in the global State
-     *
-     * @throw mu::ParserError
-     * @ifnot NDEBUG
-     *   @throw FigException if pin_up_vars() hasn't been called yet
-     * @endif
-     */
-    virtual bool satisfied_by(const StateInstance& s) const = 0;
-
-    /// @copydoc satisfied_by()
-    virtual bool satisfied_by(const State<STATE_INTERNAL_TYPE>& s) const = 0;
 
     /**
      * @brief Is this state considered "rare" for importance simulation?

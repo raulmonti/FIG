@@ -201,7 +201,7 @@ inline void SET_THR_DOWN_EVENT (Event& e) { e |= EventType::THR_DOWN;  }
 ///
 enum PropertyType
 {
-	/// P( !stop U goal )
+	/// P( expr1 U expr2 )
 	TRANSIENT = 0,
 
 	/// S( label / total_time )
@@ -211,7 +211,7 @@ enum PropertyType
 	RATE,
 
 	/// S( rare_event / reference )
-	PROPORTION,  // or RATIO?
+	RATIO,
 
 	/// P( F[<=time] goal )
 	BOUNDED_REACHABILITY

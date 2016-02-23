@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  PropertyTransient.cpp
+//  string_utils.cpp
 //
 //  Copyleft 2016-
 //  Authors:
@@ -27,39 +27,40 @@
 //==============================================================================
 
 
-#include <PropertyTransient.h>
+// C
+#include <cctype>  // std::isspace()
+// C++
+#include <algorithm>  // find_if_not()
+// FIG
+#include <string_utils.h>
 
+#if __cplusplus < 201103L
+#  error "C++11 standard required, please compile with -std=c++11\n"
+#endif
 
-namespace fig
-{
-
-const std::string
-PropertyTransient::expression1() const noexcept
-{
-	return expr1_.expression();
-}
-
-
-const std::string
-PropertyTransient::expression2() const noexcept
-{
-	return expr2_.expression();
-}
+using std::string;
+using std::isspace;
+using std::find_if_not;
 
 
 void
-PropertyTransient::pin_up_vars(const PositionsMap &globalVars)
+replace_substring(string& s, const string& from, const string& to)
 {
-	expr1_.pin_up_vars(globalVars);
-	expr2_.pin_up_vars(globalVars);
+	if (from.empty())
+		return;
+	size_t start_pos(0ul);
+	while ((start_pos = s.find(from, start_pos)) != string::npos) {
+		s.replace(start_pos, from.length(), to);
+		start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
+	}
 }
 
-
-void
-PropertyTransient::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
+string
+trim(const string &s)
 {
-	expr1_.pin_up_vars(globalState);
-	expr2_.pin_up_vars(globalState);
+	auto is_space = [](int c){ return isspace(c); };
+	auto wsfront = find_if_not(s.begin(), s.end(), is_space);
+	return string(wsfront, find_if_not(s.rbegin(),
+									   string::const_reverse_iterator(wsfront),
+									   is_space).base());
 }
-
-} // namespace fig

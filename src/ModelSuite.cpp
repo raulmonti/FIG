@@ -137,7 +137,7 @@ build_empty_confidence_interval(
 
     case fig::PropertyType::THROUGHPUT:
     case fig::PropertyType::RATE:
-    case fig::PropertyType::PROPORTION:
+    case fig::PropertyType::RATIO:
     case fig::PropertyType::BOUNDED_REACHABILITY:
         throw_FigException("property type isn't supported yet");
         break;
@@ -173,10 +173,10 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 	static constexpr auto& engineNames(fig::SimulationEngine::names);
 	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
 //	FIXME: following compiles with Clang but not with gcc -- keep checking
-//	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
-	static const size_t batch_sizes[2][1] = {
-		{ 1u<<11 /*, 1u<<9 */ },  // nosplit x {concrete_coupled, concrete_split}
-		{ 1u<<9  /*, 1u<<8 */ }   // restart x {concrete_coupled, concrete_split}
+	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
+//	static const size_t batch_sizes[2][1] = {
+		{ 1ul<<11, 1ul<<12, 1ul<<12 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<9 , 1ul<<10, 1ul<<9  }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -214,10 +214,10 @@ increase_batch_size(size_t& numRuns,
 	static constexpr auto& engineNames(fig::SimulationEngine::names);
 	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
 //	FIXME: following compiles with Clang but not with gcc -- keep checking
-//	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
-	static const size_t batch_sizes[2][1] = {
-		{ 3u /*, 3u */ },  // nosplit x {concrete_coupled, concrete_split}
-		{ 2u /*, 2u */ }   // restart x {concrete_coupled, concrete_split}
+	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
+//	static const size_t batch_sizes[2][1] = {
+		{ 3ul, 3ul, 3ul },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+		{ 2ul, 3ul, 2ul }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
