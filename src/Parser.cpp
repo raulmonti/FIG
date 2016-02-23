@@ -51,7 +51,8 @@ namespace parser{
 // Class static definitions 
 vector<string> Parser::lexemes;
 vector<Token>  Parser::tokens;
-
+AST*           Parser::ast = NULL;
+AST*           Parser::props = NULL;
 
 /** @brief Parser class constructor.
  */ 
@@ -60,7 +61,6 @@ Parser::Parser(void){
     pos         = -1;
     lastpos     = pos;
     skipws      = true;
-    ast         = NULL;
 }
 
 
@@ -77,7 +77,6 @@ Parser::clear(void)
     pos = -1;
     lastpos = -1;
     skipws = true;
-    ast = NULL;
     tokens.clear();
     lexemes.clear();
     lines.clear();
@@ -87,10 +86,6 @@ Parser::clear(void)
     }
     while(!astStk.empty()){
         astStk.pop();
-    }
-    if(ast){
-        delete ast;
-        ast = NULL;
     }
     mPc.clear();
 }
@@ -650,7 +645,7 @@ int
 Parser::rDiv(){
     newNode(_DIV,"",lines[pos],columns[pos]);
     if(rValue()){
-        while(accept(DIVOP)){
+        while(accept(DIVOP)||accept(PCNTG)||accept(ARISK)){
             saveNode(_OPERATOR);
             if(!rValue()){
                 string msg("Unexpected word '"+lexemes[pos]+"'.\n");
@@ -709,28 +704,107 @@ Parser::rValue(){
 
 /** Property rules. **/
 
-int
-Parser::rProperty(){
+void
+Parser::rPropertyList(){
+    newNode(_PROPLIST, string(""));
+    while(!ended()){
+        // try to parse module
+        if(!rProperty()){
+            // Could not match the grammar. Show where we got stuck.
+            throw (FigSyntaxError( "Syntax error: '" + lexemes[pos] + "'\n"
+                , lines[pos], columns[pos]));
+        }
+    }
+}
 
-    if(accept(KPROP)){
-        newNode(_PROPERTY,"");
+
+int
+Parser::rProperty()
+{
+    saveLocation();
+    newNode(_PROPERTY,"");
+    if(rPProp() || rSProp()){
+        removeLocation();
+        saveNode(); // _PROPERTY
+        return 1;
+    }
+    removeNode(); // _PROPERTY
+    loadLocation();
+    return 0;
+}
+
+int
+Parser::rPProp()
+{
+    saveLocation();
+    newNode(_PPROP,"");
+    if(accept(KTPROP)){
         saveNode(_KEYWORD);
-        expect(NAME, "Missing property name?\n"); //FIXME maybe no necessary
-        saveNode(_NAME);
-        expect(CLN, "Missing colon after property name?\n");
+        expect(OP, "Expected '('.\n");
         saveNode(_SEPARATOR);
         if(!rExpression()){
             string msg("Missing expression in property declaration.\n");
-            throw FigSyntaxError( msg,lines[pos]
-                                 , columns[pos]);
+            throw FigSyntaxError( msg,lines[pos], columns[pos]);
         }
-        expect(SCLN, "Missing semicolon to end property declaration?\n");
+        expect(KUNTIL,"Expected U.\n");
+        saveNode(_SEPARATOR);
+        if(accept(OBT)){
+            newNode(_RANGE, "");
+            saveNode(_SEPARATOR);
+            expect(NUM, "Missing lower limit for range.\n");
+            saveNode(_NUM);
+            expect(CMM, "Bad range. Forgot ',' ?\n");
+            saveNode(_SEPARATOR);
+            expect(NUM, "Missing upper limit for range.\n");
+            saveNode(_NUM);
+            expect(CBT, "Bad range. Forgot ] ?");
+            saveNode(_SEPARATOR);
+            saveNode(); // _RANGE
+        }
+        if(!rExpression()){
+            string msg("Missing expression in property declaration.\n");
+            throw FigSyntaxError( msg,lines[pos], columns[pos]);
+        }
+        expect(CP, "Expected ')'.\n");
         saveNode(_SEPARATOR);
         saveNode(); //_PROPERTY
+        removeLocation();
         return 1;
     }
+    removeNode(); //_SPROP
+    loadLocation();
     return 0;
-}   
+}
+
+int
+Parser::rSProp()
+{
+    saveLocation();
+    newNode(_SPROP,"");
+    if(accept(KSPROP)){
+        saveNode(_KEYWORD);
+        expect(OP, "Expected '('.\n");
+        saveNode(_SEPARATOR);
+        if(!rExpression()){
+            string msg("Missing expression in property declaration.\n");
+            throw FigSyntaxError( msg,lines[pos], columns[pos]);
+        }
+        expect(SLASH,"Expected '\'.\n");
+        saveNode(_SEPARATOR);
+        if(!rExpression()){
+            string msg("Missing expression in property declaration.\n");
+            throw FigSyntaxError( msg,lines[pos], columns[pos]);
+        }
+        expect(CP, "Expected ')'.\n");
+        saveNode(_SEPARATOR);
+        saveNode(); //_SPROP
+        removeLocation();
+        return 1;
+    }
+    removeNode(); //_SPROP
+    loadLocation();
+    return 0;
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -749,6 +823,7 @@ Parser::parse(stringstream *str){
     int lineno = 1, colnum = 1;
     // clear this structure    
     clear();
+    ast = NULL;
     try{
         /* Lex */
         lexer->switch_streams((istream *)str);
@@ -806,6 +881,73 @@ Parser::parse(stringstream *str){
     return make_pair( ast, mPc );
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief  FIXME Parse stream @str and place the resulting AST in @result.
+ *         It is caller responsibility to free the allocated AST 
+ *         @result afterwards.
+ * @return 0 if something went wrong (print exception), 1 otherwise.
+ */
+AST*
+Parser::parseProperties(stringstream *str){
+
+    int ret;
+    int lineno = 1, colnum = 1;
+    // clear this structure
+    clear(); // FIXME clear the properties
+    try{
+        /* Lex */
+        lexer->switch_streams((istream *)str);
+
+        do{
+            ret = lexer->yylex();
+
+            lines.push_back(lineno);
+            columns.push_back(colnum);
+
+            if(ret){
+                tokens.push_back(static_cast<Token>(ret));
+                lexemes.push_back(lexer->YYText());
+                if (ret == NL){
+                    lineno++;
+                    colnum = 1;
+                }else if(ret == COMMENT){ //manually count
+                    string comment = lexer->YYText();
+                    for(int i = 0; i < lexer->YYLeng(); i++){
+                        if(comment[i]=='\n'){
+                            lineno++;
+                            colnum = 1;
+                        }else{
+                            colnum++;
+                        }
+                    }
+                }else{
+                    colnum += lexer->YYLeng();
+                }
+            }else{
+                tokens.push_back(MEOF);
+                lexemes.push_back(string("EOF"));                
+            }        
+            
+        }while(ret != 0);
+
+        /* Parse */
+        nextLxm();
+        rPropertyList();
+        props = astStk.top();
+        
+
+    }catch(const FigSyntaxError &e){
+        throw_FigException(e.what());
+    }catch(const string s){
+        throw_FigException(s);
+    }catch(const exception &e){
+        cout << e.what() << endl;
+        assert(false);
+    }
+    return props;
+}
 
 //==============================================================================
 
@@ -843,17 +985,6 @@ Parser::fill_context(){
                 // The variable in <next state>
                 mPc.insert(pvtm(name+"'",ptm(T_BOOL,module)));
             }else{
-                /* FIXME wee dont check this here, but afterwards 
-                         when we have solved the constant expressions.
-                AST* range = variables[j]->get_first(_RANGE);
-                assert(range);
-                vector<string> limits = range->get_list_lexemes(_NUM);
-                assert(limits.size() == 2);
-                if(stoi(limits[0]) > stoi(limits[1])){
-                    string pos = variables[j]->get_pos();
-                    error_list.append("[ERROR] Empty range in variable "
-                        "declaration at " + pos + ".\n");
-                }*/
                 mPc.insert(pvtm(name,ptm(T_ARIT,module)));
                 mPc.insert(pvtm(name+"'",ptm(T_ARIT,module)));
             }

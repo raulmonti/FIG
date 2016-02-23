@@ -19,6 +19,11 @@
 #include "Ast.h"
 
 
+
+#define GLOBAL_MODEL_AST parser::Parser::get_model()
+#define GLOBAL_PROP_AST parser::Parser::get_properties()
+
+
 using namespace std;
 
 namespace parser{
@@ -71,7 +76,9 @@ typedef enum    { MEOF    // my end of file symbol
                 , CMM     // ,
                 , PLUS    // +
                 , MINUS   // - 
-                , DIVOP   // * / %
+                , DIVOP   // /
+                , PCNTG   // %
+                , ARISK   // *
                 , COP     // <= >= < >
                 , BOP     // == !=
                 , BOOLV   // true false
@@ -86,7 +93,11 @@ typedef enum    { MEOF    // my end of file symbol
                 , COMMENT // C style comment (/* ... */)
                 , AT      // @
                 , AP      // '
-                , DUM     // dummy symbol 
+                , DUM     // dummy symbol
+                , KTPROP  // Keyword for transient properties
+                , KSPROP  // Keyword for steady state properties
+                , KUNTIL  // KEYWORD for Until properties
+                , SLASH   // '\'
                 } Token;
 
 
@@ -130,7 +141,10 @@ typedef enum{ _EOF            // End of File
             , _ASSIGL
             , _ASSIG
             , _BOOLEAN     // true false
+            , _PROPLIST
             , _PROPERTY
+            , _PPROP
+            , _SPROP
             , _MINUS       // -
             } prodSym;
 
@@ -150,7 +164,8 @@ static const char symTable[][25] =
      "EXPRESSION", "EQUALITY", "COMPARISON", "SUMMATION",
      "DIVITION", "VALUE", "BOOLEAN/MATH OPERATOR",
      "NEGATION", "ASSIGNMENT LIST", "ASSIGNMENT", "TRUE OR FALSE VALUE",
-     "VERIFICATION PROPERTY", "MINUS"
+     "LIST OF PROPERTIES", "VERIFICATION PROPERTY", "P PROPERTY",
+     "S PROPERTY", "MINUS"
     };
 
 
@@ -180,7 +195,8 @@ class Parser
     bool         skipws;            // Skip white spaces?.
 
     /* Results from parsing: */
-    AST            *ast;            // resulting parsed model as an AST
+    static AST      *ast;           // Resulting parsed model as an AST
+    static AST      *props;         // Result of parsing a properties file
     parsingContext  mPc;            // Map with type informartion for ast
 
 public:
@@ -194,6 +210,24 @@ public:
      * @brief Dtor.
      */
     virtual ~Parser();
+
+
+    /**
+     */
+    inline static AST*
+    get_model()
+    {
+        return ast;
+    }
+
+    /**
+     */
+    inline static AST*
+    get_properties()
+    {
+        return props;
+    }
+
 
     /**
      */
@@ -218,6 +252,12 @@ public:
      */
     const pair< AST*, parsingContext>
     parse(stringstream *str);
+    
+    /**
+     * TODO
+     */ 
+    AST*
+    parseProperties(stringstream *str);
 
     /**
      * @brief Clear all the information introduced in this parser.
@@ -237,7 +277,8 @@ public:
 private:
 
     /**
-     * @brief Translate the parsed type string into a type in our Type enumeration.
+     * @brief Translate the parsed type string into a type in our Type 
+     * enumeration.
      */
     Type
     str2Type(string str);
@@ -447,8 +488,20 @@ private:
     rAssig();
 
     /**/
+    void
+    rPropertyList();
+
+    /**/
     int
     rProperty();
+
+    /**/
+    int
+    rPProp();
+
+    /**/
+    int
+    rSProp();
 
 }; // End class Parser.
 

@@ -22,13 +22,15 @@
 #include "PreCompiler.h"
 #include <stdlib.h>
 #include "config.h"
+#include "ReduceProperty.h"
+#include "Parser.h"
 
 using namespace std;
 using namespace parser;
 
 
 //==============================================================================
-void
+AST*
 compile(string filename)
 {
     //FIXME check that filename is valid
@@ -61,7 +63,7 @@ compile(string filename)
     }
 
     /* We are in charge of deleting the AST. */
-    delete pp.first;
+    return pp.first;
 }
 
 //==============================================================================
@@ -175,6 +177,38 @@ test_tandem_queue(string path)
     return;
     
 }
+
+void
+test_parse_properties(string modelpath, string proppath){
+
+    string modelfilename = modelpath.substr( modelpath.find_last_of('/') + 1
+                                 , string::npos);
+    string propfilename = proppath.substr( proppath.find_last_of('/') + 1
+                                 , string::npos);
+    tout << "[TEST] " << modelfilename << ", " << propfilename << "..." << endl;
+    AST* model = compile(modelpath);
+    assert(model);
+    
+    auto parser = Parser();
+    /* Get a stream with the model to parse. */
+    ifstream fin(proppath,ios::binary);
+    stringstream ss;
+    ss << fin.rdbuf();
+    /* Parse. */
+    AST* ast = parser.parseProperties(& ss);
+    if(ast){
+        vector<AST*> properties = ast->get_all_ast(_PROPERTY);
+        vector<AST*> modules = model->get_all_ast(_MODULE);
+        for(int i = 0; i < properties.size(); ++i){
+            for(const auto &it: modules){
+                string mname = it->get_lexeme(_NAME);
+                tout << "(" << i << ")" << ", " << mname << ": " <<
+                    reduceProperty(i,mname) << endl;
+            }
+        }        
+    }
+}
+
 //==============================================================================
 int 
 main (int argc, char** argv){
@@ -184,14 +218,23 @@ main (int argc, char** argv){
     string TestModelsPath(name);
     realpath("models",name);
     string CarlosModelsPath(name);
+    realpath("tests/parser/properties",name);
+    string PropertiesPath(name);
 
-//    test_names(modelsPath + "/counterNames.sa");
-//    test_iosa_condition_1_2(modelsPath + "/counterProp1y2.sa");
-//    test_iosa_condition_3(modelsPath + "/counterProp3.sa");
-//    test_iosa_condition_4(modelsPath + "/counterProp4.sa");
-//    test_iosa_condition_7(modelsPath + "/counterProp7.sa");
+
+//    test_names(TestModelsPath + "/counterNames.sa");
+//    test_iosa_condition_1_2(TestModelsPath + "/counterProp1y2.sa");
+//    test_iosa_condition_3(TestModelsPath + "/counterProp3.sa");
+//    test_iosa_condition_4(TestModelsPath + "/counterProp4.sa");
+//    test_iosa_condition_7(TestModelsPath + "/counterProp7.sa");
+
     tout << "[TEST] ****** TESTING FIG EXAMPLES ******\n\n"; 
     test_tandem_queue(CarlosModelsPath + "/tandem_queue.sa");
+    tout << endl;
+
+    tout << "[TEST] ****** TESTING PROPERTIES ******\n\n";
+    test_parse_properties(CarlosModelsPath + "/tandem_queue.sa"
+        , PropertiesPath + "/dummy_props.sa");
 
     return 0;
 }

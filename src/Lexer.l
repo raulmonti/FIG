@@ -28,6 +28,8 @@
 
 "/*"((("*"[^/])?)|[^*])*"*/" { return parser::COMMENT; }
 
+"//"([^\r\n])*([\r\n])     { return parser::COMMENT; }
+
 [0-9]+([\.][0-9]+)?     { return parser::NUM; }
 
 module          { return parser::KMOD; }
@@ -44,6 +46,8 @@ exponential         { return parser::KEDIST; }
 
 uniform         { return parser::KUDIST; }
 
+property        { return parser::KPROP; }
+
 ("int")     { return parser::ITYPE; }
 ("bool")    { return parser::BTYPE; }
 
@@ -51,6 +55,11 @@ uniform         { return parser::KUDIST; }
 
 ("true"|"false")        { return parser::BOOLV; }
 
+P           { return parser::KTPROP; }
+
+S           { return parser::KSPROP; }
+
+U           { return parser::KUNTIL; }
 
 [a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z0-9]+)?'   { return parser::XNAME; }
 
@@ -82,13 +91,17 @@ uniform         { return parser::KUDIST; }
 
 [)]         { return parser::CP; }
 
+"\\"        { return parser::SLASH; }
+
 ("->")              { return parser::ARROW; }
 ("<="|">="|"<"|">") { return parser::COP; }
 ("=="|"!=")         { return parser::BOP; }
 ("+")               { return parser::PLUS; }
 ("-")               { return parser::MINUS; }
 
-("*"|"/"|"%")   { return parser::DIVOP; }
+("*")           { return parser::ARISK; }
+("/")           { return parser::DIVOP; }
+("%")           { return parser::PCNTG; }
 ("=")           { return parser::ASSIG; }
 ("..")          { return parser::RNG; }
 ("&")           { return parser::AMP; }
