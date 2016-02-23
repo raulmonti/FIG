@@ -9,6 +9,8 @@
 #include "Iosacompliance.h"
 #include "Exceptions.h"
 #include "FigException.h"
+#include "Property.h"
+#include "PropertyTransient.h"
 #include <z3++.h>
 
 
@@ -215,6 +217,50 @@ CompileModule(AST* module, const parsingContext &pc)
     return result;
 }
 
+
+//==============================================================================
+
+std::shared_ptr<Property> 
+CompileTransient(AST* prop)
+{
+    assert(prop);
+    vector<AST*> formulas = prop->get_all_ast(_EXPRESSION);
+    assert(formulas.size() == 2);
+    string r0 = formulas[0]->toString();
+    string r1 = formulas[1]->toString();
+    vector<string> vars0 = formulas[0]->get_all_lexemes(_NAME);
+    vector<string> vars1 = formulas[1]->get_all_lexemes(_NAME);
+    return std::make_shared< fig::PropertyTransient >(
+	    r0.c_str(), vars0,  // keep-running condition
+		r1.c_str(), vars1);  // goal
+}
+
+//==============================================================================
+
+std::shared_ptr<Property> 
+CompileProperty(AST* prop)
+{
+    assert(prop);
+    AST* pprop = prop->get_first(_PPROP);
+    if(pprop){
+        vector<AST*> formulas = pprop->get_all_ast(_EXPRESSION);
+        assert(formulas.size() == 2);
+        Type t1 = get_type(formulas[0],GLOBAL_PARSING_CONTEXT);
+        Type t2 = get_type(formulas[0],GLOBAL_PARSING_CONTEXT);
+        if(t1 == T_BOOL && t2 == T_BOOL && NULL == pprop->get_first(_RANGE)){
+            return CompileTransient(pprop);
+        }
+    }
+    wout << "[WARNING] Unsuported property " << prop->toString() << endl;
+    return NULL;
+    //throw_FigException("Unsuported property " + prop->toString() + ".\n");
+}
+
+
+
+
+
+
 } //namespace
 
 
@@ -240,6 +286,14 @@ CompileModel(AST* astModel, const parsingContext &pc)
 		module = CompileModule(it,pc);
 		model.add_module(module);
 	}
+    for(const auto &it: GLOBAL_PROP_AST->get_all_ast(_PROPERTY)){
+        std::shared_ptr< Property > prop(nullptr);
+        prop = CompileProperty(it);
+        if(prop){
+            model.add_property(prop);
+        }
+    }
+
 	model.seal();
 }
 

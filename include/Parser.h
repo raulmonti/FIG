@@ -22,6 +22,7 @@
 
 #define GLOBAL_MODEL_AST parser::Parser::get_model()
 #define GLOBAL_PROP_AST parser::Parser::get_properties()
+#define GLOBAL_PARSING_CONTEXT parser::Parser::get_parsing_context()
 
 
 using namespace std;
@@ -197,7 +198,7 @@ class Parser
     /* Results from parsing: */
     static AST      *ast;           // Resulting parsed model as an AST
     static AST      *props;         // Result of parsing a properties file
-    parsingContext  mPc;            // Map with type informartion for ast
+    static parsingContext  mPc;     // Map with type informartion for ast
 
 public:
 
@@ -211,6 +212,13 @@ public:
      */
     virtual ~Parser();
 
+    /**
+     */
+    inline static parsingContext &
+    get_parsing_context()
+    {
+        return mPc;
+    }
 
     /**
      */

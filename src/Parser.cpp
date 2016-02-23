@@ -53,6 +53,7 @@ vector<string> Parser::lexemes;
 vector<Token>  Parser::tokens;
 AST*           Parser::ast = NULL;
 AST*           Parser::props = NULL;
+parsingContext Parser::mPc;
 
 /** @brief Parser class constructor.
  */ 
@@ -87,7 +88,6 @@ Parser::clear(void)
     while(!astStk.empty()){
         astStk.pop();
     }
-    mPc.clear();
 }
 
 
@@ -824,6 +824,7 @@ Parser::parse(stringstream *str){
     // clear this structure    
     clear();
     ast = NULL;
+    mPc.clear();
     try{
         /* Lex */
         lexer->switch_streams((istream *)str);

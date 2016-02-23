@@ -173,8 +173,8 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 	static constexpr auto& engineNames(fig::SimulationEngine::names);
 	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
 //	FIXME: following compiles with Clang but not with gcc -- keep checking
-	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
-//	static const size_t batch_sizes[2][1] = {
+//	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
+	static const size_t batch_sizes[2][3] = {
 		{ 1ul<<11, 1ul<<12, 1ul<<12 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
 		{ 1ul<<9 , 1ul<<10, 1ul<<9  }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
@@ -214,8 +214,8 @@ increase_batch_size(size_t& numRuns,
 	static constexpr auto& engineNames(fig::SimulationEngine::names);
 	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
 //	FIXME: following compiles with Clang but not with gcc -- keep checking
-	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
-//	static const size_t batch_sizes[2][1] = {
+//	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
+	static const size_t batch_sizes[2][3] = {
 		{ 3ul, 3ul, 3ul },  // nosplit x {concrete_coupled, concrete_split, algebraic}
 		{ 2ul, 3ul, 2ul }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};

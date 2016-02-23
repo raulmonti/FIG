@@ -196,14 +196,22 @@ test_parse_properties(string modelpath, string proppath){
     ss << fin.rdbuf();
     /* Parse. */
     AST* ast = parser.parseProperties(& ss);
+
+    /* Compile into simulation model */
+    CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
+
     if(ast){
         vector<AST*> properties = ast->get_all_ast(_PROPERTY);
         vector<AST*> modules = model->get_all_ast(_MODULE);
         for(int i = 0; i < properties.size(); ++i){
             for(const auto &it: modules){
                 string mname = it->get_lexeme(_NAME);
-                tout << "(" << i << ")" << ", " << mname << ": " <<
-                    reduceProperty(i,mname) << endl;
+                try{
+                    tout << "(" << i << ")" << ", " << mname << ": " <<
+                        reduceProperty(i,mname) << endl;
+                }catch(const FigException &e){
+                    tout << e.what() << endl;                
+                }
             }
         }        
     }
