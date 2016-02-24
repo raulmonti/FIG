@@ -171,9 +171,9 @@ post2expr(AST* pAst, parsingContext &pc, z3::context &c){
             vname[vname.size()-1] == '\'' && 
             vNameSet.count(vname) <= 0){
             if(t == T_ARIT){
-                z3::expr vexpr = c.real_const(vname.c_str());
+                z3::expr vexpr = c.int_const(vname.c_str());
                 pExp = pExp && (vexpr == 
-                       c.real_const(vname.substr(0,vname.size()-1).c_str()));
+                       c.int_const(vname.substr(0,vname.size()-1).c_str()));
             }else if(t == T_BOOL){
                 z3::expr vexpr = c.bool_const(vname.c_str());
                 pExp = pExp && (vexpr == 
@@ -257,7 +257,7 @@ ast2expr( AST* formula, context & c, const parsingContext & pc){
                 else if (b1->lxm == "=") result = result == e2;
                 else if (b1->lxm == "!=") result = result != e2;
                 else {
-                    cout << b1->lxm << endl;
+                    pout << b1->lxm << endl;
                     assert("Wrong symbol!!!\n" && false);
                 }
             }
@@ -282,18 +282,18 @@ ast2expr( AST* formula, context & c, const parsingContext & pc){
                     int t = pc.at(formula->lxm).first;
                     // It is a variable
                     if ( t == T_ARIT){
-                        result = c.real_const(formula->lxm.c_str());
+                        result = c.int_const(formula->lxm.c_str());
                     }else{
                         assert(t == T_BOOL);
                         result = c.bool_const(formula->lxm.c_str());
                     }
                 }catch(...){
-                    cout << formula->lxm << endl;
+                    pout << formula->lxm << endl;
                     assert("Nonexistent variable :S" && false);
                 }
                 break;
             }case _NUM:{
-                result = c.real_val(formula->lxm.c_str());
+                result = c.int_val(formula->lxm.c_str());
                 break;
             }case _BOOLEAN:{
                 if(formula->lxm == "true"){
@@ -305,12 +305,12 @@ ast2expr( AST* formula, context & c, const parsingContext & pc){
                 }
                 break;
             }default:{
-                cout << formula->tkn << endl;
+                pout << formula->tkn << endl;
                 assert("Wrong tkn :S" && false);
             }
         }
     }else{
-        cout << *formula << endl;
+        pout << *formula << endl;
         assert("Wrong number of branches :S\n" && false);
     }
 
@@ -409,8 +409,8 @@ Verifier::limits2expr(AST* ast, z3::context &c){
         if(t == T_ARIT){
             pair<AST*,AST*> limits = get_limits(ast,var);
             result = result && 
-                (ast2expr(limits.first,c,mPc) <= c.real_const(var.c_str()) &&
-                 c.real_const(var.c_str()) <= ast2expr(limits.second,c,mPc));
+                (ast2expr(limits.first,c,mPc) <= c.int_const(var.c_str()) &&
+                 c.int_const(var.c_str()) <= ast2expr(limits.second,c,mPc));
         }
     }
     return result;
@@ -624,7 +624,7 @@ Verifier::unique_outputs(AST *ast){
          []
 
     TEST:
-    x not in C && sat(pre_1(x') && pos_2(x,x') && pre(x) && (!pre_3(x)) ...) 
+    x not in C && sat(pre_1(x') && pos_2(x,x') && pre_2(x) && (!pre_3(x)) ...) 
 
 */
 
@@ -675,6 +675,9 @@ Verifier::check_exhausted_clocks(AST *ast){
                         }
                         s.add(ex && limits2expr(ast,c));
                         if(s.check()){
+                            /*auto m = s.get_model();
+                            cout << m << endl;
+                            TODO show the model for the WARNING*/
                             string namei = transs[i]->get_lexeme(_ACTION);
                             string namej = transs[j]->get_lexeme(_ACTION);
                             string linei = transs[i]->get_line();
@@ -736,29 +739,31 @@ Verifier::check_input_determinism(AST *ast){
                     AST* gi = inputTrans[i]->get_first(_PRECONDITION);
                     AST* gj = inputTrans[j]->get_first(_PRECONDITION);
                     if(gi) e = e && ast2expr(gi,c,mPc);
-                    if(gj) e = e && ast2expr(gj,c,mPc);;
-                    z3::expr ei = post2expr(inputTrans[i],mPc,c);
-                    z3::expr ej = post2expr(inputTrans[j],mPc,c);
-                    e = e && (ei != ej);
-                    s.add(e && limits2expr(ast,c));
-                    string posi = inputTrans[i]->get_pos();
-                    string posj = inputTrans[j]->get_pos();
-                    if (s.check()){
-                        wout << "[WARNING] Non determinism "
-                            "may be present due to input transitions "
-                            "labeled '"+ ti + "', at " + posi
-                            + " and "+ posj + ". Check"
-                            " condition 7 for IOSA.\n";
+                    if(gj) e = e && ast2expr(gj,c,mPc);
+                    s.add(e);
+                    if(s.check()){
+                        z3::expr ei = post2expr(inputTrans[i],mPc,c);
+                        z3::expr ej = post2expr(inputTrans[j],mPc,c);
+                        e = e && (ei != ej);
+                        s.add(e && limits2expr(ast,c));
+                        string posi = inputTrans[i]->get_pos();
+                        string posj = inputTrans[j]->get_pos();
+                        if (s.check()){
+                            wout << "[WARNING] Non determinism "
+                                "may be present due to input transitions "
+                                "labeled '"+ ti + "', at " + posi
+                                + " and "+ posj + ". Check"
+                                " condition 7 for IOSA.\n";
+                        }
+                        // also check for clocks that are being reset
+                        if(!same_rclocks(inputTrans[i], inputTrans[j])){
+                            wout << "[WARNING] Non determinism "
+                                "may be present due to input transitions "
+                                "labeled '"+ ti + "', at " + posi
+                                + " and "+ posj + " since they don't reset "
+                                + "the same clocks. Check condition 7 for IOSA.\n";
+                        }                    
                     }
-                    // also check for clocks that are being reset
-                    if(!same_rclocks(inputTrans[i], inputTrans[j])){
-                        wout << "[WARNING] Non determinism "
-                            "may be present due to input transitions "
-                            "labeled '"+ ti + "', at " + posi
-                            + " and "+ posj + " since they don't reset "
-                            + "the same clocks. Check condition 7 for IOSA.\n";
-
-                    }                    
                 }                
             }
         }
@@ -1095,7 +1100,7 @@ solve_const_expr(AST* ex, const parsingContext &pc)
     z3::expr res(c);
     Type t = get_type(ex,pc);
     if(t==T_ARIT){
-        res = c.real_const("#");
+        res = c.int_const("#");
     }else{
         assert(t==T_BOOL);
         res = c.bool_const("#");
