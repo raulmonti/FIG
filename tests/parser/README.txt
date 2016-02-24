@@ -24,11 +24,12 @@ Read main.cpp file for an example.
 #############################################
 # TODO
 #############################################
+TODO    When and how to delete static class members as GLOBAL_MODEL_AST for
+        example.
+TODO    Specialized exception for reporting modeling mistakes to the user.
+TODO    Full syntactic support for Carlos clock distributions.
 
-
-#-------------------------------------------------------------------------------
-/*
-TODO    Capitalize modules names.
+DONE    Capitalize modules names.
 DONE    Change "end module" for "endmodule" in our syntax.
 DONE    Check that clocks have unique distribution in between transitions.
 DONE    work with constants.
@@ -39,13 +40,13 @@ TODO    Check all the constants resolution process.
 DONE    Build input-enable transition to comply with IOSA 6th property.
 TODO    Complete the counterexample tests for iosacompliance.
 TODO    Test modules for parallel compatibility (disjoint output labels).
-TODO    AUTOMATIC tests instead of counterexample texts that we have for the
+DONE    AUTOMATIC tests instead of counterexample texts that we have for the
         parser.
-TODO    Full syntactic support for Carlos clock distributions.
+
 TODO    Improve efficiency and correctness by using const when needed and avoid
         copying when not needed.
-TODO    Initialize variables with constant expressions and not only numbers.
-TODO    Bad typing should quit the parser, as well as bad naming. 
+DONE    Initialize variables with constant expressions and not only numbers.
+DONE    Bad typing should quit the parser, as well as bad naming. 
 TODO    Verify initializations out of range for variables.
 
 
@@ -63,18 +64,18 @@ FIXME   Propiedad 7, chequear sat de las guardas. Y ! sat (p1 != p2) de las pos
 #-------------------------------------------------------------------------------
 TODO 	parametric skip whites for Parser class.
 TODO 	test suit.
-TODO 	reset parser method.
+DONE 	reset parser method.
 TODO    leak check
 TODO    Idea: parser with templates
 TODO    Idea: Build the AST in a single bunch of method like Accept or Expect,
         instead of distributing this work in between every grammar rule. A 
         stack may be needed for this.
-TODO    Allow expressions as range limits.
+DONE    Allow expressions as range limits.
 TODO    Opcion para no usar sat solver.
-TODO    Clean the exceptions file.
+DONE    Clean the exceptions file.
 TODO    When discover a WARNING wrt IOSA compliance, give away some valuation
         explaining the mistake.
-TODO    Some Parser Errors report are not very nice, they look ambiguous fix
+DONE    Some Parser Errors report are not very nice, they look ambiguous fix
         them.
 
 

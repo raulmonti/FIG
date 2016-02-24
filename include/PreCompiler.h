@@ -10,6 +10,7 @@ using namespace parser;
 
 #define _CONST_TABLE Precompiler::get_const_table()
 
+namespace parser{
 
 class Precompiler{
 
@@ -66,5 +67,6 @@ pre_compile(AST* ast, const parsingContext &pc);
 
 };
 
+} // namespace parser
 
 #endif // PRECOMPILER_H

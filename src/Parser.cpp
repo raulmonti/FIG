@@ -73,7 +73,7 @@ Parser::~Parser(){
 
 
 void
-Parser::clear(void)
+Parser::reset(void)
 {
     pos = -1;
     lastpos = -1;
@@ -822,9 +822,7 @@ Parser::parse(stringstream *str){
     int ret;
     int lineno = 1, colnum = 1;
     // clear this structure    
-    clear();
-    ast = NULL;
-    mPc.clear();
+    reset();
     try{
         /* Lex */
         lexer->switch_streams((istream *)str);
@@ -864,12 +862,11 @@ Parser::parse(stringstream *str){
         /* Parse */
         nextLxm();
         if (rGrammar()){
+            delete ast;
             ast = astStk.top();
+            mPc.clear();
+            fill_context();
         }
-
-        //
-        fill_context();
-        //
 
     }catch(const FigSyntaxError &e){
         throw_FigException(e.what());
@@ -896,7 +893,7 @@ Parser::parseProperties(stringstream *str){
     int ret;
     int lineno = 1, colnum = 1;
     // clear this structure
-    clear(); // FIXME clear the properties
+    reset(); // FIXME clear the properties
     try{
         /* Lex */
         lexer->switch_streams((istream *)str);
@@ -936,6 +933,7 @@ Parser::parseProperties(stringstream *str){
         /* Parse */
         nextLxm();
         rPropertyList();
+        delete props;
         props = astStk.top();
         
 

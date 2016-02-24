@@ -271,7 +271,7 @@ public:
      * @brief Clear all the information introduced in this parser.
      */
     void
-    clear(void);
+    reset(void);
 
     /**  @brief check if we ran out of lexemes to parse.
      *   @return 1 if parsing ended, 0 otherwise.
