@@ -67,8 +67,7 @@ class Property;
 class ModuleNetwork : public Module
 {
 	friend class Traial;
-	friend class ImportanceFunctionConcreteSplit;
-	friend class ImportanceFunctionConcreteCoupled;
+	friend class ImportanceFunctionConcreteSplit;  // grant access to the modules
 
 private:  // Attributes shared with our friends
 
@@ -124,6 +123,9 @@ public:  // Populating facilities
 	void add_module(std::shared_ptr< ModuleInstance >& module);
 
 public:  // Accessors
+
+	/// How many \ref ModuleInstance "modules" have been added to the network
+	inline size_t num_modules() const noexcept { return modules.size(); }
 
 	/// @copydoc numClocks_
 	inline virtual size_t num_clocks() const noexcept { return numClocks_; }

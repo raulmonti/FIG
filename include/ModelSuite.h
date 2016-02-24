@@ -157,22 +157,22 @@ public:  // Access to the ModelSuite instance
 
 	~ModelSuite();
 
-public:  // Populating facilities
+public:  // Populating facilities and other modifyers
 
 	/// @copydoc ModuleNetwork::add_module(std::shared_ptr<ModuleInstance>&)
 	void add_module(std::shared_ptr<ModuleInstance>&);
 
 	/**
-	 * Add a new property to estimate during experimentation
-	 * @see PropertyType
+	 * @brief Add a new property to estimate during experimentation
+	 * @details Properties are added orderly; they can be later accessed
+	 *          by specifying the order in which they were added.
 	 * @warning Do not invoke after seal()
 	 * \ifnot NDEBUG
 	 *   @throw FigException if the network has already been sealed()
 	 * \endif
+	 * @see get_property()
 	 */
 	void add_property(std::shared_ptr<Property>);
-
-public:  // Modifyers
 
 	/**
 	 * @brief Shut the system model to begin with simulations
@@ -207,7 +207,7 @@ public:  // Modifyers
 	/// Alias for seal() taking all system clocks as initial
 	inline void seal() { seal(std::vector<std::string>()); }
 
-public:  // Stubs for ModuleNetwork
+public:  // Accessors
 
 	/// @copydoc ModuleNetwork::sealed()
 	inline bool sealed() const noexcept { return model->sealed(); }
@@ -222,9 +222,25 @@ public:  // Stubs for ModuleNetwork
 	inline size_t concrete_state_size() const noexcept
 		{ return model->concrete_state_size(); }
 
+	/// @copydoc ModuleNetwork::num_modules()
+	inline size_t num_modules() const noexcept { return model->num_modules(); }
+
+	/// How many properties have been added to the ModelSuite
+	inline size_t num_properties() const noexcept { return properties.size(); }
+
 	/// @copydoc ModuleNetwork
 	inline std::shared_ptr< const ModuleNetwork > modules_network() const noexcept
 		{ return model; }
+
+	/**
+	 * Get the i-th property which was added to the ModelSuite
+	 * @param i Index identifying the Property: the property \ref add_property()
+	 *          "added first" has index 0, the next has index 1, and so on.
+	 * @return Pointer to const version of the Property if i < num_properties(),
+	 *         nullptr otherwise.
+	 * @see add_property()
+	 */
+	std::shared_ptr< const Property > get_property(const size_t& i);
 
 public:  // Utils
 

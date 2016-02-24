@@ -67,8 +67,14 @@ public:
 
 private:
 
-	/// Number of \ref ModuleInstance "system modules"
+	/// All the \ref ModuleInstance "modules" in the network
+	const std::vector< std::shared_ptr< ModuleInstance > >& modules_;
+
+	/// Number of \ref ModuleInstance "modules" in the network
 	const size_t numModules_;
+
+	/// Position, in a global system state, of the first variable of each module
+	static std::vector< unsigned > globalVarsIPos_;
 
 	/// Temporal storage for the local importance
 	/// computed for each ("split") ModuleInstance
@@ -76,16 +82,6 @@ private:
 
 	/// Copy of the local states of the system \ref ModuleInstance "modules"
 	mutable std::vector< State< STATE_INTERNAL_TYPE > > localStatesCopies_;
-
-	/// Names of the \ref ModuleInstance "system modules"
-	static std::vector< std::string > modulesNames_;
-
-	/// Mapping of the \ref ModuleInstance "system modules" names to the
-	/// module's position in the coupled \ref ModuleNetwork "system model"
-	static PositionsMap modulesMap_;
-
-	/// Position, in a global system state, of the first variable of each module
-	static std::vector< unsigned short > globalVarsIPos_;
 
     /// Translator from a global state ImportanceValue to its threshold level
     std::vector< ImportanceValue > importance2threshold_;
@@ -169,11 +165,17 @@ public:  // Utils
 
 private:  // Class utils
 
-	/// Compose a merge function which combines all modules' importance
-	/// by means of some given (valid) algebraic operand
-	/// @throw FigException if 'mergeOperand' is not in mergeOperands
-	/// @see mergeOperands
-	std::string compose_merge_function(const std::string& mergeOperand) const;
+	/**
+	 * Compose a merge function which combines all modules' importance
+	 * by means of some given (valid) algebraic operand
+	 * @param modulesNames Names of all \ref ModuleInstance "modules"
+	 * @param mergeOperand Algebraic operand to use
+	 * @throw FigException if 'mergeOperand' is not in mergeOperands
+	 * @see mergeOperands
+	 */
+	std::string compose_merge_function(
+			const std::vector<std::string>& modulesNames,
+			const std::string& mergeOperand) const;
 };
 
 } // namespace fig

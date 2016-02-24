@@ -106,18 +106,31 @@ protected:  // Modifyers
 	 */
 	void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState);
 
-public:  // Accessors
+public:  // Utils
 
 	/**
-	 * @brief Compute truth value of our expression for given state
+	 * @brief Compute truth value of our expression for given variables valuation
+	 * @param state Valuation of the system's global state
 	 * @note pin_up_vars() should have been called before to register the
 	 *       position of the expression's variables in the global State
+	 * @note To work with local states from the \ref ModuleInstace
+	 *       "system modules" use the State variant of this operator
 	 * @throw mu::ParserError
 	 * @ifnot NDEBUG
 	 *   @throw FigException if pin_up_vars() hasn't been called yet
 	 * @endif
 	 */
 	bool operator()(const StateInstance& state) const;
+
+	/**
+	 * @brief Compute truth value of our expression for given state
+	 * @param state The state of any Module (ModuleInstace or ModuleNetwork)
+	 * @note Slower than the StateInstance variant of this operator,
+	 *       since it has to search for the variables positions in 'state'
+	 * @throw mu::ParserError
+	 * @throw FigException if some required variable is not found in 'state'
+	 */
+	bool operator()(const State<STATE_INTERNAL_TYPE>& state) const;
 };
 
 } // namespace fig

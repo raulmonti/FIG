@@ -166,27 +166,45 @@ protected:  // Modifyers
 
 public:  // Utils
 
-	/// Is the "expr1" subformula satisfied by the given variables valuation?
-	/// @see PropertyTransient::expr1_
+	/**
+	 * Is the "expr1" subformula satisfied by the given variables valuation?
+	 * @param s Valuation of the system's global state
+	 * @note To work with local states from the \ref ModuleInstace
+	 *       "system modules" use the State variant
+	 * @see PropertyTransient::expr1_
+	 */
 	inline bool expr1(const StateInstance& s) const { return expr1_(s); }
 
-	/// @copydoc expr1()
-	inline bool expr1(const State<STATE_INTERNAL_TYPE>& s) const
-		{ return expr1(s.to_state_instance()); }
+	/**
+	 * Is the "expr1" subformula satisfied by the given state?
+	 * @param s The state of any Module (ModuleInstace or ModuleNetwork)
+	 * @note Slower than the StateInstance variant
+	 * @see PropertyTransient::expr1_
+	 */
+	inline bool expr1(const State<STATE_INTERNAL_TYPE>& s) const { return expr1_(s); }
 
-	/// Is the "expr2" subformula satisfied by the given variables valuation?
-	/// @see PropertyTransient::expr2_
+	/**
+	 * Is the "expr2" subformula satisfied by the given variables valuation?
+	 * @param sValuation of the system's global state
+	 * @note To work with local states from the \ref ModuleInstace
+	 *       "system modules" use the State variant
+	 * @see PropertyTransient::expr2_
+	 */
 	inline bool expr2(const StateInstance& s) const { return expr2_(s); }
 
-	/// @copydoc expr2()
-	inline bool expr2(const State<STATE_INTERNAL_TYPE>& s) const
-		{ return expr2(s.to_state_instance()); }
+	/**
+	 * Is the "expr2" subformula satisfied by the given state?
+	 * @param s The state of any Module (ModuleInstace or ModuleNetwork)
+	 * @note Slower than the StateInstance variant
+	 * @see PropertyTransient::expr2_
+	 */
+	inline bool expr2(const State<STATE_INTERNAL_TYPE>& s) const { return expr2_(s); }
 
     inline virtual bool is_rare(const StateInstance& s) const
         { return expr2(s); }
 
     inline virtual bool is_rare(const State<STATE_INTERNAL_TYPE>& s) const
-        { return expr2(s.to_state_instance()); }
+        { return expr2(s); }
 };
 
 } // namespace fig

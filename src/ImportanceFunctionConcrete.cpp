@@ -69,14 +69,12 @@ adjacent_states(const State& state,
 				const std::vector< std::shared_ptr< Transition > >& trans)
 {
 	std::forward_list< STATE_T > adjacentStates;
-	StateInstance si(state.to_state_instance());
 	State s(state);
 	for (const auto tr_ptr: trans) {
-		if (tr_ptr->precondition()(si)) {
-			tr_ptr->postcondition()(si);
-			s.copy_from_state_instance(si);
+		if (tr_ptr->precondition()(s)) {
+			tr_ptr->postcondition()(s);
 			adjacentStates.push_front(s.encode());
-			state.copy_to_state_instance(si);  // restore original state
+			s = state;  // restore original state
 		}
 	}
 	return adjacentStates;
@@ -200,7 +198,7 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 	// BFS
 	bool initialReached(false);
 	std::queue< STATE_T >& statesToCheck = raresQueue;
-	while (!(initialReached || statesToCheck.empty())) {
+	while (!initialReached && !statesToCheck.empty()) {
 		STATE_T s = statesToCheck.front();
 		statesToCheck.pop();
 		ImportanceValue levelBFS = fig::UNMASK(cStates[s]) + 1;
@@ -224,7 +222,8 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 	const ImportanceValue maxDistance(cStates[initialState]);
 	// Is ImportanceValue bit-representation big enough?
 	if (maxDistance & ALL_MASKS || maxDistance >= NOT_VISITED)
-		throw_FigException("too many importance levels were found");
+		throw_FigException(std::string("too many importance levels were found (")
+						   .append(std::to_string(maxDistance)).append(")"));
 
 	// Invert values in 'cStates' to obtain the importance
 	#pragma omp parallel for default(shared)
@@ -264,7 +263,7 @@ label_states(State state,
 	// First mark rares
     for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
 		cStates[i] = fig::EventType::NONE;
-		if (property.is_rare(state.decode(i))) {  /// @todo what if state is local ???
+		if (property.is_rare(state.decode(i))) {
 			fig::SET_RARE_EVENT(cStates[i]);
 			if (returnRares)
 				raresQueue.push(i);
@@ -373,12 +372,10 @@ namespace fig
 
 ImportanceFunctionConcrete::ImportanceFunctionConcrete(
 	const std::string& name,
-	const State< STATE_INTERNAL_TYPE >& state,
-	const std::vector< std::shared_ptr<Transition> >& trans) :
+	const State< STATE_INTERNAL_TYPE >& state) :
 		ImportanceFunction(name),
 		modulesConcreteImportance(1u),
-		globalState(state),
-		globalTransitions(trans)
+		globalState(state)
 { /* Not much to do around here */ }
 
 

@@ -29,6 +29,7 @@
 
 // C++
 #include <iostream>
+#include <sstream>
 // FIG
 #include <Precondition.h>
 #include <FigException.h>
@@ -85,10 +86,33 @@ Precondition::operator()(const StateInstance& state) const
 	if (!pinned())
 		throw_FigException("pin_up_vars() hasn't been called yet");
 #endif
-	// Bind state's variables to our expression...
+	// Bind state's values to our expression...
 	for (const auto& pair: varsMap_)
 		expr_.DefineVar(pair.first,  const_cast<STATE_INTERNAL_TYPE*>(
 						&state[pair.second]));
+	// ...and evaluate
+	return static_cast<bool>(expr_.Eval());
+}
+
+
+bool
+Precondition::operator()(const State<STATE_INTERNAL_TYPE>& state) const
+{
+	std::vector< STATE_INTERNAL_TYPE > values;
+	size_t i(0ul);
+	// Bind state's variables to our expression...
+	for (const auto& pair: varsMap_) {
+		auto var_ptr = state[pair.first];
+		if (nullptr == var_ptr) {
+			std::stringstream sss;
+			state.print_out(sss, true);
+			throw_FigException(std::string("variable \"").append(pair.first)
+							   .append("\" not found in state ").append(sss.str()));
+		}
+		values[i] = var_ptr->val();
+		expr_.DefineVar(pair.first, &values[i]);
+		i++;
+	}
 	// ...and evaluate
 	return static_cast<bool>(expr_.Eval());
 }

@@ -296,9 +296,10 @@ public:  // Encode/Decode between symbolic and concrete representations
 	size_t encode() const;
 
 	/**
-	 * @brief Decode number as vector of Variables values and apply to StateInstance,
+	 * @brief Decode number as vector of Variables values and apply to self,
 	 *        i.e. store "symbolically" the "concrete state" n.
 	 * @param n  Concrete state to interpret and apply to our symbolic existence
+	 * @return Self with the new decoded valuation
 	 * @note <b>Complexity:</b> <i>O(size()<sup>2</sup>)</i>
 	 */
 	const State<T_>& decode(const size_t& n);

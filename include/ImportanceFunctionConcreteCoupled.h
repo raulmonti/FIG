@@ -55,8 +55,12 @@ namespace fig
  */
 class ImportanceFunctionConcreteCoupled : public ImportanceFunctionConcrete
 {
-	/// Copy of the global state of the model (i.e. the network of modules)
+	/// Copy of the global state of the \ref ModuleNetwork "model"
 	mutable State< STATE_INTERNAL_TYPE > globalStateCopy_;
+
+	/// Reference to all the \ref ModuleNetwork "model"'s transitions,
+	/// needed for the "auto" strategy
+	const std::vector<std::shared_ptr<Transition>>& globalTransitions;
 
 	/// Single location used from ImportanceFunctionConcrete::
 	const unsigned importanceInfoIndex_;

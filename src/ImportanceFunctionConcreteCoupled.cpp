@@ -39,9 +39,9 @@ namespace fig
 ImportanceFunctionConcreteCoupled::ImportanceFunctionConcreteCoupled(
     const ModuleNetwork &model) :
 		ImportanceFunctionConcrete("concrete_coupled",
-								   model.global_state(),
-								   model.transitions_),
+								   model.global_state()),
         globalStateCopy_(model.global_state()),
+		globalTransitions(model.transitions()),
         importanceInfoIndex_(0u)
 { /* Not much to do around here */ }
 

@@ -33,6 +33,7 @@
 // FIG
 #include <ImportanceFunctionConcreteSplit.h>
 #include <ThresholdsBuilder.h>
+#include <ReduceProperty.h>
 #include <string_utils.h>
 
 // ADL
@@ -53,11 +54,7 @@ ImportanceFunctionConcreteSplit::mergeOperands =
 	// the "compose_merge_function()" class member function
 }};
 
-std::vector< std::string > ImportanceFunctionConcreteSplit::modulesNames_;
-
-PositionsMap ImportanceFunctionConcreteSplit::modulesMap_;
-
-std::vector< unsigned short > ImportanceFunctionConcreteSplit::globalVarsIPos_;
+std::vector< unsigned > ImportanceFunctionConcreteSplit::globalVarsIPos_;
 
 
 
@@ -66,30 +63,23 @@ std::vector< unsigned short > ImportanceFunctionConcreteSplit::globalVarsIPos_;
 ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 	const ModuleNetwork &model) :
 		ImportanceFunctionConcrete("concrete_split",
-								   model.global_state(),
-								   model.transitions_),
+								   model.global_state()),
+		modules_(model.modules),
 		numModules_(model.modules.size()),
 		localValues_(numModules_),
 		localStatesCopies_(numModules_),
 		importance2threshold_()
 {
 	bool initialize(false);  // initialize (non-const) static class members?
-	if (modulesNames_.size() == 0ul) {
+	if (globalVarsIPos_.size() == 0ul) {
 		initialize = true;
-		modulesNames_.resize(numModules_);
-		modulesMap_.reserve(numModules_);
 		globalVarsIPos_.resize(numModules_);
 	}
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
-		assert(model.modules[i]->global_index() == static_cast<int>(i));
-		localStatesCopies_[i] = model.modules[i]->local_state();
-		if (initialize) {
-			const std::string& moduleName(model.modules[i]->name);
-			modulesNames_[i] = moduleName;
-			modulesMap_[moduleName] = i;
-            globalVarsIPos_[i] = static_cast<unsigned short>(
-                        model.modules[i]->first_var_gpos());
-		}
+		assert(modules_[i]->global_index() == static_cast<int>(i));
+		localStatesCopies_[i] = modules_[i]->local_state();
+		if (initialize)
+			globalVarsIPos_[i] = static_cast<unsigned>(modules_[i]->first_var_gpos());
 	}
 }
 
@@ -98,7 +88,7 @@ ImportanceFunctionConcreteSplit::~ImportanceFunctionConcreteSplit()
 {
 	std::vector< ImportanceValue >().swap(localValues_);
 	std::vector< State<STATE_INTERNAL_TYPE> >().swap(localStatesCopies_);
-	std::vector< unsigned short >().swap(globalVarsIPos_);
+	std::vector< unsigned >().swap(globalVarsIPos_);
 	std::vector< ImportanceValue >().swap(importance2threshold_);
 	ImportanceFunctionConcrete::clear();
 }
@@ -153,7 +143,7 @@ ImportanceFunctionConcreteSplit::importance_of(const StateInstance& state) const
 
 void
 ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
-                                           State<STATE_INTERNAL_TYPE> s) const
+										   State<STATE_INTERNAL_TYPE>) const
 {
     if (!has_importance_info()) {
         out << "\nImportance function \"" << name() << "\" doesn't yet have "
@@ -169,7 +159,7 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
         << "\n      ~  denotes a state is STOP,"
         << "\n      ^  denotes a state is REFERENCE.";
     for (size_t i = 0ul ; i < numModules_ ; i++) {
-        out << "\nValues for module \"" << modulesNames_[i] << "\":";
+		out << "\nValues for module \"" << modules_[i]->name << "\":";
         const ImportanceVec& impVec = modulesConcreteImportance[i];
         for (size_t i = 0ul ; i < impVec.size() ; i++) {
             out << " (" << i;
@@ -192,10 +182,21 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
 void
 ImportanceFunctionConcreteSplit::set_merge_fun(std::string mergeFunExpr)
 {
+	static std::vector< std::string > modulesNames;
+	static PositionsMap modulesMap;
+	if (modulesNames.empty()) {
+		modulesNames.resize(numModules_);
+		modulesMap.reserve(numModules_);
+		for (size_t i=0ul ; i < numModules_ ; i++) {
+			const std::string& name = modules_[i]->name;
+			modulesNames[i] = name;
+			modulesMap[name] = i;
+		}
+	}
 	if (mergeFunExpr.length() <= 3ul)  // given an operand => make it a function
-		mergeFunExpr = compose_merge_function(mergeFunExpr);
+		mergeFunExpr = compose_merge_function(modulesNames, mergeFunExpr);
 	try {
-		userFun_.set(mergeFunExpr, modulesNames_, modulesMap_);
+		userFun_.set(mergeFunExpr, modulesNames, modulesMap);
 	} catch (std::out_of_range& e) {
 		throw_FigException(std::string("something went wrong while setting ")
 						   .append(" the merge function \"").append(mergeFunExpr)
@@ -207,6 +208,7 @@ ImportanceFunctionConcreteSplit::set_merge_fun(std::string mergeFunExpr)
 
 std::string
 ImportanceFunctionConcreteSplit::compose_merge_function(
+	const std::vector< std::string >& modulesNames,
 	const std::string& mergeOperand) const
 {
 	if (std::find(begin(mergeOperands), end(mergeOperands), trim(mergeOperand))
@@ -222,21 +224,21 @@ ImportanceFunctionConcreteSplit::compose_merge_function(
 		const std::string op(std::string(" ")
 							 .append(trim(mergeOperand))
 							 .append(" "));
-		for (const auto& mName: modulesNames_)
+		for (const auto& mName: modulesNames)
 			mergeFun.append(mName).append(op);
 		mergeFun.resize(mergeFun.size() - op.length());
 	} else {
 		// Must be either 'max' or 'min'
 		assert(mergeOperand.length() == 3ul);
 		const std::string op(trim(mergeOperand).append("("));
-		for (const auto& mName: modulesNames_)
+		for (const auto& mName: modulesNames)
 			mergeFun.append(op).append(mName).append(", ");
 		// mergeFun == "min(name1, min(name2, ..., min(nameN, "
 		mergeFun.resize(mergeFun.size() - op.length()
-										- modulesNames_.back().length()
+										- modulesNames.back().length()
 										- std::string(", ").length());
-		mergeFun.append(modulesNames_.back());
-		mergeFun.append(modulesNames_.size()-1ul, ')');
+		mergeFun.append(modulesNames.back());
+		mergeFun.append(modulesNames.size()-1ul, ')');
 	}
 	return mergeFun;
 }
@@ -254,22 +256,18 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	if (hasImportanceInfo_)
 		ImportanceFunctionConcrete::clear();
 	modulesConcreteImportance.resize(numModules_);
-//    const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 
 	// Assess each module importance individually from the rest
 	for (size_t index = 0ul ; index < numModules_ ; index++) {
 		auto& localState = localStatesCopies_[index];
 		localState.get_valuation(globalState);  // set at local initial valuation
-
-		/// @todo TODO: wait for Raúl to implement the Property simplification
-
-//		std::unique_ptr< Property > localProp =
-//				simplify_for_variables(prop, localStatesCopies_[index]);
-//		ImportanceFunctionConcrete::assess_importance(localState,
-//													  globalTransitions,
-//													  *localProp,
-//													  strategy,
-//													  index);
+		std::shared_ptr< Property > localProp = reduceProperty(prop.index(),
+															   modules_[index]->name);
+		ImportanceFunctionConcrete::assess_importance(localState,
+													  modules_[index]->transitions(),
+													  *localProp,
+													  strategy,
+													  index);
 		assert(minImportance_ <= minRareImportance_);
 		assert(minRareImportance_ <= maxImportance_);
 	}

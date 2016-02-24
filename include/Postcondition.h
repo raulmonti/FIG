@@ -82,14 +82,12 @@ class Postcondition : public MathExpression
 	/// Number of variables updated by this postcondition
 	int numUpdates_;
 
-	union {
-		/// Names of the variables to which the updates will be applied.
-		std::vector<std::string> updatesNames_;
-		/// Positions of the variables to which the updates will be applied.
-		/// The positional order is ("later") given by the global system State.
-		std::vector<size_t> updatesPositions_;
-	} __attribute__((aligned(4)));
-	enum { NAMES, POSITIONS } updatesData_ __attribute__((aligned(4)));
+	/// Names of the variables to which the updates will be applied.
+	std::vector<std::string> updatesNames_;
+
+	/// Positions of the variables to which the updates will be applied.
+	/// The positional order is ("later") given by the global system State.
+	std::vector<size_t> updatesPositions_;
 
 	/// @brief Perform a fake evaluation to exercise our expression
 	/// @note  Useful to reveal parsing errors in MathExpression
@@ -163,11 +161,11 @@ public:  // Ctors/Dtor
 				  Iterator2<ValueType2, OtherIteratorArgs2...> from2,
 				  Iterator2<ValueType2, OtherIteratorArgs2...> to2);
 
-	/// Copy ctor
-	Postcondition(const Postcondition& that);
+	/// Default copy ctor
+	Postcondition(const Postcondition& that) = default;
 
-	/// Move ctor
-	Postcondition(Postcondition&& that);
+	/// Default move ctor
+	Postcondition(Postcondition&& that) = default;
 
 	/// Copy assignment with copy&swap
 	Postcondition& operator=(Postcondition that);
@@ -195,10 +193,21 @@ protected:  // Modifyers
 	 */
 	void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState);
 
-public:  // Accessors
+public:  // Utils
 
 	/**
 	 * @brief Update state's variables values according to our expression
+	 * @param state State to evaluate and update <b>(modified)</b>
+	 * @note Slower than the StateInstance version of this function,
+	 *       since it has to search for the variables positions in 'state'
+	 * @throw mu::ParserError
+	 * @throw FigException if some required variable is not found in 'state'
+	 */
+	void operator()(State<STATE_INTERNAL_TYPE>& state) const;
+
+	/**
+	 * @brief Update variables valuation according to our expression
+	 * @param state StateInstance to evaluate and update <b>(modified)</b>
 	 * @note pin_up_vars() should have been called before to register the
 	 *       position of the expression's variables in the global State
 	 * @throw mu::ParserError
@@ -227,8 +236,7 @@ Postcondition::Postcondition(
 	const Container1<ValueType1, OtherContainerArgs1...>& varNames,
 	const Container2<ValueType2, OtherContainerArgs2...>& updateVars) :
 		MathExpression(exprStr, varNames),
-		updatesNames_(),
-		updatesData_(NAMES)
+		updatesNames_()
 {
 	static_assert(std::is_constructible< std::string, ValueType2 >::value,
 				  "ERROR: type mismatch. Postcondition needs containers "
@@ -253,8 +261,7 @@ Postcondition::Postcondition(
 	Iterator2<ValueType2, OtherIteratorArgs2...> from2,
 	Iterator2<ValueType2, OtherIteratorArgs2...> to2) :
 		MathExpression(exprStr, from1, to1),
-		updatesNames_(),
-		updatesData_(NAMES)
+		updatesNames_()
 {
 	static_assert(std::is_constructible< std::string, ValueType2 >::value,
 				  "ERROR: type mismatch. Postcondition needs iterators "

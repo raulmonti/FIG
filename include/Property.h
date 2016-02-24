@@ -55,6 +55,11 @@ class Property
 {
     friend class ModelSuite;  // for variables mapping callback
 
+    /// Position in which this property was added to the ModelSuite
+    /// @note Unavailable to inherited classes, this is only relevant
+    ///       for the ModelSuite and inherent to the Property.
+    int index_;
+
 protected:
 
     /// Nasty hack to avoid code duplication (talk of poor design...)
@@ -71,6 +76,7 @@ public:  // Attributes
 public:  // Ctors
 
     Property(const std::string& theexpression, PropertyType thetype) :
+        index_(-1),
         expression(theexpression),
         type(thetype)
         {}
@@ -121,6 +127,9 @@ public:  // Utils
 
     /// @copydoc is_rare()
     virtual bool is_rare(const State<STATE_INTERNAL_TYPE>& s) const = 0;
+
+    /// Position in which this property was added to the ModelSuite
+    const int& index() const noexcept { return index_; }
 };
 
 } // namespace fig

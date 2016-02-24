@@ -331,6 +331,7 @@ void ModelSuite::add_module(std::shared_ptr< ModuleInstance >& module)
 
 void ModelSuite::add_property(std::shared_ptr<Property> property)
 {
+	property->index_ = properties.size();
 	properties.push_back(property);
 }
 
@@ -408,6 +409,16 @@ template void ModelSuite::seal(const std::deque<std::string>&);
 template void ModelSuite::seal(const std::vector<std::string>&);
 template void ModelSuite::seal(const std::forward_list<std::string>&);
 template void ModelSuite::seal(const std::unordered_set<std::string>&);
+
+
+std::shared_ptr< const Property >
+ModelSuite::get_property(const size_t& i)
+{
+	if (i >= num_properties())
+		return nullptr;
+	else
+		return properties[i];
+}
 
 
 const std::vector< std::string >&

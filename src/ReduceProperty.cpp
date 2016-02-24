@@ -165,7 +165,7 @@ reduceProperty(unsigned int idx, const string &module)
             return reduceTransient(pprop,vars);
         }
     }
-    throw_FigException("Unsuported property " + prop->toString() + ".\n");
+    throw_FigException("Unsupported property \"" + prop->toString() + "\"\n");
 }
 
 }

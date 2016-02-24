@@ -71,16 +71,11 @@ protected:  // Attributes
 	/// needed for the "auto" strategy
 	const State<STATE_INTERNAL_TYPE>& globalState;
 
-	/// Reference to all the \ref ModuleNetwork "model"'s transitions,
-	/// needed for the "auto" strategy
-	const std::vector<std::shared_ptr<Transition>>& globalTransitions;
-
 public:  // Ctor/Dtor
 
 	/// Data ctor
 	ImportanceFunctionConcrete(const std::string& name,
-							   const State<STATE_INTERNAL_TYPE>& state,
-							   const std::vector<std::shared_ptr<Transition>>& trans);
+							   const State<STATE_INTERNAL_TYPE>& state);
 
 	/// Dtor
 	virtual ~ImportanceFunctionConcrete();

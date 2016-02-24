@@ -43,74 +43,21 @@ using std::end;
 namespace fig
 {
 
-Postcondition::Postcondition(const Postcondition& that) :
-	MathExpression(that),
-	numUpdates_(that.numUpdates_),
-	updatesData_(that.updatesData_)
-{
-	switch (updatesData_) {
-	case NAMES:
-		new (&updatesNames_) std::vector< std::string >;
-		updatesNames_.insert(begin(updatesNames_),
-							 begin(that.updatesNames_),
-							 end(that.updatesNames_));
-		break;
-	case POSITIONS:
-		new (&updatesPositions_) std::vector< size_t >;
-		updatesPositions_.insert(begin(updatesPositions_),
-								 begin(that.updatesPositions_),
-								 end(that.updatesPositions_));
-		break;
-	}
-}
-
-
-Postcondition::Postcondition(Postcondition&& that) :
-	MathExpression(std::forward<MathExpression&&>(that)),
-	numUpdates_(std::move(that.numUpdates_)),
-	updatesData_(std::move(that.updatesData_))
-{
-	switch (updatesData_) {
-	case NAMES:
-		new (&updatesNames_) std::vector< std::string >;
-		swap(updatesNames_, that.updatesNames_);
-		break;
-	case POSITIONS:
-		new (&updatesPositions_) std::vector< size_t >;
-		swap(updatesPositions_, that.updatesPositions_);
-		break;
-	}
-}
-
-
 Postcondition&
 Postcondition::operator=(Postcondition that)
 {
 	MathExpression::operator=(std::move(that));
 	swap(numUpdates_, that.numUpdates_);
-	swap(updatesData_, that.updatesData_);
-	switch (updatesData_) {
-	case NAMES:
-		swap(updatesNames_, that.updatesNames_);
-		break;
-	case POSITIONS:
-		swap(updatesPositions_, that.updatesPositions_);
-		break;
-	}
+	swap(updatesNames_, that.updatesNames_);
+	swap(updatesPositions_, that.updatesPositions_);
 	return *this;
 }
 
 
 Postcondition::~Postcondition()
 {
-	switch (updatesData_) {
-	case NAMES:
-		updatesNames_.~vector< std::string >();
-		break;
-	case POSITIONS:
-		updatesPositions_.~vector< size_t >();
-		break;
-	}
+	updatesNames_.clear();
+	updatesPositions_.clear();
 }
 
 
@@ -146,19 +93,14 @@ Postcondition::pin_up_vars(const PositionsMap &globalVars)
 	// Map general expression variables
 	MathExpression::pin_up_vars(globalVars);
 	// Map update variables
-	assert(NAMES == updatesData_);
-	std::vector< size_t > positions(updatesNames_.size());
-	size_t i(0u);
-	for (const auto& name: updatesNames_)
+	updatesPositions_.resize(numUpdates_);
+	for (int i = 0 ; i < numUpdates_ ; i++) {
 #ifndef NRANGECHK
-		positions[i++] = globalVars.at(name);
+		updatesPositions_[i] = globalVars.at(updatesNames_[i]);
 #else
-		positions[i++] = globalVars[name];
+		updatesPositions_[i] = globalVars[updatesNames_[i]];
 #endif
-	updatesNames_.~vector< std::string >();
-	new (&updatesPositions_) std::vector< size_t >;
-	swap(positions, updatesPositions_);
-	updatesData_ = POSITIONS;
+	}
 #ifndef NDEBUG
 	fake_evaluation();  // Reveal parsing errors in this early stage
 #endif
@@ -171,18 +113,48 @@ Postcondition::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 	// Map general expression variables
 	MathExpression::pin_up_vars(globalState);
 	// Map update variables
-	assert(NAMES == updatesData_);
-	std::vector< size_t > positions(updatesNames_.size());
-	size_t i(0u);
-	for (const auto& name: updatesNames_)
-		positions[i++] = globalState.position_of_var(name);
-	updatesNames_.~vector< std::string >();
-	new (&updatesPositions_) std::vector< size_t >;
-	swap(positions, updatesPositions_);
-	updatesData_ = POSITIONS;
+	updatesPositions_.resize(numUpdates_);
+	for (int i = 0 ; i < numUpdates_ ; i++)
+		updatesPositions_[i] = globalState.position_of_var(updatesNames_[i]);
 #ifndef NDEBUG
 	fake_evaluation();  // Reveal parsing errors in this early stage
 #endif
+}
+
+
+void
+Postcondition::operator()(State<STATE_INTERNAL_TYPE>& state) const
+{
+	std::vector< STATE_INTERNAL_TYPE > values;
+	size_t i(0ul);
+	// Bind state's variables to our expression...
+	for (const auto& pair: varsMap_) {
+		auto var_ptr = state[pair.first];
+		if (nullptr == var_ptr) {
+			std::stringstream sss;
+			state.print_out(sss, true);
+			throw_FigException(std::string("variable \"").append(pair.first)
+							   .append("\" not found in state ").append(sss.str()));
+		}
+		values[i] = var_ptr->val();
+		expr_.DefineVar(pair.first, &values[i]);
+		i++;
+	}
+	// ...evaluate...
+	int numUpdates(numUpdates_);
+	STATE_INTERNAL_TYPE* updates = expr_.Eval(numUpdates);
+	assert(numUpdates_ == numUpdates || expression().empty());
+	// ...and reflect in state
+	for (int i = 0 ; i < numUpdates_ ; i++) {
+		auto var_ptr = state[updatesNames_[i]];
+		if (nullptr == var_ptr) {
+			std::stringstream sss;
+			state.print_out(sss, true);
+			throw_FigException(std::string("variable \"").append(updatesNames_[i])
+							   .append("\" not found in state ").append(sss.str()));
+		}
+		var_ptr->assign(updates[i]);
+	}
 }
 
 
@@ -193,14 +165,14 @@ Postcondition::operator()(StateInstance& state) const
 	if (!pinned())
 		throw_FigException("pin_up_vars() hasn't been called yet");
 #endif
-	// Bind state variables to our expression...
+	// Bind state's values to our expression...
 	for (const auto& pair: varsMap_)
 		expr_.DefineVar(pair.first,  const_cast<STATE_INTERNAL_TYPE*>(
 						&state[pair.second]));
 	// ...evaluate...
 	int numUpdates(numUpdates_);
 	STATE_INTERNAL_TYPE* updates = expr_.Eval(numUpdates);
-	assert(numUpdates_ == numUpdates || expression() == "");
+	assert(numUpdates_ == numUpdates || expression().empty());
 	// ...and reflect in state
 	for (int i = 0 ; i < numUpdates_ ; i++)
 		state[updatesPositions_[i]] = updates[i];

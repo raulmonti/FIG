@@ -59,12 +59,17 @@ ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/muparser2.2.5
                  ${PROJECT_BINARY_DIR}/muparser2.2.5)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/openmp
                  ${PROJECT_BINARY_DIR}/openmp)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext/z3
+                 ${PROJECT_BINARY_DIR}/z3)
  
 # Register all include paths
 INCLUDE_DIRECTORIES(${HEADERS_DIR})
 
 # Register the source files (only those required for this test)
 SET(REQUIRED_SOURCES "${SOURCES_DIR}/string_utils.cpp"
+                     "${SOURCES_DIR}/Ast.cpp"
+                     "${SOURCES_DIR}/Parser.cpp"
+                     "${SOURCES_DIR}/Iosacompliance.cpp"
                      "${SOURCES_DIR}/Clock.cpp"
                      "${SOURCES_DIR}/Variable.cpp"
                      "${SOURCES_DIR}/VariableInterval.cpp"
@@ -79,6 +84,7 @@ SET(REQUIRED_SOURCES "${SOURCES_DIR}/string_utils.cpp"
                      "${SOURCES_DIR}/ModelSuite.cpp"
                      "${SOURCES_DIR}/Traial.cpp"
                      "${SOURCES_DIR}/TraialPool.cpp"
+                     "${SOURCES_DIR}/ReduceProperty.cpp"
                      "${SOURCES_DIR}/PropertyTransient.cpp"
                      "${SOURCES_DIR}/StoppingConditions.cpp"
                      "${SOURCES_DIR}/ConfidenceInterval.cpp"
@@ -181,9 +187,22 @@ SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pthread" )
 # OpenMP
 SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
 
+# Z3
+SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -lz3" )
+
 
 
 ###  Build executable  ########################################################
 
-ADD_EXECUTABLE(test_simulations ${ALL_SOURCES})
+SET(LEXER_L  "${SOURCES_DIR}/Lexer.l")
+SET(LEXER_CC "${PROJECT_BINARY_DIR}/lex.yy.cc")
 
+# Generate lexer with flex
+ADD_CUSTOM_COMMAND(
+	OUTPUT ${LEXER_CC}
+	COMMAND flex++ ${LEXER_L}
+	COMMAND sed -i "/#define yyFlexLexer yyFlexLexer/d" ${LEXER_CC}
+	DEPENDS ${LEXER_L}
+)
+
+ADD_EXECUTABLE(test_simulations ${ALL_SOURCES} ${LEXER_CC})
