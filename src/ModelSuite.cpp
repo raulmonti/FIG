@@ -546,16 +546,16 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
 
     if (force || !ifun.has_importance_info() || "flat" != ifun.strategy()) {
         ifun.clear();
-        if (ifun.concrete())
-            static_cast<ImportanceFunctionConcrete&>(ifun)
+		if (ifun.concrete())
+			static_cast<ImportanceFunctionConcrete&>(ifun)
                 .assess_importance(property, "flat");
-        else
+		else
             static_cast<ImportanceFunctionAlgebraic&>(ifun)
                 .set_formula("flat",
                              "0",
                              std::vector<std::string>(),
                              model->global_state(),
-                             property);
+							 property);
     }
 
     assert(ifun.has_importance_info());

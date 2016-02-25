@@ -201,10 +201,11 @@ int main()
 	std::cout << "Building the importance functions" << std::endl;
 	const std::string flatIfunName("algebraic");
 	const std::string autoIfunName("concrete_coupled");
-//	model.build_importance_function_adhoc("algebraic", *property_ptr, "5*q2+q1",
-//	                                       NamesList({"q1","q2"}));
 	model.build_importance_function_flat(flatIfunName, *property_ptr);
 	model.build_importance_function_auto(autoIfunName, *property_ptr);
+//	model.build_importance_function_adhoc("algebraic", *property_ptr, "5*q2+q1",
+//	                                       NamesList({"q1","q2"}));
+//	model.build_importance_function_auto("concrete_split", *property_ptr, "+");
 	std::cout << "Building its thresholds" << std::endl;
 	model.build_thresholds("ams", flatIfunName);
 	model.build_thresholds("ams", autoIfunName);

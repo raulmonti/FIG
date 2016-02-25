@@ -248,6 +248,8 @@ void
 ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 												   const std::string& strategy)
 {
+	if ("flat" == strategy)
+		set_merge_fun("+");
 	if (userFun_.expression().length() < numModules_)
 		throw_FigException(std::string("can't assess importance in function \"")
 						   .append(name()).append("\" since current merging ")

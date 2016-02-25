@@ -65,7 +65,7 @@ reduceFormulaRec(const AST* prop, const set<string> &vars)
             string r0 = reduceFormulaRec(b0,vars);
             if(level == _EXPRESSION || r0 != "true"){
                 result = r0;
-                for(int i = 1; i < size-1; i=i+2){
+				for(size_t i = 1; i < size-1; i=i+2){
                     b1 = prop->branches[i];
                     b2 = prop->branches[i+1];
                     string r2 =  reduceFormulaRec(b2,vars);
@@ -155,7 +155,7 @@ reduceProperty(unsigned int idx, const string &module)
     }
     // what kind of property is it?
     AST* pprop = prop->get_first(_PPROP);
-    AST* sprop = prop->get_first(_SPROP);
+//	AST* sprop = prop->get_first(_SPROP);
     if(pprop){
         vector<AST*> formulas = pprop->get_all_ast(_EXPRESSION);
         assert(formulas.size() == 2);

@@ -125,7 +125,7 @@ Postcondition::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 void
 Postcondition::operator()(State<STATE_INTERNAL_TYPE>& state) const
 {
-	std::vector< STATE_INTERNAL_TYPE > values;
+	std::vector< STATE_INTERNAL_TYPE > values(varsMap_.size());
 	size_t i(0ul);
 	// Bind state's variables to our expression...
 	for (const auto& pair: varsMap_) {
