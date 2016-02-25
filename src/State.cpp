@@ -118,7 +118,7 @@ State<T_>::append(const State<T_>& tail)
 
 template< typename T_ >
 void
-State<T_>::get_valuation(const State<T_>& that)
+State<T_>::extract_valuation_from(const State<T_>& that)
 {
 	for (auto our_pvar: pvars_) {
 		auto thatVar = std::find_if(::begin(that), ::end(that),
@@ -127,10 +127,21 @@ State<T_>::get_valuation(const State<T_>& that)
 		if (::end(that) != thatVar)
 			(*our_pvar) = (*thatVar)->val();
 		else
-			throw_FigException(std::string("tried to get_valuation() from ")
-							   .append("incompatible State, variable \"")
+			throw_FigException(std::string("tried to extract_valuation_from() ")
+							   .append("an incompatible State, variable \"")
 							   .append(our_pvar->name()).append("\" not found"));
 	}
+}
+
+
+template< typename T_ >
+std::vector< std::string >
+State<T_>::varnames() const noexcept
+{
+	std::vector< std::string > names(pvars_.size());
+	for (size_t i=0ul ; i < names.size() ; i++)
+		names[i] = pvars_[i]->name();
+	return names;
 }
 
 
@@ -294,7 +305,7 @@ size_t
 State<T_>::encode() const
 {
 	size_t n(0), numVars(size());
-	#pragma omp parallel for reduction(+:n) shared(numVars)
+//	#pragma omp parallel for reduction(+:n) shared(numVars)
 	for (size_t i=0 ; i < numVars ; i++) {
 		size_t stride(1);
 		for (size_t j = i+1 ; j < numVars; j++)
@@ -311,7 +322,7 @@ State<T_>::decode(const size_t& n)
 {
 	const size_t numVars(size());
 	assert(n < maxConcreteState_);
-	#pragma omp parallel for default(shared)
+//	#pragma omp parallel for default(shared)
 	for (size_t i=0 ; i < numVars ; i++) {
 		size_t stride(1u);
 		for (size_t j = i+1 ; j < numVars ; j++)
@@ -329,7 +340,7 @@ State<T_>::decode(const size_t& n, const size_t& i) const
 	size_t numVars(size()), stride(1u);
 	assert(i < numVars);
 	assert(n < maxConcreteState_);
-	#pragma omp parallel for reduction (*:stride) shared(i,numVars)
+//	#pragma omp parallel for reduction (*:stride) shared(i,numVars)
 	for (size_t j = i+1 ; j < numVars ; j++)
 		stride *= pvars_[j]->range_;
 	return pvars_[i]->val((n / stride) % pvars_[i]->range_);

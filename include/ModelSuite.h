@@ -240,7 +240,7 @@ public:  // Accessors
 	 *         nullptr otherwise.
 	 * @see add_property()
 	 */
-	std::shared_ptr< const Property > get_property(const size_t& i);
+	std::shared_ptr< const Property > get_property(const size_t& i) const noexcept;
 
 public:  // Utils
 
@@ -300,6 +300,15 @@ public:  // Utils
 	void
 	build_importance_function_flat(const std::string& ifunName,
 								   const Property& property,
+								   bool force = false);
+
+	/// Same as build_importance_function_flat() for the property
+	/// added to the system in the requested index
+	/// @throw FigException if there's no property at index 'propertyIndex'
+	/// @see get_property()
+	void
+	build_importance_function_flat(const std::string& ifunName,
+								   const size_t& propertyIndex,
 								   bool force = false);
 
 	/**
@@ -468,6 +477,13 @@ public:  // Simulation utils
 	 * @throw FigException if a simulation gave an invalid result
 	 */
 	void estimate(const Property& property,
+				  const SimulationEngine& engine,
+				  const StoppingConditions& bounds) const;
+
+	/// Same as estimate() for the property added to the system in the requested index
+	/// @throw FigException if there's no property at index 'propertyIndex'
+	/// @see get_property()
+	void estimate(const size_t& propertyIndex,
 				  const SimulationEngine& engine,
 				  const StoppingConditions& bounds) const;
 

@@ -33,7 +33,6 @@
 // FIG
 #include <ImportanceFunctionConcreteSplit.h>
 #include <ThresholdsBuilder.h>
-#include <ReduceProperty.h>
 #include <string_utils.h>
 
 // ADL
@@ -262,12 +261,10 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	// Assess each module importance individually from the rest
 	for (size_t index = 0ul ; index < numModules_ ; index++) {
 		auto& localState = localStatesCopies_[index];
-		localState.get_valuation(globalState);  // set at local initial valuation
-		std::shared_ptr< Property > localProp = reduceProperty(prop.index(),
-															   modules_[index]->name);
+		localState.extract_valuation_from(globalState);  // set at local initial valuation
 		ImportanceFunctionConcrete::assess_importance(localState,
 													  modules_[index]->transitions(),
-													  *localProp,
+													  prop,
 													  strategy,
 													  index);
 		assert(minImportance_ <= minRareImportance_);

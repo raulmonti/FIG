@@ -412,7 +412,7 @@ template void ModelSuite::seal(const std::unordered_set<std::string>&);
 
 
 std::shared_ptr< const Property >
-ModelSuite::get_property(const size_t& i)
+ModelSuite::get_property(const size_t& i) const noexcept
 {
 	if (i >= num_properties())
 		return nullptr;
@@ -560,6 +560,19 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
 
     assert(ifun.has_importance_info());
     assert("flat" == ifun.strategy());
+}
+
+
+void
+ModelSuite::build_importance_function_flat(const std::string& ifunName,
+										   const size_t& propertyIndex,
+										   bool force)
+{
+	auto propertyPtr = get_property(propertyIndex);
+	if (nullptr == propertyPtr)
+		throw_FigException(std::string("no property at index ")
+						   .append(std::to_string(propertyIndex)));
+	build_importance_function_flat(ifunName, *propertyPtr, force);
 }
 
 
@@ -841,6 +854,19 @@ ModelSuite::estimate(const Property& property,
         }
         interruptCI_ = nullptr;
     }
+}
+
+
+void
+ModelSuite::estimate(const size_t& propertyIndex,
+					 const SimulationEngine& engine,
+					 const StoppingConditions& bounds) const
+{
+	auto propertyPtr = get_property(propertyIndex);
+	if (nullptr == propertyPtr)
+		throw_FigException(std::string("no property at index ")
+						   .append(std::to_string(propertyIndex)));
+	estimate(*propertyPtr, engine, bounds);
 }
 
 } // namespace fig

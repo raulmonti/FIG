@@ -82,6 +82,7 @@
 #include "Property.h"
 #include "PropertyTransient.h"
 #include "Traial.h"
+#include "StoppingConditions.h"
 // Importance functions
 #include "ImportanceFunction.h"
 #include "ImportanceFunctionAlgebraic.h"

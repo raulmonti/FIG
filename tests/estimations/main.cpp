@@ -32,6 +32,7 @@
 #include <sstream>
 #include <fstream>
 #include <string>
+#include <set>
 #include <cassert>
 
 #include <fig.h>
@@ -40,13 +41,14 @@ static void print_intro(std::ostream& out);
 static void build_model(const char* modelFilePath, const char* propsFilePath);
 
 
+
 int main(int argc, char** argv)
 {
 	//  Intro  // // // // // // // // // // // // // // // // // //
 	print_intro(std::cout);
 	if (argc < 3) {
 		std::cerr << "ERROR: FIG invoked with too few parameters.\n";
-		std::cerr << "Use: <FIGbin> <modelFileName> <propertiesFileName>\n\n";
+		std::cerr << "Use: " << argv[0] << " <modelFileName> <propertiesFileName>\n\n";
 		exit(EXIT_FAILURE);
 	}
 
@@ -54,11 +56,19 @@ int main(int argc, char** argv)
 	build_model(argv[1], argv[2]);
 	auto model = fig::ModelSuite::get_instance();
 	if (!model.sealed()) {
-		std::cerr << "ERROR: unexpectedly failed to build the model.\n";
+		std::cerr << "ERROR: failed to build the model.\n";
 		exit(EXIT_FAILURE);
 	}
+	const size_t propertyIndex(0ul);
 
-    /** TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO **/
+	//  Test run with flat ifun  // // // // // // // // // // // //
+	const std::string flatIfunName("algebraic");
+	model.build_importance_function_flat(flatIfunName, propertyIndex);
+	model.build_thresholds("ams", flatIfunName);
+	auto engine = model.prepare_simulation_engine("nosplit", flatIfunName);
+	StoppingConditions flatCriterion(std::set<size_t>({4ul,10ul}));
+	model.estimate(propertyIndex, *engine, flatCriterion);
+	/** TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO **/
     /** HERE WE SHOULD SIMULATE AND DO ALL THE STUFF CARLOS KNOWS ABOUT. **/
 
 	std::cerr << "\nWell don't just stare, DO SOMETHING!\n\n";
@@ -71,6 +81,7 @@ int main(int argc, char** argv)
 }
 
 
+// ///////////////////////////////////////////////////////////////////////////
 void print_intro(std::ostream& out)
 {
 	out << std::endl;
@@ -86,6 +97,7 @@ void print_intro(std::ostream& out)
 }
 
 
+// ///////////////////////////////////////////////////////////////////////////
 void build_model(const char* modelFilePath, const char* propsFilePath)
 {
 

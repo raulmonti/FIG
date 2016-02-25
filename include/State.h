@@ -160,7 +160,7 @@ public:  // Modifyers
 	 * @note <b>Complexity:</b> <i>O(size()*size(that))</i>
 	 * @throw FigException if 'that' doesn't hold values for all our variables
 	 */
-	void get_valuation(const State<T_>& that);
+	void extract_valuation_from(const State<T_>& that);
 
 public:  // Accessors
 
@@ -169,6 +169,10 @@ public:  // Accessors
 
 	/// Concrete size, i.e. cross product of all variables ranges
 	inline size_t concrete_size() const noexcept { return maxConcreteState_; }
+
+	/// Names of the variables in creation order
+	/// @note Calls to append() modify the value returned by this function
+	std::vector< std::string > varnames() const noexcept;
 
 	/// Make shallow copy from 'that', i.e. share its variables through pointers
 	/// @note 'that' isn't modified, but it's not const qualified since
