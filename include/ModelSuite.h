@@ -444,6 +444,10 @@ public:  // Utils
 	release_resources(const std::string& ifunName,
 					  const std::string& engineName = "") noexcept;
 
+	/// Release all internal information regarding \ref ImportanceFunction
+	/// "importance functions" and \ref SimulationEngine "simulaion engines".
+	void release_resources() noexcept;
+
 public:  // Simulation utils
 
 	/**

@@ -739,6 +739,20 @@ ModelSuite::release_resources(const std::string& ifunName,
 
 
 void
+ModelSuite::release_resources() noexcept
+{
+	if (!sealed())
+		return;
+	try {
+		for (auto ifunName: available_importance_functions())
+			release_resources(ifunName);
+		for (auto engineName: available_simulators())
+			simulators[engineName]->unbind();
+	} catch (FigException&) {}
+}
+
+
+void
 ModelSuite::estimate(const Property& property,
                      const SimulationEngine& engine,
                      const StoppingConditions& bounds) const
