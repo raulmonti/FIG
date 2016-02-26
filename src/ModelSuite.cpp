@@ -315,7 +315,6 @@ std::unique_ptr< ModelSuite > ModelSuite::instance_ = nullptr;
 
 std::once_flag ModelSuite::singleInstance_;
 
-const unsigned ModelSuite::MIN_COUNT_RARE_EVENTS = (1u<<3);
 
 
 // ModelSuite class member functions

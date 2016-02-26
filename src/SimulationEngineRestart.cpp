@@ -37,7 +37,6 @@
 #include <SimulationEngineRestart.h>
 #include <PropertyTransient.h>
 #include <ModuleNetwork.h>
-#include <ModelSuite.h>
 #include <TraialPool.h>
 #include <FigException.h>
 
@@ -188,7 +187,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 		weighedRaresCount += raresCount[i]
 							  * std::pow(splitsPerThreshold_, numThresholds-i);
 	assert(0.0 <= weighedRaresCount);
-	if (ModelSuite::MIN_COUNT_RARE_EVENTS > raresCount.sum()) {
+	if (MIN_COUNT_RARE_EVENTS > raresCount.sum()) {
 		/// @todo TODO proper logging in technical log
 //		std::cerr << "Too few rare events generated (" << raresCount.sum()
 //				  << ") in " << numRuns << " simulations\n";

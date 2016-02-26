@@ -136,11 +136,6 @@ class ModelSuite
 	ModelSuite(ModelSuite&& that)                 = delete;
 	ModelSuite& operator=(const ModelSuite& that) = delete;
 
-public:  // Global access to general constants
-
-	/// Minimum amount of generated rare events to consider a simulation "good"
-	static const unsigned MIN_COUNT_RARE_EVENTS;
-
 public:  // Access to the ModelSuite instance
 
 	/// Global access point to the unique instance of this class

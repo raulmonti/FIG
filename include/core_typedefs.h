@@ -227,6 +227,10 @@ enum PropertyType
 /// Allow containers with references (http://stackoverflow.com/a/23488449)
 template< typename T_ > using Reference = std::reference_wrapper<T_>;
 
+/// Minimum amount of generated rare events to consider a simulation "good"
+/// @note This oughtn't be here, I know... but f**k the police!
+const unsigned MIN_COUNT_RARE_EVENTS(1u<<3u);
+
 //
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //

@@ -31,7 +31,7 @@ CompileVars(const vector<AST*> varList, const parsingContext &pc)
         string name = it->get_lexeme(_NAME);
         assert(name != "");
         vector<string> limits(2,"0");
-        int init = 0;
+		string init;
         AST* ASTrange = it->get_first(_RANGE);
         AST* ASTinit = it->get_first(_INIT);
         if(ASTrange){
@@ -43,23 +43,25 @@ CompileVars(const vector<AST*> varList, const parsingContext &pc)
 			// For now assume boolean. Revise if we accept initialization lists
 			limits[0] = "0";
 			limits[1] = "1";
-        }
-
+		}
         if(ASTinit){
-            AST* ASTexp = ASTinit->get_first(_EXPRESSION);
+			AST* ASTexp = ASTinit->get_first(_EXPRESSION);
             Type t = get_type(ASTexp,pc);
             string exp = solve_const_expr(ASTexp,pc);
-            if(t == T_ARIT){
-                init = atoi(exp.c_str());
-            }else{
-                init = (exp == "true");
+			if(t == T_ARIT) {
+				init = exp.c_str();
+			} else if(t == T_BOOL) {
+				init = exp == "true" ? "1" : "0";
             }
-        }
+		} else {
+			// Default to smallest value when no explicit initialization
+			init = limits[0];
+		}
         result.push_back(make_tuple(name
                                    ,atoi(limits[0].c_str())
                                    ,atoi(limits[1].c_str())
-                                   ,init));
-    }
+								   ,atoi(init.c_str())));
+	}
     return result;
 }
 

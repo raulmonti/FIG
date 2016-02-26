@@ -1109,13 +1109,18 @@ solve_const_expr(AST* ex, const parsingContext &pc)
     // FIXME round down to closest int.
     if(t==T_ARIT){
         result = Z3_get_numeral_string(c, m.eval(res,false));
-    }else{
-        if(Z3_get_bool_value(c,m.eval(res,false))){
+	}else if(t==T_BOOL){
+		if(Z3_L_TRUE == Z3_get_bool_value(c,m.eval(res,false))){
             result = "true";
-        }else{
+		} else if(Z3_L_FALSE == Z3_get_bool_value(c,m.eval(res,false))){
             result = "false";
-        }
-    }
+		} else {
+			throw_FigException("invalid initializer for boolean variable: "
+							   + ex->toString());
+		}
+	} else {
+		throw_FigException("unrecognized const_expr type: " + std::to_string(t));
+	}
     return result;
 }
 //==============================================================================

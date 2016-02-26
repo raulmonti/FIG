@@ -48,7 +48,7 @@ int main(int argc, char** argv)
 	print_intro(std::cout);
 	if (argc < 3) {
 		std::cerr << "ERROR: FIG invoked with too few parameters.\n";
-		std::cerr << "Use: " << argv[0] << " <modelFileName> <propertiesFileName>\n\n";
+		std::cerr << "Usage: " << argv[0] << " <modelFileName> <propertiesFileName>\n\n";
 		exit(EXIT_FAILURE);
 	}
 
@@ -68,8 +68,7 @@ int main(int argc, char** argv)
 	auto engine = model.prepare_simulation_engine("nosplit", flatIfunName);
 	StoppingConditions flatCriterion(std::set<size_t>({4ul,10ul}));
 	model.estimate(propertyIndex, *engine, flatCriterion);
-	/** TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO **/
-    /** HERE WE SHOULD SIMULATE AND DO ALL THE STUFF CARLOS KNOWS ABOUT. **/
+
 
 	std::cerr << "\nWell don't just stare, DO SOMETHING!\n\n";
 

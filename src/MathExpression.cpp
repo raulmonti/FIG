@@ -185,12 +185,13 @@ MathExpression::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 void
 MathExpression::pin_up_vars(const PositionsMap& globalVars)
 {
-	for(auto& pair: varsMap_)
+	for(auto& pair: varsMap_) {
 #ifndef NRANGECHK
 		pair.second = globalVars.at(pair.first);
 #else
 		pair.second = globalVars[pair.first];
 #endif
+	}
 	pinned_ = true;
 }
 
@@ -202,8 +203,8 @@ MathExpression::muparser_format(const std::string& expr) const
 		return "true";
     std::string muParserExpr(expr);
 	// It's easier to do this syntactic change than to define the operators
-	replace_substring(muParserExpr, "&", "&&");  // should only appear single
-	replace_substring(muParserExpr, "|", "||");  // should only appear single
+	replace_substring(muParserExpr, "&", "&&");  // '&' should always appear single
+	replace_substring(muParserExpr, "|", "||");  // '|' should always appear single
 	return muParserExpr;
 }
 

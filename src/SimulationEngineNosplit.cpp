@@ -36,7 +36,6 @@
 #include <FigException.h>
 #include <ImportanceFunctionConcrete.h>
 #include <PropertyTransient.h>
-#include <ModelSuite.h>
 #include <ConfidenceInterval.h>
 
 
@@ -84,7 +83,7 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
     TraialPool::get_instance().return_traial(std::move(traial));
 
     // Return estimate or its negative value
-	if (raresCount < ModelSuite::MIN_COUNT_RARE_EVENTS)
+	if (MIN_COUNT_RARE_EVENTS > raresCount)
 		return -static_cast<double>(raresCount);
     else
 		return  static_cast<double>(raresCount);
