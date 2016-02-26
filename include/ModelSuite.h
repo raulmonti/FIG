@@ -106,8 +106,9 @@ class ModelSuite
 		std::string,
 		std::shared_ptr< SimulationEngine > > simulators;
 
-//	/// Log
-//	static WTF? log_;
+	/// Log
+	/// @todo TODO: implement more serious logging mechanism
+	static std::ostream& log_;
 
 	// Interruptions handling
 
@@ -368,6 +369,18 @@ public:  // Utils
 	void
 	build_importance_function_adhoc(const std::string& ifunName,
 									const Property& property,
+									const std::string& formulaExprStr,
+									const Container<std::string, OtherArgs...>& varnames,
+									bool force = false);
+
+	/// Same as build_importance_function_adhoc() for the property
+	/// added to the system in the requested index
+	/// @throw FigException if there's no property at index 'propertyIndex'
+	/// @see get_property()
+	template< template< typename... > class Container, typename... OtherArgs >
+	void
+	build_importance_function_adhoc(const std::string& ifunName,
+									const size_t& propertyIndex,
 									const std::string& formulaExprStr,
 									const Container<std::string, OtherArgs...>& varnames,
 									bool force = false);

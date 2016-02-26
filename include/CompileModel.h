@@ -11,14 +11,11 @@
 #include "State.h"
 #include "Parser.h"
 
-using namespace fig;
-using namespace std;
-using namespace parser;
+using parser::parsingContext;
 
 
 typedef fig::State<fig::STATE_INTERNAL_TYPE>                state;
 typedef fig::VariableDefinition<fig::STATE_INTERNAL_TYPE>   varDec;
-typedef std::list< std::string >                            NamesList;
 
 namespace fig{
 

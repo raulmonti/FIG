@@ -75,7 +75,7 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
         watch_events = &SimulationEngineNosplit::transient_event;
 
     // Perform 'numRuns' standard Monte Carlo simulations
-    for (size_t i = 0u ; i < numRuns ; i++) {
+	for (size_t i = 0u ; i < numRuns && !interrupted ; i++) {
         traial.initialize(*network_, *impFun_);
         Event e = network_->simulation_step(traial, property, *this, watch_events);
 		raresCount += IS_RARE_EVENT(e) ? 1l : 0l;

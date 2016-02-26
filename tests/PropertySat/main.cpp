@@ -66,7 +66,7 @@ CheckPropsSat(void)
         }
         // check each property for this module
         for(size_t i = 0; i < count; ++i){
-            PropertySat ps(i,vars);
+            fig::PropertySat ps(i,vars);
             // for each posible module state
             size_t numStates = 1;
             for(size_t j = 0; j < vars.size(); ++j){
@@ -127,7 +127,7 @@ int main (int argc, char** argv){
     parser.parseProperties(& ss);
 
     /* Compile into simulation model */
-    CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
+    fig::CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
 
     /* Sat for properties */
     CheckPropsSat();

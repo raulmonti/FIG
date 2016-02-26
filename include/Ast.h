@@ -13,7 +13,9 @@
 #include <string>
 #include <sstream>
 
-using namespace std;
+using std::vector;
+using std::string;
+using std::stringstream;
 
 
 

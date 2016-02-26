@@ -132,5 +132,5 @@ void build_model(const char* modelFilePath, const char* propsFilePath)
     parser.parseProperties(&ss);
 
     // Compile everything into simulation model
-    CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
+    fig::CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
 }

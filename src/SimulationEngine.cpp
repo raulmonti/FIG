@@ -171,8 +171,12 @@ SimulationEngine::simulate(const Property &property,
 						std::log(numRuns) + log_experiments_per_sim());
 		if (0.0 <= raresCount)
 			return false;
-		else
+		else {
+			/// @todo TODO: erase debug print below
+			std::cerr << "Generated only " << -raresCount
+					  << " rares in " << numRuns << " runs\n";
 			return true;  // you'd better increase 'numRuns'
+		}
 		}
 
 	case PropertyType::THROUGHPUT:

@@ -129,7 +129,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 		watch_events = &SimulationEngineRestart::transient_event;
 
 	// Perform 'numRuns' RESTART importance-splitting simulations
-	for (size_t i = 0u ; i < numRuns ; i++) {
+	for (size_t i = 0u ; i < numRuns && !interrupted ; i++) {
 		tpool.get_traials(stack, 1u);
 		static_cast<Traial&>(stack.top()).initialize(*network_, *impFun_);
 

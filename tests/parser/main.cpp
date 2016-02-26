@@ -49,7 +49,7 @@ int main (int argc, char** argv){
     parser.parseProperties(& ss);
 
     /* Compile into simulation model */
-    CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
+    fig::CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
 
     return 0;
 }

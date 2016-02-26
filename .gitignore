@@ -16,3 +16,4 @@ FIG*.includes
 
 # Build
 bin
+bin_*

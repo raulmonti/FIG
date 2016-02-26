@@ -244,19 +244,22 @@ increase_batch_size(size_t& numRuns,
  */
 void
 interrupt_print(const fig::ConfidenceInterval& ci,
-                const std::vector<float>& confidenceCoefficients)
+				const std::vector<float>& confidenceCoefficients,
+				std::ostream& out)
 {
     /// @todo TODO: implement proper reentrant logging and discard following shell print
-    std::cerr << std::endl << "   · Computed estimate: "
+	out << std::scientific;
+	out << std::endl << "   · Computed estimate: "
               << ci.point_estimate() << std::endl;
     for (const float& confCo: confidenceCoefficients) {
-        std::cerr << "   · " << confCo*100 << "% precision: "
+		out << "   · " << confCo*100 << "% precision: "
                   << ci.precision(confCo) << std::endl;
-        std::cerr << "     " << confCo*100 << "% confidence interval: [ "
+		out << "     " << confCo*100 << "% confidence interval: [ "
                   << ci.lower_limit(confCo) << " , "
                   << ci.upper_limit(confCo) << " ] " << std::endl;
     }
-    std::cerr << std::endl;
+	out << std::endl;
+	out << std::defaultfloat;
 }
 
 } // namespace
@@ -287,6 +290,8 @@ std::unordered_map< std::string, std::shared_ptr< ThresholdsBuilder > >
 std::unordered_map< std::string, std::shared_ptr< SimulationEngine > >
 	ModelSuite::simulators;
 
+std::ostream& ModelSuite::log_(std::cerr);
+
 const ConfidenceInterval* ModelSuite::interruptCI_ = nullptr;
 
 const std::vector< float > ModelSuite::confCoToShow_ = {0.8, 0.9, 0.95, 0.99};
@@ -296,7 +301,9 @@ SignalSetter ModelSuite::SIGINThandler_(SIGINT, [] (const int signal) {
         /// @todo TODO: implement proper reentrant logging and discard following shell print
         std::cerr << "\nCaught SIGINT, stopping estimations.\n";
         if (nullptr != ModelSuite::interruptCI_)
-            interrupt_print(*ModelSuite::interruptCI_, ModelSuite::confCoToShow_);
+			interrupt_print(*ModelSuite::interruptCI_,
+							ModelSuite::confCoToShow_,
+							ModelSuite::log_);
         exit((1<<7)+SIGINT);
     }
 );
@@ -306,7 +313,9 @@ SignalSetter ModelSuite::SIGTERMhandler_(SIGTERM, [] (const int signal) {
         /// @todo TODO: implement proper reentrant logging and discard following shell print
         std::cerr << "\nCaught SIGTERM, stopping estimations.\n";
         if (nullptr != ModelSuite::interruptCI_)
-            interrupt_print(*ModelSuite::interruptCI_, ModelSuite::confCoToShow_);
+			interrupt_print(*ModelSuite::interruptCI_,
+							ModelSuite::confCoToShow_,
+							ModelSuite::log_);
         exit((1<<7)+SIGTERM);
     }
 );
@@ -667,6 +676,48 @@ template void ModelSuite::build_importance_function_adhoc(
     const std::unordered_set<std::string>&, bool);
 
 
+template< template< typename... > class Container, typename... OtherArgs >
+void
+ModelSuite::build_importance_function_adhoc(
+	const std::string& ifunName,
+	const size_t& propertyIndex,
+	const std::string& formulaExprStr,
+	const Container<std::string, OtherArgs...>& varnames,
+	bool force)
+{
+	auto propertyPtr = get_property(propertyIndex);
+	if (nullptr == propertyPtr)
+		throw_FigException(std::string("no property at index ")
+						   .append(std::to_string(propertyIndex)));
+	build_importance_function_adhoc(ifunName,
+									*propertyPtr,
+									formulaExprStr,
+									varnames,
+									force);
+}
+
+// ModelSuite::build_importance_function_adhoc() can only be invoked
+// with the following containers
+template void ModelSuite::build_importance_function_adhoc(
+	const std::string&, const size_t&, const std::string&,
+	const std::set<std::string>&, bool);
+template void ModelSuite::build_importance_function_adhoc(
+	const std::string&, const size_t&, const std::string&,
+	const std::list<std::string>&, bool);
+template void ModelSuite::build_importance_function_adhoc(
+	const std::string&, const size_t&, const std::string&,
+	const std::deque<std::string>&, bool);
+template void ModelSuite::build_importance_function_adhoc(
+	const std::string&, const size_t&, const std::string&,
+	const std::vector<std::string>&, bool);
+template void ModelSuite::build_importance_function_adhoc(
+	const std::string&, const size_t&, const std::string&,
+	const std::forward_list<std::string>&, bool);
+template void ModelSuite::build_importance_function_adhoc(
+	const std::string&, const size_t&, const std::string&,
+	const std::unordered_set<std::string>&, bool);
+
+
 void
 ModelSuite::build_thresholds(const std::string& technique,
 							 const std::string& ifunName,
@@ -770,11 +821,11 @@ ModelSuite::estimate(const Property& property,
                      const StoppingConditions& bounds) const
 {
 	/// @todo TODO: implement proper log and discard following shell print
-	std::cerr << "Estimating " << property.expression << ",\n";
-	std::cerr << " using simulation engine \"" << engine.name() << "\"\n";
-	std::cerr << " and importance function \"" << engine.current_imp_fun() << "\"\n";
-	std::cerr << " built using strategy    \"" << engine.current_imp_strat() << "\" ";
-	std::cerr << impFuns[engine.current_imp_fun()]->adhoc_fun() << std::endl;
+	log_ << "Estimating " << property.expression << ",\n";
+	log_ << " using simulation engine \"" << engine.name() << "\"\n";
+	log_ << " and importance function \"" << engine.current_imp_fun() << "\"\n";
+	log_ << " built using strategy    \"" << engine.current_imp_strat() << "\" ";
+	log_ << impFuns[engine.current_imp_fun()]->adhoc_fun() << std::endl;
 
 	if (bounds.is_time()) {
 
@@ -791,7 +842,7 @@ ModelSuite::estimate(const Property& property,
 			std::cerr << "   Estimation time: " << wallTimeInSeconds << " s\n";
 			SignalSetter handler(SIGALRM, [&ci_ptr, &timedout] (const int sig){
 				assert(SIGALRM == sig);
-				interrupt_print(*ci_ptr, ModelSuite::confCoToShow_);
+				interrupt_print(*ci_ptr, ModelSuite::confCoToShow_, log_);
 				//ci_ptr->reset();
 				timedout = true;
 			});
@@ -818,10 +869,10 @@ ModelSuite::estimate(const Property& property,
 							  std::get<2>(criterion));
             interruptCI_ = ci_ptr.get();  // bad boy
 			/// @todo TODO: implement proper log and discard following shell print
-            std::cerr << "\n   Requested precision  "
+			log_ << "   Requested precision  "
 					  << ((ci_ptr->percent ? 200  : 2) * ci_ptr->errorMargin)
 					  << (ci_ptr->percent ? "%\n" : "\n");
-			std::cerr << "   and confidence level " << 100*ci_ptr->confidence
+			log_ << "   and confidence level " << 100*ci_ptr->confidence
 					  << "%" << std::endl;
 			size_t numRuns = min_batch_size(engine.name(), engine.current_imp_fun());
 			double startTime = omp_get_wtime();
@@ -829,23 +880,23 @@ ModelSuite::estimate(const Property& property,
 			do {
 				bool increaseBatch = engine.simulate(property, numRuns, *ci_ptr);
 				if (increaseBatch) {
-					std::cerr << "-";
+					log_ << "-";
 					increase_batch_size(numRuns, engine.name(), engine.current_imp_fun());
 				} else {
-					std::cerr << "+";
+					log_ << "+";
 				}
 			} while (!ci_ptr->is_valid());
 
 			/// @todo TODO: implement proper log and discard following shell print
-			std::cerr << std::endl;
-			std::cerr << "   · Computed estimate: " << ci_ptr->point_estimate() << std::endl;
-			std::cerr << "   · Confidence interval: [ "
+			log_ << std::endl;
+			log_ << "   · Computed estimate: " << ci_ptr->point_estimate() << std::endl;
+			log_ << "   · Confidence interval: [ "
 					  << ci_ptr->lower_limit() << " , "
 					  << ci_ptr->upper_limit() << " ] " << std::endl;
-			std::cerr << "   · Precision: " << ci_ptr->precision() << std::endl;
-			std::cerr << "   · Estimation time: " << (omp_get_wtime()-startTime)
+			log_ << "   · Precision: " << ci_ptr->precision() << std::endl;
+			log_ << "   · Estimation time: " << (omp_get_wtime()-startTime)
                       << " seconds" << std::endl;
-			std::cerr << std::endl;
+			log_ << std::endl;
 //			log_(*ci_ptr,
 //				 omp_get_wtime() - startTime,
 //				 engine.name(),

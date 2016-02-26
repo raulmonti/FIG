@@ -13,6 +13,8 @@
 #include <assert.h>
 #include <iostream>
 
+using std::to_string;
+
 
 //============================================================================== 
 // Abstract syntax tree class implementation. ==================================
