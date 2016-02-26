@@ -24,8 +24,13 @@ Read main.cpp file for an example.
 #############################################
 # TODO
 #############################################
+
 TODO    When and how to delete static class members as GLOBAL_MODEL_AST for
         example.
+        Change * for shared_ptr in static members to avoid memory leaks.
+TODO    Precompiler might modify line sizes when replacing the name of a
+        constant with its value.
+TODO    Unify first parsing and precompiling.
 TODO    Specialized exception for reporting modeling mistakes to the user.
 TODO    Full syntactic support for Carlos clock distributions.
 

@@ -80,6 +80,10 @@ then
 	then
 		echo; echo "Building tests for estimations"; echo
 		DIR="tests/estimations/"
+	elif [ "$1" = "test_psat" ]
+	then
+		echo; echo "Building tests for property satisfiability"; echo
+		DIR="tests/PropertySat/"
 	else
 		echo "[ERROR] Unrecognized build option \"$1\""
 		echo "        Available builds are: main"
