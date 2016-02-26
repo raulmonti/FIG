@@ -39,6 +39,7 @@
 #include <Transition.h>
 #include <Property.h>
 #include <PropertyTransient.h>
+#include <PropertySat.h>
 
 // ADL
 using std::begin;
@@ -320,19 +321,9 @@ label_states_with_SAT(State localState,
 					  EventVec& cStates,
 					  const Property& property)
 {
-	/// Dummy class, delete as soon as Raúl finishes the real thing
-	class PropertySat {	public:
-		PropertySat(const size_t propIdx,
-					const std::vector<std::string>& varnames)
-		{}
-		bool sat(const size_t index,
-				 const fig::StateInstance& valuation)
-		{ return false; }
-	};
-
 	cStates.resize(localState.concrete_size());
 	std::queue< STATE_T > raresQueue;
-	PropertySat reducedProperty(property.index(), localState.varnames());
+	fig::PropertySat reducedProperty(property.index(), localState.varnames());
 
 	// Mark conditions according to the property
 	switch (property.type) {

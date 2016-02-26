@@ -72,6 +72,10 @@ then
 	then
 		echo; echo "Building tests for parser"; echo
 		DIR="tests/parser/"
+	elif [ "$1" = "test_psat" ]
+	then
+		echo; echo "Building tests for property satisfiability"; echo
+		DIR="tests/PropertySat/"
 	elif [ "$1" = "test_sims" ]
 	then
 		echo; echo "Building tests for simulations"; echo
@@ -85,6 +89,7 @@ then
 		echo "        Available builds are: main"
 		echo "                              test_tads"
 		echo "                              test_parser"
+		echo "                              test_psat"
 		echo "                              test_sims"
 		echo "                              test_est"
 		exit 1
@@ -94,10 +99,13 @@ else
 	echo "        Available builds are: main"
 	echo "                              test_tads"
 	echo "                              test_parser"
+	echo "                              test_psat"
 	echo "                              test_sims"
 	echo "                              test_est"
 	exit 1
 fi
+
+sleep 1
 
 # Check there's a CMake build file in the corresponding directory
 if [ ! -f ${DIR}CMakeLists.txt ]
@@ -130,8 +138,8 @@ fi
 
 # Configure and build from inside BUILD_DIR
 if [ ! -d $BUILD_DIR ]; then mkdir $BUILD_DIR; fi
-#cd $BUILD_DIR && CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR && make && \
-cd $BUILD_DIR && CC=gcc CXX=g++ cmake $CMAKE_DIR && make && \
+cd $BUILD_DIR && CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR && make && \
+#cd $BUILD_DIR && CC=gcc CXX=g++ cmake $CMAKE_DIR && make && \
 echo -e "\n  Project built in $BUILD_DIR\n"
 cd $CWD
 

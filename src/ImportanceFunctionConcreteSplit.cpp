@@ -87,7 +87,6 @@ ImportanceFunctionConcreteSplit::~ImportanceFunctionConcreteSplit()
 {
 	std::vector< ImportanceValue >().swap(localValues_);
 	std::vector< State<STATE_INTERNAL_TYPE> >().swap(localStatesCopies_);
-	std::vector< unsigned >().swap(globalVarsIPos_);
 	std::vector< ImportanceValue >().swap(importance2threshold_);
 	ImportanceFunctionConcrete::clear();
 }

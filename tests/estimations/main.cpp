@@ -38,6 +38,7 @@
 #include <fig.h>
 
 static void print_intro(std::ostream& out);
+static void check_arguments(const int& argc, const char** argv);
 static void build_model(const char* modelFilePath, const char* propsFilePath);
 
 
@@ -46,11 +47,7 @@ int main(int argc, char** argv)
 {
 	//  Intro  // // // // // // // // // // // // // // // // // //
 	print_intro(std::cout);
-	if (argc < 3) {
-		std::cerr << "ERROR: FIG invoked with too few parameters.\n";
-		std::cerr << "Usage: " << argv[0] << " <modelFileName> <propertiesFileName>\n\n";
-		exit(EXIT_FAILURE);
-	}
+	check_arguments(argc, const_cast<const char**>(argv));
 
 	//  Compile model and properties   // // // // // // // // // //
 	build_model(argv[1], argv[2]);
@@ -93,6 +90,23 @@ void print_intro(std::ostream& out)
 	out << " Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n";
 	out << "          Monti, Raúl E.   <raulmonti88@gmail.com>\n";
 	out << std::endl;
+}
+
+
+// ///////////////////////////////////////////////////////////////////////////
+void check_arguments(const int& argc, const char** argv)
+{
+	const std::string help("--help");
+	const std::string usage(std::string("Usage: ").append(argv[0])
+							.append(" <modelFilePath> <propertiesFilePath>\n"));
+	if (argc < 3 && argc > 1 && help == argv[1]) {
+		std::cerr << usage << std::endl;
+		exit(EXIT_SUCCESS);
+	} else if (argc < 3) {
+		std::cerr << "ERROR: FIG invoked with too few parameters.\n";
+		std::cerr << usage << std::endl;
+		exit(EXIT_FAILURE);
+	}
 }
 
 
