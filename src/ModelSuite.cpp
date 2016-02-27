@@ -40,6 +40,8 @@
 #include <algorithm>    // std::find();
 #include <iterator>     // std::begin(), std::end(), std::distance()
 #include <string>
+#include <ios>          // std::scientific, std::fixed
+#include <iomanip>      // std::setprecision()
 // C
 #include <unistd.h>  // alarm(), exit()
 #include <cmath>     // std::pow()
@@ -236,7 +238,9 @@ increase_batch_size(size_t& numRuns,
 
 /**
  * @brief Print/Log confidence intervals around an estimate
- *        for the given confidence criteria
+ *        for all given confidence criteria
+ * @details Intended for printing interrupted estimations, including
+ *          those whose stopping condition was the running time.
  * @param ci ConfidenceInterval with the current estimate to show
  * @param confidenceCoefficients Confidence criteria to build the intervals
  * @note This should be implemented as a reentrant function,
@@ -247,19 +251,48 @@ interrupt_print(const fig::ConfidenceInterval& ci,
 				const std::vector<float>& confidenceCoefficients,
 				std::ostream& out)
 {
-    /// @todo TODO: implement proper reentrant logging and discard following shell print
-	out << std::scientific;
-	out << std::endl << "   · Computed estimate: "
-              << ci.point_estimate() << std::endl;
+    /// @todo TODO: implement proper reentrant logging and discard use of streams
+    out << std::endl;
+    out << std::setprecision(3) << std::scientific;
+    out << "   · Computed estimate: " << ci.point_estimate() << std::endl;
     for (const float& confCo: confidenceCoefficients) {
-		out << "   · " << confCo*100 << "% precision: "
-                  << ci.precision(confCo) << std::endl;
-		out << "     " << confCo*100 << "% confidence interval: [ "
-                  << ci.lower_limit(confCo) << " , "
-                  << ci.upper_limit(confCo) << " ] " << std::endl;
+        out << "   · " << std::setprecision(0) << std::fixed
+            << confCo*100 << "% confidence" << std::endl
+            << std::setprecision(2) << std::scientific
+            << "       - precision: "  << ci.precision(confCo) << std::endl
+            << "       - interval: [ " << ci.lower_limit(confCo) << ", "
+                                       << ci.upper_limit(confCo) << "]"
+            << std::endl;
     }
-	out << std::endl;
 	out << std::defaultfloat;
+    out << std::endl;
+}
+
+
+/**
+ * @brief Print/Log an estimate and its theoretical confidence information
+ * @details Intended for printing estimations which met a confidence goal,
+ *          e.g. *not* those which were interrupted during computations.
+ * @param ci ConfidenceInterval with the current estimate to show
+ * @param time Time in seconds the whole estimation process took
+ */
+void
+estimate_print(const fig::ConfidenceInterval& ci,
+               const double& time,
+               std::ostream& out)
+{
+    out << std::endl;
+    out << std::setprecision(3) << std::scientific;
+    out << "   · Computed estimate: " << ci.point_estimate() << std::endl;
+    out << std::setprecision(2) << std::scientific;
+    out << "   · Precision: " << ci.precision() << std::endl;
+    out << "   · Confidence interval: [ " << ci.lower_limit() << ", "
+                                          << ci.upper_limit() << " ] "
+        << std::endl;
+    out << std::setprecision(1) << std::fixed;
+    out << "   · Estimation time: " << time << " seconds" << std::endl;
+    out << std::defaultfloat;
+    out << std::endl;
 }
 
 } // namespace
@@ -616,6 +649,20 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 }
 
 
+void
+ModelSuite::build_importance_function_auto(const std::string& ifunName,
+                                           const size_t& propertyIndex,
+                                           const std::string& mergeFun,
+                                           bool force)
+{
+    auto propertyPtr = get_property(propertyIndex);
+    if (nullptr == propertyPtr)
+        throw_FigException(std::string("no property at index ")
+                           .append(std::to_string(propertyIndex)));
+    build_importance_function_auto(ifunName, *propertyPtr, mergeFun, force);
+}
+
+
 template< template< typename... > class Container, typename... OtherArgs >
 void
 ModelSuite::build_importance_function_adhoc(
@@ -822,15 +869,16 @@ ModelSuite::estimate(const Property& property,
 {
 	/// @todo TODO: implement proper log and discard following shell print
 	log_ << "Estimating " << property.expression << ",\n";
-	log_ << " using simulation engine \"" << engine.name() << "\"\n";
-	log_ << " and importance function \"" << engine.current_imp_fun() << "\"\n";
-	log_ << " built using strategy    \"" << engine.current_imp_strat() << "\" ";
+    log_ << " using simulation engine  \"" << engine.name() << "\"\n";
+    log_ << " with importance function \"" << engine.current_imp_fun() << "\"\n";
+    log_ << " built using strategy     \"" << engine.current_imp_strat() << "\" ";
 	log_ << impFuns[engine.current_imp_fun()]->adhoc_fun() << std::endl;
+    if (engine.name().find("restart") != std::string::npos)
+        log_ << " and splits per threshold = " << engine.splits_per_threshold() << std::endl;
 
 	if (bounds.is_time()) {
 
 		// Simulation bounds are wall clock time limits
-//		log_.setfor_time_estimation();
 		bool& timedout = engine.interrupted;
 		for (const unsigned long& wallTimeInSeconds: bounds.time_budgets()) {
 			auto ci_ptr = build_empty_confidence_interval(
@@ -839,7 +887,8 @@ ModelSuite::estimate(const Property& property,
 							  *impFuns[engine.current_imp_fun()]);
 			interruptCI_ = ci_ptr.get();  // bad boy
 			/// @todo TODO: implement proper log and discard following shell print
-			std::cerr << "   Estimation time: " << wallTimeInSeconds << " s\n";
+            log_ << std::setprecision(0) << std::fixed;
+            log_ << "   Estimation time: " << wallTimeInSeconds << " s\n";
 			SignalSetter handler(SIGALRM, [&ci_ptr, &timedout] (const int sig){
 				assert(SIGALRM == sig);
 				interrupt_print(*ci_ptr, ModelSuite::confCoToShow_, log_);
@@ -858,7 +907,6 @@ ModelSuite::estimate(const Property& property,
 	} else {
 
 		// Simulation bounds are confidence criteria
-//		log.setfor_value_estimation();
         for (const auto& criterion: bounds.confidence_criteria()) {
 			auto ci_ptr = build_empty_confidence_interval(
 							  property.type,
@@ -869,12 +917,17 @@ ModelSuite::estimate(const Property& property,
 							  std::get<2>(criterion));
             interruptCI_ = ci_ptr.get();  // bad boy
 			/// @todo TODO: implement proper log and discard following shell print
-			log_ << "   Requested precision  "
-					  << ((ci_ptr->percent ? 200  : 2) * ci_ptr->errorMargin)
-					  << (ci_ptr->percent ? "%\n" : "\n");
-			log_ << "   and confidence level " << 100*ci_ptr->confidence
-					  << "%" << std::endl;
-			size_t numRuns = min_batch_size(engine.name(), engine.current_imp_fun());
+            log_ << "   For confidence level: "
+                 << std::setprecision(0) << std::fixed
+                 << 100*ci_ptr->confidence << "%" << std::endl;
+            log_ << "   and precision: ";
+            if (ci_ptr->percent)
+                log_ << std::setprecision(0) << std::fixed
+                     << (200*ci_ptr->errorMargin) << "%\n";
+            else
+                log_ << std::setprecision(2) << std::scientific
+                     << (2*ci_ptr->errorMargin) << "\n";
+            size_t numRuns = min_batch_size(engine.name(), engine.current_imp_fun());
 			double startTime = omp_get_wtime();
 
 			do {
@@ -887,23 +940,11 @@ ModelSuite::estimate(const Property& property,
 				}
 			} while (!ci_ptr->is_valid());
 
-			/// @todo TODO: implement proper log and discard following shell print
-			log_ << std::endl;
-			log_ << "   · Computed estimate: " << ci_ptr->point_estimate() << std::endl;
-			log_ << "   · Confidence interval: [ "
-					  << ci_ptr->lower_limit() << " , "
-					  << ci_ptr->upper_limit() << " ] " << std::endl;
-			log_ << "   · Precision: " << ci_ptr->precision() << std::endl;
-			log_ << "   · Estimation time: " << (omp_get_wtime()-startTime)
-                      << " seconds" << std::endl;
-			log_ << std::endl;
-//			log_(*ci_ptr,
-//				 omp_get_wtime() - startTime,
-//				 engine.name(),
-//				 engine.current_ifun());
+            estimate_print(*ci_ptr, omp_get_wtime()-startTime, log_);
         }
         interruptCI_ = nullptr;
     }
+    log_ << std::defaultfloat;
 }
 
 

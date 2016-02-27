@@ -192,7 +192,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 //		std::cerr << "Too few rare events generated (" << raresCount.sum()
 //				  << ") in " << numRuns << " simulations\n";
 		weighedRaresCount *= -1.0;
-	}
+    }
 
 	return weighedRaresCount;
 }

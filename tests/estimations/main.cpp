@@ -38,8 +38,8 @@
 
 #include <fig.h>
 
-using std::tuple;
 typedef std::set< std::string > NamesList;
+typedef std::set< std::tuple<double,double,bool> > StopCond;
 
 static void print_test_intro(std::ostream& out);
 static void check_dummy_arguments(const int& argc, const char** argv);
@@ -64,24 +64,45 @@ int main(int argc, char** argv)
 	}
 	const size_t propertyIndex(0ul);
 
-//	//  Short test runs with flat ifun    // // // // // // // // //
-//	const std::string flatIfunName("algebraic");
-//	model.build_importance_function_flat(flatIfunName, propertyIndex);
-//	model.build_thresholds("ams", flatIfunName);
-//	auto engine = model.prepare_simulation_engine("nosplit", flatIfunName);
-//	fig::StoppingConditions flatCriterion(std::set<size_t>({4ul,10ul}));
-//	model.estimate(propertyIndex, *engine, flatCriterion);
+	//  Short test runs with flat ifun    // // // // // // // // //
+	const std::string flatIfunName("algebraic");
+	model.build_importance_function_flat(flatIfunName, propertyIndex);
+	model.build_thresholds("ams", flatIfunName);
+	auto engine = model.prepare_simulation_engine("nosplit", flatIfunName);
+	const fig::StoppingConditions timeSpans(std::set<size_t>({5ul,20ul}));
+	model.estimate(propertyIndex, *engine, timeSpans);
+	engine = nullptr;
 
-	//  Test run with known ad hoc ifun   // // // // // // // // //
+	//  Goals for next estimations  // // // // // // // // // // //
+	const double confidence(0.8);
+	const double precision(6.0e-5);
+	const fig::StoppingConditions stopCriterion(
+		StopCond({std::make_tuple(confidence, precision, false)}));
+
+	//  Estimate with known ad hoc ifun   // // // // // // // // //
 	const std::string adhocIfunName("algebraic");
-	model.build_importance_function_adhoc(adhocIfunName,
-										  propertyIndex,
+	model.build_importance_function_adhoc(adhocIfunName, propertyIndex,
 										  "q2", NamesList({"q2"}));
 	model.build_thresholds("ams", adhocIfunName);
-	auto engine = model.prepare_simulation_engine("restart", adhocIfunName);
-	fig::StoppingConditions adhocCriterion(std::set<tuple<double,double,bool>>({
-		std::make_tuple(0.9,0.2,true)}));
-	model.estimate(propertyIndex, *engine, adhocCriterion);
+	engine = model.prepare_simulation_engine("restart", adhocIfunName);
+	model.estimate(propertyIndex, *engine, stopCriterion);
+	engine = nullptr;
+
+	//  Estimate with coupled auto ifun   // // // // // // // // //
+	const std::string cAutoIfunName("concrete_coupled");
+	model.build_importance_function_auto(cAutoIfunName, propertyIndex);
+	model.build_thresholds("ams", cAutoIfunName);
+	engine = model.prepare_simulation_engine("restart", cAutoIfunName);
+	model.estimate(propertyIndex, *engine, stopCriterion);
+	engine = nullptr;
+
+	//  Estimate with coupled auto ifun   // // // // // // // // //
+	const std::string sAutoIfunName("concrete_split");
+	model.build_importance_function_auto(sAutoIfunName, propertyIndex, "+", true);
+	model.build_thresholds("ams", sAutoIfunName);
+	engine = model.prepare_simulation_engine("restart", sAutoIfunName);
+	model.estimate(propertyIndex, *engine, stopCriterion);
+	engine = nullptr;
 
 	//  Free memory  // // // // // // // // // // // // // // // //
 	model.release_resources();

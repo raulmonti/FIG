@@ -337,6 +337,16 @@ public:  // Utils
 								   const std::string& mergeFun = "",
 								   bool force = false);
 
+	/// Same as build_importance_function_auto() for the property
+	/// added to the system in the requested index
+	/// @throw FigException if there's no property at index 'propertyIndex'
+	/// @see get_property()
+	void
+	build_importance_function_auto(const std::string& ifunName,
+								   const size_t& propertyIndex,
+								   const std::string& mergeFun = "",
+								   bool force = false);
+
 	/**
 	 * @brief Assess importance for the currently loaded user model
 	 *        using the "adhoc" strategy

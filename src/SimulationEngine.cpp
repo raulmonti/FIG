@@ -169,14 +169,10 @@ SimulationEngine::simulate(const Property &property,
 		// numExperiments = numRuns * splitsPerThreshold ^ numThresholds
 		interval.update(std::abs(raresCount),
 						std::log(numRuns) + log_experiments_per_sim());
-		if (0.0 <= raresCount)
+        if (0.0 < raresCount)
 			return false;
-		else {
-			/// @todo TODO: erase debug print below
-			std::cerr << "Generated only " << -raresCount
-					  << " rares in " << numRuns << " runs\n";
+        else
 			return true;  // you'd better increase 'numRuns'
-		}
 		}
 
 	case PropertyType::THROUGHPUT:
