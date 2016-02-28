@@ -72,7 +72,10 @@ SimulationEngineRestart::die_out_depth() const noexcept
 void
 SimulationEngineRestart::bind(std::shared_ptr< const ImportanceFunction > ifun_ptr)
 {
-	const std::string impStrategy(ifun_ptr->strategy());
+    if (locked())
+        throw_FigException("engine \"" + name() + "\" is currently locked "
+                           "in \"simulation mode\"");
+    const std::string impStrategy(ifun_ptr->strategy());
 	if (impStrategy == "")
 		throw_FigException("ImportanceFunction doesn't seem to have "
 						   "internal importance information");
@@ -84,19 +87,25 @@ SimulationEngineRestart::bind(std::shared_ptr< const ImportanceFunction > ifun_p
 
 
 void
-SimulationEngineRestart::set_splits_per_threshold(unsigned splitsPerThreshold)
+SimulationEngineRestart::set_splits_per_threshold(unsigned spt)
 {
-	if (splitsPerThreshold < 2u)
-		throw_FigException("at least 1 Traial must be created, besides the "
+    if (locked())
+        throw_FigException("engine \"" + name() + "\" is currently locked "
+                           "in \"simulation mode\"");
+    if (spt < 2u)
+        throw_FigException("at least one Traial must be created, besides the "
 						   "original one, when crossing a threshold upwards");
-	splitsPerThreshold_ = splitsPerThreshold;
+    splitsPerThreshold_ = spt;
 }
 
 
 void
 SimulationEngineRestart::set_die_out_depth(unsigned dieOutDepth)
 {
-	dieOutDepth_ = dieOutDepth;
+    if (locked())
+        throw_FigException("engine \"" + name() + "\" is currently locked "
+                           "in \"simulation mode\"");
+    dieOutDepth_ = dieOutDepth;
 }
 
 

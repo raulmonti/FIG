@@ -58,7 +58,7 @@ class ConfidenceInterval;
  */
 class SimulationEngine
 {
-    friend class ModelSuite;  // for interruptions signaling
+    friend class ModelSuite;  // for locking and interruptions signaling
 
     typedef const std::string ConstStr;
 
@@ -69,11 +69,16 @@ public:
     /// Defined in SimulationEngine.cpp
     static const std::array< std::string, 2 > names;
 
-protected:
+private:
 
     /// Simulation strategy implemented by this engine.
     /// Check SimulationEngine::names for available options.
     std::string name_;
+
+    /// Is the engine currently being used in an estimation?
+    mutable bool locked_;
+
+protected:
 
     /// User's system model, already sealed
     std::shared_ptr< const ModuleNetwork > network_;
@@ -111,15 +116,6 @@ public:  // Ctors/Dtor
 
 public:  // Engine setup
 
-    /// @brief Is this engine tied up to an ImportanceFunction,
-    ///        and thus ready for simulations?
-    /// @details True after a successfull call to bind().
-    ///          False again after a call to unbind().
-    bool bound() const noexcept;
-
-    /// Alias for bound()
-    inline bool ready() const noexcept { return bound(); }
-
     /**
      * @brief Couple with an ImportanceFunction for future estimations
      *
@@ -133,18 +129,51 @@ public:  // Engine setup
      * @throw FigException if the ImportanceFunction isn't
      *                     \ref ImportanceFunction::ready() "ready",
      *                     or if it is incompatible with this engine
+     * @throw FigException if the engine was \ref lock() "locked"
      * @see unbind()
      */
     virtual void bind(std::shared_ptr< const ImportanceFunction > ifun);
 
     /// Deregister the last ImportanceFunction which was tied to us
+    /// @throw FigException if the engine was \ref lock() "locked"
     /// @see bind()
     void unbind() noexcept;
+
+private:
+
+    /**
+     * @brief Lock this engine into "simulation mode"
+     * @details When an engine is locked only its const-qualified
+     *          member functions can be invoked. This includes all "Accessors"
+     *          and "Simulation functions", e.g. ready(), current_imp_strat(),
+     *          simulate(), etc.
+     * @note This is intended for safe use of the engine by the ModelSuite
+     *       instance during a call to ModelSuite::estimate()
+     * @throw FigException if the engine was already \ref lock() "locked"
+     * @see unlock()
+     */
+    void lock() const;
+
+    /// Lock this engine out of "simulation mode"
+    /// @see lock()
+    void unlock() const noexcept;
 
 public:  // Accessors
 
     /// @copydoc name_
     const std::string& name() const noexcept;
+
+    /// @brief Is this engine tied up to an ImportanceFunction,
+    ///        and thus ready for simulations?
+    /// @details True after a successfull call to bind().
+    ///          False again after a call to unbind().
+    bool bound() const noexcept;
+
+    /// Alias for bound()
+    inline bool ready() const noexcept { return bound(); }
+
+    /// Is this engine \ref lock() "locked" into "simulation mode"?
+    bool locked() const noexcept;
 
     /// Name of the ImportanceFunction currently bound to the engine,
     /// or void string if none is.

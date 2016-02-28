@@ -97,19 +97,15 @@ SimulationEngine::~SimulationEngine()
 }
 
 
-bool
-SimulationEngine::bound() const noexcept
-{
-	return nullptr != impFun_;
-}
-
-
 void
 SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun)
 {
 	assert(nullptr != ifun);
 	if (!ifun->ready())
 		throw_FigException("ImportanceFunction isn't ready for simulations");
+    if (locked())
+        throw_FigException("engine \"" + name() + "\" is currently locked "
+                           "in \"simulation mode\"");
     impFun_ = ifun;
 	if (ifun->concrete())
 		cImpFun_ = std::dynamic_pointer_cast<const ImportanceFunctionConcrete>(ifun);
@@ -119,8 +115,28 @@ SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun)
 void
 SimulationEngine::unbind() noexcept
 {
+    if (locked())
+        throw_FigException("engine \"" + name() + "\" is currently locked "
+                           "in \"simulation mode\"");
     impFun_  = nullptr;
 	cImpFun_ = nullptr;
+}
+
+
+void
+SimulationEngine::lock() const
+{
+    if (locked_)
+        throw_FigException("engine \"" + name() + "\" is already locked");
+    else
+        locked_ = true;
+}
+
+
+void
+SimulationEngine::unlock() const noexcept
+{
+    locked_ = false;
 }
 
 
@@ -128,6 +144,20 @@ const std::string&
 SimulationEngine::name() const noexcept
 {
 	return name_;
+}
+
+
+bool
+SimulationEngine::bound() const noexcept
+{
+    return nullptr != impFun_;
+}
+
+
+bool
+SimulationEngine::locked() const noexcept
+{
+    return locked_;
 }
 
 

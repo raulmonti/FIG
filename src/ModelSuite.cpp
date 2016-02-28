@@ -897,10 +897,12 @@ ModelSuite::estimate(const Property& property,
 			});
 			timedout = false;
 			alarm(wallTimeInSeconds);
+            engine.lock();
 			engine.simulate(property,
 							min_batch_size(engine.name(), engine.current_imp_fun()),
 							*ci_ptr,
 							&increase_batch_size);
+            engine.unlock();
 		}
 		interruptCI_ = nullptr;
 
@@ -930,6 +932,7 @@ ModelSuite::estimate(const Property& property,
             size_t numRuns = min_batch_size(engine.name(), engine.current_imp_fun());
 			double startTime = omp_get_wtime();
 
+            engine.lock();
 			do {
 				bool increaseBatch = engine.simulate(property, numRuns, *ci_ptr);
 				if (increaseBatch) {
@@ -938,7 +941,8 @@ ModelSuite::estimate(const Property& property,
 				} else {
 					log_ << "+";
 				}
-			} while (!ci_ptr->is_valid());
+            } while (!ci_ptr->is_valid());
+            engine.unlock();
 
             estimate_print(*ci_ptr, omp_get_wtime()-startTime, log_);
         }

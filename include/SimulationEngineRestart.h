@@ -82,12 +82,22 @@ public:  // Engine setup
 
 	virtual void bind(std::shared_ptr< const ImportanceFunction >);
 
-	/// @see splits_per_threshold()
-	/// @throw FigException if the value is invalid
-	void set_splits_per_threshold(unsigned splitsPerThreshold);
+	/**
+	 * Set the number of replicas made of a Traial when it crosses
+	 * an importance threshold upwards (i.e. gaining on importance)
+	 * @param spt 1 + number of replicas made; e.g. if spt == 2 then
+	 *            one replica is made, so that when a Traial crosses
+	 *            a threshold then two continue: the original Traial
+	 *            plus the newly created replica
+	 * @throw FigException if the value is invalid
+	 * @throw FigException if the engine was \ref lock() "locked"
+	 * @see splits_per_threshold()
+	 */
+	void set_splits_per_threshold(unsigned spt);
 
 	/// @see die_out_depth()
 	/// @throw FigException if the value is invalid
+	/// @throw FigException if the engine was \ref lock() "locked"
 	void set_die_out_depth(unsigned dieOutDepth);
 
 protected:  // Simulation helper functions
