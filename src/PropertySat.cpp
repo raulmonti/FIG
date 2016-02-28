@@ -96,6 +96,26 @@ vNames_(vnames)
 bool
 PropertySat::sat(unsigned int idx, std::vector<STATE_INTERNAL_TYPE> valuation)
 {
+    return general_sat(idx, false, valuation);
+}
+
+//==============================================================================
+
+
+bool
+PropertySat::nsat(unsigned int idx, std::vector<STATE_INTERNAL_TYPE> valuation)
+{
+    return general_sat(idx, true, valuation);
+}
+
+//==============================================================================
+
+
+bool
+PropertySat::general_sat(unsigned int idx,
+                         bool negation,
+                         std::vector<STATE_INTERNAL_TYPE> valuation)
+{
     assert(idx < propExpr_.size());
     z3::solver s(c_);
     z3::expr val_expr = c_.bool_val(true);
@@ -112,7 +132,9 @@ PropertySat::sat(unsigned int idx, std::vector<STATE_INTERNAL_TYPE> valuation)
             val_expr = val_expr && e_v == valuation[i];
         }
     }
-    s.add(propExpr_[idx] && limitsExpr_ && val_expr);
+    s.add((negation ? (!propExpr_[idx]) : propExpr_[idx])
+          && limitsExpr_
+          && val_expr);
 
     return s.check() == z3::sat;    
 }

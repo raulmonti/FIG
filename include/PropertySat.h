@@ -35,12 +35,29 @@ public:
 
     virtual ~PropertySat(){}
 
+	/**
+	 * @brief Deduce if the @idx boolean formula of this property is
+	 *        satisfiable given valuation @valuation. FIXME
+	 */
+	bool
+	sat(unsigned int idx, vector<STATE_INTERNAL_TYPE> valuation);
+
     /**
-     * @brief Deduce if the @idx boolean formula of this property is
-     *        satisfiable given valuation @valuation. FIXME
+	 * @brief Deduce if the logical negation of the @idx boolean formula
+	 *        of this property is satisfiable given valuation @valuation. FIXME
      */
     bool
-    sat(unsigned int idx, vector<STATE_INTERNAL_TYPE> valuation);
+	nsat(unsigned int idx, vector<STATE_INTERNAL_TYPE> valuation);
+
+private:  // Class utils
+
+	/**
+	 * @brief Deduce if the @idx boolean formula of this property is
+	 *        satisfiable given valuation @valuation. FIXME
+	 *        If 'negation' is true, give the result for the logical negation
+	 *        of said formula.
+	 */
+	bool general_sat(unsigned int idx, bool negation, vector<STATE_INTERNAL_TYPE> valuation);
 };
 
 } //namespace fig

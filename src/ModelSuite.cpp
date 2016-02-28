@@ -644,6 +644,19 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 				.assess_importance(property, "auto");
     }
 
+    /// @todo TODO erase debug print  //////////////////////////////////////
+    std::cerr << "Importance function built: (state,importance)" << std::endl;
+    State<STATE_INTERNAL_TYPE> s(model->global_state());
+    ImportanceFunctionConcrete& f = static_cast<ImportanceFunctionConcrete&>(ifun);
+    for (size_t i = 0ul ; i < model->global_state().concrete_size() ; i++) {
+        ImportanceValue val = f.info_of(s.decode(i).to_state_instance());
+        std::cerr << " (" << i << (IS_RARE_EVENT(val) ? "*," :
+                                  (IS_STOP_EVENT(val) ? "~," : ","))
+                  << UNMASK(val) << ")";
+    }
+    std::cerr << std::endl;
+    ////////////////////////////////////////////////////////////////////////
+
     assert(ifun.has_importance_info());
     assert("auto" == ifun.strategy());
 }

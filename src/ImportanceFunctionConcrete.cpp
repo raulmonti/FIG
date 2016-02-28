@@ -135,8 +135,8 @@ reversed_edges_DFS(State state,
 		visits[currentState] = VISITED;  // visiting currentState
 		state.decode(currentState);
 		auto nextStatesList = adjacent_states(state, trans);
-		for (const auto& s: nextStatesList)
-			rEdges[s].push_front(currentState);  // s <-- currentState
+        for (const auto& s: nextStatesList)
+            rEdges[s].push_front(currentState);  // s <-- currentState
 		// Push into the 'toVisit' stack only the new unvisited states
 		nextStatesList.remove_if( [&] (const STATE_T& s) -> bool
 								  { return VISITED == visits[s]; } );
@@ -197,6 +197,7 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 
 	// BFS
 	bool initialReached(false);
+    const size_t numRares = raresQueue.size();
 	std::queue< STATE_T >& statesToCheck = raresQueue;
 	while (!initialReached && !statesToCheck.empty()) {
 		STATE_T s = statesToCheck.front();
@@ -204,9 +205,9 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 		ImportanceValue levelBFS = fig::UNMASK(cStates[s]) + 1;
 		// For each state reaching 's'...
 		for (const STATE_T& reachingS: reverseEdges[s]) {
-			// ...if we're visiting it for the first time...
+            // ...if we're visiting it for the first time...
 			if (NOT_VISITED == cStates[reachingS]) {
-				// ...label it with distance from rare set...
+                // ...label it with distance from rare set...
 				cStates[reachingS] = levelBFS | fig::MASK(cStates[reachingS]);
 				// ...and enqueue it, unless we're done.
 				if (initialState == reachingS)
@@ -218,8 +219,8 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 	}
 	std::queue< STATE_T >().swap(statesToCheck);  // free memory
 
-	assert(initialReached);
-	const ImportanceValue maxDistance(cStates[initialState]);
+    assert(initialReached || cStates.size() == numRares);
+    const ImportanceValue maxDistance(fig::UNMASK(cStates[initialState]));
 	// Is ImportanceValue bit-representation big enough?
 	if (maxDistance & ALL_MASKS || maxDistance >= NOT_VISITED)
 		throw_FigException(std::string("too many importance levels were found (")
@@ -332,9 +333,11 @@ label_states_with_SAT(State localState,
 		for (size_t i = 0ul ; i < localState.concrete_size() ; i++) {
 			const StateInstance valuation(localState.decode(i).to_state_instance());
 			cStates[i] = fig::EventType::NONE;
-			if ( reducedProperty.sat(1, valuation))
-				fig::SET_RARE_EVENT(cStates[i]);
-			if (!reducedProperty.sat(0, valuation))
+            if (reducedProperty.sat(1, valuation)) {
+                fig::SET_RARE_EVENT(cStates[i]);
+                raresQueue.push(i);
+            }
+            if (reducedProperty.nsat(0, valuation))  // expression's negation SAT
 				fig::SET_STOP_EVENT(cStates[i]);
 		}
 		break;
@@ -425,6 +428,12 @@ assess_importance_auto(const State& state,
 														 impVec);
 	fig::AdjacencyList().swap(reverseEdges);  // free mem!
 
+    /// @todo TODO erase debug print
+    std::cerr << "Importance vector built:";
+    for (const auto& imp: impVec)
+        std::cerr << " " << fig::UNMASK(imp);
+    std::cerr << std::endl;
+
 	return maxImportance;
 }
 
@@ -483,7 +492,7 @@ ImportanceFunctionConcrete::assess_importance(
 								   name().find("split") != std::string::npos);
         // For auto importance functions the initial state has always
         // the lowest importance, and all rare states have the highest:
-        minImportance_ = modulesConcreteImportance[index][symbState.encode()];
+        minImportance_ = UNMASK(modulesConcreteImportance[index][symbState.encode()]);
 		minRareImportance_ = maxImportance_;  // should we check?
 
 	} else if ("adhoc" == strategy) {

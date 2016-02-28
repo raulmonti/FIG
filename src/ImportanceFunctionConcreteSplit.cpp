@@ -101,7 +101,8 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 						   .append(name()).append("\" doesn't ")
 						   .append("hold importance information."));
 #endif
-	Event e(EventType::NONE);
+    Event e(EventType::RARE | EventType::STOP | EventType::REFERENCE);
+    // Gather the local ImportanceValue of each module
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		auto& localState = localStatesCopies_[i];
 #ifndef NDEBUG
@@ -109,9 +110,11 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 #else
 		localState.extract_from_state_instance(state, globalVarsIPos_[i], false);
 #endif
-		localValues_[i] = modulesConcreteImportance[i][localState.encode()];
-		e |= MASK(localValues_[i]);
-	}
+        const auto& val = modulesConcreteImportance[i][localState.encode()];
+        e &= MASK(val);
+        localValues_[i] = UNMASK(val);
+    }
+    // Combine those values with the user-defined merge function
 	return e | userFun_(localValues_);
 }
 

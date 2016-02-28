@@ -241,12 +241,15 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 		std::sort(begin(traials), end(traials), lesser);
 		kTraial = traials[n_-k_];
 		simEffort *= 2;
-	} while (thresholds_.back() == kTraial.level);
+    } while (thresholds_.back() == kTraial.level);
 	if (impFun.max_importance() <= kTraial.level)
 		throw_FigException("first iteration of AMS reached max importance, "
 						   "rare event doesn't seem rare enough.");
 	thresholds_.push_back(kTraial.level);
 	simEffort = MIN_SIM_EFFORT;
+
+    /// @todo TODO erase debug print
+    std::cerr << "\nFirst threshold: " << UNMASK(thresholds_.back()) << std::endl;
 
 	// AMS main loop
 	while (thresholds_.back() < impFun.max_importance()) {
@@ -262,12 +265,20 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 			thresholds_.push_back(kTraial.level);
 			simEffort = MIN_SIM_EFFORT;
 			failures = 0u;
-		} else {
+
+            /// @todo TODO erase debug print
+            std::cerr << "New threshold: " << UNMASK(thresholds_.back()) << std::endl;
+
+        } else {
 			// Failed to reach higher importance => increase effort
 			if (++failures > MAX_NUM_FAILURES)
 				goto exit_with_fail;
 			simEffort *= 2;
-		}
+
+            /// @todo TODO erase debug print
+            std::cerr << "Fail! (" << failures << ")\n";
+
+        }
 	}
 
 	TraialPool::get_instance().return_traials(traials);
