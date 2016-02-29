@@ -337,7 +337,7 @@ SignalSetter ModelSuite::SIGINThandler_(SIGINT, [] (const int signal) {
 			interrupt_print(*ModelSuite::interruptCI_,
 							ModelSuite::confCoToShow_,
 							ModelSuite::log_);
-        exit((1<<7)+SIGINT);
+		std::exit((1<<7)+SIGINT);
     }
 );
 
@@ -349,7 +349,7 @@ SignalSetter ModelSuite::SIGTERMhandler_(SIGTERM, [] (const int signal) {
 			interrupt_print(*ModelSuite::interruptCI_,
 							ModelSuite::confCoToShow_,
 							ModelSuite::log_);
-        exit((1<<7)+SIGTERM);
+		std::exit((1<<7)+SIGTERM);
     }
 );
 
@@ -644,19 +644,6 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 				.assess_importance(property, "auto");
     }
 
-    /// @todo TODO erase debug print  //////////////////////////////////////
-    std::cerr << "Importance function built: (state,importance)" << std::endl;
-    State<STATE_INTERNAL_TYPE> s(model->global_state());
-    ImportanceFunctionConcrete& f = static_cast<ImportanceFunctionConcrete&>(ifun);
-    for (size_t i = 0ul ; i < model->global_state().concrete_size() ; i++) {
-        ImportanceValue val = f.info_of(s.decode(i).to_state_instance());
-        std::cerr << " (" << i << (IS_RARE_EVENT(val) ? "*," :
-                                  (IS_STOP_EVENT(val) ? "~," : ","))
-                  << UNMASK(val) << ")";
-    }
-    std::cerr << std::endl;
-    ////////////////////////////////////////////////////////////////////////
-
     assert(ifun.has_importance_info());
     assert("auto" == ifun.strategy());
 }
@@ -880,14 +867,20 @@ ModelSuite::estimate(const Property& property,
                      const SimulationEngine& engine,
                      const StoppingConditions& bounds) const
 {
+	if (!engine.ready())
+		throw_FigException("SimulationEngine \"" + engine.name()
+						  +"\" isn't ready for simulations");
+	const ImportanceFunction& ifun(*impFuns[engine.current_imp_fun()]);
+
 	/// @todo TODO: implement proper log and discard following shell print
 	log_ << "Estimating " << property.expression << ",\n";
     log_ << " using simulation engine  \"" << engine.name() << "\"\n";
     log_ << " with importance function \"" << engine.current_imp_fun() << "\"\n";
     log_ << " built using strategy     \"" << engine.current_imp_strat() << "\" ";
-	log_ << impFuns[engine.current_imp_fun()]->adhoc_fun() << std::endl;
-    if (engine.name().find("restart") != std::string::npos)
-        log_ << " and splits per threshold = " << engine.splits_per_threshold() << std::endl;
+	log_ << ifun.adhoc_fun() << std::endl;
+	log_ << " # thresholds  = " << ifun.num_thresholds() << "\n";
+	if (engine.name().find("restart") != std::string::npos)
+		log_ << " and splitting = " << engine.splits_per_threshold() << std::endl;
 
 	if (bounds.is_time()) {
 
@@ -922,6 +915,7 @@ ModelSuite::estimate(const Property& property,
 	} else {
 
 		// Simulation bounds are confidence criteria
+		engine.interrupted = false;
         for (const auto& criterion: bounds.confidence_criteria()) {
 			auto ci_ptr = build_empty_confidence_interval(
 							  property.type,
@@ -942,7 +936,7 @@ ModelSuite::estimate(const Property& property,
             else
                 log_ << std::setprecision(2) << std::scientific
                      << (2*ci_ptr->errorMargin) << "\n";
-            size_t numRuns = min_batch_size(engine.name(), engine.current_imp_fun());
+			size_t numRuns = min_batch_size(engine.name(), engine.current_imp_fun());
 			double startTime = omp_get_wtime();
 
             engine.lock();

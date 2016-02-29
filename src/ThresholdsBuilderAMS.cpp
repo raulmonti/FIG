@@ -49,10 +49,10 @@ typedef  std::vector< fig::Reference< fig::Traial > >  TraialsVec;
 using fig::ImportanceValue;
 
 /// Min simulation length (in # of jumps) to find new thresholds
-const unsigned MIN_SIM_EFFORT = 1u<<7;  // 128
+const unsigned MIN_SIM_EFFORT = 1u<<6;  // 64
 
 /// Max # of failures allowed when searching for a new threshold
-const unsigned MAX_NUM_FAILURES = 10u;
+const unsigned MAX_NUM_FAILURES = 6u;
 
 /**
  * Get initialized traial instances
@@ -100,7 +100,7 @@ simulate(const fig::ModuleNetwork& network,
 {
 	unsigned jumpsLeft;
 
-	// Function pointers matching supported signatures (ModuleNetwork.cpp)
+	// Function pointers matching supported signatures (ModuleNetwork::peak_simulation())
 	auto predicate = [&](const fig::Traial&) -> bool {
 		/// @todo NOTE: try also stopping when we reach max importance
 		/// @todo NOTE: try also stopping when we reach min importance
@@ -248,9 +248,6 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	thresholds_.push_back(kTraial.level);
 	simEffort = MIN_SIM_EFFORT;
 
-    /// @todo TODO erase debug print
-    std::cerr << "\nFirst threshold: " << UNMASK(thresholds_.back()) << std::endl;
-
 	// AMS main loop
 	while (thresholds_.back() < impFun.max_importance()) {
 		// Relaunch all n_-k_ simulations below previously built threshold
@@ -265,19 +262,11 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 			thresholds_.push_back(kTraial.level);
 			simEffort = MIN_SIM_EFFORT;
 			failures = 0u;
-
-            /// @todo TODO erase debug print
-            std::cerr << "New threshold: " << UNMASK(thresholds_.back()) << std::endl;
-
         } else {
 			// Failed to reach higher importance => increase effort
 			if (++failures > MAX_NUM_FAILURES)
 				goto exit_with_fail;
 			simEffort *= 2;
-
-            /// @todo TODO erase debug print
-            std::cerr << "Fail! (" << failures << ")\n";
-
         }
 	}
 

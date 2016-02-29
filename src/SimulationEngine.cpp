@@ -72,6 +72,7 @@ SimulationEngine::SimulationEngine(
 	const std::string& name,
     std::shared_ptr< const ModuleNetwork> network) :
 		name_(name),
+		locked_(false),
 		network_(network),
 		impFun_(nullptr),
 		cImpFun_(nullptr),

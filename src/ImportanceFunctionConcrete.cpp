@@ -428,12 +428,6 @@ assess_importance_auto(const State& state,
 														 impVec);
 	fig::AdjacencyList().swap(reverseEdges);  // free mem!
 
-    /// @todo TODO erase debug print
-    std::cerr << "Importance vector built:";
-    for (const auto& imp: impVec)
-        std::cerr << " " << fig::UNMASK(imp);
-    std::cerr << std::endl;
-
 	return maxImportance;
 }
 

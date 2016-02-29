@@ -69,32 +69,31 @@ int main(int argc, char** argv)
 	model.build_importance_function_flat(flatIfunName, propertyIndex);
 	model.build_thresholds("ams", flatIfunName);
 	auto engine = model.prepare_simulation_engine("nosplit", flatIfunName);
-	const fig::StoppingConditions timeSpans(std::set<size_t>({5ul,20ul}));
-//	model.estimate(propertyIndex, *engine, timeSpans);
+	const fig::StoppingConditions timeSpans(std::set<size_t>({5ul,15ul}));
+	model.estimate(propertyIndex, *engine, timeSpans);
 	engine = nullptr;
 
-	//  Goals for next estimations  // // // // // // // // // // //
+	//  Estimation goals   // // // // // // // // // // // // // //
 	const double confidence(0.8);
 	const double precision(6.0e-5);
 	const fig::StoppingConditions stopCriterion(
 		StopCond({std::make_tuple(confidence, precision, false)}));
 
-//	//  Estimate with algebraic ad hoc ifun  // // // // // // // //
-//	const std::string adhocIfunName("algebraic");
-//	model.build_importance_function_adhoc(adhocIfunName, propertyIndex,
-//										  "q2", NamesList({"q2"}));
-//	model.build_thresholds("ams", adhocIfunName);
-//	engine = model.prepare_simulation_engine("restart", adhocIfunName);
-//	model.estimate(propertyIndex, *engine, stopCriterion);
-//	engine = nullptr;
+	//  Estimate with algebraic ad hoc ifun  // // // // // // // //
+	const std::string adhocIfunName("algebraic");
+	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "q2", NamesList({"q2"}));
+	model.build_thresholds("ams", adhocIfunName);
+	engine = model.prepare_simulation_engine("restart", adhocIfunName);
+	model.estimate(propertyIndex, *engine, stopCriterion);
+	engine = nullptr;
 
-//	//  Estimate with coupled auto ifun   // // // // // // // // //
-//	const std::string cAutoIfunName("concrete_coupled");
-//	model.build_importance_function_auto(cAutoIfunName, propertyIndex);
-//	model.build_thresholds("ams", cAutoIfunName);
-//	engine = model.prepare_simulation_engine("restart", cAutoIfunName);
-//	model.estimate(propertyIndex, *engine, stopCriterion);
-//	engine = nullptr;
+	//  Estimate with coupled auto ifun   // // // // // // // // //
+	const std::string cAutoIfunName("concrete_coupled");
+	model.build_importance_function_auto(cAutoIfunName, propertyIndex);
+	model.build_thresholds("ams", cAutoIfunName);
+	engine = model.prepare_simulation_engine("restart", cAutoIfunName);
+	model.estimate(propertyIndex, *engine, stopCriterion);
+	engine = nullptr;
 
 	//  Estimate with split auto ifun  // // // // // // // // // //
 	const std::string sAutoIfunName("concrete_split");

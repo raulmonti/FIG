@@ -115,7 +115,8 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
         localValues_[i] = UNMASK(val);
     }
     // Combine those values with the user-defined merge function
-	return e | userFun_(localValues_);
+	return e | (ready() ? importance2threshold_[userFun_(localValues_)]
+						: userFun_(localValues_));
 }
 
 
@@ -136,7 +137,7 @@ ImportanceFunctionConcreteSplit::importance_of(const StateInstance& state) const
 #else
 		localState.extract_from_state_instance(state, globalVarsIPos_[i], false);
 #endif
-		localValues_[i] = modulesConcreteImportance[i][localState.encode()];
+		localValues_[i] = UNMASK(modulesConcreteImportance[i][localState.encode()]);
 	}
 	return userFun_(localValues_);
 }
