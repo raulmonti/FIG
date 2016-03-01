@@ -164,14 +164,14 @@ template void ModuleInstance::add_transition(const Label& label,
 											 const std::unordered_set< std::string >& resetClocks);
 
 
-StateInstance
+State<STATE_INTERNAL_TYPE>
 ModuleInstance::initial_state() const
 {
 #ifndef NDEBUG
 	if (!sealed())
 		throw_FigException("ModuleInstance hasn't been sealed yet");
 #endif
-	return lState_.to_state_instance();
+	return lState_;
 }
 
 
@@ -183,6 +183,31 @@ ModuleInstance::initial_concrete_state() const
 		throw_FigException("ModuleInstance hasn't been sealed yet");
 #endif
 	return lState_.encode();
+}
+
+
+std::forward_list<size_t>
+ModuleInstance::adjacent_states(const size_t& s) const
+{
+	assert(s < concrete_state_size());
+	std::forward_list<size_t> adjacentStates;
+	State<STATE_INTERNAL_TYPE> state(lState_);
+	state.decode(s);
+	for (const auto tr_ptr: transitions()) {
+		// For each enabled transition of the module...
+		if (tr_ptr->precondition()(state)) {
+			// ...update variables...
+			tr_ptr->postcondition()(state);
+			// ...and store resulting concrete state
+			adjacentStates.push_front(state.encode());
+			// Restore original state
+			state.decode(s);
+		}
+	}
+	// Remove duplicates before returning
+	adjacentStates.sort();
+	adjacentStates.unique();
+	return adjacentStates;
 }
 
 
@@ -247,6 +272,28 @@ ModuleInstance::jump(const Label& label,
     }
     // No transition was enabled? Then just advance all clocks
 	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
+}
+
+
+void
+ModuleInstance::jump(const Label& label,
+					 State<STATE_INTERNAL_TYPE>& state) const
+{
+#ifndef NDEBUG
+	if (!sealed_)
+		throw_FigException("this module hasn't been sealed yet");
+#endif
+	if (label.is_input() || label.is_tau())
+		return;  // none of our business
+	const auto trans = transitions_by_label_.find(label.str);
+	if (end(transitions_by_label_) == trans)
+		return;  // none of our business
+	for (const auto& tr_ptr: trans->second) {
+		if (tr_ptr->pre(state)) { // If the state satisfies this precondition
+			tr_ptr->pos(state);   // apply the corresponding postcondition
+			return;  // At most one transition could've been enabled, trust Raúl
+		}
+	}
 }
 
 

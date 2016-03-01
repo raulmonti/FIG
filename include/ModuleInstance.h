@@ -343,9 +343,20 @@ public:  // Accessors
 
 public:  // Utils
 
-	virtual StateInstance initial_state() const;
+	virtual State<STATE_INTERNAL_TYPE> initial_state() const;
 
 	virtual size_t initial_concrete_state() const;
+
+	/**
+	 * @copydoc Module::adjacent_states()
+	 * @param s Concrete state from the state space of this module (not global!)
+	 * @note <b>Complexity:</b> <i>O(t*v)</i>, where
+	 *       <ul>
+	 *       <li> <i>t</i> is the number of transitions of this module,</li>
+	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
+	 *       </ul>
+	 */
+	virtual std::forward_list<size_t> adjacent_states(const size_t& s) const;
 
 	/**
 	 * @brief Active module jump caused by expiration of our clock "clockName"
@@ -357,11 +368,11 @@ public:  // Utils
 	 * @return Pointer to output label fired by the transition taken.
 	 *         If none was enabled then 'tau' is returned.
 	 *
-	 * @note <b>Complexity:</b> <i>O(t+c+v)</i>, where
+	 * @note <b>Complexity:</b> <i>O(t*v+c)</i>, where
 	 *       <ul>
 	 *       <li> <i>t</i> is the number of transitions of this module,</li>
-	 *       <li> <i>c</i> is the number of   clocks    of this module and</li>
 	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
+	 *       <li> <i>c</i> is the number of   clocks    of this module and</li>
 	 *       </ul>
 	 * @note Modifies sections both in StateInstance and clock-vector within "traial"
 	 *       which correspond to variables and clocks from this module.
@@ -382,11 +393,11 @@ public:  // Utils
 	 * @param elapsedTime  Time lapse for the clock to expire
 	 * @param traial       Instance of Traial to update
 	 *
-	 * @note <b>Complexity:</b> <i>O(t+c+v)</i>, where
+	 * @note <b>Complexity:</b> <i>O(t*v+c)</i>, where
 	 *       <ul>
 	 *       <li> <i>t</i> is the number of transitions of this module,</li>
-	 *       <li> <i>c</i> is the number of   clocks    of this module and</li>
 	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
+	 *       <li> <i>c</i> is the number of   clocks    of this module and</li>
 	 *       </ul>
 	 * @note Modifies sections both in StateInstance and clock-vector within "traial"
 	 *       which correspond to variables and clocks from this module.
@@ -399,6 +410,27 @@ public:  // Utils
 	void jump(const Label& label,
 			  const CLOCK_INTERNAL_TYPE& elapsedTime,
 			  Traial& traial) const;
+
+	/**
+	 * Basically the same as the \ref jump(const Label&, const float&, Traial&)
+	 * "passive jump" but for reachability purposes only
+	 *
+	 * @param label Output label to which we may react
+	 * @param state State to update if we have a transition reacting to 'label'
+	 *
+	 * @note Useful for ImportanceFunction construction, not for simulations
+	 * @note <b>Complexity:</b> <i>O(t*v)</i>, where
+	 *       <ul>
+	 *       <li> <i>t</i> is the number of transitions of this module,</li>
+	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
+	 *       </ul>
+	 * @warning seal() must have been called beforehand
+	 * \ifnot NDEBUG
+	 *   @throw FigException if the module hasn't been sealed yet
+	 * \endif
+	 */
+	void jump(const Label& label, State<STATE_INTERNAL_TYPE>& state) const;
+
 private:
 
 	/// Does the clock reside in this ModuleInstance?

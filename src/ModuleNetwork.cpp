@@ -173,14 +173,14 @@ ModuleNetwork::clocks() const
 }
 
 
-StateInstance
+State<STATE_INTERNAL_TYPE>
 ModuleNetwork::initial_state() const
 {
 #ifndef NDEBUG
 	if (!sealed())
 		throw_FigException("ModuleNetwork hasn't been sealed yet");
 #endif
-	return gState.to_state_instance();
+	return gState;
 }
 
 
@@ -192,6 +192,38 @@ ModuleNetwork::initial_concrete_state() const
 		throw_FigException("ModuleNetwork hasn't been sealed yet");
 #endif
 	return gState.encode();
+}
+
+
+std::forward_list<size_t>
+ModuleNetwork::adjacent_states(const size_t& s) const
+{
+	assert(s < concrete_state_size());
+	std::forward_list<size_t> adjacentStates;
+	State<STATE_INTERNAL_TYPE> state(gState);
+	state.decode(s);
+	for (const auto module_ptr: modules) {
+		for (const auto tr_ptr: module_ptr->transitions()) {
+			const Label& label = tr_ptr->label();
+			// For each 'active' and enabled transition of this module...
+			if (label.is_output() && tr_ptr->precondition()(state)) {
+				// ...update the module variables...
+				tr_ptr->postcondition()(state);
+				// ...and those of other modules listening to this label...
+				for (const auto other_module_ptr: modules)
+					if (module_ptr->name != other_module_ptr->name)
+						other_module_ptr->jump(label, state);
+				// ...and store resulting concrete state
+				adjacentStates.push_front(state.encode());
+				// Restore original state
+				state.decode(s);
+			}
+		}
+	}
+	// Remove duplicates before returning
+	adjacentStates.sort();
+	adjacentStates.unique();
+	return adjacentStates;
 }
 
 

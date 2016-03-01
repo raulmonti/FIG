@@ -34,8 +34,10 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <forward_list>
 // FIG
 #include <core_typedefs.h>
+#include <State.h>
 
 
 namespace fig
@@ -93,7 +95,7 @@ public:  // Utils
 	/// \ifnot NDEBUG
 	///   @throw FigException if Module hasn't been sealed() yet
 	/// \endif
-	virtual StateInstance initial_state() const = 0;
+	virtual State<STATE_INTERNAL_TYPE> initial_state() const = 0;
 
 	/// Initial concrete state of the system, i.e. a number between zero
 	/// and concrete_state_size() enconding the initial_state()
@@ -102,6 +104,9 @@ public:  // Utils
 	///   @throw FigException if Module hasn't been sealed() yet
 	/// \endif
 	virtual size_t initial_concrete_state() const = 0;
+
+	/// Get all (concrete) states that can be reached in a single step from 's'
+	virtual std::forward_list<size_t> adjacent_states(const size_t& s) const = 0;
 };
 
 } // namespace fig

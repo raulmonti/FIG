@@ -879,8 +879,7 @@ ModelSuite::estimate(const Property& property,
     log_ << " built using strategy     \"" << engine.current_imp_strat() << "\" ";
 	log_ << ifun.adhoc_fun() << std::endl;
 	log_ << " # thresholds  = " << ifun.num_thresholds() << "\n";
-	if (engine.name().find("restart") != std::string::npos)
-		log_ << " and splitting = " << engine.splits_per_threshold() << std::endl;
+	log_ << " and splitting = " << engine.splits_per_threshold() << std::endl;
 
 	if (bounds.is_time()) {
 

@@ -53,7 +53,7 @@ ImportanceFunctionConcreteSplit::mergeOperands =
 	// the "compose_merge_function()" class member function
 }};
 
-std::vector< unsigned > ImportanceFunctionConcreteSplit::globalVarsIPos_;
+std::vector< unsigned > ImportanceFunctionConcreteSplit::globalVarsIPos;
 
 
 
@@ -61,8 +61,7 @@ std::vector< unsigned > ImportanceFunctionConcreteSplit::globalVarsIPos_;
 
 ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 	const ModuleNetwork &model) :
-		ImportanceFunctionConcrete("concrete_split",
-								   model.global_state()),
+		ImportanceFunctionConcrete("concrete_split", model.global_state()),
 		modules_(model.modules),
 		numModules_(model.modules.size()),
 		localValues_(numModules_),
@@ -70,15 +69,15 @@ ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 		importance2threshold_()
 {
 	bool initialize(false);  // initialize (non-const) static class members?
-	if (globalVarsIPos_.size() == 0ul) {
+	if (globalVarsIPos.size() == 0ul) {
 		initialize = true;
-		globalVarsIPos_.resize(numModules_);
+		globalVarsIPos.resize(numModules_);
 	}
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		assert(modules_[i]->global_index() == static_cast<int>(i));
 		localStatesCopies_[i] = modules_[i]->local_state();
 		if (initialize)
-			globalVarsIPos_[i] = static_cast<unsigned>(modules_[i]->first_var_gpos());
+			globalVarsIPos[i] = static_cast<unsigned>(modules_[i]->first_var_gpos());
 	}
 }
 
@@ -106,9 +105,9 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		auto& localState = localStatesCopies_[i];
 #ifndef NDEBUG
-		localState.extract_from_state_instance(state, globalVarsIPos_[i], true);
+		localState.extract_from_state_instance(state, globalVarsIPos[i], true);
 #else
-		localState.extract_from_state_instance(state, globalVarsIPos_[i], false);
+		localState.extract_from_state_instance(state, globalVarsIPos[i], false);
 #endif
         const auto& val = modulesConcreteImportance[i][localState.encode()];
         e &= MASK(val);
@@ -133,9 +132,9 @@ ImportanceFunctionConcreteSplit::importance_of(const StateInstance& state) const
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		auto& localState = localStatesCopies_[i];
 #ifndef NDEBUG
-		localState.extract_from_state_instance(state, globalVarsIPos_[i], true);
+		localState.extract_from_state_instance(state, globalVarsIPos[i], true);
 #else
-		localState.extract_from_state_instance(state, globalVarsIPos_[i], false);
+		localState.extract_from_state_instance(state, globalVarsIPos[i], false);
 #endif
 		localValues_[i] = UNMASK(modulesConcreteImportance[i][localState.encode()]);
 	}
@@ -263,10 +262,7 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 
 	// Assess each module importance individually from the rest
 	for (size_t index = 0ul ; index < numModules_ ; index++) {
-		auto& localState = localStatesCopies_[index];
-		localState.extract_valuation_from(globalState);  // set at local initial valuation
-		ImportanceFunctionConcrete::assess_importance(localState,
-													  modules_[index]->transitions(),
+		ImportanceFunctionConcrete::assess_importance(*modules_[index],
 													  prop,
 													  strategy,
 													  index);
@@ -279,12 +275,12 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	// Find extreme importance values for current assessment
 	if ("flat" == strategy) {
 		const ImportanceValue importance =
-				importance_of(globalState.to_state_instance());
+				importance_of(globalStateCopy.to_state_instance());
 		minImportance_ = importance;
 		maxImportance_ = importance;
 		minRareImportance_ = importance;
 	} else {
-        find_extreme_values(globalState, prop);  // *very* CPU intensive
+		find_extreme_values(globalStateCopy, prop);  // *very* CPU intensive
 	}
 	assert(minImportance_ <= minRareImportance_);
 	assert(minRareImportance_ <= maxImportance_);
