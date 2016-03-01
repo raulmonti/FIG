@@ -757,11 +757,12 @@ Verifier::check_input_determinism(AST *ast){
                         }
                         // also check for clocks that are being reset
                         if(!same_rclocks(inputTrans[i], inputTrans[j])){
-                            wout << "[WARNING] Non determinism "
-                                "may be present due to input transitions "
+                            throw_FigException("[ERROR] Non determinism "
+                                "present due to input transitions "
                                 "labeled '"+ ti + "', at " + posi
                                 + " and "+ posj + " since they don't reset "
-                                + "the same clocks. Check condition 7 for IOSA.\n";
+                                + "the same clocks. Check condition 7 for "
+                                + "IOSA.\n");
                         }                    
                     }
                 }                

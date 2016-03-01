@@ -264,7 +264,8 @@ interrupt_print(const fig::ConfidenceInterval& ci,
                                        << ci.upper_limit(confCo) << "]"
             << std::endl;
     }
-	out << std::defaultfloat;
+//	out << std::defaultfloat;
+    out << std::setprecision(6) << std::fixed;
     out << std::endl;
 }
 
@@ -291,7 +292,8 @@ estimate_print(const fig::ConfidenceInterval& ci,
         << std::endl;
     out << std::setprecision(1) << std::fixed;
     out << "   · Estimation time: " << time << " seconds" << std::endl;
-    out << std::defaultfloat;
+//    out << std::defaultfloat;
+    out << std::setprecision(6) << std::fixed;
     out << std::endl;
 }
 
@@ -955,7 +957,9 @@ ModelSuite::estimate(const Property& property,
         }
         interruptCI_ = nullptr;
     }
-    log_ << std::defaultfloat;
+
+//    log_ << std::defaultfloat;
+    log_ << std::setprecision(6) << std::fixed;
 }
 
 
