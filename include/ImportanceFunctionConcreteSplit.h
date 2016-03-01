@@ -74,7 +74,7 @@ private:
 	const size_t numModules_;
 
 	/// Position, in a global system state, of the first variable of each module
-	static std::vector< unsigned > globalVarsIPos_;
+	static std::vector< unsigned > globalVarsIPos;
 
 	/// Temporal storage for the local importance
 	/// computed for each ("split") ModuleInstance

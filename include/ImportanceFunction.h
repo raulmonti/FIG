@@ -106,7 +106,7 @@ protected:
 		ImportanceValue operator()(const ImportanceVec& localImportances) const;
 	};
 
-public:
+public:  // Class attributes
 
 	/// Names of the importance functions offered to the user,
 	/// as he should requested them through the CLI/GUI.
@@ -124,7 +124,7 @@ private:
 	/// Check ImportanceFunction::names for available options.
 	std::string name_;
 
-protected:
+protected:  // Attributes for derived classes
 
 	/// Do we hold importance information about the states?
 	bool hasImportanceInfo_;
@@ -319,7 +319,7 @@ public:  // Utils
 	///          \ref ready() "ready for simulations" either.
 	virtual void clear() noexcept;
 
-public:  // Utils for derived classes
+protected:  // Utils for derived classes
 
 	/**
 	 * @brief Find extreme \ref ImportanceValue "importance values" for the

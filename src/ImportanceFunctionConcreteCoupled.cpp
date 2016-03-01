@@ -38,10 +38,8 @@ namespace fig
 // Available function names in ImportanceFunction::names
 ImportanceFunctionConcreteCoupled::ImportanceFunctionConcreteCoupled(
     const ModuleNetwork &model) :
-		ImportanceFunctionConcrete("concrete_coupled",
-								   model.global_state()),
-        globalStateCopy_(model.global_state()),
-		globalTransitions(model.transitions()),
+		ImportanceFunctionConcrete("concrete_coupled", model.global_state()),
+		model_(model),
         importanceInfoIndex_(0u)
 { /* Not much to do around here */ }
 
@@ -59,8 +57,7 @@ ImportanceFunctionConcreteCoupled::assess_importance(
 {
     if (hasImportanceInfo_)
 		ImportanceFunctionConcrete::clear();
-	ImportanceFunctionConcrete::assess_importance(globalState,
-												  globalTransitions,
+	ImportanceFunctionConcrete::assess_importance(model_,
                                                   prop,
                                                   strategy,
                                                   importanceInfoIndex_);

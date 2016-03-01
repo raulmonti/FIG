@@ -40,6 +40,7 @@
 #include <Property.h>
 #include <PropertyTransient.h>
 #include <PropertySat.h>
+#include <Module.h>
 
 // ADL
 using std::begin;
@@ -60,58 +61,34 @@ typedef unsigned STATE_T;
 
 
 /**
- * @brief Return all (concrete) states that could be reached in one jump
- *        from "state", according to the transitions vector "trans".
- * @note <b>Complexity:</b> <i>O(size(trans) * size(state)<sup>2</sup>)</i>
- */
-std::forward_list< STATE_T >
-adjacent_states(const State& state,
-				const std::vector< std::shared_ptr< Transition > >& trans)
-{
-	std::forward_list< STATE_T > adjacentStates;
-	State s(state);
-	for (const auto tr_ptr: trans) {
-		if (tr_ptr->precondition()(s)) {
-			tr_ptr->postcondition()(s);
-			adjacentStates.push_front(s.encode());
-			s = state;  // restore original state
-		}
-	}
-	return adjacentStates;
-}
-
-
-/**
  * @brief Build reversed edges of a Module
  *
- *        Starting from the initial "state" provided and following the
- *        given list of transitions "trans", compute the reachable edges
- *        of the inherent Module and store them reversed.
+ *        Starting from the initial state of "module" and following its
+ *        transitions, compute all reachable edges and store them reversed.
  *
- * @param state  Symbolic state with the initial valuation of the Module
- * @param trans  All the transitions of the Module, order unimportant
+ * @param module Module with all transitions information
  * @param visits Vector used to mark visited states <b>(modified)</b>
  *
  * @return Concrete states' graph reversed adjacency list, viz. a vector
  *         the size of the concrete state space, whose i-th position has all
- *         the states that reach the i-th concrete state according to "trans"
+ *         the states that reach the i-th concrete state in "module"
  *
  * @note "visits" should be provided empty, and is reallocated
  *       to the size of "state.concrete_size()"
  *
  * @warning <b>Memory complexity</b>: <i>O(N*M)</i>, where
  *          <ul>
- *          <li><i>N</i> is the \ref State.concrete_size() "concrete size" of "state" and</li>
- *          <li><i>M</i> is the number of <b>concrete edges</b> of the module</li>
+ *          <li><i>N</i> is the \ref State.concrete_size() "concrete state
+ *                       space size" of "module" and</li>
+ *          <li><i>M</i> is the number of <b>concrete edges</b> of "module"</li>
  *          </ul>
  *          Thus in the worst case scenario this allocates
  *          <b>sizeof</b>(unsigned)*N<sup>3</sup> bytes.
- *          However that'd require the Module to have a dense transition matrix,
+ *          However that'd require "module" to have a dense transition matrix,
  *          which is seldom the case.
  */
 fig::AdjacencyList
-reversed_edges_DFS(State state,
-				   const std::vector< std::shared_ptr< Transition > >& trans,
+reversed_edges_DFS(const fig::Module& module,
 				   ImportanceVec& visits)
 {
 	const ImportanceValue NOT_VISITED(fig::EventType::STOP);
@@ -121,24 +98,23 @@ reversed_edges_DFS(State state,
 	assert(visits.size() == 0u);
 
 	// STL's forward_list is the perfect stack
-	std::forward_list< STATE_T > toVisit;
-	toVisit.push_front(state.encode());  // initial state
-	fig::AdjacencyList rEdges(state.concrete_size());
-	ImportanceVec(state.concrete_size(), NOT_VISITED).swap(visits);
+	std::forward_list< size_t > toVisit;
+	toVisit.push_front(module.initial_concrete_state());
+	fig::AdjacencyList rEdges(module.concrete_state_size());
+	ImportanceVec(module.concrete_state_size(), NOT_VISITED).swap(visits);
 
 	// DFS
 	while (!toVisit.empty()) {
-		STATE_T currentState = toVisit.front();
-		toVisit.pop_front();
+		size_t currentState = toVisit.front(); toVisit.pop_front();
 		if (VISITED == visits[currentState])
 			continue;
-		visits[currentState] = VISITED;  // visiting currentState
-		state.decode(currentState);
-		auto nextStatesList = adjacent_states(state, trans);
+		// Visiting currentState
+		visits[currentState] = VISITED;
+		auto nextStatesList = module.adjacent_states(currentState);
         for (const auto& s: nextStatesList)
             rEdges[s].push_front(currentState);  // s <-- currentState
 		// Push into the 'toVisit' stack only the new unvisited states
-		nextStatesList.remove_if( [&] (const STATE_T& s) -> bool
+		nextStatesList.remove_if( [&] (const size_t& s) -> bool
 								  { return VISITED == visits[s]; } );
 		toVisit.splice_after(toVisit.before_begin(), std::move(nextStatesList));
 	}
@@ -199,6 +175,7 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 	bool initialReached(false);
     const size_t numRares = raresQueue.size();
 	std::queue< STATE_T >& statesToCheck = raresQueue;
+
 	while (!initialReached && !statesToCheck.empty()) {
 		STATE_T s = statesToCheck.front();
 		statesToCheck.pop();
@@ -207,7 +184,7 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 		for (const STATE_T& reachingS: reverseEdges[s]) {
             // ...if we're visiting it for the first time...
 			if (NOT_VISITED == cStates[reachingS]) {
-                // ...label it with distance from rare set...
+				// ...label it with distance from rare set...
 				cStates[reachingS] = levelBFS | fig::MASK(cStates[reachingS]);
 				// ...and enqueue it, unless we're done.
 				if (initialState == reachingS)
@@ -270,6 +247,7 @@ label_states(State globalState,
 	case fig::PropertyType::TRANSIENT: {
 		auto transientProp = static_cast<const fig::PropertyTransient&>(property);
 		for (size_t i = 0ul ; i < globalState.concrete_size() ; i++) {
+			cStates[i] = fig::EventType::NONE;
 			const StateInstance valuation(globalState.decode(i).to_state_instance());
 			if ( transientProp.expr2(valuation)) {
 				fig::SET_RARE_EVENT(cStates[i]);
@@ -331,9 +309,9 @@ label_states_with_SAT(State localState,
 
 	case fig::PropertyType::TRANSIENT:
 		for (size_t i = 0ul ; i < localState.concrete_size() ; i++) {
-			const StateInstance valuation(localState.decode(i).to_state_instance());
 			cStates[i] = fig::EventType::NONE;
-            if (reducedProperty.sat(1, valuation)) {
+			const StateInstance valuation(localState.decode(i).to_state_instance());
+			if (reducedProperty.sat(1, valuation)) {
                 fig::SET_RARE_EVENT(cStates[i]);
                 raresQueue.push(i);
             }
@@ -384,8 +362,7 @@ assess_importance_flat(const State& state,
 /**
  * Assign automatic importance to reachable states in concrete vector
  *
- * @param state    Symbolic state of this Module, at its initial valuation
- * @param trans    All the transitions of this Module
+ * @param module   Module whose states' will have their importance assessed
  * @param impVec   Vector where the importance will be stored <b>(modified)</b>
  * @param property Property identifying the special states
  * @param split    Whether we're working for ImportanceFunctionConcreteSplit
@@ -396,18 +373,15 @@ assess_importance_flat(const State& state,
  * @return Maximum importance, i.e. importance of any rare state
  */
 ImportanceValue
-assess_importance_auto(const State& state,
-					   const std::vector< std::shared_ptr< Transition > >& trans,
+assess_importance_auto(const fig::Module& module,
 					   ImportanceVec& impVec,
 					   const Property& property,
 					   bool split)
 {
-    assert(state.size() > 0ul);
-    assert(trans.size() > 0ul);
     assert(impVec.size() == 0ul);
 
 	// Step 1: run DFS from initial state to compute reachable reversed edges
-	fig::AdjacencyList reverseEdges = reversed_edges_DFS(state, trans, impVec);
+	fig::AdjacencyList reverseEdges = reversed_edges_DFS(module, impVec);
 	/// @todo NOTE: there's a more memory friendly way,
 	///       without holding the whole adjacency list in a variable.
 	///       It requires to build the reaching states for each concrete state
@@ -417,14 +391,14 @@ assess_importance_auto(const State& state,
 	// Step 2: label concrete states according to the property
 	std::queue< STATE_T > raresQueue;
 	if (split)
-		raresQueue = label_states_with_SAT(state, impVec, property);
+		raresQueue = label_states_with_SAT(module.initial_state(), impVec, property);
 	else
-		raresQueue = label_states(state, impVec, property, true);
+		raresQueue = label_states(module.initial_state(), impVec, property, true);
 
 	// Step 3: run BFS to compute importance of every concrete state
 	ImportanceValue maxImportance = build_importance_BFS(reverseEdges,
 														 raresQueue,
-														 state.encode(),
+														 module.initial_concrete_state(),
 														 impVec);
 	fig::AdjacencyList().swap(reverseEdges);  // free mem!
 
@@ -440,10 +414,10 @@ namespace fig
 
 ImportanceFunctionConcrete::ImportanceFunctionConcrete(
 	const std::string& name,
-	const State< STATE_INTERNAL_TYPE >& state) :
+	const State<STATE_INTERNAL_TYPE>& globalState) :
 		ImportanceFunction(name),
 		modulesConcreteImportance(1u),
-		globalState(state)
+		globalStateCopy(globalState)
 { /* Not much to do around here */ }
 
 
@@ -455,8 +429,7 @@ ImportanceFunctionConcrete::~ImportanceFunctionConcrete()
 
 void
 ImportanceFunctionConcrete::assess_importance(
-	const State<STATE_INTERNAL_TYPE>& symbState,
-	const std::vector< std::shared_ptr<Transition> >& trans,
+	const Module& module,
 	const Property& property,
 	const std::string& strategy,
 	const unsigned& index)
@@ -470,7 +443,7 @@ ImportanceFunctionConcrete::assess_importance(
 	// Compute importance according to the chosen strategy
 	if ("flat" == strategy) {
 		maxImportance_ =
-			assess_importance_flat(symbState,
+			assess_importance_flat(module.initial_state(),
 								   modulesConcreteImportance[index],
 								   property);
         // Invariant of flat importance function:
@@ -479,14 +452,14 @@ ImportanceFunctionConcrete::assess_importance(
 
 	} else if ("auto" == strategy) {
 		maxImportance_ =
-			assess_importance_auto(symbState,
-								   trans,
+			assess_importance_auto(module,
 								   modulesConcreteImportance[index],
 								   property,
 								   name().find("split") != std::string::npos);
         // For auto importance functions the initial state has always
         // the lowest importance, and all rare states have the highest:
-        minImportance_ = UNMASK(modulesConcreteImportance[index][symbState.encode()]);
+		minImportance_ = UNMASK(
+				modulesConcreteImportance[index][module.initial_concrete_state()]);
 		minRareImportance_ = maxImportance_;  // should we check?
 
 	} else if ("adhoc" == strategy) {

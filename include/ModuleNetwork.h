@@ -144,9 +144,21 @@ public:  // Accessors
 
 public:  // Utils
 
-	virtual StateInstance initial_state() const;
+	virtual State<STATE_INTERNAL_TYPE> initial_state() const;
 
 	virtual size_t initial_concrete_state() const;
+
+	/**
+	 * @copydoc Module::adjacent_states()
+	 * @param s Concrete state from the system's global state space
+	 * @note <b>Complexity:</b> <i>O((m*t*v)<sup>2</sup>)</i>, where
+	 *       <ul>
+	 *       <li> <i>m</i> is the number  of   modules   of the system,</li>
+	 *       <li> <i>t</i> is the max num of transitions of any module,</li>
+	 *       <li> <i>v</i> is the max num of  variables  of any module.</li>
+	 *       </ul>
+	 */
+	virtual std::forward_list<size_t> adjacent_states(const size_t& s) const;
 
 	/**
 	 * @brief Shut the network and fill in internal global data.

@@ -55,12 +55,9 @@ namespace fig
  */
 class ImportanceFunctionConcreteCoupled : public ImportanceFunctionConcrete
 {
-	/// Copy of the global state of the \ref ModuleNetwork "model"
-	mutable State< STATE_INTERNAL_TYPE > globalStateCopy_;
-
-	/// Reference to all the \ref ModuleNetwork "model"'s transitions,
+	/// User's \ref ModuleNetwork "system model", i.e. the network of modules,
 	/// needed for the "auto" strategy
-	const std::vector<std::shared_ptr<Transition>>& globalTransitions;
+	const ModuleNetwork& model_;
 
 	/// Single location used from ImportanceFunctionConcrete::
 	const unsigned importanceInfoIndex_;
@@ -86,12 +83,12 @@ public:  // Accessors
 				throw_FigException(std::string("importance function \"")
 								   .append(name()).append("\" doesn't ")
 								   .append("hold importance information."));
-			globalStateCopy_.copy_from_state_instance(state, true);
+			globalStateCopy.copy_from_state_instance(state, true);
 #       else
-			globalStateCopy_.copy_from_state_instance(state, false);
+			globalStateCopy.copy_from_state_instance(state, false);
 #       endif
 			return modulesConcreteImportance[importanceInfoIndex_]
-											[globalStateCopy_.encode()];
+											[globalStateCopy.encode()];
 		}
 
 	/// @copydoc ImportanceFunction::importance_of()

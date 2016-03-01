@@ -42,6 +42,7 @@
 namespace fig
 {
 
+class Module;
 class Property;
 class Transition;
 
@@ -67,15 +68,14 @@ protected:  // Attributes
 	/// Concrete importance assessment for all the modules in the system model
 	std::vector< ImportanceVec > modulesConcreteImportance;
 
-	/// \ref ModuleNetwork "Model"'s global State at its initial valuation,
-	/// needed for the "auto" strategy
-	const State<STATE_INTERNAL_TYPE>& globalState;
+	/// Copy of the global state of the \ref ModuleNetwork "model"
+	mutable State< STATE_INTERNAL_TYPE > globalStateCopy;
 
 public:  // Ctor/Dtor
 
 	/// Data ctor
 	ImportanceFunctionConcrete(const std::string& name,
-							   const State<STATE_INTERNAL_TYPE>& state);
+							   const State< STATE_INTERNAL_TYPE >& globalState);
 
 	/// Dtor
 	virtual ~ImportanceFunctionConcrete();
@@ -162,16 +162,14 @@ protected:  // Utils for derived classes
 	 * @brief Populate an internal importance vector
 	 *
 	 *        For the given "property" and following the "strategy" specified,
-	 *        analyse the symbolic "state" and compute the importance of the
-	 *        corresponding concrete states. The resulting information will
-	 *        be stored internally at position "index".
+	 *        analyse the state space of "module" and compute the importance
+	 *        of all its concrete states. The resulting information will be
+	 *        stored internally at position "index".
 	 *
-	 * @param symbState Vector of variables representing the state of a Module.
-	 *                  Its current valuation is considered the initial state.
-	 * @param trans     All the transitions of the Module, in any order
-	 * @param property  Logical property identifying the special states
-	 * @param strategy  Importance assessment strategy to follow
-	 * @param index     Internal location where resulting info will be kept
+	 * @param module   Module whose concrete states' importance will be assessed
+	 * @param property Logical property identifying the special states
+	 * @param strategy Importance assessment strategy to follow
+	 * @param index    Internal location where resulting info will be kept
 	 *
 	 * @note This allocates (tons of) memory internally
 	 * @note To assess again for same index with different strategy or property,
@@ -183,8 +181,7 @@ protected:  // Utils for derived classes
 	 * @throw bad_alloc    if system's memory wasn't enough for internal storage
 	 * @throw FigException if there's already importance info for this index
 	 */
-	void assess_importance(const State<STATE_INTERNAL_TYPE>& symbState,
-						   const std::vector<std::shared_ptr<Transition>>& trans,
+	void assess_importance(const Module& module,
 						   const Property& property,
 						   const std::string& strategy,
 						   const unsigned& index = 0);
