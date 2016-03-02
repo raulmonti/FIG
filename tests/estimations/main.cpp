@@ -54,7 +54,8 @@ int main(int argc, char** argv)
 	check_dummy_arguments(argc, const_cast<const char**>(argv));
 
 	//  Compile model and properties   // // // // // // // // // //
-	build_model("models/tandem_queue.sa", "models/tandem_queue.pp");
+	/// @todo TODO change model to "models/tandem_queue.sa"
+	build_model("models/monolitico1.sa", "models/tandem_queue.pp");
 	auto model = fig::ModelSuite::get_instance();
 	if (!model.sealed()) {
 		std::cerr << "ERROR: failed to build the model.\n";
@@ -64,47 +65,52 @@ int main(int argc, char** argv)
 	}
 	const size_t propertyIndex(0ul);
 
-	//  Short test runs with flat ifun    // // // // // // // // //
+	//  Estimation goals   // // // // // // // // // // // // // //
+	const double confidence(0.95);
+	const double precision(0.2);
+	const fig::StoppingConditions stopCriterion(StopCond({std::make_tuple(
+			confidence, precision, true)}));
+	const fig::StoppingConditions timeSpan(std::set<size_t>({60ul}));
+	std::shared_ptr< fig::SimulationEngine > engine(nullptr);
+
+	//  Standard Monte Carlo     // // // // // // // // // // // //
 	const std::string flatIfunName("algebraic");
 	model.build_importance_function_flat(flatIfunName, propertyIndex);
 	model.build_thresholds("ams", flatIfunName);
-	auto engine = model.prepare_simulation_engine("nosplit", flatIfunName);
-//	const fig::StoppingConditions timeSpans(std::set<size_t>({5ul,15ul}));
-//	model.estimate(propertyIndex, *engine, timeSpans);
+	engine = model.prepare_simulation_engine("nosplit", flatIfunName);
+	//model.estimate(propertyIndex, *engine, timeSpan);
+	model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
 
-	//  Estimation goals   // // // // // // // // // // // // // //
-	const double confidence(0.8);
-	const double precision(6.0e-5);
-	const fig::StoppingConditions stopCriterion(
-		StopCond({std::make_tuple(confidence, precision, false)}));
-
-	//  Estimate with algebraic ad hoc ifun  // // // // // // // //
+	//  RESTART with algebraic ad hoc (q2) // // // // // // // //
 	const std::string adhocIfunName("algebraic");
-	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "q2", NamesList({"q2"}));
+	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "q2", NamesList({"q2"}), true);
 	model.build_thresholds("ams", adhocIfunName);
 	engine = model.prepare_simulation_engine("restart", adhocIfunName);
-	/// @todo TODO change timeSpan for stopCriterion
-	const fig::StoppingConditions timeSpan(std::set<size_t>({60ul}));
-	model.estimate(propertyIndex, *engine, timeSpan);
-//	model.estimate(propertyIndex, *engine, stopCriterion);
+	//std::dynamic_pointer_cast<fig::SimulationEngineRestart>(engine)->
+	//		set_splits_per_threshold(4);
+	//model.estimate(propertyIndex, *engine, timeSpan);
+	model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
 
-	//  Estimate with coupled auto ifun   // // // // // // // // //
+	/// @todo TODO Fix bloody tool and remove this barrier
+	throw_FigException("prematurely interrupted!");
+
+	//  RESTART with automatic coupled   // // // // // // // // //
 	const std::string cAutoIfunName("concrete_coupled");
 	model.build_importance_function_auto(cAutoIfunName, propertyIndex);
 	model.build_thresholds("ams", cAutoIfunName);
 	engine = model.prepare_simulation_engine("restart", cAutoIfunName);
-	/// @todo TODO change timeSpan for stopCriterion
 	model.estimate(propertyIndex, *engine, timeSpan);
-//	model.estimate(propertyIndex, *engine, stopCriterion);
+	model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
 
-	//  Estimate with split auto ifun  // // // // // // // // // //
+	//  RESTART with automatic split  // // // // // // // // // //
 	const std::string sAutoIfunName("concrete_split");
 	model.build_importance_function_auto(sAutoIfunName, propertyIndex, "+", true);
 	model.build_thresholds("ams", sAutoIfunName);
 	engine = model.prepare_simulation_engine("restart", sAutoIfunName);
+	model.estimate(propertyIndex, *engine, timeSpan);
 	model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
 
@@ -155,8 +161,8 @@ void check_dummy_arguments(const int& argc, const char** argv)
 void build_model(const char* modelFilePath, const char* propsFilePath)
 {
 
-    tout << "Model file: "      << modelFilePath << endl;
-    tout << "Properties file: " << propsFilePath << endl;
+	tout << "Model file: " << modelFilePath << endl;
+	tout << "Properties: " << propsFilePath << endl;
 
 	Parser parser;
 	Verifier verifier;

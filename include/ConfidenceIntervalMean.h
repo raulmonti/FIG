@@ -71,8 +71,8 @@ public:  // Modifyers
 	virtual void update(const double& newMean);
 
 	/**
-	 * Stub to update(), since multiple value feeding
-	 * is impossible for this kind of CI.
+	 * Stub to update(), since multiple value feeding is impossible
+	 * for this kind of CI due to the variance measurement.
 	 * @param newMeans Mean value of the sampled distribution
 	 * @warning Second parameter is <b>ignored</b>
 	 * @throw FigException if detected possible overflow

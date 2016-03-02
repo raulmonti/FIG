@@ -33,6 +33,11 @@
 #include <ConfidenceIntervalProportion.h>
 #include <FigException.h>
 
+using std::sqrt;
+using std::exp;
+using std::log;
+using std::log1p;
+
 
 namespace fig
 {
@@ -50,7 +55,7 @@ ConfidenceIntervalProportion::ConfidenceIntervalProportion(
 void
 ConfidenceIntervalProportion::update(const double& newResult)
 {
-	update(newResult, log(1));  // don't reinvent the wheel
+	update(newResult, log1p(0.0));  // don't reinvent the wheel
 }
 
 
@@ -67,7 +72,8 @@ ConfidenceIntervalProportion::update(const double& newResults,
 	numRares_ += newResults;
 
 	// Compute logarithm of the updated # of samples ( old + new )
-	logNumSamples_ += log(1.0 + exp(logNumNewExperiments - logNumSamples_));
+	// See the wiki: https://goo.gl/qfDfKQ. Notice the use of std::log1p()
+	logNumSamples_ += log1p(exp(logNumNewExperiments - logNumSamples_));
 	if (std::isinf(logNumSamples_) || std::isnan(logNumSamples_))
 		throw_FigException("failed updating logNumSamples_, overflow?");
 

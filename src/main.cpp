@@ -36,6 +36,10 @@
 
 #include <fig.h>
 
+// using std::make_tuple;
+// typedef std::set< std::string > NamesList;
+// typedef std::set< std::tuple<double,double,bool> > StopCond;
+
 static void print_intro(std::ostream& out);
 static void check_arguments(const int& argc, const char** argv);
 static void build_model(const char* modelFilePath, const char* propsFilePath);
@@ -55,6 +59,7 @@ int main(int argc, char** argv)
 		std::cerr << "ERROR: failed to build the model.\n";
 		exit(EXIT_FAILURE);
 	}
+	const size_t propertyIndex(0ul);  // check only first defined property
 
 
     /** TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO **/
@@ -107,8 +112,10 @@ void check_arguments(const int& argc, const char** argv)
 void build_model(const char* modelFilePath, const char* propsFilePath)
 {
 
-    tout << "Model file: "      << modelFilePath << endl;
-    tout << "Properties file: " << propsFilePath << endl;
+    tout << "Model file: " << modelFilePath << endl;
+    tout << "Properties: " << propsFilePath << endl;
+
+    /// @todo TODO check files existence
 
 	Parser parser;
 	Verifier verifier;

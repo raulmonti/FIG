@@ -178,7 +178,7 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 //	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
 	static const size_t batch_sizes[2][3] = {
 		{ 1ul<<11, 1ul<<12, 1ul<<12 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 1ul<<9 , 1ul<<10, 1ul<<9  }   // restart x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<9 , 1ul<<9,  1ul<<9  }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -218,8 +218,8 @@ increase_batch_size(size_t& numRuns,
 //	FIXME: following compiles with Clang but not with gcc -- keep checking
 //	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
 	static const size_t batch_sizes[2][3] = {
-		{ 3ul, 3ul, 3ul },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 2ul, 3ul, 2ul }   // restart x {concrete_coupled, concrete_split, algebraic}
+		{ 3ul, 3ul, 2ul },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+		{ 2ul, 2ul, 2ul }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -642,7 +642,7 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 			static_cast<ImportanceFunctionConcreteSplit&>(ifun).set_merge_fun(mergeFun);
 		static_cast<ImportanceFunctionConcrete&>(ifun)
 				.assess_importance(property, "auto");
-    }
+	}
 
     assert(ifun.has_importance_info());
     assert("auto" == ifun.strategy());
@@ -799,7 +799,7 @@ ModelSuite::build_thresholds(const std::string& technique,
 }
 
 
-std::shared_ptr< const SimulationEngine >
+std::shared_ptr< SimulationEngine >
 ModelSuite::prepare_simulation_engine(const std::string& engineName,
 									  const std::string& ifunName)
 {

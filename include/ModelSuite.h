@@ -452,7 +452,7 @@ public:  // Utils
 	 * @see build_importance_function()
 	 * @see build_thresholds()
 	 */
-	std::shared_ptr< const SimulationEngine >
+	std::shared_ptr< SimulationEngine >
 	prepare_simulation_engine(const std::string& engineName,
 							  const std::string& ifunName);
 
