@@ -1,0 +1,116 @@
+
+==========================================================
+                     tandem_queue.sa
+==========================================================
+
+Queue capacity 'c' = 8
+
+---------------
+ PRISM results
+---------------
+
+$ prism ../../bluemoon/git/prism-examples/rare/tandem.prism -const c=8 -pf 'P=? [ "running" U "goal" ]' | grep -i "result"
+
+Result: 5.591178101632609E-6 (value in the initial state)
+
+ ~~~~~~~~~ 
+  · FIG ·  
+ ~~~~~~~~~ 
+           
+ This is the Finite Improbability Generator.
+ Version: 0.42
+ Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>
+          Monti, Raúl E.   <raulmonti88@gmail.com>
+           
+ This is a test deviced for estimations checking;
+ it automatically runs with the files models/tandem_queue.{sa,pp}
+
+Model file: models/tandem_queue.sa
+Properties: models/tandem_queue.pp
+
+Estimating P( (q2>0) U (lost) ),
+ using simulation engine  "nosplit"
+ with importance function "algebraic"
+ built using strategy     "flat" 
+ # thresholds  = 0
+ and splitting = 1
+   Estimation time: 120 s
+-------
+   · Computed estimate: 2.452e-05
+   · 80% confidence
+       - precision: 9.10e-06
+       - interval: [ 2.00e-05, 2.91e-05]
+   · 90% confidence
+       - precision: 1.21e-05
+       - interval: [ 1.85e-05, 3.06e-05]
+   · 95% confidence
+       - precision: 1.50e-05
+       - interval: [ 1.70e-05, 3.20e-05]
+   · 99% confidence
+       - precision: 2.14e-05
+       - interval: [ 1.38e-05, 3.52e-05]
+
+Estimating P( (q2>0) U (lost) ),
+ using simulation engine  "restart"
+ with importance function "algebraic"
+ built using strategy     "adhoc" q2
+ # thresholds  = 3
+ and splitting = 2
+   For confidence level: 95%
+   and precision: 40%
+--------+++--+++++++++++++++++++++++++++++++++++++
+   · Computed estimate: 4.842e-06
+   · Precision: 1.94e-06
+   · Confidence interval: [ 3.87e-06, 5.81e-06 ] 
+   · Estimation time: 4014.8 seconds
+
+Estimating P( (q2>0) U (lost) ),
+ using simulation engine  "restart"
+ with importance function "concrete_coupled"
+ built using strategy     "auto" 
+ # thresholds  = 2
+ and splitting = 2
+   For confidence level: 95%
+   and precision: 40%
+----------+++++++
+   · Computed estimate: 7.387e-06
+   · Precision: 2.95e-06
+   · Confidence interval: [ 5.91e-06, 8.86e-06 ] 
+   · Estimation time: 376.6 seconds
+
+Estimating P( (q2>0) U (lost) ),
+ using simulation engine  "restart"
+ with importance function "concrete_split"
+ built using strategy     "auto" 
+ # thresholds  = 3
+ and splitting = 5
+   Estimation time: 120 s
+-----+-+++++++++++++++++
+   · Computed estimate: 4.487e-06
+   · 80% confidence
+       - precision: 2.46e-08
+       - interval: [ 4.48e-06, 4.50e-06]
+   · 90% confidence
+       - precision: 3.16e-08
+       - interval: [ 4.47e-06, 4.50e-06]
+   · 95% confidence
+       - precision: 3.76e-08
+       - interval: [ 4.47e-06, 4.51e-06]
+   · 99% confidence
+       - precision: 4.94e-08
+       - interval: [ 4.46e-06, 4.51e-06]
+
+Estimating P( (q2>0) U (lost) ),
+ using simulation engine  "restart"
+ with importance function "concrete_split"
+ built using strategy     "auto" 
+ # thresholds  = 3
+ and splitting = 5
+   For confidence level: 95%
+   and precision: 40%
+--+-+-+++--+++++++++++-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   · Computed estimate: 4.671e-06
+   · Precision: 1.87e-06
+   · Confidence interval: [ 3.74e-06, 5.61e-06 ] 
+   · Estimation time: 1273.3 seconds
+

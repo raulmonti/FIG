@@ -54,8 +54,7 @@ int main(int argc, char** argv)
 	check_dummy_arguments(argc, const_cast<const char**>(argv));
 
 	//  Compile model and properties   // // // // // // // // // //
-	/// @todo TODO change model to "models/tandem_queue.sa"
-	build_model("models/monolitico1.sa", "models/tandem_queue.pp");
+	build_model("models/tandem_queue.sa", "models/tandem_queue.pp");
 	auto model = fig::ModelSuite::get_instance();
 	if (!model.sealed()) {
 		std::cerr << "ERROR: failed to build the model.\n";
@@ -67,10 +66,10 @@ int main(int argc, char** argv)
 
 	//  Estimation goals   // // // // // // // // // // // // // //
 	const double confidence(0.95);
-	const double precision(0.2);
+	const double precision(0.4);
 	const fig::StoppingConditions stopCriterion(StopCond({std::make_tuple(
 			confidence, precision, true)}));
-	const fig::StoppingConditions timeSpan(std::set<size_t>({60ul}));
+	const fig::StoppingConditions timeSpan(std::set<size_t>({120ul}));
 	std::shared_ptr< fig::SimulationEngine > engine(nullptr);
 
 	//  Standard Monte Carlo     // // // // // // // // // // // //
@@ -78,8 +77,8 @@ int main(int argc, char** argv)
 	model.build_importance_function_flat(flatIfunName, propertyIndex);
 	model.build_thresholds("ams", flatIfunName);
 	engine = model.prepare_simulation_engine("nosplit", flatIfunName);
-	//model.estimate(propertyIndex, *engine, timeSpan);
-	model.estimate(propertyIndex, *engine, stopCriterion);
+	model.estimate(propertyIndex, *engine, timeSpan);
+	//model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
 
 	//  RESTART with algebraic ad hoc (q2) // // // // // // // //
@@ -87,21 +86,16 @@ int main(int argc, char** argv)
 	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "q2", NamesList({"q2"}), true);
 	model.build_thresholds("ams", adhocIfunName);
 	engine = model.prepare_simulation_engine("restart", adhocIfunName);
-	//std::dynamic_pointer_cast<fig::SimulationEngineRestart>(engine)->
-	//		set_splits_per_threshold(4);
 	//model.estimate(propertyIndex, *engine, timeSpan);
 	model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
-
-	/// @todo TODO Fix bloody tool and remove this barrier
-	throw_FigException("prematurely interrupted!");
 
 	//  RESTART with automatic coupled   // // // // // // // // //
 	const std::string cAutoIfunName("concrete_coupled");
 	model.build_importance_function_auto(cAutoIfunName, propertyIndex);
 	model.build_thresholds("ams", cAutoIfunName);
 	engine = model.prepare_simulation_engine("restart", cAutoIfunName);
-	model.estimate(propertyIndex, *engine, timeSpan);
+	//model.estimate(propertyIndex, *engine, timeSpan);
 	model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
 
@@ -110,6 +104,8 @@ int main(int argc, char** argv)
 	model.build_importance_function_auto(sAutoIfunName, propertyIndex, "+", true);
 	model.build_thresholds("ams", sAutoIfunName);
 	engine = model.prepare_simulation_engine("restart", sAutoIfunName);
+	std::dynamic_pointer_cast<fig::SimulationEngineRestart>(engine)->
+			set_splits_per_threshold(5);
 	model.estimate(propertyIndex, *engine, timeSpan);
 	model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;

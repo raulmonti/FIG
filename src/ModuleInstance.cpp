@@ -75,12 +75,6 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
-
-	/// @todo TODO erase debug print
-	std::cerr << "Module \"" << thename << "\" created with clocks:";
-	for (const auto& clk: clocks)
-		std::cerr << " " << clk.name();
-	std::cerr << std::endl;
 }
 
 // ModuleInstance can be built from the following containers

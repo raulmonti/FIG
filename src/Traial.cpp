@@ -173,20 +173,8 @@ Traial::initialize(const ModuleNetwork& network,
 	// Initialize clocks (reset all and then resample initials)
     for (auto& timeout : clocks_)
         timeout.value = 0.0f;
-
-//	/// @todo TODO erase debug print
-//	std::cerr << "Initializing clocks: " << std::defaultfloat;
-
-	for (const auto& pos_clk_pair: network.initialClocks) {
+	for (const auto& pos_clk_pair: network.initialClocks)
 		clocks_[pos_clk_pair.first].value = pos_clk_pair.second.sample();
-//		/// @todo TODO erase debug print
-//		std::cerr << clocks_[pos_clk_pair.first].name  << "="
-//				  << clocks_[pos_clk_pair.first].value << ", ";
-	}
-
-//	/// @todo TODO erase debug print
-//	std::cerr << "\b\b  \n";
-
 	// Initialize importance and simulation time
 	level = impFun.ready() ? impFun.level_of(state)
 						   : impFun.importance_of(state);
