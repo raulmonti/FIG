@@ -1,0 +1,564 @@
+/*
+ * Queue with On-Off Sources (ATM model) for the FIG tool
+ * Budde, Monti, D'Argenio | 2016
+ *
+ * {-
+ * Concept of the queue with breakdowns (Glasserman version):
+ *                        
+ * (Source1: on/off) --->||
+ *                       ||
+ * (Source2: on/off) --->||
+ *         .             ||        Buffer
+ *         .             ||---> [·····###]--(Server)---->
+ *         .             ||
+ * (SourceN: on/off) --->||
+ *                        
+ * Buffer has maximum capacity 'b'.
+ * The single Server processes with rate mu,
+ * Sources : produce       with rate lambda,
+ *           fail          with rate alpha1,
+ *           get repaired  with rate alpha0.
+ *
+ * Initial state: empty buffer and steady-state average # of sources on.
+ * Stopping event: return to the initial state.
+ * Rare event: buffer reaching maximum capacity.
+ * -}
+ */
+
+
+// -- The following values were extracted from Glasserman, Heidelberger,
+// -- Shahabuddin, and Zajic:
+// -- "Multilevel Splitting For Estimating Rare Event Probabilities",
+// -- Operations Research, Vol. 47, No. 4, July–August 1999, pp. 585–600
+
+// -- Buffer capacity
+const int b = 40;       // -- Capacity
+// --const double u = 0.25;  // -- Overall utilization
+
+// -- Server
+const int mu = 10;
+
+// -- Sources
+const int N = 20;
+const int lambda = 1;
+// --const double lambda = 0.5;
+// -- Possible values for lambda:  0.5  4.0
+const int alpha0 = 1;
+const int alpha1 = 3;  // -- (alpha0*N*lambda) / (u*mu) - alpha0;
+// -- Possible values for alpha1: 3 if lambda=0.5, 31 if lambda=4
+const int srcInitOn = 5;  // -- floor( N * alpha0 / (alpha0+alpha1) )
+// -- Possible values for srcInitOn: 5 if lambda=0.5, 0 if lambda=4 
+
+
+///////////////////////////////////////////////////////////////////////
+//
+// -- Sources | Total: 20
+// --         | Intially on: 5 if lambda == 0.5
+// --         |              0 if lambda == 4.0
+
+module S1
+	on1: bool init true;
+	clkF1: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR1: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP1: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f1!]  on1 @ clkF1 -> (on1'= false) &
+	                      (clkR1'= exponential(alpha0));
+	[r1!] !on1 @ clkR1 -> (on1'= true) &
+                          (clkF1'= exponential(alpha1)) &
+	                      (clkP1'= exponential(lambda));
+	// -- Production
+	[p1!]  on1 @ clkP1 -> (clkP1'= exponential(lambda));
+endmodule
+
+module S2
+	on2: bool init true;
+	clkF2: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR2: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP2: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f2!]  on2 @ clkF2 -> (on2'= false) &
+	                      (clkR2'= exponential(alpha0));
+	[r2!] !on2 @ clkR2 -> (on2'= true) &
+                          (clkF2'= exponential(alpha1)) &
+	                      (clkP2'= exponential(lambda));
+	// -- Production
+	[p2!]  on2 @ clkP2 -> (clkP2'= exponential(lambda));
+endmodule
+
+module S3
+	on3: bool init true;
+	clkF3: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR3: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP3: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f3!]  on3 @ clkF3 -> (on3'= false) &
+	                      (clkR3'= exponential(alpha0));
+	[r3!] !on3 @ clkR3 -> (on3'= true) &
+                          (clkF3'= exponential(alpha1)) &
+	                      (clkP3'= exponential(lambda));
+	// -- Production
+	[p3!]  on3 @ clkP3 -> (clkP3'= exponential(lambda));
+endmodule
+
+module S4
+	on4: bool init true;
+	clkF4: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR4: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP4: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f4!]  on4 @ clkF4 -> (on4'= false) &
+	                      (clkR4'= exponential(alpha0));
+	[r4!] !on4 @ clkR4 -> (on4'= true) &
+                          (clkF4'= exponential(alpha1)) &
+	                      (clkP4'= exponential(lambda));
+	// -- Production
+	[p4!]  on4 @ clkP4 -> (clkP4'= exponential(lambda));
+endmodule
+
+module S5
+	on5: bool init true;
+	clkF5: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR5: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP5: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f5!]  on5 @ clkF5 -> (on5'= false) &
+	                      (clkR5'= exponential(alpha0));
+	[r5!] !on5 @ clkR5 -> (on5'= true) &
+                          (clkF5'= exponential(alpha1)) &
+	                      (clkP5'= exponential(lambda));
+	// -- Production
+	[p5!]  on5 @ clkP5 -> (clkP5'= exponential(lambda));
+endmodule
+
+module S6
+	on6: bool init false;
+	clkF6: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR6: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP6: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f6!]  on6 @ clkF6 -> (on6'= false) &
+	                      (clkR6'= exponential(alpha0));
+	[r6!] !on6 @ clkR6 -> (on6'= true) &
+                          (clkF6'= exponential(alpha1)) &
+	                      (clkP6'= exponential(lambda));
+	// -- Production
+	[p6!]  on6 @ clkP6 -> (clkP6'= exponential(lambda));
+endmodule
+
+module S7
+	on7: bool init false;
+	clkF7: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR7: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP7: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f7!]  on7 @ clkF7 -> (on7'= false) &
+	                      (clkR7'= exponential(alpha0));
+	[r7!] !on7 @ clkR7 -> (on7'= true) &
+                          (clkF7'= exponential(alpha1)) &
+	                      (clkP7'= exponential(lambda));
+	// -- Production
+	[p7!]  on7 @ clkP7 -> (clkP7'= exponential(lambda));
+endmodule
+
+module S8
+	on8: bool init false;
+	clkF8: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR8: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP8: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f8!]  on8 @ clkF8 -> (on8'= false) &
+	                      (clkR8'= exponential(alpha0));
+	[r8!] !on8 @ clkR8 -> (on8'= true) &
+                          (clkF8'= exponential(alpha1)) &
+	                      (clkP8'= exponential(lambda));
+	// -- Production
+	[p8!]  on8 @ clkP8 -> (clkP8'= exponential(lambda));
+endmodule
+
+module S9
+	on9: bool init false;
+	clkF9: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR9: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP9: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f9!]  on9 @ clkF9 -> (on9'= false) &
+	                      (clkR9'= exponential(alpha0));
+	[r9!] !on9 @ clkR9 -> (on9'= true) &
+                          (clkF9'= exponential(alpha1)) &
+	                      (clkP9'= exponential(lambda));
+	// -- Production
+	[p9!]  on9 @ clkP9 -> (clkP9'= exponential(lambda));
+endmodule
+
+module S10
+	on10: bool init false;
+	clkF10: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR10: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP10: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f10!]  on10 @ clkF10 -> (on10'= false) &
+	                         (clkR10'= exponential(alpha0));
+	[r10!] !on10 @ clkR10 -> (on10'= true) &
+                             (clkF10'= exponential(alpha1)) &
+	                         (clkP10'= exponential(lambda));
+	// -- Production
+	[p10!]  on10 @ clkP10 -> (clkP10'= exponential(lambda));
+endmodule
+
+module S11
+	on11: bool init false;
+	clkF11: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR11: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP11: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f11!]  on11 @ clkF11 -> (on11'= false) &
+	                         (clkR11'= exponential(alpha0));
+	[r11!] !on11 @ clkR11 -> (on11'= true) &
+                             (clkF11'= exponential(alpha1)) &
+	                         (clkP11'= exponential(lambda));
+	// -- Production
+	[p11!]  on11 @ clkP11 -> (clkP11'= exponential(lambda));
+endmodule
+
+module S12
+	on12: bool init false;
+	clkF12: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR12: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP12: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f12!]  on12 @ clkF12 -> (on12'= false) &
+	                         (clkR12'= exponential(alpha0));
+	[r12!] !on12 @ clkR12 -> (on12'= true) &
+                             (clkF12'= exponential(alpha1)) &
+	                         (clkP12'= exponential(lambda));
+	// -- Production
+	[p12!] on12 @ clkP12 -> (clkP12'= exponential(lambda));
+endmodule
+
+module S13
+	on13: bool init false;
+	clkF13: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR13: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP13: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f13!]  on13 @ clkF13 -> (on13'= false) &
+	                         (clkR13'= exponential(alpha0));
+	[r13!] !on13 @ clkR13 -> (on13'= true) &
+                             (clkF13'= exponential(alpha1)) &
+	                         (clkP13'= exponential(lambda));
+	// -- Production
+	[p13!]  on13 @ clkP13 -> (clkP13'= exponential(lambda));
+endmodule
+
+module S14
+	on14: bool init false;
+	clkF14: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR14: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP14: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f14!]  on14 @ clkF14 -> (on14'= false) &
+	                         (clkR14'= exponential(alpha0));
+	[r14!] !on14 @ clkR14 -> (on14'= true) &
+                             (clkF14'= exponential(alpha1)) &
+	                         (clkP14'= exponential(lambda));
+	// -- Production
+	[p14!] on14 @ clkP14 -> (clkP14'= exponential(lambda));
+endmodule
+
+module S15
+	on15: bool init false;
+	clkF15: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR15: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP15: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f15!]  on15 @ clkF15 -> (on15'= false) &
+	                         (clkR15'= exponential(alpha0));
+	[r15!] !on15 @ clkR15 -> (on15'= true) &
+                             (clkF15'= exponential(alpha1)) &
+	                         (clkP15'= exponential(lambda));
+	// -- Production
+	[p15!]  on15 @ clkP15 -> (clkP15'= exponential(lambda));
+endmodule
+
+module S16
+	on16: bool init false;
+	clkF16: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR16: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP16: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f16!]  on16 @ clkF16 -> (on16'= false) &
+	                         (clkR16'= exponential(alpha0));
+	[r16!] !on16 @ clkR16 -> (on16'= true) &
+                             (clkF16'= exponential(alpha1)) &
+	                         (clkP16'= exponential(lambda));
+	// -- Production
+	[p16!] on16 @ clkP16 -> (clkP16'= exponential(lambda));
+endmodule
+
+module S17
+	on17: bool init false;
+	clkF17: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR17: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP17: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f17!]  on17 @ clkF17 -> (on17'= false) &
+	                         (clkR17'= exponential(alpha0));
+	[r17!] !on17 @ clkR17 -> (on17'= true) &
+                             (clkF17'= exponential(alpha1)) &
+	                         (clkP17'= exponential(lambda));
+	// -- Production
+	[p17!]  on17 @ clkP17 -> (clkP17'= exponential(lambda));
+endmodule
+
+module S18
+	on18: bool init false;
+	clkF18: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR18: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP18: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f18!]  on18 @ clkF18 -> (on18'= false) &
+	                         (clkR18'= exponential(alpha0));
+	[r18!] !on18 @ clkR18 -> (on18'= true) &
+                             (clkF18'= exponential(alpha1)) &
+	                         (clkP18'= exponential(lambda));
+	// -- Production
+	[p18!]  on18 @ clkP18 -> (clkP18'= exponential(lambda));
+endmodule
+
+module S19
+	on19: bool init false;
+	clkF19: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR19: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP19: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f19!]  on19 @ clkF19 -> (on19'= false) &
+	                         (clkR19'= exponential(alpha0));
+	[r19!] !on19 @ clkR19 -> (on19'= true) &
+                             (clkF19'= exponential(alpha1)) &
+	                         (clkP19'= exponential(lambda));
+	// -- Production
+	[p19!]  on19 @ clkP19 -> (clkP19'= exponential(lambda));
+endmodule
+
+module S20
+	on20: bool init false;
+	clkF20: clock;  // -- Clock for 'F'ailing   ~ exp(alpha1)
+	clkR20: clock;  // -- Clock for 'R'epairing ~ exp(alpha0)
+	clkP20: clock;  // -- Clock for 'P'roducing ~ exp(lambda)
+	// -- Breakdowns
+	[f20!]  on20 @ clkF20 -> (on20'= false) &
+	                         (clkR20'= exponential(alpha0));
+	[r20!] !on20 @ clkR20 -> (on20'= true) &
+                             (clkF20'= exponential(alpha1)) &
+	                         (clkP20'= exponential(lambda));
+	// -- Production
+	[p20!]  on20 @ clkP20 -> (clkP20'= exponential(lambda));
+endmodule
+
+
+///////////////////////////////////////////////////////////////////////
+//
+// -- Buffered server | Keeps track of the 'overflow' and 'reset' events
+// --  + Observer     |
+//
+//  IDEA: several input labels in a single transition
+//        using the syntax
+//
+//        [lab1?,lab2?,...,labn?] precond -> postcond;
+//
+
+module Buffer
+	buf: [0..b];
+	clkS: clock;  // -- Clock for 'S'erver processing ~ exp(mu)
+	srcOn: [0..20] init srcInitOn;  // -- Number of sources 'on'
+	lost:  bool init false;
+	reset: bool init false;
+	// -- Server processing (buffer dequeuing)
+	[] buf  > 1 @ clkS -> (buf'=buf-1) & (clkS'= exponential(mu));
+	[] buf == 1 & srcOn != srcInitOn @ clkS -> (buf'= 0);
+	[] buf == 1 & srcOn == srcInitOn @ clkS -> (buf'= 0) & (reset'= true);
+	// -- Buffer enqueuing
+	[p1?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p1?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p1?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p2?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p2?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p2?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p3?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p3?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p3?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p4?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p4?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p4?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p5?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p5?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p5?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p6?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p6?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p6?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p7?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p7?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p7?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p8?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p8?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p8?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p9?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p9?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p9?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p10?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p10?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p10?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p11?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p11?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p11?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p12?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p12?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p12?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p13?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p13?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p13?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p14?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p14?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p14?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p15?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p15?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p15?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p16?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p16?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p16?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p17?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p17?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p17?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p18?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p18?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p18?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p19?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p19?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p19?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	[p20?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
+	[p20?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p20?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
+	// -- Sources monitoring
+	[f1?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f1?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                         (reset'= true);
+	[r1?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r1?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                         (reset'= true);
+	[f2?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f2?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                         (reset'= true);
+	[r2?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r2?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                         (reset'= true);
+	[f3?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f3?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                         (reset'= true);
+	[r3?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r3?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                         (reset'= true);
+	[f4?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f4?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                         (reset'= true);
+	[r4?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r4?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                         (reset'= true);
+	[f5?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f5?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                         (reset'= true);
+	[r5?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r5?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                         (reset'= true);
+	[f6?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f6?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                         (reset'= true);
+	[r6?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r6?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                         (reset'= true);
+	[f7?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f7?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                         (reset'= true);
+	[r7?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r7?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                         (reset'= true);
+	[f8?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f8?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                         (reset'= true);
+	[r8?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r8?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                         (reset'= true);
+	[f9?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f9?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                         (reset'= true);
+	[r9?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r9?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                          (reset'= true);
+	[f10?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f10?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                          (reset'= true);
+	[r10?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r10?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                          (reset'= true);
+	[f11?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f11?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                          (reset'= true);
+	[r11?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r11?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                          (reset'= true);
+	[f12?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f12?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                          (reset'= true);
+	[r12?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r12?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                          (reset'= true);
+	[f13?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f13?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                          (reset'= true);
+	[r13?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r13?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                          (reset'= true);
+	[f14?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f14?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                          (reset'= true);
+	[r14?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r14?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                          (reset'= true);
+	[f15?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f15?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                          (reset'= true);
+	[r15?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r15?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                          (reset'= true);
+	[f16?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f16?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                          (reset'= true);
+	[r16?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r16?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                          (reset'= true);
+	[f17?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f17?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                          (reset'= true);
+	[r17?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r17?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                          (reset'= true);
+	[f18?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f18?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                          (reset'= true);
+	[r18?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r18?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                          (reset'= true);
+	[f19?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f19?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                          (reset'= true);
+	[r19?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r19?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                          (reset'= true);
+	[f20?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
+	[f20?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
+	                                          (reset'= true);
+	[r20?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
+	[r20?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
+	                                          (reset'= true);
+endmodule
+

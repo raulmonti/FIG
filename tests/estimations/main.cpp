@@ -54,6 +54,7 @@ int main(int argc, char** argv)
 	check_dummy_arguments(argc, const_cast<const char**>(argv));
 
 	//  Compile model and properties   // // // // // // // // // //
+//	build_model("models/atm_queue.sa", "models/atm_queue.pp");
 	build_model("models/tandem_queue.sa", "models/tandem_queue.pp");
 	auto model = fig::ModelSuite::get_instance();
 	if (!model.sealed()) {
@@ -69,7 +70,7 @@ int main(int argc, char** argv)
 	const double precision(0.4);
 	const fig::StoppingConditions stopCriterion(StopCond({std::make_tuple(
 			confidence, precision, true)}));
-	const fig::StoppingConditions timeSpan(std::set<size_t>({120ul}));
+	const fig::StoppingConditions timeSpan(std::set<size_t>({60ul}));
 	std::shared_ptr< fig::SimulationEngine > engine(nullptr);
 
 	//  Standard Monte Carlo     // // // // // // // // // // // //
