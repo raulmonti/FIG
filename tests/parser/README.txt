@@ -25,6 +25,10 @@ Read main.cpp file for an example.
 # TODO
 #############################################
 
+
+DONE    Fix method CompileProperty.
+TODO    Comma separated input labels. 
+
 TODO    When and how to delete static class members as GLOBAL_MODEL_AST for
         example.
         Change * for shared_ptr in static members to avoid memory leaks.

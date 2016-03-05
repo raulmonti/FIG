@@ -245,7 +245,7 @@ CompileProperty(AST* prop)
     assert(prop);
     AST* pprop = prop->get_first(_PPROP);
     if(pprop){
-        vector<AST*> formulas = pprop->get_all_ast(_EXPRESSION);
+        vector<AST*> formulas = pprop->get_list(_EXPRESSION);
         assert(formulas.size() == 2);
         Type t1 = get_type(formulas[0],GLOBAL_PARSING_CONTEXT);
         Type t2 = get_type(formulas[0],GLOBAL_PARSING_CONTEXT);

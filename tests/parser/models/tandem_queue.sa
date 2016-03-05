@@ -68,7 +68,7 @@ module Queue2
 						 (lost'= false) &
 						 (clkExit'= exponential(mu2));
 
-	[pass?] q2 == 0   -> ; //FIXME esto es error!!!! no seteo relojes aca.
+	//[pass?] q2 == 0   -> ; //FIXME esto es error!!!! no seteo relojes aca.
 
     [pass?] 0 < q2 &
 			q2 < c-1  -> (q2'  = q2+1) &
