@@ -226,7 +226,7 @@ std::shared_ptr<Property>
 CompileTransient(AST* prop)
 {
     assert(prop);
-    vector<AST*> formulas = prop->get_all_ast(_EXPRESSION);
+    vector<AST*> formulas = prop->get_list(_EXPRESSION);
     assert(formulas.size() == 2);
     string r0 = formulas[0]->toString();
     string r1 = formulas[1]->toString();

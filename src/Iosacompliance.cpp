@@ -245,7 +245,7 @@ ast2expr( AST* formula, context & c, const parsingContext & pc){
                 else if (b1->lxm == "-") result = result - e2;
                 else if (b1->lxm == "*") result = result * e2;
                 else if (b1->lxm == "/") result = result / e2;
-                else if (b1->lxm == "||") result = result || e2;
+                else if (b1->lxm == "|") result = result || e2;
                 else if (b1->lxm == "&") result = result && e2;
                 else if (b1->lxm == ">") result = result > e2;
                 else if (b1->lxm == "<") result = result < e2;
@@ -257,8 +257,7 @@ ast2expr( AST* formula, context & c, const parsingContext & pc){
                 else if (b1->lxm == "=") result = result == e2;
                 else if (b1->lxm == "!=") result = result != e2;
                 else {
-                    pout << b1->lxm << endl;
-                    assert("Wrong symbol!!!\n" && false);
+                    throw_FigException("Wrong symbol: " + b1->lxm + ".\n");
                 }
             }
         }
