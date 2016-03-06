@@ -54,8 +54,8 @@ int main(int argc, char** argv)
 	check_dummy_arguments(argc, const_cast<const char**>(argv));
 
 	//  Compile model and properties   // // // // // // // // // //
-//	build_model("models/atm_queue.sa", "models/atm_queue.pp");
-	build_model("models/tandem_queue.sa", "models/tandem_queue.pp");
+	build_model("models/atm_queue.sa", "models/atm_queue.pp");
+//	build_model("models/tandem_queue.sa", "models/tandem_queue.pp");
 	auto model = fig::ModelSuite::get_instance();
 	if (!model.sealed()) {
 		std::cerr << "ERROR: failed to build the model.\n";
@@ -73,32 +73,33 @@ int main(int argc, char** argv)
 	const fig::StoppingConditions timeSpan(std::set<size_t>({60ul}));
 	std::shared_ptr< fig::SimulationEngine > engine(nullptr);
 
-	//  Standard Monte Carlo     // // // // // // // // // // // //
-	const std::string flatIfunName("algebraic");
-	model.build_importance_function_flat(flatIfunName, propertyIndex);
-	model.build_thresholds("ams", flatIfunName);
-	engine = model.prepare_simulation_engine("nosplit", flatIfunName);
-	model.estimate(propertyIndex, *engine, timeSpan);
-	//model.estimate(propertyIndex, *engine, stopCriterion);
-	engine = nullptr;
+//	//  Standard Monte Carlo     // // // // // // // // // // // //
+//	const std::string flatIfunName("algebraic");
+//	model.build_importance_function_flat(flatIfunName, propertyIndex);
+//	model.build_thresholds("ams", flatIfunName);
+//	engine = model.prepare_simulation_engine("nosplit", flatIfunName);
+//	model.estimate(propertyIndex, *engine, timeSpan);
+//	//model.estimate(propertyIndex, *engine, stopCriterion);
+//	engine = nullptr;
 
 	//  RESTART with algebraic ad hoc (q2) // // // // // // // //
 	const std::string adhocIfunName("algebraic");
-	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "q2", NamesList({"q2"}), true);
+//	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "q2", NamesList({"q2"}), true);
+	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "buf", NamesList({"buf"}), true);
 	model.build_thresholds("ams", adhocIfunName);
 	engine = model.prepare_simulation_engine("restart", adhocIfunName);
 	//model.estimate(propertyIndex, *engine, timeSpan);
 	model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
 
-	//  RESTART with automatic coupled   // // // // // // // // //
-	const std::string cAutoIfunName("concrete_coupled");
-	model.build_importance_function_auto(cAutoIfunName, propertyIndex);
-	model.build_thresholds("ams", cAutoIfunName);
-	engine = model.prepare_simulation_engine("restart", cAutoIfunName);
-	//model.estimate(propertyIndex, *engine, timeSpan);
-	model.estimate(propertyIndex, *engine, stopCriterion);
-	engine = nullptr;
+//	//  RESTART with automatic coupled   // // // // // // // // //
+//	const std::string cAutoIfunName("concrete_coupled");
+//	model.build_importance_function_auto(cAutoIfunName, propertyIndex);
+//	model.build_thresholds("ams", cAutoIfunName);
+//	engine = model.prepare_simulation_engine("restart", cAutoIfunName);
+//	//model.estimate(propertyIndex, *engine, timeSpan);
+//	model.estimate(propertyIndex, *engine, stopCriterion);
+//	engine = nullptr;
 
 	//  RESTART with automatic split  // // // // // // // // // //
 	const std::string sAutoIfunName("concrete_split");

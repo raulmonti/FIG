@@ -307,11 +307,20 @@ ImportanceFunctionConcreteSplit::build_thresholds(
 		throw_FigException(std::string("importance function \"").append(name())
 						   .append("\" doesn't yet have importance information"));
 
+	// Build translator from ImportanceValue to threshold level
 	std::vector< ImportanceValue >().swap(importance2threshold_);
 	importance2threshold_ = tb.build_thresholds(splitsPerThreshold, *this);
 	assert(!importance2threshold_.empty());
 	assert(importance2threshold_[0] == static_cast<ImportanceValue>(0u));
 	assert(importance2threshold_[0] <= importance2threshold_.back());
+
+	// Update extreme values info
+	// (threshold levels are a non-decreasing function of the importance)
+	minValue_ = importance2threshold_[minValue_];
+	maxValue_ = importance2threshold_[maxValue_];
+	minRareValue_ = importance2threshold_[minRareValue_];
+	assert(minValue_ <= minRareValue_);
+	assert(minRareValue_ <= maxValue_);
 
 	numThresholds_ = importance2threshold_.back();
 	thresholdsTechnique_ = tb.name;

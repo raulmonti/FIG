@@ -94,7 +94,7 @@ public:  // Utils
 	 * @param formulaExprStr String with the new mathematical expression
 	 * @param varnames       Names of variables ocurring in formulaExprStr,
 	 *                       viz. substrings in it that refer to variable names
-	 * @param gState         Global state of the system model, in any valuation
+	 * @param gState         Model's global state in its initial valuation
 	 * @param property       Property identifying the rare states
 	 *
 	 * @note After a successfull invocation this ImportanceFunction

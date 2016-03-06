@@ -138,14 +138,14 @@ protected:  // Attributes for derived classes
 	/// Last used technique to build the importance thresholds in this function
 	std::string thresholdsTechnique_;
 
-	/// Minimum importance assigned during the last assessment
-	ImportanceValue minImportance_;
+	/// Minimum importance/threshold level currently held
+	ImportanceValue minValue_;
 
-	/// Maximum importance assigned during the last assessment
-	ImportanceValue maxImportance_;
+	/// Maximum importance/threshold level currently held
+	ImportanceValue maxValue_;
 
-	/// Importance of the rare state with lowest importance from last assessment
-	ImportanceValue minRareImportance_;
+	/// Importance/Threshold level of the rare state with lowest value
+	ImportanceValue minRareValue_;
 
 	/// Number of thresholds built on last call to build_thresholds()
 	unsigned numThresholds_;
@@ -202,29 +202,29 @@ public:  // Accessors
 	///          empty string otherwise
 	const std::string adhoc_fun() const noexcept;
 
-	/// @copydoc minImportance_
+	/// @copydoc minValue_
 	/// @returns Zero if function doesn't has_importance_info(),
-	///          last minimum ImportanceValue assessed importance otherwise
-	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds were
-	///       built" "in situ" the value returned will be that of the lowest
+	///          last and lowest value assessed otherwise.
+	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
+	///       were already built" then the value returned will be the lowest
 	///       threshold level.
-	ImportanceValue min_importance() const noexcept;
+	ImportanceValue min_value() const noexcept;
 
-	/// @copydoc maxImportance_
+	/// @copydoc maxValue_
 	/// @returns Zero if function doesn't has_importance_info(),
-	///          last maximum ImportanceValue assessed importance otherwise
-	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds were
-	///       built" "in situ" the value returned will be that of the highest
+	///          last and highest value assessed otherwise
+	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
+	///       were already built" the value returned will be the highest
 	///       threshold level.
-	ImportanceValue max_importance() const noexcept;
+	ImportanceValue max_value() const noexcept;
 
-	/// @copydoc minRareImportance_
+	/// @copydoc minRareValue_
 	/// @returns Zero if function doesn't has_importance_info(),
-	///          minimum ImportanceValue of a rare state otherwise
-	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds were
-	///       built" "in situ" the value returned will be the lowest threshold
-	///       level containing a rare state.
-	ImportanceValue min_rare_importance() const noexcept;
+	///          last and lowest value assessed for a rare state otherwise.
+	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
+	///       were already built" the value returned will be the lowest
+	///       threshold level containing a rare state.
+	ImportanceValue min_rare_value() const noexcept;
 
 	/// Whether this instance keeps an internal std::vector<ImportanceValue>,
 	/// i.e. has info for the concrete state space,

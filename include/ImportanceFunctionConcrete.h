@@ -175,8 +175,8 @@ protected:  // Utils for derived classes
 	 * @note To assess again for same index with different strategy or property,
 	 *       release first the internal info through clear(const unsigned&)
 	 *
-	 * @warning The values of the internal inherited attributes minImportance_,
-	 *          maxImportance_ and minRareImportance_ are updated.
+	 * @warning The values of the internal inherited attributes minValue_,
+	 *          maxValue_ and minRareValue_ are updated.
 	 *
 	 * @throw bad_alloc    if system's memory wasn't enough for internal storage
 	 * @throw FigException if there's already importance info for this index

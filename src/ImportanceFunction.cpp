@@ -228,9 +228,9 @@ ImportanceFunction::ImportanceFunction(const std::string& name) :
 	readyForSims_(false),
 	strategy_(""),
 	thresholdsTechnique_(""),
-    minImportance_(static_cast<ImportanceValue>(0u)),
-    maxImportance_(static_cast<ImportanceValue>(0u)),
-    minRareImportance_(static_cast<ImportanceValue>(0u)),
+	minValue_(static_cast<ImportanceValue>(0u)),
+	maxValue_(static_cast<ImportanceValue>(0u)),
+	minRareValue_(static_cast<ImportanceValue>(0u)),
 	numThresholds_(0u),
 	userFun_()
 {
@@ -300,26 +300,23 @@ ImportanceFunction::num_thresholds() const
 
 
 ImportanceValue
-ImportanceFunction::min_importance() const noexcept
+ImportanceFunction::min_value() const noexcept
 {
-    return has_importance_info() ? minImportance_
-                                 : static_cast<ImportanceValue>(0u);
+	return has_importance_info() ? minValue_ : static_cast<ImportanceValue>(0u);
 }
 
 
 ImportanceValue
-ImportanceFunction::max_importance() const noexcept
+ImportanceFunction::max_value() const noexcept
 {
-	return has_importance_info() ? maxImportance_
-								 : static_cast<ImportanceValue>(0u);
+	return has_importance_info() ? maxValue_ : static_cast<ImportanceValue>(0u);
 }
 
 
 ImportanceValue
-ImportanceFunction::min_rare_importance() const noexcept
+ImportanceFunction::min_rare_value() const noexcept
 {
-	return has_importance_info() ? minRareImportance_
-								 : static_cast<ImportanceValue>(0u);
+	return has_importance_info() ? minRareValue_ : static_cast<ImportanceValue>(0u);
 }
 
 
@@ -330,9 +327,9 @@ ImportanceFunction::clear() noexcept
 	readyForSims_ = false;
 	strategy_ = "";
 	thresholdsTechnique_ = "";
-	minImportance_ = static_cast<ImportanceValue>(0u);
-	maxImportance_ = static_cast<ImportanceValue>(0u);
-	minRareImportance_ = static_cast<ImportanceValue>(0u);
+	minValue_ = static_cast<ImportanceValue>(0u);
+	maxValue_ = static_cast<ImportanceValue>(0u);
+	minRareValue_ = static_cast<ImportanceValue>(0u);
 	numThresholds_ = 0u;
 	userFun_.reset();
 }
@@ -345,6 +342,28 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 	minImportance_ = std::numeric_limits<ImportanceValue>::max();
 	maxImportance_ = std::numeric_limits<ImportanceValue>::min();
 	minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
+
+	/**
+	 * @todo FIXME This brute force attack takes too long,
+	 *       big state spaces kill it (e.g. Glasserman's ATM)
+	 *
+	 * Finding these extreme values affects two things:
+	 * 1. RESTART oversampling correction in ConfidenceInterval
+	 * 2. Thresholds builders stopping criterion
+	 *
+	 * Raúl's idea is to explore the "importance space" which is always
+	 * a subset of the state space.
+	 * Issues: a) how to find minRareImportance without looking the states
+	 *         b) how to access each module's importance space
+	 *
+	 * Another workarounds regarding the stopping criterion are:
+	 * 2.1- implement automatic (fixed) thresholds selection,
+	 *      e.g. select one every two importance levels, or skip
+	 *      first three and then use all the rest;
+	 * 2.2- let AMS finish early, viz. when it fails to find new thresholds
+	 *      'N' times, consider last threshold found as the final threshold
+	 *      and return successfully.
+	 */
 
 //	#pragma omp parallel for default(shared) private(gStateCopy) reduction(min:imin,iminRare)
 	for (size_t i = 0ul ; i < state.concrete_size() ; i++) {

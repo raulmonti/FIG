@@ -61,8 +61,8 @@ ImportanceFunctionConcreteCoupled::assess_importance(
                                                   prop,
                                                   strategy,
                                                   importanceInfoIndex_);
-	assert(minImportance_ <= minRareImportance_);
-	assert(minRareImportance_ <= maxImportance_);
+	assert(minValue_ <= minRareValue_);
+	assert(minRareValue_ <= maxValue_);
 	hasImportanceInfo_ = true;
 	strategy_ = strategy;
 }
@@ -88,14 +88,14 @@ ImportanceFunctionConcreteCoupled::build_thresholds(
 		throw_FigException(std::string("importance function \"").append(name())
 						   .append("\" doesn't yet have importance information"));
 
-    // Build translator from importance to threshold-level
+	// Build translator from ImportanceValue to threshold level
     std::vector< ImportanceValue > imp2thr =
             tb.build_thresholds(splitsPerThreshold, *this);
     assert(!imp2thr.empty());
 	assert(imp2thr[0] == static_cast<ImportanceValue>(0u));
 	assert(imp2thr[0] <= imp2thr.back());
 
-    // Replace importance info with the new thresholds info
+	// Replace importance info with the new thresholds info
 	ImportanceVec& impVec = modulesConcreteImportance[importanceInfoIndex_];
 	#pragma omp parallel for default(shared)
     for (size_t i = 0ul ; i < impVec.size() ; i++) {
@@ -103,15 +103,13 @@ ImportanceFunctionConcreteCoupled::build_thresholds(
         impVec[i] = MASK(imp) | imp2thr[UNMASK(imp)];
     }
 
-	// Update limits since old importance values were discarded
-	minImportance_ = imp2thr[0];
-	maxImportance_ = imp2thr.back();
-	minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
-    for (size_t i = 0ul ; i < impVec.size() ; i++)
-		if (IS_RARE_EVENT(impVec[i]) && UNMASK(impVec[i]) < minRareImportance_)
-			minRareImportance_ = UNMASK(impVec[i]);
-	assert(minImportance_ <= minRareImportance_);
-	assert(minRareImportance_ <= maxImportance_);
+	// Update extreme values info
+	// (threshold levels are a non-decreasing function of the importance)
+	minValue_ = imp2thr[minValue_];
+	maxValue_ = imp2thr[maxValue_];
+	minRareValue_ = imp2thr[minRareValue_];
+	assert(minValue_ <= minRareValue_);
+	assert(minRareValue_ <= maxValue_);
 
 	numThresholds_ = imp2thr.back();
 	thresholdsTechnique_ = tb.name;

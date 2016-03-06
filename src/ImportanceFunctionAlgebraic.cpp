@@ -135,11 +135,15 @@ ImportanceFunctionAlgebraic::set_formula(
 	if ("flat" == strategy) {
 		const ImportanceValue importance =
 				importance_of(gState.to_state_instance());
-		minImportance_ = importance;
-		maxImportance_ = importance;
-		minRareImportance_ = importance;
+		minValue_ = importance;
+		maxValue_ = importance;
+		minRareValue_ = importance;
 	} else {
-		find_extreme_values(gState, property);  // *very* CPU intensive
+		/// @todo FIXME compute extreme values using LP from z3
+		///             for current formula and with variable's restrictions.
+		///             Assume minRareValue_ == minValue_ to avoid exploration
+		///             of the whole state space
+		throw_FigException("compute extreme values using LP from z3");
 	}
 	assert(minImportance_ <= minRareImportance_);
 	assert(minRareImportance_ <= maxImportance_);
@@ -176,11 +180,20 @@ ImportanceFunctionAlgebraic::build_thresholds(
 		throw_FigException(std::string("importance function \"").append(name())
 						   .append("\" doesn't yet have importance information"));
 
+	// Build translator from ImportanceValue to threshold level
 	std::vector< ImportanceValue >().swap(importance2threshold_);
 	importance2threshold_ = tb.build_thresholds(splitsPerThreshold, *this);
 	assert(!importance2threshold_.empty());
 	assert(importance2threshold_[0] == static_cast<ImportanceValue>(0u));
 	assert(importance2threshold_[0] <= importance2threshold_.back());
+
+	// Update extreme values info
+	// (threshold levels are a non-decreasing function of the importance)
+	minValue_ = importance2threshold_[minValue_];
+	maxValue_ = importance2threshold_[maxValue_];
+	minRareValue_ = importance2threshold_[minRareValue_];
+	assert(minValue_ <= minRareValue_);
+	assert(minRareValue_ <= maxValue_);
 
 	numThresholds_ = importance2threshold_.back();
 	thresholdsTechnique_ = tb.name;
@@ -221,15 +234,8 @@ ImportanceFunctionAlgebraic::print_out(std::ostream& out,
 void
 ImportanceFunctionAlgebraic::clear() noexcept
 {
-	userFun_.reset();
-	strategy_ = "";
-	hasImportanceInfo_ = false;
 	std::vector< ImportanceValue >().swap(importance2threshold_);
-	thresholdsTechnique_ = "";
-	readyForSims_ = false;
-	minImportance_ = static_cast<ImportanceValue>(0u);
-	maxImportance_ = static_cast<ImportanceValue>(0u);
-	minRareImportance_ = static_cast<ImportanceValue>(0u);
+	ImportanceFunction::clear();
 }
 
 } // namespace fig

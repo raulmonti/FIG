@@ -184,18 +184,16 @@ ThresholdsBuilderAMS::build_thresholds(const unsigned& splitsPerThreshold,
 	assert(thresholds_[0] == impFun.min_importance());
 	assert(thresholds_.back() > impFun.max_importance());
 
-	result.resize(impFun.max_importance() + 1ul);
-	for (ImportanceValue i = impFun.min_importance()
-		 ; i <= impFun.max_importance()
-		 ; i++)
+	result.resize(impFun.max_value() - impFun.min_value() + 1ul);
+	for (ImportanceValue i = impFun.min_value() ; i <= impFun.max_value() ; i++)
 	{
 		while (currThr < thresholds_.size()-1 && i >= thresholds_[currThr+1])
 			currThr++;
 		result[i] = static_cast<ImportanceValue>(currThr);
 	}
 
-	assert(result[impFun.min_importance()] == static_cast<ImportanceValue>(0u));
-	assert(result[impFun.max_importance()] ==
+	assert(result[impFun.min_value()] == static_cast<ImportanceValue>(0u));
+	assert(result[impFun.max_value()] ==
 			static_cast<ImportanceValue>(thresholds_.size()-2));
 	std::vector< ImportanceValue >().swap(thresholds_);  // free mem
 
@@ -208,13 +206,13 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	const unsigned& splitsPerThreshold,
 	const ImportanceFunction& impFun)
 {
-	const ImportanceValue impRange = impFun.max_importance() - impFun.min_importance();
+	const ImportanceValue impRange = impFun.max_value() - impFun.min_value();
 	if (impRange < static_cast<ImportanceValue>(2u)) {
 		// Too few importance levels: default to max possible # of thresholds
 		std::vector< ImportanceValue >(impRange+2u).swap(thresholds_);
-		thresholds_[0u] = impFun.min_importance();
-		thresholds_[1u] = impFun.max_importance();
-		thresholds_[impRange+1u] = impFun.max_importance()
+		thresholds_[0u] = impFun.min_value();
+		thresholds_[1u] = impFun.max_value();
+		thresholds_[impRange+1u] = impFun.max_value()
 								   + static_cast<ImportanceValue>(1u);
 		return;
 	}
@@ -228,13 +226,13 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	unsigned failures(0u);
 	unsigned simEffort(MIN_SIM_EFFORT);
 	std::vector< ImportanceValue >().swap(thresholds_);
-	thresholds_.reserve(impFun.max_importance()/3);
+	thresholds_.reserve((impFun.max_value()-impFun.min_value()) / 5u);
 	auto lesser = [](const Traial& lhs, const Traial& rhs)
 				  { return lhs.level < rhs.level; };
 	TraialsVec traials = get_traials(n_, network, impFun);
 
 	// First AMS iteration is atypical and thus separated from main loop
-	thresholds_.push_back(impFun.min_importance());
+	thresholds_.push_back(impFun.min_value());
 	Traial& kTraial = traials[n_-k_];
 	do {
 		simulate(network, impFun, traials, n_, simEffort);
@@ -242,14 +240,14 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 		kTraial = traials[n_-k_];
 		simEffort *= 2;
     } while (thresholds_.back() == kTraial.level);
-	if (impFun.max_importance() <= kTraial.level)
+	if (impFun.max_value() <= kTraial.level)
 		throw_FigException("first iteration of AMS reached max importance, "
 						   "rare event doesn't seem rare enough.");
 	thresholds_.push_back(kTraial.level);
 	simEffort = MIN_SIM_EFFORT;
 
 	// AMS main loop
-	while (thresholds_.back() < impFun.max_importance()) {
+	while (thresholds_.back() < impFun.max_value()) {
 		// Relaunch all n_-k_ simulations below previously built threshold
 		for (unsigned i = 0u ; i < n_-k_ ; i++)
 			static_cast<Traial&>(traials[i]) = kTraial;
@@ -271,8 +269,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	}
 
 	TraialPool::get_instance().return_traials(traials);
-	thresholds_.push_back(impFun.max_importance()
-						  + static_cast<ImportanceValue>(1u));
+	thresholds_.push_back(impFun.max_value() + static_cast<ImportanceValue>(1u));
 	return;
 
 	exit_with_fail:
