@@ -680,10 +680,9 @@ Parser::rValue(){
         saveNode(_SEPARATOR);
     }else if(accept(EMARK)){
         saveNode(_NEGATION);
-        if(!rExpression()){
+        if(!rValue()){
             string msg("Unexpected word '"+lexemes[pos]+"'.\n");
-            throw FigSyntaxError( msg,lines[pos]
-                                 , columns[pos]);            
+            throw FigSyntaxError( msg,lines[pos], columns[pos]);            
         }
     }else if(accept(MINUS)){
         saveNode(_MINUS);
