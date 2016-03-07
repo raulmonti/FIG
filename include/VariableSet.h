@@ -126,25 +126,24 @@ public:  // Modifiers
 
 	/// @copydoc Variable::operator=()
 	/// @note If 'value' is invalid then it won't be applied
-	virtual VariableSet& operator=(const T_& value);
+	VariableSet& operator=(const T_& value) override final;
 
 	/// @copydoc Variable::assign()
-	virtual void assign(const T_& value);
+	void assign(const T_& value) override final;
 
 public:  // Relational operators
 
 	/// @copydoc Variable::operator==()
-	virtual bool operator==(const Variable<T_>& that) const;
-	virtual bool operator==(const VariableSet<T_>& that) const;
+	bool operator==(const Variable<T_>& that) const override;
+	bool operator==(const VariableSet<T_>& that) const;
 
 	/// @copydoc Variable::is_valid_value()
-	virtual bool is_valid_value(const T_& val) const;
+	bool is_valid_value(const T_& val) const override final;
 
 public:  // Invariant
 
 #ifndef NDEBUG
-	/// @copydoc Variable::assert_invariant()
-	virtual void assert_invariant() const;
+	void assert_invariant() const override;
 #else
 	inline void assert_invariant() const {}
 #endif

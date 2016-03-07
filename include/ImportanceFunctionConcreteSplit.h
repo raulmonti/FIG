@@ -67,6 +67,16 @@ public:
 
 private:
 
+    enum MergeType
+    {
+        NONE,
+        SUMMATION,
+        PRODUCT,
+        MAX,
+        MIN,
+        AD_HOC
+    } mergeStrategy_;
+
 	/// All the \ref ModuleInstance "modules" in the network
 	const std::vector< std::shared_ptr< ModuleInstance > >& modules_;
 

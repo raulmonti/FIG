@@ -104,6 +104,10 @@ protected:
 		/// @throw mu::Parser::exception_type if undefined internal
 		///        mathematical expression.
 		ImportanceValue operator()(const ImportanceVec& localImportances) const;
+
+		/// Return the free variables (or modules) names occurring in our
+		/// expression, viz. the 'varnames' from the last call to set()
+		std::vector< std::string > free_vars() const noexcept;
 	};
 
 public:  // Class attributes
@@ -336,6 +340,8 @@ protected:  // Utils for derived classes
 	 *
 	 * @throw FigException if there was no \ref has_importance_info()
 	 *                     "importance information"
+	 *
+	 * @deprecated Takes too long for large state spaces
 	 */
 	void find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 							 const Property& property);

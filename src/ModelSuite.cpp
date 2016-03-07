@@ -127,10 +127,10 @@ build_empty_confidence_interval(
 			throw_FigException(std::string("invalid CI hint \"").append(hint)
 							   .append("\" for transient property"));
 		// The statistical oversampling incurred here is bounded:
-		//  · from below by splitsPerThreshold ^ minRareImportance,
+		//  · from below by splitsPerThreshold ^ minRareValue,
 		//  · from above by splitsPerThreshold ^ numThresholds.
 		double minStatOversamp = std::pow(splitsPerThreshold,
-										  impFun.min_rare_importance());
+										  impFun.min_rare_value());
 		double maxStatOversamp = std::pow(splitsPerThreshold,
 										  impFun.num_thresholds());
 		ci_ptr->set_statistical_oversampling(maxStatOversamp);

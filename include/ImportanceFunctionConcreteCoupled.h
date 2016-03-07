@@ -80,9 +80,8 @@ public:  // Accessors
 		{
 #       ifndef NDEBUG
 			if (!has_importance_info())
-				throw_FigException(std::string("importance function \"")
-								   .append(name()).append("\" doesn't ")
-								   .append("hold importance information."));
+				throw_FigException("importance function \"" + name() + "\" "
+								   "doesn't hold importance information.");
 			globalStateCopy.copy_from_state_instance(state, true);
 #       else
 			globalStateCopy.copy_from_state_instance(state, false);
@@ -106,9 +105,8 @@ public:  // Accessors
 		{
 #       ifndef NDEBUG
 			if (!ready())
-				throw_FigException(std::string("importance function \"")
-								   .append(name()).append("\" isn't ")
-								   .append("ready for simulations."));
+				throw_FigException("importance function \"" + name() + "\" "
+								   + "isn't ready for simulations.");
 #		endif
 			// Internal vector currently holds threshold levels
 			return UNMASK(info_of(state));
@@ -121,13 +119,12 @@ public:  // Accessors
 		{
 #       ifndef NDEBUG
 			if (!ready())
-				throw_FigException(std::string("importance function \"")
-								   .append(name()).append("\" isn't ")
-								   .append("ready for simulations."));
+				throw_FigException("importance function \"" + name() + "\" "
+								   + "isn't ready for simulations.");
 #		endif
 			// Internal vector currently holds threshold levels
-			assert(val >= min_importance());
-			assert(val <= max_importance());
+			assert(val >= min_value());
+			assert(val <= max_value());
 			return val;
 		}
 

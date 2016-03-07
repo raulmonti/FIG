@@ -137,6 +137,28 @@ Variable<T_>::operator=(Variable<T_>&& that)
 }
 
 
+template< typename T_ >
+T_
+Variable<T_>::inc()
+{
+	T_ oldVal = val();
+	if (offset_+1ul < range_)
+		offset_++;
+	return oldVal;
+}
+
+
+template< typename T_ >
+T_
+Variable<T_>::dec()
+{
+	T_ oldVal = val();
+	if (0ul < offset_)
+		offset_--;
+	return oldVal;
+}
+
+
 // Variable can only be instantiated with following numeric types
 template class Variable< short              >;
 //template class Variable< int                >;  // MuParser can't

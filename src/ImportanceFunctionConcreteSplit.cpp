@@ -30,6 +30,9 @@
 // C++
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // find_if_not()
+#include <numeric>    // std::numeric_limits<>
+#include <unordered_map>
+#include <tuple>
 // FIG
 #include <ImportanceFunctionConcreteSplit.h>
 #include <ThresholdsBuilder.h>
@@ -38,6 +41,110 @@
 // ADL
 using std::begin;
 using std::end;
+
+
+namespace
+{
+
+using fig::ImportanceValue;
+using fig::ImportanceFunction::Formula;
+using fig::ImportanceFunctionConcreteSplit::MergeType;
+
+/// ImportanceValue extremes: (minValue_, maxValue_, minRareValue_)
+typedef std::tuple< ImportanceValue, ImportanceValue, ImportanceValue > ExtremeValues;
+
+
+/// @todo TODO fill this doc
+std::tuple< ImportanceValue, ImportanceValue, ImportanceValue >
+find_extreme_values(const Formula& f,
+					std::unordered_map< std::string, ExtremeValues> moduleValues)
+{
+	ImportanceValue min(std::numeric_limits<ImportanceValue>::max());
+	ImportanceValue max(std::numeric_limits<ImportanceValue>::min());
+
+
+
+	/// @todo TODO implement following lines of the analogous version
+	///            in ImportanceFunctionAlgebraic.cpp
+
+
+
+	// Assume minRareValue_ == minValue_ to avoid exploring whole state space
+	return std::make_tuple(min, max, min);
+
+	/// @todo TODO The general solution is to use ILP on userFun_
+	///            That'd also compute the real minRareValue_ (and fast!)
+	///            Use <a href="http://dlib.net/">dlib</a> maybe?
+}
+
+
+/// @todo TODO fill this doc
+std::tuple< ImportanceValue, ImportanceValue, ImportanceValue >
+find_extreme_values(const Formula& f,
+					std::unordered_map< std::string, ExtremeValues> moduleValues,
+					const MergeType& mergeStrategy)
+{
+	ImportanceValue min, max, minR;
+
+	switch (mergeStrategy) {
+
+	case MergeType::SUMMATION:
+		min = static_cast<ImportanceValue>(0u);
+		max = static_cast<ImportanceValue>(0u);
+		minR = static_cast<ImportanceValue>(0u);
+		for (const auto& e: moduleValues) {
+			min += std::get<0>(e.second);
+			max += std::get<1>(e.second);
+			minR += std::get<2>(e.second);
+		}
+		break;
+
+	case MergeType::PRODUCT:
+		min = static_cast<ImportanceValue>(1u);
+		max = static_cast<ImportanceValue>(1u);
+		minR = static_cast<ImportanceValue>(1u);
+		for (const auto& e: moduleValues) {
+			min *= std::get<0>(e.second);
+			max *= std::get<1>(e.second);
+			minR *= std::get<2>(e.second);
+		}
+		break;
+
+	case MergeType::MAX:
+		min = std::numeric_limits<ImportanceValue>::min();
+		max = std::numeric_limits<ImportanceValue>::min();
+		minR = std::numeric_limits<ImportanceValue>::min();
+		for (const auto& e: moduleValues) {
+			min = std::max(min, std::get<0>(e.second));
+			max = std::max(max, std::get<1>(e.second));
+			minR = std::max(minR, std::get<2>(e.second));
+		}
+		break;
+
+	case MergeType::MIN:
+		min = std::numeric_limits<ImportanceValue>::max();
+		max = std::numeric_limits<ImportanceValue>::max();
+		minR = std::numeric_limits<ImportanceValue>::max();
+		for (const auto& e: moduleValues) {
+			min = std::min(min, std::get<0>(e.second));
+			max = std::min(max, std::get<1>(e.second));
+			minR = std::min(minR, std::get<2>(e.second));
+		}
+		break;
+
+	case MergeType::AD_HOC:
+		return find_extreme_values(f, moduleValues);
+
+	default:
+		throw_FigException("unrecognized merge function strategy: "
+						   + std::to_string(mergeStrategy));
+	}
+
+	return std::make_tuple(min, max, minR);
+}
+
+} // namespace
+
 
 
 namespace fig
@@ -62,6 +169,7 @@ std::vector< unsigned > ImportanceFunctionConcreteSplit::globalVarsIPos;
 ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 	const ModuleNetwork &model) :
 		ImportanceFunctionConcrete("concrete_split", model.global_state()),
+		mergeStrategy_(MergeType::NONE),
 		modules_(model.modules),
 		numModules_(model.modules.size()),
 		localValues_(numModules_),
@@ -196,13 +304,15 @@ ImportanceFunctionConcreteSplit::set_merge_fun(std::string mergeFunExpr)
 	}
 	if (mergeFunExpr.length() <= 3ul)  // given an operand => make it a function
 		mergeFunExpr = compose_merge_function(modulesNames, mergeFunExpr);
+	else
+		mergeStrategy_ = MergeType::AD_HOC;
+	assert(MergeType::NONE != mergeStrategy_);
 	try {
 		userFun_.set(mergeFunExpr, modulesNames, modulesMap);
 	} catch (std::out_of_range& e) {
-		throw_FigException(std::string("something went wrong while setting ")
-						   .append(" the merge function \"").append(mergeFunExpr)
-						   .append("\" for auto split importance assessment: ")
-						   .append(e.what()));
+		throw_FigException("something went wrong while setting the merge "
+						   "function \"" + mergeFunExpr + "\" for auto split "
+						   "importance assessment: " + e.what());
 	}
 }
 
@@ -214,14 +324,20 @@ ImportanceFunctionConcreteSplit::compose_merge_function(
 {
 	if (std::find(begin(mergeOperands), end(mergeOperands), trim(mergeOperand))
 			== end(mergeOperands))
-		throw_FigException(std::string("invalid merge operand passed (\"")
-						   .append(mergeOperand).append("\") to combine the ")
-						   .append("importance values in split importance ")
-						   .append("function. See valid options in Importance")
-						   .append("FunctionConcreteSplit::mergeOperands"));
+		throw_FigException("invalid merge operand passed (\"" + mergeOperand
+						   + "\") to combine the importance values in split "
+						   "importance function. See valid options in "
+						   "ImportanceFunctionConcreteSplit::mergeOperands");
 	std::string mergeFun;
 	if (mergeOperand.length() == 1ul) {
 		// Must be either '+' or '*'
+		if (mergeOperand == "+")
+			mergeStrategy_ = MergeType::SUMMATION;
+		else if (mergeOperand == "*")
+			mergeStrategy_ = MergeType::PRODUCT;
+		else
+			throw_FigException("invalid merge operand passed (\""
+							   + mergeOperand + "\")");
 		const std::string op(std::string(" ")
 							 .append(trim(mergeOperand))
 							 .append(" "));
@@ -230,7 +346,13 @@ ImportanceFunctionConcreteSplit::compose_merge_function(
 		mergeFun.resize(mergeFun.size() - op.length());
 	} else {
 		// Must be either 'max' or 'min'
-		assert(mergeOperand.length() == 3ul);
+		if (mergeOperand == "max")
+			mergeStrategy_ = MergeType::MAX;
+		else if (mergeOperand == "min")
+			mergeStrategy_ = MergeType::MIN;
+		else
+			throw_FigException("invalid merge operand passed (\""
+							   + mergeOperand + "\")");
 		const std::string op(trim(mergeOperand).append("("));
 		for (const auto& mName: modulesNames)
 			mergeFun.append(op).append(mName).append(", ");
@@ -252,22 +374,24 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	if ("flat" == strategy)
 		set_merge_fun("+");
 	if (userFun_.expression().length() < numModules_)
-		throw_FigException(std::string("can't assess importance in function \"")
-						   .append(name()).append("\" since current merging ")
-						   .append(" function is invalid (\"")
-						   .append(userFun_.expression()).append("\")"));
+		throw_FigException("can't assess importance in function \"" + name()
+						   + "\" since current merging function is invalid (\""
+						   + userFun_.expression() + "\")");
 	if (hasImportanceInfo_)
 		ImportanceFunctionConcrete::clear();
 	modulesConcreteImportance.resize(numModules_);
 
 	// Assess each module importance individually from the rest
+	std::unordered_map< std::string, ExtremeValues > moduleValues(numModules_);
 	for (size_t index = 0ul ; index < numModules_ ; index++) {
 		ImportanceFunctionConcrete::assess_importance(*modules_[index],
 													  prop,
 													  strategy,
 													  index);
-		assert(minImportance_ <= minRareImportance_);
-		assert(minRareImportance_ <= maxImportance_);
+		assert(minValue_ <= minRareValue_);
+		assert(minRareValue_ <= maxValue_);
+		moduleValues[modules_[index]->name()] =
+				std::make_tuple(minValue_, maxValue_, minRareValue_);
 	}
 	hasImportanceInfo_ = true;
 	strategy_ = strategy;
@@ -276,14 +400,15 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	if ("flat" == strategy) {
 		const ImportanceValue importance =
 				importance_of(globalStateCopy.to_state_instance());
-		minImportance_ = importance;
-		maxImportance_ = importance;
-		minRareImportance_ = importance;
+		minValue_ = importance;
+		maxValue_ = importance;
+		minRareValue_ = importance;
 	} else {
-		find_extreme_values(globalStateCopy, prop);  // *very* CPU intensive
+		std::tie(minValue_, maxValue_, minRareValue_) =
+				::find_extreme_values(userFun_, moduleValues, mergeStrategy_);
 	}
-	assert(minImportance_ <= minRareImportance_);
-	assert(minRareImportance_ <= maxImportance_);
+	assert(minValue_ <= minRareValue_);
+	assert(minRareValue_ <= maxValue_);
 }
 
 

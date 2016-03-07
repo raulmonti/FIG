@@ -437,8 +437,8 @@ ImportanceFunctionConcrete::assess_importance(
 	if (modulesConcreteImportance.size() <= index)
 		modulesConcreteImportance.resize(index+1);
     else if (modulesConcreteImportance[index].size() > 0ul)
-		throw_FigException(std::string("importance info already exists at ")
-						   .append(" position").append(std::to_string(index)));
+		throw_FigException("importance info already exists at position "
+						  + std::to_string(index));
 
 	// Compute importance according to the chosen strategy
 	if ("flat" == strategy) {
@@ -467,10 +467,9 @@ ImportanceFunctionConcrete::assess_importance(
                            "defined formula expression; this routine should "
                            "not have been invoked for such strategy.");
 	} else {
-		throw_FigException(std::string("unrecognized importance assessment ")
-						   .append("strategy \"").append(strategy).append("\"")
-						   .append(". See available options with ModelSuite::")
-						   .append("available_importance_strategies()"));
+		throw_FigException("unrecognized importance assessment strategy \""
+						   + strategy + "\". See available options with "
+						   "ModelSuite::available_importance_strategies()");
 	}
 }
 

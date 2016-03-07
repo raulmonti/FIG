@@ -34,6 +34,11 @@
 #include <string>
 #include <cassert>
 
+/// @todo TODO erase useless includes
+#include <Variable.h>
+#include <VariableSet.h>
+#include <VariableInterval.h>
+
 #include <fig.h>
 
 // using std::make_tuple;

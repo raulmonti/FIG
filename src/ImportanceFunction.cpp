@@ -219,6 +219,16 @@ ImportanceFunction::Formula::operator()(const ImportanceVec& localImportances) c
 }
 
 
+std::vector< std::string >
+ImportanceFunction::Formula::free_vars() const noexcept
+{
+	std::vector< std::string > freeVariables(varsMap_.size());
+	for (size_t i = 0ul ; i < varsMap_.size() ; i++)
+		freeVariables[i] = varsMap_[i].first;
+	return freeVariables;
+}
+
+
 
 // ImportanceFunction class member functions
 
