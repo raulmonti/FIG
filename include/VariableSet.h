@@ -119,8 +119,10 @@ public:  // Ctors/Dtor
 
 public:  // Accessors
 
-	inline T_ val() const noexcept { return values_[Variable<T_>::offset_]; }
-	inline T_ val(const size_t& offset) const { return values_[offset]; }
+	inline T_ val() const noexcept override final
+		{ return values_[Variable<T_>::offset_]; }
+	inline T_ val(const size_t& offset) const override final
+		{ return values_[offset]; }
 
 public:  // Modifiers
 
@@ -145,7 +147,7 @@ public:  // Invariant
 #ifndef NDEBUG
 	void assert_invariant() const override;
 #else
-	inline void assert_invariant() const {}
+	inline void assert_invariant() const override {}
 #endif
 };
 

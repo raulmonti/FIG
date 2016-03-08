@@ -148,7 +148,7 @@ public:  // Invariant
 	 * @brief Is this instance a "ready to use" variable?
 	 * @note False for fresh variables!
 	 */
-	inline void assert_invariant() const
+	inline virtual void assert_invariant() const
 		{
 			assert(!name_.empty());
 			assert(min_ <= ini_);
@@ -156,7 +156,7 @@ public:  // Invariant
 			assert(offset_ < range_);
 		}
 #else
-	inline void assert_invariant() const {}
+	inline virtual void assert_invariant() const {}
 #endif
 };
 

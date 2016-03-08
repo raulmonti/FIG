@@ -69,20 +69,20 @@ public:  // Ctor/Dtor
 
 public:  // Accessors
 
-	inline virtual bool concrete() const noexcept { return false; }
+	inline bool concrete() const noexcept override final { return false; }
 
 	/// @copydoc ImportanceFunction::importance_of()
 	/// @note <b>Complexity:</b> <i>O(size(state))</i> +
 	///                          <i>O(mu::Parser::Eval(state))</i>
-	virtual ImportanceValue importance_of(const StateInstance& state) const;
+	ImportanceValue importance_of(const StateInstance& state) const override;
 
 	/// @copydoc ImportanceFunction::level_of(const StateInstance&)
 	/// @note <b>Complexity:</b> same as ImportanceFunctionAlgebraic::importance_of()
-	virtual ImportanceValue level_of(const StateInstance& state) const;
+	ImportanceValue level_of(const StateInstance& state) const override;
 
-	virtual ImportanceValue level_of(const ImportanceValue& val) const;
+	ImportanceValue level_of(const ImportanceValue& val) const override;
 
-	virtual void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE> s) const;
+	void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE> s) const override;
 
 public:  // Utils
 
@@ -111,10 +111,10 @@ public:  // Utils
 					 const State<STATE_INTERNAL_TYPE>& gState,
 					 const Property& property);
 
-	virtual void build_thresholds(ThresholdsBuilder& tb,
-								  const unsigned& splitsPerThreshold);
+	void build_thresholds(ThresholdsBuilder& tb,
+						  const unsigned& splitsPerThreshold) override;
 
-	virtual void clear() noexcept;
+	void clear() noexcept override;
 };
 
 } // namespace fig

@@ -181,8 +181,8 @@ ThresholdsBuilderAMS::build_thresholds(const unsigned& splitsPerThreshold,
 
 	build_thresholds_vector(splitsPerThreshold, impFun);
 	assert(!thresholds_.empty());
-	assert(thresholds_[0] == impFun.min_importance());
-	assert(thresholds_.back() > impFun.max_importance());
+	assert(thresholds_[0] == impFun.min_value());
+	assert(thresholds_.back() > impFun.max_value());
 
 	result.resize(impFun.max_value() - impFun.min_value() + 1ul);
 	for (ImportanceValue i = impFun.min_value() ; i <= impFun.max_value() ; i++)
@@ -220,7 +220,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 	tune(network.concrete_state_size(),
 		 network.num_transitions(),
-		 impFun.max_importance(),
+		 impFun.max_value() - impFun.min_value(),
 		 splitsPerThreshold);
 
 	unsigned failures(0u);
@@ -246,6 +246,9 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	thresholds_.push_back(kTraial.level);
 	simEffort = MIN_SIM_EFFORT;
 
+	/// @todo TODO erase debug print
+	std::cerr << "First threshold: " << thresholds_.back() << std::endl;
+
 	// AMS main loop
 	while (thresholds_.back() < impFun.max_value()) {
 		// Relaunch all n_-k_ simulations below previously built threshold
@@ -260,7 +263,11 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 			thresholds_.push_back(kTraial.level);
 			simEffort = MIN_SIM_EFFORT;
 			failures = 0u;
-        } else {
+
+	/// @todo TODO erase debug print
+	std::cerr << "New threshold: " << thresholds_.back() << std::endl;
+
+		} else {
 			// Failed to reach higher importance => increase effort
 			if (++failures > MAX_NUM_FAILURES)
 				goto exit_with_fail;

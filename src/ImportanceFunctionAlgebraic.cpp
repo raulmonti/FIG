@@ -52,9 +52,9 @@ namespace
 {
 
 using fig::ImportanceValue;
-using fig::ImportanceFunction::Formula;
-using State = fig::State< fig::STATE_INTERNAL_TYPE >;
-using Variable = fig::Variable< fig::STATE_INTERNAL_TYPE >;
+using Formula = fig::ImportanceFunction::Formula;
+typedef fig::State< fig::STATE_INTERNAL_TYPE > State;
+typedef std::shared_ptr< fig::Variable< fig::STATE_INTERNAL_TYPE > > VariablePtr;
 
 
 /**
@@ -63,28 +63,30 @@ using Variable = fig::Variable< fig::STATE_INTERNAL_TYPE >;
  *
  *        Following the order of the variables defined in vars, find the
  *        first one in 's' whose value isn't maximal and increment it.
- *        All variables bypassed (whose value was maximal) are reset
- *        to their minimal values. This represents an increase in the
- *        concrete value of 's' but following 'vars' variables ordering.
+ *        All bypassed variables (whose value was maximal) are reset
+ *        to their minimal values. This represents a single increment in
+ *        the concrete value of 's' but following 'vars' variables ordering.
  *
- * @throw FigException if no variable from 'vars' can be incremented in 's'
+ * @return Whether a Variable could be incremented
  */
-void advance(const std::vector< std::string >& vars, State& s)
+bool advance(const std::vector< std::string >& vars, State& s)
 {
 	unsigned vpos(0u);
-	std::shared_ptr< Variable > var_p = s[vars[vpos]];
+	VariablePtr var_p(nullptr);// = s[vars[vpos]];
 	// Find next variable whose value can be incremented (following 'vars' order)
-	while (var_p->val() == var_p->max() && vpos < vars.size())
-		var_p = s[vars[++vpos]];
+	do {
+		var_p = s[vars[vpos]];
+	} while (var_p->val() == var_p->max() && ++vpos < vars.size());
 	if (vpos >= vars.size())
-		throw_FigException("couldn't increment any variable in given state");
+		return false;
 	// Increment its value
 	var_p->inc();
 	// Reset previous variables (according to 'vars' order) to their minimal values
 	for (unsigned i = 0ul ; i < vpos ; i++) {
 		var_p = s[vars[i]];
-		var_p->val() = var_p->min();
+		(*var_p) = var_p->min();
 	}
+	return true;
 }
 
 
@@ -94,9 +96,9 @@ void advance(const std::vector< std::string >& vars, State& s)
  *
  *        All values combinations of the variables used in the formula
  *        are tested, for the possibilities specified in State 's'.
- *        From all the resulting evaluations of the Formula 'f'
- *        the minimal value is returned as the first component of the tuple
- *        and the maximal value is returned as the second component.
+ *        From all the resulting evaluations of the Formula 'f' the minimal
+ *        value is returned as the first component of the pair and the maximal
+ *        value as the second component.
  *
  * @param f  User defined algebraic formula (aka: ad hoc function)
  * @param s  Global state of the system model
@@ -115,15 +117,13 @@ find_extreme_values(const Formula& f, State s)
 	ImportanceValue min(std::numeric_limits<ImportanceValue>::max());
 	ImportanceValue max(std::numeric_limits<ImportanceValue>::min());
 	const std::vector< std::string > vars(f.free_vars());
-	size_t checked(0ul), last(1ul);
 
 	// Initialize (in 's') all relevant variables to their minimal values
 	for (const auto& var: vars) {
-		std::shared_ptr< Variable > var_p = s[var];
+		VariablePtr var_p = s[var];
 		if (nullptr == var_p)
 			throw_FigException("variable \"" + var + "\" not found in state");
 		(*var_p) = var_p->min();
-		last *= var_p->range();
 	}
 
 	// Test all values combinations for the relevant variables
@@ -131,8 +131,7 @@ find_extreme_values(const Formula& f, State s)
 		ImportanceValue imp = f(s.to_state_instance());
 		min = std::min(min, imp);
 		max = std::max(max, imp);
-		advance(vars, s);
-	} while (++checked < last);
+	} while (advance(vars, s));
 
 	return std::make_pair(min, max);
 }

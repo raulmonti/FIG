@@ -349,9 +349,9 @@ void
 ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 										const Property& property)
 {
-	minImportance_ = std::numeric_limits<ImportanceValue>::max();
-	maxImportance_ = std::numeric_limits<ImportanceValue>::min();
-	minRareImportance_ = std::numeric_limits<ImportanceValue>::max();
+	ImportanceValue minI = std::numeric_limits<ImportanceValue>::max();
+	ImportanceValue maxI = std::numeric_limits<ImportanceValue>::min();
+	ImportanceValue minrI = std::numeric_limits<ImportanceValue>::max();
 
 	/**
 	 * @todo FIXME This brute force attack takes too long,
@@ -363,7 +363,7 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 	 *
 	 * Raúl's idea is to explore the "importance space" which is always
 	 * a subset of the state space.
-	 * Issues: a) how to find minRareImportance without looking the states
+	 * Issues: a) how to find minRareValue without looking the states
 	 *         b) how to access each module's importance space
 	 *
 	 * Another workarounds regarding the stopping criterion are:
@@ -375,23 +375,25 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 	 *      and return successfully.
 	 */
 
-//	#pragma omp parallel for default(shared) private(gStateCopy) reduction(min:imin,iminRare)
+	#pragma omp parallel for default(shared) private(state) reduction(min:minI,minrI)
 	for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
 		const StateInstance symbState = state.decode(i).to_state_instance();
 		const ImportanceValue importance = importance_of(symbState);
-		minImportance_ = importance < minImportance_ ? importance
-													 : minImportance_;
-		if (property.is_rare(symbState) && importance < minRareImportance_)
-			minRareImportance_ = importance;
+		minI = importance < minI ? importance : minI;
+		if (property.is_rare(symbState) && importance < minrI)
+			minrI = importance;
 	}
 
-//	#pragma omp parallel for default(shared) private(gStateCopy) reduction(max:imax)
+	#pragma omp parallel for default(shared) private(state) reduction(max:maxI)
 	for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
 		const ImportanceValue importance =
                 importance_of(state.decode(i).to_state_instance());
-		maxImportance_ = importance > maxImportance_ ? importance
-													 : maxImportance_;
+		maxI = importance > maxI ? importance : maxI;
 	}
+
+	minValue_ = minI;
+	maxValue_ = maxI;
+	minRareValue_ = minrI;
 }
 
 } // namespace fig

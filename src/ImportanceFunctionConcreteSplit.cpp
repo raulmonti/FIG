@@ -47,27 +47,90 @@ namespace
 {
 
 using fig::ImportanceValue;
-using fig::ImportanceFunction::Formula;
-using fig::ImportanceFunctionConcreteSplit::MergeType;
+using Formula = fig::ImportanceFunction::Formula;
+using ImportanceVec = fig::ImportanceFunction::ImportanceVec;
+using MergeType = fig::ImportanceFunctionConcreteSplit::MergeType;
 
 /// ImportanceValue extremes: (minValue_, maxValue_, minRareValue_)
-typedef std::tuple< ImportanceValue, ImportanceValue, ImportanceValue > ExtremeValues;
+typedef std::tuple< ImportanceValue, ImportanceValue, ImportanceValue >
+	ExtremeValues;
+/// ImportanceValue extremes per Module
+typedef std::unordered_map< std::string, ExtremeValues >
+	ModulesExtremeValues;
 
 
-/// @todo TODO fill this doc
-std::tuple< ImportanceValue, ImportanceValue, ImportanceValue >
-find_extreme_values(const Formula& f,
-					std::unordered_map< std::string, ExtremeValues> moduleValues)
+/**
+ * @brief Increment the next possible ImportanceValue
+ *
+ *        Following the order of the values defined in 'moduleValues',
+ *        find the first one which isn't maximal and increment it.
+ *        All bypassed values (whose value was maximal) are reset
+ *        to their minimal expression. This represents a single increment
+ *        in the "concrete value of 'values'".
+ *
+ * @return Whether a value could be incremented
+ */
+bool advance(const ModulesExtremeValues& moduleValues, ImportanceVec& values)
+{
+	unsigned pos(0ul);
+	// Find next value (according to 'moduleValues' order)
+	// which can be incremented
+	for (const auto& e: moduleValues) {
+		if (values[pos] < std::get<1>(e.second))
+			break;
+		pos++;
+	}
+	if (pos >= moduleValues.size())
+		return false;
+	// Increment it
+	values[pos]++;
+	// Reset previous values (according to 'moduleValues' order) to minimums
+	unsigned i(0u);
+	for (const auto& e: moduleValues)
+		if (i < pos)
+			values[i++] = std::get<0>(e.second);
+	return true;
+}
+
+
+/**
+ * @brief Find extreme values of given \ref fig::ImportanceFunction::Formula
+ *        "algebraic formula"
+ *
+ *        All possible combination of values in the [min,max] ranges provided
+ *        per module are tested. From the resulting evaluations of the Formula
+ *        'f' the minimal value is returned as the first component of the tuple,
+ *        the maximal value as the second component and the minRare value as
+ *        the third component.
+ *
+ * @param f  Algebraic formula used to merge the modules importance values
+ * @param moduleValues Extreme values (i.e. (min, max, minRare)) of every module
+ *
+ * @return (min,max,minRare) evaluations of 'f' for all possible combination
+ *         of values from the [min,max] ranges provided per module
+ *
+ * @note <b>Complexity:</b> too complicated to explain in docstring. Much less
+ *                          than <i>O(globalState.concrete_size())</i> anyway.
+ */
+ExtremeValues
+find_extreme_values(const Formula& f, const ModulesExtremeValues& moduleValues)
 {
 	ImportanceValue min(std::numeric_limits<ImportanceValue>::max());
 	ImportanceValue max(std::numeric_limits<ImportanceValue>::min());
+	ImportanceVec values(moduleValues.size());
 
+	// Initialize importance values to the minimal value of each Module
+	// Notice the order in 'values' will follow that of 'moduleValues'
+	size_t i(0ul);
+	for (const auto& e: moduleValues)
+		values[i++] = std::get<0>(e.second);
 
-
-	/// @todo TODO implement following lines of the analogous version
-	///            in ImportanceFunctionAlgebraic.cpp
-
-
+	// Test all values combinations for the relevant variables
+	do {
+		ImportanceValue imp = f(values);
+		min = std::min(min, imp);
+		max = std::max(max, imp);
+	} while (advance(moduleValues, values));
 
 	// Assume minRareValue_ == minValue_ to avoid exploring whole state space
 	return std::make_tuple(min, max, min);
@@ -78,10 +141,23 @@ find_extreme_values(const Formula& f,
 }
 
 
-/// @todo TODO fill this doc
-std::tuple< ImportanceValue, ImportanceValue, ImportanceValue >
+/**
+ * @brief Find extreme importance values (i.e. min, max and minRare)
+ *        of the composition of the values computed for each Module,
+ *        for the specified merge strategy and algebraic formula.
+ *
+ * @param f Algebraic formula used to merge the modules importance values
+ * @param moduleValues Extreme values (i.e. (min, max, minRare)) of every module
+ * @param mergeStrategy MergeType used to merge the modules importance values
+ *
+ * @return (min,max,minRare) evaluations of 'f' for all possible combination
+ *         of importance values of the modules
+ *
+ * @throw FigException for invalid MergeType
+ */
+ExtremeValues
 find_extreme_values(const Formula& f,
-					std::unordered_map< std::string, ExtremeValues> moduleValues,
+					const ModulesExtremeValues& moduleValues,
 					const MergeType& mergeStrategy)
 {
 	ImportanceValue min, max, minR;
@@ -169,11 +245,11 @@ std::vector< unsigned > ImportanceFunctionConcreteSplit::globalVarsIPos;
 ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 	const ModuleNetwork &model) :
 		ImportanceFunctionConcrete("concrete_split", model.global_state()),
-		mergeStrategy_(MergeType::NONE),
 		modules_(model.modules),
 		numModules_(model.modules.size()),
 		localValues_(numModules_),
 		localStatesCopies_(numModules_),
+		mergeStrategy_(MergeType::NONE),
 		importance2threshold_()
 {
 	bool initialize(false);  // initialize (non-const) static class members?
@@ -204,9 +280,8 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 {
 #ifndef NDEBUG
 	if (!has_importance_info())
-		throw_FigException(std::string("importance function \"")
-						   .append(name()).append("\" doesn't ")
-						   .append("hold importance information."));
+		throw_FigException("importance function \"" + name() + "\" "
+						   "doesn't hold importance information");
 #endif
     Event e(EventType::RARE | EventType::STOP | EventType::REFERENCE);
     // Gather the local ImportanceValue of each module
@@ -233,9 +308,8 @@ ImportanceFunctionConcreteSplit::importance_of(const StateInstance& state) const
 {
 #ifndef NDEBUG
 	if (!has_importance_info())
-		throw_FigException(std::string("importance function \"")
-						   .append(name()).append("\" doesn't ")
-						   .append("hold importance information."));
+		throw_FigException("importance function \"" + name() + "\" "
+						   "doesn't hold importance information");
 #endif
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		auto& localState = localStatesCopies_[i];
@@ -382,7 +456,7 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	modulesConcreteImportance.resize(numModules_);
 
 	// Assess each module importance individually from the rest
-	std::unordered_map< std::string, ExtremeValues > moduleValues(numModules_);
+	ModulesExtremeValues moduleValues(numModules_);
 	for (size_t index = 0ul ; index < numModules_ ; index++) {
 		ImportanceFunctionConcrete::assess_importance(*modules_[index],
 													  prop,
@@ -390,7 +464,7 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 													  index);
 		assert(minValue_ <= minRareValue_);
 		assert(minRareValue_ <= maxValue_);
-		moduleValues[modules_[index]->name()] =
+		moduleValues[modules_[index]->name] =
 				std::make_tuple(minValue_, maxValue_, minRareValue_);
 	}
 	hasImportanceInfo_ = true;
@@ -450,6 +524,16 @@ ImportanceFunctionConcreteSplit::build_thresholds(
 	numThresholds_ = importance2threshold_.back();
 	thresholdsTechnique_ = tb.name;
 	readyForSims_ = true;
+}
+
+
+void
+ImportanceFunctionConcreteSplit::clear() noexcept
+{
+	ImportanceVec().swap(localValues_);
+	std::vector< State< STATE_INTERNAL_TYPE > >().swap(localStatesCopies_);
+	std::vector< ImportanceValue >().swap(importance2threshold_);
+	ImportanceFunctionConcrete::clear();
 }
 
 } // namespace fig

@@ -68,8 +68,6 @@ public:
 
 	typedef std::vector< ImportanceValue > ImportanceVec;
 
-protected:
-
 	/// Mathematical formula to evaluate an algebraic expression,
 	/// e.g. ad hoc function or combination of split importance values.
 	class Formula : public MathExpression

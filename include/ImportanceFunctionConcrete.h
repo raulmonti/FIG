@@ -82,7 +82,7 @@ public:  // Ctor/Dtor
 
 public:  // Accessors
 
-	inline virtual bool concrete() const noexcept { return true; }
+	inline bool concrete() const noexcept override final { return true; }
 
 	/**
 	 * Retrieve all pre-computed information about the given StateInstance.
@@ -154,7 +154,7 @@ public:  // Utils
 								   const std::vector<std::string>& varnames) = 0;
 
 	/// Erase all internal importance information (free resources along the way)
-	virtual void clear() noexcept;
+	void clear() noexcept override;
 
 protected:  // Utils for derived classes
 

@@ -85,8 +85,8 @@ ImportanceFunctionConcreteCoupled::build_thresholds(
 	const unsigned& splitsPerThreshold)
 {
 	if (!has_importance_info())
-		throw_FigException(std::string("importance function \"").append(name())
-						   .append("\" doesn't yet have importance information"));
+		throw_FigException("importance function \"" + name() + "\" "
+						   "doesn't yet have importance information");
 
 	// Build translator from ImportanceValue to threshold level
     std::vector< ImportanceValue > imp2thr =

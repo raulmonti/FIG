@@ -76,7 +76,7 @@ public:  // Accessors
 	/// @copydoc ImportanceFunctionConcrete::info_of()
 	/// @note Attempted inline in a desperate need for speed
 	/// @note <b>Complexity:</b> <i>O(size(state)<sup>2</sup>)</i>
-	inline virtual ImportanceValue info_of(const StateInstance& state) const
+	inline ImportanceValue info_of(const StateInstance& state) const override
 		{
 #       ifndef NDEBUG
 			if (!has_importance_info())
@@ -93,7 +93,7 @@ public:  // Accessors
 	/// @copydoc ImportanceFunction::importance_of()
 	/// @note Attempted inline in a desperate need for speed
 	/// @note <b>Complexity:</b> <i>O(size(state)<sup>2</sup>)</i>
-	inline virtual ImportanceValue importance_of(const StateInstance& state) const
+	inline ImportanceValue importance_of(const StateInstance& state) const override
 		{
 			return UNMASK(info_of(state));
 		}
@@ -101,7 +101,7 @@ public:  // Accessors
 	/// @copydoc ImportanceFunction::level_of(const StateInstance&)
 	/// @note Attempted inline in a desperate need for speed
 	/// @note <b>Complexity:</b> same as ImportanceFunctionConcreteCoupled::info_of()
-	inline virtual ImportanceValue level_of(const StateInstance &state) const
+	inline ImportanceValue level_of(const StateInstance &state) const override
 		{
 #       ifndef NDEBUG
 			if (!ready())
@@ -115,7 +115,7 @@ public:  // Accessors
 	/// @copydoc ImportanceFunction::level_of(const ImportanceValue&)
 	/// @note Attempted inline in a desperate need for speed
 	/// @note <b>Complexity:</b> <i>O(1)</i>
-	inline virtual ImportanceValue level_of(const ImportanceValue& val) const
+	inline ImportanceValue level_of(const ImportanceValue& val) const override
 		{
 #       ifndef NDEBUG
 			if (!ready())
@@ -128,19 +128,19 @@ public:  // Accessors
 			return val;
 		}
 
-	virtual void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE>) const;
+	void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE>) const override;
 
 public:  // Utils
 
-	virtual void assess_importance(const Property& prop,
-								   const std::string& strategy = "flat");
+	void assess_importance(const Property& prop,
+						   const std::string& strategy = "flat") override;
 
-	virtual void assess_importance(const Property& prop,
-								   const std::string& formulaExprStr,
-								   const std::vector<std::string>& varnames);
+	void assess_importance(const Property& prop,
+						   const std::string& formulaExprStr,
+						   const std::vector<std::string>& varnames) override;
 
-	virtual void build_thresholds(ThresholdsBuilder& tb,
-								  const unsigned& splitsPerThreshold);
+	void build_thresholds(ThresholdsBuilder& tb,
+						  const unsigned& splitsPerThreshold) override;
 };
 
 } // namespace fig
