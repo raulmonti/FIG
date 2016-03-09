@@ -66,6 +66,7 @@
 #include <ConfidenceIntervalProportion.h>
 #include <ConfidenceIntervalWilson.h>
 
+using std::to_string;
 // ADL
 using std::find;
 using std::begin;
@@ -325,7 +326,9 @@ std::unordered_map< std::string, std::shared_ptr< ThresholdsBuilder > >
 std::unordered_map< std::string, std::shared_ptr< SimulationEngine > >
 	ModelSuite::simulators;
 
-std::ostream& ModelSuite::log_(std::cerr);
+std::ostream& ModelSuite::mainLog_(std::cout);
+
+std::ostream& ModelSuite::techLog_(std::cerr);
 
 const ConfidenceInterval* ModelSuite::interruptCI_ = nullptr;
 
@@ -334,11 +337,11 @@ const std::vector< float > ModelSuite::confCoToShow_ = {0.8, 0.9, 0.95, 0.99};
 SignalSetter ModelSuite::SIGINThandler_(SIGINT, [] (const int signal) {
         assert(SIGINT == signal);
         /// @todo TODO: implement proper reentrant logging and discard following shell print
-        std::cerr << "\nCaught SIGINT, stopping estimations.\n";
+		ModelSuite::mainLog_ << "\nCaught SIGINT, stopping estimations.\n";
         if (nullptr != ModelSuite::interruptCI_)
 			interrupt_print(*ModelSuite::interruptCI_,
 							ModelSuite::confCoToShow_,
-							ModelSuite::log_);
+							ModelSuite::mainLog_);
 		std::exit((1<<7)+SIGINT);
     }
 );
@@ -346,11 +349,11 @@ SignalSetter ModelSuite::SIGINThandler_(SIGINT, [] (const int signal) {
 SignalSetter ModelSuite::SIGTERMhandler_(SIGTERM, [] (const int signal) {
         assert(SIGTERM == signal);
         /// @todo TODO: implement proper reentrant logging and discard following shell print
-        std::cerr << "\nCaught SIGTERM, stopping estimations.\n";
+		ModelSuite::mainLog_ << "\nCaught SIGTERM, stopping estimations.\n";
         if (nullptr != ModelSuite::interruptCI_)
 			interrupt_print(*ModelSuite::interruptCI_,
 							ModelSuite::confCoToShow_,
-							ModelSuite::log_);
+							ModelSuite::mainLog_);
 		std::exit((1<<7)+SIGTERM);
     }
 );
@@ -574,20 +577,43 @@ ModelSuite::exists_threshold_technique(const std::string& thrTechnique) const no
 
 
 void
+ModelSuite::main_log(const std::string& msg)
+{
+	mainLog_ << msg;
+}
+
+
+void
+ModelSuite::tech_log(const std::string& msg)
+{
+	techLog_ << msg;
+}
+
+
+void
+ModelSuite::log(const std::string& msg)
+{
+	mainLog_ << msg;
+	techLog_ << msg;
+}
+
+
+void
 ModelSuite::build_importance_function_flat(const std::string& ifunName,
                                            const Property& property,
                                            bool force)
 {
     if (!exists_importance_function(ifunName))
-        throw_FigException(std::string("inexistent importance function \"")
-                           .append(ifunName).append("\". Call \"available_")
-                           .append("importance_functions()\" for a list ")
-                           .append("of available options."));
+		throw_FigException("inexistent importance function \"" + ifunName +
+						   "\". Call \"available_importance_functions()\" "
+						   "for a list of available options.");
 
     ImportanceFunction& ifun = *impFuns[ifunName];
     // "flat" strategy is compatible with all ImportanceFunction derived types
 
     if (force || !ifun.has_importance_info() || "flat" != ifun.strategy()) {
+		techLog_ << "\nBuilding importance function \"" << ifunName
+				 << "\" with \"flat\" assessment strategy.\n";
         ifun.clear();
 		if (ifun.concrete())
 			static_cast<ImportanceFunctionConcrete&>(ifun)
@@ -613,8 +639,7 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
 {
 	auto propertyPtr = get_property(propertyIndex);
 	if (nullptr == propertyPtr)
-		throw_FigException(std::string("no property at index ")
-						   .append(std::to_string(propertyIndex)));
+		throw_FigException("no property at index " + to_string(propertyIndex));
 	build_importance_function_flat(ifunName, *propertyPtr, force);
 }
 
@@ -626,20 +651,20 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 										   bool force)
 {
     if (!exists_importance_function(ifunName))
-        throw_FigException(std::string("inexistent importance function \"")
-                           .append(ifunName).append("\". Call \"available_")
-                           .append("importance_functions()\" for a list ")
-                           .append("of available options."));
+		throw_FigException("inexistent importance function \"" + ifunName +
+						   "\". Call \"available_importance_functions()\" "
+						   "for a list of available options.");
 
     ImportanceFunction& ifun = *impFuns[ifunName];
     if (!ifun.concrete())
-        throw_FigException(std::string("requested to build a non-concrete ")
-                           .append("importance function (\"").append(ifunName)
-                           .append("\") using the \"auto\" importance ")
-                           .append("assessment strategy"));
+		throw_FigException("requested to build a non-concrete importance "
+						   "function (\"" + ifunName + "\") using the "
+						   "\"auto\" importance assessment strategy");
 
     if (force || !ifun.has_importance_info() || "auto" != ifun.strategy()) {
-        ifun.clear();
+		techLog_ << "\nBuilding importance function \"" << ifunName
+				 << "\" with \"auto\" assessment strategy.\n";
+		ifun.clear();
 		if (ifunName == "concrete_split")
 			static_cast<ImportanceFunctionConcreteSplit&>(ifun).set_merge_fun(mergeFun);
 		static_cast<ImportanceFunctionConcrete&>(ifun)
@@ -659,8 +684,7 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 {
     auto propertyPtr = get_property(propertyIndex);
     if (nullptr == propertyPtr)
-        throw_FigException(std::string("no property at index ")
-                           .append(std::to_string(propertyIndex)));
+		throw_FigException("no property at index " + to_string(propertyIndex));
     build_importance_function_auto(ifunName, *propertyPtr, mergeFun, force);
 }
 
@@ -675,16 +699,18 @@ ModelSuite::build_importance_function_adhoc(
     bool force)
 {
     if (!exists_importance_function(ifunName))
-        throw_FigException(std::string("inexistent importance function \"")
-                           .append(ifunName).append("\". Call \"available_")
-                           .append("importance_functions()\" for a list ")
-                           .append("of available options."));
+		throw_FigException("inexistent importance function \"" + ifunName +
+						   "\". Call \"available_importance_functions()\" "
+						   "for a list of available options.");
 
     ImportanceFunction& ifun = *impFuns[ifunName];
     // "adhoc" strategy is compatible with all ImportanceFunction derived types
 
     if (force || !ifun.has_importance_info() || "adhoc" != ifun.strategy()) {
-        ifun.clear();
+		techLog_ << "\nBuilding importance function \"" << ifunName
+				 << "\" with \"adhoc\" assessment strategy (\""
+				 << formulaExprStr << "\")\n";
+		ifun.clear();
         if (ifun.concrete()) {
             std::vector<std::string> varnamesVec(begin(varnames), end(varnames));
             static_cast<ImportanceFunctionConcrete&>(ifun)
@@ -736,8 +762,7 @@ ModelSuite::build_importance_function_adhoc(
 {
 	auto propertyPtr = get_property(propertyIndex);
 	if (nullptr == propertyPtr)
-		throw_FigException(std::string("no property at index ")
-						   .append(std::to_string(propertyIndex)));
+		throw_FigException("no property at index " + to_string(propertyIndex));
 	build_importance_function_adhoc(ifunName,
 									*propertyPtr,
 									formulaExprStr,
@@ -773,28 +798,28 @@ ModelSuite::build_thresholds(const std::string& technique,
 							 bool force)
 {
 	if (!exists_threshold_technique(technique))
-		throw_FigException(std::string("inexistent threshold building ")
-						   .append("technique \"").append(technique)
-						   .append("\". Call \"available_threshold_techniques()")
-						   .append("\" for a list of available options."));
+		throw_FigException("inexistent threshold building technique \"" + technique
+						   + "\". Call \"available_threshold_techniques()"
+							 "\" for a list of available options.");
 	if (!exists_importance_function(ifunName))
-		throw_FigException(std::string("inexistent importance function \"")
-						   .append(ifunName).append("\". Call \"available_")
-						   .append("importance_functions()\" for a list of ")
-						   .append("available options."));
+		throw_FigException("inexistent importance function \"" + ifunName +
+						   "\". Call \"available_importance_functions()\" "
+						   "for a list of available options.");
 
 	ThresholdsBuilder& thrBuilder = *thrBuilders[technique];
 	ImportanceFunction& ifun = *impFuns[ifunName];
 
 	if (!ifun.has_importance_info())
-		throw_FigException(std::string("importance function \"").append(ifunName)
-						   .append("\" doesn't have importance information ")
-                           .append("yet. Call any of the \"build_importance_")
-                           .append("function_xxx()\" routines with \"")
-                           .append(ifunName).append("\" beforehand"));
+		throw_FigException("importance function \"" + ifunName + "\" doesn't "
+						   "have importance information yet. Call any of the "
+						   "\"build_importance_function_xxx()\" routines with "
+						   "\"" + ifunName + "\" beforehand");
 
-	if (force || ifun.thresholds_technique() != technique)
+	if (force || ifun.thresholds_technique() != technique) {
+		techLog_ << "\nBuilding thresholds for importance function \""
+				 << ifunName << "\" using technique \"" << technique << "\"\n";
 		ifun.build_thresholds(thrBuilder, 2u/*splitsPerThreshold?*/);
+	}
 
     assert(ifun.ready());
     assert(technique == ifun.thresholds_technique());
@@ -805,6 +830,8 @@ std::shared_ptr< SimulationEngine >
 ModelSuite::prepare_simulation_engine(const std::string& engineName,
 									  const std::string& ifunName)
 {
+	/// @todo TODO log in techLog_, see "build_thresholds()" above for an example
+
 	if (!exists_simulator(engineName))
 		throw_FigException(std::string("inexistent simulation engine \"")
 						   .append(engineName).append("\". Call \"available_")
@@ -875,13 +902,13 @@ ModelSuite::estimate(const Property& property,
 	const ImportanceFunction& ifun(*impFuns[engine.current_imp_fun()]);
 
 	/// @todo TODO: implement proper log and discard following shell print
-	log_ << "Estimating " << property.expression << ",\n";
-    log_ << " using simulation engine  \"" << engine.name() << "\"\n";
-    log_ << " with importance function \"" << engine.current_imp_fun() << "\"\n";
-    log_ << " built using strategy     \"" << engine.current_imp_strat() << "\" ";
-	log_ << ifun.adhoc_fun() << std::endl;
-	log_ << " # thresholds  = " << ifun.num_thresholds() << "\n";
-	log_ << " and splitting = " << engine.splits_per_threshold() << std::endl;
+	mainLog_ << "Estimating " << property.expression << ",\n";
+	mainLog_ << " using simulation engine  \"" << engine.name() << "\"\n";
+	mainLog_ << " with importance function \"" << engine.current_imp_fun() << "\"\n";
+	mainLog_ << " built using strategy     \"" << engine.current_imp_strat() << "\" ";
+	mainLog_ << ifun.adhoc_fun() << std::endl;
+	mainLog_ << " # thresholds  = " << ifun.num_thresholds() << "\n";
+	mainLog_ << " and splitting = " << engine.splits_per_threshold() << std::endl;
 
 	if (bounds.is_time()) {
 
@@ -894,11 +921,11 @@ ModelSuite::estimate(const Property& property,
 							  *impFuns[engine.current_imp_fun()]);
 			interruptCI_ = ci_ptr.get();  // bad boy
 			/// @todo TODO: implement proper log and discard following shell print
-            log_ << std::setprecision(0) << std::fixed;
-            log_ << "   Estimation time: " << wallTimeInSeconds << " s\n";
+			mainLog_ << std::setprecision(0) << std::fixed;
+			mainLog_ << "   Estimation time: " << wallTimeInSeconds << " s\n";
 			SignalSetter handler(SIGALRM, [&ci_ptr, &timedout] (const int sig){
 				assert(SIGALRM == sig);
-				interrupt_print(*ci_ptr, ModelSuite::confCoToShow_, log_);
+				interrupt_print(*ci_ptr, ModelSuite::confCoToShow_, mainLog_);
 				//ci_ptr->reset();
 				timedout = true;
 			});
@@ -927,16 +954,16 @@ ModelSuite::estimate(const Property& property,
 							  std::get<2>(criterion));
             interruptCI_ = ci_ptr.get();  // bad boy
 			/// @todo TODO: implement proper log and discard following shell print
-            log_ << "   For confidence level: "
-                 << std::setprecision(0) << std::fixed
-                 << 100*ci_ptr->confidence << "%" << std::endl;
-            log_ << "   and precision: ";
+			mainLog_ << "   For confidence level: "
+					 << std::setprecision(0) << std::fixed
+					 << 100*ci_ptr->confidence << "%" << std::endl;
+			mainLog_ << "   and precision: ";
             if (ci_ptr->percent)
-                log_ << std::setprecision(0) << std::fixed
-                     << (200*ci_ptr->errorMargin) << "%\n";
+				mainLog_ << std::setprecision(0) << std::fixed
+						 << (200*ci_ptr->errorMargin) << "%\n";
             else
-                log_ << std::setprecision(2) << std::scientific
-                     << (2*ci_ptr->errorMargin) << "\n";
+				mainLog_ << std::setprecision(2) << std::scientific
+						  << (2*ci_ptr->errorMargin) << "\n";
 			size_t numRuns = min_batch_size(engine.name(), engine.current_imp_fun());
 			double startTime = omp_get_wtime();
 
@@ -944,21 +971,21 @@ ModelSuite::estimate(const Property& property,
 			do {
 				bool increaseBatch = engine.simulate(property, numRuns, *ci_ptr);
 				if (increaseBatch) {
-					log_ << "-";
+					techLog_ << "-";
 					increase_batch_size(numRuns, engine.name(), engine.current_imp_fun());
 				} else {
-					log_ << "+";
+					techLog_ << "+";
 				}
             } while (!ci_ptr->is_valid());
             engine.unlock();
 
-            estimate_print(*ci_ptr, omp_get_wtime()-startTime, log_);
+			estimate_print(*ci_ptr, omp_get_wtime()-startTime, mainLog_);
         }
         interruptCI_ = nullptr;
     }
 
-//    log_ << std::defaultfloat;
-    log_ << std::setprecision(6) << std::fixed;
+//	mainLog_ << std::defaultfloat;
+	mainLog_ << std::setprecision(6) << std::fixed;
 }
 
 

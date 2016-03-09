@@ -67,10 +67,19 @@ public:
 	/// Check ThresholdsBuilder::names for available options.
 	const std::string name;
 
+protected:
+
+	/// Thresholds importance values
+	std::vector< ImportanceValue > thresholds_;
+
 public:
 
 	/// Ctor
 	ThresholdsBuilder(const std::string& thename);
+
+	/// Whether the class builds the thresholds <i>adaptively</i>,
+	/// viz. taking into consideration the user model's semantics
+	virtual bool adaptive() const noexcept = 0;
 
 	/**
 	 * @brief Build thresholds based on given importance function

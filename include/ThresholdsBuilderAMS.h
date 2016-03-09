@@ -32,57 +32,38 @@
 // C++
 #include <vector>
 // FIG
-#include <ThresholdsBuilder.h>
+#include <ThresholdsBuilderAdaptive.h>
 
 
 namespace fig
 {
 
-class ModuleNetwork;
-
 /**
  * @brief ThresholdsBuilder implementing Adaptive Multilevel Splitting (AMS)
  *
- *        AMS is a thresholds building technique which takes its name from
- *        an article published by Cerou and Guyader in 2007.
+ *        AMS is an <i>adaptive</i> thresholds building technique which takes
+ *        its name from an article published by Cerou and Guyader in 2007.
  *        Given a state space and an importance function on it, AMS aims to
  *        locate the thresholds so that all the probabilities 'P_i' are roughly
  *        the same. Here 'P_i' is defined as the conditional probability of a
  *        simulation run traversing the i-th level upwards, that is, going up
  *        the i-th importance threshold having started at the (i-1)-th threshold.
+ *
+ * @see ThresholdsBuilderAdaptive
+ * @see ThresholdsBuilderSMC
  */
-class ThresholdsBuilderAMS : public ThresholdsBuilder
+class ThresholdsBuilderAMS : public ThresholdsBuilderAdaptive
 {
-	/// Number of simulations to launch for threshold construction
-	unsigned n_;
-
-	/// Number of surviving simulations to consider
-	unsigned k_;
-
-	/// Thresholds importance values
-	std::vector< ImportanceValue > thresholds_;
-
-	/**
-	 * @brief Choose values for n_ and k_ depending on the nature of the Module
-	 *        (states and transitions space size) and the simulation.
-	 * @param numStates      Size of the concrete state space in the Module
-	 * @param numTrans       Number of (symbolic) transitions in the Module
-	 * @param maxImportance  Maximum ImportanceValue computed
-	 * @param splitsPerThr   Number of splits upon a threshold level-up
-	 */
-	void tune(const size_t& numStates,
-			  const size_t& numTrans,
-			  const ImportanceValue& maxImportance,
-			  const unsigned& splitsPerThr);
-
 public:
 
 	/// Void ctor
 	ThresholdsBuilderAMS();
 
-	virtual std::vector< ImportanceValue >
-	build_thresholds(const unsigned& splitsPerThreshold,
-					 const ImportanceFunction& impFun);
+	std::vector< ImportanceValue >
+	build_thresholds(const unsigned& n,
+					 const unsigned& k,
+					 const unsigned& splitsPerThreshold,
+					 const ImportanceFunction& impFun) override;
 
 private:  // Class internal helper functions
 

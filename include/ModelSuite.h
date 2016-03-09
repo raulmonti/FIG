@@ -106,9 +106,11 @@ class ModelSuite
 		std::string,
 		std::shared_ptr< SimulationEngine > > simulators;
 
-	/// Log
-	/// @todo TODO: implement more serious logging mechanism
-	static std::ostream& log_;
+	/// Main system log
+	static std::ostream& mainLog_;
+
+	/// Technical system log
+	static std::ostream& techLog_;
 
 	// Interruptions handling
 
@@ -238,8 +240,6 @@ public:  // Accessors
 	 */
 	std::shared_ptr< const Property > get_property(const size_t& i) const noexcept;
 
-public:  // Utils
-
 	/// Names of available simulation engines,
 	/// as they should be requested by the user.
 	const std::vector< std::string >& available_simulators() const;
@@ -256,6 +256,8 @@ public:  // Utils
 	/// as they should be requested by the user.
 	const std::vector< std::string >& available_threshold_techniques() const;
 
+public:  // Utils
+
 	/// Is 'engineName' the name of an available simulation engine?
 	/// @see available_simulators()
 	bool exists_simulator(const std::string& engineName) const noexcept;
@@ -271,6 +273,15 @@ public:  // Utils
 	/// Is 'thrTechnique' an available thresholds building technique?
 	/// @see available_threshold_techniques()
 	bool exists_threshold_technique(const std::string& thrTechnique) const noexcept;
+
+	/// Print message in main log
+	static void main_log(const std::string& msg);
+
+	/// Print message in technical log
+	static void tech_log(const std::string& msg);
+
+	/// Print message both in main and technical log
+	static void log(const std::string& msg);
 
 	/**
 	 * @brief Assess importance for the currently loaded user model

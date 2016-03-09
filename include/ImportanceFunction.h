@@ -295,6 +295,7 @@ public:  // Utils
 
 	/**
 	 * @brief Build thresholds from precomputed importance information
+	 *        using an adaptive algorithm (e.g. AMS, ALC)
 	 *
 	 *        The thresholds may be kept separately or built on top of the
 	 *        importance information. In any case after a successfull call
@@ -302,17 +303,21 @@ public:  // Utils
 	 *        simulations": \ref SimulationEngine "simulation engines" will use
 	 *        the thresholds info when coupled with this ImportanceFunction.
 	 *
-	 * @param tb                 ThresholdsBuilder to use
-	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
-	 *                           "threshold level up" event
+	 * @param tb  ThresholdsBuilder to use
+	 * @param n
+	 * @param k
+	 * @param spt #{simulation-run-replicas}+1 upon a "threshold level up" event
 	 *
 	 * @throw FigException if there was no precomputed \ref has_importance_info()
 	 *                     "importance information"
 	 *
 	 * @see ready()
+	 * @see ThresholdsBuilder
 	 */
-	virtual void build_thresholds(ThresholdsBuilder& tb,
-								  const unsigned& splitsPerThreshold) = 0;
+	virtual void build_adaptive_thresholds(ThresholdsBuilder& tb,
+										   const unsigned& n,
+										   const unsigned& k,
+										   const unsigned& spt) = 0;
 
 	/// @brief  Release memory allocated in the heap during importance assessment
 	/// @details This destroys any importance and thresholds info:

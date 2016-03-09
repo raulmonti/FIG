@@ -49,10 +49,10 @@ typedef  std::vector< fig::Reference< fig::Traial > >  TraialsVec;
 using fig::ImportanceValue;
 
 /// Min simulation length (in # of jumps) to find new thresholds
-const unsigned MIN_SIM_EFFORT = 1u<<6;  // 64
+const unsigned MIN_SIM_EFFORT = 1u<<7;  // 128
 
 /// Max # of failures allowed when searching for a new threshold
-const unsigned MAX_NUM_FAILURES = 6u;
+const unsigned MAX_NUM_FAILURES = 7u;
 
 /**
  * Get initialized traial instances
@@ -136,54 +136,39 @@ ThresholdsBuilderAMS::ThresholdsBuilderAMS() :
 { /* Not much to do around here */ }
 
 
-void
-ThresholdsBuilderAMS::tune(const size_t& numStates,
-						   const size_t& numTrans,
-						   const ImportanceValue& maxImportance,
-						   const unsigned& splitsPerThr)
-{
-	assert(0u < numStates);
-	assert(0u < numTrans);
-	assert(0u < splitsPerThr);
-
-	std::vector< ImportanceValue >().swap(thresholds_);
-	thresholds_.reserve(maxImportance/2);
-	assert(thresholds_.size() == 0u);
-	assert(thresholds_.capacity() > 0u);
-
-	/// @todo FIXME code imported from bluemoon -- Change to something more solid
-
-	// Heuristic for 'n_':
-	//   the more importance values, the more independent runs we need
-	//   for some of them to be successfull.
-	//   Number of states and transitions in the model play a role too.
-	const unsigned explFactor = 50;
-	const unsigned statesExtra = std::min<unsigned>(numStates/explFactor, 100);
-	const unsigned transExtra = std::min<unsigned>(2*numTrans/explFactor, 150);
-	n_  = std::ceil(std::log(maxImportance)) * explFactor + statesExtra + transExtra;
-
-	// Heuristic for 'k_':
-	//   splitsPerThr * levelUpProb == 1  ("balanced growth")
-	//   where levelUpProb == k_/n_
-	k_ = std::round(n_ / static_cast<float>(splitsPerThr));
-
-	assert(0u < k_);
-	assert(k_ < n_);
-}
-
-
 std::vector< ImportanceValue >
-ThresholdsBuilderAMS::build_thresholds(const unsigned& splitsPerThreshold,
+ThresholdsBuilderAMS::build_thresholds(const unsigned& n,
+									   const unsigned& k,
+									   const unsigned& splitsPerThreshold,
 									   const ImportanceFunction& impFun)
 {
 	unsigned currThr(0ul);
 	std::vector< ImportanceValue > result;
 
+	// Choose values for n_ and k_
+	if ((1u<<10u) < k && k < n) {
+		// Accept user values
+		n_ = n;
+		k_ = k;
+	} else {
+		// Choose by ourselves
+		const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
+		tune(network.concrete_state_size(),
+			 network.num_transitions(),
+			 impFun.max_value() - impFun.min_value(),
+			 splitsPerThreshold);
+	}
+	ModelSuite::tech_log("\nRunning AMS for k/n == "
+						 + std::to_string(k_) + "/" + std::to_string(n_) + " ≈ "
+						 + std::to_string(static_cast<float>(k_)/n_) + "\n");
+
+	// Chose the thresholds importance values, i.e. run AMS algorithm
 	build_thresholds_vector(splitsPerThreshold, impFun);
 	assert(!thresholds_.empty());
 	assert(thresholds_[0] == impFun.min_value());
 	assert(thresholds_.back() > impFun.max_value());
 
+	// Format result and finish up
 	result.resize(impFun.max_value() - impFun.min_value() + 1ul);
 	for (ImportanceValue i = impFun.min_value() ; i <= impFun.max_value() ; i++)
 	{
@@ -217,16 +202,16 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 		return;
 	}
 
+	assert(0 < k_);
+	assert(k_ < n_);
+
 	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
-	tune(network.concrete_state_size(),
-		 network.num_transitions(),
-		 impFun.max_value() - impFun.min_value(),
-		 splitsPerThreshold);
+
 
 	unsigned failures(0u);
 	unsigned simEffort(MIN_SIM_EFFORT);
 	std::vector< ImportanceValue >().swap(thresholds_);
-	thresholds_.reserve((impFun.max_value()-impFun.min_value()) / 5u);
+	thresholds_.reserve((impFun.max_value()-impFun.min_value()) / 5u);  // magic
 	auto lesser = [](const Traial& lhs, const Traial& rhs)
 				  { return lhs.level < rhs.level; };
 	TraialsVec traials = get_traials(n_, network, impFun);
