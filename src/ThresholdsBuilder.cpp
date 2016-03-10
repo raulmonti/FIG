@@ -44,11 +44,15 @@ namespace fig
 
 // Static variables initialization
 
-const std::array< std::string, 1 > ThresholdsBuilder::names =
+const std::array< std::string, 2 > ThresholdsBuilder::names =
 {{
 	 // Adaptive Multilevel Splitting (Cerou and Guyader '07)
 	 // See ThresholdsBuilderAMS class
-	 "ams"
+	 "ams",
+
+	 // Sequential Monte Carlo (Cerou, Del Moral, Furon and Guyader '11)
+	 // See ThresholdsBuilderSMC class
+	 "smc"
 }};
 
 

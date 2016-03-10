@@ -29,9 +29,6 @@
 #ifndef THRESHOLDSBUILDERAMS_H
 #define THRESHOLDSBUILDERAMS_H
 
-// C++
-#include <vector>
-// FIG
 #include <ThresholdsBuilderAdaptive.h>
 
 
@@ -59,41 +56,14 @@ public:
 	/// Void ctor
 	ThresholdsBuilderAMS();
 
-	std::vector< ImportanceValue >
-	build_thresholds(const unsigned& n,
-					 const unsigned& k,
-					 const unsigned& splitsPerThreshold,
-					 const ImportanceFunction& impFun) override;
-
 private:  // Class internal helper functions
 
-	/**
-	 * @brief Build thresholds based on given importance function
-	 *
-	 *        The work is saved in the internal vector 'thresholds_',
-	 *        whose i-th position will hold the ImportanceValue chosen
-	 *        as the i-th threshold. Also the lowest ImportanceValue of impFun
-	 *        is stored in index zero. As a result the states corresponding
-	 *        to the j-th threshold level are those to which 'impFun' assigns
-	 *        an ImportanceValue between the values at positions j (included)
-	 *        and j+1 (not included) of thresholds_.
-	 *
-	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
-	 *                           "threshold level up" event
-	 * @param impFun ImportanceFunction with internal
-	 *               \ref ImportanceFunction::has_importance_info()
-	 *               "importance information" to use for the task
-	 *
-	 * @note The resulting size of thresholds_  <br>
-	 *       == 1 + number of threshold levels  <br>
-	 *       == 2 + number of thresholds built
-	 * @note Last value in thresholds_ > impFun.max_importance()
-	 *
-	 * @throw FigException if thresholds building failed
-	 */
-	void
-	build_thresholds_vector(const unsigned& splitsPerThreshold,
-							const ImportanceFunction& impFun);
+	void build_thresholds_vector(const ImportanceFunction& impFun) override;
+
+	void tune(const size_t& numStates,
+			  const size_t& numTrans,
+			  const ImportanceValue& maxImportance,
+			  const unsigned& splitsPerThr) override;
 };
 
 } // namespace fig

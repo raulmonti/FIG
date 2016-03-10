@@ -28,17 +28,82 @@
 
 
 // C
-#include <cmath>
+#include <cmath>  // std::ceil(), std::log(), std::round()
 #include <cassert>
 // C++
 #include <vector>
 // FIG
 #include <ThresholdsBuilderAdaptive.h>
-#include <core_typedefs.h>
+#include <ModelSuite.h>
+#include <TraialPool.h>
 
 
 namespace fig
 {
+
+const unsigned ThresholdsBuilderAdaptive::MIN_N = 1ul<<9ul;  // 512
+
+
+ThresholdsBuilderAdaptive::ThresholdsBuilderAdaptive(
+	const std::string& name,
+	const unsigned& n,
+	const unsigned& k) :
+		ThresholdsBuilder(name),
+		n_(n),
+		k_(k),
+		thresholds_()
+{ /* Not much to do around here */ }
+
+
+std::vector< ImportanceValue >
+ThresholdsBuilderAdaptive::build_thresholds(
+	const unsigned& splitsPerThreshold,
+	const ImportanceFunction& impFun,
+	const float &p,
+	const unsigned& n)
+{
+	unsigned currThr(0ul);
+	std::vector< ImportanceValue > result;
+
+	// Choose values for n_ and k_
+	if (0.0f < p) {
+		assert(1.0f > p);  // 'p' is a probability
+		n_ = std::max(MIN_N, n);
+		k_ = std::round(p*n);
+	} else {
+		const ModuleNetwork& net = *ModelSuite::get_instance().modules_network();
+		tune(net.concrete_state_size(),
+			 net.num_transitions(),
+			 impFun.max_value() - impFun.min_value(),
+			 splitsPerThreshold);
+	}
+	ModelSuite::tech_log("Building thresholds with \""+ name +"\" for k/n == "
+						 + std::to_string(k_) + "/" + std::to_string(n_) + " ≈ "
+						 + std::to_string(static_cast<float>(k_)/n_) + "\n");
+
+	// Chose the thresholds importance values, i.e. run the adaptive algorithm
+	build_thresholds_vector(impFun);
+	assert(!thresholds_.empty());
+	assert(thresholds_[0] == impFun.min_value());
+	assert(thresholds_.back() > impFun.max_value());
+
+	// Format result and finish up
+	result.resize(impFun.max_value() - impFun.min_value() + 1ul);
+	for (ImportanceValue i = impFun.min_value() ; i <= impFun.max_value() ; i++)
+	{
+		while (currThr < thresholds_.size()-1 && i >= thresholds_[currThr+1])
+			currThr++;
+		result[i] = static_cast<ImportanceValue>(currThr);
+	}
+
+	assert(result[impFun.min_value()] == static_cast<ImportanceValue>(0u));
+	assert(result[impFun.max_value()] ==
+			static_cast<ImportanceValue>(thresholds_.size()-2));
+	std::vector< ImportanceValue >().swap(thresholds_);  // free mem
+
+	return result;
+}
+
 
 void
 ThresholdsBuilderAdaptive::tune(const size_t& numStates,
@@ -73,6 +138,20 @@ ThresholdsBuilderAdaptive::tune(const size_t& numStates,
 
 	assert(0u < k_);
 	assert(k_ < n_);
+}
+
+
+ThresholdsBuilderAdaptive::TraialsVec
+ThresholdsBuilderAdaptive::get_traials(const unsigned& numTraials,
+									   const fig::ImportanceFunction& impFun)
+{
+	TraialsVec traials;
+	fig::TraialPool::get_instance().get_traials(traials, numTraials);
+	assert(traials.size() == numTraials);
+	const ModuleNetwork& net = *ModelSuite::get_instance().modules_network();
+	for (fig::Traial& t: traials)
+		t.initialize(net, impFun);
+	return traials;
 }
 
 } // namespace fig

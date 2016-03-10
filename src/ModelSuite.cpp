@@ -61,6 +61,7 @@
 #include <ImportanceFunctionConcreteCoupled.h>
 #include <ThresholdsBuilder.h>
 #include <ThresholdsBuilderAMS.h>
+#include <ThresholdsBuilderSMC.h>
 #include <ConfidenceInterval.h>
 #include <ConfidenceIntervalMean.h>
 #include <ConfidenceIntervalProportion.h>
@@ -336,9 +337,9 @@ const std::vector< float > ModelSuite::confCoToShow_ = {0.8, 0.9, 0.95, 0.99};
 
 SignalSetter ModelSuite::SIGINThandler_(SIGINT, [] (const int signal) {
         assert(SIGINT == signal);
-        /// @todo TODO: implement proper reentrant logging and discard following shell print
-		ModelSuite::mainLog_ << "\nCaught SIGINT, stopping estimations.\n";
-        if (nullptr != ModelSuite::interruptCI_)
+		/// @todo TODO: implement proper reentrant logging
+		ModelSuite::log("\nCaught SIGINT, stopping computations.\n");
+		if (nullptr != ModelSuite::interruptCI_)
 			interrupt_print(*ModelSuite::interruptCI_,
 							ModelSuite::confCoToShow_,
 							ModelSuite::mainLog_);
@@ -348,8 +349,8 @@ SignalSetter ModelSuite::SIGINThandler_(SIGINT, [] (const int signal) {
 
 SignalSetter ModelSuite::SIGTERMhandler_(SIGTERM, [] (const int signal) {
         assert(SIGTERM == signal);
-        /// @todo TODO: implement proper reentrant logging and discard following shell print
-		ModelSuite::mainLog_ << "\nCaught SIGTERM, stopping estimations.\n";
+		/// @todo TODO: implement proper reentrant logging
+		ModelSuite::log("\nCaught SIGTERM, stopping estimations.\n");
         if (nullptr != ModelSuite::interruptCI_)
 			interrupt_print(*ModelSuite::interruptCI_,
 							ModelSuite::confCoToShow_,
@@ -422,6 +423,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 
 	// Build offered thresholds builders
 	thrBuilders["ams"] = std::make_shared< ThresholdsBuilderAMS >();
+	thrBuilders["smc"] = std::make_shared< ThresholdsBuilderSMC >();
 
 	// Build offered simulation engines
 	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
@@ -795,7 +797,9 @@ template void ModelSuite::build_importance_function_adhoc(
 void
 ModelSuite::build_thresholds(const std::string& technique,
 							 const std::string& ifunName,
-							 bool force)
+							 bool force,
+							 const float& lvlUpProb,
+							 const unsigned& simsPerIter)
 {
 	if (!exists_threshold_technique(technique))
 		throw_FigException("inexistent threshold building technique \"" + technique
@@ -818,7 +822,11 @@ ModelSuite::build_thresholds(const std::string& technique,
 	if (force || ifun.thresholds_technique() != technique) {
 		techLog_ << "\nBuilding thresholds for importance function \""
 				 << ifunName << "\" using technique \"" << technique << "\"\n";
-		ifun.build_thresholds(thrBuilder, 2u/*splitsPerThreshold?*/);
+		if (thrBuilder.adaptive() && lvlUpProb > 0.0)
+			ifun.build_thresholds_adaptively(static_cast<ThresholdsBuilderAdaptive&>(thrBuilder),
+											 2u/*splitsPerThreshold*/, lvlUpProb, simsPerIter);
+		else
+			ifun.build_thresholds(thrBuilder, 2u/*splitsPerThreshold?*/);
 	}
 
     assert(ifun.ready());

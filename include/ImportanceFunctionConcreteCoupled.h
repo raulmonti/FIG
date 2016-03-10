@@ -139,8 +139,21 @@ public:  // Utils
 						   const std::string& formulaExprStr,
 						   const std::vector<std::string>& varnames) override;
 
-	void build_thresholds(ThresholdsBuilder& tb,
-						  const unsigned& splitsPerThreshold) override;
+	void build_thresholds(ThresholdsBuilder& tb, const unsigned& spt) override;
+
+	void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
+									 const unsigned& spt,
+									 const float& p,
+									 const unsigned& n) override;
+private:  // Class utils
+
+	/// Post-processing once the thresholds have been chosen
+	/// @param tbName  Name of the ThresholdsBuilder used
+	/// @param imp2thr Translator from ImportanceValue to threshold level
+	/// @see build_thresholds()
+	/// @see build_thresholds_adaptively()
+	void post_process_thresholds(const std::string& tbName,
+								 std::vector< ImportanceValue >& imp2thr);
 };
 
 } // namespace fig

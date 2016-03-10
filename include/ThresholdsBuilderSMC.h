@@ -29,8 +29,8 @@
 #ifndef THRESHOLDSBUILDERSMC_H
 #define THRESHOLDSBUILDERSMC_H
 
-
 #include <ThresholdsBuilderAdaptive.h>
+
 
 namespace fig
 {
@@ -46,20 +46,30 @@ namespace fig
  *        Cerou and Guyader in 2007.<br>
  *        Just like AMS, given a state space and an importance function on it
  *        SMC aims to choose importance values as "thresholds" trying to make
- *        all the partial probabilities 'P_i' roughly equal.
- *        The resulting number of thresholds is also a random variable of the
- *        probability of reaching the highest ImportanceValue. SMC differs
+ *        all the partial probabilities 'P_i' roughly equal. SMC differs
  *        from AMS in the way the internal Monte Carlo simulations are handled,
  *        improving the statistical virtues of the algorithm's iterations.
  *
  * @see ThresholdsBuilderAdaptive
  * @see ThresholdsBuilderAMS
  */
-class ThresholdsBuilderSMC: public ThresholdsBuilderAdaptive
+class ThresholdsBuilderSMC : public ThresholdsBuilderAdaptive
 {
+public:
 
+	/// Void ctor
+	ThresholdsBuilderSMC();
+
+private:  // Class internal helper functions
+
+	void build_thresholds_vector(const ImportanceFunction& impFun) override;
+
+	void tune(const size_t& numStates,
+			  const size_t& numTrans,
+			  const ImportanceValue& maxImportance,
+			  const unsigned& splitsPerThr) override;
 };
 
 } // namespace fig
 
-#endif // THRESHOLDSBUILDERALC_H
+#endif // THRESHOLDSBUILDERSMC_H

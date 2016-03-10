@@ -111,10 +111,22 @@ public:  // Utils
 					 const State<STATE_INTERNAL_TYPE>& gState,
 					 const Property& property);
 
-	void build_thresholds(ThresholdsBuilder& tb,
-						  const unsigned& splitsPerThreshold) override;
+	void build_thresholds(ThresholdsBuilder& tb, const unsigned& spt) override;
+
+	void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
+									 const unsigned& spt,
+									 const float& p,
+									 const unsigned& n) override;
 
 	void clear() noexcept override;
+
+private:  // Class utils
+
+	/// Post-processing once the thresholds have been built
+	/// @param tbName Name of the ThresholdsBuilder used
+	/// @see build_thresholds()
+	/// @see build_thresholds_adaptively()
+	void post_process_thresholds(const std::string& tbName);
 };
 
 } // namespace fig

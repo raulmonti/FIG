@@ -44,6 +44,7 @@ namespace fig
 {
 
 class ThresholdsBuilder;
+class ThresholdsBuilderAdaptive;
 class ModuleInstance;
 class ModuleNetwork;
 class Property;
@@ -295,7 +296,6 @@ public:  // Utils
 
 	/**
 	 * @brief Build thresholds from precomputed importance information
-	 *        using an adaptive algorithm (e.g. AMS, ALC)
 	 *
 	 *        The thresholds may be kept separately or built on top of the
 	 *        importance information. In any case after a successfull call
@@ -304,9 +304,8 @@ public:  // Utils
 	 *        the thresholds info when coupled with this ImportanceFunction.
 	 *
 	 * @param tb  ThresholdsBuilder to use
-	 * @param n
-	 * @param k
-	 * @param spt #{simulation-run-replicas}+1 upon a "threshold level up" event
+	 * @param spt Splits per threshold, i.e. #{simulation-run-replicas} + 1
+	 *            upon a "threshold level up" event
 	 *
 	 * @throw FigException if there was no precomputed \ref has_importance_info()
 	 *                     "importance information"
@@ -314,10 +313,26 @@ public:  // Utils
 	 * @see ready()
 	 * @see ThresholdsBuilder
 	 */
-	virtual void build_adaptive_thresholds(ThresholdsBuilder& tb,
-										   const unsigned& n,
-										   const unsigned& k,
-										   const unsigned& spt) = 0;
+	virtual void build_thresholds(ThresholdsBuilder& tb,
+								  const unsigned& spt) = 0;
+
+	/**
+	 * @brief Like build_thresholds() but specifically using an adaptive
+	 *        thresholds building algorithm, e.g. \ref ThresholdsBuilderAMS
+	 *        "AMS" and \ref ThresholdsBuilderSMC "SMC"
+	 *
+	 * @param atb ThresholdsBuilderAdaptive to use
+	 * @param spt Splits per threshold, i.e. #{simulation-run-replicas} + 1
+	 *            upon a "threshold level up" event
+	 * @param p   Desired probability of crossing a threshold level upwards
+	 * @param n   Number of simulation to run for building each threshold
+	 *
+	 * @see ThresholdsBuilderAdaptive
+	 */
+	virtual void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
+											 const unsigned& spt,
+											 const float& p,
+											 const unsigned& n) = 0;
 
 	/// @brief  Release memory allocated in the heap during importance assessment
 	/// @details This destroys any importance and thresholds info:

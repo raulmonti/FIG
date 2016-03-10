@@ -422,6 +422,12 @@ public:  // Utils
 	 *                  "importance information"
 	 * @param force     Build thresholds again, even if they already have been
 	 *                  for this importance function and technique
+	 * @param lvlUpProb Desired probability of crossing the threshold levels
+	 *                  upwards (relevant for \ref ThresholdsBuilderAdaptive
+	 *                  "adaptive thresholds builders" only)
+	 * @param simsPerIter Number of simulation to run for the selection of each
+	 *                    threshold (relevant for \ref ThresholdsBuilderAdaptive
+	 *                    "adaptive thresholds builders" only)
 	 *
 	 * @throw FigException if "technique" or "ifunName" are invalid
 	 * @throw FigException if the ImportanceFunction "ifunName" doesn't have
@@ -436,7 +442,9 @@ public:  // Utils
 	void
 	build_thresholds(const std::string& technique,
 					 const std::string& ifunName,
-					 bool force = true);
+					 bool force = true,
+					 const float& lvlUpProb = 0.0,
+					 const unsigned& simsPerIter = 0u);
 
 	/**
 	 * @brief Set a SimulationEngine ready for upcoming estimations

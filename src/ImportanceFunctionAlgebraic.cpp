@@ -41,6 +41,7 @@
 // FIG
 #include <ImportanceFunctionAlgebraic.h>
 #include <ThresholdsBuilder.h>
+#include <ThresholdsBuilderAdaptive.h>
 #include <Property.h>
 
 // ADL
@@ -266,16 +267,38 @@ template void ImportanceFunctionAlgebraic::set_formula(
 
 void
 ImportanceFunctionAlgebraic::build_thresholds(
-    ThresholdsBuilder& tb,
-    const unsigned& splitsPerThreshold)
+	ThresholdsBuilder& tb,
+	const unsigned& spt)
 {
 	if (!has_importance_info())
-		throw_FigException(std::string("importance function \"").append(name())
-						   .append("\" doesn't yet have importance information"));
-
-	// Build translator from ImportanceValue to threshold level
+		throw_FigException("importance function \"" + name() + "\" "
+						   "doesn't yet have importance information");
 	std::vector< ImportanceValue >().swap(importance2threshold_);
-	importance2threshold_ = tb.build_thresholds(splitsPerThreshold, *this);
+	importance2threshold_ = tb.build_thresholds(spt, *this);
+	post_process_thresholds(tb.name);
+}
+
+
+void
+ImportanceFunctionAlgebraic::build_thresholds_adaptively(
+	ThresholdsBuilderAdaptive& atb,
+	const unsigned& spt,
+	const float& p,
+	const unsigned& n)
+{
+	if (!has_importance_info())
+		throw_FigException("importance function \"" + name() + "\" "
+						   "doesn't yet have importance information");
+	std::vector< ImportanceValue >().swap(importance2threshold_);
+	importance2threshold_ = atb.build_thresholds(spt, *this, p, n);
+	post_process_thresholds(atb.name);
+}
+
+
+void
+ImportanceFunctionAlgebraic::post_process_thresholds(const std::string& tbName)
+{
+	// Revise "translator" was properly built
 	assert(!importance2threshold_.empty());
 	assert(importance2threshold_[0] == static_cast<ImportanceValue>(0u));
 	assert(importance2threshold_[0] <= importance2threshold_.back());
@@ -288,8 +311,9 @@ ImportanceFunctionAlgebraic::build_thresholds(
 	assert(minValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);
 
+	// Set relevant attributes
 	numThresholds_ = importance2threshold_.back();
-	thresholdsTechnique_ = tb.name;
+	thresholdsTechnique_ = tbName;
 	readyForSims_ = true;
 }
 

@@ -41,7 +41,6 @@ namespace fig
 {
 
 class ImportanceFunction;
-class ImportanceFunctionConcrete;
 
 /**
  * @brief Asbtract base builder of importance thresholds.
@@ -61,16 +60,11 @@ public:
 	/// Names of the (derived) thresholds builders offered to the user,
 	/// as he should requested them through the CLI/GUI.
 	/// Defined in ThresholdsBuilder.cpp
-	static const std::array< std::string, 1 > names;
+	static const std::array< std::string, 2 > names;
 
 	/// Thresholds building technique implemented by this instance
 	/// Check ThresholdsBuilder::names for available options.
 	const std::string name;
-
-protected:
-
-	/// Thresholds importance values
-	std::vector< ImportanceValue > thresholds_;
 
 public:
 

@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  ThresholdsBuilderAMS.cpp
+//  ThresholdsBuilderSMC.cpp
 //
 //  Copyleft 2016-
 //  Authors:
@@ -28,31 +28,24 @@
 
 
 // C
-#include <cmath>
 #include <cassert>
 // C++
-#include <vector>
-#include <memory>
-#include <sstream>
 #include <algorithm>  // std::sort(), std::max({})
-#include <unordered_map>
 // FIG
-#include <ThresholdsBuilderAMS.h>
-#include <ImportanceFunctionConcrete.h>
+#include <ThresholdsBuilderSMC.h>
 #include <ModelSuite.h>
 
 
 namespace
 {
 
-using fig::ImportanceValue;
-using TraialsVec = fig::ThresholdsBuilderAdaptive::TraialsVec;
+typedef  std::vector< fig::Reference< fig::Traial > >  TraialsVec;
 
 /// Min simulation length (in # of jumps) to find new thresholds
-const unsigned MIN_SIM_EFFORT = 1u<<7;  // 128
+const unsigned MIN_SIM_EFFORT = 1u<<6;  // 64
 
 /// Max # of failures allowed when searching for a new threshold
-const unsigned MAX_NUM_FAILURES = 7u;
+const unsigned MAX_NUM_FAILURES = 8u;
 
 
 /**
@@ -78,6 +71,11 @@ simulate(const fig::ModuleNetwork& network,
 		 const unsigned& simEffort)
 {
 	unsigned jumpsLeft;
+
+
+	/// @todo TODO continue from here implementing Sequential Monte Carlo
+	///            according to the '11 paper
+
 
 	// Function pointers matching supported signatures (ModuleNetwork::peak_simulation())
 	auto predicate = [&](const fig::Traial&) -> bool {
@@ -107,13 +105,12 @@ simulate(const fig::ModuleNetwork& network,
 namespace fig
 {
 
-ThresholdsBuilderAMS::ThresholdsBuilderAMS() : ThresholdsBuilderAdaptive("ams")
+ThresholdsBuilderSMC::ThresholdsBuilderSMC() : ThresholdsBuilderAdaptive("smc")
 { /* Not much to do around here */ }
 
 
 void
-ThresholdsBuilderAMS::build_thresholds_vector(
-	const ImportanceFunction& impFun)
+ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 {
 	assert(0 < k_);
 	assert(k_ < n_);
@@ -138,7 +135,16 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	TraialsVec traials = ThresholdsBuilderAdaptive::get_traials(n_, impFun);
 	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 
-	// AMS initialization
+	// SMC initialization
+
+	throw_FigException("TODO implement SMC algorithm from Guyader and Cerou's paper");
+
+
+
+
+
+
+
 	thresholds_.push_back(impFun.min_value());
 	Traial& kTraial = traials[n_-k_];
 	do {
@@ -146,59 +152,17 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 		std::sort(begin(traials), end(traials), lesser);
 		kTraial = traials[n_-k_];
 		simEffort *= 2;
-    } while (thresholds_.back() == kTraial.level);
+	} while (thresholds_.back() == kTraial.level);
 	if (impFun.max_value() <= kTraial.level)
-		throw_FigException("first iteration of AMS reached max importance, "
+		throw_FigException("first iteration of SMC reached max importance, "
 						   "rare event doesn't seem rare enough.");
 	thresholds_.push_back(kTraial.level);
 	simEffort = MIN_SIM_EFFORT;
-
-	/// @todo TODO erase debug print
-	std::cerr << "First threshold: " << thresholds_.back() << std::endl;
-
-	// AMS main loop
-	while (thresholds_.back() < impFun.max_value()) {
-		// Relaunch all n_-k_ simulations below previously built threshold
-		for (unsigned i = 0u ; i < n_-k_ ; i++)
-			static_cast<Traial&>(traials[i]) = kTraial;
-		simulate(network, impFun, traials, n_-k_, simEffort);
-		// New k_-th order peak importance should be the new threshold
-		std::sort(begin(traials), end(traials), lesser);
-		kTraial = traials[n_-k_];
-		if (thresholds_.back() < kTraial.level) {
-			// Found valid new threshold
-			thresholds_.push_back(kTraial.level);
-			simEffort = MIN_SIM_EFFORT;
-			failures = 0u;
-
-	/// @todo TODO erase debug print
-	std::cerr << "New threshold: " << thresholds_.back() << std::endl;
-
-		} else {
-			// Failed to reach higher importance => increase effort
-			if (++failures > MAX_NUM_FAILURES)
-				goto exit_with_fail;
-			simEffort *= 2;
-        }
-	}
-
-	TraialPool::get_instance().return_traials(traials);
-	thresholds_.push_back(impFun.max_value() + static_cast<ImportanceValue>(1u));
-	return;
-
-	exit_with_fail:
-		std::stringstream errMsg;
-		errMsg << "Failed building thresholds." << " ";
-		errMsg << "Importance of the ones found so far: ";
-		for (const auto thr: thresholds_)
-			errMsg << thr << ", ";
-		errMsg << "\b\b  \b\b\n";
-		throw_FigException(errMsg.str());
 }
 
 
 void
-ThresholdsBuilderAMS::tune(const size_t& numStates,
+ThresholdsBuilderSMC::tune(const size_t& numStates,
 						   const size_t& numTrans,
 						   const ImportanceValue& maxImportance,
 						   const unsigned& splitsPerThr)

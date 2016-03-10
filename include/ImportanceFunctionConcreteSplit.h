@@ -172,8 +172,12 @@ public:  // Utils
 						   const std::string& formulaExprStr,
 						   const std::vector<std::string>& varnames) override;
 
-	void build_thresholds(ThresholdsBuilder& tb,
-						  const unsigned& splitsPerThreshold) override;
+	void build_thresholds(ThresholdsBuilder& tb, const unsigned& spt) override;
+
+	void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
+									 const unsigned& spt,
+									 const float& p,
+									 const unsigned& n) override;
 
 	void clear() noexcept override;
 
@@ -181,7 +185,7 @@ private:  // Class utils
 
 	/**
 	 * Compose a merge function which combines all modules' importance
-	 * by means of some given (valid) algebraic operand
+	 * using given (valid) algebraic operand
 	 * @param modulesNames Names of all \ref ModuleInstance "modules"
 	 * @param mergeOperand Algebraic operand to use
 	 * @throw FigException if 'mergeOperand' is not in mergeOperands
@@ -190,6 +194,12 @@ private:  // Class utils
 	std::string compose_merge_function(
 			const std::vector<std::string>& modulesNames,
 			const std::string& mergeOperand) const;
+
+	/// Post-processing once the thresholds have been chosen
+	/// @param tbName  Name of the ThresholdsBuilder used
+	/// @see build_thresholds()
+	/// @see build_thresholds_adaptively()
+	void post_process_thresholds(const std::string& tbName);
 };
 
 } // namespace fig
