@@ -77,6 +77,7 @@ simulate(const fig::ModuleNetwork& network,
 		 const unsigned& numSims,
 		 const unsigned& simEffort)
 {
+	assert(traials.size() >= numSims);
 	unsigned jumpsLeft;
 
 	// Function pointers matching supported signatures (ModuleNetwork::peak_simulation())
@@ -115,7 +116,7 @@ void
 ThresholdsBuilderAMS::build_thresholds_vector(
 	const ImportanceFunction& impFun)
 {
-	assert(0 < k_);
+	assert(0u < k_);
 	assert(k_ < n_);
 
 	const ImportanceValue impRange = impFun.max_value() - impFun.min_value();
@@ -145,11 +146,11 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 		simulate(network, impFun, traials, n_, simEffort);
 		std::sort(begin(traials), end(traials), lesser);
 		kTraial = traials[n_-k_];
-		simEffort *= 2;
+		simEffort *= 2u;
     } while (thresholds_.back() == kTraial.level);
 	if (impFun.max_value() <= kTraial.level)
-		throw_FigException("first iteration of AMS reached max importance, "
-						   "rare event doesn't seem rare enough.");
+		ModelSuite::tech_log("first iteration of AMS reached max importance, "
+							 "rare event doesn't seem so rare.");
 	thresholds_.push_back(kTraial.level);
 	simEffort = MIN_SIM_EFFORT;
 
@@ -171,14 +172,14 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 			simEffort = MIN_SIM_EFFORT;
 			failures = 0u;
 
-	/// @todo TODO erase debug print
-	std::cerr << "New threshold: " << thresholds_.back() << std::endl;
+			/// @todo TODO erase debug print
+			std::cerr << "New threshold: " << thresholds_.back() << std::endl;
 
 		} else {
 			// Failed to reach higher importance => increase effort
 			if (++failures > MAX_NUM_FAILURES)
 				goto exit_with_fail;
-			simEffort *= 2;
+			simEffort *= 2u;
         }
 	}
 

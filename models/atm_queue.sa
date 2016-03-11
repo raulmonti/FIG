@@ -368,7 +368,7 @@ endmodule
 //        [lab1?,lab2?,...,labn?] precond -> postcond;
 //
 
-module Buffer
+module BufferedServer
 	buf: [0..b];
 	clkS: clock;  // -- Clock for 'S'erver processing ~ exp(mu)
 	srcOn: [0..20] init srcInitOn;  // -- Number of sources 'on'
@@ -378,66 +378,66 @@ module Buffer
 	[] buf  > 1 @ clkS -> (buf'=buf-1) & (clkS'= exponential(mu));
 	[] buf == 1 & srcOn != srcInitOn @ clkS -> (buf'= 0);
 	[] buf == 1 & srcOn == srcInitOn @ clkS -> (buf'= 0) & (reset'= true);
-	// -- Buffer enqueuing
+	// -- Buffer enqueueing
 	[p1?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p1?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p1?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p1?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p2?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p2?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p2?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p2?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p3?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p3?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p3?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p3?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p4?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p4?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p4?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p4?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p5?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p5?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p5?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p5?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p6?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p6?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p6?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p6?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p7?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p7?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p7?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p7?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p8?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p8?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p8?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p8?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p9?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p9?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p9?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p9?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p10?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p10?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p10?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p10?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p11?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p11?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p11?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p11?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p12?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p12?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p12?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p12?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p13?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p13?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p13?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p13?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p14?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p14?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p14?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p14?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p15?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p15?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p15?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p15?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p16?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p16?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p16?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p16?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p17?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p17?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p17?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p17?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p18?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p18?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p18?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p18?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p19?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p19?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p19?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p19?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	[p20?] buf == 0            -> (buf'= buf+1) & (clkS'= exponential(mu));
-	[p20?] buf < 0 & buf < b-1 -> (buf'= buf+1);
+	[p20?] 0 < buf & buf < b-1 -> (buf'= buf+1);
 	[p20?] buf == b-1          -> (buf'= buf+1) & (lost'= true);
 	// -- Sources monitoring
 	[f1?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);

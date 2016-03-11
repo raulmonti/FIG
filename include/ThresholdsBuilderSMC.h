@@ -35,6 +35,8 @@
 namespace fig
 {
 
+class ModuleNetwork;
+
 /**
  * @brief ThresholdsBuilder implementing Sequential Monte Carlo (SMC)
  *

@@ -78,6 +78,13 @@ SET(ALL_SOURCES ${ALL_SOURCES} ${TEST_SOURCES} CACHE INTERNAL "")
 
 
  
+###  Preprocessor macros  #####################################################
+
+## # High quality C++ pseudo-random generator
+## ADD_DEFINITIONS(-DHQ_RNG)
+
+
+ 
 ###  Compiler configuration  ##################################################
  
 # If Clang was chosen check for compatible version
