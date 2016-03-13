@@ -91,6 +91,9 @@ class ModelSuite
 	/// Confidence criteria or time budgets bounding simulations
 	static StoppingConditions simulationBounds;
 
+	/// Splitting factor used by all splitting engines (typically RESTART)
+	static unsigned splitsPerThreshold;
+
 	/// Importance functions available
 	static std::unordered_map<
 		std::string,
@@ -205,6 +208,21 @@ public:  // Populating facilities and other modifyers
 	/// Alias for seal() taking all system clocks as initial
 	inline void seal() { seal(std::vector<std::string>()); }
 
+	/**
+	 * @brief Set the splitting factor for all engines using splitting
+	 *
+	 *        The splitting factor equals 1 + the number of replicas made of
+	 *        a Traial when it crosses an importance threshold upwards,
+	 *        i.e. gaining importance. It is only relevant for simulation
+	 *        engines performing splitting, e.g. RESTART
+	 *
+	 * @param spt @copydoc splitsPerThreshold
+	 *
+	 * @warning The ModelSuite must have been \ref seal() "sealed" beforehand
+	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
+	 */
+	void set_splitting(const unsigned& spt);
+
 public:  // Accessors
 
 	/// @copydoc ModuleNetwork::sealed()
@@ -239,6 +257,10 @@ public:  // Accessors
 	 * @see add_property()
 	 */
 	std::shared_ptr< const Property > get_property(const size_t& i) const noexcept;
+
+	/// Get the splitting factor used by all engines which implement splitting
+	/// @see set_splitting()
+	const unsigned& get_splitting() const noexcept;
 
 	/// Names of available simulation engines,
 	/// as they should be requested by the user.

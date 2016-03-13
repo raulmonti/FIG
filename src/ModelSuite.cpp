@@ -318,6 +318,8 @@ std::vector< std::shared_ptr< Property > > ModelSuite::properties;
 
 StoppingConditions ModelSuite::simulationBounds;
 
+unsigned ModelSuite::splitsPerThreshold = 2u;
+
 std::unordered_map< std::string, std::shared_ptr< ImportanceFunction > >
 	ModelSuite::impFuns;
 
@@ -428,25 +430,23 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 	// Build offered simulation engines
 	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
 	simulators["restart"] = std::make_shared< SimulationEngineRestart >(model);
+    set_splitting(splitsPerThreshold);
 
 #ifndef NDEBUG
 	// Check all offered importance functions, thresholds builders and
 	// simulation engines were actually instantiated
 	for (const auto& ifunName: ImportanceFunction::names)
 		if(end(impFuns) == impFuns.find(ifunName))
-			throw_FigException(std::string("hey..., hey you ...  HEY, DEVELOPER!")
-							   .append(" You forgot to create the '")
-							   .append(ifunName).append("' importance function"));
+            throw_FigException("Hey.  Hey you...  HEY, DEVELOPER! You forgot to "
+                               "create the '"+ifunName+"' importance function");
 	for (const auto& thrBuildName: ThresholdsBuilder::names)
 		if(end(thrBuilders) == thrBuilders.find(thrBuildName))
-			throw_FigException(std::string("hey..., hey you ...  HEY, DEVELOPER!")
-							   .append(" You forgot to create the '")
-							   .append(thrBuildName).append("' thresholds builder"));
+            throw_FigException("Hey.  Hey you...  HEY, DEVELOPER! You forgot to "
+                               "create the '"+thrBuildName+"' thresholds builder");
 	for (const auto& engineName: SimulationEngine::names)
 		if (end(simulators) == simulators.find(engineName))
-			throw_FigException(std::string("hey..., hey you ...  HEY, DEVELOPER!")
-							   .append(" You forgot to create the '")
-							   .append(engineName).append("' engine"));
+            throw_FigException("Hey.  Hey you...  HEY, DEVELOPER! You forgot to "
+                               "create the '"+engineName+"' simulation engine");
 #endif
 }
 
@@ -459,6 +459,16 @@ template void ModelSuite::seal(const std::forward_list<std::string>&);
 template void ModelSuite::seal(const std::unordered_set<std::string>&);
 
 
+void
+ModelSuite::set_splitting(const unsigned& spt)
+{
+    if (!sealed())
+        throw_FigException("ModelSuite hasn't been sealed yet");
+    dynamic_cast<SimulationEngineRestart&>(*simulators["restart"])
+            .set_splits_per_threshold(spt);
+}
+
+
 std::shared_ptr< const Property >
 ModelSuite::get_property(const size_t& i) const noexcept
 {
@@ -466,6 +476,13 @@ ModelSuite::get_property(const size_t& i) const noexcept
 		return nullptr;
 	else
 		return properties[i];
+}
+
+
+const unsigned&
+ModelSuite::get_splitting() const noexcept
+{
+    return splitsPerThreshold;
 }
 
 
@@ -838,31 +855,28 @@ std::shared_ptr< SimulationEngine >
 ModelSuite::prepare_simulation_engine(const std::string& engineName,
 									  const std::string& ifunName)
 {
-	/// @todo TODO log in techLog_, see "build_thresholds()" above for an example
-
 	if (!exists_simulator(engineName))
-		throw_FigException(std::string("inexistent simulation engine \"")
-						   .append(engineName).append("\". Call \"available_")
-						   .append("simulators()\" for a list of ")
-						   .append("available options."));
+        throw_FigException("inexistent simulation engine \"" + engineName +
+                           "\". Call \"available_simulators()\" for a list "
+                           "of available options.");
 	if (!exists_importance_function(ifunName))
-		throw_FigException(std::string("inexistent importance function \"")
-						   .append(ifunName).append("\". Call \"available_")
-						   .append("importance_functions()\" for a list of ")
-						   .append("available options."));
+        throw_FigException("inexistent importance function \"" + ifunName +
+                           "\". Call \"available_importance_functions()\" "
+                           "for a list of available options.");
 
 	auto engine_ptr = simulators[engineName];
 	auto ifun_ptr = impFuns[ifunName];
 
 	if (!ifun_ptr->has_importance_info())
-		throw_FigException(std::string("importance function \"").append(ifunName)
-						   .append("\" isn't yet ready for simulations. Call ")
-						   .append("\"build_importance_function()\" and ")
-						   .append("\"build_thresholds()\" beforehand"));
+        throw_FigException("importance function \"" + ifunName + "\" isn't yet "
+                           "ready for simulations. Call \"build_importance_"
+                           "function()\" and \"build_thresholds()\" beforehand");
 
 	if (engine_ptr->bound())
 		engine_ptr->unbind();
-	engine_ptr->bind(ifun_ptr);
+    techLog_ << "\nBinding simulation engine \"" << engineName << ""
+             << "\" to importance function \"" << ifunName << "\"\n";
+    engine_ptr->bind(ifun_ptr);
 	assert(engine_ptr->bound());
 	assert(ifunName == engine_ptr->current_imp_fun());
 
@@ -874,14 +888,22 @@ void
 ModelSuite::release_resources(const std::string& ifunName,
 							  const std::string& engineName) noexcept
 {
-	if (exists_importance_function(ifunName)) {
+    techLog_ << "\nReleasing resources";
+    if (exists_importance_function(ifunName)) {
+        techLog_ << " of importance function \"" << ifunName << "\"";
 		impFuns[ifunName]->clear();
 		assert(!impFuns[ifunName]->has_importance_info());
 	}
-	if (exists_simulator(engineName)) {
+    if (exists_simulator(engineName)) {
+        if (exists_importance_function(ifunName))
+            techLog_ << " and";
+        else
+            techLog_ << " of";
+        techLog_ << " simulation engine \"" << engineName << "\"";
 		simulators[engineName]->unbind();
 		assert(!simulators[engineName]->bound());
-	}
+    }
+    techLog_ << std::endl;
 }
 
 
@@ -889,7 +911,8 @@ void
 ModelSuite::release_resources() noexcept
 {
 	if (!sealed())
-		return;
+        return;
+    techLog_ << "\nReleasing all system resources\n";
 	try {
 		for (auto ifunName: available_importance_functions())
 			release_resources(ifunName);
