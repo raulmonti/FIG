@@ -41,7 +41,7 @@
 namespace fig
 {
 
-const unsigned ThresholdsBuilderAdaptive::MIN_N = 1ul<<9ul;  // 512
+const unsigned ThresholdsBuilderAdaptive::MIN_N = 1ul<<8ul;  // 256
 
 
 ThresholdsBuilderAdaptive::ThresholdsBuilderAdaptive(
@@ -126,15 +126,15 @@ ThresholdsBuilderAdaptive::tune(const size_t& numStates,
 	//   the more importance values, the more independent runs we need
 	//   for some of them to be successfull.
 	//   Number of states and transitions in the model play a role too.
-	const unsigned explFactor = 50;
-	const unsigned statesExtra = std::min<unsigned>(numStates/explFactor, 100);
-	const unsigned transExtra = std::min<unsigned>(2*numTrans/explFactor, 150);
-	n_  = std::ceil(std::log(maxImportance)) * explFactor + statesExtra + transExtra;
+    const unsigned explFactor = 1u<<6u;
+    const unsigned statesExtra = std::min(numStates/explFactor, 1ul<<7ul);
+    const unsigned transExtra = std::min(2*numTrans/explFactor, 1ul<<8ul);
+    n_  = std::ceil(std::log(maxImportance)) * explFactor + statesExtra + transExtra;
 
 	// Heuristic for 'k_':
-	//   splitsPerThr * levelUpProb == 1  ("balanced growth")
+    //   splitsPerThr * levelUpProb == 1  ("balanced growth")
 	//   where levelUpProb == k_/n_
-	k_ = std::round(n_ / static_cast<float>(splitsPerThr));
+    k_ = std::round(n_ / static_cast<float>(splitsPerThr));
 
 	assert(0u < k_);
 	assert(k_ < n_);

@@ -98,7 +98,7 @@ public:
 					 const float& p,
 					 const unsigned& n);
 
-protected:  // Utils for derived classes
+protected:  // Class utils
 
 	/**
 	 * @brief Build thresholds based on given importance function
@@ -124,6 +124,8 @@ protected:  // Utils for derived classes
 	 */
 	virtual void
 	build_thresholds_vector(const ImportanceFunction& impFun) = 0;
+
+protected:  // Utils for derived classes
 
 	/**
 	 * @brief Choose values for n_ and k_ depending on the nature of the Module

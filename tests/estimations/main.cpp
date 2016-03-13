@@ -88,7 +88,7 @@ int main(int argc, char** argv)
 	const std::string adhocIfunName("algebraic");
 //	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "q2", NamesList({"q2"}), true);
 	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "buf", NamesList({"buf"}), true);
-	model.build_thresholds("smc", adhocIfunName);
+	model.build_thresholds("ams", adhocIfunName);
 	engine = model.prepare_simulation_engine("restart", adhocIfunName);
 	//model.estimate(propertyIndex, *engine, timeSpan);
 	model.estimate(propertyIndex, *engine, stopCriterion);

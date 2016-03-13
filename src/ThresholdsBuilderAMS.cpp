@@ -52,7 +52,7 @@ using TraialsVec = fig::ThresholdsBuilderAdaptive::TraialsVec;
 const unsigned MIN_SIM_EFFORT = 1u<<7;  // 128
 
 /// Max # of failures allowed when searching for a new threshold
-const unsigned MAX_NUM_FAILURES = 7u;
+const unsigned MAX_NUM_FAILURES = 5u;
 
 
 /**
@@ -81,13 +81,10 @@ simulate(const fig::ModuleNetwork& network,
 	unsigned jumpsLeft;
 
 	// Function pointers matching supported signatures (ModuleNetwork::peak_simulation())
-	auto predicate = [&](const fig::Traial&) -> bool {
-		/// @todo NOTE: try also stopping when we reach max importance
-		/// @todo NOTE: try also stopping when we reach min importance
-		/// @todo NOTE: try also stopping when we reach importance == "this retrial start importance"
-		return --jumpsLeft > 0u;
+    auto predicate = [&jumpsLeft, &impFun](const fig::Traial& t) -> bool {
+        return --jumpsLeft > 0u && t.level < impFun.max_value();
 	};
-	auto update = [&](fig::Traial& t) -> void {
+    auto update = [&impFun](fig::Traial& t) -> void {
 		t.level = impFun.importance_of(t.state);
 	};
 	// Notice we actually use lambdas with captures, which are incompatible
@@ -130,8 +127,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 		return;
 	}
 
-	unsigned failures(0u);
-	unsigned simEffort(MIN_SIM_EFFORT);
+    unsigned failures(0u), simEffort(MIN_SIM_EFFORT);
 	std::vector< ImportanceValue >().swap(thresholds_);
 	thresholds_.reserve((impFun.max_value()-impFun.min_value()) / 5u);  // magic
 	auto lesser = [](const Traial& lhs, const Traial& rhs)
@@ -141,41 +137,32 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 
 	// AMS initialization
 	thresholds_.push_back(impFun.min_value());
-	Traial& kTraial = traials[n_-k_];
 	do {
 		simulate(network, impFun, traials, n_, simEffort);
 		std::sort(begin(traials), end(traials), lesser);
-		kTraial = traials[n_-k_];
-		simEffort *= 2u;
-    } while (thresholds_.back() == kTraial.level);
-	if (impFun.max_value() <= kTraial.level)
+    } while (thresholds_.back() == traials[n_-k_].get().level
+             && (simEffort *= 2u));
+    if (impFun.max_value() <= traials[n_-k_].get().level)
 		ModelSuite::tech_log("first iteration of AMS reached max importance, "
 							 "rare event doesn't seem so rare.");
-	thresholds_.push_back(kTraial.level);
-	simEffort = MIN_SIM_EFFORT;
-
-	/// @todo TODO erase debug print
-	std::cerr << "First threshold: " << thresholds_.back() << std::endl;
+    thresholds_.push_back(traials[n_-k_].get().level);
+    simEffort = MIN_SIM_EFFORT;
 
 	// AMS main loop
 	while (thresholds_.back() < impFun.max_value()) {
 		// Relaunch all n_-k_ simulations below previously built threshold
-		for (unsigned i = 0u ; i < n_-k_ ; i++)
-			static_cast<Traial&>(traials[i]) = kTraial;
+        for (unsigned i = 0u ; i < n_-k_ ; i++)
+            traials[i].get() = traials[n_-k_].get();  // copy values, not addresses
 		simulate(network, impFun, traials, n_-k_, simEffort);
-		// New k_-th order peak importance should be the new threshold
+        // New 1-k_/n_ importance quantile should be the new threshold
 		std::sort(begin(traials), end(traials), lesser);
-		kTraial = traials[n_-k_];
-		if (thresholds_.back() < kTraial.level) {
+        const ImportanceValue newThreshold = traials[n_-k_].get().level;
+        if (thresholds_.back() < newThreshold) {
 			// Found valid new threshold
-			thresholds_.push_back(kTraial.level);
+            thresholds_.push_back(newThreshold);
 			simEffort = MIN_SIM_EFFORT;
 			failures = 0u;
-
-			/// @todo TODO erase debug print
-			std::cerr << "New threshold: " << thresholds_.back() << std::endl;
-
-		} else {
+        } else {
 			// Failed to reach higher importance => increase effort
 			if (++failures > MAX_NUM_FAILURES)
 				goto exit_with_fail;
@@ -184,7 +171,12 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	}
 
 	TraialPool::get_instance().return_traials(traials);
-	thresholds_.push_back(impFun.max_value() + static_cast<ImportanceValue>(1u));
+    { std::stringstream msg;
+    msg << "ImportanceValue of the chosen thresholds:";
+    for (size_t i = 1ul ; i < thresholds_.size() ; i++)
+        msg << " " << thresholds_[i];
+    ModelSuite::tech_log(msg.str() + "\n\n"); }
+    thresholds_.push_back(impFun.max_value() + static_cast<ImportanceValue>(1u));
 	return;
 
 	exit_with_fail:
@@ -206,7 +198,8 @@ ThresholdsBuilderAMS::tune(const size_t& numStates,
 {
 	const unsigned n(n_);
 	ThresholdsBuilderAdaptive::tune(numStates, numTrans, maxImportance, splitsPerThr);
-	const float p(static_cast<float>(k_)/n_);
+    // Impose our own minimum if it was larger than the one automatically chosen
+    const float p(static_cast<float>(k_)/n_);
 	n_ = std::max({n, n_, ThresholdsBuilderAdaptive::MIN_N});
 	k_ = std::round(p*n_);
 }
