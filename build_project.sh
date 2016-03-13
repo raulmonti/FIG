@@ -29,6 +29,7 @@
 ##==============================================================================
 
 set -e
+#alias cmake='cmake28'
 
 # Choose compiler (prefer clang over gcc)
 if [ "`which clang`" ]

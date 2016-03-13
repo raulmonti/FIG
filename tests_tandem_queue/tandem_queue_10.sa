@@ -1,0 +1,83 @@
+/*
+ * Tandem queue for the FIG tool
+ * Budde, Monti, D'Argenio | 2016
+ *
+ * {-
+ * Stochastic continuous-time tandem queue concept:
+ *                       q1                      q2
+ * ------(o)------> [..@@@@] -----(o)-----> [....@@] -----(o)---->
+ *  'arr' (lambda)            'pass' (mu1)           'exit' (mu2)
+ *
+ * 'arr'  tells a new package arrives at q1     (clock 'clkArr' )
+ * 'pass' tells a package passes from q1 to q2  (clock 'clkPass')
+ * 'exit' tells a package exits q2              (clock 'clkExit')
+ * 
+ * Reference events: any system transition
+ * Stopping events: q2 becoming empty
+ * Rare events: packages bouncing on q2
+ * Initial clocks: {clkArr} in Queue1, {clkExit} in Queue2
+ * -}
+ */
+
+
+// -- Values taken from Marnix Garvels' PhD Thesis:
+// -- "The splitting method in rare event simulation", p. 85.
+
+const int c = 10;    	// Queues capacity: 8, 10, 12, 14
+const int lambda = 3;	// rate(--> q1           )
+const int    mu1 = 2;	// rate(    q1 --> q2    )
+const int    mu2 = 6;	// rate(           q2 -->)
+
+// -- The following values are in p. 61 of the same work:
+// -- const int lambda = 1;
+// -- const int    mu1 = 4;
+// -- const int    mu2 = 2;
+
+
+module Queue1                                    
+
+	q1: [0..c-1];
+	clkArr:  clock; 	// -- Exponential(lambda)
+	clkPass: clock; 	// -- Exponential(mu1)
+
+    // -- Package arrival
+	[arr!]  q1 == 0   @ clkArr -> (q1'= 1) &
+								  (clkArr' = exponential(lambda)) &
+								  (clkPass'= exponential(mu1));
+    [arr!]  0 < q1 &
+			q1 < c-1  @ clkArr -> (q1'= q1+1) &
+								  (clkArr'= exponential(lambda));
+	[arr!]  q1 == c-1 @ clkArr -> (clkArr'= exponential(lambda));
+
+    // -- Package passage
+	[pass!] q1 >  1 @ clkPass -> (q1'= q1-1) &
+								 (clkPass'= exponential(mu1));
+	[pass!] q1 == 1 @ clkPass -> (q1'= 0);
+
+endmodule                                       
+
+
+module Queue2
+
+	q2: [0..c-1] init 1;
+	lost: bool init false;	// -- Package lost?
+	clkExit: clock; 		// -- Exponential(mu2)
+
+    // -- Package passage
+	[pass?] q2 == 0   -> (q2'  = 1)     &
+						 (lost'= false) &
+						 (clkExit'= exponential(mu2));
+    [pass?] 0 < q2 &
+			q2 < c-1  -> (q2'  = q2+1) &
+						 (lost'= false);
+	[pass?] q2 == c-1 -> (lost'= true);
+
+    // -- Package exit
+	[exit!] q2 >  1 @ clkExit -> (q2'  = q2-1)  &
+								 (lost'= false) &
+                                 (clkExit'= exponential(mu2));
+	[exit!] q2 == 1 @ clkExit -> (q2'  = 0)     &
+								 (lost'= false);
+
+endmodule
+
