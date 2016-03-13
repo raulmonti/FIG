@@ -60,7 +60,7 @@ const int K = 20;
 // -- Type 1 Sources | Total: 5
 // --                | Intially on: 0
 
-module T1_S1
+module T1S1
 	on11: bool init false;
 	clkF11: clock;  // -- Clock for 'F'ailing   ~ exp(beta1)
 	clkR11: clock;  // -- Clock for 'R'epairing ~ exp(alpha1)
@@ -75,7 +75,7 @@ module T1_S1
 	[p11!]  on11 @ clkP11 -> (clkP11'= exponential(lambda1));
 endmodule
 
-module T1_S2
+module T1S2
 	on12: bool init false;
 	clkF12: clock;  // -- Clock for 'F'ailing   ~ exp(beta1)
 	clkR12: clock;  // -- Clock for 'R'epairing ~ exp(alpha1)
@@ -90,7 +90,7 @@ module T1_S2
 	[p12!]  on12 @ clkP12 -> (clkP12'= exponential(lambda1));
 endmodule
 
-module T1_S3
+module T1S3
 	on13: bool init false;
 	clkF13: clock;  // -- Clock for 'F'ailing   ~ exp(beta1)
 	clkR13: clock;  // -- Clock for 'R'epairing ~ exp(alpha1)
@@ -105,7 +105,7 @@ module T1_S3
 	[p13!]  on13 @ clkP13 -> (clkP13'= exponential(lambda1));
 endmodule
 
-module T1_S4
+module T1S4
 	on14: bool init false;
 	clkF14: clock;  // -- Clock for 'F'ailing   ~ exp(beta1)
 	clkR14: clock;  // -- Clock for 'R'epairing ~ exp(alpha1)
@@ -120,7 +120,7 @@ module T1_S4
 	[p14!]  on14 @ clkP14 -> (clkP14'= exponential(lambda1));
 endmodule
 
-module T1_S5
+module T1S5
 	on15: bool init false;
 	clkF15: clock;  // -- Clock for 'F'ailing   ~ exp(beta1)
 	clkR15: clock;  // -- Clock for 'R'epairing ~ exp(alpha1)
@@ -141,7 +141,7 @@ endmodule
 // -- Type 2 Sources | Total: 5
 // --                | Intially on: 1
 
-module T2_S1
+module T2S1
 	on21: bool init true;
 	clkF21: clock;  // -- Clock for 'F'ailing   ~ exp(beta2)
 	clkR21: clock;  // -- Clock for 'R'epairing ~ exp(alpha2)
@@ -156,7 +156,7 @@ module T2_S1
 	[p21!]  on21 @ clkP21 -> (clkP21'= exponential(lambda2));
 endmodule
 
-module T2_S2
+module T2S2
 	on22: bool init false;
 	clkF22: clock;  // -- Clock for 'F'ailing   ~ exp(beta2)
 	clkR22: clock;  // -- Clock for 'R'epairing ~ exp(alpha2)
@@ -171,7 +171,7 @@ module T2_S2
 	[p22!]  on22 @ clkP22 -> (clkP22'= exponential(lambda2));
 endmodule
 
-module T2_S3
+module T2S3
 	on23: bool init false;
 	clkF23: clock;  // -- Clock for 'F'ailing   ~ exp(beta2)
 	clkR23: clock;  // -- Clock for 'R'epairing ~ exp(alpha2)
@@ -186,7 +186,7 @@ module T2_S3
 	[p23!]  on23 @ clkP23 -> (clkP23'= exponential(lambda2));
 endmodule
 
-module T2_S4
+module T2S4
 	on24: bool init false;
 	clkF24: clock;  // -- Clock for 'F'ailing   ~ exp(beta2)
 	clkR24: clock;  // -- Clock for 'R'epairing ~ exp(alpha2)
@@ -201,7 +201,7 @@ module T2_S4
 	[p24!]  on24 @ clkP24 -> (clkP24'= exponential(lambda2));
 endmodule
 
-module T2_S5
+module T2S5
 	on25: bool init false;
 	clkF25: clock;  // -- Clock for 'F'ailing   ~ exp(beta2)
 	clkR25: clock;  // -- Clock for 'R'epairing ~ exp(alpha2)
@@ -219,9 +219,12 @@ endmodule
 
 ///////////////////////////////////////////////////////////////////////
 //
-// -- Buffered server | Keeps track of the 'overflow' and 'reset' events
-// --  + Observer     | Behaviour extracted from bluemoon's model
+// -- Buffered server | Behaviour copied from bluemoon's model
 // --                 | "queues_with_breakdowns.prism"
+//
+//  IDEA: several input labels in a single transition with the syntax
+//        [lab1?,lab2?,...,labn?] precond -> postcond;
+//
 
 module BufferedServer
 
@@ -229,19 +232,19 @@ module BufferedServer
 	clkF: clock;  // -- Clock for server 'F'ailure    ~ exp(gamma)
 	clkR: clock;  // -- Clock for server 'R'epair     ~ exp(delta)
 	clkP: clock;  // -- Clock for server 'P'rocessing ~ exp(mu)
-	srcOn: [0..10] init 1;   // -- Number of sources 'on'
 	on:    bool init false;  // -- Server on?
 	lost:  bool init false;
 	reset: bool init false;
 
-	// -- Server processing (buffer dequeuing)
-	[] buf  > 1 @ clkP -> (buf'= buf-1) &
-                          (clkP'= exponential(mu));
-	[] buf == 1 @ clkP -> (buf'= 0) &
-	                      (reset'= true); &
-                          (clkP'= exponential(mu));
+	// -- Server failure and recovery
+	[]  on @ clkF -> (on'=false) & (clkR'= exponential(gamma));
+	[] !on @ clkR -> (on'=true)  & (clkF'= exponential(delta));
 
-	// -- Buffer enqueueing (ueueue)
+	// -- Server processing  (buffer dequeuing)
+	[] buf  > 1 @ clkP -> (buf'= buf-1) & (clkP'= exponential(mu));
+	[] buf == 1 @ clkP -> (buf'= buf-1) & (reset'= true);
+
+	// -- Sources production (buffer enqueueing, ueueue...)
 	[p11?] buf == 0            -> (buf'= buf+1) & (clkP'= exponential(mu));
 	[p11?] 0 < buf & buf < K-1 -> (buf'= buf+1);
 	[p11?] buf == K-1          -> (buf'= buf+1) & (lost'= true);
@@ -273,24 +276,4 @@ module BufferedServer
 	[p25?] 0 < buf & buf > K-1 -> (buf'= buf+1);
 	[p25?] buf == K-1          -> (buf'= buf+1) & (lost'= true);
 
- 
-
-    TODO: continue here copying model from bluemoon's version
-
-
-
-
-
-
-	// -- Sources monitoring
-	[f1?] buf != 0 | srcOn != srcInitOn+1 -> (srcOn'= srcOn-1);
-	[f1?] buf == 0 & srcOn == srcInitOn+1 -> (srcOn'= srcOn-1) &
-	                                         (reset'= true);
-	[r1?] buf != 0 | srcOn != srcInitOn-1 -> (srcOn'= srcOn+1);
-	[r1?] buf == 0 & srcOn == srcInitOn-1 -> (srcOn'= srcOn+1) &
-	                                         (reset'= true);
-	[] src1>0     -> (src1 * beta1)          : (src1'=src1-1);
-	[] src1<NSrc1 -> ((NSrc1-src1) * alpha1) : (src1'=src1+1);
-	[] src2>0     -> (src2 * beta2)          : (src2'=src2-1);
-	[] src2<NSrc2 -> ((NSrc2-src2) * alpha2) : (src2'=src2+1);
 endmodule

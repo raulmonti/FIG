@@ -56,7 +56,8 @@ int main(int argc, char** argv)
 	check_dummy_arguments(argc, const_cast<const char**>(argv));
 
 	//  Compile model and properties   // // // // // // // // // //
-	build_model("models/atm_queue.sa", "models/atm_queue.pp");
+	build_model("models/queues_with_breaks.sa", "models/queues_with_breaks.pp");
+//	build_model("models/atm_queue.sa", "models/atm_queue.pp");
 //	build_model("models/tandem_queue.sa", "models/tandem_queue.pp");
 	auto model = fig::ModelSuite::get_instance();
 	if (!model.sealed()) {
@@ -69,20 +70,20 @@ int main(int argc, char** argv)
 
 	//  Estimation goals   // // // // // // // // // // // // // //
 	const double confidence(0.95);
-	const double precision(0.4);
+	const double precision(0.2);
 	const fig::StoppingConditions stopCriterion(StopCond({std::make_tuple(
 			confidence, precision, true)}));
-	const fig::StoppingConditions timeSpan(std::set<size_t>({60ul}));
+	const fig::StoppingConditions timeSpan(std::set<size_t>({30ul}));
 	std::shared_ptr< fig::SimulationEngine > engine(nullptr);
 
-//	//  Standard Monte Carlo     // // // // // // // // // // // //
-//	const std::string flatIfunName("algebraic");
-//	model.build_importance_function_flat(flatIfunName, propertyIndex);
-//	model.build_thresholds("ams", flatIfunName);
-//	engine = model.prepare_simulation_engine("nosplit", flatIfunName);
-//	model.estimate(propertyIndex, *engine, timeSpan);
-//	//model.estimate(propertyIndex, *engine, stopCriterion);
-//	engine = nullptr;
+	//  Standard Monte Carlo     // // // // // // // // // // // //
+	const std::string flatIfunName("algebraic");
+	model.build_importance_function_flat(flatIfunName, propertyIndex);
+	model.build_thresholds("ams", flatIfunName);
+	engine = model.prepare_simulation_engine("nosplit", flatIfunName);
+	model.estimate(propertyIndex, *engine, timeSpan);
+	//model.estimate(propertyIndex, *engine, stopCriterion);
+	engine = nullptr;
 
 	//  RESTART with algebraic ad hoc (q2) // // // // // // // //
 	const std::string adhocIfunName("algebraic");

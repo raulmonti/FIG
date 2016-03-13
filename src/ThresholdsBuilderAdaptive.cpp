@@ -116,7 +116,7 @@ ThresholdsBuilderAdaptive::tune(const size_t& numStates,
 	assert(0u < splitsPerThr);
 
 	std::vector< ImportanceValue >().swap(thresholds_);
-	thresholds_.reserve(maxImportance/2);
+    thresholds_.reserve(std::max(2,maxImportance/2));
 	assert(thresholds_.size() == 0u);
 	assert(thresholds_.capacity() > 0u);
 
@@ -136,8 +136,8 @@ ThresholdsBuilderAdaptive::tune(const size_t& numStates,
 	//   where levelUpProb == k_/n_
     k_ = std::round(n_ / static_cast<float>(splitsPerThr));
 
-	assert(0u < k_);
-	assert(k_ < n_);
+    assert(0u < k_ || static_cast<ImportanceValue>(1u) >= maxImportance);
+    assert(k_ < n_ || static_cast<ImportanceValue>(1u) >= maxImportance);
 }
 
 

@@ -113,9 +113,6 @@ void
 ThresholdsBuilderAMS::build_thresholds_vector(
 	const ImportanceFunction& impFun)
 {
-	assert(0u < k_);
-	assert(k_ < n_);
-
 	const ImportanceValue impRange = impFun.max_value() - impFun.min_value();
 	if (impRange < static_cast<ImportanceValue>(2u)) {
 		// Too few importance levels: default to max possible # of thresholds
@@ -126,6 +123,9 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 								   + static_cast<ImportanceValue>(1u);
 		return;
 	}
+
+    assert(0u < k_);
+    assert(k_ < n_);
 
     unsigned failures(0u), simEffort(MIN_SIM_EFFORT);
 	std::vector< ImportanceValue >().swap(thresholds_);

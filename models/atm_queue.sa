@@ -362,9 +362,7 @@ endmodule
 // -- Buffered server | Keeps track of the 'overflow' and 'reset' events
 // --  + Observer     |
 //
-//  IDEA: several input labels in a single transition
-//        using the syntax
-//
+//  IDEA: several input labels in a single transition with the syntax
 //        [lab1?,lab2?,...,labn?] precond -> postcond;
 //
 
