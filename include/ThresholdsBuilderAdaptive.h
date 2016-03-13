@@ -118,7 +118,8 @@ protected:  // Class utils
 	 * @note The resulting size of thresholds_  <br>
 	 *       == 1 + number of threshold levels  <br>
 	 *       == 2 + number of thresholds built
-	 * @note Last value in thresholds_ > impFun.max_importance()
+	 * @note First value in thresholds_ == initial state importance
+	 * @note Last  value in thresholds_ > impFun.max_importance()
 	 *
 	 * @throw FigException if thresholds building failed
 	 */

@@ -269,8 +269,8 @@ ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 
 ImportanceFunctionConcreteSplit::~ImportanceFunctionConcreteSplit()
 {
-	std::vector< ImportanceValue >().swap(localValues_);
-	std::vector< State<STATE_INTERNAL_TYPE> >().swap(localStatesCopies_);
+    ImportanceVec().swap(localValues_);
+    std::vector< State< STATE_INTERNAL_TYPE > >().swap(localStatesCopies_);
 	std::vector< ImportanceValue >().swap(importance2threshold_);
 	ImportanceFunctionConcrete::clear();
 }
@@ -555,8 +555,6 @@ ImportanceFunctionConcreteSplit::post_process_thresholds(const std::string& tbNa
 void
 ImportanceFunctionConcreteSplit::clear() noexcept
 {
-	ImportanceVec().swap(localValues_);
-	std::vector< State< STATE_INTERNAL_TYPE > >().swap(localStatesCopies_);
 	std::vector< ImportanceValue >().swap(importance2threshold_);
 	ImportanceFunctionConcrete::clear();
 }

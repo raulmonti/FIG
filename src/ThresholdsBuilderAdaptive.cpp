@@ -64,6 +64,7 @@ ThresholdsBuilderAdaptive::build_thresholds(
 {
 	unsigned currThr(0ul);
 	std::vector< ImportanceValue > result;
+    const ModuleNetwork& net = *ModelSuite::get_instance().modules_network();
 
 	// Choose values for n_ and k_
 	if (0.0f < p) {
@@ -71,7 +72,6 @@ ThresholdsBuilderAdaptive::build_thresholds(
 		n_ = std::max(MIN_N, n);
 		k_ = std::round(p*n);
 	} else {
-		const ModuleNetwork& net = *ModelSuite::get_instance().modules_network();
 		tune(net.concrete_state_size(),
 			 net.num_transitions(),
 			 impFun.max_value() - impFun.min_value(),
@@ -84,7 +84,7 @@ ThresholdsBuilderAdaptive::build_thresholds(
 	// Chose the thresholds importance values, i.e. run the adaptive algorithm
 	build_thresholds_vector(impFun);
 	assert(!thresholds_.empty());
-	assert(thresholds_[0] == impFun.min_value());
+    assert(thresholds_[0] == impFun.importance_of(net.initial_state().to_state_instance()));
 	assert(thresholds_.back() > impFun.max_value());
 
 	// Format result and finish up

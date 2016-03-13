@@ -136,7 +136,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 
 	// AMS initialization
-	thresholds_.push_back(impFun.min_value());
+    thresholds_.push_back(traials[0].get().level);  // start from initial state importance
 	do {
 		simulate(network, impFun, traials, n_, simEffort);
 		std::sort(begin(traials), end(traials), lesser);
