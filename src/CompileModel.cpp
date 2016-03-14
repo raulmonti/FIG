@@ -13,6 +13,7 @@
 #include "FigException.h"
 #include "Property.h"
 #include "PropertyTransient.h"
+#include "PropertyRate.h"
 #include <z3++.h>
 
 
@@ -253,6 +254,22 @@ CompileTransient(AST* prop)
 //==============================================================================
 
 std::shared_ptr<Property> 
+CompileSSRate(AST* prop)
+{
+    assert(prop);
+    vector<AST*> formulas = prop->get_list(_EXPRESSION);
+    assert(formulas.size() == 1);
+    string r0 = formulas[0]->toString();
+    vector<string> vars0 = formulas[0]->get_all_lexemes(_NAME);
+    return std::make_shared< fig::PropertyRate >(
+	    r0.c_str(), vars0);
+}
+
+
+
+//==============================================================================
+
+std::shared_ptr<Property> 
 CompileProperty(AST* prop)
 {
     assert(prop);
@@ -261,14 +278,31 @@ CompileProperty(AST* prop)
         vector<AST*> formulas = pprop->get_list(_EXPRESSION);
         assert(formulas.size() == 2);
         Type t1 = get_type(formulas[0],GLOBAL_PARSING_CONTEXT);
-        Type t2 = get_type(formulas[0],GLOBAL_PARSING_CONTEXT);
+        Type t2 = get_type(formulas[1],GLOBAL_PARSING_CONTEXT);
         if(t1 == T_BOOL && t2 == T_BOOL && NULL == pprop->get_first(_RANGE)){
             return CompileTransient(pprop);
+        }else{
+            wout << "[WARNING] Unsupported transient property " 
+                << prop->toString() << endl;
+            return NULL;
         }
     }
-    wout << "[WARNING] Unsuported property " << prop->toString() << endl;
-    return NULL;
-    //throw_FigException("Unsuported property " + prop->toString() + ".\n");
+
+    AST* sprop = prop->get_first(_SPROP);
+    if(sprop){
+        vector<AST*> formulas = sprop->get_list(_EXPRESSION);
+        assert(formulas.size() >= 1);
+        assert(formulas.size() <= 2);
+        if(formulas.size()==1){
+            return CompileSSRate(sprop);
+        }else{
+            wout << "[WARNING] Unsupported steady state property " 
+                << prop->toString() << endl;
+            return NULL;
+        }
+    }
+    
+    assert(false); // Strange property ...
 }
 
 

@@ -34,7 +34,7 @@ const int    mu2 = 6;	/* -- rate(           q2 -->)          */
 /* -- const int    mu2 = 2;                                    */
 
 
-module 1_2Queue                                   
+module Queue1                                   
 
 	q1: [0..c-1];
 	clkArr:  clock; 	/* -- Exponential(lambda)              */

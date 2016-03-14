@@ -25,8 +25,10 @@ Read main.cpp file for an example.
 # TODO
 #############################################
 
-
-TODO    Parse the / in properties syntax, i.e avoid from mistaking it with math operation.
+TODO    Check Properties semantics. (for example that the expressions in them
+        are boolean).
+TODO    Parse the / in properties syntax, i.e avoid from mistaking it with 
+        math operation.
 DONE    Fix method CompileProperty.
 TODO    Comma separated input labels. 
 

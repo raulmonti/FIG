@@ -92,7 +92,6 @@ SET(REQUIRED_SOURCES "${SOURCES_DIR}/Ast.cpp"
                      "${SOURCES_DIR}/Traial.cpp"
                      "${SOURCES_DIR}/TraialPool.cpp"
                      "${SOURCES_DIR}/SimulationEngineNosplit.cpp"
-                     "${SOURCES_DIR}/PropertyTransient.cpp"
                      "${SOURCES_DIR}/SimulationEngine.cpp"
                      "${SOURCES_DIR}/SimulationEngineNosplit.cpp"
                      "${SOURCES_DIR}/SimulationEngineRestart.cpp"
@@ -109,6 +108,8 @@ SET(REQUIRED_SOURCES "${SOURCES_DIR}/Ast.cpp"
                      "${SOURCES_DIR}/ImportanceFunctionConcreteSplit.cpp"
                      "${SOURCES_DIR}/ThresholdsBuilder.cpp"
                      "${SOURCES_DIR}/ThresholdsBuilderAMS.cpp"
+                     "${SOURCES_DIR}/ThresholdsBuilderSMC.cpp"
+                     "${SOURCES_DIR}/ThresholdsBuilderAdaptive.cpp"
                      "${SOURCES_DIR}/PropertySat.cpp")
 SET(ALL_SOURCES ${ALL_SOURCES} ${REQUIRED_SOURCES} CACHE INTERNAL "")
 

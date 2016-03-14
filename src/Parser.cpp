@@ -788,11 +788,12 @@ Parser::rSProp()
             string msg("Missing expression in property declaration.\n");
             throw FigSyntaxError( msg,lines[pos], columns[pos]);
         }
-        expect(SLASH,"Expected '\'.\n");
-        saveNode(_SEPARATOR);
-        if(!rExpression()){
-            string msg("Missing expression in property declaration.\n");
-            throw FigSyntaxError( msg,lines[pos], columns[pos]);
+        if(accept(SLASH)){
+            saveNode(_SEPARATOR);
+            if(!rExpression()){
+                string msg("Missing expression in property declaration.\n");
+                throw FigSyntaxError( msg,lines[pos], columns[pos]);
+            }
         }
         expect(CP, "Expected ')'.\n");
         saveNode(_SEPARATOR);
