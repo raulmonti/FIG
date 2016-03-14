@@ -108,18 +108,29 @@ public:  // Accessors
 
 public:  // Modifiers
 
-	/**
-	 * @brief Value assignment
-	 * @note  Only applicable to named variables
-	 */
+
+	/// @brief Value assignment
+	/// @note  Only applicable to named variables
 	virtual Variable& operator=(const T_& value) = 0;
 
-	/**
-	 * @brief Value assignment with prior validity check
-	 * @note  Only applicable to named variables
-	 * @throw FigException if 'value' is invalid, see is_valid_value()
-	 */
+
+	/// @brief Value assignment with prior validity check
+	/// @note  Only applicable to named variables
+	/// @throw FigException if 'value' is invalid, see is_valid_value()
 	virtual void assign(const T_& value) = 0;
+
+	/// @brief Increase Variable's current value if possible
+	/// @details In the internal order of the possible Variable values,
+	///          set as new value the one following the \ref val() "current
+	///          value". If the current value is \ref max() "the maximum" for
+	///          this variable then do nothing.
+	/// @return Old value of the variable, i.e. the one prior the increase
+	/// @note Only applicable to named variables
+	T_ inc();
+
+	/// @brief Decrease Variable's current value if possible
+	/// @note Analogous to increase() in the opposite sense
+	T_ dec();
 
 public:  // Relational operators
 
@@ -137,7 +148,7 @@ public:  // Invariant
 	 * @brief Is this instance a "ready to use" variable?
 	 * @note False for fresh variables!
 	 */
-	inline void assert_invariant() const
+	inline virtual void assert_invariant() const
 		{
 			assert(!name_.empty());
 			assert(min_ <= ini_);
@@ -145,7 +156,7 @@ public:  // Invariant
 			assert(offset_ < range_);
 		}
 #else
-	inline void assert_invariant() const {}
+	inline virtual void assert_invariant() const {}
 #endif
 };
 

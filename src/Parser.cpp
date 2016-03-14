@@ -874,6 +874,7 @@ Parser::parse(stringstream *str){
     }catch(const BadSymbol &e){
         throw_FigException(e.what());
     }catch(const exception &e){
+        cout << ast << endl;
         cout << e.what() << endl;
         assert(false);
     }

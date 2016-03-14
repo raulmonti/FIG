@@ -55,6 +55,7 @@ auto rng = MTrng;  // Mersenne-Twister high quality RNG
 std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uniform01(0.0 , 1.0);
 std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > exponential1(1.0);
 std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal01(0.0 , 1.0);
+// std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > erlang???();
 
 } // namespace
 
@@ -67,18 +68,12 @@ namespace fig
 std::unordered_map< std::string, Distribution > distributions_list =
 {
 	{"uniform",
-	  [] (const DistributionParameters&)
-	  { return uniform01(rng); }},
-	{"uniformAB",
 	  [] (const DistributionParameters& params)
 	  { return params[0] + (params[1] - params[0]) * uniform01(rng); }},
 	{"exponential",
 	  [] (const DistributionParameters& params)
 	  { return exponential1(rng) / params[0]; }},  // Grisel me dijo que es así
 	{"normal",
-	  [] (const DistributionParameters&)
-	  { return std::max<double>(0.000001, normal01(rng)); }},
-	{"normalMV",
 	  [] (const DistributionParameters& params)
 	  { return std::max<double>(0.000001, normal01(rng) * params[1] + params[0]); }}
 };

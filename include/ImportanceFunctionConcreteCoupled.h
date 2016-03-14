@@ -76,13 +76,12 @@ public:  // Accessors
 	/// @copydoc ImportanceFunctionConcrete::info_of()
 	/// @note Attempted inline in a desperate need for speed
 	/// @note <b>Complexity:</b> <i>O(size(state)<sup>2</sup>)</i>
-	inline virtual ImportanceValue info_of(const StateInstance& state) const
+	inline ImportanceValue info_of(const StateInstance& state) const override
 		{
 #       ifndef NDEBUG
 			if (!has_importance_info())
-				throw_FigException(std::string("importance function \"")
-								   .append(name()).append("\" doesn't ")
-								   .append("hold importance information."));
+				throw_FigException("importance function \"" + name() + "\" "
+								   "doesn't hold importance information.");
 			globalStateCopy.copy_from_state_instance(state, true);
 #       else
 			globalStateCopy.copy_from_state_instance(state, false);
@@ -94,7 +93,7 @@ public:  // Accessors
 	/// @copydoc ImportanceFunction::importance_of()
 	/// @note Attempted inline in a desperate need for speed
 	/// @note <b>Complexity:</b> <i>O(size(state)<sup>2</sup>)</i>
-	inline virtual ImportanceValue importance_of(const StateInstance& state) const
+	inline ImportanceValue importance_of(const StateInstance& state) const override
 		{
 			return UNMASK(info_of(state));
 		}
@@ -102,13 +101,12 @@ public:  // Accessors
 	/// @copydoc ImportanceFunction::level_of(const StateInstance&)
 	/// @note Attempted inline in a desperate need for speed
 	/// @note <b>Complexity:</b> same as ImportanceFunctionConcreteCoupled::info_of()
-	inline virtual ImportanceValue level_of(const StateInstance &state) const
+	inline ImportanceValue level_of(const StateInstance &state) const override
 		{
 #       ifndef NDEBUG
 			if (!ready())
-				throw_FigException(std::string("importance function \"")
-								   .append(name()).append("\" isn't ")
-								   .append("ready for simulations."));
+				throw_FigException("importance function \"" + name() + "\" "
+								   + "isn't ready for simulations.");
 #		endif
 			// Internal vector currently holds threshold levels
 			return UNMASK(info_of(state));
@@ -117,33 +115,45 @@ public:  // Accessors
 	/// @copydoc ImportanceFunction::level_of(const ImportanceValue&)
 	/// @note Attempted inline in a desperate need for speed
 	/// @note <b>Complexity:</b> <i>O(1)</i>
-	inline virtual ImportanceValue level_of(const ImportanceValue& val) const
+	inline ImportanceValue level_of(const ImportanceValue& val) const override
 		{
 #       ifndef NDEBUG
 			if (!ready())
-				throw_FigException(std::string("importance function \"")
-								   .append(name()).append("\" isn't ")
-								   .append("ready for simulations."));
+				throw_FigException("importance function \"" + name() + "\" "
+								   + "isn't ready for simulations.");
 #		endif
 			// Internal vector currently holds threshold levels
-			assert(val >= min_importance());
-			assert(val <= max_importance());
+			assert(val >= min_value());
+			assert(val <= max_value());
 			return val;
 		}
 
-	virtual void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE>) const;
+	void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE>) const override;
 
 public:  // Utils
 
-	virtual void assess_importance(const Property& prop,
-								   const std::string& strategy = "flat");
+	void assess_importance(const Property& prop,
+						   const std::string& strategy = "flat") override;
 
-	virtual void assess_importance(const Property& prop,
-								   const std::string& formulaExprStr,
-								   const std::vector<std::string>& varnames);
+	void assess_importance(const Property& prop,
+						   const std::string& formulaExprStr,
+						   const std::vector<std::string>& varnames) override;
 
-	virtual void build_thresholds(ThresholdsBuilder& tb,
-								  const unsigned& splitsPerThreshold);
+	void build_thresholds(ThresholdsBuilder& tb, const unsigned& spt) override;
+
+	void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
+									 const unsigned& spt,
+									 const float& p,
+									 const unsigned& n) override;
+private:  // Class utils
+
+	/// Post-processing once the thresholds have been chosen
+	/// @param tbName  Name of the ThresholdsBuilder used
+	/// @param imp2thr Translator from ImportanceValue to threshold level
+	/// @see build_thresholds()
+	/// @see build_thresholds_adaptively()
+	void post_process_thresholds(const std::string& tbName,
+								 std::vector< ImportanceValue >& imp2thr);
 };
 
 } // namespace fig

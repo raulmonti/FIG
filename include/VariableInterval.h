@@ -94,37 +94,34 @@ public:  // Ctors/Dtor
 
 public:  // Accessors
 
-	inline T_ val() const noexcept
+	inline T_ val() const noexcept override final
 		{ return Variable<T_>::min_ + static_cast<T_>(Variable<T_>::offset_); }
-	inline T_ val(const size_t& offset) const
+	inline T_ val(const size_t& offset) const override final
 		{ return Variable<T_>::min_ + static_cast<T_>(offset); }
 
 public:  // Modifiers
 
-	/// @copydoc Variable::operator=()
-	inline virtual VariableInterval& operator=(const T_& value) final
+	inline VariableInterval& operator=(const T_& value) override final
 		{
 #ifndef NDEBUG
 			if (Variable<T_>::name_.empty())
-				throw_FigException(std::string("can't assign value to a fresh variable")
-					.append(" (\"").append(Variable<T_>::name_).append("\")"));
+				throw_FigException("can't assign value to a fresh variable (\""
+								   + Variable<T_>::name_ + "\")");
 #endif
 			Variable<T_>::offset_ = value - Variable<T_>::min_;
 			return *this;
 		}
 
-	/// @copydoc Variable::assign()
-	virtual void assign(const T_& value);
+	void assign(const T_& value) override final;
 
 public:  // Relational operators
 
-	/// @copydoc Variable::operator==()
-	virtual bool operator==(const Variable<T_>& that) const;
-	virtual bool operator==(const VariableInterval<T_>& that) const;
+	bool operator==(const Variable<T_>& that) const override;
+	bool operator==(const VariableInterval<T_>& that) const;
 
-	/// @copydoc Variable::is_valid_value()
-	inline virtual bool is_valid_value(const T_& val) const final
-		{ return Variable<T_>::min_ <= val && val <= Variable<T_>::max_; }  // http://stackoverflow.com/a/19954164
+	inline bool is_valid_value(const T_& val) const override final
+		// http://stackoverflow.com/a/19954164
+		{ return Variable<T_>::min_ <= val && val <= Variable<T_>::max_; }
 
 // Same invariant as in base class
 };

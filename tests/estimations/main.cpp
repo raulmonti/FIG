@@ -34,77 +34,86 @@
 #include <string>
 #include <tuple>
 #include <set>
+#include <chrono>
+#include <ctime>    // std::ctime()
 #include <cassert>
+#include <cstdlib>  // std::strtoul()
+#include <sys/stat.h>
 
 #include <fig.h>
 
 typedef std::set< std::string > NamesList;
 typedef std::set< std::tuple<double,double,bool> > StopCond;
 
-static void print_test_intro(std::ostream& out);
-static void check_dummy_arguments(const int& argc, const char** argv);
+static void print_intro();
+static void check_arguments(const int& argc, const char** argv);
+static bool file_exists(const std::string& filepath);
 static void build_model(const char* modelFilePath, const char* propsFilePath);
+static void set_global_splitting(const char* splitsPerThreshold);
 
 
 
 int main(int argc, char** argv)
 {
 	//  Intro  // // // // // // // // // // // // // // // // // //
-	print_test_intro(std::cout);
-	check_dummy_arguments(argc, const_cast<const char**>(argv));
+	print_intro();
+	check_arguments(argc, const_cast<const char**>(argv));
 
 	//  Compile model and properties   // // // // // // // // // //
-	build_model("models/tandem_queue.sa", "models/tandem_queue.pp");
+	build_model(argv[1], argv[2]);
 	auto model = fig::ModelSuite::get_instance();
 	if (!model.sealed()) {
 		std::cerr << "ERROR: failed to build the model.\n";
 		exit(EXIT_FAILURE);
 	} else {
 		std::cout << std::endl;
+		if (argc > 3)
+			set_global_splitting(argv[3]);
 	}
 	const size_t propertyIndex(0ul);
 
-	//  Short test runs with flat ifun    // // // // // // // // //
+	//  Estimation goals   // // // // // // // // // // // // // //
+	const fig::StoppingConditions timeSpan(std::set<size_t>({90ul}));
+	const double confidence(0.90);
+	const double precision(0.2);
+	const fig::StoppingConditions stopCriterion(StopCond({std::make_tuple(
+			confidence, precision, true)}));
+	std::shared_ptr< fig::SimulationEngine > engine(nullptr);
+
+	//  Standard Monte Carlo     // // // // // // // // // // // //
 	const std::string flatIfunName("algebraic");
 	model.build_importance_function_flat(flatIfunName, propertyIndex);
 	model.build_thresholds("ams", flatIfunName);
-	auto engine = model.prepare_simulation_engine("nosplit", flatIfunName);
-//	const fig::StoppingConditions timeSpans(std::set<size_t>({5ul,15ul}));
-//	model.estimate(propertyIndex, *engine, timeSpans);
-	engine = nullptr;
-
-	//  Estimation goals   // // // // // // // // // // // // // //
-	const double confidence(0.8);
-	const double precision(6.0e-5);
-	const fig::StoppingConditions stopCriterion(
-		StopCond({std::make_tuple(confidence, precision, false)}));
-
-	//  Estimate with algebraic ad hoc ifun  // // // // // // // //
-	const std::string adhocIfunName("algebraic");
-	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "q2", NamesList({"q2"}));
-	model.build_thresholds("ams", adhocIfunName);
-	engine = model.prepare_simulation_engine("restart", adhocIfunName);
-	/// @todo TODO change timeSpan for stopCriterion
-	const fig::StoppingConditions timeSpan(std::set<size_t>({60ul}));
+	engine = model.prepare_simulation_engine("nosplit", flatIfunName);
 	model.estimate(propertyIndex, *engine, timeSpan);
-//	model.estimate(propertyIndex, *engine, stopCriterion);
+	//model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
 
-	//  Estimate with coupled auto ifun   // // // // // // // // //
+	//  RESTART with algebraic ad hoc   // // // // // // // // //
+	const std::string adhocIfunName("algebraic");
+//	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "q2", NamesList({"q2"}), true);
+	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "buf", NamesList({"buf"}), true);
+	model.build_thresholds("smc", adhocIfunName);
+	engine = model.prepare_simulation_engine("restart", adhocIfunName);
+	//model.estimate(propertyIndex, *engine, timeSpan);
+	model.estimate(propertyIndex, *engine, stopCriterion);
+	engine = nullptr;
+
+	//  RESTART with automatic coupled   // // // // // // // // //
 	const std::string cAutoIfunName("concrete_coupled");
 	model.build_importance_function_auto(cAutoIfunName, propertyIndex);
-	model.build_thresholds("ams", cAutoIfunName);
+	model.build_thresholds("smc", cAutoIfunName);
 	engine = model.prepare_simulation_engine("restart", cAutoIfunName);
-	/// @todo TODO change timeSpan for stopCriterion
-	model.estimate(propertyIndex, *engine, timeSpan);
-//	model.estimate(propertyIndex, *engine, stopCriterion);
+	//model.estimate(propertyIndex, *engine, timeSpan);
+	model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
 
-	//  Estimate with split auto ifun  // // // // // // // // // //
+	//  RESTART with automatic split  // // // // // // // // // //
 	const std::string sAutoIfunName("concrete_split");
 	model.build_importance_function_auto(sAutoIfunName, propertyIndex, "+", true);
 	model.build_thresholds("ams", sAutoIfunName);
 	engine = model.prepare_simulation_engine("restart", sAutoIfunName);
+	//model.estimate(propertyIndex, *engine, timeSpan);
 	model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
 
@@ -116,48 +125,70 @@ int main(int argc, char** argv)
 
 
 // ///////////////////////////////////////////////////////////////////////////
-void print_test_intro(std::ostream& out)
+void print_intro()
 {
-	out << std::endl;
-	out << " ~~~~~~~~~ \n";
-	out << "  · FIG ·  \n";
-	out << " ~~~~~~~~~ \n";
-	out << "           \n";
-	out << " This is the Finite Improbability Generator.\n";
-	out << " Version: " << fig_VERSION_MAJOR << "." << fig_VERSION_MINOR << "\n";
-	out << " Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n";
-	out << "          Monti, Raúl E.   <raulmonti88@gmail.com>\n";
-	out << "           \n";
-	out << " This is a test deviced for estimations checking;\n";
-	out << " it automatically runs with the files models/tandem_queue.{sa,pp}\n";
-	out << std::endl;
+	auto log = fig::ModelSuite::main_log;
+	using std::to_string;
+	log("\n");
+	log(" ~~~~~~~~~ \n");
+	log("  · FIG ·  \n");
+	log(" ~~~~~~~~~ \n");
+	log("           \n");
+	log(" This is the Finite Improbability Generator.\n");
+	log(" Version: "+to_string(fig_VERSION_MAJOR)+"."+to_string(fig_VERSION_MINOR)+"\n");
+	log(" Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n");
+	log("          Monti, Raúl E.   <raulmonti88@gmail.com>\n");
+	log("\n");
+	std::time_t now = std::chrono::system_clock::to_time_t(
+						  std::chrono::system_clock::now());
+	fig::ModelSuite::tech_log("\nFIG tool invoked on ");
+	fig::ModelSuite::tech_log(std::ctime(&now));
+	fig::ModelSuite::tech_log("\n");
 }
 
 
 // ///////////////////////////////////////////////////////////////////////////
-void check_dummy_arguments(const int& argc, const char** argv)
+void check_arguments(const int& argc, const char** argv)
 {
 	const std::string help("--help");
-	const std::string usage(std::string("Usage: ").append(argv[0])
-							.append(" <modelFilePath> <propertiesFilePath>\n"));
+	const std::string usage(std::string("Usage: ") + argv[0] +
+			" <modelFilePath> <propertiesFilePath> [<splitting>]\n");
 	if (argc < 3 && argc > 1 && help == argv[1]) {
 		std::cerr << usage << std::endl;
 		exit(EXIT_SUCCESS);
-//	} else if (argc < 3) {
-//		std::cerr << "ERROR: FIG invoked with too few parameters.\n";
-//		std::cerr << usage << std::endl;
-//		exit(EXIT_FAILURE);
+	} else if (argc < 3) {
+		std::cerr << "ERROR: FIG invoked with too few parameters.\n";
+		std::cerr << usage << std::endl;
+		exit(EXIT_FAILURE);
 	}
+}
+
+
+// ///////////////////////////////////////////////////////////////////////////
+bool file_exists(const std::string& filepath)
+{
+	struct stat buffer;
+	return (stat(filepath.c_str(), &buffer) == 0);
 }
 
 
 // ///////////////////////////////////////////////////////////////////////////
 void build_model(const char* modelFilePath, const char* propsFilePath)
 {
+	// Look for specified files
+	fig::ModelSuite::log(std::string("Model file: ") + modelFilePath);
+	if (!file_exists(modelFilePath)) {
+		fig::ModelSuite::log(" *** Error: file not found! ***\n");
+		exit(EXIT_FAILURE);
+	}
+	fig::ModelSuite::log(std::string("\nProperties: ") + propsFilePath);
+	if (!file_exists(propsFilePath)) {
+		fig::ModelSuite::log(" *** Error: file not found! ***\n");
+		exit(EXIT_FAILURE);
+	}
+	fig::ModelSuite::log("\n");
 
-    tout << "Model file: "      << modelFilePath << endl;
-    tout << "Properties file: " << propsFilePath << endl;
-
+	// Open files as streams
 	Parser parser;
 	Verifier verifier;
 	Precompiler precompiler;
@@ -181,4 +212,20 @@ void build_model(const char* modelFilePath, const char* propsFilePath)
 
     // Compile everything into simulation model
 	fig::CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
+}
+
+
+// ///////////////////////////////////////////////////////////////////////////
+void set_global_splitting(const char* splitsPerThreshold)
+{
+	char* err;
+	unsigned long spt = std::strtoul(splitsPerThreshold, &err, 10);
+	if ('\0' != *err) {
+		fig::ModelSuite::log(std::string(" *** Error: bad splitting factor ")
+							 + "specified: \"" + splitsPerThreshold + "\" ***\n");
+		exit(EXIT_FAILURE);
+	}
+	fig::ModelSuite::tech_log(std::string("Specified global splitting factor")
+							  + " = " + splitsPerThreshold + "\n");
+	fig::ModelSuite::get_instance().set_splitting(spt);
 }

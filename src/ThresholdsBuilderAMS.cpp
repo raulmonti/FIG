@@ -34,7 +34,7 @@
 #include <vector>
 #include <memory>
 #include <sstream>
-#include <algorithm>  // std::sort()
+#include <algorithm>  // std::sort(), std::max({})
 #include <unordered_map>
 // FIG
 #include <ThresholdsBuilderAMS.h>
@@ -45,35 +45,14 @@
 namespace
 {
 
-typedef  std::vector< fig::Reference< fig::Traial > >  TraialsVec;
 using fig::ImportanceValue;
+using TraialsVec = fig::ThresholdsBuilderAdaptive::TraialsVec;
 
 /// Min simulation length (in # of jumps) to find new thresholds
-const unsigned MIN_SIM_EFFORT = 1u<<6;  // 64
+const unsigned MIN_SIM_EFFORT = 1u<<7;  // 128
 
 /// Max # of failures allowed when searching for a new threshold
-const unsigned MAX_NUM_FAILURES = 6u;
-
-/**
- * Get initialized traial instances
- * @param numTraials Number of Traials to retrieve from the TraialPool
- * @param network    User's system model, i.e. a network of modules
- * @param impFun     ImportanceFunction with \ref ImportanceFunction::has_importance_info()
- *                   "importance info" to use for initialization
- * @return std::vector of references to initialized Traial instances
- */
-TraialsVec
-get_traials(const unsigned& numTraials,
-			const fig::ModuleNetwork& network,
-			const fig::ImportanceFunction& impFun)
-{
-	TraialsVec traials;
-	fig::TraialPool::get_instance().get_traials(traials, numTraials);
-	assert(traials.size() == numTraials);
-	for (fig::Traial& t: traials)
-		t.initialize(network, impFun);
-	return traials;
-}
+const unsigned MAX_NUM_FAILURES = 5u;
 
 
 /**
@@ -98,16 +77,14 @@ simulate(const fig::ModuleNetwork& network,
 		 const unsigned& numSims,
 		 const unsigned& simEffort)
 {
+	assert(traials.size() >= numSims);
 	unsigned jumpsLeft;
 
 	// Function pointers matching supported signatures (ModuleNetwork::peak_simulation())
-	auto predicate = [&](const fig::Traial&) -> bool {
-		/// @todo NOTE: try also stopping when we reach max importance
-		/// @todo NOTE: try also stopping when we reach min importance
-		/// @todo NOTE: try also stopping when we reach importance == "this retrial start importance"
-		return --jumpsLeft > 0u;
+    auto predicate = [&jumpsLeft, &impFun](const fig::Traial& t) -> bool {
+        return --jumpsLeft > 0u && t.level < impFun.max_value();
 	};
-	auto update = [&](fig::Traial& t) -> void {
+    auto update = [&impFun](fig::Traial& t) -> void {
 		t.level = impFun.importance_of(t.state);
 	};
 	// Notice we actually use lambdas with captures, which are incompatible
@@ -128,151 +105,78 @@ simulate(const fig::ModuleNetwork& network,
 namespace fig
 {
 
-ThresholdsBuilderAMS::ThresholdsBuilderAMS() :
-	ThresholdsBuilder("ams"),
-	n_(0u),
-	k_(0u),
-	thresholds_()
+ThresholdsBuilderAMS::ThresholdsBuilderAMS() : ThresholdsBuilderAdaptive("ams")
 { /* Not much to do around here */ }
 
 
 void
-ThresholdsBuilderAMS::tune(const size_t& numStates,
-						   const size_t& numTrans,
-						   const ImportanceValue& maxImportance,
-						   const unsigned& splitsPerThr)
-{
-	assert(0u < numStates);
-	assert(0u < numTrans);
-	assert(0u < splitsPerThr);
-
-	std::vector< ImportanceValue >().swap(thresholds_);
-	thresholds_.reserve(maxImportance/2);
-	assert(thresholds_.size() == 0u);
-	assert(thresholds_.capacity() > 0u);
-
-	/// @todo FIXME code imported from bluemoon -- Change to something more solid
-
-	// Heuristic for 'n_':
-	//   the more importance values, the more independent runs we need
-	//   for some of them to be successfull.
-	//   Number of states and transitions in the model play a role too.
-	const unsigned explFactor = 50;
-	const unsigned statesExtra = std::min<unsigned>(numStates/explFactor, 100);
-	const unsigned transExtra = std::min<unsigned>(2*numTrans/explFactor, 150);
-	n_  = std::ceil(std::log(maxImportance)) * explFactor + statesExtra + transExtra;
-
-	// Heuristic for 'k_':
-	//   splitsPerThr * levelUpProb == 1  ("balanced growth")
-	//   where levelUpProb == k_/n_
-	k_ = std::round(n_ / static_cast<float>(splitsPerThr));
-
-	assert(0u < k_);
-	assert(k_ < n_);
-}
-
-
-std::vector< ImportanceValue >
-ThresholdsBuilderAMS::build_thresholds(const unsigned& splitsPerThreshold,
-									   const ImportanceFunction& impFun)
-{
-	unsigned currThr(0ul);
-	std::vector< ImportanceValue > result;
-
-	build_thresholds_vector(splitsPerThreshold, impFun);
-	assert(!thresholds_.empty());
-	assert(thresholds_[0] == impFun.min_importance());
-	assert(thresholds_.back() > impFun.max_importance());
-
-	result.resize(impFun.max_importance() + 1ul);
-	for (ImportanceValue i = impFun.min_importance()
-		 ; i <= impFun.max_importance()
-		 ; i++)
-	{
-		while (currThr < thresholds_.size()-1 && i >= thresholds_[currThr+1])
-			currThr++;
-		result[i] = static_cast<ImportanceValue>(currThr);
-	}
-
-	assert(result[impFun.min_importance()] == static_cast<ImportanceValue>(0u));
-	assert(result[impFun.max_importance()] ==
-			static_cast<ImportanceValue>(thresholds_.size()-2));
-	std::vector< ImportanceValue >().swap(thresholds_);  // free mem
-
-	return result;
-}
-
-
-void
 ThresholdsBuilderAMS::build_thresholds_vector(
-	const unsigned& splitsPerThreshold,
 	const ImportanceFunction& impFun)
 {
-	const ImportanceValue impRange = impFun.max_importance() - impFun.min_importance();
+	const ImportanceValue impRange = impFun.max_value() - impFun.min_value();
 	if (impRange < static_cast<ImportanceValue>(2u)) {
 		// Too few importance levels: default to max possible # of thresholds
 		std::vector< ImportanceValue >(impRange+2u).swap(thresholds_);
-		thresholds_[0u] = impFun.min_importance();
-		thresholds_[1u] = impFun.max_importance();
-		thresholds_[impRange+1u] = impFun.max_importance()
+		thresholds_[0u] = impFun.min_value();
+		thresholds_[1u] = impFun.max_value();
+		thresholds_[impRange+1u] = impFun.max_value()
 								   + static_cast<ImportanceValue>(1u);
 		return;
 	}
 
-	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
-	tune(network.concrete_state_size(),
-		 network.num_transitions(),
-		 impFun.max_importance(),
-		 splitsPerThreshold);
+    assert(0u < k_);
+    assert(k_ < n_);
 
-	unsigned failures(0u);
-	unsigned simEffort(MIN_SIM_EFFORT);
+    unsigned failures(0u), simEffort(MIN_SIM_EFFORT);
 	std::vector< ImportanceValue >().swap(thresholds_);
-	thresholds_.reserve(impFun.max_importance()/3);
+	thresholds_.reserve((impFun.max_value()-impFun.min_value()) / 5u);  // magic
 	auto lesser = [](const Traial& lhs, const Traial& rhs)
 				  { return lhs.level < rhs.level; };
-	TraialsVec traials = get_traials(n_, network, impFun);
+	TraialsVec traials = ThresholdsBuilderAdaptive::get_traials(n_, impFun);
+	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 
-	// First AMS iteration is atypical and thus separated from main loop
-	thresholds_.push_back(impFun.min_importance());
-	Traial& kTraial = traials[n_-k_];
+	// AMS initialization
+    thresholds_.push_back(traials[0].get().level);  // start from initial state importance
 	do {
 		simulate(network, impFun, traials, n_, simEffort);
 		std::sort(begin(traials), end(traials), lesser);
-		kTraial = traials[n_-k_];
-		simEffort *= 2;
-    } while (thresholds_.back() == kTraial.level);
-	if (impFun.max_importance() <= kTraial.level)
-		throw_FigException("first iteration of AMS reached max importance, "
-						   "rare event doesn't seem rare enough.");
-	thresholds_.push_back(kTraial.level);
-	simEffort = MIN_SIM_EFFORT;
+    } while (thresholds_.back() == traials[n_-k_].get().level
+             && (simEffort *= 2u));
+    if (impFun.max_value() <= traials[n_-k_].get().level)
+		ModelSuite::tech_log("first iteration of AMS reached max importance, "
+							 "rare event doesn't seem so rare.");
+    thresholds_.push_back(traials[n_-k_].get().level);
+    simEffort = MIN_SIM_EFFORT;
 
 	// AMS main loop
-	while (thresholds_.back() < impFun.max_importance()) {
+	while (thresholds_.back() < impFun.max_value()) {
 		// Relaunch all n_-k_ simulations below previously built threshold
-		for (unsigned i = 0u ; i < n_-k_ ; i++)
-			static_cast<Traial&>(traials[i]) = kTraial;
+        for (unsigned i = 0u ; i < n_-k_ ; i++)
+            traials[i].get() = traials[n_-k_].get();  // copy values, not addresses
 		simulate(network, impFun, traials, n_-k_, simEffort);
-		// New k_-th order peak importance should be the new threshold
+        // New 1-k_/n_ importance quantile should be the new threshold
 		std::sort(begin(traials), end(traials), lesser);
-		kTraial = traials[n_-k_];
-		if (thresholds_.back() < kTraial.level) {
+        const ImportanceValue newThreshold = traials[n_-k_].get().level;
+        if (thresholds_.back() < newThreshold) {
 			// Found valid new threshold
-			thresholds_.push_back(kTraial.level);
+            thresholds_.push_back(newThreshold);
 			simEffort = MIN_SIM_EFFORT;
 			failures = 0u;
         } else {
 			// Failed to reach higher importance => increase effort
 			if (++failures > MAX_NUM_FAILURES)
 				goto exit_with_fail;
-			simEffort *= 2;
+			simEffort *= 2u;
         }
 	}
 
 	TraialPool::get_instance().return_traials(traials);
-	thresholds_.push_back(impFun.max_importance()
-						  + static_cast<ImportanceValue>(1u));
+    { std::stringstream msg;
+    msg << "ImportanceValue of the chosen thresholds:";
+    for (size_t i = 1ul ; i < thresholds_.size() ; i++)
+        msg << " " << thresholds_[i];
+    ModelSuite::tech_log(msg.str() + "\n\n"); }
+    thresholds_.push_back(impFun.max_value() + static_cast<ImportanceValue>(1u));
 	return;
 
 	exit_with_fail:
@@ -283,6 +187,21 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 			errMsg << thr << ", ";
 		errMsg << "\b\b  \b\b\n";
 		throw_FigException(errMsg.str());
+}
+
+
+void
+ThresholdsBuilderAMS::tune(const size_t& numStates,
+						   const size_t& numTrans,
+						   const ImportanceValue& maxImportance,
+						   const unsigned& splitsPerThr)
+{
+	const unsigned n(n_);
+	ThresholdsBuilderAdaptive::tune(numStates, numTrans, maxImportance, splitsPerThr);
+    // Impose our own minimum if it was larger than the one automatically chosen
+    const float p(static_cast<float>(k_)/n_);
+	n_ = std::max({n, n_, ThresholdsBuilderAdaptive::MIN_N});
+	k_ = std::round(p*n_);
 }
 
 } // namespace fig

@@ -69,20 +69,20 @@ public:  // Ctor/Dtor
 
 public:  // Accessors
 
-	inline virtual bool concrete() const noexcept { return false; }
+	inline bool concrete() const noexcept override final { return false; }
 
 	/// @copydoc ImportanceFunction::importance_of()
 	/// @note <b>Complexity:</b> <i>O(size(state))</i> +
 	///                          <i>O(mu::Parser::Eval(state))</i>
-	virtual ImportanceValue importance_of(const StateInstance& state) const;
+	ImportanceValue importance_of(const StateInstance& state) const override;
 
 	/// @copydoc ImportanceFunction::level_of(const StateInstance&)
 	/// @note <b>Complexity:</b> same as ImportanceFunctionAlgebraic::importance_of()
-	virtual ImportanceValue level_of(const StateInstance& state) const;
+	ImportanceValue level_of(const StateInstance& state) const override;
 
-	virtual ImportanceValue level_of(const ImportanceValue& val) const;
+	ImportanceValue level_of(const ImportanceValue& val) const override;
 
-	virtual void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE> s) const;
+	void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE> s) const override;
 
 public:  // Utils
 
@@ -94,7 +94,7 @@ public:  // Utils
 	 * @param formulaExprStr String with the new mathematical expression
 	 * @param varnames       Names of variables ocurring in formulaExprStr,
 	 *                       viz. substrings in it that refer to variable names
-	 * @param gState         Global state of the system model, in any valuation
+	 * @param gState         Model's global state in its initial valuation
 	 * @param property       Property identifying the rare states
 	 *
 	 * @note After a successfull invocation this ImportanceFunction
@@ -111,10 +111,22 @@ public:  // Utils
 					 const State<STATE_INTERNAL_TYPE>& gState,
 					 const Property& property);
 
-	virtual void build_thresholds(ThresholdsBuilder& tb,
-								  const unsigned& splitsPerThreshold);
+	void build_thresholds(ThresholdsBuilder& tb, const unsigned& spt) override;
 
-	virtual void clear() noexcept;
+	void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
+									 const unsigned& spt,
+									 const float& p,
+									 const unsigned& n) override;
+
+	void clear() noexcept override;
+
+private:  // Class utils
+
+	/// Post-processing once the thresholds have been built
+	/// @param tbName Name of the ThresholdsBuilder used
+	/// @see build_thresholds()
+	/// @see build_thresholds_adaptively()
+	void post_process_thresholds(const std::string& tbName);
 };
 
 } // namespace fig

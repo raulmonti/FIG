@@ -195,12 +195,11 @@ void
 VariableInterval<T_>::assign(const T_& value)
 {
 	if (Variable<T_>::name_.empty())
-		throw_FigException(std::string("can't assign value to a fresh variable")
-			.append(" (\"").append(Variable<T_>::name_).append("\")"));
+		throw_FigException("can't assign value to fresh variable (\""
+						   + Variable<T_>::name_ + "\")");
 	else if (!is_valid_value(value))
-		throw_FigException(std::string("can't assign ")
-			.append(std::to_string(value)).append(" to variable \"")
-			.append(Variable<T_>::name_).append("\", invalid value"));
+		throw_FigException("can't assign " + std::to_string(value) + " to "
+						   "variable \"" + Variable<T_>::name_ + "\", invalid value");
 	else
 		Variable<T_>::offset_ = value - Variable<T_>::min_;
 }

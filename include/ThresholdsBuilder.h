@@ -41,7 +41,6 @@ namespace fig
 {
 
 class ImportanceFunction;
-class ImportanceFunctionConcrete;
 
 /**
  * @brief Asbtract base builder of importance thresholds.
@@ -61,7 +60,7 @@ public:
 	/// Names of the (derived) thresholds builders offered to the user,
 	/// as he should requested them through the CLI/GUI.
 	/// Defined in ThresholdsBuilder.cpp
-	static const std::array< std::string, 1 > names;
+	static const std::array< std::string, 2 > names;
 
 	/// Thresholds building technique implemented by this instance
 	/// Check ThresholdsBuilder::names for available options.
@@ -71,6 +70,10 @@ public:
 
 	/// Ctor
 	ThresholdsBuilder(const std::string& thename);
+
+	/// Whether the class builds the thresholds <i>adaptively</i>,
+	/// viz. taking into consideration the user model's semantics
+	virtual bool adaptive() const noexcept = 0;
 
 	/**
 	 * @brief Build thresholds based on given importance function

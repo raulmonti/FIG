@@ -56,6 +56,40 @@ namespace { const fig::Label tau; }
 namespace fig
 {
 
+template< template< typename, typename... > class Container1,
+		  typename ValueType1,
+		  typename... OtherContainerArgs1 >
+ModuleInstance::ModuleInstance(
+	const std::string& thename,
+	const State< STATE_INTERNAL_TYPE >& state,
+	const Container1< ValueType1, OtherContainerArgs1... >& clocks) :
+		lState_(state),
+		name(thename),
+		globalIndex_(-1),
+		firstVar_(-1),
+		firstClock_(-1),
+		sealed_(false)
+{
+	// Copy clocks
+	static_assert(std::is_constructible< Clock, ValueType1 >::value,
+				  "ERROR: type mismatch. ModuleInstance ctors require a "
+				  "container with the clocks defined in this module");
+	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
+}
+
+// ModuleInstance can be built from the following containers
+template ModuleInstance::ModuleInstance(const std::string&,
+	const State<STATE_INTERNAL_TYPE>&, const std::set<Clock>&);
+template ModuleInstance::ModuleInstance(const std::string&,
+	const State<STATE_INTERNAL_TYPE>&, const std::list<Clock>&);
+template ModuleInstance::ModuleInstance(const std::string&,
+	const State<STATE_INTERNAL_TYPE>&, const std::deque<Clock>&);
+template ModuleInstance::ModuleInstance(const std::string&,
+	const State<STATE_INTERNAL_TYPE>&, const std::vector<Clock>&);
+template ModuleInstance::ModuleInstance(const std::string&,
+	const State<STATE_INTERNAL_TYPE>&, const std::forward_list<Clock>&);
+
+
 void
 ModuleInstance::add_transition(const Transition& transition)
 {
@@ -234,11 +268,12 @@ ModuleInstance::jump(const std::string& clockName,
                 elapsedTime);
             // Finally broadcast the output label triggered
             assert(tr_ptr->label().is_output());
-            return tr_ptr->label();
+			return tr_ptr->label();
 		}
 	}
     // No transition was enabled => advance all clocks and broadcast tau
 	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
+
 	return tau;
 }
 

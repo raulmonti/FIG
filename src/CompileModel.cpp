@@ -1,5 +1,7 @@
 #include <set>
 #include <vector>
+#include <iterator>   // std::begin(), std::end()
+#include <algorithm>  // std::find_if()
 #include <map>
 #include "CompileModel.h"
 #include "State.h"
@@ -14,6 +16,12 @@
 #include <z3++.h>
 
 
+// ADL
+using std::begin;
+using std::end;
+
+/// @todo Raul, I don't recommend this, at least for std
+///       If you will declare only the STL used elements, like in "ADL" above
 using namespace fig;
 using namespace std;
 using namespace parser;
@@ -40,7 +48,7 @@ CompileVars(const vector<AST*> varList, const parsingContext &pc)
             limits[0] = solve_const_expr(ASTlimits[0],pc);
             limits[1] = solve_const_expr(ASTlimits[1],pc);
 		} else {
-			// For now assume boolean. Revise if we accept initialization lists
+			// For now assume boolean. Revise when we accept initialization lists
 			limits[0] = "0";
 			limits[1] = "1";
 		}
@@ -80,7 +88,12 @@ CompileClocks(const vector<AST*> transitions)
     for(const auto &it: clocks){
         string name = (it->get_lexeme(_NAME));
         name.pop_back();
-        string distrib = it->get_first(_DISTRIBUTION)->get_lexeme(_NAME);
+		// we parse clocks as they're set, and they could be set several times
+		if (end(result) != std::find_if(begin(result), end(result),
+				[&name](const Clock& clk){ return clk.name() == name; })) {
+			continue;  // avoid adding a clock which was already parsed
+		}
+		string distrib = it->get_first(_DISTRIBUTION)->get_lexeme(_NAME);
         vector<string> params = 
             it->get_first(_DISTRIBUTION)->get_all_lexemes(_NUM);
         // FIXME que feo que es armar el array ... no se de que otra forma

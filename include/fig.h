@@ -89,6 +89,11 @@
 #include "ImportanceFunctionConcrete.h"
 #include "ImportanceFunctionConcreteSplit.h"
 #include "ImportanceFunctionConcreteCoupled.h"
+// Thresholds builders
+#include "ThresholdsBuilder.h"
+#include "ThresholdsBuilderAdaptive.h"
+#include "ThresholdsBuilderAMS.h"
+#include "ThresholdsBuilderSMC.h"
 // Simulation engines
 #include "SimulationEngine.h"
 #include "SimulationEngineNosplit.h"

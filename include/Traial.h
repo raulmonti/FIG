@@ -31,6 +31,7 @@
 #define TRAIAL_H
 
 // C++
+#include <sstream>
 #include <string>
 #include <vector>
 #include <memory>     // std::shared_ptr<>
@@ -212,8 +213,14 @@ public:  // Utils
 		{
 			if (reorder)
 				reorder_clocks();
-			if (0 > firstNotNull_)
-                throw_FigException("all clocks are null! Deadlock?");
+            if (0 > firstNotNull_) {
+                std::stringstream errMsg;
+                errMsg << "all clocks are null, deadlock? State is (";
+                for (const auto& v: state)
+                    errMsg << v << ",";
+                errMsg << "\b)";
+                throw_FigException(errMsg.str());
+            }
 			return clocks_[firstNotNull_];
 		}
 

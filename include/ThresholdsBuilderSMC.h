@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  ThresholdsBuilderAMS.h
+//  ThresholdsBuilderSMC.h
 //
 //  Copyleft 2016-
 //  Authors:
@@ -26,8 +26,8 @@
 //
 //==============================================================================
 
-#ifndef THRESHOLDSBUILDERAMS_H
-#define THRESHOLDSBUILDERAMS_H
+#ifndef THRESHOLDSBUILDERSMC_H
+#define THRESHOLDSBUILDERSMC_H
 
 #include <ThresholdsBuilderAdaptive.h>
 
@@ -35,26 +35,32 @@
 namespace fig
 {
 
+class ModuleNetwork;
+
 /**
- * @brief ThresholdsBuilder implementing Adaptive Multilevel Splitting (AMS)
+ * @brief ThresholdsBuilder implementing Sequential Monte Carlo (SMC)
  *
- *        AMS is an <i>adaptive</i> thresholds building technique which takes
- *        its name from an article published by Cerou and Guyader in 2007.
- *        Given a state space and an importance function on it, AMS aims to
- *        locate the thresholds so that all the probabilities 'P_i' are roughly
- *        the same. Here 'P_i' is defined as the conditional probability of a
- *        simulation run traversing the i-th level upwards, that is, going up
- *        the i-th importance threshold having started at the (i-1)-th threshold.
+ *        SMC is an <i>adaptive</i> thresholds building technique deviced and
+ *        perfected by Cerou, Del Moral, Furon and Guyader in the article
+ *        "Sequential Monte Carlo for rare event estimation" from 2011.
+ *        It could be regarded as a statistically improved version of
+ *        Adaptive Multilevel Splitting, the orginal algorithm published by
+ *        Cerou and Guyader in 2007.<br>
+ *        Just like AMS, given a state space and an importance function on it
+ *        SMC aims to choose importance values as "thresholds" trying to make
+ *        all the partial probabilities 'P_i' roughly equal. SMC differs
+ *        from AMS in the way the internal Monte Carlo simulations are handled,
+ *        improving the statistical virtues of the algorithm's iterations.
  *
  * @see ThresholdsBuilderAdaptive
- * @see ThresholdsBuilderSMC
+ * @see ThresholdsBuilderAMS
  */
-class ThresholdsBuilderAMS : public ThresholdsBuilderAdaptive
+class ThresholdsBuilderSMC : public ThresholdsBuilderAdaptive
 {
 public:
 
 	/// Void ctor
-	ThresholdsBuilderAMS();
+	ThresholdsBuilderSMC();
 
 private:  // Class internal helper functions
 
@@ -68,4 +74,4 @@ private:  // Class internal helper functions
 
 } // namespace fig
 
-#endif // THRESHOLDSBUILDERAMS_H
+#endif // THRESHOLDSBUILDERSMC_H

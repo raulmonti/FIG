@@ -33,11 +33,17 @@
 #include <fstream>
 #include <string>
 #include <cassert>
+#include <sys/stat.h>
 
 #include <fig.h>
 
-static void print_intro(std::ostream& out);
+// using std::make_tuple;
+// typedef std::set< std::string > NamesList;
+// typedef std::set< std::tuple<double,double,bool> > StopCond;
+
+static void print_intro();
 static void check_arguments(const int& argc, const char** argv);
+static bool file_exists(const std::string& filepath);
 static void build_model(const char* modelFilePath, const char* propsFilePath);
 
 
@@ -45,7 +51,7 @@ static void build_model(const char* modelFilePath, const char* propsFilePath);
 int main(int argc, char** argv)
 {
 	//  Intro  // // // // // // // // // // // // // // // // // //
-	print_intro(std::cout);
+    print_intro();
 	check_arguments(argc, const_cast<const char**>(argv));
 
 	//  Compile model and properties   // // // // // // // // // //
@@ -55,6 +61,7 @@ int main(int argc, char** argv)
 		std::cerr << "ERROR: failed to build the model.\n";
 		exit(EXIT_FAILURE);
 	}
+	const size_t propertyIndex(0ul);  // check only first defined property
 
 
     /** TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO **/
@@ -71,18 +78,25 @@ int main(int argc, char** argv)
 
 
 // ///////////////////////////////////////////////////////////////////////////
-void print_intro(std::ostream& out)
+void print_intro()
 {
-	out << std::endl;
-	out << " ~~~~~~~~~ \n";
-	out << "  · FIG ·  \n";
-	out << " ~~~~~~~~~ \n";
-	out << "           \n";
-	out << " This is the Finite Improbability Generator.\n";
-	out << " Version: " << fig_VERSION_MAJOR << "." << fig_VERSION_MINOR << "\n";
-	out << " Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n";
-	out << "          Monti, Raúl E.   <raulmonti88@gmail.com>\n";
-	out << std::endl;
+    auto log = fig::ModelSuite::main_log;
+    using std::to_string;
+    log("\n");
+    log(" ~~~~~~~~~ \n");
+    log("  · FIG ·  \n");
+    log(" ~~~~~~~~~ \n");
+    log("           \n");
+    log(" This is the Finite Improbability Generator.\n");
+    log(" Version: "+to_string(fig_VERSION_MAJOR)+"."+to_string(fig_VERSION_MINOR)+"\n");
+    log(" Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n");
+    log("          Monti, Raúl E.   <raulmonti88@gmail.com>\n");
+    log("\n");
+    std::time_t now = std::chrono::system_clock::to_time_t(
+                          std::chrono::system_clock::now());
+    fig::ModelSuite::tech_log("\nFIG tool invoked on ");
+    fig::ModelSuite::tech_log(std::ctime(&now));
+    fig::ModelSuite::tech_log("\n");
 }
 
 
@@ -104,11 +118,27 @@ void check_arguments(const int& argc, const char** argv)
 
 
 // ///////////////////////////////////////////////////////////////////////////
+bool file_exists(const std::string& filepath)
+{
+    struct stat buffer;
+    return (stat(filepath.c_str(), &buffer) == 0);
+}
+
+
+// ///////////////////////////////////////////////////////////////////////////
 void build_model(const char* modelFilePath, const char* propsFilePath)
 {
-
-    tout << "Model file: "      << modelFilePath << endl;
-    tout << "Properties file: " << propsFilePath << endl;
+    fig::ModelSuite::log(std::string("Model file: ") + modelFilePath);
+    if (!file_exists(modelFilePath)) {
+        fig::ModelSuite::log(" *** Error: file not found! ***\n");
+        exit(EXIT_FAILURE);
+    }
+    fig::ModelSuite::log(std::string("\nProperties: ") + propsFilePath);
+    if (!file_exists(propsFilePath)) {
+        fig::ModelSuite::log(" *** Error: file not found! ***\n");
+        exit(EXIT_FAILURE);
+    }
+    fig::ModelSuite::log("\n");
 
 	Parser parser;
 	Verifier verifier;

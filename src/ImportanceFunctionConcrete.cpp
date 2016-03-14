@@ -437,40 +437,39 @@ ImportanceFunctionConcrete::assess_importance(
 	if (modulesConcreteImportance.size() <= index)
 		modulesConcreteImportance.resize(index+1);
     else if (modulesConcreteImportance[index].size() > 0ul)
-		throw_FigException(std::string("importance info already exists at ")
-						   .append(" position").append(std::to_string(index)));
+		throw_FigException("importance info already exists at position "
+						  + std::to_string(index));
 
 	// Compute importance according to the chosen strategy
 	if ("flat" == strategy) {
-		maxImportance_ =
+		maxValue_ =
 			assess_importance_flat(module.initial_state(),
 								   modulesConcreteImportance[index],
 								   property);
         // Invariant of flat importance function:
-        minImportance_ = maxImportance_;
-        minRareImportance_ = maxImportance_;
+		minValue_ = maxValue_;
+		minRareValue_ = maxValue_;
 
 	} else if ("auto" == strategy) {
-		maxImportance_ =
+		maxValue_ =
 			assess_importance_auto(module,
 								   modulesConcreteImportance[index],
 								   property,
 								   name().find("split") != std::string::npos);
         // For auto importance functions the initial state has always
         // the lowest importance, and all rare states have the highest:
-		minImportance_ = UNMASK(
+		minValue_ = UNMASK(
 				modulesConcreteImportance[index][module.initial_concrete_state()]);
-		minRareImportance_ = maxImportance_;  // should we check?
+		minRareValue_ = maxValue_;  // should we check?
 
 	} else if ("adhoc" == strategy) {
         throw_FigException("importance strategy \"adhoc\" requires a user "
                            "defined formula expression; this routine should "
                            "not have been invoked for such strategy.");
 	} else {
-		throw_FigException(std::string("unrecognized importance assessment ")
-						   .append("strategy \"").append(strategy).append("\"")
-						   .append(". See available options with ModelSuite::")
-						   .append("available_importance_strategies()"));
+		throw_FigException("unrecognized importance assessment strategy \""
+						   + strategy + "\". See available options with "
+						   "ModelSuite::available_importance_strategies()");
 	}
 }
 

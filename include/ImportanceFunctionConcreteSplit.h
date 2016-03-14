@@ -65,6 +65,18 @@ public:
 	/// Valid operands for combining the "split modules" importance values
 	static const std::array< std::string, 4 > mergeOperands;
 
+	/// Codes for the combination/merge strategy
+	/// of the "split modules" importance values
+	enum MergeType
+	{
+		NONE,
+		SUMMATION,  // m1 + m2 + ··· + mN
+		PRODUCT,    // m1 * m2 * ··· * mN
+		MAX,        // max(m1, m2, ..., mN)
+		MIN,        // min(m1, m2, ..., mN)
+		AD_HOC      // user defined algebraic formula
+	};
+
 private:
 
 	/// All the \ref ModuleInstance "modules" in the network
@@ -78,10 +90,13 @@ private:
 
 	/// Temporal storage for the local importance
 	/// computed for each ("split") ModuleInstance
-	mutable std::vector< ImportanceValue > localValues_;
+	mutable ImportanceVec localValues_;
 
 	/// Copy of the local states of the system \ref ModuleInstance "modules"
 	mutable std::vector< State< STATE_INTERNAL_TYPE > > localStatesCopies_;
+
+    /// Strategy used to merge the "split modules" importance values
+    mutable MergeType mergeStrategy_;
 
     /// Translator from a global state ImportanceValue to its threshold level
     std::vector< ImportanceValue > importance2threshold_;
@@ -100,23 +115,22 @@ public:  // Accessors
 	/// @copydoc ImportanceFunctionConcrete::info_of()
 	/// @note <b>Complexity:</b> <i>O(size(state))</i> +
 	///                          <i>O(mu::Parser::Eval(localValues_))</i>
-	virtual ImportanceValue info_of(const StateInstance& state) const;
+	ImportanceValue info_of(const StateInstance& state) const override;
 
 	/// @copydoc ImportanceFunctionConcrete::importance_of()
 	/// @note <b>Complexity:</b> <i>O(size(state))</i> +
 	///                          <i>O(mu::Parser::Eval(localValues_))</i>
-	virtual ImportanceValue importance_of(const StateInstance& state) const;
+	ImportanceValue importance_of(const StateInstance& state) const override;
 
 	/// @copydoc ImportanceFunction::level_of(const StateInstance&)
 	/// @note Attempted inline in a desperate need for speed
 	/// @note <b>Complexity:</b> same as ImportanceFunctionConcreteSplit::importance_of()
-	inline virtual ImportanceValue level_of(const StateInstance& state) const
+	inline ImportanceValue level_of(const StateInstance& state) const override
 		{
 #		ifndef NDEBUG
 			if (!ready())
-				throw_FigException(std::string("importance function \"")
-								   .append(name()).append("\" isn't ")
-								   .append("ready for simulations."));
+				throw_FigException("importance function \"" + name() + "\" "
+								   "isn't ready for simulations.");
 #		endif
 			return importance2threshold_[importance_of(state)];
 		}
@@ -124,20 +138,18 @@ public:  // Accessors
 	/// @copydoc ImportanceFunction::level_of(const ImportanceValue&)
 	/// @note Attempted inline in a desperate need for speed
 	/// @note <b>Complexity:</b> <i>O(1)</i>
-	inline virtual ImportanceValue level_of(const ImportanceValue& val) const
+	inline ImportanceValue level_of(const ImportanceValue& val) const override
 		{
 #		ifndef NDEBUG
 			if (!ready())
-				throw_FigException(std::string("importance function \"")
-								   .append(name()).append("\" isn't ")
-								   .append("ready for simulations."));
+				throw_FigException("importance function \"" + name() + "\" "
+								   "isn't ready for simulations.");
 #		endif
-			assert(val >= min_importance());
-			assert(val <= max_importance());
+			assert(val < importance2threshold_.size());
 			return importance2threshold_[val];
 		}
 
-	virtual void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE> s) const;
+	void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE> s) const override;
 
 public:  // Utils
 
@@ -153,21 +165,27 @@ public:  // Utils
 	 */
 	void set_merge_fun(std::string mergeFunExpr);
 
-	virtual void assess_importance(const Property& prop,
-								   const std::string& strategy = "flat");
+	void assess_importance(const Property& prop,
+						   const std::string& strategy = "flat") override;
 
-	virtual void assess_importance(const Property& prop,
-								   const std::string& formulaExprStr,
-								   const std::vector<std::string>& varnames);
+	void assess_importance(const Property& prop,
+						   const std::string& formulaExprStr,
+						   const std::vector<std::string>& varnames) override;
 
-	virtual void build_thresholds(ThresholdsBuilder& tb,
-								  const unsigned& splitsPerThreshold);
+	void build_thresholds(ThresholdsBuilder& tb, const unsigned& spt) override;
+
+	void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
+									 const unsigned& spt,
+									 const float& p,
+									 const unsigned& n) override;
+
+	void clear() noexcept override;
 
 private:  // Class utils
 
 	/**
 	 * Compose a merge function which combines all modules' importance
-	 * by means of some given (valid) algebraic operand
+	 * using given (valid) algebraic operand
 	 * @param modulesNames Names of all \ref ModuleInstance "modules"
 	 * @param mergeOperand Algebraic operand to use
 	 * @throw FigException if 'mergeOperand' is not in mergeOperands
@@ -176,6 +194,12 @@ private:  // Class utils
 	std::string compose_merge_function(
 			const std::vector<std::string>& modulesNames,
 			const std::string& mergeOperand) const;
+
+	/// Post-processing once the thresholds have been chosen
+	/// @param tbName  Name of the ThresholdsBuilder used
+	/// @see build_thresholds()
+	/// @see build_thresholds_adaptively()
+	void post_process_thresholds(const std::string& tbName);
 };
 
 } // namespace fig

@@ -44,6 +44,7 @@ namespace fig
 {
 
 class ThresholdsBuilder;
+class ThresholdsBuilderAdaptive;
 class ModuleInstance;
 class ModuleNetwork;
 class Property;
@@ -67,8 +68,6 @@ class ImportanceFunction
 public:
 
 	typedef std::vector< ImportanceValue > ImportanceVec;
-
-protected:
 
 	/// Mathematical formula to evaluate an algebraic expression,
 	/// e.g. ad hoc function or combination of split importance values.
@@ -104,6 +103,10 @@ protected:
 		/// @throw mu::Parser::exception_type if undefined internal
 		///        mathematical expression.
 		ImportanceValue operator()(const ImportanceVec& localImportances) const;
+
+		/// Return the free variables (or modules) names occurring in our
+		/// expression, viz. the 'varnames' from the last call to set()
+		std::vector< std::string > free_vars() const noexcept;
 	};
 
 public:  // Class attributes
@@ -138,14 +141,14 @@ protected:  // Attributes for derived classes
 	/// Last used technique to build the importance thresholds in this function
 	std::string thresholdsTechnique_;
 
-	/// Minimum importance assigned during the last assessment
-	ImportanceValue minImportance_;
+	/// Minimum importance/threshold level currently held
+	ImportanceValue minValue_;
 
-	/// Maximum importance assigned during the last assessment
-	ImportanceValue maxImportance_;
+	/// Maximum importance/threshold level currently held
+	ImportanceValue maxValue_;
 
-	/// Importance of the rare state with lowest importance from last assessment
-	ImportanceValue minRareImportance_;
+	/// Importance/Threshold level of the rare state with lowest value
+	ImportanceValue minRareValue_;
 
 	/// Number of thresholds built on last call to build_thresholds()
 	unsigned numThresholds_;
@@ -202,29 +205,29 @@ public:  // Accessors
 	///          empty string otherwise
 	const std::string adhoc_fun() const noexcept;
 
-	/// @copydoc minImportance_
+	/// @copydoc minValue_
 	/// @returns Zero if function doesn't has_importance_info(),
-	///          last minimum ImportanceValue assessed importance otherwise
-	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds were
-	///       built" "in situ" the value returned will be that of the lowest
+	///          last and lowest value assessed otherwise.
+	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
+	///       were already built" then the value returned will be the lowest
 	///       threshold level.
-	ImportanceValue min_importance() const noexcept;
+	ImportanceValue min_value() const noexcept;
 
-	/// @copydoc maxImportance_
+	/// @copydoc maxValue_
 	/// @returns Zero if function doesn't has_importance_info(),
-	///          last maximum ImportanceValue assessed importance otherwise
-	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds were
-	///       built" "in situ" the value returned will be that of the highest
+	///          last and highest value assessed otherwise
+	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
+	///       were already built" the value returned will be the highest
 	///       threshold level.
-	ImportanceValue max_importance() const noexcept;
+	ImportanceValue max_value() const noexcept;
 
-	/// @copydoc minRareImportance_
+	/// @copydoc minRareValue_
 	/// @returns Zero if function doesn't has_importance_info(),
-	///          minimum ImportanceValue of a rare state otherwise
-	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds were
-	///       built" "in situ" the value returned will be the lowest threshold
-	///       level containing a rare state.
-	ImportanceValue min_rare_importance() const noexcept;
+	///          last and lowest value assessed for a rare state otherwise.
+	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
+	///       were already built" the value returned will be the lowest
+	///       threshold level containing a rare state.
+	ImportanceValue min_rare_value() const noexcept;
 
 	/// Whether this instance keeps an internal std::vector<ImportanceValue>,
 	/// i.e. has info for the concrete state space,
@@ -300,17 +303,36 @@ public:  // Utils
 	 *        simulations": \ref SimulationEngine "simulation engines" will use
 	 *        the thresholds info when coupled with this ImportanceFunction.
 	 *
-	 * @param tb                 ThresholdsBuilder to use
-	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
-	 *                           "threshold level up" event
+	 * @param tb  ThresholdsBuilder to use
+	 * @param spt Splits per threshold, i.e. #{simulation-run-replicas} + 1
+	 *            upon a "threshold level up" event
 	 *
 	 * @throw FigException if there was no precomputed \ref has_importance_info()
 	 *                     "importance information"
 	 *
 	 * @see ready()
+	 * @see ThresholdsBuilder
 	 */
 	virtual void build_thresholds(ThresholdsBuilder& tb,
-								  const unsigned& splitsPerThreshold) = 0;
+								  const unsigned& spt) = 0;
+
+	/**
+	 * @brief Like build_thresholds() but specifically using an adaptive
+	 *        thresholds building algorithm, e.g. \ref ThresholdsBuilderAMS
+	 *        "AMS" and \ref ThresholdsBuilderSMC "SMC"
+	 *
+	 * @param atb ThresholdsBuilderAdaptive to use
+	 * @param spt Splits per threshold, i.e. #{simulation-run-replicas} + 1
+	 *            upon a "threshold level up" event
+	 * @param p   Desired probability of crossing a threshold level upwards
+	 * @param n   Number of simulation to run for building each threshold
+	 *
+	 * @see ThresholdsBuilderAdaptive
+	 */
+	virtual void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
+											 const unsigned& spt,
+											 const float& p,
+											 const unsigned& n) = 0;
 
 	/// @brief  Release memory allocated in the heap during importance assessment
 	/// @details This destroys any importance and thresholds info:
@@ -336,6 +358,8 @@ protected:  // Utils for derived classes
 	 *
 	 * @throw FigException if there was no \ref has_importance_info()
 	 *                     "importance information"
+	 *
+	 * @deprecated Takes too long for large state spaces
 	 */
 	void find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 							 const Property& property);

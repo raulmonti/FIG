@@ -34,9 +34,10 @@
 #include <ConfidenceIntervalWilson.h>
 #include <FigException.h>
 
-using std::log;
-using std::exp;
 using std::sqrt;
+using std::exp;
+using std::log;
+using std::log1p;
 
 
 namespace fig
@@ -56,7 +57,7 @@ ConfidenceIntervalWilson::ConfidenceIntervalWilson(
 void
 ConfidenceIntervalWilson::update(const double& newResult)
 {
-	update(newResult, log(1));  // don't reinvent the wheel
+	update(newResult, log1p(0.0));  // don't reinvent the wheel
 }
 
 
@@ -73,13 +74,14 @@ ConfidenceIntervalWilson::update(const double& newResults,
 	numRares_ += newResults;
 
 	// Compute logarithm of the updated # of samples ( old + new )
-	logNumSamples_ += log(1.0 + exp(logNumNewExperiments - logNumSamples_));
+	// See the wiki: https://goo.gl/qfDfKQ. Notice the use of std::log1p()
+	logNumSamples_ += log1p(exp(logNumNewExperiments - logNumSamples_));
 	if (std::isinf(logNumSamples_) || std::isnan(logNumSamples_))
 		throw_FigException("failed updating logNumSamples_; overflow?");
 
 	// Compute the updated estimate
 	double logEstimate = log(numRares_ + squantile_/2.0) - logNumSamples_
-						 - log(1.0 + exp(log(squantile_)-logNumSamples_));
+						 - log1p(exp(log(squantile_)-logNumSamples_));
 	if (std::isinf(logEstimate) || std::isnan(logEstimate))
 		throw_FigException("failed computing logEstimate; overflow?");
 	estimate_ = exp(logEstimate);
@@ -96,7 +98,6 @@ ConfidenceIntervalWilson::update(const double& newResults,
 	halfWidth_ = quantile * sqrt(numSamplesTimesVarCorrection)
 			* sqrt(variance_ + squantile_/(4.0*numSamplesTimesVarCorrection))
 			/ (numSamplesTimesVarCorrection + squantile_);
-
 }
 
 

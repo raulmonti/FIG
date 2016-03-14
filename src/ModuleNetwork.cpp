@@ -244,7 +244,7 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 		return e;
 #endif
 
-    // Jump...
+	// Jump...
 	do {
 		auto timeout = traial.next_timeout();
         // Active jump in the module whose clock timed-out

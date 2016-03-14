@@ -502,28 +502,6 @@ private:  // Callback utilities offered to the ModuleNetwork
 
 // If curious about its presence here take a look at the end of VariableSet.cpp
 
-template< template< typename, typename... > class Container1,
-		  typename ValueType1,
-		  typename... OtherContainerArgs1 >
-ModuleInstance::ModuleInstance(
-	const std::string& thename,
-	const State< STATE_INTERNAL_TYPE >& state,
-	const Container1< ValueType1, OtherContainerArgs1... >& clocks) :
-		lState_(state),
-		name(thename),
-		globalIndex_(-1),
-        firstVar_(-1),
-        firstClock_(-1),
-		sealed_(false)
-{
-	// Copy clocks
-	static_assert(std::is_constructible< Clock, ValueType1 >::value,
-				  "ERROR: type mismatch. ModuleInstance ctors require a "
-				  "container with the clocks defined in this module");
-	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
-}
-
-
 template<
 	template< typename, typename... > class Container1,
 		typename ValueType1,

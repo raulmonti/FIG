@@ -69,6 +69,13 @@ SET(ALL_SOURCES ${ALL_SOURCES} ${MAIN_SOURCE_FILES} CACHE INTERNAL "")
 ## LINK_DIRECTORIES(${LIBRARIES_DIR})
 ##  Tip: use find_library() and find_package() instead
 
+
+ 
+###  Preprocessor macros  #####################################################
+
+## # High quality C++ pseudo-random generator
+## ADD_DEFINITIONS(-DHQ_RNG)
+
  
 
 ###  Compiler configuration  ##################################################

@@ -78,8 +78,8 @@ VariableSet<T_>::operator=(const T_& value)
 {
 #ifndef NDEBUG
 	if (Variable<T_>::name_.empty())
-		throw_FigException(std::string("can't assign value to a fresh variable")
-			.append(" (\"").append(Variable<T_>::name_).append("\")"));
+		throw_FigException("can't assign value to a fresh variable (\""
+						   + Variable<T_>::name_ + "\")");
 #endif
 	for (size_t i=0 ; i < values_.size() ; i++) {
 		if (value == values_[i]) {
@@ -97,8 +97,8 @@ void
 VariableSet<T_>::assign(const T_& value)
 {
 	if (Variable<T_>::name_.empty())
-		throw_FigException(std::string("can't assign value to a fresh variable")
-			.append(" (\"").append(Variable<T_>::name_).append("\")"));
+		throw_FigException("can't assign value to fresh variable (\""
+						   + Variable<T_>::name_ + "\")");
 	for (size_t i=0 ; i < values_.size() ; i++) {
 		if (value == values_[i]) {
 			Variable<T_>::offset_ = i;
@@ -106,9 +106,8 @@ VariableSet<T_>::assign(const T_& value)
 			return;
 		}
 	}
-	throw_FigException(std::string("can't assign ")
-		.append(std::to_string(value)).append(" to variable \"")
-		.append(Variable<T_>::name_).append("\", invalid value"));
+	throw_FigException("can't assign " + std::to_string(value) + " to variable"
+					   " \"" + Variable<T_>::name_ + "\", invalid value");
 }
 
 
