@@ -73,14 +73,14 @@ public:  // Ctor
 
 public:  // Accessors
 
-	virtual unsigned splits_per_threshold() const noexcept;
+	unsigned splits_per_threshold() const noexcept override;
 
 	/// @copydoc dieOutDepth_
 	const unsigned& die_out_depth() const noexcept;
 
 public:  // Engine setup
 
-	virtual void bind(std::shared_ptr< const ImportanceFunction >);
+	void bind(std::shared_ptr< const ImportanceFunction >) override;
 
 	/**
 	 * Set the number of replicas made of a Traial when it crosses
@@ -102,19 +102,22 @@ public:  // Engine setup
 
 protected:  // Simulation helper functions
 
-	virtual double log_experiments_per_sim() const;
+	double log_experiments_per_sim() const override;
 
-	virtual double transient_simulations(const PropertyTransient& property,
-										 const size_t& numRuns) const;
+	double transient_simulations(const PropertyTransient& property,
+								 const size_t& numRuns) const override;
+
+	double rate_simulation(const PropertyRate& property,
+						   const size_t& runLength) const override;
 
 public:  // Traial observers/updaters
 
 	/// @copydoc SimulationEngine::transient_event()
 	/// @note Makes no assumption about the ImportanceFunction altogether
 	/// @note Attempted inline in a desperate need for speed
-	inline virtual bool transient_event(const PropertyTransient& property,
-										Traial& traial,
-										Event& e) const
+	inline bool transient_event(const PropertyTransient& property,
+								Traial& traial,
+								Event& e) const override
 		{
 			// Event marking is done in accordance with the checks performed
 			// in the transient_simulations() virtual member function
@@ -165,6 +168,17 @@ public:  // Traial observers/updaters
 				// rare event info is already marked inside 'e'
 			}
 			return EventType::NONE != e;
+		}
+
+	/// @copydoc SimulationEngine::rate_event()
+	/// @note Makes no assumption about the ImportanceFunction altogether
+	inline bool rate_event(const PropertyRate&,
+						   Traial& traial,
+						   Event& e) const override
+		{
+			/// @todo TODO: implement!
+			throw_FigException("TODO: implement!");
+			return traial.lifeTime > simsLifetime || IS_RARE_EVENT(e);
 		}
 };
 

@@ -62,7 +62,7 @@ double
 SimulationEngineNosplit::transient_simulations(const PropertyTransient& property,
                                                const size_t& numRuns) const
 {
-    assert(0u < numRuns);
+	assert(0ul < numRuns);
 	long raresCount(0);
     Traial& traial = TraialPool::get_instance().get_traial();
 
@@ -75,7 +75,7 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
         watch_events = &SimulationEngineNosplit::transient_event;
 
     // Perform 'numRuns' standard Monte Carlo simulations
-	for (size_t i = 0u ; i < numRuns && !interrupted ; i++) {
+	for (size_t i = 0ul ; i < numRuns && !interrupted ; i++) {
 		traial.initialize(*network_, *impFun_);
         Event e = network_->simulation_step(traial, property, *this, watch_events);
 		raresCount += IS_RARE_EVENT(e) ? 1l : 0l;
@@ -87,6 +87,50 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
 		return -static_cast<double>(raresCount);
     else
 		return  static_cast<double>(raresCount);
+}
+
+
+double
+SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
+										 const size_t& runLength) const
+{
+	assert(0ul < runLength);
+	double accTime(0.0);
+	Traial& traial = TraialPool::get_instance().get_traial();
+	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
+
+	// For the sake of efficiency, distinguish when operating with a concrete ifun
+	bool (SimulationEngineNosplit::*watch_events)
+		 (const PropertyRate&, Traial&, Event&) const;
+	bool (SimulationEngineNosplit::*register_time)
+		 (const PropertyRate&, Traial&, Event&) const;
+	if (impFun_->concrete()) {
+		watch_events = &SimulationEngineNosplit::rate_event_concrete;
+		register_time = &SimulationEngineNosplit::count_time_concrete;
+	} else {
+		watch_events = &SimulationEngineNosplit::rate_event;
+		register_time = &SimulationEngineNosplit::count_time;
+	}
+
+	// Run a standard Monte Carlo simulation for "runLength" simulation time units
+	traial.initialize(*network_, *impFun_);
+	do {
+		Event e = network_->simulation_step(traial, property, *this, watch_events);
+		if (!IS_RARE_EVENT(e))
+			break;  // reached EOS
+		const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // hack to improve fp precision
+		traial.lifeTime = 0.0;
+		e = network_->simulation_step(traial, property, *this, register_time);
+		accTime += traial.lifeTime;
+		traial.lifeTime += simLength;
+	} while (static_cast<double>(runLength) > traial.lifeTime);
+	TraialPool::get_instance().return_traial(std::move(traial));
+
+	// Return estimate or its negative value
+	if (MIN_ACC_RARE_TIME > accTime)
+		return -accTime / simsLifetime;
+	else
+		return  accTime / simsLifetime;
 }
 
 } // namespace fig

@@ -73,7 +73,7 @@ int main(int argc, char** argv)
 	const size_t propertyIndex(0ul);
 
 	//  Estimation goals   // // // // // // // // // // // // // //
-	const fig::StoppingConditions timeSpan(std::set<size_t>({90ul}));
+	const fig::StoppingConditions timeSpans(std::set<size_t>({10ul,90ul}));
 	const double confidence(0.90);
 	const double precision(0.2);
 	const fig::StoppingConditions stopCriterion(StopCond({std::make_tuple(
@@ -85,7 +85,7 @@ int main(int argc, char** argv)
 	model.build_importance_function_flat(flatIfunName, propertyIndex);
 	model.build_thresholds("ams", flatIfunName);
 	engine = model.prepare_simulation_engine("nosplit", flatIfunName);
-	model.estimate(propertyIndex, *engine, timeSpan);
+//	model.estimate(propertyIndex, *engine, timeSpans);
 	//model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
 
@@ -93,9 +93,9 @@ int main(int argc, char** argv)
 	const std::string adhocIfunName("algebraic");
 //	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "q2", NamesList({"q2"}), true);
 	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "buf", NamesList({"buf"}), true);
-	model.build_thresholds("smc", adhocIfunName);
+	model.build_thresholds("ams", adhocIfunName);
 	engine = model.prepare_simulation_engine("restart", adhocIfunName);
-	//model.estimate(propertyIndex, *engine, timeSpan);
+	//model.estimate(propertyIndex, *engine, timeSpans);
 	model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
 
@@ -104,7 +104,7 @@ int main(int argc, char** argv)
 	model.build_importance_function_auto(cAutoIfunName, propertyIndex);
 	model.build_thresholds("smc", cAutoIfunName);
 	engine = model.prepare_simulation_engine("restart", cAutoIfunName);
-	//model.estimate(propertyIndex, *engine, timeSpan);
+	//model.estimate(propertyIndex, *engine, timeSpans);
 	model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
 
@@ -113,7 +113,7 @@ int main(int argc, char** argv)
 	model.build_importance_function_auto(sAutoIfunName, propertyIndex, "+", true);
 	model.build_thresholds("ams", sAutoIfunName);
 	engine = model.prepare_simulation_engine("restart", sAutoIfunName);
-	//model.estimate(propertyIndex, *engine, timeSpan);
+	//model.estimate(propertyIndex, *engine, timeSpans);
 	model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
 

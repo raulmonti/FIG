@@ -40,6 +40,7 @@
 #include <ImportanceFunction.h>
 #include <ImportanceFunctionConcrete.h>
 #include <Property.h>
+#include <PropertyRate.h>
 #include <PropertyTransient.h>
 #include <ConfidenceInterval.h>
 #include <ModuleNetwork.h>
@@ -65,8 +66,10 @@ const std::array< std::string, 2 > SimulationEngine::names =
 	"restart"
 }};
 
-
 const unsigned SimulationEngine::MIN_COUNT_RARE_EVENTS = 3u;
+
+const double SimulationEngine::MIN_ACC_RARE_TIME = 20.8;
+
 
 
 // SimulationEngine class member functions
@@ -187,71 +190,103 @@ SimulationEngine::current_imp_strat() const noexcept
 
 bool
 SimulationEngine::simulate(const Property &property,
-						   const size_t& numRuns,
+						   const size_t& effort,
 						   ConfidenceInterval& interval) const
 {
-	assert(0ul < numRuns);
+	bool increaseEffort(false);
+	assert(0ul < effort);
 	if (!bound())
 		throw_FigException("engine isn't bound to any importance function");
 
 	switch (property.type) {
 
 	case PropertyType::TRANSIENT: {
+		assert(interval.name == "proportion_std" ||
+			   interval.name == "proportion_wilson");
 		double raresCount =
 			transient_simulations(dynamic_cast<const PropertyTransient&>(property),
-								  numRuns);
-		// numExperiments = numRuns * splitsPerThreshold ^ numThresholds
+								  effort);
+		// numExperiments == numRuns * splitsPerThreshold ^ numThresholds
 		interval.update(std::abs(raresCount),
-						std::log(numRuns) + log_experiments_per_sim());
-        if (0.0 < raresCount)
-			return false;
-        else
-			return true;  // you'd better increase 'numRuns'
-		}
+						std::log(effort) + log_experiments_per_sim());
+		increaseEffort = 0.0 >= raresCount;
+		} break;
+
+	case PropertyType::RATE: {
+		assert(interval.name == "mean_std");
+		double rate = rate_simulation(dynamic_cast<const PropertyRate&>(property),
+									  effort);
+		interval.update(rate);
+		increaseEffort = 0.0 >= rate;
+		} break;
 
 	case PropertyType::THROUGHPUT:
-	case PropertyType::RATE:
 	case PropertyType::RATIO:
 	case PropertyType::BOUNDED_REACHABILITY:
 		throw_FigException(std::string("property type isn't supported by ")
 						   .append(name_).append(" simulation yet"));
-		return false;
+		break;
 
 	default:
 		throw_FigException("invalid property type");
-		return false;
+		break;
 	}
+
+	return increaseEffort;
 }
 
 
 void
 SimulationEngine::simulate(const Property& property,
-						   size_t batchSize,
+						   size_t effort,
 						   ConfidenceInterval& interval,
-						   void (*batch_inc)(size_t&, ConstStr&, ConstStr&)) const
+						   void (*effort_inc)(size_t&, ConstStr&, ConstStr&)) const
 {
-	assert(0ul < batchSize);
+	assert(0ul < effort);
 	if (!bound())
 		throw_FigException("engine isn't bound to any importance function");
 
 	switch (property.type) {
 
 	case PropertyType::TRANSIENT:
+		assert(interval.name == "proportion_std" ||
+			   interval.name == "proportion_wilson");
 		assert (!interrupted);
 		while (!interrupted) {
 			double raresCount =
 				transient_simulations(dynamic_cast<const PropertyTransient&>(property),
-                                      batchSize);
+									  effort);
 			if (!interrupted) {
-				// numExperiments = batchSize * splitsPerThreshold ^ numThresholds
+				// numExperiments == batchSize * splitsPerThreshold ^ numThresholds
 				interval.update(std::abs(raresCount),
-								std::log(batchSize) + log_experiments_per_sim());
+								std::log(effort) + log_experiments_per_sim());
 				if (0.0 >= raresCount) {
 					std::cerr << "-";
-					if (nullptr != batch_inc)
-						batch_inc(batchSize, name_, impFun_->name());
+					if (nullptr != effort_inc)
+						effort_inc(effort, name_, impFun_->name());
 					else
-						batchSize *= 2;  // you left us with no other option
+						effort *= 2;  // you left us with no other option
+				} else {
+					std::cerr << "+";
+				}
+			}
+		}
+		break;
+
+	case PropertyType::RATE:
+		assert(interval.name == "mean_std");
+		assert (!interrupted);
+		while (!interrupted) {
+			double rate = rate_simulation(dynamic_cast<const PropertyRate&>(property),
+										  effort);
+			if (!interrupted) {
+				interval.update(rate);
+				if (0.0 >= rate) {
+					std::cerr << "-";
+					if (nullptr != effort_inc)
+						effort_inc(effort, name_, impFun_->name());
+					else
+						effort *= 2;  // you left us with no other option
 				} else {
 					std::cerr << "+";
 				}
@@ -260,7 +295,6 @@ SimulationEngine::simulate(const Property& property,
 		break;
 
 	case PropertyType::THROUGHPUT:
-	case PropertyType::RATE:
 	case PropertyType::RATIO:
 	case PropertyType::BOUNDED_REACHABILITY:
 		throw_FigException(std::string("property type isn't supported by ")

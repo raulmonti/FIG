@@ -207,4 +207,14 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	return weighedRaresCount;
 }
 
+
+double
+SimulationEngineRestart::rate_simulation(const PropertyRate& property,
+										 const size_t& runLength) const
+{
+	/// @todo TODO implement!
+	throw_FigException("TODO: implement!");
+	return 0.0;
+}
+
 } // namespace fig

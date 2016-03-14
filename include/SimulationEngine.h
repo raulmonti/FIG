@@ -44,6 +44,7 @@ namespace fig
 class ImportanceFunction;
 class ImportanceFunctionConcrete;
 class Property;
+class PropertyRate;
 class PropertyTransient;
 class ModuleNetwork;
 class Traial;
@@ -72,6 +73,10 @@ public:
     /// Minimum amount of generated rare events to consider a simulation "good"
     static const unsigned MIN_COUNT_RARE_EVENTS;
 
+    /// Minimum amount of simulation time units which has to be spent
+    /// in rare states to consider a simulation "good"
+    static const double MIN_ACC_RARE_TIME;
+
 private:
 
     /// Simulation strategy implemented by this engine.
@@ -94,6 +99,9 @@ protected:
 
     /// Were we just interrupted in an estimation timeout?
     mutable bool interrupted;
+
+    /// Maximum simulation time to reach, for long-run simulations only
+    mutable CLOCK_INTERNAL_TYPE simsLifetime;
 
 public:  // Ctors/Dtor
 
@@ -201,16 +209,17 @@ public:  // Simulation functions
      *        The importance function used is taken from the last call to bind()
      *
      * @param property Property whose value is being estimated
-     * @param numRuns  Number of indepdendent runs to perform
+     * @param effort   Number of independent runs to perform or
+     *                 simulation length in time units
      * @param interval ConfidenceInterval updated with estimation info <b>(modified)</b>
      *
-     * @return Whether 'numRuns' wasn't large enough and ought to be increased
+     * @return Whether 'effort' wasn't large enough and ought to be increased
      *
      * @throw FigException if the engine wasn't \ref bound() "bound" to any
      *                     ImportanceFunction
      */
     bool simulate(const Property& property,
-                  const size_t& numRuns,
+                  const size_t& effort,
                   ConfidenceInterval& interval) const;
 
     /**
@@ -220,19 +229,21 @@ public:  // Simulation functions
      *        run indefinitely until they're externally interrupted.
      *        The importance function used is taken from the last call to bind()
      *
-     * @param property  Property whose value is being estimated
-     * @param batchSize Number of consecutive simulations for each interval update
-     * @param interval  ConfidenceInterval regularly updated with estimation info <b>(modified)</b>
-     * @param batch_inc Function to increment 'batchSize' in case simulations
-     *                  aren't yielding useful results due to its length
+     * @param property   Property whose value is being estimated
+     * @param effort     Number of consecutive independent simulations or
+     *                   simulation length in time units
+     *                   before each interval update
+     * @param interval   ConfidenceInterval regularly updated with estimation info <b>(modified)</b>
+     * @param effort_inc Function to increase 'effort' in case simulations
+     *                   aren't yielding useful results due to its length
      *
      * @throw FigException if the engine wasn't \ref bound() "bound" to any
      *                     ImportanceFunction
      */
     void simulate(const Property& property,
-                  size_t batchSize,
+                  size_t effort,
                   ConfidenceInterval& interval,
-                  void (*batch_inc)(size_t&, ConstStr&, ConstStr&)) const;
+                  void (*effort_inc)(size_t&, ConstStr&, ConstStr&)) const;
 
 protected:  // Simulation helper functions
 
@@ -242,22 +253,48 @@ protected:  // Simulation helper functions
 	virtual double log_experiments_per_sim() const = 0;
 
 	/**
-     * @brief Run several independent transient-like simulations
+	 * @brief Run independent transient-like simulations to estimate
+	 *        the value of a \ref PropertyTransient "transient property"
      *
-     *        Using a specific simulation strategy perform 'numRuns'
-     *        transient simulation runs. These will end when either
-     *        a 'goal' or 'stop' event is observed.
+     *        Using a specific simulation strategy, launch 'numRuns' transient
+     *        simulations starting from the system's initial state.
+     *        The given 'property' is characterized by two subformulas:
+     *        "expr1" and "expr2". Each simulation run stops when a state
+     *        which either satisfies "expr2" or doesn't satisfy "expr1"
+     *        is visited.
      *
-     * @param property PropertyTransient with events of interest (goal & stop)
+     * @param property PropertyTransient with events of interest (expr1 & expr2)
 	 * @param numRuns  Amount of successive independent simulations to run
      *
-     * @return Number of 'goal' events observed, or its negative value
-     *         if less than MIN_COUNT_RARE_EVENTS were observed.
+     * @return Number of states satisfying 'expr2' reached, or its negative
+     *         value if less than MIN_COUNT_RARE_EVENTS were observed.
      *
      * @see PropertyTransient
 	 */
 	virtual double transient_simulations(const PropertyTransient& property,
                                          const size_t& numRuns) const = 0;
+
+	/**
+	 * @brief Perform a long-run simulation to estimate the value of a
+	 *        \ref PropertyRate "rate property"
+	 *
+	 *        Using a specific simulation strategy, run a simulation which will
+	 *        last for 'runLength' simulated time units. The given 'property'
+	 *        is characterized by a subformula "expr". The total amount of
+	 *        simulated time spent in states satisfying "expr" is monitored
+	 *        and used to compute the return value.
+	 *
+	 * @param property  PropertyRate with the event of interest (expr)
+	 * @param runLength Simulated time units the simulation run will last
+	 *
+	 * @return Proportion of the total simulated time which was spent
+	 *         on states satisfying the property's "expr", or its negative
+	 *         value if less than MIN_ACC_RARE_TIME was spent there.
+	 *
+	 * @see PropertyRate
+	 */
+	virtual double rate_simulation(const PropertyRate& property,
+								   const size_t& runLength) const = 0;
 
 public:  // Traial observers/updaters
 
@@ -265,8 +302,9 @@ public:  // Traial observers/updaters
      * @brief Interpret and mark the transient events triggered by a Traial
      *        in its most recent traversal through the system model.
      *
-     * @param property PropertyTransient with events of interest (goal & stop)
-     * @param traial   Embodiment of a simulation running through the system model <b>(modified)</b>
+     * @param property PropertyTransient with events of interest (expr1 & expr2)
+     * @param traial   Embodiment of a simulation running through the system
+     *                 model <b>(modified)</b>
      * @param e        Variable to update with observed events <b>(modified)</b>
      *
      * @return Whether a \ref ModuleNetwork::simulation_step() "simulation step"
@@ -277,6 +315,26 @@ public:  // Traial observers/updaters
     virtual bool transient_event(const PropertyTransient& property,
                                  Traial& traial,
                                  Event& e) const = 0;
+
+    /**
+     * @brief Notice any event triggered by a Traial in its most recent
+     *        traversal through the system model. After a positive return
+     *        the Traial's evolution should be watched more closely.
+     *
+     * @param property  PropertyRate with the event of interest (expr)
+     * @param traial    Embodiment of a simulation running through the system
+     *                  model <b>(modified)</b>
+     * @param e         Variable to update with observed events <b>(modified)</b>
+     *
+     * @return Whether a \ref ModuleNetwork::simulation_step() "simulation step"
+     *         has finished and the Traial is in a state whose sojourn time
+     *         should be registered.
+     *
+     * @note  The ImportanceFunction used is taken from the last call to bind()
+     */
+    virtual bool rate_event(const PropertyRate& property,
+                            Traial& traial,
+                            Event& e) const = 0;
 };
 
 } // namespace fig

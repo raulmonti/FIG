@@ -114,7 +114,8 @@ build_empty_confidence_interval(
 {
 	std::unique_ptr< fig::ConfidenceInterval > ci_ptr(nullptr);
 
-	switch (propertyType) {
+	switch (propertyType)
+	{
 	case fig::PropertyType::TRANSIENT: {
 		if (hint.empty()  // default to most precise
 			|| "wilson" == hint)
@@ -139,9 +140,15 @@ build_empty_confidence_interval(
 		ci_ptr->set_variance_correction(minStatOversamp/maxStatOversamp);
 		} break;
 
-    case fig::PropertyType::THROUGHPUT:
     case fig::PropertyType::RATE:
-    case fig::PropertyType::RATIO:
+		// Ignore hints, there's a single option
+		ci_ptr.reset(new fig::ConfidenceIntervalMean(confidenceCo,
+													 precision,
+													 dynamicPrecision));
+		break;
+
+	case fig::PropertyType::THROUGHPUT:
+	case fig::PropertyType::RATIO:
     case fig::PropertyType::BOUNDED_REACHABILITY:
         throw_FigException("property type isn't supported yet");
         break;
@@ -951,13 +958,12 @@ ModelSuite::estimate(const Property& property,
 							  engine.splits_per_threshold(),
 							  *impFuns[engine.current_imp_fun()]);
 			interruptCI_ = ci_ptr.get();  // bad boy
-			/// @todo TODO: implement proper log and discard following shell print
 			mainLog_ << std::setprecision(0) << std::fixed;
 			mainLog_ << "   Estimation time: " << wallTimeInSeconds << " s\n";
 			SignalSetter handler(SIGALRM, [&ci_ptr, &timedout] (const int sig){
 				assert(SIGALRM == sig);
 				interrupt_print(*ci_ptr, ModelSuite::confCoToShow_, mainLog_);
-				//ci_ptr->reset();
+				ci_ptr->reset();
 				timedout = true;
 			});
 			timedout = false;
@@ -984,7 +990,6 @@ ModelSuite::estimate(const Property& property,
 							  std::get<1>(criterion),
 							  std::get<2>(criterion));
             interruptCI_ = ci_ptr.get();  // bad boy
-			/// @todo TODO: implement proper log and discard following shell print
 			mainLog_ << "   For confidence level: "
 					 << std::setprecision(0) << std::fixed
 					 << 100*ci_ptr->confidence << "%" << std::endl;
@@ -1016,7 +1021,7 @@ ModelSuite::estimate(const Property& property,
     }
 
 //	mainLog_ << std::defaultfloat;
-	mainLog_ << std::setprecision(6) << std::fixed;
+	mainLog_ << std::setprecision(6);
 }
 
 

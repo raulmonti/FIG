@@ -262,12 +262,20 @@ Event ModuleNetwork::simulation_step(Traial& traial,
     return e;
 }
 
-/// "SimulationEngineNosplit + PropertyTransient" TraialMonitor specialization
+/// "SimulationEngineNosplit + PropertyTransient"
+/// TraialMonitor specialization
 /// for "template<...> ModuleNetwork::simulation_step()"
 typedef bool(SimulationEngineNosplit::*nosplit_transient_event)
-    (const PropertyTransient&, Traial&, Event&) const;
+	(const PropertyTransient&, Traial&, Event&) const;
 
-/// "SimulationEngineRestart + PropertyTransient" TraialMonitor specialization
+/// "SimulationEngineNosplit + PropertyRate"
+/// TraialMonitor specialization
+/// for "template<...> ModuleNetwork::simulation_step()"
+typedef bool(SimulationEngineNosplit::*nosplit_rate_event)
+	(const PropertyRate&, Traial&, Event&) const;
+
+/// "SimulationEngineRestart + PropertyTransient"
+/// TraialMonitor specialization
 /// for "template<...> ModuleNetwork::simulation_step()"
 typedef bool(SimulationEngineRestart::*restart_transient_event)
     (const PropertyTransient&, Traial&, Event&) const;
@@ -275,9 +283,13 @@ typedef bool(SimulationEngineRestart::*restart_transient_event)
 // ModuleNetwork::simulation_step() can only be invoked with the following
 // "DerivedProperty", "Simulator" and "TraialMonitor" combinations
 template Event ModuleNetwork::simulation_step(Traial&,
-                                              const PropertyTransient&,
+											  const PropertyTransient&,
+											  const SimulationEngineNosplit&,
+											  nosplit_transient_event) const;
+template Event ModuleNetwork::simulation_step(Traial&,
+											  const PropertyRate&,
                                               const SimulationEngineNosplit&,
-                                              nosplit_transient_event) const;
+											  nosplit_rate_event) const;
 template Event ModuleNetwork::simulation_step(Traial&,
                                               const PropertyTransient&,
                                               const SimulationEngineRestart&,
