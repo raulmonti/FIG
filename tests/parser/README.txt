@@ -26,14 +26,15 @@ Read main.cpp file for an example.
 #############################################
 
 
+TODO    Parse the / in properties syntax, i.e avoid from mistaking it with math operation.
 DONE    Fix method CompileProperty.
 TODO    Comma separated input labels. 
 
 TODO    When and how to delete static class members as GLOBAL_MODEL_AST for
         example.
         Change * for shared_ptr in static members to avoid memory leaks.
-TODO    Precompiler might modify line sizes when replacing the name of a
-        constant with its value.
+DONE    Precompiler might modify line sizes when replacing the name of a
+        constant with its value. (thats not right)
 TODO    Unify first parsing and precompiling.
 TODO    Specialized exception for reporting modeling mistakes to the user.
 TODO    Full syntactic support for Carlos clock distributions.
