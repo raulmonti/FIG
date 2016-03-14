@@ -69,6 +69,9 @@ public:
     /// Defined in SimulationEngine.cpp
     static const std::array< std::string, 2 > names;
 
+    /// Minimum amount of generated rare events to consider a simulation "good"
+    static const unsigned MIN_COUNT_RARE_EVENTS;
+
 private:
 
     /// Simulation strategy implemented by this engine.
@@ -249,7 +252,7 @@ protected:  // Simulation helper functions
 	 * @param numRuns  Amount of successive independent simulations to run
      *
      * @return Number of 'goal' events observed, or its negative value
-     *         if less than ModelSuite::MIN_COUNT_RARE_EVENTS were observed.
+     *         if less than MIN_COUNT_RARE_EVENTS were observed.
      *
      * @see PropertyTransient
 	 */

@@ -128,13 +128,13 @@ public:  // Accessors
 	inline size_t num_modules() const noexcept { return modules.size(); }
 
 	/// @copydoc numClocks_
-	inline virtual size_t num_clocks() const noexcept { return numClocks_; }
+	inline size_t num_clocks() const noexcept override { return numClocks_; }
 
-	inline virtual size_t state_size() const noexcept { return gState.size(); }
+	inline size_t state_size() const noexcept override { return gState.size(); }
 
-	inline virtual size_t concrete_state_size() const noexcept { return gState.concrete_size(); }
+	inline size_t concrete_state_size() const noexcept override { return gState.concrete_size(); }
 
-	inline virtual bool sealed() const noexcept { return sealed_; }
+	inline bool sealed() const noexcept override { return sealed_; }
 
 	/// @copydoc gState
 	inline const State<STATE_INTERNAL_TYPE>& global_state() const noexcept { return gState; }
@@ -144,9 +144,9 @@ public:  // Accessors
 
 public:  // Utils
 
-	virtual State<STATE_INTERNAL_TYPE> initial_state() const;
+	State<STATE_INTERNAL_TYPE> initial_state() const override;
 
-	virtual size_t initial_concrete_state() const;
+	size_t initial_concrete_state() const override;
 
 	/**
 	 * @copydoc Module::adjacent_states()
@@ -158,7 +158,7 @@ public:  // Utils
 	 *       <li> <i>v</i> is the max num of  variables  of any module.</li>
 	 *       </ul>
 	 */
-	virtual std::forward_list<size_t> adjacent_states(const size_t& s) const;
+	std::forward_list<size_t> adjacent_states(const size_t& s) const override;
 
 	/**
 	 * @brief Shut the network and fill in internal global data.

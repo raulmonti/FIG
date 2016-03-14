@@ -39,7 +39,7 @@
 #include <string>
 #include <functional>     // std::function<>, std::reference_wrapper<>
 // External code
-#include <muParserDef.h>  // MUP_BASETYPE
+#include <muParserDef.h>  // mu::value_type
 
 
 /**
@@ -127,12 +127,6 @@ typedef  std::vector< std::forward_list< unsigned > >          AdjacencyList;
 ///
 typedef  uintmax_t                                                   Bitflag;
 
-/// Mapping of clock and variable (names) to their respective positions
-/// in the global arrays handled by the Traials. This is generally known
-/// only after all modules have been added to the ModuleNetwork.
-///
-typedef  std::unordered_map< std::string, size_t >              PositionsMap;
-
 //
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -207,10 +201,10 @@ enum PropertyType
 	/// S( label / total_time )
 	THROUGHPUT,
 
-	/// S( rare_event / total_time )
+	/// S( expr / total_time )
 	RATE,
 
-	/// S( rare_event / reference )
+	/// S( expr1 / expr2 )
 	RATIO,
 
 	/// P( F[<=time] goal )
@@ -227,9 +221,9 @@ enum PropertyType
 /// Allow containers with references (http://stackoverflow.com/a/23488449)
 template< typename T_ > using Reference = std::reference_wrapper<T_>;
 
-/// Minimum amount of generated rare events to consider a simulation "good"
-/// @note This oughtn't be here, I know... but f**k the police!
-const unsigned MIN_COUNT_RARE_EVENTS(5u);
+/// Mapping of names (of clocks or variables or whatever) to their
+/// respective positions in some global or local array
+typedef  std::unordered_map< std::string, size_t >  PositionsMap;
 
 //
 //

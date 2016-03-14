@@ -42,26 +42,27 @@ namespace fig
  *
  * @details Transient properties describe finite execution traces.
  *          For instance "safety properties" described by the PCTL formula
- *          P(!stop U goal), which expresses the probability of remaining
- *          in safe "non-stopping" states until a goal is reached, are
+ *          P(!stop U fail), which expresses the probability of remaining
+ *          in "keep-going" states until a "failure" is reached, are
  *          transient properties.<br>
  *          The general idea is to visit only states that satisfy a set of
  *          conditions (described by the logical expression "expr1", say),
- *          until a state that satisfies another set of conditions (described
- *          by "expr2", say) is visited.
+ *          <i>until</i> a state that satisfies another set of conditions
+ *          (described by "expr2", say) is visited.
  *          Execution is thus terminated when a state that doesn't satisfy
- *          "expr1" or that satisfies "expr2" is visited, whichever happens first.
+ *          "expr1" or that satisfies "expr2" is visited, whichever happens
+ *          first.
  */
 class PropertyTransient : public Property
 {
     /// This should be continuously satisfied, otherwise the simulation is
     /// "prematurely interrupted" (it kinda failed)
-    /// This is the subformula on the LHS of the 'UNTIL'
+    /// This is the subformula on the LHS of the '<i>until</i>'
     Property::Formula expr1_;
 
     /// When this becomes true the simulation reached its "final destination"
     /// (it kinda succeeded)
-    /// This is the subformula on the RHS of the 'UNTIL'
+    /// This is the subformula on the RHS of the '<i>until</i>'
     Property::Formula expr2_;
 
 public:  // Ctors
@@ -69,12 +70,12 @@ public:  // Ctors
 	/**
 	 * @brief Data ctor from generic lvalue containers
 	 *
-	 * @param stopExpr     Mathematical expression for the "stop" subformula
-	 * @param stopExprVars Names of the variables ocurring in stopExpr
-	 * @param goalExpr     Mathematical expression for the "goal" subformula
-	 * @param goalExprVars Names of the variables ocurring in goalExpr
+	 * @param expr1     Mathematical expression for the "expr1" subformula
+	 * @param expr1Vars Names of the variables ocurring in expr1
+	 * @param expr2     Mathematical expression for the "expr2" subformula
+	 * @param expr2Vars Names of the variables ocurring in expr2
 	 *
-	 * @throw FigException if "stopExpr" or "goalExpr" aren't valid expressions
+	 * @throw FigException if "expr1" or "expr2" aren't valid expressions
 	 * \ifnot NRANGECHK
 	 *   @throw out_of_range if names of variables not appearing
 	 *                       in the expression strings were passed
@@ -102,14 +103,14 @@ public:  // Ctors
 	/**
 	 * @brief Data ctor from iterator ranges
 	 *
-	 * @param stopExpr         Mathematical expression for the "stop" subformula
-	 * @param stopExprVarsFrom Iterator to  first name of variables ocurring in stopExpr
-	 * @param stopExprVarsTo   Iterator past last name of variables ocurring in stopExpr
-	 * @param goalExpr         Mathematical expression for the "goal" subformula
-	 * @param goalExprVarsFrom Iterator to  first name of variables ocurring in goalExpr
-	 * @param goalExprVarsTo   Iterator past last name of variables ocurring in goalExpr
+	 * @param expr1         Mathematical expression for the "expr1" subformula
+	 * @param expr1VarsFrom Iterator to  first name of variables ocurring in expr1
+	 * @param expr1VarsTo   Iterator past last name of variables ocurring in expr1
+	 * @param expr2         Mathematical expression for the "expr2" subformula
+	 * @param expr2VarsFrom Iterator to  first name of variables ocurring in expr2
+	 * @param expr2VarsTo   Iterator past last name of variables ocurring in expr2
 	 *
-	 * @throw FigException if "stopExpr" or "goalExpr" aren't valid expressions
+	 * @throw FigException if "expr1" or "expr2" aren't valid expressions
 	 * \ifnot NRANGECHK
 	 *   @throw out_of_range if names of variables not appearing
 	 *                       in the expression strings were passed
@@ -152,17 +153,27 @@ public:  // Accessors
 
     /// String expression of the "expr1" subformula of this property
     /// @see PropertyTransient::expr1_
-    const std::string expression1() const noexcept;
+    inline const std::string expression1() const noexcept
+        { return expr1_.expression(); }
 
     /// String expression of the "expr2" subformula of this property
     /// @see PropertyTransient::expr2_
-    const std::string expression2() const noexcept;
+    inline const std::string expression2() const noexcept
+        { return expr2_.expression(); }
 
 protected:  // Modifyers
 
-	virtual void pin_up_vars(const PositionsMap &globalVars);
+	inline void pin_up_vars(const PositionsMap &globalVars) override
+		{
+			expr1_.pin_up_vars(globalVars);
+			expr2_.pin_up_vars(globalVars);
+		}
 
-	virtual void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState);
+	inline void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState) override
+		{
+			expr1_.pin_up_vars(globalState);
+			expr2_.pin_up_vars(globalState);
+		}
 
 public:  // Utils
 
@@ -200,10 +211,10 @@ public:  // Utils
 	 */
 	inline bool expr2(const State<STATE_INTERNAL_TYPE>& s) const { return expr2_(s); }
 
-    inline virtual bool is_rare(const StateInstance& s) const
+    inline bool is_rare(const StateInstance& s) const override
         { return expr2(s); }
 
-    inline virtual bool is_rare(const State<STATE_INTERNAL_TYPE>& s) const
+    inline bool is_rare(const State<STATE_INTERNAL_TYPE>& s) const override
         { return expr2(s); }
 };
 

@@ -315,13 +315,13 @@ public:  // Accessors
     /// @note Same as state_size()
 	inline size_t num_vars() const noexcept { return state_size(); }
 
-	inline virtual size_t num_clocks() const noexcept { return lClocks_.size(); }
+	inline size_t num_clocks() const noexcept override { return lClocks_.size(); }
 
-	inline virtual size_t state_size() const noexcept { return lState_.size(); }
+	inline size_t state_size() const noexcept override { return lState_.size(); }
 
-	inline virtual size_t concrete_state_size() const noexcept { return lState_.concrete_size(); }
+	inline size_t concrete_state_size() const noexcept override { return lState_.concrete_size(); }
 
-	inline virtual bool sealed() const noexcept { return sealed_; }
+	inline bool sealed() const noexcept override { return sealed_; }
 
 	/// @copydoc lState_
 	inline const State<STATE_INTERNAL_TYPE>& local_state() const noexcept { return lState_; }
@@ -343,9 +343,9 @@ public:  // Accessors
 
 public:  // Utils
 
-	virtual State<STATE_INTERNAL_TYPE> initial_state() const;
+	State<STATE_INTERNAL_TYPE> initial_state() const override;
 
-	virtual size_t initial_concrete_state() const;
+	size_t initial_concrete_state() const override;
 
 	/**
 	 * @copydoc Module::adjacent_states()
@@ -356,7 +356,7 @@ public:  // Utils
 	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
 	 *       </ul>
 	 */
-	virtual std::forward_list<size_t> adjacent_states(const size_t& s) const;
+	std::forward_list<size_t> adjacent_states(const size_t& s) const override;
 
 	/**
 	 * @brief Active module jump caused by expiration of our clock "clockName"

@@ -66,6 +66,9 @@ const std::array< std::string, 2 > SimulationEngine::names =
 }};
 
 
+const unsigned SimulationEngine::MIN_COUNT_RARE_EVENTS = 3u;
+
+
 // SimulationEngine class member functions
 
 SimulationEngine::SimulationEngine(
