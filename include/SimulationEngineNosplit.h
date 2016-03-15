@@ -125,25 +125,18 @@ public:  // Traial observers/updaters
 			return traial.lifeTime > simsLifetime || IS_RARE_EVENT(e);
 		}
 
-	/// Just like rate_event() but with opposite return value, needed when
-	/// the Traial visits rare states and the simulation time is registered
-	inline bool count_time(const PropertyRate& property,
-						   Traial& traial,
-						   Event&) const
-		{
-			return traial.lifeTime > simsLifetime ||
-					!property.expr(traial.state);
-		}
+	/// Simulate (accumulating time) as long as we remain in rare states.
+	/// Used for time registration in rate simulations.
+	/// @note Makes no assumption about the ImportanceFunction altogether
+	inline bool count_time(const PropertyRate& prop, Traial& t, Event&) const
+		{ return !prop.expr(t.state); }
 
-	/// Just like rate_event_concrete() but with opposite return value, needed
-	/// when the Traial visits rare states and the simulation time is registered
-	inline bool count_time_concrete(const PropertyRate&,
-									Traial& traial,
-									Event&) const
-		{
-			return traial.lifeTime > simsLifetime ||
-					!IS_RARE_EVENT(cImpFun_->info_of(traial.state));
-		}
+	/// Simulate (accumulating time) as long as we remain in rare states.
+	/// Used for time registration in rate simulations.
+	/// @note This function assumes a \ref ImportanceFunctionConcrete
+	///       "concrete importance function" is currently bound to the engine
+	inline bool count_time_concrete(const PropertyRate&, Traial& t, Event&) const
+		{ return !IS_RARE_EVENT(cImpFun_->info_of(t.state)); }
 };
 
 } // namespace fig

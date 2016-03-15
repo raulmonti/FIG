@@ -112,7 +112,8 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 		register_time = &SimulationEngineNosplit::count_time;
 	}
 
-	// Run a standard Monte Carlo simulation for "runLength" simulation time units
+	// Run a single standard Monte Carlo simulation for "runLength"
+	// simulation time units and starting from the system's initial state
 	traial.initialize(*network_, *impFun_);
 	do {
 		Event e = network_->simulation_step(traial, property, *this, watch_events);
@@ -120,13 +121,14 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 			break;  // reached EOS
 		const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // hack to improve fp precision
 		traial.lifeTime = 0.0;
-		e = network_->simulation_step(traial, property, *this, register_time);
+		network_->simulation_step(traial, property, *this, register_time);
 		accTime += traial.lifeTime;
 		traial.lifeTime += simLength;
-	} while (static_cast<double>(runLength) > traial.lifeTime);
+	} while (traial.lifeTime < simsLifetime && !interrupted);
 	TraialPool::get_instance().return_traial(std::move(traial));
 
 	// Return estimate or its negative value
+	assert(0.0 <= accTime);
 	if (MIN_ACC_RARE_TIME > accTime)
 		return -accTime / simsLifetime;
 	else

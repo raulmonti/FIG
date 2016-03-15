@@ -280,6 +280,12 @@ typedef bool(SimulationEngineNosplit::*nosplit_rate_event)
 typedef bool(SimulationEngineRestart::*restart_transient_event)
     (const PropertyTransient&, Traial&, Event&) const;
 
+/// "SimulationEngineRestart + PropertyRate"
+/// TraialMonitor specialization
+/// for "template<...> ModuleNetwork::simulation_step()"
+typedef bool(SimulationEngineRestart::*restart_rate_event)
+	(const PropertyRate&, Traial&, Event&) const;
+
 // ModuleNetwork::simulation_step() can only be invoked with the following
 // "DerivedProperty", "Simulator" and "TraialMonitor" combinations
 template Event ModuleNetwork::simulation_step(Traial&,
@@ -294,5 +300,9 @@ template Event ModuleNetwork::simulation_step(Traial&,
                                               const PropertyTransient&,
                                               const SimulationEngineRestart&,
                                               restart_transient_event) const;
+template Event ModuleNetwork::simulation_step(Traial&,
+											  const PropertyRate&,
+											  const SimulationEngineRestart&,
+											  restart_rate_event) const;
 
 } // namespace fig

@@ -271,7 +271,7 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
     msg << "ImportanceValue of the chosen thresholds:";
     for (size_t i = 1ul ; i < thresholds_.size() ; i++)
         msg << " " << thresholds_[i];
-    ModelSuite::tech_log(msg.str() + "\n\n"); }
+	ModelSuite::tech_log(msg.str() + "\n"); }
 	thresholds_.push_back(impFun.max_value() + static_cast<ImportanceValue>(1u));
 	return;
 

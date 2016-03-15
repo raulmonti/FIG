@@ -73,8 +73,8 @@ int main(int argc, char** argv)
 	const size_t propertyIndex(0ul);
 
 	//  Estimation goals   // // // // // // // // // // // // // //
-	const fig::StoppingConditions timeSpans(std::set<size_t>({10ul,90ul}));
-	const double confidence(0.90);
+	const fig::StoppingConditions timeSpans(std::set<size_t>({10ul,60ul}));
+	const double confidence(0.95);
 	const double precision(0.2);
 	const fig::StoppingConditions stopCriterion(StopCond({std::make_tuple(
 			confidence, precision, true)}));
@@ -85,7 +85,7 @@ int main(int argc, char** argv)
 	model.build_importance_function_flat(flatIfunName, propertyIndex);
 	model.build_thresholds("ams", flatIfunName);
 	engine = model.prepare_simulation_engine("nosplit", flatIfunName);
-//	model.estimate(propertyIndex, *engine, timeSpans);
+	model.estimate(propertyIndex, *engine, timeSpans);
 	//model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
 
@@ -102,7 +102,7 @@ int main(int argc, char** argv)
 	//  RESTART with automatic coupled   // // // // // // // // //
 	const std::string cAutoIfunName("concrete_coupled");
 	model.build_importance_function_auto(cAutoIfunName, propertyIndex);
-	model.build_thresholds("smc", cAutoIfunName);
+	model.build_thresholds("ams", cAutoIfunName);
 	engine = model.prepare_simulation_engine("restart", cAutoIfunName);
 	//model.estimate(propertyIndex, *engine, timeSpans);
 	model.estimate(propertyIndex, *engine, stopCriterion);

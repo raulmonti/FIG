@@ -972,6 +972,7 @@ ModelSuite::estimate(const Property& property,
 			engine.simulate(property,
 							min_batch_size(engine.name(), engine.current_imp_fun()),
 							*ci_ptr,
+							techLog_,
 							&increase_batch_size);
             engine.unlock();
 		}
@@ -1016,6 +1017,7 @@ ModelSuite::estimate(const Property& property,
             engine.unlock();
 
 			estimate_print(*ci_ptr, omp_get_wtime()-startTime, mainLog_);
+			ci_ptr->reset();
         }
         interruptCI_ = nullptr;
     }

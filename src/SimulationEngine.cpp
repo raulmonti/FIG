@@ -240,6 +240,7 @@ void
 SimulationEngine::simulate(const Property& property,
 						   size_t effort,
 						   ConfidenceInterval& interval,
+						   std::ostream& techLog,
 						   void (*effort_inc)(size_t&, ConstStr&, ConstStr&)) const
 {
 	assert(0ul < effort);
@@ -261,13 +262,13 @@ SimulationEngine::simulate(const Property& property,
 				interval.update(std::abs(raresCount),
 								std::log(effort) + log_experiments_per_sim());
 				if (0.0 >= raresCount) {
-					std::cerr << "-";
+					techLog << "-";
 					if (nullptr != effort_inc)
 						effort_inc(effort, name_, impFun_->name());
 					else
 						effort *= 2;  // you left us with no other option
 				} else {
-					std::cerr << "+";
+					techLog << "+";
 				}
 			}
 		}
@@ -282,13 +283,13 @@ SimulationEngine::simulate(const Property& property,
 			if (!interrupted) {
 				interval.update(rate);
 				if (0.0 >= rate) {
-					std::cerr << "-";
+					techLog << "-";
 					if (nullptr != effort_inc)
 						effort_inc(effort, name_, impFun_->name());
 					else
 						effort *= 2;  // you left us with no other option
 				} else {
-					std::cerr << "+";
+					techLog << "+";
 				}
 			}
 		}
