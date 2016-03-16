@@ -42,16 +42,16 @@ module Queue1
 
     /* -- Package arrival */
 	[arr!]  q1 == 0   @ clkArr -> (q1'= 1) &
-								  (clkArr' = exponential(lambda)) &
-								  (clkPass'= exponential(mu1));
+								  (clkArr' = erlang(lambda,2)) &
+								  (clkPass'= gamma(3,mu1));
     [arr!]  0 < q1 &
 			q1 < c-1  @ clkArr -> (q1'= q1+1) &
-								  (clkArr'= exponential(lambda));
-	[arr!]  q1 == c-1 @ clkArr -> (clkArr'= exponential(lambda));
+								  (clkArr'= erlang(lambda,2));
+	[arr!]  q1 == c-1 @ clkArr -> (clkArr'= erlang(lambda,2));
 
     /* -- Package passage */
 	[pass!] q1 >  1 @ clkPass -> (q1'= q1-1) &
-								 (clkPass'= exponential(mu1));
+								 (clkPass'= gamma(3,mu1));
 	[pass!] q1 == 1 @ clkPass -> (q1'= 0);
 
 endmodule                                       

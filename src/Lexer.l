@@ -46,6 +46,10 @@ exponential         { return parser::KEDIST; }
 
 uniform         { return parser::KUDIST; }
 
+erlang          { return parser::KERDIST; }
+
+gamma          { return parser::KGDIST; }
+
 property        { return parser::KPROP; }
 
 ("int")     { return parser::ITYPE; }

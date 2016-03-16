@@ -470,7 +470,8 @@ Parser::rSetClock(){
 int
 Parser::rDistr(){
 
-    return (rNormDist() || rExpDist() || rUniDist());
+    return (rNormDist() || rExpDist() || 
+            rUniDist() || rGamDist() || rErlDist());
 }
 
 
@@ -502,6 +503,61 @@ Parser::rNormDist(){
     return 0;
 }
 
+/* @RULE: normal distribution */
+int
+Parser::rGamDist(){
+
+    if(accept(KGDIST)){
+        newNode(_DISTRIBUTION, string(""));
+        saveNode(_NAME);
+        try{
+            expect(OP);
+            saveNode(_SEPARATOR);
+            rExpression();
+            expect(CMM);
+            saveNode(_SEPARATOR);
+            rExpression();
+            expect(CP);
+            saveNode(_SEPARATOR);
+            saveNode(); // _DISTRIBUTION
+            return 1;
+        }catch(const FigSyntaxError &e){
+            removeNode(); // _DISTRIBUTION
+            throw string( "Gamma distributions are expected to have the "
+                          "following syntax: 'gamma(<EXPRESSION>"
+                          ",<EXPRESSION>)\n" );
+        }
+    }
+    return 0;
+}
+
+/* @RULE: Erlang distribution */
+int
+Parser::rErlDist(){
+
+    if(accept(KERDIST)){
+        newNode(_DISTRIBUTION, string(""));
+        saveNode(_NAME);
+        try{
+            expect(OP);
+            saveNode(_SEPARATOR);
+            rExpression();
+            expect(CMM);
+            saveNode(_SEPARATOR);
+            rExpression();
+            expect(CP);
+            saveNode(_SEPARATOR);
+            saveNode(); // _DISTRIBUTION
+            return 1;
+        }catch(const FigSyntaxError &e){
+            removeNode(); // _DISTRIBUTION
+            throw string( "Erlang distributions are expected to have the "
+                          "following syntax: 'erlang(<EXPRESSION>"
+                          ",<EXPRESSION>)\n" );
+        }
+    }
+    return 0;
+}
 
 
 /* @RULE: exponential distribution */
