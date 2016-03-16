@@ -62,8 +62,6 @@ class SimulationEngine
 {
     friend class ModelSuite;  // for locking and interruptions signaling
 
-    typedef const std::string ConstStr;
-
 public:
 
 	/// Names of the simulation engines offered to the user,
@@ -246,7 +244,10 @@ public:  // Simulation functions
                   size_t effort,
                   ConfidenceInterval& interval,
                   std::ostream& techLog,
-                  void (*effort_inc)(size_t&, ConstStr&, ConstStr&) = nullptr) const;
+                  void (*effort_inc)(const PropertyType&,
+                                     const std::string&,
+                                     const std::string&,
+                                     size_t&) = nullptr) const;
 
 protected:  // Simulation helper functions
 

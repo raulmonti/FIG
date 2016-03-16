@@ -237,11 +237,15 @@ SimulationEngine::simulate(const Property &property,
 
 
 void
-SimulationEngine::simulate(const Property& property,
-						   size_t effort,
-						   ConfidenceInterval& interval,
-						   std::ostream& techLog,
-						   void (*effort_inc)(size_t&, ConstStr&, ConstStr&)) const
+SimulationEngine::simulate(
+	const Property& property,
+	size_t effort,
+	ConfidenceInterval& interval,
+	std::ostream& techLog,
+	void (*effort_inc)(const PropertyType&,
+					   const std::string&,
+					   const std::string&,
+					   size_t &)) const
 {
 	assert(0ul < effort);
 	if (!bound())
@@ -264,7 +268,7 @@ SimulationEngine::simulate(const Property& property,
 				if (0.0 >= raresCount) {
 					techLog << "-";
 					if (nullptr != effort_inc)
-						effort_inc(effort, name_, impFun_->name());
+						effort_inc(property.type, name_, impFun_->name(), effort);
 					else
 						effort *= 2;  // you left us with no other option
 				} else {
@@ -285,7 +289,7 @@ SimulationEngine::simulate(const Property& property,
 				if (0.0 >= rate) {
 					techLog << "-";
 					if (nullptr != effort_inc)
-						effort_inc(effort, name_, impFun_->name());
+						effort_inc(property.type, name_, impFun_->name(), effort);
 					else
 						effort *= 2;  // you left us with no other option
 				} else {

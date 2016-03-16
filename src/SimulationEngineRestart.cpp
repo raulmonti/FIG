@@ -226,6 +226,9 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		register_time = &SimulationEngineRestart::count_time;
 	}
 
+	/// @todo TODO erase debug print
+	std::cerr << "Simulating for " << runLength << " time units\n";
+
 	// Run a single RESTART importance-splitting simulation for "runLength"
 	// simulation time units and starting from the system's initial state
 	tpool.get_traials(stack, 1u);

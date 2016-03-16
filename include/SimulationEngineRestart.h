@@ -127,7 +127,7 @@ public:  // Traial observers/updaters
 			} else {
 				ImportanceValue newThrLvl = impFun_->level_of(traial.state);
 				if (newThrLvl < traial.level) {
-					// Went down... too far?
+					// Went down... too deep?
 					if (++traial.depth > static_cast<short>(dieOutDepth_))
 						e = EventType::THR_DOWN;
 				} else if (newThrLvl > traial.level) {
@@ -157,7 +157,7 @@ public:  // Traial observers/updaters
 			if (!IS_STOP_EVENT(e)) {
 				const ImportanceValue newThrLvl = UNMASK(newStateInfo);
 				if (newThrLvl < traial.level) {
-					// Went down... too far?
+					// Went down... too deep?
 					if (++traial.depth > static_cast<short>(dieOutDepth_))
 						SET_THR_DOWN_EVENT(e);
 				} else if (newThrLvl > traial.level) {
@@ -181,7 +181,7 @@ public:  // Traial observers/updaters
 			// in the rate_simulation() overriden member function
 			ImportanceValue newThrLvl = impFun_->level_of(traial.state);
 			if (newThrLvl < traial.level) {
-				// Went down... too far?
+				// Went down... too deep?
 				if (++traial.depth > static_cast<short>(dieOutDepth_))
 					e = EventType::THR_DOWN;
 			} else if (newThrLvl > traial.level) {
@@ -192,6 +192,21 @@ public:  // Traial observers/updaters
 				e = EventType::RARE;
 			}
 			traial.level = newThrLvl;
+
+			/// @todo TODO erase debug print  //////////////////
+			if (traial.lifeTime > simsLifetime)
+				std::cerr << "Reached EOS: " << traial.lifeTime
+						  << " > " << simsLifetime << std::endl;
+			if (EventType::THR_DOWN & e)
+				std::cerr << "Down event\n";
+			if (EventType::THR_UP & e)
+				std::cerr << "Up event\n";
+			if (EventType::RARE & e)
+				std::cerr << "Rare event\n";
+			if (EventType::NONE != e)
+				std::cerr << "Some event: " << e << std::endl;
+			/////////////////////////////////////////////////////
+
 			return traial.lifeTime > simsLifetime || EventType::NONE != e;
 		}
 
@@ -208,7 +223,7 @@ public:  // Traial observers/updaters
 			e = MASK(newStateInfo);
 			const ImportanceValue newThrLvl = UNMASK(newStateInfo);
 			if (newThrLvl < traial.level) {
-				// Went down... too far?
+				// Went down... too deep?
 				if (++traial.depth > static_cast<short>(dieOutDepth_))
 					SET_THR_DOWN_EVENT(e);
 			} else if (newThrLvl > traial.level) {

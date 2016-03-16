@@ -249,7 +249,7 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 	ImportanceValue newThreshold =
 		find_new_threshold(network, impFun, traials, n_, k_, thresholds_.back());
 	if (impFun.max_value() <= newThreshold)
-		ModelSuite::tech_log("first iteration of SMC reached max importance, "
+		ModelSuite::tech_log("\nFirst iteration of SMC reached max importance, "
 							 "rare event doesn't seem so rare.");
 	thresholds_.push_back(newThreshold);
 

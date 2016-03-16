@@ -74,8 +74,8 @@ int main(int argc, char** argv)
 
 	//  Estimation goals   // // // // // // // // // // // // // //
 	const fig::StoppingConditions timeSpans(std::set<size_t>({10ul,60ul}));
-	const double confidence(0.95);
-	const double precision(0.2);
+	const double confidence(0.80);
+	const double precision(0.4);
 	const fig::StoppingConditions stopCriterion(StopCond({std::make_tuple(
 			confidence, precision, true)}));
 	std::shared_ptr< fig::SimulationEngine > engine(nullptr);
@@ -85,14 +85,15 @@ int main(int argc, char** argv)
 	model.build_importance_function_flat(flatIfunName, propertyIndex);
 	model.build_thresholds("ams", flatIfunName);
 	engine = model.prepare_simulation_engine("nosplit", flatIfunName);
-	model.estimate(propertyIndex, *engine, timeSpans);
+//	model.estimate(propertyIndex, *engine, timeSpans);
 	//model.estimate(propertyIndex, *engine, stopCriterion);
 	engine = nullptr;
 
 	//  RESTART with algebraic ad hoc   // // // // // // // // //
 	const std::string adhocIfunName("algebraic");
 //	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "q2", NamesList({"q2"}), true);
-	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "buf", NamesList({"buf"}), true);
+	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "q3", NamesList({"q3"}), true);
+//	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "buf", NamesList({"buf"}), true);
 	model.build_thresholds("ams", adhocIfunName);
 	engine = model.prepare_simulation_engine("restart", adhocIfunName);
 	//model.estimate(propertyIndex, *engine, timeSpans);

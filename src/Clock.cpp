@@ -34,10 +34,14 @@
 #include <unordered_map>
 // FIG
 #include <Clock.h>
+#include <core_typedefs.h>
 
 
 namespace
 {
+
+typedef  fig::CLOCK_INTERNAL_TYPE     return_t;
+typedef  fig::DistributionParameters  params_t;
 
 #ifndef NDEBUG
 const unsigned int rngSeed(1234567803u);  // repeatable outcome
@@ -49,66 +53,83 @@ std::mt19937_64  MTrng(rngSeed);
 std::minstd_rand LCrng(rngSeed);
 
 #ifndef HQ_RNG
-auto rng = LCrng;  // Linear-congruential  standard RNG
+/// Linear-congruential standard RNG
+auto rng = LCrng;
 #else
-auto rng = MTrng;  // Mersenne-Twister high quality RNG
+/// Mersenne-Twister high quality RNG
+auto rng = MTrng;
 #endif
 
 std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uniform01(0.0 , 1.0);
 std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > exponential1(1.0);
 std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal01(0.0 , 1.0);
 
+
+/// Random deviate ~ Uniform[a,b]<br>
+///  where 'a' = params[0] is the lower bound<br>
+///    and 'b' = params[1] is the upper bound<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)">the wiki</a>
+return_t uniform(const params_t& params)
+{
+	return params[0] + (params[1] - params[0]) * uniform01(rng);
+}
+
+
+/// Random deviate ~ Exponential(lambda)<br>
+///  where 'lambda' = params[0] is the rate
+/// Check <a href="https://en.wikipedia.org/wiki/Exponential_distribution">the wiki</a>
+return_t exponential(const params_t& params)
+{
+	return exponential1(rng) / params[0];  // Grisel me dijo que es así
+}
+
+
+/// Random deviate ~ Normal(m,sd)<br>
+///  where  'm' = params[0] is the mean<br>
+///    and 'sd' = params[1] is the standard deviation
+/// Check <a href="https://en.wikipedia.org/wiki/Normal_distribution">the wiki</a>
+return_t normal(const params_t& params)
+{
+	return std::max<double>(0.000001, normal01(rng) * params[1] + params[0]);
+}
+
+
+/// Random deviate ~ Gamma(a,b)<br>
+///  where 'a' = params[0] is the shape parameter<br>
+///    and 'b' = params[1] is the scale parameter (aka reciprocal of the rate)<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Gamma_distribution">the wiki</a>
+return_t gamma(const params_t& params)
+{
+	std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > gamma(params[0], params[1]);
+	return gamma(rng);
+}
+
+
+/// Random deviate ~ Erlang(k,l) ~ Gamma(k,1/l)<br>
+///  where 'k' = params[0] is the <i>integral</i> shape parameter<br>
+///    and 'l' = params[1] is the rate parameter (aka reciprocal of the scale)<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Erlang_distribution">the wiki</a>
+return_t erlang(const params_t& params)
+{
+	const int k(std::round(params[0]));
+	std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > erlang(k, 1.0/params[1]);
+	return erlang(rng);
+}
+
 } // namespace
+
 
 
 namespace fig
 {
-// We don't need to capture global variables in lambda expressions,
-// e.g. the anonymously namespaced "rng" (http://stackoverflow.com/a/20362378)
 
 std::unordered_map< std::string, Distribution > distributions_list =
 {
-	{"uniform",
-	  [] (const DistributionParameters& params)
-	  { // Generates a random deviate ~ Uniform[a,b],
-		// where 'a' = params[0] is the lower bound
-		//   and 'b' = params[1] is the upper bound
-		return params[0] + (params[1] - params[0]) * uniform01(rng);
-	  }},
-
-	{"exponential",
-	  [] (const DistributionParameters& params)
-	  { // Generates a random deviate ~ Exponential(lambda)
-		// where 'lambda' = params[0] is the rate
-		return exponential1(rng) / params[0];  // Grisel me dijo que es así
-	  }},
-
-	{"normal",
-	  [] (const DistributionParameters& params)
-	  { // Generates a random deviate ~ Normal(m,sd)
-		// where  'm' = params[0] is the mean
-		//   and 'sd' = params[1] is the standard deviation
-		return std::max<double>(0.000001, normal01(rng) * params[1] + params[0]);
-	  }},
-
-	{"gamma",
-	  [] (const DistributionParameters& params)
-	  { // Generates a random deviate ~ Gamma(a,b)
-		// where 'a' = params[0] is the shape parameter
-		//   and 'b' = params[1] is the scale parameter (aka reciprocal of the rate)
-		std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > gamma(params[0], params[1]);
-		return gamma(rng);
-	  }},
-
-	{"erlang",
-	  [] (const DistributionParameters& params)
-	  { // Generates a random deviate ~ Erlang(k,mu) ~ Gamma(k,mu)
-		// where  'k' = params[0] is the *integer* shape parameter
-		//   and 'mu' = params[1] is the scale parameter (aka reciprocal of the rate)
-		const int k(std::round(params[0]));
-		std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > erlang(k, params[1]);
-		return erlang(rng);
-	  }}
+	{"uniform",     uniform    },
+	{"exponential", exponential},
+	{"normal",      normal     },
+	{"gamma",       gamma      },
+	{"erlang",      erlang     },
 };
 
 } // namespace fig

@@ -265,7 +265,7 @@ label_states(State globalState,
 		for (size_t i = 0ul ; i < globalState.concrete_size() ; i++) {
 			cStates[i] = fig::EventType::NONE;
 			const StateInstance valuation(globalState.decode(i).to_state_instance());
-			if (!rateProp.expr(valuation)) {
+			if (rateProp.expr(valuation)) {
 				fig::SET_RARE_EVENT(cStates[i]);
 				if (returnRares)
 					raresQueue.push(i);
