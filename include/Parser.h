@@ -57,6 +57,8 @@ typedef enum    { MEOF    // my end of file symbol
                 , KNDIST  // keyword Normal
                 , KEDIST  // keyword Exponential
                 , KUDIST  // keyword Uniform
+                , KGDIST  // keyword Gamma
+                , KERDIST // keywird Erlang
                 , KINIT   // Keyword "init"
                 , ITYPE   // keyword Int
                 , BTYPE   // Keyword Bool
@@ -458,6 +460,14 @@ private:
     /* @RULE: uniform distribution */
     int
     rUniDist();
+
+    /* @RULE: gamma distribution */
+    int
+    rGamDist();
+
+    /* @RULE: erlang distribution */
+    int
+    rErlDist();
 
     /* @Rule: VARIABLE DEFINITION. */
     int
