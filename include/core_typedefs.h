@@ -73,9 +73,7 @@ typedef std::array< CLOCK_INTERNAL_TYPE , NUM_DISTRIBUTION_PARAMS >
 ///       \ref DistributionParameters "distribution parameter array",
 ///       regardless of the actual number of parameters the mathematical
 ///       entity may need.
-typedef std::function< CLOCK_INTERNAL_TYPE (const DistributionParameters&) >
-///
-																Distribution;
+typedef CLOCK_INTERNAL_TYPE(*Distribution)(const DistributionParameters&);
 
 //
 //
