@@ -160,6 +160,7 @@ public:  // Access to resources (viz Traials)
      * @param cont      Container where Traial copies are to be stored
      * @param traial    Traial instance whose internals will be copied
      * @param numCopies Number of \ref Traial "traials" requested
+     * @param depth     Depth assigned to the delivered \ref Traial "traials"
      *
      * @note <b>Complexity:</b> <i>O(numCopies)</i> if enough free resources
      *       are available, <i>O(max(numCopies,sizeChunkIncrement_))</i>
@@ -169,7 +170,8 @@ public:  // Access to resources (viz Traials)
 			  typename... OtherArgs >
     void get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
                            const Traial& traial,
-                           unsigned numCopies);
+                           unsigned numCopies,
+                           short depth = 0);
 
 	/**
 	 * @brief Give back a bunch of \ref Traial "traials" to the pool

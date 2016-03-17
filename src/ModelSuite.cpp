@@ -114,7 +114,8 @@ build_empty_confidence_interval(
 {
 	std::unique_ptr< fig::ConfidenceInterval > ci_ptr(nullptr);
 
-	switch (propertyType) {
+	switch (propertyType)
+	{
 	case fig::PropertyType::TRANSIENT: {
 		if (hint.empty()  // default to most precise
 			|| "wilson" == hint)
@@ -139,9 +140,15 @@ build_empty_confidence_interval(
 		ci_ptr->set_variance_correction(minStatOversamp/maxStatOversamp);
 		} break;
 
-    case fig::PropertyType::THROUGHPUT:
     case fig::PropertyType::RATE:
-    case fig::PropertyType::RATIO:
+		// Ignore hints, there's a single option
+		ci_ptr.reset(new fig::ConfidenceIntervalMean(confidenceCo,
+													 precision,
+													 dynamicPrecision));
+		break;
+
+	case fig::PropertyType::THROUGHPUT:
+	case fig::PropertyType::RATIO:
     case fig::PropertyType::BOUNDED_REACHABILITY:
         throw_FigException("property type isn't supported yet");
         break;
@@ -155,20 +162,9 @@ build_empty_confidence_interval(
 }
 
 
-/**
- * @brief Tell minimum number of simulation runs requested to estimate
- *        the value of a property, for the specified fig::SimulationEngine
- *        and fig::ImportanceFunction pair
- *
- * @param engineName Valid engine name, i.e. one from fig::SimulationEngine::names
- * @param ifunName   Valid importance function name, i.e. one from
- *                   fig::ImportanceFunction::names
- *
- * @return Minimum batch size for this engine and importance function pair,
- *         i.e. number of consecutive simulations to run during estimations
- *
- * @see increase_batch_size()
- */
+/// Choose minimum batch size (i.e. requested number of consecutive simulations
+/// to run) in order to estimate the value of transient-like properties.
+/// Fine tune for the specified SimulationEngine and ImportanceFunction pair
 size_t
 min_batch_size(const std::string& engineName, const std::string& ifunName)
 {
@@ -197,21 +193,11 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 }
 
 
-/**
- * @brief Increment the number of consecutive simulations to run
- *        in order to get an estimate of the property's value
- *
- * @param numRuns    Current number of consecutive simulations, to be increased
- * @param engineName Valid engine name, i.e. one from fig::SimulationEngine::names
- * @param ifunName   Valid importance function name, i.e. one from
- *                   fig::ImportanceFunction::names
- *
- * @see min_batch_size()
- */
-void
-increase_batch_size(size_t& numRuns,
-					const std::string& engineName,
-					const std::string& ifunName)
+/// Choose minimum simulation run length (in simulated time units)
+/// in order to estimate the value of steady-state-like properties.
+/// Fine tune for the specified SimulationEngine and ImportanceFunction pair
+size_t
+min_run_length(const std::string& engineName, const std::string& ifunName)
 {
 	// Build internal table once: rows follow engine names definition order
 	//                            cols follow impFun names definition order
@@ -219,7 +205,78 @@ increase_batch_size(size_t& numRuns,
 	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
 //	FIXME: following compiles with Clang but not with gcc -- keep checking
 //	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
-	static const size_t batch_sizes[2][3] = {
+	static const size_t run_lengths[2][3] = {
+		{ 1ul<<20, 1ul<<21, 1ul<<21 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<15, 1ul<<15, 1ul<<15 }   // restart x {concrete_coupled, concrete_split, algebraic}
+	};
+	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
+	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
+	// Check given engine and importance function names are valid
+	if (engineIt == end(engineNames))
+		throw_FigException(std::string("invalid engine name \"")
+						   .append(engineName).append("\""));
+	if (ifunIt == end(ifunNames))
+		throw_FigException(std::string("invalid importance function name \"")
+						   .append(ifunName).append("\""));
+	// Return corresponding entry from table
+	return run_lengths[std::distance(begin(engineNames), engineIt)]
+					  [std::distance(begin(ifunNames), ifunIt)];
+}
+
+
+/**
+ * @brief Select minimum simulation effort depending on the Property to estimate,
+ *        tuning for specified SimulationEngine and ImportanceFunction
+ * @param engineName Valid engine name, i.e. one from fig::SimulationEngine::names
+ * @param ifunName   Valid importance function name, i.e. one from
+ *                   fig::ImportanceFunction::names
+ * @see min_batch_size()
+ * @see min_run_length()
+ */
+size_t
+min_effort(const fig::PropertyType& propertyType,
+		   const std::string& engineName,
+		   const std::string& ifunName)
+{
+	switch (propertyType)
+	{
+	case fig::PropertyType::TRANSIENT:
+		return min_batch_size(engineName, ifunName);
+		break;
+
+	case fig::PropertyType::RATE:
+		return min_run_length(engineName, ifunName);
+		break;
+
+	case fig::PropertyType::THROUGHPUT:
+	case fig::PropertyType::RATIO:
+	case fig::PropertyType::BOUNDED_REACHABILITY:
+		throw_FigException("property type isn't supported yet");
+		break;
+
+	default:
+		throw_FigException("unrecognized property type");
+		break;
+	}
+	return 0ul;
+}
+
+
+/// Increase given batch size (i.e. requested number of consecutive simulations
+/// ran) in order to estimate the value of transient-like properties
+/// Fine tune for the specified SimulationEngine and ImportanceFunction pair
+void
+increase_batch_size(const std::string& engineName,
+					const std::string& ifunName,
+					size_t& batchSize)
+{
+	// Build internal table once: rows follow engine names definition order
+	//                            cols follow impFun names definition order
+	static constexpr auto& engineNames(fig::SimulationEngine::names);
+	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
+//	FIXME: following compiles with Clang but not with gcc -- keep checking
+//	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
+	static const size_t inc_batch[2][3] = {
 		{ 3ul, 3ul, 2ul },  // nosplit x {concrete_coupled, concrete_split, algebraic}
 		{ 2ul, 2ul, 2ul }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
@@ -232,9 +289,82 @@ increase_batch_size(size_t& numRuns,
 	if (ifunIt == end(ifunNames))
 		throw_FigException(std::string("invalid importance function name \"")
 						   .append(ifunName).append("\""));
-	// Update numRuns with corresponding entry from table
-	numRuns *= batch_sizes[std::distance(begin(engineNames), engineIt)]
+	// Update batchSize with corresponding entry from table
+	batchSize *= inc_batch[std::distance(begin(engineNames), engineIt)]
 						  [std::distance(begin(ifunNames), ifunIt)];
+}
+
+
+
+/// Increase given simulation run length (in simulated time units)
+/// in order to estimate the value of steady-state-like properties.
+/// Fine tune for the specified SimulationEngine and ImportanceFunction pair
+void
+increase_run_length(const std::string& engineName,
+					const std::string& ifunName,
+					size_t& runLength)
+{
+	// Build internal table once: rows follow engine names definition order
+	//                            cols follow impFun names definition order
+	static constexpr auto& engineNames(fig::SimulationEngine::names);
+	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
+//	FIXME: following compiles with Clang but not with gcc -- keep checking
+//	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
+	static const float inc_length[2][3] = {
+		{ 1.7f, 1.7f, 1.4f },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+		{ 1.4f, 1.4f, 1.4f }   // restart x {concrete_coupled, concrete_split, algebraic}
+	};
+	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
+	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
+	// Check given engine and importance function names are valid
+	if (engineIt == end(engineNames))
+		throw_FigException(std::string("invalid engine name \"")
+						   .append(engineName).append("\""));
+	if (ifunIt == end(ifunNames))
+		throw_FigException(std::string("invalid importance function name \"")
+						   .append(ifunName).append("\""));
+	// Update runLength with corresponding entry from table, rely on type promotion
+	runLength *= inc_length[std::distance(begin(engineNames), engineIt)]
+						   [std::distance(begin(ifunNames), ifunIt)];
+}
+
+
+/**
+ * @brief Increase given simulation effort depending on the Property to estimate,
+ *        tuning for specified SimulationEngine and ImportanceFunction
+ * @param engineName Valid engine name, i.e. one from fig::SimulationEngine::names
+ * @param ifunName   Valid importance function name, i.e. one from
+ *                   fig::ImportanceFunction::names
+ * @param effort     Simulation effort currently on use, to be increased
+ * @see increase_batch_size()
+ * @see increase_run_length()
+ */
+void
+increase_effort(const fig::PropertyType& propertyType,
+				const std::string& engineName,
+				const std::string& ifunName,
+				size_t& effort)
+{
+	switch (propertyType)
+	{
+	case fig::PropertyType::TRANSIENT:
+		increase_batch_size(engineName, ifunName, effort);
+		break;
+
+	case fig::PropertyType::RATE:
+		increase_run_length(engineName, ifunName, effort);
+		break;
+
+	case fig::PropertyType::THROUGHPUT:
+	case fig::PropertyType::RATIO:
+	case fig::PropertyType::BOUNDED_REACHABILITY:
+		throw_FigException("property type isn't supported yet");
+		break;
+
+	default:
+		throw_FigException("unrecognized property type");
+		break;
+	}
 }
 
 
@@ -951,22 +1081,24 @@ ModelSuite::estimate(const Property& property,
 							  engine.splits_per_threshold(),
 							  *impFuns[engine.current_imp_fun()]);
 			interruptCI_ = ci_ptr.get();  // bad boy
-			/// @todo TODO: implement proper log and discard following shell print
 			mainLog_ << std::setprecision(0) << std::fixed;
 			mainLog_ << "   Estimation time: " << wallTimeInSeconds << " s\n";
 			SignalSetter handler(SIGALRM, [&ci_ptr, &timedout] (const int sig){
 				assert(SIGALRM == sig);
 				interrupt_print(*ci_ptr, ModelSuite::confCoToShow_, mainLog_);
-				//ci_ptr->reset();
+				ci_ptr->reset();
 				timedout = true;
 			});
 			timedout = false;
 			alarm(wallTimeInSeconds);
             engine.lock();
 			engine.simulate(property,
-							min_batch_size(engine.name(), engine.current_imp_fun()),
+							min_effort(property.type,
+									   engine.name(),
+									   engine.current_imp_fun()),
 							*ci_ptr,
-							&increase_batch_size);
+							techLog_,
+							&increase_effort);
             engine.unlock();
 		}
 		interruptCI_ = nullptr;
@@ -984,7 +1116,6 @@ ModelSuite::estimate(const Property& property,
 							  std::get<1>(criterion),
 							  std::get<2>(criterion));
             interruptCI_ = ci_ptr.get();  // bad boy
-			/// @todo TODO: implement proper log and discard following shell print
 			mainLog_ << "   For confidence level: "
 					 << std::setprecision(0) << std::fixed
 					 << 100*ci_ptr->confidence << "%" << std::endl;
@@ -995,15 +1126,20 @@ ModelSuite::estimate(const Property& property,
             else
 				mainLog_ << std::setprecision(2) << std::scientific
 						  << (2*ci_ptr->errorMargin) << "\n";
-			size_t numRuns = min_batch_size(engine.name(), engine.current_imp_fun());
+			size_t effort = min_effort(property.type,
+									   engine.name(),
+									   engine.current_imp_fun());
 			double startTime = omp_get_wtime();
 
             engine.lock();
 			do {
-				bool increaseBatch = engine.simulate(property, numRuns, *ci_ptr);
+				bool increaseBatch = engine.simulate(property, effort, *ci_ptr);
 				if (increaseBatch) {
 					techLog_ << "-";
-					increase_batch_size(numRuns, engine.name(), engine.current_imp_fun());
+					increase_effort(property.type,
+									engine.name(),
+									engine.current_imp_fun(),
+									effort);
 				} else {
 					techLog_ << "+";
 				}
@@ -1011,12 +1147,13 @@ ModelSuite::estimate(const Property& property,
             engine.unlock();
 
 			estimate_print(*ci_ptr, omp_get_wtime()-startTime, mainLog_);
+			ci_ptr->reset();
         }
         interruptCI_ = nullptr;
     }
 
 //	mainLog_ << std::defaultfloat;
-	mainLog_ << std::setprecision(6) << std::fixed;
+	mainLog_ << std::setprecision(6);
 }
 
 

@@ -143,7 +143,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
     } while (thresholds_.back() == traials[n_-k_].get().level
              && (simEffort *= 2u));
     if (impFun.max_value() <= traials[n_-k_].get().level)
-		ModelSuite::tech_log("first iteration of AMS reached max importance, "
+		ModelSuite::tech_log("\nFirst iteration of AMS reached max importance, "
 							 "rare event doesn't seem so rare.");
     thresholds_.push_back(traials[n_-k_].get().level);
     simEffort = MIN_SIM_EFFORT;
@@ -164,6 +164,8 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 			failures = 0u;
         } else {
 			// Failed to reach higher importance => increase effort
+			fig::ModelSuite::tech_log("Failed to find new threshold (reached "
+									  + std::to_string(newThreshold) + ")\n");
 			if (++failures > MAX_NUM_FAILURES)
 				goto exit_with_fail;
 			simEffort *= 2u;
@@ -175,7 +177,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
     msg << "ImportanceValue of the chosen thresholds:";
     for (size_t i = 1ul ; i < thresholds_.size() ; i++)
         msg << " " << thresholds_[i];
-    ModelSuite::tech_log(msg.str() + "\n\n"); }
+	ModelSuite::tech_log(msg.str() + "\n"); }
     thresholds_.push_back(impFun.max_value() + static_cast<ImportanceValue>(1u));
 	return;
 

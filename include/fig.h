@@ -80,6 +80,7 @@
 #include "Precondition.h"
 #include "Postcondition.h"
 #include "Property.h"
+#include "PropertyRate.h"
 #include "PropertyTransient.h"
 #include "Traial.h"
 #include "StoppingConditions.h"

@@ -32,6 +32,7 @@
 #include <SimulationEngine.h>
 #include <core_typedefs.h>
 #include <Traial.h>
+#include <PropertyRate.h>
 #include <PropertyTransient.h>
 #include <ImportanceFunctionConcrete.h>
 
@@ -73,14 +74,14 @@ public:  // Ctor
 
 public:  // Accessors
 
-	virtual unsigned splits_per_threshold() const noexcept;
+	unsigned splits_per_threshold() const noexcept override;
 
 	/// @copydoc dieOutDepth_
 	const unsigned& die_out_depth() const noexcept;
 
 public:  // Engine setup
 
-	virtual void bind(std::shared_ptr< const ImportanceFunction >);
+	void bind(std::shared_ptr< const ImportanceFunction >) override;
 
 	/**
 	 * Set the number of replicas made of a Traial when it crosses
@@ -102,35 +103,38 @@ public:  // Engine setup
 
 protected:  // Simulation helper functions
 
-	virtual double log_experiments_per_sim() const;
+	double log_experiments_per_sim() const override;
 
-	virtual double transient_simulations(const PropertyTransient& property,
-										 const size_t& numRuns) const;
+	double transient_simulations(const PropertyTransient& property,
+								 const size_t& numRuns) const override;
+
+	double rate_simulation(const PropertyRate& property,
+						   const size_t& runLength) const override;
 
 public:  // Traial observers/updaters
 
 	/// @copydoc SimulationEngine::transient_event()
 	/// @note Makes no assumption about the ImportanceFunction altogether
 	/// @note Attempted inline in a desperate need for speed
-	inline virtual bool transient_event(const PropertyTransient& property,
-										Traial& traial,
-										Event& e) const
+	inline bool transient_event(const PropertyTransient& property,
+								Traial& traial,
+								Event& e) const override
 		{
 			// Event marking is done in accordance with the checks performed
-			// in the transient_simulations() virtual member function
+			// in the transient_simulations() overriden member function
 			if (!property.expr1(traial.state)) {
 				e = EventType::STOP;
 			} else {
 				ImportanceValue newThrLvl = impFun_->level_of(traial.state);
 				if (newThrLvl < traial.level) {
-					// Went down... too far?
+					// Went down... too deep?
 					if (++traial.depth > static_cast<short>(dieOutDepth_))
 						e = EventType::THR_DOWN;
 				} else if (newThrLvl > traial.level) {
 					// Store in 'depth' the negative # of thresholds crossed
 					traial.depth = traial.level - newThrLvl;
 					e = EventType::THR_UP;
-				} else if (property.is_rare(traial.state)) {
+				} else if (property.expr2(traial.state)) {
 					e = EventType::RARE;
 				}
 				traial.level = newThrLvl;
@@ -147,13 +151,13 @@ public:  // Traial observers/updaters
 										 Event& e) const
 		{
 			// Event marking is done in accordance with the checks performed
-			// in the transient_simulations() virtual member function
+			// in the transient_simulations() overriden member function
 			auto newStateInfo = cImpFun_->info_of(traial.state);
 			e = MASK(newStateInfo);
 			if (!IS_STOP_EVENT(e)) {
 				const ImportanceValue newThrLvl = UNMASK(newStateInfo);
 				if (newThrLvl < traial.level) {
-					// Went down... too far?
+					// Went down... too deep?
 					if (++traial.depth > static_cast<short>(dieOutDepth_))
 						SET_THR_DOWN_EVENT(e);
 				} else if (newThrLvl > traial.level) {
@@ -166,6 +170,84 @@ public:  // Traial observers/updaters
 			}
 			return EventType::NONE != e;
 		}
+
+	/// @copydoc SimulationEngine::rate_event()
+	/// @note Makes no assumption about the ImportanceFunction altogether
+	inline bool rate_event(const PropertyRate& property,
+						   Traial& traial,
+						   Event& e) const override
+		{
+			// Event marking is done in accordance with the checks performed
+			// in the rate_simulation() overriden member function
+			ImportanceValue newThrLvl = impFun_->level_of(traial.state);
+			if (newThrLvl < traial.level) {
+				// Went down... too deep?
+				if (++traial.depth > static_cast<short>(dieOutDepth_))
+					e = EventType::THR_DOWN;
+			} else if (newThrLvl > traial.level) {
+				// Store in 'depth' the negative # of thresholds crossed
+				traial.depth = traial.level - newThrLvl;
+				e = EventType::THR_UP;
+			} else if (property.expr(traial.state)) {
+				e = EventType::RARE;
+			}
+			traial.level = newThrLvl;
+
+			/// @todo TODO erase debug print  //////////////////
+			if (traial.lifeTime > simsLifetime)
+				std::cerr << "Reached EOS: " << traial.lifeTime
+						  << " > " << simsLifetime << std::endl;
+			if (EventType::THR_DOWN & e)
+				std::cerr << "Down event\n";
+			if (EventType::THR_UP & e)
+				std::cerr << "Up event\n";
+			if (EventType::RARE & e)
+				std::cerr << "Rare event\n";
+			if (EventType::NONE != e)
+				std::cerr << "Some event: " << e << std::endl;
+			/////////////////////////////////////////////////////
+
+			return traial.lifeTime > simsLifetime || EventType::NONE != e;
+		}
+
+	/// @copydoc SimulationEngine::transient_event()
+	/// @note This function assumes a \ref ImportanceFunctionConcrete
+	///       "concrete importance function" is currently bound to the engine
+	inline bool rate_event_concrete(const PropertyRate&,
+									Traial& traial,
+									Event& e) const
+		{
+			// Event marking is done in accordance with the checks performed
+			// in the rate_simulation() overriden member function
+			auto newStateInfo = cImpFun_->info_of(traial.state);
+			e = MASK(newStateInfo);
+			const ImportanceValue newThrLvl = UNMASK(newStateInfo);
+			if (newThrLvl < traial.level) {
+				// Went down... too deep?
+				if (++traial.depth > static_cast<short>(dieOutDepth_))
+					SET_THR_DOWN_EVENT(e);
+			} else if (newThrLvl > traial.level) {
+				// Store in 'depth' the negative # of thresholds crossed
+				traial.depth = traial.level - newThrLvl;
+				SET_THR_UP_EVENT(e);
+			}
+			traial.level = newThrLvl;
+			// rare event info is already marked inside 'e'
+			return traial.lifeTime > simsLifetime || EventType::NONE != e;
+		}
+
+	/// Turn off splitting and simulate (accumulating time) as long as we are
+	/// among rare states. Used for time registration in rate simulations.
+	/// @note Makes no assumption about the ImportanceFunction altogether
+	inline bool count_time(const PropertyRate& prop, Traial& t, Event&) const
+		{ return !prop.expr(t.state); }
+
+	/// Turn off splitting and simulate (accumulating time) as long as we are
+	/// among rare states. Used for time registration in rate simulations.
+	/// @note This function assumes a \ref ImportanceFunctionConcrete
+	///       "concrete importance function" is currently bound to the engine
+	inline bool count_time_concrete(const PropertyRate&, Traial& t, Event&) const
+		{ return !IS_RARE_EVENT(cImpFun_->info_of(t.state)); }
 };
 
 } // namespace fig

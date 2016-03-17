@@ -249,7 +249,7 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 	ImportanceValue newThreshold =
 		find_new_threshold(network, impFun, traials, n_, k_, thresholds_.back());
 	if (impFun.max_value() <= newThreshold)
-		ModelSuite::tech_log("first iteration of SMC reached max importance, "
+		ModelSuite::tech_log("\nFirst iteration of SMC reached max importance, "
 							 "rare event doesn't seem so rare.");
 	thresholds_.push_back(newThreshold);
 
@@ -271,7 +271,7 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
     msg << "ImportanceValue of the chosen thresholds:";
     for (size_t i = 1ul ; i < thresholds_.size() ; i++)
         msg << " " << thresholds_[i];
-    ModelSuite::tech_log(msg.str() + "\n\n"); }
+	ModelSuite::tech_log(msg.str() + "\n"); }
 	thresholds_.push_back(impFun.max_value() + static_cast<ImportanceValue>(1u));
 	return;
 

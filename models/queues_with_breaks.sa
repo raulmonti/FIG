@@ -33,8 +33,7 @@
 // -- The following values were extracted from Kroese & Nicola,
 // -- "Efficient estimation of overflow probabilities in queues
 // -- with breakdowns", Performance Evaluation, 36-37, 1999, pp. 471-484.
-// -- This model corresponds to the system described in the section 4.4
-// -- (p. 481) of said article.
+// -- This model corresponds to the system described in Section 4.4
 
 // -- Sources of Type 1
 const int lambda1 = 3;  // -- Production rate
@@ -62,9 +61,9 @@ const int K = 20;
 
 module T1S1
 	on11: bool init false;
-	clkF11: clock;  // -- Clock for 'F'ailing   ~ exp(beta1)
-	clkR11: clock;  // -- Clock for 'R'epairing ~ exp(alpha1)
-	clkP11: clock;  // -- Clock for 'P'roducing ~ exp(lambda1)
+	clkF11: clock;  // -- Type 1 sources 'F'ailures   ~ exp(beta1)
+	clkR11: clock;  // -- Type 1 sources 'R'epairs    ~ exp(alpha1)
+	clkP11: clock;  // -- Type 1 sources 'P'roduction ~ exp(lambda1)
 	// -- Breakdowns
 	[]  on11 @ clkF11 -> (on11'= false) &
 	                     (clkR11'= exponential(alpha1));
@@ -77,9 +76,9 @@ endmodule
 
 module T1S2
 	on12: bool init false;
-	clkF12: clock;  // -- Clock for 'F'ailing   ~ exp(beta1)
-	clkR12: clock;  // -- Clock for 'R'epairing ~ exp(alpha1)
-	clkP12: clock;  // -- Clock for 'P'roducing ~ exp(lambda1)
+	clkF12: clock;  // -- Type 1 sources 'F'ailures   ~ exp(beta1)
+	clkR12: clock;  // -- Type 1 sources 'R'epairs    ~ exp(alpha1)
+	clkP12: clock;  // -- Type 1 sources 'P'roduction ~ exp(lambda1)
 	// -- Breakdowns
 	[]  on12 @ clkF12 -> (on12'= false) &
 	                     (clkR12'= exponential(alpha1));
@@ -92,9 +91,9 @@ endmodule
 
 module T1S3
 	on13: bool init false;
-	clkF13: clock;  // -- Clock for 'F'ailing   ~ exp(beta1)
-	clkR13: clock;  // -- Clock for 'R'epairing ~ exp(alpha1)
-	clkP13: clock;  // -- Clock for 'P'roducing ~ exp(lambda1)
+	clkF13: clock;  // -- Type 1 sources 'F'ailures   ~ exp(beta1)
+	clkR13: clock;  // -- Type 1 sources 'R'epairs    ~ exp(alpha1)
+	clkP13: clock;  // -- Type 1 sources 'P'roduction ~ exp(lambda1)
 	// -- Breakdowns
 	[]  on13 @ clkF13 -> (on13'= false) &
 	                     (clkR13'= exponential(alpha1));
@@ -107,9 +106,9 @@ endmodule
 
 module T1S4
 	on14: bool init false;
-	clkF14: clock;  // -- Clock for 'F'ailing   ~ exp(beta1)
-	clkR14: clock;  // -- Clock for 'R'epairing ~ exp(alpha1)
-	clkP14: clock;  // -- Clock for 'P'roducing ~ exp(lambda1)
+	clkF14: clock;  // -- Type 1 sources 'F'ailures   ~ exp(beta1)
+	clkR14: clock;  // -- Type 1 sources 'R'epairs    ~ exp(alpha1)
+	clkP14: clock;  // -- Type 1 sources 'P'roduction ~ exp(lambda1)
 	// -- Breakdowns
 	[]  on14 @ clkF14 -> (on14'= false) &
 	                     (clkR14'= exponential(alpha1));
@@ -122,9 +121,9 @@ endmodule
 
 module T1S5
 	on15: bool init false;
-	clkF15: clock;  // -- Clock for 'F'ailing   ~ exp(beta1)
-	clkR15: clock;  // -- Clock for 'R'epairing ~ exp(alpha1)
-	clkP15: clock;  // -- Clock for 'P'roducing ~ exp(lambda1)
+	clkF15: clock;  // -- Type 1 sources 'F'ailures   ~ exp(beta1)
+	clkR15: clock;  // -- Type 1 sources 'R'epairs    ~ exp(alpha1)
+	clkP15: clock;  // -- Type 1 sources 'P'roduction ~ exp(lambda1)
 	// -- Breakdowns
 	[]  on15 @ clkF15 -> (on15'= false) &
 	                     (clkR15'= exponential(alpha1));
@@ -143,9 +142,9 @@ endmodule
 
 module T2S1
 	on21: bool init true;
-	clkF21: clock;  // -- Clock for 'F'ailing   ~ exp(beta2)
-	clkR21: clock;  // -- Clock for 'R'epairing ~ exp(alpha2)
-	clkP21: clock;  // -- Clock for 'P'roducing ~ exp(lambda2)
+	clkF21: clock;  // -- Type 2 sources 'F'ailures   ~ exp(beta2)
+	clkR21: clock;  // -- Type 2 sources 'R'epairs    ~ exp(alpha2)
+	clkP21: clock;  // -- Type 2 sources 'P'roduction ~ exp(lambda2)
 	// -- Breakdowns
 	[]  on21 @ clkF21 -> (on21'= false) &
 	                     (clkR21'= exponential(alpha2));
@@ -158,9 +157,9 @@ endmodule
 
 module T2S2
 	on22: bool init false;
-	clkF22: clock;  // -- Clock for 'F'ailing   ~ exp(beta2)
-	clkR22: clock;  // -- Clock for 'R'epairing ~ exp(alpha2)
-	clkP22: clock;  // -- Clock for 'P'roducing ~ exp(lambda2)
+	clkF22: clock;  // -- Type 2 sources 'F'ailures   ~ exp(beta2)
+	clkR22: clock;  // -- Type 2 sources 'R'epairs    ~ exp(alpha2)
+	clkP22: clock;  // -- Type 2 sources 'P'roduction ~ exp(lambda2)
 	// -- Breakdowns
 	[]  on22 @ clkF22 -> (on22'= false) &
 	                     (clkR22'= exponential(alpha2));
@@ -173,9 +172,9 @@ endmodule
 
 module T2S3
 	on23: bool init false;
-	clkF23: clock;  // -- Clock for 'F'ailing   ~ exp(beta2)
-	clkR23: clock;  // -- Clock for 'R'epairing ~ exp(alpha2)
-	clkP23: clock;  // -- Clock for 'P'roducing ~ exp(lambda2)
+	clkF23: clock;  // -- Type 2 sources 'F'ailures   ~ exp(beta2)
+	clkR23: clock;  // -- Type 2 sources 'R'epairs    ~ exp(alpha2)
+	clkP23: clock;  // -- Type 2 sources 'P'roduction ~ exp(lambda2)
 	// -- Breakdowns
 	[]  on23 @ clkF23 -> (on23'= false) &
 	                     (clkR23'= exponential(alpha2));
@@ -188,9 +187,9 @@ endmodule
 
 module T2S4
 	on24: bool init false;
-	clkF24: clock;  // -- Clock for 'F'ailing   ~ exp(beta2)
-	clkR24: clock;  // -- Clock for 'R'epairing ~ exp(alpha2)
-	clkP24: clock;  // -- Clock for 'P'roducing ~ exp(lambda2)
+	clkF24: clock;  // -- Type 2 sources 'F'ailures   ~ exp(beta2)
+	clkR24: clock;  // -- Type 2 sources 'R'epairs    ~ exp(alpha2)
+	clkP24: clock;  // -- Type 2 sources 'P'roduction ~ exp(lambda2)
 	// -- Breakdowns
 	[]  on24 @ clkF24 -> (on24'= false) &
 	                     (clkR24'= exponential(alpha2));
@@ -203,9 +202,9 @@ endmodule
 
 module T2S5
 	on25: bool init false;
-	clkF25: clock;  // -- Clock for 'F'ailing   ~ exp(beta2)
-	clkR25: clock;  // -- Clock for 'R'epairing ~ exp(alpha2)
-	clkP25: clock;  // -- Clock for 'P'roducing ~ exp(lambda2)
+	clkF25: clock;  // -- Type 2 sources 'F'ailures   ~ exp(beta2)
+	clkR25: clock;  // -- Type 2 sources 'R'epairs    ~ exp(alpha2)
+	clkP25: clock;  // -- Type 2 sources 'P'roduction ~ exp(lambda2)
 	// -- Breakdowns
 	[]  on25 @ clkF25 -> (on25'= false) &
 	                     (clkR25'= exponential(alpha2));
@@ -230,9 +229,9 @@ endmodule
 module BufferedServer
 
 	buf: [0..K] init 1;
-	clkF: clock;  // -- Clock for server 'F'ailure    ~ exp(gamma)
-	clkR: clock;  // -- Clock for server 'R'epair     ~ exp(delta)
-	clkP: clock;  // -- Clock for server 'P'rocessing ~ exp(mu)
+	clkF: clock;  // -- Server 'F'ailure    ~ exp(gamma)
+	clkR: clock;  // -- Server 'R'epair     ~ exp(delta)
+	clkP: clock;  // -- Server 'P'rocessing ~ exp(mu)
 	on:    bool init false;  // -- Server on?
 	lost:  bool init false;
 	reset: bool init false;

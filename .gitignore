@@ -17,3 +17,7 @@ FIG*.includes
 # Build
 bin
 bin_*
+
+# Simulation/Cluster logs
+*.out
+*.err

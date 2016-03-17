@@ -33,6 +33,7 @@
 #include <SimulationEngine.h>
 #include <ModuleNetwork.h>
 #include <State.h>
+#include <PropertyRate.h>
 #include <PropertyTransient.h>
 #include <ImportanceFunctionConcrete.h>
 
@@ -60,7 +61,7 @@ public:  // Ctor
 
 public:  // Accessors
 
-	virtual unsigned splits_per_threshold() const noexcept { return 1u; }
+	unsigned splits_per_threshold() const noexcept override { return 1u; }
 
 public:  // Engine setup
 
@@ -68,19 +69,21 @@ public:  // Engine setup
 
 protected:  // Simulation helper functions
 
-	virtual double log_experiments_per_sim() const;
+	double log_experiments_per_sim() const override;
 
-	virtual double transient_simulations(const PropertyTransient& property,
-										 const size_t& numRuns) const;
+	double transient_simulations(const PropertyTransient& property,
+								 const size_t& numRuns) const override;
+
+	double rate_simulation(const PropertyRate& property,
+						   const size_t& runLength) const override;
 
 public:  // Traial observers/updaters
 
 	/// @copydoc SimulationEngine::transient_event()
 	/// @note Makes no assumption about the ImportanceFunction altogether
-	/// @note Attempted inline in a desperate seek of efficiency
-	inline virtual bool transient_event(const PropertyTransient& property,
-										Traial& traial,
-										Event& e) const
+	inline bool transient_event(const PropertyTransient& property,
+								Traial& traial,
+								Event& e) const override
 		{
 			e = !property.expr1(traial.state) ? EventType::STOP
 											  : EventType::NONE;
@@ -92,7 +95,6 @@ public:  // Traial observers/updaters
 	/// @copydoc SimulationEngine::transient_event()
 	/// @note This function assumes a \ref ImportanceFunctionConcrete
 	///       "concrete importance function" is currently bound to the engine
-	/// @note Attempted inline in a desperate seek of efficiency
 	inline bool transient_event_concrete(const PropertyTransient&,
 										 Traial& traial,
 										 Event& e) const
@@ -100,6 +102,41 @@ public:  // Traial observers/updaters
 			e = MASK(cImpFun_->info_of(traial.state));
 			return IS_RARE_EVENT(e) || IS_STOP_EVENT(e);
 		}
+
+	/// @copydoc SimulationEngine::rate_event()
+	/// @note Makes no assumption about the ImportanceFunction altogether
+	inline bool rate_event(const PropertyRate& property,
+						   Traial& traial,
+						   Event& e) const override
+		{
+			e = property.expr(traial.state) ? EventType::RARE
+											: EventType::NONE;
+			return traial.lifeTime > simsLifetime || IS_RARE_EVENT(e);
+		}
+
+	/// @copydoc SimulationEngine::transient_event()
+	/// @note This function assumes a \ref ImportanceFunctionConcrete
+	///       "concrete importance function" is currently bound to the engine
+	inline bool rate_event_concrete(const PropertyRate&,
+									Traial& traial,
+									Event& e) const
+		{
+			e = MASK(cImpFun_->info_of(traial.state));
+			return traial.lifeTime > simsLifetime || IS_RARE_EVENT(e);
+		}
+
+	/// Simulate (accumulating time) as long as we remain in rare states.
+	/// Used for time registration in rate simulations.
+	/// @note Makes no assumption about the ImportanceFunction altogether
+	inline bool count_time(const PropertyRate& prop, Traial& t, Event&) const
+		{ return !prop.expr(t.state); }
+
+	/// Simulate (accumulating time) as long as we remain in rare states.
+	/// Used for time registration in rate simulations.
+	/// @note This function assumes a \ref ImportanceFunctionConcrete
+	///       "concrete importance function" is currently bound to the engine
+	inline bool count_time_concrete(const PropertyRate&, Traial& t, Event&) const
+		{ return !IS_RARE_EVENT(cImpFun_->info_of(t.state)); }
 };
 
 } // namespace fig

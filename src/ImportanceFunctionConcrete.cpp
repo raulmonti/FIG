@@ -38,6 +38,7 @@
 #include <FigException.h>
 #include <Transition.h>
 #include <Property.h>
+#include <PropertyRate.h>
 #include <PropertyTransient.h>
 #include <PropertySat.h>
 #include <Module.h>
@@ -259,8 +260,20 @@ label_states(State globalState,
 		}
 		} break;
 
+	case fig::PropertyType::RATE: {
+		auto rateProp = static_cast<const fig::PropertyRate&>(property);
+		for (size_t i = 0ul ; i < globalState.concrete_size() ; i++) {
+			cStates[i] = fig::EventType::NONE;
+			const StateInstance valuation(globalState.decode(i).to_state_instance());
+			if (rateProp.expr(valuation)) {
+				fig::SET_RARE_EVENT(cStates[i]);
+				if (returnRares)
+					raresQueue.push(i);
+			}
+		}
+		} break;
+
 	case fig::PropertyType::THROUGHPUT:
-	case fig::PropertyType::RATE:
 	case fig::PropertyType::RATIO:
 	case fig::PropertyType::BOUNDED_REACHABILITY:
 		throw_FigException("property type isn't supported yet");
@@ -320,8 +333,18 @@ label_states_with_SAT(State localState,
 		}
 		break;
 
-	case fig::PropertyType::THROUGHPUT:
 	case fig::PropertyType::RATE:
+		for (size_t i = 0ul ; i < localState.concrete_size() ; i++) {
+			cStates[i] = fig::EventType::NONE;
+			const StateInstance valuation(localState.decode(i).to_state_instance());
+			if (reducedProperty.sat(0, valuation)) {
+				fig::SET_RARE_EVENT(cStates[i]);
+				raresQueue.push(i);
+			}
+		}
+		break;
+
+	case fig::PropertyType::THROUGHPUT:
 	case fig::PropertyType::RATIO:
 	case fig::PropertyType::BOUNDED_REACHABILITY:
 		throw_FigException("property type isn't supported yet");
