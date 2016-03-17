@@ -152,7 +152,7 @@ Precompiler::pre_compile(AST* ast, const parsingContext &pc)
 //==============================================================================
 
 string 
-Precompiler::replaceConsts(void)
+Precompiler::pre_compile_props(void)
 {
     string result = "";
     

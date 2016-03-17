@@ -943,7 +943,8 @@ Parser::parse(stringstream *str){
  * @brief  FIXME Parse stream @str and place the resulting AST in @result.
  *         It is caller responsibility to free the allocated AST 
  *         @result afterwards.
- * @return 0 if something went wrong (print exception), 1 otherwise.
+ * @return A pair with a pointer to the resulting AST and a vector with the
+ *         lexed words.
  */
 AST*
 Parser::parseProperties(stringstream *str){
@@ -993,7 +994,6 @@ Parser::parseProperties(stringstream *str){
         rPropertyList();
         delete props;
         props = astStk.top();
-        
 
     }catch(const FigSyntaxError &e){
         throw_FigException(e.what());
@@ -1003,6 +1003,8 @@ Parser::parseProperties(stringstream *str){
         cout << e.what() << endl;
         assert(false);
     }
+
+
     return props;
 }
 

@@ -116,15 +116,23 @@ int main (int argc, char** argv){
     ss << mfin.rdbuf();
 
     parser.parse(&ss);  
+    ss.str("");
     ss.clear();
     ss << precompiler.pre_compile(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
     parser.parse(&ss);
     verifier.verify(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
 
     ifstream pfin(argv[2],ios::binary);    
+    ss.str("");
     ss.clear();
     ss << pfin.rdbuf();
-    parser.parseProperties(& ss);
+    parser.parseProperties(&ss);
+    ss.str("");
+    ss.clear();
+    cout << ss.str() << endl;
+    ss << precompiler.pre_compile_props();
+    cout << ss.str() << endl;
+    parser.parseProperties(&ss);
 
     /* Compile into simulation model */
     fig::CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);

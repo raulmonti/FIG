@@ -67,12 +67,12 @@ pre_compile(AST* ast, const parsingContext &pc);
 
 
 /**
- * @brief Replaces constants in the last parsed model/property file for their
- * values according to the last constants precompilation table.
- * @return String with te result of the replacement.
+ * @brief Replaces constants in the last parsed properties file
+ * according to the last constants pre-compilation table.
+ * @return String with the result of the replacement.
  */
 static string 
-replaceConsts(void);
+pre_compile_props(void);
 
 };
 
