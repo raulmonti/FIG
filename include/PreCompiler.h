@@ -8,7 +8,7 @@
 using namespace std;
 using namespace parser;
 
-#define _CONST_TABLE Precompiler::get_const_table()
+#define GLOBAL_CONST_TABLE Precompiler::get_const_table()
 
 namespace parser{
 
@@ -64,6 +64,15 @@ get_const_table()
  */
 string
 pre_compile(AST* ast, const parsingContext &pc);
+
+
+/**
+ * @brief Replaces constants in the last parsed model/property file for their
+ * values according to the last constants precompilation table.
+ * @return String with te result of the replacement.
+ */
+static string 
+replaceConsts(void);
 
 };
 

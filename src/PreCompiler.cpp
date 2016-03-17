@@ -31,7 +31,7 @@ Precompiler::solve_constant_defs(vector<AST*> defs, const parsingContext &pc)
         names.push_back(n);
         z3::expr v(c);
         if(pc.at(n).first==T_ARIT){
-            v = c.real_const(n.c_str());
+            v = c.int_const(n.c_str());
         }else{
             v = c.bool_const(n.c_str());
         }
@@ -118,6 +118,7 @@ Precompiler::pre_compile(AST* ast, const parsingContext &pc)
     // Check constants and solve their values.
     vector<AST*> consts = ast->get_all_ast(_CONST);
     check_no_const_circular_depend(consts);
+    mConstTable.clear(); // clear old constants
     solve_constant_defs(consts, pc);
     
     // Replace constants by values and constants definitions by blanks.
@@ -147,3 +148,29 @@ Precompiler::pre_compile(AST* ast, const parsingContext &pc)
     return result;
 }
 
+
+//==============================================================================
+
+string 
+Precompiler::replaceConsts(void)
+{
+    string result = "";
+    
+    auto lexemes = Parser::get_lexemes();
+	for(size_t i = 0; i < lexemes.size(); ++i){
+        if(lexemes[i] == "const"){
+            do{
+                result += lexemes[i];
+                i++;
+            }while(lexemes[i] != ";");
+        }else{
+            auto it = mConstTable.find(lexemes[i]);
+            if(it != mConstTable.end()){
+                result += it->second;
+            }else if(lexemes[i] != "EOF"){
+                result += lexemes[i];
+            }
+        }
+    }
+    return result;
+}

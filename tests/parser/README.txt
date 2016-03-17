@@ -25,6 +25,9 @@ Read main.cpp file for an example.
 # TODO
 #############################################
 
+
+TODO    precompile property file.
+TODO    min and max operators.
 TODO    Check Properties semantics. (for example that the expressions in them
         are boolean).
 TODO    Parse the / in properties syntax, i.e avoid from mistaking it with 
