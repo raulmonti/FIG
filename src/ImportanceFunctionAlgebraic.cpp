@@ -200,7 +200,7 @@ ImportanceFunctionAlgebraic::set_formula(
 	const std::string& formulaExprStr,
 	const Container<std::string, OtherArgs...>& varnames,
 	const State<STATE_INTERNAL_TYPE>& gState,
-	const Property&)
+	const Property& property)
 {
     if ("auto" == strategy)
 		throw_FigException("importance strategy \"auto\" can only be used "
@@ -223,18 +223,20 @@ ImportanceFunctionAlgebraic::set_formula(
 
 	// Find extreme importance values for this ad hoc function
 	if ("flat" == strategy) {
+		// Little to find out
 		const ImportanceValue importance =
 				importance_of(gState.to_state_instance());
 		minValue_ = importance;
 		maxValue_ = importance;
 		minRareValue_ = importance;
+	} else if (gState.concrete_size() < (1ul<<20ul)) {
+		// We can afford a full-state-space scan
+		find_extreme_values(gState, property);
 	} else {
-		std::vector< std::string > varnamesVec;
-		varnamesVec.insert(begin(varnamesVec), begin(varnames), end(varnames));
+		// Concrete state space is too big, resort to faster ways
 		std::tie(minValue_, maxValue_) = ::find_extreme_values(userFun_, gState);
-		// Assume minRareValue_ == minValue_ to avoid exploring whole state space
+		// Play it safe and assume minRareValue_ == minValue_
 		minRareValue_ = minValue_;
-
 		/// @todo TODO The general solution is to use ILP on userFun_
 		///            That'd also compute the real minRareValue_ (and fast!)
 		///            Use <a href="http://dlib.net/">dlib</a> maybe?

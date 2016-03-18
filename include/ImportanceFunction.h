@@ -351,7 +351,7 @@ protected:  // Utils for derived classes
 	 *        minImportance_, maxImportance_ and minRareImportance_ are left
 	 *        as they should for the importance information currently held.
 	 *
-	 * @param state    State whose whole concrete space will be explored
+	 * @param state    State whose <b>whole concrete space</b> will be explored
 	 * @param property Property identifying the rare State valuations
 	 *
 	 * @note <b>Complexity:</b> <i>O(state.concrete_size() * state.size())</i>
@@ -359,7 +359,7 @@ protected:  // Utils for derived classes
 	 * @throw FigException if there was no \ref has_importance_info()
 	 *                     "importance information"
 	 *
-	 * @deprecated Takes too long for large state spaces
+	 * @warning Takes too long for large state spaces
 	 */
 	void find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 							 const Property& property);

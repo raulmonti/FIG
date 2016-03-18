@@ -170,7 +170,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 				// Could have gone up several thresholds => split accordingly
 				assert(traial.depth < 0);
 				for (ImportanceValue i = static_cast<ImportanceValue>(1u)
-					; i <= -traial.depth  // # thresholds crossed
+					; i <= static_cast<ImportanceValue>(traial.numLevelsCrossed)
 					; i++)
 				{
 					const unsigned thisLevelRetrials = std::round(
@@ -178,7 +178,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 					assert(0u < thisLevelRetrials);
 					assert(thisLevelRetrials < pow(splitsPerThreshold_, numThresholds));
 					tpool.get_traial_copies(stack, traial, thisLevelRetrials,
-										static_cast<short>(i) + traial.depth);
+											static_cast<short>(i)-traial.numLevelsCrossed);
 				}
 				// Offsprings are on top of stack now: continue attending them
 			}
@@ -226,9 +226,6 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		register_time = &SimulationEngineRestart::count_time;
 	}
 
-	/// @todo TODO erase debug print
-	std::cerr << "Simulating for " << runLength << " time units\n";
-
 	// Run a single RESTART importance-splitting simulation for "runLength"
 	// simulation time units and starting from the system's initial state
 	tpool.get_traials(stack, 1u);
@@ -262,7 +259,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 			// Could have gone up several thresholds => split accordingly
 			assert(traial.depth < 0);
 			for (ImportanceValue i = static_cast<ImportanceValue>(1u)
-				; i <= -traial.depth  // # thresholds crossed
+				; i <= static_cast<ImportanceValue>(traial.numLevelsCrossed)
 				; i++)
 			{
 				const unsigned thisLevelRetrials = std::round(
@@ -270,7 +267,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 				assert(0u < thisLevelRetrials);
 				assert(thisLevelRetrials < pow(splitsPerThreshold_, numThresholds));
 				tpool.get_traial_copies(stack, traial, thisLevelRetrials,
-										static_cast<short>(i) + traial.depth);
+										static_cast<short>(i)-traial.numLevelsCrossed);
 			}
 			// Offsprings are on top of stack now: continue attending them
 		}

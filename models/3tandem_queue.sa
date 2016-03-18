@@ -32,21 +32,13 @@
 // -- Winter Simulation Conference, 2009, pp. 1146-1154.
 // -- This model corresponds to the system described in Section 4.1
 
-// -- Arrival rates in Queue1: {1, 2}
-const int lambda = 1;
-// -- Service rates in Queue1: {3, 5}
-const int mu1 = 3;
-// -- Service rates in Queue2: {2, 4}
-const int mu2 = 2;
-// -- Service rates in Queue3: {3}
-const int mu3 = 3;
-// -- Shape parameter for all queues service times: {2, 3}
-const int alpha = 2;
-// -- Third queue threshold occupancy: {13, 16, 18, 20, 21, 24}
-const int L = 13;
-// -- Queues capacity
-const int c = 16;
-// --const int c = L+3;  Use this when Raul implements iterative pre-compilation
+const int lambda = 1;  // Arrival rates (Queue1): {1, 2}
+const int alpha = 2;   // Service time shape parameters (all queues): {2, 3}
+const int mu1 = 3;     // Service time rate  parameters (Queue1): {3, 5}
+const int mu2 = 2;     // Service time rate  parameters (Queue2): {2, 4}
+const int mu3 = 3;     // Service time rate  parameters (Queue3): {3}
+const int L = 13;      // Threshold occupancy (Queue3): {13, 16, 18, 20, 21, 24}
+const int c = L+3;     // Queues capacity
 
 
 module Queue1

@@ -96,8 +96,11 @@ public:  // Attributes
 	/// Importance/Threshold level where the Traial currently is
     ImportanceValue level;
 
-	/// How far down the current importance is w.r.t. the creation importance
+	/// How far down the current level is w.r.t. the creation level
 	short depth;
+
+	/// Simulation's temporal field to keep track of thresholds crossing
+	short numLevelsCrossed;
 
 	/// Time span this Traial has been running around the system model
 	CLOCK_INTERNAL_TYPE lifeTime;

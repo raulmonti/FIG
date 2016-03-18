@@ -133,7 +133,7 @@ find_extreme_values(const Formula& f, const ModulesExtremeValues& moduleValues)
 		max = std::max(max, imp);
 	} while (advance(moduleValues, values));
 
-	// Assume minRareValue_ == minValue_ to avoid exploring whole state space
+	// Play it safe and assume minRareValue_ == minValue_
 	return std::make_tuple(min, max, min);
 
 	/// @todo TODO The general solution is to use ILP on userFun_
@@ -478,7 +478,11 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		minValue_ = importance;
 		maxValue_ = importance;
 		minRareValue_ = importance;
+	} else if (globalStateCopy.concrete_size() < (1ul<<20ul)) {
+		// We can afford a full-state-space scan
+		find_extreme_values(globalStateCopy, property);
 	} else {
+		// Concrete state space is too big, resort to faster ways
 		std::tie(minValue_, maxValue_, minRareValue_) =
 				::find_extreme_values(userFun_, moduleValues, mergeStrategy_);
 	}

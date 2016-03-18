@@ -55,6 +55,7 @@ namespace fig
 Traial::Traial(const size_t& stateSize, const size_t& numClocks) :
     level(static_cast<ImportanceValue>(0u)),
     depth(0),
+	numLevelsCrossed(0),
 	lifeTime(0.0),
 	state(stateSize),
 	orderedIndex_(numClocks)
@@ -73,6 +74,7 @@ Traial::Traial(const size_t& stateSize,
 			   bool orderTimeouts) :
     level(static_cast<ImportanceValue>(0u)),
     depth(0),
+	numLevelsCrossed(0),
 	lifeTime(0.0),
 	state(stateSize),
 	orderedIndex_(numClocks)
@@ -103,6 +105,7 @@ Traial::Traial(const size_t& stateSize,
 			   bool orderTimeouts) :
     level(static_cast<ImportanceValue>(0u)),
 	depth(0),
+	numLevelsCrossed(0),
 	lifeTime(static_cast<CLOCK_INTERNAL_TYPE>(0.0)),
 	state(stateSize),
 	orderedIndex_(numClocks)
@@ -179,6 +182,7 @@ Traial::initialize(const ModuleNetwork& network,
 	level = impFun.ready() ? impFun.level_of(state)
 						   : impFun.importance_of(state);
 	depth = 0;
+	numLevelsCrossed = 0;
 	lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
 }
 

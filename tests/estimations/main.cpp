@@ -200,18 +200,21 @@ void build_model(const char* modelFilePath, const char* propsFilePath)
 
     // Parse the file with the model description
     parser.parse(&ss);
-    ss.clear();
-    ss << precompiler.pre_compile(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
+	ss = std::stringstream();
+	ss << precompiler.pre_compile(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
     parser.parse(&ss);
     verifier.verify(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
 
     // Parse the file with the properties to check
     std::ifstream pfin(propsFilePath, ios::binary);
-    ss.clear();
-    ss << pfin.rdbuf();
-    parser.parseProperties(&ss);
+	ss = std::stringstream();
+	ss << pfin.rdbuf();
+	parser.parseProperties(&ss);
+	ss = std::stringstream();
+	ss << precompiler.pre_compile_props();
+	parser.parseProperties(&ss);
 
-    // Compile everything into simulation model
+	// Compile into simulation model
 	fig::CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
 }
 
