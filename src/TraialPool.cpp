@@ -288,6 +288,18 @@ template void TraialPool::return_traials(std::list< Reference<Traial> >&);
 template void TraialPool::return_traials(std::deque< Reference<Traial> >&);
 template void TraialPool::return_traials(std::vector< Reference<Traial> >&);
 
+// TraialPool::return_traials() specialization for STL std::stack<>, up to 2x faster
+template <>
+void
+TraialPool::return_traials(std::stack< Reference< Traial > >& stack)
+{
+	const size_t numTraials(stack.size());
+	for (size_t i = 0ul ; i < numTraials ; i++) {
+		available_traials_.push_front(stack.top());
+		stack.pop();
+	}
+}
+
 // TraialPool::return_traials() specialization for STL std::forward_list<>, up to 2x faster
 template <>
 void

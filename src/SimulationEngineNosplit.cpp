@@ -92,11 +92,13 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
 
 double
 SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
-										 const size_t& runLength) const
+										 const size_t& runLength,
+										 bool reinit) const
 {
 	assert(0ul < runLength);
 	double accTime(0.0);
-	Traial& traial = TraialPool::get_instance().get_traial();
+//	static thread_local Traial& traial(TraialPool::get_instance().get_traial());
+	static Traial& traial(TraialPool::get_instance().get_traial());
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
@@ -113,26 +115,30 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 	}
 
 	// Run a single standard Monte Carlo simulation for "runLength"
-	// simulation time units and starting from the system's initial state
-	traial.initialize(*network_, *impFun_);
+	// simulation time units and starting from the last saved state,
+	// or from the system's initial state if requested.
+	if (reinit || traial.lifeTime == static_cast<CLOCK_INTERNAL_TYPE>(0.0))
+		traial.initialize(*network_, *impFun_);
+	else
+		traial.lifeTime = 0.0;
 	do {
 		Event e = network_->simulation_step(traial, property, *this, watch_events);
 		if (!IS_RARE_EVENT(e))
 			break;  // reached EOS
-		const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // hack to improve fp precision
+		const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // reduce fp prec. loss
 		traial.lifeTime = 0.0;
 		network_->simulation_step(traial, property, *this, register_time);
 		accTime += traial.lifeTime;
 		traial.lifeTime += simLength;
 	} while (traial.lifeTime < simsLifetime && !interrupted);
-	TraialPool::get_instance().return_traial(std::move(traial));
+	assert(traial.lifeTime != 0.0);  // allow next iteration of batch means
 
 	// Return estimate or its negative value
 	assert(0.0 <= accTime);
 	if (MIN_ACC_RARE_TIME > accTime)
-		return -accTime / simsLifetime;
+		return -accTime / static_cast<double>(runLength);
 	else
-		return  accTime / simsLifetime;
+		return  accTime / static_cast<double>(runLength);
 }
 
 } // namespace fig

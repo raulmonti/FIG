@@ -28,9 +28,9 @@
 
 
 // C++
+#include <limits>     // std::numeric_limits<>
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // find_if_not()
-#include <numeric>    // std::numeric_limits<>
 #include <unordered_map>
 #include <tuple>
 // FIG
@@ -480,7 +480,7 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		minRareValue_ = importance;
 	} else if (globalStateCopy.concrete_size() < (1ul<<20ul)) {
 		// We can afford a full-state-space scan
-		find_extreme_values(globalStateCopy, property);
+		find_extreme_values(globalStateCopy, prop);
 	} else {
 		// Concrete state space is too big, resort to faster ways
 		std::tie(minValue_, maxValue_, minRareValue_) =

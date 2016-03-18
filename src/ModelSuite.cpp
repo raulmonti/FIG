@@ -206,7 +206,7 @@ min_run_length(const std::string& engineName, const std::string& ifunName)
 //	FIXME: following compiles with Clang but not with gcc -- keep checking
 //	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
 	static const size_t run_lengths[2][3] = {
-		{ 1ul<<20, 1ul<<21, 1ul<<21 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<16, 1ul<<17, 1ul<<17 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
 		{ 1ul<<15, 1ul<<15, 1ul<<15 }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
@@ -1131,9 +1131,13 @@ ModelSuite::estimate(const Property& property,
 									   engine.current_imp_fun());
 			double startTime = omp_get_wtime();
 
+			bool reinit(true);  // start from system's initial state
             engine.lock();
 			do {
-				bool increaseBatch = engine.simulate(property, effort, *ci_ptr);
+				bool increaseBatch = engine.simulate(property,
+													 effort,
+													 *ci_ptr,
+													 reinit);
 				if (increaseBatch) {
 					techLog_ << "-";
 					increase_effort(property.type,
@@ -1143,6 +1147,7 @@ ModelSuite::estimate(const Property& property,
 				} else {
 					techLog_ << "+";
 				}
+				reinit = false;  // use batch means if possible
             } while (!ci_ptr->is_valid());
             engine.unlock();
 

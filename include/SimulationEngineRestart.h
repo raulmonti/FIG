@@ -109,7 +109,8 @@ protected:  // Simulation helper functions
 								 const size_t& numRuns) const override;
 
 	double rate_simulation(const PropertyRate& property,
-						   const size_t& runLength) const override;
+						   const size_t& runLength,
+						   bool reinit = false) const override;
 
 public:  // Traial observers/updaters
 
@@ -189,7 +190,11 @@ public:  // Traial observers/updaters
 				e = EventType::RARE;
 			}
 			traial.level = newThrLvl;
-			return traial.lifeTime > simsLifetime || EventType::NONE != e;
+			if (traial.lifeTime > SIM_TIME_CHUNK) {  // reduce fp precision loss
+				traial.lifeTime -= SIM_TIME_CHUNK;
+				simsLifetime -= SIM_TIME_CHUNK;
+			}
+			return interrupted || traial.lifeTime > simsLifetime || EventType::NONE != e;
 		}
 
 	/// @copydoc SimulationEngine::transient_event()
@@ -213,8 +218,12 @@ public:  // Traial observers/updaters
 				traial.depth -= traial.numLevelsCrossed;
 			}
 			traial.level = newThrLvl;
+			if (traial.lifeTime > SIM_TIME_CHUNK) {  // reduce fp precision loss
+				traial.lifeTime -= SIM_TIME_CHUNK;
+				simsLifetime -= SIM_TIME_CHUNK;
+			}
 			// rare event info is already marked inside 'e'
-			return traial.lifeTime > simsLifetime || EventType::NONE != e;
+			return interrupted || traial.lifeTime > simsLifetime || EventType::NONE != e;
 		}
 
 	/// Turn off splitting and simulate (accumulating time) as long as we are

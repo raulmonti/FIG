@@ -168,7 +168,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 
 			} else if (IS_THR_UP_EVENT(e)) {
 				// Could have gone up several thresholds => split accordingly
-				assert(traial.depth < 0);
+				assert(traial.numLevelsCrossed > 0);
 				for (ImportanceValue i = static_cast<ImportanceValue>(1u)
 					; i <= static_cast<ImportanceValue>(traial.numLevelsCrossed)
 					; i++)
@@ -185,6 +185,8 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			// RARE events are checked first thing in next iteration
 		}
 	}
+	// Return any Traial still on the loose
+	tpool.return_traials(stack);
 
 	// To estimate, weigh each count by the relative importance of the
 	// threshold level it belongs to. We do that here in an "upscale fashion",
@@ -204,13 +206,16 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 
 double
 SimulationEngineRestart::rate_simulation(const PropertyRate& property,
-										 const size_t& runLength) const
+										 const size_t& runLength,
+										 bool reinit) const
 {
 	assert(0u < runLength);
 	unsigned numThresholds(impFun_->num_thresholds());
-	std::valarray<CLOCK_INTERNAL_TYPE> raresCount(0.0, numThresholds+1);
+	std::valarray< CLOCK_INTERNAL_TYPE > raresCount(0.0, numThresholds+1);
 	std::stack< Reference< Traial > > stack;
 	auto tpool = TraialPool::get_instance();
+	static Traial& originalTraial(tpool.get_traial());
+//	static thread_local Traial& originalTraial(tpool.get_traial());
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
@@ -227,9 +232,13 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	}
 
 	// Run a single RESTART importance-splitting simulation for "runLength"
-	// simulation time units and starting from the system's initial state
-	tpool.get_traials(stack, 1u);
-	stack.top().get().initialize(*network_, *impFun_);
+	// simulation time units and starting from the last saved state,
+	// or from the system's initial state if requested.
+	if (reinit || originalTraial.lifeTime == static_cast<CLOCK_INTERNAL_TYPE>(0.0))
+		originalTraial.initialize(*network_, *impFun_);
+	else
+		originalTraial.lifeTime = 0.0;
+	stack.emplace(originalTraial);
 	while (!stack.empty() && !interrupted) {
 		Event e(EventType::NONE);
 		Traial& traial = stack.top();
@@ -238,7 +247,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		(this->*watch_events)(property, traial, e);
 		if (IS_RARE_EVENT(e)) {
 			// We are? Then register rare time
-			const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // hack to improve fp precision
+			const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // reduce fp prec. loss
 			traial.lifeTime = 0.0;
 			network_->simulation_step(traial, property, *this, register_time);
 			raresCount[traial.level] += traial.lifeTime;
@@ -252,12 +261,13 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		// Checking order of the following events is relevant!
 		if (traial.lifeTime >= simsLifetime || IS_THR_DOWN_EVENT(e)) {
 			// Traial reached EOS or went down => kill it
-			tpool.return_traial(std::move(traial));
+			if (&traial != &originalTraial)  // avoid future aliasing!
+				tpool.return_traial(std::move(traial));
 			stack.pop();
 
 		} else if (IS_THR_UP_EVENT(e)) {
 			// Could have gone up several thresholds => split accordingly
-			assert(traial.depth < 0);
+			assert(traial.numLevelsCrossed > 0);
 			for (ImportanceValue i = static_cast<ImportanceValue>(1u)
 				; i <= static_cast<ImportanceValue>(traial.numLevelsCrossed)
 				; i++)
@@ -273,17 +283,27 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		}
 		// RARE events are checked first thing in next iteration
 	}
+	assert(originalTraial.lifeTime != 0.0);  // allow next iteration of batch means
+	// Return any Traial still on the loose
+	const size_t numLooseTraials(stack.size());
+	for (size_t i = 0ul ; i < numLooseTraials ; i++) {
+		Traial& traial = stack.top();
+		if (&traial != &originalTraial) {  // avoid future aliasing!
+			tpool.return_traial(std::move(traial));
+			stack.pop();
+		}
+	}
 
 	// To estimate, weigh counts by the relative importance of their thresholds
-	double estimate(0.0);
+	double accTime(0.0);
 	for (unsigned i = 0u ; i <= numThresholds ; i++)
-		estimate += (raresCount[i] / simsLifetime) / pow(splitsPerThreshold_, i);
+		accTime += raresCount[i] / pow(splitsPerThreshold_, i);
 	// Return estimate or its negative value
-	assert(0.0 <= estimate);
+	assert(0.0 <= accTime);
 	if (MIN_ACC_RARE_TIME > raresCount.sum())
-		return -estimate;
+		return -accTime / static_cast<double>(runLength);
 	else
-		return  estimate;
+		return  accTime / static_cast<double>(runLength);
 }
 
 } // namespace fig
