@@ -267,7 +267,7 @@ ModuleNetwork::peak_simulation(Traial& traial,
 #ifndef NDEBUG
 		throw_FigException("ModuleNetwork hasn't been sealed yet");
 #else
-		return;
+		return static_cast<ImportanceValue>(0u);
 #endif
 
 	ImportanceValue maxImportance(UNMASK(traial.level));

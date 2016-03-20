@@ -353,21 +353,27 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 	ImportanceValue maxI = std::numeric_limits<ImportanceValue>::min();
 	ImportanceValue minrI = std::numeric_limits<ImportanceValue>::max();
 
-	#pragma omp parallel for default(shared) private(state) reduction(min:minI,minrI)
-	for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
+#ifdef NDEBUG
+    #pragma omp parallel for default(shared) private(state) reduction(min:minI,minrI)
+#endif
+    for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
 		const StateInstance symbState = state.decode(i).to_state_instance();
 		const ImportanceValue importance = importance_of(symbState);
 		minI = importance < minI ? importance : minI;
-		if (property.is_rare(symbState) && importance < minrI)
-			minrI = importance;
+        if (property.is_rare(symbState) && importance < minrI)
+            minrI = importance;
 	}
+    assert(minI <= minrI);
 
-	#pragma omp parallel for default(shared) private(state) reduction(max:maxI)
-	for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
+#ifdef NDEBUG
+    #pragma omp parallel for default(shared) private(state) reduction(max:maxI)
+#endif
+    for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
 		const ImportanceValue importance =
                 importance_of(state.decode(i).to_state_instance());
 		maxI = importance > maxI ? importance : maxI;
-	}
+    }
+    assert(minrI <= maxI);
 
 	minValue_ = minI;
 	maxValue_ = maxI;

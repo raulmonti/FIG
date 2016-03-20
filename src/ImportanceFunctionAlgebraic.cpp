@@ -241,7 +241,7 @@ ImportanceFunctionAlgebraic::set_formula(
 		///            That'd also compute the real minRareValue_ (and fast!)
 		///            Use <a href="http://dlib.net/">dlib</a> maybe?
 	}
-	assert(minValue_ <= minRareValue_);
+    assert(minValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);
 }
 

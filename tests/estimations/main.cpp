@@ -73,7 +73,7 @@ int main(int argc, char** argv)
 	const size_t propertyIndex(0ul);
 
 	//  Estimation goals   // // // // // // // // // // // // // //
-	const fig::StoppingConditions timeSpans(std::set<size_t>({10ul,25ul,60ul}));
+	const fig::StoppingConditions timeSpans(std::set<size_t>({25ul,90ul}));
 	const double confidence(0.80);
 	const double precision(0.4);
 	const fig::StoppingConditions stopCriterion(StopCond({std::make_tuple(
@@ -83,7 +83,7 @@ int main(int argc, char** argv)
 	//  Standard Monte Carlo     // // // // // // // // // // // //
 	const std::string flatIfunName("algebraic");
 	model.build_importance_function_flat(flatIfunName, propertyIndex);
-	model.build_thresholds("ams", flatIfunName);
+	model.build_thresholds("smc", flatIfunName);
 	engine = model.prepare_simulation_engine("nosplit", flatIfunName);
 	model.estimate(propertyIndex, *engine, timeSpans);
 	//model.estimate(propertyIndex, *engine, stopCriterion);
@@ -91,10 +91,10 @@ int main(int argc, char** argv)
 
 	//  RESTART with algebraic ad hoc   // // // // // // // // //
 	const std::string adhocIfunName("algebraic");
-	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "q2", NamesList({"q2"}), true);
-//	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "q3", NamesList({"q3"}), true);
+//	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "q2", NamesList({"q2"}), true);
+	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "q3", NamesList({"q3"}), true);
 //	model.build_importance_function_adhoc(adhocIfunName, propertyIndex, "buf", NamesList({"buf"}), true);
-	model.build_thresholds("ams", adhocIfunName);
+	model.build_thresholds("smc", adhocIfunName);
 	engine = model.prepare_simulation_engine("restart", adhocIfunName);
 	//model.estimate(propertyIndex, *engine, timeSpans);
 	model.estimate(propertyIndex, *engine, stopCriterion);
@@ -103,7 +103,7 @@ int main(int argc, char** argv)
 	//  RESTART with automatic coupled   // // // // // // // // //
 	const std::string cAutoIfunName("concrete_coupled");
 	model.build_importance_function_auto(cAutoIfunName, propertyIndex);
-	model.build_thresholds("ams", cAutoIfunName);
+	model.build_thresholds("smc", cAutoIfunName);
 	engine = model.prepare_simulation_engine("restart", cAutoIfunName);
 	//model.estimate(propertyIndex, *engine, timeSpans);
 	model.estimate(propertyIndex, *engine, stopCriterion);
@@ -112,7 +112,7 @@ int main(int argc, char** argv)
 	//  RESTART with automatic split  // // // // // // // // // //
 	const std::string sAutoIfunName("concrete_split");
 	model.build_importance_function_auto(sAutoIfunName, propertyIndex, "+", true);
-	model.build_thresholds("ams", sAutoIfunName);
+	model.build_thresholds("smc", sAutoIfunName);
 	engine = model.prepare_simulation_engine("restart", sAutoIfunName);
 	//model.estimate(propertyIndex, *engine, timeSpans);
 	model.estimate(propertyIndex, *engine, stopCriterion);

@@ -446,8 +446,6 @@ std::shared_ptr< ModuleNetwork > ModelSuite::model(std::make_shared<ModuleNetwor
 
 std::vector< std::shared_ptr< Property > > ModelSuite::properties;
 
-StoppingConditions ModelSuite::simulationBounds;
-
 unsigned ModelSuite::splitsPerThreshold = 2u;
 
 std::unordered_map< std::string, std::shared_ptr< ImportanceFunction > >
@@ -747,6 +745,38 @@ ModelSuite::log(const std::string& msg)
 }
 
 
+template< template< typename, typename... > class Container,
+          typename ValueType,
+          typename... OtherArgs >
+void
+ModelSuite::build_importance_function(const std::string& ifunName,
+                                      const std::string& ifunStrategy,
+                                      const Property& property,
+                                      const Container<ValueType, OtherArgs>& strategyDetails,
+                                      bool force)
+{
+    if (!exists_importance_function(ifunName))
+        throw_FigException("inexistent importance function \"" + ifunName +
+                           "\". Call \"available_importance_functions()\" "
+                           "for a list of available options.");
+    if (!exists_importance_strategy(ifunStrategy))
+        throw_FigException("inexistent importance assessment strategy \"" +
+                           ifunStrategy + "\". Call \"available_importance_"
+                           "strategies()\" for a list of available options.");
+    if ("flat" == ifunStrategy|| ifunStrategy.empty()) {
+        build_importance_function_flat(ifunName, property, force);
+    } else if ("auto" == ifunStrategy) {
+        const std::string mergeFun = iterpret_merge_fun(strategyDetails);
+        build_importance_function_auto(ifunName, property, mergeFun, force);
+    } else if ("adhoc" == ifunStrategy) {
+        std::string adhocFun;
+        std::vector< std::string > adhocVarnames;
+        std::tie(adhocFun, adhocVarnames) = interpret_adhoc_fun(strategyDetails);
+        build_importance_function_adhoc(ifunName, property, adhocFun, adhocFunVars, force);
+    }
+}
+
+
 void
 ModelSuite::build_importance_function_flat(const std::string& ifunName,
                                            const Property& property,
@@ -799,7 +829,7 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 										   const std::string& mergeFun,
 										   bool force)
 {
-    if (!exists_importance_function(ifunName))
+    if (!exists_importance_mportance_function(ifunName))
 		throw_FigException("inexistent importance function \"" + ifunName +
 						   "\". Call \"available_importance_functions()\" "
 						   "for a list of available options.");
@@ -971,9 +1001,9 @@ ModelSuite::build_thresholds(const std::string& technique,
 				 << ifunName << "\" using technique \"" << technique << "\"\n";
 		if (thrBuilder.adaptive() && lvlUpProb > 0.0)
 			ifun.build_thresholds_adaptively(static_cast<ThresholdsBuilderAdaptive&>(thrBuilder),
-											 2u/*splitsPerThreshold*/, lvlUpProb, simsPerIter);
+                                             splitsPerThreshold, lvlUpProb, simsPerIter);
 		else
-			ifun.build_thresholds(thrBuilder, 2u/*splitsPerThreshold?*/);
+            ifun.build_thresholds(thrBuilder, splitsPerThreshold);
 	}
 
     assert(ifun.ready());
