@@ -28,47 +28,64 @@
 //==============================================================================
 
 
+// C++
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <string>
+#include <list>
+// C
 #include <cassert>
+#include <cstring>  // strtod(), strtol()
 #include <sys/stat.h>
-
+// FIG
 #include <fig.h>
+#include <string_utils.h>  // trim()
 
-// using std::make_tuple;
-// typedef std::set< std::string > NamesList;
-// typedef std::set< std::tuple<double,double,bool> > StopCond;
 
 static void print_intro();
-static void check_arguments(const int& argc, const char** argv);
+static bool check_arguments(const int& argc, const char** argv);
 static bool file_exists(const std::string& filepath);
-static void build_model(const char* modelFilePath, const char* propsFilePath);
+static void build_model(const std::string& modelFilePath, const std::string& propsFilePath);
+static fig::StoppingConditions parse_estimation_bounds(const char* confCo, const char* prec);
+static std::set<unsigned> parse_splitting_values(const char* values);
 
 
 
 int main(int argc, char** argv)
 {
 	//  Intro  // // // // // // // // // // // // // // // // // //
-    print_intro();
-	check_arguments(argc, const_cast<const char**>(argv));
+	print_intro();
+	const bool details = check_arguments(argc, const_cast<const char**>(argv));
+	const std::string modelFile(argv[1]);
+	const std::string propertiesFile(argv[2]);
+	const std::string engineName(argv[3]);
+	const std::string impFunName(argv[4]);
+	const std::string impFunStrategy(argv[5]);
+	const std::string impFunDetails(details ? argv[6] : "");
+	const std::string thrTechnique(details ? argv[7] : argv[6]);
+	const fig::StoppingConditions estBound =  // just for now...
+			parse_estimation_bounds(details ? argv[8] : argv[7],
+									details ? argv[9] : argv[8]);
+	auto splittings = parse_splitting_values(argv[argc-1]);  // just for now
+					  // Last invocation parameter should've been a string
+					  // formatted "2 5 18..." specifying the splitting values
 
 	//  Compile model and properties   // // // // // // // // // //
-	build_model(argv[1], argv[2]);
+	build_model(modelFile, propertiesFile);
 	auto model = fig::ModelSuite::get_instance();
 	if (!model.sealed()) {
-		std::cerr << "ERROR: failed to build the model.\n";
+		fig::ModelSuite::log("ERROR: failed to build the model.\n");
 		exit(EXIT_FAILURE);
 	}
-	const size_t propertyIndex(0ul);  // check only first defined property
 
-
-    /** TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO **/
-    /** HERE WE SHOULD SIMULATE AND DO ALL THE STUFF CARLOS KNOWS ABOUT. **/
-
-    std::cerr << "\nWell don't just stare, DO SOMETHING!\n\n";
-
+	//  Estimate using requested configuration  // // // // // // //
+	model.process_batch(engineName,
+						impFunName,
+						std::make_pair(impFunStrategy, impFunDetails),
+						thrTechnique,
+						std::list<fig::StoppingConditions>({estBound}),
+						splittings);
 
 	//  Free memory  // // // // // // // // // // // // // // // //
 	model.release_resources();
@@ -77,93 +94,201 @@ int main(int argc, char** argv)
 }
 
 
+
 // ///////////////////////////////////////////////////////////////////////////
 void print_intro()
 {
-    auto log = fig::ModelSuite::main_log;
-    using std::to_string;
-    log("\n");
-    log(" ~~~~~~~~~ \n");
-    log("  · FIG ·  \n");
-    log(" ~~~~~~~~~ \n");
-    log("           \n");
-    log(" This is the Finite Improbability Generator.\n");
-    log(" Version: "+to_string(fig_VERSION_MAJOR)+"."+to_string(fig_VERSION_MINOR)+"\n");
-    log(" Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n");
-    log("          Monti, Raúl E.   <raulmonti88@gmail.com>\n");
-    log("\n");
-    std::time_t now = std::chrono::system_clock::to_time_t(
-                          std::chrono::system_clock::now());
-    fig::ModelSuite::tech_log("\nFIG tool invoked on ");
-    fig::ModelSuite::tech_log(std::ctime(&now));
-    fig::ModelSuite::tech_log("\n");
+	auto log = fig::ModelSuite::main_log;
+	using std::to_string;
+	log("\n");
+	log(" ~~~~~~~~~ \n");
+	log("  · FIG ·  \n");
+	log(" ~~~~~~~~~ \n");
+	log("           \n");
+	log(" This is the Finite Improbability Generator.\n");
+	log(" Version: "+to_string(fig_VERSION_MAJOR)+"."+to_string(fig_VERSION_MINOR)+"\n");
+	log(" Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n");
+	log("          Monti, Raúl E.   <raulmonti88@gmail.com>\n");
+	log("\n");
+	std::time_t now = std::chrono::system_clock::to_time_t(
+						  std::chrono::system_clock::now());
+	fig::ModelSuite::tech_log("\nFIG tool invoked on ");
+	fig::ModelSuite::tech_log(std::ctime(&now));
+	fig::ModelSuite::tech_log("\n");
 }
+
 
 
 // ///////////////////////////////////////////////////////////////////////////
-void check_arguments(const int& argc, const char** argv)
+bool check_arguments(const int& argc, const char** argv)
 {
-	const std::string help("--help");
-	const std::string usage(std::string("Usage: ").append(argv[0])
-							.append(" <modelFilePath> <propertiesFilePath>\n"));
-	if (argc < 3 && argc > 1 && help == argv[1]) {
-		std::cerr << usage << std::endl;
+	const auto& npos = std::string::npos;
+	auto log = fig::ModelSuite::log;
+	static const std::string help("--help");
+	static const std::string engine("engine");
+	static const std::string ifun("ifun");
+	static const std::string thr("thresholds");
+	static const std::string usage(std::string("Usage: ") + argv[0] +
+								   " <modelFilePath>"
+								   " <propertiesFilePath>"
+								   " <engineName>"
+								   " <impFunName>"
+								   " <impFunStrategy>"
+								   " <thrTechnique>"
+								   " <confidenceCoefficient>" // just for now...
+								   " <relativePrecision>"     // just for now...
+								   " \"<splittingValues>\""
+			"\n\nCall with \"" + help + " <opt>\" for <opt> in {"
+			+ engine + ", " + ifun + ", " + thr + "} "
+			"to see detailed options regarding the simulation engine, "
+			"importance function or thresholds building respectively.\n\n");
+
+	// Show it
+	fig::ModelSuite::tech_log("Invocation command:");
+	for (int i = 0 ; i < argc ; i++)
+		fig::ModelSuite::tech_log(std::string(" ") + argv[i]);
+	fig::ModelSuite::tech_log("\n\n");
+
+	// Check whether the invocation was for a help query
+	if (argc > 1 && std::string(argv[1]).find(help) != npos) {
+		if (argc < 3) {
+			// general usage query
+			log(usage);
+		} else if (std::string(argv[2]).find(engine) != npos) {
+			// simulation engine specification query
+			throw_FigException("TODO: write this help message");
+		} else if (std::string(argv[2]).find(ifun) != npos) {
+			// importance function specification query
+			throw_FigException("TODO: write this help message");
+		} else if (std::string(argv[2]).find(thr) != npos) {
+			// thresholds building specification query
+			throw_FigException("TODO: write this help message");
+		} else {
+			// invalid query
+			log(std::string("invalid help query option \"") + argv[2] + "\"");
+		}
 		exit(EXIT_SUCCESS);
-	} else if (argc < 3) {
-		std::cerr << "ERROR: FIG invoked with too few parameters.\n";
-		std::cerr << usage << std::endl;
+	} else if (argc < 7 + 3 /* ConfInt specification, just fr now */) {
+		log("ERROR: incorrect FIG invocation, too few parameters.\n" + usage);
 		exit(EXIT_FAILURE);
 	}
+
+	// Tell whether there should be an extra parameter with details regarding
+	// the importance function, e.g. a user defined ad hoc function
+	const bool ifunDetails = std::string(argv[4]) == "concrete_split" ||
+							 std::string(argv[5]) == "adhoc";
+	if (ifunDetails && argc != 8 + 2 + 1 /* splitting values */) {
+		if (std::string(argv[4]) == "concrete_split")
+			log("ERROR: incorrect FIG invocation, "
+				"concrete_split importance function requires a "
+				"\"merge function\" passed as extra parameter. "
+				"See --help " + ifun + "\n");
+		else if (std::string(argv[5]) == "adhoc")
+			log("ERROR: incorrect FIG invocation, "
+				"adhoc importance assessment strategy requires an "
+				"\"ad hoc mathematical expression\" passed as extra parameter. "
+				"See --help " + ifun + "\n");
+		else
+			log("ERROR: incorrect FIG invocation.\n" + usage);
+		exit(EXIT_FAILURE);
+	} else if (argc != 7 + 2 + 1 /* splitting values */) {
+		log("ERROR: incorrect FIG invocation.\n" + usage);
+		exit(EXIT_FAILURE);
+	}
+
+	return ifunDetails;
 }
+
 
 
 // ///////////////////////////////////////////////////////////////////////////
 bool file_exists(const std::string& filepath)
 {
-    struct stat buffer;
-    return (stat(filepath.c_str(), &buffer) == 0);
+	struct stat buffer;
+	return (stat(filepath.c_str(), &buffer) == 0);
 }
 
 
+
 // ///////////////////////////////////////////////////////////////////////////
-void build_model(const char* modelFilePath, const char* propsFilePath)
+void build_model(const std::string& modelFilePath, const std::string& propsFilePath)
 {
-    fig::ModelSuite::log(std::string("Model file: ") + modelFilePath);
-    if (!file_exists(modelFilePath)) {
-        fig::ModelSuite::log(" *** Error: file not found! ***\n");
-        exit(EXIT_FAILURE);
-    }
-    fig::ModelSuite::log(std::string("\nProperties: ") + propsFilePath);
-    if (!file_exists(propsFilePath)) {
-        fig::ModelSuite::log(" *** Error: file not found! ***\n");
-        exit(EXIT_FAILURE);
-    }
-    fig::ModelSuite::log("\n");
+	fig::ModelSuite::log("Model file: " + modelFilePath);
+	if (!file_exists(modelFilePath)) {
+		fig::ModelSuite::log(" *** Error: file not found! ***\n");
+		exit(EXIT_FAILURE);
+	}
+	fig::ModelSuite::log("\nProperties file: " + propsFilePath);
+	if (!file_exists(propsFilePath)) {
+		fig::ModelSuite::log(" *** Error: file not found! ***\n");
+		exit(EXIT_FAILURE);
+	}
+	fig::ModelSuite::log("\n");
 
 	Parser parser;
 	Verifier verifier;
 	Precompiler precompiler;
 
-    std::ifstream mfin(modelFilePath, ios::binary);
-    std::stringstream ss;
-    ss << mfin.rdbuf();
+	std::ifstream mfin(modelFilePath, ios::binary);
+	std::stringstream ss;
+	ss << mfin.rdbuf();
 
-    // Parse the file with the model description
-    parser.parse(&ss);
-    ss = std::stringstream();
-    ss << precompiler.pre_compile(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
-    parser.parse(&ss);
-    verifier.verify(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
+	// Parse the file with the model description
+	parser.parse(&ss);
+	ss = std::stringstream();
+	ss << precompiler.pre_compile(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
+	parser.parse(&ss);
+	verifier.verify(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
 
-    // Parse the file with the properties to check
-    std::ifstream pfin(propsFilePath, ios::binary);
-    ss = std::stringstream();
-    ss << pfin.rdbuf();
-    parser.parseProperties(&ss);
-    ss = std::stringstream();
-    ss << precompiler.pre_compile_props();
-    parser.parseProperties(&ss);
+	// Parse the file with the properties to check
+	std::ifstream pfin(propsFilePath, ios::binary);
+	ss = std::stringstream();
+	ss << pfin.rdbuf();
+	parser.parseProperties(&ss);
+	ss = std::stringstream();
+	ss << precompiler.pre_compile_props();
+	parser.parseProperties(&ss);
 
-    // Compile into simulation model
-    fig::CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
+	// Compile into simulation model
+	fig::CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
+}
+
+
+
+// ///////////////////////////////////////////////////////////////////////////
+static fig::StoppingConditions parse_estimation_bounds(const char* confCo,
+													   const char* prec)
+{
+	char* err(nullptr);
+	const double confidenceCoefficient = strtod(confCo, &err);
+	if (nullptr != err && '\0' != err[0])
+		throw_FigException(std::string("bad confidence coefficient specified \"")
+						   + confCo + "\", offending characters: " + err);
+	const double precision = strtod(prec, &err);
+	if (nullptr != err && '\0' != err[0])
+		throw_FigException(std::string("bad precision specified \"")
+						   + prec + "\", offending characters: " + err);
+	std::set<std::tuple<double,double,bool>> stopCond = {
+		std::make_tuple(confidenceCoefficient, precision, true) };
+	return fig::StoppingConditions(stopCond);
+}
+
+
+
+// ///////////////////////////////////////////////////////////////////////////
+static std::set<unsigned> parse_splitting_values(const char *values)
+{
+	std::set<unsigned> splittingValues;  // ordered set, this is intentional
+	std::string splittings(values);
+	char* err(nullptr);
+
+	while (!splittings.empty()) {
+		const long l = std::strtol(splittings.c_str(), &err, 10);
+		splittings = nullptr == err ? "" : trim(err);
+		if (!splittings.empty() && !std::isdigit(splittings.c_str()[0]))
+			throw_FigException("invalid splitting values: " + splittings);
+		splittingValues.emplace(static_cast<unsigned>(l));
+	}
+
+	return splittingValues;
 }

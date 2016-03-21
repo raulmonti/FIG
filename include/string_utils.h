@@ -39,17 +39,18 @@
  * @note Taken from <a href="http://stackoverflow.com/a/3418285">
  *       this SO answer Michael Mrozek</a>.
  */
-void
-replace_substring(std::string& s,
-				  const std::string& from,
-				  const std::string& to);
+void replace_substring(std::string& s,
+					   const std::string& from,
+					   const std::string& to);
 
 /**
  * @brief Remove whitespace from begin and end of string
  * @note Taken from <a href="http://stackoverflow.com/a/17976541">
  *       this SO answer by David G</a>.
  */
-std::string
-trim(const std::string &s);
+std::string trim(const std::string &s);
+
+/// @copydoc trim
+std::string trim(std::string&& s);
 
 #endif // STRING_UTILS_H

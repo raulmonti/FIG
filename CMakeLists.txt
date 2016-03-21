@@ -32,7 +32,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 PROJECT (fig)
 
 SET(fig_VERSION_MAJOR 0)
-SET(fig_VERSION_MINOR 42)
+SET(fig_VERSION_MINOR 43)
 
 
 
@@ -73,8 +73,8 @@ SET(ALL_SOURCES ${ALL_SOURCES} ${MAIN_SOURCE_FILES} CACHE INTERNAL "")
  
 ###  Preprocessor macros  #####################################################
 
-## # High quality C++ pseudo-random generator
-## ADD_DEFINITIONS(-DHQ_RNG)
+# High quality C++ pseudo-random generator
+ADD_DEFINITIONS(-DHQ_RNG)
 
 ## # No-Debug
 ## ADD_DEFINITIONS(-DNDEBUG)

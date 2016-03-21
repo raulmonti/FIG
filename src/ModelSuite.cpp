@@ -497,6 +497,49 @@ std::once_flag ModelSuite::singleInstance_;
 
 // ModelSuite class member functions
 
+// Class utils defined first
+
+template< template< typename... Args > class Container, typename... Args>
+void
+ModelSuite::process_adhocfun_varnames(Container<Args...>& varnames)
+{
+	if (varnames.empty()) {
+		auto allVarnames = model->global_state().varnames();
+		varnames.insert(begin(varnames), begin(allVarnames), end(allVarnames));
+	}
+}
+// ModelSuite::process_adhocfun_varnames generic version can only be invoked
+// with the following containers
+template void ModelSuite::process_adhocfun_varnames(std::list<std::string>&);
+template void ModelSuite::process_adhocfun_varnames(std::deque<std::string>&);
+template void ModelSuite::process_adhocfun_varnames(std::vector<std::string>&);
+// ModelSuite::process_adhocfun_varnames specialization for std::set<>
+template<> void
+ModelSuite::process_adhocfun_varnames(std::set<std::string>& varnames)
+{
+	if (varnames.empty())
+		for (const auto& name: model->global_state().varnames())
+			varnames.emplace(name);
+}
+// ModelSuite::process_adhocfun_varnames specialization for std::forward_list<>
+template<> void
+ModelSuite::process_adhocfun_varnames(std::forward_list<std::string>& varnames)
+{
+	if (varnames.empty())
+		for (const auto& name: model->global_state().varnames())
+			varnames.emplace_front(name);
+}
+// ModelSuite::process_adhocfun_varnames specialization for std::unordered_set<>
+template<> void
+ModelSuite::process_adhocfun_varnames(std::unordered_set<std::string>& varnames)
+{
+	if (varnames.empty()) {
+		auto allVarnames = model->global_state().varnames();
+		varnames.insert(begin(allVarnames), end(allVarnames));
+	}
+}
+
+
 ModelSuite::~ModelSuite() { /* not much to do around here... */ }
 
 
@@ -745,38 +788,6 @@ ModelSuite::log(const std::string& msg)
 }
 
 
-template< template< typename, typename... > class Container,
-          typename ValueType,
-          typename... OtherArgs >
-void
-ModelSuite::build_importance_function(const std::string& ifunName,
-                                      const std::string& ifunStrategy,
-                                      const Property& property,
-                                      const Container<ValueType, OtherArgs>& strategyDetails,
-                                      bool force)
-{
-    if (!exists_importance_function(ifunName))
-        throw_FigException("inexistent importance function \"" + ifunName +
-                           "\". Call \"available_importance_functions()\" "
-                           "for a list of available options.");
-    if (!exists_importance_strategy(ifunStrategy))
-        throw_FigException("inexistent importance assessment strategy \"" +
-                           ifunStrategy + "\". Call \"available_importance_"
-                           "strategies()\" for a list of available options.");
-    if ("flat" == ifunStrategy|| ifunStrategy.empty()) {
-        build_importance_function_flat(ifunName, property, force);
-    } else if ("auto" == ifunStrategy) {
-        const std::string mergeFun = iterpret_merge_fun(strategyDetails);
-        build_importance_function_auto(ifunName, property, mergeFun, force);
-    } else if ("adhoc" == ifunStrategy) {
-        std::string adhocFun;
-        std::vector< std::string > adhocVarnames;
-        std::tie(adhocFun, adhocVarnames) = interpret_adhoc_fun(strategyDetails);
-        build_importance_function_adhoc(ifunName, property, adhocFun, adhocFunVars, force);
-    }
-}
-
-
 void
 ModelSuite::build_importance_function_flat(const std::string& ifunName,
                                            const Property& property,
@@ -829,7 +840,7 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 										   const std::string& mergeFun,
 										   bool force)
 {
-    if (!exists_importance_mportance_function(ifunName))
+	if (!exists_importance_function(ifunName))
 		throw_FigException("inexistent importance function \"" + ifunName +
 						   "\". Call \"available_importance_functions()\" "
 						   "for a list of available options.");
@@ -874,7 +885,7 @@ ModelSuite::build_importance_function_adhoc(
     const std::string& ifunName,
     const Property& property,
     const std::string& formulaExprStr,
-    const Container<std::string, OtherArgs...>& varnames,
+    Container<std::string, OtherArgs...> varnames,
     bool force)
 {
     if (!exists_importance_function(ifunName))
@@ -890,7 +901,8 @@ ModelSuite::build_importance_function_adhoc(
 				 << "\" with \"adhoc\" assessment strategy (\""
 				 << formulaExprStr << "\")\n";
 		ifun.clear();
-        if (ifun.concrete()) {
+		process_adhocfun_varnames(varnames);  // make sure we have some variable names
+		if (ifun.concrete()) {
             std::vector<std::string> varnamesVec(begin(varnames), end(varnames));
             static_cast<ImportanceFunctionConcrete&>(ifun)
                 .assess_importance(property, formulaExprStr, varnamesVec);
@@ -912,22 +924,22 @@ ModelSuite::build_importance_function_adhoc(
 // with the following containers
 template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
-    const std::set<std::string>&, bool);
+    std::set<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
-    const std::list<std::string>&, bool);
+    std::list<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
-    const std::deque<std::string>&, bool);
+    std::deque<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
-    const std::vector<std::string>&, bool);
+    std::vector<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
-    const std::forward_list<std::string>&, bool);
+    std::forward_list<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
-    const std::unordered_set<std::string>&, bool);
+    std::unordered_set<std::string>, bool);
 
 
 template< template< typename... > class Container, typename... OtherArgs >
@@ -936,7 +948,7 @@ ModelSuite::build_importance_function_adhoc(
 	const std::string& ifunName,
 	const size_t& propertyIndex,
 	const std::string& formulaExprStr,
-	const Container<std::string, OtherArgs...>& varnames,
+	Container<std::string, OtherArgs...> varnames,
 	bool force)
 {
 	auto propertyPtr = get_property(propertyIndex);
@@ -953,22 +965,22 @@ ModelSuite::build_importance_function_adhoc(
 // with the following containers
 template void ModelSuite::build_importance_function_adhoc(
 	const std::string&, const size_t&, const std::string&,
-	const std::set<std::string>&, bool);
+	std::set<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
 	const std::string&, const size_t&, const std::string&,
-	const std::list<std::string>&, bool);
+	std::list<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
 	const std::string&, const size_t&, const std::string&,
-	const std::deque<std::string>&, bool);
+	std::deque<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
 	const std::string&, const size_t&, const std::string&,
-	const std::vector<std::string>&, bool);
+	std::vector<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
 	const std::string&, const size_t&, const std::string&,
-	const std::forward_list<std::string>&, bool);
+	std::forward_list<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
 	const std::string&, const size_t&, const std::string&,
-	const std::unordered_set<std::string>&, bool);
+	std::unordered_set<std::string>, bool);
 
 
 void
@@ -1092,7 +1104,6 @@ ModelSuite::estimate(const Property& property,
 						  +"\" isn't ready for simulations");
 	const ImportanceFunction& ifun(*impFuns[engine.current_imp_fun()]);
 
-	/// @todo TODO: implement proper log and discard following shell print
 	mainLog_ << "Estimating " << property.expression << ",\n";
 	mainLog_ << " using simulation engine  \"" << engine.name() << "\"\n";
 	mainLog_ << " with importance function \"" << engine.current_imp_fun() << "\"\n";

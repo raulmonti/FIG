@@ -304,41 +304,6 @@ public:  // Utils
 
 	/**
 	 * @brief Assess importance for the currently loaded user model
-	 *        using the specified importance assessment strategy
-	 *
-	 *        This leaves the ImportanceFunction "ifunName" with internal
-	 *        \ref ImportanceFunction::has_importance_info()
-	 *        "importance information" but not quite
-	 *        \ref ImportanceFunction::ready() "ready for simulations",
-	 *        since the thresholds haven't been built yet.
-	 *
-	 * @param ifunName Any from available_importance_functions()
-	 * @param ifunStrategy Any from available_importance_strategies()
-	 * @param property The Property whose value is to be estimated
-	 * @param strategyDetails Any spec needed by the chosen 'ifunStrategy',
-	 *                        e.g. an ad hoc mathematical expression
-	 * @param force Assess importance again, even if importance info
-	 *              already exists for this importance function and strategy
-	 *
-	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
-	 * @throw FigException if 'ifunName' is invalid or incompatible with 'ifunStrategy'
-	 * @throw FigException if 'strategyDetails' couldn't be interpreted
-	 *
-	 * @see build_thresholds()
-	 */
-	template< template< typename, typename... > class Container = std::vector,
-			  typename ValueType,
-			  typename... OtherArgs >
-	void
-	build_importance_function(const std::string& ifunName,
-							  const std::string& ifunStrategy,
-							  const Property& property,
-							  const Container< ValueType, OtherArgs... >& strategyDetails
-									 = std::vector<const char*>(),
-							  bool force = false);
-
-	/**
-	 * @brief Assess importance for the currently loaded user model
 	 *        using the "flat" strategy
 	 *
 	 *        This leaves the ImportanceFunction "ifunName" with internal
@@ -438,6 +403,7 @@ public:  // Utils
 	 *                     has names not appearing in 'formulaExprStr'
 	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
 	 *
+	 * @note As of version 0.43 'varnames' can be passed empty
 	 * @see build_thresholds()
 	 */
 	template< template< typename... > class Container, typename... OtherArgs >
@@ -445,7 +411,8 @@ public:  // Utils
 	build_importance_function_adhoc(const std::string& ifunName,
 									const Property& property,
 									const std::string& formulaExprStr,
-									const Container<std::string, OtherArgs...>& varnames,
+									Container<std::string, OtherArgs...> varnames
+										= std::vector<std::string>(),
 									bool force = false);
 
 	/// Same as build_importance_function_adhoc() for the property
@@ -457,7 +424,8 @@ public:  // Utils
 	build_importance_function_adhoc(const std::string& ifunName,
 									const size_t& propertyIndex,
 									const std::string& formulaExprStr,
-									const Container<std::string, OtherArgs...>& varnames,
+									Container<std::string, OtherArgs...> varnames
+										= std::vector<std::string>(),
 									bool force = false);
 
 	/**
@@ -579,16 +547,27 @@ public:  // Simulation utils
 				  const StoppingConditions& bounds) const;
 
 	/**
-	 * @brief Estimate the value of the \ref Property "stored properties"
-	 *        with all combinations of importance and simulation strategies.
+	 * @brief Estimate the value of all \ref Property "stored properties"
+	 *        using the specified mechanisms.
 	 *
-	 *        Consider one Property at a time and, for each simulation strategy,
-	 *        importance function and stopping condition requested, estimate
-	 *        the property's value and log the results.
+	 *        Consider one Property at a time and, for each estimation bound
+	 *        requested (and also for each splitting if detailed), estimate
+	 *        the property's value using the specified combination of
+	 *        simulation engine, importance function, importance assessment
+	 *        strategy and thresholds building technique.
+	 *        All outcomes are kept track of in the system's logs.
 	 *
-	 * @param importanceSpecifications String pairs "(name,strategy)" of the
-	 *                                 importance functions to test
-	 * @param simulationStrategies Names of the simulation strategies to test
+	 * @param engineName Any from available_simulators()
+	 * @param impFunName Any from available_importance_functions()
+	 * @param impFunStrategy Its first component can be any from
+	 *                       available_importance_strategies(), its second
+	 *                       component can be empty or give additional details,
+	 *                       e.g. the user ad hoc function expression
+	 * @param thrTechnique Any from available_threshold_techniques()
+	 * @param estimationBounds List of stopping conditions to use for the
+	 *                         estimation of each property (all are used)
+	 * @param splittingValues (<i>optional</i>) List of splittings to test,
+	 *                        relevant for RESTART-like simulation engines only
 	 *
 	 * @note The model must have been \ref seal() "sealed" beforehand
 	 *
@@ -598,15 +577,27 @@ public:  // Simulation utils
 		template< typename, typename... > class Container1,
 			typename ValueType1,
 			typename... OtherArgs1,
-		template< typename, typename... > class Container2,
+		template< typename, typename... > class Container2 = std::vector,
 			typename ValueType2,
 			typename... OtherArgs2
 	>
-	void process_batch(const Container1<ValueType1, OtherArgs1...>& importanceSpecifications,
-					   const Container2<ValueType2, OtherArgs2...>& simulationStrategies);
+	void process_batch(const std::string& engineName,
+					   const std::string& impFunName,
+					   const std::pair<std::string,std::string>& impFunStrategy,
+					   const std::string& thrTechnique,
+					   const Container1<ValueType1, OtherArgs1...>& estimationBounds,
+					   Container2<ValueType2, OtherArgs2...> splittingValues
+						   = std::vector<int>());
 
 	/// @todo TODO design and implement interactive processing
 	void process_interactive();
+	
+private:  // Class utils
+	
+	/// Make sure "varnames" specifies something valid as variable names for
+	/// the construction of a user-defined ad hoc ImportanceFunction expression
+	template< template< typename... > class Container, typename... Args >
+	void process_adhocfun_varnames(Container <Args...>& varnames);
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -616,34 +607,26 @@ public:  // Simulation utils
 // If curious about its presence here take a look at the end of VariableSet.cpp
 
 template<
-	template< typename, typename... > class Container0 = std::vector,
-		typename ValueType0,
-		typename... OtherArgs0,
 	template< typename, typename... > class Container1,
 		typename ValueType1,
 		typename... OtherArgs1,
-	template< typename, typename... > class Container2 = std::vector,
+	template< typename, typename... > class Container2,
 		typename ValueType2,
 		typename... OtherArgs2
 >
 void
 ModelSuite::process_batch(
-	const std::string& impFunName,
-	const std::pair< std::string, Container0<ValueType0, OtherArgs0...> = std::vector<const char*>()
-					>& impFunStrategy,
-	const std::string& thrTechnique,
 	const std::string& engineName,
-	const Container1<ValueType1, OtherArgs1...>& simulationBounds,
-	Container2<ValueType2, OtherArgs2...> splittingValues = std::vector<int>())
+	const std::string& impFunName,
+	const std::pair<std::string,std::string>& impFunStrategy,
+	const std::string& thrTechnique,
+	const Container1<ValueType1, OtherArgs1...>& estimationBounds,
+	Container2<ValueType2, OtherArgs2...> splittingValues)
 {
-	static_assert(std::is_constructible< std::string, ValueType0 >::value,
-				  "ERROR: type mismatch. ModelSuite::process_batch() takes "
-				  "an importance assessment strategy specification as second "
-				  "parameter, which must be entirely composed of string.");
 	static_assert(std::is_constructible< StoppingConditions, ValueType1 >::value,
 				  "ERROR: type mismatch. ModelSuite::process_batch() takes a "
 				  "container with stopping conditions as fifth parameter");
-	static_assert(std::is_assignable< unsigned, ValueType2 >::value,
+	static_assert(std::is_constructible< unsigned, ValueType2 >::value,
 				  "ERROR: type mismatch. ModelSuite::process_batch() takes a "
 				  "container with splitting values as (optional) sixth parameter");
 
@@ -653,18 +636,18 @@ ModelSuite::process_batch(
 		throw_FigException("model hasn't been sealed yet");
 	} else if (!exists_importance_function(impFunName)) {
 		log("Importance function \"" + impFunName + "\" doesn't exist.");
-		throw_FigException("inexistent importance function \"" + ifunName +
+		throw_FigException("inexistent importance function \"" + impFunName +
 						   "\". Call \"available_importance_functions()\" "
 						   "for a list of available options.");
 	} else if (!exists_importance_strategy(impFunStrategy.first)) {
-		log("Importance assessment strategy \"" + impFunStrategy +
+		log("Importance assessment strategy \"" + impFunStrategy.first +
 			"\" doesn't exist.");
 		throw_FigException("inexistent importance assessment strategy\"" +
-						   impFunStrategy + "\". Call \"available_importance_"
+						   impFunStrategy.first + "\". Call \"available_importance_"
 						   "strategies()\" for a list of available options.");
-	} else if (!exists_threshold_technique(technique)) {
+	} else if (!exists_threshold_technique(thrTechnique)) {
 		log("Thresholds building technique \"" + thrTechnique + "\" doesn't exist.");
-		throw_FigException("inexistent threshold building technique \"" + technique +
+		throw_FigException("inexistent threshold building technique \"" + thrTechnique +
 						   "\". Call \"available_threshold_techniques()\" "
 						   "for a list of available options.");
 	} else if (!exists_simulator(engineName)) {
@@ -678,11 +661,15 @@ ModelSuite::process_batch(
 	for (const auto property: properties) {
 
 		// ... build the importance function ...
-		build_importance_function(impFunName,
-								  impFunStrategy.first,
-								  *property,
-								  impFunStrategy.second,
-								  true);
+		if ("flat" == impFunStrategy.first || impFunStrategy.first.empty())
+			build_importance_function_flat(impFunName, *property, true);
+		else if ("auto" == impFunStrategy.first)
+			build_importance_function_auto(impFunName, *property,
+										   impFunStrategy.second, true);
+		else if ("adhoc" == impFunStrategy.first)
+			build_importance_function_adhoc(impFunName, *property,
+											impFunStrategy.second,
+											std::vector<std::string>(), true);
 		assert(impFuns[impFunName]->has_importance_info());
 
 		// ... and for each splitting specified (or default if any) ...
@@ -694,7 +681,8 @@ ModelSuite::process_batch(
 		for (const auto& split: splittings) {
 
 			// ... choose the thresholds ...
-			set_splitting(split);
+			if ("nosplit" != engineName)
+				set_splitting(split);
 			build_thresholds(thrTechnique, impFunName);
 			assert(impFuns[impFunName]->ready());
 
@@ -703,7 +691,8 @@ ModelSuite::process_batch(
 			assert(engine->ready());
 
 			// ... and estimate the property's value for all stopping conditions
-			estimate(*property, *engine, simulationBounds);
+			for (const StoppingConditions& bounds: estimationBounds)
+				estimate(*property, *engine, bounds);
 		}
 	}
 }

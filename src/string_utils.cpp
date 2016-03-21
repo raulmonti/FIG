@@ -64,3 +64,10 @@ trim(const string &s)
 									   string::const_reverse_iterator(wsfront),
 									   is_space).base());
 }
+
+string
+trim(string&& s)
+{
+	const string s2(s);
+	return trim(s);
+}

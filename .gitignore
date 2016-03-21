@@ -15,7 +15,8 @@ FIG*.files
 FIG*.includes
 
 # Build
-bin
+fig
+bin/
 bin_*
 
 # Simulation/Cluster logs

@@ -94,7 +94,8 @@ SimulationEngineRestart::set_splits_per_threshold(unsigned spt)
         throw_FigException("engine \"" + name() + "\" is currently locked "
                            "in \"simulation mode\"");
     if (spt < 2u)
-        throw_FigException("at least one Traial must be created, besides the "
+		throw_FigException("bad splitting value \"" + std::to_string(spt) + "\". "
+						   "At least one Traial must be created, besides the "
 						   "original one, when crossing a threshold upwards");
     splitsPerThreshold_ = spt;
 }
