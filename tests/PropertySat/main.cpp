@@ -13,10 +13,7 @@
 #include <sstream>
 #include <fstream>
 #include <utility> // pair
-#include "Parser.h"
-#include "PreCompiler.h"
-#include "Iosacompliance.h"
-#include "CompileModel.h"
+#include "ParsingModel.h"
 #include "PropertySat.h"
 
 
@@ -107,41 +104,25 @@ int main (int argc, char** argv){
     tout << "Model file: "      << argv[1] << endl;
     tout << "Properties file: " << argv[2] << endl;
 
-    auto parser         = parser::Parser();
-    auto verifier       = parser::Verifier(); 
-    auto precompiler    = parser::Precompiler();
+    auto model = ParsingModel();
 
     ifstream mfin(argv[1],ios::binary);
     stringstream ss;
     ss << mfin.rdbuf();
-
-    parser.parse(&ss);  
-    ss.str("");
-    ss.clear();
-    ss << precompiler.pre_compile(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
-    parser.parse(&ss);
-    verifier.verify(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
+    model.parse_model(&ss);
 
     ifstream pfin(argv[2],ios::binary);    
     ss.str("");
     ss.clear();
     ss << pfin.rdbuf();
-    parser.parseProperties(&ss);
-    ss.str("");
-    ss.clear();
-    cout << ss.str() << endl;
-    ss << precompiler.pre_compile_props();
-    cout << ss.str() << endl;
-    parser.parseProperties(&ss);
+    model.parse_properties(&ss);
 
     /* Compile into simulation model */
-    fig::CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
+    model.compile_model();
 
     /* Sat for properties */
     CheckPropsSat();
     
-
-
     return 0;
 }
 

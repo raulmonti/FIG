@@ -25,11 +25,11 @@ Read main.cpp file for an example.
 # TODO
 #############################################
 
-
-
+TODO    Parseo de experimentos.
+TODO    Avoid making copies of big structures in the parser.
 TODO    Structure ParseResult to save lexemes, ast, and parsCtxt of each
         parsed instance. (BIG BIG change).
-TODO    precompile property file.
+DONE    precompile property file.
 TODO    min and max operators.
 TODO    Check Properties semantics. (for example that the expressions in them
         are boolean).

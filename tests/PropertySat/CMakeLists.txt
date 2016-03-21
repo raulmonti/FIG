@@ -110,7 +110,8 @@ SET(REQUIRED_SOURCES "${SOURCES_DIR}/Ast.cpp"
                      "${SOURCES_DIR}/ThresholdsBuilderAMS.cpp"
                      "${SOURCES_DIR}/ThresholdsBuilderSMC.cpp"
                      "${SOURCES_DIR}/ThresholdsBuilderAdaptive.cpp"
-                     "${SOURCES_DIR}/PropertySat.cpp")
+                     "${SOURCES_DIR}/PropertySat.cpp"
+                     "${SOURCES_DIR}/ParsingModel.cpp")
 SET(ALL_SOURCES ${ALL_SOURCES} ${REQUIRED_SOURCES} CACHE INTERNAL "")
 
 # Register also the source files from this test
