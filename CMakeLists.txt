@@ -148,10 +148,20 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 
 
 
-###  Link flags  ##############################################################
+###  Dynamic libraries specification  #########################################
 
-# Z3
-SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -lz3" )
+# Allow project-local library paths
+SET(CMAKE_LIBRARY_PATH ${PROJECT_SOURCE_DIR}/lib ${CMAKE_LIBRARY_PATH})
+
+# Microsoft renowned SMT solver
+FIND_LIBRARY(Z3 NAMES z3)
+
+# Include all dynamic libraries to link against in a single variable
+LIST(APPEND DYNAMIC_LIBRARIES ${Z3})
+
+
+
+###  Linker flags  ############################################################
 
 # GNU pthreads
 SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pthread" )
@@ -174,4 +184,10 @@ ADD_CUSTOM_COMMAND(
 )
 
 ADD_EXECUTABLE(fig ${ALL_SOURCES} ${LEXER_CC})
+
+
+
+###  Link dynamic libraries  ##################################################
+
+TARGET_LINK_LIBRARIES(fig ${DYNAMIC_LIBRARIES})
 

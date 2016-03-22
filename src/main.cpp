@@ -235,17 +235,17 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
 
 	// Parse the file with the model description
 	parser.parse(&ss);
-	ss = std::stringstream();
+	ss.str("");ss.clear();  // clear ss contents
 	ss << precompiler.pre_compile(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
 	parser.parse(&ss);
 	verifier.verify(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
 
 	// Parse the file with the properties to check
 	std::ifstream pfin(propsFilePath, ios::binary);
-	ss = std::stringstream();
+	ss.str("");ss.clear();  // clear ss contents
 	ss << pfin.rdbuf();
 	parser.parseProperties(&ss);
-	ss = std::stringstream();
+	ss.str("");ss.clear();  // clear ss contents
 	ss << precompiler.pre_compile_props();
 	parser.parseProperties(&ss);
 
