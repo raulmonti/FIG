@@ -34,29 +34,30 @@ private:
 public:
 
     /**
-     * @brief
+     * @brief Ctor
      */
     ParsingModel();
 
     /**
-     * @brief
+     * @brief Dtor
      */
     ~ParsingModel();
 
     /**
-     * @brief
+     * @brief Parse and save the model in @model. Also checks for its
+     * compliance with IOSA.
      */
     void
     parse_model(stringstream *model);
 
     /**
-     * @brief
+     * @brief Parse and save the properties in @props.
      */
     void
-    parse_properties(stringstream *model);
+    parse_properties(stringstream *props);
 
     /**
-     * @brief
+     * @brief Compile the model previously parsed with parse_model method.
      */
     void
     compile_model(void);

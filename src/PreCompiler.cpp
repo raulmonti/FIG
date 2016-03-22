@@ -111,7 +111,9 @@ check_no_const_circular_depend(const vector<AST*> &consts)
 
 
 string
-Precompiler::pre_compile(AST* ast, const parsingContext &pc)
+Precompiler::pre_compile( AST* ast
+                        , const parsingContext &pc
+                        , const vector<string> &lxms)
 {
     string result = "";
 
@@ -122,26 +124,25 @@ Precompiler::pre_compile(AST* ast, const parsingContext &pc)
     solve_constant_defs(consts, pc);
     
     // Replace constants by values and constants definitions by blanks.
-    auto lexemes = Parser::get_lexemes();
-	for(size_t i = 0; i < lexemes.size(); ++i){
-        if(lexemes[i] == "const"){
-            while(lexemes[i] != ";"){
-                if(lexemes[i] != "\n" && lexemes[i] != "\t"){
-					for(size_t j = 0; j < lexemes[i].size(); ++j){
+	for(size_t i = 0; i < lxms.size(); ++i){
+        if(lxms[i] == "const"){
+            while(lxms[i] != ";"){
+                if(lxms[i] != "\n" && lxms[i] != "\t"){
+					for(size_t j = 0; j < lxms[i].size(); ++j){
                         result += " ";
                     }
                 }else{
-                    result += lexemes[i];
+                    result += lxms[i];
                 }
                 i++;
             }
             result += " "; // replaces ';'
         }else{
-            auto it = mConstTable.find(lexemes[i]);
+            auto it = mConstTable.find(lxms[i]);
             if(it != mConstTable.end()){
                 result += it->second;
-            }else if(lexemes[i] != "EOF"){
-                result += lexemes[i];
+            }else if(lxms[i] != "EOF"){
+                result += lxms[i];
             }
         }
     }
@@ -152,23 +153,23 @@ Precompiler::pre_compile(AST* ast, const parsingContext &pc)
 //==============================================================================
 
 string 
-Precompiler::pre_compile_props(void)
+Precompiler::pre_compile_props( const vector<string> &lxms
+                              , const map<string,string> &ctable)
 {
     string result = "";
     
-    auto lexemes = Parser::get_lexemes();
-	for(size_t i = 0; i < lexemes.size(); ++i){
-        if(lexemes[i] == "const"){
+	for(size_t i = 0; i < lxms.size(); ++i){
+        if(lxms[i] == "const"){
             do{
-                result += lexemes[i];
+                result += lxms[i];
                 i++;
-            }while(lexemes[i] != ";");
+            }while(lxms[i] != ";");
         }else{
-            auto it = mConstTable.find(lexemes[i]);
-            if(it != mConstTable.end()){
+            auto it = ctable.find(lxms[i]);
+            if(it != ctable.end()){
                 result += it->second;
-            }else if(lexemes[i] != "EOF"){
-                result += lexemes[i];
+            }else if(lxms[i] != "EOF"){
+                result += lxms[i];
             }
         }
     }
