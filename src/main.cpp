@@ -123,7 +123,8 @@ void print_intro()
 bool check_arguments(const int& argc, const char** argv)
 {
 	const auto& npos = std::string::npos;
-	auto log = fig::ModelSuite::log;
+	auto main_log = fig::ModelSuite::main_log;
+	auto tech_log = fig::ModelSuite::tech_log;
 	static const std::string help("--help");
 	static const std::string engine("engine");
 	static const std::string ifun("ifun");
@@ -137,23 +138,26 @@ bool check_arguments(const int& argc, const char** argv)
 								   " <thrTechnique>"
 								   " <confidenceCoefficient>" // just for now...
 								   " <relativePrecision>"     // just for now...
-								   " \"<splittingValues>\""
-			"\n\nCall with \"" + help + " <opt>\" for <opt> in {"
-			+ engine + ", " + ifun + ", " + thr + "} "
-			"to see detailed options regarding the simulation engine, "
-			"importance function or thresholds building respectively.\n\n");
+								   " \"<splittingValues>\"\n");
+	static const std::string helpUsage("\nCall with \"" + help + " <opt>\" "
+									   "for <opt> in {" + engine + ", " + ifun +
+									   ", " + thr + "} to see detailed options "
+									   "regarding the simulation engine, "
+									   "importance function or thresholds "
+									   "building respectively.\n");
 
-	// Show it
-	fig::ModelSuite::tech_log("Invocation command:");
+	// Show it, show what they did
+	tech_log("Invocation command:");
 	for (int i = 0 ; i < argc ; i++)
-		fig::ModelSuite::tech_log(std::string(" ") + argv[i]);
-	fig::ModelSuite::tech_log("\n\n");
+		tech_log(std::string(" ") + argv[i]);
+	tech_log("\n\n");
 
 	// Check whether the invocation was for a help query
 	if (argc > 1 && std::string(argv[1]).find(help) != npos) {
 		if (argc < 3) {
 			// general usage query
-			log(usage);
+			main_log(usage);
+			main_log(helpUsage);
 		} else if (std::string(argv[2]).find(engine) != npos) {
 			// simulation engine specification query
 			throw_FigException("TODO: write this help message");
@@ -165,11 +169,12 @@ bool check_arguments(const int& argc, const char** argv)
 			throw_FigException("TODO: write this help message");
 		} else {
 			// invalid query
-			log(std::string("invalid help query option \"") + argv[2] + "\"");
+			main_log(std::string("invalid help query option \"") + argv[2] + "\"");
 		}
 		exit(EXIT_SUCCESS);
 	} else if (argc < 7 + 3 /* ConfInt specification, just fr now */) {
-		log("ERROR: incorrect FIG invocation, too few parameters.\n" + usage);
+		main_log("ERROR: incorrect FIG invocation, too few parameters.\n" + usage);
+		tech_log(helpUsage);
 		exit(EXIT_FAILURE);
 	}
 
@@ -179,20 +184,23 @@ bool check_arguments(const int& argc, const char** argv)
 							 std::string(argv[5]) == "adhoc";
 	if (ifunDetails && argc != 8 + 2 + 1 /* splitting values */) {
 		if (std::string(argv[4]) == "concrete_split")
-			log("ERROR: incorrect FIG invocation, "
-				"concrete_split importance function requires a "
-				"\"merge function\" passed as extra parameter. "
-				"See --help " + ifun + "\n");
+			main_log("ERROR: incorrect FIG invocation, "
+					 "concrete_split importance function requires a "
+					 "\"merge function\" passed as extra parameter. "
+					 "See --help " + ifun + "\n");
 		else if (std::string(argv[5]) == "adhoc")
-			log("ERROR: incorrect FIG invocation, "
-				"adhoc importance assessment strategy requires an "
-				"\"ad hoc mathematical expression\" passed as extra parameter. "
-				"See --help " + ifun + "\n");
-		else
-			log("ERROR: incorrect FIG invocation.\n" + usage);
+			main_log("ERROR: incorrect FIG invocation, "
+					 "adhoc importance assessment strategy requires an "
+					 "\"ad hoc mathematical expression\" passed as extra parameter. "
+					 "See --help " + ifun + "\n");
+		else {
+			main_log("ERROR: incorrect FIG invocation.\n" + usage);
+			tech_log(helpUsage);
+		}
 		exit(EXIT_FAILURE);
 	} else if (argc != 7 + 2 + 1 /* splitting values */) {
-		log("ERROR: incorrect FIG invocation.\n" + usage);
+		main_log("ERROR: incorrect FIG invocation.\n" + usage);
+		tech_log(helpUsage);
 		exit(EXIT_FAILURE);
 	}
 

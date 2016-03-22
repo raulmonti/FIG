@@ -1,0 +1,3 @@
+# Ignore all local copies of model and properties files
+*.sa
+*.pp
