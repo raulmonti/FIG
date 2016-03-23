@@ -16,8 +16,10 @@ then
 	return 1
 fi
 
+
 # Check argument is a regular file
-is_file() {
+is_file()
+{
 	if [ ! -f "$1" ]
 	then
 		echo "[ERROR] Couldn't find file \"$1\"" 1>&2
@@ -27,35 +29,75 @@ is_file() {
 	fi
 }
 
-# Build (main) FIG project in specified path
-build_fig() {
+
+# Build main FIG project and link binary into specified (absolute) path
+build_fig()
+{
+	# Check arguments
 	if [ $# -lt 1 ]
 	then
-		echo "[ERROR] Must call with the path where FIG is to be built"
+		echo "[ERROR] Must provide absolute path to link FIG's binary into"
 		return 1
-	fi
-	is_file "${BASE_DIR}/CMakeLists.txt" >/dev/null
-	if [ -d $1 ]; then rm -rf $1; fi
-	CWD=$PWD
-	mkdir $1 && cd $1
-	CC=gcc CXX=g++ cmake $BASE_DIR && make
-	cd $CWD
-	if [ ! -f $1/fig/fig ]
+	elif [ ! -d $1 ]
 	then
-		echo "[ERROR] Couldn't build project."
+		echo "[ERROR] \"$1\" isn't a valid path"
 		return 1
-	else
-		echo "Project successfully built in $1"
+	elif [[ "$1" != /* ]]
+	then
+		echo "[ERROR] An *absolute* path for linking must be given"
+		return 1
 	fi
+	is_file "${BASE_DIR}/CMakeLists.txt"   >/dev/null
+	is_file "${BASE_DIR}/build_project.sh" >/dev/null
+	# Build if need be
+	CWD=$PWD
+	cd $BASE_DIR
+	if [ ! -d bin ]
+	then
+		./build_project.sh main
+	elif [ ! -f bin/fig/fig ]
+	then
+		if [ -d OLD_bin ]; then rm -rf OLD_bin; fi; mv bin OLD_bin
+		./build_project.sh main
+	elif `bin/fig/fig --help &> /dev/null` [ $? -ne 0 ]
+	then
+		rm -rf bin
+		./build_project.sh main
+	fi
+	cd $CWD
+	if [ ! -f $BASE_DIR/bin/fig/fig ]
+	then
+		echo "[ERROR] Couldn't build FIG project."
+		return 1
+	fi
+	# Link where requested
+	if [ -f $1/fig ]; then rm $1/fig; fi
+	ln -s $BASE_DIR/bin/fig/fig $1/fig
 }
 
-# Make a local copy of some SA model file from the FIG project
-copy_model_file() {
+
+# Copy some SA model file from the FIG project into specified (absolute) path
+copy_model_file()
+{
+	# Check arguments
 	if [ $# -lt 1 ]
 	then
-		echo "[ERROR] Must call with the name of the mode file to copy"
+		echo "[ERROR] Must provide the name of the model file to copy"
+		return 1
+	elif [ $# -lt 2 ]
+	then
+		echo "[ERROR] Must provide a path to copy the model into"
+		return 1
+	elif [ ! -d $2 ]
+	then
+		echo "[ERROR] \"$2\" isn't a valid directory"
+		return 1
+	elif [[ "$2" != /* ]]
+	then
+		echo "[ERROR] An *absolute* path to copy the model into must be given"
 		return 1
 	fi
+	# Look for the model file
 	local MODELS_DIR="$BASE_DIR/models"
 	if [ ! -d $MODELS_DIR ]
 	then
@@ -65,10 +107,11 @@ copy_model_file() {
 	then
 		echo "[ERROR] Couldn't find model file \"$1\" in dir \"$MODELS_DIR\""
 		return 1
-	else
-		cp $MODELS_DIR/$1 ./
 	fi
+	# Copy the file into the requested path
+	cp $MODELS_DIR/$1 $2
 }
+
 
 # Poll until less than MAXJOBSN jobs called 'fig' are running
 poll_till_free() {
@@ -86,6 +129,7 @@ poll_till_free() {
 		sleep 10s
 	done
 }
+
 
 return 0
 

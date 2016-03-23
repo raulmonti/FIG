@@ -115,6 +115,9 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ")#-pedantic")
 ## # Debug with gdb
 ## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
+# As much automatic optimization as we can get
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+
 # OpenMP
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp=libgomp")

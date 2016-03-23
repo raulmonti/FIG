@@ -43,17 +43,41 @@ using std::isspace;
 using std::find_if_not;
 
 
-void
+string&
 replace_substring(string& s, const string& from, const string& to)
 {
 	if (from.empty())
-		return;
+		return s;
 	size_t start_pos(0ul);
 	while ((start_pos = s.find(from, start_pos)) != string::npos) {
 		s.replace(start_pos, from.length(), to);
 		start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
 	}
+	return s;
 }
+
+
+std::string replace_substring(std::string &&s, const string& from, const string& to)
+{
+	string ss = replace_substring(s, from, to);
+	return ss;
+}
+
+
+string&
+delete_substring(string& s, const string& substr)
+{
+	return replace_substring(s, substr, "");
+}
+
+
+string
+delete_substring(string&& s, const string& substr)
+{
+	string ss = delete_substring(s, substr);
+	return s;
+}
+
 
 string
 trim(const string &s)
@@ -64,6 +88,7 @@ trim(const string &s)
 									   string::const_reverse_iterator(wsfront),
 									   is_space).base());
 }
+
 
 string
 trim(string&& s)

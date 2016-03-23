@@ -32,16 +32,31 @@
 #include <string>
 
 /**
- * @brief Replace in "str" all occurrences of "from" for "to"
+ * @brief Replace in "s" all occurrences of "from" for "to"
  * @param s    String to have the substitutions made
- * @param from Substring from "str" to search for
+ * @param from Substring from "s" to search for
  * @param to   String for which "from" will be replaced in "str"
+ * @return Resulting string (i.e. 's' after the call)
  * @note Taken from <a href="http://stackoverflow.com/a/3418285">
  *       this SO answer Michael Mrozek</a>.
  */
-void replace_substring(std::string& s,
-					   const std::string& from,
-					   const std::string& to);
+std::string& replace_substring(std::string& s,
+							   const std::string& from,
+							   const std::string& to);
+/// @copydoc replace_substring()
+std::string replace_substring(std::string&& s,
+							  const std::string& from,
+							  const std::string& to);
+
+/**
+ * @brief Delete in "s" all occurrences of "substr"
+ * @param s      String to have the deletions made
+ * @param substr Substring from "s" to search for
+ * @return Resulting string (i.e. 's' after the call)
+ */
+std::string& delete_substring(std::string& s, const std::string& substr);
+/// @copydoc delete_substring()
+std::string delete_substring(std::string&& s, const std::string& substr);
 
 /**
  * @brief Remove whitespace from begin and end of string

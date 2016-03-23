@@ -6,45 +6,66 @@
 #
 
 set -e
-source "../../fig_utils.sh" || \
-	(echo "[ERROR] Couldn't find fig_utils.sh" && exit 1)
+ECHO=`echo "/bin/echo -e"`
+THIS_DIR=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
+
+
+# Probe resources
+source "$THIS_DIR/../../fig_utils.sh" || \
+	($ECHO "[ERROR] Couldn't find fig_utils.sh" && exit 1)
+if [[ "$(type -t build_fig)" != "function" ]]
+then
+	$ECHO "[ERROR] Bash function \"build_fig\" is undefined"
+	exit 1;
+elif [[ "$(type -t copy_model_file)" != "function" ]]
+then
+	$ECHO "[ERROR] Bash function \"copy_model_file\" is undefined"
+	exit 1;
+fi
+
 
 # Build project
-echo "Building FIG"
-BUILD_DIR=`readlink -m ./bin`
-build_fig $BUILD_DIR
-FIG="$BUILD_DIR/fig/fig"
+$ECHO "Building FIG"
+build_fig $THIS_DIR
+if [ ! -f ./fig ]; then $ECHO "[ERROR] Something went wrong"; exit 1; fi
 
-# Prepare testing environment
-echo "Preparing testing environment"
+
+# Prepare experiment's directory and files
+$ECHO "Preparing experiments environment:"
 MODEL_FILE="tandem_queue.sa"
-copy_model_file $MODEL_FILE && \
-	echo "\t· using model file $MODEL_FILE"
+copy_model_file $MODEL_FILE $THIS_DIR && \
+	$ECHO "  · using model file $MODEL_FILE"
 PROPS_FILE="tandem_queue.pp"
-echo 'P( q2 > 0 U lost)' > $PROPS_FILE && \
-	echo "\t· using properties file $PROPS_FILE"
+$ECHO 'P( q2 > 0 U lost )' > $PROPS_FILE && \
+	$ECHO "  · using properties file $PROPS_FILE"
 N=0; RESULTS="results_$N"
 while [ -d $RESULTS ]; do N=`expr $N + 1`; RESULTS="results_$N"; done
 mkdir $RESULTS && unset N && \
-	echo "\t· results will be stored in subdir \"${RESULTS}\""
+	$ECHO "  · results will be stored in subdir \"${RESULTS}\""
+
 
 # Experiments configuration
-echo "Configuring experiments"
+$ECHO "Configuring experiments"
 declare -a QUEUES_CAPACITIES=(8 10 12 14)
 STOP_CRITERION="0.95 0.2"  # Confidence coefficient and relative precision
-SPLITTINGS="2 3 5 9"       # Splitting values to test with the RESTART engine
+SPLITTINGS="2 5 11"        # Splitting values to test with the RESTART engine
 THRESHOLDS="ams"           # Thresholds building technique
-STANDARD_MC="nosplit algebraic flat $THRESHOLDS"
-RESTART_ADHOC="restart algebraic adhoc $THRESHOLDS"
-RESTART_AUTO_COUPLED="restart concrete_coupled auto $THRESHOLDS"
-RESTART_AUTO_SPLIT="restart concrete_split auto $THRESHOLDS"
-EXE=`echo $FIG $MODEL_FILE $PROPS_FILE`
+EXE=`$ECHO "./fig $MODEL_FILE $PROPS_FILE"`
+STANDARD_MC="nosplit algebraic flat"
+RESTART_ADHOC="restart algebraic adhoc \"q2\""
+RESTART_AUTO_COUPLED="restart concrete_coupled auto"
+RESTART_AUTO_SPLIT="restart concrete_split auto \"+\""
+STANDARD_MC+=" $THRESHOLDS $STOP_CRITERION"
+RESTART_ADHOC+=" $THRESHOLDS $STOP_CRITERION"
+RESTART_AUTO_COUPLED+=" $THRESHOLDS $STOP_CRITERION"
+RESTART_AUTO_SPLIT+=" $THRESHOLDS $STOP_CRITERION"
+
 
 # Launch experiments
-echo "Launching experiments:"
+$ECHO "Launching experiments:"
 for c in "${QUEUES_CAPACITIES[@]}"
 do
-	echo -n "\t· for queues capacity = $c..."
+	$ECHO -n "  · for queues capacity = $c..."
 
 	# Modify model file to this experiment's size
 	BLANK="[[:space:]]*"
@@ -55,36 +76,37 @@ do
 
 	# Standard Monte Carlo
 	poll_till_free
-	$EXE $STANDARD_MC $STOP_CRITERION "0" \
-		1>>${LOGout%.out}"_MC.out"        \
-		2>>${LOGerr%.err}"_MC.err"
-
+	$ECHO -n " MC"
+	$EXE $STANDARD_MC "0" 1>>${LOGout%.out}"_MC.out" \
+	                      2>>${LOGerr%.err}"_MC.err" &
 	# RESTART with ad hoc
 	poll_till_free
-	$EXE $RESTART_ADHOC $STOP_CRITERION $SPLITTINGS  \
-		1>>${LOGout%.out}"_AH.out"                   \
-		2>>${LOGerr%.err}"_AH.err"
-
+	$ECHO -n ", AH"
+	$EXE $RESTART_ADHOC "$SPLITTINGS" 1>>${LOGout%.out}"_AH.out" \
+	                                  2>>${LOGerr%.err}"_AH.err" &
 	# RESTART with auto (coupled)
 	poll_till_free
-	$EXE $RESTART_AUTO_COUPLED $STOP_CRITERION $SPLITTINGS  \
-		1>>${LOGout%.out}"_AC.out"                          \
-		2>>${LOGerr%.err}"_AC.err"
-
+	$ECHO -n ", AC"
+	$EXE $RESTART_AUTO_COUPLED "$SPLITTINGS" 1>>${LOGout%.out}"_AC.out" \
+	                                         2>>${LOGerr%.err}"_AC.err" &
 	# RESTART with auto (split)
 	poll_till_free
-	$EXE $RESTART_AUTO_SPLIT $STOP_CRITERION $SPLITTINGS  \
-		1>>${LOGout%.out}"_AS.out"                        \
-		2>>${LOGerr%.err}"_AS.err"
-
-	echo " done"
+	$ECHO -n ", AS"
+	$EXE $RESTART_AUTO_SPLIT "$SPLITTINGS" 1>>${LOGout%.out}"_AS.out"  \
+	                                       2>>${LOGerr%.err}"_AS.err"  &
+	$ECHO "... done"
 done
 
+
 # Wait till termination
-## echo "Waiting for all experiments to finish"
-## RUNNING=`echo "pgrep -u $(whoami) fig"`
-## while [ ! -z "$RUNNING" ]; do sleep 20; done
-## echo "All experiments finished"
+$ECHO "Waiting for all experiments to finish"
+declare -a A=(. :) ; N=0
+RUNNING=`$ECHO "pgrep -u $(whoami) fig"`
+while [ -n "`$RUNNING`" ]; do $ECHO -n ${A[$N]}; N=$((($N+1)%2)); sleep 9; done
+unset A N
+$ECHO
+$ECHO "All experiments finished"
+
 
 exit 0
 

@@ -54,7 +54,7 @@ static std::set<unsigned> parse_splitting_values(const char* values);
 
 int main(int argc, char** argv)
 {
-	//  Intro  // // // // // // // // // // // // // // // // // //
+	//  Intro and arguments parsing // // // // // // // // // // // // //
 	print_intro();
 	const bool details = check_arguments(argc, const_cast<const char**>(argv));
 	const std::string modelFile(argv[1]);
@@ -62,7 +62,7 @@ int main(int argc, char** argv)
 	const std::string engineName(argv[3]);
 	const std::string impFunName(argv[4]);
 	const std::string impFunStrategy(argv[5]);
-	const std::string impFunDetails(details ? argv[6] : "");
+	const std::string impFunDetails(details ? delete_substring(argv[6],"\"") : "");
 	const std::string thrTechnique(details ? argv[7] : argv[6]);
 	const fig::StoppingConditions estBound =  // just for now...
 			parse_estimation_bounds(details ? argv[8] : argv[7],
@@ -71,7 +71,7 @@ int main(int argc, char** argv)
 					  // Last invocation parameter should've been a string
 					  // formatted "2 5 18..." specifying the splitting values
 
-	//  Compile model and properties   // // // // // // // // // //
+	//  Compile model and properties files   // // // // // // // // // //
 	build_model(modelFile, propertiesFile);
 	auto model = fig::ModelSuite::get_instance();
 	if (!model.sealed()) {
@@ -79,7 +79,7 @@ int main(int argc, char** argv)
 		exit(EXIT_FAILURE);
 	}
 
-	//  Estimate using requested configuration  // // // // // // //
+	//  Estimate using requested configuration  // // // // // // // // //
 	model.process_batch(engineName,
 						impFunName,
 						std::make_pair(impFunStrategy, impFunDetails),
@@ -87,7 +87,7 @@ int main(int argc, char** argv)
 						std::list<fig::StoppingConditions>({estBound}),
 						splittings);
 
-	//  Free memory  // // // // // // // // // // // // // // // //
+	//  Free memory  // // // // // // // // // // // // // // // // // //
 	model.release_resources();
 
 	return EXIT_SUCCESS;
@@ -123,6 +123,7 @@ void print_intro()
 bool check_arguments(const int& argc, const char** argv)
 {
 	const auto& npos = std::string::npos;
+	auto log = fig::ModelSuite::log;
 	auto main_log = fig::ModelSuite::main_log;
 	auto tech_log = fig::ModelSuite::tech_log;
 	static const std::string help("--help");
@@ -169,38 +170,41 @@ bool check_arguments(const int& argc, const char** argv)
 			throw_FigException("TODO: write this help message");
 		} else {
 			// invalid query
-			main_log(std::string("invalid help query option \"") + argv[2] + "\"");
+			main_log("ERROR: incorrect FIG invocation.\n");
+			tech_log(std::string("invalid help query option \"") + argv[2] + "\"");
 		}
 		exit(EXIT_SUCCESS);
 	} else if (argc < 7 + 3 /* ConfInt specification, just fr now */) {
-		main_log("ERROR: incorrect FIG invocation, too few parameters.\n" + usage);
-		tech_log(helpUsage);
+		log("ERROR: incorrect FIG invocation, too few parameters.\n");
+		tech_log("\n" + usage + helpUsage);
 		exit(EXIT_FAILURE);
 	}
 
 	// Tell whether there should be an extra parameter with details regarding
 	// the importance function, e.g. a user defined ad hoc function
-	const bool ifunDetails = std::string(argv[4]) == "concrete_split" ||
-							 std::string(argv[5]) == "adhoc";
+	const bool ifunDetails = trim(argv[4]) == "concrete_split" ||
+							 trim(argv[5]) == "adhoc";
 	if (ifunDetails && argc != 8 + 2 + 1 /* splitting values */) {
-		if (std::string(argv[4]) == "concrete_split")
-			main_log("ERROR: incorrect FIG invocation, "
+		if (trim(argv[4]) == "concrete_split") {
+			main_log("ERROR: incorrect detailed FIG invocation.\n");
+			tech_log("ERROR: incorrect detailed FIG invocation, "
 					 "concrete_split importance function requires a "
 					 "\"merge function\" passed as extra parameter. "
-					 "See --help " + ifun + "\n");
-		else if (std::string(argv[5]) == "adhoc")
-			main_log("ERROR: incorrect FIG invocation, "
+					 "See --help " + ifun + "\n\n" + usage);
+		} else if (trim(argv[5]) == "adhoc") {
+			main_log("ERROR: incorrect detailed FIG invocation.\n");
+			tech_log("ERROR: incorrect detailed FIG invocation, "
 					 "adhoc importance assessment strategy requires an "
 					 "\"ad hoc mathematical expression\" passed as extra parameter. "
-					 "See --help " + ifun + "\n");
-		else {
-			main_log("ERROR: incorrect FIG invocation.\n" + usage);
-			tech_log(helpUsage);
+					 "See --help " + ifun + "\n\n" + usage);
+		} else {
+			log("ERROR: incorrect detailed FIG invocation.\n");
+			tech_log("\n" + usage + helpUsage);
 		}
 		exit(EXIT_FAILURE);
-	} else if (argc != 7 + 2 + 1 /* splitting values */) {
-		main_log("ERROR: incorrect FIG invocation.\n" + usage);
-		tech_log(helpUsage);
+	} else if (!ifunDetails && argc != 7 + 2 + 1 /* splitting values */) {
+		log("ERROR: incorrect FIG invocation.\n");
+		tech_log("\n" + usage + helpUsage);
 		exit(EXIT_FAILURE);
 	}
 
@@ -231,7 +235,7 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
 		fig::ModelSuite::log(" *** Error: file not found! ***\n");
 		exit(EXIT_FAILURE);
 	}
-	fig::ModelSuite::log("\n");
+	fig::ModelSuite::log("\n\n");
 
 	Parser parser;
 	Verifier verifier;
@@ -290,11 +294,12 @@ static std::set<unsigned> parse_splitting_values(const char *values)
 	std::string splittings(values);
 	char* err(nullptr);
 
+	replace_substring(splittings, "\"", "");
 	while (!splittings.empty()) {
 		const long l = std::strtol(splittings.c_str(), &err, 10);
 		splittings = nullptr == err ? "" : trim(err);
 		if (!splittings.empty() && !std::isdigit(splittings.c_str()[0]))
-			throw_FigException("invalid splitting values: " + splittings);
+			throw_FigException("invalid splitting values: \"" + splittings + "\"");
 		splittingValues.emplace(static_cast<unsigned>(l));
 	}
 
