@@ -11,7 +11,7 @@ source "../../fig_utils.sh" || \
 
 # Build project
 echo "Building FIG"
-BUILD_DIR=`realpath ./bin`
+BUILD_DIR=`readlink -m ./bin`
 build_fig $BUILD_DIR
 FIG="$BUILD_DIR/fig/fig"
 
@@ -30,32 +30,61 @@ mkdir $RESULTS && unset N && \
 
 # Experiments configuration
 echo "Configuring experiments"
-EXE=`echo $FIG $MODEL_FILE $PROPS_FILE`
-STANDARD_MC="nosplit algebraic flat ams"
-RESTART_ADHOC="restart algebraic adhoc ams"
-RESTART_AUTO_COUPLED="restart concrete_coupled auto ams"
-RESTART_AUTO_SPLIT="restart concrete_split auto ams"
-SPLITTINGS="2 3 5 9"       # Splitting values to test with the RESTART engine
-STOP_CRITERION="0.95 0.2"  # Confidence coefficient and relative precision
 declare -a QUEUES_CAPACITIES=(8 10 12 14)
+STOP_CRITERION="0.95 0.2"  # Confidence coefficient and relative precision
+SPLITTINGS="2 3 5 9"       # Splitting values to test with the RESTART engine
+THRESHOLDS="ams"           # Thresholds building technique
+STANDARD_MC="nosplit algebraic flat $THRESHOLDS"
+RESTART_ADHOC="restart algebraic adhoc $THRESHOLDS"
+RESTART_AUTO_COUPLED="restart concrete_coupled auto $THRESHOLDS"
+RESTART_AUTO_SPLIT="restart concrete_split auto $THRESHOLDS"
+EXE=`echo $FIG $MODEL_FILE $PROPS_FILE`
 
 # Launch experiments
 echo "Launching experiments:"
 for c in "${QUEUES_CAPACITIES[@]}"
 do
 	echo -n "\t· for queues capacity = $c..."
+
+	# Modify model file to this experiment's size
+	BLANK="[[:space:]]*"
+	C_DEF="^const${BLANK}int${BLANK}c${BLANK}=${BLANK}[_-+[:alnum:]]*;"
+	sed -i -e "s/${C_DEF}/const int c = $c;/1" $MODEL_FILE
 	LOGout=${RESULTS}/tandem_queue_c${c}.out
 	LOGerr=${RESULTS}/tandem_queue_c${c}.err
-	# Standard Monte Carlo
-	$EXE $STANDARD_MC $STOP_CRITERION "0" 1>>$LOGout 2>>$LOGerr
-	poll_till_free
 
-	# TODO launch all the other experiments
+	# Standard Monte Carlo
+	poll_till_free
+	$EXE $STANDARD_MC $STOP_CRITERION "0" \
+		1>>${LOGout%.out}"_MC.out"        \
+		2>>${LOGerr%.err}"_MC.err"
+
+	# RESTART with ad hoc
+	poll_till_free
+	$EXE $RESTART_ADHOC $STOP_CRITERION $SPLITTINGS  \
+		1>>${LOGout%.out}"_AH.out"                   \
+		2>>${LOGerr%.err}"_AH.err"
+
+	# RESTART with auto (coupled)
+	poll_till_free
+	$EXE $RESTART_AUTO_COUPLED $STOP_CRITERION $SPLITTINGS  \
+		1>>${LOGout%.out}"_AC.out"                          \
+		2>>${LOGerr%.err}"_AC.err"
+
+	# RESTART with auto (split)
+	poll_till_free
+	$EXE $RESTART_AUTO_SPLIT $STOP_CRITERION $SPLITTINGS  \
+		1>>${LOGout%.out}"_AS.out"                        \
+		2>>${LOGerr%.err}"_AS.err"
 
 	echo " done"
 done
 
-echo "Finished tests"
+# Wait till termination
+## echo "Waiting for all experiments to finish"
+## RUNNING=`echo "pgrep -u $(whoami) fig"`
+## while [ ! -z "$RUNNING" ]; do sleep 20; done
+## echo "All experiments finished"
 
 exit 0
 

@@ -8,6 +8,14 @@
 #
 
 
+# Following assumes this script file is one level deeper than the project base
+BASE_DIR=`readlink -f "$(dirname ${BASH_SOURCE[0]})/.."`
+if [ ! -d $BASE_DIR ]
+then
+	echo "[ERROR] Couldn't find project's base directory"
+	return 1
+fi
+
 # Check argument is a regular file
 is_file() {
 	if [ ! -f "$1" ]
@@ -26,11 +34,12 @@ build_fig() {
 		echo "[ERROR] Must call with the path where FIG is to be built"
 		return 1
 	fi
-	local BASE_DIR=`realpath ..`
-	is_file "${BASE_DIR}/CMakeLists.txt" 1>/dev/null
-	if [ -d $1 ]; then rm -rf $1; fi; mkdir $1
+	is_file "${BASE_DIR}/CMakeLists.txt" >/dev/null
+	if [ -d $1 ]; then rm -rf $1; fi
 	CWD=$PWD
-	cd $1; CC=gcc CXX=g++ cmake $BASE_DIR && make; cd $CWD
+	mkdir $1 && cd $1
+	CC=gcc CXX=g++ cmake $BASE_DIR && make
+	cd $CWD
 	if [ ! -f $1/fig/fig ]
 	then
 		echo "[ERROR] Couldn't build project."
@@ -40,15 +49,19 @@ build_fig() {
 	fi
 }
 
-# Make a local copy of some SA model file
+# Make a local copy of some SA model file from the FIG project
 copy_model_file() {
 	if [ $# -lt 1 ]
 	then
 		echo "[ERROR] Must call with the name of the mode file to copy"
 		return 1
 	fi
-	local MODELS_DIR=`realpath ../models`
-	if [ ! -f $MODELS_DIR/$1 ]
+	local MODELS_DIR="$BASE_DIR/models"
+	if [ ! -d $MODELS_DIR ]
+	then
+		echo "[ERROR] Couldn't find models directory \"$MODELS_DIR\""
+		return 1
+	elif [ ! -f $MODELS_DIR/$1 ]
 	then
 		echo "[ERROR] Couldn't find model file \"$1\" in dir \"$MODELS_DIR\""
 		return 1
@@ -65,10 +78,9 @@ poll_till_free() {
 	else
 		local JOBSBOUND=$MAXJOBSN
 	fi
-	local user=`whoami`
 	# do-while syntax sugar for bash
 	while
-		local RUNNING=`pgrep -u $user fig | wc -l`
+		local RUNNING=`pgrep -u "$(whoami)" fig | wc -l`
 		[ $RUNNING -ge $JOBSBOUND ]
 	do
 		sleep 10s
