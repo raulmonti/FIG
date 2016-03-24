@@ -174,8 +174,8 @@ bool check_arguments(const int& argc, const char** argv)
 			tech_log(std::string("invalid help query option \"") + argv[2] + "\"");
 		}
 		exit(EXIT_SUCCESS);
-	} else if (argc < 7 + 3 /* ConfInt specification, just fr now */) {
-		log("ERROR: incorrect FIG invocation, too few parameters.\n");
+	} else if (argc < 7 + 2 + 1 /* ConfInt specification, just fr now */) {
+		main_log("ERROR: incorrect FIG invocation, too few parameters.\n");
 		tech_log("\n" + usage + helpUsage);
 		exit(EXIT_FAILURE);
 	}

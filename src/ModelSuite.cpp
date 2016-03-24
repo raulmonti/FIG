@@ -375,13 +375,16 @@ increase_effort(const fig::PropertyType& propertyType,
  *          those whose stopping condition was the running time.
  * @param ci ConfidenceInterval with the current estimate to show
  * @param confidenceCoefficients Confidence criteria to build the intervals
+ * @param startTime (<i>optional</i>) Starting time, as returned by
+ *                  omp_get_wtime(), of the last estimation launched
  * @note This should be implemented as a reentrant function,
  *       as it may be called from within signal handlers.
  */
 void
 interrupt_print(const fig::ConfidenceInterval& ci,
 				const std::vector<float>& confidenceCoefficients,
-				std::ostream& out)
+				std::ostream& out,
+				const double& startTime = -1.0)
 {
     /// @todo TODO: implement proper reentrant logging and discard use of streams
     out << std::endl;
@@ -396,6 +399,10 @@ interrupt_print(const fig::ConfidenceInterval& ci,
                                        << ci.upper_limit(confCo) << "]"
             << std::endl;
     }
+	if (startTime > 0.0) {
+		out << std::setprecision(2) << std::fixed;
+		out << "   · Estimation time: " << omp_get_wtime()-startTime << " s\n";
+	}
 //	out << std::defaultfloat;
     out << std::setprecision(6) << std::fixed;
     out << std::endl;
@@ -422,9 +429,9 @@ estimate_print(const fig::ConfidenceInterval& ci,
     out << "   · Confidence interval: [ " << ci.lower_limit() << ", "
                                           << ci.upper_limit() << " ] "
         << std::endl;
-    out << std::setprecision(1) << std::fixed;
-    out << "   · Estimation time: " << time << " seconds" << std::endl;
-//    out << std::defaultfloat;
+	out << std::setprecision(2) << std::fixed;
+	out << "   · Estimation time: " << time << " s\n";
+//	out << std::defaultfloat;
     out << std::setprecision(6) << std::fixed;
     out << std::endl;
 }
@@ -461,6 +468,8 @@ std::ostream& ModelSuite::mainLog_(std::cout);
 
 std::ostream& ModelSuite::techLog_(std::cerr);
 
+double ModelSuite::lastEstimationStartTime_;
+
 const ConfidenceInterval* ModelSuite::interruptCI_ = nullptr;
 
 const std::vector< float > ModelSuite::confCoToShow_ = {0.8, 0.9, 0.95, 0.99};
@@ -472,7 +481,8 @@ SignalSetter ModelSuite::SIGINThandler_(SIGINT, [] (const int signal) {
 		if (nullptr != ModelSuite::interruptCI_)
 			interrupt_print(*ModelSuite::interruptCI_,
 							ModelSuite::confCoToShow_,
-							ModelSuite::mainLog_);
+							ModelSuite::mainLog_,
+							ModelSuite::lastEstimationStartTime_);
 		std::exit((1<<7)+SIGINT);
     }
 );
@@ -484,7 +494,8 @@ SignalSetter ModelSuite::SIGTERMhandler_(SIGTERM, [] (const int signal) {
         if (nullptr != ModelSuite::interruptCI_)
 			interrupt_print(*ModelSuite::interruptCI_,
 							ModelSuite::confCoToShow_,
-							ModelSuite::mainLog_);
+							ModelSuite::mainLog_,
+							ModelSuite::lastEstimationStartTime_);
 		std::exit((1<<7)+SIGTERM);
     }
 );
@@ -805,6 +816,7 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
 		techLog_ << "\nBuilding importance function \"" << ifunName
 				 << "\" with \"flat\" assessment strategy.\n";
         ifun.clear();
+		const double startTime = omp_get_wtime();
 		if (ifun.concrete())
 			static_cast<ImportanceFunctionConcrete&>(ifun)
                 .assess_importance(property, "flat");
@@ -815,7 +827,12 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
                              std::vector<std::string>(),
                              model->global_state(),
 							 property);
-    }
+		techLog_ << "Importance function building time: "
+				 << std::fixed << std::setprecision(2)
+				 << omp_get_wtime()-startTime << " s\n"
+//				 << std::defaultfloat;
+				 << std::setprecision(6);
+	}
 
     assert(ifun.has_importance_info());
     assert("flat" == ifun.strategy());
@@ -855,10 +872,16 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 		techLog_ << "\nBuilding importance function \"" << ifunName
 				 << "\" with \"auto\" assessment strategy.\n";
 		ifun.clear();
+		const double startTime = omp_get_wtime();
 		if (ifunName == "concrete_split")
 			static_cast<ImportanceFunctionConcreteSplit&>(ifun).set_merge_fun(mergeFun);
 		static_cast<ImportanceFunctionConcrete&>(ifun)
 				.assess_importance(property, "auto");
+		techLog_ << "Importance function building time: "
+				 << std::fixed << std::setprecision(2)
+				 << omp_get_wtime()-startTime << " s\n"
+//				 << std::defaultfloat;
+				 << std::setprecision(6);
 	}
 
     assert(ifun.has_importance_info());
@@ -902,6 +925,7 @@ ModelSuite::build_importance_function_adhoc(
 				 << formulaExprStr << "\")\n";
 		ifun.clear();
 		process_adhocfun_varnames(varnames);  // make sure we have some variable names
+		const double startTime = omp_get_wtime();
 		if (ifun.concrete()) {
             std::vector<std::string> varnamesVec(begin(varnames), end(varnames));
             static_cast<ImportanceFunctionConcrete&>(ifun)
@@ -914,6 +938,11 @@ ModelSuite::build_importance_function_adhoc(
                              model->global_state(),
                              property);
         }
+		techLog_ << "Importance function building time: "
+				 << std::fixed << std::setprecision(2)
+				 << omp_get_wtime()-startTime << " s\n"
+//				 << std::defaultfloat;
+				 << std::setprecision(6);
     }
 
     assert(ifun.has_importance_info());
@@ -1011,11 +1040,17 @@ ModelSuite::build_thresholds(const std::string& technique,
 	if (force || ifun.thresholds_technique() != technique) {
 		techLog_ << "\nBuilding thresholds for importance function \""
 				 << ifunName << "\" using technique \"" << technique << "\"\n";
+		const double startTime = omp_get_wtime();
 		if (thrBuilder.adaptive() && lvlUpProb > 0.0)
 			ifun.build_thresholds_adaptively(static_cast<ThresholdsBuilderAdaptive&>(thrBuilder),
                                              splitsPerThreshold, lvlUpProb, simsPerIter);
 		else
             ifun.build_thresholds(thrBuilder, splitsPerThreshold);
+		techLog_ << "Thresholds building time: "
+				 << std::fixed << std::setprecision(2)
+				 << omp_get_wtime()-startTime << " s\n"
+//				 << std::defaultfloat;
+				 << std::setprecision(6);
 	}
 
     assert(ifun.ready());
@@ -1126,13 +1161,15 @@ ModelSuite::estimate(const Property& property,
 			mainLog_ << "   Estimation time: " << wallTimeInSeconds << " s\n";
 			SignalSetter handler(SIGALRM, [&ci_ptr, &timedout] (const int sig){
 				assert(SIGALRM == sig);
-				interrupt_print(*ci_ptr, ModelSuite::confCoToShow_, mainLog_);
+				interrupt_print(*ci_ptr, ModelSuite::confCoToShow_,
+								mainLog_, lastEstimationStartTime_);
 				ci_ptr->reset();
 				timedout = true;
 			});
 			timedout = false;
 			alarm(wallTimeInSeconds);
-            engine.lock();
+			lastEstimationStartTime_ = omp_get_wtime();
+			engine.lock();
 			engine.simulate(property,
 							min_effort(property.type,
 									   engine.name(),
@@ -1173,7 +1210,8 @@ ModelSuite::estimate(const Property& property,
 			double startTime = omp_get_wtime();
 
 			bool reinit(true);  // start from system's initial state
-            engine.lock();
+			lastEstimationStartTime_ = omp_get_wtime();
+			engine.lock();
 			do {
 				bool increaseBatch = engine.simulate(property,
 													 effort,

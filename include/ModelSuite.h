@@ -112,6 +112,9 @@ class ModelSuite
 	/// Technical system log
 	static std::ostream& techLog_;
 
+	/// Starting time (according to omp_get_wtime) of last estimation launched
+	static double lastEstimationStartTime_;
+
 	// Interruptions handling
 
 	/// Signal handler for when we're interrupted (e.g. ^C) mid-estimation
@@ -683,7 +686,7 @@ ModelSuite::process_batch(
 			// ... choose the thresholds ...
 			if ("nosplit" != engineName)
 				set_splitting(split);
-			build_thresholds(thrTechnique, impFunName);
+			build_thresholds(thrTechnique, impFunName, true);
 			assert(impFuns[impFunName]->ready());
 
 			// ... prepare the simulator ...
