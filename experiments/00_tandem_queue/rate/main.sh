@@ -50,7 +50,6 @@ declare -a QUEUES_CAPACITIES=(10 15 20 25)
 STOP_CRITERION="0.90 0.4"  # Confidence coefficient and relative precision
 SPLITTINGS="2 5 11"        # Splitting values to test with the RESTART engine
 THRESHOLDS="smc"           # Thresholds building technique
-EXE=`$ECHO "./fig $MODEL_FILE $PROPS_FILE"`
 STANDARD_MC="nosplit algebraic flat"
 RESTART_ADHOC="restart algebraic adhoc \"q2\""
 RESTART_AUTO_COUPLED="restart concrete_coupled auto"
@@ -68,11 +67,13 @@ do
 	$ECHO -n "  · for queues capacity = $c..."
 
 	# Modify model file to this experiment's size
+	MODEL_FILE_C=${MODEL_FILE%.sa}"_${c}.sa"
 	BLANK="[[:space:]]*"
-	C_DEF="^const${BLANK}int${BLANK}c${BLANK}=${BLANK}[_-+[:alnum:]]*;"
-	sed -i -e "s/${C_DEF}/const int c = $c;/1" $MODEL_FILE
+	C_DEF="^const${BLANK}int${BLANK}c${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
+	sed -e "s/${C_DEF}/const int c = $c;/1" $MODEL_FILE > $MODEL_FILE_C
 	LOGout=${RESULTS}/tandem_queue_c${c}.out
 	LOGerr=${RESULTS}/tandem_queue_c${c}.err
+	EXE=`$ECHO "./fig $MODEL_FILE_C $PROPS_FILE"`
 
 	# Standard Monte Carlo
 	poll_till_free

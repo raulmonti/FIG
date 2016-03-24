@@ -5,7 +5,7 @@
 # License: GPLv3
 #
 
-#set -e
+set -e
 ECHO=`echo "/bin/echo -e"`
 THIS_DIR=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
 
