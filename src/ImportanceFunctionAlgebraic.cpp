@@ -145,8 +145,7 @@ namespace fig
 {
 
 ImportanceFunctionAlgebraic::ImportanceFunctionAlgebraic() :
-	ImportanceFunction("algebraic"),
-	importance2threshold_()
+	ImportanceFunction("algebraic")
 { /* Not much to do around here */ }
 
 
@@ -165,31 +164,6 @@ ImportanceFunctionAlgebraic::importance_of(const StateInstance& state) const
 						   "doesn't hold importance information.");
 #endif
 	return userFun_(state);
-}
-
-
-ImportanceValue
-ImportanceFunctionAlgebraic::level_of(const StateInstance& state) const
-{
-#ifndef NDEBUG
-	if (!ready())
-		throw_FigException("importance function \"" + name() + "\" "
-						   "isn't ready for simulations.");
-#endif
-	return importance2threshold_[userFun_(state)];
-}
-
-
-ImportanceValue
-ImportanceFunctionAlgebraic::level_of(const ImportanceValue& val) const
-{
-#ifndef NDEBUG
-	if (!ready())
-		throw_FigException("importance function \"" + name() + "\" "
-						   "isn't ready for simulations.");
-#endif
-	assert(val < importance2threshold_.size());
-	return importance2threshold_[val];
 }
 
 
@@ -268,59 +242,6 @@ template void ImportanceFunctionAlgebraic::set_formula(
 
 
 void
-ImportanceFunctionAlgebraic::build_thresholds(
-	ThresholdsBuilder& tb,
-	const unsigned& spt)
-{
-	if (!has_importance_info())
-		throw_FigException("importance function \"" + name() + "\" "
-						   "doesn't yet have importance information");
-	std::vector< ImportanceValue >().swap(importance2threshold_);
-	importance2threshold_ = tb.build_thresholds(spt, *this);
-	post_process_thresholds(tb.name);
-}
-
-
-void
-ImportanceFunctionAlgebraic::build_thresholds_adaptively(
-	ThresholdsBuilderAdaptive& atb,
-	const unsigned& spt,
-	const float& p,
-	const unsigned& n)
-{
-	if (!has_importance_info())
-		throw_FigException("importance function \"" + name() + "\" "
-						   "doesn't yet have importance information");
-	std::vector< ImportanceValue >().swap(importance2threshold_);
-	importance2threshold_ = atb.build_thresholds(spt, *this, p, n);
-	post_process_thresholds(atb.name);
-}
-
-
-void
-ImportanceFunctionAlgebraic::post_process_thresholds(const std::string& tbName)
-{
-	// Revise "translator" was properly built
-	assert(!importance2threshold_.empty());
-	assert(importance2threshold_[0] == static_cast<ImportanceValue>(0u));
-	assert(importance2threshold_[0] <= importance2threshold_.back());
-
-	// Update extreme values info
-	// (threshold levels are a non-decreasing function of the importance)
-	minValue_ = importance2threshold_[minValue_];
-	maxValue_ = importance2threshold_[maxValue_];
-	minRareValue_ = importance2threshold_[minRareValue_];
-	assert(minValue_ <= minRareValue_);
-	assert(minRareValue_ <= maxValue_);
-
-	// Set relevant attributes
-	numThresholds_ = importance2threshold_.back();
-	thresholdsTechnique_ = tbName;
-	readyForSims_ = true;
-}
-
-
-void
 ImportanceFunctionAlgebraic::print_out(std::ostream& out,
 									   State<STATE_INTERNAL_TYPE> s) const
 {
@@ -347,14 +268,6 @@ ImportanceFunctionAlgebraic::print_out(std::ostream& out,
 		out.flush();
 	}
     out << std::endl;
-}
-
-
-void
-ImportanceFunctionAlgebraic::clear() noexcept
-{
-	std::vector< ImportanceValue >().swap(importance2threshold_);
-	ImportanceFunction::clear();
 }
 
 } // namespace fig

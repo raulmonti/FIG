@@ -40,14 +40,15 @@ else
 fi
 
 ## Load environment modules
-module load compilers/gcc/4.9
+#module load compilers/gcc/4.9
 #module load smtsolvers/z3
 
 ### Enqueue job
 CWD=$PWD
 cd `dirname $1`
-sbatch -o %j.out -e %j.err -J ${NAME}%j  # allocate resources and configure job
-srun /bin/bash `basename $1`             # launch job
+#sbatch -o %j.out -e %j.err -J ${NAME}%j  # allocate resources and configure job
+#srun /bin/bash `basename $1`             # launch job
+/bin/bash `basename $1`             # launch job
 cd $CWD
 
 exit 0

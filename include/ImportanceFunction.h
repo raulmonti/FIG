@@ -153,6 +153,10 @@ protected:  // Attributes for derived classes
 	/// Number of thresholds built on last call to build_thresholds()
 	unsigned numThresholds_;
 
+	/// Translator from a state's ImportanceValue to the corresponding
+	/// threshold level
+	std::vector< ImportanceValue > importance2threshold_;
+
 	/// Algebraic formula defined by the user.
 	/// Useful both for ad hoc strategy and concrete_split functions
 	Formula userFun_;
@@ -240,8 +244,10 @@ public:  // Accessors
 	const std::string thresholds_technique() const noexcept;
 
 	/// @copydoc numThresholds_
-	/// @throw FigException if this instance isn't \ref ready()
-	///                     "ready for simulations"
+	/// \ifnot NDEBUG
+	///   @throw FigException if this instance isn't \ref ready()
+	///                       "ready for simulations"
+	/// \endif
 	const unsigned& num_thresholds() const;
 
 	/**
@@ -260,26 +266,29 @@ public:  // Accessors
 	 * @note The j-th threshold level is composed of all the states to which
 	 *       the ImportanceFunction assigns an ImportanceValue between the
 	 *       values of threshold 'j' (included) and 'j+1' (excluded)
+	 * @note <b>Complexity:</b> same as importance_of() for the corresponding
+	 *                          derived class
 	 * \ifnot NDEBUG
 	 *   @throw FigException if this instance isn't \ref ready()
 	 *                       "ready for simulations"
 	 * \endif
 	 * @see ThresholdsBuilder::build_thresholds()
 	 */
-	virtual ImportanceValue level_of(const StateInstance& state) const = 0;
+	ImportanceValue level_of(const StateInstance& state) const;
 
 	/**
 	 * Threshold level to which given ImportanceValue belongs.
 	 * @note The j-th threshold level is composed of all the states to which
 	 *       the ImportanceFunction assigns an ImportanceValue between the
 	 *       values of threshold 'j' (included) and 'j+1' (excluded)
+	 * @note <b>Complexity:</b> <i>O(1)</i>
 	 * \ifnot NDEBUG
 	 *   @throw FigException if this instance isn't \ref ready()
 	 *                       "ready for simulations"
 	 * \endif
 	 * @see ThresholdsBuilder::build_thresholds()
 	 */
-	virtual ImportanceValue level_of(const ImportanceValue& val) const = 0;
+	ImportanceValue level_of(const ImportanceValue& val) const;
 
 	/**
 	 * @brief Print formatted internal importance information
@@ -313,8 +322,8 @@ public:  // Utils
 	 * @see ready()
 	 * @see ThresholdsBuilder
 	 */
-	virtual void build_thresholds(ThresholdsBuilder& tb,
-								  const unsigned& spt) = 0;
+	void build_thresholds(ThresholdsBuilder& tb,
+						  const unsigned& spt);
 
 	/**
 	 * @brief Like build_thresholds() but specifically using an adaptive
@@ -329,10 +338,10 @@ public:  // Utils
 	 *
 	 * @see ThresholdsBuilderAdaptive
 	 */
-	virtual void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
-											 const unsigned& spt,
-											 const float& p,
-											 const unsigned& n) = 0;
+	void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
+									 const unsigned& spt,
+									 const float& p,
+									 const unsigned& n);
 
 	/// @brief  Release memory allocated in the heap during importance assessment
 	/// @details This destroys any importance and thresholds info:
@@ -340,6 +349,14 @@ public:  // Utils
 	///          "importance information" any longer and will thus not be
 	///          \ref ready() "ready for simulations" either.
 	virtual void clear() noexcept;
+
+private:  // Class utils
+
+	/// Post-processing once the thresholds have been built
+	/// @param tbName Name of the ThresholdsBuilder used
+	/// @see build_thresholds()
+	/// @see build_thresholds_adaptively()
+	void post_process_thresholds(const std::string& tbName);
 
 protected:  // Utils for derived classes
 

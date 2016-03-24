@@ -250,8 +250,7 @@ ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 		numModules_(model.modules.size()),
 		localValues_(numModules_),
 		localStatesCopies_(numModules_),
-		mergeStrategy_(MergeType::NONE),
-		importance2threshold_()
+		mergeStrategy_(MergeType::NONE)
 {
 	bool initialize(false);  // initialize (non-const) static class members?
 	if (globalVarsIPos.size() == 0ul) {
@@ -499,68 +498,6 @@ ImportanceFunctionConcreteSplit::assess_importance(
 {
 	throw_FigException("TODO: ad hoc assessment and split concrete storage");
 	/// @todo TODO: implement concrete ifun with ad hoc importance assessment
-}
-
-
-void
-ImportanceFunctionConcreteSplit::build_thresholds(
-	ThresholdsBuilder& tb,
-	const unsigned& spt)
-{
-	if (!has_importance_info())
-		throw_FigException("importance function \"" + name() + "\" "
-						   "doesn't yet have importance information");
-	std::vector< ImportanceValue >().swap(importance2threshold_);
-	importance2threshold_ = tb.build_thresholds(spt, *this);
-	post_process_thresholds(tb.name);
-}
-
-
-void
-ImportanceFunctionConcreteSplit::build_thresholds_adaptively(
-	ThresholdsBuilderAdaptive& atb,
-	const unsigned& spt,
-	const float& p,
-	const unsigned& n)
-{
-	if (!has_importance_info())
-		throw_FigException("importance function \"" + name() + "\" "
-						   "doesn't yet have importance information");
-	std::vector< ImportanceValue >().swap(importance2threshold_);
-	importance2threshold_ = atb.build_thresholds(spt, *this, p, n);
-	post_process_thresholds(atb.name);
-}
-
-
-void
-ImportanceFunctionConcreteSplit::post_process_thresholds(const std::string& tbName)
-{
-	// Revise "translator" was properly built
-	assert(!importance2threshold_.empty());
-	assert(importance2threshold_[0] == static_cast<ImportanceValue>(0u));
-	assert(importance2threshold_[0] <= importance2threshold_.back());
-
-	// Update extreme values info
-	// (threshold levels are a non-decreasing function of the importance)
-	minValue_ = importance2threshold_[minValue_];
-	maxValue_ = importance2threshold_[maxValue_];
-	minRareValue_ = importance2threshold_[minRareValue_];
-	assert(minValue_ <= minRareValue_);
-	assert(minRareValue_ <= maxValue_);
-
-	// Set relevant attributes
-	numThresholds_ = importance2threshold_.back();
-	thresholdsTechnique_ = tbName;
-	readyForSims_ = true;
-}
-
-
-
-void
-ImportanceFunctionConcreteSplit::clear() noexcept
-{
-	std::vector< ImportanceValue >().swap(importance2threshold_);
-	ImportanceFunctionConcrete::clear();
 }
 
 } // namespace fig

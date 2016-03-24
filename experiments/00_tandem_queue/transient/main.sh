@@ -39,7 +39,7 @@ PROPS_FILE="tandem_queue.pp"
 $ECHO 'P( q2 > 0 U lost )' > $PROPS_FILE && \
 	$ECHO "  · using properties file $PROPS_FILE"
 N=0; RESULTS="results_$N"
-while [ -d $RESULTS ]; do N=`expr $N + 1`; RESULTS="results_$N"; done
+while [ -d $RESULTS ]; do N=$(($N+1)); RESULTS="results_$N"; done
 mkdir $RESULTS && unset N && \
 	$ECHO "  · results will be stored in subdir \"${RESULTS}\""
 

@@ -81,69 +81,6 @@ ImportanceFunctionConcreteCoupled::assess_importance(
 
 
 void
-ImportanceFunctionConcreteCoupled::build_thresholds(
-	ThresholdsBuilder& tb,
-	const unsigned& spt)
-{
-	if (!has_importance_info())
-		throw_FigException("importance function \"" + name() + "\" "
-						   "doesn't yet have importance information");
-	auto imp2thr = tb.build_thresholds(spt, *this);
-	post_process_thresholds(tb.name, imp2thr);
-	std::vector< ImportanceValue >().swap(imp2thr);
-}
-
-
-void
-ImportanceFunctionConcreteCoupled::build_thresholds_adaptively(
-	ThresholdsBuilderAdaptive& atb,
-	const unsigned& spt,
-	const float& p,
-	const unsigned& n)
-{
-	if (!has_importance_info())
-		throw_FigException("importance function \"" + name() + "\" "
-						   "doesn't yet have importance information");
-	auto imp2thr = atb.build_thresholds(spt, *this, p, n);
-	post_process_thresholds(atb.name, imp2thr);
-	std::vector< ImportanceValue >().swap(imp2thr);
-}
-
-
-void
-ImportanceFunctionConcreteCoupled::post_process_thresholds(
-	const std::string& tbName,
-	std::vector< ImportanceValue >& imp2thr)
-{
-	// Revise "translator" was properly built
-	assert(!imp2thr.empty());
-	assert(imp2thr[0] == static_cast<ImportanceValue>(0u));
-	assert(imp2thr[0] <= imp2thr.back());
-
-	// Replace importance info with the new thresholds info
-	ImportanceVec& impVec = modulesConcreteImportance[importanceInfoIndex_];
-	#pragma omp parallel for default(shared)
-	for (size_t i = 0ul ; i < impVec.size() ; i++) {
-		ImportanceValue imp = impVec[i];
-		impVec[i] = MASK(imp) | imp2thr[UNMASK(imp)];
-	}
-
-	// Update extreme values info
-	// (threshold levels are a non-decreasing function of the importance)
-	minValue_ = imp2thr[minValue_];
-	maxValue_ = imp2thr[maxValue_];
-	minRareValue_ = imp2thr[minRareValue_];
-	assert(minValue_ <= minRareValue_);
-	assert(minRareValue_ <= maxValue_);
-
-	// Set relevant attributes and free resources
-	numThresholds_ = imp2thr.back();
-	thresholdsTechnique_ = tbName;
-	readyForSims_ = true;
-}
-
-
-void
 ImportanceFunctionConcreteCoupled::print_out(std::ostream& out,
                                              State<STATE_INTERNAL_TYPE>) const
 {

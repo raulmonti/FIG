@@ -648,6 +648,7 @@ ModelSuite::set_splitting(const unsigned& spt)
         throw_FigException("ModelSuite hasn't been sealed yet");
     dynamic_cast<SimulationEngineRestart&>(*simulators["restart"])
             .set_splits_per_threshold(spt);
+	splitsPerThreshold = spt;
 }
 
 
@@ -1039,7 +1040,9 @@ ModelSuite::build_thresholds(const std::string& technique,
 
 	if (force || ifun.thresholds_technique() != technique) {
 		techLog_ << "\nBuilding thresholds for importance function \""
-				 << ifunName << "\" using technique \"" << technique << "\"\n";
+				 << ifunName << "\",\nwith splitting = "
+				 << std::to_string(splitsPerThreshold)
+				 << " and using technique \"" << technique << "\"\n";
 		const double startTime = omp_get_wtime();
 		if (thrBuilder.adaptive() && lvlUpProb > 0.0)
 			ifun.build_thresholds_adaptively(static_cast<ThresholdsBuilderAdaptive&>(thrBuilder),
@@ -1178,6 +1181,7 @@ ModelSuite::estimate(const Property& property,
 							techLog_,
 							&increase_effort);
             engine.unlock();
+			techLog_ << std::endl;
 		}
 		interruptCI_ = nullptr;
 
@@ -1231,6 +1235,7 @@ ModelSuite::estimate(const Property& property,
             engine.unlock();
 
 			estimate_print(*ci_ptr, omp_get_wtime()-startTime, mainLog_);
+			techLog_ << std::endl;
 			ci_ptr->reset();
         }
         interruptCI_ = nullptr;

@@ -137,6 +137,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 
 	// AMS initialization
     thresholds_.push_back(traials[0].get().level);  // start from initial state importance
+	assert(thresholds_.back() < impFun.max_value());
 	do {
 		simulate(network, impFun, traials, n_, simEffort);
 		std::sort(begin(traials), end(traials), lesser);
@@ -144,7 +145,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
              && (simEffort *= 2u));
     if (impFun.max_value() <= traials[n_-k_].get().level)
 		ModelSuite::tech_log("\nFirst iteration of AMS reached max importance, "
-							 "rare event doesn't seem so rare.");
+							 "rare event doesn't seem so rare!\n");
     thresholds_.push_back(traials[n_-k_].get().level);
     simEffort = MIN_SIM_EFFORT;
 

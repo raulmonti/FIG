@@ -56,9 +56,6 @@ namespace fig
  */
 class ImportanceFunctionAlgebraic : public ImportanceFunction
 {
-    /// Translator from state ImportanceValue to threshold level
-    std::vector< ImportanceValue > importance2threshold_;
-
 public:  // Ctor/Dtor
 
 	/// Empty ctor
@@ -75,12 +72,6 @@ public:  // Accessors
 	/// @note <b>Complexity:</b> <i>O(size(state))</i> +
 	///                          <i>O(mu::Parser::Eval(state))</i>
 	ImportanceValue importance_of(const StateInstance& state) const override;
-
-	/// @copydoc ImportanceFunction::level_of(const StateInstance&)
-	/// @note <b>Complexity:</b> same as ImportanceFunctionAlgebraic::importance_of()
-	ImportanceValue level_of(const StateInstance& state) const override;
-
-	ImportanceValue level_of(const ImportanceValue& val) const override;
 
 	void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE> s) const override;
 
@@ -110,23 +101,6 @@ public:  // Utils
 					 const Container< std::string, OtherArgs... >& varnames,
 					 const State<STATE_INTERNAL_TYPE>& gState,
 					 const Property& property);
-
-	void build_thresholds(ThresholdsBuilder& tb, const unsigned& spt) override;
-
-	void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
-									 const unsigned& spt,
-									 const float& p,
-									 const unsigned& n) override;
-
-	void clear() noexcept override;
-
-private:  // Class utils
-
-	/// Post-processing once the thresholds have been built
-	/// @param tbName Name of the ThresholdsBuilder used
-	/// @see build_thresholds()
-	/// @see build_thresholds_adaptively()
-	void post_process_thresholds(const std::string& tbName);
 };
 
 } // namespace fig

@@ -98,36 +98,6 @@ public:  // Accessors
 			return UNMASK(info_of(state));
 		}
 
-	/// @copydoc ImportanceFunction::level_of(const StateInstance&)
-	/// @note Attempted inline in a desperate need for speed
-	/// @note <b>Complexity:</b> same as ImportanceFunctionConcreteCoupled::info_of()
-	inline ImportanceValue level_of(const StateInstance &state) const override
-		{
-#       ifndef NDEBUG
-			if (!ready())
-				throw_FigException("importance function \"" + name() + "\" "
-								   + "isn't ready for simulations.");
-#		endif
-			// Internal vector currently holds threshold levels
-			return UNMASK(info_of(state));
-		}
-
-	/// @copydoc ImportanceFunction::level_of(const ImportanceValue&)
-	/// @note Attempted inline in a desperate need for speed
-	/// @note <b>Complexity:</b> <i>O(1)</i>
-	inline ImportanceValue level_of(const ImportanceValue& val) const override
-		{
-#       ifndef NDEBUG
-			if (!ready())
-				throw_FigException("importance function \"" + name() + "\" "
-								   + "isn't ready for simulations.");
-#		endif
-			// Internal vector currently holds threshold levels
-			assert(val >= min_value());
-			assert(val <= max_value());
-			return val;
-		}
-
 	void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE>) const override;
 
 public:  // Utils
@@ -138,22 +108,6 @@ public:  // Utils
 	void assess_importance(const Property& prop,
 						   const std::string& formulaExprStr,
 						   const std::vector<std::string>& varnames) override;
-
-	void build_thresholds(ThresholdsBuilder& tb, const unsigned& spt) override;
-
-	void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
-									 const unsigned& spt,
-									 const float& p,
-									 const unsigned& n) override;
-private:  // Class utils
-
-	/// Post-processing once the thresholds have been chosen
-	/// @param tbName  Name of the ThresholdsBuilder used
-	/// @param imp2thr Translator from ImportanceValue to threshold level
-	/// @see build_thresholds()
-	/// @see build_thresholds_adaptively()
-	void post_process_thresholds(const std::string& tbName,
-								 std::vector< ImportanceValue >& imp2thr);
 };
 
 } // namespace fig

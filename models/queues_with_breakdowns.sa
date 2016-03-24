@@ -1,9 +1,9 @@
 /*
- * Fluid queues with breakdowns for the FIG tool
+ * Queueing system with breakdowns for the FIG tool
  * Budde, Monti, D'Argenio | 2016
  *
  *{-
- * Concept of the queue with breakdowns:
+ * Concept of the queueing system with breakdowns:
  *                        
  * (Source1: on/off) --->||
  *                       ||
