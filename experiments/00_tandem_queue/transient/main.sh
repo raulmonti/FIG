@@ -49,7 +49,7 @@ $ECHO "Configuring experiments"
 declare -a QUEUES_CAPACITIES=(8 10 12 14)
 STOP_CRITERION="0.95 0.2"  # Confidence coefficient and relative precision
 SPLITTINGS="2 5 11"        # Splitting values to test with the RESTART engine
-THRESHOLDS="ams"           # Thresholds building technique
+THRESHOLDS="smc"           # Thresholds building technique
 STANDARD_MC="nosplit algebraic flat"
 RESTART_ADHOC="restart algebraic adhoc \"q2\""
 RESTART_AUTO_COUPLED="restart concrete_coupled auto"

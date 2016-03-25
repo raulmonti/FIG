@@ -4,11 +4,13 @@
 # Date:    23.03.2016
 # License: GPLv3
 #
+#
+#   Don't invoke this script directly,
+#   run through "enqueue_job.sh" instead.
+#
+#
 ### Lines "#SBATCH" configure the job resources
 ### (even though they look like bash comments)
-
-### Job outputs
-#SBATCH 
 
 ### Job queue to use (options: capacity, capability, gpu)
 #SBATCH --partition=capacity
@@ -26,17 +28,10 @@
 #SBATCH --time 2-00:00
 
 ### Check invocation line
-if [ $# -lt 1 ]
+if [ $# -ne 1 ] || [ ! -f $1 ]
 then
-	echo "[ERROR] Must call with one argument: main script to run"
+	echo "[ERROR] Must invoke through \"enqueue_job.sh\""
 	exit 1
-elif [ ! -f $1 ]
-then
-	echo "[ERROR] Script file \"$1\" not found"
-	exit 1
-else
-	NAME=`echo $1 | cut -d'_' -f 1`"_"
-	NAME+=`echo $1 | cut -d'/' -f 2`"_"
 fi
 
 ## Load environment modules
@@ -46,8 +41,7 @@ module load compilers/gcc/4.9
 ### Enqueue job
 CWD=$PWD
 cd `dirname $1`
-sbatch -o %j.out -e %j.err -J ${NAME}%j  # allocate resources and configure job
-srun /bin/bash `basename $1`             # launch job
+srun -o %j.out -e %j.err /bin/bash `basename $1`
 cd $CWD
 
 exit 0
