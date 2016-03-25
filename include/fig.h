@@ -92,6 +92,7 @@
 #include "ImportanceFunctionConcreteCoupled.h"
 // Thresholds builders
 #include "ThresholdsBuilder.h"
+#include "ThresholdsBuilderFixed.h"
 #include "ThresholdsBuilderAdaptive.h"
 #include "ThresholdsBuilderAMS.h"
 #include "ThresholdsBuilderSMC.h"

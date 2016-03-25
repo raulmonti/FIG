@@ -37,12 +37,13 @@
 // FIG
 #include <FigException.h>
 #include <ImportanceFunctionConcrete.h>
-#include <ModuleInstance.h>
-#include <ModuleNetwork.h>
 
 
 namespace fig
 {
+
+class ModuleInstance;
+class ModuleNetwork;
 
 /**
  * @brief ImportanceFunction for the concrete importance assessment

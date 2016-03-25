@@ -60,7 +60,7 @@ public:
 	/// Names of the (derived) thresholds builders offered to the user,
 	/// as he should requested them through the CLI/GUI.
 	/// Defined in ThresholdsBuilder.cpp
-	static const std::array< std::string, 2 > names;
+	static const std::array< std::string, 3 > names;
 
 	/// Thresholds building technique implemented by this instance
 	/// Check ThresholdsBuilder::names for available options.

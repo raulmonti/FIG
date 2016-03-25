@@ -141,14 +141,17 @@ protected:  // Attributes for derived classes
 	/// Last used technique to build the importance thresholds in this function
 	std::string thresholdsTechnique_;
 
-	/// Minimum importance/threshold level currently held
+	/// Minimum importance currently held
 	ImportanceValue minValue_;
 
-	/// Maximum importance/threshold level currently held
+	/// Maximum importance currently held
 	ImportanceValue maxValue_;
 
-	/// Importance/Threshold level of the rare state with lowest value
+	/// Importance of the rare state with lowest value
 	ImportanceValue minRareValue_;
+
+	/// Importance of the system's initial state
+	ImportanceValue initialValue_;
 
 	/// Number of thresholds built on last call to build_thresholds()
 	unsigned numThresholds_;
@@ -232,6 +235,14 @@ public:  // Accessors
 	///       were already built" the value returned will be the lowest
 	///       threshold level containing a rare state.
 	ImportanceValue min_rare_value() const noexcept;
+
+	/// @copydoc initialValue_
+	/// @returns Zero if function doesn't has_importance_info(),
+	///          importance value of the system's initial state otherwise.
+	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
+	///       were already built" the value returned will be the threshold
+	///       level containing the system's initial state.
+	ImportanceValue initial_value() const noexcept;
 
 	/// Whether this instance keeps an internal std::vector<ImportanceValue>,
 	/// i.e. has info for the concrete state space,

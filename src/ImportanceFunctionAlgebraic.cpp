@@ -196,13 +196,12 @@ ImportanceFunctionAlgebraic::set_formula(
 	strategy_ = strategy;
 
 	// Find extreme importance values for this ad hoc function
+	initialValue_ = importance_of(gState.to_state_instance());
 	if ("flat" == strategy) {
 		// Little to find out
-		const ImportanceValue importance =
-				importance_of(gState.to_state_instance());
-		minValue_ = importance;
-		maxValue_ = importance;
-		minRareValue_ = importance;
+		minValue_ = initialValue_;
+		maxValue_ = initialValue_;
+		minRareValue_ = initialValue_;
 	} else if (gState.concrete_size() < (1ul<<20ul)) {
 		// We can afford a full-state-space scan
 		find_extreme_values(gState, property);
@@ -210,12 +209,13 @@ ImportanceFunctionAlgebraic::set_formula(
 		// Concrete state space is too big, resort to faster ways
 		std::tie(minValue_, maxValue_) = ::find_extreme_values(userFun_, gState);
 		// Play it safe and assume minRareValue_ == minValue_
-		minRareValue_ = minValue_;
+		minRareValue_ = std::max(initialValue_, minValue_);
 		/// @todo TODO The general solution is to use ILP on userFun_
 		///            That'd also compute the real minRareValue_ (and fast!)
 		///            Use <a href="http://dlib.net/">dlib</a> maybe?
 	}
-    assert(minValue_ <= minRareValue_);
+	assert(minValue_ <= initialValue_);
+	assert(initialValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);
 }
 

@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  ThresholdsBuilder.cpp
+//  ThresholdsBuilderFixed.h
 //
 //  Copyleft 2016-
 //  Authors:
@@ -26,54 +26,40 @@
 //
 //==============================================================================
 
+#ifndef THRESHOLDSBUILDERFIXED_H
+#define THRESHOLDSBUILDERFIXED_H
 
-// C++
-#include <algorithm>
-#include <iterator>
-// FIG
 #include <ThresholdsBuilder.h>
-#include <FigException.h>
-
-// ADL
-using std::begin;
-using std::end;
+#include <core_typedefs.h>
 
 
 namespace fig
 {
 
-// Static variables initialization
-
-const std::array< std::string, 3 > ThresholdsBuilder::names =
-{{
-	 // Fixed thresholds selection ("1 out of every N importance values")
-	 // See ThresholdsBuilderFixed class
-	 "fix",
-
-	 // Adaptive Multilevel Splitting (Cerou and Guyader '07)
-	 // See ThresholdsBuilderAMS class
-	 "ams",
-
-	 // Sequential Monte Carlo (Cerou, Del Moral, Furon and Guyader '11)
-	 // See ThresholdsBuilderSMC class
-	 "smc"
-}};
-
-
-// ThresholdsBuilder class member functions
-
-ThresholdsBuilder::ThresholdsBuilder(const std::string& thename) :
-	name(thename)
+/**
+ * @brief "Fixed builder" of importance thresholds.
+ *
+ *        In order to choose the thresholds among the \ref ImportanceValue
+ *        "importance values" of the ImportanceFunction provided, this class
+ *        uses a policy which is oblivious of the underlying user model.
+ *        The final resulting number of thresholds built is fully determined
+ *        by the max_value() of the ImportanceFunction and the splitting value
+ *        chosen by the user.
+ */
+class ThresholdsBuilderFixed : public ThresholdsBuilder
 {
-	if (std::find(begin(names), end(names), name) == end(names)) {
-		std::stringstream errMsg;
-		errMsg << "invalid threshold building technique \"" << name << "\". ";
-		errMsg << "Available techniques are";
-		for (const auto& name: names)
-			errMsg << " \"" << name << "\"";
-		errMsg << "\n";
-		throw_FigException(errMsg.str());
-	}
-}
+public:
+
+	/// Ctor
+	ThresholdsBuilderFixed() : ThresholdsBuilder("fix") {}
+
+	inline bool adaptive() const noexcept override final { return false; }
+
+	std::vector< ImportanceValue >
+	build_thresholds(const unsigned& splitsPerThreshold,
+					 const ImportanceFunction& impFun) override final;
+};
 
 } // namespace fig
+
+#endif // THRESHOLDSBUILDERFIXED_H

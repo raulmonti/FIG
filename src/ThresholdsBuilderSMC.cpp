@@ -218,10 +218,6 @@ find_new_threshold(const fig::ModuleNetwork& network,
 namespace fig
 {
 
-ThresholdsBuilderSMC::ThresholdsBuilderSMC() : ThresholdsBuilderAdaptive("smc")
-{ /* Not much to do around here */ }
-
-
 void
 ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 {

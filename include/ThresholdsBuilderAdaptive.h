@@ -40,7 +40,6 @@ namespace fig
 {
 
 class Traial;
-class ImportanceFunction;
 
 /**
  * @brief Asbtract base "adaptive builder" of importance thresholds.

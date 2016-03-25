@@ -367,6 +367,15 @@ ImportanceFunction::min_rare_value() const noexcept
 }
 
 
+ImportanceValue
+ImportanceFunction::initial_value() const noexcept
+{
+	return ready() ? importance2threshold_[initialValue_]
+				   : has_importance_info() ? initialValue_
+										   : static_cast<ImportanceValue>(0u);
+}
+
+
 void
 ImportanceFunction::build_thresholds(
 	ThresholdsBuilder& tb,

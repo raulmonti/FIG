@@ -97,7 +97,16 @@ public:  // Accessors
 	/// @note <b>Complexity:</b> <i>O(size(state)<sup>2</sup>)</i>
 	inline ImportanceValue importance_of(const StateInstance& state) const override
 		{
-			return UNMASK(info_of(state));
+#       ifndef NDEBUG
+			if (!has_importance_info())
+				throw_FigException("importance function \"" + name() + "\" "
+								   "doesn't hold importance information.");
+			globalStateCopy.copy_from_state_instance(state, true);
+#       else
+			globalStateCopy.copy_from_state_instance(state, false);
+#       endif
+			return UNMASK(modulesConcreteImportance[importanceInfoIndex_]
+												   [globalStateCopy.encode()]);
 		}
 
 	void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE>) const override;

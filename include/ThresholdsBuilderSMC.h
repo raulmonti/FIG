@@ -60,7 +60,7 @@ class ThresholdsBuilderSMC : public ThresholdsBuilderAdaptive
 public:
 
 	/// Void ctor
-	ThresholdsBuilderSMC();
+	ThresholdsBuilderSMC() : ThresholdsBuilderAdaptive("smc") {}
 
 private:  // Class internal helper functions
 

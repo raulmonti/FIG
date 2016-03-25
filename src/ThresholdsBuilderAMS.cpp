@@ -105,10 +105,6 @@ simulate(const fig::ModuleNetwork& network,
 namespace fig
 {
 
-ThresholdsBuilderAMS::ThresholdsBuilderAMS() : ThresholdsBuilderAdaptive("ams")
-{ /* Not much to do around here */ }
-
-
 void
 ThresholdsBuilderAMS::build_thresholds_vector(
 	const ImportanceFunction& impFun)

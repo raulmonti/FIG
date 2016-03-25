@@ -62,10 +62,12 @@ ImportanceFunctionConcreteCoupled::assess_importance(
                                                   prop,
                                                   strategy,
                                                   importanceInfoIndex_);
-	assert(minValue_ <= minRareValue_);
-	assert(minRareValue_ <= maxValue_);
 	hasImportanceInfo_ = true;
 	strategy_ = strategy;
+	initialValue_ = importance_of(model_.initial_state().to_state_instance());
+	assert(minValue_ <= initialValue_);
+	assert(initialValue_ <= minRareValue_);
+	assert(minRareValue_ <= maxValue_);
 }
 
 

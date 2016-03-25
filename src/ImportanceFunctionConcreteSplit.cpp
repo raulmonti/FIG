@@ -37,6 +37,8 @@
 #include <ImportanceFunctionConcreteSplit.h>
 #include <ThresholdsBuilder.h>
 #include <ThresholdsBuilderAdaptive.h>
+#include <ModuleInstance.h>
+#include <ModuleNetwork.h>
 #include <string_utils.h>
 
 // ADL
@@ -220,6 +222,9 @@ find_extreme_values(const Formula& f,
 	return std::make_tuple(min, max, minR);
 }
 
+/// Nasty hack to avoid importing the full ModelSuite.h header
+fig::StateInstance systemInitialValuation;
+
 } // namespace
 
 
@@ -256,6 +261,7 @@ ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 	if (globalVarsIPos.size() == 0ul) {
 		initialize = true;
 		globalVarsIPos.resize(numModules_);
+		systemInitialValuation = model.initial_state().to_state_instance();
 	}
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		assert(modules_[i]->global_index() == static_cast<int>(i));
@@ -471,12 +477,11 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	strategy_ = strategy;
 
 	// Find extreme importance values for current assessment
+	initialValue_ = importance_of(systemInitialValuation);
 	if ("flat" == strategy) {
-		const ImportanceValue importance =
-				importance_of(globalStateCopy.to_state_instance());
-		minValue_ = importance;
-		maxValue_ = importance;
-		minRareValue_ = importance;
+		minValue_ = initialValue_;
+		maxValue_ = initialValue_;
+		minRareValue_ = initialValue_;
 	} else if (globalStateCopy.concrete_size() < (1ul<<20ul)) {
 		// We can afford a full-state-space scan
 		find_extreme_values(globalStateCopy, prop);
@@ -485,7 +490,8 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		std::tie(minValue_, maxValue_, minRareValue_) =
 				::find_extreme_values(userFun_, moduleValues, mergeStrategy_);
 	}
-	assert(minValue_ <= minRareValue_);
+	assert(minValue_ <= initialValue_);
+	assert(initialValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);
 }
 

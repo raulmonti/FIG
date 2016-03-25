@@ -54,7 +54,7 @@ class ThresholdsBuilderAMS : public ThresholdsBuilderAdaptive
 public:
 
 	/// Void ctor
-	ThresholdsBuilderAMS();
+	ThresholdsBuilderAMS() : ThresholdsBuilderAdaptive("ams") {}
 
 private:  // Class internal helper functions
 

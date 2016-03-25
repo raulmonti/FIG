@@ -62,6 +62,7 @@
 #include <ThresholdsBuilder.h>
 #include <ThresholdsBuilderAMS.h>
 #include <ThresholdsBuilderSMC.h>
+#include <ThresholdsBuilderFixed.h>
 #include <ConfidenceInterval.h>
 #include <ConfidenceIntervalMean.h>
 #include <ConfidenceIntervalProportion.h>
@@ -606,6 +607,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
             std::make_shared< ImportanceFunctionAlgebraic >();
 
 	// Build offered thresholds builders
+	thrBuilders["fix"] = std::make_shared< ThresholdsBuilderFixed >();
 	thrBuilders["ams"] = std::make_shared< ThresholdsBuilderAMS >();
 	thrBuilders["smc"] = std::make_shared< ThresholdsBuilderSMC >();
 
@@ -878,6 +880,8 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 			static_cast<ImportanceFunctionConcreteSplit&>(ifun).set_merge_fun(mergeFun);
 		static_cast<ImportanceFunctionConcrete&>(ifun)
 				.assess_importance(property, "auto");
+		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
+		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
 		techLog_ << "Importance function building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"
@@ -939,6 +943,8 @@ ModelSuite::build_importance_function_adhoc(
                              model->global_state(),
                              property);
         }
+		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
+		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
 		techLog_ << "Importance function building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"
