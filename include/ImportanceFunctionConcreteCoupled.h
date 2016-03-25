@@ -86,8 +86,10 @@ public:  // Accessors
 #       else
 			globalStateCopy.copy_from_state_instance(state, false);
 #       endif
-			return modulesConcreteImportance[importanceInfoIndex_]
-											[globalStateCopy.encode()];
+			auto info = modulesConcreteImportance[importanceInfoIndex_]
+												 [globalStateCopy.encode()];
+			return ready() ? (MASK(info) | importance2threshold_[UNMASK(info)])
+						   : info;
 		}
 
 	/// @copydoc ImportanceFunction::importance_of()
