@@ -328,7 +328,7 @@ TraialPool::ensure_resources(const size_t& requiredResources)
 		traials_.reserve(newSize);
 
 	// A reservation could have moved the memory segment: reproduce references
-	// BUG: references in users TADs whould still be corrupted
+	// BUG: references in users' ADTs would still be corrupted
 	available_traials_.clear();
 	for (size_t i = 0ul ; i < oldSize ; i++)
 		available_traials_.emplace_front(std::ref(traials_[i]));

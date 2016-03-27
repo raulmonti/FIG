@@ -44,7 +44,7 @@ namespace fig
 
 // Static variables initialization
 
-const std::array< std::string, 3 > ThresholdsBuilder::names =
+const std::array< std::string, 4 > ThresholdsBuilder::names =
 {{
 	 // Fixed thresholds selection ("1 out of every N importance values")
 	 // See ThresholdsBuilderFixed class
@@ -56,7 +56,11 @@ const std::array< std::string, 3 > ThresholdsBuilder::names =
 
 	 // Sequential Monte Carlo (Cerou, Del Moral, Furon and Guyader '11)
 	 // See ThresholdsBuilderSMC class
-	 "smc"
+	 "smc",
+
+	 // Hybrid thresholds selection: Sequential Monte Carlo + Fixed
+	 // See ThresholdsBuilderHybrid class
+	 "hyb"
 }};
 
 

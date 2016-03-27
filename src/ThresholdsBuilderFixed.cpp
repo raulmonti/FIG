@@ -70,13 +70,13 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 		RANGE(impFun.max_value() - impFun.initial_value() - MARGIN),
 		NUMT(std::floor(static_cast<float>(RANGE) / JUMP));
 
-	auto thresholds = build_thresholds(impFun, MARGIN, JUMP);
-
 	std::stringstream msg;
 	msg << "ImportanceValue of the chosen thresholds:";
 	for (unsigned  i = MARGIN+JUMP ; i <= MARGIN+RANGE ; i += JUMP)
 		msg << " " << i;
 	ModelSuite::tech_log(msg.str() + "\n");
+
+	auto thresholds = build_thresholds(impFun, MARGIN, JUMP);
 
 	assert(thresholds[impFun.min_value()] == static_cast<ImportanceValue>(0u));
 	assert(thresholds[impFun.initial_value()] == static_cast<ImportanceValue>(0u));
