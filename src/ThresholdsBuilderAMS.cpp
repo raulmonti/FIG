@@ -125,14 +125,14 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 
     unsigned failures(0u), simEffort(MIN_SIM_EFFORT);
 	std::vector< ImportanceValue >().swap(thresholds_);
-	thresholds_.reserve((impFun.max_value()-impFun.min_value()) / 5u);  // magic
+	thresholds_.reserve((impFun.max_value()-impFun.initial_value()) / 5u);  // magic
 	auto lesser = [](const Traial& lhs, const Traial& rhs)
 				  { return lhs.level < rhs.level; };
 	TraialsVec traials = ThresholdsBuilderAdaptive::get_traials(n_, impFun);
 	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 
 	// AMS initialization
-    thresholds_.push_back(traials[0].get().level);  // start from initial state importance
+	thresholds_.push_back(impFun.initial_value());  // start from initial state importance
 	assert(thresholds_.back() < impFun.max_value());
 	do {
 		simulate(network, impFun, traials, n_, simEffort);

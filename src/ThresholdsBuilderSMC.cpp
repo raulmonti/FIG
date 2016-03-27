@@ -236,12 +236,12 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
     assert(k_ < n_);
 
     std::vector< ImportanceValue >().swap(thresholds_);
-	thresholds_.reserve((impFun.max_value()-impFun.min_value()) / 5u);  // magic
+	thresholds_.reserve((impFun.max_value()-impFun.initial_value()) / 5u);  // magic
 	TraialsVec traials = ThresholdsBuilderAdaptive::get_traials(n_+k_, impFun);
 	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 
 	// SMC initialization
-    thresholds_.push_back(traials[0].get().level);  // start from initial state importance
+	thresholds_.push_back(impFun.initial_value());  // start from initial state importance
 	assert(thresholds_.back() < impFun.max_value());
 	ImportanceValue newThreshold =
 		find_new_threshold(network, impFun, traials, n_, k_, thresholds_.back());

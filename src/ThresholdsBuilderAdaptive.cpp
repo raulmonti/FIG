@@ -97,6 +97,7 @@ ThresholdsBuilderAdaptive::build_thresholds(
 	}
 
 	assert(result[impFun.min_value()] == static_cast<ImportanceValue>(0u));
+	assert(result[impFun.initial_value()] == static_cast<ImportanceValue>(0u));
 	assert(result[impFun.max_value()] ==
 			static_cast<ImportanceValue>(thresholds_.size()-2));
 	std::vector< ImportanceValue >().swap(thresholds_);  // free mem

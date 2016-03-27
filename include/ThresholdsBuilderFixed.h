@@ -58,6 +58,17 @@ public:
 	std::vector< ImportanceValue >
 	build_thresholds(const unsigned& splitsPerThreshold,
 					 const ImportanceFunction& impFun) override final;
+
+protected:  // Utils for the class and its kin
+
+	/// Start building the thresholds 'margin' values of importance
+	/// above the \ref ImportanceFunction::initial_value() "initial
+	/// importance" held by 'impFun', setting thresholds every 'jump'
+	/// importance values.
+	std::vector< ImportanceValue >
+	build_thresholds(const ImportanceFunction& impFun,
+					 const unsigned& margin,
+					 const unsigned& jump);
 };
 
 } // namespace fig

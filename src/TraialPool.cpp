@@ -71,6 +71,7 @@ size_t TraialPool::numClocks = 0u;
 
 TraialPool::TraialPool()
 {
+
 	ensure_resources(initialSize);
 }
 
@@ -131,7 +132,7 @@ TraialPool::get_traials(Container<Reference<Traial>, OtherArgs...>& cont,
 		available_traials_.pop_front();
 	}
 	if (0u < numTraials) {
-		ensure_resources(std::max<unsigned>(numTraials, sizeChunkIncrement));
+		ensure_resources(std::max<unsigned>(numTraials++, sizeChunkIncrement));
 		goto retrieve_traials;
 	}
 }
@@ -152,7 +153,7 @@ TraialPool::get_traials(std::stack< Reference<Traial> >& stack,
 		available_traials_.pop_front();
 	}
 	if (0u < numTraials) {
-		ensure_resources(std::max<unsigned>(numTraials, sizeChunkIncrement));
+		ensure_resources(std::max<unsigned>(numTraials++, sizeChunkIncrement));
 		goto retrieve_traials;
 	}
 }
@@ -169,7 +170,7 @@ TraialPool::get_traials(std::forward_list< Reference<Traial> >& flist,
 		available_traials_.pop_front();
 	}
 	if (0u < numTraials) {
-		ensure_resources(std::max<unsigned>(numTraials, sizeChunkIncrement));
+		ensure_resources(std::max<unsigned>(numTraials++, sizeChunkIncrement));
 		goto retrieve_traials;
 	}
 }
@@ -204,10 +205,10 @@ TraialPool::get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
 		available_traials_.pop_front();
 		t = traial;
 		t.depth = depth;
-		cont.emplace(end(cont), t);
+		cont.emplace(end(cont), std::move(std::ref(t)));
 	}
 	if (0u < numCopies) {
-		ensure_resources(std::max<unsigned>(numCopies, sizeChunkIncrement));
+		ensure_resources(std::max<unsigned>(numCopies++, sizeChunkIncrement));
 		goto retrieve_traials;
 	}
 }
@@ -234,16 +235,17 @@ TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
 {
 	assert(0u < numCopies++);
 	assert(0 >= depth);  // we're typically called on a threshold-level-up
+
 	retrieve_traials:
 	while (!available_traials_.empty() && 0u < --numCopies) {
 		Traial& t = available_traials_.front();
-        available_traials_.pop_front();
-        t = traial;
+		available_traials_.pop_front();
+		t = traial;
 		t.depth = depth;
-        stack.emplace(t);
-    }
+		stack.emplace(std::move(std::ref(t)));
+	}
 	if (0u < numCopies) {
-		ensure_resources(std::max<unsigned>(numCopies, sizeChunkIncrement));
+		ensure_resources(std::max<unsigned>(numCopies++, sizeChunkIncrement));
 		goto retrieve_traials;
 	}
 }
@@ -263,10 +265,10 @@ TraialPool::get_traial_copies(std::forward_list< Reference<Traial> >& flist,
         available_traials_.pop_front();
         t = traial;
 		t.depth = depth;
-        flist.push_front(t);
+		flist.push_front(std::move(std::ref(t)));
     }
 	if (0u < numCopies) {
-		ensure_resources(std::max<unsigned>(numCopies, sizeChunkIncrement));
+		ensure_resources(std::max<unsigned>(numCopies++, sizeChunkIncrement));
 		goto retrieve_traials;
 	}
 }
@@ -317,11 +319,38 @@ TraialPool::ensure_resources(const size_t& requiredResources)
 {
 	const size_t oldSize = traials_.size();
 	const size_t newSize = oldSize + std::max<long>(0, requiredResources - num_resources());
-	traials_.reserve(newSize);
-	for(size_t i = oldSize ; i < newSize ; i++) {
+
+	if (newSize == oldSize)
+		return;  // nothing to do!
+	else if (oldSize == 0ul)
+		traials_.reserve(initialSize*4ul);  // called by TraialPool ctor[*]
+	else
+		traials_.reserve(newSize);
+
+	// A reservation could have moved the memory segment: reproduce references
+	// BUG: references in users TADs whould still be corrupted
+	available_traials_.clear();
+	for (size_t i = 0ul ; i < oldSize ; i++)
+		available_traials_.emplace_front(std::ref(traials_[i]));
+	// Now create and reference the new Traial instances
+	for (size_t i = oldSize ; i < newSize ; i++) {
 		traials_.emplace_back(numVariables, numClocks);
 		available_traials_.emplace_front(std::ref(traials_[i]));
 	}
+
+	/* [*] Important note for developers
+	 *
+	 * Using move semantics to offer the Traial instances may cause system
+	 * malfunctions derived from memory remapings.
+	 * When new resources are needed the OS may choose to reallocate the whole
+	 * 'traials_' vector in a different memory page, which would invalidate
+	 * all the references held by the users of the TraialPool.
+	 *
+	 * We're currently avoiding the problem by reserving a memory space
+	 * for 'traials_' much greater than the creation 'initialSize'.
+	 * This is however no permanent solution but merely a workaround:
+	 * the problem will still arise after sufficient new resources requests.
+	 */
 }
 
 

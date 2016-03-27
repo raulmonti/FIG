@@ -172,7 +172,7 @@ Traial::initialize(const ModuleNetwork& network,
 		return;  // we can't do anything without that data
 #endif
 	// Initialize variables value
-	network.global_state().copy_to_state_instance(state);
+	network.initial_state().copy_to_state_instance(state);
 	// Initialize clocks (reset all and then resample initials)
     for (auto& timeout : clocks_)
         timeout.value = 0.0f;

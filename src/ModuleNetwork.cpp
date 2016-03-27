@@ -126,6 +126,7 @@ ModuleNetwork::seal(const Container<ValueType, OtherContainerArgs...>& initialCl
 	sealed_ = true;
 	initialClocks.reserve(std::distance(begin(initialClocksNames),
 										end(initialClocksNames)));
+
 	// For each module in the network...
 	for (auto& module_ptr: modules) {
 		// ... seal it ...
