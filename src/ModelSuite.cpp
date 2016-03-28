@@ -63,6 +63,7 @@
 #include <ThresholdsBuilderAMS.h>
 #include <ThresholdsBuilderSMC.h>
 #include <ThresholdsBuilderFixed.h>
+#include <ThresholdsBuilderHybrid.h>
 #include <ConfidenceInterval.h>
 #include <ConfidenceIntervalMean.h>
 #include <ConfidenceIntervalProportion.h>
@@ -610,6 +611,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 	thrBuilders["fix"] = std::make_shared< ThresholdsBuilderFixed >();
 	thrBuilders["ams"] = std::make_shared< ThresholdsBuilderAMS >();
 	thrBuilders["smc"] = std::make_shared< ThresholdsBuilderSMC >();
+	thrBuilders["hyb"] = std::make_shared< ThresholdsBuilderHybrid >();
 
 	// Build offered simulation engines
 	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
@@ -1051,8 +1053,11 @@ ModelSuite::build_thresholds(const std::string& technique,
 				 << " and using technique \"" << technique << "\"\n";
 		const double startTime = omp_get_wtime();
 		if (thrBuilder.adaptive() && lvlUpProb > 0.0)
-			ifun.build_thresholds_adaptively(static_cast<ThresholdsBuilderAdaptive&>(thrBuilder),
-                                             splitsPerThreshold, lvlUpProb, simsPerIter);
+			ifun.build_thresholds_adaptively(
+					*std::dynamic_pointer_cast<ThresholdsBuilderAdaptive>(thrBuilders[technique]),
+					splitsPerThreshold,
+					lvlUpProb,
+					simsPerIter);
 		else
             ifun.build_thresholds(thrBuilder, splitsPerThreshold);
 		techLog_ << "Thresholds building time: "

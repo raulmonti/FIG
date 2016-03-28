@@ -46,12 +46,15 @@ class Traial;
  *
  *        Adaptive threshold builders take into consideration the semantics
  *        of the user model to choose the (precomputed) \ref ImportanceValue
- *        "importance values" which will play the role of thresholds.
+ *        "importance values" which will play the role of thresholds.<br>
  *        In general the final resulting number of thresholds built is a
  *        random variable of the probability of reaching the highest
  *        ImportanceValue provided.
+ *
+ * @see ThresholdsBuilder
+ * @see ThresholdsBuilderFixed
  */
-class ThresholdsBuilderAdaptive : public ThresholdsBuilder
+class ThresholdsBuilderAdaptive : public virtual ThresholdsBuilder
 {
 public:
 
@@ -70,22 +73,22 @@ protected:
 	unsigned k_;
 
 	/// Thresholds importance values
-	std::vector< ImportanceValue > thresholds_;
+	ImportanceVec thresholds_;
 
 public:
 
 	/// Ctor
-	ThresholdsBuilderAdaptive(const std::string& name,
+	ThresholdsBuilderAdaptive(const std::string& name = "",
 							  const unsigned& n = 0u,
 							  const unsigned& k = 0u);
 
-	inline bool adaptive() const noexcept override final { return true; }
+	inline bool adaptive() const noexcept override { return true; }
 
 	/// Stub to build_thresholds(const unsigned&, const ImportanceFunction&, const float&, const unsigned&)
 	/// for automatically computed values of 'p' and 'n'
 	inline std::vector< ImportanceValue >
 	build_thresholds(const unsigned& splitsPerThreshold,
-					 const ImportanceFunction& impFun) override final
+					 const ImportanceFunction& impFun) override
 		{ return build_thresholds(splitsPerThreshold, impFun, 0.0f, 0u); }
 
 	/// Implement ThresholdsBuilder::build_thresholds() using 'p' as the
@@ -97,7 +100,7 @@ public:
 					 const float& p,
 					 const unsigned& n);
 
-protected:  // Class utils
+protected:  // Utils for the class and its kin
 
 	/**
 	 * @brief Build thresholds based on given importance function
@@ -124,8 +127,6 @@ protected:  // Class utils
 	 */
 	virtual void
 	build_thresholds_vector(const ImportanceFunction& impFun) = 0;
-
-protected:  // Utils for derived classes
 
 	/**
 	 * @brief Choose values for n_ and k_ depending on the nature of the Module

@@ -57,6 +57,10 @@ class ThresholdsBuilder
 {
 public:
 
+	typedef std::vector< ImportanceValue > ImportanceVec;
+
+public:
+
 	/// Names of the (derived) thresholds builders offered to the user,
 	/// as he should requested them through the CLI/GUI.
 	/// Defined in ThresholdsBuilder.cpp

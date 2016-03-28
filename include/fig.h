@@ -96,6 +96,7 @@
 #include "ThresholdsBuilderAdaptive.h"
 #include "ThresholdsBuilderAMS.h"
 #include "ThresholdsBuilderSMC.h"
+#include "ThresholdsBuilderHybrid.h"
 // Simulation engines
 #include "SimulationEngine.h"
 #include "SimulationEngineNosplit.h"

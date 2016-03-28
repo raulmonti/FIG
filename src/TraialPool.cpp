@@ -205,7 +205,7 @@ TraialPool::get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
 		available_traials_.pop_front();
 		t = traial;
 		t.depth = depth;
-		cont.emplace(end(cont), std::move(std::ref(t)));
+		cont.emplace(end(cont), std::ref(t));  // copy elision
 	}
 	if (0u < numCopies) {
 		ensure_resources(std::max<unsigned>(numCopies++, sizeChunkIncrement));
@@ -242,7 +242,7 @@ TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
 		available_traials_.pop_front();
 		t = traial;
 		t.depth = depth;
-		stack.emplace(std::move(std::ref(t)));
+		stack.emplace(std::ref(t));  // copy elision
 	}
 	if (0u < numCopies) {
 		ensure_resources(std::max<unsigned>(numCopies++, sizeChunkIncrement));
@@ -265,7 +265,7 @@ TraialPool::get_traial_copies(std::forward_list< Reference<Traial> >& flist,
         available_traials_.pop_front();
         t = traial;
 		t.depth = depth;
-		flist.push_front(std::move(std::ref(t)));
+		flist.push_front(std::ref(t));  // copy elision
     }
 	if (0u < numCopies) {
 		ensure_resources(std::max<unsigned>(numCopies++, sizeChunkIncrement));

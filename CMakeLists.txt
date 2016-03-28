@@ -110,7 +110,7 @@ ENDIF()
 ###  Compile flags  ###########################################################
 
 # Highly defensive compile flags
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ")#-pedantic")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")# -pedantic")
 
 ## # Debug with gdb
 ## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
@@ -185,6 +185,10 @@ ADD_CUSTOM_COMMAND(
 	COMMAND sed -i "/#define yyFlexLexer yyFlexLexer/d" ${LEXER_CC}
 	DEPENDS ${LEXER_L}
 )
+
+## # Force the use of GNU's linker
+## SET(CMAKE_CXX_LINK_EXECUTABLE "/usr/bin/g++ <FLAGS> <CMAKE_CXX_LINK_FLAGS>
+## 	<LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
 
 ADD_EXECUTABLE(fig ${ALL_SOURCES} ${LEXER_CC})
 

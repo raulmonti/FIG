@@ -55,14 +55,16 @@ class ModuleNetwork;
  * @see ThresholdsBuilderAdaptive
  * @see ThresholdsBuilderAMS
  */
-class ThresholdsBuilderSMC : public ThresholdsBuilderAdaptive
+class ThresholdsBuilderSMC : public virtual ThresholdsBuilderAdaptive
 {
 public:
 
-	/// Void ctor
-	ThresholdsBuilderSMC() : ThresholdsBuilderAdaptive("smc") {}
+	/// Default ctor
+	ThresholdsBuilderSMC() : ThresholdsBuilder("smc"),
+							 ThresholdsBuilderAdaptive()
+		{ /* Not much to do around here */ }
 
-private:  // Class internal helper functions
+private:  // Utils for the class and its kin
 
 	void build_thresholds_vector(const ImportanceFunction& impFun) override;
 

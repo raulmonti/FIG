@@ -55,28 +55,29 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 
 	// What follows is clearly arbitrary but then we warned the user
 	// in the class' docstring, didn't we?
-	const unsigned JUMP(splitsPerThreshold <  5 ? 2 :
-						splitsPerThreshold <  9 ? 3 :
-						splitsPerThreshold < 14 ? 4 : 5);
+	const unsigned STRIDE(splitsPerThreshold <  5 ? 2 :
+						  splitsPerThreshold <  9 ? 3 :
+						  splitsPerThreshold < 14 ? 4 : 5);
 
 	ModelSuite::tech_log("Building thresholds with \""+ name +"\" for 1 out of "
-						 "every " + std::to_string(JUMP) + " importance value"
-						 + (JUMP > 1 ? ("s.\n") : (".\n")));
+						 "every " + std::to_string(STRIDE) + " importance value"
+						 + (STRIDE > 1 ? ("s.\n") : (".\n")));
 
 	const unsigned
 		// Start slightly above impFun's initial value to avoid oversampling
 		MARGIN(std::min(static_cast<unsigned>(impFun.max_value()),
 						std::max(2u, (impFun.max_value() - impFun.initial_value()) / 5u))),
 		RANGE(impFun.max_value() - impFun.initial_value() - MARGIN),
-		NUMT(std::floor(static_cast<float>(RANGE) / JUMP));
+		NUMT(std::floor(static_cast<float>(RANGE) / STRIDE));
 
 	std::stringstream msg;
 	msg << "ImportanceValue of the chosen thresholds:";
-	for (unsigned  i = MARGIN+JUMP ; i <= MARGIN+RANGE ; i += JUMP)
+	for (unsigned  i = MARGIN+STRIDE ; i <= MARGIN+RANGE ; i += STRIDE)
 		msg << " " << i;
 	ModelSuite::tech_log(msg.str() + "\n");
 
-	auto thresholds = build_thresholds(impFun, MARGIN, JUMP);
+	ImportanceVec thresholds;
+	build_thresholds(impFun, thresholds, MARGIN, STRIDE);
 
 	assert(thresholds[impFun.min_value()] == static_cast<ImportanceValue>(0u));
 	assert(thresholds[impFun.initial_value()] == static_cast<ImportanceValue>(0u));
@@ -86,30 +87,31 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 }
 
 
-std::vector< ImportanceValue >
+void
 ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
+										 ImportanceVec& thresholds,
 										 const unsigned& margin,
-										 const unsigned& jump)
+										 const unsigned& stride)
 {
-	std::vector< ImportanceValue > thresholds(impFun.max_value()-impFun.min_value()+1u);
+	const size_t SIZE(impFun.max_value() - impFun.min_value() + 1u);
+	if (thresholds.size() != SIZE)
+		thresholds.resize(SIZE);
 
 	// Thresholds building starts at the initial state's importance + margin,
 	// everything from there downwards will be the zeroth level
-	unsigned pos;
 	const ImportanceValue zero(0u);
+	unsigned pos;
 	for (pos = impFun.min_value() ; pos < impFun.initial_value()+margin ; pos++)
 		thresholds[pos] = zero;
-	unsigned j(0u);
+	unsigned s(0u);
 	ImportanceValue current(zero);
 	for (; pos <= impFun.max_value() ; pos++) {
 		thresholds[pos] = current;
-		if (++j >= jump) {
+		if (++s >= stride) {
 			current++;
-			j = 0;
+			s = 0;
 		}
 	}
-
-	return thresholds;
 }
 
 } // namespace fig

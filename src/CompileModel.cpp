@@ -49,7 +49,8 @@ CompileVars(const vector<AST*> varList, const parsingContext &pc)
             limits[0] = solve_const_expr(ASTlimits[0],pc);
             limits[1] = solve_const_expr(ASTlimits[1],pc);
 		} else {
-			// For now assume boolean. Revise when we accept initialization lists
+			// For now assume boolean;
+			// revise whenever we start accepting initialization lists
 			limits[0] = "0";
 			limits[1] = "1";
 		}

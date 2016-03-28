@@ -56,7 +56,7 @@ using TraialsVec = fig::ThresholdsBuilderAdaptive::TraialsVec;
 const unsigned MIN_SIM_EFFORT = 1u<<6u; // 64
 
 /// Max # of failures allowed when searching for a new threshold
-const unsigned MAX_NUM_FAILURES = 6u;
+const unsigned MAX_NUM_FAILURES = 5u;
 
 /// RNG for states distribution computation
 std::minstd_rand RNG(1234567803u);

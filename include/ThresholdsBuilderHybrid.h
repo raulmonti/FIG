@@ -41,34 +41,31 @@ namespace fig
  *
  *        This member of the ThresholdsBuilder family combines adaptive
  *        techniques, studying the semantics of the user model, with fixed
- *        thresholds selection based on the splitting value chosen by the user.
+ *        thresholds selection based on the splitting value chosen by the user.<br>
  *        The goal is to ensure termination of the thresholds building routine,
  *        resorting to a fixed, semantics-oblivious heuristic whenever the
  *        adaptive algorithms fail to terminate within predefined bounds.
  *        The resulting number of thresholds built is a random variable of
  *        the probability of reaching the highest ImportanceValue, also
  *        influenced by the user-specified splitting value.
+ *
+ * @see ThresholdsBuilder
+ * @see ThresholdsBuilderFixed
+ * @see ThresholdsBuilderAdaptive
  */
 class ThresholdsBuilderHybrid : public ThresholdsBuilderFixed,
 								public ThresholdsBuilderSMC
 {
 public:
 
-	/// Ctor
-	ThresholdsBuilderFixed() : ThresholdsBuilder("hyb") {}
+	/// Default ctor
+	ThresholdsBuilderHybrid() : ThresholdsBuilder("hyb") {}
 
-	inline bool adaptive() const noexcept override final { return true; }
+	inline bool adaptive() const noexcept override { return true; }
 
 	std::vector< ImportanceValue >
 	build_thresholds(const unsigned& splitsPerThreshold,
-					 const ImportanceFunction& impFun) override final;
-
-	/// @todo TODO implement build_thresholds():
-	///       run SMC's "build_thresholds_vector()" and catch exceptions.
-	///       If it does fail then resort to fixed thresholds building
-	///       for what's left of the ImportancValues, i.e. starting from
-	///       the last threshold found my SMC create one thresholds for every
-	///       (or every other) ImportanceValue until the max_value().
+					 const ImportanceFunction& impFun) override;
 };
 
 } // namespace fig
