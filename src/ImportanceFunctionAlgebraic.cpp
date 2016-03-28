@@ -215,8 +215,9 @@ ImportanceFunctionAlgebraic::set_formula(
 		///            Use <a href="http://dlib.net/">dlib</a> maybe?
 	}
 	assert(minValue_ <= initialValue_);
-	assert(initialValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);
+//	assert(initialValue_ <= minRareValue_);  // this may be false for functions
+											 // defined ad hoc by the user
 }
 
 // ImportanceFunctionAlgebraic::set_formula() can only be invoked
