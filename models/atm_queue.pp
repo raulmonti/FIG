@@ -1,2 +1,1 @@
-
- P ( !reset U lost )
+P( !reset U lost )  // "transient"

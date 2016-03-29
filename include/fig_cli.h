@@ -1,0 +1,100 @@
+//==============================================================================
+//
+//  fig_cli.h
+//
+//  Copyleft 2016-
+//  Authors:
+//  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
+//
+//------------------------------------------------------------------------------
+//
+//  This file is part of FIG.
+//
+//  The Finite Improbability Generator (FIG) project is free software;
+//  you can redistribute it and/or modify it under the terms of the GNU
+//  General Public License as published by the Free Software Foundation;
+//  either version 3 of the License, or (at your option) any later version.
+//
+//  FIG is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//
+//	You should have received a copy of the GNU General Public License
+//	along with FIG; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//==============================================================================
+
+#ifndef FIG_CLI_H
+#define FIG_CLI_H
+
+// C++
+#include <set>
+#include <string>
+// FIG
+#include <StoppingConditions.h>
+
+
+/// This namespace contains the routines and objects used by the FIG tool
+/// to parse the parameters fed through its Command Line Interface
+namespace fig_cli
+{
+
+/**
+ * @brief CLI arguments parsing routine.
+ *
+ *        The objects defined in this namespace are left in a valid state
+ *        after a successfull call to this routine. Any inconsistency
+ *        found during parsing is reported to stderr (std::cerr)
+ *        along with the full usage message.
+ *
+ * @param argc C++ main's argument count
+ * @param argv C++ main's argument vector
+ * @param fatalError Whether to exit(EXIT_FAILURE) if an error is found
+ *
+ * @return Whether the parsing was successfull. Notice this can only be false
+ *         if 'fatalError' is set to false as well.
+ */
+bool
+parse_arguments(const int& argc, const char** argv, bool fatalError = true);
+
+
+/// Abosulte path to the user's SA model file
+extern std::string modelFile;
+
+/// Abosulte path to the user's properties file
+extern std::string propertiesFile;
+
+/// Name of the FIG's \ref fig::SimulationEngine "simulation engine"
+/// to use for estimations
+extern std::string engineName;
+
+/// Name of the FIG's \ref fig::ImportanceFunction "importance function"
+/// to use for estimations
+extern std::string impFunName;
+
+/// Name of the FIG's importance assessment strategy to use
+/// for building the \ref fig::ImportanceFunction "importance function"
+extern std::string impFunStrategy;
+
+/// Optional aditional details the FIG's \ref fig::ImportanceFunction
+/// "importance function" may need to operate
+extern std::string impFunDetails;
+
+/// Name of the FIG's \ref fig::ThresholdsBuilder "thresholds building
+/// technique" to use for estimations
+extern std::string thrTechnique;
+
+/// Splitting values to test during estimations,
+/// valid only for RESTART-like \ref fig::SimulationEngine "simulation engines"
+extern std::set< unsigned > splittings;
+
+/// Estimation bounds specified by the user. Could be either temporal
+/// (e.g. run for 3600 s) or value-driven (e.g. stop after building a
+/// 90% confidence interval with 2.3x10^-5 precision)
+extern fig::StoppingConditions estBound;
+
+}
+
+#endif // FIG_CLI_H

@@ -1,2 +1,2 @@
-P( q2 > 0 U lost )  // Transient
-S( lost )           // Rate
+P( q2 > 0 U lost )  // "transient"
+S( lost )           // "rate"

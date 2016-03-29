@@ -40,38 +40,56 @@
 #include <sys/stat.h>
 // FIG
 #include <fig.h>
+#include <fig_cli.h>
 #include <string_utils.h>  // trim()
 
 
+//  Helper functions headers  //////////////////////////////////////////////////
+
 static void print_intro();
-static bool check_arguments(const int& argc, const char** argv);
+//static bool check_arguments(const int& argc, const char** argv);
 static bool file_exists(const std::string& filepath);
 static void build_model(const std::string& modelFilePath, const std::string& propsFilePath);
-static fig::StoppingConditions parse_estimation_bounds(const char* confCo, const char* prec);
-static std::set<unsigned> parse_splitting_values(const char* values);
+//static fig::StoppingConditions parse_estimation_bounds(const char* confCo, const char* prec);
+//static std::set<unsigned> parse_splitting_values(const char* values);
 
 
+//  Configuration of the estimation run  ///////////////////////////////////////
+
+using fig_cli::modelFile;
+using fig_cli::propertiesFile;
+using fig_cli::engineName;
+using fig_cli::impFunName;
+using fig_cli::impFunStrategy;
+using fig_cli::impFunDetails;
+using fig_cli::thrTechnique;
+using fig_cli::splittings;
+using fig_cli::estBound;
+
+
+//  Main stuff  ////////////////////////////////////////////////////////////////
 
 int main(int argc, char** argv)
 {
-	//  Intro and arguments parsing // // // // // // // // // // // // //
+	// Intro and invocation check
 	print_intro();
-	const bool details = check_arguments(argc, const_cast<const char**>(argv));
-	const std::string modelFile(argv[1]);
-	const std::string propertiesFile(argv[2]);
-	const std::string engineName(argv[3]);
-	const std::string impFunName(argv[4]);
-	const std::string impFunStrategy(argv[5]);
-	const std::string impFunDetails(details ? delete_substring(argv[6],"\"") : "");
-	const std::string thrTechnique(details ? argv[7] : argv[6]);
-	const fig::StoppingConditions estBound =  // just for now...
-			parse_estimation_bounds(details ? argv[8] : argv[7],
-									details ? argv[9] : argv[8]);
-	auto splittings = parse_splitting_values(argv[argc-1]);  // just for now
-					  // Last invocation parameter should've been a string
-					  // formatted "2 5 18..." specifying the splitting values
+	fig_cli::parse_arguments(argc, const_cast<const char**>(argv));  // exit on error
+//	const bool details = check_arguments(argc, const_cast<const char**>(argv));
+//	const std::string modelFile(argv[1]);
+//	const std::string propertiesFile(argv[2]);
+//	const std::string engineName(argv[3]);
+//	const std::string impFunName(argv[4]);
+//	const std::string impFunStrategy(argv[5]);
+//	const std::string impFunDetails(details ? delete_substring(argv[6],"\"") : "");
+//	const std::string thrTechnique(details ? argv[7] : argv[6]);
+//	const fig::StoppingConditions estBound =  // just for now...
+//			parse_estimation_bounds(details ? argv[8] : argv[7],
+//									details ? argv[9] : argv[8]);
+//	auto splittings = parse_splitting_values(argv[argc-1]);  // just for now
+//					  // Last invocation parameter should've been a string
+//					  // formatted "2 5 18..." specifying the splitting values
 
-	//  Compile model and properties files   // // // // // // // // // //
+	// Compile model and properties files
 	build_model(modelFile, propertiesFile);
 	auto model = fig::ModelSuite::get_instance();
 	if (!model.sealed()) {
@@ -79,7 +97,7 @@ int main(int argc, char** argv)
 		exit(EXIT_FAILURE);
 	}
 
-	//  Estimate using requested configuration  // // // // // // // // //
+	// Estimate using requested configuration
 	model.process_batch(engineName,
 						impFunName,
 						std::make_pair(impFunStrategy, impFunDetails),
@@ -87,7 +105,7 @@ int main(int argc, char** argv)
 						std::list<fig::StoppingConditions>({estBound}),
 						splittings);
 
-	//  Free memory  // // // // // // // // // // // // // // // // // //
+	// Free memory
 	model.release_resources();
 
 	return EXIT_SUCCESS;
