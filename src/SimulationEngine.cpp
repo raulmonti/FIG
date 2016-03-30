@@ -57,15 +57,6 @@ namespace fig
 
 // Static variables initialization
 
-const std::array< std::string, 2 > SimulationEngine::names =
-{{
-	// Standard Monte Carlo simulations, without splitting
-	"nosplit",
-
-	// RESTART-like importance splitting, from the Villén-Altamirano brothers
-	"restart"
-}};
-
 /// @note Arbitrary af
 const unsigned SimulationEngine::MIN_COUNT_RARE_EVENTS = 3u;
 
@@ -94,11 +85,11 @@ SimulationEngine::SimulationEngine(
 		cImpFun_(nullptr),
         interrupted(false)
 {
-	if (std::find(begin(names), end(names), name) == end(names)) {
+	if (std::find(begin(names()), end(names()), name) == end(names())) {
 		std::stringstream errMsg;
 		errMsg << "invalid engine name \"" << name << "\". ";
 		errMsg << "Available engines are";
-		for (const auto& name: names)
+		for (const auto& name: names())
 			errMsg << " \"" << name << "\"";
 		errMsg << "\n";
 		throw_FigException(errMsg.str());
@@ -154,6 +145,23 @@ void
 SimulationEngine::unlock() const noexcept
 {
     locked_ = false;
+}
+
+
+const std::array<std::string, SimulationEngine::NUM_NAMES>&
+SimulationEngine::names() noexcept
+{
+	static const std::array< std::string, NUM_NAMES > names =
+	{{
+		// Standard Monte Carlo simulations, without splitting
+		// See SimualtionEngineNosplit class
+		"nosplit",
+
+		// RESTART-like importance splitting, from the Villén-Altamirano brothers
+		// See SimualtionEngineRestart class
+		"restart"
+	}};
+	return names;
 }
 
 

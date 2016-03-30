@@ -58,6 +58,7 @@ class ValuesConstraint : public Constraint<T>
 		 * \param allowed - vector of allowed values. 
 		 */
 		ValuesConstraint(std::vector<T>& allowed);	
+		ValuesConstraint(const std::vector<T>& allowed);
 
 		/**
 		 * Virtual destructor.
@@ -97,6 +98,32 @@ class ValuesConstraint : public Constraint<T>
 
 template<class T>
 ValuesConstraint<T>::ValuesConstraint(std::vector<T>& allowed)
+: _allowed(allowed),
+  _typeDesc("")
+{
+    for ( unsigned int i = 0; i < _allowed.size(); i++ )
+    {
+
+#if defined(HAVE_SSTREAM)
+        std::ostringstream os;
+#elif defined(HAVE_STRSTREAM)
+        std::ostrstream os;
+#else
+#error "Need a stringstream (sstream or strstream) to compile!"
+#endif
+
+        os << _allowed[i];
+
+        std::string temp( os.str() );
+
+		if ( i > 0 )
+			_typeDesc += "|";
+		_typeDesc += temp;
+	}
+}
+
+template<class T>
+ValuesConstraint<T>::ValuesConstraint(const std::vector<T>& allowed)
 : _allowed(allowed),
   _typeDesc("")
 { 

@@ -76,37 +76,6 @@ wrap_mapper(const fig::State<fig::STATE_INTERNAL_TYPE>& obj)
 namespace fig
 {
 
-// Static variables initialization
-
-const std::array< std::string, 3 > ImportanceFunction::names =
-{{
-	// See ImportanceFunctionConcreteCoupled class
-	"concrete_coupled",
-
-	// See ImportanceFunctionConcreteSplit class
-	"concrete_split",
-
-	// See ImportanceFunctionAlgebraic class
-	"algebraic"
-}};
-
-
-const std::array< std::string, 3 > ImportanceFunction::strategies =
-{{
-	// Flat importance, i.e. null ImportanceValue for all states
-	"flat",
-
-	// Automatically built importance, with backwards BFS
-	"auto",
-
-	// User defined importance, by means of some function over the states
-	"adhoc"
-}};
-
-
-
-// ImportanceFunction internal "Formula" class
-
 ImportanceFunction::Formula::Formula() :
     MathExpression("", std::vector<std::string>() )
 { /* Not much to do around here */ }
@@ -247,15 +216,51 @@ ImportanceFunction::ImportanceFunction(const std::string& name) :
 	importance2threshold_(),
 	userFun_()
 {
-	if (find(begin(names), end(names), name) == end(names)) {
+	if (find(begin(names()), end(names()), name) == end(names())) {
 		std::stringstream errMsg;
 		errMsg << "invalid importance function name \"" << name << "\". ";
 		errMsg << "Available importance functions are";
-		for (const auto& name: names)
+		for (const auto& name: names())
 			errMsg << " \"" << name << "\"";
 		errMsg << "\n";
 		throw_FigException(errMsg.str());
 	}
+}
+
+
+const std::array<std::string, ImportanceFunction::NUM_NAMES>&
+ImportanceFunction::names() noexcept
+{
+	static const std::array< std::string, NUM_NAMES > names =
+	{{
+		// See ImportanceFunctionConcreteCoupled class
+		"concrete_coupled",
+
+		// See ImportanceFunctionConcreteSplit class
+		"concrete_split",
+
+		// See ImportanceFunctionAlgebraic class
+		"algebraic"
+	}};
+	return names;
+}
+
+
+const std::array< std::string, ImportanceFunction::NUM_STRATEGIES>&
+ImportanceFunction::strategies() noexcept
+{
+	static const std::array< std::string, NUM_NAMES > strategies=
+	{{
+		// Flat importance, i.e. null ImportanceValue for all states
+		"flat",
+
+		// Automatically built importance, by means of a backwards BFS analysis
+		"auto",
+
+		// User defined importance, by means of an algebraic expression on the states
+		"adhoc"
+	}};
+	return strategies;
 }
 
 

@@ -40,6 +40,7 @@
 // FIG
 #include <ModuleNetwork.h>
 #include <ImportanceFunction.h>
+#include <ThresholdsBuilder.h>
 #include <SimulationEngine.h>
 
 #if __cplusplus < 201103L
@@ -264,37 +265,57 @@ public:  // Accessors
 
 	/// Names of available simulation engines,
 	/// as they should be requested by the user.
-	const std::vector< std::string >& available_simulators() const;
+	static const std::vector< std::string >& available_simulators() noexcept;
 
 	/// Names of available importance function,
 	/// as they should be requested by the user.
-	const std::vector< std::string >& available_importance_functions() const;
+	static const std::vector< std::string >& available_importance_functions() noexcept;
 
 	/// Importance assessment strategies,
 	/// as they should be requested by the user.
-	const std::vector< std::string >& available_importance_strategies() const;
+	static const std::vector< std::string >& available_importance_strategies() noexcept;
 
 	/// Thresholds building techniques,
 	/// as they should be requested by the user.
-	const std::vector< std::string >& available_threshold_techniques() const;
+	static const std::vector< std::string >& available_threshold_techniques() noexcept;
+
+	/// Size of the vector returned by available_simulators()
+	/// as a constexpr
+	static constexpr size_t num_simulators() noexcept
+		{ return SimulationEngine::NUM_NAMES; }
+
+	/// Size of the vector returned by available_importance_functions()
+	/// as a constexpr
+	static constexpr size_t num_importance_functions() noexcept
+		{ return ImportanceFunction::NUM_NAMES; }
+
+	/// Size of the vector returned by available_importance_strategies()
+	/// as a constexpr
+	static constexpr size_t num_importance_strategies() noexcept
+		{ return ImportanceFunction::NUM_STRATEGIES; }
+
+	/// Size of the vector returned by available_threshold_techniques()
+	/// as a constexpr
+	static constexpr size_t num_threshold_techniques() noexcept
+		{ return ThresholdsBuilder::NUM_TECHNIQUES; }
 
 public:  // Utils
 
 	/// Is 'engineName' the name of an available simulation engine?
 	/// @see available_simulators()
-	bool exists_simulator(const std::string& engineName) const noexcept;
+	static bool exists_simulator(const std::string& engineName) noexcept;
 
 	/// Is 'ifunName' the name of an available importance function?
 	/// @see available_importance_functions()
-	bool exists_importance_function(const std::string& ifunName) const noexcept;
+	static bool exists_importance_function(const std::string& ifunName) noexcept;
 
 	/// Is 'ifunStrategy' an available importance assessment strategy?
 	/// @see available_importance_strategies()
-	bool exists_importance_strategy(const std::string& impStrategy) const noexcept;
+	static bool exists_importance_strategy(const std::string& impStrategy) noexcept;
 
 	/// Is 'thrTechnique' an available thresholds building technique?
 	/// @see available_threshold_techniques()
-	bool exists_threshold_technique(const std::string& thrTechnique) const noexcept;
+	static bool exists_threshold_technique(const std::string& thrTechnique) noexcept;
 
 	/// Print message in main log
 	static void main_log(const std::string& msg);

@@ -64,10 +64,10 @@ class SimulationEngine
 
 public:
 
-	/// Names of the simulation engines offered to the user,
-	/// as he should requested them through the CLI/GUI.
-    /// Defined in SimulationEngine.cpp
-    static const std::array< std::string, 2 > names;
+    /// Long story short: number of concrete derived classes.
+    /// More in detail this is the size of the array returned by names(), i.e.
+    /// how many SimualtionEngine implementations are offered to the end user.
+    static constexpr size_t NUM_NAMES = 2;
 
     /// Minimum amount of generated rare events to consider a simulation "good"
     static const unsigned MIN_COUNT_RARE_EVENTS;
@@ -83,9 +83,9 @@ public:
 
 private:
 
-    /// Simulation strategy implemented by this engine.
-    /// Check SimulationEngine::names for available options.
-    std::string name_;
+	/// Name of the SimulationEngine strategy implemented by this instance.
+	/// Check names() for available options.
+	std::string name_;
 
     /// Is the engine currently being used in an estimation?
     mutable bool locked_;
@@ -175,6 +175,14 @@ private:
     void unlock() const noexcept;
 
 public:  // Accessors
+
+	/// Names of the simulation engines offered to the user,
+	/// as he should requested them through the CLI/GUI.
+	/// @note Implements the <a href="https://goo.gl/yhTgLq"><i>Construct On
+	///       First Use</i> idiom</a> for static data members,
+	///       to avoid the <a href="https://goo.gl/chH5Kg"><i>static
+	///       initialization order fiasco</i>.
+	static const std::array< std::string, NUM_NAMES >& names() noexcept;
 
     /// @copydoc name_
     const std::string& name() const noexcept;

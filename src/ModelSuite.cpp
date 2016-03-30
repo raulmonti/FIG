@@ -172,11 +172,11 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 {
 	// Build internal table once: rows follow engine names definition order
 	//                            cols follow impFun names definition order
-	static constexpr auto& engineNames(fig::SimulationEngine::names);
-	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
-//	FIXME: following compiles with Clang but not with gcc -- keep checking
-//	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
-	static const size_t batch_sizes[2][3] = {
+	constexpr size_t NUM_ENGINES(fig::ModelSuite::num_simulators());
+	constexpr size_t NUM_IMPFUNS(fig::ModelSuite::num_importance_functions());
+	static const auto& engineNames(fig::SimulationEngine::names());
+	static const auto& ifunNames(fig::ImportanceFunction::names());
+	static const size_t batch_sizes[NUM_ENGINES][NUM_IMPFUNS] = {
 		{ 1ul<<11, 1ul<<12, 1ul<<12 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
 		{ 1ul<<9 , 1ul<<9,  1ul<<9  }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
@@ -203,11 +203,11 @@ min_run_length(const std::string& engineName, const std::string& ifunName)
 {
 	// Build internal table once: rows follow engine names definition order
 	//                            cols follow impFun names definition order
-	static constexpr auto& engineNames(fig::SimulationEngine::names);
-	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
-//	FIXME: following compiles with Clang but not with gcc -- keep checking
-//	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
-	static const size_t run_lengths[2][3] = {
+	constexpr size_t NUM_ENGINES(fig::ModelSuite::num_simulators());
+	constexpr size_t NUM_IMPFUNS(fig::ModelSuite::num_importance_functions());
+	static const auto& engineNames(fig::SimulationEngine::names());
+	static const auto& ifunNames(fig::ImportanceFunction::names());
+	static const size_t run_lengths[NUM_ENGINES][NUM_IMPFUNS] = {
 		{ 1ul<<16, 1ul<<17, 1ul<<17 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
 		{ 1ul<<15, 1ul<<15, 1ul<<15 }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
@@ -274,11 +274,11 @@ increase_batch_size(const std::string& engineName,
 {
 	// Build internal table once: rows follow engine names definition order
 	//                            cols follow impFun names definition order
-	static constexpr auto& engineNames(fig::SimulationEngine::names);
-	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
-//	FIXME: following compiles with Clang but not with gcc -- keep checking
-//	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
-	static const size_t inc_batch[2][3] = {
+	constexpr size_t NUM_ENGINES(fig::ModelSuite::num_simulators());
+	constexpr size_t NUM_IMPFUNS(fig::ModelSuite::num_importance_functions());
+	static const auto& engineNames(fig::SimulationEngine::names());
+	static const auto& ifunNames(fig::ImportanceFunction::names());
+	static const size_t inc_batch[NUM_ENGINES][NUM_IMPFUNS] = {
 		{ 3ul, 3ul, 2ul },  // nosplit x {concrete_coupled, concrete_split, algebraic}
 		{ 2ul, 2ul, 2ul }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
@@ -308,11 +308,11 @@ increase_run_length(const std::string& engineName,
 {
 	// Build internal table once: rows follow engine names definition order
 	//                            cols follow impFun names definition order
-	static constexpr auto& engineNames(fig::SimulationEngine::names);
-	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
-//	FIXME: following compiles with Clang but not with gcc -- keep checking
-//	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
-	static const float inc_length[2][3] = {
+	constexpr size_t NUM_ENGINES(fig::ModelSuite::num_simulators());
+	constexpr size_t NUM_IMPFUNS(fig::ModelSuite::num_importance_functions());
+	static const auto& engineNames(fig::SimulationEngine::names());
+	static const auto& ifunNames(fig::ImportanceFunction::names());
+	static const float inc_length[NUM_ENGINES][NUM_IMPFUNS] = {
 		{ 1.7f, 1.7f, 1.4f },  // nosplit x {concrete_coupled, concrete_split, algebraic}
 		{ 1.4f, 1.4f, 1.4f }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
@@ -621,15 +621,15 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 #ifndef NDEBUG
 	// Check all offered importance functions, thresholds builders and
 	// simulation engines were actually instantiated
-	for (const auto& ifunName: ImportanceFunction::names)
+	for (const auto& ifunName: available_importance_functions())
 		if(end(impFuns) == impFuns.find(ifunName))
             throw_FigException("Hey.  Hey you...  HEY, DEVELOPER! You forgot to "
                                "create the '"+ifunName+"' importance function");
-	for (const auto& thrBuildName: ThresholdsBuilder::names)
-		if(end(thrBuilders) == thrBuilders.find(thrBuildName))
+	for (const auto& thrTechnique: available_threshold_techniques())
+		if(end(thrBuilders) == thrBuilders.find(thrTechnique))
             throw_FigException("Hey.  Hey you...  HEY, DEVELOPER! You forgot to "
-                               "create the '"+thrBuildName+"' thresholds builder");
-	for (const auto& engineName: SimulationEngine::names)
+							   "create the '"+thrTechnique+"' thresholds builder");
+	for (const auto& engineName: available_simulators())
 		if (end(simulators) == simulators.find(engineName))
             throw_FigException("Hey.  Hey you...  HEY, DEVELOPER! You forgot to "
                                "create the '"+engineName+"' simulation engine");
@@ -674,44 +674,38 @@ ModelSuite::get_splitting() const noexcept
 
 
 const std::vector< std::string >&
-ModelSuite::available_simulators() const
+ModelSuite::available_simulators() noexcept
 {
 	static std::vector< std::string > simulatorsNames;
-	if (simulatorsNames.empty() && !simulators.empty()) {
-		simulatorsNames.reserve(simulators.size());
-		for (const auto& pair: simulators)
-			simulatorsNames.push_back(pair.first);
-	} else if (simulators.empty()) {
-		throw_FigException("ModelSuite hasn't been sealed, "
-						   "no simulation engine is available yet.");
+	if (simulatorsNames.empty()) {
+		simulatorsNames.reserve(num_simulators());
+		for (const auto& name: SimulationEngine::names())
+			simulatorsNames.push_back(name);
 	}
 	return simulatorsNames;
 }
 
 
 const std::vector< std::string >&
-ModelSuite::available_importance_functions() const
+ModelSuite::available_importance_functions() noexcept
 {
 	static std::vector< std::string > ifunsNames;
-	if (ifunsNames.empty() && !impFuns.empty()) {
-		ifunsNames.reserve(impFuns.size());
-		for (const auto& pair: impFuns)
-			ifunsNames.push_back(pair.first);
-	} else if (impFuns.empty()) {
-		throw_FigException("ModelSuite hasn't been sealed, "
-						   "no importance function is available yet.");
+	if (ifunsNames.empty()) {
+		ifunsNames.reserve(num_importance_functions());
+		for (const auto& name: ImportanceFunction::names())
+			ifunsNames.push_back(name);
 	}
 	return ifunsNames;
 }
 
 
 const std::vector< std::string >&
-ModelSuite::available_importance_strategies() const
+ModelSuite::available_importance_strategies() noexcept
 {
 	static std::vector< std::string > importanceAssessmentStrategies;
 	if (importanceAssessmentStrategies.empty()) {
-		importanceAssessmentStrategies.reserve(ImportanceFunction::strategies.size());
-		for (const auto& strategy: ImportanceFunction::strategies)
+		importanceAssessmentStrategies.reserve(num_importance_strategies());
+		for (const auto& strategy: ImportanceFunction::strategies())
 			importanceAssessmentStrategies.push_back(strategy);
 	}
 	return importanceAssessmentStrategies;
@@ -719,66 +713,47 @@ ModelSuite::available_importance_strategies() const
 
 
 const std::vector< std::string >&
-ModelSuite::available_threshold_techniques() const
+ModelSuite::available_threshold_techniques() noexcept
 {
 	static std::vector< std::string > thresholdsBuildersTechniques;
-	if (thresholdsBuildersTechniques.empty() && !thrBuilders.empty()) {
-		thresholdsBuildersTechniques.reserve(thrBuilders.size());
-		for (const auto& pair: thrBuilders)
-			thresholdsBuildersTechniques.push_back(pair.first);
-	} else if (thrBuilders.empty()) {
-		throw_FigException("ModelSuite hasn't been sealed, "
-						   "no thresholds builder is available yet.");
+	if (thresholdsBuildersTechniques.empty()) {
+		thresholdsBuildersTechniques.reserve(num_threshold_techniques());
+		for (const auto& technique: ThresholdsBuilder::techniques())
+			thresholdsBuildersTechniques.push_back(technique);
 	}
 	return thresholdsBuildersTechniques;
 }
 
 
 bool
-ModelSuite::exists_simulator(const std::string& engineName) const noexcept
+ModelSuite::exists_simulator(const std::string& engineName) noexcept
 {
-	try {
-		const auto& simulators = available_simulators();
-		if (find(begin(simulators), end(simulators), engineName) != end(simulators))
-			return true;
-	} catch (FigException) { /* Model isn't sealed, nothing exists yet */ }
-	return false;
+	const auto& simulators = available_simulators();
+	return find(begin(simulators), end(simulators), engineName) != end(simulators);
 }
 
 
 bool
-ModelSuite::exists_importance_function(const std::string& ifunName) const noexcept
+ModelSuite::exists_importance_function(const std::string& ifunName) noexcept
 {
-	try {
-		const auto& impFuns = available_importance_functions();
-		if (find(begin(impFuns), end(impFuns), ifunName) != end(impFuns))
-			return true;
-	} catch (FigException) { /* Model isn't sealed, nothing exists yet */ }
-	return false;
+	const auto& impFuns = available_importance_functions();
+	return find(begin(impFuns), end(impFuns), ifunName) != end(impFuns);
 }
 
 
 bool
-ModelSuite::exists_importance_strategy(const std::string& impStrategy) const noexcept
+ModelSuite::exists_importance_strategy(const std::string& impStrategy) noexcept
 {
-	try {
-		const auto& impStrats = available_importance_strategies();
-		if (find(begin(impStrats), end(impStrats), impStrategy) != end(impStrats))
-			return true;
-	} catch (FigException) { /* Model isn't sealed, nothing exists yet */ }
-	return false;
+	const auto& impStrats = available_importance_strategies();
+	return find(begin(impStrats), end(impStrats), impStrategy) != end(impStrats);
 }
 
 
 bool
-ModelSuite::exists_threshold_technique(const std::string& thrTechnique) const noexcept
+ModelSuite::exists_threshold_technique(const std::string& thrTechnique) noexcept
 {
-	try {
-		const auto& thrTechs = available_threshold_techniques();
-		if (find(begin(thrTechs), end(thrTechs), thrTechnique) != end(thrTechs))
-			return true;
-	} catch (FigException) { /* Model isn't sealed, nothing exists yet */ }
-	return false;
+	const auto& thrTechs = available_threshold_techniques();
+	return find(begin(thrTechs), end(thrTechs), thrTechnique) != end(thrTechs);
 }
 
 

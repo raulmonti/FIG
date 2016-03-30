@@ -111,20 +111,19 @@ public:
 
 public:  // Class attributes
 
-	/// Names of the importance functions offered to the user,
-	/// as he should requested them through the CLI/GUI.
-	/// Defined in ImportanceFunction.cpp
-	static const std::array< std::string, 3 > names;
+	/// Long story short: number of concrete derived classes.
+	/// More in detail this is the size of the array returned by names(), i.e.
+	/// how many ImportanceFunction implementations are offered to the end user.
+	static constexpr size_t NUM_NAMES = 3ul;
 
-	/// Importance assessment strategies offered to the user,
-	/// as he should requested them through the CLI/GUI.
-	/// Defined in ImportanceFunction.cpp
-	static const std::array< std::string, 3 > strategies;
+	/// Size of the array returned by strategies() as a constexpr, i.e.
+	/// how many importance assessment strategies are offered to the end user.
+	static constexpr size_t NUM_STRATEGIES = 3ul;
 
 private:
 
-	/// Importance function implemented by this instance
-	/// Check ImportanceFunction::names for available options.
+	/// Name of the ImportanceFunction implemented by this instance.
+	/// Check names() for available options.
 	std::string name_;
 
 protected:  // Attributes for derived classes
@@ -177,6 +176,22 @@ public:  // Ctor/Dtor
 	virtual ~ImportanceFunction() {}
 
 public:  // Accessors
+
+	/// Names of the importance functions offered to the user,
+	/// as he should requested them through the CLI/GUI.
+	/// @note Implements the <a href="https://goo.gl/yhTgLq"><i>Construct On
+	///       First Use</i> idiom</a> for static data members,
+	///       to avoid the <a href="https://goo.gl/chH5Kg"><i>static
+	///       initialization order fiasco</i>.
+	static const std::array< std::string, NUM_NAMES >& names() noexcept;
+
+	/// Importance assessment strategies offered to the user,
+	/// as he should requested them through the CLI/GUI.
+	/// @note Implements the <a href="https://goo.gl/yhTgLq"><i>Construct On
+	///       First Use</i> idiom</a> for static data members,
+	///       to avoid the <a href="https://goo.gl/chH5Kg"><i>static
+	///       initialization order fiasco</i>.
+	static const std::array< std::string, NUM_STRATEGIES>& strategies() noexcept;
 
 	/// @copydoc name_
 	const std::string& name() const noexcept;

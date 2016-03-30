@@ -42,42 +42,44 @@ using std::end;
 namespace fig
 {
 
-// Static variables initialization
-
-const std::array< std::string, 4 > ThresholdsBuilder::names =
-{{
-	 // Fixed thresholds selection ("1 out of every N importance values")
-	 // See ThresholdsBuilderFixed class
-	 "fix",
-
-	 // Adaptive Multilevel Splitting (Cerou and Guyader '07)
-	 // See ThresholdsBuilderAMS class
-	 "ams",
-
-	 // Sequential Monte Carlo (Cerou, Del Moral, Furon and Guyader '11)
-	 // See ThresholdsBuilderSMC class
-	 "smc",
-
-	 // Hybrid thresholds selection: Sequential Monte Carlo + Fixed
-	 // See ThresholdsBuilderHybrid class
-	 "hyb"
-}};
-
-
-// ThresholdsBuilder class member functions
-
 ThresholdsBuilder::ThresholdsBuilder(const std::string& thename) :
 	name(thename)
 {
-	if (std::find(begin(names), end(names), name) == end(names)) {
+	if (std::find(begin(techniques()), end(techniques()), name)
+			== end(techniques())) {
 		std::stringstream errMsg;
 		errMsg << "invalid threshold building technique \"" << name << "\". ";
 		errMsg << "Available techniques are";
-		for (const auto& name: names)
-			errMsg << " \"" << name << "\"";
+		for (const auto& technique: techniques())
+			errMsg << " \"" << technique << "\"";
 		errMsg << "\n";
 		throw_FigException(errMsg.str());
 	}
+}
+
+
+const std::array<std::string, ThresholdsBuilder::NUM_TECHNIQUES>&
+ThresholdsBuilder::techniques() noexcept
+{
+	static const std::array< std::string, NUM_TECHNIQUES > techniques =
+	{{
+		// Fixed thresholds selection ("1 out of every N importance values")
+		// See ThresholdsBuilderFixed class
+		"fix",
+
+		// Adaptive Multilevel Splitting (Cerou and Guyader '07)
+		// See ThresholdsBuilderAMS class
+		"ams",
+
+		// Sequential Monte Carlo (Cerou, Del Moral, Furon and Guyader '11)
+		// See ThresholdsBuilderSMC class
+		"smc",
+
+		// Hybrid thresholds selection: Sequential Monte Carlo + Fixed
+		// See ThresholdsBuilderHybrid class
+		"hyb"
+	}};
+	return techniques;
 }
 
 } // namespace fig

@@ -179,9 +179,9 @@ ImportanceFunctionAlgebraic::set_formula(
     if ("auto" == strategy)
 		throw_FigException("importance strategy \"auto\" can only be used "
 						   "with concrete importance functions");
-	else if (std::find(begin(ImportanceFunction::strategies),
-					   end(ImportanceFunction::strategies),
-					   strategy) == end(ImportanceFunction::strategies))
+	else if (std::find(begin(ImportanceFunction::strategies()),
+					   end(ImportanceFunction::strategies()),
+					   strategy) == end(ImportanceFunction::strategies()))
 		throw_FigException("unrecognized importance assessment strategy \""
 						   + strategy + "\". See available options with "
 						   "ModelSuite::available_importance_strategies()");
