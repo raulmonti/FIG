@@ -35,11 +35,13 @@
 #include <fig_cli.h>
 #include <FigConfig.h>
 #include <ModelSuite.h>
+#include <MultiDoubleArg.h>
 
 
 using namespace TCLAP;
 using std::to_string;
 using std::string;
+
 
 namespace fig_cli
 {
@@ -61,7 +63,7 @@ fig::StoppingConditions estBound;
 
 // TCLAP parameter holders and stuff  /////////////////////////////////////////
 
-CmdLine cmd_("http://c.xkcd.com/random/comic/", ' ',
+CmdLine cmd_("Sample usage:\n\n ~$ wget http://c.xkcd.com/random/comic/", ' ',
 			 to_string(fig_VERSION_MAJOR)+"."+to_string(fig_VERSION_MINOR));
 
 // Model file path
@@ -88,71 +90,6 @@ ValueArg<string> engineName_(
 		false, engineDefault,
 		&engineConstraints);
 
-// Importance function specifications
-SwitchArg ifunFlat(
-		"", "flat",
-		"Use a flat importance function, i.e. consider all states in the model "
-		"equally important. Information is kept symbolically as an algebraic "
-		"expression, thus using very little memory.");
-SwitchArg ifunFlatCoupled(
-		"", "flat-coupled",
-		"Use a flat importance function, i.e. consider all states in the model "
-		"equally important, storing this (null) information in a vector the "
-		"size of the concrete state space of the coupled model. This may use "
-		"a huge amount of memory");
-SwitchArg ifunFlatSplit(
-		"", "flat-split",
-		"Use a flat importance function, i.e. consider all states in the model "
-		"equally important, storing this (null) information in several vectors, "
-		"one per module.");
-SwitchArg ifunAutoCoupled(
-		"", "auto-coupled",
-		"Use an automatically computed \"concrete_coupled\" importance "
-		"function, i.e. store information for the coupled model state space. "
-		"This may use a huge amount of memory.");
-ValueArg<string> ifunAutoSplit(
-		"", "auto-split",
-		"Use an automatically computed \"concrete_split\" importance function "
-		"(i.e. stores information separately for each module), employing the "
-		"provided algebraic expression to merge the modules' importance. "
-		"Default merge function is to add all modules' importance.",
-		false, "+",
-		"merge_fun");
-std::vector< Arg* > impFunSpecs = {
-	&ifunFlat,
-	&ifunFlatCoupled,
-	&ifunFlatSplit,
-	&ifunAutoCoupled,
-	&ifunAutoSplit
-};
-
-//// Importance function
-//ValuesConstraint<string> impFunConstraints(fig::ModelSuite::available_importance_functions());
-//const string impFunDefault("concrete_coupled");
-//ValueArg<string> impFunName_(
-//		"f", "importanceFunction",
-//		"Name of the importance function to use for estimations. "
-//		"Default is \"" + impFunDefault + "\"",
-//		false, impFunDefault,
-//		&impFunConstraints);
-//
-//// Importance assessment strategy
-//ValuesConstraint<string> impStratConstraints(fig::ModelSuite::available_importance_strategies());
-//const string impStratDefault("auto");
-//ValueArg<string> impFunStrategy_(
-//		"s", "importanceStrategy",
-//		"Strategy to use for importance assessment of the model states. "
-//		"Default is \"" + impStratDefault + "\"",
-//		false, impStratDefault,
-//		&impStratConstraints);
-//
-//// Importance function ad hoc assessment expression
-//ValueArg<string> impFunAdhoc_(
-//		"", "adhoc",
-//		"Ad hoc algebraic expression to use for importance assessment "
-//		"of the model states. ",
-//		false, "");
-
 // Thresholds builder
 ValuesConstraint<string> thrTechConstraints(fig::ModelSuite::available_threshold_techniques());
 const string thrTechDefault("hyb");
@@ -163,6 +100,72 @@ ValueArg<string> thrTechnique_(
 		false, thrTechDefault,
 		&thrTechConstraints);
 
+// Importance function specifications
+SwitchArg ifunFlat(
+		"", "flat",
+		"Use a flat importance function, i.e. consider all states in the model "
+		"equally important. Information is kept symbolically as an algebraic "
+		"expression, thus using very little memory.");
+SwitchArg ifunFlatCoupled(
+		"", "flat-coupled",
+		"Use a flat importance function, i.e. consider all states in the model "
+		"equally important. Information is stored in a single, very big vector "
+		"the size of the coupled model's concrete state space, which may be huge.");
+SwitchArg ifunFlatSplit(
+		"", "flat-split",
+		"Use a flat importance function, i.e. consider all states in the model "
+		"equally important. Information is stored in several, relatively small "
+		"vectors, one per module.");
+SwitchArg ifunAutoCoupled(
+		"", "auto-coupled",
+		"Use an automatically computed \"coupled\" importance function, "
+		"i.e. store information for the coupled model. This stores "
+		"in memory a vector the size of the coupled model's concrete state "
+		"space, which may be huge.");
+ValueArg<string> ifunAutoSplit(
+		"", "auto-split",
+		"Use an automatically computed \"split\" importance function, "
+		"i.e. store information separately for each module. This stores in "
+		"memory one small vector per module, and then uses the algebraic "
+		"expression provided to merge these \"split\" importance values.",
+		false, "",
+		"merge_fun");
+ValueArg<string> ifunAdhoc(
+		"", "adhoc",
+		"Use an ad hoc importance function, i.e. assign importance to the "
+		"states using an user-provided algebraic function on them. "
+		"Information is kept symbolically as an algebraic expression, "
+		"thus using very little memory.",
+		false, "",
+		"adhoc_fun");
+ValueArg<string> ifunAdhocCoupled(
+		"", "adhoc-coupled",
+		"Use an ad hoc importance function, i.e. assign importance to the "
+		"states using an user-provided algebraic function on them. "
+		"Information is stored in a single, very big vector the size of the "
+		"coupled model's concrete state space, which may be huge.",
+		false, "",
+		"adhoc_fun");
+std::vector< Arg* > impFunSpecs = {
+	&ifunFlat,
+	&ifunFlatCoupled,
+	&ifunFlatSplit,
+	&ifunAutoCoupled,
+	&ifunAutoSplit,
+	&ifunAdhoc,
+	&ifunAdhocCoupled
+};
+
+// Stopping conditions (aka estimation bounds)
+MultiDoubleArg< double, double > confidenceCriterion(
+		"", "stop-conf",
+		"Add a stopping condition for estimations based on a confidence "
+		"criterion, i.e. a confidence coefficient and precision to reach.",
+		true,
+		"pair(confidence_coefficient,precision)");
+//MultiDoubleArg< size_t, char > timeCriterion(
+//		"", "--stop-time"
+//		/** @todo TODO implement */);
 
 
 // Main parsing routine  //////////////////////////////////////////////////////
@@ -174,10 +177,10 @@ bool parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(modelFile_);
 		cmd_.add(propertiesFile_);
 		cmd_.add(engineName_);
-		cmd_.xorAdd(impFunSpecs);
-//		cmd_.add(impFunName_);
-//		cmd_.add(impFunStrategy_);
 		cmd_.add(thrTechnique_);
+		cmd_.xorAdd(impFunSpecs);
+		cmd_.add(confidenceCriterion);
+//		cmd_.add(timeCriterion());
 		/// @todo TODO implement the rest
 
 		// Parse the command line
@@ -187,9 +190,40 @@ bool parse_arguments(const int& argc, const char** argv, bool fatalError)
 		modelFile      = modelFile_.getValue();
 		propertiesFile = propertiesFile_.getValue();
 		engineName     = engineName_.getValue();
-//		impFunName     = impFunName_.getValue();
-//		impFunStrategy = impFunStrategy_.getValue();
 		thrTechnique   = thrTechnique_.getValue();
+		if (ifunFlat.isSet()) {
+			impFunName = "algebraic";
+			impFunStrategy = "flat";
+		} else if (ifunFlatCoupled.isSet()) {
+			impFunName = "concrete_coupled";
+			impFunStrategy = "flat";
+		} else if (ifunFlatSplit.isSet()) {
+			impFunName = "concrete_split";
+			impFunStrategy = "flat";
+		} else if (ifunAutoCoupled.isSet()) {
+			impFunName = "concrete_coupled";
+			impFunStrategy = "auto";
+		} else if (ifunAutoSplit.isSet()) {
+			impFunName = "concrete_split";
+			impFunStrategy = "auto";
+			impFunDetails = ifunAutoSplit.getValue();
+		} else if (ifunAdhoc.isSet()) {
+			impFunName = "algebraic";
+			impFunStrategy = "adhoc";
+			impFunDetails = ifunAdhoc.getValue();
+		} else if (ifunAdhocCoupled.isSet()) {
+			impFunName = "concrete_coupled";
+			impFunStrategy = "adhoc";
+			impFunDetails = ifunAdhocCoupled.getValue();
+		} else {
+			std::cerr << "ERROR: must specify an importance function.\n\n";
+			std::cerr << "For complete USAGE and HELP type:\n";
+			std::cerr << "   " << argv[0] << " --help\n\n";
+			if (fatalError)
+				exit(EXIT_FAILURE);
+			else
+				return false;
+		}
 		/// @todo TODO implement the rest
 
 	} catch (ArgException& e) {
