@@ -17,7 +17,13 @@
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  *  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
  *  DEALINGS IN THE SOFTWARE.  
- *  
+ *
+ *****************************************************************************
+ *
+ *  Extended by Carlos E. Budde on April 2016 <cbudde@famaf.unc.edu.ar>,
+ *  FaMAF, Universidad Nacional de Córdoba, Argentina.
+ *  All rights go to Michael E. Smoot.
+ *
  *****************************************************************************/ 
 
 #ifndef TCLAP_DOCBOOKOUTPUT_H
@@ -99,7 +105,7 @@ inline void DocBookOutput::usage(CmdLineInterface& _cmd )
 	std::string xversion = _cmd.getVersion();
 	theDelimiter = _cmd.getDelimiter();
 	XorHandler xorHandler = _cmd.getXorHandler();
-	std::vector< std::vector<Arg*> > xorList = xorHandler.getXorList();
+	std::vector< std::pair< std::vector<Arg*> > > xorList = xorHandler.getXorList();
 	basename(progName);
 
 	std::cout << "<?xml version='1.0'?>" << std::endl;
@@ -127,8 +133,8 @@ inline void DocBookOutput::usage(CmdLineInterface& _cmd )
 	for ( int i = 0; (unsigned int)i < xorList.size(); i++ )
 	{
 		std::cout << "<group choice='req'>" << std::endl;
-		for ( ArgVectorIterator it = xorList[i].begin(); 
-						it != xorList[i].end(); it++ )
+		for ( ArgVectorIterator it = xorList[i].first.begin();
+						it != xorList[i].first.end(); it++ )
 			printShortArg((*it));
 
 		std::cout << "</group>" << std::endl;

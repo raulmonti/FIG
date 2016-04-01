@@ -24,6 +24,7 @@
 //	along with FIG; if not, write to the Free Software Foundation,
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//------------------------------------------------------------------------------
 //
 //  This file is an extension to the Templatized C++ Command Line Parser
 //  by Michael E. Smoot (TCLAP library, Copyright (c) 2003-2011)
@@ -220,8 +221,7 @@ MultiDoubleArg<T1_,T2_>::MultiDoubleArg(
 	Constraint<T2_>* constraint2) :
 		Arg(flag, name, desc, req, true, nullptr),
 		_values(),
-		_typeDesc("For the first value: " + constraint1->shortID() + ". "
-				  "For the second value: " + constraint2->shortID() + "\n"),
+		_typeDesc(constraint1->shortID() + "> <" + constraint2->shortID()),
 		_constraint1(constraint1),
 		_constraint2(constraint2),
 		_allowMore(false)
@@ -247,7 +247,12 @@ void MultiDoubleArg<T1_,T2_>::_extractValues(const std::string& val1,
 		ExtractValue(tmp.first,  val1, typename ArgTraits<T1_>::ValueCategory());
 		ExtractValue(tmp.second, val2, typename ArgTraits<T2_>::ValueCategory());
 	} catch (ArgParseException &e) {
-		throw ArgParseException(e.error(), toString());
+		const std::string MARGIN("             ");
+		throw ArgParseException(e.error() + ".\n"
+								+ MARGIN + "Argument \"--" + _name + "\" takes "
+								"two values; if you provided one (or none)\n"
+								+ MARGIN + "then another argument's name or "
+								"value could've been used.", toString());
 	}
 	if (_constraint1 != nullptr && !_constraint1->check(tmp.first))
 		throw CmdLineParseException("Value '" + val1 + "' fails to meet a "
@@ -280,22 +285,22 @@ MultiDoubleArg<T1_,T2_>::processArg(int *i, std::vector<std::string>& args)
         if (Arg::delimiter() != ' ' && value == "")
             throw ArgParseException("Couldn't find delimiter for this argument!",
                                     toString());
-        // take the first two subsequent strings, regardless of start string
-        if ( value == "" ) {
-            if ((*i)+1ul >= args.size())
-                throw ArgParseException("This argument takes two values yet "
-                                        "none was provided", toString());
-            if ((*i)+2ul >= args.size())
-                throw ArgParseException("This argument takes two values but "
-                                        "only one was provided", toString());
-            else
-                _extractValues(args[++(*i)], args[++(*i)]);
-        } else
+        if (value != "")
             throw ArgParseException("This argument takes two values but "
-                                    "none could be parsed", toString());
+                                    "nothing could be parsed", toString());
+        if ((*i)+1ul >= args.size())
+            throw ArgParseException("This argument takes two values yet "
+                                    "none was provided", toString());
+        if ((*i)+2ul >= args.size())
+            throw ArgParseException("This argument takes two values but "
+                                    "only one was provided", toString());
+        // take the first two subsequent strings, regardless of start string
+        _extractValues(args[++(*i)], args[++(*i)]);
+
         _alreadySet = true;
         return true;
     }
+
     return false;
 }
 

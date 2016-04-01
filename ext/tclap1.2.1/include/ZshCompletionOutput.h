@@ -17,7 +17,13 @@
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  *  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
  *  DEALINGS IN THE SOFTWARE.
- *  
+ *
+ *****************************************************************************
+ *
+ *  Extended by Carlos E. Budde on April 2016 <cbudde@famaf.unc.edu.ar>,
+ *  FaMAF, Universidad Nacional de Córdoba, Argentina.
+ *  All rights go to Michael E. Smoot.
+ *
  *****************************************************************************/ 
 
 #ifndef TCLAP_ZSHCOMPLETIONOUTPUT_H
@@ -271,7 +277,7 @@ inline void ZshCompletionOutput::printOption(Arg* a, std::string mutex)
 inline std::string ZshCompletionOutput::getMutexList( CmdLineInterface& _cmd, Arg* a)
 {
 	XorHandler xorHandler = _cmd.getXorHandler();
-	std::vector< std::vector<Arg*> > xorList = xorHandler.getXorList();
+	std::vector< std::pair< std::vector<Arg*>, bool > > xorList = xorHandler.getXorList();
 	
 	if (a->getName() == "help" || a->getName() == "version")
 	{
@@ -286,19 +292,19 @@ inline std::string ZshCompletionOutput::getMutexList( CmdLineInterface& _cmd, Ar
 
 	for ( int i = 0; static_cast<unsigned int>(i) < xorList.size(); i++ )
 	{
-		for ( ArgVectorIterator it = xorList[i].begin();
-			it != xorList[i].end();
+		for ( ArgVectorIterator it = xorList[i].first.begin();
+			it != xorList[i].first.end();
 			it++)
 		if ( a == (*it) )
 		{
 			list << '(';
-			for ( ArgVectorIterator iu = xorList[i].begin();
-				iu != xorList[i].end();
+			for ( ArgVectorIterator iu = xorList[i].first.begin();
+				iu != xorList[i].first.end();
 				iu++ )
 			{
 				bool notCur = (*iu) != a;
 				bool hasFlag = !(*iu)->getFlag().empty();
-				if ( iu != xorList[i].begin() && (notCur || hasFlag) )
+				if ( iu != xorList[i].first.begin() && (notCur || hasFlag) )
 					list << ' ';
 				if (hasFlag)
 					list << (*iu)->flagStartChar() << (*iu)->getFlag() << ' ';

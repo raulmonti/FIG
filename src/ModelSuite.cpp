@@ -795,6 +795,7 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
     if (force || !ifun.has_importance_info() || "flat" != ifun.strategy()) {
 		techLog_ << "\nBuilding importance function \"" << ifunName
 				 << "\" with \"flat\" assessment strategy.\n";
+		techLog_ << "Property: " << property.expression << std::endl;
         ifun.clear();
 		const double startTime = omp_get_wtime();
 		if (ifun.concrete())
@@ -851,6 +852,7 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
     if (force || !ifun.has_importance_info() || "auto" != ifun.strategy()) {
 		techLog_ << "\nBuilding importance function \"" << ifunName
 				 << "\" with \"auto\" assessment strategy.\n";
+		techLog_ << "Property: " << property.expression << std::endl;
 		ifun.clear();
 		const double startTime = omp_get_wtime();
 		if (ifunName == "concrete_split")
@@ -905,6 +907,7 @@ ModelSuite::build_importance_function_adhoc(
 		techLog_ << "\nBuilding importance function \"" << ifunName
 				 << "\" with \"adhoc\" assessment strategy (\""
 				 << formulaExprStr << "\")\n";
+		techLog_ << "Property: " << property.expression << std::endl;
 		ifun.clear();
 		process_adhocfun_varnames(varnames);  // make sure we have some variable names
 		const double startTime = omp_get_wtime();

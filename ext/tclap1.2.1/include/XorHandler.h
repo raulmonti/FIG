@@ -17,8 +17,14 @@
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  *  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
  *  DEALINGS IN THE SOFTWARE.  
- *  
- *****************************************************************************/ 
+ *
+ *****************************************************************************
+ *
+ *  Extended by Carlos E. Budde on April 2016 <cbudde@famaf.unc.edu.ar>,
+ *  FaMAF, Universidad Nacional de Córdoba, Argentina.
+ *  All rights go to Michael E. Smoot.
+ *
+ *****************************************************************************/
 
 #ifndef TCLAP_XORHANDLER_H
 #define TCLAP_XORHANDLER_H
@@ -32,30 +38,35 @@
 namespace TCLAP {
 
 /**
- * This class handles lists of Arg's that are to be XOR'd on the command
- * line.  This is used by CmdLine and you shouldn't ever use it.
+ * This class handles lists of Arg's that are to be XOR'd or OR'd
+ * on the command line.
+ * @warning This is used by CmdLine and you shouldn't ever use it.
  */
 class XorHandler
 {
 	protected:
 
 		/**
-		 * The list of of lists of Arg's to be or'd together.
+		 * Vector with the lists of Arg's to be XOR'd/OR'd together.
 		 */
-		std::vector< std::vector<Arg*> > _orList;
+		std::vector< std::pair< std::vector<Arg*>, bool> > _orList;
 
 	public:
 
 		/**
 		 * Constructor.  Does nothing.
 		 */
-		XorHandler( ) : _orList(std::vector< std::vector<Arg*> >()) {}
+		XorHandler( ) : _orList() {}
 
 		/**
-		 * Add a list of Arg*'s that will be orred together.
-		 * \param ors - list of Arg* that will be xor'd.
+		 * Add a list of Arg*'s that will be XOR'd/OR'd together.
+		 * \param ors - list of Arg* that will be XOR'd/OR'd.
+		 * \param allowMultiple - Result when more than one argument is given.
+		 *        Defaults to 'false' thus behaving like the "XOR" this
+		 *        class pledges. If 'true' then it'll behave like an "OR"
+		 *        for the given 'ors' vector.
 		 */
-		void add( std::vector<Arg*>& ors );
+		void add(std::vector<Arg*>& ors , bool allowMultiple = false);
 			
 		/**
 		 * Checks whether the specified Arg is in one of the xor lists and
@@ -84,7 +95,7 @@ class XorHandler
 		 */
 		bool contains( const Arg* a );
 
-		std::vector< std::vector<Arg*> >& getXorList(); 
+		std::vector<std::pair<std::vector<Arg *>, bool> > &getXorList();
 
 };
 
@@ -92,9 +103,9 @@ class XorHandler
 //////////////////////////////////////////////////////////////////////
 //BEGIN XOR.cpp
 //////////////////////////////////////////////////////////////////////
-inline void XorHandler::add( std::vector<Arg*>& ors )
+inline void XorHandler::add(std::vector<Arg*>& ors, bool allowMultiple )
 { 
-	_orList.push_back( ors );
+	_orList.push_back( std::make_pair(ors, allowMultiple) );
 }
 
 inline int XorHandler::check( const Arg* a ) 
@@ -103,32 +114,41 @@ inline int XorHandler::check( const Arg* a )
 	for ( int i = 0; static_cast<unsigned int>(i) < _orList.size(); i++ )
 	{
 		// if the XOR list contains the arg..
-		ArgVectorIterator ait = std::find( _orList[i].begin(), 
-		                                   _orList[i].end(), a );
-		if ( ait != _orList[i].end() )
+		ArgVectorIterator ait = std::find( _orList[i].first.begin(),
+										   _orList[i].first.end(), a );
+		if ( ait != _orList[i].first.end() )
 		{
-			// first check to see if a mutually exclusive switch
-			// has not already been set
-			for ( ArgVectorIterator it = _orList[i].begin(); 
-				  it != _orList[i].end(); 
+			// for XOR, first check to see if a mutually exclusive switch
+			// has already been set
+			for ( ArgVectorIterator it = _orList[i].first.begin();
+				  !_orList[i].second && it != _orList[i].first.end();
 				  it++ )
-				if ( a != (*it) && (*it)->isSet() )
+				if ( a != (*it) && (*it)->isSet())
 					throw(CmdLineParseException(
 					      "Mutually exclusive argument already set!",
 					      (*it)->toString()));
 
-			// go through and set each arg that is not a
-			for ( ArgVectorIterator it = _orList[i].begin(); 
-				  it != _orList[i].end(); 
+			// go through and set each arg that is not 'a':
+			//   ·  OR => no more values will be required for this list
+			//   · XOR => no more values will be allowed  for this list
+			for ( ArgVectorIterator it = _orList[i].first.begin();
+				  it != _orList[i].first.end();
 				  it++ )
-				if ( a != (*it) )
-					(*it)->xorSet();
+			{
+				if ( a != (*it) ) {
+					if ( _orList[i].second )
+						(*it)->allowMore();
+					else
+						(*it)->xorSet();
+				}
+			}
 
-			// return the number of required args that have now been set
+			// return the number of required command line arguments
+			// that have now been set
 			if ( (*ait)->allowMore() )
 				return 0;
 			else
-				return static_cast<int>(_orList[i].size());
+				return static_cast<int>(_orList[i].first.size());
 		}
 	}
 
@@ -141,8 +161,8 @@ inline int XorHandler::check( const Arg* a )
 inline bool XorHandler::contains( const Arg* a )
 {
 	for ( int i = 0; static_cast<unsigned int>(i) < _orList.size(); i++ )
-		for ( ArgVectorIterator it = _orList[i].begin(); 
-			  it != _orList[i].end(); 
+		for ( ArgVectorIterator it = _orList[i].first.begin();
+			  it != _orList[i].first.end();
 			  it++ )	
 			if ( a == (*it) )
 				return true;
@@ -150,7 +170,7 @@ inline bool XorHandler::contains( const Arg* a )
 	return false;
 }
 
-inline std::vector< std::vector<Arg*> >& XorHandler::getXorList() 
+inline std::vector< std::pair< std::vector<Arg*>, bool> >& XorHandler::getXorList()
 {
 	return _orList;
 }

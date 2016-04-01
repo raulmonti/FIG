@@ -28,6 +28,8 @@
 
 
 // C++
+#include <set>
+#include <list>
 #include <string>
 // External code
 #include <CmdLine.h>
@@ -36,6 +38,7 @@
 #include <FigConfig.h>
 #include <ModelSuite.h>
 #include <MultiDoubleArg.h>
+#include <NumericConstraint.h>
 
 
 using namespace TCLAP;
@@ -45,7 +48,6 @@ using std::string;
 
 namespace fig_cli
 {
-
 
 // Objects offered to configure the estimation runs  //////////////////////////
 
@@ -57,9 +59,14 @@ string impFunStrategy;
 string impFunDetails;
 string thrTechnique;
 std::set< unsigned > splittings;
-fig::StoppingConditions estBound;
+std::list< fig::StoppingConditions > estBounds;
+
+} // namespace fig_cli
 
 
+
+namespace
+{
 
 // TCLAP parameter holders and stuff  /////////////////////////////////////////
 
@@ -157,33 +164,152 @@ std::vector< Arg* > impFunSpecs = {
 };
 
 // Stopping conditions (aka estimation bounds)
-MultiDoubleArg< double, double > confidenceCriterion(
-		"", "stop-conf",
-		"Add a stopping condition for estimations based on a confidence "
-		"criterion, i.e. a confidence coefficient and precision to reach.",
-		true,
-		"pair(confidence_coefficient,precision)");
-//MultiDoubleArg< size_t, char > timeCriterion(
-//		"", "--stop-time"
-//		/** @todo TODO implement */);
+NumericConstraint<float> ccConstraint(
+	[](const float& cc) { return 0.0f < cc && cc < 1.0f; },
+	"confidence_coefficient ∈ (0,1)");
+NumericConstraint<float> precConstraint(
+	[](const float& prec) { return 0.0f < prec; },
+	"positive_relative_precision");
+MultiDoubleArg< float, float > confidenceCriteria(
+	"", "stop-conf",
+	"Add a stopping condition for estimations based on a confidence "
+	"criterion, i.e. a \"confidence coefficient\" and a \"precision\" "
+	"(relative to the estimate) to reach.",
+	false,
+	&ccConstraint, &precConstraint);
+NumericConstraint<long> timeLapseConstraint(
+	[](const long& timeLapse) { return timeLapse > 0l; },
+	"positive_time_lapse");
+//const std::vector<string> timeUnits({"s", "m", "h", "d"});
+ValuesConstraint<char> timeUnitConstraint(std::vector<char>({'s', 'm', 'h', 'd'}));
+MultiDoubleArg< long, char > timeCriteria(
+	"", "stop-time",
+	"Add a stopping condition for estimations based on a (wall clock) "
+	"execution time length, e.g. \"45 m\". Can specify seconds (s), "
+	"minutes (m), hours (h) or days (d).",
+	false,
+	&timeLapseConstraint, &timeUnitConstraint);
+std::vector< Arg* > stopCondSpecs = {
+	&confidenceCriteria,
+	&timeCriteria
+};
 
+// Splitting values to test
+ValueArg<string> splittings_(
+	"", "splitting",
+	"Define splitting values to try out with RESTART-like simulation engines",
+	false,
+	"comma-separated list of positive integral values");
+
+
+// Helper routines  ///////////////////////////////////////////////////////////
+
+/// Check the ImportanceFunction specification parsed from the command line
+/// into the TCLAP holders. Use it to fill in the global information offered to
+/// FIG for estimation (viz: 'impFunName', 'impFunStrategy' and 'impFunDetails')
+/// @return Whether the information could be successfully retrieved
+bool
+get_ifun_specification()
+{
+	if (ifunFlat.isSet()) {
+		impFunName = "algebraic";
+		impFunStrategy = "flat";
+	} else if (ifunFlatCoupled.isSet()) {
+		impFunName = "concrete_coupled";
+		impFunStrategy = "flat";
+	} else if (ifunFlatSplit.isSet()) {
+		impFunName = "concrete_split";
+		impFunStrategy = "flat";
+	} else if (ifunAutoCoupled.isSet()) {
+		impFunName = "concrete_coupled";
+		impFunStrategy = "auto";
+	} else if (ifunAutoSplit.isSet()) {
+		impFunName = "concrete_split";
+		impFunStrategy = "auto";
+		impFunDetails = ifunAutoSplit.getValue();
+	} else if (ifunAdhoc.isSet()) {
+		impFunName = "algebraic";
+		impFunStrategy = "adhoc";
+		impFunDetails = ifunAdhoc.getValue();
+	} else if (ifunAdhocCoupled.isSet()) {
+		impFunName = "concrete_coupled";
+		impFunStrategy = "adhoc";
+		impFunDetails = ifunAdhocCoupled.getValue();
+	} else {
+		return false;
+	}
+	return true;
+}
+
+
+/// Check the StoppingCondition specifications parsed from the command line
+/// into the TCLAP holders. Use them to fill in the global information offered
+/// to FIG for estimation (viz: the 'estBounds' list)
+/// @return Whether the information could be successfully retrieved
+bool
+get_stopping_conditions()
+{
+	if (!confidenceCriteria.isSet() && !timeCriteria.isSet())
+		return false;
+	if (confidenceCriteria.isSet()) {
+		fig::StoppingConditions stopCond;
+		for (const auto& confCrit: confidenceCriteria.getValues())
+			stopCond.add_confidence_criterion(confCrit.first, confCrit.second, true);
+		estBounds.emplace(estBounds.begin(), stopCond);
+	}
+	if (timeCriteria.isSet()) {
+		fig::StoppingConditions stopCond;
+		for (const auto& timeCrit: timeCriteria.getValues()) {
+			const size_t FACTOR( timeCrit.second == 's' ? 1ul     :
+								 timeCrit.second == 'm' ? 60ul    :
+								 timeCrit.second == 'h' ? 3600ul  :
+								 timeCrit.second == 'd' ? 86400ul : 0ul );
+			stopCond.add_time_budget(timeCrit.first*FACTOR);
+		}
+		estBounds.emplace(estBounds.begin(), stopCond);
+	}
+	return true;
+}
+
+
+/// Check the splitting values specifications parsed from the command line
+/// into the TCLAP holders. Use them to fill in the global information offered
+/// to FIG for estimation (viz: the 'splittings' set)
+/// @return Whether the information could be successfully retrieved
+bool
+get_splitting_values()
+{
+	if (!splittings_.isSet())
+		return true;  // a single default splitting value is used
+	auto strValues = split(splittings_.getValue(), ',');
+
+	/// @todo TODO finish up
+
+	return true;
+}
+
+} // namespace
+
+
+
+namespace fig_cli
+{
 
 // Main parsing routine  //////////////////////////////////////////////////////
 
 bool parse_arguments(const int& argc, const char** argv, bool fatalError)
 {
 	try {
-		// Add all arguments and options defined
+		// Add all defined arguments and options to TCLAP's command line parser
 		cmd_.add(modelFile_);
 		cmd_.add(propertiesFile_);
 		cmd_.add(engineName_);
 		cmd_.add(thrTechnique_);
+		cmd_.orAdd(stopCondSpecs);
 		cmd_.xorAdd(impFunSpecs);
-		cmd_.add(confidenceCriterion);
-//		cmd_.add(timeCriterion());
-		/// @todo TODO implement the rest
+		cmd_.add(splittings_);
 
-		// Parse the command line
+		// Parse the command line input
 		cmd_.parse(argc, argv);
 
 		// Fill the globally offered objects
@@ -191,31 +317,8 @@ bool parse_arguments(const int& argc, const char** argv, bool fatalError)
 		propertiesFile = propertiesFile_.getValue();
 		engineName     = engineName_.getValue();
 		thrTechnique   = thrTechnique_.getValue();
-		if (ifunFlat.isSet()) {
-			impFunName = "algebraic";
-			impFunStrategy = "flat";
-		} else if (ifunFlatCoupled.isSet()) {
-			impFunName = "concrete_coupled";
-			impFunStrategy = "flat";
-		} else if (ifunFlatSplit.isSet()) {
-			impFunName = "concrete_split";
-			impFunStrategy = "flat";
-		} else if (ifunAutoCoupled.isSet()) {
-			impFunName = "concrete_coupled";
-			impFunStrategy = "auto";
-		} else if (ifunAutoSplit.isSet()) {
-			impFunName = "concrete_split";
-			impFunStrategy = "auto";
-			impFunDetails = ifunAutoSplit.getValue();
-		} else if (ifunAdhoc.isSet()) {
-			impFunName = "algebraic";
-			impFunStrategy = "adhoc";
-			impFunDetails = ifunAdhoc.getValue();
-		} else if (ifunAdhocCoupled.isSet()) {
-			impFunName = "concrete_coupled";
-			impFunStrategy = "adhoc";
-			impFunDetails = ifunAdhocCoupled.getValue();
-		} else {
+		bool ifunDefined = get_ifun_specification();
+		if (!ifunDefined) {
 			std::cerr << "ERROR: must specify an importance function.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
@@ -224,7 +327,30 @@ bool parse_arguments(const int& argc, const char** argv, bool fatalError)
 			else
 				return false;
 		}
-		/// @todo TODO implement the rest
+		bool stopCondDefined = get_stopping_conditions();
+		if (!stopCondDefined) {
+			std::cerr << "ERROR: must specify at least one stopping condition ";
+			std::cerr << "(aka estimation bound).\n\n";
+			std::cerr << "For complete USAGE and HELP type:\n";
+			std::cerr << "   " << argv[0] << " --help\n\n";
+			if (fatalError)
+				exit(EXIT_FAILURE);
+			else
+				return false;
+		}
+		bool splittingsDefined = get_splitting_values();
+		if (!splittingsDefined) {
+			std::cerr << "ERROR: splitting values must be given as a comma-"
+						 "sperated list of positive integral values. "
+						 "There should be no spaces in this list.";
+			std::cerr << "(aka estimation bound).\n\n";
+			std::cerr << "For complete USAGE and HELP type:\n";
+			std::cerr << "   " << argv[0] << " --help\n\n";
+			if (fatalError)
+				exit(EXIT_FAILURE);
+			else
+				return false;
+		}
 
 	} catch (ArgException& e) {
 		std::cerr << "ERROR: " << e.what() << "\n";
@@ -237,5 +363,5 @@ bool parse_arguments(const int& argc, const char** argv, bool fatalError)
 	return true;
 }
 
+} // namespace fig_cli
 
-} // namespace fig

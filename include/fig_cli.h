@@ -31,6 +31,7 @@
 
 // C++
 #include <set>
+#include <list>
 #include <string>
 // FIG
 #include <StoppingConditions.h>
@@ -90,10 +91,10 @@ extern std::string thrTechnique;
 /// valid only for RESTART-like \ref fig::SimulationEngine "simulation engines"
 extern std::set< unsigned > splittings;
 
-/// Estimation bounds specified by the user. Could be either temporal
-/// (e.g. run for 3600 s) or value-driven (e.g. stop after building a
-/// 90% confidence interval with 2.3x10^-5 precision)
-extern fig::StoppingConditions estBound;
+/// Estimation bounds specified by the user. These can be either temporal
+/// (e.g. run for 30 m) or value-driven (e.g. stop after building a 90%
+/// confidence interval with 2.3x10^-5 precision)
+extern std::list< fig::StoppingConditions > estBounds;
 
 }
 

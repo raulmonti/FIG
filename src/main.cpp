@@ -46,7 +46,7 @@
 
 //  Helper functions headers  //////////////////////////////////////////////////
 
-static void print_intro();
+static void print_intro(const int &argc, const char **argv);
 //static bool check_arguments(const int& argc, const char** argv);
 static bool file_exists(const std::string& filepath);
 static void build_model(const std::string& modelFilePath, const std::string& propsFilePath);
@@ -64,7 +64,7 @@ using fig_cli::impFunStrategy;
 using fig_cli::impFunDetails;
 using fig_cli::thrTechnique;
 using fig_cli::splittings;
-using fig_cli::estBound;
+using fig_cli::estBounds;
 
 
 //  Main stuff  ////////////////////////////////////////////////////////////////
@@ -72,7 +72,7 @@ using fig_cli::estBound;
 int main(int argc, char** argv)
 {
 	// Intro and invocation check
-	print_intro();
+	print_intro(argc, const_cast<const char**>(argv));
 	fig_cli::parse_arguments(argc, const_cast<const char**>(argv));  // exit on error
 //	const bool details = check_arguments(argc, const_cast<const char**>(argv));
 //	const std::string modelFile(argv[1]);
@@ -102,7 +102,7 @@ int main(int argc, char** argv)
 						impFunName,
 						std::make_pair(impFunStrategy, impFunDetails),
 						thrTechnique,
-						std::list<fig::StoppingConditions>({estBound}),
+						estBounds,
 						splittings);
 
 	// Free memory
@@ -114,25 +114,29 @@ int main(int argc, char** argv)
 
 
 // ///////////////////////////////////////////////////////////////////////////
-void print_intro()
+void print_intro(const int& argc, const char** argv)
 {
-	auto log = fig::ModelSuite::main_log;
+	auto main_log = fig::ModelSuite::main_log;
+	auto tech_log = fig::ModelSuite::tech_log;
 	using std::to_string;
-	log("\n");
-	log(" ~~~~~~~~~ \n");
-	log("  · FIG ·  \n");
-	log(" ~~~~~~~~~ \n");
-	log("           \n");
-	log(" This is the Finite Improbability Generator.\n");
-	log(" Version: "+to_string(fig_VERSION_MAJOR)+"."+to_string(fig_VERSION_MINOR)+"\n");
-	log(" Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n");
-	log("          Monti, Raúl E.   <raulmonti88@gmail.com>\n");
-	log("\n");
-	std::time_t now = std::chrono::system_clock::to_time_t(
-						  std::chrono::system_clock::now());
-	fig::ModelSuite::tech_log("\nFIG tool invoked on ");
-	fig::ModelSuite::tech_log(std::ctime(&now));
-	fig::ModelSuite::tech_log("\n");
+	const std::time_t now = std::chrono::system_clock::to_time_t(
+								std::chrono::system_clock::now());
+	main_log("\n");
+	main_log(" ~~~~~~~~~ \n");
+	main_log("  · FIG ·  \n");
+	main_log(" ~~~~~~~~~ \n");
+	main_log("           \n");
+	main_log(" This is the Finite Improbability Generator.\n");
+	main_log(" Version: "+to_string(fig_VERSION_MAJOR)+"."+to_string(fig_VERSION_MINOR)+"\n");
+	main_log(" Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n");
+	main_log("          Monti, Raúl E.   <raulmonti88@gmail.com>\n");
+	main_log("\n");
+
+	tech_log(std::string("\nFIG tool invoked on ") + std::ctime(&now) + "\n");
+	tech_log("Invocation command:");
+	for (int i = 0 ; i < argc ; i++)
+		tech_log(std::string(" ") + argv[i]);
+	tech_log("\n\n");
 }
 
 

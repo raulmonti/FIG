@@ -19,6 +19,12 @@
  *  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  *  DEALINGS IN THE SOFTWARE.
  *
+ *****************************************************************************
+ *
+ *  Extended by Carlos E. Budde on April 2016 <cbudde@famaf.unc.edu.ar>,
+ *  FaMAF, Universidad Nacional de Córdoba, Argentina.
+ *  All rights go to Michael E. Smoot.
+ *
  *****************************************************************************/
 
 #ifndef TCLAP_CMDLINE_H
@@ -220,19 +226,26 @@ private:
 		void add( Arg* a );
 
 		/**
-		 * Add two Args that will be xor'd.  If this method is used, add does
+		 * Add two Args that will be XOR'd.  If this method is used, add does
 		 * not need to be called.
-		 * \param a - Argument to be added and xor'd.
-		 * \param b - Argument to be added and xor'd.
+		 * \param a - Argument to be added and XOR'd.
+		 * \param b - Argument to be added and XOR'd.
 		 */
 		void xorAdd( Arg& a, Arg& b );
 
 		/**
-		 * Add a list of Args that will be xor'd.  If this method is used,
+		 * Add a list of Args that will be XOR'd.  If this method is used,
 		 * add does not need to be called.
-		 * \param xors - List of Args to be added and xor'd.
+		 * \param xors - List of Args to be added and XOR'd.
 		 */
 		void xorAdd( std::vector<Arg*>& xors );
+
+		/**
+		 * Add a list of Args that will be OR'd.  If this method is used,
+		 * add does not need to be called.
+		 * \param ors - List of Args to be added and OR'd.
+		 */
+		void orAdd( std::vector<Arg*>& ors );
 
 		/**
 		 * Parses the command line.
@@ -390,9 +403,29 @@ inline void CmdLine::_constructor()
 	deleteOnExit(v);
 }
 
-inline void CmdLine::xorAdd( std::vector<Arg*>& ors )
+inline void CmdLine::xorAdd( Arg& a, Arg& b )
 {
-	_xorHandler.add( ors );
+	std::vector<Arg*> ors;
+	ors.push_back( &a );
+	ors.push_back( &b );
+	xorAdd( ors );
+}
+
+inline void CmdLine::xorAdd( std::vector<Arg*>& xors )
+{
+	_xorHandler.add( xors );
+
+	for (ArgVectorIterator it = xors.begin(); it != xors.end(); it++)
+	{
+		(*it)->forceRequired();
+		(*it)->setRequireLabel( "XOR required" );
+		add( *it );
+	}
+}
+
+inline void CmdLine::orAdd( std::vector<Arg*>& ors )
+{
+	_xorHandler.add( ors, true );
 
 	for (ArgVectorIterator it = ors.begin(); it != ors.end(); it++)
 	{
@@ -400,14 +433,6 @@ inline void CmdLine::xorAdd( std::vector<Arg*>& ors )
 		(*it)->setRequireLabel( "OR required" );
 		add( *it );
 	}
-}
-
-inline void CmdLine::xorAdd( Arg& a, Arg& b )
-{
-	std::vector<Arg*> ors;
-	ors.push_back( &a );
-	ors.push_back( &b );
-	xorAdd( ors );
 }
 
 inline void CmdLine::add( Arg& a )

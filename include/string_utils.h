@@ -30,6 +30,8 @@
 #define STRING_UTILS_H
 
 #include <string>
+#include <vector>
+
 
 /**
  * @brief Replace in "s" all occurrences of "from" for "to"
@@ -38,7 +40,7 @@
  * @param to   String for which "from" will be replaced in "str"
  * @return Resulting string (i.e. 's' after the call)
  * @note Taken from <a href="http://stackoverflow.com/a/3418285">
- *       this SO answer Michael Mrozek</a>.
+ *       this SO answer by Michael Mrozek</a>.
  */
 std::string& replace_substring(std::string& s,
 							   const std::string& from,
@@ -61,11 +63,23 @@ std::string delete_substring(std::string&& s, const std::string& substr);
 /**
  * @brief Remove whitespace from begin and end of string
  * @note Taken from <a href="http://stackoverflow.com/a/17976541">
- *       this SO answer by David G</a>.
+ *       this SO answer by David G.</a>
  */
 std::string trim(const std::string &s);
 
 /// @copydoc trim
 std::string trim(std::string&& s);
+
+/**
+ * @brief Split a string on every occurrence of the specified delimiter
+ * @param s     String to split
+ * @param delim Delimiter to chop the string by
+ * @return Vector with chopped contents of the original string.
+ * @note Every occurrence of the delimiter in the original string
+ *       is deleted and will not occur in the result.
+ * @note Taken from <a href="http://stackoverflow.com/a/236803">
+ *       this SO community-wiki answer</a>.
+ */
+std::vector<std::string> split(const std::string &s, char delim);
 
 #endif // STRING_UTILS_H

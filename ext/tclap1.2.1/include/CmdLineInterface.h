@@ -17,7 +17,13 @@
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  *  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
  *  DEALINGS IN THE SOFTWARE.  
- *  
+ *
+ *****************************************************************************
+ *
+ *  Extended by Carlos E. Budde on April 2016 <cbudde@famaf.unc.edu.ar>,
+ *  FaMAF, Universidad Nacional de Córdoba, Argentina.
+ *  All rights go to Michael E. Smoot.
+ *
  *****************************************************************************/ 
 
 #ifndef TCLAP_COMMANDLINE_INTERFACE_H
@@ -62,20 +68,27 @@ class CmdLineInterface
 		virtual void add( Arg* a )=0;
 
 		/**
-		 * Add two Args that will be xor'd.  
+		 * Add two Args that will be XOR'd.
 		 * If this method is used, add does
 		 * not need to be called.
-		 * \param a - Argument to be added and xor'd. 
-		 * \param b - Argument to be added and xor'd. 
+		 * \param a - Argument to be added and XOR'd.
+		 * \param b - Argument to be added and XOR'd.
 		 */
 		virtual void xorAdd( Arg& a, Arg& b )=0;
 
 		/**
-		 * Add a list of Args that will be xor'd.  If this method is used, 
+		 * Add a list of Args that will be XOR'd.  If this method is used,
 		 * add does not need to be called.
-		 * \param xors - List of Args to be added and xor'd. 
+		 * \param xors - List of Args to be added and XOR'd.
 		 */
 		virtual void xorAdd( std::vector<Arg*>& xors )=0;
+
+		/**
+		 * Add a list of Args that will be OR'd.  If this method is used,
+		 * add does not need to be called.
+		 * \param ors - List of Args to be added and OR'd.
+		 */
+		virtual void orAdd( std::vector<Arg*>& ors )=0;
 
 		/**
 		 * Parses the command line.

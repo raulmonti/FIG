@@ -17,7 +17,13 @@
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  *  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
  *  DEALINGS IN THE SOFTWARE.  
- *  
+ *
+ *****************************************************************************
+ *
+ *  Extended by Carlos E. Budde on April 2016 <cbudde@famaf.unc.edu.ar>,
+ *  FaMAF, Universidad Nacional de Córdoba, Argentina.
+ *  All rights go to Michael E. Smoot.
+ *
  *****************************************************************************/ 
 
 #ifndef TCLAP_STDCMDLINEOUTPUT_H
@@ -159,7 +165,7 @@ StdOutput::_shortUsage( CmdLineInterface& _cmd,
 	std::list<Arg*> argList = _cmd.getArgList();
 	std::string progName = _cmd.getProgramName();
 	XorHandler xorHandler = _cmd.getXorHandler();
-	std::vector< std::vector<Arg*> > xorList = xorHandler.getXorList();
+	std::vector< std::pair< std::vector<Arg*>, bool > > xorList = xorHandler.getXorList();
 
 	std::string s = progName + " ";
 
@@ -167,9 +173,9 @@ StdOutput::_shortUsage( CmdLineInterface& _cmd,
 	for ( int i = 0; static_cast<unsigned int>(i) < xorList.size(); i++ )
 		{
 			s += " {";
-			for ( ArgVectorIterator it = xorList[i].begin(); 
-				  it != xorList[i].end(); it++ )
-				s += (*it)->shortID() + "|";
+			for ( ArgVectorIterator it = xorList[i].first.begin();
+				  it != xorList[i].first.end(); it++ )
+				s += (*it)->shortID() + (xorList[i].second ? ("|") : ("/"));
 
 			s[s.length()-1] = '}';
 		}
@@ -194,20 +200,22 @@ StdOutput::_longUsage( CmdLineInterface& _cmd,
 	std::list<Arg*> argList = _cmd.getArgList();
 	std::string message = _cmd.getMessage();
 	XorHandler xorHandler = _cmd.getXorHandler();
-	std::vector< std::vector<Arg*> > xorList = xorHandler.getXorList();
+	std::vector< std::pair< std::vector<Arg*>, bool > > xorList = xorHandler.getXorList();
 
 	// first the xor 
 	for ( int i = 0; static_cast<unsigned int>(i) < xorList.size(); i++ )
 		{
-			for ( ArgVectorIterator it = xorList[i].begin(); 
-				  it != xorList[i].end(); 
+			for ( ArgVectorIterator it = xorList[i].first.begin();
+				  it != xorList[i].first.end();
 				  it++ )
 				{
 					spacePrint( os, (*it)->longID(), 75, 3, 3 );
 					spacePrint( os, (*it)->getDescription(), 75, 5, 0 );
 
-					if ( it+1 != xorList[i].end() )
-						spacePrint(os, "-- OR --", 75, 9, 0);
+					if ( it+1 != xorList[i].first.end() )
+						spacePrint(os, (xorList[i].second ? ("-- OR --")
+														  : ("-- XOR --")),
+								   75, 9, 0);
 				}
 			os << std::endl << std::endl;
 		}
