@@ -27,12 +27,18 @@
 //==============================================================================
 
 
+// C
+#include <cstdlib>  // std::strtoul()
 // C++
 #include <set>
 #include <list>
 #include <string>
 // External code
 #include <CmdLine.h>
+#include <ValueArg.h>
+#include <SwitchArg.h>
+#include <ValuesConstraint.h>
+#include <UnlabeledValueArg.h>
 // FIG
 #include <fig_cli.h>
 #include <FigConfig.h>
@@ -68,91 +74,125 @@ std::list< fig::StoppingConditions > estBounds;
 namespace
 {
 
+using namespace fig_cli;
+
+
 // TCLAP parameter holders and stuff  /////////////////////////////////////////
 
-CmdLine cmd_("Sample usage:\n\n ~$ wget http://c.xkcd.com/random/comic/", ' ',
+CmdLine cmd_("\nSample usage:\n"
+			 "~$ ./fig models/tandem.{sa,pp} --auto-coupled --stop-time 5 m\n"
+			 "Use an automatically computed importance function built on the "
+			 "model's fully coupled state space, performing a 5 minutes "
+			 "estimation which will employ the RESTART simulation engine "
+			 "(default) for splitting 2 (default) and the hybrid thresholds "
+			 "building technique, i.e. \"hyb\" (default)\n"
+			 "~$ ./fig models/tandem.{sa,pp} --flat -e nosplit --stop-time 1 h\n"
+			 "Use a flat importance function to perform a 1 hour standard "
+			 "Monte Carlo simulation (i.e. no splitting)\n"
+			 "~$ ./fig models/tandem.{sa,pp} --adhoc \"10*q2+q1\" -t ams \\"
+			 "            --stop-conf 0.9 0.2\n"
+			 "Use the importance function \"10*q2+q1\" defined ad hoc by the "
+			 "user, with the RESTART simulation engine (default) for splitting "
+			 "2 (default), employing the Adaptive Multilevel Splitting "
+			 "thresholds building technique, i.e. \"ams\", estimating until "
+			 "the relative precision achieved for a 90% confidence interval "
+			 "equals 20% of the value estimated for each property.\n"
+			 "~$ ./fig models/tandem.{sa,pp} --auto-split \"+\" -t hyb  \\"
+			 "       --stop-conf .8 .4 --stop-time 1 h --stop-conf .95 .1    \\"
+			 "       --splitting 2,3,5,9,11 -e restart\n"
+			 "Use an automatically computed importance function modularly "
+			 "built, viz. on every module state space, simulating with the "
+			 "RESTART engine for the splitting values explicitly specified, "
+			 "using the hybrid thresholds building technique, i.e. \"hyb\", "
+			 "estimating the value of each property for this configuration "
+			 "and for each one of the three stopping conditions.",
+			 ' ',
 			 to_string(fig_VERSION_MAJOR)+"."+to_string(fig_VERSION_MINOR));
 
 // Model file path
 UnlabeledValueArg<string> modelFile_(
-		"modelFile",
-		"Path to the SA model file to study",
-		true, "",
-		"modelFile");
+	"modelFile",
+	"Path to the SA model file to study",
+	true, "",
+	"modelFile");
 
 // Properties file path
 UnlabeledValueArg<string> propertiesFile_(
-		"propertiesFile",
-		"Path to the file with the properties to estimate",
-		true, "",
-		"propertiesFile");
+	"propertiesFile",
+	"Path to the file with the properties to estimate",
+	true, "",
+	"propertiesFile");
 
 // Simulation engine
 ValuesConstraint<string> engineConstraints(fig::ModelSuite::available_simulators());
 const string engineDefault("restart");
 ValueArg<string> engineName_(
-		"e", "engine",
-		"Name of the simulation engine to use for estimations. "
-		"Default is \"" + engineDefault + "\"",
-		false, engineDefault,
-		&engineConstraints);
+	"e", "engine",
+	"Name of the simulation engine to use for estimations. "
+	"Default is \"" + engineDefault + "\"",
+	false, engineDefault,
+	&engineConstraints);
 
 // Thresholds builder
 ValuesConstraint<string> thrTechConstraints(fig::ModelSuite::available_threshold_techniques());
 const string thrTechDefault("hyb");
 ValueArg<string> thrTechnique_(
-		"t", "thresholdsTechnique",
-		"Technique to use for building the importance thresholds. "
-		"Default is \"" + thrTechDefault + "\"",
-		false, thrTechDefault,
-		&thrTechConstraints);
+	"t", "thresholdsTechnique",
+	"Technique to use for building the importance thresholds. "
+	"Default is \"" + thrTechDefault + "\"",
+	false, thrTechDefault,
+	&thrTechConstraints);
 
 // Importance function specifications
 SwitchArg ifunFlat(
-		"", "flat",
-		"Use a flat importance function, i.e. consider all states in the model "
-		"equally important. Information is kept symbolically as an algebraic "
-		"expression, thus using very little memory.");
+	"", "flat",
+	"Use a flat importance function, i.e. consider all states in the model "
+	"equally important. Information is kept symbolically as an algebraic "
+	"expression, thus using very little memory. Notice the flat function is "
+	"incompatible with RESTART-like simulation engines.");
 SwitchArg ifunFlatCoupled(
-		"", "flat-coupled",
-		"Use a flat importance function, i.e. consider all states in the model "
-		"equally important. Information is stored in a single, very big vector "
-		"the size of the coupled model's concrete state space, which may be huge.");
+	"", "flat-coupled",
+	"Use a flat importance function, i.e. consider all states in the model "
+	"equally important. Information is stored in a single, very big vector "
+	"the size of the coupled model's concrete state space, which may be huge. "
+	"Notice the flat function is incompatible with RESTART-like simulation "
+	"engines.");
 SwitchArg ifunFlatSplit(
-		"", "flat-split",
-		"Use a flat importance function, i.e. consider all states in the model "
-		"equally important. Information is stored in several, relatively small "
-		"vectors, one per module.");
+	"", "flat-split",
+	"Use a flat importance function, i.e. consider all states in the model "
+	"equally important. Information is stored in several, relatively small "
+	"vectors, one per module. Notice the flat function is incompatible with "
+	"RESTART-like simulation engines.");
 SwitchArg ifunAutoCoupled(
-		"", "auto-coupled",
-		"Use an automatically computed \"coupled\" importance function, "
-		"i.e. store information for the coupled model. This stores "
-		"in memory a vector the size of the coupled model's concrete state "
-		"space, which may be huge.");
+	"", "auto-coupled",
+	"Use an automatically computed \"coupled\" importance function, "
+	"i.e. store information for the coupled model. This stores "
+	"in memory a vector the size of the coupled model's concrete state "
+	"space, which may be huge.");
 ValueArg<string> ifunAutoSplit(
-		"", "auto-split",
-		"Use an automatically computed \"split\" importance function, "
-		"i.e. store information separately for each module. This stores in "
-		"memory one small vector per module, and then uses the algebraic "
-		"expression provided to merge these \"split\" importance values.",
-		false, "",
-		"merge_fun");
+	"", "auto-split",
+	"Use an automatically computed \"split\" importance function, "
+	"i.e. store information separately for each module. This stores in "
+	"memory one small vector per module, and then uses the algebraic "
+	"expression provided to merge these \"split\" importance values.",
+	false, "",
+	"merge_fun");
 ValueArg<string> ifunAdhoc(
-		"", "adhoc",
-		"Use an ad hoc importance function, i.e. assign importance to the "
-		"states using an user-provided algebraic function on them. "
-		"Information is kept symbolically as an algebraic expression, "
-		"thus using very little memory.",
-		false, "",
-		"adhoc_fun");
+	"", "adhoc",
+	"Use an ad hoc importance function, i.e. assign importance to the "
+	"states using an user-provided algebraic function on them. "
+	"Information is kept symbolically as an algebraic expression, "
+	"thus using very little memory.",
+	false, "",
+	"adhoc_fun");
 ValueArg<string> ifunAdhocCoupled(
-		"", "adhoc-coupled",
-		"Use an ad hoc importance function, i.e. assign importance to the "
-		"states using an user-provided algebraic function on them. "
-		"Information is stored in a single, very big vector the size of the "
-		"coupled model's concrete state space, which may be huge.",
-		false, "",
-		"adhoc_fun");
+	"", "adhoc-coupled",
+	"Use an ad hoc importance function, i.e. assign importance to the "
+	"states using an user-provided algebraic function on them. "
+	"Information is stored in a single, very big vector the size of the "
+	"coupled model's concrete state space, which may be huge.",
+	false, "",
+	"adhoc_fun");
 std::vector< Arg* > impFunSpecs = {
 	&ifunFlat,
 	&ifunFlatCoupled,
@@ -174,19 +214,22 @@ MultiDoubleArg< float, float > confidenceCriteria(
 	"", "stop-conf",
 	"Add a stopping condition for estimations based on a confidence "
 	"criterion, i.e. a \"confidence coefficient\" and a \"precision\" "
-	"(relative to the estimate) to reach.",
+	"(relative to the estimate) to reach. This is a multi-argument, "
+	"meaning you can define as many of them as you wish, "
+	"e.g. \"--stop-conf 0.8 0.4 --stop-conf 0.95 0.1\"",
 	false,
 	&ccConstraint, &precConstraint);
 NumericConstraint<long> timeLapseConstraint(
 	[](const long& timeLapse) { return timeLapse > 0l; },
 	"positive_time_lapse");
-//const std::vector<string> timeUnits({"s", "m", "h", "d"});
 ValuesConstraint<char> timeUnitConstraint(std::vector<char>({'s', 'm', 'h', 'd'}));
 MultiDoubleArg< long, char > timeCriteria(
 	"", "stop-time",
 	"Add a stopping condition for estimations based on a (wall clock) "
 	"execution time length, e.g. \"45 m\". Can specify seconds (s), "
-	"minutes (m), hours (h) or days (d).",
+	"minutes (m), hours (h) or days (d). This is a multi-argument, "
+	"meaning you can define as many of them as you wish, "
+	"e.g. \"--stop-time 30 s --stop-time 10 m\"",
 	false,
 	&timeLapseConstraint, &timeUnitConstraint);
 std::vector< Arg* > stopCondSpecs = {
@@ -197,9 +240,10 @@ std::vector< Arg* > stopCondSpecs = {
 // Splitting values to test
 ValueArg<string> splittings_(
 	"", "splitting",
-	"Define splitting values to try out with RESTART-like simulation engines",
-	false,
-	"comma-separated list of positive integral values");
+	"Define splitting values to try out with RESTART-like simulation engines, "
+	"specified as a comma-separated list of integral values greater than '1'",
+	false, "2",
+	"comma-separated-split-values");
 
 
 // Helper routines  ///////////////////////////////////////////////////////////
@@ -279,12 +323,27 @@ get_stopping_conditions()
 bool
 get_splitting_values()
 {
-	if (!splittings_.isSet())
-		return true;  // a single default splitting value is used
-	auto strValues = split(splittings_.getValue(), ',');
-
-	/// @todo TODO finish up
-
+	if (splittings_.isSet()) {
+		auto strValues = split(splittings_.getValue(), ',');
+		char* err(nullptr);
+		for (const auto& strValue: strValues) {
+			unsigned value = std::strtoul(strValue.data(), &err, 10);
+			if (nullptr == err || err[0] == '\0') {
+				splittings.emplace(value);
+			} else {
+				// Mimic TCLAP 'parsing error' message style
+				std::cerr << "PARSE ERROR: Argument: (--"
+						  << splittings_.getName() << ")\n";
+				std::cerr << "             Invalid value given \""
+						  << err << "\"\n\n";
+				return false;
+			}
+		}
+	} else {
+		// If we set a default for "splittings_" we shouldn't be here...
+		// anyway, use a single default splitting value if none was specified
+		splittings.emplace(2u);
+	}
 	return true;
 }
 
@@ -340,10 +399,9 @@ bool parse_arguments(const int& argc, const char** argv, bool fatalError)
 		}
 		bool splittingsDefined = get_splitting_values();
 		if (!splittingsDefined) {
-			std::cerr << "ERROR: splitting values must be given as a comma-"
-						 "sperated list of positive integral values. "
-						 "There should be no spaces in this list.";
-			std::cerr << "(aka estimation bound).\n\n";
+			std::cerr << "ERROR: splitting values must be specified as a "
+						 "comma-sperated list of positive integral values. "
+						 "There should be no spaces in this list.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
 			if (fatalError)

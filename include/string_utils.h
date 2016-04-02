@@ -33,6 +33,9 @@
 #include <vector>
 
 
+/// Count the number of times character 'c' appears in string 's'
+size_t count(const std::string& s, const char& c);
+
 /**
  * @brief Replace in "s" all occurrences of "from" for "to"
  * @param s    String to have the substitutions made
@@ -72,14 +75,20 @@ std::string trim(std::string&& s);
 
 /**
  * @brief Split a string on every occurrence of the specified delimiter
+ * @details The delitimer isn't included in the resulting substrings vector.
+ *          Unless otherwise specified empty substrings are also skipped.
+ *          For instance if the string "12,a,-5,,a" is split for the delimiter
+ *          character ',' then the result will be ["12","a","-5","a"]
  * @param s     String to split
  * @param delim Delimiter to chop the string by
+ * @param includeEmptyMatches Whether to include empty strings in the result
+ *                            (whenever found that is)
  * @return Vector with chopped contents of the original string.
- * @note Every occurrence of the delimiter in the original string
- *       is deleted and will not occur in the result.
- * @note Taken from <a href="http://stackoverflow.com/a/236803">
+ * @note Adapted from <a href="http://stackoverflow.com/a/236803">
  *       this SO community-wiki answer</a>.
  */
-std::vector<std::string> split(const std::string &s, char delim);
+std::vector<std::string> split(const std::string &s,
+							   char delim,
+							   bool includeEmptyMatches = false);
 
 #endif // STRING_UTILS_H

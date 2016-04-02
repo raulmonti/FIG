@@ -29,7 +29,10 @@
 
 // C
 #include <cctype>  // std::isspace()
+#include <cstdio>  // std::getline()
+#include <cassert>
 // C++
+#include <sstream>
 #include <algorithm>  // find_if_not()
 // FIG
 #include <string_utils.h>
@@ -41,6 +44,21 @@
 using std::string;
 using std::isspace;
 using std::find_if_not;
+const size_t NPOS = std::string::npos;
+
+
+size_t
+count(const std::string &s, const char &c)
+{
+	long cnt(-1l), pos(-1l);
+	do {
+		cnt++; pos++;
+		pos = s.find(c, pos);
+	} while (NPOS != static_cast<size_t>(pos));
+	assert(cnt >= 0l);
+	assert(cnt <= static_cast<long>(s.length()));
+	return static_cast<size_t>(cnt);
+}
 
 
 string&
@@ -49,7 +67,7 @@ replace_substring(string& s, const string& from, const string& to)
 	if (from.empty())
 		return s;
 	size_t start_pos(0ul);
-	while ((start_pos = s.find(from, start_pos)) != string::npos) {
+	while ((start_pos = s.find(from, start_pos)) != NPOS) {
 		s.replace(start_pos, from.length(), to);
 		start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
 	}
@@ -98,15 +116,17 @@ trim(string&& s)
 }
 
 
-std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
-
-	/// @todo TODO revise and format
-
+std::vector<std::string>
+split(const std::string& s,
+	  char delim,
+	  bool includeEmptyMatches)
+{
+	std::vector<string> result;
+	result.reserve( count(s,delim) + 1ul );
 	std::stringstream ss(s);
 	std::string item;
-	while (std::getline(ss, item, delim)) {
-		elems.push_back(item);
-	}
-	return elems;
+	while (std::getline(ss, item, delim))
+		if (!item.empty() || includeEmptyMatches)
+			result.push_back(item);
+	return result;
 }
-

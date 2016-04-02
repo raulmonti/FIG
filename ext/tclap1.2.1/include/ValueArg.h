@@ -23,6 +23,7 @@
 #ifndef TCLAP_VALUE_ARGUMENT_H
 #define TCLAP_VALUE_ARGUMENT_H
 
+#include <cctype>
 #include <string>
 #include <vector>
 
@@ -399,12 +400,22 @@ std::string ValueArg<T>::longID(const std::string& val) const
 template<class T>
 void ValueArg<T>::_extractValue( const std::string& val ) 
 {
-    try {
-	ExtractValue(_value, val, typename ArgTraits<T>::ValueCategory());
-    } catch( ArgParseException &e) {
-	throw ArgParseException(e.error(), toString());
-    }
-    
+	try {
+		ExtractValue(_value, val, typename ArgTraits<T>::ValueCategory());
+	} catch( ArgParseException &e) {
+		throw ArgParseException(e.error(), toString());
+	}
+
+	if (std::is_same<T,std::string>::value   &&  // parsing for a string
+		val.length() >= 2ul && val[0] == '-' &&  // it starts with '-'
+		(val[1] == '-' || isalpha(val[1])))      // followed by '-' or a letter
+		// I bet my ass the user forgot to pass the value for this argument
+		// and we're incorrectly taking the next argument name as such value
+		throw CmdLineParseException("Parsed '" + val + "' as the value for "
+									"argument \"--" + _name + "\". Did you "
+									"remember to pass the value this argument "
+									"requires?");
+
     if ( _constraint != NULL )
 	if ( ! _constraint->check( _value ) )
 	    throw( CmdLineParseException( "Value '" + val + 

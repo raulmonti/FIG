@@ -547,27 +547,42 @@ inline bool CmdLine::_emptyCombined(const std::string& s)
 
 inline void CmdLine::missingArgsException()
 {
-		int count = 0;
+		unsigned count(0u);
 
 		std::string missingArgList;
+		// Check for regular arguments
 		for (ArgListIterator it = _argList.begin(); it != _argList.end(); it++)
 		{
-			if ( (*it)->isRequired() && !(*it)->isSet() )
+			if ( (*it)->isRequired() &&
+				!(*it)->isSet()      &&
+				!_xorHandler.contains(*it) )
 			{
 				missingArgList += (*it)->getName();
 				missingArgList += ", ";
 				count++;
 			}
 		}
-		missingArgList = missingArgList.substr(0,missingArgList.length()-2);
+		// Check for OR/XOR arguments
+		for (const std::pair<std::vector<Arg*>,bool> pair: _xorHandler.getXorList()) {
+			bool set(false);
+			for (const Arg* arg: pair.first)
+				set |= arg->isSet();
+			if (!set) {
+				const std::string OR(pair.second ? ("|") : ("/"));
+				for (const Arg* arg: pair.first)
+					missingArgList += arg->getName() + OR;
+				missingArgList = missingArgList.substr(
+							0ul, missingArgList.length()-OR.length());
+				missingArgList += ", ";
+				count++;
+			}
+		}
+		missingArgList = missingArgList.substr(0ul, missingArgList.length()-2ul);
 
-		std::string msg;
-		if ( count > 1 )
-			msg = "Required arguments missing: ";
-		else
-			msg = "Required argument missing: ";
-
+		std::string msg("Required argument");
+		msg += (count > 1u ? ("s missing: ") : (" missing: "));
 		msg += missingArgList;
+		msg += ". Here '|' symbolizes a logical OR and '/' a logical XOR.";
 
 		throw(CmdLineParseException(msg));
 }

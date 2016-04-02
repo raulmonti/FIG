@@ -185,6 +185,12 @@ StdOutput::_shortUsage( CmdLineInterface& _cmd,
 		if ( !xorHandler.contains( (*it) ) )
 			s += " " + (*it)->shortID();
 
+	// brief explanation of the short-usage syntax
+	s += "\nOptions surrounded by square braces, i.e. [...], are optional. ";
+	s += "Options surrounded by curly braces, i.e. {...}, are always required "
+		 "but at least (or exactly) one of them is needed, depending on whether "
+		 "the separator is '|' or '/' respectively.";
+
 	// if the program name is too long, then adjust the second line offset 
 	int secondLineOffset = static_cast<int>(progName.length()) + 2;
 	if ( secondLineOffset > 75/2 )
@@ -213,9 +219,9 @@ StdOutput::_longUsage( CmdLineInterface& _cmd,
 					spacePrint( os, (*it)->getDescription(), 75, 5, 0 );
 
 					if ( it+1 != xorList[i].first.end() )
-						spacePrint(os, (xorList[i].second ? ("-- OR --")
-														  : ("-- XOR --")),
-								   75, 9, 0);
+						spacePrint(os, (xorList[i].second ? (" | OR |")
+														  : ("| XOR |")),
+								   75, 29, 0);
 				}
 			os << std::endl << std::endl;
 		}

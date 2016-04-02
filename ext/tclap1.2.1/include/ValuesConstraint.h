@@ -143,7 +143,7 @@ ValuesConstraint<T>::ValuesConstraint(const std::vector<T>& allowed)
         std::string temp( os.str() ); 
 
         if ( i > 0 )
-			_typeDesc += "|";
+			_typeDesc += "/";
         _typeDesc += temp;
     }
 }

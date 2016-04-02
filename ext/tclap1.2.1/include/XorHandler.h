@@ -95,7 +95,8 @@ class XorHandler
 		 */
 		bool contains( const Arg* a );
 
-		std::vector<std::pair<std::vector<Arg *>, bool> > &getXorList();
+		const std::vector<std::pair<std::vector<Arg *>, bool> >&
+		getXorList() const;
 
 };
 
@@ -170,7 +171,8 @@ inline bool XorHandler::contains( const Arg* a )
 	return false;
 }
 
-inline std::vector< std::pair< std::vector<Arg*>, bool> >& XorHandler::getXorList()
+const std::vector< std::pair< std::vector<Arg*>, bool> >&
+XorHandler::getXorList() const
 {
 	return _orList;
 }

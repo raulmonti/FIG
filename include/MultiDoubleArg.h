@@ -161,12 +161,12 @@ public:  // Utils
 	/// Short id string used in the USAGE printing
 	/// \param val - value to be used.
 	inline virtual std::string shortID(const std::string&) const
-		{ return Arg::shortID(_typeDesc) + " ... "; }
+		{ return Arg::shortID(_typeDesc) + "... "; }
 
 	/// Long id string used in the USAGE printing
 	/// \param val - value to be used.
 	inline virtual std::string longID(const std::string&) const
-		{ return Arg::shortID(_typeDesc) + " ... "; }
+		{ return Arg::shortID(_typeDesc) + "... "; }
 
 	/// @copydoc Arg::isRequired()
 	/// @note Notice once the first value has been matched, new occurrences
