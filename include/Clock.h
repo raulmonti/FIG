@@ -65,6 +65,8 @@ extern std::unordered_map< std::string, Distribution > distributions_list;
  */
 class Clock
 {
+	friend class ModelSuite;  // allow it RNG handling
+
 	/// Clock name
 	std::string name_;
 
@@ -76,6 +78,14 @@ class Clock
 
 	/// Clock's distribution parameters
 	DistributionParameters distParams_;
+
+public:  // Class' RNG manipulations
+
+	static unsigned rng_seed() noexcept;
+
+private:
+
+	static void restart_rng();  // offered to ModelSuite
 
 public:  // Ctors
 

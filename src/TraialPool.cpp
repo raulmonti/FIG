@@ -115,6 +115,13 @@ TraialPool::get_traial()
 void
 TraialPool::return_traial(Traial&& traial)
 {
+	available_traials_.emplace_front(traial);
+}
+
+
+void
+TraialPool::return_traial(Reference<Traial> traial)
+{
 	available_traials_.push_front(traial);
 }
 
@@ -235,14 +242,13 @@ TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
 {
 	assert(0u < numCopies++);
 	assert(0 >= depth);  // we're typically called on a threshold-level-up
-
 	retrieve_traials:
 	while (!available_traials_.empty() && 0u < --numCopies) {
 		Traial& t = available_traials_.front();
 		available_traials_.pop_front();
 		t = traial;
 		t.depth = depth;
-		stack.emplace(std::ref(t));  // copy elision
+		stack.emplace(t);  // copy elision
 	}
 	if (0u < numCopies) {
 		ensure_resources(std::max<unsigned>(numCopies++, sizeChunkIncrement));

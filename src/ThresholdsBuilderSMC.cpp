@@ -111,10 +111,10 @@ build_states_distribution(const fig::ModuleNetwork& network,
     // advance the first 'n' traials until they meet a state realizing lastThr
     std::uniform_int_distribution<unsigned> uniK(0, k-1);
     for (unsigned i = 0u ; i < n ; i++) {
-        Traial& t(traials[i]);
+		Traial& t(traials[i]);
         do {
             jumpsLeft = MIN_SIM_EFFORT;
-            t = traials[n + uniK(RNG)];  // choose randomly among last 'k'
+			t = traials[n + uniK(RNG)];  // choose randomly among last 'k'
             assert(t.level < lastThr);
             network.peak_simulation(t, update, predicate);
         } while (lastThr != t.level);
@@ -126,7 +126,7 @@ build_states_distribution(const fig::ModuleNetwork& network,
     std::uniform_int_distribution<unsigned> uniN(0, n-1);
     for (unsigned i = 0u ; i < k ; i++) {
         do { pos = uniN(RNG); } while (used[pos]);
-        traials[n+i].get() = traials[pos];  // copy values, not addresses
+		traials[n+i].get() = traials[pos];  // copy values, not addresses
         used[pos] = true;
     }
 }

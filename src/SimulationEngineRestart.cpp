@@ -126,7 +126,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 											   const size_t& numRuns) const
 {
 	assert(0u < numRuns);
-	unsigned numThresholds(impFun_->num_thresholds());
+	const unsigned numThresholds(impFun_->num_thresholds());
 	std::valarray<unsigned> raresCount(0u, numThresholds+1);
 	std::stack< Reference< Traial > > stack;
 	auto tpool = TraialPool::get_instance();
@@ -139,10 +139,21 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	else
 		watch_events = &SimulationEngineRestart::transient_event;
 
+	/// @todo TODO erase debug stuff
+	size_t count(0ul);
+	static size_t call(0ul);
+	call++;
+	////////////////////////////////
+
 	// Perform 'numRuns' RESTART importance-splitting simulations
 	for (size_t i = 0u ; i < numRuns && !interrupted ; i++) {
 		tpool.get_traials(stack, 1u);
 		stack.top().get().initialize(*network_, *impFun_);
+
+		/// @todo TODO erase debug stuff
+//		if (!(count++ % (numRuns/2ul)))
+//			std::cerr << "REMEN\n";
+		////////////////////////////////
 
 		while (!stack.empty()) {
 			Event e(EventType::NONE);
@@ -153,10 +164,28 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			if (IS_RARE_EVENT(e)) {
 				// We are? Then count and kill
 				raresCount[traial.level]++;
+
+				/// @todo TODO erase debug stuff
+//				if (call >= 6ul)
+//					std::cerr << "Rare in level " << traial.level
+//							  << " @ " << traial.lifeTime << "\n";
+				////////////////////////////////
+
 				tpool.return_traial(std::move(traial));
 				stack.pop();
 				continue;
 			}
+
+				/// @todo TODO erase debug stuff
+				if (traial.lifeTime > 600) {
+					std::cerr << "Long live!\n";
+					exit(EXIT_FAILURE);
+				}
+//				if (call >= 6ul)
+//					std::cerr << "In level " << traial.level
+//							  << " @ " << traial.lifeTime << "\n";
+				////////////////////////////////
+
 			// We aren't? Then keep dancing
 			e = network_->simulation_step(traial, property, *this, watch_events);
 
@@ -211,7 +240,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 										 bool reinit) const
 {
 	assert(0u < runLength);
-	unsigned numThresholds(impFun_->num_thresholds());
+	const unsigned numThresholds(impFun_->num_thresholds());
 	std::valarray< CLOCK_INTERNAL_TYPE > raresCount(0.0, numThresholds+1);
 	std::stack< Reference< Traial > > stack;
 	auto tpool = TraialPool::get_instance();

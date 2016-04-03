@@ -64,7 +64,7 @@ public:
 							 ThresholdsBuilderAdaptive()
 		{ /* Not much to do around here */ }
 
-private:  // Utils for the class and its kin
+protected:  // Utils for the class and its kin
 
 	void build_thresholds_vector(const ImportanceFunction& impFun) override;
 

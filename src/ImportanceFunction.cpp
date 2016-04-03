@@ -295,8 +295,11 @@ ImportanceFunction::strategy() const noexcept
 const std::string
 ImportanceFunction::adhoc_fun() const noexcept
 {
-	return has_importance_info() && "adhoc" == strategy_ ? userFun_.expression()
-														 : "";
+	if (has_importance_info() &&
+			("adhoc" == strategy_ || "concrete_split" == name_))
+		return userFun_.expression();
+	else
+		return "";
 }
 
 
@@ -437,7 +440,8 @@ ImportanceFunction::post_process_thresholds(const std::string& tbName)
 	assert(importance2threshold_[0] == static_cast<ImportanceValue>(0u));
 	assert(importance2threshold_[0] <= importance2threshold_.back());
 	// (threshold levels are a non-decreasing function of the importance)
-	assert(importance2threshold_[minValue_] <= importance2threshold_[minRareValue_]);
+	assert(importance2threshold_[minValue_] <= importance2threshold_[initialValue_]);
+	assert(importance2threshold_[initialValue_] <= importance2threshold_[minRareValue_]);
 	assert(importance2threshold_[minRareValue_] <= importance2threshold_[maxValue_]);
 
 	// Set relevant attributes

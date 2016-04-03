@@ -243,7 +243,6 @@ void MultiDoubleArg<T1_,T2_>::_extractValues(const std::string& val1,
 {
 	std::pair<T1_,T2_> tmp;
 	try {
-		/// @todo FIXME check for troubles, maybe the first invocation swallows both values an fails
 		ExtractValue(tmp.first,  val1, typename ArgTraits<T1_>::ValueCategory());
 		ExtractValue(tmp.second, val2, typename ArgTraits<T2_>::ValueCategory());
 	} catch (ArgParseException &e) {

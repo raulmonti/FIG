@@ -139,6 +139,9 @@ public:  // Access to resources (viz Traials)
 	 */
 	void return_traial(Traial&& traial);
 
+	/// @copydoc return_traial()
+	void return_traial(Reference<Traial> traial);
+
     /**
      * Obtain specified amount of (dirty) Traial instances
      *

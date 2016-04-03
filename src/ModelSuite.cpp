@@ -1037,7 +1037,7 @@ ModelSuite::build_thresholds(const std::string& technique,
 					lvlUpProb,
 					simsPerIter);
 		else
-            ifun.build_thresholds(thrBuilder, splitsPerThreshold);
+			ifun.build_thresholds(thrBuilder, splitsPerThreshold);
 		techLog_ << "Thresholds building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"
@@ -1159,6 +1159,7 @@ ModelSuite::estimate(const Property& property,
 				timedout = true;
 			});
 			timedout = false;
+			Clock::restart_rng();  // seed RNG for this estimation
 			alarm(wallTimeInSeconds);
 			lastEstimationStartTime_ = omp_get_wtime();
 			engine.lock();
@@ -1202,7 +1203,8 @@ ModelSuite::estimate(const Property& property,
 									   engine.current_imp_fun());
 			double startTime = omp_get_wtime();
 
-			bool reinit(true);  // start from system's initial state
+			bool reinit(true);     // start from system's initial state
+			Clock::restart_rng();  // seed RNG for this estimation
 			lastEstimationStartTime_ = omp_get_wtime();
 			engine.lock();
 			do {

@@ -34,7 +34,7 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <iterator>     // std::begin(), std::end()
+#include <iterator>     // std::begin(), std::end(), std::distance()
 #include <type_traits>  // std::is_constructible<>
 #include <unordered_map>
 // FIG
@@ -48,6 +48,7 @@
 #endif
 
 // ADL
+using std::distance;
 using std::begin;
 using std::end;
 
@@ -590,8 +591,8 @@ public:  // Simulation utils
 	 * @param thrTechnique Any from available_threshold_techniques()
 	 * @param estimationBounds List of stopping conditions to use for the
 	 *                         estimation of each property (all are used)
-	 * @param splittingValues (<i>optional</i>) List of splittings to test,
-	 *                        relevant for RESTART-like simulation engines only
+	 * @param splittingValues List of splittings to test, used for
+	 *                        RESTART-like simulation engines only
 	 *
 	 * @note The model must have been \ref seal() "sealed" beforehand
 	 *
@@ -610,8 +611,8 @@ public:  // Simulation utils
 					   const std::pair<std::string,std::string>& impFunStrategy,
 					   const std::string& thrTechnique,
 					   const Container1<ValueType1, OtherArgs1...>& estimationBounds,
-					   Container2<ValueType2, OtherArgs2...> splittingValues
-						   = std::vector<int>());
+					   const Container2<ValueType2, OtherArgs2...>& splittingValues
+						   = std::vector<unsigned>());
 
 	/// @todo TODO design and implement interactive processing
 	void process_interactive();
@@ -645,7 +646,7 @@ ModelSuite::process_batch(
 	const std::pair<std::string,std::string>& impFunStrategy,
 	const std::string& thrTechnique,
 	const Container1<ValueType1, OtherArgs1...>& estimationBounds,
-	Container2<ValueType2, OtherArgs2...> splittingValues)
+	const Container2<ValueType2, OtherArgs2...>& splittingValues)
 {
 	static_assert(std::is_constructible< StoppingConditions, ValueType1 >::value,
 				  "ERROR: type mismatch. ModelSuite::process_batch() takes a "
@@ -679,6 +680,18 @@ ModelSuite::process_batch(
 		throw_FigException("inexistent simulation engine \"" + engineName +
 						   "\". Call \"available_simulators()\" for a list "
 						   "of available options.");
+	} else if (std::distance(begin(estimationBounds), end(estimationBounds))
+			   == 0ul) {
+		log("Can't estimate: no stopping conditions were specified.\n");
+		throw_FigException("aborting execution since no estimation bounds "
+						   "were specified.");
+	} else if (std::distance(begin(splittingValues), end(splittingValues))
+			   == 0ul && "nosplit" != engineName) {
+		log("Can't estimate: no splitting value was specified for engine \""
+			+ engineName + "\"\n");
+		throw_FigException("aborting execution since no splitting values "
+						   "were chosen for simulation engine \"" +
+						   engineName + "\"");
 	}
 
 	// For each property ...
@@ -696,13 +709,8 @@ ModelSuite::process_batch(
 											std::vector<std::string>(), true);
 		assert(impFuns[impFunName]->has_importance_info());
 
-		// ... and for each splitting specified (or default if any) ...
-		std::vector< unsigned > splittings;
-		if (std::distance(begin(splittingValues), end(splittingValues)) == 0ul)
-			splittings.push_back(2u);
-		else
-			splittings.insert(end(splittings), begin(splittingValues), end(splittingValues));
-		for (const auto& split: splittings) {
+		// ... and for each splitting specified ...
+		for (const auto& split: splittingValues) {
 
 			// ... choose the thresholds ...
 			if ("nosplit" != engineName)

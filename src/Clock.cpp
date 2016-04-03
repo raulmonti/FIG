@@ -44,9 +44,9 @@ typedef  fig::CLOCK_INTERNAL_TYPE     return_t;
 typedef  fig::DistributionParameters  params_t;
 
 #ifndef NDEBUG
-const unsigned int rngSeed(1234567803u);  // repeatable outcome
+const unsigned rngSeed(1234567803u);  // repeatable outcome
 #else
-const unsigned int rngSeed(std::random_device{}());
+const unsigned rngSeed(std::random_device{}());
 #endif
 
 std::mt19937_64  MTrng(rngSeed);
@@ -80,7 +80,8 @@ return_t uniform(const params_t& params)
 /// Check <a href="https://en.wikipedia.org/wiki/Exponential_distribution">the wiki</a>
 return_t exponential(const params_t& params)
 {
-	return exponential1(rng) / params[0];  // Grisel me dijo que es así
+	std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > exp(params[0]);
+	return exp(rng);
 }
 
 
@@ -122,6 +123,10 @@ return_t erlang(const params_t& params)
 
 namespace fig
 {
+
+unsigned Clock::rng_seed() noexcept { return rngSeed; }
+
+void Clock::restart_rng() { rng.seed(rngSeed); }
 
 std::unordered_map< std::string, Distribution > distributions_list =
 {
