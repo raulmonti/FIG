@@ -1161,7 +1161,7 @@ ModelSuite::estimate(const Property& property,
 				timedout = true;
 			});
 			timedout = false;
-			Clock::restart_rng();  // seed RNG for this estimation
+			Clock::seed_rng();  // restart RNG sequence for this estimation
 			alarm(wallTimeInSeconds);
 			lastEstimationStartTime_ = omp_get_wtime();
 			engine.lock();
@@ -1205,8 +1205,8 @@ ModelSuite::estimate(const Property& property,
 									   engine.current_imp_fun());
 			double startTime = omp_get_wtime();
 
-			bool reinit(true);     // start from system's initial state
-			Clock::restart_rng();  // seed RNG for this estimation
+			bool reinit(true);  // start from system's initial state
+			Clock::seed_rng();  // restart RNG sequence for this estimation
 			lastEstimationStartTime_ = omp_get_wtime();
 			engine.lock();
 			do {

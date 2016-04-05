@@ -128,7 +128,7 @@ namespace fig
 
 unsigned Clock::rng_seed() noexcept { return rngSeed; }
 
-void Clock::restart_rng() { rng.seed(rngSeed); }
+void Clock::seed_rng() { rng.seed(rngSeed); }
 
 std::unordered_map< std::string, Distribution > distributions_list =
 {

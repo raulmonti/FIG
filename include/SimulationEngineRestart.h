@@ -191,7 +191,7 @@ public:  // Traial observers/updaters
 				traial.lifeTime -= SIM_TIME_CHUNK;
 				simsLifetime -= SIM_TIME_CHUNK;
 			}
-			return interrupted || traial.lifeTime > simsLifetime || EventType::NONE != e;
+			return traial.lifeTime > simsLifetime || EventType::NONE != e;
 		}
 
 	/// @copydoc SimulationEngine::transient_event()
@@ -214,22 +214,12 @@ public:  // Traial observers/updaters
 				SET_THR_DOWN_EVENT(e);
 			else if (traial.numLevelsCrossed > 0)
 				SET_THR_UP_EVENT(e);
-
-			if (newThrLvl < traial.level) {
-				if (++traial.depth > static_cast<short>(dieOutDepth_))
-					SET_THR_DOWN_EVENT(e);  // Went down too deep
-			} else if (newThrLvl > traial.level) {
-				SET_THR_UP_EVENT(e);
-				traial.numLevelsCrossed = newThrLvl - traial.level;
-				traial.depth -= traial.numLevelsCrossed;
-			}
-			traial.level = newThrLvl;
+			// else: rare event info is already marked inside 'e'
 			if (traial.lifeTime > SIM_TIME_CHUNK) {  // reduce fp precision loss
 				traial.lifeTime -= SIM_TIME_CHUNK;
 				simsLifetime -= SIM_TIME_CHUNK;
 			}
-			// rare event info is already marked inside 'e'
-			return interrupted || traial.lifeTime > simsLifetime || EventType::NONE != e;
+			return traial.lifeTime > simsLifetime || EventType::NONE != e;
 		}
 
 	/// Turn off splitting and simulate (accumulating time) as long as we are

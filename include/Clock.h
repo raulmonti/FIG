@@ -81,11 +81,13 @@ class Clock
 
 public:  // Class' RNG manipulations
 
+	/// Seed used to initialized the internal RNG
 	static unsigned rng_seed() noexcept;
 
 private:
 
-	static void restart_rng();  // offered to ModelSuite
+	/// Restart RNG sequence
+	static void seed_rng();  // offered to ModelSuite
 
 public:  // Ctors
 
