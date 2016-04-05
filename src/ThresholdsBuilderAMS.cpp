@@ -149,7 +149,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	while (thresholds_.back() < impFun.max_value()) {
 		// Relaunch all n_-k_ simulations below previously built threshold
         for (unsigned i = 0u ; i < n_-k_ ; i++)
-            traials[i].get() = traials[n_-k_].get();  // copy values, not addresses
+			traials[i].get() = traials[n_-k_];  // copy values, not addresses
 		simulate(network, impFun, traials, n_-k_, simEffort);
         // New 1-k_/n_ importance quantile should be the new threshold
 		std::sort(begin(traials), end(traials), lesser);

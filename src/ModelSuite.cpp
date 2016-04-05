@@ -1130,14 +1130,16 @@ ModelSuite::estimate(const Property& property,
 		throw_FigException("SimulationEngine \"" + engine.name()
 						  +"\" isn't ready for simulations");
 	const ImportanceFunction& ifun(*impFuns[engine.current_imp_fun()]);
+	const std::string adHocFun(ifun.adhoc_fun());
 
 	mainLog_ << "Estimating " << property.expression << ",\n";
 	mainLog_ << " using simulation engine  \"" << engine.name() << "\"\n";
 	mainLog_ << " with importance function \"" << engine.current_imp_fun() << "\"\n";
-	mainLog_ << " built using strategy     \"" << engine.current_imp_strat() << "\" ";
-	mainLog_ << ifun.adhoc_fun() << std::endl;
-	mainLog_ << " # thresholds  = " << ifun.num_thresholds() << "\n";
-	mainLog_ << " and splitting = " << engine.splits_per_threshold() << std::endl;
+	mainLog_ << " built using strategy     \"" << engine.current_imp_strat() << "\"";
+	mainLog_ << (adHocFun.empty() ? ("") : (" ("+adHocFun+")")) << std::endl;
+	mainLog_ << " and thresholds technique \"" << ifun.thresholds_technique() << "\"\n";
+	mainLog_ << " [ " << ifun.num_thresholds() << " thresholds";
+	mainLog_ << " | splitting " << engine.splits_per_threshold() << " ]\n";
 
 	if (bounds.is_time()) {
 
@@ -1188,10 +1190,10 @@ ModelSuite::estimate(const Property& property,
 							  std::get<1>(criterion),
 							  std::get<2>(criterion));
             interruptCI_ = ci_ptr.get();  // bad boy
-			mainLog_ << "   For confidence level: "
+			mainLog_ << "   Confidence level: "
 					 << std::setprecision(0) << std::fixed
 					 << 100*ci_ptr->confidence << "%" << std::endl;
-			mainLog_ << "   and precision: ";
+			mainLog_ << "   Precision: ";
             if (ci_ptr->percent)
 				mainLog_ << std::setprecision(0) << std::fixed
 						 << (200*ci_ptr->errorMargin) << "%\n";

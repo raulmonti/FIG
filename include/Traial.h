@@ -71,7 +71,12 @@ class ImportanceFunction;
  */
 class Traial
 {
-    friend class Transition;  // allow them to handle our clocks
+	friend class Transition;  // to handle our clocks
+	friend class TraialPool;  // to instantiate (ctor)
+
+	/// @todo FIXME remove following and use copy elision in TraialPool::ensure_resources()?
+	friend class std::vector< Traial >;
+	friend struct __gnu_cxx::new_allocator<Traial>;
 
 public:
 
@@ -124,7 +129,7 @@ private:
 	/// Negative if all are null.
 	int firstNotNull_;
 
-public:  // Ctors/Dtor: TraialPool should be the only to create Traials
+private:  // Ctors: TraialPool should be the only one to create Traials
 
 	/**
 	 * @brief Void ctor for resources pool
@@ -160,77 +165,17 @@ public:  // Ctors/Dtor: TraialPool should be the only to create Traials
 		   const Container<ValueType, OtherContainerArgs...>& whichClocks,
 		   bool orderTimeouts = false);
 
+public:  // Copy/Assign/Dtor
+
 	/// Copy ctor disabled to avoid accidental copies,
 	/// only the TraialPool should explicitly create/destroy Traials
 	Traial(const Traial&) = delete;  // Instantiate with 'Traial&', not 'auto'
 
 	/// Move ctor
 	Traial(Traial&& that) = default;
-//	{
-//		std::swap(level, that.level);
-//		std::swap(depth, that.depth);
-//		std::swap(numLevelsCrossed, that.numLevelsCrossed);
-//		std::swap(lifeTime, that.lifeTime);
-//		std::swap(state, that.state);
-//		std::swap(orderedIndex_, that.orderedIndex_);
-//		std::swap(firstNotNull_, that.firstNotNull_);
-//		that.level = 0;
-//		that.depth = 0;
-//		that.numLevelsCrossed = 0;
-//		that.lifeTime = 0.0;
-//		that.firstNotNull_ = -1;
-//		StateInstance().swap(that.state);
-//		std::vector<unsigned>().swap(that.orderedIndex_);
-//	}
-//	{
-//		level = that.level; that.level = 0;
-//		depth = that.depth; that.depth = 0;
-//		numLevelsCrossed = that.numLevelsCrossed; that.numLevelsCrossed = 0;
-//		lifeTime = that.lifeTime; that.lifeTime = -999.0;
-//		state = that.state;
-//		for (size_t i = 0ul ; i < that.clocks_.size() ; i++) {
-//			clocks_[i] = that.clocks_[i];
-//			that.clocks_[i].name = "";
-//			that.clocks_[i].value = 0.0;
-//		}
-//		orderedIndex_ = that.orderedIndex_;
-//		firstNotNull_ = that.firstNotNull_; that.firstNotNull_ = -1;
-//	}
-
-//	/// Copy assignment through copy&swap idiom
-//	Traial& operator=(Traial that)
-//	{
-//		std::swap(level, that.level);
-//		std::swap(depth, that.depth);
-//		std::swap(numLevelsCrossed, that.numLevelsCrossed);
-//		std::swap(lifeTime, that.lifeTime);
-//		std::swap(state, that.state);
-//		std::swap(orderedIndex_, that.orderedIndex_);
-//		std::swap(firstNotNull_, that.firstNotNull_);
-//		that.level = 0;
-//		that.depth = 0;
-//		that.numLevelsCrossed = 0;
-//		that.lifeTime = 0.0;
-//		that.firstNotNull_ = -1;
-//		StateInstance().swap(that.state);
-//		std::vector<unsigned>().swap(that.orderedIndex_);
-//		return *this;
-//	}
 
 	/// Copy assignment
 	Traial& operator=(const Traial& that) = default;
-//	{
-//		level = that.level;
-//		depth = that.depth;
-//		numLevelsCrossed = that.numLevelsCrossed;
-//		lifeTime = that.lifeTime;
-//		state = that.state;
-//		for (size_t i = 0ul ; i < that.clocks_.size() ; i++)
-//			clocks_[i] = that.clocks_[i];
-//		orderedIndex_ = that.orderedIndex_;
-//		firstNotNull_ = that.firstNotNull_;
-//		return *this;
-//	}
 
 	/// Move assignemnt
 	Traial& operator=(Traial&&) = default;

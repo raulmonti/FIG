@@ -248,7 +248,7 @@ TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
 		available_traials_.pop_front();
 		t = traial;
 		t.depth = depth;
-		stack.emplace(t);  // copy elision
+		stack.push(std::ref(t));  // copy elision
 	}
 	if (0u < numCopies) {
 		ensure_resources(std::max<unsigned>(numCopies++, sizeChunkIncrement));
@@ -340,6 +340,7 @@ TraialPool::ensure_resources(const size_t& requiredResources)
 		available_traials_.emplace_front(std::ref(traials_[i]));
 	// Now create and reference the new Traial instances
 	for (size_t i = oldSize ; i < newSize ; i++) {
+//		traials_.push_back(Traial(numVariables, numClocks));  // copy elision
 		traials_.emplace_back(numVariables, numClocks);
 		available_traials_.emplace_front(std::ref(traials_[i]));
 	}

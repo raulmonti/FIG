@@ -72,8 +72,8 @@ protected:
 	Constraint<T1_>* _constraint1;
 	Constraint<T2_>* _constraint2;
 
-	/// Extract the values from the strings attempting to parse them
-	/// as type T1_ and type T2_ respectively
+	/// Fill in "_values" with these two strings,
+	/// attempting to parse them as type T1_ and type T2_ respectively.
 	/// @param val1 - String to be read and parsed as type T1_
 	/// @param val2 - String to be read and parsed as type T2_
 	/// @throw ArgParseException if the types parsing fails
@@ -248,10 +248,10 @@ void MultiDoubleArg<T1_,T2_>::_extractValues(const std::string& val1,
 	} catch (ArgParseException &e) {
 		const std::string MARGIN("             ");
 		throw ArgParseException(e.error() + ".\n"
-								+ MARGIN + "Argument \"--" + _name + "\" takes "
-								"two values; if you provided one (or none)\n"
-								+ MARGIN + "then another argument's name or "
-								"value could've been used.", toString());
+								+ MARGIN + "Argument \"--" + _name +
+								"\" takes two values; if you provided less\n"
+								+ MARGIN + "then another argument's flag/name"
+								"/value could've been used.", toString());
 	}
 	if (_constraint1 != nullptr && !_constraint1->check(tmp.first))
 		throw CmdLineParseException("Value '" + val1 + "' fails to meet a "
@@ -293,8 +293,11 @@ MultiDoubleArg<T1_,T2_>::processArg(int *i, std::vector<std::string>& args)
         if ((*i)+2ul >= args.size())
             throw ArgParseException("This argument takes two values but "
                                     "only one was provided", toString());
+
         // take the first two subsequent strings, regardless of start string
-        _extractValues(args[++(*i)], args[++(*i)]);
+        const std::string val1(args[++(*i)]);
+        const std::string val2(args[++(*i)]);
+        _extractValues(val1, val2);
 
         _alreadySet = true;
         return true;

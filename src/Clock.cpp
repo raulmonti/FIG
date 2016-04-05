@@ -71,7 +71,8 @@ std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal01(0.0 , 1.0);
 /// Check <a href="https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)">the wiki</a>
 return_t uniform(const params_t& params)
 {
-	return params[0] + (params[1] - params[0]) * uniform01(rng);
+	std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uni(params[0], params[1]);
+	return uni(rng);
 }
 
 
@@ -91,7 +92,8 @@ return_t exponential(const params_t& params)
 /// Check <a href="https://en.wikipedia.org/wiki/Normal_distribution">the wiki</a>
 return_t normal(const params_t& params)
 {
-	return std::max<double>(0.000001, normal01(rng) * params[1] + params[0]);
+	std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal(params[0], params[1]);
+	return std::max<double>(0.000001, normal(rng));
 }
 
 
