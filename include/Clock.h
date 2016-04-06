@@ -47,8 +47,6 @@
 namespace fig
 {
 
-class ModuleInstance;  // Fwd declaration for internal pointer
-
 /// Global container with distributions offered for time sampling
 extern std::unordered_map< std::string, Distribution > distributions_list;
 

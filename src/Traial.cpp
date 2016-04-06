@@ -49,6 +49,10 @@ using std::begin;
 using std::end;
 
 
+/// @todo TODO erase debug include
+extern bool trackSimulation;
+
+
 namespace fig
 {
 
@@ -147,11 +151,17 @@ Traial::~Traial()
 
 
 std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >
-Traial::clocks_values() const
+Traial::clocks_values(bool ordered) const
 {
 	std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >values(clocks_.size());
-	for (size_t i = 0ul ; i < values.size() ; i++)
-		values[i] = std::make_pair(clocks_[i].name, clocks_[i].value);
+	if (ordered)
+		for (size_t i = 0ul ; i < values.size() ; i++)
+			values[i] = std::make_pair(clocks_[orderedIndex_[i]].name,
+									   clocks_[orderedIndex_[i]].value);
+	else
+		for (size_t i = 0ul ; i < values.size() ; i++)
+			values[i] = std::make_pair(clocks_[i].name,
+									   clocks_[i].value);
 	return values;
 }
 
@@ -176,16 +186,41 @@ Traial::initialize(const ModuleNetwork& network,
 	// Initialize clocks (reset all and then resample initials)
     for (auto& timeout : clocks_)
         timeout.value = 0.0f;
-	for (const auto& pos_clk_pair: network.initialClocks)
+	for (const auto& pos_clk_pair: network.initialClocks) {
 		clocks_[pos_clk_pair.first].value = pos_clk_pair.second.sample();
+		assert(0.0 < clocks_[pos_clk_pair.first].value);
+	}
 	// Initialize importance and simulation time
 	level = impFun.ready() ? impFun.level_of(state)
 						   : impFun.importance_of(state);
-	depth = 0;
+	depth = -static_cast<short>(level);
 	numLevelsCrossed = 0;
 	lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
 }
 
+
+/// @todo TODO send back inlined into the header
+const Traial::Timeout&
+Traial::next_timeout(bool reorder)
+{
+	if (reorder)
+		reorder_clocks();
+	if (0 > firstNotNull_) {
+		std::stringstream errMsg;
+		errMsg << "all clocks are null, deadlock? State is (";
+		for (const auto& v: state)
+		 errMsg << v << ",";
+		errMsg << "\b)";
+		throw_FigException(errMsg.str());
+	}
+//	const Timeout& to = clocks_[firstNotNull_];
+//	std::cerr << "Sent &" << std::hex << &to
+//			  << " with " << to.name << "@" << to.value
+//			  << " from " << to.module->name
+//			  << " & " << std::hex << to.module.get() << std::endl;
+	return clocks_[firstNotNull_];
+}
+////////////////////////////////
 
 void
 Traial::reorder_clocks()
@@ -199,12 +234,36 @@ Traial::reorder_clocks()
 		}
 	);
 	// Find first not-null clock, or record '-1' if all are null
-	for (unsigned i=0 ; i < clocks_.size() || ((firstNotNull_ = -1) && false) ; i++) {
+	for (unsigned i=0u ; i < clocks_.size() || ((firstNotNull_ = -1) && false) ; i++) {
 		if (0.0f < clocks_[orderedIndex_[i]].value) {
 			firstNotNull_ = orderedIndex_[i];
 			break;
 		}
 	}
+	/// @todo TODO erase debug check
+	for (size_t i = 0ul ; i < clocks_.size()-1ul ; i++)
+		assert(clocks_[orderedIndex_[i]].value
+				<= clocks_[orderedIndex_[i+1]].value);
+	////////////////////////////////
 }
+
+
+/// @todo TODO send back inlined into the header
+void
+Traial::kill_time(const size_t& firstClock,
+				  const size_t& numClocks,
+				  const CLOCK_INTERNAL_TYPE& timeLapse)
+{
+//	if (trackSimulation)
+//		std::cerr << "killing " << timeLapse << " in";
+	for (size_t i = firstClock ; i < firstClock + numClocks ; i++) {
+//		assert(clocks_[i].value >  timeLapse ||
+//			   clocks_[i].value <= static_cast<CLOCK_INTERNAL_TYPE>(0.0));
+		clocks_[i].value -= timeLapse;
+//		if (trackSimulation)
+//			std::cerr << clocks_[i].name;
+	}
+}
+////////////////////////////////
 
 } // namespace fig

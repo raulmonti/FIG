@@ -51,7 +51,6 @@
 using std::begin;
 using std::end;
 
-
 namespace fig
 {
 
@@ -185,8 +184,9 @@ public:  // Copy/Assign/Dtor
 public:  // Accessors
 
 	/// Get the current time values of the clocks (attached to their names)
+	/// @param ordered Whether to return the increasing-order view of the clocks
 	std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >
-	clocks_values() const;
+	clocks_values(bool ordered = false) const;
 
 public:  // Utils
 
@@ -218,21 +218,23 @@ public:  // Utils
 	 * @note  Attempted inlined for efficiency, sorry
 	 * @throw FigException if all our clocks have null value
 	 */
-	inline const Timeout&
-	next_timeout(bool reorder = true)
-		{
-			if (reorder)
-				reorder_clocks();
-            if (0 > firstNotNull_) {
-                std::stringstream errMsg;
-                errMsg << "all clocks are null, deadlock? State is (";
-                for (const auto& v: state)
-                    errMsg << v << ",";
-                errMsg << "\b)";
-                throw_FigException(errMsg.str());
-            }
-			return clocks_[firstNotNull_];
-		}
+	const Timeout&
+	next_timeout(bool reorder = true);
+//	inline const Timeout&
+//	next_timeout(bool reorder = true)
+//		{
+//			if (reorder)
+//				reorder_clocks();
+//            if (0 > firstNotNull_) {
+//                std::stringstream errMsg;
+//                errMsg << "all clocks are null, deadlock? State is (";
+//                for (const auto& v: state)
+//                    errMsg << v << ",";
+//                errMsg << "\b)";
+//                throw_FigException(errMsg.str());
+//            }
+//			return clocks_[firstNotNull_];
+//		}
 
     /**
      * @brief Make time elapse in specified range of clocks
@@ -247,14 +249,15 @@ public:  // Utils
 	 *
 	 * @note  Attempted inlined for efficiency, sorry
 	 */
-    inline void
-    kill_time(const size_t& firstClock,
-              const size_t& numClocks,
-              const CLOCK_INTERNAL_TYPE& timeLapse)
-        {
-			for (size_t i = firstClock ; i < firstClock + numClocks ; i++)
-                clocks_[i].value -= timeLapse;
-        }
+	void kill_time(const size_t&, const size_t&, const CLOCK_INTERNAL_TYPE&);
+//	inline void
+//	kill_time(const size_t& firstClock,
+//			  const size_t& numClocks,
+//			  const CLOCK_INTERNAL_TYPE& timeLapse)
+//		{
+//			for (size_t i = firstClock ; i < firstClock + numClocks ; i++)
+//				clocks_[i].value -= timeLapse;
+//		}
 
 private:
 

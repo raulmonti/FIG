@@ -254,6 +254,10 @@ ModuleInstance::jump(const std::string& clockName,
 	if (!sealed_)
 		throw_FigException("this module hasn't been sealed yet");
 #endif
+
+	/// @todo TODO erase debug print
+//	std::cerr << name << " & " << std::hex << this << " : " << clockName << std::endl;
+
 	const auto iter = transitions_by_clock_.find(clockName);
 	assert(end(transitions_by_clock_) != iter);  // deny foreign clocks
 	const auto& transitions = iter->second;
@@ -277,6 +281,9 @@ ModuleInstance::jump(const std::string& clockName,
 	return tau;
 }
 
+
+/// @todo TODO erase debug include
+extern bool trackSimulation;
 
 void
 ModuleInstance::jump(const Label& label,

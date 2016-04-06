@@ -209,9 +209,6 @@ public:  // Utils
 	 *       estimating the value of a Property.
 	 *
 	 * @warning seal() must have been called beforehand
-	 * \ifnot NDEBUG
-	 *   @throw FigException if seal() hasn't been called yet
-	 * \endif
 	 */
 	template< typename DerivedProperty,
 			  class Simulator,
@@ -243,9 +240,6 @@ public:  // Utils
 	 *       exercising the ModuleNetwork dynamics.
 	 *
 	 * @warning seal() must have been called beforehand
-	 * \ifnot NDEBUG
-	 *   @throw FigException if seal() hasn't been called yet
-	 * \endif
 	 */
 	template< class Predicate, class Update >
 	ImportanceValue peak_simulation(Traial& traial,
@@ -263,26 +257,21 @@ ModuleNetwork::peak_simulation(Traial& traial,
 							   Update update,
 							   Predicate pred) const
 {
-	if (!sealed())
-#ifndef NDEBUG
-		throw_FigException("ModuleNetwork hasn't been sealed yet");
-#else
-		return static_cast<ImportanceValue>(0u);
-#endif
+	assert(sealed());
 
 	ImportanceValue maxImportance(UNMASK(traial.level));
 	StateInstance maxImportanceState(traial.state);
 
 	while ( pred(traial) ) {
-		auto timeout = traial.next_timeout();
+		const Traial::Timeout to = traial.next_timeout();
 		// Active jump in the module whose clock timed-out
-		auto label = timeout.module->jump(timeout.name, timeout.value, traial);
+		const Label& label = to.module->jump(to.name, to.value, traial);
 		// Passive jumps in the modules listening to label
 		for (auto module_ptr: modules)
-			if (module_ptr->name != timeout.module->name)
-				module_ptr->jump(label, timeout.value, traial);
+			if (module_ptr->name != to.module->name)
+				module_ptr->jump(label, to.value, traial);
 		// Update traial internals
-		traial.lifeTime += timeout.value;
+		traial.lifeTime += to.value;
 		update(traial);
 		if (UNMASK(traial.level) > maxImportance) {
 			maxImportance = UNMASK(traial.level);
