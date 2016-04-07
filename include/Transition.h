@@ -253,7 +253,7 @@ protected:  // Utilities offered to ModuleInstance
 	 * @param toClock    Iterator pointing past the last  affected clock
 	 * @param firstClock Index of the first affected clock in the global
 	 *                   vector of clocks
-	 * @param timeLapse  Amount of time elapsed for the non-reseting clocks
+	 * @param elapsedTime Amount of time elapsed for the non-reseting clocks
 	 *
 	 * @warning callback() must have been called beforehand
 	 *
@@ -266,7 +266,7 @@ protected:  // Utilities offered to ModuleInstance
 					   Iterator<ValueType, OtherIteratorArgs...> fromClock,
 					   Iterator<ValueType, OtherIteratorArgs...> toClock,
 					   const unsigned& firstClock,
-					   const CLOCK_INTERNAL_TYPE& timeLapse) const;
+					   const CLOCK_INTERNAL_TYPE& elapsedTime) const;
 
 private:  // Utils
 
@@ -359,10 +359,9 @@ Transition::handle_clocks(Traial& traial,
 						  Iterator<ValueType, OtherIteratorArgs...> fromClock,
 						  Iterator<ValueType, OtherIteratorArgs...> toClock,
 						  const unsigned& firstClock,
-						  const CLOCK_INTERNAL_TYPE& timeLapse) const
+						  const CLOCK_INTERNAL_TYPE& elapsedTime) const
 {
 	// Is the clock at position 'pos' marked for reset?
-//	std::function<bool(const unsigned&)> must_reset =
 	auto must_reset =
 		[&] (const unsigned& pos) -> bool
 		{
@@ -379,12 +378,14 @@ Transition::handle_clocks(Traial& traial,
 	// Handle clocks
 	unsigned thisClock(firstClock);
 	while (fromClock != toClock) {
-		if (must_reset(thisClock))
+		if (must_reset(thisClock)) {
             traial.clocks_[thisClock].value = fromClock->sample();
-		else
-            traial.clocks_[thisClock].value -= timeLapse;
-            // that could be negative, but it's unimportant at this stage
-        fromClock++;
+			/// @todo TODO erase debug check
+			assert(0.0 < traial.clocks_[thisClock].value);
+		} else
+			traial.clocks_[thisClock].value -= elapsedTime;
+			// that will be negative iff this clock wasn't ticking
+		fromClock++;
         thisClock++;
     }
 }

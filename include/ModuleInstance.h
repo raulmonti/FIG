@@ -44,6 +44,7 @@
 #include <Module.h>
 #include <Clock.h>
 #include <Transition.h>
+#include <Traial.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -382,8 +383,7 @@ public:  // Utils
 	 *   @throw FigException if the module hasn't been sealed yet
 	 * \endif
 	 */
-	const Label& jump(const std::string& clockName,
-					  const CLOCK_INTERNAL_TYPE& elapsedTime,
+	const Label& jump(const Traial::Timeout& to,
 					  Traial& traial) const;
 
 	/**

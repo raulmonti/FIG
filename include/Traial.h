@@ -88,11 +88,14 @@ public:
 		std::string name;
 		/// Clock's time value
 		float value;
+		/// Clock's position in Traial's global state
+		unsigned gpos;
 		/// Data ctor
 		Timeout(std::shared_ptr<const ModuleInstance> themodule,
 				const std::string& thename,
-				const float& thevalue) :
-			module(themodule), name(thename), value(thevalue) {}
+				const float& thevalue,
+				const unsigned& theglobalpos) :
+			module(themodule), name(thename), value(thevalue), gpos(theglobalpos) {}
 	};
 
 public:  // Attributes
@@ -124,9 +127,9 @@ private:
 	/// Access for friends is safely granted through next_timeout()
 	std::vector< unsigned > orderedIndex_;
 
-	/// Position of smallest not-null Clock value in clocks_.
+	/// Position of smallest non-negative Clock value in clocks_.
 	/// Negative if all are null.
-	int firstNotNull_;
+	int nextClock_;
 
 private:  // Ctors: TraialPool should be the only one to create Traials
 
@@ -245,19 +248,18 @@ public:  // Utils
      *
      * @param firstClock First clock's index in the affected ModuleInstance
      * @param numClocks  Number of clocks of the affected ModuleInstance
-     * @param timeLapse  Amount of time to kill
+	 * @param timeLapse  Amount of time to kill
 	 *
 	 * @note  Attempted inlined for efficiency, sorry
 	 */
-	void kill_time(const size_t&, const size_t&, const CLOCK_INTERNAL_TYPE&);
-//	inline void
-//	kill_time(const size_t& firstClock,
-//			  const size_t& numClocks,
-//			  const CLOCK_INTERNAL_TYPE& timeLapse)
-//		{
-//			for (size_t i = firstClock ; i < firstClock + numClocks ; i++)
-//				clocks_[i].value -= timeLapse;
-//		}
+	inline void
+	kill_time(const size_t& firstClock,
+			  const size_t& numClocks,
+			  const CLOCK_INTERNAL_TYPE& timeLapse)
+		{
+			for (size_t i = firstClock ; i < firstClock + numClocks ; i++)
+				clocks_[i].value -= timeLapse;
+		}
 
 private:
 

@@ -98,8 +98,8 @@ ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 #else
 		return;
 #endif
+	auto state = module->mark_added(modules.size(), gState.size(), numClocks_);
 	modules.push_back(module);
-    auto state = module->mark_added(modules.size()-1, gState.size(), numClocks_);
 	gState.append(state);
 	numClocks_ += module->clocks().size();
 	transitions_.reserve(transitions_.size() + module->transitions_.size());
@@ -244,66 +244,68 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 	assert(sealed());
 
 	/// @todo TODO erase debug print
-	const float start(traial.lifeTime);
-	if (trackSimulation) {
-		std::cerr << "\n(";
-		for (const auto& v: traial.state)
-			std::cerr << v << ",";
-		std::cerr << "\b)[";
-		for (const auto& t: traial.clocks_values())
-			std::cerr << std::setprecision(2) << t.second << ";";
-		std::cerr << "\b]";
-	}
-//	std::cerr << "Traial & " << std::hex << &traial << std::endl;
+//	if (trackSimulation) {
+//		std::cerr << "\n(";
+//		for (const auto& v: traial.state)
+//			std::cerr << v << ",";
+//		std::cerr << "\b)[";
+//		for (const auto& t: traial.clocks_values())
+//			std::cerr << std::setprecision(2) << t.second << ";";
+//		std::cerr << "\b]";
+//	}
 	///////////////////////////////
 
 	// Jump...
 	do {
-		const Traial::Timeout to = traial.next_timeout();
+		const Traial::Timeout& to = traial.next_timeout();
+		const float elapsedTime(to.value);
+		assert(0.0f <= elapsedTime);
+
 		/// @todo TODO erase debug check
 		auto to_values = traial.clocks_values(true);
 		for (size_t i = 0ul ; i < to_values.size() ; i++) {
 //			assert(to_values[i].second >= to.value ||
 //				   to_values[i].second <= 0.0f);
-			if (to_values[i].second < -10.0) {
+			if (to_values[i].second < -115.0) {
 				std::cerr << "\n @ " << traial.lifeTime << " (";
 				for (const auto& v: traial.state)
 					std::cerr << v << ",";
 				std::cerr << "\b)[";
 				for (const auto& v: to_values)
 					std::cerr << v.second << ";";
-				std::cerr << "\b] why so serious?\n";
+				std::cerr << "\b] y u do dis?\n";
 				exit(EXIT_FAILURE);
 			}
 		}
 		///////////////////////////////
 		/// @todo TODO erase debug print
-//		std::cerr << "Got  &" << std::hex << &to
-//				  << " with " << to.name << "@" << to.value
-//				  << " from " << to.module->name
-//				  << " & " << std::hex << to.module.get() << std::endl;
+//		if (trackSimulation)
+//			std::cerr << "Got  &" << std::hex << &to
+//					  << " with " << to.name << "@" << to.value << std::endl;
+//					  << " from " << to.module->name
+//					  << " & " << std::hex << to.module.get() << std::endl;
 		///////////////////////////////
-		assert(to.value > static_cast<CLOCK_INTERNAL_TYPE>(0.0));
+
         // Active jump in the module whose clock timed-out
-		const Label& label = to.module->jump(to.name, to.value, traial);
+		const Label& label = to.module->jump(to, traial);
 		// Passive jumps in all modules listening to label
 		for (auto module_ptr: modules)
 			if (module_ptr->name != to.module->name)
-				module_ptr->jump(label, to.value, traial);
-		traial.lifeTime += to.value;
+				module_ptr->jump(label, elapsedTime, traial);
+		traial.lifeTime += elapsedTime;
 
 		/// @todo TODO erase debug check
-		if (trackSimulation) {
-			std::cerr << " " << to.name << "@" << to.value << " -> (";
-			for (const auto& v: traial.state)
-				std::cerr << v << ",";
-			std::cerr << "\b)[";
-			for (const auto& t: traial.clocks_values())
-				std::cerr << std::setprecision(2) << t.second << ";";
-			std::cerr << "\b]";
-			if (traial.lifeTime > start + 20.f)
-				exit(EXIT_FAILURE);
-		}
+//		if (trackSimulation) {
+//			std::cerr << " " << to.name << "@" << to.value << " -> (";
+//			for (const auto& v: traial.state)
+//				std::cerr << v << ",";
+//			std::cerr << "\b)[";
+//			for (const auto& t: traial.clocks_values())
+//				std::cerr << std::setprecision(2) << t.second << ";";
+//			std::cerr << "\b]";
+//			if (traial.lifeTime > start + 20.f)
+//				exit(EXIT_FAILURE);
+//		}
 		///////////////////////////////
 	// ...until a relevant event is observed
 	} while ( !(engine.*watch_events)(property, traial, e) );

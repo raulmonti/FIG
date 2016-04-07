@@ -239,7 +239,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	size_t nufPrint(0ul);
 	static unsigned call(0u);
 	call++;
-	trackSimulation = call > 18u;
+//	trackSimulation = true; //call > 18u;
 	////////////////////////////
 
 	// Run a single RESTART importance-splitting simulation for "runLength"
@@ -247,13 +247,13 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	// or from the system's initial state if requested.
 	if (reinit || originalTraial.lifeTime == static_cast<CLOCK_INTERNAL_TYPE>(0.0)) {
 		/// @todo TODO erase debug stuff
-		if (call > 13u)
+		if (trackSimulation)
 			std::cerr << "\nReinit\n";
 		////////////////////////////
 		originalTraial.initialize(*network_, *impFun_);
 	} else {
 		/// @todo TODO erase debug stuff
-		if (call > 13u) {
+		if (trackSimulation) {
 			std::cerr << "\nContinue from state (";
 			for (const auto& v: originalTraial.state)
 				std::cerr << v << ",";
@@ -271,7 +271,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		Traial& traial = stack.top();
 
 		/// @todo TODO erase debug stuff
-		if (call > 17u) {
+		if (trackSimulation) {
 			auto to_values = traial.clocks_values();
 			auto min = std::min(to_values[0].second, to_values[1].second);
 			min = std::min(min, to_values[2].second);
@@ -374,16 +374,16 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	////////////////////////////
 
 	/// @todo TODO erase debug stuff
-	auto to_values = originalTraial.clocks_values();
-	auto min = std::min(to_values[0].second, to_values[1].second);
-	min = std::min(min, to_values[2].second);
-	if (min < -3.0) {
-		std::cerr << "[";
-		for (const auto& v: to_values)
-			std::cerr << v.second << ";";
-		std::cerr << "\b] ???\n";
-		exit(EXIT_FAILURE);
-	}
+//	auto to_values = originalTraial.clocks_values();
+//	auto min = std::min(to_values[0].second, to_values[1].second);
+//	min = std::min(min, to_values[2].second);
+//	if (min < -3.0) {
+//		std::cerr << "[";
+//		for (const auto& v: to_values)
+//			std::cerr << v.second << ";";
+//		std::cerr << "\b] ???\n";
+//		exit(EXIT_FAILURE);
+//	}
 	//////////////////////////////
 
 	// Return estimate or its negative value
