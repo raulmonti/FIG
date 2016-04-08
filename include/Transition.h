@@ -39,7 +39,7 @@
 // C
 #include <cassert>
 // FIG
-#include <core_typedefs.h>  // Bitflag
+#include <core_typedefs.h>
 #include <FigException.h>
 #include <Label.h>
 #include <Clock.h>
@@ -201,8 +201,13 @@ protected:  // Utilities offered to ModuleInstance
 	 *   @throw out_of_range if some invalid mapping was found
 	 * \endif
 	 */
+#ifndef NRANGECHK
 	inline void callback(const PositionsMap& globalClocks,
 						 const PositionsMap& globalVars)
+#else
+	inline void callback(PositionsMap& globalClocks,
+						 PositionsMap& globalVars)
+#endif
 		{
 			crystallize(globalClocks);
 			pre.pin_up_vars(globalVars);
@@ -230,8 +235,13 @@ protected:  // Utilities offered to ModuleInstance
 	 *   @throw out_of_range if some invalid mapping was found
 	 * \endif
 	 */
+#ifndef NRANGECHK
 	inline void callback(const PositionsMap& globalClocks,
-						 const fig::State<STATE_INTERNAL_TYPE>& globalState)
+						 const State<STATE_INTERNAL_TYPE>& globalState)
+#else
+	inline void callback(PositionsMap& globalClocks,
+						 const State<STATE_INTERNAL_TYPE>& globalState)
+#endif
 		{
 			crystallize(globalClocks);
 			pre.pin_up_vars(globalState);
@@ -286,7 +296,11 @@ private:  // Utils
 	 *                       including the triggering clock
 	 * \endif
 	 */
+#ifndef NRANGECHK
 	void crystallize(const PositionsMap& globalClocks);
+#else
+	void crystallize(PositionsMap& globalClocks);
+#endif
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //

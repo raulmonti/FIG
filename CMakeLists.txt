@@ -73,11 +73,17 @@ SET(ALL_SOURCES ${ALL_SOURCES} ${MAIN_SOURCE_FILES} CACHE INTERNAL "")
  
 ###  Preprocessor macros  #####################################################
 
-# High quality C++ pseudo-random generator
-ADD_DEFINITIONS(-DHQ_RNG)
-
 ## # No-Debug
 ## ADD_DEFINITIONS(-DNDEBUG)
+
+# Don't check ranges every f***ing time
+ADD_DEFINITIONS(-DNRANGECHK)
+
+## # Alternative RNG from the PCG family (http://www.pcg-random.org/)
+## ADD_DEFINITIONS(-DPCG_RNG)
+
+## # Double floating point precision for clocks' time
+## ADD_DEFINITIONS(-DDOUBLE_TIME_PRECISION)
 
  
 

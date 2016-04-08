@@ -128,8 +128,13 @@ public:  // Accessors
 
 protected:  // Modifyers
 
-	inline void pin_up_vars(const PositionsMap &globalVars) override
+#ifndef NRANGECHK
+	inline void pin_up_vars(const PositionsMap& globalVars) override
 		{ expr_.pin_up_vars(globalVars); }
+#else
+	inline void pin_up_vars(PositionsMap& globalVars) override
+		{ expr_.pin_up_vars(globalVars); }
+#endif
 
 	inline void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState) override
 		{ expr_.pin_up_vars(globalState); }

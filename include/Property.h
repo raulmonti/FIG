@@ -98,7 +98,11 @@ protected:  // Modifyers
 	 *   @throw FigException if there was some error in our math expressions
 	 * \endif
 	 */
-	virtual void pin_up_vars(const PositionsMap &globalVars) = 0;
+#ifndef NRANGECHK
+	virtual void pin_up_vars(const PositionsMap& globalVars) = 0;
+#else
+	virtual void pin_up_vars(PositionsMap& globalVars) = 0;
+#endif
 
 	/**
 	 * @copydoc fig::MathExpression::pin_up_vars()

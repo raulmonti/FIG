@@ -32,6 +32,8 @@
 #include <random>
 #include <numeric>  // std::max<>
 #include <unordered_map>
+// External code
+#include <pcg_random.hpp>
 // FIG
 #include <Clock.h>
 #include <core_typedefs.h>
@@ -44,20 +46,25 @@ typedef  fig::CLOCK_INTERNAL_TYPE     return_t;
 typedef  fig::DistributionParameters  params_t;
 
 #ifndef NDEBUG
-const unsigned rngSeed(1234567803u);  // repeatable outcome
+  const unsigned rngSeed(1234567803u);  // repeatable outcome
 #else
-const unsigned rngSeed(std::random_device{}());
+  const unsigned rngSeed(std::random_device{}());
 #endif
 
-std::mt19937_64  MTrng(rngSeed);
-std::minstd_rand LCrng(rngSeed);
-
-#ifndef HQ_RNG
-/// Linear-congruential standard RNG
-auto rng = LCrng;
+#ifndef DOUBLE_TIME_PRECISION
+  std::mt19937 MTrng(rngSeed);
+  pcg32 PCGrng(rngSeed);
 #else
-/// Mersenne-Twister high quality RNG
+  std::mt19937_64 MTrng(rngSeed);
+  pcg64 PCGrng(rngSeed);
+#endif
+
+#ifndef PCG_RNG
+/// Mersenne-Twister RNG
 auto rng = MTrng;
+#else
+/// PCG family RNG
+auto rng = PCGrng;
 #endif
 
 std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uniform01(0.0 , 1.0);

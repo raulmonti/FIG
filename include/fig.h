@@ -1,34 +1,51 @@
 //==============================================================================
 //
-//
-//  Main header for the FIG project.
-//
-//
-//     Include this file to have the full functionality.
-//     FIG defines the "fig" namespace and compiles in debug mode by default.
-//     You must compile with the following flags to get the release version:
-//
-//       NDEBUG
-//       NRANGECHK
-//
-//     Also by default FIG works with C's standard RNG, i.e. a medium quality
-//     linear-congruential generator defined as std::minstd_rand.
-//     To get the clock times sampled from a high quality Mersenne-Twister
-//     with 64-bytes internal state compile with the following flag:
-//
-//       HQ_RNG
-//
-//     To reduce the size of your build consider also including only the
-//     specific FIG headers your project requires. It is however highly likely
-//     that most of the code will be implicitly included anyways,
-//     due to FIG's highly coupled design. A little price to pay for
-//     (attempted) efficiency :p
-//
+//  fig.h
 //
 //  Copyleft 2016-
 //  Authors:
 //  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
 //  - Raul E. Monti <raulmonti88@gmail.com> (Universidad Nacional de Córdoba)
+//
+//------------------------------------------------------------------------------
+//
+//
+//     Main header of the FIG project.
+//
+//
+//       Include this file to have complete functionality. In order to reduce
+//     the size of your build consider also including only the specific FIG
+//     headers your project requires. It is however highly likely that most
+//     of the code will be implicitly included anyways, due to FIG's highly
+//     coupled design. A little price to pay for (attempted) efficiency :p
+//
+//       FIG defines the "fig" and "fig_cli" namespaces and compiles in debug
+//     mode by default. You must define the following preprocessor macros to
+//     compile the release version:
+//
+//           NDEBUG
+//           NRANGECHK
+//
+//       FIG uses a pseudo-random number generator (RNG) to sample the clock
+//     values each time these are reset. By default C++ STL's Mersenne-Twister
+//     with 64-bytes internal state is used, because of its very long period
+//     and good time performance. The user may also opt for an alternative,
+//     also high-quality RNG from the PCG family (http://www.pcg-random.org/)
+//     by defining the preprocessor macro:
+//
+//           PCG_RNG
+//
+//       The floating point precision of the time tracking is single by default,
+//     i.e. 4-bytes size fp numbers (C++ 'float') are used to store the clocks
+//     timeouts and the simulations lives lengths. If double fp precision is
+//     desired (C++ 'double') the user must define the preprocessor macro:
+//
+//           DOUBLE_TIME_PRECISION
+//
+//       Any bugs, issues, comments or life-threats can (and ought to!) be sent
+//     to the above specified e-mail addresses of the authors. This is by all
+//     means "work in progress", so expect many updates in the near future. And
+//     remember, we do give a FIG!
 //
 //------------------------------------------------------------------------------
 //

@@ -401,7 +401,11 @@ ModuleInstance::seal(const PositionsMap& globalVars)
 	auto localClocks = map_our_clocks();
 	for (auto& pair: transitions_by_label_)
 		for (auto& tr_ptr: pair.second)
+#ifndef NRANGECHK
 			tr_ptr->callback(localClocks, globalVars);
+#else
+			tr_ptr->callback(localClocks, const_cast<PositionsMap&>(globalVars));
+#endif
 }
 
 

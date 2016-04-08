@@ -156,7 +156,7 @@ protected:  // Modifyers
 	 *   @throw out_of_range if some of our variables isn't mapped
 	 * \endif
 	 */
-	void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState);
+	virtual void pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState);
 
 	/**
 	 * @brief Register the global-system-state position of our variables
@@ -169,7 +169,11 @@ protected:  // Modifyers
 	 *   @throw out_of_range if some of our variables isn't mapped
 	 * \endif
 	 */
-	void pin_up_vars(const PositionsMap& globalVars);
+#ifndef NRANGECHK
+	virtual void pin_up_vars(const PositionsMap& globalVars);
+#else
+	virtual void pin_up_vars(PositionsMap& globalVars);
+#endif
 
 public:  // Accessors
 

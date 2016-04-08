@@ -87,28 +87,35 @@ Postcondition::fake_evaluation() const
 }
 
 
-void
-Postcondition::pin_up_vars(const PositionsMap &globalVars)
-{
-	// Map general expression variables
-	MathExpression::pin_up_vars(globalVars);
-	// Map update variables
-	updatesPositions_.resize(numUpdates_);
-	for (int i = 0 ; i < numUpdates_ ; i++) {
 #ifndef NRANGECHK
+void
+Postcondition::pin_up_vars(const PositionsMap& globalVars)
+{
+	MathExpression::pin_up_vars(globalVars);  // Map expression variables
+	updatesPositions_.resize(numUpdates_);    // Map update variables
+	for (int i = 0 ; i < numUpdates_ ; i++)
 		updatesPositions_[i] = globalVars.at(updatesNames_[i]);
-#else
-		updatesPositions_[i] = globalVars[updatesNames_[i]];
-#endif
-	}
-#ifndef NDEBUG
+# ifndef NDEBUG
 	fake_evaluation();  // Reveal parsing errors in this early stage
-#endif
+# endif
 }
+#else
+void
+Postcondition::pin_up_vars(PositionsMap& globalVars)
+{
+	MathExpression::pin_up_vars(globalVars);  // Map expression variables
+	updatesPositions_.resize(numUpdates_);    // Map update variables
+	for (int i = 0 ; i < numUpdates_ ; i++)
+		updatesPositions_[i] = globalVars[updatesNames_[i]];
+# ifndef NDEBUG
+	fake_evaluation();  // Reveal parsing errors in this early stage
+# endif
+}
+#endif
 
 
 void
-Postcondition::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
+Postcondition::pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState)
 {
 	// Map general expression variables
 	MathExpression::pin_up_vars(globalState);

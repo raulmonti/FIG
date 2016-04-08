@@ -176,22 +176,26 @@ public:  // Ctors/Dtor
 protected:  // Modifyers
 
 	/**
-	 * @copydoc fig::MathExpression::pin_up_vars(const PositionsMap&)
-	 * \ifnot NDEBUG
-	 *   @throw FigException if there was some error in our math expression
-	 * \endif
-	 * @note Maps also the positions of the update variables
-	 */
-	void pin_up_vars(const PositionsMap &globalVars);
-
-	/**
 	 * @copydoc fig::MathExpression::pin_up_vars()
 	 * \ifnot NDEBUG
 	 *   @throw FigException if there was some error in our math expression
 	 * \endif
 	 * @note Maps also the positions of the update variables
 	 */
-	void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState);
+	void pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState) override;
+
+	/**
+	 * @copydoc fig::MathExpression::pin_up_vars(const PositionsMap&)
+	 * \ifnot NDEBUG
+	 *   @throw FigException if there was some error in our math expression
+	 * \endif
+	 * @note Maps also the positions of the update variables
+	 */
+#ifndef NRANGECHK
+	void pin_up_vars(const PositionsMap &globalVars) override;
+#else
+	void pin_up_vars(PositionsMap& globalVars) override;
+#endif
 
 public:  // Utils
 
