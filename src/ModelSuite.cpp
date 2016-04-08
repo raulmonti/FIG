@@ -208,8 +208,8 @@ min_run_length(const std::string& engineName, const std::string& ifunName)
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
 	static const size_t run_lengths[NUM_ENGINES][NUM_IMPFUNS] = {
-		{ 1ul<<16, 1ul<<17, 1ul<<17 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 1ul<<15, 1ul<<15, 1ul<<15 }   // restart x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<15, 1ul<<16, 1ul<<16 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<14, 1ul<<14, 1ul<<14 }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);

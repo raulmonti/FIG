@@ -378,13 +378,12 @@ Transition::handle_clocks(Traial& traial,
 	// Handle clocks
 	unsigned thisClock(firstClock);
 	while (fromClock != toClock) {
-		if (must_reset(thisClock)) {
-            traial.clocks_[thisClock].value = fromClock->sample();
-			/// @todo TODO erase debug check
-			assert(0.0 < traial.clocks_[thisClock].value);
-		} else
+		if (must_reset(thisClock))
+			traial.clocks_[thisClock].value = fromClock->sample();
+			// should be non-negative, might assert it
+		else
 			traial.clocks_[thisClock].value -= elapsedTime;
-			// that will be negative iff this clock wasn't ticking
+			// that will be negative iff this clock had already expired
 		fromClock++;
         thisClock++;
     }

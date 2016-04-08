@@ -253,10 +253,6 @@ ModuleInstance::jump(const Traial::Timeout& to,
 	if (!sealed_)
 		throw_FigException("this module hasn't been sealed yet");
 #endif
-
-	/// @todo TODO erase debug print
-//	std::cerr << name << " & " << std::hex << this << " : " << clockName << std::endl;
-
 	const float elapsedTime(to.value);
 	const auto iter = transitions_by_clock_.find(to.name);
 	assert(end(transitions_by_clock_) != iter);  // deny foreign clocks
@@ -265,22 +261,6 @@ ModuleInstance::jump(const Traial::Timeout& to,
 	for (const auto& tr_ptr: transitions) {
 		if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
 			tr_ptr->pos(traial.state);   // apply postcondition to its state
-
-			/// @todo TODO erase debug check
-//			auto to_vals = traial.clocks_values();
-//			for (int i = firstClock_ ; i < lClocks_.size()+firstClock_ ; i++) {
-//				if (to_vals[i].first != to.name &&
-//					to_vals[i].second > 0.0         &&
-//					to_vals[i].second <= elapsedTime) {
-//					std::cerr << "\n" << to_vals[i].first
-//							  << " has " << to_vals[i].second << std::endl;
-//					std::cerr << "We're jumping due to " << to.name
-//							  << " which is also has " << elapsedTime << std::endl;
-//					exit (EXIT_FAILURE);
-//				}
-//			}
-			/////////////////////////////////////
-
             tr_ptr->handle_clocks(       // and update clocks according to it.
                 traial,
                 begin(lClocks_),
@@ -297,9 +277,6 @@ ModuleInstance::jump(const Traial::Timeout& to,
 	return TAU;
 }
 
-
-/// @todo TODO erase debug include
-extern bool trackSimulation;
 
 void
 ModuleInstance::jump(const Label& label,
@@ -318,14 +295,6 @@ ModuleInstance::jump(const Label& label,
         for (const auto& tr_ptr: transitions) {
             if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
                 tr_ptr->pos(traial.state);   // apply postcondition to its state
-
-				/// @todo TODO erase debug check
-				auto to_vals = traial.clocks_values();
-				for (int i = firstClock_ ; i < lClocks_.size()+firstClock_ ; i++)
-					assert(to_vals[i].second <= 0.0 ||
-						   to_vals[i].second > elapsedTime);
-				/////////////////////////////////////
-
 				tr_ptr->handle_clocks(       // and update clocks according to it.
                    traial,
                    begin(lClocks_),

@@ -32,6 +32,7 @@
 #include <functional>  // std::function
 #include <iterator>    // std::begin(), std::end()
 #include <numeric>     // std::iota()
+#include <sstream>
 #include <set>
 #include <list>
 #include <deque>
@@ -47,10 +48,6 @@
 // ADL
 using std::begin;
 using std::end;
-
-
-/// @todo TODO erase debug include
-extern bool trackSimulation;
 
 
 namespace fig
@@ -206,10 +203,8 @@ Traial::initialize(const ModuleNetwork& network,
 	// Initialize clocks (reset all and then resample initials)
     for (auto& timeout : clocks_)
         timeout.value = 0.0f;
-	for (const auto& pos_clk_pair: network.initialClocks) {
-		clocks_[pos_clk_pair.first].value = pos_clk_pair.second.sample();
-		assert(0.0 < clocks_[pos_clk_pair.first].value);
-	}
+	for (const auto& posCLK: network.initialClocks)
+		clocks_[posCLK.first].value = posCLK.second.sample();  // should be non-negative
 	// Initialize importance and simulation time
 	level = impFun.ready() ? impFun.level_of(state)
 						   : impFun.importance_of(state);
@@ -218,30 +213,6 @@ Traial::initialize(const ModuleNetwork& network,
 	lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
 }
 
-
-/// @todo TODO send back inlined into the header
-const Traial::Timeout&
-Traial::next_timeout(bool reorder)
-{
-	if (reorder)
-		reorder_clocks();
-	if (0 > nextClock_) {
-		std::stringstream errMsg;
-		errMsg << "all clocks are null, deadlock? State is (";
-		for (const auto& v: state)
-		 errMsg << v << ",";
-		errMsg << "\b)";
-		throw_FigException(errMsg.str());
-	}
-//	const Timeout& to = clocks_[nextClock_];
-//	if (trackSimulation)
-//		std::cerr << "\nSent &" << std::hex << &to
-//				  << " with " << to.name << "@" << to.value << std::endl;
-//				  << " from " << to.module->name
-//				  << " & " << std::hex << to.module.get() << std::endl;
-	return clocks_[nextClock_];
-}
-////////////////////////////////
 
 void
 Traial::reorder_clocks()
@@ -258,11 +229,21 @@ Traial::reorder_clocks()
 			break;
 		}
 	}
-	/// @todo TODO erase debug check
-	for (size_t i = 0ul ; i < clocks_.size()-1ul ; i++)
-		assert(clocks_[orderedIndex_[i]].value
-				<= clocks_[orderedIndex_[i+1]].value);
-	////////////////////////////////
+}
+
+
+void
+Traial::report_deadlock()
+{
+	std::stringstream errMsg;
+	errMsg << "all clocks are null, deadlock? State is (";
+	for (const auto& v: state)
+		errMsg << v << ",";
+	errMsg << "\b)[";
+	for (const auto& t: clocks_)
+		errMsg << t.name << ":" << t.value << "|";
+	errMsg << "\b]";
+	throw_FigException(errMsg.str());
 }
 
 } // namespace fig

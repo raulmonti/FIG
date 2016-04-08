@@ -53,9 +53,6 @@ using std::find_if;
 using std::begin;
 using std::end;
 
-/// @todo TODO erase debug include
-extern bool trackSimulation;
-#include <iomanip>
 
 namespace fig
 {
@@ -239,53 +236,14 @@ Event ModuleNetwork::simulation_step(Traial& traial,
                                      const Simulator& engine,
                                      TraialMonitor watch_events) const
 {
-	Event e(EventType::NONE);
-
 	assert(sealed());
-
-	/// @todo TODO erase debug print
-//	if (trackSimulation) {
-//		std::cerr << "\n(";
-//		for (const auto& v: traial.state)
-//			std::cerr << v << ",";
-//		std::cerr << "\b)[";
-//		for (const auto& t: traial.clocks_values())
-//			std::cerr << std::setprecision(2) << t.second << ";";
-//		std::cerr << "\b]";
-//	}
-	///////////////////////////////
+	Event e(EventType::NONE);
 
 	// Jump...
 	do {
 		const Traial::Timeout& to = traial.next_timeout();
 		const float elapsedTime(to.value);
 		assert(0.0f <= elapsedTime);
-
-		/// @todo TODO erase debug check
-		auto to_values = traial.clocks_values(true);
-		for (size_t i = 0ul ; i < to_values.size() ; i++) {
-//			assert(to_values[i].second >= to.value ||
-//				   to_values[i].second <= 0.0f);
-			if (to_values[i].second < -115.0) {
-				std::cerr << "\n @ " << traial.lifeTime << " (";
-				for (const auto& v: traial.state)
-					std::cerr << v << ",";
-				std::cerr << "\b)[";
-				for (const auto& v: to_values)
-					std::cerr << v.second << ";";
-				std::cerr << "\b] y u do dis?\n";
-				exit(EXIT_FAILURE);
-			}
-		}
-		///////////////////////////////
-		/// @todo TODO erase debug print
-//		if (trackSimulation)
-//			std::cerr << "Got  &" << std::hex << &to
-//					  << " with " << to.name << "@" << to.value << std::endl;
-//					  << " from " << to.module->name
-//					  << " & " << std::hex << to.module.get() << std::endl;
-		///////////////////////////////
-
         // Active jump in the module whose clock timed-out
 		const Label& label = to.module->jump(to, traial);
 		// Passive jumps in all modules listening to label
@@ -293,20 +251,6 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 			if (module_ptr->name != to.module->name)
 				module_ptr->jump(label, elapsedTime, traial);
 		traial.lifeTime += elapsedTime;
-
-		/// @todo TODO erase debug check
-//		if (trackSimulation) {
-//			std::cerr << " " << to.name << "@" << to.value << " -> (";
-//			for (const auto& v: traial.state)
-//				std::cerr << v << ",";
-//			std::cerr << "\b)[";
-//			for (const auto& t: traial.clocks_values())
-//				std::cerr << std::setprecision(2) << t.second << ";";
-//			std::cerr << "\b]";
-//			if (traial.lifeTime > start + 20.f)
-//				exit(EXIT_FAILURE);
-//		}
-		///////////////////////////////
 	// ...until a relevant event is observed
 	} while ( !(engine.*watch_events)(property, traial, e) );
 

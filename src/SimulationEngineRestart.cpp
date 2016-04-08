@@ -42,9 +42,6 @@
 using std::pow;
 
 
-/// @todo TODO erase debug include
-#include <flag.h>
-
 namespace fig
 {
 
@@ -220,6 +217,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	auto tpool = TraialPool::get_instance();
 	static Traial& originalTraial(tpool.get_traial());
 //	static thread_local Traial& originalTraial(tpool.get_traial());
+	static const CLOCK_INTERNAL_TYPE FIRST_TIME(0.0);
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
@@ -235,55 +233,17 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		register_time = &SimulationEngineRestart::count_time;
 	}
 
-	/// @todo TODO erase debug stuff
-	size_t nufPrint(0ul);
-	static unsigned call(0u);
-	call++;
-//	trackSimulation = true; //call > 18u;
-	////////////////////////////
-
 	// Run a single RESTART importance-splitting simulation for "runLength"
 	// simulation time units and starting from the last saved state,
 	// or from the system's initial state if requested.
-	if (reinit || originalTraial.lifeTime == static_cast<CLOCK_INTERNAL_TYPE>(0.0)) {
-		/// @todo TODO erase debug stuff
-		if (trackSimulation)
-			std::cerr << "\nReinit\n";
-		////////////////////////////
+	if (reinit || originalTraial.lifeTime == FIRST_TIME)
 		originalTraial.initialize(*network_, *impFun_);
-	} else {
-		/// @todo TODO erase debug stuff
-		if (trackSimulation) {
-			std::cerr << "\nContinue from state (";
-			for (const auto& v: originalTraial.state)
-				std::cerr << v << ",";
-			std::cerr << "\b)[";
-			for (const auto& t: originalTraial.clocks_values())
-				std::cerr << t.second << ";";
-			std::cerr << "\b]\n";
-		}
-		////////////////////////////
+	else
 		originalTraial.lifeTime = 0.0;
-	}
 	stack.emplace(originalTraial);
 	while (!stack.empty() && !interrupted) {
 		Event e(EventType::NONE);
 		Traial& traial = stack.top();
-
-		/// @todo TODO erase debug stuff
-		if (trackSimulation) {
-			auto to_values = traial.clocks_values();
-			auto min = std::min(to_values[0].second, to_values[1].second);
-			min = std::min(min, to_values[2].second);
-			if (min < -3.0) {
-				std::cerr << "[";
-				for (const auto& v: to_values)
-					std::cerr << v.second << ";";
-				std::cerr << "\b] ???\n";
-				exit(EXIT_FAILURE);
-			}
-		}
-		//////////////////////////////
 
 		// Check whether we're standing on a rare event
 		(this->*watch_events)(property, traial, e);
@@ -292,12 +252,6 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 			const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // reduce fp prec. loss
 			traial.lifeTime = 0.0;
 			network_->simulation_step(traial, property, *this, register_time);
-
-			/// @todo TODO erase debug stuff
-			if (call > 17u && nufPrint++ < 5ul)
-				std::cerr << "(" << traial.lifeTime << ")";
-			////////////////////////////
-
 			raresCount[traial.level] += traial.lifeTime;
 			traial.lifeTime += simLength;
 		}
@@ -306,33 +260,14 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		if (!(this->*watch_events)(property, traial, e))
 			e = network_->simulation_step(traial, property, *this, watch_events);
 
-		/// @todo TODO erase debug stuff
-//		if (trackSimulation && traial.lifeTime > 1.5f)
-//			exit(EXIT_FAILURE);
-		////////////////////////////
-
 		// Checking order of the following events is relevant!
 		if (traial.lifeTime >= simsLifetime || IS_THR_DOWN_EVENT(e)) {
-
-			/// @todo TODO erase debug stuff
-			if (trackSimulation && IS_THR_DOWN_EVENT(e))
-				std::cerr << "\nDown from " << traial.level - traial.numLevelsCrossed
-						  << " into " << traial.level << std::endl;
-			////////////////////////////
-
 			// Traial reached EOS or went down => kill it
 			if (&traial != &originalTraial)  // avoid future aliasing!
 				tpool.return_traial(std::move(traial));
 			stack.pop();
 
 		} else if (IS_THR_UP_EVENT(e)) {
-
-			/// @todo TODO erase debug stuff
-			if (trackSimulation)
-				std::cerr << "\nUp from " << traial.level - traial.numLevelsCrossed
-						  << " into " << traial.level << std::endl;
-			////////////////////////////
-
 			// Could have gone up several thresholds => split accordingly
 			assert(traial.numLevelsCrossed > 0);
 			for (ImportanceValue i = static_cast<ImportanceValue>(1u)
@@ -350,7 +285,8 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		}
 		// RARE events are checked first thing in next iteration
 	}
-	assert(originalTraial.lifeTime != 0.0);  // allow next iteration of batch means
+	if (originalTraial.lifeTime == FIRST_TIME)  // allow next iteration of batch means
+		originalTraial.lifeTime =  FIRST_TIME + 1.0;
 	// Return any Traial still on the loose
 	const size_t numLooseTraials(stack.size());
 	for (size_t i = 0ul ; i < numLooseTraials ; i++) {
@@ -365,27 +301,6 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	double accTime(0.0);
 	for (unsigned i = 0u ; i <= numThresholds ; i++)
 		accTime += raresCount[i] / pow(splitsPerThreshold_, i);
-
-	/// @todo TODO erase debug stuff
-	if (call > 17u) {
-		std::cerr << "\nRare time: " << raresCount.sum() << std::endl;
-		std::cerr << "Weighed rare time: " << accTime << std::endl;
-	}
-	////////////////////////////
-
-	/// @todo TODO erase debug stuff
-//	auto to_values = originalTraial.clocks_values();
-//	auto min = std::min(to_values[0].second, to_values[1].second);
-//	min = std::min(min, to_values[2].second);
-//	if (min < -3.0) {
-//		std::cerr << "[";
-//		for (const auto& v: to_values)
-//			std::cerr << v.second << ";";
-//		std::cerr << "\b] ???\n";
-//		exit(EXIT_FAILURE);
-//	}
-	//////////////////////////////
-
 	// Return estimate or its negative value
 	assert(0.0 <= accTime);
 	if (MIN_ACC_RARE_TIME > raresCount.sum())

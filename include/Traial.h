@@ -31,11 +31,9 @@
 #define TRAIAL_H
 
 // C++
-#include <sstream>
 #include <string>
 #include <vector>
 #include <memory>     // std::shared_ptr<>
-#include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // std::swap(), std::find()
 #include <utility>    // std::move(), std::pair<>
 // FIG
@@ -47,9 +45,6 @@
 #  error "C++11 standard required, please compile with -std=c++11\n"
 #endif
 
-// ADL
-using std::begin;
-using std::end;
 
 namespace fig
 {
@@ -73,7 +68,7 @@ class Traial
 	friend class Transition;  // to handle our clocks
 	friend class TraialPool;  // to instantiate (ctor)
 
-	/// @todo FIXME remove following and use copy elision in TraialPool::ensure_resources()?
+	/// @todo TODO maybe remove following and use copy elision in TraialPool::ensure_resources()?
 	friend class std::vector< Traial >;
 	friend struct __gnu_cxx::new_allocator<Traial>;
 
@@ -214,30 +209,22 @@ public:  // Utils
 					const ImportanceFunction& impFun);
 
 	/**
-	 * @brief Retrieve next not-null expiring clock
+	 * @brief Retrieve next expiring clock
 	 * @param reorder  Whether to reorder internal clocks prior the retrieval
 	 * @note  <b>Complexity:</b> <i>O(m log(m))</i> if reorder, <i>O(1)</i>
 	 *        otherwise, where 'm' is the number of clocks in the system.
 	 * @note  Attempted inlined for efficiency, sorry
-	 * @throw FigException if all our clocks have null value
+	 * @throw FigException if all clocks are expired
 	 */
-	const Timeout&
-	next_timeout(bool reorder = true);
-//	inline const Timeout&
-//	next_timeout(bool reorder = true)
-//		{
-//			if (reorder)
-//				reorder_clocks();
-//            if (0 > firstNotNull_) {
-//                std::stringstream errMsg;
-//                errMsg << "all clocks are null, deadlock? State is (";
-//                for (const auto& v: state)
-//                    errMsg << v << ",";
-//                errMsg << "\b)";
-//                throw_FigException(errMsg.str());
-//            }
-//			return clocks_[firstNotNull_];
-//		}
+	inline const Timeout&
+	next_timeout(bool reorder = true)
+		{
+			if (reorder)
+				reorder_clocks();
+			if (0 > nextClock_)
+				report_deadlock();
+			return clocks_[nextClock_];
+		}
 
     /**
      * @brief Make time elapse in specified range of clocks
@@ -261,7 +248,7 @@ public:  // Utils
 				clocks_[i].value -= timeLapse;
 		}
 
-private:
+private:  // Class utils
 
 	/**
 	 * @brief Sort our clocks in increasing-value order for next_timeout()
@@ -270,6 +257,11 @@ private:
 	 */
 	void
 	reorder_clocks();
+
+	/// Throw an exception showing current (supposedly) deadlock state
+	/// @throw FigException Always throws
+	void
+	report_deadlock();
 };
 
 } // namespace fig

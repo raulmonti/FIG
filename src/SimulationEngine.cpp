@@ -61,7 +61,7 @@ namespace fig
 const unsigned SimulationEngine::MIN_COUNT_RARE_EVENTS = 3u;
 
 /// @note Arbitrary af
-const double SimulationEngine::MIN_ACC_RARE_TIME = M_PI_4l/4.0;
+const double SimulationEngine::MIN_ACC_RARE_TIME = M_PI_4l/2.0;
 
 /// @note Small enough to distinguish variations of 0.01 simulation time units
 ///       when using fp single precision: mantissa 1, exponent 12, resulting in

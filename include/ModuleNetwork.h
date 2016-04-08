@@ -258,7 +258,6 @@ ModuleNetwork::peak_simulation(Traial& traial,
 							   Predicate pred) const
 {
 	assert(sealed());
-
 	ImportanceValue maxImportance(UNMASK(traial.level));
 	StateInstance maxImportanceState(traial.state);
 
