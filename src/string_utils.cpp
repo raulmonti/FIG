@@ -75,7 +75,8 @@ replace_substring(string& s, const string& from, const string& to)
 }
 
 
-std::string replace_substring(std::string &&s, const string& from, const string& to)
+string
+replace_substring(std::string &&s, const string& from, const string& to)
 {
 	string ss = replace_substring(s, from, to);
 	return ss;
@@ -92,8 +93,16 @@ delete_substring(string& s, const string& substr)
 string
 delete_substring(string&& s, const string& substr)
 {
-	string ss = delete_substring(s, substr);
+	string ss = replace_substring(s, substr, "");
 	return s;
+}
+
+
+string
+delete_substring(const std::string& s, const std::string& substr)
+{
+	string sCopy(s);
+	return replace_substring(std::move(sCopy), substr, "");
 }
 
 

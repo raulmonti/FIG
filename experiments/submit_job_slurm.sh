@@ -25,7 +25,7 @@
 #SBATCH --cpus-per-task=8
 
 ### execution time. Format: days-hours:minutes. Max: four days
-#SBATCH --time 2-00:00
+#SBATCH --time 3-12:00
 
 ### Check invocation line
 if [ $# -ne 1 ] || [ ! -f $1 ]

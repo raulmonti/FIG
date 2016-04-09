@@ -47,17 +47,12 @@ mkdir $RESULTS && unset N && \
 # Experiments configuration
 $ECHO "Configuring experiments"
 declare -a QUEUES_CAPACITIES=(10 15 20 25)
-STOP_CRITERION="0.90 0.4"  # Confidence coefficient and relative precision
-SPLITTINGS="2 5 11"        # Splitting values to test with the RESTART engine
-THRESHOLDS="smc"           # Thresholds building technique
-STANDARD_MC="nosplit algebraic flat"
-RESTART_ADHOC="restart algebraic adhoc \"q2\""
-RESTART_AUTO_COUPLED="restart concrete_coupled auto"
-RESTART_AUTO_SPLIT="restart concrete_split auto \"+\""
-STANDARD_MC+=" $THRESHOLDS $STOP_CRITERION"
-RESTART_ADHOC+=" $THRESHOLDS $STOP_CRITERION"
-RESTART_AUTO_COUPLED+=" $THRESHOLDS $STOP_CRITERION"
-RESTART_AUTO_SPLIT+=" $THRESHOLDS $STOP_CRITERION"
+STOP_CRITERION="--stop-conf 0.90 0.2"  # Confidence coeff. and rel. precision
+SPLITTINGS="--splitting 2,5,11"        # Splitting values for RESTART engine
+STANDARD_MC="-e nosplit --flat $STOP_CRITERION"
+RESTART_ADHOC="--adhoc \"q2\" $STOP_CRITERION $SPLITTINGS"
+RESTART_AUTO_COUPLED="--auto-coupled $STOP_CRITERION $SPLITTINGS"
+RESTART_AUTO_SPLIT="--auto-split \"+\" $STOP_CRITERION $SPLITTINGS"
 
 
 # Launch experiments
@@ -75,26 +70,27 @@ do
 	LOGerr=${RESULTS}/tandem_queue_c${c}.err
 	EXE=`$ECHO "./fig $MODEL_FILE_C $PROPS_FILE"`
 
+	poll_till_free
 	# Standard Monte Carlo
-	poll_till_free
 	$ECHO -n " MC"
-	$EXE $STANDARD_MC "0" 1>>${LOGout%.out}"_MC.out" \
-	                      2>>${LOGerr%.err}"_MC.err" &
+	$EXE $STANDARD_MC 1>>${LOGout%.out}"_MC.out" \
+	                  2>>${LOGerr%.err}"_MC.err" &
+	poll_till_free
 	# RESTART with ad hoc
-	poll_till_free
 	$ECHO -n ", AH"
-	$EXE $RESTART_ADHOC "$SPLITTINGS" 1>>${LOGout%.out}"_AH.out" \
-	                                  2>>${LOGerr%.err}"_AH.err" &
+	$EXE $RESTART_ADHOC 1>>${LOGout%.out}"_AH.out" \
+	                    2>>${LOGerr%.err}"_AH.err" &
+	poll_till_free
 	# RESTART with auto (coupled)
-	poll_till_free
 	$ECHO -n ", AC"
-	$EXE $RESTART_AUTO_COUPLED "$SPLITTINGS" 1>>${LOGout%.out}"_AC.out" \
-	                                         2>>${LOGerr%.err}"_AC.err" &
-	# RESTART with auto (split)
+	$EXE $RESTART_AUTO_COUPLED 1>>${LOGout%.out}"_AC.out" \
+	                           2>>${LOGerr%.err}"_AC.err" &
 	poll_till_free
+	# RESTART with auto (split)
 	$ECHO -n ", AS"
-	$EXE $RESTART_AUTO_SPLIT "$SPLITTINGS" 1>>${LOGout%.out}"_AS.out"  \
-	                                       2>>${LOGerr%.err}"_AS.err"  &
+	$EXE $RESTART_AUTO_SPLIT 1>>${LOGout%.out}"_AS.out" \
+	                         2>>${LOGerr%.err}"_AS.err" &
+
 	$ECHO "... done"
 done
 

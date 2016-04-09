@@ -62,6 +62,14 @@ std::string replace_substring(std::string&& s,
 std::string& delete_substring(std::string& s, const std::string& substr);
 /// @copydoc delete_substring()
 std::string delete_substring(std::string&& s, const std::string& substr);
+/**
+ * @brief Compose a string just like "s" but with all occurrences of "substr"
+ *        therein deleted
+ * @param s      String to have the deletions made
+ * @param substr Substring deleted from "s" to compose the result
+ * @return Resulting string
+ */
+std::string delete_substring(const std::string& s, const std::string& substr);
 
 /**
  * @brief Remove whitespace from begin and end of string

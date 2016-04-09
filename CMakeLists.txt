@@ -79,8 +79,8 @@ SET(ALL_SOURCES ${ALL_SOURCES} ${MAIN_SOURCE_FILES} CACHE INTERNAL "")
 # Don't check ranges every f***ing time
 ADD_DEFINITIONS(-DNRANGECHK)
 
-## # Alternative RNG from the PCG family (http://www.pcg-random.org/)
-## ADD_DEFINITIONS(-DPCG_RNG)
+# Alternative RNG from the PCG family (http://www.pcg-random.org/)
+ADD_DEFINITIONS(-DPCG_RNG)
 
 ## # Double floating point precision for clocks' time
 ## ADD_DEFINITIONS(-DDOUBLE_TIME_PRECISION)

@@ -382,6 +382,7 @@ ImportanceFunctionConcreteSplit::set_merge_fun(std::string mergeFunExpr)
 			modulesMap[name] = i;
 		}
 	}
+	delete_substring(mergeFunExpr, "\"");
 	if (mergeFunExpr.length() <= 3ul)  // given an operand => make it a function
 		mergeFunExpr = compose_merge_function(modulesNames, mergeFunExpr);
 	else

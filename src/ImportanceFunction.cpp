@@ -41,6 +41,7 @@
 #include <functional>   // std::function<>, std::bind()
 #include <type_traits>  // std::is_assignable<>
 // FIG
+#include <string_utils.h>
 #include <ImportanceFunction.h>
 #include <ThresholdsBuilder.h>
 #include <ThresholdsBuilderAdaptive.h>
@@ -99,7 +100,7 @@ ImportanceFunction::Formula::set(
         throw_FigException("can't define an empty user function");
 
     empty_ = false;
-    exprStr_ = formula;
+    exprStr_ = delete_substring(formula, "\"");
     parse_our_expression();  // updates expr_
     varsMap_.clear();
     auto pos_of_var = wrap_mapper(obj);
