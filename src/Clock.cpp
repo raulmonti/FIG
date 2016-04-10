@@ -60,11 +60,11 @@ typedef  fig::DistributionParameters  params_t;
 #endif
 
 #ifndef PCG_RNG
-/// Mersenne-Twister RNG
-auto rng = MTrng;
+  /// Mersenne-Twister RNG
+  auto rng = MTrng;
 #else
-/// PCG family RNG
-auto rng = PCGrng;
+  /// PCG family RNG
+  auto rng = PCGrng;
 #endif
 
 std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uniform01(0.0 , 1.0);
@@ -135,7 +135,11 @@ namespace fig
 
 unsigned Clock::rng_seed() noexcept { return rngSeed; }
 
+#ifndef NDEBUG
 void Clock::seed_rng() { rng.seed(rngSeed); }
+#else
+void Clock::seed_rng() { rng.seed(std::random_device{}()); }
+#endif
 
 std::unordered_map< std::string, Distribution > distributions_list =
 {

@@ -304,6 +304,7 @@ CompileProperty(AST* prop)
     }
     
     assert(false); // Strange property ...
+	return NULL;
 }
 
 

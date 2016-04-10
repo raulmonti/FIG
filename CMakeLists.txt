@@ -32,7 +32,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 PROJECT (fig)
 
 SET(fig_VERSION_MAJOR 0)
-SET(fig_VERSION_MINOR 88)
+SET(fig_VERSION_MINOR 9)
 
 
 
@@ -71,19 +71,40 @@ SET(ALL_SOURCES ${ALL_SOURCES} ${MAIN_SOURCE_FILES} CACHE INTERNAL "")
 
 
  
+###  Build meta options  ######################################################
+
+OPTION(RELEASE     "Build release version of FIG"           OFF)
+OPTION(BUILTIN_RNG "Use the PCG RNG provided with FIG"      OFF)
+OPTION(USE_DTIME   "Double fp precision for time tracking"  OFF)
+
+ 
+
 ###  Preprocessor macros  #####################################################
 
-## # No-Debug
-## ADD_DEFINITIONS(-DNDEBUG)
+# Build type: debug vs. release
+IF(RELEASE)
+	MESSAGE("Building FIG in release mode")
+	ADD_DEFINITIONS(-DNDEBUG)     # General No-Debug
+	ADD_DEFINITIONS(-DNRANGECHK)  # Don't check ranges every f***ing time
+ELSE()
+	MESSAGE("Building FIG in debug mode")
+ENDIF()
 
-# Don't check ranges every f***ing time
-ADD_DEFINITIONS(-DNRANGECHK)
+# RNG algorithm: C++ STL Mersenne-Twister vs. PCG default
+IF(BUILTIN_RNG)
+	MESSAGE("Using (alternative) RNG from the PCG family")
+	ADD_DEFINITIONS(-DPCG_RNG)  # PCG family RNG (http://www.pcg-random.org/)
+ELSE()
+	MESSAGE("Using C++ STL's Mersenne-Twister RNG")
+ENDIF()
 
-# Alternative RNG from the PCG family (http://www.pcg-random.org/)
-ADD_DEFINITIONS(-DPCG_RNG)
-
-## # Double floating point precision for clocks' time
-## ADD_DEFINITIONS(-DDOUBLE_TIME_PRECISION)
+# Time fp precision: single vs. double
+IF(USE_DTIME)
+	MESSAGE("Time tracked with double fp precision")
+	ADD_DEFINITIONS(-DDOUBLE_TIME_PRECISION)
+ELSE()
+	MESSAGE("Time tracked with single fp precision")
+ENDIF()
 
  
 
@@ -115,11 +136,13 @@ ENDIF()
  
 ###  Compile flags  ###########################################################
 
-# Highly defensive compile flags
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")# -pedantic")
+IF(NOT RELEASE)
+	# Highly defensive compile flags
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")# -pedantic")
+ENDIF()
 
-## # Debug with gdb
-## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+# Debug with gdb
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
 # As much automatic optimization as we can get
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
@@ -144,6 +167,17 @@ ENDIF()
 ## We just pasted gcc's "omp.h" into ext/openmp/include
 
 # Turn some warnings off
+#IF(RELEASE)
+#	# From Z3 library "check_context()" and others:
+#	# "unused parameter 'a'"...
+#	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+#	# From flex-2.5 generated file "lex.yy.cc":
+#	# "comparison of integers of different signs"
+#	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare")
+#	# From friend class declaration in Traial.h:
+#	# "struct 'new_allocator' was previously declared as a class"
+#	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-mismatched-tags")
+#ENDIF()
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	# From MuParser-2.2.5 library -- http://muparser.beltoforion.de/:
 	# "anonymous types declared in an anonymous union"

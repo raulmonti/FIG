@@ -174,7 +174,9 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 
 	// BFS
 	bool initialReached(false);
-    const size_t numRares = raresQueue.size();
+#ifndef NDEBUG
+	const size_t numRares = raresQueue.size();
+#endif
 	std::queue< STATE_T >& statesToCheck = raresQueue;
 
 	while (!initialReached && !statesToCheck.empty()) {

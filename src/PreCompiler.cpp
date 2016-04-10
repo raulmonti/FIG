@@ -39,8 +39,13 @@ Precompiler::solve_constant_defs(vector<AST*> defs, const parsingContext &pc)
         z3::expr e = ast2expr(it->get_first(_EXPRESSION),c,pc);
         s.add(v == e);
     }
+#ifndef NDEBUG
     assert(sat==s.check());
-    auto m = s.get_model();
+#else
+	if (s.check() != sat)
+		throw_FigException("bad constants definition");
+#endif
+	auto m = s.get_model();
 	for(size_t i = 0; i < exprs.size(); ++i){
         if(pc.at(names[i]).first==T_ARIT){
             Precompiler::mConstTable[names[i]] = 

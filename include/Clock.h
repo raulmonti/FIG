@@ -63,7 +63,7 @@ extern std::unordered_map< std::string, Distribution > distributions_list;
  */
 class Clock
 {
-	friend class ModelSuite;  // allow it RNG handling
+	friend class ModelSuite;  // RNG handling, e.g. re-seeding
 
 	/// Clock name
 	std::string name_;
@@ -85,6 +85,11 @@ public:  // Class' RNG manipulations
 private:
 
 	/// Restart RNG sequence
+	/// \ifnot NDEBUG
+	///   @details Apply same seed as before (chosen at initialization)
+	/// \else
+	///   @details Apply random seed taken from the system's random device
+	/// \endif
 	static void seed_rng();  // offered to ModelSuite
 
 public:  // Ctors

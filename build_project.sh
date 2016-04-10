@@ -137,9 +137,10 @@ else
 fi
 
 # Configure and build from inside BUILD_DIR
+OPTS="-DRELEASE=ON -DBUILTIN_RNG=ON"  # Cmake build options, see CMakeLists.txt
 if [ ! -d $BUILD_DIR ]; then mkdir $BUILD_DIR; fi
-cd $BUILD_DIR && CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR && make && \
-#cd $BUILD_DIR && CC=gcc CXX=g++ cmake $CMAKE_DIR && make && \
+cd $BUILD_DIR && CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR $OPTS && make && \
+#cd $BUILD_DIR && CC=gcc CXX=g++ cmake $CMAKE_DIR $OPTS && make && \
 /bin/echo -e "\n  Project built in $BUILD_DIR\n"
 cd $CWD
 

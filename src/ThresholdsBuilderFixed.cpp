@@ -63,12 +63,14 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 						 "every " + std::to_string(STRIDE) + " importance value"
 						 + (STRIDE > 1 ? ("s.\n") : (".\n")));
 
-	const unsigned
-		// Start slightly above impFun's initial value to avoid oversampling
-		MARGIN(std::min(static_cast<unsigned>(impFun.max_value()),
-						std::max(2u, (impFun.max_value() - impFun.initial_value()) / 5u))),
-		RANGE(impFun.max_value() - impFun.initial_value() - MARGIN),
-		NUMT(std::floor(static_cast<float>(RANGE) / STRIDE));
+	// Start slightly above impFun's initial value to avoid oversampling
+	const unsigned MARGIN =
+		std::min(static_cast<unsigned>(impFun.max_value()),
+				 std::max(2u, (impFun.max_value()-impFun.initial_value()) / 5u));
+	const unsigned RANGE = impFun.max_value() - impFun.initial_value() - MARGIN;
+#ifndef NDEBUG
+	const unsigned NUMT = std::floor(static_cast<float>(RANGE) / STRIDE);
+#endif
 
 	std::stringstream msg;
 	msg << "ImportanceValue of the chosen thresholds:";

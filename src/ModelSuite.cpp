@@ -477,7 +477,15 @@ const ConfidenceInterval* ModelSuite::interruptCI_ = nullptr;
 const std::vector< float > ModelSuite::confCoToShow_ = {0.8, 0.9, 0.95, 0.99};
 
 SignalSetter ModelSuite::SIGINThandler_(SIGINT, [] (const int signal) {
-        assert(SIGINT == signal);
+#ifndef NDEBUG
+		assert(SIGINT == signal);
+#else
+		if (SIGINT != signal) {
+			ModelSuite::log("\nCalled SIGINThandler for signal "
+							+ to_string(signal) + ", aborting.\n");
+			std::exit((1<<7)+SIGABRT);
+		}
+#endif
 		/// @todo TODO: implement proper reentrant logging
 		ModelSuite::log("\nCaught SIGINT, stopping computations.\n");
 		if (nullptr != ModelSuite::interruptCI_)
@@ -490,7 +498,16 @@ SignalSetter ModelSuite::SIGINThandler_(SIGINT, [] (const int signal) {
 );
 
 SignalSetter ModelSuite::SIGTERMhandler_(SIGTERM, [] (const int signal) {
-        assert(SIGTERM == signal);
+#ifndef NDEBUG
+		assert(SIGTERM == signal);
+#else
+		if (SIGTERM != signal) {
+			ModelSuite::log("\nCalled SIGTERMhandler for signal "
+							+ to_string(signal) + ", aborting.\n");
+			std::exit((1<<7)+SIGABRT);
+		}
+#endif
+		assert(SIGTERM == signal);
 		/// @todo TODO: implement proper reentrant logging
 		ModelSuite::log("\nCaught SIGTERM, stopping estimations.\n");
         if (nullptr != ModelSuite::interruptCI_)
@@ -1154,7 +1171,11 @@ ModelSuite::estimate(const Property& property,
 			mainLog_ << std::setprecision(0) << std::fixed;
 			mainLog_ << "   Estimation time: " << wallTimeInSeconds << " s\n";
 			SignalSetter handler(SIGALRM, [&ci_ptr, &timedout] (const int sig){
-				assert(SIGALRM == sig);
+#				ifndef NDEBUG
+					assert(SIGALRM == sig);
+#				else
+					if (SIGALRM != sig) std::exit((1<<7)+SIGABRT);
+#				endif
 				interrupt_print(*ci_ptr, ModelSuite::confCoToShow_,
 								mainLog_, lastEstimationStartTime_);
 				ci_ptr->reset();
