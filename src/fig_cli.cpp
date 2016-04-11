@@ -42,6 +42,7 @@
 // FIG
 #include <fig_cli.h>
 #include <FigConfig.h>
+#include <FigException.h>
 #include <ModelSuite.h>
 #include <MultiDoubleArg.h>
 #include <NumericConstraint.h>
@@ -356,7 +357,8 @@ namespace fig_cli
 
 // Main parsing routine  //////////////////////////////////////////////////////
 
-bool parse_arguments(const int& argc, const char** argv, bool fatalError)
+bool
+parse_arguments(const int& argc, const char** argv, bool fatalError)
 {
 	try {
 		// Add all defined arguments and options to TCLAP's command line parser
@@ -411,11 +413,8 @@ bool parse_arguments(const int& argc, const char** argv, bool fatalError)
 		}
 
 	} catch (ArgException& e) {
-		std::cerr << "ERROR: " << e.what() << "\n";
-		if (fatalError)
-			exit(EXIT_FAILURE);
-		else
-			return false;
+		throw_FigException(std::string("command line parsing failed "
+						   "unexpectedly: ").append(e.what()));
 	}
 
 	return true;

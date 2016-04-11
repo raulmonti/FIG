@@ -1,0 +1,792 @@
+/*
+ * Database with redundancy for the FIG tool
+ * Budde, Monti, D'Argenio | 2016
+ *
+ *{-
+ * Concept of the database computing system with redundancy:
+ * 
+ * 2 Types of Processors
+ * 2 Types of disk Controllers
+ * 6 Disk clusters
+ *
+ * For redundancy 'RED'=2,3,..., there are RED components of each type
+ * of Processor and Controller, and RED+2 Disks on each disk cluster.
+ * Processors, Controllers and Disks break down with different rates.
+ * A breakdown in a processor of type i causes, with certain rate,
+ * a processor of the other type to break as well.
+ * A single repairman chooses randomly among broken components, and
+ * fixes them up (one at a time) with one of two possible speed rates.
+ *
+ * Initial state: all components in the system are operational.
+ * Reference events: any system transition.
+ * Rare event: system failure caused by RED simultaneously broken Processors
+ *             or Controllers of the same type, or RED broken Disks on the
+ *             same disk cluster.
+ *-}
+ */
+
+// -- The following values were extracted from José Villén-Altamirano,
+// -- "Importance functions for RESTART simulation of highly-dependable
+// -- systems", Simulation, Vol. 83, Issue 12, December 2007, pp. 821-828.
+
+// -- Processors
+const int PF = 2000;   // -- Processors' mean time to failure (in hours)
+// -- unsupported! const double IPF = 0.01;  // -- Processors' inter-type failure rate
+// -- Controllers
+const int CF = 2000;  // -- Controllers' mean time to failure (in hours)
+// -- Disk clusters
+const int DF = 6000;  // -- Disks' mean time to failure (in hours)
+
+
+///////////////////////////////////////////////////////////////////////
+//
+// -- Disk clusters | Total: 6
+// --               | Redundancy: 4
+// --               | Mean time to failure: DF
+// --               | Num failures to breakdown per cluster: 2
+
+
+module Disk11
+	fdsk11: [1..2];
+	stdsk11:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk11:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk11:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk11:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk11:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk11==0 @ ckF1dsk11 -> (fdsk11'= 1) &
+				    (stdsk11'=1) &
+				    (ckR1dsk11'= exponential(1.0));
+	[] stdsk11==0 @ ckF2dsk11 -> (fdsk11'= 2) &
+				    (stdsk11'=1) &
+				    (ckR2dsk11'= exponential(0.5));
+	[] stdsk11==1 & fdsk11==1 @ ckR1dsk11 -> (stdsk11'=0) &
+						     (ckF1dsk11'= exponential(1/(2*DF))) &
+						     (ckF2dsk11'= exponential(1/(2*DF)));
+	[] stdsk11==1 & fdsk11==2 @ ckR2dsk11 -> (stdsk11'=0) &
+						     (ckF1dsk11'= exponential(1/(2*DF))) &
+						     (ckF2dsk11'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk12
+	fdsk12: [1..2];
+	stdsk12:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk12:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk12:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk12:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk12:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk12==0 @ ckF1dsk12 -> (fdsk12'= 1) &
+				    (stdsk12'=1) &
+				    (ckR1dsk12'= exponential(1.0));
+	[] stdsk12==0 @ ckF2dsk12 -> (fdsk12'= 2) &
+				    (stdsk12'=1) &
+				    (ckR2dsk12'= exponential(0.5));
+	[] stdsk12==1 & fdsk12==1 @ ckR1dsk12 -> (stdsk12'=0) &
+						     (ckF1dsk12'= exponential(1/(2*DF))) &
+						     (ckF2dsk12'= exponential(1/(2*DF)));
+	[] stdsk12==1 & fdsk12==2 @ ckR2dsk12 -> (stdsk12'=0) &
+						     (ckF1dsk12'= exponential(1/(2*DF))) &
+						     (ckF2dsk12'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk13
+	fdsk13: [1..2];
+	stdsk13:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk13:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk13:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk13:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk13:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk13==0 @ ckF1dsk13 -> (fdsk13'= 1) &
+				    (stdsk13'=1) &
+				    (ckR1dsk13'= exponential(1.0));
+	[] stdsk13==0 @ ckF2dsk13 -> (fdsk13'= 2) &
+				    (stdsk13'=1) &
+				    (ckR2dsk13'= exponential(0.5));
+	[] stdsk13==1 & fdsk13==1 @ ckR1dsk13 -> (stdsk13'=0) &
+						     (ckF1dsk13'= exponential(1/(2*DF))) &
+						     (ckF2dsk13'= exponential(1/(2*DF)));
+	[] stdsk13==1 & fdsk13==2 @ ckR2dsk13 -> (stdsk13'=0) &
+						     (ckF1dsk13'= exponential(1/(2*DF))) &
+						     (ckF2dsk13'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk14
+	fdsk14: [1..2];
+	stdsk14:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk14:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk14:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk14:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk14:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk14==0 @ ckF1dsk14 -> (fdsk14'= 1) &
+				    (stdsk14'=1) &
+				    (ckR1dsk14'= exponential(1.0));
+	[] stdsk14==0 @ ckF2dsk14 -> (fdsk14'= 2) &
+				    (stdsk14'=1) &
+				    (ckR2dsk14'= exponential(0.5));
+	[] stdsk14==1 & fdsk14==1 @ ckR1dsk14 -> (stdsk14'=0) &
+						     (ckF1dsk14'= exponential(1/(2*DF))) &
+						     (ckF2dsk14'= exponential(1/(2*DF)));
+	[] stdsk14==1 & fdsk14==2 @ ckR2dsk14 -> (stdsk14'=0) &
+						     (ckF1dsk14'= exponential(1/(2*DF))) &
+						     (ckF2dsk14'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk21
+	fdsk21: [1..2];
+	stdsk21:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk21:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk21:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk21:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk21:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk21==0 @ ckF1dsk21 -> (fdsk21'= 1) &
+				    (stdsk21'=1) &
+				    (ckR1dsk21'= exponential(1.0));
+	[] stdsk21==0 @ ckF2dsk21 -> (fdsk21'= 2) &
+				    (stdsk21'=1) &
+				    (ckR2dsk21'= exponential(0.5));
+	[] stdsk21==1 & fdsk21==1 @ ckR1dsk21 -> (stdsk21'=0) &
+						     (ckF1dsk21'= exponential(1/(2*DF))) &
+						     (ckF2dsk21'= exponential(1/(2*DF)));
+	[] stdsk21==1 & fdsk21==2 @ ckR2dsk21 -> (stdsk21'=0) &
+						     (ckF1dsk21'= exponential(1/(2*DF))) &
+						     (ckF2dsk21'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk22
+	fdsk22: [1..2];
+	stdsk22:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk22:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk22:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk22:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk22:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk22==0 @ ckF1dsk22 -> (fdsk22'= 1) &
+				    (stdsk22'=1) &
+				    (ckR1dsk22'= exponential(1.0));
+	[] stdsk22==0 @ ckF2dsk22 -> (fdsk22'= 2) &
+				    (stdsk22'=1) &
+				    (ckR2dsk22'= exponential(0.5));
+	[] stdsk22==1 & fdsk22==1 @ ckR1dsk22 -> (stdsk22'=0) &
+						     (ckF1dsk22'= exponential(1/(2*DF))) &
+						     (ckF2dsk22'= exponential(1/(2*DF)));
+	[] stdsk22==1 & fdsk22==2 @ ckR2dsk22 -> (stdsk22'=0) &
+						     (ckF1dsk22'= exponential(1/(2*DF))) &
+						     (ckF2dsk22'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk23
+	fdsk23: [1..2];
+	stdsk23:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk23:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk23:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk23:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk23:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk23==0 @ ckF1dsk23 -> (fdsk23'= 1) &
+				    (stdsk23'=1) &
+				    (ckR1dsk23'= exponential(1.0));
+	[] stdsk23==0 @ ckF2dsk23 -> (fdsk23'= 2) &
+				    (stdsk23'=1) &
+				    (ckR2dsk23'= exponential(0.5));
+	[] stdsk23==1 & fdsk23==1 @ ckR1dsk23 -> (stdsk23'=0) &
+						     (ckF1dsk23'= exponential(1/(2*DF))) &
+						     (ckF2dsk23'= exponential(1/(2*DF)));
+	[] stdsk23==1 & fdsk23==2 @ ckR2dsk23 -> (stdsk23'=0) &
+						     (ckF1dsk23'= exponential(1/(2*DF))) &
+						     (ckF2dsk23'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk24
+	fdsk24: [1..2];
+	stdsk24:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk24:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk24:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk24:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk24:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk24==0 @ ckF1dsk24 -> (fdsk24'= 1) &
+				    (stdsk24'=1) &
+				    (ckR1dsk24'= exponential(1.0));
+	[] stdsk24==0 @ ckF2dsk24 -> (fdsk24'= 2) &
+				    (stdsk24'=1) &
+				    (ckR2dsk24'= exponential(0.5));
+	[] stdsk24==1 & fdsk24==1 @ ckR1dsk24 -> (stdsk24'=0) &
+						     (ckF1dsk24'= exponential(1/(2*DF))) &
+						     (ckF2dsk24'= exponential(1/(2*DF)));
+	[] stdsk24==1 & fdsk24==2 @ ckR2dsk24 -> (stdsk24'=0) &
+						     (ckF1dsk24'= exponential(1/(2*DF))) &
+						     (ckF2dsk24'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk31
+	fdsk31: [1..2];
+	stdsk31:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk31:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk31:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk31:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk31:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk31==0 @ ckF1dsk31 -> (fdsk31'= 1) &
+				    (stdsk31'=1) &
+				    (ckR1dsk31'= exponential(1.0));
+	[] stdsk31==0 @ ckF2dsk31 -> (fdsk31'= 2) &
+				    (stdsk31'=1) &
+				    (ckR2dsk31'= exponential(0.5));
+	[] stdsk31==1 & fdsk31==1 @ ckR1dsk31 -> (stdsk31'=0) &
+						     (ckF1dsk31'= exponential(1/(2*DF))) &
+						     (ckF2dsk31'= exponential(1/(2*DF)));
+	[] stdsk31==1 & fdsk31==2 @ ckR2dsk31 -> (stdsk31'=0) &
+						     (ckF1dsk31'= exponential(1/(2*DF))) &
+						     (ckF2dsk31'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk32
+	fdsk32: [1..2];
+	stdsk32:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk32:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk32:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk32:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk32:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk32==0 @ ckF1dsk32 -> (fdsk32'= 1) &
+				    (stdsk32'=1) &
+				    (ckR1dsk32'= exponential(1.0));
+	[] stdsk32==0 @ ckF2dsk32 -> (fdsk32'= 2) &
+				    (stdsk32'=1) &
+				    (ckR2dsk32'= exponential(0.5));
+	[] stdsk32==1 & fdsk32==1 @ ckR1dsk32 -> (stdsk32'=0) &
+						     (ckF1dsk32'= exponential(1/(2*DF))) &
+						     (ckF2dsk32'= exponential(1/(2*DF)));
+	[] stdsk32==1 & fdsk32==2 @ ckR2dsk32 -> (stdsk32'=0) &
+						     (ckF1dsk32'= exponential(1/(2*DF))) &
+						     (ckF2dsk32'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk33
+	fdsk33: [1..2];
+	stdsk33:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk33:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk33:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk33:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk33:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk33==0 @ ckF1dsk33 -> (fdsk33'= 1) &
+				    (stdsk33'=1) &
+				    (ckR1dsk33'= exponential(1.0));
+	[] stdsk33==0 @ ckF2dsk33 -> (fdsk33'= 2) &
+				    (stdsk33'=1) &
+				    (ckR2dsk33'= exponential(0.5));
+	[] stdsk33==1 & fdsk33==1 @ ckR1dsk33 -> (stdsk33'=0) &
+						     (ckF1dsk33'= exponential(1/(2*DF))) &
+						     (ckF2dsk33'= exponential(1/(2*DF)));
+	[] stdsk33==1 & fdsk33==2 @ ckR2dsk33 -> (stdsk33'=0) &
+						     (ckF1dsk33'= exponential(1/(2*DF))) &
+						     (ckF2dsk33'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk34
+	fdsk34: [1..2];
+	stdsk34:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk34:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk34:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk34:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk34:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk34==0 @ ckF1dsk34 -> (fdsk34'= 1) &
+				    (stdsk34'=1) &
+				    (ckR1dsk34'= exponential(1.0));
+	[] stdsk34==0 @ ckF2dsk34 -> (fdsk34'= 2) &
+				    (stdsk34'=1) &
+				    (ckR2dsk34'= exponential(0.5));
+	[] stdsk34==1 & fdsk34==1 @ ckR1dsk34 -> (stdsk34'=0) &
+						     (ckF1dsk34'= exponential(1/(2*DF))) &
+						     (ckF2dsk34'= exponential(1/(2*DF)));
+	[] stdsk34==1 & fdsk34==2 @ ckR2dsk34 -> (stdsk34'=0) &
+						     (ckF1dsk34'= exponential(1/(2*DF))) &
+						     (ckF2dsk34'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk41
+	fdsk41: [1..2];
+	stdsk41:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk41:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk41:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk41:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk41:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk41==0 @ ckF1dsk41 -> (fdsk41'= 1) &
+				    (stdsk41'=1) &
+				    (ckR1dsk41'= exponential(1.0));
+	[] stdsk41==0 @ ckF2dsk41 -> (fdsk41'= 2) &
+				    (stdsk41'=1) &
+				    (ckR2dsk41'= exponential(0.5));
+	[] stdsk41==1 & fdsk41==1 @ ckR1dsk41 -> (stdsk41'=0) &
+						     (ckF1dsk41'= exponential(1/(2*DF))) &
+						     (ckF2dsk41'= exponential(1/(2*DF)));
+	[] stdsk41==1 & fdsk41==2 @ ckR2dsk41 -> (stdsk41'=0) &
+						     (ckF1dsk41'= exponential(1/(2*DF))) &
+						     (ckF2dsk41'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk42
+	fdsk42: [1..2];
+	stdsk42:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk42:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk42:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk42:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk42:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk42==0 @ ckF1dsk42 -> (fdsk42'= 1) &
+				    (stdsk42'=1) &
+				    (ckR1dsk42'= exponential(1.0));
+	[] stdsk42==0 @ ckF2dsk42 -> (fdsk42'= 2) &
+				    (stdsk42'=1) &
+				    (ckR2dsk42'= exponential(0.5));
+	[] stdsk42==1 & fdsk42==1 @ ckR1dsk42 -> (stdsk42'=0) &
+						     (ckF1dsk42'= exponential(1/(2*DF))) &
+						     (ckF2dsk42'= exponential(1/(2*DF)));
+	[] stdsk42==1 & fdsk42==2 @ ckR2dsk42 -> (stdsk42'=0) &
+						     (ckF1dsk42'= exponential(1/(2*DF))) &
+						     (ckF2dsk42'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk43
+	fdsk43: [1..2];
+	stdsk43:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk43:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk43:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk43:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk43:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk43==0 @ ckF1dsk43 -> (fdsk43'= 1) &
+				    (stdsk43'=1) &
+				    (ckR1dsk43'= exponential(1.0));
+	[] stdsk43==0 @ ckF2dsk43 -> (fdsk43'= 2) &
+				    (stdsk43'=1) &
+				    (ckR2dsk43'= exponential(0.5));
+	[] stdsk43==1 & fdsk43==1 @ ckR1dsk43 -> (stdsk43'=0) &
+						     (ckF1dsk43'= exponential(1/(2*DF))) &
+						     (ckF2dsk43'= exponential(1/(2*DF)));
+	[] stdsk43==1 & fdsk43==2 @ ckR2dsk43 -> (stdsk43'=0) &
+						     (ckF1dsk43'= exponential(1/(2*DF))) &
+						     (ckF2dsk43'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk44
+	fdsk44: [1..2];
+	stdsk44:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk44:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk44:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk44:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk44:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk44==0 @ ckF1dsk44 -> (fdsk44'= 1) &
+				    (stdsk44'=1) &
+				    (ckR1dsk44'= exponential(1.0));
+	[] stdsk44==0 @ ckF2dsk44 -> (fdsk44'= 2) &
+				    (stdsk44'=1) &
+				    (ckR2dsk44'= exponential(0.5));
+	[] stdsk44==1 & fdsk44==1 @ ckR1dsk44 -> (stdsk44'=0) &
+						     (ckF1dsk44'= exponential(1/(2*DF))) &
+						     (ckF2dsk44'= exponential(1/(2*DF)));
+	[] stdsk44==1 & fdsk44==2 @ ckR2dsk44 -> (stdsk44'=0) &
+						     (ckF1dsk44'= exponential(1/(2*DF))) &
+						     (ckF2dsk44'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk51
+	fdsk51: [1..2];
+	stdsk51:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk51:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk51:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk51:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk51:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk51==0 @ ckF1dsk51 -> (fdsk51'= 1) &
+				    (stdsk51'=1) &
+				    (ckR1dsk51'= exponential(1.0));
+	[] stdsk51==0 @ ckF2dsk51 -> (fdsk51'= 2) &
+				    (stdsk51'=1) &
+				    (ckR2dsk51'= exponential(0.5));
+	[] stdsk51==1 & fdsk51==1 @ ckR1dsk51 -> (stdsk51'=0) &
+						     (ckF1dsk51'= exponential(1/(2*DF))) &
+						     (ckF2dsk51'= exponential(1/(2*DF)));
+	[] stdsk51==1 & fdsk51==2 @ ckR2dsk51 -> (stdsk51'=0) &
+						     (ckF1dsk51'= exponential(1/(2*DF))) &
+						     (ckF2dsk51'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk52
+	fdsk52: [1..2];
+	stdsk52:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk52:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk52:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk52:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk52:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk52==0 @ ckF1dsk52 -> (fdsk52'= 1) &
+				    (stdsk52'=1) &
+				    (ckR1dsk52'= exponential(1.0));
+	[] stdsk52==0 @ ckF2dsk52 -> (fdsk52'= 2) &
+				    (stdsk52'=1) &
+				    (ckR2dsk52'= exponential(0.5));
+	[] stdsk52==1 & fdsk52==1 @ ckR1dsk52 -> (stdsk52'=0) &
+						     (ckF1dsk52'= exponential(1/(2*DF))) &
+						     (ckF2dsk52'= exponential(1/(2*DF)));
+	[] stdsk52==1 & fdsk52==2 @ ckR2dsk52 -> (stdsk52'=0) &
+						     (ckF1dsk52'= exponential(1/(2*DF))) &
+						     (ckF2dsk52'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk53
+	fdsk53: [1..2];
+	stdsk53:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk53:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk53:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk53:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk53:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk53==0 @ ckF1dsk53 -> (fdsk53'= 1) &
+				    (stdsk53'=1) &
+				    (ckR1dsk53'= exponential(1.0));
+	[] stdsk53==0 @ ckF2dsk53 -> (fdsk53'= 2) &
+				    (stdsk53'=1) &
+				    (ckR2dsk53'= exponential(0.5));
+	[] stdsk53==1 & fdsk53==1 @ ckR1dsk53 -> (stdsk53'=0) &
+						     (ckF1dsk53'= exponential(1/(2*DF))) &
+						     (ckF2dsk53'= exponential(1/(2*DF)));
+	[] stdsk53==1 & fdsk53==2 @ ckR2dsk53 -> (stdsk53'=0) &
+						     (ckF1dsk53'= exponential(1/(2*DF))) &
+						     (ckF2dsk53'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk54
+	fdsk54: [1..2];
+	stdsk54:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk54:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk54:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk54:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk54:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk54==0 @ ckF1dsk54 -> (fdsk54'= 1) &
+				    (stdsk54'=1) &
+				    (ckR1dsk54'= exponential(1.0));
+	[] stdsk54==0 @ ckF2dsk54 -> (fdsk54'= 2) &
+				    (stdsk54'=1) &
+				    (ckR2dsk54'= exponential(0.5));
+	[] stdsk54==1 & fdsk54==1 @ ckR1dsk54 -> (stdsk54'=0) &
+						     (ckF1dsk54'= exponential(1/(2*DF))) &
+						     (ckF2dsk54'= exponential(1/(2*DF)));
+	[] stdsk54==1 & fdsk54==2 @ ckR2dsk54 -> (stdsk54'=0) &
+						     (ckF1dsk54'= exponential(1/(2*DF))) &
+						     (ckF2dsk54'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk61
+	fdsk61: [1..2];
+	stdsk61:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk61:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk61:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk61:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk61:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk61==0 @ ckF1dsk61 -> (fdsk61'= 1) &
+				    (stdsk61'=1) &
+				    (ckR1dsk61'= exponential(1.0));
+	[] stdsk61==0 @ ckF2dsk61 -> (fdsk61'= 2) &
+				    (stdsk61'=1) &
+				    (ckR2dsk61'= exponential(0.5));
+	[] stdsk61==1 & fdsk61==1 @ ckR1dsk61 -> (stdsk61'=0) &
+						     (ckF1dsk61'= exponential(1/(2*DF))) &
+						     (ckF2dsk61'= exponential(1/(2*DF)));
+	[] stdsk61==1 & fdsk61==2 @ ckR2dsk61 -> (stdsk61'=0) &
+						     (ckF1dsk61'= exponential(1/(2*DF))) &
+						     (ckF2dsk61'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk62
+	fdsk62: [1..2];
+	stdsk62:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk62:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk62:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk62:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk62:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk62==0 @ ckF1dsk62 -> (fdsk62'= 1) &
+				    (stdsk62'=1) &
+				    (ckR1dsk62'= exponential(1.0));
+	[] stdsk62==0 @ ckF2dsk62 -> (fdsk62'= 2) &
+				    (stdsk62'=1) &
+				    (ckR2dsk62'= exponential(0.5));
+	[] stdsk62==1 & fdsk62==1 @ ckR1dsk62 -> (stdsk62'=0) &
+						     (ckF1dsk62'= exponential(1/(2*DF))) &
+						     (ckF2dsk62'= exponential(1/(2*DF)));
+	[] stdsk62==1 & fdsk62==2 @ ckR2dsk62 -> (stdsk62'=0) &
+						     (ckF1dsk62'= exponential(1/(2*DF))) &
+						     (ckF2dsk62'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk63
+	fdsk63: [1..2];
+	stdsk63:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk63:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk63:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk63:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk63:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk63==0 @ ckF1dsk63 -> (fdsk63'= 1) &
+				    (stdsk63'=1) &
+				    (ckR1dsk63'= exponential(1.0));
+	[] stdsk63==0 @ ckF2dsk63 -> (fdsk63'= 2) &
+				    (stdsk63'=1) &
+				    (ckR2dsk63'= exponential(0.5));
+	[] stdsk63==1 & fdsk63==1 @ ckR1dsk63 -> (stdsk63'=0) &
+						     (ckF1dsk63'= exponential(1/(2*DF))) &
+						     (ckF2dsk63'= exponential(1/(2*DF)));
+	[] stdsk63==1 & fdsk63==2 @ ckR2dsk63 -> (stdsk63'=0) &
+						     (ckF1dsk63'= exponential(1/(2*DF))) &
+						     (ckF2dsk63'= exponential(1/(2*DF)));
+endmodule
+
+
+module Disk64
+	fdsk64: [1..2];
+	stdsk64:   [0..1]; // -- 0 = up, 1 = down
+	ckF1dsk64:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1
+	ckF2dsk64:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2
+	ckR1dsk64:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2dsk64:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stdsk64==0 @ ckF1dsk64 -> (fdsk64'= 1) &
+				    (stdsk64'=1) &
+				    (ckR1dsk64'= exponential(1.0));
+	[] stdsk64==0 @ ckF2dsk64 -> (fdsk64'= 2) &
+				    (stdsk64'=1) &
+				    (ckR2dsk64'= exponential(0.5));
+	[] stdsk64==1 & fdsk64==1 @ ckR1dsk64 -> (stdsk64'=0) &
+						     (ckF1dsk64'= exponential(1/(2*DF))) &
+						     (ckF2dsk64'= exponential(1/(2*DF)));
+	[] stdsk64==1 & fdsk64==2 @ ckR2dsk64 -> (stdsk64'=0) &
+						     (ckF1dsk64'= exponential(1/(2*DF))) &
+						     (ckF2dsk64'= exponential(1/(2*DF)));
+endmodule
+///////////////////////////////////////////////////////////////////////
+//
+// -- Controllers   | Total: 2
+// --               | Redundancy: 2
+// --               | Mean time to failure: CF
+
+
+module Controller11
+	fctrl11: [1..2];
+	stctrl11:   [0..1]; // -- 0 = up, 1 = down
+	ckF1ctrl11:   clock;  // -- Failure ~ exp(1/(2*CF))     Disk failing to type1
+	ckF2ctrl11:   clock;  // -- Failure ~ exp(1/(2*CF))     Disk failing to type2
+	ckR1ctrl11:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2ctrl11:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stctrl11==0 @ ckF1ctrl11 -> (fctrl11'= 1) &
+				    (stctrl11'=1) &
+				    (ckR1ctrl11'= exponential(1.0));
+	[] stctrl11==0 @ ckF2ctrl11 -> (fctrl11'= 2) &
+				    (stctrl11'=1) &
+				    (ckR2ctrl11'= exponential(0.5));
+	[] stctrl11==1 & fctrl11==1 @ ckR1ctrl11 -> (stctrl11'=0) &
+						     (ckF1ctrl11'= exponential(1/(2*CF))) &
+						     (ckF2ctrl11'= exponential(1/(2*CF)));
+	[] stctrl11==1 & fctrl11==2 @ ckR2ctrl11 -> (stctrl11'=0) &
+						     (ckF1ctrl11'= exponential(1/(2*CF))) &
+						     (ckF2ctrl11'= exponential(1/(2*CF)));
+endmodule
+
+
+module Controller12
+	fctrl12: [1..2];
+	stctrl12:   [0..1]; // -- 0 = up, 1 = down
+	ckF1ctrl12:   clock;  // -- Failure ~ exp(1/(2*CF))     Disk failing to type1
+	ckF2ctrl12:   clock;  // -- Failure ~ exp(1/(2*CF))     Disk failing to type2
+	ckR1ctrl12:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2ctrl12:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stctrl12==0 @ ckF1ctrl12 -> (fctrl12'= 1) &
+				    (stctrl12'=1) &
+				    (ckR1ctrl12'= exponential(1.0));
+	[] stctrl12==0 @ ckF2ctrl12 -> (fctrl12'= 2) &
+				    (stctrl12'=1) &
+				    (ckR2ctrl12'= exponential(0.5));
+	[] stctrl12==1 & fctrl12==1 @ ckR1ctrl12 -> (stctrl12'=0) &
+						     (ckF1ctrl12'= exponential(1/(2*CF))) &
+						     (ckF2ctrl12'= exponential(1/(2*CF)));
+	[] stctrl12==1 & fctrl12==2 @ ckR2ctrl12 -> (stctrl12'=0) &
+						     (ckF1ctrl12'= exponential(1/(2*CF))) &
+						     (ckF2ctrl12'= exponential(1/(2*CF)));
+endmodule
+
+
+module Controller21
+	fctrl21: [1..2];
+	stctrl21:   [0..1]; // -- 0 = up, 1 = down
+	ckF1ctrl21:   clock;  // -- Failure ~ exp(1/(2*CF))     Disk failing to type1
+	ckF2ctrl21:   clock;  // -- Failure ~ exp(1/(2*CF))     Disk failing to type2
+	ckR1ctrl21:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2ctrl21:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stctrl21==0 @ ckF1ctrl21 -> (fctrl21'= 1) &
+				    (stctrl21'=1) &
+				    (ckR1ctrl21'= exponential(1.0));
+	[] stctrl21==0 @ ckF2ctrl21 -> (fctrl21'= 2) &
+				    (stctrl21'=1) &
+				    (ckR2ctrl21'= exponential(0.5));
+	[] stctrl21==1 & fctrl21==1 @ ckR1ctrl21 -> (stctrl21'=0) &
+						     (ckF1ctrl21'= exponential(1/(2*CF))) &
+						     (ckF2ctrl21'= exponential(1/(2*CF)));
+	[] stctrl21==1 & fctrl21==2 @ ckR2ctrl21 -> (stctrl21'=0) &
+						     (ckF1ctrl21'= exponential(1/(2*CF))) &
+						     (ckF2ctrl21'= exponential(1/(2*CF)));
+endmodule
+
+
+module Controller22
+	fctrl22: [1..2];
+	stctrl22:   [0..1]; // -- 0 = up, 1 = down
+	ckF1ctrl22:   clock;  // -- Failure ~ exp(1/(2*CF))     Disk failing to type1
+	ckF2ctrl22:   clock;  // -- Failure ~ exp(1/(2*CF))     Disk failing to type2
+	ckR1ctrl22:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2ctrl22:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stctrl22==0 @ ckF1ctrl22 -> (fctrl22'= 1) &
+				    (stctrl22'=1) &
+				    (ckR1ctrl22'= exponential(1.0));
+	[] stctrl22==0 @ ckF2ctrl22 -> (fctrl22'= 2) &
+				    (stctrl22'=1) &
+				    (ckR2ctrl22'= exponential(0.5));
+	[] stctrl22==1 & fctrl22==1 @ ckR1ctrl22 -> (stctrl22'=0) &
+						     (ckF1ctrl22'= exponential(1/(2*CF))) &
+						     (ckF2ctrl22'= exponential(1/(2*CF)));
+	[] stctrl22==1 & fctrl22==2 @ ckR2ctrl22 -> (stctrl22'=0) &
+						     (ckF1ctrl22'= exponential(1/(2*CF))) &
+						     (ckF2ctrl22'= exponential(1/(2*CF)));
+endmodule
+///////////////////////////////////////////////////////////////////////
+//
+// -- Processors    | Total: 2
+// --               | Redundancy: 2
+// --               | Mean time to failure: PF
+
+
+module Processor11
+	fproc11: [1..2];
+	stproc11:   [0..1]; // -- 0 = up, 1 = down
+	ckF1proc11:   clock;  // -- Failure ~ exp(1/(2*PF))     Disk failing to type1
+	ckF2proc11:   clock;  // -- Failure ~ exp(1/(2*PF))     Disk failing to type2
+	ckR1proc11:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2proc11:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stproc11==0 @ ckF1proc11 -> (fproc11'= 1) &
+				    (stproc11'=1) &
+				    (ckR1proc11'= exponential(1.0));
+	[] stproc11==0 @ ckF2proc11 -> (fproc11'= 2) &
+				    (stproc11'=1) &
+				    (ckR2proc11'= exponential(0.5));
+	[] stproc11==1 & fproc11==1 @ ckR1proc11 -> (stproc11'=0) &
+						     (ckF1proc11'= exponential(1/(2*PF))) &
+						     (ckF2proc11'= exponential(1/(2*PF)));
+	[] stproc11==1 & fproc11==2 @ ckR2proc11 -> (stproc11'=0) &
+						     (ckF1proc11'= exponential(1/(2*PF))) &
+						     (ckF2proc11'= exponential(1/(2*PF)));
+endmodule
+
+
+module Processor12
+	fproc12: [1..2];
+	stproc12:   [0..1]; // -- 0 = up, 1 = down
+	ckF1proc12:   clock;  // -- Failure ~ exp(1/(2*PF))     Disk failing to type1
+	ckF2proc12:   clock;  // -- Failure ~ exp(1/(2*PF))     Disk failing to type2
+	ckR1proc12:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2proc12:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stproc12==0 @ ckF1proc12 -> (fproc12'= 1) &
+				    (stproc12'=1) &
+				    (ckR1proc12'= exponential(1.0));
+	[] stproc12==0 @ ckF2proc12 -> (fproc12'= 2) &
+				    (stproc12'=1) &
+				    (ckR2proc12'= exponential(0.5));
+	[] stproc12==1 & fproc12==1 @ ckR1proc12 -> (stproc12'=0) &
+						     (ckF1proc12'= exponential(1/(2*PF))) &
+						     (ckF2proc12'= exponential(1/(2*PF)));
+	[] stproc12==1 & fproc12==2 @ ckR2proc12 -> (stproc12'=0) &
+						     (ckF1proc12'= exponential(1/(2*PF))) &
+						     (ckF2proc12'= exponential(1/(2*PF)));
+endmodule
+
+
+module Processor21
+	fproc21: [1..2];
+	stproc21:   [0..1]; // -- 0 = up, 1 = down
+	ckF1proc21:   clock;  // -- Failure ~ exp(1/(2*PF))     Disk failing to type1
+	ckF2proc21:   clock;  // -- Failure ~ exp(1/(2*PF))     Disk failing to type2
+	ckR1proc21:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2proc21:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stproc21==0 @ ckF1proc21 -> (fproc21'= 1) &
+				    (stproc21'=1) &
+				    (ckR1proc21'= exponential(1.0));
+	[] stproc21==0 @ ckF2proc21 -> (fproc21'= 2) &
+				    (stproc21'=1) &
+				    (ckR2proc21'= exponential(0.5));
+	[] stproc21==1 & fproc21==1 @ ckR1proc21 -> (stproc21'=0) &
+						     (ckF1proc21'= exponential(1/(2*PF))) &
+						     (ckF2proc21'= exponential(1/(2*PF)));
+	[] stproc21==1 & fproc21==2 @ ckR2proc21 -> (stproc21'=0) &
+						     (ckF1proc21'= exponential(1/(2*PF))) &
+						     (ckF2proc21'= exponential(1/(2*PF)));
+endmodule
+
+
+module Processor22
+	fproc22: [1..2];
+	stproc22:   [0..1]; // -- 0 = up, 1 = down
+	ckF1proc22:   clock;  // -- Failure ~ exp(1/(2*PF))     Disk failing to type1
+	ckF2proc22:   clock;  // -- Failure ~ exp(1/(2*PF))     Disk failing to type2
+	ckR1proc22:   clock;  // -- Repair for type 1 failures ~ exp(1.0)
+	ckR2proc22:   clock;  // -- Repair for type 2 failures ~ exp(0.5)
+
+	[] stproc22==0 @ ckF1proc22 -> (fproc22'= 1) &
+				    (stproc22'=1) &
+				    (ckR1proc22'= exponential(1.0));
+	[] stproc22==0 @ ckF2proc22 -> (fproc22'= 2) &
+				    (stproc22'=1) &
+				    (ckR2proc22'= exponential(0.5));
+	[] stproc22==1 & fproc22==1 @ ckR1proc22 -> (stproc22'=0) &
+						     (ckF1proc22'= exponential(1/(2*PF))) &
+						     (ckF2proc22'= exponential(1/(2*PF)));
+	[] stproc22==1 & fproc22==2 @ ckR2proc22 -> (stproc22'=0) &
+						     (ckF1proc22'= exponential(1/(2*PF))) &
+						     (ckF2proc22'= exponential(1/(2*PF)));
+endmodule
