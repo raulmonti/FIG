@@ -136,16 +136,18 @@ ENDIF()
  
 ###  Compile flags  ###########################################################
 
-IF(NOT RELEASE)
+# Build type: release vs. debug
+IF(RELEASE)
+	# As much automatic optimization as we can get
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+ELSE()
+	# Optimize without obfuscating the assembly so much
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
 	# Highly defensive compile flags
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")# -pedantic")
+	# Debug with gdb
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 ENDIF()
-
-# Debug with gdb
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-
-# As much automatic optimization as we can get
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 
 # OpenMP
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -166,18 +168,12 @@ ENDIF()
 ## A special version of Clang with OpenMP activated seems to be required.
 ## We just pasted gcc's "omp.h" into ext/openmp/include
 
-# Turn some warnings off
-#IF(RELEASE)
-#	# From Z3 library "check_context()" and others:
-#	# "unused parameter 'a'"...
-#	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
-#	# From flex-2.5 generated file "lex.yy.cc":
-#	# "comparison of integers of different signs"
-#	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare")
-#	# From friend class declaration in Traial.h:
-#	# "struct 'new_allocator' was previously declared as a class"
-#	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-mismatched-tags")
-#ENDIF()
+# Turn some warnings off even in debug mode
+IF(NOT RELEASE)
+	# From Z3 library "check_context()" and others:
+	# "unused parameter 'a'"...
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+ENDIF()
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	# From MuParser-2.2.5 library -- http://muparser.beltoforion.de/:
 	# "anonymous types declared in an anonymous union"
@@ -186,7 +182,8 @@ IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	# 'register' storage class specifier is deprecated
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register")
 ENDIF()
-# Avoid MuParser warnings due to deprecated auto_ptr (TODO: update library?)
+# From MuParser-2.2.5 library -- http://muparser.beltoforion.de/:
+# "auto_ptr is deprecated" (TODO: update library ourselves?)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 
 

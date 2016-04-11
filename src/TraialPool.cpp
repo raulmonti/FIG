@@ -132,7 +132,8 @@ void
 TraialPool::get_traials(Container<Reference<Traial>, OtherArgs...>& cont,
 						unsigned numTraials)
 {
-	assert(0u < numTraials++);
+	assert(0u < numTraials);
+	numTraials++;  // loop guard condition requires this increment
 	retrieve_traials:
 	while (!available_traials_.empty() && 0u < --numTraials) {
 		cont.emplace(end(cont), available_traials_.front());
@@ -153,7 +154,8 @@ template<> void
 TraialPool::get_traials(std::stack< Reference<Traial> >& stack,
 						unsigned numTraials)
 {
-	assert(0u < numTraials++);
+	assert(0u < numTraials);
+	numTraials++;  // loop guard condition requires this increment
 	retrieve_traials:
 	while (!available_traials_.empty() && 0u < --numTraials) {
 		stack.emplace(available_traials_.front());
@@ -170,7 +172,8 @@ template<> void
 TraialPool::get_traials(std::forward_list< Reference<Traial> >& flist,
 						unsigned numTraials)
 {
-	assert(0u < numTraials++);
+	assert(0u < numTraials);
+	numTraials++;  // loop guard condition requires this increment
 	retrieve_traials:
 	while (!available_traials_.empty() && 0u < --numTraials) {
 		flist.push_front(available_traials_.front());
@@ -182,19 +185,6 @@ TraialPool::get_traials(std::forward_list< Reference<Traial> >& flist,
 	}
 }
 
-// // TraialPool::get_traials() specialization for STL std::set<>
-// template<> void
-// TraialPool::get_traials(std::set< Reference<Traial> >& set,
-// 						const unsigned& numTraials)
-// {
-// 	assert(sizeChunkIncrement > numTraials);  // wouldn't make sense otherwise
-// 	ensure_resources(numTraials);
-// 	for (unsigned i = 0u ; i < numTraials ; i++) {
-// 		set.emplace(available_traials_.front());
-// 		available_traials_.pop_front();
-// 	}
-// }
-
 
 template< template< typename... > class Container,
           typename... OtherArgs >
@@ -204,8 +194,9 @@ TraialPool::get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
 							  unsigned numCopies,
 							  short depth)
 {
-	assert(0u < numCopies++);
+	assert(0u < numCopies);
 	assert(0 >= depth);  // we're typically called on a threshold-level-up
+	numCopies++;  // loop guard condition requires this increment
 	retrieve_traials:
 	while (!available_traials_.empty() && 0u < --numCopies) {
 		Traial& t = available_traials_.front();
@@ -240,8 +231,9 @@ TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
 							  unsigned numCopies,
 							  short depth)
 {
-	assert(0u < numCopies++);
+	assert(0u < numCopies);
 	assert(0 >= depth);  // we're typically called on a threshold-level-up
+	numCopies++;  // loop guard condition requires this increment
 	retrieve_traials:
 	while (!available_traials_.empty() && 0u < --numCopies) {
 		Traial& t = available_traials_.front();
@@ -263,8 +255,9 @@ TraialPool::get_traial_copies(std::forward_list< Reference<Traial> >& flist,
 							  unsigned numCopies,
 							  short depth)
 {
-	assert(0u < numCopies++);
+	assert(0u < numCopies);
 	assert(0 >= depth);  // we're typically called on a threshold-level-up
+	numCopies++;  // loop guard condition requires this increment
 	retrieve_traials:
 	while (!available_traials_.empty() && 0u < --numCopies) {
 		Traial& t = available_traials_.front();

@@ -178,7 +178,7 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 	static const auto& ifunNames(fig::ImportanceFunction::names());
 	static const size_t batch_sizes[NUM_ENGINES][NUM_IMPFUNS] = {
 		{ 1ul<<11, 1ul<<12, 1ul<<12 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 1ul<<9 , 1ul<<9,  1ul<<9  }   // restart x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<10, 1ul<<10, 1ul<<10 }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
