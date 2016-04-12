@@ -106,7 +106,8 @@ reversed_edges_DFS(const fig::Module& module,
 
 	// DFS
 	while (!toVisit.empty()) {
-		size_t currentState = toVisit.front(); toVisit.pop_front();
+		const size_t currentState = toVisit.front(); toVisit.pop_front();
+		assert(visits.size() > currentState);
 		if (VISITED == visits[currentState])
 			continue;
 		// Visiting currentState
@@ -404,6 +405,11 @@ assess_importance_auto(const fig::Module& module,
 					   bool split)
 {
     assert(impVec.size() == 0ul);
+	const uint128::uint128_t concreteStateSize(module.concrete_state_size());
+	if (concreteStateSize.upper() > 0ul ||
+		std::log2(concreteStateSize.lower()) > 60ul)
+		throw_FigException("the concrete state space of this module "
+						   "is too big to hold it inside a vector");
 
 	// Step 1: run DFS from initial state to compute reachable reversed edges
 	fig::AdjacencyList reverseEdges = reversed_edges_DFS(module, impVec);

@@ -35,6 +35,8 @@
 #include <memory>
 #include <string>
 #include <forward_list>
+// External code
+#include <uint128_t.h>
 // FIG
 #include <core_typedefs.h>
 #include <State.h>
@@ -62,6 +64,9 @@ protected:
 	/// @note Needed to traverse the state space, e.g. when building auto ifun
 	std::vector< std::shared_ptr< Transition > > transitions_;
 
+	/// Very big unsigned int representation
+	typedef uint128::uint128_t uint128_t;
+
 public:  // Accessors
 
 	/// Number of clocks defined in this Module
@@ -83,7 +88,7 @@ public:  // Accessors
 
 	/// Concrete global state size, i.e. cross product of the ranges
 	/// of all the variables in the system model
-	virtual size_t concrete_state_size() const noexcept = 0;
+	virtual uint128_t concrete_state_size() const noexcept = 0;
 
 	/// Whether this Module has already been sealed for simulations
 	virtual bool sealed() const noexcept = 0;

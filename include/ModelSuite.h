@@ -163,6 +163,7 @@ public:  // Access to the ModelSuite instance
 public:  // Populating facilities and other modifyers
 
 	/// @copydoc ModuleNetwork::add_module(std::shared_ptr<ModuleInstance>&)
+	/// @throw FigException if the model's clocks quota is exceeded
 	void add_module(std::shared_ptr<ModuleInstance>&);
 
 	/**

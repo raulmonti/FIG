@@ -81,26 +81,6 @@ Transition::Transition(Transition&& that) :
 }
 
 
-// Transition&
-// Transition::operator=(Transition that)
-// {
-// 	std::swap(label_, that.label_);
-// 	std::swap(triggeringClock, that.triggeringClock);
-// 	std::swap(pre, that.pre);
-// 	std::swap(pos, that.pos);
-// 	std::swap(resetClocksData_, that.resetClocksData_);
-// 	switch (resetClocksData_) {
-// 	case CARBON:
-// 		std::swap(resetClocksList_, that.resetClocksList_);
-// 		break;
-// 	case CRYSTAL:
-// 		std::swap(resetClocks_, that.resetClocks_);
-// 		break;
-// 	}
-// 	return *this;
-// }
-
-
 Transition::~Transition()
 {
 	switch (resetClocksData_) {
@@ -130,22 +110,17 @@ Transition::crystallize(PositionsMap& globalClocks)
 #endif
 
 	// Encode as Bitflag the global positions of the clocks to reset
-	Bitflag indexedPositions(static_cast<Bitflag>(0u));
+	Bitflag indexedPositions;
 	for(const auto& clockName: resetClocksList_) {
 #ifndef NRANGECHK
-		unsigned idx = globalClocks.at(clockName);
-		if (8*sizeof(Bitflag) < idx) {
-			std::stringstream errMsg;
-			errMsg << "invalid clock index: " << idx;
-			errMsg << " -- Indices can range up to " << 8*sizeof(Bitflag);
-			throw std::out_of_range(errMsg.str());
-		}
+		const size_t idx = globalClocks.at(clockName);
+		indexedPositions.test(idx);  // check clock index validity
 #else
-		unsigned idx = globalClocks[clockName];
+		const size_t idx = globalClocks[clockName];
 #endif
-		indexedPositions |= static_cast<Bitflag>(1u) << idx;
+		indexedPositions[idx] = true;
 	}
-	assert((static_cast<Bitflag>(0u) != indexedPositions) !=
+	assert(indexedPositions.any() !=
 			(begin(resetClocksList_) == end(resetClocksList_)));
 
 	// Discard carbon and store crystal version

@@ -65,12 +65,12 @@ Traial::Traial(const size_t& stateSize, const size_t& numClocks) :
 	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 	clocks_.reserve(numClocks);
 	for (const auto& module_ptr: ModelSuite::get_instance().model->modules) {
-		int firstClock = module_ptr->first_clock_gpos();
-		assert(0 <= firstClock);
+		int clkPos = module_ptr->first_clock_gpos();
+		assert(0 <= clkPos);
 		for (const auto& clock: module_ptr->clocks())
 			// following assumes we're iterating a vector
 			// and thus the access to the clocks is sequentially ordered
-			clocks_.emplace_back(module_ptr, clock.name(), 0.0f, firstClock++);
+			clocks_.emplace_back(module_ptr, clock.name(), 0.0f, clkPos++);
 	}
 }
 
@@ -87,23 +87,20 @@ Traial::Traial(const size_t& stateSize,
 	orderedIndex_(numClocks),
 	nextClock_(-1)
 {
-	size_t i(0u);
-	auto must_reset =
-		[&] (const size_t& i) -> bool
-		{ return whichClocks & (static_cast<Bitflag>(1u) << i); };
 	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 	clocks_.reserve(numClocks);
-	i = 0;
 	for (const auto& module_ptr: ModelSuite::get_instance().model->modules) {
-		int firstClock = module_ptr->first_clock_gpos();
-		assert(0 <= firstClock);
-		for (const auto& clock: module_ptr->clocks())
+		int clkPos = module_ptr->first_clock_gpos();
+		assert(0 <= clkPos);
+		for (const auto& clock: module_ptr->clocks()) {
 			// following assumes we're iterating a vector
 			// and thus the access to the clocks is sequentially ordered
 			clocks_.emplace_back(module_ptr,
 								 clock.name(),
-								 must_reset(i++) ? clock.sample() : 0.0f,
-								 firstClock++);
+								 whichClocks[clkPos] ? clock.sample() : 0.0f,
+								 clkPos);
+			clkPos++;
+		}
 	}
 	if (orderTimeouts)
 		reorder_clocks();

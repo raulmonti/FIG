@@ -874,8 +874,13 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 		const double startTime = omp_get_wtime();
 		if (ifunName == "concrete_split")
 			static_cast<ImportanceFunctionConcreteSplit&>(ifun).set_merge_fun(mergeFun);
-		static_cast<ImportanceFunctionConcrete&>(ifun)
-				.assess_importance(property, "auto");
+		try {
+			static_cast<ImportanceFunctionConcrete&>(ifun)
+					.assess_importance(property, "auto");
+		} catch (FigException& e) {
+			throw_FigException("couldn't build importance function \""
+							   + ifunName + "\" automatically: " + e.msg());
+		}
 		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
 		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
 		techLog_ << "Importance function building time: "

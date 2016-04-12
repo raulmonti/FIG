@@ -119,6 +119,7 @@ public:  // Populating facilities
 	 * \ifnot NDEBUG
 	 *   @throw FigException if the network has already been sealed()
 	 * \endif
+	 * @throw FigException if the model's clocks quota is exceeded
 	 */
 	void add_module(std::shared_ptr< ModuleInstance >& module);
 
@@ -132,7 +133,7 @@ public:  // Accessors
 
 	inline size_t state_size() const noexcept override { return gState.size(); }
 
-	inline size_t concrete_state_size() const noexcept override { return gState.concrete_size(); }
+	inline uint128_t concrete_state_size() const noexcept override { return gState.concrete_size(); }
 
 	inline bool sealed() const noexcept override { return sealed_; }
 

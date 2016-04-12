@@ -37,7 +37,8 @@
 #include <forward_list>
 #include <unordered_map>
 #include <string>
-#include <functional>     // std::function<>, std::reference_wrapper<>
+#include <bitset>
+#include <functional>  // std::reference_wrapper<>
 // External code
 #include <muParserDef.h>  // mu::value_type
 
@@ -122,12 +123,13 @@ typedef  std::vector< std::forward_list< unsigned > >          AdjacencyList;
 // Transitions
 //
 
+#define  MAX_NUM_CLOCKS  (1ul<<10ul)  // The model can have up to 1024 clocks
+
 /// Bit flag to identify resetting clocks
-/// @warning This bounds the max # of clocks in the model
-/// @note In <a href="http://goo.gl/hXmnBQ">Boost's multiprecision library</a>
-///       there are ints of up to 1024 bits.
+/// @note This bounds the max number of clocks the user can define in his model.
+///       To extend this limit simply redefine "MAX_NUM_CLOCKS" above
 ///
-typedef  uintmax_t                                                   Bitflag;
+typedef  std::bitset<MAX_NUM_CLOCKS>                                 Bitflag;
 
 //
 //
