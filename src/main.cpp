@@ -69,14 +69,14 @@ int main(int argc, char** argv)
 	auto log(fig::ModelSuite::log);
 	auto tech_log(fig::ModelSuite::tech_log);
 	auto const_argv(const_cast<const char**>(argv));
-	const std::string FIG_ERROR("ERROR: FIG failed");
+	const std::string FIG_ERROR("ERROR: FIG failed to");
 
 	// Greeting and command line parsing
 	try {
 		print_intro(argc, const_argv);
 		fig_cli::parse_arguments(argc, const_argv);  // exit on error
 	} catch (fig::FigException& e) {
-		log(FIG_ERROR + " to parse the command line.\n\n");
+		log(FIG_ERROR + " parse the command line.\n\n");
 		tech_log("Parse error message: " + e.msg() + "\n");
 		exit(EXIT_FAILURE);
 	}
@@ -85,13 +85,13 @@ int main(int argc, char** argv)
 	try {
 		build_model(modelFile, propertiesFile);
 	} catch (fig::FigException& e) {
-		log(FIG_ERROR + " to compile the model/properties file.\n\n");
+		log(FIG_ERROR + " compile the model/properties file.\n\n");
 		tech_log("Parse error message: " + e.msg() + "\n");
 		exit(EXIT_FAILURE);
 	}
 	auto model = fig::ModelSuite::get_instance();
 	if (!model.sealed()) {
-		log(FIG_ERROR + " to build the model.\n\n");
+		log(FIG_ERROR + " build the model.\n\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -105,7 +105,7 @@ int main(int argc, char** argv)
 							splittings);
 		model.release_resources();
 	} catch (fig::FigException& e) {
-		log(FIG_ERROR + " during estimations.\n\n");
+		log(FIG_ERROR + " perform estimations.\n\n");
 		tech_log("Error message: " + e.msg() + "\n");
 		exit(EXIT_FAILURE);
 	}

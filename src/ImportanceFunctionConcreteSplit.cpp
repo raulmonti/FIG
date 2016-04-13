@@ -469,7 +469,8 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 													  prop,
 													  strategy,
 													  index);
-		assert(minValue_ <= minRareValue_);
+		assert(minValue_ <= initialValue_);
+		assert(initialValue_ <= minRareValue_);
 		assert(minRareValue_ <= maxValue_);
 		moduleValues[modules_[index]->name] =
 				std::make_tuple(minValue_, maxValue_, minRareValue_);

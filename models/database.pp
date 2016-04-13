@@ -1,10 +1,77 @@
-S( (stdsk11 + stdsk12 + stdsk13 + stdsk14 >= 2) |
-   (stdsk21 + stdsk22 + stdsk23 + stdsk24 >= 2) |
-   (stdsk31 + stdsk32 + stdsk33 + stdsk34 >= 2) |
-   (stdsk41 + stdsk42 + stdsk43 + stdsk44 >= 2) |
-   (stdsk51 + stdsk52 + stdsk53 + stdsk54 >= 2) |
-   (stdsk61 + stdsk62 + stdsk63 + stdsk64 >= 2) |
-   (stctrl11 + stctrl12                   == 2) |
-   (stctrl21 + stctrl22                   == 2) |
-   (stproc11 + stproc12                   == 2) |
-   (stproc21 + stproc22                   == 2) )  // "rate"
+S( (d11f & d12f) |
+   (d11f & d13f) |
+   (d11f & d14f) |
+   (d12f & d11f) |
+   (d12f & d13f) |
+   (d12f & d14f) |
+   (d13f & d11f) |
+   (d13f & d12f) |
+   (d13f & d14f) |
+   (d14f & d11f) |
+   (d14f & d12f) |
+   (d14f & d13f) |
+   (d21f & d22f) |
+   (d21f & d23f) |
+   (d21f & d24f) |
+   (d22f & d21f) |
+   (d22f & d23f) |
+   (d22f & d24f) |
+   (d23f & d21f) |
+   (d23f & d22f) |
+   (d23f & d24f) |
+   (d24f & d21f) |
+   (d24f & d22f) |
+   (d24f & d23f) |
+   (d31f & d32f) |
+   (d31f & d33f) |
+   (d31f & d34f) |
+   (d32f & d31f) |
+   (d32f & d33f) |
+   (d32f & d34f) |
+   (d33f & d31f) |
+   (d33f & d32f) |
+   (d33f & d34f) |
+   (d34f & d31f) |
+   (d34f & d32f) |
+   (d34f & d33f) |
+   (d41f & d42f) |
+   (d41f & d43f) |
+   (d41f & d44f) |
+   (d42f & d41f) |
+   (d42f & d43f) |
+   (d42f & d44f) |
+   (d43f & d41f) |
+   (d43f & d42f) |
+   (d43f & d44f) |
+   (d44f & d41f) |
+   (d44f & d42f) |
+   (d44f & d43f) |
+   (d51f & d52f) |
+   (d51f & d53f) |
+   (d51f & d54f) |
+   (d52f & d51f) |
+   (d52f & d53f) |
+   (d52f & d54f) |
+   (d53f & d51f) |
+   (d53f & d52f) |
+   (d53f & d54f) |
+   (d54f & d51f) |
+   (d54f & d52f) |
+   (d54f & d53f) |
+   (d61f & d62f) |
+   (d61f & d63f) |
+   (d61f & d64f) |
+   (d62f & d61f) |
+   (d62f & d63f) |
+   (d62f & d64f) |
+   (d63f & d61f) |
+   (d63f & d62f) |
+   (d63f & d64f) |
+   (d64f & d61f) |
+   (d64f & d62f) |
+   (d64f & d63f) |
+   (c11f & c12f) |
+   (c21f & c22f) |
+   (p11f & p12f) |
+   (p21f & p22f) ) // "rate"
+

@@ -176,7 +176,7 @@ protected:  // Utils for derived classes
 	 *       release first the internal info through clear(const unsigned&)
 	 *
 	 * @warning The values of the internal inherited attributes minValue_,
-	 *          maxValue_ and minRareValue_ are updated.
+	 *          maxValue_, initialValue_ and minRareValue_ are updated.
 	 *
 	 * @throw bad_alloc    if system's memory wasn't enough for internal storage
 	 * @throw FigException if there's already importance info for this index

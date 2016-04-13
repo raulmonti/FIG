@@ -1,12 +1,17 @@
-#!/bin/sh
+#!/bin/bash
 
-DISKNR=$1
-DISKRED=$2
-CTRLNR=$3
-CTRLRED=$4
-PROCNR=$5
-PROCRED=$6
-
+if [ $# -ne 6 ]
+then
+	echo "Must call with six parameter values"
+	exit 1
+else
+	DISKNR=$1
+	DISKRED=$2
+	CTRLNR=$3
+	CTRLRED=$4
+	PROCNR=$5
+	PROCRED=$6
+fi
 
 echo "/*"
 echo " * Database with redundancy for the FIG tool"
@@ -47,6 +52,7 @@ echo "const int CF = 2000;  // -- Controllers' mean time to failure (in hours)"
 echo "// -- Disk clusters"
 echo "const int DF = 6000;  // -- Disks' mean time to failure (in hours)"
 
+
 # DISKS
 
 echo ""
@@ -58,117 +64,149 @@ echo "// --               | Redundancy: $DISKRED"
 echo "// --               | Mean time to failure: DF"
 echo "// --               | Num failures to breakdown per cluster: 2"
 
-i=1
-while [ $i -le $DISKNR ]; do
-    j=1
-    while [ $j -le $DISKRED ]; do
-	echo ""
-	echo ""
-        echo "module Disk$i$j"
-        echo "	fdsk$i$j: [1..2];"
-        echo "	stdsk$i$j:   [0..1]; // -- 0 = up, 1 = down"
-        echo "	ckF1dsk$i$j:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type1"
-        echo "	ckF2dsk$i$j:   clock;  // -- Failure ~ exp(1/(2*DF))     Disk failing to type2"
-        echo "	ckR1dsk$i$j:   clock;  // -- Repair for type 1 failures ~ exp(1.0)"
-        echo "	ckR2dsk$i$j:   clock;  // -- Repair for type 2 failures ~ exp(0.5)"
+for (( i=1 ; i <= $DISKNR ; i++ )); do
+    for (( j=1 ; j <= $DISKRED ; j++ )); do
         echo ""
-        echo "	[] stdsk$i$j==0 @ ckF1dsk$i$j -> (fdsk$i$j'= 1) &"
-        echo "				    (stdsk$i$j'=1) &"
-        echo "				    (ckR1dsk$i$j'= exponential(1.0));"
-        echo "	[] stdsk$i$j==0 @ ckF2dsk$i$j -> (fdsk$i$j'= 2) &"
-        echo "				    (stdsk$i$j'=1) &"
-        echo "				    (ckR2dsk$i$j'= exponential(0.5));"
-        echo "	[] stdsk$i$j==1 & fdsk$i$j==1 @ ckR1dsk$i$j -> (stdsk$i$j'=0) &"
-        echo "						     (ckF1dsk$i$j'= exponential(1/(2*DF))) &"
-        echo "						     (ckF2dsk$i$j'= exponential(1/(2*DF)));"
-        echo "	[] stdsk$i$j==1 & fdsk$i$j==2 @ ckR2dsk$i$j -> (stdsk$i$j'=0) &"
-        echo "						     (ckF1dsk$i$j'= exponential(1/(2*DF))) &"
-        echo "						     (ckF2dsk$i$j'= exponential(1/(2*DF)));"
-	echo "endmodule"
-	let j++
+        echo ""
+        echo "module Disk${i}${j}"
+        echo ""
+        echo "	d${i}${j}f: bool init false;  // -- Disk failed?"
+        echo "	d${i}${j}t: [1..2];           // -- Failure type"
+        echo "	d${i}${j}clkF1: clock;        // -- Type 1 failure ~ exp(1/(2*DF))   "
+        echo "	d${i}${j}clkF2: clock;        // -- Type 2 failure ~ exp(1/(2*DF))   "
+        echo "	d${i}${j}clkR1: clock;        // -- Repair for type 1 failure ~ exp(1.0)"
+        echo "	d${i}${j}clkR2: clock;        // -- Repair for type 2 failure ~ exp(0.5)"
+        echo ""
+        echo "	[] !d${i}${j}f          @ d${i}${j}clkF1 -> (d${i}${j}f'= true)  &"
+        echo "	                                (d${i}${j}t'= 1)     &"
+        echo "	                                (d${i}${j}clkR1'= exponential(1.0));"
+        echo "	[] !d${i}${j}f          @ d${i}${j}clkF2 -> (d${i}${j}f'= true)  &"
+        echo "	                                (d${i}${j}t'= 2)     &"
+        echo "	                                (d${i}${j}clkR2'= exponential(0.5));"
+        echo "	[] d${i}${j}f & d${i}${j}t==1 @ d${i}${j}clkR1 -> (d${i}${j}f'= false) &"
+        echo "	                                (d${i}${j}clkF1'= exponential(1/(2*DF))) &"
+        echo "	                                (d${i}${j}clkF2'= exponential(1/(2*DF)));"
+        echo "	[] d${i}${j}f & d${i}${j}t==2 @ d${i}${j}clkR2 -> (d${i}${j}f'= false) &"
+        echo "	                                (d${i}${j}clkF1'= exponential(1/(2*DF))) &"
+        echo "	                                (d${i}${j}clkF2'= exponential(1/(2*DF)));"
+        echo "endmodule"
     done
-    let i++
 done
+echo ""
 
 
+# CONTROLLERS
 
-# CONTROLERS
-
+echo ""
+echo ""
 echo "///////////////////////////////////////////////////////////////////////"
 echo "//"
-echo "// -- Controllers   | Total: $CTRLNR"
-echo "// --               | Redundancy: $CTRLRED"
-echo "// --               | Mean time to failure: CF"
+echo "// -- Controllers | Total: $CTRLNR"
+echo "// --             | Redundancy: $CTRLRED"
+echo "// --             | Mean time to failure: CF"
 
-i=1
-while [ $i -le $CTRLNR ]; do
-    j=1
-    while [ $j -le $CTRLRED ]; do
-	echo ""
-	echo ""
-        echo "	module Controller$i$j"
-        echo "	fctrl$i$j: [1..2];"
-        echo "	stctrl$i$j:   [0..1]; // -- 0 = up, 1 = down"
-        echo "	ckF1ctrl$i$j:   clock;  // -- Failure ~ exp(1/(2*CF))     Disk failing to type1"
-        echo "	ckF2ctrl$i$j:   clock;  // -- Failure ~ exp(1/(2*CF))     Disk failing to type2"
-        echo "	ckR1ctrl$i$j:   clock;  // -- Repair for type 1 failures ~ exp(1.0)"
-        echo "	ckR2ctrl$i$j:   clock;  // -- Repair for type 2 failures ~ exp(0.5)"
+for (( i=1 ; i <= $CTRLNR ; i++ )); do
+    for (( j=1 ; j <= $CTRLRED ; j++ )); do
         echo ""
-        echo "	[] stctrl$i$j==0 @ ckF1ctrl$i$j -> (fctrl$i$j'= 1) &"
-        echo "				    (stctrl$i$j'=1) &"
-        echo "				    (ckR1ctrl$i$j'= exponential(1.0));"
-        echo "	[] stctrl$i$j==0 @ ckF2ctrl$i$j -> (fctrl$i$j'= 2) &"
-        echo "				    (stctrl$i$j'=1) &"
-        echo "				    (ckR2ctrl$i$j'= exponential(0.5));"
-        echo "	[] stctrl$i$j==1 & fctrl$i$j==1 @ ckR1ctrl$i$j -> (stctrl$i$j'=0) &"
-        echo "						     (ckF1ctrl$i$j'= exponential(1/(2*CF))) &"
-        echo "						     (ckF2ctrl$i$j'= exponential(1/(2*CF)));"
-        echo "	[] stctrl$i$j==1 & fctrl$i$j==2 @ ckR2ctrl$i$j -> (stctrl$i$j'=0) &"
-        echo "						     (ckF1ctrl$i$j'= exponential(1/(2*CF))) &"
-        echo "						     (ckF2ctrl$i$j'= exponential(1/(2*CF)));"
-	echo "endmodule"
-	let j++
+        echo ""
+        echo "module Controller${i}${j}"
+        echo ""
+        echo "	c${i}${j}f: bool init false;  // -- Controller failed?"
+        echo "	c${i}${j}t: [1..2];           // -- Failure type"
+        echo "	c${i}${j}clkF1: clock;        // -- Type 1 failure ~ exp(1/(2*CF))"
+        echo "	c${i}${j}clkF2: clock;        // -- Type 2 failure ~ exp(1/(2*CF))"
+        echo "	c${i}${j}clkR1: clock;        // -- Repair for type 1 failure ~ exp(1.0)"
+        echo "	c${i}${j}clkR2: clock;        // -- Repair for type 2 failure ~ exp(0.5)"
+        echo ""
+        echo "	[] !c${i}${j}f          @ c${i}${j}clkF1 -> (c${i}${j}f'= true)  &"
+        echo "	                                (c${i}${j}t'= 1)     &"
+        echo "	                                (c${i}${j}clkR1'= exponential(1.0));"
+        echo "	[] !c${i}${j}f          @ c${i}${j}clkF2 -> (c${i}${j}f'= true)  &"
+        echo "	                                (c${i}${j}t'= 2)     &"
+        echo "	                                (c${i}${j}clkR2'= exponential(0.5));"
+        echo "	[] c${i}${j}f & c${i}${j}t==1 @ c${i}${j}clkR1 -> (c${i}${j}f'= false) &"
+        echo "	                                (c${i}${j}clkF1'= exponential(1/(2*CF))) &"
+        echo "	                                (c${i}${j}clkF2'= exponential(1/(2*CF)));"
+        echo "	[] c${i}${j}f & c${i}${j}t==2 @ c${i}${j}clkR2 -> (c${i}${j}f'= false) &"
+        echo "	                                (c${i}${j}clkF1'= exponential(1/(2*CF))) &"
+        echo "	                                (c${i}${j}clkF2'= exponential(1/(2*CF)));"
+        echo "endmodule"
     done
-    let i++
 done
+echo ""
 
 
-# Processors
+# PROCESSORS
 
+echo ""
+echo ""
 echo "///////////////////////////////////////////////////////////////////////"
 echo "//"
-echo "// -- Processors    | Total: $PROCNR"
-echo "// --               | Redundancy: $PROCRED"
-echo "// --               | Mean time to failure: PF"
+echo "// -- Processors | Total: $PROCNR"
+echo "// --            | Redundancy: $PROCRED"
+echo "// --            | Mean time to failure: PF"
 
-i=1
-while [ $i -le $PROCNR ]; do
-    j=1
-    while [ $j -le $PROCRED ]; do
-	echo ""
-	echo ""
-        echo "	module Processor$i$j"
-        echo "	fproc$i$j: [1..2];"
-        echo "	stproc$i$j:   [0..1]; // -- 0 = up, 1 = down"
-        echo "	ckF1proc$i$j:   clock;  // -- Failure ~ exp(1/(2*PF))     Disk failing to type1"
-        echo "	ckF2proc$i$j:   clock;  // -- Failure ~ exp(1/(2*PF))     Disk failing to type2"
-        echo "	ckR1proc$i$j:   clock;  // -- Repair for type 1 failures ~ exp(1.0)"
-        echo "	ckR2proc$i$j:   clock;  // -- Repair for type 2 failures ~ exp(0.5)"
+for (( i=1 ; i <= $PROCNR ; i++ )); do
+	for (( j=1 ; j <= $PROCRED ; j++ )); do
         echo ""
-        echo "	[] stproc$i$j==0 @ ckF1proc$i$j -> (fproc$i$j'= 1) &"
-        echo "				    (stproc$i$j'=1) &"
-        echo "				    (ckR1proc$i$j'= exponential(1.0));"
-        echo "	[] stproc$i$j==0 @ ckF2proc$i$j -> (fproc$i$j'= 2) &"
-        echo "				    (stproc$i$j'=1) &"
-        echo "				    (ckR2proc$i$j'= exponential(0.5));"
-        echo "	[] stproc$i$j==1 & fproc$i$j==1 @ ckR1proc$i$j -> (stproc$i$j'=0) &"
-        echo "						     (ckF1proc$i$j'= exponential(1/(2*PF))) &"
-        echo "						     (ckF2proc$i$j'= exponential(1/(2*PF)));"
-        echo "	[] stproc$i$j==1 & fproc$i$j==2 @ ckR2proc$i$j -> (stproc$i$j'=0) &"
-        echo "						     (ckF1proc$i$j'= exponential(1/(2*PF))) &"
-        echo "						     (ckF2proc$i$j'= exponential(1/(2*PF)));"
-	echo "endmodule"
-	let j++
+        echo ""
+        echo "module Processor${i}${j}"
+        echo ""
+        echo "	p${i}${j}f: bool init false;  // -- Processor failed?"
+        echo "	p${i}${j}t: [1..2];           // -- Failure type"
+        echo "	p${i}${j}clkF1: clock;        // -- Type 1 failure ~ exp(1/(2*PF))"
+        echo "	p${i}${j}clkF2: clock;        // -- Type 2 failure ~ exp(1/(2*PF))"
+        echo "	p${i}${j}clkR1: clock;        // -- Repair for type 1 failure ~ exp(1.0)"
+        echo "	p${i}${j}clkR2: clock;        // -- Repair for type 2 failure ~ exp(0.5)"
+        echo ""
+        echo "	[] !p${i}${j}f          @ p${i}${j}clkF1 -> (p${i}${j}f'= true)  &"
+        echo "	                                (p${i}${j}t'= 1)     &"
+        echo "	                                (p${i}${j}clkR1'= exponential(1.0));"
+        echo "	[] !p${i}${j}f          @ p${i}${j}clkF2 -> (p${i}${j}f'= true)  &"
+        echo "	                                (p${i}${j}t'= 2)     &"
+        echo "	                                (p${i}${j}clkR2'= exponential(0.5));"
+        echo "	[] p${i}${j}f & p${i}${j}t==1 @ p${i}${j}clkR1 -> (p${i}${j}f'= false) &"
+        echo "	                                (p${i}${j}clkF1'= exponential(1/(2*PF))) &"
+        echo "	                                (p${i}${j}clkF2'= exponential(1/(2*PF)));"
+        echo "	[] p${i}${j}f & p${i}${j}t==2 @ p${i}${j}clkR2 -> (p${i}${j}f'= false) &"
+        echo "	                                (p${i}${j}clkF1'= exponential(1/(2*PF))) &"
+        echo "	                                (p${i}${j}clkF2'= exponential(1/(2*PF)));"
+        echo "endmodule"
     done
-    let i++
 done
+echo ""
+
+
+# PROPERTY
+
+ECHO=`echo /bin/echo -en`
+$ECHO "\n\n"
+$ECHO "// -- Rate property to check\n"
+$ECHO "S("
+for (( i=1 ; i <= $DISKNR ; i++ )); do
+	for (( j1=1 ; j1 <= $DISKRED ; j1++ )); do
+	for (( j2=1 ; j2 <= $DISKRED ; j2++ )); do
+		if (( ${j1} != ${j2} )); then
+			$ECHO "\n   (d${i}${j1}f & d${i}${j2}f) |"
+		fi
+	done
+	done
+done
+for (( i=1 ; i <= $CTRLNR ; i++ )); do
+	$ECHO "\n   ("
+	for (( j=1 ; j <= $CTRLRED ; j++ )); do
+		$ECHO "c${i}${j}f & "
+	done
+	$ECHO "\b\b) |"
+done
+for (( i=1 ; i <= $PROCNR ; i++ )); do
+	$ECHO "\n   ("
+	for (( j=1 ; j <= $PROCRED ; j++ )); do
+		$ECHO "p${i}${j}f & "
+	done
+	$ECHO "\b\b) |"
+done
+$ECHO "\b\b  \n ) // \"rate\"\n"
+
+exit 0
+

@@ -175,10 +175,10 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 
 	// BFS
 	bool initialReached(false);
+	std::queue< STATE_T >& statesToCheck = raresQueue;
 #ifndef NDEBUG
 	const size_t numRares = raresQueue.size();
 #endif
-	std::queue< STATE_T >& statesToCheck = raresQueue;
 
 	while (!initialReached && !statesToCheck.empty()) {
 		STATE_T s = statesToCheck.front();
@@ -227,6 +227,9 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
  * @param cStates     Concrete states vector to label with Event masks <b>(modified)</b>
  * @param property    Property identifying the special states
  * @param returnRares Whether to return a queue with all rare concrete states
+ *
+ * @return Queue with all rare concrete states found if 'returnRares' is true,
+ *         or empty queue otherwise.
  *
  * @note cState will be left of size "globalState.concrete_size()",
  *       and its content will be modified to contain only those values
@@ -305,7 +308,7 @@ label_states(State globalState,
  * @param cStates    Concrete states vector to label with Event masks <b>(modified)</b>
  * @param property   Property identifying the special states
  *
- * @return Queue with all rare concrete states
+ * @return Queue with all rare concrete states found
  *
  * @note cState will be left of size "localState.concrete_size()",
  *       and its content will be modified to contain only those values
@@ -402,14 +405,17 @@ ImportanceValue
 assess_importance_auto(const fig::Module& module,
 					   ImportanceVec& impVec,
 					   const Property& property,
-					   bool split)
+					   const bool split)
 {
     assert(impVec.size() == 0ul);
+	// Impose a limit on the amount of memory the user can request for this.
+	// There's no portable way of measuring the system's available RAM
+	// (http://stackoverflow.com/a/2513561), thus the limit is arbitrary
 	const uint128::uint128_t concreteStateSize(module.concrete_state_size());
 	if (concreteStateSize.upper() > 0ul ||
 		std::log2(concreteStateSize.lower()) > 60ul)
 		throw_FigException("the concrete state space of this module "
-						   "is too big to hold it inside a vector");
+						   "is too big to hold it in a vector");
 
 	// Step 1: run DFS from initial state to compute reachable reversed edges
 	fig::AdjacencyList reverseEdges = reversed_edges_DFS(module, impVec);
@@ -473,24 +479,25 @@ ImportanceFunctionConcrete::assess_importance(
 
 	// Compute importance according to the chosen strategy
 	if ("flat" == strategy) {
-		maxValue_ =
-			assess_importance_flat(module.initial_state(),
-								   modulesConcreteImportance[index],
-								   property);
+		maxValue_ = assess_importance_flat(module.initial_state(),
+										   modulesConcreteImportance[index],
+										   property);
         // Invariant of flat importance function:
 		minValue_ = maxValue_;
+		initialValue_ = maxValue_;
 		minRareValue_ = maxValue_;
 
 	} else if ("auto" == strategy) {
-		maxValue_ =
-			assess_importance_auto(module,
-								   modulesConcreteImportance[index],
-								   property,
-								   name().find("split") != std::string::npos);
+		const bool split(name().find("split") != std::string::npos);
+		maxValue_ = assess_importance_auto(module,
+										   modulesConcreteImportance[index],
+										   property,
+										   split);
         // For auto importance functions the initial state has always
         // the lowest importance, and all rare states have the highest:
 		minValue_ = UNMASK(
 				modulesConcreteImportance[index][module.initial_concrete_state()]);
+		initialValue_ = minValue_;
 		minRareValue_ = maxValue_;  // should we check?
 
 	} else if ("adhoc" == strategy) {
