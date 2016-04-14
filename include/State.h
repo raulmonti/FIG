@@ -324,6 +324,7 @@ public:  // Encode/Decode between symbolic and concrete representations
 	 * @brief Decode concrete state 'n' into corresponding Variable value
 	 * @param n  Concrete state to interpret
 	 * @param i  Variable index whose value (decoded from n) is requested
+	 * @return Value of the i-th variable decoded from concrete state 'n'
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
 	T_ decode(const size_t& n, const size_t& i) const;
@@ -332,6 +333,7 @@ public:  // Encode/Decode between symbolic and concrete representations
 	 * @brief Decode concrete state 'n' into corresponding Variable value
 	 * @param n  Concrete state to interpret
 	 * @param i  Variable name whose value (decoded from n) is requested
+	 * @return Value of the variable decoded from concrete state 'n'
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
 	T_ decode(const size_t& n, const std::string& varname) const;
