@@ -35,8 +35,9 @@
 #include <string>
 // FIG
 #include <core_typedefs.h>
-#include <ImportanceFunction.h>
 #include <State.h>
+#include <DNFclauses.h>
+#include <ImportanceFunction.h>
 
 
 namespace fig
@@ -45,6 +46,8 @@ namespace fig
 class Module;
 class Property;
 class Transition;
+
+using parser::DNFclauses;
 
 /**
  * @brief Abstract ImportanceFunction for concrete importance assessment
@@ -170,8 +173,10 @@ protected:  // Utils for derived classes
 	 * @param property Logical property identifying the special states
 	 * @param strategy Importance assessment strategy to follow
 	 * @param index    Internal location where resulting info will be kept
+	 * @param clauses  Property parsed as a DNF list of clauses (required only
+	 *                 by ImportanceFunctionConcreteSplit for the 'auto' strategy)
 	 *
-	 * @note This allocates (tons of) memory internally
+	 * @note This allocates (maybe tons of) memory internally
 	 * @note To assess again for same index with different strategy or property,
 	 *       release first the internal info through clear(const unsigned&)
 	 *
@@ -184,7 +189,8 @@ protected:  // Utils for derived classes
 	void assess_importance(const Module& module,
 						   const Property& property,
 						   const std::string& strategy,
-						   const unsigned& index = 0);
+						   const unsigned& index = 0,
+						   const DNFclauses& clauses = DNFclauses());
 };
 
 } // namespace fig

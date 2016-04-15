@@ -95,10 +95,6 @@ public:  // Ctors/Dtor
 	 * @param varnames  Container with names of variables ocurring in exprStr
 	 *
 	 * @throw FigException if exprStr doesn't define a valid expression
-	 * \ifnot NRANGECHK
-	 *   @throw out_of_range if names of variables not appearing
-	 *                       in our expression were passed
-	 * \endif
 	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
@@ -113,10 +109,6 @@ public:  // Ctors/Dtor
 	 * @param varnames  Container with names of variables ocurring in exprStr
 	 *
 	 * @throw FigException if exprStr doesn't define a valid expression
-	 * \ifnot NRANGECHK
-	 *   @throw out_of_range if names of variables not appearing
-	 *                       in our expression were passed
-	 * \endif
 	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
@@ -132,10 +124,6 @@ public:  // Ctors/Dtor
 	 * @param to       Iterator past last name of variables ocurring in exprStr
 	 *
 	 * @throw FigException if exprStr doesn't define a valid expression
-	 * \ifnot NRANGECHK
-	 *   @throw out_of_range if names of variables not appearing
-	 *                       in our expression were passed
-	 * \endif
 	 */
 	template< template< typename, typename... > class Iterator,
 			  typename ValueType,
@@ -224,13 +212,9 @@ MathExpression::MathExpression(
 	varsMap_.reserve(std::distance(from,to));
 	for (; from != to ; from++) {
 		std::string name = *from;
-#ifndef NRANGECHK
-		if (std::string::npos == exprStr.find(name))
-			throw std::out_of_range(std::string("invalid variable name: \"")
-									.append(name).append("\""));
-#endif
-		varsMap_.emplace_back(std::make_pair(name, -1));  // copy elision
-		// Real mapping is later done with pin_up_vars()
+		if (exprStr.find(name) != std::string::npos)
+			varsMap_.emplace_back(std::make_pair(name, -1));  // copy elision
+			// Real mapping is later done with pin_up_vars()
 	}
 }
 

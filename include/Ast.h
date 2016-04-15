@@ -170,7 +170,7 @@ public:
      * TODO
      */
     string
-    toString();
+    toString() const;
 
     /**
      * TODO

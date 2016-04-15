@@ -263,13 +263,13 @@ AST::get_all_ast(int k){
 vector<AST*>
 AST::get_all_ast_ff(int k){
 
-    vector<AST*> result;
+	vector<AST*> result;
     if(tkn == k){
         result.push_back(this);
     }else{
 
 		for(size_t i = 0; i < branches.size(); i++){
-            vector<AST*> rec = branches[i]->get_all_ast_ff(k);
+			vector<AST*> rec = branches[i]->get_all_ast_ff(k);
             result.insert( result.end(), rec.begin(), rec.end() );
         }
     }
@@ -305,7 +305,7 @@ AST::get_branch(int i){
 AST*
 AST::get_first(int k){
 
-    vector<AST*> result;
+	vector<AST*> result;
     if(tkn == k){
         return this;
     }else{
@@ -376,7 +376,7 @@ AST::get_pos(){
  * TODO
  */
 string
-AST::toString(){
+AST::toString() const {
     string result = lxm;
     for(const auto &it: branches){
         string aux = it->toString();

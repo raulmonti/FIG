@@ -27,6 +27,7 @@ Read main.cpp file for an example.
 
 
 
+TODO    Revisar paréntesis extra en las propiedades
 TODO    Structure ParseResult to save lexemes, ast, and parsCtxt of each
         parsed instance. (BIG BIG change).
 TODO    precompile property file.

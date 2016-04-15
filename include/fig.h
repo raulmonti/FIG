@@ -84,6 +84,7 @@
 #include "Iosacompliance.h"
 #include "PreCompiler.h"
 #include "CompileModel.h"
+#include "DNFclauses.h"
 // Basic ADTs
 #include "Clock.h"
 #include "Label.h"

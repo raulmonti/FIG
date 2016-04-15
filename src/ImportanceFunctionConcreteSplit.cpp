@@ -39,6 +39,7 @@
 #include <ThresholdsBuilderAdaptive.h>
 #include <ModuleInstance.h>
 #include <ModuleNetwork.h>
+#include <DNFclauses.h>
 #include <string_utils.h>
 
 // ADL
@@ -463,12 +464,14 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	modulesConcreteImportance.resize(numModules_);
 
 	// Assess each module importance individually from the rest
+	const parser::DNFclauses dnfClauses(prop);
 	ModulesExtremeValues moduleValues(numModules_);
 	for (size_t index = 0ul ; index < numModules_ ; index++) {
 		ImportanceFunctionConcrete::assess_importance(*modules_[index],
 													  prop,
 													  strategy,
-													  index);
+													  index,
+													  dnfClauses);
 		assert(minValue_ <= initialValue_);
 		assert(initialValue_ <= minRareValue_);
 		assert(minRareValue_ <= maxValue_);
