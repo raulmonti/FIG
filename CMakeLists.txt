@@ -27,14 +27,32 @@
 ##
 ##==============================================================================
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11)
 
 PROJECT (fig)
 
 SET(fig_VERSION_MAJOR 1)
 SET(fig_VERSION_MINOR 0)
 
+STRING(TIMESTAMP CURRENT_TIME "%H:%M:%S %d.%m.%Y")
 
+
+ 
+###  Build meta options  ######################################################
+
+OPTION(RELEASE     "Build release version of FIG"           OFF)
+OPTION(BUILTIN_RNG "Use the PCG RNG provided with FIG"      OFF)
+OPTION(USE_DTIME   "Double fp precision for time tracking"  OFF)
+
+IF(RELEASE)
+	MESSAGE("Building FIG in release mode")
+	SET(fig_CURRENT_BUILD "${CURRENT_TIME} (release)")
+ELSE()
+	MESSAGE("Building FIG in debug mode")
+	SET(fig_CURRENT_BUILD "${CURRENT_TIME} (debug)")
+ENDIF()
+
+ 
 
 ###  Project directory structure  #############################################
 
@@ -46,10 +64,7 @@ SET(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin)
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/fig)
 
 # Header file with CMake settings for the source code
-CONFIGURE_FILE (
-	"${SOURCES_DIR}/FigConfig.h.in"
-	"${HEADERS_DIR}/FigConfig.h"
-)
+CONFIGURE_FILE("${SOURCES_DIR}/FigConfig.h.in" "${HEADERS_DIR}/FigConfig.h")
 
 # Allow subdirectories to append their files and dirs (https://goo.gl/xxIOAM)
 SET(HEADERS_DIR ${HEADERS_DIR} CACHE INTERNAL "")
@@ -70,24 +85,13 @@ SET(ALL_SOURCES ${ALL_SOURCES} ${MAIN_SOURCE_FILES} CACHE INTERNAL "")
 ##  Tip: use find_library() and find_package() instead
 
 
- 
-###  Build meta options  ######################################################
-
-OPTION(RELEASE     "Build release version of FIG"           OFF)
-OPTION(BUILTIN_RNG "Use the PCG RNG provided with FIG"      OFF)
-OPTION(USE_DTIME   "Double fp precision for time tracking"  OFF)
-
- 
 
 ###  Preprocessor macros  #####################################################
 
 # Build type: debug vs. release
 IF(RELEASE)
-	MESSAGE("Building FIG in release mode")
 	ADD_DEFINITIONS(-DNDEBUG)     # General No-Debug
 	ADD_DEFINITIONS(-DNRANGECHK)  # Don't check ranges every f***ing time
-ELSE()
-	MESSAGE("Building FIG in debug mode")
 ENDIF()
 
 # RNG algorithm: C++ STL Mersenne-Twister vs. PCG default
@@ -213,9 +217,9 @@ SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
 
 ###  Build executable  ########################################################
 
+# FLEX lexer building
 SET(LEXER_L  "${SOURCES_DIR}/Lexer.l")
 SET(LEXER_CC "${PROJECT_BINARY_DIR}/lex.yy.cc")
-
 ADD_CUSTOM_COMMAND(
 	OUTPUT ${LEXER_CC}
 	COMMAND flex++ ${LEXER_L}

@@ -290,7 +290,7 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 		throw_FigException("importance function \"" + name() + "\" "
 						   "doesn't hold importance information");
 #endif
-    Event e(EventType::RARE | EventType::STOP | EventType::REFERENCE);
+	Event e(EventType::NONE);
     // Gather the local ImportanceValue of each module
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		auto& localState = localStatesCopies_[i];
@@ -300,7 +300,7 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 		localState.extract_from_state_instance(state, globalVarsIPos[i], false);
 #endif
         const auto& val = modulesConcreteImportance[i][localState.encode()];
-        e &= MASK(val);
+		e |= MASK(val);  // events are marked per-module but affect the global model
         localValues_[i] = UNMASK(val);
     }
     // Combine those values with the user-defined merge function

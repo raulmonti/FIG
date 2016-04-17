@@ -52,7 +52,7 @@ using std::vector;
  * The idea is to offer an easy and fast projection of the Property's
  * clauses over each individual module's variables.
  *
- * @warning The \ref fig::Property "properties" to parsed must be expressed in DNF.
+ * @warning The \ref fig::Property "property" to parse must be in DNF.
  */
 class DNFclauses
 {

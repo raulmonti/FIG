@@ -157,9 +157,13 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 					 const size_t initialState,
 					 ImportanceVec& cStates)
 {
-	assert(raresQueue.size() > 0);
+	if (raresQueue.size() == 0ul)
+		return static_cast<ImportanceValue>(0u);
 //	assert(std::find(begin(raresQueue), end(raresQueue), initialState)
 //		   == end(raresQueue));
+
+	/// @todo TODO erase debug print
+	std::cerr << "\nInitial state: " << initialState << std::endl;
 
 	const ImportanceValue ALL_MASKS (fig::EventType::RARE
 									|fig::EventType::STOP
@@ -168,14 +172,22 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 									|fig::EventType::THR_DOWN);
 	const ImportanceValue NOT_VISITED (static_cast<ImportanceValue>(~ALL_MASKS));
 
+	/// @todo TODO erase debug print
+	std::cerr << "Rare states: ";
+
 	// Initially: 0 distance for rare states
 	//            maximum representable distance for the rest
 	for (STATE_T s = 0u ; s < cStates.size() ; s++) {
-		if (fig::IS_RARE_EVENT(cStates[s]))
+		if (fig::IS_RARE_EVENT(cStates[s])) {
 			cStates[s] = 0 | fig::MASK(cStates[s]);
-		else
+			/// @todo TODO erase debug print
+			std::cerr << s << ", ";
+		} else
 			cStates[s] = NOT_VISITED | fig::MASK(cStates[s]);
 	}
+
+	/// @todo TODO erase debug print
+	std::cerr << "\b\b  \n\n";
 
 	// BFS
 	bool initialReached(false);
@@ -187,11 +199,15 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 	while (!initialReached && !statesToCheck.empty()) {
 		STATE_T s = statesToCheck.front();
 		statesToCheck.pop();
+		/// @todo TODO erase debug print
+		std::cerr << "Checking (" << s << ")...\n";
 		ImportanceValue levelBFS = fig::UNMASK(cStates[s]) + 1;
 		// For each state reaching 's'...
 		for (const STATE_T& reachingS: reverseEdges[s]) {
             // ...if we're visiting it for the first time...
-			if (NOT_VISITED == cStates[reachingS]) {
+			if (NOT_VISITED == fig::UNMASK(cStates[reachingS])) {
+				/// @todo TODO erase debug print
+				std::cerr << "  visiting " << reachingS << std::endl;
 				// ...label it with distance from rare set...
 				cStates[reachingS] = levelBFS | fig::MASK(cStates[reachingS]);
 				// ...and enqueue it, unless we're done.

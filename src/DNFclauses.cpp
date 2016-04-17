@@ -59,9 +59,36 @@ using Clause = parser::DNFclauses::Clause;
 DNF extract_clauses(AST& DNFformula)
 {
 	DNF clauses;
-	for (AST* clause: DNFformula.get_all_ast_ff(parser::_EQUALITY))
-		clauses.emplace_back(clause->get_first(parser::_EXPRESSION)
-								   ->get_all_ast_ff(parser::_EQUALITY));
+
+	for (AST* clause: DNFformula.get_all_ast_ff(parser::_EQUALITY)) {
+		AST *ASTclause(clause->get_first(parser::_EXPRESSION));
+		if (nullptr == ASTclause) {
+			// May be a single boolean
+			ASTclause = clause->get_first(parser::_EQUALITY);
+			if (nullptr == ASTclause)
+				throw_FigException("couldn't parse the property \"" +
+								   DNFformula.toString()+"\"; is it in DNF?");
+//			std::cerr << "Got a simple boolean: " << ASTclause->toString() << std::endl;
+			clauses.emplace_back(vector<AST*>({ASTclause}));
+		} else {
+			// Should be a conjunction of booleans
+//			std::cerr << "Got a complex clause: " << ASTclause->toString() << std::endl;
+			vector<AST*> literals(ASTclause->get_all_ast_ff(parser::_EQUALITY));
+			if (literals.size() > 0ul)
+				clauses.emplace_back(literals);
+		}
+	}
+
+	/// @todo TODO erase debug print
+	std::cerr << "Clauses extracted for formula \"" + DNFformula.toString() + "\":\n";
+	for (const auto& vec: clauses) {
+		std::cerr << "\t";
+		for (AST* literal: vec)
+			std::cerr << literal->toString() << " & ";
+		std::cerr << "\b\b  \n";
+	}
+	////////////////////////////////
+
 	return clauses;
 }
 
@@ -74,7 +101,12 @@ project(const DNF& clauses, const vector< std::string >& varnames)
 	const std::string AMP(" & ");
 	auto include =
 		[&] (const std::string& literal) -> bool
-		{ return std::find(begin(varnames), end(varnames), literal) != end(varnames); };
+		{
+			for (const auto& var: varnames)
+				if (literal.find(var) != std::string::npos)
+					return true;
+			return false;
+		};
 	for (const auto& clause: clauses) {
 		std::string clauseSTR;
 		for (const AST* literal: clause) {
@@ -173,7 +205,7 @@ DNFclauses::project(const State& localState) const
 		clause.pin_up_vars(localState);
 
 	/// @todo TODO erase debug print
-	std::cerr << "Rares projection: ";
+	std::cerr << "Rares projection:  ";
 	for (const Clause& clause: rares)
 		std::cerr << clause.expression() << " | ";
 	std::cerr << "\b\b  \n";
@@ -184,7 +216,7 @@ DNFclauses::project(const State& localState) const
 		clause.pin_up_vars(localState);
 
 	/// @todo TODO erase debug print
-	std::cerr << "Others projection: ";
+	std::cerr << "Others projection:  ";
 	for (const Clause& clause: others)
 		std::cerr << clause.expression() << " | ";
 	std::cerr << "\b\b  \n";

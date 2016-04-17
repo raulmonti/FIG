@@ -835,7 +835,7 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
 #ifndef NDEBUG
 	assert(ifun.has_importance_info());
 	assert("flat" == ifun.strategy());
-	if (ifun.min_value() != ifun.min_value())
+	if (ifun.min_value() != ifun.max_value())
 		throw_FigException("bad function built (non-flat importance)");
 #endif
 }
@@ -897,7 +897,7 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 #ifndef NDEBUG
     assert(ifun.has_importance_info());
     assert("auto" == ifun.strategy());
-	if (ifun.min_value() == ifun.min_value())
+	if (ifun.min_value() == ifun.max_value())
 		throw_FigException("bad function built (flat importance)");
 #endif
 }
@@ -965,7 +965,7 @@ ModelSuite::build_importance_function_adhoc(
 #ifndef NDEBUG
 	assert(ifun.has_importance_info());
 	assert("adhoc" == ifun.strategy());
-	if (ifun.min_value() == ifun.min_value())
+	if (ifun.min_value() == ifun.max_value())
 		throw_FigException("bad function built (flat importance)");
 #endif
 }
