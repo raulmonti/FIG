@@ -945,7 +945,7 @@ ModelSuite::build_importance_function_adhoc(
             std::vector<std::string> varnamesVec(begin(varnames), end(varnames));
             static_cast<ImportanceFunctionConcrete&>(ifun)
                 .assess_importance(property, formulaExprStr, varnamesVec);
-        } else {
+		} else {
             static_cast<ImportanceFunctionAlgebraic&>(ifun)
                 .set_formula("adhoc",
                              formulaExprStr,

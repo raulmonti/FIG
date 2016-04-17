@@ -138,7 +138,7 @@ ValueArg<string> engineName_(
 ValuesConstraint<string> thrTechConstraints(fig::ModelSuite::available_threshold_techniques());
 const string thrTechDefault("hyb");
 ValueArg<string> thrTechnique_(
-	"t", "thresholdsTechnique",
+	"t", "thresholds",
 	"Technique to use for building the importance thresholds. "
 	"Default is \"" + thrTechDefault + "\"",
 	false, thrTechDefault,
@@ -240,7 +240,7 @@ std::vector< Arg* > stopCondSpecs = {
 
 // Splitting values to test
 ValueArg<string> splittings_(
-	"", "splitting",
+	"s", "splitting",
 	"Define splitting values to try out with RESTART-like simulation engines, "
 	"specified as a comma-separated list of integral values greater than '1'",
 	false, "2",

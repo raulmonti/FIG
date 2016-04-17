@@ -2,4 +2,4 @@
 #define fig_VERSION_MAJOR 1
 #define fig_VERSION_MINOR 0
 // FIG tool current build
-#define fig_CURRENT_BUILD "21:44:51 16.04.2016 (debug)"
+#define fig_CURRENT_BUILD "20:02:20 17.04.2016 (debug)"

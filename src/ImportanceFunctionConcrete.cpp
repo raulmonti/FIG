@@ -199,15 +199,11 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 	while (!initialReached && !statesToCheck.empty()) {
 		STATE_T s = statesToCheck.front();
 		statesToCheck.pop();
-		/// @todo TODO erase debug print
-		std::cerr << "Checking (" << s << ")...\n";
 		ImportanceValue levelBFS = fig::UNMASK(cStates[s]) + 1;
 		// For each state reaching 's'...
 		for (const STATE_T& reachingS: reverseEdges[s]) {
             // ...if we're visiting it for the first time...
 			if (NOT_VISITED == fig::UNMASK(cStates[reachingS])) {
-				/// @todo TODO erase debug print
-				std::cerr << "  visiting " << reachingS << std::endl;
 				// ...label it with distance from rare set...
 				cStates[reachingS] = levelBFS | fig::MASK(cStates[reachingS]);
 				// ...and enqueue it, unless we're done.
@@ -268,13 +264,14 @@ label_local_others(EventVec& cStates,
 				   State s,
 				   const std::vector< Clause >& otherClauses,
 				   const fig::EventType& event,
-				   const bool reset = false)
+				   const bool reset = false,
+				   const bool negate = false)
 {
 	for (const auto& clause: otherClauses) {
 		for (size_t i = 0ul ; i < cStates.size() ; i++) {
 			if (reset)
 				cStates[i] = fig::EventType::NONE;
-			if (clause(s.decode(i).to_state_instance()))
+			if (negate != clause(s.decode(i).to_state_instance()))
 				cStates[i] |= event;
 		}
 	}
@@ -323,7 +320,8 @@ label_local_states(const State& localState,
 
 	case fig::PropertyType::TRANSIENT:
 		rares = label_local_rares(cStates, localState, rareClauses, true);
-		label_local_others(cStates, localState, otherClauses, fig::EventType::STOP);
+		label_local_others(cStates, localState, otherClauses,
+						   fig::EventType::STOP, false, true);
 		break;
 
 	case fig::PropertyType::RATE:

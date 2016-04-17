@@ -171,6 +171,8 @@ DNFclauses::populate(const fig::Property& property)
 		std::vector< AST* > transientFormulae(ASTtransient.get_list(parser::_EXPRESSION));
 		assert(transientFormulae.size() == 2ul);
 		rares_ = extract_clauses(*transientFormulae[1]);
+		/// @bug FIXME: "others_" are the stopping states => negate and store;
+		///             the meaning of "keep running" must be stored here
 		others_ = extract_clauses(*transientFormulae[0]);
 		} break;
 
