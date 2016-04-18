@@ -80,8 +80,11 @@ SET(ALL_SOURCES ${ALL_SOURCES} ${TEST_SOURCES} CACHE INTERNAL "")
  
 ###  Preprocessor macros  #####################################################
 
-## # High quality C++ pseudo-random generator
-## ADD_DEFINITIONS(-DHQ_RNG)
+# High quality C++ pseudo-random generator
+ADD_DEFINITIONS(-DHQ_RNG)
+
+## # No-Debug
+## ADD_DEFINITIONS(-DNDEBUG)
 
 
  
@@ -116,11 +119,8 @@ ENDIF()
 # Highly defensive compile flags
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 
-## # Debug
+## # Debug with gdb
 ## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-
-## # No-Debug
-## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
 
 # OpenMP
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

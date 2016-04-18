@@ -1,9 +1,9 @@
 /*
- * Fluid queues with breakdowns for the FIG tool
+ * Queueing system with breakdowns for the FIG tool
  * Budde, Monti, D'Argenio | 2016
  *
  *{-
- * Concept of the queue with breakdowns:
+ * Concept of the queueing system with breakdowns:
  *                        
  * (Source1: on/off) --->||
  *                       ||
@@ -15,7 +15,7 @@
  *                        
  * Buffer has maximum capacity K.
  * The single Server: attends     with rate mu,
- *                    fails       with rate gamma,
+ *                    fails       with rate gama,
  *                    is repaired with rate delta.
  * Sources can be of Type 1 or 2.
  * Sources of Type i: produce       with rate lambdai,
@@ -48,10 +48,10 @@ const int beta2   = 4;  // -- Fail       rate
 // -- Server
 const int mu = 100;   // -- Processing rate
 const int delta = 4;  // -- Repair     rate
-const int gamma = 3;  // -- Fail       rate
+const int gama = 3;   // -- Fail       rate
 
 // -- Buffer capacity: 20, 40, 80, 160
-const int K = 20;
+const int K = 40;
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -229,7 +229,7 @@ endmodule
 module BufferedServer
 
 	buf: [0..K] init 1;
-	clkF: clock;  // -- Server 'F'ailure    ~ exp(gamma)
+	clkF: clock;  // -- Server 'F'ailure    ~ exp(gama)
 	clkR: clock;  // -- Server 'R'epair     ~ exp(delta)
 	clkP: clock;  // -- Server 'P'rocessing ~ exp(mu)
 	on:    bool init false;  // -- Server on?
@@ -240,7 +240,7 @@ module BufferedServer
 	[]  on @ clkF -> (on'= false) &
 	                 (clkR'= exponential(delta));
 	[] !on @ clkR -> (on'= true)  &
-                     (clkF'= exponential(gamma)) &
+                     (clkF'= exponential(gama)) &
 	                 (clkP'= exponential(mu));
 
 	// -- Buffer out (dequeueing by server processing)

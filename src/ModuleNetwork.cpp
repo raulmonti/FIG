@@ -95,8 +95,8 @@ ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 #else
 		return;
 #endif
+	auto state = module->mark_added(modules.size(), gState.size(), numClocks_);
 	modules.push_back(module);
-    auto state = module->mark_added(modules.size()-1, gState.size(), numClocks_);
 	gState.append(state);
 	numClocks_ += module->clocks().size();
 	transitions_.reserve(transitions_.size() + module->transitions_.size());
@@ -126,6 +126,7 @@ ModuleNetwork::seal(const Container<ValueType, OtherContainerArgs...>& initialCl
 	sealed_ = true;
 	initialClocks.reserve(std::distance(begin(initialClocksNames),
 										end(initialClocksNames)));
+
 	// For each module in the network...
 	for (auto& module_ptr: modules) {
 		// ... seal it ...
@@ -235,29 +236,23 @@ Event ModuleNetwork::simulation_step(Traial& traial,
                                      const Simulator& engine,
                                      TraialMonitor watch_events) const
 {
+	assert(sealed());
 	Event e(EventType::NONE);
-
-	if (!sealed())
-#ifndef NDEBUG
-		throw_FigException("ModuleNetwork hasn't been sealed yet");
-#else
-		return e;
-#endif
 
 	// Jump...
 	do {
-		auto timeout = traial.next_timeout();
+		const Traial::Timeout& to = traial.next_timeout();
+		const float elapsedTime(to.value);
+		assert(0.0f <= elapsedTime);
         // Active jump in the module whose clock timed-out
-		auto label = timeout.module->jump(timeout.name, timeout.value, traial);
-
-		// Passive jumps in the modules listening to label
+		const Label& label = to.module->jump(to, traial);
+		// Passive jumps in all modules listening to label
 		for (auto module_ptr: modules)
-			if (module_ptr->name != timeout.module->name)
-				module_ptr->jump(label, timeout.value, traial);
-		traial.lifeTime += timeout.value;
-
-	} while ( !(engine.*watch_events)(property, traial, e) );
+			if (module_ptr->name != to.module->name)
+				module_ptr->jump(label, elapsedTime, traial);
+		traial.lifeTime += elapsedTime;
 	// ...until a relevant event is observed
+	} while ( !(engine.*watch_events)(property, traial, e) );
 
     return e;
 }

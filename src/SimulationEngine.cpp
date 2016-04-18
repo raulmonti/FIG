@@ -57,18 +57,19 @@ namespace fig
 
 // Static variables initialization
 
-const std::array< std::string, 2 > SimulationEngine::names =
-{{
-	// Standard Monte Carlo simulations, without splitting
-	"nosplit",
-
-	// RESTART-like importance splitting, from the Villén-Altamirano brothers
-	"restart"
-}};
-
+/// @note Arbitrary af
 const unsigned SimulationEngine::MIN_COUNT_RARE_EVENTS = 3u;
 
-const double SimulationEngine::MIN_ACC_RARE_TIME = 20.8;
+/// @note Arbitrary af
+const double SimulationEngine::MIN_ACC_RARE_TIME = M_PI_4l/2.0;
+
+/// @note Small enough to distinguish variations of 0.01 simulation time units
+///       when using fp single precision: mantissa 1, exponent 12, resulting in
+///       1*2^12 == 4096. The corresponding C99 literal is 0x1p12
+/// @see <a href="http://www.cprogramming.com/tutorial/floating_point/understanding_floating_point_representation.html">
+///      Floating point arithmetic</a> and the <a href="http://stackoverflow.com/a/4825867">
+///      C99 fp literals</a>.
+const CLOCK_INTERNAL_TYPE SimulationEngine::SIM_TIME_CHUNK = 4096.f;
 
 
 
@@ -84,11 +85,11 @@ SimulationEngine::SimulationEngine(
 		cImpFun_(nullptr),
         interrupted(false)
 {
-	if (std::find(begin(names), end(names), name) == end(names)) {
+	if (std::find(begin(names()), end(names()), name) == end(names())) {
 		std::stringstream errMsg;
 		errMsg << "invalid engine name \"" << name << "\". ";
 		errMsg << "Available engines are";
-		for (const auto& name: names)
+		for (const auto& name: names())
 			errMsg << " \"" << name << "\"";
 		errMsg << "\n";
 		throw_FigException(errMsg.str());
@@ -147,6 +148,23 @@ SimulationEngine::unlock() const noexcept
 }
 
 
+const std::array<std::string, SimulationEngine::NUM_NAMES>&
+SimulationEngine::names() noexcept
+{
+	static const std::array< std::string, NUM_NAMES > names =
+	{{
+		// Standard Monte Carlo simulations, without splitting
+		// See SimualtionEngineNosplit class
+		"nosplit",
+
+		// RESTART-like importance splitting, from the Villén-Altamirano brothers
+		// See SimualtionEngineRestart class
+		"restart"
+	}};
+	return names;
+}
+
+
 const std::string&
 SimulationEngine::name() const noexcept
 {
@@ -191,7 +209,8 @@ SimulationEngine::current_imp_strat() const noexcept
 bool
 SimulationEngine::simulate(const Property &property,
 						   const size_t& effort,
-						   ConfidenceInterval& interval) const
+						   ConfidenceInterval& interval,
+						   bool reinit) const
 {
 	bool increaseEffort(false);
 	assert(0ul < effort);
@@ -215,8 +234,9 @@ SimulationEngine::simulate(const Property &property,
 	case PropertyType::RATE: {
 		assert(interval.name == "mean_std");
 		double rate = rate_simulation(dynamic_cast<const PropertyRate&>(property),
-									  effort);
-		interval.update(rate);
+									  effort,
+									  reinit);
+		interval.update(std::abs(rate));
 		increaseEffort = 0.0 >= rate;
 		} break;
 
@@ -278,14 +298,16 @@ SimulationEngine::simulate(
 		}
 		break;
 
-	case PropertyType::RATE:
+	case PropertyType::RATE: {
+		bool reinit(true);  // start from system's initial state
 		assert(interval.name == "mean_std");
 		assert (!interrupted);
 		while (!interrupted) {
 			double rate = rate_simulation(dynamic_cast<const PropertyRate&>(property),
-										  effort);
+										  effort,
+										  reinit);
 			if (!interrupted) {
-				interval.update(rate);
+				interval.update(std::abs(rate));
 				if (0.0 >= rate) {
 					techLog << "-";
 					if (nullptr != effort_inc)
@@ -296,8 +318,9 @@ SimulationEngine::simulate(
 					techLog << "+";
 				}
 			}
+			reinit = false;  // use batch means
 		}
-		break;
+		} break;
 
 	case PropertyType::THROUGHPUT:
 	case PropertyType::RATIO:

@@ -64,10 +64,10 @@ class SimulationEngine
 
 public:
 
-	/// Names of the simulation engines offered to the user,
-	/// as he should requested them through the CLI/GUI.
-    /// Defined in SimulationEngine.cpp
-    static const std::array< std::string, 2 > names;
+    /// Long story short: number of concrete derived classes.
+    /// More in detail this is the size of the array returned by names(), i.e.
+    /// how many SimualtionEngine implementations are offered to the end user.
+    static constexpr size_t NUM_NAMES = 2;
 
     /// Minimum amount of generated rare events to consider a simulation "good"
     static const unsigned MIN_COUNT_RARE_EVENTS;
@@ -76,11 +76,16 @@ public:
     /// in rare states to consider a simulation "good"
     static const double MIN_ACC_RARE_TIME;
 
+    /// Maximum simulation time units any Traial is allowed to accumulate
+    /// before having its lifetime reset
+    /// @note Needed due to fp precision issues
+    static const CLOCK_INTERNAL_TYPE SIM_TIME_CHUNK;
+
 private:
 
-    /// Simulation strategy implemented by this engine.
-    /// Check SimulationEngine::names for available options.
-    std::string name_;
+	/// Name of the SimulationEngine strategy implemented by this instance.
+	/// Check names() for available options.
+	std::string name_;
 
     /// Is the engine currently being used in an estimation?
     mutable bool locked_;
@@ -96,11 +101,12 @@ protected:
 	/// Concrete importance function currently built, if any
 	std::shared_ptr< const ImportanceFunctionConcrete > cImpFun_;
 
-    /// Were we just interrupted in an estimation timeout?
-    mutable bool interrupted;
+	/// Were we just interrupted in an estimation timeout?
+	mutable bool interrupted;
 
-    /// Maximum simulation time to reach, for long-run simulations only
-    mutable CLOCK_INTERNAL_TYPE simsLifetime;
+	/// Maximum simulation time to reach, for long-run simulations only
+	mutable CLOCK_INTERNAL_TYPE simsLifetime;
+//	mutable thread_local CLOCK_INTERNAL_TYPE simsLifetime;
 
 public:  // Ctors/Dtor
 
@@ -170,6 +176,14 @@ private:
 
 public:  // Accessors
 
+	/// Names of the simulation engines offered to the user,
+	/// as he should requested them through the CLI/GUI.
+	/// @note Implements the <a href="https://goo.gl/yhTgLq"><i>Construct On
+	///       First Use</i> idiom</a> for static data members,
+	///       to avoid the <a href="https://goo.gl/chH5Kg"><i>static
+	///       initialization order fiasco</i>.
+	static const std::array< std::string, NUM_NAMES >& names() noexcept;
+
     /// @copydoc name_
     const std::string& name() const noexcept;
 
@@ -211,6 +225,8 @@ public:  // Simulation functions
      * @param effort   Number of independent runs to perform or
      *                 simulation length in time units
      * @param interval ConfidenceInterval updated with estimation info <b>(modified)</b>
+     * @param reinit   Start simulations anew from the system's initial state,
+     *                 even if it was possible to use batch means
      *
      * @return Whether 'effort' wasn't large enough and ought to be increased
      *
@@ -219,7 +235,8 @@ public:  // Simulation functions
      */
     bool simulate(const Property& property,
                   const size_t& effort,
-                  ConfidenceInterval& interval) const;
+                  ConfidenceInterval& interval,
+                  bool reinit) const;
 
     /**
      * @brief Simulate in model until externally interrupted
@@ -290,15 +307,26 @@ protected:  // Simulation helper functions
 	 *
 	 * @param property  PropertyRate with the event of interest (expr)
 	 * @param runLength Simulated time units the simulation run will last
+	 * @param reinit    Whether to start from the system's initial state
+	 *                  instead of the state saved from the last call.
+	 *                  Make this parameter false to use <i>batch means</i>.
 	 *
 	 * @return Proportion of the total simulated time which was spent
 	 *         on states satisfying the property's "expr", or its negative
 	 *         value if less than MIN_ACC_RARE_TIME was spent there.
 	 *
+	 * @note The routine supports the <i>batch means simulation method</i>,
+	 *       viz. execution can start from the last saved state, as if the
+	 *       simulation run continued from the previous call.
+	 * @note The first time this routine is called (globally) simulations
+	 *       forcefully start from the system's initial state.
+	 * @warning Implementations are currently <b>not thread-safe</b>.
+	 *
 	 * @see PropertyRate
 	 */
 	virtual double rate_simulation(const PropertyRate& property,
-								   const size_t& runLength) const = 0;
+								   const size_t& runLength,
+								   bool reinit = false) const = 0;
 
 public:  // Traial observers/updaters
 

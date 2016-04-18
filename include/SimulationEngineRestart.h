@@ -109,7 +109,8 @@ protected:  // Simulation helper functions
 								 const size_t& numRuns) const override;
 
 	double rate_simulation(const PropertyRate& property,
-						   const size_t& runLength) const override;
+						   const size_t& runLength,
+						   bool reinit = false) const override;
 
 public:  // Traial observers/updaters
 
@@ -126,18 +127,16 @@ public:  // Traial observers/updaters
 				e = EventType::STOP;
 			} else {
 				ImportanceValue newThrLvl = impFun_->level_of(traial.state);
-				if (newThrLvl < traial.level) {
-					// Went down... too deep?
-					if (++traial.depth > static_cast<short>(dieOutDepth_))
-						e = EventType::THR_DOWN;
-				} else if (newThrLvl > traial.level) {
-					// Store in 'depth' the negative # of thresholds crossed
-					traial.depth = traial.level - newThrLvl;
-					e = EventType::THR_UP;
-				} else if (property.expr2(traial.state)) {
-					e = EventType::RARE;
-				}
+				traial.numLevelsCrossed = newThrLvl - traial.level;
+				traial.depth -= traial.numLevelsCrossed;
 				traial.level = newThrLvl;
+				if (traial.numLevelsCrossed < 0 &&
+					traial.depth > static_cast<short>(dieOutDepth_))
+					e = EventType::THR_DOWN;
+				else if (traial.numLevelsCrossed > 0)
+					e = EventType::THR_UP;
+				else if (property.expr2(traial.state))
+					e = EventType::RARE;
 			}
 			return EventType::NONE != e;
 		}
@@ -156,17 +155,15 @@ public:  // Traial observers/updaters
 			e = MASK(newStateInfo);
 			if (!IS_STOP_EVENT(e)) {
 				const ImportanceValue newThrLvl = UNMASK(newStateInfo);
-				if (newThrLvl < traial.level) {
-					// Went down... too deep?
-					if (++traial.depth > static_cast<short>(dieOutDepth_))
-						SET_THR_DOWN_EVENT(e);
-				} else if (newThrLvl > traial.level) {
-					// Store in 'depth' the negative # of thresholds crossed
-					traial.depth = traial.level - newThrLvl;
-					SET_THR_UP_EVENT(e);
-				}
+				traial.numLevelsCrossed = newThrLvl - traial.level;
+				traial.depth -= traial.numLevelsCrossed;
 				traial.level = newThrLvl;
-				// rare event info is already marked inside 'e'
+				if (traial.numLevelsCrossed < 0 &&
+					traial.depth > static_cast<short>(dieOutDepth_))
+					SET_THR_DOWN_EVENT(e);
+				else if (traial.numLevelsCrossed > 0)
+					SET_THR_UP_EVENT(e);
+				// else: rare event info is already marked inside 'e'
 			}
 			return EventType::NONE != e;
 		}
@@ -180,33 +177,20 @@ public:  // Traial observers/updaters
 			// Event marking is done in accordance with the checks performed
 			// in the rate_simulation() overriden member function
 			ImportanceValue newThrLvl = impFun_->level_of(traial.state);
-			if (newThrLvl < traial.level) {
-				// Went down... too deep?
-				if (++traial.depth > static_cast<short>(dieOutDepth_))
-					e = EventType::THR_DOWN;
-			} else if (newThrLvl > traial.level) {
-				// Store in 'depth' the negative # of thresholds crossed
-				traial.depth = traial.level - newThrLvl;
-				e = EventType::THR_UP;
-			} else if (property.expr(traial.state)) {
-				e = EventType::RARE;
-			}
+			traial.numLevelsCrossed = newThrLvl - traial.level;
+			traial.depth -= traial.numLevelsCrossed;
 			traial.level = newThrLvl;
-
-			/// @todo TODO erase debug print  //////////////////
-			if (traial.lifeTime > simsLifetime)
-				std::cerr << "Reached EOS: " << traial.lifeTime
-						  << " > " << simsLifetime << std::endl;
-			if (EventType::THR_DOWN & e)
-				std::cerr << "Down event\n";
-			if (EventType::THR_UP & e)
-				std::cerr << "Up event\n";
-			if (EventType::RARE & e)
-				std::cerr << "Rare event\n";
-			if (EventType::NONE != e)
-				std::cerr << "Some event: " << e << std::endl;
-			/////////////////////////////////////////////////////
-
+			if (traial.numLevelsCrossed < 0 &&
+				traial.depth > static_cast<short>(dieOutDepth_))
+				e = EventType::THR_DOWN;
+			else if (traial.numLevelsCrossed > 0)
+				e = EventType::THR_UP;
+			else if (property.expr(traial.state))
+				e = EventType::RARE;
+			if (traial.lifeTime > SIM_TIME_CHUNK) {  // reduce fp precision loss
+				traial.lifeTime -= SIM_TIME_CHUNK;
+				simsLifetime -= SIM_TIME_CHUNK;
+			}
 			return traial.lifeTime > simsLifetime || EventType::NONE != e;
 		}
 
@@ -222,17 +206,19 @@ public:  // Traial observers/updaters
 			auto newStateInfo = cImpFun_->info_of(traial.state);
 			e = MASK(newStateInfo);
 			const ImportanceValue newThrLvl = UNMASK(newStateInfo);
-			if (newThrLvl < traial.level) {
-				// Went down... too deep?
-				if (++traial.depth > static_cast<short>(dieOutDepth_))
-					SET_THR_DOWN_EVENT(e);
-			} else if (newThrLvl > traial.level) {
-				// Store in 'depth' the negative # of thresholds crossed
-				traial.depth = traial.level - newThrLvl;
-				SET_THR_UP_EVENT(e);
-			}
+			traial.numLevelsCrossed = newThrLvl - traial.level;
+			traial.depth -= traial.numLevelsCrossed;
 			traial.level = newThrLvl;
-			// rare event info is already marked inside 'e'
+			if (traial.numLevelsCrossed < 0 &&
+				traial.depth > static_cast<short>(dieOutDepth_))
+				SET_THR_DOWN_EVENT(e);
+			else if (traial.numLevelsCrossed > 0)
+				SET_THR_UP_EVENT(e);
+			// else: rare event info is already marked inside 'e'
+			if (traial.lifeTime > SIM_TIME_CHUNK) {  // reduce fp precision loss
+				traial.lifeTime -= SIM_TIME_CHUNK;
+				simsLifetime -= SIM_TIME_CHUNK;
+			}
 			return traial.lifeTime > simsLifetime || EventType::NONE != e;
 		}
 

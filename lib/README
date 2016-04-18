@@ -1,0 +1,2 @@
+Paste here any libraries you wish to use above the system defined ones, then
+modify CMakeLists.txt accordingly (section "Dynamic libraries specification")

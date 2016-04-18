@@ -47,8 +47,6 @@
 namespace fig
 {
 
-class ModuleInstance;  // Fwd declaration for internal pointer
-
 /// Global container with distributions offered for time sampling
 extern std::unordered_map< std::string, Distribution > distributions_list;
 
@@ -65,6 +63,8 @@ extern std::unordered_map< std::string, Distribution > distributions_list;
  */
 class Clock
 {
+	friend class ModelSuite;  // RNG handling, e.g. re-seeding
+
 	/// Clock name
 	std::string name_;
 
@@ -76,6 +76,21 @@ class Clock
 
 	/// Clock's distribution parameters
 	DistributionParameters distParams_;
+
+public:  // Class' RNG manipulations
+
+	/// Seed used to initialized the internal RNG
+	static unsigned rng_seed() noexcept;
+
+private:
+
+	/// Restart RNG sequence
+	/// \ifnot NDEBUG
+	///   @details Apply same seed as before (chosen at initialization)
+	/// \else
+	///   @details Apply random seed taken from the system's random device
+	/// \endif
+	static void seed_rng();  // offered to ModelSuite
 
 public:  // Ctors
 

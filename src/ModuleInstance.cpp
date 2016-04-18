@@ -50,7 +50,7 @@ using std::begin;
 using std::end;
 
 
-namespace { const fig::Label tau; }
+namespace { const fig::Label TAU; }
 
 
 namespace fig
@@ -246,16 +246,17 @@ ModuleInstance::adjacent_states(const size_t& s) const
 
 
 const Label&
-ModuleInstance::jump(const std::string& clockName,
-					 const CLOCK_INTERNAL_TYPE& elapsedTime,
+ModuleInstance::jump(const Traial::Timeout& to,
 					 Traial& traial) const
 {
 #ifndef NDEBUG
 	if (!sealed_)
 		throw_FigException("this module hasn't been sealed yet");
 #endif
-	const auto iter = transitions_by_clock_.find(clockName);
+	const float elapsedTime(to.value);
+	const auto iter = transitions_by_clock_.find(to.name);
 	assert(end(transitions_by_clock_) != iter);  // deny foreign clocks
+	traial.kill_time(to.gpos, 1ul, 100.0f);      // mark this clock 'expired'
 	const auto& transitions = iter->second;
 	for (const auto& tr_ptr: transitions) {
 		if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
@@ -265,7 +266,7 @@ ModuleInstance::jump(const std::string& clockName,
                 begin(lClocks_),
                 end(lClocks_),
                 firstClock_,
-                elapsedTime);
+				elapsedTime);
             // Finally broadcast the output label triggered
             assert(tr_ptr->label().is_output());
 			return tr_ptr->label();
@@ -273,8 +274,7 @@ ModuleInstance::jump(const std::string& clockName,
 	}
     // No transition was enabled => advance all clocks and broadcast tau
 	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
-
-	return tau;
+	return TAU;
 }
 
 
@@ -295,7 +295,7 @@ ModuleInstance::jump(const Label& label,
         for (const auto& tr_ptr: transitions) {
             if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
                 tr_ptr->pos(traial.state);   // apply postcondition to its state
-                tr_ptr->handle_clocks(       // and update clocks according to it.
+				tr_ptr->handle_clocks(       // and update clocks according to it.
                    traial,
                    begin(lClocks_),
                    end(lClocks_),
@@ -401,7 +401,11 @@ ModuleInstance::seal(const PositionsMap& globalVars)
 	auto localClocks = map_our_clocks();
 	for (auto& pair: transitions_by_label_)
 		for (auto& tr_ptr: pair.second)
+#ifndef NRANGECHK
 			tr_ptr->callback(localClocks, globalVars);
+#else
+			tr_ptr->callback(localClocks, const_cast<PositionsMap&>(globalVars));
+#endif
 }
 
 

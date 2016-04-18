@@ -56,14 +56,11 @@ ThresholdsBuilderAdaptive::ThresholdsBuilderAdaptive(
 
 
 std::vector< ImportanceValue >
-ThresholdsBuilderAdaptive::build_thresholds(
-	const unsigned& splitsPerThreshold,
+ThresholdsBuilderAdaptive::build_thresholds(const unsigned& splitsPerThreshold,
 	const ImportanceFunction& impFun,
 	const float &p,
 	const unsigned& n)
 {
-	unsigned currThr(0ul);
-	std::vector< ImportanceValue > result;
     const ModuleNetwork& net = *ModelSuite::get_instance().modules_network();
 
 	// Choose values for n_ and k_
@@ -88,7 +85,8 @@ ThresholdsBuilderAdaptive::build_thresholds(
 	assert(thresholds_.back() > impFun.max_value());
 
 	// Format result and finish up
-	result.resize(impFun.max_value() - impFun.min_value() + 1ul);
+	unsigned currThr(0ul);
+	ImportanceVec result(impFun.max_value()-impFun.min_value()+1ul);
 	for (ImportanceValue i = impFun.min_value() ; i <= impFun.max_value() ; i++)
 	{
 		while (currThr < thresholds_.size()-1 && i >= thresholds_[currThr+1])
@@ -97,6 +95,7 @@ ThresholdsBuilderAdaptive::build_thresholds(
 	}
 
 	assert(result[impFun.min_value()] == static_cast<ImportanceValue>(0u));
+	assert(result[impFun.initial_value()] == static_cast<ImportanceValue>(0u));
 	assert(result[impFun.max_value()] ==
 			static_cast<ImportanceValue>(thresholds_.size()-2));
 	std::vector< ImportanceValue >().swap(thresholds_);  // free mem

@@ -59,14 +59,25 @@ Precondition::fake_evaluation() const
 }
 
 
+#ifndef  NRANGECHK
 void
-Precondition::pin_up_vars(const PositionsMap &globalVars)
+Precondition::pin_up_vars(const PositionsMap& globalVars)
 {
 	MathExpression::pin_up_vars(globalVars);
-#ifndef NDEBUG
+# ifndef NDEBUG
 	fake_evaluation();  // Reveal parsing errors in this early stage
-#endif
+# endif
 }
+#else
+void
+Precondition::pin_up_vars(PositionsMap& globalVars)
+{
+	MathExpression::pin_up_vars(globalVars);
+# ifndef NDEBUG
+	fake_evaluation();  // Reveal parsing errors in this early stage
+# endif
+}
+#endif
 
 
 void

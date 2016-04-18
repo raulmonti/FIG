@@ -37,12 +37,13 @@
 // FIG
 #include <FigException.h>
 #include <ImportanceFunctionConcrete.h>
-#include <ModuleInstance.h>
-#include <ModuleNetwork.h>
 
 
 namespace fig
 {
+
+class ModuleInstance;
+class ModuleNetwork;
 
 /**
  * @brief ImportanceFunction for the concrete importance assessment
@@ -98,9 +99,6 @@ private:
     /// Strategy used to merge the "split modules" importance values
     mutable MergeType mergeStrategy_;
 
-    /// Translator from a global state ImportanceValue to its threshold level
-    std::vector< ImportanceValue > importance2threshold_;
-
 public:  // Ctor/Dtor
 
 	/// @brief Data ctor
@@ -121,33 +119,6 @@ public:  // Accessors
 	/// @note <b>Complexity:</b> <i>O(size(state))</i> +
 	///                          <i>O(mu::Parser::Eval(localValues_))</i>
 	ImportanceValue importance_of(const StateInstance& state) const override;
-
-	/// @copydoc ImportanceFunction::level_of(const StateInstance&)
-	/// @note Attempted inline in a desperate need for speed
-	/// @note <b>Complexity:</b> same as ImportanceFunctionConcreteSplit::importance_of()
-	inline ImportanceValue level_of(const StateInstance& state) const override
-		{
-#		ifndef NDEBUG
-			if (!ready())
-				throw_FigException("importance function \"" + name() + "\" "
-								   "isn't ready for simulations.");
-#		endif
-			return importance2threshold_[importance_of(state)];
-		}
-
-	/// @copydoc ImportanceFunction::level_of(const ImportanceValue&)
-	/// @note Attempted inline in a desperate need for speed
-	/// @note <b>Complexity:</b> <i>O(1)</i>
-	inline ImportanceValue level_of(const ImportanceValue& val) const override
-		{
-#		ifndef NDEBUG
-			if (!ready())
-				throw_FigException("importance function \"" + name() + "\" "
-								   "isn't ready for simulations.");
-#		endif
-			assert(val < importance2threshold_.size());
-			return importance2threshold_[val];
-		}
 
 	void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE> s) const override;
 
@@ -172,15 +143,6 @@ public:  // Utils
 						   const std::string& formulaExprStr,
 						   const std::vector<std::string>& varnames) override;
 
-	void build_thresholds(ThresholdsBuilder& tb, const unsigned& spt) override;
-
-	void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
-									 const unsigned& spt,
-									 const float& p,
-									 const unsigned& n) override;
-
-	void clear() noexcept override;
-
 private:  // Class utils
 
 	/**
@@ -194,12 +156,6 @@ private:  // Class utils
 	std::string compose_merge_function(
 			const std::vector<std::string>& modulesNames,
 			const std::string& mergeOperand) const;
-
-	/// Post-processing once the thresholds have been chosen
-	/// @param tbName  Name of the ThresholdsBuilder used
-	/// @see build_thresholds()
-	/// @see build_thresholds_adaptively()
-	void post_process_thresholds(const std::string& tbName);
 };
 
 } // namespace fig

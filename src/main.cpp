@@ -28,139 +28,144 @@
 //==============================================================================
 
 
+// C++
 #include <iostream>
-#include <sstream>
 #include <fstream>
+#include <sstream>
 #include <string>
+#include <list>
+// C
 #include <cassert>
 #include <sys/stat.h>
-
+// FIG
 #include <fig.h>
+#include <fig_cli.h>
 
-// using std::make_tuple;
-// typedef std::set< std::string > NamesList;
-// typedef std::set< std::tuple<double,double,bool> > StopCond;
 
-static void print_intro();
-static void check_arguments(const int& argc, const char** argv);
+//  Helper functions headers  //////////////////////////////////////////////////
+
+static void print_intro(const int &argc, const char **argv);
 static bool file_exists(const std::string& filepath);
-static void build_model(const char* modelFilePath, const char* propsFilePath);
+static void build_model(const std::string& modelFilePath, const std::string& propsFilePath);
 
 
+//  Configuration of the estimation run  ///////////////////////////////////////
+
+using fig_cli::modelFile;
+using fig_cli::propertiesFile;
+using fig_cli::engineName;
+using fig_cli::impFunName;
+using fig_cli::impFunStrategy;
+using fig_cli::impFunDetails;
+using fig_cli::thrTechnique;
+using fig_cli::splittings;
+using fig_cli::estBounds;
+
+
+//  Main stuff  ////////////////////////////////////////////////////////////////
 
 int main(int argc, char** argv)
 {
-	//  Intro  // // // // // // // // // // // // // // // // // //
-    print_intro();
-	check_arguments(argc, const_cast<const char**>(argv));
+	// Intro and command line parsing
+	print_intro(argc, const_cast<const char**>(argv));
+	fig_cli::parse_arguments(argc, const_cast<const char**>(argv));  // exit on error
 
-	//  Compile model and properties   // // // // // // // // // //
-	build_model(argv[1], argv[2]);
+	// Compile model and properties files
+	build_model(modelFile, propertiesFile);
 	auto model = fig::ModelSuite::get_instance();
 	if (!model.sealed()) {
-		std::cerr << "ERROR: failed to build the model.\n";
+		fig::ModelSuite::log("ERROR: failed to build the model.\n");
 		exit(EXIT_FAILURE);
 	}
-	const size_t propertyIndex(0ul);  // check only first defined property
 
+	// Estimate using requested configuration
+	model.process_batch(engineName,
+						impFunName,
+						std::make_pair(impFunStrategy, impFunDetails),
+						thrTechnique,
+						estBounds,
+						splittings);
 
-    /** TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO **/
-    /** HERE WE SHOULD SIMULATE AND DO ALL THE STUFF CARLOS KNOWS ABOUT. **/
-
-    std::cerr << "\nWell don't just stare, DO SOMETHING!\n\n";
-
-
-	//  Free memory  // // // // // // // // // // // // // // // //
+	// Free memory
 	model.release_resources();
 
 	return EXIT_SUCCESS;
 }
 
 
-// ///////////////////////////////////////////////////////////////////////////
-void print_intro()
+//  Helper functions implementations  //////////////////////////////////////////
+
+void print_intro(const int& argc, const char** argv)
 {
-    auto log = fig::ModelSuite::main_log;
-    using std::to_string;
-    log("\n");
-    log(" ~~~~~~~~~ \n");
-    log("  · FIG ·  \n");
-    log(" ~~~~~~~~~ \n");
-    log("           \n");
-    log(" This is the Finite Improbability Generator.\n");
-    log(" Version: "+to_string(fig_VERSION_MAJOR)+"."+to_string(fig_VERSION_MINOR)+"\n");
-    log(" Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n");
-    log("          Monti, Raúl E.   <raulmonti88@gmail.com>\n");
-    log("\n");
-    std::time_t now = std::chrono::system_clock::to_time_t(
-                          std::chrono::system_clock::now());
-    fig::ModelSuite::tech_log("\nFIG tool invoked on ");
-    fig::ModelSuite::tech_log(std::ctime(&now));
-    fig::ModelSuite::tech_log("\n");
+	auto main_log = fig::ModelSuite::main_log;
+	auto tech_log = fig::ModelSuite::tech_log;
+	using std::to_string;
+	const std::time_t now = std::chrono::system_clock::to_time_t(
+								std::chrono::system_clock::now());
+	main_log("\n");
+	main_log(" ~~~~~~~~~ \n");
+	main_log("  · FIG ·  \n");
+	main_log(" ~~~~~~~~~ \n");
+	main_log("           \n");
+	main_log(" This is the Finite Improbability Generator.\n");
+	main_log(" Version: "+to_string(fig_VERSION_MAJOR)+"."+to_string(fig_VERSION_MINOR)+"\n");
+	main_log(" Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n");
+	main_log("          Monti, Raúl E.   <raulmonti88@gmail.com>\n");
+	main_log("\n");
+
+	tech_log(std::string("\nFIG tool invoked on ") + std::ctime(&now) + "\n");
+	tech_log("Invocation command:");
+	for (int i = 0 ; i < argc ; i++)
+		tech_log(std::string(" ") + argv[i]);
+	tech_log("\n\n");
 }
 
 
-// ///////////////////////////////////////////////////////////////////////////
-void check_arguments(const int& argc, const char** argv)
-{
-	const std::string help("--help");
-	const std::string usage(std::string("Usage: ").append(argv[0])
-							.append(" <modelFilePath> <propertiesFilePath>\n"));
-	if (argc < 3 && argc > 1 && help == argv[1]) {
-		std::cerr << usage << std::endl;
-		exit(EXIT_SUCCESS);
-	} else if (argc < 3) {
-		std::cerr << "ERROR: FIG invoked with too few parameters.\n";
-		std::cerr << usage << std::endl;
-		exit(EXIT_FAILURE);
-	}
-}
-
-
-// ///////////////////////////////////////////////////////////////////////////
 bool file_exists(const std::string& filepath)
 {
-    struct stat buffer;
-    return (stat(filepath.c_str(), &buffer) == 0);
+	struct stat buffer;
+	return (stat(filepath.c_str(), &buffer) == 0);
 }
 
 
-// ///////////////////////////////////////////////////////////////////////////
-void build_model(const char* modelFilePath, const char* propsFilePath)
+void build_model(const std::string& modelFilePath, const std::string& propsFilePath)
 {
-    fig::ModelSuite::log(std::string("Model file: ") + modelFilePath);
-    if (!file_exists(modelFilePath)) {
-        fig::ModelSuite::log(" *** Error: file not found! ***\n");
-        exit(EXIT_FAILURE);
-    }
-    fig::ModelSuite::log(std::string("\nProperties: ") + propsFilePath);
-    if (!file_exists(propsFilePath)) {
-        fig::ModelSuite::log(" *** Error: file not found! ***\n");
-        exit(EXIT_FAILURE);
-    }
-    fig::ModelSuite::log("\n");
+	fig::ModelSuite::log("Model file: " + modelFilePath);
+	if (!file_exists(modelFilePath)) {
+		fig::ModelSuite::log(" *** Error: file not found! ***\n");
+		exit(EXIT_FAILURE);
+	}
+	fig::ModelSuite::log("\nProperties file: " + propsFilePath);
+	if (!file_exists(propsFilePath)) {
+		fig::ModelSuite::log(" *** Error: file not found! ***\n");
+		exit(EXIT_FAILURE);
+	}
+	fig::ModelSuite::log("\n\n");
 
 	Parser parser;
 	Verifier verifier;
 	Precompiler precompiler;
 
-    std::ifstream mfin(modelFilePath, ios::binary);
-    std::stringstream ss;
-    ss << mfin.rdbuf();
+	std::ifstream mfin(modelFilePath, ios::binary);
+	std::stringstream ss;
+	ss << mfin.rdbuf();
 
-    // Parse the file with the model description
-    parser.parse(&ss);
-    ss.clear();
-    ss << precompiler.pre_compile(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
-    parser.parse(&ss);
-    verifier.verify(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
+	// Parse the file with the model description
+	parser.parse(&ss);
+	ss.str("");ss.clear();  // clear ss contents
+	ss << precompiler.pre_compile(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
+	parser.parse(&ss);
+	verifier.verify(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
 
-    // Parse the file with the properties to check
-    std::ifstream pfin(propsFilePath, ios::binary);
-    ss.clear();
-    ss << pfin.rdbuf();
-    parser.parseProperties(&ss);
+	// Parse the file with the properties to check
+	std::ifstream pfin(propsFilePath, ios::binary);
+	ss.str("");ss.clear();  // clear ss contents
+	ss << pfin.rdbuf();
+	parser.parseProperties(&ss);
+	ss.str("");ss.clear();  // clear ss contents
+	ss << precompiler.pre_compile_props();
+	parser.parseProperties(&ss);
 
-    // Compile everything into simulation model
-    fig::CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
+	// Compile into simulation model
+	fig::CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
 }

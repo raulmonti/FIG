@@ -114,8 +114,13 @@ Transition::~Transition()
 }
 
 
+#ifndef NRANGECHK
 void
 Transition::crystallize(const PositionsMap& globalClocks)
+#else
+void
+Transition::crystallize(PositionsMap& globalClocks)
+#endif
 {
 	if (CRYSTAL == resetClocksData_)
 #ifndef NDEBUG

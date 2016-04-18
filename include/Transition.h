@@ -39,7 +39,7 @@
 // C
 #include <cassert>
 // FIG
-#include <core_typedefs.h>  // Bitflag
+#include <core_typedefs.h>
 #include <FigException.h>
 #include <Label.h>
 #include <Clock.h>
@@ -201,8 +201,13 @@ protected:  // Utilities offered to ModuleInstance
 	 *   @throw out_of_range if some invalid mapping was found
 	 * \endif
 	 */
+#ifndef NRANGECHK
 	inline void callback(const PositionsMap& globalClocks,
 						 const PositionsMap& globalVars)
+#else
+	inline void callback(PositionsMap& globalClocks,
+						 PositionsMap& globalVars)
+#endif
 		{
 			crystallize(globalClocks);
 			pre.pin_up_vars(globalVars);
@@ -230,8 +235,13 @@ protected:  // Utilities offered to ModuleInstance
 	 *   @throw out_of_range if some invalid mapping was found
 	 * \endif
 	 */
+#ifndef NRANGECHK
 	inline void callback(const PositionsMap& globalClocks,
-						 const fig::State<STATE_INTERNAL_TYPE>& globalState)
+						 const State<STATE_INTERNAL_TYPE>& globalState)
+#else
+	inline void callback(PositionsMap& globalClocks,
+						 const State<STATE_INTERNAL_TYPE>& globalState)
+#endif
 		{
 			crystallize(globalClocks);
 			pre.pin_up_vars(globalState);
@@ -253,7 +263,7 @@ protected:  // Utilities offered to ModuleInstance
 	 * @param toClock    Iterator pointing past the last  affected clock
 	 * @param firstClock Index of the first affected clock in the global
 	 *                   vector of clocks
-	 * @param timeLapse  Amount of time elapsed for the non-reseting clocks
+	 * @param elapsedTime Amount of time elapsed for the non-reseting clocks
 	 *
 	 * @warning callback() must have been called beforehand
 	 *
@@ -266,7 +276,7 @@ protected:  // Utilities offered to ModuleInstance
 					   Iterator<ValueType, OtherIteratorArgs...> fromClock,
 					   Iterator<ValueType, OtherIteratorArgs...> toClock,
 					   const unsigned& firstClock,
-					   const CLOCK_INTERNAL_TYPE& timeLapse) const;
+					   const CLOCK_INTERNAL_TYPE& elapsedTime) const;
 
 private:  // Utils
 
@@ -286,7 +296,11 @@ private:  // Utils
 	 *                       including the triggering clock
 	 * \endif
 	 */
+#ifndef NRANGECHK
 	void crystallize(const PositionsMap& globalClocks);
+#else
+	void crystallize(PositionsMap& globalClocks);
+#endif
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -359,10 +373,9 @@ Transition::handle_clocks(Traial& traial,
 						  Iterator<ValueType, OtherIteratorArgs...> fromClock,
 						  Iterator<ValueType, OtherIteratorArgs...> toClock,
 						  const unsigned& firstClock,
-						  const CLOCK_INTERNAL_TYPE& timeLapse) const
+						  const CLOCK_INTERNAL_TYPE& elapsedTime) const
 {
 	// Is the clock at position 'pos' marked for reset?
-//	std::function<bool(const unsigned&)> must_reset =
 	auto must_reset =
 		[&] (const unsigned& pos) -> bool
 		{
@@ -380,11 +393,12 @@ Transition::handle_clocks(Traial& traial,
 	unsigned thisClock(firstClock);
 	while (fromClock != toClock) {
 		if (must_reset(thisClock))
-            traial.clocks_[thisClock].value = fromClock->sample();
+			traial.clocks_[thisClock].value = fromClock->sample();
+			// should be non-negative, might assert it
 		else
-            traial.clocks_[thisClock].value -= timeLapse;
-            // that could be negative, but it's unimportant at this stage
-        fromClock++;
+			traial.clocks_[thisClock].value -= elapsedTime;
+			// that will be negative iff this clock had already expired
+		fromClock++;
         thisClock++;
     }
 }

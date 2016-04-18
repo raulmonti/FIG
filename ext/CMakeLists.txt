@@ -28,7 +28,9 @@ PROJECT (fig_ext)
 
 # Include all direct subdirectories
 ADD_SUBDIRECTORY(z3)
-#ADD_SUBDIRECTORY(boost)
 ADD_SUBDIRECTORY(openmp)
+ADD_SUBDIRECTORY(pcg0.98)
+ADD_SUBDIRECTORY(tclap1.2.1)
 ADD_SUBDIRECTORY(muparser2.2.5)
+#ADD_SUBDIRECTORY(boost)
 

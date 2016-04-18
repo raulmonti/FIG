@@ -111,20 +111,19 @@ public:
 
 public:  // Class attributes
 
-	/// Names of the importance functions offered to the user,
-	/// as he should requested them through the CLI/GUI.
-	/// Defined in ImportanceFunction.cpp
-	static const std::array< std::string, 3 > names;
+	/// Long story short: number of concrete derived classes.
+	/// More in detail this is the size of the array returned by names(), i.e.
+	/// how many ImportanceFunction implementations are offered to the end user.
+	static constexpr size_t NUM_NAMES = 3ul;
 
-	/// Importance assessment strategies offered to the user,
-	/// as he should requested them through the CLI/GUI.
-	/// Defined in ImportanceFunction.cpp
-	static const std::array< std::string, 3 > strategies;
+	/// Size of the array returned by strategies() as a constexpr, i.e.
+	/// how many importance assessment strategies are offered to the end user.
+	static constexpr size_t NUM_STRATEGIES = 3ul;
 
 private:
 
-	/// Importance function implemented by this instance
-	/// Check ImportanceFunction::names for available options.
+	/// Name of the ImportanceFunction implemented by this instance.
+	/// Check names() for available options.
 	std::string name_;
 
 protected:  // Attributes for derived classes
@@ -141,17 +140,24 @@ protected:  // Attributes for derived classes
 	/// Last used technique to build the importance thresholds in this function
 	std::string thresholdsTechnique_;
 
-	/// Minimum importance/threshold level currently held
+	/// Minimum importance currently held
 	ImportanceValue minValue_;
 
-	/// Maximum importance/threshold level currently held
+	/// Maximum importance currently held
 	ImportanceValue maxValue_;
 
-	/// Importance/Threshold level of the rare state with lowest value
+	/// Importance of the rare state with lowest value
 	ImportanceValue minRareValue_;
+
+	/// Importance of the system's initial state
+	ImportanceValue initialValue_;
 
 	/// Number of thresholds built on last call to build_thresholds()
 	unsigned numThresholds_;
+
+	/// Translator from a state's ImportanceValue to the corresponding
+	/// threshold level
+	std::vector< ImportanceValue > importance2threshold_;
 
 	/// Algebraic formula defined by the user.
 	/// Useful both for ad hoc strategy and concrete_split functions
@@ -170,6 +176,22 @@ public:  // Ctor/Dtor
 	virtual ~ImportanceFunction() {}
 
 public:  // Accessors
+
+	/// Names of the importance functions offered to the user,
+	/// as he should requested them through the CLI/GUI.
+	/// @note Implements the <a href="https://goo.gl/yhTgLq"><i>Construct On
+	///       First Use</i> idiom</a> for static data members,
+	///       to avoid the <a href="https://goo.gl/chH5Kg"><i>static
+	///       initialization order fiasco</i>.
+	static const std::array< std::string, NUM_NAMES >& names() noexcept;
+
+	/// Importance assessment strategies offered to the user,
+	/// as he should requested them through the CLI/GUI.
+	/// @note Implements the <a href="https://goo.gl/yhTgLq"><i>Construct On
+	///       First Use</i> idiom</a> for static data members,
+	///       to avoid the <a href="https://goo.gl/chH5Kg"><i>static
+	///       initialization order fiasco</i>.
+	static const std::array< std::string, NUM_STRATEGIES>& strategies() noexcept;
 
 	/// @copydoc name_
 	const std::string& name() const noexcept;
@@ -229,6 +251,14 @@ public:  // Accessors
 	///       threshold level containing a rare state.
 	ImportanceValue min_rare_value() const noexcept;
 
+	/// @copydoc initialValue_
+	/// @returns Zero if function doesn't has_importance_info(),
+	///          importance value of the system's initial state otherwise.
+	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
+	///       were already built" the value returned will be the threshold
+	///       level containing the system's initial state.
+	ImportanceValue initial_value() const noexcept;
+
 	/// Whether this instance keeps an internal std::vector<ImportanceValue>,
 	/// i.e. has info for the concrete state space,
 	///      as opposed to the symbolic state space.
@@ -240,8 +270,10 @@ public:  // Accessors
 	const std::string thresholds_technique() const noexcept;
 
 	/// @copydoc numThresholds_
-	/// @throw FigException if this instance isn't \ref ready()
-	///                     "ready for simulations"
+	/// \ifnot NDEBUG
+	///   @throw FigException if this instance isn't \ref ready()
+	///                       "ready for simulations"
+	/// \endif
 	const unsigned& num_thresholds() const;
 
 	/**
@@ -260,26 +292,29 @@ public:  // Accessors
 	 * @note The j-th threshold level is composed of all the states to which
 	 *       the ImportanceFunction assigns an ImportanceValue between the
 	 *       values of threshold 'j' (included) and 'j+1' (excluded)
+	 * @note <b>Complexity:</b> same as importance_of() for the corresponding
+	 *                          derived class
 	 * \ifnot NDEBUG
 	 *   @throw FigException if this instance isn't \ref ready()
 	 *                       "ready for simulations"
 	 * \endif
 	 * @see ThresholdsBuilder::build_thresholds()
 	 */
-	virtual ImportanceValue level_of(const StateInstance& state) const = 0;
+	ImportanceValue level_of(const StateInstance& state) const;
 
 	/**
 	 * Threshold level to which given ImportanceValue belongs.
 	 * @note The j-th threshold level is composed of all the states to which
 	 *       the ImportanceFunction assigns an ImportanceValue between the
 	 *       values of threshold 'j' (included) and 'j+1' (excluded)
+	 * @note <b>Complexity:</b> <i>O(1)</i>
 	 * \ifnot NDEBUG
 	 *   @throw FigException if this instance isn't \ref ready()
 	 *                       "ready for simulations"
 	 * \endif
 	 * @see ThresholdsBuilder::build_thresholds()
 	 */
-	virtual ImportanceValue level_of(const ImportanceValue& val) const = 0;
+	ImportanceValue level_of(const ImportanceValue& val) const;
 
 	/**
 	 * @brief Print formatted internal importance information
@@ -313,8 +348,8 @@ public:  // Utils
 	 * @see ready()
 	 * @see ThresholdsBuilder
 	 */
-	virtual void build_thresholds(ThresholdsBuilder& tb,
-								  const unsigned& spt) = 0;
+	void build_thresholds(ThresholdsBuilder& tb,
+						  const unsigned& spt);
 
 	/**
 	 * @brief Like build_thresholds() but specifically using an adaptive
@@ -329,10 +364,10 @@ public:  // Utils
 	 *
 	 * @see ThresholdsBuilderAdaptive
 	 */
-	virtual void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
-											 const unsigned& spt,
-											 const float& p,
-											 const unsigned& n) = 0;
+	void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
+									 const unsigned& spt,
+									 const float& p,
+									 const unsigned& n);
 
 	/// @brief  Release memory allocated in the heap during importance assessment
 	/// @details This destroys any importance and thresholds info:
@@ -340,6 +375,14 @@ public:  // Utils
 	///          "importance information" any longer and will thus not be
 	///          \ref ready() "ready for simulations" either.
 	virtual void clear() noexcept;
+
+private:  // Class utils
+
+	/// Post-processing once the thresholds have been built
+	/// @param tbName Name of the ThresholdsBuilder used
+	/// @see build_thresholds()
+	/// @see build_thresholds_adaptively()
+	void post_process_thresholds(const std::string& tbName);
 
 protected:  // Utils for derived classes
 
@@ -351,7 +394,7 @@ protected:  // Utils for derived classes
 	 *        minImportance_, maxImportance_ and minRareImportance_ are left
 	 *        as they should for the importance information currently held.
 	 *
-	 * @param state    State whose whole concrete space will be explored
+	 * @param state    State whose <b>whole concrete space</b> will be explored
 	 * @param property Property identifying the rare State valuations
 	 *
 	 * @note <b>Complexity:</b> <i>O(state.concrete_size() * state.size())</i>
@@ -359,7 +402,7 @@ protected:  // Utils for derived classes
 	 * @throw FigException if there was no \ref has_importance_info()
 	 *                     "importance information"
 	 *
-	 * @deprecated Takes too long for large state spaces
+	 * @warning Takes too long for large state spaces
 	 */
 	void find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 							 const Property& property);

@@ -32,6 +32,8 @@
 #include <random>
 #include <numeric>  // std::max<>
 #include <unordered_map>
+// External code
+#include <pcg_random.hpp>
 // FIG
 #include <Clock.h>
 #include <core_typedefs.h>
@@ -44,20 +46,25 @@ typedef  fig::CLOCK_INTERNAL_TYPE     return_t;
 typedef  fig::DistributionParameters  params_t;
 
 #ifndef NDEBUG
-const unsigned int rngSeed(1234567803u);  // repeatable outcome
+  const unsigned rngSeed(1234567803u);  // repeatable outcome
 #else
-const unsigned int rngSeed(std::random_device{}());
+  const unsigned rngSeed(std::random_device{}());
 #endif
 
-std::mt19937_64  MTrng(rngSeed);
-std::minstd_rand LCrng(rngSeed);
-
-#ifndef HQ_RNG
-/// Linear-congruential standard RNG
-auto rng = LCrng;
+#ifndef DOUBLE_TIME_PRECISION
+  std::mt19937 MTrng(rngSeed);
+  pcg32 PCGrng(rngSeed);
 #else
-/// Mersenne-Twister high quality RNG
-auto rng = MTrng;
+  std::mt19937_64 MTrng(rngSeed);
+  pcg64 PCGrng(rngSeed);
+#endif
+
+#ifndef PCG_RNG
+  /// Mersenne-Twister RNG
+  auto rng = MTrng;
+#else
+  /// PCG family RNG
+  auto rng = PCGrng;
 #endif
 
 std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uniform01(0.0 , 1.0);
@@ -71,7 +78,8 @@ std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal01(0.0 , 1.0);
 /// Check <a href="https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)">the wiki</a>
 return_t uniform(const params_t& params)
 {
-	return params[0] + (params[1] - params[0]) * uniform01(rng);
+	std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uni(params[0], params[1]);
+	return uni(rng);
 }
 
 
@@ -80,7 +88,8 @@ return_t uniform(const params_t& params)
 /// Check <a href="https://en.wikipedia.org/wiki/Exponential_distribution">the wiki</a>
 return_t exponential(const params_t& params)
 {
-	return exponential1(rng) / params[0];  // Grisel me dijo que es así
+	std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > exp(params[0]);
+	return exp(rng);
 }
 
 
@@ -90,7 +99,8 @@ return_t exponential(const params_t& params)
 /// Check <a href="https://en.wikipedia.org/wiki/Normal_distribution">the wiki</a>
 return_t normal(const params_t& params)
 {
-	return std::max<double>(0.000001, normal01(rng) * params[1] + params[0]);
+	std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal(params[0], params[1]);
+	return std::max<double>(0.000001, normal(rng));
 }
 
 
@@ -112,7 +122,7 @@ return_t gamma(const params_t& params)
 return_t erlang(const params_t& params)
 {
 	const int k(std::round(params[0]));
-	std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > erlang(k, 1.0/params[1]);
+    std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > erlang(k, 1.0/params[1]);
 	return erlang(rng);
 }
 
@@ -122,6 +132,14 @@ return_t erlang(const params_t& params)
 
 namespace fig
 {
+
+unsigned Clock::rng_seed() noexcept { return rngSeed; }
+
+#ifndef NDEBUG
+void Clock::seed_rng() { rng.seed(rngSeed); }
+#else
+void Clock::seed_rng() { rng.seed(std::random_device{}()); }
+#endif
 
 std::unordered_map< std::string, Distribution > distributions_list =
 {

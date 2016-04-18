@@ -59,9 +59,13 @@ namespace fig
 
 #define  NUM_DISTRIBUTION_PARAMS  4u  // Arglist length for any distribution
 
-/// Time resolution (choice of floating point precision)
+/// Time resolution (floating point precision choice)
 ///
-typedef  float                                           CLOCK_INTERNAL_TYPE;
+#ifndef DOUBLE_TIME_PRECISION
+  typedef  float                                         CLOCK_INTERNAL_TYPE;
+#else
+  typedef  double                                        CLOCK_INTERNAL_TYPE;
+#endif
 
 /// Fixed-size array of distribution parameters, needed to sample Distributions
 typedef std::array< CLOCK_INTERNAL_TYPE , NUM_DISTRIBUTION_PARAMS >

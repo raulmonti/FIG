@@ -39,7 +39,7 @@ namespace fig
  * @brief ThresholdsBuilder implementing Adaptive Multilevel Splitting (AMS)
  *
  *        AMS is an <i>adaptive</i> thresholds building technique which takes
- *        its name from an article published by Cerou and Guyader in 2007.
+ *        its name from an article published by Cerou and Guyader in 2007.<br>
  *        Given a state space and an importance function on it, AMS aims to
  *        locate the thresholds so that all the probabilities 'P_i' are roughly
  *        the same. Here 'P_i' is defined as the conditional probability of a
@@ -49,14 +49,16 @@ namespace fig
  * @see ThresholdsBuilderAdaptive
  * @see ThresholdsBuilderSMC
  */
-class ThresholdsBuilderAMS : public ThresholdsBuilderAdaptive
+class ThresholdsBuilderAMS : public virtual ThresholdsBuilderAdaptive
 {
 public:
 
-	/// Void ctor
-	ThresholdsBuilderAMS();
+	/// Default ctor
+	ThresholdsBuilderAMS() : ThresholdsBuilder("ams"),
+							 ThresholdsBuilderAdaptive()
+		{ /* Not much to do around here */ }
 
-private:  // Class internal helper functions
+protected:  // Utils for the class and its kin
 
 	void build_thresholds_vector(const ImportanceFunction& impFun) override;
 

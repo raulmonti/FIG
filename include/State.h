@@ -94,8 +94,13 @@ class State
 	/// Concrete size, i.e. cross product of all variables ranges
 	size_t maxConcreteState_;
 
+#ifndef NRANGECHK
 	/// Lookup { varname --> varpos }
 	std::unordered_map<std::string, size_t> positionOfVar_;  // http://stackoverflow.com/a/13799886
+#else
+	/// Lookup { varname --> varpos }
+	mutable std::unordered_map<std::string, size_t> positionOfVar_;
+#endif
 
 public:  // Ctors/Dtor
 

@@ -360,16 +360,6 @@ State<T_>::decode(const size_t& n, const std::string& varname) const
 	return decode(n, varpos);
 }
 
-// State can only be instantiated with following integral types
-template class State< short              >;
-//template class State< int                >;   // MuParser can't
-template class State< long               >;
-template class State< long long          >;
-template class State< unsigned short     >;
-template class State< unsigned int       >;
-template class State< unsigned long      >;
-template class State< unsigned long long >;
-
 
 template< typename T_ >
 void
@@ -391,5 +381,16 @@ State<T_>::is_our_var(const std::string& varName)
 						{ return varName == var_ptr->name(); });
 	return ::end(pvars_) != varFound;
 }
+
+
+// State can only be instantiated with following integral types
+template class State< short              >;
+//template class State< int                >;   // MuParser can't
+template class State< long               >;
+template class State< long long          >;
+template class State< unsigned short     >;
+template class State< unsigned int       >;
+template class State< unsigned long      >;
+template class State< unsigned long long >;
 
 } // namespace fig

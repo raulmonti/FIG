@@ -163,7 +163,11 @@ public:  // Accessors
 
 protected:  // Modifyers
 
-	inline void pin_up_vars(const PositionsMap &globalVars) override
+#ifndef NRANGECHK
+	inline void pin_up_vars(const PositionsMap& globalVars) override
+#else
+	inline void pin_up_vars(PositionsMap& globalVars) override
+#endif
 		{
 			expr1_.pin_up_vars(globalVars);
 			expr2_.pin_up_vars(globalVars);

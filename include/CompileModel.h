@@ -14,10 +14,10 @@
 using parser::parsingContext;
 
 
+namespace fig{
+
 typedef fig::State<fig::STATE_INTERNAL_TYPE>                state;
 typedef fig::VariableDefinition<fig::STATE_INTERNAL_TYPE>   varDec;
-
-namespace fig{
 
 /**
  * @brief Compile the model in the AST to a FIG simulation model.

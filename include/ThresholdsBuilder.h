@@ -57,10 +57,14 @@ class ThresholdsBuilder
 {
 public:
 
-	/// Names of the (derived) thresholds builders offered to the user,
-	/// as he should requested them through the CLI/GUI.
-	/// Defined in ThresholdsBuilder.cpp
-	static const std::array< std::string, 2 > names;
+	typedef std::vector< ImportanceValue > ImportanceVec;
+
+public:
+
+	/// Long story short: number of concrete derived classes.
+	/// More in detail this is the size of the array returned by techniques(),
+	/// i.e. how many ThresholdsBuilder implementations are offered to the end user.
+	static constexpr size_t NUM_TECHNIQUES = 4;
 
 	/// Thresholds building technique implemented by this instance
 	/// Check ThresholdsBuilder::names for available options.
@@ -74,6 +78,14 @@ public:
 	/// Whether the class builds the thresholds <i>adaptively</i>,
 	/// viz. taking into consideration the user model's semantics
 	virtual bool adaptive() const noexcept = 0;
+
+	/// Threshold building techniques offered to the user,
+	/// as he should requested them through the CLI/GUI.
+	/// @note Implements the <a href="https://goo.gl/yhTgLq"><i>Construct On
+	///       First Use</i> idiom</a> for static data members,
+	///       to avoid the <a href="https://goo.gl/chH5Kg"><i>static
+	///       initialization order fiasco</i>.
+	static const std::array< std::string, NUM_TECHNIQUES >& techniques() noexcept;
 
 	/**
 	 * @brief Build thresholds based on given importance function

@@ -62,6 +62,8 @@
 #include <ThresholdsBuilder.h>
 #include <ThresholdsBuilderAMS.h>
 #include <ThresholdsBuilderSMC.h>
+#include <ThresholdsBuilderFixed.h>
+#include <ThresholdsBuilderHybrid.h>
 #include <ConfidenceInterval.h>
 #include <ConfidenceIntervalMean.h>
 #include <ConfidenceIntervalProportion.h>
@@ -170,13 +172,13 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 {
 	// Build internal table once: rows follow engine names definition order
 	//                            cols follow impFun names definition order
-	static constexpr auto& engineNames(fig::SimulationEngine::names);
-	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
-//	FIXME: following compiles with Clang but not with gcc -- keep checking
-//	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
-	static const size_t batch_sizes[2][3] = {
+	constexpr size_t NUM_ENGINES(fig::ModelSuite::num_simulators());
+	constexpr size_t NUM_IMPFUNS(fig::ModelSuite::num_importance_functions());
+	static const auto& engineNames(fig::SimulationEngine::names());
+	static const auto& ifunNames(fig::ImportanceFunction::names());
+	static const size_t batch_sizes[NUM_ENGINES][NUM_IMPFUNS] = {
 		{ 1ul<<11, 1ul<<12, 1ul<<12 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 1ul<<9 , 1ul<<9,  1ul<<9  }   // restart x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<10, 1ul<<10, 1ul<<10 }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -201,13 +203,13 @@ min_run_length(const std::string& engineName, const std::string& ifunName)
 {
 	// Build internal table once: rows follow engine names definition order
 	//                            cols follow impFun names definition order
-	static constexpr auto& engineNames(fig::SimulationEngine::names);
-	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
-//	FIXME: following compiles with Clang but not with gcc -- keep checking
-//	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
-	static const size_t run_lengths[2][3] = {
-		{ 1ul<<20, 1ul<<21, 1ul<<21 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 1ul<<15, 1ul<<15, 1ul<<15 }   // restart x {concrete_coupled, concrete_split, algebraic}
+	constexpr size_t NUM_ENGINES(fig::ModelSuite::num_simulators());
+	constexpr size_t NUM_IMPFUNS(fig::ModelSuite::num_importance_functions());
+	static const auto& engineNames(fig::SimulationEngine::names());
+	static const auto& ifunNames(fig::ImportanceFunction::names());
+	static const size_t run_lengths[NUM_ENGINES][NUM_IMPFUNS] = {
+		{ 1ul<<15, 1ul<<16, 1ul<<16 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<14, 1ul<<14, 1ul<<14 }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -272,11 +274,11 @@ increase_batch_size(const std::string& engineName,
 {
 	// Build internal table once: rows follow engine names definition order
 	//                            cols follow impFun names definition order
-	static constexpr auto& engineNames(fig::SimulationEngine::names);
-	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
-//	FIXME: following compiles with Clang but not with gcc -- keep checking
-//	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
-	static const size_t inc_batch[2][3] = {
+	constexpr size_t NUM_ENGINES(fig::ModelSuite::num_simulators());
+	constexpr size_t NUM_IMPFUNS(fig::ModelSuite::num_importance_functions());
+	static const auto& engineNames(fig::SimulationEngine::names());
+	static const auto& ifunNames(fig::ImportanceFunction::names());
+	static const size_t inc_batch[NUM_ENGINES][NUM_IMPFUNS] = {
 		{ 3ul, 3ul, 2ul },  // nosplit x {concrete_coupled, concrete_split, algebraic}
 		{ 2ul, 2ul, 2ul }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
@@ -306,11 +308,11 @@ increase_run_length(const std::string& engineName,
 {
 	// Build internal table once: rows follow engine names definition order
 	//                            cols follow impFun names definition order
-	static constexpr auto& engineNames(fig::SimulationEngine::names);
-	static constexpr auto& ifunNames(fig::ImportanceFunction::names);
-//	FIXME: following compiles with Clang but not with gcc -- keep checking
-//	static const size_t batch_sizes[engineNames.size()][ifunNames.size()] = {
-	static const float inc_length[2][3] = {
+	constexpr size_t NUM_ENGINES(fig::ModelSuite::num_simulators());
+	constexpr size_t NUM_IMPFUNS(fig::ModelSuite::num_importance_functions());
+	static const auto& engineNames(fig::SimulationEngine::names());
+	static const auto& ifunNames(fig::ImportanceFunction::names());
+	static const float inc_length[NUM_ENGINES][NUM_IMPFUNS] = {
 		{ 1.7f, 1.7f, 1.4f },  // nosplit x {concrete_coupled, concrete_split, algebraic}
 		{ 1.4f, 1.4f, 1.4f }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
@@ -375,13 +377,16 @@ increase_effort(const fig::PropertyType& propertyType,
  *          those whose stopping condition was the running time.
  * @param ci ConfidenceInterval with the current estimate to show
  * @param confidenceCoefficients Confidence criteria to build the intervals
+ * @param startTime (<i>optional</i>) Starting time, as returned by
+ *                  omp_get_wtime(), of the last estimation launched
  * @note This should be implemented as a reentrant function,
  *       as it may be called from within signal handlers.
  */
 void
 interrupt_print(const fig::ConfidenceInterval& ci,
 				const std::vector<float>& confidenceCoefficients,
-				std::ostream& out)
+				std::ostream& out,
+				const double& startTime = -1.0)
 {
     /// @todo TODO: implement proper reentrant logging and discard use of streams
     out << std::endl;
@@ -396,6 +401,10 @@ interrupt_print(const fig::ConfidenceInterval& ci,
                                        << ci.upper_limit(confCo) << "]"
             << std::endl;
     }
+	if (startTime > 0.0) {
+		out << std::setprecision(2) << std::fixed;
+		out << "   · Estimation time: " << omp_get_wtime()-startTime << " s\n";
+	}
 //	out << std::defaultfloat;
     out << std::setprecision(6) << std::fixed;
     out << std::endl;
@@ -422,9 +431,9 @@ estimate_print(const fig::ConfidenceInterval& ci,
     out << "   · Confidence interval: [ " << ci.lower_limit() << ", "
                                           << ci.upper_limit() << " ] "
         << std::endl;
-    out << std::setprecision(1) << std::fixed;
-    out << "   · Estimation time: " << time << " seconds" << std::endl;
-//    out << std::defaultfloat;
+	out << std::setprecision(2) << std::fixed;
+	out << "   · Estimation time: " << time << " s\n";
+//	out << std::defaultfloat;
     out << std::setprecision(6) << std::fixed;
     out << std::endl;
 }
@@ -446,8 +455,6 @@ std::shared_ptr< ModuleNetwork > ModelSuite::model(std::make_shared<ModuleNetwor
 
 std::vector< std::shared_ptr< Property > > ModelSuite::properties;
 
-StoppingConditions ModelSuite::simulationBounds;
-
 unsigned ModelSuite::splitsPerThreshold = 2u;
 
 std::unordered_map< std::string, std::shared_ptr< ImportanceFunction > >
@@ -463,30 +470,51 @@ std::ostream& ModelSuite::mainLog_(std::cout);
 
 std::ostream& ModelSuite::techLog_(std::cerr);
 
+double ModelSuite::lastEstimationStartTime_;
+
 const ConfidenceInterval* ModelSuite::interruptCI_ = nullptr;
 
 const std::vector< float > ModelSuite::confCoToShow_ = {0.8, 0.9, 0.95, 0.99};
 
 SignalSetter ModelSuite::SIGINThandler_(SIGINT, [] (const int signal) {
-        assert(SIGINT == signal);
+#ifndef NDEBUG
+		assert(SIGINT == signal);
+#else
+		if (SIGINT != signal) {
+			ModelSuite::log("\nCalled SIGINThandler for signal "
+							+ to_string(signal) + ", aborting.\n");
+			std::exit((1<<7)+SIGABRT);
+		}
+#endif
 		/// @todo TODO: implement proper reentrant logging
 		ModelSuite::log("\nCaught SIGINT, stopping computations.\n");
 		if (nullptr != ModelSuite::interruptCI_)
 			interrupt_print(*ModelSuite::interruptCI_,
 							ModelSuite::confCoToShow_,
-							ModelSuite::mainLog_);
+							ModelSuite::mainLog_,
+							ModelSuite::lastEstimationStartTime_);
 		std::exit((1<<7)+SIGINT);
     }
 );
 
 SignalSetter ModelSuite::SIGTERMhandler_(SIGTERM, [] (const int signal) {
-        assert(SIGTERM == signal);
+#ifndef NDEBUG
+		assert(SIGTERM == signal);
+#else
+		if (SIGTERM != signal) {
+			ModelSuite::log("\nCalled SIGTERMhandler for signal "
+							+ to_string(signal) + ", aborting.\n");
+			std::exit((1<<7)+SIGABRT);
+		}
+#endif
+		assert(SIGTERM == signal);
 		/// @todo TODO: implement proper reentrant logging
 		ModelSuite::log("\nCaught SIGTERM, stopping estimations.\n");
         if (nullptr != ModelSuite::interruptCI_)
 			interrupt_print(*ModelSuite::interruptCI_,
 							ModelSuite::confCoToShow_,
-							ModelSuite::mainLog_);
+							ModelSuite::mainLog_,
+							ModelSuite::lastEstimationStartTime_);
 		std::exit((1<<7)+SIGTERM);
     }
 );
@@ -498,6 +526,49 @@ std::once_flag ModelSuite::singleInstance_;
 
 
 // ModelSuite class member functions
+
+// Class utils defined first
+
+template< template< typename... Args > class Container, typename... Args>
+void
+ModelSuite::process_adhocfun_varnames(Container<Args...>& varnames)
+{
+	if (varnames.empty()) {
+		auto allVarnames = model->global_state().varnames();
+		varnames.insert(begin(varnames), begin(allVarnames), end(allVarnames));
+	}
+}
+// ModelSuite::process_adhocfun_varnames generic version can only be invoked
+// with the following containers
+template void ModelSuite::process_adhocfun_varnames(std::list<std::string>&);
+template void ModelSuite::process_adhocfun_varnames(std::deque<std::string>&);
+template void ModelSuite::process_adhocfun_varnames(std::vector<std::string>&);
+// ModelSuite::process_adhocfun_varnames specialization for std::set<>
+template<> void
+ModelSuite::process_adhocfun_varnames(std::set<std::string>& varnames)
+{
+	if (varnames.empty())
+		for (const auto& name: model->global_state().varnames())
+			varnames.emplace(name);
+}
+// ModelSuite::process_adhocfun_varnames specialization for std::forward_list<>
+template<> void
+ModelSuite::process_adhocfun_varnames(std::forward_list<std::string>& varnames)
+{
+	if (varnames.empty())
+		for (const auto& name: model->global_state().varnames())
+			varnames.emplace_front(name);
+}
+// ModelSuite::process_adhocfun_varnames specialization for std::unordered_set<>
+template<> void
+ModelSuite::process_adhocfun_varnames(std::unordered_set<std::string>& varnames)
+{
+	if (varnames.empty()) {
+		auto allVarnames = model->global_state().varnames();
+		varnames.insert(begin(allVarnames), end(allVarnames));
+	}
+}
+
 
 ModelSuite::~ModelSuite() { /* not much to do around here... */ }
 
@@ -554,8 +625,10 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
             std::make_shared< ImportanceFunctionAlgebraic >();
 
 	// Build offered thresholds builders
+	thrBuilders["fix"] = std::make_shared< ThresholdsBuilderFixed >();
 	thrBuilders["ams"] = std::make_shared< ThresholdsBuilderAMS >();
 	thrBuilders["smc"] = std::make_shared< ThresholdsBuilderSMC >();
+	thrBuilders["hyb"] = std::make_shared< ThresholdsBuilderHybrid >();
 
 	// Build offered simulation engines
 	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
@@ -565,15 +638,15 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 #ifndef NDEBUG
 	// Check all offered importance functions, thresholds builders and
 	// simulation engines were actually instantiated
-	for (const auto& ifunName: ImportanceFunction::names)
+	for (const auto& ifunName: available_importance_functions())
 		if(end(impFuns) == impFuns.find(ifunName))
             throw_FigException("Hey.  Hey you...  HEY, DEVELOPER! You forgot to "
                                "create the '"+ifunName+"' importance function");
-	for (const auto& thrBuildName: ThresholdsBuilder::names)
-		if(end(thrBuilders) == thrBuilders.find(thrBuildName))
+	for (const auto& thrTechnique: available_threshold_techniques())
+		if(end(thrBuilders) == thrBuilders.find(thrTechnique))
             throw_FigException("Hey.  Hey you...  HEY, DEVELOPER! You forgot to "
-                               "create the '"+thrBuildName+"' thresholds builder");
-	for (const auto& engineName: SimulationEngine::names)
+							   "create the '"+thrTechnique+"' thresholds builder");
+	for (const auto& engineName: available_simulators())
 		if (end(simulators) == simulators.find(engineName))
             throw_FigException("Hey.  Hey you...  HEY, DEVELOPER! You forgot to "
                                "create the '"+engineName+"' simulation engine");
@@ -596,6 +669,7 @@ ModelSuite::set_splitting(const unsigned& spt)
         throw_FigException("ModelSuite hasn't been sealed yet");
     dynamic_cast<SimulationEngineRestart&>(*simulators["restart"])
             .set_splits_per_threshold(spt);
+	splitsPerThreshold = spt;
 }
 
 
@@ -617,44 +691,38 @@ ModelSuite::get_splitting() const noexcept
 
 
 const std::vector< std::string >&
-ModelSuite::available_simulators() const
+ModelSuite::available_simulators() noexcept
 {
 	static std::vector< std::string > simulatorsNames;
-	if (simulatorsNames.empty() && !simulators.empty()) {
-		simulatorsNames.reserve(simulators.size());
-		for (const auto& pair: simulators)
-			simulatorsNames.push_back(pair.first);
-	} else if (simulators.empty()) {
-		throw_FigException("ModelSuite hasn't been sealed, "
-						   "no simulation engine is available yet.");
+	if (simulatorsNames.empty()) {
+		simulatorsNames.reserve(num_simulators());
+		for (const auto& name: SimulationEngine::names())
+			simulatorsNames.push_back(name);
 	}
 	return simulatorsNames;
 }
 
 
 const std::vector< std::string >&
-ModelSuite::available_importance_functions() const
+ModelSuite::available_importance_functions() noexcept
 {
 	static std::vector< std::string > ifunsNames;
-	if (ifunsNames.empty() && !impFuns.empty()) {
-		ifunsNames.reserve(impFuns.size());
-		for (const auto& pair: impFuns)
-			ifunsNames.push_back(pair.first);
-	} else if (impFuns.empty()) {
-		throw_FigException("ModelSuite hasn't been sealed, "
-						   "no importance function is available yet.");
+	if (ifunsNames.empty()) {
+		ifunsNames.reserve(num_importance_functions());
+		for (const auto& name: ImportanceFunction::names())
+			ifunsNames.push_back(name);
 	}
 	return ifunsNames;
 }
 
 
 const std::vector< std::string >&
-ModelSuite::available_importance_strategies() const
+ModelSuite::available_importance_strategies() noexcept
 {
 	static std::vector< std::string > importanceAssessmentStrategies;
 	if (importanceAssessmentStrategies.empty()) {
-		importanceAssessmentStrategies.reserve(ImportanceFunction::strategies.size());
-		for (const auto& strategy: ImportanceFunction::strategies)
+		importanceAssessmentStrategies.reserve(num_importance_strategies());
+		for (const auto& strategy: ImportanceFunction::strategies())
 			importanceAssessmentStrategies.push_back(strategy);
 	}
 	return importanceAssessmentStrategies;
@@ -662,66 +730,47 @@ ModelSuite::available_importance_strategies() const
 
 
 const std::vector< std::string >&
-ModelSuite::available_threshold_techniques() const
+ModelSuite::available_threshold_techniques() noexcept
 {
 	static std::vector< std::string > thresholdsBuildersTechniques;
-	if (thresholdsBuildersTechniques.empty() && !thrBuilders.empty()) {
-		thresholdsBuildersTechniques.reserve(thrBuilders.size());
-		for (const auto& pair: thrBuilders)
-			thresholdsBuildersTechniques.push_back(pair.first);
-	} else if (thrBuilders.empty()) {
-		throw_FigException("ModelSuite hasn't been sealed, "
-						   "no thresholds builder is available yet.");
+	if (thresholdsBuildersTechniques.empty()) {
+		thresholdsBuildersTechniques.reserve(num_threshold_techniques());
+		for (const auto& technique: ThresholdsBuilder::techniques())
+			thresholdsBuildersTechniques.push_back(technique);
 	}
 	return thresholdsBuildersTechniques;
 }
 
 
 bool
-ModelSuite::exists_simulator(const std::string& engineName) const noexcept
+ModelSuite::exists_simulator(const std::string& engineName) noexcept
 {
-	try {
-		const auto& simulators = available_simulators();
-		if (find(begin(simulators), end(simulators), engineName) != end(simulators))
-			return true;
-	} catch (FigException) { /* Model isn't sealed, nothing exists yet */ }
-	return false;
+	const auto& simulators = available_simulators();
+	return find(begin(simulators), end(simulators), engineName) != end(simulators);
 }
 
 
 bool
-ModelSuite::exists_importance_function(const std::string& ifunName) const noexcept
+ModelSuite::exists_importance_function(const std::string& ifunName) noexcept
 {
-	try {
-		const auto& impFuns = available_importance_functions();
-		if (find(begin(impFuns), end(impFuns), ifunName) != end(impFuns))
-			return true;
-	} catch (FigException) { /* Model isn't sealed, nothing exists yet */ }
-	return false;
+	const auto& impFuns = available_importance_functions();
+	return find(begin(impFuns), end(impFuns), ifunName) != end(impFuns);
 }
 
 
 bool
-ModelSuite::exists_importance_strategy(const std::string& impStrategy) const noexcept
+ModelSuite::exists_importance_strategy(const std::string& impStrategy) noexcept
 {
-	try {
-		const auto& impStrats = available_importance_strategies();
-		if (find(begin(impStrats), end(impStrats), impStrategy) != end(impStrats))
-			return true;
-	} catch (FigException) { /* Model isn't sealed, nothing exists yet */ }
-	return false;
+	const auto& impStrats = available_importance_strategies();
+	return find(begin(impStrats), end(impStrats), impStrategy) != end(impStrats);
 }
 
 
 bool
-ModelSuite::exists_threshold_technique(const std::string& thrTechnique) const noexcept
+ModelSuite::exists_threshold_technique(const std::string& thrTechnique) noexcept
 {
-	try {
-		const auto& thrTechs = available_threshold_techniques();
-		if (find(begin(thrTechs), end(thrTechs), thrTechnique) != end(thrTechs))
-			return true;
-	} catch (FigException) { /* Model isn't sealed, nothing exists yet */ }
-	return false;
+	const auto& thrTechs = available_threshold_techniques();
+	return find(begin(thrTechs), end(thrTechs), thrTechnique) != end(thrTechs);
 }
 
 
@@ -763,7 +812,9 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
     if (force || !ifun.has_importance_info() || "flat" != ifun.strategy()) {
 		techLog_ << "\nBuilding importance function \"" << ifunName
 				 << "\" with \"flat\" assessment strategy.\n";
+		techLog_ << "Property: " << property.expression << std::endl;
         ifun.clear();
+		const double startTime = omp_get_wtime();
 		if (ifun.concrete())
 			static_cast<ImportanceFunctionConcrete&>(ifun)
                 .assess_importance(property, "flat");
@@ -774,7 +825,12 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
                              std::vector<std::string>(),
                              model->global_state(),
 							 property);
-    }
+		techLog_ << "Importance function building time: "
+				 << std::fixed << std::setprecision(2)
+				 << omp_get_wtime()-startTime << " s\n"
+//				 << std::defaultfloat;
+				 << std::setprecision(6);
+	}
 
     assert(ifun.has_importance_info());
     assert("flat" == ifun.strategy());
@@ -799,7 +855,7 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 										   const std::string& mergeFun,
 										   bool force)
 {
-    if (!exists_importance_function(ifunName))
+	if (!exists_importance_function(ifunName))
 		throw_FigException("inexistent importance function \"" + ifunName +
 						   "\". Call \"available_importance_functions()\" "
 						   "for a list of available options.");
@@ -813,11 +869,20 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
     if (force || !ifun.has_importance_info() || "auto" != ifun.strategy()) {
 		techLog_ << "\nBuilding importance function \"" << ifunName
 				 << "\" with \"auto\" assessment strategy.\n";
+		techLog_ << "Property: " << property.expression << std::endl;
 		ifun.clear();
+		const double startTime = omp_get_wtime();
 		if (ifunName == "concrete_split")
 			static_cast<ImportanceFunctionConcreteSplit&>(ifun).set_merge_fun(mergeFun);
 		static_cast<ImportanceFunctionConcrete&>(ifun)
 				.assess_importance(property, "auto");
+		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
+		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
+		techLog_ << "Importance function building time: "
+				 << std::fixed << std::setprecision(2)
+				 << omp_get_wtime()-startTime << " s\n"
+//				 << std::defaultfloat;
+				 << std::setprecision(6);
 	}
 
     assert(ifun.has_importance_info());
@@ -844,7 +909,7 @@ ModelSuite::build_importance_function_adhoc(
     const std::string& ifunName,
     const Property& property,
     const std::string& formulaExprStr,
-    const Container<std::string, OtherArgs...>& varnames,
+    Container<std::string, OtherArgs...> varnames,
     bool force)
 {
     if (!exists_importance_function(ifunName))
@@ -859,8 +924,11 @@ ModelSuite::build_importance_function_adhoc(
 		techLog_ << "\nBuilding importance function \"" << ifunName
 				 << "\" with \"adhoc\" assessment strategy (\""
 				 << formulaExprStr << "\")\n";
+		techLog_ << "Property: " << property.expression << std::endl;
 		ifun.clear();
-        if (ifun.concrete()) {
+		process_adhocfun_varnames(varnames);  // make sure we have some variable names
+		const double startTime = omp_get_wtime();
+		if (ifun.concrete()) {
             std::vector<std::string> varnamesVec(begin(varnames), end(varnames));
             static_cast<ImportanceFunctionConcrete&>(ifun)
                 .assess_importance(property, formulaExprStr, varnamesVec);
@@ -872,6 +940,13 @@ ModelSuite::build_importance_function_adhoc(
                              model->global_state(),
                              property);
         }
+		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
+		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
+		techLog_ << "Importance function building time: "
+				 << std::fixed << std::setprecision(2)
+				 << omp_get_wtime()-startTime << " s\n"
+//				 << std::defaultfloat;
+				 << std::setprecision(6);
     }
 
     assert(ifun.has_importance_info());
@@ -882,22 +957,22 @@ ModelSuite::build_importance_function_adhoc(
 // with the following containers
 template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
-    const std::set<std::string>&, bool);
+    std::set<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
-    const std::list<std::string>&, bool);
+    std::list<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
-    const std::deque<std::string>&, bool);
+    std::deque<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
-    const std::vector<std::string>&, bool);
+    std::vector<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
-    const std::forward_list<std::string>&, bool);
+    std::forward_list<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
     const std::string&, const Property&, const std::string&,
-    const std::unordered_set<std::string>&, bool);
+    std::unordered_set<std::string>, bool);
 
 
 template< template< typename... > class Container, typename... OtherArgs >
@@ -906,7 +981,7 @@ ModelSuite::build_importance_function_adhoc(
 	const std::string& ifunName,
 	const size_t& propertyIndex,
 	const std::string& formulaExprStr,
-	const Container<std::string, OtherArgs...>& varnames,
+	Container<std::string, OtherArgs...> varnames,
 	bool force)
 {
 	auto propertyPtr = get_property(propertyIndex);
@@ -923,22 +998,22 @@ ModelSuite::build_importance_function_adhoc(
 // with the following containers
 template void ModelSuite::build_importance_function_adhoc(
 	const std::string&, const size_t&, const std::string&,
-	const std::set<std::string>&, bool);
+	std::set<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
 	const std::string&, const size_t&, const std::string&,
-	const std::list<std::string>&, bool);
+	std::list<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
 	const std::string&, const size_t&, const std::string&,
-	const std::deque<std::string>&, bool);
+	std::deque<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
 	const std::string&, const size_t&, const std::string&,
-	const std::vector<std::string>&, bool);
+	std::vector<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
 	const std::string&, const size_t&, const std::string&,
-	const std::forward_list<std::string>&, bool);
+	std::forward_list<std::string>, bool);
 template void ModelSuite::build_importance_function_adhoc(
 	const std::string&, const size_t&, const std::string&,
-	const std::unordered_set<std::string>&, bool);
+	std::unordered_set<std::string>, bool);
 
 
 void
@@ -968,12 +1043,23 @@ ModelSuite::build_thresholds(const std::string& technique,
 
 	if (force || ifun.thresholds_technique() != technique) {
 		techLog_ << "\nBuilding thresholds for importance function \""
-				 << ifunName << "\" using technique \"" << technique << "\"\n";
+				 << ifunName << "\",\nwith splitting = "
+				 << std::to_string(splitsPerThreshold)
+				 << " and using technique \"" << technique << "\"\n";
+		const double startTime = omp_get_wtime();
 		if (thrBuilder.adaptive() && lvlUpProb > 0.0)
-			ifun.build_thresholds_adaptively(static_cast<ThresholdsBuilderAdaptive&>(thrBuilder),
-											 2u/*splitsPerThreshold*/, lvlUpProb, simsPerIter);
+			ifun.build_thresholds_adaptively(
+					*std::dynamic_pointer_cast<ThresholdsBuilderAdaptive>(thrBuilders[technique]),
+					splitsPerThreshold,
+					lvlUpProb,
+					simsPerIter);
 		else
-			ifun.build_thresholds(thrBuilder, 2u/*splitsPerThreshold?*/);
+			ifun.build_thresholds(thrBuilder, splitsPerThreshold);
+		techLog_ << "Thresholds building time: "
+				 << std::fixed << std::setprecision(2)
+				 << omp_get_wtime()-startTime << " s\n"
+//				 << std::defaultfloat;
+				 << std::setprecision(6);
 	}
 
     assert(ifun.ready());
@@ -1061,15 +1147,16 @@ ModelSuite::estimate(const Property& property,
 		throw_FigException("SimulationEngine \"" + engine.name()
 						  +"\" isn't ready for simulations");
 	const ImportanceFunction& ifun(*impFuns[engine.current_imp_fun()]);
+	const std::string adHocFun(ifun.adhoc_fun());
 
-	/// @todo TODO: implement proper log and discard following shell print
 	mainLog_ << "Estimating " << property.expression << ",\n";
 	mainLog_ << " using simulation engine  \"" << engine.name() << "\"\n";
 	mainLog_ << " with importance function \"" << engine.current_imp_fun() << "\"\n";
-	mainLog_ << " built using strategy     \"" << engine.current_imp_strat() << "\" ";
-	mainLog_ << ifun.adhoc_fun() << std::endl;
-	mainLog_ << " # thresholds  = " << ifun.num_thresholds() << "\n";
-	mainLog_ << " and splitting = " << engine.splits_per_threshold() << std::endl;
+	mainLog_ << " built using strategy     \"" << engine.current_imp_strat() << "\"";
+	mainLog_ << (adHocFun.empty() ? ("") : (" ("+adHocFun+")")) << std::endl;
+	mainLog_ << " and thresholds technique \"" << ifun.thresholds_technique() << "\"\n";
+	mainLog_ << " [ " << ifun.num_thresholds() << " thresholds";
+	mainLog_ << " | splitting " << engine.splits_per_threshold() << " ]\n";
 
 	if (bounds.is_time()) {
 
@@ -1084,14 +1171,21 @@ ModelSuite::estimate(const Property& property,
 			mainLog_ << std::setprecision(0) << std::fixed;
 			mainLog_ << "   Estimation time: " << wallTimeInSeconds << " s\n";
 			SignalSetter handler(SIGALRM, [&ci_ptr, &timedout] (const int sig){
-				assert(SIGALRM == sig);
-				interrupt_print(*ci_ptr, ModelSuite::confCoToShow_, mainLog_);
+#				ifndef NDEBUG
+					assert(SIGALRM == sig);
+#				else
+					if (SIGALRM != sig) std::exit((1<<7)+SIGABRT);
+#				endif
+				interrupt_print(*ci_ptr, ModelSuite::confCoToShow_,
+								mainLog_, lastEstimationStartTime_);
 				ci_ptr->reset();
 				timedout = true;
 			});
 			timedout = false;
+			Clock::seed_rng();  // restart RNG sequence for this estimation
 			alarm(wallTimeInSeconds);
-            engine.lock();
+			lastEstimationStartTime_ = omp_get_wtime();
+			engine.lock();
 			engine.simulate(property,
 							min_effort(property.type,
 									   engine.name(),
@@ -1100,6 +1194,7 @@ ModelSuite::estimate(const Property& property,
 							techLog_,
 							&increase_effort);
             engine.unlock();
+			techLog_ << std::endl;
 		}
 		interruptCI_ = nullptr;
 
@@ -1116,10 +1211,10 @@ ModelSuite::estimate(const Property& property,
 							  std::get<1>(criterion),
 							  std::get<2>(criterion));
             interruptCI_ = ci_ptr.get();  // bad boy
-			mainLog_ << "   For confidence level: "
+			mainLog_ << "   Confidence level: "
 					 << std::setprecision(0) << std::fixed
 					 << 100*ci_ptr->confidence << "%" << std::endl;
-			mainLog_ << "   and precision: ";
+			mainLog_ << "   Precision: ";
             if (ci_ptr->percent)
 				mainLog_ << std::setprecision(0) << std::fixed
 						 << (200*ci_ptr->errorMargin) << "%\n";
@@ -1131,9 +1226,15 @@ ModelSuite::estimate(const Property& property,
 									   engine.current_imp_fun());
 			double startTime = omp_get_wtime();
 
-            engine.lock();
+			bool reinit(true);  // start from system's initial state
+			Clock::seed_rng();  // restart RNG sequence for this estimation
+			lastEstimationStartTime_ = omp_get_wtime();
+			engine.lock();
 			do {
-				bool increaseBatch = engine.simulate(property, effort, *ci_ptr);
+				bool increaseBatch = engine.simulate(property,
+													 effort,
+													 *ci_ptr,
+													 reinit);
 				if (increaseBatch) {
 					techLog_ << "-";
 					increase_effort(property.type,
@@ -1143,10 +1244,12 @@ ModelSuite::estimate(const Property& property,
 				} else {
 					techLog_ << "+";
 				}
+				reinit = false;  // use batch means if possible
             } while (!ci_ptr->is_valid());
             engine.unlock();
 
 			estimate_print(*ci_ptr, omp_get_wtime()-startTime, mainLog_);
+			techLog_ << std::endl;
 			ci_ptr->reset();
         }
         interruptCI_ = nullptr;

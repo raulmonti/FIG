@@ -32,6 +32,7 @@
 #include <functional>  // std::function
 #include <iterator>    // std::begin(), std::end()
 #include <numeric>     // std::iota()
+#include <sstream>
 #include <set>
 #include <list>
 #include <deque>
@@ -55,15 +56,22 @@ namespace fig
 Traial::Traial(const size_t& stateSize, const size_t& numClocks) :
     level(static_cast<ImportanceValue>(0u)),
     depth(0),
+	numLevelsCrossed(0),
 	lifeTime(0.0),
 	state(stateSize),
-	orderedIndex_(numClocks)
+	orderedIndex_(numClocks),
+	nextClock_(-1)
 {
 	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 	clocks_.reserve(numClocks);
-	for (const auto& module_ptr: ModelSuite::get_instance().model->modules)
+	for (const auto& module_ptr: ModelSuite::get_instance().model->modules) {
+		int firstClock = module_ptr->first_clock_gpos();
+		assert(0 <= firstClock);
 		for (const auto& clock: module_ptr->clocks())
-			clocks_.emplace_back(module_ptr, clock.name(), 0.0f);
+			// following assumes we're iterating a vector
+			// and thus the access to the clocks is sequentially ordered
+			clocks_.emplace_back(module_ptr, clock.name(), 0.0f, firstClock++);
+	}
 }
 
 
@@ -73,9 +81,11 @@ Traial::Traial(const size_t& stateSize,
 			   bool orderTimeouts) :
     level(static_cast<ImportanceValue>(0u)),
     depth(0),
+	numLevelsCrossed(0),
 	lifeTime(0.0),
 	state(stateSize),
-	orderedIndex_(numClocks)
+	orderedIndex_(numClocks),
+	nextClock_(-1)
 {
 	size_t i(0u);
 	auto must_reset =
@@ -84,11 +94,17 @@ Traial::Traial(const size_t& stateSize,
 	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 	clocks_.reserve(numClocks);
 	i = 0;
-	for (const auto& module_ptr: ModelSuite::get_instance().model->modules)
+	for (const auto& module_ptr: ModelSuite::get_instance().model->modules) {
+		int firstClock = module_ptr->first_clock_gpos();
+		assert(0 <= firstClock);
 		for (const auto& clock: module_ptr->clocks())
+			// following assumes we're iterating a vector
+			// and thus the access to the clocks is sequentially ordered
 			clocks_.emplace_back(module_ptr,
 								 clock.name(),
-								 must_reset(i++) ? clock.sample() : 0.0f);
+								 must_reset(i++) ? clock.sample() : 0.0f,
+								 firstClock++);
+	}
 	if (orderTimeouts)
 		reorder_clocks();
 }
@@ -103,9 +119,11 @@ Traial::Traial(const size_t& stateSize,
 			   bool orderTimeouts) :
     level(static_cast<ImportanceValue>(0u)),
 	depth(0),
+	numLevelsCrossed(0),
 	lifeTime(static_cast<CLOCK_INTERNAL_TYPE>(0.0)),
 	state(stateSize),
-	orderedIndex_(numClocks)
+	orderedIndex_(numClocks),
+	nextClock_(-1)
 {
 	auto must_reset =
 		[&] (const std::string& name) -> bool
@@ -115,11 +133,17 @@ Traial::Traial(const size_t& stateSize,
 				  "with clock names");
 	std::iota(begin(orderedIndex_), end(orderedIndex_), 0u);
 	clocks_.reserve(numClocks);
-	for (const auto& module_ptr: ModelSuite::get_instance().model->modules)
+	for (const auto& module_ptr: ModelSuite::get_instance().model->modules) {
+		int firstClock = module_ptr->first_clock_gpos();
+		assert(0 <= firstClock);
 		for (const auto& clock: module_ptr->clocks())
+			// following assumes we're iterating a vector
+			// and thus the access to the clocks is sequentially ordered
 			clocks_.emplace_back(module_ptr,
 								 clock.name(),
-								 must_reset(clock.name()) ? clock.sample() : 0.0f);
+								 must_reset(clock.name()) ? clock.sample() : 0.0f,
+								 firstClock++);
+	}
 	if (orderTimeouts)
 		reorder_clocks();
 }
@@ -144,11 +168,17 @@ Traial::~Traial()
 
 
 std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >
-Traial::clocks_values() const
+Traial::clocks_values(bool ordered) const
 {
 	std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >values(clocks_.size());
-	for (size_t i = 0ul ; i < values.size() ; i++)
-		values[i] = std::make_pair(clocks_[i].name, clocks_[i].value);
+	if (ordered)
+		for (size_t i = 0ul ; i < values.size() ; i++)
+			values[i] = std::make_pair(clocks_[orderedIndex_[i]].name,
+									   clocks_[orderedIndex_[i]].value);
+	else
+		for (size_t i = 0ul ; i < values.size() ; i++)
+			values[i] = std::make_pair(clocks_[i].name,
+									   clocks_[i].value);
 	return values;
 }
 
@@ -169,16 +199,17 @@ Traial::initialize(const ModuleNetwork& network,
 		return;  // we can't do anything without that data
 #endif
 	// Initialize variables value
-	network.global_state().copy_to_state_instance(state);
+	network.initial_state().copy_to_state_instance(state);
 	// Initialize clocks (reset all and then resample initials)
     for (auto& timeout : clocks_)
         timeout.value = 0.0f;
-	for (const auto& pos_clk_pair: network.initialClocks)
-		clocks_[pos_clk_pair.first].value = pos_clk_pair.second.sample();
+	for (const auto& posCLK: network.initialClocks)
+		clocks_[posCLK.first].value = posCLK.second.sample();  // should be non-negative
 	// Initialize importance and simulation time
 	level = impFun.ready() ? impFun.level_of(state)
 						   : impFun.importance_of(state);
-	depth = 0;
+	depth = -static_cast<short>(level);
+	numLevelsCrossed = 0;
 	lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
 }
 
@@ -188,19 +219,31 @@ Traial::reorder_clocks()
 {
 	// Sort orderedIndex_ vector according to our current clock values
 	std::sort(begin(orderedIndex_), end(orderedIndex_),
-		[&](const unsigned& left,
-			const unsigned& right)
-		{
-			return clocks_[left].value < clocks_[right].value;
-		}
+		[&](const unsigned& left, const unsigned& right)
+		{ return clocks_[left].value < clocks_[right].value; }
 	);
-	// Find first not-null clock, or record '-1' if all are null
-	for (unsigned i=0 ; i < clocks_.size() || ((firstNotNull_ = -1) && false) ; i++) {
-		if (0.0f < clocks_[orderedIndex_[i]].value) {
-			firstNotNull_ = orderedIndex_[i];
+	// Find next clock to check, or record '-1' if all are negative
+	for (unsigned i=0u ; i < clocks_.size() || ((nextClock_ = -1) && false) ; i++) {
+		if (0.0f <= clocks_[orderedIndex_[i]].value) {
+			nextClock_ = orderedIndex_[i];
 			break;
 		}
 	}
+}
+
+
+void
+Traial::report_deadlock()
+{
+	std::stringstream errMsg;
+	errMsg << "all clocks are null, deadlock? State is (";
+	for (const auto& v: state)
+		errMsg << v << ",";
+	errMsg << "\b)[";
+	for (const auto& t: clocks_)
+		errMsg << t.name << ":" << t.value << "|";
+	errMsg << "\b]";
+	throw_FigException(errMsg.str());
 }
 
 } // namespace fig

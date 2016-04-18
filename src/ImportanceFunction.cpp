@@ -41,7 +41,10 @@
 #include <functional>   // std::function<>, std::bind()
 #include <type_traits>  // std::is_assignable<>
 // FIG
+#include <string_utils.h>
 #include <ImportanceFunction.h>
+#include <ThresholdsBuilder.h>
+#include <ThresholdsBuilderAdaptive.h>
 #include <FigException.h>
 #include <Property.h>
 
@@ -74,37 +77,6 @@ wrap_mapper(const fig::State<fig::STATE_INTERNAL_TYPE>& obj)
 namespace fig
 {
 
-// Static variables initialization
-
-const std::array< std::string, 3 > ImportanceFunction::names =
-{{
-	// See ImportanceFunctionConcreteCoupled class
-	"concrete_coupled",
-
-	// See ImportanceFunctionConcreteSplit class
-	"concrete_split",
-
-	// See ImportanceFunctionAlgebraic class
-	"algebraic"
-}};
-
-
-const std::array< std::string, 3 > ImportanceFunction::strategies =
-{{
-	// Flat importance, i.e. null ImportanceValue for all states
-	"flat",
-
-	// Automatically built importance, with backwards BFS
-	"auto",
-
-	// User defined importance, by means of some function over the states
-	"adhoc"
-}};
-
-
-
-// ImportanceFunction internal "Formula" class
-
 ImportanceFunction::Formula::Formula() :
     MathExpression("", std::vector<std::string>() )
 { /* Not much to do around here */ }
@@ -128,7 +100,7 @@ ImportanceFunction::Formula::set(
         throw_FigException("can't define an empty user function");
 
     empty_ = false;
-    exprStr_ = formula;
+    exprStr_ = delete_substring(formula, "\"");
     parse_our_expression();  // updates expr_
     varsMap_.clear();
     auto pos_of_var = wrap_mapper(obj);
@@ -242,17 +214,54 @@ ImportanceFunction::ImportanceFunction(const std::string& name) :
 	maxValue_(static_cast<ImportanceValue>(0u)),
 	minRareValue_(static_cast<ImportanceValue>(0u)),
 	numThresholds_(0u),
+	importance2threshold_(),
 	userFun_()
 {
-	if (find(begin(names), end(names), name) == end(names)) {
+	if (find(begin(names()), end(names()), name) == end(names())) {
 		std::stringstream errMsg;
 		errMsg << "invalid importance function name \"" << name << "\". ";
 		errMsg << "Available importance functions are";
-		for (const auto& name: names)
+		for (const auto& name: names())
 			errMsg << " \"" << name << "\"";
 		errMsg << "\n";
 		throw_FigException(errMsg.str());
 	}
+}
+
+
+const std::array<std::string, ImportanceFunction::NUM_NAMES>&
+ImportanceFunction::names() noexcept
+{
+	static const std::array< std::string, NUM_NAMES > names =
+	{{
+		// See ImportanceFunctionConcreteCoupled class
+		"concrete_coupled",
+
+		// See ImportanceFunctionConcreteSplit class
+		"concrete_split",
+
+		// See ImportanceFunctionAlgebraic class
+		"algebraic"
+	}};
+	return names;
+}
+
+
+const std::array< std::string, ImportanceFunction::NUM_STRATEGIES>&
+ImportanceFunction::strategies() noexcept
+{
+	static const std::array< std::string, NUM_NAMES > strategies=
+	{{
+		// Flat importance, i.e. null ImportanceValue for all states
+		"flat",
+
+		// Automatically built importance, by means of a backwards BFS analysis
+		"auto",
+
+		// User defined importance, by means of an algebraic expression on the states
+		"adhoc"
+	}};
+	return strategies;
 }
 
 
@@ -287,8 +296,11 @@ ImportanceFunction::strategy() const noexcept
 const std::string
 ImportanceFunction::adhoc_fun() const noexcept
 {
-	return has_importance_info() && "adhoc" == strategy_ ? userFun_.expression()
-														 : "";
+	if (has_importance_info() &&
+			("adhoc" == strategy_ || "concrete_split" == name_))
+		return userFun_.expression();
+	else
+		return "";
 }
 
 
@@ -302,31 +314,106 @@ ImportanceFunction::thresholds_technique() const noexcept
 const unsigned&
 ImportanceFunction::num_thresholds() const
 {
-    if (!ready())
+#ifndef NDEBUG
+	if (!ready())
 		throw_FigException("this ImportanceFunction hasn't "
 						   "any thresholds built in it yet");
+#endif
 	return numThresholds_;
+}
+
+
+ImportanceValue
+ImportanceFunction::level_of(const StateInstance& state) const
+{
+#ifndef NDEBUG
+	if (!ready())
+		throw_FigException("importance function \"" + name_ + "\" "
+						   "doesn't hold thresholds information.");
+#endif
+	return importance2threshold_[importance_of(state)];
+}
+
+
+ImportanceValue
+ImportanceFunction::level_of(const ImportanceValue& val) const
+{
+#ifndef NDEBUG
+	if (!ready())
+		throw_FigException("importance function \"" + name_ + "\" "
+						   "doesn't hold thresholds information.");
+#endif
+	assert(val >= minValue_);
+	assert(val <= maxValue_);
+	return importance2threshold_[val];
 }
 
 
 ImportanceValue
 ImportanceFunction::min_value() const noexcept
 {
-	return has_importance_info() ? minValue_ : static_cast<ImportanceValue>(0u);
+	return ready() ? importance2threshold_[minValue_]
+				   : has_importance_info() ? minValue_
+										   : static_cast<ImportanceValue>(0u);
 }
 
 
 ImportanceValue
 ImportanceFunction::max_value() const noexcept
 {
-	return has_importance_info() ? maxValue_ : static_cast<ImportanceValue>(0u);
+	return ready() ? importance2threshold_[maxValue_]
+				   : has_importance_info() ? maxValue_
+										   : static_cast<ImportanceValue>(0u);
 }
 
 
 ImportanceValue
 ImportanceFunction::min_rare_value() const noexcept
 {
-	return has_importance_info() ? minRareValue_ : static_cast<ImportanceValue>(0u);
+	return ready() ? importance2threshold_[minRareValue_]
+				   : has_importance_info() ? minRareValue_
+										   : static_cast<ImportanceValue>(0u);
+}
+
+
+ImportanceValue
+ImportanceFunction::initial_value() const noexcept
+{
+	return ready() ? importance2threshold_[initialValue_]
+				   : has_importance_info() ? initialValue_
+										   : static_cast<ImportanceValue>(0u);
+}
+
+
+void
+ImportanceFunction::build_thresholds(
+	ThresholdsBuilder& tb,
+	const unsigned& spt)
+{
+	if (!has_importance_info())
+		throw_FigException("importance function \"" + name() + "\" "
+						   "doesn't yet have importance information");
+	std::vector< ImportanceValue >().swap(importance2threshold_);
+	readyForSims_ = false; numThresholds_ = 0u;  // updated if building succeeds
+	importance2threshold_ = tb.build_thresholds(spt, *this);
+	post_process_thresholds(tb.name);
+}
+
+
+void
+ImportanceFunction::build_thresholds_adaptively(
+	ThresholdsBuilderAdaptive& atb,
+	const unsigned& spt,
+	const float& p,
+	const unsigned& n)
+{
+	if (!has_importance_info())
+		throw_FigException("importance function \"" + name() + "\" "
+						   "doesn't yet have importance information");
+	std::vector< ImportanceValue >().swap(importance2threshold_);
+	readyForSims_ = false; numThresholds_ = 0u;  // updated if building succeeds
+	importance2threshold_ = atb.build_thresholds(spt, *this, p, n);
+	post_process_thresholds(atb.name);
 }
 
 
@@ -341,7 +428,27 @@ ImportanceFunction::clear() noexcept
 	maxValue_ = static_cast<ImportanceValue>(0u);
 	minRareValue_ = static_cast<ImportanceValue>(0u);
 	numThresholds_ = 0u;
+	std::vector< ImportanceValue >().swap(importance2threshold_);
 	userFun_.reset();
+}
+
+
+void
+ImportanceFunction::post_process_thresholds(const std::string& tbName)
+{
+	// Check the consistency of the "translator" built
+	assert(!importance2threshold_.empty());
+	assert(importance2threshold_[0] == static_cast<ImportanceValue>(0u));
+	assert(importance2threshold_[0] <= importance2threshold_.back());
+	// (threshold levels are a non-decreasing function of the importance)
+	assert(importance2threshold_[minValue_] <= importance2threshold_[initialValue_]);
+	assert(importance2threshold_[initialValue_] <= importance2threshold_[minRareValue_]);
+	assert(importance2threshold_[minRareValue_] <= importance2threshold_[maxValue_]);
+
+	// Set relevant attributes
+	numThresholds_ = importance2threshold_.back();
+	thresholdsTechnique_ = tbName;
+	readyForSims_ = true;
 }
 
 
@@ -353,43 +460,27 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 	ImportanceValue maxI = std::numeric_limits<ImportanceValue>::min();
 	ImportanceValue minrI = std::numeric_limits<ImportanceValue>::max();
 
-	/**
-	 * @todo FIXME This brute force attack takes too long,
-	 *       big state spaces kill it (e.g. Glasserman's ATM)
-	 *
-	 * Finding these extreme values affects two things:
-	 * 1. RESTART oversampling correction in ConfidenceInterval
-	 * 2. Thresholds builders stopping criterion
-	 *
-	 * Raúl's idea is to explore the "importance space" which is always
-	 * a subset of the state space.
-	 * Issues: a) how to find minRareValue without looking the states
-	 *         b) how to access each module's importance space
-	 *
-	 * Another workarounds regarding the stopping criterion are:
-	 * 2.1- implement automatic (fixed) thresholds selection,
-	 *      e.g. select one every two importance levels, or skip
-	 *      first three and then use all the rest;
-	 * 2.2- let AMS finish early, viz. when it fails to find new thresholds
-	 *      'N' times, consider last threshold found as the final threshold
-	 *      and return successfully.
-	 */
-
-	#pragma omp parallel for default(shared) private(state) reduction(min:minI,minrI)
-	for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
+#ifdef NDEBUG
+    #pragma omp parallel for default(shared) private(state) reduction(min:minI,minrI)
+#endif
+    for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
 		const StateInstance symbState = state.decode(i).to_state_instance();
 		const ImportanceValue importance = importance_of(symbState);
 		minI = importance < minI ? importance : minI;
-		if (property.is_rare(symbState) && importance < minrI)
-			minrI = importance;
+        if (property.is_rare(symbState) && importance < minrI)
+            minrI = importance;
 	}
+    assert(minI <= minrI);
 
-	#pragma omp parallel for default(shared) private(state) reduction(max:maxI)
-	for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
+#ifdef NDEBUG
+    #pragma omp parallel for default(shared) private(state) reduction(max:maxI)
+#endif
+    for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
 		const ImportanceValue importance =
                 importance_of(state.decode(i).to_state_instance());
 		maxI = importance > maxI ? importance : maxI;
-	}
+    }
+    assert(minrI <= maxI);
 
 	minValue_ = minI;
 	maxValue_ = maxI;

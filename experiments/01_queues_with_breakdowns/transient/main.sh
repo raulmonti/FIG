@@ -1,0 +1,109 @@
+#!/bin/bash
+#
+# Author:  Carlos E. Budde
+# Date:    22.03.2016
+# License: GPLv3
+#
+
+set -e
+ECHO=`echo "/bin/echo -e"`
+THIS_DIR=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
+
+
+# Probe resources
+source "$THIS_DIR/../../fig_utils.sh" || \
+	($ECHO "[ERROR] Couldn't find fig_utils.sh" && exit 1)
+if [[ "$(type -t build_fig)" != "function" ]]
+then
+	$ECHO "[ERROR] Bash function \"build_fig\" is undefined"
+	exit 1;
+elif [[ "$(type -t copy_model_file)" != "function" ]]
+then
+	$ECHO "[ERROR] Bash function \"copy_model_file\" is undefined"
+	exit 1;
+fi
+
+
+# Build project
+$ECHO "Building FIG"
+build_fig $THIS_DIR
+if [ ! -f ./fig ]; then $ECHO "[ERROR] Something went wrong"; exit 1; fi
+
+
+# Prepare experiment's directory and files
+$ECHO "Preparing experiments environment:"
+MODEL_FILE="queues_with_breakdowns.sa"
+copy_model_file $MODEL_FILE $THIS_DIR && \
+	$ECHO "  · using model file $MODEL_FILE"
+PROPS_FILE="queues_with_breakdowns.pp"
+$ECHO 'P( !reset U lost )' > $PROPS_FILE && \
+	$ECHO "  · using properties file $PROPS_FILE"
+N=0; RESULTS="results_$N"
+while [ -d $RESULTS ]; do N=$(($N+1)); RESULTS="results_$N"; done
+mkdir $RESULTS && unset N && \
+	$ECHO "  · results will be stored in subdir \"${RESULTS}\""
+
+
+# Experiments configuration
+$ECHO "Configuring experiments"
+declare -a BUFFER_CAPACITIES=(20 40 80 160)
+STOP_CRITERION="--stop-conf 0.95 0.2"  # Confidence coeff. and rel. precision
+SPLITTINGS="--splitting 2,5,11"        # Splitting values for RESTART engine
+STANDARD_MC="-e nosplit --flat $STOP_CRITERION"
+RESTART_ADHOC="--adhoc \"buf\" $STOP_CRITERION $SPLITTINGS"
+RESTART_AUTO_COUPLED="--auto-coupled $STOP_CRITERION $SPLITTINGS"
+RESTART_AUTO_SPLIT="--auto-split \"+\" $STOP_CRITERION $SPLITTINGS"
+
+
+# Launch experiments
+$ECHO "Launching experiments:"
+for k in "${BUFFER_CAPACITIES[@]}"
+do
+	$ECHO -n "  · for buffer capacity = $k..."
+
+	# Modify model file to this experiment's size
+	MODEL_FILE_K=${MODEL_FILE%.sa}"_${k}.sa"
+	BLANK="[[:space:]]*"
+	K_DEF="^const${BLANK}int${BLANK}K${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
+	sed -e "s/${K_DEF}/const int K = $k;/1" $MODEL_FILE > $MODEL_FILE_K
+	LOGout=${RESULTS}/queues_with_breakdowns_${k}.out
+	LOGerr=${RESULTS}/queues_with_breakdowns_${k}.err
+	EXE=`$ECHO "./fig $MODEL_FILE_K $PROPS_FILE"`
+
+	poll_till_free
+	# Standard Monte Carlo
+	$ECHO -n " MC"
+	$EXE $STANDARD_MC 1>>${LOGout%.out}"_MC.out" \
+	                  2>>${LOGerr%.err}"_MC.err" &
+	poll_till_free
+	# RESTART with ad hoc
+	$ECHO -n ", AH"
+	$EXE $RESTART_ADHOC 1>>${LOGout%.out}"_AH.out" \
+	                    2>>${LOGerr%.err}"_AH.err" &
+	poll_till_free
+	# RESTART with auto (coupled)
+	$ECHO -n ", AC"
+	$EXE $RESTART_AUTO_COUPLED 1>>${LOGout%.out}"_AC.out" \
+	                           2>>${LOGerr%.err}"_AC.err" &
+	poll_till_free
+	# RESTART with auto (split)
+	$ECHO -n ", AS"
+	$EXE $RESTART_AUTO_SPLIT 1>>${LOGout%.out}"_AS.out"  \
+	                         2>>${LOGerr%.err}"_AS.err"  &
+
+	$ECHO "... done"
+done
+
+
+# Wait till termination
+$ECHO "Waiting for all experiments to finish"
+declare -a A=(. :) ; N=0
+RUNNING=`$ECHO "pgrep -u $(whoami) fig"`
+while [ -n "`$RUNNING`" ]; do $ECHO -n ${A[$N]}; N=$((($N+1)%2)); sleep 9; done
+unset A N
+$ECHO
+$ECHO "All experiments finished"
+
+
+exit 0
+

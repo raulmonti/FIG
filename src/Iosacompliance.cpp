@@ -231,10 +231,9 @@ ast2expr( AST* formula, context & c, const parsingContext & pc){
         AST *b0 = formula->branches[0];
         if( b0->tkn == _SEPARATOR ){
             assert(formula->branches.size() == 3);
-            AST *b1 = formula->branches[1];
-            AST *b2 = formula->branches[2];
-            assert(b2->tkn == _SEPARATOR);
-            result = ast2expr(b1,c,pc);
+			assert(formula->branches[2]->tkn == _SEPARATOR);
+			AST *b1 = formula->branches[1];
+			result = ast2expr(b1,c,pc);
         }else{
             result = ast2expr(b0,c,pc);
             for(size_t i = 1; i < formula->branches.size()-1 ; i=i+2){
@@ -1068,8 +1067,9 @@ get_type(AST *expr, const parsingContext &pc)
                         "negation, at " + value->p_pos() + ".\n");
                 }
                 break;
-            default:
-                assert(false);
+			default:
+				assert(false);
+				t = T_NOTYPE;
                 break;
         }
         return t;
@@ -1077,7 +1077,8 @@ get_type(AST *expr, const parsingContext &pc)
         cout << expr->tkn << " " << expr->lxm << endl;
         assert(false);
     }
-    assert(0);
+	assert(false);
+	return T_NOTYPE;
 }
 
 
@@ -1108,7 +1109,12 @@ solve_const_expr(AST* ex, const parsingContext &pc)
     z3::expr e = ast2expr(ex,c,pc);
     s.add(res == e);
     
-    assert(sat==s.check());
+#ifndef NDEBUG
+	assert(sat==s.check());
+#else
+	if (s.check() != sat)
+		throw_FigException("bad constants definition");
+#endif
     auto m = s.get_model();
 
     // FIXME round down to closest int.

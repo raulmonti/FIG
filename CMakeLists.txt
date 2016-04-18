@@ -31,8 +31,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 PROJECT (fig)
 
-SET(fig_VERSION_MAJOR 0)
-SET(fig_VERSION_MINOR 42)
+SET(fig_VERSION_MAJOR 1)
+SET(fig_VERSION_MINOR 0)
 
 
 
@@ -71,10 +71,40 @@ SET(ALL_SOURCES ${ALL_SOURCES} ${MAIN_SOURCE_FILES} CACHE INTERNAL "")
 
 
  
+###  Build meta options  ######################################################
+
+OPTION(RELEASE     "Build release version of FIG"           OFF)
+OPTION(BUILTIN_RNG "Use the PCG RNG provided with FIG"      OFF)
+OPTION(USE_DTIME   "Double fp precision for time tracking"  OFF)
+
+ 
+
 ###  Preprocessor macros  #####################################################
 
-## # High quality C++ pseudo-random generator
-## ADD_DEFINITIONS(-DHQ_RNG)
+# Build type: debug vs. release
+IF(RELEASE)
+	MESSAGE("Building FIG in release mode")
+	ADD_DEFINITIONS(-DNDEBUG)     # General No-Debug
+	ADD_DEFINITIONS(-DNRANGECHK)  # Don't check ranges every f***ing time
+ELSE()
+	MESSAGE("Building FIG in debug mode")
+ENDIF()
+
+# RNG algorithm: C++ STL Mersenne-Twister vs. PCG default
+IF(BUILTIN_RNG)
+	MESSAGE("Using (alternative) RNG from the PCG family")
+	ADD_DEFINITIONS(-DPCG_RNG)  # PCG family RNG (http://www.pcg-random.org/)
+ELSE()
+	MESSAGE("Using C++ STL's Mersenne-Twister RNG")
+ENDIF()
+
+# Time fp precision: single vs. double
+IF(USE_DTIME)
+	MESSAGE("Time tracked with double fp precision")
+	ADD_DEFINITIONS(-DDOUBLE_TIME_PRECISION)
+ELSE()
+	MESSAGE("Time tracked with single fp precision")
+ENDIF()
 
  
 
@@ -106,14 +136,18 @@ ENDIF()
  
 ###  Compile flags  ###########################################################
 
-# Highly defensive compile flags
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ")#-pedantic")
-
-## # Debug
-## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-
-## # No-Debug
-## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
+# Build type: release vs. debug
+IF(RELEASE)
+	# As much automatic optimization as we can get
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+ELSE()
+	# Optimize without obfuscating the assembly so much
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+	# Highly defensive compile flags
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")# -pedantic")
+	# Debug with gdb
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+ENDIF()
 
 # OpenMP
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -134,7 +168,12 @@ ENDIF()
 ## A special version of Clang with OpenMP activated seems to be required.
 ## We just pasted gcc's "omp.h" into ext/openmp/include
 
-# Turn some warnings off
+# Turn some warnings off even in debug mode
+IF(NOT RELEASE)
+	# From Z3 library "check_context()" and others:
+	# "unused parameter 'a'"...
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+ENDIF()
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	# From MuParser-2.2.5 library -- http://muparser.beltoforion.de/:
 	# "anonymous types declared in an anonymous union"
@@ -143,15 +182,26 @@ IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	# 'register' storage class specifier is deprecated
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register")
 ENDIF()
-# Avoid MuParser warnings due to deprecated auto_ptr (TODO: update library?)
+# From MuParser-2.2.5 library -- http://muparser.beltoforion.de/:
+# "auto_ptr is deprecated" (TODO: update library ourselves?)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 
 
 
-###  Link flags  ##############################################################
+###  Dynamic libraries specification  #########################################
 
-# Z3
-SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -lz3" )
+# Allow project-local library paths
+SET(CMAKE_LIBRARY_PATH ${PROJECT_SOURCE_DIR}/lib ${CMAKE_LIBRARY_PATH})
+
+# Microsoft renowned SMT solver
+FIND_LIBRARY(Z3 NAMES z3)
+
+# Include all dynamic libraries to link against in a single variable
+LIST(APPEND DYNAMIC_LIBRARIES ${Z3})
+
+
+
+###  Linker flags  ############################################################
 
 # GNU pthreads
 SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pthread" )
@@ -174,4 +224,10 @@ ADD_CUSTOM_COMMAND(
 )
 
 ADD_EXECUTABLE(fig ${ALL_SOURCES} ${LEXER_CC})
+
+
+
+###  Link dynamic libraries  ##################################################
+
+TARGET_LINK_LIBRARIES(fig ${DYNAMIC_LIBRARIES})
 

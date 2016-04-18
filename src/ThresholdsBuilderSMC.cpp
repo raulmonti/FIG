@@ -111,10 +111,10 @@ build_states_distribution(const fig::ModuleNetwork& network,
     // advance the first 'n' traials until they meet a state realizing lastThr
     std::uniform_int_distribution<unsigned> uniK(0, k-1);
     for (unsigned i = 0u ; i < n ; i++) {
-        Traial& t(traials[i]);
+		Traial& t(traials[i]);
         do {
             jumpsLeft = MIN_SIM_EFFORT;
-            t = traials[n + uniK(RNG)];  // choose randomly among last 'k'
+			t = traials[n + uniK(RNG)];  // choose randomly among last 'k'
             assert(t.level < lastThr);
             network.peak_simulation(t, update, predicate);
         } while (lastThr != t.level);
@@ -126,7 +126,7 @@ build_states_distribution(const fig::ModuleNetwork& network,
     std::uniform_int_distribution<unsigned> uniN(0, n-1);
     for (unsigned i = 0u ; i < k ; i++) {
         do { pos = uniN(RNG); } while (used[pos]);
-        traials[n+i].get() = traials[pos];  // copy values, not addresses
+		traials[n+i].get() = traials[pos];  // copy values, not addresses
         used[pos] = true;
     }
 }
@@ -218,10 +218,6 @@ find_new_threshold(const fig::ModuleNetwork& network,
 namespace fig
 {
 
-ThresholdsBuilderSMC::ThresholdsBuilderSMC() : ThresholdsBuilderAdaptive("smc")
-{ /* Not much to do around here */ }
-
-
 void
 ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 {
@@ -240,17 +236,18 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
     assert(k_ < n_);
 
     std::vector< ImportanceValue >().swap(thresholds_);
-	thresholds_.reserve((impFun.max_value()-impFun.min_value()) / 5u);  // magic
+	thresholds_.reserve((impFun.max_value()-impFun.initial_value()) / 5u);  // magic
 	TraialsVec traials = ThresholdsBuilderAdaptive::get_traials(n_+k_, impFun);
 	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 
 	// SMC initialization
-    thresholds_.push_back(traials[0].get().level);  // start from initial state importance
+	thresholds_.push_back(impFun.initial_value());  // start from initial state importance
+	assert(thresholds_.back() < impFun.max_value());
 	ImportanceValue newThreshold =
 		find_new_threshold(network, impFun, traials, n_, k_, thresholds_.back());
 	if (impFun.max_value() <= newThreshold)
 		ModelSuite::tech_log("\nFirst iteration of SMC reached max importance, "
-							 "rare event doesn't seem so rare.");
+							 "rare event doesn't seem so rare!\n");
 	thresholds_.push_back(newThreshold);
 
 	// SMC main loop

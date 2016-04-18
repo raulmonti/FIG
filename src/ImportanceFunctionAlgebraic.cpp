@@ -145,8 +145,7 @@ namespace fig
 {
 
 ImportanceFunctionAlgebraic::ImportanceFunctionAlgebraic() :
-	ImportanceFunction("algebraic"),
-	importance2threshold_()
+	ImportanceFunction("algebraic")
 { /* Not much to do around here */ }
 
 
@@ -168,31 +167,6 @@ ImportanceFunctionAlgebraic::importance_of(const StateInstance& state) const
 }
 
 
-ImportanceValue
-ImportanceFunctionAlgebraic::level_of(const StateInstance& state) const
-{
-#ifndef NDEBUG
-	if (!ready())
-		throw_FigException("importance function \"" + name() + "\" "
-						   "isn't ready for simulations.");
-#endif
-	return importance2threshold_[userFun_(state)];
-}
-
-
-ImportanceValue
-ImportanceFunctionAlgebraic::level_of(const ImportanceValue& val) const
-{
-#ifndef NDEBUG
-	if (!ready())
-		throw_FigException("importance function \"" + name() + "\" "
-						   "isn't ready for simulations.");
-#endif
-	assert(val < importance2threshold_.size());
-	return importance2threshold_[val];
-}
-
-
 template< template< typename... > class Container, typename... OtherArgs >
 void
 ImportanceFunctionAlgebraic::set_formula(
@@ -200,14 +174,14 @@ ImportanceFunctionAlgebraic::set_formula(
 	const std::string& formulaExprStr,
 	const Container<std::string, OtherArgs...>& varnames,
 	const State<STATE_INTERNAL_TYPE>& gState,
-	const Property&)
+	const Property& property)
 {
     if ("auto" == strategy)
 		throw_FigException("importance strategy \"auto\" can only be used "
 						   "with concrete importance functions");
-	else if (std::find(begin(ImportanceFunction::strategies),
-					   end(ImportanceFunction::strategies),
-					   strategy) == end(ImportanceFunction::strategies))
+	else if (std::find(begin(ImportanceFunction::strategies()),
+					   end(ImportanceFunction::strategies()),
+					   strategy) == end(ImportanceFunction::strategies()))
 		throw_FigException("unrecognized importance assessment strategy \""
 						   + strategy + "\". See available options with "
 						   "ModelSuite::available_importance_strategies()");
@@ -222,25 +196,28 @@ ImportanceFunctionAlgebraic::set_formula(
 	strategy_ = strategy;
 
 	// Find extreme importance values for this ad hoc function
+	initialValue_ = importance_of(gState.to_state_instance());
 	if ("flat" == strategy) {
-		const ImportanceValue importance =
-				importance_of(gState.to_state_instance());
-		minValue_ = importance;
-		maxValue_ = importance;
-		minRareValue_ = importance;
+		// Little to find out
+		minValue_ = initialValue_;
+		maxValue_ = initialValue_;
+		minRareValue_ = initialValue_;
+	} else if (gState.concrete_size() < (1ul<<20ul)) {
+		// We can afford a full-state-space scan
+		find_extreme_values(gState, property);
 	} else {
-		std::vector< std::string > varnamesVec;
-		varnamesVec.insert(begin(varnamesVec), begin(varnames), end(varnames));
+		// Concrete state space is too big, resort to faster ways
 		std::tie(minValue_, maxValue_) = ::find_extreme_values(userFun_, gState);
-		// Assume minRareValue_ == minValue_ to avoid exploring whole state space
-		minRareValue_ = minValue_;
-
+		// Play it safe and assume minRareValue_ == minValue_
+		minRareValue_ = std::max(initialValue_, minValue_);
 		/// @todo TODO The general solution is to use ILP on userFun_
 		///            That'd also compute the real minRareValue_ (and fast!)
 		///            Use <a href="http://dlib.net/">dlib</a> maybe?
 	}
-	assert(minValue_ <= minRareValue_);
+	assert(minValue_ <= initialValue_);
 	assert(minRareValue_ <= maxValue_);
+//	assert(initialValue_ <= minRareValue_);  // this may be false for functions
+											 // defined ad hoc by the user
 }
 
 // ImportanceFunctionAlgebraic::set_formula() can only be invoked
@@ -263,59 +240,6 @@ template void ImportanceFunctionAlgebraic::set_formula(
 template void ImportanceFunctionAlgebraic::set_formula(
     const std::string&, const std::string&, const std::unordered_set<std::string>&,
     const State<STATE_INTERNAL_TYPE>&, const Property&);
-
-
-void
-ImportanceFunctionAlgebraic::build_thresholds(
-	ThresholdsBuilder& tb,
-	const unsigned& spt)
-{
-	if (!has_importance_info())
-		throw_FigException("importance function \"" + name() + "\" "
-						   "doesn't yet have importance information");
-	std::vector< ImportanceValue >().swap(importance2threshold_);
-	importance2threshold_ = tb.build_thresholds(spt, *this);
-	post_process_thresholds(tb.name);
-}
-
-
-void
-ImportanceFunctionAlgebraic::build_thresholds_adaptively(
-	ThresholdsBuilderAdaptive& atb,
-	const unsigned& spt,
-	const float& p,
-	const unsigned& n)
-{
-	if (!has_importance_info())
-		throw_FigException("importance function \"" + name() + "\" "
-						   "doesn't yet have importance information");
-	std::vector< ImportanceValue >().swap(importance2threshold_);
-	importance2threshold_ = atb.build_thresholds(spt, *this, p, n);
-	post_process_thresholds(atb.name);
-}
-
-
-void
-ImportanceFunctionAlgebraic::post_process_thresholds(const std::string& tbName)
-{
-	// Revise "translator" was properly built
-	assert(!importance2threshold_.empty());
-	assert(importance2threshold_[0] == static_cast<ImportanceValue>(0u));
-	assert(importance2threshold_[0] <= importance2threshold_.back());
-
-	// Update extreme values info
-	// (threshold levels are a non-decreasing function of the importance)
-	minValue_ = importance2threshold_[minValue_];
-	maxValue_ = importance2threshold_[maxValue_];
-	minRareValue_ = importance2threshold_[minRareValue_];
-	assert(minValue_ <= minRareValue_);
-	assert(minRareValue_ <= maxValue_);
-
-	// Set relevant attributes
-	numThresholds_ = importance2threshold_.back();
-	thresholdsTechnique_ = tbName;
-	readyForSims_ = true;
-}
 
 
 void
@@ -345,14 +269,6 @@ ImportanceFunctionAlgebraic::print_out(std::ostream& out,
 		out.flush();
 	}
     out << std::endl;
-}
-
-
-void
-ImportanceFunctionAlgebraic::clear() noexcept
-{
-	std::vector< ImportanceValue >().swap(importance2threshold_);
-	ImportanceFunction::clear();
 }
 
 } // namespace fig

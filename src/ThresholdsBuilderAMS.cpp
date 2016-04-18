@@ -105,10 +105,6 @@ simulate(const fig::ModuleNetwork& network,
 namespace fig
 {
 
-ThresholdsBuilderAMS::ThresholdsBuilderAMS() : ThresholdsBuilderAdaptive("ams")
-{ /* Not much to do around here */ }
-
-
 void
 ThresholdsBuilderAMS::build_thresholds_vector(
 	const ImportanceFunction& impFun)
@@ -129,14 +125,15 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 
     unsigned failures(0u), simEffort(MIN_SIM_EFFORT);
 	std::vector< ImportanceValue >().swap(thresholds_);
-	thresholds_.reserve((impFun.max_value()-impFun.min_value()) / 5u);  // magic
+	thresholds_.reserve((impFun.max_value()-impFun.initial_value()) / 5u);  // magic
 	auto lesser = [](const Traial& lhs, const Traial& rhs)
 				  { return lhs.level < rhs.level; };
 	TraialsVec traials = ThresholdsBuilderAdaptive::get_traials(n_, impFun);
 	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 
 	// AMS initialization
-    thresholds_.push_back(traials[0].get().level);  // start from initial state importance
+	thresholds_.push_back(impFun.initial_value());  // start from initial state importance
+	assert(thresholds_.back() < impFun.max_value());
 	do {
 		simulate(network, impFun, traials, n_, simEffort);
 		std::sort(begin(traials), end(traials), lesser);
@@ -144,7 +141,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
              && (simEffort *= 2u));
     if (impFun.max_value() <= traials[n_-k_].get().level)
 		ModelSuite::tech_log("\nFirst iteration of AMS reached max importance, "
-							 "rare event doesn't seem so rare.");
+							 "rare event doesn't seem so rare!\n");
     thresholds_.push_back(traials[n_-k_].get().level);
     simEffort = MIN_SIM_EFFORT;
 
@@ -152,7 +149,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	while (thresholds_.back() < impFun.max_value()) {
 		// Relaunch all n_-k_ simulations below previously built threshold
         for (unsigned i = 0u ; i < n_-k_ ; i++)
-            traials[i].get() = traials[n_-k_].get();  // copy values, not addresses
+			traials[i].get() = traials[n_-k_];  // copy values, not addresses
 		simulate(network, impFun, traials, n_-k_, simEffort);
         // New 1-k_/n_ importance quantile should be the new threshold
 		std::sort(begin(traials), end(traials), lesser);

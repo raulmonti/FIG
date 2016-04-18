@@ -182,18 +182,23 @@ MathExpression::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 }
 
 
+#ifndef NRANGECHK
 void
 MathExpression::pin_up_vars(const PositionsMap& globalVars)
 {
-	for(auto& pair: varsMap_) {
-#ifndef NRANGECHK
+	for(auto& pair: varsMap_)
 		pair.second = globalVars.at(pair.first);
-#else
-		pair.second = globalVars[pair.first];
-#endif
-	}
 	pinned_ = true;
 }
+#else
+void
+MathExpression::pin_up_vars(PositionsMap& globalVars)
+{
+	for(auto& pair: varsMap_)
+		pair.second = globalVars[pair.first];
+	pinned_ = true;
+}
+#endif
 
 
 std::string

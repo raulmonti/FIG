@@ -86,8 +86,10 @@ public:  // Accessors
 #       else
 			globalStateCopy.copy_from_state_instance(state, false);
 #       endif
-			return modulesConcreteImportance[importanceInfoIndex_]
-											[globalStateCopy.encode()];
+			auto info = modulesConcreteImportance[importanceInfoIndex_]
+												 [globalStateCopy.encode()];
+			return ready() ? (MASK(info) | importance2threshold_[UNMASK(info)])
+						   : info;
 		}
 
 	/// @copydoc ImportanceFunction::importance_of()
@@ -95,37 +97,16 @@ public:  // Accessors
 	/// @note <b>Complexity:</b> <i>O(size(state)<sup>2</sup>)</i>
 	inline ImportanceValue importance_of(const StateInstance& state) const override
 		{
-			return UNMASK(info_of(state));
-		}
-
-	/// @copydoc ImportanceFunction::level_of(const StateInstance&)
-	/// @note Attempted inline in a desperate need for speed
-	/// @note <b>Complexity:</b> same as ImportanceFunctionConcreteCoupled::info_of()
-	inline ImportanceValue level_of(const StateInstance &state) const override
-		{
 #       ifndef NDEBUG
-			if (!ready())
+			if (!has_importance_info())
 				throw_FigException("importance function \"" + name() + "\" "
-								   + "isn't ready for simulations.");
-#		endif
-			// Internal vector currently holds threshold levels
-			return UNMASK(info_of(state));
-		}
-
-	/// @copydoc ImportanceFunction::level_of(const ImportanceValue&)
-	/// @note Attempted inline in a desperate need for speed
-	/// @note <b>Complexity:</b> <i>O(1)</i>
-	inline ImportanceValue level_of(const ImportanceValue& val) const override
-		{
-#       ifndef NDEBUG
-			if (!ready())
-				throw_FigException("importance function \"" + name() + "\" "
-								   + "isn't ready for simulations.");
-#		endif
-			// Internal vector currently holds threshold levels
-			assert(val >= min_value());
-			assert(val <= max_value());
-			return val;
+								   "doesn't hold importance information.");
+			globalStateCopy.copy_from_state_instance(state, true);
+#       else
+			globalStateCopy.copy_from_state_instance(state, false);
+#       endif
+			return UNMASK(modulesConcreteImportance[importanceInfoIndex_]
+												   [globalStateCopy.encode()]);
 		}
 
 	void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE>) const override;
@@ -138,22 +119,6 @@ public:  // Utils
 	void assess_importance(const Property& prop,
 						   const std::string& formulaExprStr,
 						   const std::vector<std::string>& varnames) override;
-
-	void build_thresholds(ThresholdsBuilder& tb, const unsigned& spt) override;
-
-	void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
-									 const unsigned& spt,
-									 const float& p,
-									 const unsigned& n) override;
-private:  // Class utils
-
-	/// Post-processing once the thresholds have been chosen
-	/// @param tbName  Name of the ThresholdsBuilder used
-	/// @param imp2thr Translator from ImportanceValue to threshold level
-	/// @see build_thresholds()
-	/// @see build_thresholds_adaptively()
-	void post_process_thresholds(const std::string& tbName,
-								 std::vector< ImportanceValue >& imp2thr);
 };
 
 } // namespace fig

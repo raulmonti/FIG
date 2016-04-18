@@ -28,15 +28,17 @@
 
 
 // C++
+#include <limits>     // std::numeric_limits<>
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // find_if_not()
-#include <numeric>    // std::numeric_limits<>
 #include <unordered_map>
 #include <tuple>
 // FIG
 #include <ImportanceFunctionConcreteSplit.h>
 #include <ThresholdsBuilder.h>
 #include <ThresholdsBuilderAdaptive.h>
+#include <ModuleInstance.h>
+#include <ModuleNetwork.h>
 #include <string_utils.h>
 
 // ADL
@@ -133,7 +135,7 @@ find_extreme_values(const Formula& f, const ModulesExtremeValues& moduleValues)
 		max = std::max(max, imp);
 	} while (advance(moduleValues, values));
 
-	// Assume minRareValue_ == minValue_ to avoid exploring whole state space
+	// Play it safe and assume minRareValue_ == minValue_
 	return std::make_tuple(min, max, min);
 
 	/// @todo TODO The general solution is to use ILP on userFun_
@@ -220,6 +222,9 @@ find_extreme_values(const Formula& f,
 	return std::make_tuple(min, max, minR);
 }
 
+/// Nasty hack to avoid importing the full ModelSuite.h header
+fig::StateInstance systemInitialValuation;
+
 } // namespace
 
 
@@ -250,13 +255,13 @@ ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 		numModules_(model.modules.size()),
 		localValues_(numModules_),
 		localStatesCopies_(numModules_),
-		mergeStrategy_(MergeType::NONE),
-		importance2threshold_()
+		mergeStrategy_(MergeType::NONE)
 {
 	bool initialize(false);  // initialize (non-const) static class members?
 	if (globalVarsIPos.size() == 0ul) {
 		initialize = true;
 		globalVarsIPos.resize(numModules_);
+		systemInitialValuation = model.initial_state().to_state_instance();
 	}
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		assert(modules_[i]->global_index() == static_cast<int>(i));
@@ -377,6 +382,7 @@ ImportanceFunctionConcreteSplit::set_merge_fun(std::string mergeFunExpr)
 			modulesMap[name] = i;
 		}
 	}
+	delete_substring(mergeFunExpr, "\"");
 	if (mergeFunExpr.length() <= 3ul)  // given an operand => make it a function
 		mergeFunExpr = compose_merge_function(modulesNames, mergeFunExpr);
 	else
@@ -472,17 +478,21 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	strategy_ = strategy;
 
 	// Find extreme importance values for current assessment
+	initialValue_ = importance_of(systemInitialValuation);
 	if ("flat" == strategy) {
-		const ImportanceValue importance =
-				importance_of(globalStateCopy.to_state_instance());
-		minValue_ = importance;
-		maxValue_ = importance;
-		minRareValue_ = importance;
+		minValue_ = initialValue_;
+		maxValue_ = initialValue_;
+		minRareValue_ = initialValue_;
+	} else if (globalStateCopy.concrete_size() < (1ul<<20ul)) {
+		// We can afford a full-state-space scan
+		find_extreme_values(globalStateCopy, prop);
 	} else {
+		// Concrete state space is too big, resort to faster ways
 		std::tie(minValue_, maxValue_, minRareValue_) =
 				::find_extreme_values(userFun_, moduleValues, mergeStrategy_);
 	}
-	assert(minValue_ <= minRareValue_);
+	assert(minValue_ <= initialValue_);
+	assert(initialValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);
 }
 
@@ -495,68 +505,6 @@ ImportanceFunctionConcreteSplit::assess_importance(
 {
 	throw_FigException("TODO: ad hoc assessment and split concrete storage");
 	/// @todo TODO: implement concrete ifun with ad hoc importance assessment
-}
-
-
-void
-ImportanceFunctionConcreteSplit::build_thresholds(
-	ThresholdsBuilder& tb,
-	const unsigned& spt)
-{
-	if (!has_importance_info())
-		throw_FigException("importance function \"" + name() + "\" "
-						   "doesn't yet have importance information");
-	std::vector< ImportanceValue >().swap(importance2threshold_);
-	importance2threshold_ = tb.build_thresholds(spt, *this);
-	post_process_thresholds(tb.name);
-}
-
-
-void
-ImportanceFunctionConcreteSplit::build_thresholds_adaptively(
-	ThresholdsBuilderAdaptive& atb,
-	const unsigned& spt,
-	const float& p,
-	const unsigned& n)
-{
-	if (!has_importance_info())
-		throw_FigException("importance function \"" + name() + "\" "
-						   "doesn't yet have importance information");
-	std::vector< ImportanceValue >().swap(importance2threshold_);
-	importance2threshold_ = atb.build_thresholds(spt, *this, p, n);
-	post_process_thresholds(atb.name);
-}
-
-
-void
-ImportanceFunctionConcreteSplit::post_process_thresholds(const std::string& tbName)
-{
-	// Revise "translator" was properly built
-	assert(!importance2threshold_.empty());
-	assert(importance2threshold_[0] == static_cast<ImportanceValue>(0u));
-	assert(importance2threshold_[0] <= importance2threshold_.back());
-
-	// Update extreme values info
-	// (threshold levels are a non-decreasing function of the importance)
-	minValue_ = importance2threshold_[minValue_];
-	maxValue_ = importance2threshold_[maxValue_];
-	minRareValue_ = importance2threshold_[minRareValue_];
-	assert(minValue_ <= minRareValue_);
-	assert(minRareValue_ <= maxValue_);
-
-	// Set relevant attributes
-	numThresholds_ = importance2threshold_.back();
-	thresholdsTechnique_ = tbName;
-	readyForSims_ = true;
-}
-
-
-
-void
-ImportanceFunctionConcreteSplit::clear() noexcept
-{
-	std::vector< ImportanceValue >().swap(importance2threshold_);
-	ImportanceFunctionConcrete::clear();
 }
 
 } // namespace fig

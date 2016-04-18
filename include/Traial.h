@@ -31,11 +31,9 @@
 #define TRAIAL_H
 
 // C++
-#include <sstream>
 #include <string>
 #include <vector>
 #include <memory>     // std::shared_ptr<>
-#include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // std::swap(), std::find()
 #include <utility>    // std::move(), std::pair<>
 // FIG
@@ -46,10 +44,6 @@
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
 #endif
-
-// ADL
-using std::begin;
-using std::end;
 
 
 namespace fig
@@ -71,7 +65,12 @@ class ImportanceFunction;
  */
 class Traial
 {
-    friend class Transition;  // allow them to handle our clocks
+	friend class Transition;  // to handle our clocks
+	friend class TraialPool;  // to instantiate (ctor)
+
+	/// @todo TODO maybe remove following and use copy elision in TraialPool::ensure_resources()?
+	friend class std::vector< Traial >;
+	friend struct __gnu_cxx::new_allocator<Traial>;
 
 public:
 
@@ -84,11 +83,14 @@ public:
 		std::string name;
 		/// Clock's time value
 		float value;
+		/// Clock's position in Traial's global state
+		unsigned gpos;
 		/// Data ctor
 		Timeout(std::shared_ptr<const ModuleInstance> themodule,
 				const std::string& thename,
-				const float& thevalue) :
-			module(themodule), name(thename), value(thevalue) {}
+				const float& thevalue,
+				const unsigned& theglobalpos) :
+			module(themodule), name(thename), value(thevalue), gpos(theglobalpos) {}
 	};
 
 public:  // Attributes
@@ -96,8 +98,11 @@ public:  // Attributes
 	/// Importance/Threshold level where the Traial currently is
     ImportanceValue level;
 
-	/// How far down the current importance is w.r.t. the creation importance
+	/// How far down the current level is w.r.t. the creation level
 	short depth;
+
+	/// Simulation's temporal field to keep track of thresholds crossing
+	short numLevelsCrossed;
 
 	/// Time span this Traial has been running around the system model
 	CLOCK_INTERNAL_TYPE lifeTime;
@@ -117,11 +122,11 @@ private:
 	/// Access for friends is safely granted through next_timeout()
 	std::vector< unsigned > orderedIndex_;
 
-	/// Position of smallest not-null Clock value in clocks_.
+	/// Position of smallest non-negative Clock value in clocks_.
 	/// Negative if all are null.
-	int firstNotNull_;
+	int nextClock_;
 
-public:  // Ctors/Dtor: TraialPool should be the only to create Traials
+private:  // Ctors: TraialPool should be the only one to create Traials
 
 	/**
 	 * @brief Void ctor for resources pool
@@ -157,6 +162,8 @@ public:  // Ctors/Dtor: TraialPool should be the only to create Traials
 		   const Container<ValueType, OtherContainerArgs...>& whichClocks,
 		   bool orderTimeouts = false);
 
+public:  // Copy/Assign/Dtor
+
 	/// Copy ctor disabled to avoid accidental copies,
 	/// only the TraialPool should explicitly create/destroy Traials
 	Traial(const Traial&) = delete;  // Instantiate with 'Traial&', not 'auto'
@@ -165,7 +172,7 @@ public:  // Ctors/Dtor: TraialPool should be the only to create Traials
 	Traial(Traial&& that) = default;
 
 	/// Copy assignment
-	Traial& operator=(const Traial&) = default;
+	Traial& operator=(const Traial& that) = default;
 
 	/// Move assignemnt
 	Traial& operator=(Traial&&) = default;
@@ -175,8 +182,9 @@ public:  // Ctors/Dtor: TraialPool should be the only to create Traials
 public:  // Accessors
 
 	/// Get the current time values of the clocks (attached to their names)
+	/// @param ordered Whether to return the increasing-order view of the clocks
 	std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >
-	clocks_values() const;
+	clocks_values(bool ordered = false) const;
 
 public:  // Utils
 
@@ -201,27 +209,21 @@ public:  // Utils
 					const ImportanceFunction& impFun);
 
 	/**
-	 * @brief Retrieve next not-null expiring clock
+	 * @brief Retrieve next expiring clock
 	 * @param reorder  Whether to reorder internal clocks prior the retrieval
 	 * @note  <b>Complexity:</b> <i>O(m log(m))</i> if reorder, <i>O(1)</i>
 	 *        otherwise, where 'm' is the number of clocks in the system.
 	 * @note  Attempted inlined for efficiency, sorry
-	 * @throw FigException if all our clocks have null value
+	 * @throw FigException if all clocks are expired
 	 */
 	inline const Timeout&
 	next_timeout(bool reorder = true)
 		{
 			if (reorder)
 				reorder_clocks();
-            if (0 > firstNotNull_) {
-                std::stringstream errMsg;
-                errMsg << "all clocks are null, deadlock? State is (";
-                for (const auto& v: state)
-                    errMsg << v << ",";
-                errMsg << "\b)";
-                throw_FigException(errMsg.str());
-            }
-			return clocks_[firstNotNull_];
+			if (0 > nextClock_)
+				report_deadlock();
+			return clocks_[nextClock_];
 		}
 
     /**
@@ -233,20 +235,20 @@ public:  // Utils
      *
      * @param firstClock First clock's index in the affected ModuleInstance
      * @param numClocks  Number of clocks of the affected ModuleInstance
-     * @param timeLapse  Amount of time to kill
+	 * @param timeLapse  Amount of time to kill
 	 *
 	 * @note  Attempted inlined for efficiency, sorry
 	 */
-    inline void
-    kill_time(const size_t& firstClock,
-              const size_t& numClocks,
-              const CLOCK_INTERNAL_TYPE& timeLapse)
-        {
+	inline void
+	kill_time(const size_t& firstClock,
+			  const size_t& numClocks,
+			  const CLOCK_INTERNAL_TYPE& timeLapse)
+		{
 			for (size_t i = firstClock ; i < firstClock + numClocks ; i++)
-                clocks_[i].value -= timeLapse;
-        }
+				clocks_[i].value -= timeLapse;
+		}
 
-private:
+private:  // Class utils
 
 	/**
 	 * @brief Sort our clocks in increasing-value order for next_timeout()
@@ -255,6 +257,11 @@ private:
 	 */
 	void
 	reorder_clocks();
+
+	/// Throw an exception showing current (supposedly) deadlock state
+	/// @throw FigException Always throws
+	void
+	report_deadlock();
 };
 
 } // namespace fig

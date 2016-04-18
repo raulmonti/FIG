@@ -29,7 +29,6 @@
 ##==============================================================================
 
 set -e
-#alias cmake='cmake28'
 
 # Choose compiler (prefer clang over gcc)
 if [ "`which clang`" ]
@@ -139,10 +138,17 @@ fi
 
 # Configure and build from inside BUILD_DIR
 if [ ! -d $BUILD_DIR ]; then mkdir $BUILD_DIR; fi
-cd $BUILD_DIR && CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR && make && \
-#cd $BUILD_DIR && CC=gcc CXX=g++ cmake $CMAKE_DIR && make && \
+cd $BUILD_DIR
+#OPTS="-DRELEASE=ON -DBUILTIN_RNG=ON"  # Cmake build options, see CMakeLists.txt
+CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR $OPTS && make && \
+#CC=gcc CXX=g++ cmake $CMAKE_DIR $OPTS && make && \
 /bin/echo -e "\n  Project built in $BUILD_DIR\n"
 cd $CWD
+
+# Symlink main executable to current dir
+EXE=`find $BUILD_DIR -type f -executable -name "fig" || \
+	 find $BUILD_DIR -type f -executable -name "test_*"`;
+if [ -f "fig" ]; then rm fig; fi; ln -s $EXE fig
 
 exit 0
 
