@@ -122,7 +122,7 @@ public:
      * @return: a vector of AST pointers to every node with token @k found.     
      */
     vector<AST*>
-    get_all_ast(int k);
+    get_all_ast(int k) const;
 
     /**
      * @brief: (get all ast first found) walk the tree and get every

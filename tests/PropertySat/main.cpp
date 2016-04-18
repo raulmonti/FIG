@@ -39,18 +39,38 @@ get_var_range(AST *ast, parsingContext &pc)
     return result;
 }
 
-//==============================================================================
 
+//==============================================================================
 void
-CheckPropsSat(void)
+normalize_props(ParsingModel &model)
 {
     assert(GLOBAL_MODEL_AST);
     assert(GLOBAL_PROP_AST);
 
 
-    vector<AST*> props = GLOBAL_PROP_AST->get_all_ast(_PROPERTY);
-    vector<AST*> modules = GLOBAL_MODEL_AST->get_all_ast(_MODULE);
-    size_t count  = GLOBAL_PROP_AST->get_all_ast(_PROPERTY).size();
+    vector<AST*> props = model.get_props_ast()->get_all_ast(_PROPERTY);
+    vector<AST*> modules = model.get_model_ast()->get_all_ast(_MODULE);
+    size_t count = props.size();
+    for(auto &p: props){
+        AST* e = new AST(p->get_first(_EXPRESSION));
+        cout << e->toString() << endl;
+        parser::normalize_ast(&e);
+        cout << e->toString() << endl;
+    }
+}
+
+//==============================================================================
+
+void
+CheckPropsSat(ParsingModel &model)
+{
+    assert(GLOBAL_MODEL_AST);
+    assert(GLOBAL_PROP_AST);
+
+
+    vector<AST*> props = model.get_props_ast()->get_all_ast(_PROPERTY);
+    vector<AST*> modules = model.get_model_ast()->get_all_ast(_MODULE);
+    size_t count = props.size();
     map<string,pair<int,int>> ranges;
     for(const auto &it: modules){
         // get this modules variables and their ranges
@@ -121,7 +141,9 @@ int main (int argc, char** argv){
     model.compile_model();
 
     /* Sat for properties */
-    CheckPropsSat();
+    CheckPropsSat(model);
+
+    normalize_props(model);
     
     return 0;
 }
