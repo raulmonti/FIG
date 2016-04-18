@@ -221,7 +221,8 @@ Traial::reorder_clocks()
 	);
 	// Find next clock to check, or record '-1' if all are negative
 	for (unsigned i=0u ; i < clocks_.size() || ((nextClock_ = -1) && false) ; i++) {
-		if (0.0f <= clocks_[orderedIndex_[i]].value) {
+		if (std::isfinite(clocks_[orderedIndex_[i]].value) &&
+				0.0f <= clocks_[orderedIndex_[i]].value) {
 			nextClock_ = orderedIndex_[i];
 			break;
 		}
@@ -238,8 +239,9 @@ Traial::report_deadlock()
 		errMsg << v << ",";
 	errMsg << "\b)[";
 	for (const auto& t: clocks_)
-		errMsg << t.name << ":" << t.value << "|";
-	errMsg << "\b]";
+		if (std::isfinite(t.value))
+			errMsg << t.name << ":" << t.value << "|";
+	errMsg << "\b] -- Omitted clocks have nan/inf value.";
 	throw_FigException(errMsg.str());
 }
 

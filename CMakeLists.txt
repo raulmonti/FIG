@@ -146,7 +146,7 @@ IF(RELEASE)
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 ELSE()
 	# Optimize without obfuscating the assembly so much
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")
 	# Highly defensive compile flags
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")# -pedantic")
 	# Debug with gdb

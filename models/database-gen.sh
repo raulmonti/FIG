@@ -13,6 +13,14 @@ else
 	PROCRED=$6
 fi
 
+# Compute failure rate given the failure mean-time passed as single argument
+compute_rate()
+{
+	if [ $# -eq 1 ]; then
+		echo $1 | awk '{ printf "%1.8f", 1/(2*$1) }';
+	fi
+}
+
 echo "/*"
 echo " * Database with redundancy for the FIG tool"
 echo " * Budde, Monti, D'Argenio | 2016"
@@ -43,14 +51,22 @@ echo ""
 echo "// -- The following values were extracted from José Villén-Altamirano,"
 echo "// -- \"Importance functions for RESTART simulation of highly-dependable"
 echo "// -- systems\", Simulation, Vol. 83, Issue 12, December 2007, pp. 821-828."
-echo ""
+echo "// --"
 echo "// -- Processors"
-echo "const int PF = 2000;   // -- Processors' mean time to failure (in hours)"
+P_FTIME=2000
+P_FRATE=`compute_rate $P_FTIME`   # Processors fail rate: 1 / (NUM_FAIL_TYPES * P_FTIME)
+echo "const int PF = ${P_FTIME};  // -- Processors' mean time to failure (in hours)"
 echo "// -- unsupported! const double IPF = 0.01;  // -- Processors' inter-type failure rate"
+echo "// --"
 echo "// -- Controllers"
-echo "const int CF = 2000;  // -- Controllers' mean time to failure (in hours)"
+C_FTIME=2000
+C_FRATE=`compute_rate $C_FTIME`   # Controllers fail rate: 1 / (NUM_FAIL_TYPES * C_FTIME)
+echo "const int CF = ${C_FTIME};  // -- Controllers' mean time to failure (in hours)"
+echo "// --"
 echo "// -- Disk clusters"
-echo "const int DF = 6000;  // -- Disks' mean time to failure (in hours)"
+D_FTIME=6000
+D_FRATE=`compute_rate $D_FTIME`   # Disks fail rate: 1 / (NUM_FAIL_TYPES * D_FTIME)
+echo "const int DF = ${D_FTIME};  // -- Disks' mean time to failure (in hours)"
 
 
 # DISKS
@@ -84,11 +100,11 @@ for (( i=1 ; i <= $DISKNR ; i++ )); do
         echo "	                                (d${i}${j}t'= 2)     &"
         echo "	                                (d${i}${j}clkR2'= exponential(0.5));"
         echo "	[] d${i}${j}f & d${i}${j}t==1 @ d${i}${j}clkR1 -> (d${i}${j}f'= false) &"
-        echo "	                                (d${i}${j}clkF1'= exponential(1/(2*DF))) &"
-        echo "	                                (d${i}${j}clkF2'= exponential(1/(2*DF)));"
+        echo "	                                (d${i}${j}clkF1'= exponential(${D_FRATE})) &"
+        echo "	                                (d${i}${j}clkF2'= exponential(${D_FRATE}));"
         echo "	[] d${i}${j}f & d${i}${j}t==2 @ d${i}${j}clkR2 -> (d${i}${j}f'= false) &"
-        echo "	                                (d${i}${j}clkF1'= exponential(1/(2*DF))) &"
-        echo "	                                (d${i}${j}clkF2'= exponential(1/(2*DF)));"
+        echo "	                                (d${i}${j}clkF1'= exponential(${D_FRATE})) &"
+        echo "	                                (d${i}${j}clkF2'= exponential(${D_FRATE}));"
         echo "endmodule"
     done
 done
@@ -125,11 +141,11 @@ for (( i=1 ; i <= $CTRLNR ; i++ )); do
         echo "	                                (c${i}${j}t'= 2)     &"
         echo "	                                (c${i}${j}clkR2'= exponential(0.5));"
         echo "	[] c${i}${j}f & c${i}${j}t==1 @ c${i}${j}clkR1 -> (c${i}${j}f'= false) &"
-        echo "	                                (c${i}${j}clkF1'= exponential(1/(2*CF))) &"
-        echo "	                                (c${i}${j}clkF2'= exponential(1/(2*CF)));"
+        echo "	                                (c${i}${j}clkF1'= exponential(${C_FRATE})) &"
+        echo "	                                (c${i}${j}clkF2'= exponential(${C_FRATE}));"
         echo "	[] c${i}${j}f & c${i}${j}t==2 @ c${i}${j}clkR2 -> (c${i}${j}f'= false) &"
-        echo "	                                (c${i}${j}clkF1'= exponential(1/(2*CF))) &"
-        echo "	                                (c${i}${j}clkF2'= exponential(1/(2*CF)));"
+        echo "	                                (c${i}${j}clkF1'= exponential(${C_FRATE})) &"
+        echo "	                                (c${i}${j}clkF2'= exponential(${C_FRATE}));"
         echo "endmodule"
     done
 done
@@ -166,11 +182,11 @@ for (( i=1 ; i <= $PROCNR ; i++ )); do
         echo "	                                (p${i}${j}t'= 2)     &"
         echo "	                                (p${i}${j}clkR2'= exponential(0.5));"
         echo "	[] p${i}${j}f & p${i}${j}t==1 @ p${i}${j}clkR1 -> (p${i}${j}f'= false) &"
-        echo "	                                (p${i}${j}clkF1'= exponential(1/(2*PF))) &"
-        echo "	                                (p${i}${j}clkF2'= exponential(1/(2*PF)));"
+        echo "	                                (p${i}${j}clkF1'= exponential(${P_FRATE})) &"
+        echo "	                                (p${i}${j}clkF2'= exponential(${P_FRATE}));"
         echo "	[] p${i}${j}f & p${i}${j}t==2 @ p${i}${j}clkR2 -> (p${i}${j}f'= false) &"
-        echo "	                                (p${i}${j}clkF1'= exponential(1/(2*PF))) &"
-        echo "	                                (p${i}${j}clkF2'= exponential(1/(2*PF)));"
+        echo "	                                (p${i}${j}clkF1'= exponential(${P_FRATE})) &"
+        echo "	                                (p${i}${j}clkF2'= exponential(${P_FRATE}));"
         echo "endmodule"
     done
 done
@@ -185,10 +201,8 @@ $ECHO "// -- Rate property to check\n"
 $ECHO "S("
 for (( i=1 ; i <= $DISKNR ; i++ )); do
 	for (( j1=1 ; j1 <= $DISKRED ; j1++ )); do
-	for (( j2=1 ; j2 <= $DISKRED ; j2++ )); do
-		if (( ${j1} != ${j2} )); then
-			$ECHO "\n   (d${i}${j1}f & d${i}${j2}f) |"
-		fi
+	for (( j2=j1+1 ; j2 <= $DISKRED ; j2++ )); do
+		$ECHO "\n   (d${i}${j1}f & d${i}${j2}f) |"
 	done
 	done
 done
@@ -197,14 +211,14 @@ for (( i=1 ; i <= $CTRLNR ; i++ )); do
 	for (( j=1 ; j <= $CTRLRED ; j++ )); do
 		$ECHO "c${i}${j}f & "
 	done
-	$ECHO "\b\b) |"
+	$ECHO "\b\b\b) |"
 done
 for (( i=1 ; i <= $PROCNR ; i++ )); do
 	$ECHO "\n   ("
 	for (( j=1 ; j <= $PROCRED ; j++ )); do
 		$ECHO "p${i}${j}f & "
 	done
-	$ECHO "\b\b) |"
+	$ECHO "\b\b\b) |"
 done
 $ECHO "\b\b  \n ) // \"rate\"\n"
 

@@ -925,11 +925,11 @@ Parser::parse(stringstream *str){
         }
 
     }catch(const FigSyntaxError &e){
-        throw_FigException(e.what());
+		throw_FigException(string("syntax error: ") + e.what());
     }catch(const string s){
         throw_FigException(s);
     }catch(const BadSymbol &e){
-        throw_FigException(e.what());
+		throw_FigException(string("bad symbol: ") + e.what());
     }catch(const exception &e){
         cout << e.what() << endl;
         assert(false);

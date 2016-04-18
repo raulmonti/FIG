@@ -60,7 +60,12 @@ DNF extract_clauses(AST& DNFformula)
 {
 	DNF clauses;
 
+	/// @todo TODO sacar "()" de DNFformula
+
 	for (AST* clause: DNFformula.get_all_ast_ff(parser::_EQUALITY)) {
+
+		/// @todo TODO sacar "()" de clause
+
 		AST *ASTclause(clause->get_first(parser::_EXPRESSION));
 		if (nullptr == ASTclause) {
 			// May be a single boolean
@@ -68,26 +73,16 @@ DNF extract_clauses(AST& DNFformula)
 			if (nullptr == ASTclause)
 				throw_FigException("couldn't parse the property \"" +
 								   DNFformula.toString()+"\"; is it in DNF?");
-//			std::cerr << "Got a simple boolean: " << ASTclause->toString() << std::endl;
+			/// @todo TODO sacar "()" de cada elemento en clause
 			clauses.emplace_back(vector<AST*>({ASTclause}));
 		} else {
 			// Should be a conjunction of booleans
-//			std::cerr << "Got a complex clause: " << ASTclause->toString() << std::endl;
 			vector<AST*> literals(ASTclause->get_all_ast_ff(parser::_EQUALITY));
+			/// @todo TODO sacar "()" de literals
 			if (literals.size() > 0ul)
 				clauses.emplace_back(literals);
 		}
 	}
-
-	/// @todo TODO erase debug print
-	std::cerr << "Clauses extracted from formula \"" + DNFformula.toString() + "\":\n";
-	for (const auto& vec: clauses) {
-		std::cerr << "\t";
-		for (AST* literal: vec)
-			std::cerr << literal->toString() << " & ";
-		std::cerr << "\b\b  \n";
-	}
-	////////////////////////////////
 
 	return clauses;
 }
@@ -211,23 +206,9 @@ DNFclauses::project(const State& localState) const
 	for (Clause& clause: rares)
 		clause.pin_up_vars(localState);
 
-	/// @todo TODO erase debug print
-//	std::cerr << "Rares projection:  ";
-//	for (const Clause& clause: rares)
-//		std::cerr << clause.expression() << " | ";
-//	std::cerr << "\b\b  \n";
-	///////////////////////////////
-
 	auto others = ::project(others_, VARNAMES);
 	for (Clause& clause: others)
 		clause.pin_up_vars(localState);
-
-	/// @todo TODO erase debug print
-//	std::cerr << "Others projection:  ";
-//	for (const Clause& clause: others)
-//		std::cerr << clause.expression() << " | ";
-//	std::cerr << "\b\b  \n";
-	///////////////////////////////
 
 	return std::make_pair(rares, others);
 }

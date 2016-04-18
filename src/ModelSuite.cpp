@@ -570,7 +570,7 @@ ModelSuite::process_adhocfun_varnames(std::unordered_set<std::string>& varnames)
 }
 
 
-ModelSuite::~ModelSuite() { /* not much to do around here... */ }
+ModelSuite::~ModelSuite() { /* Just relax and let everything go */ }
 
 
 void ModelSuite::add_module(std::shared_ptr< ModuleInstance >& module)
@@ -1149,9 +1149,11 @@ ModelSuite::release_resources() noexcept
 	try {
 		for (auto ifunName: available_importance_functions())
 			release_resources(ifunName);
-		for (auto engineName: available_simulators())
+		for (auto engineName: available_simulators()) {
+			simulators[engineName]->unlock();
 			simulators[engineName]->unbind();
-	} catch (FigException&) {}
+		}
+	} catch (std::exception&) {} // Meh... everything was going to hell anyway
 }
 
 
