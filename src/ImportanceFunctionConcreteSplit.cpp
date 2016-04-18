@@ -42,9 +42,6 @@
 #include <DNFclauses.h>
 #include <string_utils.h>
 
-/// @todo TODO erase debug include
-#include <ModelSuite.h>
-
 // ADL
 using std::begin;
 using std::end;
@@ -304,10 +301,6 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 #endif
         const auto& val = modulesConcreteImportance[i][localState.encode()];
 		e |= MASK(val);  // events are marked per-module but affect the global model
-		/// @todo TODO erase debug print
-		if (IS_RARE_EVENT(val))
-			std::cerr << "Rare: state " << localState.encode() << " in module " << i << std::endl;
-		/////////////////////////////////
         localValues_[i] = UNMASK(val);
     }
     // Combine those values with the user-defined merge function
@@ -470,17 +463,6 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		ImportanceFunctionConcrete::clear();
 	modulesConcreteImportance.resize(numModules_);
 
-	/// @todo TODO erase debug print
-//	std::cerr << "Initial rare states in the model: ";
-//	State<STATE_INTERNAL_TYPE> globalState(ModelSuite::get_instance().modules_network()->global_state());
-//	for (size_t i = 0ul ; i < globalState.concrete_size() ; i++) {
-//		auto valuation = globalState.decode(i).to_state_instance();
-//		if (prop.is_rare(valuation))
-//			std::cerr << i << ", ";
-//	}
-//	std::cerr << "\b\b  \n";
-	/////////////////////////////////
-
 	// Assess each module importance individually from the rest
 	const parser::DNFclauses dnfClauses(prop);
 	ModulesExtremeValues moduleValues(numModules_);
@@ -490,14 +472,6 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 													  strategy,
 													  index,
 													  dnfClauses);
-		/// @todo TODO erase debug print
-//		std::cerr << "Final rare states for this module: ";
-//		const auto& impVec(modulesConcreteImportance[index]);
-//		for (size_t i = 0ul ; i < impVec.size() ; i++)
-//			if (fig::IS_RARE_EVENT(impVec[i]))
-//				std::cerr << i << " (" << fig::UNMASK(impVec[i]) << "), ";
-//		std::cerr << "\b\b  \n\n";
-		////////////////////////////////
 		assert(minValue_ <= initialValue_);
 		assert(initialValue_ <= minRareValue_);
 		assert(minRareValue_ <= maxValue_);
@@ -506,16 +480,6 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	}
 	hasImportanceInfo_ = true;
 	strategy_ = strategy;
-
-	/// @todo TODO erase debug print
-//	std::cerr << "Resulting rare states in the model: ";
-//	for (size_t i = 0ul ; i < globalState.concrete_size() ; i++) {
-//		auto val = info_of(globalState.decode(i).to_state_instance());
-//		if (IS_RARE_EVENT(val))
-//			std::cerr << i << ", ";
-//	}
-//	std::cerr << "\b\b  \n";
-	/////////////////////////////////
 
 	// Find extreme importance values for current assessment
 	initialValue_ = importance_of(systemInitialValuation);

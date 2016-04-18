@@ -43,7 +43,7 @@
 #include <vector>
 #include <unordered_map>
 // External code
-#include <uint128_t.h>
+#include <uint128_t.h>  // uint128::uint128_1
 // FIG
 #include <core_typedefs.h>
 #include <Variable.h>
@@ -89,11 +89,6 @@ class State
 				  "ERROR: class State<T> can only be instantiated "
 				  "with integral types, e.g. int, short, unsigned.");
 	/// @endcond
-
-	/// Very big unsigned int representation
-	/// @note May use boost multiprecision library which defines integers
-	///       of up to 1024 bits, but the standalone headers weight 13 MB!
-	typedef uint128::uint128_t uint128_t;
 
 	/// Variables vector
 	std::vector< std::shared_ptr< Variable< T_ > > > pvars_;

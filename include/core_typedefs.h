@@ -40,6 +40,7 @@
 #include <bitset>
 #include <functional>  // std::reference_wrapper<>
 // External code
+#include <uint128_t.h>
 #include <muParserDef.h>  // mu::value_type
 
 
@@ -228,6 +229,11 @@ template< typename T_ > using Reference = std::reference_wrapper<T_>;
 /// Mapping of names (of clocks or variables or whatever) to their
 /// respective positions in some global or local array
 typedef  std::unordered_map< std::string, size_t >  PositionsMap;
+
+/// 128-bit integer for concrete state size representation (they're that big)
+/// @note Might use boost multiprecision library which defines integers
+///       of up to 1024 bits, but the standalone headers weight 13 MB!
+typedef uint128::uint128_t uint128_t;
 
 //
 //

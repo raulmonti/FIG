@@ -190,7 +190,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 
 
 void
-ThresholdsBuilderAMS::tune(const size_t& numStates,
+ThresholdsBuilderAMS::tune(const uint128_t& numStates,
 						   const size_t& numTrans,
 						   const ImportanceValue& maxImportance,
 						   const unsigned& splitsPerThr)

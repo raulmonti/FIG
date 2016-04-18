@@ -284,7 +284,7 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 
 
 void
-ThresholdsBuilderSMC::tune(const size_t& numStates,
+ThresholdsBuilderSMC::tune(const uint128_t &numStates,
 						   const size_t& numTrans,
 						   const ImportanceValue& maxImportance,
 						   const unsigned& splitsPerThr)
@@ -292,10 +292,10 @@ ThresholdsBuilderSMC::tune(const size_t& numStates,
 	const unsigned n(n_);
 	ThresholdsBuilderAdaptive::tune(numStates, numTrans, maxImportance, splitsPerThr);
     // This algorith is statistically better (way better) than AMS,
-    // which makes the thresholds to be chosen really close to each other.
-    // The counterpart is that too many thresholds are chosen, and thus the
+	// resulting in the thresholds being chosen really close to each other.
+	// The counterpart is that too many thresholds are chosen and thus the
     // thresholds building takes too long.
-    // Try to counter that a little by reducing the probability of level up
+	// We try to counter that a little by reducing the probability of level up
     const float p((k_*0.5f)/n_);
 	n_ = std::max({n, n_, ThresholdsBuilderAdaptive::MIN_N});
 	k_ = std::round(p*n_);

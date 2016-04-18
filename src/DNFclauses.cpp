@@ -48,7 +48,7 @@ using DNF    = parser::DNFclauses::DNF;
 using Clause = parser::DNFclauses::Clause;
 
 /**
- * @brief Parse the formula as a list of DNF clauses
+ * Parse the formula as a list of DNF clauses
  * @param DNFformula AST of a logical formula assumed to be in DNF
  * @return Vector of DNF clauses: each is a conjunction of literals
  *         (i.e. boolean values or comparisons of arithmetic values)
@@ -80,7 +80,7 @@ DNF extract_clauses(AST& DNFformula)
 	}
 
 	/// @todo TODO erase debug print
-	std::cerr << "Clauses extracted for formula \"" + DNFformula.toString() + "\":\n";
+	std::cerr << "Clauses extracted from formula \"" + DNFformula.toString() + "\":\n";
 	for (const auto& vec: clauses) {
 		std::cerr << "\t";
 		for (AST* literal: vec)
@@ -93,7 +93,13 @@ DNF extract_clauses(AST& DNFformula)
 }
 
 
-/// @todo TODO write docstring
+/**
+ * Project 'clauses' over the set of variables names passed,
+ * so that all literals ocurring in the result have at least one of them
+ * @param clauses  DNF clases to restrict
+ * @param varnames Variable names defining the projection
+ * @return Clauses projected over the set of variables names passed
+ */
 vector< Clause >
 project(const DNF& clauses, const vector< std::string >& varnames)
 {
@@ -111,10 +117,11 @@ project(const DNF& clauses, const vector< std::string >& varnames)
 		std::string clauseSTR;
 		for (const AST* literal: clause) {
 			const std::string literalSTR(literal->toString());
-			if (include(literalSTR))
+			if (include(literalSTR) && clauseSTR.find(literalSTR) == std::string::npos)
 				clauseSTR += literalSTR + AMP;
 		}
 		if (!clauseSTR.empty()) {
+			/// @todo TODO avoid adding repeated clauses
 			clauseSTR.resize(clauseSTR.length() - AMP.length());
 			dnfClauses.emplace_back(clauseSTR, varnames);
 		}
@@ -171,8 +178,6 @@ DNFclauses::populate(const fig::Property& property)
 		std::vector< AST* > transientFormulae(ASTtransient.get_list(parser::_EXPRESSION));
 		assert(transientFormulae.size() == 2ul);
 		rares_ = extract_clauses(*transientFormulae[1]);
-		/// @bug FIXME: "others_" are the stopping states => negate and store;
-		///             the meaning of "keep running" must be stored here
 		others_ = extract_clauses(*transientFormulae[0]);
 		} break;
 
@@ -207,10 +212,10 @@ DNFclauses::project(const State& localState) const
 		clause.pin_up_vars(localState);
 
 	/// @todo TODO erase debug print
-	std::cerr << "Rares projection:  ";
-	for (const Clause& clause: rares)
-		std::cerr << clause.expression() << " | ";
-	std::cerr << "\b\b  \n";
+//	std::cerr << "Rares projection:  ";
+//	for (const Clause& clause: rares)
+//		std::cerr << clause.expression() << " | ";
+//	std::cerr << "\b\b  \n";
 	///////////////////////////////
 
 	auto others = ::project(others_, VARNAMES);
@@ -218,10 +223,10 @@ DNFclauses::project(const State& localState) const
 		clause.pin_up_vars(localState);
 
 	/// @todo TODO erase debug print
-	std::cerr << "Others projection:  ";
-	for (const Clause& clause: others)
-		std::cerr << clause.expression() << " | ";
-	std::cerr << "\b\b  \n";
+//	std::cerr << "Others projection:  ";
+//	for (const Clause& clause: others)
+//		std::cerr << clause.expression() << " | ";
+//	std::cerr << "\b\b  \n";
 	///////////////////////////////
 
 	return std::make_pair(rares, others);

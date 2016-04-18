@@ -35,8 +35,6 @@
 #include <memory>
 #include <string>
 #include <forward_list>
-// External code
-#include <uint128_t.h>
 // FIG
 #include <core_typedefs.h>
 #include <State.h>
@@ -63,9 +61,6 @@ protected:
 	/// All the transitions of the Module, with no particular order.
 	/// @note Needed to traverse the state space, e.g. when building auto ifun
 	std::vector< std::shared_ptr< Transition > > transitions_;
-
-	/// Very big unsigned int representation
-	typedef uint128::uint128_t uint128_t;
 
 public:  // Accessors
 

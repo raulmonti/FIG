@@ -136,7 +136,7 @@ protected:  // Utils for the class and its kin
 	 * @param maxImportance  Maximum ImportanceValue computed
 	 * @param splitsPerThr   Number of splits upon a threshold level-up
 	 */
-	virtual void tune(const size_t& numStates,
+	virtual void tune(const uint128_t& numStates,
 					  const size_t& numTrans,
 					  const ImportanceValue& maxImportance,
 					  const unsigned& splitsPerThr);

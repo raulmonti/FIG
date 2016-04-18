@@ -34,7 +34,7 @@
 #include <queue>
 #include <vector>
 #include <forward_list>
-#include <algorithm>
+#include <algorithm>  // std::fill(), std::remove_if()
 // FIG
 #include <ImportanceFunctionConcrete.h>
 #include <FigException.h>
@@ -162,9 +162,6 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 //	assert(std::find(begin(raresQueue), end(raresQueue), initialState)
 //		   == end(raresQueue));
 
-	/// @todo TODO erase debug print
-	std::cerr << "\nInitial state: " << initialState << std::endl;
-
 	const ImportanceValue ALL_MASKS (fig::EventType::RARE
 									|fig::EventType::STOP
 									|fig::EventType::REFERENCE
@@ -172,22 +169,14 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 									|fig::EventType::THR_DOWN);
 	const ImportanceValue NOT_VISITED (static_cast<ImportanceValue>(~ALL_MASKS));
 
-	/// @todo TODO erase debug print
-	std::cerr << "Rare states: ";
-
 	// Initially: 0 distance for rare states
 	//            maximum representable distance for the rest
 	for (STATE_T s = 0u ; s < cStates.size() ; s++) {
-		if (fig::IS_RARE_EVENT(cStates[s])) {
+		if (fig::IS_RARE_EVENT(cStates[s]))
 			cStates[s] = 0 | fig::MASK(cStates[s]);
-			/// @todo TODO erase debug print
-			std::cerr << s << ", ";
-		} else
+		else
 			cStates[s] = NOT_VISITED | fig::MASK(cStates[s]);
 	}
-
-	/// @todo TODO erase debug print
-	std::cerr << "\b\b  \n\n";
 
 	// BFS
 	bool initialReached(false);
@@ -236,18 +225,26 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 }
 
 
-/// @todo TODO write docstring
+/**
+ * Mask as RARE event all concrete states which satisfy any of the clauses
+ * @param s           Copy of the local State being labelled
+ * @param cStates     Vector of concrete states corresponding to 's'
+ * @param rareClauses DNF clauses identifying the states to mask as RARE
+ * @param reset       Whether cStates should be nullified before computations
+ * @return Set of concrete states found to satisfy any of the clauses,
+ *         viz. set of rare concrete states
+ */
 std::set< STATE_T >
-label_local_rares(EventVec& cStates,
-				  State s,
+label_local_rares(State s,
+				  EventVec& cStates,
 				  const std::vector< Clause >& rareClauses,
 				  const bool reset = false)
 {
 	std::set< STATE_T > rares;
+	if (reset)
+		std::fill(begin(cStates), end(cStates), fig::EventType::NONE);
 	for (const auto& clause: rareClauses) {
 		for (size_t i = 0ul ; i < cStates.size() ; i++) {
-			if (reset)
-				cStates[i] = fig::EventType::NONE;
 			if (clause(s.decode(i).to_state_instance())) {
 				cStates[i] |= fig::EventType::RARE;
 				rares.emplace(i);
@@ -258,23 +255,29 @@ label_local_rares(EventVec& cStates,
 }
 
 
-/// @todo TODO write docstring
+/**
+ * Mask as EVENT all concrete states which satisfy any of the clauses
+ * @param s            Copy of the local State being labelled
+ * @param cStates      Vector of concrete states corresponding to 's'
+ * @param otherClauses DNF clauses identifying the states to mask as EVENT
+ * @param reset        Whether cStates should be nullified before computations
+ * @param negate       Whether the *negation of the clauses* should be used
+ *                     when masking the concrete states
+*/
 void
-label_local_others(EventVec& cStates,
-				   State s,
+label_local_others(State s,
+				   EventVec& cStates,
 				   const std::vector< Clause >& otherClauses,
-				   const fig::EventType& event,
+				   const fig::EventType& EVENT,
 				   const bool reset = false,
 				   const bool negate = false)
 {
-	for (const auto& clause: otherClauses) {
-		for (size_t i = 0ul ; i < cStates.size() ; i++) {
-			if (reset)
-				cStates[i] = fig::EventType::NONE;
+	if (reset)
+		std::fill(begin(cStates), end(cStates), fig::EventType::NONE);
+	for (const auto& clause: otherClauses)
+		for (size_t i = 0ul ; i < cStates.size() ; i++)
 			if (negate != clause(s.decode(i).to_state_instance()))
-				cStates[i] |= event;
-		}
-	}
+				cStates[i] |= EVENT;
 }
 
 
@@ -319,13 +322,13 @@ label_local_states(const State& localState,
 	switch (property.type) {
 
 	case fig::PropertyType::TRANSIENT:
-		rares = label_local_rares(cStates, localState, rareClauses, true);
-		label_local_others(cStates, localState, otherClauses,
+		rares = label_local_rares(localState, cStates, rareClauses, true);
+		label_local_others(localState, cStates, otherClauses,
 						   fig::EventType::STOP, false, true);
 		break;
 
 	case fig::PropertyType::RATE:
-		rares = label_local_rares(cStates, localState, rareClauses, true);
+		rares = label_local_rares(localState, cStates, rareClauses, true);
 		break;
 
 	case fig::PropertyType::THROUGHPUT:
