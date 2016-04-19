@@ -284,6 +284,27 @@ public:
     }
 
 
+	/// Tell whether an AST tree has an outer pair of parenthesis
+	static bool
+	has_parenthesis(const AST *ast);
+
+
+    /// Remove outer pairs of parenthesis from AST tree.
+    /// @return Normalized copy of the AST tree passed
+    /// @note User owns memory assigned for the result
+    static AST
+    normalize_ast(const AST *ast);
+
+
+    /**
+     * @brief Remove outer pairs of parenthesis from AST tree.
+     * @note  This function effectively modifies its argument.
+     * @deprecated
+     **/
+    static void
+    normalize_ast(AST **ast);
+
+
 private:
 
     /**

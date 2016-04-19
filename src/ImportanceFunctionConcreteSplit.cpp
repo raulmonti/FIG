@@ -464,14 +464,14 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	modulesConcreteImportance.resize(numModules_);
 
 	// Assess each module importance individually from the rest
-	const parser::DNFclauses dnfClauses(prop);
+	propertyClauses.populate(prop);
 	ModulesExtremeValues moduleValues(numModules_);
 	for (size_t index = 0ul ; index < numModules_ ; index++) {
 		ImportanceFunctionConcrete::assess_importance(*modules_[index],
 													  prop,
 													  strategy,
 													  index,
-													  dnfClauses);
+													  propertyClauses);
 		assert(minValue_ <= initialValue_);
 		assert(initialValue_ <= minRareValue_);
 		assert(minRareValue_ <= maxValue_);

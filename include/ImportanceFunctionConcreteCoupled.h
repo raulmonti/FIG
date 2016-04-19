@@ -71,6 +71,13 @@ public:  // Ctor/Dtor
 	/// Dtor
 	virtual ~ImportanceFunctionConcreteCoupled();
 
+	/// Avoid accidental copies
+	ImportanceFunctionConcreteCoupled(const ImportanceFunctionConcreteCoupled&) = delete;
+
+	/// Avoid accidental copies
+	ImportanceFunctionConcreteCoupled&
+	operator=(const ImportanceFunctionConcreteCoupled&) = delete;
+
 public:  // Accessors
 
 	/// @copydoc ImportanceFunctionConcrete::info_of()

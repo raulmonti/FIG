@@ -76,13 +76,13 @@ private:  // Attributes
 public:  // Ctor/Dtor
 
 	/// Default empty ctor
-	DNFclauses();
+	DNFclauses() {}
 
 	/// Build and populate() with passed propery
 	DNFclauses(const fig::Property& property);
 
-	/// Free internal memory
-	~DNFclauses();
+	/// Dtor frees internal memory
+	~DNFclauses() { clear(); }
 
 public:  // Utils
 
@@ -98,6 +98,11 @@ public:  // Utils
 		vector< Clause >,
 		vector< Clause >
 	> project(const State& localState) const;
+
+private:  // Class utils
+
+	/// Void internal structures, freeing any allocated memory
+	void clear();
 };
 
 } // namespace parser

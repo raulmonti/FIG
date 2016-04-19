@@ -92,6 +92,41 @@ Parser::reset(void)
 
 
 
+bool
+Parser::has_parenthesis(const AST *ast)
+{
+	while(ast->branches.size() == 1 && ast->lxm == ""){
+		ast = ast->branches[0];
+	}
+	return ast->tkn == _VALUE && ast->branches[0]->lxm == "(";
+}
+
+
+AST
+Parser::normalize_ast(const AST *ast)
+{
+	AST result(*ast);
+	if (ast->tkn == _EXPRESSION || ast->tkn == _EQUALITY)
+		while (has_parenthesis(&result))  // get expression between '(' and ')'
+			result = *(result.get_first(_VALUE)->branches[1]);
+	return result;  // http://stackoverflow.com/a/17473869
+}
+
+
+void
+Parser::normalize_ast(AST **ast)
+{
+	assert((*ast)->tkn == _EXPRESSION);
+	while(has_parenthesis(*ast)){
+		// remove external parenthesis
+		AST* value = (*ast)->get_first(_VALUE);
+		AST* aux = value->branches[1];
+		value->branches[1] = nullptr;
+		delete (*ast);
+		(*ast) = aux;
+	}
+}
+
 
 /** @brief Get the next token from the tokens vector and make it
  *  available in @tkn class member. If @skipws then it will skip
@@ -129,7 +164,7 @@ Parser::accept(Token s){
 }
  
 /**
- * @Brief Consume the next token and trow an exception if it 
+ * @brief Consume the next token and trow an exception if it
  * does not match with @s.
  * @param [in] s The expected token.
  * @throw FigSyntaxError() if @s is not matched.
@@ -150,8 +185,8 @@ Parser::expect(Token s, string str){
 
 
 /** 
- * @Brief When grammar did not match, return to the saved state.
- * @Note For looking ahead in the grammar.
+ * @brief When grammar did not match, return to the saved state.
+ * @note For looking ahead in the grammar.
  */
 void 
 Parser::loadLocation(){

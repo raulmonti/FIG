@@ -309,7 +309,7 @@ std::queue< STATE_T >
 label_local_states(const State& localState,
 				   EventVec& cStates,
 				   const Property& property,
-				   const DNFclauses clauses)
+				   const DNFclauses& clauses)
 {
 	std::vector< Clause > rareClauses, otherClauses;
 	std::set< STATE_T > rares;

@@ -50,37 +50,39 @@ using Clause = parser::DNFclauses::Clause;
 /**
  * Parse the formula as a list of DNF clauses
  * @param DNFformula AST of a logical formula assumed to be in DNF
- * @return Vector of DNF clauses: each is a conjunction of literals
- *         (i.e. boolean values or comparisons of arithmetic values)
- *
- * @todo FIXME As soon as Raúl implements it, use the "outer-parenthesis-deleter"
- *             function on every AST before calling "get_all_ast_ff()" on them
+ * @return Vector of ASTs each of which represents a conjunction of literals,
+ *         i.e. of boolean variables/values or comparisons of arithmetic variables/values
+ * @note User owns memory of the returned vector
  */
-DNF extract_clauses(AST& DNFformula)
+DNF extract_clauses(const AST& DNFformula)
 {
+	using parser::Parser;
+
 	DNF clauses;
+	AST DNFformula_N = Parser::normalize_ast(&DNFformula);  // remove any outer '()'
 
-	/// @todo TODO sacar "()" de DNFformula
+	for (AST* clause: DNFformula_N.get_all_ast_ff(parser::_EQUALITY)) {
 
-	for (AST* clause: DNFformula.get_all_ast_ff(parser::_EQUALITY)) {
+		AST clause_N = Parser::normalize_ast(clause);
+		AST *ASTclause(clause_N.get_first(parser::_EXPRESSION));
 
-		/// @todo TODO sacar "()" de clause
-
-		AST *ASTclause(clause->get_first(parser::_EXPRESSION));
 		if (nullptr == ASTclause) {
-			// May be a single boolean
+			// May be a single boolean or arithmetic comparison
 			ASTclause = clause->get_first(parser::_EQUALITY);
 			if (nullptr == ASTclause)
 				throw_FigException("couldn't parse the property \"" +
 								   DNFformula.toString()+"\"; is it in DNF?");
-			/// @todo TODO sacar "()" de cada elemento en clause
-			clauses.emplace_back(vector<AST*>({ASTclause}));
+			AST* ASTclause_N = new AST(Parser::normalize_ast(ASTclause));
+			clauses.emplace_back(vector<AST*>({ASTclause_N}));
+
 		} else {
-			// Should be a conjunction of booleans
-			vector<AST*> literals(ASTclause->get_all_ast_ff(parser::_EQUALITY));
-			/// @todo TODO sacar "()" de literals
-			if (literals.size() > 0ul)
-				clauses.emplace_back(literals);
+			// Assume it's a conjunction of literals
+			vector<AST*> literals(ASTclause->get_all_ast_ff(parser::_EQUALITY)),
+						 literals_N(literals.size());
+			for (size_t i = 0ul ; i < literals.size() ; i++)
+				 literals_N[i] = new AST(Parser::normalize_ast(literals[i]));
+			if (literals_N.size() > 0ul)
+				clauses.emplace_back(literals_N);
 		}
 	}
 
@@ -91,7 +93,7 @@ DNF extract_clauses(AST& DNFformula)
 /**
  * Project 'clauses' over the set of variables names passed,
  * so that all literals ocurring in the result have at least one of them
- * @param clauses  DNF clases to restrict
+ * @param clauses  DNF clauses to restrict
  * @param varnames Variable names defining the projection
  * @return Clauses projected over the set of variables names passed
  */
@@ -131,11 +133,6 @@ project(const DNF& clauses, const vector< std::string >& varnames)
 namespace parser
 {
 
-DNFclauses::DNFclauses() :
-	propIdx_(0)
-{ /* Not much to do around here */ }
-
-
 DNFclauses::DNFclauses(const fig::Property& property) :
 	propIdx_(property.index())
 {
@@ -144,22 +141,13 @@ DNFclauses::DNFclauses(const fig::Property& property) :
 }
 
 
-DNFclauses::~DNFclauses()
-{
-	for (auto& vec: rares_)
-		vec.clear();
-	for (auto& vec: others_)
-		vec.clear();
-	DNF().swap(rares_);
-	DNF().swap(others_);
-}
-
-
 void
 DNFclauses::populate(const fig::Property& property)
 {
 	if (property.index() == static_cast<int>(propIdx_) && !rares_.empty())
-		return;  // nothing to do
+		return;   // nothing to do
+	else
+		clear();  // make room for the young
 
 	assert(GLOBAL_PROP_AST);
 	std::vector<AST*> ASTprops(GLOBAL_PROP_AST->get_all_ast(parser::_PROPERTY));
@@ -172,16 +160,15 @@ DNFclauses::populate(const fig::Property& property)
 		AST& ASTtransient(*ASTprop.get_first(parser::_PPROP));
 		std::vector< AST* > transientFormulae(ASTtransient.get_list(parser::_EXPRESSION));
 		assert(transientFormulae.size() == 2ul);
-		rares_ = extract_clauses(*transientFormulae[1]);
-		others_ = extract_clauses(*transientFormulae[0]);
+		rares_ = extract_clauses(const_cast<const AST&>(*transientFormulae[1]));
+		others_ = extract_clauses(const_cast<const AST&>(*transientFormulae[0]));
 		} break;
 
 	case fig::PropertyType::RATE: {
 		AST& ASTrate(*ASTprop.get_first(parser::_SPROP));
 		std::vector< AST* > rateFormulae(ASTrate.get_list(parser::_EXPRESSION));
 		assert(rateFormulae.size() == 1ul);
-		rares_ = extract_clauses(*rateFormulae[0]);
-		others_.clear();
+		rares_ = extract_clauses(const_cast<const AST&>(*rateFormulae[0]));
 		} break;
 
 	case fig::PropertyType::THROUGHPUT:
@@ -211,6 +198,20 @@ DNFclauses::project(const State& localState) const
 		clause.pin_up_vars(localState);
 
 	return std::make_pair(rares, others);
+}
+
+
+void
+DNFclauses::clear()
+{
+	for (auto& vec: rares_)
+		for (AST* ast: vec)
+			delete ast;
+	for (auto& vec: others_)
+		for (AST* ast: vec)
+			delete ast;
+	DNF().swap(rares_);
+	DNF().swap(others_);
 }
 
 } // namespace parser

@@ -39,6 +39,8 @@
 #include <ImportanceFunctionConcrete.h>
 
 
+namespace parser { class DNFclauses; }  // Fwd declaration
+
 namespace fig
 {
 
@@ -99,6 +101,9 @@ private:
     /// Strategy used to merge the "split modules" importance values
     mutable MergeType mergeStrategy_;
 
+    /// Property to check, parsed as a DNF formula
+    parser::DNFclauses propertyClauses;
+
 public:  // Ctor/Dtor
 
 	/// @brief Data ctor
@@ -107,6 +112,13 @@ public:  // Ctor/Dtor
 
 	/// Dtor
 	virtual ~ImportanceFunctionConcreteSplit();
+
+	/// Avoid accidental copies
+	ImportanceFunctionConcreteSplit(const ImportanceFunctionConcreteSplit&) = delete;
+
+	/// Avoid accidental copies
+	ImportanceFunctionConcreteSplit&
+	operator=(const ImportanceFunctionConcreteSplit&) = delete;
 
 public:  // Accessors
 
