@@ -1059,10 +1059,9 @@ ModelSuite::build_thresholds(const std::string& technique,
 						   "\"" + ifunName + "\" beforehand");
 
 	if (force || ifun.thresholds_technique() != technique) {
-		techLog_ << "\nBuilding thresholds for importance function \""
-				 << ifunName << "\",\nwith splitting = "
-				 << std::to_string(splitsPerThreshold)
-				 << " and using technique \"" << technique << "\"\n";
+		techLog_ << "\nBuilding thresholds for importance function \"" << ifunName
+				 << "\",\nusing technique \"" << technique << "\" with splitting "
+				 << "= " << std::to_string(splitsPerThreshold) << std::endl;
 		const double startTime = omp_get_wtime();
 		if (thrBuilder.adaptive() && lvlUpProb > 0.0)
 			ifun.build_thresholds_adaptively(

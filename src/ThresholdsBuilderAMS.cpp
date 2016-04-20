@@ -156,13 +156,13 @@ ThresholdsBuilderAMS::build_thresholds_vector(
         const ImportanceValue newThreshold = traials[n_-k_].get().level;
         if (thresholds_.back() < newThreshold) {
 			// Found valid new threshold
-            thresholds_.push_back(newThreshold);
+			fig::ModelSuite::tech_log("+");
+			thresholds_.push_back(newThreshold);
 			simEffort = MIN_SIM_EFFORT;
 			failures = 0u;
         } else {
 			// Failed to reach higher importance => increase effort
-			fig::ModelSuite::tech_log("Failed to find new threshold (reached "
-									  + std::to_string(newThreshold) + ")\n");
+			fig::ModelSuite::tech_log("-");
 			if (++failures > MAX_NUM_FAILURES)
 				goto exit_with_fail;
 			simEffort *= 2u;
@@ -171,7 +171,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 
 	TraialPool::get_instance().return_traials(traials);
     { std::stringstream msg;
-    msg << "ImportanceValue of the chosen thresholds:";
+	msg << "\nImportanceValue of the chosen thresholds:";
     for (size_t i = 1ul ; i < thresholds_.size() ; i++)
         msg << " " << thresholds_[i];
 	ModelSuite::tech_log(msg.str() + "\n"); }

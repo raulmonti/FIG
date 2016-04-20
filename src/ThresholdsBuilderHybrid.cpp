@@ -91,7 +91,7 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 			msg << " " << i;
 		ModelSuite::tech_log(msg.str() + "\n");
 	}
-	std::vector< ImportanceValue >().swap(thresholds_);  // free mem
+	ImportanceVec().swap(thresholds_);  // free mem
 
 	assert(result[impFun.min_value()] == static_cast<ImportanceValue>(0u));
 	assert(result[impFun.initial_value()] == static_cast<ImportanceValue>(0u));
