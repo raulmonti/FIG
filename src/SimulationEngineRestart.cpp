@@ -225,7 +225,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		 (const PropertyRate&, Traial&, Event&) const;
 	bool (SimulationEngineRestart::*register_time)
 		 (const PropertyRate&, Traial&, Event&) const;
-	if (impFun_->concrete()) {
+	if (impFun_->concrete_simulation()) {
 		watch_events = &SimulationEngineRestart::rate_event_concrete;
 		register_time = &SimulationEngineRestart::count_time_concrete;
 	} else {
@@ -298,19 +298,10 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		}
 	}
 
-	/// @todo TODO erase debug print
-	std::cerr << "Total unscaled rare time: " << raresCount.sum() << std::endl;
-
 	// To estimate, weigh counts by the relative importance of their thresholds
 	double accTime(0.0);
-	for (unsigned i = 0u ; i <= numThresholds ; i++) {
+	for (unsigned i = 0u ; i <= numThresholds ; i++)
 		accTime += raresCount[i] / pow(splitsPerThreshold_, i);
-
-		/// @todo TODO erase debug print
-		std::cerr << "Lvl " << i << " rare time: ";
-		std::cerr << raresCount[i] << "(u) | ";
-		std::cerr << raresCount[i]/pow(splitsPerThreshold_, i) << "(s)\n";
-	}
 
 	// Return estimate or its negative value
 	assert(0.0 <= accTime);

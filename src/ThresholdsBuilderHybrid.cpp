@@ -61,7 +61,7 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 		const unsigned LAST_THR(thresholds_.back()),
 					   MARGIN(LAST_THR - impFun.initial_value()),
 					   STRIDE(splitsPerThreshold < 5u ? 1u : 2u);
-		ModelSuite::tech_log("Resorting to fixed choice of thresholds "
+		ModelSuite::tech_log("\nResorting to fixed choice of thresholds "
 							 "starting above the ImportanceValue " +
 							 std::to_string(LAST_THR) + "\n");
 

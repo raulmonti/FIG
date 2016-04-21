@@ -107,7 +107,7 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 		 (const PropertyRate&, Traial&, Event&) const;
 	bool (SimulationEngineNosplit::*register_time)
 		 (const PropertyRate&, Traial&, Event&) const;
-	if (impFun_->concrete()) {
+	if (impFun_->concrete_simulation()) {
 		watch_events = &SimulationEngineNosplit::rate_event_concrete;
 		register_time = &SimulationEngineNosplit::count_time_concrete;
 	} else {

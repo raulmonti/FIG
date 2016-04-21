@@ -104,6 +104,9 @@ private:
     /// Property to check, parsed as a DNF formula
     parser::DNFclauses propertyClauses;
 
+    /// @copydoc ImportanceFunction::concrete_simulation()
+    bool concreteSimulation_;
+
 public:  // Ctor/Dtor
 
 	/// @brief Data ctor
@@ -121,6 +124,8 @@ public:  // Ctor/Dtor
 	operator=(const ImportanceFunctionConcreteSplit&) = delete;
 
 public:  // Accessors
+
+	inline bool concrete_simulation() const noexcept override final { return concreteSimulation_; }
 
 	/// @copydoc ImportanceFunctionConcrete::info_of()
 	/// @note <b>Complexity:</b> <i>O(size(state))</i> +
@@ -151,9 +156,18 @@ public:  // Utils
 	void assess_importance(const Property& prop,
 						   const std::string& strategy = "flat") override;
 
+private:
+
+	/// @brief ImportanceFunctionConcreteSplit for 'adhoc' assessment strategy
+	///        is currently unavailable
+	/// @details The idea is too complicated and little rewarding: it'd require
+	///          the user's algebraic formula for importance computation *plus*
+	///          another algebraic formula to merge each module's importance.
+	///          Symbolic storage (i.e. ImportanceFunctionAlgebraic) is all the
+	///          'adhoc' importance assessment strategy needs. Go bother them.
 	void assess_importance(const Property& prop,
 						   const std::string& formulaExprStr,
-						   const std::vector<std::string>& varnames) override;
+						   const std::vector<std::string>& varnames) override {}
 
 private:  // Class utils
 

@@ -68,6 +68,8 @@ public:  // Accessors
 
 	inline bool concrete() const noexcept override final { return false; }
 
+	inline bool concrete_simulation() const noexcept override final { return false; }
+
 	/// @copydoc ImportanceFunction::importance_of()
 	/// @note <b>Complexity:</b> <i>O(size(state))</i> +
 	///                          <i>O(mu::Parser::Eval(state))</i>

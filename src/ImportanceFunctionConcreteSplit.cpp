@@ -256,7 +256,8 @@ ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 		numModules_(model.modules.size()),
 		localValues_(numModules_),
 		localStatesCopies_(numModules_),
-		mergeStrategy_(MergeType::NONE)
+		mergeStrategy_(MergeType::NONE),
+		concreteSimulation_(true)
 {
 	bool initialize(false);  // initialize (non-const) static class members?
 	if (globalVarsIPos.size() == 0ul) {
@@ -464,6 +465,8 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	modulesConcreteImportance.resize(numModules_);
 
 	// Assess each module importance individually from the rest
+	concreteSimulation_ = false;
+	unsigned numRareRelevantModules(0u);
 	propertyClauses.populate(prop);
 	ModulesExtremeValues moduleValues(numModules_);
 	for (size_t index = 0ul ; index < numModules_ ; index++) {
@@ -477,9 +480,14 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		assert(minRareValue_ <= maxValue_);
 		moduleValues[modules_[index]->name] =
 				std::make_tuple(minValue_, maxValue_, minRareValue_);
+		numRareRelevantModules += minValue_ < maxValue_ ? 1u : 0u;
 	}
 	hasImportanceInfo_ = true;
 	strategy_ = strategy;
+
+	// If the rare event depends on the state of more than one module,
+	// global rarity can't be encoded split in vectors for later simulations
+	concreteSimulation_ = "flat" != strategy && numRareRelevantModules < 2u;
 
 	// Find extreme importance values for current assessment
 	initialValue_ = importance_of(systemInitialValuation);
@@ -498,17 +506,6 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	assert(minValue_ <= initialValue_);
 	assert(initialValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);
-}
-
-
-void
-ImportanceFunctionConcreteSplit::assess_importance(
-	const Property&,
-	const std::string&,
-	const std::vector<std::string>&)
-{
-	throw_FigException("TODO: ad hoc assessment and split concrete storage");
-	/// @todo TODO: implement concrete ifun with ad hoc importance assessment
 }
 
 } // namespace fig

@@ -443,14 +443,6 @@ assess_importance_auto(const fig::Module& module,
 					   const bool split)
 {
     assert(impVec.size() == 0ul);
-	// Impose a limit on the amount of memory the user can request for this.
-	// There's no portable way of measuring the system's available RAM
-	// (http://stackoverflow.com/a/2513561), thus the limit is arbitrary
-	const uint128::uint128_t concreteStateSize(module.concrete_state_size());
-	if (concreteStateSize.upper() > 0ul ||
-		std::log2(concreteStateSize.lower()) > 60ul)
-		throw_FigException("the concrete state space of this module "
-						   "is too big to hold it in a vector");
 
 	// Step 1: run DFS from initial state to compute reachable reversed edges
 	fig::AdjacencyList reverseEdges = reversed_edges_DFS(module, impVec);
@@ -483,12 +475,14 @@ assess_importance_auto(const fig::Module& module,
  * @param state    Symbolic state of this Module, in any valuation
  * @param impVec   Vector where the importance will be stored <b>(modified)</b>
  * @param property Property identifying the special states
+ * @param clauses  Property parsed as a DNF list of clauses, for split storage
  * @param split    Whether we're working for ImportanceFunctionConcreteSplit
  */
 ImportanceValue
 assess_importance_flat(const State& state,
 					   ImportanceVec& impVec,
 					   const Property& property,
+					   const DNFclauses& clauses,
 					   const bool split)
 {
 	assert(state.size() > 0ul);
@@ -498,7 +492,7 @@ assess_importance_flat(const State& state,
 	ImportanceVec(state.concrete_size()).swap(impVec);
 	// ... and label according to the property
 	if (split)
-		label_local_states(state, impVec, property, DNFclauses());  // this is idiotic
+		label_local_states(state, impVec, property, clauses);  // this is idiotic
 	else
 		label_global_states(state, impVec, property);
 
@@ -542,11 +536,21 @@ ImportanceFunctionConcrete::assess_importance(
 						  + std::to_string(index));
 	const bool split(name().find("split") != std::string::npos);
 
+	// Impose a limit on the amount of memory the user can request for this.
+	// There's no portable way of measuring the system's available RAM
+	// (http://stackoverflow.com/a/2513561), thus the limit is arbitrary
+	const uint128::uint128_t concreteStateSize(module.concrete_state_size());
+	if (concreteStateSize.upper() > 0ul ||
+		std::log2(concreteStateSize.lower()) > 60ul)
+		throw_FigException("the concrete state space of this module "
+						   "is too big to hold it in a vector");
+
 	// Compute importance according to the chosen strategy
 	if ("flat" == strategy) {
 		maxValue_ = assess_importance_flat(module.initial_state(),
 										   modulesConcreteImportance[index],
 										   property,
+										   clauses,
 										   split);
         // Invariant of flat importance function:
 		minValue_ = maxValue_;
