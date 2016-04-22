@@ -527,48 +527,6 @@ std::once_flag ModelSuite::singleInstance_;
 
 // ModelSuite class member functions
 
-// Class utils defined first
-
-template< template< typename... Args > class Container, typename... Args>
-void
-ModelSuite::process_adhocfun_varnames(Container<Args...>& varnames)
-{
-	if (varnames.empty()) {
-		auto allVarnames = model->global_state().varnames();
-		varnames.insert(begin(varnames), begin(allVarnames), end(allVarnames));
-	}
-}
-// ModelSuite::process_adhocfun_varnames generic version can only be invoked
-// with the following containers
-template void ModelSuite::process_adhocfun_varnames(std::list<std::string>&);
-template void ModelSuite::process_adhocfun_varnames(std::deque<std::string>&);
-template void ModelSuite::process_adhocfun_varnames(std::vector<std::string>&);
-// ModelSuite::process_adhocfun_varnames specialization for std::set<>
-template<> void
-ModelSuite::process_adhocfun_varnames(std::set<std::string>& varnames)
-{
-	if (varnames.empty())
-		for (const auto& name: model->global_state().varnames())
-			varnames.emplace(name);
-}
-// ModelSuite::process_adhocfun_varnames specialization for std::forward_list<>
-template<> void
-ModelSuite::process_adhocfun_varnames(std::forward_list<std::string>& varnames)
-{
-	if (varnames.empty())
-		for (const auto& name: model->global_state().varnames())
-			varnames.emplace_front(name);
-}
-// ModelSuite::process_adhocfun_varnames specialization for std::unordered_set<>
-template<> void
-ModelSuite::process_adhocfun_varnames(std::unordered_set<std::string>& varnames)
-{
-	if (varnames.empty()) {
-		auto allVarnames = model->global_state().varnames();
-		varnames.insert(begin(allVarnames), end(allVarnames));
-	}
-}
-
 
 ModelSuite::~ModelSuite() { /* Just relax and let everything go */ }
 
@@ -855,8 +813,8 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
 
 void
 ModelSuite::build_importance_function_auto(const std::string& ifunName,
-										   const Property& property,
 										   const std::string& mergeFun,
+										   const Property& property,
 										   bool force)
 {
 	if (!exists_importance_function(ifunName))
@@ -905,25 +863,25 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 
 void
 ModelSuite::build_importance_function_auto(const std::string& ifunName,
-                                           const size_t& propertyIndex,
                                            const std::string& mergeFun,
-                                           bool force)
+										   const size_t& propertyIndex,
+										   bool force)
 {
     auto propertyPtr = get_property(propertyIndex);
     if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
-    build_importance_function_auto(ifunName, *propertyPtr, mergeFun, force);
+	build_importance_function_auto(ifunName, mergeFun, *propertyPtr, force);
 }
 
 
-template< template< typename... > class Container, typename... OtherArgs >
 void
 ModelSuite::build_importance_function_adhoc(
     const std::string& ifunName,
-    const Property& property,
     const std::string& formulaExprStr,
-    Container<std::string, OtherArgs...> varnames,
-    bool force)
+	const Property& property,
+	const ImportanceValue& minVal,
+	const ImportanceValue& maxVal,
+	bool force)
 {
     if (!exists_importance_function(ifunName))
 		throw_FigException("inexistent importance function \"" + ifunName +
@@ -939,19 +897,21 @@ ModelSuite::build_importance_function_adhoc(
 				 << formulaExprStr << "\")\n";
 		techLog_ << "Property: " << property.expression << std::endl;
 		ifun.clear();
-		process_adhocfun_varnames(varnames);  // make sure we have some variable names
+		auto allVarnames = model->global_state().varnames();
 		const double startTime = omp_get_wtime();
 		if (ifun.concrete()) {
-            std::vector<std::string> varnamesVec(begin(varnames), end(varnames));
+			std::vector<std::string> varnamesVec(begin(allVarnames), end(allVarnames));
             static_cast<ImportanceFunctionConcrete&>(ifun)
                 .assess_importance(property, formulaExprStr, varnamesVec);
 		} else {
             static_cast<ImportanceFunctionAlgebraic&>(ifun)
                 .set_formula("adhoc",
                              formulaExprStr,
-                             varnames,
+							 allVarnames,
                              model->global_state(),
-                             property);
+							 property,
+							 minVal,
+							 maxVal);
         }
 		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
 		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
@@ -970,67 +930,26 @@ ModelSuite::build_importance_function_adhoc(
 #endif
 }
 
-// ModelSuite::build_importance_function_adhoc() can only be invoked
-// with the following containers
-template void ModelSuite::build_importance_function_adhoc(
-    const std::string&, const Property&, const std::string&,
-    std::set<std::string>, bool);
-template void ModelSuite::build_importance_function_adhoc(
-    const std::string&, const Property&, const std::string&,
-    std::list<std::string>, bool);
-template void ModelSuite::build_importance_function_adhoc(
-    const std::string&, const Property&, const std::string&,
-    std::deque<std::string>, bool);
-template void ModelSuite::build_importance_function_adhoc(
-    const std::string&, const Property&, const std::string&,
-    std::vector<std::string>, bool);
-template void ModelSuite::build_importance_function_adhoc(
-    const std::string&, const Property&, const std::string&,
-    std::forward_list<std::string>, bool);
-template void ModelSuite::build_importance_function_adhoc(
-    const std::string&, const Property&, const std::string&,
-    std::unordered_set<std::string>, bool);
 
-
-template< template< typename... > class Container, typename... OtherArgs >
 void
 ModelSuite::build_importance_function_adhoc(
 	const std::string& ifunName,
-	const size_t& propertyIndex,
 	const std::string& formulaExprStr,
-	Container<std::string, OtherArgs...> varnames,
+	const size_t& propertyIndex,
+	const ImportanceValue& minVal,
+	const ImportanceValue& maxVal,
 	bool force)
 {
 	auto propertyPtr = get_property(propertyIndex);
 	if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
 	build_importance_function_adhoc(ifunName,
-									*propertyPtr,
 									formulaExprStr,
-									varnames,
+									*propertyPtr,
+									minVal,
+									maxVal,
 									force);
 }
-
-// ModelSuite::build_importance_function_adhoc() can only be invoked
-// with the following containers
-template void ModelSuite::build_importance_function_adhoc(
-	const std::string&, const size_t&, const std::string&,
-	std::set<std::string>, bool);
-template void ModelSuite::build_importance_function_adhoc(
-	const std::string&, const size_t&, const std::string&,
-	std::list<std::string>, bool);
-template void ModelSuite::build_importance_function_adhoc(
-	const std::string&, const size_t&, const std::string&,
-	std::deque<std::string>, bool);
-template void ModelSuite::build_importance_function_adhoc(
-	const std::string&, const size_t&, const std::string&,
-	std::vector<std::string>, bool);
-template void ModelSuite::build_importance_function_adhoc(
-	const std::string&, const size_t&, const std::string&,
-	std::forward_list<std::string>, bool);
-template void ModelSuite::build_importance_function_adhoc(
-	const std::string&, const size_t&, const std::string&,
-	std::unordered_set<std::string>, bool);
 
 
 void

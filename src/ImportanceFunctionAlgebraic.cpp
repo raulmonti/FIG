@@ -96,7 +96,7 @@ bool advance(const std::vector< std::string >& vars, State& s)
  *        "algebraic formula"
  *
  *        All values combinations of the variables used in the formula
- *        are tested, for the possibilities specified in State 's'.
+ *        are tested, for the variable ranges specified in State 's'.
  *        From all the resulting evaluations of the Formula 'f' the minimal
  *        value is returned as the first component of the pair and the maximal
  *        value as the second component.
@@ -118,6 +118,13 @@ find_extreme_values(const Formula& f, State s)
 	ImportanceValue min(std::numeric_limits<ImportanceValue>::max());
 	ImportanceValue max(std::numeric_limits<ImportanceValue>::min());
 	const std::vector< std::string > vars(f.free_vars());
+
+	/// @todo TODO erase debug print
+	std::cerr << "Variables to test:";
+	for (const auto& var: vars)
+		std::cerr << " " << var;
+	std::cerr << std::endl;
+	////////////////////////////////
 
 	// Initialize (in 's') all relevant variables to their minimal values
 	for (const auto& var: vars) {
@@ -174,7 +181,9 @@ ImportanceFunctionAlgebraic::set_formula(
 	const std::string& formulaExprStr,
 	const Container<std::string, OtherArgs...>& varnames,
 	const State<STATE_INTERNAL_TYPE>& gState,
-	const Property& property)
+	const Property& property,
+	const ImportanceValue& minVal,
+	const ImportanceValue& maxVal)
 {
     if ("auto" == strategy)
 		throw_FigException("importance strategy \"auto\" can only be used "
@@ -185,7 +194,11 @@ ImportanceFunctionAlgebraic::set_formula(
 		throw_FigException("unrecognized importance assessment strategy \""
 						   + strategy + "\". See available options with "
 						   "ModelSuite::available_importance_strategies()");
-    try {
+
+	/// @todo TODO erase debug print
+	std::cerr << "Storing algebraic formula \"" << formulaExprStr << "\"\n";
+
+	try {
 		userFun_.set(formulaExprStr, varnames, gState);
 	} catch (std::out_of_range& e) {
 		throw_FigException("something went wrong while setting the function \""
@@ -195,6 +208,9 @@ ImportanceFunctionAlgebraic::set_formula(
 	hasImportanceInfo_ = true;
 	strategy_ = strategy;
 
+	/// @todo TODO erase debug print
+	std::cerr << "Looking for extreme values... ";
+
 	// Find extreme importance values for this ad hoc function
 	initialValue_ = importance_of(gState.to_state_instance());
 	if ("flat" == strategy) {
@@ -202,44 +218,73 @@ ImportanceFunctionAlgebraic::set_formula(
 		minValue_ = initialValue_;
 		maxValue_ = initialValue_;
 		minRareValue_ = initialValue_;
-	} else if (gState.concrete_size() < (1ul<<20ul)) {
+
+	} else if (minVal < maxVal) {
+
+		/// @todo TODO erase debug print
+		std::cerr << "provided by the user!!!\n";
+
+		// Trust blindly in the user-defined extreme values
+		minValue_ = minVal;
+		maxValue_ = maxVal;
+		minRareValue_ = std::max(initialValue_, minValue_);  // play it safe here
+
+	} else if (gState.concrete_size() < static_cast<uint128_t>(1ul<<20ul)) {
+
+		/// @todo TODO erase debug print
+		std::cerr << "in whole state space!!!\n";
+
 		// We can afford a full-state-space scan
 		find_extreme_values(gState, property);
+
 	} else {
+
+		/// @todo TODO erase debug print
+		std::cerr << "throughout all possible importance values.\n";
+
 		// Concrete state space is too big, resort to faster ways
 		std::tie(minValue_, maxValue_) = ::find_extreme_values(userFun_, gState);
 		// Play it safe and assume minRareValue_ == minValue_
-		minRareValue_ = std::max(initialValue_, minValue_);
+		minRareValue_ = std::max(initialValue_, minValue_);  // play it safe here
 		/// @todo TODO The general solution is to use ILP on userFun_
 		///            That'd also compute the real minRareValue_ (and fast!)
 		///            Use <a href="http://dlib.net/">dlib</a> maybe?
 	}
+
+	/// @todo TODO erase debug print
+	std::cerr << "Done\n";
+
 	assert(minValue_ <= initialValue_);
+	assert(initialValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);
-//	assert(initialValue_ <= minRareValue_);  // this may be false for functions
-											 // defined ad hoc by the user
 }
 
 // ImportanceFunctionAlgebraic::set_formula() can only be invoked
 // with the following containers
 template void ImportanceFunctionAlgebraic::set_formula(
     const std::string&, const std::string&, const std::set<std::string>&,
-    const State<STATE_INTERNAL_TYPE>&, const Property&);
+	const State<STATE_INTERNAL_TYPE>&, const Property&,
+	const ImportanceValue&, const ImportanceValue&);
 template void ImportanceFunctionAlgebraic::set_formula(
     const std::string&, const std::string&, const std::list<std::string>&,
-    const State<STATE_INTERNAL_TYPE>&, const Property&);
+	const State<STATE_INTERNAL_TYPE>&, const Property&,
+	const ImportanceValue&, const ImportanceValue&);
 template void ImportanceFunctionAlgebraic::set_formula(
     const std::string&, const std::string&, const std::deque<std::string>&,
-    const State<STATE_INTERNAL_TYPE>&, const Property&);
+	const State<STATE_INTERNAL_TYPE>&, const Property&,
+	const ImportanceValue&, const ImportanceValue&);
 template void ImportanceFunctionAlgebraic::set_formula(
     const std::string&, const std::string&, const std::vector<std::string>&,
-    const State<STATE_INTERNAL_TYPE>&, const Property&);
+	const State<STATE_INTERNAL_TYPE>&, const Property&,
+	const ImportanceValue&, const ImportanceValue&);
 template void ImportanceFunctionAlgebraic::set_formula(
     const std::string&, const std::string&, const std::forward_list<std::string>&,
-    const State<STATE_INTERNAL_TYPE>&, const Property&);
+	const State<STATE_INTERNAL_TYPE>&, const Property&,
+	const ImportanceValue&, const ImportanceValue&);
 template void ImportanceFunctionAlgebraic::set_formula(
     const std::string&, const std::string&, const std::unordered_set<std::string>&,
-    const State<STATE_INTERNAL_TYPE>&, const Property&);
+	const State<STATE_INTERNAL_TYPE>&, const Property&,
+	const ImportanceValue&, const ImportanceValue&);
 
 
 void

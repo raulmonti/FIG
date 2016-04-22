@@ -61,9 +61,7 @@ namespace fig_cli
 string modelFile;
 string propertiesFile;
 string engineName;
-string impFunName;
-string impFunStrategy;
-string impFunDetails;
+fig::ImpFunSpec impFunSpec("noName", "noStrategy");
 string thrTechnique;
 std::set< unsigned > splittings;
 std::list< fig::StoppingConditions > estBounds;
@@ -249,40 +247,95 @@ ValueArg<string> splittings_(
 
 // Helper routines  ///////////////////////////////////////////////////////////
 
+/// Parse ad hoc ImportanceFunction specification details:
+/// an user-defined algebraic expression, and optionally also
+/// the minimum and maximum value the ImportanceFunction can take.
+std::tuple<string, fig::ImportanceValue, fig::ImportanceValue>
+parse_ifun_details(const std::string& details)
+{
+	fig::ImportanceValue min(0u), max(0u);
+	char* err(nullptr);
+	const char DIVISOR(';');  // fields are divided by a semicolon
+	auto strValues = split(details, DIVISOR);
+
+	// The algebraic expression must be defined, though it's not interpreted here
+	assert(strValues.size() > 0ul);
+
+	// The extreme values are optional
+	if (strValues.size() > 1ul) {
+		min = std::strtoul(strValues[1].data(), &err, 10);
+		if (nullptr != err && err[0] != '\0') {
+			// Mimic TCLAP 'parsing error' message style
+			std::cerr << "PARSE ERROR: When parsing the algebraic expression \""
+					  << details << "\"\n";
+			std::cerr << "             After the first semicolon, the function's "
+					  << "min value should've been provided.\n\n";
+			return std::tuple<string,fig::ImportanceValue,fig::ImportanceValue>();
+		}
+	}
+	if (strValues.size() > 2ul) {
+		max = std::strtoul(strValues[2].data(), &err, 10);
+		if (nullptr != err && err[0] != '\0') {
+			// Mimic TCLAP 'parsing error' message style
+			std::cerr << "PARSE ERROR: When parsing the algebraic expression \""
+					  << details << "\"\n";
+			std::cerr << "             After the second semicolon, the function's "
+					  << "max value should've been provided.\n\n";
+			return std::tuple<string,fig::ImportanceValue,fig::ImportanceValue>();
+		}
+	}
+
+	return std::make_tuple(strValues[0], min, max);
+}
+
+
 /// Check the ImportanceFunction specification parsed from the command line
-/// into the TCLAP holders. Use it to fill in the global information offered to
-/// FIG for estimation (viz: 'impFunName', 'impFunStrategy' and 'impFunDetails')
+/// into the TCLAP holders. Use it to fill in the global information offered
+/// to FIG for estimation (viz: 'impFunSpec')
 /// @return Whether the information could be successfully retrieved
 bool
 get_ifun_specification()
 {
 	if (ifunFlat.isSet()) {
-		impFunName = "algebraic";
-		impFunStrategy = "flat";
+		new(&impFunSpec) fig::ImpFunSpec("algebraic", "flat");
+
 	} else if (ifunFlatCoupled.isSet()) {
-		impFunName = "concrete_coupled";
-		impFunStrategy = "flat";
+		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "flat");
+
 	} else if (ifunFlatSplit.isSet()) {
-		impFunName = "concrete_split";
-		impFunStrategy = "flat";
+		new(&impFunSpec) fig::ImpFunSpec("concrete_split", "flat");
+
 	} else if (ifunAutoCoupled.isSet()) {
-		impFunName = "concrete_coupled";
-		impFunStrategy = "auto";
+		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "auto");
+
 	} else if (ifunAutoSplit.isSet()) {
-		impFunName = "concrete_split";
-		impFunStrategy = "auto";
-		impFunDetails = ifunAutoSplit.getValue();
+		const string mergeFun =
+				std::get<0>(parse_ifun_details(ifunAutoSplit.getValue()));
+		if (mergeFun.empty())
+			return false;  // something went wrong
+		new(&impFunSpec) fig::ImpFunSpec("concrete_split", "auto", mergeFun);
+
 	} else if (ifunAdhoc.isSet()) {
-		impFunName = "algebraic";
-		impFunStrategy = "adhoc";
-		impFunDetails = ifunAdhoc.getValue();
+		const auto details = parse_ifun_details(ifunAdhoc.getValue());
+		if (std::get<0>(details).empty())
+			return false;  // something went wrong
+		new(&impFunSpec) fig::ImpFunSpec("algebraic", "adhoc",
+										 std::get<0>(details),
+										 std::get<1>(details),
+										 std::get<2>(details));
+
 	} else if (ifunAdhocCoupled.isSet()) {
-		impFunName = "concrete_coupled";
-		impFunStrategy = "adhoc";
-		impFunDetails = ifunAdhocCoupled.getValue();
+		const auto details = parse_ifun_details(ifunAdhocCoupled.getValue());
+		if (std::get<0>(details).empty())
+			return false;  // something went wrong
+		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "adhoc",
+										 std::get<0>(details),
+										 std::get<1>(details),
+										 std::get<2>(details));
 	} else {
 		return false;
 	}
+
 	return true;
 }
 
@@ -378,8 +431,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		propertiesFile = propertiesFile_.getValue();
 		engineName     = engineName_.getValue();
 		thrTechnique   = thrTechnique_.getValue();
-		bool ifunDefined = get_ifun_specification();
-		if (!ifunDefined) {
+		if (!get_ifun_specification()) {
 			std::cerr << "ERROR: must specify an importance function.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
@@ -388,8 +440,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 			else
 				return false;
 		}
-		bool stopCondDefined = get_stopping_conditions();
-		if (!stopCondDefined) {
+		if (!get_stopping_conditions()) {
 			std::cerr << "ERROR: must specify at least one stopping condition ";
 			std::cerr << "(aka estimation bound).\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
@@ -399,8 +450,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 			else
 				return false;
 		}
-		bool splittingsDefined = get_splitting_values();
-		if (!splittingsDefined) {
+		if (!get_splitting_values()) {
 			std::cerr << "ERROR: splitting values must be specified as a "
 						 "comma-sperated list of positive integral values. "
 						 "There should be no spaces in this list.\n\n";

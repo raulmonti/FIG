@@ -34,6 +34,7 @@
 #include <list>
 #include <string>
 // FIG
+#include <core_typedefs.h>
 #include <StoppingConditions.h>
 
 
@@ -74,17 +75,9 @@ extern std::string propertiesFile;
 /// to use for estimations
 extern std::string engineName;
 
-/// Name of the FIG's \ref fig::ImportanceFunction "importance function"
+/// Details of the FIG's \ref fig::ImportanceFunction "importance function"
 /// to use for estimations
-extern std::string impFunName;
-
-/// Name of the FIG's importance assessment strategy to use
-/// for building the \ref fig::ImportanceFunction "importance function"
-extern std::string impFunStrategy;
-
-/// Optional aditional details the FIG's \ref fig::ImportanceFunction
-/// "importance function" may need to operate
-extern std::string impFunDetails;
+extern fig::ImpFunSpec impFunSpec;
 
 /// Name of the FIG's \ref fig::ThresholdsBuilder "thresholds building
 /// technique" to use for estimations

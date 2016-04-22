@@ -136,13 +136,47 @@ typedef  std::bitset<MAX_NUM_CLOCKS>                                 Bitflag;
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //
 //
-// Importance and simulation events
+// Importance functions
 //
 
 /// Primitive type used to assess the importance of a single *concrete* state
 /// @warning This bounds the number of representable importance levels
 ///
 typedef  unsigned short                                      ImportanceValue;
+
+/// ImportanceFunction specification: this struct should be filled
+/// during the command line parsing, with the data provided by the user
+struct ImpFunSpec
+{
+	/// ImportanceFunction name @see ImportanceFunction::names()
+	const std::string name;
+	/// ImportanceFunction assessment strategy @see ImportanceFunction::strategies()
+	const std::string strategy;
+	/// User-defined ad hoc expression needed by some ImportanceFunction s
+	const std::string algebraicFormula;
+	/// <i>Optional</i>: min value the user-defined ad hoc function can take
+	const ImportanceValue minValue;
+	/// <i>Optional</i>: max value the user-defined ad hoc function can take
+	const ImportanceValue maxValue;
+	/// Data ctor needs at least a name and a strategy
+	ImpFunSpec(const std::string& theName,
+			   const std::string& theStrategy,
+			   const std::string& theAlgebraicFormula = "",
+			   const ImportanceValue& theMinValue = static_cast<ImportanceValue>(0u),
+			   const ImportanceValue& theMaxValue = static_cast<ImportanceValue>(0u)) :
+		name(theName),
+		strategy(theStrategy),
+		algebraicFormula(theAlgebraicFormula),
+		minValue(theMinValue),
+		maxValue(theMaxValue) {}
+};
+
+//
+//
+// // // // // // // // // // // // // // // // // // // // // // // // // //
+//
+// Simulation events
+//
 
 /// Bit flag to identify the recognized events during simulation
 /// @note Same as ImportanceValue to store this info in the ImportanceFunction

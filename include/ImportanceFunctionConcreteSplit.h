@@ -158,16 +158,17 @@ public:  // Utils
 
 private:
 
-	/// @brief ImportanceFunctionConcreteSplit for 'adhoc' assessment strategy
-	///        is currently unavailable
-	/// @details The idea is too complicated and little rewarding: it'd require
-	///          the user's algebraic formula for importance computation *plus*
-	///          another algebraic formula to merge each module's importance.
-	///          Symbolic storage (i.e. ImportanceFunctionAlgebraic) is all the
-	///          'adhoc' importance assessment strategy needs. Go bother them.
-	void assess_importance(const Property& prop,
-						   const std::string& formulaExprStr,
-						   const std::vector<std::string>& varnames) override {}
+	/// ImportanceFunctionConcreteSplit for 'adhoc' assessment strategy is
+	/// currently unavailable
+	/// @deprecated The idea is too complicated and little rewarding:
+	///   it'd require the user's algebraic formula for importance computation
+	///   *plus* another algebraic formula to merge each module's importance.
+	///   Symbolic storage (i.e. ImportanceFunctionAlgebraic) is all the
+	///   'adhoc' importance assessment strategy needs. Go bother them.
+	inline void assess_importance(const Property&,
+								  const std::string&,
+								  const std::vector<std::string>&) override
+		{ throw_FigException("unavailable member function"); }
 
 private:  // Class utils
 
