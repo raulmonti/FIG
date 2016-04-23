@@ -119,13 +119,6 @@ find_extreme_values(const Formula& f, State s)
 	ImportanceValue max(std::numeric_limits<ImportanceValue>::min());
 	const std::vector< std::string > vars(f.free_vars());
 
-	/// @todo TODO erase debug print
-	std::cerr << "Variables to test:";
-	for (const auto& var: vars)
-		std::cerr << " " << var;
-	std::cerr << std::endl;
-	////////////////////////////////
-
 	// Initialize (in 's') all relevant variables to their minimal values
 	for (const auto& var: vars) {
 		VariablePtr var_p = s[var];
@@ -195,9 +188,6 @@ ImportanceFunctionAlgebraic::set_formula(
 						   + strategy + "\". See available options with "
 						   "ModelSuite::available_importance_strategies()");
 
-	/// @todo TODO erase debug print
-	std::cerr << "Storing algebraic formula \"" << formulaExprStr << "\"\n";
-
 	try {
 		userFun_.set(formulaExprStr, varnames, gState);
 	} catch (std::out_of_range& e) {
@@ -208,9 +198,6 @@ ImportanceFunctionAlgebraic::set_formula(
 	hasImportanceInfo_ = true;
 	strategy_ = strategy;
 
-	/// @todo TODO erase debug print
-	std::cerr << "Looking for extreme values... ";
-
 	// Find extreme importance values for this ad hoc function
 	initialValue_ = importance_of(gState.to_state_instance());
 	if ("flat" == strategy) {
@@ -220,39 +207,23 @@ ImportanceFunctionAlgebraic::set_formula(
 		minRareValue_ = initialValue_;
 
 	} else if (minVal < maxVal) {
-
-		/// @todo TODO erase debug print
-		std::cerr << "provided by the user!!!\n";
-
 		// Trust blindly in the user-defined extreme values
 		minValue_ = minVal;
 		maxValue_ = maxVal;
-		minRareValue_ = std::max(initialValue_, minValue_);  // play it safe here
+		minRareValue_ = std::max(initialValue_, minValue_);  // play it safe
 
 	} else if (gState.concrete_size() < static_cast<uint128_t>(1ul<<20ul)) {
-
-		/// @todo TODO erase debug print
-		std::cerr << "in whole state space!!!\n";
-
 		// We can afford a full-state-space scan
 		find_extreme_values(gState, property);
 
 	} else {
-
-		/// @todo TODO erase debug print
-		std::cerr << "throughout all possible importance values.\n";
-
 		// Concrete state space is too big, resort to faster ways
 		std::tie(minValue_, maxValue_) = ::find_extreme_values(userFun_, gState);
-		// Play it safe and assume minRareValue_ == minValue_
-		minRareValue_ = std::max(initialValue_, minValue_);  // play it safe here
+		minRareValue_ = std::max(initialValue_, minValue_);  // play it safe
 		/// @todo TODO The general solution is to use ILP on userFun_
 		///            That'd also compute the real minRareValue_ (and fast!)
 		///            Use <a href="http://dlib.net/">dlib</a> maybe?
 	}
-
-	/// @todo TODO erase debug print
-	std::cerr << "Done\n";
 
 	assert(minValue_ <= initialValue_);
 	assert(initialValue_ <= minRareValue_);

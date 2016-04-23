@@ -48,7 +48,7 @@ mkdir $RESULTS && unset N && \
 $ECHO "Configuring experiments"
 declare -a QUEUES_CAPACITIES=(10 15 20 25)
 STOP_CRITERION="--stop-conf 0.90 0.2"  # Confidence coeff. and rel. precision
-SPLITTINGS="--splitting 2,5,11"        # Splitting values for RESTART engine
+SPLITTINGS="--splitting 2,3,6"         # Splitting values for RESTART engine
 STANDARD_MC="-e nosplit --flat $STOP_CRITERION"
 RESTART_ADHOC="--adhoc \"q2\" $STOP_CRITERION $SPLITTINGS"
 RESTART_AUTO_COUPLED="--auto-coupled $STOP_CRITERION $SPLITTINGS"
@@ -68,7 +68,7 @@ do
 	sed -e "s/${C_DEF}/const int c = $c;/1" $MODEL_FILE > $MODEL_FILE_C
 	LOGout=${RESULTS}/tandem_queue_c${c}.out
 	LOGerr=${RESULTS}/tandem_queue_c${c}.err
-	EXE=`$ECHO "./fig $MODEL_FILE_C $PROPS_FILE"`
+	EXE=`$ECHO "timeout -s 15 10h ./fig $MODEL_FILE_C $PROPS_FILE"`
 
 	poll_till_free
 	# Standard Monte Carlo

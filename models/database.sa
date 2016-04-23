@@ -4,10 +4,6 @@
  *
  *{-
  * Concept of the database computing system with redundancy:
- * 
- * 2 Types of Processors
- * 2 Types of disk Controllers
- * 6 Disk clusters
  *
  * For redundancy 'RED'=2,3,..., there are RED components of each type
  * of Processor and Controller, and RED+2 Disks on each disk cluster.
@@ -16,7 +12,10 @@
  * a processor of the other type to break as well.
  * A single repairman chooses randomly among broken components, and
  * fixes them up (one at a time) with one of two possible speed rates.
- *
+ * 
+ * RED==2 => 2 Types of Processors
+ *           2 Types of disk Controllers
+ *           6 Disk clusters
  * Initial state: all components in the system are operational.
  * Reference events: any system transition.
  * Rare event: system failure caused by RED simultaneously broken Processors

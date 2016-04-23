@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Author:  Carlos E. Budde
-# Date:    22.03.2016
+# Date:    22.04.2016
 # License: GPLv3
 #
 
@@ -32,11 +32,11 @@ if [ ! -f ./fig ]; then $ECHO "[ERROR] Something went wrong"; exit 1; fi
 
 # Prepare experiment's directory and files
 $ECHO "Preparing experiments environment:"
-MODEL_FILE="tandem_queue.sa"
+MODEL_FILE="database.sa"
 copy_model_file $MODEL_FILE $THIS_DIR && \
 	$ECHO "  · using model file $MODEL_FILE"
-PROPS_FILE="tandem_queue.pp"
-$ECHO 'P( q2 > 0 U lost )' > $PROPS_FILE && \
+PROPS_FILE="database.pp"
+copy_model_file $PROPS_FILE $THIS_DIR && \
 	$ECHO "  · using properties file $PROPS_FILE"
 N=0; RESULTS="results_$N"
 while [ -d $RESULTS ]; do N=$(($N+1)); RESULTS="results_$N"; done
@@ -46,53 +46,44 @@ mkdir $RESULTS && unset N && \
 
 # Experiments configuration
 $ECHO "Configuring experiments"
-declare -a QUEUES_CAPACITIES=(8 10 12 14)
 STOP_CRITERION="--stop-conf 0.95 0.2"  # Confidence coeff. and rel. precision
 SPLITTINGS="--splitting 2,3,6"         # Splitting values for RESTART engine
+MIN_OC="2-min(2-c11f-c12f, min(2-c21f-c22f, min(2-p11f-p12f, min(2-p21f-p22f,
+	min(2-d11f-d12f-d13f-d14f, min(2-d21f-d22f-d23f-d24f,
+	min(2-d31f-d32f-d33f-d34f, min(2-d41f-d42f-d43f-d44f,
+	min(2-d51f-d52f-d53f-d54f, 2-d61f-d62f-d63f-d64f)))))))));0;2"
 STANDARD_MC="-e nosplit --flat $STOP_CRITERION"
-RESTART_ADHOC="--adhoc \"q2\" $STOP_CRITERION $SPLITTINGS"
-RESTART_AUTO_COUPLED="--auto-coupled $STOP_CRITERION $SPLITTINGS"
-RESTART_AUTO_SPLIT="--auto-split \"+\" $STOP_CRITERION $SPLITTINGS"
+RESTART_ADHOC="--adhoc \"${MIN_OC}\" $STOP_CRITERION $SPLITTINGS -t \"ams\""
+RESTART_AUTO_COUPLED="--auto-coupled $STOP_CRITERION $SPLITTINGS -t \"ams\""
+RESTART_AUTO_SPLIT="--auto-split \"+\" $STOP_CRITERION $SPLITTINGS -t \"ams\""
 
 
 # Launch experiments
-$ECHO "Launching experiments:"
-for c in "${QUEUES_CAPACITIES[@]}"
-do
-	$ECHO -n "  · for queues capacity = $c..."
-
-	# Modify model file to this experiment's size
-	MODEL_FILE_C=${MODEL_FILE%.sa}"_${c}.sa"
-	BLANK="[[:space:]]*"
-	C_DEF="^const${BLANK}int${BLANK}c${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
-	sed -e "s/${C_DEF}/const int c = $c;/1" $MODEL_FILE > $MODEL_FILE_C
-	LOGout=${RESULTS}/tandem_queue_c${c}.out
-	LOGerr=${RESULTS}/tandem_queue_c${c}.err
-	EXE=`$ECHO "timeout -s 15 10h ./fig $MODEL_FILE_C $PROPS_FILE"`
-
-	poll_till_free
-	# Standard Monte Carlo
-	$ECHO -n " MC"
-	$EXE $STANDARD_MC 1>>${LOGout%.out}"_MC.out" \
-	                  2>>${LOGerr%.err}"_MC.err" &
-	poll_till_free
-	# RESTART with ad hoc
-	$ECHO -n ", AH"
-	$EXE $RESTART_ADHOC 1>>${LOGout%.out}"_AH.out" \
-	                    2>>${LOGerr%.err}"_AH.err" &
-	poll_till_free
-	# RESTART with auto (coupled)
-	$ECHO -n ", AC"
-	$EXE $RESTART_AUTO_COUPLED 1>>${LOGout%.out}"_AC.out" \
-	                           2>>${LOGerr%.err}"_AC.err" &
-	poll_till_free
-	# RESTART with auto (split)
-	$ECHO -n ", AS"
-	$EXE $RESTART_AUTO_SPLIT 1>>${LOGout%.out}"_AS.out"  \
-	                         2>>${LOGerr%.err}"_AS.err"  &
-
-	$ECHO "... done"
-done
+  LOGout=${RESULTS}/database.out
+  LOGerr=${RESULTS}/database.err
+  EXE=`$ECHO "timeout -s 15 10h ./fig $MODEL_FILE $PROPS_FILE"`
+  
+  poll_till_free
+  # Standard Monte Carlo
+  $ECHO -n " MC"
+  $EXE $STANDARD_MC 1>>${LOGout%.out}"_MC.out" \
+                    2>>${LOGerr%.err}"_MC.err" &
+  poll_till_free
+  # RESTART with ad hoc
+  $ECHO -n ", AH"
+  $EXE $RESTART_ADHOC 1>>${LOGout%.out}"_AH.out" \
+                      2>>${LOGerr%.err}"_AH.err" &
+  poll_till_free
+  # RESTART with auto (coupled)
+  $ECHO -n ", AC"
+  $EXE $RESTART_AUTO_COUPLED 1>>${LOGout%.out}"_AC.out" \
+                             2>>${LOGerr%.err}"_AC.err" &
+  poll_till_free
+  # RESTART with auto (split)
+  $ECHO -n ", AS"
+  $EXE $RESTART_AUTO_SPLIT 1>>${LOGout%.out}"_AS.out"  \
+                           2>>${LOGerr%.err}"_AS.err"  &
+$ECHO "... done"
 
 
 # Wait till termination
