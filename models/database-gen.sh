@@ -2,7 +2,7 @@
 
 if [ $# -ne 6 ]
 then
-	echo "Must call with six parameter values"
+	echo "[ERROR] Must call with six parameter values"
 	exit 1
 else
 	DISKNR=$1
@@ -13,7 +13,8 @@ else
 	PROCRED=$6
 fi
 
-# Compute failure rate given the failure mean-time passed as single argument
+# Compute failure rate given the failure mean-time passed as single argument,
+# assuming the REDundancy of the models is '2'
 compute_rate()
 {
 	if [ $# -eq 1 ]; then
@@ -27,7 +28,7 @@ echo " * Budde, Monti, D'Argenio | 2016"
 echo " *"
 echo " *{-"
 echo " * Concept of the database computing system with redundancy:"
-echo " * "
+echo " *"
 echo " * $PROCNR Types of Processors"
 echo " * $CTRLNR Types of disk Controllers"
 echo " * $DISKNR Disk clusters"

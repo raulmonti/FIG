@@ -55,9 +55,6 @@ using fig_cli::modelFile;
 using fig_cli::propertiesFile;
 using fig_cli::engineName;
 using fig_cli::impFunSpec;
-// using fig_cli::impFunName;
-// using fig_cli::impFunStrategy;
-// using fig_cli::impFunDetails;
 using fig_cli::thrTechnique;
 using fig_cli::splittings;
 using fig_cli::estBounds;
@@ -100,8 +97,6 @@ int main(int argc, char** argv)
 	try {
 		model.process_batch(engineName,
 							impFunSpec,
-//							impFunName,
-//							std::make_pair(impFunStrategy, impFunDetails),
 							thrTechnique,
 							estBounds,
 							splittings);

@@ -255,8 +255,11 @@ parse_ifun_details(const std::string& details)
 {
 	fig::ImportanceValue min(0u), max(0u);
 	char* err(nullptr);
-	const char DIVISOR(';');  // fields are divided by a semicolon
-	auto strValues = split(details, DIVISOR);
+
+	// Divide fields (split by semicolons)
+	auto strValues = split(details, ';');
+	for (auto& str: strValues)
+		delete_substring(str, "\"");  // erase unescaped quotation marks
 
 	// The algebraic expression must be defined, though it's not interpreted here
 	assert(strValues.size() > 0ul);
@@ -285,6 +288,7 @@ parse_ifun_details(const std::string& details)
 		}
 	}
 
+	assert(min <= max);
 	return std::make_tuple(strValues[0], min, max);
 }
 
