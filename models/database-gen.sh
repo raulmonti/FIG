@@ -1,24 +1,38 @@
 #!/bin/bash
 
-if [ $# -ne 6 ]
+if [ $# -ne 5 ]
 then
-	echo "[ERROR] Must call with six parameter values"
+	echo "[ERROR] Must call with five arguments:"
+	echo "          1. system redundancy >= 2"
+	echo "          2. number of Disk clusters"
+	echo "          3. number of (disk) Controller types"
+	echo "          4. number of Porcessor types"
+	echo "          5. root mean fail time >= 2000"
 	exit 1
 else
-	DISKNR=$1
-	DISKRED=$2
-	CTRLNR=$3
-	CTRLRED=$4
-	PROCNR=$5
-	PROCRED=$6
+	# Redundancy
+	RED=$1
+	D_RED=$((2+$RED))
+	C_RED=$RED
+	P_RED=$RED
+	# Number of components
+	D_NUM=$2
+	C_NUM=$3
+	P_NUM=$4
+	# Mean fail time
+	FTIME=$5
+	D_FTIME=$((3*$FTIME))
+	C_FTIME=$FTIME
+	P_FTIME=$FTIME
 fi
 
-# Compute failure rate given the failure mean-time passed as single argument,
-# assuming the REDundancy of the models is '2'
+# Compute failure rate for given failure mean time and global REDundancy
 compute_rate()
 {
 	if [ $# -eq 1 ]; then
-		echo $1 | awk '{ printf "%1.8f", 1/(2*$1) }';
+		echo $1 $RED | awk '{ printf "%1.8f", 1/($1*$2) }';
+	else
+		echo "[ERROR] Need failure mean-time as single argument"; exit 1
 	fi
 }
 
@@ -29,9 +43,9 @@ echo " *"
 echo " *{-"
 echo " * Concept of the database computing system with redundancy:"
 echo " *"
-echo " * $PROCNR Types of Processors"
-echo " * $CTRLNR Types of disk Controllers"
-echo " * $DISKNR Disk clusters"
+echo " * $P_NUM Types of Processors"
+echo " * $C_NUM Types of disk Controllers"
+echo " * $D_NUM Disk clusters"
 echo " *"
 echo " * For redundancy 'RED'=2,3,..., there are RED components of each type"
 echo " * of Processor and Controller, and RED+2 Disks on each disk cluster."
@@ -54,18 +68,15 @@ echo "// -- \"Importance functions for RESTART simulation of highly-dependable"
 echo "// -- systems\", Simulation, Vol. 83, Issue 12, December 2007, pp. 821-828."
 echo "// --"
 echo "// -- Processors"
-P_FTIME=2000
 P_FRATE=`compute_rate $P_FTIME`   # Processors fail rate: 1 / (NUM_FAIL_TYPES * P_FTIME)
 echo "const int PF = ${P_FTIME};  // -- Processors' mean time to failure (in hours)"
 echo "// -- unsupported! const double IPF = 0.01;  // -- Processors' inter-type failure rate"
 echo "// --"
 echo "// -- Controllers"
-C_FTIME=2000
 C_FRATE=`compute_rate $C_FTIME`   # Controllers fail rate: 1 / (NUM_FAIL_TYPES * C_FTIME)
 echo "const int CF = ${C_FTIME};  // -- Controllers' mean time to failure (in hours)"
 echo "// --"
 echo "// -- Disk clusters"
-D_FTIME=6000
 D_FRATE=`compute_rate $D_FTIME`   # Disks fail rate: 1 / (NUM_FAIL_TYPES * D_FTIME)
 echo "const int DF = ${D_FTIME};  // -- Disks' mean time to failure (in hours)"
 
@@ -76,21 +87,21 @@ echo ""
 echo ""
 echo "///////////////////////////////////////////////////////////////////////"
 echo "//"
-echo "// -- Disk clusters | Total: $DISKNR"
-echo "// --               | Redundancy: $DISKRED"
+echo "// -- Disk clusters | Total: $D_NUM"
+echo "// --               | Redundancy: $D_RED"
 echo "// --               | Mean time to failure: DF"
 echo "// --               | Num failures to breakdown per cluster: 2"
 
-for (( i=1 ; i <= $DISKNR ; i++ )); do
-    for (( j=1 ; j <= $DISKRED ; j++ )); do
+for (( i=1 ; i <= $D_NUM ; i++ )); do
+    for (( j=1 ; j <= $D_RED ; j++ )); do
         echo ""
         echo ""
         echo "module Disk${i}${j}"
         echo ""
         echo "	d${i}${j}f: bool init false;  // -- Disk failed?"
         echo "	d${i}${j}t: [1..2];           // -- Failure type"
-        echo "	d${i}${j}clkF1: clock;        // -- Type 1 failure ~ exp(1/(2*DF))   "
-        echo "	d${i}${j}clkF2: clock;        // -- Type 2 failure ~ exp(1/(2*DF))   "
+        echo "	d${i}${j}clkF1: clock;        // -- Type 1 failure ~ exp(1/(DF*$RED))"
+        echo "	d${i}${j}clkF2: clock;        // -- Type 2 failure ~ exp(1/(DF*$RED))"
         echo "	d${i}${j}clkR1: clock;        // -- Repair for type 1 failure ~ exp(1.0)"
         echo "	d${i}${j}clkR2: clock;        // -- Repair for type 2 failure ~ exp(0.5)"
         echo ""
@@ -118,20 +129,20 @@ echo ""
 echo ""
 echo "///////////////////////////////////////////////////////////////////////"
 echo "//"
-echo "// -- Controllers | Total: $CTRLNR"
-echo "// --             | Redundancy: $CTRLRED"
+echo "// -- Controllers | Total: $C_NUM"
+echo "// --             | Redundancy: $C_RED"
 echo "// --             | Mean time to failure: CF"
 
-for (( i=1 ; i <= $CTRLNR ; i++ )); do
-    for (( j=1 ; j <= $CTRLRED ; j++ )); do
+for (( i=1 ; i <= $C_NUM ; i++ )); do
+    for (( j=1 ; j <= $C_RED ; j++ )); do
         echo ""
         echo ""
         echo "module Controller${i}${j}"
         echo ""
         echo "	c${i}${j}f: bool init false;  // -- Controller failed?"
         echo "	c${i}${j}t: [1..2];           // -- Failure type"
-        echo "	c${i}${j}clkF1: clock;        // -- Type 1 failure ~ exp(1/(2*CF))"
-        echo "	c${i}${j}clkF2: clock;        // -- Type 2 failure ~ exp(1/(2*CF))"
+        echo "	c${i}${j}clkF1: clock;        // -- Type 1 failure ~ exp(1/(CF*$RED))"
+        echo "	c${i}${j}clkF2: clock;        // -- Type 2 failure ~ exp(1/(CF*$RED))"
         echo "	c${i}${j}clkR1: clock;        // -- Repair for type 1 failure ~ exp(1.0)"
         echo "	c${i}${j}clkR2: clock;        // -- Repair for type 2 failure ~ exp(0.5)"
         echo ""
@@ -159,20 +170,20 @@ echo ""
 echo ""
 echo "///////////////////////////////////////////////////////////////////////"
 echo "//"
-echo "// -- Processors | Total: $PROCNR"
-echo "// --            | Redundancy: $PROCRED"
+echo "// -- Processors | Total: $P_NUM"
+echo "// --            | Redundancy: $P_RED"
 echo "// --            | Mean time to failure: PF"
 
-for (( i=1 ; i <= $PROCNR ; i++ )); do
-	for (( j=1 ; j <= $PROCRED ; j++ )); do
+for (( i=1 ; i <= $P_NUM ; i++ )); do
+	for (( j=1 ; j <= $P_RED ; j++ )); do
         echo ""
         echo ""
         echo "module Processor${i}${j}"
         echo ""
         echo "	p${i}${j}f: bool init false;  // -- Processor failed?"
         echo "	p${i}${j}t: [1..2];           // -- Failure type"
-        echo "	p${i}${j}clkF1: clock;        // -- Type 1 failure ~ exp(1/(2*PF))"
-        echo "	p${i}${j}clkF2: clock;        // -- Type 2 failure ~ exp(1/(2*PF))"
+        echo "	p${i}${j}clkF1: clock;        // -- Type 1 failure ~ exp(1/(PF*$RED))"
+        echo "	p${i}${j}clkF2: clock;        // -- Type 2 failure ~ exp(1/(PF*$RED))"
         echo "	p${i}${j}clkR1: clock;        // -- Repair for type 1 failure ~ exp(1.0)"
         echo "	p${i}${j}clkR2: clock;        // -- Repair for type 2 failure ~ exp(0.5)"
         echo ""
@@ -196,32 +207,118 @@ echo ""
 
 # PROPERTY
 
-ECHO=`echo /bin/echo -en`
-$ECHO "\n\n"
-$ECHO "// -- Rate property to check\n"
-$ECHO "S("
-for (( i=1 ; i <= $DISKNR ; i++ )); do
-	for (( j1=1 ; j1 <= $DISKRED ; j1++ )); do
-	for (( j2=j1+1 ; j2 <= $DISKRED ; j2++ )); do
-		$ECHO "\n   (d${i}${j1}f & d${i}${j2}f) |"
-	done
+print() { /bin/echo -en "$1" 1>&2; }
+print "S("
+
+# We need to build the M-combinations of N...
+declare -a index  # lowest  M-combinations indices
+declare -a INDEX  # highest M-combinations indices
+fac() { if [ $1 -lt 2 ]; then echo $1; else echo $(($1*`fac $(($1 - 1))`)); fi }
+comb() { echo "scale=0; `fac $1` / (`fac $2` * `fac $(($1-$2))`)" | bc -l; }
+
+# ...for Disks...
+M=$RED
+N=$D_RED
+for m in $(seq $M); do INDEX[$((M-m))]=$((N-m+1)); done;
+for (( d=1 ; d <= $D_NUM ; d++ )); do
+	for m in $(seq $M); do index[$((m-1))]=$m; done;
+	i=$((M-1))
+	while [ true ]; do
+		# print this combination
+		print "\n   ("
+		for idx in ${index[@]}; do
+			print "d${d}${idx}f & "
+		done
+		print "true) |"
+		# and compute next one
+		reset=false
+		while (( $i >= 0 && ${index[i]} >= ${INDEX[i]} )); do
+			i=$((i-1))
+			reset=true
+		done
+		if (( $i < 0 )); then
+			break  # all combinations were covered
+		else
+			index[$i]=$((${index[i]} + 1))
+		fi
+		if [ $reset ]; then 
+			for (( j=i+1 ; j<M ; j++ )); do
+				index[$j]=$((${index[$((j-1))]}+1))
+			done
+			i=$((M-1))
+		fi
 	done
 done
-for (( i=1 ; i <= $CTRLNR ; i++ )); do
-	$ECHO "\n   ("
-	for (( j=1 ; j <= $CTRLRED ; j++ )); do
-		$ECHO "c${i}${j}f & "
+
+# ...for Controllers...
+M=$RED
+N=$C_RED
+for m in $(seq $M); do INDEX[$((M-m))]=$((N-m+1)); done;
+for (( c=1 ; c <= $C_NUM ; c++ )); do
+	for m in $(seq $M); do index[$((m-1))]=$m; done;
+	i=$((M-1))
+	while [ true ]; do
+		# print this combination
+		print "\n   ("
+		for idx in ${index[@]}; do
+			print "c${c}${idx}f & "
+		done
+		print "true) |"
+		# and compute next one
+		reset=false
+		while (( $i >= 0 && ${index[i]} >= ${INDEX[i]} )); do
+			i=$((i-1))
+			reset=true
+		done
+		if (( $i < 0 )); then
+			break  # all combinations were covered
+		else
+			index[$i]=$((${index[i]} + 1))
+		fi
+		if [ $reset ]; then 
+			for (( j=i+1 ; j<M ; j++ )); do
+				index[$j]=$((${index[$((j-1))]}+1))
+			done
+			i=$((M-1))
+		fi
 	done
-	$ECHO "\b\b\b) |"
 done
-for (( i=1 ; i <= $PROCNR ; i++ )); do
-	$ECHO "\n   ("
-	for (( j=1 ; j <= $PROCRED ; j++ )); do
-		$ECHO "p${i}${j}f & "
+
+# ...and for Processors...
+M=$RED
+N=$P_RED
+for m in $(seq $M); do INDEX[$((M-m))]=$((N-m+1)); done;
+for (( p=1 ; p <= $P_NUM ; p++ )); do
+	for m in $(seq $M); do index[$((m-1))]=$m; done;
+	i=$((M-1))
+	while [ true ]; do
+		# print this combination
+		print "\n   ("
+		for idx in ${index[@]}; do
+			print "p${p}${idx}f & "
+		done
+		print "true) |"
+		# and compute next one
+		reset=false
+		while (( $i >= 0 && ${index[i]} >= ${INDEX[i]} )); do
+			i=$((i-1))
+			reset=true
+		done
+		if (( $i < 0 )); then
+			break  # all combinations were covered
+		else
+			index[$i]=$((${index[i]} + 1))
+		fi
+		if [ $reset ]; then 
+			for (( j=i+1 ; j<M ; j++ )); do
+				index[$j]=$((${index[$((j-1))]}+1))
+			done
+			i=$((M-1))
+		fi
 	done
-	$ECHO "\b\b\b) |"
 done
-$ECHO "\b\b  \n ) // \"rate\"\n"
+
+print " false )  // \"rate\"\n"
 
 exit 0
 
