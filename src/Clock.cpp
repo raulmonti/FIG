@@ -180,6 +180,9 @@ std::unordered_map< std::string, Distribution > distributions_list =
 	{"uniform",     uniform    },
 	{"exponential", exponential},
 	{"normal",      normal     },
+	{"lognormal",   lognormal  },
+	{"weibull",     weibull    },
+	{"rayleigh",    rayleigh   },
 	{"gamma",       gamma      },
 	{"erlang",      erlang     },
 };

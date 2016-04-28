@@ -316,7 +316,8 @@ label_local_states(const State& localState,
 
 	// Project the property for this localState
 	std::tie(rareClauses, otherClauses) = clauses.project(localState);
-	cStates.resize(localState.concrete_size());
+	assert(localState.concrete_size().upper() == 0ul);
+	cStates.resize(localState.concrete_size().lower());
 
 	// Mark events according to the clauses
 	switch (property.type) {
@@ -371,7 +372,8 @@ label_global_states(State globalState,
 					const Property& property,
 					bool returnRares = false)
 {
-	cStates.resize(globalState.concrete_size());
+	assert(globalState.concrete_size().upper() == 0ul);
+	cStates.resize(globalState.concrete_size().lower());
 	std::queue< STATE_T > raresQueue;
 
 	// Mark conditions according to the property
@@ -379,7 +381,7 @@ label_global_states(State globalState,
 
 	case fig::PropertyType::TRANSIENT: {
 		auto transientProp = static_cast<const fig::PropertyTransient&>(property);
-		for (size_t i = 0ul ; i < globalState.concrete_size() ; i++) {
+		for (size_t i = 0ul ; i < cStates.size() ; i++) {
 			cStates[i] = fig::EventType::NONE;
 			const StateInstance valuation(globalState.decode(i).to_state_instance());
 			if ( transientProp.expr2(valuation)) {
@@ -394,7 +396,7 @@ label_global_states(State globalState,
 
 	case fig::PropertyType::RATE: {
 		auto rateProp = static_cast<const fig::PropertyRate&>(property);
-		for (size_t i = 0ul ; i < globalState.concrete_size() ; i++) {
+		for (size_t i = 0ul ; i < cStates.size() ; i++) {
 			cStates[i] = fig::EventType::NONE;
 			const StateInstance valuation(globalState.decode(i).to_state_instance());
 			if (rateProp.expr(valuation)) {
@@ -486,10 +488,11 @@ assess_importance_flat(const State& state,
 					   const bool split)
 {
 	assert(state.size() > 0ul);
+	assert(state.concrete_size().upper() == 0ul);
 	assert(impVec.size() == 0ul);
 
 	// Build vector the size of concrete state space filled with zeros ...
-	ImportanceVec(state.concrete_size()).swap(impVec);
+	ImportanceVec(state.concrete_size().lower()).swap(impVec);
 	// ... and label according to the property
 	if (split)
 		label_local_states(state, impVec, property, clauses);  // this is idiotic
@@ -539,11 +542,13 @@ ImportanceFunctionConcrete::assess_importance(
 	// Impose a limit on the amount of memory the user can request for this.
 	// There's no portable way of measuring the system's available RAM
 	// (http://stackoverflow.com/a/2513561), thus the limit is arbitrary
-	const uint128::uint128_t concreteStateSize(module.concrete_state_size());
+	const uint128_t concreteStateSize(module.concrete_state_size());
+	const size_t MAX_SIZE(1ul<<31ul);  // up to 2 GB
 	if (concreteStateSize.upper() > 0ul ||
-		std::log2(concreteStateSize.lower()) > 60ul)
+		concreteStateSize.lower() > MAX_SIZE)
 		throw_FigException("the concrete state space of this module "
-						   "is too big to hold it in a vector");
+						   "is too big to hold it in a vector (it's greater "
+						   "than " + std::to_string(MAX_SIZE) + " bytes)");
 
 	// Compute importance according to the chosen strategy
 	if ("flat" == strategy) {

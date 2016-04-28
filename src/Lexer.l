@@ -38,19 +38,25 @@ module          { return parser::KMOD; }
 
 ("endmodule")  { return parser::KEMOD; }
 
-init        { return parser::KINIT; }
+init    		{ return parser::KINIT;   }
 
-normal        { return parser::KNDIST; }
+uniform 		{ return parser::KUDIST;  }
 
-exponential         { return parser::KEDIST; }
+exponential		{ return parser::KEDIST;  }
 
-uniform         { return parser::KUDIST; }
+normal  		{ return parser::KNDIST;  }
 
-erlang          { return parser::KERDIST; }
+lognormal		{ return parser::KLNDIST; }
 
-gamma          { return parser::KGDIST; }
+weibull 		{ return parser::KWDIST;  }
 
-property        { return parser::KPROP; }
+rayleigh 		{ return parser::KRADIST; }
+
+gamma   		{ return parser::KGDIST;  }
+
+erlang  		{ return parser::KERDIST; }
+
+property        { return parser::KPROP;   }
 
 ("int")     { return parser::ITYPE; }
 ("bool")    { return parser::BTYPE; }

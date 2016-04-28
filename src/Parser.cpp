@@ -505,8 +505,69 @@ Parser::rSetClock(){
 int
 Parser::rDistr(){
 
-    return (rNormDist() || rExpDist() || 
-            rUniDist() || rGamDist() || rErlDist());
+	return rUniDist()      ||
+			rExpDist()     ||
+			rNormDist()    ||
+			rLogNormDist() ||
+			rWeiDist()     ||
+			rRayDist()     ||
+			rGamDist()     ||
+			rErlDist();
+}
+
+
+/* @RULE: uniform distribution */
+int
+Parser::rUniDist(){
+
+	if(accept(KUDIST)){
+		newNode(_DISTRIBUTION, string(""));
+		saveNode(_NAME);
+		try{
+			expect(OP);
+			saveNode(_SEPARATOR);
+			rExpression();
+			expect(CMM);
+			saveNode(_SEPARATOR);
+			rExpression();
+			expect(CP);
+			saveNode(_SEPARATOR);
+			saveNode(); // _DISTRIBUTION
+			return 1;
+		}catch(const FigSyntaxError &e){
+			removeNode(); // _DISTRIBUTION
+			throw string( "Uniform distributions are expected to have the "
+						  "following syntax: 'uniform(<EXPRESSION>"
+						  ",<EXPRESSION>)\n"
+						);
+		}
+	}
+	return 0;
+}
+
+
+/* @RULE: exponential distribution */
+int
+Parser::rExpDist(){
+
+	if(accept(KEDIST)){
+		newNode(_DISTRIBUTION, string(""));
+		saveNode(_NAME);
+		try{
+			expect(OP);
+			saveNode(_SEPARATOR);
+			rExpression();
+			expect(CP);
+			saveNode(_SEPARATOR);
+			saveNode(); // _DISTRIBUTION
+			return 1;
+		}catch(const FigSyntaxError &e){
+			removeNode(); // _DISTRIBUTION
+			throw string( "Exponential distributions are expected to have "
+						  "the following syntax: 'exponential(<EXPRESSION>)'\n");
+		}
+	}
+	return 0;
 }
 
 
@@ -514,31 +575,115 @@ Parser::rDistr(){
 int
 Parser::rNormDist(){
 
-    if(accept(KNDIST)){
-        newNode(_DISTRIBUTION, string(""));
-        saveNode(_NAME);
-        try{
-            expect(OP);
-            saveNode(_SEPARATOR);
-            rExpression();
-            expect(CMM);
-            saveNode(_SEPARATOR);
-            rExpression();
-            expect(CP);
-            saveNode(_SEPARATOR);
-            saveNode(); // _DISTRIBUTION
-            return 1;
-        }catch(const FigSyntaxError &e){
-            removeNode(); // _DISTRIBUTION
-            throw string( "Normal distributions are expected to have the "
-                          "following syntax: 'normal(<EXPRESSION>"
-                          ",<EXPRESSION>)\n" );
-        }
-    }
-    return 0;
+	if(accept(KNDIST)){
+		newNode(_DISTRIBUTION, string(""));
+		saveNode(_NAME);
+		try{
+			expect(OP);
+			saveNode(_SEPARATOR);
+			rExpression();
+			expect(CMM);
+			saveNode(_SEPARATOR);
+			rExpression();
+			expect(CP);
+			saveNode(_SEPARATOR);
+			saveNode(); // _DISTRIBUTION
+			return 1;
+		}catch(const FigSyntaxError &e){
+			removeNode(); // _DISTRIBUTION
+			throw string( "Normal distributions are expected to have the "
+						  "following syntax: 'normal(<EXPRESSION>"
+						  ",<EXPRESSION>)\n" );
+		}
+	}
+	return 0;
 }
 
-/* @RULE: normal distribution */
+
+/* @RULE: Log-normal distribution */
+int
+Parser::rLogNormDist(){
+
+	if(accept(KLNDIST)){
+		newNode(_DISTRIBUTION, string(""));
+		saveNode(_NAME);
+		try{
+			expect(OP);
+			saveNode(_SEPARATOR);
+			rExpression();
+			expect(CMM);
+			saveNode(_SEPARATOR);
+			rExpression();
+			expect(CP);
+			saveNode(_SEPARATOR);
+			saveNode(); // _DISTRIBUTION
+			return 1;
+		}catch(const FigSyntaxError &e){
+			removeNode(); // _DISTRIBUTION
+			throw string( "Log-normal distributions are expected to have the "
+						  "following syntax: 'lognormal(<EXPRESSION>"
+						  ",<EXPRESSION>)'\n" );
+		}
+	}
+	return 0;
+}
+
+
+/* @RULE: weibull distribution */
+int
+Parser::rWeiDist(){
+
+	if(accept(KWDIST)){
+		newNode(_DISTRIBUTION, string(""));
+		saveNode(_NAME);
+		try{
+			expect(OP);
+			saveNode(_SEPARATOR);
+			rExpression();
+			expect(CMM);
+			saveNode(_SEPARATOR);
+			rExpression();
+			expect(CP);
+			saveNode(_SEPARATOR);
+			saveNode(); // _DISTRIBUTION
+			return 1;
+		}catch(const FigSyntaxError &e){
+			removeNode(); // _DISTRIBUTION
+			throw string( "Weibull distributions are expected to have the "
+						  "following syntax: 'weibull(<EXPRESSION>"
+						  ",<EXPRESSION>)'\n" );
+		}
+	}
+	return 0;
+}
+
+
+/* @RULE: Rayleigh distribution */
+int
+Parser::rRayDist(){
+
+	if(accept(KRADIST)){
+		newNode(_DISTRIBUTION, string(""));
+		saveNode(_NAME);
+		try{
+			expect(OP);
+			saveNode(_SEPARATOR);
+			rExpression();
+			expect(CP);
+			saveNode(_SEPARATOR);
+			saveNode(); // _DISTRIBUTION
+			return 1;
+		}catch(const FigSyntaxError &e){
+			removeNode(); // _DISTRIBUTION
+			throw string( "Rayleigh distributions are expected to have "
+						  "the following syntax: 'rayleigh(<EXPRESSION>)'\n");
+		}
+	}
+	return 0;
+}
+
+
+/* @RULE: gamma distribution */
 int
 Parser::rGamDist(){
 
@@ -560,11 +705,12 @@ Parser::rGamDist(){
             removeNode(); // _DISTRIBUTION
             throw string( "Gamma distributions are expected to have the "
                           "following syntax: 'gamma(<EXPRESSION>"
-                          ",<EXPRESSION>)\n" );
+						  ",<EXPRESSION>)'\n" );
         }
     }
     return 0;
 }
+
 
 /* @RULE: Erlang distribution */
 int
@@ -588,64 +734,7 @@ Parser::rErlDist(){
             removeNode(); // _DISTRIBUTION
             throw string( "Erlang distributions are expected to have the "
                           "following syntax: 'erlang(<EXPRESSION>"
-                          ",<EXPRESSION>)\n" );
-        }
-    }
-    return 0;
-}
-
-
-/* @RULE: exponential distribution */
-int
-Parser::rExpDist(){
-
-    if(accept(KEDIST)){
-        newNode(_DISTRIBUTION, string(""));
-        saveNode(_NAME);
-        try{
-            expect(OP);
-            saveNode(_SEPARATOR);
-            rExpression();
-            expect(CP);
-            saveNode(_SEPARATOR);
-            saveNode(); // _DISTRIBUTION
-            return 1;
-        }catch(const FigSyntaxError &e){
-            removeNode(); // _DISTRIBUTION
-            throw string( "Exponential distributions are expected to have "
-                          "the following syntax: 'exponential(<EXPRESSION>)\n");
-        }
-    }
-    return 0;
-
-
-}
-
-
-/* @RULE: uniform distribution */
-int
-Parser::rUniDist(){
-
-    if(accept(KUDIST)){
-        newNode(_DISTRIBUTION, string(""));
-        saveNode(_NAME);
-        try{
-            expect(OP);
-            saveNode(_SEPARATOR);
-            rExpression();
-            expect(CMM);
-            saveNode(_SEPARATOR);
-            rExpression();
-            expect(CP);
-            saveNode(_SEPARATOR);
-            saveNode(); // _DISTRIBUTION
-            return 1;
-        }catch(const FigSyntaxError &e){
-            removeNode(); // _DISTRIBUTION
-            throw string( "Uniform distributions are expected to have the "
-                          "following syntax: 'uniform(<EXPRESSION>"
-                          ",<EXPRESSION>)\n"
-                        );
+						  ",<EXPRESSION>)'\n" );
         }
     }
     return 0;
@@ -1180,7 +1269,6 @@ Parser::removeNode(){
     assert(!astStk.empty());
     delete astStk.top();
     astStk.pop();
-
 }
 
 

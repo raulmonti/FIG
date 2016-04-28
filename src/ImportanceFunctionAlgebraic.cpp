@@ -212,7 +212,8 @@ ImportanceFunctionAlgebraic::set_formula(
 		maxValue_ = maxVal;
 		minRareValue_ = std::max(initialValue_, minValue_);  // play it safe
 
-	} else if (gState.concrete_size() < static_cast<uint128_t>(1ul<<20ul)) {
+	} else if (gState.concrete_size().upper() == 0ul &&
+			   gState.concrete_size().lower() < (1ul<<20ul)) {
 		// We can afford a full-state-space scan
 		find_extreme_values(gState, property);
 
@@ -277,7 +278,7 @@ ImportanceFunctionAlgebraic::print_out(std::ostream& out,
     out << "\nImportance assessment strategy: " << strategy();
     out << "\nLegend: (/symbolic,state,valuation\\ importance_value)";
     out << "\nValues for coupled model:";
-	for (size_t i = 0ul ; i < s.concrete_size() ; i++) {
+	for (uint128_t i = uint128::uint128_0 ; i < s.concrete_size() ; i++) {
 		const StateInstance symbState = s.decode(i).to_state_instance();
         out << " (";
 		print_state(symbState);

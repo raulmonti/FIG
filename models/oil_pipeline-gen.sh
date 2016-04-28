@@ -106,7 +106,7 @@ for (( i=1 ; i<=$N ; i++ ))
 do
 	echo ""
 	echo ""
-	echo "module N$i"
+	echo "module Node$i"
 	echo "	N${i}clk: clock;          // -- Failure ~ $F_DIST"
 	echo "	N${i}f: bool init false;  // -- Node failed?"
 	echo "	[f$i!] !N${i}f @ N${i}clk -> (N${i}f'= true);"
@@ -167,22 +167,15 @@ echo ""
 
 # PROPERTIES
 
-print() { /bin/echo -en "$1"; }
-echo ""
-echo ""
-echo "///////////////////////////////////////////////////////////////////////"
-echo "//"
-echo "// -- Rare condition properties"
-echo "//"
-echo ""
-print "// -- Rate property\n"
+print() { /bin/echo -en "$1" 1>&2; }
+
 print "S("
-for (( i=1 ; i <= $N-$K ; i++ )); do
+for (( i=1 ; i <= N-K+1 ; i++ )); do
 	print "\n   ("
-	for (( j=$i ; j < $i+$K ; j++ )); do
+	for (( j=i ; j < i+K ; j++ )); do
 		print "N$j & "
 	done
-	print "\b\b\b) |"
+	print "true) |"
 done
-print "\b\b ) // \"rate\"\n"
+print " false ) // \"rate\"\n"
 

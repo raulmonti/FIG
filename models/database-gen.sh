@@ -318,7 +318,7 @@ for (( p=1 ; p <= $P_NUM ; p++ )); do
 	done
 done
 
-print " false )  // \"rate\"\n"
+print " false ) // \"rate\"\n"
 
 exit 0
 

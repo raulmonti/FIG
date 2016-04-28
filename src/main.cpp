@@ -46,7 +46,8 @@
 
 static void print_intro(const int &argc, const char **argv);
 static bool file_exists(const std::string& filepath);
-static void build_model(const std::string& modelFilePath, const std::string& propsFilePath);
+static void build_model(const std::string& modelFilePath,
+						const std::string& propsFilePath);
 
 
 //  Configuration of the estimation run  ///////////////////////////////////////
@@ -91,6 +92,8 @@ int main(int argc, char** argv)
 	if (!model.sealed()) {
 		log(FIG_ERROR + " build the model.\n\n");
 		exit(EXIT_FAILURE);
+	} else {
+		tech_log("Model and properties files successfully compiled.\n");
 	}
 
 	// Estimate using requested configuration

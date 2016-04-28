@@ -33,11 +33,11 @@
 // -- This model corresponds to the system described in Section 4.1
 
 const int lambda = 2;	// Arrival rates (Queue1): 1, 2
-const int alpha = 2;	// Service time shape parameters (all queues): 2, 3
+const int alpha = 3;	// Service time shape parameters (all queues): 2, 3
 const int mu1 = 3;		// Service time rate  parameters (Queue1): 3, 5
 const int mu2 = 2;		// Service time rate  parameters (Queue2): 2, 4
 const int mu3 = 3;		// Service time rate  parameters (Queue3): 3
-const int L = 18;		// Threshold occupancy (Queue3): 13, 16, 18, 20, 21, 24
+const int L = 13;		// Threshold occupancy (Queue3): 13, 16, 18, 20, 21, 24
 const int c = L;		// Queues capacity
 
 // -- Combinations tested in the aforementioned article, in the format

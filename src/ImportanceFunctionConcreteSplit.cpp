@@ -495,7 +495,8 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		minValue_ = initialValue_;
 		maxValue_ = initialValue_;
 		minRareValue_ = initialValue_;
-	} else if (globalStateCopy.concrete_size() < (1ul<<20ul)) {
+	} else if (globalStateCopy.concrete_size().upper() == 0ul &&
+			   globalStateCopy.concrete_size().lower() < (1ul<<20ul)) {
 		// We can afford a full-state-space scan
 		find_extreme_values(globalStateCopy, prop);
 	} else {

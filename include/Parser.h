@@ -54,9 +54,12 @@ typedef enum    { MEOF    // my end of file symbol
                 , KMOD    // keyword "module"
                 , KEMOD   // keyword "end module"
                 , KCLOCK  // keyword clock
-                , KNDIST  // keyword Normal
-                , KEDIST  // keyword Exponential
                 , KUDIST  // keyword Uniform
+                , KEDIST  // keyword Exponential
+                , KNDIST  // keyword Normal
+                , KLNDIST // keyword Log-normal
+                , KWDIST  // keyword Weibull
+                , KRADIST // keyword Rayleigh
                 , KGDIST  // keyword Gamma
                 , KERDIST // keywird Erlang
                 , KINIT   // Keyword "init"
@@ -470,17 +473,29 @@ private:
     int
     rDistr();
 
-    /* @RULE: normal distribution */
+    /* @RULE: uniform distribution */
     int
-    rNormDist();
+    rUniDist();
 
     /* @RULE: exponential distribution */
     int
     rExpDist();
 
-    /* @RULE: uniform distribution */
+    /* @RULE: normal distribution */
     int
-    rUniDist();
+    rNormDist();
+
+    /* @RULE: Log-normal distribution */
+    int
+    rLogNormDist();
+
+    /* @RULE: weibull distribution */
+    int
+    rWeiDist();
+
+    /* @RULE: Rayleigh distribution */
+    int
+    rRayDist();
 
     /* @RULE: gamma distribution */
     int

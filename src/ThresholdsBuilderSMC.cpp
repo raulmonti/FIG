@@ -115,7 +115,7 @@ build_states_distribution(const fig::ModuleNetwork& network,
     assert(traials.size() >= n+k);
 
 	const unsigned TOLERANCE(3u*MAX_NUM_FAILURES);
-	unsigned jumpsLeft, pos, fails;
+	unsigned jumpsLeft, pos, fails(0u);
 
 	// Function pointers matching ModuleNetwork::peak_simulation() signatures
 	auto predicate = [&jumpsLeft,lastThr](const Traial& t) -> bool {
@@ -196,8 +196,8 @@ find_new_threshold(const fig::ModuleNetwork& network,
     ImportanceValue newThr(lastThr);
 
 	// Function pointers matching ModuleNetwork::peak_simulation() signatures
-	auto predicate = [&jumpsLeft/*,&impFun*/,lastThr](const Traial& t) -> bool {
-		return --jumpsLeft > 0u && t.level <= lastThr; // impFun.max_value();
+	auto predicate = [&jumpsLeft,&impFun](const Traial& t) -> bool {
+		return --jumpsLeft > 0u && t.level < impFun.max_value();  /// @todo NOTE could we change to "<= lastThr"?
     };
     auto update = [&impFun](Traial& t) -> void {
         t.level = impFun.importance_of(t.state);
