@@ -1,0 +1,5 @@
+# Skip model/properties files for which there's a generation script
+database.sa
+database.pp
+oil_pipeline.sa
+oil_pipeline.pp

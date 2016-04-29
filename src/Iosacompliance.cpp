@@ -339,17 +339,6 @@ variable_duplicate(AST* ast){
 // VERIFIER CLASS IMPLEMENTATION ===============================================
 //==============================================================================
 
-/**
- *
- */
-Verifier::Verifier(){
-}
-
-/**
- *
- */
-Verifier::~Verifier(void){}
-
 
 //==============================================================================
 
@@ -371,7 +360,7 @@ void
 Verifier::verify( AST* ast, const parsingContext pc){
 
     mPc = pc; /* FIXME shouldn't do this copy, it comes from refactoring.
-               *       think of a way arround
+               *       think of a way around it
                */
     // general IOSA properties
     pout << ">> Check names uniqueness...\n";

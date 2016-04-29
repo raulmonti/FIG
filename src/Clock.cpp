@@ -156,7 +156,7 @@ return_t gamma(const params_t& params)
 return_t erlang(const params_t& params)
 {
 	const int k(std::round(params[0]));
-    std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > erlang(k, 1.0/params[1]);
+	std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > erlang(k, 1.0/params[1]);
 	return erlang(rng);
 }
 

@@ -35,6 +35,7 @@
 #include <string>
 #include <list>
 // C
+#include <omp.h>
 #include <cassert>
 #include <sys/stat.h>
 // FIG
@@ -70,34 +71,32 @@ int main(int argc, char** argv)
 	auto const_argv(const_cast<const char**>(argv));
 	const std::string FIG_ERROR("ERROR: FIG failed to");
 
-	// Greeting and command line parsing
+	// "Greetings, human!" and command line parsing
 	try {
 		print_intro(argc, const_argv);
 		fig_cli::parse_arguments(argc, const_argv);  // exit on error
 	} catch (fig::FigException& e) {
 		log(FIG_ERROR + " parse the command line.\n\n");
-		tech_log("Parse error message: " + e.msg() + "\n");
+		tech_log("Error message: " + e.msg() + "\n");
 		exit(EXIT_FAILURE);
 	}
 
 	// Compile model and properties files
 	try {
+		double start = omp_get_wtime();
 		build_model(modelFile, propertiesFile);
+		tech_log("Model and properties files successfully compiled.\n");
+		tech_log("Model building time: "
+				 + std::to_string(omp_get_wtime()-start) + " s\n\n");
 	} catch (fig::FigException& e) {
 		log(FIG_ERROR + " compile the model/properties file.\n\n");
-		tech_log("Parse error message: " + e.msg() + "\n");
+		tech_log("Error message: " + e.msg() + "\n");
 		exit(EXIT_FAILURE);
-	}
-	auto model = fig::ModelSuite::get_instance();
-	if (!model.sealed()) {
-		log(FIG_ERROR + " build the model.\n\n");
-		exit(EXIT_FAILURE);
-	} else {
-		tech_log("Model and properties files successfully compiled.\n");
 	}
 
 	// Estimate using requested configuration
 	try {
+		auto model = fig::ModelSuite::get_instance();
 		model.process_batch(engineName,
 							impFunSpec,
 							thrTechnique,
@@ -165,7 +164,6 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
 	fig::ModelSuite::log("\n\n");
 
 	Parser parser;
-	Verifier verifier;
 	Precompiler precompiler;
 
 	std::ifstream mfin(modelFilePath, ios::binary);
@@ -175,9 +173,31 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
 	// Parse the file with the model description
 	parser.parse(&ss);
 	ss.str("");ss.clear();  // clear ss contents
-	ss << precompiler.pre_compile(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
+	ss << precompiler.pre_compile(GLOBAL_MODEL_AST,
+								  GLOBAL_PARSING_CONTEXT,
+								  parser.get_lexemes());
 	parser.parse(&ss);
-	verifier.verify(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
+
+	// Check if the model is small enough for IOSA-compliance verification...
+	const size_t NTRANS_UBOUND(1ul<<7ul);  // arbitrary af
+	bool verifyModel(true);
+	for (const AST* module: GLOBAL_MODEL_AST->get_all_ast(parser::_MODULE)) {
+		if (NTRANS_UBOUND < module->get_all_ast(parser::_TRANSITION).size()) {
+			verifyModel = false;
+			break;
+		}
+	}
+	if (verifyModel) {
+		// ...it is! Verify the model satisfies all IOSA conditions
+		Verifier verifier;
+		verifier.verify(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
+	} else {
+		// ...some module is too big: inform the user and skip verification
+		auto tech_log = fig::ModelSuite::tech_log;
+		tech_log("Skipping model's IOSA-compliance verification since some "
+				 "module has more than " + std::to_string(NTRANS_UBOUND) +
+				 " transitions.\n");
+	}
 
 	// Parse the file with the properties to check
 	std::ifstream pfin(propsFilePath, ios::binary);
@@ -185,7 +205,8 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
 	ss << pfin.rdbuf();
 	parser.parseProperties(&ss);
 	ss.str("");ss.clear();  // clear ss contents
-	ss << precompiler.pre_compile_props();
+	ss << precompiler.pre_compile_props(parser.get_lexemes(),
+										GLOBAL_CONST_TABLE);
 	parser.parseProperties(&ss);
 
 	// Compile into simulation model

@@ -54,11 +54,11 @@ using fig::Traial;
 using fig::ImportanceValue;
 using TraialsVec = fig::ThresholdsBuilderAdaptive::TraialsVec;
 
-/// Min simulation length (in # of jumps) to find new thresholds
-const unsigned MIN_SIM_EFFORT = 1u<<6u; // 64
+/// Allowed simulation length (in # of jumps) to find new thresholds
+unsigned SIM_EFFORT = 1u<<6u; // 64
 
-/// Max # of failures allowed when searching for a new threshold
-const unsigned MAX_NUM_FAILURES = 6u;
+/// Allowed # of failures when searching for a new threshold
+unsigned NUM_FAILURES = 6u;
 
 // RNG for randomized traial selection  ///////////////////////////
 #ifndef NDEBUG
@@ -114,35 +114,35 @@ build_states_distribution(const fig::ModuleNetwork& network,
 	assert(k < n);
     assert(traials.size() >= n+k);
 
-	const unsigned TOLERANCE(3u*MAX_NUM_FAILURES);
+	const unsigned TOLERANCE(2u*NUM_FAILURES);
 	unsigned jumpsLeft, pos, fails(0u);
 
 	// Function pointers matching ModuleNetwork::peak_simulation() signatures
 	auto predicate = [&jumpsLeft,lastThr](const Traial& t) -> bool {
-		return --jumpsLeft > 0u && lastThr > t.level;
+		return --jumpsLeft > 0u && lastThr != t.level;
     };
     auto update = [&impFun](Traial& t) -> void {
         t.level = impFun.importance_of(t.state);
     };
 
-    // Starting "uniformly" from previously computed initial states,
+	// Starting uniform-randomly from previously computed initial states,
     // advance the first 'n' traials until they meet a state realizing lastThr
     std::uniform_int_distribution<unsigned> uniK(0, k-1);
     for (unsigned i = 0u ; i < n ; i++) {
 		fails = 0u;
 		Traial& t(traials[i]);
         do {
-			jumpsLeft = MIN_SIM_EFFORT * (1u+fails);
+			jumpsLeft = SIM_EFFORT * (1u+fails);
 			t = traials[n + uniK(RNG)];  // choose randomly among last 'k'
 			assert(lastThr > t.level);
             network.peak_simulation(t, update, predicate);
-		} while (lastThr > t.level && ++fails < TOLERANCE);
+		} while (lastThr != t.level && ++fails < TOLERANCE);
 	}
 	if (fails >= TOLERANCE)
-		return false;  // couldn't make 'n' traials to reach lastThr, we failed
+		return false;  // couldn't make the 'n' traials reach lastThr: we failed
 
     // Store 'k' from those 'n' new states as the next-gen initial states
-    // Choose which 'k' uniformly (without repetitions)
+	// Uniformly choose which will be those 'k' (without repetitions)
     std::vector<bool> used(n, false);
     std::uniform_int_distribution<unsigned> uniN(0, n-1);
     for (unsigned i = 0u ; i < k ; i++) {
@@ -192,12 +192,13 @@ find_new_threshold(const fig::ModuleNetwork& network,
 	assert(k < n);
     assert(traials.size() >= n+k);
     using std::to_string;
-    unsigned jumpsLeft, failures(0u), simEffort(MIN_SIM_EFFORT);
+	unsigned jumpsLeft, failures(0u), simEffort(SIM_EFFORT);
+	const ImportanceValue MAX_IMP(impFun.max_value());
     ImportanceValue newThr(lastThr);
 
 	// Function pointers matching ModuleNetwork::peak_simulation() signatures
-	auto predicate = [&jumpsLeft,&impFun](const Traial& t) -> bool {
-		return --jumpsLeft > 0u && t.level < impFun.max_value();  /// @todo NOTE could we change to "<= lastThr"?
+	auto predicate = [&jumpsLeft,&MAX_IMP](const Traial& t) -> bool {
+		return --jumpsLeft > 0u && MAX_IMP > t.level;
     };
     auto update = [&impFun](Traial& t) -> void {
         t.level = impFun.importance_of(t.state);
@@ -207,7 +208,7 @@ find_new_threshold(const fig::ModuleNetwork& network,
     // What happens when the new quantile isn't higher than lastThr
     auto reinit = [&n, &k, &simEffort] (TraialsVec& traials, unsigned& fails) {
 		fig::ModelSuite::tech_log("-");  // report failure
-		if (++fails >= MAX_NUM_FAILURES)
+		if (++fails >= NUM_FAILURES)
 			return false;
 		simEffort *= 2u;
         // Choose the new 'n' initial states uniformly among the last 'k'
@@ -224,13 +225,11 @@ find_new_threshold(const fig::ModuleNetwork& network,
 			network.peak_simulation(traials[i], update, predicate);
 		}
 		// Sort to find 1-k/n quantile
-		auto nth_traial(begin(traials));
-        std::advance(nth_traial, n);
-        std::sort(begin(traials), nth_traial, lesser);
+		std::sort(begin(traials), begin(traials)+n, lesser);
         newThr = traials[n-k].get().level;
     } while (newThr <= lastThr && reinit(traials, failures));
 
-	if (failures < MAX_NUM_FAILURES)
+	if (failures < NUM_FAILURES)
 		fig::ModelSuite::tech_log("+");  // report success
 
     return newThr;
@@ -322,9 +321,22 @@ ThresholdsBuilderSMC::tune(const uint128_t &numStates,
 	// The counterpart is that too many thresholds are chosen and thus the
     // thresholds building takes too long.
 	// We try to counter that a little by reducing the probability of level up
-    const float p((k_*0.5f)/n_);
+	const float p((k_*0.333f)/n_);
 	n_ = std::max({n, n_, ThresholdsBuilderAdaptive::MIN_N});
 	k_ = std::round(p*n_);
+	// Level-up probability will be directly proportional to simulations length
+	// within the range (0.06 , 0.1) of 'p'
+	::SIM_EFFORT = p < 0.06 ? MIN_SIM_EFFORT :
+				   p > 0.1  ? MAX_SIM_EFFORT :
+				   std::round(25.f*(MAX_SIM_EFFORT-MIN_SIM_EFFORT) * p
+							  + 2.5f*MIN_SIM_EFFORT - 1.5f*MAX_SIM_EFFORT);
+	// Connectivity will be inversely proportional to the allowed # of failures
+	// within the range (0.01 , 1.0) of 'connectivity'
+	const float connectivity(numTrans/numStates);
+	::NUM_FAILURES = connectivity < 0.01f ? MAX_NUM_FAILURES :
+					 connectivity > 1.00f ? MIN_NUM_FAILURES :
+					 std::round((MIN_NUM_FAILURES-MAX_NUM_FAILURES)*1.01f * connectivity
+								 + 99.f * MAX_NUM_FAILURES / (MIN_NUM_FAILURES-MAX_NUM_FAILURES));
 }
 
 } // namespace fig

@@ -333,24 +333,29 @@ namespace fig{
 void
 CompileModel(AST* astModel, const parsingContext &pc)
 {   
-    assert(astModel);
+	assert(astModel);
 	auto model = fig::ModelSuite::get_instance();
 	assert(!model.sealed());
-    vector<AST*> modules = astModel->get_all_ast(_MODULE);
-	for(const auto& it: modules){
-		std::shared_ptr< ModuleInstance > module(nullptr);
-		module = CompileModule(it,pc);
+	// Compile all modules
+	for(AST* it: astModel->get_all_ast(_MODULE)){
+		std::shared_ptr< ModuleInstance > module = CompileModule(it,pc);
+		if (nullptr == module)
+			throw_FigException("failed to compile module \""
+							   + it->get_lexeme(_NAME) + "\"");
 		model.add_module(module);
 	}
-    for(const auto &it: GLOBAL_PROP_AST->get_all_ast(_PROPERTY)){
-        std::shared_ptr< Property > prop(nullptr);
-        prop = CompileProperty(it);
-        if(prop){
-            model.add_property(prop);
-        }
-    }
-
+	// Compile all properties
+	for(AST* it: GLOBAL_PROP_AST->get_all_ast(_PROPERTY)){
+		std::shared_ptr< Property > property = CompileProperty(it);
+		if (nullptr == property)
+			throw_FigException("failed to compile property \""
+							   + it->toString() + "\"");
+		model.add_property(property);
+	}
+	// Seal fig model
 	model.seal();
+	if (!fig::ModelSuite::get_instance().sealed())
+		throw_FigException("failed to seal the model!");
 }
 
 } // namespace fig

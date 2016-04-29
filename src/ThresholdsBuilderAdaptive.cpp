@@ -121,16 +121,17 @@ ThresholdsBuilderAdaptive::tune(const uint128_t &numStates,
 	assert(thresholds_.size() == 0u);
 	assert(thresholds_.capacity() > 0u);
 
-	/// @todo FIXME code imported from bluemoon -- Change to something more solid
+	/// @todo FIXME heuristic imported from bluemoon -- Replace with calculi
+	///             based on mathematical analysis if possible
 
 	// Heuristic for 'n_':
 	//   the more importance values, the more independent runs we need
 	//   for some of them to be successfull.
 	//   Number of states and transitions in the model play a role too.
     const unsigned explFactor = 1u<<6u;
-	const unsigned statesExtra = std::min(
-			static_cast<uint128_t>(numStates/explFactor).lower(), 1ul<<7ul);
-    const unsigned transExtra = std::min(2*numTrans/explFactor, 1ul<<8ul);
+	const unsigned statesExtra = numStates.upper() > 0ul ? 1u<<7u :
+								 std::min(numStates.lower()/explFactor, 1ul<<7ul);
+	const unsigned transExtra = std::min(2u*numTrans/explFactor, 1ul<<8ul);
     n_  = std::ceil(std::log(maxImportance)) * explFactor + statesExtra + transExtra;
 
 	// Heuristic for 'k_':
