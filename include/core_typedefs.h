@@ -37,8 +37,10 @@
 #include <forward_list>
 #include <unordered_map>
 #include <string>
-#include <functional>     // std::function<>, std::reference_wrapper<>
+#include <bitset>
+#include <functional>  // std::reference_wrapper<>
 // External code
+#include <uint128_t.h>
 #include <muParserDef.h>  // mu::value_type
 
 
@@ -122,24 +124,59 @@ typedef  std::vector< std::forward_list< unsigned > >          AdjacencyList;
 // Transitions
 //
 
+#define  MAX_NUM_CLOCKS  (1ul<<10ul)  // The model can have up to 1024 clocks
+
 /// Bit flag to identify resetting clocks
-/// @warning This bounds the max # of clocks in the model
-/// @note In <a href="http://goo.gl/hXmnBQ">Boost's multiprecision library</a>
-///       there are ints of up to 1024 bits.
+/// @note This bounds the max number of clocks the user can define in his model.
+///       To extend this limit simply redefine "MAX_NUM_CLOCKS" above
 ///
-typedef  uintmax_t                                                   Bitflag;
+typedef  std::bitset<MAX_NUM_CLOCKS>                                 Bitflag;
 
 //
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //
 //
-// Importance and simulation events
+// Importance functions
 //
 
 /// Primitive type used to assess the importance of a single *concrete* state
 /// @warning This bounds the number of representable importance levels
 ///
 typedef  unsigned short                                      ImportanceValue;
+
+/// ImportanceFunction specification: this struct should be filled
+/// during the command line parsing, with the data provided by the user
+struct ImpFunSpec
+{
+	/// ImportanceFunction name @see ImportanceFunction::names()
+	const std::string name;
+	/// ImportanceFunction assessment strategy @see ImportanceFunction::strategies()
+	const std::string strategy;
+	/// User-defined ad hoc expression needed by some ImportanceFunction s
+	const std::string algebraicFormula;
+	/// <i>Optional</i>: min value the user-defined ad hoc function can take
+	const ImportanceValue minValue;
+	/// <i>Optional</i>: max value the user-defined ad hoc function can take
+	const ImportanceValue maxValue;
+	/// Data ctor needs at least a name and a strategy
+	ImpFunSpec(const std::string& theName,
+			   const std::string& theStrategy,
+			   const std::string& theAlgebraicFormula = "",
+			   const ImportanceValue& theMinValue = static_cast<ImportanceValue>(0u),
+			   const ImportanceValue& theMaxValue = static_cast<ImportanceValue>(0u)) :
+		name(theName),
+		strategy(theStrategy),
+		algebraicFormula(theAlgebraicFormula),
+		minValue(theMinValue),
+		maxValue(theMaxValue) {}
+};
+
+//
+//
+// // // // // // // // // // // // // // // // // // // // // // // // // //
+//
+// Simulation events
+//
 
 /// Bit flag to identify the recognized events during simulation
 /// @note Same as ImportanceValue to store this info in the ImportanceFunction
@@ -226,6 +263,11 @@ template< typename T_ > using Reference = std::reference_wrapper<T_>;
 /// Mapping of names (of clocks or variables or whatever) to their
 /// respective positions in some global or local array
 typedef  std::unordered_map< std::string, size_t >  PositionsMap;
+
+/// 128-bit integer for concrete state size representation (they're that big)
+/// @note Might use boost multiprecision library which defines integers
+///       of up to 1024 bits, but the standalone headers weight 13 MB!
+typedef uint128::uint128_t uint128_t;
 
 //
 //

@@ -28,11 +28,13 @@
 
 
 // C++
+#include <set>
 #include <tuple>
+#include <deque>
 #include <queue>
 #include <vector>
 #include <forward_list>
-#include <algorithm>
+#include <algorithm>  // std::fill(), std::remove_if()
 // FIG
 #include <ImportanceFunctionConcrete.h>
 #include <FigException.h>
@@ -40,7 +42,7 @@
 #include <Property.h>
 #include <PropertyRate.h>
 #include <PropertyTransient.h>
-#include <PropertySat.h>
+#include <DNFclauses.h>
 #include <Module.h>
 
 // ADL
@@ -55,6 +57,8 @@ using fig::Property;
 using fig::Transition;
 using fig::StateInstance;
 using fig::ImportanceValue;
+using parser::DNFclauses;
+using Clause = parser::DNFclauses::Clause;
 using State = fig::State< fig::STATE_INTERNAL_TYPE >;
 using ImportanceVec = fig::ImportanceFunction::ImportanceVec;
 typedef ImportanceVec EventVec;
@@ -106,7 +110,8 @@ reversed_edges_DFS(const fig::Module& module,
 
 	// DFS
 	while (!toVisit.empty()) {
-		size_t currentState = toVisit.front(); toVisit.pop_front();
+		const size_t currentState = toVisit.front(); toVisit.pop_front();
+		assert(visits.size() > currentState);
 		if (VISITED == visits[currentState])
 			continue;
 		// Visiting currentState
@@ -152,7 +157,8 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 					 const size_t initialState,
 					 ImportanceVec& cStates)
 {
-	assert(raresQueue.size() > 0);
+	if (raresQueue.size() == 0ul)
+		return static_cast<ImportanceValue>(0u);
 //	assert(std::find(begin(raresQueue), end(raresQueue), initialState)
 //		   == end(raresQueue));
 
@@ -174,10 +180,10 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 
 	// BFS
 	bool initialReached(false);
+	std::queue< STATE_T >& statesToCheck = raresQueue;
 #ifndef NDEBUG
 	const size_t numRares = raresQueue.size();
 #endif
-	std::queue< STATE_T >& statesToCheck = raresQueue;
 
 	while (!initialReached && !statesToCheck.empty()) {
 		STATE_T s = statesToCheck.front();
@@ -186,7 +192,7 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 		// For each state reaching 's'...
 		for (const STATE_T& reachingS: reverseEdges[s]) {
             // ...if we're visiting it for the first time...
-			if (NOT_VISITED == cStates[reachingS]) {
+			if (NOT_VISITED == fig::UNMASK(cStates[reachingS])) {
 				// ...label it with distance from rare set...
 				cStates[reachingS] = levelBFS | fig::MASK(cStates[reachingS]);
 				// ...and enqueue it, unless we're done.
@@ -220,12 +226,137 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 
 
 /**
+ * Mask as RARE event all concrete states which satisfy any of the clauses
+ * @param s           Copy of the local State being labelled
+ * @param cStates     Vector of concrete states corresponding to 's'
+ * @param rareClauses DNF clauses identifying the states to mask as RARE
+ * @param reset       Whether cStates should be nullified before computations
+ * @return Set of concrete states found to satisfy any of the clauses,
+ *         viz. set of rare concrete states
+ */
+std::set< STATE_T >
+label_local_rares(State s,
+				  EventVec& cStates,
+				  const std::vector< Clause >& rareClauses,
+				  const bool reset = false)
+{
+	std::set< STATE_T > rares;
+	if (reset)
+		std::fill(begin(cStates), end(cStates), fig::EventType::NONE);
+	for (const auto& clause: rareClauses) {
+		for (size_t i = 0ul ; i < cStates.size() ; i++) {
+			if (clause(s.decode(i).to_state_instance())) {
+				cStates[i] |= fig::EventType::RARE;
+				rares.emplace(i);
+			}
+		}
+	}
+	return rares;
+}
+
+
+/**
+ * Mask as EVENT all concrete states which satisfy any of the clauses
+ * @param s            Copy of the local State being labelled
+ * @param cStates      Vector of concrete states corresponding to 's'
+ * @param otherClauses DNF clauses identifying the states to mask as EVENT
+ * @param reset        Whether cStates should be nullified before computations
+ * @param negate       Whether the *negation of the clauses* should be used
+ *                     when masking the concrete states
+*/
+void
+label_local_others(State s,
+				   EventVec& cStates,
+				   const std::vector< Clause >& otherClauses,
+				   const fig::EventType& EVENT,
+				   const bool reset = false,
+				   const bool negate = false)
+{
+	if (reset)
+		std::fill(begin(cStates), end(cStates), fig::EventType::NONE);
+	for (const auto& clause: otherClauses)
+		for (size_t i = 0ul ; i < cStates.size() ; i++)
+			if (negate != clause(s.decode(i).to_state_instance()))
+				cStates[i] |= EVENT;
+}
+
+
+/**
+ * @brief Label concrete states with Event masks corresponding to the Property
+ *
+ *        This is specifically intended for ImporatanceFunctionConcreteSplit,
+ *        where the Property is to be evaluated locally in each of the modules,
+ *        i.e. in a local state with only a subset of the variables that may
+ *        appear in the Property.
+ *
+ * @param localState State of an individual module (in any valuation)
+ * @param cStates    Concrete states vector to label with Event masks <b>(modified)</b>
+ * @param property   Property identifying the special states
+ * @param clauses    Property parsed as a DNF list of clauses
+ *                   (used only by ImportanceFunctionConcreteSplit for 'auto')
+ *
+ * @return Queue with all rare concrete states found
+ *
+ * @note cState will be left of size "localState.concrete_size()",
+ *       and its content will be modified to contain only those values
+ *       defined in fig::EventType.
+ *
+ * @warning Intended for modules' local states, i.e. parameter 'localState'
+ *          should have the variables of a single \ref fig::ModuleInstance
+ *          "individual module".
+ */
+std::queue< STATE_T >
+label_local_states(const State& localState,
+				   EventVec& cStates,
+				   const Property& property,
+				   const DNFclauses& clauses)
+{
+	std::vector< Clause > rareClauses, otherClauses;
+	std::set< STATE_T > rares;
+
+	// Project the property for this localState
+	std::tie(rareClauses, otherClauses) = clauses.project(localState);
+	assert(localState.concrete_size().upper() == 0ul);
+	cStates.resize(localState.concrete_size().lower());
+
+	// Mark events according to the clauses
+	switch (property.type) {
+
+	case fig::PropertyType::TRANSIENT:
+		rares = label_local_rares(localState, cStates, rareClauses, true);
+		label_local_others(localState, cStates, otherClauses,
+						   fig::EventType::STOP, false, true);
+		break;
+
+	case fig::PropertyType::RATE:
+		rares = label_local_rares(localState, cStates, rareClauses, true);
+		break;
+
+	case fig::PropertyType::THROUGHPUT:
+	case fig::PropertyType::RATIO:
+	case fig::PropertyType::BOUNDED_REACHABILITY:
+		throw_FigException("property type isn't supported yet");
+		break;
+
+	default:
+		throw_FigException("invalid property type");
+		break;
+	}
+
+	return std::queue<STATE_T>(std::deque<STATE_T>(begin(rares), end(rares)));
+}
+
+
+/**
  * Label concrete states with the Event masks corresponding to the Property
  *
- * @param globalState Any valid State of the Module
+ * @param globalState State of the whole model (in any valuation)
  * @param cStates     Concrete states vector to label with Event masks <b>(modified)</b>
  * @param property    Property identifying the special states
  * @param returnRares Whether to return a queue with all rare concrete states
+ *
+ * @return Queue with all rare concrete states found if 'returnRares' is true;
+ *         empty queue otherwise.
  *
  * @note cState will be left of size "globalState.concrete_size()",
  *       and its content will be modified to contain only those values
@@ -236,12 +367,13 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
  *          not just from an \ref fig::ModuleInstance "individual module".
  */
 std::queue< STATE_T >
-label_states(State globalState,
-			 EventVec& cStates,
-			 const Property& property,
-			 bool returnRares = false)
+label_global_states(State globalState,
+					EventVec& cStates,
+					const Property& property,
+					bool returnRares = false)
 {
-	cStates.resize(globalState.concrete_size());
+	assert(globalState.concrete_size().upper() == 0ul);
+	cStates.resize(globalState.concrete_size().lower());
 	std::queue< STATE_T > raresQueue;
 
 	// Mark conditions according to the property
@@ -249,7 +381,7 @@ label_states(State globalState,
 
 	case fig::PropertyType::TRANSIENT: {
 		auto transientProp = static_cast<const fig::PropertyTransient&>(property);
-		for (size_t i = 0ul ; i < globalState.concrete_size() ; i++) {
+		for (size_t i = 0ul ; i < cStates.size() ; i++) {
 			cStates[i] = fig::EventType::NONE;
 			const StateInstance valuation(globalState.decode(i).to_state_instance());
 			if ( transientProp.expr2(valuation)) {
@@ -264,7 +396,7 @@ label_states(State globalState,
 
 	case fig::PropertyType::RATE: {
 		auto rateProp = static_cast<const fig::PropertyRate&>(property);
-		for (size_t i = 0ul ; i < globalState.concrete_size() ; i++) {
+		for (size_t i = 0ul ; i < cStates.size() ; i++) {
 			cStates[i] = fig::EventType::NONE;
 			const StateInstance valuation(globalState.decode(i).to_state_instance());
 			if (rateProp.expr(valuation)) {
@@ -291,105 +423,13 @@ label_states(State globalState,
 
 
 /**
- * @brief Label concrete states with Event masks corresponding to the Property
- *
- *        This is specifically intended for ImporatanceFunctionConcreteSplit,
- *        where the Property is to be evaluated locally in each of the modules,
- *        i.e. in a local state with only a subset of the variables that may
- *        appear in the Property.<br>
- *        SAT solving is used to evaluate the Property in these "incomplete
- *        local states", marking any which could add to a global rare state.
- *
- * @param localState Any valid State of the Module
- * @param cStates    Concrete states vector to label with Event masks <b>(modified)</b>
- * @param property   Property identifying the special states
- *
- * @return Queue with all rare concrete states
- *
- * @note cState will be left of size "localState.concrete_size()",
- *       and its content will be modified to contain only those values
- *       defined in fig::EventType.
- */
-std::queue< STATE_T >
-label_states_with_SAT(State localState,
-					  EventVec& cStates,
-					  const Property& property)
-{
-	cStates.resize(localState.concrete_size());
-	std::queue< STATE_T > raresQueue;
-	fig::PropertySat reducedProperty(property.index(), localState.varnames());
-
-	// Mark conditions according to the property
-	switch (property.type) {
-
-	case fig::PropertyType::TRANSIENT:
-		for (size_t i = 0ul ; i < localState.concrete_size() ; i++) {
-			cStates[i] = fig::EventType::NONE;
-			const StateInstance valuation(localState.decode(i).to_state_instance());
-			if (reducedProperty.sat(1, valuation)) {
-                fig::SET_RARE_EVENT(cStates[i]);
-                raresQueue.push(i);
-            }
-            if (reducedProperty.nsat(0, valuation))  // expression's negation SAT
-				fig::SET_STOP_EVENT(cStates[i]);
-		}
-		break;
-
-	case fig::PropertyType::RATE:
-		for (size_t i = 0ul ; i < localState.concrete_size() ; i++) {
-			cStates[i] = fig::EventType::NONE;
-			const StateInstance valuation(localState.decode(i).to_state_instance());
-			if (reducedProperty.sat(0, valuation)) {
-				fig::SET_RARE_EVENT(cStates[i]);
-				raresQueue.push(i);
-			}
-		}
-		break;
-
-	case fig::PropertyType::THROUGHPUT:
-	case fig::PropertyType::RATIO:
-	case fig::PropertyType::BOUNDED_REACHABILITY:
-		throw_FigException("property type isn't supported yet");
-		break;
-
-	default:
-		throw_FigException("invalid property type");
-		break;
-	}
-
-	return raresQueue;
-}
-
-
-/**
- * @brief Assign null importance for all states in concrete vector
- * @param state    Symbolic state of this Module, in any valuation
- * @param impVec   Vector where the importance will be stored <b>(modified)</b>
- * @param property Property identifying the special states
- */
-ImportanceValue
-assess_importance_flat(const State& state,
-					   ImportanceVec& impVec,
-					   const Property& property)
-{
-    assert(state.size() > 0ul);
-    assert(impVec.size() == 0ul);
-
-	// Build vector the size of concrete state space filled with zeros ...
-	ImportanceVec(state.concrete_size()).swap(impVec);
-	// ... and label according to the property
-	label_states(state, impVec, property);
-
-	return static_cast<ImportanceValue>(0u);
-}
-
-
-/**
  * Assign automatic importance to reachable states in concrete vector
  *
  * @param module   Module whose states' will have their importance assessed
  * @param impVec   Vector where the importance will be stored <b>(modified)</b>
  * @param property Property identifying the special states
+ * @param clauses  Property parsed as a DNF list of clauses
+ *                 (used only by ImportanceFunctionConcreteSplit)
  * @param split    Whether we're working for ImportanceFunctionConcreteSplit
  *
  * @note "impVec" should be provided empty, and is reallocated
@@ -401,7 +441,8 @@ ImportanceValue
 assess_importance_auto(const fig::Module& module,
 					   ImportanceVec& impVec,
 					   const Property& property,
-					   bool split)
+					   const DNFclauses& clauses,
+					   const bool split)
 {
     assert(impVec.size() == 0ul);
 
@@ -414,20 +455,51 @@ assess_importance_auto(const fig::Module& module,
 	///       and discard them when the BFS step is finished.
 
 	// Step 2: label concrete states according to the property
-	std::queue< STATE_T > raresQueue;
+	std::queue< STATE_T > rares;
 	if (split)
-		raresQueue = label_states_with_SAT(module.initial_state(), impVec, property);
+		rares = label_local_states(module.initial_state(), impVec, property, clauses);
 	else
-		raresQueue = label_states(module.initial_state(), impVec, property, true);
+		rares = label_global_states(module.initial_state(), impVec, property, true);
 
 	// Step 3: run BFS to compute importance of every concrete state
 	ImportanceValue maxImportance = build_importance_BFS(reverseEdges,
-														 raresQueue,
+														 rares,
 														 module.initial_concrete_state(),
 														 impVec);
 	fig::AdjacencyList().swap(reverseEdges);  // free mem!
 
 	return maxImportance;
+}
+
+
+/**
+ * @brief Assign null importance to all states in concrete vector
+ * @param state    Symbolic state of this Module, in any valuation
+ * @param impVec   Vector where the importance will be stored <b>(modified)</b>
+ * @param property Property identifying the special states
+ * @param clauses  Property parsed as a DNF list of clauses, for split storage
+ * @param split    Whether we're working for ImportanceFunctionConcreteSplit
+ */
+ImportanceValue
+assess_importance_flat(const State& state,
+					   ImportanceVec& impVec,
+					   const Property& property,
+					   const DNFclauses& clauses,
+					   const bool split)
+{
+	assert(state.size() > 0ul);
+	assert(state.concrete_size().upper() == 0ul);
+	assert(impVec.size() == 0ul);
+
+	// Build vector the size of concrete state space filled with zeros ...
+	ImportanceVec(state.concrete_size().lower()).swap(impVec);
+	// ... and label according to the property
+	if (split)
+		label_local_states(state, impVec, property, clauses);  // this is idiotic
+	else
+		label_global_states(state, impVec, property);
+
+	return static_cast<ImportanceValue>(0u);
 }
 
 } // namespace
@@ -457,34 +529,50 @@ ImportanceFunctionConcrete::assess_importance(
 	const Module& module,
 	const Property& property,
 	const std::string& strategy,
-	const unsigned& index)
+	const unsigned& index,
+	const DNFclauses& clauses)
 {
 	if (modulesConcreteImportance.size() <= index)
 		modulesConcreteImportance.resize(index+1);
     else if (modulesConcreteImportance[index].size() > 0ul)
 		throw_FigException("importance info already exists at position "
 						  + std::to_string(index));
+	const bool split(name().find("split") != std::string::npos);
+
+	// Impose a limit on the amount of memory the user can request for this.
+	// There's no portable way of measuring the system's available RAM
+	// (http://stackoverflow.com/a/2513561), thus the limit is arbitrary
+	const uint128_t concreteStateSize(module.concrete_state_size());
+	const size_t MAX_SIZE(1ul<<31ul);  // up to 2 GB
+	if (concreteStateSize.upper() > 0ul ||
+		concreteStateSize.lower() > MAX_SIZE)
+		throw_FigException("the concrete state space of this module "
+						   "is too big to hold it in a vector (it's greater "
+						   "than " + std::to_string(MAX_SIZE) + " bytes)");
 
 	// Compute importance according to the chosen strategy
 	if ("flat" == strategy) {
-		maxValue_ =
-			assess_importance_flat(module.initial_state(),
-								   modulesConcreteImportance[index],
-								   property);
+		maxValue_ = assess_importance_flat(module.initial_state(),
+										   modulesConcreteImportance[index],
+										   property,
+										   clauses,
+										   split);
         // Invariant of flat importance function:
 		minValue_ = maxValue_;
+		initialValue_ = maxValue_;
 		minRareValue_ = maxValue_;
 
 	} else if ("auto" == strategy) {
-		maxValue_ =
-			assess_importance_auto(module,
-								   modulesConcreteImportance[index],
-								   property,
-								   name().find("split") != std::string::npos);
+		maxValue_ = assess_importance_auto(module,
+										   modulesConcreteImportance[index],
+										   property,
+										   clauses,
+										   split);
         // For auto importance functions the initial state has always
         // the lowest importance, and all rare states have the highest:
 		minValue_ = UNMASK(
 				modulesConcreteImportance[index][module.initial_concrete_state()]);
+		initialValue_ = minValue_;
 		minRareValue_ = maxValue_;  // should we check?
 
 	} else if ("adhoc" == strategy) {

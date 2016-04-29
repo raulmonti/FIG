@@ -2,6 +2,7 @@
 #include <vector>
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // std::find_if()
+#include <string>     // std::stof()
 #include <map>
 #include "CompileModel.h"
 #include "State.h"
@@ -100,10 +101,14 @@ CompileClocks(const vector<AST*> transitions)
             it->get_first(_DISTRIBUTION)->get_all_lexemes(_NUM);
         // FIXME que feo que es armar el array ... no se de que otra forma
         //       hacerlo.
-        fig::DistributionParameters dParams;
+		fig::DistributionParameters dParams;
         fig::DistributionParameters::iterator dpit = dParams.begin();
         for(const auto &pit: params){
-            *dpit = atoi(pit.c_str());
+			auto err(std::string::npos);
+			*dpit = std::stof(pit.data(), &err);
+			if (err != pit.length())
+				throw_FigException("couldn't parse distribution parameter \""
+								   + pit + "\" for clock \"" + name + "\"");
             dpit++;
         }
         result.push_back(Clock(name, distrib, dParams));

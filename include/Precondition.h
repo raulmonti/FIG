@@ -48,10 +48,6 @@ namespace fig
  */
 class Precondition : public MathExpression
 {
-	friend class Transition;  // for variables mapping callback
-	friend class PropertyTransient;  // see Property::Formula and weep
-	friend class PropertyRate;  // see Property::Formula and weep
-
 	/// @brief Perform a fake evaluation to exercise our expression
 	/// @note  Useful to reveal parsing errors in MathExpression
 	/// @throw FigException if badly parsed expression
@@ -89,7 +85,7 @@ public:  // Ctors
         MathExpression(exprStr, from, to)
         {}
 
-protected:  // Modifyers
+public:  // Modifyers, made public since too many other classes use Precondition
 
 	/**
 	 * @copydoc fig::MathExpression::pin_up_vars()

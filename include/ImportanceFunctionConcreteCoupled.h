@@ -71,7 +71,16 @@ public:  // Ctor/Dtor
 	/// Dtor
 	virtual ~ImportanceFunctionConcreteCoupled();
 
+	/// Avoid accidental copies
+	ImportanceFunctionConcreteCoupled(const ImportanceFunctionConcreteCoupled&) = delete;
+
+	/// Avoid accidental copies
+	ImportanceFunctionConcreteCoupled&
+	operator=(const ImportanceFunctionConcreteCoupled&) = delete;
+
 public:  // Accessors
+
+	inline bool concrete_simulation() const noexcept override final { return true; }
 
 	/// @copydoc ImportanceFunctionConcrete::info_of()
 	/// @note Attempted inline in a desperate need for speed

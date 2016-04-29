@@ -32,6 +32,8 @@
 #include <cassert>
 // C++
 #include <vector>
+// External code
+#include <uint128_t.h>  // uint128::uint128_0
 // FIG
 #include <ThresholdsBuilderAdaptive.h>
 #include <ModelSuite.h>
@@ -105,13 +107,13 @@ ThresholdsBuilderAdaptive::build_thresholds(const unsigned& splitsPerThreshold,
 
 
 void
-ThresholdsBuilderAdaptive::tune(const size_t& numStates,
+ThresholdsBuilderAdaptive::tune(const uint128_t &numStates,
 								const size_t& numTrans,
 								const ImportanceValue& maxImportance,
 								const unsigned& splitsPerThr)
 {
-	assert(0u < numStates);
-	assert(0u < numTrans);
+	assert(uint128::uint128_0 < numStates);
+	assert(0ul < numTrans);
 	assert(0u < splitsPerThr);
 
 	std::vector< ImportanceValue >().swap(thresholds_);
@@ -126,7 +128,8 @@ ThresholdsBuilderAdaptive::tune(const size_t& numStates,
 	//   for some of them to be successfull.
 	//   Number of states and transitions in the model play a role too.
     const unsigned explFactor = 1u<<6u;
-    const unsigned statesExtra = std::min(numStates/explFactor, 1ul<<7ul);
+	const unsigned statesExtra = std::min(
+			static_cast<uint128_t>(numStates/explFactor).lower(), 1ul<<7ul);
     const unsigned transExtra = std::min(2*numTrans/explFactor, 1ul<<8ul);
     n_  = std::ceil(std::log(maxImportance)) * explFactor + statesExtra + transExtra;
 

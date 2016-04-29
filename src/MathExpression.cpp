@@ -104,15 +104,10 @@ MathExpression::MathExpression(
     // Setup MuParser expression
     parse_our_expression();
 	// Register our variables
-    for (const auto& name: varnames) {
-#ifndef NRANGECHK
-        if (std::string::npos == exprStr.find(name))
-            throw std::out_of_range(std::string("invalid variable name: \"")
-                                    .append(name).append("\""));
-#endif
-        varsMap_.emplace_back(std::make_pair(name, -1));  // copy elision
-        // Real mapping is later done with pin_up_vars()
-    }
+	for (const auto& name: varnames)
+		if (exprStr.find(name) != std::string::npos)
+			varsMap_.emplace_back(std::make_pair(name, -1));  // copy elision
+			// Real mapping is later done with pin_up_vars()
 }
 
 // MathExpression can only be constructed with the following lvalue containers
@@ -146,15 +141,10 @@ MathExpression::MathExpression(
     // Setup MuParser expression
     parse_our_expression();
     // Register our variables
-    for (auto& name: varnames) {
-#ifndef NRANGECHK
-        if (std::string::npos == exprStr.find(name))
-            throw std::out_of_range(std::string("invalid variable name: \"")
-                                    .append(name).append("\""));
-#endif
-        varsMap_.emplace_back(std::make_pair(std::move(name), -1));  // copy elision
-        // Real mapping is later done with pin_up_vars()
-    }
+	for (auto& name: varnames)
+		if (exprStr.find(name) != std::string::npos)
+			varsMap_.emplace_back(std::make_pair(std::move(name), -1));  // copy elision
+			// Real mapping is later done with pin_up_vars()
     varnames.clear();
 }
 

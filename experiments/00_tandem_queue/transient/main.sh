@@ -39,7 +39,7 @@ PROPS_FILE="tandem_queue.pp"
 $ECHO 'P( q2 > 0 U lost )' > $PROPS_FILE && \
 	$ECHO "  · using properties file $PROPS_FILE"
 N=0; RESULTS="results_$N"
-while [ -d $RESULTS ]; do N=$(($N+1)); RESULTS="results_$N"; done
+while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
 mkdir $RESULTS && unset N && \
 	$ECHO "  · results will be stored in subdir \"${RESULTS}\""
 
@@ -48,9 +48,9 @@ mkdir $RESULTS && unset N && \
 $ECHO "Configuring experiments"
 declare -a QUEUES_CAPACITIES=(8 10 12 14)
 STOP_CRITERION="--stop-conf 0.95 0.2"  # Confidence coeff. and rel. precision
-SPLITTINGS="--splitting 2,5,11"        # Splitting values for RESTART engine
+SPLITTINGS="--splitting 2,3,6"         # Splitting values for RESTART engine
 STANDARD_MC="-e nosplit --flat $STOP_CRITERION"
-RESTART_ADHOC="--adhoc \"q2\" $STOP_CRITERION $SPLITTINGS"
+RESTART_ADHOC="--adhoc q2 $STOP_CRITERION $SPLITTINGS"
 RESTART_AUTO_COUPLED="--auto-coupled $STOP_CRITERION $SPLITTINGS"
 RESTART_AUTO_SPLIT="--auto-split \"+\" $STOP_CRITERION $SPLITTINGS"
 
@@ -61,35 +61,29 @@ for c in "${QUEUES_CAPACITIES[@]}"
 do
 	$ECHO -n "  · for queues capacity = $c..."
 
-	# Modify model file to this experiment's size
+	# Modify model file to fit this experiment
 	MODEL_FILE_C=${MODEL_FILE%.sa}"_${c}.sa"
 	BLANK="[[:space:]]*"
 	C_DEF="^const${BLANK}int${BLANK}c${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
 	sed -e "s/${C_DEF}/const int c = $c;/1" $MODEL_FILE > $MODEL_FILE_C
-	LOGout=${RESULTS}/tandem_queue_c${c}.out
-	LOGerr=${RESULTS}/tandem_queue_c${c}.err
-	EXE=`$ECHO "./fig $MODEL_FILE_C $PROPS_FILE"`
+	LOG=${RESULTS}/tandem_queue_c${c}
+	EXE=`$ECHO "timeout -s 15 10h ./fig $MODEL_FILE_C $PROPS_FILE"`
 
-	poll_till_free
 	# Standard Monte Carlo
-	$ECHO -n " MC"
-	$EXE $STANDARD_MC 1>>${LOGout%.out}"_MC.out" \
-	                  2>>${LOGerr%.err}"_MC.err" &
-	poll_till_free
+	poll_till_free; $ECHO -n " MC"
+	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
+
 	# RESTART with ad hoc
-	$ECHO -n ", AH"
-	$EXE $RESTART_ADHOC 1>>${LOGout%.out}"_AH.out" \
-	                    2>>${LOGerr%.err}"_AH.err" &
-	poll_till_free
+	poll_till_free; $ECHO -n ", AH"
+	$EXE $RESTART_ADHOC 1>>${LOG}"_AH.out" 2>>${LOG}"_AH.err" &
+
 	# RESTART with auto (coupled)
-	$ECHO -n ", AC"
-	$EXE $RESTART_AUTO_COUPLED 1>>${LOGout%.out}"_AC.out" \
-	                           2>>${LOGerr%.err}"_AC.err" &
-	poll_till_free
+	poll_till_free; $ECHO -n ", AC"
+	$EXE $RESTART_AUTO_COUPLED 1>>${LOG}"_AC.out" 2>>${LOG}"_AC.err" &
+
 	# RESTART with auto (split)
-	$ECHO -n ", AS"
-	$EXE $RESTART_AUTO_SPLIT 1>>${LOGout%.out}"_AS.out"  \
-	                         2>>${LOGerr%.err}"_AS.err"  &
+	poll_till_free; $ECHO -n ", AS"
+	$EXE $RESTART_AUTO_SPLIT 1>>${LOG}"_AS.out" 2>>${LOG}"_AS.err"  &
 
 	$ECHO "... done"
 done
@@ -99,7 +93,7 @@ done
 $ECHO "Waiting for all experiments to finish"
 declare -a A=(. :) ; N=0
 RUNNING=`$ECHO "pgrep -u $(whoami) fig"`
-while [ -n "`$RUNNING`" ]; do $ECHO -n ${A[$N]}; N=$((($N+1)%2)); sleep 9; done
+while [ -n "`$RUNNING`" ]; do $ECHO -n ${A[$N]}; N=$(((N+1)%2)); sleep 9; done
 unset A N
 $ECHO
 $ECHO "All experiments finished"

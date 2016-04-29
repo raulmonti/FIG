@@ -38,19 +38,28 @@ public:
     vector<AST*>    branches;   // branches of children
  
     /**
-     * @brief: Constructor.
+     * @brief: Empty constructor.
      */
     AST(void);
 
     /**
-     * @brief: Constructor.
+     * @brief: Data constructor.
      */
-    AST(int token = 0, string lexeme = "", int line = 0, int col = 0);
+    AST(int token, string lexeme = "", int line = 0, int col = 0);
 
     /**
-     * @brief: Constructor.
+     * @brief: Constructor from pointer.
      */
     AST(const AST* copy);
+
+    /// Copy ctor
+    AST(const AST& that);
+
+    /// Move ctor
+    AST(AST&& that);
+
+    /// Copy assignment with copy&swap idiom
+    AST& operator=(AST that);
 
     /**
      * @brief: Destroyer.
@@ -170,7 +179,7 @@ public:
      * TODO
      */
     string
-    toString();
+    toString() const;
 
     /**
      * TODO

@@ -365,7 +365,7 @@ template< typename T_ >
 void
 State<T_>::build_concrete_bound()
 {
-	maxConcreteState_ = 1u;
+	maxConcreteState_ = uint128::uint128_1;
 	for(const auto pvar: pvars_)
 		maxConcreteState_ *= pvar->range_;  // ignore overflow :D
 }

@@ -68,6 +68,8 @@ public:  // Accessors
 
 	inline bool concrete() const noexcept override final { return false; }
 
+	inline bool concrete_simulation() const noexcept override final { return false; }
+
 	/// @copydoc ImportanceFunction::importance_of()
 	/// @note <b>Complexity:</b> <i>O(size(state))</i> +
 	///                          <i>O(mu::Parser::Eval(state))</i>
@@ -87,10 +89,16 @@ public:  // Utils
 	 *                       viz. substrings in it that refer to variable names
 	 * @param gState         Model's global state in its initial valuation
 	 * @param property       Property identifying the rare states
+	 * @param minVal         Min value the mathematical expression can take
+	 * @param maxVal         Max value the mathematical expression can take
 	 *
 	 * @note After a successfull invocation this ImportanceFunction
 	 *       is considered to hold \ref has_importance_info() "importance
 	 *       information" for the passed assessment strategy.
+	 * @note If minVal != maxVal are both specified, they'll be used as the
+	 *       extreme values for this ImportanceFunction without further
+	 *       checking; if on the other hand they're not, then the expression's
+	 *       extreme values will be searched for.
 	 *
 	 * @throw FigException if badly formatted 'formulaExprStr' or 'varnames'
 	 *                     has names not appearing in 'formulaExprStr'
@@ -100,7 +108,9 @@ public:  // Utils
 					 const std::string& formulaExprStr,
 					 const Container< std::string, OtherArgs... >& varnames,
 					 const State<STATE_INTERNAL_TYPE>& gState,
-					 const Property& property);
+					 const Property& property,
+					 const ImportanceValue& minVal = 0u,
+					 const ImportanceValue& maxVal = 0u);
 };
 
 } // namespace fig

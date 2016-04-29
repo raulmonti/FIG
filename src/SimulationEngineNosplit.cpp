@@ -99,6 +99,7 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 	double accTime(0.0);
 //	static thread_local Traial& traial(TraialPool::get_instance().get_traial());
 	static Traial& traial(TraialPool::get_instance().get_traial());
+	const CLOCK_INTERNAL_TYPE FIRST_TIME(0.0);
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
@@ -106,7 +107,7 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 		 (const PropertyRate&, Traial&, Event&) const;
 	bool (SimulationEngineNosplit::*register_time)
 		 (const PropertyRate&, Traial&, Event&) const;
-	if (impFun_->concrete()) {
+	if (impFun_->concrete_simulation()) {
 		watch_events = &SimulationEngineNosplit::rate_event_concrete;
 		register_time = &SimulationEngineNosplit::count_time_concrete;
 	} else {
@@ -117,7 +118,7 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 	// Run a single standard Monte Carlo simulation for "runLength"
 	// simulation time units and starting from the last saved state,
 	// or from the system's initial state if requested.
-	if (reinit || traial.lifeTime == static_cast<CLOCK_INTERNAL_TYPE>(0.0))
+	if (reinit || traial.lifeTime == FIRST_TIME)
 		traial.initialize(*network_, *impFun_);
 	else
 		traial.lifeTime = 0.0;
@@ -131,7 +132,8 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 		accTime += traial.lifeTime;
 		traial.lifeTime += simLength;
 	} while (traial.lifeTime < simsLifetime && !interrupted);
-	assert(traial.lifeTime != 0.0);  // allow next iteration of batch means
+	if (traial.lifeTime == FIRST_TIME)  // allow next iteration of batch means
+		traial.lifeTime =  FIRST_TIME + 1.0;
 
 	// Return estimate or its negative value
 	assert(0.0 <= accTime);

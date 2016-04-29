@@ -30,6 +30,8 @@
 #ifndef STATE_H
 #define STATE_H
 
+// C
+#include <cassert>
 // C++
 #include <type_traits>  // std::is_constructible<>, std::is_integral<>
 #include <algorithm>    // std::find_if()
@@ -40,8 +42,8 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-// C
-#include <cassert>
+// External code
+#include <uint128_t.h>  // uint128::uint128_1
 // FIG
 #include <core_typedefs.h>
 #include <Variable.h>
@@ -92,7 +94,7 @@ class State
 	std::vector< std::shared_ptr< Variable< T_ > > > pvars_;
 
 	/// Concrete size, i.e. cross product of all variables ranges
-	size_t maxConcreteState_;
+	uint128_t maxConcreteState_;
 
 #ifndef NRANGECHK
 	/// Lookup { varname --> varpos }
@@ -105,7 +107,7 @@ class State
 public:  // Ctors/Dtor
 
 	// Void ctor
-	inline State() : pvars_(), maxConcreteState_(0) {}
+	inline State() : pvars_(), maxConcreteState_(uint128::uint128_1) {}
 
 	// Data ctors
 	/// Copy content from any container with proper internal data type
@@ -173,7 +175,7 @@ public:  // Accessors
 	inline size_t size() const noexcept { return pvars_.size(); }
 
 	/// Concrete size, i.e. cross product of all variables ranges
-	inline size_t concrete_size() const noexcept { return maxConcreteState_; }
+	inline uint128_t concrete_size() const noexcept { return maxConcreteState_; }
 
 	/// Names of the variables in creation order
 	/// @note Calls to append() modify the value returned by this function
@@ -317,6 +319,7 @@ public:  // Encode/Decode between symbolic and concrete representations
 	 * @brief Decode concrete state 'n' into corresponding Variable value
 	 * @param n  Concrete state to interpret
 	 * @param i  Variable index whose value (decoded from n) is requested
+	 * @return Value of the i-th variable decoded from concrete state 'n'
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
 	T_ decode(const size_t& n, const size_t& i) const;
@@ -325,6 +328,7 @@ public:  // Encode/Decode between symbolic and concrete representations
 	 * @brief Decode concrete state 'n' into corresponding Variable value
 	 * @param n  Concrete state to interpret
 	 * @param i  Variable name whose value (decoded from n) is requested
+	 * @return Value of the variable decoded from concrete state 'n'
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
 	T_ decode(const size_t& n, const std::string& varname) const;
@@ -350,7 +354,7 @@ template< template< typename, typename...> class Container,
 		  typename ValueType,
 		  typename... OtherContainerArgs >
 State<T_>::State(const Container<ValueType, OtherContainerArgs...>& vars) :
-	maxConcreteState_(1u)
+	maxConcreteState_(uint128::uint128_1)
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_constructible< VariableInterval<T_>, ValueType >::value,
@@ -373,7 +377,7 @@ template< template< typename, typename... > class Container,
 		  typename ValueType,
 		  typename... OtherContainerArgs >
 State<T_>::State(Container<ValueType, OtherContainerArgs...>&& vars) :
-	maxConcreteState_(1u)
+	maxConcreteState_(uint128::uint128_1)
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_constructible< VariableInterval<T_>, ValueType >::value,
@@ -398,7 +402,7 @@ template< template< typename, typename... > class Container,
 		  typename ValueType,
 		  typename... OtherContainerArgs >
 State<T_>::State(Container<ValueType*, OtherContainerArgs...>&& vars) :
-	maxConcreteState_(1u)
+	maxConcreteState_(uint128::uint128_1)
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_constructible< VariableInterval<T_>, ValueType >::value,
@@ -425,7 +429,7 @@ template< template< typename, typename... > class Iterator,
 State<T_>::State(Iterator<ValueType, OtherIteratorArgs...> from,
 							 Iterator<ValueType, OtherIteratorArgs...> to) :
 	pvars_(std::distance(from,to)),
-	maxConcreteState_(1u)
+	maxConcreteState_(uint128::uint128_1)
 {
 	// We chose VariableInterval<> as implementation for our Variables
 	static_assert(std::is_constructible<VariableInterval<T_>, ValueType>::value,

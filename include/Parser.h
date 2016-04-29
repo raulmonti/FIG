@@ -54,9 +54,12 @@ typedef enum    { MEOF    // my end of file symbol
                 , KMOD    // keyword "module"
                 , KEMOD   // keyword "end module"
                 , KCLOCK  // keyword clock
-                , KNDIST  // keyword Normal
-                , KEDIST  // keyword Exponential
                 , KUDIST  // keyword Uniform
+                , KEDIST  // keyword Exponential
+                , KNDIST  // keyword Normal
+                , KLNDIST // keyword Log-normal
+                , KWDIST  // keyword Weibull
+                , KRADIST // keyword Rayleigh
                 , KGDIST  // keyword Gamma
                 , KERDIST // keywird Erlang
                 , KINIT   // Keyword "init"
@@ -284,6 +287,27 @@ public:
     }
 
 
+	/// Tell whether an AST tree has an outer pair of parenthesis
+	static bool
+	has_parenthesis(const AST *ast);
+
+
+    /// Remove outer pairs of parenthesis from AST tree.
+    /// @return Normalized copy of the AST tree passed
+    /// @note User owns memory assigned for the result
+    static AST
+    normalize_ast(const AST *ast);
+
+
+    /**
+     * @brief Remove outer pairs of parenthesis from AST tree.
+     * @note  This function effectively modifies its argument.
+     * @deprecated
+     **/
+    static void
+    normalize_ast(AST **ast);
+
+
 private:
 
     /**
@@ -449,17 +473,29 @@ private:
     int
     rDistr();
 
-    /* @RULE: normal distribution */
+    /* @RULE: uniform distribution */
     int
-    rNormDist();
+    rUniDist();
 
     /* @RULE: exponential distribution */
     int
     rExpDist();
 
-    /* @RULE: uniform distribution */
+    /* @RULE: normal distribution */
     int
-    rUniDist();
+    rNormDist();
+
+    /* @RULE: Log-normal distribution */
+    int
+    rLogNormDist();
+
+    /* @RULE: weibull distribution */
+    int
+    rWeiDist();
+
+    /* @RULE: Rayleigh distribution */
+    int
+    rRayDist();
 
     /* @RULE: gamma distribution */
     int

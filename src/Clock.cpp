@@ -39,6 +39,7 @@
 #include <core_typedefs.h>
 
 
+/// @brief RNG and distributions available for time sampling of the clocks
 namespace
 {
 
@@ -74,7 +75,7 @@ std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal01(0.0 , 1.0);
 
 /// Random deviate ~ Uniform[a,b]<br>
 ///  where 'a' = params[0] is the lower bound<br>
-///    and 'b' = params[1] is the upper bound<br>
+///    and 'b' = params[1] is the upper bound.<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)">the wiki</a>
 return_t uniform(const params_t& params)
 {
@@ -84,7 +85,7 @@ return_t uniform(const params_t& params)
 
 
 /// Random deviate ~ Exponential(lambda)<br>
-///  where 'lambda' = params[0] is the rate
+///  where 'lambda' = params[0] is the rate.<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Exponential_distribution">the wiki</a>
 return_t exponential(const params_t& params)
 {
@@ -95,12 +96,45 @@ return_t exponential(const params_t& params)
 
 /// Random deviate ~ Normal(m,sd)<br>
 ///  where  'm' = params[0] is the mean<br>
-///    and 'sd' = params[1] is the standard deviation
+///    and 'sd' = params[1] is the standard deviation.<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Normal_distribution">the wiki</a>
 return_t normal(const params_t& params)
 {
 	std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal(params[0], params[1]);
 	return std::max<double>(0.000001, normal(rng));
+}
+
+
+/// Random deviate ~ Lognormal(m,sd)<br>
+///  where  'm' = params[0] is the mean<br>
+///    and 'sd' = params[1] is the standard deviation<br>
+/// of the inherent normally distributed random variable.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Log-normal_distribution">the wiki</a>
+return_t lognormal(const params_t& params)
+{
+	std::lognormal_distribution< fig::CLOCK_INTERNAL_TYPE > lognormal(params[0], params[1]);
+	return lognormal(rng);
+}
+
+
+/// Random deviate ~ Weibull(a,b)<br>
+///  where 'a' = params[0] is the shape parameter<br>
+///    and 'b' = params[1] is the scale parameter.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Weibull_distribution">the wiki</a>
+return_t weibull(const params_t& params)
+{
+	std::weibull_distribution< fig::CLOCK_INTERNAL_TYPE > weibull(params[0], params[1]);
+	return weibull(rng);
+}
+
+
+/// Random deviate ~ Rayleigh(s) ~ Weibull(2,s*sqrt(2))<br>
+///  where 's' = params[0] is the scale parameter.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Rayleigh_distribution">the wiki</a>
+return_t rayleigh(const params_t& params)
+{
+	std::weibull_distribution< fig::CLOCK_INTERNAL_TYPE > rayleigh(2.0, params[0]*M_SQRT2);
+	return rayleigh(rng);
 }
 
 
@@ -146,6 +180,9 @@ std::unordered_map< std::string, Distribution > distributions_list =
 	{"uniform",     uniform    },
 	{"exponential", exponential},
 	{"normal",      normal     },
+	{"lognormal",   lognormal  },
+	{"weibull",     weibull    },
+	{"rayleigh",    rayleigh   },
 	{"gamma",       gamma      },
 	{"erlang",      erlang     },
 };

@@ -39,6 +39,7 @@
 #include <ThresholdsBuilderAdaptive.h>
 #include <ModuleInstance.h>
 #include <ModuleNetwork.h>
+#include <DNFclauses.h>
 #include <string_utils.h>
 
 // ADL
@@ -255,7 +256,8 @@ ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 		numModules_(model.modules.size()),
 		localValues_(numModules_),
 		localStatesCopies_(numModules_),
-		mergeStrategy_(MergeType::NONE)
+		mergeStrategy_(MergeType::NONE),
+		concreteSimulation_(true)
 {
 	bool initialize(false);  // initialize (non-const) static class members?
 	if (globalVarsIPos.size() == 0ul) {
@@ -289,7 +291,7 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 		throw_FigException("importance function \"" + name() + "\" "
 						   "doesn't hold importance information");
 #endif
-    Event e(EventType::RARE | EventType::STOP | EventType::REFERENCE);
+	Event e(EventType::NONE);
     // Gather the local ImportanceValue of each module
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		auto& localState = localStatesCopies_[i];
@@ -299,7 +301,7 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 		localState.extract_from_state_instance(state, globalVarsIPos[i], false);
 #endif
         const auto& val = modulesConcreteImportance[i][localState.encode()];
-        e &= MASK(val);
+		e |= MASK(val);  // events are marked per-module but affect the global model
         localValues_[i] = UNMASK(val);
     }
     // Combine those values with the user-defined merge function
@@ -463,19 +465,29 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	modulesConcreteImportance.resize(numModules_);
 
 	// Assess each module importance individually from the rest
+	concreteSimulation_ = false;
+	unsigned numRareRelevantModules(0u);
+	propertyClauses.populate(prop);
 	ModulesExtremeValues moduleValues(numModules_);
 	for (size_t index = 0ul ; index < numModules_ ; index++) {
 		ImportanceFunctionConcrete::assess_importance(*modules_[index],
 													  prop,
 													  strategy,
-													  index);
-		assert(minValue_ <= minRareValue_);
+													  index,
+													  propertyClauses);
+		assert(minValue_ <= initialValue_);
+		assert(initialValue_ <= minRareValue_);
 		assert(minRareValue_ <= maxValue_);
 		moduleValues[modules_[index]->name] =
 				std::make_tuple(minValue_, maxValue_, minRareValue_);
+		numRareRelevantModules += minValue_ < maxValue_ ? 1u : 0u;
 	}
 	hasImportanceInfo_ = true;
 	strategy_ = strategy;
+
+	// If the rare event depends on the state of more than one module,
+	// global rarity can't be encoded split in vectors for later simulations
+	concreteSimulation_ = "flat" != strategy && numRareRelevantModules < 2u;
 
 	// Find extreme importance values for current assessment
 	initialValue_ = importance_of(systemInitialValuation);
@@ -483,7 +495,8 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		minValue_ = initialValue_;
 		maxValue_ = initialValue_;
 		minRareValue_ = initialValue_;
-	} else if (globalStateCopy.concrete_size() < (1ul<<20ul)) {
+	} else if (globalStateCopy.concrete_size().upper() == 0ul &&
+			   globalStateCopy.concrete_size().lower() < (1ul<<20ul)) {
 		// We can afford a full-state-space scan
 		find_extreme_values(globalStateCopy, prop);
 	} else {
@@ -494,17 +507,6 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	assert(minValue_ <= initialValue_);
 	assert(initialValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);
-}
-
-
-void
-ImportanceFunctionConcreteSplit::assess_importance(
-	const Property&,
-	const std::string&,
-	const std::vector<std::string>&)
-{
-	throw_FigException("TODO: ad hoc assessment and split concrete storage");
-	/// @todo TODO: implement concrete ifun with ad hoc importance assessment
 }
 
 } // namespace fig

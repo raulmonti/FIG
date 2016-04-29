@@ -259,10 +259,23 @@ public:  // Accessors
 	///       level containing the system's initial state.
 	ImportanceValue initial_value() const noexcept;
 
-	/// Whether this instance keeps an internal std::vector<ImportanceValue>,
-	/// i.e. has info for the concrete state space,
-	///      as opposed to the symbolic state space.
+	/// @brief Whether the instance derives from ImportanceFunctionConcrete
+	/// @details Concrete importance functions store info for the concrete state
+	///          space as internal vectors of ImportanceValue.
+	///          This can be taken advantage of during simulations by using the
+	///          \ref ImportanceFunctionConcrete::info_of() "info_of()" member
+	///          function they offer.
 	virtual bool concrete() const noexcept = 0;
+
+	/// @brief Whether the instance offers a reliable info_of() member function
+	///        to use during simulations
+	/// @details A concrete() importance functions may fail to tell properly
+	///          when a global state is RARE (or STOP or whatever) via its
+	///          \ref ImportanceFunctionConcrete::info_of() "info_of()" member
+	///          function. This method tells whether its safe to use that
+	///          function to identify special states during simulations.
+	/// @note concrete_simulation() => concrete()
+	virtual bool concrete_simulation() const noexcept = 0;
 
 	/// @copydoc thresholdsTechnique_
 	/// @returns Empty string if function isn't ready(),

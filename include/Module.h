@@ -83,7 +83,7 @@ public:  // Accessors
 
 	/// Concrete global state size, i.e. cross product of the ranges
 	/// of all the variables in the system model
-	virtual size_t concrete_state_size() const noexcept = 0;
+	virtual uint128_t concrete_state_size() const noexcept = 0;
 
 	/// Whether this Module has already been sealed for simulations
 	virtual bool sealed() const noexcept = 0;

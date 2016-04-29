@@ -15,7 +15,7 @@ build_range(AST* ast, z3::context &c){
     assert(ast->tkn == parser::_VARIABLE);
     z3::expr result = c.bool_val(true);
     string vname = ast->get_lexeme(_NAME);
-    vector<AST*> astLimits= ast->get_first(_RANGE)->get_all_ast(_EXPRESSION);
+	vector<AST*> astLimits= ast->get_first(_RANGE)->get_all_ast(_EXPRESSION);
     assert(astLimits.size() == 2);
     
     z3::expr e_v = c.int_const(vname.c_str());

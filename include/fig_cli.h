@@ -34,6 +34,7 @@
 #include <list>
 #include <string>
 // FIG
+#include <core_typedefs.h>
 #include <StoppingConditions.h>
 
 
@@ -46,16 +47,19 @@ namespace fig_cli
  * @brief CLI arguments parsing routine.
  *
  *        The objects defined in this namespace are left in a valid state
- *        after a successfull call to this routine. Any inconsistency
- *        found during parsing is reported to stderr (std::cerr)
- *        along with the full usage message.
+ *        after a successfull call to this routine.<br>
+ *        Any inconsistency encountered during parsing is reported to stderr
+ *        (std::cerr) along with the full usage message. An exception
+ *        is thrown upon finding any unexpected inconsistency.
  *
  * @param argc C++ main's argument count
  * @param argv C++ main's argument vector
  * @param fatalError Whether to exit(EXIT_FAILURE) if an error is found
  *
  * @return Whether the parsing was successfull. Notice this can only be false
- *         if 'fatalError' is set to false as well.
+ *         if 'fatalError' is explicitly set to false as well.
+ *
+ * @throw FigException if command line parsing fails unexpectedly
  */
 bool
 parse_arguments(const int& argc, const char** argv, bool fatalError = true);
@@ -71,17 +75,9 @@ extern std::string propertiesFile;
 /// to use for estimations
 extern std::string engineName;
 
-/// Name of the FIG's \ref fig::ImportanceFunction "importance function"
+/// Details of the FIG's \ref fig::ImportanceFunction "importance function"
 /// to use for estimations
-extern std::string impFunName;
-
-/// Name of the FIG's importance assessment strategy to use
-/// for building the \ref fig::ImportanceFunction "importance function"
-extern std::string impFunStrategy;
-
-/// Optional aditional details the FIG's \ref fig::ImportanceFunction
-/// "importance function" may need to operate
-extern std::string impFunDetails;
+extern fig::ImpFunSpec impFunSpec;
 
 /// Name of the FIG's \ref fig::ThresholdsBuilder "thresholds building
 /// technique" to use for estimations

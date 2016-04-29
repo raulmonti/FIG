@@ -58,7 +58,7 @@ namespace fig
 // Static variables initialization
 
 /// @note Arbitrary af
-const unsigned SimulationEngine::MIN_COUNT_RARE_EVENTS = 3u;
+const unsigned SimulationEngine::MIN_COUNT_RARE_EVENTS = 5u;
 
 /// @note Arbitrary af
 const double SimulationEngine::MIN_ACC_RARE_TIME = M_PI_4l/2.0;
@@ -101,6 +101,7 @@ SimulationEngine::SimulationEngine(
 
 SimulationEngine::~SimulationEngine()
 {
+	unlock();
     unbind();
 }
 

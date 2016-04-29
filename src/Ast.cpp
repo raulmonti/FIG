@@ -10,7 +10,8 @@
 #include "Ast.h"
 #include <vector>
 #include <string>
-#include <assert.h>
+#include <utility>  // std::move(), std::swap()
+#include <cassert>
 #include <iostream>
 
 using std::to_string;
@@ -51,15 +52,59 @@ AST::AST(int token, string lexeme, int line, int col):
 
 AST::AST(const AST *copy){
 
-    assert(copy != NULL && "NULL PROBLEM");
+	assert(copy != NULL && "NULL PROBLEM");
 
-    lxm = copy->lxm;
-    tkn = copy->tkn;
-    l   = copy->l;
-    c   = copy->c;
+	lxm = copy->lxm;
+	tkn = copy->tkn;
+	l   = copy->l;
+	c   = copy->c;
 	for(size_t i = 0; i < copy->branches.size(); ++i){
-        branches.push_back(new AST(copy->branches[i]));
-    }
+		branches.push_back(new AST(copy->branches[i]));
+	}
+}
+
+
+//==============================================================================
+
+
+AST::AST(const AST& that) :
+	lxm(that.lxm),
+	tkn(that.tkn),
+	l(that.l),
+	c(that.c)
+{
+	branches.reserve(that.branches.size());
+	for (const AST* b: that.branches)
+		branches.push_back(new AST(*b));
+}
+
+
+//==============================================================================
+
+
+AST::AST(AST&& that) :
+	lxm(std::move(that.lxm)),
+	tkn(std::move(that.tkn)),
+	l(std::move(that.l)),
+	c(std::move(that.c))
+{
+	std::swap(branches, that.branches);
+	assert(that.branches.size() == 0ul);
+}
+
+
+//==============================================================================
+
+
+AST&
+AST::operator=(AST that)
+{
+	std::swap(lxm, that.lxm);
+	std::swap(tkn, that.tkn);
+	std::swap(l,   that.l);
+	std::swap(c,   that.c);
+	std::swap(branches, that.branches);
+	return *this;
 }
 
 
@@ -264,13 +309,13 @@ AST::get_all_ast(int k) const{
 vector<AST*>
 AST::get_all_ast_ff(int k){
 
-    vector<AST*> result;
+	vector<AST*> result;
     if(tkn == k){
         result.push_back(this);
     }else{
 
 		for(size_t i = 0; i < branches.size(); i++){
-            vector<AST*> rec = branches[i]->get_all_ast_ff(k);
+			vector<AST*> rec = branches[i]->get_all_ast_ff(k);
             result.insert( result.end(), rec.begin(), rec.end() );
         }
     }
@@ -306,7 +351,7 @@ AST::get_branch(int i){
 AST*
 AST::get_first(int k){
 
-    vector<AST*> result;
+	vector<AST*> result;
     if(tkn == k){
         return this;
     }else{
@@ -377,11 +422,12 @@ AST::get_pos(){
  * TODO
  */
 string
-AST::toString(){
+AST::toString() const {
     string result = lxm;
     for(const auto &it: branches){
-        string aux = it->toString();
-        result.insert(result.end(),aux.begin(),aux.end());
+		result += it->toString();
+//        string aux = it->toString();
+//        result.insert(result.end(),aux.begin(),aux.end());
     }
     return result;
 }

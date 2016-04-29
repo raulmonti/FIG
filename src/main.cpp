@@ -46,7 +46,8 @@
 
 static void print_intro(const int &argc, const char **argv);
 static bool file_exists(const std::string& filepath);
-static void build_model(const std::string& modelFilePath, const std::string& propsFilePath);
+static void build_model(const std::string& modelFilePath,
+						const std::string& propsFilePath);
 
 
 //  Configuration of the estimation run  ///////////////////////////////////////
@@ -54,9 +55,7 @@ static void build_model(const std::string& modelFilePath, const std::string& pro
 using fig_cli::modelFile;
 using fig_cli::propertiesFile;
 using fig_cli::engineName;
-using fig_cli::impFunName;
-using fig_cli::impFunStrategy;
-using fig_cli::impFunDetails;
+using fig_cli::impFunSpec;
 using fig_cli::thrTechnique;
 using fig_cli::splittings;
 using fig_cli::estBounds;
@@ -66,28 +65,50 @@ using fig_cli::estBounds;
 
 int main(int argc, char** argv)
 {
-	// Intro and command line parsing
-	print_intro(argc, const_cast<const char**>(argv));
-	fig_cli::parse_arguments(argc, const_cast<const char**>(argv));  // exit on error
+	auto log(fig::ModelSuite::log);
+	auto tech_log(fig::ModelSuite::tech_log);
+	auto const_argv(const_cast<const char**>(argv));
+	const std::string FIG_ERROR("ERROR: FIG failed to");
 
-	// Compile model and properties files
-	build_model(modelFile, propertiesFile);
-	auto model = fig::ModelSuite::get_instance();
-	if (!model.sealed()) {
-		fig::ModelSuite::log("ERROR: failed to build the model.\n");
+	// Greeting and command line parsing
+	try {
+		print_intro(argc, const_argv);
+		fig_cli::parse_arguments(argc, const_argv);  // exit on error
+	} catch (fig::FigException& e) {
+		log(FIG_ERROR + " parse the command line.\n\n");
+		tech_log("Parse error message: " + e.msg() + "\n");
 		exit(EXIT_FAILURE);
 	}
 
-	// Estimate using requested configuration
-	model.process_batch(engineName,
-						impFunName,
-						std::make_pair(impFunStrategy, impFunDetails),
-						thrTechnique,
-						estBounds,
-						splittings);
+	// Compile model and properties files
+	try {
+		build_model(modelFile, propertiesFile);
+	} catch (fig::FigException& e) {
+		log(FIG_ERROR + " compile the model/properties file.\n\n");
+		tech_log("Parse error message: " + e.msg() + "\n");
+		exit(EXIT_FAILURE);
+	}
+	auto model = fig::ModelSuite::get_instance();
+	if (!model.sealed()) {
+		log(FIG_ERROR + " build the model.\n\n");
+		exit(EXIT_FAILURE);
+	} else {
+		tech_log("Model and properties files successfully compiled.\n");
+	}
 
-	// Free memory
-	model.release_resources();
+	// Estimate using requested configuration
+	try {
+		model.process_batch(engineName,
+							impFunSpec,
+							thrTechnique,
+							estBounds,
+							splittings);
+		model.release_resources();
+	} catch (fig::FigException& e) {
+		log(FIG_ERROR + " perform estimations.\n\n");
+		tech_log("Error message: " + e.msg() + "\n");
+		exit(EXIT_FAILURE);
+	}
 
 	return EXIT_SUCCESS;
 }
@@ -109,6 +130,7 @@ void print_intro(const int& argc, const char** argv)
 	main_log("           \n");
 	main_log(" This is the Finite Improbability Generator.\n");
 	main_log(" Version: "+to_string(fig_VERSION_MAJOR)+"."+to_string(fig_VERSION_MINOR)+"\n");
+	main_log(" Build:   " fig_CURRENT_BUILD "\n");
 	main_log(" Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n");
 	main_log("          Monti, Raúl E.   <raulmonti88@gmail.com>\n");
 	main_log("\n");
@@ -153,9 +175,9 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
 	// Parse the file with the model description
 	parser.parse(&ss);
 	ss.str("");ss.clear();  // clear ss contents
-	ss << precompiler.pre_compile(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
+	ss << precompiler.pre_compile(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
 	parser.parse(&ss);
-	verifier.verify(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
+	verifier.verify(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
 
 	// Parse the file with the properties to check
 	std::ifstream pfin(propsFilePath, ios::binary);

@@ -141,7 +141,7 @@ private:  // Ctors: TraialPool should be the only one to create Traials
 	 *
 	 * @param stateSize     Symbolic size of the global State
 	 * @param numClocks     Number of clocks in the whole system
-	 * @param whichClocks   Which clocks to initialize, if any
+	 * @param whichClocks   Global positions of the clocks to initialize, if any
 	 * @param orderTimeouts Whether to order the timeouts after initializations
 	 *
 	 * @note By default, and regardless of clocks initialization,

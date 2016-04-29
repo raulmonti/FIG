@@ -212,12 +212,12 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 {
 	assert(0u < runLength);
 	const unsigned numThresholds(impFun_->num_thresholds());
-	std::valarray< CLOCK_INTERNAL_TYPE > raresCount(0.0, numThresholds+1);
+	std::valarray< double > raresCount(0.0, numThresholds+1);
 	std::stack< Reference< Traial > > stack;
 	auto tpool = TraialPool::get_instance();
 	static Traial& originalTraial(tpool.get_traial());
 //	static thread_local Traial& originalTraial(tpool.get_traial());
-	static const CLOCK_INTERNAL_TYPE FIRST_TIME(0.0);
+	const CLOCK_INTERNAL_TYPE FIRST_TIME(0.0);
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
@@ -225,7 +225,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		 (const PropertyRate&, Traial&, Event&) const;
 	bool (SimulationEngineRestart::*register_time)
 		 (const PropertyRate&, Traial&, Event&) const;
-	if (impFun_->concrete()) {
+	if (impFun_->concrete_simulation()) {
 		watch_events = &SimulationEngineRestart::rate_event_concrete;
 		register_time = &SimulationEngineRestart::count_time_concrete;
 	} else {
@@ -263,6 +263,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		// Checking order of the following events is relevant!
 		if (traial.lifeTime >= simsLifetime || IS_THR_DOWN_EVENT(e)) {
 			// Traial reached EOS or went down => kill it
+			assert(&traial != &originalTraial || !IS_THR_DOWN_EVENT(e));
 			if (&traial != &originalTraial)  // avoid future aliasing!
 				tpool.return_traial(std::move(traial));
 			stack.pop();
@@ -301,6 +302,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	double accTime(0.0);
 	for (unsigned i = 0u ; i <= numThresholds ; i++)
 		accTime += raresCount[i] / pow(splitsPerThreshold_, i);
+
 	// Return estimate or its negative value
 	assert(0.0 <= accTime);
 	if (MIN_ACC_RARE_TIME > raresCount.sum())

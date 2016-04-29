@@ -34,6 +34,8 @@
 #include <sstream>
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // std::sort(), std::max({})
+// External code
+#include <pcg_random.hpp>
 // FIG
 #include <ThresholdsBuilderSMC.h>
 #include <ModuleNetwork.h>
@@ -58,8 +60,20 @@ const unsigned MIN_SIM_EFFORT = 1u<<6u; // 64
 /// Max # of failures allowed when searching for a new threshold
 const unsigned MAX_NUM_FAILURES = 6u;
 
-/// RNG for states distribution computation
-std::minstd_rand RNG(1234567803u);
+// RNG for randomized traial selection  ///////////////////////////
+#ifndef NDEBUG
+  const unsigned RNG_SEED(1234567803u);  // repeatable outcome
+#else
+  const unsigned RNG_SEED(std::random_device{}());
+#endif
+#ifndef PCG_RNG
+  /// Mersenne-Twister RNG
+  std::mt19937 RNG(RNG_SEED);
+#else
+  /// PCG family RNG
+  pcg32 RNG(RNG_SEED);
+#endif
+// ////////////////////////////////////////////////////////////////
 
 
 /**
@@ -82,11 +96,13 @@ std::minstd_rand RNG(1234567803u);
  * @param k       Number of traials where initial states to start simulations from
  * @param lastThr ImportanceValue of last chosen threshold
  *
+ * @return Whether the run was successfull
+ *
  * @note The first 'n' positions of 'traials' are left in states with importance
  *       equal to 'lastThr'. The user can therefore run simulations using those
  *       first 'n' traials <b>without the need to intialize them beforehand</b>.
  */
-void
+bool
 build_states_distribution(const fig::ModuleNetwork& network,
 						  const fig::ImportanceFunction& impFun,
 						  TraialsVec& traials,
@@ -97,11 +113,13 @@ build_states_distribution(const fig::ModuleNetwork& network,
 	assert(0u < k);
 	assert(k < n);
     assert(traials.size() >= n+k);
-    unsigned jumpsLeft, pos;
+
+	const unsigned TOLERANCE(3u*MAX_NUM_FAILURES);
+	unsigned jumpsLeft, pos, fails(0u);
 
 	// Function pointers matching ModuleNetwork::peak_simulation() signatures
-    auto predicate = [&jumpsLeft,&lastThr](const Traial& t) -> bool {
-        return --jumpsLeft > 0u && t.level != lastThr;
+	auto predicate = [&jumpsLeft,lastThr](const Traial& t) -> bool {
+		return --jumpsLeft > 0u && lastThr > t.level;
     };
     auto update = [&impFun](Traial& t) -> void {
         t.level = impFun.importance_of(t.state);
@@ -111,14 +129,17 @@ build_states_distribution(const fig::ModuleNetwork& network,
     // advance the first 'n' traials until they meet a state realizing lastThr
     std::uniform_int_distribution<unsigned> uniK(0, k-1);
     for (unsigned i = 0u ; i < n ; i++) {
+		fails = 0u;
 		Traial& t(traials[i]);
         do {
-            jumpsLeft = MIN_SIM_EFFORT;
+			jumpsLeft = MIN_SIM_EFFORT * (1u+fails);
 			t = traials[n + uniK(RNG)];  // choose randomly among last 'k'
-            assert(t.level < lastThr);
+			assert(lastThr > t.level);
             network.peak_simulation(t, update, predicate);
-        } while (lastThr != t.level);
+		} while (lastThr > t.level && ++fails < TOLERANCE);
 	}
+	if (fails >= TOLERANCE)
+		return false;  // couldn't make 'n' traials to reach lastThr, we failed
 
     // Store 'k' from those 'n' new states as the next-gen initial states
     // Choose which 'k' uniformly (without repetitions)
@@ -129,6 +150,8 @@ build_states_distribution(const fig::ModuleNetwork& network,
 		traials[n+i].get() = traials[pos];  // copy values, not addresses
         used[pos] = true;
     }
+
+	return true;
 }
 
 
@@ -173,8 +196,8 @@ find_new_threshold(const fig::ModuleNetwork& network,
     ImportanceValue newThr(lastThr);
 
 	// Function pointers matching ModuleNetwork::peak_simulation() signatures
-    auto predicate = [&jumpsLeft,&impFun](const Traial& t) -> bool {
-        return --jumpsLeft > 0u && t.level < impFun.max_value();
+	auto predicate = [&jumpsLeft,&impFun](const Traial& t) -> bool {
+		return --jumpsLeft > 0u && t.level < impFun.max_value();  /// @todo NOTE could we change to "<= lastThr"?
     };
     auto update = [&impFun](Traial& t) -> void {
         t.level = impFun.importance_of(t.state);
@@ -183,8 +206,7 @@ find_new_threshold(const fig::ModuleNetwork& network,
     auto lesser = [](Traial& lhs, Traial& rhs) { return lhs.level < rhs.level; };
     // What happens when the new quantile isn't higher than lastThr
     auto reinit = [&n, &k, &simEffort] (TraialsVec& traials, unsigned& fails) {
-        fig::ModelSuite::tech_log("Failed to find new threshold (reached " +
-                                  to_string(traials[n-k].get().level) + ")\n");
+		fig::ModelSuite::tech_log("-");  // report failure
 		if (++fails >= MAX_NUM_FAILURES)
 			return false;
 		simEffort *= 2u;
@@ -201,12 +223,15 @@ find_new_threshold(const fig::ModuleNetwork& network,
 			jumpsLeft = simEffort;
 			network.peak_simulation(traials[i], update, predicate);
 		}
-        // Sort to find 1-k/n quantile
+		// Sort to find 1-k/n quantile
 		auto nth_traial(begin(traials));
         std::advance(nth_traial, n);
         std::sort(begin(traials), nth_traial, lesser);
         newThr = traials[n-k].get().level;
     } while (newThr <= lastThr && reinit(traials, failures));
+
+	if (failures < MAX_NUM_FAILURES)
+		fig::ModelSuite::tech_log("+");  // report success
 
     return newThr;
 }
@@ -254,7 +279,8 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 	while (thresholds_.back() < impFun.max_value()) {
         const ImportanceValue lastThr = thresholds_.back();
 		// Find "initial states" (and clocks valuations) realizing last threshold
-		build_states_distribution(network, impFun, traials, n_, k_, lastThr);
+		if (!build_states_distribution(network, impFun, traials, n_, k_, lastThr))
+			goto exit_with_fail;  // couldn't find those initial states
 		// Find sims' 1-k/n quantile starting from those initial states
 		newThreshold = find_new_threshold(network, impFun, traials, n_, k_, lastThr);
         // Use said quantile as new threshold if possible
@@ -265,7 +291,7 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 
 	TraialPool::get_instance().return_traials(traials);
     { std::stringstream msg;
-    msg << "ImportanceValue of the chosen thresholds:";
+	msg << "\nImportanceValue of the chosen thresholds:";
     for (size_t i = 1ul ; i < thresholds_.size() ; i++)
         msg << " " << thresholds_[i];
 	ModelSuite::tech_log(msg.str() + "\n"); }
@@ -284,7 +310,7 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 
 
 void
-ThresholdsBuilderSMC::tune(const size_t& numStates,
+ThresholdsBuilderSMC::tune(const uint128_t &numStates,
 						   const size_t& numTrans,
 						   const ImportanceValue& maxImportance,
 						   const unsigned& splitsPerThr)
@@ -292,10 +318,10 @@ ThresholdsBuilderSMC::tune(const size_t& numStates,
 	const unsigned n(n_);
 	ThresholdsBuilderAdaptive::tune(numStates, numTrans, maxImportance, splitsPerThr);
     // This algorith is statistically better (way better) than AMS,
-    // which makes the thresholds to be chosen really close to each other.
-    // The counterpart is that too many thresholds are chosen, and thus the
+	// resulting in the thresholds being chosen really close to each other.
+	// The counterpart is that too many thresholds are chosen and thus the
     // thresholds building takes too long.
-    // Try to counter that a little by reducing the probability of level up
+	// We try to counter that a little by reducing the probability of level up
     const float p((k_*0.5f)/n_);
 	n_ = std::max({n, n_, ThresholdsBuilderAdaptive::MIN_N});
 	k_ = std::round(p*n_);

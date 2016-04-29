@@ -171,12 +171,12 @@ public:  // Read access to some attributes
 		}
 
 	/// Clocks to reset when transition is taken, encoded as Bitflag
-	inline const Bitflag& resetClocks() const noexcept
+	inline const Bitflag resetClocks() const noexcept
 		{
 			if (CRYSTAL == resetClocksData_)
 				return resetClocks_;
 			else
-				return std::move(static_cast<Bitflag>(0u));
+				return Bitflag();
 		}
 
 protected:  // Utilities offered to ModuleInstance
@@ -274,7 +274,7 @@ protected:  // Utilities offered to ModuleInstance
 			  typename... OtherIteratorArgs >
 	void handle_clocks(Traial& traial,
 					   Iterator<ValueType, OtherIteratorArgs...> fromClock,
-					   Iterator<ValueType, OtherIteratorArgs...> toClock,
+					   const Iterator<ValueType, OtherIteratorArgs...>& toClock,
 					   const unsigned& firstClock,
 					   const CLOCK_INTERNAL_TYPE& elapsedTime) const;
 
@@ -371,17 +371,10 @@ template< template< typename, typename... > class Iterator,
 void
 Transition::handle_clocks(Traial& traial,
 						  Iterator<ValueType, OtherIteratorArgs...> fromClock,
-						  Iterator<ValueType, OtherIteratorArgs...> toClock,
+						  const Iterator<ValueType, OtherIteratorArgs...>& toClock,
 						  const unsigned& firstClock,
 						  const CLOCK_INTERNAL_TYPE& elapsedTime) const
 {
-	// Is the clock at position 'pos' marked for reset?
-	auto must_reset =
-		[&] (const unsigned& pos) -> bool
-		{
-			assert(pos < 8*sizeof(Bitflag));  // check for overflow
-			return resetClocks_ & ((static_cast<Bitflag>(1)) << pos);
-		};
 	static_assert(std::is_convertible< Clock*, ValueType >::value,
 				  "ERROR: type mismatch. handle_clocks() takes iterators "
 				  "pointing to Clock objects");
@@ -392,7 +385,7 @@ Transition::handle_clocks(Traial& traial,
 	// Handle clocks
 	unsigned thisClock(firstClock);
 	while (fromClock != toClock) {
-		if (must_reset(thisClock))
+		if (resetClocks_[thisClock])
 			traial.clocks_[thisClock].value = fromClock->sample();
 			// should be non-negative, might assert it
 		else

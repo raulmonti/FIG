@@ -456,14 +456,17 @@ void
 ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 										const Property& property)
 {
+	if (state.concrete_size().upper() > 0ul)
+		throw_FigException("state is too big to perform this search; "
+						   "cowardly aborting");
+
+	const size_t NUM_CONCRETE_STATES(state.concrete_size().lower());
 	ImportanceValue minI = std::numeric_limits<ImportanceValue>::max();
 	ImportanceValue maxI = std::numeric_limits<ImportanceValue>::min();
 	ImportanceValue minrI = std::numeric_limits<ImportanceValue>::max();
 
-#ifdef NDEBUG
-    #pragma omp parallel for default(shared) private(state) reduction(min:minI,minrI)
-#endif
-    for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
+//	#pragma omp parallel for default(shared) private(state) reduction(min:minI,minrI)
+	for (size_t i = 0ul ; i < NUM_CONCRETE_STATES ; i++) {
 		const StateInstance symbState = state.decode(i).to_state_instance();
 		const ImportanceValue importance = importance_of(symbState);
 		minI = importance < minI ? importance : minI;
@@ -472,10 +475,8 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 	}
     assert(minI <= minrI);
 
-#ifdef NDEBUG
-    #pragma omp parallel for default(shared) private(state) reduction(max:maxI)
-#endif
-    for (size_t i = 0ul ; i < state.concrete_size() ; i++) {
+//	#pragma omp parallel for default(shared) private(state) reduction(max:maxI)
+	for (size_t i = 0ul ; i < NUM_CONCRETE_STATES ; i++) {
 		const ImportanceValue importance =
                 importance_of(state.decode(i).to_state_instance());
 		maxI = importance > maxI ? importance : maxI;

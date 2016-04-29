@@ -320,7 +320,7 @@ public:  // Accessors
 
 	inline size_t state_size() const noexcept override { return lState_.size(); }
 
-	inline size_t concrete_state_size() const noexcept override { return lState_.concrete_size(); }
+	inline uint128_t concrete_state_size() const noexcept override { return lState_.concrete_size(); }
 
 	inline bool sealed() const noexcept override { return sealed_; }
 

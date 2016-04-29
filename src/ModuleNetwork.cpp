@@ -95,10 +95,15 @@ ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 #else
 		return;
 #endif
+	assert(nullptr != module);
+	if (MAX_NUM_CLOCKS < numClocks_ + module->num_clocks())
+		throw_FigException("can't define more than " + std::to_string(MAX_NUM_CLOCKS)
+						   + " clocks in the model. To extend this limit"
+						   + " check the header \"core_typedefs.h\"");
 	auto state = module->mark_added(modules.size(), gState.size(), numClocks_);
 	modules.push_back(module);
 	gState.append(state);
-	numClocks_ += module->clocks().size();
+	numClocks_ += module->num_clocks();
 	transitions_.reserve(transitions_.size() + module->transitions_.size());
 	transitions_.insert(transitions_.end(),
 						module->transitions_.begin(),
