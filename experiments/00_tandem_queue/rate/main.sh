@@ -93,7 +93,7 @@ done
 $ECHO "Waiting for all experiments to finish"
 declare -a A=(. :) ; N=0
 RUNNING=`$ECHO "pgrep -u $(whoami) fig"`
-while [ -n "`$RUNNING`" ]; do $ECHO -n ${A[$N]}; N=$(((N+1)%2)); sleep 9; done
+while [ -n "`$RUNNING`" ]; do $ECHO -n ${A[$N]}; N=$(((N+1)%2)); sleep 2m; done
 unset A N
 $ECHO
 $ECHO "All experiments finished"

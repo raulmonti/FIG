@@ -324,19 +324,20 @@ ThresholdsBuilderSMC::tune(const uint128_t &numStates,
 	const float p((k_*0.333f)/n_);
 	n_ = std::max({n, n_, ThresholdsBuilderAdaptive::MIN_N});
 	k_ = std::round(p*n_);
-	// Level-up probability will be directly proportional to simulations length
-	// within the range (0.06 , 0.1) of 'p'
-	::SIM_EFFORT = p < 0.06 ? MIN_SIM_EFFORT :
-				   p > 0.1  ? MAX_SIM_EFFORT :
+	// Simulations length will be directly proportional to the probability 'p'
+	// within the range (0.06 , 0.1)
+	::SIM_EFFORT = p < 0.06 || numStates > (1ul<<20u) ? MIN_SIM_EFFORT :
+				   p > 0.1  || numStates < (1ul<<10u) ? MAX_SIM_EFFORT :
 				   std::round(25.f*(MAX_SIM_EFFORT-MIN_SIM_EFFORT) * p
 							  + 2.5f*MIN_SIM_EFFORT - 1.5f*MAX_SIM_EFFORT);
-	// Connectivity will be inversely proportional to the allowed # of failures
-	// within the range (0.01 , 1.0) of 'connectivity'
-	const float connectivity(numTrans/numStates);
-	::NUM_FAILURES = connectivity < 0.01f ? MAX_NUM_FAILURES :
-					 connectivity > 1.00f ? MIN_NUM_FAILURES :
-					 std::round((MIN_NUM_FAILURES-MAX_NUM_FAILURES)*1.01f * connectivity
-								 + 99.f * MAX_NUM_FAILURES / (MIN_NUM_FAILURES-MAX_NUM_FAILURES));
+	// The allowed # of failures will be inversely proportional to 'density'
+	// within the range (0.01 , 5.0)
+	const double logStates(log2(numStates.lower())+64*log2(1+numStates.upper()));
+	const float density(numTrans/logStates);  // we deal with sparse graphs
+	::NUM_FAILURES = density < 0.01f && numStates < (1ul<<13u) ? MAX_NUM_FAILURES :
+					 density > 5.00f || numStates > (1ul<<20u) ? MIN_NUM_FAILURES :
+					 std::round((MIN_NUM_FAILURES*.2004f-MAX_NUM_FAILURES*.2004f) * density
+								 + 1.002f*MAX_NUM_FAILURES - .002f*MIN_NUM_FAILURES);
 }
 
 } // namespace fig

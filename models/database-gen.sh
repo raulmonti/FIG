@@ -232,14 +232,14 @@ for (( d=1 ; d <= $D_NUM ; d++ )); do
 		print "true) |"
 		# and compute next one
 		reset=false
-		while (( $i >= 0 && ${index[i]} >= ${INDEX[i]} )); do
+		while (( $i >= 0 && ${index[$i]} >= ${INDEX[$i]} )); do
 			i=$((i-1))
 			reset=true
 		done
 		if (( $i < 0 )); then
 			break  # all combinations were covered
 		else
-			index[$i]=$((${index[i]} + 1))
+			index[$i]=$((${index[$i]} + 1))
 		fi
 		if [ $reset ]; then 
 			for (( j=i+1 ; j<M ; j++ )); do
@@ -266,14 +266,14 @@ for (( c=1 ; c <= $C_NUM ; c++ )); do
 		print "true) |"
 		# and compute next one
 		reset=false
-		while (( $i >= 0 && ${index[i]} >= ${INDEX[i]} )); do
+		while (( $i >= 0 && ${index[$i]} >= ${INDEX[$i]} )); do
 			i=$((i-1))
 			reset=true
 		done
 		if (( $i < 0 )); then
 			break  # all combinations were covered
 		else
-			index[$i]=$((${index[i]} + 1))
+			index[$i]=$((${index[$i]} + 1))
 		fi
 		if [ $reset ]; then 
 			for (( j=i+1 ; j<M ; j++ )); do
@@ -300,14 +300,14 @@ for (( p=1 ; p <= $P_NUM ; p++ )); do
 		print "true) |"
 		# and compute next one
 		reset=false
-		while (( $i >= 0 && ${index[i]} >= ${INDEX[i]} )); do
+		while (( $i >= 0 && ${index[$i]} >= ${INDEX[$i]} )); do
 			i=$((i-1))
 			reset=true
 		done
 		if (( $i < 0 )); then
 			break  # all combinations were covered
 		else
-			index[$i]=$((${index[i]} + 1))
+			index[$i]=$((${index[$i]} + 1))
 		fi
 		if [ $reset ]; then 
 			for (( j=i+1 ; j<M ; j++ )); do
