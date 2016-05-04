@@ -546,8 +546,8 @@ ImportanceFunctionConcrete::assess_importance(
 	const size_t MAX_SIZE(1ul<<31ul);  // up to 2 GB
 	if (concreteStateSize.upper() > 0ul ||
 		concreteStateSize.lower() > MAX_SIZE)
-		throw_FigException("the concrete state space of this module "
-						   "is too big to hold it in a vector (it's greater "
+		throw_FigException("the concrete state space of \"" + module.id() +
+						   "\" is too big to hold it in a vector (it's greater "
 						   "than " + std::to_string(MAX_SIZE) + " bytes)");
 
 	// Compute importance according to the chosen strategy

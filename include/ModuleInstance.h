@@ -312,7 +312,9 @@ public:  // Ctors/Dtor and populating facilities
 
 public:  // Accessors
 
-    /// Number of variables defined in this module
+	inline std::string id() const noexcept override { return name; }
+
+	/// Number of variables defined in this module
     /// @note Same as state_size()
 	inline size_t num_vars() const noexcept { return state_size(); }
 

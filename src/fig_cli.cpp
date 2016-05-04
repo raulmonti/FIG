@@ -389,7 +389,7 @@ get_splitting_values()
 			if (nullptr == err || err[0] == '\0') {
 				splittings.emplace(value);
 			} else {
-				// Mimic TCLAP 'parsing error' message style
+				// Mimic TCLAP's 'parsing error' message style
 				std::cerr << "PARSE ERROR: Argument: (--"
 						  << splittings_.getName() << ")\n";
 				std::cerr << "             Invalid value given \""
@@ -417,6 +417,14 @@ namespace fig_cli
 bool
 parse_arguments(const int& argc, const char** argv, bool fatalError)
 {
+	// Called with no arguments? Print briefest help and exit gracefully
+	if (argc==1) {
+		// Mimic TCLAP's messages style
+		std::cerr << "For complete USAGE and HELP type:\n";
+		std::cerr << "   " << argv[0] << " --help\n\n";
+		exit(EXIT_SUCCESS);
+	}
+
 	try {
 		// Add all defined arguments and options to TCLAP's command line parser
 		cmd_.add(modelFile_);

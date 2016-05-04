@@ -125,6 +125,8 @@ public:  // Populating facilities
 
 public:  // Accessors
 
+	inline std::string id() const noexcept override { return "GlobalModel"; }
+
 	/// How many \ref ModuleInstance "modules" have been added to the network
 	inline size_t num_modules() const noexcept { return modules.size(); }
 
