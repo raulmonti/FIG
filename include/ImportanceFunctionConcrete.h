@@ -176,6 +176,9 @@ protected:  // Utils for derived classes
 	 * @param clauses  Property parsed as a DNF list of clauses (required only
 	 *                 by ImportanceFunctionConcreteSplit for the 'auto' strategy)
 	 *
+	 * @return Whether the assessed module is relevant to importance splitting
+	 *         (e.g. identically false for the "flat" strategy)
+	 *
 	 * @note This allocates (maybe tons of) memory internally
 	 * @note To assess again for same index with different strategy or property,
 	 *       release first the internal info through clear(const unsigned&)
@@ -186,7 +189,7 @@ protected:  // Utils for derived classes
 	 * @throw bad_alloc    if system's memory wasn't enough for internal storage
 	 * @throw FigException if there's already importance info for this index
 	 */
-	void assess_importance(const Module& module,
+	bool assess_importance(const Module& module,
 						   const Property& property,
 						   const std::string& strategy,
 						   const unsigned& index = 0,

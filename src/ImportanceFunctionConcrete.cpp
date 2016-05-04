@@ -53,6 +53,7 @@ using std::end;
 namespace
 {
 
+using uint128::uint128_t;
 using fig::Property;
 using fig::Transition;
 using fig::StateInstance;
@@ -63,6 +64,27 @@ using State = fig::State< fig::STATE_INTERNAL_TYPE >;
 using ImportanceVec = fig::ImportanceFunction::ImportanceVec;
 typedef ImportanceVec EventVec;
 typedef unsigned STATE_T;
+
+
+/**
+ * @brief Impose a limit on the amount of memory the user can request.
+ * @param concreteStateSize Size of the concrete state space of the module
+ *                          and thus of the vector to be allocated
+ * @param moduleName Name of the module
+ * @note There's <a href="http://stackoverflow.com/a/2513561">no portable way of
+ *       measuring the system's available RAM</a>, thus the limit is arbitrary
+ * @throw FifException if more memory than allowed is requested
+ */
+void
+check_mem_limits(const uint128_t& concreteStateSize, const std::string& moduleName)
+{
+	const size_t MAX_SIZE(1ul<<31ul);  // we allow up to 2 GB
+	if (concreteStateSize.upper() > 0ul ||
+		concreteStateSize.lower() > MAX_SIZE)
+		throw_FigException("the concrete state space of \"" + moduleName +
+						   "\" is too big to hold it in a vector (it's greater "
+						   "than " + std::to_string(MAX_SIZE) + " bytes)");
+}
 
 
 /**
@@ -445,6 +467,12 @@ assess_importance_auto(const fig::Module& module,
 					   const bool split)
 {
     assert(impVec.size() == 0ul);
+	ImportanceValue maxImportance(0u);
+
+	// Step 0: skip computations if module is irrelevant for importance splitting
+	if (split) {
+		/// @todo TODO implement -- Project clauses here?
+	}
 
 	// Step 1: run DFS from initial state to compute reachable reversed edges
 	fig::AdjacencyList reverseEdges = reversed_edges_DFS(module, impVec);
@@ -462,10 +490,10 @@ assess_importance_auto(const fig::Module& module,
 		rares = label_global_states(module.initial_state(), impVec, property, true);
 
 	// Step 3: run BFS to compute importance of every concrete state
-	ImportanceValue maxImportance = build_importance_BFS(reverseEdges,
-														 rares,
-														 module.initial_concrete_state(),
-														 impVec);
+	maxImportance = build_importance_BFS(reverseEdges,
+										 rares,
+										 module.initial_concrete_state(),
+										 impVec);
 	fig::AdjacencyList().swap(reverseEdges);  // free mem!
 
 	return maxImportance;
@@ -473,12 +501,13 @@ assess_importance_auto(const fig::Module& module,
 
 
 /**
- * @brief Assign null importance to all states in concrete vector
+ * @brief Assign null importance to all states in a concrete vector
  * @param state    Symbolic state of this Module, in any valuation
  * @param impVec   Vector where the importance will be stored <b>(modified)</b>
  * @param property Property identifying the special states
  * @param clauses  Property parsed as a DNF list of clauses, for split storage
  * @param split    Whether we're working for ImportanceFunctionConcreteSplit
+ * @note Did I mention using this function would be completely idiotic?
  */
 ImportanceValue
 assess_importance_flat(const State& state,
@@ -490,15 +519,13 @@ assess_importance_flat(const State& state,
 	assert(state.size() > 0ul);
 	assert(state.concrete_size().upper() == 0ul);
 	assert(impVec.size() == 0ul);
-
 	// Build vector the size of concrete state space filled with zeros ...
 	ImportanceVec(state.concrete_size().lower()).swap(impVec);
 	// ... and label according to the property
 	if (split)
-		label_local_states(state, impVec, property, clauses);  // this is idiotic
+		label_local_states(state, impVec, property, clauses);
 	else
 		label_global_states(state, impVec, property);
-
 	return static_cast<ImportanceValue>(0u);
 }
 
@@ -524,8 +551,7 @@ ImportanceFunctionConcrete::~ImportanceFunctionConcrete()
 }
 
 
-void
-ImportanceFunctionConcrete::assess_importance(
+bool ImportanceFunctionConcrete::assess_importance(
 	const Module& module,
 	const Property& property,
 	const std::string& strategy,
@@ -538,6 +564,7 @@ ImportanceFunctionConcrete::assess_importance(
 		throw_FigException("importance info already exists at position "
 						  + std::to_string(index));
 	const bool split(name().find("split") != std::string::npos);
+	bool relevant(false);
 
 	// Impose a limit on the amount of memory the user can request for this.
 	// There's no portable way of measuring the system's available RAM
@@ -552,6 +579,7 @@ ImportanceFunctionConcrete::assess_importance(
 
 	// Compute importance according to the chosen strategy
 	if ("flat" == strategy) {
+		check_mem_limits(module.concrete_state_size(), module.id());
 		maxValue_ = assess_importance_flat(module.initial_state(),
 										   modulesConcreteImportance[index],
 										   property,
@@ -584,6 +612,8 @@ ImportanceFunctionConcrete::assess_importance(
 						   + strategy + "\". See available options with "
 						   "ModelSuite::available_importance_strategies()");
 	}
+
+	return relevant;
 }
 
 

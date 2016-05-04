@@ -139,8 +139,9 @@ build_states_distribution(const fig::ModuleNetwork& network,
 		} while (lastThr != t.level && ++fails < TOLERANCE);
 	}
 	if (fails >= TOLERANCE) {
+		// Couldn't make the 'n' traials reach lastThr: we failed
 		fig::ModelSuite::tech_log("*");  // report failure
-		return false;  // couldn't make the 'n' traials reach lastThr: we failed
+		return false;
 	}
 
     // Store 'k' from those 'n' new states as the next-gen initial states

@@ -466,28 +466,37 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 
 	// Assess each module importance individually from the rest
 	concreteSimulation_ = false;
-	unsigned numRareRelevantModules(0u);
+	unsigned numRelevantModules(0u);
 	propertyClauses.populate(prop);
 	ModulesExtremeValues moduleValues(numModules_);
 	for (size_t index = 0ul ; index < numModules_ ; index++) {
-		ImportanceFunctionConcrete::assess_importance(*modules_[index],
-													  prop,
-													  strategy,
-													  index,
-													  propertyClauses);
+		const bool moduleIsRelevant =
+			ImportanceFunctionConcrete::assess_importance(*modules_[index],
+														  prop,
+														  strategy,
+														  index,
+														  propertyClauses);
 		assert(minValue_ <= initialValue_);
 		assert(initialValue_ <= minRareValue_);
 		assert(minRareValue_ <= maxValue_);
 		moduleValues[modules_[index]->name] =
 				std::make_tuple(minValue_, maxValue_, minRareValue_);
-		numRareRelevantModules += minValue_ < maxValue_ ? 1u : 0u;
+		numRelevantModules += moduleIsRelevant ? 1u : 0u;
+
+		/// @todo TODO if the module isn't relevant store the neutral element
+		///            of the current merge function
+		///
+		/// We could also add a boolean "relevant" field somewhere,
+		/// recognize it for the corresponding module during simulations,
+		/// and imprint *there* the neutral element of the merge function,
+		/// which would be chosen and stored during "set_merge_fun()"
 	}
 	hasImportanceInfo_ = true;
 	strategy_ = strategy;
 
 	// If the rare event depends on the state of more than one module,
 	// global rarity can't be encoded split in vectors for later simulations
-	concreteSimulation_ = "flat" != strategy && numRareRelevantModules < 2u;
+	concreteSimulation_ = numRelevantModules < 2u;
 
 	// Find extreme importance values for current assessment
 	initialValue_ = importance_of(systemInitialValuation);
