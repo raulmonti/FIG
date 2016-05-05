@@ -117,7 +117,10 @@ project(const DNF& clauses, const vector< std::string >& varnames)
 			if (include(literalSTR) && clauseSTR.find(literalSTR) == std::string::npos)
 				clauseSTR += literalSTR + AMP;
 		}
-		if (!clauseSTR.empty()) {
+		if (!clauseSTR.empty() &&
+			end(dnfClauses) != std::find_if(
+				begin(dnfClauses), end(dnfClauses),
+				[&clauseSTR](const Clause& c){return c.expression()!=clauseSTR;})) {
 			/// @todo TODO avoid adding repeated clauses
 			clauseSTR.resize(clauseSTR.length() - AMP.length());
 			dnfClauses.emplace_back(clauseSTR, varnames);

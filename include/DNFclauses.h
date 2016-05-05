@@ -48,7 +48,7 @@ using std::vector;
  * Formatted container for a Property in Disjunctive Normal Form
  *
  * This class was designed for the construction of the concrete "split"
- * Importance vectors used by ImportanceFunctionConcreteSplit.
+ * importance vectors used by ImportanceFunctionConcreteSplit.
  * The idea is to offer an easy and fast projection of the Property's
  * clauses over each individual module's variables.
  *

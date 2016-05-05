@@ -79,8 +79,7 @@ void
 check_mem_limits(const uint128_t& concreteStateSize, const std::string& moduleName)
 {
 	const size_t MAX_SIZE(1ul<<31ul);  // we allow up to 2 GB
-	if (concreteStateSize.upper() > 0ul ||
-		concreteStateSize.lower() > MAX_SIZE)
+	if (concreteStateSize > MAX_SIZE)
 		throw_FigException("the concrete state space of \"" + moduleName +
 						   "\" is too big to hold it in a vector (it's greater "
 						   "than " + std::to_string(MAX_SIZE) + " bytes)");
@@ -311,10 +310,14 @@ label_local_others(State s,
  *        i.e. in a local state with only a subset of the variables that may
  *        appear in the Property.
  *
- * @param localState State of an individual module (in any valuation)
- * @param cStates    Concrete states vector to label with Event masks <b>(modified)</b>
- * @param property   Property identifying the special states
- * @param clauses    Property parsed as a DNF list of clauses
+ * @param localState   State of an individual module (in any valuation)
+ * @param cStates      Concrete states vector to label with Event masks <b>(modified)</b>
+ * @param propertyType Type of the property identifying the special states
+ * @param rareClauses  Property parsed as a DNF list of clauses
+ * @param rareClauses  DNF clauses, projected from the property into this
+ *                     Module's variables space, identifying the rare states
+ * @param otherClauses DNF clauses, projected from the property into this
+ *                     Module's variables space, identifying the rare states
  *                   (used only by ImportanceFunctionConcreteSplit for 'auto')
  *
  * @return Queue with all rare concrete states found
@@ -330,19 +333,16 @@ label_local_others(State s,
 std::queue< STATE_T >
 label_local_states(const State& localState,
 				   EventVec& cStates,
-				   const Property& property,
-				   const DNFclauses& clauses)
+				   const fig::PropertyType& propertyType,
+				   std::vector< Clause > rareClauses,
+				   std::vector< Clause > otherClauses)
 {
-	std::vector< Clause > rareClauses, otherClauses;
 	std::set< STATE_T > rares;
-
-	// Project the property for this localState
-	std::tie(rareClauses, otherClauses) = clauses.project(localState);
 	assert(localState.concrete_size().upper() == 0ul);
 	cStates.resize(localState.concrete_size().lower());
 
 	// Mark events according to the clauses
-	switch (property.type) {
+	switch (propertyType) {
 
 	case fig::PropertyType::TRANSIENT:
 		rares = label_local_rares(localState, cStates, rareClauses, true);
@@ -468,10 +468,16 @@ assess_importance_auto(const fig::Module& module,
 {
     assert(impVec.size() == 0ul);
 	ImportanceValue maxImportance(0u);
+	std::vector< Clause > rareClauses, otherClauses;
 
 	// Step 0: skip computations if module is irrelevant for importance splitting
 	if (split) {
-		/// @todo TODO implement -- Project clauses here?
+		// Project the property for this Module's local variables
+		std::tie(rareClauses, otherClauses) = clauses.project(module.initial_state());
+		if (rareClauses.empty())
+			return maxImportance;  // module is irrelevant
+		else
+			check_mem_limits(module.concrete_state_size(), module.id());
 	}
 
 	// Step 1: run DFS from initial state to compute reachable reversed edges
@@ -485,7 +491,8 @@ assess_importance_auto(const fig::Module& module,
 	// Step 2: label concrete states according to the property
 	std::queue< STATE_T > rares;
 	if (split)
-		rares = label_local_states(module.initial_state(), impVec, property, clauses);
+		rares = label_local_states(module.initial_state(), impVec, property.type,
+								   rareClauses, otherClauses);
 	else
 		rares = label_global_states(module.initial_state(), impVec, property, true);
 
@@ -522,9 +529,11 @@ assess_importance_flat(const State& state,
 	// Build vector the size of concrete state space filled with zeros ...
 	ImportanceVec(state.concrete_size().lower()).swap(impVec);
 	// ... and label according to the property
-	if (split)
-		label_local_states(state, impVec, property, clauses);
-	else
+	if (split) {
+		auto clausesPair = clauses.project(state);
+		label_local_states(state, impVec, property.type,
+						   clausesPair.first, clausesPair.second);
+	} else
 		label_global_states(state, impVec, property);
 	return static_cast<ImportanceValue>(0u);
 }
@@ -563,19 +572,8 @@ bool ImportanceFunctionConcrete::assess_importance(
     else if (modulesConcreteImportance[index].size() > 0ul)
 		throw_FigException("importance info already exists at position "
 						  + std::to_string(index));
-	const bool split(name().find("split") != std::string::npos);
 	bool relevant(false);
-
-	// Impose a limit on the amount of memory the user can request for this.
-	// There's no portable way of measuring the system's available RAM
-	// (http://stackoverflow.com/a/2513561), thus the limit is arbitrary
-	const uint128_t concreteStateSize(module.concrete_state_size());
-	const size_t MAX_SIZE(1ul<<31ul);  // up to 2 GB
-	if (concreteStateSize.upper() > 0ul ||
-		concreteStateSize.lower() > MAX_SIZE)
-		throw_FigException("the concrete state space of \"" + module.id() +
-						   "\" is too big to hold it in a vector (it's greater "
-						   "than " + std::to_string(MAX_SIZE) + " bytes)");
+	const bool split(name().find("split") != std::string::npos);
 
 	// Compute importance according to the chosen strategy
 	if ("flat" == strategy) {
@@ -596,12 +594,20 @@ bool ImportanceFunctionConcrete::assess_importance(
 										   property,
 										   clauses,
 										   split);
-        // For auto importance functions the initial state has always
-        // the lowest importance, and all rare states have the highest:
-		minValue_ = UNMASK(
-				modulesConcreteImportance[index][module.initial_concrete_state()]);
-		initialValue_ = minValue_;
-		minRareValue_ = maxValue_;  // should we check?
+		if (static_cast<ImportanceValue>(0u) < maxValue_ ) {
+			relevant = true;
+			// For auto importance functions the initial state has always
+			// the lowest importance, and all rare states have the highest:
+			minValue_ = UNMASK(
+					modulesConcreteImportance[index][module.initial_concrete_state()]);
+			initialValue_ = minValue_;
+			minRareValue_ = maxValue_;  // should we check?
+		} else {
+			// This module is irrelevant for importance computation
+			minValue_ = maxValue_;
+			initialValue_ = maxValue_;
+			minRareValue_ = maxValue_;
+		}
 
 	} else if ("adhoc" == strategy) {
         throw_FigException("importance strategy \"adhoc\" requires a user "

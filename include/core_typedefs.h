@@ -257,7 +257,7 @@ enum PropertyType
 // Miscellanea
 //
 
-/// Allow containers with references (http://stackoverflow.com/a/23488449)
+/// For <a href="http://stackoverflow.com/a/23488449">containers of references</a>
 template< typename T_ > using Reference = std::reference_wrapper<T_>;
 
 /// Mapping of names (of clocks or variables or whatever) to their
