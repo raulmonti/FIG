@@ -48,29 +48,18 @@ typedef  fig::DistributionParameters  params_t;
 
 #ifndef NDEBUG
   const unsigned rngSeed(1234567803u);  // repeatable outcome
-#else
-  const unsigned rngSeed(std::random_device{}());
 #endif
 
-#ifndef DOUBLE_TIME_PRECISION
-  std::mt19937 MTrng(rngSeed);
-  pcg32 PCGrng(rngSeed);
+/// \ifnot PCG_RNG Mersenne-Twister RNG \else PCG family RNG \endif
+#if   !defined NDEBUG && !defined PCG_RNG
+  std::mt19937_64  rng(rngSeed);
+#elif !defined NDEBUG &&  defined PCG_RNG
+  pcg64            rng(rngSeed);
+#elif  defined NDEBUG && !defined PCG_RNG
+  std::mt19937_64  rng(std::random_device{}());
 #else
-  std::mt19937_64 MTrng(rngSeed);
-  pcg64 PCGrng(rngSeed);
+  pcg64_fast       rng(pcg_extras::seed_seq_from<std::random_device>{});
 #endif
-
-#ifndef PCG_RNG
-  /// Mersenne-Twister RNG
-  auto rng = MTrng;
-#else
-  /// PCG family RNG
-  auto rng = PCGrng;
-#endif
-
-std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uniform01(0.0 , 1.0);
-std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > exponential1(1.0);
-std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal01(0.0 , 1.0);
 
 
 /// Random deviate ~ Uniform[a,b]<br>
@@ -167,13 +156,25 @@ return_t erlang(const params_t& params)
 namespace fig
 {
 
-unsigned Clock::rng_seed() noexcept { return rngSeed; }
-
+unsigned Clock::rng_seed() noexcept
+{
 #ifndef NDEBUG
-void Clock::seed_rng() { rng.seed(rngSeed); }
+	return rngSeed;
 #else
-void Clock::seed_rng() { rng.seed(std::random_device{}()); }
+	return 0u;
 #endif
+}
+
+void Clock::seed_rng()
+{
+#ifndef NDEBUG
+	rng.seed(rngSeed);  // repeat sequence
+#elif !defined PCG_RNG
+	rng.seed(std::random_device{}());
+#else
+	rng.seed(pcg_extras::seed_seq_from<std::random_device>{});
+#endif
+}
 
 std::unordered_map< std::string, Distribution > distributions_list =
 {

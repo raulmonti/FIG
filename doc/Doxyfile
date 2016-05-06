@@ -536,7 +536,7 @@ GENERATE_DEPRECATEDLIST= YES
 # documentation sections, marked by \if sectionname ... \endif.
 
 # Reflect build defines!
-ENABLED_SECTIONS = NDEBUG NRANGECHK  # PCG_RNG DOUBLE_TIME_PRECISION
+ENABLED_SECTIONS = NDEBUG NRANGECHK PCG_RNG  # DOUBLE_TIME_PRECISION
 
 # The MAX_INITIALIZER_LINES tag determines the maximum number of lines
 # the initial value of a variable or macro consists of for it to appear in

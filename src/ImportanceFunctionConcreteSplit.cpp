@@ -254,9 +254,11 @@ ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 		ImportanceFunctionConcrete("concrete_split", model.global_state()),
 		modules_(model.modules),
 		numModules_(model.modules.size()),
+		isRelevant_(numModules_, false),
 		localValues_(numModules_),
 		localStatesCopies_(numModules_),
 		mergeStrategy_(MergeType::INVALID),
+		neutralElement_(0u),
 		concreteSimulation_(true)
 {
 	bool initialize(false);  // initialize (non-const) static class members?
@@ -360,6 +362,8 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
     for (size_t i = 0ul ; i < numModules_ ; i++) {
 		out << "\nValues for module \"" << modules_[i]->name << "\":";
         const ImportanceVec& impVec = modulesConcreteImportance[i];
+		if (impVec.empty())
+			out << " <nodata>";
         for (size_t i = 0ul ; i < impVec.size() ; i++) {
             out << " (" << i;
             out << (IS_RARE_EVENT     (impVec[i]) ? "*" : "");
