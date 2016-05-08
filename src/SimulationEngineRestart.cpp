@@ -134,7 +134,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	bool (SimulationEngineRestart::*watch_events)
 		 (const PropertyTransient&, Traial&, Event&) const;
-	if (impFun_->concrete())
+	if (impFun_->concrete_simulation())
 		watch_events = &SimulationEngineRestart::transient_event_concrete;
 	else
 		watch_events = &SimulationEngineRestart::transient_event;

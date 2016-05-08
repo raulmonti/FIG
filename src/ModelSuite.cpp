@@ -815,6 +815,7 @@ void
 ModelSuite::build_importance_function_auto(const std::string& ifunName,
 										   const std::string& mergeFun,
 										   const Property& property,
+										   const ImportanceValue& nullVal,
 										   bool force)
 {
 	if (!exists_importance_function(ifunName))
@@ -835,7 +836,8 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 		ifun.clear();
 		const double startTime = omp_get_wtime();
 		if (ifunName == "concrete_split")
-			static_cast<ImportanceFunctionConcreteSplit&>(ifun).set_merge_fun(mergeFun);
+			static_cast<ImportanceFunctionConcreteSplit&>(ifun)
+				.set_merge_fun(mergeFun, nullVal);
 		try {
 			static_cast<ImportanceFunctionConcrete&>(ifun)
 					.assess_importance(property, "auto");
@@ -865,12 +867,13 @@ void
 ModelSuite::build_importance_function_auto(const std::string& ifunName,
                                            const std::string& mergeFun,
 										   const size_t& propertyIndex,
+										   const ImportanceValue& nullVal,
 										   bool force)
 {
     auto propertyPtr = get_property(propertyIndex);
     if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
-	build_importance_function_auto(ifunName, mergeFun, *propertyPtr, force);
+	build_importance_function_auto(ifunName, mergeFun, *propertyPtr, nullVal, force);
 }
 
 

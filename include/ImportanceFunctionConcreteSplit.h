@@ -72,12 +72,13 @@ public:
 	/// of the "split modules" importance values
 	enum MergeType
 	{
-		NONE,
-		SUMMATION,  // m1 + m2 + ··· + mN
-		PRODUCT,    // m1 * m2 * ··· * mN
-		MAX,        // max(m1, m2, ..., mN)
-		MIN,        // min(m1, m2, ..., mN)
-		AD_HOC      // user defined algebraic formula
+		SUMMATION = 0,  // m1 + m2 + ··· + mN
+		PRODUCT,        // m1 * m2 * ··· * mN
+		MAX,            // max(m1, m2, ..., mN)
+		MIN,            // min(m1, m2, ..., mN)
+		AD_HOC,         // user defined algebraic formula
+		NUM_TYPES,  // must be defined before last
+		INVALID     // must be defined last
 	};
 
 private:
@@ -87,6 +88,9 @@ private:
 
 	/// Number of \ref ModuleInstance "modules" in the network
 	const size_t numModules_;
+
+	/// Whether each module is relevant for importance computation
+	std::vector<bool> isRelevant_;
 
 	/// Position, in a global system state, of the first variable of each module
 	static std::vector< unsigned > globalVarsIPos;
@@ -99,7 +103,10 @@ private:
 	mutable std::vector< State< STATE_INTERNAL_TYPE > > localStatesCopies_;
 
     /// Strategy used to merge the "split modules" importance values
-    mutable MergeType mergeStrategy_;
+    MergeType mergeStrategy_;
+
+    /// Value of the neutral element for the merge strategy chosen
+    ImportanceValue neutralElement_;
 
     /// Property to check, parsed as a DNF formula
     parser::DNFclauses propertyClauses;
@@ -149,9 +156,11 @@ public:  // Utils
 	 *                     applied to all modules (e.g. "max", "+"), or a fully
 	 *                     defined function with explicit module names
 	 *                     (e.g. "5*Queue1+Queue2")
+	 * @param nullVal Neutral element of the algebraic expression, needed only
+	 *                for fully defined functions (i.e. not for operands)
 	 * @throw FigException if invalid or badly formatted function expression
 	 */
-	void set_merge_fun(std::string mergeFunExpr);
+	void set_merge_fun(std::string mergeFunExpr, const ImportanceValue& nullVal = 0);
 
 	void assess_importance(const Property& prop,
 						   const std::string& strategy = "flat") override;
@@ -178,11 +187,12 @@ private:  // Class utils
 	 * @param modulesNames Names of all \ref ModuleInstance "modules"
 	 * @param mergeOperand Algebraic operand to use
 	 * @throw FigException if 'mergeOperand' is not in mergeOperands
+	 * @note Updates the internal fields 'mergeStrategy_' and 'neutralElement_'
 	 * @see mergeOperands
 	 */
 	std::string compose_merge_function(
 			const std::vector<std::string>& modulesNames,
-			const std::string& mergeOperand) const;
+			const std::string& mergeOperand);
 };
 
 } // namespace fig

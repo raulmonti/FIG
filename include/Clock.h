@@ -79,7 +79,8 @@ class Clock
 
 public:  // Class' RNG manipulations
 
-	/// Seed used to initialized the internal RNG
+	/// Seed used to initialized the internal RNG.
+	/// Null iff (device-) random seeding is used
 	static unsigned rng_seed() noexcept;
 
 private:

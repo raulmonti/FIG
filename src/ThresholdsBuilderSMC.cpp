@@ -138,8 +138,11 @@ build_states_distribution(const fig::ModuleNetwork& network,
             network.peak_simulation(t, update, predicate);
 		} while (lastThr != t.level && ++fails < TOLERANCE);
 	}
-	if (fails >= TOLERANCE)
-		return false;  // couldn't make the 'n' traials reach lastThr: we failed
+	if (fails >= TOLERANCE) {
+		// Couldn't make the 'n' traials reach lastThr: we failed
+		fig::ModelSuite::tech_log("*");  // report failure
+		return false;
+	}
 
     // Store 'k' from those 'n' new states as the next-gen initial states
 	// Uniformly choose which will be those 'k' (without repetitions)
@@ -192,7 +195,7 @@ find_new_threshold(const fig::ModuleNetwork& network,
 	assert(k < n);
     assert(traials.size() >= n+k);
     using std::to_string;
-	unsigned jumpsLeft, failures(0u), simEffort(SIM_EFFORT);
+	unsigned jumpsLeft, fails(0u), simEffort(SIM_EFFORT);
 	const ImportanceValue MAX_IMP(impFun.max_value());
     ImportanceValue newThr(lastThr);
 
@@ -203,12 +206,10 @@ find_new_threshold(const fig::ModuleNetwork& network,
     auto update = [&impFun](Traial& t) -> void {
         t.level = impFun.importance_of(t.state);
     };
-	// Function to sort traials according to their ImportanceValue
-    auto lesser = [](Traial& lhs, Traial& rhs) { return lhs.level < rhs.level; };
     // What happens when the new quantile isn't higher than lastThr
-    auto reinit = [&n, &k, &simEffort] (TraialsVec& traials, unsigned& fails) {
+	auto reinit = [&n, &k, &fails, &simEffort] (TraialsVec& traials) {
 		fig::ModelSuite::tech_log("-");  // report failure
-		if (++fails >= NUM_FAILURES)
+		if (++fails >= ::NUM_FAILURES)
 			return false;
 		simEffort *= 2u;
         // Choose the new 'n' initial states uniformly among the last 'k'
@@ -225,11 +226,12 @@ find_new_threshold(const fig::ModuleNetwork& network,
 			network.peak_simulation(traials[i], update, predicate);
 		}
 		// Sort to find 1-k/n quantile
-		std::sort(begin(traials), begin(traials)+n, lesser);
+		std::sort(begin(traials), begin(traials)+n,
+				  [](Traial& lhs, Traial& rhs){return lhs.level < rhs.level;});
         newThr = traials[n-k].get().level;
-    } while (newThr <= lastThr && reinit(traials, failures));
+	} while (newThr <= lastThr && reinit(traials));
 
-	if (failures < NUM_FAILURES)
+	if (fails < ::NUM_FAILURES)
 		fig::ModelSuite::tech_log("+");  // report success
 
     return newThr;
@@ -334,8 +336,8 @@ ThresholdsBuilderSMC::tune(const uint128_t &numStates,
 	// within the range (0.01 , 5.0)
 	const double logStates(log2(numStates.lower())+64*log2(1+numStates.upper()));
 	const float density(numTrans/logStates);  // we deal with sparse graphs
-	::NUM_FAILURES = density < 0.01f && numStates < (1ul<<13u) ? MAX_NUM_FAILURES :
-					 density > 5.00f || numStates > (1ul<<20u) ? MIN_NUM_FAILURES :
+	::NUM_FAILURES = density > 5.00f || numStates > (1ul<<20u) ? MIN_NUM_FAILURES :
+					 density < 0.01f                           ? MAX_NUM_FAILURES :
 					 std::round((MIN_NUM_FAILURES*.2004f-MAX_NUM_FAILURES*.2004f) * density
 								 + 1.002f*MAX_NUM_FAILURES - .002f*MIN_NUM_FAILURES);
 }

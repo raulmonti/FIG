@@ -268,7 +268,7 @@ parse_ifun_details(const std::string& details)
 	if (strValues.size() > 1ul) {
 		min = std::strtoul(strValues[1].data(), &err, 10);
 		if (nullptr != err && err[0] != '\0') {
-			// Mimic TCLAP 'parsing error' message style
+			// Mimic TCLAP's 'parsing error' message style
 			std::cerr << "PARSE ERROR: When parsing the algebraic expression \""
 					  << details << "\"\n";
 			std::cerr << "             After the first semicolon, the function's "
@@ -279,7 +279,7 @@ parse_ifun_details(const std::string& details)
 	if (strValues.size() > 2ul) {
 		max = std::strtoul(strValues[2].data(), &err, 10);
 		if (nullptr != err && err[0] != '\0') {
-			// Mimic TCLAP 'parsing error' message style
+			// Mimic TCLAP's 'parsing error' message style
 			std::cerr << "PARSE ERROR: When parsing the algebraic expression \""
 					  << details << "\"\n";
 			std::cerr << "             After the second semicolon, the function's "
@@ -313,11 +313,12 @@ get_ifun_specification()
 		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "auto");
 
 	} else if (ifunAutoSplit.isSet()) {
-		const string mergeFun =
-				std::get<0>(parse_ifun_details(ifunAutoSplit.getValue()));
-		if (mergeFun.empty())
+		const auto details = parse_ifun_details(ifunAutoSplit.getValue());
+		if (std::get<0>(details).empty())
 			return false;  // something went wrong
-		new(&impFunSpec) fig::ImpFunSpec("concrete_split", "auto", mergeFun);
+		new(&impFunSpec) fig::ImpFunSpec("concrete_split", "auto",
+										 std::get<0>(details),
+										 std::get<1>(details));  // pass nullVal as minVal
 
 	} else if (ifunAdhoc.isSet()) {
 		const auto details = parse_ifun_details(ifunAdhoc.getValue());
@@ -389,7 +390,7 @@ get_splitting_values()
 			if (nullptr == err || err[0] == '\0') {
 				splittings.emplace(value);
 			} else {
-				// Mimic TCLAP 'parsing error' message style
+				// Mimic TCLAP's 'parsing error' message style
 				std::cerr << "PARSE ERROR: Argument: (--"
 						  << splittings_.getName() << ")\n";
 				std::cerr << "             Invalid value given \""
@@ -417,6 +418,14 @@ namespace fig_cli
 bool
 parse_arguments(const int& argc, const char** argv, bool fatalError)
 {
+	// Called with no arguments? Print briefest help and exit gracefully
+	if (argc==1) {
+		// Mimic TCLAP's messages style
+		std::cerr << "For complete USAGE and HELP type:\n";
+		std::cerr << "   " << argv[0] << " --help\n\n";
+		exit(EXIT_SUCCESS);
+	}
+
 	try {
 		// Add all defined arguments and options to TCLAP's command line parser
 		cmd_.add(modelFile_);

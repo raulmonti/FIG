@@ -377,6 +377,8 @@ public:  // Utils
 	 * @param mergeFun For "split" ImportanceFunction this string specifies
 	 *                 the function combining the modules importances.
 	 * @param property The Property whose value is to be estimated
+	 * @param nullVal  For "split" ImportanceFunction this value is the
+	 *                 neutral element of the specified "mergeFun"
 	 * @param force    Assess importance again, even if importance info
 	 *                 already exists for this importance function and strategy
 	 *
@@ -391,6 +393,7 @@ public:  // Utils
 	build_importance_function_auto(const std::string& ifunName,
 								   const std::string& mergeFun,
 								   const Property& property,
+								   const ImportanceValue& nullVal = 0,
 								   bool force = false);
 
 	/// Same as build_importance_function_auto() for the property
@@ -401,6 +404,7 @@ public:  // Utils
 	build_importance_function_auto(const std::string& ifunName,
 								   const std::string& mergeFun,
 								   const size_t& propertyIndex,
+								   const ImportanceValue& nullVal = 0,
 								   bool force = false);
 
 	/**
@@ -690,6 +694,7 @@ ModelSuite::process_batch(
 			build_importance_function_auto(impFunSpec.name,
 										   impFunSpec.algebraicFormula,
 										   *property,
+										   impFunSpec.minValue,  // nullVal!
 										   true);
 		else if ("adhoc" == impFunSpec.strategy)
 			build_importance_function_adhoc(impFunSpec.name,

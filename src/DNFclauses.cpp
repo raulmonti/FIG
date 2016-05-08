@@ -35,6 +35,7 @@
 #include <PropertyTransient.h>
 #include <PropertyRate.h>
 #include <Parser.h>
+#include <string_utils.h>
 
 // ADL
 using std::begin;
@@ -94,31 +95,42 @@ DNF extract_clauses(const AST& DNFformula)
  * Project 'clauses' over the set of variables names passed,
  * so that all literals ocurring in the result have at least one of them
  * @param clauses  DNF clauses to restrict
- * @param varnames Variable names defining the projection
+ * @param varnames Variable names (assumed trimmed) defining the projection
  * @return Clauses projected over the set of variables names passed
  */
 vector< Clause >
 project(const DNF& clauses, const vector< std::string >& varnames)
 {
+	const auto& NPOS(std::string::npos);
 	vector< Clause > dnfClauses;
 	const std::string AMP(" & ");
-	auto include =
-		[&] (const std::string& literal) -> bool
-		{
-			for (const auto& var: varnames)
-				if (literal.find(var) != std::string::npos)
-					return true;
-			return false;
-		};
+	auto include = [&] (const std::string& literal) -> bool
+				   {
+					   for (const auto& var: varnames) {
+						   const auto pos(literal.find(var));
+						   if (pos != NPOS && (
+								   literal.length() <= pos+var.length() ||
+								   literal[pos+var.length()] == '<'     ||
+								   literal[pos+var.length()] == '>'     ||
+								   literal[pos+var.length()] == '='     ||
+								   literal[pos+var.length()] == '('     ||
+								   literal[pos+var.length()] == ')'))
+							   return true;
+					   }
+					   return false;
+				   };
 	for (const auto& clause: clauses) {
 		std::string clauseSTR;
 		for (const AST* literal: clause) {
 			const std::string literalSTR(literal->toString());
-			if (include(literalSTR) && clauseSTR.find(literalSTR) == std::string::npos)
+			if (include(literalSTR) && clauseSTR.find(literalSTR) == NPOS)
 				clauseSTR += literalSTR + AMP;
 		}
-		if (!clauseSTR.empty()) {
-			/// @todo TODO avoid adding repeated clauses
+		if (!clauseSTR.empty() && end(dnfClauses) ==  // skip repeated clauses
+				std::find_if(begin(dnfClauses), end(dnfClauses),
+							 [&clauseSTR] (const Clause& c) -> bool
+							 {return c.expression() == clauseSTR;}))
+		{
 			clauseSTR.resize(clauseSTR.length() - AMP.length());
 			dnfClauses.emplace_back(clauseSTR, varnames);
 		}
@@ -188,6 +200,8 @@ std::pair < vector< Clause >, vector< Clause > >
 DNFclauses::project(const State& localState) const
 {
 	vector< std::string > VARNAMES(localState.varnames());
+	for (auto& varname: VARNAMES)
+		trim(varname);
 
 	auto rares = ::project(rares_, VARNAMES);
 	for (Clause& clause: rares)

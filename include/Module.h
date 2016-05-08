@@ -64,6 +64,9 @@ protected:
 
 public:  // Accessors
 
+	/// The ModuleNetwork returns "GlobalModel", a ModuleInstance returns its name
+	virtual std::string id() const noexcept = 0;
+
 	/// Number of clocks defined in this Module
 	virtual size_t num_clocks() const noexcept = 0;
 

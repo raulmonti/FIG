@@ -254,9 +254,11 @@ ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 		ImportanceFunctionConcrete("concrete_split", model.global_state()),
 		modules_(model.modules),
 		numModules_(model.modules.size()),
+		isRelevant_(numModules_, false),
 		localValues_(numModules_),
 		localStatesCopies_(numModules_),
-		mergeStrategy_(MergeType::NONE),
+		mergeStrategy_(MergeType::INVALID),
+		neutralElement_(0u),
 		concreteSimulation_(true)
 {
 	bool initialize(false);  // initialize (non-const) static class members?
@@ -294,15 +296,19 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 	Event e(EventType::NONE);
     // Gather the local ImportanceValue of each module
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
-		auto& localState = localStatesCopies_[i];
+		if (!isRelevant_[i]) {
+			localValues_[i] = neutralElement_;
+		} else {
+			auto& localState = localStatesCopies_[i];
 #ifndef NDEBUG
-		localState.extract_from_state_instance(state, globalVarsIPos[i], true);
+			localState.extract_from_state_instance(state, globalVarsIPos[i], true);
 #else
-		localState.extract_from_state_instance(state, globalVarsIPos[i], false);
+			localState.extract_from_state_instance(state, globalVarsIPos[i], false);
 #endif
-        const auto& val = modulesConcreteImportance[i][localState.encode()];
-		e |= MASK(val);  // events are marked per-module but affect the global model
-        localValues_[i] = UNMASK(val);
+			const auto& val = modulesConcreteImportance[i][localState.encode()];
+			e |= MASK(val);  // events are marked per-module but affect the global model
+			localValues_[i] = UNMASK(val);
+		}
     }
     // Combine those values with the user-defined merge function
 	return e | (ready() ? importance2threshold_[userFun_(localValues_)]
@@ -320,13 +326,17 @@ ImportanceFunctionConcreteSplit::importance_of(const StateInstance& state) const
 						   "doesn't hold importance information");
 #endif
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
-		auto& localState = localStatesCopies_[i];
+		if (!isRelevant_[i]) {
+			localValues_[i] = neutralElement_;
+		} else {
+			auto& localState = localStatesCopies_[i];
 #ifndef NDEBUG
-		localState.extract_from_state_instance(state, globalVarsIPos[i], true);
+			localState.extract_from_state_instance(state, globalVarsIPos[i], true);
 #else
-		localState.extract_from_state_instance(state, globalVarsIPos[i], false);
+			localState.extract_from_state_instance(state, globalVarsIPos[i], false);
 #endif
-		localValues_[i] = UNMASK(modulesConcreteImportance[i][localState.encode()]);
+			localValues_[i] = UNMASK(modulesConcreteImportance[i][localState.encode()]);
+		}
 	}
 	return userFun_(localValues_);
 }
@@ -352,6 +362,8 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
     for (size_t i = 0ul ; i < numModules_ ; i++) {
 		out << "\nValues for module \"" << modules_[i]->name << "\":";
         const ImportanceVec& impVec = modulesConcreteImportance[i];
+		if (impVec.empty())
+			out << " <nodata>";
         for (size_t i = 0ul ; i < impVec.size() ; i++) {
             out << " (" << i;
             out << (IS_RARE_EVENT     (impVec[i]) ? "*" : "");
@@ -371,7 +383,8 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
 
 
 void
-ImportanceFunctionConcreteSplit::set_merge_fun(std::string mergeFunExpr)
+ImportanceFunctionConcreteSplit::set_merge_fun(std::string mergeFunExpr,
+											   const ImportanceValue& nullVal)
 {
 	static std::vector< std::string > modulesNames;
 	static PositionsMap modulesMap;
@@ -385,11 +398,15 @@ ImportanceFunctionConcreteSplit::set_merge_fun(std::string mergeFunExpr)
 		}
 	}
 	delete_substring(mergeFunExpr, "\"");
-	if (mergeFunExpr.length() <= 3ul)  // given an operand => make it a function
+	if (mergeFunExpr.length() <= 3ul) {
+		// An operand was specified => make it a function
 		mergeFunExpr = compose_merge_function(modulesNames, mergeFunExpr);
-	else
+	} else {
+		// A fully defined function was specified
 		mergeStrategy_ = MergeType::AD_HOC;
-	assert(MergeType::NONE != mergeStrategy_);
+		neutralElement_ = nullVal;
+	}
+	assert(MergeType::NUM_TYPES > mergeStrategy_);
 	try {
 		userFun_.set(mergeFunExpr, modulesNames, modulesMap);
 	} catch (std::out_of_range& e) {
@@ -403,7 +420,7 @@ ImportanceFunctionConcreteSplit::set_merge_fun(std::string mergeFunExpr)
 std::string
 ImportanceFunctionConcreteSplit::compose_merge_function(
 	const std::vector< std::string >& modulesNames,
-	const std::string& mergeOperand) const
+	const std::string& mergeOperand)
 {
 	if (std::find(begin(mergeOperands), end(mergeOperands), trim(mergeOperand))
 			== end(mergeOperands))
@@ -414,11 +431,13 @@ ImportanceFunctionConcreteSplit::compose_merge_function(
 	std::string mergeFun;
 	if (mergeOperand.length() == 1ul) {
 		// Must be either '+' or '*'
-		if (mergeOperand == "+")
+		if (mergeOperand == "+") {
 			mergeStrategy_ = MergeType::SUMMATION;
-		else if (mergeOperand == "*")
+			neutralElement_ = static_cast<ImportanceValue>(0u);
+		} else if (mergeOperand == "*") {
 			mergeStrategy_ = MergeType::PRODUCT;
-		else
+			neutralElement_ = static_cast<ImportanceValue>(1u);
+		} else
 			throw_FigException("invalid merge operand passed (\""
 							   + mergeOperand + "\")");
 		const std::string op(std::string(" ")
@@ -429,11 +448,13 @@ ImportanceFunctionConcreteSplit::compose_merge_function(
 		mergeFun.resize(mergeFun.size() - op.length());
 	} else {
 		// Must be either 'max' or 'min'
-		if (mergeOperand == "max")
+		if (mergeOperand == "max") {
 			mergeStrategy_ = MergeType::MAX;
-		else if (mergeOperand == "min")
+			neutralElement_ = UNMASK(std::numeric_limits<ImportanceValue>::min());
+		} else if (mergeOperand == "min") {
 			mergeStrategy_ = MergeType::MIN;
-		else
+			neutralElement_ = UNMASK(std::numeric_limits<ImportanceValue>::max());
+		} else
 			throw_FigException("invalid merge operand passed (\""
 							   + mergeOperand + "\")");
 		const std::string op(trim(mergeOperand).append("("));
@@ -466,28 +487,30 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 
 	// Assess each module importance individually from the rest
 	concreteSimulation_ = false;
-	unsigned numRareRelevantModules(0u);
+	unsigned numRelevantModules(0u);
 	propertyClauses.populate(prop);
 	ModulesExtremeValues moduleValues(numModules_);
 	for (size_t index = 0ul ; index < numModules_ ; index++) {
-		ImportanceFunctionConcrete::assess_importance(*modules_[index],
-													  prop,
-													  strategy,
-													  index,
-													  propertyClauses);
+		const bool moduleIsRelevant =
+			ImportanceFunctionConcrete::assess_importance(*modules_[index],
+														  prop,
+														  strategy,
+														  index,
+														  propertyClauses);
 		assert(minValue_ <= initialValue_);
 		assert(initialValue_ <= minRareValue_);
 		assert(minRareValue_ <= maxValue_);
 		moduleValues[modules_[index]->name] =
 				std::make_tuple(minValue_, maxValue_, minRareValue_);
-		numRareRelevantModules += minValue_ < maxValue_ ? 1u : 0u;
+		isRelevant_[index] = moduleIsRelevant;
+		numRelevantModules += moduleIsRelevant ? 1u : 0u;
 	}
 	hasImportanceInfo_ = true;
 	strategy_ = strategy;
 
 	// If the rare event depends on the state of more than one module,
 	// global rarity can't be encoded split in vectors for later simulations
-	concreteSimulation_ = "flat" != strategy && numRareRelevantModules < 2u;
+	concreteSimulation_ = numRelevantModules < 2u;
 
 	// Find extreme importance values for current assessment
 	initialValue_ = importance_of(systemInitialValuation);
@@ -495,8 +518,7 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		minValue_ = initialValue_;
 		maxValue_ = initialValue_;
 		minRareValue_ = initialValue_;
-	} else if (globalStateCopy.concrete_size().upper() == 0ul &&
-			   globalStateCopy.concrete_size().lower() < (1ul<<20ul)) {
+	} else if (globalStateCopy.concrete_size() < (1ul<<20ul)) {
 		// We can afford a full-state-space scan
 		find_extreme_values(globalStateCopy, prop);
 	} else {

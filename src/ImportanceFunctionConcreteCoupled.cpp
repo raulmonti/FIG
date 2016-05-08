@@ -58,14 +58,16 @@ ImportanceFunctionConcreteCoupled::assess_importance(
 {
     if (hasImportanceInfo_)
 		ImportanceFunctionConcrete::clear();
-	ImportanceFunctionConcrete::assess_importance(model_,
-                                                  prop,
-                                                  strategy,
-                                                  importanceInfoIndex_);
+	const bool importanceAssessed =
+		ImportanceFunctionConcrete::assess_importance(model_,
+													  prop,
+													  strategy,
+													  importanceInfoIndex_);
+	assert(importanceAssessed);
 	assert(minValue_ <= initialValue_);
 	assert(initialValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);
-	hasImportanceInfo_ = true;
+	hasImportanceInfo_ = importanceAssessed;
 	strategy_ = strategy;
 }
 

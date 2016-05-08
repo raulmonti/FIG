@@ -30,6 +30,7 @@
 
 // C++
 #include <iostream>
+#include <iomanip>  // std::setprecision()
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -79,18 +80,26 @@ int main(int argc, char** argv)
 		log(FIG_ERROR + " parse the command line.\n\n");
 		tech_log("Error message: " + e.msg() + "\n");
 		exit(EXIT_FAILURE);
+	} catch (std::exception& e) {
+		log("UNEXPECTED " + FIG_ERROR + " parse the command line.\n\n");
+		tech_log(std::string("Error message: ") + e.what() + "\n");
+		exit(EXIT_FAILURE);
 	}
 
 	// Compile model and properties files
 	try {
 		double start = omp_get_wtime();
 		build_model(modelFile, propertiesFile);
-		tech_log("Model and properties files successfully compiled.\n");
-		tech_log("Model building time: "
-				 + std::to_string(omp_get_wtime()-start) + " s\n\n");
+		std::stringstream ss; ss << "Model building time: " << std::fixed;
+		ss << std::setprecision(2) << omp_get_wtime()-start << " s\n\n";
+		tech_log(ss.str());
 	} catch (fig::FigException& e) {
 		log(FIG_ERROR + " compile the model/properties file.\n\n");
 		tech_log("Error message: " + e.msg() + "\n");
+		exit(EXIT_FAILURE);
+	} catch (std::exception& e) {
+		log("UNEXPECTED " + FIG_ERROR + " compile the model/properties file.\n\n");
+		tech_log(std::string("Error message: ") + e.what() + "\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -106,6 +115,10 @@ int main(int argc, char** argv)
 	} catch (fig::FigException& e) {
 		log(FIG_ERROR + " perform estimations.\n\n");
 		tech_log("Error message: " + e.msg() + "\n");
+		exit(EXIT_FAILURE);
+	} catch (std::exception& e) {
+		log("UNEXPECTED " + FIG_ERROR + " perform estimations.\n\n");
+		tech_log(std::string("Error message: ") + e.what() + "\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -134,11 +147,13 @@ void print_intro(const int& argc, const char** argv)
 	main_log("          Monti, Raúl E.   <raulmonti88@gmail.com>\n");
 	main_log("\n");
 
-	tech_log(std::string("\nFIG tool invoked on ") + std::ctime(&now) + "\n");
-	tech_log("Invocation command:");
-	for (int i = 0 ; i < argc ; i++)
-		tech_log(std::string(" ") + argv[i]);
-	tech_log("\n\n");
+	if (argc > 1) {
+		tech_log(std::string("\nFIG tool invoked on ") + std::ctime(&now) + "\n");
+		tech_log("Invocation command:");
+		for (int i = 0 ; i < argc ; i++)
+			tech_log(std::string(" ") + argv[i]);
+		tech_log("\n\n");
+	}
 }
 
 
@@ -151,17 +166,20 @@ bool file_exists(const std::string& filepath)
 
 void build_model(const std::string& modelFilePath, const std::string& propsFilePath)
 {
-	fig::ModelSuite::log("Model file: " + modelFilePath);
+	auto log = fig::ModelSuite::log;
+	auto tech_log = fig::ModelSuite::tech_log;
+
+	log("Model file: " + modelFilePath);
 	if (!file_exists(modelFilePath)) {
-		fig::ModelSuite::log(" *** Error: file not found! ***\n");
+		log(" *** Error: file not found! ***\n");
 		exit(EXIT_FAILURE);
 	}
-	fig::ModelSuite::log("\nProperties file: " + propsFilePath);
+	log("\nProperties file: " + propsFilePath);
 	if (!file_exists(propsFilePath)) {
-		fig::ModelSuite::log(" *** Error: file not found! ***\n");
+		log(" *** Error: file not found! ***\n");
 		exit(EXIT_FAILURE);
 	}
-	fig::ModelSuite::log("\n\n");
+	log("\n\n");
 
 	Parser parser;
 	Precompiler precompiler;
@@ -193,7 +211,6 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
 		verifier.verify(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
 	} else {
 		// ...some module is too big: inform the user and skip verification
-		auto tech_log = fig::ModelSuite::tech_log;
 		tech_log("Skipping model's IOSA-compliance verification since some "
 				 "module has more than " + std::to_string(NTRANS_UBOUND) +
 				 " transitions.\n");
@@ -211,4 +228,6 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
 
 	// Compile into simulation model
 	fig::CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
+
+	tech_log("Model and properties files successfully compiled.\n");
 }
