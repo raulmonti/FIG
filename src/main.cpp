@@ -143,6 +143,11 @@ void print_intro(const int& argc, const char** argv)
 	main_log(" This is the Finite Improbability Generator.\n");
 	main_log(" Version: "+to_string(fig_VERSION_MAJOR)+"."+to_string(fig_VERSION_MINOR)+"\n");
 	main_log(" Build:   " fig_CURRENT_BUILD "\n");
+#ifndef PCG_RNG
+	main_log(" RNG:     STL's Mersenne-Twister (64 bits)\n");
+#else
+	main_log(" RNG:     Builtin PCG (64 bits)\n");
+#endif
 	main_log(" Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n");
 	main_log("          Monti, Raúl E.   <raulmonti88@gmail.com>\n");
 	main_log("\n");

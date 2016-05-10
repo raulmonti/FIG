@@ -36,7 +36,7 @@ namespace{
 const state
 CompileVars(const vector<AST*> varList, const parsingContext &pc)
 {
-    vector<varDec> result;
+    vector<varDef> result;
     for(auto const &it: varList){
         string name = it->get_lexeme(_NAME);
         assert(name != "");
@@ -68,10 +68,11 @@ CompileVars(const vector<AST*> varList, const parsingContext &pc)
 			// Default to smallest value when no explicit initialization
 			init = limits[0];
 		}
-        result.push_back(make_tuple(name
-                                   ,atoi(limits[0].c_str())
-                                   ,atoi(limits[1].c_str())
-								   ,atoi(init.c_str())));
+		result.push_back(
+			make_tuple(name,
+					   static_cast<STATE_INTERNAL_TYPE>(atoi(limits[0].c_str())),
+					   static_cast<STATE_INTERNAL_TYPE>(atoi(limits[1].c_str())),
+					   static_cast<STATE_INTERNAL_TYPE>(atoi(init.c_str()))));
 	}
     return result;
 }

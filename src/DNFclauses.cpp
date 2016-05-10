@@ -103,18 +103,15 @@ project(const DNF& clauses, const vector< std::string >& varnames)
 {
 	const auto& NPOS(std::string::npos);
 	vector< Clause > dnfClauses;
-	const std::string AMP(" & ");
+	const std::string AMP(" & "), SEP(" =<>()[]{}");
+
 	auto include = [&] (const std::string& literal) -> bool
 				   {
 					   for (const auto& var: varnames) {
-						   const auto pos(literal.find(var));
-						   if (pos != NPOS && (
-								   literal.length() <= pos+var.length() ||
-								   literal[pos+var.length()] == '<'     ||
-								   literal[pos+var.length()] == '>'     ||
-								   literal[pos+var.length()] == '='     ||
-								   literal[pos+var.length()] == '('     ||
-								   literal[pos+var.length()] == ')'))
+						   const auto pos(literal.find(var)),
+									  endPos(pos+var.length());
+						   if (pos != NPOS && (literal.length() <= endPos ||
+											   SEP.find(literal[endPos]) != NPOS))
 							   return true;
 					   }
 					   return false;
