@@ -197,11 +197,14 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 # Allow project-local library paths
 SET(CMAKE_LIBRARY_PATH ${PROJECT_SOURCE_DIR}/lib ${CMAKE_LIBRARY_PATH})
 
-# Microsoft renowned SMT solver
+# Flex lexer (ask for static version)
+FIND_LIBRARY(FLEX NAMES libfl.a fl)
+
+# Microsoft Research(tm) renowned SMT solver
 FIND_LIBRARY(Z3 NAMES z3)
 
 # Include all dynamic libraries to link against in a single variable
-LIST(APPEND DYNAMIC_LIBRARIES ${Z3})
+LIST(APPEND DYNAMIC_LIBRARIES ${FLEX} ${Z3})
 
 
 
