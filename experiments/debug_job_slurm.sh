@@ -12,7 +12,7 @@
 ### Lines "#SBATCH" configure the job resources
 ### (even though they look like bash comments)
 
-### Job queue to use (options: capacity, capability, gpu)
+### Job queue to use (options: capacity, capability, gpu, debug)
 #SBATCH --partition=debug
 
 ### Amount of nodes to use
@@ -22,10 +22,10 @@
 #SBATCH --ntasks-per-node=1
 
 ### Available cores per node
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=4
 
-### execution time. Format: days-hours:minutes. Max: two minutes
-#SBATCH --time 0-00:02
+### Execution time. Format: days-hours:minutes:seconds -- Max: two minutes
+#SBATCH --time 0-00:01:59
 
 ### Check invocation line
 if [ $# -ne 1 ] || [ ! -f $1 ]
@@ -36,7 +36,6 @@ fi
 
 ## Load environment modules
 module load compilers/gcc/4.9
-#module load smtsolvers/z3
 
 ### Enqueue job
 CWD=$PWD

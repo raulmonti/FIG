@@ -67,7 +67,7 @@ do
 	C_DEF="^const${BLANK}int${BLANK}c${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
 	sed -e "s/${C_DEF}/const int c = $c;/1" $MODEL_FILE > $MODEL_FILE_C
 	LOG=${RESULTS}/tandem_queue_c${c}
-	EXE=`/bin/echo -e "timeout -s 15 10h ./fig $MODEL_FILE_C $PROPS_FILE"`
+	EXE=`/bin/echo -e "timeout -s 15 14h ./fig $MODEL_FILE_C $PROPS_FILE"`
 
 	# Standard Monte Carlo
 	poll_till_free; show -n " MC"
@@ -90,9 +90,9 @@ done
 
 
 # Wait till termination
-show "Waiting for all experiments to finish"
+show -n "Waiting for all experiments to finish..."
 wait
-show "\nAll experiments finished"
+show " done\nResults are in ${RESULTS}"
 
 
 exit 0
