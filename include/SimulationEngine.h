@@ -128,7 +128,7 @@ public:  // Ctors/Dtor
     /// Default move assignment
     SimulationEngine& operator=(SimulationEngine&& that) = default;
     /// Virtual dtor
-    virtual ~SimulationEngine();
+    virtual ~SimulationEngine() noexcept;
 
 public:  // Engine setup
 

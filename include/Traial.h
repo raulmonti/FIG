@@ -70,7 +70,7 @@ class Traial
 
 	/// @todo TODO maybe remove following and use copy elision in TraialPool::ensure_resources()?
 	friend class std::vector< Traial >;
-	friend struct __gnu_cxx::new_allocator<Traial>;
+	friend class __gnu_cxx::new_allocator<Traial>;
 
 public:
 

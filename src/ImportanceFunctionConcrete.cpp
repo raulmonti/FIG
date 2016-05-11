@@ -78,11 +78,11 @@ typedef unsigned STATE_T;
 void
 check_mem_limits(const uint128_t& concreteStateSize, const std::string& moduleName)
 {
-	const size_t MAX_SIZE(1ul<<31ul);  // we allow up to 2 GB
+	const size_t GigaB(1ul<<30ul), MAX_SIZE(4*GigaB);  // we allow up to 4 GB
 	if (concreteStateSize > MAX_SIZE)
 		throw_FigException("the concrete state space of \"" + moduleName +
 						   "\" is too big to hold it in a vector (it's greater "
-						   "than " + std::to_string(MAX_SIZE) + " bytes)");
+						   "than " + std::to_string(MAX_SIZE/GigaB) + " GB)");
 }
 
 
@@ -119,15 +119,17 @@ reversed_edges_DFS(const fig::Module& module,
 {
 	const ImportanceValue NOT_VISITED(fig::EventType::STOP);
 	const ImportanceValue     VISITED(0);
+	const size_t NUM_CONCRETE_STATES(module.concrete_state_size());
 
 	assert(NOT_VISITED != VISITED);
 	assert(visits.size() == 0u);
+	assert(module.concrete_state_size().upper() == 0ul);
 
 	// STL's forward_list is the perfect stack
 	std::forward_list< size_t > toVisit;
 	toVisit.push_front(module.initial_concrete_state());
-	fig::AdjacencyList rEdges(module.concrete_state_size());
-	ImportanceVec(module.concrete_state_size(), NOT_VISITED).swap(visits);
+	fig::AdjacencyList rEdges(NUM_CONCRETE_STATES);
+	ImportanceVec(NUM_CONCRETE_STATES, NOT_VISITED).swap(visits);
 
 	// DFS
 	while (!toVisit.empty()) {
@@ -476,9 +478,8 @@ assess_importance_auto(const fig::Module& module,
 		std::tie(rareClauses, otherClauses) = clauses.project(module.initial_state());
 		if (rareClauses.empty())
 			return maxImportance;  // module is irrelevant
-		else
-			check_mem_limits(module.concrete_state_size(), module.id());
 	}
+	check_mem_limits(module.concrete_state_size(), module.id());
 
 	// Step 1: run DFS from initial state to compute reachable reversed edges
 	fig::AdjacencyList reverseEdges = reversed_edges_DFS(module, impVec);

@@ -99,10 +99,12 @@ SimulationEngine::SimulationEngine(
 }
 
 
-SimulationEngine::~SimulationEngine()
+SimulationEngine::~SimulationEngine() noexcept
 {
-	unlock();
-    unbind();
+	try {
+		unlock();
+		unbind();
+	} catch(std::exception&) {}
 }
 
 

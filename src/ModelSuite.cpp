@@ -844,6 +844,10 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 		} catch (FigException& e) {
 			throw_FigException("couldn't build importance function \""
 							   + ifunName + "\" automatically: " + e.msg());
+		} catch (std::bad_alloc&) {
+			throw_FigException("couldn't build importance function \""
+							   + ifunName + "\" automatically: not enough "
+							   "system memory");
 		}
 		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
 		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
