@@ -90,9 +90,9 @@ done
 
 
 # Wait till termination
-show "Waiting for all experiments to finish"
+show -n "Waiting for all experiments to finish..."
 wait
-show "\nAll experiments finished"
+show " done\nResults are in ${RESULTS}"
 
 
 exit 0
