@@ -165,6 +165,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			if (IS_STOP_EVENT(e) || IS_THR_DOWN_EVENT(e)) {
 				// Traial reached a stop event or went down => kill it
 				tpool.return_traial(std::move(traial));
+//				tpool.return_traial(stack.top());  // alternative way
 				stack.pop();
 
 			} else if (IS_THR_UP_EVENT(e)) {
@@ -265,7 +266,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 			// Traial reached EOS or went down => kill it
 			assert(&traial != &originalTraial || !IS_THR_DOWN_EVENT(e));
 			if (&traial != &originalTraial)  // avoid future aliasing!
-				tpool.return_traial(std::move(traial));
+				tpool.return_traial(stack.top());
 			stack.pop();
 
 		} else if (IS_THR_UP_EVENT(e)) {

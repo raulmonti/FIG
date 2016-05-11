@@ -55,9 +55,10 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 
 	// What follows is clearly arbitrary but then we warned the user
 	// in the class' docstring, didn't we?
-	const unsigned STRIDE(splitsPerThreshold <  5 ? 2 :
-						  splitsPerThreshold <  9 ? 3 :
-						  splitsPerThreshold < 14 ? 4 : 5);
+	const unsigned EXPANSION_FACTOR(std::ceil(IMP_RANGE/1000.0f)),
+				   STRIDE((splitsPerThreshold <  5 ? 2u :
+						   splitsPerThreshold <  9 ? 3u :
+						   splitsPerThreshold < 14 ? 4u : 5u) * EXPANSION_FACTOR);
 
 	ModelSuite::tech_log("Building thresholds with \""+ name +"\" for 1 out of "
 						 "every " + std::to_string(STRIDE) + " importance value"
