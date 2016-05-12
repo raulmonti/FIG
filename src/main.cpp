@@ -144,16 +144,28 @@ void print_intro(const int& argc, const char** argv)
 	main_log(" Version: "+to_string(fig_VERSION_MAJOR)+"."+to_string(fig_VERSION_MINOR)+"\n");
 	main_log(" Build:   " fig_CURRENT_BUILD "\n");
 #ifndef PCG_RNG
-	main_log(" RNG:     STL's Mersenne-Twister (64 bits)\n");
+	main_log(" RNG:     STL's Mersenne-Twister\n");
 #else
-	main_log(" RNG:     Builtin PCG (64 bits)\n");
+	main_log(" RNG:     Builtin PCG\n");
 #endif
 	main_log(" Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n");
 	main_log("          Monti, Raúl E.   <raulmonti88@gmail.com>\n");
 	main_log("\n");
 
 	if (argc > 1) {
-		tech_log(std::string("\nFIG tool invoked on ") + std::ctime(&now) + "\n");
+		tech_log(std::string("\nFIG tool invoked on ") + std::ctime(&now));
+		tech_log("Build: " fig_CURRENT_BUILD "\n");
+		tech_log("64-bit RNG: ");
+#ifndef PCG_RNG
+		tech_log("STL's Mersenne-Twister ");
+#else
+		tech_log("Builtin PCG ");
+#endif
+#ifndef RANDOM_RNG_SEED
+		tech_log("(seed: " + std::to_string(fig::Clock::rng_seed()) + ")\n\n");
+#else
+		tech_log("(seeded from system's random device)\n\n");
+#endif
 		tech_log("Invocation command:");
 		for (int i = 0 ; i < argc ; i++)
 			tech_log(std::string(" ") + argv[i]);

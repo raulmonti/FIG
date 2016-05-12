@@ -68,7 +68,7 @@ std::forward_list< Reference< Traial > > TraialPool::available_traials_;
 
 const size_t TraialPool::initialSize = (1u) << 16;  // 64K
 
-const size_t TraialPool::sizeChunkIncrement = TraialPool::initialSize >> 4;  // initialSize/16
+const size_t TraialPool::sizeChunkIncrement = TraialPool::initialSize >> 5;  // initialSize/32
 
 size_t TraialPool::numVariables = 0u;
 

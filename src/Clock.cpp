@@ -46,19 +46,29 @@ namespace
 typedef  fig::CLOCK_INTERNAL_TYPE     return_t;
 typedef  fig::DistributionParameters  params_t;
 
-#ifndef NDEBUG
-  const unsigned rngSeed(1234567803u);  // repeatable outcome
+/// RNG seed selection:
+/// \ifnot RANDOM_RNG_SEED
+///   deterministic
+/// \else
+///   taken from the system's random device
+/// \endif
+#if   !defined RANDOM_RNG_SEED && !defined PCG_RNG
+  const unsigned rngSeed(std::mt19937_64::default_seed);
+#elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
+  const unsigned rngSeed(0xCAFEF00DD15EA5E5ull);  // PCG's default seed
+#elif  defined RANDOM_RNG_SEED && !defined PCG_RNG
+  unsigned rngSeed(std::random_device{}());
+#else
+  pcg_extras::seed_seq_from<std::random_device> rngSeed;
 #endif
 
 /// \ifnot PCG_RNG Mersenne-Twister RNG \else PCG family RNG \endif
-#if   !defined NDEBUG && !defined PCG_RNG
-  std::mt19937_64  rng(rngSeed);
-#elif !defined NDEBUG &&  defined PCG_RNG
-  pcg64            rng(rngSeed);
-#elif  defined NDEBUG && !defined PCG_RNG
-  std::mt19937_64  rng(std::random_device{}());
+#ifndef PCG_RNG
+  std::mt19937_64 rng(rngSeed);
+#elif !defined NDEBUG
+  pcg64_fast rng(rngSeed);
 #else
-  pcg64_fast       rng(pcg_extras::seed_seq_from<std::random_device>{});
+  pcg64 rng(rngSeed);
 #endif
 
 
@@ -155,24 +165,34 @@ return_t erlang(const params_t& params)
 
 namespace fig
 {
+//   const unsigned rngSeed(std::mt19937_64::default_seed);
+// #elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
+//   const unsigned rngSeed(0xCAFEF00DD15EA5E5ull);  // PCG's default seed
+// #elif  defined RANDOM_RNG_SEED && !defined PCG_RNG
+//   unsigned rngSeed(std::random_device{}());
+// #else
+//   pcg_extras::seed_seq_from<std::random_device> rngSeed;
 
 unsigned Clock::rng_seed() noexcept
 {
-#ifndef NDEBUG
+#if !defined RANDOM_RNG_SEED || !defined RNG_PCG
 	return rngSeed;
 #else
-	return 0u;
+	// return changing seeds, to make the user realize how's it coming
+	typedef pcg_extras::seed_seq_from<std::random_device> SeedSeq;
+	return pcg_extras::generate_one<size_t>(std::forward<SeedSeq>(rngSeed));
 #endif
 }
 
 void Clock::seed_rng()
 {
-#ifndef NDEBUG
+#ifndef RANDOM_RNG_SEED
 	rng.seed(rngSeed);  // repeat sequence
 #elif !defined PCG_RNG
-	rng.seed(std::random_device{}());
+	rngSeed = std::random_device{}();
+	rng.seed(rngSeed);
 #else
-	rng.seed(pcg_extras::seed_seq_from<std::random_device>{});
+	rng.seed(rngSeed);  // rngSeed is pcg_extras::seed_seq_from<std::random_device>
 #endif
 }
 

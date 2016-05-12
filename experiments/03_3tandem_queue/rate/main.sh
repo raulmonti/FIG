@@ -46,24 +46,22 @@ mkdir $RESULTS && unset N && \
 
 # Experiments configuration
 show "Configuring experiments"
-#declare -a OCUPA=(18  13  20  16  24  21)
-declare -a OCUPA=(18)
+declare -a OCUPA=(18  13  20  16  24  21)
 declare -a ALPHA=( 2   3   2   3   2   3)
 declare -a BETA1=( 3 4.5   6   9  10  15)
 declare -a BETA2=( 4   6   4   6   8  12)
 declare -a BETA3=( 6   9   6   9   6   9)
-declare -a AHFUN=( "0,182*q1+0,308*q2+q3" \
-                   "0,132*q1+0,228*q2+q3" \
-                   "0,400*q1+0,400*q2+q3" )
-#                   "0,308*q1+0,308*q2+q3" \
-#                   "0,810*q1+0,810*q2+q3" \
-#                   "0,640*q1+0,640*q2+q3" )
+declare -a AHFUN=(  "91*q1+154*q2+500*q3" \
+                    "66*q1+114*q2+500*q3" \
+                   "200*q1+200*q2+500*q3" \
+                   "154*q1+154*q2+500*q3" \
+                   "405*q1+405*q2+500*q3" \
+                   "320*q1+320*q2+500*q3" )
 NUM_EXPERIMENTS=${#OCUPA[@]}
-#STOP_CRITERION="--stop-conf 0.90 0.2"  # Confidence coeff. and rel. precision
-STOP_CRITERION="--stop-time 1 m"  # Confidence coeff. and rel. precision
-#SPLITTINGS="--splitting 3,6,11"        # Splitting values for RESTART engine
-SPLITTINGS="--splitting 4 -t fix"        # Splitting values for RESTART engine
+STOP_CRITERION="--stop-conf 0.90 0.2"  # Confidence coeff. and rel. precision
+SPLITTINGS="--splitting 3,6,11"        # Splitting values for RESTART engine
 STANDARD_MC="-e nosplit --flat $STOP_CRITERION"
+RESTART_ADHOC="--adhoc q3 $STOP_CRITERION -t fix $SPLITTINGS"
 RESTART_AUTO_COUPLED="--auto-coupled $STOP_CRITERION -t fix $SPLITTINGS"
 RESTART_AUTO_SPLIT="--auto-split \"+\" $STOP_CRITERION -t fix $SPLITTINGS"
 
@@ -73,6 +71,9 @@ for (( i=0 ; i < NUM_EXPERIMENTS ; i++ ))
 do
 	L=${OCUPA[i]}
 	show -n "  · for threshold occupancy = $L..."
+
+	# Select optimal ad hoc ifun for this experiment (from V-A's paper)
+	RESTART_ADHOC_OPT="--adhoc ${AHFUN[i]} $STOP_CRITERION -t fix $SPLITTINGS"
 
 	# Modify model file to fit this experiment
 	MODEL_FILE_L=${MODEL_FILE%.sa}"_$L.sa"
@@ -91,24 +92,25 @@ do
 	LOG=${RESULTS}/3tandem_queue_L${L}
 	EXE=`/bin/echo -e "timeout -s 15 10h ./fig $MODEL_FILE_L $PROPS_FILE"`
 
-	# Select optimal ad hoc ifun (from V-A's paper)
-	RESTART_ADHOC="--adhoc ${AHFUN[i]} $STOP_CRITERION $SPLITTINGS"
+	# Standard Monte Carlo
+	poll_till_free; show -n " MC"
+	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
 
-#	# Standard Monte Carlo
-#	poll_till_free; show -n " MC"
-#	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
+	# RESTART with ad hoc (default)
+	poll_till_free; show -n ", AHD"
+	$EXE $RESTART_ADHOC 1>>${LOG}"_AHD.out" 2>>${LOG}"_AHD.err" &
 
-	# RESTART with ad hoc
-	poll_till_free; show -n ", AH"
-	$EXE $RESTART_ADHOC 1>>${LOG}"_AH.out" 2>>${LOG}"_AH.err" &
+	# RESTART with ad hoc (optimal)
+	poll_till_free; show -n ", AHO"
+	$EXE $RESTART_ADHOC_OPT 1>>${LOG}"_AHO.out" 2>>${LOG}"_AHO.err" &
 
-#	# RESTART with auto (coupled)
-#	poll_till_free; show -n ", AC"
-#	$EXE $RESTART_AUTO_COUPLED 1>>${LOG}"_AC.out" 2>>${LOG}"_AC.err" &
+	# RESTART with auto (coupled)
+	poll_till_free; show -n ", AC"
+	$EXE $RESTART_AUTO_COUPLED 1>>${LOG}"_AC.out" 2>>${LOG}"_AC.err" &
 
-#	# RESTART with auto (split)
-#	poll_till_free; show -n ", AS"
-#	$EXE $RESTART_AUTO_SPLIT 1>>${LOG}"_AS.out" 2>>${LOG}"_AS.err" &
+	# RESTART with auto (split)
+	poll_till_free; show -n ", AS"
+	$EXE $RESTART_AUTO_SPLIT 1>>${LOG}"_AS.out" 2>>${LOG}"_AS.err" &
 
 	show "... done"
 done

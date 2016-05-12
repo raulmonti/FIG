@@ -55,7 +55,7 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 
 	// What follows is clearly arbitrary but then we warned the user
 	// in the class' docstring, didn't we?
-	const unsigned EXPANSION_FACTOR(std::ceil(IMP_RANGE/1000.0f)),
+	const unsigned EXPANSION_FACTOR(std::ceil(IMP_RANGE/500.0f)),
 				   STRIDE((splitsPerThreshold <  5 ? 2u :
 						   splitsPerThreshold <  9 ? 3u :
 						   splitsPerThreshold < 14 ? 4u : 5u) * EXPANSION_FACTOR);
