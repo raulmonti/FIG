@@ -108,7 +108,8 @@ build_states_distribution(const fig::ModuleNetwork& network,
 						  TraialsVec& traials,
 						  const unsigned& n,
 						  const unsigned& k,
-						  const ImportanceValue& lastThr)
+						  const ImportanceValue& lastThr,
+						  const bool& halt)
 {
 	assert(0u < k);
 	assert(k < n);
@@ -128,7 +129,7 @@ build_states_distribution(const fig::ModuleNetwork& network,
 	// Starting uniform-randomly from previously computed initial states,
     // advance the first 'n' traials until they meet a state realizing lastThr
     std::uniform_int_distribution<unsigned> uniK(0, k-1);
-    for (unsigned i = 0u ; i < n ; i++) {
+	for (unsigned i = 0u ; i < n && !halt ; i++) {
 		fails = 0u;
 		Traial& t(traials[i]);
         do {
@@ -136,9 +137,9 @@ build_states_distribution(const fig::ModuleNetwork& network,
 			t = traials[n + uniK(RNG)];  // choose randomly among last 'k'
 			assert(lastThr > t.level);
             network.peak_simulation(t, update, predicate);
-		} while (lastThr != t.level && ++fails < TOLERANCE);
+		} while (!halt && lastThr != t.level && ++fails < TOLERANCE);
 	}
-	if (fails >= TOLERANCE) {
+	if (fails >= TOLERANCE || halt) {
 		// Couldn't make the 'n' traials reach lastThr: we failed
 		fig::ModelSuite::tech_log("*");  // report failure
 		return false;
@@ -189,7 +190,8 @@ find_new_threshold(const fig::ModuleNetwork& network,
 				   TraialsVec& traials,
 				   const unsigned& n,
 				   const unsigned& k,
-				   const ImportanceValue& lastThr)
+				   const ImportanceValue& lastThr,
+				   const bool& halt)
 {
 	assert(0u < k);
 	assert(k < n);
@@ -221,7 +223,7 @@ find_new_threshold(const fig::ModuleNetwork& network,
 
 	do {
 		// Run 'n' simulations
-		for (unsigned i = 0u ; i < n ; i++) {
+		for (unsigned i = 0u ; i < n && !halt; i++) {
 			jumpsLeft = simEffort;
 			network.peak_simulation(traials[i], update, predicate);
 		}
@@ -229,9 +231,9 @@ find_new_threshold(const fig::ModuleNetwork& network,
 		std::sort(begin(traials), begin(traials)+n,
 				  [](Traial& lhs, Traial& rhs){return lhs.level < rhs.level;});
         newThr = traials[n-k].get().level;
-	} while (newThr <= lastThr && reinit(traials));
+	} while (!halt && newThr <= lastThr && reinit(traials));
 
-	if (fails < ::NUM_FAILURES)
+	if (fails < ::NUM_FAILURES && !halt)
 		fig::ModelSuite::tech_log("+");  // report success
 
     return newThr;
@@ -270,7 +272,7 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 	thresholds_.push_back(impFun.initial_value());  // start from initial state importance
 	assert(thresholds_.back() < impFun.max_value());
 	ImportanceValue newThreshold =
-		find_new_threshold(network, impFun, traials, n_, k_, thresholds_.back());
+		find_new_threshold(network, impFun, traials, n_, k_, thresholds_.back(), halted);
 	if (impFun.max_value() <= newThreshold)
 		ModelSuite::tech_log("\nFirst iteration of SMC reached max importance, "
 							 "rare event doesn't seem so rare!\n");
@@ -280,12 +282,13 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 	while (thresholds_.back() < impFun.max_value()) {
         const ImportanceValue lastThr = thresholds_.back();
 		// Find "initial states" (and clocks valuations) realizing last threshold
-		if (!build_states_distribution(network, impFun, traials, n_, k_, lastThr))
+		if (!build_states_distribution(network, impFun, traials, n_, k_, lastThr, halted)
+			|| halted)
 			goto exit_with_fail;  // couldn't find those initial states
 		// Find sims' 1-k/n quantile starting from those initial states
-		newThreshold = find_new_threshold(network, impFun, traials, n_, k_, lastThr);
+		newThreshold = find_new_threshold(network, impFun, traials, n_, k_, lastThr, halted);
         // Use said quantile as new threshold if possible
-		if (newThreshold <= thresholds_.back())
+		if (newThreshold <= thresholds_.back() || halted)
 			goto exit_with_fail;  // well, fuck
 		thresholds_.push_back(newThreshold);
 	}

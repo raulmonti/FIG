@@ -75,6 +75,21 @@ namespace
 
 using namespace fig_cli;
 
+/// FIG's full --version message
+const std::string versionStr(
+	"FIG tool " + std::string(fig_VERSION_STR) + "\n"
+	"Build: " + std::string(fig_CURRENT_BUILD) + " with "
+#if   !defined RANDOM_RNG_SEED && !defined PCG_RNG
+	"MT RNG (seed: " + to_string(fig::Clock::rng_seed()) + ")"
+#elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
+	"PCG RNG (seed:" + to_string(fig::Clock::rng_seed()) + ")"
+#elif !defined PCG_RNG
+	"MT RNG (random seed)");
+#else
+	"PCG RNG (random seed)");
+#endif
+);
+
 
 // TCLAP parameter holders and stuff  /////////////////////////////////////////
 
@@ -105,8 +120,7 @@ CmdLine cmd_("\nSample usage:\n"
 			 "using the hybrid thresholds building technique, i.e. \"hyb\", "
 			 "estimating the value of each property for this configuration "
 			 "and for each one of the three stopping conditions.",
-			 ' ',
-			 to_string(fig_VERSION_MAJOR)+"."+to_string(fig_VERSION_MINOR));
+			 ' ', versionStr);
 
 // Model file path
 UnlabeledValueArg<string> modelFile_(

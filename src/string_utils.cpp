@@ -33,7 +33,7 @@
 #include <cassert>
 // C++
 #include <sstream>
-#include <algorithm>  // find_if_not()
+#include <algorithm>  // find_if_not(), search()
 // FIG
 #include <string_utils.h>
 
@@ -44,11 +44,11 @@
 using std::string;
 using std::isspace;
 using std::find_if_not;
-const size_t NPOS = std::string::npos;
+const size_t& NPOS = std::string::npos;
 
 
 size_t
-count(const std::string &s, const char &c)
+count(const string &s, const char &c)
 {
 	long cnt(-1l), pos(-1l);
 	do {
@@ -58,6 +58,20 @@ count(const std::string &s, const char &c)
 	assert(cnt >= 0l);
 	assert(cnt <= static_cast<long>(s.length()));
 	return static_cast<size_t>(cnt);
+}
+
+
+bool is_substring(const string& str, const string& substr)
+{
+	return str.find(substr) != NPOS;
+}
+
+
+bool is_substring_ci(const string& str, const string& substr)
+{
+	return str.end() != std::search(
+		str.begin(), str.end(), substr.begin(), substr.end(),
+		[](char c1, char c2) { return std::toupper(c1) == std::toupper(c2); } );
 }
 
 

@@ -165,13 +165,6 @@ return_t erlang(const params_t& params)
 
 namespace fig
 {
-//   const unsigned rngSeed(std::mt19937_64::default_seed);
-// #elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
-//   const unsigned rngSeed(0xCAFEF00DD15EA5E5ull);  // PCG's default seed
-// #elif  defined RANDOM_RNG_SEED && !defined PCG_RNG
-//   unsigned rngSeed(std::random_device{}());
-// #else
-//   pcg_extras::seed_seq_from<std::random_device> rngSeed;
 
 unsigned Clock::rng_seed() noexcept
 {

@@ -1114,6 +1114,9 @@ ModelSuite::estimate(const Property& property,
 			interruptCI_ = ci_ptr.get();  // bad boy
 			mainLog_ << std::setprecision(0) << std::fixed;
 			mainLog_ << "   Estimation time: " << wallTimeInSeconds << " s\n";
+			/// @todo TODO change SignalSetter handler for std::thread +
+			///            std::this_thread::sleep_for() For an example see
+			///            ThresholdsBuilderHybrid::build_thresholds()
 			SignalSetter handler(SIGALRM, [&ci_ptr, &timedout] (const int sig){
 #				ifndef NDEBUG
 					assert(SIGALRM == sig);

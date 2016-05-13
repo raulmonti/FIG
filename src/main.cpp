@@ -42,11 +42,12 @@
 // FIG
 #include <fig.h>
 #include <fig_cli.h>
+#include <string_utils.h>
 
 
 //  Helper functions headers  //////////////////////////////////////////////////
 
-static void print_intro(const int &argc, const char **argv);
+static bool print_intro(const int& argc, const char** argv);
 static bool file_exists(const std::string& filepath);
 static void build_model(const std::string& modelFilePath,
 						const std::string& propsFilePath);
@@ -74,8 +75,10 @@ int main(int argc, char** argv)
 
 	// "Greetings, human!" and command line parsing
 	try {
-		print_intro(argc, const_argv);
+		const bool versionQuery = print_intro(argc, const_argv);
 		fig_cli::parse_arguments(argc, const_argv);  // exit on error
+		if (versionQuery)
+			exit(EXIT_SUCCESS);
 	} catch (fig::FigException& e) {
 		log(FIG_ERROR + " parse the command line.\n\n");
 		tech_log("Error message: " + e.msg() + "\n");
@@ -128,31 +131,42 @@ int main(int argc, char** argv)
 
 //  Helper functions implementations  //////////////////////////////////////////
 
-void print_intro(const int& argc, const char** argv)
+bool print_intro(const int& argc, const char** argv)
 {
 	auto main_log = fig::ModelSuite::main_log;
 	auto tech_log = fig::ModelSuite::tech_log;
 	using std::to_string;
 	const std::time_t now = std::chrono::system_clock::to_time_t(
 								std::chrono::system_clock::now());
+
+	// First check if this is a version query and we should omit the greeting
+	if (argc == 2 && (trim(argv[1]) == "-v" || trim(argv[1]) == "--version"))
+		return true;
+
+	// Print the big fat greeting the user deserves
 	main_log("\n");
 	main_log(" ~~~~~~~~~ \n");
 	main_log("  · FIG ·  \n");
 	main_log(" ~~~~~~~~~ \n");
 	main_log("           \n");
 	main_log(" This is the Finite Improbability Generator.\n");
-	main_log(" Version: "+to_string(fig_VERSION_MAJOR)+"."+to_string(fig_VERSION_MINOR)+"\n");
-	main_log(" Build:   " fig_CURRENT_BUILD "\n");
+	main_log(" Version: " + std::string(fig_VERSION_STR) + "\n");
+	main_log(" Build:   ");
+	if (is_substring_ci(fig_CURRENT_BUILD, "release"))
+		main_log("Release ");
+	else
+		main_log("Debug ");
 #ifndef PCG_RNG
-	main_log(" RNG:     STL's Mersenne-Twister\n");
+	main_log("(Mersenne-Twister RNG)\n");
 #else
-	main_log(" RNG:     Builtin PCG\n");
+	main_log("(PCG family RNG)\n");
 #endif
 	main_log(" Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n");
 	main_log("          Monti, Raúl E.   <raulmonti88@gmail.com>\n");
 	main_log("\n");
 
-	if (argc > 1) {
+	// Print additional technical info if this is more than a query
+	if (argc > 1 && trim(argv[1]) != "-h" && trim(argv[1]) != "--help") {
 		tech_log(std::string("\nFIG tool invoked on ") + std::ctime(&now));
 		tech_log("Build: " fig_CURRENT_BUILD "\n");
 		tech_log("64-bit RNG: ");
@@ -171,6 +185,8 @@ void print_intro(const int& argc, const char** argv)
 			tech_log(std::string(" ") + argv[i]);
 		tech_log("\n\n");
 	}
+
+	return false;
 }
 
 
