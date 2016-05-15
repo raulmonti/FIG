@@ -53,11 +53,11 @@ typedef  fig::DistributionParameters  params_t;
 ///   taken from the system's random device
 /// \endif
 #if   !defined RANDOM_RNG_SEED && !defined PCG_RNG
-  const unsigned rngSeed(std::mt19937_64::default_seed);
+  const unsigned long rngSeed(std::mt19937_64::default_seed);
 #elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
-  const unsigned rngSeed(0xCAFEF00DD15EA5E5ull);  // PCG's default seed
+  const unsigned long rngSeed(0xCAFEF00DD15EA5E5ull);  // PCG's default seed
 #elif  defined RANDOM_RNG_SEED && !defined PCG_RNG
-  unsigned rngSeed(std::random_device{}());
+  unsigned long rngSeed(std::random_device{}());
 #else
   pcg_extras::seed_seq_from<std::random_device> rngSeed;
 #endif
@@ -66,7 +66,8 @@ typedef  fig::DistributionParameters  params_t;
 #ifndef PCG_RNG
   std::mt19937_64 rng(rngSeed);
 #elif !defined NDEBUG
-  pcg64_fast rng(rngSeed);
+//  pcg64_fast rng(rngSeed);
+  pcg32_k16384 rng(rngSeed);
 #else
   pcg64 rng(rngSeed);
 #endif
@@ -166,7 +167,7 @@ return_t erlang(const params_t& params)
 namespace fig
 {
 
-unsigned Clock::rng_seed() noexcept
+unsigned long Clock::rng_seed() noexcept
 {
 #if !defined RANDOM_RNG_SEED || !defined RNG_PCG
 	return rngSeed;

@@ -119,7 +119,10 @@ done
 # Wait till termination
 show -n "Waiting for all experiments to finish..."
 wait
-show " done\nResults are in ${RESULTS}"
+show " done"
+EXE_WTIME=$(format_seconds $SECONDS)  
+show "Script execution walltime was $EXE_WTIME"
+show "Results are in ${RESULTS}"
 
 
 exit 0

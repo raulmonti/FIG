@@ -81,7 +81,7 @@ public:  // Class' RNG manipulations
 
 	/// Seed used to initialized the internal RNG.
 	/// Null iff (device-) random seeding is used
-	static unsigned rng_seed() noexcept;
+	static unsigned long rng_seed() noexcept;
 
 private:
 
