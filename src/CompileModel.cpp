@@ -337,6 +337,7 @@ CompileModel(AST* astModel, const parsingContext &pc)
 	assert(astModel);
 	auto model = fig::ModelSuite::get_instance();
 	assert(!model.sealed());
+
 	// Compile all modules
 	for(AST* it: astModel->get_all_ast(_MODULE)){
 		std::shared_ptr< ModuleInstance > module = CompileModule(it,pc);
@@ -345,6 +346,9 @@ CompileModel(AST* astModel, const parsingContext &pc)
 							   + it->get_lexeme(_NAME) + "\"");
 		model.add_module(module);
 	}
+	if (model.num_modules() < 1ul)
+		throw_FigException("no modules parsed from the model file!");
+
 	// Compile all properties
 	for(AST* it: GLOBAL_PROP_AST->get_all_ast(_PROPERTY)){
 		std::shared_ptr< Property > property = CompileProperty(it);
@@ -353,6 +357,9 @@ CompileModel(AST* astModel, const parsingContext &pc)
 							   + it->toString() + "\"");
 		model.add_property(property);
 	}
+	if (model.num_properties() < 1ul)
+		throw_FigException("no properties parsed from the properties file!");
+
 	// Seal fig model
 	model.seal();
 	if (!fig::ModelSuite::get_instance().sealed())

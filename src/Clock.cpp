@@ -66,10 +66,9 @@ typedef  fig::DistributionParameters  params_t;
 #ifndef PCG_RNG
   std::mt19937_64 rng(rngSeed);
 #elif !defined NDEBUG
-//  pcg64_fast rng(rngSeed);
   pcg32_k16384 rng(rngSeed);
 #else
-  pcg64 rng(rngSeed);
+  pcg64_oneseq rng(rngSeed);
 #endif
 
 

@@ -63,7 +63,9 @@ extern std::unordered_map< std::string, Distribution > distributions_list;
  */
 class Clock
 {
-	friend class ModelSuite;  // RNG handling, e.g. re-seeding
+	// Friends for RNG handling, e.g. re-seeding
+	friend class ModelSuite;
+	friend class Transition;
 
 	/// Clock name
 	std::string name_;
