@@ -812,43 +812,119 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
 
 
 void
-ModelSuite::build_importance_function_auto(const std::string& ifunName,
-										   const std::string& mergeFun,
-										   const Property& property,
-										   const ImportanceValue& nullVal,
-										   bool force)
+ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
+											const Property& property,
+											bool force)
 {
-	if (!exists_importance_function(ifunName))
-		throw_FigException("inexistent importance function \"" + ifunName +
+	if (!exists_importance_function(impFun.name))
+		throw_FigException("inexistent importance function \"" + impFun.name +
 						   "\". Call \"available_importance_functions()\" "
 						   "for a list of available options.");
 
-    ImportanceFunction& ifun = *impFuns[ifunName];
+	ImportanceFunction& ifun = *impFuns[impFun.name];
+	// "adhoc" strategy is compatible with all ImportanceFunction derived types
+
+	if (force || !ifun.has_importance_info() || "adhoc" != ifun.strategy()) {
+		techLog_ << "\nBuilding importance function \"" << impFun.name
+				 << "\" with \"adhoc\" assessment strategy (\""
+				 << impFun.algebraicFormula << "\")\n";
+		techLog_ << "Property: " << property.expression << std::endl;
+		ifun.clear();
+		auto allVarnames = model->global_state().varnames();
+		const double startTime = omp_get_wtime();
+		if (ifun.concrete()) {
+			std::vector<std::string> varnamesVec(begin(allVarnames), end(allVarnames));
+			static_cast<ImportanceFunctionConcrete&>(ifun)
+				.assess_importance(property, impFun.algebraicFormula, varnamesVec);
+		} else {
+			static_cast<ImportanceFunctionAlgebraic&>(ifun)
+				.set_formula("adhoc",
+							 impFun.algebraicFormula,
+							 allVarnames,
+							 model->global_state(),
+							 property,
+							 impFun.minValue,
+							 impFun.maxValue);
+		}
+		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
+		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
+		techLog_ << "Importance function building time: "
+				 << std::fixed << std::setprecision(2)
+				 << omp_get_wtime()-startTime << " s\n"
+//				 << std::defaultfloat;
+				 << std::setprecision(6);
+	}
+
+#ifndef NDEBUG
+	assert(ifun.has_importance_info());
+	assert("adhoc" == ifun.strategy());
+	if (ifun.min_value() == ifun.max_value())
+		throw_FigException("bad function built (flat importance)");
+#endif
+}
+
+
+void
+ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
+											const size_t& propertyIndex,
+											bool force)
+{
+	auto propertyPtr = get_property(propertyIndex);
+	if (nullptr == propertyPtr)
+		throw_FigException("no property at index " + to_string(propertyIndex));
+	build_importance_function_adhoc(impFun, *propertyPtr, force);
+}
+
+
+void
+ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
+										   const Property& property,
+										   bool force)
+{
+	if (!exists_importance_function(impFun.name))
+		throw_FigException("inexistent importance function \"" + impFun.name +
+						   "\". Call \"available_importance_functions()\" "
+						   "for a list of available options.");
+
+	ImportanceFunction& ifun = *impFuns[impFun.name];
     if (!ifun.concrete())
 		throw_FigException("requested to build a non-concrete importance "
-						   "function (\"" + ifunName + "\") using the "
+						   "function (\"" + impFun.name + "\") using the "
 						   "\"auto\" importance assessment strategy");
 
     if (force || !ifun.has_importance_info() || "auto" != ifun.strategy()) {
-		techLog_ << "\nBuilding importance function \"" << ifunName
+		techLog_ << "\nBuilding importance function \"" << impFun.name
 				 << "\" with \"auto\" assessment strategy.\n";
 		techLog_ << "Property: " << property.expression << std::endl;
 		ifun.clear();
 		const double startTime = omp_get_wtime();
-		if (ifunName == "concrete_split")
+
+		// Compositional importance functions need a composition function
+		if (impFun.name.find("split") != std::string::npos)
 			static_cast<ImportanceFunctionConcreteSplit&>(ifun)
-				.set_merge_fun(mergeFun, nullVal);
+				.set_composition_fun(impFun.algebraicFormula,
+									 impFun.neutralElement,
+									 impFun.minValue,
+									 impFun.maxValue);
+
+		// Compute importance automatically -- here's where the magic hides
 		try {
 			static_cast<ImportanceFunctionConcrete&>(ifun)
 					.assess_importance(property, "auto");
-		} catch (FigException& e) {
-			throw_FigException("couldn't build importance function \""
-							   + ifunName + "\" automatically: " + e.msg());
+
 		} catch (std::bad_alloc&) {
 			throw_FigException("couldn't build importance function \""
-							   + ifunName + "\" automatically: not enough "
+							   + impFun.name + "\" automatically: not enough "
 							   "system memory");
+		} catch (FigException& e) {
+			throw_FigException("couldn't build importance function \""
+							   + impFun.name + "\" automatically: " + e.msg());
 		}
+
+		// Should we exponentiate the computed importance values?
+		if (impFun.postProcessing == "exp")
+			static_cast<ImportanceFunctionConcrete&>(ifun).exponentiate();
+
 		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
 		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
 		techLog_ << "Importance function building time: "
@@ -868,94 +944,14 @@ ModelSuite::build_importance_function_auto(const std::string& ifunName,
 
 
 void
-ModelSuite::build_importance_function_auto(const std::string& ifunName,
-                                           const std::string& mergeFun,
+ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 										   const size_t& propertyIndex,
-										   const ImportanceValue& nullVal,
 										   bool force)
 {
     auto propertyPtr = get_property(propertyIndex);
     if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
-	build_importance_function_auto(ifunName, mergeFun, *propertyPtr, nullVal, force);
-}
-
-
-void
-ModelSuite::build_importance_function_adhoc(
-    const std::string& ifunName,
-    const std::string& formulaExprStr,
-	const Property& property,
-	const ImportanceValue& minVal,
-	const ImportanceValue& maxVal,
-	bool force)
-{
-    if (!exists_importance_function(ifunName))
-		throw_FigException("inexistent importance function \"" + ifunName +
-						   "\". Call \"available_importance_functions()\" "
-						   "for a list of available options.");
-
-    ImportanceFunction& ifun = *impFuns[ifunName];
-    // "adhoc" strategy is compatible with all ImportanceFunction derived types
-
-    if (force || !ifun.has_importance_info() || "adhoc" != ifun.strategy()) {
-		techLog_ << "\nBuilding importance function \"" << ifunName
-				 << "\" with \"adhoc\" assessment strategy (\""
-				 << formulaExprStr << "\")\n";
-		techLog_ << "Property: " << property.expression << std::endl;
-		ifun.clear();
-		auto allVarnames = model->global_state().varnames();
-		const double startTime = omp_get_wtime();
-		if (ifun.concrete()) {
-			std::vector<std::string> varnamesVec(begin(allVarnames), end(allVarnames));
-            static_cast<ImportanceFunctionConcrete&>(ifun)
-                .assess_importance(property, formulaExprStr, varnamesVec);
-		} else {
-            static_cast<ImportanceFunctionAlgebraic&>(ifun)
-                .set_formula("adhoc",
-                             formulaExprStr,
-							 allVarnames,
-                             model->global_state(),
-							 property,
-							 minVal,
-							 maxVal);
-        }
-		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
-		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
-		techLog_ << "Importance function building time: "
-				 << std::fixed << std::setprecision(2)
-				 << omp_get_wtime()-startTime << " s\n"
-//				 << std::defaultfloat;
-				 << std::setprecision(6);
-    }
-
-#ifndef NDEBUG
-	assert(ifun.has_importance_info());
-	assert("adhoc" == ifun.strategy());
-	if (ifun.min_value() == ifun.max_value())
-		throw_FigException("bad function built (flat importance)");
-#endif
-}
-
-
-void
-ModelSuite::build_importance_function_adhoc(
-	const std::string& ifunName,
-	const std::string& formulaExprStr,
-	const size_t& propertyIndex,
-	const ImportanceValue& minVal,
-	const ImportanceValue& maxVal,
-	bool force)
-{
-	auto propertyPtr = get_property(propertyIndex);
-	if (nullptr == propertyPtr)
-		throw_FigException("no property at index " + to_string(propertyIndex));
-	build_importance_function_adhoc(ifunName,
-									formulaExprStr,
-									*propertyPtr,
-									minVal,
-									maxVal,
-									force);
+	build_importance_function_auto(impFun, *propertyPtr, force);
 }
 
 

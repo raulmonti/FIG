@@ -142,7 +142,7 @@ typedef  std::bitset<MAX_NUM_CLOCKS>                                 Bitflag;
 /// Primitive type used to assess the importance of a single *concrete* state
 /// @warning This bounds the number of representable importance levels
 ///
-typedef  unsigned short                                      ImportanceValue;
+typedef  unsigned                                            ImportanceValue;
 
 /// ImportanceFunction specification: this struct should be filled
 /// during the command line parsing, with the data provided by the user
@@ -154,21 +154,29 @@ struct ImpFunSpec
 	const std::string strategy;
 	/// User-defined ad hoc expression needed by some ImportanceFunction s
 	const std::string algebraicFormula;
+	/// <i>Optional</i>: post-processing to perform to the importance values computed
+	const std::string postProcessing;
 	/// <i>Optional</i>: min value the user-defined ad hoc function can take
 	const ImportanceValue minValue;
 	/// <i>Optional</i>: max value the user-defined ad hoc function can take
 	const ImportanceValue maxValue;
+	/// <i>Optional</i>: neutral element fot the user-defined composition function
+	const ImportanceValue neutralElement;
 	/// Data ctor needs at least a name and a strategy
 	ImpFunSpec(const std::string& theName,
 			   const std::string& theStrategy,
 			   const std::string& theAlgebraicFormula = "",
+			   const std::string& thePostProcessing = "",
 			   const ImportanceValue& theMinValue = static_cast<ImportanceValue>(0u),
-			   const ImportanceValue& theMaxValue = static_cast<ImportanceValue>(0u)) :
+			   const ImportanceValue& theMaxValue = static_cast<ImportanceValue>(0u),
+			   const ImportanceValue& theNeutralElement = static_cast<ImportanceValue>(0u)) :
 		name(theName),
 		strategy(theStrategy),
 		algebraicFormula(theAlgebraicFormula),
+		postProcessing(thePostProcessing),
 		minValue(theMinValue),
-		maxValue(theMaxValue) {}
+		maxValue(theMaxValue),
+		neutralElement(theNeutralElement) {}
 };
 
 //

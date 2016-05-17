@@ -625,6 +625,32 @@ bool ImportanceFunctionConcrete::assess_importance(
 
 
 void
+ImportanceFunctionConcrete::exponentiate(const float b)
+{
+	if (b <= 0.0f)
+		throw_FigException("a positive base is required for exponentiation");
+	else if (!has_importance_info())
+		return;  // meh, called for nothing
+	else if (ready())
+		std::cerr << "WARNING: changing importance values after choosing thresholds;\n"
+				  << "         you may need to choose them again!\n";
+	if (!userDefinedData) {
+		// First update the extreme values: piece of cake
+		// since exponentiation is a monotonously non-decreasing function
+		minValue_ = std::round(std::pow(b, minValue_));
+		maxValue_ = std::round(std::pow(b, maxValue_));
+		minRareValue_ = std::round(std::pow(b, minRareValue_));
+		initialValue_ = std::round(std::pow(b, initialValue_));
+	}
+	// Now exponentiate all the importance values stored
+	for (ImportanceVec& vec: modulesConcreteImportance)
+		for (ImportanceValue& val: vec)
+			val = MASK(val) | static_cast<ImportanceValue>(std::round(
+								std::pow(b, UNMASK(val))));
+}
+
+
+void
 ImportanceFunctionConcrete::clear() noexcept
 {
 	for (unsigned i = 0u ; i < modulesConcreteImportance.size() ; i++)

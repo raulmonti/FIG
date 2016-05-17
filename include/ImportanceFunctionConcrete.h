@@ -74,6 +74,10 @@ protected:  // Attributes
 	/// Copy of the global state of the \ref ModuleNetwork "model"
 	mutable State< STATE_INTERNAL_TYPE > globalStateCopy;
 
+	/// Did the user specify the extreme values?    <br>
+	/// Needed by ImportanceFunctionConcreteSplit
+	bool userDefinedData;
+
 public:  // Ctor/Dtor
 
 	/// Data ctor
@@ -155,6 +159,14 @@ public:  // Utils
 	virtual void assess_importance(const Property& prop,
 								   const std::string& formulaExprStr,
 								   const std::vector<std::string>& varnames) = 0;
+
+	/// Change the currently stored importance values for their corresponding
+	/// power of 'b' > 0.<br>
+	/// So e.g. all states with importance '0' will then have importance
+	/// 1 == b^0, and all states with importance '1' will get b == b^1,
+	/// and so on and so forth.
+	/// @throw FigException if b <= 0.0
+	void exponentiate(const float b = 2.0);
 
 	/// Erase all internal importance information (free resources along the way)
 	void clear() noexcept override;

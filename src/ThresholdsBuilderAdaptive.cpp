@@ -117,7 +117,8 @@ ThresholdsBuilderAdaptive::tune(const uint128_t &numStates,
 	assert(0u < splitsPerThr);
 
 	std::vector< ImportanceValue >().swap(thresholds_);
-    thresholds_.reserve(std::max(2,maxImportance/2));
+	thresholds_.reserve(std::max(static_cast<ImportanceValue>(2),
+								 static_cast<ImportanceValue>(maxImportance/2)));
 	assert(thresholds_.size() == 0u);
 	assert(thresholds_.capacity() > 0u);
 

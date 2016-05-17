@@ -365,68 +365,22 @@ public:  // Utils
 
 	/**
 	 * @brief Assess importance for the currently loaded user model
-	 *        using the "auto" strategy
-	 *
-	 *        This leaves the ImportanceFunction "ifunName" with internal
-	 *        \ref ImportanceFunction::has_importance_info()
-	 *        "importance information" but not quite
-	 *        \ref ImportanceFunction::ready() "ready for simulations",
-	 *        since the thresholds haven't been built yet.
-	 *
-	 * @param ifunName Any from available_importance_functions()
-	 * @param mergeFun For "split" ImportanceFunction this string specifies
-	 *                 the function combining the modules importances.
-	 * @param property The Property whose value is to be estimated
-	 * @param nullVal  For "split" ImportanceFunction this value is the
-	 *                 neutral element of the specified "mergeFun"
-	 * @param force    Assess importance again, even if importance info
-	 *                 already exists for this importance function and strategy
-	 *
-	 * @throw FigException if 'ifunName' is invalid or incompatible with the
-	 *                     "auto" importance assessment strategy.
-	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
-	 *
-	 * @see ImportanceFunctionConcreteSplit::set_merge_fun()
-	 * @see build_thresholds()
-	 */
-	void
-	build_importance_function_auto(const std::string& ifunName,
-								   const std::string& mergeFun,
-								   const Property& property,
-								   const ImportanceValue& nullVal = 0,
-								   bool force = false);
-
-	/// Same as build_importance_function_auto() for the property
-	/// added to the system in the specified index
-	/// @throw FigException if there's no property at index 'propertyIndex'
-	/// @see get_property()
-	void
-	build_importance_function_auto(const std::string& ifunName,
-								   const std::string& mergeFun,
-								   const size_t& propertyIndex,
-								   const ImportanceValue& nullVal = 0,
-								   bool force = false);
-
-	/**
-	 * @brief Assess importance for the currently loaded user model
 	 *        using the "adhoc" strategy
 	 *
-	 *        This leaves the ImportanceFunction "ifunName" with internal
+	 *        This leaves the ImportanceFunction "impFun.name" with internal
 	 *        \ref ImportanceFunction::has_importance_info()
 	 *        "importance information" but not quite
 	 *        \ref ImportanceFunction::ready() "ready for simulations",
 	 *        since the thresholds haven't been built yet.
 	 *
-	 * @param ifunName  Any from available_importance_functions()
-	 * @param formulaExprStr  Mathematical formula to assess the states'
-	 *                        importance, expressed as a string
+	 * @param impFun   Specification of the ad hoc importance function name,
+	 *                 mathematical formula, and any additional parameter
+	 *                 such as the user-defined min and max values it can take
 	 * @param property  The Property whose value is to be estimated
-	 * @param minVal    Minimal value the given mathematical formula can take
-	 * @param maxVal    Maximal value the given mathematical formula can take
 	 * @param force     Assess importance again, even if importance info
 	 *                  already exists for this importance function and strategy
 	 *
-	 * @throw FigException if 'ifunName' is invalid or incompatible with the
+	 * @throw FigException if 'impFun.name' is invalid or incompatible with the
 	 *                     "adhoc" importance assessment strategy.
 	 * @throw FigException if badly formatted 'formulaExprStr' or 'varnames'
 	 *                     has names not appearing in 'formulaExprStr'
@@ -435,11 +389,8 @@ public:  // Utils
 	 * @see build_thresholds()
 	 */
 	void
-	build_importance_function_adhoc(const std::string& ifunName,
-									const std::string& formulaExprStr,
+	build_importance_function_adhoc(const ImpFunSpec& impFun,
 									const Property& property,
-									const ImportanceValue& minVal = 0u,
-									const ImportanceValue& maxVal = 0u,
 									bool force = false);
 
 	/// Same as build_importance_function_adhoc() for the property
@@ -447,12 +398,47 @@ public:  // Utils
 	/// @throw FigException if there's no property at index 'propertyIndex'
 	/// @see get_property()
 	void
-	build_importance_function_adhoc(const std::string& ifunName,
-									const std::string& formulaExprStr,
+	build_importance_function_adhoc(const ImpFunSpec& impFun,
 									const size_t& propertyIndex,
-									const ImportanceValue& minVal = 0u,
-									const ImportanceValue& maxVal = 0u,
 									bool force = false);
+
+	/**
+	 * @brief Assess importance for the currently loaded user model
+	 *        using the "auto" strategy
+	 *
+	 *        This leaves the ImportanceFunction "impFun.name" with internal
+	 *        \ref ImportanceFunction::has_importance_info()
+	 *        "importance information" but not quite
+	 *        \ref ImportanceFunction::ready() "ready for simulations",
+	 *        since the thresholds haven't been built yet.
+	 *
+	 * @param impFun   Specification of the importance function name, type
+	 *                 (split vs. coupled) and any additional parameter
+	 *                 such as the composition function or the neutral element
+	 * @param property The Property whose value is to be estimated
+	 * @param force    Assess importance again, even if importance info
+	 *                 already exists for this importance function and strategy
+	 *
+	 * @throw FigException if 'impFun.name' is invalid or incompatible with the
+	 *                     "auto" importance assessment strategy.
+	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
+	 *
+	 * @see ImportanceFunctionConcreteSplit::set_composition_fun()
+	 * @see build_thresholds()
+	 */
+	void
+	build_importance_function_auto(const ImpFunSpec& impFun,
+								   const Property& property,
+								   bool force = false);
+
+	/// Same as build_importance_function_auto() for the property
+	/// added to the system in the specified index
+	/// @throw FigException if there's no property at index 'propertyIndex'
+	/// @see get_property()
+	void
+	build_importance_function_auto(const ImpFunSpec& impFun,
+								   const size_t& propertyIndex,
+								   bool force = false);
 
 	/**
 	 * @brief Build thresholds from precomputed importance information
@@ -584,7 +570,9 @@ public:  // Simulation utils
 	 *        All outcomes are kept track of in the system's logs.
 	 *
 	 * @param engineName Any from available_simulators()
-	 * @param impFunSpec TODO fillme
+	 * @param impFunSpec Specification of the importance function name,
+	 *                   strategy, and any additional parameter such as an user
+	 *                   defined algebraic function or the extreme values
 	 * @param thrTechnique Any from available_threshold_techniques()
 	 * @param estimationBounds List of stopping conditions to use for the
 	 *                         estimation of each property (all are used)
@@ -687,22 +675,11 @@ ModelSuite::process_batch(
 
 		// ... build the importance function ...
 		if ("flat" == impFunSpec.strategy)
-			build_importance_function_flat(impFunSpec.name,
-										   *property,
-										   true);
+			build_importance_function_flat(impFunSpec.name, *property, true);
 		else if ("auto" == impFunSpec.strategy)
-			build_importance_function_auto(impFunSpec.name,
-										   impFunSpec.algebraicFormula,
-										   *property,
-										   impFunSpec.minValue,  // nullVal!
-										   true);
+			build_importance_function_auto(impFunSpec, *property, true);
 		else if ("adhoc" == impFunSpec.strategy)
-			build_importance_function_adhoc(impFunSpec.name,
-											impFunSpec.algebraicFormula,
-											*property,
-											impFunSpec.minValue,
-											impFunSpec.maxValue,
-											true);
+			build_importance_function_adhoc(impFunSpec, *property, true);
 		assert(impFuns[impFunSpec.name]->has_importance_info());
 
 		// ... and for each splitting specified ...
