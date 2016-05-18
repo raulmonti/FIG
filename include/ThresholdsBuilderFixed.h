@@ -53,6 +53,13 @@ class ThresholdsBuilderFixed : public virtual ThresholdsBuilder
 {
 public:
 
+	/// Minimal importance range (ifun.maxVal() - ifun.minVal())
+	/// If there are less values avaliable then every ImportanceValue
+	/// above ifun.minVal() will be considered as threshold.
+	const ImportanceValue MIN_IMP_RANGE = 6u;
+
+public:
+
 	/// Default ctor
 	ThresholdsBuilderFixed() : ThresholdsBuilder("fix") {}
 

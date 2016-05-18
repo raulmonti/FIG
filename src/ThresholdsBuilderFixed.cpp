@@ -60,9 +60,13 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 						   splitsPerThreshold <  9 ? 3u :
 						   splitsPerThreshold < 14 ? 4u : 5u) * EXPANSION_FACTOR);
 
-	ModelSuite::tech_log("Building thresholds with \""+ name +"\" for 1 out of "
-						 "every " + std::to_string(STRIDE) + " importance value"
-						 + (STRIDE > 1 ? ("s.\n") : (".\n")));
+	ModelSuite::tech_log("Building thresholds with \""+ name +"\" ");
+	if (IMP_RANGE < MIN_IMP_RANGE)
+		ModelSuite::tech_log("using all importance values as thresholds.\n");
+	else
+		ModelSuite::tech_log("for 1 out of every " + std::to_string(STRIDE)
+		                    +" importance value" + (STRIDE > 1 ? ("s.\n")
+		                                                       : (".\n")));
 
 	// Start slightly above impFun's initial value to avoid oversampling
 	const unsigned MARGIN =
@@ -75,8 +79,14 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 
 	std::stringstream msg;
 	msg << "ImportanceValue of the chosen thresholds:";
-	for (unsigned  i = MARGIN+STRIDE ; i <= MARGIN+RANGE ; i += STRIDE)
-		msg << " " << i;
+	if (IMP_RANGE < MIN_IMP_RANGE)
+		for (ImportanceValue i = impFun.min_value()+1u ;
+		     i <= impFun.max_value() ;
+		     i++)
+			msg << " " << i;
+	else
+		for (unsigned i = MARGIN+STRIDE ; i <= MARGIN+RANGE ; i += STRIDE)
+			msg << " " << i;
 	ModelSuite::tech_log(msg.str() + "\n");
 
 	ImportanceVec thresholds;
@@ -99,6 +109,15 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 	const size_t SIZE(impFun.max_value() - impFun.min_value() + 1u);
 	if (thresholds.size() != SIZE)
 		thresholds.resize(SIZE);
+
+	if (SIZE-1u < MIN_IMP_RANGE) {
+		// Too few values: everything above the base will be a threshold
+		ImportanceValue imp(0u);
+		unsigned pos;
+		for (pos = impFun.min_value() ; pos <= impFun.max_value() ; pos++)
+			thresholds[pos] = imp++;
+		return;
+	}
 
 	// Thresholds building starts at the initial state's importance + margin,
 	// everything from there downwards will be the zeroth level
