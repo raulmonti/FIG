@@ -108,9 +108,9 @@ do
 	echo ""
 	echo "module Node$i"
 	echo "	N${i}clk: clock;          // -- Failure ~ $F_DIST"
-	echo "	N${i}f: bool init false;  // -- Node failed?"
-	echo "	[f$i!] !N${i}f @ N${i}clk -> (N${i}f'= true);"
-	echo "	[r$i?]  N${i}f          -> (N${i}f'= false) & (N${i}clk'= $F_DIST);"
+	echo "	N${i}: bool init false;   // -- Node failed?"
+	echo "	[f$i!] !N$i @ N${i}clk -> (N$i'= true);"
+	echo "	[r$i?]  N$i          -> (N$i'= false) & (N${i}clk'= $F_DIST);"
 	echo "endmodule"
 done
 echo ""
@@ -130,36 +130,36 @@ echo "module Repairman"
 echo ""
 echo "	Rclk: clock;    // -- Repair ~ $R_DIST"
 echo "	fix : [0..$N];  // -- Which node are we fixing now"
-for i in $(seq $N); do echo "	N$i : bool init false;  // -- Node $i failed?"; done
+for i in $(seq $N); do echo "	N${i}f : bool init false;  // -- Node $i failed?"; done
 echo ""
 echo "	// -- Repair failed node right away"
 for (( i=1 ; i<=$N ; i++ )); do
-	echo "	[f$i?] fix == 0 -> (N$i'= true) & (fix' = $i) & (Rclk'= $R_DIST);"
+	echo "	[f$i?] fix == 0 -> (N${i}f'= true) & (fix' = $i) & (Rclk'= $R_DIST);"
 done
 echo ""
 echo "	// -- Register failed node for later repairment"
 for (( i=1 ; i<=$N ; i++ )); do
-	echo "	[f$i?] fix > 0 -> (N$i'= true);"
+	echo "	[f$i?] fix > 0 -> (N${i}f'= true);"
 done
 echo ""
 echo "	// -- Report repaired node and seek the next one"
 for (( i=1 ; i<=$N ; i++ )); do
 for (( k=1 ; k<=$N ; k++ )); do
 	if [ $i -eq $k ]; then continue; fi
-	echo "	[r$i!] fix == $i & N$k"
+	echo "	[r$i!] fix == $i & N${k}f"
 	for (( j=1 ; j<$k ; j++ )); do
-		if [ $j -ne $i ]; then echo "	       & !N$j"; fi
+		if [ $j -ne $i ]; then echo "	       & !N${j}f"; fi
 	done
-	echo "	       @ Rclk -> (N$i'= false) & (fix'= $k) & (Rclk'= $R_DIST);"
+	echo "	       @ Rclk -> (N${i}f'= false) & (fix'= $k) & (Rclk'= $R_DIST);"
 done; done
 echo ""
 echo "	// -- Report repairment of last failed node and go to sleep"
 for (( i=1 ; i<=$N ; i++ )); do
 	echo "	[r$i!] fix == $i"
 	for (( j=1 ; j<=$N ; j++ )); do
-		if [ $j -ne $i ]; then echo "	       & !N$j"; fi
+		if [ $j -ne $i ]; then echo "	       & !N${j}f"; fi
 	done
-	echo "	       @ Rclk -> (N$i'= false) & (fix'= 0);"
+	echo "	       @ Rclk -> (N${i}f'= false) & (fix'= 0);"
 done
 echo "endmodule"
 echo ""
