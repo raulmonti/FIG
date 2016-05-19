@@ -46,7 +46,8 @@ mkdir $RESULTS && unset N && \
 
 # Experiments configuration
 show "Configuring experiments"
-declare -a OCUPA=(18  13  20  16  24  21)
+#declare -a OCUPA=(18  13  20  16  24  21)  # estimates ~ 10^-15
+declare -a OCUPA=(12   8  12  10  14  12)  # estimates ~ 10^-9
 declare -a ALPHA=( 2   3   2   3   2   3)
 declare -a BETA1=( 3 4.5   6   9  10  15)
 declare -a BETA2=( 4   6   4   6   8  12)
@@ -62,8 +63,8 @@ STOP_CRITERION="--stop-conf 0.90 0.2"  # Confidence coeff. and rel. precision
 SPLITTINGS="--splitting 3,6,11"        # Splitting values for RESTART engine
 STANDARD_MC="-e nosplit --flat $STOP_CRITERION"
 RESTART_ADHOC="--adhoc q3 $STOP_CRITERION -t fix $SPLITTINGS"
-RESTART_AUTO_COUPLED="--auto-coupled $STOP_CRITERION -t fix $SPLITTINGS"
-RESTART_AUTO_SPLIT="--auto-split \"+\" $STOP_CRITERION -t fix $SPLITTINGS"
+RESTART_AMONO="--amono $STOP_CRITERION -t fix $SPLITTINGS"
+RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION -t fix $SPLITTINGS"
 
 # Launch experiments
 show "Launching experiments:"
@@ -92,25 +93,25 @@ do
 	LOG=${RESULTS}/3tandem_queue_L${L}
 	EXE=`/bin/echo -e "timeout -s 15 10h ./fig $MODEL_FILE_L $PROPS_FILE"`
 
-	# Standard Monte Carlo
-	poll_till_free; show -n " MC"
-	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
+	# RESTART with monolithic (auto ifun)
+	poll_till_free; show -n " AM"
+	$EXE $RESTART_AMONO 1>>${LOG}"_AM.out" 2>>${LOG}"_AM.err" &
 
-	# RESTART with ad hoc (default)
-	poll_till_free; show -n ", AHD"
-	$EXE $RESTART_ADHOC 1>>${LOG}"_AHD.out" 2>>${LOG}"_AHD.err" &
+	# RESTART with compositional (auto ifun)
+	poll_till_free; show -n ", AC"
+	$EXE $RESTART_ACOMP 1>>${LOG}"_AC.out" 2>>${LOG}"_AC.err" &
 
 	# RESTART with ad hoc (optimal)
 	poll_till_free; show -n ", AHO"
 	$EXE $RESTART_ADHOC_OPT 1>>${LOG}"_AHO.out" 2>>${LOG}"_AHO.err" &
 
-	# RESTART with auto (coupled)
-	poll_till_free; show -n ", AC"
-	$EXE $RESTART_AUTO_COUPLED 1>>${LOG}"_AC.out" 2>>${LOG}"_AC.err" &
+	# RESTART with ad hoc (default)
+	poll_till_free; show -n ", AHD"
+	$EXE $RESTART_ADHOC 1>>${LOG}"_AHD.out" 2>>${LOG}"_AHD.err" &
 
-	# RESTART with auto (split)
-	poll_till_free; show -n ", AS"
-	$EXE $RESTART_AUTO_SPLIT 1>>${LOG}"_AS.out" 2>>${LOG}"_AS.err" &
+	# Standard Monte Carlo
+	poll_till_free; show -n ", MC"
+	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
 
 	show "... done"
 done

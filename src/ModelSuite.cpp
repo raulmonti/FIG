@@ -906,9 +906,8 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 									 impFun.neutralElement,
 									 impFun.minValue,
 									 impFun.maxValue);
-
-		// Compute importance automatically -- here's where the magic hides
 		try {
+			// Compute importance automatically -- here hides the magic!
 			static_cast<ImportanceFunctionConcrete&>(ifun)
 					.assess_importance(property, "auto");
 

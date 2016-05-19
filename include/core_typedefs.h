@@ -142,7 +142,7 @@ typedef  std::bitset<MAX_NUM_CLOCKS>                                 Bitflag;
 /// Primitive type used to assess the importance of a single *concrete* state
 /// @warning This bounds the number of representable importance levels
 ///
-typedef  unsigned                                            ImportanceValue;
+typedef  int                                                 ImportanceValue;
 
 /// ImportanceFunction specification: this struct should be filled
 /// during the command line parsing, with the data provided by the user

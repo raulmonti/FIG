@@ -526,17 +526,19 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	concreteSimulation_ = numRelevantModules < 2u;
 
 	// Find extreme importance values for current assessment
-	initialValue_ = importance_of(systemInitialValuation);
 	if ("flat" == strategy) {
-		minValue_ = initialValue_;
-		maxValue_ = initialValue_;
-		minRareValue_ = initialValue_;
+		// Little to find out
+		minValue_ = importance_of(systemInitialValuation);
+		maxValue_ = minValue_;
+		minRareValue_ = minValue_;
+		initialValue_ = minValue_;
 
 	} else if (userMinValue_ < userMaxValue_) {
 		// Trust blindly in the user-defined extreme values
 		minValue_ = userMinValue_;
 		maxValue_ = userMaxValue_;
-		minRareValue_ = std::max(initialValue_, minValue_);  // play it safe
+		minRareValue_ = userMinValue_;  // play it safe
+		initialValue_ = userMinValue_;
 
 	} else if (globalStateCopy.concrete_size() < (1ul<<20ul)) {
 		// We can afford a full-state-space scan
