@@ -32,6 +32,8 @@
 // C++
 #include <vector>
 #include <sstream>
+#include <thread>
+#include <functional>  // std::ref()
 // FIG
 #include <ThresholdsBuilderHybrid.h>
 #include <FigException.h>
@@ -48,19 +50,32 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 	ImportanceVec result;
 	size_t NUMT;
 
+	// Impose an execution wall time limit...
+	const std::chrono::minutes timeLimit(2);
+	std::thread timer([] (bool& halt, const std::chrono::minutes& limit)
+					  { std::this_thread::sleep_for(limit); halt=true; },
+					  std::ref(halted), std::ref(timeLimit));
 	try {
 		// Start out using an adaptive technique, which may just work btw
+		halted = false;
 		result = ThresholdsBuilderSMC::build_thresholds(splitsPerThreshold,
 														impFun);
 		NUMT = result.back();  // it worked!
 
 	} catch (FigException&) {
+		// Adaptive algorithm couldn't finish but achievements remain stored
+		// in the internal vector 'thresholds_'
 
-		// Adaptive algorithm couldn't finish but achievements are
-		// still stored in the internal vector 'thresholds_'
+		if (thresholds_.back() <= impFun.initial_value()) {  // avoid 'lowest' threshold
+			ImportanceValue iteration(0u);
+			const ImportanceValue MIN_THR(impFun.initial_value()+1);
+			for (auto& thr: thresholds_)
+				thr = MIN_THR + (iteration++);
+		}
 		const unsigned LAST_THR(thresholds_.back()),
 					   MARGIN(LAST_THR - impFun.initial_value()),
 					   STRIDE(splitsPerThreshold < 5u ? 1u : 2u);
+
 		ModelSuite::tech_log("\nResorting to fixed choice of thresholds "
 							 "starting above the ImportanceValue " +
 							 std::to_string(LAST_THR) + "\n");
@@ -91,7 +106,10 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 			msg << " " << i;
 		ModelSuite::tech_log(msg.str() + "\n");
 	}
-	ImportanceVec().swap(thresholds_);  // free mem
+
+	// Tidy-up
+	ImportanceVec().swap(thresholds_);
+	timer.detach();
 
 	assert(result[impFun.min_value()] == static_cast<ImportanceValue>(0u));
 	assert(result[impFun.initial_value()] == static_cast<ImportanceValue>(0u));

@@ -36,6 +36,14 @@
 /// Count the number of times character 'c' appears in string 's'
 size_t count(const std::string& s, const char& c);
 
+/// Tells whether 'substr' is a substring of 'str'
+bool is_substring(const std::string& str, const std::string& substr);
+
+/// Tells whether 'substr' is a substring of 'str', case insensitive
+/// @note Taken from <a href="http://stackoverflow.com/a/19839371">
+///       this SO answer by user CC.</a>
+bool is_substring_ci(const std::string& str, const std::string& substr);
+
 /**
  * @brief Replace in "s" all occurrences of "from" for "to"
  * @param s    String to have the substitutions made
@@ -88,7 +96,7 @@ std::string trim(std::string&& s);
  *          For instance if the string "12,a,-5,,a" is split for the delimiter
  *          character ',' then the result will be ["12","a","-5","a"]
  * @param s     String to split
- * @param delim Delimiter to chop the string by
+ * @param delim Delimiter to chop the string by (default is space)
  * @param includeEmptyMatches Whether to include empty strings in the result
  *                            (whenever found that is)
  * @return Vector with chopped contents of the original string.
@@ -96,7 +104,7 @@ std::string trim(std::string&& s);
  *       this SO community-wiki answer</a>.
  */
 std::vector<std::string> split(const std::string &s,
-							   char delim,
+							   char delim = ' ',
 							   bool includeEmptyMatches = false);
 
 #endif // STRING_UTILS_H

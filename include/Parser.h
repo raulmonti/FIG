@@ -560,6 +560,13 @@ private:
 }; // End class Parser.
 
 
+/**
+ * @brief Remove outer pairs of parenthesis from AST tree. This function
+ *        effectively modifies its argument @ast.
+ **/
+void
+normalize_ast(AST **ast);
+
 
 } // End namespace parser.
 

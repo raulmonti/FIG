@@ -53,6 +53,7 @@ using std::end;
 namespace
 {
 
+using uint128::uint128_t;
 using fig::Property;
 using fig::Transition;
 using fig::StateInstance;
@@ -63,6 +64,26 @@ using State = fig::State< fig::STATE_INTERNAL_TYPE >;
 using ImportanceVec = fig::ImportanceFunction::ImportanceVec;
 typedef ImportanceVec EventVec;
 typedef unsigned STATE_T;
+
+
+/**
+ * @brief Impose a limit on the amount of memory the user can request.
+ * @param concreteStateSize Size of the concrete state space of the module
+ *                          and thus of the vector to be allocated
+ * @param moduleName Name of the module
+ * @note There's <a href="http://stackoverflow.com/a/2513561">no portable way of
+ *       measuring the system's available RAM</a>, thus the limit is arbitrary
+ * @throw FifException if more memory than allowed is requested
+ */
+void
+check_mem_limits(const uint128_t& concreteStateSize, const std::string& moduleName)
+{
+	const size_t GigaB(1ul<<30ul), MAX_SIZE(4*GigaB);  // we allow up to 4 GB
+	if (concreteStateSize > MAX_SIZE)
+		throw_FigException("the concrete state space of \"" + moduleName +
+						   "\" is too big to hold it in a vector (it's greater "
+						   "than " + std::to_string(MAX_SIZE/GigaB) + " GB)");
+}
 
 
 /**
@@ -98,15 +119,17 @@ reversed_edges_DFS(const fig::Module& module,
 {
 	const ImportanceValue NOT_VISITED(fig::EventType::STOP);
 	const ImportanceValue     VISITED(0);
+	const size_t NUM_CONCRETE_STATES(module.concrete_state_size());
 
 	assert(NOT_VISITED != VISITED);
 	assert(visits.size() == 0u);
+	assert(module.concrete_state_size().upper() == 0ul);
 
 	// STL's forward_list is the perfect stack
 	std::forward_list< size_t > toVisit;
 	toVisit.push_front(module.initial_concrete_state());
-	fig::AdjacencyList rEdges(module.concrete_state_size());
-	ImportanceVec(module.concrete_state_size(), NOT_VISITED).swap(visits);
+	fig::AdjacencyList rEdges(NUM_CONCRETE_STATES);
+	ImportanceVec(NUM_CONCRETE_STATES, NOT_VISITED).swap(visits);
 
 	// DFS
 	while (!toVisit.empty()) {
@@ -289,10 +312,14 @@ label_local_others(State s,
  *        i.e. in a local state with only a subset of the variables that may
  *        appear in the Property.
  *
- * @param localState State of an individual module (in any valuation)
- * @param cStates    Concrete states vector to label with Event masks <b>(modified)</b>
- * @param property   Property identifying the special states
- * @param clauses    Property parsed as a DNF list of clauses
+ * @param localState   State of an individual module (in any valuation)
+ * @param cStates      Concrete states vector to label with Event masks <b>(modified)</b>
+ * @param propertyType Type of the property identifying the special states
+ * @param rareClauses  Property parsed as a DNF list of clauses
+ * @param rareClauses  DNF clauses, projected from the property into this
+ *                     Module's variables space, identifying the rare states
+ * @param otherClauses DNF clauses, projected from the property into this
+ *                     Module's variables space, identifying the rare states
  *                   (used only by ImportanceFunctionConcreteSplit for 'auto')
  *
  * @return Queue with all rare concrete states found
@@ -308,19 +335,16 @@ label_local_others(State s,
 std::queue< STATE_T >
 label_local_states(const State& localState,
 				   EventVec& cStates,
-				   const Property& property,
-				   const DNFclauses& clauses)
+				   const fig::PropertyType& propertyType,
+				   std::vector< Clause > rareClauses,
+				   std::vector< Clause > otherClauses)
 {
-	std::vector< Clause > rareClauses, otherClauses;
 	std::set< STATE_T > rares;
-
-	// Project the property for this localState
-	std::tie(rareClauses, otherClauses) = clauses.project(localState);
 	assert(localState.concrete_size().upper() == 0ul);
 	cStates.resize(localState.concrete_size().lower());
 
 	// Mark events according to the clauses
-	switch (property.type) {
+	switch (propertyType) {
 
 	case fig::PropertyType::TRANSIENT:
 		rares = label_local_rares(localState, cStates, rareClauses, true);
@@ -445,6 +469,17 @@ assess_importance_auto(const fig::Module& module,
 					   const bool split)
 {
     assert(impVec.size() == 0ul);
+	ImportanceValue maxImportance(0u);
+	std::vector< Clause > rareClauses, otherClauses;
+
+	// Step 0: skip computations if module is irrelevant for importance splitting
+	if (split) {
+		// Project the property for this Module's local variables
+		std::tie(rareClauses, otherClauses) = clauses.project(module.initial_state());
+		if (rareClauses.empty())
+			return maxImportance;  // module is irrelevant
+	}
+	check_mem_limits(module.concrete_state_size(), module.id());
 
 	// Step 1: run DFS from initial state to compute reachable reversed edges
 	fig::AdjacencyList reverseEdges = reversed_edges_DFS(module, impVec);
@@ -457,15 +492,16 @@ assess_importance_auto(const fig::Module& module,
 	// Step 2: label concrete states according to the property
 	std::queue< STATE_T > rares;
 	if (split)
-		rares = label_local_states(module.initial_state(), impVec, property, clauses);
+		rares = label_local_states(module.initial_state(), impVec, property.type,
+								   rareClauses, otherClauses);
 	else
 		rares = label_global_states(module.initial_state(), impVec, property, true);
 
 	// Step 3: run BFS to compute importance of every concrete state
-	ImportanceValue maxImportance = build_importance_BFS(reverseEdges,
-														 rares,
-														 module.initial_concrete_state(),
-														 impVec);
+	maxImportance = build_importance_BFS(reverseEdges,
+										 rares,
+										 module.initial_concrete_state(),
+										 impVec);
 	fig::AdjacencyList().swap(reverseEdges);  // free mem!
 
 	return maxImportance;
@@ -473,12 +509,13 @@ assess_importance_auto(const fig::Module& module,
 
 
 /**
- * @brief Assign null importance to all states in concrete vector
+ * @brief Assign null importance to all states in a concrete vector
  * @param state    Symbolic state of this Module, in any valuation
  * @param impVec   Vector where the importance will be stored <b>(modified)</b>
  * @param property Property identifying the special states
  * @param clauses  Property parsed as a DNF list of clauses, for split storage
  * @param split    Whether we're working for ImportanceFunctionConcreteSplit
+ * @note Did I mention using this function would be completely idiotic?
  */
 ImportanceValue
 assess_importance_flat(const State& state,
@@ -490,15 +527,15 @@ assess_importance_flat(const State& state,
 	assert(state.size() > 0ul);
 	assert(state.concrete_size().upper() == 0ul);
 	assert(impVec.size() == 0ul);
-
 	// Build vector the size of concrete state space filled with zeros ...
 	ImportanceVec(state.concrete_size().lower()).swap(impVec);
 	// ... and label according to the property
-	if (split)
-		label_local_states(state, impVec, property, clauses);  // this is idiotic
-	else
+	if (split) {
+		auto clausesPair = clauses.project(state);
+		label_local_states(state, impVec, property.type,
+						   clausesPair.first, clausesPair.second);
+	} else
 		label_global_states(state, impVec, property);
-
 	return static_cast<ImportanceValue>(0u);
 }
 
@@ -524,8 +561,7 @@ ImportanceFunctionConcrete::~ImportanceFunctionConcrete()
 }
 
 
-void
-ImportanceFunctionConcrete::assess_importance(
+bool ImportanceFunctionConcrete::assess_importance(
 	const Module& module,
 	const Property& property,
 	const std::string& strategy,
@@ -537,21 +573,12 @@ ImportanceFunctionConcrete::assess_importance(
     else if (modulesConcreteImportance[index].size() > 0ul)
 		throw_FigException("importance info already exists at position "
 						  + std::to_string(index));
+	bool relevant(false);
 	const bool split(name().find("split") != std::string::npos);
-
-	// Impose a limit on the amount of memory the user can request for this.
-	// There's no portable way of measuring the system's available RAM
-	// (http://stackoverflow.com/a/2513561), thus the limit is arbitrary
-	const uint128_t concreteStateSize(module.concrete_state_size());
-	const size_t MAX_SIZE(1ul<<31ul);  // up to 2 GB
-	if (concreteStateSize.upper() > 0ul ||
-		concreteStateSize.lower() > MAX_SIZE)
-		throw_FigException("the concrete state space of this module "
-						   "is too big to hold it in a vector (it's greater "
-						   "than " + std::to_string(MAX_SIZE) + " bytes)");
 
 	// Compute importance according to the chosen strategy
 	if ("flat" == strategy) {
+		check_mem_limits(module.concrete_state_size(), module.id());
 		maxValue_ = assess_importance_flat(module.initial_state(),
 										   modulesConcreteImportance[index],
 										   property,
@@ -568,12 +595,20 @@ ImportanceFunctionConcrete::assess_importance(
 										   property,
 										   clauses,
 										   split);
-        // For auto importance functions the initial state has always
-        // the lowest importance, and all rare states have the highest:
-		minValue_ = UNMASK(
-				modulesConcreteImportance[index][module.initial_concrete_state()]);
-		initialValue_ = minValue_;
-		minRareValue_ = maxValue_;  // should we check?
+		if (static_cast<ImportanceValue>(0u) < maxValue_ ) {
+			relevant = true;
+			// For auto importance functions the initial state has always
+			// the lowest importance, and all rare states have the highest:
+			minValue_ = UNMASK(
+					modulesConcreteImportance[index][module.initial_concrete_state()]);
+			initialValue_ = minValue_;
+			minRareValue_ = maxValue_;  // should we check?
+		} else {
+			// This module is irrelevant for importance computation
+			minValue_ = maxValue_;
+			initialValue_ = maxValue_;
+			minRareValue_ = maxValue_;
+		}
 
 	} else if ("adhoc" == strategy) {
         throw_FigException("importance strategy \"adhoc\" requires a user "
@@ -584,6 +619,34 @@ ImportanceFunctionConcrete::assess_importance(
 						   + strategy + "\". See available options with "
 						   "ModelSuite::available_importance_strategies()");
 	}
+
+	return relevant;
+}
+
+
+void
+ImportanceFunctionConcrete::exponentiate(const float b)
+{
+	if (b <= 0.0f)
+		throw_FigException("a positive base is required for exponentiation");
+	else if (!has_importance_info())
+		return;  // meh, called for nothing
+	else if (ready())
+		std::cerr << "WARNING: changing importance values after choosing thresholds;\n"
+				  << "         you may need to choose them again!\n";
+	if (!userDefinedData) {
+		// First update the extreme values: piece of cake
+		// since exponentiation is a monotonously non-decreasing function
+		minValue_ = std::round(std::pow(b, minValue_));
+		maxValue_ = std::round(std::pow(b, maxValue_));
+		minRareValue_ = std::round(std::pow(b, minRareValue_));
+		initialValue_ = std::round(std::pow(b, initialValue_));
+	}
+	// Now exponentiate all the importance values stored
+	for (ImportanceVec& vec: modulesConcreteImportance)
+		for (ImportanceValue& val: vec)
+			val = MASK(val) | static_cast<ImportanceValue>(std::round(
+								std::pow(b, UNMASK(val))));
 }
 
 

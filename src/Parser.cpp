@@ -1271,6 +1271,36 @@ Parser::removeNode(){
     astStk.pop();
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// 
+
+
+bool
+has_parenthesis(AST **ast)
+{
+    while((*ast)->branches.size() == 1 && (*ast)->lxm == ""){
+        (*ast) = (*ast)->branches[0];
+    }
+    if((*ast)->tkn == _VALUE && (*ast)->branches[0]->lxm == "("){
+        return true;
+    }
+    return false;
+}
+
+void
+normalize_ast(AST **ast)
+{
+    assert((*ast)->tkn == _EXPRESSION);
+    // remove external parenthesis
+    while(has_parenthesis(ast)){
+        AST* value = (*ast)->get_first(_VALUE);
+        AST* aux = value->branches[1];
+        value->branches[1] = NULL;
+        delete (*ast);
+        (*ast) = aux;
+    }
+    
+}
 
 
 }// namespace Parser

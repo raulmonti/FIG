@@ -1,6 +1,6 @@
 ##==============================================================================
 ##	
-##	Copyleft 2015-
+##	Copyleft 2016-
 ##	Authors:
 ##  * Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
 ##
@@ -24,15 +24,17 @@
 ##
 ##==============================================================================
 
-PROJECT (fig_ext)
+PROJECT (fig_ext_flex)
+SET(CWD ${CMAKE_CURRENT_LIST_DIR})
 
-# Include all direct subdirectories
-ADD_SUBDIRECTORY(z3)
-ADD_SUBDIRECTORY(openmp)
-ADD_SUBDIRECTORY(pcg0.98)
-ADD_SUBDIRECTORY(uint128_t)
-ADD_SUBDIRECTORY(flex2.5.39)
-ADD_SUBDIRECTORY(tclap1.2.1)
-ADD_SUBDIRECTORY(muparser2.2.5)
-#ADD_SUBDIRECTORY(boost)
+# List include paths
+SET(HEADERS_DIR
+	${HEADERS_DIR}
+	${CWD}/include
+	CACHE INTERNAL ""  # append persistently for parent CMakeLists
+)
+
+## # Register source files
+## AUX_SOURCE_DIRECTORY(${CWD}/src OUR_SOURCES)
+## SET(ALL_SOURCES ${ALL_SOURCES} ${OUR_SOURCES} CACHE INTERNAL "")
 

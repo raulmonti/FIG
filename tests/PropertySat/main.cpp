@@ -13,10 +13,7 @@
 #include <sstream>
 #include <fstream>
 #include <utility> // pair
-#include "Parser.h"
-#include "PreCompiler.h"
-#include "Iosacompliance.h"
-#include "CompileModel.h"
+#include "ParsingModel.h"
 #include "PropertySat.h"
 
 
@@ -42,18 +39,38 @@ get_var_range(AST *ast, parsingContext &pc)
     return result;
 }
 
-//==============================================================================
 
+//==============================================================================
 void
-CheckPropsSat(void)
+normalize_props(ParsingModel &model)
 {
     assert(GLOBAL_MODEL_AST);
     assert(GLOBAL_PROP_AST);
 
 
-    vector<AST*> props = GLOBAL_PROP_AST->get_all_ast(_PROPERTY);
-    vector<AST*> modules = GLOBAL_MODEL_AST->get_all_ast(_MODULE);
-    size_t count  = GLOBAL_PROP_AST->get_all_ast(_PROPERTY).size();
+    vector<AST*> props = model.get_props_ast()->get_all_ast(_PROPERTY);
+    vector<AST*> modules = model.get_model_ast()->get_all_ast(_MODULE);
+    size_t count = props.size();
+    for(auto &p: props){
+        AST* e = new AST(p->get_first(_EXPRESSION));
+        cout << e->toString() << endl;
+        parser::normalize_ast(&e);
+        cout << e->toString() << endl;
+    }
+}
+
+//==============================================================================
+
+void
+CheckPropsSat(ParsingModel &model)
+{
+    assert(GLOBAL_MODEL_AST);
+    assert(GLOBAL_PROP_AST);
+
+
+    vector<AST*> props = model.get_props_ast()->get_all_ast(_PROPERTY);
+    vector<AST*> modules = model.get_model_ast()->get_all_ast(_MODULE);
+    size_t count = props.size();
     map<string,pair<int,int>> ranges;
     for(const auto &it: modules){
         // get this modules variables and their ranges
@@ -107,41 +124,27 @@ int main (int argc, char** argv){
     tout << "Model file: "      << argv[1] << endl;
     tout << "Properties file: " << argv[2] << endl;
 
-    auto parser         = parser::Parser();
-    auto verifier       = parser::Verifier(); 
-    auto precompiler    = parser::Precompiler();
+    auto model = ParsingModel();
 
     ifstream mfin(argv[1],ios::binary);
     stringstream ss;
     ss << mfin.rdbuf();
-
-    parser.parse(&ss);  
-    ss.str("");
-    ss.clear();
-    ss << precompiler.pre_compile(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
-    parser.parse(&ss);
-    verifier.verify(GLOBAL_MODEL_AST,GLOBAL_PARSING_CONTEXT);
+    model.parse_model(&ss);
 
     ifstream pfin(argv[2],ios::binary);    
     ss.str("");
     ss.clear();
     ss << pfin.rdbuf();
-    parser.parseProperties(&ss);
-    ss.str("");
-    ss.clear();
-    cout << ss.str() << endl;
-    ss << precompiler.pre_compile_props();
-    cout << ss.str() << endl;
-    parser.parseProperties(&ss);
+    model.parse_properties(&ss);
 
     /* Compile into simulation model */
-    fig::CompileModel(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
+    model.compile_model();
 
     /* Sat for properties */
-    CheckPropsSat();
+    CheckPropsSat(model);
+
+    normalize_props(model);
     
-
-
     return 0;
 }
 

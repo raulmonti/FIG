@@ -281,11 +281,12 @@ AST::p_name(){
  */
 
 vector<AST*>
-AST::get_all_ast(int k){
+AST::get_all_ast(int k) const{
 
     vector<AST*> result;
     if(tkn == k){
-        result.push_back(this);
+        AST *cp = new AST(this);
+        result.push_back(cp);
     }
 	for(size_t i = 0; i < branches.size(); i++){
         vector<AST*> rec = branches[i]->get_all_ast(k);
@@ -455,6 +456,4 @@ bool
 operator!=(AST &ast1, AST &ast2){
     return !(ast1==ast2);
 }
-
-
 

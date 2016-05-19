@@ -57,11 +57,27 @@ class ModuleNetwork;
  */
 class ThresholdsBuilderSMC : public virtual ThresholdsBuilderAdaptive
 {
+	/// Min simulation length (in # of jumps) to find new thresholds
+	static constexpr unsigned MIN_SIM_EFFORT = 1u<<6u;
+	/// Max simulation length (in # of jumps) to find new thresholds
+	static constexpr unsigned MAX_SIM_EFFORT = 1u<<9u;
+
+	/// Min # of failures allowed when searching for a new threshold
+	static constexpr unsigned MIN_NUM_FAILURES = 2u;
+	/// Max # of failures allowed when searching for a new threshold
+	static constexpr unsigned MAX_NUM_FAILURES = 5u;
+
+protected:
+
+	/// Allow derived classes to halt computations via parallel threads
+	bool halted;
+
 public:
 
 	/// Default ctor
 	ThresholdsBuilderSMC() : ThresholdsBuilder("smc"),
-							 ThresholdsBuilderAdaptive()
+							 ThresholdsBuilderAdaptive(),
+							 halted(false)
 		{ /* Not much to do around here */ }
 
 protected:  // Utils for the class and its kin

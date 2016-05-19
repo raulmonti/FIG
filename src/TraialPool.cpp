@@ -45,6 +45,14 @@ using std::begin;
 using std::end;
 
 
+namespace
+{
+/// We use delicate move-semantics; keep track of the actual memory location
+static fig::Traial* TRAIALS_MEM_ADDR(nullptr);
+}
+
+
+
 namespace fig
 {
 
@@ -58,9 +66,9 @@ std::vector< Traial > TraialPool::traials_;
 
 std::forward_list< Reference< Traial > > TraialPool::available_traials_;
 
-const size_t TraialPool::initialSize = (1u) << 12;  // 4K
+const size_t TraialPool::initialSize = (1u) << 16;  // 64K
 
-const size_t TraialPool::sizeChunkIncrement = TraialPool::initialSize >> 3;  // initialSize/8
+const size_t TraialPool::sizeChunkIncrement = TraialPool::initialSize >> 5;  // initialSize/32
 
 size_t TraialPool::numVariables = 0u;
 
@@ -312,19 +320,23 @@ TraialPool::return_traials(std::forward_list< Reference< Traial > >& list)
 	}
 }
 
-
 void
 TraialPool::ensure_resources(const size_t& requiredResources)
 {
 	const size_t oldSize = traials_.size();
 	const size_t newSize = oldSize + std::max<long>(0, requiredResources - num_resources());
 
-	if (newSize == oldSize)
+	if (newSize == oldSize) {
 		return;  // nothing to do!
-	else if (oldSize == 0ul)
+	} else if (oldSize == 0ul) {
 		traials_.reserve(initialSize*4ul);  // called by TraialPool ctor[*]
-	else
+		TRAIALS_MEM_ADDR = traials_.data();
+	} else {
 		traials_.reserve(newSize);
+		if (traials_.data() != TRAIALS_MEM_ADDR)  // we're fucked
+			throw_FigException("memory corrupted after reallocation of the "
+							   "Traials vector; ABORTING");
+	}
 
 	// A reservation could have moved the memory segment: reproduce references
 	// BUG: references in users' ADTs would still be corrupted

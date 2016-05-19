@@ -36,7 +36,7 @@ namespace{
 const state
 CompileVars(const vector<AST*> varList, const parsingContext &pc)
 {
-    vector<varDec> result;
+    vector<varDef> result;
     for(auto const &it: varList){
         string name = it->get_lexeme(_NAME);
         assert(name != "");
@@ -68,10 +68,11 @@ CompileVars(const vector<AST*> varList, const parsingContext &pc)
 			// Default to smallest value when no explicit initialization
 			init = limits[0];
 		}
-        result.push_back(make_tuple(name
-                                   ,atoi(limits[0].c_str())
-                                   ,atoi(limits[1].c_str())
-								   ,atoi(init.c_str())));
+		result.push_back(
+			make_tuple(name,
+					   static_cast<STATE_INTERNAL_TYPE>(atoi(limits[0].c_str())),
+					   static_cast<STATE_INTERNAL_TYPE>(atoi(limits[1].c_str())),
+					   static_cast<STATE_INTERNAL_TYPE>(atoi(init.c_str()))));
 	}
     return result;
 }
@@ -333,24 +334,36 @@ namespace fig{
 void
 CompileModel(AST* astModel, const parsingContext &pc)
 {   
-    assert(astModel);
+	assert(astModel);
 	auto model = fig::ModelSuite::get_instance();
 	assert(!model.sealed());
-    vector<AST*> modules = astModel->get_all_ast(_MODULE);
-	for(const auto& it: modules){
-		std::shared_ptr< ModuleInstance > module(nullptr);
-		module = CompileModule(it,pc);
+
+	// Compile all modules
+	for(AST* it: astModel->get_all_ast(_MODULE)){
+		std::shared_ptr< ModuleInstance > module = CompileModule(it,pc);
+		if (nullptr == module)
+			throw_FigException("failed to compile module \""
+							   + it->get_lexeme(_NAME) + "\"");
 		model.add_module(module);
 	}
-    for(const auto &it: GLOBAL_PROP_AST->get_all_ast(_PROPERTY)){
-        std::shared_ptr< Property > prop(nullptr);
-        prop = CompileProperty(it);
-        if(prop){
-            model.add_property(prop);
-        }
-    }
+	if (model.num_modules() < 1ul)
+		throw_FigException("no modules parsed from the model file!");
 
+	// Compile all properties
+	for(AST* it: GLOBAL_PROP_AST->get_all_ast(_PROPERTY)){
+		std::shared_ptr< Property > property = CompileProperty(it);
+		if (nullptr == property)
+			throw_FigException("failed to compile property \""
+							   + it->toString() + "\"");
+		model.add_property(property);
+	}
+	if (model.num_properties() < 1ul)
+		throw_FigException("no properties parsed from the properties file!");
+
+	// Seal fig model
 	model.seal();
+	if (!fig::ModelSuite::get_instance().sealed())
+		throw_FigException("failed to seal the model!");
 }
 
 } // namespace fig

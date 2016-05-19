@@ -207,21 +207,19 @@ echo ""
 
 # PROPERTY
 
-print() { /bin/echo -en "$1" 1>&2; }
-print "S("
-
 # We need to build the M-combinations of N...
-declare -a index  # lowest  M-combinations indices
-declare -a INDEX  # highest M-combinations indices
 fac() { if [ $1 -lt 2 ]; then echo $1; else echo $(($1*`fac $(($1 - 1))`)); fi }
 comb() { echo "scale=0; `fac $1` / (`fac $2` * `fac $(($1-$2))`)" | bc -l; }
+print() { /bin/echo -en "$@" 1>&2; }
+
+print "S("
 
 # ...for Disks...
 M=$RED
 N=$D_RED
-for m in $(seq $M); do INDEX[$((M-m))]=$((N-m+1)); done;
+declare -a INDEX=($(seq $((N-M+1)) $N))  # highest M-combinations indices
 for (( d=1 ; d <= $D_NUM ; d++ )); do
-	for m in $(seq $M); do index[$((m-1))]=$m; done;
+	declare -a index=($(seq $M))  # lowest  M-combinations indices
 	i=$((M-1))
 	while [ true ]; do
 		# print this combination
@@ -232,7 +230,7 @@ for (( d=1 ; d <= $D_NUM ; d++ )); do
 		print "true) |"
 		# and compute next one
 		reset=false
-		while (( $i >= 0 && ${index[i]} >= ${INDEX[i]} )); do
+		while (( $i >= 0 )) && (( ${index[i]} >= ${INDEX[i]} )); do
 			i=$((i-1))
 			reset=true
 		done
@@ -253,9 +251,9 @@ done
 # ...for Controllers...
 M=$RED
 N=$C_RED
-for m in $(seq $M); do INDEX[$((M-m))]=$((N-m+1)); done;
+declare -a INDEX=($(seq $((N-M+1)) $N))  # highest M-combinations indices
 for (( c=1 ; c <= $C_NUM ; c++ )); do
-	for m in $(seq $M); do index[$((m-1))]=$m; done;
+	declare -a index=($(seq $M))  # lowest  M-combinations indices
 	i=$((M-1))
 	while [ true ]; do
 		# print this combination
@@ -266,7 +264,7 @@ for (( c=1 ; c <= $C_NUM ; c++ )); do
 		print "true) |"
 		# and compute next one
 		reset=false
-		while (( $i >= 0 && ${index[i]} >= ${INDEX[i]} )); do
+		while (( $i >= 0 )) && (( ${index[i]} >= ${INDEX[i]} )); do
 			i=$((i-1))
 			reset=true
 		done
@@ -287,9 +285,9 @@ done
 # ...and for Processors...
 M=$RED
 N=$P_RED
-for m in $(seq $M); do INDEX[$((M-m))]=$((N-m+1)); done;
+declare -a INDEX=($(seq $((N-M+1)) $N))  # highest M-combinations indices
 for (( p=1 ; p <= $P_NUM ; p++ )); do
-	for m in $(seq $M); do index[$((m-1))]=$m; done;
+	declare -a index=($(seq $M))  # lowest  M-combinations indices
 	i=$((M-1))
 	while [ true ]; do
 		# print this combination
@@ -300,7 +298,7 @@ for (( p=1 ; p <= $P_NUM ; p++ )); do
 		print "true) |"
 		# and compute next one
 		reset=false
-		while (( $i >= 0 && ${index[i]} >= ${INDEX[i]} )); do
+		while (( $i >= 0 )) && (( ${index[i]} >= ${INDEX[i]} )); do
 			i=$((i-1))
 			reset=true
 		done

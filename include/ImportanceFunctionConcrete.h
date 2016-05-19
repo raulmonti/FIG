@@ -74,6 +74,10 @@ protected:  // Attributes
 	/// Copy of the global state of the \ref ModuleNetwork "model"
 	mutable State< STATE_INTERNAL_TYPE > globalStateCopy;
 
+	/// Did the user specify the extreme values?    <br>
+	/// Needed by ImportanceFunctionConcreteSplit
+	bool userDefinedData;
+
 public:  // Ctor/Dtor
 
 	/// Data ctor
@@ -156,6 +160,14 @@ public:  // Utils
 								   const std::string& formulaExprStr,
 								   const std::vector<std::string>& varnames) = 0;
 
+	/// Change the currently stored importance values for their corresponding
+	/// power of 'b' > 0.<br>
+	/// So e.g. all states with importance '0' will then have importance
+	/// 1 == b^0, and all states with importance '1' will get b == b^1,
+	/// and so on and so forth.
+	/// @throw FigException if b <= 0.0
+	void exponentiate(const float b = 2.0);
+
 	/// Erase all internal importance information (free resources along the way)
 	void clear() noexcept override;
 
@@ -176,6 +188,9 @@ protected:  // Utils for derived classes
 	 * @param clauses  Property parsed as a DNF list of clauses (required only
 	 *                 by ImportanceFunctionConcreteSplit for the 'auto' strategy)
 	 *
+	 * @return Whether the assessed module is relevant to importance splitting
+	 *         (e.g. identically false for the "flat" strategy)
+	 *
 	 * @note This allocates (maybe tons of) memory internally
 	 * @note To assess again for same index with different strategy or property,
 	 *       release first the internal info through clear(const unsigned&)
@@ -186,7 +201,7 @@ protected:  // Utils for derived classes
 	 * @throw bad_alloc    if system's memory wasn't enough for internal storage
 	 * @throw FigException if there's already importance info for this index
 	 */
-	void assess_importance(const Module& module,
+	bool assess_importance(const Module& module,
 						   const Property& property,
 						   const std::string& strategy,
 						   const unsigned& index = 0,

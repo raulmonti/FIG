@@ -34,45 +34,47 @@ private:
 
 public:
 
-/**
- * @brief Ctor.
- */
-Precompiler(){};
+	/**
+	 * @brief Ctor.
+	 */
+	Precompiler(){}
 
 
-/**
- * @brief Dtor.
- */
-virtual ~Precompiler(){};
+	/**
+	 * @brief Dtor.
+	 */
+	virtual ~Precompiler(){}
 
 
-/**
- * @brief Get a reference to mConstTable.
- */
-inline const static map<string, string>&
-get_const_table()
-{
-    return mConstTable;
-}
+	/**
+	 * @brief Get a reference to mConstTable.
+	 */
+	inline const static map<string, string>&
+	get_const_table()
+	{
+		return mConstTable;
+	}
 
 
-/**
- * @brief Return a string with the model corresponding to the one in @ast,
- *        but where every constant symbol has been resolved and replaced by its
- *        value, and every constand definition has been replaced by white 
- *        spaces of equal size in number of characters.
- */
-string
-pre_compile(AST* ast, const parsingContext &pc);
+	/**
+	 * @brief Return a string with the model corresponding to the one in @ast,
+	 *        but where every constant symbol has been resolved and replaced by its
+	 *        value, and every constant definition has been replaced by white
+	 *        spaces of equal size in number of characters.
+	 */
+	string
+	pre_compile( AST* ast
+			   , const parsingContext &pc
+			   , const vector<string> &lxms);
 
 
-/**
- * @brief Replaces constants in the last parsed properties file
- * according to the last constants pre-compilation table.
- * @return String with the result of the replacement.
- */
-static string 
-pre_compile_props(void);
+	/**
+	 * @brief Replaces constants in a lexemes vector for their values according
+	 * to a translation table.
+	 * @return String with the result of the replacement.
+	 */
+	static string
+	pre_compile_props(const vector<string> &lxms, const map<string,string> &ctable);
 
 };
 
