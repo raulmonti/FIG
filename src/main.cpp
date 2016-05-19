@@ -175,7 +175,9 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
 	// Parse the file with the model description
 	parser.parse(&ss);
 	ss.str("");ss.clear();  // clear ss contents
-	ss << precompiler.pre_compile(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
+	ss << precompiler.pre_compile( GLOBAL_MODEL_AST
+                                 , GLOBAL_PARSING_CONTEXT
+                                 , parser.get_lexemes());
 	parser.parse(&ss);
 	verifier.verify(GLOBAL_MODEL_AST, GLOBAL_PARSING_CONTEXT);
 
@@ -185,7 +187,8 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
 	ss << pfin.rdbuf();
 	parser.parseProperties(&ss);
 	ss.str("");ss.clear();  // clear ss contents
-	ss << precompiler.pre_compile_props();
+	ss << precompiler.pre_compile_props( parser.get_lexemes()
+                                       , GLOBAL_CONST_TABLE);
 	parser.parseProperties(&ss);
 
 	// Compile into simulation model
