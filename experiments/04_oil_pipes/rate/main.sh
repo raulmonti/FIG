@@ -45,7 +45,7 @@ mkdir $RESULTS && unset N && \
 $ECHO "Configuring experiments for 60 pumps on pipeline"
 declare -a E_LIFE_TIME_DISTRIB_PARAM=(0.001 0.0003 0.0001)
 # for Weibull with same mean as exp: 1/0.001 = sigma*sqrt(pi/2) -> sigma = 798
-declare -a W_LIFE_TIME_DISTRIB_PARAM=(798,2659.615,7978.845)
+declare -a W_LIFE_TIME_DISTRIB_PARAM=(798 2659.615 7978.845)
 STOP_CRITERION="--stop-conf 0.80 0.4"  # Confidence coeff. and rel. precision
 SPLITTINGS="--splitting 2,3,6,11"      # Splitting values for RESTART engine
 
