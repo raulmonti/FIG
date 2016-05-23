@@ -395,8 +395,6 @@ Transition::handle_clocks(Traial& traial,
 				if (!std::isfinite(traial.clocks_[thisClock].value))
 					throw_FigException("time sampling failed for clock \"" +
 									   traial.clocks_[thisClock].name + "\"");
-				/// @todo TODO erase debug print
-				std::cerr << "¡olé!";
 			}
 		} else {
 			traial.clocks_[thisClock].value -= elapsedTime;

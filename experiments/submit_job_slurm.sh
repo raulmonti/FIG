@@ -22,10 +22,10 @@
 #SBATCH --ntasks-per-node=1
 
 ### Available cores per node
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=16
 
-### execution time. Format: days-hours:minutes:seconds -- Max: four days
-#SBATCH --time 3-23:59
+### execution time. Format: days-hours:minutes:seconds -- Max: a week
+#SBATCH --time 4-00:00
 
 ### Check invocation line
 if [ $# -ne 1 ] || [ ! -f $1 ]

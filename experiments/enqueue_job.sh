@@ -46,8 +46,8 @@ then
 	echo "[ERROR] Script file \"$FILENAME\" not found"
 	exit 1
 else
-	NAME=`echo $FILENAME | cut -d'_' -f 1`"_"
-	NAME+=`echo $FILENAME | cut -d'/' -f 2`
+	NAME=`echo ${FILENAME#./} | cut -d'_' -f 1`"_"
+	NAME+=`echo ${FILENAME#./} | cut -d'/' -f 2`
 fi
 
 # Allocate job
