@@ -74,6 +74,23 @@ namespace
 {
 
 using namespace fig_cli;
+using fig::ImportanceValue;
+
+
+/// FIG's full --version message
+const std::string versionStr(
+	"FIG tool " + std::string(fig_VERSION_STR) + "\n"
+	"Build: " + std::string(fig_CURRENT_BUILD) + " with "
+#if   !defined RANDOM_RNG_SEED && !defined PCG_RNG
+	"MT RNG (seed: " + to_string(fig::Clock::rng_seed()) + ")"
+#elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
+	"PCG RNG (seed:" + to_string(fig::Clock::rng_seed()) + ")"
+#elif !defined PCG_RNG
+	"MT RNG (random seed)");
+#else
+	"PCG RNG (random seed)");
+#endif
+);
 
 
 // TCLAP parameter holders and stuff  /////////////////////////////////////////
@@ -105,8 +122,7 @@ CmdLine cmd_("\nSample usage:\n"
 			 "using the hybrid thresholds building technique, i.e. \"hyb\", "
 			 "estimating the value of each property for this configuration "
 			 "and for each one of the three stopping conditions.",
-			 ' ',
-			 to_string(fig_VERSION_MAJOR)+"."+to_string(fig_VERSION_MINOR));
+			 ' ', versionStr);
 
 // Model file path
 UnlabeledValueArg<string> modelFile_(
@@ -149,33 +165,19 @@ SwitchArg ifunFlat(
 	"equally important. Information is kept symbolically as an algebraic "
 	"expression, thus using very little memory. Notice the flat function is "
 	"incompatible with RESTART-like simulation engines.");
-SwitchArg ifunFlatCoupled(
-	"", "flat-coupled",
-	"Use a flat importance function, i.e. consider all states in the model "
-	"equally important. Information is stored in a single, very big vector "
-	"the size of the coupled model's concrete state space, which may be huge. "
-	"Notice the flat function is incompatible with RESTART-like simulation "
-	"engines.");
-SwitchArg ifunFlatSplit(
-	"", "flat-split",
-	"Use a flat importance function, i.e. consider all states in the model "
-	"equally important. Information is stored in several, relatively small "
-	"vectors, one per module. Notice the flat function is incompatible with "
-	"RESTART-like simulation engines.");
-SwitchArg ifunAutoCoupled(
-	"", "auto-coupled",
-	"Use an automatically computed \"coupled\" importance function, "
-	"i.e. store information for the coupled model. This stores "
-	"in memory a vector the size of the coupled model's concrete state "
-	"space, which may be huge.");
-ValueArg<string> ifunAutoSplit(
-	"", "auto-split",
-	"Use an automatically computed \"split\" importance function, "
-	"i.e. store information separately for each module. This stores in "
-	"memory one small vector per module, and then uses the algebraic "
-	"expression provided to merge these \"split\" importance values.",
-	false, "",
-	"merge_fun");
+//SwitchArg ifunFlatCoupled(
+//	"", "flat-coupled",
+//	"Use a flat importance function, i.e. consider all states in the model "
+//	"equally important. Information is stored in a single, very big vector "
+//	"the size of the coupled model's concrete state space, which may be huge. "
+//	"Notice the flat function is incompatible with RESTART-like simulation "
+//	"engines.");
+//SwitchArg ifunFlatSplit(
+//	"", "flat-split",
+//	"Use a flat importance function, i.e. consider all states in the model "
+//	"equally important. Information is stored in several, relatively small "
+//	"vectors, one per module. Notice the flat function is incompatible with "
+//	"RESTART-like simulation engines.");
 ValueArg<string> ifunAdhoc(
 	"", "adhoc",
 	"Use an ad hoc importance function, i.e. assign importance to the "
@@ -184,22 +186,48 @@ ValueArg<string> ifunAdhoc(
 	"thus using very little memory.",
 	false, "",
 	"adhoc_fun");
-ValueArg<string> ifunAdhocCoupled(
-	"", "adhoc-coupled",
-	"Use an ad hoc importance function, i.e. assign importance to the "
-	"states using an user-provided algebraic function on them. "
-	"Information is stored in a single, very big vector the size of the "
-	"coupled model's concrete state space, which may be huge.",
+//ValueArg<string> ifunAdhocCoupled(
+//	"", "adhoc-coupled",
+//	"Use an ad hoc importance function, i.e. assign importance to the "
+//	"states using an user-provided algebraic function on them. "
+//	"Information is stored in a single, very big vector the size of the "
+//	"coupled model's concrete state space, which may be huge.",
+//	false, "",
+//	"adhoc_fun");
+SwitchArg ifunAutoMonolithic(
+	"", "amono",
+	"Use an automatically computed \"monolithic\" importance function, "
+	"i.e. store information for the global, parallely composed model. "
+	"This stores in memory a vector the size of the global model's "
+	"concrete state space, which may be huge.");
+SwitchArg ifunAutoMonolithicExponential(
+	"", "amono-exp",
+	"Just like \"--amono\" but store the exponentiation of the "
+	"automatically computed importance values.");
+ValueArg<string> ifunAutoCompositional(
+	"", "acomp",
+	"Use an automatically computed \"compositional\" importance function, "
+	"i.e. store information separately for each module. This stores in "
+	"memory one vector per module, and then uses the algebraic expression "
+	"provided to \"compose\" the global importance from these.",
 	false, "",
-	"adhoc_fun");
+	"composition_fun");
+ValueArg<string> ifunAutoCompositionalExponential(
+	"", "acomp-exp",
+	"Just like \"--acomp\" but store in each module the exponentiation "
+	"of its automatically computed importance.",
+	false, "",
+	"composition_fun");
 std::vector< Arg* > impFunSpecs = {
 	&ifunFlat,
-	&ifunFlatCoupled,
-	&ifunFlatSplit,
-	&ifunAutoCoupled,
-	&ifunAutoSplit,
+//	&ifunFlatCoupled,
+//	&ifunFlatSplit,
 	&ifunAdhoc,
-	&ifunAdhocCoupled
+//	&ifunAdhocCoupled
+	&ifunAutoMonolithic,
+	&ifunAutoMonolithicExponential,
+	&ifunAutoCompositional,
+	&ifunAutoCompositionalExponential,
 };
 
 // Stopping conditions (aka estimation bounds)
@@ -247,49 +275,71 @@ ValueArg<string> splittings_(
 
 // Helper routines  ///////////////////////////////////////////////////////////
 
+/// User-defined information for the importance function
+typedef std::tuple<string,             // adhoc/composition function expression
+				   ImportanceValue,    // user-defined min value
+				   ImportanceValue,    // user-defined max value
+				   ImportanceValue>    // user-defined neutral element
+	UserDefImpFun;
+
+
 /// Parse ad hoc ImportanceFunction specification details:
 /// an user-defined algebraic expression, and optionally also
 /// the minimum and maximum value the ImportanceFunction can take.
-std::tuple<string, fig::ImportanceValue, fig::ImportanceValue>
+UserDefImpFun
 parse_ifun_details(const std::string& details)
 {
-	fig::ImportanceValue min(0u), max(0u);
+	ImportanceValue min(0u), max(0u), neutralElement(0u);
 	char* err(nullptr);
 
 	// Divide fields (split by semicolons)
 	auto strValues = split(details, ';');
-	for (auto& str: strValues)
-		delete_substring(str, "\"");  // erase unescaped quotation marks
+	for (auto& str: strValues) {
+		// erase unescaped quotation marks
+		delete_substring(str, "\"");
+		delete_substring(str, "\'");
+	}
 
 	// The algebraic expression must be defined, though it's not interpreted here
 	assert(strValues.size() > 0ul);
 
-	// The extreme values are optional
+	// The extreme values and neutral element are optional
 	if (strValues.size() > 1ul) {
 		min = std::strtoul(strValues[1].data(), &err, 10);
 		if (nullptr != err && err[0] != '\0') {
-			// Mimic TCLAP 'parsing error' message style
+			// Mimic TCLAP's 'parsing error' message style
 			std::cerr << "PARSE ERROR: When parsing the algebraic expression \""
 					  << details << "\"\n";
 			std::cerr << "             After the first semicolon, the function's "
 					  << "min value should've been provided.\n\n";
-			return std::tuple<string,fig::ImportanceValue,fig::ImportanceValue>();
+			return UserDefImpFun();
 		}
 	}
 	if (strValues.size() > 2ul) {
 		max = std::strtoul(strValues[2].data(), &err, 10);
 		if (nullptr != err && err[0] != '\0') {
-			// Mimic TCLAP 'parsing error' message style
+			// Mimic TCLAP's 'parsing error' message style
 			std::cerr << "PARSE ERROR: When parsing the algebraic expression \""
 					  << details << "\"\n";
 			std::cerr << "             After the second semicolon, the function's "
 					  << "max value should've been provided.\n\n";
-			return std::tuple<string,fig::ImportanceValue,fig::ImportanceValue>();
+			return UserDefImpFun();
+		}
+	}
+	if (strValues.size() > 3ul) {
+		neutralElement = std::strtoul(strValues[3].data(), &err, 10);
+		if (nullptr != err && err[0] != '\0') {
+			// Mimic TCLAP's 'parsing error' message style
+			std::cerr << "PARSE ERROR: When parsing the algebraic expression \""
+					  << details << "\"\n";
+			std::cerr << "             After the third semicolon, the function's "
+					  << "neutral element should've been provided.\n\n";
+			return UserDefImpFun();
 		}
 	}
 
 	assert(min <= max);
-	return std::make_tuple(strValues[0], min, max);
+	return std::make_tuple(strValues[0], min, max, neutralElement);
 }
 
 
@@ -303,39 +353,56 @@ get_ifun_specification()
 	if (ifunFlat.isSet()) {
 		new(&impFunSpec) fig::ImpFunSpec("algebraic", "flat");
 
-	} else if (ifunFlatCoupled.isSet()) {
-		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "flat");
-
-	} else if (ifunFlatSplit.isSet()) {
-		new(&impFunSpec) fig::ImpFunSpec("concrete_split", "flat");
-
-	} else if (ifunAutoCoupled.isSet()) {
-		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "auto");
-
-	} else if (ifunAutoSplit.isSet()) {
-		const string mergeFun =
-				std::get<0>(parse_ifun_details(ifunAutoSplit.getValue()));
-		if (mergeFun.empty())
-			return false;  // something went wrong
-		new(&impFunSpec) fig::ImpFunSpec("concrete_split", "auto", mergeFun);
+//	} else if (ifunFlatCoupled.isSet()) {
+//		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "flat");
+//
+//	} else if (ifunFlatSplit.isSet()) {
+//		new(&impFunSpec) fig::ImpFunSpec("concrete_split", "flat");
 
 	} else if (ifunAdhoc.isSet()) {
 		const auto details = parse_ifun_details(ifunAdhoc.getValue());
 		if (std::get<0>(details).empty())
-			return false;  // something went wrong
+			return false;  // no expression? something went wrong
 		new(&impFunSpec) fig::ImpFunSpec("algebraic", "adhoc",
-										 std::get<0>(details),
-										 std::get<1>(details),
-										 std::get<2>(details));
+										 std::get<0>(details),   // expr
+										 "",                     // postProc
+										 std::get<1>(details),   // min
+										 std::get<2>(details));  // max
 
-	} else if (ifunAdhocCoupled.isSet()) {
-		const auto details = parse_ifun_details(ifunAdhocCoupled.getValue());
+//	} else if (ifunAdhocCoupled.isSet()) {
+//		const auto details = parse_ifun_details(ifunAdhocCoupled.getValue());
+//		if (std::get<0>(details).empty())
+//			return false;  // no expression? something went wrong
+//		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "adhoc",
+//										 std::get<0>(details),   // expr
+//										 std::get<1>(details),   // min
+//										 std::get<2>(details));  // max
+
+	} else if (ifunAutoMonolithic.isSet()) {
+		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "auto", "", "");
+
+	} else if (ifunAutoMonolithicExponential.isSet()) {
+		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "auto", "", "exp");
+
+	} else if (ifunAutoCompositional.isSet() ||
+			   ifunAutoCompositionalExponential.isSet()) {
+		std::string postProc;
+		UserDefImpFun details;
+		if (ifunAutoCompositional.isSet()) {
+			postProc = "";
+			details = parse_ifun_details(ifunAutoCompositional.getValue());
+		} else {
+			postProc = "exp";
+			details = parse_ifun_details(ifunAutoCompositionalExponential.getValue());
+		}
 		if (std::get<0>(details).empty())
-			return false;  // something went wrong
-		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "adhoc",
-										 std::get<0>(details),
-										 std::get<1>(details),
-										 std::get<2>(details));
+			return false;  // no expression? something went wrong
+		new(&impFunSpec) fig::ImpFunSpec("concrete_split", "auto",
+										 std::get<0>(details),   // expr
+										 postProc,
+										 std::get<1>(details),   // min
+										 std::get<2>(details),   // max
+										 std::get<3>(details));  // neutral elem
 	} else {
 		return false;
 	}
@@ -389,7 +456,7 @@ get_splitting_values()
 			if (nullptr == err || err[0] == '\0') {
 				splittings.emplace(value);
 			} else {
-				// Mimic TCLAP 'parsing error' message style
+				// Mimic TCLAP's 'parsing error' message style
 				std::cerr << "PARSE ERROR: Argument: (--"
 						  << splittings_.getName() << ")\n";
 				std::cerr << "             Invalid value given \""
@@ -417,6 +484,14 @@ namespace fig_cli
 bool
 parse_arguments(const int& argc, const char** argv, bool fatalError)
 {
+	// Called with no arguments? Print briefest help and exit gracefully
+	if (argc==1) {
+		// Mimic TCLAP's messages style
+		std::cerr << "For complete USAGE and HELP type:\n";
+		std::cerr << "   " << argv[0] << " --help\n\n";
+		exit(EXIT_SUCCESS);
+	}
+
 	try {
 		// Add all defined arguments and options to TCLAP's command line parser
 		cmd_.add(modelFile_);

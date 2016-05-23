@@ -42,12 +42,12 @@ public:
      * @param [in] pc A parsing context instance to fill in with parsed 
      *        information.
      */
-    Verifier();
+    Verifier() {}
 
     /**
      * @brief IOSA compliance verifier class destroyer.
      */
-    virtual ~Verifier(void);
+    virtual ~Verifier(void) {}
 
     /**
      * @brief  fully verify if @ast compliances with IOSA modeling.

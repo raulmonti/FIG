@@ -198,8 +198,8 @@ Traial::initialize(const ModuleNetwork& network,
 	// Initialize variables value
 	network.initial_state().copy_to_state_instance(state);
 	// Initialize clocks (reset all and then resample initials)
-    for (auto& timeout : clocks_)
-        timeout.value = 0.0f;
+	for (auto& timeout : clocks_)
+		timeout.value = 0.0f;
 	for (const auto& posCLK: network.initialClocks)
 		clocks_[posCLK.first].value = posCLK.second.sample();  // should be non-negative
 	// Initialize importance and simulation time

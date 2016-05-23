@@ -53,7 +53,7 @@ namespace
 using fig::ImportanceValue;
 using Formula = fig::ImportanceFunction::Formula;
 using ImportanceVec = fig::ImportanceFunction::ImportanceVec;
-using MergeType = fig::ImportanceFunctionConcreteSplit::MergeType;
+using CompositionType = fig::ImportanceFunctionConcreteSplit::CompositionType;
 
 /// ImportanceValue extremes: (minValue_, maxValue_, minRareValue_)
 typedef std::tuple< ImportanceValue, ImportanceValue, ImportanceValue >
@@ -107,7 +107,7 @@ bool advance(const ModulesExtremeValues& moduleValues, ImportanceVec& values)
  *        the maximal value as the second component and the minRare value as
  *        the third component.
  *
- * @param f  Algebraic formula used to merge the modules importance values
+ * @param f  Algebraic formula used to compose the modules importance values
  * @param moduleValues Extreme values (i.e. (min, max, minRare)) of every module
  *
  * @return (min,max,minRare) evaluations of 'f' for all possible combination
@@ -148,27 +148,27 @@ find_extreme_values(const Formula& f, const ModulesExtremeValues& moduleValues)
 /**
  * @brief Find extreme importance values (i.e. min, max and minRare)
  *        of the composition of the values computed for each Module,
- *        for the specified merge strategy and algebraic formula.
+ *        for the specified composition strategy and algebraic formula.
  *
- * @param f Algebraic formula used to merge the modules importance values
+ * @param f Algebraic formula used to compose the modules importance values
  * @param moduleValues Extreme values (i.e. (min, max, minRare)) of every module
- * @param mergeStrategy MergeType used to merge the modules importance values
+ * @param compStrategy CompositionType used to compose the modules importance values
  *
  * @return (min,max,minRare) evaluations of 'f' for all possible combination
  *         of importance values of the modules
  *
- * @throw FigException for invalid MergeType
+ * @throw FigException for invalid CompositionType
  */
 ExtremeValues
 find_extreme_values(const Formula& f,
 					const ModulesExtremeValues& moduleValues,
-					const MergeType& mergeStrategy)
+					const CompositionType& compStrategy)
 {
 	ImportanceValue min, max, minR;
 
-	switch (mergeStrategy) {
+	switch (compStrategy) {
 
-	case MergeType::SUMMATION:
+	case CompositionType::SUMMATION:
 		min = static_cast<ImportanceValue>(0u);
 		max = static_cast<ImportanceValue>(0u);
 		minR = static_cast<ImportanceValue>(0u);
@@ -179,7 +179,7 @@ find_extreme_values(const Formula& f,
 		}
 		break;
 
-	case MergeType::PRODUCT:
+	case CompositionType::PRODUCT:
 		min = static_cast<ImportanceValue>(1u);
 		max = static_cast<ImportanceValue>(1u);
 		minR = static_cast<ImportanceValue>(1u);
@@ -190,7 +190,7 @@ find_extreme_values(const Formula& f,
 		}
 		break;
 
-	case MergeType::MAX:
+	case CompositionType::MAX:
 		min = std::numeric_limits<ImportanceValue>::min();
 		max = std::numeric_limits<ImportanceValue>::min();
 		minR = std::numeric_limits<ImportanceValue>::min();
@@ -201,7 +201,7 @@ find_extreme_values(const Formula& f,
 		}
 		break;
 
-	case MergeType::MIN:
+	case CompositionType::MIN:
 		min = std::numeric_limits<ImportanceValue>::max();
 		max = std::numeric_limits<ImportanceValue>::max();
 		minR = std::numeric_limits<ImportanceValue>::max();
@@ -212,12 +212,12 @@ find_extreme_values(const Formula& f,
 		}
 		break;
 
-	case MergeType::AD_HOC:
+	case CompositionType::AD_HOC:
 		return find_extreme_values(f, moduleValues);
 
 	default:
-		throw_FigException("unrecognized merge function strategy: "
-						   + std::to_string(mergeStrategy));
+		throw_FigException("unrecognized composition function strategy: "
+						   + std::to_string(compStrategy));
 	}
 
 	return std::make_tuple(min, max, minR);
@@ -236,11 +236,11 @@ namespace fig
 // Static variables initialization
 
 const std::array< std::string, 4 >
-ImportanceFunctionConcreteSplit::mergeOperands =
+ImportanceFunctionConcreteSplit::compositionOperands =
 {{
 	"+", "*", "max", "min"
 	// If options here are modified revise immediately
-	// the "compose_merge_function()" class member function
+	// the "compose_comp_function()" class member function
 }};
 
 std::vector< unsigned > ImportanceFunctionConcreteSplit::globalVarsIPos;
@@ -254,9 +254,13 @@ ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 		ImportanceFunctionConcrete("concrete_split", model.global_state()),
 		modules_(model.modules),
 		numModules_(model.modules.size()),
+		isRelevant_(numModules_, false),
 		localValues_(numModules_),
 		localStatesCopies_(numModules_),
-		mergeStrategy_(MergeType::NONE),
+		compositionStrategy_(CompositionType::INVALID),
+		userMinValue_(0u),
+		userMaxValue_(0u),
+		neutralElement_(0u),
 		concreteSimulation_(true)
 {
 	bool initialize(false);  // initialize (non-const) static class members?
@@ -294,17 +298,21 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 	Event e(EventType::NONE);
     // Gather the local ImportanceValue of each module
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
-		auto& localState = localStatesCopies_[i];
+		if (!isRelevant_[i]) {
+			localValues_[i] = neutralElement_;
+		} else {
+			auto& localState = localStatesCopies_[i];
 #ifndef NDEBUG
-		localState.extract_from_state_instance(state, globalVarsIPos[i], true);
+			localState.extract_from_state_instance(state, globalVarsIPos[i], true);
 #else
-		localState.extract_from_state_instance(state, globalVarsIPos[i], false);
+			localState.extract_from_state_instance(state, globalVarsIPos[i], false);
 #endif
-        const auto& val = modulesConcreteImportance[i][localState.encode()];
-		e |= MASK(val);  // events are marked per-module but affect the global model
-        localValues_[i] = UNMASK(val);
+			const auto& val = modulesConcreteImportance[i][localState.encode()];
+			e |= MASK(val);  // events are marked per-module but affect the global model
+			localValues_[i] = UNMASK(val);
+		}
     }
-    // Combine those values with the user-defined merge function
+	// Combine those values with the user-defined composition function
 	return e | (ready() ? importance2threshold_[userFun_(localValues_)]
 						: userFun_(localValues_));
 }
@@ -320,13 +328,17 @@ ImportanceFunctionConcreteSplit::importance_of(const StateInstance& state) const
 						   "doesn't hold importance information");
 #endif
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
-		auto& localState = localStatesCopies_[i];
+		if (!isRelevant_[i]) {
+			localValues_[i] = neutralElement_;
+		} else {
+			auto& localState = localStatesCopies_[i];
 #ifndef NDEBUG
-		localState.extract_from_state_instance(state, globalVarsIPos[i], true);
+			localState.extract_from_state_instance(state, globalVarsIPos[i], true);
 #else
-		localState.extract_from_state_instance(state, globalVarsIPos[i], false);
+			localState.extract_from_state_instance(state, globalVarsIPos[i], false);
 #endif
-		localValues_[i] = UNMASK(modulesConcreteImportance[i][localState.encode()]);
+			localValues_[i] = UNMASK(modulesConcreteImportance[i][localState.encode()]);
+		}
 	}
 	return userFun_(localValues_);
 }
@@ -352,6 +364,8 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
     for (size_t i = 0ul ; i < numModules_ ; i++) {
 		out << "\nValues for module \"" << modules_[i]->name << "\":";
         const ImportanceVec& impVec = modulesConcreteImportance[i];
+		if (impVec.empty())
+			out << " <nodata>";
         for (size_t i = 0ul ; i < impVec.size() ; i++) {
             out << " (" << i;
             out << (IS_RARE_EVENT     (impVec[i]) ? "*" : "");
@@ -371,7 +385,11 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
 
 
 void
-ImportanceFunctionConcreteSplit::set_merge_fun(std::string mergeFunExpr)
+ImportanceFunctionConcreteSplit::set_composition_fun(
+	std::string compFunExpr,
+	const ImportanceValue& nullVal,
+	const ImportanceValue& minVal,
+	const ImportanceValue& maxVal)
 {
 	static std::vector< std::string > modulesNames;
 	static PositionsMap modulesMap;
@@ -384,69 +402,85 @@ ImportanceFunctionConcreteSplit::set_merge_fun(std::string mergeFunExpr)
 			modulesMap[name] = i;
 		}
 	}
-	delete_substring(mergeFunExpr, "\"");
-	if (mergeFunExpr.length() <= 3ul)  // given an operand => make it a function
-		mergeFunExpr = compose_merge_function(modulesNames, mergeFunExpr);
-	else
-		mergeStrategy_ = MergeType::AD_HOC;
-	assert(MergeType::NONE != mergeStrategy_);
+	// clean unescaped quotation marks
+	delete_substring(compFunExpr, "\"");
+	delete_substring(compFunExpr, "'");
+	if (compFunExpr.length() <= 3ul) {
+		// An operand was specified => make it a function
+		compFunExpr = compose_comp_function(modulesNames, compFunExpr);
+	} else {
+		// A fully defined function was specified
+		compositionStrategy_ = CompositionType::AD_HOC;
+		neutralElement_ = nullVal;
+	}
+	assert(CompositionType::NUM_TYPES > compositionStrategy_);
 	try {
-		userFun_.set(mergeFunExpr, modulesNames, modulesMap);
+		userFun_.set(compFunExpr, modulesNames, modulesMap);
 	} catch (std::out_of_range& e) {
-		throw_FigException("something went wrong while setting the merge "
-						   "function \"" + mergeFunExpr + "\" for auto split "
+		throw_FigException("something went wrong while setting the composition "
+						   "function \"" + compFunExpr + "\" for auto split "
 						   "importance assessment: " + e.what());
+	}
+	if (minVal < maxVal) {
+		// Set the user defined extreme values for the composition function
+		userMinValue_ = minVal;
+		userMaxValue_ = maxVal;
+		userDefinedData = true;
 	}
 }
 
 
 std::string
-ImportanceFunctionConcreteSplit::compose_merge_function(
+ImportanceFunctionConcreteSplit::compose_comp_function(
 	const std::vector< std::string >& modulesNames,
-	const std::string& mergeOperand) const
+	const std::string& compOperand)
 {
-	if (std::find(begin(mergeOperands), end(mergeOperands), trim(mergeOperand))
-			== end(mergeOperands))
-		throw_FigException("invalid merge operand passed (\"" + mergeOperand
+	if (std::find(begin(compositionOperands), end(compositionOperands), trim(compOperand))
+			== end(compositionOperands))
+		throw_FigException("invalid composition operand passed (\"" + compOperand
 						   + "\") to combine the importance values in split "
 						   "importance function. See valid options in "
-						   "ImportanceFunctionConcreteSplit::mergeOperands");
-	std::string mergeFun;
-	if (mergeOperand.length() == 1ul) {
+						   "ImportanceFunctionConcreteSplit::compositionOperands");
+	std::string compFun;
+	if (compOperand.length() == 1ul) {
 		// Must be either '+' or '*'
-		if (mergeOperand == "+")
-			mergeStrategy_ = MergeType::SUMMATION;
-		else if (mergeOperand == "*")
-			mergeStrategy_ = MergeType::PRODUCT;
-		else
-			throw_FigException("invalid merge operand passed (\""
-							   + mergeOperand + "\")");
+		if (compOperand == "+") {
+			compositionStrategy_ = CompositionType::SUMMATION;
+			neutralElement_ = static_cast<ImportanceValue>(0u);
+		} else if (compOperand == "*") {
+			compositionStrategy_ = CompositionType::PRODUCT;
+			neutralElement_ = static_cast<ImportanceValue>(1u);
+		} else
+			throw_FigException("invalid composition operand passed (\""
+							   + compOperand + "\")");
 		const std::string op(std::string(" ")
-							 .append(trim(mergeOperand))
+							 .append(trim(compOperand))
 							 .append(" "));
 		for (const auto& mName: modulesNames)
-			mergeFun.append(mName).append(op);
-		mergeFun.resize(mergeFun.size() - op.length());
+			compFun.append(mName).append(op);
+		compFun.resize(compFun.size() - op.length());
 	} else {
 		// Must be either 'max' or 'min'
-		if (mergeOperand == "max")
-			mergeStrategy_ = MergeType::MAX;
-		else if (mergeOperand == "min")
-			mergeStrategy_ = MergeType::MIN;
-		else
-			throw_FigException("invalid merge operand passed (\""
-							   + mergeOperand + "\")");
-		const std::string op(trim(mergeOperand).append("("));
+		if (compOperand == "max") {
+			compositionStrategy_ = CompositionType::MAX;
+			neutralElement_ = UNMASK(std::numeric_limits<ImportanceValue>::min());
+		} else if (compOperand == "min") {
+			compositionStrategy_ = CompositionType::MIN;
+			neutralElement_ = UNMASK(std::numeric_limits<ImportanceValue>::max());
+		} else
+			throw_FigException("invalid composition operand passed (\""
+							   + compOperand + "\")");
+		const std::string op(trim(compOperand).append("("));
 		for (const auto& mName: modulesNames)
-			mergeFun.append(op).append(mName).append(", ");
-		// mergeFun == "min(name1, min(name2, ..., min(nameN, "
-		mergeFun.resize(mergeFun.size() - op.length()
-										- modulesNames.back().length()
-										- std::string(", ").length());
-		mergeFun.append(modulesNames.back());
-		mergeFun.append(modulesNames.size()-1ul, ')');
+			compFun.append(op).append(mName).append(", ");
+		// compFun == "min(name1, min(name2, ..., min(nameN, "
+		compFun.resize(compFun.size() - op.length()
+									  - modulesNames.back().length()
+									  - std::string(", ").length());
+		compFun.append(modulesNames.back());
+		compFun.append(modulesNames.size()-1ul, ')');
 	}
-	return mergeFun;
+	return compFun;
 }
 
 
@@ -455,7 +489,7 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 												   const std::string& strategy)
 {
 	if ("flat" == strategy)
-		set_merge_fun("+");
+		set_composition_fun("+");
 	if (userFun_.expression().length() < numModules_)
 		throw_FigException("can't assess importance in function \"" + name()
 						   + "\" since current merging function is invalid (\""
@@ -466,44 +500,56 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 
 	// Assess each module importance individually from the rest
 	concreteSimulation_ = false;
-	unsigned numRareRelevantModules(0u);
+	unsigned numRelevantModules(0u);
 	propertyClauses.populate(prop);
 	ModulesExtremeValues moduleValues(numModules_);
 	for (size_t index = 0ul ; index < numModules_ ; index++) {
-		ImportanceFunctionConcrete::assess_importance(*modules_[index],
-													  prop,
-													  strategy,
-													  index,
-													  propertyClauses);
+		const bool moduleIsRelevant =
+			ImportanceFunctionConcrete::assess_importance(*modules_[index],
+														  prop,
+														  strategy,
+														  index,
+														  propertyClauses);
 		assert(minValue_ <= initialValue_);
 		assert(initialValue_ <= minRareValue_);
 		assert(minRareValue_ <= maxValue_);
 		moduleValues[modules_[index]->name] =
 				std::make_tuple(minValue_, maxValue_, minRareValue_);
-		numRareRelevantModules += minValue_ < maxValue_ ? 1u : 0u;
+		isRelevant_[index] = moduleIsRelevant;
+		numRelevantModules += moduleIsRelevant ? 1u : 0u;
 	}
 	hasImportanceInfo_ = true;
 	strategy_ = strategy;
 
 	// If the rare event depends on the state of more than one module,
 	// global rarity can't be encoded split in vectors for later simulations
-	concreteSimulation_ = "flat" != strategy && numRareRelevantModules < 2u;
+	concreteSimulation_ = numRelevantModules < 2u;
 
 	// Find extreme importance values for current assessment
-	initialValue_ = importance_of(systemInitialValuation);
 	if ("flat" == strategy) {
-		minValue_ = initialValue_;
-		maxValue_ = initialValue_;
-		minRareValue_ = initialValue_;
-	} else if (globalStateCopy.concrete_size().upper() == 0ul &&
-			   globalStateCopy.concrete_size().lower() < (1ul<<20ul)) {
+		// Little to find out
+		minValue_ = importance_of(systemInitialValuation);
+		maxValue_ = minValue_;
+		minRareValue_ = minValue_;
+		initialValue_ = minValue_;
+
+	} else if (userMinValue_ < userMaxValue_) {
+		// Trust blindly in the user-defined extreme values
+		minValue_ = userMinValue_;
+		maxValue_ = userMaxValue_;
+		minRareValue_ = userMinValue_;  // play it safe
+		initialValue_ = userMinValue_;
+
+	} else if (globalStateCopy.concrete_size() < (1ul<<20ul)) {
 		// We can afford a full-state-space scan
 		find_extreme_values(globalStateCopy, prop);
+
 	} else {
 		// Concrete state space is too big, resort to faster ways
 		std::tie(minValue_, maxValue_, minRareValue_) =
-				::find_extreme_values(userFun_, moduleValues, mergeStrategy_);
+				::find_extreme_values(userFun_, moduleValues, compositionStrategy_);
 	}
+
 	assert(minValue_ <= initialValue_);
 	assert(initialValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);

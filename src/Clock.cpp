@@ -46,31 +46,30 @@ namespace
 typedef  fig::CLOCK_INTERNAL_TYPE     return_t;
 typedef  fig::DistributionParameters  params_t;
 
-#ifndef NDEBUG
-  const unsigned rngSeed(1234567803u);  // repeatable outcome
+/// RNG seed selection:
+/// \ifnot RANDOM_RNG_SEED
+///   deterministic
+/// \else
+///   taken from the system's random device
+/// \endif
+#if   !defined RANDOM_RNG_SEED && !defined PCG_RNG
+  const unsigned long rngSeed(std::mt19937_64::default_seed);
+#elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
+  const unsigned long rngSeed(0xCAFEF00DD15EA5E5ull);  // PCG's default seed
+#elif  defined RANDOM_RNG_SEED && !defined PCG_RNG
+  unsigned long rngSeed(std::random_device{}());
 #else
-  const unsigned rngSeed(std::random_device{}());
+  pcg_extras::seed_seq_from<std::random_device> rngSeed;
 #endif
 
-#ifndef DOUBLE_TIME_PRECISION
-  std::mt19937 MTrng(rngSeed);
-  pcg32 PCGrng(rngSeed);
-#else
-  std::mt19937_64 MTrng(rngSeed);
-  pcg64 PCGrng(rngSeed);
-#endif
-
+/// \ifnot PCG_RNG Mersenne-Twister RNG \else PCG family RNG \endif
 #ifndef PCG_RNG
-  /// Mersenne-Twister RNG
-  auto rng = MTrng;
+  std::mt19937_64 rng(rngSeed);
+#elif !defined NDEBUG
+  pcg32_k16384 rng(rngSeed);
 #else
-  /// PCG family RNG
-  auto rng = PCGrng;
+  pcg64_oneseq rng(rngSeed);
 #endif
-
-std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uniform01(0.0 , 1.0);
-std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > exponential1(1.0);
-std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal01(0.0 , 1.0);
 
 
 /// Random deviate ~ Uniform[a,b]<br>
@@ -156,7 +155,7 @@ return_t gamma(const params_t& params)
 return_t erlang(const params_t& params)
 {
 	const int k(std::round(params[0]));
-    std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > erlang(k, 1.0/params[1]);
+	std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > erlang(k, 1.0/params[1]);
 	return erlang(rng);
 }
 
@@ -167,13 +166,28 @@ return_t erlang(const params_t& params)
 namespace fig
 {
 
-unsigned Clock::rng_seed() noexcept { return rngSeed; }
-
-#ifndef NDEBUG
-void Clock::seed_rng() { rng.seed(rngSeed); }
+unsigned long Clock::rng_seed() noexcept
+{
+#if !defined RANDOM_RNG_SEED || !defined RNG_PCG
+	return rngSeed;
 #else
-void Clock::seed_rng() { rng.seed(std::random_device{}()); }
+	// return changing seeds, to make the user realize how's it coming
+	typedef pcg_extras::seed_seq_from<std::random_device> SeedSeq;
+	return pcg_extras::generate_one<size_t>(std::forward<SeedSeq>(rngSeed));
 #endif
+}
+
+void Clock::seed_rng()
+{
+#ifndef RANDOM_RNG_SEED
+	rng.seed(rngSeed);  // repeat sequence
+#elif !defined PCG_RNG
+	rngSeed = std::random_device{}();
+	rng.seed(rngSeed);
+#else
+	rng.seed(rngSeed);  // rngSeed is pcg_extras::seed_seq_from<std::random_device>
+#endif
+}
 
 std::unordered_map< std::string, Distribution > distributions_list =
 {

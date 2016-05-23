@@ -13,7 +13,7 @@
 ### (even though they look like bash comments)
 
 ### Job queue to use (options: capacity, capability, gpu, debug)
-#SBATCH --partition=capacity
+#SBATCH --partition=debug
 
 ### Amount of nodes to use
 #SBATCH --nodes=1
@@ -22,10 +22,10 @@
 #SBATCH --ntasks-per-node=1
 
 ### Available cores per node
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=4
 
-### execution time. Format: days-hours:minutes:seconds -- Max: a week
-#SBATCH --time 4-00:00
+### Execution time. Format: days-hours:minutes:seconds -- Max: two minutes
+#SBATCH --time 0-00:01:59
 
 ### Check invocation line
 if [ $# -ne 1 ] || [ ! -f $1 ]

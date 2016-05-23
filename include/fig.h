@@ -44,8 +44,8 @@
 //
 //       Any bugs, issues, comments or life-threats can (and ought to!) be sent
 //     to the above specified e-mail addresses of the authors. This is by all
-//     means "work in progress", so expect many updates in the near future. And
-//     remember, we do give a FIG!
+//     means "work in progress" so expect many updates in the near future and
+//     remember: we do give a FIG!
 //
 //------------------------------------------------------------------------------
 //

@@ -1,65 +1,65 @@
 #!/bin/bash
 #
 # Author:  Carlos E. Budde
-# Date:    22.03.2016
+# Date:	22.03.2016
 # License: GPLv3
 #
 
 set -e
-ECHO=`echo "/bin/echo -e"`
-THIS_DIR=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
+show(){ /bin/echo -e "$@"; }
+CWD=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
 
 
 # Probe resources
-source "$THIS_DIR/../../fig_utils.sh" || \
-	($ECHO "[ERROR] Couldn't find fig_utils.sh" && exit 1)
+source "$CWD/../../fig_utils.sh" || \
+	(show "[ERROR] Couldn't find fig_utils.sh" && exit 1)
 if [[ "$(type -t build_fig)" != "function" ]]
 then
-	$ECHO "[ERROR] Bash function \"build_fig\" is undefined"
+	show "[ERROR] Bash function \"build_fig\" is undefined"
 	exit 1;
 elif [[ "$(type -t copy_model_file)" != "function" ]]
 then
-	$ECHO "[ERROR] Bash function \"copy_model_file\" is undefined"
+	show "[ERROR] Bash function \"copy_model_file\" is undefined"
 	exit 1;
 fi
 
 
 # Build project
-$ECHO "Building FIG"
-build_fig $THIS_DIR
-if [ ! -f ./fig ]; then $ECHO "[ERROR] Something went wrong"; exit 1; fi
+show "Building FIG"
+build_fig $CWD
+if [ ! -f ./fig ]; then show "[ERROR] Something went wrong"; exit 1; fi
 
 
 # Prepare experiment's directory and files
-$ECHO "Preparing experiments environment:"
+show "Preparing experiments environment:"
 MODEL_FILE="queues_with_breakdowns.sa"
-copy_model_file $MODEL_FILE $THIS_DIR && \
-	$ECHO "  · using model file $MODEL_FILE"
+copy_model_file $MODEL_FILE $CWD && \
+	show "  · using model file $MODEL_FILE"
 PROPS_FILE="queues_with_breakdowns.pp"
-$ECHO 'P( !reset U lost )' > $PROPS_FILE && \
-	$ECHO "  · using properties file $PROPS_FILE"
+echo 'P( !reset U lost )' > $PROPS_FILE && \
+	show "  · using properties file $PROPS_FILE"
 N=0; RESULTS="results_$N"
 while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
 mkdir $RESULTS && unset N && \
-	$ECHO "  · results will be stored in subdir \"${RESULTS}\""
+	show "  · results will be stored in subdir \"${RESULTS}\""
 
 
 # Experiments configuration
-$ECHO "Configuring experiments"
+show "Configuring experiments"
 declare -a BUFFER_CAPACITIES=(20 40 80 160)
-STOP_CRITERION="--stop-conf 0.90 0.3"  # Confidence coeff. and rel. precision
-SPLITTINGS="--splitting 2,3,6"         # Splitting values for RESTART engine
+STOP_CRITERION="--stop-conf 0.90 0.2"  # Confidence coeff. and rel. precision
+SPLITTINGS="--splitting 2,3,6"		   # Splitting values for RESTART engine
 STANDARD_MC="-e nosplit --flat $STOP_CRITERION"
 RESTART_ADHOC="--adhoc buf $STOP_CRITERION $SPLITTINGS"
-RESTART_AUTO_COUPLED="--auto-coupled $STOP_CRITERION $SPLITTINGS"
-RESTART_AUTO_SPLIT="--auto-split \"+\" $STOP_CRITERION $SPLITTINGS"
+RESTART_AMONO="--amono $STOP_CRITERION $SPLITTINGS"
+RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION $SPLITTINGS"
 
 
 # Launch experiments
-$ECHO "Launching experiments:"
+show "Launching experiments:"
 for k in "${BUFFER_CAPACITIES[@]}"
 do
-	$ECHO -n "  · for buffer capacity = $k..."
+	show -n "  · for buffer capacity = $k..."
 
 	# Modify model file to fit this experiment
 	MODEL_FILE_K=${MODEL_FILE%.sa}"_${k}.sa"
@@ -67,36 +67,35 @@ do
 	K_DEF="^const${BLANK}int${BLANK}K${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
 	sed -e "s/${K_DEF}/const int K = $k;/1" $MODEL_FILE > $MODEL_FILE_K
 	LOG=${RESULTS}/queues_with_breakdowns_k${k}
-	EXE=`$ECHO "timeout -s 15 10h ./fig $MODEL_FILE_K $PROPS_FILE"`
+	EXE=`/bin/echo -e "timeout -s 15 18h ./fig $MODEL_FILE_K $PROPS_FILE"`
 
-	# Standard Monte Carlo
-	poll_till_free; $ECHO -n " MC"
-	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
+	# RESTART with with monolithic (auto ifun)
+	poll_till_free "queues_with_breakdowns"; show -n " AM"
+	$EXE $RESTART_AMONO 1>>${LOG}"_AM.out" 2>>${LOG}"_AM.err" &
+
+	# RESTART with compositional (auto ifun)
+	poll_till_free "queues_with_breakdowns"; show -n ", AC"
+	$EXE $RESTART_ACOMP 1>>${LOG}"_AC.out" 2>>${LOG}"_AC.err" &
 
 	# RESTART with ad hoc
-	poll_till_free; $ECHO -n ", AH"
+	poll_till_free "queues_with_breakdowns"; show -n ", AH"
 	$EXE $RESTART_ADHOC 1>>${LOG}"_AH.out" 2>>${LOG}"_AH.err" &
 
-	# RESTART with auto (coupled)
-	poll_till_free; $ECHO -n ", AC"
-	$EXE $RESTART_AUTO_COUPLED 1>>${LOG}"_AC.out" 2>>${LOG}"_AC.err" &
+	# Standard Monte Carlo
+	poll_till_free "queues_with_breakdowns"; show -n ", MC"
+	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
 
-	# RESTART with auto (split)
-	poll_till_free; $ECHO -n ", AS"
-	$EXE $RESTART_AUTO_SPLIT 1>>${LOG}"_AS.out" 2>>${LOG}"_AS.err"  &
-
-	$ECHO "... done"
+	show "... done"
 done
 
 
 # Wait till termination
-$ECHO "Waiting for all experiments to finish"
-declare -a A=(. :) ; N=0
-RUNNING=`$ECHO "pgrep -u $(whoami) fig"`
-while [ -n "`$RUNNING`" ]; do $ECHO -n ${A[$N]}; N=$(((N+1)%2)); sleep 9; done
-unset A N
-$ECHO
-$ECHO "All experiments finished"
+show -n "Waiting for all experiments to finish..."
+wait
+show " done"
+EXE_WTIME=$(format_seconds $SECONDS)  
+show "Script execution walltime was $EXE_WTIME"
+show "Results are in ${RESULTS}"
 
 
 exit 0

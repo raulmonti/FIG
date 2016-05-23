@@ -114,6 +114,8 @@ copy_model_file()
 
 
 # Poll until less than MAXJOBSN jobs called 'fig' are running
+# Optionally takes part of the invocation command as single argument
+# for thinner filtering
 poll_till_free() {
 	if [ -z "$MAXJOBSN" ]
 	then
@@ -123,13 +125,38 @@ poll_till_free() {
 	fi
 	# do-while syntax sugar for bash
 	while
-		local RUNNING=`pgrep -u "$(whoami)" fig | wc -l`
+#		local RUNNING=`pgrep -u "$(whoami)" fig | wc -l`
+		local RUNNING=`ps -fC "fig" | grep "$1" | wc -l`
 		[ $RUNNING -ge $JOBSBOUND ]
 	do
 		sleep 10s
 	done
 }
 
+
+# Print passed number of seconds in the format dd-hh:mm:ss
+# where 'dd' are days, 'hh' are hours, 'mm' are minutes and 'ss' are seconds
+# e.g. argument 3723 (seconds) is printed as "0-01:02:03"
+# Note: bash, ksh and zsh define the $SECONDS variable that counts the
+#       number of seconds since the shell was started
+# See: http://unix.stackexchange.com/a/52318
+format_seconds()
+{
+	local S_DAY=86400  # seconds in a day
+	local S_HOUR=3600  # seconds in an hour
+	local S_MINUTE=60  # seconds in a minute
+	if [ $# -ne 1 ]
+	then
+		echo "[ERROR] Single integer argument (seconds) required"
+		return 1
+	else
+		local DAYS=$(($1 / S_DAY))
+		local HOURS=$((($1 % S_DAY) / S_HOUR))
+		local MINUTES=$((($1 % S_HOUR) / S_MINUTE))
+		printf "%d-%02d:%02d:%02d" $DAYS $HOURS $MINUTES $(($1%S_MINUTE))
+		return 0
+	fi
+}
 
 return 0
 

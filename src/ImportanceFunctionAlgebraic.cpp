@@ -212,8 +212,7 @@ ImportanceFunctionAlgebraic::set_formula(
 		maxValue_ = maxVal;
 		minRareValue_ = std::max(initialValue_, minValue_);  // play it safe
 
-	} else if (gState.concrete_size().upper() == 0ul &&
-			   gState.concrete_size().lower() < (1ul<<20ul)) {
+	} else if (gState.concrete_size() < (1ul<<20ul)) {
 		// We can afford a full-state-space scan
 		find_extreme_values(gState, property);
 

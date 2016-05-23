@@ -1,2 +1,3 @@
 # Skip system-specific libraries here pasted
 *.so*
+*.a*

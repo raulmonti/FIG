@@ -65,20 +65,20 @@ class ImportanceFunctionConcreteSplit : public ImportanceFunctionConcrete
 {
 public:
 
-	/// Valid operands for combining the "split modules" importance values
-	static const std::array< std::string, 4 > mergeOperands;
-
-	/// Codes for the combination/merge strategy
-	/// of the "split modules" importance values
-	enum MergeType
+	/// Codes for the composition strategy of the modules importance values
+	enum CompositionType
 	{
-		NONE,
-		SUMMATION,  // m1 + m2 + ··· + mN
-		PRODUCT,    // m1 * m2 * ··· * mN
-		MAX,        // max(m1, m2, ..., mN)
-		MIN,        // min(m1, m2, ..., mN)
-		AD_HOC      // user defined algebraic formula
+		SUMMATION = 0,  // m1 + m2 + ··· + mN
+		PRODUCT,        // m1 * m2 * ··· * mN
+		MAX,            // max(m1, m2, ..., mN)
+		MIN,            // min(m1, m2, ..., mN)
+		AD_HOC,         // user defined algebraic formula
+		NUM_TYPES,  // must be defined before last
+		INVALID     // must be defined last
 	};
+
+	/// Valid operands interpreted as a composition strategy
+	static const std::array< std::string, 4 > compositionOperands;
 
 private:
 
@@ -87,6 +87,9 @@ private:
 
 	/// Number of \ref ModuleInstance "modules" in the network
 	const size_t numModules_;
+
+	/// Whether each module is relevant for importance computation
+	std::vector<bool> isRelevant_;
 
 	/// Position, in a global system state, of the first variable of each module
 	static std::vector< unsigned > globalVarsIPos;
@@ -98,8 +101,17 @@ private:
 	/// Copy of the local states of the system \ref ModuleInstance "modules"
 	mutable std::vector< State< STATE_INTERNAL_TYPE > > localStatesCopies_;
 
-    /// Strategy used to merge the "split modules" importance values
-    mutable MergeType mergeStrategy_;
+    /// Strategy to used for composing the importance values of the modules
+    CompositionType compositionStrategy_;
+
+    /// (Optional) User-defined minimal value of the composition function
+    ImportanceValue userMinValue_;
+
+    /// (Optional) User-defined maximal value of the composition function
+    ImportanceValue userMaxValue_;
+
+    /// Value of the neutral element for the composition strategy chosen
+    ImportanceValue neutralElement_;
 
     /// Property to check, parsed as a DNF formula
     parser::DNFclauses propertyClauses;
@@ -142,16 +154,26 @@ public:  // Accessors
 public:  // Utils
 
 	/**
-	 * @brief Set the function to use for combining the stored importance
-	 *        values of the \ref ModuleInstance "split modules".
-	 * @param mergeFunExpr Algebraic expression to use as merging function.
-	 *                     This can either be a single operand which would be
-	 *                     applied to all modules (e.g. "max", "+"), or a fully
-	 *                     defined function with explicit module names
-	 *                     (e.g. "5*Queue1+Queue2")
+	 * @brief Set the function to use for composing the stored importance
+	 *        values of the \ref ModuleInstance "modules".
+	 *
+	 *        Either an operand (any from compositionOperands, e.g. "max", "+")
+	 *        or a fully defined algebraic expression with explicit module names
+	 *        (e.g. "5*Queue1+Queue2") can be specified as composition function.
+	 *        The operands are associative and will be applied to all modules.
+	 *
+	 * @param compFunExpr Algebraic expression to use as composition function.
+	 * @param nullVal Neutral element of the algebraic expression, needed only
+	 *                for fully defined functions (i.e. not for operands)
+	 * @param minVal  Optional user-defined min value of the algebraic expression
+	 * @param maxVal  Optional user-defined max value of the algebraic expression
+	 *
 	 * @throw FigException if invalid or badly formatted function expression
 	 */
-	void set_merge_fun(std::string mergeFunExpr);
+	void set_composition_fun(std::string compFunExpr,
+							 const ImportanceValue& nullVal = 0u,
+							 const ImportanceValue& minVal  = 0u,
+							 const ImportanceValue& maxVal  = 0u);
 
 	void assess_importance(const Property& prop,
 						   const std::string& strategy = "flat") override;
@@ -162,7 +184,7 @@ private:
 	/// currently unavailable
 	/// @deprecated The idea is too complicated and little rewarding:
 	///   it'd require the user's algebraic formula for importance computation
-	///   *plus* another algebraic formula to merge each module's importance.
+	///   *plus* another algebraic formula to compose the modules importance.
 	///   Symbolic storage (i.e. ImportanceFunctionAlgebraic) is all the
 	///   'adhoc' importance assessment strategy needs. Go bother them.
 	inline void assess_importance(const Property&,
@@ -173,16 +195,17 @@ private:
 private:  // Class utils
 
 	/**
-	 * Compose a merge function which combines all modules' importance
-	 * using given (valid) algebraic operand
+	 * Compose a composition function (pun intended) combining all modules'
+	 * importance using given (valid) algebraic operand
 	 * @param modulesNames Names of all \ref ModuleInstance "modules"
-	 * @param mergeOperand Algebraic operand to use
-	 * @throw FigException if 'mergeOperand' is not in mergeOperands
-	 * @see mergeOperands
+	 * @param compOperand Algebraic operand to use
+	 * @throw FigException if 'compOperand' is not in compositionOperands
+	 * @note Updates the internal fields 'compositionStrategy_' and 'neutralElement_'
+	 * @see compositionOperands
 	 */
-	std::string compose_merge_function(
+	std::string compose_comp_function(
 			const std::vector<std::string>& modulesNames,
-			const std::string& mergeOperand) const;
+			const std::string& compOperand);
 };
 
 } // namespace fig
