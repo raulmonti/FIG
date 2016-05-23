@@ -52,12 +52,14 @@ SPLITTINGS="--splitting 3,6,11"        # Splitting values for RESTART engine
 MIN_OC="2-min(2-c11f-c12f,min(2-c21f-c22f,min(2-p11f-p12f,min(2-p21f-p22f,min(2-d11f-d12f-d13f-d14f,min(2-d21f-d22f-d23f-d24f,min(2-d31f-d32f-d33f-d34f,min(2-d41f-d42f-d43f-d44f,min(2-d51f-d52f-d53f-d54f,2-d61f-d62f-d63f-d64f)))))))));0;2"
 COMP_FUN1="\"+\""
 COMP_FUN2="'(Disk11*Disk12*Disk13*Disk14*Disk21*Disk22*Disk23*Disk24*Disk31*Disk32*Disk33*Disk34*Disk41*Disk42*Disk43*Disk44*Disk51*Disk52*Disk53*Disk54*Disk61*Disk62*Disk63*Disk64)+(Controller11*Controller12*Controller21*Controller22)+(Processor11*Processor12*Processor21*Processor22);3;16777248;1'"
-COMP_FUN3="'(Disk11*Disk12)+(Disk11*Disk13)+(Disk11*Disk14)+(Disk12*Disk13)+(Disk12*Disk14)+(Disk13*Disk14)+(Disk21*Disk22)+(Disk21*Disk23)+(Disk21*Disk24)+(Disk22*Disk23)+(Disk22*Disk24)+(Disk23*Disk24)+(Disk31*Disk32)+(Disk31*Disk33)+(Disk31*Disk34)+(Disk32*Disk33)+(Disk32*Disk34)+(Disk33*Disk34)+(Disk41*Disk42)+(Disk41*Disk43)+(Disk41*Disk44)+(Disk42*Disk43)+(Disk42*Disk44)+(Disk43*Disk44)+(Disk51*Disk52)+(Disk51*Disk53)+(Disk51*Disk54)+(Disk52*Disk53)+(Disk52*Disk54)+(Disk53*Disk54)+(Disk61*Disk62)+(Disk61*Disk63)+(Disk61*Disk64)+(Disk62*Disk63)+(Disk62*Disk64)+(Disk63*Disk64)+(Controller11*Controller12)+(Controller21*Controller22)+(Processor11*Processor12)+(Processor21*Processor22);0;160;1'"
+COMP_FUN3="'(Disk11*Disk12)+(Disk11*Disk13)+(Disk11*Disk14)+(Disk12*Disk13)+(Disk12*Disk14)+(Disk13*Disk14)+(Disk21*Disk22)+(Disk21*Disk23)+(Disk21*Disk24)+(Disk22*Disk23)+(Disk22*Disk24)+(Disk23*Disk24)+(Disk31*Disk32)+(Disk31*Disk33)+(Disk31*Disk34)+(Disk32*Disk33)+(Disk32*Disk34)+(Disk33*Disk34)+(Disk41*Disk42)+(Disk41*Disk43)+(Disk41*Disk44)+(Disk42*Disk43)+(Disk42*Disk44)+(Disk43*Disk44)+(Disk51*Disk52)+(Disk51*Disk53)+(Disk51*Disk54)+(Disk52*Disk53)+(Disk52*Disk54)+(Disk53*Disk54)+(Disk61*Disk62)+(Disk61*Disk63)+(Disk61*Disk64)+(Disk62*Disk63)+(Disk62*Disk64)+(Disk63*Disk64)+(Controller11*Controller12)+(Controller21*Controller22)+(Processor11*Processor12)+(Processor21*Processor22)-40;0;120;1'"
+COMP_FUN4="'(Disk11*Disk12*Disk13*Disk14)+(Disk21*Disk22*Disk23*Disk24)+(Disk31*Disk32*Disk33*Disk34)+(Disk41*Disk42*Disk43*Disk44)+(Disk51*Disk52*Disk53*Disk54)+(Disk61*Disk62*Disk63*Disk64)+(Controller11*Controller12)+(Controller21*Controller22)+(Processor11*Processor12)+(Processor21*Processor22)-10;0;102;1'"
 STANDARD_MC="-e nosplit --flat $STOP_CRITERION"
 RESTART_ADHOC="--adhoc $MIN_OC $STOP_CRITERION $SPLITTINGS -t fix"
 RESTART_ACOMP1="--acomp $COMP_FUN1 $STOP_CRITERION $SPLITTINGS -t fix"
 RESTART_ACOMP2="--acomp-exp $COMP_FUN2 $STOP_CRITERION $SPLITTINGS -t fix"
 RESTART_ACOMP3="--acomp-exp $COMP_FUN3 $STOP_CRITERION $SPLITTINGS -t fix"
+RESTART_ACOMP4="--acomp-exp $COMP_FUN4 $STOP_CRITERION $SPLITTINGS -t fix"
 
 
 # Launch experiments
@@ -73,27 +75,31 @@ do
 	bash $EXP_GEN 2 6 2 2 $mft 1>$MODEL_FILE 2>$PROPS_FILE
 	EXE=`/bin/echo -e "timeout -s 15 18h ./fig $MODEL_FILE $PROPS_FILE"`
 
-	# RESTART with --amono experiments are omitted
+	# RESTART with monolithic (auto ifun) experiments are omitted
 	# since the importance vector wouldn't fit in memory
 
-	# RESTART with --acomp, version 1
-	poll_till_free; show -n " AC1"
+	# RESTART with compositional (auto ifun), version 1
+	poll_till_free "database"; show -n " AC1"
 	$EXE $RESTART_ACOMP1 1>>${LOG}"_AC1.out" 2>>${LOG}"_AC1.err" &
 
-	# RESTART with --acomp, version 2
-	poll_till_free; show -n ", AC2"
+	# RESTART with compositional (auto ifun), version 2
+	poll_till_free "database"; show -n ", AC2"
 	$EXE $RESTART_ACOMP2 1>>${LOG}"_AC2.out" 2>>${LOG}"_AC2.err" &
 
-	# RESTART with --acomp, version 3
-	poll_till_free; show -n ", AC3"
+	# RESTART with compositional (auto ifun), version 3
+	poll_till_free "database"; show -n ", AC3"
 	$EXE $RESTART_ACOMP3 1>>${LOG}"_AC3.out" 2>>${LOG}"_AC3.err" &
 
+	# RESTART with compositional (auto ifun), version 4
+	poll_till_free "database"; show -n ", AC4"
+	$EXE $RESTART_ACOMP4 1>>${LOG}"_AC4.out" 2>>${LOG}"_AC4.err" &
+
 	# RESTART with ad hoc
-	poll_till_free; show -n ", AH"
+	poll_till_free "database"; show -n ", AH"
 	$EXE $RESTART_ADHOC 1>>${LOG}"_AH.out" 2>>${LOG}"_AH.err" &
   
 	# Standard Monte Carlo
-	poll_till_free; show -n ", MC"
+	poll_till_free "database"; show -n ", MC"
 	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
 
 	show "... done"

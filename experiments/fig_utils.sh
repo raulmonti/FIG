@@ -114,6 +114,8 @@ copy_model_file()
 
 
 # Poll until less than MAXJOBSN jobs called 'fig' are running
+# Optionally takes part of the invocation command as single argument
+# for thinner filtering
 poll_till_free() {
 	if [ -z "$MAXJOBSN" ]
 	then
@@ -123,7 +125,8 @@ poll_till_free() {
 	fi
 	# do-while syntax sugar for bash
 	while
-		local RUNNING=`pgrep -u "$(whoami)" fig | wc -l`
+#		local RUNNING=`pgrep -u "$(whoami)" fig | wc -l`
+		local RUNNING=`ps -fC "fig" | grep "$1" | wc -l`
 		[ $RUNNING -ge $JOBSBOUND ]
 	do
 		sleep 10s

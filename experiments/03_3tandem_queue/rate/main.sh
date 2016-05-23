@@ -36,7 +36,7 @@ MODEL_FILE="3tandem_queue.sa"
 copy_model_file $MODEL_FILE $THIS_DIR && \
 	show "  · using model file $MODEL_FILE"
 PROPS_FILE="3tandem_queue.pp"
-show 'S( q3 >= L )  // "rate"' > $PROPS_FILE && \
+echo 'S( q3 >= L )  // "rate"' > $PROPS_FILE && \
 	show "  · using properties file $PROPS_FILE"
 N=0; RESULTS="results_$N"
 while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
@@ -47,7 +47,7 @@ mkdir $RESULTS && unset N && \
 # Experiments configuration
 show "Configuring experiments"
 #declare -a OCUPA=(18  13  20  16  24  21)  # estimates ~ 10^-15
-declare -a OCUPA=(12   8  12  10  14  12)  # estimates ~ 10^-9
+declare -a OCUPA=(11   8  12   9  14  13)  # estimates ~ 10^-9
 declare -a ALPHA=( 2   3   2   3   2   3)
 declare -a BETA1=( 3 4.5   6   9  10  15)
 declare -a BETA2=( 4   6   4   6   8  12)
@@ -68,7 +68,7 @@ RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION -t fix $SPLITTINGS"
 
 # Launch experiments
 show "Launching experiments:"
-for (( i=0 ; i < NUM_EXPERIMENTS ; i++ ))
+for (( i=0 ; i < NUM_EXPERIMENTS ; i-- ))
 do
 	L=${OCUPA[i]}
 	show -n "  · for threshold occupancy = $L..."
@@ -91,26 +91,26 @@ do
 	sed -i -e "s/${B2_USE}/= erlang(alpha,${BETA2[i]}));/g" $MODEL_FILE_L
 	sed -i -e "s/${B3_USE}/= erlang(alpha,${BETA3[i]}));/g" $MODEL_FILE_L
 	LOG=${RESULTS}/3tandem_queue_L${L}
-	EXE=`/bin/echo -e "timeout -s 15 10h ./fig $MODEL_FILE_L $PROPS_FILE"`
+	EXE=`/bin/echo -e "timeout -s 15 14h ./fig $MODEL_FILE_L $PROPS_FILE"`
 
 	# RESTART with monolithic (auto ifun)
-	poll_till_free; show -n " AM"
+	poll_till_free "3tandem"; show -n " AM"
 	$EXE $RESTART_AMONO 1>>${LOG}"_AM.out" 2>>${LOG}"_AM.err" &
 
 	# RESTART with compositional (auto ifun)
-	poll_till_free; show -n ", AC"
+	poll_till_free "3tandem"; show -n ", AC"
 	$EXE $RESTART_ACOMP 1>>${LOG}"_AC.out" 2>>${LOG}"_AC.err" &
 
 	# RESTART with ad hoc (optimal)
-	poll_till_free; show -n ", AHO"
+	poll_till_free "3tandem"; show -n ", AHO"
 	$EXE $RESTART_ADHOC_OPT 1>>${LOG}"_AHO.out" 2>>${LOG}"_AHO.err" &
 
 	# RESTART with ad hoc (default)
-	poll_till_free; show -n ", AHD"
+	poll_till_free "3tandem"; show -n ", AHD"
 	$EXE $RESTART_ADHOC 1>>${LOG}"_AHD.out" 2>>${LOG}"_AHD.err" &
 
 	# Standard Monte Carlo
-	poll_till_free; show -n ", MC"
+	poll_till_free "3tandem"; show -n ", MC"
 	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
 
 	show "... done"
