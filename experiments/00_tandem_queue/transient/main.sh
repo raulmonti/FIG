@@ -36,7 +36,7 @@ MODEL_FILE="tandem_queue.sa"
 copy_model_file $MODEL_FILE $THIS_DIR && \
 	show "  · using model file $MODEL_FILE"
 PROPS_FILE="tandem_queue.pp"
-show 'P( q2 > 0 U lost )' > $PROPS_FILE && \
+echo 'P( q2 > 0 U lost )' > $PROPS_FILE && \
 	show "  · using properties file $PROPS_FILE"
 N=0; RESULTS="results_$N"
 while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
@@ -51,8 +51,8 @@ STOP_CRITERION="--stop-conf 0.90 0.2"  # Confidence coeff. and rel. precision
 SPLITTINGS="--splitting 2,3,6"         # Splitting values for RESTART engine
 STANDARD_MC="-e nosplit --flat $STOP_CRITERION"
 RESTART_ADHOC="--adhoc q2 $STOP_CRITERION $SPLITTINGS"
-RESTART_AUTO_COUPLED="--auto-coupled $STOP_CRITERION $SPLITTINGS"
-RESTART_AUTO_SPLIT="--auto-split \"+\" $STOP_CRITERION $SPLITTINGS"
+RESTART_AMONO="--amono $STOP_CRITERION $SPLITTINGS"
+RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION $SPLITTINGS"
 
 
 # Launch experiments
@@ -67,23 +67,23 @@ do
 	C_DEF="^const${BLANK}int${BLANK}c${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
 	sed -e "s/${C_DEF}/const int c = $c;/1" $MODEL_FILE > $MODEL_FILE_C
 	LOG=${RESULTS}/tandem_queue_c${c}
-	EXE=`/bin/echo -e "timeout -s 15 18h ./fig $MODEL_FILE_C $PROPS_FILE"`
+	EXE=`/bin/echo -e "timeout -s 15 16h ./fig $MODEL_FILE_C $PROPS_FILE"`
 
-	# Standard Monte Carlo
-	poll_till_free; show -n " MC"
-	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
+	# RESTART with monolithic (auto ifun)
+	poll_till_free "tandem_queue"; show -n " AM"
+	$EXE $RESTART_AMONO 1>>${LOG}"_AM.out" 2>>${LOG}"_AM.err" &
+
+	# RESTART with compositional (auto ifun)
+	poll_till_free "tandem_queue"; show -n ", AC"
+	$EXE $RESTART_ACOMP 1>>${LOG}"_AC.out" 2>>${LOG}"_AC.err" &
 
 	# RESTART with ad hoc
-	poll_till_free; show -n ", AH"
+	poll_till_free "tandem_queue"; show -n ", AH"
 	$EXE $RESTART_ADHOC 1>>${LOG}"_AH.out" 2>>${LOG}"_AH.err" &
 
-	# RESTART with auto (coupled)
-	poll_till_free; show -n ", AC"
-	$EXE $RESTART_AUTO_COUPLED 1>>${LOG}"_AC.out" 2>>${LOG}"_AC.err" &
-
-	# RESTART with auto (split)
-	poll_till_free; show -n ", AS"
-	$EXE $RESTART_AUTO_SPLIT 1>>${LOG}"_AS.out" 2>>${LOG}"_AS.err"  &
+	# Standard Monte Carlo
+	poll_till_free "tandem_queue"; show -n ", MC"
+	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
 
 	show "... done"
 done
@@ -92,7 +92,10 @@ done
 # Wait till termination
 show -n "Waiting for all experiments to finish..."
 wait
-show " done\nResults are in ${RESULTS}"
+show " done"
+EXE_WTIME=$(format_seconds $SECONDS)  
+show "Script execution walltime was $EXE_WTIME"
+show "Results are in ${RESULTS}"
 
 
 exit 0

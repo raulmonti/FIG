@@ -4,3 +4,4 @@
 
 # Ignore results unless forcefully added
 results*
+*_results*
