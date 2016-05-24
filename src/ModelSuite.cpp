@@ -27,6 +27,10 @@
 //==============================================================================
 
 
+// C
+#include <unistd.h>  // alarm(), exit()
+#include <cmath>     // std::pow()
+#include <omp.h>     // omp_get_wtime()
 // C++
 #include <set>
 #include <list>
@@ -37,15 +41,13 @@
 #include <forward_list>
 #include <unordered_set>
 #include <type_traits>  // std::is_convertible<>
+#include <functional>   // std::ref()
 #include <algorithm>    // std::find();
 #include <iterator>     // std::begin(), std::end(), std::distance()
 #include <string>
 #include <ios>          // std::scientific, std::fixed
 #include <iomanip>      // std::setprecision()
-// C
-#include <unistd.h>  // alarm(), exit()
-#include <cmath>     // std::pow()
-#include <omp.h>     // omp_get_wtime()
+#include <thread>
 // FIG
 #include <ModelSuite.h>
 #include <FigException.h>
@@ -1100,7 +1102,6 @@ ModelSuite::estimate(const Property& property,
 	if (bounds.is_time()) {
 
 		// Simulation bounds are wall clock time limits
-		bool& timedout = engine.interrupted;
 		for (const unsigned long& wallTimeInSeconds: bounds.time_budgets()) {
 			auto ci_ptr = build_empty_confidence_interval(
 							  property.type,
@@ -1109,24 +1110,23 @@ ModelSuite::estimate(const Property& property,
 			interruptCI_ = ci_ptr.get();  // bad boy
 			mainLog_ << std::setprecision(0) << std::fixed;
 			mainLog_ << "   Estimation time: " << wallTimeInSeconds << " s\n";
-			/// @todo TODO change SignalSetter handler for std::thread +
-			///            std::this_thread::sleep_for() For an example see
-			///            ThresholdsBuilderHybrid::build_thresholds()
-			SignalSetter handler(SIGALRM, [&ci_ptr, &timedout] (const int sig){
-#				ifndef NDEBUG
-					assert(SIGALRM == sig);
-#				else
-					if (SIGALRM != sig) std::exit((1<<7)+SIGABRT);
-#				endif
-				interrupt_print(*ci_ptr, ModelSuite::confCoToShow_,
-								mainLog_, lastEstimationStartTime_);
-				ci_ptr->reset();
-				timedout = true;
-			});
-			timedout = false;
-			Clock::seed_rng();  // restart RNG sequence for this estimation
-			alarm(wallTimeInSeconds);
+			const std::chrono::seconds timeLimit(wallTimeInSeconds);
+			engine.interrupted = false;
 			lastEstimationStartTime_ = omp_get_wtime();
+			Clock::seed_rng();  // restart RNG sequence for this estimation
+			std::thread timer(  // Start the timeout
+				[] (ConfidenceInterval& ci, bool& timedout,
+					const std::chrono::seconds& limit)
+				{
+					std::this_thread::sleep_for(limit);
+					timedout = true;
+					interrupt_print(ci, ModelSuite::confCoToShow_,
+									mainLog_, lastEstimationStartTime_);
+					ci.reset();
+					return true;
+				},
+				std::ref(*ci_ptr), std::ref(engine.interrupted), std::ref(timeLimit));
+
 			engine.lock();
 			engine.simulate(property,
 							min_effort(property.type,
@@ -1135,7 +1135,9 @@ ModelSuite::estimate(const Property& property,
 							*ci_ptr,
 							techLog_,
 							&increase_effort);
-            engine.unlock();
+			engine.unlock();
+
+			timer.detach();
 			techLog_ << std::endl;
 		}
 		interruptCI_ = nullptr;
@@ -1166,23 +1168,17 @@ ModelSuite::estimate(const Property& property,
 			size_t effort = min_effort(property.type,
 									   engine.name(),
 									   engine.current_imp_fun());
-			double startTime = omp_get_wtime();
-
 			bool reinit(true);  // start from system's initial state
 			Clock::seed_rng();  // restart RNG sequence for this estimation
 			lastEstimationStartTime_ = omp_get_wtime();
+
 			engine.lock();
 			do {
-				bool increaseBatch = engine.simulate(property,
-													 effort,
-													 *ci_ptr,
-													 reinit);
-				if (increaseBatch) {
+				bool notEnough = engine.simulate(property, effort, *ci_ptr, reinit);
+				if (notEnough) {
 					techLog_ << "-";
-					increase_effort(property.type,
-									engine.name(),
-									engine.current_imp_fun(),
-									effort);
+					increase_effort(property.type, engine.name(),
+									engine.current_imp_fun(), effort);
 				} else {
 					techLog_ << "+";
 				}
@@ -1190,7 +1186,7 @@ ModelSuite::estimate(const Property& property,
             } while (!ci_ptr->is_valid());
             engine.unlock();
 
-			estimate_print(*ci_ptr, omp_get_wtime()-startTime, mainLog_);
+			estimate_print(*ci_ptr, omp_get_wtime()-lastEstimationStartTime_, mainLog_);
 			techLog_ << std::endl;
 			ci_ptr->reset();
         }

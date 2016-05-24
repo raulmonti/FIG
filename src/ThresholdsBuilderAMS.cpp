@@ -69,13 +69,15 @@ const unsigned MAX_NUM_FAILURES = 5u;
  * @param traials   Vector of size >= numSims with references to Traials
  * @param numSims   Number of Traials to simulate with
  * @param simEffort Number of synchronized jumps each simulation will incur in
+ * @param halt      For external (thread-parallel) signalling: halt computation
  */
 void
 simulate(const fig::ModuleNetwork& network,
 		 const fig::ImportanceFunction& impFun,
 		 TraialsVec& traials,
 		 const unsigned& numSims,
-		 const unsigned& simEffort)
+		 const unsigned& simEffort,
+		 const bool& halt)
 {
 	assert(traials.size() >= numSims);
 	unsigned jumpsLeft;
@@ -92,7 +94,7 @@ simulate(const fig::ModuleNetwork& network,
 	// However ModuleNetwork::peak_simulation() templetized interface
 	// has no problem taking lambdas as arguments.
 
-	for (unsigned int i = 0u ; i < numSims ; i++) {
+	for (size_t i = 0ul ; i < numSims && !halt ; i++) {
 		jumpsLeft = simEffort;
 		network.peak_simulation(traials[i], update, predicate);
 	}
@@ -122,6 +124,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 
     assert(0u < k_);
     assert(k_ < n_);
+	assert(!halted_);
 
     unsigned failures(0u), simEffort(MIN_SIM_EFFORT);
 	std::vector< ImportanceValue >().swap(thresholds_);
@@ -135,7 +138,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	thresholds_.push_back(impFun.initial_value());  // start from initial state importance
 	assert(thresholds_.back() < impFun.max_value());
 	do {
-		simulate(network, impFun, traials, n_, simEffort);
+		simulate(network, impFun, traials, n_, simEffort, halted_);
 		std::sort(begin(traials), end(traials), lesser);
     } while (thresholds_.back() == traials[n_-k_].get().level
              && (simEffort *= 2u));
@@ -148,13 +151,13 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	// AMS main loop
 	while (thresholds_.back() < impFun.max_value()) {
 		// Relaunch all n_-k_ simulations below previously built threshold
-        for (unsigned i = 0u ; i < n_-k_ ; i++)
+		for (size_t i = 0ul ; i < n_-k_ ; i++)
 			traials[i].get() = traials[n_-k_];  // copy values, not addresses
-		simulate(network, impFun, traials, n_-k_, simEffort);
+		simulate(network, impFun, traials, n_-k_, simEffort, halted_);
         // New 1-k_/n_ importance quantile should be the new threshold
 		std::sort(begin(traials), end(traials), lesser);
         const ImportanceValue newThreshold = traials[n_-k_].get().level;
-        if (thresholds_.back() < newThreshold) {
+		if (thresholds_.back() < newThreshold && !halted_) {
 			// Found valid new threshold
 			fig::ModelSuite::tech_log("+");
 			thresholds_.push_back(newThreshold);
@@ -163,7 +166,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
         } else {
 			// Failed to reach higher importance => increase effort
 			fig::ModelSuite::tech_log("-");
-			if (++failures > MAX_NUM_FAILURES)
+			if (++failures > MAX_NUM_FAILURES || halted_)
 				goto exit_with_fail;
 			simEffort *= 2u;
         }
@@ -180,11 +183,11 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 
 	exit_with_fail:
 		std::stringstream errMsg;
-		errMsg << "Failed building thresholds." << " ";
+		errMsg << "Failed building thresholds. ";
 		errMsg << "Importance of the ones found so far: ";
 		for (const auto thr: thresholds_)
 			errMsg << thr << ", ";
-		errMsg << "\b\b  \b\b\n";
+		errMsg << "\b\b  ";
 		throw_FigException(errMsg.str());
 }
 
