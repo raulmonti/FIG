@@ -75,6 +75,9 @@ protected:
 	/// Thresholds importance values
 	ImportanceVec thresholds_;
 
+	/// Allow derived classes to halt computations via parallel threads
+	bool halted_;
+
 public:
 
 	/// Ctor

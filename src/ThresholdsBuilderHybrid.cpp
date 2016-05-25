@@ -54,10 +54,10 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 	const std::chrono::minutes timeLimit(2);
 	std::thread timer([] (bool& halt, const std::chrono::minutes& limit)
 					  { std::this_thread::sleep_for(limit); halt=true; },
-					  std::ref(halted), std::ref(timeLimit));
+					  std::ref(halted_), std::ref(timeLimit));
 	try {
 		// Start out using an adaptive technique, which may just work btw
-		halted = false;
+		halted_ = false;
 		result = ThresholdsBuilderSMC::build_thresholds(splitsPerThreshold,
 														impFun);
 		NUMT = result.back();  // it worked!

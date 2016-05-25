@@ -53,7 +53,8 @@ ThresholdsBuilderAdaptive::ThresholdsBuilderAdaptive(
 		ThresholdsBuilder(name),
 		n_(n),
 		k_(k),
-		thresholds_()
+		thresholds_(),
+		halted_(false)
 { /* Not much to do around here */ }
 
 

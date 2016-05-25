@@ -67,17 +67,11 @@ class ThresholdsBuilderSMC : public virtual ThresholdsBuilderAdaptive
 	/// Max # of failures allowed when searching for a new threshold
 	static constexpr unsigned MAX_NUM_FAILURES = 5u;
 
-protected:
-
-	/// Allow derived classes to halt computations via parallel threads
-	bool halted;
-
 public:
 
 	/// Default ctor
 	ThresholdsBuilderSMC() : ThresholdsBuilder("smc"),
-							 ThresholdsBuilderAdaptive(),
-							 halted(false)
+							 ThresholdsBuilderAdaptive()
 		{ /* Not much to do around here */ }
 
 protected:  // Utils for the class and its kin
