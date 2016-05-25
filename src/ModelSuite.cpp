@@ -106,7 +106,7 @@ namespace
  *
  * @throw FigException if property type or hint isn't valid
  */
-std::unique_ptr< fig::ConfidenceInterval >
+std::shared_ptr< fig::ConfidenceInterval >
 build_empty_confidence_interval(
 	const fig::PropertyType& propertyType,
 	const unsigned& splitsPerThreshold,
@@ -1123,7 +1123,6 @@ ModelSuite::estimate(const Property& property,
 					interrupt_print(ci, ModelSuite::confCoToShow_,
 									mainLog_, lastEstimationStartTime_);
 					ci.reset();
-					return true;
 				},
 				std::ref(*ci_ptr), std::ref(engine.interrupted), std::ref(timeLimit));
 
@@ -1137,7 +1136,7 @@ ModelSuite::estimate(const Property& property,
 							&increase_effort);
 			engine.unlock();
 
-			timer.detach();
+			timer.join();
 			techLog_ << std::endl;
 		}
 		interruptCI_ = nullptr;
