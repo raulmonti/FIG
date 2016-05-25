@@ -59,7 +59,9 @@ class ThresholdsBuilderHybrid : public ThresholdsBuilderFixed,
 public:
 
 	/// Default ctor
-	ThresholdsBuilderHybrid() : ThresholdsBuilder("hyb") {}
+	ThresholdsBuilderHybrid() : ThresholdsBuilder("hyb"),
+								ThresholdsBuilderFixed(4u, 50u)
+		{ /* Not much to do around here */ }
 
 	inline bool adaptive() const noexcept override { return true; }
 

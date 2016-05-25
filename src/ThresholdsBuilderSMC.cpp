@@ -116,7 +116,11 @@ build_states_distribution(const fig::ModuleNetwork& network,
 	assert(k < n);
     assert(traials.size() >= n+k);
 
-	const unsigned TOLERANCE(2u*NUM_FAILURES);
+	const unsigned TOLERANCE(2u*NUM_FAILURES),
+				   IMP_RANGE(impFun.max_value()-impFun.min_value()),
+				   OVERLENGTH(IMP_RANGE <  20u ? 1u :
+							  IMP_RANGE > 100u ? 5u : std::round(0.05f*IMP_RANGE)),
+				   SIM_LENGTH(SIM_EFFORT*OVERLENGTH);
 	unsigned jumpsLeft, pos, fails(0u);
 
 	// Function pointers matching ModuleNetwork::peak_simulation() signatures
@@ -134,7 +138,7 @@ build_states_distribution(const fig::ModuleNetwork& network,
 		fails = 0u;
 		Traial& t(traials[i]);
         do {
-			jumpsLeft = SIM_EFFORT * (1u+fails);
+			jumpsLeft = SIM_LENGTH * (1u+fails);
 			t = traials[n + uniK(RNG)];  // choose randomly among last 'k'
 			assert(lastThr > t.level);
             network.peak_simulation(t, update, predicate);

@@ -40,6 +40,17 @@
 #include <ModelSuite.h>
 
 
+namespace
+{
+/// Execution time, in minutes, granted to the adaptive technique.<br>
+/// If computations don't finish within this limit, resort to a fixed technique
+/// to choose the missing thresholds "instantaneously".
+///
+const size_t ADAPTIVE_TIMEOUT_MINUTES = 5;
+}
+
+
+
 namespace fig
 {
 
@@ -51,7 +62,7 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 	size_t NUMT;
 
 	// Impose an execution wall time limit...
-	const std::chrono::minutes timeLimit(2);
+	const std::chrono::minutes timeLimit(::ADAPTIVE_TIMEOUT_MINUTES);
 	std::thread timer([] (bool& halt, const std::chrono::minutes& limit)
 					  { std::this_thread::sleep_for(limit); halt=true; },
 					  std::ref(halted_), std::ref(timeLimit));
@@ -72,9 +83,12 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 			for (auto& thr: thresholds_)
 				thr = MIN_THR + (iteration++);
 		}
-		const unsigned LAST_THR(thresholds_.back()),
-					   MARGIN(LAST_THR - impFun.initial_value()),
-					   STRIDE(splitsPerThreshold < 5u ? 1u : 2u);
+		const size_t LAST_THR(thresholds_.back()),
+					 MARGIN(LAST_THR - impFun.initial_value()),
+					 IMP_RANGE(impFun.max_value() - impFun.min_value()),
+					 EXPANSION_FACTOR(std::ceil(IMP_RANGE/((float)IMP_LEAP_SIZE))),
+					 STRIDE((splitsPerThreshold < 5u ? 2u :
+							 splitsPerThreshold < 9u ? 3u : 4u )*EXPANSION_FACTOR);
 
 		ModelSuite::tech_log("\nResorting to fixed choice of thresholds "
 							 "starting above the ImportanceValue " +
@@ -89,8 +103,7 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 		unsigned currThr(0u), imp(0u);
 		do {
 			result[imp] = static_cast<ImportanceValue>(currThr);
-			while (currThr < thresholds_.size()-1 &&
-				   imp >= thresholds_[currThr+1])
+			while (currThr < thresholds_.size()-1 && imp >= thresholds_[currThr+1])
 				currThr++;
 		} while (static_cast<ImportanceValue>(0u) == result[++imp]);
 
@@ -102,7 +115,7 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 		msg << "ImportanceValue of the chosen thresholds:";
 		for (size_t i = 1ul ; i < thresholds_.size() ; i++)
 			msg << " " << thresholds_[i];
-		for (unsigned i = LAST_THR + STRIDE ; i < impFun.max_value() ; i += STRIDE)
+		for (size_t i = LAST_THR + STRIDE ; i < impFun.max_value() ; i += STRIDE)
 			msg << " " << i;
 		ModelSuite::tech_log(msg.str() + "\n");
 	}

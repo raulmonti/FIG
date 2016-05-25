@@ -226,7 +226,9 @@ ImportanceFunctionAlgebraic::set_formula(
 	}
 
 	assert(minValue_ <= initialValue_);
-	assert(initialValue_ <= minRareValue_);
+//	assert(initialValue_ <= minRareValue_);  // may be false for functions
+											 // defined ad hoc by the user
+	assert(initialValue_ <= maxValue_);
 	assert(minRareValue_ <= maxValue_);
 }
 
