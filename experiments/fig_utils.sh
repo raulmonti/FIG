@@ -18,8 +18,7 @@ fi
 
 
 # Check argument is a regular file
-is_file()
-{
+is_file() {
 	if [ ! -f "$1" ]
 	then
 		echo "[ERROR] Couldn't find file \"$1\"" 1>&2
@@ -31,8 +30,7 @@ is_file()
 
 
 # Build main FIG project and link binary into specified (absolute) path
-build_fig()
-{
+build_fig() {
 	# Check arguments
 	if [ $# -lt 1 ]
 	then
@@ -77,8 +75,7 @@ build_fig()
 
 
 # Copy some SA model file from the FIG project into specified (absolute) path
-copy_model_file()
-{
+copy_model_file() {
 	# Check arguments
 	if [ $# -lt 1 ]
 	then
@@ -140,22 +137,105 @@ poll_till_free() {
 # Note: bash, ksh and zsh define the $SECONDS variable that counts the
 #       number of seconds since the shell was started
 # See: http://unix.stackexchange.com/a/52318
-format_seconds()
-{
+format_seconds() {
 	local S_DAY=86400  # seconds in a day
 	local S_HOUR=3600  # seconds in an hour
 	local S_MINUTE=60  # seconds in a minute
+	# Check arguments
 	if [ $# -ne 1 ]
 	then
 		echo "[ERROR] Single integer argument (seconds) required"
 		return 1
 	else
+		# Format seconds and print
 		local DAYS=$(($1 / S_DAY))
 		local HOURS=$((($1 % S_DAY) / S_HOUR))
 		local MINUTES=$((($1 % S_HOUR) / S_MINUTE))
 		printf "%d-%02d:%02d:%02d" $DAYS $HOURS $MINUTES $(($1%S_MINUTE))
 		return 0
 	fi
+}
+
+
+# Extract single time value from results dir,
+# for specified importance function, experiment and splitting
+extract_time() {
+	# Check arguments
+	if [ $# -ne 4 ]; then
+		echo "[ERROR] Need dir name, ifun name, experiment and splitting"
+		return 1
+	fi
+	local DIR=$1
+	local IFUN=$2
+	local EXP=$3
+	local SPLIT=$4
+	# Find results file
+	local FILE=`find "$DIR" -name "*${IFUN}*${EXP}*.out"`
+	if [ -z "${FILE}" ]; then
+		FILE=`find "$DIR" -name "*${EXP}*${IFUN}*.out"`
+		if [ -z "${FILE}" ]; then
+			echo "[ERROR] Didn't find results for \"${IFUN}\" and \"${EXP}\""
+			return 1
+		fi
+	fi
+	# Retrieve and print requested time value (or '-' if not found)
+	local TIME=$(grep --after=10 "splitting $SPLIT" $FILE | grep "time")
+	if [ -z "${TIME}" ]; then
+		echo "-"
+	else
+		TIME=$(echo $TIME | cut -d':' -f 2 | cut -d' ' -f 2 | cut -d\. -f 1)
+		echo $TIME
+	fi
+	return 0
+}
+
+
+# Print format "IFUN SPLIT EXPVALUES[*]" for up to six experiment values
+print_time_line() { printf "%5s %3s %6s %6s %6s %6s %6s %6s\n" "${@}"; }
+
+
+# Extract time results and print them formatted as a table into stdout
+# PARAM_1: full directory path where results are stored
+# PARAM_2: array with experiments names, or some way to identify them
+# PARAM_3: array with ifuns names
+# PARAM_4: array with splittings used
+build_times_table() {
+	# Check arguments
+	if [ $# -ne 4 ]; then
+		echo "[ERROR] Need a directory name + three arrays to build time table"
+		return 1
+	fi
+	local RESULTS="$1"
+	local EXPERIMENTS=("${!2}")
+	local IMPFUNS=("${!3}")
+	local SPLITS=("${!4}")
+	print_time_line "" "" "${EXPERIMENTS[@]}"
+	# For each importance function
+	for IF in "${IMPFUNS[@]}"; do
+		local TIMES=()
+		local idx=0
+		# Standard Monte Carlo? No splitting
+		if [[ $IF == "MC" ]]; then
+			idx=0
+			for EXP in "${EXPERIMENTS[@]}"; do
+				TIMES[$idx]=$(extract_time $RESULTS "$IF" "$EXP" "1")
+				idx=$((idx+1))
+			done
+			print_time_line "$IF" "" "${TIMES[@]}"
+			continue;
+		fi
+		# All the rest: print for all splittings
+		for S in "${SPLITS[@]}"; do
+			idx=0;
+			for EXP in "${EXPERIMENTS[@]}"; do
+				TIMES[$idx]=$(extract_time $RESULTS "$IF" "$EXP" "$S")
+				idx=$((idx+1))
+			done
+			print_time_line "$IF" "$S" "${TIMES[@]}"
+			continue;
+		done
+	done
+	return 0
 }
 
 return 0

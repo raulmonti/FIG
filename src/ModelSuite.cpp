@@ -116,7 +116,7 @@ build_empty_confidence_interval(
 	const bool& dynamicPrecision = true,
     const std::string& hint = "")
 {
-	std::unique_ptr< fig::ConfidenceInterval > ci_ptr(nullptr);
+	std::shared_ptr< fig::ConfidenceInterval > ci_ptr(nullptr);
 
 	switch (propertyType)
 	{
