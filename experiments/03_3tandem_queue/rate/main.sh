@@ -45,36 +45,43 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-show "Configuring experiments"
-#declare -a OCUPA=(18  13  20  16  24  21)  # estimates ~ 10^-15
-declare -a OCUPA=(11   8  12   9  14  13)  # estimates ~ 10^-9
-declare -a ALPHA=( 2   3   2   3   2   3)
-declare -a BETA1=( 3 4.5   6   9  10  15)
-declare -a BETA2=( 4   6   4   6   8  12)
-declare -a BETA3=( 6   9   6   9   6   9)
-declare -a AHFUN=(  "91*q1+154*q2+500*q3" \
-                    "66*q1+114*q2+500*q3" \
-                   "200*q1+200*q2+500*q3" \
-                   "154*q1+154*q2+500*q3" \
-                   "405*q1+405*q2+500*q3" \
-                   "320*q1+320*q2+500*q3" )
+TO="14h"
+CONF=0.9  # Confidence coefficient
+PREC=0.2  # Relative precision
+SPLITS=(3 6 11)  # RESTART splittings to test
+#OCUPA=(18  13  20  16  24  21)  # estimates ~ 10^-15
+OCUPA=(11   8  12   9  14  13)  # estimates ~ 10^-9
+ALPHA=( 2   3   2   3   2   3)
+BETA1=( 3 4.5   6   9  10  15)
+BETA2=( 4   6   4   6   8  12)
+BETA3=( 6   9   6   9   6   9)
+AHFUN=( "91*q1+154*q2+500*q3" \
+        "66*q1+114*q2+500*q3" \
+       "200*q1+200*q2+500*q3" \
+       "154*q1+154*q2+500*q3" \
+       "405*q1+405*q2+500*q3" \
+       "320*q1+320*q2+500*q3" )
 NUM_EXPERIMENTS=${#OCUPA[@]}
-STOP_CRITERION="--stop-conf 0.90 0.2"  # Confidence coeff. and rel. precision
-SPLITTINGS="--splitting 3,6,11"        # Splitting values for RESTART engine
+show "Configuring experiments"
+EXPNAME="3tandem"
+SPLITTING="--splitting "
+for S in "${SPLITS[@]}"; do SPLITTING+="$S,"; done; SPLITTING="${SPLITTING%,}"
+STOP_CRITERION="--stop-conf $CONF $PREC"
 STANDARD_MC="-e nosplit --flat $STOP_CRITERION"
-RESTART_ADHOC="--adhoc q3 $STOP_CRITERION -t fix $SPLITTINGS"
-RESTART_AMONO="--amono $STOP_CRITERION -t fix $SPLITTINGS"
-RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION -t fix $SPLITTINGS"
+RESTART_ADHOC="--adhoc q3 $STOP_CRITERION -t fix $SPLITTING"
+RESTART_AMONO="--amono $STOP_CRITERION -t fix $SPLITTING"
+RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION -t fix $SPLITTING"
+
 
 # Launch experiments
 show "Launching experiments:"
-for (( i=0 ; i < NUM_EXPERIMENTS ; i-- ))
+for (( i=0 ; i < NUM_EXPERIMENTS ; i++ ))
 do
 	L=${OCUPA[i]}
 	show -n "  · for threshold occupancy = $L..."
 
 	# Select optimal ad hoc ifun for this experiment (from V-A's paper)
-	RESTART_ADHOC_OPT="--adhoc ${AHFUN[i]} $STOP_CRITERION -t fix $SPLITTINGS"
+	RESTART_ADHOC_OPT="--adhoc ${AHFUN[i]} $STOP_CRITERION -t fix $SPLITTING"
 
 	# Modify model file to fit this experiment
 	MODEL_FILE_L=${MODEL_FILE%.sa}"_$L.sa"
@@ -91,40 +98,53 @@ do
 	sed -i -e "s/${B2_USE}/= erlang(alpha,${BETA2[i]}));/g" $MODEL_FILE_L
 	sed -i -e "s/${B3_USE}/= erlang(alpha,${BETA3[i]}));/g" $MODEL_FILE_L
 	LOG=${RESULTS}/3tandem_queue_L${L}
-	EXE=`/bin/echo -e "timeout -s 15 14h ./fig $MODEL_FILE_L $PROPS_FILE"`
+	EXE=`/bin/echo -e "timeout -s 15 $TO ./fig $MODEL_FILE_L $PROPS_FILE"`
 
 	# RESTART with monolithic (auto ifun)
-	poll_till_free "3tandem"; show -n " AM"
+	poll_till_free $EXPNAME; show -n " AM"
 	$EXE $RESTART_AMONO 1>>${LOG}"_AM.out" 2>>${LOG}"_AM.err" &
 
 	# RESTART with compositional (auto ifun)
-	poll_till_free "3tandem"; show -n ", AC"
+	poll_till_free $EXPNAME; show -n ", AC"
 	$EXE $RESTART_ACOMP 1>>${LOG}"_AC.out" 2>>${LOG}"_AC.err" &
 
 	# RESTART with ad hoc (optimal)
-	poll_till_free "3tandem"; show -n ", AHO"
+	poll_till_free $EXPNAME; show -n ", AHO"
 	$EXE $RESTART_ADHOC_OPT 1>>${LOG}"_AHO.out" 2>>${LOG}"_AHO.err" &
 
 	# RESTART with ad hoc (default)
-	poll_till_free "3tandem"; show -n ", AHD"
+	poll_till_free $EXPNAME; show -n ", AHD"
 	$EXE $RESTART_ADHOC 1>>${LOG}"_AHD.out" 2>>${LOG}"_AHD.err" &
 
 	# Standard Monte Carlo
-	poll_till_free "3tandem"; show -n ", MC"
+	poll_till_free $EXPNAME; show -n ", MC"
 	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
 
 	show "... done"
 done
 
 
-# Wait till termination
+# Wait till termination, making sure everything dies after $TO
 show -n "Waiting for all experiments to finish..."
+PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }')
+`sleep $TO; kill -9 $PIDS &>/dev/null;` &> /dev/null &
 wait
+
+
+# Build summary charts
+show -n "Building tables..."
+IFUNS=("MC" "AHD" "AHO" "AC" "AM")
+EXPERIMENTS=("${OCUPA[@]}")
+build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	&> $RESULTS/table_estimates.txt
+build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	&> $RESULTS/table_times.txt
 show " done"
+
+
+# Turn lights off
 EXE_WTIME=$(format_seconds $SECONDS)  
 show "Script execution walltime was $EXE_WTIME"
 show "Results are in ${RESULTS}"
-
-
 exit 0
 

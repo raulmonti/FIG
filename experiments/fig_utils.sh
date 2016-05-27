@@ -5,6 +5,7 @@
 # License: GPLv3
 #
 # NOTE: this script should be sourced from another script
+# Cool site: http://wiki.bash-hackers.org
 #
 
 
@@ -70,7 +71,7 @@ build_fig() {
 	fi
 	# Link where requested
 	if [ -f $1/fig ]; then rm $1/fig; fi
-	ln -s $BASE_DIR/bin/fig/fig $1/fig
+	ln -sf $BASE_DIR/bin/fig/fig $1/fig
 }
 
 
@@ -219,11 +220,11 @@ extract_estimate() {
 		echo "-"      # No estimate   :(
 	elif [[ "$EST" =~ "Estimation time:" ]]; then
 		EST=$(echo $EST | grep -o "estimate:[[:space:]][1-9]\.[0-9]*e\-[0-9]*")
-		EST=$(echo $EST | cut -d':' -f 2 | grep -o "[0-9\.e\-]*")
+		EST=$(echo $EST | awk '{ print $2 }')
 		echo "$EST"   # Good estimate :)
 	else
 		EST=$(echo $EST | grep -o "estimate:[[:space:]][1-9]\.[0-9]*e\-[0-9]*")
-		EST=$(echo $EST | cut -d':' -f 2 | grep -o "[0-9\.e\-]*")
+		EST=$(echo $EST | awk '{ print $2 }')
 		echo "*$EST"  # Estimate w/TO :|
 	fi
 	return 0
@@ -237,7 +238,7 @@ print_estimate_line() { printf "%5s %3s %10s %10s %10s %10s %10s %10s\n" "${@}";
 
 # Extract results and print them formatted as a table into stdout
 #   PARAM_1: "est" for estimates table and "time" for times table
-#   PARAM_2: full directory path where results are stored
+#   PARAM_2: directory path where results are stored
 #   PARAM_3: array with experiments names, or some way to identify them
 #   PARAM_4: array with ifuns names
 #   PARAM_5: array with splittings used
@@ -282,7 +283,7 @@ build_table() {
 			return 1
 		fi
 	fi
-	$PRINT "Exp:" "" "${EXPERIMENTS[@]}"
+	$PRINT "" "" "${EXPERIMENTS[@]}"
 	# For each importance function
 	for IF in "${IMPFUNS[@]}"; do
 		local TIMES=()
