@@ -392,7 +392,7 @@ interrupt_print(const fig::ConfidenceInterval& ci,
 {
     /// @todo TODO: implement proper reentrant logging and discard use of streams
     out << std::endl;
-    out << std::setprecision(3) << std::scientific;
+	out << std::setprecision(2) << std::scientific;
     out << "   · Computed estimate: " << ci.point_estimate() << std::endl;
     for (const float& confCo: confidenceCoefficients) {
         out << "   · " << std::setprecision(0) << std::fixed
@@ -426,7 +426,7 @@ estimate_print(const fig::ConfidenceInterval& ci,
                std::ostream& out)
 {
     out << std::endl;
-    out << std::setprecision(3) << std::scientific;
+	out << std::setprecision(2) << std::scientific;
     out << "   · Computed estimate: " << ci.point_estimate() << std::endl;
     out << std::setprecision(2) << std::scientific;
     out << "   · Precision: " << ci.precision() << std::endl;
