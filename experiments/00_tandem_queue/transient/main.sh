@@ -45,7 +45,7 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-TO="16h"
+TO="10h"
 CONF=0.9  # Confidence coefficient
 PREC=0.2  # Relative precision
 SPLITS=(2 3 6)  # RESTART splittings to test

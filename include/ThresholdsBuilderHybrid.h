@@ -58,9 +58,16 @@ class ThresholdsBuilderHybrid : public ThresholdsBuilderFixed,
 {
 public:
 
+	/// Execution time, in minutes, granted to the adaptive technique.<br>
+	/// If computations don't finish within this limit, resort to a fixed
+	/// technique to choose the missing thresholds "instantaneously".
+	const unsigned ADAPTIVE_TIMEOUT_MINUTES = 5u;
+
+public:
+
 	/// Default ctor
 	ThresholdsBuilderHybrid() : ThresholdsBuilder("hyb"),
-								ThresholdsBuilderFixed(4u, 50u)
+								ThresholdsBuilderFixed(4u, 35u)
 		{ /* Not much to do around here */ }
 
 	inline bool adaptive() const noexcept override { return true; }

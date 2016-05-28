@@ -40,17 +40,6 @@
 #include <ModelSuite.h>
 
 
-namespace
-{
-/// Execution time, in minutes, granted to the adaptive technique.<br>
-/// If computations don't finish within this limit, resort to a fixed technique
-/// to choose the missing thresholds "instantaneously".
-///
-const size_t ADAPTIVE_TIMEOUT_MINUTES = 5;
-}
-
-
-
 namespace fig
 {
 
@@ -62,7 +51,7 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 	size_t NUMT;
 
 	// Impose an execution wall time limit...
-	const std::chrono::minutes timeLimit(::ADAPTIVE_TIMEOUT_MINUTES);
+	const std::chrono::minutes timeLimit(ADAPTIVE_TIMEOUT_MINUTES);
 	std::thread timer([] (bool& halt, const std::chrono::minutes& limit)
 					  { std::this_thread::sleep_for(limit); halt=true; },
 					  std::ref(halted_), std::ref(timeLimit));
@@ -87,8 +76,9 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 					 MARGIN(LAST_THR - impFun.initial_value()),
 					 IMP_RANGE(impFun.max_value() - impFun.min_value()),
 					 EXPANSION_FACTOR(std::ceil(IMP_RANGE/((float)IMP_LEAP_SIZE))),
-					 STRIDE((splitsPerThreshold < 5u ? 2u :
-							 splitsPerThreshold < 9u ? 3u : 4u )*EXPANSION_FACTOR);
+					 STRIDE((splitsPerThreshold <  4u ? 2u :
+							 splitsPerThreshold <  7u ? 3u :
+							 splitsPerThreshold < 11u ? 4u : 5u )*EXPANSION_FACTOR);
 
 		ModelSuite::tech_log("\nResorting to fixed choice of thresholds "
 							 "starting above the ImportanceValue " +
