@@ -61,9 +61,6 @@ using std::end;
 namespace fig
 {
 
-static_assert(std::is_same<short, STATE_INTERNAL_TYPE>::value,
-			  "Error: for now we restrict states internal storage to shorts");
-
 /**
  * @brief Set of \ref Variable "variables" managed by a Module
  *

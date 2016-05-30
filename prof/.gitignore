@@ -1,0 +1,4 @@
+# Avoid including possibly huge perf raw profiling data
+*.data
+*.perf
+*.old
