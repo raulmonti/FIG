@@ -139,7 +139,7 @@ fi
 # Configure and build from inside BUILD_DIR
 if [ ! -d $BUILD_DIR ]; then mkdir $BUILD_DIR; fi
 cd $BUILD_DIR
-OPTS="$OPTS -DRELEASE=ON"      # Cmake build options, see CMakeLists.txt
+#OPTS="$OPTS -DRELEASE=ON"      # Cmake build options, see CMakeLists.txt
 #OPTS="$OPTS -DBUILTIN_RNG=ON"  # Cmake build options, see CMakeLists.txt
 #CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR $OPTS && make && \
 CC=gcc CXX=g++ cmake $CMAKE_DIR $OPTS && make && \

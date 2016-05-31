@@ -110,10 +110,10 @@ ModuleInstance::add_transition(const Transition& transition)
 	if (0 <= globalIndex_ || 0 <= firstClock_)
 		return;
 #endif
-	auto ptr = std::make_shared<Transition>(transition);
-	transitions_.emplace_back(ptr);
-	transitions_by_label_[transition.label().str].emplace_back(ptr);
-	transitions_by_clock_[transition.triggeringClock].emplace_back(ptr);
+	transitions_.emplace_back(transition);
+	const Transition& tr(transitions_.back());
+	transitions_by_label_[tr.label().str].emplace_back(tr);
+	transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
 }
 
 
@@ -137,11 +137,10 @@ ModuleInstance::add_transition(Transition&& transition)
 	if (0 <= globalIndex_ || 0 <= firstClock_)
 		return;
 #endif
-	// shared_ptr from rvalue: http://stackoverflow.com/q/15917475
-	auto ptr = std::make_shared<Transition>(std::forward<Transition>(transition));
-	transitions_.emplace_back(ptr);
-	transitions_by_label_[transition.label().str].emplace_back(ptr);
-	transitions_by_clock_[transition.triggeringClock].emplace_back(ptr);
+	transitions_.emplace_back(std::forward<Transition&&>(transition));
+	const Transition& tr(transitions_.back());
+	transitions_by_label_[tr.label().str].emplace_back(tr);
+	transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
 }
 
 
@@ -227,11 +226,11 @@ ModuleInstance::adjacent_states(const size_t& s) const
 	std::forward_list<size_t> adjacentStates;
 	State<STATE_INTERNAL_TYPE> state(lState_);
 	state.decode(s);
-	for (const auto tr_ptr: transitions()) {
+	for (const Transition& tr: transitions_) {
 		// For each enabled transition of the module...
-		if (tr_ptr->precondition()(state)) {
+		if (tr.precondition()(state)) {
 			// ...update variables...
-			tr_ptr->postcondition()(state);
+			tr.postcondition()(state);
 			// ...and store resulting concrete state
 			adjacentStates.push_front(state.encode());
 			// Restore original state
@@ -258,18 +257,18 @@ ModuleInstance::jump(const Traial::Timeout& to,
 	assert(end(transitions_by_clock_) != iter);  // deny foreign clocks
 	traial.kill_time(to.gpos, 1ul, 100.0f);      // mark this clock 'expired'
 	const auto& transitions = iter->second;
-	for (const auto& tr_ptr: transitions) {
-		if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
-			tr_ptr->pos(traial.state);   // apply postcondition to its state
-            tr_ptr->handle_clocks(       // and update clocks according to it.
-                traial,
-                begin(lClocks_),
-                end(lClocks_),
-                firstClock_,
+	for (const Transition& tr: transitions) {
+		if (tr.pre(traial.state)) { // If the traial satisfies this precondition
+			tr.pos(traial.state);   // apply postcondition to its state
+			tr.handle_clocks(       // and update clocks according to it.
+				traial,
+				begin(lClocks_),
+				end(lClocks_),
+				firstClock_,
 				elapsedTime);
             // Finally broadcast the output label triggered
-            assert(tr_ptr->label().is_output());
-			return tr_ptr->label();
+			assert(tr.label().is_output());
+			return tr.label();
 		}
 	}
     // No transition was enabled => advance all clocks and broadcast tau
@@ -292,15 +291,15 @@ ModuleInstance::jump(const Label& label,
     // Foreign labels and taus won't touch us
     if (!label.is_tau() && end(transitions_by_label_) != iter) {
         const auto& transitions = iter->second;
-        for (const auto& tr_ptr: transitions) {
-            if (tr_ptr->pre(traial.state)) { // If the traial satisfies this precondition
-                tr_ptr->pos(traial.state);   // apply postcondition to its state
-				tr_ptr->handle_clocks(       // and update clocks according to it.
-                   traial,
-                   begin(lClocks_),
-                   end(lClocks_),
-                   firstClock_,
-                   elapsedTime);
+		for (const Transition& tr: transitions) {
+			if (tr.pre(traial.state)) { // If the traial satisfies this precondition
+				tr.pos(traial.state);   // apply postcondition to its state
+				tr.handle_clocks(       // and update clocks according to it.
+					traial,
+					begin(lClocks_),
+					end(lClocks_),
+					firstClock_,
+					elapsedTime);
                 return;  // At most one transition could've been enabled, trust Raúl
             }
        }
@@ -323,9 +322,9 @@ ModuleInstance::jump(const Label& label,
 	const auto trans = transitions_by_label_.find(label.str);
 	if (end(transitions_by_label_) == trans)
 		return;  // none of our business
-	for (const auto& tr_ptr: trans->second) {
-		if (tr_ptr->pre(state)) { // If the state satisfies this precondition
-			tr_ptr->pos(state);   // apply the corresponding postcondition
+	for (const Transition& tr: trans->second) {
+		if (tr.pre(state)) { // If the state satisfies this precondition
+			tr.pos(state);   // apply the corresponding postcondition
 			return;  // At most one transition could've been enabled, trust Raúl
 		}
 	}
@@ -399,13 +398,14 @@ ModuleInstance::seal(const PositionsMap& globalVars)
 	sealed_ = true;
 	// Callback all our transitions
 	auto localClocks = map_our_clocks();
-	for (auto& pair: transitions_by_label_)
-		for (auto& tr_ptr: pair.second)
 #ifndef NRANGECHK
-			tr_ptr->callback(localClocks, globalVars);
+	for (Transition& tr: transitions_)
+		tr.callback(localClocks, globalVars);
 #else
-			tr_ptr->callback(localClocks, const_cast<PositionsMap&>(globalVars));
+	for (Transition& tr: transitions_)
+		tr.callback(localClocks, const_cast<PositionsMap&>(globalVars));
 #endif
+	check_sealed_transitions();
 }
 
 
@@ -423,9 +423,37 @@ ModuleInstance::seal(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 	sealed_ = true;
 	// Callback all our transitions
 	auto localClocks = map_our_clocks();
-	for (auto& pair: transitions_by_label_)
-		for (auto& tr_ptr: pair.second)
-			tr_ptr->callback(localClocks, globalState);
+	for (Transition& tr: transitions_)
+		tr.callback(localClocks, globalState);
+	check_sealed_transitions();
+}
+
+
+void
+ModuleInstance::check_sealed_transitions() const
+{
+#ifndef NDEBUG
+	for (const auto& vec: transitions_by_clock_) {
+		for (const Transition& tr1: vec.second) {
+			if (std::find_if(begin(transitions_), end(transitions_),
+							 [&tr1](const Transition& tr2) { return &tr1==&tr2; })
+				  == end(transitions_))
+				throw_FigException("Transition with label \"" + tr1.label().str
+								   + "\" and enabling clock \"" + tr1.triggeringClock
+								   + "\" isn't mapped in the clocks list !!!");
+		}
+	}
+	for (const auto& vec: transitions_by_label_) {
+		for (const Transition& tr1: vec.second) {
+			if (std::find_if(begin(transitions_), end(transitions_),
+							 [&tr1](const Transition& tr2) { return &tr1==&tr2; })
+				  == end(transitions_))
+				throw_FigException("Transition with label \"" + tr1.label().str
+								   + "\" and enabling clock \"" + tr1.triggeringClock
+								   + "\" isn't mapped in the labels list !!!");
+		}
+	}
+#endif
 }
 
 } // namespace fig

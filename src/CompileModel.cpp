@@ -164,12 +164,12 @@ CompileTransition(AST* trans)
         sc.pop_back();
         setcs.push_back(sc);
     }
-    fig::Transition result( Label(action,io)
+
+    return fig::Transition( Label(action,io)
                           , eclk
                           , Precondition(pre, nl)
                           , Postcondition(lassig,variables,rassig)
                           , setcs);
-    return result;
 }
 
 
@@ -231,8 +231,7 @@ CompileModule(AST* module, const parsingContext &pc)
                                              ,CompileClocks(transitions));
 
     for(const auto &it: transitions){
-        auto transition = CompileTransition(it);
-        result->add_transition(transition);
+        result->add_transition(CompileTransition(it));
     }
     for(const auto &it: build_input_enable(transitions)){
         result->add_transition(it);

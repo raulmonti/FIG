@@ -233,10 +233,10 @@ std::vector< Arg* > impFunSpecs = {
 // Stopping conditions (aka estimation bounds)
 NumericConstraint<float> ccConstraint(
 	[](const float& cc) { return 0.0f < cc && cc < 1.0f; },
-	"confidence_coefficient ∈ (0,1)");
+	"confCo ∈ (0,1)");
 NumericConstraint<float> precConstraint(
 	[](const float& prec) { return 0.0f < prec; },
-	"positive_relative_precision");
+	"relPrec > 0");
 MultiDoubleArg< float, float > confidenceCriteria(
 	"", "stop-conf",
 	"Add a stopping condition for estimations based on a confidence "
