@@ -111,9 +111,6 @@ ModuleInstance::add_transition(const Transition& transition)
 		return;
 #endif
 	transitions_.emplace_back(transition);
-	const Transition& tr(transitions_.back());
-	transitions_by_label_[tr.label().str].emplace_back(tr);
-	transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
 }
 
 
@@ -138,9 +135,6 @@ ModuleInstance::add_transition(Transition&& transition)
 		return;
 #endif
 	transitions_.emplace_back(std::forward<Transition&&>(transition));
-	const Transition& tr(transitions_.back());
-	transitions_by_label_[tr.label().str].emplace_back(tr);
-	transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
 }
 
 
@@ -405,7 +399,8 @@ ModuleInstance::seal(const PositionsMap& globalVars)
 	for (Transition& tr: transitions_)
 		tr.callback(localClocks, const_cast<PositionsMap&>(globalVars));
 #endif
-	check_sealed_transitions();
+	// Reference them by clock and by label
+	order_transitions();
 }
 
 
@@ -425,34 +420,43 @@ ModuleInstance::seal(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 	auto localClocks = map_our_clocks();
 	for (Transition& tr: transitions_)
 		tr.callback(localClocks, globalState);
-	check_sealed_transitions();
+	// Reference them by clock and by label
+	order_transitions();
 }
 
 
 void
-ModuleInstance::check_sealed_transitions() const
+ModuleInstance::order_transitions()
 {
+	if (!sealed())
 #ifndef NDEBUG
-	for (const auto& vec: transitions_by_clock_) {
-		for (const Transition& tr1: vec.second) {
+		throw_FigException("this module hasn't been sealed yet");
+#else
+		return;
+#endif
+
+	for (const Transition& tr: transitions_) {
+		transitions_by_label_[tr.label().str].emplace_back(tr);
+		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
+	}
+
+#ifndef NDEBUG
+	for (const auto& vec: transitions_by_clock_)
+		for (const Transition& tr1: vec.second)
 			if (std::find_if(begin(transitions_), end(transitions_),
 							 [&tr1](const Transition& tr2) { return &tr1==&tr2; })
 				  == end(transitions_))
 				throw_FigException("Transition with label \"" + tr1.label().str
-								   + "\" and enabling clock \"" + tr1.triggeringClock
+								   + "\" and triggering clock \"" + tr1.triggeringClock
 								   + "\" isn't mapped in the clocks list !!!");
-		}
-	}
-	for (const auto& vec: transitions_by_label_) {
-		for (const Transition& tr1: vec.second) {
+	for (const auto& vec: transitions_by_label_)
+		for (const Transition& tr1: vec.second)
 			if (std::find_if(begin(transitions_), end(transitions_),
 							 [&tr1](const Transition& tr2) { return &tr1==&tr2; })
 				  == end(transitions_))
 				throw_FigException("Transition with label \"" + tr1.label().str
-								   + "\" and enabling clock \"" + tr1.triggeringClock
+								   + "\" and triggering clock \"" + tr1.triggeringClock
 								   + "\" isn't mapped in the labels list !!!");
-		}
-	}
 #endif
 }
 

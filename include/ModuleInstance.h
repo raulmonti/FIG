@@ -441,11 +441,12 @@ private:  // Class utils
 	/// @warning mark_added() must have been called beforehand
 	PositionsMap map_our_clocks() const;
 
-	/// Make sure all transitions are properly set after seal()
+	/// Reference transitions into the semi-ordered maps by clock and by label
+	/// @warning seal() must have been called beforehand
 	/// \ifnot NDEBUG
-	///   @throw FigException if something odd is going on
+	///   @throw FigException if seal() not called yet or the mapping failed
 	/// \endif
-	void check_sealed_transitions() const;
+	void order_transitions();
 
 private:  // Callback utilities offered to the ModuleNetwork
 

@@ -1126,17 +1126,22 @@ ModelSuite::estimate(const Property& property,
 				},
 				std::ref(*ci_ptr), std::ref(engine.interrupted), std::ref(timeLimit));
 
-			engine.lock();
-			engine.simulate(property,
-							min_effort(property.type,
-									   engine.name(),
-									   engine.current_imp_fun()),
-							*ci_ptr,
-							techLog_,
-							&increase_effort);
-			engine.unlock();
-
-			timer.join();
+			try {
+				engine.lock();
+				engine.simulate(property,
+								min_effort(property.type,
+										   engine.name(),
+										   engine.current_imp_fun()),
+								*ci_ptr,
+								techLog_,
+								&increase_effort);
+				engine.unlock();
+				timer.join();
+			} catch (std::exception&) {
+				engine.unlock();
+				timer.detach();
+				throw;
+			}
 			techLog_ << std::endl;
 		}
 		interruptCI_ = nullptr;
