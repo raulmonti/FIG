@@ -39,8 +39,9 @@
 // External code
 #include <muParser.h>
 // FIG
-#include <State.h>
 #include <string_utils.h>
+#include <core_typedefs.h>
+#include <State.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -77,13 +78,25 @@ protected:
     std::string exprStr_;
 
 	/// Mathematical expression per se
-	mutable Expression expr_;
+	Expression expr_;
 
-	/// Names and positions of the variables in our expression.
-	/// The positional order is ("later") given by the global system State.
-	std::vector< std::pair< std::string, int > > varsMap_;
+	/// Number of variables defined in our expression
+	size_t NVARS_;
 
-	/// Whether the positional order of the variables has already been defined
+	/// @brief Names of our variables
+	/// @details Symbols in exprStr_ which map to variable names
+	std::vector< std::string > varsNames_;
+
+	/// @brief Global position of our variables
+	/// @details Position of the variables from exprStr_ in a global State
+	std::vector< size_t > varsPos_;
+
+	/// @brief Values of our variables
+	/// @details "Current values" of our variables in a running simulation
+	mutable StateInstance varsValues_;
+
+	/// Whether the global positional order of our variables
+	/// (i.e. varsPos_) has already been defined
 	bool pinned_;
 
 public:  // Ctors/Dtor
@@ -98,9 +111,9 @@ public:  // Ctors/Dtor
 	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
-			  typename... OtherContainerArgs >
+			  typename... OtherArgs >
 	MathExpression(const std::string& exprStr,
-				   const Container<ValueType, OtherContainerArgs...>& varnames);
+				   const Container<ValueType, OtherArgs...>& varnames);
 
 	/**
 	 * @brief Data ctor from generic rvalue container
@@ -112,9 +125,9 @@ public:  // Ctors/Dtor
 	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
-			  typename... OtherContainerArgs >
+			  typename... OtherArgs >
 	MathExpression(const std::string& exprStr,
-				   Container<ValueType, OtherContainerArgs...>&& varnames);
+				   Container<ValueType, OtherArgs...>&& varnames);
 
 	/**
 	 * @brief Data ctor from iterator range
@@ -127,10 +140,19 @@ public:  // Ctors/Dtor
 	 */
 	template< template< typename, typename... > class Iterator,
 			  typename ValueType,
-			  typename... OtherIteratorArgs >
+			  typename... OtherArgs >
 	MathExpression(const std::string& exprStr,
-				   Iterator<ValueType, OtherIteratorArgs...> from,
-				   Iterator<ValueType, OtherIteratorArgs...> to);
+				   Iterator<ValueType, OtherArgs...> from,
+				   Iterator<ValueType, OtherArgs...> to);
+
+	/// Default copy ctor
+	MathExpression(const MathExpression& that) = default;
+
+	/// Default move ctor
+	MathExpression(MathExpression&& that) = default;
+
+	/// Copy assignment with copy&swap idiom
+	MathExpression& operator=(MathExpression that);
 
 protected:  // Modifyers
 
@@ -194,13 +216,15 @@ protected:  // Class utils
 
 template< template< typename, typename... > class Iterator,
 		  typename ValueType,
-		  typename... OtherIteratorArgs >
+		  typename... OtherArgs >
 MathExpression::MathExpression(
 	const std::string& exprStr,
-	Iterator<ValueType, OtherIteratorArgs...> from,
-	Iterator<ValueType, OtherIteratorArgs...> to) :
+	Iterator<ValueType, OtherArgs...> from,
+	Iterator<ValueType, OtherArgs...> to) :
 		empty_(trim(exprStr).empty()),
         exprStr_(muparser_format(exprStr)),
+		NVARS_(std::distance(from, to)),
+		varsValues_(NVARS_),
         pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
@@ -208,14 +232,13 @@ MathExpression::MathExpression(
 				  "pointing to variable names");
 	// Setup MuParser expression
 	parse_our_expression();
-	// Register our variables
-	varsMap_.reserve(std::distance(from,to));
-	for (; from != to ; from++) {
-		std::string name = *from;
-		if (exprStr.find(name) != std::string::npos)
-			varsMap_.emplace_back(std::make_pair(name, -1));  // copy elision
-			// Real mapping is later done with pin_up_vars()
-	}
+	// Register our variables names
+	varsNames_.reserve(NVARS_);
+	for (; from != to ; from++)
+		if (exprStr_.find(*from) != std::string::npos)
+			varsNames_.emplace_back(*from);  // copy elision
+	// Positions mapping is done later in pin_up_vars()
+	varsPos_.reserve(NVARS_);
 }
 
 } // namespace fig

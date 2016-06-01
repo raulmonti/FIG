@@ -38,15 +38,24 @@
 namespace fig
 {
 
+/// @todo TODO erase debug code
+// Precondition::Precondition(const Precondition& that) : MathExpression(that)
+// { std::cerr << "PRE: copy ctor\n"; }
+// Precondition::Precondition(Precondition&& that) :
+// 	MathExpression(std::forward<MathExpression>(that))
+// { std::cerr << "PRE: move ctor\n"; }
+///////////////////////////////
+
 void
-Precondition::fake_evaluation() const
+Precondition::test_evaluation() const
 {
-	STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
+	assert(pinned());
 	try {
-		for (const auto& var: varsMap_)
-			expr_.DefineVar(var.first, &dummy);
+		const STATE_INTERNAL_TYPE DUMMY(static_cast<STATE_INTERNAL_TYPE>(1.1));
+		for (STATE_INTERNAL_TYPE& val: varsValues_)
+			val = DUMMY;
 		expr_.Eval();
-	} catch (mu::Parser::exception_type &e) {
+	} catch (mu::Parser::exception_type& e) {
 		std::cerr << "Failed parsing expression" << std::endl;
 		std::cerr << "    message:  " << e.GetMsg()   << std::endl;
 		std::cerr << "    formula:  " << e.GetExpr()  << std::endl;
@@ -65,7 +74,7 @@ Precondition::pin_up_vars(const PositionsMap& globalVars)
 {
 	MathExpression::pin_up_vars(globalVars);
 # ifndef NDEBUG
-	fake_evaluation();  // Reveal parsing errors in this early stage
+	test_evaluation();  // Reveal parsing errors in this early stage
 # endif
 }
 #else
@@ -74,7 +83,7 @@ Precondition::pin_up_vars(PositionsMap& globalVars)
 {
 	MathExpression::pin_up_vars(globalVars);
 # ifndef NDEBUG
-	fake_evaluation();  // Reveal parsing errors in this early stage
+	test_evaluation();  // Reveal parsing errors in this early stage
 # endif
 }
 #endif
@@ -85,7 +94,7 @@ Precondition::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 {
 	MathExpression::pin_up_vars(globalState);
 #ifndef NDEBUG
-	fake_evaluation();  // Reveal parsing errors in this early stage
+	test_evaluation();  // Reveal parsing errors in this early stage
 #endif
 }
 
@@ -97,10 +106,14 @@ Precondition::operator()(const StateInstance& state) const
 	if (!pinned())
 		throw_FigException("pin_up_vars() hasn't been called yet");
 #endif
-	// Bind state's values to our expression...
-	for (const auto& pair: varsMap_)
-		expr_.DefineVar(pair.first,  const_cast<STATE_INTERNAL_TYPE*>(
-						&state[pair.second]));
+	// Copy the useful part of 'state'...
+	for (size_t i = 0ul ; i < NVARS_ ; i++)
+		varsValues_[i] = state[varsPos_[i]];  // ugly motherfucker
+	/// @todo NOTE As an alternative we could use memcpy() to copy the values,
+	///            but that means bringing a whole chunk of memory of which
+	///            only a few variables will be used. To lighten that we could
+	///            impose an upper bound on the number of variables per guard,
+	///            but then the language's flexibility will be compromised.
 	// ...and evaluate
 	return static_cast<bool>(expr_.Eval());
 }
@@ -109,21 +122,13 @@ Precondition::operator()(const StateInstance& state) const
 bool
 Precondition::operator()(const State<STATE_INTERNAL_TYPE>& state) const
 {
-	std::vector< STATE_INTERNAL_TYPE > values(varsMap_.size());
-	size_t i(0ul);
-	// Bind state's variables to our expression...
-	for (const auto& pair: varsMap_) {
-		auto var_ptr = state[pair.first];
-		if (nullptr == var_ptr) {
-			std::stringstream sss;
-			state.print_out(sss, true);
-			throw_FigException(std::string("variable \"").append(pair.first)
-							   .append("\" not found in state ").append(sss.str()));
-		}
-		values[i] = var_ptr->val();
-		expr_.DefineVar(pair.first, &values[i]);
-		i++;
-	}
+#ifndef NDEBUG
+	if (!pinned())
+		throw_FigException("pin_up_vars() hasn't been called yet");
+#endif
+	// Copy the useful part of 'state'...
+	for (size_t i = 0ul ; i < NVARS_ ; i++)
+		varsValues_[i] = state[varsPos_[i]]->val();  // NOTE see other note
 	// ...and evaluate
 	return static_cast<bool>(expr_.Eval());
 }

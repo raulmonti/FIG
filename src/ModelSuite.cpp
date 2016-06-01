@@ -1119,7 +1119,7 @@ ModelSuite::estimate(const Property& property,
 					const std::chrono::seconds& limit)
 				{
 					std::this_thread::sleep_for(limit);
-					timedout = true;
+					timedout = true;  // this stops computation
 					interrupt_print(ci, ModelSuite::confCoToShow_,
 									mainLog_, lastEstimationStartTime_);
 					ci.reset();

@@ -80,19 +80,20 @@ class Postcondition : public MathExpression
 	friend class Transition;  // for variables mapping callback
 
 	/// Number of variables updated by this postcondition
-	int numUpdates_;
+	size_t NUPDATES_;
 
-	/// Names of the variables to which the updates will be applied.
+	/// @brief Names of our update variables
+	/// @details Names of the variables to which the updates will be applied
 	std::vector<std::string> updatesNames_;
 
-	/// Positions of the variables to which the updates will be applied.
-	/// The positional order is ("later") given by the global system State.
-	std::vector<size_t> updatesPositions_;
+	/// @brief Positions of our update variables
+	/// @details Positions of the variables to which the updates will be applied
+	std::vector<size_t> updatesPos_;
 
 	/// @brief Perform a fake evaluation to exercise our expression
 	/// @note  Useful to reveal parsing errors in MathExpression
 	/// @throw FigException if badly parsed expression
-	void fake_evaluation() const;
+	void test_evaluation() const;
 
 public:  // Ctors/Dtor
 
@@ -117,14 +118,14 @@ public:  // Ctors/Dtor
 	template<
 		template< typename, typename... > class Container1,
 			typename ValueType1,
-			typename... OtherContainerArgs1,
+			typename... OtherArgs1,
 		template< typename, typename... > class Container2,
 			typename ValueType2,
-			typename... OtherContainerArgs2
+			typename... OtherArgs2
 	>
 	Postcondition(const std::string& exprStr,
-				  const Container1<ValueType1, OtherContainerArgs1...>& varNames,
-				  const Container2<ValueType2, OtherContainerArgs2...>& updateVars);
+				  const Container1<ValueType1, OtherArgs1...>& varNames,
+				  const Container2<ValueType2, OtherArgs2...>& updateVars);
 
 	/**
 	 * @brief Data ctor from iterator ranges
@@ -150,16 +151,16 @@ public:  // Ctors/Dtor
 	template<
 		template< typename, typename... > class Iterator1,
 			typename ValueType1,
-			typename... OtherIteratorArgs1,
+			typename... OtherArgs1,
 		template< typename, typename... > class Iterator2,
 			typename ValueType2,
-			typename... OtherIteratorArgs2
+			typename... OtherArgs2
 	>
 	Postcondition(const std::string& exprStr,
-				  Iterator1<ValueType1, OtherIteratorArgs1...> from1,
-				  Iterator1<ValueType1, OtherIteratorArgs1...> to1,
-				  Iterator2<ValueType2, OtherIteratorArgs2...> from2,
-				  Iterator2<ValueType2, OtherIteratorArgs2...> to2);
+				  Iterator1<ValueType1, OtherArgs1...> from1,
+				  Iterator1<ValueType1, OtherArgs1...> to1,
+				  Iterator2<ValueType2, OtherArgs2...> from2,
+				  Iterator2<ValueType2, OtherArgs2...> to2);
 
 	/// Default copy ctor
 	Postcondition(const Postcondition& that) = default;
@@ -167,7 +168,7 @@ public:  // Ctors/Dtor
 	/// Default move ctor
 	Postcondition(Postcondition&& that) = default;
 
-	/// Copy assignment with copy&swap
+	/// Copy assignment with copy&swap idiom
 	Postcondition& operator=(Postcondition that);
 
 	/// Dtor
@@ -205,7 +206,9 @@ public:  // Utils
 	 * @note Slower than the StateInstance version of this function,
 	 *       since it has to search for the variables positions in 'state'
 	 * @throw mu::ParserError
-	 * @throw FigException if some required variable is not found in 'state'
+	 * \ifnot NDEBUG
+	 *   @throw FigException if pin_up_vars() hasn't been called yet
+	 * \endif
 	 */
 	void operator()(State<STATE_INTERNAL_TYPE>& state) const;
 
@@ -215,9 +218,9 @@ public:  // Utils
 	 * @note pin_up_vars() should have been called before to register the
 	 *       position of the expression's variables in the global State
 	 * @throw mu::ParserError
-	 * @ifnot NDEBUG
+	 * \ifnot NDEBUG
 	 *   @throw FigException if pin_up_vars() hasn't been called yet
-	 * @endif
+	 * \endif
 	 */
 	void operator()(StateInstance& state) const;
 };
@@ -230,49 +233,51 @@ public:  // Utils
 
 template< template< typename, typename... > class Container1,
 			  typename ValueType1,
-			  typename... OtherContainerArgs1,
+			  typename... OtherArgs1,
 		  template< typename, typename... > class Container2,
 			  typename ValueType2,
-			  typename... OtherContainerArgs2
+			  typename... OtherArgs2
 		>
 Postcondition::Postcondition(
 	const std::string& exprStr,
-	const Container1<ValueType1, OtherContainerArgs1...>& varNames,
-	const Container2<ValueType2, OtherContainerArgs2...>& updateVars) :
+	const Container1<ValueType1, OtherArgs1...>& varNames,
+	const Container2<ValueType2, OtherArgs2...>& updateVars) :
 		MathExpression(exprStr, varNames),
-		updatesNames_()
+		NUPDATES_(std::distance(begin(updateVars), end(updateVars))),
+		updatesNames_(NUPDATES_),
+		updatesPos_(NUPDATES_)
 {
 	static_assert(std::is_constructible< std::string, ValueType2 >::value,
 				  "ERROR: type mismatch. Postcondition needs containers "
 				  "with variable names");
 	// Register update variables names
 	updatesNames_.insert(begin(updatesNames_), begin(updateVars), end(updateVars));
-	numUpdates_ = static_cast<int>(updatesNames_.size());
 }
 
 
 template< template< typename, typename... > class Iterator1,
 			  typename ValueType1,
-			  typename... OtherIteratorArgs1,
+			  typename... OtherArgs1,
 		  template< typename, typename... > class Iterator2,
 			  typename ValueType2,
-			  typename... OtherIteratorArgs2
+			  typename... OtherArgs2
 		>
 Postcondition::Postcondition(
 	const std::string& exprStr,
-	Iterator1<ValueType1, OtherIteratorArgs1...> from1,
-	Iterator1<ValueType1, OtherIteratorArgs1...> to1,
-	Iterator2<ValueType2, OtherIteratorArgs2...> from2,
-	Iterator2<ValueType2, OtherIteratorArgs2...> to2) :
+	Iterator1<ValueType1, OtherArgs1...> from1,
+	Iterator1<ValueType1, OtherArgs1...> to1,
+	Iterator2<ValueType2, OtherArgs2...> from2,
+	Iterator2<ValueType2, OtherArgs2...> to2) :
 		MathExpression(exprStr, from1, to1),
-		updatesNames_()
+		NUPDATES_(std::distance(from2, to2)),
+		updatesNames_(NUPDATES_),
+		updatesPos_(NUPDATES_)
 {
 	static_assert(std::is_constructible< std::string, ValueType2 >::value,
 				  "ERROR: type mismatch. Postcondition needs iterators "
 				  "pointing to variable names");
 	// Register update variables names
 	updatesNames_.insert(begin(updatesNames_), from2, to2);
-	numUpdates_ = static_cast<int>(updatesNames_.size());
 }
 
 } // namespace fig

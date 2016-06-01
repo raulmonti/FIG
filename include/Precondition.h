@@ -51,7 +51,7 @@ class Precondition : public MathExpression
 	/// @brief Perform a fake evaluation to exercise our expression
 	/// @note  Useful to reveal parsing errors in MathExpression
 	/// @throw FigException if badly parsed expression
-	void fake_evaluation() const;
+	void test_evaluation() const;
 
 public:  // Ctors
 
@@ -85,6 +85,18 @@ public:  // Ctors
         MathExpression(exprStr, from, to)
         {}
 
+	/// Default copy ctor
+	Precondition(const Precondition& that) = default;
+
+	/// Default move ctor
+	Precondition(Precondition&& that) = default;
+
+	/// Default copy assignment
+	Precondition& operator=(const Precondition& that) = default;
+
+	/// Default move assignment
+	Precondition& operator=(Precondition&& that) = default;
+
 public:  // Modifyers, made public since too many other classes use Precondition
 
 	/**
@@ -117,9 +129,9 @@ public:  // Utils
 	 * @note To work with local states from the \ref ModuleInstace
 	 *       "system modules" use the State variant of this operator
 	 * @throw mu::ParserError
-	 * @ifnot NDEBUG
+	 * \ifnot NDEBUG
 	 *   @throw FigException if pin_up_vars() hasn't been called yet
-	 * @endif
+	 * \endif
 	 */
 	bool operator()(const StateInstance& state) const;
 
@@ -129,7 +141,9 @@ public:  // Utils
 	 * @note Slower than the StateInstance variant of this operator,
 	 *       since it has to search for the variables positions in 'state'
 	 * @throw mu::ParserError
-	 * @throw FigException if some required variable is not found in 'state'
+	 * \ifnot NDEBUG
+	 *   @throw FigException if pin_up_vars() hasn't been called yet
+	 * \endif
 	 */
 	bool operator()(const State<STATE_INTERNAL_TYPE>& state) const;
 };

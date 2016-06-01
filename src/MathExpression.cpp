@@ -43,6 +43,10 @@
 #include <MathExpression.h>
 #include <string_utils.h>
 
+// ADL
+using std::begin;
+using std::end;
+
 
 /**
  * Functions offered to the end user for mathematical expressions
@@ -85,6 +89,7 @@ inline T_ max2(T_ a, T_ b)
 } // namespace
 
 
+
 namespace fig
 {
 
@@ -95,19 +100,23 @@ MathExpression::MathExpression(
     const std::string& exprStr,
     const Container<ValueType, OtherContainerArgs...>& varnames) :
 		empty_(trim(exprStr).empty()),
-        exprStr_(muparser_format(exprStr)),
-        pinned_(false)
+		exprStr_(muparser_format(exprStr)),
+		NVARS_(std::distance(begin(varnames), end(varnames))),
+		varsValues_(NVARS_),
+		pinned_(false)
 {
     static_assert(std::is_constructible< std::string, ValueType >::value,
                   "ERROR: type mismatch. MathExpression needs a container "
                   "with variable names");
     // Setup MuParser expression
     parse_our_expression();
-	// Register our variables
+	// Register our variables names
+	varsNames_.reserve(NVARS_);
 	for (const auto& name: varnames)
-		if (exprStr.find(name) != std::string::npos)
-			varsMap_.emplace_back(std::make_pair(name, -1));  // copy elision
-			// Real mapping is later done with pin_up_vars()
+		if (exprStr_.find(name) != std::string::npos)
+			varsNames_.emplace_back(name);  // copy elision
+	// Positions mapping is done later in pin_up_vars()
+	varsPos_.reserve(NVARS_);
 }
 
 // MathExpression can only be constructed with the following lvalue containers
@@ -133,19 +142,23 @@ MathExpression::MathExpression(
     Container<ValueType, OtherContainerArgs...>&& varnames) :
 		empty_(trim(exprStr).empty()),
         exprStr_(muparser_format(exprStr)),
-        pinned_(false)
+		NVARS_(std::distance(begin(varnames), end(varnames))),
+		varsValues_(NVARS_),
+		pinned_(false)
 {
     static_assert(std::is_constructible< std::string, ValueType >::value,
                   "ERROR: type mismatch. MathExpression needs a container "
                   "with variable names");
     // Setup MuParser expression
     parse_our_expression();
-    // Register our variables
-	for (auto& name: varnames)
-		if (exprStr.find(name) != std::string::npos)
-			varsMap_.emplace_back(std::make_pair(std::move(name), -1));  // copy elision
-			// Real mapping is later done with pin_up_vars()
-    varnames.clear();
+	// Register our variables names
+	varsNames_.reserve(NVARS_);
+	for (const auto& name: varnames)
+		if (exprStr_.find(name) != std::string::npos)
+			varsNames_.emplace_back(name);
+	varnames.clear();
+	// Positions mapping is done later in pin_up_vars()
+	varsPos_.reserve(NVARS_);
 }
 
 // MathExpression can only be constructed with the following rvalue containers
@@ -162,13 +175,51 @@ template MathExpression::MathExpression(const std::string&,
 template MathExpression::MathExpression(const std::string&,
                                         std::unordered_set<std::string>&&);
 
+/// @todo TODO erase debug code
+// MathExpression::MathExpression(const MathExpression& that) :
+// 	empty_(that.empty_),
+// 	exprStr_(that.exprStr_),
+// 	expr_(that.expr_),
+// 	varsMap_(that.varsMap_),
+// 	pinned_(that.pinned_)
+// { std::cerr << "ME: copy ctor\n"; }
+// MathExpression::MathExpression(MathExpression&& that) :
+// 	empty_(std::move(that.empty_)),
+// 	exprStr_(std::move(that.exprStr_)),
+// 	expr_(std::move(that.expr_)),
+// 	varsMap_(std::move(that.varsMap_)),
+// 	pinned_(std::move(that.pinned_))
+// { std::cerr << "ME: move ctor\n"; }
+////////////////////////////////
+
+
+MathExpression& MathExpression::operator=(MathExpression that)
+{
+	std::swap(empty_, that.empty_);
+	std::swap(exprStr_, that.exprStr_);
+	std::swap(expr_, that.expr_);
+	std::swap(varsNames_, that.varsNames_);
+	std::swap(varsPos_, that.varsPos_);
+//	std::swap(varsValues_, that.varsValues_);  // unnecessary
+	std::swap(pinned_, that.pinned_);
+	return *this;
+}
+
 
 void
 MathExpression::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 {
-	for(auto& pair: varsMap_)
-		pair.second = globalState.position_of_var(pair.first);
+	for (size_t i = 0ul ; i < NVARS_ ; i++) {
+		varsPos_[i] = globalState.position_of_var(varsNames_[i]);
+		expr_.DefineVar(varsNames_[i], &varsValues_[i]);  // could be in ctor
+	}
 	pinned_ = true;
+/// @todo TODO erase old code
+//	for (const auto& pair: varsMap_)
+//		expr_.DefineVar(pair.first, &state_[globalState.position_of_var(pair.first)]);
+//	for(auto& pair: varsMap_) {
+//		pair.second = globalState.position_of_var(pair.first);
+//////////////////////////////
 }
 
 
@@ -176,16 +227,20 @@ MathExpression::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 void
 MathExpression::pin_up_vars(const PositionsMap& globalVars)
 {
-	for(auto& pair: varsMap_)
-		pair.second = globalVars.at(pair.first);
+	for (size_t i = 0ul ; i < NVARS_ ; i++) {
+		varsPos_[i] = globalVars.at(varsNames_[i]);
+		expr_.DefineVar(varsNames_[i], &varsValues_[i]);  // could be in ctor
+	}
 	pinned_ = true;
 }
 #else
 void
 MathExpression::pin_up_vars(PositionsMap& globalVars)
 {
-	for(auto& pair: varsMap_)
-		pair.second = globalVars[pair.first];
+	for (size_t i = 0ul ; i < NVARS_ ; i++) {
+		varsPos_[i] = globalVars[varsNames_[i]];
+		expr_.DefineVar(varsNames_[i], &varsValues_[i]);  // could be in ctor
+	}
 	pinned_ = true;
 }
 #endif
@@ -208,16 +263,13 @@ void
 MathExpression::parse_our_expression()
 {
 	assert(!exprStr_.empty());
-
-	typedef mu::value_type mp_type_;
-
 	try {
 		expr_.SetExpr(exprStr_);
 		// Define constants
 		expr_.DefineConst("true",  1);
 		expr_.DefineConst("false", 0);
 		// Define operators
-		expr_.DefineInfixOprt("!", [](mp_type_ v) -> mp_type_ { return !v; } );
+		expr_.DefineInfixOprt("!", [](mu::value_type v)->mu::value_type{return !v;});
 		// Define functions offered for variables
 		expr_.DefineFun("min", min2<STATE_INTERNAL_TYPE>);
 		expr_.DefineFun("max", max2<STATE_INTERNAL_TYPE>);
