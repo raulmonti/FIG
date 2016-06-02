@@ -387,14 +387,15 @@ Transition::handle_clocks(Traial& traial,
 	while (fromClock != toClock) {
 		if (resetClocks_[thisClock]) {
 			traial.clocks_[thisClock].value = fromClock->sample();
-			if (!std::isfinite(traial.clocks_[thisClock].value)) {  // Resample?
+			// should be non-negative
+			if (!std::isfinite(traial.clocks_[thisClock].value)
+				|| 0 >= traial.clocks_[thisClock].value) {  // Resample?
 				traial.clocks_[thisClock].value = fromClock->sample();
-				if (!std::isfinite(traial.clocks_[thisClock].value))
+				if (!std::isfinite(traial.clocks_[thisClock].value)
+					|| 0 >= traial.clocks_[thisClock].value)
 					throw_FigException("time sampling failed for clock \"" +
 					                   traial.clocks_[thisClock].name + "\"");
 			}
-			// should be non-negative
-			assert(0 < traial.clocks_[thisClock].value);
 		} else {
 			traial.clocks_[thisClock].value -= elapsedTime;
 			// that will be negative iff this clock had already expired

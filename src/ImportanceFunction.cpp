@@ -108,17 +108,30 @@ ImportanceFunction::Formula::set(
 	varsPos_.clear();
 	varsPos_.reserve(NVARS_);
 	varsValues_.resize(NVARS_);
-	impValues_.resize(NVARS_); ???
-	auto pos_of_var = wrap_mapper(obj);
-	size_t idx(0ul);
-	for (const auto& name: varnames) {
-		if (exprStr_.find(name) != std::string::npos) {
-			varsNames_.emplace_back(name);               // map name
-			varsPos_.emplace_back(pos_of_var(name));     // map global pos
-			expr_.DefineVar(name, &varsValues_[idx++]);  // hook to expr_
-			expr_.DefineVar(name, &impValues_[idx++]);  ??? // hook to expr_
+	try {
+		auto pos_of_var = wrap_mapper(obj);
+		size_t idx(0ul);
+		for (const std::string& var: varnames) {
+			if (exprStr_.find(var) != std::string::npos) {
+				varsNames_.emplace_back(var);               // map var
+				varsPos_.emplace_back(pos_of_var(var));     // map global pos
+				expr_.DefineVar(var, &varsValues_[idx++]);  // hook to expr_
+			}
 		}
+	} catch (mu::Parser::exception_type &e) {
+		std::cerr << "Failed parsing expression" << std::endl;
+		std::cerr << "    message:  " << e.GetMsg()   << std::endl;
+		std::cerr << "    formula:  " << e.GetExpr()  << std::endl;
+		std::cerr << "    token:    " << e.GetToken() << std::endl;
+		std::cerr << "    position: " << e.GetPos()   << std::endl;
+		std::cerr << "    errc:     " << e.GetCode()  << std::endl;
+		throw_FigException("bad expression for ImportanceFunction::Formula, "
+						   "did you remember to map all the variables?");
 	}
+	varsNames_.shrink_to_fit();
+	varsPos_.shrink_to_fit();
+	NVARS_ = varsNames_.size();
+	varsValues_.resize(NVARS_);
 	pinned_ = true;
 
     // Fake an evaluation to reveal parsing errors but now... I said NOW!
@@ -190,7 +203,6 @@ ImportanceFunction::Formula::operator()(const StateInstance& state) const
 	// Copy the useful part of 'state'...
 	for (size_t i = 0ul ; i < NVARS_ ; i++)
 		varsValues_[i] = state[varsPos_[i]];  // ugly motherfucker
-		impValues_[i] = state[varsPos_[i]]; ???  // ugly motherfucker
 	/// @todo NOTE As an alternative we could use memcpy() to copy the values,
 	///            but that means bringing a whole chunk of memory of which
 	///            only a few variables will be used. To lighten that we could
@@ -208,13 +220,8 @@ ImportanceFunction::Formula::operator()(const ImportanceVec& localImportances) c
 		throw_FigException("this Formula is empty!");
 	// Copy the values internally...
 	for (size_t i = 0ul ; i < NVARS_ ; i++)
-		varsValues_[i] = localImportances[varsPos_[i]];  // NOTE see other note
-		impValues_[i] = localImportances[varsPos_[i]]; ??? // NOTE see other note
-//	// Bind symbolic state variables to the current expression...
-//	for (const auto& pair: varsMap_)
-//        expr_.DefineVar(pair.first, reinterpret_cast<STATE_INTERNAL_TYPE*>(
-//                                    const_cast<ImportanceValue*>(
-//                                    &localImportances[pair.second])));
+		varsValues_[i] = static_cast<STATE_INTERNAL_TYPE>(
+							 localImportances[varsPos_[i]]);  // NOTE see other note
 	// ...and evaluate
 	return static_cast<ImportanceValue>(expr_.Eval());
 }

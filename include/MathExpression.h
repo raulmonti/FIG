@@ -223,8 +223,6 @@ MathExpression::MathExpression(
 	Iterator<ValueType, OtherArgs...> to) :
 		empty_(trim(exprStr).empty()),
         exprStr_(muparser_format(exprStr)),
-		NVARS_(std::distance(from, to)),
-		varsValues_(NVARS_),
         pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
@@ -233,12 +231,15 @@ MathExpression::MathExpression(
 	// Setup MuParser expression
 	parse_our_expression();
 	// Register our variables names
-	varsNames_.reserve(NVARS_);
+	varsNames_.reserve(std::distance(from, to));
 	for (; from != to ; from++)
 		if (exprStr_.find(*from) != std::string::npos)
 			varsNames_.emplace_back(*from);  // copy elision
+	varsNames_.shrink_to_fit();
+	NVARS_ = varsNames_.size();
 	// Positions mapping is done later in pin_up_vars()
-	varsPos_.reserve(NVARS_);
+	varsPos_.resize(NVARS_);
+	varsValues_.resize(NVARS_);
 }
 
 } // namespace fig

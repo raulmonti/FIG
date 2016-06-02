@@ -73,12 +73,7 @@ public:
 	/// e.g. ad hoc function or combination of split importance values.
 	class Formula : public MathExpression
 	{
-		/// @brief Internal ImportanceValue s
-		/// @details "Current values" of variables/modules in a running simulation
-		mutable ImportanceVec impValues_; ???
-
 	public:
-
 		/// Empty ctor
 		Formula();
 
@@ -165,8 +160,8 @@ protected:  // Attributes for derived classes
 	/// threshold level
 	std::vector< ImportanceValue > importance2threshold_;
 
-	/// Algebraic formula defined by the user.
-	/// Useful both for ad hoc strategy and concrete_split functions
+	/// @brief Algebraic formula defined by the user.
+	/// @note Useful both for ad hoc strategy and concrete_split functions
 	Formula userFun_;
 
 public:  // Ctor/Dtor

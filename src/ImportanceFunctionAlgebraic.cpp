@@ -49,7 +49,7 @@ using std::begin;
 using std::end;
 
 
-namespace
+namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 using fig::ImportanceValue;
@@ -107,7 +107,7 @@ bool advance(const std::vector< std::string >& vars, State& s)
  * @return (min,max) evaluations of 'f' for all possible values combinations
  *         of the variables ocurring in it
  *
- * @note <b>Complexity:</b> <i>O((state|<sub>{f.free_vars()}</sub>).concrete_size()
+ * @note <b>Complexity:</b> <i>O((state|<sub>{f.get_free_vars()}</sub>).concrete_size()
  *                               * state.size())</i>
  *
  * @throw FigException if some variable used in 'f' isn't found in State 's'
@@ -117,7 +117,7 @@ find_extreme_values(const Formula& f, State s)
 {
 	ImportanceValue min(std::numeric_limits<ImportanceValue>::max());
 	ImportanceValue max(std::numeric_limits<ImportanceValue>::min());
-	const std::vector< std::string > vars(f.free_vars());
+	const std::vector< std::string > vars(f.get_free_vars());
 
 	// Initialize (in 's') all relevant variables to their minimal values
 	for (const auto& var: vars) {
@@ -137,11 +137,11 @@ find_extreme_values(const Formula& f, State s)
 	return std::make_pair(min, max);
 }
 
-} // namespace
+} // namespace  // // // // // // // // // // // // // // // // // // // // //
 
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 ImportanceFunctionAlgebraic::ImportanceFunctionAlgebraic() :
@@ -289,4 +289,4 @@ ImportanceFunctionAlgebraic::print_out(std::ostream& out,
     out << std::endl;
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

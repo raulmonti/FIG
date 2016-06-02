@@ -51,7 +51,7 @@ using std::end;
 /**
  * Functions offered to the end user for mathematical expressions
  */
-namespace
+namespace   // // // // // // // // // // // // // // // // // // // // // //
 {
 
 /// @todo: TODO extend MuParser library to accept functions with either
@@ -86,11 +86,11 @@ inline T_ max2(T_ a, T_ b)
 	return std::max<T_>(a, b);
 }
 
-} // namespace
+} // namespace  // // // // // // // // // // // // // // // // // // // // // //
 
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 template< template< typename, typename... > class Container,
@@ -101,8 +101,6 @@ MathExpression::MathExpression(
     const Container<ValueType, OtherContainerArgs...>& varnames) :
 		empty_(trim(exprStr).empty()),
 		exprStr_(muparser_format(exprStr)),
-		NVARS_(std::distance(begin(varnames), end(varnames))),
-		varsValues_(NVARS_),
 		pinned_(false)
 {
     static_assert(std::is_constructible< std::string, ValueType >::value,
@@ -111,12 +109,15 @@ MathExpression::MathExpression(
     // Setup MuParser expression
     parse_our_expression();
 	// Register our variables names
-	varsNames_.reserve(NVARS_);
+	varsNames_.reserve(std::distance(begin(varnames), end(varnames)));
 	for (const auto& name: varnames)
 		if (exprStr_.find(name) != std::string::npos)
 			varsNames_.emplace_back(name);  // copy elision
+	varsNames_.shrink_to_fit();
+	NVARS_ = varsNames_.size();
 	// Positions mapping is done later in pin_up_vars()
-	varsPos_.reserve(NVARS_);
+	varsPos_.resize(NVARS_);
+	varsValues_.resize(NVARS_);
 }
 
 // MathExpression can only be constructed with the following lvalue containers
@@ -142,8 +143,6 @@ MathExpression::MathExpression(
     Container<ValueType, OtherContainerArgs...>&& varnames) :
 		empty_(trim(exprStr).empty()),
         exprStr_(muparser_format(exprStr)),
-		NVARS_(std::distance(begin(varnames), end(varnames))),
-		varsValues_(NVARS_),
 		pinned_(false)
 {
     static_assert(std::is_constructible< std::string, ValueType >::value,
@@ -157,8 +156,11 @@ MathExpression::MathExpression(
 		if (exprStr_.find(name) != std::string::npos)
 			varsNames_.emplace_back(name);
 	varnames.clear();
+	varsNames_.shrink_to_fit();
+	NVARS_ = varsNames_.size();
 	// Positions mapping is done later in pin_up_vars()
-	varsPos_.reserve(NVARS_);
+	varsPos_.resize(NVARS_);
+	varsValues_.resize(NVARS_);
 }
 
 // MathExpression can only be constructed with the following rvalue containers
@@ -294,4 +296,4 @@ MathExpression::parse_our_expression()
 	}
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

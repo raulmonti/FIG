@@ -78,7 +78,7 @@ using std::begin;
 using std::end;
 
 
-namespace
+namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 /**
@@ -440,11 +440,11 @@ estimate_print(const fig::ConfidenceInterval& ci,
     out << std::endl;
 }
 
-} // namespace
+} // namespace  // // // // // // // // // // // // // // // // // // // // //
 
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 /// To catch interruptions (timeout, ^C, etc)
@@ -581,8 +581,8 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 			std::make_shared< ImportanceFunctionConcreteCoupled >(*model);
 	impFuns["concrete_split"] =
 			std::make_shared< ImportanceFunctionConcreteSplit >(*model);
-    impFuns["algebraic"] =
-            std::make_shared< ImportanceFunctionAlgebraic >();
+	impFuns["algebraic"] =
+			std::make_shared< ImportanceFunctionAlgebraic >();
 
 	// Build offered thresholds builders
 	thrBuilders["fix"] = std::make_shared< ThresholdsBuilderFixed >();
@@ -1214,4 +1214,4 @@ ModelSuite::estimate(const size_t& propertyIndex,
 	estimate(*propertyPtr, engine, bounds);
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //
