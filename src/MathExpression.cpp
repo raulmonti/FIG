@@ -252,6 +252,8 @@ MathExpression::muparser_format(const std::string& expr) const
 	if (trim(expr).empty())
 		return "true";
     std::string muParserExpr(expr);
+	delete_substring(muParserExpr, "\'");
+	delete_substring(muParserExpr, "\"");
 	// It's easier to do this syntactic change than to define the operators
 	replace_substring(muParserExpr, "&", "&&");  // '&' should always appear single
 	replace_substring(muParserExpr, "|", "||");  // '|' should always appear single

@@ -73,6 +73,10 @@ public:
 	/// e.g. ad hoc function or combination of split importance values.
 	class Formula : public MathExpression
 	{
+		/// @brief Internal ImportanceValue s
+		/// @details "Current values" of variables/modules in a running simulation
+		mutable ImportanceVec impValues_; ???
+
 	public:
 
 		/// Empty ctor
@@ -97,16 +101,18 @@ public:
 		/// Evaluate current formula expression on given symbolic state
 		/// @throw mu::Parser::exception_type if undefined internal
 		///        mathematical expression.
+		/// @throw FigException if set() hasn't been called yet/last
 		ImportanceValue operator()(const StateInstance& state) const;
 
 		/// Evaluate current formula expression on given vector
 		/// @throw mu::Parser::exception_type if undefined internal
 		///        mathematical expression.
+		/// @throw FigException if set() hasn't been called yet/last
 		ImportanceValue operator()(const ImportanceVec& localImportances) const;
 
 		/// Return the free variables (or modules) names occurring in our
 		/// expression, viz. the 'varnames' from the last call to set()
-		std::vector< std::string > free_vars() const noexcept;
+		const std::vector< std::string >& get_free_vars() const noexcept;
 	};
 
 public:  // Class attributes

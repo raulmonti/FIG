@@ -182,6 +182,8 @@ protected:  // Modifyers
 	 *   @throw FigException if there was some error in our math expression
 	 * \endif
 	 * @note Maps also the positions of the update variables
+	 * @todo TODO unify with the other version using templates;
+	 *            see ImportanceFunction::Formula::set()
 	 */
 	void pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState) override;
 
@@ -191,6 +193,8 @@ protected:  // Modifyers
 	 *   @throw FigException if there was some error in our math expression
 	 * \endif
 	 * @note Maps also the positions of the update variables
+	 * @todo TODO unify with the other version using templates;
+	 *            see ImportanceFunction::Formula::set()
 	 */
 #ifndef NRANGECHK
 	void pin_up_vars(const PositionsMap &globalVars) override;
