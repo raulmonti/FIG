@@ -236,7 +236,7 @@ NumericConstraint<float> ccConstraint(
 	"confCo ∈ (0,1)");
 NumericConstraint<float> precConstraint(
 	[](const float& prec) { return 0.0f < prec; },
-	"relPrec > 0");
+	"relPrec ∈ (0,1)");
 MultiDoubleArg< float, float > confidenceCriteria(
 	"", "stop-conf",
 	"Add a stopping condition for estimations based on a confidence "

@@ -136,6 +136,8 @@ public:  // Utils
 	 * \ifnot NDEBUG
 	 *   @throw FigException if pin_up_vars() hasn't been called yet
 	 * \endif
+	 * @todo TODO unify with the other version using templates;
+	 *            see ImportanceFunction::Formula::set()
 	 */
 	bool operator()(const StateInstance& state) const;
 
@@ -148,6 +150,8 @@ public:  // Utils
 	 * \ifnot NDEBUG
 	 *   @throw FigException if pin_up_vars() hasn't been called yet
 	 * \endif
+	 * @todo TODO unify with the other version using templates;
+	 *            see ImportanceFunction::Formula::set()
 	 */
 	bool operator()(const State<STATE_INTERNAL_TYPE>& state) const;
 };

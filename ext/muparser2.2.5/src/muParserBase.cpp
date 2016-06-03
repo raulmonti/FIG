@@ -1013,7 +1013,7 @@ namespace mu
     // Note: The check for nOffset==0 and nThreadID here is not necessary but 
     //       brings a minor performance gain when not in bulk mode.
     value_type *Stack = ((nOffset==0) && (nThreadID==0)) ? &m_vStackBuffer[0] : &m_vStackBuffer[nThreadID * (m_vStackBuffer.size() / s_MaxNumOpenMPThreads)];
-    value_type buf;
+	value_type buf;
     int sidx(0);
     for (const SToken *pTok = m_vRPN.GetBase(); pTok->Cmd!=cmEND ; ++pTok)
     {
@@ -1715,7 +1715,7 @@ namespace mu
   }
 
   //---------------------------------------------------------------------------
-  void ParserBase::Eval(value_type *results, int nBulkSize)
+  void ParserBase::Eval(value_type *results, int nBulkSize) const
   {
 /* <ibg 2014-09-24/> Commented because it is making a unit test impossible
 

@@ -43,7 +43,7 @@ namespace fig
  * @details Transient properties describe finite execution traces.
  *          For instance "safety properties" described by the PCTL formula
  *          P(!stop U fail), which expresses the probability of remaining
- *          in "keep-going" states until a "failure" is reached, are
+ *          in "non-stopping" states until a "failure" is reached, are
  *          transient properties.<br>
  *          The general idea is to visit only states that satisfy a set of
  *          conditions (described by the logical expression "expr1", say),

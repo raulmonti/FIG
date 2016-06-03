@@ -106,7 +106,7 @@ private:
     
 	  value_type  Eval() const;
     value_type* Eval(int &nStackSize) const;
-    void Eval(value_type *results, int nBulkSize);
+	void Eval(value_type *results, int nBulkSize) const;
 
     int GetNumResults() const;
 

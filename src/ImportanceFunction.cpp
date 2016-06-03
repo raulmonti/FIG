@@ -107,15 +107,16 @@ ImportanceFunction::Formula::set(
 	varsNames_.reserve(NVARS_);
 	varsPos_.clear();
 	varsPos_.reserve(NVARS_);
-	varsValues_.resize(NVARS_);
+//	varsValues_.resize(NVARS_);
 	try {
 		auto pos_of_var = wrap_mapper(obj);
 		size_t idx(0ul);
 		for (const std::string& var: varnames) {
-			if (exprStr_.find(var) != std::string::npos) {
+			if (find(begin(varsNames_),end(varsNames_),var) == end(varsNames_)
+					&& exprStr_.find(var) != std::string::npos) {
 				varsNames_.emplace_back(var);               // map var
 				varsPos_.emplace_back(pos_of_var(var));     // map global pos
-				expr_.DefineVar(var, &varsValues_[idx++]);  // hook to expr_
+//				expr_.DefineVar(var, &varsValues_[idx++]);  // hook to expr_
 			}
 		}
 	} catch (mu::Parser::exception_type &e) {
@@ -131,14 +132,14 @@ ImportanceFunction::Formula::set(
 	varsNames_.shrink_to_fit();
 	varsPos_.shrink_to_fit();
 	NVARS_ = varsNames_.size();
-	varsValues_.resize(NVARS_);
+//	varsValues_.resize(NVARS_);
 	pinned_ = true;
 
     // Fake an evaluation to reveal parsing errors but now... I said NOW!
     try {
 		STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
-		for (STATE_INTERNAL_TYPE& val: varsValues_)
-			val = dummy;
+//		for (STATE_INTERNAL_TYPE& val: varsValues_)
+//			val = dummy;
 		dummy = expr_.Eval();
     } catch (mu::Parser::exception_type &e) {
         std::cerr << "Failed parsing expression" << std::endl;
@@ -190,7 +191,7 @@ ImportanceFunction::Formula::reset() noexcept
 	NVARS_ = 0ul;
 	varsNames_.clear();
 	varsPos_.clear();
-	varsValues_.clear();
+//	varsValues_.clear();
     pinned_ = false;
 }
 
@@ -503,8 +504,11 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 		const StateInstance symbState = state.decode(i).to_state_instance();
 		const ImportanceValue importance = importance_of(symbState);
 		minI = importance < minI ? importance : minI;
-        if (property.is_rare(symbState) && importance < minrI)
-            minrI = importance;
+		if (property.is_rare(symbState) && importance < minrI) {
+			minrI = importance;
+			/// @todo TODO erase debug print
+			std::cerr << "State " << i << " is rare\n";
+		}
 	}
     assert(minI <= minrI);
 
@@ -519,6 +523,11 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 	minValue_ = minI;
 	maxValue_ = maxI;
 	minRareValue_ = minrI;
+
+	/// @todo TODO erase debug print
+	std::cerr << "minImp: " << minValue_ << std::endl;
+	std::cerr << "maxImp: " << maxValue_ << std::endl;
+	std::cerr << "minRareImp: " << minRareValue_ << std::endl;
 }
 
 } // namespace fig

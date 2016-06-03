@@ -81,8 +81,11 @@ Postcondition::test_evaluation() const
 {
 	assert(pinned());
 	try {
-		for (auto& e: varsValues_)
-			e = static_cast<STATE_INTERNAL_TYPE>(1.1);
+		const STATE_INTERNAL_TYPE DUMMY(static_cast<STATE_INTERNAL_TYPE>(1.1));
+		for (size_t i = 0ul ; i < NVARS_ ; i++)
+			varsValues_[i] = DUMMY;
+//		for (STATE_INTERNAL_TYPE& val: varsValues_)
+//			val = DUMMY;
 		int numUpdates(NUPDATES_);
 		STATE_INTERNAL_TYPE* ptr = expr_.Eval(numUpdates);
 		assert(NUPDATES_ == static_cast<size_t>(numUpdates) || expression() == "");
@@ -109,7 +112,6 @@ Postcondition::pin_up_vars(const PositionsMap& globalVars)
 	MathExpression::pin_up_vars(globalVars);    // Map expression variables
 	for (size_t i = 0ul ; i < NUPDATES_ ; i++)  // Map update variables
 		updatesPos_[i] = globalVars.at(updatesNames_[i]);
-	MathExpression::pin_up_vars(globalVars);  // Map expression variables
 # ifndef NDEBUG
 	test_evaluation();  // Reveal parsing errors in this early stage
 # endif
@@ -149,15 +151,19 @@ Postcondition::operator()(State<STATE_INTERNAL_TYPE>& state) const
 		throw_FigException("pin_up_vars() hasn't been called yet");
 #endif
 	// Copy the useful part of 'state'...
-	for (size_t i = 0ul ; i < NVARS_ ; i++)
+	for (size_t i = 0ul ; i < NVARS_ ; i++) {
+		assert(state.size() > varsPos_[i]);
 		varsValues_[i] = state[varsPos_[i]]->val();  // NOTE see other note
+	}
 	// ...evaluate...
 	int numUpdates(NUPDATES_);
 	STATE_INTERNAL_TYPE* updates = expr_.Eval(numUpdates);
 	assert(NUPDATES_ == static_cast<size_t>(numUpdates) || expression().empty());
 	// ...and reflect in state
-	for (size_t i = 0ul ; i < NUPDATES_ ; i++)
-		state[updatesNames_[i]]->assign(updates[i]);
+	for (size_t i = 0ul ; i < NUPDATES_ ; i++) {
+		assert(state.size() > updatesPos_[i]);
+		state[updatesPos_[i]]->assign(updates[i]);
+	}
 /// @todo TODO erase old code
 //	std::vector< STATE_INTERNAL_TYPE > values(varsMap_.size());
 //	size_t i(0ul);
@@ -201,20 +207,25 @@ Postcondition::operator()(StateInstance& state) const
 		throw_FigException("pin_up_vars() hasn't been called yet");
 #endif
 	// Copy the useful part of 'state'...
-	for (size_t i = 0ul ; i < NVARS_ ; i++)
+	for (size_t i = 0ul ; i < NVARS_ ; i++) {
+		assert(state.size() > varsPos_[i]);
 		varsValues_[i] = state[varsPos_[i]];  // ugly motherfucker
-	/// @todo NOTE As an alternative we could use memcpy() to copy the values,
-	///            but that means bringing a whole chunk of memory of which
-	///            only a few variables will be used. To lighten that we could
-	///            impose an upper bound on the number of variables per guard,
-	///            but then the language's flexibility will be compromised.
+		/// @todo
+		/// NOTE As an alternative we could use memcpy() to copy the values,
+		///      but that means bringing a whole chunk of memory of which
+		///      only a few variables will be used. To lighten that we could
+		///      impose an upper bound on the number of variables per guard,
+		///      but then the language's flexibility will be compromised.
+	}
 	// ...evaluate...
 	int numUpdates(NUPDATES_);
 	STATE_INTERNAL_TYPE* updates = expr_.Eval(numUpdates);
 	assert(NUPDATES_ == static_cast<size_t>(numUpdates) || expression().empty());
 	// ...and reflect in state
-	for (size_t i = 0ul ; i < NUPDATES_ ; i++)
+	for (size_t i = 0ul ; i < NUPDATES_ ; i++) {
+		assert(state.size() > updatesPos_[i]);
 		state[updatesPos_[i]] = updates[i];
+	}
 /// @todo TODO erase old code
 //	// Bind state's values to our expression...
 //	for (const auto& pair: varsMap_)

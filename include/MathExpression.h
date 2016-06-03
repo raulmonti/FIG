@@ -32,7 +32,8 @@
 
 // C++
 #include <type_traits>  // std::is_constructible<>
-#include <iterator>     // std::distance()
+#include <algorithm>    // std::find()
+#include <iterator>     // std::begin(), std::end(), std::distance()
 #include <utility>      // std::pair<>, std::move()
 #include <string>
 #include <stdexcept>    // std::out_of_range
@@ -46,6 +47,10 @@
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
 #endif
+
+// ADL
+using std::begin;
+using std::end;
 
 
 namespace fig
@@ -93,7 +98,8 @@ protected:
 
 	/// @brief Values of our variables
 	/// @details "Current values" of our variables in a running simulation
-	mutable StateInstance varsValues_;
+	/// @note Not an std::vector because of issues with MuParser
+	mutable STATE_INTERNAL_TYPE* varsValues_;
 
 	/// Whether the global positional order of our variables
 	/// (i.e. varsPos_) has already been defined
@@ -145,14 +151,17 @@ public:  // Ctors/Dtor
 				   Iterator<ValueType, OtherArgs...> from,
 				   Iterator<ValueType, OtherArgs...> to);
 
-	/// Default copy ctor
-	MathExpression(const MathExpression& that) = default;
+	/// Copy ctor
+	MathExpression(const MathExpression& that);
 
-	/// Default move ctor
-	MathExpression(MathExpression&& that) = default;
+	/// Move ctor
+	MathExpression(MathExpression&& that);
 
 	/// Copy assignment with copy&swap idiom
 	MathExpression& operator=(MathExpression that);
+
+	/// Dtor
+	~MathExpression();
 
 protected:  // Modifyers
 
@@ -165,6 +174,8 @@ protected:  // Modifyers
 	 * \ifnot NRANGECHK
 	 *   @throw out_of_range if some of our variables isn't mapped
 	 * \endif
+	 * @todo TODO unify with the other version using templates;
+	 *            see ImportanceFunction::Formula::set()
 	 */
 	virtual void pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState);
 
@@ -178,6 +189,8 @@ protected:  // Modifyers
 	 * \ifnot NRANGECHK
 	 *   @throw out_of_range if some of our variables isn't mapped
 	 * \endif
+	 * @todo TODO unify with the other version using templates;
+	 *            see ImportanceFunction::Formula::set()
 	 */
 #ifndef NRANGECHK
 	virtual void pin_up_vars(const PositionsMap& globalVars);
@@ -223,6 +236,7 @@ MathExpression::MathExpression(
 	Iterator<ValueType, OtherArgs...> to) :
 		empty_(trim(exprStr).empty()),
         exprStr_(muparser_format(exprStr)),
+		varsValues_(nullptr),
         pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
@@ -233,13 +247,16 @@ MathExpression::MathExpression(
 	// Register our variables names
 	varsNames_.reserve(std::distance(from, to));
 	for (; from != to ; from++)
-		if (exprStr_.find(*from) != std::string::npos)
+		if (std::find(begin(varsNames_),end(varsNames_),*from) == end(varsNames_)
+				&& exprStr_.find(*from) != std::string::npos)
 			varsNames_.emplace_back(*from);  // copy elision
 	varsNames_.shrink_to_fit();
 	NVARS_ = varsNames_.size();
-	// Positions mapping is done later in pin_up_vars()
-	varsPos_.resize(NVARS_);
-	varsValues_.resize(NVARS_);
+	if (0ul < NVARS_) {
+		// Positions mapping is done later in pin_up_vars()
+		varsPos_.resize(NVARS_);
+		varsValues_ = new STATE_INTERNAL_TYPE[NVARS_];
+	}
 }
 
 } // namespace fig
