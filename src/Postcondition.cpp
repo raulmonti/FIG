@@ -40,23 +40,8 @@ using std::begin;
 using std::end;
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
-
-/// @todo TODO erase debug code
-// Postcondition::Postcondition(const Postcondition& that) :
-// 	MathExpression(that),
-// 	numUpdates_(that.numUpdates_),
-// 	updatesNames_(that.updatesNames_),
-// 	updatesPositions_(that.updatesPositions_)
-// { std::cerr << "POS: copy ctor\n"; }
-// Postcondition::Postcondition(Postcondition&& that) :
-// 	MathExpression(std::forward<MathExpression>(that)),
-// 	numUpdates_(std::move(that.numUpdates_)),
-// 	updatesNames_(std::move(that.updatesNames_)),
-// 	updatesPositions_(std::move(that.updatesPositions_))
-// { std::cerr << "POS: move ctor\n"; }
-///////////////////////////////////
 
 Postcondition&
 Postcondition::operator=(Postcondition that)
@@ -69,23 +54,14 @@ Postcondition::operator=(Postcondition that)
 }
 
 
-Postcondition::~Postcondition()
-{
-	updatesNames_.clear();
-	updatesPos_.clear();
-}
-
-
 void
 Postcondition::test_evaluation() const
 {
 	assert(pinned());
 	try {
 		const STATE_INTERNAL_TYPE DUMMY(static_cast<STATE_INTERNAL_TYPE>(1.1));
-		for (size_t i = 0ul ; i < NVARS_ ; i++)
-			varsValues_[i] = DUMMY;
-//		for (STATE_INTERNAL_TYPE& val: varsValues_)
-//			val = DUMMY;
+		for (STATE_INTERNAL_TYPE& val: varsValues_)
+			val = DUMMY;
 		int numUpdates(NUPDATES_);
 		STATE_INTERNAL_TYPE* ptr = expr_.Eval(numUpdates);
 		assert(NUPDATES_ == static_cast<size_t>(numUpdates) || expression() == "");
@@ -152,8 +128,8 @@ Postcondition::operator()(State<STATE_INTERNAL_TYPE>& state) const
 #endif
 	// Copy the useful part of 'state'...
 	for (size_t i = 0ul ; i < NVARS_ ; i++) {
-		assert(state.size() > varsPos_[i]);
-		varsValues_[i] = state[varsPos_[i]]->val();  // NOTE see other note
+		assert(nullptr != state[varsNames_[i]]);
+		varsValues_[i] = state[varsNames_[i]]->val();  // NOTE see other note
 	}
 	// ...evaluate...
 	int numUpdates(NUPDATES_);
@@ -161,41 +137,9 @@ Postcondition::operator()(State<STATE_INTERNAL_TYPE>& state) const
 	assert(NUPDATES_ == static_cast<size_t>(numUpdates) || expression().empty());
 	// ...and reflect in state
 	for (size_t i = 0ul ; i < NUPDATES_ ; i++) {
-		assert(state.size() > updatesPos_[i]);
-		state[updatesPos_[i]]->assign(updates[i]);
+		assert(nullptr != state[updatesNames_[i]]);
+		state[updatesNames_[i]]->assign(updates[i]);
 	}
-/// @todo TODO erase old code
-//	std::vector< STATE_INTERNAL_TYPE > values(varsMap_.size());
-//	size_t i(0ul);
-//	// Bind state's variables to our expression...
-//	for (const auto& pair: varsMap_) {
-//		auto var_ptr = state[pair.first];
-//		if (nullptr == var_ptr) {
-//			std::stringstream sss;
-//			state.print_out(sss, true);
-//			throw_FigException(std::string("variable \"").append(pair.first)
-//							   .append("\" not found in state ").append(sss.str()));
-//		}
-//		values[i] = var_ptr->val();
-//		expr_.DefineVar(pair.first, &values[i]);
-//		i++;
-//	}
-//	// ...evaluate...
-//	int numUpdates(numUpdates_);
-//	STATE_INTERNAL_TYPE* updates = expr_.Eval(numUpdates);
-//	assert(numUpdates_ == numUpdates || expression().empty());
-//	// ...and reflect in state
-//	for (int i = 0 ; i < numUpdates_ ; i++) {
-//		auto var_ptr = state[updatesNames_[i]];
-//		if (nullptr == var_ptr) {
-//			std::stringstream sss;
-//			state.print_out(sss, true);
-//			throw_FigException(std::string("variable \"").append(updatesNames_[i])
-//							   .append("\" not found in state ").append(sss.str()));
-//		}
-//		var_ptr->assign(updates[i]);
-//	}
-///////////////////////////////
 }
 
 
@@ -226,19 +170,6 @@ Postcondition::operator()(StateInstance& state) const
 		assert(state.size() > updatesPos_[i]);
 		state[updatesPos_[i]] = updates[i];
 	}
-/// @todo TODO erase old code
-//	// Bind state's values to our expression...
-//	for (const auto& pair: varsMap_)
-//		expr_.DefineVar(pair.first,  const_cast<STATE_INTERNAL_TYPE*>(
-//						&state[pair.second]));
-//	// ...evaluate...
-//	int numUpdates(numUpdates_);
-//	STATE_INTERNAL_TYPE* updates = expr_.Eval(numUpdates);
-//	assert(numUpdates_ == numUpdates || expression().empty());
-//	// ...and reflect in state
-//	for (int i = 0 ; i < numUpdates_ ; i++)
-//		state[updatesPositions_[i]] = updates[i];
-//////////////////////////////
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

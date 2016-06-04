@@ -91,11 +91,8 @@ public:  // Ctors
 	/// Default move ctor
 	Precondition(Precondition&& that) = default;
 
-	/// Default copy assignment
-	Precondition& operator=(const Precondition& that) = default;
-
-	/// Default move assignment
-	Precondition& operator=(Precondition&& that) = default;
+	/// Copy assignment with copy&swap idiom
+	Precondition& operator=(Precondition that);
 
 public:  // Modifyers, made public since too many other classes use Precondition
 

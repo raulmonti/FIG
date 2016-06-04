@@ -53,7 +53,7 @@ using std::end;
 namespace { const fig::Label TAU; }
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 template< template< typename, typename... > class Container1,
@@ -460,4 +460,4 @@ ModuleInstance::order_transitions()
 #endif
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

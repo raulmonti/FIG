@@ -35,7 +35,7 @@
 #include <FigException.h>
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 void
@@ -43,10 +43,10 @@ Precondition::test_evaluation() const
 {
 	assert(pinned());
 	try {
-		STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(0.1));
+		STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
 		for (STATE_INTERNAL_TYPE& val: varsValues_)
 			val = dummy;
-		expr_.Eval(&dummy, 1);
+		expr_.Eval();
 	} catch (mu::Parser::exception_type& e) {
 		std::cerr << "Failed parsing expression" << std::endl;
 		std::cerr << "    message:  " << e.GetMsg()   << std::endl;
@@ -57,6 +57,14 @@ Precondition::test_evaluation() const
 		throw_FigException("bad expression for precondition, "
 						   "did you remember to map all the variables?");
 	}
+}
+
+
+Precondition&
+Precondition::operator=(Precondition that)
+{
+	MathExpression::operator=(std::move(that));
+	return *this;
 }
 
 
@@ -123,11 +131,11 @@ Precondition::operator()(const State<STATE_INTERNAL_TYPE>& state) const
 #endif
 	// Copy the useful part of 'state'...
 	for (size_t i = 0ul ; i < NVARS_ ; i++) {
-		assert(state.size() > varsPos_[i]);
-		varsValues_[i] = state[varsPos_[i]]->val();  // NOTE see other note
+		assert(nullptr != state[varsNames_[i]]);
+		varsValues_[i] = state[varsNames_[i]]->val();  // NOTE see other note
 	}
 	// ...and evaluate
 	return static_cast<bool>(expr_.Eval());
 }
 
-}
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

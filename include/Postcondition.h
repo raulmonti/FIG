@@ -171,9 +171,6 @@ public:  // Ctors/Dtor
 	/// Copy assignment with copy&swap idiom
 	Postcondition& operator=(Postcondition that);
 
-	/// Dtor
-	virtual ~Postcondition();
-
 protected:  // Modifyers
 
 	/**

@@ -44,7 +44,7 @@ using std::begin;
 using std::end;
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 template< typename T_ >
@@ -393,4 +393,4 @@ template class State< unsigned int       >;
 template class State< unsigned long      >;
 template class State< unsigned long long >;
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

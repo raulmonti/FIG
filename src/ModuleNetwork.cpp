@@ -54,7 +54,7 @@ using std::begin;
 using std::end;
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 ModuleNetwork::ModuleNetwork() :
@@ -304,4 +304,4 @@ template Event ModuleNetwork::simulation_step(Traial&,
 											  const SimulationEngineRestart&,
 											  restart_rate_event) const;
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //
