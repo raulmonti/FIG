@@ -59,8 +59,9 @@ class Module
 protected:
 
 	/// All the transitions of the Module, with no particular order.
-	/// @note Needed to traverse the state space, e.g. when building auto ifun
-	std::vector< std::shared_ptr< Transition > > transitions_;
+	/// @note Needed in this base class to traverse the state space,
+	///       e.g. when building auto ifun
+	std::vector< Transition > transitions_;
 
 public:  // Accessors
 
@@ -73,13 +74,6 @@ public:  // Accessors
 	/// Number of (symbolic) transitions of this Module, i.e. the transitions
 	/// defined syntactically by the user in the IOSA model description
 	inline size_t num_transitions() const noexcept { return transitions_.size(); }
-
-	/// Return this Module's symbolic transitions
-	/// @note Safety is ensured as long as Transition offers no non-const
-	///       public method. Otherwise Transitions could be modified by
-	///       the user and there'd be no way for us to find out.
-	inline const std::vector< std::shared_ptr< Transition > >& transitions() const noexcept
-		{ return transitions_; }
 
 	/// Symbolic global state size, i.e. number of variables in the Module
 	virtual size_t state_size() const noexcept = 0;

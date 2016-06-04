@@ -58,10 +58,23 @@ public:
 	/// above ifun.minVal() will be considered as threshold.
 	const ImportanceValue MIN_IMP_RANGE = 6u;
 
+	/// Every how many importance values should we increase the STRIDE
+	/// between thresholds.<br>
+	/// STRIDE is also affected by the splitting chosen in build_thresholds()
+	const ImportanceValue IMP_LEAP_SIZE = 500u;
+
 public:
 
 	/// Default ctor
 	ThresholdsBuilderFixed() : ThresholdsBuilder("fix") {}
+
+	/// Data ctor
+	ThresholdsBuilderFixed(ImportanceValue minImpRange,
+						   ImportanceValue impLeapSize) :
+			ThresholdsBuilder("fix"),
+			MIN_IMP_RANGE(minImpRange),
+			IMP_LEAP_SIZE(impLeapSize)
+		{ /* Not much to do around here */ }
 
 	inline bool adaptive() const noexcept override { return false; }
 

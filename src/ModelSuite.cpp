@@ -78,7 +78,7 @@ using std::begin;
 using std::end;
 
 
-namespace
+namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 /**
@@ -116,7 +116,7 @@ build_empty_confidence_interval(
 	const bool& dynamicPrecision = true,
     const std::string& hint = "")
 {
-	std::unique_ptr< fig::ConfidenceInterval > ci_ptr(nullptr);
+	std::shared_ptr< fig::ConfidenceInterval > ci_ptr(nullptr);
 
 	switch (propertyType)
 	{
@@ -392,7 +392,7 @@ interrupt_print(const fig::ConfidenceInterval& ci,
 {
     /// @todo TODO: implement proper reentrant logging and discard use of streams
     out << std::endl;
-    out << std::setprecision(3) << std::scientific;
+	out << std::setprecision(2) << std::scientific;
     out << "   · Computed estimate: " << ci.point_estimate() << std::endl;
     for (const float& confCo: confidenceCoefficients) {
         out << "   · " << std::setprecision(0) << std::fixed
@@ -426,7 +426,7 @@ estimate_print(const fig::ConfidenceInterval& ci,
                std::ostream& out)
 {
     out << std::endl;
-    out << std::setprecision(3) << std::scientific;
+	out << std::setprecision(2) << std::scientific;
     out << "   · Computed estimate: " << ci.point_estimate() << std::endl;
     out << std::setprecision(2) << std::scientific;
     out << "   · Precision: " << ci.precision() << std::endl;
@@ -440,11 +440,11 @@ estimate_print(const fig::ConfidenceInterval& ci,
     out << std::endl;
 }
 
-} // namespace
+} // namespace  // // // // // // // // // // // // // // // // // // // // //
 
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 /// To catch interruptions (timeout, ^C, etc)
@@ -581,8 +581,8 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 			std::make_shared< ImportanceFunctionConcreteCoupled >(*model);
 	impFuns["concrete_split"] =
 			std::make_shared< ImportanceFunctionConcreteSplit >(*model);
-    impFuns["algebraic"] =
-            std::make_shared< ImportanceFunctionAlgebraic >();
+	impFuns["algebraic"] =
+			std::make_shared< ImportanceFunctionAlgebraic >();
 
 	// Build offered thresholds builders
 	thrBuilders["fix"] = std::make_shared< ThresholdsBuilderFixed >();
@@ -1119,24 +1119,29 @@ ModelSuite::estimate(const Property& property,
 					const std::chrono::seconds& limit)
 				{
 					std::this_thread::sleep_for(limit);
-					timedout = true;
+					timedout = true;  // this stops computation
 					interrupt_print(ci, ModelSuite::confCoToShow_,
 									mainLog_, lastEstimationStartTime_);
 					ci.reset();
 				},
 				std::ref(*ci_ptr), std::ref(engine.interrupted), std::ref(timeLimit));
 
-			engine.lock();
-			engine.simulate(property,
-							min_effort(property.type,
-									   engine.name(),
-									   engine.current_imp_fun()),
-							*ci_ptr,
-							techLog_,
-							&increase_effort);
-			engine.unlock();
-
-			timer.join();
+			try {
+				engine.lock();
+				engine.simulate(property,
+								min_effort(property.type,
+										   engine.name(),
+										   engine.current_imp_fun()),
+								*ci_ptr,
+								techLog_,
+								&increase_effort);
+				engine.unlock();
+				timer.join();
+			} catch (std::exception&) {
+				engine.unlock();
+				timer.detach();
+				throw;
+			}
 			techLog_ << std::endl;
 		}
 		interruptCI_ = nullptr;
@@ -1209,4 +1214,4 @@ ModelSuite::estimate(const size_t& propertyIndex,
 	estimate(*propertyPtr, engine, bounds);
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

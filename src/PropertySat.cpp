@@ -3,6 +3,7 @@
 #include "Ast.h"
 #include "Iosacompliance.h"
 #include <set>
+#include <z3_api.h>
 
 using namespace std;
 using namespace parser;
@@ -129,7 +130,7 @@ PropertySat::general_sat(unsigned int idx,
             }
         }else{
             z3::expr e_v = c_.int_const(vNames_[i].c_str());
-            val_expr = val_expr && e_v == valuation[i];
+            val_expr = val_expr && e_v == c_.int_val((__int64)valuation[i]);
         }
     }
     s.add((negation ? (!propExpr_[idx]) : propExpr_[idx])

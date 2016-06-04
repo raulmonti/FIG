@@ -45,14 +45,20 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
+TO="16h"
+CONF=0.9  # Confidence coefficient
+PREC=0.2  # Relative precision
+SPLITS=(2 3 6)  # RESTART splittings to test
+QUEUES_CAPACITIES=(10 15 20 25)
 show "Configuring experiments"
-declare -a QUEUES_CAPACITIES=(10 15 20 25)
-STOP_CRITERION="--stop-conf 0.90 0.2"  # Confidence coeff. and rel. precision
-SPLITTINGS="--splitting 2,3,6"         # Splitting values for RESTART engine
+EXPNAME="tandem_queue"
+SPLITTING="--splitting "
+for S in "${SPLITS[@]}"; do SPLITTING+="$S,"; done; SPLITTING="${SPLITTING%,}"
+STOP_CRITERION="--stop-conf $CONF $PREC"
 STANDARD_MC="-e nosplit --flat $STOP_CRITERION"
-RESTART_ADHOC="--adhoc q2 $STOP_CRITERION $SPLITTINGS"
-RESTART_AMONO="--amono $STOP_CRITERION $SPLITTINGS"
-RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION $SPLITTINGS"
+RESTART_ADHOC="--adhoc q2 $STOP_CRITERION $SPLITTING"
+RESTART_AMONO="--amono $STOP_CRITERION $SPLITTING"
+RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION $SPLITTING"
 
 
 # Launch experiments
@@ -67,36 +73,50 @@ do
 	C_DEF="^const${BLANK}int${BLANK}c${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
 	sed -e "s/${C_DEF}/const int c = $c;/1" $MODEL_FILE > $MODEL_FILE_C
 	LOG=${RESULTS}/tandem_queue_c${c}
-	EXE=`/bin/echo -e "timeout -s 15 16h ./fig $MODEL_FILE_C $PROPS_FILE"`
+	EXE=`/bin/echo -e "timeout -s 15 $TO ./fig $MODEL_FILE_C $PROPS_FILE"`
 
 	# RESTART with monolithic (auto ifun)
-	poll_till_free "tandem_queue"; show -n " AM"
+	poll_till_free $EXPNAME; show -n " AM"
 	$EXE $RESTART_AMONO 1>>${LOG}"_AM.out" 2>>${LOG}"_AM.err" &
 
 	# RESTART with compositional (auto ifun)
-	poll_till_free "tandem_queue"; show -n ", AC"
+	poll_till_free $EXPNAME; show -n ", AC"
 	$EXE $RESTART_ACOMP 1>>${LOG}"_AC.out" 2>>${LOG}"_AC.err" &
 
 	# RESTART with ad hoc
-	poll_till_free "tandem_queue"; show -n ", AH"
+	poll_till_free $EXPNAME; show -n ", AH"
 	$EXE $RESTART_ADHOC 1>>${LOG}"_AH.out" 2>>${LOG}"_AH.err" &
 
 	# Standard Monte Carlo
-	poll_till_free "tandem_queue"; show -n ", MC"
+	poll_till_free $EXPNAME; show -n ", MC"
 	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
 
 	show "... done"
 done
 
 
-# Wait till termination
+# Wait till termination, making sure everything dies after $TO
 show -n "Waiting for all experiments to finish..."
+PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }')
+`sleep $TO; kill -9 $PIDS &>/dev/null;` &> /dev/null &
 wait
 show " done"
+
+
+# Build summary charts
+show -n "Building tables..."
+IFUNS=("MC" "AH" "AC" "AM")
+EXPERIMENTS=("${QUEUES_CAPACITIES[@]}")
+build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	&> $RESULTS/table_estimates.txt
+build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	&> $RESULTS/table_times.txt
+show " done"
+
+
+# Turn lights off
 EXE_WTIME=$(format_seconds $SECONDS)  
 show "Script execution walltime was $EXE_WTIME"
 show "Results are in ${RESULTS}"
-
-
 exit 0
 

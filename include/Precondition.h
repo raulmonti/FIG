@@ -51,7 +51,7 @@ class Precondition : public MathExpression
 	/// @brief Perform a fake evaluation to exercise our expression
 	/// @note  Useful to reveal parsing errors in MathExpression
 	/// @throw FigException if badly parsed expression
-	void fake_evaluation() const;
+	void test_evaluation() const;
 
 public:  // Ctors
 
@@ -85,6 +85,15 @@ public:  // Ctors
         MathExpression(exprStr, from, to)
         {}
 
+	/// Default copy ctor
+	Precondition(const Precondition& that) = default;
+
+	/// Default move ctor
+	Precondition(Precondition&& that) = default;
+
+	/// Copy assignment with copy&swap idiom
+	Precondition& operator=(Precondition that);
+
 public:  // Modifyers, made public since too many other classes use Precondition
 
 	/**
@@ -92,6 +101,8 @@ public:  // Modifyers, made public since too many other classes use Precondition
 	 * \ifnot NDEBUG
 	 *   @throw FigException if there was some error in our math expression
 	 * \endif
+	 * @todo TODO unify with the other version using templates;
+	 *            see ImportanceFunction::Formula::set()
 	 */
 	void pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState) override;
 
@@ -100,6 +111,8 @@ public:  // Modifyers, made public since too many other classes use Precondition
 	 * \ifnot NDEBUG
 	 *   @throw FigException if there was some error in our math expression
 	 * \endif
+	 * @todo TODO unify with the other version using templates;
+	 *            see ImportanceFunction::Formula::set()
 	 */
 #ifndef NRANGECHK
 	void pin_up_vars(const PositionsMap& globalVars) override;
@@ -117,9 +130,11 @@ public:  // Utils
 	 * @note To work with local states from the \ref ModuleInstace
 	 *       "system modules" use the State variant of this operator
 	 * @throw mu::ParserError
-	 * @ifnot NDEBUG
+	 * \ifnot NDEBUG
 	 *   @throw FigException if pin_up_vars() hasn't been called yet
-	 * @endif
+	 * \endif
+	 * @todo TODO unify with the other version using templates;
+	 *            see ImportanceFunction::Formula::set()
 	 */
 	bool operator()(const StateInstance& state) const;
 
@@ -129,7 +144,11 @@ public:  // Utils
 	 * @note Slower than the StateInstance variant of this operator,
 	 *       since it has to search for the variables positions in 'state'
 	 * @throw mu::ParserError
-	 * @throw FigException if some required variable is not found in 'state'
+	 * \ifnot NDEBUG
+	 *   @throw FigException if pin_up_vars() hasn't been called yet
+	 * \endif
+	 * @todo TODO unify with the other version using templates;
+	 *            see ImportanceFunction::Formula::set()
 	 */
 	bool operator()(const State<STATE_INTERNAL_TYPE>& state) const;
 };

@@ -32,7 +32,6 @@
 
 // C++
 #include <vector>
-#include <memory>       // std::shared_ptr
 #include <iterator>     // std::begin(), std::end()
 #include <algorithm>    // std::find_if(), std::copy() range
 #include <functional>   // std::function
@@ -89,12 +88,12 @@ class ModuleInstance : public Module
 	/// Transitions semi-ordered by their triggering \ref Clock "clock"
 	std::unordered_map<
 		std::string,
-		std::vector< std::shared_ptr< Transition > > > transitions_by_clock_;
+		std::vector< Reference< const Transition > > > transitions_by_clock_;
 
 	/// Transitions semi-ordered by their synchronization \ref Label "label"
 	std::unordered_map<
 		std::string,
-		std::vector< std::shared_ptr< Transition > > > transitions_by_label_;
+		std::vector< Reference< const Transition > > > transitions_by_label_;
 
 public:
 
@@ -433,7 +432,7 @@ public:  // Utils
 	 */
 	void jump(const Label& label, State<STATE_INTERNAL_TYPE>& state) const;
 
-private:
+private:  // Class utils
 
 	/// Does the clock reside in this ModuleInstance?
 	bool is_our_clock(const std::string& clockName) const;
@@ -441,6 +440,13 @@ private:
 	/// Build mapping of our clock names to their global positions
 	/// @warning mark_added() must have been called beforehand
 	PositionsMap map_our_clocks() const;
+
+	/// Reference transitions into the semi-ordered maps by clock and by label
+	/// @warning seal() must have been called beforehand
+	/// \ifnot NDEBUG
+	///   @throw FigException if seal() not called yet or the mapping failed
+	/// \endif
+	void order_transitions();
 
 private:  // Callback utilities offered to the ModuleNetwork
 
@@ -532,11 +538,10 @@ ModuleInstance::ModuleInstance(
 	static_assert(std::is_same< Transition, ValueType2 >::value,
 				  "ERROR: type mismatch. ModuleInstance can only be copy-"
 				  "constructed from a container with Transition objects");
-	for(const auto& tr: transitions) {
-		auto ptr = std::make_shared<Transition>(tr);
-		transitions_.emplace_back(ptr);
-		transitions_by_label_[tr.label().str].emplace_back(ptr);
-		transitions_by_clock_[tr.triggeringClock].emplace_back(ptr);
+	transitions_.insert(begin(transitions_), begin(transitions), end(transitions));
+	for(const Transition& tr: transitions_) {
+		transitions_by_label_[tr.label().str].emplace_back(tr);
+		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
 	}
 }
 
@@ -570,11 +575,10 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance can only be move-"
 				  "constructed from a container with instances or raw pointers "
 				  "to Transition objects");
-	for(auto&& tr: transitions) {
-		auto ptr = std::make_shared<Transition>(std::forward<Transition>(tr));
-		transitions_.emplace_back(ptr);
-		transitions_by_label_[tr.label().str].emplace_back(ptr);
-		transitions_by_clock_[tr.triggeringClock].emplace_back(ptr);
+	transitions_.insert(begin(transitions_), begin(transitions), end(transitions));
+	for(const Transition& tr: transitions_) {
+		transitions_by_label_[tr.label().str].emplace_back(tr);
+		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
 	}
 	transitions.clear();
 }
@@ -610,12 +614,12 @@ ModuleInstance::ModuleInstance(
 				  "constructed from a container with instances or raw pointers "
 				  "to Transition objects");
 	for(auto tr_ptr: transitions) {
-		auto ptr = std::shared_ptr<Transition>(tr_ptr);
-		assert(nullptr != ptr);
-		transitions_.emplace_back(ptr);
-		transitions_by_label_[tr_ptr->label().str].emplace_back(ptr);
-		transitions_by_clock_[tr_ptr->triggeringClock].emplace_back(ptr);
+		assert(nullptr != tr_ptr);
+		transitions_.emplace_back(std::forward<Transition&&>(*tr_ptr));
 		tr_ptr = nullptr;
+		const Transition& tr = transitions_.back();
+		transitions_by_label_[tr.label().str].emplace_back(tr);
+		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
 	}
 	transitions.clear();
 }
@@ -650,13 +654,11 @@ ModuleInstance::ModuleInstance(
 	static_assert(std::is_same< Transition, ValueTypeIterator >::value,
 				  "ERROR: type mismatch. ModuleInstance ctor needs iterators "
 				  "poiting to Transition objects");
-	do {
-		const Transition& tr = *from;
-		auto ptr = std::make_shared<Transition>(tr);
-		transitions_.emplace_back(ptr);
-		transitions_by_label_[tr.label().str].emplace_back(ptr);
-		transitions_by_clock_[tr.triggeringClock].emplace_back(ptr);
-	} while (++from != to);
+	transitions_.insert(begin(transitions_), from, to);
+	for(const Transition& tr: transitions_) {
+		transitions_by_label_[tr.label().str].emplace_back(tr);
+		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
+	}
 }
 
 } // namespace fig

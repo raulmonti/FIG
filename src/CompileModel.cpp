@@ -164,12 +164,12 @@ CompileTransition(AST* trans)
         sc.pop_back();
         setcs.push_back(sc);
     }
-    fig::Transition result( Label(action,io)
+
+    return fig::Transition( Label(action,io)
                           , eclk
                           , Precondition(pre, nl)
                           , Postcondition(lassig,variables,rassig)
                           , setcs);
-    return result;
 }
 
 
@@ -204,14 +204,12 @@ build_input_enable( vector<AST*> transitions)
                 preVars.insert(preVars.end(),aux.begin(),aux.end());
             }
         }
-        vector <string> dummy;
-        fig::Transition t(Label(it.first,false)
-                         , ""
-                         , Precondition(pre,preVars)
-                         , Postcondition("",dummy,dummy)
-                         , dummy
-                         );
-        result.push_back(t);
+		vector<string> vsempty;
+		result.push_back(fig::Transition( Label(it.first,false)
+										, ""
+										, Precondition(pre,preVars)
+										, Postcondition("",vsempty,vsempty)
+										, vsempty));
     }
     
     return result;
@@ -229,13 +227,11 @@ CompileModule(AST* module, const parsingContext &pc)
     auto result = make_shared<ModuleInstance>(name
                                              ,CompileVars(variables,pc)
                                              ,CompileClocks(transitions));
-
-    for(const auto &it: transitions){
-        auto transition = CompileTransition(it);
-        result->add_transition(transition);
+	for(auto ast: transitions){
+		result->add_transition(CompileTransition(ast));
     }
-    for(const auto &it: build_input_enable(transitions)){
-        result->add_transition(it);
+	for(auto tr: build_input_enable(transitions)){
+		result->add_transition(tr);
     }
     return result;
 }

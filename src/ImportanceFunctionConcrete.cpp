@@ -50,7 +50,7 @@ using std::begin;
 using std::end;
 
 
-namespace
+namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 using uint128::uint128_t;
@@ -539,11 +539,11 @@ assess_importance_flat(const State& state,
 	return static_cast<ImportanceValue>(0u);
 }
 
-} // namespace
+} // namespace  // // // // // // // // // // // // // // // // // // // // //
 
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 ImportanceFunctionConcrete::ImportanceFunctionConcrete(
@@ -661,4 +661,4 @@ ImportanceFunctionConcrete::clear() noexcept
 	ImportanceFunction::clear();
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

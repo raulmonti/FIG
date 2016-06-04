@@ -55,7 +55,7 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 
 	// What follows is clearly arbitrary but then we warned the user
 	// in the class' docstring, didn't we?
-	const unsigned EXPANSION_FACTOR(std::ceil(IMP_RANGE/500.0f)),
+	const unsigned EXPANSION_FACTOR(std::ceil(IMP_RANGE/((float)IMP_LEAP_SIZE))),
 				   STRIDE((splitsPerThreshold <  5 ? 2u :
 						   splitsPerThreshold <  9 ? 3u :
 						   splitsPerThreshold < 14 ? 4u : 5u) * EXPANSION_FACTOR);
@@ -122,7 +122,7 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 	// Thresholds building starts at the initial state's importance + margin,
 	// everything from there downwards will be the zeroth level
 	const ImportanceValue zero(0u);
-	unsigned pos;
+	size_t pos;
 	for (pos = impFun.min_value() ; pos < impFun.initial_value()+margin ; pos++)
 		thresholds[pos] = zero;
 	unsigned s(0u);

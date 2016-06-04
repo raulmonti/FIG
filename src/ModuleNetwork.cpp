@@ -54,7 +54,7 @@ using std::begin;
 using std::end;
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 ModuleNetwork::ModuleNetwork() :
@@ -105,9 +105,8 @@ ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 	gState.append(state);
 	numClocks_ += module->num_clocks();
 	transitions_.reserve(transitions_.size() + module->transitions_.size());
-	transitions_.insert(transitions_.end(),
-						module->transitions_.begin(),
-						module->transitions_.end());
+	for (const Transition& tr: module->transitions_)
+		transitions_.emplace_back(tr);
 	module = nullptr;
 }
 
@@ -209,12 +208,12 @@ ModuleNetwork::adjacent_states(const size_t& s) const
 	State<STATE_INTERNAL_TYPE> state(gState);
 	state.decode(s);
 	for (const auto module_ptr: modules) {
-		for (const auto tr_ptr: module_ptr->transitions()) {
-			const Label& label = tr_ptr->label();
+		for (const Transition& tr: module_ptr->transitions_) {
+			const Label& label = tr.label();
 			// For each 'active' and enabled transition of this module...
-			if (label.is_output() && tr_ptr->precondition()(state)) {
+			if (label.is_output() && tr.precondition()(state)) {
 				// ...update the module variables...
-				tr_ptr->postcondition()(state);
+				tr.postcondition()(state);
 				// ...and those of other modules listening to this label...
 				for (const auto other_module_ptr: modules)
 					if (module_ptr->name != other_module_ptr->name)
@@ -305,4 +304,4 @@ template Event ModuleNetwork::simulation_step(Traial&,
 											  const SimulationEngineRestart&,
 											  restart_rate_event) const;
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

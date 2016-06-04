@@ -32,19 +32,25 @@
 
 // C++
 #include <type_traits>  // std::is_constructible<>
-#include <iterator>     // std::distance()
+#include <algorithm>    // std::find()
+#include <iterator>     // std::begin(), std::end(), std::distance()
 #include <utility>      // std::pair<>, std::move()
 #include <string>
 #include <stdexcept>    // std::out_of_range
 // External code
 #include <muParser.h>
 // FIG
-#include <State.h>
 #include <string_utils.h>
+#include <core_typedefs.h>
+#include <State.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
 #endif
+
+// ADL
+using std::begin;
+using std::end;
 
 
 namespace fig
@@ -77,13 +83,26 @@ protected:
     std::string exprStr_;
 
 	/// Mathematical expression per se
-	mutable Expression expr_;
+	Expression expr_;
 
-	/// Names and positions of the variables in our expression.
-	/// The positional order is ("later") given by the global system State.
-	std::vector< std::pair< std::string, int > > varsMap_;
+	/// Number of variables defined in our expression
+	size_t NVARS_;
 
-	/// Whether the positional order of the variables has already been defined
+	/// @brief Names of our variables
+	/// @details Symbols in exprStr_ which map to variable names
+	std::vector< std::string > varsNames_;
+
+	/// @brief Global position of our variables
+	/// @details Position of the variables from exprStr_ in a global State
+	std::vector< size_t > varsPos_;
+
+	/// @brief Values of our variables
+	/// @details "Current values" of our variables in a running simulation
+	mutable StateInstance varsValues_;
+
+	/// Whether the global positional order of our variables
+	/// (i.e. varsPos_) has already been defined and the local values
+	/// (i.e. varsValues_) have been referenced into the Expression
 	bool pinned_;
 
 public:  // Ctors/Dtor
@@ -98,9 +117,9 @@ public:  // Ctors/Dtor
 	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
-			  typename... OtherContainerArgs >
+			  typename... OtherArgs >
 	MathExpression(const std::string& exprStr,
-				   const Container<ValueType, OtherContainerArgs...>& varnames);
+				   const Container<ValueType, OtherArgs...>& varnames);
 
 	/**
 	 * @brief Data ctor from generic rvalue container
@@ -112,9 +131,9 @@ public:  // Ctors/Dtor
 	 */
 	template< template< typename, typename... > class Container,
 			  typename ValueType,
-			  typename... OtherContainerArgs >
+			  typename... OtherArgs >
 	MathExpression(const std::string& exprStr,
-				   Container<ValueType, OtherContainerArgs...>&& varnames);
+				   Container<ValueType, OtherArgs...>&& varnames);
 
 	/**
 	 * @brief Data ctor from iterator range
@@ -127,10 +146,21 @@ public:  // Ctors/Dtor
 	 */
 	template< template< typename, typename... > class Iterator,
 			  typename ValueType,
-			  typename... OtherIteratorArgs >
+			  typename... OtherArgs >
 	MathExpression(const std::string& exprStr,
-				   Iterator<ValueType, OtherIteratorArgs...> from,
-				   Iterator<ValueType, OtherIteratorArgs...> to);
+				   Iterator<ValueType, OtherArgs...> from,
+				   Iterator<ValueType, OtherArgs...> to);
+
+	/// Copy ctor
+	/// @note Explicitly defined for variables pinning into expr_
+	MathExpression(const MathExpression& that);
+
+	/// Default move ctor
+	MathExpression(MathExpression&& that) = default;
+
+	/// Copy assignment with copy&swap idiom
+	/// @note Explicitly defined for variables pinning into expr_
+	MathExpression& operator=(MathExpression that);
 
 protected:  // Modifyers
 
@@ -143,6 +173,8 @@ protected:  // Modifyers
 	 * \ifnot NRANGECHK
 	 *   @throw out_of_range if some of our variables isn't mapped
 	 * \endif
+	 * @todo TODO unify with the other version using templates;
+	 *            see ImportanceFunction::Formula::set()
 	 */
 	virtual void pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState);
 
@@ -156,6 +188,8 @@ protected:  // Modifyers
 	 * \ifnot NRANGECHK
 	 *   @throw out_of_range if some of our variables isn't mapped
 	 * \endif
+	 * @todo TODO unify with the other version using templates;
+	 *            see ImportanceFunction::Formula::set()
 	 */
 #ifndef NRANGECHK
 	virtual void pin_up_vars(const PositionsMap& globalVars);
@@ -194,11 +228,11 @@ protected:  // Class utils
 
 template< template< typename, typename... > class Iterator,
 		  typename ValueType,
-		  typename... OtherIteratorArgs >
+		  typename... OtherArgs >
 MathExpression::MathExpression(
 	const std::string& exprStr,
-	Iterator<ValueType, OtherIteratorArgs...> from,
-	Iterator<ValueType, OtherIteratorArgs...> to) :
+	Iterator<ValueType, OtherArgs...> from,
+	Iterator<ValueType, OtherArgs...> to) :
 		empty_(trim(exprStr).empty()),
         exprStr_(muparser_format(exprStr)),
         pinned_(false)
@@ -208,14 +242,17 @@ MathExpression::MathExpression(
 				  "pointing to variable names");
 	// Setup MuParser expression
 	parse_our_expression();
-	// Register our variables
-	varsMap_.reserve(std::distance(from,to));
-	for (; from != to ; from++) {
-		std::string name = *from;
-		if (exprStr.find(name) != std::string::npos)
-			varsMap_.emplace_back(std::make_pair(name, -1));  // copy elision
-			// Real mapping is later done with pin_up_vars()
-	}
+	// Register our variables names
+	varsNames_.reserve(std::distance(from, to));
+	for (; from != to ; from++)
+		if (std::find(begin(varsNames_),end(varsNames_),*from) == end(varsNames_)
+				&& exprStr_.find(*from) != std::string::npos)
+			varsNames_.emplace_back(*from);  // copy elision
+	varsNames_.shrink_to_fit();
+	NVARS_ = varsNames_.size();
+	// Positions mapping is done later in pin_up_vars()
+	varsPos_.resize(NVARS_);
+	varsValues_.resize(NVARS_);
 }
 
 } // namespace fig

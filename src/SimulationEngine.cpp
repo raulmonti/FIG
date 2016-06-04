@@ -124,7 +124,7 @@ SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun)
 
 
 void
-SimulationEngine::unbind() noexcept
+SimulationEngine::unbind()
 {
     if (locked())
         throw_FigException("engine \"" + name() + "\" is currently locked "

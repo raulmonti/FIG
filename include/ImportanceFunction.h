@@ -74,7 +74,6 @@ public:
 	class Formula : public MathExpression
 	{
 	public:
-
 		/// Empty ctor
 		Formula();
 
@@ -97,16 +96,18 @@ public:
 		/// Evaluate current formula expression on given symbolic state
 		/// @throw mu::Parser::exception_type if undefined internal
 		///        mathematical expression.
+		/// @throw FigException if set() hasn't been called yet/last
 		ImportanceValue operator()(const StateInstance& state) const;
 
 		/// Evaluate current formula expression on given vector
 		/// @throw mu::Parser::exception_type if undefined internal
 		///        mathematical expression.
+		/// @throw FigException if set() hasn't been called yet/last
 		ImportanceValue operator()(const ImportanceVec& localImportances) const;
 
 		/// Return the free variables (or modules) names occurring in our
 		/// expression, viz. the 'varnames' from the last call to set()
-		std::vector< std::string > free_vars() const noexcept;
+		const std::vector< std::string >& get_free_vars() const noexcept;
 	};
 
 public:  // Class attributes
@@ -159,8 +160,8 @@ protected:  // Attributes for derived classes
 	/// threshold level
 	std::vector< ImportanceValue > importance2threshold_;
 
-	/// Algebraic formula defined by the user.
-	/// Useful both for ad hoc strategy and concrete_split functions
+	/// @brief Algebraic formula defined by the user.
+	/// @note Useful both for ad hoc strategy and concrete_split functions
 	Formula userFun_;
 
 public:  // Ctor/Dtor

@@ -54,7 +54,7 @@ using std::end;
 using std::find;
 
 
-namespace
+namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 std::function<size_t(const std::string&)>
@@ -70,11 +70,11 @@ wrap_mapper(const fig::State<fig::STATE_INTERNAL_TYPE>& obj)
                      obj, std::placeholders::_1);
 }
 
-} // namespace
+} // namespace  // // // // // // // // // // // // // // // // // // // // //
 
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 ImportanceFunction::Formula::Formula() :
@@ -100,20 +100,47 @@ ImportanceFunction::Formula::set(
         throw_FigException("can't define an empty user function");
 
     empty_ = false;
-    exprStr_ = delete_substring(formula, "\"");
-    parse_our_expression();  // updates expr_
-    varsMap_.clear();
-    auto pos_of_var = wrap_mapper(obj);
-    for (const auto& name: varnames)
-        if (std::string::npos != formula.find(name))  // name occurs in formula
-            varsMap_.emplace_back(std::make_pair(name, pos_of_var(name)));
-    pinned_ = true;
+	exprStr_ = muparser_format(formula);
+	parse_our_expression();  // updates expr_
+	NVARS_ = std::distance(begin(varnames), end(varnames));
+	varsNames_.clear();
+	varsNames_.reserve(NVARS_);
+	varsPos_.clear();
+	varsPos_.reserve(NVARS_);
+	varsValues_.resize(NVARS_);
+	try {
+		auto pos_of_var = wrap_mapper(obj);
+		NVARS_ = 0ul;
+		for (const std::string& var: varnames) {
+			if (find(begin(varsNames_),end(varsNames_),var) == end(varsNames_)
+					&& exprStr_.find(var) != std::string::npos) {
+				varsNames_.emplace_back(var);                  // map var
+				varsPos_.emplace_back(pos_of_var(var));        // map global pos
+				expr_.DefineVar(var, &varsValues_[NVARS_++]);  // hook to expr_
+			}
+		}
+	} catch (mu::Parser::exception_type &e) {
+		std::cerr << "Failed parsing expression" << std::endl;
+		std::cerr << "    message:  " << e.GetMsg()   << std::endl;
+		std::cerr << "    formula:  " << e.GetExpr()  << std::endl;
+		std::cerr << "    token:    " << e.GetToken() << std::endl;
+		std::cerr << "    position: " << e.GetPos()   << std::endl;
+		std::cerr << "    errc:     " << e.GetCode()  << std::endl;
+		throw_FigException("bad expression for ImportanceFunction::Formula, "
+						   "did you remember to map all the variables?");
+	}
+	varsNames_.shrink_to_fit();
+	varsPos_.shrink_to_fit();
+	NVARS_ = varsNames_.size();
+	varsValues_.resize(NVARS_);  // breaks references in expr_?
+	pinned_ = true;
+
     // Fake an evaluation to reveal parsing errors but now... I said NOW!
-    STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
     try {
-        for (const auto& pair: varsMap_)
-            expr_.DefineVar(pair.first, &dummy);
-        dummy = expr_.Eval();
+		STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
+		for (STATE_INTERNAL_TYPE& val: varsValues_)
+			val = dummy;
+		dummy = expr_.Eval();
     } catch (mu::Parser::exception_type &e) {
         std::cerr << "Failed parsing expression" << std::endl;
         std::cerr << "    message:  " << e.GetMsg()   << std::endl;
@@ -161,7 +188,10 @@ ImportanceFunction::Formula::reset() noexcept
     empty_ = true;
     exprStr_ = "1";
     try { parse_our_expression(); } catch (FigException&) {}
-    varsMap_.clear();
+	NVARS_ = 0ul;
+	varsNames_.clear();
+	varsPos_.clear();
+	varsValues_.clear();
     pinned_ = false;
 }
 
@@ -169,11 +199,17 @@ ImportanceFunction::Formula::reset() noexcept
 ImportanceValue
 ImportanceFunction::Formula::operator()(const StateInstance& state) const
 {
-    // Bind symbolic state variables to the current expression...
-    for (const auto& pair: varsMap_)
-        expr_.DefineVar(pair.first,  const_cast<STATE_INTERNAL_TYPE*>(
-                        &state[pair.second]));
-    // ...and evaluate
+	if (!pinned())
+		throw_FigException("this Formula is empty!");
+	// Copy the useful part of 'state'...
+	for (size_t i = 0ul ; i < NVARS_ ; i++)
+		varsValues_[i] = state[varsPos_[i]];  // ugly motherfucker
+	/// @todo NOTE As an alternative we could use memcpy() to copy the values,
+	///            but that means bringing a whole chunk of memory of which
+	///            only a few variables will be used. To lighten that we could
+	///            impose an upper bound on the number of variables/modules,
+	///            but then the language's flexibility will be compromised.
+	// ...and evaluate
     return static_cast<ImportanceValue>(expr_.Eval());
 }
 
@@ -181,23 +217,21 @@ ImportanceFunction::Formula::operator()(const StateInstance& state) const
 ImportanceValue
 ImportanceFunction::Formula::operator()(const ImportanceVec& localImportances) const
 {
-	// Bind symbolic state variables to the current expression...
-	for (const auto& pair: varsMap_)
-        expr_.DefineVar(pair.first, reinterpret_cast<STATE_INTERNAL_TYPE*>(
-                                    const_cast<ImportanceValue*>(
-                                    &localImportances[pair.second])));
+	if (!pinned())
+		throw_FigException("this Formula is empty!");
+	// Copy the values internally...
+	for (size_t i = 0ul ; i < NVARS_ ; i++)
+		varsValues_[i] = static_cast<STATE_INTERNAL_TYPE>(
+							 localImportances[varsPos_[i]]);  // NOTE see other note
 	// ...and evaluate
 	return static_cast<ImportanceValue>(expr_.Eval());
 }
 
 
-std::vector< std::string >
-ImportanceFunction::Formula::free_vars() const noexcept
+const std::vector<std::string>&
+ImportanceFunction::Formula::get_free_vars() const noexcept
 {
-	std::vector< std::string > freeVariables(varsMap_.size());
-	for (size_t i = 0ul ; i < varsMap_.size() ; i++)
-		freeVariables[i] = varsMap_[i].first;
-	return freeVariables;
+	return varsNames_;
 }
 
 
@@ -470,8 +504,10 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 		const StateInstance symbState = state.decode(i).to_state_instance();
 		const ImportanceValue importance = importance_of(symbState);
 		minI = importance < minI ? importance : minI;
-        if (property.is_rare(symbState) && importance < minrI)
-            minrI = importance;
+		if (property.is_rare(symbState) && importance < minrI) {
+			minrI = importance;
+			/// @bug FIXME This rare state may be unreachable; how to know?
+		}
 	}
     assert(minI <= minrI);
 
@@ -488,4 +524,4 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 	minRareValue_ = minrI;
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //
