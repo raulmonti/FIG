@@ -38,24 +38,14 @@
 namespace fig
 {
 
-/// @todo TODO erase debug code
-// Precondition::Precondition(const Precondition& that) : MathExpression(that)
-// { std::cerr << "PRE: copy ctor\n"; }
-// Precondition::Precondition(Precondition&& that) :
-// 	MathExpression(std::forward<MathExpression>(that))
-// { std::cerr << "PRE: move ctor\n"; }
-///////////////////////////////
-
 void
 Precondition::test_evaluation() const
 {
 	assert(pinned());
 	try {
-		STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
-		for (size_t i = 0ul ; i < NVARS_ ; i++)
-			varsValues_[i] = dummy;
-//		for (STATE_INTERNAL_TYPE& val: varsValues_)
-//			val = dummy;
+		STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(0.1));
+		for (STATE_INTERNAL_TYPE& val: varsValues_)
+			val = dummy;
 		expr_.Eval(&dummy, 1);
 	} catch (mu::Parser::exception_type& e) {
 		std::cerr << "Failed parsing expression" << std::endl;
@@ -119,14 +109,6 @@ Precondition::operator()(const StateInstance& state) const
 		///      impose an upper bound on the number of variables per guard,
 		///      but then the language's flexibility will be compromised.
 	}
-
-	/// @todo TODO erase debug print
-//	std::cerr << std::boolalpha;
-//	std::cerr << exprStr_ << "(";
-//	for(int i=0;i<NVARS_;i++) std::cerr << varsValues_[i] << ",";
-//	std::cerr << "\b):" << ((bool)expr_.Eval());
-	//////////////////////////
-
 	// ...and evaluate
 	return static_cast<bool>(expr_.Eval());
 }

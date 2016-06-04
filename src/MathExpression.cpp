@@ -43,6 +43,9 @@
 #include <MathExpression.h>
 #include <string_utils.h>
 
+// ADL
+using std::swap;
+
 
 /**
  * Functions offered to the end user for mathematical expressions
@@ -97,7 +100,6 @@ MathExpression::MathExpression(
     const Container<ValueType, OtherContainerArgs...>& varnames) :
 		empty_(trim(exprStr).empty()),
 		exprStr_(muparser_format(exprStr)),
-		varsValues_(nullptr),
 		pinned_(false)
 {
     static_assert(std::is_constructible< std::string, ValueType >::value,
@@ -113,12 +115,9 @@ MathExpression::MathExpression(
 			varsNames_.emplace_back(name);  // copy elision
 	varsNames_.shrink_to_fit();
 	NVARS_ = varsNames_.size();
-	if (0ul < NVARS_) {
-		// Positions mapping is done later in pin_up_vars()
-		varsPos_.resize(NVARS_);
-		varsValues_ = new STATE_INTERNAL_TYPE[NVARS_];
-		assert(nullptr != varsValues_);
-	}
+	// Positions mapping is done later in pin_up_vars()
+	varsPos_.resize(NVARS_);
+	varsValues_.resize(NVARS_);
 }
 
 // MathExpression can only be constructed with the following lvalue containers
@@ -144,7 +143,6 @@ MathExpression::MathExpression(
     Container<ValueType, OtherContainerArgs...>&& varnames) :
 		empty_(trim(exprStr).empty()),
         exprStr_(muparser_format(exprStr)),
-		varsValues_(nullptr),
 		pinned_(false)
 {
     static_assert(std::is_constructible< std::string, ValueType >::value,
@@ -161,12 +159,9 @@ MathExpression::MathExpression(
 	varnames.clear();
 	varsNames_.shrink_to_fit();
 	NVARS_ = varsNames_.size();
-	if (0ul < NVARS_) {
-		// Positions mapping is done later in pin_up_vars()
-		varsPos_.resize(NVARS_);
-		varsValues_ = new STATE_INTERNAL_TYPE[NVARS_];
-		assert(nullptr != varsValues_);
-	}
+	// Positions mapping is done later in pin_up_vars()
+	varsPos_.resize(NVARS_);
+	varsValues_.resize(NVARS_);
 }
 
 // MathExpression can only be constructed with the following rvalue containers
@@ -183,6 +178,7 @@ template MathExpression::MathExpression(const std::string&,
 template MathExpression::MathExpression(const std::string&,
                                         std::unordered_set<std::string>&&);
 
+
 MathExpression::MathExpression(const MathExpression& that) :
 	empty_(that.empty_),
 	exprStr_(that.exprStr_),
@@ -190,68 +186,41 @@ MathExpression::MathExpression(const MathExpression& that) :
 	NVARS_(that.NVARS_),
 	varsNames_(that.varsNames_),
 	varsPos_(that.varsPos_),
-	varsValues_(new STATE_INTERNAL_TYPE[NVARS_]),
+	varsValues_(NVARS_),
 	pinned_(that.pinned_)
 {
-//	std::memcpy(varsValues_, that.varsValues_, NVARS_*sizeof(STATE_INTERNAL_TYPE));
-}
-
-
-MathExpression::MathExpression(MathExpression&& that) :
-	empty_(std::move(that.empty_)),
-	exprStr_(std::move(that.exprStr_)),
-	expr_(std::move(that.expr_)),
-	NVARS_(std::move(that.NVARS_)),
-	varsNames_(std::move(that.varsNames_)),
-	varsPos_(std::move(that.varsPos_)),
-	varsValues_(std::move(that.varsValues_)),
-	pinned_(std::move(that.pinned_))
-{
-//	std::swap(varsValues_, that.varsValues_);
+	if (pinned_ && 0ul < NVARS_) {
+		// reference variables from *our* memory space
+		for (size_t i = 0ul ; i < NVARS_ ; i++) {
+			varsValues_[i] = that.varsValues_[i];
+			expr_.DefineVar(varsNames_[i], &varsValues_[i]);
+		}
+	}
 }
 
 
 MathExpression& MathExpression::operator=(MathExpression that)
 {
-	std::swap(empty_, that.empty_);
-	std::swap(exprStr_, that.exprStr_);
-	std::swap(expr_, that.expr_);
-	std::swap(varsNames_, that.varsNames_);
-	std::swap(varsPos_, that.varsPos_);
-	std::swap(varsValues_, that.varsValues_);
-	std::swap(pinned_, that.pinned_);
+	swap(empty_, that.empty_);
+	swap(exprStr_, that.exprStr_);
+	swap(expr_, that.expr_);
+	swap(NVARS_, that.NVARS_);
+	swap(varsNames_, that.varsNames_);
+	swap(varsPos_, that.varsPos_);
+	swap(varsValues_, that.varsValues_);  // vars referencing remains the same
+	swap(pinned_, that.pinned_);
 	return *this;
-}
-
-
-MathExpression::~MathExpression()
-{
-	if (0ul < NVARS_) {
-		std::vector<std::string>().swap(varsNames_);
-		std::vector<size_t>().swap(varsPos_);
-		delete[] varsValues_;
-	}
 }
 
 
 void
 MathExpression::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 {
-	/// @todo TODO erase debug print
-	std::cerr << "Pinning vars for expr \"" << exprStr_ << "\"\n";
 	for (size_t i = 0ul ; i < NVARS_ ; i++) {
 		varsPos_[i] = globalState.position_of_var(varsNames_[i]);
-		expr_.DefineVar(varsNames_[i], &varsValues_[i]);  // could be in ctor
-		/// @todo TODO erase debug print
-		std::cerr << "#" << i << " var \"" << varsNames_[i] << "\" @ " << varsPos_[i] << std::endl;
+		expr_.DefineVar(varsNames_[i], &varsValues_[i]);
 	}
 	pinned_ = true;
-/// @todo TODO erase old code
-//	for (const auto& pair: varsMap_)
-//		expr_.DefineVar(pair.first, &state_[globalState.position_of_var(pair.first)]);
-//	for(auto& pair: varsMap_) {
-//		pair.second = globalState.position_of_var(pair.first);
-//////////////////////////////
 }
 
 
@@ -261,7 +230,7 @@ MathExpression::pin_up_vars(const PositionsMap& globalVars)
 {
 	for (size_t i = 0ul ; i < NVARS_ ; i++) {
 		varsPos_[i] = globalVars.at(varsNames_[i]);
-		expr_.DefineVar(varsNames_[i], &varsValues_[i]);  // could be in ctor
+		expr_.DefineVar(varsNames_[i], &varsValues_[i]);
 	}
 	pinned_ = true;
 }
@@ -271,7 +240,7 @@ MathExpression::pin_up_vars(PositionsMap& globalVars)
 {
 	for (size_t i = 0ul ; i < NVARS_ ; i++) {
 		varsPos_[i] = globalVars[varsNames_[i]];
-		expr_.DefineVar(varsNames_[i], &varsValues_[i]);  // could be in ctor
+		expr_.DefineVar(varsNames_[i], &varsValues_[i]);
 	}
 	pinned_ = true;
 }

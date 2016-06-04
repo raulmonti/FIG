@@ -98,11 +98,11 @@ protected:
 
 	/// @brief Values of our variables
 	/// @details "Current values" of our variables in a running simulation
-	/// @note Not an std::vector because of issues with MuParser
-	mutable STATE_INTERNAL_TYPE* varsValues_;
+	mutable StateInstance varsValues_;
 
 	/// Whether the global positional order of our variables
-	/// (i.e. varsPos_) has already been defined
+	/// (i.e. varsPos_) has already been defined and the local values
+	/// (i.e. varsValues_) have been referenced into the Expression
 	bool pinned_;
 
 public:  // Ctors/Dtor
@@ -152,16 +152,15 @@ public:  // Ctors/Dtor
 				   Iterator<ValueType, OtherArgs...> to);
 
 	/// Copy ctor
+	/// @note Explicitly defined for variables pinning into expr_
 	MathExpression(const MathExpression& that);
 
-	/// Move ctor
-	MathExpression(MathExpression&& that);
+	/// Default move ctor
+	MathExpression(MathExpression&& that) = default;
 
 	/// Copy assignment with copy&swap idiom
+	/// @note Explicitly defined for variables pinning into expr_
 	MathExpression& operator=(MathExpression that);
-
-	/// Dtor
-	~MathExpression();
 
 protected:  // Modifyers
 
@@ -236,7 +235,6 @@ MathExpression::MathExpression(
 	Iterator<ValueType, OtherArgs...> to) :
 		empty_(trim(exprStr).empty()),
         exprStr_(muparser_format(exprStr)),
-		varsValues_(nullptr),
         pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
@@ -252,11 +250,9 @@ MathExpression::MathExpression(
 			varsNames_.emplace_back(*from);  // copy elision
 	varsNames_.shrink_to_fit();
 	NVARS_ = varsNames_.size();
-	if (0ul < NVARS_) {
-		// Positions mapping is done later in pin_up_vars()
-		varsPos_.resize(NVARS_);
-		varsValues_ = new STATE_INTERNAL_TYPE[NVARS_];
-	}
+	// Positions mapping is done later in pin_up_vars()
+	varsPos_.resize(NVARS_);
+	varsValues_.resize(NVARS_);
 }
 
 } // namespace fig

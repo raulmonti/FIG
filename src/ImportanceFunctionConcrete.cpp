@@ -412,32 +412,9 @@ label_global_states(State globalState,
 				fig::SET_RARE_EVENT(cStates[i]);
 				if (returnRares)
 					raresQueue.push(i);
-				/// @todo TODO erase debug print
-				std::cerr << " => state (";
-				for (auto v: valuation) std::cerr << v << ",";
-				std::cerr << "\b) is rare!\n";
-				/////////////////////////////////
-			} else {
-				/// @todo TODO erase debug print
-				std::cerr << " => state (";
-				for (auto v: valuation) std::cerr << v << ",";
-				std::cerr << "\b) is NOT rare!\n";
-				/////////////////////////////////
 			}
-			if (!transientProp.expr1(valuation)) {
+			if (!transientProp.expr1(valuation))
 				fig::SET_STOP_EVENT(cStates[i]);
-				/// @todo TODO erase debug print
-				std::cerr << " => state (";
-				for (auto v: valuation) std::cerr << v << ",";
-				std::cerr << "\b) is stop!\n";
-				/////////////////////////////////
-			} else {
-				/// @todo TODO erase debug print
-				std::cerr << " => state (";
-				for (auto v: valuation) std::cerr << v << ",";
-				std::cerr << "\b) is NOT stop!\n";
-				/////////////////////////////////
-			}
 		}
 		} break;
 
@@ -450,17 +427,6 @@ label_global_states(State globalState,
 				fig::SET_RARE_EVENT(cStates[i]);
 				if (returnRares)
 					raresQueue.push(i);
-				/// @todo TODO erase debug print
-				std::cerr << " => state (";
-				for (auto v: valuation) std::cerr << v << ",";
-				std::cerr << "\b) is rare!\n";
-				/////////////////////////////////
-			} else {
-				/// @todo TODO erase debug print
-				std::cerr << " => state (";
-				for (auto v: valuation) std::cerr << v << ",";
-				std::cerr << "\b) is NOT rare!\n";
-				/////////////////////////////////
 			}
 		}
 		} break;

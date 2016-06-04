@@ -134,7 +134,7 @@ ModuleInstance::add_transition(Transition&& transition)
 	if (0 <= globalIndex_ || 0 <= firstClock_)
 		return;
 #endif
-	transitions_.emplace_back(std::forward<Transition&&>(transition));
+	transitions_.emplace_back(transition);
 }
 
 

@@ -147,7 +147,7 @@ IF(RELEASE)
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 --fast-math -g")  # TODO erase
 ELSE()
 	# Optimize without obfuscating the assembly so much
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
 	# Highly defensive compile flags
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")# -pedantic")
 	# Add debug info (used by gdb and pals)
