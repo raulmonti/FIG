@@ -474,6 +474,8 @@ std::ostream& ModelSuite::techLog_(std::cerr);
 
 double ModelSuite::lastEstimationStartTime_;
 
+std::chrono::seconds ModelSuite::globalTimeout_ = 0l;
+
 const ConfidenceInterval* ModelSuite::interruptCI_ = nullptr;
 
 const std::vector< float > ModelSuite::confCoToShow_ = {0.8, 0.9, 0.95, 0.99};
@@ -623,13 +625,22 @@ template void ModelSuite::seal(const std::unordered_set<std::string>&);
 
 
 void
-ModelSuite::set_splitting(const unsigned& spt)
+ModelSuite::set_global_splitting(const unsigned& spt)
 {
     if (!sealed())
         throw_FigException("ModelSuite hasn't been sealed yet");
     dynamic_cast<SimulationEngineRestart&>(*simulators["restart"])
             .set_splits_per_threshold(spt);
 	splitsPerThreshold = spt;
+}
+
+
+void
+ModelSuite::set_global_timeout(const std::chrono::seconds& timeLimit)
+{
+	if (!sealed())
+		throw_FigException("ModelSuite hasn't been sealed yet");
+	globalTimeout_ = timeLimit;
 }
 
 
@@ -644,9 +655,16 @@ ModelSuite::get_property(const size_t& i) const noexcept
 
 
 const unsigned&
-ModelSuite::get_splitting() const noexcept
+ModelSuite::get_global_splitting() const noexcept
 {
-    return splitsPerThreshold;
+	return splitsPerThreshold;
+}
+
+
+const std::chrono::seconds&
+ModelSuite::get_global_timeout() const noexcept
+{
+	return globalTimeout_;
 }
 
 

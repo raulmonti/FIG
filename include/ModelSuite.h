@@ -117,6 +117,9 @@ class ModelSuite
 	/// Starting time (according to omp_get_wtime) of last estimation launched
 	static double lastEstimationStartTime_;
 
+	/// Global wall-clock-time execution limit for simulations
+	static std::chrono::seconds globalTimeout_;
+
 	// Interruptions handling
 
 	/// Signal handler for when we're interrupted (e.g. ^C) mid-estimation
@@ -224,7 +227,10 @@ public:  // Populating facilities and other modifyers
 	 * @warning The ModelSuite must have been \ref seal() "sealed" beforehand
 	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
 	 */
-	void set_splitting(const unsigned& spt);
+	void set_global_splitting(const unsigned& spt);
+	
+	/// @todo TODO write docstring
+	void set_global_timeout(const std::chrono::seconds& timeLimit);
 
 public:  // Accessors
 
@@ -262,8 +268,12 @@ public:  // Accessors
 	std::shared_ptr< const Property > get_property(const size_t& i) const noexcept;
 
 	/// Get the splitting factor used by all engines which implement splitting
-	/// @see set_splitting()
-	const unsigned& get_splitting() const noexcept;
+	/// @see set_global_splitting()
+	const unsigned& get_global_splitting() const noexcept;
+
+	/// Get the global wall-clock-time execution limit imposed to simulations
+	/// @see set_global_timeout()
+	const std::chrono::seconds& get_global_timeout() const noexcept;
 
 	/// Names of available simulation engines,
 	/// as they should be requested by the user.
@@ -656,12 +666,12 @@ ModelSuite::process_batch(
 		throw_FigException("inexistent simulation engine \"" + engineName +
 						   "\". Call \"available_simulators()\" for a list "
 						   "of available options.");
-	} else if (std::distance(begin(estimationBounds), end(estimationBounds))
+	} else if (distance(begin(estimationBounds), end(estimationBounds))
 			   == 0ul) {
 		log("Can't estimate: no stopping conditions were specified.\n");
 		throw_FigException("aborting execution since no estimation bounds "
 						   "were specified.");
-	} else if (std::distance(begin(splittingValues), end(splittingValues))
+	} else if (distance(begin(splittingValues), end(splittingValues))
 			   == 0ul && "nosplit" != engineName) {
 		log("Can't estimate: no splitting value was specified for engine \""
 			+ engineName + "\"\n");
@@ -687,7 +697,7 @@ ModelSuite::process_batch(
 
 			// ... choose the thresholds ...
 			if ("nosplit" != engineName)
-				set_splitting(split);
+				set_global_splitting(split);
 			build_thresholds(thrTechnique, impFunSpec.name, true);
 			assert(impFuns[impFunSpec.name]->ready());
 

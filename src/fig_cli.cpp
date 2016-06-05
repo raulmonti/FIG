@@ -65,6 +65,7 @@ fig::ImpFunSpec impFunSpec("noName", "noStrategy");
 string thrTechnique;
 std::set< unsigned > splittings;
 std::list< fig::StoppingConditions > estBounds;
+std::chrono::seconds globalTO;
 
 } // namespace fig_cli
 
@@ -264,6 +265,15 @@ std::vector< Arg* > stopCondSpecs = {
 	&timeCriteria
 };
 
+// Global timeout (affects any simulation launched)
+MultiDoubleArg< long, char > globalTimeout(
+	"", "global-timeout",
+	"Global time limit: if set, any simulation will be soft-interrupted after "
+	"running for this (wall clock) time. If the stopping condition for a "
+	"simulation is also time based, the lowest of the two values will apply.",
+	false,
+	&timeLapseConstraint, &timeUnitConstraint);
+
 // Splitting values to test
 ValueArg<string> splittings_(
 	"s", "splitting",
@@ -433,9 +443,33 @@ get_stopping_conditions()
 								 timeCrit.second == 'm' ? 60ul    :
 								 timeCrit.second == 'h' ? 3600ul  :
 								 timeCrit.second == 'd' ? 86400ul : 0ul );
-			stopCond.add_time_budget(timeCrit.first*FACTOR);
+			stopCond.add_time_budget(timeCrit.first * FACTOR);
 		}
 		estBounds.emplace(estBounds.begin(), stopCond);
+	}
+	return true;
+}
+
+
+/// Check for any global timeout specification.
+/// If found, set them for simulations time-bounding.
+/// If several were defined, use only the last one.
+/// @return Whether the information could be successfully retrieved
+bool
+get_global_timeout()
+{
+	if (globalTimeout.isSet()) {
+		if (globalTimeout.getValues().size() > 1ul)
+			std::cerr << "WARNING: only the last global timeout defined "
+					  << "will be used.\n";
+		for (const auto& timeLimit: globalTimeout.getValues()) {
+			assert(0l < timeLimit.first);
+			const size_t FACTOR(timeLimit.second == 's' ? 1ul     :
+								timeLimit.second == 'm' ? 60ul    :
+								timeLimit.second == 'h' ? 3600ul  :
+								timeLimit.second == 'd' ? 86400ul : 0ul);
+			globalTO = static_cast<size_t>(timeLimit.first * FACTOR);
+		}
 	}
 	return true;
 }
@@ -500,6 +534,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(thrTechnique_);
 		cmd_.orAdd(stopCondSpecs);
 		cmd_.xorAdd(impFunSpecs);
+		cmd_.add(globalTimeout);
 		cmd_.add(splittings_);
 
 		// Parse the command line input
@@ -522,6 +557,16 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		if (!get_stopping_conditions()) {
 			std::cerr << "ERROR: must specify at least one stopping condition ";
 			std::cerr << "(aka estimation bound).\n\n";
+			std::cerr << "For complete USAGE and HELP type:\n";
+			std::cerr << "   " << argv[0] << " --help\n\n";
+			if (fatalError)
+				exit(EXIT_FAILURE);
+			else
+				return false;
+		}
+		if (!get_global_timeout()) {
+			std::cerr << "ERROR: something failed while parsing the global ";
+			std::cerr << "timeout specification.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
 			if (fatalError)
