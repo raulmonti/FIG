@@ -117,7 +117,7 @@ class ModelSuite
 	/// Starting time (according to omp_get_wtime) of last estimation launched
 	static double lastEstimationStartTime_;
 
-	/// Global wall-clock-time execution limit for simulations
+	/// Global wall-clock-time execution limit for simulations (in seconds)
 	static std::chrono::seconds globalTimeout_;
 
 	// Interruptions handling
@@ -229,7 +229,20 @@ public:  // Populating facilities and other modifyers
 	 */
 	void set_global_splitting(const unsigned& spt);
 	
-	/// @todo TODO write docstring
+	/**
+	 * @brief Set a global wall-clock-time limit for simulations
+	 *
+	 *        This timeout applies to all simulations launched:
+	 *        "value simulations" will stop when they reach either the
+	 *        requested confidence criteria or this time bound, whichever
+	 *        happens first; "time simulations" will stop for the lower of
+	 *        the time bounds (their own limit or this global limit)
+	 *
+	 * @param timeLimit @copydoc globalTimeout_
+	 *
+	 * @warning The ModelSuite must have been \ref seal() "sealed" beforehand
+	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
+	 */
 	void set_global_timeout(const std::chrono::seconds& timeLimit);
 
 public:  // Accessors
@@ -274,6 +287,9 @@ public:  // Accessors
 	/// Get the global wall-clock-time execution limit imposed to simulations
 	/// @see set_global_timeout()
 	const std::chrono::seconds& get_global_timeout() const noexcept;
+
+	/// @copydoc confCoToShow_
+	static const std::vector< float >& get_cc_to_show() noexcept;
 
 	/// Names of available simulation engines,
 	/// as they should be requested by the user.
@@ -610,6 +626,18 @@ public:  // Simulation utils
 
 	/// @todo TODO design and implement interactive processing
 	void process_interactive();
+
+private:  // Class utils
+
+	/// Specialization of estimate() for time-bound simulations
+	void estimate_for_times(const Property& property,
+							const SimulationEngine& engine,
+							const StoppingConditions& bounds) const;
+
+	/// Specialization of estimate() for confidence-criteria-bound simulations
+	void estimate_for_confs(const Property& property,
+							const SimulationEngine& engine,
+							const StoppingConditions& bounds) const;
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //

@@ -28,9 +28,11 @@
 
 
 // C
-#include <unistd.h>  // alarm(), exit()
-#include <cmath>     // std::pow()
-#include <omp.h>     // omp_get_wtime()
+#include <cstdio>     // std::sprintf()
+#include <unistd.h>   // alarm(), exit()
+#include <pthread.h>  // pthread_cancel()
+#include <cmath>      // std::pow()
+#include <omp.h>      // omp_get_wtime()
 // C++
 #include <set>
 #include <list>
@@ -81,6 +83,10 @@ using std::end;
 namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
+using fig::ConfidenceInterval;
+using std::chrono::seconds;
+
+
 /**
  * @brief Build a ConfidenceInterval of the required type
  *
@@ -106,17 +112,16 @@ namespace  // // // // // // // // // // // // // // // // // // // // // // //
  *
  * @throw FigException if property type or hint isn't valid
  */
-std::shared_ptr< fig::ConfidenceInterval >
-build_empty_confidence_interval(
-	const fig::PropertyType& propertyType,
-	const unsigned& splitsPerThreshold,
-	const fig::ImportanceFunction& impFun,
-	const double& confidenceCo = 0.99999,
-	const double& precision = 0.00001,
-	const bool& dynamicPrecision = true,
-    const std::string& hint = "")
+std::shared_ptr< ConfidenceInterval >
+build_empty_ci(const fig::PropertyType& propertyType,
+			   const unsigned& splitsPerThreshold,
+			   const fig::ImportanceFunction& impFun,
+			   const double& confidenceCo = 0.99999,
+			   const double& precision = 0.00001,
+			   const bool& dynamicPrecision = true,
+			   const std::string& hint = "")
 {
-	std::shared_ptr< fig::ConfidenceInterval > ci_ptr(nullptr);
+	std::shared_ptr< ConfidenceInterval > ci_ptr(nullptr);
 
 	switch (propertyType)
 	{
@@ -385,7 +390,7 @@ increase_effort(const fig::PropertyType& propertyType,
  *       as it may be called from within signal handlers.
  */
 void
-interrupt_print(const fig::ConfidenceInterval& ci,
+interrupt_print(const ConfidenceInterval& ci,
 				const std::vector<float>& confidenceCoefficients,
 				std::ostream& out,
 				const double& startTime = -1.0)
@@ -421,7 +426,7 @@ interrupt_print(const fig::ConfidenceInterval& ci,
  * @param time Time in seconds the whole estimation process took
  */
 void
-estimate_print(const fig::ConfidenceInterval& ci,
+estimate_print(const ConfidenceInterval& ci,
                const double& time,
                std::ostream& out)
 {
@@ -438,6 +443,31 @@ estimate_print(const fig::ConfidenceInterval& ci,
 //	out << std::defaultfloat;
     out << std::setprecision(6) << std::fixed;
     out << std::endl;
+}
+
+
+/**
+ * @brief Sleep during 'timeLimit'; then write in 'timeoutSignal' and show 'ci'
+ * @details Sleep is done on this thread; the user should call this function
+ *          via std::thread if a "background timeout" is desired, e.g.
+ *          std::thread timer(start_timer, std::ref(arg1)...);<br>
+ *          The thread can then be cancelled via pthread_cancel() e.g. if the
+ *          simulation succeeds and these actions should be avoided.
+ * @param ci            Confidence interval to print out and reset
+ * @param timeoutSignal Shared variable signaling simulations to stop
+ * @param timeLimit     Duration (in seconds) of the sleep
+ */
+void
+start_timer(ConfidenceInterval& ci,
+			bool& timeoutSignal,
+			const seconds& timeLimit,
+			std::ostream& out,
+			const double& startTime)
+{
+	std::this_thread::sleep_for(timeLimit);
+	timeoutSignal = true;  // this should stop computations
+	interrupt_print(ci, fig::ModelSuite::get_cc_to_show(), out, startTime);
+	ci.reset();
 }
 
 } // namespace  // // // // // // // // // // // // // // // // // // // // //
@@ -474,7 +504,7 @@ std::ostream& ModelSuite::techLog_(std::cerr);
 
 double ModelSuite::lastEstimationStartTime_;
 
-std::chrono::seconds ModelSuite::globalTimeout_ = 0l;
+seconds ModelSuite::globalTimeout_(0l);
 
 const ConfidenceInterval* ModelSuite::interruptCI_ = nullptr;
 
@@ -595,7 +625,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 	// Build offered simulation engines
 	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
 	simulators["restart"] = std::make_shared< SimulationEngineRestart >(model);
-    set_splitting(splitsPerThreshold);
+	set_global_splitting(splitsPerThreshold);
 
 #ifndef NDEBUG
 	// Check all offered importance functions, thresholds builders and
@@ -632,15 +662,25 @@ ModelSuite::set_global_splitting(const unsigned& spt)
     dynamic_cast<SimulationEngineRestart&>(*simulators["restart"])
             .set_splits_per_threshold(spt);
 	splitsPerThreshold = spt;
+	// Show in tech log
+	tech_log("Global splitting set to " + std::to_string(spt) + "\n");
 }
 
 
 void
-ModelSuite::set_global_timeout(const std::chrono::seconds& timeLimit)
+ModelSuite::set_global_timeout(const seconds& timeLimit)
 {
 	if (!sealed())
 		throw_FigException("ModelSuite hasn't been sealed yet");
 	globalTimeout_ = timeLimit;
+	// Show in tech log
+	const unsigned hours(timeLimit.count()/3600u);
+	const unsigned minutes((timeLimit.count()%3600)/60);
+	const unsigned seconds(timeLimit.count()%60);
+	const char timeStr[9] = {'\0'};
+	std::sprintf(const_cast<char*>(timeStr), "%02u:%02u:%02u",
+				 hours, minutes, seconds);
+	tech_log("Global timeout set to " + std::string(timeStr) + "\n");
 }
 
 
@@ -661,10 +701,17 @@ ModelSuite::get_global_splitting() const noexcept
 }
 
 
-const std::chrono::seconds&
+const seconds&
 ModelSuite::get_global_timeout() const noexcept
 {
 	return globalTimeout_;
+}
+
+
+const std::vector< float >&
+ModelSuite::get_cc_to_show() noexcept
+{
+	return confCoToShow_;
 }
 
 
@@ -1093,7 +1140,7 @@ ModelSuite::release_resources() noexcept
 			simulators[engineName]->unlock();
 			simulators[engineName]->unbind();
 		}
-	} catch (std::exception&) {} // Meh... everything was going to hell anyway
+	} catch (std::exception&) {}  // Meh... everything was going to hell anyway
 }
 
 
@@ -1117,103 +1164,12 @@ ModelSuite::estimate(const Property& property,
 	mainLog_ << " [ " << ifun.num_thresholds() << " thresholds";
 	mainLog_ << " | splitting " << engine.splits_per_threshold() << " ]\n";
 
-	if (bounds.is_time()) {
-
+	if (bounds.is_time())
 		// Simulation bounds are wall clock time limits
-		for (const unsigned long& wallTimeInSeconds: bounds.time_budgets()) {
-			auto ci_ptr = build_empty_confidence_interval(
-							  property.type,
-							  engine.splits_per_threshold(),
-							  *impFuns[engine.current_imp_fun()]);
-			interruptCI_ = ci_ptr.get();  // bad boy
-			mainLog_ << std::setprecision(0) << std::fixed;
-			mainLog_ << "   Estimation time: " << wallTimeInSeconds << " s\n";
-			const std::chrono::seconds timeLimit(wallTimeInSeconds);
-			engine.interrupted = false;
-			lastEstimationStartTime_ = omp_get_wtime();
-			Clock::seed_rng();  // restart RNG sequence for this estimation
-			std::thread timer(  // Start the timeout
-				[] (ConfidenceInterval& ci, bool& timedout,
-					const std::chrono::seconds& limit)
-				{
-					std::this_thread::sleep_for(limit);
-					timedout = true;  // this stops computation
-					interrupt_print(ci, ModelSuite::confCoToShow_,
-									mainLog_, lastEstimationStartTime_);
-					ci.reset();
-				},
-				std::ref(*ci_ptr), std::ref(engine.interrupted), std::ref(timeLimit));
-
-			try {
-				engine.lock();
-				engine.simulate(property,
-								min_effort(property.type,
-										   engine.name(),
-										   engine.current_imp_fun()),
-								*ci_ptr,
-								techLog_,
-								&increase_effort);
-				engine.unlock();
-				timer.join();
-			} catch (std::exception&) {
-				engine.unlock();
-				timer.detach();
-				throw;
-			}
-			techLog_ << std::endl;
-		}
-		interruptCI_ = nullptr;
-
-	} else {
-
+		estimate_for_times(property, engine, bounds);
+	else
 		// Simulation bounds are confidence criteria
-		engine.interrupted = false;
-        for (const auto& criterion: bounds.confidence_criteria()) {
-			auto ci_ptr = build_empty_confidence_interval(
-							  property.type,
-							  engine.splits_per_threshold(),
-							  *impFuns[engine.current_imp_fun()],
-							  std::get<0>(criterion),
-							  std::get<1>(criterion),
-							  std::get<2>(criterion));
-            interruptCI_ = ci_ptr.get();  // bad boy
-			mainLog_ << "   Confidence level: "
-					 << std::setprecision(0) << std::fixed
-					 << 100*ci_ptr->confidence << "%" << std::endl;
-			mainLog_ << "   Precision: ";
-            if (ci_ptr->percent)
-				mainLog_ << std::setprecision(0) << std::fixed
-						 << (200*ci_ptr->errorMargin) << "%\n";
-            else
-				mainLog_ << std::setprecision(2) << std::scientific
-						  << (2*ci_ptr->errorMargin) << "\n";
-			size_t effort = min_effort(property.type,
-									   engine.name(),
-									   engine.current_imp_fun());
-			bool reinit(true);  // start from system's initial state
-			Clock::seed_rng();  // restart RNG sequence for this estimation
-			lastEstimationStartTime_ = omp_get_wtime();
-
-			engine.lock();
-			do {
-				bool notEnough = engine.simulate(property, effort, *ci_ptr, reinit);
-				if (notEnough) {
-					techLog_ << "-";
-					increase_effort(property.type, engine.name(),
-									engine.current_imp_fun(), effort);
-				} else {
-					techLog_ << "+";
-				}
-				reinit = false;  // use batch means if possible
-            } while (!ci_ptr->is_valid());
-            engine.unlock();
-
-			estimate_print(*ci_ptr, omp_get_wtime()-lastEstimationStartTime_, mainLog_);
-			techLog_ << std::endl;
-			ci_ptr->reset();
-        }
-        interruptCI_ = nullptr;
-    }
+		estimate_for_confs(property, engine, bounds);
 
 //	mainLog_ << std::defaultfloat;
 	mainLog_ << std::setprecision(6);
@@ -1230,6 +1186,136 @@ ModelSuite::estimate(const size_t& propertyIndex,
 		throw_FigException(std::string("no property at index ")
 						   .append(std::to_string(propertyIndex)));
 	estimate(*propertyPtr, engine, bounds);
+}
+
+
+void
+ModelSuite::estimate_for_times(const Property& property,
+							   const SimulationEngine& engine,
+							   const StoppingConditions& bounds) const
+{
+	assert(bounds.is_time_budgets());
+
+	for (const unsigned long& wallTimeInSeconds: bounds.time_budgets()) {
+
+		// Build confidence interval to fill in
+		auto ci_ptr = build_empty_ci(property.type,
+									 engine.splits_per_threshold(),
+									 *impFuns[engine.current_imp_fun()]);
+		// Show info
+		const seconds timeLimit(globalTimeout_.count() > 0l
+				? std::min<long>(wallTimeInSeconds, globalTimeout_.count())
+				: wallTimeInSeconds);
+		mainLog_ << std::setprecision(0) << std::fixed;
+		mainLog_ << "   Estimation timeout: " << timeLimit.count() << " s\n";
+
+		// Configure run
+		interruptCI_ = ci_ptr.get();  // bad boy
+		engine.interrupted = false;
+		lastEstimationStartTime_ = omp_get_wtime();
+		Clock::seed_rng();  // restart RNG sequence for this estimation
+		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),
+									   timeLimit, std::ref(mainLog_), lastEstimationStartTime_);
+		// Simulate
+		try {
+			engine.lock();
+			engine.simulate(property,
+							min_effort(property.type, engine.name(), engine.current_imp_fun()),
+							*ci_ptr,
+							techLog_,
+							&increase_effort);
+			engine.unlock();
+			timer.join();
+		} catch (std::exception&) {
+			engine.unlock();
+			pthread_cancel(timer.native_handle());  // cancel pending timeout
+			timer.detach();
+			throw;
+		}
+		techLog_ << std::endl;
+		interruptCI_ = nullptr;
+	}
+}
+
+
+void
+ModelSuite::estimate_for_confs(const Property& property,
+							   const SimulationEngine& engine,
+							   const StoppingConditions& bounds) const
+{
+	assert(bounds.is_confidence_criteria());
+
+	for (const auto& criterion: bounds.confidence_criteria()) {
+
+		// Build confidence interval to fill in
+		auto ci_ptr = build_empty_ci(property.type,
+									 engine.splits_per_threshold(),
+									 *impFuns[engine.current_imp_fun()],
+									 std::get<0>(criterion),
+									 std::get<1>(criterion),
+									 std::get<2>(criterion));
+		// Show info
+		mainLog_ << "   Confidence level: "
+				 << std::setprecision(0) << std::fixed
+				 << 100*ci_ptr->confidence << "%\n";
+		mainLog_ << "   Precision: ";
+		if (ci_ptr->percent)
+			mainLog_ << std::setprecision(0) << std::fixed
+					 << (200*ci_ptr->errorMargin) << "%\n";
+		else
+			mainLog_ << std::setprecision(2) << std::scientific
+					 << (2*ci_ptr->errorMargin) << "\n";
+
+		// Configure run
+		interruptCI_ = ci_ptr.get();  // bad boy
+		size_t effort = min_effort(property.type,
+								   engine.name(),
+								   engine.current_imp_fun());
+		bool reinit(true);  // start from system's initial state
+		Clock::seed_rng();  // restart RNG sequence for this estimation
+		engine.interrupted = false;
+		lastEstimationStartTime_ = omp_get_wtime();
+		seconds timeLimit = globalTimeout_.count() > 0l ? globalTimeout_
+														: seconds(9999999l);
+		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),
+									   timeLimit, std::ref(mainLog_), lastEstimationStartTime_);
+		// Simulate
+		try {
+			engine.lock();
+			do {
+				bool notEnough = engine.simulate(property, effort, *ci_ptr, reinit);
+				if (engine.interrupted)
+					break;  // timeout!
+				if (notEnough) {
+					techLog_ << "-";
+					increase_effort(property.type, engine.name(),
+									engine.current_imp_fun(), effort);
+				} else {
+					techLog_ << "+";
+				}
+				reinit = false;  // use batch means if possible
+			} while (!ci_ptr->is_valid());
+			engine.unlock();
+
+		} catch (std::exception&) {
+			engine.unlock();
+			pthread_cancel(timer.native_handle());  // cancel pending TO
+			timer.detach();
+			throw;
+		}
+
+		// Show results if successfull
+		if (!engine.interrupted) {
+			pthread_cancel(timer.native_handle());  // cancel pending TO
+			timer.detach();
+			estimate_print(*ci_ptr, omp_get_wtime()-lastEstimationStartTime_, mainLog_);
+			techLog_ << std::endl;
+			ci_ptr->reset();
+		} else {
+			timer.join();  // wait for interrupt_print() termination
+		}
+		interruptCI_ = nullptr;
+	}
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

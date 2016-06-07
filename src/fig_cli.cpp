@@ -97,32 +97,38 @@ const std::string versionStr(
 // TCLAP parameter holders and stuff  /////////////////////////////////////////
 
 CmdLine cmd_("\nSample usage:\n"
-			 "~$ ./fig models/tandem.{sa,pp} --auto-coupled --stop-time 5 m\n"
-			 "Use an automatically computed importance function built on the "
-			 "model's fully coupled state space, performing a 5 minutes "
+			 "~$ ./fig models/tandem.{sa,pp} --amono --stop-time 5 m\n"
+			 "Use an automatically computed \"monolithic\" importance function "
+			 "built on the global model's state space, performing a 5 minutes "
 			 "estimation which will employ the RESTART simulation engine "
 			 "(default) for splitting 2 (default) and the hybrid thresholds "
 			 "building technique, i.e. \"hyb\" (default)\n"
-			 "~$ ./fig models/tandem.{sa,pp} --flat -e nosplit --stop-time 1 h\n"
-			 "Use a flat importance function to perform a 1 hour standard "
-			 "Monte Carlo simulation (i.e. no splitting)\n"
-			 "~$ ./fig models/tandem.{sa,pp} --adhoc \"10*q2+q1\" -t ams \\"
-			 "            --stop-conf 0.9 0.2\n"
+			 "~$ ./fig models/tandem.{sa,pp} --flat -e nosplit          \\"
+			 "       --stop-conf 0.8 0.4 --global-timeout 1 h\n"
+			 "Use a flat importance function to perform a standard Monte Carlo "
+			 "simulation (i.e. no splitting), which will run until either "
+			 "the relative precision achieved for an 80% confidence interval "
+			 "equals 40% of the value estimated for each property, or 1 hour "
+			 "of wall clock time has passed, whichever happens first.\n"
+			 "~$ ./fig models/tandem.{sa,pp} --adhoc \"10*q2+q1\" -t ams  \\"
+			 "       --stop-conf 0.9 0.2\n"
 			 "Use the importance function \"10*q2+q1\" defined ad hoc by the "
 			 "user, with the RESTART simulation engine (default) for splitting "
 			 "2 (default), employing the Adaptive Multilevel Splitting "
 			 "thresholds building technique, i.e. \"ams\", estimating until "
 			 "the relative precision achieved for a 90% confidence interval "
 			 "equals 20% of the value estimated for each property.\n"
-			 "~$ ./fig models/tandem.{sa,pp} --auto-split \"+\" -t hyb  \\"
-			 "       --stop-conf .8 .4 --stop-time 1 h --stop-conf .95 .1    \\"
-			 "       --splitting 2,3,5,9,11 -e restart\n"
-			 "Use an automatically computed importance function modularly "
-			 "built, viz. on every module state space, simulating with the "
-			 "RESTART engine for the splitting values explicitly specified, "
-			 "using the hybrid thresholds building technique, i.e. \"hyb\", "
-			 "estimating the value of each property for this configuration "
-			 "and for each one of the three stopping conditions.",
+			 "~$ ./fig models/tandem.{sa,pp} --acomp \"+\" -t hyb         \\"
+			 "       --stop-conf .8 .4 --stop-time 1 h --stop-conf .95 .1      \\"
+			 "       --splitting 2,3,5,9,11 -e restart --global-timeout 30 m\n"
+			 "Use an automatically computed \"compositional\" importance "
+			 "function, built modularly on every module's state space, "
+			 "simulating with the RESTART engine for the splitting values "
+			 "explicitly specified, using the hybrid thresholds building "
+			 "technique, i.e. \"hyb\", estimating the value of each property "
+			 "for this configuration and for each one of the three stopping "
+			 "conditions, or until the the global wall-clock timeout is "
+			 "reached in each case.",
 			 ' ', versionStr);
 
 // Model file path
@@ -468,7 +474,7 @@ get_global_timeout()
 								timeLimit.second == 'm' ? 60ul    :
 								timeLimit.second == 'h' ? 3600ul  :
 								timeLimit.second == 'd' ? 86400ul : 0ul);
-			globalTO = static_cast<size_t>(timeLimit.first * FACTOR);
+			globalTO = std::chrono::seconds(timeLimit.first * FACTOR);
 		}
 	}
 	return true;
