@@ -117,8 +117,8 @@ class ModelSuite
 	/// Starting time (according to omp_get_wtime) of last estimation launched
 	static double lastEstimationStartTime_;
 
-	/// Global wall-clock-time execution limit for simulations (in seconds)
-	static std::chrono::seconds globalTimeout_;
+	/// Wall-clock-time execution limit for simulations (in seconds)
+	static std::chrono::seconds timeout_;
 
 	// Interruptions handling
 
@@ -227,10 +227,10 @@ public:  // Populating facilities and other modifyers
 	 * @warning The ModelSuite must have been \ref seal() "sealed" beforehand
 	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
 	 */
-	void set_global_splitting(const unsigned& spt);
+	void set_splitting(const unsigned& spt);
 	
 	/**
-	 * @brief Set a global wall-clock-time limit for simulations
+	 * @brief Set a wall-clock-time limit for simulations
 	 *
 	 *        This timeout applies to all simulations launched:
 	 *        "value simulations" will stop when they reach either the
@@ -238,12 +238,12 @@ public:  // Populating facilities and other modifyers
 	 *        happens first; "time simulations" will stop for the lower of
 	 *        the time bounds (their own limit or this global limit)
 	 *
-	 * @param timeLimit @copydoc globalTimeout_
+	 * @param timeLimit @copydoc timeout_
 	 *
 	 * @warning The ModelSuite must have been \ref seal() "sealed" beforehand
 	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
 	 */
-	void set_global_timeout(const std::chrono::seconds& timeLimit);
+	void set_timeout(const std::chrono::seconds& timeLimit);
 
 public:  // Accessors
 
@@ -281,12 +281,12 @@ public:  // Accessors
 	std::shared_ptr< const Property > get_property(const size_t& i) const noexcept;
 
 	/// Get the splitting factor used by all engines which implement splitting
-	/// @see set_global_splitting()
-	const unsigned& get_global_splitting() const noexcept;
+	/// @see set_splitting()
+	const unsigned& get_splitting() const noexcept;
 
-	/// Get the global wall-clock-time execution limit imposed to simulations
-	/// @see set_global_timeout()
-	const std::chrono::seconds& get_global_timeout() const noexcept;
+	/// Get the wall-clock-time execution limit imposed to simulations
+	/// @see set_timeout()
+	const std::chrono::seconds& get_timeout() const noexcept;
 
 	/// @copydoc confCoToShow_
 	static const std::vector< float >& get_cc_to_show() noexcept;
@@ -725,7 +725,7 @@ ModelSuite::process_batch(
 
 			// ... choose the thresholds ...
 			if ("nosplit" != engineName)
-				set_global_splitting(split);
+				set_splitting(split);
 			build_thresholds(thrTechnique, impFunSpec.name, true);
 			assert(impFuns[impFunSpec.name]->ready());
 

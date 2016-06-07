@@ -67,7 +67,7 @@ fig::ImpFunSpec impFunSpec("noName", "noStrategy");
 string thrTechnique;
 std::set< unsigned > splittings;
 std::list< fig::StoppingConditions > estBounds;
-std::chrono::seconds globalTO;
+std::chrono::seconds simsTimeout;
 
 } // namespace fig_cli
 
@@ -106,7 +106,7 @@ CmdLine cmd_("\nSample usage:\n"
 			 "(default) for splitting 2 (default) and the hybrid thresholds "
 			 "building technique, i.e. \"hyb\" (default)\n"
 			 "~$ ./fig models/tandem.{sa,pp} --flat -e nosplit          \\"
-			 "       --stop-conf 0.8 0.4 --global-timeout 1h\n"
+			 "       --stop-conf 0.8 0.4 --timeout 1h\n"
 			 "Use a flat importance function to perform a standard Monte Carlo "
 			 "simulation (i.e. no splitting), which will run until either "
 			 "the relative precision achieved for an 80% confidence interval "
@@ -122,15 +122,15 @@ CmdLine cmd_("\nSample usage:\n"
 			 "equals 20% of the value estimated for each property.\n"
 			 "~$ ./fig models/tandem.{sa,pp} --acomp \"+\" -t hyb         \\"
 			 "       --stop-conf .8 .4 --stop-time 1h --stop-conf .95 .1       \\"
-			 "       --splitting 2,3,5,9,15 -e restart --global-timeout 30m\n"
+			 "       --splitting 2,3,5,9,15 -e restart --timeout 30m\n"
 			 "Use an automatically computed \"compositional\" importance "
 			 "function, built modularly on every module's state space, "
 			 "simulating with the RESTART engine for the splitting values "
 			 "explicitly specified, using the hybrid thresholds building "
 			 "technique, i.e. \"hyb\", estimating the value of each property "
 			 "for this configuration and for each one of the three stopping "
-			 "conditions, or until the the global wall-clock timeout is "
-			 "reached in each case.",
+			 "conditions, or until the wall-clock timeout is reached in "
+			 "each case.",
 			 ' ', versionStr);
 
 // Model file path
@@ -270,9 +270,9 @@ std::vector< Arg* > stopCondSpecs = {
 	&timeCriteria
 };
 
-// Global timeout (affects any simulation launched)
-ValueArg<string> globalTimeout(
-	"", "global-timeout",
+// Timeout (affects any simulation launched)
+ValueArg<string> timeout(
+	"", "timeout",
 	"Global time limit: if set, any simulation will be soft-interrupted after "
 	"running for this (wall clock) time. If the stopping condition for a "
 	"simulation is also time based, the lowest of the two values will apply.",
@@ -463,26 +463,26 @@ get_stopping_conditions()
 }
 
 
-/// Check for global timeout specification and set it for simulations
+/// Check for timeout specification and set it for simulations
 /// time-bounding if found.
 /// @return Whether the information could be successfully retrieved
 bool
-get_global_timeout()
+get_timeout()
 {
-	if (globalTimeout.isSet()) {
-		string timeout(globalTimeout.getValue());
-		char *err(nullptr), timeUnit(timeout.back());
+	if (timeout.isSet()) {
+		string TO(timeout.getValue());
+		char *err(nullptr), timeUnit(TO.back());
 		if (!std::isalpha(timeUnit))
 			timeUnit = 's';  // by default interpret seconds
 		else
-			timeout.resize(timeout.length()-1);
+			TO.resize(TO.length()-1);
 		const size_t FACTOR(timeUnit == 's' ? 1ul     :
 							timeUnit == 'm' ? 60ul    :
 							timeUnit == 'h' ? 3600ul  :
 							timeUnit == 'd' ? 86400ul : 0ul);
-		const size_t timeLen = std::strtoul(timeout.data(), &err, 10);
+		const size_t timeLen = std::strtoul(TO.data(), &err, 10);
 		assert (nullptr == err || err[0] != '\0');
-		globalTO = std::chrono::seconds(timeLen * FACTOR);
+		simsTimeout = std::chrono::seconds(timeLen * FACTOR);
 	}
 	return true;
 }
@@ -546,7 +546,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(thrTechnique_);
 		cmd_.orAdd(stopCondSpecs);
 		cmd_.xorAdd(impFunSpecs);
-		cmd_.add(globalTimeout);
+		cmd_.add(timeout);
 		cmd_.add(splittings_);
 
 		// Parse the command line input
@@ -576,8 +576,8 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 			else
 				return false;
 		}
-		if (!get_global_timeout()) {
-			std::cerr << "ERROR: something failed while parsing the global ";
+		if (!get_timeout()) {
+			std::cerr << "ERROR: something failed while parsing the ";
 			std::cerr << "timeout specification.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";

@@ -93,9 +93,9 @@ extern std::set< unsigned > splittings;
 /// confidence interval with 2.3x10^-5 precision)
 extern std::list< fig::StoppingConditions > estBounds;
 
-/// Global timeout for simulations. It causes a soft-interrupt in any simulation
-/// launched, after 'globalTO' seconds of uninterrupted wall-clock execution
-extern std::chrono::seconds globalTO;
+/// Simulations timeout. It causes a soft-interrupt in any simulation launched,
+/// after 'simsTimeout' seconds of uninterrupted wall-clock execution
+extern std::chrono::seconds simsTimeout;
 
 }
 

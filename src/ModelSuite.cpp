@@ -504,7 +504,7 @@ std::ostream& ModelSuite::techLog_(std::cerr);
 
 double ModelSuite::lastEstimationStartTime_;
 
-seconds ModelSuite::globalTimeout_(0l);
+seconds ModelSuite::timeout_(0l);
 
 const ConfidenceInterval* ModelSuite::interruptCI_ = nullptr;
 
@@ -625,7 +625,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 	// Build offered simulation engines
 	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
 	simulators["restart"] = std::make_shared< SimulationEngineRestart >(model);
-	set_global_splitting(splitsPerThreshold);
+	set_splitting(splitsPerThreshold);
 
 #ifndef NDEBUG
 	// Check all offered importance functions, thresholds builders and
@@ -655,7 +655,7 @@ template void ModelSuite::seal(const std::unordered_set<std::string>&);
 
 
 void
-ModelSuite::set_global_splitting(const unsigned& spt)
+ModelSuite::set_splitting(const unsigned& spt)
 {
     if (!sealed())
         throw_FigException("ModelSuite hasn't been sealed yet");
@@ -663,23 +663,23 @@ ModelSuite::set_global_splitting(const unsigned& spt)
             .set_splits_per_threshold(spt);
 	splitsPerThreshold = spt;
 	// Show in tech log
-	tech_log("Global splitting set to " + std::to_string(spt) + "\n");
+	tech_log("\nSplitting set to " + std::to_string(spt) + "\n");
 }
 
 
 void
-ModelSuite::set_global_timeout(const seconds& timeLimit)
+ModelSuite::set_timeout(const seconds& timeLimit)
 {
 	if (!sealed())
 		throw_FigException("ModelSuite hasn't been sealed yet");
-	globalTimeout_ = timeLimit;
+	timeout_ = timeLimit;
 	// Show in tech log
 	const unsigned hours(timeLimit.count()/3600u);
 	const unsigned minutes((timeLimit.count()%3600)/60);
 	const unsigned seconds(timeLimit.count()%60);
 	char timeStr[9] = {'\0'};
 	std::sprintf(timeStr, "%02u:%02u:%02u", hours, minutes, seconds);
-	tech_log("Global timeout set to " + std::string(timeStr) + "\n");
+	tech_log("Timeout set to " + std::string(timeStr) + "\n");
 }
 
 
@@ -694,16 +694,16 @@ ModelSuite::get_property(const size_t& i) const noexcept
 
 
 const unsigned&
-ModelSuite::get_global_splitting() const noexcept
+ModelSuite::get_splitting() const noexcept
 {
 	return splitsPerThreshold;
 }
 
 
 const seconds&
-ModelSuite::get_global_timeout() const noexcept
+ModelSuite::get_timeout() const noexcept
 {
-	return globalTimeout_;
+	return timeout_;
 }
 
 
@@ -1202,8 +1202,8 @@ ModelSuite::estimate_for_times(const Property& property,
 									 engine.splits_per_threshold(),
 									 *impFuns[engine.current_imp_fun()]);
 		// Show info
-		const seconds timeLimit(globalTimeout_.count() > 0l
-				? std::min<long>(wallTimeInSeconds, globalTimeout_.count())
+		const seconds timeLimit(timeout_.count() > 0l
+				? std::min<long>(wallTimeInSeconds, timeout_.count())
 				: wallTimeInSeconds);
 		mainLog_ << std::setprecision(0) << std::fixed;
 		mainLog_ << "   Estimation timeout: " << timeLimit.count() << " s\n";
@@ -1243,7 +1243,8 @@ ModelSuite::estimate_for_confs(const Property& property,
 							   const StoppingConditions& bounds) const
 {
 	assert(bounds.is_confidence_criteria());
-
+	const seconds timeLimit = timeout_.count() > 0l ? timeout_
+													: seconds(9999999l);
 	for (const auto& criterion: bounds.confidence_criteria()) {
 
 		// Build confidence interval to fill in
@@ -1274,8 +1275,6 @@ ModelSuite::estimate_for_confs(const Property& property,
 		Clock::seed_rng();  // restart RNG sequence for this estimation
 		engine.interrupted = false;
 		lastEstimationStartTime_ = omp_get_wtime();
-		seconds timeLimit = globalTimeout_.count() > 0l ? globalTimeout_
-														: seconds(9999999l);
 		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),
 									   timeLimit, std::ref(mainLog_), lastEstimationStartTime_);
 		// Simulate
