@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  NumericConstraint.h
+//  TimeConstraint
 //
 //  Copyleft 2016-
 //  Authors:
@@ -32,9 +32,11 @@
 //
 //==============================================================================
 
-#ifndef NUMERICCONSTRAINT_H
-#define NUMERICCONSTRAINT_H
+#ifndef TIMECONSTRAINT_H
+#define TIMECONSTRAINT_H
 
+// C
+#include <cctype>  // std::isalpha()
 // C++
 #include <string>
 #include <type_traits>
@@ -46,44 +48,47 @@ namespace TCLAP
 {
 
 /**
- * A Constraint only valid for numeric types, that constrains the Arg
- * to any numerical condition imposed by the user.
+ * A Constraint meant for expressing time durations,
+ * following the GNU coreutils 'timeout' interface.
  */
 template< typename T_ >
-class NumericConstraint : public Constraint<T_>
+class TimeConstraint : public Constraint<T_>
 {
-	static_assert(std::is_arithmetic< T_ >::value, "ERROR: type mismatch. "
-				  "NumericConstraint class template can only be instantiated "
-				  "with numeric types.");
+	static_assert(std::is_constructible< std::string, T_ >::value,
+				  "ERROR: type mismatch. TimeConstraint class template can only"
+				  " be instantiated from a string expressing a time duration.");
 public:
 
 	/// Ctor
-	/// @param constraint User defined function to constrain the values,
-	///                   any with signature "bool operator()(const T_&)"
-	/// @param description Description of what does 'constraint' constrain
-	template< class FUN >
-	NumericConstraint(FUN constraint, const std::string description) :
-		constraint_(constraint),
-		description_(description)
-		{}
+	TimeConstraint() {}
 
-	virtual ~NumericConstraint() {}
+	/// Dtor
+	virtual ~TimeConstraint() {}
 
 	inline std::string description() const override { return description_; }
 
 	inline std::string shortID() const override { return description_; }
 
-	inline bool check(const T_& value) const override { return constraint_(value); }
+	inline bool check(const T_& value) const override {
+		std::string time(value);
+		char *err(nullptr), timeUnit(time.back());
+		if (!(std::isdigit(timeUnit) || 's' == timeUnit
+			  || 'm' == timeUnit || 'h' == timeUnit || 'd' == timeUnit))
+			return false;
+		else if (std::isalpha(timeUnit))
+			time.resize(time.length()-1);
+		std::strtoul(time.data(), &err, 10);
+		if (nullptr != err && err[0] != '\0')
+			return false;
+		else
+			return true;
+	}
 
-protected:
+private:
 
-	/// The constraint per se, as defined by the user
-	bool(*constraint_)(const T_&);
-
-	/// User provided description of what does the constraint_ constrain
-	const std::string description_;
+	std::string description_ = "{0..9}+[<s/m/h/d>]";
 };
 
 } // namespace TCLAP
 
-#endif // NUMERICCONSTRAINT_H
+#endif // TIMECONSTRAINT_H

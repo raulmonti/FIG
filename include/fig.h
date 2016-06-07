@@ -85,6 +85,11 @@
 #include "PreCompiler.h"
 #include "CompileModel.h"
 #include "DNFclauses.h"
+// CLI
+#include "fig_cli.h"
+#include "MultiDoubleArg.h"
+#include "NumericConstraint.h"
+#include "TimeConstraint.h"
 // Basic ADTs
 #include "Clock.h"
 #include "Label.h"

@@ -29,6 +29,7 @@
 
 // C
 #include <cstdlib>  // std::strtoul()
+#include <cctype>   // std::isdigit()
 // C++
 #include <set>
 #include <list>
@@ -46,6 +47,7 @@
 #include <ModelSuite.h>
 #include <MultiDoubleArg.h>
 #include <NumericConstraint.h>
+#include <TimeConstraint.h>
 
 
 using namespace TCLAP;
@@ -97,14 +99,14 @@ const std::string versionStr(
 // TCLAP parameter holders and stuff  /////////////////////////////////////////
 
 CmdLine cmd_("\nSample usage:\n"
-			 "~$ ./fig models/tandem.{sa,pp} --amono --stop-time 5 m\n"
+			 "~$ ./fig models/tandem.{sa,pp} --amono --stop-time 5m\n"
 			 "Use an automatically computed \"monolithic\" importance function "
 			 "built on the global model's state space, performing a 5 minutes "
 			 "estimation which will employ the RESTART simulation engine "
 			 "(default) for splitting 2 (default) and the hybrid thresholds "
 			 "building technique, i.e. \"hyb\" (default)\n"
 			 "~$ ./fig models/tandem.{sa,pp} --flat -e nosplit          \\"
-			 "       --stop-conf 0.8 0.4 --global-timeout 1 h\n"
+			 "       --stop-conf 0.8 0.4 --global-timeout 1h\n"
 			 "Use a flat importance function to perform a standard Monte Carlo "
 			 "simulation (i.e. no splitting), which will run until either "
 			 "the relative precision achieved for an 80% confidence interval "
@@ -119,8 +121,8 @@ CmdLine cmd_("\nSample usage:\n"
 			 "the relative precision achieved for a 90% confidence interval "
 			 "equals 20% of the value estimated for each property.\n"
 			 "~$ ./fig models/tandem.{sa,pp} --acomp \"+\" -t hyb         \\"
-			 "       --stop-conf .8 .4 --stop-time 1 h --stop-conf .95 .1      \\"
-			 "       --splitting 2,3,5,9,11 -e restart --global-timeout 30 m\n"
+			 "       --stop-conf .8 .4 --stop-time 1h --stop-conf .95 .1       \\"
+			 "       --splitting 2,3,5,9,15 -e restart --global-timeout 30m\n"
 			 "Use an automatically computed \"compositional\" importance "
 			 "function, built modularly on every module's state space, "
 			 "simulating with the RESTART engine for the splitting values "
@@ -253,32 +255,29 @@ MultiDoubleArg< float, float > confidenceCriteria(
 	"e.g. \"--stop-conf 0.8 0.4 --stop-conf 0.95 0.1\"",
 	false,
 	&ccConstraint, &precConstraint);
-NumericConstraint<long> timeLapseConstraint(
-	[](const long& timeLapse) { return timeLapse > 0l; },
-	"positive_time_lapse");
-ValuesConstraint<char> timeUnitConstraint(std::vector<char>({'s', 'm', 'h', 'd'}));
-MultiDoubleArg< long, char > timeCriteria(
+TimeConstraint<string> timeDurationConstraint;
+MultiArg<string> timeCriteria(
 	"", "stop-time",
 	"Add a stopping condition for estimations based on a (wall clock) "
-	"execution time length, e.g. \"45 m\". Can specify seconds (s), "
-	"minutes (m), hours (h) or days (d). This is a multi-argument, "
+	"execution time length, e.g. \"45m\". Can specify seconds (s), "
+	"minutes (m), hours (h) or days (d). Default is seconds, i.e. 's' is "
+	"assumed if no suffix is specified. This is a multi-argument, "
 	"meaning you can define as many of them as you wish, "
-	"e.g. \"--stop-time 30 s --stop-time 10 m\"",
-	false,
-	&timeLapseConstraint, &timeUnitConstraint);
+	"e.g. \"--stop-time 30 --stop-time 10m\"",
+	false, &timeDurationConstraint);
 std::vector< Arg* > stopCondSpecs = {
 	&confidenceCriteria,
 	&timeCriteria
 };
 
 // Global timeout (affects any simulation launched)
-MultiDoubleArg< long, char > globalTimeout(
+ValueArg<string> globalTimeout(
 	"", "global-timeout",
 	"Global time limit: if set, any simulation will be soft-interrupted after "
 	"running for this (wall clock) time. If the stopping condition for a "
 	"simulation is also time based, the lowest of the two values will apply.",
-	false,
-	&timeLapseConstraint, &timeUnitConstraint);
+	false, "",
+	&timeDurationConstraint);
 
 // Splitting values to test
 ValueArg<string> splittings_(
@@ -444,12 +443,19 @@ get_stopping_conditions()
 	}
 	if (timeCriteria.isSet()) {
 		fig::StoppingConditions stopCond;
-		for (const auto& timeCrit: timeCriteria.getValues()) {
-			const size_t FACTOR( timeCrit.second == 's' ? 1ul     :
-								 timeCrit.second == 'm' ? 60ul    :
-								 timeCrit.second == 'h' ? 3600ul  :
-								 timeCrit.second == 'd' ? 86400ul : 0ul );
-			stopCond.add_time_budget(timeCrit.first * FACTOR);
+		for (string timeCrit: timeCriteria.getValue()) {
+			char *err(nullptr), timeUnit(timeCrit.back());
+			if (!std::isalpha(timeUnit))
+				timeUnit = 's';  // by default interpret seconds
+			else
+				timeCrit.resize(timeCrit.length()-1);
+			const size_t FACTOR(timeUnit == 's' ? 1ul     :
+								timeUnit == 'm' ? 60ul    :
+								timeUnit == 'h' ? 3600ul  :
+								timeUnit == 'd' ? 86400ul : 0ul);
+			const size_t timeLen = std::strtoul(timeCrit.data(), &err, 10);
+			assert (nullptr == err || err[0] != '\0');
+			stopCond.add_time_budget(timeLen * FACTOR);
 		}
 		estBounds.emplace(estBounds.begin(), stopCond);
 	}
@@ -457,25 +463,26 @@ get_stopping_conditions()
 }
 
 
-/// Check for any global timeout specification.
-/// If found, set them for simulations time-bounding.
-/// If several were defined, use only the last one.
+/// Check for global timeout specification and set it for simulations
+/// time-bounding if found.
 /// @return Whether the information could be successfully retrieved
 bool
 get_global_timeout()
 {
 	if (globalTimeout.isSet()) {
-		if (globalTimeout.getValues().size() > 1ul)
-			std::cerr << "WARNING: only the last global timeout defined "
-					  << "will be used.\n";
-		for (const auto& timeLimit: globalTimeout.getValues()) {
-			assert(0l < timeLimit.first);
-			const size_t FACTOR(timeLimit.second == 's' ? 1ul     :
-								timeLimit.second == 'm' ? 60ul    :
-								timeLimit.second == 'h' ? 3600ul  :
-								timeLimit.second == 'd' ? 86400ul : 0ul);
-			globalTO = std::chrono::seconds(timeLimit.first * FACTOR);
-		}
+		string timeout(globalTimeout.getValue());
+		char *err(nullptr), timeUnit(timeout.back());
+		if (!std::isalpha(timeUnit))
+			timeUnit = 's';  // by default interpret seconds
+		else
+			timeout.resize(timeout.length()-1);
+		const size_t FACTOR(timeUnit == 's' ? 1ul     :
+							timeUnit == 'm' ? 60ul    :
+							timeUnit == 'h' ? 3600ul  :
+							timeUnit == 'd' ? 86400ul : 0ul);
+		const size_t timeLen = std::strtoul(timeout.data(), &err, 10);
+		assert (nullptr == err || err[0] != '\0');
+		globalTO = std::chrono::seconds(timeLen * FACTOR);
 	}
 	return true;
 }
@@ -489,9 +496,8 @@ bool
 get_splitting_values()
 {
 	if (splittings_.isSet()) {
-		auto strValues = split(splittings_.getValue(), ',');
 		char* err(nullptr);
-		for (const auto& strValue: strValues) {
+		for (auto strValue: split(splittings_.getValue(), ',')) {
 			unsigned value = std::strtoul(strValue.data(), &err, 10);
 			if (nullptr == err || err[0] == '\0') {
 				splittings.emplace(value);

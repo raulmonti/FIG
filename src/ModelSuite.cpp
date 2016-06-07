@@ -677,9 +677,8 @@ ModelSuite::set_global_timeout(const seconds& timeLimit)
 	const unsigned hours(timeLimit.count()/3600u);
 	const unsigned minutes((timeLimit.count()%3600)/60);
 	const unsigned seconds(timeLimit.count()%60);
-	const char timeStr[9] = {'\0'};
-	std::sprintf(const_cast<char*>(timeStr), "%02u:%02u:%02u",
-				 hours, minutes, seconds);
+	char timeStr[9] = {'\0'};
+	std::sprintf(timeStr, "%02u:%02u:%02u", hours, minutes, seconds);
 	tech_log("Global timeout set to " + std::string(timeStr) + "\n");
 }
 
