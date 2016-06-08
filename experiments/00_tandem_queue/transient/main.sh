@@ -45,16 +45,11 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-#TO="10h"
-TO="1m"
-#CONF=0.9  # Confidence coefficient
-#PREC=0.2  # Relative precision
-CONF=0.6  # Confidence coefficient
-PREC=0.6  # Relative precision
-#SPLITS=(2 3 6)  # RESTART splittings to test
-SPLITS=(3 5 7)  # RESTART splittings to test
-#QUEUES_CAPACITIES=(8 10 12 14)
-QUEUES_CAPACITIES=(9)
+TO="10h"
+CONF=0.9  # Confidence coefficient
+PREC=0.2  # Relative precision
+SPLITS=(2 3 6)  # RESTART splittings to test
+QUEUES_CAPACITIES=(8 10 12 14)
 EXPNAME="tandem_queue"
 #
 show "Configuring experiments"
@@ -106,9 +101,10 @@ done
 
 # Wait till termination, making sure everything dies after the timeout
 show -n "Waiting for all experiments to finish..."
-PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }')
-`sleep $ETIMEOUT; kill -9 $PIDS &>/dev/null;` &
-wait &>/dev/null
+`PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }') \
+ sleep $ETIMEOUT; kill -15 $PIDS &>/dev/null;              \
+ sleep 2;         kill  -9 $PIDS &>/dev/null`              &
+disown %%; wait &>/dev/null; killall sleep &>/dev/null
 show " done"
 
 
