@@ -33,6 +33,7 @@
 #include <set>
 #include <list>
 #include <string>
+#include <chrono>
 // FIG
 #include <core_typedefs.h>
 #include <StoppingConditions.h>
@@ -91,6 +92,10 @@ extern std::set< unsigned > splittings;
 /// (e.g. run for 30 m) or value-driven (e.g. stop after building a 90%
 /// confidence interval with 2.3x10^-5 precision)
 extern std::list< fig::StoppingConditions > estBounds;
+
+/// Simulations timeout. It causes a soft-interrupt in any simulation launched,
+/// after 'simsTimeout' seconds of uninterrupted wall-clock execution
+extern std::chrono::seconds simsTimeout;
 
 }
 

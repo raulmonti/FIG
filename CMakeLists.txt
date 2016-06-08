@@ -143,8 +143,11 @@ ENDIF()
 # Build type: release vs. debug
 IF(RELEASE)
 	# As much automatic optimization as we can get
-#	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 --fast-math")
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 --fast-math -g")  # TODO erase
+	IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+	ELSE()
+		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 --fast-math")
+	ENDIF()
 ELSE()
 	# Optimize without obfuscating the assembly so much
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")

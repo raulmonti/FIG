@@ -29,6 +29,7 @@
 
 // C
 #include <cstdlib>  // std::strtoul()
+#include <cctype>   // std::isdigit()
 // C++
 #include <set>
 #include <list>
@@ -46,6 +47,7 @@
 #include <ModelSuite.h>
 #include <MultiDoubleArg.h>
 #include <NumericConstraint.h>
+#include <TimeConstraint.h>
 
 
 using namespace TCLAP;
@@ -65,6 +67,7 @@ fig::ImpFunSpec impFunSpec("noName", "noStrategy");
 string thrTechnique;
 std::set< unsigned > splittings;
 std::list< fig::StoppingConditions > estBounds;
+std::chrono::seconds simsTimeout;
 
 } // namespace fig_cli
 
@@ -96,32 +99,38 @@ const std::string versionStr(
 // TCLAP parameter holders and stuff  /////////////////////////////////////////
 
 CmdLine cmd_("\nSample usage:\n"
-			 "~$ ./fig models/tandem.{sa,pp} --auto-coupled --stop-time 5 m\n"
-			 "Use an automatically computed importance function built on the "
-			 "model's fully coupled state space, performing a 5 minutes "
+			 "~$ ./fig models/tandem.{sa,pp} --amono --stop-time 5m\n"
+			 "Use an automatically computed \"monolithic\" importance function "
+			 "built on the global model's state space, performing a 5 minutes "
 			 "estimation which will employ the RESTART simulation engine "
 			 "(default) for splitting 2 (default) and the hybrid thresholds "
 			 "building technique, i.e. \"hyb\" (default)\n"
-			 "~$ ./fig models/tandem.{sa,pp} --flat -e nosplit --stop-time 1 h\n"
-			 "Use a flat importance function to perform a 1 hour standard "
-			 "Monte Carlo simulation (i.e. no splitting)\n"
-			 "~$ ./fig models/tandem.{sa,pp} --adhoc \"10*q2+q1\" -t ams \\"
-			 "            --stop-conf 0.9 0.2\n"
+			 "~$ ./fig models/tandem.{sa,pp} --flat -e nosplit          \\"
+			 "       --stop-conf 0.8 0.4 --timeout 1h\n"
+			 "Use a flat importance function to perform a standard Monte Carlo "
+			 "simulation (i.e. no splitting), which will run until either "
+			 "the relative precision achieved for an 80% confidence interval "
+			 "equals 40% of the value estimated for each property, or 1 hour "
+			 "of wall clock time has passed, whichever happens first.\n"
+			 "~$ ./fig models/tandem.{sa,pp} --adhoc \"10*q2+q1\" -t ams  \\"
+			 "       --stop-conf 0.9 0.2\n"
 			 "Use the importance function \"10*q2+q1\" defined ad hoc by the "
 			 "user, with the RESTART simulation engine (default) for splitting "
 			 "2 (default), employing the Adaptive Multilevel Splitting "
 			 "thresholds building technique, i.e. \"ams\", estimating until "
 			 "the relative precision achieved for a 90% confidence interval "
 			 "equals 20% of the value estimated for each property.\n"
-			 "~$ ./fig models/tandem.{sa,pp} --auto-split \"+\" -t hyb  \\"
-			 "       --stop-conf .8 .4 --stop-time 1 h --stop-conf .95 .1    \\"
-			 "       --splitting 2,3,5,9,11 -e restart\n"
-			 "Use an automatically computed importance function modularly "
-			 "built, viz. on every module state space, simulating with the "
-			 "RESTART engine for the splitting values explicitly specified, "
-			 "using the hybrid thresholds building technique, i.e. \"hyb\", "
-			 "estimating the value of each property for this configuration "
-			 "and for each one of the three stopping conditions.",
+			 "~$ ./fig models/tandem.{sa,pp} --acomp \"+\" -t hyb         \\"
+			 "       --stop-conf .8 .4 --stop-time 1h --stop-conf .95 .1       \\"
+			 "       --splitting 2,3,5,9,15 -e restart --timeout 30m\n"
+			 "Use an automatically computed \"compositional\" importance "
+			 "function, built modularly on every module's state space, "
+			 "simulating with the RESTART engine for the splitting values "
+			 "explicitly specified, using the hybrid thresholds building "
+			 "technique, i.e. \"hyb\", estimating the value of each property "
+			 "for this configuration and for each one of the three stopping "
+			 "conditions, or until the wall-clock timeout is reached in "
+			 "each case.",
 			 ' ', versionStr);
 
 // Model file path
@@ -246,23 +255,29 @@ MultiDoubleArg< float, float > confidenceCriteria(
 	"e.g. \"--stop-conf 0.8 0.4 --stop-conf 0.95 0.1\"",
 	false,
 	&ccConstraint, &precConstraint);
-NumericConstraint<long> timeLapseConstraint(
-	[](const long& timeLapse) { return timeLapse > 0l; },
-	"positive_time_lapse");
-ValuesConstraint<char> timeUnitConstraint(std::vector<char>({'s', 'm', 'h', 'd'}));
-MultiDoubleArg< long, char > timeCriteria(
+TimeConstraint<string> timeDurationConstraint;
+MultiArg<string> timeCriteria(
 	"", "stop-time",
 	"Add a stopping condition for estimations based on a (wall clock) "
-	"execution time length, e.g. \"45 m\". Can specify seconds (s), "
-	"minutes (m), hours (h) or days (d). This is a multi-argument, "
+	"execution time length, e.g. \"45m\". Can specify seconds (s), "
+	"minutes (m), hours (h) or days (d). Default is seconds, i.e. 's' is "
+	"assumed if no suffix is specified. This is a multi-argument, "
 	"meaning you can define as many of them as you wish, "
-	"e.g. \"--stop-time 30 s --stop-time 10 m\"",
-	false,
-	&timeLapseConstraint, &timeUnitConstraint);
+	"e.g. \"--stop-time 30 --stop-time 10m\"",
+	false, &timeDurationConstraint);
 std::vector< Arg* > stopCondSpecs = {
 	&confidenceCriteria,
 	&timeCriteria
 };
+
+// Timeout (affects any simulation launched)
+ValueArg<string> timeout(
+	"", "timeout",
+	"Global time limit: if set, any simulation will be soft-interrupted after "
+	"running for this (wall clock) time. If the stopping condition for a "
+	"simulation is also time based, the lowest of the two values will apply.",
+	false, "",
+	&timeDurationConstraint);
 
 // Splitting values to test
 ValueArg<string> splittings_(
@@ -428,14 +443,46 @@ get_stopping_conditions()
 	}
 	if (timeCriteria.isSet()) {
 		fig::StoppingConditions stopCond;
-		for (const auto& timeCrit: timeCriteria.getValues()) {
-			const size_t FACTOR( timeCrit.second == 's' ? 1ul     :
-								 timeCrit.second == 'm' ? 60ul    :
-								 timeCrit.second == 'h' ? 3600ul  :
-								 timeCrit.second == 'd' ? 86400ul : 0ul );
-			stopCond.add_time_budget(timeCrit.first*FACTOR);
+		for (string timeCrit: timeCriteria.getValue()) {
+			char *err(nullptr), timeUnit(timeCrit.back());
+			if (!std::isalpha(timeUnit))
+				timeUnit = 's';  // by default interpret seconds
+			else
+				timeCrit.resize(timeCrit.length()-1);
+			const size_t FACTOR(timeUnit == 's' ? 1ul     :
+								timeUnit == 'm' ? 60ul    :
+								timeUnit == 'h' ? 3600ul  :
+								timeUnit == 'd' ? 86400ul : 0ul);
+			const size_t timeLen = std::strtoul(timeCrit.data(), &err, 10);
+			assert (nullptr == err || err[0] != '\0');
+			stopCond.add_time_budget(timeLen * FACTOR);
 		}
 		estBounds.emplace(estBounds.begin(), stopCond);
+	}
+	return true;
+}
+
+
+/// Check for timeout specification and set it for simulations
+/// time-bounding if found.
+/// @return Whether the information could be successfully retrieved
+bool
+get_timeout()
+{
+	if (timeout.isSet()) {
+		string TO(timeout.getValue());
+		char *err(nullptr), timeUnit(TO.back());
+		if (!std::isalpha(timeUnit))
+			timeUnit = 's';  // by default interpret seconds
+		else
+			TO.resize(TO.length()-1);
+		const size_t FACTOR(timeUnit == 's' ? 1ul     :
+							timeUnit == 'm' ? 60ul    :
+							timeUnit == 'h' ? 3600ul  :
+							timeUnit == 'd' ? 86400ul : 0ul);
+		const size_t timeLen = std::strtoul(TO.data(), &err, 10);
+		assert (nullptr == err || err[0] != '\0');
+		simsTimeout = std::chrono::seconds(timeLen * FACTOR);
 	}
 	return true;
 }
@@ -449,9 +496,8 @@ bool
 get_splitting_values()
 {
 	if (splittings_.isSet()) {
-		auto strValues = split(splittings_.getValue(), ',');
 		char* err(nullptr);
-		for (const auto& strValue: strValues) {
+		for (auto strValue: split(splittings_.getValue(), ',')) {
 			unsigned value = std::strtoul(strValue.data(), &err, 10);
 			if (nullptr == err || err[0] == '\0') {
 				splittings.emplace(value);
@@ -500,6 +546,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(thrTechnique_);
 		cmd_.orAdd(stopCondSpecs);
 		cmd_.xorAdd(impFunSpecs);
+		cmd_.add(timeout);
 		cmd_.add(splittings_);
 
 		// Parse the command line input
@@ -522,6 +569,16 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		if (!get_stopping_conditions()) {
 			std::cerr << "ERROR: must specify at least one stopping condition ";
 			std::cerr << "(aka estimation bound).\n\n";
+			std::cerr << "For complete USAGE and HELP type:\n";
+			std::cerr << "   " << argv[0] << " --help\n\n";
+			if (fatalError)
+				exit(EXIT_FAILURE);
+			else
+				return false;
+		}
+		if (!get_timeout()) {
+			std::cerr << "ERROR: something failed while parsing the ";
+			std::cerr << "timeout specification.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
 			if (fatalError)

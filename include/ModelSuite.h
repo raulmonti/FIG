@@ -117,6 +117,9 @@ class ModelSuite
 	/// Starting time (according to omp_get_wtime) of last estimation launched
 	static double lastEstimationStartTime_;
 
+	/// Wall-clock-time execution limit for simulations (in seconds)
+	static std::chrono::seconds timeout_;
+
 	// Interruptions handling
 
 	/// Signal handler for when we're interrupted (e.g. ^C) mid-estimation
@@ -225,6 +228,22 @@ public:  // Populating facilities and other modifyers
 	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
 	 */
 	void set_splitting(const unsigned& spt);
+	
+	/**
+	 * @brief Set a wall-clock-time limit for simulations
+	 *
+	 *        This timeout applies to all simulations launched:
+	 *        "value simulations" will stop when they reach either the
+	 *        requested confidence criteria or this time bound, whichever
+	 *        happens first; "time simulations" will stop for the lower of
+	 *        the time bounds (their own limit or this global limit)
+	 *
+	 * @param timeLimit @copydoc timeout_
+	 *
+	 * @warning The ModelSuite must have been \ref seal() "sealed" beforehand
+	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
+	 */
+	void set_timeout(const std::chrono::seconds& timeLimit);
 
 public:  // Accessors
 
@@ -264,6 +283,13 @@ public:  // Accessors
 	/// Get the splitting factor used by all engines which implement splitting
 	/// @see set_splitting()
 	const unsigned& get_splitting() const noexcept;
+
+	/// Get the wall-clock-time execution limit imposed to simulations
+	/// @see set_timeout()
+	const std::chrono::seconds& get_timeout() const noexcept;
+
+	/// @copydoc confCoToShow_
+	static const std::vector< float >& get_cc_to_show() noexcept;
 
 	/// Names of available simulation engines,
 	/// as they should be requested by the user.
@@ -600,6 +626,18 @@ public:  // Simulation utils
 
 	/// @todo TODO design and implement interactive processing
 	void process_interactive();
+
+private:  // Class utils
+
+	/// Specialization of estimate() for time-bound simulations
+	void estimate_for_times(const Property& property,
+							const SimulationEngine& engine,
+							const StoppingConditions& bounds) const;
+
+	/// Specialization of estimate() for confidence-criteria-bound simulations
+	void estimate_for_confs(const Property& property,
+							const SimulationEngine& engine,
+							const StoppingConditions& bounds) const;
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -656,12 +694,12 @@ ModelSuite::process_batch(
 		throw_FigException("inexistent simulation engine \"" + engineName +
 						   "\". Call \"available_simulators()\" for a list "
 						   "of available options.");
-	} else if (std::distance(begin(estimationBounds), end(estimationBounds))
+	} else if (distance(begin(estimationBounds), end(estimationBounds))
 			   == 0ul) {
 		log("Can't estimate: no stopping conditions were specified.\n");
 		throw_FigException("aborting execution since no estimation bounds "
 						   "were specified.");
-	} else if (std::distance(begin(splittingValues), end(splittingValues))
+	} else if (distance(begin(splittingValues), end(splittingValues))
 			   == 0ul && "nosplit" != engineName) {
 		log("Can't estimate: no splitting value was specified for engine \""
 			+ engineName + "\"\n");

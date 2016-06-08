@@ -32,14 +32,15 @@
 // -- Winter Simulation Conference, 2009, pp. 1146-1154.
 // -- This model corresponds to the system described in Section 4.1
 
-const int alpha = 3;	// Service time shape parameter (all queues)
-const int beta1 = 9;	// Service time scale parameter (Queue1)
-const int beta2 = 6;	// Service time scale parameter (Queue2)
-const int beta3 = 9;	// Service time scale parameter (Queue3)
-const int L = 9;		// Threshold occupancy (Queue3)
+const int alpha = 2;	// Service time shape parameter (all queues)
+const int beta1 = 3;	// Service time scale parameter (Queue1)
+const int beta2 = 4;	// Service time scale parameter (Queue2)
+const int beta3 = 6;	// Service time scale parameter (Queue3)
+const int L = 11;		// Threshold occupancy (Queue3)
 const int c = L+5;		// Queues capacity (all queues)
 
 // -- Combinations tested in the aforementioned article:
+// --
 // --     L  alpha beta1 beta2 beta3
 // --  a) 18   2     3     4     6
 // --  b) 13   3    4.5    6     9
@@ -47,6 +48,10 @@ const int c = L+5;		// Queues capacity (all queues)
 // --  d) 16   3     9     6     9
 // --  e) 24   2    10     8     6
 // --  f) 21   3    15    12     9
+// --
+// -- Those values of 'L' yield rare events of probability ~ 10^-15.
+// -- Alternatively the following values yield rare events ~ 10^-9:
+// -- L = (a:11, b:8, c:12, d:9, e:14, f:13)
 
 module Arrivals
 	clk0: clock;  // -- External arrivals ~ Exponential(1)

@@ -7,11 +7,11 @@
 
 set -e
 show(){ /bin/echo -e "$@"; }
-THIS_DIR=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
+CWD=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
 
 
 # Probe resources
-source "$THIS_DIR/../../fig_utils.sh" || \
+source "$CWD/../../fig_utils.sh" || \
 	(show "[ERROR] Couldn't find fig_utils.sh" && exit 1)
 if [[ "$(type -t build_fig)" != "function" ]]
 then
@@ -26,14 +26,14 @@ fi
 
 # Build project
 show "Building FIG"
-build_fig $THIS_DIR
+build_fig $CWD
 if [ ! -f ./fig ]; then show "[ERROR] Something went wrong"; exit 1; fi
 
 
 # Prepare experiment's directory and files
 show "Preparing experiments environment:"
 MODEL_FILE="tandem_queue.sa"
-copy_model_file $MODEL_FILE $THIS_DIR && \
+copy_model_file $MODEL_FILE $CWD && \
 	show "  · using model file $MODEL_FILE"
 PROPS_FILE="tandem_queue.pp"
 echo 'P( q2 > 0 U lost )' > $PROPS_FILE && \
@@ -50,15 +50,19 @@ CONF=0.9  # Confidence coefficient
 PREC=0.2  # Relative precision
 SPLITS=(2 3 6)  # RESTART splittings to test
 QUEUES_CAPACITIES=(8 10 12 14)
-show "Configuring experiments"
 EXPNAME="tandem_queue"
+#
+show "Configuring experiments"
 SPLITTING="--splitting "
 for S in "${SPLITS[@]}"; do SPLITTING+="$S,"; done; SPLITTING="${SPLITTING%,}"
 STOP_CRITERION="--stop-conf $CONF $PREC"
-STANDARD_MC="-e nosplit --flat $STOP_CRITERION"
-RESTART_ADHOC="--adhoc q2 $STOP_CRITERION $SPLITTING"
-RESTART_AMONO="--amono $STOP_CRITERION $SPLITTING"
-RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION $SPLITTING"
+ETIMEOUT="${TO##*[0-9]}"  # Timeout per experiment (one ifun, all splits)
+ETIMEOUT=$(bc <<< "${TO%%[a-z]*}*${#SPLITS[@]}*2")"$ETIMEOUT"
+show "Timeouts: $TO per split; $ETIMEOUT per experiment"
+STANDARD_MC="-e nosplit --flat $STOP_CRITERION --timeout $TO"
+RESTART_ADHOC="--adhoc q2 $STOP_CRITERION $SPLITTING --timeout $TO"
+RESTART_AMONO="--amono $STOP_CRITERION $SPLITTING --timeout $TO"
+RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION $SPLITTING --timeout $TO"
 
 
 # Launch experiments
@@ -73,7 +77,7 @@ do
 	C_DEF="^const${BLANK}int${BLANK}c${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
 	sed -e "s/${C_DEF}/const int c = $c;/1" $MODEL_FILE > $MODEL_FILE_C
 	LOG=${RESULTS}/tandem_queue_c${c}
-	EXE=`/bin/echo -e "timeout -s 15 $TO ./fig $MODEL_FILE_C $PROPS_FILE"`
+	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE_C $PROPS_FILE"`
 
 	# RESTART with monolithic (auto ifun)
 	poll_till_free $EXPNAME; show -n " AM"
@@ -95,11 +99,12 @@ do
 done
 
 
-# Wait till termination, making sure everything dies after $TO
+# Wait till termination, making sure everything dies after the timeout
 show -n "Waiting for all experiments to finish..."
-PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }')
-`sleep $TO; kill -9 $PIDS &>/dev/null;` &> /dev/null &
-wait
+`PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }') \
+ sleep $ETIMEOUT; kill -15 $PIDS &>/dev/null;              \
+ sleep 2;         kill  -9 $PIDS &>/dev/null`              &
+disown %%; wait &>/dev/null; killall sleep &>/dev/null
 show " done"
 
 

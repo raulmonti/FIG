@@ -62,6 +62,7 @@ using fig_cli::impFunSpec;
 using fig_cli::thrTechnique;
 using fig_cli::splittings;
 using fig_cli::estBounds;
+using fig_cli::simsTimeout;
 
 
 //  Main stuff  ////////////////////////////////////////////////////////////////
@@ -109,6 +110,7 @@ int main(int argc, char** argv)
 	// Estimate using requested configuration
 	try {
 		auto model = fig::ModelSuite::get_instance();
+		model.set_timeout(simsTimeout);
 		model.process_batch(engineName,
 							impFunSpec,
 							thrTechnique,
