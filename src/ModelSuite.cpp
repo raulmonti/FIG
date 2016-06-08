@@ -679,7 +679,10 @@ ModelSuite::set_timeout(const seconds& timeLimit)
 	const unsigned seconds(timeLimit.count()%60);
 	char timeStr[9] = {'\0'};
 	std::sprintf(timeStr, "%02u:%02u:%02u", hours, minutes, seconds);
-	tech_log("Timeout set to " + std::string(timeStr) + "\n");
+	if (timeLimit.count() > 0ul)
+		tech_log("Timeout set to " + std::string(timeStr) + "\n");
+	else
+		tech_log("Timeout was unset\n");
 }
 
 

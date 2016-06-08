@@ -7,11 +7,11 @@
 
 set -e
 show(){ /bin/echo -e "$@"; }
-THIS_DIR=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
+CWD=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
 
 
 # Probe resources
-source "$THIS_DIR/../../fig_utils.sh" || \
+source "$CWD/../../fig_utils.sh" || \
 	(show "[ERROR] Couldn't find fig_utils.sh" && exit 1)
 if [[ "$(type -t build_fig)" != "function" ]]
 then
@@ -26,14 +26,14 @@ fi
 
 # Build project
 show "Building FIG"
-build_fig $THIS_DIR
+build_fig $CWD
 if [ ! -f ./fig ]; then show "[ERROR] Something went wrong"; exit 1; fi
 
 
 # Prepare experiment's directory and files
 show "Preparing experiments environment:"
 MODEL_FILE="tandem_queue.sa"
-copy_model_file $MODEL_FILE $THIS_DIR && \
+copy_model_file $MODEL_FILE $CWD && \
 	show "  · using model file $MODEL_FILE"
 PROPS_FILE="tandem_queue.pp"
 echo 'P( q2 > 0 U lost )' > $PROPS_FILE && \

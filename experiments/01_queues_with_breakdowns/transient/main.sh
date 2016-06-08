@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Author:  Carlos E. Budde
-# Date:	22.03.2016
+# Date:    22.03.2016
 # License: GPLv3
 #
 
@@ -45,20 +45,24 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-TO="16h"
+TO="12h"
 CONF=0.9  # Confidence coefficient
 PREC=0.2  # Relative precision
 SPLITS=(2 3 6)  # RESTART splittings to test
 BUFFER_CAPACITIES=(20 40 80 160)
-show "Configuring experiments"
 EXPNAME="queues_with_breakdowns"
+#
+show "Configuring experiments"
 SPLITTING="--splitting "
 for S in "${SPLITS[@]}"; do SPLITTING+="$S,"; done; SPLITTING="${SPLITTING%,}"
 STOP_CRITERION="--stop-conf $CONF $PREC"
-STANDARD_MC="-e nosplit --flat $STOP_CRITERION"
-RESTART_ADHOC="--adhoc buf $STOP_CRITERION $SPLITTING"
-RESTART_AMONO="--amono $STOP_CRITERION $SPLITTING"
-RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION $SPLITTING"
+ETIMEOUT="${TO##*[0-9]}"  # Timeout per experiment (one ifun, all splits)
+ETIMEOUT=$(bc <<< "${TO%%[a-z]*}*${#SPLITS[@]}*2")"$ETIMEOUT"
+show "Timeouts: $TO per split; $ETIMEOUT per experiment"
+STANDARD_MC="-e nosplit --flat $STOP_CRITERION --timeout $TO"
+RESTART_ADHOC="--adhoc buf $STOP_CRITERION $SPLITTING --timeout $TO"
+RESTART_AMONO="--amono $STOP_CRITERION $SPLITTING --timeout $TO"
+RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION $SPLITTING --timeout $TO"
 
 
 # Launch experiments
@@ -73,9 +77,9 @@ do
 	K_DEF="^const${BLANK}int${BLANK}K${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
 	sed -e "s/${K_DEF}/const int K = $k;/1" $MODEL_FILE > $MODEL_FILE_K
 	LOG=${RESULTS}/queues_with_breakdowns_k${k}
-	EXE=`/bin/echo -e "timeout -s 15 $TO ./fig $MODEL_FILE_K $PROPS_FILE"`
+	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE_K $PROPS_FILE"`
 
-	# RESTART with with monolithic (auto ifun)
+	# RESTART with monolithic (auto ifun)
 	poll_till_free $EXPNAME; show -n " AM"
 	$EXE $RESTART_AMONO 1>>${LOG}"_AM.out" 2>>${LOG}"_AM.err" &
 
@@ -95,11 +99,12 @@ do
 done
 
 
-# Wait till termination, making sure everything dies after $TO
+# Wait till termination, making sure everything dies after the timeout
 show -n "Waiting for all experiments to finish..."
-PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }')
-`sleep $TO; kill -9 $PIDS &>/dev/null;` &> /dev/null &
-wait
+`PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }') \
+ sleep $ETIMEOUT; kill -15 $PIDS &>/dev/null;              \
+ sleep 2;         kill  -9 $PIDS &>/dev/null`              &
+disown %%; wait &>/dev/null; killall sleep &>/dev/null
 show " done"
 
 

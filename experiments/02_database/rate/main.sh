@@ -7,11 +7,11 @@
 
 set -e
 show(){ /bin/echo -e "$@"; }
-THIS_DIR=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
+CWD=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
 
 
 # Probe resources
-source "$THIS_DIR/../../fig_utils.sh" || \
+source "$CWD/../../fig_utils.sh" || \
 	(show "[ERROR] Couldn't find fig_utils.sh" && exit 1)
 if [[ "$(type -t build_fig)" != "function" ]]
 then
@@ -26,14 +26,14 @@ fi
 
 # Build project
 show "Building FIG"
-build_fig $THIS_DIR
+build_fig $CWD
 if [ ! -f ./fig ]; then show "[ERROR] Something went wrong"; exit 1; fi
 
 
 # Prepare experiment's directory and files
 show "Preparing experiments environment:"
 EXP_GEN="database-gen.sh"
-copy_model_file $EXP_GEN $THIS_DIR && \
+copy_model_file $EXP_GEN $CWD && \
 	show "  · using model&properties generator \"$EXP_GEN\""
 N=0; RESULTS="results_$N"
 while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
@@ -42,30 +42,34 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-TO="18h"
+TO="14h"
 CONF=0.9  # Confidence coefficient
 PREC=0.3  # Relative precision
 SPLITS=(3 6 11)  # RESTART splittings to test
 MEAN_FAILURE_TIMES=(2000 8000 32000 128000)
+EXPNAME="database"
+#
 show "Configuring experiments for 2 'RED'undancy,"
 show "                            6 'D'isk clusters,"
 show "                            2 'C'ontroller types,"
 show "                            2 'P'rocessors types"
-EXPNAME="database"
 SPLITTING="--splitting "
 for S in "${SPLITS[@]}"; do SPLITTING+="$S,"; done; SPLITTING="${SPLITTING%,}"
 STOP_CRITERION="--stop-conf $CONF $PREC"
+ETIMEOUT="${TO##*[0-9]}"  # Timeout per experiment (one ifun, all splits)
+ETIMEOUT=$(bc <<< "${TO%%[a-z]*}*${#SPLITS[@]}*2")"$ETIMEOUT"
+show "Timeouts: $TO per split; $ETIMEOUT per experiment"
 MIN_OC="2-min(2-c11f-c12f,min(2-c21f-c22f,min(2-p11f-p12f,min(2-p21f-p22f,min(2-d11f-d12f-d13f-d14f,min(2-d21f-d22f-d23f-d24f,min(2-d31f-d32f-d33f-d34f,min(2-d41f-d42f-d43f-d44f,min(2-d51f-d52f-d53f-d54f,2-d61f-d62f-d63f-d64f)))))))));0;2"
 COMP_FUN1="\"+\""
 COMP_FUN2="'(Disk11*Disk12*Disk13*Disk14*Disk21*Disk22*Disk23*Disk24*Disk31*Disk32*Disk33*Disk34*Disk41*Disk42*Disk43*Disk44*Disk51*Disk52*Disk53*Disk54*Disk61*Disk62*Disk63*Disk64)+(Controller11*Controller12*Controller21*Controller22)+(Processor11*Processor12*Processor21*Processor22);3;16777248;1'"
 COMP_FUN3="'(Disk11*Disk12)+(Disk11*Disk13)+(Disk11*Disk14)+(Disk12*Disk13)+(Disk12*Disk14)+(Disk13*Disk14)+(Disk21*Disk22)+(Disk21*Disk23)+(Disk21*Disk24)+(Disk22*Disk23)+(Disk22*Disk24)+(Disk23*Disk24)+(Disk31*Disk32)+(Disk31*Disk33)+(Disk31*Disk34)+(Disk32*Disk33)+(Disk32*Disk34)+(Disk33*Disk34)+(Disk41*Disk42)+(Disk41*Disk43)+(Disk41*Disk44)+(Disk42*Disk43)+(Disk42*Disk44)+(Disk43*Disk44)+(Disk51*Disk52)+(Disk51*Disk53)+(Disk51*Disk54)+(Disk52*Disk53)+(Disk52*Disk54)+(Disk53*Disk54)+(Disk61*Disk62)+(Disk61*Disk63)+(Disk61*Disk64)+(Disk62*Disk63)+(Disk62*Disk64)+(Disk63*Disk64)+(Controller11*Controller12)+(Controller21*Controller22)+(Processor11*Processor12)+(Processor21*Processor22)-40;0;120;1'"
 COMP_FUN4="'(Disk11*Disk12*Disk13*Disk14)+(Disk21*Disk22*Disk23*Disk24)+(Disk31*Disk32*Disk33*Disk34)+(Disk41*Disk42*Disk43*Disk44)+(Disk51*Disk52*Disk53*Disk54)+(Disk61*Disk62*Disk63*Disk64)+(Controller11*Controller12)+(Controller21*Controller22)+(Processor11*Processor12)+(Processor21*Processor22)-10;0;102;1'"
-STANDARD_MC="-e nosplit --flat $STOP_CRITERION"
-RESTART_ADHOC="--adhoc $MIN_OC $STOP_CRITERION $SPLITTING -t fix"
-RESTART_ACOMP1="--acomp $COMP_FUN1 $STOP_CRITERION $SPLITTING -t fix"
-RESTART_ACOMP2="--acomp-exp $COMP_FUN2 $STOP_CRITERION $SPLITTING -t fix"
-RESTART_ACOMP3="--acomp-exp $COMP_FUN3 $STOP_CRITERION $SPLITTING -t fix"
-RESTART_ACOMP4="--acomp-exp $COMP_FUN4 $STOP_CRITERION $SPLITTING -t fix"
+STANDARD_MC="-e nosplit --flat $STOP_CRITERION --timeout $TO"
+RESTART_ADHOC="--adhoc $MIN_OC $STOP_CRITERION $SPLITTING --timeout $TO"
+RESTART_ACOMP1="--acomp $COMP_FUN1 $STOP_CRITERION $SPLITTING --timeout $TO"
+RESTART_ACOMP2="--acomp-exp $COMP_FUN2 $STOP_CRITERION $SPLITTING --timeout $TO"
+RESTART_ACOMP3="--acomp-exp $COMP_FUN3 $STOP_CRITERION $SPLITTING --timeout $TO"
+RESTART_ACOMP4="--acomp-exp $COMP_FUN4 $STOP_CRITERION $SPLITTING --timeout $TO"
 
 
 # Launch experiments
@@ -79,7 +83,7 @@ do
 	PROPS_FILE=database_mft${mft}.pp
 	LOG=${RESULTS}/database_mft${mft}
 	bash $EXP_GEN 2 6 2 2 $mft 1>$MODEL_FILE 2>$PROPS_FILE
-	EXE=`/bin/echo -e "timeout -s 15 $TO ./fig $MODEL_FILE $PROPS_FILE"`
+	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE $PROPS_FILE"`
 
 	# RESTART with monolithic (auto ifun) experiments are omitted
 	# since the importance vector wouldn't fit in memory
@@ -112,11 +116,12 @@ do
 done
 
 
-# Wait till termination, making sure everything dies after $TO
+# Wait till termination, making sure everything dies after the timeout
 show -n "Waiting for all experiments to finish..."
-PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }')
-`sleep $TO; kill -9 $PIDS &>/dev/null;` &> /dev/null &
-wait
+`PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }') \
+ sleep $ETIMEOUT; kill -15 $PIDS &>/dev/null;              \
+ sleep 2;         kill  -9 $PIDS &>/dev/null`              &
+disown %%; wait &>/dev/null; killall sleep &>/dev/null
 show " done"
 
 

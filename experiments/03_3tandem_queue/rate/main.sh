@@ -7,11 +7,11 @@
 
 set -e
 show(){ /bin/echo -e "$@"; }
-THIS_DIR=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
+CWD=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
 
 
 # Probe resources
-source "$THIS_DIR/../../fig_utils.sh" || \
+source "$CWD/../../fig_utils.sh" || \
 	(show "[ERROR] Couldn't find fig_utils.sh" && exit 1)
 if [[ "$(type -t build_fig)" != "function" ]]
 then
@@ -26,14 +26,14 @@ fi
 
 # Build project
 show "Building FIG"
-build_fig $THIS_DIR
+build_fig $CWD
 if [ ! -f ./fig ]; then show "[ERROR] Something went wrong"; exit 1; fi
 
 
 # Prepare experiment's directory and files
 show "Preparing experiments environment:"
 MODEL_FILE="3tandem_queue.sa"
-copy_model_file $MODEL_FILE $THIS_DIR && \
+copy_model_file $MODEL_FILE $CWD && \
 	show "  · using model file $MODEL_FILE"
 PROPS_FILE="3tandem_queue.pp"
 echo 'S( q3 >= L )  // "rate"' > $PROPS_FILE && \
@@ -45,7 +45,7 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-TO="14h"
+TO="10h"
 CONF=0.9  # Confidence coefficient
 PREC=0.2  # Relative precision
 SPLITS=(3 6 11)  # RESTART splittings to test
@@ -61,16 +61,20 @@ AHFUN=( "91*q1+154*q2+500*q3" \
        "154*q1+154*q2+500*q3" \
        "405*q1+405*q2+500*q3" \
        "320*q1+320*q2+500*q3" )
-NUM_EXPERIMENTS=${#OCUPA[@]}
-show "Configuring experiments"
 EXPNAME="3tandem"
+#
+show "Configuring experiments"
+NUM_EXPERIMENTS=${#OCUPA[@]}
 SPLITTING="--splitting "
 for S in "${SPLITS[@]}"; do SPLITTING+="$S,"; done; SPLITTING="${SPLITTING%,}"
 STOP_CRITERION="--stop-conf $CONF $PREC"
-STANDARD_MC="-e nosplit --flat $STOP_CRITERION"
-RESTART_ADHOC="--adhoc q3 $STOP_CRITERION -t fix $SPLITTING"
-RESTART_AMONO="--amono $STOP_CRITERION -t fix $SPLITTING"
-RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION -t fix $SPLITTING"
+ETIMEOUT="${TO##*[0-9]}"  # Timeout per experiment (one ifun, all splits)
+ETIMEOUT=$(bc <<< "${TO%%[a-z]*}*${#SPLITS[@]}*2")"$ETIMEOUT"
+show "Timeouts: $TO per split; $ETIMEOUT per experiment"
+STANDARD_MC="-e nosplit --flat $STOP_CRITERION --timeout $TO"
+RESTART_ADHOC="--adhoc q3 $STOP_CRITERION $SPLITTING --timeout $TO"
+RESTART_AMONO="--amono $STOP_CRITERION $SPLITTING --timeout $TO"
+RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION $SPLITTING --timeout $TO"
 
 
 # Launch experiments
@@ -81,7 +85,7 @@ do
 	show -n "  · for threshold occupancy = $L..."
 
 	# Select optimal ad hoc ifun for this experiment (from V-A's paper)
-	RESTART_ADHOC_OPT="--adhoc ${AHFUN[i]} $STOP_CRITERION -t fix $SPLITTING"
+	RESTART_ADHOC_OPT="--adhoc ${AHFUN[i]} $STOP_CRITERION $SPLITTING --timeout $TO"
 
 	# Modify model file to fit this experiment
 	MODEL_FILE_L=${MODEL_FILE%.sa}"_$L.sa"
@@ -98,7 +102,7 @@ do
 	sed -i -e "s/${B2_USE}/= erlang(alpha,${BETA2[i]}));/g" $MODEL_FILE_L
 	sed -i -e "s/${B3_USE}/= erlang(alpha,${BETA3[i]}));/g" $MODEL_FILE_L
 	LOG=${RESULTS}/3tandem_queue_L${L}
-	EXE=`/bin/echo -e "timeout -s 15 $TO ./fig $MODEL_FILE_L $PROPS_FILE"`
+	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE_L $PROPS_FILE"`
 
 	# RESTART with monolithic (auto ifun)
 	poll_till_free $EXPNAME; show -n " AM"
@@ -126,9 +130,11 @@ done
 
 # Wait till termination, making sure everything dies after $TO
 show -n "Waiting for all experiments to finish..."
-PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }')
-`sleep $TO; kill -9 $PIDS &>/dev/null;` &> /dev/null &
-wait
+`PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }') \
+ sleep $ETIMEOUT; kill -15 $PIDS &>/dev/null;              \
+ sleep 2;         kill  -9 $PIDS &>/dev/null`              &
+disown %%; wait &>/dev/null; killall sleep &>/dev/null
+show " done"
 
 
 # Build summary charts
