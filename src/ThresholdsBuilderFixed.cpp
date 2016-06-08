@@ -106,6 +106,11 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 										 const unsigned& margin,
 										 const unsigned& stride)
 {
+
+	/// @fixme TODO Use impFun.range() to choose the thresholds indepedently
+	///             of the importance values, i.e. choose by index of the
+	///             importance vector
+
 	const size_t SIZE(impFun.max_value() - impFun.min_value() + 1u);
 	if (thresholds.size() != SIZE)
 		thresholds.resize(SIZE);

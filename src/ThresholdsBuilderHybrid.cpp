@@ -29,6 +29,7 @@
 
 // C
 #include <cassert>
+#include <pthread.h>
 // C++
 #include <vector>
 #include <sstream>
@@ -51,10 +52,9 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 	size_t NUMT;
 
 	// Impose an execution wall time limit...
-	const std::chrono::minutes timeLimit(ADAPTIVE_TIMEOUT_MINUTES);
 	std::thread timer([] (bool& halt, const std::chrono::minutes& limit)
 					  { std::this_thread::sleep_for(limit); halt=true; },
-					  std::ref(halted_), std::ref(timeLimit));
+					  std::ref(halted_), ADAPTIVE_TIMEOUT);
 	try {
 		// Start out using an adaptive technique, which may just work btw
 		halted_ = false;
@@ -112,6 +112,7 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 
 	// Tidy-up
 	ImportanceVec().swap(thresholds_);
+	pthread_cancel(timer.native_handle());  /// @fixme BUG can this crash?
 	timer.detach();
 
 	assert(result[impFun.min_value()] == static_cast<ImportanceValue>(0u));

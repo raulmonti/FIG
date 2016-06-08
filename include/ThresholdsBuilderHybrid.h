@@ -29,6 +29,9 @@
 #ifndef THRESHOLDSBUILDERHYBRID_H
 #define THRESHOLDSBUILDERHYBRID_H
 
+// C++
+#include <chrono>
+// FIG
 #include <ThresholdsBuilderFixed.h>
 #include <ThresholdsBuilderSMC.h>
 
@@ -58,10 +61,10 @@ class ThresholdsBuilderHybrid : public ThresholdsBuilderFixed,
 {
 public:
 
-	/// Execution time, in minutes, granted to the adaptive technique.<br>
+	/// Execution time (minutes) granted to the adaptive technique.<br>
 	/// If computations don't finish within this limit, resort to a fixed
 	/// technique to choose the missing thresholds "instantaneously".
-	const unsigned ADAPTIVE_TIMEOUT_MINUTES = 5u;
+	static constexpr std::chrono::minutes ADAPTIVE_TIMEOUT = 5u;
 
 public:
 

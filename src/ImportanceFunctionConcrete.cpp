@@ -561,6 +561,18 @@ ImportanceFunctionConcrete::~ImportanceFunctionConcrete()
 }
 
 
+const std::array<std::string, ImportanceFunctionConcrete::NUM_POST_PROCESSINGS>&
+ImportanceFunctionConcrete::post_processings() noexcept
+{
+	static const std::array< std::string, NUM_POST_PROCESSINGS > postProcessings =
+	{{
+		// See pp_exponentiate()
+		"exp"
+	}};
+	return postProcessings;
+}
+
+
 bool ImportanceFunctionConcrete::assess_importance(
 	const Module& module,
 	const Property& property,
@@ -625,7 +637,7 @@ bool ImportanceFunctionConcrete::assess_importance(
 
 
 void
-ImportanceFunctionConcrete::exponentiate(const float b)
+ImportanceFunctionConcrete::pp_exponentiate(const float b)
 {
 	if (b <= 0.0f)
 		throw_FigException("a positive base is required for exponentiation");

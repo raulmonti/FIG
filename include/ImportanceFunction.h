@@ -179,7 +179,7 @@ public:  // Ctor/Dtor
 public:  // Accessors
 
 	/// Names of the importance functions offered to the user,
-	/// as he should requested them through the CLI/GUI.
+	/// as he should requested them through the CLI.
 	/// @note Implements the <a href="https://goo.gl/yhTgLq"><i>Construct On
 	///       First Use</i> idiom</a> for static data members,
 	///       to avoid the <a href="https://goo.gl/chH5Kg"><i>static
@@ -187,7 +187,7 @@ public:  // Accessors
 	static const std::array< std::string, NUM_NAMES >& names() noexcept;
 
 	/// Importance assessment strategies offered to the user,
-	/// as he should requested them through the CLI/GUI.
+	/// as he should requested them through the CLI.
 	/// @note Implements the <a href="https://goo.gl/yhTgLq"><i>Construct On
 	///       First Use</i> idiom</a> for static data members,
 	///       to avoid the <a href="https://goo.gl/chH5Kg"><i>static
@@ -259,6 +259,14 @@ public:  // Accessors
 	///       were already built" the value returned will be the threshold
 	///       level containing the system's initial state.
 	ImportanceValue initial_value() const noexcept;
+
+	/// @brief How many <i>distinct values</i> this function represents.
+	/// @details This may differ from max_value()-min_value(), e.g. when some
+	///          post-processing of the values (like exponentiation or addition)
+	///          is performed on the function
+	/// @note This is independent of the thresholds, the value returned always
+	///       corresponds to the ImportanceValue s stored/represented
+	virtual size_t range() const noexcept = 0;
 
 	/// @brief Whether the instance derives from ImportanceFunctionConcrete
 	/// @details Concrete importance functions store info for the concrete state

@@ -66,6 +66,8 @@ public:  // Ctor/Dtor
 
 public:  // Accessors
 
+	inline size_t range() const noexcept override { return max_value() - min_value(); }
+
 	inline bool concrete() const noexcept override final { return false; }
 
 	inline bool concrete_simulation() const noexcept override final { return false; }

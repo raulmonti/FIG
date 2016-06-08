@@ -66,6 +66,11 @@ using parser::DNFclauses;
  */
 class ImportanceFunctionConcrete : public ImportanceFunction
 {
+public:  // Class attributes
+
+	/// How many kinds of post-processings are offered for the stored values
+	static constexpr size_t NUM_POST_PROCESSINGS = 1;
+
 protected:  // Attributes
 
 	/// Concrete importance assessment for all the modules in the system model
@@ -90,6 +95,14 @@ public:  // Ctor/Dtor
 public:  // Accessors
 
 	inline bool concrete() const noexcept override final { return true; }
+
+	/// Post processings (for the values stored) offered to the user,
+	/// as he should requested them through the CLI.
+	/// @note Implements the <a href="https://goo.gl/yhTgLq"><i>Construct On
+	///       First Use</i> idiom</a> for static data members,
+	///       to avoid the <a href="https://goo.gl/chH5Kg"><i>static
+	///       initialization order fiasco</i>.
+	static const std::array< std::string, NUM_POST_PROCESSINGS >& post_processings() noexcept;
 
 	/**
 	 * Retrieve all pre-computed information about the given StateInstance.
@@ -118,6 +131,7 @@ public:  // Utils
 	 * 
 	 * @param prop     Property identifying the special states
 	 * @param strategy Importance assessment strategy, currently "flat" or "auto"
+	 * @param postProc Post-processing to apply
 	 *
 	 * @note To use the "adhoc" importance assessment strategy
 	 *       call the other assess_importance() member function
@@ -127,7 +141,8 @@ public:  // Utils
 	 * @see has_importance_info()
 	 */
 	virtual void assess_importance(const Property& prop,
-								   const std::string& strategy = "") = 0;
+								   const std::string& strategy = "",
+								   const std::string& postProc = "") = 0;
 
 	/**
 	 * @brief Assess the importance of the reachable concrete states of the
@@ -159,14 +174,6 @@ public:  // Utils
 	virtual void assess_importance(const Property& prop,
 								   const std::string& formulaExprStr,
 								   const std::vector<std::string>& varnames) = 0;
-
-	/// Change the currently stored importance values for their corresponding
-	/// power of 'b' > 0.<br>
-	/// So e.g. all states with importance '0' will then have importance
-	/// 1 == b^0, and all states with importance '1' will get b == b^1,
-	/// and so on and so forth.
-	/// @throw FigException if b <= 0.0
-	void exponentiate(const float b = 2.0);
 
 	/// Erase all internal importance information (free resources along the way)
 	void clear() noexcept override;
@@ -206,6 +213,18 @@ protected:  // Utils for derived classes
 						   const std::string& strategy,
 						   const unsigned& index = 0,
 						   const DNFclauses& clauses = DNFclauses());
+
+	/**
+	 * @brief Post-processing: exponentiate importance values
+	 *
+	 *        Change the currently stored importance values for their
+	 *        corresponding power of 'b' > 0. So e.g. all states with
+	 *        importance '0' will then have importance 1 == b^0, and all states
+	 *        with importance '1' will get b == b^1, and so on and so forth.
+	 *
+	 * @throw FigException if b <= 0.0
+	 */
+	void pp_exponentiate(const float b = 2.0);
 };
 
 } // namespace fig
