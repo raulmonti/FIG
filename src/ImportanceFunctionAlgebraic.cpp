@@ -260,6 +260,15 @@ template void ImportanceFunctionAlgebraic::set_formula(
 	const ImportanceValue&, const ImportanceValue&);
 
 
+const ImportanceFunction::ImportanceVec&
+ImportanceFunctionAlgebraic::get_values() const override
+{
+	static ImportanceVec values(max_value()-min_value());
+	std::iota(begin(values), end(values), min_value());
+	return values;
+}
+
+
 void
 ImportanceFunctionAlgebraic::print_out(std::ostream& out,
 									   State<STATE_INTERNAL_TYPE> s) const

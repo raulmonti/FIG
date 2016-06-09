@@ -260,14 +260,6 @@ public:  // Accessors
 	///       level containing the system's initial state.
 	ImportanceValue initial_value() const noexcept;
 
-	/// @brief How many <i>distinct values</i> this function represents.
-	/// @details This may differ from max_value()-min_value(), e.g. when some
-	///          post-processing of the values (like exponentiation or addition)
-	///          is performed on the function
-	/// @note This is independent of the thresholds, the value returned always
-	///       corresponds to the ImportanceValue s stored/represented
-	virtual size_t range() const noexcept = 0;
-
 	/// @brief Whether the instance derives from ImportanceFunctionConcrete
 	/// @details Concrete importance functions store info for the concrete state
 	///          space as internal vectors of ImportanceValue.
@@ -337,6 +329,17 @@ public:  // Accessors
 	 * @see ThresholdsBuilder::build_thresholds()
 	 */
 	ImportanceValue level_of(const ImportanceValue& val) const;
+
+	/**
+	 * @brief Get all <i>distinct values</i> this function can return.
+	 * @details This may differ from the [ min_value(), max_value() ] range,
+	 *          e.g. when some post-processing of the values (like addition
+	 *          or exponentiation) is performed on the function
+	 * @warning The vector returned may be huge
+	 * @note This is independent of the thresholds, the values returned always
+	 *       corresponds to the importance values stored/represented
+	 */
+	virtual const ImportanceVec& get_values() const = 0;
 
 	/**
 	 * @brief Print formatted internal importance information

@@ -66,8 +66,6 @@ public:  // Ctor/Dtor
 
 public:  // Accessors
 
-	inline size_t range() const noexcept override { return max_value() - min_value(); }
-
 	inline bool concrete() const noexcept override final { return false; }
 
 	inline bool concrete_simulation() const noexcept override final { return false; }
@@ -76,6 +74,10 @@ public:  // Accessors
 	/// @note <b>Complexity:</b> <i>O(size(state))</i> +
 	///                          <i>O(mu::Parser::Eval(state))</i>
 	ImportanceValue importance_of(const StateInstance& state) const override;
+
+	/// @copydoc ImportanceFunction::get_values()
+	/// @note This always returns the [ min_value(), max_value() ] range
+	const ImportanceVec& get_values() const override;
 
 	void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE> s) const override;
 
