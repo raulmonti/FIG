@@ -69,7 +69,7 @@ class ImportanceFunctionConcrete : public ImportanceFunction
 public:  // Class attributes
 
 	/// How many kinds of post-processings are offered for the stored values
-	static constexpr size_t NUM_POST_PROCESSINGS = 1;
+	static constexpr size_t NUM_POST_PROCESSINGS = 2;
 
 protected:  // Attributes
 
@@ -78,6 +78,9 @@ protected:  // Attributes
 
 	/// Copy of the global state of the \ref ModuleNetwork "model"
 	mutable State< STATE_INTERNAL_TYPE > globalStateCopy;
+
+	/// Post-processing applied to the ImportanceValue s computed last
+	std::string postProcessing_;
 
 	/// Did the user specify the extreme values?    <br>
 	/// Needed by ImportanceFunctionConcreteSplit
@@ -213,6 +216,18 @@ protected:  // Utils for derived classes
 						   const std::string& strategy,
 						   const unsigned& index = 0,
 						   const DNFclauses& clauses = DNFclauses());
+
+	/**
+	 * @brief Post-processing: shift importance values by an offset
+	 *
+	 *        Change the currently stored importance values by the offset given.
+	 *        This means the importance 'i' of a state will be changed for the
+	 *        value 'i+offset'.
+	 *
+	 * @throw FigException if some ImportanceValue ends up negative
+	 * @todo TODO Implement this one!
+	 */
+	void pp_shift(const int& offset);
 
 	/**
 	 * @brief Post-processing: exponentiate importance values

@@ -77,7 +77,8 @@ public:
 
 	std::vector< ImportanceValue >
 	build_thresholds(const unsigned& splitsPerThreshold,
-					 const ImportanceFunction& impFun) override;
+					 const ImportanceFunction& impFun,
+					 const std::string& postProcessing) override;
 };
 
 } // namespace fig

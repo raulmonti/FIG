@@ -102,6 +102,9 @@ public:
 	 * @param impFun ImportanceFunction with internal
 	 *               \ref ImportanceFunction::has_importance_info()
 	 *               "importance information" to use for the task
+	 * @param postProcessing Name of the post-processing applied to the
+	 *                       ImportanceValue s after importance assessment,
+	 *                       if any.
 	 *
 	 * @return Vector with threshold levels as explained in the details.
 	 *
@@ -112,7 +115,8 @@ public:
 	 */
 	virtual std::vector< ImportanceValue >
 	build_thresholds(const unsigned& splitsPerThreshold,
-					 const ImportanceFunction& impFun) = 0;
+					 const ImportanceFunction& impFun,
+					 const std::string& postProcessing = "") = 0;
 };
 
 } // namespace fig

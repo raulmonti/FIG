@@ -75,10 +75,6 @@ public:  // Accessors
 	///                          <i>O(mu::Parser::Eval(state))</i>
 	ImportanceValue importance_of(const StateInstance& state) const override;
 
-	/// @copydoc ImportanceFunction::get_values()
-	/// @note This always returns the [ min_value(), max_value() ] range
-	const ImportanceVec& get_values() const override;
-
 	void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE> s) const override;
 
 public:  // Utils

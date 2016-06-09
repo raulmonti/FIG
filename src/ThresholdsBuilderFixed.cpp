@@ -42,7 +42,8 @@ namespace fig
 
 std::vector< ImportanceValue >
 ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
-										 const ImportanceFunction& impFun)
+										 const ImportanceFunction& impFun,
+										 const std::string& postProcessing)
 {
 	const ImportanceValue IMP_RANGE = impFun.max_value() - impFun.min_value();
 	if (IMP_RANGE < static_cast<ImportanceValue>(2u)) {
@@ -90,6 +91,7 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 	ModelSuite::tech_log(msg.str() + "\n");
 
 	ImportanceVec thresholds;
+	postProcessing_ = postProcessing;
 	build_thresholds(impFun, thresholds, MARGIN, STRIDE);
 
 	assert(thresholds[impFun.min_value()] == static_cast<ImportanceValue>(0u));
@@ -107,13 +109,11 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 										 const unsigned& stride)
 {
 
-	/// @fixme TODO Use impFun.range() to choose the thresholds indepedently
-	///             of the importance values, i.e. choose by index of the
-	///             importance vector
+	/// @fixme TODO consider the value of postProcessing_ to determine how
+	///             the stride should be applied (arithmetically vs geometrically)
 
 	const size_t SIZE(impFun.max_value() - impFun.min_value() + 1u);
-	if (thresholds.size() != SIZE)
-		thresholds.resize(SIZE);
+	thresholds.resize(SIZE);
 
 	if (SIZE-1u < MIN_IMP_RANGE) {
 		// Too few values: everything above the base will be a threshold

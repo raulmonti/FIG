@@ -91,7 +91,8 @@ public:
 	/// for automatically computed values of 'p' and 'n'
 	inline std::vector< ImportanceValue >
 	build_thresholds(const unsigned& splitsPerThreshold,
-					 const ImportanceFunction& impFun) override
+					 const ImportanceFunction& impFun,
+					 const std::string&) override
 		{ return build_thresholds(splitsPerThreshold, impFun, 0.0f, 0u); }
 
 	/// Implement ThresholdsBuilder::build_thresholds() using 'p' as the

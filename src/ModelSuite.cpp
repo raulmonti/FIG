@@ -757,6 +757,19 @@ ModelSuite::available_importance_strategies() noexcept
 
 
 const std::vector< std::string >&
+ModelSuite::available_importance_post_processings() noexcept
+{
+	static std::vector< std::string > importancePostProcessings;
+	if (importancePostProcessings.empty()) {
+		importancePostProcessings.reserve(num_importance_post_processings());
+		for (const auto& pp: ImportanceFunctionConcrete::post_processings())
+			importancePostProcessings.push_back(pp);
+	}
+	return importancePostProcessings;
+}
+
+
+const std::vector< std::string >&
 ModelSuite::available_threshold_techniques() noexcept
 {
 	static std::vector< std::string > thresholdsBuildersTechniques;
@@ -790,6 +803,15 @@ ModelSuite::exists_importance_strategy(const std::string& impStrategy) noexcept
 {
 	const auto& impStrats = available_importance_strategies();
 	return find(begin(impStrats), end(impStrats), impStrategy) != end(impStrats);
+}
+
+
+bool
+ModelSuite::exists_importance_post_processing(const std::string& impPP) noexcept
+{
+	const auto& impPostProc = available_importance_post_processings();
+	return impPP.empty() ||
+			end(impPostProc) != find(begin(impPostProc), end(impPostProc), impPP);
 }
 
 
@@ -978,7 +1000,7 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 		try {
 			// Compute importance automatically -- here hides the magic!
 			static_cast<ImportanceFunctionConcrete&>(ifun)
-					.assess_importance(property, "auto");
+					.assess_importance(property, "auto", impFun.postProcessing);
 
 		} catch (std::bad_alloc&) {
 			throw_FigException("couldn't build importance function \""
@@ -988,10 +1010,6 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 			throw_FigException("couldn't build importance function \""
 							   + impFun.name + "\" automatically: " + e.msg());
 		}
-
-		// Should we exponentiate the computed importance values?
-		if (impFun.postProcessing == "exp")
-			static_cast<ImportanceFunctionConcrete&>(ifun).exponentiate();
 
 		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
 		techLog_ << "Max importance: " << ifun.max_value() << std::endl;

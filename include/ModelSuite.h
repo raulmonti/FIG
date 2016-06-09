@@ -40,6 +40,7 @@
 // FIG
 #include <ModuleNetwork.h>
 #include <ImportanceFunction.h>
+#include <ImportanceFunctionConcrete.h>
 #include <ThresholdsBuilder.h>
 #include <SimulationEngine.h>
 
@@ -303,6 +304,10 @@ public:  // Accessors
 	/// as they should be requested by the user.
 	static const std::vector< std::string >& available_importance_strategies() noexcept;
 
+	/// Post-processings available for ImportanceFunctionConcrete,
+	/// as they should be requested by the user.
+	static const std::vector< std::string >& available_importance_post_processings() noexcept;
+
 	/// Thresholds building techniques,
 	/// as they should be requested by the user.
 	static const std::vector< std::string >& available_threshold_techniques() noexcept;
@@ -322,6 +327,11 @@ public:  // Accessors
 	static constexpr size_t num_importance_strategies() noexcept
 		{ return ImportanceFunction::NUM_STRATEGIES; }
 
+	/// Size of the vector returned by available_importance_post_processings()
+	/// as a constexpr
+	static constexpr size_t num_importance_post_processings() noexcept
+		{ return ImportanceFunctionConcrete::NUM_POST_PROCESSINGS; }
+
 	/// Size of the vector returned by available_threshold_techniques()
 	/// as a constexpr
 	static constexpr size_t num_threshold_techniques() noexcept
@@ -340,6 +350,9 @@ public:  // Utils
 	/// Is 'ifunStrategy' an available importance assessment strategy?
 	/// @see available_importance_strategies()
 	static bool exists_importance_strategy(const std::string& impStrategy) noexcept;
+
+	/// Is "impPP" and available pos-processing for ImportanceFunctionConcrete?
+	static bool exists_importance_post_processing(const std::string& impPP) noexcept;
 
 	/// Is 'thrTechnique' an available thresholds building technique?
 	/// @see available_threshold_techniques()
@@ -684,6 +697,12 @@ ModelSuite::process_batch(
 		throw_FigException("inexistent importance assessment strategy\"" +
 						   impFunSpec.strategy + "\". Call \"available_importance_"
 						   "strategies()\" for a list of available options.");
+	} else if (!exists_importance_post_processing(impFunSpec.postProcessing)) {
+		log("Importance post processing \"" + impFunSpec.postProcessing +
+			"\" doesn't exist.");
+		throw_FigException("inexistent importance post processing \"" +
+						   impFunSpec.postProcessing + "\". Call \"available_importance_"
+						   "post_processings()\" for a list of available options.");
 	} else if (!exists_threshold_technique(thrTechnique)) {
 		log("Thresholds building technique \"" + thrTechnique + "\" doesn't exist.");
 		throw_FigException("inexistent threshold building technique \"" + thrTechnique +

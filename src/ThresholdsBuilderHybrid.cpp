@@ -46,7 +46,8 @@ namespace fig
 
 std::vector< ImportanceValue >
 ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
-										  const ImportanceFunction &impFun)
+										  const ImportanceFunction &impFun,
+										  const std::string& postProcessing)
 {
 	ImportanceVec result;
 	size_t NUMT;
@@ -65,6 +66,9 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 	} catch (FigException&) {
 		// Adaptive algorithm couldn't finish but achievements remain stored
 		// in the internal vector 'thresholds_'
+
+	/// @fixme TODO consider the value of postProcessing to determine how
+	///             the stride should be applied (arithmetically vs geometrically)
 
 		if (thresholds_.back() <= impFun.initial_value()) {  // avoid 'lowest' threshold
 			ImportanceValue iteration(0u);

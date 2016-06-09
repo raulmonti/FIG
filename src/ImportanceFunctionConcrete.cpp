@@ -551,7 +551,9 @@ ImportanceFunctionConcrete::ImportanceFunctionConcrete(
 	const State<STATE_INTERNAL_TYPE>& globalState) :
 		ImportanceFunction(name),
 		modulesConcreteImportance(1u),
-		globalStateCopy(globalState)
+		globalStateCopy(globalState),
+		postProcessing_(""),
+		userDefinedData(false)
 { /* Not much to do around here */ }
 
 
@@ -566,6 +568,8 @@ ImportanceFunctionConcrete::post_processings() noexcept
 {
 	static const std::array< std::string, NUM_POST_PROCESSINGS > postProcessings =
 	{{
+		// See pp_shift()
+		"shift",
 		// See pp_exponentiate()
 		"exp"
 	}};
@@ -633,6 +637,14 @@ bool ImportanceFunctionConcrete::assess_importance(
 	}
 
 	return relevant;
+}
+
+
+
+void
+ImportanceFunctionConcrete::pp_shift(const int& offset)
+{
+	throw_FigException("TODO!");
 }
 
 

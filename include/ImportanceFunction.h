@@ -331,17 +331,6 @@ public:  // Accessors
 	ImportanceValue level_of(const ImportanceValue& val) const;
 
 	/**
-	 * @brief Get all <i>distinct values</i> this function can return.
-	 * @details This may differ from the [ min_value(), max_value() ] range,
-	 *          e.g. when some post-processing of the values (like addition
-	 *          or exponentiation) is performed on the function
-	 * @warning The vector returned may be huge
-	 * @note This is independent of the thresholds, the values returned always
-	 *       corresponds to the importance values stored/represented
-	 */
-	virtual const ImportanceVec& get_values() const = 0;
-
-	/**
 	 * @brief Print formatted internal importance information
 	 * @details States are printed along their importance (or threshold level)
 	 *          If events masks are present they are somehow marked,

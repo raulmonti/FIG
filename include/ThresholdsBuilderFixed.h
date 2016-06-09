@@ -51,6 +51,12 @@ namespace fig
  */
 class ThresholdsBuilderFixed : public virtual ThresholdsBuilder
 {
+protected:
+
+	/// Name of the post-processing applied to the ImportanceValue s
+	/// after importance assessment, if any.
+	std::string postProcessing_;
+
 public:
 
 	/// Minimal importance range (ifun.maxVal() - ifun.minVal())
@@ -80,7 +86,8 @@ public:
 
 	std::vector< ImportanceValue >
 	build_thresholds(const unsigned& splitsPerThreshold,
-					 const ImportanceFunction& impFun) override;
+					 const ImportanceFunction& impFun,
+					 const std::string& postProcessing) override;
 
 protected:  // Utils for the class and its kin
 
