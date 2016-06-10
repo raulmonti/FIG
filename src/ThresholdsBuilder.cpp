@@ -39,7 +39,7 @@ using std::begin;
 using std::end;
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 ThresholdsBuilder::ThresholdsBuilder(const std::string& thename) :
@@ -82,4 +82,14 @@ ThresholdsBuilder::techniques() noexcept
 	return techniques;
 }
 
-} // namespace fig
+
+std::vector< ImportanceValue >
+ThresholdsBuilder::invert_thresholds_map(const std::vector< ImportanceValue >& t2i)
+{
+	throw_FigException("TODO");
+
+	/// Take code from the "// Format results and finish up" section in
+	/// ThresholdsBuilderAdaptive::build_thresholds(spt,ifun,p,n)
+}
+
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

@@ -1,0 +1,19 @@
+
+Urgent:
+ 0. update ThresholdsBuilder class family for new interface
+ 1. update fixed thresholds for exponentiation post-processing
+ 2. profile to determine new hotspot
+ 3. why does "--adhoc" take much longer than "--acomp" in some exps?
+ 4. is the negative clocks sampling check an efficiency issue?
+ 5. investigate the implications of a bad minRareValue_
+ 6. implement "array" ADT; requires IOSA extension!
+
+Papers to read:
+ · JVA: Asymptotic opt. of RESTART est. in highly dependable systems (2014)
+ · Guyader&Cérou: Sequential MC for rare event estimation (2011)
+ · Guyader&Cérou: Sim. and est. of extreme quantiles and extreme probs. (2011)
+
+Properties FIG should offer:
+ · mean queue size
+ · MTTF (mean time to failure)
+ · MTBF (mean time between failures)

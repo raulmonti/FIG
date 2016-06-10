@@ -247,7 +247,6 @@ ImportanceFunction::ImportanceFunction(const std::string& name) :
 	minValue_(static_cast<ImportanceValue>(0u)),
 	maxValue_(static_cast<ImportanceValue>(0u)),
 	minRareValue_(static_cast<ImportanceValue>(0u)),
-	numThresholds_(0u),
 	importance2threshold_(),
 	userFun_()
 {
@@ -353,40 +352,52 @@ ImportanceFunction::num_thresholds() const
 		throw_FigException("this ImportanceFunction hasn't "
 						   "any thresholds built in it yet");
 #endif
-	return numThresholds_;
+	assert(thresholds2importance_.size() > 1ul);
+	return thresholds2importance_.size() - 2ul;
 }
 
 
-ImportanceValue
-ImportanceFunction::level_of(const StateInstance& state) const
+std::string
+ImportanceFunction::post_processing() const noexcept
 {
-#ifndef NDEBUG
-	if (!ready())
-		throw_FigException("importance function \"" + name_ + "\" "
-						   "doesn't hold thresholds information.");
-#endif
-	return importance2threshold_[importance_of(state)];
+	return "";
 }
 
 
 ImportanceValue
 ImportanceFunction::level_of(const ImportanceValue& val) const
 {
-#ifndef NDEBUG
 	if (!ready())
+#ifndef NDEBUG
 		throw_FigException("importance function \"" + name_ + "\" "
 						   "doesn't hold thresholds information.");
+#else
+		return static_cast<ImportanceValue>(0u);
 #endif
 	assert(val >= minValue_);
 	assert(val <= maxValue_);
-	return importance2threshold_[val];
+	ImportanceValue tlvl(thresholds2importance_.size()/2ul);
+	if (importance2threshold_.size() > 0ul) {
+		// We have the direct map
+		tlvl = importance2threshold_[val];
+	} else {
+		// Search the corresponding threshold level
+		while (val <  thresholds2importance_[tlvl] ||
+			   val >= thresholds2importance_[tlvl+1]) {
+			if (val < thresholds2importance_[tlvl])
+				tlvl *= 2;
+			else
+				tlvl /= 2;
+		}
+	}
+	return tlvl;
 }
 
 
 ImportanceValue
 ImportanceFunction::min_value() const noexcept
 {
-	return ready() ? importance2threshold_[minValue_]
+	return ready() ? level_of(minValue_)
 				   : has_importance_info() ? minValue_
 										   : static_cast<ImportanceValue>(0u);
 }
@@ -395,7 +406,7 @@ ImportanceFunction::min_value() const noexcept
 ImportanceValue
 ImportanceFunction::max_value() const noexcept
 {
-	return ready() ? importance2threshold_[maxValue_]
+	return ready() ? level_of(maxValue_)
 				   : has_importance_info() ? maxValue_
 										   : static_cast<ImportanceValue>(0u);
 }
@@ -404,7 +415,7 @@ ImportanceFunction::max_value() const noexcept
 ImportanceValue
 ImportanceFunction::min_rare_value() const noexcept
 {
-	return ready() ? importance2threshold_[minRareValue_]
+	return ready() ? level_of(minRareValue_)
 				   : has_importance_info() ? minRareValue_
 										   : static_cast<ImportanceValue>(0u);
 }
@@ -413,7 +424,7 @@ ImportanceFunction::min_rare_value() const noexcept
 ImportanceValue
 ImportanceFunction::initial_value() const noexcept
 {
-	return ready() ? importance2threshold_[initialValue_]
+	return ready() ? level_of(initialValue_)
 				   : has_importance_info() ? initialValue_
 										   : static_cast<ImportanceValue>(0u);
 }
@@ -428,8 +439,8 @@ ImportanceFunction::build_thresholds(
 		throw_FigException("importance function \"" + name() + "\" "
 						   "doesn't yet have importance information");
 	std::vector< ImportanceValue >().swap(importance2threshold_);
-	readyForSims_ = false; numThresholds_ = 0u;  // updated if building succeeds
-	importance2threshold_ = tb.build_thresholds(spt, *this);
+	readyForSims_ = false;
+	thresholds2importance_ = tb.build_thresholds(spt, *this, post_processing());
 	post_process_thresholds(tb.name);
 }
 
@@ -445,7 +456,7 @@ ImportanceFunction::build_thresholds_adaptively(
 		throw_FigException("importance function \"" + name() + "\" "
 						   "doesn't yet have importance information");
 	std::vector< ImportanceValue >().swap(importance2threshold_);
-	readyForSims_ = false; numThresholds_ = 0u;  // updated if building succeeds
+	readyForSims_ = false;
 	importance2threshold_ = atb.build_thresholds(spt, *this, p, n);
 	post_process_thresholds(atb.name);
 }
@@ -461,7 +472,6 @@ ImportanceFunction::clear() noexcept
 	minValue_ = static_cast<ImportanceValue>(0u);
 	maxValue_ = static_cast<ImportanceValue>(0u);
 	minRareValue_ = static_cast<ImportanceValue>(0u);
-	numThresholds_ = 0u;
 	std::vector< ImportanceValue >().swap(importance2threshold_);
 	userFun_.reset();
 }
@@ -480,7 +490,6 @@ ImportanceFunction::post_process_thresholds(const std::string& tbName)
 	assert(importance2threshold_[minRareValue_] <= importance2threshold_[maxValue_]);
 
 	// Set relevant attributes
-	numThresholds_ = importance2threshold_.back();
 	thresholdsTechnique_ = tbName;
 	readyForSims_ = true;
 }

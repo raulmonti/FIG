@@ -37,7 +37,7 @@
 #include <ModelSuite.h>
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 std::vector< ImportanceValue >
@@ -141,4 +141,4 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 	}
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

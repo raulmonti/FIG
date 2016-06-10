@@ -88,28 +88,30 @@ public:
 	static const std::array< std::string, NUM_TECHNIQUES >& techniques() noexcept;
 
 	/**
-	 * @brief Build thresholds based on given importance function
+	 * @brief Choose thresholds based on given importance function
 	 *
-	 *        Return an importance-to-threshold_level map: the i-th position
-	 *        of the resulting vector will hold the threshold level
-	 *        corresponding to the i-th ImportanceValue from impFun.
-	 *        Here the j-th threshold level is composed of all the states
-	 *        to which impFun assigns an ImportanceValue between (including)
-	 *        threshold j and (excluding) threshold j+1.
+	 *        Choose threshold values and return a threshold-to-importance map:
+	 *        the i-th position of the vector holds the minimum ImportanceValue
+	 *        inside the i-th threshold level.<br>
+	 *        Here the i-th threshold level is composed of all the importance
+	 *        values between threshold i (including it) and threshold i+1
+	 *        (excluding it).
 	 *
 	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
 	 *                           "threshold level up" event
 	 * @param impFun ImportanceFunction with internal
 	 *               \ref ImportanceFunction::has_importance_info()
 	 *               "importance information" to use for the task
-	 * @param postProcessing Name of the post-processing applied to the
-	 *                       ImportanceValue s after importance assessment,
-	 *                       if any.
+	 * @param postProcessing Post-processing applied to the ImportanceValue s
+	 *                       after importance assessment, if any.
 	 *
-	 * @return Vector with threshold levels as explained in the details.
+	 * @return Thresholds levels map as explained in the details.
 	 *
-	 * @note The effective number of thresholds built
-	 *       equals the value in the last position of the returned vector
+	 * @note The size of the resulting vector  <br>
+	 *       == 1 + number of threshold levels <br>
+	 *       == 2 + number of thresholds built
+	 * @note The first value in the map == initial state importance
+	 * @note The last  value in the map  > impFun.max_importance()
 	 *
 	 * @throw FigException if thresholds building failed
 	 */
@@ -117,6 +119,24 @@ public:
 	build_thresholds(const unsigned& splitsPerThreshold,
 					 const ImportanceFunction& impFun,
 					 const std::string& postProcessing = "") = 0;
+
+	/**
+	 * @brief Turn map around, building an importance-to-threshold map
+	 *
+	 *        From the threshold-to-importance map passed as argument,
+	 *        build a reversed importance-to-threshold map: the j-th position
+	 *        of the vector returned will hold the threshold level
+	 *        corresponding to the j-th ImportanceValue.
+	 *
+	 * @param t2i threshold-to-importance map as returned by build_thresholds()
+	 *
+	 * @return Vector with threshold levels as explained in the details.
+	 *
+	 * @throw bad_alloc if there wasn't enough memory to allocate the vector
+	 * @throw FigException if the translation failed
+	 */
+	std::vector< ImportanceValue >
+	invert_thresholds_map(const std::vector< ImportanceValue >& t2i);
 };
 
 } // namespace fig

@@ -47,7 +47,7 @@ using std::begin;
 using std::end;
 
 
-namespace
+namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 using fig::Traial;
@@ -245,11 +245,11 @@ find_new_threshold(const fig::ModuleNetwork& network,
     return newThr;
 }
 
-} // namespace
+} // namespace  // // // // // // // // // // // // // // // // // // // // //
 
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 void
@@ -352,4 +352,4 @@ ThresholdsBuilderSMC::tune(const uint128_t &numStates,
 								 + 1.002f*MAX_NUM_FAILURES - .002f*MIN_NUM_FAILURES);
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

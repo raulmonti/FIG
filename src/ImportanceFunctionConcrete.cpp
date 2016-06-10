@@ -578,6 +578,13 @@ ImportanceFunctionConcrete::post_processings() noexcept
 }
 
 
+std::string
+ImportanceFunctionConcrete::post_processing() const noexcept
+{
+	return postProcessing_;
+}
+
+
 bool ImportanceFunctionConcrete::assess_importance(
 	const Module& module,
 	const Property& property,

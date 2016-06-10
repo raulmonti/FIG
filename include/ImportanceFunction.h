@@ -153,12 +153,15 @@ protected:  // Attributes for derived classes
 	/// Importance of the system's initial state
 	ImportanceValue initialValue_;
 
-	/// Number of thresholds built on last call to build_thresholds()
-	unsigned numThresholds_;
-
-	/// Translator from a state's ImportanceValue to the corresponding
-	/// threshold level
+	/// Map from a state's ImportanceValue to the corresponding threshold level
+	/// @note Present only when the importance range is "small"
 	std::vector< ImportanceValue > importance2threshold_;
+
+	/// Map from a threshold level to the minimum ImportanceValue in it.<br>
+	/// The "i-th threshold level" comprises all importance values between
+	/// thresholds2importance_[i] (including it) and thresholds2importance_[i+1]
+	/// (excluding it)
+	std::vector< ImportanceValue > thresholds2importance_;
 
 	/// @brief Algebraic formula defined by the user.
 	/// @note Useful both for ad hoc strategy and concrete_split functions
@@ -283,12 +286,16 @@ public:  // Accessors
 	///          last thresholds building technique used otherwise
 	const std::string thresholds_technique() const noexcept;
 
-	/// @copydoc numThresholds_
+	/// Number of thresholds built on last call to build_thresholds()
 	/// \ifnot NDEBUG
 	///   @throw FigException if this instance isn't \ref ready()
 	///                       "ready for simulations"
 	/// \endif
 	const unsigned& num_thresholds() const;
+
+	/// Post-processing applied to the ImportanceValue s computed last;
+	/// empty string if none.
+	virtual std::string post_processing() const noexcept;
 
 	/**
 	 * Tell the pre-computed importance of the given StateInstance.
@@ -314,7 +321,8 @@ public:  // Accessors
 	 * \endif
 	 * @see ThresholdsBuilder::build_thresholds()
 	 */
-	ImportanceValue level_of(const StateInstance& state) const;
+	inline ImportanceValue level_of(const StateInstance& state) const
+		{ assert(has_importance_info()); return level_of(importance_of(state)); }
 
 	/**
 	 * Threshold level to which given ImportanceValue belongs.

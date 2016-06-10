@@ -64,8 +64,8 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 		NUMT = result.back();  // it worked!
 
 	} catch (FigException&) {
-		// Adaptive algorithm couldn't finish but achievements remain stored
-		// in the internal vector 'thresholds_'
+		// Adaptive algorithm couldn't finish but achievements remain
+		// stored in the internal vector 'thresholds_'
 
 	/// @fixme TODO consider the value of postProcessing to determine how
 	///             the stride should be applied (arithmetically vs geometrically)

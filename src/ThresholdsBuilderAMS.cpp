@@ -42,7 +42,7 @@
 #include <ModelSuite.h>
 
 
-namespace
+namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 using fig::ImportanceValue;
@@ -100,11 +100,11 @@ simulate(const fig::ModuleNetwork& network,
 	}
 }
 
-} // namespace
+} // namespace  // // // // // // // // // // // // // // // // // // // // //
 
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 void
@@ -206,4 +206,4 @@ ThresholdsBuilderAMS::tune(const uint128_t& numStates,
 	k_ = std::round(p*n_);
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

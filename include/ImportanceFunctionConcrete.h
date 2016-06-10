@@ -113,6 +113,9 @@ public:  // Accessors
 	static const std::array< std::string, NUM_POST_PROCESSINGS >&
 	post_processings() noexcept;
 
+	/// @copydoc postProcessing_
+	std::string post_processing() const noexcept override;
+
 	/**
 	 * Retrieve all pre-computed information about the given StateInstance.
 	 * This includes the state importance and some event masks.

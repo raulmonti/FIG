@@ -40,7 +40,7 @@
 #include <TraialPool.h>
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 const unsigned ThresholdsBuilderAdaptive::MIN_N = 1ul<<8ul;  // 256
@@ -159,4 +159,4 @@ ThresholdsBuilderAdaptive::get_traials(const unsigned& numTraials,
 	return traials;
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

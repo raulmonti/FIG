@@ -53,33 +53,37 @@ class ThresholdsBuilderFixed : public virtual ThresholdsBuilder
 {
 protected:
 
-	/// Name of the post-processing applied to the ImportanceValue s
+	/// Number of \ref ImportanceValue "importance values" to group in a
+	/// single threshold level. So for instance stride==2 means there will be
+	/// two importance values per threshold level, i.e. a threshold will be set
+	/// every two importance values.
+	/// @note This is automatically updated during build_thresholds() according
+	///       to the splitting and the details of the ImportanceFunction
+	ImportanceValue stride_;
+
+	/// Minimal importance range (ifun.maxVal() - ifun.minVal())
+	/// If there are less values avaliable then every ImportanceValue
+	/// above ifun.minVal() will be considered a threshold.
+	ImportanceValue minImpRange_;
+
+	/// The chosen stride_ will be expanded times the ceiling of
+	/// '(impFun.max_value() - impFun.min_value()) / expandEvery_'
+	/// @note stride_ is also affected by the splitting and
+	///       the postProcessing specified in build_thresholds()
+	ImportanceValue expandEvery_;
+
+	/// Name of the post-processing applied to the importance values
 	/// after importance assessment, if any.
 	std::string postProcessing_;
 
 public:
 
-	/// Minimal importance range (ifun.maxVal() - ifun.minVal())
-	/// If there are less values avaliable then every ImportanceValue
-	/// above ifun.minVal() will be considered as threshold.
-	const ImportanceValue MIN_IMP_RANGE = 6u;
-
-	/// Every how many importance values should we increase the STRIDE
-	/// between thresholds.<br>
-	/// STRIDE is also affected by the splitting chosen in build_thresholds()
-	const ImportanceValue IMP_LEAP_SIZE = 500u;
-
-public:
-
 	/// Default ctor
-	ThresholdsBuilderFixed() : ThresholdsBuilder("fix") {}
-
-	/// Data ctor
-	ThresholdsBuilderFixed(ImportanceValue minImpRange,
-						   ImportanceValue impLeapSize) :
-			ThresholdsBuilder("fix"),
-			MIN_IMP_RANGE(minImpRange),
-			IMP_LEAP_SIZE(impLeapSize)
+	ThresholdsBuilderFixed() : ThresholdsBuilder("fix"),
+							   stride_(1),
+							   minImpRange_(5),
+							   expandEvery_(42),
+							   postProcessing_("")
 		{ /* Not much to do around here */ }
 
 	inline bool adaptive() const noexcept override { return false; }
@@ -87,7 +91,15 @@ public:
 	std::vector< ImportanceValue >
 	build_thresholds(const unsigned& splitsPerThreshold,
 					 const ImportanceFunction& impFun,
-					 const std::string& postProcessing) override;
+					 const std::string& postProcessing = "") override;
+
+public:  // Accessors
+
+	/// @copydoc stride_
+	const ImportanceValue& stride() const noexcept;
+
+	/// @copydoc minImpRange_
+	const ImportanceValue& min_imp_range() const noexcept;
 
 protected:  // Utils for the class and its kin
 
