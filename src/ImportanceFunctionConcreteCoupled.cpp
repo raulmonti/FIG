@@ -33,7 +33,7 @@
 #include <ThresholdsBuilderAdaptive.h>
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 // Available function names in ImportanceFunction::names
@@ -52,9 +52,9 @@ ImportanceFunctionConcreteCoupled::~ImportanceFunctionConcreteCoupled()
 
 
 void
-ImportanceFunctionConcreteCoupled::assess_importance(
-	const Property& prop,
-    const std::string& strategy)
+ImportanceFunctionConcreteCoupled::assess_importance(const Property& prop,
+													 const std::string& strategy,
+													 const PPSpec& postProc)
 {
     if (hasImportanceInfo_)
 		ImportanceFunctionConcrete::clear();
@@ -67,8 +67,12 @@ ImportanceFunctionConcreteCoupled::assess_importance(
 	assert(minValue_ <= initialValue_);
 	assert(initialValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);
+
 	hasImportanceInfo_ = importanceAssessed;
 	strategy_ = strategy;
+
+	if ("flat" != strategy)
+		post_process(postProc);
 }
 
 
@@ -115,4 +119,4 @@ ImportanceFunctionConcreteCoupled::print_out(std::ostream& out,
     out << std::endl;
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

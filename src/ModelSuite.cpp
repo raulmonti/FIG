@@ -937,6 +937,11 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 							 impFun.minValue,
 							 impFun.maxValue);
 		}
+		if (!impFun.postProcessing.empty())
+			techLog_ << "\nWARNING: post-processing \"" << impFun.postProcessing
+					 << "\" ignored; can't specify a post-processing for "
+					 << "\"adhoc\" importance assessment (build that into "
+					 << "the expression you provided!)\n";
 		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
 		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
 		techLog_ << "Importance function building time: "

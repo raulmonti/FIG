@@ -176,7 +176,8 @@ public:  // Utils
 							 const ImportanceValue& maxVal  = 0u);
 
 	void assess_importance(const Property& prop,
-						   const std::string& strategy = "flat") override;
+						   const std::string& strategy = "flat",
+						   const PPSpec& postProc = std::make_pair("",.0)) override;
 
 private:
 

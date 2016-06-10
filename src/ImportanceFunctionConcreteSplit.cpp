@@ -47,7 +47,7 @@ using std::begin;
 using std::end;
 
 
-namespace
+namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 using fig::ImportanceValue;
@@ -226,11 +226,11 @@ find_extreme_values(const Formula& f,
 /// Nasty hack to avoid importing the full ModelSuite.h header
 fig::StateInstance systemInitialValuation;
 
-} // namespace
+} // namespace  // // // // // // // // // // // // // // // // // // // // //
 
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 // Static variables initialization
@@ -486,14 +486,11 @@ ImportanceFunctionConcreteSplit::compose_comp_function(
 
 void
 ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
-												   const std::string& strategy)
+												   const std::string& strategy,
+												   const PPSpec& postProc)
 {
 	if ("flat" == strategy)
 		set_composition_fun("+");
-	if (userFun_.expression().length() < numModules_)
-		throw_FigException("can't assess importance in function \"" + name()
-						   + "\" since current merging function is invalid (\""
-						   + userFun_.expression() + "\")");
 	if (hasImportanceInfo_)
 		ImportanceFunctionConcrete::clear();
 	modulesConcreteImportance.resize(numModules_);
@@ -553,6 +550,9 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	assert(minValue_ <= initialValue_);
 	assert(initialValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);
+
+	if ("flat" != strategy)
+		post_process(postProc);
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

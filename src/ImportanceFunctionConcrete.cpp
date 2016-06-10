@@ -572,6 +572,7 @@ ImportanceFunctionConcrete::post_processings() noexcept
 		"shift",
 		// See pp_exponentiate()
 		"exp"
+		/// @note Changes here must be reflected in post_process()
 	}};
 	return postProcessings;
 }
@@ -640,6 +641,27 @@ bool ImportanceFunctionConcrete::assess_importance(
 }
 
 
+void
+ImportanceFunctionConcrete::post_process(const PPSpec& postProc)
+{
+	if (!has_importance_info())
+#ifndef NDEBUG
+		throw_FigException("importance function \"" + name() + "\" "
+						   "doesn't yet have importance information");
+#else
+		return;
+#endif
+	if (postProc.first.empty())
+		return;  // meh, called for nothing
+	else if ("shift" == postProc.first)
+		pp_shift(std::round(postProc.second));
+	else if ("exp" == postProc.first)
+		pp_exponentiate(postProc.second);
+	else
+		throw_FigException("invalid post-processing specified (\""
+						  + postProc.first + "\")");
+}
+
 
 void
 ImportanceFunctionConcrete::pp_shift(const int& offset)
@@ -651,10 +673,9 @@ ImportanceFunctionConcrete::pp_shift(const int& offset)
 void
 ImportanceFunctionConcrete::pp_exponentiate(const float b)
 {
+	assert(has_importance_info());
 	if (b <= 0.0f)
 		throw_FigException("a positive base is required for exponentiation");
-	else if (!has_importance_info())
-		return;  // meh, called for nothing
 	else if (ready())
 		std::cerr << "WARNING: changing importance values after choosing thresholds;\n"
 				  << "         you may need to choose them again!\n";

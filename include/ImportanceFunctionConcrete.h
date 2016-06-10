@@ -66,6 +66,11 @@ using parser::DNFclauses;
  */
 class ImportanceFunctionConcrete : public ImportanceFunction
 {
+protected:
+
+	/// Post-processing specification
+	typedef std::pair<std::string,float> PPSpec;
+
 public:  // Class attributes
 
 	/// How many kinds of post-processings are offered for the stored values
@@ -105,7 +110,8 @@ public:  // Accessors
 	///       First Use</i> idiom</a> for static data members,
 	///       to avoid the <a href="https://goo.gl/chH5Kg"><i>static
 	///       initialization order fiasco</i>.
-	static const std::array< std::string, NUM_POST_PROCESSINGS >& post_processings() noexcept;
+	static const std::array< std::string, NUM_POST_PROCESSINGS >&
+	post_processings() noexcept;
 
 	/**
 	 * Retrieve all pre-computed information about the given StateInstance.
@@ -145,7 +151,7 @@ public:  // Utils
 	 */
 	virtual void assess_importance(const Property& prop,
 								   const std::string& strategy = "",
-								   const std::string& postProc = "") = 0;
+								   const PPSpec& postProc) = 0;
 
 	/**
 	 * @brief Assess the importance of the reachable concrete states of the
@@ -181,7 +187,7 @@ public:  // Utils
 	/// Erase all internal importance information (free resources along the way)
 	void clear() noexcept override;
 
-protected:  // Utils for derived classes
+protected:  // Utils for the class and its kin
 
 	/**
 	 * @brief Populate an internal importance vector
@@ -216,6 +222,24 @@ protected:  // Utils for derived classes
 						   const std::string& strategy,
 						   const unsigned& index = 0,
 						   const DNFclauses& clauses = DNFclauses());
+
+	/**
+	 * @brief Apply a post-processing to the information stored
+	 *
+	 *        Process all the importance values stored according to the
+	 *        technique specified. The string (i.e. the pair's first component)
+	 *        must be one of the \ref post_processings() "available options".
+	 *        An empty string is interpreted as NOP.
+	 *
+	 * \ifnot NDEBUG
+	 *   @throw FigException if there's no \ref has_importance_info()
+	 *                       "importance information" currently
+	 * \endif
+	 * @throw FigException if requested post-processing isn't recognized
+	 */
+	void post_process(const PPSpec& postProc);
+
+private:  // Class utils
 
 	/**
 	 * @brief Post-processing: shift importance values by an offset

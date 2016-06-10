@@ -73,7 +73,8 @@ std::chrono::seconds simsTimeout;
 
 
 
-namespace
+
+namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 using namespace fig_cli;
@@ -174,19 +175,6 @@ SwitchArg ifunFlat(
 	"equally important. Information is kept symbolically as an algebraic "
 	"expression, thus using very little memory. Notice the flat function is "
 	"incompatible with RESTART-like simulation engines.");
-//SwitchArg ifunFlatCoupled(
-//	"", "flat-coupled",
-//	"Use a flat importance function, i.e. consider all states in the model "
-//	"equally important. Information is stored in a single, very big vector "
-//	"the size of the coupled model's concrete state space, which may be huge. "
-//	"Notice the flat function is incompatible with RESTART-like simulation "
-//	"engines.");
-//SwitchArg ifunFlatSplit(
-//	"", "flat-split",
-//	"Use a flat importance function, i.e. consider all states in the model "
-//	"equally important. Information is stored in several, relatively small "
-//	"vectors, one per module. Notice the flat function is incompatible with "
-//	"RESTART-like simulation engines.");
 ValueArg<string> ifunAdhoc(
 	"", "adhoc",
 	"Use an ad hoc importance function, i.e. assign importance to the "
@@ -209,10 +197,6 @@ SwitchArg ifunAutoMonolithic(
 	"i.e. store information for the global, parallely composed model. "
 	"This stores in memory a vector the size of the global model's "
 	"concrete state space, which may be huge.");
-SwitchArg ifunAutoMonolithicExponential(
-	"", "amono-exp",
-	"Just like \"--amono\" but store the exponentiation of the "
-	"automatically computed importance values.");
 ValueArg<string> ifunAutoCompositional(
 	"", "acomp",
 	"Use an automatically computed \"compositional\" importance function, "
@@ -221,23 +205,23 @@ ValueArg<string> ifunAutoCompositional(
 	"provided to \"compose\" the global importance from these.",
 	false, "",
 	"composition_fun");
-ValueArg<string> ifunAutoCompositionalExponential(
-	"", "acomp-exp",
-	"Just like \"--acomp\" but store in each module the exponentiation "
-	"of its automatically computed importance.",
-	false, "",
-	"composition_fun");
 std::vector< Arg* > impFunSpecs = {
 	&ifunFlat,
-//	&ifunFlatCoupled,
-//	&ifunFlatSplit,
 	&ifunAdhoc,
-//	&ifunAdhocCoupled
+	// &ifunAdhocCoupled
 	&ifunAutoMonolithic,
-	&ifunAutoMonolithicExponential,
 	&ifunAutoCompositional,
-	&ifunAutoCompositionalExponential,
 };
+
+// Importance function post-processing
+ValuesConstraint<string> postProcConstraints(
+		fig::ModelSuite::available_importance_post_processings());
+MultiDoubleArg< string, float > impPostProc(
+	"", "post-process",
+	"Specify a post-processing to apply to the importance computed, e.g. "
+	"\"--post-process exp 2.0\" to exponentiate all values using '2' as "
+	"the base. Only applicable to --amono and --acomp importance functions.",
+	false, postProcConstraints, nullptr);
 
 // Stopping conditions (aka estimation bounds)
 NumericConstraint<float> ccConstraint(
@@ -270,12 +254,12 @@ std::vector< Arg* > stopCondSpecs = {
 	&timeCriteria
 };
 
-// Timeout (affects any simulation launched)
+// Simulations timeout
 ValueArg<string> timeout(
 	"", "timeout",
-	"Global time limit: if set, any simulation will be soft-interrupted after "
-	"running for this (wall clock) time. If the stopping condition for a "
-	"simulation is also time based, the lowest of the two values will apply.",
+	"Running time limit: if set, any simulation will be soft-interrupted "
+	"after running for this (wall clock) time. If the stopping condition for "
+	"a simulation is also time based, the lowest of the two values will apply.",
 	false, "",
 	&timeDurationConstraint);
 
@@ -365,14 +349,21 @@ parse_ifun_details(const std::string& details)
 bool
 get_ifun_specification()
 {
+	auto postProc = std::make_pair("", 0.0f);
+	if (impPostProc.isSet()) {
+		if (impPostProc.getValues().size() > 1) {
+			// Mimic TCLAP's 'parsing error' message style
+			std::cerr << "PARSE ERROR: Argument: (" << impPostProc.getName()
+					  << ")\n             Can only be defined once!\n";
+			return false;
+		} else {
+			assert(impPostProc.getValues().size() == 1ul);
+			postProc = impPostProc.getValues()[0ul];
+		}
+	}
+
 	if (ifunFlat.isSet()) {
 		new(&impFunSpec) fig::ImpFunSpec("algebraic", "flat");
-
-//	} else if (ifunFlatCoupled.isSet()) {
-//		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "flat");
-//
-//	} else if (ifunFlatSplit.isSet()) {
-//		new(&impFunSpec) fig::ImpFunSpec("concrete_split", "flat");
 
 	} else if (ifunAdhoc.isSet()) {
 		const auto details = parse_ifun_details(ifunAdhoc.getValue());
@@ -380,7 +371,7 @@ get_ifun_specification()
 			return false;  // no expression? something went wrong
 		new(&impFunSpec) fig::ImpFunSpec("algebraic", "adhoc",
 										 std::get<0>(details),   // expr
-										 "",                     // postProc
+										 postProc,               // post-process
 										 std::get<1>(details),   // min
 										 std::get<2>(details));  // max
 
@@ -394,27 +385,15 @@ get_ifun_specification()
 //										 std::get<2>(details));  // max
 
 	} else if (ifunAutoMonolithic.isSet()) {
-		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "auto", "", "");
+		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "auto", "", postProc);
 
-	} else if (ifunAutoMonolithicExponential.isSet()) {
-		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "auto", "", "exp");
-
-	} else if (ifunAutoCompositional.isSet() ||
-			   ifunAutoCompositionalExponential.isSet()) {
-		std::string postProc;
-		UserDefImpFun details;
-		if (ifunAutoCompositional.isSet()) {
-			postProc = "";
-			details = parse_ifun_details(ifunAutoCompositional.getValue());
-		} else {
-			postProc = "exp";
-			details = parse_ifun_details(ifunAutoCompositionalExponential.getValue());
-		}
+	} else if (ifunAutoCompositional.isSet()) {
+		UserDefImpFun details = parse_ifun_details(ifunAutoCompositional.getValue());
 		if (std::get<0>(details).empty())
 			return false;  // no expression? something went wrong
 		new(&impFunSpec) fig::ImpFunSpec("concrete_split", "auto",
 										 std::get<0>(details),   // expr
-										 postProc,
+										 postProc,               // post-process
 										 std::get<1>(details),   // min
 										 std::get<2>(details),   // max
 										 std::get<3>(details));  // neutral elem
@@ -518,11 +497,12 @@ get_splitting_values()
 	return true;
 }
 
-} // namespace
+} // namespace  // // // // // // // // // // // // // // // // // // // // //
 
 
 
-namespace fig_cli
+
+namespace fig_cli  // // // // // // // // // // // // // // // // // // // //
 {
 
 // Main parsing routine  //////////////////////////////////////////////////////
@@ -546,6 +526,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(thrTechnique_);
 		cmd_.orAdd(stopCondSpecs);
 		cmd_.xorAdd(impFunSpecs);
+		cmd_.add(impPostProc);
 		cmd_.add(timeout);
 		cmd_.add(splittings_);
 
@@ -606,5 +587,5 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 	return true;
 }
 
-} // namespace fig_cli
+} // namespace fig_cli  // // // // // // // // // // // // // // // // // // //
 
