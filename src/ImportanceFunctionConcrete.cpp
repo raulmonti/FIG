@@ -78,11 +78,12 @@ typedef unsigned STATE_T;
 void
 check_mem_limits(const uint128_t& concreteStateSize, const std::string& moduleName)
 {
-	const size_t GigaB(1ul<<30ul), MAX_SIZE(4*GigaB);  // we allow up to 4 GB
-	if (concreteStateSize > MAX_SIZE)
+	static const std::string MAX_GIGAS(std::to_string(
+				fig::ImportanceFunction::MAX_MEM_REQ/(1ul<<30ul)));
+	if (concreteStateSize > fig::ImportanceFunction::MAX_MEM_REQ)
 		throw_FigException("the concrete state space of \"" + moduleName +
 						   "\" is too big to hold it in a vector (it's greater "
-						   "than " + std::to_string(MAX_SIZE/GigaB) + " GB)");
+						   "than " + MAX_GIGAS + " GB)");
 }
 
 

@@ -121,6 +121,9 @@ public:  // Class attributes
 	/// how many importance assessment strategies are offered to the end user.
 	static constexpr size_t NUM_STRATEGIES = 3ul;
 
+	/// Impose a limit on the amount of memory the user can request
+	static constexpr size_t MAX_MEM_REQ = (1ul<<32ul);  // 4 GB
+
 private:
 
 	/// Name of the ImportanceFunction implemented by this instance.
@@ -293,8 +296,8 @@ public:  // Accessors
 	/// \endif
 	const unsigned& num_thresholds() const;
 
-	/// Post-processing applied to the ImportanceValue s computed last;
-	/// empty string if none.
+	/// Post-processing applied to the \ref ImportanceValue "importance values"
+	/// computed last; empty string if none.
 	virtual std::string post_processing() const noexcept;
 
 	/**
@@ -313,8 +316,7 @@ public:  // Accessors
 	 * @note The j-th threshold level is composed of all the states to which
 	 *       the ImportanceFunction assigns an ImportanceValue between the
 	 *       values of threshold 'j' (included) and 'j+1' (excluded)
-	 * @note <b>Complexity:</b> same as importance_of() for the corresponding
-	 *                          derived class
+	 * @note <b>Complexity:</b> <i>O(log(num_thresholds()))</i>
 	 * \ifnot NDEBUG
 	 *   @throw FigException if this instance isn't \ref ready()
 	 *                       "ready for simulations"
@@ -322,14 +324,22 @@ public:  // Accessors
 	 * @see ThresholdsBuilder::build_thresholds()
 	 */
 	inline ImportanceValue level_of(const StateInstance& state) const
-		{ assert(has_importance_info()); return level_of(importance_of(state)); }
+		{
+			assert(has_importance_info());
+			if (importance2threshold_.size() > 0ul)
+				// We have the direct map
+				return importance2threshold_[importance_of(state)];
+			else
+				// Search the corresponding threshold level
+				return level_of(importance_of(state));
+		}
 
 	/**
 	 * Threshold level to which given ImportanceValue belongs.
 	 * @note The j-th threshold level is composed of all the states to which
 	 *       the ImportanceFunction assigns an ImportanceValue between the
 	 *       values of threshold 'j' (included) and 'j+1' (excluded)
-	 * @note <b>Complexity:</b> <i>O(1)</i>
+	 * @note <b>Complexity:</b> <i>O(log(num_thresholds()))</i>
 	 * \ifnot NDEBUG
 	 *   @throw FigException if this instance isn't \ref ready()
 	 *                       "ready for simulations"
@@ -354,11 +364,10 @@ public:  // Utils
 	/**
 	 * @brief Build thresholds from precomputed importance information
 	 *
-	 *        The thresholds may be kept separately or built on top of the
-	 *        importance information. In any case after a successfull call
-	 *        this instance is \ref ImportanceFunction::ready() "ready for
-	 *        simulations": \ref SimulationEngine "simulation engines" will use
-	 *        the thresholds info when coupled with this ImportanceFunction.
+	 *        This fills up the thresholds2importance_ vector member. After a
+	 *        successfull call this instance is \ref ImportanceFunction::ready()
+	 *        "ready for simulations": \ref SimulationEngine "simulation engines"
+	 *        will use the thresholds info when coupled with this ImportanceFunction.
 	 *
 	 * @param tb  ThresholdsBuilder to use
 	 * @param spt Splits per threshold, i.e. #{simulation-run-replicas} + 1
@@ -401,10 +410,10 @@ public:  // Utils
 private:  // Class utils
 
 	/// Post-processing once the thresholds have been built
-	/// @param tbName Name of the ThresholdsBuilder used
+	/// @param tb ThresholdsBuilder used last
 	/// @see build_thresholds()
 	/// @see build_thresholds_adaptively()
-	void post_process_thresholds(const std::string& tbName);
+	void post_process_thresholds(const ThresholdsBuilder& tb);
 
 protected:  // Utils for derived classes
 
