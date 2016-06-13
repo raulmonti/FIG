@@ -43,8 +43,10 @@ namespace fig
  *        "importance values" of the ImportanceFunction provided, this class
  *        uses a policy which is oblivious of the underlying user model.<br>
  *        The final resulting number of thresholds built is fully determined
- *        by the max_value() of the ImportanceFunction and the splitting value
- *        chosen by the user.
+ *        by the "useful range" of the ImportanceFunction (i.e. the difference
+ *        between the max value and the initial value), the splitting selected
+ *        by the user, and the post-processing applied to the importance values
+ *        after their computation (if any).
  *
  * @see ThresholdsBuilder
  * @see ThresholdsBuilderAdaptive
@@ -67,14 +69,14 @@ protected:
 	ImportanceValue minImpRange_;
 
 	/// The chosen stride_ will be expanded times the ceiling of
-	/// '(impFun.max_value() - impFun.min_value()) / expandEvery_'
+	/// '(impFun.max_value() - impFun.initial_value()) / expandEvery_'
 	/// @note stride_ is also affected by the splitting and
 	///       the postProcessing specified in build_thresholds()
 	ImportanceValue expandEvery_;
 
-	/// Name of the post-processing applied to the importance values
-	/// after importance assessment, if any.
-	std::string postProcessing_;
+	/// Post-processing applied to the importance values after the last
+	/// importance assessment, if any.
+	PostProcessing postProcessing_;
 
 public:
 
@@ -83,7 +85,7 @@ public:
 							   stride_(1),
 							   minImpRange_(5),
 							   expandEvery_(42),
-							   postProcessing_("")
+							   postProcessing_(std::make_pair("",.0f))
 		{ /* Not much to do around here */ }
 
 	inline bool adaptive() const noexcept override { return false; }
@@ -91,7 +93,7 @@ public:
 	std::vector< ImportanceValue >
 	build_thresholds(const unsigned& splitsPerThreshold,
 					 const ImportanceFunction& impFun,
-					 const std::string& postProcessing = "") override;
+					 const PostProcessing& postProcessing) override;
 
 public:  // Accessors
 
@@ -104,24 +106,39 @@ public:  // Accessors
 protected:  // Utils for the class and its kin
 
 	/**
-	 * Start building the thresholds 'margin' values of importance above the
-	 * \ref ImportanceFunction::initial_value() "initial importance", setting
-	 * thresholds at 'stride' importance values of distance.
+	 * Choose threshold and store them in given ImportanceVec
+	 *
+	 * Starting 'margin' places above the \ref ImportanceFunction::initial_value()
+	 * "initial importance", choose thresholds considering 'stride' and the
+	 * current postProcessing_, and store them in the 'thresholds' vector
+	 * following the format described in ThresholdsBuilder::build_thresholds().
 	 *
 	 * @param impFun The ImportanceFunction with internal
 	 *               \ref ImportanceFunction::has_importance_info()
 	 *               "importance information" to use for the task
-	 * @param thresholds Vector where the importance_to_thresholds map
-	 *                   will be built
+	 * @param thresholds Where the thresholds-to-importance map will be built
 	 * @param margin How many importance values above the initial state's
-	 *               importance value will the construction take place
+	 *               importance value will the construction start
 	 * @param stride Number of importance values to jump per threshold
+	 *
+	 * @note The 'thresholds' vector is a parameter instead of a return value
+	 *       for ease of use by derived classes, e.g. ThresholdsBuilderHybrid
 	 */
 	void
 	build_thresholds(const ImportanceFunction& impFun,
 					 ImportanceVec& thresholds,
 					 const unsigned& margin,
 					 const unsigned& stride);
+
+	/// Choose stride based solely on the splitting selected by the user
+	virtual unsigned
+	choose_stride(const unsigned& splitsPerThreshold) const;
+
+	/// Choose stride based on all information available,
+	/// including internal info like expandEvery_ and postProcessing_
+	virtual unsigned
+	choose_stride(const unsigned& splitsPerThreshold,
+				  const unsigned& impRange) const;
 };
 
 } // namespace fig

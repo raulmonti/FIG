@@ -67,8 +67,6 @@ class ImportanceFunction
 {
 public:
 
-	typedef std::vector< ImportanceValue > ImportanceVec;
-
 	/// Mathematical formula to evaluate an algebraic expression,
 	/// e.g. ad hoc function or combination of split importance values.
 	class Formula : public MathExpression
@@ -138,10 +136,10 @@ protected:  // Attributes for derived classes
 	/// Can this instance be used for simulations?
 	bool readyForSims_;
 
-	/// Last used strategy to assess the importance with this function
+	/// Strategy used last to assess the importance with this function
 	std::string strategy_;
 
-	/// Last used technique to build the importance thresholds in this function
+	/// Technique used last to build the importance thresholds in this function
 	std::string thresholdsTechnique_;
 
 	/// Minimum importance currently held
@@ -158,13 +156,13 @@ protected:  // Attributes for derived classes
 
 	/// Map from a state's ImportanceValue to the corresponding threshold level
 	/// @note Present only when the importance range is "small"
-	std::vector< ImportanceValue > importance2threshold_;
+	ImportanceVec importance2threshold_;
 
 	/// Map from a threshold level to the minimum ImportanceValue in it.<br>
 	/// The "i-th threshold level" comprises all importance values between
-	/// thresholds2importance_[i] (including it) and thresholds2importance_[i+1]
+	/// threshold2importance_[i] (including it) and threshold2importance_[i+1]
 	/// (excluding it)
-	std::vector< ImportanceValue > thresholds2importance_;
+	ImportanceVec threshold2importance_;
 
 	/// @brief Algebraic formula defined by the user.
 	/// @note Useful both for ad hoc strategy and concrete_split functions
@@ -297,8 +295,8 @@ public:  // Accessors
 	const unsigned& num_thresholds() const;
 
 	/// Post-processing applied to the \ref ImportanceValue "importance values"
-	/// computed last; empty string if none.
-	virtual std::string post_processing() const noexcept;
+	/// computed last; an empty first component means none was.
+	virtual PostProcessing post_processing() const noexcept;
 
 	/**
 	 * Tell the pre-computed importance of the given StateInstance.
@@ -310,6 +308,10 @@ public:  // Accessors
 	 * \endif
 	 */
 	virtual ImportanceValue importance_of(const StateInstance& state) const = 0;
+
+	/// Stub to importance_of(const StateInstance&)
+	inline ImportanceValue importance_of(const State<STATE_INTERNAL_TYPE> &state) const
+		{ return importance_of(state.to_state_instance()); }
 
 	/**
 	 * Threshold level to which given StateInstance belongs.
@@ -364,7 +366,7 @@ public:  // Utils
 	/**
 	 * @brief Build thresholds from precomputed importance information
 	 *
-	 *        This fills up the thresholds2importance_ vector member. After a
+	 *        This fills up the threshold2importance_ vector member. After a
 	 *        successfull call this instance is \ref ImportanceFunction::ready()
 	 *        "ready for simulations": \ref SimulationEngine "simulation engines"
 	 *        will use the thresholds info when coupled with this ImportanceFunction.

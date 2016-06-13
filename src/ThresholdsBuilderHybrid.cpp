@@ -31,25 +31,25 @@
 #include <cassert>
 #include <pthread.h>
 // C++
-#include <vector>
+#include <utility>
 #include <sstream>
 #include <thread>
 #include <functional>  // std::ref()
 // FIG
 #include <ThresholdsBuilderHybrid.h>
 #include <FigException.h>
-#include <ModelSuite.h>
+#include <FigLog.h>
 
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-std::vector< ImportanceValue >
+ImportanceVec
 ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 										  const ImportanceFunction &impFun,
 										  const std::string& postProcessing)
 {
-	ImportanceVec result;
+	ImportanceVec thresholds;
 	size_t NUMT;
 
 	// Impose an execution wall time limit...
@@ -59,13 +59,13 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 	try {
 		// Start out using an adaptive technique, which may just work btw
 		halted_ = false;
-		result = ThresholdsBuilderSMC::build_thresholds(splitsPerThreshold,
-														impFun);
-		NUMT = result.back();  // it worked!
+		ThresholdsBuilderAdaptive::build_thresholds(splitsPerThreshold, impFun);
+		std::swap(thresholds, thresholds_);  // it worked!
 
 	} catch (FigException&) {
 		// Adaptive algorithm couldn't finish but achievements remain
-		// stored in the internal vector 'thresholds_'
+		// stored in the vector member 'thresholds_'
+		std::swap(thresholds, thresholds_);
 
 	/// @fixme TODO consider the value of postProcessing to determine how
 	///             the stride should be applied (arithmetically vs geometrically)
@@ -79,39 +79,36 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 		const size_t LAST_THR(thresholds_.back()),
 					 MARGIN(LAST_THR - impFun.initial_value()),
 					 IMP_RANGE(impFun.max_value() - impFun.min_value()),
-					 EXPANSION_FACTOR(std::ceil(IMP_RANGE/((float)IMP_LEAP_SIZE))),
-					 STRIDE((splitsPerThreshold <  4u ? 2u :
-							 splitsPerThreshold <  7u ? 3u :
-							 splitsPerThreshold < 11u ? 4u : 5u )*EXPANSION_FACTOR);
+					 EXPANSION(std::ceil(IMP_RANGE/((float)IMP_LEAP_SIZE))),
+					 STRIDE(choose_stride(splitsPerThreshold) * EXPANSION);
 
-		ModelSuite::tech_log("\nResorting to fixed choice of thresholds "
-							 "starting above the ImportanceValue " +
-							 std::to_string(LAST_THR) + "\n");
+		figTechLog << "\nResorting to fixed choice of thresholds starting "
+				   << "above the ImportanceValue " << LAST_THR << "\n";
 
 		// Choose fixed thresholds above LAST_THR
-		ThresholdsBuilderFixed::build_thresholds(impFun, result, MARGIN, STRIDE);
+		ThresholdsBuilderFixed::build_thresholds(impFun, thresholds, MARGIN, STRIDE);
 		NUMT = std::floor(static_cast<float>(impFun.max_value()-LAST_THR) / STRIDE);
 		NUMT += thresholds_.size() - 1;
 
-		// Format the first "adaptive section" of 'result'
-		unsigned currThr(0u), imp(0u);
-		do {
-			result[imp] = static_cast<ImportanceValue>(currThr);
-			while (currThr < thresholds_.size()-1 && imp >= thresholds_[currThr+1])
-				currThr++;
-		} while (static_cast<ImportanceValue>(0u) == result[++imp]);
-
-		// Format the second "fixed section" of 'result'
-		for (/* imp value from previous loop */ ; imp < result.size() ; imp++)
-			result[imp] += currThr;
-
-		std::stringstream msg;
-		msg << "ImportanceValue of the chosen thresholds:";
-		for (size_t i = 1ul ; i < thresholds_.size() ; i++)
-			msg << " " << thresholds_[i];
-		for (size_t i = LAST_THR + STRIDE ; i < impFun.max_value() ; i += STRIDE)
-			msg << " " << i;
-		ModelSuite::tech_log(msg.str() + "\n");
+//		// Format the first "adaptive section" of 'thresholds'
+//		unsigned currThr(0u), imp(0u);
+//		do {
+//			thresholds[imp] = static_cast<ImportanceValue>(currThr);
+//			while (currThr < thresholds_.size()-1 && imp >= thresholds_[currThr+1])
+//				currThr++;
+//		} while (static_cast<ImportanceValue>(0u) == thresholds[++imp]);
+//
+//		// Format the second "fixed section" of 'thresholds'
+//		for (/* imp value from previous loop */ ; imp < thresholds.size() ; imp++)
+//			thresholds[imp] += currThr;
+//
+//		std::stringstream msg;
+//		msg << "ImportanceValue of the chosen thresholds:";
+//		for (size_t i = 1ul ; i < thresholds_.size() ; i++)
+//			msg << " " << thresholds_[i];
+//		for (size_t i = LAST_THR + STRIDE ; i < impFun.max_value() ; i += STRIDE)
+//			msg << " " << i;
+//		ModelSuite::tech_log(msg.str() + "\n");
 	}
 
 	// Tidy-up
@@ -119,11 +116,28 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 	pthread_cancel(timer.native_handle());  /// @fixme BUG can this crash?
 	timer.detach();
 
-	assert(result[impFun.min_value()] == static_cast<ImportanceValue>(0u));
-	assert(result[impFun.initial_value()] == static_cast<ImportanceValue>(0u));
-	assert(result[impFun.max_value()] == static_cast<ImportanceValue>(NUMT));
-
-	return result;
+	show_thresholds(thresholds);
+	assert(!thresholds.empty());
+	assert(thresholds[0] == impFun.initial_value());
+	assert(thresholds.back() > impFun.max_value());
+	return thresholds;
 }
+
+
+unsigned
+ThresholdsBuilderHybrid::choose_stride(const unsigned& splitsPerThreshold) const
+{
+	/// @todo TODO Tune for arithmetic/geometric threshold building duality
+
+	assert(splitsPerThreshold > 1u);
+	// What follows is clearly arbitrary but then we warned the user
+	// in the class' docstring, didn't we?     splitting          stride
+	return splitsPerThreshold <  4 ? 2u :      // 2,3 -------------> 2
+		   splitsPerThreshold <  7 ? 3u :      // 4,5,6 -----------> 3
+		   splitsPerThreshold < 11 ? 4u :      // 7,8,9,10 --------> 4
+		   splitsPerThreshold < 16 ? 5u : 6u;  // 11,12,13,14,15 --> 5
+											   // else ------------> 6
+}
+
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

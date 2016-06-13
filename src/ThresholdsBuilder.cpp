@@ -27,12 +27,15 @@
 //==============================================================================
 
 
+// C
+#include <cassert>
 // C++
 #include <algorithm>
 #include <iterator>
 // FIG
 #include <ThresholdsBuilder.h>
 #include <FigException.h>
+#include <FigLog.h>
 
 // ADL
 using std::begin;
@@ -83,13 +86,36 @@ ThresholdsBuilder::techniques() noexcept
 }
 
 
-std::vector< ImportanceValue >
-ThresholdsBuilder::invert_thresholds_map(const std::vector< ImportanceValue >& t2i)
+ImportanceVec
+ThresholdsBuilder::invert_thresholds_map(const ImportanceVec& t2i)
 {
-	throw_FigException("TODO");
+	assert(t2i.size() > 0ul);
+	assert(t2i.back() > 1ul);
+	const size_t SIZE(t2i.back()-1);
+	ImportanceVec i2t(SIZE);
+	unsigned currThr(0ul);
+	for (size_t i = 0ul ; i < SIZE ; i++) {
+		while (currThr < t2i.size()-1 && i >= t2i[currThr+1])
+			currThr++;
+		i2t[i] = static_cast<ImportanceValue>(currThr);
+	}
+	return i2t;
+	/* * * * *
+	 * Assertions to check in the map returned:
+	 *   assert(i2t[impFun.min_value()] == 0);
+	 *   assert(i2t[impFun.initial_value()] == 0);
+	 *   assert(i2t[impFun.max_value()] == t2i.size()-1);
+	 */
+}
 
-	/// Take code from the "// Format results and finish up" section in
-	/// ThresholdsBuilderAdaptive::build_thresholds(spt,ifun,p,n)
+
+void
+ThresholdsBuilder::show_thresholds(const ImportanceVec& t2i)
+{
+	figTechLog << "ImportanceValue of the chosen thresholds:";
+	for (size_t i = 1ul ; i < t2i.size()-1 ; i++)
+		figTechLog << " " << t2i[i];
+	figTechLog << "\n";
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

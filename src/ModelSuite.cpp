@@ -53,6 +53,7 @@
 // FIG
 #include <ModelSuite.h>
 #include <FigException.h>
+#include <FigLog.h>
 #include <SignalSetter.h>
 #include <Property.h>
 #include <StoppingConditions.h>
@@ -498,9 +499,9 @@ std::unordered_map< std::string, std::shared_ptr< ThresholdsBuilder > >
 std::unordered_map< std::string, std::shared_ptr< SimulationEngine > >
 	ModelSuite::simulators;
 
-std::ostream& ModelSuite::mainLog_(std::cout);
+std::ostream& ModelSuite::mainLog_(figMainLog);
 
-std::ostream& ModelSuite::techLog_(std::cerr);
+std::ostream& ModelSuite::techLog_(figTechLog);
 
 double ModelSuite::lastEstimationStartTime_;
 

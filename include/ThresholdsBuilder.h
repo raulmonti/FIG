@@ -57,10 +57,6 @@ class ThresholdsBuilder
 {
 public:
 
-	typedef std::vector< ImportanceValue > ImportanceVec;
-
-public:
-
 	/// Long story short: number of concrete derived classes.
 	/// More in detail this is the size of the array returned by techniques(),
 	/// i.e. how many ThresholdsBuilder implementations are offered to the end user.
@@ -115,10 +111,10 @@ public:
 	 *
 	 * @throw FigException if thresholds building failed
 	 */
-	virtual std::vector< ImportanceValue >
+	virtual ImportanceVec
 	build_thresholds(const unsigned& splitsPerThreshold,
 					 const ImportanceFunction& impFun,
-					 const std::string& postProcessing = "") = 0;
+					 const PostProcessing& postProc) = 0;
 
 	/**
 	 * @brief Turn map around, building an importance-to-threshold map
@@ -134,9 +130,18 @@ public:
 	 *
 	 * @throw bad_alloc if there wasn't enough memory to allocate the vector
 	 * @throw FigException if the translation failed
+	 *
+	 * @warning The size of the map returned is the last value of 't2i',
+	 *          viz. the maximum importance referred to in the argument.
 	 */
-	std::vector< ImportanceValue >
-	invert_thresholds_map(const std::vector< ImportanceValue >& t2i);
+	ImportanceVec
+	invert_thresholds_map(const ImportanceVec& t2i);
+
+protected:  // Utils for the class and its kin
+
+	/// Print thresholds info in FIG's tech log
+	/// @param t2i threshold-to-importance map as returned by build_thresholds()
+	void show_thresholds(const ImportanceVec& t2i);
 };
 
 } // namespace fig

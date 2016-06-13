@@ -75,10 +75,14 @@ public:
 
 	inline bool adaptive() const noexcept override { return true; }
 
-	std::vector< ImportanceValue >
+	ImportanceVec
 	build_thresholds(const unsigned& splitsPerThreshold,
 					 const ImportanceFunction& impFun,
 					 const std::string& postProcessing = "") override;
+
+protected:
+
+	unsigned choose_stride(const unsigned& splitsPerThreshold) const override;
 };
 
 } // namespace fig

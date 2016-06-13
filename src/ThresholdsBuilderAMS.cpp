@@ -61,7 +61,7 @@ const unsigned MAX_NUM_FAILURES = 5u;
  *        Use the first 'numSims' Traials from 'traials' to perform
  *        \ref fig::ModuleNetwork::peak_simulation "peak simulations" in
  *        'network' lasting 'simEffort' synchronized jumps each.
- *        The importance assigned to the states visited is taken from 'impVec'
+ *        Use 'impFun' to consult the visited states' importance.
  *
  * @param network   User's system model, i.e. a network of modules
  * @param impFun    ImportanceFunction with \ref ImportanceFunction::has_importance_info()

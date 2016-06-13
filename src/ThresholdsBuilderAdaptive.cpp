@@ -58,7 +58,7 @@ ThresholdsBuilderAdaptive::ThresholdsBuilderAdaptive(
 { /* Not much to do around here */ }
 
 
-std::vector< ImportanceValue >
+ImportanceVec
 ThresholdsBuilderAdaptive::build_thresholds(const unsigned& splitsPerThreshold,
 	const ImportanceFunction& impFun,
 	const float &p,
@@ -83,27 +83,29 @@ ThresholdsBuilderAdaptive::build_thresholds(const unsigned& splitsPerThreshold,
 
 	// Chose the thresholds importance values, i.e. run the adaptive algorithm
 	build_thresholds_vector(impFun);
+	show_thresholds(thresholds_);
 	assert(!thresholds_.empty());
-    assert(thresholds_[0] == impFun.importance_of(net.initial_state().to_state_instance()));
+	assert(thresholds_[0] == impFun.initial_value());
 	assert(thresholds_.back() > impFun.max_value());
 
-	// Format result and finish up
-	unsigned currThr(0ul);
-	ImportanceVec result(impFun.max_value()-impFun.min_value()+1ul);
-	for (ImportanceValue i = impFun.min_value() ; i <= impFun.max_value() ; i++)
-	{
-		while (currThr < thresholds_.size()-1 && i >= thresholds_[currThr+1])
-			currThr++;
-		result[i] = static_cast<ImportanceValue>(currThr);
-	}
+	/// @todo TODO erase old code
+//	// Format result and finish up
+//	unsigned currThr(0ul);
+//	ImportanceVec result(impFun.max_value()-impFun.min_value()+1ul);
+//	for (ImportanceValue i = impFun.min_value() ; i <= impFun.max_value() ; i++)
+//	{
+//		while (currThr < thresholds_.size()-1 && i >= thresholds_[currThr+1])
+//			currThr++;
+//		result[i] = static_cast<ImportanceValue>(currThr);
+//	}
+//
+//	assert(result[impFun.min_value()] == static_cast<ImportanceValue>(0u));
+//	assert(result[impFun.initial_value()] == static_cast<ImportanceValue>(0u));
+//	assert(result[impFun.max_value()] ==
+//			static_cast<ImportanceValue>(thresholds_.size()-2));
+//	ImportanceVec().swap(thresholds_);  // free mem
 
-	assert(result[impFun.min_value()] == static_cast<ImportanceValue>(0u));
-	assert(result[impFun.initial_value()] == static_cast<ImportanceValue>(0u));
-	assert(result[impFun.max_value()] ==
-			static_cast<ImportanceValue>(thresholds_.size()-2));
-	std::vector< ImportanceValue >().swap(thresholds_);  // free mem
-
-	return result;
+	return thresholds_;
 }
 
 
@@ -117,7 +119,7 @@ ThresholdsBuilderAdaptive::tune(const uint128_t &numStates,
 	assert(0ul < numTrans);
 	assert(0u < splitsPerThr);
 
-	std::vector< ImportanceValue >().swap(thresholds_);
+	ImportanceVec().swap(thresholds_);
 	thresholds_.reserve(std::max(static_cast<ImportanceValue>(2),
 								 static_cast<ImportanceValue>(maxImportance/2)));
 	assert(thresholds_.size() == 0u);

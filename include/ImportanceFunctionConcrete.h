@@ -66,11 +66,6 @@ using parser::DNFclauses;
  */
 class ImportanceFunctionConcrete : public ImportanceFunction
 {
-protected:
-
-	/// Post-processing specification
-	typedef std::pair<std::string,float> PPSpec;
-
 public:  // Class attributes
 
 	/// How many kinds of post-processings are offered for the stored values
@@ -84,8 +79,9 @@ protected:  // Attributes
 	/// Copy of the global state of the \ref ModuleNetwork "model"
 	mutable State< STATE_INTERNAL_TYPE > globalStateCopy;
 
-	/// Post-processing applied to the ImportanceValue s computed last
-	std::string postProcessing_;
+	/// Post-processing used last after assessing the importance
+	/// with this function, if any
+	PostProcessing postProc_;
 
 	/// Did the user specify the extreme values?    <br>
 	/// Needed by ImportanceFunctionConcreteSplit
@@ -113,8 +109,8 @@ public:  // Accessors
 	static const std::array< std::string, NUM_POST_PROCESSINGS >&
 	post_processings() noexcept;
 
-	/// @copydoc postProcessing_
-	std::string post_processing() const noexcept override;
+	/// @copydoc postProc_
+	PostProcessing post_processing() const noexcept override;
 
 	/**
 	 * Retrieve all pre-computed information about the given StateInstance.
@@ -154,7 +150,7 @@ public:  // Utils
 	 */
 	virtual void assess_importance(const Property& prop,
 								   const std::string& strategy = "",
-								   const PPSpec& postProc) = 0;
+								   const PostProcessing& postProc) = 0;
 
 	/**
 	 * @brief Assess the importance of the reachable concrete states of the
@@ -240,7 +236,7 @@ protected:  // Utils for the class and its kin
 	 * \endif
 	 * @throw FigException if requested post-processing isn't recognized
 	 */
-	void post_process(const PPSpec& postProc);
+	void post_process(const PostProcessing& postProc);
 
 private:  // Class utils
 

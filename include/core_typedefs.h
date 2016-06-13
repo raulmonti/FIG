@@ -144,6 +144,12 @@ typedef  std::bitset<MAX_NUM_CLOCKS>                                 Bitflag;
 ///
 typedef  unsigned int                                        ImportanceValue;
 
+/// Vector of \ref ImportanceValue "importance values"
+typedef  std::vector< ImportanceValue >                        ImportanceVec;
+
+/// Post-process applied to the \ref ImportanceValue "importance values" assessed
+typedef  std::pair< std::string, float >                      PostProcessing;
+
 /// ImportanceFunction specification: this struct should be filled
 /// during the command line parsing, with the data provided by the user
 struct ImpFunSpec
@@ -155,7 +161,7 @@ struct ImpFunSpec
 	/// User-defined ad hoc expression needed by some ImportanceFunction s
 	const std::string algebraicFormula;
 	/// <i>Optional</i>: post-processing to perform to the importance values computed
-	const std::pair<std::string,float> postProcessing;
+	const PostProcessing postProcessing;
 	/// <i>Optional</i>: min value the user-defined ad hoc function can take
 	const ImportanceValue minValue;
 	/// <i>Optional</i>: max value the user-defined ad hoc function can take
@@ -166,7 +172,7 @@ struct ImpFunSpec
 	ImpFunSpec(const std::string& theName,
 			   const std::string& theStrategy,
 			   const std::string& theAlgebraicFormula = "",
-			   const std::pair<std::string,float>& thePostProcessing = std::make_pair("",.0),
+			   const PostProcessing& thePostProcessing = std::make_pair("",.0),
 			   const ImportanceValue& theMinValue = static_cast<ImportanceValue>(0u),
 			   const ImportanceValue& theMaxValue = static_cast<ImportanceValue>(0u),
 			   const ImportanceValue& theNeutralElement = static_cast<ImportanceValue>(0u)) :

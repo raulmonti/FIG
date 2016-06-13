@@ -78,6 +78,7 @@
 #include "Exceptions.h"
 #include "FigException.h"
 #include "FigConfig.h"
+#include "FigLog.h"
 // Parser
 #include "Ast.h"
 #include "Parser.h"

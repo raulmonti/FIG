@@ -553,7 +553,7 @@ ImportanceFunctionConcrete::ImportanceFunctionConcrete(
 		ImportanceFunction(name),
 		modulesConcreteImportance(1u),
 		globalStateCopy(globalState),
-		postProcessing_(""),
+		postProc_(std::make_pair("",0.0f)),
 		userDefinedData(false)
 { /* Not much to do around here */ }
 
@@ -579,10 +579,10 @@ ImportanceFunctionConcrete::post_processings() noexcept
 }
 
 
-std::string
+PostProcessing
 ImportanceFunctionConcrete::post_processing() const noexcept
 {
-	return postProcessing_;
+	return postProc_;
 }
 
 
@@ -650,7 +650,7 @@ bool ImportanceFunctionConcrete::assess_importance(
 
 
 void
-ImportanceFunctionConcrete::post_process(const PPSpec& postProc)
+ImportanceFunctionConcrete::post_process(const PostProcessing& postProc)
 {
 	if (!has_importance_info())
 #ifndef NDEBUG
@@ -659,6 +659,7 @@ ImportanceFunctionConcrete::post_process(const PPSpec& postProc)
 #else
 		return;
 #endif
+	postProc_ = postProc;
 	if (postProc.first.empty())
 		return;  // meh, called for nothing
 	else if ("shift" == postProc.first)

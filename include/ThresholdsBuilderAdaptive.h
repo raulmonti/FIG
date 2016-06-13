@@ -89,16 +89,16 @@ public:
 
 	/// Stub to build_thresholds(const unsigned&, const ImportanceFunction&, const float&, const unsigned&)
 	/// for automatically computed values of 'p' and 'n'
-	inline std::vector< ImportanceValue >
+	inline ImportanceVec
 	build_thresholds(const unsigned& splitsPerThreshold,
 					 const ImportanceFunction& impFun,
-					 const std::string&) override
+					 const PostProcessing&) override
 		{ return build_thresholds(splitsPerThreshold, impFun, 0.0f, 0u); }
 
 	/// Implement ThresholdsBuilder::build_thresholds() using 'p' as the
 	/// adaptive probability of threshold level-up and running 'n' independet
 	/// simulations for the selection of each threshold
-	std::vector< ImportanceValue >
+	ImportanceVec
 	build_thresholds(const unsigned& splitsPerThreshold,
 					 const ImportanceFunction& impFun,
 					 const float& p,
@@ -109,23 +109,23 @@ protected:  // Utils for the class and its kin
 	/**
 	 * @brief Build thresholds based on given importance function
 	 *
-	 *        The work is saved in the internal vector 'thresholds_',
-	 *        whose i-th position will hold the ImportanceValue chosen
-	 *        as the i-th threshold. Also the lowest ImportanceValue of impFun
-	 *        is stored in index zero. As a result the states corresponding
-	 *        to the j-th threshold level are those to which 'impFun' assigns
-	 *        an ImportanceValue between the values at positions j (included)
-	 *        and j+1 (not included) of thresholds_.
+	 *        Build a thresholds-to-importance map as described in
+	 *        ThresholdsBuilder::build_thresholds(), saving it in the
+	 *        internal vector 'thresholds_'<br>
+	 *        As a result the states corresponding to the i-th threshold level
+	 *        are those to which 'impFun' assigns an ImportanceValue between
+	 *        the values at positions i (included) and i+1 (not included)
+	 *        of the resulting 'thresholds_'
 	 *
 	 * @param impFun ImportanceFunction with internal
 	 *               \ref ImportanceFunction::has_importance_info()
 	 *               "importance information" to use for the task
 	 *
-	 * @note The resulting size of thresholds_  <br>
-	 *       == 1 + number of threshold levels  <br>
+	 * @note The size of thresholds_ will be   <br>
+	 *       == 1 + number of threshold levels <br>
 	 *       == 2 + number of thresholds built
-	 * @note First value in thresholds_ == initial state importance
-	 * @note Last  value in thresholds_ > impFun.max_importance()
+	 * @note The first value in thresholds_ == initial state importance
+	 * @note The last  value in thresholds_ > impFun.max_value()
 	 *
 	 * @throw FigException if thresholds building failed
 	 */
