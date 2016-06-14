@@ -55,6 +55,11 @@ class ThresholdsBuilderFixed : public virtual ThresholdsBuilder
 {
 protected:
 
+	/// How should the thresholds be spaced among each other
+	enum StrideType { ARITHMETICAL = 0, GEOMETRICAL, NUM_TYPES };
+
+protected:
+
 	/// Number of \ref ImportanceValue "importance values" to group in a
 	/// single threshold level. So for instance stride==2 means there will be
 	/// two importance values per threshold level, i.e. a threshold will be set
@@ -66,27 +71,25 @@ protected:
 	/// Minimal importance range (ifun.maxVal() - ifun.minVal())
 	/// If there are less values avaliable then every ImportanceValue
 	/// above ifun.minVal() will be considered a threshold.
-	ImportanceValue minImpRange_;
+	const ImportanceValue MIN_IMP_RANGE;
 
 	/// The chosen stride_ will be expanded times the ceiling of
-	/// '(impFun.max_value() - impFun.initial_value()) / expandEvery_'
+	/// '(impFun.max_value() - impFun.initial_value()) / EXPAND_EVERY'
 	/// @note stride_ is also affected by the splitting and
 	///       the postProcessing specified in build_thresholds()
-	ImportanceValue expandEvery_;
-
-	/// Post-processing applied to the importance values after the last
-	/// importance assessment, if any.
-	PostProcessing postProcessing_;
+	const ImportanceValue EXPAND_EVERY;
 
 public:
 
 	/// Default ctor
 	ThresholdsBuilderFixed() : ThresholdsBuilder("fix"),
-							   stride_(1),
-							   minImpRange_(5),
-							   expandEvery_(42),
-							   postProcessing_(std::make_pair("",.0f))
+							   MIN_IMP_RANGE(3),
+							   EXPAND_EVERY(200)
 		{ /* Not much to do around here */ }
+
+	/// Data ctor
+	ThresholdsBuilderFixed(ImportanceValue minImpRange,
+						   ImportanceValue expandEvery);
 
 	inline bool adaptive() const noexcept override { return false; }
 
@@ -105,40 +108,39 @@ public:  // Accessors
 
 protected:  // Utils for the class and its kin
 
+	/// Choose a stride based on all information available
+	virtual unsigned
+	choose_stride(const size_t& impRange,
+				  const unsigned& splitsPerThreshold,
+				  const StrideType& strideType) const;
+
 	/**
 	 * Choose threshold and store them in given ImportanceVec
 	 *
 	 * Starting 'margin' places above the \ref ImportanceFunction::initial_value()
 	 * "initial importance", choose thresholds considering 'stride' and the
-	 * current postProcessing_, and store them in the 'thresholds' vector
-	 * following the format described in ThresholdsBuilder::build_thresholds().
+	 * 'strideType', and store them in the 'thresholds' vector following the
+	 * format described in ThresholdsBuilder::build_thresholds().
 	 *
 	 * @param impFun The ImportanceFunction with internal
 	 *               \ref ImportanceFunction::has_importance_info()
 	 *               "importance information" to use for the task
 	 * @param thresholds Where the thresholds-to-importance map will be built
-	 * @param margin How many importance values above the initial state's
-	 *               importance value will the construction start
+	 * @param margin Start this many importance values above the importance
+	 *               of the initial state
 	 * @param stride Number of importance values to jump per threshold
+	 * @param strideType How should the stride be used to space the thresholds
 	 *
-	 * @note The 'thresholds' vector is a parameter instead of a return value
-	 *       for ease of use by derived classes, e.g. ThresholdsBuilderHybrid
+	 * @note Any previous content in 'thresholds' is left untouched:
+	 *       the vector is resized and the thresholds selection is stored
+	 *       past the last valid element of 'thresholds' as it was given.
 	 */
 	void
 	build_thresholds(const ImportanceFunction& impFun,
-					 ImportanceVec& thresholds,
 					 const unsigned& margin,
-					 const unsigned& stride);
-
-	/// Choose stride based solely on the splitting selected by the user
-	virtual unsigned
-	choose_stride(const unsigned& splitsPerThreshold) const;
-
-	/// Choose stride based on all information available,
-	/// including internal info like expandEvery_ and postProcessing_
-	virtual unsigned
-	choose_stride(const unsigned& splitsPerThreshold,
-				  const unsigned& impRange) const;
+					 const unsigned& stride,
+					 const StrideType& strideType,
+					 ImportanceVec& thresholds);
 };
 
 } // namespace fig

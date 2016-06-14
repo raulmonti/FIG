@@ -70,7 +70,7 @@ public:
 
 	/// Default ctor
 	ThresholdsBuilderHybrid() : ThresholdsBuilder("hyb"),
-								ThresholdsBuilderFixed(4u, 35u)
+								ThresholdsBuilderFixed(6,42)
 		{ /* Not much to do around here */ }
 
 	inline bool adaptive() const noexcept override { return true; }

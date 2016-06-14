@@ -31,8 +31,9 @@
 #include <cmath>
 // C++
 #include <sstream>
-#include <numeric>  // std::iota()
+#include <numeric>    // std::iota()
 #include <iterator>
+#include <algorithm>  // std::sort(), std::unique()
 // FIG
 #include <ThresholdsBuilderFixed.h>
 #include <ImportanceFunction.h>
@@ -46,135 +47,157 @@ using std::end;
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
+ThresholdsBuilderFixed::ThresholdsBuilderFixed(ImportanceValue minImpRange,
+											   ImportanceValue expandEvery) :
+	ThresholdsBuilder("fix"),
+	MIN_IMP_RANGE(minImpRange),
+	EXPAND_EVERY(expandEvery)
+{ /* Not much to do around here */ }
+
+
 ImportanceVec
 ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 										 const ImportanceFunction& impFun,
 										 const PostProcessing& postProcessing)
 {
+	ImportanceVec thresholds;
 	const ImportanceValue IMP_RANGE(impFun.max_value()-impFun.initial_value());
+	const StrideType strideType(postProcessing.first == "exp" ? StrideType::GEOMETRICAL
+															  : StrideType::ARITHMETICAL);
 
 	figTechLog << "Building thresholds with \"" << name << "\" ";
 
-	if (IMP_RANGE < minImpRange_) {
+	if (IMP_RANGE < MIN_IMP_RANGE) {
+		stride_ = 1u;
 		figTechLog << "using all importance values as thresholds.\n";
+		thresholds.resize(1+impFun.max_value()-impFun.min_value());
 		ImportanceVec thresholds(1+impFun.max_value()-impFun.min_value());
 		std::iota(begin(thresholds), end(thresholds), impFun.min_value());
-		return thresholds;
+
+	} else {
+		stride_ = choose_stride(IMP_RANGE, splitsPerThreshold, strideType);
+		figTechLog << "for 1 out of every " << STRIDE << " importance value"
+				   << (STRIDE > 1 ? ("s.\n") : (".\n"));
+		// Start slightly above impFun's initial value to avoid oversampling
+		unsigned margin = std::min(impFun.max_value(), std::max(2u, IMP_RANGE/8u));
+		build_thresholds(impFun, thresholds, margin, stride_, strideType);
 	}
 
-	// What follows is clearly arbitrary but then we warned the user
-	// in the class' docstring, didn't we?
-	const unsigned EXPANSION(std::ceil(IMP_RANGE/((float)expandEvery_))),
-				   STRIDE(choose_stride(splitsPerThreshold) * EXPANSION);
-
-	figTechLog << "for 1 out of every " << STRIDE << " importance value"
-			   << (STRIDE > 1 ? ("s.\n") : (".\n"));
-
-	// Start slightly above impFun's initial value to avoid oversampling
-	const unsigned MARGIN =
-		std::min(static_cast<unsigned>(impFun.max_value()),
-				 std::max(2u, (impFun.max_value()-impFun.initial_value()) / 5u));
-	const unsigned RANGE = impFun.max_value() - impFun.initial_value() - MARGIN;
-
-	/// @todo TODO erase old code
-// #ifndef NDEBUG
-// 	const unsigned NUMT = std::floor(static_cast<float>(RANGE) / STRIDE);
-// #endif
-//
-//	std::stringstream msg;
-//	msg << "ImportanceValue of the chosen thresholds:";
-//	if (IMP_RANGE < MIN_IMP_RANGE)
-//		for (ImportanceValue i = impFun.min_value()+1u ;
-//		     i <= impFun.max_value() ;
-//		     i++)
-//			msg << " " << i;
-//	else
-//		for (unsigned i = MARGIN+STRIDE ; i <= MARGIN+RANGE ; i += STRIDE)
-//			msg << " " << i;
-//	ModelSuite::tech_log(msg.str() + "\n");
-
-	ImportanceVec thresholds;
-	postProcessing_ = postProcessing;
-	build_thresholds(impFun, thresholds, MARGIN, STRIDE);
 	show_thresholds(thresholds);
 	assert(!thresholds.empty());
 	assert(thresholds[0] == impFun.initial_value());
 	assert(thresholds.back() > impFun.max_value());
 
-	/// @todo TODO erase old code
-//	assert(static_cast<ImportanceValue>(0u)   == thresholds[impFun.min_value()]);
-//	assert(static_cast<ImportanceValue>(0u)   == thresholds[impFun.initial_value()]);
-//	assert(static_cast<ImportanceValue>(NUMT) == thresholds[impFun.max_value()]);
-
 	return thresholds;
 }
 
 
-unsigned
-ThresholdsBuilderFixed::choose_stride(const unsigned& splitsPerThreshold) const
+const ImportanceValue&
+ThresholdsBuilderFixed::stride() const noexcept
 {
-	/// @todo TODO Tune for arithmetic/geometric threshold building duality
+	return stride_;
+}
 
-	assert(splitsPerThreshold > 1u);
-	// What follows is clearly arbitrary but then we warned the user
-	// in the class' docstring, didn't we?     splitting        stride
-	return splitsPerThreshold <  5 ? 2u :      // 2,3,4 ----------> 2
-		   splitsPerThreshold <  9 ? 3u :      // 5,6,7,8 --------> 3
-		   splitsPerThreshold < 14 ? 4u : 5u;  // 9,10,11,12,13 --> 4
-											   // else -----------> 5
+
+const ImportanceValue&
+ThresholdsBuilderFixed::min_imp_range() const noexcept
+{
+	return MIN_IMP_RANGE;
 }
 
 
 unsigned
-ThresholdsBuilderFixed::choose_stride(const unsigned& splitsPerThreshold,
-									  const unsigned& impRange) const
+ThresholdsBuilderFixed::choose_stride(const size_t& impRange,
+									  const unsigned& splitsPerThreshold,
+									  const StrideType& strideType) const
 {
+	unsigned basicStride(1u), expansionFactor;
 	assert(splitsPerThreshold > 1u);
-	assert(impRange >= minImpRange_);
-	const unsigned BASIC_STRIDE(choose_stride(splitsPerThreshold)),
-				   EXPANSION_FACTOR(std::ceil(impRange/((float)expandEvery_)));
-
-	/// @todo TODO Finish, considering arithmetic/geometric threshold building duality
+	assert(0 <= strideType && strideType < StrideType::NUM_TYPES);
+	// What follows is clearly arbitrary, but then we warned the user
+	// in the class' docstring, didn't we?
+	if (impRange < MIN_IMP_RANGE) {
+		// Don't even bother
+		return basicStride;
+	} else if (strideType == StrideType::ARITHMETICAL) {
+		basicStride = splitsPerThreshold <  5u ? 2u :      // 2,3,4 ----------> 2
+					  splitsPerThreshold <  9u ? 3u :      // 5,6,7,8 --------> 3
+					  splitsPerThreshold < 14u ? 4u : 5u;  // 9,10,11,12,13 --> 4
+		expansionFactor = std::ceil(static_cast<float>(impRange) / EXPAND_EVERY);
+	} else if (strideType == StrideType::GEOMETRICAL) {
+		basicStride = splitsPerThreshold <  4u ? 1u :      // 2,3 ------> 1
+					  splitsPerThreshold <  7u ? 2u : 3u;  // 4,5,6 ----> 2
+		expansionFactor = std::ceil(std::log(impRange) / EXPAND_EVERY);
+	}
+	// Make sure return type can represent the computed stride
+	assert(std::log2(static_cast<float>(basicStride)*expansionFactor)
+			< sizeof(decltype(basicStride))*8.0f);
+	return basicStride*expansionFactor;
 }
 
 
 void
 ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
-										 ImportanceVec& thresholds,
-										 const unsigned& MARGIN,
-										 const unsigned& STRIDE)
+										 const unsigned& margin,
+										 const unsigned& stride,
+										 const StrideType& strideType,
+										 ImportanceVec& thresholds)
 {
+	assert(impFun.max_value() > impFun.initial_value() + margin);
+	assert(0 <= strideType && strideType < StrideType::NUM_TYPES);
 
-	/// @fixme TODO consider the value of postProcessing_ to determine how
-	///             the stride should be applied (arithmetically vs geometrically)
+	const size_t IMP_RANGE(impFun.max_value() - impFun.initial_value() - margin);
 
-	const size_t SIZE(impFun.max_value() - impFun.min_value() + 1u);
-	thresholds.resize(SIZE);
+	if (strideType == StrideType::ARITHMETICAL) {
+		const size_t SIZE(std::ceil(static_cast<float>(IMP_RANGE)/stride)),
+					 OLD_SIZE(thresholds.size());
+		thresholds.resize(OLD_SIZE+SIZE);
+		for (size_t i = OLD_SIZE, imp = impFun.initial_value() + margin ;
+			 i < thresholds.size() ;
+			 imp += stride, i++)
+			thresholds[i] = static_cast<ImportanceFunction>(imp);
 
-	if (SIZE-1u < MIN_IMP_RANGE) {
-		// Too few values: everything above the base will be a threshold
-		ImportanceValue imp(0u);
-		unsigned pos;
-		for (pos = impFun.min_value() ; pos <= impFun.max_value() ; pos++)
-			thresholds[pos] = imp++;
-		return;
+	} else if (strideType == StrideType::GEOMETRICAL) {
+		for (ImportanceValue imp = impFun.initial_value() + margin;
+			 imp < impFun.max_value();
+			 imp *= stride)
+			thresholds.push_back(imp);
+		thresholds.push_back(impFun.max_value()+1u);
 	}
 
-	// Thresholds building starts at the initial state's importance + margin,
-	// everything from there downwards will be the zeroth level
-	const ImportanceValue zero(0u);
-	size_t pos;
-	for (pos = impFun.min_value() ; pos < impFun.initial_value()+margin ; pos++)
-		thresholds[pos] = zero;
-	unsigned s(0u);
-	ImportanceValue current(zero);
-	for (; pos <= impFun.max_value() ; pos++) {
-		thresholds[pos] = current;
-		if (++s >= stride) {
-			current++;
-			s = 0;
-		}
-	}
+	// Enforce consistency (remember thresholds may contain previous data)
+	std::sort(begin(thresholds), end(thresholds));
+	std::unique(begin(thresholds), end(thresholds));
+	thresholds.shrink_to_fit();
+
+
+	/// @todo TODO remove old code
+//	const size_t SIZE(impFun.max_value() - impFun.min_value() + 1u);
+//	thresholds.resize(SIZE);
+//
+//	if (SIZE-1u < MIN_IMP_RANGE) {
+//		// Too few values: everything above the base will be a threshold
+//		ImportanceValue imp(0u);
+//		unsigned pos;
+//		for (pos = impFun.min_value() ; pos <= impFun.max_value() ; pos++)
+//			thresholds[pos] = imp++;
+//		return;
+//	}
+//	// Thresholds building starts at the initial state's importance + margin,
+//	// everything from there downwards will be the zeroth level
+//	const ImportanceValue zero(0u);
+//	size_t pos;
+//	for (pos = impFun.min_value() ; pos < impFun.initial_value()+margin ; pos++)
+//		thresholds[pos] = zero;
+//	unsigned s(0u);
+//	ImportanceValue current(zero);
+//	for (; pos <= impFun.max_value() ; pos++) {
+//		thresholds[pos] = current;
+//		if (++s >= stride) {
+//			current++;
+//			s = 0;
+//		}
+//	}
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

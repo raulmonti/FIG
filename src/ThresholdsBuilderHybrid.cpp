@@ -59,7 +59,8 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 	try {
 		// Start out using an adaptive technique, which may just work btw
 		halted_ = false;
-		ThresholdsBuilderAdaptive::build_thresholds(splitsPerThreshold, impFun);
+		ThresholdsBuilderAdaptive::build_thresholds(splitsPerThreshold, impFun,
+													postProcessing);
 		std::swap(thresholds, thresholds_);  // it worked!
 
 	} catch (FigException&) {
