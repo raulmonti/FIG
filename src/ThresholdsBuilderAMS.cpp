@@ -173,11 +173,6 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 	}
 
 	TraialPool::get_instance().return_traials(traials);
-    { std::stringstream msg;
-	msg << "\nImportanceValue of the chosen thresholds:";
-	for (size_t i = 1ul ; i < thresholds_.size() ; i++)
-		msg << " " << thresholds_[i];
-	ModelSuite::tech_log(msg.str() + "\n"); }
 	thresholds_.push_back(impFun.max_value() + static_cast<ImportanceValue>(1u));
 	return;
 

@@ -63,9 +63,9 @@ class ThresholdsBuilderSMC : public virtual ThresholdsBuilderAdaptive
 	static constexpr unsigned MAX_SIM_EFFORT = 1u<<9u;
 
 	/// Min # of failures allowed when searching for a new threshold
-	static constexpr unsigned MIN_NUM_FAILURES = 2u;
+	static constexpr unsigned MIN_NUM_FAILURES = 3u;
 	/// Max # of failures allowed when searching for a new threshold
-	static constexpr unsigned MAX_NUM_FAILURES = 5u;
+	static constexpr unsigned MAX_NUM_FAILURES = 6u;
 
 public:
 

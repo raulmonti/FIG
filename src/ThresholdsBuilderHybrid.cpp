@@ -70,48 +70,6 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 								postProcessing);
 		ThresholdsBuilderFixed::build_thresholds(impFun, MARGIN, stride_,
 												 postProcessing, thresholds_);
-
-
-		/// @todo TODO erase old code
-//		if (thresholds_.back() <= impFun.initial_value()) {  // avoid 'lowest' threshold
-//			ImportanceValue iteration(0u);
-//			const ImportanceValue MIN_THR(impFun.initial_value()+1);
-//			for (auto& thr: thresholds_)
-//				thr = MIN_THR + (iteration++);
-//		}
-//		const size_t LAST_THR(thresholds_.back()),
-//					 MARGIN(LAST_THR - impFun.initial_value()),
-//					 IMP_RANGE(impFun.max_value() - impFun.min_value()),
-//					 EXPANSION(std::ceil(IMP_RANGE/((float)IMP_LEAP_SIZE))),
-//					 STRIDE(choose_stride(splitsPerThreshold) * EXPANSION);
-//
-//		figTechLog << "\nResorting to fixed choice of thresholds starting "
-//				   << "above the ImportanceValue " << LAST_THR << "\n";
-//
-//		// Choose fixed thresholds above LAST_THR
-//		ThresholdsBuilderFixed::build_thresholds(impFun, thresholds, MARGIN, STRIDE);
-//		NUMT = std::floor(static_cast<float>(impFun.max_value()-LAST_THR) / STRIDE);
-//		NUMT += thresholds_.size() - 1;
-//
-//		// Format the first "adaptive section" of 'thresholds'
-//		unsigned currThr(0u), imp(0u);
-//		do {
-//			thresholds[imp] = static_cast<ImportanceValue>(currThr);
-//			while (currThr < thresholds_.size()-1 && imp >= thresholds_[currThr+1])
-//				currThr++;
-//		} while (static_cast<ImportanceValue>(0u) == thresholds[++imp]);
-//
-//		// Format the second "fixed section" of 'thresholds'
-//		for (/* imp value from previous loop */ ; imp < thresholds.size() ; imp++)
-//			thresholds[imp] += currThr;
-//
-//		std::stringstream msg;
-//		msg << "ImportanceValue of the chosen thresholds:";
-//		for (size_t i = 1ul ; i < thresholds_.size() ; i++)
-//			msg << " " << thresholds_[i];
-//		for (size_t i = LAST_THR + STRIDE ; i < impFun.max_value() ; i += STRIDE)
-//			msg << " " << i;
-//		ModelSuite::tech_log(msg.str() + "\n");
 	}
 
 	// Tidy-up
@@ -123,7 +81,7 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 	show_thresholds(thresholds);
 	assert(!thresholds.empty());
 	assert(thresholds[0] == impFun.initial_value());
-	assert(thresholds.back() > impFun.max_value());
+	assert(thresholds.back() == 1 + impFun.max_value());
 
 	return thresholds;
 }

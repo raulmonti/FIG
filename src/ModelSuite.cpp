@@ -817,15 +817,6 @@ ModelSuite::exists_importance_post_processing(const std::string& postProc) noexc
 
 
 bool
-ModelSuite::exists_importance_post_processing(
-		const decltype(PostProcessing::type)& postProcType) noexcept
-{
-	return PostProcessing::NONE <= postProcType &&
-			postProcType < PostProcessing::INVALID;
-}
-
-
-bool
 ModelSuite::exists_threshold_technique(const std::string& thrTechnique) noexcept
 {
 	const auto& thrTechs = available_threshold_techniques();

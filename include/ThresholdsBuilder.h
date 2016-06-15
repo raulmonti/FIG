@@ -107,7 +107,7 @@ public:
 	 *       == 1 + number of threshold levels <br>
 	 *       == 2 + number of thresholds built
 	 * @note The first value in the map == initial state importance
-	 * @note The last  value in the map  > impFun.max_importance()
+	 * @note The last  value in the map == 1 + impFun.max_importance()
 	 *
 	 * @throw FigException if thresholds building failed
 	 */

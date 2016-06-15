@@ -68,14 +68,15 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 	if (IMP_RANGE < MIN_IMP_RANGE) {
 		stride_ = 1u;
 		figTechLog << "using all importance values as thresholds.\n";
-		thresholds.resize(1+impFun.max_value()-impFun.min_value());
-		ImportanceVec thresholds(1+impFun.max_value()-impFun.min_value());
-		std::iota(begin(thresholds), end(thresholds), impFun.min_value());
+		thresholds.resize(2+impFun.max_value()-impFun.min_value());
+		ImportanceVec thresholds(2+impFun.max_value()-impFun.initial_value());
+		std::iota(begin(thresholds), end(thresholds), impFun.initial_value());
 
 	} else {
 		stride_ = choose_stride(IMP_RANGE, splitsPerThreshold, postProcessing);
 		figTechLog << "for 1 out of every " << stride_ << " importance value"
 				   << (stride_ > 1 ? ("s.\n") : (".\n"));
+		thresholds.push_back(impFun.initial_value());
 		// Start slightly above impFun's initial value to avoid oversampling
 		unsigned margin = std::min(impFun.max_value(), std::max(2u, IMP_RANGE/8u));
 		build_thresholds(impFun, margin, stride_, postProcessing, thresholds);
@@ -84,7 +85,7 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 	show_thresholds(thresholds);
 	assert(!thresholds.empty());
 	assert(thresholds[0] == impFun.initial_value());
-	assert(thresholds.back() > impFun.max_value());
+	assert(thresholds.back() == 1 + impFun.max_value());
 
 	return thresholds;
 }
@@ -189,35 +190,8 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 	auto newEnd = std::unique(begin(thresholds), end(thresholds));
 	thresholds.erase(newEnd, end(thresholds));
 	thresholds.shrink_to_fit();
-
-
-	/// @todo TODO remove old code
-//	const size_t SIZE(impFun.max_value() - impFun.min_value() + 1u);
-//	thresholds.resize(SIZE);
-//
-//	if (SIZE-1u < MIN_IMP_RANGE) {
-//		// Too few values: everything above the base will be a threshold
-//		ImportanceValue imp(0u);
-//		unsigned pos;
-//		for (pos = impFun.min_value() ; pos <= impFun.max_value() ; pos++)
-//			thresholds[pos] = imp++;
-//		return;
-//	}
-//	// Thresholds building starts at the initial state's importance + margin,
-//	// everything from there downwards will be the zeroth level
-//	const ImportanceValue zero(0u);
-//	size_t pos;
-//	for (pos = impFun.min_value() ; pos < impFun.initial_value()+margin ; pos++)
-//		thresholds[pos] = zero;
-//	unsigned s(0u);
-//	ImportanceValue current(zero);
-//	for (; pos <= impFun.max_value() ; pos++) {
-//		thresholds[pos] = current;
-//		if (++s >= stride) {
-//			current++;
-//			s = 0;
-//		}
-//	}
+	assert(thresholds.back() > impFun.max_value());
+	thresholds.back() = impFun.max_value() + static_cast<ImportanceValue>(1u);
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

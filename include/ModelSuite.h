@@ -352,11 +352,8 @@ public:  // Utils
 	static bool exists_importance_strategy(const std::string& impStrategy) noexcept;
 
 	/// Is "postProc" an available pos-processing for ImportanceFunctionConcrete?
+	/// @see available_importance_post_processings()
 	static bool exists_importance_post_processing(const std::string& postProc) noexcept;
-
-	/// Is "postProcType" a valid post-processing type for ImportanceFunctionConcrete?
-	static bool exists_importance_post_processing(
-			const decltype(PostProcessing::type)& postProcType) noexcept;
 
 	/// Is 'thrTechnique' an available thresholds building technique?
 	/// @see available_threshold_techniques()

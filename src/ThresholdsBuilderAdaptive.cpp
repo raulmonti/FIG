@@ -83,10 +83,11 @@ ThresholdsBuilderAdaptive::build_thresholds(const unsigned& splitsPerThreshold,
 
 	// Chose the thresholds importance values, i.e. run the adaptive algorithm
 	build_thresholds_vector(impFun);
+
 	show_thresholds(thresholds_);
 	assert(!thresholds_.empty());
 	assert(thresholds_[0] == impFun.initial_value());
-	assert(thresholds_.back() > impFun.max_value());
+	assert(thresholds_.back() == 1 + impFun.max_value());
 
 	/// @todo TODO erase old code
 //	// Format result and finish up
