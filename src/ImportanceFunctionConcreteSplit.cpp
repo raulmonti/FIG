@@ -50,9 +50,9 @@ using std::end;
 namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
+using fig::ImportanceVec;
 using fig::ImportanceValue;
 using Formula = fig::ImportanceFunction::Formula;
-using ImportanceVec = fig::ImportanceFunction::ImportanceVec;
 using CompositionType = fig::ImportanceFunctionConcreteSplit::CompositionType;
 
 /// ImportanceValue extremes: (minValue_, maxValue_, minRareValue_)
@@ -487,7 +487,7 @@ ImportanceFunctionConcreteSplit::compose_comp_function(
 void
 ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 												   const std::string& strategy,
-												   const PPSpec& postProc)
+												   const PostProcessing& postProc)
 {
 	if ("flat" == strategy)
 		set_composition_fun("+");

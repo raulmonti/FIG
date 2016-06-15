@@ -680,7 +680,7 @@ ModelSuite::set_timeout(const seconds& timeLimit)
 	const unsigned seconds(timeLimit.count()%60);
 	char timeStr[9] = {'\0'};
 	std::sprintf(timeStr, "%02u:%02u:%02u", hours, minutes, seconds);
-	if (timeLimit.count() > 0ul)
+	if (timeLimit.count() > 0l)
 		tech_log("Timeout set to " + std::string(timeStr) + "\n");
 	else
 		tech_log("Timeout was unset\n");
@@ -808,11 +808,20 @@ ModelSuite::exists_importance_strategy(const std::string& impStrategy) noexcept
 
 
 bool
-ModelSuite::exists_importance_post_processing(const std::string& impPP) noexcept
+ModelSuite::exists_importance_post_processing(const std::string& postProc) noexcept
 {
 	const auto& impPostProc = available_importance_post_processings();
-	return impPP.empty() ||
-			end(impPostProc) != find(begin(impPostProc), end(impPostProc), impPP);
+	return postProc.empty() ||
+			end(impPostProc) != find(begin(impPostProc), end(impPostProc), postProc);
+}
+
+
+bool
+ModelSuite::exists_importance_post_processing(
+		const decltype(PostProcessing::type)& postProcType) noexcept
+{
+	return PostProcessing::NONE <= postProcType &&
+			postProcType < PostProcessing::INVALID;
 }
 
 
@@ -938,8 +947,8 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 							 impFun.minValue,
 							 impFun.maxValue);
 		}
-		if (!impFun.postProcessing.empty())
-			techLog_ << "\nWARNING: post-processing \"" << impFun.postProcessing
+		if (PostProcessing::NONE != impFun.postProcessing.type)
+			techLog_ << "\nWARNING: post-processing \"" << impFun.postProcessing.name
 					 << "\" ignored; can't specify a post-processing for "
 					 << "\"adhoc\" importance assessment (build that into "
 					 << "the expression you provided!)\n";

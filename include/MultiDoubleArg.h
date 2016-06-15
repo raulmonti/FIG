@@ -221,12 +221,19 @@ MultiDoubleArg<T1_,T2_>::MultiDoubleArg(
 	Constraint<T2_>* constraint2) :
 		Arg(flag, name, desc, req, true, nullptr),
 		_values(),
-		_typeDesc(constraint1->shortID() + "> <" + constraint2->shortID()),
+		_typeDesc(""),
 		_constraint1(constraint1),
 		_constraint2(constraint2),
 		_allowMore(false)
 {
 	_acceptsMultipleValues = true;
+	if (nullptr != constraint1)
+		_typeDesc.append(constraint1->shortID());
+	if (nullptr != constraint2) {
+		if (!_typeDesc.empty())
+			_typeDesc.append("> <");
+		_typeDesc.append(constraint2->shortID());
+	}
 }
 
 

@@ -148,7 +148,30 @@ typedef  unsigned int                                        ImportanceValue;
 typedef  std::vector< ImportanceValue >                        ImportanceVec;
 
 /// Post-process applied to the \ref ImportanceValue "importance values" assessed
-typedef  std::pair< std::string, float >                      PostProcessing;
+struct PostProcessing
+{
+	/// Type of post-processing
+	enum {
+		/// Don't modify importance values
+		NONE = 0,
+		/// Increase/decrease importance values by a constant
+		SHIFT,
+		/// Exponentiate importance values
+		EXP,
+		/// Invalid post-processing
+		INVALID
+	} type;
+
+	/// Human-readable name associated to the type
+	std::string name;
+
+	/// Post-processing argument value (e.g. base of the exponentiation for EXP)
+	float value;
+
+	PostProcessing() : type(NONE), name(""), value(0.0f) {}
+	PostProcessing(decltype(type) theType, const std::string& theName, float theValue) :
+		type(theType), name(theName), value(theValue) {}
+};
 
 /// ImportanceFunction specification: this struct should be filled
 /// during the command line parsing, with the data provided by the user
@@ -172,7 +195,7 @@ struct ImpFunSpec
 	ImpFunSpec(const std::string& theName,
 			   const std::string& theStrategy,
 			   const std::string& theAlgebraicFormula = "",
-			   const PostProcessing& thePostProcessing = std::make_pair("",.0),
+			   const PostProcessing& thePostProcessing = PostProcessing(),
 			   const ImportanceValue& theMinValue = static_cast<ImportanceValue>(0u),
 			   const ImportanceValue& theMaxValue = static_cast<ImportanceValue>(0u),
 			   const ImportanceValue& theNeutralElement = static_cast<ImportanceValue>(0u)) :

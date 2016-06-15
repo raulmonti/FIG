@@ -54,7 +54,7 @@ ImportanceFunctionConcreteCoupled::~ImportanceFunctionConcreteCoupled()
 void
 ImportanceFunctionConcreteCoupled::assess_importance(const Property& prop,
 													 const std::string& strategy,
-													 const PPSpec& postProc)
+													 const PostProcessing& postProc)
 {
     if (hasImportanceInfo_)
 		ImportanceFunctionConcrete::clear();

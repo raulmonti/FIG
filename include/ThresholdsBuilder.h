@@ -99,7 +99,7 @@ public:
 	 *               \ref ImportanceFunction::has_importance_info()
 	 *               "importance information" to use for the task
 	 * @param postProcessing Post-processing applied to the ImportanceValue s
-	 *                       after importance assessment, if any.
+	 *                       after importance assessment
 	 *
 	 * @return Thresholds levels map as explained in the details.
 	 *
@@ -114,7 +114,7 @@ public:
 	virtual ImportanceVec
 	build_thresholds(const unsigned& splitsPerThreshold,
 					 const ImportanceFunction& impFun,
-					 const PostProcessing& postProc) = 0;
+					 const PostProcessing& postProcessing) = 0;
 
 	/**
 	 * @brief Turn map around, building an importance-to-threshold map
@@ -135,7 +135,7 @@ public:
 	 *          viz. the maximum importance referred to in the argument.
 	 */
 	ImportanceVec
-	invert_thresholds_map(const ImportanceVec& t2i);
+	invert_thresholds_map(const ImportanceVec& t2i) const;
 
 protected:  // Utils for the class and its kin
 

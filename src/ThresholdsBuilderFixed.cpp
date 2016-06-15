@@ -62,8 +62,6 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 {
 	ImportanceVec thresholds;
 	const ImportanceValue IMP_RANGE(impFun.max_value()-impFun.initial_value());
-	const StrideType strideType(postProcessing.first == "exp" ? StrideType::GEOMETRICAL
-															  : StrideType::ARITHMETICAL);
 
 	figTechLog << "Building thresholds with \"" << name << "\" ";
 
@@ -75,12 +73,12 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 		std::iota(begin(thresholds), end(thresholds), impFun.min_value());
 
 	} else {
-		stride_ = choose_stride(IMP_RANGE, splitsPerThreshold, strideType);
-		figTechLog << "for 1 out of every " << STRIDE << " importance value"
-				   << (STRIDE > 1 ? ("s.\n") : (".\n"));
+		stride_ = choose_stride(IMP_RANGE, splitsPerThreshold, postProcessing);
+		figTechLog << "for 1 out of every " << stride_ << " importance value"
+				   << (stride_ > 1 ? ("s.\n") : (".\n"));
 		// Start slightly above impFun's initial value to avoid oversampling
 		unsigned margin = std::min(impFun.max_value(), std::max(2u, IMP_RANGE/8u));
-		build_thresholds(impFun, thresholds, margin, stride_, strideType);
+		build_thresholds(impFun, margin, stride_, postProcessing, thresholds);
 	}
 
 	show_thresholds(thresholds);
@@ -109,30 +107,43 @@ ThresholdsBuilderFixed::min_imp_range() const noexcept
 unsigned
 ThresholdsBuilderFixed::choose_stride(const size_t& impRange,
 									  const unsigned& splitsPerThreshold,
-									  const StrideType& strideType) const
+									  const PostProcessing& postProcessing) const
 {
-	unsigned basicStride(1u), expansionFactor;
+	unsigned basicStride(1u), expansionFactor(1u);
 	assert(splitsPerThreshold > 1u);
-	assert(0 <= strideType && strideType < StrideType::NUM_TYPES);
+	if (impRange < MIN_IMP_RANGE)
+		return basicStride;  // Don't even bother
+
 	// What follows is clearly arbitrary, but then we warned the user
 	// in the class' docstring, didn't we?
-	if (impRange < MIN_IMP_RANGE) {
-		// Don't even bother
-		return basicStride;
-	} else if (strideType == StrideType::ARITHMETICAL) {
+	switch (postProcessing.type)
+	{
+	case (PostProcessing::NONE):
+	case (PostProcessing::SHIFT):
 		basicStride = splitsPerThreshold <  5u ? 2u :      // 2,3,4 ----------> 2
 					  splitsPerThreshold <  9u ? 3u :      // 5,6,7,8 --------> 3
 					  splitsPerThreshold < 14u ? 4u : 5u;  // 9,10,11,12,13 --> 4
 		expansionFactor = std::ceil(static_cast<float>(impRange) / EXPAND_EVERY);
-	} else if (strideType == StrideType::GEOMETRICAL) {
-		basicStride = splitsPerThreshold <  4u ? 1u :      // 2,3 ------> 1
-					  splitsPerThreshold <  7u ? 2u : 3u;  // 4,5,6 ----> 2
+		// Make sure return type can represent the computed stride
+		assert(std::log2(static_cast<float>(basicStride)*expansionFactor)
+				< sizeof(decltype(basicStride))*8.0f);
+		return basicStride * expansionFactor;
+		break;
+
+	case (PostProcessing::EXP):
+		basicStride = splitsPerThreshold <  5u ? 1u :      // 2,3,4 ------> 1
+					  splitsPerThreshold <  9u ? 2u : 3u;  // 5,6,7,8 ----> 2
 		expansionFactor = std::ceil(std::log(impRange) / EXPAND_EVERY);
+		// Make sure return type can represent the computed stride
+		assert(basicStride*expansionFactor < sizeof(decltype(basicStride))*8u);
+		return std::pow(postProcessing.value, basicStride*expansionFactor);
+		break;
+
+	default:
+		throw_FigException("invalid post-processing specified ("
+						  + std::to_string(postProcessing.type) + ")");
+		break;
 	}
-	// Make sure return type can represent the computed stride
-	assert(std::log2(static_cast<float>(basicStride)*expansionFactor)
-			< sizeof(decltype(basicStride))*8.0f);
-	return basicStride*expansionFactor;
 }
 
 
@@ -140,30 +151,44 @@ void
 ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 										 const unsigned& margin,
 										 const unsigned& stride,
-										 const StrideType& strideType,
+										 const PostProcessing& postProcessing,
 										 ImportanceVec& thresholds)
 {
 	assert(impFun.max_value() > impFun.initial_value() + margin);
-	assert(0 <= strideType && strideType < StrideType::NUM_TYPES);
 
 	const size_t IMP_RANGE(impFun.max_value() - impFun.initial_value() - margin);
 
-	if (strideType == StrideType::ARITHMETICAL) {
-		const size_t SIZE(std::ceil(static_cast<float>(IMP_RANGE)/stride)),
-					 OLD_SIZE(thresholds.size());
-		thresholds.resize(OLD_SIZE+SIZE);
-		for (size_t i = OLD_SIZE, imp = impFun.initial_value() + margin ;
-			 i < thresholds.size() ;
-			 imp += stride, i++)
-			thresholds[i] = static_cast<ImportanceFunction>(imp);
+	switch (postProcessing.type)
+	{
+	case (PostProcessing::NONE):
+	case (PostProcessing::SHIFT):
+		{ const size_t SIZE(std::ceil(static_cast<float>(IMP_RANGE)/stride)),
+					   OLD_SIZE(thresholds.size());
+//		thresholds.resize(OLD_SIZE+SIZE);
+//		for (size_t i = OLD_SIZE, imp = impFun.initial_value() + margin ;
+//			 i < thresholds.size() ;
+//			 imp += stride, i++)
+//			thresholds[i] = static_cast<ImportanceValue>(imp);
+		for (ImportanceValue imp = impFun.initial_value() + margin;
+			 imp < impFun.max_value();
+			 imp += stride)
+			thresholds.push_back(imp);
+		thresholds.push_back(impFun.max_value()+1u);
+		}; break;
 
-	} else if (strideType == StrideType::GEOMETRICAL) {
+	case (PostProcessing::EXP):
 		for (ImportanceValue imp = impFun.initial_value() + margin;
 			 imp < impFun.max_value();
 			 imp *= stride)
 			thresholds.push_back(imp);
 		thresholds.push_back(impFun.max_value()+1u);
-	}
+		break;
+
+	default:
+		throw_FigException("invalid post-processing specified (\""
+						  + postProcessing.name + "\")");
+		break;
+	};
 
 	// Enforce consistency (remember thresholds may contain previous data)
 	std::sort(begin(thresholds), end(thresholds));

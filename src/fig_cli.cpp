@@ -45,6 +45,7 @@
 #include <FigConfig.h>
 #include <FigException.h>
 #include <ModelSuite.h>
+#include <ImportanceFunctionConcrete.h>  // interpret_post_processing()
 #include <MultiDoubleArg.h>
 #include <NumericConstraint.h>
 #include <TimeConstraint.h>
@@ -215,13 +216,15 @@ std::vector< Arg* > impFunSpecs = {
 
 // Importance function post-processing
 ValuesConstraint<string> postProcConstraints(
-		fig::ModelSuite::available_importance_post_processings());
+	fig::ModelSuite::available_importance_post_processings());
+NumericConstraint<float> postProcArg(
+	[](const float&){ return true; }, "value");
 MultiDoubleArg< string, float > impPostProc(
 	"", "post-process",
 	"Specify a post-processing to apply to the importance computed, e.g. "
 	"\"--post-process exp 2.0\" to exponentiate all values using '2' as "
 	"the base. Only applicable to --amono and --acomp importance functions.",
-	false, postProcConstraints, nullptr);
+	false, &postProcConstraints, &postProcArg);
 
 // Stopping conditions (aka estimation bounds)
 NumericConstraint<float> ccConstraint(
@@ -237,8 +240,7 @@ MultiDoubleArg< float, float > confidenceCriteria(
 	"(relative to the estimate) to reach. This is a multi-argument, "
 	"meaning you can define as many of them as you wish, "
 	"e.g. \"--stop-conf 0.8 0.4 --stop-conf 0.95 0.1\"",
-	false,
-	&ccConstraint, &precConstraint);
+	false, &ccConstraint, &precConstraint);
 TimeConstraint<string> timeDurationConstraint;
 MultiArg<string> timeCriteria(
 	"", "stop-time",
@@ -260,8 +262,7 @@ ValueArg<string> timeout(
 	"Running time limit: if set, any simulation will be soft-interrupted "
 	"after running for this (wall clock) time. If the stopping condition for "
 	"a simulation is also time based, the lowest of the two values will apply.",
-	false, "",
-	&timeDurationConstraint);
+	false, "", &timeDurationConstraint);
 
 // Splitting values to test
 ValueArg<string> splittings_(
@@ -349,7 +350,7 @@ parse_ifun_details(const std::string& details)
 bool
 get_ifun_specification()
 {
-	auto postProc = std::make_pair("", 0.0f);
+	fig::PostProcessing postProc;
 	if (impPostProc.isSet()) {
 		if (impPostProc.getValues().size() > 1) {
 			// Mimic TCLAP's 'parsing error' message style
@@ -358,7 +359,8 @@ get_ifun_specification()
 			return false;
 		} else {
 			assert(impPostProc.getValues().size() == 1ul);
-			postProc = impPostProc.getValues()[0ul];
+			postProc = fig::ImportanceFunctionConcrete::interpret_post_processing(
+						   impPostProc.getValues()[0ul]);
 		}
 	}
 
@@ -433,7 +435,7 @@ get_stopping_conditions()
 								timeUnit == 'h' ? 3600ul  :
 								timeUnit == 'd' ? 86400ul : 0ul);
 			const size_t timeLen = std::strtoul(timeCrit.data(), &err, 10);
-			assert (nullptr == err || err[0] != '\0');
+			assert (nullptr == err || err[0] == '\0');
 			stopCond.add_time_budget(timeLen * FACTOR);
 		}
 		estBounds.emplace(estBounds.begin(), stopCond);

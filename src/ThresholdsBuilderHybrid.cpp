@@ -51,9 +51,10 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 										  const PostProcessing& postProcessing)
 {
 	// Impose an execution wall time limit...
+	const std::chrono::minutes TIMEOUT = ADAPTIVE_TIMEOUT;  // take by value!
 	std::thread timer([] (bool& halt, const std::chrono::minutes& limit)
 					  { std::this_thread::sleep_for(limit); halt=true; },
-					  std::ref(halted_), ADAPTIVE_TIMEOUT);
+					  std::ref(halted_), TIMEOUT);
 	try {
 		// Start out using an adaptive technique, which may just work btw
 		halted_ = false;
@@ -63,17 +64,12 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 		// Adaptive algorithm couldn't finish but achievements remain
 		// stored in the vector member 'thresholds_'
 		const size_t MARGIN(thresholds_.back());
-		const StrideType strideType(postProcessing.first == "exp"
-									? StrideType::GEOMETRICAL
-									: StrideType::ARITHMETICAL);
-
 		figTechLog << "\nResorting to fixed choice of thresholds starting "
 				   << "above the ImportanceValue " << MARGIN << "\n";
-
 		stride_ = choose_stride(impFun.max_value()-MARGIN, splitsPerThreshold,
-								strideType);
+								postProcessing);
 		ThresholdsBuilderFixed::build_thresholds(impFun, MARGIN, stride_,
-												 strideType, thresholds_);
+												 postProcessing, thresholds_);
 
 
 		/// @todo TODO erase old code
@@ -134,31 +130,46 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 
 
 unsigned
-ThresholdsBuilderFixed::choose_stride(const size_t& impRange,
-									  const unsigned& splitsPerThreshold,
-									  const StrideType& strideType) const
+ThresholdsBuilderHybrid::choose_stride(const size_t& impRange,
+									   const unsigned& splitsPerThreshold,
+									   const PostProcessing& postProcessing) const
 {
-	unsigned basicStride(1u), expansionFactor;
+	unsigned basicStride(1u), expansionFactor(1u);
 	assert(splitsPerThreshold > 1u);
-	assert(0 <= strideType && strideType < StrideType::NUM_TYPES);
-	if (impRange < MIN_IMP_RANGE) {
-		// Don't even bother
-		return basicStride;
-	} else if (strideType == StrideType::ARITHMETICAL) {
+	if (impRange < MIN_IMP_RANGE)
+		return basicStride;  // Don't even bother
+
+	// What follows is clearly arbitrary, but then we warned the user
+	// in the class' docstring, didn't we?
+	switch (postProcessing.type)
+	{
+	case (PostProcessing::NONE):
+	case (PostProcessing::SHIFT):
 		basicStride = splitsPerThreshold <  4u ? 2u :      // 2,3 -------------> 2
 					  splitsPerThreshold <  7u ? 3u :      // 4,5,6 -----------> 3
 					  splitsPerThreshold < 11u ? 4u :      // 7,8,9,10 --------> 4
 					  splitsPerThreshold < 16u ? 5u : 6u;  // 11,12,13,14,15 --> 5
 		expansionFactor = std::ceil(static_cast<float>(impRange) / EXPAND_EVERY);
-	} else if (strideType == StrideType::GEOMETRICAL) {
+		// Make sure return type can represent the computed stride
+		assert(std::log2(static_cast<float>(basicStride)*expansionFactor)
+				< sizeof(decltype(basicStride))*8.0f);
+		return basicStride * expansionFactor;
+		break;
+
+	case (PostProcessing::EXP):
 		basicStride = splitsPerThreshold <  4u ? 1u :      // 2,3 ------> 1
 					  splitsPerThreshold <  7u ? 2u : 3u;  // 4,5,6 ----> 2
 		expansionFactor = std::ceil(std::log(impRange) / EXPAND_EVERY);
+		// Make sure return type can represent the computed stride
+		assert(basicStride*expansionFactor < sizeof(decltype(basicStride))*8u);
+		return std::pow(postProcessing.value, basicStride*expansionFactor);
+		break;
+
+	default:
+		throw_FigException("invalid post-processing specified (\""
+						  + postProcessing.name + "\")");
+		break;
 	}
-	// Make sure return type can represent the computed stride
-	assert(std::log2(static_cast<float>(basicStride)*expansionFactor)
-			< sizeof(decltype(basicStride))*8.0f);
-	return basicStride*expansionFactor;
 }
 
 

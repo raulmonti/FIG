@@ -66,10 +66,24 @@ using parser::DNFclauses;
  */
 class ImportanceFunctionConcrete : public ImportanceFunction
 {
-public:  // Class attributes
+public:  // Class attributes/members
 
 	/// How many kinds of post-processings are offered for the stored values
 	static constexpr size_t NUM_POST_PROCESSINGS = 2;
+
+	/// Post processings (for the values stored) offered to the user,
+	/// as he should requested them through the CLI.
+	/// @note Implements the <a href="https://goo.gl/yhTgLq"><i>Construct On
+	///       First Use</i> idiom</a> for static data members,
+	///       to avoid the <a href="https://goo.gl/chH5Kg"><i>static
+	///       initialization order fiasco</i>.
+	static const std::array< std::string, NUM_POST_PROCESSINGS >&
+	post_processings() noexcept;
+
+	/// Build post-processing specification from user provided data
+	/// @throw FigException if user data is invalid
+	static PostProcessing
+	interpret_post_processing(const std::pair<std::string, float>& pp) noexcept;
 
 protected:  // Attributes
 
@@ -80,7 +94,7 @@ protected:  // Attributes
 	mutable State< STATE_INTERNAL_TYPE > globalStateCopy;
 
 	/// Post-processing used last after assessing the importance
-	/// with this function, if any
+	/// with this function. @see post_processings()
 	PostProcessing postProc_;
 
 	/// Did the user specify the extreme values?    <br>
@@ -99,15 +113,6 @@ public:  // Ctor/Dtor
 public:  // Accessors
 
 	inline bool concrete() const noexcept override final { return true; }
-
-	/// Post processings (for the values stored) offered to the user,
-	/// as he should requested them through the CLI.
-	/// @note Implements the <a href="https://goo.gl/yhTgLq"><i>Construct On
-	///       First Use</i> idiom</a> for static data members,
-	///       to avoid the <a href="https://goo.gl/chH5Kg"><i>static
-	///       initialization order fiasco</i>.
-	static const std::array< std::string, NUM_POST_PROCESSINGS >&
-	post_processings() noexcept;
 
 	/// @copydoc postProc_
 	PostProcessing post_processing() const noexcept override;
@@ -128,10 +133,11 @@ public:  // Accessors
 public:  // Utils
 
 	/**
-	 * @brief Assess the importance of the reachable concrete states of the
-	 *        whole \ref ModuleNetwork "system model", according to the
-	 *        \ref Property "logical property" and strategy specified.
+	 * @brief Assess importance of all (reachable) concrete states
 	 *
+	 *        Assess the importance of the reachable concrete states of the
+	 *        whole \ref ModuleNetwork "system model", according to the
+	 *        \ref Property "logical property" and strategy specified.<br>
 	 *        Any \ref has_importance_info() "importance information" previously
 	 *        computed is discarded. After a successfull invocation the
 	 *        ImportanceFunction holds internally the importance corresponding
@@ -139,7 +145,7 @@ public:  // Utils
 	 * 
 	 * @param prop     Property identifying the special states
 	 * @param strategy Importance assessment strategy, currently "flat" or "auto"
-	 * @param postProc Post-processing to apply
+	 * @param postProc Post-processing to apply, if any
 	 *
 	 * @note To use the "adhoc" importance assessment strategy
 	 *       call the other assess_importance() member function
@@ -149,8 +155,8 @@ public:  // Utils
 	 * @see has_importance_info()
 	 */
 	virtual void assess_importance(const Property& prop,
-								   const std::string& strategy = "",
-								   const PostProcessing& postProc) = 0;
+								   const std::string& strategy = "flat",
+								   const PostProcessing& postProc = PostProcessing()) = 0;
 
 	/**
 	 * @brief Assess the importance of the reachable concrete states of the

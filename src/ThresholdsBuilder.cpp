@@ -87,7 +87,7 @@ ThresholdsBuilder::techniques() noexcept
 
 
 ImportanceVec
-ThresholdsBuilder::invert_thresholds_map(const ImportanceVec& t2i)
+ThresholdsBuilder::invert_thresholds_map(const ImportanceVec& t2i) const
 {
 	assert(t2i.size() > 0ul);
 	assert(t2i.back() > 1ul);
@@ -104,7 +104,7 @@ ThresholdsBuilder::invert_thresholds_map(const ImportanceVec& t2i)
 	 * Assertions to check in the map returned:
 	 *   assert(i2t[impFun.min_value()] == 0);
 	 *   assert(i2t[impFun.initial_value()] == 0);
-	 *   assert(i2t[impFun.max_value()] == t2i.size()-1);
+	 *   assert(i2t[impFun.max_value()] >= t2i.size()-1);
 	 */
 }
 

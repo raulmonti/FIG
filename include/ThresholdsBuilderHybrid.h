@@ -64,7 +64,7 @@ public:
 	/// Execution time (minutes) granted to the adaptive technique.<br>
 	/// If computations don't finish within this limit, resort to a fixed
 	/// technique to choose the missing thresholds "instantaneously".
-	static constexpr std::chrono::minutes ADAPTIVE_TIMEOUT = 5u;
+	static constexpr std::chrono::minutes ADAPTIVE_TIMEOUT = std::chrono::minutes(5u);
 
 public:
 
@@ -85,7 +85,7 @@ protected:
 	unsigned
 	choose_stride(const size_t& impRange,
 				  const unsigned& splitsPerThreshold,
-				  const StrideType& strideType) const override;
+				  const PostProcessing& postProcessing) const override;
 };
 
 } // namespace fig

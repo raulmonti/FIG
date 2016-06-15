@@ -37,6 +37,7 @@
 #include <algorithm>  // std::fill(), std::remove_if()
 // FIG
 #include <ImportanceFunctionConcrete.h>
+#include <FigLog.h>
 #include <FigException.h>
 #include <Transition.h>
 #include <Property.h>
@@ -57,11 +58,11 @@ using uint128::uint128_t;
 using fig::Property;
 using fig::Transition;
 using fig::StateInstance;
+using fig::ImportanceVec;
 using fig::ImportanceValue;
 using parser::DNFclauses;
 using Clause = parser::DNFclauses::Clause;
 using State = fig::State< fig::STATE_INTERNAL_TYPE >;
-using ImportanceVec = fig::ImportanceFunction::ImportanceVec;
 typedef ImportanceVec EventVec;
 typedef unsigned STATE_T;
 
@@ -78,9 +79,9 @@ typedef unsigned STATE_T;
 void
 check_mem_limits(const uint128_t& concreteStateSize, const std::string& moduleName)
 {
-	static const std::string MAX_GIGAS(std::to_string(
-				fig::ImportanceFunction::MAX_MEM_REQ/(1ul<<30ul)));
-	if (concreteStateSize > fig::ImportanceFunction::MAX_MEM_REQ)
+	static const size_t MAX_MEM = fig::ImportanceFunction::MAX_MEM_REQ;  // take value!
+	static const std::string MAX_GIGAS(std::to_string(MAX_MEM/(1ul<<30ul)));
+	if (concreteStateSize > MAX_MEM)
 		throw_FigException("the concrete state space of \"" + moduleName +
 						   "\" is too big to hold it in a vector (it's greater "
 						   "than " + MAX_GIGAS + " GB)");
@@ -547,23 +548,6 @@ assess_importance_flat(const State& state,
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-ImportanceFunctionConcrete::ImportanceFunctionConcrete(
-	const std::string& name,
-	const State<STATE_INTERNAL_TYPE>& globalState) :
-		ImportanceFunction(name),
-		modulesConcreteImportance(1u),
-		globalStateCopy(globalState),
-		postProc_(std::make_pair("",0.0f)),
-		userDefinedData(false)
-{ /* Not much to do around here */ }
-
-
-ImportanceFunctionConcrete::~ImportanceFunctionConcrete()
-{
-	clear();
-}
-
-
 const std::array<std::string, ImportanceFunctionConcrete::NUM_POST_PROCESSINGS>&
 ImportanceFunctionConcrete::post_processings() noexcept
 {
@@ -576,6 +560,37 @@ ImportanceFunctionConcrete::post_processings() noexcept
 		/// @note Changes here must be reflected in post_process()
 	}};
 	return postProcessings;
+}
+
+
+PostProcessing
+ImportanceFunctionConcrete::interpret_post_processing(
+		const std::pair<std::string, float>& pp) noexcept
+{
+	if (pp.first.empty())
+		return PostProcessing(PostProcessing::NONE, "", 0.0f);
+	else if ("shift" == pp.first)
+		return PostProcessing(PostProcessing::SHIFT, "shift", pp.second);
+	else if ("exp" == pp.first)
+		return PostProcessing(PostProcessing::EXP, "exp", pp.second);
+	else
+		return PostProcessing(PostProcessing::INVALID, "INVALID", 0.0f);
+}
+
+
+ImportanceFunctionConcrete::ImportanceFunctionConcrete(
+	const std::string& name,
+	const State<STATE_INTERNAL_TYPE>& globalState) :
+		ImportanceFunction(name),
+		modulesConcreteImportance(1u),
+		globalStateCopy(globalState),
+		userDefinedData(false)
+{ /* Not much to do around here */ }
+
+
+ImportanceFunctionConcrete::~ImportanceFunctionConcrete()
+{
+	clear();
 }
 
 
@@ -660,15 +675,25 @@ ImportanceFunctionConcrete::post_process(const PostProcessing& postProc)
 		return;
 #endif
 	postProc_ = postProc;
-	if (postProc.first.empty())
+	if (postProc.type != PostProcessing::NONE)
+		figTechLog << "Applying post-process \"" << postProc.name << "\" "
+				   << "to the computed importance values.\n";
+	switch (postProc.type)
+	{
+	case (PostProcessing::NONE):
 		return;  // meh, called for nothing
-	else if ("shift" == postProc.first)
-		pp_shift(std::round(postProc.second));
-	else if ("exp" == postProc.first)
-		pp_exponentiate(postProc.second);
-	else
+		break;
+	case (PostProcessing::SHIFT):
+		pp_shift(std::round(postProc.value));
+		break;
+	case (PostProcessing::EXP):
+		pp_exponentiate(postProc.value);
+		break;
+	default:
 		throw_FigException("invalid post-processing specified (\""
-						  + postProc.first + "\")");
+						  + postProc.name + "\")");
+		break;
+	}
 }
 
 

@@ -55,11 +55,6 @@ class ThresholdsBuilderFixed : public virtual ThresholdsBuilder
 {
 protected:
 
-	/// How should the thresholds be spaced among each other
-	enum StrideType { ARITHMETICAL = 0, GEOMETRICAL, NUM_TYPES };
-
-protected:
-
 	/// Number of \ref ImportanceValue "importance values" to group in a
 	/// single threshold level. So for instance stride==2 means there will be
 	/// two importance values per threshold level, i.e. a threshold will be set
@@ -112,7 +107,7 @@ protected:  // Utils for the class and its kin
 	virtual unsigned
 	choose_stride(const size_t& impRange,
 				  const unsigned& splitsPerThreshold,
-				  const StrideType& strideType) const;
+				  const PostProcessing& postProcessing) const;
 
 	/**
 	 * Choose threshold and store them in given ImportanceVec
@@ -129,7 +124,8 @@ protected:  // Utils for the class and its kin
 	 * @param margin Start this many importance values above the importance
 	 *               of the initial state
 	 * @param stride Number of importance values to jump per threshold
-	 * @param strideType How should the stride be used to space the thresholds
+	 * @param postProcessing Post-processing applied to the ImportanceValue s
+	 *                       after importance assessment
 	 *
 	 * @note Any previous content in 'thresholds' is left untouched:
 	 *       the vector is resized and the thresholds selection is stored
@@ -139,7 +135,7 @@ protected:  // Utils for the class and its kin
 	build_thresholds(const ImportanceFunction& impFun,
 					 const unsigned& margin,
 					 const unsigned& stride,
-					 const StrideType& strideType,
+					 const PostProcessing& postProcessing,
 					 ImportanceVec& thresholds);
 };
 

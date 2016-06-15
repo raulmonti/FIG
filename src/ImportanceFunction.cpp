@@ -344,7 +344,7 @@ ImportanceFunction::thresholds_technique() const noexcept
 }
 
 
-const unsigned&
+unsigned
 ImportanceFunction::num_thresholds() const
 {
 #ifndef NDEBUG
@@ -360,7 +360,7 @@ ImportanceFunction::num_thresholds() const
 PostProcessing
 ImportanceFunction::post_processing() const noexcept
 {
-	return std::make_pair("", 0.0f);
+	return PostProcessing();
 }
 
 
@@ -490,7 +490,7 @@ ImportanceFunction::post_process_thresholds(const ThresholdsBuilder& tb)
 		// As specified in ThresholdsBuilder::invert_thresholds_map() implementation:
 		assert(0u == importance2threshold_[minValue_]);
 		assert(0u == importance2threshold_[initialValue_]);
-		assert(threshold2importance_.size() == importance2threshold_[maxValue_]+1u);
+		assert(threshold2importance_.size() <= importance2threshold_[maxValue_]+1u);
 		// Threshold levels are a non-decreasing function of the importance:
 		assert(importance2threshold_[minValue_] <= importance2threshold_[initialValue_]);
 		assert(importance2threshold_[initialValue_] <= importance2threshold_[minRareValue_]);

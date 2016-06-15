@@ -292,7 +292,7 @@ public:  // Accessors
 	///   @throw FigException if this instance isn't \ref ready()
 	///                       "ready for simulations"
 	/// \endif
-	const unsigned& num_thresholds() const;
+	unsigned num_thresholds() const;
 
 	/// Post-processing applied to the \ref ImportanceValue "importance values"
 	/// computed last; an empty first component means none was.
