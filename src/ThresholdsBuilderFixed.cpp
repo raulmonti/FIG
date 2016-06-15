@@ -162,18 +162,12 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 	{
 	case (PostProcessing::NONE):
 	case (PostProcessing::SHIFT):
-		{ const size_t SIZE(std::ceil(static_cast<float>(IMP_RANGE)/stride)),
-					   OLD_SIZE(thresholds.size());
-//		thresholds.resize(OLD_SIZE+SIZE);
-//		for (size_t i = OLD_SIZE, imp = impFun.initial_value() + margin ;
-//			 i < thresholds.size() ;
-//			 imp += stride, i++)
-//			thresholds[i] = static_cast<ImportanceValue>(imp);
-		for (ImportanceValue imp = impFun.initial_value() + margin;
-			 imp < impFun.max_value();
-			 imp += stride)
-			thresholds.push_back(imp);
-		thresholds.push_back(impFun.max_value()+1u);
+		{ const size_t SIZE(IMP_RANGE/stride+2ul), OLD_SIZE(thresholds.size());
+		thresholds.resize(OLD_SIZE+SIZE);
+		for (size_t i = OLD_SIZE, imp = impFun.initial_value() + margin ;
+			 i < thresholds.size() ;
+			 imp += stride, i++)
+			thresholds[i] = static_cast<ImportanceValue>(imp);
 		}; break;
 
 	case (PostProcessing::EXP):
@@ -192,7 +186,8 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 
 	// Enforce consistency (remember thresholds may contain previous data)
 	std::sort(begin(thresholds), end(thresholds));
-	std::unique(begin(thresholds), end(thresholds));
+	auto newEnd = std::unique(begin(thresholds), end(thresholds));
+	thresholds.erase(newEnd, end(thresholds));
 	thresholds.shrink_to_fit();
 
 

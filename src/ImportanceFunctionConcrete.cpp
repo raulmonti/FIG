@@ -677,7 +677,7 @@ ImportanceFunctionConcrete::post_process(const PostProcessing& postProc)
 	postProc_ = postProc;
 	if (postProc.type != PostProcessing::NONE)
 		figTechLog << "Applying post-process \"" << postProc.name << "\" "
-				   << "to the computed importance values.\n";
+				   << "to the importance values computed.\n";
 	switch (postProc.type)
 	{
 	case (PostProcessing::NONE):
