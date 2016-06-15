@@ -89,9 +89,9 @@ public:
 	 *        Choose threshold values and return a threshold-to-importance map:
 	 *        the i-th position of the vector holds the minimum ImportanceValue
 	 *        inside the i-th threshold level.<br>
-	 *        Here the i-th threshold level is composed of all the importance
-	 *        values between threshold i (including it) and threshold i+1
-	 *        (excluding it).
+	 *        A <i>threshold level</i> is a range of importance values.
+	 *        The i-th threshold level comprises all importance values between
+	 *        threshold i (including it) and threshold i+1 (excluding it).
 	 *
 	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
 	 *                           "threshold level up" event

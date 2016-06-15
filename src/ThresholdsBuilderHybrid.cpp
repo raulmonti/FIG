@@ -37,6 +37,7 @@
 #include <functional>  // std::ref()
 // FIG
 #include <ThresholdsBuilderHybrid.h>
+#include <ImportanceFunction.h>
 #include <FigException.h>
 #include <FigLog.h>
 
@@ -45,13 +46,10 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 ImportanceVec
-ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
-										  const ImportanceFunction &impFun,
-										  const std::string& postProcessing)
+ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
+										  const ImportanceFunction& impFun,
+										  const PostProcessing& postProcessing)
 {
-	ImportanceVec thresholds;
-	size_t NUMT;
-
 	// Impose an execution wall time limit...
 	std::thread timer([] (bool& halt, const std::chrono::minutes& limit)
 					  { std::this_thread::sleep_for(limit); halt=true; },
@@ -61,36 +59,44 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 		halted_ = false;
 		ThresholdsBuilderAdaptive::build_thresholds(splitsPerThreshold, impFun,
 													postProcessing);
-		std::swap(thresholds, thresholds_);  // it worked!
-
 	} catch (FigException&) {
 		// Adaptive algorithm couldn't finish but achievements remain
 		// stored in the vector member 'thresholds_'
-		std::swap(thresholds, thresholds_);
-
-	/// @fixme TODO consider the value of postProcessing to determine how
-	///             the stride should be applied (arithmetically vs geometrically)
-
-		if (thresholds_.back() <= impFun.initial_value()) {  // avoid 'lowest' threshold
-			ImportanceValue iteration(0u);
-			const ImportanceValue MIN_THR(impFun.initial_value()+1);
-			for (auto& thr: thresholds_)
-				thr = MIN_THR + (iteration++);
-		}
-		const size_t LAST_THR(thresholds_.back()),
-					 MARGIN(LAST_THR - impFun.initial_value()),
-					 IMP_RANGE(impFun.max_value() - impFun.min_value()),
-					 EXPANSION(std::ceil(IMP_RANGE/((float)IMP_LEAP_SIZE))),
-					 STRIDE(choose_stride(splitsPerThreshold) * EXPANSION);
+		const size_t MARGIN(thresholds_.back());
+		const StrideType strideType(postProcessing.first == "exp"
+									? StrideType::GEOMETRICAL
+									: StrideType::ARITHMETICAL);
 
 		figTechLog << "\nResorting to fixed choice of thresholds starting "
-				   << "above the ImportanceValue " << LAST_THR << "\n";
+				   << "above the ImportanceValue " << MARGIN << "\n";
 
-		// Choose fixed thresholds above LAST_THR
-		ThresholdsBuilderFixed::build_thresholds(impFun, thresholds, MARGIN, STRIDE);
-		NUMT = std::floor(static_cast<float>(impFun.max_value()-LAST_THR) / STRIDE);
-		NUMT += thresholds_.size() - 1;
+		stride_ = choose_stride(impFun.max_value()-MARGIN, splitsPerThreshold,
+								strideType);
+		ThresholdsBuilderFixed::build_thresholds(impFun, MARGIN, stride_,
+												 strideType, thresholds_);
 
+
+		/// @todo TODO erase old code
+//		if (thresholds_.back() <= impFun.initial_value()) {  // avoid 'lowest' threshold
+//			ImportanceValue iteration(0u);
+//			const ImportanceValue MIN_THR(impFun.initial_value()+1);
+//			for (auto& thr: thresholds_)
+//				thr = MIN_THR + (iteration++);
+//		}
+//		const size_t LAST_THR(thresholds_.back()),
+//					 MARGIN(LAST_THR - impFun.initial_value()),
+//					 IMP_RANGE(impFun.max_value() - impFun.min_value()),
+//					 EXPANSION(std::ceil(IMP_RANGE/((float)IMP_LEAP_SIZE))),
+//					 STRIDE(choose_stride(splitsPerThreshold) * EXPANSION);
+//
+//		figTechLog << "\nResorting to fixed choice of thresholds starting "
+//				   << "above the ImportanceValue " << LAST_THR << "\n";
+//
+//		// Choose fixed thresholds above LAST_THR
+//		ThresholdsBuilderFixed::build_thresholds(impFun, thresholds, MARGIN, STRIDE);
+//		NUMT = std::floor(static_cast<float>(impFun.max_value()-LAST_THR) / STRIDE);
+//		NUMT += thresholds_.size() - 1;
+//
 //		// Format the first "adaptive section" of 'thresholds'
 //		unsigned currThr(0u), imp(0u);
 //		do {
@@ -113,7 +119,8 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 	}
 
 	// Tidy-up
-	ImportanceVec().swap(thresholds_);
+	ImportanceVec thresholds;
+	std::swap(thresholds, thresholds_);
 	pthread_cancel(timer.native_handle());  /// @fixme BUG can this crash?
 	timer.detach();
 
@@ -121,23 +128,37 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned &splitsPerThreshold,
 	assert(!thresholds.empty());
 	assert(thresholds[0] == impFun.initial_value());
 	assert(thresholds.back() > impFun.max_value());
+
 	return thresholds;
 }
 
 
 unsigned
-ThresholdsBuilderHybrid::choose_stride(const unsigned& splitsPerThreshold) const
+ThresholdsBuilderFixed::choose_stride(const size_t& impRange,
+									  const unsigned& splitsPerThreshold,
+									  const StrideType& strideType) const
 {
-	/// @todo TODO Tune for arithmetic/geometric threshold building duality
-
+	unsigned basicStride(1u), expansionFactor;
 	assert(splitsPerThreshold > 1u);
-	// What follows is clearly arbitrary but then we warned the user
-	// in the class' docstring, didn't we?     splitting          stride
-	return splitsPerThreshold <  4 ? 2u :      // 2,3 -------------> 2
-		   splitsPerThreshold <  7 ? 3u :      // 4,5,6 -----------> 3
-		   splitsPerThreshold < 11 ? 4u :      // 7,8,9,10 --------> 4
-		   splitsPerThreshold < 16 ? 5u : 6u;  // 11,12,13,14,15 --> 5
-											   // else ------------> 6
+	assert(0 <= strideType && strideType < StrideType::NUM_TYPES);
+	if (impRange < MIN_IMP_RANGE) {
+		// Don't even bother
+		return basicStride;
+	} else if (strideType == StrideType::ARITHMETICAL) {
+		basicStride = splitsPerThreshold <  4u ? 2u :      // 2,3 -------------> 2
+					  splitsPerThreshold <  7u ? 3u :      // 4,5,6 -----------> 3
+					  splitsPerThreshold < 11u ? 4u :      // 7,8,9,10 --------> 4
+					  splitsPerThreshold < 16u ? 5u : 6u;  // 11,12,13,14,15 --> 5
+		expansionFactor = std::ceil(static_cast<float>(impRange) / EXPAND_EVERY);
+	} else if (strideType == StrideType::GEOMETRICAL) {
+		basicStride = splitsPerThreshold <  4u ? 1u :      // 2,3 ------> 1
+					  splitsPerThreshold <  7u ? 2u : 3u;  // 4,5,6 ----> 2
+		expansionFactor = std::ceil(std::log(impRange) / EXPAND_EVERY);
+	}
+	// Make sure return type can represent the computed stride
+	assert(std::log2(static_cast<float>(basicStride)*expansionFactor)
+			< sizeof(decltype(basicStride))*8.0f);
+	return basicStride*expansionFactor;
 }
 
 

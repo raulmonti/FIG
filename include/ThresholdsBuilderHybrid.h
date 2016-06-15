@@ -78,11 +78,14 @@ public:
 	ImportanceVec
 	build_thresholds(const unsigned& splitsPerThreshold,
 					 const ImportanceFunction& impFun,
-					 const std::string& postProcessing = "") override;
+					 const PostProcessing& postProcessing) override;
 
 protected:
 
-	unsigned choose_stride(const unsigned& splitsPerThreshold) const override;
+	unsigned
+	choose_stride(const size_t& impRange,
+				  const unsigned& splitsPerThreshold,
+				  const StrideType& strideType) const override;
 };
 
 } // namespace fig
