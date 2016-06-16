@@ -146,7 +146,7 @@ build_states_distribution(const fig::ModuleNetwork& network,
 	}
 	if (fails >= TOLERANCE || halt) {
 		// Either halted or couldn't make the 'n' traials reach lastThr
-		fig::ModelSuite::tech_log("*\n");  // report failure
+		fig::ModelSuite::tech_log("*");  // report failure
 		return false;
 	}
 

@@ -757,6 +757,9 @@ ModelSuite::process_batch(
 			// ... and estimate the property's value for all stopping conditions
 			for (const StoppingConditions& bounds: estimationBounds)
 				estimate(*property, *engine, bounds);
+
+			if ("flat" == impFunSpec.strategy)
+				break;  // no splits are used, avoid repetitions
 		}
 	}
 }

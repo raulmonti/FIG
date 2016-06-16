@@ -72,6 +72,7 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 								postProcessing);
 		ThresholdsBuilderFixed::build_thresholds(impFun, MARGIN, stride_,
 												 postProcessing, thresholds_);
+		halted_ = true;
 	}
 
 	// Tidy-up
@@ -117,8 +118,8 @@ ThresholdsBuilderHybrid::choose_stride(const size_t& impRange,
 		break;
 
 	case (PostProcessing::EXP):
-		basicStride = splitsPerThreshold <  4u ? 1u :      // 2,3 ------> 1
-					  splitsPerThreshold <  7u ? 2u : 3u;  // 4,5,6 ----> 2
+		basicStride = splitsPerThreshold < 4u ? 1u :      // 2,3 ------> 1
+					  splitsPerThreshold < 7u ? 2u : 3u;  // 4,5,6 ----> 2
 		expansionFactor = std::ceil(std::log(impRange) / EXPAND_EVERY);
 		// Make sure return type can represent the computed stride
 		assert(basicStride*expansionFactor < sizeof(decltype(basicStride))*8u);

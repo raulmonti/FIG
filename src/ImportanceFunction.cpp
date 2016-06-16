@@ -376,28 +376,18 @@ ImportanceFunction::level_of(const ImportanceValue& val) const
 #endif
 	assert(val >= minValue_);
 	assert(val <= maxValue_);
-
 	if (importance2threshold_.size() > 0ul)  // Do we have the direct map?
 		return importance2threshold_[val];
-
-	/// @todo TODO erase debug print
-	std::cerr << "REMEN, ";
-
-	/// @bug FIXME binary serach below is wrong
-	ImportanceValue tlvl(threshold2importance_.size()/2ul);
+	ImportanceValue tlvl(threshold2importance_.size()/2ul), step(tlvl/2);
 	while (val <  threshold2importance_[tlvl] ||
-		   val >= threshold2importance_[tlvl+1])
-	{
+		   val >= threshold2importance_[tlvl+1]) {
 		if (val < threshold2importance_[tlvl])
-			tlvl *= 2;
+			tlvl -= step;
 		else
-			tlvl /= 2;
+			tlvl += step;
+		step = std::max(static_cast<ImportanceValue>(1), step/2);
 	}
 	return tlvl;
-
-	/// @todo TODO erase debug print
-	std::cerr << "REMEN\n";
-
 }
 
 
@@ -507,12 +497,6 @@ ImportanceFunction::post_process_thresholds(const ThresholdsBuilder& tb)
 		assert(importance2threshold_[minValue_] <= importance2threshold_[initialValue_]);
 		assert(importance2threshold_[initialValue_] <= importance2threshold_[minRareValue_]);
 		assert(importance2threshold_[minRareValue_] <= importance2threshold_[maxValue_]);
-
-		/// @todo TODO erase debug print
-		std::cerr << "i2t map:";
-		for (size_t i = 0ul ; i < importance2threshold_.size() ; i++)
-			std::cerr << " (" << i << ":" << importance2threshold_[i] << ")";
-		std::cerr << std::endl;
 	}
 	// Set relevant attributes
 	thresholdsTechnique_ = tb.name;
