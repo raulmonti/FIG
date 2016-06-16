@@ -313,7 +313,7 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 		}
     }
 	// Combine those values with the user-defined composition function
-	return e | (ready() ? importance2threshold_[userFun_(localValues_)]
+	return e | (ready() ? level_of(userFun_(localValues_))
 						: userFun_(localValues_));
 }
 

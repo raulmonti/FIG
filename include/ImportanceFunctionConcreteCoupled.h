@@ -97,7 +97,7 @@ public:  // Accessors
 #       endif
 			auto info = modulesConcreteImportance[importanceInfoIndex_]
 												 [globalStateCopy.encode()];
-			return ready() ? (MASK(info) | importance2threshold_[UNMASK(info)])
+			return ready() ? (MASK(info) | level_of(UNMASK(info)))
 						   : info;
 		}
 

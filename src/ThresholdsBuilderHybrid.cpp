@@ -60,6 +60,8 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 		halted_ = false;
 		ThresholdsBuilderAdaptive::build_thresholds(splitsPerThreshold, impFun,
 													postProcessing);
+		pthread_cancel(timer.native_handle());  // it worked!
+
 	} catch (FigException&) {
 		// Adaptive algorithm couldn't finish but achievements remain
 		// stored in the vector member 'thresholds_'
@@ -75,10 +77,10 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 	// Tidy-up
 	ImportanceVec thresholds;
 	std::swap(thresholds, thresholds_);
-	pthread_cancel(timer.native_handle());  /// @fixme BUG can this crash?
 	timer.detach();
 
-	show_thresholds(thresholds);
+	if (halted_)
+		show_thresholds(thresholds);
 	assert(!thresholds.empty());
 	assert(thresholds[0] == impFun.initial_value());
 	assert(thresholds.back() == 1 + impFun.max_value());

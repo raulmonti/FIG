@@ -86,7 +86,7 @@ public:
 
 private:
 
-	std::string description_ = "{0..9}+[<s/m/h/d>]";
+	std::string description_ = "<digit>+[<s/m/h/d>]";
 };
 
 } // namespace TCLAP

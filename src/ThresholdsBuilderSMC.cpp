@@ -146,7 +146,7 @@ build_states_distribution(const fig::ModuleNetwork& network,
 	}
 	if (fails >= TOLERANCE || halt) {
 		// Either halted or couldn't make the 'n' traials reach lastThr
-		fig::ModelSuite::tech_log("*");  // report failure
+		fig::ModelSuite::tech_log("*\n");  // report failure
 		return false;
 	}
 
@@ -302,6 +302,7 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 
 	TraialPool::get_instance().return_traials(traials);
 	thresholds_.push_back(impFun.max_value() + static_cast<ImportanceValue>(1u));
+	ModelSuite::tech_log("\n");
 	return;
 
 	exit_with_fail:

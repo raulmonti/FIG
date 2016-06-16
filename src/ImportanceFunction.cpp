@@ -376,6 +376,14 @@ ImportanceFunction::level_of(const ImportanceValue& val) const
 #endif
 	assert(val >= minValue_);
 	assert(val <= maxValue_);
+
+	if (importance2threshold_.size() > 0ul)  // Do we have the direct map?
+		return importance2threshold_[val];
+
+	/// @todo TODO erase debug print
+	std::cerr << "REMEN, ";
+
+	/// @bug FIXME binary serach below is wrong
 	ImportanceValue tlvl(threshold2importance_.size()/2ul);
 	while (val <  threshold2importance_[tlvl] ||
 		   val >= threshold2importance_[tlvl+1])
@@ -386,6 +394,10 @@ ImportanceFunction::level_of(const ImportanceValue& val) const
 			tlvl /= 2;
 	}
 	return tlvl;
+
+	/// @todo TODO erase debug print
+	std::cerr << "REMEN\n";
+
 }
 
 
