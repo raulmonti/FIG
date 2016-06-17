@@ -90,7 +90,7 @@ echo "//"
 echo "// -- Disk clusters | Total: $D_NUM"
 echo "// --               | Redundancy: $D_RED"
 echo "// --               | Mean time to failure: DF"
-echo "// --               | Num failures to breakdown per cluster: 2"
+echo "// --               | Num failures to breakdown per cluster: $RED"
 
 for (( i=1 ; i <= $D_NUM ; i++ )); do
     for (( j=1 ; j <= $D_RED ; j++ )); do

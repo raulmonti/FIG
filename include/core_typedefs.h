@@ -142,7 +142,7 @@ typedef  std::bitset<MAX_NUM_CLOCKS>                                 Bitflag;
 /// Primitive type used to assess the importance of a single *concrete* state
 /// @warning This bounds the number of representable importance levels
 ///
-typedef  unsigned int                                        ImportanceValue;
+typedef  size_t                                              ImportanceValue;
 
 /// Vector of \ref ImportanceValue "importance values"
 typedef  std::vector< ImportanceValue >                        ImportanceVec;

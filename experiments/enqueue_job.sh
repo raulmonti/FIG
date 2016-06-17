@@ -10,7 +10,7 @@ if [ $# -eq 0 ]
 then
 	echo "Usage: $0 [-d] <main_script_to_run>"
 	echo "Available scripts are:"
-	for script in `find . -name "main.sh"`; do
+	for script in `find . -name "main.sh" | sort`; do
 		/bin/echo -e "\t${script}"
 	done
 	echo "Option '-d' runs the script in the debug queue"
@@ -19,12 +19,12 @@ elif [ $# -eq 1 ] && [[ $1 == "--help" || $1 == "-h" ]]
 then
 	echo "Usage: $0 [-d] <main_script_to_run>"
 	echo "Available scripts are:"
-	for script in `find . -name "main.sh"`; do
+	for script in `find . -name "main.sh" | sort`; do
 		/bin/echo -e "\t${script}"
 	done
 	echo "Option '-d' runs the script in the debug queue"
 	exit 0
-elif [ $# -lt 1 ]
+elif [ $# -gt 1 ]
 then
 	echo "[ERROR] Must call with one argument: main script to run"
 	exit 1
