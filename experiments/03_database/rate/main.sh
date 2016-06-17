@@ -42,10 +42,10 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-TO="14h"
+TO="1h"
 CONF=0.9  # Confidence coefficient
-PREC=0.3  # Relative precision
-SPLITS=(3 6 11)  # RESTART splittings to test
+PREC=0.2  # Relative precision
+SPLITS=(2 3 6 11)  # RESTART splittings to test
 MEAN_FAILURE_TIMES=(2000 8000 32000 128000)
 EXPNAME="database"
 #
@@ -67,9 +67,9 @@ COMP_FUN4="'(Disk11*Disk12*Disk13*Disk14)+(Disk21*Disk22*Disk23*Disk24)+(Disk31*
 STANDARD_MC="-e nosplit --flat $STOP_CRITERION --timeout $TO"
 RESTART_ADHOC="--adhoc $MIN_OC $STOP_CRITERION $SPLITTING --timeout $TO"
 RESTART_ACOMP1="--acomp $COMP_FUN1 $STOP_CRITERION $SPLITTING --timeout $TO"
-RESTART_ACOMP2="--acomp $COMP_FUN2 $STOP_CRITERION $SPLITTING --timeout $TO --post-process exp 2.0"
-RESTART_ACOMP3="--acomp $COMP_FUN3 $STOP_CRITERION $SPLITTING --timeout $TO --post-process exp 2.0"
-RESTART_ACOMP4="--acomp $COMP_FUN4 $STOP_CRITERION $SPLITTING --timeout $TO --post-process exp 2.0"
+RESTART_ACOMP2="--acomp $COMP_FUN2 $STOP_CRITERION $SPLITTING --timeout $TO --post-process exp 2"
+RESTART_ACOMP3="--acomp $COMP_FUN3 $STOP_CRITERION $SPLITTING --timeout $TO --post-process exp 2"
+RESTART_ACOMP4="--acomp $COMP_FUN4 $STOP_CRITERION $SPLITTING --timeout $TO --post-process exp 2"
 
 
 # Launch experiments
@@ -128,7 +128,7 @@ show " done"
 # Build summary charts
 show -n "Building tables..."
 IFUNS=("MC" "AH" "AC1" "AC2" "AC3" "AC4")
-EXPERIMENTS=("${MEAN_FAILURE_TIMES[@]}")
+EXPERIMENTS=("${MEAN_FAILURE_TIMES[@]/#/mft}")
 build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
 	&> $RESULTS/table_estimates.txt
 build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \

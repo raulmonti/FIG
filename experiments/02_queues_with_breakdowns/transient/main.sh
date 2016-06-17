@@ -45,10 +45,10 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-TO="12h"
+TO="14h"
 CONF=0.9  # Confidence coefficient
 PREC=0.2  # Relative precision
-SPLITS=(2 3 6)  # RESTART splittings to test
+SPLITS=(2 3 6 11)  # RESTART splittings to test
 BUFFER_CAPACITIES=(20 40 80 160)
 EXPNAME="queues_with_breakdowns"
 #
@@ -72,7 +72,7 @@ do
 	show -n "  · for buffer capacity = $k..."
 
 	# Modify model file to fit this experiment
-	MODEL_FILE_K=${MODEL_FILE%.sa}"_${k}.sa"
+	MODEL_FILE_K=${MODEL_FILE%.sa}"_k${k}.sa"
 	BLANK="[[:space:]]*"
 	K_DEF="^const${BLANK}int${BLANK}K${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
 	sed -e "s/${K_DEF}/const int K = $k;/1" $MODEL_FILE > $MODEL_FILE_K
@@ -111,7 +111,7 @@ show " done"
 # Build summary charts
 show -n "Building tables..."
 IFUNS=("MC" "AH" "AC" "AM")
-EXPERIMENTS=("${BUFFER_CAPACITIES[@]}")
+EXPERIMENTS=("${BUFFER_CAPACITIES[@]/#/k}")
 build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
 	&> $RESULTS/table_estimates.txt
 build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \

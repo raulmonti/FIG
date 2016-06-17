@@ -45,10 +45,10 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-TO="10h"
+TO="12h"
 CONF=0.9  # Confidence coefficient
 PREC=0.2  # Relative precision
-SPLITS=(2 3 6)  # RESTART splittings to test
+SPLITS=(2 3 6 11)  # RESTART splittings to test
 QUEUES_CAPACITIES=(8 10 12 14)
 EXPNAME="tandem_queue"
 #
@@ -72,7 +72,7 @@ do
 	show -n "  · for queues capacity = $c..."
 
 	# Modify model file to fit this experiment
-	MODEL_FILE_C=${MODEL_FILE%.sa}"_${c}.sa"
+	MODEL_FILE_C=${MODEL_FILE%.sa}"_c${c}.sa"
 	BLANK="[[:space:]]*"
 	C_DEF="^const${BLANK}int${BLANK}c${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
 	sed -e "s/${C_DEF}/const int c = $c;/1" $MODEL_FILE > $MODEL_FILE_C
@@ -111,7 +111,7 @@ show " done"
 # Build summary charts
 show -n "Building tables..."
 IFUNS=("MC" "AH" "AC" "AM")
-EXPERIMENTS=("${QUEUES_CAPACITIES[@]}")
+EXPERIMENTS=("${QUEUES_CAPACITIES[@]/#/c}")
 build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
 	&> $RESULTS/table_estimates.txt
 build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \

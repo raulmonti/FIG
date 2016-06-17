@@ -45,10 +45,10 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-TO="10h"
+TO="12h"
 CONF=0.9  # Confidence coefficient
 PREC=0.2  # Relative precision
-SPLITS=(3 6 11)  # RESTART splittings to test
+SPLITS=(2 3 6 11)  # RESTART splittings to test
 #OCUPA=(18  13  20  16  24  21)  # estimates ~ 10^-15
 OCUPA=(11   8  12   9  14  13)  # estimates ~ 10^-9
 ALPHA=( 2   3   2   3   2   3)
@@ -88,7 +88,7 @@ do
 	RESTART_ADHOC_OPT="--adhoc ${AHFUN[i]} $STOP_CRITERION $SPLITTING --timeout $TO"
 
 	# Modify model file to fit this experiment
-	MODEL_FILE_L=${MODEL_FILE%.sa}"_$L.sa"
+	MODEL_FILE_L=${MODEL_FILE%.sa}"_l$L.sa"
 	cp $MODEL_FILE $MODEL_FILE_L
 	BLANK="[[:space:]]*"
 	L_DEF="^const${BLANK}int${BLANK}L${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
@@ -140,7 +140,7 @@ show " done"
 # Build summary charts
 show -n "Building tables..."
 IFUNS=("MC" "AHD" "AHO" "AC" "AM")
-EXPERIMENTS=("${OCUPA[@]}")
+EXPERIMENTS=("${OCUPA[@]/#/l}")
 build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
 	&> $RESULTS/table_estimates.txt
 build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
