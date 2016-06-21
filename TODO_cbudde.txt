@@ -1,11 +1,12 @@
 
 Urgent:
- 0. why does "--adhoc" take much longer than "--acomp" in some exps?
- 1. why does the database experiment consume so much memory?
- 2. profile to determine new hotspot
- 3. is the negative clocks sampling check an efficiency issue?
- 4. investigate the implications of a bad minRareValue_
- 5. implement "array" ADT; requires IOSA extension!
+ 0. make batch means keep the whole stack from previous runs
+ 1. why does "--adhoc" take much longer than "--acomp" in some exps?
+ 2. why does the database experiment consume so much memory?
+ 3. profile to determine new hotspot
+ 4. is the negative clocks sampling check an efficiency issue?
+ 5. investigate the implications of a bad minRareValue_
+ 6. implement "array" ADT; requires IOSA extension!
 
 Papers to read:
  · JVA: Asymptotic opt. of RESTART est. in highly dependable systems (2014)

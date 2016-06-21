@@ -332,6 +332,10 @@ TraialPool::ensure_resources(const size_t& requiredResources)
 		traials_.reserve(initialSize*4ul);  // called by TraialPool ctor[*]
 		TRAIALS_MEM_ADDR = traials_.data();
 	} else {
+
+		/// @todo TODO erase debug print
+		std::cerr << " ### increasing TPool from " << oldSize << " to " << newSize << std::endl;
+
 		traials_.reserve(newSize);
 		if (traials_.data() != TRAIALS_MEM_ADDR)  // we're fucked
 			throw_FigException("memory corrupted after reallocation of the "
@@ -339,7 +343,7 @@ TraialPool::ensure_resources(const size_t& requiredResources)
 	}
 
 	// A reservation could have moved the memory segment: reproduce references
-	// BUG: references in users' ADTs would still be corrupted
+	/// @bug FIXME: references in users' ADTs would still be corrupted
 	available_traials_.clear();
 	for (size_t i = 0ul ; i < oldSize ; i++)
 		available_traials_.emplace_front(std::ref(traials_[i]));

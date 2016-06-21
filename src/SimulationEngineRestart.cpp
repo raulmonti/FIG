@@ -214,11 +214,10 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	assert(0u < runLength);
 	const unsigned numThresholds(impFun_->num_thresholds());
 	std::valarray< double > raresCount(0.0, numThresholds+1);
-	std::stack< Reference< Traial > > stack;
 	auto tpool = TraialPool::get_instance();
-	static Traial& originalTraial(tpool.get_traial());
 //	static thread_local Traial& originalTraial(tpool.get_traial());
-	const CLOCK_INTERNAL_TYPE FIRST_TIME(0.0);
+	static Traial& originalTraial(tpool.get_traial());
+	static std::stack< Reference< Traial > > stack;
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
@@ -234,14 +233,34 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		register_time = &SimulationEngineRestart::count_time;
 	}
 
+	// Reset batch or run with batch means?
+	if (reinit || stack.empty()) {
+		while (!stack.empty()) {
+			Traial& traial(stack.top());
+			if (&traial != &originalTraial)  // avoid future aliasing!
+				tpool.return_traial(std::move(traial));
+			stack.pop();
+		}
+		stack.push(originalTraial);
+
+		/// @todo TODO erase debug print
+		std::cerr << "Starting new batch\n";
+	}
+	originalTraial.lifeTime = 0.0;
+
+	/// @todo TODO erase debug print
+	std::cerr << "Batch means with " << stack.size() << " traials\n";
+
+	/// @todo TODO erase old code
+//	if (reinit || originalTraial.lifeTime == FIRST_TIME)
+//		originalTraial.initialize(*network_, *impFun_);
+//	else
+//		originalTraial.lifeTime = 0.0;
+//	stack.emplace(originalTraial);
+
 	// Run a single RESTART importance-splitting simulation for "runLength"
-	// simulation time units and starting from the last saved state,
+	// simulation time units and starting from the last saved stack,
 	// or from the system's initial state if requested.
-	if (reinit || originalTraial.lifeTime == FIRST_TIME)
-		originalTraial.initialize(*network_, *impFun_);
-	else
-		originalTraial.lifeTime = 0.0;
-	stack.emplace(originalTraial);
 	while (!stack.empty() && !interrupted) {
 		Event e(EventType::NONE);
 		Traial& traial = stack.top();
@@ -264,7 +283,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		// Checking order of the following events is relevant!
 		if (traial.lifeTime >= simsLifetime || IS_THR_DOWN_EVENT(e)) {
 			// Traial reached EOS or went down => kill it
-			assert(&traial != &originalTraial || !IS_THR_DOWN_EVENT(e));
+			assert(!(&traial==&originalTraial && IS_THR_DOWN_EVENT(e)));
 			if (&traial != &originalTraial)  // avoid future aliasing!
 				tpool.return_traial(stack.top());
 			stack.pop();
@@ -287,17 +306,21 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		}
 		// RARE events are checked first thing in next iteration
 	}
-	if (originalTraial.lifeTime == FIRST_TIME)  // allow next iteration of batch means
-		originalTraial.lifeTime =  FIRST_TIME + 1.0;
-	// Return any Traial still on the loose
-	const size_t numLooseTraials(stack.size());
-	for (size_t i = 0ul ; i < numLooseTraials ; i++) {
-		Traial& traial = stack.top();
-		if (&traial != &originalTraial) {  // avoid future aliasing!
-			tpool.return_traial(std::move(traial));
-			stack.pop();
-		}
-	}
+	if (stack.empty())  // allow next iteration of batch means
+		stack.push(originalTraial);
+
+	/// @todo TODO erase old code
+//	if (originalTraial.lifeTime == FIRST_TIME)  // allow next iteration of batch means
+//		originalTraial.lifeTime =  (FIRST_TIME+1.1)*2.2;
+//	// Return any Traial still on the loose
+//	const size_t numLooseTraials(stack.size());
+//	for (size_t i = 0ul ; i < numLooseTraials ; i++) {
+//		Traial& traial = stack.top();
+//		if (&traial != &originalTraial) {  // avoid future aliasing!
+//			tpool.return_traial(std::move(traial));
+//			stack.pop();
+//		}
+//	}
 
 	// To estimate, weigh counts by the relative importance of their thresholds
 	double accTime(0.0);
