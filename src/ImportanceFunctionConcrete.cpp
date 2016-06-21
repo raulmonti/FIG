@@ -234,8 +234,8 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
     const ImportanceValue maxDistance(fig::UNMASK(cStates[initialState]));
 	// Is ImportanceValue bit-representation big enough?
 	if (maxDistance & ALL_MASKS || maxDistance >= NOT_VISITED)
-		throw_FigException(std::string("too many importance levels were found (")
-						   .append(std::to_string(maxDistance)).append(")"));
+		throw_FigException("too many importance levels were found "
+						   "(" + std::to_string(maxDistance) + ")");
 
 	// Invert values in 'cStates' to obtain the importance
 	#pragma omp parallel for default(shared)

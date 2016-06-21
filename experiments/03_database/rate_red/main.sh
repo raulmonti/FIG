@@ -22,6 +22,25 @@ then
 	show "[ERROR] Bash function \"copy_model_file\" is undefined"
 	exit 1;
 fi
+source "$CWD/../ifuns.sh" || \
+	(show "[ERROR] Couldn't find ifuns.sh" && exit 1)
+if [[ "$(type -t min_num_oc)" != "function" ]]
+then
+	show "[ERROR] Bash function \"min_num_oc\" is undefined"
+	exit 1;
+elif [[ "$(type -t comp_fun_coarse)" != "function" ]]
+then
+	show "[ERROR] Bash function \"comp_fun_coarse\" is undefined"
+	exit 1;
+elif [[ "$(type -t comp_fun_med)" != "function" ]]
+then
+	show "[ERROR] Bash function \"comp_fun_med\" is undefined"
+	exit 1;
+elif [[ "$(type -t comp_fun_fine)" != "function" ]]
+then
+	show "[ERROR] Bash function \"comp_fun_fine\" is undefined"
+	exit 1;
+fi
 
 
 # Build project
@@ -63,46 +82,8 @@ STOP_CRITERION="--stop-conf $CONF $PREC"
 ETIMEOUT="${TO##*[0-9]}"  # Timeout per experiment (one ifun, all splits)
 ETIMEOUT=$(bc <<< "${TO%%[a-z]*}*${#SPLITS[@]}*2")"$ETIMEOUT"
 show "Timeouts: $TO per split; $ETIMEOUT per experiment"
-source ifuns.sh  # Ad hoc / compositional importance functions constructors
-
-echo
-min_num_oc 2 $NDC $NCT $NPT
-echo
-echo
-min_num_oc 3 $NDC $NCT $NPT
-echo
-echo
-comp_fun_coarse 2 $NDC $NCT $NPT
-echo
-echo
-comp_fun_coarse 3 $NDC $NCT $NPT
-echo
-echo
-comp_fun_med 2 $NDC $NCT $NPT
-echo
-echo
-comp_fun_med 3 $NDC $NCT $NPT
-echo
-echo
-comp_fun_fine 2 $NDC $NCT $NPT
-echo
-echo
-comp_fun_fine 3 $NDC $NCT $NPT
-echo
-
-exit 1
-
-## MIN_OC="2-min(2-c11f-c12f,min(2-c21f-c22f,min(2-p11f-p12f,min(2-p21f-p22f,min(2-d11f-d12f-d13f-d14f,min(2-d21f-d22f-d23f-d24f,min(2-d31f-d32f-d33f-d34f,min(2-d41f-d42f-d43f-d44f,min(2-d51f-d52f-d53f-d54f,2-d61f-d62f-d63f-d64f)))))))));0;2"
-## COMP_FUN1="\"+\""
-## COMP_FUN2="'(Disk11*Disk12*Disk13*Disk14*Disk21*Disk22*Disk23*Disk24*Disk31*Disk32*Disk33*Disk34*Disk41*Disk42*Disk43*Disk44*Disk51*Disk52*Disk53*Disk54*Disk61*Disk62*Disk63*Disk64)+(Controller11*Controller12*Controller21*Controller22)+(Processor11*Processor12*Processor21*Processor22);3;16777248;1'"
-## COMP_FUN3="'(Disk11*Disk12)+(Disk11*Disk13)+(Disk11*Disk14)+(Disk12*Disk13)+(Disk12*Disk14)+(Disk13*Disk14)+(Disk21*Disk22)+(Disk21*Disk23)+(Disk21*Disk24)+(Disk22*Disk23)+(Disk22*Disk24)+(Disk23*Disk24)+(Disk31*Disk32)+(Disk31*Disk33)+(Disk31*Disk34)+(Disk32*Disk33)+(Disk32*Disk34)+(Disk33*Disk34)+(Disk41*Disk42)+(Disk41*Disk43)+(Disk41*Disk44)+(Disk42*Disk43)+(Disk42*Disk44)+(Disk43*Disk44)+(Disk51*Disk52)+(Disk51*Disk53)+(Disk51*Disk54)+(Disk52*Disk53)+(Disk52*Disk54)+(Disk53*Disk54)+(Disk61*Disk62)+(Disk61*Disk63)+(Disk61*Disk64)+(Disk62*Disk63)+(Disk62*Disk64)+(Disk63*Disk64)+(Controller11*Controller12)+(Controller21*Controller22)+(Processor11*Processor12)+(Processor21*Processor22);40;160;1'"
-## COMP_FUN4="'(Disk11*Disk12*Disk13*Disk14)+(Disk21*Disk22*Disk23*Disk24)+(Disk31*Disk32*Disk33*Disk34)+(Disk41*Disk42*Disk43*Disk44)+(Disk51*Disk52*Disk53*Disk54)+(Disk61*Disk62*Disk63*Disk64)+(Controller11*Controller12)+(Controller21*Controller22)+(Processor11*Processor12)+(Processor21*Processor22);10;112;1'"
-## STANDARD_MC="-e nosplit --flat $STOP_CRITERION --timeout $TO"
-## RESTART_ADHOC="--adhoc $MIN_OC $STOP_CRITERION $SPLITTING --timeout $TO"
-## RESTART_ACOMP1="--acomp $COMP_FUN1 $STOP_CRITERION $SPLITTING --timeout $TO"
-## RESTART_ACOMP2="--acomp $COMP_FUN2 $STOP_CRITERION $SPLITTING --timeout $TO --post-process exp 2"
-## RESTART_ACOMP3="--acomp $COMP_FUN3 $STOP_CRITERION $SPLITTING --timeout $TO --post-process exp 2"
-## RESTART_ACOMP4="--acomp $COMP_FUN4 $STOP_CRITERION $SPLITTING --timeout $TO --post-process exp 2"
+STANDARD_MC="--flat -e nosplit $STOP_CRITERION --timeout $TO"
+RESTART_ACOMP1="--acomp \"+\" $STOP_CRITERION $SPLITTING --timeout $TO"
 
 
 # Launch experiments
@@ -110,6 +91,16 @@ show "Launching experiments:"
 for R in "${REDUNDANCY[@]}"
 do
 	show -n "  · for redundacy $R..."
+
+	# Generate importance functions to fit this experiment
+	MIN_OC=$(min_num_oc $R $NDC $NCT $NPT)
+	COMP_FUN_COA=$(comp_fun_coarse $R $NDC $NCT $NPT)  # Coarse
+	COMP_FUN_MED=$(comp_fun_med    $R $NDC $NCT $NPT)  # Medium
+	COMP_FUN_FIN=$(comp_fun_fine   $R $NDC $NCT $NPT)  # Fine
+	RESTART_ADHOC="--adhoc $MIN_OC $STOP_CRITERION $SPLITTING --timeout $TO"
+	RESTART_ACOMP2="--acomp $COMP_FUN_COA $STOP_CRITERION $SPLITTING --timeout $TO --post-process exp 2"
+	RESTART_ACOMP3="--acomp $COMP_FUN_MED $STOP_CRITERION $SPLITTING --timeout $TO --post-process exp 2"
+	RESTART_ACOMP4="--acomp $COMP_FUN_FIN $STOP_CRITERION $SPLITTING --timeout $TO --post-process exp 2"
 
 	# Generate model and properties files to fit this experiment
 	MODEL_FILE=database_r${R}.sa

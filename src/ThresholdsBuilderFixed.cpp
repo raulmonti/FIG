@@ -78,7 +78,8 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 				   << (stride_ > 1 ? ("s.\n") : (".\n"));
 		thresholds.push_back(impFun.initial_value());
 		// Start slightly above impFun's initial value to avoid oversampling
-		unsigned margin = std::min(impFun.max_value(), std::max(2u, IMP_RANGE/8u));
+		unsigned margin = std::min(impFun.max_value(),
+								   std::max<ImportanceValue>(2ul, IMP_RANGE/8ul));
 		build_thresholds(impFun, margin, stride_, postProcessing, thresholds);
 	}
 

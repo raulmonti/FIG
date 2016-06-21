@@ -222,24 +222,24 @@ typedef  ImportanceValue                                               Event;
 
 /// Simulation event types
 ///
-enum EventType
+enum EventType : Event
 {
-    NONE       = 0,
+	NONE       = 0,
 
-    /// Property's target, e.g. "goal" event for transient simulations
-    RARE       = 1u<<(8*sizeof(Event)-1),
+	/// Property's target, e.g. "goal" event for transient simulations
+	RARE       = 1ul<<(8*sizeof(Event)-1),
 
-    /// Simulation finished, e.g. "stop" event for transient simulations
-    STOP       = 1u<<(8*sizeof(Event)-2),
+	/// Simulation finished, e.g. "stop" event for transient simulations
+	STOP       = 1ul<<(8*sizeof(Event)-2),
 
-    /// Time elapsed, e.g. "reference" event for proportion simulations
-    REFERENCE  = 1u<<(8*sizeof(Event)-3),
+	/// Time elapsed, e.g. "reference" event for proportion simulations
+	REFERENCE  = 1ul<<(8*sizeof(Event)-3),
 
-    /// When a Traial jumps to a higher (on importance) threshold level
-	THR_UP     = 1u<<(8*sizeof(Event)-4),
+	/// When a Traial jumps to a higher (on importance) threshold level
+	THR_UP     = 1ul<<(8*sizeof(Event)-4),
 
-    /// When a Traial jumps to a lower (on importance) threshold level
-	THR_DOWN   = 1u<<(8*sizeof(Event)-5)
+	/// When a Traial jumps to a lower (on importance) threshold level
+	THR_DOWN   = 1ul<<(8*sizeof(Event)-5)
 };
 
 inline Event MASK(const ImportanceValue& val) noexcept

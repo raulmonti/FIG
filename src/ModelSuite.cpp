@@ -1075,7 +1075,7 @@ ModelSuite::build_thresholds(const std::string& technique,
 	if (force || ifun.thresholds_technique() != technique) {
 		techLog_ << "\nBuilding thresholds for importance function \"" << ifunName
 				 << "\",\nusing technique \"" << technique << "\" with splitting "
-				 << "== " << std::to_string(splitsPerThreshold) << std::endl;
+				 << "== " << to_string(splitsPerThreshold) << std::endl;
 		const double startTime = omp_get_wtime();
 		if (thrBuilder.adaptive() && lvlUpProb > 0.0)
 			ifun.build_thresholds_adaptively(
@@ -1180,12 +1180,16 @@ ModelSuite::estimate(const Property& property,
 						  +"\" isn't ready for simulations");
 	const ImportanceFunction& ifun(*impFuns[engine.current_imp_fun()]);
 	const std::string adHocFun(ifun.adhoc_fun());
+	const std::string postProcStr(ifun.post_processing().name.empty()
+			? ("(null)") : (ifun.post_processing().name + " "
+							+ to_string(ifun.post_processing().value)));
 
 	mainLog_ << "Estimating " << property.expression << ",\n";
 	mainLog_ << " using simulation engine  \"" << engine.name() << "\"\n";
 	mainLog_ << " with importance function \"" << engine.current_imp_fun() << "\"\n";
 	mainLog_ << " built using strategy     \"" << engine.current_imp_strat() << "\"";
 	mainLog_ << (adHocFun.empty() ? ("") : (" ("+adHocFun+")")) << std::endl;
+	mainLog_ << " with post-processing     \"" << postProcStr << "\"\n";
 	mainLog_ << " and thresholds technique \"" << ifun.thresholds_technique() << "\"\n";
 	mainLog_ << " [ " << ifun.num_thresholds() << " thresholds";
 	mainLog_ << " | splitting " << engine.splits_per_threshold() << " ]\n";
@@ -1209,8 +1213,7 @@ ModelSuite::estimate(const size_t& propertyIndex,
 {
 	auto propertyPtr = get_property(propertyIndex);
 	if (nullptr == propertyPtr)
-		throw_FigException(std::string("no property at index ")
-						   .append(std::to_string(propertyIndex)));
+		throw_FigException("no property at index " + to_string(propertyIndex));
 	estimate(*propertyPtr, engine, bounds);
 }
 
