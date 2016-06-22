@@ -482,7 +482,8 @@ ImportanceFunction::clear() noexcept
 void
 ImportanceFunction::post_process_thresholds(const ThresholdsBuilder& tb)
 {
-	if (static_cast<size_t>(maxValue_-minValue_) < (MAX_MEM_REQ/8ul)) {
+	if (static_cast<size_t>(maxValue_-minValue_) < (MAX_MEM_REQ/8ul) &&
+			strategy_ != "flat") {
 		// Few importance values: we can afford direct "translator"
 		importance2threshold_ = tb.invert_thresholds_map(threshold2importance_);
 		// Check the consistency of the translator built

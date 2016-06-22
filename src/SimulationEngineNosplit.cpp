@@ -133,7 +133,8 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 		traial.lifeTime += simLength;
 	} while (traial.lifeTime < simsLifetime && !interrupted);
 	if (traial.lifeTime == FIRST_TIME)  // allow next iteration of batch means
-		traial.lifeTime =  FIRST_TIME + 1.0;
+		traial.lifeTime = (FIRST_TIME + 1.1) * 2.2;
+	assert(traial.lifeTime != FIRST_TIME);
 
 	// Return estimate or its negative value
 	assert(0.0 <= accTime);

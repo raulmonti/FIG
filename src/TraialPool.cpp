@@ -256,6 +256,32 @@ TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
 	}
 }
 
+// TraialPool::get_traial_copies() specialization for STL std::stack<>
+template<> void
+TraialPool::get_traial_copies(std::stack< Reference< Traial >,
+										  std::vector< Reference< Traial > >
+										>& stack,
+							  const Traial& traial,
+							  unsigned numCopies,
+							  short depth)
+{
+	assert(0u < numCopies);
+	assert(0 >= depth);  // we're typically called on a threshold-level-up
+	numCopies++;  // loop guard condition requires this increment
+	retrieve_traials:
+	while (!available_traials_.empty() && 0u < --numCopies) {
+		Traial& t = available_traials_.front();
+		available_traials_.pop_front();
+		t = traial;
+		t.depth = depth;
+		stack.push(std::ref(t));  // copy elision
+	}
+	if (0u < numCopies) {
+		ensure_resources(std::max<unsigned>(numCopies++, sizeChunkIncrement));
+		goto retrieve_traials;
+	}
+}
+
 // TraialPool::get_traial_copies() specialization for STL std::forward_list<>
 template<> void
 TraialPool::get_traial_copies(std::forward_list< Reference<Traial> >& flist,
@@ -309,6 +335,20 @@ TraialPool::return_traials(std::stack< Reference< Traial > >& stack)
 	}
 }
 
+// TraialPool::return_traials() specialization for STL std::stack<>, up to 2x faster
+template <>
+void
+TraialPool::return_traials(std::stack< Reference< Traial >,
+									   std::vector< Reference< Traial > >
+									 >& stack)
+{
+	const size_t numTraials(stack.size());
+	for (size_t i = 0ul ; i < numTraials ; i++) {
+		available_traials_.push_front(stack.top());
+		stack.pop();
+	}
+}
+
 // TraialPool::return_traials() specialization for STL std::forward_list<>, up to 2x faster
 template <>
 void
@@ -332,10 +372,6 @@ TraialPool::ensure_resources(const size_t& requiredResources)
 		traials_.reserve(initialSize*4ul);  // called by TraialPool ctor[*]
 		TRAIALS_MEM_ADDR = traials_.data();
 	} else {
-
-		/// @todo TODO erase debug print
-		std::cerr << " ### increasing TPool from " << oldSize << " to " << newSize << std::endl;
-
 		traials_.reserve(newSize);
 		if (traials_.data() != TRAIALS_MEM_ADDR)  // we're fucked
 			throw_FigException("memory corrupted after reallocation of the "

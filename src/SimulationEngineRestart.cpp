@@ -235,28 +235,24 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 
 	// Reset batch or run with batch means?
 	if (reinit || stack.empty()) {
+		// Start over/anew
 		while (!stack.empty()) {
-			Traial& traial(stack.top());
-			if (&traial != &originalTraial)  // avoid future aliasing!
-				tpool.return_traial(std::move(traial));
+			if (&stack.top().get() != &originalTraial)  // avoid future aliasing!
+				tpool.return_traial(std::move(stack.top().get()));
 			stack.pop();
 		}
+		originalTraial.initialize(*network_, *impFun_);
 		stack.push(originalTraial);
-
-		/// @todo TODO erase debug print
-		std::cerr << "Starting new batch\n";
+	} else {
+		// Batch means, but reset life times
+		decltype(stack) tmp;
+		while (!stack.empty()) {
+			stack.top().get().lifeTime = 0.0;
+			tmp.push(stack.top().get());
+			stack.pop();
+		}
+		stack.swap(tmp);
 	}
-	originalTraial.lifeTime = 0.0;
-
-	/// @todo TODO erase debug print
-	std::cerr << "Batch means with " << stack.size() << " traials\n";
-
-	/// @todo TODO erase old code
-//	if (reinit || originalTraial.lifeTime == FIRST_TIME)
-//		originalTraial.initialize(*network_, *impFun_);
-//	else
-//		originalTraial.lifeTime = 0.0;
-//	stack.emplace(originalTraial);
 
 	// Run a single RESTART importance-splitting simulation for "runLength"
 	// simulation time units and starting from the last saved stack,
@@ -285,7 +281,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 			// Traial reached EOS or went down => kill it
 			assert(!(&traial==&originalTraial && IS_THR_DOWN_EVENT(e)));
 			if (&traial != &originalTraial)  // avoid future aliasing!
-				tpool.return_traial(stack.top());
+				tpool.return_traial(std::move(stack.top()));
 			stack.pop();
 
 		} else if (IS_THR_UP_EVENT(e)) {
@@ -308,19 +304,6 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	}
 	if (stack.empty())  // allow next iteration of batch means
 		stack.push(originalTraial);
-
-	/// @todo TODO erase old code
-//	if (originalTraial.lifeTime == FIRST_TIME)  // allow next iteration of batch means
-//		originalTraial.lifeTime =  (FIRST_TIME+1.1)*2.2;
-//	// Return any Traial still on the loose
-//	const size_t numLooseTraials(stack.size());
-//	for (size_t i = 0ul ; i < numLooseTraials ; i++) {
-//		Traial& traial = stack.top();
-//		if (&traial != &originalTraial) {  // avoid future aliasing!
-//			tpool.return_traial(std::move(traial));
-//			stack.pop();
-//		}
-//	}
 
 	// To estimate, weigh counts by the relative importance of their thresholds
 	double accTime(0.0);
