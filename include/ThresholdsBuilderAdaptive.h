@@ -61,6 +61,11 @@ public:
 	/// Vector of references to Traial instances taken from the TraialPool
 	typedef  std::vector< fig::Reference< fig::Traial > >  TraialsVec;
 
+public:
+
+	/// Default max number of thresholds
+	static constexpr size_t MAX_NUM_THRESHOLDS = 200ul;
+
 protected:
 
 	/// Min number of simulations to launch for each new threshold

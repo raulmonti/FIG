@@ -73,6 +73,10 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 		ThresholdsBuilderFixed::build_thresholds(impFun, MARGIN, stride_,
 												 postProcessing, thresholds_);
 		halted_ = true;
+
+	} catch (std::exception&) {
+		timer.detach();
+		throw;
 	}
 
 	// Tidy-up

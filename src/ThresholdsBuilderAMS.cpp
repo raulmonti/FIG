@@ -126,11 +126,14 @@ ThresholdsBuilderAMS::build_thresholds_vector(
     assert(k_ < n_);
 	assert(!halted_);
 
-    unsigned failures(0u), simEffort(MIN_SIM_EFFORT);
-	std::vector< ImportanceValue >().swap(thresholds_);
-	thresholds_.reserve((impFun.max_value()-impFun.initial_value()) / 5u);  // magic
+	if (thresholds_.size() > 0ul)
+		std::vector< ImportanceValue >().swap(thresholds_);
+	if (thresholds_.capacity() < MAX_NUM_THRESHOLDS)
+		thresholds_.reserve(MAX_NUM_THRESHOLDS);
 	auto lesser = [](const Traial& lhs, const Traial& rhs)
 				  { return lhs.level < rhs.level; };
+
+	unsigned failures(0u), simEffort(MIN_SIM_EFFORT);
 	TraialsVec traials = ThresholdsBuilderAdaptive::get_traials(n_, impFun);
 	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 
@@ -145,8 +148,10 @@ ThresholdsBuilderAMS::build_thresholds_vector(
     if (impFun.max_value() <= traials[n_-k_].get().level)
 		ModelSuite::tech_log("\nFirst iteration of AMS reached max importance, "
 							 "rare event doesn't seem so rare!\n");
-    thresholds_.push_back(traials[n_-k_].get().level);
-    simEffort = MIN_SIM_EFFORT;
+	else if (traials[n_-k_].get().level <= thresholds_.back())
+		goto exit_with_fail;  // couldn't make it, so sad
+	thresholds_.push_back(traials[n_-k_].get().level);
+	simEffort = MIN_SIM_EFFORT;
 
 	// AMS main loop
 	while (thresholds_.back() < impFun.max_value()) {

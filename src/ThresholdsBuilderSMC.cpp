@@ -61,17 +61,26 @@ unsigned SIM_EFFORT = 1u<<6u; // 64
 unsigned NUM_FAILURES = 6u;
 
 // RNG for randomized traial selection  ///////////////////////////
-#ifndef NDEBUG
-  const unsigned RNG_SEED(1234567803u);  // repeatable outcome
+/// RNG seed selection:
+/// \ifnot RANDOM_RNG_SEED
+///   deterministic
+/// \else
+///   taken from the system's random device
+/// \endif
+#if   !defined RANDOM_RNG_SEED && !defined PCG_RNG
+  const unsigned long RNG_SEED(std::mt19937_64::default_seed);
+#elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
+  const unsigned long RNG_SEED(0xCAFEF00DD15EA5E5ull);  // PCG's default seed
+#elif  defined RANDOM_RNG_SEED && !defined PCG_RNG
+  unsigned long RNG_SEED(std::random_device{}());
 #else
-  const unsigned RNG_SEED(std::random_device{}());
+  pcg_extras::seed_seq_from<std::random_device> RNG_SEED;
 #endif
+/// \ifnot PCG_RNG Mersenne-Twister RNG \else PCG family RNG \endif
 #ifndef PCG_RNG
-  /// Mersenne-Twister RNG
-  std::mt19937 RNG(RNG_SEED);
+  std::mt19937_64 RNG(RNG_SEED);
 #else
-  /// PCG family RNG
-  pcg32 RNG(RNG_SEED);
+  pcg64_oneseq RNG(RNG_SEED);
 #endif
 // ////////////////////////////////////////////////////////////////
 
@@ -131,7 +140,7 @@ build_states_distribution(const fig::ModuleNetwork& network,
         t.level = impFun.importance_of(t.state);
     };
 
-	// Starting uniform-randomly from previously computed initial states,
+	// Starting uniformly random from initial states computed before,
     // advance the first 'n' traials until they meet a state realizing lastThr
     std::uniform_int_distribution<unsigned> uniK(0, k-1);
 	for (size_t i = 0ul ; i < n && !halt ; i++) {
@@ -241,6 +250,8 @@ find_new_threshold(const fig::ModuleNetwork& network,
 
 	if (fails < ::NUM_FAILURES && !halt)
 		fig::ModelSuite::tech_log("+");  // report success
+	else
+		newThr = lastThr;
 
     return newThr;
 }
@@ -270,8 +281,11 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
     assert(k_ < n_);
 	assert(!halted_);
 
-    std::vector< ImportanceValue >().swap(thresholds_);
-	thresholds_.reserve((impFun.max_value()-impFun.initial_value()) / 5u);  // magic
+	if (thresholds_.size() > 0ul)
+		std::vector< ImportanceValue >().swap(thresholds_);
+	if (thresholds_.capacity() < MAX_NUM_THRESHOLDS)
+		thresholds_.reserve(MAX_NUM_THRESHOLDS);
+
 	TraialsVec traials = ThresholdsBuilderAdaptive::get_traials(n_+k_, impFun);
 	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 
@@ -283,6 +297,8 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 	if (impFun.max_value() <= newThreshold)
 		ModelSuite::tech_log("\nFirst iteration of SMC reached max importance, "
 							 "rare event doesn't seem so rare!\n");
+	else if (newThreshold <= thresholds_.back())
+		goto exit_with_fail;  // couldn't make it, so sad
 	thresholds_.push_back(newThreshold);
 
 	// SMC main loop
