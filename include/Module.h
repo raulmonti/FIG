@@ -102,6 +102,14 @@ public:  // Utils
 	/// \endif
 	virtual size_t initial_concrete_state() const = 0;
 
+	/// Copy initial state valuation into given StateInstance
+	/// @warning Module should be sealed()
+	/// @throw FigException if 's' doesn't match the Module state's size
+	/// \ifnot NDEBUG
+	///   @throw FigException if Module hasn't been sealed() yet
+	/// \endif
+	virtual void instantiate_initial_state(StateInstance& s) const = 0;
+
 	/// Get all (concrete) states that can be reached in a single step from 's'
 	virtual std::forward_list<size_t> adjacent_states(const size_t& s) const = 0;
 };

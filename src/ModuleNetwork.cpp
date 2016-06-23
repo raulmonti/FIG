@@ -189,6 +189,20 @@ ModuleNetwork::initial_state() const
 }
 
 
+void
+ModuleNetwork::instantiate_initial_state(StateInstance& s) const
+{
+#ifndef NDEBUG
+	if (!sealed())
+		throw_FigException("ModuleNetwork hasn't been sealed yet");
+#endif
+	if (gState.size() != s.size())
+		throw_FigException("can't copy valuation into a StateInstance of "
+						   "different size than the global state");
+	gState.copy_to_state_instance(s);
+}
+
+
 size_t
 ModuleNetwork::initial_concrete_state() const
 {

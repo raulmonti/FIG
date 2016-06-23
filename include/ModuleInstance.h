@@ -349,6 +349,8 @@ public:  // Utils
 
 	size_t initial_concrete_state() const override;
 
+	void instantiate_initial_state(StateInstance& s) const override;
+
 	/**
 	 * @copydoc Module::adjacent_states()
 	 * @param s Concrete state from the state space of this module (not global!)

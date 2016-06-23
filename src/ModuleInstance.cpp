@@ -202,6 +202,20 @@ ModuleInstance::initial_state() const
 }
 
 
+void
+ModuleInstance::instantiate_initial_state(StateInstance& s) const
+{
+#ifndef NDEBUG
+	if (!sealed())
+		throw_FigException("ModuleInstance hasn't been sealed yet");
+#endif
+	if (lState_.size() != s.size())
+		throw_FigException("can't copy valuation into a StateInstance of "
+						   "different size than our local state");
+	lState_.copy_to_state_instance(s);
+}
+
+
 size_t
 ModuleInstance::initial_concrete_state() const
 {
