@@ -158,6 +158,29 @@ format_seconds() {
 }
 
 
+# Print number of seconds corresponding to passed duration,
+# e.g. argument "2h" yields "7200" and "15m" yields "900".
+# The argument's single character suffix, which can be any from the set [smhd],
+# specifies whether the numerical part represents seconds (s), minutes (m),
+# hours (h), or days (d). By default no suffix is interpreted as seconds.
+compute_seconds() {
+	if [ $# -ne 1 ]; then
+		echo "[ERROR] Argument required (duration with suffix)"; return 1
+	elif [[ $1 =~ ^[0-9]+d$ ]]; then
+		echo $(echo "scale=0; ${1%d}*86400" | bc)  # days
+	elif [[ $1 =~ ^[0-9]+h$ ]]; then
+		echo $(echo "scale=0; ${1%h}*3600" | bc)   # hours
+	elif [[ $1 =~ ^[0-9]+m$ ]]; then
+		echo $(echo "scale=0; ${1%m}*60" | bc)     # minutes
+	elif [[ $1 =~ ^[0-9]+s$ ]] || [[ $1 =~ ^[0-9]+$ ]]; then
+		echo ${1%s}
+	else
+		echo "[ERROR] Bad argument: \"$1\""; return 1
+	fi
+	return 0
+}
+
+
 # Extract single time value from results dir,
 # for specified importance function, experiment and splitting
 extract_time() {
@@ -192,19 +215,22 @@ extract_time() {
 
 
 # Extract single estimate from results dir,
-# for specified importance function, experiment, splitting and confidence co.
+# for specified importance function, experiment, splitting,
+# and confidence coefficient or time bound.
 extract_estimate() {
 	# Check arguments
 	if [ $# -lt 5 ]; then
-		echo "[ERROR] Need dir name, ifun name, experiment, splitting and conf. co."
+		echo "[ERROR] Need dir name, ifun name, experiment, splitting, and confidence coefficient or time bound"
+		return 1
+	elif [[ ! $5 =~ ^[0-9]+%$ ]] && [[ ! $5 =~ ^[0-9]+[smhd]?$ ]]; then
+		echo "[ERROR] Need confidence coefficient or time bound as fifth arg"
 		return 1
 	fi
 	local DIR=$1
 	local IFUN=$2
 	local EXP=$3
 	local SPLIT=$4
-	local CONF=$5
-	# Find results file
+	# Find file with results
 	local FILE=`find "$DIR" -name "*${IFUN}*${EXP}*.out"`
 	if [ -z "${FILE}" ]; then
 		FILE=`find "$DIR" -name "*${EXP}*${IFUN}*.out"`
@@ -214,11 +240,18 @@ extract_estimate() {
 		fi
 	fi
 	# Retrieve and print requested estimate (or '-' if not found)
-	local EST=$(grep --after=8 "splitting $SPLIT" $FILE | \
-	            grep --after=7 "Confidence level: $CONF")
-	if [ -z "${EST}" ]; then
+	if [[ $5 =~ ^[0-9]+%$ ]]; then
+		local CONF=$5
+		local EST=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" \
+		            $FILE | grep --after=7 "Confidence level: $CONF")
+	elif [[ $5 =~ ^[0-9]+[smhd]?$ ]]; then
+		local TIMEOUT=$(compute_seconds $5)
+		local EST=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" \
+		            $FILE | grep --after=7 "Estimation timeout: $TIMEOUT s")
+	fi
+	if [ -z "${EST+x}" ]; then  # http://stackoverflow.com/a/13864829
 		echo "-"      # No estimate   :(
-	elif [[ "$EST" =~ "Estimation time:" ]]; then
+	elif [[ "$EST" =~ "Estimation time:" ]] || [[ -n "${TIMEOUT}" ]]; then
 		EST=$(echo $EST | grep -o "estimate:[[:space:]][1-9]\.[0-9]*e\-[0-9]*")
 		EST=$(echo $EST | awk '{ print $2 }')
 		echo "$EST"   # Good estimate :)
@@ -231,81 +264,140 @@ extract_estimate() {
 }
 
 
+# Extract single precision value from results dir,
+# for specified importance function, experiment, splitting,
+# and confidence coefficient or time bound.
+extract_precision() {
+
+	# TODO copy from "extract_estimate()"
+
+## 	# Check arguments
+## 	if [ $# -lt 5 ]; then
+## 		echo "[ERROR] Need dir name, ifun name, experiment, splitting and timeout."
+## 		return 1
+## 	fi
+## 	local DIR=$1
+## 	local IFUN=$2
+## 	local EXP=$3
+## 	local SPLIT=$4
+## 	local TIMEOUT=$5
+## 	# Find results file
+## 	local FILE=`find "$DIR" -name "*${IFUN}*${EXP}*.out"`
+## 	if [ -z "${FILE}" ]; then
+## 		FILE=`find "$DIR" -name "*${EXP}*${IFUN}*.out"`
+## 		if [ -z "${FILE}" ]; then
+## 			echo "[ERROR] Didn't find results for \"${IFUN}\" and \"${EXP}\""
+## 			return 1
+## 		fi
+## 	fi
+## 	# Retrieve and print requested estimate (or '-' if not found)
+## 	local EST=$(grep --after=8 "splitting $SPLIT" $FILE | \
+## 	            grep --after=7 "Confidence level: $CONF")
+## 	if [ -z "${EST}" ]; then
+## 		echo "-"      # No estimate   :(
+## 	elif [[ "$EST" =~ "Estimation time:" ]]; then
+## 		EST=$(echo $EST | grep -o "estimate:[[:space:]][1-9]\.[0-9]*e\-[0-9]*")
+## 		EST=$(echo $EST | awk '{ print $2 }')
+## 		echo "$EST"   # Good estimate :)
+## 	else
+## 		EST=$(echo $EST | grep -o "estimate:[[:space:]][1-9]\.[0-9]*e\-[0-9]*")
+## 		EST=$(echo $EST | awk '{ print $2 }')
+## 		echo "*$EST"  # Estimate w/TO :|
+## 	fi
+	return 0
+}
+
+
 # Print format "IFUN SPLIT VALUES[*]" for up to six values
 print_time_line() { printf "%5s %3s %6s %6s %6s %6s %6s %6s\n" "${@}"; }
-print_estimate_line() { printf "%5s %3s %10s %10s %10s %10s %10s %10s\n" "${@}"; }
+print_value_line() { printf "%5s %3s %10s %10s %10s %10s %10s %10s\n" "${@}"; }
 
 
 # Extract results and print them formatted as a table into stdout
-#   PARAM_1: "est" for estimates table and "time" for times table
+#   PARAM_1: "est" for estimates, "prec" for precisions, "time" for times
 #   PARAM_2: directory path where results are stored
 #   PARAM_3: array with experiments names, or some way to identify them
 #   PARAM_4: array with ifuns names
 #   PARAM_5: array with splittings used
-#   PARAM_6: confidence coefficient requested
+#   PARAM_6: confidence coefficient or time bound requested
 #   PARAM_7: precision requested
 build_table() {
-	# Check arguments
+	# Check and format arguments
 	if [ $# -ne 7 ]; then
 		echo "[ERROR] Bad calling arguments"
 		return 1
 	else
+		# Check which table to build
+		if [[ "$1" == "est" ]]; then
+			local HEADER_A="Estimates"
+			local PRINT=`echo "print_value_line"`
+			local EXTRACT=`echo "extract_estimate"`
+		elif [[ "$1" == "prec" ]]; then
+			local HEADER_A="Precision values"
+			local PRINT=`echo "print_value_line"`
+			local EXTRACT=`echo "extract_precision"`
+		elif [[ $1 == "time" ]]; then
+			local HEADER_A="Times (in sec)"
+			local PRINT=`echo "print_time_line"`
+			local EXTRACT=`echo "extract_time"`
+		else
+			echo "[ERROR] First param must be \"est\", \"prec\", or \"time\"";
+			return 1
+		fi
 		local RESULTS="$2"
 		local EXPERIMENTS=("${!3}")
 		local IMPFUNS=("${!4}")
 		local SPLITS=("${!5}")
-		local CONF="$6"
-		local PREC="$7"
-		# Format confidence level and relative precision
-		if [[ ! "$CONF" =~ "." ]]; then
-			echo "[ERROR] Requires confidence coefficient ∈ (0.0 , 1.0)"
-			return 1
-		elif [[ ! "$PREC" =~ "." ]]; then
-			echo "[ERROR] Requires relative precision"
-			return 1
-		else
-			CONF=$(echo "$CONF*100" | bc -l)
+		# Format confidence coefficient or time bound
+		if [[ $6 =~ ^[0-9]*\.[0-9]*$ ]]; then
+			local CONF=$(echo "$6*100" | bc -l)
 			CONF=${CONF%%.*}"%"
-			PREC=$(echo "$PREC*100" | bc -l)
-			PREC=${PREC%%.*}"%"
-		fi
-		# Check whether be build for times or estimates
-		if [[ "$1" == "est" ]]; then
-			local PRINT=`echo "print_estimate_line"`
-			local EXTRACT=`echo "extract_estimate"`
-			echo "Estimates for $CONF confidence and $PREC precision"
-		elif [[ $1 == "time" ]]; then
-			local PRINT=`echo "print_time_line"`
-			local EXTRACT=`echo "extract_time"`
-			echo "Times (in sec) for $CONF confidence and $PREC precision"
+			local HEADER_B="for $CONF confidence"
+			local MATCH=$CONF
+		elif [[ $6 =~ ^[0-9]+[smhd]?$ ]]; then
+			local TIMEOUT=$(compute_seconds $6)"s"
+			local HEADER_B="for $6 timeout"
+			local MATCH=$TIMEOUT
 		else
-			echo "[ERROR] First argument must be either \"est\" or \"time\"";
+			echo "[ERROR] Requires confidence coefficient ∈ (0.0 , 1.0)" \
+			     "or time bound > 0s"
+			return 1
+		fi
+		# Format precision
+		if [[ $7 =~ ^[0-9]*\.[0-9]*$ ]]; then
+			local PREC=$(echo "$7*100" | bc -l)
+			PREC=${PREC%%.*}"%"
+			local HEADER_C="and $PREC precision"
+		else
+			echo "[ERROR] Requires relative precision";
 			return 1
 		fi
 	fi
+	# Print header
+	echo "$HEADER_A $HEADER_B $HEADER_C"
 	$PRINT "" "" "${EXPERIMENTS[@]}"
 	# For each importance function
-	for IF in "${IMPFUNS[@]}"; do
-		local TIMES=()
+	for IFUN in "${IMPFUNS[@]}"; do
+		local VALUES=()
 		local idx=0
 		# Standard Monte Carlo? No splitting
-		if [[ $IF == "MC" ]]; then
+		if [[ $IFUN == "MC" ]]; then
 			idx=0
 			for EXP in "${EXPERIMENTS[@]}"; do
-				TIMES[$idx]=$($EXTRACT $RESULTS "$IF" "$EXP" "1" "$CONF")
+				VALUES[$idx]=$($EXTRACT $RESULTS "$IFUN" "$EXP" "1" "$MATCH")
 				idx=$((idx+1))
 			done
-			$PRINT "$IF" "" "${TIMES[@]}"
+			$PRINT "$IFUN" "" "${VALUES[@]}"
 			continue;
 		fi
-		# All the rest: print for all splittings
+		# All the rest: print for every splitting
 		for S in "${SPLITS[@]}"; do
 			idx=0;
 			for EXP in "${EXPERIMENTS[@]}"; do
-				TIMES[$idx]=$($EXTRACT $RESULTS "$IF" "$EXP" "$S" "$CONF")
+				VALUES[$idx]=$($EXTRACT $RESULTS "$IFUN" "$EXP" "$S" "$MATCH")
 				idx=$((idx+1))
 			done
-			$PRINT "$IF" "$S" "${TIMES[@]}"
+			$PRINT "$IFUN" "$S" "${VALUES[@]}"
 			continue;
 		done
 	done
