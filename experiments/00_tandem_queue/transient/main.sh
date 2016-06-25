@@ -39,23 +39,29 @@ PROPS_FILE="tandem_queue.pp"
 echo 'P( q2 > 0 U lost )' > $PROPS_FILE && \
 	show "  · using properties file $PROPS_FILE"
 N=0; RESULTS="results_$N"
-while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
-mkdir $RESULTS && unset N && \
-	show "  · results will be stored in subdir \"${RESULTS}\""
+## while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
+## mkdir $RESULTS && unset N && \
+## 	show "  · results will be stored in subdir \"${RESULTS}\""
 
 
 # Experiments configuration
-TO="12h"
-CONF=0.9  # Confidence coefficient
-PREC=0.2  # Relative precision
-SPLITS=(2 3 6 11)  # RESTART splittings to test
-QUEUES_CAPACITIES=(8 10 12 14)
+## TO="12h"
+## CONF=0.9  # Confidence coefficient
+## PREC=0.2  # Relative precision
+## SPLITS=(2 3 6 11)  # RESTART splittings to test
+## QUEUES_CAPACITIES=(8 10 12 14)
+TO="12s"
+CONF=0.8  # Confidence coefficient
+PREC=0.4  # Relative precision
+SPLITS=(3 6)  # RESTART splittings to test
+QUEUES_CAPACITIES=(8 10)
 EXPNAME="tandem_queue"
 #
 show "Configuring experiments"
 SPLITTING="--splitting "
 for S in "${SPLITS[@]}"; do SPLITTING+="$S,"; done; SPLITTING="${SPLITTING%,}"
 STOP_CRITERION="--stop-conf $CONF $PREC"
+#STOP_CRITERION="--stop-time 6s --stop-time 10s"  # --stop-time 14s"
 ETIMEOUT="${TO##*[0-9]}"  # Timeout per experiment (one ifun, all splits)
 ETIMEOUT=$(bc <<< "${TO%%[a-z]*}*${#SPLITS[@]}*2")"$ETIMEOUT"
 show "Timeouts: $TO per split; $ETIMEOUT per experiment"
@@ -65,53 +71,57 @@ RESTART_AMONO="--amono $STOP_CRITERION $SPLITTING --timeout $TO"
 RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION $SPLITTING --timeout $TO"
 
 
-# Launch experiments
-show "Launching experiments:"
-for c in "${QUEUES_CAPACITIES[@]}"
-do
-	show -n "  · for queues capacity = $c..."
-
-	# Modify model file to fit this experiment
-	MODEL_FILE_C=${MODEL_FILE%.sa}"_c${c}.sa"
-	BLANK="[[:space:]]*"
-	C_DEF="^const${BLANK}int${BLANK}c${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
-	sed -e "s/${C_DEF}/const int c = $c;/1" $MODEL_FILE > $MODEL_FILE_C
-	LOG=${RESULTS}/tandem_queue_c${c}
-	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE_C $PROPS_FILE"`
-
-	# RESTART with monolithic (auto ifun)
-	poll_till_free $EXPNAME; show -n " AM"
-	$EXE $RESTART_AMONO 1>>${LOG}"_AM.out" 2>>${LOG}"_AM.err" &
-
-	# RESTART with compositional (auto ifun)
-	poll_till_free $EXPNAME; show -n ", AC"
-	$EXE $RESTART_ACOMP 1>>${LOG}"_AC.out" 2>>${LOG}"_AC.err" &
-
-	# RESTART with ad hoc
-	poll_till_free $EXPNAME; show -n ", AH"
-	$EXE $RESTART_ADHOC 1>>${LOG}"_AH.out" 2>>${LOG}"_AH.err" &
-
-	# Standard Monte Carlo
-	poll_till_free $EXPNAME; show -n ", MC"
-	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
-
-	show "... done"
-done
-
-
-# Wait till termination, making sure everything dies after the timeout
-show -n "Waiting for all experiments to finish..."
-`PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }') \
- sleep $ETIMEOUT; kill -15 $PIDS &>/dev/null;              \
- sleep 2;         kill  -9 $PIDS &>/dev/null`              &
-disown %%; wait &>/dev/null; killall sleep &>/dev/null
-show " done"
+## # Launch experiments
+## show "Launching experiments:"
+## for c in "${QUEUES_CAPACITIES[@]}"
+## do
+## 	show -n "  · for queues capacity = $c..."
+## 
+## 	# Modify model file to fit this experiment
+## 	MODEL_FILE_C=${MODEL_FILE%.sa}"_c${c}.sa"
+## 	BLANK="[[:space:]]*"
+## 	C_DEF="^const${BLANK}int${BLANK}c${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
+## 	sed -e "s/${C_DEF}/const int c = $c;/1" $MODEL_FILE > $MODEL_FILE_C
+## 	LOG=${RESULTS}/tandem_queue_c${c}
+## 	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE_C $PROPS_FILE"`
+## 
+## 	# RESTART with monolithic (auto ifun)
+## 	poll_till_free $EXPNAME; show -n " AM"
+## 	$EXE $RESTART_AMONO 1>>${LOG}"_AM.out" 2>>${LOG}"_AM.err" &
+## 
+## 	# RESTART with compositional (auto ifun)
+## 	poll_till_free $EXPNAME; show -n ", AC"
+## 	$EXE $RESTART_ACOMP 1>>${LOG}"_AC.out" 2>>${LOG}"_AC.err" &
+## 
+## 	# RESTART with ad hoc
+## 	poll_till_free $EXPNAME; show -n ", AH"
+## 	$EXE $RESTART_ADHOC 1>>${LOG}"_AH.out" 2>>${LOG}"_AH.err" &
+## 
+## 	# Standard Monte Carlo
+## 	poll_till_free $EXPNAME; show -n ", MC"
+## 	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
+## 
+## 	show "... done"
+## done
+## 
+## 
+## # Wait till termination, making sure everything dies after the timeout
+## show -n "Waiting for all experiments to finish..."
+## `PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }') \
+##  sleep $ETIMEOUT; kill -15 $PIDS &>/dev/null;              \
+##  sleep 2;         kill  -9 $PIDS &>/dev/null`              &
+## disown %%; wait &>/dev/null; killall sleep &>/dev/null
+## show " done"
 
 
 # Build summary charts
 show -n "Building tables..."
 IFUNS=("MC" "AH" "AC" "AM")
 EXPERIMENTS=("${QUEUES_CAPACITIES[@]/#/c}")
+## build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] 6s $PREC \
+## 	&> $RESULTS/table_estimates_6s.txt
+## build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] 10s $PREC \
+## 	&> $RESULTS/table_estimates_10s.txt
 build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
 	&> $RESULTS/table_estimates.txt
 build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
