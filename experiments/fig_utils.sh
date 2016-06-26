@@ -219,56 +219,6 @@ extract_time() {
 }
 
 
-# TODO erase deprecated function
-## # Extract single estimate from results dir, for specified importance function,
-## # experiment, splitting, and confidence level or time bound.
-## extract_estimate() {
-## 	# Check arguments
-## 	if [ $# -ne 5 ]; then
-## 		echo "[ERROR] Need dir name, ifun name, experiment, splitting, and confidence level or time bound"
-## 		return 1
-## 	elif [[ ! $5 =~ ^[0-9]+%$ ]] && [[ ! $5 =~ ^[0-9]+[smhd]?$ ]]; then
-## 		echo "[ERROR] Need confidence level or time bound as fifth argument"
-## 		return 1
-## 	fi
-## 	local DIR=$1
-## 	local IFUN=$2
-## 	local EXP=$3
-## 	local SPLIT=$4
-## 	# Find file with results
-## 	local FILE=`find "$DIR" -name "*${IFUN}*${EXP}*.out"`
-## 	if [ -z "${FILE}" ]; then
-## 		FILE=`find "$DIR" -name "*${EXP}*${IFUN}*.out"`
-## 		if [ -z "${FILE}" ]; then
-## 			echo "[ERROR] Didn't find results for \"${IFUN}\" and \"${EXP}\""
-## 			return 1
-## 		fi
-## 	fi
-## 	# Retrieve and print requested estimate (or '-' if not found)
-## 	if [[ $5 =~ ^[0-9]+%$ ]]; then
-## 		local CONF=$5
-## 		local EST=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" \
-## 		            $FILE | grep --after=7 "Confidence level: $CONF")
-## 	elif [[ $5 =~ ^[0-9]+[smhd]?$ ]]; then
-## 		local TIMEOUT=$(compute_seconds $5)
-## 		local EST=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" \
-## 		            $FILE | grep --after=7 "Estimation timeout: $TIMEOUT s")
-## 	fi
-## 	if [ -z "${EST+x}" ]; then  # http://stackoverflow.com/a/13864829
-## 		echo "-"      # No estimate   :(
-## 	elif [[ "$EST" =~ "Estimation time:" ]] || [[ -n "${TIMEOUT}" ]]; then
-## 		EST=$(echo $EST | grep -o "estimate:[[:space:]][1-9]\.[0-9]*e\-[0-9]*")
-## 		EST=$(echo $EST | awk '{ print $2 }')
-## 		echo "$EST"   # Good estimate :)
-## 	else
-## 		EST=$(echo $EST | grep -o "estimate:[[:space:]][1-9]\.[0-9]*e\-[0-9]*")
-## 		EST=$(echo $EST | awk '{ print $2 }')
-## 		echo "*$EST"  # Estimate w/TO :|
-## 	fi
-## 	return 0
-## }
-
-
 # Extract single value (estimate or precision) from results dir,
 # for specified importance function, experiment, splitting
 # and confidence level or time bound.
@@ -300,10 +250,12 @@ extract_value() {
 	fi
 	# Retrieve requested value
 	if [[ $6 =~ ^[0-9]+%$ ]]; then
+		local TBOUND=""
 		local CONFLVL=$6
 		local VAL=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" $FILE \
 		           | grep --after=7 "Confidence level: $CONFLVL")
 	elif [[ $6 =~ ^[0-9]+[smhd]?$ ]]; then
+		local CONFLVL=""
 		local TBOUND=$(compute_seconds $6)
 		local VAL=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" $FILE \
 		           | grep --after=15 "Estimation timeout: $TBOUND s")
@@ -320,7 +272,7 @@ extract_value() {
 	elif [[ $1 == "prec" ]]; then
 		local VMATCH="[Pp]recision:[[:space:]][1-9]\.[0-9]*e\-[0-9]*"
 		if [ -n "${TBOUND}" ]; then
-			VAL=$(echo $VAL | grep --after=1 "$7[[:space:]]confidence")
+			VAL=$(echo "$VAL" | grep --after=1 "$7[[:space:]]confidence")
 		fi
 	fi
 	VAL=$(echo $VAL | grep -o $VMATCH | awk '{ print $2 }')
@@ -375,14 +327,16 @@ build_table() {
 		local SPLITS=("${!5}")
 		# Format confidence coefficient or time bound
 		if [[ $6 =~ ^[0-9]*\.[0-9]*$ ]]; then
+			local TBOUND=""
 			local CONF=$(echo "$6*100" | bc -l)
 			CONF=${CONF%%.*}"%"
 			local HEADER_B="for $CONF confidence"
 			local MATCH=$CONF
 		elif [[ $6 =~ ^[0-9]+[smhd]?$ ]]; then
-			local TIMEOUT=$(compute_seconds $6)"s"
+			local CONF=""
+			local TBOUND=$(compute_seconds $6)"s"
 			local HEADER_B="for $6 timeout"
-			local MATCH=$TIMEOUT
+			local MATCH=$TBOUND
 		else
 			echo "[ERROR] Requires confidence coefficient ∈ (0.0 , 1.0)" \
 			     "or time bound > 0s"
@@ -393,12 +347,12 @@ build_table() {
 			local PERCENT=$(echo "$7*100" | bc -l); PERCENT=${PERCENT%%.*}"%"
 			if [ -n "${CONF}" ]; then
 				local HEADER_C="and $PERCENT precision"
-			elif [ -n "${TIMEOUT}" ] && [[ $1 == "prec" ]]; then
+			elif [ -n "${TBOUND}" ] && [[ $1 == "prec" ]]; then
 				MATCH+=" $PERCENT"
 				local HEADER_C="and $PERCENT confidence"
 			fi
 		else
-			echo "[ERROR] Bad last argument";
+			echo "[ERROR] Bad last argument: \"$7\"";
 			return 1
 		fi
 	fi
@@ -413,7 +367,7 @@ build_table() {
 		if [[ $IFUN == "MC" ]]; then
 			idx=0
 			for EXP in "${EXPERIMENTS[@]}"; do
-				VALUES[$idx]=$($EXTRACT $RESULTS "$IFUN" "$EXP" "1" "$MATCH")
+				VALUES[$idx]=$($EXTRACT $RESULTS "$IFUN" "$EXP" "1" $MATCH)
 				idx=$((idx+1))
 			done
 			$PRINT "$IFUN" "" "${VALUES[@]}"
@@ -423,7 +377,7 @@ build_table() {
 		for S in "${SPLITS[@]}"; do
 			idx=0;
 			for EXP in "${EXPERIMENTS[@]}"; do
-				VALUES[$idx]=$($EXTRACT $RESULTS "$IFUN" "$EXP" "$S" "$MATCH")
+				VALUES[$idx]=$($EXTRACT $RESULTS "$IFUN" "$EXP" "$S" $MATCH)
 				idx=$((idx+1))
 			done
 			$PRINT "$IFUN" "$S" "${VALUES[@]}"
