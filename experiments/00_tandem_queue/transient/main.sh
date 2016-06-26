@@ -38,7 +38,7 @@ copy_model_file $MODEL_FILE $CWD && \
 PROPS_FILE="tandem_queue.pp"
 echo 'P( q2 > 0 U lost )' > $PROPS_FILE && \
 	show "  · using properties file $PROPS_FILE"
-N=0; RESULTS="results_$N"
+N=1; RESULTS="results_$N"
 ## while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
 ## mkdir $RESULTS && unset N && \
 ## 	show "  · results will be stored in subdir \"${RESULTS}\""
@@ -60,8 +60,8 @@ EXPNAME="tandem_queue"
 show "Configuring experiments"
 SPLITTING="--splitting "
 for S in "${SPLITS[@]}"; do SPLITTING+="$S,"; done; SPLITTING="${SPLITTING%,}"
-STOP_CRITERION="--stop-conf $CONF $PREC"
-#STOP_CRITERION="--stop-time 6s --stop-time 10s"  # --stop-time 14s"
+#STOP_CRITERION="--stop-conf $CONF $PREC"
+STOP_CRITERION="--stop-time 6s --stop-time 10s"  # --stop-time 14s"
 ETIMEOUT="${TO##*[0-9]}"  # Timeout per experiment (one ifun, all splits)
 ETIMEOUT=$(bc <<< "${TO%%[a-z]*}*${#SPLITS[@]}*2")"$ETIMEOUT"
 show "Timeouts: $TO per split; $ETIMEOUT per experiment"
@@ -118,14 +118,16 @@ RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION $SPLITTING --timeout $TO"
 show -n "Building tables..."
 IFUNS=("MC" "AH" "AC" "AM")
 EXPERIMENTS=("${QUEUES_CAPACITIES[@]/#/c}")
-## build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] 6s $PREC \
-## 	&> $RESULTS/table_estimates_6s.txt
-## build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] 10s $PREC \
-## 	&> $RESULTS/table_estimates_10s.txt
-build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&> $RESULTS/table_estimates.txt
-build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&> $RESULTS/table_times.txt
+build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] 6s $CONF \
+	&> $RESULTS/table_estimates_6s.txt
+build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] 10s $CONF \
+	&> $RESULTS/table_estimates_10s.txt
+## build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+## 	&> $RESULTS/table_estimates.txt
+## build_table "prec"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+## 	&> $RESULTS/table_precisions.txt
+## build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+## 	&> $RESULTS/table_times.txt
 show " done"
 
 

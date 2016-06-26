@@ -210,137 +210,32 @@ extract_time() {
 	local TIME=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" $FILE \
 	            | grep --after=9 "Confidence level: $CONF" | grep "time")
 	if [ -z "${TIME}" ]; then
-		echo "-"    # No estimation :(
+		echo "-"    # No valid estimation found   :(
 	else
 		TIME=$(echo $TIME | cut -d':' -f 2 | cut -d' ' -f 2 | cut -d\. -f 1)
-		echo $TIME  # Estimation time in seconds
+		echo $TIME  # Estimation time in seconds  :)
 	fi
 	return 0
 }
 
 
-# Extract single estimate from results dir, for specified importance function,
-# experiment, splitting, and confidence level or time bound.
-extract_estimate() {
-	# Check arguments
-	if [ $# -ne 5 ]; then
-		echo "[ERROR] Need dir name, ifun name, experiment, splitting, and confidence level or time bound"
-		return 1
-	elif [[ ! $5 =~ ^[0-9]+%$ ]] && [[ ! $5 =~ ^[0-9]+[smhd]?$ ]]; then
-		echo "[ERROR] Need confidence level or time bound as fifth argument"
-		return 1
-	fi
-	local DIR=$1
-	local IFUN=$2
-	local EXP=$3
-	local SPLIT=$4
-	# Find file with results
-	local FILE=`find "$DIR" -name "*${IFUN}*${EXP}*.out"`
-	if [ -z "${FILE}" ]; then
-		FILE=`find "$DIR" -name "*${EXP}*${IFUN}*.out"`
-		if [ -z "${FILE}" ]; then
-			echo "[ERROR] Didn't find results for \"${IFUN}\" and \"${EXP}\""
-			return 1
-		fi
-	fi
-	# Retrieve and print requested estimate (or '-' if not found)
-	if [[ $5 =~ ^[0-9]+%$ ]]; then
-		local CONF=$5
-		local EST=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" \
-		            $FILE | grep --after=7 "Confidence level: $CONF")
-	elif [[ $5 =~ ^[0-9]+[smhd]?$ ]]; then
-		local TIMEOUT=$(compute_seconds $5)
-		local EST=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" \
-		            $FILE | grep --after=7 "Estimation timeout: $TIMEOUT s")
-	fi
-	if [ -z "${EST+x}" ]; then  # http://stackoverflow.com/a/13864829
-		echo "-"      # No estimate   :(
-	elif [[ "$EST" =~ "Estimation time:" ]] || [[ -n "${TIMEOUT}" ]]; then
-		EST=$(echo $EST | grep -o "estimate:[[:space:]][1-9]\.[0-9]*e\-[0-9]*")
-		EST=$(echo $EST | awk '{ print $2 }')
-		echo "$EST"   # Good estimate :)
-	else
-		EST=$(echo $EST | grep -o "estimate:[[:space:]][1-9]\.[0-9]*e\-[0-9]*")
-		EST=$(echo $EST | awk '{ print $2 }')
-		echo "*$EST"  # Estimate w/TO :|
-	fi
-	return 0
-}
-
-
-# Extract single value (estimate or precision) from results dir,
-# for specified importance function, experiment, splitting
-# and confidence level or time bound.
-extract_precision() {
-	# Check arguments
-	if [ $# -ne 6 ]; then
-		echo "[ERROR] Bad args, need (est|prec), dir name, ifun name, experiment, splitting, and confidence level or time bound"
-		return 1
-	elif ! [[ $1 =~ ^(est|prec)$ ]]; then
-		echo "[ERROR] First argument must be either \"est\" or \"prec\""
-		return 1
-	elif [[ ! $6 =~ ^[0-9]+%$ ]] && [[ ! $6 =~ ^[0-9]+[smhd]?$ ]]; then
-		echo "[ERROR] Need confidence level or time bound as sixth argument"
-		return 1
-	fi
-	local DIR=$2
-	local IFUN=$3
-	local EXP=$4
-	local SPLIT=$5
-	# Find file with results
-	local FILE=`find "$DIR" -name "*${IFUN}*${EXP}*.out"`
-	if [ -z "${FILE}" ]; then
-		FILE=`find "$DIR" -name "*${EXP}*${IFUN}*.out"`
-		if [ -z "${FILE}" ]; then
-			echo "[ERROR] Didn't find results for \"${IFUN}\" and \"${EXP}\""
-			return 1
-		fi
-	fi
-	# Retrieve requested value
-	if [[ $1 == "est" ]]; then
-		local VMATCH="Computed estimate:"
-	elif [[ $1 == "prec" ]]; then
-		local VMATCH="Precision:"
-	fi
-	if [[ $6 =~ ^[0-9]+%$ ]]; then
-		local CONF=$6
-		local VAL=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" \
-		            $FILE | grep --after=7 "Confidence level: $CONF")
-	elif [[ $6 =~ ^[0-9]+[smhd]?$ ]]; then
-		local TIMEOUT=$(compute_seconds $6)
-		local VAL=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" \
-		            $FILE | grep --after=7 "Estimation timeout: $TIMEOUT s")
-	fi
-	# Print value found (or '-' if not found)
-	if [ -z "${VAL+x}" ]; then  # http://stackoverflow.com/a/13864829
-		echo "-"      # No estimate   :(
-	elif [[ "$VAL" =~ "Estimation time:" ]] || [[ -n "${TIMEOUT}" ]]; then
-		VAL=$(echo $VAL | grep -o "estimate:[[:space:]][1-9]\.[0-9]*e\-[0-9]*")
-		VAL=$(echo $VAL | awk '{ print $2 }')
-		echo "$VAL"   # Good estimate :)
-	else
-		VAL=$(echo $VAL | grep -o "estimate:[[:space:]][1-9]\.[0-9]*e\-[0-9]*")
-		VAL=$(echo $VAL | awk '{ print $2 }')
-		echo "*$VAL"  # Estimate w/TO :|
-	fi
-	return 0
-
-
-
-
-	# TODO copy from "extract_estimate()"
-
+# TODO erase deprecated function
+## # Extract single estimate from results dir, for specified importance function,
+## # experiment, splitting, and confidence level or time bound.
+## extract_estimate() {
 ## 	# Check arguments
-## 	if [ $# -lt 5 ]; then
-## 		echo "[ERROR] Need dir name, ifun name, experiment, splitting and timeout."
+## 	if [ $# -ne 5 ]; then
+## 		echo "[ERROR] Need dir name, ifun name, experiment, splitting, and confidence level or time bound"
+## 		return 1
+## 	elif [[ ! $5 =~ ^[0-9]+%$ ]] && [[ ! $5 =~ ^[0-9]+[smhd]?$ ]]; then
+## 		echo "[ERROR] Need confidence level or time bound as fifth argument"
 ## 		return 1
 ## 	fi
 ## 	local DIR=$1
 ## 	local IFUN=$2
 ## 	local EXP=$3
 ## 	local SPLIT=$4
-## 	local TIMEOUT=$5
-## 	# Find results file
+## 	# Find file with results
 ## 	local FILE=`find "$DIR" -name "*${IFUN}*${EXP}*.out"`
 ## 	if [ -z "${FILE}" ]; then
 ## 		FILE=`find "$DIR" -name "*${EXP}*${IFUN}*.out"`
@@ -350,11 +245,18 @@ extract_precision() {
 ## 		fi
 ## 	fi
 ## 	# Retrieve and print requested estimate (or '-' if not found)
-## 	local EST=$(grep --after=8 "splitting $SPLIT" $FILE | \
-## 	            grep --after=7 "Confidence level: $CONF")
-## 	if [ -z "${EST}" ]; then
+## 	if [[ $5 =~ ^[0-9]+%$ ]]; then
+## 		local CONF=$5
+## 		local EST=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" \
+## 		            $FILE | grep --after=7 "Confidence level: $CONF")
+## 	elif [[ $5 =~ ^[0-9]+[smhd]?$ ]]; then
+## 		local TIMEOUT=$(compute_seconds $5)
+## 		local EST=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" \
+## 		            $FILE | grep --after=7 "Estimation timeout: $TIMEOUT s")
+## 	fi
+## 	if [ -z "${EST+x}" ]; then  # http://stackoverflow.com/a/13864829
 ## 		echo "-"      # No estimate   :(
-## 	elif [[ "$EST" =~ "Estimation time:" ]]; then
+## 	elif [[ "$EST" =~ "Estimation time:" ]] || [[ -n "${TIMEOUT}" ]]; then
 ## 		EST=$(echo $EST | grep -o "estimate:[[:space:]][1-9]\.[0-9]*e\-[0-9]*")
 ## 		EST=$(echo $EST | awk '{ print $2 }')
 ## 		echo "$EST"   # Good estimate :)
@@ -363,6 +265,70 @@ extract_precision() {
 ## 		EST=$(echo $EST | awk '{ print $2 }')
 ## 		echo "*$EST"  # Estimate w/TO :|
 ## 	fi
+## 	return 0
+## }
+
+
+# Extract single value (estimate or precision) from results dir,
+# for specified importance function, experiment, splitting
+# and confidence level or time bound.
+extract_value() {
+	# Check arguments
+	if [ $# -lt 6 ]; then
+		echo "[ERROR] Bad args, need (est|prec), dir name, ifun name, experiment, splitting, and confidence level or time bound"
+		return 1
+	elif [[ ! $1 =~ ^(est|prec)$ ]]; then
+		echo "[ERROR] First argument must be either \"est\" or \"prec\""
+		return 1
+	elif [[ ! $6 =~ ^[0-9]+%$ ]] && [[ ! $6 =~ ^[0-9]+[smhd]?$ ]]; then
+		echo "[ERROR] Sixth argument must be a confidence level or time bound,"
+		echo "        e.g. \"80%\" or \"2h\""
+		return 1
+	fi
+	local DIR=$2
+	local IFUN=$3
+	local EXP=$4
+	local SPLIT=$5
+	# Find file with results
+	local FILE=`find "$DIR" -name "*${IFUN}*${EXP}*.out"`
+	if [ -z "${FILE}" ] || [ ! -f $FILE ]; then
+		FILE=`find "$DIR" -name "*${EXP}*${IFUN}*.out"`
+		if [ -z "${FILE}" ] || [ ! -f $FILE ]; then
+			echo "[ERROR] Didn't find results for \"${IFUN}\" and \"${EXP}\""
+			return 1
+		fi
+	fi
+	# Retrieve requested value
+	if [[ $6 =~ ^[0-9]+%$ ]]; then
+		local CONFLVL=$6
+		local VAL=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" $FILE \
+		           | grep --after=7 "Confidence level: $CONFLVL")
+	elif [[ $6 =~ ^[0-9]+[smhd]?$ ]]; then
+		local TBOUND=$(compute_seconds $6)
+		local VAL=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" $FILE \
+		           | grep --after=15 "Estimation timeout: $TBOUND s")
+	fi
+	# Print value (or '-' if not found)
+	if [ -z "${VAL}" ]; then
+		echo "-"  # No value found  :(
+		return 0
+	elif [[ -n "${CONFLVL}" ]] && [[ ! "$VAL" =~ "Estimation time:" ]]; then
+		echo -n "*"  # Simulation timedout  :|
+	fi
+	if [[ $1 == "est" ]]; then
+		local VMATCH="estimate:[[:space:]][1-9]\.[0-9]*e\-[0-9]*"
+	elif [[ $1 == "prec" ]]; then
+		local VMATCH="[Pp]recision:[[:space:]][1-9]\.[0-9]*e\-[0-9]*"
+		if [ -n "${TBOUND}" ]; then
+			VAL=$(echo $VAL | grep --after=1 "$7[[:space:]]confidence")
+		fi
+	fi
+	VAL=$(echo $VAL | grep -o $VMATCH | awk '{ print $2 }')
+	if [ -n "${VAL}" ]; then
+		echo "$VAL"  # Valid value found!   :)
+	else
+		echo "-"     # No valid value found :(
+	fi
 	return 0
 }
 
@@ -379,7 +345,7 @@ print_value_line() { printf "%5s %3s %10s %10s %10s %10s %10s %10s\n" "${@}"; }
 #   PARAM_4: array with ifuns names
 #   PARAM_5: array with splittings used
 #   PARAM_6: confidence coefficient or time bound requested
-#   PARAM_7: precision requested
+#   PARAM_7: precision (for PARAM_6 "conf") or confidence (for PARAM_6 "time")
 build_table() {
 	# Check and format arguments
 	if [ $# -ne 7 ]; then
@@ -422,13 +388,17 @@ build_table() {
 			     "or time bound > 0s"
 			return 1
 		fi
-		# Format precision
+		# Format precision (for $6==conf) or confidence (for $6==time)
 		if [[ $7 =~ ^[0-9]*\.[0-9]*$ ]]; then
-			local PREC=$(echo "$7*100" | bc -l)
-			PREC=${PREC%%.*}"%"
-			local HEADER_C="and $PREC precision"
+			local PERCENT=$(echo "$7*100" | bc -l); PERCENT=${PERCENT%%.*}"%"
+			if [ -n "${CONF}" ]; then
+				local HEADER_C="and $PERCENT precision"
+			elif [ -n "${TIMEOUT}" ] && [[ $1 == "prec" ]]; then
+				MATCH+=" $PERCENT"
+				local HEADER_C="and $PERCENT confidence"
+			fi
 		else
-			echo "[ERROR] Requires relative precision";
+			echo "[ERROR] Bad last argument";
 			return 1
 		fi
 	fi
