@@ -1,11 +1,10 @@
 
 Urgent:
- 0. why does "--adhoc" take much longer than "--acomp" in some exps?
- 1. why does the database experiment consume so much memory?
- 2. profile to determine new hotspot
- 3. is the negative clocks sampling check an efficiency issue?
- 4. investigate the implications of a bad minRareValue_
- 5. implement "array" ADT; requires IOSA extension!
+ 0. why does the database experiment consume so much memory?
+ 1. profile to determine new hotspot
+ 2. is the negative clocks sampling check an efficiency issue?
+ 3. investigate the implications of a bad minRareValue_
+ 4. implement "array" ADT; requires IOSA extension!
 
 Papers to read:
  · JVA: Asymptotic opt. of RESTART est. in highly dependable systems (2014)

@@ -4,13 +4,14 @@
  *
  * {-
  * Stochastic tandem queue concept:
- *                       q1                      q2
- * ------(o)------> [..@@@@] -----(o)-----> [....@@] -----(o)---->
- *  'arr' (lambda)            'pass' (mu1)           'exit' (mu2)
  *
- * 'arr'  tells a new packet arrives at q1     (clock 'clkArr' )
- * 'pass' tells a packet passes from q1 to q2  (clock 'clkPass')
- * 'exit' tells a packet exits q2              (clock 'clkExit')
+ *   'P0'       (q1)   'P1'      (q2)   'P2'
+ * -------> [..@@@@] ------> [....@@] ------>
+ *  lambda             mu1              mu2
+ *
+ * 'P0' tells a new packet arrives at q1    (clock 'clk0')
+ * 'P1' tells a packet passes from q1 to q2 (clock 'clk1')
+ * 'P2' tells a packet exits q2             (clock 'clk2')
  * 
  * Property type: TRANSIENT ("probability of rare event before stop event")
  *                RATE      ("steady-state probability of rare event")
@@ -18,7 +19,7 @@
  * Stopping events (TRANSIENT): q2 becoming empty
  * Reference events (RATE): any system transition
  * Initial state: Queue1 empty, Queue2 holds 1 packet
- * Initial clocks: clkArr, clkExit
+ * Initial clocks: clk0, clk2
  * -}
  */
 
@@ -37,51 +38,32 @@ const int    mu2 = 6;	// rate(           q2 -->)
 // -- const int    mu1 = 4;
 // -- const int    mu2 = 2;
 
+module Arrivals
+	clk0: clock;  // -- External arrivals ~ Exponential(lambda)
+	[P0!] @ clk0 -> (clk0'= exponential(lambda));
+endmodule
 
-module Queue1                                    
-
-	q1: [0..c-1];
-	clkArr:  clock; 	// -- Exponential(lambda)
-	clkPass: clock; 	// -- Exponential(mu1)
-
-    // -- Packet arrival
-	[arr!]  q1 == 0   @ clkArr -> (q1'= 1) &
-								  (clkArr' = exponential(lambda)) &
-								  (clkPass'= exponential(mu1));
-    [arr!]  0 < q1 &
-			q1 < c-1  @ clkArr -> (q1'= q1+1) &
-								  (clkArr'= exponential(lambda));
-	[arr!]  q1 == c-1 @ clkArr -> (clkArr'= exponential(lambda));
-
-    // -- Packet passage
-	[pass!] q1 >  1 @ clkPass -> (q1'= q1-1) &
-								 (clkPass'= exponential(mu1));
-	[pass!] q1 == 1 @ clkPass -> (q1'= 0);
-
-endmodule                                       
-
+module Queue1
+	q1: [0..c];
+	clk1: clock;  // -- Queue1 processing ~ Exponential(mu1)
+	// -- Packet arrival
+	[P0?] q1 == 0          -> (q1'= q1+1) & (clk1'= exponential(mu1));
+	[P0?] q1  > 0 & q1 < c -> (q1'= q1+1);
+	[P0?] q1 == c          -> ;
+	// -- Packet processing
+	[P1!] q1 == 1 @ clk1 -> (q1'= q1-1);
+	[P1!] q1  > 1 @ clk1 -> (q1'= q1-1) & (clk1'= exponential(mu1));
+endmodule
 
 module Queue2
-
-	q2: [0..c-1] init 1;
-	lost: bool init false;	// -- Package lost?
-	clkExit: clock; 		// -- Exponential(mu2)
-
-    // -- Packet passage
-	[pass?] q2 == 0   -> (q2'  = 1)     &
-						 (lost'= false) &
-						 (clkExit'= exponential(mu2));
-    [pass?] 0 < q2 &
-			q2 < c-1  -> (q2'  = q2+1) &
-						 (lost'= false);
-	[pass?] q2 == c-1 -> (lost'= true);
-
-    // -- Packet exit
-	[exit!] q2 >  1 @ clkExit -> (q2'  = q2-1)  &
-								 (lost'= false) &
-                                 (clkExit'= exponential(mu2));
-	[exit!] q2 == 1 @ clkExit -> (q2'  = 0)     &
-								 (lost'= false);
-
+	q2: [0..c] init 1;
+	clk2: clock;  // -- Queue2 processing ~ Exponential(mu2)
+	// -- Packet arrival
+	[P1?] q2 == 0          -> (q2'= q2+1) & (clk2'= exponential(mu2));
+	[P1?] q2  > 0 & q2 < c -> (q2'= q2+1);
+	[P1?] q2 == c          -> ;
+	// -- Packet processing
+	[P2!] q2 == 1 @ clk2 -> (q2'= q2-1);
+	[P2!] q2  > 1 @ clk2 -> (q2'= q2-1) & (clk2'= exponential(mu2));
 endmodule
 
