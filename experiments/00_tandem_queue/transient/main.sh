@@ -113,11 +113,11 @@ show -n "Building tables..."
 IFUNS=("MC" "AH" "AC" "AM")
 EXPERIMENTS=("${QUEUES_CAPACITIES[@]/#/c}")
 build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&> $RESULTS/table_estimates.txt
-build_table "prec"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&> $RESULTS/table_precisions.txt
+	&>> $RESULTS/table_estimates.txt
+build_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	&>> $RESULTS/table_precisions.txt
 build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&> $RESULTS/table_times.txt
+	&>> $RESULTS/table_times.txt
 show " done"
 
 

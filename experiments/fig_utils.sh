@@ -123,12 +123,12 @@ poll_till_free() {
 	fi
 	# do-while syntax sugar for bash
 	while
-#		local RUNNING=`pgrep -u "$(whoami)" fig | wc -l`
 		local RUNNING=`ps -fC "fig" | grep "$1" | wc -l`
 		[ $RUNNING -ge $JOBSBOUND ]
 	do
 		sleep 10s
 	done
+	sleep 0.1  # give previous job a little while to sink in
 }
 
 

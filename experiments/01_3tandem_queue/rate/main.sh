@@ -101,7 +101,7 @@ do
 	sed -i -e "s/${B1_USE}/= erlang(alpha,${BETA1[i]}));/g" $MODEL_FILE_L
 	sed -i -e "s/${B2_USE}/= erlang(alpha,${BETA2[i]}));/g" $MODEL_FILE_L
 	sed -i -e "s/${B3_USE}/= erlang(alpha,${BETA3[i]}));/g" $MODEL_FILE_L
-	LOG=${RESULTS}/3tandem_queue_L${L}
+	LOG=${RESULTS}/3tandem_queue_l${L}
 	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE_L $PROPS_FILE"`
 
 	# RESTART with monolithic (auto ifun)
@@ -142,9 +142,11 @@ show -n "Building tables..."
 IFUNS=("MC" "AHD" "AHO" "AC" "AM")
 EXPERIMENTS=("${OCUPA[@]/#/l}")
 build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&> $RESULTS/table_estimates.txt
+	&>> $RESULTS/table_estimates.txt
+build_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	&>> $RESULTS/table_precisions.txt
 build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&> $RESULTS/table_times.txt
+	&>> $RESULTS/table_times.txt
 show " done"
 
 

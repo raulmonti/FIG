@@ -49,7 +49,7 @@ TO="14h"
 CONF=0.9  # Confidence coefficient
 PREC=0.2  # Relative precision
 SPLITS=(2 3 6 11)  # RESTART splittings to test
-BUFFER_CAPACITIES=(20 40 80 160)
+BUFFER_CAPACITIES=(40 80 120 160)
 EXPNAME="queues_with_breakdowns"
 #
 show "Configuring experiments"
@@ -113,9 +113,11 @@ show -n "Building tables..."
 IFUNS=("MC" "AH" "AC" "AM")
 EXPERIMENTS=("${BUFFER_CAPACITIES[@]/#/k}")
 build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&> $RESULTS/table_estimates.txt
+	&>> $RESULTS/table_estimates.txt
+build_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	&>> $RESULTS/table_precisions.txt
 build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&> $RESULTS/table_times.txt
+	&>> $RESULTS/table_times.txt
 show " done"
 
 

@@ -152,7 +152,7 @@ show " done"
 show -n "Building tables..."
 IFUNS=("MC" "AH" "AC1" "AC2" "AC3" "AC4")
 EXPERIMENTS=("${REDUNDANCY[@]/#/r}")
-CONF_TO_SHOW=(".9" ".95")
+CONF_TO_SHOW=(".9" ".95")  # Conf. coeff. to build precision tables for
 for T in "${TBOUNDS[@]}"; do
 	C2S=${CONF_TO_SHOW[0]}
 	build_table "est" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $T $C2S \
