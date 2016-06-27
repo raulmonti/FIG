@@ -50,7 +50,7 @@ const int mu = 100;   // -- Processing rate
 const int delta = 4;  // -- Repair     rate
 const int gama = 3;   // -- Fail       rate
 
-// -- Buffer capacity: 20, 40, 80, 160
+// -- Buffer capacity: 40, 80, 120, 160
 const int K = 40;
 
 
@@ -233,7 +233,6 @@ module BufferedServer
 	clkR: clock;  // -- Server 'R'epair     ~ exp(delta)
 	clkP: clock;  // -- Server 'P'rocessing ~ exp(mu)
 	on:    bool init false;  // -- Server on?
-	lost:  bool init false;
 	reset: bool init false;
 
 	// -- Server failure and recovery
@@ -248,35 +247,35 @@ module BufferedServer
 	[] on & buf == 1 @ clkP -> (buf'= buf-1) & (reset'= true);
 
 	// -- Buffer in (enqueueing by sources production)
-	[p11?] buf == 0            -> (buf'= buf+1) & (clkP'= exponential(mu));
-	[p11?] 0 < buf & buf < K-1 -> (buf'= buf+1);
-	[p11?] buf == K-1          -> (buf'= buf+1) & (lost'= true);
-	[p12?] buf == 0            -> (buf'= buf+1) & (clkP'= exponential(mu));
-	[p12?] 0 < buf & buf < K-1 -> (buf'= buf+1);
-	[p12?] buf == K-1          -> (buf'= buf+1) & (lost'= true);
-	[p13?] buf == 0            -> (buf'= buf+1) & (clkP'= exponential(mu));
-	[p13?] 0 < buf & buf < K-1 -> (buf'= buf+1);
-	[p13?] buf == K-1          -> (buf'= buf+1) & (lost'= true);
-	[p14?] buf == 0            -> (buf'= buf+1) & (clkP'= exponential(mu));
-	[p14?] 0 < buf & buf < K-1 -> (buf'= buf+1);
-	[p14?] buf == K-1          -> (buf'= buf+1) & (lost'= true);
-	[p15?] buf == 0            -> (buf'= buf+1) & (clkP'= exponential(mu));
-	[p15?] 0 < buf & buf < K-1 -> (buf'= buf+1);
-	[p15?] buf == K-1          -> (buf'= buf+1) & (lost'= true);
-	[p21?] buf == 0            -> (buf'= buf+1) & (clkP'= exponential(mu));
-	[p21?] 0 < buf & buf < K-1 -> (buf'= buf+1);
-	[p21?] buf == K-1          -> (buf'= buf+1) & (lost'= true);
-	[p22?] buf == 0            -> (buf'= buf+1) & (clkP'= exponential(mu));
-	[p22?] 0 < buf & buf < K-1 -> (buf'= buf+1);
-	[p22?] buf == K-1          -> (buf'= buf+1) & (lost'= true);
-	[p23?] buf == 0            -> (buf'= buf+1) & (clkP'= exponential(mu));
-	[p23?] 0 < buf & buf < K-1 -> (buf'= buf+1);
-	[p23?] buf == K-1          -> (buf'= buf+1) & (lost'= true);
-	[p24?] buf == 0            -> (buf'= buf+1) & (clkP'= exponential(mu));
-	[p24?] 0 < buf & buf < K-1 -> (buf'= buf+1);
-	[p24?] buf == K-1          -> (buf'= buf+1) & (lost'= true);
-	[p25?] buf == 0            -> (buf'= buf+1) & (clkP'= exponential(mu));
-	[p25?] 0 < buf & buf < K-1 -> (buf'= buf+1);
-	[p25?] buf == K-1          -> (buf'= buf+1) & (lost'= true);
+	[p11?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p11?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p11?] buf == K          -> ;
+	[p12?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p12?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p12?] buf == K          -> ;
+	[p13?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p13?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p13?] buf == K          -> ;
+	[p14?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p14?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p14?] buf == K          -> ;
+	[p15?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p15?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p15?] buf == K          -> ;
+	[p21?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p21?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p21?] buf == K          -> ;
+	[p22?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p22?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p22?] buf == K          -> ;
+	[p23?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p23?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p23?] buf == K          -> ;
+	[p24?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p24?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p24?] buf == K          -> ;
+	[p25?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p25?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p25?] buf == K          -> ;
 
 endmodule

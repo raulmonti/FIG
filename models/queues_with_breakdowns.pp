@@ -1,1 +1,1 @@
-P( !reset U lost )  // "transient"
+P( !reset U buf == K )  // "transient"
