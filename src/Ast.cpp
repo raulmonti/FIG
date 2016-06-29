@@ -285,8 +285,7 @@ AST::get_all_ast(int k) const{
 
     vector<AST*> result;
     if(tkn == k){
-        AST *cp = new AST(this);
-        result.push_back(cp);
+        result.push_back(const_cast<AST*>(this));
     }
 	for(size_t i = 0; i < branches.size(); i++){
         vector<AST*> rec = branches[i]->get_all_ast(k);
