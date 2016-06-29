@@ -90,7 +90,7 @@ RESTART_ACOMP1="--acomp \"+\" $STOP_CRITERION $SPLITTING --timeout $TO"
 show "Launching experiments:"
 for R in "${REDUNDANCY[@]}"
 do
-	show -n "  · for redundacy $R..."
+	show -n "  · for redundancy $R..."
 
 	# Generate importance functions to fit this experiment
 	MIN_OC=$(min_num_oc $R $NDC $NCT $NPT)

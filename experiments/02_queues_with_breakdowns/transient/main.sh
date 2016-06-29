@@ -36,7 +36,7 @@ MODEL_FILE="queues_with_breakdowns.sa"
 copy_model_file $MODEL_FILE $CWD && \
 	show "  · using model file $MODEL_FILE"
 PROPS_FILE="queues_with_breakdowns.pp"
-echo 'P( !reset U lost )' > $PROPS_FILE && \
+echo 'P( !reset U buf == K )' > $PROPS_FILE && \
 	show "  · using properties file $PROPS_FILE"
 N=0; RESULTS="results_$N"
 while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done

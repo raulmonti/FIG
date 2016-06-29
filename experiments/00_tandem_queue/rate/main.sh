@@ -36,7 +36,7 @@ MODEL_FILE="tandem_queue.sa"
 copy_model_file $MODEL_FILE $CWD && \
 	show "  · using model file $MODEL_FILE"
 PROPS_FILE="tandem_queue.pp"
-echo 'S( lost )' > $PROPS_FILE && \
+echo 'S( q2 == c )' > $PROPS_FILE && \
 	show "  · using properties file $PROPS_FILE"
 N=0; RESULTS="results_$N"
 while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
