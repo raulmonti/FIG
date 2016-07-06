@@ -69,9 +69,9 @@ build_fig() {
 		echo "[ERROR] Couldn't build FIG project."
 		return 1
 	fi
-	# Link where requested
+	# Copy where requested
 	if [ -f $1/fig ]; then rm $1/fig; fi
-	ln -sf $BASE_DIR/bin/fig/fig $1/fig
+	cp $BASE_DIR/bin/fig/fig $1/fig
 }
 
 

@@ -146,7 +146,7 @@ IF(RELEASE)
 	IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 	ELSE()
-		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 --fast-math")
+		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 --fast-math -march=native")
 	ENDIF()
 ELSE()
 	# Optimize without obfuscating the assembly so much

@@ -45,9 +45,9 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-TO="14h"
+TO="6h"
 CONF=0.9  # Confidence coefficient
-PREC=0.2  # Relative precision
+PREC=0.3  # Relative precision
 SPLITS=(2 3 6 11)  # RESTART splittings to test
 BUFFER_CAPACITIES=(40 80 120 160)
 EXPNAME="queues_with_breakdowns"
