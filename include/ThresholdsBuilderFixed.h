@@ -121,8 +121,7 @@ protected:  // Utils for the class and its kin
 	 *               \ref ImportanceFunction::has_importance_info()
 	 *               "importance information" to use for the task
 	 * @param thresholds Where the thresholds-to-importance map will be built
-	 * @param margin Start this many importance values above the importance
-	 *               of the initial state
+	 * @param margin Start 'margin' importance values above the initial import.
 	 * @param stride Number of importance values to jump per threshold
 	 * @param postProcessing Post-processing applied to the ImportanceValue s
 	 *                       after importance assessment
