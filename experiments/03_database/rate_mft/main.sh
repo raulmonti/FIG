@@ -61,16 +61,16 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-TO="3h"
+TO="4h"
 CONF=0.9  # Confidence coefficient
-PREC=0.2  # Relative precision
+PREC=0.3  # Relative precision
 SPLITS=(2 3 6 11)  # RESTART splittings to test
 #MEAN_FAILURE_TIMES=(2000 8000 32000 128000)
-MEAN_FAILURE_TIMES=(2000 4000 8000 16000 32000)
+MEAN_FAILURE_TIMES=(1000 2000 4000 8000 16000)
 NDC=6  # Number of disk clusters
 NCT=2  # Number of controller types
 NPT=2  # Number of processor types
-RED=3  # System redundancy
+RED=3  # System redundancy (original: 2)
 EXPNAME="database"
 #
 show "Configuring experiments for $NDC disk clusters,"

@@ -462,7 +462,7 @@ get_timeout()
 							timeUnit == 'h' ? 3600ul  :
 							timeUnit == 'd' ? 86400ul : 0ul);
 		const size_t timeLen = std::strtoul(TO.data(), &err, 10);
-		assert (nullptr == err || err[0] != '\0');
+		assert (nullptr == err || err[0] == '\0');
 		simsTimeout = std::chrono::seconds(timeLen * FACTOR);
 	}
 	return true;

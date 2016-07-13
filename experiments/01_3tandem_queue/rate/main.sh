@@ -83,7 +83,7 @@ do
 	show -n "  · for threshold occupancy = $L..."
 
 	# Select optimal ad hoc ifun for this experiment (from V-A's paper)
-	RESTART_ADHOC_OPT="--adhoc ${AHFUN[i]} $STOP_CRITERION $SPLITTING --timeout $TO"
+	RESTART_ADHOC_OPT="--adhoc ${AHFUN[i]} $STOP_CRITERION --timeout $TO"
 
 	# Modify model file to fit this experiment
 	MODEL_FILE_L=${MODEL_FILE%.sa}"_l$L.sa"

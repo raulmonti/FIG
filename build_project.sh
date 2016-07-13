@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ##==============================================================================
 ##
@@ -31,7 +31,7 @@
 set -e
 
 # Choose compiler (prefer clang over gcc)
-if [ "`which clang`" ]
+if [ "`which clang 2>/dev/null`" ]
 then
 	# We need version 3.7 or later
 	CLANG_VERSION_MAJOR=$(clang --version | grep -o "[0-9]\.[0-9.]*" | head -1)
@@ -46,6 +46,10 @@ if [ -z "$CCOMP" ] && [ "`which gcc`" ]
 then
 	# Any c++11 compatible version is fine (that's checked in cmake)
 	CCOMP=gcc
+fi
+if [[ $HOSTNAME == "mendieta" ]]  # Mendieta requires special treatment
+then
+	CCOMP=`find /opt/spack/opt/ -path "*gcc-6*/bin/gcc" | tail -n 1`
 fi
 if [ -z "$CCOMP" ]
 then
