@@ -53,16 +53,14 @@ BUFFER_CAPACITIES=(40 80 120 160)
 EXPNAME="queues_with_breakdowns"
 #
 show "Configuring experiments"
-SPLITTING="--splitting "
-for S in "${SPLITS[@]}"; do SPLITTING+="$S,"; done; SPLITTING="${SPLITTING%,}"
 STOP_CRITERION="--stop-conf $CONF $PREC"
-ETIMEOUT="${TO##*[0-9]}"  # Timeout per experiment (one ifun, all splits)
-ETIMEOUT=$(bc <<< "${TO%%[a-z]*}*${#SPLITS[@]}*2")"$ETIMEOUT"
-show "Timeouts: $TO per split; $ETIMEOUT per experiment"
+ETIMEOUT="${TO##*[0-9]}"  # Experiment timeout (ifun&thr building + sim)
+ETIMEOUT=$(bc -l <<< "scale=0; ${TO%%[a-z]*}*1.4/1")"$ETIMEOUT"
+show "Timeouts: $TO per simulation; $ETIMEOUT per experiment"
 STANDARD_MC="-e nosplit --flat $STOP_CRITERION --timeout $TO"
-RESTART_ADHOC="--adhoc buf $STOP_CRITERION $SPLITTING --timeout $TO"
-RESTART_AMONO="--amono $STOP_CRITERION $SPLITTING --timeout $TO"
-RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION $SPLITTING --timeout $TO"
+RESTART_ADHOC="--adhoc buf $STOP_CRITERION --timeout $TO"
+RESTART_AMONO="--amono $STOP_CRITERION --timeout $TO"
+RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION --timeout $TO"
 
 
 # Launch experiments
@@ -76,20 +74,27 @@ do
 	BLANK="[[:space:]]*"
 	K_DEF="^const${BLANK}int${BLANK}K${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
 	sed -e "s/${K_DEF}/const int K = $k;/1" $MODEL_FILE > $MODEL_FILE_K
-	LOG=${RESULTS}/queues_with_breakdowns_k${k}
+	LOG=${RESULTS}/${EXPNAME}_k${k}
 	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE_K $PROPS_FILE"`
 
-	# RESTART with monolithic (auto ifun)
-	poll_till_free $EXPNAME; show -n " AM"
-	$EXE $RESTART_AMONO 1>>${LOG}"_AM.out" 2>>${LOG}"_AM.err" &
-
-	# RESTART with compositional (auto ifun)
-	poll_till_free $EXPNAME; show -n ", AC"
-	$EXE $RESTART_ACOMP 1>>${LOG}"_AC.out" 2>>${LOG}"_AC.err" &
-
-	# RESTART with ad hoc
-	poll_till_free $EXPNAME; show -n ", AH"
-	$EXE $RESTART_ADHOC 1>>${LOG}"_AH.out" 2>>${LOG}"_AH.err" &
+	# Launch a job for each splitting value (improves load balance)
+	for s in "${SPLITS[@]}"
+	do
+		# RESTART with monolithic (auto ifun)
+		poll_till_free $EXPNAME; show -n " AM_s${s}"
+		$EXE $RESTART_AMONO -s $s 1>>${LOG}"_AM_s${s}.out" \
+		                          2>>${LOG}"_AM_s${s}.err" &
+	
+		# RESTART with compositional (auto ifun)
+		poll_till_free $EXPNAME; show -n ", AC_s${s}"
+		$EXE $RESTART_ACOMP -s $s 1>>${LOG}"_AC_s${s}.out" \
+		                          2>>${LOG}"_AC_s${s}.err" &
+	
+		# RESTART with ad hoc
+		poll_till_free $EXPNAME; show -n ", AH_s${s}"
+		$EXE $RESTART_ADHOC -s $s 1>>${LOG}"_AH_s${s}.out" \
+		                          2>>${LOG}"_AH_s${s}.err" &
+	done
 
 	# Standard Monte Carlo
 	poll_till_free $EXPNAME; show -n ", MC"
@@ -111,6 +116,16 @@ show " done"
 # Build summary charts
 show -n "Building tables..."
 IFUNS=("MC" "AH" "AC" "AM")
+for k in "${BUFFER_CAPACITIES[@]}"; do
+	# Unify each importance function results in a single file
+	LOG=${RESULTS}/${EXPNAME}_k${k}
+	for IFUN in "${IFUNS[@]}"; do
+		if [[ ${IFUN} == "MC" ]]; then continue; fi
+		cat ${LOG}_${IFUN}_s[0-9]*.out >> ${LOG}"_${IFUN}.out"
+		cat ${LOG}_${IFUN}_s[0-9]*.err >> ${LOG}"_${IFUN}.err"
+		rm  ${LOG}_${IFUN}_s[0-9]*.{out,err}
+	done
+done
 EXPERIMENTS=("${BUFFER_CAPACITIES[@]/#/k}")
 build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
 	&>> $RESULTS/table_estimates.txt
