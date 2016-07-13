@@ -181,6 +181,24 @@ compute_seconds() {
 }
 
 
+# From given array with time duration specs,
+# print the one corresponding to the longest time interval
+get_max_time() {
+	if [ $# -ne 1 ]; then
+		echo "[ERROR] Argument required (array with time duration specs)"
+		return 1
+	fi
+	local TIMES=("${!1}")
+	local MAX_TIME=$(compute_seconds ${TIMES[0]})
+	for (( i=1 ; i<${#TIMES[@]} ; i++ )); do
+		local THIS_TIME=$(compute_seconds ${TIMES[i]})
+		MAX_TIME=$(( THIS_TIME > MAX_TIME ? THIS_TIME : MAX_TIME ))
+	done
+	echo $MAX_TIME
+	return 0
+}
+
+
 # Extract single time value from results dir, for specified importance function,
 # experiment, splitting and confidence level
 extract_time() {
@@ -224,7 +242,7 @@ extract_time() {
 # and confidence level or time bound.
 extract_value() {
 	# Check arguments
-	if [ $# -lt 6 ]; then
+	if [ $# -lt 6 ]; then  # Could take a 7th argument
 		echo "[ERROR] Bad args, need (est|prec), dir name, ifun name, experiment, splitting, and confidence level or time bound"
 		return 1
 	elif [[ ! $1 =~ ^(est|prec)$ ]]; then
@@ -262,7 +280,7 @@ extract_value() {
 	fi
 	# Print value (or '-' if not found)
 	if [ -z "${VAL}" ]; then
-		echo "-"  # No value found  :(
+		echo "-"     # No value found  :(
 		return 0
 	elif [[ -n "${CONFLVL}" ]] && [[ ! "$VAL" =~ "Estimation time:" ]]; then
 		echo -n "*"  # Simulation timedout  :|
@@ -290,7 +308,8 @@ print_time_line() { printf "%5s %3s %6s %6s %6s %6s %6s %6s\n" "${@}"; }
 print_value_line() { printf "%5s %3s %10s %10s %10s %10s %10s %10s\n" "${@}"; }
 
 
-# Extract results and print them formatted as a table into stdout
+# Extract results from confidence-bound simulations and print them into stdout
+# formatted as a table
 #   PARAM_1: "est" for estimates, "prec" for precisions, "time" for times
 #   PARAM_2: directory path where results are stored
 #   PARAM_3: array with experiments names, or some way to identify them
@@ -298,7 +317,7 @@ print_value_line() { printf "%5s %3s %10s %10s %10s %10s %10s %10s\n" "${@}"; }
 #   PARAM_5: array with splittings used
 #   PARAM_6: confidence coefficient or time bound requested
 #   PARAM_7: precision (for PARAM_6 "conf") or confidence (for PARAM_6 "time")
-build_table() {
+build_c_table() {
 	# Check and format arguments
 	if [ $# -ne 7 ]; then
 		echo "[ERROR] Bad calling arguments"
@@ -325,36 +344,23 @@ build_table() {
 		local EXPERIMENTS=("${!3}")
 		local IMPFUNS=("${!4}")
 		local SPLITS=("${!5}")
-		# Format confidence coefficient or time bound
+		# Format confidence coefficient
 		if [[ $6 =~ ^[0-9]*\.[0-9]*$ ]]; then
-			local TBOUND=""
-			local CONF=$(echo "$6*100" | bc -l)
-			CONF=${CONF%%.*}"%"
-			local HEADER_B="for $CONF confidence"
-			local MATCH=$CONF
-		elif [[ $6 =~ ^[0-9]+[smhd]?$ ]]; then
-			local CONF=""
-			local TBOUND=$(compute_seconds $6)"s"
-			local HEADER_B="for $6 timeout"
-			local MATCH=$TBOUND
+			local CONFIDENCE=$(bc -l <<< "scale=0;$6*100/1")"%"
+			local HEADER_B="for $CONFIDENCE confidence"
 		else
-			echo "[ERROR] Requires confidence coefficient ∈ (0.0 , 1.0)" \
-			     "or time bound > 0s"
+			echo "[ERROR] Bad confidence coefficient: \"$6\""
 			return 1
 		fi
-		# Format precision (for $6==conf) or confidence (for $6==time)
+		# Format relative precision
 		if [[ $7 =~ ^[0-9]*\.[0-9]*$ ]]; then
-			local PERCENT=$(echo "$7*100" | bc -l); PERCENT=${PERCENT%%.*}"%"
-			if [ -n "${CONF}" ]; then
-				local HEADER_C="and $PERCENT precision"
-			elif [ -n "${TBOUND}" ] && [[ $1 == "prec" ]]; then
-				MATCH+=" $PERCENT"
-				local HEADER_C="and $PERCENT confidence"
-			fi
+			local PRECISION=$(bc -l <<< "scale=0;$7*100/1")"%"
+			local HEADER_C="and $PRECISION precision"
 		else
-			echo "[ERROR] Bad last argument: \"$7\"";
+			echo "[ERROR] Bad relative precision: \"$7\"";
 			return 1
 		fi
+		local MATCH=$CONFIDENCE
 	fi
 	# Print header
 	echo "$HEADER_A $HEADER_B $HEADER_C"
@@ -381,7 +387,88 @@ build_table() {
 				idx=$((idx+1))
 			done
 			$PRINT "$IFUN" "$S" "${VALUES[@]}"
+		done
+	done
+	return 0
+}
+
+
+# Extract results from time-bound simulations and print them into stdout
+# formatted as a table
+#   PARAM_1: "est" for estimates, "prec" for precisions
+#   PARAM_2: directory path where results are stored
+#   PARAM_3: array with experiments names, or some way to identify them
+#   PARAM_4: array with ifuns names
+#   PARAM_5: array with splittings used
+#   PARAM_6: array with time bounds used, linked to the experiments (PARAM_3)
+#   PARAM_7: confidence for which to build the table (for PARAM_1 "prec" only)
+build_t_table() {
+	# Check and format arguments
+	if [ $# -lt 6 ]; then
+		echo "[ERROR] Bad calling arguments"
+		return 1
+	else
+		# Check which table to build
+		if [[ "$1" == "est" ]]; then
+			local HEADER_A="Estimates for time-bound experiments"
+			local PRINT=`echo "print_value_line"`
+			local EXTRACT=`echo "extract_value est"`
+		elif [[ "$1" == "prec" ]]; then
+			local HEADER_A="Precision values for time-bound experiments"
+			local PRINT=`echo "print_value_line"`
+			local EXTRACT=`echo "extract_value prec"`
+		else
+			echo "[ERROR] First param must be \"est\" or \"prec\"";
+			return 1
+		fi
+		local RESULTS="$2"
+		local EXPERIMENTS=("${!3}")
+		local IMPFUNS=("${!4}")
+		local SPLITS=("${!5}")
+		local TIME_BOUNDS=("${!6}")
+		if [ ${#EXPERIMENTS[@]} -ne ${#TIME_BOUNDS[@]} ]; then
+			echo "[ERROR] There must be exactly one time bound per experiment"
+			return 1
+		else
+			NEXP=${#EXPERIMENTS[@]}
+		fi
+		# Format confidence ("prec" tables only)
+		if [ $# -eq 7 ] && [[ $7 =~ ^[0-9]*\.[0-9]*$ ]]; then
+			local CONFIDENCE=$(bc -l <<< "scale=0;$7*100/1")"%"
+			local HEADER_B="($CONFIDENCE confidence)"
+		elif [ $# -eq 7 ]; then
+			echo "[ERROR] Bad last argument for \"prec\" table: \"$7\"";
+			return 1
+		fi
+	fi
+	# Print header
+	echo "$HEADER_A $HEADER_B"
+	echo -n "Experiments TO |"
+	for (( i=0 ; i<$NEXP ; i++ )); do
+		echo -n " ${EXPERIMENTS[i]}:${TIME_BOUNDS[i]} |"
+	done; echo
+	$PRINT "" "" "${EXPERIMENTS[@]}"
+	# For each importance function
+	for IFUN in "${IMPFUNS[@]}"; do
+		local VALUES=()
+		# Standard Monte Carlo? No splitting
+		if [[ $IFUN == "MC" ]]; then
+			for (( i=0 ; i < $NEXP ; i++ )); do
+				local MATCH=${TIME_BOUNDS[i]}
+				if [ $# -eq 7 ]; then MATCH+=" $CONFIDENCE"; fi
+				VALUES[$i]=$($EXTRACT $RESULTS $IFUN ${EXPERIMENTS[i]} 1 $MATCH)
+			done
+			$PRINT "$IFUN" "" "${VALUES[@]}"
 			continue;
+		fi
+		# All the rest: print for every splitting
+		for S in "${SPLITS[@]}"; do
+			for (( i=0 ; i < $NEXP ; i++ )); do
+				local MATCH=${TIME_BOUNDS[i]}
+				if [ $# -eq 7 ]; then MATCH+=" $CONFIDENCE"; fi
+				VALUES[$i]=$($EXTRACT $RESULTS $IFUN ${EXPERIMENTS[i]} $S $MATCH)
+			done
+			$PRINT "$IFUN" "$S" "${VALUES[@]}"
 		done
 	done
 	return 0

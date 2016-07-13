@@ -106,28 +106,28 @@ do
 	for s in "${SPLITS[@]}"
 	do
 		# RESTART with monolithic (auto ifun)
-		poll_till_free $EXPNAME; show -n " AM_s${s}"
+		poll_till_free $EXPNAME; show -n " AM_s${s},"
 		$EXE $RESTART_AMONO -s $s 1>>${LOG}"_AM_s${s}.out" \
 		                          2>>${LOG}"_AM_s${s}.err" &
 
 		# RESTART with compositional (auto ifun)
-		poll_till_free $EXPNAME; show -n ", AC_s${s}"
+		poll_till_free $EXPNAME; show -n " AC_s${s},"
 		$EXE $RESTART_ACOMP -s $s 1>>${LOG}"_AC_s${s}.out" \
 		                          2>>${LOG}"_AC_s${s}.err" &
 
 		# RESTART with ad hoc (default)
-		poll_till_free $EXPNAME; show -n ", AHD_s${s}"
+		poll_till_free $EXPNAME; show -n " AHD_s${s},"
 		$EXE $RESTART_ADHOC -s $s 1>>${LOG}"_AHD_s${s}.out" \
 		                          2>>${LOG}"_AHD_s${s}.err" &
 
 		# RESTART with ad hoc (optimal)
-		poll_till_free $EXPNAME; show -n ", AHO_s${s}"
+		poll_till_free $EXPNAME; show -n " AHO_s${s},"
 		$EXE $RESTART_ADHOC_OPT -s $s 1>>${LOG}"_AHO_s${s}.out" \
 		                              2>>${LOG}"_AHO_s${s}.err" &
 	done
 
 	# Standard Monte Carlo
-	poll_till_free $EXPNAME; show -n ", MC"
+	poll_till_free $EXPNAME; show -n " MC"
 	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
 
 	show "... done"
@@ -159,12 +159,12 @@ do
 	done
 done
 EXPERIMENTS=("${OCUPA[@]/#/l}")
-build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&>> $RESULTS/table_estimates.txt
-build_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&>> $RESULTS/table_precisions.txt
-build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&>> $RESULTS/table_times.txt
+build_c_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	&> $RESULTS/table_estimates.txt
+build_c_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	&> $RESULTS/table_precisions.txt
+build_c_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	&> $RESULTS/table_times.txt
 show " done"
 
 

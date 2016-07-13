@@ -61,32 +61,27 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-TO="4h"
-TBOUNDS=(30m 1h 2h 4h)
-SPLITS=(2 3 6 11)  # RESTART splittings to test
-REDUNDANCY=(2 3 4)
-NDC=6     # Number of disk clusters
-NCT=2     # Number of controller types
-NPT=2     # Number of processor types
-MFT=500   # Basic mean failure time (original: 2000)
+REDUNDANCY=(  2  3  4  5 )
+TIME_BOUNDS=(6s 90s 1h 6h)  # Specify one per redundancy!
+SPLITS=(2 3 5 6)  # RESTART splittings to test
+NDC=6    # Number of disk clusters
+NCT=2    # Number of controller types
+NPT=2    # Number of processor types
+MFT=100  # Basic mean failure time (original: 2000)
 EXPNAME="database"
 #
 show "Configuring experiments for $NDC disk clusters,"
 show "                            $NCT controller types,"
 show "                            $NPT processor types,"
 show "                            $MFT basic MFT"
-for T in "${TBOUNDS[@]}"; do STOP_CRITERION+="--stop-time $T "; done
-ETIMEOUT="${TO##*[0-9]}"  # Experiment timeout (ifun&thr building + sim)
-ETIMEOUT=$(bc -l <<< "scale=0; ${TO%%[a-z]*}*1.4/1")"$ETIMEOUT"
-show "Timeouts: $TO per simulation; $ETIMEOUT per experiment"
-STANDARD_MC="--flat -e nosplit $STOP_CRITERION --timeout $TO"
-RESTART_ACOMP1="--acomp \"+\" $STOP_CRITERION --timeout $TO"
+NUM_EXPERIMENTS=${#REDUNDANCY[@]}
 
 
 # Launch experiments
 show "Launching experiments:"
-for R in "${REDUNDANCY[@]}"
+for (( i=0 ; i < NUM_EXPERIMENTS ; i++ ))
 do
+	R=${REDUNDANCY[i]}
 	show -n "  · for redundancy $R..."
 
 	# Generate importance functions to fit this experiment
@@ -94,10 +89,23 @@ do
 	COMP_FUN_COA=$(comp_fun_coarse $R $NDC $NCT $NPT)  # Coarse
 	COMP_FUN_MED=$(comp_fun_med    $R $NDC $NCT $NPT)  # Medium
 	COMP_FUN_FIN=$(comp_fun_fine   $R $NDC $NCT $NPT)  # Fine
-	RESTART_ADHOC="--adhoc $MIN_OC $STOP_CRITERION --timeout $TO"
-	RESTART_ACOMP2="--acomp $COMP_FUN_COA $STOP_CRITERION --timeout $TO --post-process exp 2"
-	RESTART_ACOMP3="--acomp $COMP_FUN_MED $STOP_CRITERION --timeout $TO --post-process exp 2"
-	RESTART_ACOMP4="--acomp $COMP_FUN_FIN $STOP_CRITERION --timeout $TO --post-process exp 2"
+
+	# Time limits and execution lines corresponding to this experiment
+	TB=${TIME_BOUNDS[i]}
+	if [ `compute_seconds $TB` -lt 600 ]  # Experiment TO: ifun + thr + sim
+	then
+		ETIMEOUT="10m"
+	else
+		ETIMEOUT="${TB##*[0-9]}"
+		ETIMEOUT=$(bc -l <<< "scale=0; ${TB%%[a-z]*}*2/1")"$ETIMEOUT"
+	fi
+	STOP_CRITERION="--stop-time $TB"  # Simulation only TO
+	STANDARD_MC="--flat -e nosplit $STOP_CRITERION"
+	RESTART_ADHOC="--adhoc $MIN_OC $STOP_CRITERION"
+	RESTART_ACOMP1="--acomp \"+\" $STOP_CRITERION"
+	RESTART_ACOMP2="--acomp $COMP_FUN_COA $STOP_CRITERION --post-process exp 2"
+	RESTART_ACOMP3="--acomp $COMP_FUN_MED $STOP_CRITERION --post-process exp 2"
+	RESTART_ACOMP4="--acomp $COMP_FUN_FIN $STOP_CRITERION --post-process exp 2"
 
 	# Generate model and properties files to fit this experiment
 	MODEL_FILE=${EXPNAME}_r${R}.sa
@@ -113,33 +121,33 @@ do
 		# since the importance vector wouldn't fit in memory
 	
 		# RESTART with compositional (auto ifun), version 1
-		poll_till_free $EXPNAME; show -n " AC1_s${s}"
+		poll_till_free $EXPNAME; show -n " AC1_s${s},"
 		$EXE $RESTART_ACOMP1 -s $s 1>>${LOG}"_AC1_s${s}.out" \
 		                           2>>${LOG}"_AC1_s${s}.err" &
 	
 		# RESTART with compositional (auto ifun), version 2
-		poll_till_free $EXPNAME; show -n ", AC2_s${s}"
+		poll_till_free $EXPNAME; show -n " AC2_s${s},"
 		$EXE $RESTART_ACOMP2 -s $s 1>>${LOG}"_AC2_s${s}.out" \
 		                           2>>${LOG}"_AC2_s${s}.err" &
 	
 		# RESTART with compositional (auto ifun), version 3
-		poll_till_free $EXPNAME; show -n ", AC3_s${s}"
+		poll_till_free $EXPNAME; show -n " AC3_s${s},"
 		$EXE $RESTART_ACOMP3 -s $s 1>>${LOG}"_AC3_s${s}.out" \
 		                           2>>${LOG}"_AC3_s${s}.err" &
 	
 		# RESTART with compositional (auto ifun), version 4
-		poll_till_free $EXPNAME; show -n ", AC4_s${s}"
+		poll_till_free $EXPNAME; show -n " AC4_s${s},"
 		$EXE $RESTART_ACOMP4 -s $s 1>>${LOG}"_AC4_s${s}.out" \
 		                           2>>${LOG}"_AC4_s${s}.err" &
 	
 		# RESTART with ad hoc
-		poll_till_free $EXPNAME; show -n ", AH_s${s}"
+		poll_till_free $EXPNAME; show -n " AH_s${s},"
 		$EXE $RESTART_ADHOC -s $s 1>>${LOG}"_AH_s${s}.out" \
 		                          2>>${LOG}"_AH_s${s}.err" &
 	done
 
 	# Standard Monte Carlo
-	poll_till_free $EXPNAME; show -n ", MC"
+	poll_till_free $EXPNAME; show -n " MC"
 	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
 
 	show "... done"
@@ -148,6 +156,9 @@ done
 
 # Wait till termination, making sure everything dies after the timeout
 show -n "Waiting for all experiments to finish..."
+TO=$(get_max_time TIME_BOUNDS[@])
+ETIMEOUT="${TO##*[0-9]}"  # Experiment timeout (ifun&thr building + sim)
+ETIMEOUT=$(bc -l <<< "scale=0; ${TO%%[a-z]*}*1.4/1")"$ETIMEOUT"
 `PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }') \
  sleep $ETIMEOUT; kill -15 $PIDS &>/dev/null;              \
  sleep 2;         kill  -9 $PIDS &>/dev/null`              &
@@ -170,15 +181,13 @@ for R in "${REDUNDANCY[@]}"; do
 done
 EXPERIMENTS=("${REDUNDANCY[@]/#/r}")
 CONF_TO_SHOW=(".9" ".95")  # Conf. coeff. to build precision tables for
-for T in "${TBOUNDS[@]}"; do
-	C2S=${CONF_TO_SHOW[0]}
-	build_table "est" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $T $C2S \
-		&>> $RESULTS/table_estimates_$T.txt
-	for C in "${CONF_TO_SHOW[@]}"; do
-		build_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $T $C \
-			&>> $RESULTS/table_precision_$T.txt
-		echo "" >> $RESULTS/table_precision_$T.txt
-	done
+build_t_table "est" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] TIME_BOUNDS[@] \
+	&> $RESULTS/table_estimates.txt
+for C2S in "${CONF_TO_SHOW[@]}"; do
+	CLVL=$(bc -l <<< "scale=0; $C2S*100/1")"%"
+	build_t_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] \
+	              TIME_BOUNDS[@] $C2S \
+		&> $RESULTS/table_precision_$CLVL.txt
 done
 show " done"
 

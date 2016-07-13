@@ -81,23 +81,23 @@ do
 	for s in "${SPLITS[@]}"
 	do
 		# RESTART with monolithic (auto ifun)
-		poll_till_free $EXPNAME; show -n " AM_s${s}"
+		poll_till_free $EXPNAME; show -n " AM_s${s},"
 		$EXE $RESTART_AMONO -s $s 1>>${LOG}"_AM_s${s}.out" \
 		                          2>>${LOG}"_AM_s${s}.err" &
 	
 		# RESTART with compositional (auto ifun)
-		poll_till_free $EXPNAME; show -n ", AC_s${s}"
+		poll_till_free $EXPNAME; show -n " AC_s${s},"
 		$EXE $RESTART_ACOMP -s $s 1>>${LOG}"_AC_s${s}.out" \
 		                          2>>${LOG}"_AC_s${s}.err" &
 	
 		# RESTART with ad hoc
-		poll_till_free $EXPNAME; show -n ", AH_s${s}"
+		poll_till_free $EXPNAME; show -n " AH_s${s},"
 		$EXE $RESTART_ADHOC -s $s 1>>${LOG}"_AH_s${s}.out" \
 		                          2>>${LOG}"_AH_s${s}.err" &
 	done
 
 	# Standard Monte Carlo
-	poll_till_free $EXPNAME; show -n ", MC"
+	poll_till_free $EXPNAME; show -n " MC"
 	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
 
 	show "... done"
@@ -127,12 +127,12 @@ for k in "${BUFFER_CAPACITIES[@]}"; do
 	done
 done
 EXPERIMENTS=("${BUFFER_CAPACITIES[@]/#/k}")
-build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&>> $RESULTS/table_estimates.txt
-build_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&>> $RESULTS/table_precisions.txt
-build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&>> $RESULTS/table_times.txt
+build_c_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	&> $RESULTS/table_estimates.txt
+build_c_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	&> $RESULTS/table_precisions.txt
+build_c_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	&> $RESULTS/table_times.txt
 show " done"
 
 

@@ -66,10 +66,10 @@ CONF=0.9  # Confidence coefficient
 PREC=0.3  # Relative precision
 SPLITS=(2 3 5 6)  # RESTART splittings to test
 REDUNDANCY=(2 3 4 5)
-NDC=6     # Number of disk clusters
-NCT=2     # Number of controller types
-NPT=2     # Number of processor types
-MFT=50    # Basic mean failure time (original: 2000)
+NDC=6   # Number of disk clusters
+NCT=2   # Number of controller types
+NPT=2   # Number of processor types
+MFT=50  # Basic mean failure time (original: 2000)
 EXPNAME="database"
 #
 show "Configuring experiments for $NDC disk clusters,"
@@ -114,33 +114,33 @@ do
 		# since the importance vector wouldn't fit in memory
 	
 		# RESTART with compositional (auto ifun), version 1
-		poll_till_free $EXPNAME; show -n " AC1_s${s}"
+		poll_till_free $EXPNAME; show -n " AC1_s${s},"
 		$EXE $RESTART_ACOMP1 -s $s 1>>${LOG}"_AC1_s${s}.out" \
 		                           2>>${LOG}"_AC1_s${s}.err" &
 	
 		# RESTART with compositional (auto ifun), version 2
-		poll_till_free $EXPNAME; show -n ", AC2_s${s}"
+		poll_till_free $EXPNAME; show -n " AC2_s${s},"
 		$EXE $RESTART_ACOMP2 -s $s 1>>${LOG}"_AC2_s${s}.out" \
 		                           2>>${LOG}"_AC2_s${s}.err" &
 	
 		# RESTART with compositional (auto ifun), version 3
-		poll_till_free $EXPNAME; show -n ", AC3_s${s}"
+		poll_till_free $EXPNAME; show -n " AC3_s${s},"
 		$EXE $RESTART_ACOMP3 -s $s 1>>${LOG}"_AC3_s${s}.out" \
 		                           2>>${LOG}"_AC3_s${s}.err" &
 	
 		# RESTART with compositional (auto ifun), version 4
-		poll_till_free $EXPNAME; show -n ", AC4_s${s}"
+		poll_till_free $EXPNAME; show -n " AC4_s${s},"
 		$EXE $RESTART_ACOMP4 -s $s 1>>${LOG}"_AC4_s${s}.out" \
 		                           2>>${LOG}"_AC4_s${s}.err" &
 	
 		# RESTART with ad hoc
-		poll_till_free $EXPNAME; show -n ", AH_s${s}"
+		poll_till_free $EXPNAME; show -n " AH_s${s},"
 		$EXE $RESTART_ADHOC -s $s 1>>${LOG}"_AH_s${s}.out" \
 		                          2>>${LOG}"_AH_s${s}.err" &
 	done
   
 	# Standard Monte Carlo
-	poll_till_free $EXPNAME; show -n ", MC"
+	poll_till_free $EXPNAME; show -n " MC"
 	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
 
 	show "... done"
@@ -170,12 +170,12 @@ for R in "${REDUNDANCY[@]}"; do
 	done
 done
 EXPERIMENTS=("${REDUNDANCY[@]/#/r}")
-build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&>> $RESULTS/table_estimates.txt
-build_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&>> $RESULTS/table_precisions.txt
-build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&>> $RESULTS/table_times.txt
+build_c_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	&> $RESULTS/table_estimates.txt
+build_c_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	&> $RESULTS/table_precisions.txt
+build_c_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	&> $RESULTS/table_times.txt
 show " done"
 
 
