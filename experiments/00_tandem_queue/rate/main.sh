@@ -47,7 +47,7 @@ mkdir $RESULTS && unset N && \
 # Experiments configuration
 TO="6h"
 CONF=0.9  # Confidence coefficient
-PREC=0.2  # Relative precision
+PREC=0.3  # Relative precision
 SPLITS=(2 3 6 11)  # RESTART splittings to test
 QUEUES_CAPACITIES=(10 15 20 25)
 EXPNAME="tandem_queue"
@@ -138,6 +138,7 @@ show " done"
 
 # Turn lights off
 EXE_WTIME=$(format_seconds $SECONDS)  
+show "Finished on $(date)"
 show "Script execution walltime was $EXE_WTIME"
 show "Results are in ${RESULTS}"
 exit 0

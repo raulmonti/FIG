@@ -147,6 +147,7 @@ IF(RELEASE)
 		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 	ELSE()
 		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 --fast-math -march=native")
+		#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 --fast-math -march=sandybridge")
 	ENDIF()
 ELSE()
 	# Optimize without obfuscating the assembly so much
@@ -247,4 +248,5 @@ ADD_EXECUTABLE(fig ${ALL_SOURCES} ${LEXER_CC})
 ###  Link dynamic libraries  ##################################################
 
 TARGET_LINK_LIBRARIES(fig ${DYNAMIC_LIBRARIES})
+#TARGET_LINK_LIBRARIES(fig -static-libgcc -static-libstdc++ ${DYNAMIC_LIBRARIES})
 

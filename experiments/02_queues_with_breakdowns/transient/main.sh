@@ -49,7 +49,8 @@ TO="6h"
 CONF=0.9  # Confidence coefficient
 PREC=0.3  # Relative precision
 SPLITS=(2 3 6 11)  # RESTART splittings to test
-BUFFER_CAPACITIES=(40 80 120 160)
+#BUFFER_CAPACITIES=(40 80 120 160)
+BUFFER_CAPACITIES=(40 60 80 100)
 EXPNAME="queues_with_breakdowns"
 #
 show "Configuring experiments"
@@ -138,6 +139,7 @@ show " done"
 
 # Turn lights off
 EXE_WTIME=$(format_seconds $SECONDS)  
+show "Finished on $(date)"
 show "Script execution walltime was $EXE_WTIME"
 show "Results are in ${RESULTS}"
 exit 0

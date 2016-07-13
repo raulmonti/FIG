@@ -62,12 +62,12 @@ mkdir $RESULTS && unset N && \
 
 # Experiments configuration
 REDUNDANCY=(  2  3  4  5 )
-TIME_BOUNDS=(6s 90s 1h 6h)  # Specify one per redundancy!
+TIME_BOUNDS=(3s 60s 1h 6h)  # Specify one per redundancy!
 SPLITS=(2 3 5 6)  # RESTART splittings to test
-NDC=6    # Number of disk clusters
-NCT=2    # Number of controller types
-NPT=2    # Number of processor types
-MFT=100  # Basic mean failure time (original: 2000)
+NDC=6   # Number of disk clusters
+NCT=2   # Number of controller types
+NPT=2   # Number of processor types
+MFT=50  # Basic mean failure time (original: 2000)
 EXPNAME="database"
 #
 show "Configuring experiments for $NDC disk clusters,"
@@ -194,6 +194,7 @@ show " done"
 
 # Turn lights off
 EXE_WTIME=$(format_seconds $SECONDS)  
+show "Finished on $(date)"
 show "Script execution walltime was $EXE_WTIME"
 show "Results are in ${RESULTS}"
 exit 0

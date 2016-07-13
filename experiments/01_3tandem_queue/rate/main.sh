@@ -50,7 +50,7 @@ CONF=0.9  # Confidence coefficient
 PREC=0.2  # Relative precision
 SPLITS=(2 3 6 11)  # RESTART splittings to test
 #OCUPA=(18  13  20  16  24  21)  # estimates ~ 10^-15
-OCUPA=(10   8  11   9  14  12)  # estimates ~ 10^-9
+OCUPA=(10   7  11   9  14  12)  # estimates ~ 5*10^-9
 ALPHA=( 2   3   2   3   2   3)
 BETA1=( 3 4.5   6   9  10  15)
 BETA2=( 4   6   4   6   8  12)
@@ -170,6 +170,7 @@ show " done"
 
 # Turn lights off
 EXE_WTIME=$(format_seconds $SECONDS)  
+show "Finished on $(date)"
 show "Script execution walltime was $EXE_WTIME"
 show "Results are in ${RESULTS}"
 exit 0
