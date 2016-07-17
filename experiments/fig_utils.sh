@@ -258,9 +258,9 @@ extract_value() {
 	local EXP=$4
 	local SPLIT=$5
 	# Find file with results
-	local FILE=`find "$DIR" -name "*${IFUN}*${EXP}*.out"`
+	local FILE=`find "$DIR" -maxdepth 1 -name "*${IFUN}*${EXP}*.out"`
 	if [ -z "${FILE}" ] || [ ! -f $FILE ]; then
-		FILE=`find "$DIR" -name "*${EXP}*${IFUN}*.out"`
+		FILE=`find "$DIR" -maxdepth 1 -name "*${EXP}*${IFUN}*.out"`
 		if [ -z "${FILE}" ] || [ ! -f $FILE ]; then
 			echo "[ERROR] Didn't find results for \"${IFUN}\" and \"${EXP}\""
 			return 1
@@ -315,8 +315,8 @@ print_value_line() { printf "%5s %3s %10s %10s %10s %10s %10s %10s\n" "${@}"; }
 #   PARAM_3: array with experiments names, or some way to identify them
 #   PARAM_4: array with ifuns names
 #   PARAM_5: array with splittings used
-#   PARAM_6: confidence coefficient or time bound requested
-#   PARAM_7: precision (for PARAM_6 "conf") or confidence (for PARAM_6 "time")
+#   PARAM_6: confidence coefficient requested
+#   PARAM_7: relative precision
 build_c_table() {
 	# Check and format arguments
 	if [ $# -ne 7 ]; then
@@ -472,6 +472,53 @@ build_t_table() {
 		done
 	done
 	return 0
+}
+
+
+# Extract results for single importance function and splitting,
+# and print them as data for later gnuplot processing
+#   PARAM_1: directory path where (raw) results are stored
+#   PARAM_2: array with experiments names, or some way to identify them
+#   PARAM_3: importance function name
+#   PARAM_4: splitting value to consider
+#   PARAM_5: confidence coefficient requested
+#   PARAM_6: relative precision
+summarize_estimates() {
+	# Check and format arguments
+	if [ $# -lt 5 ]; then
+		echo "[ERROR] Bad calling arguments"
+		return 1
+	else
+		local RESULTS="$1"
+		local EXPERIMENTS=("${!2}")
+		local IFUN="$3"
+		local SPLIT="$4"
+#		# Format confidence coefficient
+#		if [[ $5 =~ ^[0-9]*\.[0-9]*$ ]]; then
+#			local CONFIDENCE=$(bc -l <<< "scale=0;$5*100/1")"%"
+#			local HEADER_B="for $CONFIDENCE confidence"
+#		else
+#			echo "[ERROR] Bad confidence coefficient: \"$5\""
+#			return 1
+#		fi
+#		# Format relative precision
+#		if [[ $6 =~ ^[0-9]*\.[0-9]*$ ]]; then
+#			local PRECISION=$(bc -l <<< "scale=0;$6*100/1")"%"
+#			local HEADER_C="and $PRECISION precision"
+#		else
+#			echo "[ERROR] Bad relative precision: \"$6\"";
+#			return 1
+#		fi
+#		local MATCH=$CONFIDENCE
+	fi
+	# Print header
+	echo "# Plotting data (estimates) for ifun $IFUN and splitting $SPLIT"
+			local PRINT=`echo "print_value_line"`
+			local EXTRACT=`echo "extract_value prec"`
+	for EXP in "${EXPERIMENTS[@]}"; do
+		local VALUES=`extract_value est $RESULTS $IFUN $EXP $SPLIT $MATCH???`
+		print_value_line "$EXP" "$VALUES"
+	done
 }
 
 return 0
