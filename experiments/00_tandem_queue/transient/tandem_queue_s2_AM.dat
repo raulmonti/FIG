@@ -1,0 +1,8 @@
+# Tandem queue experiment
+# Data for 90% confidence and 20% precision
+# Ifun: automatic monolithic | Split: 2
+#  c  estimate  precision   time
+   8  5.19e-06   1.04e-06      7
+  10  4.04e-07   8.08e-08     48
+  12  2.20e-08   4.41e-09    398
+  14  1.19e-09   2.39e-10   3142

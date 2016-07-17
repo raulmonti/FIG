@@ -1,0 +1,8 @@
+# Tandem queue experiment
+# Data for 90% confidence and 20% precision
+# Ifun: ad hoc | Split: 2
+#  c  estimate  precision   time
+   8  4.85e-06   9.71e-07      8
+  10  3.02e-07   6.03e-08     78
+  12  1.81e-08   3.62e-09    147
+  14  1.01e-09   2.02e-10   1952

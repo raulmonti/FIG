@@ -1,0 +1,45 @@
+#!/usr/bin/env gnuplot
+#
+# Author:  Carlos E. Budde
+# Date:    17.07.2016
+# License: GPLv3
+#
+#   This script expects some variables to be defined on invocation.
+#   Sample invocation line:
+#   $ gnuplot -e "split=2;AH='AH_file.dat';AM='AM_file.dat'" plot_estimates.gpi
+#
+
+# Check external variables were defined
+#die(n) = system("killall gnuplot &>/dev/null")  # call like: a=die(1)
+if (!exists("split")) exit error "[ERROR] Missing 'split' variable"
+if (!exists("AH"))    exit error "[ERROR] Missing 'AH' variable"
+if (!exists("AM"))    exit error "[ERROR] Missing 'AM' variable"
+
+# Output file setup
+set encoding utf8
+set out "tandem_queue_estimates_s".split.".pdf"
+set term pdf monochrome dashed size 7,6 font 'Verdana,15'
+
+# General plot options
+set title font 'Times,24' offset 0,0 "Transient analysis for the tandem queue  (splitting: ".split.")"
+set xlab offset 0,-.1 "{/*1.2 Queues capacity}"
+set ylab offset -.1,0 "{/*1.2 Overflow probability}"
+set border 1+2+4+8  # bottom + left + top + right borders
+set grid
+#set rmargin 5
+#set bmargin 5
+set log y
+set format y "%.2e"
+set xtics 2 font ",16"
+set ytics   font ",16"
+set auto fix
+set offsets 0.3,0.3,0.3,0.1
+
+# Plot sequence
+set key top right font "sans,16"
+set style fill transparent solid 0.25 noborder
+plot AH u ($1):($2-$3/2):($2+$3/2) w filledcurves fc 0 t '', \
+	 '' u ($1):2 w lp lt 2 lc 0 pt 9 ps 1 lw 2 t 'ad hoc',        \
+	 AM u ($1):($2-$3/2):($2+$3/2) w filledcurves fc 0 t '', \
+	 '' u ($1):2 w lp lt 1 lc 0 pt 7 ps 1 lw 2 t 'monolithic'
+
