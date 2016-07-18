@@ -483,7 +483,7 @@ build_t_table() {
 #   PARAM_4: splitting value to consider
 #   PARAM_5: confidence coefficient requested
 #   PARAM_6: relative precision
-summarize_estimates() {
+gather_plot_data() {
 	# Check and format arguments
 	if [ $# -lt 5 ]; then
 		echo "[ERROR] Bad calling arguments"
@@ -493,14 +493,13 @@ summarize_estimates() {
 		local EXPERIMENTS=("${!2}")
 		local IFUN="$3"
 		local SPLIT="$4"
-#		# Format confidence coefficient
-#		if [[ $5 =~ ^[0-9]*\.[0-9]*$ ]]; then
-#			local CONFIDENCE=$(bc -l <<< "scale=0;$5*100/1")"%"
-#			local HEADER_B="for $CONFIDENCE confidence"
-#		else
-#			echo "[ERROR] Bad confidence coefficient: \"$5\""
-#			return 1
-#		fi
+		# Format confidence coefficient
+		if [[ $5 =~ ^[0-9]*\.[0-9]*$ ]]; then
+			local CONFLVL=$(bc -l <<< "scale=0;$5*100/1")"%"
+		else
+			echo "[ERROR] Bad confidence coefficient: \"$5\""
+			return 1
+		fi
 #		# Format relative precision
 #		if [[ $6 =~ ^[0-9]*\.[0-9]*$ ]]; then
 #			local PRECISION=$(bc -l <<< "scale=0;$6*100/1")"%"
@@ -512,12 +511,18 @@ summarize_estimates() {
 #		local MATCH=$CONFIDENCE
 	fi
 	# Print header
-	echo "# Plotting data (estimates) for ifun $IFUN and splitting $SPLIT"
-			local PRINT=`echo "print_value_line"`
-			local EXTRACT=`echo "extract_value prec"`
+	echo "#!/usr/bin/env gnuplot"
+	echo "# Data for plots (estimates)"
+	echo "# Ifun: $IFUN | Splitting: $SPLIT"
+	echo "# param  estimate  precision  time"
+	# Extract and print data
 	for EXP in "${EXPERIMENTS[@]}"; do
-		local VALUES=`extract_value est $RESULTS $IFUN $EXP $SPLIT $MATCH???`
-		print_value_line "$EXP" "$VALUES"
+		local VALUE=$(echo $EXP | sed "s/[[:alpha:][:punct:]]*//g")
+		local SIFUN=$([[ $IFUN == "MC" ]] && echo $IFUN || echo "$IFUN*s$SPLIT")
+		local ESTIMATE=` extract_value est  $RESULTS $SIFUN $EXP $SPLIT $CONFLVL`
+		local PRECISION=`extract_value prec $RESULTS $SIFUN $EXP $SPLIT $CONFLVL`
+		local TIME=`extract_time  $RESULTS $SIFUN $EXP $SPLIT $CONFLVL`
+		print_value_line "$VALUE" "$ESTIMATE" "$PRECISION" "$TIME"
 	done
 }
 

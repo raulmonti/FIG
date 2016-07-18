@@ -10,10 +10,7 @@
 #
 
 # Check external variables were defined
-#die(n) = system("killall gnuplot &>/dev/null")  # call like: a=die(1)
-if (!exists("XMIN"))  exit error "[ERROR] Missing 'XMIN' variable"
-if (!exists("XMAX"))  exit error "[ERROR] Missing 'XMAX' variable"
-if (!exists("XSTEP")) exit error "[ERROR] Missing 'XSTEP' variable"
+if (!exists("XTIC"))  exit error "[ERROR] Missing 'XTIC' variable"
 if (!exists("SPLIT")) exit error "[ERROR] Missing 'SPLIT' variable"
 # The following var names should match those in "IFUNS" from main.sh
 if (!exists("MC")) exit error "[ERROR] Missing 'MC' variable"
@@ -23,9 +20,9 @@ if (!exists("AM")) exit error "[ERROR] Missing 'AM' variable"
 
 # Output file setup
 set encoding utf8
-fout="tandem_queue_estimates_s".SPLIT.".pdf"
+set term pdf monochrome dashed enhanced size 7,6 font 'Verdana,15'
+fout="plot_estimates_s".SPLIT.".pdf"
 set out fout
-set term pdf monochrome dashed size 7,6 font 'Verdana,15'
 
 # General plot options
 set title offset 0,0 "{/Times*1.8 Transient analysis for the tandem queue}\n\nSplitting: ".SPLIT
@@ -37,20 +34,24 @@ set grid
 #set bmargin 5
 set log y
 set format y "%.1e"
-set xrange [XMIN:XMAX]
-set xtics XSTEP font ",14"
-set ytics       font ",14"
+set xtics XTIC font ",14"
+set ytics      font ",14"
 set auto fix
 set offsets 0.3,0.3,0.3,0.1
 
 # Plot sequence
 set key top right font ",16"
-set style fill transparent solid 0.25 noborder
-plot AH u ($1):($2-$3/2):($2+$3/2) w filledcurves fc 0 t '', \
-	 '' u ($1):2 w lp lt 2 lc 0 pt 9 ps 1 lw 2 t 'ad hoc',        \
-	 AM u ($1):($2-$3/2):($2+$3/2) w filledcurves fc 0 t '', \
-	 '' u ($1):2 w lp lt 1 lc 0 pt 7 ps 1 lw 2 t 'monolithic'
+set bars 0.4  # size of the bars at the end of the error ranges
+set style fill transparent solid 0.1 noborder
+plot MC u 0:($2-$3/2):($2+$3/2):xtic(1) w filledcurves fc 0 t '',      \
+     MC u 0:2:($3/2):xtic(1) w errorbars pt 7 ps .4 lt 1 t 'nosplit',  \
+     AH u 0:($2-$3/2):($2+$3/2):xtic(1) w filledcurves fc 0 t '',      \
+     AH u 0:2:($3/2):xtic(1) w errorbars pt 10 lt 1 t 'ad hoc',        \
+     AC u 0:($2-$3/2):($2+$3/2):xtic(1) w filledcurves fc 0 t '',      \
+     AC u 0:2:($3/2):xtic(1) w errorbars pt  6 lt 1 t 'compositional', \
+     AM u 0:($2-$3/2):($2+$3/2):xtic(1) w filledcurves fc 0 t '',      \
+     AM u 0:2:($3/2):xtic(1) w errorbars pt  4 lt 1 t 'monolithic'
 
-# Report success and exit
-print "Estimates plotted in file ".fout
-exit
+## Report success and exit
+#print "Estimates plotted in file ".fout
+#exit
