@@ -5,7 +5,7 @@
 # License: GPLv3
 #
 
-set -e
+#set -e
 show(){ /bin/echo -e "$@"; }
 CWD=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
 
@@ -45,11 +45,16 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-TO="90m"
+## TO="90m"
+## CONF=0.9  # Confidence coefficient
+## PREC=0.2  # Relative precision
+## SPLITS=(2 3 6 11)  # RESTART splittings to test
+## QUEUES_CAPACITIES=(8 10 12 14)
+TO="5m"
 CONF=0.9  # Confidence coefficient
-PREC=0.2  # Relative precision
-SPLITS=(2 3 6 11)  # RESTART splittings to test
-QUEUES_CAPACITIES=(8 10 12 14)
+PREC=0.3  # Relative precision
+SPLITS=(5)  # RESTART splittings to test
+QUEUES_CAPACITIES=(10 12 13)
 EXPNAME="tandem_queue"
 #
 show "Configuring experiments"
@@ -96,9 +101,9 @@ do
 		                          2>>${LOG}"_AH_s${s}.err" &
 	done
 
-	# Standard Monte Carlo
-	poll_till_free $EXPNAME; show -n " MC"
-	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
+#	# Standard Monte Carlo
+#	poll_till_free $EXPNAME; show -n " MC"
+#	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
 
 	show "... done"
 done
@@ -114,14 +119,15 @@ show " done"
 
 
 # Build summary charts
-IFUNS=("MC" "AH" "AC" "AM")  # <-- reflect any change in the plotting section
+#IFUNS=("MC" "AH" "AC" "AM")  # <-- reflect any change in the plotting section
+IFUNS=("AH" "AC" "AM")  # <-- reflect any change in the plotting section
 RAW_RESULTS=${RESULTS}/raw_results; mkdir -p $RAW_RESULTS
 MRG_RESULTS=${RESULTS}/mrg_results; mkdir -p $MRG_RESULTS
 show -n "Merging results..."
 for c in "${QUEUES_CAPACITIES[@]}"; do
 	# Unify each importance function results in a single file
 	LOG=${RESULTS}/${EXPNAME}_c${c}
-	cp ${LOG}_MC.{out,err} ${RAW_RESULTS}  # MC is special, as usual
+#	cp ${LOG}_MC.{out,err} ${RAW_RESULTS}  # MC is special, as usual
 	for IFUN in "${IFUNS[@]}"; do
 		if [[ ${IFUN} == "MC" ]]; then continue; fi
 		cat ${LOG}_${IFUN}_s[0-9]*.out >> ${LOG}"_${IFUN}.out"
@@ -147,22 +153,29 @@ for s in "${SPLITS[@]}"; do
 	# Plotting can't be generic since gnuplot doesn't support array variables
 	# Still we try our best with bash indirection
 	# (http://stackoverflow.com/a/8515492)
-	gather_plot_data $RAW_RESULTS EXPERIMENTS[@] "MC" 1 $CONF $PREC \
-		> $RESULTS/MC_s1.dat
+#	gather_plot_data $RAW_RESULTS EXPERIMENTS[@] "MC" 1 $CONF $PREC \
+#		> $RESULTS/MC_s1.dat
 	for IFUN in "${IFUNS[@]}"; do
 		if [[ $IFUN == "MC" ]]; then continue; fi
 		eval "$IFUN=$RESULTS/${IFUN}_s${s}.dat"
 		gather_plot_data $RAW_RESULTS EXPERIMENTS[@] $IFUN $s $CONF $PREC \
 			> ${!IFUN}
 	done
+#	gnuplot -e "
+#		XTIC=2;
+#		SPLIT='${s}';
+#		${IFUNS[0]}='${!IFUNS[0]}';
+#		${IFUNS[1]}='${!IFUNS[1]}';
+#		${IFUNS[2]}='${!IFUNS[2]}';
+#		${IFUNS[3]}='${!IFUNS[3]}';
+#		MC='${RESULTS}/MC_s1.dat'
+#		" plot_estimates.gpi
 	gnuplot -e "
 		XTIC=2;
 		SPLIT='${s}';
 		${IFUNS[0]}='${!IFUNS[0]}';
 		${IFUNS[1]}='${!IFUNS[1]}';
 		${IFUNS[2]}='${!IFUNS[2]}';
-		${IFUNS[3]}='${!IFUNS[3]}';
-		MC='${RESULTS}/MC_s1.dat'
 		" plot_estimates.gpi
 done
 mv ${RESULTS}/*.dat ${MRG_RESULTS}

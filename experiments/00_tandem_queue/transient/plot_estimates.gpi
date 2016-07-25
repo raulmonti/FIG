@@ -13,7 +13,7 @@
 if (!exists("XTIC"))  exit error "[ERROR] Missing 'XTIC' variable"
 if (!exists("SPLIT")) exit error "[ERROR] Missing 'SPLIT' variable"
 # The following var names should match those in "IFUNS" from main.sh
-if (!exists("MC")) exit error "[ERROR] Missing 'MC' variable"
+## if (!exists("MC")) exit error "[ERROR] Missing 'MC' variable"
 if (!exists("AH")) exit error "[ERROR] Missing 'AH' variable"
 if (!exists("AC")) exit error "[ERROR] Missing 'AC' variable"
 if (!exists("AM")) exit error "[ERROR] Missing 'AM' variable"
@@ -43,9 +43,10 @@ set offsets 0.3,0.3,0.3,0.1
 set key top right font ",16"
 set bars 0.4  # size of the bars at the end of the error ranges
 set style fill transparent solid 0.1 noborder
-plot MC u 0:($2-$3/2):($2+$3/2):xtic(1) w filledcurves fc 0 t '',      \
-     MC u 0:2:($3/2):xtic(1) w errorbars pt 7 ps .4 lt 1 t 'nosplit',  \
-     AH u 0:($2-$3/2):($2+$3/2):xtic(1) w filledcurves fc 0 t '',      \
+## plot MC u 0:($2-$3/2):($2+$3/2):xtic(1) w filledcurves fc 0 t '',      \
+##      MC u 0:2:($3/2):xtic(1) w errorbars pt 7 ps .4 lt 1 t 'nosplit',  \
+
+plot AH u 0:($2-$3/2):($2+$3/2):xtic(1) w filledcurves fc 0 t '',      \
      AH u 0:2:($3/2):xtic(1) w errorbars pt 10 lt 1 t 'ad hoc',        \
      AC u 0:($2-$3/2):($2+$3/2):xtic(1) w filledcurves fc 0 t '',      \
      AC u 0:2:($3/2):xtic(1) w errorbars pt  6 lt 1 t 'compositional', \

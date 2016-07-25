@@ -512,8 +512,7 @@ gather_plot_data() {
 	fi
 	# Print header
 	echo "#!/usr/bin/env gnuplot"
-	echo "# Data for plots (estimates)"
-	echo "# Ifun: $IFUN | Splitting: $SPLIT"
+	echo "# Plotting data | Ifun: $IFUN | Splitting: $SPLIT"
 	echo "# param  estimate  precision  time"
 	# Extract and print data
 	for EXP in "${EXPERIMENTS[@]}"; do
@@ -522,7 +521,7 @@ gather_plot_data() {
 		local ESTIMATE=` extract_value est  $RESULTS $SIFUN $EXP $SPLIT $CONFLVL`
 		local PRECISION=`extract_value prec $RESULTS $SIFUN $EXP $SPLIT $CONFLVL`
 		local TIME=`extract_time  $RESULTS $SIFUN $EXP $SPLIT $CONFLVL`
-		print_value_line "$VALUE" "$ESTIMATE" "$PRECISION" "$TIME"
+		print_value_line "$VALUE" "${ESTIMATE#\*}" "${PRECISION#\*}" "$TIME"
 	done
 }
 
