@@ -50,6 +50,7 @@ fi
 if [[ $HOSTNAME == "mendieta" ]]  # Mendieta requires special treatment
 then
 	CCOMP=`find /opt/spack/opt/ -path "*gcc-6*/bin/gcc" | tail -n 1`
+	#CCOMP=`find /opt/spack/opt/ -path "*gcc-5.4*/bin/gcc" | tail -n 1`
 fi
 if [ -z "$CCOMP" ]
 then

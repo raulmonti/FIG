@@ -47,10 +47,10 @@ mkdir $RESULTS && unset N && \
 # Experiments configuration
 TO="6h"
 CONF=0.9  # Confidence coefficient
-PREC=0.3  # Relative precision
-SPLITS=(2 3 6 11)  # RESTART splittings to test
+PREC=0.4  # Relative precision
+SPLITS=(3 6 9 12)  # RESTART splittings to test
 #BUFFER_CAPACITIES=(40 80 120 160)
-BUFFER_CAPACITIES=(40 60 80 100)
+BUFFER_CAPACITIES=(40 60 80 100 120 140 160)
 EXPNAME="queues_with_breakdowns"
 #
 show "Configuring experiments"
@@ -115,25 +115,32 @@ show " done"
 
 
 # Build summary charts
-show -n "Building tables..."
-IFUNS=("MC" "AH" "AC" "AM")
+IFUNS=("MC" "AH" "AC" "AM")  # <-- reflect any change in the plotting section
+RAW_RESULTS=${RESULTS}/raw_results; mkdir -p $RAW_RESULTS
+MRG_RESULTS=${RESULTS}/mrg_results; mkdir -p $MRG_RESULTS
+show -n "Merging results..."
 for k in "${BUFFER_CAPACITIES[@]}"; do
 	# Unify each importance function results in a single file
 	LOG=${RESULTS}/${EXPNAME}_k${k}
+	cp ${LOG}_MC.{out,err} ${RAW_RESULTS}  # MC is special, as usual
 	for IFUN in "${IFUNS[@]}"; do
 		if [[ ${IFUN} == "MC" ]]; then continue; fi
 		cat ${LOG}_${IFUN}_s[0-9]*.out >> ${LOG}"_${IFUN}.out"
 		cat ${LOG}_${IFUN}_s[0-9]*.err >> ${LOG}"_${IFUN}.err"
-		rm  ${LOG}_${IFUN}_s[0-9]*.{out,err}
+		mv  ${LOG}_${IFUN}_s[0-9]*.{out,err} ${RAW_RESULTS}
 	done
 done
+show " done"
+#
+show -n "Building tables..."
 EXPERIMENTS=("${BUFFER_CAPACITIES[@]/#/k}")
 build_c_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&> $RESULTS/table_estimates.txt
+	> $RESULTS/table_estimates.txt
 build_c_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&> $RESULTS/table_precisions.txt
+	> $RESULTS/table_precisions.txt
 build_c_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&> $RESULTS/table_times.txt
+	> $RESULTS/table_times.txt
+mv ${RESULTS}/*.{out,err} ${MRG_RESULTS}
 show " done"
 
 

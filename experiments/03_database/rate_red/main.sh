@@ -157,25 +157,32 @@ show " done"
 
 
 # Build summary charts
-show -n "Building tables..."
-IFUNS=("MC" "AH" "AC1" "AC2" "AC3" "AC4")
+IFUNS=("MC" "AH" "AC1" "AC2" "AC3" "AC4")  # <-- reflect any change in the plotting section
+RAW_RESULTS=${RESULTS}/raw_results; mkdir -p $RAW_RESULTS
+MRG_RESULTS=${RESULTS}/mrg_results; mkdir -p $MRG_RESULTS
+show -n "Merging results..."
 for R in "${REDUNDANCY[@]}"; do
 	# Unify each importance function results in a single file
 	LOG=${RESULTS}/${EXPNAME}_r${R}
+	cp ${LOG}_MC.{out,err} ${RAW_RESULTS}  # MC is special, as usual
 	for IFUN in "${IFUNS[@]}"; do
 		if [[ ${IFUN} == "MC" ]]; then continue; fi
 		cat ${LOG}_${IFUN}_s[0-9]*.out >> ${LOG}"_${IFUN}.out"
 		cat ${LOG}_${IFUN}_s[0-9]*.err >> ${LOG}"_${IFUN}.err"
-		rm  ${LOG}_${IFUN}_s[0-9]*.{out,err}
+		mv  ${LOG}_${IFUN}_s[0-9]*.{out,err} ${RAW_RESULTS}
 	done
 done
+show " done"
+#
+show -n "Building tables..."
 EXPERIMENTS=("${REDUNDANCY[@]/#/r}")
 build_c_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&> $RESULTS/table_estimates.txt
+	> $RESULTS/table_estimates.txt
 build_c_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&> $RESULTS/table_precisions.txt
+	> $RESULTS/table_precisions.txt
 build_c_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&> $RESULTS/table_times.txt
+	> $RESULTS/table_times.txt
+mv ${RESULTS}/*.{out,err} ${MRG_RESULTS}
 show " done"
 
 
