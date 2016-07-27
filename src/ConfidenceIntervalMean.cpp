@@ -34,7 +34,7 @@
 #include <FigException.h>
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 ConfidenceIntervalMean::ConfidenceIntervalMean(double confidence,
@@ -72,7 +72,7 @@ ConfidenceIntervalMean::precision(const double& confco) const
 {
 	if (0.0 >= confco || 1.0 <= confco)
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
-	return 2.0 * ConfidenceInterval::confidence_quantile(confco)
+	return 2.0 * confidence_quantile(confco)
 			   * std::sqrt(variance_/numSamples_);
 }
 
@@ -84,4 +84,4 @@ ConfidenceIntervalMean::reset() noexcept
     M2 = 0.0;
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

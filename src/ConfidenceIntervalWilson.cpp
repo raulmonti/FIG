@@ -40,7 +40,7 @@ using std::log;
 using std::log1p;
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 ConfidenceIntervalWilson::ConfidenceIntervalWilson(
@@ -123,7 +123,7 @@ ConfidenceIntervalWilson::precision(const double &confco) const
 {
 	if (0.0 >= confco || 1.0 <= confco)
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
-	const double quantile = ConfidenceInterval::confidence_quantile(confco);
+	const double quantile = confidence_quantile(confco);
 	const double numSamplesTimesVarCorrection = exp(logNumSamples_ + log(varCorrection_));
 	return 2.0 * quantile * sqrt(numSamplesTimesVarCorrection)
 			   * sqrt(variance_ + quantile*quantile/(4.0*numSamplesTimesVarCorrection))
@@ -139,4 +139,4 @@ ConfidenceIntervalWilson::reset() noexcept
     logNumSamples_ = 0.0;
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

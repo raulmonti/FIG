@@ -39,7 +39,7 @@ using std::log;
 using std::log1p;
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 ConfidenceIntervalProportion::ConfidenceIntervalProportion(
@@ -107,7 +107,7 @@ ConfidenceIntervalProportion::precision(const double &confco) const
 {
 	if (0.0 >= confco || 1.0 <= confco)
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
-	return 2.0 * ConfidenceInterval::confidence_quantile(confco)
+	return 2.0 * confidence_quantile(confco)
 			   * sqrt( exp( log(variance_) - (logNumSamples_ + log(varCorrection_))));
 }
 
@@ -120,4 +120,4 @@ ConfidenceIntervalProportion::reset() noexcept
     logNumSamples_ = 0.0;
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

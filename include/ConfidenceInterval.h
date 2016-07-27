@@ -238,7 +238,7 @@ protected:
 	 *
 	 * @throw FigException if quantile couldn't be correctly computed
 	 */
-	static double confidence_quantile(const double& cc);
+	double confidence_quantile(const double& cc) const;
 
 private:
 

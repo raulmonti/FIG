@@ -31,12 +31,14 @@
 #include <cmath>   // sqrt(), exp(), erf(), M_constants...
 // C++
 #include <limits>  // std::numeric_limits<>::quiet_NaN
+// External code
+#include <gsl_cdf.h>  // gsl_cdf_{ugaussian,tdist}_Pinv()
 // FIG
 #include <ConfidenceInterval.h>
 #include <FigException.h>
 
 
-namespace
+namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 /**
@@ -98,10 +100,11 @@ double probit(const double& y)
 		return M_SQRT2 * erf_inv(2.0 * y - 1.0);
 }
 
-} // namespace
+} // namespace   // // // // // // // // // // // // // // // // // // // // //
 
 
-namespace fig
+
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 bool ConfidenceInterval::value_simulations_;  // defined only to copy the doc!
@@ -116,7 +119,7 @@ ConfidenceInterval::ConfidenceInterval(const std::string& thename,
 	errorMargin(precision/2.0),
 	percent(dynamicPrecision),
 	confidence(confidence),
-	quantile(ConfidenceInterval::confidence_quantile(confidence)),
+	quantile(confidence_quantile(confidence)),
 	numSamples_(0),
 	estimate_(0.0),
 	variance_(std::numeric_limits<double>::infinity()),
@@ -211,16 +214,19 @@ ConfidenceInterval::reset() noexcept
 
 
 double
-ConfidenceInterval::confidence_quantile(const double& cc)
+ConfidenceInterval::confidence_quantile(const double& cc) const
 {
 #ifndef NDEBUG
 	if (0.0 >= cc || 1.0 <= cc)
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
 #endif
-	double quantile = probit((1.0+cc)/2.0);  // probit(1-(1-cc)/2)
+	const double significance(0.5*(1.0+cc));  // == 1-(1-cc)/2
+//	double quantile = probit(significance);                               // old way
+//	double quantile = gsl_cdf_ugaussian_Pinv(significance);               // new way
+	double quantile = gsl_cdf_tdist_Pinv(significance, numSamples_-1.0);  // right way
 	if (std::isnan(quantile) || std::isinf(quantile))
 		throw_FigException("error computing confidence quantile");
 	return quantile;
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //
