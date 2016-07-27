@@ -1,9 +1,0 @@
-
-P( ! (true | false)| true U true )
-
-P( q1 > 2 U[0.2,3] q2 == 0 & false)
-
-S( q1>2 \ q2>2 )
-
-S(2> C-q2)
-
