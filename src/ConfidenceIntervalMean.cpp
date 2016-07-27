@@ -33,6 +33,8 @@
 #include <ConfidenceIntervalMean.h>
 #include <FigException.h>
 
+using std::abs;
+
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
@@ -52,6 +54,7 @@ ConfidenceIntervalMean::update(const double& newMean)
 	double delta = newMean - estimate_;
 	if (++numSamples_ < 0l)
 		throw_FigException("numSamples_ became negative, overflow?");
+	prevEstimate_ = estimate_;
 	estimate_ += delta/numSamples_;
 	M2 += delta*(newMean-estimate_);
 	variance_ = numSamples_ < 2l ? variance_ : M2/(numSamples_-1l);
@@ -63,7 +66,12 @@ ConfidenceIntervalMean::update(const double& newMean)
 bool
 ConfidenceIntervalMean::min_samples_covered() const noexcept
 {
-	return numSamples_ >= 30l;  // easy-peasy thanks to CLT
+	// Easy-peasy thanks to CLT:
+	const bool theoreticallySound = numSamples_ >= 30l;
+	// Ask also for little change w.r.t. the last outcome
+	const bool practicallySound = abs(prevEstimate_-estimate_) < 0.05*estimate_;
+	// So, did we make it already?
+	return theoreticallySound && practicallySound;
 }
 
 

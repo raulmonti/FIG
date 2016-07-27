@@ -30,12 +30,12 @@ For e.g. usage on confidence intervals the value should be transformed to:
 where 'P' was the CDF value whose inverse was queried.
 
 Example:
-         Suppose we're to compute a standard 90% CI using the CLT,
+         Suppose we want a 90% confidence interval using the CLT,
          from a sample with 'n' values whose (sample) mean is 'm'
          and (sample) standard deviation is 's'. The CI is thus:
                   [ m-t*s/sqrt(n) , m+t*s/sqrt(n) ]
          where 't' is the inverse CDF for a t-student distribution
-         with n-1 degrees of freedom with significance 0.9/2.
+         with n-1 degrees of freedom and significance 1-(1-0.9)/2.
          The value of 't' is computed from this code by calling:
               t = gsl_cdf_tdist_Pinv( 1-(1-0.9)/2, n-1)
 

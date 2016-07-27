@@ -38,6 +38,7 @@ using std::sqrt;
 using std::exp;
 using std::log;
 using std::log1p;
+using std::abs;
 
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
@@ -88,6 +89,7 @@ ConfidenceIntervalWilson::update(const double& newResults,
 						 - log1p(exp(log(squantile_)-logNumSamples_));
 	if (std::isinf(logEstimate) || std::isnan(logEstimate))
 		throw_FigException("failed computing logEstimate; overflow?");
+	prevEstimate_ = estimate_;
 	estimate_ = exp(logEstimate);
 	assert(!std::isinf(estimate_) && !std::isnan(estimate_));
 
@@ -108,13 +110,20 @@ ConfidenceIntervalWilson::update(const double& newResults,
 bool
 ConfidenceIntervalWilson::min_samples_covered() const noexcept
 {
-	static const long MIN_NUM_HITS = 25l;
 	// Even though the Wilson score interval has lax lower bounds (http://goo.gl/B86Dc),
 	// they've been increased to meet experimental quality standards
-	return numSamples_ > MIN_NUM_HITS &&
-			(numRares_ > 20.0*MIN_NUM_HITS ||
-			 (logNumSamples_+log(estimate_)    > log(10.0*MIN_NUM_HITS) &&  // n*p > 120
-			  logNumSamples_+log1p(-estimate_) > log(10.0*MIN_NUM_HITS)));  // n*(1-p) > 120
+	static const long LBOUND(800l);
+	static const double LOG_LBOUND(log(LBOUND));
+	const bool theoreticallySound = LBOUND < numRares_ && (
+			 log(30l*statOversample_) < logNumSamples_ || (
+			   LOG_LBOUND < logNumSamples_+log(estimate_) &&  // n*p
+			   LOG_LBOUND < logNumSamples_+log1p(-estimate_)  // n*(1-p)
+			 )
+		   );
+	// Ask also for little change w.r.t. the last outcome
+	const bool practicallySound = abs(prevEstimate_-estimate_) < 0.005*estimate_;
+	// So, did we make it already?
+	return theoreticallySound && practicallySound;
 }
 
 

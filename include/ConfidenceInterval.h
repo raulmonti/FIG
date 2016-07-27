@@ -68,6 +68,9 @@ protected:  // Attributes: estimation thus far
 	/// Property's point value estimate
 	double estimate_;
 
+	/// @copydoc estimate_ in previous update
+	double prevEstimate_;
+
 	/// Variance corresponding to the current estimation
 	double variance_;
 

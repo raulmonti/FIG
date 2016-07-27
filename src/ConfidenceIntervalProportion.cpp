@@ -82,6 +82,7 @@ ConfidenceIntervalProportion::update(const double& newResults,
 		numSamples_++;
 
 	// Compute the updated estimate, variance, and interval half width
+	prevEstimate_ = estimate_;
 	estimate_ = exp(log(numRares_) - logNumSamples_);
 	variance_ = estimate_ * (1.0 - estimate_);
 	halfWidth_ = quantile * sqrt( exp(
@@ -92,13 +93,20 @@ ConfidenceIntervalProportion::update(const double& newResults,
 bool
 ConfidenceIntervalProportion::min_samples_covered() const noexcept
 {
-	static const long MIN_NUM_HITS = 18l;
 	// Even though the interval's lower bounds are based on the CLT,
 	// they've been increased to meet experimental quality standards
-	return numSamples_ > MIN_NUM_HITS &&
-			(numRares_ > std::min(20.0*MIN_NUM_HITS, 30.0*statOversample_) ||
-			 (logNumSamples_+log(estimate_)    > log(10.0*MIN_NUM_HITS) &&  // n*p > 180
-			  logNumSamples_+log1p(-estimate_) > log(10.0*MIN_NUM_HITS)));  // n*(1-p) > 180
+	static const long LBOUND(1l<<10l);
+	static const double LOG_LBOUND(log(LBOUND));
+	const bool theoreticallySound = LBOUND < numRares_ && (
+			 log(30l*statOversample_) < logNumSamples_ || (
+			   LOG_LBOUND < logNumSamples_+log(estimate_) &&  // n*p
+			   LOG_LBOUND < logNumSamples_+log1p(-estimate_)  // n*(1-p)
+			 )
+		   );
+	// Ask also for little change w.r.t. the last outcome
+	const bool practicallySound = abs(prevEstimate_-estimate_) < 0.005*estimate_;
+	// So, did we make it already?
+	return theoreticallySound && practicallySound;
 }
 
 

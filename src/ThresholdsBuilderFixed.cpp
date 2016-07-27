@@ -78,7 +78,7 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 				   << (stride_ > 1 ? ("s.\n") : (".\n"));
 		thresholds.push_back(impFun.initial_value());
 		// Start above initial importance value? May reduce oversampling
-		const unsigned margin(0u);  // nah
+		const unsigned margin(IMP_RANGE>>3);
 		build_thresholds(impFun, margin, stride_, postProcessing, thresholds);
 	}
 

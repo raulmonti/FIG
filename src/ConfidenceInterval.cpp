@@ -122,6 +122,7 @@ ConfidenceInterval::ConfidenceInterval(const std::string& thename,
 	quantile(confidence_quantile(confidence)),
 	numSamples_(0),
 	estimate_(0.0),
+	prevEstimate_(0.0),
 	variance_(std::numeric_limits<double>::infinity()),
 	halfWidth_(std::numeric_limits<double>::infinity()),
 	statOversample_(1.0),
@@ -221,9 +222,10 @@ ConfidenceInterval::confidence_quantile(const double& cc) const
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
 #endif
 	const double significance(0.5*(1.0+cc));  // == 1-(1-cc)/2
-//	double quantile = probit(significance);                               // old way
-//	double quantile = gsl_cdf_ugaussian_Pinv(significance);               // new way
-	double quantile = gsl_cdf_tdist_Pinv(significance, numSamples_-1.0);  // right way
+//	double quantile = probit(significance);                   // old way
+//	double quantile = gsl_cdf_ugaussian_Pinv(significance);   // new way
+	double quantile = gsl_cdf_tdist_Pinv(significance,        // right way
+										 std::max(1.0, numSamples_-1.0));
 	if (std::isnan(quantile) || std::isinf(quantile))
 		throw_FigException("error computing confidence quantile");
 	return quantile;
