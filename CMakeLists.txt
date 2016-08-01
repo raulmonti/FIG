@@ -72,6 +72,7 @@ SET(ALL_SOURCES ${SOURCES_DIR} CACHE INTERNAL "")
 
 # Visit subdirectories
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/ext)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/bison-parser)
  
 # Register all main include paths
 INCLUDE_DIRECTORIES(${HEADERS_DIR})
@@ -241,12 +242,62 @@ ADD_CUSTOM_COMMAND(
 	DEPENDS ${LEXER_L}
 )
 
-ADD_EXECUTABLE(fig ${ALL_SOURCES} ${LEXER_CC})
+# Parser
+SET(PARSER_DIR  "${PROJECT_SOURCE_DIR}/bison-parser")
+# Folder with sources
+SET(PARSER_SRC  "${PARSER_DIR}/src")
+# Folder with templates
+SET(PARSER_GEN  "${PARSER_DIR}/gen")
+# Folder with headers
+SET(PARSER_INC "${PARSER_DIR}/include")
+# Lexer template
+SET(LEXER_TEMPLATE "${PARSER_GEN}/ModelScannerGen.ll")
+# Parser template
+SET(PARSER_TEMPLATE "${PARSER_GEN}/ModelParserGen.yy")
+# Expected code files
+SET(LEXER_CODE "${PARSER_SRC}/ModelScanner.cpp")
+SET(PARSER_CODE "${PARSER_SRC}/ModelParser.cpp")
+# Command to generate parser code
+FIND_PACKAGE(BISON REQUIRED)
+IF (BISON_FOUND)
+  ADD_CUSTOM_COMMAND(
+    OUTPUT ${PARSER_CODE}
+    COMMAND bison -d -o ${PARSER_CODE} ${PARSER_TEMPLATE}
+    COMMAND mv "${PARSER_SRC}/*.h*" "${PARSER_INC}"
+    DEPENDS ${PARSER_TEMPLATE}
+    )
+ENDIF()
+
+# Command to generate lexer code
+ADD_CUSTOM_COMMAND(
+  OUTPUT ${LEXER_CODE}
+  COMMAND flex -o ${LEXER_CODE} ${LEXER_TEMPLATE}
+  DEPENDS ${LEXER_TEMPLATE}
+  DEPENDS ${PARSER_CODE}
+  )
+
+SET(PARSER_DEP "${PARSER_SRC}/main.cpp"
+  "${PARSER_SRC}/ModelBuilder.cpp"
+  "${PARSER_SRC}/ModelAST.cpp"
+  "${PARSER_SRC}/ModelPrinter.cpp"
+  "${PARSER_CODE}"
+  "${LEXER_CODE}"
+  )
+
+#Remove Parser sources from fig sources
+SET (ALL_SOURCES_FIG "${ALL_SOURCES}")
+FOREACH(DEP ${PARSER_DEP})
+  LIST (REMOVE_ITEM ALL_SOURCES_FIG ${DEP})
+ENDFOREACH(DEP)
+
+ADD_EXECUTABLE(fig ${ALL_SOURCES_FIG} ${LEXER_CC})
+ADD_EXECUTABLE(parser ${PARSER_DEP})
 
 
 
 ###  Link dynamic libraries  ##################################################
 
 TARGET_LINK_LIBRARIES(fig ${DYNAMIC_LIBRARIES})
+#TARGET_LINK_LIBRARIES(parser ${DYNAMIC_LIBRARIES})
 #TARGET_LINK_LIBRARIES(fig -static-libgcc -static-libstdc++ ${DYNAMIC_LIBRARIES})
 
