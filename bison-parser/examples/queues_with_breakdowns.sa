@@ -1,0 +1,281 @@
+/*
+ * Queueing system with breakdowns for the FIG tool
+ * Budde, Monti, D'Argenio | 2016
+ *
+ *{-
+ * Concept of the queueing system with breakdowns:
+ *                        
+ * (Source1: on/off) --->||
+ *                       ||
+ * (Source2: on/off) --->||
+ *         .             ||        Buffer
+ *         .             ||---> [·····###]--(Server: on/off)---->
+ *         .             ||
+ * (SourceN: on/off) --->||
+ *                        
+ * Buffer has maximum capacity K.
+ * The single Server: attends     with rate mu,
+ *                    fails       with rate gama,
+ *                    is repaired with rate delta.
+ * Sources can be of Type 1 or 2.
+ * Sources of Type i: produce       with rate lambdai,
+ *                    fail          with rate betai,
+ *                    are repaired  with rate alphai.
+ *
+ * Initial state: the buffer has a single customer, the server is down,
+ *                and all sources are also down except one of Type 2.
+ * Stopping event: empty buffer.
+ * Rare event: buffer reaching full capacity K.
+ *-}
+ */
+
+
+// -- The following values were extracted from Kroese & Nicola,
+// -- "Efficient estimation of overflow probabilities in queues
+// -- with breakdowns", Performance Evaluation, 36-37, 1999, pp. 471-484.
+// -- This model corresponds to the system described in Section 4.4
+
+// -- Sources of Type 1
+const int lambda1 = 3;  // -- Production rate
+const int alpha1  = 3;  // -- Repair     rate
+const int beta1   = 2;  // -- Fail       rate
+
+// -- Sources of Type 2
+const int lambda2 = 6;  // -- Production rate
+const int alpha2  = 1;  // -- Repair     rate
+const int beta2   = 4;  // -- Fail       rate
+
+// -- Server
+const int mu = 100;   // -- Processing rate
+const int delta = 4;  // -- Repair     rate
+const int gama = 3;   // -- Fail       rate
+
+// -- Buffer capacity: 40, 80, 120, 160
+const int K = 80;
+
+
+///////////////////////////////////////////////////////////////////////
+//
+// -- Type 1 Sources | Total: 5
+// --                | Intially on: 0
+
+module T1S1
+	on11: bool init false;
+	clkF11: clock;  // -- Type 1 sources 'F'ailures   ~ exp(beta1)
+	clkR11: clock;  // -- Type 1 sources 'R'epairs    ~ exp(alpha1)
+	clkP11: clock;  // -- Type 1 sources 'P'roduction ~ exp(lambda1)
+	// -- Breakdowns
+	[]  on11 @ clkF11 -> (on11'= false) &
+	                     (clkR11'= exponential(alpha1));
+	[] !on11 @ clkR11 -> (on11'= true) &
+                         (clkF11'= exponential(beta1)) &
+                         (clkP11'= exponential(lambda1));
+   	// -- Production
+	[p11!]  on11 @ clkP11 -> (clkP11'= exponential(lambda1));
+endmodule
+
+module T1S2
+	on12: bool init false;
+	clkF12: clock;  // -- Type 1 sources 'F'ailures   ~ exp(beta1)
+	clkR12: clock;  // -- Type 1 sources 'R'epairs    ~ exp(alpha1)
+	clkP12: clock;  // -- Type 1 sources 'P'roduction ~ exp(lambda1)
+	// -- Breakdowns
+	[]  on12 @ clkF12 -> (on12'= false) &
+	                     (clkR12'= exponential(alpha1));
+	[] !on12 @ clkR12 -> (on12'= true) &
+                         (clkF12'= exponential(beta1)) &
+                         (clkP12'= exponential(lambda1));
+   	// -- Production
+	[p12!]  on12 @ clkP12 -> (clkP12'= exponential(lambda1));
+endmodule
+
+module T1S3
+	on13: bool init false;
+	clkF13: clock;  // -- Type 1 sources 'F'ailures   ~ exp(beta1)
+	clkR13: clock;  // -- Type 1 sources 'R'epairs    ~ exp(alpha1)
+	clkP13: clock;  // -- Type 1 sources 'P'roduction ~ exp(lambda1)
+	// -- Breakdowns
+	[]  on13 @ clkF13 -> (on13'= false) &
+	                     (clkR13'= exponential(alpha1));
+	[] !on13 @ clkR13 -> (on13'= true) &
+                         (clkF13'= exponential(beta1)) &
+                         (clkP13'= exponential(lambda1));
+   	// -- Production
+	[p13!]  on13 @ clkP13 -> (clkP13'= exponential(lambda1));
+endmodule
+
+module T1S4
+	on14: bool init false;
+	clkF14: clock;  // -- Type 1 sources 'F'ailures   ~ exp(beta1)
+	clkR14: clock;  // -- Type 1 sources 'R'epairs    ~ exp(alpha1)
+	clkP14: clock;  // -- Type 1 sources 'P'roduction ~ exp(lambda1)
+	// -- Breakdowns
+	[]  on14 @ clkF14 -> (on14'= false) &
+	                     (clkR14'= exponential(alpha1));
+	[] !on14 @ clkR14 -> (on14'= true) &
+                         (clkF14'= exponential(beta1)) &
+                         (clkP14'= exponential(lambda1));
+   	// -- Production
+	[p14!]  on14 @ clkP14 -> (clkP14'= exponential(lambda1));
+endmodule
+
+module T1S5
+	on15: bool init false;
+	clkF15: clock;  // -- Type 1 sources 'F'ailures   ~ exp(beta1)
+	clkR15: clock;  // -- Type 1 sources 'R'epairs    ~ exp(alpha1)
+	clkP15: clock;  // -- Type 1 sources 'P'roduction ~ exp(lambda1)
+	// -- Breakdowns
+	[]  on15 @ clkF15 -> (on15'= false) &
+	                     (clkR15'= exponential(alpha1));
+	[] !on15 @ clkR15 -> (on15'= true) &
+                         (clkF15'= exponential(beta1)) &
+                         (clkP15'= exponential(lambda1));
+   	// -- Production
+	[p15!]  on15 @ clkP15 -> (clkP15'= exponential(lambda1));
+endmodule
+
+
+///////////////////////////////////////////////////////////////////////
+//
+// -- Type 2 Sources | Total: 5
+// --                | Intially on: 1
+
+module T2S1
+	on21: bool init true;
+	clkF21: clock;  // -- Type 2 sources 'F'ailures   ~ exp(beta2)
+	clkR21: clock;  // -- Type 2 sources 'R'epairs    ~ exp(alpha2)
+	clkP21: clock;  // -- Type 2 sources 'P'roduction ~ exp(lambda2)
+	// -- Breakdowns
+	[]  on21 @ clkF21 -> (on21'= false) &
+	                     (clkR21'= exponential(alpha2));
+	[] !on21 @ clkR21 -> (on21'= true) &
+                         (clkF21'= exponential(beta2)) &
+                         (clkP21'= exponential(lambda2));
+   	// -- Production
+	[p21!]  on21 @ clkP21 -> (clkP21'= exponential(lambda2));
+endmodule
+
+module T2S2
+	on22: bool init false;
+	clkF22: clock;  // -- Type 2 sources 'F'ailures   ~ exp(beta2)
+	clkR22: clock;  // -- Type 2 sources 'R'epairs    ~ exp(alpha2)
+	clkP22: clock;  // -- Type 2 sources 'P'roduction ~ exp(lambda2)
+	// -- Breakdowns
+	[]  on22 @ clkF22 -> (on22'= false) &
+	                     (clkR22'= exponential(alpha2));
+	[] !on22 @ clkR22 -> (on22'= true) &
+                         (clkF22'= exponential(beta2)) &
+                         (clkP22'= exponential(lambda2));
+   	// -- Production
+	[p22!]  on22 @ clkP22 -> (clkP22'= exponential(lambda2));
+endmodule
+
+module T2S3
+	on23: bool init false;
+	clkF23: clock;  // -- Type 2 sources 'F'ailures   ~ exp(beta2)
+	clkR23: clock;  // -- Type 2 sources 'R'epairs    ~ exp(alpha2)
+	clkP23: clock;  // -- Type 2 sources 'P'roduction ~ exp(lambda2)
+	// -- Breakdowns
+	[]  on23 @ clkF23 -> (on23'= false) &
+	                     (clkR23'= exponential(alpha2));
+	[] !on23 @ clkR23 -> (on23'= true) &
+                         (clkF23'= exponential(beta2)) &
+                         (clkP23'= exponential(lambda2));
+   	// -- Production
+	[p23!]  on23 @ clkP23 -> (clkP23'= exponential(lambda2));
+endmodule
+
+module T2S4
+	on24: bool init false;
+	clkF24: clock;  // -- Type 2 sources 'F'ailures   ~ exp(beta2)
+	clkR24: clock;  // -- Type 2 sources 'R'epairs    ~ exp(alpha2)
+	clkP24: clock;  // -- Type 2 sources 'P'roduction ~ exp(lambda2)
+	// -- Breakdowns
+	[]  on24 @ clkF24 -> (on24'= false) &
+	                     (clkR24'= exponential(alpha2));
+	[] !on24 @ clkR24 -> (on24'= true) &
+                         (clkF24'= exponential(beta2)) &
+                         (clkP24'= exponential(lambda2));
+   	// -- Production
+	[p24!]  on24 @ clkP24 -> (clkP24'= exponential(lambda2));
+endmodule
+
+module T2S5
+	on25: bool init false;
+	clkF25: clock;  // -- Type 2 sources 'F'ailures   ~ exp(beta2)
+	clkR25: clock;  // -- Type 2 sources 'R'epairs    ~ exp(alpha2)
+	clkP25: clock;  // -- Type 2 sources 'P'roduction ~ exp(lambda2)
+	// -- Breakdowns
+	[]  on25 @ clkF25 -> (on25'= false) &
+	                     (clkR25'= exponential(alpha2));
+	[] !on25 @ clkR25 -> (on25'= true) &
+                         (clkF25'= exponential(beta2)) &
+                         (clkP25'= exponential(lambda2));
+   	// -- Production
+	[p25!]  on25 @ clkP25 -> (clkP25'= exponential(lambda2));
+endmodule
+
+
+///////////////////////////////////////////////////////////////////////
+//
+// -- Buffered server | Keeps track of the 'overflow' and 'reset' events
+// --                 | Translated from bluemoon's model
+// --                 | "queues_with_breakdowns.prism"
+//
+//  IDEA: several input labels in a single transition with the syntax
+//        [lab1?,lab2?,...,labn?] precond -> postcond;
+//
+
+module BufferedServer
+
+	buf: [0..K] init 1;
+	clkF: clock;  // -- Server 'F'ailure    ~ exp(gama)
+	clkR: clock;  // -- Server 'R'epair     ~ exp(delta)
+	clkP: clock;  // -- Server 'P'rocessing ~ exp(mu)
+	on:    bool init false;  // -- Server on?
+	reset: bool init false;
+
+	// -- Server failure and recovery
+	[]  on @ clkF -> (on'= false) &
+	                 (clkR'= exponential(delta));
+	[] !on @ clkR -> (on'= true)  &
+                     (clkF'= exponential(gama)) &
+	                 (clkP'= exponential(mu));
+
+	// -- Buffer out (dequeueing by server processing)
+	[] on & buf  > 1 @ clkP -> (buf'= buf-1) & (clkP'= exponential(mu));
+	[] on & buf == 1 @ clkP -> (buf'= buf-1) & (reset'= true);
+
+	// -- Buffer in (enqueueing by sources production)
+	[p11?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p11?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p11?] buf == K          -> ;
+	[p12?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p12?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p12?] buf == K          -> ;
+	[p13?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p13?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p13?] buf == K          -> ;
+	[p14?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p14?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p14?] buf == K          -> ;
+	[p15?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p15?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p15?] buf == K          -> ;
+	[p21?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p21?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p21?] buf == K          -> ;
+	[p22?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p22?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p22?] buf == K          -> ;
+	[p23?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p23?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p23?] buf == K          -> ;
+	[p24?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p24?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p24?] buf == K          -> ;
+	[p25?] buf == 0          -> (buf'= buf+1) & (clkP'= exponential(mu));
+	[p25?] 0 < buf & buf < K -> (buf'= buf+1);
+	[p25?] buf == K          -> ;
+
+endmodule
