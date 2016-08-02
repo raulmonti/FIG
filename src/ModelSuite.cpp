@@ -136,7 +136,7 @@ build_empty_ci(const fig::PropertyType& propertyType,
 			ci_ptr.reset(new fig::ConfidenceIntervalProportion(confidenceCo,
 															   precision,
 															   dynamicPrecision));
-        else
+		else
 			throw_FigException(std::string("invalid CI hint \"").append(hint)
 							   .append("\" for transient property"));
 		// The statistical oversampling incurred here is bounded:
@@ -457,6 +457,8 @@ estimate_print(const ConfidenceInterval& ci,
  * @param ci            Confidence interval to print out and reset
  * @param timeoutSignal Shared variable signaling simulations to stop
  * @param timeLimit     Duration (in seconds) of the sleep
+ * @param out           Stream where results will be printed out
+ * @param startTime     Result of omp_get_wtime() at simulations start
  */
 void
 start_timer(ConfidenceInterval& ci,

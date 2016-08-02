@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ##==============================================================================
 ##
@@ -31,7 +31,7 @@
 set -e
 
 # Choose compiler (prefer clang over gcc)
-if [ "`which clang`" ]
+if [ "`which clang 2>/dev/null`" ]
 then
 	# We need version 3.7 or later
 	CLANG_VERSION_MAJOR=$(clang --version | grep -o "[0-9]\.[0-9.]*" | head -1)
@@ -46,6 +46,11 @@ if [ -z "$CCOMP" ] && [ "`which gcc`" ]
 then
 	# Any c++11 compatible version is fine (that's checked in cmake)
 	CCOMP=gcc
+fi
+if [[ $HOSTNAME == "mendieta" ]]  # Mendieta requires special treatment
+then
+	CCOMP=`find /opt/spack/opt/ -path "*gcc-6*/bin/gcc" | tail -n 1`
+	#CCOMP=`find /opt/spack/opt/ -path "*gcc-5.4*/bin/gcc" | tail -n 1`
 fi
 if [ -z "$CCOMP" ]
 then
@@ -141,22 +146,26 @@ if [ ! -d $BUILD_DIR ]; then mkdir $BUILD_DIR; fi
 cd $BUILD_DIR
 OPTS="$OPTS -DRELEASE=ON"      # Cmake build options, see CMakeLists.txt
 OPTS="$OPTS -DBUILTIN_RNG=ON"  # Cmake build options, see CMakeLists.txt
-CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR $OPTS && make && \
-#CC=gcc CXX=g++ cmake $CMAKE_DIR $OPTS && make && \
+NJOBS=$(2>/dev/null bc <<< "2*`nproc --all`")
+if [ -z "$NJOBS" ]; then NJOBS=2; fi
+CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
+#CC=gcc CXX=g++ cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
 /bin/echo -e "\n  Project built in $BUILD_DIR\n"
 cd $CWD
 
 # Symlink main executable to current dir
 EXE=`find $BUILD_DIR -type f -executable -name "fig" || \
 	 find $BUILD_DIR -type f -executable -name "test_*"`;
-if [ -f "fig" ]; then rm fig; fi; ln -s $EXE fig
+ln -sf $EXE fig
 
-unset EXE
-unset CWD
-unset OPTS
-unset DIR
-unset CMAKE_DIR
-unset BUILD_DIR
+unset -v EXE
+unset -v NJOBS
+unset -v OPTS
+unset -v BUILD_DIR
+unset -v CMAKE_DIR
+unset -v CWD
+unset -v DIR
+unset -v CCOMP
 
 exit 0
 

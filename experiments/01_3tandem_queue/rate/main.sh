@@ -45,12 +45,12 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-TO="12h"
+TO="4h"
 CONF=0.9  # Confidence coefficient
 PREC=0.2  # Relative precision
 SPLITS=(2 3 6 11)  # RESTART splittings to test
 #OCUPA=(18  13  20  16  24  21)  # estimates ~ 10^-15
-OCUPA=(11   8  12   9  14  13)  # estimates ~ 10^-9
+OCUPA=(10   7  11   9  14  12)  # estimates ~ 5*10^-9
 ALPHA=( 2   3   2   3   2   3)
 BETA1=( 3 4.5   6   9  10  15)
 BETA2=( 4   6   4   6   8  12)
@@ -61,20 +61,18 @@ AHFUN=( "91*q1+154*q2+500*q3" \
        "154*q1+154*q2+500*q3" \
        "405*q1+405*q2+500*q3" \
        "320*q1+320*q2+500*q3" )
-EXPNAME="3tandem"
+EXPNAME="3tandem_queue"
 #
 show "Configuring experiments"
 NUM_EXPERIMENTS=${#OCUPA[@]}
-SPLITTING="--splitting "
-for S in "${SPLITS[@]}"; do SPLITTING+="$S,"; done; SPLITTING="${SPLITTING%,}"
 STOP_CRITERION="--stop-conf $CONF $PREC"
-ETIMEOUT="${TO##*[0-9]}"  # Timeout per experiment (one ifun, all splits)
-ETIMEOUT=$(bc <<< "${TO%%[a-z]*}*${#SPLITS[@]}*2")"$ETIMEOUT"
-show "Timeouts: $TO per split; $ETIMEOUT per experiment"
+ETIMEOUT="${TO##*[0-9]}"  # Experiment timeout (ifun&thr building + sim)
+ETIMEOUT=$(bc -l <<< "scale=0; ${TO%%[a-z]*}*1.4/1")"$ETIMEOUT"
+show "Timeouts: $TO per simulation; $ETIMEOUT per experiment"
 STANDARD_MC="-e nosplit --flat $STOP_CRITERION --timeout $TO"
-RESTART_ADHOC="--adhoc q3 $STOP_CRITERION $SPLITTING --timeout $TO"
-RESTART_AMONO="--amono $STOP_CRITERION $SPLITTING --timeout $TO"
-RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION $SPLITTING --timeout $TO"
+RESTART_ADHOC="--adhoc q3 $STOP_CRITERION --timeout $TO"
+RESTART_AMONO="--amono $STOP_CRITERION --timeout $TO"
+RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION --timeout $TO"
 
 
 # Launch experiments
@@ -85,7 +83,7 @@ do
 	show -n "  · for threshold occupancy = $L..."
 
 	# Select optimal ad hoc ifun for this experiment (from V-A's paper)
-	RESTART_ADHOC_OPT="--adhoc ${AHFUN[i]} $STOP_CRITERION $SPLITTING --timeout $TO"
+	RESTART_ADHOC_OPT="--adhoc ${AHFUN[i]} $STOP_CRITERION --timeout $TO"
 
 	# Modify model file to fit this experiment
 	MODEL_FILE_L=${MODEL_FILE%.sa}"_l$L.sa"
@@ -101,27 +99,35 @@ do
 	sed -i -e "s/${B1_USE}/= erlang(alpha,${BETA1[i]}));/g" $MODEL_FILE_L
 	sed -i -e "s/${B2_USE}/= erlang(alpha,${BETA2[i]}));/g" $MODEL_FILE_L
 	sed -i -e "s/${B3_USE}/= erlang(alpha,${BETA3[i]}));/g" $MODEL_FILE_L
-	LOG=${RESULTS}/3tandem_queue_l${L}
+	LOG=${RESULTS}/${EXPNAME}_l${L}
 	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE_L $PROPS_FILE"`
 
-	# RESTART with monolithic (auto ifun)
-	poll_till_free $EXPNAME; show -n " AM"
-	$EXE $RESTART_AMONO 1>>${LOG}"_AM.out" 2>>${LOG}"_AM.err" &
+	# Launch a job for each splitting value (improves load balance)
+	for s in "${SPLITS[@]}"
+	do
+		# RESTART with monolithic (auto ifun)
+		poll_till_free $EXPNAME; show -n " AM_s${s},"
+		$EXE $RESTART_AMONO -s $s 1>>${LOG}"_AM_s${s}.out" \
+		                          2>>${LOG}"_AM_s${s}.err" &
 
-	# RESTART with compositional (auto ifun)
-	poll_till_free $EXPNAME; show -n ", AC"
-	$EXE $RESTART_ACOMP 1>>${LOG}"_AC.out" 2>>${LOG}"_AC.err" &
+		# RESTART with compositional (auto ifun)
+		poll_till_free $EXPNAME; show -n " AC_s${s},"
+		$EXE $RESTART_ACOMP -s $s 1>>${LOG}"_AC_s${s}.out" \
+		                          2>>${LOG}"_AC_s${s}.err" &
 
-	# RESTART with ad hoc (optimal)
-	poll_till_free $EXPNAME; show -n ", AHO"
-	$EXE $RESTART_ADHOC_OPT 1>>${LOG}"_AHO.out" 2>>${LOG}"_AHO.err" &
+		# RESTART with ad hoc (default)
+		poll_till_free $EXPNAME; show -n " AHD_s${s},"
+		$EXE $RESTART_ADHOC -s $s 1>>${LOG}"_AHD_s${s}.out" \
+		                          2>>${LOG}"_AHD_s${s}.err" &
 
-	# RESTART with ad hoc (default)
-	poll_till_free $EXPNAME; show -n ", AHD"
-	$EXE $RESTART_ADHOC 1>>${LOG}"_AHD.out" 2>>${LOG}"_AHD.err" &
+		# RESTART with ad hoc (optimal)
+		poll_till_free $EXPNAME; show -n " AHO_s${s},"
+		$EXE $RESTART_ADHOC_OPT -s $s 1>>${LOG}"_AHO_s${s}.out" \
+		                              2>>${LOG}"_AHO_s${s}.err" &
+	done
 
 	# Standard Monte Carlo
-	poll_till_free $EXPNAME; show -n ", MC"
+	poll_till_free $EXPNAME; show -n " MC"
 	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
 
 	show "... done"
@@ -138,20 +144,39 @@ show " done"
 
 
 # Build summary charts
+IFUNS=("MC" "AHD" "AHO" "AC" "AM")  # <-- reflect any change in the plotting section
+RAW_RESULTS=${RESULTS}/raw_results; mkdir -p $RAW_RESULTS
+MRG_RESULTS=${RESULTS}/mrg_results; mkdir -p $MRG_RESULTS
+show -n "Merging results..."
+for (( i=0 ; i < NUM_EXPERIMENTS ; i++ )); do
+	# Unify each importance function results in a single file
+	L=${OCUPA[i]}
+	LOG=${RESULTS}/${EXPNAME}_l${L}
+	cp ${LOG}_MC.{out,err} ${RAW_RESULTS}  # MC is special, as usual
+	for IFUN in "${IFUNS[@]}"; do
+		if [[ ${IFUN} == "MC" ]]; then continue; fi
+		cat ${LOG}_${IFUN}_s[0-9]*.out >> ${LOG}"_${IFUN}.out"
+		cat ${LOG}_${IFUN}_s[0-9]*.err >> ${LOG}"_${IFUN}.err"
+		mv  ${LOG}_${IFUN}_s[0-9]*.{out,err} ${RAW_RESULTS}
+	done
+done
+show " done"
+#
 show -n "Building tables..."
-IFUNS=("MC" "AHD" "AHO" "AC" "AM")
 EXPERIMENTS=("${OCUPA[@]/#/l}")
-build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&>> $RESULTS/table_estimates.txt
-build_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&>> $RESULTS/table_precisions.txt
-build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&>> $RESULTS/table_times.txt
+build_c_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	> $RESULTS/table_estimates.txt
+build_c_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	> $RESULTS/table_precisions.txt
+build_c_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	> $RESULTS/table_times.txt
+mv ${RESULTS}/*.{out,err} ${MRG_RESULTS}
 show " done"
 
 
 # Turn lights off
 EXE_WTIME=$(format_seconds $SECONDS)  
+show "Finished on $(date)"
 show "Script execution walltime was $EXE_WTIME"
 show "Results are in ${RESULTS}"
 exit 0

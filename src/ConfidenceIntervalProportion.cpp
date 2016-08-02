@@ -69,15 +69,19 @@ ConfidenceIntervalProportion::update(const double& newResults,
 	if (std::isinf(logNumNewExperiments) || std::isnan(logNumNewExperiments))
 		throw_FigException("invalid logNumNewExperiments, overflow?");
 
-	numRares_ += newResults;
-
 	// Compute logarithm of the updated # of samples ( old + new )
 	// See the wiki: https://goo.gl/qfDfKQ. Notice the use of std::log1p()
 	logNumSamples_ += log1p(exp(logNumNewExperiments - logNumSamples_));
 	if (std::isinf(logNumSamples_) || std::isnan(logNumSamples_))
 		throw_FigException("failed updating logNumSamples_, overflow?");
 
-	// Compute the updated estimate, variance and interval half width
+	numRares_ += newResults;
+	if (0.0 >= numRares_)
+		return;  // nothing to work with yet
+	else if (0.0 < newResults)
+		numSamples_++;
+
+	// Compute the updated estimate, variance, and interval half width
 	estimate_ = exp(log(numRares_) - logNumSamples_);
 	variance_ = estimate_ * (1.0 - estimate_);
 	halfWidth_ = quantile * sqrt( exp(
@@ -88,7 +92,13 @@ ConfidenceIntervalProportion::update(const double& newResults,
 bool
 ConfidenceIntervalProportion::min_samples_covered() const noexcept
 {
-    return numRares_ > 30 * statOversample_;
+	static const long MIN_NUM_HITS = 18l;
+	// Even though the interval's lower bounds are based on the CLT,
+	// they've been increased to meet experimental quality standards
+	return numSamples_ > MIN_NUM_HITS &&
+			(numRares_ > std::min(20.0*MIN_NUM_HITS, 30.0*statOversample_) ||
+			 (logNumSamples_+log(estimate_)    > log(10.0*MIN_NUM_HITS) &&  // n*p > 180
+			  logNumSamples_+log1p(-estimate_) > log(10.0*MIN_NUM_HITS)));  // n*(1-p) > 180
 }
 
 

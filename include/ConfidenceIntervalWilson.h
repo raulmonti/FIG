@@ -66,19 +66,19 @@ public:  // Ctor
 public:  // Modifyers
 
 	/// @copydoc ConfidenceIntervalProportion::update(const double&)
-	virtual void update(const double& newResult);
+	void update(const double& newResult) override;
 
 	/// @copydoc ConfidenceIntervalProportion::update(const double&, const double&)
-	virtual void update(const double& newResults,
-						const double& logNumNewExperiments);
+	void update(const double& newResults,
+				const double& logNumNewExperiments) override;
 
 public:  // Utils
 
-	virtual bool min_samples_covered() const noexcept;
+	bool min_samples_covered() const noexcept override;
 
-	virtual double precision(const double& confco) const;
+	double precision(const double& confco) const override;
 
-	virtual void reset() noexcept;
+	void reset() noexcept override;
 };
 
 } // namespace fig

@@ -21,7 +21,7 @@ else
 	P_NUM=$4
 	# Mean fail time
 	FTIME=$5
-	D_FTIME=$((3*$FTIME))
+	D_FTIME=$((2*$FTIME))
 	C_FTIME=$FTIME
 	P_FTIME=$FTIME
 fi

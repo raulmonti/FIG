@@ -28,7 +28,7 @@
 
 
 // C
-#include <cmath>   // sqrt(), exp(), erf()
+#include <cmath>   // sqrt(), exp(), erf(), M_constants...
 // C++
 #include <limits>  // std::numeric_limits<>::quiet_NaN
 // FIG
@@ -76,8 +76,8 @@ double erf_inv(const double& y)
 			x = (((c[3]*z+c[2])*z+c[1])*z+c[0])/((d[1]*z+d[0])*z+1.0);
 		}
 		// Polish x to full accuracy
-		x = x - (erf(x) - y) / (2.0/sqrt(M_PI) * exp(-x*x));
-		x = x - (erf(x) - y) / (2.0/sqrt(M_PI) * exp(-x*x));
+		x = x - (erf(x) - y) / (M_2_SQRTPI * exp(-x*x));
+		x = x - (erf(x) - y) / (M_2_SQRTPI * exp(-x*x));
 	}
 
 	return x;
@@ -92,14 +92,13 @@ double erf_inv(const double& y)
  */
 double probit(const double& y)
 {
-	if (-1.0 > y || 1.0 < y)
+	if (0.0 > y || 1.0 < y)
 		return std::numeric_limits<double>::quiet_NaN();
 	else
-		return sqrt(2.0) * erf_inv(2.0 * y - 1.0);
+		return M_SQRT2 * erf_inv(2.0 * y - 1.0);
 }
 
 } // namespace
-
 
 
 namespace fig
@@ -159,13 +158,15 @@ ConfidenceInterval::is_valid() const noexcept
 	return min_samples_covered() &&
 		   0.0 <= estimate_ && estimate_ <= 1.0 &&
 		   halfWidth_ < errorMargin * (percent ? estimate_ : 1.0);
+		   // the interval's "sample" half width is compared against
+		   // the "theoretical" error margin
 }
 
 
 double
 ConfidenceInterval::precision() const noexcept
 {
-    return 2.0 * errorMargin * (percent ? estimate_ : 1.0);
+	return 2.0 * errorMargin * (percent ? estimate_ : 1.0);
 }
 
 
@@ -212,7 +213,11 @@ ConfidenceInterval::reset() noexcept
 double
 ConfidenceInterval::confidence_quantile(const double& cc)
 {
-	double quantile = probit((1.0+cc)/2.0);
+#ifndef NDEBUG
+	if (0.0 >= cc || 1.0 <= cc)
+		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
+#endif
+	double quantile = probit((1.0+cc)/2.0);  // probit(1-(1-cc)/2)
 	if (std::isnan(quantile) || std::isinf(quantile))
 		throw_FigException("error computing confidence quantile");
 	return quantile;

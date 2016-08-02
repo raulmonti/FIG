@@ -46,34 +46,34 @@ ConfidenceIntervalMean::ConfidenceIntervalMean(double confidence,
 
 
 void
-ConfidenceIntervalMean::update(const double &newMean)
+ConfidenceIntervalMean::update(const double& newMean)
 {
 	// Incremental computation of mean and variance (http://goo.gl/ytk6B)
 	double delta = newMean - estimate_;
-	if (++numSamples_ < 0)
+	if (++numSamples_ < 0l)
 		throw_FigException("numSamples_ became negative, overflow?");
 	estimate_ += delta/numSamples_;
 	M2 += delta*(newMean-estimate_);
-	variance_ = numSamples_ < 2 ? variance_ : M2/(numSamples_-1);
+	variance_ = numSamples_ < 2l ? variance_ : M2/(numSamples_-1l);
 	// Half-width of the new confidence interval
-	halfWidth_ = quantile * sqrt(variance_/numSamples_);
+	halfWidth_ = quantile * std::sqrt(variance_/numSamples_);
 }
 
 
 bool
 ConfidenceIntervalMean::min_samples_covered() const noexcept
 {
-	return numSamples_ >= 30;  // easy piece thanks to CLT
+	return numSamples_ >= 30l;  // easy-peasy thanks to CLT
 }
 
 
 double
-ConfidenceIntervalMean::precision(const double &confco) const
+ConfidenceIntervalMean::precision(const double& confco) const
 {
 	if (0.0 >= confco || 1.0 <= confco)
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
 	return 2.0 * ConfidenceInterval::confidence_quantile(confco)
-			   * sqrt(variance_/numSamples_);
+			   * std::sqrt(variance_/numSamples_);
 }
 
 

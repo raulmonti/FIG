@@ -68,7 +68,7 @@ public:  // Modifyers
 	 *       of some (any) sampled distribution.
 	 * @throw FigException if detected possible overflow
 	 */
-	virtual void update(const double& newMean);
+	void update(const double& newMean) override;
 
 	/**
 	 * Stub to update(), since multiple value feeding is impossible
@@ -78,15 +78,15 @@ public:  // Modifyers
 	 * @throw FigException if detected possible overflow
 	 * @see update(const double&)
 	 */
-	inline virtual void update(const double& newMeans, const double&) { update(newMeans); }
+	inline void update(const double& newMeans, const double&) override { update(newMeans); }
 
 public:  // Utils
 
-	virtual bool min_samples_covered() const noexcept;
+	bool min_samples_covered() const noexcept override;
 
-	virtual double precision(const double& confco) const;
+	double precision(const double& confco) const override;
 
-	virtual void reset() noexcept;
+	void reset() noexcept override;
 };
 
 } // namespace fig

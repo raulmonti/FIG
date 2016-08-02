@@ -24,9 +24,11 @@ then
 	done
 	echo "Option '-d' runs the script in the debug queue"
 	exit 0
-elif [ $# -gt 1 ]
+elif [ $# -gt 2 ]
 then
-	echo "[ERROR] Must call with one argument: main script to run"
+	echo "[ERROR] Must call with at most two arguments"
+	echo "        Usage: $0 [-d] <main_script_to_run>"
+	echo "        Option '-d' runs the script in the debug queue"
 	exit 1
 fi
 if [ $# -eq 1 ]

@@ -65,13 +65,17 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 	} catch (FigException&) {
 		// Adaptive algorithm couldn't finish but achievements remain
 		// stored in the vector member 'thresholds_'
+		assert(thresholds_.back() >= impFun.initial_value());
 		const size_t MARGIN(thresholds_.back());
 		figTechLog << "\nResorting to fixed choice of thresholds starting "
 				   << "above the ImportanceValue " << MARGIN << "\n";
 		stride_ = choose_stride(impFun.max_value()-MARGIN, splitsPerThreshold,
 								postProcessing);
-		ThresholdsBuilderFixed::build_thresholds(impFun, MARGIN, stride_,
-												 postProcessing, thresholds_);
+		ThresholdsBuilderFixed::build_thresholds(impFun,
+		                                         MARGIN-impFun.initial_value(),
+		                                         stride_,
+												 postProcessing,
+		                                         thresholds_);
 		halted_ = true;
 
 	} catch (std::exception&) {

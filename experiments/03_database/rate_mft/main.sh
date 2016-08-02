@@ -61,38 +61,37 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-TO="1h"
+TO="4h"
 CONF=0.9  # Confidence coefficient
-PREC=0.2  # Relative precision
+PREC=0.3  # Relative precision
 SPLITS=(2 3 6 11)  # RESTART splittings to test
-MEAN_FAILURE_TIMES=(2000 8000 32000 128000)
+#MEAN_FAILURE_TIMES=(2000 8000 32000 128000)
+MEAN_FAILURE_TIMES=(500 1000 2000 4000 8000)
 NDC=6  # Number of disk clusters
 NCT=2  # Number of controller types
 NPT=2  # Number of processor types
-RED=2  # System redundancy
+RED=3  # System redundancy (original: 2)
 EXPNAME="database"
 #
 show "Configuring experiments for $NDC disk clusters,"
 show "                            $NCT controller types,"
 show "                            $NPT processor types,"
 show "                            $RED redundancy"
-SPLITTING="--splitting "
-for S in "${SPLITS[@]}"; do SPLITTING+="$S,"; done; SPLITTING="${SPLITTING%,}"
 STOP_CRITERION="--stop-conf $CONF $PREC"
-ETIMEOUT="${TO##*[0-9]}"  # Timeout per experiment (one ifun, all splits)
-ETIMEOUT=$(bc <<< "${TO%%[a-z]*}*${#SPLITS[@]}*2")"$ETIMEOUT"
-show "Timeouts: $TO per split; $ETIMEOUT per experiment"
+ETIMEOUT="${TO##*[0-9]}"  # Experiment timeout (ifun&thr building + sim)
+ETIMEOUT=$(bc -l <<< "scale=0; ${TO%%[a-z]*}*1.4/1")"$ETIMEOUT"
+show "Timeouts: $TO per simulation; $ETIMEOUT per experiment"
 MIN_OC=$(min_num_oc $RED $NDC $NCT $NPT)
 COMP_FUN_ADD="\"+\""
 COMP_FUN_COA=$(comp_fun_coarse $RED $NDC $NCT $NPT)  # Coarse
 COMP_FUN_MED=$(comp_fun_med    $RED $NDC $NCT $NPT)  # Medium
 COMP_FUN_FIN=$(comp_fun_fine   $RED $NDC $NCT $NPT)  # Fine
 STANDARD_MC="--flat -e nosplit $STOP_CRITERION --timeout $TO"
-RESTART_ADHOC="--adhoc $MIN_OC $STOP_CRITERION $SPLITTING --timeout $TO"
-RESTART_ACOMP1="--acomp $COMP_FUN_ADD $STOP_CRITERION $SPLITTING --timeout $TO"
-RESTART_ACOMP2="--acomp $COMP_FUN_COA $STOP_CRITERION $SPLITTING --timeout $TO --post-process exp 2"
-RESTART_ACOMP3="--acomp $COMP_FUN_MED $STOP_CRITERION $SPLITTING --timeout $TO --post-process exp 2"
-RESTART_ACOMP4="--acomp $COMP_FUN_FIN $STOP_CRITERION $SPLITTING --timeout $TO --post-process exp 2"
+RESTART_ADHOC="--adhoc $MIN_OC $STOP_CRITERION --timeout $TO"
+RESTART_ACOMP1="--acomp $COMP_FUN_ADD $STOP_CRITERION --timeout $TO"
+RESTART_ACOMP2="--acomp $COMP_FUN_COA $STOP_CRITERION --timeout $TO --post-process exp 2"
+RESTART_ACOMP3="--acomp $COMP_FUN_MED $STOP_CRITERION --timeout $TO --post-process exp 2"
+RESTART_ACOMP4="--acomp $COMP_FUN_FIN $STOP_CRITERION --timeout $TO --post-process exp 2"
 
 
 # Launch experiments
@@ -102,37 +101,46 @@ do
 	show -n "  · for mean failure times ~ $mft..."
 
 	# Generate model and properties files to fit this experiment
-	MODEL_FILE=database_mft${mft}.sa
-	PROPS_FILE=database_mft${mft}.pp
-	LOG=${RESULTS}/database_mft${mft}
-	bash $EXP_GEN 2 6 2 2 $mft 1>$MODEL_FILE 2>$PROPS_FILE
+	MODEL_FILE=${EXPNAME}_mft${mft}.sa
+	PROPS_FILE=${EXPNAME}_mft${mft}.pp
+	LOG=${RESULTS}/${EXPNAME}_mft${mft}
+	bash $EXP_GEN $RED $NDC $NCT $NPT $mft 1>$MODEL_FILE 2>$PROPS_FILE
 	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE $PROPS_FILE"`
 
-	# RESTART with monolithic (auto ifun) experiments are omitted
-	# since the importance vector wouldn't fit in memory
+	# Launch a job for each splitting value (improves load balance)
+	for s in "${SPLITS[@]}"
+	do
+		# RESTART with monolithic (auto ifun) experiments are omitted
+		# since the importance vector wouldn't fit in memory
 
-	# RESTART with compositional (auto ifun), version 1
-	poll_till_free $EXPNAME; show -n " AC1"
-	$EXE $RESTART_ACOMP1 1>>${LOG}"_AC1.out" 2>>${LOG}"_AC1.err" &
-
-	# RESTART with compositional (auto ifun), version 2
-	poll_till_free $EXPNAME; show -n ", AC2"
-	$EXE $RESTART_ACOMP2 1>>${LOG}"_AC2.out" 2>>${LOG}"_AC2.err" &
-
-	# RESTART with compositional (auto ifun), version 3
-	poll_till_free $EXPNAME; show -n ", AC3"
-	$EXE $RESTART_ACOMP3 1>>${LOG}"_AC3.out" 2>>${LOG}"_AC3.err" &
-
-	# RESTART with compositional (auto ifun), version 4
-	poll_till_free $EXPNAME; show -n ", AC4"
-	$EXE $RESTART_ACOMP4 1>>${LOG}"_AC4.out" 2>>${LOG}"_AC4.err" &
-
-	# RESTART with ad hoc
-	poll_till_free $EXPNAME; show -n ", AH"
-	$EXE $RESTART_ADHOC 1>>${LOG}"_AH.out" 2>>${LOG}"_AH.err" &
+		# RESTART with compositional (auto ifun), version 1
+		poll_till_free $EXPNAME; show -n " AC1_s${s},"
+		$EXE $RESTART_ACOMP1 -s $s 1>>${LOG}"_AC1_s${s}.out" \
+		                           2>>${LOG}"_AC1_s${s}.err" &
+	
+		# RESTART with compositional (auto ifun), version 2
+		poll_till_free $EXPNAME; show -n " AC2_s${s},"
+		$EXE $RESTART_ACOMP2 -s $s 1>>${LOG}"_AC2_s${s}.out" \
+		                           2>>${LOG}"_AC2_s${s}.err" &
+	
+		# RESTART with compositional (auto ifun), version 3
+		poll_till_free $EXPNAME; show -n " AC3_s${s},"
+		$EXE $RESTART_ACOMP3 -s $s 1>>${LOG}"_AC3_s${s}.out" \
+		                           2>>${LOG}"_AC3_s${s}.err" &
+	
+		# RESTART with compositional (auto ifun), version 4
+		poll_till_free $EXPNAME; show -n " AC4_s${s},"
+		$EXE $RESTART_ACOMP4 -s $s 1>>${LOG}"_AC4_s${s}.out" \
+		                           2>>${LOG}"_AC4_s${s}.err" &
+	
+		# RESTART with ad hoc
+		poll_till_free $EXPNAME; show -n " AH_s${s},"
+		$EXE $RESTART_ADHOC -s $s 1>>${LOG}"_AH_s${s}.out" \
+		                          2>>${LOG}"_AH_s${s}.err" &
+	done
   
 	# Standard Monte Carlo
-	poll_till_free $EXPNAME; show -n ", MC"
+	poll_till_free $EXPNAME; show -n " MC"
 	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
 
 	show "... done"
@@ -149,20 +157,38 @@ show " done"
 
 
 # Build summary charts
+IFUNS=("MC" "AH" "AC1" "AC2" "AC3" "AC4")  # <-- reflect any change in the plotting section
+RAW_RESULTS=${RESULTS}/raw_results; mkdir -p $RAW_RESULTS
+MRG_RESULTS=${RESULTS}/mrg_results; mkdir -p $MRG_RESULTS
+show -n "Merging results..."
+for mft in "${MEAN_FAILURE_TIMES[@]}"; do
+	# Unify each importance function results in a single file
+	LOG=${RESULTS}/${EXPNAME}_mft${mft}
+	cp ${LOG}_MC.{out,err} ${RAW_RESULTS}  # MC is special, as usual
+	for IFUN in "${IFUNS[@]}"; do
+		if [[ ${IFUN} == "MC" ]]; then continue; fi
+		cat ${LOG}_${IFUN}_s[0-9]*.out >> ${LOG}"_${IFUN}.out"
+		cat ${LOG}_${IFUN}_s[0-9]*.err >> ${LOG}"_${IFUN}.err"
+		mv  ${LOG}_${IFUN}_s[0-9]*.{out,err} ${RAW_RESULTS}
+	done
+done
+show " done"
+#
 show -n "Building tables..."
-IFUNS=("MC" "AH" "AC1" "AC2" "AC3" "AC4")
 EXPERIMENTS=("${MEAN_FAILURE_TIMES[@]/#/mft}")
-build_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&>> $RESULTS/table_estimates.txt
-build_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&>> $RESULTS/table_precisions.txt
-build_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
-	&>> $RESULTS/table_times.txt
+build_c_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	> $RESULTS/table_estimates.txt
+build_c_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	> $RESULTS/table_precisions.txt
+build_c_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+	> $RESULTS/table_times.txt
+mv ${RESULTS}/*.{out,err} ${MRG_RESULTS}
 show " done"
 
 
 # Turn lights off
 EXE_WTIME=$(format_seconds $SECONDS)  
+show "Finished on $(date)"
 show "Script execution walltime was $EXE_WTIME"
 show "Results are in ${RESULTS}"
 exit 0

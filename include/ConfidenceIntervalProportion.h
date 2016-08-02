@@ -76,7 +76,7 @@ public:  // Modifyers
 	 * @see update(const double&, const double&)
 	 * @throw FigException if detected possible overflow
 	 */
-	virtual void update(const double& newResult);
+	void update(const double& newResult) override;
 
 	/**
 	 * @brief Update current estimation with several new experiment results
@@ -87,16 +87,16 @@ public:  // Modifyers
 	 * @note The logarithm is used to avoid commonplace overflows
 	 * @throw FigException if detected possible overflow
 	 */
-	virtual void update(const double& newResults,
-						const double& logNumNewExperiments);
+	void update(const double& newResults,
+				const double& logNumNewExperiments) override;
 
 public:  // Utils
 
-	virtual bool min_samples_covered() const noexcept;
+	bool min_samples_covered() const noexcept override;
 
-	virtual double precision(const double& confco) const;
+	double precision(const double& confco) const override;
 
-	virtual void reset() noexcept;
+	void reset() noexcept override;
 };
 
 } // namespace fig

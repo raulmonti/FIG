@@ -77,9 +77,8 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 		figTechLog << "for 1 out of every " << stride_ << " importance value"
 				   << (stride_ > 1 ? ("s.\n") : (".\n"));
 		thresholds.push_back(impFun.initial_value());
-		// Start slightly above impFun's initial value to avoid oversampling
-		unsigned margin = std::min(impFun.max_value(),
-								   std::max<ImportanceValue>(2ul, IMP_RANGE/8ul));
+		// Start above initial importance value? May reduce oversampling
+		const unsigned margin(0u);  // nah
 		build_thresholds(impFun, margin, stride_, postProcessing, thresholds);
 	}
 
@@ -158,7 +157,8 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 {
 	assert(impFun.max_value() > impFun.initial_value() + margin);
 
-	const size_t IMP_RANGE(impFun.max_value() - impFun.initial_value() - margin);
+	const size_t IMP_RANGE(impFun.max_value() - impFun.initial_value() - margin),
+	             FIRST_THR(impFun.initial_value() + margin);
 
 	switch (postProcessing.type)
 	{
@@ -166,19 +166,20 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 	case (PostProcessing::SHIFT):
 		{ const size_t SIZE(IMP_RANGE/stride+2ul), OLD_SIZE(thresholds.size());
 		thresholds.resize(OLD_SIZE+SIZE);
-		for (size_t i = OLD_SIZE, imp = impFun.initial_value() + margin ;
+		for (size_t i = OLD_SIZE, imp = FIRST_THR;
 			 i < thresholds.size() ;
 			 imp += stride, i++)
 			thresholds[i] = static_cast<ImportanceValue>(imp);
 		}; break;
 
 	case (PostProcessing::EXP):
-		for (ImportanceValue imp = impFun.initial_value() + margin;
+		{ size_t expStride(1ul);
+		for (ImportanceValue imp = FIRST_THR;
 			 imp < impFun.max_value();
-			 imp *= stride)
+			 expStride *= stride, imp += expStride)
 			thresholds.push_back(imp);
 		thresholds.push_back(impFun.max_value()+1u);
-		break;
+		}; break;
 
 	default:
 		throw_FigException("invalid post-processing specified (\""
