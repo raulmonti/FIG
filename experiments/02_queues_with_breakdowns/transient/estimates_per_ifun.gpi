@@ -1,0 +1,63 @@
+#!/usr/bin/env gnuplot
+#
+# Author:  Carlos E. Budde
+# Date:    01.08.2016
+# License: GPLv3
+#
+#   This script was designed to be called from the main.sh script
+#   of the tandem_queue experiment.
+#   Some variables are expected to be defined on invocation. Sample line:
+#   $ gnuplot -e "SPLIT=2;AH='AH_file.dat';..." plot_estimates.gpi
+#
+#   WARNING: updates in main.sh may affect this script
+#
+
+# Check external variables were defined
+if (!exists("IFUN"))     exit error "[ERROR] 'IFUN' undefined"
+if (!(exists("NFILES"))) exit error "[ERROR] 'NFILES' undefined"
+if (!(exists("IFUN_0"))) exit error "[ERROR] 'IFUN_*' undefined"
+if (!(exists("NAME_0"))) exit error "[ERROR] 'NAME_*' undefined"
+
+# Output file setup
+set encoding utf8
+set term pdf dashed enhanced size 7,6 font 'Verdana,15'
+fout="estimates_".IFUN.".pdf"
+set out fout
+
+# General plot options
+set title offset 0,0 "{/Times*1.8 Transient analysis for the tandem queue}\n\nImportance function: ".IFUN
+set xlab offset 0,-.1 "{/*1.2 Queues capacity}"
+set ylab offset -.1,0 "{/*1.2 Overflow probability}"
+set border 1+2+4+8  # bottom + left + top + right borders
+set grid ytics
+#set rmargin 5
+#set bmargin 5
+set log y
+set format y "%.1e"
+set xtics font ",14"
+set ytics font ",14"
+#set auto fix
+set yrange [1e-13:5e-4]
+set offsets 0.3,0.3,0.3,0.1
+
+# Plot sequence
+set key opaque top right font ",16"
+set bars 0.5  # size of the bars at the end of the error ranges
+set style fill transparent solid 0.1 noborder
+N=NFILES-1
+plot 4.59e-4  w l dt 2 lc "#7C7C7C" t '',  \
+     1.25e-5  w l dt 2 lc "#7C7C7C" t '',  \
+     3.72e-7  w l dt 2 lc "#7C7C7C" t '',  \
+     9.59e-9  w l dt 2 lc "#7C7C7C" t '',  \
+     2.86e-10 w l dt 2 lc "#7C7C7C" t '',  \
+     8.44e-12 w l dt 2 lc "#7C7C7C" t '',  \
+     2.45e-13 w l dt 2 lc "#7C7C7C" t '',  \
+     IFUN_0 u 0:2:xtic(1) w l lt -3 notitle,  \
+     for [i=0:N]  \
+        value("IFUN_".i) u ($0-N*0.05+i*0.1):2:($3/2) w errorbars \
+                         lc 0 lt 1 pt i+1 t value("NAME_".i)
+
+## Report success and exit
+#print "Estimates plotted in file ".fout
+#exit
+
