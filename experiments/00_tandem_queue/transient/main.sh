@@ -114,12 +114,13 @@ RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION --timeout $TO"
 #show " done"
 
 
-# Pre-process results to build charts later on
-show -n "Merging results..."
+## Pre-process results to build charts later on
 IFUNS=("MC" "AH" "AC" "AM")  # --> changes here affect plots!
 EXPERIMENTS=("${QUEUES_CAPACITIES[@]/#/c}")
 RAW_RESULTS=${RESULTS}/raw_results; mkdir -p $RAW_RESULTS
 MRG_RESULTS=${RESULTS}/mrg_results; mkdir -p $MRG_RESULTS
+AUX_PLOTS=${RESULTS}/aux_plots;     mkdir -p $AUX_PLOTS
+show -n "Merging results..."
 mv $RESULTS/*.{out,err} ${RAW_RESULTS}
 for c in "${QUEUES_CAPACITIES[@]}"; do
 	# For tables: one file per combination of ifun and queue capacity,
@@ -160,7 +161,8 @@ show " done"
 #
 show -n "Building plots..."
 ## Plotting can't be generic since gnuplot doesn't support array variables
-## Still we try our best with bash indirection (http://stackoverflow.com/a/8515492)
+## Still we try our best with bash indirection
+## (http://stackoverflow.com/a/8515492)
 for s in "${SPLITS[@]}"; do
 	# Plot per split, comparing all ifuns
 	for IFUN in "${IFUNS[@]}"; do
@@ -178,6 +180,9 @@ for s in "${SPLITS[@]}"; do
 		MC='${MRG_RESULTS}/MC_s1.dat'
 		" estimates_per_split.gpi
 done
+gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/default        \
+	-dNOPAUSE -dQUIET -dBATCH -dDetectDuplicateImages -dCompressFonts=true  \
+	-r150 -sOutputFile=plot_estimates_splits.pdf estimates_s[0-9]*.pdf
 NSPLITS=${#SPLITS[*]}
 DATA=($(printf "IFUN_%1d " `seq 0 $((NSPLITS-1))`))
 KEYS=($(printf "NAME_%1d " `seq 0 $((NSPLITS-1))`))
@@ -189,8 +194,9 @@ for IFUN in "${IFUNS[@]}"; do
 		eval "${DATA[i]}=${MRG_RESULTS}/${IFUN}_s${SPLITS[i]}.dat"
 		eval "${KEYS[i]}=split:${SPLITS[i]}"
 	done
-	# Following must have 1+2*NSPLITS variables defined for the gnuplot script
+	# Following must have 2+2*NSPLITS variables defined for the gnuplot script
 	gnuplot -e "
+		IFUN='$IFUN';
 		NFILES='$NSPLITS';
 		${DATA[0]}='${!DATA[0]}';
 		${DATA[1]}='${!DATA[1]}';
@@ -202,8 +208,14 @@ for IFUN in "${IFUNS[@]}"; do
 		${KEYS[3]}='${!KEYS[3]}';
 		" estimates_per_ifun.gpi;
 done
-mv *.pdf $RESULTS
-show " done"
+shopt -s extglob  # temporarily disable shell globbing
+gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/default        \
+	-dNOPAUSE -dQUIET -dBATCH -dDetectDuplicateImages -dCompressFonts=true  \
+	-r150 -sOutputFile=plot_estimates_ifuns.pdf estimates_!(s*).pdf
+shopt -u extglob  # reenable shell globbing (default)
+mv estimates*.pdf $AUX_PLOTS
+mv plot*.pdf $RESULTS
+show "  done"
 
 
 # Turn lights off

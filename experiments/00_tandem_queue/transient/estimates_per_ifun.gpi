@@ -36,7 +36,8 @@ set log y
 set format y "%.1e"
 set xtics font ",14"
 set ytics font ",14"
-set auto fix
+#set auto fix
+set yrange [7e-10:6e-6]
 set offsets 0.3,0.3,0.3,0.1
 
 # Plot sequence
