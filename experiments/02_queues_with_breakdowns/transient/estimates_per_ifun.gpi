@@ -13,10 +13,11 @@
 #
 
 # Check external variables were defined
-if (!exists("IFUN"))     exit error "[ERROR] 'IFUN' undefined"
-if (!(exists("NFILES"))) exit error "[ERROR] 'NFILES' undefined"
-if (!(exists("IFUN_0"))) exit error "[ERROR] 'IFUN_*' undefined"
-if (!(exists("NAME_0"))) exit error "[ERROR] 'NAME_*' undefined"
+if (!exists("DUMMY"))  exit error "[ERROR] 'DUMMY' undefined"
+if (!exists("IFUN"))   exit error "[ERROR] 'IFUN' undefined"
+if (!exists("NFILES")) exit error "[ERROR] 'NFILES' undefined"
+if (!exists("IFUN_0")) exit error "[ERROR] 'IFUN_*' undefined"
+if (!exists("NAME_0")) exit error "[ERROR] 'NAME_*' undefined"
 
 # Output file setup
 set encoding utf8
@@ -26,7 +27,7 @@ set out fout
 
 # General plot options
 set title offset 0,0 "{/Times*1.8 Transient analysis for the tandem queue}\n\nImportance function: ".IFUN
-set xlab offset 0,-.1 "{/*1.2 Queues capacity}"
+set xlab offset 0,-.1 "{/*1.2 Buffer capacity}"
 set ylab offset -.1,0 "{/*1.2 Overflow probability}"
 set border 1+2+4+8  # bottom + left + top + right borders
 set grid ytics
@@ -52,7 +53,7 @@ plot 4.59e-4  w l dt 2 lc "#7C7C7C" t '',  \
      2.86e-10 w l dt 2 lc "#7C7C7C" t '',  \
      8.44e-12 w l dt 2 lc "#7C7C7C" t '',  \
      2.45e-13 w l dt 2 lc "#7C7C7C" t '',  \
-     IFUN_0 u 0:2:xtic(1) w l lt -3 notitle,  \
+     DUMMY u 0:2:xtic(1) w l lt -3 notitle,  \
      for [i=0:N]  \
         value("IFUN_".i) u ($0-N*0.05+i*0.1):2:($3/2) w errorbars \
                          lc 0 lt 1 pt i+1 t value("NAME_".i)

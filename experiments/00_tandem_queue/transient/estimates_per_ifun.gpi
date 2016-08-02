@@ -13,10 +13,11 @@
 #
 
 # Check external variables were defined
-if (!exists("IFUN"))     exit error "[ERROR] 'IFUN' undefined"
-if (!(exists("NFILES"))) exit error "[ERROR] 'NFILES' undefined"
-if (!(exists("IFUN_0"))) exit error "[ERROR] 'IFUN_*' undefined"
-if (!(exists("NAME_0"))) exit error "[ERROR] 'NAME_*' undefined"
+if (!exists("DUMMY"))  exit error "[ERROR] 'DUMMY' undefined"
+if (!exists("IFUN"))   exit error "[ERROR] 'IFUN' undefined"
+if (!exists("NFILES")) exit error "[ERROR] 'NFILES' undefined"
+if (!exists("IFUN_0")) exit error "[ERROR] 'IFUN_*' undefined"
+if (!exists("NAME_0")) exit error "[ERROR] 'NAME_*' undefined"
 
 # Output file setup
 set encoding utf8
@@ -49,7 +50,7 @@ plot 5.62e-6 w l dt 2 lc "#7C7C7C" t '',  \
      3.14e-7 w l dt 2 lc "#7C7C7C" t '',  \
      1.86e-8 w l dt 2 lc "#7C7C7C" t '',  \
      1.14e-9 w l dt 2 lc "#7C7C7C" t '',  \
-     IFUN_0 u 0:2:xtic(1) w l lt -3 notitle,  \
+     DUMMY u 0:2:xtic(1) w l lt -3 notitle,  \
      for [i=0:N]  \
         value("IFUN_".i) u ($0-N*0.05+i*0.1):2:($3/2) w errorbars \
                          lc 0 lt 1 pt i+1 t value("NAME_".i)

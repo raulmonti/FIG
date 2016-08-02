@@ -160,6 +160,8 @@ build_c_table "time" $MRG_RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC 
 show " done"
 #
 show -n "Building plots..."
+DUMMY=dummy_sizes.dat; rm -f $DUMMY
+for k in "${BUFFER_CAPACITIES[@]}"; do /bin/echo -e "${k}\t0" &>> $DUMMY; done
 ## Plotting can't be generic since gnuplot doesn't support array variables
 ## Still we try our best with bash indirection
 ## (http://stackoverflow.com/a/8515492)
@@ -172,6 +174,7 @@ for s in "${SPLITS[@]}"; do
 	done
 	# Following must have 2+NUM_IFUNS variables defined for the gnuplot script
 	gnuplot -e "
+		DUMMY='${DUMMY}';
 		SPLIT='${s}';
 		${IFUNS[0]}='${!IFUNS[0]}';
 		${IFUNS[1]}='${!IFUNS[1]}';
@@ -196,6 +199,7 @@ for IFUN in "${IFUNS[@]}"; do
 	done
 	# Following must have 2+2*NSPLITS variables defined for the gnuplot script
 	gnuplot -e "
+		DUMMY='${DUMMY}';
 		IFUN='$IFUN';
 		NFILES='$NSPLITS';
 		${DATA[0]}='${!DATA[0]}';
@@ -215,6 +219,7 @@ gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/default        \
 shopt -u extglob  # reenable shell globbing (default)
 mv estimates*.pdf $AUX_PLOTS
 mv plot*.pdf $RESULTS
+rm $DUMMY
 show "  done"
 
 

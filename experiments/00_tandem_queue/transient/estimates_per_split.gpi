@@ -13,6 +13,7 @@
 #
 
 # Check external variables were defined
+if (!exists("DUMMY")) exit error "[ERROR] 'DUMMY' undefined"
 if (!exists("SPLIT")) exit error "[ERROR] 'SPLIT' undefined"
 if (!exists("MC")) exit error "[ERROR] 'MC' undefined"
 if (!exists("AH")) exit error "[ERROR] 'AH' undefined"
@@ -49,7 +50,7 @@ plot 5.62e-6 w l dt 2 lc "#7C7C7C" t '',  \
      3.14e-7 w l dt 2 lc "#7C7C7C" t '',  \
      1.86e-8 w l dt 2 lc "#7C7C7C" t '',  \
      1.14e-9 w l dt 2 lc "#7C7C7C" t '',  \
-     MC u 0:2:xtic(1) w l lt -3 notitle,  \
+     DUMMY u 0:2:xtic(1) w l lt -3 notitle,  \
      MC u ($0-0.3):2:($3/2) w errorbars lc 0 pt  7 ps .5 lt 1 t 'nosplit',  \
      AH u ($0-0.1):2:($3/2) w errorbars lc 0 pt 10 ps 1.2 lt 1 t 'ad hoc',  \
      AC u ($0+0.1):2:($3/2) w errorbars lc 0 pt  6 lt 1 t 'compositional',  \
