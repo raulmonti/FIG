@@ -58,10 +58,10 @@ namespace fig
 // Static variables initialization
 
 /// @note Arbitrary af
-const unsigned SimulationEngine::MIN_COUNT_RARE_EVENTS = 5u;
+const unsigned SimulationEngine::MIN_COUNT_RARE_EVENTS = 3u;
 
 /// @note Arbitrary af
-const double SimulationEngine::MIN_ACC_RARE_TIME = M_PI_4l/2.0;
+const double SimulationEngine::MIN_ACC_RARE_TIME = M_PI_4l/4.0;
 
 /// @note Small enough to distinguish variations of 0.01 simulation time units
 ///       when using fp single precision: mantissa 1, exponent 12, resulting in
@@ -264,7 +264,6 @@ SimulationEngine::simulate(
 	const Property& property,
 	size_t effort,
 	ConfidenceInterval& interval,
-	std::ostream& techLog,
 	void (*effort_inc)(const PropertyType&,
 					   const std::string&,
 					   const std::string&,
@@ -288,15 +287,9 @@ SimulationEngine::simulate(
 				// numExperiments == batchSize * splitsPerThreshold ^ numThresholds
 				interval.update(std::abs(raresCount),
 								std::log(effort) + log_experiments_per_sim());
-				if (0.0 >= raresCount) {
-					techLog << "-";
-					if (nullptr != effort_inc)
-						effort_inc(property.type, name_, impFun_->name(), effort);
-					else
-						effort *= 2;  // you left us with no other option
-				} else {
-					techLog << "+";
-				}
+				if (0.0 >= raresCount && nullptr != effort_inc)
+					effort_inc(property.type, name_, impFun_->name(), effort);
+				// else: don't know how to increase, so don't do anything
 			}
 		}
 		break;
@@ -311,15 +304,9 @@ SimulationEngine::simulate(
 										  reinit);
 			if (!interrupted) {
 				interval.update(std::abs(rate));
-				if (0.0 >= rate) {
-					techLog << "-";
-					if (nullptr != effort_inc)
-						effort_inc(property.type, name_, impFun_->name(), effort);
-					else
-						effort *= 2;  // you left us with no other option
-				} else {
-					techLog << "+";
-				}
+				if (0.0 >= rate && nullptr != effort_inc)
+					effort_inc(property.type, name_, impFun_->name(), effort);
+				// else: don't know what to do, so don't do anything
 			}
 			reinit = false;  // use batch means
 		}

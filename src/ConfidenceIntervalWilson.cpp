@@ -121,7 +121,7 @@ ConfidenceIntervalWilson::min_samples_covered() const noexcept
 			 )
 		   );
 	// Ask also for little change w.r.t. the last outcome
-	const bool practicallySound = abs(prevEstimate_-estimate_) < 0.005*estimate_;
+	const bool practicallySound = abs(prevEstimate_-estimate_) < 0.02*estimate_;
 	// So, did we make it already?
 	return theoreticallySound && practicallySound;
 }

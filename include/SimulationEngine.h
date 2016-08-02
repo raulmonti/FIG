@@ -250,7 +250,6 @@ public:  // Simulation functions
      *                   simulation length in time units
      *                   before each interval update
      * @param interval   ConfidenceInterval regularly updated with estimation info <b>(modified)</b>
-     * @param techLog    Log where technical info will be printed
      * @param effort_inc Function to increase 'effort' in case simulations
      *                   aren't yielding useful results due to its length
      *
@@ -260,7 +259,6 @@ public:  // Simulation functions
     void simulate(const Property& property,
                   size_t effort,
                   ConfidenceInterval& interval,
-                  std::ostream& techLog,
                   void (*effort_inc)(const PropertyType&,
                                      const std::string&,
                                      const std::string&,

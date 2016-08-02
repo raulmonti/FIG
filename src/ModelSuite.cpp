@@ -185,7 +185,7 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
 	static const size_t batch_sizes[NUM_ENGINES][NUM_IMPFUNS] = {
-		{ 1ul<<11, 1ul<<12, 1ul<<12 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<11, 1ul<<12, 1ul<<10 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
 		{ 1ul<<10, 1ul<<10, 1ul<<10 }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
@@ -286,9 +286,9 @@ increase_batch_size(const std::string& engineName,
 	constexpr size_t NUM_IMPFUNS(fig::ModelSuite::num_importance_functions());
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
-	static const size_t inc_batch[NUM_ENGINES][NUM_IMPFUNS] = {
-		{ 3ul, 3ul, 2ul },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 2ul, 2ul, 2ul }   // restart x {concrete_coupled, concrete_split, algebraic}
+	static const float inc_batch[NUM_ENGINES][NUM_IMPFUNS] = {
+		{ 2.9f, 2.3f, 1.6f },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+		{ 1.6f, 1.6f, 1.6f }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -435,8 +435,9 @@ estimate_print(const ConfidenceInterval& ci,
 	out << std::setprecision(2) << std::scientific;
     out << "   · Computed estimate: " << ci.point_estimate() << std::endl;
     out << std::setprecision(2) << std::scientific;
-    out << "   · Precision: " << ci.precision() << std::endl;
-    out << "   · Confidence interval: [ " << ci.lower_limit() << ", "
+	out << "   · Computed precision: " << ci.precision(ci.confidence) << std::endl;
+	out << "   · Precision: " << ci.precision() << std::endl;
+	out << "   · Confidence interval: [ " << ci.lower_limit() << ", "
                                           << ci.upper_limit() << " ] "
         << std::endl;
 	out << std::setprecision(2) << std::fixed;
@@ -1253,7 +1254,6 @@ ModelSuite::estimate_for_times(const Property& property,
 			engine.simulate(property,
 							min_effort(property.type, engine.name(), engine.current_imp_fun()),
 							*ci_ptr,
-							techLog_,
 							&increase_effort);
 			engine.unlock();
 			timer.join();
@@ -1314,17 +1314,11 @@ ModelSuite::estimate_for_confs(const Property& property,
 			engine.lock();
 			do {
 				bool notEnough = engine.simulate(property, effort, *ci_ptr, reinit);
-				if (engine.interrupted)
-					break;  // timeout!
-				if (notEnough) {
-					techLog_ << "-";
+				if (notEnough)
 					increase_effort(property.type, engine.name(),
 									engine.current_imp_fun(), effort);
-				} else {
-					techLog_ << "+";
-				}
 				reinit = false;  // use batch means if possible
-			} while (!ci_ptr->is_valid());
+			} while (!ci_ptr->is_valid() && !engine.interrupted);
 			engine.unlock();
 
 		} catch (std::exception&) {
