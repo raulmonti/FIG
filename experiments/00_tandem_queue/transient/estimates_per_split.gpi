@@ -1,0 +1,59 @@
+#!/usr/bin/env gnuplot
+#
+# Author:  Carlos E. Budde
+# Date:    17.07.2016
+# License: GPLv3
+#
+#   This script was designed to be called from the main.sh script
+#   of the tandem_queue experiment.
+#   Some variables are expected to be defined on invocation. Sample line:
+#   $ gnuplot -e "SPLIT=2;AH='AH_file.dat';..." plot_estimates.gpi
+#
+#   WARNING: updates in main.sh may affect this script
+#
+
+# Check external variables were defined
+if (!exists("SPLIT")) exit error "[ERROR] 'SPLIT' undefined"
+if (!exists("MC")) exit error "[ERROR] 'MC' undefined"
+if (!exists("AH")) exit error "[ERROR] 'AH' undefined"
+if (!exists("AC")) exit error "[ERROR] 'AC' undefined"
+if (!exists("AM")) exit error "[ERROR] 'AM' undefined"
+
+# Output file setup
+set encoding utf8
+set term pdf dashed enhanced size 7,6 font 'Verdana,15'
+fout="estimates_s".SPLIT.".pdf"
+set out fout
+
+# General plot options
+set title offset 0,0 "{/Times*1.8 Transient analysis for the tandem queue}\n\nSplitting: ".SPLIT
+set xlab offset 0,-.1 "{/*1.2 Queues capacity}"
+set ylab offset -.1,0 "{/*1.2 Overflow probability}"
+set border 1+2+4+8  # bottom + left + top + right borders
+set grid ytics
+#set rmargin 5
+#set bmargin 5
+set log y
+set format y "%.1e"
+set xtics font ",14"
+set ytics font ",14"
+set auto fix
+set offsets 0.3,0.3,0.3,0.1
+
+# Plot sequence
+set key opaque top right font ",16"
+set bars 0.4  # size of the bars at the end of the error ranges
+set style fill transparent solid 0.1 noborder
+plot 5.62e-6 w l dt 2 lc "#7C7C7C" t '',  \
+     3.14e-7 w l dt 2 lc "#7C7C7C" t '',  \
+     1.86e-8 w l dt 2 lc "#7C7C7C" t '',  \
+     1.14e-9 w l dt 2 lc "#7C7C7C" t '',  \
+     MC u 0:2:xtic(1) w l lt -3 notitle,  \
+     MC u ($0-0.3):2:($3/2) w errorbars lc 0 pt  7 ps .5 lt 1 t 'nosplit',  \
+     AH u ($0-0.1):2:($3/2) w errorbars lc 0 pt 10 ps 1.2 lt 1 t 'ad hoc',  \
+     AC u ($0+0.1):2:($3/2) w errorbars lc 0 pt  6 lt 1 t 'compositional',  \
+     AM u ($0+0.3):2:($3/2) w errorbars lc 0 pt  4 lt 1 t 'monolithic'
+
+## Report success and exit
+#print "Estimates plotted in file ".fout
+#exit
