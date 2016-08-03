@@ -280,6 +280,7 @@ SET(PARSER_DEP "${PARSER_SRC}/main.cpp"
   "${PARSER_SRC}/ModelBuilder.cpp"
   "${PARSER_SRC}/ModelAST.cpp"
   "${PARSER_SRC}/ModelPrinter.cpp"
+  "${PARSER_SRC}/ModelTC.cpp"
   "${PARSER_CODE}"
   "${LEXER_CODE}"
   )

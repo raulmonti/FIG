@@ -1,0 +1,11 @@
+module X
+       x : bool init false;
+       c : clock;
+       [a!] true @ c -> (x' = true);
+endmodule
+
+module Y
+       x : bool init false;
+       c : clock;
+       [a!] true @ c -> (y' = true);
+endmodule

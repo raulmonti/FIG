@@ -3,6 +3,7 @@
 #include <cassert>
 #include <map>
 #include <iostream>
+#include <sstream>
 #include "Util.h"
 
 using namespace std;
@@ -14,7 +15,7 @@ enum class LabelType {in, out, commited, empty};
 enum class DistType {erlang, normal, uniform, exponential};
 
 namespace ASTNode {
-
+    
     class ModelAST {
     public:
 	virtual ~ModelAST() {};
@@ -27,7 +28,7 @@ namespace ASTNode {
         // public access allows the use of a VisitorPattern
         map<string, class ModuleBody *> modules;
 	vector<class Decl *> globals;
-
+	
         Model(string id, ModuleBody *mb) {
             add_module(id, mb);
         }
@@ -40,11 +41,23 @@ namespace ASTNode {
 	void operator=(Model const &) = delete;
       
 	void add_module(string id, ModuleBody *mb) {
-            modules[id] = mb;
+	    modules[id] = mb;
         }
 
         void add_decl(Decl *decl) {
             globals.push_back(decl);
+        }
+
+        bool has_module(string id) {
+	    return (modules.find(id) != modules.end());
+	}
+
+        const map<string, ModuleBody *>& get_modules() const {
+            return (modules);
+        }
+
+	const vector<class Decl *>& get_globals() const {
+            return (globals);
         }
 
         void accept(Visitor& visit) override;
@@ -77,6 +90,14 @@ namespace ASTNode {
         }
         
         void accept(Visitor& visit) override;
+
+	const vector<Decl*>& get_local_decls() {
+	    return local_decls;
+	}
+
+	const vector<Action*>& get_actions() {
+	    return actions;
+	}
 
         ~ModuleBody();
     };
@@ -122,18 +143,27 @@ namespace ASTNode {
         
         Decl(const Decl &Decl) = delete;
         void operator=(const Decl &Decl) = delete;
+	
         bool has_range() {
             return (lower != nullptr);
         }
+	
         bool is_array() {
             return (size != nullptr);
         }
+	
         bool has_single_init() {
             return (inits.size() == 1);
         }
+	
         bool has_array_init() {
             return (inits.size() > 1);
         }
+	
+	const vector<Exp*>& get_inits() {
+	    return (inits);
+	}
+	
         void accept(Visitor& visit) override;        
         ~Decl();
     };
@@ -162,6 +192,10 @@ namespace ASTNode {
         bool has_clock() {
             return (clock_loc != nullptr);
         }
+
+	const vector<Effect*>& get_effects() {
+	    return (effects);
+	}
         
         ~Action();
     };

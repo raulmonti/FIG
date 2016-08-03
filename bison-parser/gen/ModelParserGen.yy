@@ -19,6 +19,8 @@
 %code requires
 {
 #include <string>
+#include <sstream>
+    
 #include "ModelAST.h"
   
   class ModelBuilder;
@@ -120,7 +122,15 @@ model: global_decl[d] ";"
 | "module" "id"[id] module_body[b] "endmodule"
 {$$ = new Model($id, $b);}
 | model[m] "module" "id"[id] module_body[b] "endmodule"
-{$m->add_module($id, $b); $$ = $m;}
+{
+    string &id = $id;
+    if ($m->has_module(id)) {
+	builder.log->put_error("Two modules with the same name " + id);
+    } else {
+	$m->add_module(id, $b);
+    }
+    $$ = $m;
+}
 
 type: "int"
 {$$ = Type::tint;}
@@ -261,7 +271,9 @@ exp : location[loc]
 
 void
 ModelParserGen::ModelParser::error(const ModelParserGen::location& l, const std::string& m) {
-  std::cerr << "Error in location " << l << " : " << m << std::endl;
+    stringstream msg;
+    msg << "Syntax error on " << l << " : " << m << std::endl;
+    builder.log->put_error(msg.str());
 }
 
 void

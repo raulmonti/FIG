@@ -1,11 +1,11 @@
 #include "ModelBuilder.h"
 
-
-using namespace std;
 using namespace ModelParserGen;
 
 void ModelBuilder::error(location loc, string msg) {
-  cerr << "parser error in " << loc << " : " << msg << endl;
+    stringstream ss;
+    ss << "Syntax error on " << loc  << " : " << msg;
+    log->put_error(ss.str());
 }
 
 Model *ModelBuilder::build(const std::string& str) {
@@ -14,6 +14,9 @@ Model *ModelBuilder::build(const std::string& str) {
     scan(file);
     parser.parse();
     scan_end();
+    if (log->has_errors()) {
+	this->model = nullptr;
+    }
     return (this->model);
 }
 

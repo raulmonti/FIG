@@ -4,7 +4,6 @@ using namespace ASTNode;
 
 void ModelAST::accept(Visitor &visit) {
     visit.visit(this);
-    cout << "::::" << endl;
 }
 
 //Model

@@ -1,0 +1,12 @@
+module X
+       x : [0 .. 3] init 1;
+endmodule
+
+module X	
+       x : [0 .. 3] init 1;
+endmodule
+
+module Y
+       x : [0 .. 3] init 1;
+endmodule
+

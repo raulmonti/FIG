@@ -1,18 +1,30 @@
 #include "ModelBuilder.h"
 #include "ModelPrinter.h"
+#include "ModelTC.h"
 
-using namespace std;
+using std::cout;
+using std::cerr;
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
     cerr << "Expect filename!" << endl;
     exit(1);
   }
-  ModelBuilder builder;
+  Log log;
+  ModelBuilder builder(&log);
   string filename = argv[1];
   Model *model = builder.build(filename);
-  ModelPrinter printer;
-  model->accept(printer);
+  if (log.has_errors()) {
+      cout << log.get_msg();
+  } else {
+      ModelPrinter printer;
+      model->accept(printer);
+      ModelTC typechecker(&log);
+      model->accept(typechecker);
+      if (log.has_errors()) {
+	  cout << log.get_msg();
+      }
+  }
 }
 
 
