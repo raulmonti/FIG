@@ -112,18 +112,22 @@ ConfidenceIntervalWilson::min_samples_covered() const noexcept
 {
 	// Even though the Wilson score interval has lax lower bounds (http://goo.gl/B86Dc),
 	// they've been increased to meet experimental quality standards
-	static const long LBOUND(800l);
-	static const double LOG_LBOUND(log(LBOUND));
-	const bool theoreticallySound = LBOUND < numRares_ && (
-			 log(30l*statOversample_) < logNumSamples_ || (
-			   LOG_LBOUND < logNumSamples_+log(estimate_) &&  // n*p
-			   LOG_LBOUND < logNumSamples_+log1p(-estimate_)  // n*(1-p)
-			 )
-		   );
-	// Ask also for little change w.r.t. the last outcome
-	const bool practicallySound = abs(prevEstimate_-estimate_) < 0.02*estimate_;
-	// So, did we make it already?
-	return theoreticallySound && practicallySound;
+	static constexpr long LBOUND(1l<<7l), LBOUNDR(800l);
+	static constexpr double LOG_LBOUNDR(log(LBOUNDR));
+	const bool theoreticallySound =
+			LBOUND < numSamples_ && LBOUNDR < numRares_ && (
+			  log(30l*statOversample_) < logNumSamples_ || (
+				LOG_LBOUNDR < logNumSamples_+log(estimate_) &&  // n*p
+				LOG_LBOUNDR < logNumSamples_+log1p(-estimate_)  // n*(1-p)
+			  )
+			);
+	/// @todo TODO consider removing "practical" stopping criterion
+//	// Ask also for little change w.r.t. the last outcome
+//	const bool practicallySound = abs(prevEstimate_-estimate_) < 0.02*estimate_;
+//	// So, did we make it already?
+//	return theoreticallySound && practicallySound;
+
+	return theoreticallySound;
 }
 
 
