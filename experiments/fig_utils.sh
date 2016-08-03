@@ -289,13 +289,13 @@ extract_value() {
 		local VMATCH="estimate:[[:space:]][1-9]\.[0-9]*e\-[0-9]*"
 	elif [[ $1 == "prec" ]]; then
 		if [ -n "${TBOUND}" ]; then
-			local VMATCH="\-\ precision:[[:space:]][1-9]\.[0-9]*e\-[0-9]*"
+			local VMATCH="precision:[[:space:]][1-9]\.[0-9]*e\-[0-9]*"
 			VAL=$(echo "$VAL" | grep --after=1 "$7[[:space:]]confidence")
 		else
-			local VMATCH="\ Precision:[[:space:]][1-9]\.[0-9]*e\-[0-9]*"
+			local VMATCH="Precision:[[:space:]][1-9]\.[0-9]*e\-[0-9]*"
 		fi
 	fi
-	VAL=$(echo $VAL | grep -o $VMATCH | awk '{ print $2 }')
+	VAL=$(echo $VAL | grep -o "$VMATCH" | awk '{ print $2 }')
 	if [ -n "${VAL}" ]; then
 		echo "$VAL"  # Valid value found!   :)
 	else

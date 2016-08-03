@@ -5,7 +5,7 @@
 # License: GPLv3
 #
 
-set -e
+#set -e
 show(){ /bin/echo -e "$@"; }
 CWD=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
 
@@ -64,7 +64,7 @@ mkdir $RESULTS && unset N && \
 TO="6h"
 CONF=0.9  # Confidence coefficient
 PREC=0.3  # Relative precision
-SPLITS=(2 3 5 6)  # RESTART splittings to test
+SPLITS=(2 3 5 8)  # RESTART splittings to test
 REDUNDANCY=(2 3 4 5)
 NDC=6   # Number of disk clusters
 NCT=2   # Number of controller types

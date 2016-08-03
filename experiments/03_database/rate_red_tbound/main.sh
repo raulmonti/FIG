@@ -5,7 +5,7 @@
 # License: GPLv3
 #
 
-set -e
+#set -e
 show(){ /bin/echo -e "$@"; }
 CWD=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
 
@@ -63,7 +63,7 @@ mkdir $RESULTS && unset N && \
 # Experiments configuration
 REDUNDANCY=(  2  3  4  5 )
 TIME_BOUNDS=(3s 60s 1h 6h)  # Specify one per redundancy!
-SPLITS=(2 3 5 6)  # RESTART splittings to test
+SPLITS=(2 3 5 8)  # RESTART splittings to test
 NDC=6   # Number of disk clusters
 NCT=2   # Number of controller types
 NPT=2   # Number of processor types

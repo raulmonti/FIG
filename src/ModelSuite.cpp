@@ -185,8 +185,8 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
 	static const size_t batch_sizes[NUM_ENGINES][NUM_IMPFUNS] = {
-		{ 1ul<<11, 1ul<<12, 1ul<<10 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 1ul<<10, 1ul<<10, 1ul<<10 }   // restart x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<4, 1ul<<3, 1ul<<2 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<2, 1ul<<2, 1ul<<2 }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -275,6 +275,7 @@ min_effort(const fig::PropertyType& propertyType,
 /// Increase given batch size (i.e. requested number of consecutive simulations
 /// ran) in order to estimate the value of transient-like properties
 /// Fine tune for the specified SimulationEngine and ImportanceFunction pair
+/// @deprecated New policy: don't increase effort for transient simulations
 void
 increase_batch_size(const std::string& engineName,
 					const std::string& ifunName,
@@ -358,7 +359,8 @@ increase_effort(const fig::PropertyType& propertyType,
 	switch (propertyType)
 	{
 	case fig::PropertyType::TRANSIENT:
-		increase_batch_size(engineName, ifunName, effort);
+		// New policy: don't increase effort for transient simulations
+		// increase_batch_size(engineName, ifunName, effort);
 		break;
 
 	case fig::PropertyType::RATE:

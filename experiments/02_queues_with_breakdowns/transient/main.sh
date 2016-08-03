@@ -5,7 +5,7 @@
 # License: GPLv3
 #
 
-set -e
+#set -e
 show(){ /bin/echo -e "$@"; }
 CWD=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
 

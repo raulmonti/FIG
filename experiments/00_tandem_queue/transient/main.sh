@@ -5,7 +5,7 @@
 # License: GPLv3
 #
 
-set -e
+#set -e
 show(){ /bin/echo -e "$@"; }
 CWD=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
 
@@ -48,7 +48,7 @@ mkdir $RESULTS && unset N && \
 TO="90m"
 CONF=0.9  # Confidence coefficient
 PREC=0.2  # Relative precision
-SPLITS=(2 3 6 11)  # RESTART splittings to test
+SPLITS=(3 6 9 12)  # RESTART splittings to test
 QUEUES_CAPACITIES=(8 10 12 14)  # --> changes here affect plots!
 EXPNAME="tandem_queue"
 #
