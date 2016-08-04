@@ -219,7 +219,7 @@ public:  // Utils
 	/// @param fullReset Erase also the \ref statOversample_
 	///                  "statistical oversampling" and \ref varCorrection_
 	///                  "variance correction" values currently held
-	virtual void reset(const bool& fullReset = false) noexcept;
+	virtual void reset(bool fullReset = false) noexcept;
 
 protected:
 

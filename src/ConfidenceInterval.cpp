@@ -205,7 +205,7 @@ ConfidenceInterval::upper_limit(const double& confco) const
 
 
 void
-ConfidenceInterval::reset(const bool& fullReset) noexcept
+ConfidenceInterval::reset(bool fullReset) noexcept
 {
     numSamples_ = 0;
     estimate_ = 0.0;

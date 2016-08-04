@@ -45,8 +45,13 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 ConfidenceIntervalProportion::ConfidenceIntervalProportion(
 	double confidence,
 	double precision,
-	bool dynamicPrecision) :
-        ConfidenceInterval("proportion_std", confidence, precision, dynamicPrecision),
+	bool dynamicPrecision,
+	bool neverStop) :
+		ConfidenceInterval("proportion_std",
+						   confidence,
+						   precision,
+						   dynamicPrecision,
+						   neverStop),
 		numRares_(0.0),
 		logNumSamples_(0.0)
 { /* Not much to do around here */ }
@@ -121,9 +126,9 @@ ConfidenceIntervalProportion::precision(const double &confco) const
 
 
 void
-ConfidenceIntervalProportion::reset() noexcept
+ConfidenceIntervalProportion::reset(bool fullReset) noexcept
 {
-	ConfidenceInterval::reset();
+    ConfidenceInterval::reset(fullReset);
     numRares_ = 0.0;
     logNumSamples_ = 0.0;
 }

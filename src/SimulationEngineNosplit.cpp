@@ -83,14 +83,9 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
     }
     TraialPool::get_instance().return_traial(std::move(traial));
 
-    // Return estimate or its negative value
-	if (MIN_COUNT_RARE_EVENTS > raresCount) {
-		// figTechLog << "-";  // don't show progress, there're too many batches
-		return -static_cast<double>(raresCount);
-	} else {
-		// figTechLog << "+";  // don't show progress, there're too many batches
-		return  static_cast<double>(raresCount);
-	}
+	// Return number of rare states visited
+	assert(0l <= raresCount);
+	return static_cast<double>(raresCount);
 }
 
 
@@ -140,15 +135,9 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 		traial.lifeTime = (FIRST_TIME + 1.1) * 2.2;
 	assert(traial.lifeTime != FIRST_TIME);
 
-	// Return estimate or its negative value
+	// Return the simulation-time spent on rare states
 	assert(0.0 <= accTime);
-	if (MIN_ACC_RARE_TIME > accTime) {
-		figTechLog << (interrupted ? ("") : ("-"));
-		return -accTime / static_cast<double>(runLength);
-	} else {
-		figTechLog << (interrupted ? ("") : ("+"));
-		return  accTime / static_cast<double>(runLength);
-	}
+	return accTime;
 }
 
 } // namespace fig

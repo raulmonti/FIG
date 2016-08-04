@@ -30,6 +30,7 @@
 
 // C
 #include <cmath>
+#include <ctime>      // clock()
 // C++
 #include <memory>     // std::dynamic_pointer_cast<>
 #include <sstream>
@@ -44,8 +45,9 @@
 #include <PropertyTransient.h>
 #include <ConfidenceInterval.h>
 #include <ModuleNetwork.h>
-#include <FigException.h>
 #include <TraialPool.h>
+#include <FigException.h>
+#include <FigLog.h>
 
 // ADL
 using std::begin;
@@ -75,20 +77,19 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
 	// Check given engine and importance function names are valid
 	if (engineIt == end(engineNames))
-		throw_FigException(std::string("invalid engine name \"")
-						   .append(engineName).append("\""));
+		throw_FigException("invalid engine name \""+engineName+"\"");
 	if (ifunIt == end(ifunNames))
-		throw_FigException(std::string("invalid importance function name \"")
-						   .append(ifunName).append("\""));
+		throw_FigException("invalid importance function name \""+ifunName+"\"");
 	// Return corresponding entry from table
 	return batch_sizes[std::distance(begin(engineNames), engineIt)]
 					  [std::distance(begin(ifunNames), ifunIt)];
 }
 
 
-/// Choose minimum simulation run length (in simulated time units)
+/// Choose minimum simulation run length (in simulation-time units)
 /// in order to estimate the value of steady-state-like properties.
 /// Fine tune for the specified SimulationEngine and ImportanceFunction pair
+/// @see increase_run_length
 size_t
 min_run_length(const std::string& engineName, const std::string& ifunName)
 {
@@ -106,14 +107,44 @@ min_run_length(const std::string& engineName, const std::string& ifunName)
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
 	// Check given engine and importance function names are valid
 	if (engineIt == end(engineNames))
-		throw_FigException(std::string("invalid engine name \"")
-						   .append(engineName).append("\""));
+		throw_FigException("invalid engine name \""+engineName+"\"");
 	if (ifunIt == end(ifunNames))
-		throw_FigException(std::string("invalid importance function name \"")
-						   .append(ifunName).append("\""));
+		throw_FigException("invalid importance function name \""+ifunName+"\"");
 	// Return corresponding entry from table
 	return run_lengths[std::distance(begin(engineNames), engineIt)]
 					  [std::distance(begin(ifunNames), ifunIt)];
+}
+
+
+/// Increase given simulation run length (in simulation-time units)
+/// in order to estimate the value of steady-state-like properties.
+/// Fine tune for the specified SimulationEngine and ImportanceFunction pair
+/// @see min_run_length
+void
+increase_run_length(const std::string& engineName,
+					const std::string& ifunName,
+					size_t& runLength)
+{
+	// Build internal table once: rows follow engine names definition order
+	//                            cols follow impFun names definition order
+	constexpr size_t NUM_ENGINES(fig::SimulationEngine::NUM_NAMES);
+	constexpr size_t NUM_IMPFUNS(fig::ImportanceFunction::NUM_NAMES);
+	static const auto& engineNames(fig::SimulationEngine::names());
+	static const auto& ifunNames(fig::ImportanceFunction::names());
+	static const float inc_length[NUM_ENGINES][NUM_IMPFUNS] = {
+		{ 1.7f, 1.7f, 1.4f },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+		{ 1.4f, 1.4f, 1.4f }   // restart x {concrete_coupled, concrete_split, algebraic}
+	};
+	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
+	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
+	// Check given engine and importance function names are valid
+	if (engineIt == end(engineNames))
+		throw_FigException("invalid engine name \""+engineName+"\"");
+	if (ifunIt == end(ifunNames))
+		throw_FigException("invalid importance function name \""+ifunName+"\"");
+	// Update runLength with corresponding entry from table, rely on type promotion
+	runLength *= inc_length[std::distance(begin(engineNames), engineIt)]
+						   [std::distance(begin(ifunNames), ifunIt)];
 }
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
@@ -122,26 +153,6 @@ min_run_length(const std::string& engineName, const std::string& ifunName)
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
-
-// Static variables initialization
-
-/// @note Arbitrary af
-const unsigned SimulationEngine::MIN_COUNT_RARE_EVENTS = 3u;
-
-/// @note Arbitrary af
-const double SimulationEngine::MIN_ACC_RARE_TIME = M_PI_4l/4.0;
-
-/// @note Small enough to distinguish variations of 0.01 simulation time units
-///       when using fp single precision: mantissa 1, exponent 12, resulting in
-///       1*2^12 == 4096. The corresponding C99 literal is 0x1p12
-/// @see <a href="http://www.cprogramming.com/tutorial/floating_point/understanding_floating_point_representation.html">
-///      Floating point arithmetic</a> and the <a href="http://stackoverflow.com/a/4825867">
-///      C99 fp literals</a>.
-const CLOCK_INTERNAL_TYPE SimulationEngine::SIM_TIME_CHUNK = 4096.f;
-
-
-
-// SimulationEngine class member functions
 
 SimulationEngine::SimulationEngine(
 	const std::string& name,
@@ -277,175 +288,50 @@ SimulationEngine::current_imp_strat() const noexcept
 }
 
 
-bool
+void
 SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) const
 {
 	if (!bound())
 		throw_FigException("engine isn't bound to any importance function");
 	if (interrupted)
-		throw_FigException("called with a simulation in an interrupted state");
+		throw_FigException("called with an interrupted simulation");
 
-	const PropertyType ptype(property.type);
-	switch (ptype) {
+	switch (property.type) {
 
 	double value;
 	size_t effort;
-	bool reinit(true);  // start from system's initial state
+	ci.reset();
 
-	case PropertyType::TRANSIENT:
+	case PropertyType::TRANSIENT: {
+		const auto& pTransient(dynamic_cast<const PropertyTransient&>(property));
 		effort = min_batch_size(name(), impFun_->name());
 		while ( ! (interrupted || ci.is_valid()) ) {
-			value = transient_simulations(
-						dynamic_cast<const PropertyTransient&>(property), effort);
+			value = transient_simulations(pTransient, effort);
 			transient_update(ci, value, effort);
 		}
-		break;
+		} break;
 
-	case PropertyType::RATE:
+	case PropertyType::RATE: {
+		const auto& pRate(dynamic_cast<const PropertyRate&>(property));
 		effort = min_run_length(name(), impFun_->name());
 		while ( ! (interrupted || ci.is_valid()) ) {
-			value = rate_simulation(
-						dynamic_cast<const PropertyRate&>(property), effort, reinit);
-			rate_update(ci, value, effort);
-			reinit = false;  // use batch means
+			std::clock_t t0 = std::clock();
+			value = rate_simulation(pRate, effort, false);  // use batch-means
+			rate_update(ci, value, effort, (std::clock()-t0)/CLOCKS_PER_SEC);
 		}
-		break;
+		} break;
 
 	case PropertyType::THROUGHPUT:
 	case PropertyType::RATIO:
 	case PropertyType::BOUNDED_REACHABILITY:
-		throw_FigException(std::string("property type isn't supported by ")
-						   .append(name_).append(" simulation yet"));
+		throw_FigException("property type isn't supported by \"" + name_ +
+						   "\" simulation engine yet");
 		break;
 
 	default:
 		throw_FigException("invalid property type");
 		break;
 	}
-
-}
-
-
-
-bool
-SimulationEngine::simulate(const Property &property,
-						   const size_t& effort,
-						   ConfidenceInterval& interval,
-						   bool reinit) const
-{
-	bool increaseEffort(false);
-
-	/// @todo TODO delete this function
-
-//	assert(0ul < effort);
-//	if (!bound())
-//		throw_FigException("engine isn't bound to any importance function");
-//
-//	switch (property.type) {
-//
-//	case PropertyType::TRANSIENT: {
-//		assert(interval.name == "proportion_std" ||
-//			   interval.name == "proportion_wilson");
-//		double raresCount =
-//			transient_simulations(dynamic_cast<const PropertyTransient&>(property),
-//								  effort);
-//		// numExperiments == numRuns * splitsPerThreshold ^ numThresholds
-//		interval.update(std::abs(raresCount),
-//						std::log(effort) + log_experiments_per_sim());
-//		increaseEffort = 0.0 >= raresCount;
-//		} break;
-//
-//	case PropertyType::RATE: {
-//		assert(interval.name == "mean_std");
-//		double rate = rate_simulation(dynamic_cast<const PropertyRate&>(property),
-//									  effort,
-//									  reinit);
-//		interval.update(std::abs(rate));
-//		increaseEffort = 0.0 >= rate;
-//		} break;
-//
-//	case PropertyType::THROUGHPUT:
-//	case PropertyType::RATIO:
-//	case PropertyType::BOUNDED_REACHABILITY:
-//		throw_FigException(std::string("property type isn't supported by ")
-//						   .append(name_).append(" simulation yet"));
-//		break;
-//
-//	default:
-//		throw_FigException("invalid property type");
-//		break;
-//	}
-//
-	return increaseEffort;
-}
-
-
-void
-SimulationEngine::simulate(
-	const Property& property,
-	size_t effort,
-	ConfidenceInterval& interval,
-	void (*effort_inc)(const PropertyType&,
-					   const std::string&,
-					   const std::string&,
-					   size_t &)) const
-{
-	/// @todo TODO delete this function
-
-//	assert(0ul < effort);
-//	if (!bound())
-//		throw_FigException("engine isn't bound to any importance function");
-//
-//	switch (property.type) {
-//
-//	case PropertyType::TRANSIENT:
-//		assert(interval.name == "proportion_std" ||
-//			   interval.name == "proportion_wilson");
-//		assert (!interrupted);
-//		while (!interrupted) {
-//			double raresCount =
-//				transient_simulations(dynamic_cast<const PropertyTransient&>(property),
-//									  effort);
-//			if (!interrupted) {
-//				// numExperiments == batchSize * splitsPerThreshold ^ numThresholds
-//				interval.update(std::abs(raresCount),
-//								std::log(effort) + log_experiments_per_sim());
-//				if (0.0 >= raresCount && nullptr != effort_inc)
-//					effort_inc(property.type, name_, impFun_->name(), effort);
-//				// else: don't know how to increase, so don't do anything
-//			}
-//		}
-//		break;
-//
-//	case PropertyType::RATE: {
-//		bool reinit(true);  // start from system's initial state
-//		assert(interval.name == "mean_std");
-//		assert (!interrupted);
-//		while (!interrupted) {
-//			double rate = rate_simulation(dynamic_cast<const PropertyRate&>(property),
-//										  effort,
-//										  reinit);
-//			if (!interrupted) {
-//				interval.update(std::abs(rate));
-//				if (0.0 >= rate && nullptr != effort_inc)
-//					effort_inc(property.type, name_, impFun_->name(), effort);
-//				// else: don't know what to do, so don't do anything
-//			}
-//			reinit = false;  // use batch means
-//		}
-//		} break;
-//
-//	case PropertyType::THROUGHPUT:
-//	case PropertyType::RATIO:
-//	case PropertyType::BOUNDED_REACHABILITY:
-//		throw_FigException(std::string("property type isn't supported by ")
-//						   .append(name_).append(" simulation yet"));
-//		break;
-//
-//	default:
-//		throw_FigException("invalid property type");
-//		break;
-//	}
 }
 
 
@@ -456,7 +342,7 @@ SimulationEngine::transient_update(ConfidenceInterval& ci,
 {
 	assert(ci.name == "proportion_std" || ci.name == "proportion_wilson");
 	if (interrupted)
-		return;  // refuse updates to interrupted simulations
+		return;  // don't update interrupted simulations
 	ci.update(std::abs(raresCount),
 			  std::log(batchSize) + log_experiments_per_sim());
 	// numExperiments == batchSize * splitsPerThreshold ^ numThresholds
@@ -465,20 +351,32 @@ SimulationEngine::transient_update(ConfidenceInterval& ci,
 
 void
 SimulationEngine::rate_update(ConfidenceInterval& ci,
-							  const double& rate,
-							  size_t& simLen) const
+							  const double& rareTime,
+							  size_t& simTime,
+							  const long& CPUtime) const
 {
+	static constexpr size_t NHITS_REQUIRED = 3u;
+	static size_t NHITS(0ul);
+
 	assert(ci.name == "mean_std");
 	if (interrupted)
-		return;  // refuse updates to interrupted simulations
+		return;  // don't update interrupted simulations
 
-	/// @todo TODO implement new update policy for RATE properties!
-	///            This must include the discussed discard of the first
-	///            not-steady-state behaviour of the batch-means simulation.
-	///            How to decide when did that behaviour end is still undefined.
-//	ci.update(std::abs(rate));
-//	if (0.0 >= rate && nullptr != effort_inc)
-//		effort_inc(property.type, name_, impFun_->name(), effort);
+	// Determine whether we are observing a steady-state behaviour
+	NHITS = ci.num_samples() <= 0l && NHITS >= NHITS_REQUIRED ? 0ul : NHITS;
+	NHITS += MIN_ACC_RARE_TIME < rareTime ? 1ul : 0ul;
+	const bool isSteadyState = ci.num_samples() > 0l  ||  // yes, this was decided before
+							   CPUtime > MAX_CPU_TIME ||  // yes, time constraints force us
+							   NHITS >= NHITS_REQUIRED;   // yes, we succeeded enough times
+	if (isSteadyState) {
+		ci.update(rareTime/static_cast<double>(simTime));
+		figTechLog << (rareTime > MIN_ACC_RARE_TIME ? ("+")    // report "success"
+													: ("-"));  // report "failure"
+		NHITS = NHITS_REQUIRED;
+	} else {
+		increase_run_length(name_, impFun_->name(), simTime);
+		figTechLog << "*";  // report "discarded"
+	}
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

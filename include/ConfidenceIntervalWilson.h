@@ -59,9 +59,11 @@ class ConfidenceIntervalWilson: public ConfidenceInterval
 
 public:  // Ctor
 
+	/// @copydoc ConfidenceInterval::ConfidenceInterval()
 	ConfidenceIntervalWilson(double confidence,
 							 double precision,
-							 bool dynamicPrecision = false);
+							 bool dynamicPrecision = false,
+							 bool neverStop = false);
 
 public:  // Modifyers
 
@@ -78,7 +80,7 @@ public:  // Utils
 
 	double precision(const double& confco) const override;
 
-	void reset() noexcept override;
+	void reset(bool fullReset = false) noexcept override;
 };
 
 } // namespace fig

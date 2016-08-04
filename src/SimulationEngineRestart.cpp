@@ -198,15 +198,9 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	for (unsigned i = 0u ; i <= numThresholds ; i++)
 		weighedRaresCount += raresCount[i]
 							  * pow(splitsPerThreshold_, numThresholds-i);
-	// Return the weighed count or its negative value
+	// Return the (weighed) number of rare states visited
 	assert(0.0 <= weighedRaresCount);
-	if (MIN_COUNT_RARE_EVENTS > raresCount.sum()) {
-		// figTechLog << "-";  // don't show progress, there're too many batches
-		return -weighedRaresCount;
-	} else {
-		// figTechLog << "+";  // don't show progress, there're too many batches
-		return  weighedRaresCount;
-	}
+	return weighedRaresCount;
 }
 
 
@@ -309,20 +303,13 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	if (stack.empty())  // allow next iteration of batch means
 		stack.push(originalTraial);
 
-	// To estimate, weigh counts by the relative importance of their thresholds
-	double accTime(0.0);
+	// To estimate, weigh times by the relative importance of their thresholds
+	double weighedAccTime(0.0);
 	for (unsigned i = 0u ; i <= numThresholds ; i++)
-		accTime += raresCount[i] / pow(splitsPerThreshold_, i);
-
-	// Return estimate or its negative value
-	assert(0.0 <= accTime);
-	if (MIN_ACC_RARE_TIME > raresCount.sum()) {
-		figTechLog << (interrupted ? ("") : ("-"));
-		return -accTime / static_cast<double>(runLength);
-	} else {
-		figTechLog << (interrupted ? ("") : ("+"));
-		return  accTime / static_cast<double>(runLength);
-	}
+		weighedAccTime += raresCount[i] / pow(splitsPerThreshold_, i);
+	// Return the (weighed) simulation-time spent on rare states
+	assert(0.0 <= weighedAccTime);
+	return weighedAccTime;
 }
 
 } // namespace fig

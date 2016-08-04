@@ -47,8 +47,13 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 ConfidenceIntervalWilson::ConfidenceIntervalWilson(
 	double confidence,
 	double precision,
-	bool dynamicPrecision) :
-        ConfidenceInterval("proportion_wilson", confidence, precision, dynamicPrecision),
+	bool dynamicPrecision,
+	bool neverStop) :
+		ConfidenceInterval("proportion_wilson",
+						   confidence,
+						   precision,
+						   dynamicPrecision,
+						   neverStop),
 		squantile_(quantile*quantile),
 		numRares_(0.0),
 		logNumSamples_(0.0)
@@ -145,9 +150,9 @@ ConfidenceIntervalWilson::precision(const double &confco) const
 
 
 void
-ConfidenceIntervalWilson::reset() noexcept
+ConfidenceIntervalWilson::reset(bool fullReset) noexcept
 {
-	ConfidenceInterval::reset();
+	ConfidenceInterval::reset(fullReset);
     numRares_ = 0.0;
     logNumSamples_ = 0.0;
 }
