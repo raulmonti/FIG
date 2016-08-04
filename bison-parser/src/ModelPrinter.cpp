@@ -3,7 +3,7 @@
 
 using namespace std;
 
-string to_str(Type type) {
+string ModelPrinter::to_str(Type type) {
     string result;
     switch(type) {
     case Type::tint:
@@ -25,7 +25,7 @@ string to_str(Type type) {
     return result;
 }
 
-string to_str(LabelType type) {
+string ModelPrinter::to_str(LabelType type) {
     string result;
     switch(type) {
     case LabelType::in:
@@ -44,7 +44,7 @@ string to_str(LabelType type) {
     return result;
 }
 
-string to_str(DistType type) {
+string ModelPrinter::to_str(DistType type) {
     string result;
     switch(type) {
     case DistType::erlang:
@@ -63,7 +63,7 @@ string to_str(DistType type) {
     return result;
 }
 
-string to_str(ExpOp op) {
+string ModelPrinter::to_str(ExpOp op) {
     string result;
     switch(op) {
     case ExpOp::plus: result = "(+)"; break;
@@ -211,7 +211,7 @@ void ModelPrinter::visit(IConst *node) {
 }
 
 void ModelPrinter::visit(BConst *node) {
-    print_idented("Bool Value: " + std::to_string(node->value));
+    print_idented("Bool Value: " + node->value ? "true" : "false");
 }
 
 void ModelPrinter::visit(FConst *node) {

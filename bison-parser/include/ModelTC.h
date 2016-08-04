@@ -2,6 +2,9 @@
 #define MODEL_TC_H
 
 #include "ModelAST.h"
+#include <utility>
+
+/** Typechecking on the Model AST */
 
 using std::string;
 using namespace ASTNode;
@@ -24,16 +27,23 @@ private:
     map<string, ModuleScope *> scopes;
     map<string, Decl *> globals;
     ModuleScope *current_scope;
+    Type last_type;
     Log *log;
     //accepts if no errors
     void accept_cond(ModelAST *module);
     //prefix for log message
-    string get_prefix();
+    void check_type(Type type, const string &msg);
+    Type identifier_type(const string &id);
     bool is_global_scope() {
 	return (current_scope == nullptr);
     }
+    // result type of a operator given the type of its arguments
+    // may be Type::tunknown
+    static Type operator_type(const ExpOp &id, Type arg);
 public:
-    ModelTC(Log *log) : current_scope {nullptr}, log {log} {};
+    ModelTC(Log *log)
+	: current_scope {nullptr},
+	  last_type {Type::tunknown}, log {log} {};
     
     void visit(ModelAST* node);
     void visit(Model* node);

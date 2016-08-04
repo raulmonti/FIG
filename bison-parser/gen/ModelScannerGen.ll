@@ -13,6 +13,7 @@
   using namespace ModelParserGen;
   static location loc;
   int parse_int();
+  float parse_float();
 %}
 
 %option noyywrap nounput batch noinput 
@@ -20,7 +21,7 @@
 
 id    [a-zA-Z][a-zA-Z_0-9]*
 int   [0-9]+
-float [0-9]+[.][0-9]+
+float [0-9]+[\.][0-9]+
 blank  [ \t]
 
 %{
@@ -90,6 +91,7 @@ blank  [ \t]
 
 {id}  return ModelParser::make_ID(yytext, loc);
 {int} return ModelParser::make_INTL(parse_int(), loc);
+{float} return ModelParser::make_FLOATL(parse_float(), loc);
 . builder.error(loc, std::string("unexpected character ") + yytext);
 <<EOF>>    return ModelParser::make_END(loc);
 
@@ -101,6 +103,12 @@ int parse_int() {
   if (!(INT_MIN <= n && n <= INT_MAX && errno != ERANGE))
     std::cout << "OUT OF RANGE" << std::endl;
   return static_cast<int>(n);
+}
+
+float parse_float() {
+    //TODO: check precision, overflow, ....
+    float n = strtof(yytext, NULL);
+    return n;
 }
 
 void ModelBuilder::scan(FILE *file) {

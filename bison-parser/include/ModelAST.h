@@ -6,6 +6,8 @@
 #include <sstream>
 #include "Util.h"
 
+/** Model Abstract Syntax Tree obtained  **/
+
 using namespace std;
 
 enum class Type {tint, tbool, tfloat, tclock, tunknown};
@@ -13,6 +15,7 @@ enum class ExpOp {plus, times, minus, div, mod, andd, orr, nott, eq, neq, lt, gt
 enum class Arity  {one, two};
 enum class LabelType {in, out, commited, empty};
 enum class DistType {erlang, normal, uniform, exponential};
+
 
 namespace ASTNode {
     
@@ -350,7 +353,5 @@ namespace ASTNode {
 } //namespace ASTNode
 
   
-
-
 #endif
 

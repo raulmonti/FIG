@@ -4,6 +4,8 @@
 #include "ModelAST.h"
 #include "ModelParser.hpp"
 
+/** This class uses the lexer and the parser to build a Model AST **/
+
 //Declare lexer's type. 
 # define YY_DECL ModelParserGen::ModelParser::symbol_type yylex (ModelBuilder& builder)
 YY_DECL;

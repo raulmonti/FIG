@@ -1,0 +1,5 @@
+module X
+       x : [0 .. 3] init 4;
+       c : clock;
+       [a!] true @ c -> (x' = (4 + 5 + true) / 9);
+endmodule

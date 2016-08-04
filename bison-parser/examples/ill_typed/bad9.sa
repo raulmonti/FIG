@@ -1,0 +1,5 @@
+module X
+       x : [0 .. true] init 4;
+       c : clock;
+       [a!] true @ c -> (x' = x);
+endmodule

@@ -4,6 +4,8 @@
 
 #include "ModelAST.h"
 
+/** Visitor to print the Model's AST **/
+
 using namespace std;
 using namespace ASTNode;
 
@@ -28,6 +30,11 @@ class ModelPrinter : public Visitor {
     void visit(FConst* node);
     void visit(LocExp* node);
     void visit(OpExp* node);
+
+    static string to_str(Type type);
+    static string to_str(LabelType type);
+    static string to_str(DistType type);
+    static string to_str(ExpOp type);
 };
 
 #endif

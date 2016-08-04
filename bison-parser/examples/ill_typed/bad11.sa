@@ -1,0 +1,6 @@
+const float pi = 3.14;
+module X
+       x : [0 .. 3] init 3;
+       c : clock;
+       [a!] true @ c -> (c' = uniform(true, 5));
+endmodule
