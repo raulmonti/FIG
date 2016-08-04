@@ -37,6 +37,7 @@
 #include <ImportanceFunctionConcrete.h>
 #include <PropertyTransient.h>
 #include <ConfidenceInterval.h>
+#include <FigLog.h>
 
 
 namespace fig
@@ -83,10 +84,13 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
     TraialPool::get_instance().return_traial(std::move(traial));
 
     // Return estimate or its negative value
-	if (MIN_COUNT_RARE_EVENTS > raresCount)
+	if (MIN_COUNT_RARE_EVENTS > raresCount) {
+		// figTechLog << "-";  // don't show progress, there're too many batches
 		return -static_cast<double>(raresCount);
-    else
+	} else {
+		// figTechLog << "+";  // don't show progress, there're too many batches
 		return  static_cast<double>(raresCount);
+	}
 }
 
 
@@ -138,10 +142,13 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 
 	// Return estimate or its negative value
 	assert(0.0 <= accTime);
-	if (MIN_ACC_RARE_TIME > accTime)
+	if (MIN_ACC_RARE_TIME > accTime) {
+		figTechLog << (interrupted ? ("") : ("-"));
 		return -accTime / static_cast<double>(runLength);
-	else
+	} else {
+		figTechLog << (interrupted ? ("") : ("+"));
 		return  accTime / static_cast<double>(runLength);
+	}
 }
 
 } // namespace fig

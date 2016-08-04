@@ -114,12 +114,14 @@ bool ConfidenceInterval::time_simulations_;   // defined only to copy the doc!
 ConfidenceInterval::ConfidenceInterval(const std::string& thename,
 									   double confidence,
 									   double precision,
-									   bool dynamicPrecision) :
+									   bool dynamicPrecision,
+									   bool neverStop) :
     name(thename),
 	errorMargin(precision/2.0),
 	percent(dynamicPrecision),
 	confidence(confidence),
 	quantile(confidence_quantile(confidence)),
+	alwaysInvalid(neverStop),
 	numSamples_(0),
 	estimate_(0.0),
 	prevEstimate_(0.0),
@@ -159,8 +161,8 @@ ConfidenceInterval::set_variance_correction(const double& varCorrection)
 bool
 ConfidenceInterval::is_valid() const noexcept
 {
-	return min_samples_covered() &&
-		   0.0 <= estimate_ && estimate_ <= 1.0 &&
+	return !alwaysInvalid && 0.0 <= estimate_ && estimate_ <= 1.0 &&
+		   min_samples_covered() &&
 		   halfWidth_ < errorMargin * (percent ? estimate_ : 1.0);
 		   // the interval's "sample" half width is compared against
 		   // the "theoretical" error margin
@@ -203,14 +205,17 @@ ConfidenceInterval::upper_limit(const double& confco) const
 
 
 void
-ConfidenceInterval::reset() noexcept
+ConfidenceInterval::reset(const bool& fullReset) noexcept
 {
     numSamples_ = 0;
     estimate_ = 0.0;
+	prevEstimate_ = 0.0;
     variance_ = std::numeric_limits<double>::infinity();
-    halfWidth_ = std::numeric_limits<double>::infinity();
-    statOversample_ = 1.0;
-    varCorrection_ = 1.0;
+	halfWidth_ = std::numeric_limits<double>::infinity();
+	if (fullReset) {
+		statOversample_ = 1.0;
+		varCorrection_ = 1.0;
+	}
 }
 
 

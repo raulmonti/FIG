@@ -60,6 +60,11 @@ public:  // Attributes: CI fingerprint
 	/// Probit value for chosen confidence
 	const double quantile;
 
+	/// Whether the interval will never be considered \ref is_valid() "valid"
+	/// @note Intended for time bound simulations which should keep on updating
+	///       the interval regardless of the confidence and precision achieved
+	const bool alwaysInvalid;
+
 protected:  // Attributes: estimation thus far
 
 	/// Number of samples fed so far via update()
@@ -90,16 +95,18 @@ public:  // Ctor
 
 	/**
 	 * Only data ctor provided
-	 * @param name             @copydoc name
+	 * @param name             @copybrief name
 	 * @param confidence       Interval's confidence coefficient ∈ (0.0, 1.0)
 	 * @param precision        Interval's desired full width > 0.0
 	 * @param dynamicPrecision Is the precision a percentage of the estimate?
+	 * @param neverStop        @copybrief alwaysInvalid
 	 * @throw FigException if either 'confidence' or 'precision' is invalid
 	 */
 	ConfidenceInterval(const std::string& name,
 					   double confidence,
 					   double precision,
-					   bool dynamicPrecision = false);
+					   bool dynamicPrecision = false,
+					   bool neverStop = false);
 
 public:  // Accessors
 
@@ -208,10 +215,11 @@ public:  // Utils
 	/// @copydoc time_simulations_
 	double upper_limit(const double& confco) const;
 
-	/// Discard all estimation info to start anew
-	/// @note This erases the current \ref statOversample_ "statistical oversampling"
-	///       and \ref varCorrection_ "variance correction" values as well
-	virtual void reset() noexcept;
+	/// Discard all estimation info and start anew
+	/// @param fullReset Erase also the \ref statOversample_
+	///                  "statistical oversampling" and \ref varCorrection_
+	///                  "variance correction" values currently held
+	virtual void reset(const bool& fullReset = false) noexcept;
 
 protected:
 

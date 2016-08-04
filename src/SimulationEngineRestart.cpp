@@ -38,6 +38,7 @@
 #include <ModuleNetwork.h>
 #include <TraialPool.h>
 #include <FigException.h>
+#include <FigLog.h>
 
 using std::pow;
 
@@ -199,10 +200,13 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 							  * pow(splitsPerThreshold_, numThresholds-i);
 	// Return the weighed count or its negative value
 	assert(0.0 <= weighedRaresCount);
-	if (MIN_COUNT_RARE_EVENTS > raresCount.sum())
+	if (MIN_COUNT_RARE_EVENTS > raresCount.sum()) {
+		// figTechLog << "-";  // don't show progress, there're too many batches
 		return -weighedRaresCount;
-	else
+	} else {
+		// figTechLog << "+";  // don't show progress, there're too many batches
 		return  weighedRaresCount;
+	}
 }
 
 
@@ -312,10 +316,13 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 
 	// Return estimate or its negative value
 	assert(0.0 <= accTime);
-	if (MIN_ACC_RARE_TIME > raresCount.sum())
+	if (MIN_ACC_RARE_TIME > raresCount.sum()) {
+		figTechLog << (interrupted ? ("") : ("-"));
 		return -accTime / static_cast<double>(runLength);
-	else
+	} else {
+		figTechLog << (interrupted ? ("") : ("+"));
 		return  accTime / static_cast<double>(runLength);
+	}
 }
 
 } // namespace fig

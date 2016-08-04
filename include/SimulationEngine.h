@@ -214,6 +214,9 @@ public:  // Accessors
 
 public:  // Simulation functions
 
+    /// @todo TODO write docstring
+    bool simulate(const Property& property, ConfidenceInterval& ci) const;
+
     /**
      * @brief Simulate in model certain number of independent runs
      *
@@ -232,6 +235,8 @@ public:  // Simulation functions
      *
      * @throw FigException if the engine wasn't \ref bound() "bound" to any
      *                     ImportanceFunction
+     *
+     * @deprecated Delete this function!
      */
     bool simulate(const Property& property,
                   const size_t& effort,
@@ -255,6 +260,8 @@ public:  // Simulation functions
      *
      * @throw FigException if the engine wasn't \ref bound() "bound" to any
      *                     ImportanceFunction
+     *
+     * @deprecated Delete this function!
      */
     void simulate(const Property& property,
                   size_t effort,
@@ -326,7 +333,7 @@ protected:  // Simulation helper functions
 								   const size_t& runLength,
 								   bool reinit = false) const = 0;
 
-public:  // Traial observers/updaters
+protected:  // Traial observers/updaters
 
     /**
      * @brief Interpret and mark the transient events triggered by a Traial
@@ -365,6 +372,41 @@ public:  // Traial observers/updaters
     virtual bool rate_event(const PropertyRate& property,
                             Traial& traial,
                             Event& e) const = 0;
+
+private:  // Class utils
+
+	/**
+	 * @brief Update the ConfidenceInterval and the simulation effort
+	 *        for transient-like properties
+	 *
+	 * @param ci          Proportion-like ConfidenceInterval
+	 * @param raresCount  Number of rate states visited in last simulations
+	 * @param batchSize   Number of independent simulations ran
+	 *
+	 * @note Current policy is not to increment the batch size
+	 * @note Simulations can be truncated by external updates to the
+	 *       \ref interrupted "interrupted flag": <b>nothing will be done
+	 *       if such flag is set</b>
+	 */
+	void transient_update(ConfidenceInterval& ci,
+						  const double& raresCount,
+						  const size_t& batchSize) const;
+
+	/**
+	 * @brief Update the ConfidenceInterval and the simulation effort
+	 * for rate-like properties
+	 *
+	 * @param ci      Proportion-like ConfidenceInterval
+	 * @param rate    Rate of rate states visited in last simulations
+	 * @param simLen  Simulation-time length spent in last simulation
+	 *
+	 * @note Simulations can be truncated by external updates to the
+	 *       \ref interrupted "interrupted flag": <b>nothing will be done
+	 *       if such flag is set</b>
+	 */
+	void rate_update(ConfidenceInterval& ci,
+					 const double& rate,
+					 size_t& simLen) const;
 };
 
 } // namespace fig

@@ -117,12 +117,19 @@ std::shared_ptr< ConfidenceInterval >
 build_empty_ci(const fig::PropertyType& propertyType,
 			   const unsigned& splitsPerThreshold,
 			   const fig::ImportanceFunction& impFun,
-			   const double& confidenceCo = 0.99999,
-			   const double& precision = 0.00001,
+			   double confidenceCo = -1.0,
+			   double precision = -1.0,
 			   const bool& dynamicPrecision = true,
 			   const std::string& hint = "")
 {
 	std::shared_ptr< ConfidenceInterval > ci_ptr(nullptr);
+
+	bool timeBoundSim(false);
+	if (confidenceCo <= 0.0) {
+		confidenceCo = 0.999999;
+		precision    = 0.000001;
+		timeBoundSim = true;
+	}
 
 	switch (propertyType)
 	{
@@ -131,11 +138,13 @@ build_empty_ci(const fig::PropertyType& propertyType,
 			|| "wilson" == hint)
 			ci_ptr.reset(new fig::ConfidenceIntervalWilson(confidenceCo,
 														   precision,
-														   dynamicPrecision));
+														   dynamicPrecision,
+														   timeBoundSim));
 		else if ("proportion" == hint)
 			ci_ptr.reset(new fig::ConfidenceIntervalProportion(confidenceCo,
 															   precision,
-															   dynamicPrecision));
+															   dynamicPrecision,
+															   timeBoundSim));
 		else
 			throw_FigException(std::string("invalid CI hint \"").append(hint)
 							   .append("\" for transient property"));
@@ -154,7 +163,8 @@ build_empty_ci(const fig::PropertyType& propertyType,
 		// Ignore hints, there's a single option
 		ci_ptr.reset(new fig::ConfidenceIntervalMean(confidenceCo,
 													 precision,
-													 dynamicPrecision));
+													 dynamicPrecision,
+													 timeBoundSim));
 		break;
 
 	case fig::PropertyType::THROUGHPUT:
@@ -175,6 +185,7 @@ build_empty_ci(const fig::PropertyType& propertyType,
 /// Choose minimum batch size (i.e. requested number of consecutive simulations
 /// to run) in order to estimate the value of transient-like properties.
 /// Fine tune for the specified SimulationEngine and ImportanceFunction pair
+/// @deprecated TODO Delete this function!
 size_t
 min_batch_size(const std::string& engineName, const std::string& ifunName)
 {
@@ -206,6 +217,7 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 /// Choose minimum simulation run length (in simulated time units)
 /// in order to estimate the value of steady-state-like properties.
 /// Fine tune for the specified SimulationEngine and ImportanceFunction pair
+/// @deprecated TODO Delete this function!
 size_t
 min_run_length(const std::string& engineName, const std::string& ifunName)
 {
@@ -242,6 +254,7 @@ min_run_length(const std::string& engineName, const std::string& ifunName)
  *                   fig::ImportanceFunction::names
  * @see min_batch_size()
  * @see min_run_length()
+/// @deprecated TODO Delete this function!
  */
 size_t
 min_effort(const fig::PropertyType& propertyType,
@@ -275,7 +288,7 @@ min_effort(const fig::PropertyType& propertyType,
 /// Increase given batch size (i.e. requested number of consecutive simulations
 /// ran) in order to estimate the value of transient-like properties
 /// Fine tune for the specified SimulationEngine and ImportanceFunction pair
-/// @deprecated New policy: don't increase effort for transient simulations
+/// @deprecated TODO Delete this function!
 void
 increase_batch_size(const std::string& engineName,
 					const std::string& ifunName,
@@ -310,6 +323,8 @@ increase_batch_size(const std::string& engineName,
 /// Increase given simulation run length (in simulated time units)
 /// in order to estimate the value of steady-state-like properties.
 /// Fine tune for the specified SimulationEngine and ImportanceFunction pair
+///
+/// @todo TODO port to anonymous namespace in SimulationEngine.cpp
 void
 increase_run_length(const std::string& engineName,
 					const std::string& ifunName,
@@ -349,6 +364,8 @@ increase_run_length(const std::string& engineName,
  * @param effort     Simulation effort currently on use, to be increased
  * @see increase_batch_size()
  * @see increase_run_length()
+ *
+ * @deprecated TODO Delete this function!
  */
 void
 increase_effort(const fig::PropertyType& propertyType,
@@ -1253,6 +1270,9 @@ ModelSuite::estimate_for_times(const Property& property,
 		// Simulate
 		try {
 			engine.lock();
+
+			/// @todo TODO update for new SimulationEngine::simulate() interface
+
 			engine.simulate(property,
 							min_effort(property.type, engine.name(), engine.current_imp_fun()),
 							*ci_ptr,
@@ -1314,6 +1334,11 @@ ModelSuite::estimate_for_confs(const Property& property,
 		// Simulate
 		try {
 			engine.lock();
+
+			/// @todo TODO update for new SimulationEngine::simulate() interface
+			///            In particular the effort increment and CI updates
+			///            are no longer handled here
+
 			do {
 				bool notEnough = engine.simulate(property, effort, *ci_ptr, reinit);
 				if (notEnough)
@@ -1335,6 +1360,10 @@ ModelSuite::estimate_for_confs(const Property& property,
 			pthread_cancel(timer.native_handle());  // cancel pending TO
 			timer.detach();
 			estimate_print(*ci_ptr, omp_get_wtime()-lastEstimationStartTime_, mainLog_);
+
+			/// @todo TODO erase debug print
+			techLog_ << "Num samples: " << ci_ptr->num_samples() << std::endl;
+
 			techLog_ << std::endl;
 			ci_ptr->reset();
 		} else {
