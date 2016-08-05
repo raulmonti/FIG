@@ -117,7 +117,7 @@ ConfidenceIntervalWilson::min_samples_covered() const noexcept
 {
 	// Even though the Wilson score interval has lax lower bounds (http://goo.gl/B86Dc),
 	// they've been increased to meet experimental quality standards
-	static constexpr long LBOUND(1l<<7l), LBOUNDR(800l);
+	static constexpr long LBOUND(1l<<7l), LBOUNDR(1l<<8l);
 	static constexpr double LOG_LBOUNDR(log(LBOUNDR));
 	const bool theoreticallySound =
 			LBOUND < numSamples_ && LBOUNDR < numRares_ && (

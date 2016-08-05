@@ -192,8 +192,24 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	tpool.return_traials(stack);
 
 	// To estimate, weigh each count by the relative importance of the
-	// threshold level it belongs to. We do that here in an "upscale fashion",
+	// threshold level it belongs to.
+
+	// We do that here in an "upscale fashion",
 	// which must be balanced in the ConfidenceInterval update.
+	//
+	/// @todo TODO change to downscale weighing and modify ConfidenceInterval
+	///            update accordingly (Wilson and Proportion derived classes)
+	///
+	///       This *can* be done since we currently compute:
+	///
+	///           sum_{i=1}^{i=T} (RC[i] * s^(T-i+1)) / (batch_size * s^T)
+	///
+	///       and that equals:
+	///
+	///           (1/batch_size) * sum_{i=1}^{i=T} RC[i]/s^(i-1)
+	///
+	///       This change should bring much more numercial stability.
+
 	double weighedRaresCount(0.0);
 	for (unsigned i = 0u ; i <= numThresholds ; i++)
 		weighedRaresCount += raresCount[i]
