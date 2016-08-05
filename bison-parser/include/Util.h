@@ -12,11 +12,18 @@ using std::string;
 using std::endl;
 using std::vector;
 
+//use to track msg errors
+//@todo use some of the Fig already defined logs?
 class Log {
+private:
     stringstream msg;
     bool _has_errors;
+    Log() : _has_errors {false} {};
 public:
-    Log() {};
+    static Log &get_instance() {
+	static Log instance;
+	return (instance);
+    }
     Log(const Log &) = delete;
     Log(Log &&) = delete;
     
@@ -29,7 +36,7 @@ public:
 	msg << "[Error] " << error << endl;
     }
     
-    void pur_msg(string msg) {
+    void put_msg(string msg) {
 	this->msg << "[Info] " << msg << endl;
     }
 
@@ -37,17 +44,6 @@ public:
 	return (msg.str());
     }
 };
-
-/*
-template<typename T>
-using vector_ptr = vector<unique_ptr<T>>;
-
-template<typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args&&... args)
-{
-    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-*/
 
 template<typename T>
 vector<T> concat(vector<T> &v1, const vector<T> &v2) {

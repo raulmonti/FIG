@@ -3,17 +3,19 @@
 #include <cerrno>
 #include <climits>
 #include <cfloat>
-#include <cstdlib>
-  
+#include <cstdlib>  
 #include <string>
-#include "ModelBuilder.h"
-  
+#include <iostream>
+#include "ModelAST.h"
+#include "ModelParser.hpp"
+
 #undef yywrap
 #define yywrap() 1
-  using namespace ModelParserGen;
-  static location loc;
-  int parse_int();
-  float parse_float();
+    using namespace ModelParserGen;
+    static ModelParserGen::location loc;
+    int parse_int();
+    float parse_float();
+    void syntax_error(ModelParserGen::location loc, const char * msg);
 %}
 
 %option noyywrap nounput batch noinput 
@@ -25,7 +27,7 @@ float [0-9]+[\.][0-9]+
 blank  [ \t]
 
 %{
-  // Code run each time a pattern is matched.
+    // Code run each time a pattern is matched.
 #define YY_USER_ACTION  loc.columns(yyleng);
 %}
 
@@ -92,7 +94,7 @@ blank  [ \t]
 {id}  return ModelParser::make_ID(yytext, loc);
 {int} return ModelParser::make_INTL(parse_int(), loc);
 {float} return ModelParser::make_FLOATL(parse_float(), loc);
-. builder.error(loc, std::string("unexpected character ") + yytext);
+. syntax_error(loc, yytext);
 <<EOF>>    return ModelParser::make_END(loc);
 
 %%
@@ -111,11 +113,15 @@ float parse_float() {
     return n;
 }
 
-void ModelBuilder::scan(FILE *file) {
+void syntax_error(ModelParserGen::location loc, const char * msg) {
+    std::cerr << "Unexpected";
+}
+
+void ModelAST::scan_begin(FILE *file) {
   yyin = file;
 }
 
-void ModelBuilder::scan_end() {
+void ModelAST::scan_end() {
   fclose (yyin);
   yylex_destroy();
 }

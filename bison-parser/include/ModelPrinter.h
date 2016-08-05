@@ -6,8 +6,7 @@
 
 /** Visitor to print the Model's AST **/
 
-using namespace std;
-using namespace ASTNode;
+using std::cout;
 
 class ModelPrinter : public Visitor {
     int ident = 0;

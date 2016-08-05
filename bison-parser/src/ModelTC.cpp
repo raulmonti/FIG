@@ -11,7 +11,7 @@ using std::make_pair;
 #define UNEXPECTED_TYPE(expected, got)			   \
     "Expected type is " + ModelPrinter::to_str(expected) + \
     " - Inferred type is " + ModelPrinter::to_str(got)	   \
-
+    
 #define EXPECTED_NUMERIC				  \
     "Expected type " + ModelPrinter::to_str(Type::tint) + \
     " or type " + ModelPrinter::to_str(Type::tfloat)	  \
@@ -20,26 +20,26 @@ using std::make_pair;
     (is_global_scope() ? "At global constants" :	\
      "At Module " +					\
      current_scope->id)					\
-
+    
 #define TC_INDEX_INT(id)			\
     PREFIX		+			\
     " - Identifier \""  +			\
     id +					\
     "\" - Index expression - "			\
     UNEXPECTED_TYPE(Type::tint, last_type)	\
-
+    
 #define TC_ID_REDEFINED(id)			\
     PREFIX		+			\
     " - Identifier \""  +			\
     id +					\
     "\" was redefined"				\
-
+    
 #define TC_ID_SCOPE(id)					\
     PREFIX		+				\
     " - Identifier \""  +				\
     id +						\
     "\" is not in scope"				\
-
+    
 #define TC_LOWER_BOUND(id)				\
     PREFIX		+				\
     " - Identifier \""  +				\
@@ -60,28 +60,28 @@ using std::make_pair;
     id +						\
     "\" - Array size expression is ill typed - " +	\
     UNEXPECTED_TYPE(Type::tint, last_type)		\
-
+    
 #define TC_DIST_FIRST_PARAM(dist)			\
     PREFIX		+				\
     " - Distribution "  +				\
     ModelPrinter::to_str(dist) +			\
     " - First parameter is ill typed - " +		\
     UNEXPECTED_TYPE(Type::tfloat, last_type)		\
-
+    
 #define TC_DIST_SECOND_PARAM(dist)			\
     PREFIX		+				\
     " - Distribution "  +				\
     ModelPrinter::to_str(dist) +			\
     " - Second parameter is ill typed - " +		\
     UNEXPECTED_TYPE(Type::tfloat, last_type)		\
-
+    
 #define TC_INIT_EXP(id, expected)			\
     PREFIX		+				\
     " - Identifier \""  +				\
     id +						\
     "\" - Initializer is ill-typed - " +		\
     UNEXPECTED_TYPE(Type::tint, last_type)		\
-
+    
 #define TC_LABEL_TYPE(label)				\
     PREFIX		+				\
     " - Label \""  +					\
@@ -93,13 +93,13 @@ using std::make_pair;
     " - Clock \""  +					\
     clock_id +						\
     "\" must have a single distribution type"		\
-
+    
 #define TC_LABEL_CLOCK(label)					\
     PREFIX		+					\
     " - Label \""  +						\
     label +							\
     "\" must have a single clock"				\
-
+    
 #define TC_LABEL_NOT_A_CLOCK(label, clock_id)			\
     PREFIX		+					\
     " - Transition of Label \""  +				\
@@ -108,14 +108,14 @@ using std::make_pair;
     clock_id +							\
     "\" is not a clock - " +					\
     UNEXPECTED_TYPE(Type::tint, last_type)			\
-
+    
 #define TC_LABEL_GUARD(label)					\
     PREFIX		+					\
     " - Transition of Label \""  +				\
     label +							\
     "\" - Condition is ill-typed "				\
     UNEXPECTED_TYPE(Type::tbool, last_type)			\
-
+    
 #define TC_LABEL_SILENT_GUARD						\
     PREFIX		+						\
     " - Transition of silent label - "  +				\
@@ -136,11 +136,11 @@ using std::make_pair;
     "- First argument has an incompatible type "	\
     
 #define TC_OP_SECOND_ARG(op)			\
-    PREFIX	+				\
+    PREFIX +					\
     " - Operator "  +				\
     ModelPrinter::to_str(op) +			\
-    "- Second argument has an incompatible type "	\
-
+    "- Second argument has an " +		\
+    "incompatible type "			\
 
 bool type_leq(Type t1, Type t2) {
     bool res = (t1 == Type::tint && t2 == Type::tfloat);
@@ -222,8 +222,7 @@ inline Type ModelTC::operator_type(const ExpOp &op, Type arg) {
 }
 
 void ModelTC::visit(ModelAST* node) {
-//checks nothing :)
-     (void) node;
+    (void) node;
 }
 
 inline void ModelTC::accept_cond(ModelAST *node) {
@@ -477,4 +476,13 @@ void ModelTC::visit(OpExp* exp){
 	}
 	last_type = res_type;
     }
+}
+
+ModelTC::~ModelTC() {
+    for (auto &entry : scopes) {
+	delete entry.second;
+    }
+    //current_scope should be pointed by scopes
+    //destructor of scope should do nothing since
+    //it does not have any owned resources.
 }

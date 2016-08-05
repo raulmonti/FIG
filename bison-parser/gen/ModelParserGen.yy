@@ -20,19 +20,22 @@
 {
 #include <string>
 #include <sstream>
-    
 #include "ModelAST.h"
-  
-  class ModelBuilder;
-  using namespace ASTNode;
+#include "Util.h"
+
+//definition YY_DECL should be available also for ModelScannerGen.ll
+//ModelScannerGen includes ModuleParser.hpp
+# define YY_DECL							\
+    ModelParserGen::ModelParser::symbol_type yylex (ModelAST **result)
 }
 
-%param {ModelBuilder &builder}
+%param {ModelAST **result}
 %locations
 
 %code
 {
-  #include "ModelBuilder.h"
+    //Declared only when ModelParser class is already defined
+    YY_DECL;
 }
 
 %define api.token.prefix {TOK_}
@@ -113,7 +116,7 @@ FALSE "false"
 %%
 %start begin;
 
-begin: model[m] {builder.set_result($m);}
+begin: model[m] {*result = $m;}
 
 model: global_decl[d] ";"
 {$$ = new Model($d);}
@@ -124,11 +127,11 @@ model: global_decl[d] ";"
 | model[m] "module" "id"[id] module_body[b] "endmodule"
 {
     string &id = $id;
-    if ($m->has_module(id)) {
-	builder.log->put_error("Two modules with the same name " + id);
-    } else {
-	$m->add_module(id, $b);
+    Model *model = $m;
+    if (model->has_module(id)) {
+        Log::get_instance().put_error("Two modules with the same name " + id);
     }
+    $m->add_module(id, $b);
     $$ = $m;
 }
 
@@ -268,15 +271,10 @@ exp : location[loc]
 | "(" exp[e] ")" {$$ = $e;}
 
 %%
-
+      
 void
 ModelParserGen::ModelParser::error(const ModelParserGen::location& l, const std::string& m) {
-    stringstream msg;
-    msg << "Syntax error on " << l << " : " << m << std::endl;
-    builder.log->put_error(msg.str());
-}
-
-void
-ModelBuilder::set_result(Model *model) {
-    this->model = model;
+    std::stringstream ss;
+    ss << "at line " << l << " " << m;
+    ModelAST::on_scanner_error(ss.str());
 }

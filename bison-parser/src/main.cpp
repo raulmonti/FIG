@@ -1,6 +1,6 @@
-#include "ModelBuilder.h"
 #include "ModelPrinter.h"
 #include "ModelTC.h"
+#include "Util.h"
 
 using std::cout;
 using std::cerr;
@@ -10,21 +10,20 @@ int main(int argc, char *argv[]) {
     cerr << "Expect filename!" << endl;
     exit(1);
   }
-  Log log;
-  ModelBuilder builder(&log);
+  Log &log = Log::get_instance();
   string filename = argv[1];
-  Model *model = builder.build(filename);
+  ModelAST *model = ModelAST::from_file(filename);
+  ModelPrinter printer;
+  model->accept(printer);
+  ModelTC typechecker;
+  model->accept(typechecker);
   if (log.has_errors()) {
-      cout << log.get_msg();
+      std::cerr << log.get_msg();
   } else {
-      ModelPrinter printer;
-      model->accept(printer);
-      ModelTC typechecker(&log);
-      model->accept(typechecker);
-      if (log.has_errors()) {
-	  cout << log.get_msg();
-      }
+      std::cout << "Typechecked OK" << std::endl;
   }
+
+  delete model;
 }
 
 

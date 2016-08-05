@@ -2,14 +2,17 @@
 #define MODEL_TC_H
 
 #include "ModelAST.h"
+#include "Util.h"
 #include <utility>
+
 
 /** Typechecking on the Model AST */
 
 using std::string;
-using namespace ASTNode;
 
 struct ModuleScope {
+    //Note: Pointers here are owned by ModelAST
+
     string id;
     ModuleBody *body;
     //labels to type
@@ -28,7 +31,6 @@ private:
     map<string, Decl *> globals;
     ModuleScope *current_scope;
     Type last_type;
-    Log *log;
     //accepts if no errors
     void accept_cond(ModelAST *module);
     //prefix for log message
@@ -40,10 +42,11 @@ private:
     // result type of a operator given the type of its arguments
     // may be Type::tunknown
     static Type operator_type(const ExpOp &id, Type arg);
+    Log *log;
 public:
-    ModelTC(Log *log)
+    ModelTC()
 	: current_scope {nullptr},
-	  last_type {Type::tunknown}, log {log} {};
+	  last_type {Type::tunknown}, log {&Log::get_instance()} {};
     
     void visit(ModelAST* node);
     void visit(Model* node);
@@ -59,8 +62,8 @@ public:
     void visit(FConst* node);
     void visit(LocExp* node);
     void visit(OpExp* node);
-
-    ~ModelTC() {};
+    
+    ~ModelTC();
 };
 
 #endif

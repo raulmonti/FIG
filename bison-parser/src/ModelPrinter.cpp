@@ -1,7 +1,7 @@
 #include "ModelPrinter.h"
 #include <string>
 
-using namespace std;
+using std::cout;
 
 string ModelPrinter::to_str(Type type) {
     string result;

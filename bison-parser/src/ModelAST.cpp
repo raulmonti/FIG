@@ -1,9 +1,28 @@
 #include "ModelAST.h"
+#include "ModelParser.hpp"
+#include <cstdlib>
 
-using namespace ASTNode;
 
 void ModelAST::accept(Visitor &visit) {
     visit.visit(this);
+}
+
+ModelAST *ModelAST::from_file(const string &filename) {
+    ModelAST *result = nullptr;
+    ModelParserGen::ModelParser parser {&result};
+    FILE *file = fopen(filename.c_str(), "r");
+    if (file == nullptr) {
+	std::cerr << "File does not exists!" << std::endl;
+	exit(1);
+    }
+    scan_begin(file);
+    int res = parser.parse();
+    scan_end();
+    return (res == 0 ? result : nullptr);
+}
+
+void ModelAST::on_scanner_error(const string &msg) {
+    std::cerr << "Syntax error: " << msg << std::endl;
 }
 
 //Model
