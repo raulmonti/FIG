@@ -29,10 +29,12 @@
 
 // C
 #include <cmath>   // sqrt(), exp(), erf(), M_constants...
+#include <cassert>
 // C++
 #include <limits>  // std::numeric_limits<>::quiet_NaN
 // External code
 #include <gsl_cdf.h>  // gsl_cdf_{ugaussian,tdist}_Pinv()
+#include <gsl_sys.h>  // gsl_finite(), gsl_nan()
 // FIG
 #include <ConfidenceInterval.h>
 #include <FigException.h>
@@ -91,6 +93,7 @@ double erf_inv(const double& y)
  *          <a href="http://en.wikipedia.org/wiki/Probit#Computation">
  *          wiki</a>.
  * @return Standard normal inverse CDF of 'y', or 'NaN' on error
+ * @deprecated Now we use GSL's "gsl_cdf_XXXXX_Pinv" functions instead
  */
 double probit(const double& y)
 {
@@ -130,6 +133,7 @@ ConfidenceInterval::ConfidenceInterval(const std::string& thename,
 	statOversample_(1.0),
 	varCorrection_(1.0)
 {
+	assert(std::isfinite(quantile) && gsl_finite(quantile));
 	if (0.0 >= precision)
 		throw_FigException("requires precision > 0.0");
 //	if (percent && 1.0 <= precision)
@@ -226,13 +230,26 @@ ConfidenceInterval::confidence_quantile(const double& cc) const
 	if (0.0 >= cc || 1.0 <= cc)
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
 #endif
-	const double significance(0.5*(1.0+cc));  // == 1-(1-cc)/2
-//	double quantile = probit(significance);                   // old way
-//	double quantile = gsl_cdf_ugaussian_Pinv(significance);   // new way
-	double quantile = gsl_cdf_tdist_Pinv(significance,        // right way
-										 std::max(1.0, numSamples_-1.0));
-	if (std::isnan(quantile) || std::isinf(quantile))
-		throw_FigException("error computing confidence quantile");
+	double significance(0.5*(1.0+cc));  // == 1-(1-cc)/2
+	double quantile = gsl_nan();
+	// Following usually runs once, but Murphy has showed his face around here
+	do {
+//		double quantile = probit(significance);                   // old way
+//		double quantile = gsl_cdf_ugaussian_Pinv(significance);   // new way
+		quantile = gsl_cdf_tdist_Pinv(significance,               // right way
+									  std::max(1.0, numSamples_-1.0));
+		significance += 0.000001;
+	} while (!gsl_finite(quantile)    &&
+			 !std::isfinite(quantile) &&
+			  significance < 0.50001*(1.0+cc));
+
+	if ( ! (std::isfinite(quantile) && gsl_finite(quantile)) ) {
+		// GSL T-distribution failed, try using the gaussian
+		quantile = gsl_cdf_ugaussian_Pinv(0.5*(1.0+cc));
+		if ( ! (std::isfinite(quantile) && gsl_finite(quantile)) )
+			throw_FigException("error computing confidence quantile");
+	}
+
 	return quantile;
 }
 

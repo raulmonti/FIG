@@ -44,7 +44,12 @@ gsl_error (const char * reason, const char * file, int line, int gsl_errno)
   fprintf (stderr, "Default GSL error handler invoked.\n");
   fflush (stderr);
 
-  abort ();
+  // Carlos E. Budde:
+  //    aborting our application due to a miscalculation of GSL is too harsh;
+  //    we ignore the following but always check results for validity
+
+//  abort ();
+
 }
 
 gsl_error_handler_t *
