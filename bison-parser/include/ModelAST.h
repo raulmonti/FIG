@@ -1,5 +1,5 @@
-#ifndef MODEL_AST_H
-#define MODEL_AST_H
+#ifndef __MODEL_AST_H__
+#define __MODEL_AST_H__
 #include <cassert>
 #include <map>
 #include <iostream>
@@ -350,20 +350,20 @@ public:
     
 class Visitor {
 public:
-    virtual void visit(ModelAST* node) = 0;
-    virtual void visit(Model* node) = 0;
-    virtual void visit(ModuleBody* node) = 0;
-    virtual void visit(Decl* node) = 0;
-    virtual void visit(Action* node) = 0;
-    virtual void visit(Effect* node) = 0;
-    virtual void visit(Dist* node) = 0;
-    virtual void visit(Location* node) = 0;
-    virtual void visit(Exp* node) = 0;
-    virtual void visit(IConst* node) = 0;
-    virtual void visit(BConst* node) = 0;
-    virtual void visit(FConst* node) = 0;
-    virtual void visit(LocExp* node) = 0;
-    virtual void visit(OpExp* node) = 0;
+    virtual void visit(ModelAST* node);
+    virtual void visit(Model* node);
+    virtual void visit(ModuleBody* node);
+    virtual void visit(Decl* node);
+    virtual void visit(Action* node);
+    virtual void visit(Effect* node);
+    virtual void visit(Dist* node);
+    virtual void visit(Location* node);
+    virtual void visit(Exp* node);
+    virtual void visit(IConst* node);
+    virtual void visit(BConst* node);
+    virtual void visit(FConst* node);
+    virtual void visit(LocExp* node);
+    virtual void visit(OpExp* node);
 };
 
 #endif

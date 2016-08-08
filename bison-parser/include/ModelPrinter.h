@@ -15,7 +15,6 @@ class ModelPrinter : public Visitor {
  public:
     ModelPrinter() : ident {0} {};
     
-    void visit(ModelAST* node);
     void visit(Model* node);
     void visit(ModuleBody* node);
     void visit(Decl* node);
@@ -23,7 +22,6 @@ class ModelPrinter : public Visitor {
     void visit(Effect* node);
     void visit(Dist* node);
     void visit(Location* node);
-    void visit(Exp* node);
     void visit(IConst* node);
     void visit(BConst* node);
     void visit(FConst* node);

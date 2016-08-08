@@ -94,11 +94,6 @@ void ModelPrinter::print_idented(string str) {
     cout << string(ident, '\t') << str << endl;
 }
 
-void ModelPrinter::visit(ModelAST *ast) {
-    (void) ast;
-    print_idented("Node:");
-}
-
 void ModelPrinter::visit(Model* model) {
     print_idented("=Model=");
     print_idented("Global constants:");
@@ -201,17 +196,16 @@ void ModelPrinter::visit(Location *loc) {
     }
 }
 
-void ModelPrinter::visit(Exp *exp) {
-    (void) exp;
-    print_idented("=Exp=");
-}
-
 void ModelPrinter::visit(IConst *node) {
     print_idented("Int Value: " + std::to_string(node->value));
 }
 
 void ModelPrinter::visit(BConst *node) {
-    print_idented("Bool Value: " + node->value ? "true" : "false");
+    if (node->value) {
+	print_idented("Bool Value: true");
+    } else {
+	print_idented("Bool Value: false");
+    }
 }
 
 void ModelPrinter::visit(FConst *node) {

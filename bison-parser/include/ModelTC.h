@@ -12,7 +12,8 @@ using std::string;
 
 struct ModuleScope {
     //Note: Pointers here are owned by ModelAST
-
+    static map<string, ModuleScope *> scopes;
+    static map<string, Decl *> globals;
     string id;
     ModuleBody *body;
     //labels to type
@@ -24,11 +25,12 @@ struct ModuleScope {
     //local declarations : id -> decl (type, range, init, ...)
     map<string, Decl*> local_decls;
 };
-   
+
 class ModelTC : public Visitor {
 private:
-    map<string, ModuleScope *> scopes;
-    map<string, Decl *> globals;
+    map<string, ModuleScope *> &scopes  = ModuleScope::scopes;
+    map<string, Decl *> &globals = ModuleScope::globals;
+    
     ModuleScope *current_scope;
     Type last_type;
     //accepts if no errors
@@ -44,11 +46,8 @@ private:
     static Type operator_type(const ExpOp &id, Type arg);
     Log *log;
 public:
-    ModelTC()
-	: current_scope {nullptr},
-	  last_type {Type::tunknown}, log {&Log::get_instance()} {};
-    
-    void visit(ModelAST* node);
+    ModelTC() : current_scope {nullptr},
+		last_type {Type::tunknown}, log {&Log::get_instance()} {};
     void visit(Model* node);
     void visit(ModuleBody* node);
     void visit(Decl* node);
@@ -56,7 +55,6 @@ public:
     void visit(Effect* node);
     void visit(Dist* node);
     void visit(Location* node);
-    void visit(Exp* node);
     void visit(IConst* node);
     void visit(BConst* node);
     void visit(FConst* node);

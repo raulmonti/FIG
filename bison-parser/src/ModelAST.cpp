@@ -2,7 +2,6 @@
 #include "ModelParser.hpp"
 #include <cstdlib>
 
-
 void ModelAST::accept(Visitor &visit) {
     visit.visit(this);
 }
@@ -138,4 +137,62 @@ void OpExp::accept(Visitor& visitor) {
 //FConst
 void FConst::accept(Visitor& visitor) {
   visitor.visit(this);
+}
+
+//Default Visitor does nothing on his visitation ;)
+
+void Visitor::visit(ModelAST *node) {
+    (void) node;
+}
+
+void Visitor::visit(Model *node) {
+     (void) node;
+}
+
+void Visitor::visit(ModuleBody *node) {
+    (void) node;
+}
+
+void Visitor::visit(Decl *node) {
+    (void) node;
+}
+
+void Visitor::visit(Action *node) {
+    (void) node;
+}
+
+void Visitor::visit(Effect *node) {
+    (void) node;
+}
+
+void Visitor::visit(Dist *node) {
+    (void) node;
+}
+
+void Visitor::visit(Location *node) {
+    (void) node;
+}
+
+void Visitor::visit(Exp *node) {
+    (void) node;
+}
+
+void Visitor::visit(IConst *node) {
+    (void) node;
+}
+
+void Visitor::visit(BConst *node) {
+    (void) node;
+}
+
+void Visitor::visit(FConst *node) {
+    (void) node;
+}
+
+void Visitor::visit(LocExp *node) {
+    (void) node;
+}
+
+void Visitor::visit(OpExp *node) {
+    (void) node;
 }

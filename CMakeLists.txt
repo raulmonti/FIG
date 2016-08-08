@@ -276,28 +276,40 @@ ADD_CUSTOM_COMMAND(
   DEPENDS ${PARSER_CODE}
   )
 
+
+# List all source files. Avoid use "ALL_SOURCES" variable, otherwise
+# incompatible files will be included.
 SET(PARSER_DEP "${PARSER_SRC}/main.cpp"
   "${PARSER_SRC}/ModelAST.cpp"
   "${PARSER_SRC}/ModelPrinter.cpp"
   "${PARSER_SRC}/ModelTC.cpp"
+  "${PARSER_SRC}/ModelBuilder.cpp"
+  "${PARSER_SRC}/ExpEvaluator.cpp"
   "${PARSER_CODE}"
   "${LEXER_CODE}"
+  #main fig files
+  "${SOURCES_DIR}/ModuleInstance.cpp"
+  "${SOURCES_DIR}/Transition.cpp"
+  "${SOURCES_DIR}/Clock.cpp"
+  "${SOURCES_DIR}/State.cpp"
+  "${SOURCES_DIR}/Variable.cpp"
+  "${SOURCES_DIR}/VariableSet.cpp"
+  "${SOURCES_DIR}/VariableInterval.cpp"
+  "${SOURCES_DIR}/MathExpression.cpp"
+  "${SOURCES_DIR}/Precondition.cpp"
+  "${SOURCES_DIR}/Postcondition.cpp"
+  "${SOURCES_DIR}/string_utils.cpp"
   )
+AUX_SOURCE_DIRECTORY(${PROJECT_SOURCE_DIR}/ext/muparser2.2.5/src
+  EXT_SOURCE_FILES)
+AUX_SOURCE_DIRECTORY(${PROJECT_SOURCE_DIR}/ext/uint128_t/src
+  EXT_SOURCE_FILES)
+SET (PARSER_DEP ${PARSER_DEP} ${EXT_SOURCE_FILES})
 
-#Remove Parser sources from fig sources
-SET (ALL_SOURCES_FIG "${ALL_SOURCES}")
-FOREACH(DEP ${PARSER_DEP})
-  LIST (REMOVE_ITEM ALL_SOURCES_FIG ${DEP})
-ENDFOREACH(DEP)
-
-ADD_EXECUTABLE(fig ${ALL_SOURCES_FIG} ${LEXER_CC})
-ADD_EXECUTABLE(parser ${PARSER_DEP})
-
-
+ADD_EXECUTABLE(fig_test ${PARSER_DEP})
 
 ###  Link dynamic libraries  ##################################################
 
-TARGET_LINK_LIBRARIES(fig ${DYNAMIC_LIBRARIES})
-#TARGET_LINK_LIBRARIES(parser ${DYNAMIC_LIBRARIES})
+TARGET_LINK_LIBRARIES(fig_test ${DYNAMIC_LIBRARIES})
 #TARGET_LINK_LIBRARIES(fig -static-libgcc -static-libstdc++ ${DYNAMIC_LIBRARIES})
 

@@ -1,5 +1,6 @@
 #include "ModelPrinter.h"
 #include "ModelTC.h"
+#include "ModelBuilder.h"
 #include "Util.h"
 
 using std::cout;
@@ -21,8 +22,12 @@ int main(int argc, char *argv[]) {
       std::cerr << log.get_msg();
   } else {
       std::cout << "Typechecked OK" << std::endl;
+      /*ModelBuilder builder;
+      model->accept(builder);
+      if (log.has_errors()) {
+	  std::cerr << log.get_msg();
+	  }*/
   }
-
   delete model;
 }
 

@@ -7,6 +7,10 @@ using std::make_pair;
 
 /* Typechecking on Model */
 
+//initialize static maps
+map<string, ModuleScope *> ModuleScope::scopes;
+map<string, Decl *> ModuleScope::globals;
+
 //First some macros to print errors:
 #define UNEXPECTED_TYPE(expected, got)			   \
     "Expected type is " + ModelPrinter::to_str(expected) + \
@@ -221,10 +225,6 @@ inline Type ModelTC::operator_type(const ExpOp &op, Type arg) {
     return (result);
 }
 
-void ModelTC::visit(ModelAST* node) {
-    (void) node;
-}
-
 inline void ModelTC::accept_cond(ModelAST *node) {
     if (!log->has_errors()) {
 	node->accept(*this);
@@ -418,12 +418,6 @@ void ModelTC::visit(Location* loc) {
 	check_type(Type::tint, TC_INDEX_INT(loc->id));
     }
     last_type = identifier_type(loc->id);
-}
-
-void ModelTC::visit(Exp* node) {
-    (void) node;
-    //this should not be called
-    assert(false);
 }
 
 void ModelTC::visit(IConst* node) {
