@@ -14,9 +14,10 @@ private:
     void accept_cond(ModelAST *node);
     ModuleInstance *current_module;
     vector<Var> *module_vars;
-    Log *log = &Log::get_instance();
 public:
     ModelBuilder();
+    virtual ~ModelBuilder();
+    
     void visit(Model* node);
     void visit(ModuleBody* node);
     void visit(Decl* node);
@@ -29,5 +30,4 @@ public:
     void visit(FConst* node);
     void visit(LocExp* node);
     void visit(OpExp* node);
-    ~ModelBuilder();
 };

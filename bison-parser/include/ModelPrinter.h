@@ -14,6 +14,7 @@ class ModelPrinter : public Visitor {
     void accept_idented(ModelAST *node);
  public:
     ModelPrinter() : ident {0} {};
+    virtual ~ModelPrinter() {};
     
     void visit(Model* node);
     void visit(ModuleBody* node);

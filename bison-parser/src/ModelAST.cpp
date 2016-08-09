@@ -196,3 +196,16 @@ void Visitor::visit(LocExp *node) {
 void Visitor::visit(OpExp *node) {
     (void) node;
 }
+
+void Visitor::put_error(const string &msg) {
+    message.put_error(msg);
+}
+
+bool Visitor::has_errors() {
+    return (message.has_errors());
+}
+
+string Visitor::get_errors() {
+    return (message.get_msg());
+}
+

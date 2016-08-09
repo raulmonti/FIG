@@ -11,22 +11,21 @@ int main(int argc, char *argv[]) {
     cerr << "Expect filename!" << endl;
     exit(1);
   }
-  Log &log = Log::get_instance();
   string filename = argv[1];
   ModelAST *model = ModelAST::from_file(filename);
   ModelPrinter printer;
   model->accept(printer);
   ModelTC typechecker;
   model->accept(typechecker);
-  if (log.has_errors()) {
-      std::cerr << log.get_msg();
+  if (typechecker.has_errors()) {
+      std::cerr << typechecker.get_errors();
   } else {
       std::cout << "Typechecked OK" << std::endl;
-      /*ModelBuilder builder;
+      ModelBuilder builder;
       model->accept(builder);
-      if (log.has_errors()) {
-	  std::cerr << log.get_msg();
-	  }*/
+      if (builder.has_errors()) {
+	  std::cerr << builder.get_errors();
+      }
   }
   delete model;
 }

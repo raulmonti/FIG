@@ -20,9 +20,13 @@
 {
 #include <string>
 #include <sstream>
+#include <memory>
+    
 #include "ModelAST.h"
 #include "Util.h"
 
+    using std::shared_ptr;
+    
 //definition YY_DECL should be available also for ModelScannerGen.ll
 //ModelScannerGen includes ModuleParser.hpp
 # define YY_DECL							\
@@ -129,7 +133,9 @@ model: global_decl[d] ";"
     string &id = $id;
     Model *model = $m;
     if (model->has_module(id)) {
-        Log::get_instance().put_error("Two modules with the same name " + id);
+	std::cerr << "Two modules with the same name " + id << std::endl;
+	delete model;
+	exit(1);
     }
     $m->add_module(id, $b);
     $$ = $m;

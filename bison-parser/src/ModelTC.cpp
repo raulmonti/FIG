@@ -84,7 +84,7 @@ map<string, Decl *> ModuleScope::globals;
     " - Identifier \""  +				\
     id +						\
     "\" - Initializer is ill-typed - " +		\
-    UNEXPECTED_TYPE(Type::tint, last_type)		\
+    UNEXPECTED_TYPE(expected, last_type)		\
     
 #define TC_LABEL_TYPE(label)				\
     PREFIX		+				\
@@ -153,8 +153,8 @@ bool type_leq(Type t1, Type t2) {
 };
 
 inline void ModelTC::check_type(Type type, const string &msg) {
-    if (!log->has_errors() && !type_leq(last_type, type)) {
-	log->put_error(msg);
+    if (!has_errors() && !type_leq(last_type, type)) {
+	put_error(msg);
     }
 }
 
@@ -226,7 +226,7 @@ inline Type ModelTC::operator_type(const ExpOp &op, Type arg) {
 }
 
 inline void ModelTC::accept_cond(ModelAST *node) {
-    if (!log->has_errors()) {
+    if (!has_errors()) {
 	node->accept(*this);
     }
 }
@@ -243,7 +243,7 @@ void ModelTC::visit(Model* model) {
 	ModuleScope *new_scope = new ModuleScope();
 	const string &id = entry.first;
 	if (scopes.find(id) != scopes.end()) {
-	    log->put_error(TC_ID_REDEFINED(id));	      
+	    put_error(TC_ID_REDEFINED(id));	      
 	}
 	new_scope->body = entry.second;
 	new_scope->id = id;
@@ -291,7 +291,7 @@ void ModelTC::visit(Decl* decl) {
     if (is_global_scope()) {
 	//check if already in global scope
 	if (globals.find(id) != globals.end()) {
-	    log->put_error(TC_ID_REDEFINED(id));	      
+	    put_error(TC_ID_REDEFINED(id));	      
 	} else {
 	    globals[id] = decl;
 	}
@@ -299,7 +299,7 @@ void ModelTC::visit(Decl* decl) {
 	//check if decl is already in local scope
 	auto &local = current_scope->local_decls;
 	if (local.find(id) != local.end()) {
-	    log->put_error(TC_ID_REDEFINED(id));
+	    put_error(TC_ID_REDEFINED(id));
 	} else {
 	    local[id] = decl;
 	}
@@ -317,7 +317,7 @@ void ModelTC::visit(Action* action) {
 	if (labels.find(label) != labels.end()) {
 	    LabelType &other = labels[label];
 	    if (label_type != other) {
-		log->put_error(TC_LABEL_TYPE(label));
+		put_error(TC_LABEL_TYPE(label));
 	    }
 	} else {
 	    labels[label] = label_type;
@@ -342,7 +342,7 @@ void ModelTC::visit(Action* action) {
 	if (label_clocks.find(label) != label_clocks.end()) {
 	    string &clock_id = label_clocks[label];
 	    if (clock_id != action->clock_loc->id) {
-		log->put_error(TC_LABEL_CLOCK(clock_id));
+		put_error(TC_LABEL_CLOCK(clock_id));
 	    }
 	} else if (label_type != LabelType::empty) {
 	    label_clocks[label] = action->clock_loc->id;
@@ -369,7 +369,7 @@ void ModelTC::visit(Effect* effect) {
 	if (clock_dists.find(clock_id) != clock_dists.end()) {
 	    DistType dist_type = clock_dists[clock_id]->type;
 	    if (dist_type != effect->dist->type) {
-		log->put_error(TC_CLOCK_TYPE(clock_id));
+		put_error(TC_CLOCK_TYPE(clock_id));
 	    }
 	} else {
 	    clock_dists[clock_id] = effect->dist;
@@ -401,7 +401,7 @@ void ModelTC::visit(Location* loc) {
     if (is_global_scope()) {
 	//check if already in global scope
 	if (globals.find(id) == globals.end()) {
-	    log->put_error(TC_ID_SCOPE(id));	      
+	    put_error(TC_ID_SCOPE(id));	      
 	}
     }
     else {
@@ -409,7 +409,7 @@ void ModelTC::visit(Location* loc) {
 	//location could be local or global
 	if (local.find(id) == local.end() &&
 	    globals.find(id) == globals.end()) {
-	    log->put_error(TC_ID_SCOPE(id));
+	    put_error(TC_ID_SCOPE(id));
 	}  
     }
 
@@ -446,27 +446,27 @@ void ModelTC::visit(OpExp* exp){
     if (exp->arity == Arity::one) {
 	accept_cond(exp->left);
 	res_type = operator_type(exp->bop, last_type);
-	if (!log->has_errors() && res_type == Type::tunknown) {
-	    log->put_error(TC_OP_FIRST_ARG(exp->bop));
+	if (!has_errors() && res_type == Type::tunknown) {
+	    put_error(TC_OP_FIRST_ARG(exp->bop));
 	}
 	last_type = res_type;
     } else if (exp->arity == Arity::two) {
 	accept_cond(exp->left);
 	res_type = operator_type(exp->bop, last_type);
-	if (!log->has_errors() && res_type == Type::tunknown) {
-	    log->put_error(TC_OP_FIRST_ARG(exp->bop));
+	if (!has_errors() && res_type == Type::tunknown) {
+	    put_error(TC_OP_FIRST_ARG(exp->bop));
 	}
 	Type fst_type = last_type;
 	accept_cond(exp->right);
 	res_type = operator_type(exp->bop, last_type);
-	if (!log->has_errors() &&  res_type == Type::tunknown) {
-	    log->put_error(TC_OP_SECOND_ARG(exp->bop));
+	if (!has_errors() &&  res_type == Type::tunknown) {
+	    put_error(TC_OP_SECOND_ARG(exp->bop));
 	}
 	Type snd_type = last_type;
 	if (! ((fst_type <= snd_type)
 	       || (snd_type <= fst_type))) {
 	    //both types should be equal or subtypes (int->float)
-	    log->put_error(TC_OP_SECOND_ARG(exp->bop));
+	    put_error(TC_OP_SECOND_ARG(exp->bop));
 	}
 	last_type = res_type;
     }

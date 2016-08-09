@@ -12,25 +12,18 @@ using std::string;
 using std::endl;
 using std::vector;
 
-//use to track msg errors
-//@todo use some of the Fig already defined logs?
-class Log {
+class ErrorMessage {
 private:
     stringstream msg;
     bool _has_errors;
-    Log() : _has_errors {false} {};
 public:
-    static Log &get_instance() {
-	static Log instance;
-	return (instance);
-    }
-    Log(const Log &) = delete;
-    Log(Log &&) = delete;
+    ErrorMessage() :
+	_has_errors {false} {};
     
     bool has_errors() const {
 	return (_has_errors);
     }
-
+    
     void put_error(string error) {
 	_has_errors = true;
 	msg << "[Error] " << error << endl;
@@ -39,7 +32,7 @@ public:
     void put_msg(string msg) {
 	this->msg << "[Info] " << msg << endl;
     }
-
+    
     string get_msg() {
 	return (msg.str());
     }

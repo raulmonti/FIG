@@ -44,10 +44,9 @@ private:
     // result type of a operator given the type of its arguments
     // may be Type::tunknown
     static Type operator_type(const ExpOp &id, Type arg);
-    Log *log;
 public:
     ModelTC() : current_scope {nullptr},
-		last_type {Type::tunknown}, log {&Log::get_instance()} {};
+		last_type {Type::tunknown}{};
     void visit(Model* node);
     void visit(ModuleBody* node);
     void visit(Decl* node);
@@ -61,7 +60,7 @@ public:
     void visit(LocExp* node);
     void visit(OpExp* node);
     
-    ~ModelTC();
+    virtual ~ModelTC();
 };
 
 #endif

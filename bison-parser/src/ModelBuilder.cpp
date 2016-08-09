@@ -1,18 +1,20 @@
+#include <cassert>
 #include "ModelBuilder.h"
 #include "ExpEvaluator.h"
 
 
 ModelBuilder::ModelBuilder() {};
-ModelBuilder::~ModelBuilder() {};
+ModelBuilder::~ModelBuilder() {
+};
 
 inline void ModelBuilder::accept_cond(ModelAST *node) {
-    if (!log->has_errors()) {
+    if (!has_errors()) {
 	node->accept(*this);
     }
 }
 
 inline void ModelBuilder::accept_visitor(ModelAST *node, Visitor& visitor) {
-    if (!log->has_errors()) {
+    if (!has_errors()) {
 	node->accept(visitor);
     }
 }
@@ -24,7 +26,7 @@ inline int ModelBuilder::get_int_or_error(Exp *exp, const string &msg) {
     if (ev.has_type_int()) {
 	res = ev.get_int();
     } else {
-	log->put_error(msg + " not reducible to [int] at compilation time"); 
+	put_error(msg + " not reducible to [int] at compilation time"); 
     }
     return (res);
 }
@@ -36,7 +38,7 @@ inline bool ModelBuilder::get_bool_or_error(Exp *exp, const string &msg) {
     if (ev.has_type_bool()) {
 	res = ev.get_bool();
     } else {
-	log->put_error(msg + " not reducible to [bool] at compilation time"); 
+	put_error(msg + " not reducible to [bool] at compilation time"); 
     }
     return (res);
 }
@@ -49,8 +51,8 @@ void ModelBuilder::visit(Model* model) {
 
 void ModelBuilder::visit(ModuleBody* body) {
     for (auto &decl : body->get_local_decls()) {
-	accept_cond(decl);
 	module_vars = new vector<Var>{};
+	accept_cond(decl);
     }
 }
 
@@ -60,7 +62,7 @@ void ModelBuilder::visit(Decl* decl) {
     int init;
     Type type;
     if (decl->is_array()) {
-	log->put_error("Arrays not yet supported");
+	put_error("Arrays not yet supported");
     }
     if (decl->has_range()) {
 	string msg = "Lower bound error of " + decl->id;
@@ -83,9 +85,10 @@ void ModelBuilder::visit(Decl* decl) {
 	} else {
 	    throw_FigException("Not yet supported declaration type");
 	}
-	if (!log->has_errors()) {
+	if (!has_errors()) {
 	    std::cout << "PUTTING VARIABLE " << decl->id << " LOWER : " << lower << " UPPER : " << upper << " INIT: " << init << std::endl;
 	    const auto &var = make_tuple(decl->id, lower, upper, init);
+	    assert(module_vars != nullptr);
 	    module_vars->push_back(var);
 	}
     }

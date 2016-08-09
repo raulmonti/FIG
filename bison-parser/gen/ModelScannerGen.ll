@@ -88,7 +88,7 @@ blank  [ \t]
 "&"           return ModelParser::make_AND(loc);
 "->"          return ModelParser::make_ARROW(loc);
 "true"        return ModelParser::make_TRUE(loc);
-"false"       return ModelParser::make_TRUE(loc);
+"false"       return ModelParser::make_FALSE(loc);
 "|"           return ModelParser::make_MID(loc);
 
 {id}  return ModelParser::make_ID(yytext, loc);

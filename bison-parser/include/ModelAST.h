@@ -349,7 +349,17 @@ public:
 };
     
 class Visitor {
+protected:
+    //message tracked during visitations.
+    //also used to stop traversing the AST
+    //when an error occurs
+    ErrorMessage message;
+    void put_error(const string &msg);
 public:
+    bool has_errors();
+    string get_errors();
+    //visitors
+    //default implementation: do nothing
     virtual void visit(ModelAST* node);
     virtual void visit(Model* node);
     virtual void visit(ModuleBody* node);
