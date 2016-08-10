@@ -3,13 +3,14 @@
 #include <cassert>
 
 using std::endl;
+using std::shared_ptr;
 using std::make_pair;
 
 /* Typechecking on Model */
 
 //initialize static maps
-map<string, ModuleScope *> ModuleScope::scopes;
-map<string, Decl *> ModuleScope::globals;
+shared_map<string, ModuleScope> ModuleScope::scopes;
+shared_map<string, Decl> ModuleScope::globals;
 
 //First some macros to print errors:
 #define UNEXPECTED_TYPE(expected, got)			   \
@@ -225,13 +226,13 @@ inline Type ModelTC::operator_type(const ExpOp &op, Type arg) {
     return (result);
 }
 
-inline void ModelTC::accept_cond(ModelAST *node) {
+inline void ModelTC::accept_cond(shared_ptr<ModelAST> node) {
     if (!has_errors()) {
 	node->accept(*this);
     }
 }
 
-void ModelTC::visit(Model* model) {
+void ModelTC::visit(shared_ptr<Model> model) {
     //check globals
     for (auto decl : model->get_globals()) {
 	//no module selected yet
@@ -240,7 +241,7 @@ void ModelTC::visit(Model* model) {
     }
     //check modules
     for (auto entry : model->get_modules()) {
-	ModuleScope *new_scope = new ModuleScope();
+	const shared_ptr<ModuleScope>& new_scope = make_shared<ModuleScope>();
 	const string &id = entry.first;
 	if (scopes.find(id) != scopes.end()) {
 	    put_error(TC_ID_REDEFINED(id));	      
@@ -254,19 +255,19 @@ void ModelTC::visit(Model* model) {
     }
 }
 
-void ModelTC::visit(ModuleBody* body) {
+void ModelTC::visit(shared_ptr<ModuleBody> body) {
     assert(body != nullptr);
     assert(current_scope != nullptr);
     assert(current_scope->body == body);
-    for (auto decl : body->get_local_decls()) {
+    for (auto &decl : body->get_local_decls()) {
 	accept_cond(decl);
     }
-    for (auto *action : body->get_actions()) {
+    for (auto &action : body->get_actions()) {
 	accept_cond(action);
     }
 }
 
-void ModelTC::visit(Decl* decl) {
+void ModelTC::visit(shared_ptr<Decl> decl) {
     assert(decl != nullptr);
     const string &id = decl->id;
     //check expressions before adding identifier to scope.
@@ -283,7 +284,7 @@ void ModelTC::visit(Decl* decl) {
 	accept_cond(decl->size);
 	check_type(Type::tint, TC_SIZE_EXP(id));
     }
-    for (Exp *init : decl->get_inits()) {
+    for (auto &init : decl->get_inits()) {
 	//check initialization expressions
 	accept_cond(init);
 	check_type(decl->type, TC_INIT_EXP(id, decl->type)); 
@@ -306,7 +307,7 @@ void ModelTC::visit(Decl* decl) {
     }
 }
 
-void ModelTC::visit(Action* action) {
+void ModelTC::visit(shared_ptr<Action> action) {
     assert(action != nullptr);
     assert(current_scope != nullptr);
     string &label = action->id;
@@ -348,12 +349,12 @@ void ModelTC::visit(Action* action) {
 	    label_clocks[label] = action->clock_loc->id;
 	}
     }
-    for (auto *effect : action->get_effects()) {
+    for (auto &effect : action->get_effects()) {
 	accept_cond(effect);
     }
  }
 
-void ModelTC::visit(Effect* effect) {
+void ModelTC::visit(shared_ptr<Effect> effect) {
     assert(effect != nullptr);
     accept_cond(effect->loc);
     //save type of location
@@ -381,7 +382,7 @@ void ModelTC::visit(Effect* effect) {
     }
 }
 
-void ModelTC::visit(Dist* dist) {
+void ModelTC::visit(shared_ptr<Dist> dist) {
     assert(dist != nullptr);
     if (dist->arity == Arity::one) {
 	accept_cond(dist->param1);
@@ -395,7 +396,7 @@ void ModelTC::visit(Dist* dist) {
     }
 }
 
-void ModelTC::visit(Location* loc) {
+void ModelTC::visit(shared_ptr<Location> loc) {
     assert(loc != nullptr);
     string &id = loc->id;
     if (is_global_scope()) {
@@ -420,27 +421,27 @@ void ModelTC::visit(Location* loc) {
     last_type = identifier_type(loc->id);
 }
 
-void ModelTC::visit(IConst* node) {
+void ModelTC::visit(shared_ptr<IConst> node) {
     (void) node;
     last_type = Type::tint;
 }
 
-void ModelTC::visit(BConst* node){
+void ModelTC::visit(shared_ptr<BConst> node){
     (void) node;
     last_type = Type::tbool;
 }
 
-void ModelTC::visit(FConst* node){
+void ModelTC::visit(shared_ptr<FConst> node){
     (void) node;
     last_type = Type::tfloat;
 }
 
-void ModelTC::visit(LocExp* locExp){
+void ModelTC::visit(shared_ptr<LocExp> locExp){
     assert(locExp != nullptr);
     accept_cond(locExp->location);
 }
 
-void ModelTC::visit(OpExp* exp){
+void ModelTC::visit(shared_ptr<OpExp> exp){
     assert(exp != nullptr);
     Type res_type = Type::tunknown;
     if (exp->arity == Arity::one) {
@@ -473,10 +474,5 @@ void ModelTC::visit(OpExp* exp){
 }
 
 ModelTC::~ModelTC() {
-    for (auto &entry : scopes) {
-	delete entry.second;
-    }
-    //current_scope should be pointed by scopes
-    //destructor of scope should do nothing since
-    //it does not have any owned resources.
+    
 }

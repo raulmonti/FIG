@@ -11,30 +11,29 @@
 using std::string;
 
 struct ModuleScope {
-    //Note: Pointers here are owned by ModelAST
-    static map<string, ModuleScope *> scopes;
-    static map<string, Decl *> globals;
+    //map of shared pointers (Util.h)
+    static shared_map<string, ModuleScope> scopes;
+    static shared_map<string, Decl> globals;
     string id;
-    ModuleBody *body;
+    shared_ptr<ModuleBody> body;
     //labels to type
     map<string, LabelType> labels;
     //clock assigned to a label : label->clock
     map<string, string> label_clocks;
     //distribution of a clock : clock->dist
-    map<string, Dist*> clock_dists;
+    shared_map<string, Dist> clock_dists;
     //local declarations : id -> decl (type, range, init, ...)
-    map<string, Decl*> local_decls;
+    shared_map<string, Decl> local_decls;
 };
 
 class ModelTC : public Visitor {
 private:
-    map<string, ModuleScope *> &scopes  = ModuleScope::scopes;
-    map<string, Decl *> &globals = ModuleScope::globals;
-    
-    ModuleScope *current_scope;
+    shared_map<string, ModuleScope> &scopes  = ModuleScope::scopes;
+    shared_map<string, Decl> &globals = ModuleScope::globals;
+    shared_ptr<ModuleScope> current_scope;
     Type last_type;
     //accepts if no errors
-    void accept_cond(ModelAST *module);
+    void accept_cond(shared_ptr<ModelAST> module);
     //prefix for log message
     void check_type(Type type, const string &msg);
     Type identifier_type(const string &id);
@@ -47,20 +46,19 @@ private:
 public:
     ModelTC() : current_scope {nullptr},
 		last_type {Type::tunknown}{};
-    void visit(Model* node);
-    void visit(ModuleBody* node);
-    void visit(Decl* node);
-    void visit(Action* node);
-    void visit(Effect* node);
-    void visit(Dist* node);
-    void visit(Location* node);
-    void visit(IConst* node);
-    void visit(BConst* node);
-    void visit(FConst* node);
-    void visit(LocExp* node);
-    void visit(OpExp* node);
-    
     virtual ~ModelTC();
+    void visit(shared_ptr<Model> node);
+    void visit(shared_ptr<ModuleBody> node);
+    void visit(shared_ptr<Decl> node);
+    void visit(shared_ptr<Action> node);
+    void visit(shared_ptr<Effect> node);
+    void visit(shared_ptr<Dist> node);
+    void visit(shared_ptr<Location> node);
+    void visit(shared_ptr<IConst> node);
+    void visit(shared_ptr<BConst> node);
+    void visit(shared_ptr<FConst> node);
+    void visit(shared_ptr<LocExp> node);
+    void visit(shared_ptr<OpExp> node);
 };
 
 #endif

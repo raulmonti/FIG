@@ -2,6 +2,7 @@
 #define __MODEL_AST_H__
 #include <cassert>
 #include <map>
+#include <memory>
 #include <iostream>
 #include <sstream>
 #include "Util.h"
@@ -11,6 +12,8 @@
 using std::string;
 using std::vector;
 using std::map;
+using std::shared_ptr;
+using std::make_shared;
 
 enum class Type {tint, tbool, tfloat, tclock, tunknown};
 enum class ExpOp {plus, times, minus, div, mod, andd, orr, nott, eq, neq, lt, gt, le, ge};
@@ -25,7 +28,7 @@ namespace ModelParserGen {
     class ModelScanner;
 }
 
-class ModelAST {
+class ModelAST : public std::enable_shared_from_this<ModelAST> {
 private:
     friend class ModelParserGen::ModelParser;
     friend class ModelParserGen::ModelScanner;
@@ -35,7 +38,7 @@ private:
     static void scan_end();
     static void on_scanner_error(const std::string &msg);
 public:
-    static ModelAST *from_file(const string& filename);
+    static shared_ptr<ModelAST> from_file(const string& filename);
     virtual ~ModelAST() {};
     virtual void accept(class Visitor& visit);
 };
@@ -45,25 +48,25 @@ class Model : public ModelAST {
 public:
     // (module's id -> body) map
     // public access allows the use of a VisitorPattern
-    map<string, class ModuleBody *> modules;
-    vector<class Decl *> globals;
+    shared_map<string, class ModuleBody> modules;
+    shared_vector<class Decl> globals;
     
-    Model(string id, ModuleBody *mb) {
+    Model(string id, shared_ptr<ModuleBody> mb) {
 	add_module(id, mb);
     }
     
-    Model(Decl *decl) {
+    Model(shared_ptr<Decl> decl) {
 	add_decl(decl);
     }
     
     Model(const Model &model) = delete;
     void operator=(Model const &) = delete;
     
-    void add_module(string id, ModuleBody *mb) {
+    void add_module(string id, shared_ptr<ModuleBody> mb) {
 	modules[id] = mb;
     }
     
-    void add_decl(Decl *decl) {
+    void add_decl(shared_ptr<Decl> decl) {
 	globals.push_back(decl);
     }
     
@@ -71,90 +74,102 @@ public:
 	return (modules.find(id) != modules.end());
     }
     
-    const map<string, ModuleBody *>& get_modules() const {
+    const map<string, shared_ptr<ModuleBody>>& get_modules() const {
 	return (modules);
     }
     
-    const vector<class Decl *>& get_globals() const {
+    const vector<shared_ptr<class Decl>>& get_globals() const {
 	return (globals);
     }
     
     void accept(Visitor& visit) override;
-    ~Model();
 };
 
 class ModuleBody : public ModelAST {
 public:
-    vector<class Decl*> local_decls;
-    vector<class Action*> actions;
+    shared_vector<Decl> local_decls;
+    shared_vector<class Action> actions;
+    
     ModuleBody() {};
     
-    ModuleBody(Decl *decl) {
+    ModuleBody(shared_ptr<Decl> decl) {
 	add_decl(decl);
     }
     
-    ModuleBody(Action *action) {
+    ModuleBody(shared_ptr<Action> action) {
 	add_action(action);
     }
     
     ModuleBody(const ModuleBody &) = delete;
     void operator=(const ModuleBody &) = delete;
     
-    void add_decl(Decl *decl) {
+    void add_decl(shared_ptr<Decl> decl) {
 	local_decls.push_back(decl);
     }
     
-    void add_action(Action *action) {
+    void add_action(shared_ptr<Action> action) {
 	actions.push_back(action);
     }
     
     void accept(Visitor& visit) override;
     
-    const vector<Decl*>& get_local_decls() {
+    const shared_vector<Decl>& get_local_decls() {
 	return local_decls;
     }
     
-    const vector<Action*>& get_actions() {
+    const shared_vector<Action>& get_actions() {
 	return actions;
     }
-    
-    ~ModuleBody();
 };
 
 class Decl : public ModelAST {
 public:
     Type type;
     string id;
-    vector <class Exp*> inits;
-    Exp *lower;
-    Exp *upper;
-    Exp *size;
-    Decl(Type type, string id, Exp *lower, Exp *upper)
+    shared_vector<class Exp> inits;
+    shared_ptr<Exp> lower;
+    shared_ptr<Exp> upper;
+    shared_ptr<Exp> size;
+    
+    //declaration with type, id, range, no initialization
+    Decl(Type type, string id, shared_ptr<Exp> lower, shared_ptr<Exp> upper)
 	: type {type}, id {id},
 	  lower {lower}, upper {upper},size {nullptr}
-	{ inits = vector<Exp*>{}; }
-    Decl(Type type, string id, Exp *lower, Exp *upper, Exp *init)
+	{ inits = vector<shared_ptr<Exp>>{}; }
+    
+    //declaration with type, id, range and initialization
+    Decl(Type type, string id, shared_ptr<Exp> lower,
+	 shared_ptr<Exp> upper, shared_ptr<Exp> init)
 	: type {type}, id {id}, lower {lower}, upper {upper},
 	  size {nullptr}
-	{ inits = vector<Exp*>{init}; }
-    Decl(Type type, string id, Exp *init)
+	{ inits = vector<shared_ptr<Exp>>{init}; }
+
+    //declaration with type, id, initialization (no range)
+    Decl(Type type, string id, shared_ptr<Exp> init)
 	: type {type}, id {id},
 	  lower {nullptr}, upper {nullptr},
 	  size {nullptr}
-	{ inits = vector<Exp*>{init};}
+	{ inits = vector<shared_ptr<Exp>>{init};}
+
+    //declaration with type, id, no range, no initialization
     Decl(Type type, string id)
 	: type {type}, id {id},
 	  lower {nullptr}, upper {nullptr},
 	  size {nullptr}
-	{ inits = vector<Exp*>{}; }
-    Decl(Type type, string id, Exp *size, Exp *lower, Exp *upper,
-	 const vector<Exp*> &inits)
+	{ inits = vector<shared_ptr<Exp>>{}; }
+
+    //declaration of array with id, size of array, range of values, initalizations.
+    Decl(Type type, string id, shared_ptr<Exp> size,
+	 shared_ptr<Exp> lower, shared_ptr<Exp> upper,
+	 const shared_vector<Exp> &inits)
 	: type {type}, id {id}, inits {inits},
 	  lower {lower}, upper {upper},
 	  size {size}
 	{};
-    Decl(Type type, string id, Exp *size,
-	 const vector<Exp*> &inits)
+
+    //declaration of array with id, size of array, no range of values, initializaiton
+    Decl(Type type, string id, shared_ptr<Exp> size,
+	 const shared_vector<Exp> &inits)
 	: type {type}, id {id}, inits {inits},
 	  lower {nullptr}, upper {nullptr},
 	  size {size}
@@ -179,30 +194,39 @@ public:
 	return (inits.size() > 1);
     }
 	
-    const vector<Exp*>& get_inits() {
+    const shared_vector<Exp>& get_inits() {
 	return (inits);
     }
 	
     void accept(Visitor& visit) override;        
-    ~Decl();
 };
     
 class Action : public ModelAST {
 public:
     string id;
     LabelType type;
-    Exp *guard;
-    class Location *clock_loc;
-    vector<class Effect *> effects;
-    Action(string id, LabelType type, Exp *guard, const vector<Effect *> &effects)
-	: id {id}, type {type}, guard {guard}, clock_loc {nullptr}, effects {effects} {};
-    Action(string id, LabelType type, Exp *guard,
-	   Location *clock_loc, const vector<Effect *> &effects)
-	: id {id}, type {type}, guard {guard}, clock_loc {clock_loc}, effects {effects} {};
-    Action(LabelType type, Exp *guard,
-	   Location *clock_loc, const vector<Effect *> &effects)
-	: id {""}, type {type}, guard {guard}, clock_loc {clock_loc}, effects {effects} {};
+    shared_ptr<Exp> guard;
+    shared_ptr<class Location> clock_loc;
+    shared_vector<class Effect> effects;
 
+    // e.g  [id ? ] guard -> (effect1 & effect2 & .... ) 
+    Action(string id, LabelType type, shared_ptr<Exp> guard,
+	   const shared_vector<Effect> &effects)
+	: id {id}, type {type}, guard {guard},
+	  clock_loc {nullptr}, effects {effects} {};
+
+    // e.g [id ! ] guard @ clock -> (effect1 & effect2 & .... ) 
+    Action(string id, LabelType type, shared_ptr<Exp> guard,
+	   shared_ptr<Location> clock_loc, const shared_vector<Effect> &effects)
+	: id {id}, type {type}, guard {guard},
+	  clock_loc {clock_loc}, effects {effects} {};
+
+    // e.g [id ! ] guard @ clock -> (effect1 & effect2 & .... ) 
+    Action(LabelType type, shared_ptr<Exp> guard,
+	   shared_ptr<Location> clock_loc, const shared_vector<Effect> &effects)
+	: id {""}, type {type}, guard {guard},
+	  clock_loc {clock_loc}, effects {effects} {};
+    
     Action(const Action &Decl) = delete;
     void operator=(const Action &Decl) = delete;
 
@@ -212,22 +236,25 @@ public:
 	return (clock_loc != nullptr);
     }
 
-    const vector<Effect*>& get_effects() {
+    const shared_vector<Effect>& get_effects() {
 	return (effects);
     }
-        
-    ~Action();
 };
 
 class Effect : public ModelAST {
 public:
-    Location *loc;
-    class Dist *dist;
-    Exp *arg;
-    Effect(Location *loc, Exp *arg)
+    shared_ptr<Location> loc;
+    shared_ptr<class Dist> dist;
+    shared_ptr<Exp> arg;
+
+    //e.g: q' = 4 + q
+    Effect(shared_ptr<Location> loc, shared_ptr<Exp> arg)
 	: loc {loc}, dist {nullptr}, arg {arg} {};
-    Effect(Location *loc, Dist *dist)
+
+    //e.g: c = uniform(4, 5)
+    Effect(shared_ptr<Location> loc, shared_ptr<Dist> dist)
 	: loc {loc}, dist {dist}, arg {nullptr} {};
+    
     Effect(const Effect &effect) = delete;
     void operator=(const Effect &effect) = delete;
 
@@ -240,31 +267,35 @@ public:
     }
         
     void accept(Visitor& visit) override;
-    ~Effect();
 };
     
 class Dist : public ModelAST {
 public:
     DistType type;
     Arity arity;
-    Exp *param1;
-    Exp *param2;
+    shared_ptr<Exp> param1;
+    shared_ptr<Exp> param2;
+
+    //distribution type, arity (1 or 2), parameters.
     Dist(DistType dist_type, Arity arity,
-	 Exp *param1, Exp *param2 = nullptr) :
+	 shared_ptr<Exp> param1, shared_ptr<Exp> param2 = nullptr) :
 	type {dist_type}, arity {arity},
 	param1 {param1}, param2 {param2} {};
+    
     Dist(const Dist &) = delete;
     void operator=(const Dist &) = delete;
 
     void accept(Visitor& visit) override;
-    ~Dist();
 };
     
 class Location : public ModelAST {
 public:
     string id;
-    Exp *index;
-    Location(string id, Exp *index = nullptr) : id {id}, index {index} {};
+    shared_ptr<Exp> index;
+
+    // id or id[exp]
+    Location(string id, shared_ptr<Exp> index = nullptr) : id {id}, index {index} {};
+    
     Location(const Location &) = delete;
     void operator=(const Location &) = delete;
 
@@ -273,7 +304,6 @@ public:
     }
 
     void accept(Visitor& visit) override;
-    ~Location();
 };
     
 class Exp : public ModelAST {
@@ -284,7 +314,6 @@ public:
     void operator=(const Exp &) = delete;
 
     void accept(Visitor& visit) override;
-    virtual ~Exp() {};
 };
 
 class IConst : public Exp {
@@ -295,7 +324,6 @@ public:
     void operator=(const IConst &) = delete;
 
     void accept(Visitor& visit) override;
-    ~IConst() {};
 };
 
 class BConst : public Exp {
@@ -306,7 +334,6 @@ public:
     void operator=(const BConst &) = delete;
 
     void accept(Visitor& visit) override;
-    ~BConst() {};
 };
 
 class FConst : public Exp {
@@ -317,35 +344,35 @@ public:
     void operator=(const FConst &) = delete;
 
     void accept(Visitor& visit) override;
-    ~FConst() {};
 };
 
 class LocExp : public Exp {
 public:
-    Location *location;
-    LocExp(Location *location) : location {location} {};
+    shared_ptr<Location> location;
+    LocExp(shared_ptr<Location> location) : location {location} {};
         
     LocExp(const LocExp &) = delete;
     void operator=(const LocExp &) = delete;
 
     void accept(Visitor& visit) override;
-    ~LocExp() {delete location;};
 };
     
 class OpExp : public Exp {
 public:
     Arity arity;
     ExpOp bop;
-    Exp *left;
-    Exp *right;
-    OpExp(Arity arity, ExpOp bop, Exp *left, Exp *right = nullptr) :
+    shared_ptr<Exp> left;
+    shared_ptr<Exp> right;
+
+    //arity (1 or 2), operator, left argument, right argument (optional)
+    OpExp(Arity arity, ExpOp bop, shared_ptr<Exp> left,
+	  shared_ptr<Exp> right = nullptr) :
 	arity {arity}, bop {bop}, left {left}, right {right} {};
 
     OpExp(const OpExp &) = delete;
     void operator=(const OpExp &) = delete;
 
     void accept(Visitor& visit) override;
-    ~OpExp() {delete left; delete right;};
 };
     
 class Visitor {
@@ -360,20 +387,20 @@ public:
     string get_errors();
     //visitors
     //default implementation: do nothing
-    virtual void visit(ModelAST* node);
-    virtual void visit(Model* node);
-    virtual void visit(ModuleBody* node);
-    virtual void visit(Decl* node);
-    virtual void visit(Action* node);
-    virtual void visit(Effect* node);
-    virtual void visit(Dist* node);
-    virtual void visit(Location* node);
-    virtual void visit(Exp* node);
-    virtual void visit(IConst* node);
-    virtual void visit(BConst* node);
-    virtual void visit(FConst* node);
-    virtual void visit(LocExp* node);
-    virtual void visit(OpExp* node);
+    virtual void visit(shared_ptr<ModelAST> node);
+    virtual void visit(shared_ptr<Model> node);
+    virtual void visit(shared_ptr<ModuleBody> node);
+    virtual void visit(shared_ptr<Decl> node);
+    virtual void visit(shared_ptr<Action> node);
+    virtual void visit(shared_ptr<Effect> node);
+    virtual void visit(shared_ptr<Dist> node);
+    virtual void visit(shared_ptr<Location> node);
+    virtual void visit(shared_ptr<Exp> node);
+    virtual void visit(shared_ptr<IConst> node);
+    virtual void visit(shared_ptr<BConst> node);
+    virtual void visit(shared_ptr<FConst> node);
+    virtual void visit(shared_ptr<LocExp> node);
+    virtual void visit(shared_ptr<OpExp> node);
 };
 
 #endif

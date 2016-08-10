@@ -157,6 +157,8 @@ ELSE()
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")# -pedantic")
 	# Add debug info (used by gdb and pals)
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+	# Stop compiling after *one* error
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wfatal-errors")
 ENDIF()
 
 # OpenMP

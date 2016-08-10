@@ -7,19 +7,21 @@ ModelBuilder::ModelBuilder() {};
 ModelBuilder::~ModelBuilder() {
 };
 
-inline void ModelBuilder::accept_cond(ModelAST *node) {
+inline void ModelBuilder::accept_cond(shared_ptr<ModelAST> node) {
     if (!has_errors()) {
 	node->accept(*this);
     }
 }
 
-inline void ModelBuilder::accept_visitor(ModelAST *node, Visitor& visitor) {
+inline void ModelBuilder::accept_visitor(shared_ptr<ModelAST> node,
+					 Visitor& visitor) {
     if (!has_errors()) {
 	node->accept(visitor);
     }
 }
 
-inline int ModelBuilder::get_int_or_error(Exp *exp, const string &msg) {
+inline int ModelBuilder::get_int_or_error(shared_ptr<Exp> exp,
+					  const string &msg) {
     int res = 0;
     ExpEvaluator ev;
     accept_visitor(exp, ev);
@@ -31,7 +33,8 @@ inline int ModelBuilder::get_int_or_error(Exp *exp, const string &msg) {
     return (res);
 }
 
-inline bool ModelBuilder::get_bool_or_error(Exp *exp, const string &msg) {
+inline bool ModelBuilder::get_bool_or_error(shared_ptr<Exp> exp,
+					    const string &msg) {
     bool res = 0;
     ExpEvaluator ev;
     accept_visitor(exp, ev);
@@ -43,20 +46,20 @@ inline bool ModelBuilder::get_bool_or_error(Exp *exp, const string &msg) {
     return (res);
 }
 
-void ModelBuilder::visit(Model* model) {
+void ModelBuilder::visit(shared_ptr<Model> model) {
     for (auto &entry : model->get_modules()) {
 	accept_cond(entry.second);
     }
 }
 
-void ModelBuilder::visit(ModuleBody* body) {
+void ModelBuilder::visit(shared_ptr<ModuleBody> body) {
     for (auto &decl : body->get_local_decls()) {
-	module_vars = new vector<Var>{};
+	module_vars = make_unique<vector<Var>>();
 	accept_cond(decl);
     }
 }
 
-void ModelBuilder::visit(Decl* decl) {
+void ModelBuilder::visit(shared_ptr<Decl> decl) {
     int lower;
     int upper;
     int init;
@@ -76,7 +79,7 @@ void ModelBuilder::visit(Decl* decl) {
 	type = Type::tbool;
     }
     if (decl->has_single_init()) {
-	Exp *iniexp = decl->inits.at(0);
+	shared_ptr<Exp> iniexp = decl->inits.at(0);
 	if (type == Type::tint) {
 	    init = get_int_or_error(iniexp, "Initialization of " + decl->id);
 	} else if (type == Type::tbool) {
@@ -94,38 +97,38 @@ void ModelBuilder::visit(Decl* decl) {
     }
 }
 
-void ModelBuilder::visit(Action* node) {
+void ModelBuilder::visit(shared_ptr<Action> node) {
     (void) node;
 }
 
-void ModelBuilder::visit(Effect* node) {
+void ModelBuilder::visit(shared_ptr<Effect> node) {
     (void) node;
 }
 
-void ModelBuilder::visit(Dist* node) {
+void ModelBuilder::visit(shared_ptr<Dist> node) {
     (void) node;
 }
 
-void ModelBuilder::visit(Location* node) {
+void ModelBuilder::visit(shared_ptr<Location> node) {
     (void) node;
 }
 
-void ModelBuilder::visit(IConst* node) {
+void ModelBuilder::visit(shared_ptr<IConst> node) {
     (void) node;
 }
 
-void ModelBuilder::visit(BConst* node) {
+void ModelBuilder::visit(shared_ptr<BConst> node) {
     (void) node;
 }
 
-void ModelBuilder::visit(FConst* node) {
+void ModelBuilder::visit(shared_ptr<FConst> node) {
     (void) node;
 }
 
-void ModelBuilder::visit(LocExp* node) {
+void ModelBuilder::visit(shared_ptr<LocExp> node) {
     (void) node;
 }
 
-void ModelBuilder::visit(OpExp* node) {
+void ModelBuilder::visit(shared_ptr<OpExp> node) {
     (void) node;
 }

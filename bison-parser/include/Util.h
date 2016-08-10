@@ -11,6 +11,13 @@ using std::stringstream;
 using std::string;
 using std::endl;
 using std::vector;
+using std::shared_ptr;
+
+template<typename T>
+using shared_vector = std::vector<shared_ptr<T>>;
+
+template<typename K, typename T>
+using shared_map = std::map<K, shared_ptr<T>>;
 
 class ErrorMessage {
 private:
@@ -44,5 +51,11 @@ vector<T> concat(vector<T> &v1, const vector<T> &v2) {
     return v1;
 }
 
+//standard in c++14
+template<typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
 
 #endif

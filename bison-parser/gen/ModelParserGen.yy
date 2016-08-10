@@ -26,14 +26,15 @@
 #include "Util.h"
 
     using std::shared_ptr;
+    using std::make_shared;
     
 //definition YY_DECL should be available also for ModelScannerGen.ll
 //ModelScannerGen includes ModuleParser.hpp
 # define YY_DECL							\
-    ModelParserGen::ModelParser::symbol_type yylex (ModelAST **result)
+    ModelParserGen::ModelParser::symbol_type yylex (shared_ptr<ModelAST> *result)
 }
 
-%param {ModelAST **result}
+%param {shared_ptr<ModelAST> *result}
 %locations
 
 %code
@@ -103,19 +104,19 @@ FALSE "false"
 %token <std::string> ID "id"
 %token <int>   INTL "int_literal"
 %token <float> FLOATL "float_literal"
-%type <Model*> model
-%type <Decl*> global_decl
-%type <Exp*>  exp
-%type <Dist*> dist
-%type <vector<Effect*>> effects
-%type <Location*> location
-%type <Exp*> guard
-%type <Action*> action
-%type <vector<Exp*>> exp_seq
-%type <vector<Exp*>> array_init
-%type <Decl*> decl
-%type <ModuleBody*> module_body
-%type <Type> type
+%type  <shared_ptr<Model>> model
+%type  <shared_ptr<Decl>> global_decl
+%type  <shared_ptr<Exp>>  exp
+%type  <shared_ptr<Dist>> dist
+%type  <shared_vector<Effect>> effects
+%type  <shared_ptr<Location>> location
+%type  <shared_ptr<Exp>> guard
+%type  <shared_ptr<Action>> action
+%type  <shared_vector<Exp>> exp_seq
+%type  <shared_vector<Exp>> array_init
+%type  <shared_ptr<Decl>> decl
+%type  <shared_ptr<ModuleBody>> module_body
+%type  <Type> type
 
 %%
 %start begin;
@@ -123,22 +124,22 @@ FALSE "false"
 begin: model[m] {*result = $m;}
 
 model: global_decl[d] ";"
-{$$ = new Model($d);}
+{$$ = make_shared<Model>($d);}
 | model[m] global_decl[d] ";"
 {$m->add_decl($d); $$ = $m;}
 | "module" "id"[id] module_body[b] "endmodule"
-{$$ = new Model($id, $b);}
+{$$ = make_shared<Model>($id, $b);}
 | model[m] "module" "id"[id] module_body[b] "endmodule"
 {
     string &id = $id;
-    Model *model = $m;
+    shared_ptr<Model> model = $m;
     if (model->has_module(id)) {
 	std::cerr << "Two modules with the same name " + id << std::endl;
-	delete model;
 	exit(1);
+    } else {
+	$m->add_module(id, $b);
+	$$ = std::move($m);
     }
-    $m->add_module(id, $b);
-    $$ = $m;
 }
 
 type: "int"
@@ -149,81 +150,81 @@ type: "int"
 {$$ = Type::tfloat;}
 
 global_decl: "const" type[t] "id"[id] "=" exp[e]
-{$$ = new Decl($t, $id, $e); }
+{$$ = make_shared<Decl>($t, $id, $e); }
 | "const" "id"[id] "[" exp[size] "]" ":" "[" exp[lower] ".." exp[upper] "]" "init" array_init[seq]
-{$$ = new Decl(Type::tint, $id, $size, $lower, $upper, $seq);}
+{$$ = make_shared<Decl>(Type::tint, $id, $size, $lower, $upper, $seq);}
 | "const" "id"[id] "[" exp[size] "]" ":" type[t] "init" array_init[seq]
-{$$ = new Decl($t, $id, $size, $seq);}
+{$$ = make_shared<Decl>($t, $id, $size, $seq);}
 | "const" type[t] "id"[id] "[" exp[size] "]" "=" array_init[seq]
-{$$ = new Decl($t, $id, $size, $seq);}
+{$$ = make_shared<Decl>($t, $id, $size, $seq);}
 
 module_body: decl[d] ";"
-{$$ = new ModuleBody($d);}
+{$$ = make_shared<ModuleBody>($d);}
 | action[a] ";"
-{$$ = new ModuleBody($a);}
+{$$ = make_shared<ModuleBody>($a);}
 | module_body[mb] decl[d] ";"
 {$mb->add_decl($d); $$ = $mb;}
 | module_body[mb] action[a] ";"
 {$mb->add_action($a); $$ = $mb;}
 
 decl: "id"[id] ":" "[" exp[low] ".." exp[upper] "]"
-{$$ = new Decl(Type::tint, $id, $low, $upper);}
+{$$ = make_shared<Decl>(Type::tint, $id, $low, $upper);}
 | "id"[id] ":" "[" exp[low] ".." exp[upper] "]" "init" exp[e]
-{$$ = new Decl(Type::tint, $id, $low, $upper, $e);}
+{$$ = make_shared<Decl>(Type::tint, $id, $low, $upper, $e);}
 | "id"[id] ":" "bool" "init" exp[e]
-{$$ = new Decl(Type::tbool, $id, $e);}
+{$$ = make_shared<Decl>(Type::tbool, $id, $e);}
 | "id"[id] ":" "clock"
-{$$ = new Decl(Type::tclock, $id);}
+{$$ = make_shared<Decl>(Type::tclock, $id);}
 | "id"[id] "[" exp[size] "]" ":"
 "[" exp[lower] ".." exp[upper] "]" "init" array_init[seq]
-{$$ = new Decl(Type::tint, $id, $size, $lower, $upper, $seq);}
+{$$ = make_shared<Decl>(Type::tint, $id, $size, $lower, $upper, $seq);}
 | "id"[id] "[" exp[size] "]" ":" "bool" "init" array_init[seq]
-{$$ = new Decl(Type::tbool, $id, $size, $seq);}
+{$$ = make_shared<Decl>(Type::tbool, $id, $size, $seq);}
 
 array_init: "{" exp_seq[es] "}"
 {$$ = $es;}
 | exp[e]
-{$$ = vector<Exp*>{$e};}
+{$$ = shared_vector<Exp>{$e};}
 
 exp_seq: exp_seq[es] "," exp[e]
-{$$ = concat($es, vector<Exp*>{$e});}
+{$$ = concat($es, shared_vector<Exp>{$e});}
 | exp[e]
-{$$ = vector<Exp*> {$e};}
+{$$ = shared_vector<Exp>{$e};}
 
 action: "[" "id"[id] "?" "]" guard[e] "->" effects[eff]
-{$$ = new Action($id, LabelType::in, $e, $eff);}
+{$$ = make_shared<Action>($id, LabelType::in, $e, $eff);}
 | "[" "id"[id] "!" "]" guard[e] "@" location[loc] "->" effects[eff]
-{$$ = new Action($id, LabelType::out, $e, $loc, $eff);}
+{$$ = make_shared<Action>($id, LabelType::out, $e, $loc, $eff);}
 | "[" "]" guard[e] "@" location[loc] "->" effects[eff] //see [] in atm_queue.sa
-{$$ = new Action(LabelType::empty, $e, $loc, $eff);}
+{$$ = make_shared<Action>(LabelType::empty, $e, $loc, $eff);}
 | "[" "id"[id] "!" "!" "]" guard[e] "->" effects[eff]
-{$$ = new Action($id, LabelType::commited, $e, $eff);}
+{$$ = make_shared<Action>($id, LabelType::commited, $e, $eff);}
 
 guard: %empty
-{$$ = new BConst(true);}
+{$$ = make_shared<BConst>(true);}
 | exp[e]
 {$$ = $e;}
 
 effects: %empty
-{$$ = vector<Effect*>(); }
+{$$ = shared_vector<Effect>(); }
 |"(" location[loc] "'" "=" exp[e] ")"
-{$$ = vector<Effect*>{new Effect($loc, $e)};}
+{$$ = shared_vector<Effect>{make_shared<Effect>($loc, $e)};}
 | "(" location[loc] "'" "=" dist[d] ")"
-{$$ = vector<Effect*>{new Effect($loc, $d)};}
+{$$ = shared_vector<Effect>{make_shared<Effect>($loc, $d)};}
 | effects[e1] "&" effects[e2]
 {$$ = concat($e1, $e2);}
 
 dist: "erlang" "(" exp[e1] "," exp[e2] ")"
-{$$ = new Dist(DistType::erlang,  Arity::two, $e1, $e2);}
+{$$ = make_shared<Dist>(DistType::erlang,  Arity::two, $e1, $e2);}
 | "normal" "(" exp[e1] "," exp[e2] ")"
-{$$ = new Dist(DistType::normal,  Arity::two, $e1, $e2);}
+{$$ = make_shared<Dist>(DistType::normal,  Arity::two, $e1, $e2);}
 | "uniform" "(" exp[e1] "," exp[e2] ")"
-{$$ = new Dist(DistType::uniform, Arity::two, $e1, $e2);}
+{$$ = make_shared<Dist>(DistType::uniform, Arity::two, $e1, $e2);}
 | "exponential" "(" exp[e] ")"
-{$$ = new Dist(DistType::exponential, Arity::one, $e);}
+{$$ = make_shared<Dist>(DistType::exponential, Arity::one, $e);}
 
-location: "id"[id] {$$ = new Location($id);}
-| "id"[id] "[" exp[e] "]" {$$ = new Location($id, $e);}
+location: "id"[id] {$$ = make_shared<Location>($id);}
+| "id"[id] "[" exp[e] "]" {$$ = make_shared<Location>($id, $e);}
 		 
 // Note on expressions types: a separation between int-exp and bool-exp
 // introduces reduce/reduce conflicts
@@ -235,45 +236,45 @@ location: "id"[id] {$$ = new Location($id);}
 // That should be checked during type-checking.
 
 exp : location[loc]
-{$$ = new LocExp($loc);}
+{$$ = make_shared<LocExp>($loc);}
 | INTL[i]
-{$$ = new IConst($i);}
+{$$ = make_shared<IConst>($i);}
 | FLOATL[i]
-{$$ = new FConst($i);}
+{$$ = make_shared<FConst>($i);}
 | "true"
-{$$ = new BConst(true);}
+{$$ = make_shared<BConst>(true);}
 | "false"
-{$$ = new BConst(false);}
+{$$ = make_shared<BConst>(false);}
 | exp[e1] "+" exp[e2]
-{$$ = new OpExp(Arity::two, ExpOp::plus, $e1, $e2);}
+{$$ = make_shared<OpExp>(Arity::two, ExpOp::plus, $e1, $e2);}
 | exp[e1] "-" exp[e2]
-{$$ = new OpExp(Arity::two, ExpOp::minus, $e1, $e2);}
+{$$ = make_shared<OpExp>(Arity::two, ExpOp::minus, $e1, $e2);}
 | exp[e1] "/" exp[e2]
-{$$ = new OpExp(Arity::two, ExpOp::div, $e1, $e2);}
+{$$ = make_shared<OpExp>(Arity::two, ExpOp::div, $e1, $e2);}
 | exp[e1] "*" exp[e2]
-{$$ = new OpExp(Arity::two, ExpOp::times, $e1, $e2);}
+{$$ = make_shared<OpExp>(Arity::two, ExpOp::times, $e1, $e2);}
 | exp[e1] "%" exp[e2]
-{$$ = new OpExp(Arity::two, ExpOp::mod, $e1, $e2);}
+{$$ = make_shared<OpExp>(Arity::two, ExpOp::mod, $e1, $e2);}
 | exp[e1] "==" exp[e2]
-{$$ = new OpExp(Arity::two, ExpOp::eq, $e1, $e2);}
+{$$ = make_shared<OpExp>(Arity::two, ExpOp::eq, $e1, $e2);}
 | exp[e1] "!=" exp[e2]
-{$$ = new OpExp(Arity::two, ExpOp::neq, $e1, $e2);}
+{$$ = make_shared<OpExp>(Arity::two, ExpOp::neq, $e1, $e2);}
 | exp[e1] "<" exp[e2]
-{$$ = new OpExp(Arity::two, ExpOp::lt, $e1, $e2);}
+{$$ = make_shared<OpExp>(Arity::two, ExpOp::lt, $e1, $e2);}
 | exp[e1] ">" exp[e2]
-{$$ = new OpExp(Arity::two, ExpOp::gt, $e1, $e2);}
+{$$ = make_shared<OpExp>(Arity::two, ExpOp::gt, $e1, $e2);}
 | exp[e1] "<=" exp[e2]
-{$$ = new OpExp(Arity::two, ExpOp::le, $e1, $e2);}
+{$$ = make_shared<OpExp>(Arity::two, ExpOp::le, $e1, $e2);}
 | exp[e1] ">=" exp[e2]
-{$$ = new OpExp(Arity::two, ExpOp::ge, $e1, $e2);}
+{$$ = make_shared<OpExp>(Arity::two, ExpOp::ge, $e1, $e2);}
 | exp[e1] "&" exp[e2]
-{$$ = new OpExp(Arity::two, ExpOp::andd, $e1, $e2);}
+{$$ = make_shared<OpExp>(Arity::two, ExpOp::andd, $e1, $e2);}
 | exp[e1] "|" exp[e2]
-{$$ = new OpExp(Arity::two, ExpOp::orr, $e1, $e2);}
+{$$ = make_shared<OpExp>(Arity::two, ExpOp::orr, $e1, $e2);}
 | "-" exp[e] %prec UMINUS
-{$$ = new OpExp(Arity::one, ExpOp::minus, $e);}
+{$$ = make_shared<OpExp>(Arity::one, ExpOp::minus, $e);}
 | "!" exp[e] %prec NEG
-{$$ = new OpExp(Arity::one, ExpOp::nott, $e);}
+{$$ = make_shared<OpExp>(Arity::one, ExpOp::nott, $e);}
 | "(" exp[e] ")" {$$ = $e;}
 
 %%

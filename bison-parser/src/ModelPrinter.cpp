@@ -84,7 +84,7 @@ string ModelPrinter::to_str(ExpOp op) {
     return result;
 }
 
-void ModelPrinter::accept_idented(ModelAST *node) {
+void ModelPrinter::accept_idented(shared_ptr<ModelAST> node) {
     ident++;
     node->accept(*this);
     ident--;
@@ -94,7 +94,7 @@ void ModelPrinter::print_idented(string str) {
     cout << string(ident, '\t') << str << endl;
 }
 
-void ModelPrinter::visit(Model* model) {
+void ModelPrinter::visit(shared_ptr<Model> model) {
     print_idented("=Model=");
     print_idented("Global constants:");
     for (auto decl : model->globals) {
@@ -107,7 +107,7 @@ void ModelPrinter::visit(Model* model) {
     }
 }
 
-void ModelPrinter::visit(ModuleBody *body) {
+void ModelPrinter::visit(shared_ptr<ModuleBody> body) {
     print_idented("=ModuleBody=");
     print_idented("Local Declarations: ");
     for (auto decl : body->local_decls) {
@@ -119,7 +119,7 @@ void ModelPrinter::visit(ModuleBody *body) {
     }
 }
 
-void ModelPrinter::visit(Decl* decl) {
+void ModelPrinter::visit(shared_ptr<Decl> decl) {
     print_idented("=Decl=");
     print_idented("ID: " + decl->id);
     print_idented("Type : " + to_str(decl->type));
@@ -142,7 +142,7 @@ void ModelPrinter::visit(Decl* decl) {
     }
 }
 
-void ModelPrinter::visit(Action* action) {
+void ModelPrinter::visit(shared_ptr<Action> action) {
     print_idented("=Action=");
     print_idented("Label: " + action->id);
     print_idented("Label Type: " + to_str(action->type));
@@ -158,7 +158,7 @@ void ModelPrinter::visit(Action* action) {
     }
 }
 
-void ModelPrinter::visit(Effect* effect) {
+void ModelPrinter::visit(shared_ptr<Effect> effect) {
     print_idented("=Effect=");
     print_idented("Location:");
     accept_idented(effect->loc);
@@ -173,7 +173,7 @@ void ModelPrinter::visit(Effect* effect) {
     }
 }
 
-void ModelPrinter::visit(Dist *dist) {
+void ModelPrinter::visit(shared_ptr<Dist> dist) {
     print_idented("=Dist=");
     print_idented("Type: " + to_str(dist->type));
     if (dist->arity == Arity::one) {
@@ -187,7 +187,7 @@ void ModelPrinter::visit(Dist *dist) {
     }
 }
 
-void ModelPrinter::visit(Location *loc) {
+void ModelPrinter::visit(shared_ptr<Location> loc) {
     print_idented("=Location=");
     print_idented("ID: \"" + loc->id + "\"");
     if (loc->is_array_position()) {
@@ -196,11 +196,11 @@ void ModelPrinter::visit(Location *loc) {
     }
 }
 
-void ModelPrinter::visit(IConst *node) {
+void ModelPrinter::visit(shared_ptr<IConst> node) {
     print_idented("Int Value: " + std::to_string(node->value));
 }
 
-void ModelPrinter::visit(BConst *node) {
+void ModelPrinter::visit(shared_ptr<BConst> node) {
     if (node->value) {
 	print_idented("Bool Value: true");
     } else {
@@ -208,16 +208,16 @@ void ModelPrinter::visit(BConst *node) {
     }
 }
 
-void ModelPrinter::visit(FConst *node) {
+void ModelPrinter::visit(shared_ptr<FConst> node) {
     print_idented("Float Value: " + std::to_string(node->value));
 }
 
-void ModelPrinter::visit(LocExp *node) {
+void ModelPrinter::visit(shared_ptr<LocExp> node) {
     print_idented("Value Of");
     accept_idented(node->location);
 }
 
-void ModelPrinter::visit(OpExp *node) {
+void ModelPrinter::visit(shared_ptr<OpExp> node) {
     print_idented("Operator: " + to_str(node->bop));
     if (node->arity == Arity::one) {
         accept_idented(node->left);

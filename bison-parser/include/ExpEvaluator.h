@@ -1,6 +1,9 @@
 #include "ModelTC.h"
 #include <functional>
 
+using std::shared_ptr;
+using std::make_shared;
+
 /* This visitor reduces expressions to constants.
  * The expressions that can be reduced in compilation time
  * do not depend on state variables, only on global constans
@@ -9,15 +12,15 @@
 
 class ExpEvaluator : public Visitor {
 private:
-    map<string, Decl*>& globals = ModuleScope::globals;
+    shared_map<string, Decl>& globals = ModuleScope::globals;
     Type type;
     union value_holder_t {
 	bool bvalue;
 	int ivalue;
 	float fvalue;
     } value;
-    void reduce_unary_operator(OpExp *exp);
-    void reduce_binary_operator(OpExp *exp);
+    void reduce_unary_operator(shared_ptr<OpExp> exp);
+    void reduce_binary_operator(shared_ptr<OpExp> exp);
     void mark_not_reducible();
 
     template<typename T>
@@ -38,9 +41,9 @@ public:
     bool has_type_float();
     //set ready to use again
     void reset();
-    void visit(IConst* node);
-    void visit(BConst* node);
-    void visit(FConst* node);
-    void visit(LocExp* node);
-    void visit(OpExp* node);
+    void visit(shared_ptr<IConst> node);
+    void visit(shared_ptr<BConst> node);
+    void visit(shared_ptr<FConst> node);
+    void visit(shared_ptr<LocExp> node);
+    void visit(shared_ptr<OpExp> node);
 };

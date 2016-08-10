@@ -2,12 +2,15 @@
 #include "ModelParser.hpp"
 #include <cstdlib>
 
+using std::shared_ptr;
+using std::static_pointer_cast;
+
 void ModelAST::accept(Visitor &visit) {
-    visit.visit(this);
+    visit.visit(shared_ptr<ModelAST>{this});
 }
 
-ModelAST *ModelAST::from_file(const string &filename) {
-    ModelAST *result = nullptr;
+shared_ptr<ModelAST> ModelAST::from_file(const string &filename) {
+    shared_ptr<ModelAST> result = nullptr;
     ModelParserGen::ModelParser parser {&result};
     FILE *file = fopen(filename.c_str(), "r");
     if (file == nullptr) {
@@ -24,176 +27,123 @@ void ModelAST::on_scanner_error(const string &msg) {
     std::cerr << "Syntax error: " << msg << std::endl;
 }
 
-//Model
-Model::~Model() {
-    for (auto &entry : modules) {
-	delete entry.second;
-    }
-    for (auto *decl : globals) {
-	delete decl;
-    }
+void Model::accept(Visitor& visit) {
+    //my_type == Model
+    using my_type = std::remove_pointer<decltype(this)>::type;
+    const auto &_this = static_pointer_cast<my_type> (shared_from_this());
+    visit.visit(_this);
 }
 
-void Model::accept(Visitor& visitor) {
-  visitor.visit(this);
+void ModuleBody::accept(Visitor& visit) {
+    using my_type = std::remove_pointer<decltype(this)>::type;
+    visit.visit(static_pointer_cast<my_type>(shared_from_this()));
 }
 
-//Module Body
-ModuleBody::~ModuleBody() {
-    for (auto *decl : local_decls) {
-	delete decl;
-    }
-    for (auto *action : actions) {
-	delete action;
-    }
+void Decl::accept(Visitor& visit) {
+    visit.visit(static_pointer_cast<Decl>(shared_from_this()));
 }
 
-void ModuleBody::accept(Visitor& visitor) {
-  visitor.visit(this);
+void Action::accept(Visitor& visit) {
+    visit.visit(static_pointer_cast<Action>(shared_from_this()));
 }
 
-//Decl
-Decl::~Decl() {
-    for (auto *exp : inits) {
-	delete exp;
-    }
-    delete lower;
-    delete upper;
-    delete size;
+void Effect::accept(Visitor& visit) {
+    visit.visit(static_pointer_cast<Effect>(shared_from_this()));
 }
 
-void Decl::accept(Visitor& visitor) {
-  visitor.visit(this);
+void Dist::accept(Visitor& visit) {
+    visit.visit(static_pointer_cast<Dist>(shared_from_this()));
 }
 
-//Action
-Action::~Action() {
-    for (auto *effect : effects) {
-	delete effect;
-    }
-    delete clock_loc;
-    delete guard;
-}
-
-void Action::accept(Visitor& visitor) {
-  visitor.visit(this);
-}
-
-//Effect
-Effect::~Effect() {
-    delete loc;
-    delete dist;
-    delete arg;
-}
-
-void Effect::accept(Visitor& visitor) {
-  visitor.visit(this);
-}
-
-//Dist
-Dist::~Dist() {
-    delete param1;
-    delete param2;
-}
-
-void Dist::accept(Visitor& visitor) {
-  visitor.visit(this);
-}
-
-//Location
-Location::~Location() {
-    delete index;
-}
-
-void Location::accept(Visitor& visitor) {
-  visitor.visit(this);
+void Location::accept(Visitor& visit) {
+    visit.visit(static_pointer_cast<Location>(shared_from_this()));
 }
 
 //Exp
-void Exp::accept(Visitor& visitor) {
-  visitor.visit(this);
+void Exp::accept(Visitor& visit) {
+    visit.visit(static_pointer_cast<Exp>(shared_from_this()));
 }
 
 //LocExp
-void LocExp::accept(Visitor& visitor) {
-  visitor.visit(this);
+void LocExp::accept(Visitor& visit) {
+    visit.visit(static_pointer_cast<LocExp>(shared_from_this()));
 }
 
 //IConst
-void IConst::accept(Visitor& visitor) {
-  visitor.visit(this);
+void IConst::accept(Visitor& visit) {
+    visit.visit(static_pointer_cast<IConst>(shared_from_this()));
 }
 
 //BConst
-void BConst::accept(Visitor& visitor) {
-  visitor.visit(this);
+void BConst::accept(Visitor& visit) {
+    visit.visit(static_pointer_cast<BConst>(shared_from_this()));
 }
 
 //OpExp
-void OpExp::accept(Visitor& visitor) {
-  visitor.visit(this);
+void OpExp::accept(Visitor& visit) {
+    visit.visit(static_pointer_cast<OpExp>(shared_from_this()));
 }
 
 //FConst
-void FConst::accept(Visitor& visitor) {
-  visitor.visit(this);
+void FConst::accept(Visitor& visit) {
+    visit.visit(static_pointer_cast<FConst>(shared_from_this()));
 }
 
 //Default Visitor does nothing on his visitation ;)
 
-void Visitor::visit(ModelAST *node) {
+void Visitor::visit(shared_ptr<ModelAST> node) {
     (void) node;
 }
 
-void Visitor::visit(Model *node) {
+void Visitor::visit(shared_ptr<Model> node) {
      (void) node;
 }
 
-void Visitor::visit(ModuleBody *node) {
+void Visitor::visit(shared_ptr<ModuleBody> node) {
     (void) node;
 }
 
-void Visitor::visit(Decl *node) {
+void Visitor::visit(shared_ptr<Decl> node) {
     (void) node;
 }
 
-void Visitor::visit(Action *node) {
+void Visitor::visit(shared_ptr<Action> node) {
     (void) node;
 }
 
-void Visitor::visit(Effect *node) {
+void Visitor::visit(shared_ptr<Effect> node) {
     (void) node;
 }
 
-void Visitor::visit(Dist *node) {
+void Visitor::visit(shared_ptr<Dist> node) {
     (void) node;
 }
 
-void Visitor::visit(Location *node) {
+void Visitor::visit(shared_ptr<Location> node) {
     (void) node;
 }
 
-void Visitor::visit(Exp *node) {
+void Visitor::visit(shared_ptr<Exp> node) {
     (void) node;
 }
 
-void Visitor::visit(IConst *node) {
+void Visitor::visit(shared_ptr<IConst> node) {
     (void) node;
 }
 
-void Visitor::visit(BConst *node) {
+void Visitor::visit(shared_ptr<BConst> node) {
     (void) node;
 }
 
-void Visitor::visit(FConst *node) {
+void Visitor::visit(shared_ptr<FConst> node) {
     (void) node;
 }
 
-void Visitor::visit(LocExp *node) {
+void Visitor::visit(shared_ptr<LocExp> node) {
     (void) node;
 }
 
-void Visitor::visit(OpExp *node) {
+void Visitor::visit(shared_ptr<OpExp> node) {
     (void) node;
 }
 

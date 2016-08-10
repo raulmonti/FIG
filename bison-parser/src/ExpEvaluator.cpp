@@ -102,40 +102,40 @@ std::function<bool (T, T)> ExpEvaluator::bop_as_rel(ExpOp op) {
     }
 }
 
-void ExpEvaluator::visit(IConst* iexp) {
+void ExpEvaluator::visit(shared_ptr<IConst> iexp) {
     value.ivalue = iexp->value;
     type = Type::tint;
 }
 
-void ExpEvaluator::visit(BConst* bexp) {
+void ExpEvaluator::visit(shared_ptr<BConst> bexp) {
     value.bvalue = bexp->value;
     type = Type::tbool;
 }
 
-void ExpEvaluator::visit(FConst* fexp) {
+void ExpEvaluator::visit(shared_ptr<FConst> fexp) {
     value.fvalue = fexp->value;
     type = Type::tfloat;
 }
 
-void ExpEvaluator::visit(LocExp* loc) {
-    Location *location = loc->location;
+void ExpEvaluator::visit(shared_ptr<LocExp> loc) {
+    shared_ptr<Location> location = loc->location;
     string &id = location->id;
     if (globals.find(id) != globals.end()) {
-	Decl *decl = globals[id];
+	shared_ptr<Decl> decl = globals[id];
 	if (location->is_array_position()) {
 	    // case: id [ indexp ]
-	    Exp *indexp = location->index;
+	    shared_ptr<Exp> indexp = location->index;
 	    //evaluate the index
 	    indexp->accept(*this);
 	    if (was_reduced() && decl->has_array_init()) {
 		int index = get_int();
 		if (decl->has_single_init()) {
 		    //e.g: id [ indexp ] init 4;
-		    Exp *init = decl->inits.at(0);
+		    shared_ptr<Exp> init = decl->inits.at(0);
 		    init->accept(*this);
 		} else {
 		    //e.g: id [ indexp ] = {1, 2, 3}
-		    Exp *valexp = decl->inits.at(index);
+		    shared_ptr<Exp> valexp = decl->inits.at(index);
 		    valexp->accept(*this);
 		}
 	    } else {
@@ -146,15 +146,15 @@ void ExpEvaluator::visit(LocExp* loc) {
 	    if (decl->has_single_init()) {
 		//e.g: id int init 42
 		//take the value of the initialization
-		Exp *init = decl->inits.at(0);
+		shared_ptr<Exp> init = decl->inits.at(0);
 		init->accept(*this);
 	    }
 	}
     }
 }
 
-inline void ExpEvaluator::reduce_unary_operator(OpExp *exp) {
-    Exp *left = exp->left;
+inline void ExpEvaluator::reduce_unary_operator(shared_ptr<OpExp> exp) {
+    shared_ptr<Exp> left = exp->left;
     left->accept(*this);
     //convert to float if expects float type
     if (exp->type == Type::tfloat && type == Type::tint) {
@@ -176,9 +176,9 @@ inline void ExpEvaluator::reduce_unary_operator(OpExp *exp) {
     }
 }
 
-inline void ExpEvaluator::reduce_binary_operator(OpExp *exp) {
-    Exp *left = exp->left;
-    Exp *right = exp->right;
+inline void ExpEvaluator::reduce_binary_operator(shared_ptr<OpExp> exp) {
+    shared_ptr<Exp> left = exp->left;
+    shared_ptr<Exp> right = exp->right;
     //reduce left argument and store result
     left->accept(*this);
     value_holder_t val_left = value;
@@ -232,7 +232,7 @@ inline void ExpEvaluator::reduce_binary_operator(OpExp *exp) {
     }
 }
 
-void ExpEvaluator::visit(OpExp* exp) {
+void ExpEvaluator::visit(shared_ptr<OpExp> exp) {
     if (exp->arity == Arity::one) {
 	reduce_unary_operator(exp);
     } else if (exp->arity == Arity::two) {
