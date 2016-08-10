@@ -11,7 +11,7 @@
 using std::string;
 
 struct ModuleScope {
-    //map of shared pointers (Util.h)
+    //map of shared pointers
     static shared_map<string, ModuleScope> scopes;
     static shared_map<string, Decl> globals;
     string id;

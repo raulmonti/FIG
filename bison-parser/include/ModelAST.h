@@ -29,6 +29,7 @@ namespace ModelParserGen {
 }
 
 class ModelAST : public std::enable_shared_from_this<ModelAST> {
+protected:
 private:
     friend class ModelParserGen::ModelParser;
     friend class ModelParserGen::ModelScanner;
@@ -135,7 +136,12 @@ public:
     Decl(Type type, string id, shared_ptr<Exp> lower, shared_ptr<Exp> upper)
 	: type {type}, id {id},
 	  lower {lower}, upper {upper},size {nullptr}
-	{ inits = vector<shared_ptr<Exp>>{}; }
+	{
+	    //choose lower limit as initialization
+	    //note: this turns the AST into an ASGraph,
+	    //safe only by using shared_ptr or a well-designed deleter.
+	    inits = vector<shared_ptr<Exp>>{lower};
+	}
     
     //declaration with type, id, range and initialization
     Decl(Type type, string id, shared_ptr<Exp> lower,
@@ -152,6 +158,7 @@ public:
 	{ inits = vector<shared_ptr<Exp>>{init};}
 
     //declaration with type, id, no range, no initialization
+    //(this must be a clock)
     Decl(Type type, string id)
 	: type {type}, id {id},
 	  lower {nullptr}, upper {nullptr},

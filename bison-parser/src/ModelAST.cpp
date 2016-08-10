@@ -6,7 +6,7 @@ using std::shared_ptr;
 using std::static_pointer_cast;
 
 void ModelAST::accept(Visitor &visit) {
-    visit.visit(shared_ptr<ModelAST>{this});
+    visit.visit(shared_from_this());
 }
 
 shared_ptr<ModelAST> ModelAST::from_file(const string &filename) {
