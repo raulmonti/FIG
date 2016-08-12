@@ -265,11 +265,11 @@ public:
     Effect(const Effect &effect) = delete;
     void operator=(const Effect &effect) = delete;
 
-    bool is_clock_reset() {
+    bool is_clock_reset() const {
 	return (dist != nullptr);
     }
 
-    bool is_state_change() {
+    bool is_state_change() const {
 	return (arg != nullptr);
     }
         

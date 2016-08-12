@@ -51,6 +51,15 @@ vector<T> concat(vector<T> &v1, const vector<T> &v2) {
     return v1;
 }
 
+
+template<typename T>
+void print_all(const T &v) {
+    for (const auto &x : v) {
+	std::cout << " " << x;
+    }
+    std::cout << std::endl;
+}
+
 //standard in c++14
 template<typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args)

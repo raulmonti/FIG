@@ -7,6 +7,36 @@
 ModelBuilder::ModelBuilder() {};
 ModelBuilder::~ModelBuilder() {};
 
+inline const string mb_error_irr(const Type& type) {
+    return (" not reducible to " + ModelPrinter::to_str(type) +
+	    " at compilation time");
+}
+
+inline const string mb_error_dist_1(const string &clock_id) {
+    return ("Fist distribution parameter of clock " + clock_id +
+	    mb_error_irr(Type::tfloat));
+}
+
+inline const string mb_error_dist_2(const string &clock_id) {
+    return ("Second distribution parameter of clock " + clock_id +
+	    mb_error_irr(Type::tfloat));
+}
+
+inline const string mb_error_range_1(const string &var_id) {
+    return ("Lower bound of range for " + var_id +
+	    mb_error_irr(Type::tint));
+}
+
+inline const string mb_error_range_2(const string &var_id) {
+	return ("Upper bound of range for " + var_id +
+		mb_error_irr(Type::tint));
+}
+
+inline const string mb_error_init(const string &var_id, const Type& type) {
+    return ("Initialization of " + var_id +
+	    mb_error_irr(type));
+}
+
 inline void ModelBuilder::accept_cond(shared_ptr<ModelAST> node) {
     if (!has_errors()) {
 	node->accept(*this);
@@ -28,7 +58,7 @@ inline int ModelBuilder::get_int_or_error(shared_ptr<Exp> exp,
     if (ev.has_type_int()) {
 	res = ev.get_int();
     } else {
-	put_error(msg + " not reducible to [int] at compilation time"); 
+	put_error(msg); 
     }
     return (res);
 }
@@ -43,7 +73,7 @@ inline float ModelBuilder::get_float_or_error(shared_ptr<Exp> exp,
     } else if (ev.has_type_int()) {
 	res = (float) ev.get_int();
     } else {
-	put_error(msg + " not reducible to [float] at compilation time"); 
+	put_error(msg); 
     }
     return (res);
 }
@@ -56,7 +86,7 @@ inline bool ModelBuilder::get_bool_or_error(shared_ptr<Exp> exp,
     if (ev.has_type_bool()) {
 	res = ev.get_bool();
     } else {
-	put_error(msg + " not reducible to [bool] at compilation time"); 
+	put_error(msg); 
     }
     return (res);
 }
@@ -87,17 +117,14 @@ Clock ModelBuilder::build_clock(const string& id) {
     fig::DistributionParameters params;
     //reduce distribution parameters
     if (dist->arity == Arity::one) {
-	params[0] = get_float_or_error(dist->param1,
-				       "Parameter of distribution for clock " + id);
+	params[0] = get_float_or_error(dist->param1, mb_error_dist_1(id));
 	for (unsigned int i = 1; i < params.size(); i++) {
 	    params[i] = 0.0;
 	}
     }
     if (dist->arity == Arity::two) {
-	params[0] = get_float_or_error(dist->param1,
-				       "First parameter of distribution for clock " + id);
-	params[1] = get_float_or_error(dist->param2,
-				       "Second parameter of distribution for clock " + id);
+	params[0] = get_float_or_error(dist->param1, mb_error_dist_1(id));
+	params[1] = get_float_or_error(dist->param2, mb_error_dist_2(id));
 	for (unsigned int i = 2; i < params.size(); i++) {
 		params[i] = 0.0;
 	}
@@ -115,10 +142,8 @@ void ModelBuilder::visit(shared_ptr<Decl> decl) {
 	put_error("Arrays not yet supported");
     }
     if (decl->has_range()) {
-	string msg = "Lower bound error of " + decl->id;
-	lower = get_int_or_error(decl->lower, msg);
-	msg  =  "Upper bound error of " + decl->id;
-	upper = get_int_or_error(decl->upper, msg);
+	lower = get_int_or_error(decl->lower, mb_error_range_1(decl->id));
+	upper = get_int_or_error(decl->upper, mb_error_range_2(decl->id));
 	type = Type::tint;
     } else {
 	lower = 0;
@@ -128,9 +153,9 @@ void ModelBuilder::visit(shared_ptr<Decl> decl) {
     if (decl->has_single_init()) {
 	shared_ptr<Exp> iniexp = decl->inits.at(0);
 	if (type == Type::tint) {
-	    init = get_int_or_error(iniexp, "Initialization of " + decl->id);
+	    init = get_int_or_error(iniexp, mb_error_init(decl->id, type));
 	} else if (type == Type::tbool) {
-	    bool res = get_bool_or_error(iniexp, "Initialization of " + decl->id);
+	    bool res = get_bool_or_error(iniexp, mb_error_init(decl->id, type));
 	    init = res ? 1 : 0;
 	} else {
 	    throw_FigException("Not yet supported declaration type");
@@ -169,10 +194,44 @@ void ModelBuilder::visit(shared_ptr<Action> action) {
     action->guard->accept(string_builder);
     string result = string_builder.str();
     Precondition pre (result, string_builder.get_names());
+    //Postcondition, to build the postcondition we need to visit the effects.
+    transition_read_vars = make_unique<set<string>>();
+    transition_write_vars = make_unique<vector<string>>();
+    transition_update.str(std::string());
+    transition_clocks = make_unique<set<string>>();
+    auto &effects = action->get_effects();
+    auto it = effects.begin();
+    while (it != effects.end()) {
+	(*it)->accept(*this);
+	//avoid putting a ',' at the end:
+	//we could also let the comma be and then delete it
+	if ((it + 1) != effects.end()) {
+	    const shared_ptr<Effect>& next = *(it + 1);
+	    if (next->is_state_change()) {
+		transition_update << ",";
+	    }
+	}
+	it++;
+    }
+    const string &update = transition_update.str();
+    Postcondition post (update, *transition_read_vars, *transition_write_vars);
+    Transition transition (label, t_clock, pre, post, *transition_clocks);
+    //Transition is ready!
+    module_transitions->push_back(transition);
 }
 
-void ModelBuilder::visit(shared_ptr<Effect> node) {
-    (void) node;
+void ModelBuilder::visit(shared_ptr<Effect> effect) {
+    if (effect->is_clock_reset()) {
+	transition_clocks->insert(effect->loc->id);
+    } else if (effect->is_state_change()) {
+	ExpStringBuilder str_builder;
+	effect->arg->accept(str_builder);
+	const set<string> &names = str_builder.get_names();
+	set<string>::iterator end = transition_read_vars->end();
+	transition_read_vars->insert(names.cbegin(), names.cend());
+	transition_write_vars->push_back(effect->loc->id);
+	transition_update << str_builder.str();
+    }
 }
 
 // ExpStringBuilder
