@@ -36,6 +36,7 @@ private:
     void accept_cond(shared_ptr<ModelAST> module);
     //prefix for log message
     void check_type(Type type, const string &msg);
+    void check_clocks(shared_ptr<ModuleScope> scope);
     Type identifier_type(const string &id);
     bool is_global_scope() {
 	return (current_scope == nullptr);

@@ -22,16 +22,14 @@ private:
     void reduce_unary_operator(shared_ptr<OpExp> exp);
     void reduce_binary_operator(shared_ptr<OpExp> exp);
     void mark_not_reducible();
-
+public:
+    ExpEvaluator() : type {Type::tunknown} {};
     template<typename T>
     static std::function<T (T)> uop_as_fun(ExpOp op);
     template<typename T>
     static std::function<T (T, T)> bop_as_fun(ExpOp op);
     template<typename T>
     static std::function<bool (T, T)> bop_as_rel(ExpOp op);
-
-public:
-    ExpEvaluator() : type {Type::tunknown} {};
     bool was_reduced();
     int get_int();
     bool get_bool();

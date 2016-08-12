@@ -98,6 +98,12 @@ shared_map<string, Decl> ModuleScope::globals;
     " - Clock \""  +					\
     clock_id +						\
     "\" must have a single distribution type"		\
+
+#define TC_CLOCK_DIST(clock_id)				\
+    PREFIX		+				\
+    " - Clock \""  +					\
+    clock_id +						\
+    "\" must have a distribution type"			\
     
 #define TC_LABEL_CLOCK(label)					\
     PREFIX		+					\
@@ -232,6 +238,18 @@ inline void ModelTC::accept_cond(shared_ptr<ModelAST> node) {
     }
 }
 
+void ModelTC::check_clocks(shared_ptr<ModuleScope> scope) {
+    for (auto entry : scope->local_decls) {
+	shared_ptr<Decl> decl = entry.second;
+	const string &id = entry.first;
+	if (decl->type == Type::tclock) {
+	    if (scope->clock_dists.find(id) == scope->clock_dists.end()) {
+		put_error(TC_CLOCK_DIST(id));
+	    }
+	}
+    }
+}
+
 void ModelTC::visit(shared_ptr<Model> model) {
     //check globals
     for (auto decl : model->get_globals()) {
@@ -252,6 +270,13 @@ void ModelTC::visit(shared_ptr<Model> model) {
 	current_scope = new_scope;
 	scopes[id] = new_scope;
 	accept_cond(new_scope->body);
+    }
+    //some extra checks after "scopes" has been built
+    if (!has_errors()) {
+	for (auto entry : scopes) {
+	    const auto &scope_current = entry.second;
+	    check_clocks(scope_current);
+	}
     }
 }
 
@@ -413,7 +438,6 @@ void ModelTC::visit(shared_ptr<Location> loc) {
 	    put_error(TC_ID_SCOPE(id));
 	}  
     }
-
     if (loc->is_array_position()) {
 	accept_cond(loc->index);
 	check_type(Type::tint, TC_INDEX_INT(loc->id));
@@ -474,5 +498,4 @@ void ModelTC::visit(shared_ptr<OpExp> exp){
 }
 
 ModelTC::~ModelTC() {
-    
 }

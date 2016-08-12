@@ -1,7 +1,12 @@
+#include <sstream>
+#include <set>
+
 #include "ModelTC.h"
 #include "ModuleInstance.h"
 #include "State.h"
 #include "Clock.h"
+#include "Transition.h"
+#include "Label.h"
 
 using std::shared_ptr;
 using std::unique_ptr;
@@ -9,6 +14,10 @@ using fig::ModuleInstance;
 using Vars = fig::State<fig::STATE_INTERNAL_TYPE>;
 using Var  = fig::VariableDefinition<fig::STATE_INTERNAL_TYPE>;
 using fig::Clock;
+using fig::Transition;
+using fig::Label;
+using fig::Precondition;
+using std::set;
 
 class ModelBuilder : public Visitor {
 private:
@@ -22,6 +31,7 @@ private:
     shared_ptr<ModuleInstance> current_module;
     unique_ptr<vector<Var>> module_vars;
     unique_ptr<vector<Clock>> module_clocks;
+    unique_ptr<vector<Transition>> module_transitions;
     shared_ptr<ModuleScope> current_scope;
 
 public:
@@ -33,11 +43,19 @@ public:
     void visit(shared_ptr<Decl> node);
     void visit(shared_ptr<Action> node);
     void visit(shared_ptr<Effect> node);
-    void visit(shared_ptr<Dist> node);
-    void visit(shared_ptr<Location> node);
+};
+
+class ExpStringBuilder : public Visitor {
+    set<string> names;
+    bool should_enclose;
+    std::string result;
+public:
+    ExpStringBuilder() : should_enclose {false}, result {""} {};
     void visit(shared_ptr<IConst> node);
     void visit(shared_ptr<BConst> node);
     void visit(shared_ptr<FConst> node);
     void visit(shared_ptr<LocExp> node);
     void visit(shared_ptr<OpExp> node);
+    const set<string>& get_names();
+    string str();
 };

@@ -146,7 +146,7 @@ public:
     //declaration with type, id, range and initialization
     Decl(Type type, string id, shared_ptr<Exp> lower,
 	 shared_ptr<Exp> upper, shared_ptr<Exp> init)
-	: type {type}, id {id}, lower {lower}, upper {upper},
+: type {type}, id {id}, lower {lower}, upper {upper},
 	  size {nullptr}
 	{ inits = vector<shared_ptr<Exp>>{init}; }
 

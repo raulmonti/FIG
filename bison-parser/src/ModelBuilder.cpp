@@ -5,8 +5,7 @@
 #include "ModelPrinter.h"
 
 ModelBuilder::ModelBuilder() {};
-ModelBuilder::~ModelBuilder() {
-};
+ModelBuilder::~ModelBuilder() {};
 
 inline void ModelBuilder::accept_cond(shared_ptr<ModelAST> node) {
     if (!has_errors()) {
@@ -65,35 +64,20 @@ inline bool ModelBuilder::get_bool_or_error(shared_ptr<Exp> exp,
 void ModelBuilder::visit(shared_ptr<Model> model) {
     for (auto &entry : model->get_modules()) {
 	const string &id = entry.first;
-	std::cout << "MODULE " << id << std::endl;
 	current_scope = scopes[id];
 	accept_cond(entry.second);
     }
 }
 
 void ModelBuilder::visit(shared_ptr<ModuleBody> body) {
-    std::cout << "LOCAL DECL :" << std::endl;
+    module_vars = make_unique<vector<Var>>();
+    module_clocks = make_unique<vector<Clock>>();
+    module_transitions = make_unique<vector<Transition>>();
     for (auto &decl : body->get_local_decls()) {
-	module_vars = make_unique<vector<Var>>();
-	module_clocks = make_unique<vector<Clock>>();
 	accept_cond(decl);
-	for (Var var : *module_vars) {
-	    std::cout << "Nombre: "  + std::get<0>(var);
-	    std::cout << " Minimo: " + std::to_string(std::get<1>(var));
-	    std::cout << " Maximo: " + std::to_string(std::get<2>(var));
-	    std::cout << " Init:   " + std::to_string(std::get<3>(var));
-	    std::cout << std::endl;
-	}
-	for (Clock &clock : *module_clocks) {
-	    std::cout << "Nombre: "  + clock.name();
-	    std::cout << "Dist: "   + clock.dist_name();
-	    std::cout << std::endl;
-	    fig::DistributionParameters params = clock.distribution_params();
-	    for (unsigned int i = 0; i < params.size(); i++) {
-		std::cout << "Param " << params[i] << " ";
-	    }
-	    std::cout << std::endl;
-	}
+    }
+    for (auto &action : body->get_actions()) {
+	accept_cond(action);
     }
 }
 
@@ -162,38 +146,82 @@ void ModelBuilder::visit(shared_ptr<Decl> decl) {
     }
 }
 
-void ModelBuilder::visit(shared_ptr<Action> node) {
-    (void) node;
+Label build_label(const string &id, LabelType type) {
+    switch(type) {
+    case LabelType::in : return Label(id, false);
+    case LabelType::out: return Label(id, true);
+    case LabelType::commited: throw_FigException("Commited actions not yet supported");
+    case LabelType::empty: return Label(id, true);
+    default:
+	throw_FigException("Unsupported label type");
+    }	
+}
+
+void ModelBuilder::visit(shared_ptr<Action> action) {
+    const string &label_id = action->id;
+    LabelType label_type = action->type;
+    Label label = build_label(label_id, label_type);
+    //Transition constructor expects the id of the triggering clock,  let's get it:
+    string t_clock =
+	label_type == LabelType::in ? "" : current_scope->label_clocks[label_id];
+    //Precondition
+    ExpStringBuilder string_builder;
+    action->guard->accept(string_builder);
+    string result = string_builder.str();
+    Precondition pre (result, string_builder.get_names());
 }
 
 void ModelBuilder::visit(shared_ptr<Effect> node) {
     (void) node;
 }
 
-void ModelBuilder::visit(shared_ptr<Dist> node) {
-    (void) node;
+// ExpStringBuilder
+void ExpStringBuilder::visit(shared_ptr<IConst> node) {
+    result = std::to_string(node->value);
+    should_enclose = false;
 }
 
-void ModelBuilder::visit(shared_ptr<Location> node) {
-    (void) node;
+void ExpStringBuilder::visit(shared_ptr<BConst> node) {
+    result = node->value ? "true" : "false";
+    should_enclose = false;
 }
 
-void ModelBuilder::visit(shared_ptr<IConst> node) {
-    (void) node;
+void ExpStringBuilder::visit(shared_ptr<FConst> node) {
+    result = std::to_string(node->value);
+    should_enclose = false;
 }
 
-void ModelBuilder::visit(shared_ptr<BConst> node) {
-    (void) node;
+void ExpStringBuilder::visit(shared_ptr<LocExp> node) {
+    if (node->location->is_array_position()) {
+	throw_FigException("Array position are not yet supported");
+    }
+    result = node->location->id;
+    names.insert(result);
+    should_enclose = false;
 }
 
-void ModelBuilder::visit(shared_ptr<FConst> node) {
-    (void) node;
+void ExpStringBuilder::visit(shared_ptr<OpExp> exp) {
+    string left_s;
+    string right_s;
+    string op = ModelPrinter::to_str(exp->bop);
+    if (exp->arity == Arity::one) {
+	exp->left->accept(*this);
+	left_s = should_enclose ? "(" + result + ")" : result;
+	result = op + left_s; 
+    } else if (exp->arity == Arity::two) {
+	exp->left->accept(*this);
+	left_s = should_enclose ? "(" + result + ")" : result;
+	exp->right->accept(*this);
+	right_s = should_enclose ? "(" + result + ")" : result;
+	result = left_s + op + right_s;
+    }
+    should_enclose = true;
 }
 
-void ModelBuilder::visit(shared_ptr<LocExp> node) {
-    (void) node;
+string ExpStringBuilder::str() {
+    return (result);
 }
 
-void ModelBuilder::visit(shared_ptr<OpExp> node) {
-    (void) node;
+const set<string>& ExpStringBuilder::get_names() {
+    return (names);
 }
