@@ -1,5 +1,4 @@
 /* -*- C++ -*- */
-
 /* IOSA PARSER GENERATOR
  *
  * Leonardo Rodríguez
@@ -18,6 +17,7 @@
 
 %code requires
 {
+#include <cassert>
 #include <string>
 #include <sstream>
 #include <memory>
@@ -27,6 +27,7 @@
 
     using std::shared_ptr;
     using std::make_shared;
+    using std::static_pointer_cast;
     
 //definition YY_DECL should be available also for ModelScannerGen.ll
 //ModelScannerGen includes ModuleParser.hpp
@@ -49,6 +50,8 @@ END  0  "end of file"
 COMMA ";"
 MODULE "module"
 ENDMODULE "endmodule"
+PROP "properties"
+ENDPROP "endproperties"
 TINT "int"
 TBOOL "bool"
 TFLOAT "float"
@@ -89,6 +92,9 @@ ADM "!"
 ARROW "->"
 TRUE "true"
 FALSE "false"
+PROPT "P"
+PROPS "S"
+UNTIL "U"
 ;
 
 %left "|";
@@ -117,11 +123,21 @@ FALSE "false"
 %type  <shared_ptr<Decl>> decl
 %type  <shared_ptr<ModuleBody>> module_body
 %type  <Type> type
+%type  <shared_ptr<Prop>> prop
+%type  <shared_vector<Prop>> proplist
 
 %%
 %start begin;
 
 begin: model[m] {*result = $m;}
+|  model[m] "properties" proplist[v] "endproperties"
+{auto &res = $m; res->add_props($v); *result = res;}
+|  proplist[v]
+{//assert model is already created
+    assert(*result != nullptr);
+    shared_ptr<Model> model = static_pointer_cast<Model>(*result);
+    model->add_props($v);
+}
 
 model: global_decl[d] ";"
 {$$ = make_shared<Model>($d);}
@@ -142,6 +158,16 @@ model: global_decl[d] ";"
     }
 }
 
+prop: "P" "(" exp[l] "U" exp[r] ")" 
+{ $$ = make_shared<Prop>($l, $r);}
+| "S" "(" exp[r] ")"
+{ $$ = make_shared<Prop>($r);}    
+
+proplist: prop[p]
+{ $$ = vector<shared_ptr<Prop>>{$p};}
+| proplist[v] prop[p]
+{ $$ = $v ; $$.push_back($p);}
+
 type: "int"
 {$$ = Type::tint;}
 | "bool"
@@ -150,7 +176,7 @@ type: "int"
 {$$ = Type::tfloat;}
 
 global_decl: "const" type[t] "id"[id] "=" exp[e]
-{$$ = make_shared<Decl>($t, $id, $e); }
+{$$ = make_shared<Decl>($t, $id, $e);}
 | "const" "id"[id] "[" exp[size] "]" ":" "[" exp[lower] ".." exp[upper] "]" "init" array_init[seq]
 {$$ = make_shared<Decl>(Type::tint, $id, $size, $lower, $upper, $seq);}
 | "const" "id"[id] "[" exp[size] "]" ":" type[t] "init" array_init[seq]

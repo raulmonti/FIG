@@ -9,17 +9,28 @@ void ModelAST::accept(Visitor &visit) {
     visit.visit(shared_from_this());
 }
 
-shared_ptr<ModelAST> ModelAST::from_file(const string &filename) {
+shared_ptr<ModelAST> ModelAST::from_files(const char *model_file,
+					  const char *prop_file) {
     shared_ptr<ModelAST> result = nullptr;
     ModelParserGen::ModelParser parser {&result};
-    FILE *file = fopen(filename.c_str(), "r");
+    FILE *file = fopen(model_file, "r");
     if (file == nullptr) {
-	std::cerr << "File does not exists!" << std::endl;
+	std::cerr << "Model file does not exists!" << std::endl;
 	exit(1);
     }
     scan_begin(file);
     int res = parser.parse();
     scan_end();
+    if (prop_file != nullptr) {
+	file = fopen(prop_file, "r");
+	if (file == nullptr) {
+	    std::cerr << "Properties file does not exists!" << std::endl;
+	    exit(1);
+	}
+	scan_begin(file);
+	res = parser.parse();
+	scan_end();
+    }
     return (res == 0 ? result : nullptr);
 }
 
@@ -30,7 +41,7 @@ void ModelAST::on_scanner_error(const string &msg) {
 void Model::accept(Visitor& visit) {
     //my_type == Model
     using my_type = std::remove_pointer<decltype(this)>::type;
-    const auto &_this = static_pointer_cast<my_type> (shared_from_this());
+    const auto &_this = static_pointer_cast<my_type>(shared_from_this());
     visit.visit(_this);
 }
 
@@ -57,6 +68,10 @@ void Dist::accept(Visitor& visit) {
 
 void Location::accept(Visitor& visit) {
     visit.visit(static_pointer_cast<Location>(shared_from_this()));
+}
+
+void Prop::accept(Visitor& visit) {
+    visit.visit(static_pointer_cast<Prop>(shared_from_this()));
 }
 
 //Exp
@@ -144,6 +159,10 @@ void Visitor::visit(shared_ptr<LocExp> node) {
 }
 
 void Visitor::visit(shared_ptr<OpExp> node) {
+    (void) node;
+}
+
+void Visitor::visit(shared_ptr<Prop> node) {
     (void) node;
 }
 

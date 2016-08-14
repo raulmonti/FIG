@@ -363,16 +363,6 @@ void ModelTC::visit(shared_ptr<Action> action) {
 	accept_cond(action->clock_loc);
 	check_type(Type::tclock,
 		   TC_LABEL_NOT_A_CLOCK(label, action->clock_loc->id)); 
-	auto &label_clocks = current_scope->label_clocks;
-	// check if label (if not empty) has at most one clock
-	if (label_clocks.find(label) != label_clocks.end()) {
-	    string &clock_id = label_clocks[label];
-	    if (clock_id != action->clock_loc->id) {
-		put_error(TC_LABEL_CLOCK(clock_id));
-	    }
-	} else if (label_type != LabelType::empty) {
-	    label_clocks[label] = action->clock_loc->id;
-	}
     }
     for (auto &effect : action->get_effects()) {
 	accept_cond(effect);

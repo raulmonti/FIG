@@ -1,8 +1,9 @@
 #include <tuple>
 #include <cassert>
-#include "ModelBuilder.h"
-#include "ExpEvaluator.h"
-#include "ModelPrinter.h"
+#include <ModelBuilder.h>
+#include <ExpEvaluator.h>
+#include <ModelPrinter.h>
+
 
 ModelBuilder::ModelBuilder() {};
 ModelBuilder::~ModelBuilder() {};
@@ -56,9 +57,9 @@ inline int ModelBuilder::get_int_or_error(shared_ptr<Exp> exp,
     ExpEvaluator ev;
     accept_visitor(exp, ev);
     if (ev.has_type_int()) {
-	res = ev.get_int();
+        res = ev.get_int();
     } else {
-	put_error(msg); 
+        put_error(msg); 
     }
     return (res);
 }
@@ -69,11 +70,11 @@ inline float ModelBuilder::get_float_or_error(shared_ptr<Exp> exp,
     ExpEvaluator ev;
     accept_visitor(exp, ev);
     if (ev.has_type_float()) {
-	res = ev.get_float();
+        res = ev.get_float();
     } else if (ev.has_type_int()) {
-	res = (float) ev.get_int();
+        res = (float) ev.get_int();
     } else {
-	put_error(msg); 
+        put_error(msg); 
     }
     return (res);
 }
@@ -86,7 +87,7 @@ inline bool ModelBuilder::get_bool_or_error(shared_ptr<Exp> exp,
     if (ev.has_type_bool()) {
 	res = ev.get_bool();
     } else {
-	put_error(msg); 
+        put_error(msg); 
     }
     return (res);
 }
@@ -96,6 +97,8 @@ void ModelBuilder::visit(shared_ptr<Model> model) {
 	const string &id = entry.first;
 	current_scope = scopes[id];
 	accept_cond(entry.second);
+        vector<std::string> v;
+        
     }
 }
 
@@ -111,7 +114,7 @@ void ModelBuilder::visit(shared_ptr<ModuleBody> body) {
     }
 }
 
-Clock ModelBuilder::build_clock(const string& id) {
+Clock ModelBuilder::build_clock(const std::string& id) {
     shared_ptr<Dist> dist = current_scope->clock_dists[id];
     assert(dist != nullptr);
     fig::DistributionParameters params;
@@ -187,8 +190,7 @@ void ModelBuilder::visit(shared_ptr<Action> action) {
     LabelType label_type = action->type;
     Label label = build_label(label_id, label_type);
     //Transition constructor expects the id of the triggering clock,  let's get it:
-    string t_clock =
-	label_type == LabelType::in ? "" : current_scope->label_clocks[label_id];
+    string t_clock = action->has_clock() ? action->clock_loc->id : std::string();
     //Precondition
     ExpStringBuilder string_builder;
     action->guard->accept(string_builder);

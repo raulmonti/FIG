@@ -84,6 +84,15 @@ string ModelPrinter::to_str(ExpOp op) {
     return result;
 }
 
+string ModelPrinter::to_str(PropType prop_type) {
+    string result;
+    switch(prop_type) {
+    case PropType::transient: result = "Transient"; break;
+    case PropType::rate: result = "Rate"; break;
+    }
+    return (result);
+}
+
 void ModelPrinter::accept_idented(shared_ptr<ModelAST> node) {
     ident++;
     node->accept(*this);
@@ -104,6 +113,9 @@ void ModelPrinter::visit(shared_ptr<Model> model) {
     for (auto body : model->modules) {
         print_idented("Module: " + body.first);
         accept_idented(body.second);
+    }
+    for (auto prop : model->get_props()) {
+        accept_idented(prop);
     }
 }
 
@@ -224,5 +236,16 @@ void ModelPrinter::visit(shared_ptr<OpExp> node) {
     } else if (node->arity == Arity::two) {
         accept_idented(node->left);
         accept_idented(node->right);
+    }
+}
+
+void ModelPrinter::visit(shared_ptr<Prop> prop) {
+    print_idented("=Property=");
+    print_idented(to_str(prop->type));
+    if (prop->type == PropType::transient) {
+	accept_idented(prop->left);
+        accept_idented(prop->right);
+    } else if (prop->type == PropType::rate){
+	accept_idented(prop->left);
     }
 }

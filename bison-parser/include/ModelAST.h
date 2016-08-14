@@ -20,6 +20,7 @@ enum class ExpOp {plus, times, minus, div, mod, andd, orr, nott, eq, neq, lt, gt
 enum class Arity  {one, two};
 enum class LabelType {in, out, commited, empty};
 enum class DistType {erlang, normal, uniform, exponential};
+enum class PropType {transient, rate};
 
 // forward declare this classes to declare them friends
 // (cannot include ModelParser.hpp since its generation depends on this file)
@@ -39,18 +40,32 @@ private:
     static void scan_end();
     static void on_scanner_error(const std::string &msg);
 public:
-    static shared_ptr<ModelAST> from_file(const string& filename);
+    static shared_ptr<ModelAST> from_files(const char *model_file,
+					   const char *prop_file);
     virtual ~ModelAST() {};
     virtual void accept(class Visitor& visit);
 };
 
-//@todo use shared_pointers, I tried but the .yy file became unreadable.
+class Prop : public ModelAST {
+public:
+    PropType type;
+    shared_ptr<class Exp> left;
+    shared_ptr<class Exp> right;
+    
+    Prop(shared_ptr<Exp> rate)
+	: type {PropType::rate}, left {rate}, right {nullptr} {};
+    Prop(shared_ptr<Exp> left, shared_ptr<Exp> right)
+	: type {PropType::transient}, left {left}, right {right} {};
+    void accept(Visitor& visit) override;
+};
+
 class Model : public ModelAST {
 public:
     // (module's id -> body) map
-    // public access allows the use of a VisitorPattern
+    // public access allows the use of VisitorPattern
     shared_map<string, class ModuleBody> modules;
     shared_vector<class Decl> globals;
+    shared_vector<Prop> props;
     
     Model(string id, shared_ptr<ModuleBody> mb) {
 	add_module(id, mb);
@@ -70,6 +85,10 @@ public:
     void add_decl(shared_ptr<Decl> decl) {
 	globals.push_back(decl);
     }
+
+    void add_props(const shared_vector<Prop> &props) {
+	this->props = props;
+    }
     
     bool has_module(string id) {
 	return (modules.find(id) != modules.end());
@@ -81,6 +100,10 @@ public:
     
     const vector<shared_ptr<class Decl>>& get_globals() const {
 	return (globals);
+    }
+
+    const vector<shared_ptr<Prop>>& get_props() const {
+	return (props);
     }
     
     void accept(Visitor& visit) override;
@@ -146,7 +169,7 @@ public:
     //declaration with type, id, range and initialization
     Decl(Type type, string id, shared_ptr<Exp> lower,
 	 shared_ptr<Exp> upper, shared_ptr<Exp> init)
-: type {type}, id {id}, lower {lower}, upper {upper},
+	: type {type}, id {id}, lower {lower}, upper {upper},
 	  size {nullptr}
 	{ inits = vector<shared_ptr<Exp>>{init}; }
 
@@ -395,6 +418,7 @@ public:
     //visitors
     //default implementation: do nothing
     virtual void visit(shared_ptr<ModelAST> node);
+    virtual void visit(shared_ptr<Prop> node);
     virtual void visit(shared_ptr<Model> node);
     virtual void visit(shared_ptr<ModuleBody> node);
     virtual void visit(shared_ptr<Decl> node);

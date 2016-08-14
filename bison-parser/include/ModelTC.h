@@ -14,16 +14,16 @@ struct ModuleScope {
     //map of shared pointers
     static shared_map<string, ModuleScope> scopes;
     static shared_map<string, Decl> globals;
+    //module id
     string id;
+    //module's body
     shared_ptr<ModuleBody> body;
     //labels to type
     map<string, LabelType> labels;
-    //clock assigned to a label : label->clock
-    map<string, string> label_clocks;
     //distribution of a clock : clock->dist
     shared_map<string, Dist> clock_dists;
     //local declarations : id -> decl (type, range, init, ...)
-    shared_map<string, Decl> local_decls;
+    shared_map<string, Decl> local_decls;    
 };
 
 class ModelTC : public Visitor {

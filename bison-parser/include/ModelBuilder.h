@@ -9,6 +9,7 @@
 #include "Transition.h"
 #include "Label.h"
 
+using std::string;
 using std::shared_ptr;
 using std::unique_ptr;
 using fig::ModuleInstance;

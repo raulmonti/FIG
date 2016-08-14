@@ -29,10 +29,12 @@ class ModelPrinter : public Visitor {
     void visit(shared_ptr<FConst> node);
     void visit(shared_ptr<LocExp> node);
     void visit(shared_ptr<OpExp> node);
+    void visit(shared_ptr<Prop> node);
 
     static string to_str(Type type);
     static string to_str(LabelType type);
     static string to_str(DistType type);
+    static string to_str(PropType type);
     static string to_str(ExpOp type);
 };
 

@@ -14,8 +14,17 @@ int main(int argc, char *argv[]) {
 	cerr << "Expect filename!" << endl;
 	exit(1);
     }
-    string filename = argv[1];
-    shared_ptr<ModelAST> model = ModelAST::from_file(filename);
+    char *model_file = argv[1];
+    char *prop_file = nullptr;
+    if (argc == 3) {
+	prop_file = argv[2];
+    }
+    shared_ptr<ModelAST> model = ModelAST::from_files(model_file, prop_file);
+    if (model == nullptr) {
+       	cerr << "Couldn't parse model." << endl;
+	return 1;
+    }
+    
     ModelPrinter printer;
     model->accept(printer);
     ModelTC typechecker;
@@ -24,7 +33,7 @@ int main(int argc, char *argv[]) {
 	std::cerr << typechecker.get_errors();
     }
     else {
-	std::cout << "Typechecked OK" << std::endl;
+        std::cout << "Typechecked OK" << std::endl;
 	ModelBuilder builder;
 	model->accept(builder);
 	if (builder.has_errors()) {

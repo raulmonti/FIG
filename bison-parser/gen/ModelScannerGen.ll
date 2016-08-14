@@ -32,6 +32,7 @@ blank  [ \t]
 %}
 
 %x comment
+
 %%
 
 %{
@@ -49,6 +50,8 @@ blank  [ \t]
 <comment>"*"+"/"  BEGIN(INITIAL);
 "module"      return ModelParser::make_MODULE(loc);
 "endmodule"   return ModelParser::make_ENDMODULE(loc);
+"properties"     return ModelParser::make_PROP(loc);
+"endproperties"  return ModelParser::make_ENDPROP(loc);
 ";"           return ModelParser::make_COMMA(loc);
 "int"         return ModelParser::make_TINT(loc);
 "bool"        return ModelParser::make_TBOOL(loc);
@@ -90,11 +93,14 @@ blank  [ \t]
 "true"        return ModelParser::make_TRUE(loc);
 "false"       return ModelParser::make_FALSE(loc);
 "|"           return ModelParser::make_MID(loc);
+"P"           return ModelParser::make_PROPT(loc);
+"S"           return ModelParser::make_PROPS(loc);
+"U"           return ModelParser::make_UNTIL(loc);
 
-{id}  return ModelParser::make_ID(yytext, loc);
-{int} return ModelParser::make_INTL(parse_int(), loc);
-{float} return ModelParser::make_FLOATL(parse_float(), loc);
-. syntax_error(loc, yytext);
+{id}       return ModelParser::make_ID(yytext, loc);
+{int}      return ModelParser::make_INTL(parse_int(), loc);
+{float}    return ModelParser::make_FLOATL(parse_float(), loc);
+.          syntax_error(loc, yytext);
 <<EOF>>    return ModelParser::make_END(loc);
 
 %%
