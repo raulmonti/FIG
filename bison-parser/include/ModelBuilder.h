@@ -8,6 +8,9 @@
 #include "Clock.h"
 #include "Transition.h"
 #include "Label.h"
+#include "Property.h"
+#include "PropertyTransient.h"
+#include "PropertyRate.h"
 
 using std::string;
 using std::shared_ptr;
@@ -20,12 +23,16 @@ using fig::Transition;
 using fig::Label;
 using fig::Precondition;
 using fig::Postcondition;
+using fig::Property;
+using fig::PropertyRate;
+using fig::PropertyTransient;
 using std::set;
 
 class ModelBuilder : public Visitor {
 private:
     shared_map<string, ModuleScope> &scopes  = ModuleScope::scopes;
     shared_ptr<ModuleInstance> current_module;
+    shared_vector<Property> properties;
     unique_ptr<vector<Var>> module_vars;
     unique_ptr<vector<Clock>> module_clocks;
     unique_ptr<vector<Transition>> module_transitions;
@@ -53,6 +60,7 @@ public:
     void visit(shared_ptr<Decl> node);
     void visit(shared_ptr<Action> node);
     void visit(shared_ptr<Effect> node);
+    void visit(shared_ptr<Prop> node);
 };
 
 class ExpStringBuilder : public Visitor {

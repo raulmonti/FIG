@@ -97,8 +97,10 @@ void ModelBuilder::visit(shared_ptr<Model> model) {
 	const string &id = entry.first;
 	current_scope = scopes[id];
 	accept_cond(entry.second);
-        vector<std::string> v;
-        
+    }
+    for (auto &prop : model->get_props()) {
+	current_scope = nullptr;
+	accept_cond(prop);
     }
 }
 
@@ -233,6 +235,28 @@ void ModelBuilder::visit(shared_ptr<Effect> effect) {
 	transition_read_vars->insert(names.cbegin(), names.cend());
 	transition_write_vars->push_back(effect->loc->id);
 	transition_update << str_builder.str();
+    }
+}
+
+void ModelBuilder::visit(shared_ptr<Prop> prop) {
+    ExpStringBuilder left_b;
+    prop->left->accept(left_b);
+    const set<string> &left_names = left_b.get_names();
+    const string &left_expr = left_b.str();
+    if (prop->type == PropType::transient) {
+	ExpStringBuilder right_b;
+	prop->right->accept(right_b);
+	const set<string> &right_names = left_b.get_names();
+	const string &right_expr = right_b.str();
+	shared_ptr<Property> property =
+	    make_shared<PropertyTransient>
+	    (left_expr, left_names, right_expr, right_names);
+	properties.push_back(property);
+    } else if (prop->type == PropType::rate) {
+	shared_ptr<Property> property =
+	    make_shared<PropertyRate>
+	    (left_expr, left_names);
+	properties.push_back(property);
     }
 }
 

@@ -86,8 +86,8 @@ public:
 	globals.push_back(decl);
     }
 
-    void add_props(const shared_vector<Prop> &props) {
-	this->props = props;
+    void add_props(const shared_vector<Prop> &properties) {
+	props.insert(props.end(), properties.begin(), properties.end());
     }
     
     bool has_module(string id) {
@@ -104,6 +104,10 @@ public:
 
     const vector<shared_ptr<Prop>>& get_props() const {
 	return (props);
+    }
+
+    bool has_props() {
+	return (props.size() > 0);
     }
     
     void accept(Visitor& visit) override;
