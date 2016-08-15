@@ -80,12 +80,7 @@
 #include "FigConfig.h"
 #include "FigLog.h"
 // Parser
-#include "Ast.h"
-#include "Parser.h"
-#include "Iosacompliance.h"
-#include "PreCompiler.h"
-#include "CompileModel.h"
-#include "DNFclauses.h"
+
 // CLI
 #include "fig_cli.h"
 #include "MultiDoubleArg.h"

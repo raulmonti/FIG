@@ -111,9 +111,16 @@ void ModelBuilder::visit(shared_ptr<ModuleBody> body) {
     for (auto &decl : body->get_local_decls()) {
 	accept_cond(decl);
     }
+    if (!has_errors()) {
+	current_module = make_shared<ModuleInstance>
+	    (current_scope->id, *module_vars, *module_clocks);
+    }
+    //Note: Transitions can't be copied, we need to add them directly to
+	// the current_module
     for (auto &action : body->get_actions()) {
 	accept_cond(action);
     }
+    model_suite.add_module(current_module);
 }
 
 Clock ModelBuilder::build_clock(const std::string& id) {
@@ -208,7 +215,7 @@ void ModelBuilder::visit(shared_ptr<Action> action) {
     while (it != effects.end()) {
 	(*it)->accept(*this);
 	//avoid putting a ',' at the end:
-	//we could also let the comma be and then delete it
+	//we could also let the comma be, and then delete it
 	if ((it + 1) != effects.end()) {
 	    const shared_ptr<Effect>& next = *(it + 1);
 	    if (next->is_state_change()) {
@@ -219,9 +226,9 @@ void ModelBuilder::visit(shared_ptr<Action> action) {
     }
     const string &update = transition_update.str();
     Postcondition post (update, *transition_read_vars, *transition_write_vars);
-    Transition transition (label, t_clock, pre, post, *transition_clocks);
-    //Transition is ready!
-    module_transitions->push_back(transition);
+    assert(current_module != nullptr);
+    const Transition &trans {label, t_clock, pre, post, *transition_clocks};
+    current_module->add_transition(trans);
 }
 
 void ModelBuilder::visit(shared_ptr<Effect> effect) {
@@ -251,12 +258,12 @@ void ModelBuilder::visit(shared_ptr<Prop> prop) {
 	shared_ptr<Property> property =
 	    make_shared<PropertyTransient>
 	    (left_expr, left_names, right_expr, right_names);
-	properties.push_back(property);
+	model_suite.add_property(property);
     } else if (prop->type == PropType::rate) {
 	shared_ptr<Property> property =
 	    make_shared<PropertyRate>
 	    (left_expr, left_names);
-	properties.push_back(property);
+	model_suite.add_property(property);
     }
 }
 

@@ -21,7 +21,7 @@ shared_ptr<ModelAST> ModelAST::from_files(const char *model_file,
     scan_begin(file);
     int res = parser.parse();
     scan_end();
-    if (prop_file != nullptr) {
+    if (result != nullptr && prop_file != nullptr) {
 	file = fopen(prop_file, "r");
 	if (file == nullptr) {
 	    std::cerr << "Properties file does not exists!" << std::endl;

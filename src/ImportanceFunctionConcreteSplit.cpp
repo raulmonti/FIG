@@ -39,7 +39,7 @@
 #include <ThresholdsBuilderAdaptive.h>
 #include <ModuleInstance.h>
 #include <ModuleNetwork.h>
-#include <DNFclauses.h>
+#include <PropertyProjection.h>
 #include <string_utils.h>
 
 // ADL

@@ -1,5 +1,6 @@
 #include "ModelTC.h"
 #include "ModelPrinter.h"
+#include "DNFChecker.h"
 #include <cassert>
 
 using std::endl;
@@ -227,6 +228,21 @@ namespace {
 	    ModelPrinter::to_str(op) +
 	    " - Second argument has an incompatible type ";
     }
+
+    inline const string TC_WRONG_PROPERTY_LEFT(PropType type, Type last_type) {
+	return "Property " + ModelPrinter::to_str(type) + " expressions should be boolean - " +
+	    UNEXPECTED_TYPE(Type::tbool, last_type);
+    }
+
+
+    inline const string TC_WRONG_PROPERTY_RIGHT(PropType type, Type last_type) {
+	return "Property " + ModelPrinter::to_str(type) + " expressions should be boolean - " +
+	    UNEXPECTED_TYPE(Type::tbool, last_type);
+    }
+
+    inline const string TC_NOT_DNF_PROPERTY(PropType type) {
+	return "Property " + ModelPrinter::to_str(type) + " should be in Disjunctive Normal Form";
+    }
 }
 
 bool type_leq(Type t1, Type t2) {
@@ -250,6 +266,13 @@ inline Type ModelTC::identifier_type(const string &id) {
 	auto &local = current_scope->local_decls;
 	if (local.find(id) != local.end()) {
 	    type = local[id]->type;
+	}
+    }
+    if (type == Type::tunknown && checking_property) {
+	//when checking property, identifiers could be in any module
+	shared_ptr<Decl> decl = ModuleScope::find_in_all_modules(id);
+	if (decl != nullptr) {
+	    type = decl->type;
 	}
     }
     return (type);
@@ -346,6 +369,10 @@ void ModelTC::visit(shared_ptr<Model> model) {
 	current_scope = new_scope;
 	scopes[id] = new_scope;
 	accept_cond(new_scope->body);
+    }
+    current_scope = nullptr;
+    for (auto prop : model->get_props()) {
+	accept_cond(prop);
     }
     //some extra checks after "scopes" has been built
     if (!has_errors()) {
@@ -505,9 +532,16 @@ void ModelTC::visit(shared_ptr<Location> loc) {
     assert(loc != nullptr);
     string &id = loc->id;
     if (is_global_scope()) {
-	//check if already in global scope
+	//check global scope
 	if (globals.find(id) == globals.end()) {
-	    put_error(TC_ID_OUT_OF_SCOPE(current_scope, id));	      
+	    shared_ptr<Decl> decl = nullptr;
+	    if (checking_property) {
+		//properties can have variables declared on any module
+		decl = ModuleScope::find_in_all_modules(id);
+	    }
+	    if (decl == nullptr) {
+		put_error(TC_ID_OUT_OF_SCOPE(current_scope, id));
+	    }
 	}
     }
     else {
@@ -526,24 +560,26 @@ void ModelTC::visit(shared_ptr<Location> loc) {
     last_type = identifier_type(loc->id);
 }
 
-void ModelTC::visit(shared_ptr<IConst> node) {
-    (void) node;
+void ModelTC::visit(shared_ptr<IConst> exp) {
     last_type = Type::tint;
+    //expressions should set the inferred type for itself.
+    exp->type = last_type;
 }
 
-void ModelTC::visit(shared_ptr<BConst> node){
-    (void) node;
+void ModelTC::visit(shared_ptr<BConst> exp){
     last_type = Type::tbool;
+    exp->type = last_type;
 }
 
-void ModelTC::visit(shared_ptr<FConst> node){
-    (void) node;
+void ModelTC::visit(shared_ptr<FConst> exp){
     last_type = Type::tfloat;
+    exp->type = last_type;
 }
 
-void ModelTC::visit(shared_ptr<LocExp> locExp){
-    assert(locExp != nullptr);
-    accept_cond(locExp->location);
+void ModelTC::visit(shared_ptr<LocExp> exp){
+    assert(exp != nullptr);
+    accept_cond(exp->location);
+    exp->type = last_type;
 }
 
 void ModelTC::visit(shared_ptr<OpExp> exp){
@@ -556,6 +592,7 @@ void ModelTC::visit(shared_ptr<OpExp> exp){
 	    put_error(TC_WRONG_FST_ARG(current_scope, exp->bop));
 	}
 	last_type = res_type;
+	exp->type = res_type;
     } else if (exp->arity == Arity::two) {
 	accept_cond(exp->left);
 	res_type = operator_type(exp->bop, last_type);
@@ -569,13 +606,36 @@ void ModelTC::visit(shared_ptr<OpExp> exp){
 	    put_error(TC_WRONG_SND_ARG(current_scope, exp->bop));
 	}
 	Type snd_type = last_type;
-	if (! ((fst_type <= snd_type)
-	       || (snd_type <= fst_type))) {
+	if (! (type_leq(fst_type, snd_type) || type_leq(snd_type, fst_type))) {
 	    //both types should be equal or subtypes (int->float)
 	    put_error(TC_WRONG_SND_ARG(current_scope, exp->bop));
 	}
 	last_type = res_type;
+	exp->type = res_type;
     }
+}
+
+void ModelTC::check_dnf(PropType type, shared_ptr<Exp> exp) {
+    DNFChecker dnf_checker;
+    if (!has_errors()) {
+	exp->accept(dnf_checker);
+	if (!dnf_checker.is_dnf()) {
+	    put_error(TC_NOT_DNF_PROPERTY(type));
+	}
+    }
+}
+
+void ModelTC::visit(shared_ptr<Prop> prop) {
+    checking_property = true;
+    accept_cond(prop->left);
+    check_type(Type::tbool, TC_WRONG_PROPERTY_LEFT(prop->type, last_type));
+    check_dnf(prop->type, prop->left);
+    if (prop->type == PropType::transient) {
+	accept_cond(prop->right);
+	check_type(Type::tbool, TC_WRONG_PROPERTY_RIGHT(prop->type, last_type));
+	check_dnf(prop->type, prop->right);
+    }
+    checking_property = false;
 }
 
 ModelTC::~ModelTC() {

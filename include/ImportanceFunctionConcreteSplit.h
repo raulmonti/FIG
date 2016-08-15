@@ -39,7 +39,7 @@
 #include <ImportanceFunctionConcrete.h>
 
 
-namespace parser { class DNFclauses; }  // Fwd declaration
+namespace parser { class PropertyProjection; }  // Fwd declaration
 
 namespace fig
 {
@@ -114,7 +114,7 @@ private:
     ImportanceValue neutralElement_;
 
     /// Property to check, parsed as a DNF formula
-    parser::DNFclauses propertyClauses;
+    parser::PropertyProjection propertyClauses;
 
     /// @copydoc ImportanceFunction::concrete_simulation()
     bool concreteSimulation_;

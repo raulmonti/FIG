@@ -23,7 +23,20 @@ struct ModuleScope {
     //distribution of a clock : clock->dist
     shared_map<string, Dist> clock_dists;
     //local declarations : id -> decl (type, range, init, ...)
-    shared_map<string, Decl> local_decls;    
+    shared_map<string, Decl> local_decls;
+
+    static shared_ptr<Decl> find_in_all_modules(const string &id) {
+	shared_ptr<Decl> result = nullptr;
+	for (auto entry : ModuleScope::scopes) {
+	    const shared_ptr<ModuleScope>& curr = entry.second;
+	    const shared_map<string, Decl> &local = curr->local_decls;
+	    if (local.find(id) != local.end()) {
+		result = local.at(id);
+		break;
+	    }
+	}
+	return (result);
+    }
 };
 
 class ModelTC : public Visitor {
@@ -32,11 +45,13 @@ private:
     shared_map<string, Decl> &globals = ModuleScope::globals;
     shared_ptr<ModuleScope> current_scope;
     Type last_type;
+    bool checking_property = false;
     //accepts if no errors
     void accept_cond(shared_ptr<ModelAST> module);
     //prefix for log message
     void check_type(Type type, const string &msg);
     void check_clocks(shared_ptr<ModuleScope> scope);
+    void check_dnf(PropType type, shared_ptr<Exp> exp);
     Type identifier_type(const string &id);
     bool is_global_scope() {
 	return (current_scope == nullptr);
@@ -46,7 +61,8 @@ private:
     static Type operator_type(const ExpOp &id, Type arg);
 public:
     ModelTC() : current_scope {nullptr},
-		last_type {Type::tunknown}{};
+		last_type {Type::tunknown},
+		checking_property {false} {};
     virtual ~ModelTC();
     void visit(shared_ptr<Model> node);
     void visit(shared_ptr<ModuleBody> node);
@@ -60,6 +76,7 @@ public:
     void visit(shared_ptr<FConst> node);
     void visit(shared_ptr<LocExp> node);
     void visit(shared_ptr<OpExp> node);
+    void visit(shared_ptr<Prop> node);
 };
 
 #endif

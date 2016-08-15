@@ -190,7 +190,7 @@ IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-nested-anon-types")
 	# From flex-2.5 generated file "lex.yy.cc":
 	# 'register' storage class specifier is deprecated
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register")
+	# SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register")
 ENDIF()
 # From MuParser-2.2.5 library -- http://muparser.beltoforion.de/:
 # "auto_ptr is deprecated" (TODO: update library ourselves?)

@@ -36,7 +36,7 @@
 // FIG
 #include <core_typedefs.h>
 #include <State.h>
-#include <DNFclauses.h>
+#include <PropertyProjection.h>
 #include <ImportanceFunction.h>
 
 
@@ -47,7 +47,7 @@ class Module;
 class Property;
 class Transition;
 
-using parser::DNFclauses;
+using parser::PropertyProjection;
 
 /**
  * @brief Abstract ImportanceFunction for concrete importance assessment
@@ -226,7 +226,7 @@ protected:  // Utils for the class and its kin
 						   const Property& property,
 						   const std::string& strategy,
 						   const unsigned& index = 0,
-						   const DNFclauses& clauses = DNFclauses());
+						   const PropertyProjection& clauses = PropertyProjection());
 
 	/**
 	 * @brief Apply a post-processing to the information stored

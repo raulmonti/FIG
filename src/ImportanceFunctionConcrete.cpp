@@ -43,7 +43,7 @@
 #include <Property.h>
 #include <PropertyRate.h>
 #include <PropertyTransient.h>
-#include <DNFclauses.h>
+#include <PropertyProjection.h>
 #include <Module.h>
 
 // ADL
@@ -60,8 +60,8 @@ using fig::Transition;
 using fig::StateInstance;
 using fig::ImportanceVec;
 using fig::ImportanceValue;
-using parser::DNFclauses;
-using Clause = parser::DNFclauses::Clause;
+using parser::PropertyProjection;
+using Clause = parser::PropertyProjection::Clause;
 using State = fig::State< fig::STATE_INTERNAL_TYPE >;
 typedef ImportanceVec EventVec;
 typedef unsigned STATE_T;
@@ -467,7 +467,7 @@ ImportanceValue
 assess_importance_auto(const fig::Module& module,
 					   ImportanceVec& impVec,
 					   const Property& property,
-					   const DNFclauses& clauses,
+					   const PropertyProjection& clauses,
 					   const bool split)
 {
     assert(impVec.size() == 0ul);
@@ -523,7 +523,7 @@ ImportanceValue
 assess_importance_flat(const State& state,
 					   ImportanceVec& impVec,
 					   const Property& property,
-					   const DNFclauses& clauses,
+					   const PropertyProjection& clauses,
 					   const bool split)
 {
 	assert(state.size() > 0ul);
@@ -606,7 +606,7 @@ bool ImportanceFunctionConcrete::assess_importance(
 	const Property& property,
 	const std::string& strategy,
 	const unsigned& index,
-	const DNFclauses& clauses)
+	const PropertyProjection& clauses)
 {
 	if (modulesConcreteImportance.size() <= index)
 		modulesConcreteImportance.resize(index+1);

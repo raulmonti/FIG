@@ -1,3 +1,6 @@
+#ifndef MODELBUILDER_H
+#define MODELBUILDER_H
+
 #include <sstream>
 #include <set>
 
@@ -11,6 +14,7 @@
 #include "Property.h"
 #include "PropertyTransient.h"
 #include "PropertyRate.h"
+#include "ModelSuite.h"
 
 using std::string;
 using std::shared_ptr;
@@ -26,13 +30,16 @@ using fig::Postcondition;
 using fig::Property;
 using fig::PropertyRate;
 using fig::PropertyTransient;
+using fig::ModuleInstance;
+using fig::ModelSuite;
+using fig::State;
 using std::set;
 
 class ModelBuilder : public Visitor {
 private:
+    ModelSuite &model_suite = ModelSuite::get_instance();
     shared_map<string, ModuleScope> &scopes  = ModuleScope::scopes;
     shared_ptr<ModuleInstance> current_module;
-    shared_vector<Property> properties;
     unique_ptr<vector<Var>> module_vars;
     unique_ptr<vector<Clock>> module_clocks;
     unique_ptr<vector<Transition>> module_transitions;
@@ -77,3 +84,6 @@ public:
     const set<string>& get_names();
     string str();
 };
+
+
+#endif

@@ -1,3 +1,6 @@
+#ifndef EXPEVALUATOR_H
+#define EXPEVALUATOR_H
+
 #include "ModelTC.h"
 #include <functional>
 
@@ -45,3 +48,5 @@ public:
     void visit(shared_ptr<LocExp> node);
     void visit(shared_ptr<OpExp> node);
 };
+
+#endif
