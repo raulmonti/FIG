@@ -1,3 +1,5 @@
+/* Leonardo Rodríguez */
+
 #include <cassert>
 #include <type_traits>
 #include "ExpEvaluator.h"

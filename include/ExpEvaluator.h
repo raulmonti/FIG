@@ -1,3 +1,5 @@
+/* Leonardo Rodríguez */
+
 #ifndef EXPEVALUATOR_H
 #define EXPEVALUATOR_H
 

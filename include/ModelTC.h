@@ -1,3 +1,5 @@
+/* Leonardo Rodríguez */
+
 #ifndef MODEL_TC_H
 #define MODEL_TC_H
 

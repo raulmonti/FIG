@@ -1,2 +1,6 @@
 # Ignore files generated on compilation
 FigConfig.h
+location.hh
+stack.hh
+position.hh
+ModelParser.hpp

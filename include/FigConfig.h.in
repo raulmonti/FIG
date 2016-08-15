@@ -1,0 +1,6 @@
+// FIG tool current version
+#define fig_VERSION_MAJOR ${fig_VERSION_MAJOR}
+#define fig_VERSION_MINOR ${fig_VERSION_MINOR}
+#define fig_VERSION_STR   "${fig_VERSION_MAJOR}.${fig_VERSION_MINOR}"
+// FIG tool current build
+#define fig_CURRENT_BUILD "${fig_CURRENT_BUILD}"

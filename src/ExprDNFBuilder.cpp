@@ -1,3 +1,5 @@
+/* Leonardo Rodríguez */
+
 #include "ExprDNFBuilder.h"
 
 void ExprClauseBuilder::visit(shared_ptr<IConst> iconst) {

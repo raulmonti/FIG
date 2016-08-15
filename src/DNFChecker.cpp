@@ -1,3 +1,5 @@
+/* Leonardo Rodríguez */
+
 #include "DNFChecker.h"
 #include "ModelPrinter.h"
 

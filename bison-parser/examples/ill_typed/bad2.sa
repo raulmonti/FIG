@@ -1,6 +1,0 @@
-const int x = 4;
-const int y = 5;
-const int x = 6;
-module X
-x : bool init false;
-endmodule

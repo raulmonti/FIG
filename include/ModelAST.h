@@ -1,3 +1,5 @@
+/* Leonardo Rodríguez */
+
 #ifndef __MODEL_AST_H__
 #define __MODEL_AST_H__
 #include <cassert>

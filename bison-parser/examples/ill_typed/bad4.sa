@@ -1,5 +1,0 @@
-module X
- c : clock;	
- [a?] true -> ;
- [a!] true @ c -> ;
-endmodule

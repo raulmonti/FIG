@@ -1,3 +1,5 @@
+/* Leonardo Rodríguez */
+
 #include "ModelPrinter.h"
 #include <string>
 

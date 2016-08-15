@@ -1,3 +1,5 @@
+/* Leonardo Rodríguez */
+
 #ifndef DNFCHECKER_H
 #define DNFCHECKER_H
 #include "ModelAST.h"

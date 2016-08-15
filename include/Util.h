@@ -1,3 +1,6 @@
+/* Leonardo Rodríguez */
+//@todo unify with other "utilities" headers.
+
 #ifndef UTIL_H
 #define UTIL_H
 

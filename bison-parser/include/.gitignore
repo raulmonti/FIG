@@ -1,5 +1,0 @@
-# Ignore generated headers (they change on every compilation)
-location.hh
-position.hh
-ModelParser.hpp
-stack.hh

@@ -1,3 +1,5 @@
+/* Leonardo Rodríguez */
+
 #ifndef PROPERTY_PROJ_H
 #define PROPERTY_PROJ_H
 

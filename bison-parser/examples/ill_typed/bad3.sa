@@ -1,4 +1,0 @@
-module X
-       x : bool init false;
-       x : bool init true;
-endmodule

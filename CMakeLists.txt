@@ -72,7 +72,6 @@ SET(ALL_SOURCES ${SOURCES_DIR} CACHE INTERNAL "")
 
 # Visit subdirectories
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/ext)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/bison-parser)
  
 # Register all main include paths
 INCLUDE_DIRECTORIES(${HEADERS_DIR})
@@ -233,11 +232,11 @@ SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" )
 ###  Build executable  ########################################################
 
 # Parser
-SET(PARSER_DIR  "${PROJECT_SOURCE_DIR}/bison-parser")
+SET(PARSER_DIR  "${PROJECT_SOURCE_DIR}")
 # Folder with sources
 SET(PARSER_SRC  "${PARSER_DIR}/src")
 # Folder with templates
-SET(PARSER_GEN  "${PARSER_DIR}/gen")
+SET(PARSER_GEN  "${PARSER_DIR}/src")
 # Folder with headers
 SET(PARSER_INC "${PARSER_DIR}/include")
 # Lexer template
@@ -273,11 +272,10 @@ ADD_CUSTOM_COMMAND(
 SET (ALL_SOURCES ${ALL_SOURCES} ${PARSER_CODE} ${LEXER_CODE})
 
 #Add executable
-ADD_EXECUTABLE(fig_test ${ALL_SOURCES})
-
+ADD_EXECUTABLE(fig ${ALL_SOURCES})
 
 ###  Link dynamic libraries  ##################################################
 
-TARGET_LINK_LIBRARIES(fig_test ${DYNAMIC_LIBRARIES})
+TARGET_LINK_LIBRARIES(fig ${DYNAMIC_LIBRARIES})
 #TARGET_LINK_LIBRARIES(fig -static-libgcc -static-libstdc++ ${DYNAMIC_LIBRARIES})
 

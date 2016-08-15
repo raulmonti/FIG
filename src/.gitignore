@@ -1,4 +1,3 @@
-
 # Object files and libraries
 *.o
 *.a
@@ -8,3 +7,7 @@
 *~
 .*.swp
 .autosave
+
+# Generated files
+ModelParser.cpp
+ModelScanner.cpp
