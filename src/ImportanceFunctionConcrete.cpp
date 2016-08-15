@@ -406,7 +406,7 @@ label_global_states(State globalState,
 	switch (property.type) {
 
 	case fig::PropertyType::TRANSIENT: {
-		auto transientProp = static_cast<const fig::PropertyTransient&>(property);
+		const auto& transientProp = static_cast<const fig::PropertyTransient&>(property);
 		for (size_t i = 0ul ; i < cStates.size() ; i++) {
 			cStates[i] = fig::EventType::NONE;
 			const StateInstance valuation(globalState.decode(i).to_state_instance());
@@ -421,7 +421,7 @@ label_global_states(State globalState,
 		} break;
 
 	case fig::PropertyType::RATE: {
-		auto rateProp = static_cast<const fig::PropertyRate&>(property);
+		const auto& rateProp = static_cast<const fig::PropertyRate&>(property);
 		for (size_t i = 0ul ; i < cStates.size() ; i++) {
 			cStates[i] = fig::EventType::NONE;
 			const StateInstance valuation(globalState.decode(i).to_state_instance());

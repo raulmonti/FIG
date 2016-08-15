@@ -108,9 +108,9 @@ public:  // Ctors
 		{}
 
 	/// Default copy ctor
-	PropertyRate(const PropertyRate& that) = default;
+	PropertyRate(const PropertyRate& that) = delete;
 	/// Default move ctor
-	PropertyRate(PropertyRate&& that)      = default;
+	PropertyRate(PropertyRate&& that)      = delete;
 
 	/// Can't have empty ctor due to const data members from Property
 	PropertyRate()                                         = delete;

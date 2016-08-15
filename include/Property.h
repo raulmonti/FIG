@@ -80,8 +80,8 @@ public:  // Ctors
         expression(theexpression),
         type(thetype)
         {}
-    Property(const Property& that) = default;
-    Property(Property&& that)      = default;
+    Property(const Property& that) = delete;
+    Property(Property&& that)      = delete;
 
     /// Can't have empty ctor due to const data members
     Property()                                = delete;
