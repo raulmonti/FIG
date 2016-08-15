@@ -107,9 +107,8 @@ public:  // Ctors
 		expr_(expr, exprVarsFrom, exprVarsTo)
 		{}
 
-	/// Default copy ctor
+	/// Copy/Move constructor deleted to avoid dealing with the unique id.
 	PropertyRate(const PropertyRate& that) = delete;
-	/// Default move ctor
 	PropertyRate(PropertyRate&& that)      = delete;
 
 	/// Can't have empty ctor due to const data members from Property

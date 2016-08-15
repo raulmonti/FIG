@@ -1,6 +1,15 @@
 /* Leonardo Rodríguez */
-
 #include "ExprDNFBuilder.h"
+#include "ExpEvaluator.h"
+
+namespace {
+    shared_ptr<Exp> eval_or_skip(shared_ptr<Exp> exp) {
+	ExpEvaluator eval;
+	exp->accept(eval);
+	shared_ptr<Exp> result = eval.has_errors() ? exp : eval.value_to_ast();
+	return (result);
+    }
+}
 
 void ExprClauseBuilder::visit(shared_ptr<IConst> iconst) {
     (void) iconst;
@@ -11,14 +20,14 @@ void ExprClauseBuilder::visit(shared_ptr<BConst> bconst) {
     clause.push_back(bconst);
 }
 
-void ExprClauseBuilder::visit(shared_ptr<FConst> node) {
-     (void) node;
+void ExprClauseBuilder::visit(shared_ptr<FConst> fconst) {
+     (void) fconst;
      //do nothing!
 }
 
 void ExprClauseBuilder::visit(shared_ptr<LocExp> exp) {
     if (exp->type == Type::tbool) {
-	clause.push_back(exp);
+	clause.push_back(::eval_or_skip(exp));
     }	    
 }
 
@@ -40,8 +49,8 @@ void ExprClauseBuilder::visit(shared_ptr<OpExp> exp) {
     }
     default:
     {
-	//the expression itself considered a clause
-	clause.push_back(exp);
+	//the expression itself (or evaluated if possible) considered a clause
+	clause.push_back(::eval_or_skip(exp));
     }
     }
 }
@@ -63,7 +72,7 @@ void ExprDNFBuilder::visit(shared_ptr<FConst> node) {
 
 void ExprDNFBuilder::visit(shared_ptr<LocExp> exp) {
     if (exp->type == Type::tbool) {
-	clause_vector.push_back(vector<shared_ptr<Exp>> {exp});
+	clause_vector.push_back(vector<shared_ptr<Exp>> {::eval_or_skip(exp)});
     }	    
 }
 
@@ -96,7 +105,7 @@ void ExprDNFBuilder::visit(shared_ptr<OpExp> exp) {
     default:
     {
 	//the expression itself considered a clause
-	clause_vector.push_back(vector<shared_ptr<Exp>> {exp});
+	clause_vector.push_back(vector<shared_ptr<Exp>> {::eval_or_skip(exp)});
     }
     }
 }

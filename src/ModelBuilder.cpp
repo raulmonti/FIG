@@ -8,6 +8,7 @@
 
 ModelBuilder::ModelBuilder() {};
 ModelBuilder::~ModelBuilder() {};
+std::map<int, shared_ptr<Prop>> ModelBuilder::property_ast;
 
 inline const string mb_error_irr(const Type& type) {
     return (" not reducible to " + ModelPrinter::to_str(type) +
@@ -199,8 +200,10 @@ void ModelBuilder::visit(shared_ptr<Action> action) {
     const string &label_id = action->id;
     LabelType label_type = action->type;
     Label label = build_label(label_id, label_type);
-    //Transition constructor expects the id of the triggering clock,  let's get it:
-    string t_clock = action->has_clock() ? action->clock_loc->id : std::string();
+    //Transition constructor expects the id of the triggering
+    //clock,  let's get it:
+    string t_clock = action->has_clock() ?
+	action->clock_loc->id : std::string();
     //Precondition
     ExpStringBuilder string_builder;
     action->guard->accept(string_builder);
@@ -236,6 +239,7 @@ void ModelBuilder::visit(shared_ptr<Effect> effect) {
     if (effect->is_clock_reset()) {
 	transition_clocks->insert(effect->loc->id);
     } else if (effect->is_state_change()) {
+	accept_cond(effect->loc);
 	ExpStringBuilder str_builder;
 	effect->arg->accept(str_builder);
 	const set<string> &names = str_builder.get_names();
@@ -251,19 +255,24 @@ void ModelBuilder::visit(shared_ptr<Prop> prop) {
     prop->left->accept(left_b);
     const set<string> &left_names = left_b.get_names();
     const string &left_expr = left_b.str();
+    shared_ptr<Property> property = nullptr;
     if (prop->type == PropType::transient) {
 	ExpStringBuilder right_b;
 	prop->right->accept(right_b);
-	const set<string> &right_names = left_b.get_names();
+	const set<string> &right_names = right_b.get_names();
 	const string &right_expr = right_b.str();
-	shared_ptr<Property> property =
-	    make_shared<PropertyTransient>
+	property = make_shared<PropertyTransient>
 	    (left_expr, left_names, right_expr, right_names);
-	model_suite.add_property(property);
+
     } else if (prop->type == PropType::rate) {
-	shared_ptr<Property> property =
-	    make_shared<PropertyRate>
-	    (left_expr, left_names);
+	property = make_shared<PropertyRate>(left_expr, left_names);
+    } else {
+	put_error("Unsupported property type");
+    }
+    if (!has_errors()) {
+	int id = property->get_id();
+	assert(property_ast.find(id) == property_ast.end());
+	property_ast[id] = prop;
 	model_suite.add_property(property);
     }
 }
@@ -275,7 +284,8 @@ void ExpStringBuilder::visit(shared_ptr<IConst> node) {
 }
 
 void ExpStringBuilder::visit(shared_ptr<BConst> node) {
-    result = node->value ? "true" : "false";
+    //@todo: support boolean variables directly?
+    result = node->value ? "1" : "0";
     should_enclose = false;
 }
 
@@ -288,8 +298,19 @@ void ExpStringBuilder::visit(shared_ptr<LocExp> node) {
     if (node->location->is_array_position()) {
 	throw_FigException("Array position are not yet supported");
     }
-    result = node->location->id;
-    names.insert(result);
+    if (ModuleScope::globals.find(node->location->id)
+	!= ModuleScope::globals.end()) {
+	//a global constant, not a module state.
+	ExpEvaluator eval;
+	node->accept(eval);
+	if (eval.has_errors()) {
+	    throw_FigException("Could not reduce constant at compilation time");
+	}
+	result = eval.value_to_string();
+    } else {
+	result = node->location->id;
+	names.insert(result);
+    }
     should_enclose = false;
 }
 

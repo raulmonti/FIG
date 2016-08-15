@@ -63,6 +63,10 @@ private:
 public:
     ModelBuilder();
     virtual ~ModelBuilder();
+    // Property id (see Property::get_id) -> ast that generated it.
+    // the ast is needed since the property is projected several times
+    // to different set of variables. 
+    static map<int, shared_ptr<Prop>> property_ast;
     
     void visit(shared_ptr<Model> node);
     void visit(shared_ptr<ModuleBody> node);

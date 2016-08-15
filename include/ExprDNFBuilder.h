@@ -31,6 +31,9 @@ public:
     void visit(shared_ptr<FConst> node);
     void visit(shared_ptr<LocExp> node);
     void visit(shared_ptr<OpExp> node);
+    const vector<ClauseType>& get_clauses() {
+	return clause_vector;
+    }
 };
   
 

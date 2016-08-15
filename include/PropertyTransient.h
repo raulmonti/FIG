@@ -137,9 +137,8 @@ public:  // Ctors
 		expr2_(expr2, expr2VarsFrom, expr2VarsTo)
 		{}
 
-    /// Default copy ctor
+    // Copy/Move constructor deleted to avoid dealing with the unique id.
     PropertyTransient(const PropertyTransient& that) = delete;
-    /// Default move ctor
     PropertyTransient(PropertyTransient&& that)      = delete;
 
     /// Can't have empty ctor due to const data members from Property

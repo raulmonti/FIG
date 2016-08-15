@@ -32,6 +32,8 @@
 
 // C++
 #include <string>
+#include <atomic> // keeping instance_id thread safe.
+
 // FIG
 #include <core_typedefs.h>
 #include <Precondition.h>
@@ -54,16 +56,15 @@ namespace fig
 class Property
 {
     friend class ModelSuite;  // for variables mapping callback
-
-    /// Position in which this property was added to the ModelSuite
-    /// @note Unavailable to inherited classes, this is only relevant
-    ///       for the ModelSuite and inherent to the Property.
-    int index_;
-
+    
 protected:
 
     /// Nasty hack to avoid code duplication (talk of poor design...)
     typedef  Precondition  Formula;
+    /// Used to generate a unique id for each instance.
+    static std::atomic<int> current_id;
+    /// Instance id.
+    const int instance_id;
 
 public:  // Attributes
 
@@ -76,10 +77,11 @@ public:  // Attributes
 public:  // Ctors
 
     Property(const std::string& theexpression, PropertyType thetype) :
-        index_(-1),
+	instance_id {++ current_id},
         expression(theexpression),
-        type(thetype)
-        {}
+        type(thetype) {};
+
+    // Copy/Move constructor deleted to avoid dealing with the unique id.
     Property(const Property& that) = delete;
     Property(Property&& that)      = delete;
 
@@ -132,10 +134,10 @@ public:  // Utils
     /// @copydoc is_rare()
     virtual bool is_rare(const State<STATE_INTERNAL_TYPE>& s) const = 0;
 
-    /// Position in which this property was added to the ModelSuite
-    const int& index() const noexcept { return index_; }
+    /// Get instance unique id
+    int get_id() const noexcept { return instance_id; }
 };
-
+    
 } // namespace fig
 
 #endif // PROPERTY_H

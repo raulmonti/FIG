@@ -22,6 +22,26 @@ bool ExpEvaluator::has_type_float() {
     return (type == Type::tfloat);
 }
 
+string ExpEvaluator::value_to_string() {
+    switch (type) {
+    case Type::tint: return std::to_string(value.ivalue);
+    case Type::tfloat: return std::to_string(value.fvalue);
+    case Type::tbool: return std::string(value.bvalue ? "true" : "false");
+    default:
+	throw_FigException("Unsupported ground type for values");
+    }
+}
+
+shared_ptr<Exp> ExpEvaluator::value_to_ast() {
+    switch (type) {
+    case Type::tint: return make_shared<IConst>(value.ivalue);
+    case Type::tfloat: return make_shared<FConst>(value.fvalue);
+    case Type::tbool: return make_shared<BConst>(value.bvalue);
+    default:
+	throw_FigException("Unsupported ground type for values");
+    }
+}
+
 void ExpEvaluator::mark_not_reducible() {
     type = Type::tunknown;
 }

@@ -42,7 +42,8 @@ public:
     bool has_type_int();
     bool has_type_bool();
     bool has_type_float();
-    //set ready to use again
+    string value_to_string();
+    shared_ptr<Exp> value_to_ast();
     void reset();
     void visit(shared_ptr<IConst> node);
     void visit(shared_ptr<BConst> node);
