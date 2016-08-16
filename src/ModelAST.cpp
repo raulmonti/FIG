@@ -11,26 +11,26 @@ void ModelAST::accept(Visitor &visit) {
 }
 
 shared_ptr<ModelAST> ModelAST::from_files(const char *model_file,
-					  const char *prop_file) {
+                                          const char *prop_file) {
     shared_ptr<ModelAST> result = nullptr;
     ModelParserGen::ModelParser parser {&result};
     FILE *file = fopen(model_file, "r");
     if (file == nullptr) {
-	std::cerr << "Model file does not exists!" << std::endl;
-	exit(1);
+        std::cerr << "Model file does not exists!" << std::endl;
+        exit(1);
     }
     scan_begin(file);
     int res = parser.parse();
     scan_end();
     if (result != nullptr && prop_file != nullptr) {
-	file = fopen(prop_file, "r");
-	if (file == nullptr) {
-	    std::cerr << "Properties file does not exists!" << std::endl;
-	    exit(1);
-	}
-	scan_begin(file);
-	res = parser.parse();
-	scan_end();
+        file = fopen(prop_file, "r");
+        if (file == nullptr) {
+            std::cerr << "Properties file does not exists!" << std::endl;
+            exit(1);
+        }
+        scan_begin(file);
+        res = parser.parse();
+        scan_end();
     }
     return (res == 0 ? result : nullptr);
 }
@@ -112,7 +112,7 @@ void Visitor::visit(shared_ptr<ModelAST> node) {
 }
 
 void Visitor::visit(shared_ptr<Model> node) {
-     (void) node;
+    (void) node;
 }
 
 void Visitor::visit(shared_ptr<ModuleBody> node) {
