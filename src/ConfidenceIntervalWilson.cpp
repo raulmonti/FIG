@@ -84,10 +84,9 @@ ConfidenceIntervalWilson::update(const double& newResults,
 		throw_FigException("failed updating logNumSamples_; overflow?");
 
 	numRares_ += newResults;
+	numSamples_++;
 	if (0.0 >= numRares_)
 		return;  // nothing to work with yet
-	else if (0.0 < newResults)
-		numSamples_++;
 
 	// Compute the updated estimate
 	double logEstimate = log(numRares_ + squantile_/2.0) - logNumSamples_
@@ -117,8 +116,8 @@ ConfidenceIntervalWilson::min_samples_covered() const noexcept
 {
 	// Even though the Wilson score interval has lax lower bounds (http://goo.gl/B86Dc),
 	// they've been increased to meet experimental quality standards
-	static constexpr long LBOUND(1l<<7l), LBOUNDR(1l<<8l);
-	static constexpr double LOG_LBOUNDR(log(LBOUNDR));
+	static constexpr long LBOUND(1l<<7l), LBOUNDR(1l<<9l);
+	static const double LOG_LBOUNDR(log(LBOUNDR));
 	const bool theoreticallySound =
 			LBOUND < numSamples_ && LBOUNDR < numRares_ && (
 			  log(30l*statOversample_) < logNumSamples_ || (
@@ -126,7 +125,7 @@ ConfidenceIntervalWilson::min_samples_covered() const noexcept
 				LOG_LBOUNDR < logNumSamples_+log1p(-estimate_)  // n*(1-p)
 			  )
 			);
-	/// @todo TODO consider removing "practical" stopping criterion
+	/// @todo TODO remove "practical" stopping criterion
 //	// Ask also for little change w.r.t. the last outcome
 //	const bool practicallySound = abs(prevEstimate_-estimate_) < 0.02*estimate_;
 //	// So, did we make it already?

@@ -73,6 +73,7 @@
 #include <ConfidenceIntervalMean.h>
 #include <ConfidenceIntervalProportion.h>
 #include <ConfidenceIntervalWilson.h>
+#include <ConfidenceIntervalTransient.h>
 
 using std::to_string;
 // ADL
@@ -134,20 +135,24 @@ build_empty_ci(const fig::PropertyType& propertyType,
 	switch (propertyType)
 	{
 	case fig::PropertyType::TRANSIENT: {
-		if (hint.empty()  // default to most precise
-			|| "wilson" == hint)
-			ci_ptr.reset(new fig::ConfidenceIntervalWilson(confidenceCo,
-														   precision,
-														   dynamicPrecision,
-														   timeBoundSim));
-		else if ("proportion" == hint)
-			ci_ptr.reset(new fig::ConfidenceIntervalProportion(confidenceCo,
-															   precision,
-															   dynamicPrecision,
-															   timeBoundSim));
-		else
-			throw_FigException(std::string("invalid CI hint \"").append(hint)
-							   .append("\" for transient property"));
+		ci_ptr.reset(new fig::ConfidenceIntervalTransient(confidenceCo,
+														  precision,
+														  dynamicPrecision,
+														  timeBoundSim));
+//		if (hint.empty()  // default to most precise
+//			|| "wilson" == hint)
+//			ci_ptr.reset(new fig::ConfidenceIntervalWilson(confidenceCo,
+//														   precision,
+//														   dynamicPrecision,
+//														   timeBoundSim));
+//		else if ("proportion" == hint)
+//			ci_ptr.reset(new fig::ConfidenceIntervalProportion(confidenceCo,
+//															   precision,
+//															   dynamicPrecision,
+//															   timeBoundSim));
+//		else
+//			throw_FigException(std::string("invalid CI hint \"").append(hint)
+//							   .append("\" for transient property"));
 		// The statistical oversampling incurred here is bounded:
 		//  · from below by splitsPerThreshold ^ minRareValue,
 		//  · from above by splitsPerThreshold ^ numThresholds.
@@ -203,8 +208,9 @@ interrupt_print(const ConfidenceInterval& ci,
     /// @todo TODO: implement proper reentrant logging and discard use of streams
     out << std::endl;
 	out << std::setprecision(2) << std::scientific;
-    out << "   · Computed estimate: " << ci.point_estimate() << std::endl;
-    for (const float& confCo: confidenceCoefficients) {
+	out << "   · Computed estimate: " << ci.point_estimate() << " ("
+									  << ci.num_samples() << " samples)\n";
+	for (const float& confCo: confidenceCoefficients) {
         out << "   · " << std::setprecision(0) << std::fixed
             << confCo*100 << "% confidence" << std::endl
             << std::setprecision(2) << std::scientific
@@ -237,13 +243,13 @@ estimate_print(const ConfidenceInterval& ci,
 {
     out << std::endl;
 	out << std::setprecision(2) << std::scientific;
-    out << "   · Computed estimate: " << ci.point_estimate() << std::endl;
-    out << std::setprecision(2) << std::scientific;
+	out << "   · Computed estimate: " << ci.point_estimate() << " ("
+									  << ci.num_samples() << " samples)\n";
+	out << std::setprecision(2) << std::scientific;
 	out << "   · Computed precision: " << ci.precision(ci.confidence) << std::endl;
 	out << "   · Precision: " << ci.precision() << std::endl;
 	out << "   · Confidence interval: [ " << ci.lower_limit() << ", "
-                                          << ci.upper_limit() << " ] "
-        << std::endl;
+										  << ci.upper_limit() << " ] " << std::endl;
 	out << std::setprecision(2) << std::fixed;
 	out << "   · Estimation time: " << time << " s\n";
 //	out << std::defaultfloat;

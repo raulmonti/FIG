@@ -59,7 +59,6 @@ public:  // Ctor
 						   double precision,
 						   bool dynamicPrecision = false,
 						   bool neverStop = false);
-
 public:  // Modifyers
 
 	/**

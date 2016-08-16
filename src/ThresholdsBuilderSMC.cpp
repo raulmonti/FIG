@@ -345,6 +345,13 @@ ThresholdsBuilderSMC::tune(const uint128_t &numStates,
 	// The counterpart is that too many thresholds are chosen and thus the
     // thresholds building takes too long.
 	// We try to counter that a little by reducing the probability of level up
+	/// @todo TODO change for "theoretical optimal" p_i ~ e^-1  forall i
+	///            See analysis by Garvels (PhD thesis) and Rubino&Tuffin (RES book)
+	///            which derive this constant for optimal p_i = p^(-T) forall i
+	///            where 'T' is the number of threshold levels and 'p_i' the
+	///            probability of crossing the i-th level upwards
+	///            Note the constant value e^-1 is subject to having the optimal
+	///            number of thresholds T = -log(p)/2, which may not be the case
 	const float p((k_*0.333f)/n_);
 	n_ = std::max({n, n_, ThresholdsBuilderAdaptive::MIN_N});
 	k_ = std::round(p*n_);

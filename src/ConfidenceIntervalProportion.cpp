@@ -81,10 +81,9 @@ ConfidenceIntervalProportion::update(const double& newResults,
 		throw_FigException("failed updating logNumSamples_, overflow?");
 
 	numRares_ += newResults;
+	numSamples_++;
 	if (0.0 >= numRares_)
 		return;  // nothing to work with yet
-	else if (0.0 < newResults)
-		numSamples_++;
 
 	// Compute the updated estimate, variance, and interval half width
 	prevEstimate_ = estimate_;

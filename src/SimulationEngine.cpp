@@ -70,8 +70,8 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
 	static const size_t batch_sizes[NUM_ENGINES][NUM_IMPFUNS] = {
-		{ 1ul<<4, 1ul<<3, 1ul<<2 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 1ul<<2, 1ul<<2, 1ul<<2 }   // restart x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<4, 1ul<<3, 1ul<<0 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<0, 1ul<<0, 1ul<<0 }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -337,15 +337,18 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 
 void
 SimulationEngine::transient_update(ConfidenceInterval& ci,
-								   const double& raresCount,
+								   const double& weighedNRE,
 								   const size_t& batchSize) const
 {
-	assert(ci.name == "proportion_std" || ci.name == "proportion_wilson");
 	if (interrupted)
 		return;  // don't update interrupted simulations
-	ci.update(std::abs(raresCount),
-			  std::log(batchSize) + log_experiments_per_sim());
-	// numExperiments == batchSize * splitsPerThreshold ^ numThresholds
+//	assert(ci.name == "proportion_std" || ci.name == "proportion_wilson");
+//	ci.update(std::abs(raresCount),
+//			  std::log(batchSize) + log_experiments_per_sim());
+//	// numExperiments == batchSize * splitsPerThreshold ^ numThresholds
+	assert(ci.name == "transient");
+	assert(batchSize == 1ul);
+	ci.update(weighedNRE);
 }
 
 
@@ -362,7 +365,7 @@ SimulationEngine::rate_update(ConfidenceInterval& ci,
 	if (interrupted)
 		return;  // don't update interrupted simulations
 
-	// Determine whether we are observing a steady-state behaviour
+	// Determine whether we are observing a steady-state behaviour:
 	NHITS = ci.num_samples() <= 0l && NHITS >= NHITS_REQUIRED ? 0ul : NHITS;
 	NHITS += MIN_ACC_RARE_TIME < rareTime ? 1ul : 0ul;
 	const bool isSteadyState = ci.num_samples() > 0l  ||  // yes, this was decided before

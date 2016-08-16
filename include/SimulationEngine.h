@@ -369,7 +369,7 @@ private:  // Class utils
 	 *        for transient-like properties
 	 *
 	 * @param ci          ConfidenceInterval to update
-	 * @param raresCount  Number of rate states visited in last simulations
+	 * @param weighedNRE  Weighed number of rate states visited in last simulations
 	 * @param batchSize   Number of independent simulations ran
 	 *
 	 * @note Current policy is to <b>never increment</b> the batch size
@@ -378,7 +378,7 @@ private:  // Class utils
 	 *       if such flag is set</b>
 	 */
 	void transient_update(ConfidenceInterval& ci,
-						  const double& raresCount,
+						  const double& weighedNRE,
 						  const size_t& batchSize) const;
 
 	/**
