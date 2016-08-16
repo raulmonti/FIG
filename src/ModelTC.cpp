@@ -359,18 +359,22 @@ void ModelTC::visit(shared_ptr<Model> model) {
 	accept_cond(decl);
     }
     //check modules
-    for (auto entry : model->get_modules()) {
+    auto& bodies = model->get_modules();
+    auto& ids = model->get_modules_ids();
+    unsigned int i = 0;
+    while (i < bodies.size()) {
 	const shared_ptr<ModuleScope>& new_scope = make_shared<ModuleScope>();
-	const string &id = entry.first;
+	const string &id = ids[i];
 	if (scopes.find(id) != scopes.end()) {
 	    put_error(TC_ID_REDEFINED(current_scope, id));	      
 	}
-	new_scope->body = entry.second;
+	new_scope->body = bodies[i];
 	new_scope->id = id;
 	 //set current scope before accepting module body
 	current_scope = new_scope;
 	scopes[id] = new_scope;
 	accept_cond(new_scope->body);
+	i++;
     }
     current_scope = nullptr;
     for (auto prop : model->get_props()) {

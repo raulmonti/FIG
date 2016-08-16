@@ -112,9 +112,13 @@ void ModelPrinter::visit(shared_ptr<Model> model) {
         accept_idented(decl);
     }
     print_idented("Modules:");
-    for (auto body : model->modules) {
-        print_idented("Module: " + body.first);
-        accept_idented(body.second);
+    auto& bodies = model->get_modules();
+    auto& ids = model->get_modules_ids();
+    unsigned int i = 0;
+    while (i < bodies.size()) {
+	print_idented("Module: " + ids[i]);
+        accept_idented(bodies[i]);
+	i++;
     }
     for (auto prop : model->get_props()) {
         accept_idented(prop);
@@ -147,6 +151,7 @@ void ModelPrinter::visit(shared_ptr<Decl> decl) {
     if (decl->is_array()) {
         print_idented("Array Size:");
         accept_idented(decl->size);
+        std::cout << "Hola!";
     }
     if (decl->inits.size() > 0) {
         print_idented("Init:");
@@ -245,9 +250,9 @@ void ModelPrinter::visit(shared_ptr<Prop> prop) {
     print_idented("=Property=");
     print_idented(to_str(prop->type));
     if (prop->type == PropType::transient) {
-	accept_idented(prop->left);
+        accept_idented(prop->left);
         accept_idented(prop->right);
     } else if (prop->type == PropType::rate){
-	accept_idented(prop->left);
+        accept_idented(prop->left);
     }
 }

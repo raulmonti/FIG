@@ -7,6 +7,7 @@
 #include <memory>
 #include <iostream>
 #include <sstream>
+#include <algorithm>
 #include "Util.h"
 
 /** Model Abstract Syntax Tree  **/
@@ -63,9 +64,9 @@ public:
 
 class Model : public ModelAST {
 public:
-    // (module's id -> body) map
     // public access allows the use of VisitorPattern
-    shared_map<string, class ModuleBody> modules;
+    shared_vector<class ModuleBody> modules;
+    vector<string> modules_ids; 
     shared_vector<class Decl> globals;
     shared_vector<Prop> props;
     
@@ -81,7 +82,8 @@ public:
     void operator=(Model const &) = delete;
     
     void add_module(string id, shared_ptr<ModuleBody> mb) {
-	modules[id] = mb;
+	modules.push_back(mb);
+	modules_ids.push_back(id);
     }
     
     void add_decl(shared_ptr<Decl> decl) {
@@ -92,12 +94,17 @@ public:
 	props.insert(props.end(), properties.begin(), properties.end());
     }
     
-    bool has_module(string id) {
-	return (modules.find(id) != modules.end());
+    bool has_module(const string& id) {
+	return (std::find(modules_ids.begin(), modules_ids.end(), id)
+		!= modules_ids.end());
     }
     
-    const map<string, shared_ptr<ModuleBody>>& get_modules() const {
+    const shared_vector<ModuleBody> &get_modules() const {
 	return (modules);
+    }
+
+    const vector<string> &get_modules_ids() const {
+	return (modules_ids);
     }
     
     const vector<shared_ptr<class Decl>>& get_globals() const {

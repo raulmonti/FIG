@@ -6,8 +6,9 @@
 #include <ModelPrinter.h>
 
 
-ModelBuilder::ModelBuilder() {};
-ModelBuilder::~ModelBuilder() {};
+ModelBuilder::ModelBuilder() {}
+ModelBuilder::~ModelBuilder() {}
+
 std::map<int, shared_ptr<Prop>> ModelBuilder::property_ast;
 
 inline const string mb_error_irr(const Type& type) {
@@ -95,10 +96,13 @@ inline bool ModelBuilder::get_bool_or_error(shared_ptr<Exp> exp,
 }
 
 void ModelBuilder::visit(shared_ptr<Model> model) {
-    for (auto &entry : model->get_modules()) {
-	const string &id = entry.first;
-	current_scope = scopes[id];
-	accept_cond(entry.second);
+    auto& bodies = model->get_modules();
+    auto& ids = model->get_modules_ids();
+    unsigned int i = 0;
+    while (i < bodies.size()) {
+	current_scope = scopes[ids[i]];
+	accept_cond(bodies[i]);
+	i++;
     }
     for (auto &prop : model->get_props()) {
 	current_scope = nullptr;
