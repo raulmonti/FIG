@@ -70,8 +70,8 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
 	static const size_t batch_sizes[NUM_ENGINES][NUM_IMPFUNS] = {
-		{ 1ul<<4, 1ul<<3, 1ul<<0 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 1ul<<0, 1ul<<0, 1ul<<0 }   // restart x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<4, 1ul<<3, 1ul<<11 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<11, 1ul<<11, 1ul<<11 }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -347,8 +347,9 @@ SimulationEngine::transient_update(ConfidenceInterval& ci,
 //			  std::log(batchSize) + log_experiments_per_sim());
 //	// numExperiments == batchSize * splitsPerThreshold ^ numThresholds
 	assert(ci.name == "transient");
-	assert(batchSize == 1ul);
-	ci.update(weighedNRE);
+//	assert(batchSize == 1ul);
+	static const double logBatchSize(std::log(batchSize));
+	ci.update(weighedNRE, logBatchSize);
 }
 
 

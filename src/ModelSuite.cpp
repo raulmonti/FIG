@@ -135,7 +135,7 @@ build_empty_ci(const fig::PropertyType& propertyType,
 	switch (propertyType)
 	{
 	case fig::PropertyType::TRANSIENT: {
-		ci_ptr.reset(new fig::ConfidenceIntervalTransient(confidenceCo,
+		ci_ptr.reset(new fig::ConfidenceIntervalWilson(confidenceCo,
 														  precision,
 														  dynamicPrecision,
 														  timeBoundSim));
