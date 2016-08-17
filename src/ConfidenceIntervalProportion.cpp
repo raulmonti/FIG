@@ -140,7 +140,7 @@ ConfidenceIntervalProportion::precision(const double &confco) const
 	if (0.0 >= confco || 1.0 <= confco)
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
 	return 2.0 * confidence_quantile(confco)
-			   * sqrt( exp( log(variance_) - (logNumSamples_ + log(varCorrection_))));
+			   * sqrt( exp( log(variance_) - logNumSamples_));
 }
 
 

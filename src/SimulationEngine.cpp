@@ -44,6 +44,7 @@
 #include <PropertyRate.h>
 #include <PropertyTransient.h>
 #include <ConfidenceInterval.h>
+#include <ConfidenceIntervalTransient.h>
 #include <ModuleNetwork.h>
 #include <TraialPool.h>
 #include <FigException.h>
@@ -304,10 +305,11 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 
 	case PropertyType::TRANSIENT: {
 		const auto& pTransient(dynamic_cast<const PropertyTransient&>(property));
+		auto& ciTransient(dynamic_cast<ConfidenceIntervalTransient&>(ci));
 		effort = min_batch_size(name(), impFun_->name());
 		while ( ! (interrupted || ci.is_valid()) ) {
-			value = transient_simulations(pTransient, effort);
-			transient_update(ci, value, effort);
+			auto results = transient_simulations(pTransient, effort);
+			transient_update(ciTransient, results);
 		}
 		} break;
 
@@ -336,9 +338,10 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 
 
 void
-SimulationEngine::transient_update(ConfidenceInterval& ci,
-								   const double& weighedNRE,
-								   const size_t& batchSize) const
+SimulationEngine::transient_update(ConfidenceIntervalTransient& ci,
+								   const std::vector<double>& numREs) const
+//								   const double& weighedNRE,
+//								   const size_t& batchSize) const
 {
 	if (interrupted)
 		return;  // don't update interrupted simulations
@@ -346,10 +349,13 @@ SimulationEngine::transient_update(ConfidenceInterval& ci,
 //	ci.update(std::abs(raresCount),
 //			  std::log(batchSize) + log_experiments_per_sim());
 //	// numExperiments == batchSize * splitsPerThreshold ^ numThresholds
-	assert(ci.name == "transient");
+
+//	assert(ci.name == "transient");
 //	assert(batchSize == 1ul);
-	static const double logBatchSize(std::log(batchSize));
-	ci.update(weighedNRE, logBatchSize);
+//	static const double logBatchSize(std::log(batchSize));
+//	ci.update(weighedNRE, logBatchSize);
+
+	ci.update(numREs);
 }
 
 

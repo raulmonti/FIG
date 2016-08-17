@@ -98,8 +98,8 @@ ConfidenceIntervalWilson::update(const double& newResults,
 	variance_ = log(estimate_*(1.0-estimate_));
 	const double
 		z2_N = exp(log_s_quantile-logNumSamples_),
-		dividend = log1p(z2_N),
-		divisor = sqrt(exp(variance_-logNumSamples_) + z2_N*exp(-log(4.0)-logNumSamples_));
+		divisor = 1.0+z2_N,
+		dividend = sqrt(exp(variance_-logNumSamples_) + z2_N*exp(-log(4.0)-logNumSamples_));
 	if (std::isnan(z2_N) || std::isinf(z2_N))
 		throw_FigException("z2N invalid");
 	if (std::isnan(dividend) || std::isinf(dividend))
@@ -180,8 +180,14 @@ ConfidenceIntervalWilson::precision(const double &confco) const
 			log_s_quantile(2.0*log(quantile));
 	const double
 		z2_N = exp(log_s_quantile-logNumSamples_),
-		dividend = log1p(z2_N),
-		divisor = sqrt(exp(variance_-logNumSamples_) + z2_N*exp(-log(4.0)-logNumSamples_));
+		divisor = 1.0+z2_N,
+		dividend = sqrt(exp(variance_-logNumSamples_) + z2_N*exp(-log(4.0)-logNumSamples_));
+	if (std::isnan(z2_N) || std::isinf(z2_N))
+		throw_FigException("z2N invalid");
+	if (std::isnan(dividend) || std::isinf(dividend))
+		throw_FigException("dividend invalid");
+	if (std::isnan(divisor) || std::isinf(divisor) || divisor <= 0.0)
+		throw_FigException("divisor invalid");
 	return 2.0 * quantile * dividend/divisor;
 //	const double numSamplesTimesVarCorrection = exp(logNumSamples_ + log(varCorrection_));
 //	return 2.0 * quantile * sqrt(numSamplesTimesVarCorrection)

@@ -41,7 +41,7 @@ namespace fig
 class ConfidenceIntervalTransient : public ConfidenceInterval
 {
 
-	double M2;
+	double M2, numRares_, logNumSamples_;
 
 public:  // Ctor
 
@@ -57,6 +57,9 @@ public:  // Modifyers
 
 	/// Stub to update(), multiple value feeding isn't tolerated yet
 	void update(const double& numRE, const double& numNewExp) override;
+
+	/// @todo TODO write docstring
+	void update(const std::vector<double> &numREs);
 
 public:  // Utils
 

@@ -50,6 +50,7 @@ class PropertyTransient;
 class ModuleNetwork;
 class Traial;
 class ConfidenceInterval;
+class ConfidenceIntervalTransient;
 
 /**
  * @brief Abstract base simulation engine
@@ -287,7 +288,7 @@ protected:  // Simulation helper functions
      *
      * @see PropertyTransient
 	 */
-	virtual double transient_simulations(const PropertyTransient& property,
+	virtual std::vector<double> transient_simulations(const PropertyTransient& property,
                                          const size_t& numRuns) const = 0;
 
 	/**
@@ -377,9 +378,10 @@ private:  // Class utils
 	 *       \ref interrupted "interrupted flag": <b>nothing will be done
 	 *       if such flag is set</b>
 	 */
-	void transient_update(ConfidenceInterval& ci,
-						  const double& weighedNRE,
-						  const size_t& batchSize) const;
+	void transient_update(ConfidenceIntervalTransient& ci,
+						  const std::vector<double> &numREs) const;
+//						  const double& weighedNRE,
+//						  const size_t& batchSize) const;
 
 	/**
 	 * @brief Update the ConfidenceInterval and the simulation effort

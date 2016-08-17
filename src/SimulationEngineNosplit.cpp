@@ -59,7 +59,7 @@ SimulationEngineNosplit::log_experiments_per_sim() const
 }
 
 
-double
+std::vector<double>
 SimulationEngineNosplit::transient_simulations(const PropertyTransient& property,
                                                const size_t& numRuns) const
 {
@@ -85,7 +85,8 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
 
 	// Return number of rare states visited
 	assert(0l <= raresCount);
-	return static_cast<double>(raresCount);
+	/// @todo TODO implement proper (separated) values return, like in RESTART engine
+	return std::vector<double>(1, static_cast<double>(raresCount));
 }
 
 

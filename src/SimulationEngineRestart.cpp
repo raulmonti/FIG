@@ -31,8 +31,8 @@
 #include <cmath>
 // C++
 #include <stack>
-#include <limits>    // std::numeric_limits<>
-#include <valarray>  // std::valarray<>
+#include <iterator>
+#include <algorithm>  // std::fill
 // FIG
 #include <SimulationEngineRestart.h>
 #include <ModuleNetwork.h>
@@ -41,6 +41,8 @@
 #include <FigLog.h>
 
 using std::pow;
+using std::begin;
+using std::end;
 
 
 namespace fig
@@ -122,13 +124,13 @@ SimulationEngineRestart::log_experiments_per_sim() const
 }
 
 
-double
+std::vector<double>
 SimulationEngineRestart::transient_simulations(const PropertyTransient& property,
 											   const size_t& numRuns) const
 {
 	assert(0u < numRuns);
 	const unsigned numThresholds(impFun_->num_thresholds());
-	std::valarray<unsigned> raresCount(0u, numThresholds+1);
+//	std::valarray<unsigned> raresCount(0u, numThresholds+1);
 	std::stack< Reference< Traial > > stack;
 	auto tpool = TraialPool::get_instance();
 
@@ -140,8 +142,16 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	else
 		watch_events = &SimulationEngineRestart::transient_event;
 
+
+	std::vector<unsigned> raresCount(numThresholds+1, 0u);
+	std::vector<double> weighedRaresCount;
+	weighedRaresCount.reserve(numRuns);
+
 	// Perform 'numRuns' RESTART importance-splitting simulations
-	for (size_t i = 0u ; i < numRuns && !interrupted ; i++) {
+	for (size_t i = 0ul ; i < numRuns && !interrupted ; i++) {
+
+		std::fill(begin(raresCount), end(raresCount), 0u);  // reset counts
+
 		tpool.get_traials(stack, 1u);
 		stack.top().get().initialize(*network_, *impFun_);
 
@@ -187,29 +197,40 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			}
 			// RARE events are checked first thing in next iteration
 		}
+
+		// Save weighed RE counts of this run, downscaling the # of RE observed
+		// by the relative importance of the threshold level they belong to
+		weighedRaresCount.push_back(0.0);
+		for (int t = 0u ; t <= (int)numThresholds ; t++)
+			weighedRaresCount[i] += raresCount[t] * pow(splitsPerThreshold_, -t);
+		assert(!std::isnan(weighedRaresCount.back()));
+		assert(!std::isinf(weighedRaresCount.back()));
+		assert(0.0 <= weighedRaresCount.back());
 	}
 	// Return any Traial still on the loose
 	tpool.return_traials(stack);
 
-	// To estimate, weigh each count by the relative importance of the
-	// threshold level it belongs to.
-	double weighedRaresCount(0.0);
-//	// We do that here in an "upscale fashion",
-//	// which must be balanced in the ConfidenceInterval update.
-//	for (unsigned i = 0u ; i <= numThresholds ; i++)
-//		weighedRaresCount += raresCount[i]
-//							  * pow(splitsPerThreshold_, numThresholds-i);
-	/// @todo TODO change to downscale weighing and modify ConfidenceInterval
-	///            update accordingly (Wilson and Proportion derived classes)
-	///       This *can* be done since we currently compute:
-	///           sum_{i=1}^{i=T} (RC[i] * s^(T-i+1)) / (batch_size * s^T)
-	///       and that equals:
-	///           (1/batch_size) * sum_{i=1}^{i=T} RC[i]/s^(i-1)
-	///       This change should bring much more numercial stability.
-	for (unsigned i = 0u ; i <= numThresholds ; i++)
-		weighedRaresCount += raresCount[i] / pow(splitsPerThreshold_, i);
-	// Return the (weighed) number of rare states visited
-	assert(0.0 <= weighedRaresCount);
+// 	// To estimate, weigh each count by the relative importance of the
+// 	// threshold level it belongs to.
+// 	double weighedRaresCount(0.0);
+// //	// We do that here in an "upscale fashion",
+// //	// which must be balanced in the ConfidenceInterval update.
+// //	for (unsigned i = 0u ; i <= numThresholds ; i++)
+// //		weighedRaresCount += raresCount[i]
+// //							  * pow(splitsPerThreshold_, numThresholds-i);
+// 	/// @todo TODO change to downscale weighing and modify ConfidenceInterval
+// 	///            update accordingly (Wilson and Proportion derived classes)
+// 	///       This *can* be done since we currently compute:
+// 	///           sum_{i=1}^{i=T} (RC[i] * s^(T-i+1)) / (batch_size * s^T)
+// 	///       and that equals:
+// 	///           (1/batch_size) * sum_{i=1}^{i=T} RC[i]/s^(i-1)
+// 	///       This change should bring much more numercial stability.
+// 	for (int i = 0u ; i <= (int)numThresholds ; i++)
+// 		weighedRaresCount += raresCount[i] * pow(splitsPerThreshold_, -i);
+// 	// Return the (weighed) number of rare states visited
+// 	assert(!std::isnan(weighedRaresCount));
+// 	assert(!std::isinf(weighedRaresCount));
+// 	assert(0.0 <= weighedRaresCount);
 	return weighedRaresCount;
 }
 
