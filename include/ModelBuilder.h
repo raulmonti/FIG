@@ -36,6 +36,7 @@ using fig::ModuleInstance;
 using fig::ModelSuite;
 using fig::State;
 using std::set;
+using std::pair;
 
 class ModelBuilder : public Visitor {
 private:
@@ -45,9 +46,10 @@ private:
     unique_ptr<vector<Var>> module_vars;
     unique_ptr<vector<Clock>> module_clocks;
     unique_ptr<vector<Transition>> module_transitions;
+    map<string, pair<string, vector<string>>> module_ie_pre;
     shared_ptr<ModuleScope> current_scope;
     //variables needed to compute the value of update expressions:
-    unique_ptr<set<string>> transition_read_vars;
+    unique_ptr<vector<string>> transition_read_vars;
     //variables that change after an update
     unique_ptr<vector<string>> transition_write_vars;
     //comma separated expressions strings to be evaluated
@@ -60,12 +62,14 @@ private:
     float get_float_or_error(shared_ptr<Exp> exp, const string &msg);
     void accept_cond(shared_ptr<ModelAST> node);
     Clock build_clock(const string &clock_id);
+    void update_module_ie(shared_ptr<Action> action);
+    void build_input_enabled();
 public:
     ModelBuilder();
     virtual ~ModelBuilder();
     // Property id (see Property::get_id) -> ast that generated it.
     // the ast is needed since the property is projected several times
-    // to different set of variables. 
+    // to different set of variables.
     static map<int, shared_ptr<Prop>> property_ast;
     
     void visit(shared_ptr<Model> node);
@@ -77,17 +81,17 @@ public:
 };
 
 class ExpStringBuilder : public Visitor {
-    set<string> names;
-    bool should_enclose;
+    vector<string> names;
     std::string result;
+    bool should_enclose;
 public:
-    ExpStringBuilder() : should_enclose {false}, result {""} {};
+    ExpStringBuilder() : result {""}, should_enclose {false} {}
     void visit(shared_ptr<IConst> node);
     void visit(shared_ptr<BConst> node);
     void visit(shared_ptr<FConst> node);
     void visit(shared_ptr<LocExp> node);
     void visit(shared_ptr<OpExp> node);
-    const set<string>& get_names();
+    const vector<string>& get_names();
     string str();
 };
 

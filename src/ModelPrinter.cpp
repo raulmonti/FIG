@@ -116,9 +116,9 @@ void ModelPrinter::visit(shared_ptr<Model> model) {
     auto& ids = model->get_modules_ids();
     unsigned int i = 0;
     while (i < bodies.size()) {
-	print_idented("Module: " + ids[i]);
+        print_idented("Module: " + ids[i]);
         accept_idented(bodies[i]);
-	i++;
+        i++;
     }
     for (auto prop : model->get_props()) {
         accept_idented(prop);
@@ -221,9 +221,9 @@ void ModelPrinter::visit(shared_ptr<IConst> node) {
 
 void ModelPrinter::visit(shared_ptr<BConst> node) {
     if (node->value) {
-	print_idented("Bool Value: true");
+        print_idented("Bool Value: true");
     } else {
-	print_idented("Bool Value: false");
+        print_idented("Bool Value: false");
     }
 }
 

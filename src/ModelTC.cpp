@@ -461,8 +461,8 @@ void ModelTC::visit(shared_ptr<Action> action) {
             labels[label] = label_type;
         }
     }
-    //Note: output label has clock: ensured by parser.
-    //Note: input label has no clock: ensured by parser.
+    //Note: output label has clock: ensured by grammar.
+    //Note: input label has no clock: ensured by grammar.
     assert(action->guard != nullptr);
     accept_cond(action->guard);
     if (label_type != LabelType::empty) {

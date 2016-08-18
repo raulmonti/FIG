@@ -95,6 +95,123 @@ inline bool ModelBuilder::get_bool_or_error(shared_ptr<Exp> exp,
     return (res);
 }
 
+namespace {
+std::pair<string, vector<string>>
+exp_desc_pair(shared_ptr<Exp> exp) {
+    ExpStringBuilder str_b;
+    exp->accept(str_b);
+    return std::make_pair(str_b.str(), str_b.get_names());
+}
+
+inline void dump_precondition_info(const string &expr,
+                                   const vector<string> &names) {
+    std::cout << "Precondition" << std::endl;
+    std::cout << "Expr = " << expr << std::endl;
+    std::cout << "Names = ";
+    for (auto &name : names) {
+        std::cout << name << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "EndPrecondition" << std::endl;
+    std::cout << std::endl;
+}
+
+inline void dump_postcondition_info(const string &updates,
+                                    const vector<string> &updates_names,
+                                    const vector<string> &vars_to_change) {
+    std::cout << "Postcondition" << std::endl;
+    std::cout << "Updates = " << updates << std::endl;
+    std::cout << "Updates Names = ";
+    for (auto &name : updates_names) {
+        std::cout << name << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "Vars to change = ";
+    for (auto &name : vars_to_change) {
+        std::cout << name << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "EndPostcondition" << std::endl;
+    std::cout << std::endl;
+}
+
+inline void dump_transition_info(const string &label,
+                                 const string &clock_trigger,
+                                 const string &pre_str,
+                                 const vector<string> &pre_names,
+                                 const string &post_update,
+                                 const vector<string> &post_update_names,
+                                 const vector<string> &post_vars_to_change,
+                                 const set<string> &clocks_to_reset) {
+    std::cout << "Transition" << std::endl;
+    std::cout << "Label = " << label << std::endl;
+    std::cout << "Clock = " << clock_trigger << std::endl;
+    dump_precondition_info(pre_str, pre_names);
+    dump_postcondition_info(post_update,
+                            post_update_names, post_vars_to_change);
+    std::cout << "Clocks to reset = ";
+    for (auto clock_n : clocks_to_reset) {
+        std::cout << clock_n << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "EndTransition" << std::endl;
+    std::cout << std::endl;
+}
+
+inline void dump_exp_info(const string &expr, const vector<string> &names) {
+    std::cout << "Expr = " << expr << std::endl;
+    std::cout << "Names = ";
+    for (auto name : names) {
+        std::cout << name << " ";
+    }
+    std::cout << std::endl;
+}
+
+inline void dump_transient_info(const string &left_expr,
+                                const vector<string> &left_vec,
+                                const string &right_expr,
+                                const vector<string> &right_vec) {
+    std::cout << "Property Transient" << std::endl;
+    dump_exp_info(left_expr, left_vec);
+    dump_exp_info(right_expr, right_vec);
+    std::cout << "EndProperty" << std::endl;
+    std::cout << std::endl;
+}
+
+inline void dump_rate_info(const string &expr, const vector<string> &vec) {
+    std::cout << "Property Rate" << std::endl;
+    dump_exp_info(expr, vec);
+    std::cout << "EndProperty" << std::endl;
+    std::cout << std::endl;
+}
+
+inline void dump_var_info(const string &module, const string &var,
+                          int low, int up,
+                          int init) {
+    std::cout << "Variable of Module " << module << std::endl;
+    std::cout << "Name = " << var << std::endl;
+    std::cout << "Lower = " << low << std::endl;
+    std::cout << "Upper = " << up << std::endl;
+    std::cout << "Init  = " << init << std::endl;
+    std::cout << "EndVariable" << std::endl;
+    std::cout << std::endl;
+}
+
+inline void dump_clock_info(const string &module,
+                            const string &name,
+                            const string &dist_name,
+                            float param1, float param2) {
+    std::cout << "Clock of Module " << module << std::endl;
+    std::cout << "Name = " << name << std::endl;
+    std::cout << "DistName = " << dist_name << std::endl;
+    std::cout << "Param1 = " << param1 << std::endl;
+    std::cout << "Param2 = " << param2 << std::endl;
+    std::cout << "EndClock" << std::endl;
+    std::cout << std::endl;
+}
+
+} //namespace
+
 void ModelBuilder::visit(shared_ptr<Model> model) {
     auto& bodies = model->get_modules();
     auto& ids = model->get_modules_ids();
@@ -110,10 +227,28 @@ void ModelBuilder::visit(shared_ptr<Model> model) {
     }
 }
 
+void ModelBuilder::build_input_enabled() {
+    assert(current_module != nullptr);
+    for (auto entry : module_ie_pre) {
+        const string &label_id = entry.first;
+        string &pre_str = entry.second.first;
+        const vector<string> &names = entry.second.second;
+        Precondition prec {pre_str, names};
+        //skip:
+        Postcondition post {"", vector<string>(), vector<string>()};
+        dump_transition_info(label_id, "", pre_str, names, "",
+                             vector<string>(), vector<string>(), set<string>());
+        const Transition &tr {Label {label_id, false}, "", prec, post,
+                    vector<string>()};
+        current_module->add_transition(tr);
+    }
+}
+
 void ModelBuilder::visit(shared_ptr<ModuleBody> body) {
     module_vars = make_unique<vector<Var>>();
     module_clocks = make_unique<vector<Clock>>();
     module_transitions = make_unique<vector<Transition>>();
+    module_ie_pre = map<string, pair<string, vector<string>>>();
     for (auto &decl : body->get_local_decls()) {
         accept_cond(decl);
     }
@@ -126,7 +261,10 @@ void ModelBuilder::visit(shared_ptr<ModuleBody> body) {
     for (auto &action : body->get_actions()) {
         accept_cond(action);
     }
-    model_suite.add_module(current_module);
+    build_input_enabled();
+    if (!has_errors()) {
+        model_suite.add_module(current_module);
+    }
 }
 
 Clock ModelBuilder::build_clock(const std::string& id) {
@@ -147,7 +285,10 @@ Clock ModelBuilder::build_clock(const std::string& id) {
             params[i] = 0.0;
         }
     }
-    //todo: constructor should accept the Distribution object directly, not the name.
+    //todo: constructor should accept the Distribution object directly,
+    //not the name.
+    dump_clock_info(current_scope->id, id, ModelPrinter::to_str(dist->type),
+                    params[0], params[1]);
     return Clock(id, ModelPrinter::to_str(dist->type), params);
 }
 
@@ -179,6 +320,9 @@ void ModelBuilder::visit(shared_ptr<Decl> decl) {
             throw_FigException("Not yet supported declaration type");
         }
         if (!has_errors()) {
+            if (current_scope != nullptr) {
+                dump_var_info(current_scope->id, decl->id, lower, upper, init);
+            }
             const auto &var = make_tuple(decl->id, lower, upper, init);
             assert(module_vars != nullptr);
             module_vars->push_back(var);
@@ -193,10 +337,29 @@ Label build_label(const string &id, LabelType type) {
     switch(type) {
     case LabelType::in : return Label(id, false);
     case LabelType::out: return Label(id, true);
-    case LabelType::commited: throw_FigException("Commited actions not yet supported");
+    case LabelType::commited:
+        throw_FigException("Commited actions not yet supported");
     case LabelType::empty: return Label(id, true);
     default:
         throw_FigException("Unsupported label type");
+    }
+}
+
+void ModelBuilder::update_module_ie(shared_ptr<Action> action) {
+    const string &label_id = action->id;
+    if (action->type == LabelType::in) {
+        auto guard_p = ::exp_desc_pair(action->guard);
+        const string nott_guard = "!(" + guard_p.first + ")";
+        auto &names = guard_p.second;
+        if (module_ie_pre.find(label_id) == module_ie_pre.end()) {
+            module_ie_pre[label_id] = make_pair(nott_guard, names);
+        } else {
+            auto &pre_p = module_ie_pre[label_id];
+            names.insert(names.end(),
+                         pre_p.second.cbegin(), pre_p.second.cend());
+            module_ie_pre[label_id]
+                    = make_pair(pre_p.first + "&" + nott_guard, names);
+        }
     }
 }
 
@@ -204,6 +367,7 @@ void ModelBuilder::visit(shared_ptr<Action> action) {
     const string &label_id = action->id;
     LabelType label_type = action->type;
     Label label = build_label(label_id, label_type);
+    update_module_ie(action);
     //Transition constructor expects the id of the triggering
     //clock,  let's get it:
     string t_clock = action->has_clock() ?
@@ -212,20 +376,9 @@ void ModelBuilder::visit(shared_ptr<Action> action) {
     ExpStringBuilder string_builder;
     action->guard->accept(string_builder);
     string result = string_builder.str();
-
-    /***** SUPER DUMPING!!! */
-    std::cout << "PRE" << std::endl;
-    std::cout << "STRING = " << result << std::endl;
-    std::cout << "VARIABLES = " ;
-    for (auto x : string_builder.get_names()) {
-        std::cout << x << ",";
-    }
-    std::cout << std::endl;
-    /***************************/
-
     Precondition pre (result, string_builder.get_names());
     //Postcondition, to build the postcondition we need to visit the effects.
-    transition_read_vars = make_unique<set<string>>();
+    transition_read_vars = make_unique<vector<string>>();
     transition_write_vars = make_unique<vector<string>>();
     transition_update.str(std::string());
     transition_clocks = make_unique<set<string>>();
@@ -243,21 +396,9 @@ void ModelBuilder::visit(shared_ptr<Action> action) {
         }
         it++;
     }
-
-    /**** DUMPING */
-    std::cout << "POST" << std::endl;
-    std::cout << "STRING = " << transition_update.str() << std::endl;
-    std::cout << "EXPR VARIABLES = ";
-    for (auto x : *transition_read_vars) {
-        std::cout << x << ",";
-    }
-    std::cout << std::endl;
-    std::cout << "CHANGE VARIABLES = ";
-    for (auto x : *transition_write_vars) {
-        std::cout << x << ",";
-    }
-    std::cout << std::endl;
-    /****/
+    dump_transition_info(label_id, t_clock, result, string_builder.get_names(),
+                         transition_update.str(), *transition_read_vars,
+                         *transition_write_vars, *transition_clocks);
     const string &update = transition_update.str();
     Postcondition post (update, *transition_read_vars, *transition_write_vars);
     assert(current_module != nullptr);
@@ -272,9 +413,10 @@ void ModelBuilder::visit(shared_ptr<Effect> effect) {
         accept_cond(effect->loc);
         ExpStringBuilder str_builder;
         effect->arg->accept(str_builder);
-        const set<string> &names = str_builder.get_names();
-        set<string>::iterator end = transition_read_vars->end();
-        transition_read_vars->insert(names.cbegin(), names.cend());
+        const vector<string> &names = str_builder.get_names();
+        vector<string>::iterator end = transition_read_vars->end();
+        transition_read_vars->insert(transition_read_vars->cend(),
+                                     names.cbegin(), names.cend());
         transition_write_vars->push_back(effect->loc->id);
         transition_update << str_builder.str();
     }
@@ -283,42 +425,20 @@ void ModelBuilder::visit(shared_ptr<Effect> effect) {
 void ModelBuilder::visit(shared_ptr<Prop> prop) {
     ExpStringBuilder left_b;
     prop->left->accept(left_b);
-    const set<string> &left_names = left_b.get_names();
+    const vector<string> &left_names = left_b.get_names();
     const string &left_expr = left_b.str();
     shared_ptr<Property> property = nullptr;
     if (prop->type == PropType::transient) {
         ExpStringBuilder right_b;
         prop->right->accept(right_b);
-        const set<string> &right_names = right_b.get_names();
+        const vector<string> &right_names = right_b.get_names();
         const string &right_expr = right_b.str();
-
-
-        /*** DUMP */
-        std::cout << "Property TRANSIENT" << std::endl;
-        std::cout << "LEFT EXPR = " << left_expr << std::endl;
-        std::cout << "LEFT NAMES = ";
-        for (auto x : left_names) {
-            std::cout << x;
-        }
-        std::cout << std::endl;
-        std::cout << "RIGHT EXPR = " << right_expr << std::endl;
-        std::cout << "RIGHT NAMES = ";
-        for (auto x : right_names) {
-            std::cout << x;
-        }
-        std::cout << std::endl;
+        dump_transient_info(left_expr, left_names, right_expr, right_names);
         property = make_shared<PropertyTransient>
                 (left_expr, left_names, right_expr, right_names);
 
     } else if (prop->type == PropType::rate) {
-        /*** DUMP */
-        std::cout << "Property RATE" << std::endl;
-        std::cout << "LEFT EXPR = " << left_expr << std::endl;
-        std::cout << "LEFT NAMES = ";
-        for (auto x : left_names) {
-            std::cout << x;
-        }
-        std::cout << std::endl;
+        dump_rate_info(left_expr, left_names);
         property = make_shared<PropertyRate>(left_expr, left_names);
     } else {
         put_error("Unsupported property type");
@@ -334,18 +454,15 @@ void ModelBuilder::visit(shared_ptr<Prop> prop) {
 // ExpStringBuilder
 void ExpStringBuilder::visit(shared_ptr<IConst> node) {
     result = std::to_string(node->value);
-    should_enclose = false;
 }
 
 void ExpStringBuilder::visit(shared_ptr<BConst> node) {
     //@todo: support boolean variables directly?
-    result = node->value ? "1" : "0";
-    should_enclose = false;
+    result = node->value ? "true" : "false";
 }
 
 void ExpStringBuilder::visit(shared_ptr<FConst> node) {
     result = std::to_string(node->value);
-    should_enclose = false;
 }
 
 void ExpStringBuilder::visit(shared_ptr<LocExp> node) {
@@ -363,7 +480,7 @@ void ExpStringBuilder::visit(shared_ptr<LocExp> node) {
         result = eval.value_to_string();
     } else {
         result = node->location->id;
-        names.insert(result);
+        names.push_back(result);
     }
     should_enclose = false;
 }
@@ -390,6 +507,6 @@ string ExpStringBuilder::str() {
     return (result);
 }
 
-const set<string>& ExpStringBuilder::get_names() {
+const vector<string>& ExpStringBuilder::get_names() {
     return (names);
 }

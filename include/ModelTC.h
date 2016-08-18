@@ -28,16 +28,16 @@ struct ModuleScope {
     shared_map<string, Decl> local_decls;
 
     static shared_ptr<Decl> find_in_all_modules(const string &id) {
-	shared_ptr<Decl> result = nullptr;
-	for (auto entry : ModuleScope::scopes) {
-	    const shared_ptr<ModuleScope>& curr = entry.second;
-	    const shared_map<string, Decl> &local = curr->local_decls;
-	    if (local.find(id) != local.end()) {
-		result = local.at(id);
-		break;
-	    }
-	}
-	return (result);
+        shared_ptr<Decl> result = nullptr;
+        for (auto entry : ModuleScope::scopes) {
+            const shared_ptr<ModuleScope> &curr = entry.second;
+            const shared_map<string, Decl> &local = curr->local_decls;
+            if (local.find(id) != local.end()) {
+                result = local.at(id);
+                break;
+            }
+        }
+        return (result);
     }
 };
 
@@ -56,15 +56,15 @@ private:
     void check_dnf(PropType type, shared_ptr<Exp> exp);
     Type identifier_type(const string &id);
     bool is_global_scope() {
-	return (current_scope == nullptr);
+        return (current_scope == nullptr);
     }
     // result type of a operator given the type of its arguments
     // may be Type::tunknown
     static Type operator_type(const ExpOp &id, Type arg);
 public:
     ModelTC() : current_scope {nullptr},
-		last_type {Type::tunknown},
-		checking_property {false} {};
+        last_type {Type::tunknown},
+        checking_property {false} {};
     virtual ~ModelTC();
     void visit(shared_ptr<Model> node);
     void visit(shared_ptr<ModuleBody> node);

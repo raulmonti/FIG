@@ -11,7 +11,7 @@ using std::make_shared;
 
 /* This visitor reduces expressions to constants.
  * The expressions that can be reduced in compilation time
- * do not depend on state variables, only on global constans
+ * do not depend on state variables, only on global constants
  * and initializations.
  */
 
@@ -20,15 +20,15 @@ private:
     shared_map<string, Decl>& globals = ModuleScope::globals;
     Type type;
     union value_holder_t {
-	bool bvalue;
-	int ivalue;
-	float fvalue;
+        bool bvalue;
+        int ivalue;
+        float fvalue;
     } value;
     void reduce_unary_operator(shared_ptr<OpExp> exp);
     void reduce_binary_operator(shared_ptr<OpExp> exp);
     void mark_not_reducible();
 public:
-    ExpEvaluator() : type {Type::tunknown} {};
+    ExpEvaluator() : type {Type::tunknown} {}
     template<typename T>
     static std::function<T (T)> uop_as_fun(ExpOp op);
     template<typename T>

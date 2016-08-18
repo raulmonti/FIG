@@ -18,12 +18,12 @@ public:
     void visit(shared_ptr<LocExp> node);
     void visit(shared_ptr<OpExp> node);
     const ClauseType &get_clause() {
-	return (clause);
+        return (clause);
     }
 };
 
 class ExprDNFBuilder : public Visitor {
-    vector<ClauseType> clause_vector;   
+    vector<ClauseType> clause_vector;
 public:
     ExprDNFBuilder() {};
     void visit(shared_ptr<IConst> node);
@@ -32,9 +32,9 @@ public:
     void visit(shared_ptr<LocExp> node);
     void visit(shared_ptr<OpExp> node);
     const vector<ClauseType>& get_clauses() {
-	return clause_vector;
+        return clause_vector;
     }
 };
-  
+
 
 #endif
