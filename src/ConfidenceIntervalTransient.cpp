@@ -39,6 +39,9 @@ using std::abs;
 using std::exp;
 using std::log;
 using std::log1p;
+using std::sqrt;
+using std::isnan;
+using std::isinf;
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
@@ -49,24 +52,28 @@ ConfidenceIntervalTransient::ConfidenceIntervalTransient(double confidence,
 														 bool neverStop) :
 	ConfidenceInterval("transient", confidence, precision, dynamicPrecision, neverStop),
 	M2(0.0),
-	numRares_(0.0),
-	logNumSamples_(0.0)
+	logNumSamples_(0.0),
+	logVariance_(INFINITY)
 { /* Not much to do around here... */ }
 
 
 void
 ConfidenceIntervalTransient::update(const double& weighedNRE)
 {
-	// Incremental computation of mean and variance (http://goo.gl/ytk6B)
-	double delta = weighedNRE - estimate_;
+	prevEstimate_ = estimate_;
+	// Incremental (stable) computation of mean and variance (http://goo.gl/ytk6B)
+	const double delta = abs(weighedNRE - estimate_),
+				 sgn   = weighedNRE < estimate_ ? -1.0 : 1.0;
+	assert(!(isnan(delta)||isinf(delta)));
 	if (++numSamples_ <= 0l)
 		throw_FigException("numSamples_ became negative, overflow?");
-	prevEstimate_ = estimate_;
-	estimate_ += delta/numSamples_;
-	M2 += delta*(weighedNRE-estimate_);
-	variance_ = numSamples_ < 2l ? variance_ : M2/(numSamples_-1l);
+	logNumSamples_ = log(numSamples_);
+	estimate_ += sgn * exp(log(delta)-logNumSamples_);
+	M2 += sgn * delta * (weighedNRE-estimate_);
+	assert(!(isnan(M2)||isinf(M2)));
+	logVariance_ = log(M2)-logNumSamples_;  // should use "numSamples_-1" for unbiasedness...
 	// Half-width of the new confidence interval
-	halfWidth_ = quantile * std::sqrt(variance_/numSamples_);
+	halfWidth_ = quantile * sqrt(exp(logVariance_-logNumSamples_));
 }
 
 
@@ -81,51 +88,25 @@ ConfidenceIntervalTransient::update(const double& numRE, const double& numNewExp
 
 
 void
-ConfidenceIntervalTransient::update(const std::vector<double> &numREs)
+ConfidenceIntervalTransient::update(const std::vector<double>& weighedNREs)
 {
-
-	// Compute logarithm of the updated # of samples ( new + old )
-	// See the wiki: https://goo.gl/qfDfKQ. Notice the use of std::log1p()
-	const double logNumNewExperiments(log(numREs.size()));
-	logNumSamples_ = logNumNewExperiments + log1p(exp(logNumSamples_-logNumNewExperiments));
 	prevEstimate_ = estimate_;
-	double numNewRares(0.0);
 	// Incremental (stable) computation of mean and variance (http://goo.gl/ytk6B)
-	for (auto numRE: numREs) {
-		numNewRares += numRE;
-		double delta = abs(numRE - estimate_), sgn(numRE > estimate_ ? 1.0 : -1.0);
-		assert(!std::isnan(delta));
-		assert(!std::isinf(delta));
+	for (auto weighedNRE: weighedNREs) {
+		const double delta = abs(weighedNRE - estimate_),
+					 sgn   = weighedNRE < estimate_ ? -1.0 : 1.0;
+		assert(!(isnan(delta)||isinf(delta)));
 		if (++numSamples_ <= 0l)
 			throw_FigException("numSamples_ became negative, overflow?");
-		estimate_ += exp(log(delta)-log(numSamples_)) * sgn;
-		M2 += delta*sgn*(numRE-estimate_);
-		assert(!std::isnan(M2));
-		assert(!std::isinf(M2));
+		estimate_ += sgn * exp(log(delta)-log(numSamples_));
+		M2 += sgn * delta * (weighedNRE-estimate_);
+		assert(!(isnan(M2)||isinf(M2)));
 	}
-	numRares_ += numNewRares;
-//	estimate_ = exp(log(numRares_)-logNumSamples_);  // more precise (?)
-	variance_ = exp(log(M2)-logNumSamples_);
-	assert(!std::isnan(variance_));
-	assert(!std::isinf(variance_));
-
-//	const double logNumNewExperiments(log(numREs.size()));
-//	prevEstimate_ = estimate_;
-//	numSamples_ += numREs.size();
-//	// Compute logarithm of the updated # of samples ( new + old )
-//	// See the wiki: https://goo.gl/qfDfKQ. Notice the use of std::log1p()
-//	logNumSamples_ = logNumNewExperiments + log1p(exp(logNumSamples_-logNumNewExperiments));
-//	double numNewRares(0.0);
-//	for (const auto& numRE: numREs)
-//		numNewRares += numRE;
-//	numRares_ += numNewRares;
-//	estimate_ = exp(log(numRares_)-logNumSamples_);
-//	for (const auto& numRE: numREs)
-//		M2 += (numRE-prevEstimate_)*(numRE-prevEstimate_);  // not quite correct: prevEstimate should be updated on every step...
-//	variance_ = exp(log(M2)-logNumSamples_);
-
+	logNumSamples_ = log(numSamples_);
+	logVariance_ = log(M2)-logNumSamples_;  // should use "numSamples_-1" for unbiasedness...
+	assert(!(isnan(logVariance_)||isinf(logVariance_)));
 	// Half-width of the new confidence interval
-	halfWidth_ = quantile * std::sqrt(exp(log(variance_)-logNumSamples_));
+	halfWidth_ = quantile * sqrt(exp(logVariance_-logNumSamples_));
 }
 
 
@@ -144,12 +125,8 @@ ConfidenceIntervalTransient::precision(const double& confco) const
 {
 	if (0.0 >= confco || 1.0 <= confco)
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
-	// Array update method:
 	return 2.0 * confidence_quantile(confco)
-			   * std::sqrt(exp(log(variance_)-logNumSamples_));
-//  // Single value update method:
-//	return 2.0 * confidence_quantile(confco)
-//			   * std::sqrt(variance_/numSamples_);
+			   * sqrt(exp(logVariance_-logNumSamples_));
 }
 
 
@@ -158,8 +135,8 @@ ConfidenceIntervalTransient::reset(bool fullReset) noexcept
 {
 	ConfidenceInterval::reset(fullReset);
 	M2 = 0.0;
-	numRares_ = 0.0;
 	logNumSamples_ = 0.0;
+	logVariance_ = INFINITY;
 }
 
 }  // namespace fig  // // // // // // // // // // // // // // // // // // // //

@@ -45,7 +45,7 @@ using std::begin;
 using std::end;
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 // Available engine names in SimulationEngine::names
@@ -143,8 +143,8 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 		watch_events = &SimulationEngineRestart::transient_event;
 
 
-	std::vector<unsigned> raresCount(numThresholds+1, 0u);
-	std::vector<double> weighedRaresCount;
+	std::vector< unsigned > raresCount(numThresholds+1, 0u);
+	std::vector< double > weighedRaresCount;
 	weighedRaresCount.reserve(numRuns);
 
 	// Perform 'numRuns' RESTART importance-splitting simulations
@@ -242,7 +242,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 {
 	assert(0u < runLength);
 	const unsigned numThresholds(impFun_->num_thresholds());
-	std::valarray< double > raresCount(0.0, numThresholds+1);
+	std::vector< double > raresCount(0.0, numThresholds+1);
 	auto tpool = TraialPool::get_instance();
 //	static thread_local Traial& originalTraial(tpool.get_traial());
 	static Traial& originalTraial(tpool.get_traial());
@@ -336,11 +336,11 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 
 	// To estimate, weigh times by the relative importance of their thresholds
 	double weighedAccTime(0.0);
-	for (unsigned i = 0u ; i <= numThresholds ; i++)
-		weighedAccTime += raresCount[i] / pow(splitsPerThreshold_, i);
+	for (int t = 0 ; t <= (int)numThresholds ; t++)
+		weighedAccTime += raresCount[t] * pow(splitsPerThreshold_, -t);
 	// Return the (weighed) simulation-time spent on rare states
 	assert(0.0 <= weighedAccTime);
 	return weighedAccTime;
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

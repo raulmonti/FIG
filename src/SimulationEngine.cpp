@@ -340,21 +340,9 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 void
 SimulationEngine::transient_update(ConfidenceIntervalTransient& ci,
 								   const std::vector<double>& numREs) const
-//								   const double& weighedNRE,
-//								   const size_t& batchSize) const
 {
 	if (interrupted)
 		return;  // don't update interrupted simulations
-//	assert(ci.name == "proportion_std" || ci.name == "proportion_wilson");
-//	ci.update(std::abs(raresCount),
-//			  std::log(batchSize) + log_experiments_per_sim());
-//	// numExperiments == batchSize * splitsPerThreshold ^ numThresholds
-
-//	assert(ci.name == "transient");
-//	assert(batchSize == 1ul);
-//	static const double logBatchSize(std::log(batchSize));
-//	ci.update(weighedNRE, logBatchSize);
-
 	ci.update(numREs);
 }
 

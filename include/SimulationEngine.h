@@ -284,12 +284,15 @@ protected:  // Simulation helper functions
      * @param property PropertyTransient with events of interest (expr1 & expr2)
 	 * @param numRuns  Amount of successive independent simulations to run
      *
-     * @return Number of states satisfying 'expr2' reached
+     * @return Vector with the (weighed) number of states which reached 'expr2'
+     *         on each of the simulations performed (which may be less than
+     *         'numRuns' if the engine was interrupted)
      *
      * @see PropertyTransient
 	 */
-	virtual std::vector<double> transient_simulations(const PropertyTransient& property,
-                                         const size_t& numRuns) const = 0;
+	virtual std::vector<double>
+	transient_simulations(const PropertyTransient& property,
+						  const size_t& numRuns) const = 0;
 
 	/**
 	 * @brief Perform a long-run simulation to estimate the value of a
