@@ -64,8 +64,9 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
                                                const size_t& numRuns) const
 {
 	assert(0ul < numRuns);
-	long raresCount(0);
-    Traial& traial = TraialPool::get_instance().get_traial();
+	std::vector< double > raresCount;
+	raresCount.reserve(numRuns);
+	Traial& traial = TraialPool::get_instance().get_traial();
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
     bool (SimulationEngineNosplit::*watch_events)
@@ -75,18 +76,16 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
     else
         watch_events = &SimulationEngineNosplit::transient_event;
 
-    // Perform 'numRuns' standard Monte Carlo simulations
+	// Perform 'numRuns' independent standard Monte Carlo simulations
 	for (size_t i = 0ul ; i < numRuns && !interrupted ; i++) {
 		traial.initialize(*network_, *impFun_);
         Event e = network_->simulation_step(traial, property, *this, watch_events);
-		raresCount += IS_RARE_EVENT(e) ? 1l : 0l;
+		raresCount.push_back(IS_RARE_EVENT(e) ? 1.0l : 0.0l);
     }
     TraialPool::get_instance().return_traial(std::move(traial));
 
 	// Return number of rare states visited
-	assert(0l <= raresCount);
-	/// @todo TODO implement proper (separated) values return, like in RESTART engine
-	return std::vector<double>(1, static_cast<double>(raresCount));
+	return raresCount;
 }
 
 

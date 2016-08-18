@@ -51,7 +51,7 @@ const int delta = 4;  // -- Repair     rate
 const int gama = 3;   // -- Fail       rate
 
 // -- Buffer capacity: 40, 80, 120, 160
-const int K = 60;
+const int K = 80;
 
 
 ///////////////////////////////////////////////////////////////////////

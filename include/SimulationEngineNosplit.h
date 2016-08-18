@@ -71,8 +71,9 @@ protected:  // Simulation helper functions
 
 	double log_experiments_per_sim() const override;
 
-	std::vector<double> transient_simulations(const PropertyTransient& property,
-								 const size_t& numRuns) const override;
+	std::vector<double>
+	transient_simulations(const PropertyTransient& property,
+						  const size_t& numRuns) const override;
 
 	double rate_simulation(const PropertyRate& property,
 						   const size_t& runLength,

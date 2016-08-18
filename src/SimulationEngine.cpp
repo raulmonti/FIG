@@ -344,7 +344,6 @@ SimulationEngine::transient_update(ConfidenceIntervalTransient& ci,
 	if (interrupted)
 		return;  // don't update interrupted simulations
 	ci.update(weighedNREs);
-	figTechLog << "+";  // report progress
 }
 
 
