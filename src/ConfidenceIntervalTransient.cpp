@@ -70,20 +70,12 @@ ConfidenceIntervalTransient::update(const double& weighedNRE)
 	logNumSamples_ = log(numSamples_);
 	estimate_ += sgn * exp(log(delta)-logNumSamples_);
 	M2 += sgn * delta * (weighedNRE-estimate_);
-	assert(!(isnan(M2)||isinf(M2)));
 	logVariance_ = log(M2)-logNumSamples_;  // should use "numSamples_-1" for unbiasedness...
+	assert(!isnan(logVariance_));
+	if (0.0 < M2 && isinf(logVariance_))
+		throw_FigException("invalid internal value, overflow?");
 	// Half-width of the new confidence interval
 	halfWidth_ = quantile * sqrt(exp(logVariance_-logNumSamples_));
-}
-
-
-void
-ConfidenceIntervalTransient::update(const double& numRE, const double& numNewExp)
-{
-	/// @todo TODO inline in header in class description
-	if (numNewExp > 1.1)
-		throw_FigException("multiple values feeding isn't supported");
-	update(numRE);
 }
 
 
@@ -104,7 +96,9 @@ ConfidenceIntervalTransient::update(const std::vector<double>& weighedNREs)
 	}
 	logNumSamples_ = log(numSamples_);
 	logVariance_ = log(M2)-logNumSamples_;  // should use "numSamples_-1" for unbiasedness...
-	assert(!(isnan(logVariance_)||isinf(logVariance_)));
+	assert(!isnan(logVariance_));
+	if (0.0 < M2 && isinf(logVariance_))
+		throw_FigException("invalid internal value, overflow?");
 	// Half-width of the new confidence interval
 	halfWidth_ = quantile * sqrt(exp(logVariance_-logNumSamples_));
 }
@@ -113,10 +107,10 @@ ConfidenceIntervalTransient::update(const std::vector<double>& weighedNREs)
 bool
 ConfidenceIntervalTransient::min_samples_covered() const noexcept
 {
-	/// @todo TODO define!
+	/// @todo TODO define proper bound!
 	static const double TH_LBOUND(log(1.0));
 	return 30l < numSamples_ &&
-			TH_LBOUND < log(numSamples_)+log(estimate_);
+			TH_LBOUND < logNumSamples_+log(estimate_);
 }
 
 

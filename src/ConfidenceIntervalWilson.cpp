@@ -63,17 +63,21 @@ ConfidenceIntervalWilson::ConfidenceIntervalWilson(
 void
 ConfidenceIntervalWilson::update(const double& newResult)
 {
-//	update(newResult, log1p(0.0));  // don't reinvent the wheel
+	static const double log_s_quantile(log(squantile_));
+	// Reinvent the wheel for the sake of efficiency...
 	if (++numSamples_ <= 0l)
 		throw_FigException("numSamples_ became negative, overflow?");
 	numRares_ += newResult;
 	prevEstimate_ = estimate_;
-	estimate_ = numRares_/numSamples_;
+	estimate_ = numRares_/numSamples_;  // what about fp precision loss !!??
 	variance_ = estimate_*(1.0-estimate_);
 	const double
-		z2_N = squantile_/numSamples_,
-		dividend = 1.0+z2_N,
-		divisor = sqrt(variance_/numSamples_ + (z2_N/numSamples_)/4.0);
+		logVarianceN(log(numSamples_-1)+log(varCorrection_)),
+		z2_N = exp(log_s_quantile-logVarianceN),
+		divisor = 1.0+z2_N,
+		dividend = sqrt(exp(variance_-logVarianceN) + z2_N*exp(-log(4.0)-logVarianceN));
+	assert(!(std::isnan(divisor)||std::isinf(divisor)));
+	assert(!(std::isnan(dividend)||std::isinf(dividend)));
 	halfWidth_ = quantile*dividend/divisor;
 }
 
@@ -83,12 +87,10 @@ ConfidenceIntervalWilson::update(const double& newResults,
 								 const double& logNumNewExperiments)
 {
 	static const double log_s_quantile(log(squantile_));
-
 	if (++numSamples_ <= 0l)
 		throw_FigException("numSamples_ became negative, overflow?");
 	// Compute logarithm of the updated # of samples ( new + old )
 	// See the wiki: https://goo.gl/qfDfKQ. Notice the use of std::log1p()
-//	logNumSamples_ += log1p(exp(logNumNewExperiments - logNumSamples_));
 	logNumSamples_ = logNumNewExperiments + log1p(exp(logNumSamples_-logNumNewExperiments));
 	if (std::isinf(logNumSamples_) || std::isnan(logNumSamples_))
 		throw_FigException("failed updating logNumSamples_; overflow?");
@@ -97,62 +99,22 @@ ConfidenceIntervalWilson::update(const double& newResults,
 	estimate_ = exp(log(numRares_) - logNumSamples_);
 	variance_ = log(estimate_*(1.0-estimate_));
 	const double
-		z2_N = exp(log_s_quantile-logNumSamples_),
+		logVarianceN(log(numSamples_-1)+log(varCorrection_)),
+		z2_N = exp(log_s_quantile-logVarianceN),
 		divisor = 1.0+z2_N,
-		dividend = sqrt(exp(variance_-logNumSamples_) + z2_N*exp(-log(4.0)-logNumSamples_));
-	if (std::isnan(z2_N) || std::isinf(z2_N))
-		throw_FigException("z2N invalid");
-	if (std::isnan(dividend) || std::isinf(dividend))
-		throw_FigException("dividend invalid");
-	if (std::isnan(divisor) || std::isinf(divisor) || divisor <= 0.0)
-		throw_FigException("divisor invalid");
+		dividend = sqrt(exp(variance_-logVarianceN) + z2_N*exp(-log(4.0)-logVarianceN));
+	assert(!(std::isnan(divisor)||std::isinf(divisor)));
+	assert(!(std::isnan(dividend)||std::isinf(dividend)));
 	halfWidth_ = quantile*dividend/divisor;
-//	// Check for possible overflows
-//	if (0.0 < newResults && numRares_ + newResults == numRares_)
-//		throw_FigException("can't increase numRares_ count; overflow?");
-//	if (std::isinf(logNumNewExperiments) || std::isnan(logNumNewExperiments))
-//		throw_FigException("invalid logNumNewExperiments; overflow?");
-//
-//	// Compute logarithm of the updated # of samples ( old + new )
-//	// See the wiki: https://goo.gl/qfDfKQ. Notice the use of std::log1p()
-//	logNumSamples_ += log1p(exp(logNumNewExperiments - logNumSamples_));
-//	if (std::isinf(logNumSamples_) || std::isnan(logNumSamples_))
-//		throw_FigException("failed updating logNumSamples_; overflow?");
-//
-//	numRares_ += newResults;
-//	numSamples_++;
-//	if (0.0 >= numRares_)
-//		return;  // nothing to work with yet
-//
-//	// Compute the updated estimate
-//	double logEstimate = log(numRares_ + squantile_/2.0) - logNumSamples_
-//						 - log1p(exp(log(squantile_)-logNumSamples_));
-//	if (std::isinf(logEstimate) || std::isnan(logEstimate))
-//		throw_FigException("failed computing logEstimate; overflow?");
-//	prevEstimate_ = estimate_;
-//	estimate_ = exp(logEstimate);
-//	assert(!std::isinf(estimate_) && !std::isnan(estimate_));
-//
-//	// Compute the updated variance and interval half width
-//	const double phat = exp(log(numRares_) - logNumSamples_);
-//	variance_ = phat * (1.0-phat);
-//	const double numSamplesTimesVarCorrection = exp(logNumSamples_ + log(varCorrection_));
-//	if (std::isinf(numSamplesTimesVarCorrection) ||
-//		std::isnan(numSamplesTimesVarCorrection) ||
-//			0.0 > numSamplesTimesVarCorrection)
-//		throw_FigException("invalid internal variable value; overflow?");
-//	halfWidth_ = quantile * sqrt(numSamplesTimesVarCorrection)
-//			* sqrt(variance_ + squantile_/(4.0*numSamplesTimesVarCorrection))
-//			/ (numSamplesTimesVarCorrection + squantile_);
 }
 
 
 bool
 ConfidenceIntervalWilson::min_samples_covered() const noexcept
 {
-	return numSamples_ > 10l && numSamples_*estimate_ > 1.0;
-//	// Even though the Wilson score interval has lax lower bounds (http://goo.gl/B86Dc),
-//	// they've been increased to meet experimental quality standards
+	// Even though the Wilson score interval has lax bounds (http://goo.gl/B86Dc),
+	// they've been tailored to meet experimental quality standards
+	return numSamples_ > 5l && numSamples_*estimate_ > 1.0;
 //	static constexpr long LBOUND(1l<<7l), LBOUNDR(1l<<9l);
 //	static const double LOG_LBOUNDR(log(LBOUNDR));
 //	const bool theoreticallySound =
@@ -162,12 +124,9 @@ ConfidenceIntervalWilson::min_samples_covered() const noexcept
 //				LOG_LBOUNDR < logNumSamples_+log1p(-estimate_)  // n*(1-p)
 //			  )
 //			);
-//	/// @todo TODO remove "practical" stopping criterion
 //	// Ask also for little change w.r.t. the last outcome
 //	const bool practicallySound = abs(prevEstimate_-estimate_) < 0.02*estimate_;
-//	// So, did we make it already?
 //	return theoreticallySound && practicallySound;
-//	return theoreticallySound;
 }
 
 
@@ -176,23 +135,15 @@ ConfidenceIntervalWilson::precision(const double &confco) const
 {
 	if (0.0 >= confco || 1.0 <= confco)
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
-	const double quantile = confidence_quantile(confco),
-			log_s_quantile(2.0*log(quantile));
 	const double
-		z2_N = exp(log_s_quantile-logNumSamples_),
+		quantile = confidence_quantile(confco),
+		logVarianceN(log(numSamples_-1)+log(varCorrection_)),
+		z2_N = exp(2.0*log(quantile)-logVarianceN),
 		divisor = 1.0+z2_N,
-		dividend = sqrt(exp(variance_-logNumSamples_) + z2_N*exp(-log(4.0)-logNumSamples_));
-	if (std::isnan(z2_N) || std::isinf(z2_N))
-		throw_FigException("z2N invalid");
-	if (std::isnan(dividend) || std::isinf(dividend))
-		throw_FigException("dividend invalid");
-	if (std::isnan(divisor) || std::isinf(divisor) || divisor <= 0.0)
-		throw_FigException("divisor invalid");
+		dividend = sqrt(exp(variance_-logVarianceN) + z2_N*exp(-log(4.0)-logVarianceN));
+	assert(!(std::isnan(divisor)||std::isinf(divisor)));
+	assert(!(std::isnan(dividend)||std::isinf(dividend)));
 	return 2.0 * quantile * dividend/divisor;
-//	const double numSamplesTimesVarCorrection = exp(logNumSamples_ + log(varCorrection_));
-//	return 2.0 * quantile * sqrt(numSamplesTimesVarCorrection)
-//			   * sqrt(variance_ + quantile*quantile/(4.0*numSamplesTimesVarCorrection))
-//			   / (numSamplesTimesVarCorrection + quantile*quantile);
 }
 
 

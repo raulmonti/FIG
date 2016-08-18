@@ -44,6 +44,7 @@
 #include <PropertyRate.h>
 #include <PropertyTransient.h>
 #include <ConfidenceInterval.h>
+#include <ConfidenceIntervalRate.h>
 #include <ConfidenceIntervalTransient.h>
 #include <ModuleNetwork.h>
 #include <TraialPool.h>
@@ -299,27 +300,26 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 
 	switch (property.type) {
 
-	double value;
-	size_t effort;
 	ci.reset();
 
 	case PropertyType::TRANSIENT: {
 		const auto& pTransient(dynamic_cast<const PropertyTransient&>(property));
 		auto& ciTransient(dynamic_cast<ConfidenceIntervalTransient&>(ci));
-		effort = min_batch_size(name(), impFun_->name());
+		size_t batchSize = min_batch_size(name(), impFun_->name());
 		while ( ! (interrupted || ci.is_valid()) ) {
-			auto results = transient_simulations(pTransient, effort);
-			transient_update(ciTransient, results);
+			auto counts = transient_simulations(pTransient, batchSize);
+			transient_update(ciTransient, counts);
 		}
 		} break;
 
 	case PropertyType::RATE: {
 		const auto& pRate(dynamic_cast<const PropertyRate&>(property));
-		effort = min_run_length(name(), impFun_->name());
+		auto& ciRate(dynamic_cast<ConfidenceIntervalRate&>(ci));
+		size_t runLength = min_run_length(name(), impFun_->name());
 		while ( ! (interrupted || ci.is_valid()) ) {
 			std::clock_t t0 = std::clock();
-			value = rate_simulation(pRate, effort, false);  // use batch-means
-			rate_update(ci, value, effort, (std::clock()-t0)/CLOCKS_PER_SEC);
+			auto value = rate_simulation(pRate, runLength, false);  // use batch-means
+			rate_update(ciRate, value, runLength, (std::clock()-t0)/CLOCKS_PER_SEC);
 		}
 		} break;
 
@@ -339,24 +339,26 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 
 void
 SimulationEngine::transient_update(ConfidenceIntervalTransient& ci,
-								   const std::vector<double>& numREs) const
+								   const std::vector<double>& weighedNREs) const
 {
 	if (interrupted)
 		return;  // don't update interrupted simulations
-	ci.update(numREs);
+	ci.update(weighedNREs);
+	figTechLog << "+";  // report progress
 }
 
 
 void
-SimulationEngine::rate_update(ConfidenceInterval& ci,
+SimulationEngine::rate_update(ConfidenceIntervalRate& ci,
 							  const double& rareTime,
 							  size_t& simTime,
 							  const long& CPUtime) const
 {
+	// Number of successes requested to acnowledge steady-state behaviour
 	static constexpr size_t NHITS_REQUIRED = 3u;
+	// Number of successes observed in last simulation ran
 	static size_t NHITS(0ul);
 
-	assert(ci.name == "mean_std");
 	if (interrupted)
 		return;  // don't update interrupted simulations
 
@@ -367,10 +369,11 @@ SimulationEngine::rate_update(ConfidenceInterval& ci,
 							   CPUtime > MAX_CPU_TIME ||  // yes, time constraints force us
 							   NHITS >= NHITS_REQUIRED;   // yes, we succeeded enough times
 	if (isSteadyState) {
-		ci.update(rareTime/static_cast<double>(simTime));
+		// Reduce fp precision loss (is this any good?)
+		const double thisRate(std::exp(std::log(rareTime)-std::log(simTime)));
+		ci.update(thisRate);
 		figTechLog << (rareTime > MIN_ACC_RARE_TIME ? ("+")    // report "success"
 													: ("-"));  // report "failure"
-		NHITS = NHITS_REQUIRED;
 	} else {
 		increase_run_length(name_, impFun_->name(), simTime);
 		figTechLog << "*";  // report "discarded"

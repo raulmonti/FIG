@@ -49,7 +49,9 @@ namespace fig
  * a=1-cc for the confidence coefficient 'cc' inherent to the confidence
  * interval.
  *
- * @see ConfidenceIntervalWilson
+ * @deprecated Real value coverage and performance issues rendered this class
+ *             useless. ConfidenceIntervalTransient is now used to build the
+ *             interval around the estimates of transient-like properties.
  */
 class ConfidenceIntervalProportion : public ConfidenceInterval
 {
@@ -89,7 +91,7 @@ public:  // Modifyers
 	 * @throw FigException if detected possible overflow
 	 */
 	void update(const double& newResults,
-				const double& logNumNewExperiments) override;
+				const double& logNumNewExperiments);
 
 public:  // Utils
 

@@ -50,6 +50,7 @@ class PropertyTransient;
 class ModuleNetwork;
 class Traial;
 class ConfidenceInterval;
+class ConfidenceIntervalRate;
 class ConfidenceIntervalTransient;
 
 /**
@@ -274,19 +275,21 @@ protected:  // Simulation helper functions
 	 * @brief Run independent transient-like simulations to estimate
 	 *        the value of a \ref PropertyTransient "transient property"
      *
-     *        Using the engine's simulation strategy, launch 'numRuns' transient
-     *        simulations starting from the system's initial state.
-     *        The given 'property' is characterized by two subformulas:
-     *        "expr1" and "expr2". Each launched simulation stops when a state
-     *        which either satisfies "expr2" or doesn't satisfy "expr1"
-     *        is visited.
+     *        Launch 'numRuns' transient simulations starting from the initial
+     *        state of the system. The given 'property' is characterized by
+     *        two subformulas: "expr1" and "expr2". Each simulation stops when
+     *        a state is visited which either satisfies "expr2" or doesn't
+     *        satisfy "expr1".
      *
      * @param property PropertyTransient with events of interest (expr1 & expr2)
 	 * @param numRuns  Amount of successive independent simulations to run
      *
      * @return Vector with the (weighed) number of states which reached 'expr2'
-     *         on each of the simulations performed (which may be less than
-     *         'numRuns' if the engine was interrupted)
+     *         on each of the simulations performed
+     *
+     * @note Less than 'numRuns' simulations may be run when the engine is
+     *       interrupted. The number of simulations effectively ran equals
+     *       the size of the return vector.
      *
      * @see PropertyTransient
 	 */
@@ -322,9 +325,10 @@ protected:  // Simulation helper functions
 	 *
 	 * @see PropertyRate
 	 */
-	virtual double rate_simulation(const PropertyRate& property,
-								   const size_t& runLength,
-								   bool reinit = false) const = 0;
+	virtual double
+	rate_simulation(const PropertyRate& property,
+					const size_t& runLength,
+					bool reinit = false) const = 0;
 
 protected:  // Traial observers/updaters
 
@@ -369,42 +373,38 @@ protected:  // Traial observers/updaters
 private:  // Class utils
 
 	/**
-	 * @brief Update the ConfidenceInterval and the simulation effort
-	 *        for transient-like properties
+	 * @brief Update the ConfidenceInterval for transient-like properties
 	 *
-	 * @param ci          ConfidenceInterval to update
-	 * @param weighedNRE  Weighed number of rate states visited in last simulations
-	 * @param batchSize   Number of independent simulations ran
+	 * @param ci           ConfidenceInterval to update <b>(modified)</b>
+	 * @param weighedNREs  Vector with the (weighed) number of rate states
+	 *                     visited in last simulations batch
 	 *
-	 * @note Current policy is to <b>never increment</b> the batch size
 	 * @note Simulations can be truncated by external updates to the
 	 *       \ref interrupted "interrupted flag": <b>nothing will be done
 	 *       if such flag is set</b>
 	 */
 	void transient_update(ConfidenceIntervalTransient& ci,
-						  const std::vector<double> &numREs) const;
-//						  const double& weighedNRE,
-//						  const size_t& batchSize) const;
+						  const std::vector<double>& weighedNREs) const;
 
 	/**
 	 * @brief Update the ConfidenceInterval and the simulation effort
-	 * for rate-like properties
+	 *        for rate-like properties
 	 *
-	 * @param ci       ConfidenceInterval to update
+	 * @param ci       ConfidenceInterval to update <b>(modified)</b>
 	 * @param rareTime Simulation-time units spent on rare states in the last simulation
-	 * @param simTime  Total simulation-time units spent in last simulation
+	 * @param simTime  Total simulation-time units spent in last simulation <b>(modified)</b>
 	 * @param CPUtime  Processor time used in last simulation, in seconds
 	 *
-	 * @note Current policy discards the first "not-steady-state" trace.
+	 * @note Current policy discards the first "not-steady-state" trace
 	 *       (check source for details)
 	 * @note Simulations can be truncated by external updates to the
 	 *       \ref interrupted "interrupted flag": <b>nothing will be done
 	 *       if such flag is set</b>
 	 */
-	void rate_update(ConfidenceInterval& ci,
+	void rate_update(ConfidenceIntervalRate& ci,
 					 const double& rareTime,
 					 size_t& simTime,
-					 const long &CPUtime) const;
+					 const long& CPUtime) const;
 };
 
 } // namespace fig

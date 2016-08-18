@@ -48,7 +48,7 @@ namespace fig
  * the significance level defined as a=1-cc for the confidence coefficient
  * 'cc' inherent to the confidence interval.
  */
-class ConfidenceIntervalMean : public ConfidenceInterval
+class ConfidenceIntervalMean : public virtual ConfidenceInterval
 {
 	double M2;
 
@@ -69,16 +69,6 @@ public:  // Modifyers
 	 * @throw FigException if detected possible overflow
 	 */
 	void update(const double& newMean) override;
-
-	/**
-	 * Stub to update(), since multiple value feeding is impossible
-	 * for this kind of CI due to the variance measurement.
-	 * @param newMeans Mean value of the sampled distribution
-	 * @warning Second parameter is <b>ignored</b>
-	 * @throw FigException if detected possible overflow
-	 * @see update(const double&)
-	 */
-	inline void update(const double& newMeans, const double&) override { update(newMeans); }
 
 public:  // Utils
 

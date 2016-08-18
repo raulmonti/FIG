@@ -70,9 +70,7 @@
 #include <ThresholdsBuilderFixed.h>
 #include <ThresholdsBuilderHybrid.h>
 #include <ConfidenceInterval.h>
-#include <ConfidenceIntervalMean.h>
-#include <ConfidenceIntervalProportion.h>
-#include <ConfidenceIntervalWilson.h>
+#include <ConfidenceIntervalRate.h>
 #include <ConfidenceIntervalTransient.h>
 
 using std::to_string;
@@ -93,19 +91,13 @@ using std::chrono::seconds;
  * @brief Build a ConfidenceInterval of the required type
  *
  *        Each PropertyType must be estimated using a special kind of
- *        ConfidenceInterval. The nature of the \ref fig::ImportanceFunction
- *        "importance function" also affects internal scalings.
- *        This helper function returns a new (i.e. without estimation data)
- *        interval of the correct kind for the property, and also with the
- *        proper internal adjustments and specified confidence criterion.
+ *        ConfidenceInterval. This helper function returns a new (i.e. without
+ *        estimation data) interval of the correct kind for the property.
  *
  * @param propertyType     Type of the property whose value is being estimated
- * @param splitsPerThreshold @copydoc fig::SimulationEngine::splits_per_threshold()
- * @param impFun           fig::ImportanceFunction to use for estimations
  * @param confidenceCo     Interval's confidence coefficient ∈ (0.0, 1.0)
  * @param precision        Interval's desired full width > 0.0
  * @param dynamicPrecision Is the precision a percentage of the estimate?
- * @param hint             Suggestion of which kind of ConfidenceInterval to build
  *
  * @return Fresh ConfidenceInterval tailored for the given property
  *
@@ -116,12 +108,9 @@ using std::chrono::seconds;
  */
 std::shared_ptr< ConfidenceInterval >
 build_empty_ci(const fig::PropertyType& propertyType,
-			   const unsigned& splitsPerThreshold,
-			   const fig::ImportanceFunction& impFun,
 			   double confidenceCo = -1.0,
 			   double precision = -1.0,
-			   const bool& dynamicPrecision = true,
-			   const std::string& hint = "")
+			   const bool& dynamicPrecision = true)
 {
 	std::shared_ptr< ConfidenceInterval > ci_ptr(nullptr);
 
@@ -139,34 +128,20 @@ build_empty_ci(const fig::PropertyType& propertyType,
 														  precision,
 														  dynamicPrecision,
 														  timeBoundSim));
-//		if (hint.empty()  // default to most precise
-//			|| "wilson" == hint)
-//			ci_ptr.reset(new fig::ConfidenceIntervalWilson(confidenceCo,
-//														   precision,
-//														   dynamicPrecision,
-//														   timeBoundSim));
-//		else if ("proportion" == hint)
-//			ci_ptr.reset(new fig::ConfidenceIntervalProportion(confidenceCo,
-//															   precision,
-//															   dynamicPrecision,
-//															   timeBoundSim));
-//		else
-//			throw_FigException(std::string("invalid CI hint \"").append(hint)
-//							   .append("\" for transient property"));
-		// The statistical oversampling incurred here is bounded:
-		//  · from below by splitsPerThreshold ^ minRareValue,
-		//  · from above by splitsPerThreshold ^ numThresholds.
-		double minStatOversamp = std::pow(splitsPerThreshold,
-										  impFun.min_rare_value());
-		double maxStatOversamp = std::pow(splitsPerThreshold,
-										  impFun.num_thresholds());
-		ci_ptr->set_statistical_oversampling(maxStatOversamp);
-		ci_ptr->set_variance_correction(minStatOversamp/maxStatOversamp);
+//		// The statistical oversampling incurred here is bounded:
+//		//  · from below by splitsPerThreshold ^ minRareValue,
+//		//  · from above by splitsPerThreshold ^ numThresholds.
+//		// NOTE: Deprecated - This was used by the binomial proportion CIs
+//		double minStatOversamp = std::pow(splitsPerThreshold,
+//										  impFun.min_rare_value());
+//		double maxStatOversamp = std::pow(splitsPerThreshold,
+//										  impFun.num_thresholds());
+//		ci_ptr->set_statistical_oversampling(maxStatOversamp);
+//		ci_ptr->set_variance_correction(minStatOversamp/maxStatOversamp);
 		} break;
 
     case fig::PropertyType::RATE:
-		// Ignore hints, there's a single option
-		ci_ptr.reset(new fig::ConfidenceIntervalMean(confidenceCo,
+		ci_ptr.reset(new fig::ConfidenceIntervalRate(confidenceCo,
 													 precision,
 													 dynamicPrecision,
 													 timeBoundSim));
@@ -1048,9 +1023,7 @@ ModelSuite::estimate_for_times(const Property& property,
 		mainLog_ << "   Estimation timeout: " << timeLimit.count() << " s\n";
 
 		// Configure simulation
-		auto ci_ptr = build_empty_ci(property.type,
-									 engine.splits_per_threshold(),
-									 *impFuns[engine.current_imp_fun()]);
+		auto ci_ptr = build_empty_ci(property.type);
 		interruptCI_ = ci_ptr.get();  // bad boy
 		engine.interrupted = false;
 		lastEstimationStartTime_ = omp_get_wtime();
@@ -1102,10 +1075,7 @@ ModelSuite::estimate_for_confs(const Property& property,
 			mainLog_ << std::setprecision(2) << std::scientific << (2*precVal) << "\n";
 
 		// Configure simulation
-		auto ci_ptr = build_empty_ci(property.type,
-									 engine.splits_per_threshold(),
-									 *impFuns[engine.current_imp_fun()],
-									 confCo, precVal, precRel);
+		auto ci_ptr = build_empty_ci(property.type, confCo, precVal, precRel);
 		interruptCI_ = ci_ptr.get();  // bad boy
 		engine.interrupted = false;
 		lastEstimationStartTime_ = omp_get_wtime();

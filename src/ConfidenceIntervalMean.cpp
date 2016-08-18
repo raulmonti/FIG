@@ -43,7 +43,7 @@ ConfidenceIntervalMean::ConfidenceIntervalMean(double confidence,
 											   double precision,
 											   bool dynamicPrecision,
 											   bool neverStop) :
-	ConfidenceInterval("mean_std", confidence, precision, dynamicPrecision, neverStop),
+	ConfidenceInterval("mean", confidence, precision, dynamicPrecision, neverStop),
 	M2(0.0)
 { /* Not much to do around here... */ }
 

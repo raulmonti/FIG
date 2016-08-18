@@ -38,6 +38,7 @@
 namespace fig
 {
 
+/// @todo TODO write docstring
 class ConfidenceIntervalTransient : public ConfidenceInterval
 {
 
@@ -52,13 +53,21 @@ public:  // Ctor
 								bool neverStop = false);
 public:  // Modifyers
 
-	/// @param wighedNRE Weighed number of rare events from last simulation
+	/**
+	 * @brief Update current estimation with a (single) new value.
+	 * @param weighedNRE Weighed number of rare events from last simulation
+	 * @note Considered as one single new value fed into the estimation,
+	 *       i.e. only one experiment was run to come up with 'newEstimate'
+	 * @throw FigException if detected possible overflow
+	 */
 	void update(const double& weighedNRE) override;
 
-	/// Stub to update(), multiple value feeding isn't tolerated yet
-	void update(const double& numRE, const double& numNewExp) override;
-
-	/// @todo TODO write docstring
+	/**
+	 * @brief Update current estimation with several new sample values.
+	 * @param weighedNREs Vector with the (weighed) number of rare events
+	 *                    observed in the last simulations ran
+	 * @throw FigException if detected possible overflow
+	 */
 	void update(const std::vector<double>& weighedNREs);
 
 public:  // Utils
