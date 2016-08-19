@@ -91,7 +91,7 @@ ConfidenceIntervalProportion::update(const double& newResults,
 
 
 bool
-ConfidenceIntervalProportion::min_samples_covered() const noexcept
+ConfidenceIntervalProportion::min_samples_covered(bool) const noexcept
 {
 	// Even though the interval's lower bounds are based on the CLT,
 	// they've been tailored to meet experimental quality standards

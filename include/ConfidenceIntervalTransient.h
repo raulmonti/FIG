@@ -38,7 +38,16 @@
 namespace fig
 {
 
-/// @todo TODO write docstring
+/**
+ * @brief Confidence interval for estimates of transient-like simulations
+ *
+ *        The estimates this CI expects are binomial proportions.
+ *        Internal computations are prepared to deal with a high amount of
+ *        updates without significant precision loss due to fp arithmetic.
+ *        The update(const std::vector<double>&) routine is designed to improve
+ *        efficiency: perform several measurements and feed them all at once
+ *        using this member function.
+ */
 class ConfidenceIntervalTransient : public ConfidenceInterval
 {
 
@@ -54,25 +63,26 @@ public:  // Ctor
 public:  // Modifyers
 
 	/**
-	 * @brief Update current estimation with a (single) new value.
+	 * Update current estimation with a (single) new value,
+	 * i.e. only one experiment was run to come up with 'weighedNRE'
 	 * @param weighedNRE Weighed number of rare events from last simulation
-	 * @note Considered as one single new value fed into the estimation,
-	 *       i.e. only one experiment was run to come up with 'newEstimate'
 	 * @throw FigException if detected possible overflow
+	 * @see update(const std::vector<double>&)
 	 */
 	void update(const double& weighedNRE) override;
 
 	/**
-	 * @brief Update current estimation with several new sample values.
+	 * Update current estimation with several new values
+	 * (each value corresponds to an experiment ran)
 	 * @param weighedNREs Vector with the (weighed) number of rare events
-	 *                    observed in the last simulations ran
+	 *                    observed in all the simulations ran
 	 * @throw FigException if detected possible overflow
 	 */
 	void update(const std::vector<double>& weighedNREs);
 
 public:  // Utils
 
-	bool min_samples_covered() const noexcept override;
+	bool min_samples_covered(bool considerEpsilon = false) const noexcept override;
 
 	double precision(const double& confco) const override;
 

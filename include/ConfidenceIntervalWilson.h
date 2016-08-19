@@ -78,7 +78,7 @@ public:  // Modifyers
 
 public:  // Utils
 
-	bool min_samples_covered() const noexcept override;
+	bool min_samples_covered(bool) const noexcept override;
 
 	double precision(const double& confco) const override;
 

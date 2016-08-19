@@ -34,9 +34,22 @@
 namespace fig
 {
 
-/// The standard CI suffices for rate-like simulations
-/// @todo TODO improve this lame docstring
-class ConfidenceIntervalRate : public virtual ConfidenceIntervalMean
+/**
+ * @brief Confidence interval for estimates of long-run simulations
+ *
+ *        The estimates this CI expects are time averages or proportions.
+ *        It is irrelevant how these were measured, since no assumptions
+ *        are made regarding the distribution of the samples.
+ *        The <a href="https://goo.gl/wxYuzG">standard CLT theory for
+ *        confidence intervals</a> with unknown standard deviation is used.
+ *
+ * @warning Useful for "few" updates, ideally < 2^11 samples.
+ *          Feeding too many samples may incurr in floating-point precision
+ *          loss, see <a href="https://goo.gl/wxYuzG">the wiki</a> on this.
+ *
+ * @see ConfidenceIntervalMean
+ */
+class ConfidenceIntervalRate : public ConfidenceIntervalMean
 {
 public:
 	/// @copydoc ConfidenceInterval::ConfidenceInterval()

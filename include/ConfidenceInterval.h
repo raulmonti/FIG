@@ -161,12 +161,14 @@ public:  // Utils
 	 * samples to be considered before the theory applies. This method says
 	 * whether that minimum has been reached.
 	 *
+	 * @param safeguard Be extra conservative if possible
+	 *
 	 * @note This is necessary yet <i>insufficient</i> to guarantee
 	 *       the satisfaction of the confidence criteria.
 	 *
 	 * @see is_valid()
 	 */
-	virtual bool min_samples_covered() const noexcept = 0;
+	virtual bool min_samples_covered(bool safeguard) const noexcept = 0;
 
 	/**
 	 * Does current estimation satisfy the interval's confidence criteria?
@@ -175,12 +177,15 @@ public:  // Utils
 	 * been covered yet, this method will return <b>false</b>. Ohterwise the
 	 * result will depend on wether the desired precision has been reached.
 	 *
+	 * @param safeguard Be extra conservative w.r.t. the min # of samples
+	 *                  requested to support the theory
+	 *
 	 * @return Whether the desired precision has been reached for the
 	 *         confidence coefficient passed on creation
 	 *
 	 * @see min_samples_covered()
 	 */
-	bool is_valid() const noexcept;
+	bool is_valid(bool safeguard = false) const noexcept;
 
 	/// Theoretical width for creation's confidence coefficient
 	/// @copydoc value_simulations_

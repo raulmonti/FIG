@@ -105,12 +105,22 @@ ConfidenceIntervalTransient::update(const std::vector<double>& weighedNREs)
 
 
 bool
-ConfidenceIntervalTransient::min_samples_covered() const noexcept
+ConfidenceIntervalTransient::min_samples_covered(bool considerEpsilon) const noexcept
 {
-	/// @todo TODO define proper bound!
-	static const double TH_LBOUND(log(1.0));
-	return 30l < numSamples_ &&
-			TH_LBOUND < logNumSamples_+log(estimate_);
+	// Rule of thumb for the lower bound of the magnitude "n*p",
+	// derived from experiments with tandem queue and queue with breakdowns.
+	static constexpr double TH_LBOUND(log(0.25));
+	// Notice this value for TH_LBOUND equals 5% of the generic "n*p > 5"
+	// rule of thumb for binomial proportions CIs using normal approximation
+	const bool
+		// CLT + considerations for binomial proportions
+		theoreticallySound = 30l <= numSamples_ &&
+							 TH_LBOUND < logNumSamples_+log(estimate_),
+		// If requested, ask also for little change w.r.t. the last estimate
+		practicallySound =
+			considerEpsilon ? std::abs(prevEstimate_-estimate_) < 0.01*estimate_
+							: true;
+	return theoreticallySound && practicallySound;
 }
 
 

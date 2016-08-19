@@ -27,7 +27,7 @@ fout="estimates_s".SPLIT.".pdf"
 set out fout
 
 # General plot options
-set title offset 0,0 "{/Times*1.8 Transient analysis for the tandem queue}\n\nSplitting: ".SPLIT
+set title offset 0,0 "{/Times*1.8 Transient analysis for the queue with breakdowns}\n\nSplitting: ".SPLIT
 set xlab offset 0,-.1 "{/*1.2 Buffer capacity}"
 set ylab offset -.1,0 "{/*1.2 Overflow probability}"
 set border 1+2+4+8  # bottom + left + top + right borders

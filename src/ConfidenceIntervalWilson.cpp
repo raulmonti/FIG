@@ -110,7 +110,7 @@ ConfidenceIntervalWilson::update(const double& newResults,
 
 
 bool
-ConfidenceIntervalWilson::min_samples_covered() const noexcept
+ConfidenceIntervalWilson::min_samples_covered(bool) const noexcept
 {
 	// Even though the Wilson score interval has lax bounds (http://goo.gl/B86Dc),
 	// they've been tailored to meet experimental quality standards

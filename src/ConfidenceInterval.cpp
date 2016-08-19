@@ -163,10 +163,10 @@ ConfidenceInterval::set_variance_correction(const double& varCorrection)
 
 
 bool
-ConfidenceInterval::is_valid() const noexcept
+ConfidenceInterval::is_valid(bool safeguard) const noexcept
 {
 	return !alwaysInvalid && 0.0 <= estimate_ && estimate_ <= 1.0 &&
-		   min_samples_covered() &&
+		   min_samples_covered(safeguard) &&
 		   halfWidth_ < errorMargin * (percent ? estimate_ : 1.0);
 		   // the interval's "sample" half width is compared against
 		   // the "theoretical" error margin
