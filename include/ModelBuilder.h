@@ -41,7 +41,7 @@ using std::pair;
 class ModelBuilder : public Visitor {
 private:
     ModelSuite &model_suite = ModelSuite::get_instance();
-    shared_map<string, ModuleScope> &scopes  = ModuleScope::scopes;
+    shared_map<string, ModuleScope> &scopes  = ModuleScope::scopes;    
     shared_ptr<ModuleInstance> current_module;
     unique_ptr<vector<Var>> module_vars;
     unique_ptr<vector<Clock>> module_clocks;
@@ -64,6 +64,7 @@ private:
     Clock build_clock(const string &clock_id);
     void update_module_ie(shared_ptr<Action> action);
     void build_input_enabled();
+
 public:
     ModelBuilder();
     virtual ~ModelBuilder();
@@ -71,7 +72,7 @@ public:
     // the ast is needed since the property is projected several times
     // to different set of variables.
     static map<int, shared_ptr<Prop>> property_ast;
-    
+
     void visit(shared_ptr<Model> node);
     void visit(shared_ptr<ModuleBody> node);
     void visit(shared_ptr<Decl> node);

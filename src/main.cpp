@@ -117,6 +117,10 @@ int main(int argc, char** argv)
                             thrTechnique,
                             estBounds,
                             splittings);
+
+        std::ofstream file("importance.log");
+        fig::ModelSuite::get_instance().print_importance_function
+                (file, impFunSpec.name);
         model.release_resources();
     } catch (fig::FigException& e) {
         log(FIG_ERROR + " perform estimations.\n\n");
@@ -130,7 +134,6 @@ int main(int argc, char** argv)
 
     return EXIT_SUCCESS;
 }
-
 
 //  Helper functions implementations  //////////////////////////////////////////
 
@@ -224,8 +227,9 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
         exit(EXIT_FAILURE);
     }
     
-    ModelPrinter printer;
-    model->accept(printer);
+    //ModelPrinter printer;
+    //model->accept(printer);
+    ModelBuilder builder;
     ModelTC typechecker;
     model->accept(typechecker);
     if (typechecker.has_errors()) {
@@ -233,8 +237,7 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
         exit(EXIT_FAILURE);
     }
     else {
-        log("- Type-checking succeeded\n");
-        ModelBuilder builder;
+        log("- Type-checking succeeded.\n");
         model->accept(builder);
         if (builder.has_errors()) {
             log(builder.get_errors());
@@ -253,6 +256,8 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
     if (!model_instance.sealed()) {
         throw_FigException("failed to seal the model!");
     }
+    //std::ofstream of("modelo.log");
+    //model_instance.debug_info(of);
     tech_log("Model and properties files successfully compiled.\n");
 }
 

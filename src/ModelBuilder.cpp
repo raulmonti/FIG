@@ -233,15 +233,25 @@ void ModelBuilder::build_input_enabled() {
         const string &label_id = entry.first;
         string &pre_str = entry.second.first;
         const vector<string> &names = entry.second.second;
-        Precondition prec {pre_str, names};
+        Precondition prec {"true& " + pre_str, names};
         //skip:
         Postcondition post {"", vector<string>(), vector<string>()};
-        dump_transition_info(label_id, "", pre_str, names, "",
-                             vector<string>(), vector<string>(), set<string>());
+        //dump_transition_info(label_id, "", pre_str, names, "",
+        //                     vector<string>(), vector<string>(), set<string>());
         const Transition &tr {Label {label_id, false}, "", prec, post,
                     vector<string>()};
         current_module->add_transition(tr);
     }
+}
+
+struct Compare {
+    bool operator()(const Clock &a, const Clock &b) {
+        return a.name() < b.name();
+    }
+} comp;
+
+void sort_clocks(vector<Clock>& vec) {
+    std::sort(vec.begin(), vec.end(), comp);
 }
 
 void ModelBuilder::visit(shared_ptr<ModuleBody> body) {
@@ -253,11 +263,12 @@ void ModelBuilder::visit(shared_ptr<ModuleBody> body) {
         accept_cond(decl);
     }
     if (!has_errors()) {
+        sort_clocks(*module_clocks);
         current_module = make_shared<ModuleInstance>
                 (current_scope->id, *module_vars, *module_clocks);
     }
     //Note: Transitions can't be copied, we need to add them directly to
-    // the current_module
+    // the current_module instead of accumulate them in a vector
     for (auto &action : body->get_actions()) {
         accept_cond(action);
     }
@@ -287,8 +298,8 @@ Clock ModelBuilder::build_clock(const std::string& id) {
     }
     //todo: constructor should accept the Distribution object directly,
     //not the name.
-    dump_clock_info(current_scope->id, id, ModelPrinter::to_str(dist->type),
-                    params[0], params[1]);
+    //dump_clock_info(current_scope->id, id, ModelPrinter::to_str(dist->type),
+    //                params[0], params[1]);
     return Clock(id, ModelPrinter::to_str(dist->type), params);
 }
 
@@ -320,16 +331,17 @@ void ModelBuilder::visit(shared_ptr<Decl> decl) {
             throw_FigException("Not yet supported declaration type");
         }
         if (!has_errors()) {
-            if (current_scope != nullptr) {
-                dump_var_info(current_scope->id, decl->id, lower, upper, init);
-            }
+            //if (current_scope != nullptr) {
+            //    dump_var_info(current_scope->id, decl->id, lower, upper, init);
+            //}
             const auto &var = make_tuple(decl->id, lower, upper, init);
             assert(module_vars != nullptr);
             module_vars->push_back(var);
         }
-    }
-    if (decl->type == Type::tclock) {
+    } else if (decl->type == Type::tclock) {
         module_clocks->push_back(build_clock(decl->id));
+    } else {
+        throw_FigException("Unsupported declaration.");
     }
 }
 
@@ -358,7 +370,7 @@ void ModelBuilder::update_module_ie(shared_ptr<Action> action) {
             names.insert(names.end(),
                          pre_p.second.cbegin(), pre_p.second.cend());
             module_ie_pre[label_id]
-                    = make_pair(pre_p.first + "&" + nott_guard, names);
+                    = make_pair(pre_p.first + "& " + nott_guard, names);
         }
     }
 }
@@ -396,9 +408,9 @@ void ModelBuilder::visit(shared_ptr<Action> action) {
         }
         it++;
     }
-    dump_transition_info(label_id, t_clock, result, string_builder.get_names(),
-                         transition_update.str(), *transition_read_vars,
-                         *transition_write_vars, *transition_clocks);
+    //dump_transition_info(label_id, t_clock, result, string_builder.get_names(),
+    //                     transition_update.str(), *transition_read_vars,
+    //                     *transition_write_vars, *transition_clocks);
     const string &update = transition_update.str();
     Postcondition post (update, *transition_read_vars, *transition_write_vars);
     assert(current_module != nullptr);
@@ -433,12 +445,12 @@ void ModelBuilder::visit(shared_ptr<Prop> prop) {
         prop->right->accept(right_b);
         const vector<string> &right_names = right_b.get_names();
         const string &right_expr = right_b.str();
-        dump_transient_info(left_expr, left_names, right_expr, right_names);
+        //dump_transient_info(left_expr, left_names, right_expr, right_names);
         property = make_shared<PropertyTransient>
                 (left_expr, left_names, right_expr, right_names);
 
     } else if (prop->type == PropType::rate) {
-        dump_rate_info(left_expr, left_names);
+        //dump_rate_info(left_expr, left_names);
         property = make_shared<PropertyRate>(left_expr, left_names);
     } else {
         put_error("Unsupported property type");
@@ -500,7 +512,7 @@ void ExpStringBuilder::visit(shared_ptr<OpExp> exp) {
         right_s = should_enclose ? "(" + result + ")" : result;
         result = left_s + op + right_s;
     }
-    should_enclose = true;
+    should_enclose = false;
 }
 
 string ExpStringBuilder::str() {
