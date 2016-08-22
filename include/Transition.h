@@ -301,6 +301,10 @@ private:  // Utils
 #else
 	void crystallize(PositionsMap& globalClocks);
 #endif
+
+public: //Debug
+        void print_info(std::ostream &out) const;
+
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //

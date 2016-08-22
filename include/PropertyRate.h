@@ -162,6 +162,8 @@ public:  // Utils
 
 	inline bool is_rare(const State<STATE_INTERNAL_TYPE>& s) const override
 		{ return expr(s); }
+public: //Debug
+    void print_info(std::ostream &out) const override;
 };
 
 } // namespace fig

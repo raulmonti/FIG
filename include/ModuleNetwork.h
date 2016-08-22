@@ -250,6 +250,9 @@ public:  // Utils
 	ImportanceValue peak_simulation(Traial& traial,
 									Update update,
 									Predicate pred) const;
+public: //Debug
+        void print_info(std::ostream &out) const;
+
 }; // class ModuleNetwork
 
 

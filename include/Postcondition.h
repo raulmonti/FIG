@@ -228,6 +228,9 @@ public:  // Utils
 	 *            see ImportanceFunction::Formula::set()
 	 */
 	void operator()(StateInstance& state) const;
+
+public: //Debug
+        void print_info(std::ostream& out) const;
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //

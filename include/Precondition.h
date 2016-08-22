@@ -151,6 +151,9 @@ public:  // Utils
 	 *            see ImportanceFunction::Formula::set()
 	 */
 	bool operator()(const State<STATE_INTERNAL_TYPE>& state) const;
+
+public: //Debug
+        void print_info(std::ostream& out) const;
 };
 
 } // namespace fig

@@ -70,7 +70,7 @@ public:  // Utils
     ///         pair.second: projected clauses corresponding to the stopping/reference/etc event
     /// @throw FigException if the instance hasn't been populated yet
     std::pair <vector<Clause>,vector<Clause>>
-	project(const State& localState) const;
+        project(const State& localState) const;
 };
 
 } // namespace parser

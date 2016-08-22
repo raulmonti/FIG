@@ -130,6 +130,9 @@ public:  // Utils
 	/// @brief Sample our distribution function
 	inline CLOCK_INTERNAL_TYPE sample()     const { return dist_(distParams_); }
 	inline CLOCK_INTERNAL_TYPE operator()() const { return dist_(distParams_); }
+
+public:  // Debugging info
+        void print_info(std::ostream &out) const;
 };
 
 

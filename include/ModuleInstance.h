@@ -503,6 +503,9 @@ private:  // Callback utilities offered to the ModuleNetwork
 	 * \endif
 	 */
 	void seal(const fig::State<STATE_INTERNAL_TYPE>& globalState);
+
+public: //Debug
+        void print_info(std::ostream &out) const;
 };
 
 

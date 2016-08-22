@@ -136,6 +136,9 @@ public:  // Utils
 
     /// Get instance unique id
     int get_id() const noexcept { return instance_id; }
+
+public: // Debug
+    virtual void print_info(std::ostream &out) const = 0;
 };
     
 } // namespace fig

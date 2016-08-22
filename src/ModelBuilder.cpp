@@ -210,6 +210,12 @@ inline void dump_clock_info(const string &module,
     std::cout << std::endl;
 }
 
+struct ClockCompare {
+    bool operator()(const Clock &a, const Clock &b) {
+        return (a.name() < b.name());
+    }
+} compareByName;
+
 } //namespace
 
 void ModelBuilder::visit(shared_ptr<Model> model) {
@@ -236,22 +242,10 @@ void ModelBuilder::build_input_enabled() {
         Precondition prec {"true& " + pre_str, names};
         //skip:
         Postcondition post {"", vector<string>(), vector<string>()};
-        //dump_transition_info(label_id, "", pre_str, names, "",
-        //                     vector<string>(), vector<string>(), set<string>());
         const Transition &tr {Label {label_id, false}, "", prec, post,
                     vector<string>()};
         current_module->add_transition(tr);
     }
-}
-
-struct Compare {
-    bool operator()(const Clock &a, const Clock &b) {
-        return a.name() < b.name();
-    }
-} comp;
-
-void sort_clocks(vector<Clock>& vec) {
-    std::sort(vec.begin(), vec.end(), comp);
 }
 
 void ModelBuilder::visit(shared_ptr<ModuleBody> body) {
@@ -263,9 +257,11 @@ void ModelBuilder::visit(shared_ptr<ModuleBody> body) {
         accept_cond(decl);
     }
     if (!has_errors()) {
-        sort_clocks(*module_clocks);
+        //ensure the same output as Raul's
+        auto& clocks = *module_clocks;
+        std::sort(clocks.begin(), clocks.end(), ::compareByName);
         current_module = make_shared<ModuleInstance>
-                (current_scope->id, *module_vars, *module_clocks);
+                (current_scope->id, *module_vars, clocks);
     }
     //Note: Transitions can't be copied, we need to add them directly to
     // the current_module instead of accumulate them in a vector
@@ -298,8 +294,6 @@ Clock ModelBuilder::build_clock(const std::string& id) {
     }
     //todo: constructor should accept the Distribution object directly,
     //not the name.
-    //dump_clock_info(current_scope->id, id, ModelPrinter::to_str(dist->type),
-    //                params[0], params[1]);
     return Clock(id, ModelPrinter::to_str(dist->type), params);
 }
 
@@ -331,9 +325,6 @@ void ModelBuilder::visit(shared_ptr<Decl> decl) {
             throw_FigException("Not yet supported declaration type");
         }
         if (!has_errors()) {
-            //if (current_scope != nullptr) {
-            //    dump_var_info(current_scope->id, decl->id, lower, upper, init);
-            //}
             const auto &var = make_tuple(decl->id, lower, upper, init);
             assert(module_vars != nullptr);
             module_vars->push_back(var);
@@ -388,6 +379,10 @@ void ModelBuilder::visit(shared_ptr<Action> action) {
     ExpStringBuilder string_builder;
     action->guard->accept(string_builder);
     string result = string_builder.str();
+    if (result == "true") {
+        //Ensure the exact same output as Raul's old parser.
+        result = "";
+    }
     Precondition pre (result, string_builder.get_names());
     //Postcondition, to build the postcondition we need to visit the effects.
     transition_read_vars = make_unique<vector<string>>();
@@ -408,9 +403,6 @@ void ModelBuilder::visit(shared_ptr<Action> action) {
         }
         it++;
     }
-    //dump_transition_info(label_id, t_clock, result, string_builder.get_names(),
-    //                     transition_update.str(), *transition_read_vars,
-    //                     *transition_write_vars, *transition_clocks);
     const string &update = transition_update.str();
     Postcondition post (update, *transition_read_vars, *transition_write_vars);
     assert(current_module != nullptr);
@@ -445,12 +437,10 @@ void ModelBuilder::visit(shared_ptr<Prop> prop) {
         prop->right->accept(right_b);
         const vector<string> &right_names = right_b.get_names();
         const string &right_expr = right_b.str();
-        //dump_transient_info(left_expr, left_names, right_expr, right_names);
         property = make_shared<PropertyTransient>
                 (left_expr, left_names, right_expr, right_names);
 
     } else if (prop->type == PropType::rate) {
-        //dump_rate_info(left_expr, left_names);
         property = make_shared<PropertyRate>(left_expr, left_names);
     } else {
         put_error("Unsupported property type");

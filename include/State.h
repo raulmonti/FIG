@@ -337,6 +337,9 @@ private:  // Utils
 
 	/// Do we have a variable with such name?
 	bool is_our_var(const std::string& varName);
+
+public: // Debug
+        void print_info(std::ostream &out) const;
 };
 
 

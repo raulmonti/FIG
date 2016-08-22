@@ -45,6 +45,7 @@
 #include <string_utils.h>
 #include <ModelBuilder.h>
 #include <ModelPrinter.h>
+#include <ImportanceFunction.h>
 
 //  Helper functions headers  //////////////////////////////////////////////////
 
@@ -112,15 +113,21 @@ int main(int argc, char** argv)
     try {
         auto model = fig::ModelSuite::get_instance();
         model.set_timeout(simsTimeout);
+        //order to print importance function in a file when ready
+        model.on_importance_ready =
+                [model] (const fig::ImportanceFunction &ifun, int num) {
+            const string &filename =
+                    "importance-" + std::to_string(num) + ".log";
+            std::cout << "Writting file " << filename << std::endl;
+            std::ofstream of(filename);
+            model.print_importance_function(of, ifun);
+            of.close();
+        };
         model.process_batch(engineName,
                             impFunSpec,
                             thrTechnique,
                             estBounds,
                             splittings);
-
-        std::ofstream file("importance.log");
-        fig::ModelSuite::get_instance().print_importance_function
-                (file, impFunSpec.name);
         model.release_resources();
     } catch (fig::FigException& e) {
         log(FIG_ERROR + " perform estimations.\n\n");
@@ -256,8 +263,12 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
     if (!model_instance.sealed()) {
         throw_FigException("failed to seal the model!");
     }
-    //std::ofstream of("modelo.log");
-    //model_instance.debug_info(of);
+    const string &filename = "modelo.log";
+    std::ofstream of(filename);
+    std::cout << "Writting file " << filename << std::endl;
+    model_instance.print_info(of);
+    of.close();
+
     tech_log("Model and properties files successfully compiled.\n");
 }
 
