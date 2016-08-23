@@ -72,9 +72,9 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
     bool (SimulationEngineNosplit::*watch_events)
          (const PropertyTransient&, Traial&, Event&) const;
     if (impFun_->concrete())
-        watch_events = &SimulationEngineNosplit::transient_event_concrete;
+		watch_events = &SimulationEngineNosplit::transient_event_concrete;
     else
-        watch_events = &SimulationEngineNosplit::transient_event;
+		watch_events = &SimulationEngineNosplit::transient_event;
 
 	// Perform 'numRuns' independent standard Monte Carlo simulations
 	for (size_t i = 0ul ; i < numRuns && !interrupted ; i++) {

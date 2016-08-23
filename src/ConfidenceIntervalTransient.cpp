@@ -84,7 +84,7 @@ ConfidenceIntervalTransient::update(const std::vector<double>& weighedNREs)
 {
 	prevEstimate_ = estimate_;
 	// Incremental (stable) computation of mean and variance (http://goo.gl/ytk6B)
-	for (auto weighedNRE: weighedNREs) {
+	for (const double& weighedNRE: weighedNREs) {
 		const double delta = abs(weighedNRE - estimate_),
 					 sgn   = weighedNRE < estimate_ ? -1.0 : 1.0;
 		assert(!(isnan(delta)||isinf(delta)));

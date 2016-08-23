@@ -71,9 +71,12 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 	constexpr size_t NUM_IMPFUNS(fig::ImportanceFunction::NUM_NAMES);
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
+	// NOTE: optimal batch size == 2^8 was chosen via experimentation with
+	//       the tandem queue and the queue with breaks models, using the
+	//       "ConfidenceIntervalTransient" class for interval construction.
 	static const size_t batch_sizes[NUM_ENGINES][NUM_IMPFUNS] = {
-		{ 1ul<<4, 1ul<<3, 1ul<<11 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 1ul<<11, 1ul<<11, 1ul<<11 }   // restart x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<4, 1ul<<3, 1ul<<8 },  // nosplit x {concrete_coupled, concrete_split, algebraic
+		{ 1ul<<8, 1ul<<8, 1ul<<8 }   // restart x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
