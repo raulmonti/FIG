@@ -29,14 +29,18 @@
 
 // C
 #include <cmath>   // sqrt(), exp(), erf(), M_constants...
+#include <cassert>
 // C++
 #include <limits>  // std::numeric_limits<>::quiet_NaN
+// External code
+#include <gsl_cdf.h>  // gsl_cdf_{ugaussian,tdist}_Pinv()
+#include <gsl_sys.h>  // gsl_finite(), gsl_nan()
 // FIG
 #include <ConfidenceInterval.h>
 #include <FigException.h>
 
 
-namespace
+namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 /**
@@ -89,6 +93,7 @@ double erf_inv(const double& y)
  *          <a href="http://en.wikipedia.org/wiki/Probit#Computation">
  *          wiki</a>.
  * @return Standard normal inverse CDF of 'y', or 'NaN' on error
+ * @deprecated Now we use GSL's "gsl_cdf_XXXXX_Pinv" functions instead
  */
 double probit(const double& y)
 {
@@ -98,10 +103,11 @@ double probit(const double& y)
 		return M_SQRT2 * erf_inv(2.0 * y - 1.0);
 }
 
-} // namespace
+} // namespace   // // // // // // // // // // // // // // // // // // // // //
 
 
-namespace fig
+
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 bool ConfidenceInterval::value_simulations_;  // defined only to copy the doc!
@@ -111,19 +117,23 @@ bool ConfidenceInterval::time_simulations_;   // defined only to copy the doc!
 ConfidenceInterval::ConfidenceInterval(const std::string& thename,
 									   double confidence,
 									   double precision,
-									   bool dynamicPrecision) :
+									   bool dynamicPrecision,
+									   bool neverStop) :
     name(thename),
 	errorMargin(precision/2.0),
 	percent(dynamicPrecision),
 	confidence(confidence),
-	quantile(ConfidenceInterval::confidence_quantile(confidence)),
+	quantile(confidence_quantile(confidence)),
+	alwaysInvalid(neverStop),
 	numSamples_(0),
 	estimate_(0.0),
+	prevEstimate_(0.0),
 	variance_(std::numeric_limits<double>::infinity()),
 	halfWidth_(std::numeric_limits<double>::infinity()),
 	statOversample_(1.0),
 	varCorrection_(1.0)
 {
+	assert(std::isfinite(quantile) && gsl_finite(quantile));
 	if (0.0 >= precision)
 		throw_FigException("requires precision > 0.0");
 //	if (percent && 1.0 <= precision)
@@ -153,10 +163,10 @@ ConfidenceInterval::set_variance_correction(const double& varCorrection)
 
 
 bool
-ConfidenceInterval::is_valid() const noexcept
+ConfidenceInterval::is_valid(bool safeguard) const noexcept
 {
-	return min_samples_covered() &&
-		   0.0 <= estimate_ && estimate_ <= 1.0 &&
+	return !alwaysInvalid && 0.0 <= estimate_ && estimate_ <= 1.0 &&
+		   min_samples_covered(safeguard) &&
 		   halfWidth_ < errorMargin * (percent ? estimate_ : 1.0);
 		   // the interval's "sample" half width is compared against
 		   // the "theoretical" error margin
@@ -199,28 +209,48 @@ ConfidenceInterval::upper_limit(const double& confco) const
 
 
 void
-ConfidenceInterval::reset() noexcept
+ConfidenceInterval::reset(bool fullReset) noexcept
 {
     numSamples_ = 0;
     estimate_ = 0.0;
+	prevEstimate_ = 0.0;
     variance_ = std::numeric_limits<double>::infinity();
-    halfWidth_ = std::numeric_limits<double>::infinity();
-    statOversample_ = 1.0;
-    varCorrection_ = 1.0;
+	halfWidth_ = std::numeric_limits<double>::infinity();
+	if (fullReset) {
+		statOversample_ = 1.0;
+		varCorrection_ = 1.0;
+	}
 }
 
 
 double
-ConfidenceInterval::confidence_quantile(const double& cc)
+ConfidenceInterval::confidence_quantile(const double& cc) const
 {
 #ifndef NDEBUG
 	if (0.0 >= cc || 1.0 <= cc)
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
 #endif
-	double quantile = probit((1.0+cc)/2.0);  // probit(1-(1-cc)/2)
-	if (std::isnan(quantile) || std::isinf(quantile))
-		throw_FigException("error computing confidence quantile");
+	double significance(0.5*(1.0+cc));  // == 1-(1-cc)/2
+	double quantile = gsl_nan();
+	// Following usually runs once, but Murphy has showed his face around here
+	do {
+//		double quantile = probit(significance);                   // old way
+//		double quantile = gsl_cdf_ugaussian_Pinv(significance);   // new way
+		quantile = gsl_cdf_tdist_Pinv(significance,               // right way
+									  std::max(1.0, numSamples_-1.0));
+		significance += 0.000001;
+	} while (!gsl_finite(quantile)    &&
+			 !std::isfinite(quantile) &&
+			  significance < 0.50001*(1.0+cc));
+
+	if ( ! (std::isfinite(quantile) && gsl_finite(quantile)) ) {
+		// GSL T-distribution failed, try using the gaussian
+		quantile = gsl_cdf_ugaussian_Pinv(0.5*(1.0+cc));
+		if ( ! (std::isfinite(quantile) && gsl_finite(quantile)) )
+			throw_FigException("error computing confidence quantile");
+	}
+
 	return quantile;
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

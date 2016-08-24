@@ -37,6 +37,7 @@
 #include <ImportanceFunctionConcrete.h>
 #include <PropertyTransient.h>
 #include <ConfidenceInterval.h>
+#include <FigLog.h>
 
 
 namespace fig
@@ -58,35 +59,33 @@ SimulationEngineNosplit::log_experiments_per_sim() const
 }
 
 
-double
+std::vector<double>
 SimulationEngineNosplit::transient_simulations(const PropertyTransient& property,
                                                const size_t& numRuns) const
 {
 	assert(0ul < numRuns);
-	long raresCount(0);
-    Traial& traial = TraialPool::get_instance().get_traial();
+	std::vector< double > raresCount;
+	raresCount.reserve(numRuns);
+	Traial& traial = TraialPool::get_instance().get_traial();
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
     bool (SimulationEngineNosplit::*watch_events)
          (const PropertyTransient&, Traial&, Event&) const;
     if (impFun_->concrete())
-        watch_events = &SimulationEngineNosplit::transient_event_concrete;
+		watch_events = &SimulationEngineNosplit::transient_event_concrete;
     else
-        watch_events = &SimulationEngineNosplit::transient_event;
+		watch_events = &SimulationEngineNosplit::transient_event;
 
-    // Perform 'numRuns' standard Monte Carlo simulations
+	// Perform 'numRuns' independent standard Monte Carlo simulations
 	for (size_t i = 0ul ; i < numRuns && !interrupted ; i++) {
 		traial.initialize(*network_, *impFun_);
         Event e = network_->simulation_step(traial, property, *this, watch_events);
-		raresCount += IS_RARE_EVENT(e) ? 1l : 0l;
+		raresCount.push_back(IS_RARE_EVENT(e) ? 1.0l : 0.0l);
     }
     TraialPool::get_instance().return_traial(std::move(traial));
 
-    // Return estimate or its negative value
-	if (MIN_COUNT_RARE_EVENTS > raresCount)
-		return -static_cast<double>(raresCount);
-    else
-		return  static_cast<double>(raresCount);
+	// Return number of rare states visited
+	return raresCount;
 }
 
 
@@ -136,12 +135,9 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 		traial.lifeTime = (FIRST_TIME + 1.1) * 2.2;
 	assert(traial.lifeTime != FIRST_TIME);
 
-	// Return estimate or its negative value
+	// Return the simulation-time spent on rare states
 	assert(0.0 <= accTime);
-	if (MIN_ACC_RARE_TIME > accTime)
-		return -accTime / static_cast<double>(runLength);
-	else
-		return  accTime / static_cast<double>(runLength);
+	return accTime;
 }
 
 } // namespace fig

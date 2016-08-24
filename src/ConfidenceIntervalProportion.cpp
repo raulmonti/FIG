@@ -39,14 +39,19 @@ using std::log;
 using std::log1p;
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 ConfidenceIntervalProportion::ConfidenceIntervalProportion(
 	double confidence,
 	double precision,
-	bool dynamicPrecision) :
-        ConfidenceInterval("proportion_std", confidence, precision, dynamicPrecision),
+	bool dynamicPrecision,
+	bool neverStop) :
+		ConfidenceInterval("proportion_std",
+						   confidence,
+						   precision,
+						   dynamicPrecision,
+						   neverStop),
 		numRares_(0.0),
 		logNumSamples_(0.0)
 { /* Not much to do around here */ }
@@ -55,7 +60,14 @@ ConfidenceIntervalProportion::ConfidenceIntervalProportion(
 void
 ConfidenceIntervalProportion::update(const double& newResult)
 {
-	update(newResult, log1p(0.0));  // don't reinvent the wheel
+	// Reinvent the wheel for the sake of efficiency...
+	if (++numSamples_ <= 0l)
+		throw_FigException("numSamples_ became negative, overflow?");
+	numRares_ += newResult;
+	prevEstimate_ = estimate_;
+	estimate_ = numRares_/numSamples_;  // what about fp precission loss !!??
+	variance_ = estimate_*(1.0-estimate_);
+	halfWidth_ = quantile * sqrt(variance_/numSamples_);
 }
 
 
@@ -63,42 +75,38 @@ void
 ConfidenceIntervalProportion::update(const double& newResults,
 									 const double& logNumNewExperiments)
 {
-	// Check for possible overflows
-	if (0.0 < newResults && numRares_ + newResults == numRares_)
-		throw_FigException("can't increase numRares_ count, overflow?");
-	if (std::isinf(logNumNewExperiments) || std::isnan(logNumNewExperiments))
-		throw_FigException("invalid logNumNewExperiments, overflow?");
-
+	if (++numSamples_ <= 0l)
+		throw_FigException("numSamples_ became negative, overflow?");
 	// Compute logarithm of the updated # of samples ( old + new )
 	// See the wiki: https://goo.gl/qfDfKQ. Notice the use of std::log1p()
 	logNumSamples_ += log1p(exp(logNumNewExperiments - logNumSamples_));
 	if (std::isinf(logNumSamples_) || std::isnan(logNumSamples_))
 		throw_FigException("failed updating logNumSamples_, overflow?");
-
 	numRares_ += newResults;
-	if (0.0 >= numRares_)
-		return;  // nothing to work with yet
-	else if (0.0 < newResults)
-		numSamples_++;
-
-	// Compute the updated estimate, variance, and interval half width
+	prevEstimate_ = estimate_;
 	estimate_ = exp(log(numRares_) - logNumSamples_);
-	variance_ = estimate_ * (1.0 - estimate_);
-	halfWidth_ = quantile * sqrt( exp(
-					 log(variance_) - (logNumSamples_ + log(varCorrection_))));
+	variance_ = estimate_*(1.0-estimate_);
+	halfWidth_ = quantile * sqrt(exp(log(variance_)-logNumSamples_-log(varCorrection_)));
 }
 
 
 bool
-ConfidenceIntervalProportion::min_samples_covered() const noexcept
+ConfidenceIntervalProportion::min_samples_covered(bool) const noexcept
 {
-	static const long MIN_NUM_HITS = 18l;
 	// Even though the interval's lower bounds are based on the CLT,
-	// they've been increased to meet experimental quality standards
-	return numSamples_ > MIN_NUM_HITS &&
-			(numRares_ > std::min(20.0*MIN_NUM_HITS, 30.0*statOversample_) ||
-			 (logNumSamples_+log(estimate_)    > log(10.0*MIN_NUM_HITS) &&  // n*p > 180
-			  logNumSamples_+log1p(-estimate_) > log(10.0*MIN_NUM_HITS)));  // n*(1-p) > 180
+	// they've been tailored to meet experimental quality standards
+	return numSamples_ > 5l && numSamples_*estimate_ > 2.0;
+//	static const long LBOUND(1l<<10l);
+//	static const double LOG_LBOUND(log(LBOUND));
+//	const bool theoreticallySound = LBOUND < numRares_ && (
+//			 log(30l*statOversample_) < logNumSamples_ || (
+//			   LOG_LBOUND < logNumSamples_+log(estimate_) &&  // n*p
+//			   LOG_LBOUND < logNumSamples_+log1p(-estimate_)  // n*(1-p)
+//			 )
+//		   );
+//	// Ask also for little change w.r.t. the last outcome
+//	const bool practicallySound = abs(prevEstimate_-estimate_) < 0.02*estimate_;
+//	return theoreticallySound && practicallySound;
 }
 
 
@@ -107,17 +115,17 @@ ConfidenceIntervalProportion::precision(const double &confco) const
 {
 	if (0.0 >= confco || 1.0 <= confco)
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
-	return 2.0 * ConfidenceInterval::confidence_quantile(confco)
-			   * sqrt( exp( log(variance_) - (logNumSamples_ + log(varCorrection_))));
+	return 2.0 * confidence_quantile(confco)
+			   * sqrt( exp( log(variance_)-logNumSamples_-log(varCorrection_)));
 }
 
 
 void
-ConfidenceIntervalProportion::reset() noexcept
+ConfidenceIntervalProportion::reset(bool fullReset) noexcept
 {
-	ConfidenceInterval::reset();
+    ConfidenceInterval::reset(fullReset);
     numRares_ = 0.0;
     logNumSamples_ = 0.0;
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

@@ -42,9 +42,11 @@ namespace fig
  * is an improvement over the \ref ConfidenceIntervalProportion "usual
  * approximation interval for binomial proportions".
  * In particular, this kind of interval has good properties when dealing with
- * extreme probability values, e.g. for rare events whose probability is ≈0.
+ * extreme probability values, e.g. for rare events whose probability is ~0.
  *
- * @see ConfidenceIntervalProportion
+ * @deprecated Real value coverage and performance issues rendered this class
+ *             useless. ConfidenceIntervalTransient is now used to build the
+ *             interval around the estimates of transient-like properties.
  */
 class ConfidenceIntervalWilson: public ConfidenceInterval
 {
@@ -59,9 +61,11 @@ class ConfidenceIntervalWilson: public ConfidenceInterval
 
 public:  // Ctor
 
+	/// @copydoc ConfidenceInterval::ConfidenceInterval()
 	ConfidenceIntervalWilson(double confidence,
 							 double precision,
-							 bool dynamicPrecision = false);
+							 bool dynamicPrecision = false,
+							 bool neverStop = false);
 
 public:  // Modifyers
 
@@ -70,15 +74,15 @@ public:  // Modifyers
 
 	/// @copydoc ConfidenceIntervalProportion::update(const double&, const double&)
 	void update(const double& newResults,
-				const double& logNumNewExperiments) override;
+				const double& logNumNewExperiments);
 
 public:  // Utils
 
-	bool min_samples_covered() const noexcept override;
+	bool min_samples_covered(bool) const noexcept override;
 
 	double precision(const double& confco) const override;
 
-	void reset() noexcept override;
+	void reset(bool fullReset = false) noexcept override;
 };
 
 } // namespace fig

@@ -48,7 +48,7 @@ namespace fig
  * the significance level defined as a=1-cc for the confidence coefficient
  * 'cc' inherent to the confidence interval.
  */
-class ConfidenceIntervalMean : public ConfidenceInterval
+class ConfidenceIntervalMean : public virtual ConfidenceInterval
 {
 	double M2;
 
@@ -57,8 +57,8 @@ public:  // Ctor
 	/// @copydoc ConfidenceInterval::ConfidenceInterval()
 	ConfidenceIntervalMean(double confidence,
 						   double precision,
-						   bool dynamicPrecision = false);
-
+						   bool dynamicPrecision = false,
+						   bool neverStop = false);
 public:  // Modifyers
 
 	/**
@@ -70,23 +70,13 @@ public:  // Modifyers
 	 */
 	void update(const double& newMean) override;
 
-	/**
-	 * Stub to update(), since multiple value feeding is impossible
-	 * for this kind of CI due to the variance measurement.
-	 * @param newMeans Mean value of the sampled distribution
-	 * @warning Second parameter is <b>ignored</b>
-	 * @throw FigException if detected possible overflow
-	 * @see update(const double&)
-	 */
-	inline void update(const double& newMeans, const double&) override { update(newMeans); }
-
 public:  // Utils
 
-	bool min_samples_covered() const noexcept override;
+	bool min_samples_covered(bool considerEpsilon = false) const noexcept override;
 
 	double precision(const double& confco) const override;
 
-	void reset() noexcept override;
+	void reset(bool fullReset = false) noexcept override;
 };
 
 } // namespace fig

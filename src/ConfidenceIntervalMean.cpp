@@ -34,13 +34,14 @@
 #include <FigException.h>
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 ConfidenceIntervalMean::ConfidenceIntervalMean(double confidence,
 											   double precision,
-											   bool dynamicPrecision) :
-    ConfidenceInterval("mean_std", confidence, precision, dynamicPrecision),
+											   bool dynamicPrecision,
+											   bool neverStop) :
+	ConfidenceInterval("mean", confidence, precision, dynamicPrecision, neverStop),
 	M2(0.0)
 { /* Not much to do around here... */ }
 
@@ -52,7 +53,8 @@ ConfidenceIntervalMean::update(const double& newMean)
 	double delta = newMean - estimate_;
 	if (++numSamples_ < 0l)
 		throw_FigException("numSamples_ became negative, overflow?");
-	estimate_ += delta/numSamples_;
+	prevEstimate_ = estimate_;
+	estimate_ += delta/numSamples_;  // what about fp precision loss ???
 	M2 += delta*(newMean-estimate_);
 	variance_ = numSamples_ < 2l ? variance_ : M2/(numSamples_-1l);
 	// Half-width of the new confidence interval
@@ -61,9 +63,16 @@ ConfidenceIntervalMean::update(const double& newMean)
 
 
 bool
-ConfidenceIntervalMean::min_samples_covered() const noexcept
+ConfidenceIntervalMean::min_samples_covered(bool considerEpsilon) const noexcept
 {
-	return numSamples_ >= 30l;  // easy-peasy thanks to CLT
+	const bool
+		// Easy-peasy thanks to CLT:
+		theoreticallySound = 30l <= numSamples_,
+		// If requested, ask also for little change w.r.t. the last estimate
+		practicallySound =
+			considerEpsilon ? std::abs(prevEstimate_-estimate_) < 0.01*estimate_
+							: true;
+	return theoreticallySound && practicallySound;
 }
 
 
@@ -72,16 +81,16 @@ ConfidenceIntervalMean::precision(const double& confco) const
 {
 	if (0.0 >= confco || 1.0 <= confco)
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
-	return 2.0 * ConfidenceInterval::confidence_quantile(confco)
+	return 2.0 * confidence_quantile(confco)
 			   * std::sqrt(variance_/numSamples_);
 }
 
 
 void
-ConfidenceIntervalMean::reset() noexcept
+ConfidenceIntervalMean::reset(bool fullReset) noexcept
 {
-	ConfidenceInterval::reset();
+	ConfidenceInterval::reset(fullReset);
     M2 = 0.0;
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

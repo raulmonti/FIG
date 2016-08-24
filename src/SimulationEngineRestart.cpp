@@ -31,18 +31,21 @@
 #include <cmath>
 // C++
 #include <stack>
-#include <limits>    // std::numeric_limits<>
-#include <valarray>  // std::valarray<>
+#include <iterator>
+#include <algorithm>  // std::fill
 // FIG
 #include <SimulationEngineRestart.h>
 #include <ModuleNetwork.h>
 #include <TraialPool.h>
 #include <FigException.h>
+#include <FigLog.h>
 
 using std::pow;
+using std::begin;
+using std::end;
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 // Available engine names in SimulationEngine::names
@@ -121,13 +124,15 @@ SimulationEngineRestart::log_experiments_per_sim() const
 }
 
 
-double
+std::vector<double>
 SimulationEngineRestart::transient_simulations(const PropertyTransient& property,
 											   const size_t& numRuns) const
 {
 	assert(0u < numRuns);
 	const unsigned numThresholds(impFun_->num_thresholds());
-	std::valarray<unsigned> raresCount(0u, numThresholds+1);
+	std::vector< unsigned > raresCount(numThresholds+1, 0u);
+	std::vector< double > weighedRaresCount;
+	weighedRaresCount.reserve(numRuns);
 	std::stack< Reference< Traial > > stack;
 	auto tpool = TraialPool::get_instance();
 
@@ -139,11 +144,14 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	else
 		watch_events = &SimulationEngineRestart::transient_event;
 
-	// Perform 'numRuns' RESTART importance-splitting simulations
-	for (size_t i = 0u ; i < numRuns && !interrupted ; i++) {
+	// Perform 'numRuns' independent RESTART simulations
+	for (size_t i = 0ul ; i < numRuns && !interrupted ; i++) {
+
+		std::fill(begin(raresCount), end(raresCount), 0u);  // reset counts
 		tpool.get_traials(stack, 1u);
 		stack.top().get().initialize(*network_, *impFun_);
 
+		// RESTART importance-splitting simulation:
 		while (!stack.empty()) {
 			Event e(EventType::NONE);
 			Traial& traial = stack.top();
@@ -186,23 +194,20 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			}
 			// RARE events are checked first thing in next iteration
 		}
+
+		// Save weighed RE counts of this run, downscaling the # of RE observed
+		// by the relative importance of the threshold level they belong to
+		weighedRaresCount.push_back(0.0);
+		for (int t = 0u ; t <= (int)numThresholds ; t++)
+			weighedRaresCount[i] += raresCount[t] * pow(splitsPerThreshold_, -t);
+		assert(!std::isnan(weighedRaresCount.back()));
+		assert(!std::isinf(weighedRaresCount.back()));
+		assert(0.0 <= weighedRaresCount.back());
 	}
 	// Return any Traial still on the loose
 	tpool.return_traials(stack);
 
-	// To estimate, weigh each count by the relative importance of the
-	// threshold level it belongs to. We do that here in an "upscale fashion",
-	// which must be balanced in the ConfidenceInterval update.
-	double weighedRaresCount(0.0);
-	for (unsigned i = 0u ; i <= numThresholds ; i++)
-		weighedRaresCount += raresCount[i]
-							  * pow(splitsPerThreshold_, numThresholds-i);
-	// Return the weighed count or its negative value
-	assert(0.0 <= weighedRaresCount);
-	if (MIN_COUNT_RARE_EVENTS > raresCount.sum())
-		return -weighedRaresCount;
-	else
-		return  weighedRaresCount;
+	return weighedRaresCount;
 }
 
 
@@ -213,7 +218,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 {
 	assert(0u < runLength);
 	const unsigned numThresholds(impFun_->num_thresholds());
-	std::valarray< double > raresCount(0.0, numThresholds+1);
+	std::vector< double > raresCount(numThresholds+1, 0.0);
 	auto tpool = TraialPool::get_instance();
 //	static thread_local Traial& originalTraial(tpool.get_traial());
 	static Traial& originalTraial(tpool.get_traial());
@@ -305,17 +310,13 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	if (stack.empty())  // allow next iteration of batch means
 		stack.push(originalTraial);
 
-	// To estimate, weigh counts by the relative importance of their thresholds
-	double accTime(0.0);
-	for (unsigned i = 0u ; i <= numThresholds ; i++)
-		accTime += raresCount[i] / pow(splitsPerThreshold_, i);
-
-	// Return estimate or its negative value
-	assert(0.0 <= accTime);
-	if (MIN_ACC_RARE_TIME > raresCount.sum())
-		return -accTime / static_cast<double>(runLength);
-	else
-		return  accTime / static_cast<double>(runLength);
+	// To estimate, weigh times by the relative importance of their thresholds
+	double weighedAccTime(0.0);
+	for (int t = 0 ; t <= (int)numThresholds ; t++)
+		weighedAccTime += raresCount[t] * pow(splitsPerThreshold_, -t);
+	// Return the (weighed) simulation-time spent on rare states
+	assert(0.0 <= weighedAccTime);
+	return weighedAccTime;
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

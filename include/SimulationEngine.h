@@ -50,6 +50,8 @@ class PropertyTransient;
 class ModuleNetwork;
 class Traial;
 class ConfidenceInterval;
+class ConfidenceIntervalRate;
+class ConfidenceIntervalTransient;
 
 /**
  * @brief Abstract base simulation engine
@@ -69,22 +71,45 @@ public:
     /// how many SimualtionEngine implementations are offered to the end user.
     static constexpr size_t NUM_NAMES = 2;
 
+protected:  // Attributes for simulation update policies
+
     /// Minimum amount of generated rare events to consider a simulation "good"
-    static const unsigned MIN_COUNT_RARE_EVENTS;
+    /// @note Relevant for transient-like simulations only
+    /// @warning Value is arbitrary af
+    /// @deprecated Current transient policies use fixed batch sizes,
+    ///             so this value isn't used
+    static constexpr unsigned MIN_COUNT_RARE_EVENTS = 3u;
 
-    /// Minimum amount of simulation time units which has to be spent
+    /// Minimum amount of simulation-time units which has to be spent
     /// in rare states to consider a simulation "good"
-    static const double MIN_ACC_RARE_TIME;
+    /// @note Relevant for steady-state-like simulations only
+    /// @warning Value is arbitrary af
+    static constexpr double MIN_ACC_RARE_TIME = 0.3;
 
-    /// Maximum simulation time units any Traial is allowed to accumulate
+    /// Upper bound of CPU time (seconds) for a single simulation.
+    /// If simulations take longer than this then the update policies
+    /// won't perform further effort increases (batch size / run length)
+    /// @note This doesn't imply truncation: simulations running longer than
+    ///       MAX_CPU_TIME seconds <b>won't</b> be stopped prematurely.
+    /// @warning Value is arbitrary af
+    static constexpr long MAX_CPU_TIME = 120l;
+
+    /// Maximum simulation-time units any Traial is allowed to accumulate
     /// before having its lifetime reset
     /// @note Needed due to fp precision issues
-    static const CLOCK_INTERNAL_TYPE SIM_TIME_CHUNK;
+    /// @note Value chosen small enough to distinguish variations of 0.01
+    ///       simulation-time units when using fp single precision:
+    ///       mantissa 1, exponent 12, resulting in 1*2^12 == 4096.
+    ///       The corresponding C99 literal is 0x1p12.
+    /// @see <a href="http://www.cprogramming.com/tutorial/floating_point/understanding_floating_point_representation.html">
+    ///      Floating point arithmetic</a> and the <a href="http://stackoverflow.com/a/4825867">
+    ///      C99 fp literals</a>.
+    static constexpr CLOCK_INTERNAL_TYPE SIM_TIME_CHUNK = 4096.f;
 
-private:
+private:  // Instance attributes
 
 	/// Name of the SimulationEngine strategy implemented by this instance.
-	/// Check names() for available options.
+	/// @note Check names() for available options.
 	std::string name_;
 
     /// Is the engine currently being used in an estimation?
@@ -105,6 +130,7 @@ protected:
 	mutable bool interrupted;
 
 	/// Maximum simulation time to reach, for long-run simulations only
+	/// @note Used only by derived classes
 	mutable CLOCK_INTERNAL_TYPE simsLifetime;
 //	mutable thread_local CLOCK_INTERNAL_TYPE simsLifetime;
 
@@ -112,8 +138,8 @@ public:  // Ctors/Dtor
 
     /**
      * Data ctor
-     * @param name @copydoc name_
-     * @param network @copydoc network_
+     * @param name @copybrief name_
+     * @param network @copybrief network_
      * @throw FigException if the name doesn't match a valid engine
      * @throw FigException if the system model hasn't been sealed yet
      */
@@ -215,56 +241,28 @@ public:  // Accessors
 public:  // Simulation functions
 
     /**
-     * @brief Simulate in model certain number of independent runs
+     * @brief Run simulation in model
      *
-     *        This is intended for "value simulations", viz. when estimations
-     *        finish as soon as certain confidence criterion is met.
-     *        The importance function used is taken from the last call to bind()
+     *        There are two ways of defining when does a simulation end:
+     *        "by time" or "by value".<br>
+     *        In <i>time simulations</i> the estimation runs indefinitely until
+     *        the engine is externally signaled by an update of the
+     *        \ref interrupted "interrupted flag". Signals are usually time-
+     *        driven, e.g. "stop after running for 2h".<br>
+     *        In <i>value simulations</i> the estimation finishes as soon as
+     *        certain confidence criterion is met, although truncation by
+     *        updates of the interrupted flag is also possible.
      *
-     * @param property Property whose value is being estimated
-     * @param effort   Number of independent runs to perform or
-     *                 simulation length in time units
-     * @param interval ConfidenceInterval updated with estimation info <b>(modified)</b>
-     * @param reinit   Start simulations anew from the system's initial state,
-     *                 even if it was possible to use batch means
+     * @param property Property whose probability value is to be estimated
+     * @param ci       ConfidenceInterval updated with estimation info <b>(modified)</b>
      *
-     * @return Whether 'effort' wasn't large enough and ought to be increased
+     * @note  The ImportanceFunction used is taken from the last call to bind()
      *
-     * @throw FigException if the engine wasn't \ref bound() "bound" to any
-     *                     ImportanceFunction
+     * @throw FigException if the engine isn't \ref bound() "bound" to any
+     *                     ImportanceFunction, or if simulations are marked
+     *                     \ref interrupted "interrupted" from the start
      */
-    bool simulate(const Property& property,
-                  const size_t& effort,
-                  ConfidenceInterval& interval,
-                  bool reinit) const;
-
-    /**
-     * @brief Simulate in model until externally interrupted
-     *
-     *        This is intended for "time simulations", viz. when estimations
-     *        run indefinitely until they're externally interrupted.
-     *        The importance function used is taken from the last call to bind()
-     *
-     * @param property   Property whose value is being estimated
-     * @param effort     Number of consecutive independent simulations or
-     *                   simulation length in time units
-     *                   before each interval update
-     * @param interval   ConfidenceInterval regularly updated with estimation info <b>(modified)</b>
-     * @param techLog    Log where technical info will be printed
-     * @param effort_inc Function to increase 'effort' in case simulations
-     *                   aren't yielding useful results due to its length
-     *
-     * @throw FigException if the engine wasn't \ref bound() "bound" to any
-     *                     ImportanceFunction
-     */
-    void simulate(const Property& property,
-                  size_t effort,
-                  ConfidenceInterval& interval,
-                  std::ostream& techLog,
-                  void (*effort_inc)(const PropertyType&,
-                                     const std::string&,
-                                     const std::string&,
-                                     size_t&) = nullptr) const;
+    void simulate(const Property& property, ConfidenceInterval& ci) const;
 
 protected:  // Simulation helper functions
 
@@ -277,43 +275,46 @@ protected:  // Simulation helper functions
 	 * @brief Run independent transient-like simulations to estimate
 	 *        the value of a \ref PropertyTransient "transient property"
      *
-     *        Using a specific simulation strategy, launch 'numRuns' transient
-     *        simulations starting from the system's initial state.
-     *        The given 'property' is characterized by two subformulas:
-     *        "expr1" and "expr2". Each simulation run stops when a state
-     *        which either satisfies "expr2" or doesn't satisfy "expr1"
-     *        is visited.
+     *        Launch 'numRuns' transient simulations starting from the initial
+     *        state of the system. The given 'property' is characterized by
+     *        two subformulas: "expr1" and "expr2". Each simulation stops when
+     *        a state is visited which either satisfies "expr2" or doesn't
+     *        satisfy "expr1".
      *
      * @param property PropertyTransient with events of interest (expr1 & expr2)
 	 * @param numRuns  Amount of successive independent simulations to run
      *
-     * @return Number of states satisfying 'expr2' reached, or its negative
-     *         value if less than MIN_COUNT_RARE_EVENTS were observed.
+     * @return Vector with the (weighed) number of states which reached 'expr2'
+     *         on each of the simulations performed
+     *
+     * @note Less than 'numRuns' simulations may be run when the engine is
+     *       interrupted. The number of simulations effectively ran equals
+     *       the size of the return vector.
      *
      * @see PropertyTransient
 	 */
-	virtual double transient_simulations(const PropertyTransient& property,
-                                         const size_t& numRuns) const = 0;
+	virtual std::vector<double>
+	transient_simulations(const PropertyTransient& property,
+						  const size_t& numRuns) const = 0;
 
 	/**
 	 * @brief Perform a long-run simulation to estimate the value of a
 	 *        \ref PropertyRate "rate property"
 	 *
-	 *        Using a specific simulation strategy, run a simulation which will
-	 *        last for 'runLength' simulated time units. The given 'property'
-	 *        is characterized by a subformula "expr". The total amount of
-	 *        simulated time spent in states satisfying "expr" is monitored
-	 *        and used to compute the return value.
+	 *        Using the engine's simulation strategy, run a simulation lasting
+	 *        'runLength' simulation-time units. The given 'property' is
+	 *        characterized by a subformula "expr". The total amount of
+	 *        simulation-time spent in states satisfying "expr" is tracked.
 	 *
 	 * @param property  PropertyRate with the event of interest (expr)
-	 * @param runLength Simulated time units the simulation run will last
+	 * @param runLength Simulation-time units the simulation run will last
 	 * @param reinit    Whether to start from the system's initial state
 	 *                  instead of the state saved from the last call.
 	 *                  Make this parameter false to use <i>batch means</i>.
 	 *
-	 * @return Proportion of the total simulated time which was spent
-	 *         on states satisfying the property's "expr", or its negative
-	 *         value if less than MIN_ACC_RARE_TIME was spent there.
+	 * @return Amount of simulation-time spent on states which satisfy "expr".
+	 *         The desired <i>rate</i>, i.e. the  proportion of simulation-time
+	 *         spent on rare states, is: returnValue / runLength
 	 *
 	 * @note The routine supports the <i>batch means simulation method</i>,
 	 *       viz. execution can start from the last saved state, as if the
@@ -324,11 +325,12 @@ protected:  // Simulation helper functions
 	 *
 	 * @see PropertyRate
 	 */
-	virtual double rate_simulation(const PropertyRate& property,
-								   const size_t& runLength,
-								   bool reinit = false) const = 0;
+	virtual double
+	rate_simulation(const PropertyRate& property,
+					const size_t& runLength,
+					bool reinit = false) const = 0;
 
-public:  // Traial observers/updaters
+protected:  // Traial observers/updaters
 
     /**
      * @brief Interpret and mark the transient events triggered by a Traial
@@ -367,6 +369,42 @@ public:  // Traial observers/updaters
     virtual bool rate_event(const PropertyRate& property,
                             Traial& traial,
                             Event& e) const = 0;
+
+private:  // Class utils
+
+	/**
+	 * @brief Update the ConfidenceInterval for transient-like properties
+	 *
+	 * @param ci           ConfidenceInterval to update <b>(modified)</b>
+	 * @param weighedNREs  Vector with the (weighed) number of rate states
+	 *                     visited in last simulations batch
+	 *
+	 * @note Simulations can be truncated by external updates to the
+	 *       \ref interrupted "interrupted flag": <b>nothing will be done
+	 *       if such flag is set</b>
+	 */
+	void transient_update(ConfidenceIntervalTransient& ci,
+						  const std::vector<double>& weighedNREs) const;
+
+	/**
+	 * @brief Update the ConfidenceInterval and the simulation effort
+	 *        for rate-like properties
+	 *
+	 * @param ci       ConfidenceInterval to update <b>(modified)</b>
+	 * @param rareTime Simulation-time units spent on rare states in the last simulation
+	 * @param simTime  Total simulation-time units spent in last simulation <b>(modified)</b>
+	 * @param CPUtime  Processor time used in last simulation, in seconds
+	 *
+	 * @note Current policy discards the first "not-steady-state" trace
+	 *       (check source for details)
+	 * @note Simulations can be truncated by external updates to the
+	 *       \ref interrupted "interrupted flag": <b>nothing will be done
+	 *       if such flag is set</b>
+	 */
+	void rate_update(ConfidenceIntervalRate& ci,
+					 const double& rareTime,
+					 size_t& simTime,
+					 const long& CPUtime) const;
 };
 
 } // namespace fig

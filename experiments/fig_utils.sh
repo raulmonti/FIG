@@ -271,7 +271,7 @@ extract_value() {
 		local TBOUND=""
 		local CONFLVL=$6
 		local VAL=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" $FILE \
-		           | grep --after=7 "Confidence level: $CONFLVL")
+		           | grep --after=8 "Confidence level: $CONFLVL")
 	elif [[ $6 =~ ^[0-9]+[smhd]?$ ]]; then
 		local CONFLVL=""
 		local TBOUND=$(compute_seconds $6)
@@ -288,12 +288,14 @@ extract_value() {
 	if [[ $1 == "est" ]]; then
 		local VMATCH="estimate:[[:space:]][1-9]\.[0-9]*e\-[0-9]*"
 	elif [[ $1 == "prec" ]]; then
-		local VMATCH="[Pp]recision:[[:space:]][1-9]\.[0-9]*e\-[0-9]*"
 		if [ -n "${TBOUND}" ]; then
+			local VMATCH="precision:[[:space:]][1-9]\.[0-9]*e\-[0-9]*"
 			VAL=$(echo "$VAL" | grep --after=1 "$7[[:space:]]confidence")
+		else
+			local VMATCH="Precision:[[:space:]][1-9]\.[0-9]*e\-[0-9]*"
 		fi
 	fi
-	VAL=$(echo $VAL | grep -o $VMATCH | awk '{ print $2 }')
+	VAL=$(echo $VAL | grep -o "$VMATCH" | awk '{ print $2 }')
 	if [ -n "${VAL}" ]; then
 		echo "$VAL"  # Valid value found!   :)
 	else
@@ -512,8 +514,7 @@ gather_plot_data() {
 	fi
 	# Print header
 	echo "#!/usr/bin/env gnuplot"
-	echo "# Data for plots (estimates)"
-	echo "# Ifun: $IFUN | Splitting: $SPLIT"
+	echo "# Plotting data | Ifun: $IFUN | Splitting: $SPLIT"
 	echo "# param  estimate  precision  time"
 	# Extract and print data
 	for EXP in "${EXPERIMENTS[@]}"; do
@@ -522,7 +523,7 @@ gather_plot_data() {
 		local ESTIMATE=` extract_value est  $RESULTS $SIFUN $EXP $SPLIT $CONFLVL`
 		local PRECISION=`extract_value prec $RESULTS $SIFUN $EXP $SPLIT $CONFLVL`
 		local TIME=`extract_time  $RESULTS $SIFUN $EXP $SPLIT $CONFLVL`
-		print_value_line "$VALUE" "$ESTIMATE" "$PRECISION" "$TIME"
+		print_value_line "$VALUE" "${ESTIMATE#\*}" "${PRECISION#\*}" "$TIME"
 	done
 }
 

@@ -80,7 +80,7 @@ public:
 	/// @note Implements the <a href="https://goo.gl/yhTgLq"><i>Construct On
 	///       First Use</i> idiom</a> for static data members,
 	///       to avoid the <a href="https://goo.gl/chH5Kg"><i>static
-	///       initialization order fiasco</i>.
+	///       initialization order fiasco</i>>.
 	static const std::array< std::string, NUM_TECHNIQUES >& techniques() noexcept;
 
 	/**

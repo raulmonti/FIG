@@ -60,6 +60,11 @@ public:  // Attributes: CI fingerprint
 	/// Probit value for chosen confidence
 	const double quantile;
 
+	/// Whether the interval will never be considered \ref is_valid() "valid"
+	/// @note Intended for time bound simulations which should keep on updating
+	///       the interval regardless of the confidence and precision achieved
+	const bool alwaysInvalid;
+
 protected:  // Attributes: estimation thus far
 
 	/// Number of samples fed so far via update()
@@ -67,6 +72,9 @@ protected:  // Attributes: estimation thus far
 
 	/// Property's point value estimate
 	double estimate_;
+
+	/// @copydoc estimate_ in previous update
+	double prevEstimate_;
 
 	/// Variance corresponding to the current estimation
 	double variance_;
@@ -87,16 +95,18 @@ public:  // Ctor
 
 	/**
 	 * Only data ctor provided
-	 * @param name             @copydoc name
+	 * @param name             @copybrief name
 	 * @param confidence       Interval's confidence coefficient ∈ (0.0, 1.0)
 	 * @param precision        Interval's desired full width > 0.0
 	 * @param dynamicPrecision Is the precision a percentage of the estimate?
+	 * @param neverStop        @copybrief alwaysInvalid
 	 * @throw FigException if either 'confidence' or 'precision' is invalid
 	 */
 	ConfidenceInterval(const std::string& name,
 					   double confidence,
 					   double precision,
-					   bool dynamicPrecision = false);
+					   bool dynamicPrecision = false,
+					   bool neverStop = false);
 
 public:  // Accessors
 
@@ -110,9 +120,11 @@ public:  // Accessors
 	inline const double& estimation_variance() const noexcept { return variance_; }
 
 	/// @copydoc statOversample_
+	/// @deprecated Used by binomial proportion CIs (e.g. Wilson score interval)
 	inline const double& statistical_oversampling() const noexcept { return statOversample_; }
 
 	/// @copydoc varCorrection_
+	/// @deprecated Used by binomial proportion CIs (e.g. Wilson score interval)
 	inline const double& variance_correction() const noexcept { return varCorrection_; }
 
 public:  // Modifyers
@@ -120,35 +132,24 @@ public:  // Modifyers
 	/// Increase the statistical oversampling factor for event counting.
 	/// @note Typically needed when rare events can occur in any threshold level
 	/// @see statistical_oversampling()
+	/// @deprecated Used by binomial proportion CIs (e.g. Wilson score interval)
 	void set_statistical_oversampling(const double& statOversamp);
 
 	/// Set the variance correction factor for interval precision computation.
 	/// @note Typically needed when rare events can occur in any threshold level
 	/// @see variance_correction()
+	/// @deprecated Used by binomial proportion CIs (e.g. Wilson score interval)
 	void set_variance_correction(const double& varCorrection);
 
 	/**
 	 * @brief Update current estimation with a new sample value.
 	 * @param newSample Result obtained from the last simulation experiment
 	 * @note Considered as one single new value fed into the estimation,
-	 *       i.e. only one experiment was ran to come up with 'newEstimate'
+	 *       i.e. only one experiment was run to come up with 'newEstimate'
 	 * @throw FigException if detected possible overflow
 	 * @see update(const double&, const double&)
 	 */
 	virtual void update(const double& newSample) = 0;
-
-	/**
-	 * @brief Update current estimation with several new sample values.
-	 * @param newSamples Condensation of the results obtained from several
-	 *                   simulation experiments ran.
-	 * @param logNumNewExperiments Natural logarithm of the (virtual) number
-	 *                             of experiments ran
-	 * @note The logarithm is used to avoid commonplace overflows
-	 * @throw FigException if detected possible overflow
-	 * @see update(const double&)
-	 */
-	virtual void update(const double& newSamples,
-						const double& logNumNewExperiments) = 0;
 
 public:  // Utils
 
@@ -160,12 +161,14 @@ public:  // Utils
 	 * samples to be considered before the theory applies. This method says
 	 * whether that minimum has been reached.
 	 *
+	 * @param safeguard Be extra conservative if possible
+	 *
 	 * @note This is necessary yet <i>insufficient</i> to guarantee
 	 *       the satisfaction of the confidence criteria.
 	 *
 	 * @see is_valid()
 	 */
-	virtual bool min_samples_covered() const noexcept = 0;
+	virtual bool min_samples_covered(bool safeguard) const noexcept = 0;
 
 	/**
 	 * Does current estimation satisfy the interval's confidence criteria?
@@ -174,12 +177,15 @@ public:  // Utils
 	 * been covered yet, this method will return <b>false</b>. Ohterwise the
 	 * result will depend on wether the desired precision has been reached.
 	 *
+	 * @param safeguard Be extra conservative w.r.t. the min # of samples
+	 *                  requested to support the theory
+	 *
 	 * @return Whether the desired precision has been reached for the
 	 *         confidence coefficient passed on creation
 	 *
 	 * @see min_samples_covered()
 	 */
-	bool is_valid() const noexcept;
+	bool is_valid(bool safeguard = false) const noexcept;
 
 	/// Theoretical width for creation's confidence coefficient
 	/// @copydoc value_simulations_
@@ -205,10 +211,11 @@ public:  // Utils
 	/// @copydoc time_simulations_
 	double upper_limit(const double& confco) const;
 
-	/// Discard all estimation info to start anew
-	/// @note This erases the current \ref statOversample_ "statistical oversampling"
-	///       and \ref varCorrection_ "variance correction" values as well
-	virtual void reset() noexcept;
+	/// Discard all estimation info and start anew
+	/// @param fullReset Erase also the \ref statOversample_
+	///                  "statistical oversampling" and \ref varCorrection_
+	///                  "variance correction" values currently held
+	virtual void reset(bool fullReset = false) noexcept;
 
 protected:
 
@@ -238,7 +245,7 @@ protected:
 	 *
 	 * @throw FigException if quantile couldn't be correctly computed
 	 */
-	static double confidence_quantile(const double& cc);
+	double confidence_quantile(const double& cc) const;
 
 private:
 

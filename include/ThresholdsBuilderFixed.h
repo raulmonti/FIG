@@ -79,7 +79,7 @@ public:
 	/// Default ctor
 	ThresholdsBuilderFixed() : ThresholdsBuilder("fix"),
 							   MIN_IMP_RANGE(3),
-							   EXPAND_EVERY(200)
+							   EXPAND_EVERY(64)
 		{ /* Not much to do around here */ }
 
 	/// Data ctor

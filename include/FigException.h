@@ -52,7 +52,7 @@ class FigException : public std::exception
 		const size_t maxlen(1u<<7);
 		auto fullpath1 = strndup(fullpath0, maxlen);
 		auto fullpath2 = strndup(fullpath0, maxlen);
-		msg_ = msg_.append("\n@ ").append(basename(fullpath1))
+		msg_ = msg_.append("\n~~~> @ ").append(basename(fullpath1))
 				   .append(":").append(std::to_string(line))
 				   .append("\nThrown from dir ").append(dirname(fullpath2));
 		free(fullpath1);

@@ -5,7 +5,7 @@
 # License: GPLv3
 #
 
-set -e
+#set -e
 show(){ /bin/echo -e "$@"; }
 CWD=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`
 
@@ -114,34 +114,113 @@ disown %%; wait &>/dev/null; killall sleep &>/dev/null
 show " done"
 
 
-# Build summary charts
-IFUNS=("MC" "AH" "AC" "AM")  # <-- reflect any change in the plotting section
+## Pre-process results to build charts later on
+IFUNS=("MC" "AH" "AC" "AM")  # --> changes here affect plots!
+EXPERIMENTS=("${BUFFER_CAPACITIES[@]/#/k}")
 RAW_RESULTS=${RESULTS}/raw_results; mkdir -p $RAW_RESULTS
 MRG_RESULTS=${RESULTS}/mrg_results; mkdir -p $MRG_RESULTS
+AUX_PLOTS=${RESULTS}/aux_plots;     mkdir -p $AUX_PLOTS
 show -n "Merging results..."
+mv $RESULTS/*.{out,err} ${RAW_RESULTS}
 for k in "${BUFFER_CAPACITIES[@]}"; do
-	# Unify each importance function results in a single file
-	LOG=${RESULTS}/${EXPNAME}_k${k}
-	cp ${LOG}_MC.{out,err} ${RAW_RESULTS}  # MC is special, as usual
+	# For tables: one file per combination of ifun and queue capacity,
+	#             i.e. merge splits together
+	LOG=${EXPNAME}_k${k}
+	cp $RAW_RESULTS/${LOG}_MC.{out,err} $MRG_RESULTS  # MC is special, as usual
 	for IFUN in "${IFUNS[@]}"; do
 		if [[ ${IFUN} == "MC" ]]; then continue; fi
-		cat ${LOG}_${IFUN}_s[0-9]*.out >> ${LOG}"_${IFUN}.out"
-		cat ${LOG}_${IFUN}_s[0-9]*.err >> ${LOG}"_${IFUN}.err"
-		mv  ${LOG}_${IFUN}_s[0-9]*.{out,err} ${RAW_RESULTS}
+		cat ${RAW_RESULTS}/${LOG}_${IFUN}_s[0-9]*.out \
+			>> ${MRG_RESULTS}/${LOG}"_${IFUN}.out"
+ 		cat ${RAW_RESULTS}/${LOG}_${IFUN}_s[0-9]*.err \
+			>> ${MRG_RESULTS}/${LOG}"_${IFUN}.err"
+	done
+done
+for s in "${SPLITS[@]}"; do
+	# For plots: one file per combination of ifun and splitting,
+	#            i.e. merge queues capacities together
+	gather_plot_data $RAW_RESULTS EXPERIMENTS[@] "MC" 1 $CONF $PREC \
+		> ${MRG_RESULTS}/MC_s1.dat  # MC is special, as usual
+	for IFUN in "${IFUNS[@]}"; do
+		if [[ $IFUN == "MC" ]]; then continue; fi
+		gather_plot_data $RAW_RESULTS EXPERIMENTS[@] $IFUN $s $CONF $PREC \
+			> ${MRG_RESULTS}/${IFUN}_s${s}.dat
 	done
 done
 show " done"
-#
+
+
+# Build summary charts
 show -n "Building tables..."
-EXPERIMENTS=("${BUFFER_CAPACITIES[@]/#/k}")
-build_c_table "est"  $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+build_c_table "est"  $MRG_RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
 	> $RESULTS/table_estimates.txt
-build_c_table "prec" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+build_c_table "prec" $MRG_RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
 	> $RESULTS/table_precisions.txt
-build_c_table "time" $RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
+build_c_table "time" $MRG_RESULTS EXPERIMENTS[@] IFUNS[@] SPLITS[@] $CONF $PREC \
 	> $RESULTS/table_times.txt
-mv ${RESULTS}/*.{out,err} ${MRG_RESULTS}
 show " done"
+#
+show -n "Building plots..."
+DUMMY=dummy_sizes.dat; rm -f $DUMMY
+for k in "${BUFFER_CAPACITIES[@]}"; do /bin/echo -e "${k}\t0" &>> $DUMMY; done
+## Plotting can't be generic since gnuplot doesn't support array variables
+## Still we try our best with bash indirection
+## (http://stackoverflow.com/a/8515492)
+for s in "${SPLITS[@]}"; do
+	# Plot per split, comparing all ifuns
+	for IFUN in "${IFUNS[@]}"; do
+		if [[ $IFUN == "MC" ]]; then continue; fi
+		# Variables needed by this plotting script:
+		eval "$IFUN=${MRG_RESULTS}/${IFUN}_s${s}.dat"
+	done
+	# Following must have 2+NUM_IFUNS variables defined for the gnuplot script
+	gnuplot -e "
+		DUMMY='${DUMMY}';
+		SPLIT='${s}';
+		${IFUNS[0]}='${!IFUNS[0]}';
+		${IFUNS[1]}='${!IFUNS[1]}';
+		${IFUNS[2]}='${!IFUNS[2]}';
+		${IFUNS[3]}='${!IFUNS[3]}';
+		MC='${MRG_RESULTS}/MC_s1.dat'
+		" estimates_per_split.gpi
+done
+gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/default        \
+	-dNOPAUSE -dQUIET -dBATCH -dDetectDuplicateImages -dCompressFonts=true  \
+	-r150 -sOutputFile=plot_estimates_splits.pdf estimates_s[0-9]*.pdf
+NSPLITS=${#SPLITS[*]}
+DATA=($(printf "IFUN_%1d " `seq 0 $((NSPLITS-1))`))
+KEYS=($(printf "NAME_%1d " `seq 0 $((NSPLITS-1))`))
+for IFUN in "${IFUNS[@]}"; do
+	# Plot per ifun, comparing all splits
+	if [[ $IFUN == "MC" ]]; then continue; fi
+	for (( i=0 ; i<NSPLITS ; i++ )); do
+		# Variables needed by this plotting script:
+		eval "${DATA[i]}=${MRG_RESULTS}/${IFUN}_s${SPLITS[i]}.dat"
+		eval "${KEYS[i]}=split:${SPLITS[i]}"
+	done
+	# Following must have 2+2*NSPLITS variables defined for the gnuplot script
+	gnuplot -e "
+		DUMMY='${DUMMY}';
+		IFUN='$IFUN';
+		NFILES='$NSPLITS';
+		${DATA[0]}='${!DATA[0]}';
+		${DATA[1]}='${!DATA[1]}';
+		${DATA[2]}='${!DATA[2]}';
+		${DATA[3]}='${!DATA[3]}';
+		${KEYS[0]}='${!KEYS[0]}';
+		${KEYS[1]}='${!KEYS[1]}';
+		${KEYS[2]}='${!KEYS[2]}';
+		${KEYS[3]}='${!KEYS[3]}';
+		" estimates_per_ifun.gpi;
+done
+shopt -s extglob  # temporarily disable shell globbing
+gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/default        \
+	-dNOPAUSE -dQUIET -dBATCH -dDetectDuplicateImages -dCompressFonts=true  \
+	-r150 -sOutputFile=plot_estimates_ifuns.pdf estimates_!(s*).pdf
+shopt -u extglob  # reenable shell globbing (default)
+mv estimates*.pdf $AUX_PLOTS
+mv plot*.pdf $RESULTS
+rm $DUMMY
+show "  done"
 
 
 # Turn lights off
