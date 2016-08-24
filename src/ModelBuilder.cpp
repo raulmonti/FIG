@@ -1,4 +1,5 @@
 /* Leonardo Rodríguez */
+
 #include <tuple>
 #include <cassert>
 #include <ModelBuilder.h>
@@ -257,7 +258,7 @@ void ModelBuilder::visit(shared_ptr<ModuleBody> body) {
         accept_cond(decl);
     }
     if (!has_errors()) {
-        //ensure the same output as Raul's
+        //ensure the same output as Raul's frontend by sorting clocks:
         auto& clocks = *module_clocks;
         std::sort(clocks.begin(), clocks.end(), ::compareByName);
         current_module = make_shared<ModuleInstance>
@@ -298,9 +299,9 @@ Clock ModelBuilder::build_clock(const std::string& id) {
 }
 
 void ModelBuilder::visit(shared_ptr<Decl> decl) {
-    int lower;
-    int upper;
-    int init;
+    int lower = 0;
+    int upper = 0;
+    int init = 0;
     Type type;
     if (decl->is_array()) {
         put_error("Arrays not yet supported");

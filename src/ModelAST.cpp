@@ -1,6 +1,7 @@
 /* Leonardo Rodríguez */
 #include "ModelAST.h"
 #include "ModelParser.hpp"
+#include "ErrorMessage.h"
 #include <cstdlib>
 
 using std::shared_ptr;
@@ -106,6 +107,9 @@ void FConst::accept(Visitor& visit) {
 }
 
 //Default Visitor does nothing on his visitation ;)
+Visitor::Visitor() {
+    message = make_shared<ErrorMessage>();
+}
 
 void Visitor::visit(shared_ptr<ModelAST> node) {
     (void) node;
@@ -168,14 +172,14 @@ void Visitor::visit(shared_ptr<Prop> node) {
 }
 
 void Visitor::put_error(const string &msg) {
-    message.put_error(msg);
+    message->put_error(msg);
 }
 
 bool Visitor::has_errors() {
-    return (message.has_errors());
+    return (message->has_errors());
 }
 
 string Visitor::get_errors() {
-    return (message.get_msg());
+    return (message->get_msg());
 }
 

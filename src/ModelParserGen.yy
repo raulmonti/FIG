@@ -177,7 +177,8 @@ type: "int"
 
 global_decl: "const" type[t] "id"[id] "=" exp[e]
 {$$ = make_shared<Decl>($t, $id, $e);}
-| "const" "id"[id] "[" exp[size] "]" ":" "[" exp[lower] ".." exp[upper] "]" "init" array_init[seq]
+| "const" "id"[id] "[" exp[size] "]" ":" "[" exp[lower] ".." exp[upper] "]"
+  "init" array_init[seq]
 {$$ = make_shared<Decl>(Type::tint, $id, $size, $lower, $upper, $seq);}
 | "const" "id"[id] "[" exp[size] "]" ":" type[t] "init" array_init[seq]
 {$$ = make_shared<Decl>($t, $id, $size, $seq);}
@@ -306,7 +307,8 @@ exp : location[loc]
 %%
       
 void
-ModelParserGen::ModelParser::error(const ModelParserGen::location& l, const std::string& m) {
+ModelParserGen::ModelParser::error(const ModelParserGen::location& l,
+                                   const std::string& m) {
     std::stringstream ss;
     ss << "at line " << l << " " << m;
     ModelAST::on_scanner_error(ss.str());

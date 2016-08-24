@@ -19,7 +19,8 @@ using std::shared_ptr;
 using std::make_shared;
 
 enum class Type {tint, tbool, tfloat, tclock, tunknown};
-enum class ExpOp {plus, times, minus, div, mod, andd, orr, nott, eq, neq, lt, gt, le, ge};
+enum class ExpOp {plus, times, minus, div, mod, andd, orr, nott,
+                  eq, neq, lt, gt, le, ge};
 enum class Arity  {one, two};
 enum class LabelType {in, out, commited, empty};
 enum class DistType {erlang, normal, uniform, exponential};
@@ -30,23 +31,38 @@ enum class PropType {transient, rate};
 namespace ModelParserGen {
 class ModelParser;
 class ModelScanner;
+class position;
 }
 
+using ModelParserGen::position;
+
 class ModelAST : public std::enable_shared_from_this<ModelAST> {
-protected:
+public:
+    virtual ~ModelAST() {}
 private:
     friend class ModelParserGen::ModelParser;
     friend class ModelParserGen::ModelScanner;
+
     //starts lexer on the given file
     static void scan_begin(FILE *file);
     //finish lexer
     static void scan_end();
     static void on_scanner_error(const std::string &msg);
+    //position (of the token) from which this ast was created.
+    //save it only for improve error messages.
+    shared_ptr<position> pos = nullptr;
 public:
     static shared_ptr<ModelAST> from_files(const char *model_file,
                                            const char *prop_file);
-    virtual ~ModelAST() {};
     virtual void accept(class Visitor& visit);
+
+    void set_position(shared_ptr<position> pos) {
+        this->pos = pos;
+    }
+
+    shared_ptr<position> get_position() {
+        return (pos);
+    }
 };
 
 class Prop : public ModelAST {
@@ -56,9 +72,9 @@ public:
     shared_ptr<class Exp> right;
     
     Prop(shared_ptr<Exp> rate)
-        : type {PropType::rate}, left {rate}, right {nullptr} {};
+        : type {PropType::rate}, left {rate}, right {nullptr} {}
     Prop(shared_ptr<Exp> left, shared_ptr<Exp> right)
-        : type {PropType::transient}, left {left}, right {right} {};
+        : type {PropType::transient}, left {left}, right {right} {}
     void accept(Visitor& visit) override;
 };
 
@@ -432,9 +448,10 @@ protected:
     //message tracked during visitations.
     //also used to stop traversing the AST
     //when an error occurs
-    ErrorMessage message;
+    shared_ptr<class ErrorMessage> message;
     void put_error(const string &msg);
 public:
+    Visitor();
     bool has_errors();
     string get_errors();
     //visitors

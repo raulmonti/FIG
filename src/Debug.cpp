@@ -46,6 +46,7 @@ void Clock::print_info(std::ostream &out) const {
     out << "CLOCK" << std::endl;
     out << "NAME:" << name_ << std::endl;
     out << "DISTNAME:" << distName_ << std::endl;
+    out << "CLOCK-SEED:" << this->rng_seed() << std::endl;
     ::print_vec(out, "DISTPARAMETERS:", distParams_.begin(), distParams_.end());
     out << "ENDOF-CLOCK:" << name_ << std::endl;
 }
@@ -72,6 +73,8 @@ void Precondition::print_info(std::ostream &out) const {
 void Postcondition::print_info(std::ostream &out) const {
     out << "POSTCONDITION" << std::endl;
     out << "EXPRESSION:" << this->exprStr_ << std::endl;
+    out << "NUM-VAR-UPDATES:" << this->NUPDATES_ << std::endl;
+    out << "NUM-VAR:" << this->NVARS_ << std::endl;
     ::print_vec(out, "UPDATE-NAMES:", this->updatesNames_);
     ::print_vec(out, "UPDATE-POSITIONS:", this->updatesPos_);
     ::print_vec(out, "NAMES:", this->varsNames_);
@@ -126,6 +129,13 @@ void ModuleNetwork::print_info(std::ostream &out) const {
     out << "INITIAL-STATE-SIZE:" << this->initial_concrete_state() << std::endl;
     out << "INITIAL-STATE:" << std::endl;
     this->initial_state().print_info(out);
+    out << "INITIAL-CLOCKS:";
+    for (auto &entry : this->initialClocks) {
+        const Clock &clock = entry.second;
+        int size = entry.first;
+        out << clock.name() << "[pos=" << size << "],";
+    }
+    out << std::endl;
     out << "GLOBAL-STATE:" << std::endl;
     this->global_state().print_info(out);
     for (const auto& module : this->modules) {
