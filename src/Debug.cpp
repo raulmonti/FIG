@@ -1,6 +1,5 @@
 #include <fstream>
 #include <string>
-
 #include "Clock.h"
 #include "State.h"
 #include "Precondition.h"

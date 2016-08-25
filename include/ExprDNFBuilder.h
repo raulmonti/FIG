@@ -11,7 +11,7 @@ using ClauseType = vector<shared_ptr<Exp>>;
 class ExprClauseBuilder : public Visitor {
     ClauseType clause;
 public:
-    ExprClauseBuilder() {};
+    ExprClauseBuilder() {}
     void visit(shared_ptr<IConst> node);
     void visit(shared_ptr<BConst> node);
     void visit(shared_ptr<FConst> node);
@@ -25,7 +25,7 @@ public:
 class ExprDNFBuilder : public Visitor {
     vector<ClauseType> clause_vector;
 public:
-    ExprDNFBuilder() {};
+    ExprDNFBuilder() {}
     void visit(shared_ptr<IConst> node);
     void visit(shared_ptr<BConst> node);
     void visit(shared_ptr<FConst> node);

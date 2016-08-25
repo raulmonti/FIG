@@ -658,9 +658,6 @@ public: // Debug
         void print_info(std::ostream &out) const;
         void print_importance_function(std::ostream &out,
                                        const ImportanceFunction &imf) const;
-        //to be called by process_batch whem importance function is ready
-        std::function<void (const ImportanceFunction &imf,
-                            unsigned int property_num)> on_importance_ready;
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -739,7 +736,6 @@ ModelSuite::process_batch(
 	}
 
 	// For each property ...
-        unsigned int property_num = 0;
 	for (const auto property: properties) {
 
 		// ... build the importance function ...
@@ -750,10 +746,8 @@ ModelSuite::process_batch(
 		else if ("adhoc" == impFunSpec.strategy)
 			build_importance_function_adhoc(impFunSpec, *property, true);
 		assert(impFuns[impFunSpec.name]->has_importance_info());
-                this->on_importance_ready(*impFuns[impFunSpec.name], property_num++);
 		// ... and for each splitting specified ...
 		for (const auto& split: splittingValues) {
-
 			// ... choose the thresholds ...
 			if ("nosplit" != engineName)
 				set_splitting(split);

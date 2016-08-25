@@ -378,7 +378,9 @@ public:
 class IConst : public Exp {
 public:
     int value;
-    IConst(int value) : value {value} {};
+    IConst(int value) : value {value} {
+        type = Type::tint;
+    }
     IConst(const IConst &) = delete;
     void operator=(const IConst &) = delete;
 
@@ -388,17 +390,20 @@ public:
 class BConst : public Exp {
 public:
     bool value;
-    BConst(bool value) : value {value} {};
+    BConst(bool value) : value {value} {
+        type = Type::tbool;
+    }
     BConst(const BConst &) = delete;
     void operator=(const BConst &) = delete;
-
     void accept(Visitor& visit) override;
 };
 
 class FConst : public Exp {
 public:
     float value;
-    FConst(float value) : value {value} {};
+    FConst(float value) : value {value} {
+        type = Type::tfloat;
+    }
     FConst(const FConst &) = delete;
     void operator=(const FConst &) = delete;
 

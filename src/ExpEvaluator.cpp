@@ -173,6 +173,8 @@ void ExpEvaluator::visit(shared_ptr<LocExp> loc) {
                 init->accept(*this);
             }
         }
+    } else {
+        put_error("Only global identifiers can be evaluated at compilation");
     }
 }
 
@@ -240,7 +242,7 @@ inline void ExpEvaluator::reduce_binary_operator(shared_ptr<OpExp> exp) {
         type = Type::tfloat;
     } else if (expects_boolean && type_left == Type::tbool) {
         const auto &f = ExpEvaluator::bop_as_fun<bool>(exp->bop);
-        value.fvalue = f (val_left.bvalue, val_right.bvalue);
+        value.bvalue = f (val_left.bvalue, val_right.bvalue);
         type = Type::tbool;
     } else if (expects_boolean && type_left == Type::tint) {
         const auto &f = ExpEvaluator::bop_as_rel<int>(exp->bop);
@@ -248,10 +250,10 @@ inline void ExpEvaluator::reduce_binary_operator(shared_ptr<OpExp> exp) {
         type = Type::tbool;
     } else if (expects_boolean && type_left == Type::tfloat) {
         const auto &f = ExpEvaluator::bop_as_rel<float>(exp->bop);
-        value.bvalue = f (val_left.ivalue, val_right.ivalue);
+        value.bvalue = f (val_left.fvalue, val_right.fvalue);
         type = Type::tbool;
     } else {
-        throw_FigException("Unsupported evaluation of expression");
+        put_error("Unsupported evaluation of expression");
     }
 }
 

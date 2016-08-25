@@ -113,16 +113,6 @@ int main(int argc, char** argv)
     try {
         auto model = fig::ModelSuite::get_instance();
         model.set_timeout(simsTimeout);
-        //order to print importance function in a file when ready
-        model.on_importance_ready =
-                [model] (const fig::ImportanceFunction &ifun, int num) {
-            const string &filename =
-                    "importance-" + std::to_string(num) + ".log";
-            std::cout << "Writting file " << filename << std::endl;
-            std::ofstream of(filename);
-            model.print_importance_function(of, ifun);
-            of.close();
-        };
         model.process_batch(engineName,
                             impFunSpec,
                             thrTechnique,
@@ -236,7 +226,6 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
     
     //ModelPrinter printer;
     //model->accept(printer);
-    ModelBuilder builder;
     ModelTC typechecker;
     model->accept(typechecker);
     if (typechecker.has_errors()) {
@@ -244,6 +233,7 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
         exit(EXIT_FAILURE);
     }
     else {
+        ModelBuilder builder;
         log("- Type-checking succeeded.\n");
         model->accept(builder);
         if (builder.has_errors()) {
@@ -263,12 +253,6 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
     if (!model_instance.sealed()) {
         throw_FigException("failed to seal the model!");
     }
-    const string &filename = "modelo.log";
-    std::ofstream of(filename);
-    std::cout << "Writting file " << filename << std::endl;
-    model_instance.print_info(of);
-    of.close();
-
     tech_log("Model and properties files successfully compiled.\n");
 }
 

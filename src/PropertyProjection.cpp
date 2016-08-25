@@ -9,6 +9,7 @@
 #include <PropertyRate.h>
 #include <string_utils.h>
 #include <ExprDNFBuilder.h>
+#include <ExpStringBuilder.h>
 #include <ModelBuilder.h>
 
 // ADL
@@ -19,35 +20,6 @@ namespace {
 using Clause = parser::PropertyProjection::Clause;
 using Term = parser::PropertyProjection::Term;
 using DNF  = parser::PropertyProjection::DNF;
-
-Term make_conjunction_until(const vector<Term>& terms, int until) {
-    assert(terms.size() > 0);
-    assert(until < (int) terms.size());
-    Term result = nullptr;
-    if (until == 0) {
-        result = terms.at(0);
-    } else if (until > 0) {
-        Term last_exp = terms.at(until);
-        Term left = make_conjunction_until(terms, until - 1);
-        result =
-                make_shared<OpExp>(Arity::two, ExpOp::andd, left, last_exp);
-    }
-    return (result);
-}
-
-Term make_conjunction(const vector<Term>& terms) {
-    assert(terms.size() > 0);
-    return (make_conjunction_until(terms, terms.size() - 1));
-}
-
-Clause clause_from_terms(const vector<Term>& terms) {
-    assert(terms.size() > 0);
-    Term exp = make_conjunction(terms);
-    ExpStringBuilder str_b;
-    exp->accept(str_b);
-    assert(!str_b.has_errors());
-    return Precondition(str_b.str(), str_b.get_names());
-}
 
 bool has_identifiers_in(Term exp, const vector<string>& varnames) {
     ExpStringBuilder str_b;
@@ -63,6 +35,12 @@ bool has_identifiers_in(Term exp, const vector<string>& varnames) {
     bool result = std::find_if(names.begin(), names.end(), in_varnames)
             != names.end();
     return (result);
+}
+
+inline Clause clause_from_terms(const vector<Term> &terms) {
+    std::pair<string, vector<string>> str_names
+            = ExpStringBuilder::make_conjunction_str(terms);
+    return Precondition(str_names.first, str_names.second);
 }
 
 vector<Clause> project_on_var_set(const DNF& dnf,
@@ -87,7 +65,6 @@ vector<Clause> project_on_var_set(const DNF& dnf,
 namespace parser {
 
 void PropertyProjection::populate(const fig::Property& property) {
-    assert(false);
     int p_id = property.get_id();
     if (populated_ids.find(p_id) != populated_ids.end()) {
         return;
@@ -99,10 +76,10 @@ void PropertyProjection::populate(const fig::Property& property) {
     {
         ExprDNFBuilder left_b;
         prop->left->accept(left_b);
-        rares_ = left_b.get_clauses();
+        others_ = left_b.get_clauses();
         ExprDNFBuilder right_b;
         prop->right->accept(right_b);
-        others_ = right_b.get_clauses();
+        rares_ = right_b.get_clauses();
         break;
     }
     case PropType::rate:
@@ -121,13 +98,11 @@ void PropertyProjection::populate(const fig::Property& property) {
 
 PropertyProjection::PropertyProjection() {}
 PropertyProjection::PropertyProjection(const fig::Property &prop) {
-    assert(false);
     populate(prop);
 }
 
 std::pair <vector<Clause>, vector<Clause>>
 PropertyProjection::project(const State& localState) const {
-    assert(false);
     vector<std::string> varnames = localState.varnames();
     for (auto& varname: varnames) {
         trim(varname); //@todo: why is trimming necessary here?

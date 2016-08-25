@@ -1,19 +1,21 @@
 /* Leonardo Rodríguez */
 #include "ExprDNFBuilder.h"
-#include "ExpEvaluator.h"
+#include "ExpReductor.h"
+#include "FigException.h"
 
 namespace {
-shared_ptr<Exp> eval_or_skip(shared_ptr<Exp> exp) {
-    ExpEvaluator eval;
-    exp->accept(eval);
-    shared_ptr<Exp> result = eval.has_errors() ? exp : eval.value_to_ast();
+shared_ptr<Exp> reduce_exp(shared_ptr<Exp> exp) {
+    shared_ptr<Exp> result = nullptr;
+    ExpReductor red;
+    exp->accept(red);
+    result = red.get_reduced_exp();
     return (result);
 }
 }
 
 void ExprClauseBuilder::visit(shared_ptr<IConst> iconst) {
     (void) iconst;
-    //do nothing!
+    throw_FigException("Not a boolean expression");
 }
 
 void ExprClauseBuilder::visit(shared_ptr<BConst> bconst) {
@@ -22,12 +24,14 @@ void ExprClauseBuilder::visit(shared_ptr<BConst> bconst) {
 
 void ExprClauseBuilder::visit(shared_ptr<FConst> fconst) {
     (void) fconst;
-    //do nothing!
+   throw_FigException("Not a boolean expression");
 }
 
 void ExprClauseBuilder::visit(shared_ptr<LocExp> exp) {
     if (exp->type == Type::tbool) {
-        clause.push_back(::eval_or_skip(exp));
+        clause.push_back(::reduce_exp(exp));
+    } else {
+        throw_FigException("Not a boolean expression");
     }
 }
 
@@ -36,10 +40,8 @@ void ExprClauseBuilder::visit(shared_ptr<OpExp> exp) {
     case ExpOp::andd:
     {
         //look for the clauses in both sides
-        ExprClauseBuilder left_b;
-        exp->left->accept(left_b);
-        ExprClauseBuilder right_b;
-        exp->right->accept(right_b);
+        exp->left->accept(*this);
+        exp->right->accept(*this);
         break;
     }
     case ExpOp::orr:
@@ -49,15 +51,15 @@ void ExprClauseBuilder::visit(shared_ptr<OpExp> exp) {
     }
     default:
     {
-        //the expression itself (or evaluated if possible) considered a clause
-        clause.push_back(::eval_or_skip(exp));
+        //the expression itself (reduced if possible) considered a clause
+        clause.push_back(::reduce_exp(exp));
     }
     }
 }
 
 void ExprDNFBuilder::visit(shared_ptr<IConst> iconst) {
     (void) iconst;
-    //do nothing!
+    throw_FigException("Not a boolean expression");
 }
 
 void ExprDNFBuilder::visit(shared_ptr<BConst> bconst) {
@@ -67,12 +69,14 @@ void ExprDNFBuilder::visit(shared_ptr<BConst> bconst) {
 
 void ExprDNFBuilder::visit(shared_ptr<FConst> node) {
     (void) node;
-    //do nothing!
+    throw_FigException("Not a boolean expression");
 }
 
 void ExprDNFBuilder::visit(shared_ptr<LocExp> exp) {
     if (exp->type == Type::tbool) {
-        clause_vector.push_back(vector<shared_ptr<Exp>> {::eval_or_skip(exp)});
+        clause_vector.push_back(vector<shared_ptr<Exp>>{::reduce_exp(exp)});
+    } else {
+        throw_FigException("Not a boolean expression");
     }
 }
 
@@ -105,7 +109,7 @@ void ExprDNFBuilder::visit(shared_ptr<OpExp> exp) {
     default:
     {
         //the expression itself considered a clause
-        clause_vector.push_back(vector<shared_ptr<Exp>> {::eval_or_skip(exp)});
+        clause_vector.push_back(vector<shared_ptr<Exp>>{::reduce_exp(exp)});
     }
     }
 }

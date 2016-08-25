@@ -27,12 +27,12 @@ void DNFChecker::visit(shared_ptr<OpExp> exp) {
     case ExpOp::orr:
     {
         assert (exp->arity == Arity::two);
-        //is in dnf is both expressions are OR...
+        //is in dnf is both expressions are, OR...
         exp->left->accept(*this);
         bool left_dnf = _dnf;
         exp->right->accept(*this);
         bool right_dnf = _dnf;
-        //each term is a clause
+        //... each term is a clause
         if (!left_dnf) {
             //check if it is a clause
             ClauseChecker left_c;

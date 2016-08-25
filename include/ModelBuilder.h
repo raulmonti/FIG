@@ -81,20 +81,5 @@ public:
     void visit(shared_ptr<Prop> node);
 };
 
-class ExpStringBuilder : public Visitor {
-    vector<string> names;
-    std::string result;
-    bool should_enclose;
-public:
-    ExpStringBuilder() : result {""}, should_enclose {false} {}
-    void visit(shared_ptr<IConst> node);
-    void visit(shared_ptr<BConst> node);
-    void visit(shared_ptr<FConst> node);
-    void visit(shared_ptr<LocExp> node);
-    void visit(shared_ptr<OpExp> node);
-    const vector<string>& get_names();
-    string str();
-};
-
 
 #endif
