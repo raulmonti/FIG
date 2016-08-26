@@ -7,26 +7,39 @@
 #include "Util.h"
 #include <utility>
 
-
-/** Typechecking on the Model AST */
-
 using std::string;
 
+/**
+ * @brief A symbol table for a module. Contains the
+ * module clocks, the local declarations, and more. Built
+ * during type-checking.
+ */
 struct ModuleScope {
-    //map of shared pointers
+    /// Static map that store the symbol table for each module
+    /// indexed by the module's name
     static shared_map<string, ModuleScope> scopes;
+
+    /// Global constants (name->declaration)
     static shared_map<string, Decl> globals;
-    //module id
+
+    /// The name of this module
     string id;
-    //module's body
+
+    /// The module itself
     shared_ptr<ModuleBody> body;
-    //labels to type
+
+    /// Mapping each label with its type
     map<string, LabelType> labels;
-    //distribution of a clock : clock->dist
+
+    /// Mapping each clock with its distribution
+    // @todo redesign this when implementing clock arrays
     shared_map<string, Dist> clock_dists;
-    //local declarations : id -> decl (type, range, init, ...)
+
+    /// Mapping each identifier with its declaration
     shared_map<string, Decl> local_decls;
 
+    /// Find an identifier in every module. Mainly used to build
+    /// properties, since they can contain variables of any module.
     static shared_ptr<Decl> find_in_all_modules(const string &id) {
         shared_ptr<Decl> result = nullptr;
         for (auto entry : ModuleScope::scopes) {
@@ -41,13 +54,32 @@ struct ModuleScope {
     }
 };
 
+/**
+ * @brief A visitor to typecheck the AST. It will traverse the
+ * AST finding type-errors, identifiers out of scope, duplicate
+ * identifiers, etc.
+ */
 class ModelTC : public Visitor {
 private:
+    /// Shortcut for the static ModuleScope member.
     shared_map<string, ModuleScope> &scopes  = ModuleScope::scopes;
+
+    /// Shortcut for the map of global variables.
     shared_map<string, Decl> &globals = ModuleScope::globals;
+
+    /// The current module scope.
+    // when traversing the AST it is necessary to keep track
+    // of the current module scope to find idenfiers declarations
     shared_ptr<ModuleScope> current_scope;
+
+    /// The type of the last node visited.
     Type last_type;
+
+    /// Is this visitor checking a property?
+    /// This allows identifiers of expressions to occur on any module
+    /// and not just in the current one.
     bool checking_property = false;
+
     //accepts if no errors
     void accept_cond(shared_ptr<ModelAST> module);
     //prefix for log message
