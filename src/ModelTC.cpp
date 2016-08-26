@@ -251,7 +251,7 @@ bool type_leq(Type t1, Type t2) {
     bool res = (t1 == Type::tint && t2 == Type::tfloat);
     res = res || (t1 == t2);
     return (res);
-};
+}
 
 inline void ModelTC::check_type(Type type, const string &msg) {
     if (!has_errors() && !type_leq(last_type, type)) {

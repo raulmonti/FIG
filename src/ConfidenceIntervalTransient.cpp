@@ -109,7 +109,7 @@ ConfidenceIntervalTransient::min_samples_covered(bool considerEpsilon) const noe
 {
 	// Rule of thumb for the lower bound of the magnitude "n*p",
 	// derived from experiments with tandem queue and queue with breakdowns.
-	static constexpr double TH_LBOUND(log(0.25));
+	static const double TH_LBOUND(log(0.25));
 	// Notice this value for TH_LBOUND equals 5% of the generic "n*p > 5"
 	// rule of thumb for binomial proportions CIs using normal approximation
 	const bool

@@ -8,10 +8,8 @@
 #include <ModelPrinter.h>
 
 
-ModelBuilder::ModelBuilder() {}
-ModelBuilder::~ModelBuilder() {}
-
-std::map<int, shared_ptr<Prop>> ModelBuilder::property_ast;
+namespace  // // // // // // // // // // // // // // // // // // // // // //
+{
 
 inline const string mb_error_irr(const Type& type) {
     return (" not reducible to " + ModelPrinter::to_str(type) +
@@ -42,6 +40,14 @@ inline const string mb_error_init(const string &var_id, const Type& type) {
     return ("Initialization of " + var_id +
             mb_error_irr(type));
 }
+
+} // namespace  // // // // // // // // // // // // // // // // // // // // //
+
+
+ModelBuilder::ModelBuilder() {}
+ModelBuilder::~ModelBuilder() {}
+
+std::map<int, shared_ptr<Prop>> ModelBuilder::property_ast;
 
 inline void ModelBuilder::accept_cond(shared_ptr<ModelAST> node) {
     if (!has_errors()) {
@@ -413,7 +419,7 @@ void ModelBuilder::visit(shared_ptr<Effect> effect) {
         ExpStringBuilder str_builder;
         effect->arg->accept(str_builder);
         const vector<string> &names = str_builder.get_names();
-        vector<string>::iterator end = transition_read_vars->end();
+//      vector<string>::iterator end = transition_read_vars->end();  // unused!
         transition_read_vars->insert(transition_read_vars->cend(),
                                      names.cbegin(), names.cend());
         transition_write_vars->push_back(effect->loc->id);
