@@ -45,6 +45,7 @@
 #include <string_utils.h>
 #include <ModelBuilder.h>
 #include <ModelPrinter.h>
+#include <ModelVerifier.h>
 #include <ImportanceFunction.h>
 
 //  Helper functions headers  //////////////////////////////////////////////////
@@ -232,19 +233,22 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
         log(typechecker.get_errors());
         exit(EXIT_FAILURE);
     }
-    else {
-        ModelBuilder builder;
-        log("- Type-checking succeeded.\n");
-        model->accept(builder);
-        if (builder.has_errors()) {
-            log(builder.get_errors());
-            exit(EXIT_FAILURE);
-        }
-        log("- Model building succeeded\n");
+    log("- Type-checking succeeded.\n");
+
+    ModelVerifier verifier;
+    model->accept(verifier);
+    if (verifier.has_errors()) {
+        log(verifier.get_errors());
+        exit(EXIT_FAILURE);
     }
 
-    // missing iosa compliance!
-    //    remember to do it only in small enough cases */
+    ModelBuilder builder;
+    model->accept(builder);
+    if (builder.has_errors()) {
+        log(builder.get_errors());
+        exit(EXIT_FAILURE);
+    }
+    log("- Model building succeeded\n");
 
     //seal it
     log("- Sealing model\n");

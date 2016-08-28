@@ -1,4 +1,13 @@
+#ifndef EXP_STRING_BUILDER_H
+#define EXP_STRING_BUILDER_H
+
 #include "ModelAST.h"
+
+/**
+ * @brief Traverse the AST of an expression building a string
+ *        representation and a vector of variables occurring on it.
+ */
+
 class ExpStringBuilder : public Visitor {
     vector<std::string> names;
     std::string result;
@@ -21,3 +30,6 @@ public:
     static std::pair<std::string, std::vector<std::string>>
     make_conjunction_str(const vector<shared_ptr<Exp>>& expvec);
 };
+
+
+#endif

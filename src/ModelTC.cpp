@@ -232,18 +232,21 @@ inline const string TC_WRONG_SND_ARG(
 }
 
 inline const string TC_WRONG_PROPERTY_LEFT(PropType type, Type last_type) {
-    return "Property " + ModelPrinter::to_str(type) + " expressions should be boolean - " +
+    return "Property " + ModelPrinter::to_str(type)
+            + " expressions should be boolean - " +
             UNEXPECTED_TYPE(Type::tbool, last_type);
 }
 
 
 inline const string TC_WRONG_PROPERTY_RIGHT(PropType type, Type last_type) {
-    return "Property " + ModelPrinter::to_str(type) + " expressions should be boolean - " +
+    return "Property " + ModelPrinter::to_str(type)
+            + " expressions should be boolean - " +
             UNEXPECTED_TYPE(Type::tbool, last_type);
 }
 
 inline const string TC_NOT_DNF_PROPERTY(PropType type) {
-    return "Property " + ModelPrinter::to_str(type) + " should be in Disjunctive Normal Form";
+    return "Property " + ModelPrinter::to_str(type)
+            + " should be in Disjunctive Normal Form";
 }
 }
 
@@ -449,6 +452,7 @@ void ModelTC::visit(shared_ptr<Action> action) {
     assert(current_scope != nullptr);
     string &label = action->id;
     LabelType &label_type = action->type;
+    current_scope->label_actions.insert(std::make_pair(label, action));
     auto &labels = current_scope->labels;
     if (label_type != LabelType::empty) {
         //check if label is already used with another type

@@ -6,8 +6,10 @@
 #include "ModelAST.h"
 #include "Util.h"
 #include <utility>
+#include <unordered_map>
 
 using std::string;
+using std::unordered_multimap;
 
 /**
  * @brief A symbol table for a module. Contains the
@@ -30,6 +32,9 @@ struct ModuleScope {
 
     /// Mapping each label with its type
     map<string, LabelType> labels;
+
+    /// Mapping labels with its transition*s*
+    unordered_multimap<string, shared_ptr<Action>> label_actions;
 
     /// Mapping each clock with its distribution
     // @todo redesign this when implementing clock arrays
