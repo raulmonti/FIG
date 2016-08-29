@@ -47,6 +47,7 @@
 #include <ModelPrinter.h>
 #include <ImportanceFunction.h>
 
+
 //  Helper functions headers  //////////////////////////////////////////////////
 
 static bool print_intro(const int& argc, const char** argv);
@@ -57,6 +58,7 @@ static void build_model(const std::string& modelFilePath,
 
 //  Configuration of the estimation run  ///////////////////////////////////////
 
+using fig_cli::janiSpec;
 using fig_cli::modelFile;
 using fig_cli::propertiesFile;
 using fig_cli::engineName;
@@ -91,6 +93,23 @@ int main(int argc, char** argv)
         tech_log(std::string("Error message: ") + e.what() + "\n");
         exit(EXIT_FAILURE);
     }
+
+	// Check for JANI interaction directives
+	try {
+
+		/// @todo TODO define JANI format parsing / operations
+
+		if (janiSpec.janiInteraction && janiSpec.translateOnly)
+			goto exit_point;  // we're done
+	} catch (fig::FigException& e) {
+		log(FIG_ERROR + " communicate with the JANI Specification format.\n\n");
+		tech_log("Error message: " + e.msg() + "\n");
+		exit(EXIT_FAILURE);
+	} catch (std::exception& e) {
+		log("UNEXPECTED " + FIG_ERROR + " communicate with the JANI Specification format.\n\n");
+		tech_log(std::string("Error message: ") + e.what() + "\n");
+		exit(EXIT_FAILURE);
+	}
 
     // Compile model and properties files
     try {
@@ -129,8 +148,10 @@ int main(int argc, char** argv)
         exit(EXIT_FAILURE);
     }
 
-    return EXIT_SUCCESS;
+	exit_point:
+		return EXIT_SUCCESS;
 }
+
 
 //  Helper functions implementations  //////////////////////////////////////////
 

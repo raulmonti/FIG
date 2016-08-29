@@ -65,6 +65,8 @@ namespace fig_cli
 bool
 parse_arguments(const int& argc, const char** argv, bool fatalError = true);
 
+/// Work with <a href="http://jani-spec.org/">JANI-specified</a> files
+extern fig::JaniTranny janiSpec;
 
 /// Abosulte path to the user's SA model file
 extern std::string modelFile;

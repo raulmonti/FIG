@@ -56,7 +56,7 @@ using std::to_string;
 using std::string;
 
 
-namespace fig_cli
+namespace fig_cli  // // // // // // // // // // // // // // // // // // // //
 {
 
 // Objects offered to configure the estimation runs  //////////////////////////
@@ -64,13 +64,14 @@ namespace fig_cli
 string modelFile;
 string propertiesFile;
 string engineName;
+fig::JaniTranny janiSpec("", "");
 fig::ImpFunSpec impFunSpec("noName", "noStrategy");
 string thrTechnique;
 std::set< unsigned > splittings;
 std::list< fig::StoppingConditions > estBounds;
 std::chrono::seconds simsTimeout;
 
-} // namespace fig_cli
+} // namespace fig_cli   // // // // // // // // // // // // // // // // // //
 
 
 
@@ -274,6 +275,17 @@ ValueArg<string> splittings_(
 
 
 // Helper routines  ///////////////////////////////////////////////////////////
+
+/// Check for any JANI specification parsed from the command line into the TCLAP
+/// holders. Use it to fill in the global information offered to FIG for
+/// JANI interaction (viz: 'janiSpec')
+/// @return Whether the information could be successfully retrieved
+bool
+get_jani_spec()
+{
+	/// @todo TODO fillme!
+}
+
 
 /// User-defined information for the importance function
 typedef std::tuple<string,             // adhoc/composition function expression
@@ -540,34 +552,34 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		propertiesFile = propertiesFile_.getValue();
 		engineName     = engineName_.getValue();
 		thrTechnique   = thrTechnique_.getValue();
+		if (!get_jani_spec()) {
+			std::cerr << "ERROR: failed parsing the JANI-spec commands.\n\n";
+			std::cerr << "For complete USAGE and HELP type:\n";
+			std::cerr << "   " << argv[0] << " --help\n\n";
+			goto exit_with_failure;
+		} else if (janiSpec.translateOnly) {
+			// avoid further parsing
+			goto exit_with_success;
+		}
 		if (!get_ifun_specification()) {
 			std::cerr << "ERROR: must specify an importance function.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
-			if (fatalError)
-				exit(EXIT_FAILURE);
-			else
-				return false;
+			goto exit_with_failure;
 		}
 		if (!get_stopping_conditions()) {
 			std::cerr << "ERROR: must specify at least one stopping condition ";
 			std::cerr << "(aka estimation bound).\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
-			if (fatalError)
-				exit(EXIT_FAILURE);
-			else
-				return false;
+			goto exit_with_failure;
 		}
 		if (!get_timeout()) {
 			std::cerr << "ERROR: something failed while parsing the ";
 			std::cerr << "timeout specification.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
-			if (fatalError)
-				exit(EXIT_FAILURE);
-			else
-				return false;
+			goto exit_with_failure;
 		}
 		if (!get_splitting_values()) {
 			std::cerr << "ERROR: splitting values must be specified as a "
@@ -575,10 +587,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 						 "There should be no spaces in this list.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
-			if (fatalError)
-				exit(EXIT_FAILURE);
-			else
-				return false;
+			goto exit_with_failure;
 		}
 
 	} catch (ArgException& e) {
@@ -586,7 +595,14 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 						   "unexpectedly: ").append(e.what()));
 	}
 
-	return true;
+	exit_with_success:
+		return true;
+
+	exit_with_failure:
+		if (fatalError)
+			exit(EXIT_FAILURE);
+		else
+			return false;
 }
 
 } // namespace fig_cli  // // // // // // // // // // // // // // // // // // //

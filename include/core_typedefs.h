@@ -306,6 +306,50 @@ typedef  std::unordered_map< std::string, size_t >  PositionsMap;
 ///       of up to 1024 bits, but the standalone headers weight 13 MB!
 typedef uint128::uint128_t uint128_t;
 
+/// When FIG has to interact with the <a href="http://jani-spec.org/">JANI
+/// Specification format</a>, this struct defines the tasks to carry out.
+/// e.g. parse a model file described in the JANI-model format,
+///      or translate a IOSA-syntax model into a JANI-model format
+struct JaniTranny
+{
+	/// Whether there's some JANI interaction at all
+	bool janiInteraction;
+	/// Only translate from/to the JANI-spec to/from our IOSA syntax,
+	/// viz. don't perform any estimation
+	bool translateOnly;
+	/// In which direction is the translation
+	enum {
+		UNDEFINED = 0,
+		FROM_JANI = 1,
+		TO_JANI   = 2
+	} translateDirection;
+	/// Model file name in IOSA syntax
+	std::string modelFileIOSA;
+	/// Model file name in JANI spec
+	std::string modelFileJANI;
+	/// Properties file name in IOSA syntax
+	std::string propsFileIOSA;
+	/// Properties file name in JANI spec
+	std::string propsFileJANI;
+	/// Data ctor may be empty ("no JANI interaction")
+	JaniTranny(const std::string& IOSAModelFile = "",
+			   const std::string& JANIModelFile = "",
+			   const bool onlyTranslate = false,
+			   const int& translation = UNDEFINED,
+			   const std::string& IOSAPropsFile = "",
+			   const std::string& JANIPropsFile = "") :
+		janiInteraction(IOSAModelFile.empty() && JANIModelFile.empty() ? true
+																	   : false),
+		translateOnly(onlyTranslate),
+		translateDirection(translation != UNDEFINED
+							  ? translation
+							  : (IOSAModelFile.empty() ? FROM_JANI : TO_JANI)),
+		modelFileIOSA(IOSAModelFile),
+		modelFileJANI(JANIModelFile),
+		propsFileIOSA(IOSAPropsFile),
+		propsFileJANI(JANIPropsFile) { /* semantic checks during translation */ }
+};
+
 //
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //
