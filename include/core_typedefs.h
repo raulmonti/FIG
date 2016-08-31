@@ -312,10 +312,9 @@ typedef uint128::uint128_t uint128_t;
 ///      or translate a IOSA-syntax model into a JANI-model format
 struct JaniTranny
 {
-	/// Whether there's some JANI interaction at all
+	/// Whether there's some interaction with JANI at all
 	bool janiInteraction;
-	/// Only translate from/to the JANI-spec to/from our IOSA syntax,
-	/// viz. don't perform any estimation
+	/// Only translate from/to JANI-spec to/from IOSA syntax, viz. don't estimate
 	bool translateOnly;
 	/// In which direction is the translation
 	enum {
@@ -323,31 +322,19 @@ struct JaniTranny
 		FROM_JANI = 1,
 		TO_JANI   = 2
 	} translateDirection;
-	/// Model file name in IOSA syntax
+	/// IOSA model file name
 	std::string modelFileIOSA;
-	/// Model file name in JANI spec
-	std::string modelFileJANI;
-	/// Properties file name in IOSA syntax
+	/// IOSA properties file name, if any
 	std::string propsFileIOSA;
-	/// Properties file name in JANI spec
-	std::string propsFileJANI;
-	/// Data ctor may be empty ("no JANI interaction")
-	JaniTranny(const std::string& IOSAModelFile = "",
-			   const std::string& JANIModelFile = "",
-			   const bool onlyTranslate = false,
-			   const int& translation = UNDEFINED,
-			   const std::string& IOSAPropsFile = "",
-			   const std::string& JANIPropsFile = "") :
-		janiInteraction(IOSAModelFile.empty() && JANIModelFile.empty() ? true
-																	   : false),
-		translateOnly(onlyTranslate),
-		translateDirection(translation != UNDEFINED
-							  ? translation
-							  : (IOSAModelFile.empty() ? FROM_JANI : TO_JANI)),
-		modelFileIOSA(IOSAModelFile),
-		modelFileJANI(JANIModelFile),
-		propsFileIOSA(IOSAPropsFile),
-		propsFileJANI(JANIPropsFile) { /* semantic checks during translation */ }
+	/// JANI-spec model file name
+	std::string modelFileJANI;
+	/// Empty ctor
+	JaniTranny() : janiInteraction(false),
+				   translateOnly(false),
+				   translateDirection(UNDEFINED),
+				   modelFileIOSA(""),
+				   propsFileIOSA(""),
+				   modelFileJANI("") {}
 };
 
 //

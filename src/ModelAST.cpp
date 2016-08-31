@@ -2,42 +2,64 @@
 #include "ModelAST.h"
 #include "ModelParser.hpp"
 #include "ErrorMessage.h"
+#include <FigLog.h>
 #include <cstdlib>
 
 using std::shared_ptr;
 using std::static_pointer_cast;
+using fig::figTechLog;
 
 void ModelAST::accept(Visitor &visit) {
     visit.visit(shared_from_this());
 }
 
 shared_ptr<ModelAST> ModelAST::from_files(const char *model_file,
-                                          const char *prop_file) {
-    shared_ptr<ModelAST> result = nullptr;
-    ModelParserGen::ModelParser parser {&result};
-    FILE *file = fopen(model_file, "r");
-    if (file == nullptr) {
-        std::cerr << "Model file does not exists!" << std::endl;
-        exit(1);
-    }
-    scan_begin(file);
-    int res = parser.parse();
-    scan_end();
-    if (result != nullptr && prop_file != nullptr) {
-        file = fopen(prop_file, "r");
-        if (file == nullptr) {
-            std::cerr << "Properties file does not exists!" << std::endl;
-            exit(1);
-        }
-        scan_begin(file);
-        res = parser.parse();
-        scan_end();
-    }
-    return (res == 0 ? result : nullptr);
+										  const char *prop_file)
+{
+	shared_ptr<ModelAST> result = nullptr;
+	ModelParserGen::ModelParser parser {&result};
+	FILE* file(nullptr);
+	int res(1);
+
+	// Process model file
+	file = fopen(model_file, "r");
+	if (nullptr == file) {
+		figTechLog << "Model file \"" << model_file << "\" does not exists!\n";
+		res = 1;
+		goto exit_point;
+	}
+	scan_begin(file);
+	res = parser.parse();
+	scan_end();
+	if (0 != res || nullptr == result) {
+		figTechLog << "Errors found while parsing \"" << model_file << "\"\n";
+		goto exit_point;
+	}
+
+	// Process properties file, if any
+	if (nullptr != prop_file) {
+		file = fopen(prop_file, "r");
+		if (nullptr == file) {
+			figTechLog << "Properties file \"" << model_file
+							<< "\" does not exists!\n";
+			res = 1;
+			goto exit_point;
+		}
+		scan_begin(file);
+		res = parser.parse();
+		scan_end();
+		if (0 != res) {
+			figTechLog << "Errors found while parsing \"" << prop_file << "\"\n";
+			goto exit_point;
+		}
+	}
+
+	exit_point:
+		return (res == 0 ? result : nullptr);
 }
 
 void ModelAST::on_scanner_error(const string &msg) {
-    std::cerr << "Syntax error: " << msg << std::endl;
+	figTechLog << "Syntax error: " << msg << std::endl;
 }
 
 void Model::accept(Visitor& visit) {

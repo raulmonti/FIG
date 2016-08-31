@@ -33,7 +33,10 @@
 // C++
 #include <set>
 #include <list>
+#include <regex>
 #include <string>
+#include <fstream>
+#include <algorithm>  // std::all_of()
 // External code
 #include <CmdLine.h>
 #include <ValueArg.h>
@@ -59,12 +62,12 @@ using std::string;
 namespace fig_cli  // // // // // // // // // // // // // // // // // // // //
 {
 
-// Objects offered to configure the estimation runs  //////////////////////////
+// Objects offered to configure the operation of FIG  /////////////////////////
 
 string modelFile;
 string propertiesFile;
 string engineName;
-fig::JaniTranny janiSpec("", "");
+fig::JaniTranny janiSpec;
 fig::ImpFunSpec impFunSpec("noName", "noStrategy");
 string thrTechnique;
 std::set< unsigned > splittings;
@@ -136,18 +139,18 @@ CmdLine cmd_("\nSample usage:\n"
 			 "each case.",
 			 ' ', versionStr);
 
-// Model file path
+// IOSA model file path
 UnlabeledValueArg<string> modelFile_(
 	"modelFile",
-	"Path to the SA model file to study",
-	true, "",
+	"Path to the file with the IOSA model to study",
+	false, "",
 	"modelFile");
 
 // Properties file path
 UnlabeledValueArg<string> propertiesFile_(
 	"propertiesFile",
 	"Path to the file with the properties to estimate",
-	true, "",
+	false, "",
 	"propertiesFile");
 
 // Simulation engine
@@ -170,13 +173,23 @@ ValueArg<string> thrTechnique_(
 	false, thrTechDefault,
 	&thrTechConstraints);
 
+// JANI Specification format translation
+ValueArg<string> JANIimport_(
+	"", "from-jani",
+	"Don't estimate; create IOSA model file from JANI-spec model file.",
+	false, "", nullptr);
+ValueArg<string> JANIexport_(
+	"", "to-jani",
+	"Don't estimate; create JANI-spec model file from IOSA model file.",
+	false, "", nullptr);
+
 // Importance function specifications
 SwitchArg ifunFlat(
 	"", "flat",
 	"Use a flat importance function, i.e. consider all states in the model "
 	"equally important. Information is kept symbolically as an algebraic "
 	"expression, thus using very little memory. Notice the flat function is "
-	"incompatible with RESTART-like simulation engines.");
+	"only compatible with the no-split simulation engine.");
 ValueArg<string> ifunAdhoc(
 	"", "adhoc",
 	"Use an ad hoc importance function, i.e. assign importance to the "
@@ -276,14 +289,63 @@ ValueArg<string> splittings_(
 
 // Helper routines  ///////////////////////////////////////////////////////////
 
-/// Check for any JANI specification parsed from the command line into the TCLAP
-/// holders. Use it to fill in the global information offered to FIG for
-/// JANI interaction (viz: 'janiSpec')
+/// Check for any JANI specification parsed from the command line into the
+/// TCLAP holders. Use it to fill in the global information offered to FIG
+/// for JANI interaction (viz: 'janiSpec')
 /// @return Whether the information could be successfully retrieved
 bool
 get_jani_spec()
 {
-	/// @todo TODO fillme!
+	auto fromJANI(JANIimport_.getValue()),
+		 toJANI(JANIexport_.getValue());
+	janiSpec.translateOnly = !fromJANI.empty() || !toJANI.empty();
+	if (janiSpec.translateOnly) {
+		janiSpec.janiInteraction = true;
+		janiSpec.translateDirection = toJANI.empty() ? fig::JaniTranny::FROM_JANI
+													 : fig::JaniTranny::TO_JANI;
+	} else {
+		// Superficial check for JANI-like content in the input model file
+		std::ifstream modelFile(modelFile_.getValue());
+		if (!modelFile.good()) {
+			// something fishy's going on but none of our business
+			janiSpec.janiInteraction = false;
+			return true;
+		}
+		const size_t NLINES(100ul);
+		size_t linesRead(0ul);
+		string line;
+		std::vector<bool> matches(3, false);
+		const std::regex janiVersion("\r*.*jani-version.*\n*\r*");
+		const std::regex modelName("\r*.*name.*\n*\r*");
+		const std::regex modelType("\r*.*type.*\n*\r*");
+		while (std::getline(modelFile, line) && linesRead++ < NLINES) {
+			if (std::regex_match(line, janiVersion))
+				matches[0] = true;
+			if (std::regex_match(line, modelName))
+				matches[1] = true;
+			if (std::regex_match(line, modelType))
+				matches[2] = true;
+			if (std::all_of(begin(matches), end(matches), [](bool b){return b;}))
+				break;  // all matches were found
+		}
+		// Does it look JANI enough?
+		janiSpec.janiInteraction = std::all_of(begin(matches), end(matches),
+											   [](const bool& b){return b;});
+		if (!janiSpec.janiInteraction && matches[0]) {
+			std::cerr << "JANI ERROR: failed parsing JANI input model file\n";
+			return false;
+		}
+	}
+	if (janiSpec.janiInteraction) {
+		auto janiFile = modelFile_.getValue();
+		auto janiExt("(.*)\.jani$");
+		janiSpec.modelFileJANI = janiFile;
+		if (std::regex_match(janiFile, janiExt))
+			// TODO replace ".jani" with ".sa" using regex
+		else
+			// TODO decide what to do here
+	}
+	return true;
 }
 
 
@@ -538,6 +600,8 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(propertiesFile_);
 		cmd_.add(engineName_);
 		cmd_.add(thrTechnique_);
+		cmd_.add(JANIimport_);
+		cmd_.add(JANIexport_);
 		cmd_.orAdd(stopCondSpecs);
 		cmd_.xorAdd(impFunSpecs);
 		cmd_.add(impPostProc);
@@ -557,7 +621,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
-		} else if (janiSpec.translateOnly) {
+		} else if (janiSpec.janiInteraction && janiSpec.translateOnly) {
 			// avoid further parsing
 			goto exit_with_success;
 		}
@@ -566,6 +630,8 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
+		} else if ("flat" == impFunSpec.name) {
+			engineName = "nosplit";  // only compatible engine
 		}
 		if (!get_stopping_conditions()) {
 			std::cerr << "ERROR: must specify at least one stopping condition ";

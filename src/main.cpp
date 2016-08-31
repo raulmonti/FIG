@@ -52,8 +52,8 @@
 
 static bool print_intro(const int& argc, const char** argv);
 static bool file_exists(const std::string& filepath);
-static void build_model(const std::string& modelFilePath,
-                        const std::string& propsFilePath);
+static void translate_JANI();
+static void build_model();
 
 
 //  Configuration of the estimation run  ///////////////////////////////////////
@@ -73,34 +73,38 @@ using fig_cli::simsTimeout;
 
 int main(int argc, char** argv)
 {
-    auto log(fig::ModelSuite::log);
-    auto tech_log(fig::ModelSuite::tech_log);
-    auto const_argv(const_cast<const char**>(argv));
-    const std::string FIG_ERROR("ERROR: FIG failed to");
+	auto log(fig::ModelSuite::log);
+	auto tech_log(fig::ModelSuite::tech_log);
+	auto const_argv(const_cast<const char**>(argv));
+	const std::string FIG_ERROR("ERROR: FIG failed to");
 
-    // "Greetings, human!" and command line parsing
-    try {
-        const bool versionQuery = print_intro(argc, const_argv);
-        fig_cli::parse_arguments(argc, const_argv);  // exit on error
-        if (versionQuery)
-            exit(EXIT_SUCCESS);
-    } catch (fig::FigException& e) {
-        log(FIG_ERROR + " parse the command line.\n\n");
-        tech_log("Error message: " + e.msg() + "\n");
-        exit(EXIT_FAILURE);
-    } catch (std::exception& e) {
-        log("UNEXPECTED " + FIG_ERROR + " parse the command line.\n\n");
-        tech_log(std::string("Error message: ") + e.what() + "\n");
-        exit(EXIT_FAILURE);
-    }
+	// "Greetings, human!" and command line parsing
+	try {
+		const bool versionQuery = print_intro(argc, const_argv);
+		fig_cli::parse_arguments(argc, const_argv);  // exit on error
+		if (versionQuery)
+			goto exit_point;  // we're done
+	} catch (fig::FigException& e) {
+		log(FIG_ERROR + " parse the command line.\n\n");
+		tech_log("Error message: " + e.msg() + "\n");
+		exit(EXIT_FAILURE);
+	} catch (std::exception& e) {
+		log("UNEXPECTED " + FIG_ERROR + " parse the command line.\n\n");
+		tech_log(std::string("Error message: ") + e.what() + "\n");
+		exit(EXIT_FAILURE);
+	}
 
 	// Check for JANI interaction directives
 	try {
-
-		/// @todo TODO define JANI format parsing / operations
-
-		if (janiSpec.janiInteraction && janiSpec.translateOnly)
-			goto exit_point;  // we're done
+		if (janiSpec.janiInteraction) {
+			double start = omp_get_wtime();
+			translate_JANI();
+			std::stringstream ss; ss << "JANI translation time: " << std::fixed;
+			ss << std::setprecision(2) << omp_get_wtime()-start << " s\n\n";
+			tech_log(ss.str());
+			if (janiSpec.translateOnly)
+				goto exit_point;  // we're done
+		}
 	} catch (fig::FigException& e) {
 		log(FIG_ERROR + " communicate with the JANI Specification format.\n\n");
 		tech_log("Error message: " + e.msg() + "\n");
@@ -111,42 +115,42 @@ int main(int argc, char** argv)
 		exit(EXIT_FAILURE);
 	}
 
-    // Compile model and properties files
-    try {
-        double start = omp_get_wtime();
-        build_model(modelFile, propertiesFile);
-        std::stringstream ss; ss << "Model building time: " << std::fixed;
-        ss << std::setprecision(2) << omp_get_wtime()-start << " s\n\n";
-        tech_log(ss.str());
-    } catch (fig::FigException& e) {
-        log(FIG_ERROR + " compile the model/properties file.\n\n");
-        tech_log("Error message: " + e.msg() + "\n");
-        exit(EXIT_FAILURE);
-    } catch (std::exception& e) {
-        log("UNEXPECTED " + FIG_ERROR + " compile the model/properties file.\n\n");
-        tech_log(std::string("Error message: ") + e.what() + "\n");
-        exit(EXIT_FAILURE);
-    }
+	// Compile IOSA model and properties to check
+	try {
+		double start = omp_get_wtime();
+		build_model();
+		std::stringstream ss; ss << "Model building time: " << std::fixed;
+		ss << std::setprecision(2) << omp_get_wtime()-start << " s\n\n";
+		tech_log(ss.str());
+	} catch (fig::FigException& e) {
+		log(FIG_ERROR + " compile the model/properties file.\n\n");
+		tech_log("Error message: " + e.msg() + "\n");
+		exit(EXIT_FAILURE);
+	} catch (std::exception& e) {
+		log("UNEXPECTED " + FIG_ERROR + " compile the model/properties file.\n\n");
+		tech_log(std::string("Error message: ") + e.what() + "\n");
+		exit(EXIT_FAILURE);
+	}
 
-    // Estimate using requested configuration
-    try {
-        auto model = fig::ModelSuite::get_instance();
-        model.set_timeout(simsTimeout);
-        model.process_batch(engineName,
-                            impFunSpec,
-                            thrTechnique,
-                            estBounds,
-                            splittings);
-        model.release_resources();
-    } catch (fig::FigException& e) {
-        log(FIG_ERROR + " perform estimations.\n\n");
-        tech_log("Error message: " + e.msg() + "\n");
-        exit(EXIT_FAILURE);
-    } catch (std::exception& e) {
-        log("UNEXPECTED " + FIG_ERROR + " perform estimations.\n\n");
-        tech_log(std::string("Error message: ") + e.what() + "\n");
-        exit(EXIT_FAILURE);
-    }
+	// Estimate using requested configuration
+	try {
+		auto model = fig::ModelSuite::get_instance();
+		model.set_timeout(simsTimeout);
+		model.process_batch(engineName,
+							impFunSpec,
+							thrTechnique,
+							estBounds,
+							splittings);
+		model.release_resources();
+	} catch (fig::FigException& e) {
+		log(FIG_ERROR + " perform estimations.\n\n");
+		tech_log("Error message: " + e.msg() + "\n");
+		exit(EXIT_FAILURE);
+	} catch (std::exception& e) {
+		log("UNEXPECTED " + FIG_ERROR + " perform estimations.\n\n");
+		tech_log(std::string("Error message: ") + e.what() + "\n");
+		exit(EXIT_FAILURE);
+	}
 
 	exit_point:
 		return EXIT_SUCCESS;
@@ -157,123 +161,132 @@ int main(int argc, char** argv)
 
 bool print_intro(const int& argc, const char** argv)
 {
-    auto main_log = fig::ModelSuite::main_log;
-    auto tech_log = fig::ModelSuite::tech_log;
-    using std::to_string;
-    const std::time_t now = std::chrono::system_clock::to_time_t(
-                std::chrono::system_clock::now());
+	auto main_log = fig::ModelSuite::main_log;
+	auto tech_log = fig::ModelSuite::tech_log;
+	using std::to_string;
+	const std::time_t now = std::chrono::system_clock::to_time_t(
+				std::chrono::system_clock::now());
 
-    // First check if this is a version query and we should omit the greeting
-    if (argc == 2 && (trim(argv[1]) == "-v" || trim(argv[1]) == "--version"))
-        return true;
+	// First check if this is a version query and we should omit the greeting
+	if (argc == 2 && (trim(argv[1]) == "-v" || trim(argv[1]) == "--version"))
+		return true;
 
-    // Print the big fat greeting the user deserves
-    main_log("\n");
-    main_log(" ~~~~~~~~~ \n");
-    main_log("  · FIG ·  \n");
-    main_log(" ~~~~~~~~~ \n");
-    main_log("           \n");
-    main_log(" This is the Finite Improbability Generator.\n");
-    main_log(" Version: " + std::string(fig_VERSION_STR) + "\n");
-    main_log(" Build:   ");
-    if (is_substring_ci(fig_CURRENT_BUILD, "release"))
-        main_log("Release ");
-    else
-        main_log("Debug ");
+	// Print the big fat greeting the user deserves
+	main_log("\n");
+	main_log(" ~~~~~~~~~ \n");
+	main_log("  · FIG ·  \n");
+	main_log(" ~~~~~~~~~ \n");
+	main_log("		   \n");
+	main_log(" This is the Finite Improbability Generator.\n");
+	main_log(" Version: " + std::string(fig_VERSION_STR) + "\n");
+	main_log(" Build:   ");
+	if (is_substring_ci(fig_CURRENT_BUILD, "release"))
+		main_log("Release ");
+	else
+		main_log("Debug ");
 #ifndef PCG_RNG
-    main_log("(Mersenne-Twister RNG)\n");
+	main_log("(Mersenne-Twister RNG)\n");
 #else
-    main_log("(PCG family RNG)\n");
+	main_log("(PCG family RNG)\n");
 #endif
-    main_log(" Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n");
-    main_log("          Monti, Raúl E.   <raulmonti88@gmail.com>\n");
-    main_log("\n");
+	main_log(" Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n");
+	main_log("		  Monti, Raúl E.   <raulmonti88@gmail.com>\n");
+	main_log("\n");
 
-    // Print additional technical info if this is more than a query
-    if (argc > 1 && trim(argv[1]) != "-h" && trim(argv[1]) != "--help") {
-        tech_log(std::string("\nFIG tool invoked on ") + std::ctime(&now));
-        tech_log("Build: " fig_CURRENT_BUILD "\n");
-        tech_log("64-bit RNG: ");
+	// Print additional technical info if this is more than a query
+	if (argc > 1 && trim(argv[1]) != "-h" && trim(argv[1]) != "--help") {
+		tech_log(std::string("\nFIG tool invoked on ") + std::ctime(&now));
+		tech_log("Build: " fig_CURRENT_BUILD "\n");
+		tech_log("64-bit RNG: ");
 #ifndef PCG_RNG
-        tech_log("STL's Mersenne-Twister ");
+		tech_log("STL's Mersenne-Twister ");
 #else
-        tech_log("Builtin PCG ");
+		tech_log("Builtin PCG ");
 #endif
 #ifndef RANDOM_RNG_SEED
-        tech_log("(seed: " + std::to_string(fig::Clock::rng_seed()) + ")\n\n");
+		tech_log("(seed: " + std::to_string(fig::Clock::rng_seed()) + ")\n\n");
 #else
-        tech_log("(seeded from system's random device)\n\n");
+		tech_log("(seeded from system's random device)\n\n");
 #endif
-        tech_log("Invocation command:");
-        for (int i = 0 ; i < argc ; i++)
-            tech_log(std::string(" ") + argv[i]);
-        tech_log("\n\n");
-    }
+		tech_log("Invocation command:");
+		for (int i = 0 ; i < argc ; i++)
+			tech_log(std::string(" ") + argv[i]);
+		tech_log("\n\n");
+	}
 
-    return false;
+	return false;
 }
 
 
 bool file_exists(const std::string& filepath)
 {
-    struct stat buffer;
-    return (stat(filepath.c_str(), &buffer) == 0);
+	struct stat buffer;
+	return (stat(filepath.c_str(), &buffer) == 0);
 }
 
 
-void build_model(const std::string& modelFilePath, const std::string& propsFilePath)
+void translate_JANI()
 {
-    auto log = fig::ModelSuite::main_log;
-    auto tech_log = fig::ModelSuite::tech_log;
+	/// @todo TODO fillme!
+}
 
-    log("Model file: " + modelFilePath);
-    if (!file_exists(modelFilePath)) {
-        log(" *** Error: file not found! ***\n");
-        exit(EXIT_FAILURE);
-    }
-    log("\nProperties file: " + propsFilePath);
-    if (!file_exists(propsFilePath)) {
-        log(" *** Error: file not found! ***\n");
-        exit(EXIT_FAILURE);
-    }
-    log("\n\n");
 
-    shared_ptr<ModelAST> model
-            = ModelAST::from_files(modelFilePath.c_str(), propsFilePath.c_str());
-    if (model == nullptr) {
-        log(" *** Error parsing the model ***\n");
-        exit(EXIT_FAILURE);
-    }
-    
-    //ModelPrinter printer;
-    //model->accept(printer);
-    ModelTC typechecker;
-    model->accept(typechecker);
-    if (typechecker.has_errors()) {
-        log(typechecker.get_errors());
-        exit(EXIT_FAILURE);
-    }
-    else {
-        ModelBuilder builder;
-        log("- Type-checking succeeded.\n");
-        model->accept(builder);
-        if (builder.has_errors()) {
-            log(builder.get_errors());
-            exit(EXIT_FAILURE);
-        }
-        log("- Model building succeeded\n");
-    }
+void build_model()
+{
+	auto log = fig::ModelSuite::main_log;
+	auto tech_log = fig::ModelSuite::tech_log;
 
-    // missing iosa compliance!
-    //    remember to do it only in small enough cases */
+	// Check for required files
+	log("Model file: " + modelFile);
+	if (!file_exists(modelFile)) {
+		log(" *** Error: file not found! ***\n");
+		exit(EXIT_FAILURE);
+	}
+	if (!propertiesFile.empty()) {
+		log("\nProperties file: " + propertiesFile);
+		if (!file_exists(propertiesFile)) {
+			log(" *** Error: file not found! ***\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+	log("\n\n");
 
-    //seal it
-    log("- Sealing model\n");
-    auto &model_instance = ModelSuite::get_instance();
-    model_instance.seal();
-    if (!model_instance.sealed()) {
-        throw_FigException("failed to seal the model!");
-    }
-    tech_log("Model and properties files successfully compiled.\n");
+	// Build AST from files, viz. parse
+	auto ppFile = propertiesFile.empty() ? nullptr : propertiesFile.c_str();
+	shared_ptr<ModelAST> model = ModelAST::from_files(modelFile.c_str(), ppFile);
+	if (nullptr == model) {
+		log(" *** Error parsing the model ***\n");
+		exit(EXIT_FAILURE);
+	}
+//	ModelPrinter printer;
+//	model->accept(printer);
+
+	// Check types and build (parser) model
+	ModelTC typechecker;
+	model->accept(typechecker);
+	if (typechecker.has_errors()) {
+		log(typechecker.get_errors());
+		exit(EXIT_FAILURE);
+	}
+	log("- Type-checking succeeded.\n");
+	ModelBuilder builder;
+	model->accept(builder);
+	if (builder.has_errors()) {
+		log(builder.get_errors());
+		exit(EXIT_FAILURE);
+	}
+	log("- Model building succeeded\n");
+
+	// missing iosa compliance!
+	//	remember to do it only in small enough cases */
+
+	// Build internal ADT (simulation) model
+	log("- Sealing model\n");
+	auto &model_instance = ModelSuite::get_instance();
+	model_instance.seal();
+	if (!model_instance.sealed()) {
+		throw_FigException("failed to seal the model!");
+	}
+	tech_log("Model and properties files successfully compiled.\n");
 }
 
