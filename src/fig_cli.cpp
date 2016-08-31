@@ -142,8 +142,8 @@ CmdLine cmd_("\nSample usage:\n"
 // IOSA model file path
 UnlabeledValueArg<string> modelFile_(
 	"modelFile",
-	"Path to the file with the IOSA model to study",
-	false, "",
+	"Path to the file with the IOSA/JANI model to study",
+	true, "",
 	"modelFile");
 
 // Properties file path
@@ -173,15 +173,13 @@ ValueArg<string> thrTechnique_(
 	false, thrTechDefault,
 	&thrTechConstraints);
 
-// JANI Specification format translation
-ValueArg<string> JANIimport_(
+// Translation from/to JANI specification format
+SwitchArg JANIimport_(
 	"", "from-jani",
-	"Don't estimate; create IOSA model file from JANI-spec model file.",
-	false, "", nullptr);
-ValueArg<string> JANIexport_(
+	"Don't estimate; create IOSA model file from JANI-spec model file.");
+SwitchArg JANIexport_(
 	"", "to-jani",
-	"Don't estimate; create JANI-spec model file from IOSA model file.",
-	false, "", nullptr);
+	"Don't estimate; create JANI-spec model file from IOSA model file.");
 
 // Importance function specifications
 SwitchArg ifunFlat(
@@ -296,13 +294,18 @@ ValueArg<string> splittings_(
 bool
 get_jani_spec()
 {
-	auto fromJANI(JANIimport_.getValue()),
-		 toJANI(JANIexport_.getValue());
-	janiSpec.translateOnly = !fromJANI.empty() || !toJANI.empty();
+	using std::regex;
+	using std::regex_match;
+	using std::regex_replace;
+	using std::make_pair;
+
+	// Determine JANI interaction
+	bool fromJANI(JANIimport_.getValue()), toJANI(JANIexport_.getValue());
+	janiSpec.translateOnly = fromJANI || toJANI;
 	if (janiSpec.translateOnly) {
 		janiSpec.janiInteraction = true;
-		janiSpec.translateDirection = toJANI.empty() ? fig::JaniTranny::FROM_JANI
-													 : fig::JaniTranny::TO_JANI;
+		janiSpec.translateDirection = fromJANI ? fig::JaniTranny::FROM_JANI
+											   : fig::JaniTranny::TO_JANI;
 	} else {
 		// Superficial check for JANI-like content in the input model file
 		std::ifstream modelFile(modelFile_.getValue());
@@ -314,37 +317,52 @@ get_jani_spec()
 		const size_t NLINES(100ul);
 		size_t linesRead(0ul);
 		string line;
-		std::vector<bool> matches(3, false);
-		const std::regex janiVersion("\r*.*jani-version.*\n*\r*");
-		const std::regex modelName("\r*.*name.*\n*\r*");
-		const std::regex modelType("\r*.*type.*\n*\r*");
+		std::vector< std::pair<regex,bool> > matches(3);
+		matches[0] = make_pair(regex("\r*.*jani-version.*\n*\r*"), false);
+		matches[1] = make_pair(regex("\r*.*name.*\n*\r*"), false);
+		matches[2] = make_pair(regex("\r*.*type.*\n*\r*"), false);
+		auto check_match = [] (const std::pair<regex,bool>& p)
+						   { return p.second; };
 		while (std::getline(modelFile, line) && linesRead++ < NLINES) {
-			if (std::regex_match(line, janiVersion))
-				matches[0] = true;
-			if (std::regex_match(line, modelName))
-				matches[1] = true;
-			if (std::regex_match(line, modelType))
-				matches[2] = true;
-			if (std::all_of(begin(matches), end(matches), [](bool b){return b;}))
+			for (auto& match: matches)
+				if (regex_match(line, match.first))
+					match.second = true;
+			if (std::all_of(begin(matches), end(matches), check_match))
 				break;  // all matches were found
 		}
 		// Does it look JANI enough?
-		janiSpec.janiInteraction = std::all_of(begin(matches), end(matches),
-											   [](const bool& b){return b;});
-		if (!janiSpec.janiInteraction && matches[0]) {
+		janiSpec.janiInteraction = std::all_of(begin(matches), end(matches), check_match);
+		if (janiSpec.janiInteraction)
+			janiSpec.translateDirection = fig::JaniTranny::FROM_JANI;
+		else if (matches[0].second) {  // found "jani-version" !?
 			std::cerr << "JANI ERROR: failed parsing JANI input model file\n";
 			return false;
 		}
 	}
-	if (janiSpec.janiInteraction) {
+
+	// If there's JANI interaction, specify details in janiSpec
+	if (janiSpec.translateDirection == fig::JaniTranny::FROM_JANI) {
 		auto janiFile = modelFile_.getValue();
-		auto janiExt("(.*)\.jani$");
+		const regex janiExt("(^.*)\\.jani$");
 		janiSpec.modelFileJANI = janiFile;
-		if (std::regex_match(janiFile, janiExt))
-			// TODO replace ".jani" with ".sa" using regex
+		janiSpec.propsFileIOSA = "";
+		janiSpec.modelFileIOSA = (regex_match(janiFile, janiExt))
+								 ? regex_replace(janiFile, janiExt, "$1.sa")
+								 : janiFile + ".sa";
+	} else if (janiSpec.translateDirection == fig::JaniTranny::TO_JANI) {
+		auto iosaFile = modelFile_.getValue();
+		const regex iosaExt("(^.*)\\.(iosa|sa)$");
+		janiSpec.modelFileIOSA = iosaFile;
+		janiSpec.propsFileIOSA = propertiesFile_.getValue();
+		janiSpec.modelFileJANI = (regex_match(iosaFile, iosaExt))
+								 ? regex_replace(iosaFile, iosaExt, "$1.jani")
+								 : iosaFile + ".jani";
+		if (regex_match(iosaFile, iosaExt))
+			janiSpec.modelFileJANI = regex_replace(iosaFile, iosaExt, "$1.jani");
 		else
-			// TODO decide what to do here
+			janiSpec.modelFileJANI = iosaFile + ".jani";
 	}
+
 	return true;
 }
 
