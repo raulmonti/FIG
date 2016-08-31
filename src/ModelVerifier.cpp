@@ -29,7 +29,67 @@ shared_ptr<Exp> eval_or_throw(shared_ptr<Exp> exp) {
     }
     return (ev.value_to_ast());
 }
+
+shared_ptr<Exp> find_assignment_rhs(shared_ptr<Action> action,
+                                   const string &state_id) {
+    auto same_id = [state_id] (const shared_ptr<Effect> &effect) -> bool {
+        return (effect->is_state_change() && effect->loc->id == state_id);
+    };
+    auto begin = action->effects.begin();
+    auto end = action->effects.end();
+    auto res = std::find_if(begin, end, same_id);
+    return (res == end ? nullptr : (*res)->arg);
 }
+
+// check if *a1* reseted clocks are also reseted by *a2*
+bool resets_clocks_of(shared_ptr<Action> a1, shared_ptr<Action> a2) {
+    auto it1 = a1->effects.begin();
+    bool result = true;
+    while (it1 != a1->effects.end() && result) {
+        shared_ptr<Effect> current = *it1;
+        if (current->is_clock_reset()) {
+            const string &clock_id = current->loc->id;
+            auto same_clock =
+                    [clock_id] (const shared_ptr<Effect> &effect) -> bool {
+                return (effect->is_clock_reset() && effect->loc->id == clock_id);
+            };
+            auto end = a2->effects.end();
+            auto res = std::find_if(a2->effects.begin(), end, same_clock);
+            result = result && (res != end);
+        };
+        it1++;
+    }
+    return (result);
+}
+
+//todo: show more information!
+inline string warning_not_deterministic(const string& label_id) {
+    return "Preconditions of transitions with label \"" + label_id +
+            "\" do not guarantee determinism.";
+}
+
+inline string warning_reseted_clocks_input(const string &label_id) {
+    return "Transitions of input label \"" + label_id +
+            "\" must reset the same clocks to ensure determinism.";
+}
+
+inline string warning_reseted_clocks_output(const string &label_id,
+                                            const string &clock_id) {
+    return "Transitions of output label \"" + label_id +
+            "\" must reset the same clocks to ensure determinism,"
+            " since they are enabled by the same clock \"" + clock_id +
+            "\".";
+}
+
+inline string warning_same_clock_different_label(const string &clock_id,
+                                                 const string &label1_id,
+                                                 const string &label2_id) {
+    return "Transitions of output labels \"" + label1_id +
+            "\" and \"" + label2_id + "\" are enabled by the same clock \""
+            + clock_id  + "\", which is a potential source of non-determinism";
+}
+
+} //namespace
 
 z3::sort Z3Converter::type_to_sort(Type type, z3::context& ctx) {
     switch (type) {
@@ -153,11 +213,19 @@ z3::expr ModelVerifier::eval_and_convert(shared_ptr<Exp> exp) {
     return (conv.get_expression());
 }
 
-void ModelVerifier::convert_then_add(shared_ptr<Exp> exp) {
+z3::expr ModelVerifier::convert(shared_ptr<Exp> exp) {
     Z3Converter conv (context);
     exp->accept(conv);
-    solver->add(conv.get_expression());
-    add_names_limits(conv.get_names());
+    return (conv.get_expression());
+}
+
+z3::expr ModelVerifier::convert(shared_ptr<Exp> exp, std::set<string>& names) {
+    Z3Converter conv (context);
+    exp->accept(conv);
+    for (auto name : conv.get_names()) {
+        names.insert(name);
+    }
+    return (conv.get_expression());
 }
 
 void ModelVerifier::add_names_limits(const std::set<string> &names) {
@@ -173,23 +241,88 @@ void ModelVerifier::add_names_limits(const std::set<string> &names) {
     }
 }
 
-void ModelVerifier::check_label_preconditions(const string &label_id) {
+void ModelVerifier::debug_print_solver() {
+    std::cout << Z3_solver_to_string(*context, *solver) << std::endl;
+}
+
+void ModelVerifier::check_output_determinism(const string &clock_id) {
+    auto &tr_actions = current_scope->triggered_actions;
+    auto range = tr_actions.equal_range(clock_id);
+    auto it1 = range.first;
+    while (it1 != range.second && !has_warnings()) {
+        auto it2 = next(it1);
+        while (it2 != range.second && !has_warnings()) {
+            solver->push();
+            shared_ptr<Action> a1 = ((*it1).second);
+            shared_ptr<Action> a2 = ((*it2).second);
+            std::set<string> names;
+            //both preconditions valid:
+            shared_ptr<Exp> guard1 = a1->guard;
+            solver->add(convert(guard1, names));
+            shared_ptr<Exp> guard2 = a2->guard;
+            solver->add(convert(guard2, names));
+            add_names_limits(names);
+            const string &label1_id = a1->id;
+            const string &label2_id = a2->id;
+            if (solver->check()) {
+                //this two transition potentially enabled by the same clock
+                //let's check that at least will produce the same output
+                if (label1_id != label2_id) {
+                    put_warning(::warning_same_clock_different_label(clock_id,
+                                label1_id,
+                                label2_id));
+                } else {
+                    //now let's check if both transitions reset the same clocks
+                    bool same_clocks = ::resets_clocks_of(a1, a2) &&
+                            resets_clocks_of(a2, a1);
+                    if (!same_clocks) {
+                        put_warning(::warning_reseted_clocks_output(label1_id,
+                                                                    clock_id));
+                    }
+                    //now let's check that resulting state is the same
+                    if (!has_warnings()) {
+                        check_rhs(a1, a2);
+                        check_rhs(a2, a1);
+                    }
+                }
+            }
+            solver->pop();
+            it2++;
+        }
+        it1++;
+    }
+}
+
+void ModelVerifier::check_input_determinism(const string &label_id) {
     auto &label_actions = current_scope->label_actions;
     auto range = label_actions.equal_range(label_id);
     auto it1 = range.first;
-    while (it1 != range.second && !has_errors()) {
+    while (it1 != range.second && !has_warnings()) {
         auto it2 = next(it1);
-        while (it2 != range.second && !has_errors()) {
+        while (it2 != range.second && !has_warnings()) {
             solver->push();
-            shared_ptr<Exp> guard1 = ((*it1).second)->guard;
-            convert_then_add(guard1);
-            shared_ptr<Exp> guard2 = ((*it2).second)->guard;
-            convert_then_add(guard2);
-            if(solver->check()) {
-                put_error("Potential non-determinism input label \"" +
-                          label_id + "\"");
+            shared_ptr<Action> a1 = ((*it1).second);
+            shared_ptr<Action> a2 = ((*it2).second);
+            std::set<string> names;
+            //both preconditions valid:
+            shared_ptr<Exp> guard1 = a1->guard;
+            solver->add(convert(guard1, names));
+            shared_ptr<Exp> guard2 = a2->guard;
+            solver->add(convert(guard2, names));
+            add_names_limits(names);
+            if (solver->check()) {
+                // there is non-determinism, but it could be safe.
+                // Let's check that the postcondition is really different
+                check_rhs(a1, a2); //assignments of a1 equivalent to those in a2
+                check_rhs(a2, a1); //vice versa!
             }
             solver->pop();
+            //now let's check if both reset the same clocks
+            bool same_clocks = ::resets_clocks_of(a1, a2) &&
+                    resets_clocks_of(a2, a1);
+            if (!same_clocks) {
+                put_warning(::warning_reseted_clocks_input(label_id));
+            }
             it2++;
         }
         it1++;
@@ -204,27 +337,66 @@ void ModelVerifier::visit(shared_ptr<Model> model) {
     auto& bodies = model->get_modules();
     auto& ids = model->get_modules_ids();
     unsigned int i = 0;
-    while (i < bodies.size() && !has_errors()) {
+    while (i < bodies.size() && !has_warnings()) {
         const string &id = ids[i];
         current_scope = ModuleScope::scopes.at(id);
-        check_input_determinism();
+        check_input_determinism_all();
+        check_output_determinism_all();
         i++;
     }
 }
 
-void ModelVerifier::check_input_determinism() {
+void ModelVerifier::check_output_determinism_all() {
+    map<string, shared_ptr<Dist>> &clocks_dist = current_scope->clock_dists;
+    auto it = clocks_dist.begin();
+    while (it != clocks_dist.end() && !has_warnings()) {
+        check_output_determinism((*it).first);
+        it++;
+    }
+}
+
+void ModelVerifier::check_input_determinism_all() {
     map<string, LabelType> &labels_type = current_scope->labels;
     map<string, LabelType>::iterator it = labels_type.begin();
-    while (it != labels_type.end() && !has_errors()) {
+    while (it != labels_type.end() && !has_warnings()) {
         if ((*it).second == LabelType::in) {
             const string &label_id = (*it).first;
-            check_label_preconditions(label_id);
+            check_input_determinism(label_id);
         }
         it++;
     }
 }
 
-
+void ModelVerifier::check_rhs(shared_ptr<Action> a1, shared_ptr<Action> a2) {
+    auto& effects = a1->effects;
+    auto it = effects.begin();
+    while (it != effects.end() && !has_warnings()) {
+        shared_ptr<Effect> effect = *it;
+        if (effect->is_state_change()) {
+            shared_ptr<Exp> arg1 = effect->arg;
+            Type state_type = arg1->type;
+            const string &state_id = effect->loc->id;
+            //check if the other transition also modifies "state_id"
+            shared_ptr<Exp> arg2 = find_assignment_rhs(a2, state_id);
+            solver->push();
+            if (arg2 == nullptr) {
+                //the other transition does not change 'state_id'
+                const auto& sort =
+                        Z3Converter::type_to_sort(state_type, *context);
+                const auto &state = context->constant(state_id.c_str(), sort);
+                // assert that this assignment is also an skip
+                solver->add(convert(arg1) != state);
+            } else {
+                solver->add(convert(arg1) != convert(arg2));
+            }
+            if(solver->check()) {
+                put_warning(::warning_not_deterministic(a1->id));
+            }
+            solver->pop();
+        }
+        it++;
+    }
+}
 
 
 

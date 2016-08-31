@@ -43,6 +43,9 @@ struct ModuleScope {
     /// Mapping each identifier with its declaration
     shared_map<string, Decl> local_decls;
 
+    /// Mapping transitions triggered by a clock.
+    unordered_multimap<string, shared_ptr<Action>> triggered_actions;
+
     /// Find an identifier in every module. Mainly used to build
     /// properties, since they can contain variables of any module.
     static shared_ptr<Decl> find_in_all_modules(const string &id) {

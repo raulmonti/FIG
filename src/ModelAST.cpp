@@ -175,11 +175,18 @@ void Visitor::put_error(const string &msg) {
     message->put_error(msg);
 }
 
+void Visitor::put_warning(const string &msg) {
+    message->put_warning(msg);
+}
+
 bool Visitor::has_errors() {
     return (message->has_errors());
 }
 
-string Visitor::get_errors() {
-    return (message->get_msg());
+bool Visitor::has_warnings() {
+    return (message->has_warnings());
 }
 
+string Visitor::get_messages() {
+    return (message->get_msg());
+}

@@ -230,22 +230,23 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
     ModelTC typechecker;
     model->accept(typechecker);
     if (typechecker.has_errors()) {
-        log(typechecker.get_errors());
+        log(typechecker.get_messages());
         exit(EXIT_FAILURE);
     }
     log("- Type-checking succeeded.\n");
 
-    ModelVerifier verifier;
+   /* ModelVerifier verifier;
     model->accept(verifier);
-    if (verifier.has_errors()) {
-        log(verifier.get_errors());
+    if (verifier.has_warnings()) {
+        log("IOSA Checking failed.");
+        log(verifier.get_messages());
         exit(EXIT_FAILURE);
-    }
+    }*/
 
     ModelBuilder builder;
     model->accept(builder);
     if (builder.has_errors()) {
-        log(builder.get_errors());
+        log(builder.get_messages());
         exit(EXIT_FAILURE);
     }
     log("- Model building succeeded\n");

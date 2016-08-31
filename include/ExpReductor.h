@@ -12,6 +12,7 @@
  */
 class ExpReductor : public Visitor {
 private:
+    /// The reduced expression.
     shared_ptr<Exp> reduced_exp = nullptr;
 public:
     void visit(shared_ptr<IConst> node);

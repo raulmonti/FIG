@@ -686,6 +686,7 @@ protected:
     /// Signal an error, store the message to show to the
     /// user when the AST traversing is finished.
     void put_error(const string &msg);
+    void put_warning(const string &msg);
 
 public:
     /// Default constructor
@@ -693,10 +694,11 @@ public:
 
     /// Has this visitor an error? Is the AST traversing incomplete?
     bool has_errors();
+    bool has_warnings();
 
     /// Returns a string with the error message.
-    /// @note call only if has_errors() is true.
-    string get_errors();
+    /// @note call only if has_errors() or has_warnings() is true.
+    string get_messages();
 
     /// Visitor functions, one for each node. Default implementation: do
     /// nothing.

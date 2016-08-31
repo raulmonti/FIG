@@ -1,16 +1,33 @@
 #include <sstream>
 #include "position.hh"
 
+/**
+ * @brief ErrorMessage: Provides the ability to save error messages and warnings.
+ * @note Visitor class inherits this class, then every extension of Visitor
+ * has the ability to save error messages.
+ */
+// People say... that I should not use exceptions for control-flow purposes, so
+// I used this class to store error messages and stop the "visitation" of the ast
+// (interrupt the visit functions) instead of throwing an exception with an error
+// message to be catched my the main.cpp function.
 class ErrorMessage {
 private:
+    /// The stream that saves the messages
     stringstream msg;
+    /// Is there an error?
     bool _has_errors;
+    /// Is there a warning?
+    bool _has_warnings;
 public:
     ErrorMessage() :
-        _has_errors {false} {}
+        _has_errors {false}, _has_warnings {false} {}
 
     bool has_errors() const {
         return (_has_errors);
+    }
+
+    bool has_warnings() const {
+        return (_has_warnings);
     }
 
     void put_error(const string& error) {
@@ -23,8 +40,9 @@ public:
         msg << "\t" << position << std::endl;
     }
 
-    void put_msg(string msg) {
-        this->msg << "[Info] " << msg << endl;
+    void put_warning(const string& msg) {
+        _has_warnings = true;
+        this->msg << "[Warning] " << msg << std::endl;
     }
 
     string get_msg() {

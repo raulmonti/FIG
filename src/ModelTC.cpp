@@ -254,7 +254,7 @@ bool type_leq(Type t1, Type t2) {
     bool res = (t1 == Type::tint && t2 == Type::tfloat);
     res = res || (t1 == t2);
     return (res);
-};
+}
 
 inline void ModelTC::check_type(Type type, const string &msg) {
     if (!has_errors() && !type_leq(last_type, type)) {
@@ -476,12 +476,13 @@ void ModelTC::visit(shared_ptr<Action> action) {
         check_type(Type::tbool,
                    TC_WRONG_PRECONDITION_S(current_scope, last_type)) ;
     }
-    
     if (action->has_clock()) {
         accept_cond(action->clock_loc);
+        const string &clock_id = action->clock_loc->id;
         check_type(Type::tclock,
-                   TC_NOT_A_CLOCK(current_scope,
-                                  label, action->clock_loc->id, last_type));
+                   TC_NOT_A_CLOCK(current_scope, label, clock_id, last_type));
+        current_scope->triggered_actions.
+                insert(std::make_pair(clock_id, action));
     }
     for (auto &effect : action->get_effects()) {
         accept_cond(effect);
