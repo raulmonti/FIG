@@ -17,6 +17,7 @@ private:
     shared_ptr<z3::context> context;
     z3::expr expression;
     std::set<string> names;
+    std::map<string, z3::sort> sorts;
 public:
     Z3Converter(const shared_ptr<z3::context> &context)
         : context {context}, expression (*context) {}
@@ -25,6 +26,7 @@ public:
     static z3binaryfun bop_to_fun(ExpOp op);
     std::set<string> get_names();
     z3::expr get_expression();
+    z3::sort get_sort_of(const string &name);
     void visit(shared_ptr<IConst> node);
     void visit(shared_ptr<BConst> node);
     void visit(shared_ptr<FConst> node);
@@ -56,6 +58,9 @@ private:
     z3::expr convert(shared_ptr<Exp> exp, std::set<string>& names);
     void check_rhs(shared_ptr<Action> a1, shared_ptr<Action> a2);
     void debug_print_solver();
+    z3::expr convert_and_rename(shared_ptr<Exp> expr,
+                                std::set<string> &names_set);
+    void add_assignments_as_equalities(shared_vector<Effect> effects);
 public:
     ModelVerifier() {
         context = make_shared<z3::context>();

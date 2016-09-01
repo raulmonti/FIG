@@ -235,13 +235,13 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
     }
     log("- Type-checking succeeded.\n");
 
-   /* ModelVerifier verifier;
+    ModelVerifier verifier;
     model->accept(verifier);
     if (verifier.has_warnings()) {
-        log("IOSA Checking failed.");
+        log("IOSA Checking failed.\n");
         log(verifier.get_messages());
         exit(EXIT_FAILURE);
-    }*/
+    }
 
     ModelBuilder builder;
     model->accept(builder);

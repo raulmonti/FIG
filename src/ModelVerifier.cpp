@@ -41,6 +41,17 @@ shared_ptr<Exp> find_assignment_rhs(shared_ptr<Action> action,
     return (res == end ? nullptr : (*res)->arg);
 }
 
+//do this action resets the given clock?
+bool resets_clock(shared_ptr<Action> action, const string &clock_id) {
+    auto same_clock =
+            [clock_id] (const shared_ptr<Effect> &effect) -> bool {
+        return (effect->is_clock_reset() && effect->loc->id == clock_id);
+    };
+    auto end = action->effects.end();
+    auto res = std::find_if(action->effects.begin(), end, same_clock);
+    return (res != end);
+}
+
 // check if *a1* reseted clocks are also reseted by *a2*
 bool resets_clocks_of(shared_ptr<Action> a1, shared_ptr<Action> a2) {
     auto it1 = a1->effects.begin();
@@ -49,13 +60,7 @@ bool resets_clocks_of(shared_ptr<Action> a1, shared_ptr<Action> a2) {
         shared_ptr<Effect> current = *it1;
         if (current->is_clock_reset()) {
             const string &clock_id = current->loc->id;
-            auto same_clock =
-                    [clock_id] (const shared_ptr<Effect> &effect) -> bool {
-                return (effect->is_clock_reset() && effect->loc->id == clock_id);
-            };
-            auto end = a2->effects.end();
-            auto res = std::find_if(a2->effects.begin(), end, same_clock);
-            result = result && (res != end);
+            result = result && resets_clock(a2, clock_id);
         };
         it1++;
     }
@@ -179,9 +184,13 @@ void Z3Converter::visit(shared_ptr<LocExp> node) {
         //set the expression to the result of the evaluation
         ev.value_to_ast()->accept(*this);
     } else {
-        expression = context->constant(node->location->id.c_str(),
-                                       type_to_sort(node->type, *context));
-        names.insert(node->location->id);
+        const string &name = node->location->id;
+        z3::sort sort = type_to_sort(node->type, *context);
+        expression = context->constant(name.c_str(), sort);
+        names.insert(name);
+        if (sorts.find(name) == sorts.end()) {
+            sorts[name] = sort;
+        }
     }
 }
 
@@ -315,14 +324,17 @@ void ModelVerifier::check_input_determinism(const string &label_id) {
                 // Let's check that the postcondition is really different
                 check_rhs(a1, a2); //assignments of a1 equivalent to those in a2
                 check_rhs(a2, a1); //vice versa!
+                // now check that they reset the same clocks
+                if (!has_warnings()) {
+                    //now let's check if both reset the same clocks
+                    bool same_clocks = ::resets_clocks_of(a1, a2) &&
+                            ::resets_clocks_of(a2, a1);
+                    if (!same_clocks) {
+                        put_warning(::warning_reseted_clocks_input(label_id));
+                    }
+                }
             }
             solver->pop();
-            //now let's check if both reset the same clocks
-            bool same_clocks = ::resets_clocks_of(a1, a2) &&
-                    resets_clocks_of(a2, a1);
-            if (!same_clocks) {
-                put_warning(::warning_reseted_clocks_input(label_id));
-            }
             it2++;
         }
         it1++;
@@ -341,6 +353,7 @@ void ModelVerifier::visit(shared_ptr<Model> model) {
         const string &id = ids[i];
         current_scope = ModuleScope::scopes.at(id);
         check_input_determinism_all();
+        solver->reset();
         check_output_determinism_all();
         i++;
     }
@@ -381,7 +394,7 @@ void ModelVerifier::check_rhs(shared_ptr<Action> a1, shared_ptr<Action> a2) {
             solver->push();
             if (arg2 == nullptr) {
                 //the other transition does not change 'state_id'
-                const auto& sort =
+                const auto &sort =
                         Z3Converter::type_to_sort(state_type, *context);
                 const auto &state = context->constant(state_id.c_str(), sort);
                 // assert that this assignment is also an skip
@@ -397,6 +410,64 @@ void ModelVerifier::check_rhs(shared_ptr<Action> a1, shared_ptr<Action> a2) {
         it++;
     }
 }
+
+z3::expr ModelVerifier::convert_and_rename(shared_ptr<Exp> exp,
+                                           std::set<string>& names_set) {
+    Z3Converter conv(*context);
+    exp->accept(conv);
+    z3::expr z3exp = conv.get_expression();
+    std::vector<string> names = conv.get_names();
+    std::vector<z3::expr> old_names;
+    std::vector<z3::expr> new_names;
+    for (unsigned int i = 0; i < names.size(); i++) {
+        z3::sort &sort = conv.get_sort_of(names[i]);
+        old_names[i] = context->constant(names[i].c_str(), sort);
+        names[i] = names[i].push_back('\'');
+        names_set.insert(names[i]);
+        new_names[i] = context->constant(names[i].c_str(), sort);
+    }
+    z3::expr result = z3exp.substitute(old_names, new_names);
+    return (result);
+}
+
+void ModelVerifier
+::add_assignments_as_equalities(shared_vector<Effect> effects) {
+    for (shared_ptr<Effect> curr : effects) {
+        if (curr->is_state_change()) {
+            string state_variable = curr->loc->id;
+            Type type = current_scope->labels.at(state_variable);
+            z3::sort sort = Z3Converter::type_to_sort(type, *context);
+            state_variable.push_back('\'');
+            z3::expr sv = context->constant(state_variable, sort);
+            solver->add(sv == convert(curr->arg));
+        }
+    }
+}
+
+void ModelVerifier ::check_exhausted_clocks(const string &clock_id) {
+    auto &tr_actions = current_scope->triggered_actions;
+    auto range = tr_actions.equal_range(clock_id);
+    auto it1 = range.first;
+    auto &actions = current_scope->body->get_actions();
+    while (it1 != range.second && !has_warnings()) {
+        solver->push();
+        auto it2 = actions.begin();
+        shared_ptr<Action> a1 = *it1;
+        std::set<string> names;
+        shared_ptr<Exp> guard1 = a1->guard;
+        solver->add(convert_and_rename(guard1, names));
+        while (it2 != actions.end() && !has_warnings()) {
+            shared_ptr<Action> a2 = *it2;
+            if (!resets_clock(a2, clock_id)) {
+
+            }
+            it2++;
+        }
+        it1++;
+    }
+}
+
+
 
 
 
