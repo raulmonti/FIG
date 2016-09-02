@@ -32,6 +32,7 @@
 #include <cstdio>  // std::getline()
 #include <cassert>
 // C++
+#include <regex>
 #include <sstream>
 #include <algorithm>  // find_if_not(), search()
 // FIG
@@ -153,3 +154,32 @@ split(const std::string& s,
 			result.push_back(item);
 	return result;
 }
+
+
+bool
+filename_has_extension(const std::string& filename,
+					   const std::string& extension)
+{
+	assert(filename.length() > 0ul);
+	assert(extension.length() > 0ul);
+	const std::regex ext("^.*\\"
+						+ (extension[0] == '.' ? string("") : string("."))
+						+ extension + "$");
+	return std::regex_match(filename, ext);
+}
+
+
+std::string
+change_filename_extension(const std::string& filename,
+						  const std::string& extension)
+{
+	assert(filename.length() > 0ul);
+	assert(extension.length() > 0ul);
+	string normalizedExt((extension[0] == '.' ? "" : ".") + extension);
+	const auto extBegin = filename.find_last_of('.');
+	if (NPOS == extBegin)
+		return filename + normalizedExt;
+	else
+		return filename.substr(0, extBegin) + normalizedExt;
+}
+

@@ -53,12 +53,14 @@ public:
 	/// JANI specification format</a>
 	/// @param iosaModelFile Open stream of the file with the IOSA model
 	/// @param validityCheck Whether to validate the IOSA syntax of the model file
+	/// @param janiFilename  Desired name of the translated JANI file to create
 	/// @return Valid stream to a file with the model translated to an STA
 	///         written in the JANI specification format
 	/// @throw FigException if we couldn't generate a valid JANI translation
-	std::ifstream
+	std::fstream
 	IOSA_2_JANI(const std::ifstream& iosaModelFile,
-				bool validityCheck = true);
+				bool validityCheck = true,
+				const std::string& janiFilename = "IOSA_model.jani");
 
 	/// @copybrief IOSA_2_JANI(const std::ifstream&,bool)
 	/// @details When generating the translated JANI file,
@@ -67,21 +69,11 @@ public:
 	/// @copydetails IOSA_2_JANI(const std::ifstream&,bool)
 	/// @note The IOSA model files can also have properties defined in them,
 	///       inside a "properties...endproperties" section.
-	std::ifstream
+	std::fstream
 	IOSA_2_JANI(const std::ifstream& iosaModelFile,
 				const std::ifstream& iosaPropsFile,
-				bool validityCheck = true);
-
-	/// Translate model file specified in <a href="http://jani-spec.org/">
-	/// JANI format</a> to IOSA syntax.
-	/// @param janiModelFile Open stream of file with STA model written in
-	///                      valid JANI-spec format
-	/// @return Valid stream to a file with the model translated to IOSA syntax
-	/// @throw FigException if we couldn't generate a valid IOSA translation,
-	///                     e.g. when the JANI model wasn't a deterministic STA
-	std::ifstream
-	JANI_2_IOSA(const std::ifstream& janiModelFile);
-
+				bool validityCheck = true,
+				const std::string& janiFilename = "IOSA_model.jani");
 
 	/// @copybrief IOSA_2_JANI(const std::ifstream&,bool)
 	/// @param iosaModelFile Path to a file with the IOSA model
@@ -95,6 +87,17 @@ public:
 	IOSA_2_JANI(const std::string& iosaModelFile,
 				const std::string& iosaPropsFile = "",
 				bool validityCheck = true);
+
+	/// Translate model file specified in <a href="http://jani-spec.org/">
+	/// JANI format</a> to IOSA syntax.
+	/// @param janiModelFile Open stream of file with STA model written in
+	///                      valid JANI-spec format
+	/// @param iosaFilename  Desired name of the translated IOSA file to create
+	/// @return Valid stream to a file with the model translated to IOSA syntax
+	/// @throw FigException if we couldn't generate a valid IOSA translation,
+	///                     e.g. when the JANI model wasn't a deterministic STA
+	std::fstream JANI_2_IOSA(const std::ifstream& janiModelFile,
+							 const std::string& iosaFilename = "JANI_model.sa");
 
 	/// @copybrief JANI_2_IOSA(const std::ifstream&)
 	/// @param janiModelFile Path to file with STA model written in
