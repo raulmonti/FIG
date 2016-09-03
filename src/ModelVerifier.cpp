@@ -94,6 +94,15 @@ inline string warning_same_clock_different_label(const string &clock_id,
             + clock_id  + "\", which is a potential source of non-determinism";
 }
 
+inline string warning_clock_exhaustation(
+        const string &clock_id,
+        const string &label1_id,
+        const string &label2_id) {
+    return "Transition of output label \"" + label1_id +
+            "\" is potentially enabled with an exhausted clock \"" + clock_id +
+            "\" via another transition with label \"" + label2_id + "\"";
+}
+
 } //namespace
 
 z3::sort Z3Converter::type_to_sort(Type type, z3::context& ctx) {
@@ -189,7 +198,7 @@ void Z3Converter::visit(shared_ptr<LocExp> node) {
         expression = context->constant(name.c_str(), sort);
         names.insert(name);
         if (sorts.find(name) == sorts.end()) {
-            sorts[name] = sort;
+            sorts.insert(make_pair(name, sort));
         }
     }
 }
@@ -214,6 +223,10 @@ std::set<string> Z3Converter::get_names() {
 
 z3::expr Z3Converter::get_expression() {
     return (expression);
+}
+
+z3::sort Z3Converter::get_sort_of(const std::string &name) {
+    return sorts.at(name);
 }
 
 z3::expr ModelVerifier::eval_and_convert(shared_ptr<Exp> exp) {
@@ -251,7 +264,10 @@ void ModelVerifier::add_names_limits(const std::set<string> &names) {
 }
 
 void ModelVerifier::debug_print_solver() {
-    std::cout << Z3_solver_to_string(*context, *solver) << std::endl;
+    std::cout << "SOLVER:" <<
+                 Z3_solver_to_string(*context, *solver) << std::endl;
+    std::cout << std::endl;
+    std::cout << "ENDOFSOLVER" << std::endl;
 }
 
 void ModelVerifier::check_output_determinism(const string &clock_id) {
@@ -341,10 +357,6 @@ void ModelVerifier::check_input_determinism(const string &label_id) {
     }
 }
 
-unsigned int ModelVerifier::label_transitions_num(const string& label_id) {
-    return (current_scope->label_actions.count(label_id));
-}
-
 void ModelVerifier::visit(shared_ptr<Model> model) {
     auto& bodies = model->get_modules();
     auto& ids = model->get_modules_ids();
@@ -355,6 +367,8 @@ void ModelVerifier::visit(shared_ptr<Model> model) {
         check_input_determinism_all();
         solver->reset();
         check_output_determinism_all();
+        solver->reset();
+        check_exhausted_clocks_all();
         i++;
     }
 }
@@ -376,6 +390,15 @@ void ModelVerifier::check_input_determinism_all() {
             const string &label_id = (*it).first;
             check_input_determinism(label_id);
         }
+        it++;
+    }
+}
+
+void ModelVerifier::check_exhausted_clocks_all() {
+    map<string, shared_ptr<Dist>> &clocks_dist = current_scope->clock_dists;
+    auto it = clocks_dist.begin();
+    while (it != clocks_dist.end()) {
+        check_exhausted_clocks((*it).first);
         it++;
     }
 }
@@ -412,33 +435,49 @@ void ModelVerifier::check_rhs(shared_ptr<Action> a1, shared_ptr<Action> a2) {
 }
 
 z3::expr ModelVerifier::convert_and_rename(shared_ptr<Exp> exp,
-                                           std::set<string>& names_set) {
-    Z3Converter conv(*context);
+                                           std::set<string>& to_rename_vars) {
+    Z3Converter conv(context);
     exp->accept(conv);
     z3::expr z3exp = conv.get_expression();
-    std::vector<string> names = conv.get_names();
-    std::vector<z3::expr> old_names;
-    std::vector<z3::expr> new_names;
-    for (unsigned int i = 0; i < names.size(); i++) {
-        z3::sort &sort = conv.get_sort_of(names[i]);
-        old_names[i] = context->constant(names[i].c_str(), sort);
-        names[i] = names[i].push_back('\'');
-        names_set.insert(names[i]);
-        new_names[i] = context->constant(names[i].c_str(), sort);
+    std::set<string> names = conv.get_names();
+    z3::expr_vector old_names (*context); //"old" state variables inside expression
+    z3::expr_vector new_names (*context); // state variables with the new name
+    for (string name : names) {
+        if (to_rename_vars.find(name) != to_rename_vars.end()) {
+            // sort of the state variable (bool, int, float)
+            z3::sort sort = conv.get_sort_of(name);
+            // remember the old state variable
+            old_names.push_back(context->constant(name.c_str(), sort));
+            // change the name of state variable
+            name.push_back('\'');
+            // push it in the vector of new state variables
+            new_names.push_back(context->constant(name.c_str(), sort));
+        }
     }
+    // substitute the old for the new, like always happens in life.
     z3::expr result = z3exp.substitute(old_names, new_names);
     return (result);
 }
 
 void ModelVerifier
-::add_assignments_as_equalities(shared_vector<Effect> effects) {
+::add_assignments_as_equalities(const shared_vector<Effect>& effects,
+                                std::set<string> &changed_vars) {
+    // iterate all the effects...
     for (shared_ptr<Effect> curr : effects) {
         if (curr->is_state_change()) {
+            //it is an assignment (not a clock reset)
+            //let's find out the state variable
             string state_variable = curr->loc->id;
-            Type type = current_scope->labels.at(state_variable);
+            //remember that this variable will change
+            changed_vars.insert(state_variable);
+            //find out the type of the state variable
+            Type type = current_scope->local_decls.at(state_variable)->type;
+            //the sort is int, bool, or float depending on the type
             z3::sort sort = Z3Converter::type_to_sort(type, *context);
+            // change the name of the state variable, put the ' character.
             state_variable.push_back('\'');
-            z3::expr sv = context->constant(state_variable, sort);
+            // add the assignment as an equality assertion.
+            z3::expr sv = context->constant(state_variable.c_str(), sort);
             solver->add(sv == convert(curr->arg));
         }
     }
@@ -449,22 +488,66 @@ void ModelVerifier ::check_exhausted_clocks(const string &clock_id) {
     auto range = tr_actions.equal_range(clock_id);
     auto it1 = range.first;
     auto &actions = current_scope->body->get_actions();
-    while (it1 != range.second && !has_warnings()) {
-        solver->push();
+    //iterate over the actions triggered by clock_id
+    while (it1 != range.second) {
+        shared_ptr<Action> a1 = (*it1).second;
         auto it2 = actions.begin();
-        shared_ptr<Action> a1 = *it1;
-        std::set<string> names;
-        shared_ptr<Exp> guard1 = a1->guard;
-        solver->add(convert_and_rename(guard1, names));
-        while (it2 != actions.end() && !has_warnings()) {
+        //iterate over all the transitions in the current module
+        //looking for a dangerous transition
+        while (it2 != actions.end()) {
             shared_ptr<Action> a2 = *it2;
-            if (!resets_clock(a2, clock_id)) {
-
+            if (!resets_clock(a2, clock_id) &&
+                    enables_exhausted(a1, a2, clock_id)) {
+                string &label1 = a1->id;
+                string &label2 = a2->id;
+                auto &warn = ::warning_clock_exhaustation;
+                put_warning(warn(clock_id, label1, label2));
             }
             it2++;
         }
         it1++;
     }
+}
+
+bool ModelVerifier::enables_exhausted(shared_ptr<Action> a1,
+                                      shared_ptr<Action> a2,
+                                      const string &clock_id) {
+    solver->reset();
+    std::set<string> names;
+    std::set<string> changed_vars;
+    //precondition of a2 holds.
+    solver->add(convert(a2->guard, names));
+    //precondition of a1 does not hold.
+    solver->add(!convert(a1->guard, names));
+    //equalities that characterize postcondition of a2
+    add_assignments_as_equalities(a2->effects, changed_vars);
+    //precondition of a1 (after modifications made by the equalities above)
+    //must hold
+    solver->add(convert_and_rename(a1->guard, changed_vars));
+    bool waits_same_clock = a2->has_clock() && a2->clock_loc->id == clock_id;
+    z3::expr same_clock = context->bool_val(waits_same_clock);
+    //no other clock waiting for clock_id is enabled.
+    //or a2 already waits for clock_id.
+    solver->add((!pre_transitions_with_clock(clock_id, names)) || same_clock);
+    //add range limits
+    add_names_limits(names);
+    bool res = solver->check();
+    solver->reset();
+    return (res);
+}
+
+z3::expr ModelVerifier::pre_transitions_with_clock(const string &clock_id,
+                                                   std::set<string> &names) {
+    auto &tr_actions = current_scope->triggered_actions;
+    auto range = tr_actions.equal_range(clock_id);
+    auto it = range.first;
+    z3::expr pre_clock = context->bool_val(false);
+    while (it != range.second) {
+        shared_ptr<Action> b = (*it).second;
+        pre_clock = pre_clock || convert(b->guard, names);
+        it++;
+    }
+    return (pre_clock);
 }
 
 
