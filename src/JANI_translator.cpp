@@ -33,8 +33,55 @@
 #include <string_utils.h>
 #include <JANI_translator.h>
 #include <FigException.h>
+#include <FigLog.h>
 // External code
 #include <json.h>
+
+
+namespace   // // // // // // // // // // // // // // // // // // // // // // //
+{
+
+/// Fast superficial check for IOSA compatibility of JANI model
+/// @param JANIjson JSON root object of a JANI model file
+/// @param fatal    Whether to throw exception if JANI is not compatible
+/// @return Whether the JANI model seems valid and convertible to IOSA
+bool jani_is_valid_iosa(const Json::Value& JANIjson, bool fatal = true)
+{
+	if (!JANIjson.isObject() ||
+		!JANIjson.isMember("jani-version") ||
+		!JANIjson.isMember("type") ||
+		!JANIjson.isMember("automata")) {
+		if (fatal)
+			throw_FigException("invalid JANI format");
+		else
+			return false;
+	}
+	const std::string modelType = JANIjson.get("type", Json::nullValue).asString();
+	if ( ! (modelType == "ctmc" || modelType == "sta") ) {
+		if (fatal)
+			throw_FigException("can't convert to IOSA from JANI model "
+							   "of type \"" + modelType + "\"");
+		else
+			return false;
+	}
+	return true;
+}
+
+
+/// Tell wether a property named "propertyName" is present
+/// in the JSON array "propertiesArray" of JANI properties
+bool present(const std::string& propertyName,
+			 const Json::Value& propertiesArray)
+{
+	assert(propertiesArray.type() == Json::arrayValue);
+	for (const auto& p: propertiesArray)
+		if (p["name"] == propertyName)  // properties *must* be named in JANI
+			return true;
+	return false;
+}
+
+} // namespace   // // // // // // // // // // // // // // // // // // // // //
+
 
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
@@ -45,6 +92,7 @@ JaniTranslator::IOSA_2_JANI(const std::ifstream& iosaModelFile,
 							bool validityCheck,
 							const std::string& janiFilename)
 {
+	/// @todo TODO: IOSA validity check when requested
 
 }
 
@@ -56,6 +104,48 @@ JaniTranslator::IOSA_2_JANI(const std::ifstream& iosaModelFile,
 							const std::string& janiFilename)
 {
 
+	assert(iosaModelFile.good());
+	assert(iosaPropsFile.good());
+	assert(!janiFilename.empty());
+
+	// Translate IOSA model
+	auto janiModelFile = IOSA_2_JANI(iosaModelFile, validityCheck, janiFilename);
+	assert(janiModelFile.good());
+
+	// Parse IOSA properties and translate to JSON
+
+	/// @todo TODO IOSA parsing using Leo's parser
+	///            Save properties parsed in a Json::Value object
+
+
+	// Add only new properties to JANI model
+	Json::Value root;
+	janiModelFile.seekg(0);
+	janiModelFile >> root;
+	assert(root.isObject());
+	Json::Value modelProperties(Json::arrayValue);
+	if (root.isMember("properties"))
+		modelProperties = root["properties"];
+	for (const auto& p: ??Json::Value object from above!!) {
+		const std::string& pName(p["name"].asString());
+		if (!present(pName, modelProperties))
+			modelProperties.append(p);
+		else
+			figTechLog << "WARNING: skipping property \"" << pName
+					   << "\" from properties file translation, since an "
+					   << "homonimous property was found in the model file.\n";
+	}
+	root["properties"] = modelProperties;
+
+	// Dump to JANI file and return
+	// NOTE: overwriting shouldn't be a problem (biggest file seen was < 6MB)
+	janiModelFile.seekg(0);
+	janiModelFile << root;
+	janiModelFile << std::endl;
+	assert(janiModelFile.good());
+	janiModelFile.close();
+
+	return janiModelFile
 }
 
 
@@ -85,7 +175,8 @@ JaniTranslator::IOSA_2_JANI(const std::string& iosaModelFile,
 			throw_FigException("failed translating IOSA file \""
 							   + iosaModelFile + "\" and properties file \""
 							   + iosaPropsFile + "\"");
-		janiModelFile.close();
+		else if (janiModelFile.is_open())
+			janiModelFile.close();
 	} else {
 		std::fstream janiModelFile(IOSA_2_JANI(iosaFile,
 											   validityCheck,
@@ -93,7 +184,8 @@ JaniTranslator::IOSA_2_JANI(const std::string& iosaModelFile,
 		if (!janiModelFile.good())
 			throw_FigException("failed translating IOSA file \""
 							   + iosaModelFile + "\"");
-		janiModelFile.close();
+		else if (janiModelFile.is_open())
+			janiModelFile.close();
 	}
 	return janiFilename;
 }
@@ -106,21 +198,11 @@ JaniTranslator::JANI_2_IOSA(const std::ifstream& janiModelFile,
 	assert(janiModelFile.good());
 
 	Json::Value root;
-	janiModelFile >> root;  // read Json file into JsonCPP variable
-	if (!root.isObject() ||
-		!root.isMember("jani-version") ||
-		!root.isMember("type") ||
-		!root.isMember("automata"))
-		throw_FigException("invalid JANI format");
-
-	const std::string modelType = root.get("type", Json::nullValue).asString();
-	if ( ! (modelType == "ctmc" || modelType == "sta") )
-		throw_FigException("can't convert to IOSA from JANI model of type \""
-						   + modelType + "\"");
+	janiModelFile >> root;     // read Json file into JsonCPP variable
+	jani_is_valid_iosa(root);  // check IOSA compatibility
 
 	/// @todo TODO continue parsing JANI-Json and translate to IOSA
-	///            (modularize in anonymous namespace)
-
+	///            (check IOSA_2_JANI for tips on JsonCPP usage)
 
 
 	// example:
