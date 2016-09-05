@@ -73,10 +73,10 @@ private:
     shared_ptr<position> pos = nullptr;
 public:
 
-    /// Build a AST from two files corresponding to the model and
-    /// the properties (e.g tandem-queue.sa, tandem-queue.pp)
+	/// Build an AST from two files corresponding to the model and
+	/// the properties (e.g. tandem-queue.sa, tandem-queue.pp)
     static shared_ptr<ModelAST> from_files(const char *model_file,
-                                           const char *prop_file);
+										   const char *prop_file);
 
     /// Acceptor
     /// @see https://en.wikipedia.org/wiki/Visitor_pattern

@@ -314,7 +314,7 @@ struct JaniTranny
 {
 	/// Whether there's some interaction with JANI at all
 	bool janiInteraction;
-	/// Only translate from/to JANI-spec to/from IOSA syntax, viz. don't estimate
+	/// Only translate from/to JANI to/from IOSA, viz. don't estimate
 	bool translateOnly;
 	/// In which direction is the translation
 	enum {

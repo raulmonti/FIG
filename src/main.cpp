@@ -240,53 +240,58 @@ void build_model()
 	log("Model file: " + modelFile);
 	if (!file_exists(modelFile)) {
 		log(" *** Error: file not found! ***\n");
-		exit(EXIT_FAILURE);
+		throw_FigException("file with model not found");
 	}
 	if (!propertiesFile.empty()) {
 		log("\nProperties file: " + propertiesFile);
 		if (!file_exists(propertiesFile)) {
 			log(" *** Error: file not found! ***\n");
-			exit(EXIT_FAILURE);
+			throw_FigException("file with properties not found");
 		}
 	}
 	log("\n\n");
 
 	// Build AST from files, viz. parse
-	auto ppFile = propertiesFile.empty() ? nullptr : propertiesFile.c_str();
-	shared_ptr<ModelAST> model = ModelAST::from_files(modelFile.c_str(), ppFile);
+	auto model = ModelAST::from_files(modelFile.c_str(), propertiesFile.c_str());
 	if (nullptr == model) {
 		log(" *** Error parsing the model ***\n");
-		exit(EXIT_FAILURE);
+		throw_FigException("failed parsing the model file");
 	}
 //	ModelPrinter printer;
 //	model->accept(printer);
 
-	// Check types and build (parser) model
+	// Check types
 	ModelTC typechecker;
 	model->accept(typechecker);
 	if (typechecker.has_errors()) {
 		log(typechecker.get_errors());
-		exit(EXIT_FAILURE);
+		throw_FigException("type-check for the model failed");
 	}
-	log("- Type-checking succeeded.\n");
+	tech_log("- Type-checking succeeded.\n");
+
+	// Build *parser* model
 	ModelBuilder builder;
 	model->accept(builder);
 	if (builder.has_errors()) {
 		log(builder.get_errors());
-		exit(EXIT_FAILURE);
+		throw_FigException("parser failed to build the model");
 	}
-	log("- Model building succeeded\n");
+	tech_log("- Model building succeeded\n");
 
 	// missing iosa compliance!
 	//	remember to do it only in small enough cases */
 
-	// Build internal ADT (simulation) model
-	log("- Sealing model\n");
-	auto &model_instance = ModelSuite::get_instance();
+	// Build *simulation* model
+	auto& model_instance = ModelSuite::get_instance();
 	model_instance.seal();
 	if (!model_instance.sealed()) {
-		throw_FigException("failed to seal the model!");
+		log(" *** Error sealing the model ***\n");
+		throw_FigException("parser failed to seal the model");
 	}
-	tech_log("Model and properties files successfully compiled.\n");
+	tech_log("- Model sealing succeeded\n");
+
+	log(std::string("Model") +
+	    (propertiesFile.empty() ? (" file ") : (" and properties files "))
+	    + "successfully compiled.\n");
 }
 

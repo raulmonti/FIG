@@ -4,6 +4,7 @@
 #include "ErrorMessage.h"
 #include <FigLog.h>
 #include <cstdlib>
+#include <cstring>
 
 using std::shared_ptr;
 using std::static_pointer_cast;
@@ -18,11 +19,9 @@ shared_ptr<ModelAST> ModelAST::from_files(const char *model_file,
 {
 	shared_ptr<ModelAST> result = nullptr;
 	ModelParserGen::ModelParser parser {&result};
-	FILE* file(nullptr);
 	int res(1);
-
 	// Process model file
-	file = fopen(model_file, "r");
+	FILE* file = std::fopen(model_file, "r");
 	if (nullptr == file) {
 		figTechLog << "Model file \"" << model_file << "\" does not exists!\n";
 		res = 1;
@@ -35,9 +34,8 @@ shared_ptr<ModelAST> ModelAST::from_files(const char *model_file,
 		figTechLog << "Errors found while parsing \"" << model_file << "\"\n";
 		goto exit_point;
 	}
-
 	// Process properties file, if any
-	if (nullptr != prop_file) {
+	if (nullptr != prop_file && 0ul < strnlen(prop_file, 128ul)) {
 		file = fopen(prop_file, "r");
 		if (nullptr == file) {
 			figTechLog << "Properties file \"" << model_file
@@ -53,7 +51,7 @@ shared_ptr<ModelAST> ModelAST::from_files(const char *model_file,
 			goto exit_point;
 		}
 	}
-
+	std::fclose(file);
 	exit_point:
 		return (res == 0 ? result : nullptr);
 }
