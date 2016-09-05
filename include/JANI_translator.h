@@ -30,7 +30,9 @@
 #define JANI_TRANSLATOR_H
 
 #include <string>
+#include <memory>
 
+class ModelAST;
 
 namespace fig
 {
@@ -46,7 +48,12 @@ namespace fig
 /// Automata</a> (IOSA).
 class JaniTranslator
 {
-public:
+public: // Offered data
+
+	/// Last parsed IOSA model, or nullptr if none
+	static std::shared_ptr<ModelAST> modelAST;
+
+public: // Offered facilities
 
 	/**
 	 * Translate existing IOSA model file to <a href="http://jani-spec.org/">

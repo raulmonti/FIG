@@ -37,6 +37,7 @@
 // FIG
 #include <string_utils.h>
 #include <JANI_translator.h>
+#include <ModelVerifier.h>
 #include <ModelBuilder.h>
 #include <ModelAST.h>
 #include <ModelTC.h>
@@ -52,38 +53,61 @@ namespace   // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 /// Build parser AST model of IOSA model file (and properties)
-shared_ptr<ModelAST>
-parse_IOSA_model(const string& iosaModelFile, const string& iosaPropsFile)
+shared_ptr<Model>
+parse_IOSA_model(const string& iosaModelFile,
+				 const string& iosaPropsFile,
+				 bool validityCheck = false)
 {
+	ModelTC typechecker;
+	ModelVerifier verifier;
+	ModelBuilder builder;
 	const string iosaFileNames = iosaPropsFile.empty()
 			? ("file \"" + iosaModelFile + "\"")
 			: ("files \"" + iosaModelFile + " and \"" + iosaPropsFile + "\"");
+
 	// Parse IOSA files
-	shared_ptr<ModelAST> model = ModelAST::from_files(iosaModelFile.c_str(),
-													  iosaPropsFile.c_str());
-	if (nullptr == model) {
+	shared_ptr<ModelAST> modelAST = ModelAST::from_files(iosaModelFile.c_str(),
+														 iosaPropsFile.c_str());
+	if (nullptr == modelAST) {
 		fig::figTechLog  << "ERROR: failed parsing IOSA "
 						 << iosaFileNames << std::endl;
-	} else {
-		ModelTC typechecker;
-		model->accept(typechecker);
-		if (typechecker.has_errors()) {
-			fig::figTechLog << "ERROR: type-check failed for IOSA "
+		goto exit_point;
+	}
+
+	// Check types
+	modelAST->accept(typechecker);
+	if (typechecker.has_errors()) {
+		fig::figTechLog << "ERROR: type-checking failed for IOSA "
+						<< iosaFileNames << std::endl;
+		fig::figTechLog << typechecker.get_messages() << std::endl;
+		modelAST = nullptr;
+		goto exit_point;
+	}
+
+	// Check IOSA compliance if requested
+	if (validityCheck &&
+			ModuleScope::modules_size_bounded_by(ModelVerifier::NTRANS_BOUND)) {
+		modelAST->accept(verifier);
+		if (verifier.has_errors() || verifier.has_warnings()) {
+			fig::figTechLog << "ERROR: IOSA-checking failed for "
 							<< iosaFileNames << std::endl;
-			fig::figTechLog << typechecker.get_messages() << std::endl;
-			model = nullptr;
-		} else {
-			ModelBuilder builder;
-			model->accept(builder);
-			if (builder.has_errors()) {
-				fig::figTechLog << "ERROR: model building failed for IOSA "
-								<< iosaFileNames << std::endl;
-				fig::figTechLog << builder.get_messages() << std::endl;
-				model = nullptr;
-			}
+			fig::figTechLog << verifier.get_messages() << std::endl;
+			modelAST = nullptr;
+			goto exit_point;
 		}
 	}
-	return model;
+
+	// Build "parser" model
+	modelAST->accept(builder);
+	if (builder.has_errors()) {
+		fig::figTechLog << "ERROR: model building failed for IOSA "
+						<< iosaFileNames << std::endl;
+		fig::figTechLog << builder.get_messages() << std::endl;
+		modelAST = nullptr;
+	}
+
+	exit_point:
+		return std::dynamic_pointer_cast<Model>(modelAST);
 }
 
 
@@ -149,22 +173,23 @@ bool jani_is_valid_iosa(const Json::Value& JANIjson, bool fatal = true)
 }
 
 
-/// Tell wether a property named "propertyName" is present
-/// in the JSON array "propertiesArray" of JANI properties
-bool present(const std::string& propertyName,
-			 const Json::Value& propertiesArray)
-{
-	assert(propertiesArray.type() == Json::arrayValue);
-	for (const auto& p: propertiesArray)
-		if (p["name"] == propertyName)  // properties *must* be named in JANI
-			return true;
-	return false;
-}
+// /// Tell wether a property named "propertyName" is present
+// /// in the JSON array "propertiesArray" of JANI properties
+// bool present(const std::string& propertyName,
+// 			 const Json::Value& propertiesArray)
+// {
+// 	assert(propertiesArray.type() == Json::arrayValue);
+// 	for (const auto& p: propertiesArray)
+// 		if (p["name"] == propertyName)  // properties *must* be named in JANI
+// 			return true;
+// 	return false;
+// }
 
 
-/// Add default JANI info (as from IOSA translated model file)
+/// Add default JANI header to JsonCPP object,
+/// as from IOSA translated model file.
 void
-jani_header(Json::Value& root, const string& iosaModelFile)
+add_jani_header(Json::Value& root, const string& iosaModelFile)
 {
 	if (root.isNull())
 		root = Json::Value(Json::objectValue);
@@ -178,6 +203,34 @@ jani_header(Json::Value& root, const string& iosaModelFile)
 	root["metadata"]["version"] = std::ctime(&now);
 	root["metadata"]["author"]  = "FIG translator";
 	root["metadata"]["description"] = "JANI file generated from IOSA model";
+	if (root.isMember("features")) {
+		bool hasDerivedOps(false);
+		for (const auto& f: root["features"])
+			if (f.isString() && f.asString() == "derived-operators") {
+				hasDerivedOps = true;
+				break;
+			}
+		if (!hasDerivedOps)
+			root["features"].append("derived-operators");
+	} else {
+		root["features"] = Json::Value(Json::arrayValue);
+		root["features"].append("derived-operators");
+	}
+}
+
+
+/// Add IOSA model global definitions to JsonCPP object
+/// @note Currently only constants can have global scope
+void
+add_model_globals(Json::Value& root, shared_ptr<Model> iosaModel)
+{
+	assert(root.isObject());
+	assert(nullptr != iosaModel);
+
+	iosaModel->get_globals();
+	shared_vector<class Decl> globals;
+
+	/// @todo TODO implement!!!
 }
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
@@ -186,6 +239,8 @@ jani_header(Json::Value& root, const string& iosaModelFile)
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
+
+std::shared_ptr<ModelAST> JaniTranslator::modelAST = nullptr;
 
 
 // std::fstream
@@ -247,23 +302,19 @@ JaniTranslator::IOSA_2_JANI(const std::string& iosaModelFile,
 							const std::string& janiFilename,
 							bool validityCheck)
 {
-	auto model = parse_IOSA_model(iosaModelFile, iosaPropsFile);
+	auto model = parse_IOSA_model(iosaModelFile, iosaPropsFile, validityCheck);
 	if (nullptr == model)
 		throw_FigException("failed parsing IOSA files for JANI translation");
-	if (validityCheck) {
-		/// @todo TODO check for IOSA compliance!!!
-	}
 
-	/// @todo TODO translate IOSA parsed AST to JANI-Json
-
-
-
+	// Translate IOSA to JANI
 	Json::Value root;
-	jani_header(root, iosaModelFile);
-	/// @todo TODO write translated model in JsonCPP object
+	add_jani_header(root, iosaModelFile);
+	add_model_globals(root, model);
+
+	/// @todo TODO translate IOSA parsed AST to JANI-Json and store in JsonCPP
 
 
-	// Dump translation in file and exit (FIXME!)
+	// Dump JANI-spec translation in file and exit (FIXME!)
 	auto janiFname = compose_jani_fname(iosaModelFile, janiFilename);
 	std::ofstream janiFile(janiFname);
 	janiFile << root;

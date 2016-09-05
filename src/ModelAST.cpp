@@ -51,8 +51,9 @@ shared_ptr<ModelAST> ModelAST::from_files(const char *model_file,
 			goto exit_point;
 		}
 	}
-	std::fclose(file);
 	exit_point:
+		if (0 <= fileno(file))
+			std::fclose(file);
 		return (res == 0 ? result : nullptr);
 }
 

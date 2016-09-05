@@ -46,6 +46,7 @@
 #include <ModelBuilder.h>
 #include <ModelPrinter.h>
 #include <ModelVerifier.h>
+#include <JANI_translator.h>
 #include <ImportanceFunction.h>
 
 
@@ -53,12 +54,13 @@
 
 static bool print_intro(const int& argc, const char** argv);
 static bool file_exists(const std::string& filepath);
-static void translate_JANI();
-static void build_model();
+static shared_ptr<ModelAST> translate_JANI();
+static void compile_model(shared_ptr<ModelAST> modelAST);
 
 
 //  Configuration of the estimation run  ///////////////////////////////////////
 
+using fig_cli::forceOperation;
 using fig_cli::janiSpec;
 using fig_cli::modelFile;
 using fig_cli::propertiesFile;
@@ -78,6 +80,7 @@ int main(int argc, char** argv)
 	auto tech_log(fig::ModelSuite::tech_log);
 	auto const_argv(const_cast<const char**>(argv));
 	const std::string FIG_ERROR("ERROR: FIG failed to");
+	shared_ptr<ModelAST> modelAST = nullptr;
 
 	// "Greetings, human!" and command line parsing
 	try {
@@ -99,7 +102,7 @@ int main(int argc, char** argv)
 	try {
 		if (janiSpec.janiInteraction) {
 			double start = omp_get_wtime();
-			translate_JANI();
+			modelAST = translate_JANI();
 			std::stringstream ss; ss << "JANI translation time: " << std::fixed;
 			ss << std::setprecision(2) << omp_get_wtime()-start << " s\n\n";
 			tech_log(ss.str());
@@ -119,7 +122,7 @@ int main(int argc, char** argv)
 	// Compile IOSA model and properties to check
 	try {
 		double start = omp_get_wtime();
-		build_model();
+		compile_model(modelAST);
 		std::stringstream ss; ss << "Model building time: " << std::fixed;
 		ss << std::setprecision(2) << omp_get_wtime()-start << " s\n\n";
 		tech_log(ss.str());
@@ -226,16 +229,58 @@ bool file_exists(const std::string& filepath)
 }
 
 
-void translate_JANI()
+shared_ptr<ModelAST> translate_JANI()
 {
-	/// @todo TODO fillme!
+	auto log = fig::ModelSuite::main_log;
+
+	if (fig::JaniTranny::FROM_JANI == janiSpec.translateDirection) {
+		log("Translating from JANI Specification format to IOSA model syntax\n");
+		if (!file_exists(janiSpec.modelFileJANI)) {
+			log(" *** Error: JANI-spec model file \""
+				+ janiSpec.modelFileJANI +"\" not found! ***\n");
+			throw_FigException("file with JANI model not found");
+		}
+		fig::JaniTranslator::JANI_2_IOSA(janiSpec.modelFileJANI,
+										 janiSpec.modelFileIOSA);
+		return fig::JaniTranslator::modelAST;  // return parsed IOSA model
+
+	} else if (fig::JaniTranny::TO_JANI == janiSpec.translateDirection) {
+		log("Translating from IOSA model syntax to JANI Specification format\n");
+		if (!file_exists(janiSpec.modelFileIOSA)) {
+			log(" *** Error: IOSA model file \""
+				+ janiSpec.modelFileIOSA +"\" not found! ***\n");
+			throw_FigException("file with IOSA model not found");
+		}
+		if (!janiSpec.propsFileIOSA.empty() &&
+				!file_exists(janiSpec.propsFileIOSA)) {
+			log(" *** Error: properties file \""
+				+ janiSpec.propsFileIOSA + "\" not found! ***\n");
+			throw_FigException("file with properties not found");
+		}
+		const bool checkIOSAcorrectness = !forceOperation;
+		fig::JaniTranslator::IOSA_2_JANI(janiSpec.modelFileIOSA,
+										 janiSpec.propsFileIOSA,
+										 janiSpec.modelFileJANI,
+										 checkIOSAcorrectness);
+		return nullptr;
+
+	} else {
+		log("Ill-defined JANI/IOSA interaction -- Skipping translation\n");
+		return nullptr;
+	}
 }
 
 
-void build_model()
+void compile_model(shared_ptr<ModelAST> modelAST)
 {
 	auto log = fig::ModelSuite::main_log;
 	auto tech_log = fig::ModelSuite::tech_log;
+	ModelTC typechecker;
+	ModelVerifier verifier;
+	ModelBuilder builder;
+
+	if (nullptr != modelAST)  // parsing already done during JANI interaction
+		goto seal_model;
 
 	// Check for required files
 	log("Model file: " + modelFile);
@@ -253,56 +298,53 @@ void build_model()
 	log("\n\n");
 
 	// Build AST from files, viz. parse
-	auto model = ModelAST::from_files(modelFile.c_str(), propertiesFile.c_str());
-	if (nullptr == model) {
+	modelAST = ModelAST::from_files(modelFile.c_str(), propertiesFile.c_str());
+	if (nullptr == modelAST) {
 		log(" *** Error parsing the model ***\n");
 		throw_FigException("failed parsing the model file");
 	}
 //	ModelPrinter printer;
-//	model->accept(printer);
+//	modelAST->accept(printer);
 
 	// Check types
-	ModelTC typechecker;
-	model->accept(typechecker);
+	modelAST->accept(typechecker);
 	if (typechecker.has_errors()) {
 		log(typechecker.get_messages());
 		throw_FigException("type-check for the model failed");
 	}
-	tech_log("- Type-checking succeeded.\n");
+	tech_log("- Type-checking  succeeded\n");
 
 	// Check IOSA correctness
-	const size_t NTRANS_BOUND = 1ul<<7ul;  // from test cases
-	if (ModuleScope::modules_size_bounded_by(NTRANS_BOUND)) {
-		ModelVerifier verifier;
-		model->accept(verifier);
+	if (ModuleScope::modules_size_bounded_by(ModelVerifier::NTRANS_BOUND)) {
+		modelAST->accept(verifier);
 		assert(!verifier.has_errors());
 		if (verifier.has_warnings()) {
 			log("\nWARNING: IOSA-checking failed");
 			tech_log(verifier.get_messages());
-			if (!forceEstimation) {
+			if (!forceOperation) {
 				log(" -- aborting\n");
-				log("To simulate on model disregarding ");
+				log("To force estimation disregarding ");
 				log("IOSA errors call with \"--force\"");
 				throw_FigException("iosa-check for the model failed");
 			} else {
 				log("\n");
 			}
 		}
-		log("- IOSA-checking succeeded.\n");
+		tech_log("- IOSA-checking  succeeded\n");
 	} else {
-		log("- IOSA-checking skipped: model is too big.\n");
+		log("- IOSA-checking skipped: model is too big\n");
 	}
 
-	// Build *parser* model
-	ModelBuilder builder;
-	model->accept(builder);
+	// Build model (i.e. populate ModelSuite)
+	modelAST->accept(builder);
 	if (builder.has_errors()) {
 		log(builder.get_messages());
 		throw_FigException("parser failed to build the model");
 	}
 	tech_log("- Model building succeeded\n");
 
-	// Build *simulation* model
+	// Seal model
+	seal_model:
 	auto& modelInstance = ModelSuite::get_instance();
 	modelInstance.seal();
 	if (!modelInstance.sealed()) {
