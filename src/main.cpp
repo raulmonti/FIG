@@ -45,6 +45,7 @@
 #include <string_utils.h>
 #include <ModelBuilder.h>
 #include <ModelPrinter.h>
+#include <ModelVerifier.h>
 #include <ImportanceFunction.h>
 
 
@@ -264,27 +265,47 @@ void build_model()
 	ModelTC typechecker;
 	model->accept(typechecker);
 	if (typechecker.has_errors()) {
-		log(typechecker.get_errors());
+		log(typechecker.get_messages());
 		throw_FigException("type-check for the model failed");
 	}
 	tech_log("- Type-checking succeeded.\n");
+
+	// Check IOSA correctness
+	const size_t NTRANS_BOUND = 1ul<<7ul;  // from test cases
+	if (ModuleScope::modules_size_bounded_by(NTRANS_BOUND)) {
+		ModelVerifier verifier;
+		model->accept(verifier);
+		assert(!verifier.has_errors());
+		if (verifier.has_warnings()) {
+			log("\nWARNING: IOSA-checking failed");
+			tech_log(verifier.get_messages());
+			if (!forceEstimation) {
+				log(" -- aborting\n");
+				log("To simulate on model disregarding ");
+				log("IOSA errors call with \"--force\"");
+				throw_FigException("iosa-check for the model failed");
+			} else {
+				log("\n");
+			}
+		}
+		log("- IOSA-checking succeeded.\n");
+	} else {
+		log("- IOSA-checking skipped: model is too big.\n");
+	}
 
 	// Build *parser* model
 	ModelBuilder builder;
 	model->accept(builder);
 	if (builder.has_errors()) {
-		log(builder.get_errors());
+		log(builder.get_messages());
 		throw_FigException("parser failed to build the model");
 	}
 	tech_log("- Model building succeeded\n");
 
-	// missing iosa compliance!
-	//	remember to do it only in small enough cases */
-
 	// Build *simulation* model
-	auto& model_instance = ModelSuite::get_instance();
-	model_instance.seal();
-	if (!model_instance.sealed()) {
+	auto& modelInstance = ModelSuite::get_instance();
+	modelInstance.seal();
+	if (!modelInstance.sealed()) {
 		log(" *** Error sealing the model ***\n");
 		throw_FigException("parser failed to seal the model");
 	}

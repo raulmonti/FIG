@@ -31,7 +31,8 @@ enum class Arity  {one, two};
 /// @todo commited actions not yet supported
 enum class LabelType {in, out, commited, empty};
 /// @brief Supported distributions
-enum class DistType {erlang, normal, uniform, exponential};
+enum class DistType {erlang, normal, lognormal, uniform, exponential,
+                     weibull, rayleigh, gamma};
 /// @brief Supported properties
 enum class PropType {transient, rate};
 
@@ -40,10 +41,10 @@ enum class PropType {transient, rate};
 namespace ModelParserGen {
 class ModelParser;
 class ModelScanner;
-class position;
+class location;
 }
 
-using ModelParserGen::position;
+using ModelParserGen::location;
 
 /**
  * @brief The ModelAST class. This class represents an abstract syntax tree of
@@ -68,9 +69,9 @@ private:
     /// Prints error message if a lexer error occurs.
     static void on_scanner_error(const std::string &msg);
 
-    /// Position (of the token) from which this ast was created.
+    /// Location from which this ast was created.
     /// save it only for improve error messages.
-    shared_ptr<position> pos = nullptr;
+    shared_ptr<location> token_loc = nullptr;
 public:
 
 	/// Build an AST from two files corresponding to the model and
@@ -82,17 +83,17 @@ public:
     /// @see https://en.wikipedia.org/wiki/Visitor_pattern
     virtual void accept(class Visitor& visit);
 
-    /// Save position (line, column) of the first token that
+    /// Save location of the first token that
     /// was used to generate this AST.
     /// @todo not yet used
-    void set_position(shared_ptr<position> pos) {
-        this->pos = pos;
+    void set_location(shared_ptr<location> loc) {
+        this->token_loc = loc;
     }
 
-    /// Returns the position (line, column) of the first token
+    /// Returns the location of the first token
     /// that generated this AST.
-    shared_ptr<position> get_position() {
-        return (pos);
+    shared_ptr<location> get_location() {
+        return (this->token_loc);
     }
 };
 
@@ -686,6 +687,7 @@ protected:
     /// Signal an error, store the message to show to the
     /// user when the AST traversing is finished.
     void put_error(const string &msg);
+    void put_warning(const string &msg);
 
 public:
     /// Default constructor
@@ -693,10 +695,11 @@ public:
 
     /// Has this visitor an error? Is the AST traversing incomplete?
     bool has_errors();
+    bool has_warnings();
 
     /// Returns a string with the error message.
-    /// @note call only if has_errors() is true.
-    string get_errors();
+    /// @note call only if has_errors() or has_warnings() is true.
+    string get_messages();
 
     /// Visitor functions, one for each node. Default implementation: do
     /// nothing.

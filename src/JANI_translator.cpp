@@ -70,7 +70,7 @@ parse_IOSA_model(const string& iosaModelFile, const string& iosaPropsFile)
 		if (typechecker.has_errors()) {
 			fig::figTechLog << "ERROR: type-check failed for IOSA "
 							<< iosaFileNames << std::endl;
-			fig::figTechLog << typechecker.get_errors() << std::endl;
+			fig::figTechLog << typechecker.get_messages() << std::endl;
 			model = nullptr;
 		} else {
 			ModelBuilder builder;
@@ -78,7 +78,7 @@ parse_IOSA_model(const string& iosaModelFile, const string& iosaPropsFile)
 			if (builder.has_errors()) {
 				fig::figTechLog << "ERROR: model building failed for IOSA "
 								<< iosaFileNames << std::endl;
-				fig::figTechLog << builder.get_errors() << std::endl;
+				fig::figTechLog << builder.get_messages() << std::endl;
 				model = nullptr;
 			}
 		}

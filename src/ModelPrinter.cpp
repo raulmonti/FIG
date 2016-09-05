@@ -61,6 +61,18 @@ string ModelPrinter::to_str(DistType type) {
     case DistType::exponential:
         result = "exponential";
         break;
+    case DistType::lognormal:
+        result = "lognormal";
+        break;
+    case DistType::weibull:
+        result = "weibull";
+        break;
+    case DistType::rayleigh:
+        result = "rayleigh";
+        break;
+    case DistType::gamma:
+        result = "gamma";
+        break;
     }
     return result;
 }

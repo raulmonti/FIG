@@ -37,17 +37,17 @@ blank  [ \t]
 
 %{
   // Code run each time yylex is called.
-  loc.step();
+        loc.step();
 %}
 
 {blank}+   loc.step();
-[\n]+      loc.lines(yyleng); loc.step();
+[\n]+      loc.lines(yyleng);
 "//".*     loc.step();
-"/*"       BEGIN(comment);
-<comment>[^*\n]*    loc.step();
-<comment>"*"+[^*/\n]*   loc.step();
-<comment>\n       loc.lines(1) ; loc.step();
-<comment>"*"+"/"  BEGIN(INITIAL);
+"/*"       loc.step(); BEGIN(comment);
+<comment>[^*\n]* loc.step();
+<comment>"*"+[^*/\n]* loc.step();
+<comment>\n        loc.step(); loc.lines(1);
+<comment>"*"+"/"   loc.step(); BEGIN(INITIAL);
 "module"      return ModelParser::make_MODULE(loc);
 "endmodule"   return ModelParser::make_ENDMODULE(loc);
 "properties"     return ModelParser::make_PROP(loc);
@@ -80,6 +80,10 @@ blank  [ \t]
 "normal"      return ModelParser::make_NORMAL(loc);
 "uniform"     return ModelParser::make_UNIFORM(loc);
 "exponential" return ModelParser::make_EXP(loc);
+"lognormal"   return ModelParser::make_LOGNORMAL(loc);
+"gamma"       return ModelParser::make_GAMMA(loc);
+"rayleigh"    return ModelParser::make_RAYLEIGH(loc);
+"weibull"     return ModelParser::make_WEIBULL(loc);
 "init"        return ModelParser::make_INIT(loc);
 "!"           return ModelParser::make_ADM(loc);
 "?"           return ModelParser::make_QMARK(loc);
