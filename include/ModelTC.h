@@ -60,6 +60,17 @@ struct ModuleScope {
         }
         return (result);
     }
+
+    /// Check if all the modules have less transitions than the given bound
+    static bool modules_size_bounded_by(unsigned long int bound) {
+        bool result = true;
+        for (auto entry : ModuleScope::scopes) {
+            const shared_ptr<ModuleScope> &curr = entry.second;
+            auto &actions = curr->body->get_actions();
+            result = result && (actions.size() <= bound);
+        }
+        return (result);
+    }
 };
 
 /**
@@ -88,24 +99,47 @@ private:
     /// and not just in the current one.
     bool checking_property = false;
 
-    //accepts if no errors
+    /// Accepts if no errors
     void accept_cond(shared_ptr<ModelAST> module);
-    //prefix for log message
+
+    /// If the last inferred type is not "type", put an error
     void check_type(Type type, const string &msg);
+
+    /// Check if every clock has a distribution type
     void check_clocks(shared_ptr<ModuleScope> scope);
+
+    /// Check if the given expression is in DNF
     void check_dnf(PropType type, shared_ptr<Exp> exp);
+
+    /// Find the type of the given identifier
     Type identifier_type(const string &id);
+
+    /// Checking the global declarations (constants)
     bool is_global_scope() {
         return (current_scope == nullptr);
     }
-    // result type of a operator given the type of its arguments
-    // may be Type::tunknown
+
+    /// Type of the result of an operator application, given the
+    /// type of its arguments.
     static Type operator_type(const ExpOp &id, Type arg);
+
+    /// Check range and initialization of the declaration
+    void check_decl(shared_ptr<Decl> decl);
+    void check_decl_all(shared_ptr<ModuleScope> scope);
+
+    /// Check if parameters of distributions are reducible
+    void check_dist(shared_ptr<Dist> dist);
+    void check_dist(shared_ptr<ModuleScope> scope);
+
+    /// Used to evaluate range bounds and distributions parameters
+    int eval_int_or_put(shared_ptr<Exp> exp);
+    float eval_float_or_put(shared_ptr<Exp> exp);
 public:
     ModelTC() : current_scope {nullptr},
         last_type {Type::tunknown},
         checking_property {false} {};
     virtual ~ModelTC();
+    /// Visitor functions
     void visit(shared_ptr<Model> node);
     void visit(shared_ptr<ModuleBody> node);
     void visit(shared_ptr<Decl> node);

@@ -1,6 +1,9 @@
+#include <sstream>
+
 #include "ModelVerifier.h"
 #include "ExpReductor.h"
 #include "FigException.h"
+#include "location.hh"
 
 namespace {
 //"operator%" not defined in z3++.h, let's improvise one.
@@ -67,40 +70,95 @@ bool resets_clocks_of(shared_ptr<Action> a1, shared_ptr<Action> a2) {
     return (result);
 }
 
-//todo: show more information!
-inline string warning_not_deterministic(const string& label_id) {
-    return "Preconditions of transitions with label \"" + label_id +
-            "\" do not guarantee determinism.";
+inline string warning_not_deterministic(shared_ptr<Action> a1,
+                                        shared_ptr<Action> a2) {
+    stringstream ss;
+    ss << "Preconditions of transitions";
+    ss << " [at " << *(a1->get_location()) << "]";
+    ss << " and";
+    ss << " [at " << *(a2->get_location()) << "]";
+    ss << " are not disjoint and its postconditions produce ";
+    ss << " different states, which is a potential source of non-determinism";
+    return (ss.str());
 }
 
-inline string warning_reseted_clocks_input(const string &label_id) {
-    return "Transitions of input label \"" + label_id +
-            "\" must reset the same clocks to ensure determinism.";
+
+inline string warning_reseted_clocks_input(shared_ptr<Action> a1,
+                                           shared_ptr<Action> a2) {
+    string &label1_id = a1->id;
+    string &label2_id = a2->id;
+    auto loc1 = a1->get_location();
+    auto loc2 = a2->get_location();
+    assert(label1_id == label2_id);
+    stringstream ss;
+    ss << "Transitions of input label";
+    ss << " \"" << label1_id << "\"";
+    ss << " [at " << *loc1 << "]";
+    ss << " and";
+    ss << " [at " << *loc2 << "]";
+    ss << " must reset the same clocks to ensure non-determinism";
+    return (ss.str());
 }
 
-inline string warning_reseted_clocks_output(const string &label_id,
-                                            const string &clock_id) {
-    return "Transitions of output label \"" + label_id +
-            "\" must reset the same clocks to ensure determinism,"
-            " since they are enabled by the same clock \"" + clock_id +
-            "\".";
+
+inline string warning_reseted_clocks_output(const string &clock_id,
+                                            shared_ptr<Action> a1,
+                                            shared_ptr<Action> a2) {
+    string &label1_id = a1->id;
+    string &label2_id = a2->id;
+    auto loc1 = a1->get_location();
+    auto loc2 = a2->get_location();
+    assert(label1_id == label2_id);
+    stringstream ss;
+    ss << "Transitions of output label";
+    ss << " \"" << label1_id << "\"";
+    ss << " [at " << *loc1 << "]";
+    ss << " and";
+    ss << " [at " << *loc2 << "]";
+    ss << " are enabled by the same clock";
+    ss << " \"" << clock_id << "\"";
+    ss << ", they must reset the same clocks to ensure non-determinism";
+    return (ss.str());
 }
 
 inline string warning_same_clock_different_label(const string &clock_id,
-                                                 const string &label1_id,
-                                                 const string &label2_id) {
-    return "Transitions of output labels \"" + label1_id +
-            "\" and \"" + label2_id + "\" are enabled by the same clock \""
-            + clock_id  + "\", which is a potential source of non-determinism";
+                                                 shared_ptr<Action> a1,
+                                                 shared_ptr<Action> a2) {
+    string &label1_id = a1->id;
+    string &label2_id = a2->id;
+    auto loc1 = a1->get_location();
+    auto loc2 = a2->get_location();
+    stringstream ss;
+    ss << "Transition of output labels";
+    ss << " \"" << label1_id << "\"";
+    ss << " [at " << *loc1 << "]";
+    ss << " and";
+    ss << " \"" << label2_id << "\"";
+    ss << " [at " << *loc2 << "]";
+    ss << " are enabled by the same clock";
+    ss << " \"" << clock_id << "\"";
+    ss << ", which is a potential source of non-determinism";
+    return (ss.str());
 }
 
-inline string warning_clock_exhaustation(
-        const string &clock_id,
-        const string &label1_id,
-        const string &label2_id) {
-    return "Transition of output label \"" + label1_id +
-            "\" is potentially enabled with an exhausted clock \"" + clock_id +
-            "\" via another transition with label \"" + label2_id + "\"";
+inline string warning_clock_exhaustation(const string &clock_id,
+                                         shared_ptr<Action> a1,
+                                         shared_ptr<Action> a2) {
+    string &label1_id = a1->id;
+    string &label2_id = a2->id;
+    auto loc1 = a1->get_location();
+    auto loc2 = a2->get_location();
+    stringstream ss;
+    ss << "Transition of output label";
+    ss << " \"" << label1_id << "\"";
+    ss << " [at " << *loc1 << "]";
+    ss << " is potentially enabled with an";
+    ss << " exhausted clock";
+    ss << " \"" << clock_id  << "\"";
+    ss << " via another transition with label";
+    ss << " \"" << label2_id << "\"";
+    ss << " [at " << *loc2 << "]";
+    return (ss.str());
 }
 
 } //namespace
@@ -293,16 +351,15 @@ void ModelVerifier::check_output_determinism(const string &clock_id) {
                 //this two transition potentially enabled by the same clock
                 //let's check that at least will produce the same output
                 if (label1_id != label2_id) {
-                    put_warning(::warning_same_clock_different_label(clock_id,
-                                label1_id,
-                                label2_id));
+                    auto &warn = ::warning_same_clock_different_label;
+                    put_warning(warn(clock_id, a1, a2));
                 } else {
                     //now let's check if both transitions reset the same clocks
                     bool same_clocks = ::resets_clocks_of(a1, a2) &&
                             resets_clocks_of(a2, a1);
                     if (!same_clocks) {
-                        put_warning(::warning_reseted_clocks_output(label1_id,
-                                                                    clock_id));
+                        auto &warn = ::warning_reseted_clocks_output;
+                        put_warning(warn(clock_id, a1, a2));
                     }
                     //now let's check that resulting state is the same
                     if (!has_warnings()) {
@@ -346,7 +403,8 @@ void ModelVerifier::check_input_determinism(const string &label_id) {
                     bool same_clocks = ::resets_clocks_of(a1, a2) &&
                             ::resets_clocks_of(a2, a1);
                     if (!same_clocks) {
-                        put_warning(::warning_reseted_clocks_input(label_id));
+                        auto &warn = ::warning_reseted_clocks_input;
+                        put_warning(warn(a1, a2));
                     }
                 }
             }
@@ -426,7 +484,7 @@ void ModelVerifier::check_rhs(shared_ptr<Action> a1, shared_ptr<Action> a2) {
                 solver->add(convert(arg1) != convert(arg2));
             }
             if(solver->check()) {
-                put_warning(::warning_not_deterministic(a1->id));
+                put_warning(::warning_not_deterministic(a1, a2));
             }
             solver->pop();
         }
@@ -498,10 +556,8 @@ void ModelVerifier ::check_exhausted_clocks(const string &clock_id) {
             shared_ptr<Action> a2 = *it2;
             if (!resets_clock(a2, clock_id) &&
                     enables_exhausted(a1, a2, clock_id)) {
-                string &label1 = a1->id;
-                string &label2 = a2->id;
                 auto &warn = ::warning_clock_exhaustation;
-                put_warning(warn(clock_id, label1, label2));
+                put_warning(warn(clock_id, a1, a2));
             }
             it2++;
         }

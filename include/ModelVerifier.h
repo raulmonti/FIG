@@ -58,6 +58,7 @@ public:
  *       Condition 5: "initially reseted clocks" => ensured by backend
  *       Condition 6: "general input-enabled" => ensured by backend
  *       Condition 7: @see ModelVerifier::check_input_determinism_all
+ * @note Checking are done without "reachability analisis"
  */
 class ModelVerifier : public Visitor {
 private: // Members

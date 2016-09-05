@@ -57,8 +57,12 @@ bool ExpEvaluator::get_bool() {
 }
 
 float ExpEvaluator::get_float() {
-    assert (type == Type::tfloat);
-    return (value.fvalue);
+    if (type == Type::tint) {
+        return (value.ivalue);
+    } else {
+        assert(type == Type::tfloat);
+        return (value.fvalue);
+    }
 }
 
 void ExpEvaluator::reset() {

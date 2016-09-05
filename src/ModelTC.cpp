@@ -1,9 +1,14 @@
 /* Leonardo Rodríguez */
 
+#include <cassert>
+#include <sstream>
+#include <functional>
+
 #include "ModelTC.h"
 #include "ModelPrinter.h"
 #include "DNFChecker.h"
-#include <cassert>
+#include "location.hh"
+#include "ExpEvaluator.h"
 
 using std::endl;
 using std::shared_ptr;
@@ -17,6 +22,11 @@ shared_map<string, Decl> ModuleScope::globals;
 
 //Some error messages:
 namespace {
+
+stringstream& operator<<(stringstream &ss, ModelAST model) {
+    ss << " [at " << *(model.get_location()) << "]";
+    return ss;
+}
 
 inline const string UNEXPECTED_TYPE(Type expected, Type got) {
     return "Expected type is " + ModelPrinter::to_str(expected) +
@@ -33,221 +43,293 @@ inline const string PREFIX(const shared_ptr<ModuleScope>& current_scope) {
                                       "At Module " + current_scope->id;
 }
 
-inline const string TC_WRONG_INDEX_INT(const shared_ptr<ModuleScope>& curr,
-                                       const string &id,
+inline const string TC_WRONG_INDEX_INT(const shared_ptr<ModuleScope> &curr,
+                                       const shared_ptr<Location> &loc,
+                                       const shared_ptr<Exp> &exp,
                                        Type last_type) {
-    return PREFIX(curr) +
-            " - Identifier \""  +
-            id +
-            "\" - Index expression - " +
-            UNEXPECTED_TYPE(Type::tint, last_type);
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Identifier";
+    ss << " \"" << loc->id << "\"";
+    ss << *loc;
+    ss << " - The expression for the index";
+    ss << *exp;
+    ss << " is ill-typed";
+    ss << " - " << UNEXPECTED_TYPE(Type::tint, last_type);
+    return (ss.str());
 }
 
-inline const string TC_ID_REDEFINED(const shared_ptr<ModuleScope>& curr,
+inline const string TC_ID_REDEFINED(const shared_ptr<ModuleScope> &curr,
+                                    const shared_ptr<ModelAST> &prev,
                                     const string &id) {
-    return PREFIX(curr) +
-            " - Identifier \""  +
-            id +
-            "\" was redefined";
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Identifier";
+    ss << " \"" << id << "\"";
+    ss << " is already declared";
+    ss << " at " << *(prev->get_location());
+    return (ss.str());
 }
 
-inline const string TC_ID_OUT_OF_SCOPE(const shared_ptr<ModuleScope>& curr,
-                                       const string &id) {
-    return PREFIX(curr) +
-            " - Identifier \""  +
-            id +
-            "\" is not in scope";
+inline const string TC_ID_OUT_OF_SCOPE(const shared_ptr<ModuleScope> &curr,
+                                       const shared_ptr<Location> &loc) {
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Identifier";
+    ss << " \"" << loc->id << "\"";
+    ss << " [at " << *(loc->get_location()) << "]";
+    ss << "is not in scope";
+    return (ss.str());
 }
 
 inline const string TC_WRONG_LOWER_BOUND(
         const shared_ptr<ModuleScope>& curr,
         const string &id,
+        const shared_ptr<Exp> &exp,
         const Type last_type) {
-    return PREFIX(curr) +
-            " - Identifier \"" +
-            id +
-            "\" - Lower bound of range is ill-typed - " +
-            UNEXPECTED_TYPE(Type::tint, last_type);
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Identifier";
+    ss << " \"" << id << "\"";
+    ss << " - Expression of lower bound";
+    ss << *exp;
+    ss << " is ill-typed";
+    ss << " - " << UNEXPECTED_TYPE(Type::tint, last_type);
+    return (ss.str());
 }
 
 inline const string TC_WRONG_UPPER_BOUND(
         const shared_ptr<ModuleScope>& curr,
         const string &id,
+        const shared_ptr<Exp> &exp,
         const Type last_type) {
-    return PREFIX(curr) +
-            " - Identifier \"" +
-            id +
-            "\" - Upper bound of range is ill-typed - " +
-            UNEXPECTED_TYPE(Type::tint, last_type);
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Identifier";
+    ss << " \"" << id << "\"";
+    ss << " - Expression of upper bound";
+    ss << *exp;
+    ss << " is ill-typed";
+    ss << " - " << UNEXPECTED_TYPE(Type::tint, last_type);
+    return (ss.str());
 }
 
 inline const string TC_WRONG_SIZE_EXP(const shared_ptr<ModuleScope>& curr,
                                       const string &id,
+                                      const shared_ptr<Exp> &exp,
                                       const Type last_type) {
-
-    return PREFIX(curr) +
-            " - Identifier \""  +
-            id +
-            "\" - Array size expression is ill typed - " +
-            UNEXPECTED_TYPE(Type::tint, last_type);
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Identifier";
+    ss << " \"" << id  << "\"";
+    ss << " - Array size expression is ill typed";
+    ss << *exp;
+    ss << " - " << UNEXPECTED_TYPE(Type::tint, last_type);
+    return (ss.str());
 }
 
 inline const string TC_WRONG_DIST_FST_PARAM(
-        const shared_ptr<ModuleScope>& curr,
-        const DistType &dist,
+        const shared_ptr<ModuleScope> &curr,
+        const shared_ptr<Dist> &dist,
         const Type last_type) {
-
-    return  PREFIX(curr) +
-            " - Distribution " +
-            ModelPrinter::to_str(dist) +
-            " - First parameter is ill typed - " +
-            UNEXPECTED_TYPE(Type::tfloat, last_type);
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Distribution ";
+    ss << ModelPrinter::to_str(dist->type);
+    ss << *dist;
+    ss << " - First parameter is ill typed";
+    ss << " - " << UNEXPECTED_TYPE(Type::tfloat, last_type);
+    return (ss.str());
 }
 
 inline const string TC_WRONG_DIST_SND_PARAM(
-        const shared_ptr<ModuleScope>& curr,
-        const DistType &dist,
+        const shared_ptr<ModuleScope> &curr,
+        const shared_ptr<Dist> &dist,
         const Type last_type) {
-
-    return  PREFIX(curr) +
-            " - Distribution " +
-            ModelPrinter::to_str(dist) +
-            " - Second parameter is ill typed - " +
-            UNEXPECTED_TYPE(Type::tfloat, last_type);
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Distribution ";
+    ss << ModelPrinter::to_str(dist->type);
+    ss << *dist;
+    ss << " - Second parameter is ill typed";
+    ss << " - " << UNEXPECTED_TYPE(Type::tfloat, last_type);
+    return (ss.str());
 }
 
 inline const string TC_WRONG_INIT_EXP(const shared_ptr<ModuleScope>& curr,
                                       const string &id,
+                                      const shared_ptr<Exp> &init,
                                       const Type expected,
                                       const Type last_type) {
-    return PREFIX(curr) +
-            " - Identifier \""  +
-            id +
-            "\" - Initializer is ill-typed - " +
-            UNEXPECTED_TYPE(expected, last_type);
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Identifier";
+    ss << "\"" << id  << "\"";
+    ss << " - Initialization is ill-typed";
+    ss << *init;
+    ss << " - " << UNEXPECTED_TYPE(expected, last_type);
+    return (ss.str());
 }
 
 inline const string TC_MULTIPLE_LABEL_TYPE(
         const shared_ptr<ModuleScope>& curr,
         const string &label) {
-
-    return PREFIX(curr) +
-            " - Label \""  +
-            label +
-            "\" must have a single type ";
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Label";
+    ss << " \"" << label << "\"";
+    ss << " must have a single type";
+    return (ss.str());
 }
 
 inline const string TC_MULTIPLE_CLOCK_DIST(
-        const shared_ptr<ModuleScope>& curr,
+        const shared_ptr<ModuleScope> &curr,
+        const shared_ptr<Dist> &dist1,
+        const shared_ptr<Dist> &dist2,
         const string &clock_id) {
-
-    return PREFIX(curr) +
-            " - Clock \""  +
-            clock_id +
-            "\" must have a single distribution type ";
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Clock";
+    ss << " \"" << clock_id << "\"";
+    ss << " must have a single distribution type";
+    ss << " - reseted as " << ModelPrinter::to_str(dist1->type);
+    ss << *dist1;
+    ss << " and reseted as " << ModelPrinter::to_str(dist2->type);
+    ss << *dist2;
+    return (ss.str());
 }
 
 inline const string TC_MISSING_CLOCK_DIST(
-        const shared_ptr<ModuleScope>& curr,
-        const string &clock_id) {
-
-    return PREFIX(curr) +
-            " - Clock \""  +
-            clock_id +
-            "\" must have a distribution type";
-}
-
-inline const string TC_MULTIPLE_CLOCK_FOR_LABEL(
-        const shared_ptr<ModuleScope>& curr,
-        const string &label) {
-
-    return PREFIX(curr) +
-            " - Label \""  +
-            label +
-            "\" must have a single triggering clock";
+        const shared_ptr<ModuleScope> &curr,
+        const string &clock_id,
+        const shared_ptr<Decl> decl) {
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Clock";
+    ss << " \"" << clock_id << "\"";
+    ss << *decl;
+    ss << " must have a distribution type";
+    return (ss.str());
 }
 
 inline const string TC_NOT_A_CLOCK(
-        const shared_ptr<ModuleScope>& curr,
-        const string &label,
-        const string &clock_id,
+        const shared_ptr<ModuleScope> &curr,
+        const shared_ptr<Action> &action,
         Type last_type) {
-
-    return PREFIX(curr) +
-            " - Transition of Label \""  +
-            label +
-            "\" - Identifier \"" +
-            clock_id +
-            "\" is not a clock - " +
-            UNEXPECTED_TYPE(Type::tint, last_type);
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Transition of label";
+    ss << " \"" << action->id << "\"";
+    ss << *action;
+    ss << " - Identifier";
+    ss << " \"" << action->clock_loc->id << "\"";
+    ss << " is not a clock";
+    ss << " - " << UNEXPECTED_TYPE(Type::tclock, last_type);
+    return (ss.str());
 }
 
 inline const string TC_WRONG_PRECONDITION(
         const shared_ptr<ModuleScope>& curr,
-        const string &label,
+        const shared_ptr<Action>& action,
         Type last_type) {
-
-    return PREFIX(curr) +
-            " - Transition of Label \""  +
-            label +
-            "\" - Precondition is ill-typed " +
-            UNEXPECTED_TYPE(Type::tbool, last_type);
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Transition of label";
+    if (action->type == LabelType::empty) {
+        ss << " tau";
+    } else {
+        ss << " \"" << action->id << "\"";
+    }
+    ss << " - Precondition is ill-typed";
+    ss << *(action->guard);
+    ss << " - " << UNEXPECTED_TYPE(Type::tbool, last_type);
+    return (ss.str());
 }
 
-inline const string TC_WRONG_PRECONDITION_S(
-        const shared_ptr<ModuleScope>& curr,
-        Type last_type) {
-
-    return PREFIX(curr)		+
-            " - Transition of silent label - "  +
-            " - Precondition is ill-typed - " +
-            UNEXPECTED_TYPE(Type::tbool, last_type);
-}
-
-inline const string TC_WRONG_RHS(const shared_ptr<ModuleScope>& curr,
-                                 const string &id,
+inline const string TC_WRONG_RHS(const shared_ptr<ModuleScope> &curr,
+                                 const shared_ptr<Effect> &effect,
                                  Type expected,
                                  Type last_type) {
-    return PREFIX(curr) +
-            " - Assignment of state \""  +
-            id +
-            "'\" - Right-hand side expression is ill-typed - "	+
-            UNEXPECTED_TYPE(expected, last_type);
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Assignment of state variable";
+    ss << " \"" << effect->loc->id << "\"";
+    ss << " - Right-hand side expression is ill-typed";
+    ss << *(effect->arg);
+    ss << " - " << UNEXPECTED_TYPE(expected, last_type);
+    return (ss.str());
 }
 
 inline const string TC_WRONG_FST_ARG(
-        const shared_ptr<ModuleScope>& curr, ExpOp op) {
-    return PREFIX(curr) +
-            " - Operator "  +
-            ModelPrinter::to_str(op) +
-            " - First argument has an incompatible type ";
+        const shared_ptr<ModuleScope> &curr, ExpOp op,
+        const shared_ptr<Exp> &exp) {
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Operator";
+    ss << " " << ModelPrinter::to_str(op);
+    ss << " , First argument has an incompatible type";
+    ss << *exp;
+    return (ss.str());
 }
 
 inline const string TC_WRONG_SND_ARG(
-        const shared_ptr<ModuleScope>& curr, ExpOp op) {
-    return PREFIX(curr) +
-            " - Operator "  +
-            ModelPrinter::to_str(op) +
-            " - Second argument has an incompatible type ";
+        const shared_ptr<ModuleScope> &curr, ExpOp op,
+        const shared_ptr<Exp> &exp) {
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Operator";
+    ss << " " << ModelPrinter::to_str(op);
+    ss << " , Second argument has an incompatible type";
+    ss << *exp;
+    return (ss.str());
 }
 
-inline const string TC_WRONG_PROPERTY_LEFT(PropType type, Type last_type) {
-    return "Property " + ModelPrinter::to_str(type)
-            + " expressions should be boolean - " +
-            UNEXPECTED_TYPE(Type::tbool, last_type);
+inline const string TC_WRONG_PROPERTY_LEFT(shared_ptr<Prop> prop,
+                                           Type last_type) {
+    stringstream ss;
+    ss << "Property";
+    ss << ModelPrinter::to_str(prop->type);
+    ss << " expression must be boolean";
+    ss << *(prop->left);
+    ss << " - " << UNEXPECTED_TYPE(Type::tbool, last_type);
+    return (ss.str());
 }
 
-
-inline const string TC_WRONG_PROPERTY_RIGHT(PropType type, Type last_type) {
-    return "Property " + ModelPrinter::to_str(type)
-            + " expressions should be boolean - " +
-            UNEXPECTED_TYPE(Type::tbool, last_type);
+inline const string TC_WRONG_PROPERTY_RIGHT(shared_ptr<Prop> prop,
+                                           Type last_type) {
+    stringstream ss;
+    ss << "Property";
+    ss << ModelPrinter::to_str(prop->type);
+    ss << " right expression must be boolean";
+    ss << *(prop->right);
+    ss << " - " << UNEXPECTED_TYPE(Type::tbool, last_type);
+    return (ss.str());
 }
 
-inline const string TC_NOT_DNF_PROPERTY(PropType type) {
-    return "Property " + ModelPrinter::to_str(type)
-            + " should be in Disjunctive Normal Form";
+inline const string TC_NOT_DNF_PROPERTY(PropType type, shared_ptr<Exp> exp) {
+    stringstream ss;
+    ss << "Property";
+    ss << " " << ModelPrinter::to_str(type);
+    ss << *exp;
+    ss << " must be in Disjunctive Normal Form";
+    return (ss.str());
 }
+
+inline const string TC_NOT_REDUCIBLE(shared_ptr<Exp> exp) {
+    stringstream ss;
+    ss << "Expression";
+    ss << *exp;
+    ss << " must be reducible at compilation time";
+    return (ss.str());
+}
+
+inline const string TC_WRONG_INIT_VALUE(shared_ptr<Exp> exp) {
+    stringstream ss;
+    ss << "Initialization value incompatible with the provided range";
+    ss << *exp;
+    return (ss.str());
+}
+
 }
 
 bool type_leq(Type t1, Type t2) {
@@ -348,9 +430,67 @@ void ModelTC::check_clocks(shared_ptr<ModuleScope> scope) {
         const string &id = entry.first;
         if (decl->type == Type::tclock) {
             if (scope->clock_dists.find(id) == scope->clock_dists.end()) {
-                put_error(TC_MISSING_CLOCK_DIST(scope, id));
+                put_error(TC_MISSING_CLOCK_DIST(scope, id, decl));
             }
         }
+    }
+}
+
+int ModelTC::eval_int_or_put(shared_ptr<Exp> exp) {
+    ExpEvaluator ev;
+    exp->accept(ev);
+    int result = -1;
+    if (ev.has_errors()) {
+        put_error(::TC_NOT_REDUCIBLE(exp));
+    } else {
+        result = ev.get_int();
+    }
+    return (result);
+}
+
+float ModelTC::eval_float_or_put(shared_ptr<Exp> exp) {
+    ExpEvaluator ev;
+    exp->accept(ev);
+    float result = -1;
+    if (ev.has_errors()) {
+        put_error(::TC_NOT_REDUCIBLE(exp));
+    } else {
+        result = ev.get_float();
+    }
+    return (result);
+}
+
+void ModelTC::check_decl(shared_ptr<Decl> decl) {
+    if (decl->has_range()) {
+        int low  = eval_int_or_put(decl->lower);
+        int upp  = eval_int_or_put(decl->upper);
+        if (!has_errors() && decl->has_single_init()) {
+            int init = eval_int_or_put(decl->inits.at(0));
+            if (! (low <= init && init <= upp)) {
+                put_error(::TC_WRONG_INIT_VALUE(decl->inits.at(0)));
+            }
+        }
+    }
+}
+
+void ModelTC::check_dist(shared_ptr<Dist> dist) {
+    if (dist->arity == Arity::one) {
+        eval_float_or_put(dist->param1);
+    } else if (dist->arity == Arity::two) {
+        eval_float_or_put(dist->param1);
+        eval_float_or_put(dist->param2);
+    }
+}
+
+void ModelTC::check_dist(shared_ptr<ModuleScope> scope) {
+    for (auto entry : scope->clock_dists) {
+        check_dist(entry.second);
+    }
+}
+
+void ModelTC::check_decl_all(shared_ptr<ModuleScope> scope) {
+    for (auto entry : scope->local_decls) {
+        check_decl(entry.second);
     }
 }
 
@@ -369,7 +509,8 @@ void ModelTC::visit(shared_ptr<Model> model) {
         const shared_ptr<ModuleScope>& new_scope = make_shared<ModuleScope>();
         const string &id = ids[i];
         if (scopes.find(id) != scopes.end()) {
-            put_error(TC_ID_REDEFINED(current_scope, id));
+            shared_ptr<ModelAST> prev = scopes[id]->body;
+            put_error(TC_ID_REDEFINED(current_scope, prev, id));
         }
         new_scope->body = bodies[i];
         new_scope->id = id;
@@ -385,9 +526,14 @@ void ModelTC::visit(shared_ptr<Model> model) {
     }
     //some extra checks after "scopes" has been built
     if (!has_errors()) {
+        for (auto entry : ModuleScope::globals) {
+            check_decl(entry.second);
+        }
         for (auto entry : scopes) {
             const auto &scope_current = entry.second;
             check_clocks(scope_current);
+            check_decl_all(scope_current);
+            check_dist(scope_current);
         }
     }
 }
@@ -412,27 +558,32 @@ void ModelTC::visit(shared_ptr<Decl> decl) {
     if (decl->has_range()) {
         //check range expressions
         accept_cond(decl->lower);
+        auto &error = TC_WRONG_LOWER_BOUND;
         check_type(Type::tint,
-                   TC_WRONG_LOWER_BOUND(current_scope, id, last_type));
+                   error(current_scope, id, decl->lower, last_type));
         accept_cond(decl->upper);
+        auto &error2 = TC_WRONG_UPPER_BOUND;
         check_type(Type::tint,
-                   TC_WRONG_UPPER_BOUND(current_scope, id, last_type));
+                   error2(current_scope, id, decl->upper, last_type));
     }
     if (decl->is_array()) {
         //check array size expression
         accept_cond(decl->size);
-        check_type(Type::tint, TC_WRONG_SIZE_EXP(current_scope, id, last_type));
+        check_type(Type::tint,
+                   TC_WRONG_SIZE_EXP(current_scope, id, decl->size, last_type));
     }
     for (auto &init : decl->get_inits()) {
         //check initialization expressions
         accept_cond(init);
         check_type(decl->type,
-                   TC_WRONG_INIT_EXP(current_scope, id, decl->type, last_type));
+                   TC_WRONG_INIT_EXP(current_scope, id, init,
+                                     decl->type, last_type));
     }
     if (is_global_scope()) {
         //check if already in global scope
         if (globals.find(id) != globals.end()) {
-            put_error(TC_ID_REDEFINED(current_scope, id));
+            shared_ptr<ModelAST> prev = globals[id];
+            put_error(TC_ID_REDEFINED(current_scope, prev, id));
         } else {
             globals[id] = decl;
         }
@@ -440,7 +591,8 @@ void ModelTC::visit(shared_ptr<Decl> decl) {
         //check if decl is already in local scope
         auto &local = current_scope->local_decls;
         if (local.find(id) != local.end()) {
-            put_error(TC_ID_REDEFINED(current_scope, id));
+            shared_ptr<ModelAST> prev = local[id];
+            put_error(TC_ID_REDEFINED(current_scope, prev, id));
         } else {
             local[id] = decl;
         }
@@ -469,18 +621,13 @@ void ModelTC::visit(shared_ptr<Action> action) {
     //Note: input label has no clock: ensured by grammar.
     assert(action->guard != nullptr);
     accept_cond(action->guard);
-    if (label_type != LabelType::empty) {
-        check_type(Type::tbool,
-                   TC_WRONG_PRECONDITION(current_scope, label, last_type)) ;
-    } else {
-        check_type(Type::tbool,
-                   TC_WRONG_PRECONDITION_S(current_scope, last_type)) ;
-    }
+    check_type(Type::tbool,
+               TC_WRONG_PRECONDITION(current_scope, action, last_type)) ;
     if (action->has_clock()) {
         accept_cond(action->clock_loc);
         const string &clock_id = action->clock_loc->id;
         check_type(Type::tclock,
-                   TC_NOT_A_CLOCK(current_scope, label, clock_id, last_type));
+                   TC_NOT_A_CLOCK(current_scope, action, last_type));
         current_scope->triggered_actions.
                 insert(std::make_pair(clock_id, action));
     }
@@ -503,9 +650,11 @@ void ModelTC::visit(shared_ptr<Effect> effect) {
         auto &clock_dists = current_scope->clock_dists;
         string &clock_id = effect->loc->id;
         if (clock_dists.find(clock_id) != clock_dists.end()) {
-            DistType dist_type = clock_dists[clock_id]->type;
+            shared_ptr<Dist> dist = clock_dists[clock_id];
+            DistType dist_type = dist->type;
             if (dist_type != effect->dist->type) {
-                put_error(TC_MULTIPLE_CLOCK_DIST(current_scope, clock_id));
+                put_error(TC_MULTIPLE_CLOCK_DIST(current_scope,
+                                                 dist, effect->dist, clock_id));
             }
         } else {
             clock_dists[clock_id] = effect->dist;
@@ -514,8 +663,7 @@ void ModelTC::visit(shared_ptr<Effect> effect) {
     if (effect->is_state_change()) {
         accept_cond(effect->arg);
         check_type(loc_type,
-                   TC_WRONG_RHS(current_scope,
-                                effect->loc->id, loc_type, last_type));
+                   TC_WRONG_RHS(current_scope, effect, loc_type, last_type));
     }
 }
 
@@ -524,18 +672,15 @@ void ModelTC::visit(shared_ptr<Dist> dist) {
     if (dist->arity == Arity::one) {
         accept_cond(dist->param1);
         check_type(Type::tfloat,
-                   TC_WRONG_DIST_FST_PARAM(current_scope,
-                                           dist->type, last_type));
+                   TC_WRONG_DIST_FST_PARAM(current_scope, dist, last_type));
     }
     if (dist->arity == Arity::two) {
         accept_cond(dist->param1);
         check_type(Type::tfloat,
-                   TC_WRONG_DIST_FST_PARAM(current_scope,
-                                           dist->type, last_type));
+                   TC_WRONG_DIST_FST_PARAM(current_scope, dist, last_type));
         accept_cond(dist->param2);
         check_type(Type::tfloat,
-                   TC_WRONG_DIST_SND_PARAM(current_scope,
-                                           dist->type, last_type));
+                   TC_WRONG_DIST_SND_PARAM(current_scope, dist, last_type));
     }
 }
 
@@ -551,7 +696,7 @@ void ModelTC::visit(shared_ptr<Location> loc) {
                 decl = ModuleScope::find_in_all_modules(id);
             }
             if (decl == nullptr) {
-                put_error(TC_ID_OUT_OF_SCOPE(current_scope, id));
+                put_error(TC_ID_OUT_OF_SCOPE(current_scope, loc));
             }
         }
     }
@@ -560,13 +705,13 @@ void ModelTC::visit(shared_ptr<Location> loc) {
         //location could be local or global
         if (local.find(id) == local.end() &&
                 globals.find(id) == globals.end()) {
-            put_error(TC_ID_OUT_OF_SCOPE(current_scope, id));
+            put_error(TC_ID_OUT_OF_SCOPE(current_scope, loc));
         }
     }
     if (loc->is_array_position()) {
         accept_cond(loc->index);
-        check_type(Type::tint,
-                   TC_WRONG_INDEX_INT(current_scope, loc->id, last_type));
+        auto &error = TC_WRONG_INDEX_INT;
+        check_type(Type::tint, error(current_scope, loc, loc->index, last_type));
     }
     last_type = identifier_type(loc->id);
 }
@@ -600,7 +745,7 @@ void ModelTC::visit(shared_ptr<OpExp> exp){
         accept_cond(exp->left);
         res_type = operator_type(exp->bop, last_type);
         if (!has_errors() && res_type == Type::tunknown) {
-            put_error(TC_WRONG_FST_ARG(current_scope, exp->bop));
+            put_error(TC_WRONG_FST_ARG(current_scope, exp->bop, exp));
         }
         last_type = res_type;
         exp->type = res_type;
@@ -608,18 +753,18 @@ void ModelTC::visit(shared_ptr<OpExp> exp){
         accept_cond(exp->left);
         res_type = operator_type(exp->bop, last_type);
         if (!has_errors() && res_type == Type::tunknown) {
-            put_error(TC_WRONG_FST_ARG(current_scope, exp->bop));
+            put_error(TC_WRONG_FST_ARG(current_scope, exp->bop, exp));
         }
         Type fst_type = last_type;
         accept_cond(exp->right);
         res_type = operator_type(exp->bop, last_type);
         if (!has_errors() &&  res_type == Type::tunknown) {
-            put_error(TC_WRONG_SND_ARG(current_scope, exp->bop));
+            put_error(TC_WRONG_SND_ARG(current_scope, exp->bop, exp));
         }
         Type snd_type = last_type;
         if (! (type_leq(fst_type, snd_type) || type_leq(snd_type, fst_type))) {
             //both types should be equal or subtypes (int->float)
-            put_error(TC_WRONG_SND_ARG(current_scope, exp->bop));
+            put_error(TC_WRONG_SND_ARG(current_scope, exp->bop, exp));
         }
         last_type = res_type;
         exp->type = res_type;
@@ -631,7 +776,7 @@ void ModelTC::check_dnf(PropType type, shared_ptr<Exp> exp) {
     if (!has_errors()) {
         exp->accept(dnf_checker);
         if (!dnf_checker.is_dnf()) {
-            put_error(TC_NOT_DNF_PROPERTY(type));
+            put_error(TC_NOT_DNF_PROPERTY(type, exp));
         }
     }
 }
@@ -639,11 +784,11 @@ void ModelTC::check_dnf(PropType type, shared_ptr<Exp> exp) {
 void ModelTC::visit(shared_ptr<Prop> prop) {
     checking_property = true;
     accept_cond(prop->left);
-    check_type(Type::tbool, TC_WRONG_PROPERTY_LEFT(prop->type, last_type));
+    check_type(Type::tbool, TC_WRONG_PROPERTY_LEFT(prop, last_type));
     check_dnf(prop->type, prop->left);
     if (prop->type == PropType::transient) {
         accept_cond(prop->right);
-        check_type(Type::tbool, TC_WRONG_PROPERTY_RIGHT(prop->type, last_type));
+        check_type(Type::tbool, TC_WRONG_PROPERTY_RIGHT(prop, last_type));
         check_dnf(prop->type, prop->right);
     }
     checking_property = false;

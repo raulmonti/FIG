@@ -35,11 +35,6 @@ public:
         msg << "[Error] " << error << std::endl;
     }
 
-    void put_error(const string& error, ModelParserGen::position position) {
-        put_error(error);
-        msg << "\t" << position << std::endl;
-    }
-
     void put_warning(const string& msg) {
         _has_warnings = true;
         this->msg << "[Warning] " << msg << std::endl;

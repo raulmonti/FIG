@@ -235,12 +235,18 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
     }
     log("- Type-checking succeeded.\n");
 
-    ModelVerifier verifier;
-    model->accept(verifier);
-    if (verifier.has_warnings()) {
-        log("IOSA Checking failed.\n");
-        log(verifier.get_messages());
-        exit(EXIT_FAILURE);
+    const unsigned long int ntrans_bound = 1ul<<7ul; // Raul's bound.
+    if (ModuleScope::modules_size_bounded_by(ntrans_bound)) {
+        ModelVerifier verifier;
+        model->accept(verifier);
+        if (verifier.has_warnings()) {
+            log("- IOSA Checking FAILED.\n");
+            log(verifier.get_messages());
+        } else {
+            log("- IOSA Checking succeeded.\n");
+        }
+    } else {
+        log("- IOSA Checking skipped since model is too big.\n");
     }
 
     ModelBuilder builder;
@@ -249,7 +255,7 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
         log(builder.get_messages());
         exit(EXIT_FAILURE);
     }
-    log("- Model building succeeded\n");
+    log("- Model building succeeded.\n");
 
     //seal it
     log("- Sealing model\n");
