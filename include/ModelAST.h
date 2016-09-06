@@ -135,7 +135,7 @@ public:
     shared_vector<class ModuleBody> modules;
     /// List of modules names.
     vector<string> modules_ids;
-    /// Global declarations (constants)
+	/// Global declarations (currently just constants)
     shared_vector<class Decl> globals;
     /// Properties of the model.
     shared_vector<Prop> props;
@@ -701,23 +701,38 @@ public:
     /// @note call only if has_errors() or has_warnings() is true.
     string get_messages();
 
-    /// Visitor functions, one for each node. Default implementation: do
-    /// nothing.
-    virtual void visit(shared_ptr<ModelAST> node);
-    virtual void visit(shared_ptr<Prop> node);
-    virtual void visit(shared_ptr<Model> node);
-    virtual void visit(shared_ptr<ModuleBody> node);
-    virtual void visit(shared_ptr<Decl> node);
-    virtual void visit(shared_ptr<Action> node);
-    virtual void visit(shared_ptr<Effect> node);
-    virtual void visit(shared_ptr<Dist> node);
-    virtual void visit(shared_ptr<Location> node);
-    virtual void visit(shared_ptr<Exp> node);
-    virtual void visit(shared_ptr<IConst> node);
-    virtual void visit(shared_ptr<BConst> node);
-    virtual void visit(shared_ptr<FConst> node);
-    virtual void visit(shared_ptr<LocExp> node);
-    virtual void visit(shared_ptr<OpExp> node);
+	/// Visitor functions, one for each node
+	/// @note These aren't pure-virtual to avoid forcing implementation.
+	///       Instead they're implemented as default-NOP virtual functions
+	virtual void visit(shared_ptr<ModelAST>)   { /* NOP */ }
+	/// @copydoc visit(shared_ptr<ModelAST>)
+	virtual void visit(shared_ptr<Prop>)       { /* NOP */ }
+	/// @copydoc visit(shared_ptr<ModelAST>)
+	virtual void visit(shared_ptr<Model>)      { /* NOP */ }
+	/// @copydoc visit(shared_ptr<ModelAST>)
+	virtual void visit(shared_ptr<ModuleBody>) { /* NOP */ }
+	/// @copydoc visit(shared_ptr<ModelAST>)
+	virtual void visit(shared_ptr<Decl>)       { /* NOP */ }
+	/// @copydoc visit(shared_ptr<ModelAST>)
+	virtual void visit(shared_ptr<Action>)     { /* NOP */ }
+	/// @copydoc visit(shared_ptr<ModelAST>)
+	virtual void visit(shared_ptr<Effect>)     { /* NOP */ }
+	/// @copydoc visit(shared_ptr<ModelAST>)
+	virtual void visit(shared_ptr<Dist>)       { /* NOP */ }
+	/// @copydoc visit(shared_ptr<ModelAST>)
+	virtual void visit(shared_ptr<Location>)   { /* NOP */ }
+	/// @copydoc visit(shared_ptr<ModelAST>)
+	virtual void visit(shared_ptr<Exp>)        { /* NOP */ }
+	/// @copydoc visit(shared_ptr<ModelAST>)
+	virtual void visit(shared_ptr<IConst>)     { /* NOP */ }
+	/// @copydoc visit(shared_ptr<ModelAST>)
+	virtual void visit(shared_ptr<BConst>)     { /* NOP */ }
+	/// @copydoc visit(shared_ptr<ModelAST>)
+	virtual void visit(shared_ptr<FConst>)     { /* NOP */ }
+	/// @copydoc visit(shared_ptr<ModelAST>)
+	virtual void visit(shared_ptr<LocExp>)     { /* NOP */ }
+	/// @copydoc visit(shared_ptr<ModelAST>)
+	virtual void visit(shared_ptr<OpExp>)      { /* NOP */ }
 };
 
 #endif

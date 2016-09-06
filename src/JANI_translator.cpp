@@ -47,6 +47,9 @@
 #include <json.h>
 
 using std::shared_ptr;
+using std::make_shared;
+using std::string;
+using std::vector;
 
 
 namespace   // // // // // // // // // // // // // // // // // // // // // // //
@@ -152,9 +155,11 @@ compose_iosa_fname(const string& janiFname, const string& iosaFname = "")
 /// @return Whether the JANI model seems valid and convertible to IOSA
 bool jani_is_valid_iosa(const Json::Value& JANIjson, bool fatal = true)
 {
-	if (!JANIjson.isObject() ||
+	if (!JANIjson.isObject()               ||
 		!JANIjson.isMember("jani-version") ||
-		!JANIjson.isMember("type") ||
+		!JANIjson.isMember("name")         ||
+		!JANIjson.isMember("type")         ||
+		!JANIjson.isMember("system")       ||
 		!JANIjson.isMember("automata")) {
 		if (fatal)
 			throw_FigException("invalid JANI format");
@@ -240,7 +245,21 @@ add_model_globals(Json::Value& root, shared_ptr<Model> iosaModel)
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-std::shared_ptr<ModelAST> JaniTranslator::modelAST = nullptr;
+//Json::Value JaniTranslator::JANIroot = Json::Value(Json::nullValue);
+//vector< string > JANITracfield;
+
+
+JaniTranslator::JaniTranslator() :
+	JANIroot(make_shared<Json::Value>(Json::Value(Json::nullValue)))
+{ /* Not much to do around here */ }
+
+
+JaniTranslator::~JaniTranslator()
+{
+	JANIroot->clear();
+	JANIroot.reset();
+	vector<string>().swap(cfield);
+}
 
 
 // std::fstream
@@ -307,17 +326,21 @@ JaniTranslator::IOSA_2_JANI(const std::string& iosaModelFile,
 		throw_FigException("failed parsing IOSA files for JANI translation");
 
 	// Translate IOSA to JANI
-	Json::Value root;
-	add_jani_header(root, iosaModelFile);
-	add_model_globals(root, model);
+	JANIroot->clear();
+	add_jani_header(*JANIroot, iosaModelFile);
+	model->accept(*this);
+	if (!jani_is_valid_iosa(*JANIroot, false))
+		throw_FigException("failed translating IOSA files to the "
+						   "JANI Specifiaction format");
 
 	/// @todo TODO translate IOSA parsed AST to JANI-Json and store in JsonCPP
+	add_model_globals(*JANIroot, model);
 
 
 	// Dump JANI-spec translation in file and exit (FIXME!)
 	auto janiFname = compose_jani_fname(iosaModelFile, janiFilename);
 	std::ofstream janiFile(janiFname);
-	janiFile << root;
+	janiFile << *JANIroot;
 	assert(janiFile.good());
 	janiFile.close();
 
@@ -362,6 +385,62 @@ JaniTranslator::JANI_2_IOSA(const std::string& janiModelFile,
 	/// @todo TODO write translated model in 'iosaFile'
 
 	return iosaFname;
+}
+
+
+void
+JaniTranslator::visit(shared_ptr<Model> node)
+{
+	// Format JANIroot
+	JANIroot = make_shared<Json::Value>(Json::objectValue);
+
+	// Parse global constants
+	JANIfield = make_shared<Json::Value>(Json::arrayValue);
+	for (auto dec_ptr : node->get_globals())
+		dec_ptr->accept(*this);
+	(*JANIroot)["constants"] = *JANIfield;
+
+	/// @todo TODO continue with translation from IOSA to JANI-Json
+}
+
+
+void
+JaniTranslator::visit(shared_ptr<Decl> node)
+{
+	Json::Value JANIobj(Json::objectValue);
+	JANIobj["name"] = node->id.c_str();
+	if (!node->has_range()) {
+		switch (node->type)
+		{
+		case Type::tbool:
+			JANIobj["type"] = "bool";
+			if (constant) // how do we know?
+				JANIobj["value"] = ;  // must resolve to true/false/number
+			else // variable
+				JANIobj["initial-value"] = /**/;
+			break;
+		case Type::tint:
+			JANIobj["type"] = "int";
+			break;
+		case Type::tclock:
+			JANIobj["type"] = "clock";
+			break;
+		default:
+			throw_FigException("unknown declaration type");
+			break;
+		}
+	} else {
+
+	}
+
+	/// @todo TODO continue with translation from IOSA to JANI-Json
+
+
+	// Store translated data in corresponding field
+	if (JANIfield->isArray())
+		JANIfield->append(JANIobj);
+	else
+		(*JANIfield) = JANIobj;
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

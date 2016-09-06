@@ -132,66 +132,6 @@ Visitor::Visitor() {
     message = make_shared<ErrorMessage>();
 }
 
-void Visitor::visit(shared_ptr<ModelAST> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<Model> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<ModuleBody> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<Decl> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<Action> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<Effect> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<Dist> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<Location> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<Exp> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<IConst> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<BConst> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<FConst> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<LocExp> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<OpExp> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<Prop> node) {
-    (void) node;
-}
-
 void Visitor::put_error(const string &msg) {
     message->put_error(msg);
 }

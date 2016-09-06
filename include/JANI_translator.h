@@ -29,10 +29,15 @@
 #ifndef JANI_TRANSLATOR_H
 #define JANI_TRANSLATOR_H
 
+// C++
 #include <string>
+#include <vector>
 #include <memory>
+// External code
+#include <json-forwards.h>
+// FIG
+#include <ModelAST.h>
 
-class ModelAST;
 
 namespace fig
 {
@@ -46,14 +51,17 @@ namespace fig
 /// From FIG's point of view the files correspond to
 /// <a href="http://dsg.famaf.unc.edu.ar/node/643">Input/Output Stochastic
 /// Automata</a> (IOSA).
-class JaniTranslator
+class JaniTranslator : public Visitor
 {
-public: // Offered data
+public:  // Ctor/Dtor
 
-	/// Last parsed IOSA model, or nullptr if none
-	static std::shared_ptr<ModelAST> modelAST;
+	/// Empty ctor
+	JaniTranslator();
 
-public: // Offered facilities
+	/// Default dtor
+	~JaniTranslator();
+
+public:  // Translation facilities
 
 	/**
 	 * Translate existing IOSA model file to <a href="http://jani-spec.org/">
@@ -76,7 +84,7 @@ public: // Offered facilities
 	 *       have that name. Otherwise a name related to 'iosaModelFile' is
 	 *       automatically generated.
 	 */
-	static std::string
+	std::string
 	IOSA_2_JANI(const std::string& iosaModelFile,
 				const std::string& iosaPropsFile = "",
 				const std::string& janiFilename = "",
@@ -100,9 +108,25 @@ public: // Offered facilities
 	 *       have that name. Otherwise a name related to 'janiModelFile' is
 	 *       automatically generated.
 	 */
-	static std::string
+	std::string
 	JANI_2_IOSA(const std::string& janiModelFile,
 				const std::string& iosaFilename = "");
+
+private:  // Class attributes
+
+	/// JsonCPP of the last parsed model, in JANI Specifiaction format
+	shared_ptr< Json::Value > JANIroot;
+
+	/// Current JSON field to fill in with info from last parsed IOSA model
+	shared_ptr< Json::Value > JANIfield;
+
+private:  // Class utlis
+
+	/// Populate JANIroot with all data we can extract from given Model
+	/// @warning Deletes any pre-existent data in JANIroot
+	void visit(shared_ptr<Model> node) override;
+
+	void visit(shared_ptr<Decl> node) override;
 };
 
 } // namespace fig

@@ -54,8 +54,8 @@
 
 static bool print_intro(const int& argc, const char** argv);
 static bool file_exists(const std::string& filepath);
-static shared_ptr<ModelAST> translate_JANI();
-static void compile_model(shared_ptr<ModelAST> modelAST);
+static void interact_with_JANI();
+static void compile_model(bool modelAlreadyBuilt);
 
 
 //  Configuration of the estimation run  ///////////////////////////////////////
@@ -102,7 +102,7 @@ int main(int argc, char** argv)
 	try {
 		if (janiSpec.janiInteraction) {
 			double start = omp_get_wtime();
-			modelAST = translate_JANI();
+			interact_with_JANI();
 			std::stringstream ss; ss << "JANI translation time: " << std::fixed;
 			ss << std::setprecision(2) << omp_get_wtime()-start << " s\n\n";
 			tech_log(ss.str());
@@ -122,7 +122,7 @@ int main(int argc, char** argv)
 	// Compile IOSA model and properties to check
 	try {
 		double start = omp_get_wtime();
-		compile_model(modelAST);
+		compile_model(janiSpec.janiInteraction);  // JANI interaction => model was built
 		std::stringstream ss; ss << "Model building time: " << std::fixed;
 		ss << std::setprecision(2) << omp_get_wtime()-start << " s\n\n";
 		tech_log(ss.str());
@@ -229,9 +229,10 @@ bool file_exists(const std::string& filepath)
 }
 
 
-shared_ptr<ModelAST> translate_JANI()
+void interact_with_JANI()
 {
 	auto log = fig::ModelSuite::main_log;
+	fig::JaniTranslator translator;
 
 	if (fig::JaniTranny::FROM_JANI == janiSpec.translateDirection) {
 		log("Translating from JANI Specification format to IOSA model syntax\n");
@@ -240,9 +241,8 @@ shared_ptr<ModelAST> translate_JANI()
 				+ janiSpec.modelFileJANI +"\" not found! ***\n");
 			throw_FigException("file with JANI model not found");
 		}
-		fig::JaniTranslator::JANI_2_IOSA(janiSpec.modelFileJANI,
-										 janiSpec.modelFileIOSA);
-		return fig::JaniTranslator::modelAST;  // return parsed IOSA model
+		translator.JANI_2_IOSA(janiSpec.modelFileJANI,
+							   janiSpec.modelFileIOSA);
 
 	} else if (fig::JaniTranny::TO_JANI == janiSpec.translateDirection) {
 		log("Translating from IOSA model syntax to JANI Specification format\n");
@@ -258,29 +258,31 @@ shared_ptr<ModelAST> translate_JANI()
 			throw_FigException("file with properties not found");
 		}
 		const bool checkIOSAcorrectness = !forceOperation;
-		fig::JaniTranslator::IOSA_2_JANI(janiSpec.modelFileIOSA,
-										 janiSpec.propsFileIOSA,
-										 janiSpec.modelFileJANI,
-										 checkIOSAcorrectness);
-		return nullptr;
+		translator.IOSA_2_JANI(janiSpec.modelFileIOSA,
+							   janiSpec.propsFileIOSA,
+							   janiSpec.modelFileJANI,
+							   checkIOSAcorrectness);
 
 	} else {
-		log("Ill-defined JANI/IOSA interaction -- Skipping translation\n");
-		return nullptr;
+		log("Ill-defined JANI-IOSA interaction -- Skipping translation\n");
 	}
 }
 
 
-void compile_model(shared_ptr<ModelAST> modelAST)
+void compile_model(bool modelAlreadyBuilt)
 {
 	auto log = fig::ModelSuite::main_log;
 	auto tech_log = fig::ModelSuite::tech_log;
+	shared_ptr<ModelAST> modelAST(nullptr);
 	ModelTC typechecker;
 	ModelVerifier verifier;
 	ModelBuilder builder;
 
-	if (nullptr != modelAST)  // parsing already done during JANI interaction
+	if (modelAlreadyBuilt) {
+		// Parsing + model building already done during JANI interaction
+		tech_log("- Model successfully built during JANI translation\n");
 		goto seal_model;
+	}
 
 	// Check for required files
 	log("Model file: " + modelFile);
