@@ -410,37 +410,57 @@ JaniTranslator::visit(shared_ptr<Decl> node)
 	Json::Value JANIobj(Json::objectValue);
 	JANIobj["name"] = node->id.c_str();
 	if (!node->has_range()) {
+		// Constant/Clock
 		switch (node->type)
 		{
 		case Type::tbool:
 			JANIobj["type"] = "bool";
-			if (constant) // how do we know?
-				JANIobj["value"] = ;  // must resolve to true/false/number
-			else // variable
-				JANIobj["initial-value"] = /**/;
+			JANIobj["value"] = ;  // must resolve to true/false
 			break;
 		case Type::tint:
 			JANIobj["type"] = "int";
+			JANIobj["value"] = ;  // must resolve to number
 			break;
 		case Type::tclock:
 			JANIobj["type"] = "clock";
+			JANIobj["value"] = 0;
 			break;
 		default:
 			throw_FigException("unknown declaration type");
 			break;
 		}
 	} else {
-
+		// Integral variable (JANI's "bounded")
+		const shared_ptr<Json::Value> tmp(JANIfield);
+		assert(node->type == Type::tint);
+		Json::Value type(Json::objectValue);
+		type["kind"] = "bounded";
+		type["base"] = "int";
+		JANIfield.reset(Json::Value(Json::objectValue));
+		visit(node->lower);
+		type["lower-bound"] = *JANIfield;
+		JANIfield.reset(Json::Value(Json::objectValue));
+		visit(node->upper);
+		type["upper-bound"] = *JANIfield;
+		JANIobj["type"] = type;
+		JANIfield.reset(Json::Value(Json::objectValue));
+		visit((*(node->inits))[0]);
+		JANIobj["initial-value"] = *JANIfield;
+		JANIfield = tmp;
 	}
-
-	/// @todo TODO continue with translation from IOSA to JANI-Json
-
-
 	// Store translated data in corresponding field
 	if (JANIfield->isArray())
 		JANIfield->append(JANIobj);
 	else
 		(*JANIfield) = JANIobj;
 }
+
+
+void
+JaniTranslator::visit(shared_ptr<Exp> node)
+{
+	/// @todo TODO implement (this should be a recursive function)
+}
+
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

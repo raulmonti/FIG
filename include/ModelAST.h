@@ -262,8 +262,8 @@ public:
  */
 class Decl : public ModelAST {
 public:
-    /// The type of the declaration
-    Type type;
+	/// The type of the declaration: tint, tbool, tfloat, tclock, tunknown.
+	Type type;
 
     /// The name of the declaration (identifier)
     string id;

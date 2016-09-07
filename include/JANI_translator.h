@@ -126,7 +126,11 @@ private:  // Class utlis
 	/// @warning Deletes any pre-existent data in JANIroot
 	void visit(shared_ptr<Model> node) override;
 
+	/// Append/assign in JANIfield the JANI translation of this IOSA
+	/// declaration, which can be a constant, a bounded value, or a clock
 	void visit(shared_ptr<Decl> node) override;
+
+	void visit(shared_ptr<Exp> node) override;
 };
 
 } // namespace fig
