@@ -718,7 +718,7 @@ void ModelTC::visit(shared_ptr<Location> loc) {
 
 void ModelTC::visit(shared_ptr<IConst> exp) {
     last_type = Type::tint;
-    //expressions should set the inferred type for itself.
+    //expression should set the inferred type for itself.
     exp->type = last_type;
 }
 

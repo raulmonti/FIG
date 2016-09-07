@@ -56,44 +56,41 @@ public:  // Attributes
 	/// Label per se
 	const std::string str;
 
-	/// Create output labels by default
-	static constexpr bool default_output = true;
-
 private:
+        /// Type of labels
+        enum class LType {input, output, tau, commited};
 
-	/// Label type. Inputs are "non-outputs"
-	bool output_;
+        /// Label type.
+        LType type_;
 
-public: // Ctors
+        /// Private constructor
+        Label(const std::string &str, LType type)
+            : str {str}, type_ {type} {}
 
-	/// Taus (aka empty labels) are silent outputs
-	Label() : output_(true) {}
+public:
+        static Label make_input(const std::string &str) {
+            if (str.empty()) {
+                throw_FigException("Cannot create an input "
+                                   "label from an empty string");
+            }
+            return Label(str, LType::input);
+        }
 
-	/**
-	 * @brief Copy data ctor
-	 * @note  Notice output labels can not be empty
-	 * @throw FigException if str.empty() and isOutput
-	 */
-	Label(const std::string& str, bool isOutput = default_output) :
-		str(str),
-		output_(isOutput)
-		{
-			if (!isOutput && this->str.empty())
-				throw_FigException("can't construct an empty input label");
-		}
+        static Label make_output(const std::string &str) {
+            if (str.empty()) {
+                throw_FigException("Cannot create an output "
+                                   "label from an empty string");
+            }
+            return Label(str, LType::output);
+        }
 
-	/**
-	 * @brief Move data ctor
-	 * @note  Notice output labels can not be empty
-	 * @throw FigException if str.empty() and isOutput
-	 */
-	Label(std::string&& str, bool isOutput = default_output) :
-		str(str),
-		output_(isOutput)
-		{
-			if (!isOutput && this->str.empty())
-				throw_FigException("can't construct an empty input label");
-		}
+        static Label make_tau() {
+            return Label(std::string(), LType::tau);
+        }
+
+        static Label make_commited(const std::string &str) {
+            return Label(str, LType::commited);
+        }
 
 	/// Copy ctor
 	Label(const Label& that) = default;
@@ -109,7 +106,7 @@ public:  // Relational operators
 
 	/**
 	 * @brief Tell whether this and that Labels match
-	 * @note  Doesn't distinguish between input and output
+         * @note  Doesn't distinguish between label types
 	 * @see   same_as()
 	 */
 	inline bool operator==(const Label& that) const noexcept
@@ -119,16 +116,25 @@ public:  // Relational operators
 
 	/**
 	 * @brief Tell whether this and that Labels are exactly equal
-	 * @note  Distinguishes between input and output
+         * @note  Distinguishes between label types
 	 * @see   operator==()
 	 */
 	inline bool same_as(const Label& that) const noexcept
-		{ return output_ == that.output_ && str == that.str; }
+                { return type_ == that.type_ && str == that.str; }
 
 public:  // Accessors
-	inline bool is_tau()    const noexcept { return str.empty(); }
-	inline bool is_input()  const noexcept { return !output_; }
-	inline bool is_output() const noexcept { return  output_; }
+        inline bool is_tau()    const noexcept {
+            return (type_ == LType::tau);
+        }
+        inline bool is_input()  const noexcept {
+            return (type_ == LType::input);
+        }
+        inline bool is_output() const noexcept {
+            return (type_ == LType::output);
+        }
+        inline bool is_commited() const noexcept {
+            return (type_ == LType::commited);
+        }
 };
 
 

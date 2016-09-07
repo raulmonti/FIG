@@ -50,7 +50,7 @@ using std::begin;
 using std::end;
 
 
-namespace { const fig::Label TAU; }
+namespace { const fig::Label TAU = fig::Label::make_tau(); }
 
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
@@ -275,7 +275,7 @@ ModuleInstance::jump(const Traial::Timeout& to,
 				firstClock_,
 				elapsedTime);
             // Finally broadcast the output label triggered
-			assert(tr.label().is_output());
+            assert(!tr.label().is_input());
 			return tr.label();
 		}
 	}
@@ -294,7 +294,7 @@ ModuleInstance::jump(const Label& label,
 	if (!sealed_)
 		throw_FigException("this module hasn't been sealed yet");
 #endif
-	assert(label.is_output());
+    assert(!label.is_input());
 	const auto iter = transitions_by_label_.find(label.str);
     // Foreign labels and taus won't touch us
     if (!label.is_tau() && end(transitions_by_label_) != iter) {
