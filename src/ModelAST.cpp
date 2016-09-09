@@ -24,14 +24,13 @@ shared_ptr<ModelAST> ModelAST::from_files(const char *model_file,
     int res = parser.parse();
     scan_end();
     if (result != nullptr && prop_file != nullptr) {
+        //try to read more properties from the properties file.
         file = fopen(prop_file, "r");
-        if (file == nullptr) {
-            std::cerr << "Properties file does not exists!" << std::endl;
-            exit(1);
+        if (file != nullptr) {
+            scan_begin(file);
+            res = parser.parse();
+            scan_end();
         }
-        scan_begin(file);
-        res = parser.parse();
-        scan_end();
     }
     return (res == 0 ? result : nullptr);
 }

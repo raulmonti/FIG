@@ -146,7 +146,7 @@ UnlabeledValueArg<string> modelFile_(
 UnlabeledValueArg<string> propertiesFile_(
 	"propertiesFile",
 	"Path to the file with the properties to estimate",
-	true, "",
+    false, "",
 	"propertiesFile");
 
 // Simulation engine

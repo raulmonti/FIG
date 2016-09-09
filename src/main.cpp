@@ -211,12 +211,18 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
         log(" *** Error: file not found! ***\n");
         exit(EXIT_FAILURE);
     }
-    log("\nProperties file: " + propsFilePath);
-    if (!file_exists(propsFilePath)) {
-        log(" *** Error: file not found! ***\n");
-        exit(EXIT_FAILURE);
+
+    if (propsFilePath.empty()) {
+        log("\nNo properties file given. "
+            "Properties must be present in model file.\n");
+    } else {
+        log("\nProperties file: " + propsFilePath);
+        if (!file_exists(propsFilePath)) {
+            log(" *** Error: file not found! ***\n");
+            exit(EXIT_FAILURE);
+        }
+        log("\n\n");
     }
-    log("\n\n");
 
     shared_ptr<ModelAST> model
             = ModelAST::from_files(modelFilePath.c_str(), propsFilePath.c_str());
@@ -225,8 +231,6 @@ void build_model(const std::string& modelFilePath, const std::string& propsFileP
         exit(EXIT_FAILURE);
     }
     
-    //ModelPrinter printer;
-    //model->accept(printer);
     ModelTC typechecker;
     model->accept(typechecker);
     if (typechecker.has_errors()) {
