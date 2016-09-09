@@ -58,7 +58,7 @@ public:  // Attributes
 
 private:
         /// Type of labels
-        enum class LType {input, output, tau, commited};
+        enum class LType {input, output, tau, committed};
 
         /// Label type.
         LType type_;
@@ -89,7 +89,7 @@ public:
         }
 
         static Label make_commited(const std::string &str) {
-            return Label(str, LType::commited);
+            return Label(str, LType::committed);
         }
 
 	/// Copy ctor
@@ -132,8 +132,8 @@ public:  // Accessors
         inline bool is_output() const noexcept {
             return (type_ == LType::output);
         }
-        inline bool is_commited() const noexcept {
-            return (type_ == LType::commited);
+        inline bool is_committed() const noexcept {
+            return (type_ == LType::committed);
         }
 };
 

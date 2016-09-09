@@ -256,18 +256,33 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 {
 	assert(sealed());
 	Event e(EventType::NONE);
-
+    shared_ptr<const ModuleInstance> active_module = nullptr;
+    shared_ptr<Label> label = nullptr;
+    shared_ptr<Traial::CommittedAction> committed;
+    float elapsedTime = 0.0f;
 	// Jump...
 	do {
-		const Traial::Timeout& to = traial.next_timeout();
-		const float elapsedTime(to.value);
-		assert(0.0f <= elapsedTime);
-        // Active jump in the module whose clock timed-out
-		const Label& label = to.module->jump(to, traial);
+        committed = traial.first_enabled_commited();
+        if (committed != nullptr) {
+            active_module = committed->module;
+            label = make_shared<Label>(committed->transition->label());
+            const Postcondition &pos = committed->transition->postcondition();
+            pos(traial.state);
+        } else {
+            const Traial::Timeout& to = traial.next_timeout();
+            elapsedTime = to.value;
+            assert(0.0f <= elapsedTime);
+            // Active jump in the module whose clock timed-out
+            active_module = to.module;
+            label = make_shared<Label>(active_module->jump(to, traial));
+        }
+
 		// Passive jumps in all modules listening to label
-		for (auto module_ptr: modules)
-			if (module_ptr->name != to.module->name)
-				module_ptr->jump(label, elapsedTime, traial);
+        for (auto module_ptr: modules) {
+            if (module_ptr->name != active_module->name) {
+                module_ptr->jump(*label, elapsedTime, traial);
+            }
+        }
 		traial.lifeTime += elapsedTime;
 	// ...until a relevant event is observed
 	} while ( !(engine.*watch_events)(property, traial, e) );

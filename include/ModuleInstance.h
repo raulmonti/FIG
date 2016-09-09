@@ -78,6 +78,7 @@ class Property;
 class ModuleInstance : public Module
 {
 	friend class ModuleNetwork;
+        friend class Traial;
 
 	/// Local \ref Variable "variables"
 	State< STATE_INTERNAL_TYPE > lState_;
