@@ -51,7 +51,10 @@ void DNFChecker::visit(shared_ptr<OpExp> exp) {
     case ExpOp::andd:
     {
         assert (exp->arity == Arity::two);
-        _dnf = false;
+        //cannot be in dnf unless it is a single clause
+        ClauseChecker clause;
+        exp->accept(clause);
+        _dnf = clause.is_clause();
         break;
     }
     default:
