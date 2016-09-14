@@ -274,6 +274,13 @@ inline bool ModuleNetwork::process_committed_once(Traial &traial) const {
     return (found);
 }
 
+inline void ModuleNetwork::process_committed(Traial &traial) const {
+    while (process_committed_once(traial)) {
+        //repeat until no committed action enabled
+        ;
+    }
+}
+
 template< typename DerivedProperty,
           class Simulator,
           class TraialMonitor >
@@ -287,9 +294,9 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 
     // Jump...
     do {
-        //process committed action
+        //process committed actions
         //note: this could reset clocks and change next timeout.
-        process_committed_once(traial);
+        process_committed(traial);
         const Traial::Timeout& to = traial.next_timeout();
         const float elapsedTime(to.value);
         assert(0.0f <= elapsedTime);

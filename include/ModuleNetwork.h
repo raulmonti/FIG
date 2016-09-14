@@ -251,9 +251,8 @@ public:  // Utils
 									Update update,
 									Predicate pred) const;
 private: //Committed actions processing
-        bool process_committed_once(Traial &traial) const;
-
-
+        bool process_committed_once(Traial &traial) const;        
+        void process_committed(Traial &Traial) const;
 public: //Debug
         void print_info(std::ostream &out) const;
 
