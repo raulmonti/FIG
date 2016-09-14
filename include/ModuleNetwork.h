@@ -86,7 +86,7 @@ private:
 	size_t numClocks_;
 
 	/// Whether the system model has already been sealed for simulations
-	bool sealed_;
+        bool sealed_;
 
 public:  // Ctors/Dtor
 
@@ -250,6 +250,10 @@ public:  // Utils
 	ImportanceValue peak_simulation(Traial& traial,
 									Update update,
 									Predicate pred) const;
+private: //Committed actions processing
+        bool process_committed_once(Traial &traial) const;
+
+
 public: //Debug
         void print_info(std::ostream &out) const;
 

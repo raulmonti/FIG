@@ -40,7 +40,6 @@
 #include <core_typedefs.h>
 #include <State.h>
 #include <Clock.h>
-#include <Label.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -53,7 +52,6 @@ namespace fig
 class ModuleInstance;
 class ModuleNetwork;
 class ImportanceFunction;
-class Transition;
 
 /**
  * @brief Simulation kernel (or 'trial trail')
@@ -95,19 +93,6 @@ public:
 			module(themodule), name(thename), value(thevalue), gpos(theglobalpos) {}
 	};
 
-        /// Paraphernalia needed on committed activation.
-        struct CommittedAction {
-            /// Module that owns this commited transition
-            std::shared_ptr<const ModuleInstance> module;
-            /// Precondition of transition
-            std::shared_ptr<const Transition> transition;
-            /// Data ctor
-            CommittedAction(std::shared_ptr<const ModuleInstance> module,
-                           std::shared_ptr<const Transition> transition) :
-                module {module}, transition {transition} {}
-            CommittedAction() : module {nullptr}, transition {nullptr} {}
-        };
-
 public:  // Attributes
 
 	/// Importance/Threshold level where the Traial currently is
@@ -140,9 +125,6 @@ private:
 	/// Position of smallest non-negative Clock value in clocks_.
 	/// Negative if all are null.
 	int nextClock_;
-
-        /// \ref Transition "Transitions" with commited actions
-        std::vector< CommittedAction > committed_;
 
 private:  // Ctors: TraialPool should be the only one to create Traials
 
@@ -244,9 +226,6 @@ public:  // Utils
 			return clocks_[nextClock_];
 		}
 
-
-        std::shared_ptr<CommittedAction> first_enabled_commited();
-
     /**
      * @brief Make time elapse in specified range of clocks
      *
@@ -282,10 +261,7 @@ private:  // Class utils
 	/// Throw an exception showing current (supposedly) deadlock state
 	/// @throw FigException Always throws
 	void
-        report_deadlock();
-
-        /// Fill the "committed_" vector
-        void populate_committed(std::shared_ptr<ModuleInstance> module);
+	report_deadlock();
 };
 
 } // namespace fig

@@ -36,11 +36,14 @@ string ModelPrinter::to_str(LabelType type) {
     case LabelType::out:
         result = "Output";
         break;
-    case LabelType::commited:
-        result = "Commited";
+    case LabelType::out_committed:
+        result = "Output Committed";
         break;
-    case LabelType::empty:
-        result = "None";
+    case LabelType::in_committed:
+        result = "Input Committed";
+        break;
+    case LabelType::tau:
+        result = "Tau";
         break;
     }
     return result;

@@ -341,8 +341,9 @@ Label build_label(const string &id, LabelType type) {
     switch(type) {
     case LabelType::in : return Label::make_input(id);
     case LabelType::out: return Label::make_output(id);
-    case LabelType::commited: return Label::make_commited(id);
-    case LabelType::empty: return Label::make_tau();
+    case LabelType::out_committed: return Label::make_out_committed(id);
+    case LabelType::in_committed: return Label::make_in_committed(id);
+    case LabelType::tau: return Label::make_tau();
     default:
         throw_FigException("Unsupported label type");
     }

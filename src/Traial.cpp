@@ -49,19 +49,9 @@
 using std::begin;
 using std::end;
 
+
 namespace fig
 {
-
-void Traial::populate_committed(shared_ptr<ModuleInstance> module) {
-    auto& transitions = module->transitions_;
-    this->committed_.reserve(transitions.size());
-    for (Transition& tr : transitions) {
-        if (tr.label().is_committed()) {
-            shared_ptr<const Transition> ptr = make_shared<Transition>(tr);
-            this->committed_.push_back(CommittedAction(module, ptr));
-        }
-    }
-}
 
 Traial::Traial(const size_t& stateSize, const size_t& numClocks) :
     level(static_cast<ImportanceValue>(0u)),
@@ -81,7 +71,6 @@ Traial::Traial(const size_t& stateSize, const size_t& numClocks) :
 			// following assumes we're iterating a vector
 			// and thus the access to the clocks is sequentially ordered
 			clocks_.emplace_back(module_ptr, clock.name(), 0.0f, clkPos++);
-        populate_committed(module_ptr);
 	}
 }
 
@@ -112,7 +101,6 @@ Traial::Traial(const size_t& stateSize,
 								 clkPos);
 			clkPos++;
 		}
-        populate_committed(module_ptr);
 	}
 	if (orderTimeouts)
 		reorder_clocks();
@@ -152,7 +140,6 @@ Traial::Traial(const size_t& stateSize,
 								 clock.name(),
 								 must_reset(clock.name()) ? clock.sample() : 0.0f,
 								 firstClock++);
-        populate_committed(module_ptr);
 	}
 	if (orderTimeouts)
 		reorder_clocks();
@@ -220,22 +207,9 @@ Traial::initialize(const ModuleNetwork& network,
 						   : impFun.importance_of(state);
 	depth = -static_cast<short>(level);
 	numLevelsCrossed = 0;
-    lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
+	lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
 }
 
-std::shared_ptr<Traial::CommittedAction> Traial::first_enabled_commited() {
-    unsigned int i = 0;
-    bool found = false;
-    shared_ptr<Traial::CommittedAction> curr = nullptr;
-    while (i < committed_.size() && !found) {
-        curr = make_shared<Traial::CommittedAction>(committed_.at(i));
-        if ((*curr).transition->precondition()(this->state)) {
-            found = true;
-        }
-        i++;
-    }
-    return (curr);
-}
 
 void
 Traial::reorder_clocks()
