@@ -408,46 +408,59 @@ void
 JaniTranslator::visit(shared_ptr<Decl> node)
 {
 	Json::Value JANIobj(Json::objectValue);
+	ModelBuilder builder;
+
 	JANIobj["name"] = node->id.c_str();
-	if (!node->has_range()) {
+
+	if (node->has_range()) {
+		// Integral variable (JANI's "BoundedType" of base "int")
+		assert(node->type == Type::tint);
+		assert(node->has_single_init());
+		Json::Value type(Json::objectValue);
+		type["kind"] = "bounded";
+		type["base"] = "int";
+		type["lower-bound"] = builder.get_int_or_error(node->inits.at(0),
+									  "failed to reduce lower bound of "
+									  "variable \"" + node->id + "\"\n");
+		type["upper-bound"] = builder.get_int_or_error(node->inits.at(0),
+									  "failed to reduce upper bound of "
+									  "variable \"" + node->id + "\"\n");
+		JANIobj["type"] = type;
+		JANIobj["initial-value"] = builder.get_int_or_error(node->inits.at(0),
+									  "failed to reduce initial value of "
+									  "variable \"" + node->id + "\"\n");
+	} else {
 		// Constant/Clock
 		switch (node->type)
 		{
 		case Type::tbool:
+			assert(node->has_single_init());
 			JANIobj["type"] = "bool";
-			JANIobj["value"] = ;  // must resolve to true/false
+			JANIobj["value"] = builder.get_bool_or_error(node->inits.at(0),
+									   "failed to reduce boolean value of "
+									   "constant \""+ node->id + "\"\n");
 			break;
 		case Type::tint:
+			assert(node->has_single_init());
 			JANIobj["type"] = "int";
-			JANIobj["value"] = ;  // must resolve to number
+			JANIobj["value"] = builder.get_int_or_error(node->inits.at(0),
+									   "failed to reduce integer value of "
+									   "constant \"" + node->id + "\"\n");
 			break;
 		case Type::tclock:
 			JANIobj["type"] = "clock";
 			JANIobj["value"] = 0;
 			break;
 		default:
-			throw_FigException("unknown declaration type");
+			throw_FigException("unknown constant/clock declaration type: "
+							   + std::to_string(node->type));
 			break;
 		}
-	} else {
-		// Integral variable (JANI's "bounded")
-		const shared_ptr<Json::Value> tmp(JANIfield);
-		assert(node->type == Type::tint);
-		Json::Value type(Json::objectValue);
-		type["kind"] = "bounded";
-		type["base"] = "int";
-		JANIfield.reset(Json::Value(Json::objectValue));
-		visit(node->lower);
-		type["lower-bound"] = *JANIfield;
-		JANIfield.reset(Json::Value(Json::objectValue));
-		visit(node->upper);
-		type["upper-bound"] = *JANIfield;
-		JANIobj["type"] = type;
-		JANIfield.reset(Json::Value(Json::objectValue));
-		visit((*(node->inits))[0]);
-		JANIobj["initial-value"] = *JANIfield;
-		JANIfield = tmp;
 	}
+
+	if (builder.has_errors() || builder.has_warnings())
+		throw_FigException("error translating declaration: "+builder.get_messages());
+
 	// Store translated data in corresponding field
 	if (JANIfield->isArray())
 		JANIfield->append(JANIobj);
