@@ -223,21 +223,6 @@ add_jani_header(Json::Value& root, const string& iosaModelFile)
 	}
 }
 
-
-/// Add IOSA model global definitions to JsonCPP object
-/// @note Currently only constants can have global scope
-void
-add_model_globals(Json::Value& root, shared_ptr<Model> iosaModel)
-{
-	assert(root.isObject());
-	assert(nullptr != iosaModel);
-
-	iosaModel->get_globals();
-	shared_vector<class Decl> globals;
-
-	/// @todo TODO implement!!!
-}
-
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
 
 
@@ -258,7 +243,8 @@ JaniTranslator::~JaniTranslator()
 {
 	JANIroot->clear();
 	JANIroot.reset();
-	vector<string>().swap(cfield);
+	JANIfield->clear();
+	JANIfield.reset();
 }
 
 
@@ -329,13 +315,18 @@ JaniTranslator::IOSA_2_JANI(const std::string& iosaModelFile,
 	JANIroot->clear();
 	add_jani_header(*JANIroot, iosaModelFile);
 	model->accept(*this);
+
+	/// @todo erase debug print
+	std::cerr << *JANIroot << std::endl;
+//	for (auto it = JANIroot->begin() ; it != JANIroot->end() ; it++)
+//		std::cerr << "\tJSON data: \"" << *it << "\"\n";
+//	for (const auto& field: JANIroot->getMemberNames())
+//		std::cerr << "\tField: \"" << field << "\"\n";
+	throw_FigException("prematurely aborted");
+
 	if (!jani_is_valid_iosa(*JANIroot, false))
 		throw_FigException("failed translating IOSA files to the "
 						   "JANI Specifiaction format");
-
-	/// @todo TODO translate IOSA parsed AST to JANI-Json and store in JsonCPP
-	add_model_globals(*JANIroot, model);
-
 
 	// Dump JANI-spec translation in file and exit (FIXME!)
 	auto janiFname = compose_jani_fname(iosaModelFile, janiFilename);
@@ -343,6 +334,7 @@ JaniTranslator::IOSA_2_JANI(const std::string& iosaModelFile,
 	janiFile << *JANIroot;
 	assert(janiFile.good());
 	janiFile.close();
+	figTechLog << "Translated JANI file: " << janiFname << std::endl;
 
 	return janiFname;
 }
@@ -392,12 +384,13 @@ void
 JaniTranslator::visit(shared_ptr<Model> node)
 {
 	// Format JANIroot
-	JANIroot = make_shared<Json::Value>(Json::objectValue);
+	if (JANIroot->isObject() && JANIroot->isMember("automata"))
+		JANIroot = make_shared<Json::Value>(Json::objectValue);
 
 	// Parse global constants
 	JANIfield = make_shared<Json::Value>(Json::arrayValue);
-	for (auto dec_ptr : node->get_globals())
-		dec_ptr->accept(*this);
+	for (auto decl_ptr : node->get_globals())
+		decl_ptr->accept(*this);
 	(*JANIroot)["constants"] = *JANIfield;
 
 	/// @todo TODO continue with translation from IOSA to JANI-Json
@@ -453,7 +446,7 @@ JaniTranslator::visit(shared_ptr<Decl> node)
 			break;
 		default:
 			throw_FigException("unknown constant/clock declaration type: "
-							   + std::to_string(node->type));
+							   + std::to_string(static_cast<int>(node->type)));
 			break;
 		}
 	}

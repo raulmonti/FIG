@@ -38,11 +38,16 @@ using fig::State;
 using std::set;
 using std::pair;
 
+namespace fig { class JaniTranslator; }
+
 /**
  * @brief This class processes a ModelAST object and builds
  * a model using the ModelSuite API.
  */
 class ModelBuilder : public Visitor {
+
+	friend class fig::JaniTranslator;
+
 private:
     /// Alias for the global instance of the model.
     ModelSuite &model_suite = ModelSuite::get_instance();

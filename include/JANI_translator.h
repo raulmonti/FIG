@@ -123,7 +123,8 @@ private:  // Class attributes
 private:  // Class utlis
 
 	/// Populate JANIroot with all data we can extract from given Model
-	/// @warning Deletes any pre-existent data in JANIroot
+	/// @warning If there's some previously parsed model information
+	///          then the JANIroot will be cleared from all data
 	void visit(shared_ptr<Model> node) override;
 
 	/// Append/assign in JANIfield the JANI translation of this IOSA

@@ -622,14 +622,25 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 
 	try {
 		// Add all defined arguments and options to TCLAP's command line parser
+
+
+		/// @todo TODO find a way to request either JANI or normal parameters
+		std::vector< Arg* > stopCondsOrJani(stopCondSpecs);
+		stopCondsOrJani.emplace_back(JANIimport_);
+		stopCondsOrJani.emplace_back(JANIexport_);
+		std::vector< Arg* > impFunOrJani(impFunSpecs);
+		impFunOrJani.emplace_back(JANIimport_);
+		impFunOrJani.emplace_back(JANIexport_);
+
+
 		cmd_.add(modelFile_);
 		cmd_.add(propertiesFile_);
 		cmd_.add(engineName_);
 		cmd_.add(thrTechnique_);
 		cmd_.add(JANIimport_);
 		cmd_.add(JANIexport_);
-		cmd_.orAdd(stopCondSpecs);
-		cmd_.xorAdd(impFunSpecs);
+		cmd_.orAdd(stopCondsOrJani);
+		cmd_.xorAdd(impFunOrJani);
 		cmd_.add(impPostProc);
 		cmd_.add(timeout);
 		cmd_.add(splittings_);
