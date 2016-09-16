@@ -147,11 +147,11 @@ private:  // Class utlis
 
 	/// Append/assign in JANIfield the identifyer of this location (aka variable)
 	/// @note Arrays are not yet supported
-	void visit(shared_ptr<LocExp> node)  override { /* TODO */ }
+	void visit(shared_ptr<LocExp> node)  override;
 
 	/// Append/assign in JANIfield the JANI translation of this IOSA
 	/// unary/binary operator.
-	void visit(shared_ptr<OpExp> node) override { /* TODO */ }
+	void visit(shared_ptr<OpExp> node) override;
 };
 
 } // namespace fig

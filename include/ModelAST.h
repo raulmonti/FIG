@@ -4,6 +4,7 @@
 #define __MODEL_AST_H__
 #include <cassert>
 #include <map>
+#include <set>
 #include <memory>
 #include <iostream>
 #include <sstream>
@@ -185,7 +186,10 @@ public:
     const vector<string> &get_modules_ids() const {
         return (modules_ids);
     }
-    
+
+	/// Returns (only the ids of) the labels of all modules of this model
+	std::set<string> get_labels_ids() const;
+
     /// Returns the global declarations of this model
     const vector<shared_ptr<class Decl>>& get_globals() const {
         return (globals);

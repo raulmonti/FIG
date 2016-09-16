@@ -61,6 +61,16 @@ void ModelAST::on_scanner_error(const string &msg) {
 	figTechLog << "Syntax error: " << msg << std::endl;
 }
 
+std::set<string> Model::get_labels_ids() const {
+	std::set<string> result;
+	for (const auto m_ptr: modules) {
+		for (const auto a_ptr: m_ptr->actions) {
+			result.emplace(a_ptr->id);
+		}
+	}
+	return result;
+}
+
 void Model::accept(Visitor& visit) {
     //my_type == Model
     using my_type = std::remove_pointer<decltype(this)>::type;

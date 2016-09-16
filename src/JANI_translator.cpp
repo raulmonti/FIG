@@ -32,6 +32,7 @@
 #include <cassert>
 #include <cstring>
 // C++
+#include <map>
 #include <memory>
 #include <fstream>
 // FIG
@@ -53,6 +54,25 @@ using std::vector;
 
 namespace   // // // // // // // // // // // // // // // // // // // // // // //
 {
+
+const std::map< ExpOp, std::string > JANI_operator_string =
+{
+	{ ExpOp::nott,   "¬"},
+	{ ExpOp::andd,   "∧"},
+	{ ExpOp::orr,    "∨"},
+	{ ExpOp::eq,     "="},
+	{ ExpOp::neq,    "≠"},
+	{ ExpOp::lt,     "<"},
+	{ ExpOp::gt,     ">"},
+	{ ExpOp::le,     "≤"},
+	{ ExpOp::ge,     "≥"},
+	{ ExpOp::plus,   "+"},
+	{ ExpOp::minus,  "-"},
+	{ ExpOp::times,  "*"},
+	{ ExpOp::div,    "/"},
+	{ ExpOp::mod,    "%"}
+};
+
 
 /// Build parser AST model of IOSA model file (and properties)
 shared_ptr<Model>
@@ -390,9 +410,18 @@ JaniTranslator::visit(shared_ptr<Model> node)
 
 	// Parse global constants
 	JANIfield = make_shared<Json::Value>(Json::arrayValue);
-	for (auto decl_ptr : node->get_globals())
+	for (auto decl_ptr: node->get_globals())
 		decl_ptr->accept(*this);
 	(*JANIroot)["constants"] = *JANIfield;
+
+	// Get the names of the labels (JANI's "actions") from all modules
+	(*JANIroot)["actions"] = Json::Value(Json::arrayValue);
+	for (auto label: node->get_labels_ids()) {
+		Json::Value action(Json::objectValue);
+		action["name"] = label.c_str();
+		(*JANIroot)["actions"].append(action);
+	}
+
 
 	/// @todo TODO continue with translation from IOSA to JANI-Json
 }
@@ -446,6 +475,13 @@ JaniTranslator::visit(shared_ptr<Decl> node)
 									   "failed to reduce integer value of "
 									   "constant \"" + node->id + "\"\n");
 			break;
+		case Type::tfloat:
+			assert(node->has_single_init());
+			JANIobj["type"] = "real";
+			JANIobj["value"] = builder.get_float_or_error(node->inits.at(0),
+									   "failed to reduce floating point value "
+									   "of constant \"" + node->id + "\"\n");
+			break;
 		case Type::tclock:
 			JANIobj["type"] = "clock";
 			JANIobj["value"] = 0;
@@ -495,6 +531,62 @@ JaniTranslator::visit(shared_ptr<FConst> node)
 		JANIfield->append(node->value);
 	else
 		(*JANIfield) = node->value;
+}
+
+
+void
+JaniTranslator::visit(shared_ptr<LocExp> node)
+{
+	if (node->location->is_array_position())
+		throw_FigException("arrays not yet supported");
+	if (JANIfield->isArray())
+		JANIfield->append(node->location->id.c_str());
+	else
+		(*JANIfield) = node->location->id.c_str();
+}
+
+
+void
+JaniTranslator::visit(shared_ptr<OpExp> node)
+{
+	Json::Value JANIobj(Json::objectValue), EMPTY_JSON_OBJ(JANIobj);
+	const auto tmp = *JANIfield;
+	// Translate operator
+#ifndef NRANGECHK
+	JANIobj["op"] = JANI_operator_string.at(node->bop).c_str();
+#else
+	JANIobj["op"] = JANI_operator_string[node->bop].c_str();
+#endif
+	// Translate operands
+	switch (node->arity)
+	{
+	case Arity::one:
+		*JANIfield = EMPTY_JSON_OBJ;
+		node->left->accept(*this);
+		JANIobj["exp"] = *JANIfield;
+		// NOTE: won't work for JANI's "derivative", which shouldn't affect us
+		break;
+
+	case Arity::two:
+		*JANIfield = EMPTY_JSON_OBJ;
+		node->left->accept(*this);
+		JANIobj["left"] = *JANIfield;
+		*JANIfield = EMPTY_JSON_OBJ;
+		node->right->accept(*this);
+		JANIobj["right"] = *JANIfield;
+		break;
+
+	default:
+		throw_FigException("invalid operator arity: code '" +
+						   std::to_string(static_cast<int>(node->arity)) + "'");
+		break;
+	}
+	JANIfield->clear();
+	*JANIfield = tmp;
+	if (JANIfield->isArray())
+		JANIfield->append(JANIobj);
+	else
+		(*JANIfield) = JANIobj;
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //
