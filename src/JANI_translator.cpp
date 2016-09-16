@@ -38,7 +38,6 @@
 #include <string_utils.h>
 #include <JANI_translator.h>
 #include <ModelVerifier.h>
-#include <ModelBuilder.h>
 #include <ModelAST.h>
 #include <ModelTC.h>
 #include <FigException.h>
@@ -235,7 +234,9 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 
 
 JaniTranslator::JaniTranslator() :
-	JANIroot(make_shared<Json::Value>(Json::Value(Json::nullValue)))
+	JANIroot(make_shared<Json::Value>(Json::Value(Json::nullValue))),
+	JANIfield(make_shared<Json::Value>(Json::Value(Json::nullValue))),
+	builder()
 { /* Not much to do around here */ }
 
 
@@ -401,25 +402,30 @@ void
 JaniTranslator::visit(shared_ptr<Decl> node)
 {
 	Json::Value JANIobj(Json::objectValue);
-	ModelBuilder builder;
+	assert( ! (builder.has_errors() || builder.has_warnings()) );
 
 	JANIobj["name"] = node->id.c_str();
 
-	if (node->has_range()) {
+	if (node->has_range() && node->type == Type::tint) {
 		// Integral variable (JANI's "BoundedType" of base "int")
-		assert(node->type == Type::tint);
 		assert(node->has_single_init());
 		Json::Value type(Json::objectValue);
 		type["kind"] = "bounded";
 		type["base"] = "int";
-		type["lower-bound"] = builder.get_int_or_error(node->inits.at(0),
+		type["lower-bound"] = builder.get_int_or_error(node->lower,
 									  "failed to reduce lower bound of "
 									  "variable \"" + node->id + "\"\n");
-		type["upper-bound"] = builder.get_int_or_error(node->inits.at(0),
+		type["upper-bound"] = builder.get_int_or_error(node->upper,
 									  "failed to reduce upper bound of "
 									  "variable \"" + node->id + "\"\n");
 		JANIobj["type"] = type;
 		JANIobj["initial-value"] = builder.get_int_or_error(node->inits.at(0),
+									  "failed to reduce initial value of "
+									  "variable \"" + node->id + "\"\n");
+	} else if ( /* FIXME: ??? && */ node->type == Type::tbool) {
+		// Boolean variable (JANI's "BasicType" "bool")
+		JANIobj["type"] = "bool";
+		JANIobj["initial-value"] = builder.get_bool_or_error(node->inits.at(0),
 									  "failed to reduce initial value of "
 									  "variable \"" + node->id + "\"\n");
 	} else {
@@ -452,7 +458,7 @@ JaniTranslator::visit(shared_ptr<Decl> node)
 	}
 
 	if (builder.has_errors() || builder.has_warnings())
-		throw_FigException("error translating declaration: "+builder.get_messages());
+		throw_FigException("error translating declaration: " + builder.get_messages());
 
 	// Store translated data in corresponding field
 	if (JANIfield->isArray())
@@ -463,10 +469,32 @@ JaniTranslator::visit(shared_ptr<Decl> node)
 
 
 void
-JaniTranslator::visit(shared_ptr<Exp> node)
+JaniTranslator::visit(shared_ptr<BConst> node)
 {
-	/// @todo TODO implement (this should be a recursive function)
+	if (JANIfield->isArray())
+		JANIfield->append(node->value ? "true" : "false");
+	else
+		(*JANIfield) = node->value ? "true" : "false";
 }
 
+
+void
+JaniTranslator::visit(shared_ptr<IConst> node)
+{
+	if (JANIfield->isArray())
+		JANIfield->append(node->value);
+	else
+		(*JANIfield) = node->value;
+}
+
+
+void
+JaniTranslator::visit(shared_ptr<FConst> node)
+{
+	if (JANIfield->isArray())
+		JANIfield->append(node->value);
+	else
+		(*JANIfield) = node->value;
+}
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

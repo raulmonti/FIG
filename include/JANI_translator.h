@@ -37,6 +37,7 @@
 #include <json-forwards.h>
 // FIG
 #include <ModelAST.h>
+#include <ModelBuilder.h>
 
 
 namespace fig
@@ -120,18 +121,37 @@ private:  // Class attributes
 	/// Current JSON field to fill in with info from last parsed IOSA model
 	shared_ptr< Json::Value > JANIfield;
 
+	/// Constructor of IOSA-FIG objects from AST structures
+	ModelBuilder builder;
+
 private:  // Class utlis
 
 	/// Populate JANIroot with all data we can extract from given Model
 	/// @warning If there's some previously parsed model information
-	///          then the JANIroot will be cleared from all data
+	///          then JANIroot will be cleared from all data
 	void visit(shared_ptr<Model> node) override;
 
 	/// Append/assign in JANIfield the JANI translation of this IOSA
 	/// declaration, which can be a constant, a bounded value, or a clock
 	void visit(shared_ptr<Decl> node) override;
 
-	void visit(shared_ptr<Exp> node) override;
+	/// Append/assign in JANIfield the reduction of this IOSA boolean constant.
+	void visit(shared_ptr<BConst> node) override;
+
+	/// Append/assign in JANIfield the reduction of this IOSA integral constant.
+	void visit(shared_ptr<IConst> node) override;
+
+	/// Append/assign in JANIfield the reduction of this IOSA floating point constant
+	/// (i.e. JANI's "real")
+	void visit(shared_ptr<FConst> node) override;
+
+	/// Append/assign in JANIfield the identifyer of this location (aka variable)
+	/// @note Arrays are not yet supported
+	void visit(shared_ptr<LocExp> node)  override { /* TODO */ }
+
+	/// Append/assign in JANIfield the JANI translation of this IOSA
+	/// unary/binary operator.
+	void visit(shared_ptr<OpExp> node) override { /* TODO */ }
 };
 
 } // namespace fig

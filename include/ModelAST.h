@@ -616,7 +616,7 @@ public:
  */
 class LocExp : public Exp {
 public:
-    /// The location that should be readed
+	/// The location that should be read
     /// to obtain the value of this expression
     shared_ptr<Location> location;
 

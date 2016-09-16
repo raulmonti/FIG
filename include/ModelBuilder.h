@@ -38,7 +38,7 @@ using fig::State;
 using std::set;
 using std::pair;
 
-namespace fig { class JaniTranslator; }
+namespace fig { class JaniTranslator; }  // Fwd dec. for friendship
 
 /**
  * @brief This class processes a ModelAST object and builds

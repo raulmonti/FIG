@@ -285,13 +285,13 @@ void compile_model(bool modelAlreadyBuilt)
 	}
 
 	// Check for required files
-	log("Model file: " + modelFile);
+	log("Model file: " + modelFile + "\n");
 	if (!file_exists(modelFile)) {
 		log(" *** Error: file not found! ***\n");
 		throw_FigException("file with model not found");
 	}
 	if (!propertiesFile.empty()) {
-		log("\nProperties file: " + propertiesFile);
+		log("Properties file: " + propertiesFile + "\n");
 		if (!file_exists(propertiesFile)) {
 			log(" *** Error: file not found! ***\n");
 			throw_FigException("file with properties not found");
@@ -354,7 +354,7 @@ void compile_model(bool modelAlreadyBuilt)
 	}
 	tech_log("- Model sealing  succeeded\n\n");
 
-	log(std::string("\nModel") +
+	log(std::string("Model") +
 	    (propertiesFile.empty() ? (" file ") : (" and properties files "))
 	    + "successfully compiled.\n\n");
 }
