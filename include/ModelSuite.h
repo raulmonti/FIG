@@ -229,7 +229,7 @@ public:  // Populating facilities and other modifyers
 	 * @warning The ModelSuite must have been \ref seal() "sealed" beforehand
 	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
 	 */
-	void set_splitting(const unsigned& spt);
+	void set_splitting(const unsigned& spt, bool verbose = false);
 	
 	/**
 	 * @brief Set a wall-clock-time limit for simulations
@@ -750,7 +750,7 @@ ModelSuite::process_batch(
 		for (const auto& split: splittingValues) {
 			// ... choose the thresholds ...
 			if ("nosplit" != engineName)
-				set_splitting(split);
+				set_splitting(split, true);
 			build_thresholds(thrTechnique, impFunSpec.name, true);
 			assert(impFuns[impFunSpec.name]->ready());
 

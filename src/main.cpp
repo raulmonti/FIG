@@ -297,7 +297,6 @@ void compile_model(bool modelAlreadyBuilt)
 			throw_FigException("file with properties not found");
 		}
 	}
-	log("\n\n");
 
 	// Build AST from files, viz. parse
 	modelAST = ModelAST::from_files(modelFile.c_str(), propertiesFile.c_str());
@@ -353,10 +352,10 @@ void compile_model(bool modelAlreadyBuilt)
 		log(" *** Error sealing the model ***\n");
 		throw_FigException("parser failed to seal the model");
 	}
-	tech_log("- Model sealing succeeded\n");
+	tech_log("- Model sealing  succeeded\n\n");
 
-	log(std::string("Model") +
+	log(std::string("\nModel") +
 	    (propertiesFile.empty() ? (" file ") : (" and properties files "))
-	    + "successfully compiled.\n");
+	    + "successfully compiled.\n\n");
 }
 

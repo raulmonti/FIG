@@ -622,25 +622,16 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 
 	try {
 		// Add all defined arguments and options to TCLAP's command line parser
-
-
-		/// @todo TODO find a way to request either JANI or normal parameters
-		std::vector< Arg* > stopCondsOrJani(stopCondSpecs);
-		stopCondsOrJani.emplace_back(JANIimport_);
-		stopCondsOrJani.emplace_back(JANIexport_);
-		std::vector< Arg* > impFunOrJani(impFunSpecs);
-		impFunOrJani.emplace_back(JANIimport_);
-		impFunOrJani.emplace_back(JANIexport_);
-
-
 		cmd_.add(modelFile_);
 		cmd_.add(propertiesFile_);
+		auto ifunOrJaniSpec(impFunSpecs);
+		ifunOrJaniSpec.emplace_back(&JANIimport_);
+		ifunOrJaniSpec.emplace_back(&JANIexport_);
+		cmd_.xorAdd(ifunOrJaniSpec);
 		cmd_.add(engineName_);
 		cmd_.add(thrTechnique_);
-		cmd_.add(JANIimport_);
-		cmd_.add(JANIexport_);
-		cmd_.orAdd(stopCondsOrJani);
-		cmd_.xorAdd(impFunOrJani);
+		cmd_.add(confidenceCriteria);
+		cmd_.add(timeCriteria);
 		cmd_.add(impPostProc);
 		cmd_.add(timeout);
 		cmd_.add(splittings_);
@@ -674,7 +665,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		}
 		if (!get_stopping_conditions()) {
 			std::cerr << "ERROR: must specify at least one stopping condition ";
-			std::cerr << "(aka estimation bound).\n\n";
+			std::cerr << "(--stop-conf|--stop-time).\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
