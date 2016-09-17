@@ -231,7 +231,7 @@ bool file_exists(const std::string& filepath)
 
 void interact_with_JANI()
 {
-	auto log = fig::ModelSuite::main_log;
+    auto log = fig::ModelSuite::main_log;
 	fig::JaniTranslator translator;
 
 	if (fig::JaniTranny::FROM_JANI == janiSpec.translateDirection) {

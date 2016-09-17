@@ -126,6 +126,14 @@ private:  // Class attributes
 
 private:  // Class utlis
 
+        /// Try to evaluate an expression to a value of the corresponding
+        /// type, or put an error this visitor ErrorMessage
+        int get_int_or_error(shared_ptr<Exp> exp, const std::string& msg);
+
+        bool get_bool_or_error(shared_ptr<Exp> exp, const std::string& msg);
+
+        float get_float_or_error(shared_ptr<Exp> exp, const std::string& msg);
+
 	/// Populate JANIroot with all data we can extract from given Model
 	/// @warning If there's some previously parsed model information
 	///          then JANIroot will be cleared from all data

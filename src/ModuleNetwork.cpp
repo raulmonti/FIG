@@ -225,7 +225,8 @@ ModuleNetwork::adjacent_states(const size_t& s) const
 		for (const Transition& tr: module_ptr->transitions_) {
 			const Label& label = tr.label();
 			// For each 'active' and enabled transition of this module...
-			if (label.is_output() && tr.precondition()(state)) {
+            if ((label.is_output() || label.is_tau())
+                    && tr.precondition()(state)) {
 				// ...update the module variables...
 				tr.postcondition()(state);
 				// ...and those of other modules listening to this label...
@@ -245,6 +246,40 @@ ModuleNetwork::adjacent_states(const size_t& s) const
 	return adjacentStates;
 }
 
+inline bool ModuleNetwork::process_committed_once(Traial &traial) const {
+    bool found = false;
+    auto modules_it = modules.begin();
+    //iterate every module...
+    while (modules_it != modules.end() && !found) {
+        auto& transitions = (*modules_it)->transitions_;
+        auto tr_it = transitions.begin();
+        // iterate every transition of the current module
+        while (tr_it != transitions.end() && !found) {
+            const Transition& tr = *tr_it;
+            const Label &label = tr.label();
+            // check if an enabled output-committed transition has been found
+            if (label.is_out_committed() && tr.precondition()(traial.state)) {
+                //apply postcondition
+                tr.postcondition()(traial.state);
+                found = true;
+                //broadcast committed output to all the modules
+                for (auto module_ptr : modules) {
+                    module_ptr->jump_committed(label, traial);
+                }
+            }
+            tr_it++;
+        }
+        modules_it++;
+    }
+    return (found);
+}
+
+inline void ModuleNetwork::process_committed(Traial &traial) const {
+    while (process_committed_once(traial)) {
+        //repeat until no committed action enabled
+        ;
+    }
+}
 
 template< typename DerivedProperty,
           class Simulator,
@@ -254,23 +289,26 @@ Event ModuleNetwork::simulation_step(Traial& traial,
                                      const Simulator& engine,
                                      TraialMonitor watch_events) const
 {
-	assert(sealed());
-	Event e(EventType::NONE);
+    assert(sealed());
+    Event e(EventType::NONE);
 
-	// Jump...
-	do {
-		const Traial::Timeout& to = traial.next_timeout();
-		const float elapsedTime(to.value);
-		assert(0.0f <= elapsedTime);
+    // Jump...
+    do {
+        //process committed actions
+        //note: this could reset clocks and change next timeout.
+        process_committed(traial);
+        const Traial::Timeout& to = traial.next_timeout();
+        const float elapsedTime(to.value);
+        assert(0.0f <= elapsedTime);
         // Active jump in the module whose clock timed-out
-		const Label& label = to.module->jump(to, traial);
-		// Passive jumps in all modules listening to label
-		for (auto module_ptr: modules)
-			if (module_ptr->name != to.module->name)
-				module_ptr->jump(label, elapsedTime, traial);
-		traial.lifeTime += elapsedTime;
-	// ...until a relevant event is observed
-	} while ( !(engine.*watch_events)(property, traial, e) );
+        const Label& label = to.module->jump(to, traial);
+        // Passive jumps in all modules listening to label
+        for (auto module_ptr: modules)
+            if (module_ptr->name != to.module->name)
+                module_ptr->jump(label, elapsedTime, traial);
+        traial.lifeTime += elapsedTime;
+    // ...until a relevant event is observed
+    } while ( !(engine.*watch_events)(property, traial, e) );
 
     return e;
 }

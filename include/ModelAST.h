@@ -29,8 +29,7 @@ enum class ExpOp {plus, times, minus, div, mod, andd, orr, nott,
 enum class Arity  {one, two};
 
 /// @brief Type of labels allowed in transitions.
-/// @todo commited actions not yet supported
-enum class LabelType {in, out, commited, empty};
+enum class LabelType {in, out, out_committed, in_committed, tau};
 /// @brief Supported distributions
 enum class DistType {erlang, normal, lognormal, uniform, exponential,
                      weibull, rayleigh, gamma};

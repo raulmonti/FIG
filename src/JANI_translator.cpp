@@ -41,6 +41,7 @@
 #include <ModelVerifier.h>
 #include <ModelAST.h>
 #include <ModelTC.h>
+#include <ExpEvaluator.h>
 #include <FigException.h>
 #include <FigLog.h>
 // External code
@@ -249,6 +250,45 @@ add_jani_header(Json::Value& root, const string& iosaModelFile)
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
+int JaniTranslator::get_int_or_error(shared_ptr<Exp> exp,
+                                     const std::string& msg) {
+    int res = 0;
+    ExpEvaluator ev;
+    exp->accept(ev);
+    if (ev.has_type_int()) {
+        res = ev.get_int();
+    } else {
+        put_error(msg);
+    }
+    return (res);
+}
+
+bool JaniTranslator::get_bool_or_error(shared_ptr<Exp> exp,
+                                       const std::string& msg) {
+    bool res = false;
+    ExpEvaluator ev;
+    exp->accept(ev);
+    if (ev.has_type_bool()) {
+        res = ev.get_bool();
+    } else {
+        put_error(msg);
+    }
+    return (res);
+}
+
+float JaniTranslator::get_float_or_error(shared_ptr<Exp> exp,
+                                         const std::string& msg) {
+    float res = 0.0;
+    ExpEvaluator ev;
+    exp->accept(ev);
+    if (ev.has_type_float()) {
+        res = ev.get_float();
+    } else {
+        put_error(msg);
+    }
+    return (res);
+}
+
 //Json::Value JaniTranslator::JANIroot = Json::Value(Json::nullValue);
 //vector< string > JANITracfield;
 
@@ -441,37 +481,41 @@ JaniTranslator::visit(shared_ptr<Decl> node)
 		Json::Value type(Json::objectValue);
 		type["kind"] = "bounded";
 		type["base"] = "int";
-		type["lower-bound"] = builder.get_int_or_error(node->lower,
+        type["lower-bound"] = get_int_or_error(node->lower,
 									  "failed to reduce lower bound of "
 									  "variable \"" + node->id + "\"\n");
-		type["upper-bound"] = builder.get_int_or_error(node->upper,
+        type["upper-bound"] = get_int_or_error(node->upper,
 									  "failed to reduce upper bound of "
 									  "variable \"" + node->id + "\"\n");
 		JANIobj["type"] = type;
-		JANIobj["initial-value"] = builder.get_int_or_error(node->inits.at(0),
+        JANIobj["initial-value"] = get_int_or_error(node->inits.at(0),
 									  "failed to reduce initial value of "
 									  "variable \"" + node->id + "\"\n");
 	} else if ( /* FIXME: ??? && */ node->type == Type::tbool) {
 		// Boolean variable (JANI's "BasicType" "bool")
-		JANIobj["type"] = "bool";
-		JANIobj["initial-value"] = builder.get_bool_or_error(node->inits.at(0),
-									  "failed to reduce initial value of "
-									  "variable \"" + node->id + "\"\n");
+        JANIobj["type"] = "bool";
+        JANIobj["initial-value"] = get_bool_or_error(node->inits.at(0),
+                                      "failed to reduce initial value of "
+                                      "variable \"" + node->id + "\"\n");
 	} else {
 		// Constant/Clock
 		switch (node->type)
 		{
 		case Type::tbool:
+        {
 			assert(node->has_single_init());
 			JANIobj["type"] = "bool";
-			JANIobj["value"] = builder.get_bool_or_error(node->inits.at(0),
-									   "failed to reduce boolean value of "
-									   "constant \""+ node->id + "\"\n");
+            std::stringstream msg;
+            msg << "failed to reduce boolean value of ";
+            msg << "\"" << node->id << "\"\n" ;
+            auto& init = node->inits.at(0);
+            JANIobj["value"] = get_bool_or_error(init, msg.str());
 			break;
+        }
 		case Type::tint:
 			assert(node->has_single_init());
 			JANIobj["type"] = "int";
-			JANIobj["value"] = builder.get_int_or_error(node->inits.at(0),
+            JANIobj["value"] = get_int_or_error(node->inits.at(0),
 									   "failed to reduce integer value of "
 									   "constant \"" + node->id + "\"\n");
 			break;

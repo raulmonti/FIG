@@ -78,6 +78,7 @@ class Property;
 class ModuleInstance : public Module
 {
 	friend class ModuleNetwork;
+        friend class Traial;
 
 	/// Local \ref Variable "variables"
 	State< STATE_INTERNAL_TYPE > lState_;
@@ -433,6 +434,7 @@ public:  // Utils
 	 * \endif
 	 */
 	void jump(const Label& label, State<STATE_INTERNAL_TYPE>& state) const;
+        void jump_committed(const Label &label, Traial &traial) const;
 
 private:  // Class utils
 
@@ -503,6 +505,7 @@ private:  // Callback utilities offered to the ModuleNetwork
 	 * \endif
 	 */
 	void seal(const fig::State<STATE_INTERNAL_TYPE>& globalState);
+
 
 public: //Debug
         void print_info(std::ostream &out) const;

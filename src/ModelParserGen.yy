@@ -241,11 +241,14 @@ save_location($$, @$);}
 {$$ = make_shared<Action>($id, LabelType::out, $e, $loc, $eff);
     save_location($$, @$);}
 | "[" "]" guard[e] "@" location[loc] "->" effects[eff] //see [] in atm_queue.sa
-{$$ = make_shared<Action>(LabelType::empty, $e, $loc, $eff);
+{$$ = make_shared<Action>(LabelType::tau, $e, $loc, $eff);
     save_location($$, @$);}
 | "[" "id"[id] "!" "!" "]" guard[e] "->" effects[eff]
-{$$ = make_shared<Action>($id, LabelType::commited, $e, $eff);
+{$$ = make_shared<Action>($id, LabelType::out_committed, $e, $eff);
     save_location($$, @$);}
+| "[" "id" [id] "?" "?" "]" guard[e] "->" effects[eff]
+{$$ = make_shared<Action>($id, LabelType::in_committed, $e, $eff); };
+
 
 guard: %empty
 {$$ = make_shared<BConst>(true); save_location($$, @$);}

@@ -235,7 +235,7 @@ inline const string TC_WRONG_PRECONDITION(
     stringstream ss;
     ss << PREFIX(curr);
     ss << " - Transition of label";
-    if (action->type == LabelType::empty) {
+    if (action->type == LabelType::tau) {
         ss << " tau";
     } else {
         ss << " \"" << action->id << "\"";
@@ -606,7 +606,7 @@ void ModelTC::visit(shared_ptr<Action> action) {
     LabelType &label_type = action->type;
     current_scope->label_actions.insert(std::make_pair(label, action));
     auto &labels = current_scope->labels;
-    if (label_type != LabelType::empty) {
+    if (label_type != LabelType::tau) {
         //check if label is already used with another type
         if (labels.find(label) != labels.end()) {
             LabelType &other = labels[label];
@@ -718,7 +718,7 @@ void ModelTC::visit(shared_ptr<Location> loc) {
 
 void ModelTC::visit(shared_ptr<IConst> exp) {
     last_type = Type::tint;
-    //expressions should set the inferred type for itself.
+    //expression should set the inferred type for itself.
     exp->type = last_type;
 }
 

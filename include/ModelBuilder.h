@@ -38,16 +38,11 @@ using fig::State;
 using std::set;
 using std::pair;
 
-namespace fig { class JaniTranslator; }  // Fwd dec. for friendship
-
 /**
  * @brief This class processes a ModelAST object and builds
  * a model using the ModelSuite API.
  */
 class ModelBuilder : public Visitor {
-
-	friend class fig::JaniTranslator;
-
 private:
     /// Alias for the global instance of the model.
     ModelSuite &model_suite = ModelSuite::get_instance();
@@ -99,6 +94,20 @@ private:
     /// Accept only if there is no error messages.
     void accept_visitor(shared_ptr<ModelAST> node, Visitor& visitor);
 
+    /// Accept only if there is no error messages.
+    void accept_cond(shared_ptr<ModelAST> node);
+
+    /// Build a clock with the given id.
+    Clock build_clock(const string &clock_id);
+
+    /// Update the "module_ie_pre" variable
+    /// @see ModelBuilder::model_ie_pre
+    void update_module_ie(shared_ptr<Action> action);
+
+    /// Build and add and implicit transition
+    /// @see ModelBuilder::model_ie_pre
+    void build_input_enabled();
+
     /// Try to evaluate an expression or put an error message if it
     /// was not possible to reduce it.
     /// @note Some expressions are expected to depend only on global
@@ -114,20 +123,6 @@ private:
 
     /// @copydoc ModelBuilder::get_int_or_error
     float get_float_or_error(shared_ptr<Exp> exp, const string &msg);
-
-    /// Accept only if there is no error messages.
-    void accept_cond(shared_ptr<ModelAST> node);
-
-    /// Build a clock with the given id.
-    Clock build_clock(const string &clock_id);
-
-    /// Update the "module_ie_pre" variable
-    /// @see ModelBuilder::model_ie_pre
-    void update_module_ie(shared_ptr<Action> action);
-
-    /// Build and add and implicit transition
-    /// @see ModelBuilder::model_ie_pre
-    void build_input_enabled();
 
 public:
     ModelBuilder();

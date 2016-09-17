@@ -89,8 +89,6 @@
 // Basic ADTs
 #include "Clock.h"
 #include "Label.h"
-#include "ILabel.h"
-#include "OLabel.h"
 #include "Variable.h"
 #include "VariableSet.h"
 #include "VariableInterval.h"

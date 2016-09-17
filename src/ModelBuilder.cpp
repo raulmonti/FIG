@@ -244,7 +244,7 @@ void ModelBuilder::build_input_enabled() {
         Precondition prec {"true& " + pre_str, names};
         //skip:
         Postcondition post {"", vector<string>(), vector<string>()};
-        const Transition &tr {Label {label_id, false}, "", prec, post,
+        const Transition &tr {Label::make_input(label_id), "", prec, post,
                     vector<string>()};
         current_module->add_transition(tr);
     }
@@ -339,11 +339,11 @@ void ModelBuilder::visit(shared_ptr<Decl> decl) {
 
 Label build_label(const string &id, LabelType type) {
     switch(type) {
-    case LabelType::in : return Label(id, false);
-    case LabelType::out: return Label(id, true);
-    case LabelType::commited:
-        throw_FigException("Commited actions not yet supported");
-    case LabelType::empty: return Label(id, true);
+    case LabelType::in : return Label::make_input(id);
+    case LabelType::out: return Label::make_output(id);
+    case LabelType::out_committed: return Label::make_out_committed(id);
+    case LabelType::in_committed: return Label::make_in_committed(id);
+    case LabelType::tau: return Label::make_tau();
     default:
         throw_FigException("Unsupported label type");
     }
