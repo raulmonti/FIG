@@ -107,4 +107,16 @@ std::vector<std::string> split(const std::string &s,
 							   char delim = ' ',
 							   bool includeEmptyMatches = false);
 
+/// Tells whether 'filename', interpreted as the (path to or) name of a file,
+/// has the extension 'extension'
+bool filename_has_extension(const std::string& filename,
+							const std::string& extension);
+
+/// Create a duplicate of 'filename' with its extension changed to 'extension'
+/// @return 'filename' with new extension 'extension'
+/// @note If 'filename' didn't contain any ".ext" final section,
+///       then 'extension' is simply appended to 'filename'
+std::string change_filename_extension(const std::string& filename,
+									  const std::string& extension);
+
 #endif // STRING_UTILS_H

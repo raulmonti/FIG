@@ -33,7 +33,10 @@
 // C++
 #include <set>
 #include <list>
+#include <regex>
 #include <string>
+#include <fstream>
+#include <algorithm>  // std::all_of()
 // External code
 #include <CmdLine.h>
 #include <ValueArg.h>
@@ -56,21 +59,23 @@ using std::to_string;
 using std::string;
 
 
-namespace fig_cli
+namespace fig_cli  // // // // // // // // // // // // // // // // // // // //
 {
 
-// Objects offered to configure the estimation runs  //////////////////////////
+// Objects offered to configure the operation of FIG  /////////////////////////
 
 string modelFile;
 string propertiesFile;
 string engineName;
+fig::JaniTranny janiSpec;
 fig::ImpFunSpec impFunSpec("noName", "noStrategy");
 string thrTechnique;
 std::set< unsigned > splittings;
 std::list< fig::StoppingConditions > estBounds;
 std::chrono::seconds simsTimeout;
+bool forceOperation;
 
-} // namespace fig_cli
+} // namespace fig_cli   // // // // // // // // // // // // // // // // // //
 
 
 
@@ -135,10 +140,10 @@ CmdLine cmd_("\nSample usage:\n"
 			 "each case.",
 			 ' ', versionStr);
 
-// Model file path
+// IOSA model file path
 UnlabeledValueArg<string> modelFile_(
 	"modelFile",
-	"Path to the SA model file to study",
+	"Path to the file with the IOSA/JANI model to study",
 	true, "",
 	"modelFile");
 
@@ -146,7 +151,7 @@ UnlabeledValueArg<string> modelFile_(
 UnlabeledValueArg<string> propertiesFile_(
 	"propertiesFile",
 	"Path to the file with the properties to estimate",
-    false, "",
+	false, "",
 	"propertiesFile");
 
 // Simulation engine
@@ -169,13 +174,21 @@ ValueArg<string> thrTechnique_(
 	false, thrTechDefault,
 	&thrTechConstraints);
 
+// Translation from/to JANI specification format
+SwitchArg JANIimport_(
+	"", "from-jani",
+	"Don't estimate; create IOSA model file from JANI-spec model file.");
+SwitchArg JANIexport_(
+	"", "to-jani",
+	"Don't estimate; create JANI-spec model file from IOSA model file.");
+
 // Importance function specifications
 SwitchArg ifunFlat(
 	"", "flat",
 	"Use a flat importance function, i.e. consider all states in the model "
 	"equally important. Information is kept symbolically as an algebraic "
 	"expression, thus using very little memory. Notice the flat function is "
-	"incompatible with RESTART-like simulation engines.");
+	"only compatible with the no-split simulation engine.");
 ValueArg<string> ifunAdhoc(
 	"", "adhoc",
 	"Use an ad hoc importance function, i.e. assign importance to the "
@@ -272,8 +285,95 @@ ValueArg<string> splittings_(
 	false, "2",
 	"comma-separated-split-values");
 
+// Ignore not-IOSA-compliance warnings
+SwitchArg forceOperation_(
+	"f", "force",
+	"Force FIG operation disregarding any warning of the model not being IOSA-"
+	"compliant. Depending on the user command, this may force estimation of "
+	"the properties values, or translation to the JANI Specification format.");
+
 
 // Helper routines  ///////////////////////////////////////////////////////////
+
+/// Check for any JANI specification parsed from the command line into the
+/// TCLAP holders. Use it to fill in the global information offered to FIG
+/// for JANI interaction (viz: 'janiSpec')
+/// @return Whether the information could be successfully retrieved
+bool
+get_jani_spec()
+{
+	using std::regex;
+	using std::regex_match;
+	using std::regex_replace;
+	using std::make_pair;
+
+	// Determine JANI interaction
+	bool fromJANI(JANIimport_.getValue()), toJANI(JANIexport_.getValue());
+	janiSpec.translateOnly = fromJANI || toJANI;
+	if (janiSpec.translateOnly) {
+		janiSpec.janiInteraction = true;
+		janiSpec.translateDirection = fromJANI ? fig::JaniTranny::FROM_JANI
+											   : fig::JaniTranny::TO_JANI;
+	} else {
+		// Superficial check for JANI-like content in the input model file
+		std::ifstream modelFile(modelFile_.getValue());
+		if (!modelFile.good()) {
+			// something fishy's going on but none of our business
+			janiSpec.janiInteraction = false;
+			return true;
+		}
+		const size_t NLINES(100ul);
+		size_t linesRead(0ul);
+		string line;
+		std::vector< std::pair<regex,bool> > matches(3);
+		matches[0] = make_pair(regex("\r*.*jani-version.*\n*\r*"), false);
+		matches[1] = make_pair(regex("\r*.*name.*\n*\r*"), false);
+		matches[2] = make_pair(regex("\r*.*type.*\n*\r*"), false);
+		auto check_match = [] (const std::pair<regex,bool>& p)
+						   { return p.second; };
+		while (std::getline(modelFile, line) && linesRead++ < NLINES) {
+			for (auto& match: matches)
+				if (regex_match(line, match.first))
+					match.second = true;
+			if (std::all_of(begin(matches), end(matches), check_match))
+				break;  // all matches were found
+		}
+		// Does it look JANI enough?
+		janiSpec.janiInteraction = std::all_of(begin(matches), end(matches), check_match);
+		if (janiSpec.janiInteraction)
+			janiSpec.translateDirection = fig::JaniTranny::FROM_JANI;
+		else if (matches[0].second) {  // found "jani-version" !?
+			std::cerr << "JANI ERROR: failed parsing JANI input model file\n";
+			return false;
+		}
+	}
+
+	// If there's JANI interaction, specify details in janiSpec
+	if (janiSpec.translateDirection == fig::JaniTranny::FROM_JANI) {
+		auto janiFile = modelFile_.getValue();
+		const regex janiExt("(^.*)\\.jani$");
+		janiSpec.modelFileJANI = janiFile;
+		janiSpec.propsFileIOSA = "";
+		janiSpec.modelFileIOSA = (regex_match(janiFile, janiExt))
+								 ? regex_replace(janiFile, janiExt, "$1.sa")
+								 : janiFile + ".sa";
+	} else if (janiSpec.translateDirection == fig::JaniTranny::TO_JANI) {
+		auto iosaFile = modelFile_.getValue();
+		const regex iosaExt("(^.*)\\.(iosa|sa)$");
+		janiSpec.modelFileIOSA = iosaFile;
+		janiSpec.propsFileIOSA = propertiesFile_.getValue();
+		janiSpec.modelFileJANI = (regex_match(iosaFile, iosaExt))
+								 ? regex_replace(iosaFile, iosaExt, "$1.jani")
+								 : iosaFile + ".jani";
+		if (regex_match(iosaFile, iosaExt))
+			janiSpec.modelFileJANI = regex_replace(iosaFile, iosaExt, "$1.jani");
+		else
+			janiSpec.modelFileJANI = iosaFile + ".jani";
+	}
+
+	return true;
+}
+
 
 /// User-defined information for the importance function
 typedef std::tuple<string,             // adhoc/composition function expression
@@ -524,13 +624,18 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		// Add all defined arguments and options to TCLAP's command line parser
 		cmd_.add(modelFile_);
 		cmd_.add(propertiesFile_);
+		auto ifunOrJaniSpec(impFunSpecs);
+		ifunOrJaniSpec.emplace_back(&JANIimport_);
+		ifunOrJaniSpec.emplace_back(&JANIexport_);
+		cmd_.xorAdd(ifunOrJaniSpec);
 		cmd_.add(engineName_);
 		cmd_.add(thrTechnique_);
-		cmd_.orAdd(stopCondSpecs);
-		cmd_.xorAdd(impFunSpecs);
+		cmd_.add(confidenceCriteria);
+		cmd_.add(timeCriteria);
 		cmd_.add(impPostProc);
 		cmd_.add(timeout);
 		cmd_.add(splittings_);
+		cmd_.add(forceOperation_);
 
 		// Parse the command line input
 		cmd_.parse(argc, argv);
@@ -540,34 +645,37 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		propertiesFile = propertiesFile_.getValue();
 		engineName     = engineName_.getValue();
 		thrTechnique   = thrTechnique_.getValue();
+		forceOperation = forceOperation_.getValue();
+		if (!get_jani_spec()) {
+			std::cerr << "ERROR: failed parsing the JANI-spec commands.\n\n";
+			std::cerr << "For complete USAGE and HELP type:\n";
+			std::cerr << "   " << argv[0] << " --help\n\n";
+			goto exit_with_failure;
+		} else if (janiSpec.janiInteraction && janiSpec.translateOnly) {
+			// avoid further parsing
+			goto exit_with_success;
+		}
 		if (!get_ifun_specification()) {
 			std::cerr << "ERROR: must specify an importance function.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
-			if (fatalError)
-				exit(EXIT_FAILURE);
-			else
-				return false;
+			goto exit_with_failure;
+		} else if ("flat" == impFunSpec.name) {
+			engineName = "nosplit";  // only compatible engine
 		}
 		if (!get_stopping_conditions()) {
 			std::cerr << "ERROR: must specify at least one stopping condition ";
-			std::cerr << "(aka estimation bound).\n\n";
+			std::cerr << "(--stop-conf|--stop-time).\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
-			if (fatalError)
-				exit(EXIT_FAILURE);
-			else
-				return false;
+			goto exit_with_failure;
 		}
 		if (!get_timeout()) {
 			std::cerr << "ERROR: something failed while parsing the ";
 			std::cerr << "timeout specification.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
-			if (fatalError)
-				exit(EXIT_FAILURE);
-			else
-				return false;
+			goto exit_with_failure;
 		}
 		if (!get_splitting_values()) {
 			std::cerr << "ERROR: splitting values must be specified as a "
@@ -575,10 +683,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 						 "There should be no spaces in this list.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
-			if (fatalError)
-				exit(EXIT_FAILURE);
-			else
-				return false;
+			goto exit_with_failure;
 		}
 
 	} catch (ArgException& e) {
@@ -586,7 +691,14 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 						   "unexpectedly: ").append(e.what()));
 	}
 
-	return true;
+	exit_with_success:
+		return true;
+
+	exit_with_failure:
+		if (fatalError)
+			exit(EXIT_FAILURE);
+		else
+			return false;
 }
 
 } // namespace fig_cli  // // // // // // // // // // // // // // // // // // //

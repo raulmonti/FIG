@@ -2,41 +2,63 @@
 #include "ModelAST.h"
 #include "ModelParser.hpp"
 #include "ErrorMessage.h"
+#include <FigLog.h>
 #include <cstdlib>
+#include <cstring>
 
 using std::shared_ptr;
 using std::static_pointer_cast;
+using fig::figTechLog;
 
 void ModelAST::accept(Visitor &visit) {
     visit.visit(shared_from_this());
 }
 
 shared_ptr<ModelAST> ModelAST::from_files(const char *model_file,
-                                          const char *prop_file) {
-    shared_ptr<ModelAST> result = nullptr;
-    ModelParserGen::ModelParser parser {&result};
-    FILE *file = fopen(model_file, "r");
-    if (file == nullptr) {
-        std::cerr << "Model file does not exists!" << std::endl;
-        exit(1);
-    }
-    scan_begin(file);
-    int res = parser.parse();
-    scan_end();
-    if (result != nullptr && prop_file != nullptr) {
-        //try to read more properties from the properties file.
-        file = fopen(prop_file, "r");
-        if (file != nullptr) {
-            scan_begin(file);
-            res = parser.parse();
-            scan_end();
-        }
-    }
-    return (res == 0 ? result : nullptr);
+										  const char *prop_file)
+{
+	shared_ptr<ModelAST> result = nullptr;
+	ModelParserGen::ModelParser parser {&result};
+	int res(1);
+	// Process model file
+	FILE* file = std::fopen(model_file, "r");
+	if (nullptr == file) {
+		figTechLog << "Model file \"" << model_file << "\" does not exists!\n";
+		res = 1;
+		goto exit_point;
+	}
+	scan_begin(file);
+	res = parser.parse();
+	scan_end();
+	if (0 != res || nullptr == result) {
+		figTechLog << "Errors found while parsing \"" << model_file << "\"\n";
+		goto exit_point;
+	}
+	// Process properties file, if any
+	if (nullptr != prop_file && 0ul < strnlen(prop_file, 128ul)) {
+		file = fopen(prop_file, "r");
+		if (nullptr == file) {
+			figTechLog << "Properties file \"" << model_file
+							<< "\" does not exists!\n";
+			res = 1;
+			goto exit_point;
+		}
+		scan_begin(file);
+		res = parser.parse();
+		scan_end();
+		if (0 != res) {
+			figTechLog << "Errors found while parsing \"" << prop_file << "\"\n";
+			goto exit_point;
+		}
+	}
+	exit_point:
+		if (0 <= fileno(file))
+			std::fclose(file);
+		return (res == 0 ? result : nullptr);
 }
 
 void ModelAST::on_scanner_error(const string &msg) {
-    std::cerr << "Syntax error: " << msg << std::endl;
+	figTechLog << "Syntax error: " << msg << std::endl;
 }
 
 void Model::accept(Visitor& visit) {
@@ -108,66 +130,6 @@ void FConst::accept(Visitor& visit) {
 //Default Visitor does nothing on his visitation ;)
 Visitor::Visitor() {
     message = make_shared<ErrorMessage>();
-}
-
-void Visitor::visit(shared_ptr<ModelAST> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<Model> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<ModuleBody> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<Decl> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<Action> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<Effect> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<Dist> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<Location> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<Exp> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<IConst> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<BConst> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<FConst> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<LocExp> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<OpExp> node) {
-    (void) node;
-}
-
-void Visitor::visit(shared_ptr<Prop> node) {
-    (void) node;
 }
 
 void Visitor::put_error(const string &msg) {

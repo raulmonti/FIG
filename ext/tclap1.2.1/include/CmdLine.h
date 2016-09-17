@@ -582,7 +582,7 @@ inline void CmdLine::missingArgsException()
 		std::string msg("Required argument");
 		msg += (count > 1u ? ("s missing: ") : (" missing: "));
 		msg += missingArgList;
-		msg += ".\nHere '|' symbolizes a logical OR and '/' a logical XOR.";
+		msg += ".\n             ('|' is a logical OR and '/' a logical XOR)";
 
 		throw CmdLineParseException(msg);
 }

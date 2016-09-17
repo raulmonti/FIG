@@ -71,6 +71,10 @@ private: // Members
     /// Z3 solver used to check that the conditions hold.
     unique_ptr<z3::solver> solver;
 
+public:
+	/// Modules with more than this # of transitions can't be verified
+	static constexpr size_t NTRANS_BOUND = 1ul<<7ul;  // from test cases
+
 private: // Auxiliar functions
     /// Adds to the solvers assertions to ensure that the
     /// state-variables take values inside the allowed range

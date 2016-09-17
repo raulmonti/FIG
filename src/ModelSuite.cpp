@@ -443,15 +443,16 @@ template void ModelSuite::seal(const std::unordered_set<std::string>&);
 
 
 void
-ModelSuite::set_splitting(const unsigned& spt)
+ModelSuite::set_splitting(const unsigned& spt, bool verbose)
 {
     if (!sealed())
         throw_FigException("ModelSuite hasn't been sealed yet");
     dynamic_cast<SimulationEngineRestart&>(*simulators["restart"])
             .set_splits_per_threshold(spt);
 	splitsPerThreshold = spt;
-	// Show in tech log
-	tech_log("\nSplitting set to " + std::to_string(spt) + "\n");
+	if (verbose)
+		// Show in tech log
+		tech_log("\nSplitting set to " + std::to_string(spt) + "\n");
 }
 
 
