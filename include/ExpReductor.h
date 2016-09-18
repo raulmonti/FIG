@@ -19,7 +19,9 @@ public:
     void visit(shared_ptr<BConst> node);
     void visit(shared_ptr<FConst> node);
     void visit(shared_ptr<LocExp> node);
-    void visit(shared_ptr<OpExp> node);
+    void visit(shared_ptr<BinOpExp> node);
+    void visit(shared_ptr<UnOpExp> node);
+
     shared_ptr<Exp> get_reduced_exp() {
         return (reduced_exp);
     }

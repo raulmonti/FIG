@@ -15,7 +15,8 @@ public:
     void visit(shared_ptr<BConst> node);
     void visit(shared_ptr<FConst> node);
     void visit(shared_ptr<LocExp> node);
-    void visit(shared_ptr<OpExp> node);
+    void visit(shared_ptr<BinOpExp> node);
+    void visit(shared_ptr<UnOpExp> node);
     bool is_clause() {
 	return _clause;
     }
@@ -31,7 +32,8 @@ public:
     void visit(shared_ptr<BConst> node);
     void visit(shared_ptr<FConst> node);
     void visit(shared_ptr<LocExp> node);
-    void visit(shared_ptr<OpExp> node);
+    void visit(shared_ptr<BinOpExp> node);
+    void visit(shared_ptr<UnOpExp> node);
     bool is_dnf() {
 	return _dnf;
     }

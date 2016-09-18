@@ -71,21 +71,23 @@ void PropertyProjection::populate(const fig::Property& property) {
     }
     populated_ids.insert(p_id);
     shared_ptr<Prop> prop = ModelBuilder::property_ast[p_id];
-    switch (prop->type) {
+    switch (prop->get_type()) {
     case PropType::transient:
     {
+        shared_ptr<TransientProp> tprop = prop->to_transient();
         ExprDNFBuilder left_b;
-        prop->left->accept(left_b);
+        tprop->get_left()->accept(left_b);
         others_ = left_b.get_clauses();
         ExprDNFBuilder right_b;
-        prop->right->accept(right_b);
+        tprop->get_right()->accept(right_b);
         rares_ = right_b.get_clauses();
         break;
     }
     case PropType::rate:
     {
+        shared_ptr<RateProp> rprop = prop->to_rate();
         ExprDNFBuilder left_b;
-        prop->left->accept(left_b);
+        rprop->get_expression()->accept(left_b);
         rares_ = left_b.get_clauses();
         break;
     }

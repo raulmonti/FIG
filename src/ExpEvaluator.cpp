@@ -130,84 +130,63 @@ std::function<bool (T, T)> ExpEvaluator::bop_as_rel(ExpOp op) {
 }
 
 void ExpEvaluator::visit(shared_ptr<IConst> iexp) {
-    value.ivalue = iexp->value;
+    value.ivalue = iexp->get_value();
     type = Type::tint;
 }
 
 void ExpEvaluator::visit(shared_ptr<BConst> bexp) {
-    value.bvalue = bexp->value;
+    value.bvalue = bexp->get_value();
     type = Type::tbool;
 }
 
 void ExpEvaluator::visit(shared_ptr<FConst> fexp) {
-    value.fvalue = fexp->value;
+    value.fvalue = fexp->get_value();
     type = Type::tfloat;
 }
 
 void ExpEvaluator::visit(shared_ptr<LocExp> loc) {
-    shared_ptr<Location> location = loc->location;
-    string &id = location->id;
+    shared_ptr<Location> location = loc->get_exp_location();
+    const string &id = location->get_identifier();
     if (globals.find(id) != globals.end()) {
         shared_ptr<Decl> decl = globals[id];
-        if (location->is_array_position()) {
-            // case: id [ indexp ]
-            shared_ptr<Exp> indexp = location->index;
-            //evaluate the index
-            indexp->accept(*this);
-            if (was_reduced() && decl->has_array_init()) {
-                int index = get_int();
-                if (decl->has_single_init()) {
-                    //e.g: id [ indexp ] init 4;
-                    shared_ptr<Exp> init = decl->inits.at(0);
-                    init->accept(*this);
-                } else {
-                    //e.g: id [ indexp ] = {1, 2, 3}
-                    shared_ptr<Exp> valexp = decl->inits.at(index);
-                    valexp->accept(*this);
-                }
-            } else {
-                mark_not_reducible();
-            }
-        } else {
-            //case: id
-            if (decl->has_single_init()) {
-                //e.g: id int init 42
-                //take the value of the initialization
-                shared_ptr<Exp> init = decl->inits.at(0);
-                init->accept(*this);
-            }
+        if (decl->has_init()) {
+            //e.g: id int init 42
+            //take the value of the initialization
+            shared_ptr<Exp> init = decl->to_initialized()->get_init();
+            init->accept(*this);
         }
-    } else {
+    }
+    else {
         put_error("Only global identifiers can be evaluated at compilation");
     }
 }
 
-inline void ExpEvaluator::reduce_unary_operator(shared_ptr<OpExp> exp) {
-    shared_ptr<Exp> left = exp->left;
+inline void ExpEvaluator::reduce_unary_operator(shared_ptr<UnOpExp> exp) {
+    shared_ptr<Exp> left = exp->get_argument();
     left->accept(*this);
     //convert to float if expects float type
-    if (exp->type == Type::tfloat && type == Type::tint) {
+    if (exp->get_type() == Type::tfloat && type == Type::tint) {
         value.fvalue = (float) value.ivalue;
         type = Type::tfloat;
     }
     if (type == Type::tbool) {
-        const auto &f = unop_as_fun<bool>(exp->bop);
+        const auto &f = unop_as_fun<bool>(exp->get_operator());
         value.bvalue = f (value.bvalue);
         type = Type::tbool;
     } else if (type == Type::tint) {
-        const auto &f = unop_as_fun<int>(exp->bop);
+        const auto &f = unop_as_fun<int>(exp->get_operator());
         value.ivalue = f (value.ivalue);
         type = Type::tint;
     } else if (type == Type::tfloat) {
-        const auto &f = unop_as_fun<float>(exp->bop);
+        const auto &f = unop_as_fun<float>(exp->get_operator());
         value.fvalue = f (value.fvalue);
         type = Type::tfloat;
     }
 }
 
-inline void ExpEvaluator::reduce_binary_operator(shared_ptr<OpExp> exp) {
-    shared_ptr<Exp> left = exp->left;
-    shared_ptr<Exp> right = exp->right;
+inline void ExpEvaluator::reduce_binary_operator(shared_ptr<BinOpExp> exp) {
+    shared_ptr<Exp> left = exp->get_first_argument();
+    shared_ptr<Exp> right = exp->get_second_argument();
     //reduce left argument and store result
     left->accept(*this);
     value_holder_t val_left = value;
@@ -234,26 +213,26 @@ inline void ExpEvaluator::reduce_binary_operator(shared_ptr<OpExp> exp) {
         type_left  = Type::tunknown;
         type_right = Type::tunknown;
     }
-    bool expects_boolean = exp->type == Type::tbool;
+    bool expects_boolean = exp->get_type() == Type::tbool;
     // arguments of type int, interpret as binary (int) operator
     if (!expects_boolean && type_left == Type::tint) {
-        const auto &f = ExpEvaluator::bop_as_fun<int>(exp->bop);
+        const auto &f = ExpEvaluator::bop_as_fun<int>(exp->get_operator());
         value.ivalue = f (val_left.ivalue, val_right.ivalue);
         type = Type::tint;
     } else if (!expects_boolean && type_left == Type::tfloat) {
-        const auto &f = ExpEvaluator::bop_as_fun<float>(exp->bop);
+        const auto &f = ExpEvaluator::bop_as_fun<float>(exp->get_operator());
         value.fvalue = f (val_left.fvalue, val_right.fvalue);
         type = Type::tfloat;
     } else if (expects_boolean && type_left == Type::tbool) {
-        const auto &f = ExpEvaluator::bop_as_fun<bool>(exp->bop);
+        const auto &f = ExpEvaluator::bop_as_fun<bool>(exp->get_operator());
         value.bvalue = f (val_left.bvalue, val_right.bvalue);
         type = Type::tbool;
     } else if (expects_boolean && type_left == Type::tint) {
-        const auto &f = ExpEvaluator::bop_as_rel<int>(exp->bop);
+        const auto &f = ExpEvaluator::bop_as_rel<int>(exp->get_operator());
         value.bvalue = f (val_left.ivalue, val_right.ivalue);
         type = Type::tbool;
     } else if (expects_boolean && type_left == Type::tfloat) {
-        const auto &f = ExpEvaluator::bop_as_rel<float>(exp->bop);
+        const auto &f = ExpEvaluator::bop_as_rel<float>(exp->get_operator());
         value.bvalue = f (val_left.fvalue, val_right.fvalue);
         type = Type::tbool;
     } else {
@@ -261,10 +240,10 @@ inline void ExpEvaluator::reduce_binary_operator(shared_ptr<OpExp> exp) {
     }
 }
 
-void ExpEvaluator::visit(shared_ptr<OpExp> exp) {
-    if (exp->arity == Arity::one) {
-        reduce_unary_operator(exp);
-    } else if (exp->arity == Arity::two) {
-        reduce_binary_operator(exp);
-    }
+void ExpEvaluator::visit(shared_ptr<BinOpExp> exp) {
+    reduce_binary_operator(exp);
+}
+
+void ExpEvaluator::visit(shared_ptr<UnOpExp> exp) {
+    reduce_unary_operator(exp);
 }

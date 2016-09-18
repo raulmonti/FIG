@@ -24,18 +24,27 @@ void ExpReductor::visit(shared_ptr<LocExp> node) {
     reduced_exp = ::eval_if_possible(node);
 }
 
-void ExpReductor::visit(shared_ptr<OpExp> exp) {
-    exp->left->accept(*this);
+void ExpReductor::visit(shared_ptr<BinOpExp> exp) {
+    exp->get_first_argument()->accept(*this);
     shared_ptr<Exp> left_reduced = eval_if_possible(reduced_exp);
-    shared_ptr<Exp> right_reduced = nullptr;
-    if (exp->arity == Arity::two) {
-        exp->right->accept(*this);
-        right_reduced = eval_if_possible(reduced_exp);
-    }
+    exp->get_second_argument()->accept(*this);
+    shared_ptr<Exp> right_reduced = eval_if_possible(reduced_exp);
     //build a copy of exp but with the operands reduced
-    reduced_exp = make_shared<OpExp>(exp->arity, exp->bop,
-                                     left_reduced, right_reduced);
-    reduced_exp->type = exp->type;
+    reduced_exp =
+            make_shared<BinOpExp>(exp->get_operator(),
+                                  left_reduced, right_reduced);
+    reduced_exp->set_type(exp->get_type());
+    //may be this new expression could still be reduced
+    reduced_exp = eval_if_possible(reduced_exp);
+}
+
+void ExpReductor::visit(shared_ptr<UnOpExp> exp) {
+    exp->get_argument()->accept(*this);
+    shared_ptr<Exp> reduced = eval_if_possible(reduced_exp);
+    //build a copy of exp but with the operands reduced
+    reduced_exp =
+            make_shared<UnOpExp>(exp->get_operator(), reduced);
+    reduced_exp->set_type(exp->get_type());
     //may be this new expression could still be reduced
     reduced_exp = eval_if_possible(reduced_exp);
 }

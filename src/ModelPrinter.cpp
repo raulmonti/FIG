@@ -123,15 +123,14 @@ void ModelPrinter::print_idented(string str) {
 void ModelPrinter::visit(shared_ptr<Model> model) {
     print_idented("=Model=");
     print_idented("Global constants:");
-    for (auto decl : model->globals) {
+    for (auto decl : model->get_globals()) {
         accept_idented(decl);
     }
     print_idented("Modules:");
     auto& bodies = model->get_modules();
-    auto& ids = model->get_modules_ids();
     unsigned int i = 0;
     while (i < bodies.size()) {
-        print_idented("Module: " + ids[i]);
+        print_idented("Module: " + bodies[i]->get_name());
         accept_idented(bodies[i]);
         i++;
     }
@@ -140,102 +139,121 @@ void ModelPrinter::visit(shared_ptr<Model> model) {
     }
 }
 
-void ModelPrinter::visit(shared_ptr<ModuleBody> body) {
+void ModelPrinter::visit(shared_ptr<ModuleAST> body) {
     print_idented("=ModuleBody=");
     print_idented("Local Declarations: ");
-    for (auto decl : body->local_decls) {
+    for (auto decl : body->get_local_decls()) {
         accept_idented(decl);
     }
     print_idented("Actions: ");
-    for (auto action : body->actions) {
+    for (auto action : body->get_transitions()) {
         accept_idented(action);
     }
 }
 
 void ModelPrinter::visit(shared_ptr<Decl> decl) {
     print_idented("=Decl=");
-    print_idented("ID: " + decl->id);
-    print_idented("Type : " + to_str(decl->type));
-    if (decl->has_range()) {
-        print_idented("Range:");
-        print_idented("Lower:");
-        accept_idented(decl->lower);
-        print_idented("Upper:");
-        accept_idented(decl->upper);
+    print_idented("ID: " + decl->get_id());
+    print_idented("Type : " + to_str(decl->get_type()));
+}
+
+void ModelPrinter::visit(shared_ptr<RangedDecl> decl) {
+    visit(std::static_pointer_cast<Decl>(decl));
+    print_idented("Range:");
+    print_idented("Lower:");
+    accept_idented(decl->get_lower_bound());
+    print_idented("Upper:");
+    accept_idented(decl->get_upper_bound());
+}
+
+void ModelPrinter::visit(shared_ptr<ArrayDecl> decl) {
+    visit(std::static_pointer_cast<Decl>(decl));
+    print_idented("Array Size:");
+    accept_idented(decl->get_size());
+}
+
+void ModelPrinter::visit(shared_ptr<InitializedDecl> decl) {
+    visit(std::static_pointer_cast<Decl>(decl));
+    print_idented("Init:");
+    accept_idented(decl->get_init());
+}
+
+void ModelPrinter::visit(shared_ptr<TransitionAST> action) {
+    print_idented("=Action=");
+    print_idented("Label: " + action->get_label());
+    print_idented("Label Type: " + to_str(action->get_label_type()));
+    print_idented("Precondition:");
+    accept_idented(action->get_precondition());
+    print_idented("Assignments:");
+    for (auto effect : action->get_assignments()) {
+        accept_idented(effect);
     }
-    if (decl->is_array()) {
-        print_idented("Array Size:");
-        accept_idented(decl->size);
-        std::cout << "Hola!";
-    }
-    if (decl->inits.size() > 0) {
-        print_idented("Init:");
-        for (auto init : decl->inits) {
-            accept_idented(init);
-        }
+    print_idented("Clock Resets:");
+    for (auto effect : action->get_clock_resets()) {
+        accept_idented(effect);
     }
 }
 
-void ModelPrinter::visit(shared_ptr<Action> action) {
-    print_idented("=Action=");
-    print_idented("Label: " + action->id);
-    print_idented("Label Type: " + to_str(action->type));
-    print_idented("Guard:");
-    accept_idented(action->guard);
-    if (action->has_clock()) {
-        print_idented("Clock Location:");
-        accept_idented(action->clock_loc);
-    }
-    print_idented("Effects:");
-    for (auto effect : action->effects) {
-        accept_idented(effect);
-    }
+void ModelPrinter::visit(shared_ptr<OutputTransition> transition) {
+    visit(std::static_pointer_cast<TransitionAST>(transition));
+    print_idented("Triggering Clock:");
+    accept_idented(transition->get_triggering_clock());
 }
 
 void ModelPrinter::visit(shared_ptr<Effect> effect) {
     print_idented("=Effect=");
     print_idented("Location:");
-    accept_idented(effect->loc);
-    if (effect->is_clock_reset()) {
-        print_idented("Clock Reset:");
-        print_idented("Dist:");
-        accept_idented(effect->dist);
-    }
-    if (effect->is_state_change()) {
-        print_idented("State Change:");
-        accept_idented(effect->arg);
-    }
+    accept_idented(effect->get_effect_location());
+}
+
+void ModelPrinter::visit(shared_ptr<Assignment> effect) {
+    visit(std::static_pointer_cast<Effect>(effect));
+    print_idented("Assignment Expression:");
+    accept_idented(effect->get_rhs());
+}
+
+void ModelPrinter::visit(shared_ptr<ClockReset> effect) {
+    visit(std::static_pointer_cast<Effect>(effect));
+    print_idented("Distribution:");
+    accept_idented(effect->get_dist());
 }
 
 void ModelPrinter::visit(shared_ptr<Dist> dist) {
     print_idented("=Dist=");
-    print_idented("Type: " + to_str(dist->type));
-    if (dist->arity == Arity::one) {
-        print_idented("Param1:");
-        accept_idented(dist->param1);
-    } else if (dist->arity == Arity::two) {
-        print_idented("Param1:");
-        accept_idented(dist->param1);
-        print_idented("Param2:");
-        accept_idented(dist->param2);
-    }
+    print_idented("Type: " + to_str(dist->get_type()));
+}
+
+void ModelPrinter::visit(shared_ptr<SingleParameterDist> dist) {
+    visit(std::static_pointer_cast<Dist>(dist));
+    print_idented("Parameter:");
+    accept_idented(dist->get_parameter());
+}
+
+void ModelPrinter::visit(shared_ptr<MultipleParameterDist> dist) {
+    visit(std::static_pointer_cast<Dist>(dist));
+    print_idented("Parameter1:");
+    accept_idented(dist->get_first_parameter());
+    print_idented("Parameter2:");
+    accept_idented(dist->get_second_parameter());
 }
 
 void ModelPrinter::visit(shared_ptr<Location> loc) {
     print_idented("=Location=");
-    print_idented("ID: \"" + loc->id + "\"");
-    if (loc->is_array_position()) {
-        print_idented("Array Position:");
-        accept_idented(loc->index);
-    }
+    print_idented("ID: \"" + loc->get_identifier() + "\"");
+}
+
+void ModelPrinter::visit(shared_ptr<ArrayPosition> loc) {
+    visit(std::static_pointer_cast<Location>(loc));
+    print_idented("Array Position:");
+    accept_idented(loc->get_index());
 }
 
 void ModelPrinter::visit(shared_ptr<IConst> node) {
-    print_idented("Int Value: " + std::to_string(node->value));
+    print_idented("Int Value: " + std::to_string(node->get_value()));
 }
 
 void ModelPrinter::visit(shared_ptr<BConst> node) {
-    if (node->value) {
+    if (node->get_value()) {
         print_idented("Bool Value: true");
     } else {
         print_idented("Bool Value: false");
@@ -243,31 +261,48 @@ void ModelPrinter::visit(shared_ptr<BConst> node) {
 }
 
 void ModelPrinter::visit(shared_ptr<FConst> node) {
-    print_idented("Float Value: " + std::to_string(node->value));
+    print_idented("Float Value: " + std::to_string(node->get_value()));
 }
 
 void ModelPrinter::visit(shared_ptr<LocExp> node) {
     print_idented("Value Of");
-    accept_idented(node->location);
+    accept_idented(node->get_exp_location());
 }
 
 void ModelPrinter::visit(shared_ptr<OpExp> node) {
-    print_idented("Operator: " + to_str(node->bop));
-    if (node->arity == Arity::one) {
-        accept_idented(node->left);
-    } else if (node->arity == Arity::two) {
-        accept_idented(node->left);
-        accept_idented(node->right);
-    }
+    print_idented("Operator: " + to_str(node->get_operator()));
+}
+
+void ModelPrinter::visit(shared_ptr<BinOpExp> node) {
+    visit(std::static_pointer_cast<OpExp>(node));
+    print_idented("First Argument:");
+    accept_idented(node->get_first_argument());
+    print_idented(("Second Argument:"));
+    accept_idented(node->get_second_argument());
+}
+
+void ModelPrinter::visit(shared_ptr<UnOpExp> node) {
+    visit(std::static_pointer_cast<OpExp>(node));
+    print_idented("Argument:");
+    accept_idented(node->get_argument());
 }
 
 void ModelPrinter::visit(shared_ptr<Prop> prop) {
     print_idented("=Property=");
-    print_idented(to_str(prop->type));
-    if (prop->type == PropType::transient) {
-        accept_idented(prop->left);
-        accept_idented(prop->right);
-    } else if (prop->type == PropType::rate){
-        accept_idented(prop->left);
-    }
+    print_idented(to_str(prop->get_type()));
 }
+
+void ModelPrinter::visit(shared_ptr<TransientProp> prop) {
+    visit(std::static_pointer_cast<Prop>(prop));
+    print_idented("Left:");
+    accept_idented(prop->get_left());
+    print_idented("Right:");
+    accept_idented(prop->get_right());
+}
+
+void ModelPrinter::visit(shared_ptr<RateProp> prop) {
+    visit(std::static_pointer_cast<Prop>(prop));
+    print_idented("Expression:");
+    accept_idented(prop->get_expression());
+}
+
