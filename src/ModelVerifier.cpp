@@ -33,45 +33,47 @@ shared_ptr<Exp> eval_or_throw(shared_ptr<Exp> exp) {
     return (ev.value_to_ast());
 }
 
-shared_ptr<Exp> find_assignment_rhs(shared_ptr<Action> action,
+shared_ptr<Exp> find_assignment_rhs(shared_ptr<TransitionAST> action,
                                    const string &state_id) {
-    auto same_id = [state_id] (const shared_ptr<Effect> &effect) -> bool {
-        return (effect->is_state_change() && effect->loc->id == state_id);
+    auto same_id = [state_id] (const shared_ptr<Assignment> &effect) -> bool {
+        return (effect->get_effect_location()->get_identifier() == state_id);
     };
-    auto begin = action->effects.begin();
-    auto end = action->effects.end();
+    auto assignments = action->get_assignments();
+    auto begin = assignments.begin();
+    auto end = assignments.end();
     auto res = std::find_if(begin, end, same_id);
-    return (res == end ? nullptr : (*res)->arg);
+    return (res == end ? nullptr : (*res)->get_rhs());
 }
 
-//do this action resets the given clock?
-bool resets_clock(shared_ptr<Action> action, const string &clock_id) {
+//do this transition resets the given clock?
+bool resets_clock(shared_ptr<TransitionAST> action, const string &clock_id) {
     auto same_clock =
-            [clock_id] (const shared_ptr<Effect> &effect) -> bool {
-        return (effect->is_clock_reset() && effect->loc->id == clock_id);
+            [clock_id] (const shared_ptr<ClockReset> &reset) -> bool {
+        return (reset->get_effect_location()->get_identifier() == clock_id);
     };
-    auto end = action->effects.end();
-    auto res = std::find_if(action->effects.begin(), end, same_clock);
+    auto clock_resets = action->get_clock_resets();
+    auto end = clock_resets.end();
+    auto res = std::find_if(clock_resets.begin(), end, same_clock);
     return (res != end);
 }
 
 // check if *a1* reseted clocks are also reseted by *a2*
-bool resets_clocks_of(shared_ptr<Action> a1, shared_ptr<Action> a2) {
-    auto it1 = a1->effects.begin();
+bool resets_clocks_of(shared_ptr<TransitionAST> a1,
+                      shared_ptr<TransitionAST> a2) {
+    auto it1 = a1->get_clock_resets().begin();
     bool result = true;
-    while (it1 != a1->effects.end() && result) {
-        shared_ptr<Effect> current = *it1;
-        if (current->is_clock_reset()) {
-            const string &clock_id = current->loc->id;
-            result = result && resets_clock(a2, clock_id);
-        };
+    while (it1 != a1->get_clock_resets().end() && result) {
+        shared_ptr<ClockReset> current = *it1;
+        const string &clock_id
+                = current->get_effect_location()->get_identifier();
+        result = result && resets_clock(a2, clock_id);
         it1++;
     }
     return (result);
 }
 
-inline string warning_not_deterministic(shared_ptr<Action> a1,
-                                        shared_ptr<Action> a2) {
+inline string warning_not_deterministic(shared_ptr<TransitionAST> a1,
+                                        shared_ptr<TransitionAST> a2) {
     stringstream ss;
     ss << "Preconditions of transitions";
     ss << " [at " << *(a1->get_location()) << "]";
@@ -83,10 +85,10 @@ inline string warning_not_deterministic(shared_ptr<Action> a1,
 }
 
 
-inline string warning_reseted_clocks_input(shared_ptr<Action> a1,
-                                           shared_ptr<Action> a2) {
-    string &label1_id = a1->id;
-    string &label2_id = a2->id;
+inline string warning_reseted_clocks_input(shared_ptr<TransitionAST> a1,
+                                           shared_ptr<TransitionAST> a2) {
+    const string &label1_id = a1->get_label();
+    const string &label2_id = a2->get_label();
     auto loc1 = a1->get_location();
     auto loc2 = a2->get_location();
     assert(label1_id == label2_id);
@@ -102,10 +104,10 @@ inline string warning_reseted_clocks_input(shared_ptr<Action> a1,
 
 
 inline string warning_reseted_clocks_output(const string &clock_id,
-                                            shared_ptr<Action> a1,
-                                            shared_ptr<Action> a2) {
-    string &label1_id = a1->id;
-    string &label2_id = a2->id;
+                                            shared_ptr<TransitionAST> a1,
+                                            shared_ptr<TransitionAST> a2) {
+    const string &label1_id = a1->get_label();
+    const string &label2_id = a2->get_label();
     auto loc1 = a1->get_location();
     auto loc2 = a2->get_location();
     assert(label1_id == label2_id);
@@ -122,10 +124,10 @@ inline string warning_reseted_clocks_output(const string &clock_id,
 }
 
 inline string warning_same_clock_different_label(const string &clock_id,
-                                                 shared_ptr<Action> a1,
-                                                 shared_ptr<Action> a2) {
-    string &label1_id = a1->id;
-    string &label2_id = a2->id;
+                                                 shared_ptr<TransitionAST> a1,
+                                                 shared_ptr<TransitionAST> a2) {
+    const string &label1_id = a1->get_label();
+    const string &label2_id = a2->get_label();
     auto loc1 = a1->get_location();
     auto loc2 = a2->get_location();
     stringstream ss;
@@ -142,10 +144,10 @@ inline string warning_same_clock_different_label(const string &clock_id,
 }
 
 inline string warning_clock_exhaustation(const string &clock_id,
-                                         shared_ptr<Action> a1,
-                                         shared_ptr<Action> a2) {
-    string &label1_id = a1->id;
-    string &label2_id = a2->id;
+                                         shared_ptr<TransitionAST> a1,
+                                         shared_ptr<TransitionAST> a2) {
+    const string &label1_id = a1->get_label();
+    const string &label2_id = a2->get_label();
     auto loc1 = a1->get_location();
     auto loc2 = a2->get_location();
     stringstream ss;
@@ -230,11 +232,11 @@ Z3Converter::bop_to_fun(ExpOp op) {
 }
 
 void Z3Converter::visit(shared_ptr<IConst> node) {
-    expression = context->int_val(node->value);
+    expression = context->int_val(node->get_value());
 }
 
 void Z3Converter::visit(shared_ptr<BConst> node) {
-    expression = context->bool_val(node->value);
+    expression = context->bool_val(node->get_value());
 }
 
 void Z3Converter::visit(shared_ptr<FConst> node) {
@@ -251,8 +253,8 @@ void Z3Converter::visit(shared_ptr<LocExp> node) {
         //set the expression to the result of the evaluation
         ev.value_to_ast()->accept(*this);
     } else {
-        const string &name = node->location->id;
-        z3::sort sort = type_to_sort(node->type, *context);
+        const string &name = node->get_exp_location()->get_identifier();
+        z3::sort sort = type_to_sort(node->get_type(), *context);
         expression = context->constant(name.c_str(), sort);
         names.insert(name);
         if (sorts.find(name) == sorts.end()) {
@@ -261,18 +263,18 @@ void Z3Converter::visit(shared_ptr<LocExp> node) {
     }
 }
 
-void Z3Converter::visit(shared_ptr<OpExp> node) {
-    if (node->arity == Arity::one) {
-        node->left->accept(*this);
-        z3::expr left = expression;
-        expression = uop_to_fun(node->bop) (left);
-    } else if (node->arity == Arity::two) {
-        node->left->accept(*this);
-        z3::expr left = expression;
-        node->right->accept(*this);
-        z3::expr right = expression;
-        expression = bop_to_fun(node->bop) (left, right);
-    }
+void Z3Converter::visit(shared_ptr<UnOpExp> node) {
+    node->get_argument()->accept(*this);
+    z3::expr left = expression;
+    expression = uop_to_fun(node->get_operator()) (left);
+}
+
+void Z3Converter::visit(shared_ptr<BinOpExp> node) {
+    node->get_first_argument()->accept(*this);
+    z3::expr left = expression;
+    node->get_second_argument()->accept(*this);
+    z3::expr right = expression;
+    expression = bop_to_fun(node->get_operator()) (left, right);
 }
 
 std::set<string> Z3Converter::get_names() {
@@ -312,9 +314,11 @@ void ModelVerifier::add_names_limits(const std::set<string> &names) {
     for (const string& name : names) {
         shared_ptr<Decl> decl = current_scope->local_decls.at(name);
         if (decl->has_range()) {
-            const auto& sort = Z3Converter::type_to_sort(decl->type, *context);
-            z3::expr low = eval_and_convert(decl->lower);
-            z3::expr up  = eval_and_convert(decl->upper);
+            shared_ptr<RangedDecl> ranged = decl->to_ranged();
+            const auto& sort =
+                    Z3Converter::type_to_sort(ranged->get_type(), *context);
+            z3::expr low = eval_and_convert(ranged->get_lower_bound());
+            z3::expr up  = eval_and_convert(ranged->get_upper_bound());
             solver->add(context->constant(name.c_str(), sort) >= low);
             solver->add(context->constant(name.c_str(), sort) <= up);
         }
@@ -329,24 +333,24 @@ void ModelVerifier::debug_print_solver() {
 }
 
 void ModelVerifier::check_output_determinism(const string &clock_id) {
-    auto &tr_actions = current_scope->triggered_actions;
+    auto &tr_actions = current_scope->triggered_transitions;
     auto range = tr_actions.equal_range(clock_id);
     auto it1 = range.first;
     while (it1 != range.second && !has_warnings()) {
         auto it2 = next(it1);
         while (it2 != range.second && !has_warnings()) {
             solver->push();
-            shared_ptr<Action> a1 = ((*it1).second);
-            shared_ptr<Action> a2 = ((*it2).second);
+            shared_ptr<OutputTransition> a1 = ((*it1).second);
+            shared_ptr<OutputTransition> a2 = ((*it2).second);
             std::set<string> names;
             //both preconditions valid:
-            shared_ptr<Exp> guard1 = a1->guard;
+            shared_ptr<Exp> guard1 = a1->get_precondition();
             solver->add(convert(guard1, names));
-            shared_ptr<Exp> guard2 = a2->guard;
+            shared_ptr<Exp> guard2 = a2->get_precondition();
             solver->add(convert(guard2, names));
             add_names_limits(names);
-            const string &label1_id = a1->id;
-            const string &label2_id = a2->id;
+            const string &label1_id = a1->get_label();
+            const string &label2_id = a2->get_label();
             if (solver->check()) {
                 //this two transition potentially enabled by the same clock
                 //let's check that at least will produce the same output
@@ -376,20 +380,20 @@ void ModelVerifier::check_output_determinism(const string &clock_id) {
 }
 
 void ModelVerifier::check_input_determinism(const string &label_id) {
-    auto &label_actions = current_scope->label_actions;
+    auto &label_actions = current_scope->label_transitions;
     auto range = label_actions.equal_range(label_id);
     auto it1 = range.first;
     while (it1 != range.second && !has_warnings()) {
         auto it2 = next(it1);
         while (it2 != range.second && !has_warnings()) {
             solver->push();
-            shared_ptr<Action> a1 = ((*it1).second);
-            shared_ptr<Action> a2 = ((*it2).second);
+            shared_ptr<TransitionAST> a1 = ((*it1).second);
+            shared_ptr<TransitionAST> a2 = ((*it2).second);
             std::set<string> names;
             //both preconditions valid:
-            shared_ptr<Exp> guard1 = a1->guard;
+            shared_ptr<Exp> guard1 = a1->get_precondition();
             solver->add(convert(guard1, names));
-            shared_ptr<Exp> guard2 = a2->guard;
+            shared_ptr<Exp> guard2 = a2->get_precondition();
             solver->add(convert(guard2, names));
             add_names_limits(names);
             if (solver->check()) {
@@ -416,11 +420,10 @@ void ModelVerifier::check_input_determinism(const string &label_id) {
 }
 
 void ModelVerifier::visit(shared_ptr<Model> model) {
-    auto& bodies = model->get_modules();
-    auto& ids = model->get_modules_ids();
+    auto& modules = model->get_modules();
     unsigned int i = 0;
-    while (i < bodies.size() && !has_warnings()) {
-        const string &id = ids[i];
+    while (i < modules.size() && !has_warnings()) {
+        const string &id = modules[i]->get_name();
         current_scope = ModuleScope::scopes.at(id);
         check_input_determinism_all();
         solver->reset();
@@ -461,33 +464,32 @@ void ModelVerifier::check_exhausted_clocks_all() {
     }
 }
 
-void ModelVerifier::check_rhs(shared_ptr<Action> a1, shared_ptr<Action> a2) {
-    auto& effects = a1->effects;
-    auto it = effects.begin();
-    while (it != effects.end() && !has_warnings()) {
-        shared_ptr<Effect> effect = *it;
-        if (effect->is_state_change()) {
-            shared_ptr<Exp> arg1 = effect->arg;
-            Type state_type = arg1->type;
-            const string &state_id = effect->loc->id;
-            //check if the other transition also modifies "state_id"
-            shared_ptr<Exp> arg2 = find_assignment_rhs(a2, state_id);
-            solver->push();
-            if (arg2 == nullptr) {
-                //the other transition does not change 'state_id'
-                const auto &sort =
-                        Z3Converter::type_to_sort(state_type, *context);
-                const auto &state = context->constant(state_id.c_str(), sort);
-                // assert that this assignment is also an skip
-                solver->add(convert(arg1) != state);
-            } else {
-                solver->add(convert(arg1) != convert(arg2));
-            }
-            if(solver->check()) {
-                put_warning(::warning_not_deterministic(a1, a2));
-            }
-            solver->pop();
+void ModelVerifier::check_rhs(shared_ptr<TransitionAST> a1, shared_ptr<TransitionAST> a2) {
+    auto& assigs = a1->get_assignments();
+    auto it = assigs.begin();
+    while (it != assigs.end() && !has_warnings()) {
+        shared_ptr<Assignment> effect = *it;
+        shared_ptr<Exp> arg1 = effect->get_rhs();
+        Type state_type = arg1->get_type();
+        const string &state_id
+                = effect->get_effect_location()->get_identifier();
+        //check if the other transition also modifies "state_id"
+        shared_ptr<Exp> arg2 = find_assignment_rhs(a2, state_id);
+        solver->push();
+        if (arg2 == nullptr) {
+            //the other transition does not change 'state_id'
+            const auto &sort =
+                    Z3Converter::type_to_sort(state_type, *context);
+            const auto &state = context->constant(state_id.c_str(), sort);
+            // assert that this assignment is also an skip
+            solver->add(convert(arg1) != state);
+        } else {
+            solver->add(convert(arg1) != convert(arg2));
         }
+        if(solver->check()) {
+            put_warning(::warning_not_deterministic(a1, a2));
+        }
+        solver->pop();
         it++;
     }
 }
@@ -518,42 +520,39 @@ z3::expr ModelVerifier::convert_and_rename(shared_ptr<Exp> exp,
 }
 
 void ModelVerifier
-::add_assignments_as_equalities(const shared_vector<Effect>& effects,
+::add_assignments_as_equalities(const shared_vector<Assignment>& effects,
                                 std::set<string> &changed_vars) {
     // iterate all the effects...
-    for (shared_ptr<Effect> curr : effects) {
-        if (curr->is_state_change()) {
-            //it is an assignment (not a clock reset)
-            //let's find out the state variable
-            string state_variable = curr->loc->id;
-            //remember that this variable will change
-            changed_vars.insert(state_variable);
-            //find out the type of the state variable
-            Type type = current_scope->local_decls.at(state_variable)->type;
-            //the sort is int, bool, or float depending on the type
-            z3::sort sort = Z3Converter::type_to_sort(type, *context);
+    for (shared_ptr<Assignment> curr : effects) {
+        //let's find out the state variable
+        string state_variable = curr->get_effect_location()->get_identifier();
+        //remember that this variable will change
+        changed_vars.insert(state_variable);
+        //find out the type of the state variable
+        Type type = current_scope->local_decls.at(state_variable)->get_type();
+        //the sort is int, bool, or float depending on the type
+        z3::sort sort = Z3Converter::type_to_sort(type, *context);
             // change the name of the state variable, put the ' character.
-            state_variable.push_back('\'');
-            // add the assignment as an equality assertion.
-            z3::expr sv = context->constant(state_variable.c_str(), sort);
-            solver->add(sv == convert(curr->arg));
-        }
+        state_variable.push_back('\'');
+        // add the assignment as an equality assertion.
+        z3::expr sv = context->constant(state_variable.c_str(), sort);
+        solver->add(sv == convert(curr->get_rhs()));
     }
 }
 
 void ModelVerifier ::check_exhausted_clocks(const string &clock_id) {
-    auto &tr_actions = current_scope->triggered_actions;
+    auto &tr_actions = current_scope->triggered_transitions;
     auto range = tr_actions.equal_range(clock_id);
     auto it1 = range.first;
-    auto &actions = current_scope->body->get_actions();
+    auto &actions = current_scope->body->get_transitions();
     //iterate over the actions triggered by clock_id
     while (it1 != range.second) {
-        shared_ptr<Action> a1 = (*it1).second;
+        shared_ptr<TransitionAST> a1 = (*it1).second;
         auto it2 = actions.begin();
         //iterate over all the transitions in the current module
         //looking for a dangerous transition
         while (it2 != actions.end()) {
-            shared_ptr<Action> a2 = *it2;
+            shared_ptr<TransitionAST> a2 = *it2;
             if (!resets_clock(a2, clock_id) &&
                     enables_exhausted(a1, a2, clock_id)) {
                 auto &warn = ::warning_clock_exhaustation;
@@ -565,22 +564,27 @@ void ModelVerifier ::check_exhausted_clocks(const string &clock_id) {
     }
 }
 
-bool ModelVerifier::enables_exhausted(shared_ptr<Action> a1,
-                                      shared_ptr<Action> a2,
+bool ModelVerifier::enables_exhausted(shared_ptr<TransitionAST> a1,
+                                      shared_ptr<TransitionAST> a2,
                                       const string &clock_id) {
     solver->reset();
     std::set<string> names;
     std::set<string> changed_vars;
     //precondition of a2 holds.
-    solver->add(convert(a2->guard, names));
+    solver->add(convert(a2->get_precondition(), names));
     //precondition of a1 does not hold.
-    solver->add(!convert(a1->guard, names));
+    solver->add(!convert(a1->get_precondition(), names));
     //equalities that characterize postcondition of a2
-    add_assignments_as_equalities(a2->effects, changed_vars);
+    add_assignments_as_equalities(a2->get_assignments(), changed_vars);
     //precondition of a1 (after modifications made by the equalities above)
     //must hold
-    solver->add(convert_and_rename(a1->guard, changed_vars));
-    bool waits_same_clock = a2->has_clock() && a2->clock_loc->id == clock_id;
+    solver->add(convert_and_rename(a1->get_precondition(), changed_vars));
+    bool waits_same_clock = false;
+    if (a2->has_triggering_clock()) {
+        shared_ptr<OutputTransition> output = a2->to_output();
+        waits_same_clock =
+                output->get_triggering_clock()->get_identifier() == clock_id;
+    }
     z3::expr same_clock = context->bool_val(waits_same_clock);
     //no other clock waiting for clock_id is enabled.
     //or a2 already waits for clock_id.
@@ -594,13 +598,13 @@ bool ModelVerifier::enables_exhausted(shared_ptr<Action> a1,
 
 z3::expr ModelVerifier::pre_transitions_with_clock(const string &clock_id,
                                                    std::set<string> &names) {
-    auto &tr_actions = current_scope->triggered_actions;
+    auto &tr_actions = current_scope->triggered_transitions;
     auto range = tr_actions.equal_range(clock_id);
     auto it = range.first;
     z3::expr pre_clock = context->bool_val(false);
     while (it != range.second) {
-        shared_ptr<Action> b = (*it).second;
-        pre_clock = pre_clock || convert(b->guard, names);
+        shared_ptr<TransitionAST> b = (*it).second;
+        pre_clock = pre_clock || convert(b->get_precondition(), names);
         it++;
     }
     return (pre_clock);

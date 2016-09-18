@@ -102,7 +102,7 @@ private:
 
     /// Update the "module_ie_pre" variable
     /// @see ModelBuilder::model_ie_pre
-    void update_module_ie(shared_ptr<Action> action);
+    void update_module_ie(shared_ptr<InputTransition> action);
 
     /// Build and add and implicit transition
     /// @see ModelBuilder::model_ie_pre
@@ -116,7 +116,6 @@ private:
     /// this function will store an error message in the inherited member
     /// "message" of class Visitor.
     int get_int_or_error(shared_ptr<Exp> exp, const string &msg);
-
 
     /// @copydoc ModelBuilder::get_int_or_error
     bool get_bool_or_error(shared_ptr<Exp> exp, const string &msg);
@@ -133,11 +132,16 @@ public:
     static map<int, shared_ptr<Prop>> property_ast;
 
     void visit(shared_ptr<Model> node);
-    void visit(shared_ptr<ModuleBody> node);
-    void visit(shared_ptr<Decl> node);
-    void visit(shared_ptr<Action> node);
-    void visit(shared_ptr<Effect> node);
-    void visit(shared_ptr<Prop> node);
+    void visit(shared_ptr<ModuleAST> node);
+    void visit(shared_ptr<RangedDecl> node);
+    void visit(shared_ptr<ClockDecl> node);
+    void visit(shared_ptr<InitializedDecl> node);
+    void visit(shared_ptr<ArrayDecl> node);
+    void visit(shared_ptr<TransitionAST> node);
+    void visit(shared_ptr<Assignment> node);
+    void visit(shared_ptr<ClockReset> node);
+    void visit(shared_ptr<TransientProp> node);
+    void visit(shared_ptr<RateProp> node);
 };
 
 

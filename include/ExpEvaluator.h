@@ -29,9 +29,9 @@ private:
         float fvalue;
     } value;
     /// Evaluate an unary operator.
-    void reduce_unary_operator(shared_ptr<OpExp> exp);
+    void reduce_unary_operator(shared_ptr<UnOpExp> exp);
     /// Evaluate a binary operator.
-    void reduce_binary_operator(shared_ptr<OpExp> exp);
+    void reduce_binary_operator(shared_ptr<BinOpExp> exp);
     /// Signal that the expression is not reducible, for example,
     /// because it depends on state variables.
     void mark_not_reducible();
@@ -74,7 +74,8 @@ public:
     void visit(shared_ptr<BConst> node);
     void visit(shared_ptr<FConst> node);
     void visit(shared_ptr<LocExp> node);
-    void visit(shared_ptr<OpExp> node);
+    void visit(shared_ptr<BinOpExp> node);
+    void visit(shared_ptr<UnOpExp> node);
 };
 
 #endif

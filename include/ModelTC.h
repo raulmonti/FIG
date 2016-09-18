@@ -28,13 +28,13 @@ struct ModuleScope {
     string id;
 
     /// The module itself
-    shared_ptr<ModuleBody> body;
+    shared_ptr<ModuleAST> body;
 
     /// Mapping each label with its type
     map<string, LabelType> labels;
 
     /// Mapping labels with its transition*s*
-    unordered_multimap<string, shared_ptr<Action>> label_actions;
+    unordered_multimap<string, shared_ptr<TransitionAST>> label_transitions;
 
     /// Mapping each clock with its distribution
     // @todo redesign this when implementing clock arrays
@@ -44,7 +44,8 @@ struct ModuleScope {
     shared_map<string, Decl> local_decls;
 
     /// Mapping transitions triggered by a clock.
-    unordered_multimap<string, shared_ptr<Action>> triggered_actions;
+    unordered_multimap<string, shared_ptr<OutputTransition>>
+    triggered_transitions;
 
     /// Find an identifier in every module. Mainly used to build
     /// properties, since they can contain variables of any module.
@@ -66,8 +67,8 @@ struct ModuleScope {
         bool result = true;
         for (auto entry : ModuleScope::scopes) {
             const shared_ptr<ModuleScope> &curr = entry.second;
-            auto &actions = curr->body->get_actions();
-            result = result && (actions.size() <= bound);
+            auto &transitions = curr->body->get_transitions();
+            result = result && (transitions.size() <= bound);
         }
         return (result);
     }
@@ -124,12 +125,14 @@ private:
     static Type operator_type(const ExpOp &id, Type arg);
 
     /// Check range and initialization of the declaration
-    void check_decl(shared_ptr<Decl> decl);
-    void check_decl_all(shared_ptr<ModuleScope> scope);
+    void check_ranged_decl(shared_ptr<RangedDecl> decl);
+    void check_ranged_all(shared_ptr<ModuleScope> scope);
 
     /// Check if parameters of distributions are reducible
     void check_dist(shared_ptr<Dist> dist);
     void check_dist(shared_ptr<ModuleScope> scope);
+
+    void check_scope(shared_ptr<Decl> decl);
 
     /// Used to evaluate range bounds and distributions parameters
     int eval_int_or_put(shared_ptr<Exp> exp);
@@ -140,19 +143,27 @@ public:
         checking_property {false} {};
     virtual ~ModelTC();
     /// Visitor functions
-    void visit(shared_ptr<Model> node);
-    void visit(shared_ptr<ModuleBody> node);
-    void visit(shared_ptr<Decl> node);
-    void visit(shared_ptr<Action> node);
-    void visit(shared_ptr<Effect> node);
-    void visit(shared_ptr<Dist> node);
-    void visit(shared_ptr<Location> node);
-    void visit(shared_ptr<IConst> node);
-    void visit(shared_ptr<BConst> node);
-    void visit(shared_ptr<FConst> node);
-    void visit(shared_ptr<LocExp> node);
-    void visit(shared_ptr<OpExp> node);
-    void visit(shared_ptr<Prop> node);
+    void visit(shared_ptr<Model> node) override;
+    void visit(shared_ptr<ModuleAST> node) override;
+    void visit(shared_ptr<RangedDecl> node) override;
+    void visit(shared_ptr<InitializedDecl> node) override;
+    void visit(shared_ptr<ArrayDecl> node) override;
+    void visit(shared_ptr<ClockDecl> node) override;
+    void visit(shared_ptr<TransitionAST> node) override;
+    void visit(shared_ptr<Assignment> node) override;
+    void visit(shared_ptr<ClockReset> node) override;
+    void visit(shared_ptr<MultipleParameterDist> node) override;
+    void visit(shared_ptr<SingleParameterDist> node) override;
+    void visit(shared_ptr<Location> node) override;
+    void visit(shared_ptr<ArrayPosition> node) override;
+    void visit(shared_ptr<IConst> node) override;
+    void visit(shared_ptr<BConst> node) override;
+    void visit(shared_ptr<FConst> node) override;
+    void visit(shared_ptr<LocExp> node) override;
+    void visit(shared_ptr<BinOpExp> node) override;
+    void visit(shared_ptr<UnOpExp> node) override;
+    void visit(shared_ptr<TransientProp> node) override;
+    void visit(shared_ptr<RateProp> node) override;
 };
 
 #endif

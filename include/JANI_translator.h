@@ -124,7 +124,10 @@ private:  // Class attributes
 	/// Constructor of IOSA-FIG objects from AST structures
 	ModelBuilder builder;
 
+
 private:  // Class utlis
+
+        void reduce_init(Json::Value &JANIobj, shared_ptr<InitializedDecl> decl);
 
         /// Try to evaluate an expression to a value of the corresponding
         /// type, or put an error this visitor ErrorMessage
@@ -141,7 +144,10 @@ private:  // Class utlis
 
 	/// Append/assign in JANIfield the JANI translation of this IOSA
 	/// declaration, which can be a constant, a bounded value, or a clock
-	void visit(shared_ptr<Decl> node) override;
+        void visit(shared_ptr<InitializedDecl> node) override;
+        void visit(shared_ptr<RangedDecl> node) override;
+        void visit(shared_ptr<ClockDecl> node) override;
+        void visit(shared_ptr<ArrayDecl> node) override;
 
 	/// Append/assign in JANIfield the reduction of this IOSA boolean constant.
 	void visit(shared_ptr<BConst> node) override;

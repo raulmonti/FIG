@@ -45,7 +45,8 @@ public:
     void visit(shared_ptr<BConst> node);
     void visit(shared_ptr<FConst> node);
     void visit(shared_ptr<LocExp> node);
-    void visit(shared_ptr<OpExp> node);
+    void visit(shared_ptr<BinOpExp> node);
+    void visit(shared_ptr<UnOpExp> node);
 };
 
 /**
@@ -94,7 +95,7 @@ private: // Auxiliar functions
 
     /// Check if the postconditions of the given transitions are equivalent
     /// (i.e, each state-variable changes in the same way in both transitions)
-    void check_rhs(shared_ptr<Action> a1, shared_ptr<Action> a2);
+    void check_rhs(shared_ptr<TransitionAST> a1, shared_ptr<TransitionAST> a2);
 
     /// Prints the content of the z3 solver for debugging purposes
     void debug_print_solver();
@@ -115,7 +116,7 @@ private: // Auxiliar functions
     /// @example if the effects are "q' = q + 1 & p' = p + q"
     ///          the equalities added are "q' == q + 1" and "p' == p + q"
     ///          and the variables "q,p" are added to the "changed_names" set.
-    void add_assignments_as_equalities(const shared_vector<Effect>& effects,
+    void add_assignments_as_equalities(const shared_vector<Assignment>& effects,
                                        std::set<string> &changed_names);
 
     /// Returns a z3::expression with the OR of all the preconditions
@@ -136,7 +137,7 @@ private: // Auxiliar functions
     /// 4 - there is no transition waiting for "clock_id" whose precondition
     /// hold, or "a2" waits for "clock_id".
     /// That means that a1 is enables by a2 with a potentially exhausted clock
-    bool enables_exhausted(shared_ptr<Action> a1, shared_ptr<Action> a2,
+    bool enables_exhausted(shared_ptr<TransitionAST> a1, shared_ptr<TransitionAST> a2,
                            const string &clock_id);
 
 private:

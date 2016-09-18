@@ -122,7 +122,7 @@ int main(int argc, char** argv)
 	// Compile IOSA model and properties to check
 	try {
 		double start = omp_get_wtime();
-		compile_model(janiSpec.janiInteraction);  // JANI interaction => model was built
+        compile_model(janiSpec.janiInteraction);  // JANI interaction => model was built
 		std::stringstream ss; ss << "Model building time: " << std::fixed;
 		ss << std::setprecision(2) << omp_get_wtime()-start << " s\n\n";
 		tech_log(ss.str());
@@ -269,8 +269,7 @@ void interact_with_JANI()
 }
 
 
-void compile_model(bool modelAlreadyBuilt)
-{
+void compile_model(bool modelAlreadyBuilt) {
 	auto log = fig::ModelSuite::main_log;
 	auto tech_log = fig::ModelSuite::tech_log;
 	shared_ptr<ModelAST> modelAST(nullptr);
@@ -304,12 +303,11 @@ void compile_model(bool modelAlreadyBuilt)
 		log(" *** Error parsing the model ***\n");
 		throw_FigException("failed parsing the model file");
 	}
-//	ModelPrinter printer;
-//	modelAST->accept(printer);
-
 	// Check types
 	modelAST->accept(typechecker);
 	if (typechecker.has_errors()) {
+        ModelPrinter printer;
+        modelAST->accept(printer);
 		log(typechecker.get_messages());
 		throw_FigException("type-check for the model failed");
 	}

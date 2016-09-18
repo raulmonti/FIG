@@ -221,12 +221,11 @@ inline void dump_clock_info(const string &module,
 } //namespace
 
 void ModelBuilder::visit(shared_ptr<Model> model) {
-    auto& bodies = model->get_modules();
-    auto& ids = model->get_modules_ids();
+    auto& modules = model->get_modules();
     unsigned int i = 0;
-    while (i < bodies.size()) {
-        current_scope = scopes[ids[i]];
-        accept_cond(bodies[i]);
+    while (i < modules.size()) {
+        current_scope = scopes[modules[i]->get_name()];
+        accept_cond(modules[i]);
         i++;
     }
     for (auto &prop : model->get_props()) {
@@ -250,7 +249,7 @@ void ModelBuilder::build_input_enabled() {
     }
 }
 
-void ModelBuilder::visit(shared_ptr<ModuleBody> body) {
+void ModelBuilder::visit(shared_ptr<ModuleAST> body) {
     module_vars = make_unique<vector<Var>>();
     module_clocks = make_unique<vector<Clock>>();
     module_transitions = make_unique<vector<Transition>>();
@@ -259,15 +258,14 @@ void ModelBuilder::visit(shared_ptr<ModuleBody> body) {
         accept_cond(decl);
     }
     if (!has_errors()) {
-        //ensure the same output as Raul's frontend by sorting clocks:
         auto& clocks = *module_clocks;
         current_module = make_shared<ModuleInstance>
                 (current_scope->id, *module_vars, clocks);
     }
     //Note: Transitions can't be copied, we need to add them directly to
     // the current_module instead of accumulate them in a vector
-    for (auto &action : body->get_actions()) {
-        accept_cond(action);
+    for (auto &transition : body->get_transitions()) {
+        accept_cond(transition);
     }
     build_input_enabled();
     if (!has_errors()) {
@@ -280,61 +278,78 @@ Clock ModelBuilder::build_clock(const std::string& id) {
     assert(dist != nullptr);
     fig::DistributionParameters params;
     //reduce distribution parameters
-    if (dist->arity == Arity::one) {
-        params[0] = get_float_or_error(dist->param1, mb_error_dist_1(id));
+    if (dist->has_single_parameter()) {
+        auto single = dist->to_single_parameter();
+        params[0] =
+                get_float_or_error(single->get_parameter(), mb_error_dist_1(id));
         for (unsigned int i = 1; i < params.size(); i++) {
             params[i] = 0.0;
         }
     }
-    if (dist->arity == Arity::two) {
-        params[0] = get_float_or_error(dist->param1, mb_error_dist_1(id));
-        params[1] = get_float_or_error(dist->param2, mb_error_dist_2(id));
+    if (dist->has_multiple_parameters()) {
+        auto multiple = dist->to_multiple_parameter();
+        params[0] =
+                get_float_or_error(multiple->get_first_parameter(),
+                                   mb_error_dist_1(id));
+        params[1] = get_float_or_error(multiple->get_second_parameter(),
+                                       mb_error_dist_2(id));
         for (unsigned int i = 2; i < params.size(); i++) {
             params[i] = 0.0;
         }
     }
     //todo: constructor should accept the Distribution object directly,
     //not the name.
-    return Clock(id, ModelPrinter::to_str(dist->type), params);
+    return Clock(id, ModelPrinter::to_str(dist->get_type()), params);
 }
 
-void ModelBuilder::visit(shared_ptr<Decl> decl) {
+void ModelBuilder::visit(shared_ptr<ArrayDecl> decl) {
+    (void) decl;
+    throw_FigException("Array not yet supported");
+}
+
+void ModelBuilder::visit(shared_ptr<RangedDecl> decl) {
+    int lower = get_int_or_error(decl->get_lower_bound(),
+                                 mb_error_range_1(decl->get_id()));
+    int upper = get_int_or_error(decl->get_upper_bound(),
+                                 mb_error_range_2(decl->get_id()));
+    int value = get_int_or_error(decl->get_init(), decl->get_id());
+    if (!has_errors()) {
+        const auto &var = make_tuple(decl->get_id(), lower, upper, value);
+        assert(module_vars != nullptr);
+        module_vars->push_back(var);
+    }
+}
+
+void ModelBuilder::visit(shared_ptr<InitializedDecl> decl) {
     int lower = 0;
     int upper = 0;
-    int init = 0;
-    Type type;
-    if (decl->is_array()) {
-        put_error("Arrays not yet supported");
-    }
-    if (decl->has_range()) {
-        lower = get_int_or_error(decl->lower, mb_error_range_1(decl->id));
-        upper = get_int_or_error(decl->upper, mb_error_range_2(decl->id));
-        type = Type::tint;
-    } else {
+    int value = 0;
+    Type type = decl->get_type();
+    shared_ptr<Exp> initexp = decl->get_init();
+    if (type == Type::tint) {
+        value = get_int_or_error(initexp, mb_error_init(decl->get_id(), type));
+        //kind of a constant.
+        // q : int init 0;
+        lower = value;
+        upper = value;
+    } else if (type == Type::tbool) {
         lower = 0;
         upper = 1;
-        type = Type::tbool;
+        bool res =
+                get_bool_or_error(initexp, mb_error_init(decl->get_id(), type));
+        value = res ? 1 : 0;
+    } else if (type == Type::tfloat) {
+        throw_FigException("Declaration of float unsupported");
     }
-    if (decl->has_single_init()) {
-        shared_ptr<Exp> iniexp = decl->inits.at(0);
-        if (type == Type::tint) {
-            init = get_int_or_error(iniexp, mb_error_init(decl->id, type));
-        } else if (type == Type::tbool) {
-            bool res = get_bool_or_error(iniexp, mb_error_init(decl->id, type));
-            init = res ? 1 : 0;
-        } else {
-            throw_FigException("Not yet supported declaration type");
-        }
-        if (!has_errors()) {
-            const auto &var = make_tuple(decl->id, lower, upper, init);
-            assert(module_vars != nullptr);
-            module_vars->push_back(var);
-        }
-    } else if (decl->type == Type::tclock) {
-        module_clocks->push_back(build_clock(decl->id));
-    } else {
-        throw_FigException("Unsupported declaration.");
+    if (!has_errors()) {
+        const auto &var = make_tuple(decl->get_id(), lower, upper, value);
+        assert(module_vars != nullptr);
+        module_vars->push_back(var);
     }
+}
+
+void ModelBuilder::visit(shared_ptr<ClockDecl> decl) {
+    module_clocks->push_back(build_clock(decl->get_id()));
 }
 
 Label build_label(const string &id, LabelType type) {
@@ -349,36 +364,38 @@ Label build_label(const string &id, LabelType type) {
     }
 }
 
-void ModelBuilder::update_module_ie(shared_ptr<Action> action) {
-    const string &label_id = action->id;
-    if (action->type == LabelType::in) {
-        auto guard_p = ::exp_desc_pair(action->guard);
-        const string nott_guard = "!(" + guard_p.first + ")";
-        auto &names = guard_p.second;
-        if (module_ie_pre.find(label_id) == module_ie_pre.end()) {
+void ModelBuilder::update_module_ie(shared_ptr<InputTransition> action) {
+    const string &label_id = action->get_label();
+    auto guard_p = ::exp_desc_pair(action->get_precondition());
+    const string nott_guard = "!(" + guard_p.first + ")";
+    auto &names = guard_p.second;
+    if (module_ie_pre.find(label_id) == module_ie_pre.end()) {
             module_ie_pre[label_id] = make_pair(nott_guard, names);
-        } else {
-            auto &pre_p = module_ie_pre[label_id];
-            names.insert(names.end(),
-                         pre_p.second.cbegin(), pre_p.second.cend());
-            module_ie_pre[label_id]
-                    = make_pair(pre_p.first + "& " + nott_guard, names);
-        }
+    } else {
+        auto &pre_p = module_ie_pre[label_id];
+        names.insert(names.end(),
+                     pre_p.second.cbegin(), pre_p.second.cend());
+        module_ie_pre[label_id]
+                = make_pair(pre_p.first + "& " + nott_guard, names);
     }
 }
 
-void ModelBuilder::visit(shared_ptr<Action> action) {
-    const string &label_id = action->id;
-    LabelType label_type = action->type;
+void ModelBuilder::visit(shared_ptr<TransitionAST> action) {
+    const string &label_id = action->get_label();
+    LabelType label_type = action->get_label_type();
     Label label = build_label(label_id, label_type);
-    update_module_ie(action);
+    if (label_type == LabelType::in) {
+        update_module_ie(action->to_input());
+    }
     //Transition constructor expects the id of the triggering
     //clock,  let's get it:
-    string t_clock = action->has_clock() ?
-                action->clock_loc->id : std::string();
+    string t_clock = std::string();
+    if (action->has_triggering_clock()) {
+        t_clock = action->to_output()->get_triggering_clock()->get_identifier();
+    }
     //Precondition
     ExpStringBuilder string_builder;
-    action->guard->accept(string_builder);
+    action->get_precondition()->accept(string_builder);
     string result = string_builder.str();
     if (result == "true") {
         //Ensure the exact same output as Raul's old parser.
@@ -390,19 +407,19 @@ void ModelBuilder::visit(shared_ptr<Action> action) {
     transition_write_vars = make_unique<vector<string>>();
     transition_update.str(std::string());
     transition_clocks = make_unique<set<string>>();
-    auto &effects = action->get_effects();
-    auto it = effects.begin();
-    while (it != effects.end()) {
+    auto &assig = action->get_assignments();
+    auto it = assig.begin();
+    while (it != assig.end()) {
         (*it)->accept(*this);
         //avoid putting a ',' at the end:
         //we could also let the comma be, and then delete it
-        if ((it + 1) != effects.end()) {
-            const shared_ptr<Effect>& next = *(it + 1);
-            if (next->is_state_change()) {
+        if ((it + 1) != assig.end()) {
                 transition_update << ",";
-            }
         }
         it++;
+    }
+    for (auto cr : action->get_clock_resets()) {
+        cr->accept(*this);
     }
     const string &update = transition_update.str();
     Postcondition post (update, *transition_read_vars, *transition_write_vars);
@@ -411,41 +428,48 @@ void ModelBuilder::visit(shared_ptr<Action> action) {
     current_module->add_transition(trans);
 }
 
-void ModelBuilder::visit(shared_ptr<Effect> effect) {
-    if (effect->is_clock_reset()) {
-        transition_clocks->insert(effect->loc->id);
-    } else if (effect->is_state_change()) {
-        accept_cond(effect->loc);
-        ExpStringBuilder str_builder;
-        effect->arg->accept(str_builder);
-        const vector<string> &names = str_builder.get_names();
-//      vector<string>::iterator end = transition_read_vars->end();  // unused!
-        transition_read_vars->insert(transition_read_vars->cend(),
-                                     names.cbegin(), names.cend());
-        transition_write_vars->push_back(effect->loc->id);
-        transition_update << str_builder.str();
+void ModelBuilder::visit(shared_ptr<ClockReset> reset) {
+    transition_clocks->insert(reset->get_effect_location()->get_identifier());
+}
+
+void ModelBuilder::visit(shared_ptr<Assignment> assig) {
+    accept_cond(assig->get_effect_location());
+    ExpStringBuilder str_builder;
+    assig->get_rhs()->accept(str_builder);
+    const vector<string> &names = str_builder.get_names();
+    transition_read_vars->insert(transition_read_vars->cend(),
+                                 names.cbegin(), names.cend());
+    transition_write_vars->push_back(
+                assig->get_effect_location()->get_identifier());
+    transition_update << str_builder.str();
+}
+
+void ModelBuilder::visit(shared_ptr<TransientProp> prop) {
+    ExpStringBuilder left_b;
+    prop->get_left()->accept(left_b);
+    const vector<string> &left_names = left_b.get_names();
+    const string &left_expr = left_b.str();
+    ExpStringBuilder right_b;
+    prop->get_right()->accept(right_b);
+    const vector<string> &right_names = right_b.get_names();
+    const string &right_expr = right_b.str();
+    auto property = make_shared<PropertyTransient>
+            (left_expr, left_names, right_expr, right_names);
+    if (!has_errors()) {
+        int id = property->get_id();
+        assert(property_ast.find(id) == property_ast.end());
+        property_ast[id] = prop;
+        model_suite.add_property(property);
     }
 }
 
-void ModelBuilder::visit(shared_ptr<Prop> prop) {
-    ExpStringBuilder left_b;
-    prop->left->accept(left_b);
-    const vector<string> &left_names = left_b.get_names();
-    const string &left_expr = left_b.str();
-    shared_ptr<Property> property = nullptr;
-    if (prop->type == PropType::transient) {
-        ExpStringBuilder right_b;
-        prop->right->accept(right_b);
-        const vector<string> &right_names = right_b.get_names();
-        const string &right_expr = right_b.str();
-        property = make_shared<PropertyTransient>
-                (left_expr, left_names, right_expr, right_names);
-
-    } else if (prop->type == PropType::rate) {
-        property = make_shared<PropertyRate>(left_expr, left_names);
-    } else {
-        put_error("Unsupported property type");
-    }
+void ModelBuilder::visit(shared_ptr<RateProp> prop) {
+    ExpStringBuilder exp_b;
+    prop->get_expression()->accept(exp_b);
+    const vector<string> &exp_names = exp_b.get_names();
+    const string &exp_str = exp_b.str();
+    shared_ptr<Property> property
+            = make_shared<PropertyRate>(exp_str, exp_names);
     if (!has_errors()) {
         int id = property->get_id();
         assert(property_ast.find(id) == property_ast.end());
