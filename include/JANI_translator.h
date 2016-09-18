@@ -37,7 +37,6 @@
 #include <json-forwards.h>
 // FIG
 #include <ModelAST.h>
-#include <ModelBuilder.h>
 
 
 namespace fig
@@ -121,51 +120,70 @@ private:  // Class attributes
 	/// Current JSON field to fill in with info from last parsed IOSA model
 	shared_ptr< Json::Value > JANIfield;
 
-	/// Constructor of IOSA-FIG objects from AST structures
-	ModelBuilder builder;
-
-
 private:  // Class utlis
 
-        void reduce_init(Json::Value &JANIobj, shared_ptr<InitializedDecl> decl);
+	/// Try to evaluate an expression to an integral value;
+	/// put an error in our ErrorMessage if unsuccessfull
+	int get_int_or_error(shared_ptr<Exp> exp, const std::string& msg);
 
-        /// Try to evaluate an expression to a value of the corresponding
-        /// type, or put an error this visitor ErrorMessage
-        int get_int_or_error(shared_ptr<Exp> exp, const std::string& msg);
+	/// Try to evaluate an expression to a boolean value;
+	/// put an error in our ErrorMessage if unsuccessfull
+	bool get_bool_or_error(shared_ptr<Exp> exp, const std::string& msg);
 
-        bool get_bool_or_error(shared_ptr<Exp> exp, const std::string& msg);
+	/// Try to evaluate an expression to a floating point value;
+	/// put an error in our ErrorMessage if unsuccessfull
+	float get_float_or_error(shared_ptr<Exp> exp, const std::string& msg);
 
-        float get_float_or_error(shared_ptr<Exp> exp, const std::string& msg);
+	/// Interpret 'decl', which should be a boolean/integer/floating point
+	/// constant, and add the corresponding "JANI constant fields" in JANIobj
+	void build_JANI_constant(shared_ptr<InitializedDecl> decl,
+							 Json::Value& JANIobj);
+
+private:  // Visitor overrides for parsing
 
 	/// Populate JANIroot with all data we can extract from given Model
 	/// @warning If there's some previously parsed model information
-	///          then JANIroot will be cleared from all data
+	///	         then JANIroot will be cleared from all data
 	void visit(shared_ptr<Model> node) override;
 
-	/// Append/assign in JANIfield the JANI translation of this IOSA
-	/// declaration, which can be a constant, a bounded value, or a clock
-        void visit(shared_ptr<InitializedDecl> node) override;
-        void visit(shared_ptr<RangedDecl> node) override;
-        void visit(shared_ptr<ClockDecl> node) override;
-        void visit(shared_ptr<ArrayDecl> node) override;
+	/// Append/assign to JANIfield the JANI translation of this IOSA constant
+	/// (or boolean variable)
+	void visit(shared_ptr<InitializedDecl> node) override;
 
-	/// Append/assign in JANIfield the reduction of this IOSA boolean constant.
+	/// Append/assign to JANIfield the JANI translation of this IOSA variable
+	void visit(shared_ptr<RangedDecl> node) override;
+
+	/// Append/assign to JANIfield the JANI translation of this IOSA clock
+	void visit(shared_ptr<ClockDecl> node) override;
+
+	/// Append/assign to JANIfield the JANI translation of this IOSA array
+	void visit(shared_ptr<ArrayDecl> node) override;
+
+	/// Append/assign to JANIfield the reduction of this IOSA boolean constant.
 	void visit(shared_ptr<BConst> node) override;
 
-	/// Append/assign in JANIfield the reduction of this IOSA integral constant.
+	/// Append/assign to JANIfield the reduction of this IOSA totegral constant.
 	void visit(shared_ptr<IConst> node) override;
 
-	/// Append/assign in JANIfield the reduction of this IOSA floating point constant
+	/// Append/assign to JANIfield the reduction of this IOSA floattog potot constant
 	/// (i.e. JANI's "real")
 	void visit(shared_ptr<FConst> node) override;
 
-	/// Append/assign in JANIfield the identifyer of this location (aka variable)
+	/// Append/assign to JANIfield the identifier of this IOSA location
+	/// (aka variable: boolean, integral, clock)
 	/// @note Arrays are not yet supported
 	void visit(shared_ptr<LocExp> node)  override;
 
-	/// Append/assign in JANIfield the JANI translation of this IOSA
-	/// unary/binary operator.
-	void visit(shared_ptr<OpExp> node) override;
+	/// Append/assign to JANIfield the JANI translation of this IOSA
+	/// unary operator.
+	void visit(shared_ptr<UnOpExp> node) override;
+
+	/// Append/assign to JANIfield the JANI translation of this IOSA
+	/// binary operator.
+	void visit(shared_ptr<BinOpExp> node) override;
+
+	/// Append/assign to JANIfield the JANI translation of this IOSA module
+	void visit(shared_ptr<ModuleAST> node) override;
 };
 
 } // namespace fig

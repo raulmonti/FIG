@@ -394,7 +394,7 @@ public:
     InitializedDecl(Type type, string id, shared_ptr<Exp> init)
         : Decl(type, id), Initialized(init) {}
     virtual void accept(Visitor& visit) override;
-    virtual bool has_init() {
+	virtual bool has_init() override {
         return (true);
     }
 };

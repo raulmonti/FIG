@@ -15,8 +15,7 @@ void ModelAST::accept(Visitor &visit) {
 }
 
 shared_ptr<ModelAST> ModelAST::from_files(const char *model_file,
-										  const char *prop_file)
-{
+										  const char *prop_file) {
 	shared_ptr<ModelAST> result = nullptr;
 	ModelParserGen::ModelParser parser {&result};
 	int res(1);
@@ -64,8 +63,8 @@ void ModelAST::on_scanner_error(const string &msg) {
 std::set<string> Model::get_labels() const {
 	std::set<string> result;
 	for (const auto m_ptr: modules) {
-		for (const auto a_ptr: m_ptr->actions) {
-			result.emplace(a_ptr->id);
+		for (const auto t_ptr: m_ptr->get_transitions()) {
+			result.emplace(t_ptr->get_label());
 		}
 	}
 	return result;
