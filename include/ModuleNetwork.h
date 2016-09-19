@@ -86,7 +86,7 @@ private:
 	size_t numClocks_;
 
 	/// Whether the system model has already been sealed for simulations
-        bool sealed_;
+	bool sealed_;
 
 public:  // Ctors/Dtor
 
@@ -250,11 +250,18 @@ public:  // Utils
 	ImportanceValue peak_simulation(Traial& traial,
 									Update update,
 									Predicate pred) const;
-private: //Committed actions processing
-        bool process_committed_once(Traial &traial) const;        
-        void process_committed(Traial &Traial) const;
-public: //Debug
-        void print_info(std::ostream &out) const;
+
+private:  // Committed actions processing
+
+	/// @todo TODO write docstring, Leo!
+	bool process_committed_once(Traial &traial) const;
+
+	/// @todo TODO write docstring, Leo!
+	void process_committed(Traial &Traial) const;
+
+public:  // Debug
+
+	void print_info(std::ostream &out) const;
 
 }; // class ModuleNetwork
 

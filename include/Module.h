@@ -63,10 +63,16 @@ protected:
 	///       e.g. when building auto ifun
 	std::vector< Transition > transitions_;
 
+	/// Whether all clocks distributions' are exponential
+	bool markovian_;
+
 public:  // Accessors
 
 	/// The ModuleNetwork returns "GlobalModel", a ModuleInstance returns its name
 	virtual std::string id() const noexcept = 0;
+
+	/// @copydoc markovian_
+	inline bool is_markovian() const noexcept { return markovian_; }
 
 	/// Number of clocks defined in this Module
 	virtual size_t num_clocks() const noexcept = 0;

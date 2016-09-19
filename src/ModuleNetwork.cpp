@@ -60,7 +60,10 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 ModuleNetwork::ModuleNetwork() :
 	numClocks_(0u),
 	sealed_(false)
-{}
+{
+	// Empty range of "forall" is:
+	markovian_ = true;
+}
 
 
 ModuleNetwork::ModuleNetwork(const ModuleNetwork& that) :
@@ -107,6 +110,7 @@ ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 	transitions_.reserve(transitions_.size() + module->transitions_.size());
 	for (const Transition& tr: module->transitions_)
 		transitions_.emplace_back(tr);
+	markovian_ &= module->is_markovian();
 	module = nullptr;
 }
 
@@ -246,7 +250,10 @@ ModuleNetwork::adjacent_states(const size_t& s) const
 	return adjacentStates;
 }
 
-inline bool ModuleNetwork::process_committed_once(Traial &traial) const {
+
+bool
+ModuleNetwork::process_committed_once(Traial &traial) const
+{
     bool found = false;
     auto modules_it = modules.begin();
     //iterate every module...
@@ -274,12 +281,16 @@ inline bool ModuleNetwork::process_committed_once(Traial &traial) const {
     return (found);
 }
 
-inline void ModuleNetwork::process_committed(Traial &traial) const {
+
+void
+ModuleNetwork::process_committed(Traial &traial) const
+{
     while (process_committed_once(traial)) {
         //repeat until no committed action enabled
         ;
     }
 }
+
 
 template< typename DerivedProperty,
           class Simulator,

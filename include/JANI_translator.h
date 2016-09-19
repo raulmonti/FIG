@@ -30,14 +30,18 @@
 #define JANI_TRANSLATOR_H
 
 // C++
-#include <string>
+#include <set>
+#include <map>
 #include <vector>
 #include <memory>
+#include <string>
 // External code
 #include <json-forwards.h>
 // FIG
 #include <ModelAST.h>
-#include "ModuleScope.h"
+
+
+class ModuleScope;
 
 
 namespace fig
@@ -116,13 +120,27 @@ public:  // Translation facilities
 private:  // Class attributes
 
 	/// JsonCPP of the last parsed model, in JANI Specifiaction format
-	shared_ptr< Json::Value > JANIroot;
+	shared_ptr< Json::Value > JANIroot_;
 
 	/// Current JSON field to fill in with info from last parsed IOSA model
-	shared_ptr< Json::Value > JANIfield;
+	shared_ptr< Json::Value > JANIfield_;
 
-        /// Scope of the module being translated (visited) at the time
-        shared_ptr<ModuleScope> current_scope = nullptr;
+	/// Name of the module currently translated (visited)
+	std::string currentModule_;
+
+	/// Scope of the module currently translated (visited)
+	shared_ptr<ModuleScope> currentScope_;
+
+	/// Input/Output label sets of a module
+	typedef std::pair< std::set< std::string >,   // inputs
+					   std::set< std::string > >  // outputs/tau
+		LabelSets;
+
+	/// Labels of each module (for the currently parsed model)
+	std::map< std::string, LabelSets > modulesLabels_;
+
+	/// All model labels grouped together without discrimination
+	std::set< std::string > modelLabels_;
 
 private:  // Class utlis
 
@@ -188,6 +206,10 @@ private:  // Visitor overrides for parsing
 
 	/// Append/assign to JANIfield the JANI translation of this IOSA module
 	void visit(shared_ptr<ModuleAST> node) override;
+
+	/// Append/assign to JANIfield the JANI translation of this IOSA transition
+	/// @note Specialization'd be pointless, right?
+	void visit(shared_ptr<TransitionAST> node) override;
 };
 
 } // namespace fig
