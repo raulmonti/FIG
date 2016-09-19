@@ -4,6 +4,7 @@
 #define __MODEL_AST_H__
 #include <cassert>
 #include <map>
+#include <set>
 #include <memory>
 #include <iostream>
 #include <sstream>
@@ -211,7 +212,10 @@ public:
     const shared_vector<ModuleAST> &get_modules() const {
         return (modules);
     }
-    
+
+	/// Returns (only the id of) the labels of all modules of this model
+	std::set<string> get_labels() const;
+
     /// Returns the global declarations of this model
     const vector<shared_ptr<class Decl>>& get_globals() const {
         return (globals);
@@ -390,7 +394,7 @@ public:
     InitializedDecl(Type type, string id, shared_ptr<Exp> init)
         : Decl(type, id), Initialized(init) {}
     virtual void accept(Visitor& visit) override;
-    virtual bool has_init() {
+	virtual bool has_init() override {
         return (true);
     }
 };
