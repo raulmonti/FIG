@@ -124,6 +124,8 @@ private:  // Class attributes
 	/// Constructor of IOSA-FIG objects from AST structures
 	ModelBuilder builder;
 
+        /// Scope of the module being translated (visited) at the time
+        shared_ptr<ModuleScope> current_scope = nullptr;
 
 private:  // Class utlis
 

@@ -65,7 +65,7 @@ inline void ModelBuilder::accept_visitor(shared_ptr<ModelAST> node,
 inline int ModelBuilder::get_int_or_error(shared_ptr<Exp> exp,
                                           const string &msg) {
     int res = 0;
-    ExpEvaluator ev;
+    ExpEvaluator ev (current_scope);
     accept_visitor(exp, ev);
     if (ev.has_type_int()) {
         res = ev.get_int();
@@ -78,7 +78,7 @@ inline int ModelBuilder::get_int_or_error(shared_ptr<Exp> exp,
 inline float ModelBuilder::get_float_or_error(shared_ptr<Exp> exp,
                                               const string &msg) {
     float res = 0;
-    ExpEvaluator ev;
+    ExpEvaluator ev (current_scope);
     accept_visitor(exp, ev);
     if (ev.has_type_float()) {
         res = ev.get_float();
@@ -93,7 +93,7 @@ inline float ModelBuilder::get_float_or_error(shared_ptr<Exp> exp,
 inline bool ModelBuilder::get_bool_or_error(shared_ptr<Exp> exp,
                                             const string &msg) {
     bool res = 0;
-    ExpEvaluator ev;
+    ExpEvaluator ev (current_scope);
     accept_visitor(exp, ev);
     if (ev.has_type_bool()) {
         res = ev.get_bool();
@@ -104,13 +104,6 @@ inline bool ModelBuilder::get_bool_or_error(shared_ptr<Exp> exp,
 }
 
 namespace {
-std::pair<string, vector<string>>
-exp_desc_pair(shared_ptr<Exp> exp) {
-    ExpStringBuilder str_b;
-    exp->accept(str_b);
-    return std::make_pair(str_b.str(), str_b.get_names());
-}
-
 inline void dump_precondition_info(const string &expr,
                                    const vector<string> &names) {
     std::cout << "Precondition" << std::endl;
@@ -217,8 +210,14 @@ inline void dump_clock_info(const string &module,
     std::cout << "EndClock" << std::endl;
     std::cout << std::endl;
 }
-
 } //namespace
+
+std::pair<string, vector<string>>
+ModelBuilder::exp_desc_pair(shared_ptr<Exp> exp) {
+    ExpStringBuilder str_b (current_scope);
+    exp->accept(str_b);
+    return std::make_pair(str_b.str(), str_b.get_names());
+}
 
 void ModelBuilder::visit(shared_ptr<Model> model) {
     auto& modules = model->get_modules();
@@ -260,7 +259,7 @@ void ModelBuilder::visit(shared_ptr<ModuleAST> body) {
     if (!has_errors()) {
         auto& clocks = *module_clocks;
         current_module = make_shared<ModuleInstance>
-                (current_scope->id, *module_vars, clocks);
+                (current_scope->get_module_name(), *module_vars, clocks);
     }
     //Note: Transitions can't be copied, we need to add them directly to
     // the current_module instead of accumulate them in a vector
@@ -274,7 +273,7 @@ void ModelBuilder::visit(shared_ptr<ModuleAST> body) {
 }
 
 Clock ModelBuilder::build_clock(const std::string& id) {
-    shared_ptr<Dist> dist = current_scope->clock_dists[id];
+    shared_ptr<Dist> dist = current_scope->dist_by_clock_map().at(id);
     assert(dist != nullptr);
     fig::DistributionParameters params;
     //reduce distribution parameters
@@ -366,7 +365,7 @@ Label build_label(const string &id, LabelType type) {
 
 void ModelBuilder::update_module_ie(shared_ptr<InputTransition> action) {
     const string &label_id = action->get_label();
-    auto guard_p = ::exp_desc_pair(action->get_precondition());
+    auto guard_p = exp_desc_pair(action->get_precondition());
     const string nott_guard = "!(" + guard_p.first + ")";
     auto &names = guard_p.second;
     if (module_ie_pre.find(label_id) == module_ie_pre.end()) {
@@ -394,7 +393,7 @@ void ModelBuilder::visit(shared_ptr<TransitionAST> action) {
         t_clock = action->to_output()->get_triggering_clock()->get_identifier();
     }
     //Precondition
-    ExpStringBuilder string_builder;
+    ExpStringBuilder string_builder (current_scope);
     action->get_precondition()->accept(string_builder);
     string result = string_builder.str();
     if (result == "true") {
@@ -434,7 +433,7 @@ void ModelBuilder::visit(shared_ptr<ClockReset> reset) {
 
 void ModelBuilder::visit(shared_ptr<Assignment> assig) {
     accept_cond(assig->get_effect_location());
-    ExpStringBuilder str_builder;
+    ExpStringBuilder str_builder (current_scope);
     assig->get_rhs()->accept(str_builder);
     const vector<string> &names = str_builder.get_names();
     transition_read_vars->insert(transition_read_vars->cend(),
@@ -445,11 +444,11 @@ void ModelBuilder::visit(shared_ptr<Assignment> assig) {
 }
 
 void ModelBuilder::visit(shared_ptr<TransientProp> prop) {
-    ExpStringBuilder left_b;
+    ExpStringBuilder left_b (current_scope);
     prop->get_left()->accept(left_b);
     const vector<string> &left_names = left_b.get_names();
     const string &left_expr = left_b.str();
-    ExpStringBuilder right_b;
+    ExpStringBuilder right_b (current_scope);
     prop->get_right()->accept(right_b);
     const vector<string> &right_names = right_b.get_names();
     const string &right_expr = right_b.str();
@@ -464,7 +463,7 @@ void ModelBuilder::visit(shared_ptr<TransientProp> prop) {
 }
 
 void ModelBuilder::visit(shared_ptr<RateProp> prop) {
-    ExpStringBuilder exp_b;
+    ExpStringBuilder exp_b (current_scope);
     prop->get_expression()->accept(exp_b);
     const vector<string> &exp_names = exp_b.get_names();
     const string &exp_str = exp_b.str();

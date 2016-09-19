@@ -233,7 +233,7 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 int JaniTranslator::get_int_or_error(shared_ptr<Exp> exp,
                                      const std::string& msg) {
     int res = 0;
-    ExpEvaluator ev;
+    ExpEvaluator ev (this->current_scope);
     exp->accept(ev);
     if (ev.has_type_int()) {
         res = ev.get_int();
@@ -246,7 +246,7 @@ int JaniTranslator::get_int_or_error(shared_ptr<Exp> exp,
 bool JaniTranslator::get_bool_or_error(shared_ptr<Exp> exp,
                                        const std::string& msg) {
     bool res = false;
-    ExpEvaluator ev;
+    ExpEvaluator ev (this->current_scope);
     exp->accept(ev);
     if (ev.has_type_bool()) {
         res = ev.get_bool();
@@ -259,7 +259,7 @@ bool JaniTranslator::get_bool_or_error(shared_ptr<Exp> exp,
 float JaniTranslator::get_float_or_error(shared_ptr<Exp> exp,
                                          const std::string& msg) {
     float res = 0.0;
-    ExpEvaluator ev;
+    ExpEvaluator ev (this->current_scope);
     exp->accept(ev);
     if (ev.has_type_float()) {
         res = ev.get_float();
@@ -429,12 +429,21 @@ JaniTranslator::visit(shared_ptr<Model> node)
 		JANIroot = make_shared<Json::Value>(Json::objectValue);
 
 	// Parse global constants
+    current_scope = nullptr; //no module being translated yet.
 	JANIfield = make_shared<Json::Value>(Json::arrayValue);
 	for (auto decl_ptr : node->get_globals())
 		decl_ptr->accept(*this);
 	(*JANIroot)["constants"] = *JANIfield;
 
 	/// @todo TODO continue with translation from IOSA to JANI-Json
+
+    //
+    for (shared_ptr<ModuleAST> module : node->get_modules()) {
+        current_scope = ModuleScope::scopes.at(module->get_name());
+        //translate this module
+        module->accept(*this);
+    }
+
 }
 
 void JaniTranslator::reduce_init(Json::Value &JANIobj,

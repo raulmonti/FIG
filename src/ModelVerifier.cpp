@@ -18,19 +18,10 @@ z3::expr z3mod(z3::expr const & a, z3::expr const & b) {
     }
     else {
         // operator is not supported by given arguments.
-        assert(false);
+        throw_FigException("Not supported z3 operation");
     }
     a.check_error();
     return z3::expr(a.ctx(), r);
-}
-
-shared_ptr<Exp> eval_or_throw(shared_ptr<Exp> exp) {
-    ExpEvaluator ev;
-    exp->accept(ev);
-    if (ev.has_errors()) {
-        throw_FigException("Could not evaluate expression");
-    }
-    return (ev.value_to_ast());
 }
 
 shared_ptr<Exp> find_assignment_rhs(shared_ptr<TransitionAST> action,
@@ -247,7 +238,7 @@ void Z3Converter::visit(shared_ptr<FConst> node) {
 }
 
 void Z3Converter::visit(shared_ptr<LocExp> node) {
-    ExpEvaluator ev;
+    ExpEvaluator ev (scope);
     node->accept(ev);
     if (!ev.has_errors()) {
         //set the expression to the result of the evaluation
@@ -289,20 +280,29 @@ z3::sort Z3Converter::get_sort_of(const std::string &name) {
     return sorts.at(name);
 }
 
+shared_ptr<Exp> ModelVerifier::eval_or_throw(shared_ptr<Exp> exp) {
+    ExpEvaluator ev (this->current_scope);
+    exp->accept(ev);
+    if (ev.has_errors()) {
+        throw_FigException("Could not evaluate expression");
+    }
+    return (ev.value_to_ast());
+}
+
 z3::expr ModelVerifier::eval_and_convert(shared_ptr<Exp> exp) {
-    Z3Converter conv (context);
+    Z3Converter conv (context, current_scope);
     eval_or_throw(exp)->accept(conv);
     return (conv.get_expression());
 }
 
 z3::expr ModelVerifier::convert(shared_ptr<Exp> exp) {
-    Z3Converter conv (context);
+    Z3Converter conv (context, current_scope);
     exp->accept(conv);
     return (conv.get_expression());
 }
 
 z3::expr ModelVerifier::convert(shared_ptr<Exp> exp, std::set<string>& names) {
-    Z3Converter conv (context);
+    Z3Converter conv (context, current_scope);
     exp->accept(conv);
     for (auto name : conv.get_names()) {
         names.insert(name);
@@ -312,7 +312,7 @@ z3::expr ModelVerifier::convert(shared_ptr<Exp> exp, std::set<string>& names) {
 
 void ModelVerifier::add_names_limits(const std::set<string> &names) {
     for (const string& name : names) {
-        shared_ptr<Decl> decl = current_scope->local_decls.at(name);
+        shared_ptr<Decl> decl = current_scope->local_decls_map().at(name);
         if (decl->has_range()) {
             shared_ptr<RangedDecl> ranged = decl->to_ranged();
             const auto& sort =
@@ -333,7 +333,7 @@ void ModelVerifier::debug_print_solver() {
 }
 
 void ModelVerifier::check_output_determinism(const string &clock_id) {
-    auto &tr_actions = current_scope->triggered_transitions;
+    auto &tr_actions = current_scope->transition_by_clock_map();
     auto range = tr_actions.equal_range(clock_id);
     auto it1 = range.first;
     while (it1 != range.second && !has_warnings()) {
@@ -380,7 +380,7 @@ void ModelVerifier::check_output_determinism(const string &clock_id) {
 }
 
 void ModelVerifier::check_input_determinism(const string &label_id) {
-    auto &label_actions = current_scope->label_transitions;
+    auto &label_actions = current_scope->transition_by_label_map();
     auto range = label_actions.equal_range(label_id);
     auto it1 = range.first;
     while (it1 != range.second && !has_warnings()) {
@@ -435,7 +435,8 @@ void ModelVerifier::visit(shared_ptr<Model> model) {
 }
 
 void ModelVerifier::check_output_determinism_all() {
-    map<string, shared_ptr<Dist>> &clocks_dist = current_scope->clock_dists;
+    map<string, shared_ptr<Dist>> &clocks_dist
+            = current_scope->dist_by_clock_map();
     auto it = clocks_dist.begin();
     while (it != clocks_dist.end() && !has_warnings()) {
         check_output_determinism((*it).first);
@@ -444,7 +445,7 @@ void ModelVerifier::check_output_determinism_all() {
 }
 
 void ModelVerifier::check_input_determinism_all() {
-    map<string, LabelType> &labels_type = current_scope->labels;
+    map<string, LabelType> &labels_type = current_scope->type_by_label_map();
     map<string, LabelType>::iterator it = labels_type.begin();
     while (it != labels_type.end() && !has_warnings()) {
         if ((*it).second == LabelType::in) {
@@ -456,7 +457,8 @@ void ModelVerifier::check_input_determinism_all() {
 }
 
 void ModelVerifier::check_exhausted_clocks_all() {
-    map<string, shared_ptr<Dist>> &clocks_dist = current_scope->clock_dists;
+    map<string, shared_ptr<Dist>> &clocks_dist
+            = current_scope->dist_by_clock_map();
     auto it = clocks_dist.begin();
     while (it != clocks_dist.end()) {
         check_exhausted_clocks((*it).first);
@@ -464,7 +466,8 @@ void ModelVerifier::check_exhausted_clocks_all() {
     }
 }
 
-void ModelVerifier::check_rhs(shared_ptr<TransitionAST> a1, shared_ptr<TransitionAST> a2) {
+void ModelVerifier::check_rhs(shared_ptr<TransitionAST> a1,
+                              shared_ptr<TransitionAST> a2) {
     auto& assigs = a1->get_assignments();
     auto it = assigs.begin();
     while (it != assigs.end() && !has_warnings()) {
@@ -496,7 +499,7 @@ void ModelVerifier::check_rhs(shared_ptr<TransitionAST> a1, shared_ptr<Transitio
 
 z3::expr ModelVerifier::convert_and_rename(shared_ptr<Exp> exp,
                                            std::set<string>& to_rename_vars) {
-    Z3Converter conv(context);
+    Z3Converter conv(context, current_scope);
     exp->accept(conv);
     z3::expr z3exp = conv.get_expression();
     std::set<string> names = conv.get_names();
@@ -529,7 +532,8 @@ void ModelVerifier
         //remember that this variable will change
         changed_vars.insert(state_variable);
         //find out the type of the state variable
-        Type type = current_scope->local_decls.at(state_variable)->get_type();
+        Type type
+                = current_scope->local_decls_map().at(state_variable)->get_type();
         //the sort is int, bool, or float depending on the type
         z3::sort sort = Z3Converter::type_to_sort(type, *context);
             // change the name of the state variable, put the ' character.
@@ -541,10 +545,10 @@ void ModelVerifier
 }
 
 void ModelVerifier ::check_exhausted_clocks(const string &clock_id) {
-    auto &tr_actions = current_scope->triggered_transitions;
+    auto &tr_actions = current_scope->transition_by_clock_map();
     auto range = tr_actions.equal_range(clock_id);
     auto it1 = range.first;
-    auto &actions = current_scope->body->get_transitions();
+    auto &actions = current_scope->module_ast()->get_transitions();
     //iterate over the actions triggered by clock_id
     while (it1 != range.second) {
         shared_ptr<TransitionAST> a1 = (*it1).second;
@@ -598,7 +602,7 @@ bool ModelVerifier::enables_exhausted(shared_ptr<TransitionAST> a1,
 
 z3::expr ModelVerifier::pre_transitions_with_clock(const string &clock_id,
                                                    std::set<string> &names) {
-    auto &tr_actions = current_scope->triggered_transitions;
+    auto &tr_actions = current_scope->transition_by_clock_map();
     auto range = tr_actions.equal_range(clock_id);
     auto it = range.first;
     z3::expr pre_clock = context->bool_val(false);

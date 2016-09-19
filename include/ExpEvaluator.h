@@ -18,8 +18,8 @@ using std::make_shared;
 
 class ExpEvaluator : public Visitor {
 private:
-    /// global constants on which the evaluated expression may depend on
-    shared_map<string, Decl>& globals = ModuleScope::globals;
+    /// ModuleScope to evaluate the expression's variables.
+    shared_ptr<ModuleScope> scope;
     /// the type of the computed value
     Type type;
     /// the computed value (can be either a boolean, an integer, or a float)
@@ -36,7 +36,8 @@ private:
     /// because it depends on state variables.
     void mark_not_reducible();
 public:
-    ExpEvaluator() : type {Type::tunknown} {}
+    ExpEvaluator(shared_ptr<ModuleScope> scope)
+        : scope {scope}, type {Type::tunknown} {}
     /// Interpret a unary operator as a unary function.
     template<typename T>
     static std::function<T (T)> uop_as_fun(ExpOp op);

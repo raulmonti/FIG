@@ -39,8 +39,9 @@ inline const string EXPECTED_NUMERIC() {
 }
 
 inline const string PREFIX(const shared_ptr<ModuleScope>& current_scope) {
-    return current_scope == nullptr ? "At global constants" :
-                                      "At Module " + current_scope->id;
+    return current_scope == nullptr
+            ? "At global constants" :
+              "At Module " + current_scope->get_module_name();
 }
 
 inline const string TC_WRONG_INDEX_INT(const shared_ptr<ModuleScope> &curr,
@@ -361,9 +362,9 @@ inline Type ModelTC::identifier_type(const string &id) {
         type = globals[id]->get_type();
     }
     if (type == Type::tunknown && current_scope != nullptr) {
-        auto &local = current_scope->local_decls;
+        const auto &local = current_scope->local_decls_map();
         if (local.find(id) != local.end()) {
-            type = local[id]->get_type();
+            type = local.at(id)->get_type();
         }
     }
     if (type == Type::tunknown && checking_property) {
@@ -436,11 +437,12 @@ inline void ModelTC::accept_cond(shared_ptr<ModelAST> node) {
 }
 
 void ModelTC::check_clocks(shared_ptr<ModuleScope> scope) {
-    for (auto entry : scope->local_decls) {
+    for (auto entry : scope->local_decls_map()) {
         shared_ptr<Decl> decl = entry.second;
         const string &id = entry.first;
         if (decl->get_type() == Type::tclock) {
-            if (scope->clock_dists.find(id) == scope->clock_dists.end()) {
+            if (scope->dist_by_clock_map().find(id)
+                    == scope->dist_by_clock_map().end()) {
                 put_error(TC_MISSING_CLOCK_DIST(scope, id, decl));
             }
         }
@@ -448,7 +450,7 @@ void ModelTC::check_clocks(shared_ptr<ModuleScope> scope) {
 }
 
 int ModelTC::eval_int_or_put(shared_ptr<Exp> exp) {
-    ExpEvaluator ev;
+    ExpEvaluator ev (current_scope);
     exp->accept(ev);
     int result = -1;
     if (ev.has_errors()) {
@@ -460,7 +462,7 @@ int ModelTC::eval_int_or_put(shared_ptr<Exp> exp) {
 }
 
 float ModelTC::eval_float_or_put(shared_ptr<Exp> exp) {
-    ExpEvaluator ev;
+    ExpEvaluator ev (current_scope);
     exp->accept(ev);
     float result = -1;
     if (ev.has_errors()) {
@@ -492,13 +494,13 @@ void ModelTC::check_dist(shared_ptr<Dist> dist) {
 }
 
 void ModelTC::check_dist(shared_ptr<ModuleScope> scope) {
-    for (auto entry : scope->clock_dists) {
+    for (auto entry : scope->dist_by_clock_map()) {
         check_dist(entry.second);
     }
 }
 
 void ModelTC::check_ranged_all(shared_ptr<ModuleScope> scope) {
-    for (auto entry : scope->local_decls) {
+    for (auto entry : scope->local_decls_map()) {
         shared_ptr<Decl> decl = entry.second;
         if (decl->has_range()) {
             check_ranged_decl(decl->to_ranged());
@@ -520,15 +522,15 @@ void ModelTC::visit(shared_ptr<Model> model) {
         const shared_ptr<ModuleScope>& new_scope = make_shared<ModuleScope>();
         const string &id = modules[i]->get_name();
         if (scopes.find(id) != scopes.end()) {
-            shared_ptr<ModelAST> prev = scopes[id]->body;
+            shared_ptr<ModelAST> prev = scopes[id]->module_ast();
             put_error(TC_ID_REDEFINED(current_scope, prev, id));
         }
-        new_scope->body = modules[i];
-        new_scope->id = modules[i]->get_name();
+        new_scope->set_module_ast(modules[i]);
+        new_scope->set_module_name(modules[i]->get_name());
         //set current scope before accepting module body
         current_scope = new_scope;
         scopes[id] = new_scope;
-        accept_cond(new_scope->body);
+        accept_cond(new_scope->module_ast());
         i++;
     }
     current_scope = nullptr;
@@ -545,6 +547,7 @@ void ModelTC::visit(shared_ptr<Model> model) {
         }
         for (auto entry : scopes) {
             const auto &scope_current = entry.second;
+            current_scope = scope_current;
             check_clocks(scope_current);
             check_ranged_all(scope_current);
             check_dist(scope_current);
@@ -555,7 +558,7 @@ void ModelTC::visit(shared_ptr<Model> model) {
 void ModelTC::visit(shared_ptr<ModuleAST> body) {
     assert(body != nullptr);
     assert(current_scope != nullptr);
-    assert(current_scope->body == body);
+    assert(current_scope->module_ast() == body);
     for (auto &decl : body->get_local_decls()) {
         accept_cond(decl);
     }
@@ -576,9 +579,10 @@ void ModelTC::check_scope(shared_ptr<Decl> decl) {
         }
     } else {
         //check if decl is already in local scope
-        auto &local = current_scope->local_decls;
+        std::map<string, shared_ptr<Decl>> &local
+                = current_scope->local_decls_map();
         if (local.find(id) != local.end()) {
-            shared_ptr<ModelAST> prev = local[id];
+            shared_ptr<ModelAST> prev = local.at(id);
             put_error(TC_ID_REDEFINED(current_scope, prev, id));
         } else {
             local[id] = decl;
@@ -632,8 +636,9 @@ void ModelTC::visit(shared_ptr<TransitionAST> action) {
     assert(current_scope != nullptr);
     const string &label = action->get_label();
     const LabelType &label_type = action->get_label_type();
-    current_scope->label_transitions.insert(std::make_pair(label, action));
-    auto &labels = current_scope->labels;
+    current_scope->transition_by_label_map()
+            .insert(std::make_pair(label, action));
+    auto &labels = current_scope->type_by_label_map();
     if (label_type != LabelType::tau) {
         //check if label is already used with another type
         if (labels.find(label) != labels.end()) {
@@ -658,7 +663,7 @@ void ModelTC::visit(shared_ptr<TransitionAST> action) {
                 = output->get_triggering_clock()->get_identifier();
         check_type(Type::tclock,
                    TC_NOT_A_CLOCK(current_scope, output, last_type));
-        current_scope->triggered_transitions.
+        current_scope->transition_by_clock_map().
                 insert(std::make_pair(clock_id, output));
     }
     for (auto &effect : action->get_assignments()) {
@@ -676,7 +681,7 @@ void ModelTC::visit(shared_ptr<ClockReset> effect) {
     // with diferent **type** of distribution
     // parameters should be checked after constants
     // reduction
-    auto &clock_dists = current_scope->clock_dists;
+    auto &clock_dists = current_scope->dist_by_clock_map();
     const string &clock_id = effect->get_effect_location()->get_identifier();
     if (clock_dists.find(clock_id) != clock_dists.end()) {
         shared_ptr<Dist> dist = clock_dists[clock_id];
@@ -731,7 +736,7 @@ void ModelTC::visit(shared_ptr<Location> loc) {
             }
         }
     } else {
-        auto &local = current_scope->local_decls;
+        auto &local = current_scope->local_decls_map();
         //location could be local or global
         if (local.find(id) == local.end() &&
                 globals.find(id) == globals.end()) {

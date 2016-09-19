@@ -73,8 +73,8 @@ private:
     shared_ptr<location> token_loc = nullptr;
 public:
 
-	/// Build an AST from two files corresponding to the model and
-	/// the properties (e.g. tandem-queue.sa, tandem-queue.pp)
+    /// Build an AST from two files corresponding to the model and
+    /// the properties (e.g. tandem-queue.sa, tandem-queue.pp)
     static shared_ptr<ModelAST> from_files(const char *model_file,
                                            const char *prop_file);
 
@@ -358,11 +358,11 @@ public:
         add_qualifier(DeclQualifier::constant);
     }
 
-    Type get_type() {
+    Type get_type() const {
         return (type);
     }
 
-    string get_id() {
+    string get_id() const {
         return (id);
     }
 

@@ -1,12 +1,10 @@
 #include "ExpReductor.h"
 
-namespace {
-shared_ptr<Exp> eval_if_possible(shared_ptr<Exp> exp) {
-    ExpEvaluator ev;
+shared_ptr<Exp> ExpReductor::eval_if_possible(shared_ptr<Exp> exp) {
+    ExpEvaluator ev(this->scope);
     exp->accept(ev);
     return (ev.has_errors() ? exp : ev.value_to_ast());
 }
-} //namespace
 
 void ExpReductor::visit(shared_ptr<IConst> node) {
    reduced_exp = node;
@@ -21,7 +19,7 @@ void ExpReductor::visit(shared_ptr<FConst> node) {
 }
 
 void ExpReductor::visit(shared_ptr<LocExp> node) {
-    reduced_exp = ::eval_if_possible(node);
+    reduced_exp = eval_if_possible(node);
 }
 
 void ExpReductor::visit(shared_ptr<BinOpExp> exp) {

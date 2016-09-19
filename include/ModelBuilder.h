@@ -123,6 +123,9 @@ private:
     /// @copydoc ModelBuilder::get_int_or_error
     float get_float_or_error(shared_ptr<Exp> exp, const string &msg);
 
+    /// Returns a string representation of the expression paired
+    /// with a vector of names (variables) that occur in that expression
+    std::pair<string, vector<string> > exp_desc_pair(shared_ptr<Exp> exp);
 public:
     ModelBuilder();
     virtual ~ModelBuilder();

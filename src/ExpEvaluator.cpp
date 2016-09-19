@@ -145,19 +145,25 @@ void ExpEvaluator::visit(shared_ptr<FConst> fexp) {
 }
 
 void ExpEvaluator::visit(shared_ptr<LocExp> loc) {
-    shared_ptr<Location> location = loc->get_exp_location();
-    const string &id = location->get_identifier();
-    if (globals.find(id) != globals.end()) {
-        shared_ptr<Decl> decl = globals[id];
-        if (decl->has_init()) {
-            //e.g: id int init 42
-            //take the value of the initialization
-            shared_ptr<Exp> init = decl->to_initialized()->get_init();
-            init->accept(*this);
-        }
+    const string &id = loc->get_exp_location()->get_identifier();
+    shared_ptr<Decl> decl
+            = scope != nullptr ? scope->find_identifier(id) : nullptr;
+    if (decl == nullptr) {
+        //try in global scope
+        decl = ModuleScope::find_identifier_global(id);
     }
-    else {
-        put_error("Only global identifiers can be evaluated at compilation");
+    if (decl != nullptr && decl->is_constant()) {
+        if (decl->has_init()) {
+            shared_ptr<Exp> init = decl->to_initialized()->get_init();
+            //evaluate the expression associated with the identifier
+            init->accept(*this);
+            //this could lead to infinite loop if typechecking doesn't
+            //check for circular expressions.
+        } else {
+            put_error("Attempt to evaluate uninitialized constant");
+        }
+    } else {
+        put_error("Location \"" + id + "\" not reducible at compilation time");
     }
 }
 
@@ -206,7 +212,7 @@ inline void ExpEvaluator::reduce_binary_operator(shared_ptr<BinOpExp> exp) {
         type_left = Type::tfloat;
         val_left.fvalue = (float) val_left.ivalue;
     }
-    //now we now that both arguments must have the same type
+    //now we know that both arguments must have the same type
     if (type_left == Type::tunknown ||
             type_right == Type::tunknown || type_left != type_right) {
         mark_not_reducible();

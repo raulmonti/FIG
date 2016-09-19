@@ -2,6 +2,7 @@
 #define EXP_STRING_BUILDER_H
 
 #include "ModelAST.h"
+#include "ModuleScope.h"
 
 /**
  * @brief Traverse the AST of an expression building a string
@@ -10,6 +11,8 @@
  * into a string with the format expected by the ModelSuite API.
  */
 class ExpStringBuilder : public Visitor {
+    /// ModuleScope used to evaluate state variables.
+    shared_ptr<ModuleScope> scope = nullptr;
     /// state variables occuring in the expression
     vector<std::string> names;
     /// the computed string
@@ -25,7 +28,8 @@ class ExpStringBuilder : public Visitor {
     // + and also + is left associative.
 
 public:
-    ExpStringBuilder() : result {""}, should_enclose {false} {}
+    ExpStringBuilder(shared_ptr<ModuleScope> scope)
+        : scope {scope}, result {""}, should_enclose {false} {}
     void visit(shared_ptr<IConst> node);
     void visit(shared_ptr<BConst> node);
     void visit(shared_ptr<FConst> node);
@@ -43,7 +47,8 @@ public:
     // and returns also the vector with all the names that occur
     // in the expressions.
     static std::pair<std::string, std::vector<std::string>>
-    make_conjunction_str(const vector<shared_ptr<Exp>>& expvec);
+    make_conjunction_str(shared_ptr<ModuleScope> scope,
+                         const vector<shared_ptr<Exp>>& expvec);
 };
 
 

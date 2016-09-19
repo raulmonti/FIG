@@ -12,9 +12,14 @@
  */
 class ExpReductor : public Visitor {
 private:
+    /// ModuleScope to evaluate the expression variables
+    shared_ptr<ModuleScope> scope = nullptr;
     /// The reduced expression.
     shared_ptr<Exp> reduced_exp = nullptr;
+    /// Try to evaluate an expression in the given scope.
+    shared_ptr<Exp> eval_if_possible(shared_ptr<Exp> exp);
 public:
+    ExpReductor(shared_ptr<ModuleScope> scope) : scope {scope} {}
     void visit(shared_ptr<IConst> node);
     void visit(shared_ptr<BConst> node);
     void visit(shared_ptr<FConst> node);

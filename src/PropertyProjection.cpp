@@ -22,7 +22,7 @@ using Term = parser::PropertyProjection::Term;
 using DNF  = parser::PropertyProjection::DNF;
 
 bool has_identifiers_in(Term exp, const vector<string>& varnames) {
-    ExpStringBuilder str_b;
+    ExpStringBuilder str_b (CompositeModuleScope::get_instance());
     //@todo write another visitor that returns names without
     // making a string in the process
     exp->accept(str_b);
@@ -38,8 +38,9 @@ bool has_identifiers_in(Term exp, const vector<string>& varnames) {
 }
 
 inline Clause clause_from_terms(const vector<Term> &terms) {
+    shared_ptr<ModuleScope> scope = CompositeModuleScope::get_instance();
     std::pair<string, vector<string>> str_names
-            = ExpStringBuilder::make_conjunction_str(terms);
+            =  ExpStringBuilder::make_conjunction_str(scope, terms);
     return Precondition(str_names.first, str_names.second);
 }
 
@@ -75,10 +76,10 @@ void PropertyProjection::populate(const fig::Property& property) {
     case PropType::transient:
     {
         shared_ptr<TransientProp> tprop = prop->to_transient();
-        ExprDNFBuilder left_b;
+        ExprDNFBuilder left_b (CompositeModuleScope::get_instance());
         tprop->get_left()->accept(left_b);
         others_ = left_b.get_clauses();
-        ExprDNFBuilder right_b;
+        ExprDNFBuilder right_b (CompositeModuleScope::get_instance());
         tprop->get_right()->accept(right_b);
         rares_ = right_b.get_clauses();
         break;
@@ -86,7 +87,7 @@ void PropertyProjection::populate(const fig::Property& property) {
     case PropType::rate:
     {
         shared_ptr<RateProp> rprop = prop->to_rate();
-        ExprDNFBuilder left_b;
+        ExprDNFBuilder left_b (CompositeModuleScope::get_instance());
         rprop->get_expression()->accept(left_b);
         rares_ = left_b.get_clauses();
         break;

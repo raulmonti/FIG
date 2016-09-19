@@ -306,8 +306,8 @@ void compile_model(bool modelAlreadyBuilt) {
 	// Check types
 	modelAST->accept(typechecker);
 	if (typechecker.has_errors()) {
-        ModelPrinter printer;
-        modelAST->accept(printer);
+        //ModelPrinter printer;
+        //modelAST->accept(printer);
 		log(typechecker.get_messages());
 		throw_FigException("type-check for the model failed");
 	}

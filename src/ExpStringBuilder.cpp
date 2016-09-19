@@ -29,7 +29,7 @@ void ExpStringBuilder::visit(shared_ptr<LocExp> node) {
     if (ModuleScope::globals.find(node->get_exp_location()->get_identifier())
             != ModuleScope::globals.end()) {
         //a global constant, not a module state.
-        ExpEvaluator eval;
+        ExpEvaluator eval (scope);
         node->accept(eval);
         if (eval.has_errors()) {
             throw_FigException("Could not reduce constant at compilation time");
@@ -71,12 +71,13 @@ const vector<string>& ExpStringBuilder::get_names() {
 }
 
 pair<string, vector<string>>
-ExpStringBuilder::make_conjunction_str(const vector<shared_ptr<Exp>>& expvec) {
+ExpStringBuilder::make_conjunction_str(shared_ptr<ModuleScope> scope,
+                                       const vector<shared_ptr<Exp>>& expvec) {
     stringstream ss;
     vector<string> names;
     auto it = expvec.begin();
     while (it != expvec.end()) {
-        ExpStringBuilder str_b;
+        ExpStringBuilder str_b (scope);
         (*it)->accept(str_b);
         ss << "(" << str_b.str() << ")";
         auto &vec = str_b.get_names();

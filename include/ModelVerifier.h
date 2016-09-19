@@ -17,6 +17,8 @@ using z3unaryfun = std::function<z3::expr (z3::expr)>;
  */
 class Z3Converter : public Visitor {
 private:
+    /// ModuleScope needed to evaluate variables
+    shared_ptr<ModuleScope> scope = nullptr;
     /// The context of the expression.
     shared_ptr<z3::context> context;
     /// The expression itself
@@ -26,8 +28,9 @@ private:
     /// The sort of each stata-variable (int, float or bool)
     std::map<string, z3::sort> sorts;
 public:
-    Z3Converter(const shared_ptr<z3::context> &context)
-        : context {context}, expression (*context) {}
+    Z3Converter(const shared_ptr<z3::context> &context,
+                const shared_ptr<ModuleScope>& scope)
+        : scope {scope}, context {context}, expression (*context) {}
     /// Interpret a type as a sort
     static z3::sort type_to_sort(Type type, z3::context& ctx);
     /// Interpret an unary operator as a z3 unary function
@@ -178,6 +181,9 @@ private:
     /// @see enables_exhausted
     void check_exhausted_clocks(const string &clock_id);
     void check_exhausted_clocks_all();
+
+    /// Evaluate expression to a constant (IConst, BConst or FConst)
+    shared_ptr<Exp> eval_or_throw(shared_ptr<Exp> exp);
 public:
     ModelVerifier() {
         context = make_shared<z3::context>();

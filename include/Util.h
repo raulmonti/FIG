@@ -7,6 +7,8 @@
 #include <memory>
 #include <vector>
 #include <sstream>
+#include <iostream>
+#include <map>
 
 using std::forward;
 using std::unique_ptr;
@@ -15,6 +17,7 @@ using std::string;
 using std::endl;
 using std::vector;
 using std::shared_ptr;
+using std::map;
 
 template<typename T>
 using shared_vector = std::vector<shared_ptr<T>>;
