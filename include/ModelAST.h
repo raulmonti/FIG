@@ -23,7 +23,7 @@ using std::make_shared;
 /// @brief Types for local module variables.
 enum class Type {tint, tbool, tfloat, tclock, tunknown};
 /// @brief Expression operators (unary and binary)
-enum class ExpOp {plus, times, minus, div, mod, andd, orr, nott,
+enum class ExpOp {plus, times, minus, div, mod, implies, andd, orr, nott,
                   eq, neq, lt, gt, le, ge};
 /// @brief Type of labels allowed in transitions.
 enum class LabelType {in, out, out_committed, in_committed, tau};
