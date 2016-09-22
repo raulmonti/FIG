@@ -149,7 +149,7 @@ private:  // Class attributes
 
 	/// Prefix used to generate a real variable from a clock
 	/// @note Needed for IOSA -> STA translation
-	static constexpr char REAL_VAR_FROM_CLOCK_PREFIX[3] = "x_";
+	static constexpr char REAL_VAR_FROM_CLOCK_PREFIX[] = "x_";
 
 	/// An empty Json::Value of "object" type
 	static const Json::Value EMPTY_JSON_OBJ;
@@ -161,7 +161,7 @@ private:  // Class utils
 
 	/// Get the name of the real variable corresponding to this clock name
 	/// @see REAL_VAR_FROM_CLOCK_PREFIX
-	std::string rv_from(const std::string& clockName);
+	static std::string rv_from(const std::string& clockName);
 
 	/// Try to evaluate an expression to an integral value;
 	/// put an error in our ErrorMessage if unsuccessfull
@@ -180,8 +180,8 @@ private:  // Class utils
 	void build_JANI_constant(shared_ptr<InitializedDecl> decl,
 							 Json::Value& JANIobj);
 
-	/// Interpret 'trans' as a IOSA transition and add the corresponding
-	/// "JANI guard fields" in JANIobj
+	/// Add to JANIobj the "JANI guard fields" translated from
+	/// the corresponding data inside the IOSA transition 'trans'
 	/// @note If the transition has an output and hence a triggering clock,
 	///       "&& (clock >= real_var)" is added to the guard condition
 	/// @note If the transition has an output and hence a triggering clock,
@@ -199,10 +199,16 @@ private:  // Class utils
 							   ExpOp op,
 							   Json::Value& JANIobj);
 
-	/// Interpret 'trans' as a IOSA transition and add the corresponding
-	/// "JANI destination fields" in JANIobj
+	/// Add to JANIobj the "JANI destination fields" translated from
+	/// the corresponding data inside the IOSA transition 'trans'
 	/// @warning JANIfield_ is used and invalidated
 	void build_JANI_destinations(shared_ptr<TransitionAST> trans,
+								 Json::Value& JANIobj);
+
+	/// Add to JANIobj the "JANI STA distribution fields" translated from
+	/// the IOSA distribution 'clockDist'
+	/// @warning JANIfield_ is used and invalidated
+	void build_JANI_distribution(shared_ptr<Dist> clockDist,
 								 Json::Value& JANIobj);
 
 private:  // Visitor overrides for parsing

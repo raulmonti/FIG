@@ -58,6 +58,7 @@ using std::vector;
 namespace   // // // // // // // // // // // // // // // // // // // // // // //
 {
 
+/// IOSA -> JANI operator translator
 const std::map< ExpOp, std::string > JANI_operator_string =
 {
 	{ ExpOp::implies, "⇒"},
@@ -75,6 +76,19 @@ const std::map< ExpOp, std::string > JANI_operator_string =
 	{ ExpOp::times,   "*"},
 	{ ExpOp::div,     "/"},
 	{ ExpOp::mod,     "%"}
+};
+
+/// IOSA -> JANI clock distribution translator
+const std::map< DistType, std::string > JANI_distribution_string =
+{
+	{ DistType::uniform,     "Uniform"    },
+	{ DistType::exponential, "Exponential"},
+	{ DistType::normal,      "Normal"     },
+	{ DistType::lognormal,   "LogNormal"  },
+	{ DistType::weibull,     "Weibull"    },
+	{ DistType::rayleigh,    "Rayleigh"   },
+	{ DistType::gamma,       "Gamma"      },
+	{ DistType::erlang,      "Erlang"     }
 };
 
 
@@ -253,26 +267,28 @@ add_jani_header(Json::Value& root, const string& iosaModelFile)
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
+constexpr char JaniTranslator::REAL_VAR_FROM_CLOCK_PREFIX[];
 const Json::Value JaniTranslator::EMPTY_JSON_OBJ = Json::Value(Json::objectValue);
 const Json::Value JaniTranslator::EMPTY_JSON_ARR = Json::Value(Json::arrayValue);
 
 
 JaniTranslator::JaniTranslator() :
-	JANIroot_(make_shared<Json::Value>(Json::Value(Json::nullValue))),
-	JANIfield_(make_shared<Json::Value>(Json::Value(Json::nullValue))),
+	JANIroot_(make_shared<Json::Value>(EMPTY_JSON_OBJ)),
+	JANIfield_(make_shared<Json::Value>(EMPTY_JSON_OBJ)),
 	currentModule_(),
 	currentScope_(nullptr),
-	timeProgressInvariant_()
+	timeProgressInvariant_(make_shared<Json::Value>(EMPTY_JSON_OBJ))
 { /* Not much to do around here */ }
 
 
 JaniTranslator::~JaniTranslator()
 {
-	JANIroot_->clear();
 	JANIroot_.reset();
-	JANIfield_->clear();
 	JANIfield_.reset();
-	currentScope_ = nullptr;
+	currentScope_.reset();
+	timeProgressInvariant_.reset();
+	modulesLabels_.clear();
+	modelLabels_.clear();;
 }
 
 
@@ -369,8 +385,10 @@ void
 JaniTranslator::build_JANI_guard(shared_ptr<TransitionAST> trans,
 								 Json::Value& JANIobj)
 {
+	if (JANIobj.isNull())
+		JANIobj = EMPTY_JSON_OBJ;
 	assert(JANIobj.isObject());
-	JANIfield_->clear();
+	(*JANIfield_) = EMPTY_JSON_OBJ;
 	trans->get_precondition()->accept(*this);
 	if (trans->has_triggering_clock()) {
 		const auto clockName = trans->to_output()
@@ -378,18 +396,16 @@ JaniTranslator::build_JANI_guard(shared_ptr<TransitionAST> trans,
 		// Add STA guard for the clock: "clk >= real_var"
 		auto guard(EMPTY_JSON_OBJ);
 		guard["left"]  = *JANIfield_;
-		guard["op"]    = JANI_operator_string[ExpOp::andd].c_str();
-		guard["right"] = EMPTY_JSON_OBJ;
+		guard["op"]    = JANI_operator_string.at(ExpOp::andd).c_str();
 		build_JANI_clock_comp(clockName, ExpOp::ge, guard["right"]);
 		JANIfield_->swap(guard);  // now 'guard' has the "clean precondition"
 		// Add STA condition for time progress invariant: "guard implies clk <= real_var"
 		auto tmp(EMPTY_JSON_OBJ);
-		tmp["left"]  = timeProgressInvariant_;
-		tmp["op"]    = JANI_operator_string[ExpOp::andd].c_str();
+		tmp["left"]  = *timeProgressInvariant_;
+		tmp["op"]    = JANI_operator_string.at(ExpOp::andd).c_str();
 		tmp["right"] = EMPTY_JSON_OBJ;
 		tmp["right"]["left"]  = guard;
-		tmp["right"]["op"]    = JANI_operator_string[ExpOp::implies].c_str();
-		tmp["right"]["right"] = EMPTY_JSON_OBJ;
+		tmp["right"]["op"]    = JANI_operator_string.at(ExpOp::implies).c_str();
 		build_JANI_clock_comp(clockName, ExpOp::le, tmp["right"]["right"]);
 	}
 	JANIobj["guard"] = EMPTY_JSON_OBJ;
@@ -402,12 +418,14 @@ JaniTranslator::build_JANI_clock_comp(const std::string& clockName,
 									  ExpOp op,
 									  Json::Value& JANIobj)
 {
+	if (JANIobj.isNull())
+		JANIobj = EMPTY_JSON_OBJ;
 	assert(JANIobj.isObject());
 	if (op != ExpOp::ge && op != ExpOp::le)
 		throw_FigException("invalid comparison operator for clock guard");
 	JANIobj.clear();
 	JANIobj["left"]  = clockName.c_str();
-	JANIobj["op"]    = JANI_operator_string[op].c_str();
+	JANIobj["op"]    = JANI_operator_string.at(op).c_str();
 	JANIobj["right"] = rv_from(clockName).c_str();
 }
 
@@ -416,6 +434,8 @@ void
 JaniTranslator::build_JANI_destinations(shared_ptr<TransitionAST> trans,
 										Json::Value& JANIobj)
 {
+	if (JANIobj.isNull())
+		JANIobj = EMPTY_JSON_OBJ;
 	assert(JANIobj.isObject());
 	JANIobj["destinations"] = EMPTY_JSON_ARR;
 	JANIobj["destinations"].append(EMPTY_JSON_OBJ);
@@ -429,8 +449,47 @@ JaniTranslator::build_JANI_destinations(shared_ptr<TransitionAST> trans,
 	}
 	// Clocks resets
 	for (auto reset_ptr: trans->get_clock_resets()) {
-		reset_ptr->accept(*this);
-		ass.append(*JANIfield_);
+		auto tmp(EMPTY_JSON_OBJ);
+		const auto clockName = reset_ptr->get_effect_location()->get_identifier();
+		// Clock value becomes zero...
+		tmp["ref"] = clockName.c_str();
+		tmp["value"] = 0;
+		ass.append(tmp);
+		// ...and its real variable is sampled from the distribution
+		tmp.clear();
+		tmp["ref"] = rv_from(clockName).c_str();
+		build_JANI_distribution(reset_ptr->get_dist(), tmp["value"]);
+		assert(tmp["value"].isMember("distribution"));
+		assert(tmp["value"].isMember("args"));
+		ass.append(tmp);
+	}
+}
+
+
+void
+JaniTranslator::build_JANI_distribution(shared_ptr<Dist> clockDist,
+										Json::Value& JANIobj)
+{
+	if (JANIobj.isNull())
+		JANIobj = EMPTY_JSON_OBJ;
+	assert(JANIobj.isObject());
+	JANIobj["distribution"] = JANI_distribution_string.at(clockDist->get_type()).c_str();
+	JANIobj["args"] = EMPTY_JSON_ARR;
+	if (clockDist->has_single_parameter()) {
+		auto spDist = clockDist->to_single_parameter();
+		assert(nullptr != spDist);
+		*JANIfield_ = EMPTY_JSON_OBJ;
+		spDist->get_parameter()->accept(*this);
+		JANIobj["args"].append(*JANIfield_);
+	} else {
+		auto mpDist = clockDist->to_multiple_parameter();
+		assert(nullptr != mpDist);
+		*JANIfield_ = EMPTY_JSON_OBJ;
+		mpDist->get_first_parameter()->accept(*this);
+		JANIobj["args"].append(*JANIfield_);
+		*JANIfield_ = EMPTY_JSON_OBJ;
+		mpDist->get_second_parameter()->accept(*this);
+		JANIobj["args"].append(*JANIfield_);
 	}
 }
 
@@ -704,11 +763,11 @@ JaniTranslator::visit(shared_ptr<UnOpExp> node)
 	// Translate operator
 	JANIobj["op"] = JANI_operator_string.at(node->get_operator()).c_str();
 	// Translate single operand
-	JANIfield_->clear();
+	(*JANIfield_) = EMPTY_JSON_OBJ;
 	node->get_argument()->accept(*this);
 	JANIobj["exp"] = *JANIfield_;  // NOTE: won't work for JANI's "derivative"
 	// Store translated data in corresponding field
-	*JANIfield_ = tmp;
+	(*JANIfield_) = tmp;
 	if (JANIfield_->isArray())
 		JANIfield_->append(JANIobj);
 	else
@@ -724,10 +783,10 @@ JaniTranslator::visit(shared_ptr<BinOpExp> node)
 	// Translate operator
 	JANIobj["op"] = JANI_operator_string.at(node->get_operator()).c_str();
 	// Translate operands
-	JANIfield_->clear();
+	(*JANIfield_) = EMPTY_JSON_OBJ;
 	node->get_first_argument()->accept(*this);
 	JANIobj["left"] = *JANIfield_;
-	JANIfield_->clear();
+	(*JANIfield_) = EMPTY_JSON_OBJ;
 	node->get_second_argument()->accept(*this);
 	JANIobj["right"] = *JANIfield_;
 	// Store translated data in corresponding field
@@ -775,7 +834,7 @@ JaniTranslator::visit(shared_ptr<ModuleAST> node)
 	JANIobj["locations"].append(EMPTY_JSON_OBJ);
 	JANIobj["locations"][0]["name"] = "location";
 	JANIobj["locations"][0]["time-progress"] = EMPTY_JSON_OBJ;
-	JANIobj["locations"][0]["time-progress"]["exp"] = timeProgressInvariant_;
+	JANIobj["locations"][0]["time-progress"]["exp"] = *timeProgressInvariant_;
 
 	// Store translated data in corresponding field
 	*JANIfield_ = tmp;
@@ -819,7 +878,7 @@ JaniTranslator::visit(shared_ptr<TransitionAST> node)
 	// Precondition
 	build_JANI_guard(node, JANIobj);  // also updates timeProgressInvariant_
 	assert(JANIobj.isMember("guard"));
-	assert(JANIobj["guard"].isObject);
+	assert(JANIobj["guard"].isObject());
 	assert(JANIobj["guard"].isMember("exp"));
 
 	// Postcondition

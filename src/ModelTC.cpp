@@ -417,7 +417,8 @@ inline Type ModelTC::operator_type(const ExpOp &op, Type arg) {
     case ExpOp::minus: result = _numeric_result(arg); break;
     case ExpOp::div: result = _numeric_result(arg); break;
     case ExpOp::mod: result = _numeric_result(arg); break;
-    case ExpOp::andd: result = _bool_op(arg); break;
+	case ExpOp::implies: result = _bool_op(arg); break;
+	case ExpOp::andd: result = _bool_op(arg); break;
     case ExpOp::orr: result = _bool_op(arg); break;
     case ExpOp::nott: result = _bool_op(arg); break;
     case ExpOp::eq: result = Type::tbool; break; //equality for all types?

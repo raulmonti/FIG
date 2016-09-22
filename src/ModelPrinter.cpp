@@ -88,6 +88,7 @@ string ModelPrinter::to_str(ExpOp op) {
     case ExpOp::minus: result = "-"; break;
     case ExpOp::div: result = "/"; break;
     case ExpOp::mod: result = "%"; break;
+	case ExpOp::implies: result = "->"; break;
     case ExpOp::andd: result = "&"; break;
     case ExpOp::orr: result = "|"; break;
     case ExpOp::nott: result = "!"; break;
