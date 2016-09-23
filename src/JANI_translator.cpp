@@ -277,7 +277,7 @@ JaniTranslator::JaniTranslator() :
 	JANIfield_(make_shared<Json::Value>(EMPTY_JSON_OBJ)),
 	currentModule_(),
 	currentScope_(nullptr),
-	timeProgressInvariant_(make_shared<Json::Value>(EMPTY_JSON_OBJ))
+	timeProgressInvariant_(make_shared<Json::Value>(Json::nullValue))
 { /* Not much to do around here */ }
 
 
@@ -407,6 +407,10 @@ JaniTranslator::build_JANI_guard(shared_ptr<TransitionAST> trans,
 		tmp["right"]["left"]  = guard;
 		tmp["right"]["op"]    = JANI_operator_string.at(ExpOp::implies).c_str();
 		build_JANI_clock_comp(clockName, ExpOp::le, tmp["right"]["right"]);
+		if (timeProgressInvariant_->isNull())
+			timeProgressInvariant_->swap(tmp["right"]);
+		else
+			timeProgressInvariant_->swap(tmp);
 	}
 	JANIobj["guard"] = EMPTY_JSON_OBJ;
 	JANIobj["guard"]["exp"] = *JANIfield_;
@@ -807,7 +811,7 @@ JaniTranslator::visit(shared_ptr<ModuleAST> node)
 	// Reference this module as "current"
 	currentModule_ = node->get_name();
 	currentScope_  = ModuleScope::scopes.at(currentModule_);
-	*timeProgressInvariant_ = EMPTY_JSON_OBJ;
+	*timeProgressInvariant_ = Json::Value(Json::nullValue);
 	modulesLabels_[currentModule_] = std::make_pair(std::set<string>(),
 													std::set<string>());
 	// Easy-to-guess module fields
