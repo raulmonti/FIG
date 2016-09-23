@@ -211,6 +211,16 @@ private:  // Class utils
 	void build_JANI_distribution(shared_ptr<Dist> clockDist,
 								 Json::Value& JANIobj);
 
+	/// Add to JANIobj the "JANI automata composition fields" translated
+	/// from the info gathered into modulesLabels_ from the current model
+	void build_JANI_synchronization(Json::Value& JANIobj);
+
+	/// Append to JANIarr the "JANI synchronization vector" corresponding to
+	/// this output label, using the info gathered into modulesLabels_
+	/// from the current model under translation
+	void build_JANI_sync_vector(const std::string& oLabel,
+								Json::Value& JANIarr);
+
 private:  // Visitor overrides for parsing
 
 	/// Populate JANIroot with all data we can extract from given Model
@@ -266,10 +276,6 @@ private:  // Visitor overrides for parsing
 	/// Append/assign to JANIfield the JANI translation of this IOSA
 	/// postcondition variable assignment
 	void visit(shared_ptr<Assignment> node) override;
-
-	/// Append/assign to JANIfield the JANI translation of this IOSA
-	/// postcondition clock reset
-	void visit(shared_ptr<ClockReset> node) override;
 };
 
 } // namespace fig

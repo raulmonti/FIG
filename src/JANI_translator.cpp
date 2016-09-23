@@ -498,6 +498,63 @@ JaniTranslator::build_JANI_distribution(shared_ptr<Dist> clockDist,
 }
 
 
+void
+JaniTranslator::build_JANI_synchronization(Json::Value& JANIobj)
+{
+	if (JANIobj.isNull())
+		JANIobj = EMPTY_JSON_OBJ;
+	assert(JANIobj.isObject());
+
+	JANIobj["elements"] = EMPTY_JSON_ARR;
+	JANIobj["syncs"] = EMPTY_JSON_ARR;
+	for (const auto& pair: modulesLabels_) {
+		auto tmp = EMPTY_JSON_OBJ;
+
+		// Synchronizing elements
+		tmp["automaton"] = pair.first.c_str();
+		tmp["input-enable"] = EMPTY_JSON_ARR;
+		for (const std::string& inputLabel: pair.second.first)
+			tmp["input-enable"].append(inputLabel.c_str());
+		if (tmp["input-enable"].empty())
+			tmp.removeMember("input-enable");
+		JANIobj["elements"].append(tmp);
+
+		// Synchronization vectors
+		tmp.clear();
+		for (const std::string& outputLabel: pair.second.second)
+			build_JANI_sync_vector(outputLabel, tmp["synchronize"]);
+		if (tmp["synchronize"].size() > 0ul)
+			JANIobj["syncs"].append(tmp);  // no nested sync => no need for "result"
+	}
+	if (JANIobj["syncs"].empty())
+		JANIobj.removeMember("syncs");
+}
+
+
+void
+JaniTranslator::build_JANI_sync_vector(const std::string& oLabel,
+									   Json::Value& JANIarr)
+{
+	bool noSync(true);
+	if (JANIarr.isNull())
+		JANIarr = EMPTY_JSON_ARR;
+	assert(JANIarr.isArray());
+	if (oLabel.length() <= 0ul)  // tau => no sync => empty vector
+		return;
+	for (const auto& pair: modulesLabels_) {
+		if (pair.second.first.find(oLabel) != end(pair.second.first)) {
+			JANIarr.append(oLabel.c_str());   noSync = false;
+		} else if (pair.second.second.find(oLabel) != end(pair.second.second)) {
+			JANIarr.append(oLabel.c_str());
+		} else {
+			JANIarr.append(Json::nullValue);
+		}
+	}
+	if (noSync)
+		JANIarr = EMPTY_JSON_ARR;
+}
+
+
 std::string
 JaniTranslator::IOSA_2_JANI(const std::string& iosaModelFile,
 							const std::string& iosaPropsFile,
@@ -512,21 +569,15 @@ JaniTranslator::IOSA_2_JANI(const std::string& iosaModelFile,
 	JANIroot_->clear();
 	add_jani_header(*JANIroot_, iosaModelFile);
 	model->accept(*this);
-
-	/// @todo erase debug print
-//	std::cerr << *JANIroot_ << std::endl;
-//	for (auto it = JANIroot_->begin() ; it != JANIroot_->end() ; it++)
-//		std::cerr << "\tJSON data: \"" << *it << "\"\n";
-//	for (const auto& field: JANIroot_->getMemberNames())
-//		std::cerr << "\tField: \"" << field << "\"\n";
-//	throw_FigException("prematurely aborted");
-
 	if (!jani_is_valid_iosa(*JANIroot_, false))
-		std::cerr << " *** Invalid JANI file created!  XP\n";
-//		throw_FigException("failed translating IOSA files to the "
-//						   "JANI Specifiaction format");
+#ifndef NDEBUG
+		std::cerr << "\t[ERROR] Invalid JANI file created !!!\n";
+#else
+		throw_FigException("failed translating IOSA files to the "
+						   "JANI Specifiaction format");
+#endif
 
-	// Dump JANI-spec translation in file and exit (FIXME!)
+	// Dump JANI-spec translation in file and exit
 	auto janiFname = compose_jani_fname(iosaModelFile, janiFilename);
 	std::ofstream janiFile(janiFname);
 	janiFile << *JANIroot_;
@@ -608,7 +659,7 @@ JaniTranslator::visit(shared_ptr<Model> node)
 		module_ptr->accept(*this);
 	(*JANIroot_)["automata"] = *JANIfield_;
 
-	// Get the names of the labels from all modules
+	// Get the labels from all modules
 	(*JANIroot_)["actions"] = Json::Value(Json::arrayValue);
 	for (const string& label: modelLabels_) {
 		Json::Value action(Json::objectValue);
@@ -616,10 +667,14 @@ JaniTranslator::visit(shared_ptr<Model> node)
 		(*JANIroot_)["actions"].append(action);
 	}
 
-	/// @todo TODO translate properties, if present
+	// Compose the automata with synchronization vectors
+	build_JANI_synchronization((*JANIroot_)["system"]);
+	assert((*JANIroot_)["system"].isObject());
+	assert((*JANIroot_)["system"].isMember("elements"));
+	assert((*JANIroot_)["system"]["elements"].isArray());
 
-	/// @todo TODO generate JANI's "system" synchronization
-	///            Use the information stored in  modulesLabels_
+
+	/// @todo TODO translate properties, if present
 
 }
 
@@ -865,6 +920,7 @@ JaniTranslator::visit(shared_ptr<TransitionAST> node)
 	{
 	case LabelType::in:
 		modulesLabels_[currentModule_].first.emplace(label);
+		break;
 	case LabelType::out:
 	case LabelType::tau:
 		modulesLabels_[currentModule_].second.emplace(label);
@@ -908,22 +964,6 @@ JaniTranslator::visit(shared_ptr<Assignment> node)
 	node->get_rhs()->accept(*this);
 	JANIobj["value"] = *JANIfield_;
 	JANIfield_->swap(JANIobj);
-}
-
-
-void
-JaniTranslator::visit(shared_ptr<ClockReset> node)
-{
-	auto JANIobj(EMPTY_JSON_OBJ);
-
-	/// @todo TODO clock and related real variable reset
-	/// Arnd's example:
-	/// [a] c1 expires & c2 expires & n == 0 -> reset(c2) & (n := 1)
-	/// [b] c2 expires & n == 1 -> reset(c1) & (n := 0)
-	/// becomes:
-	/// - guard(c1 >= x1 & c2 >= x2 & n == 0) -> { c2 := 0, x2 := Distr2, n := 1 }
-	/// - guard(c2 >= x2 & n == 1) -> { c1 := 0, x1 := Distr1, n := 0 }
-
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //
