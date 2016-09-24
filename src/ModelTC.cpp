@@ -9,6 +9,7 @@
 #include "DNFChecker.h"
 #include "location.hh"
 #include "ExpEvaluator.h"
+#include "Operators.h"
 
 using std::endl;
 using std::shared_ptr;
@@ -273,14 +274,14 @@ inline const string TC_WRONG_FST_ARG(
     return (ss.str());
 }
 
-inline const string TC_WRONG_SND_ARG(
+inline const string TC_WRONG_BINOP(
         const shared_ptr<ModuleScope> &curr, ExpOp op,
         const shared_ptr<Exp> &exp) {
     stringstream ss;
     ss << PREFIX(curr);
     ss << " - Operator";
     ss << " " << ModelPrinter::to_str(op);
-    ss << " , Second argument has an incompatible type";
+    ss << " , Arguments have incompatible types";
     ss << *exp;
     return (ss.str());
 }
@@ -344,14 +345,8 @@ inline const string TC_WRONG_INIT_VALUE(shared_ptr<Exp> exp) {
 
 }
 
-bool type_leq(Type t1, Type t2) {
-    bool res = (t1 == Type::tint && t2 == Type::tfloat);
-    res = res || (t1 == t2);
-    return (res);
-}
-
 inline void ModelTC::check_type(Type type, const string &msg) {
-    if (!has_errors() && !type_leq(last_type, type)) {
+    if (!has_errors() && ! (BasicTy(last_type) <= BasicTy(type))) {
         put_error(msg);
     }
 }
@@ -377,57 +372,26 @@ inline Type ModelTC::identifier_type(const string &id) {
     return (type);
 }
 
-inline Type _numeric_result(Type type) {
-    Type result;
-    if (type == Type::tint) {
-        result = type;
-    } else if (type == Type::tfloat) {
-        result = type;
-    } else {
-        result = Type::tunknown;
+// Min { t | t <= ty } or Nonsense if no such type exists.
+inline Ty find_first_compatible(ExpOp op, const Ty& ty) {
+    // possible types of the operator
+    vector<Ty> types = Operator::supported_types(op);
+    // sorted by subtype relationship
+    Ty::sort_by_lt(types);
+    // find the first (least) element that is lower than ty.
+    auto it = types.cbegin();
+    while (it != types.cend() && !(ty <= *it)) {
+        std::cout << "Operator: " << Operator::operator_string(op) << std::endl;
+        std::cout << "Trying type: "
+                  << ((*it).to_string())
+                  << std::endl;
+        it++;
     }
-    return (result);
-}
-
-inline Type _bool_op(Type type) {
-    Type result;
-    if (type == Type::tbool) {
-        result = type;
-    } else {
-        result = Type::tunknown;
-    }
-    return (result);
-}
-
-inline Type _rel_op(Type type) {
-    Type result;
-    if (type == Type::tint || type == Type::tfloat) {
-        result = Type::tbool;
-    } else {
-        result = Type::tunknown;
-    }
-    return (result);
-}
-
-inline Type ModelTC::operator_type(const ExpOp &op, Type arg) {
-    Type result = Type::tunknown;
-    switch(op) {
-    case ExpOp::plus: result = _numeric_result(arg); break;
-    case ExpOp::times: result = _numeric_result(arg); break;
-    case ExpOp::minus: result = _numeric_result(arg); break;
-    case ExpOp::div: result = _numeric_result(arg); break;
-    case ExpOp::mod: result = _numeric_result(arg); break;
-    case ExpOp::andd: result = _bool_op(arg); break;
-    case ExpOp::orr: result = _bool_op(arg); break;
-    case ExpOp::nott: result = _bool_op(arg); break;
-    case ExpOp::eq: result = Type::tbool; break; //equality for all types?
-    case ExpOp::neq: result = Type::tbool;  break;
-    case ExpOp::lt: result = _rel_op(arg); break;
-    case ExpOp::gt: result = _rel_op(arg); break;
-    case ExpOp::le: result = _rel_op(arg); break;
-    case ExpOp::ge: result = _rel_op(arg); break;
-    }
-    return (result);
+    std::cout << "Operator: " << Operator::operator_string(op) << std::endl;
+    std::cout << "Inferred type: "
+              << (it == types.end() ? "NO" : (*it).to_string())
+              << std::endl;
+    return (it == types.end() ? Nonsense() : *it);
 }
 
 inline void ModelTC::accept_cond(shared_ptr<ModelAST> node) {
@@ -776,24 +740,25 @@ void ModelTC::visit(shared_ptr<LocExp> exp){
     exp->set_type(last_type);
 }
 
-void ModelTC::visit(shared_ptr<BinOpExp> exp){
+void ModelTC::visit(shared_ptr<BinOpExp> exp) {
     assert(exp != nullptr);
     Type res_type = Type::tunknown;
+    //find type of first argument
     accept_cond(exp->get_first_argument());
-    res_type = operator_type(exp->get_operator(), last_type);
-    if (!has_errors() && res_type == Type::tunknown) {
-        put_error(TC_WRONG_FST_ARG(current_scope, exp->get_operator(), exp));
-    }
-    Type fst_type = last_type;
+    Type arg1_type = last_type;
+    //find type of second argument
     accept_cond(exp->get_second_argument());
-    res_type = operator_type(exp->get_operator(), last_type);
-    if (!has_errors() &&  res_type == Type::tunknown) {
-        put_error(TC_WRONG_SND_ARG(current_scope, exp->get_operator(), exp));
-    }
-    Type snd_type = last_type;
-    if (! (type_leq(fst_type, snd_type) || type_leq(snd_type, fst_type))) {
-        //both types should be equal or subtypes (int->float)
-        put_error(TC_WRONG_SND_ARG(current_scope, exp->get_operator(), exp));
+    Type arg2_type = last_type;
+    // Create dummy binary type to search the correct one
+    BinaryOpTy dummy (arg1_type, arg2_type, Type::tunknown);
+    // find the type
+    const Ty& inferred_type = find_first_compatible(exp->get_operator(), dummy);
+    if (inferred_type == Nonsense() || !inferred_type.is_binary_type()) {
+        //couldn't find type.
+        put_error(TC_WRONG_BINOP(current_scope, exp->get_operator(), exp));
+    } else {
+        res_type = inferred_type.to_binary_ty().get_result_type();
+        exp->set_inferred_type(inferred_type.to_binary_ty());
     }
     last_type = res_type;
     exp->set_type(res_type);
@@ -801,9 +766,15 @@ void ModelTC::visit(shared_ptr<BinOpExp> exp){
 
 void ModelTC::visit(shared_ptr<UnOpExp> exp) {
     accept_cond(exp->get_argument());
-    Type res_type = operator_type(exp->get_operator(), last_type);
-    if (!has_errors() && res_type == Type::tunknown) {
+    Type arg_type = last_type;
+    Type res_type = Type::tunknown;
+    UnaryOpTy dummy (arg_type, Type::tunknown);
+    const Ty& inferred_type = find_first_compatible(exp->get_operator(), dummy);
+    if (inferred_type == Nonsense() || !inferred_type.is_unary_type()) {
         put_error(TC_WRONG_FST_ARG(current_scope, exp->get_operator(), exp));
+    } else {
+        res_type = inferred_type.to_unary_ty().get_result_type();
+        exp->set_inferred_type(inferred_type.to_unary_ty());
     }
     last_type = res_type;
     exp->set_type(res_type);

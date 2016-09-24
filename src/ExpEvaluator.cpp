@@ -1,10 +1,14 @@
 /* Leonardo Rodríguez */
 
 #include <cassert>
+#include <cmath>
 #include <type_traits>
+#include <utility>
+
 #include "ExpEvaluator.h"
 #include "FigException.h"
 #include "ModelPrinter.h"
+#include "Operators.h"
 
 bool ExpEvaluator::was_reduced() {
     return (type != Type::tunknown);
@@ -42,7 +46,7 @@ shared_ptr<Exp> ExpEvaluator::value_to_ast() {
     }
 }
 
-void ExpEvaluator::mark_not_reducible() {
+inline void ExpEvaluator::mark_not_reducible() {
     type = Type::tunknown;
 }
 
@@ -65,68 +69,27 @@ float ExpEvaluator::get_float() {
     }
 }
 
+int ExpEvaluator::get_int_v(value_holder_t value, Type type) {
+   assert(type == Type::tint);
+   return (value.ivalue);
+}
+
+bool ExpEvaluator::get_bool_v(value_holder_t value, Type type) {
+    assert(type == Type::tbool);
+    return (value.bvalue);
+}
+
+float ExpEvaluator::get_float_v(value_holder_t value, Type type) {
+    if (type == Type::tint) {
+        return (value.ivalue);
+    } else {
+        assert(type == Type::tfloat);
+        return (value.fvalue);
+    }
+}
+
 void ExpEvaluator::reset() {
     type = Type::tunknown;
-}
-
-template<typename T>
-std::function<T (T)> unop_as_fun(ExpOp op) {
-    switch (op) {
-    case ExpOp::minus: return std::negate<T>();
-    case ExpOp::nott: return std::logical_not<T>();
-    default:
-        std::string msg = "Interpretation of " + ModelPrinter::to_str(op)
-                + " as a function failed";
-        throw_FigException(msg);
-    }
-}
-
-// Define modulus for integral types only:
-// http://stackoverflow.com/questions/23970532/
-template<typename T>
-std::function<T (T, T)> modulus_(std::true_type) {
-    return std::modulus<T>();
-}
-
-template<typename T>
-std::function<T (T, T)> modulus_(std::false_type) {
-    throw_FigException("Modulus undefined for non integral types");
-}
-
-template<typename T>
-std::function<T (T, T)> ExpEvaluator::bop_as_fun(ExpOp op) {
-    switch(op) {
-    case ExpOp::plus: return std::plus<T>();
-    case ExpOp::times: return std::multiplies<T>();
-    case ExpOp::div: return std::divides<T>();
-    case ExpOp::minus: return std::minus<T>();
-    case ExpOp::mod: return modulus_<T>(std::is_integral<T>());
-    case ExpOp::andd: return std::logical_and<T>();
-    case ExpOp::orr: return std::logical_or<T>();
-    default:
-        std::string msg = "Interpretation of " + ModelPrinter::to_str(op)
-                + " as a function failed";
-        throw_FigException(msg);
-    }
-}
-
-template<typename T>
-std::function<bool (T, T)> ExpEvaluator::bop_as_rel(ExpOp op) {
-    switch(op) {
-    case ExpOp::lt: return std::less<T>();
-    case ExpOp::le: return std::less_equal<T>();
-    case ExpOp::gt: return std::greater<T>();
-    case ExpOp::ge: return std::greater_equal<T>();
-    case ExpOp::eq: return std::equal_to<T>();
-    case ExpOp::neq: return [] (const T& x, const T& y) {
-            bool temp = std::equal_to<T>() (x, y);
-            return std::logical_not<bool>() (temp);
-        };
-    default:
-        std::string msg = "Interpretation of " + ModelPrinter::to_str(op)
-                + " as relation failed";
-        throw_FigException(msg);
-    }
 }
 
 void ExpEvaluator::visit(shared_ptr<IConst> iexp) {
@@ -168,82 +131,79 @@ void ExpEvaluator::visit(shared_ptr<LocExp> loc) {
 }
 
 inline void ExpEvaluator::reduce_unary_operator(shared_ptr<UnOpExp> exp) {
-    shared_ptr<Exp> left = exp->get_argument();
-    left->accept(*this);
-    //convert to float if expects float type
-    if (exp->get_type() == Type::tfloat && type == Type::tint) {
-        value.fvalue = (float) value.ivalue;
-        type = Type::tfloat;
+    if (!exp->has_inferred_type()) {
+        throw_FigException("Evaluator called without typechecking.");
     }
-    if (type == Type::tbool) {
-        const auto &f = unop_as_fun<bool>(exp->get_operator());
-        value.bvalue = f (value.bvalue);
-        type = Type::tbool;
-    } else if (type == Type::tint) {
-        const auto &f = unop_as_fun<int>(exp->get_operator());
-        value.ivalue = f (value.ivalue);
-        type = Type::tint;
-    } else if (type == Type::tfloat) {
-        const auto &f = unop_as_fun<float>(exp->get_operator());
-        value.fvalue = f (value.fvalue);
-        type = Type::tfloat;
+    UnaryOpTy inferred = exp->get_inferred_type();
+    exp->get_argument()->accept(*this);
+    //inferred type mus be one of the Operator::supported_types or error.
+    if (Unary::fi == inferred) {
+        auto f = Unary::get_fi(exp->get_operator());
+        value.ivalue = f (get_float());
+    } else if (Unary::ff == inferred) {
+        auto f = Unary::get_ff(exp->get_operator());
+        value.fvalue = f (get_float());
+    } else if (Unary::ii == inferred) {
+        auto f = Unary::get_ii(exp->get_operator());
+        value.ivalue = f (get_int());
+    } else if (Unary::bb == inferred) {
+        auto f = Unary::get_bb(exp->get_operator());
+        value.bvalue = f (get_bool());
+    } else {
+        throw_FigException("Operator unsupported type.");
     }
+    type = inferred.get_result_type();
 }
 
 inline void ExpEvaluator::reduce_binary_operator(shared_ptr<BinOpExp> exp) {
-    shared_ptr<Exp> left = exp->get_first_argument();
-    shared_ptr<Exp> right = exp->get_second_argument();
     //reduce left argument and store result
-    left->accept(*this);
+    exp->get_first_argument()->accept(*this);
     value_holder_t val_left = value;
     Type type_left = type;
     //reduce right argument and store result
-    right->accept(*this);
+    exp->get_second_argument()->accept(*this);
     value_holder_t val_right = value;
     Type type_right = type;
-    //if left or right argument is float
-    //and the other is int, then
-    //then the other be converted to float
-    if (type_left == Type::tfloat && type_right == Type::tint) {
-        type_right = Type::tfloat;
-        val_right.fvalue = (float) val_right.ivalue;
-    }
-    if (type_left == Type::tint && type_right == Type::tfloat) {
-        type_left = Type::tfloat;
-        val_left.fvalue = (float) val_left.ivalue;
-    }
-    //now we know that both arguments must have the same type
-    if (type_left == Type::tunknown ||
-            type_right == Type::tunknown || type_left != type_right) {
-        mark_not_reducible();
-        type_left  = Type::tunknown;
-        type_right = Type::tunknown;
-    }
-    bool expects_boolean = exp->get_type() == Type::tbool;
-    // arguments of type int, interpret as binary (int) operator
-    if (!expects_boolean && type_left == Type::tint) {
-        const auto &f = ExpEvaluator::bop_as_fun<int>(exp->get_operator());
-        value.ivalue = f (val_left.ivalue, val_right.ivalue);
-        type = Type::tint;
-    } else if (!expects_boolean && type_left == Type::tfloat) {
-        const auto &f = ExpEvaluator::bop_as_fun<float>(exp->get_operator());
-        value.fvalue = f (val_left.fvalue, val_right.fvalue);
-        type = Type::tfloat;
-    } else if (expects_boolean && type_left == Type::tbool) {
-        const auto &f = ExpEvaluator::bop_as_fun<bool>(exp->get_operator());
-        value.bvalue = f (val_left.bvalue, val_right.bvalue);
-        type = Type::tbool;
-    } else if (expects_boolean && type_left == Type::tint) {
-        const auto &f = ExpEvaluator::bop_as_rel<int>(exp->get_operator());
-        value.bvalue = f (val_left.ivalue, val_right.ivalue);
-        type = Type::tbool;
-    } else if (expects_boolean && type_left == Type::tfloat) {
-        const auto &f = ExpEvaluator::bop_as_rel<float>(exp->get_operator());
-        value.bvalue = f (val_left.fvalue, val_right.fvalue);
-        type = Type::tbool;
+    BinaryOpTy inferred = exp->get_inferred_type();
+    if (Binary::iii == inferred) {
+        auto f = Binary::get_iii(exp->get_operator());
+        int x  = get_int_v(val_left, type_left);
+        int y  = get_int_v(val_right, type_right);
+        value.ivalue = f (x, y);
+    } else if (Binary::iff == inferred) {
+        auto f = Binary::get_iff(exp->get_operator());
+        int x = get_int_v(val_left, type_left);
+        float y = get_float_v(val_right, type_right);
+        value.fvalue = f (x, y);
+    } else if (Binary::iib == inferred) {
+        auto f = Binary::get_iib(exp->get_operator());
+        int x = get_int_v(val_left, type_left);
+        int y = get_int_v(val_right, type_right);
+        value.bvalue = f (x, y);
+    } else if (Binary::fff == inferred) {
+        auto f = Binary::get_fff(exp->get_operator());
+        float x = get_float_v(val_left, type_left);
+        float y = get_float_v(val_right, type_right);
+        value.fvalue = f (x, y);
+    } else if (Binary::ffb == inferred) {
+        auto f = Binary::get_ffb(exp->get_operator());
+        float x = get_float_v(val_left, type_left);
+        float y = get_float_v(val_right, type_right);
+        value.bvalue = f (x, y);
+    } else if (Binary::fif == inferred) {
+        auto f = Binary::get_fif(exp->get_operator());
+        float x = get_float_v(val_left, type_left);
+        int y = get_int_v(val_right, type_right);
+        value.fvalue = f (x, y);
+    } else if (Binary::bbb == inferred) {
+        auto f = Binary::get_bbb(exp->get_operator());
+        bool x = get_bool_v(val_left, type_left);
+        bool y = get_bool_v(val_left, type_right);
+        value.bvalue = f (x, y);
     } else {
-        put_error("Unsupported evaluation of expression");
+        throw_FigException("Operator unsupported type");
     }
+    type = inferred.get_result_type();
 }
 
 void ExpEvaluator::visit(shared_ptr<BinOpExp> exp) {

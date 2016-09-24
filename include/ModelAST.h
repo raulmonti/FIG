@@ -10,6 +10,8 @@
 #include <sstream>
 #include <algorithm>
 #include "Util.h"
+#include "Type.h"
+#include "Operators.h"
 
 /** Model Abstract Syntax Tree  **/
 
@@ -19,12 +21,6 @@ using std::map;
 using std::shared_ptr;
 using std::make_shared;
 
-
-/// @brief Types for local module variables.
-enum class Type {tint, tbool, tfloat, tclock, tunknown};
-/// @brief Expression operators (unary and binary)
-enum class ExpOp {plus, times, minus, div, mod, andd, orr, nott,
-                  eq, neq, lt, gt, le, ge};
 /// @brief Type of labels allowed in transitions.
 enum class LabelType {in, out, out_committed, in_committed, tau};
 /// @brief Supported distributions
@@ -1116,6 +1112,7 @@ public:
  */
 class BinOpExp : public OpExp {
 private:
+    shared_ptr<BinaryOpTy> inferred_type = nullptr;
     shared_ptr<Exp> left;
     shared_ptr<Exp> right;
 public:
@@ -1137,6 +1134,19 @@ public:
         return (right);
     }
 
+    void set_inferred_type(BinaryOpTy type) {
+        inferred_type = make_shared<BinaryOpTy>(type);
+    }
+
+    bool has_inferred_type() {
+        return (inferred_type != nullptr);
+    }
+
+    BinaryOpTy get_inferred_type() {
+        assert(inferred_type != nullptr);
+        return (*inferred_type);
+    }
+
     virtual void accept(Visitor& visit) override;
 };
 
@@ -1147,6 +1157,7 @@ public:
  */
 class UnOpExp : public OpExp {
 private:
+    shared_ptr<UnaryOpTy> inferred_type = nullptr;
     shared_ptr<Exp> argument;
 public:
     UnOpExp(ExpOp op, shared_ptr<Exp> argument) :
@@ -1159,6 +1170,19 @@ public:
     /// Create a expression that represents the negation of the given argument
     static shared_ptr<Exp> make_nott(shared_ptr<Exp> exp) {
         return make_shared<UnOpExp>(ExpOp::nott, exp);
+    }
+
+    void set_inferred_type(UnaryOpTy type) {
+        inferred_type = make_shared<UnaryOpTy>(type);
+    }
+
+    UnaryOpTy get_inferred_type() {
+        assert(inferred_type != nullptr);
+        return (*inferred_type);
+    }
+
+    bool has_inferred_type() {
+        return (inferred_type != nullptr);
     }
 
     /// Acceptor

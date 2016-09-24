@@ -1,6 +1,7 @@
 /* Leonardo Rodríguez */
 
 #include "ModelPrinter.h"
+#include "Operators.h"
 #include <string>
 
 using std::cout;
@@ -81,24 +82,7 @@ string ModelPrinter::to_str(DistType type) {
 }
 
 string ModelPrinter::to_str(ExpOp op) {
-    string result;
-    switch(op) {
-    case ExpOp::plus: result = "+"; break;
-    case ExpOp::times: result = "*"; break;
-    case ExpOp::minus: result = "-"; break;
-    case ExpOp::div: result = "/"; break;
-    case ExpOp::mod: result = "%"; break;
-    case ExpOp::andd: result = "&"; break;
-    case ExpOp::orr: result = "|"; break;
-    case ExpOp::nott: result = "!"; break;
-    case ExpOp::eq: result = "=="; break;
-    case ExpOp::neq: result = "!="; break;
-    case ExpOp::lt: result = "<"; break;
-    case ExpOp::gt: result = ">"; break;
-    case ExpOp::le: result = "<="; break;
-    case ExpOp::ge: result = ">="; break;
-    }
-    return result;
+  return Operator::operator_string(op);
 }
 
 string ModelPrinter::to_str(PropType prop_type) {

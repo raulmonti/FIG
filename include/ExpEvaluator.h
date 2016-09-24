@@ -55,6 +55,12 @@ public:
     bool get_bool();
     /// Interpret the computed value as a float.
     float get_float();
+    /// Interpret the given value as an integer
+    int get_int_v(value_holder_t value, Type type);
+    /// Interpret the given value as a boolean.
+    bool get_bool_v(value_holder_t value, Type type);
+    /// Interpret the given value as a float.
+    float get_float_v(value_holder_t value, Type type);
     /// Ask if the computed value has type int.
     bool has_type_int();
     /// Ask if the computed value has type bool.

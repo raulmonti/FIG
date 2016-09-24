@@ -55,10 +55,6 @@ private:
         return (current_scope == nullptr);
     }
 
-    /// Type of the result of an operator application, given the
-    /// type of its arguments.
-    static Type operator_type(const ExpOp &id, Type arg);
-
     /// Check range and initialization of the declaration
     void check_ranged_decl(shared_ptr<RangedDecl> decl);
     void check_ranged_all(shared_ptr<ModuleScope> scope);
