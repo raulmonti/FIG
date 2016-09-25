@@ -259,6 +259,9 @@ void ModelPrinter::visit(shared_ptr<OpExp> node) {
 
 void ModelPrinter::visit(shared_ptr<BinOpExp> node) {
     visit(std::static_pointer_cast<OpExp>(node));
+    if (node->has_inferred_type()) {
+       print_idented("Inferred type: " + node->get_inferred_type().to_string());
+    }
     print_idented("First Argument:");
     accept_idented(node->get_first_argument());
     print_idented(("Second Argument:"));

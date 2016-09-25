@@ -5,6 +5,7 @@
 #include <cassert>
 #include <memory>
 #include <vector>
+#include "Util.h"
 
 /// @brief Types for local module variables.
 enum class Type {tint, tbool, tfloat, tclock, tunknown};
@@ -39,7 +40,6 @@ public:
     UnaryOpTy to_unary_ty() const;
     BinaryOpTy to_binary_ty() const;
 
-    static void sort_by_lt(std::vector<Ty>& vector);
     virtual std::string to_string() const {
         return "?"; //lot of errors when pure virtual.
     }
@@ -60,7 +60,7 @@ public:
             result = "Clock";
             break;
         case Type::tunknown:
-            result = "Unknown";
+            result = "[?]";
             break;
         }
         return result;
@@ -93,10 +93,9 @@ public:
     virtual std::string to_string() const override;
 };
 
-/* Reynold's terminology :) */
-class Nonsense : public BasicTy {
+class Unknown : public BasicTy {
 public:
-    Nonsense() : BasicTy(Type::tunknown) {}
+    Unknown() : BasicTy(Type::tunknown) {}
 };
 
 class FunTy : public Ty {

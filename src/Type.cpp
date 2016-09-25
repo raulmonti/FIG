@@ -52,18 +52,18 @@ bool operator==(const Ty& ty1, const Ty& ty2) {
     return (result);
 }
 
-/*          tunknown
- *        /  |     |
- *   float   |     |
- *      |    |     |
- *      |    |     |
+/*
+ *   float
+ *      |
+ *      |
  *     int  bool tclock
- *
+ *       \   |   /
+ *        \  |  /
+ *         tunknown
  *
  *    t0 <= t0' /\ t1' <= t1 => t0' -> t1' <= t0 -> t1
  *
  *    not included, for convenience: (t0 -> t1) <= tunknown
- *    (we need antisymmetry for std::sort restrictions)
  */
 bool operator<=(const Ty& ty1, const Ty& ty2) {
     bool result = false;
@@ -73,20 +73,14 @@ bool operator<=(const Ty& ty1, const Ty& ty2) {
             BasicTy basic2 = ty2.to_basic();
             //equal
             bool equal = (basic1.get_type() == basic2.get_type());
-            //or ty2 is tunkwnown
-            bool compared_to_ns = (basic2.get_type() == Type::tunknown);
+            //or ty1 is tunkwnown
+            bool compared_to_ns = (basic1.get_type() == Type::tunknown);
             //or int convertible to float.
             bool int_to_float = (basic1.get_type() == Type::tint)
                     && (basic2.get_type() == Type::tfloat);
             result = equal || compared_to_ns || int_to_float;
         }
     } else if (ty1.is_fun()) {
-        // float->int <= int->float
-        // (float->int) can be used as a (int->float)
-        //  eg: G(g : int->float)
-        //      f : float->int
-        // G(f) will convert the integer to float, pass it
-        // to f then the result will be converted to float.
         if (ty2.is_fun()) {
             FunTy fun1 = ty1.to_fun();
             FunTy fun2 = ty2.to_fun();
@@ -100,13 +94,6 @@ bool operator<=(const Ty& ty1, const Ty& ty2) {
 
 bool operator<(const Ty& ty1, const Ty& ty2) {
     return (ty1 <= ty2) && !(ty1 == ty2);
-}
-
-void Ty::sort_by_lt(std::vector<Ty>& v) {
-    auto by_lt = [] (const Ty& t1, const Ty& t2) {
-        return (t1 < t2);
-    };
-    std::sort(v.begin(), v.end(), by_lt);
 }
 
 

@@ -10,6 +10,7 @@
 #include "location.hh"
 #include "ExpEvaluator.h"
 #include "Operators.h"
+#include "Util.h"
 
 using std::endl;
 using std::shared_ptr;
@@ -372,27 +373,57 @@ inline Type ModelTC::identifier_type(const string &id) {
     return (type);
 }
 
-// Min { t | t <= ty } or Nonsense if no such type exists.
-inline Ty find_first_compatible(ExpOp op, const Ty& ty) {
+// Min { t | t <= ty } or Unknown if no such type exists.
+inline shared_ptr<Ty> find_unary_compatible(ExpOp op, const Ty& ty) {
     // possible types of the operator
-    vector<Ty> types = Operator::supported_types(op);
+    vector<UnaryOpTy> types = Operator::unary_types(op);
     // sorted by subtype relationship
-    Ty::sort_by_lt(types);
+    auto cmp = [](const UnaryOpTy& ty1, const UnaryOpTy& ty2) {
+        return (ty1 < ty2);
+    };
+    std::sort(types.begin(), types.end(), cmp);
     // find the first (least) element that is lower than ty.
     auto it = types.cbegin();
     while (it != types.cend() && !(ty <= *it)) {
-        std::cout << "Operator: " << Operator::operator_string(op) << std::endl;
-        std::cout << "Trying type: "
-                  << ((*it).to_string())
-                  << std::endl;
         it++;
     }
-    std::cout << "Operator: " << Operator::operator_string(op) << std::endl;
-    std::cout << "Inferred type: "
-              << (it == types.end() ? "NO" : (*it).to_string())
-              << std::endl;
-    return (it == types.end() ? Nonsense() : *it);
+    shared_ptr<Ty> result = nullptr;
+    if (it == types.cend()) {
+        result = make_shared<Unknown>();
+    } else {
+        result = make_shared<UnaryOpTy>(*it);
+    }
+    return (result);
 }
+
+/*void uprint(std::vector<BinaryOpTy>& vec) {
+    std::cout << "vector:" << std::endl;
+    for (auto &x : vec) {
+        std::cout << x.to_string() << std::endl;
+    }
+    std::cout << "endvector" << std::endl;
+}*/
+
+inline shared_ptr<Ty> find_binary_compatible(ExpOp op, const Ty& ty) {
+    vector<BinaryOpTy> types = Operator::binary_types(op);
+    auto cmp = [] (const BinaryOpTy& ty1, const BinaryOpTy& ty2) {
+        return (ty1 < ty2);
+    };
+    std::sort(types.begin(), types.end(), cmp);
+    auto it = types.cbegin();
+    while (it != types.cend() && !(ty <= *it)) {
+        it++;
+    }
+    shared_ptr<Ty> result = nullptr;
+    if (it == types.cend()) {
+        result = make_shared<Unknown>();
+    } else {
+        result = make_shared<BinaryOpTy>(*it);
+    }
+    return (result);
+}
+
+
 
 inline void ModelTC::accept_cond(shared_ptr<ModelAST> node) {
     if (!has_errors()) {
@@ -752,13 +783,13 @@ void ModelTC::visit(shared_ptr<BinOpExp> exp) {
     // Create dummy binary type to search the correct one
     BinaryOpTy dummy (arg1_type, arg2_type, Type::tunknown);
     // find the type
-    const Ty& inferred_type = find_first_compatible(exp->get_operator(), dummy);
-    if (inferred_type == Nonsense() || !inferred_type.is_binary_type()) {
+    auto inferred_type = find_binary_compatible(exp->get_operator(), dummy);
+    if ((*inferred_type) == Unknown() || !inferred_type->is_binary_type()) {
         //couldn't find type.
         put_error(TC_WRONG_BINOP(current_scope, exp->get_operator(), exp));
     } else {
-        res_type = inferred_type.to_binary_ty().get_result_type();
-        exp->set_inferred_type(inferred_type.to_binary_ty());
+        res_type = inferred_type->to_binary_ty().get_result_type();
+        exp->set_inferred_type(inferred_type->to_binary_ty());
     }
     last_type = res_type;
     exp->set_type(res_type);
@@ -769,12 +800,12 @@ void ModelTC::visit(shared_ptr<UnOpExp> exp) {
     Type arg_type = last_type;
     Type res_type = Type::tunknown;
     UnaryOpTy dummy (arg_type, Type::tunknown);
-    const Ty& inferred_type = find_first_compatible(exp->get_operator(), dummy);
-    if (inferred_type == Nonsense() || !inferred_type.is_unary_type()) {
+    auto inferred_type = find_unary_compatible(exp->get_operator(), dummy);
+    if ((*inferred_type) == Unknown() || !inferred_type->is_unary_type()) {
         put_error(TC_WRONG_FST_ARG(current_scope, exp->get_operator(), exp));
     } else {
-        res_type = inferred_type.to_unary_ty().get_result_type();
-        exp->set_inferred_type(inferred_type.to_unary_ty());
+        res_type = inferred_type->to_unary_ty().get_result_type();
+        exp->set_inferred_type(inferred_type->to_unary_ty());
     }
     last_type = res_type;
     exp->set_type(res_type);

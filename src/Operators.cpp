@@ -74,66 +74,78 @@ bool Operator::is_infix_operator(ExpOp op) {
     return (false);
 }
 
-std::vector<Ty> Operator::supported_types(ExpOp op) {
+std::vector<UnaryOpTy> Operator::unary_types(ExpOp op) {
     switch(op) {
     case ExpOp::sgn: {
-        return std::vector<Ty> { Unary::fi };
+        return std::vector<UnaryOpTy> { Unary::fi };
     }
     case ExpOp::floor: {
-        return std::vector<Ty> { Unary::fi };
+        return std::vector<UnaryOpTy> { Unary::fi };
     }
     case ExpOp::ceil: {
-        return std::vector<Ty> { Unary::fi };
+        return std::vector<UnaryOpTy> { Unary::fi };
     }
     case ExpOp::minus: {
-        return std::vector<Ty> {
-            Unary::ii, Unary::ff,
-            Binary::fff, Binary::iii
+        return std::vector<UnaryOpTy> {
+            Unary::ii, Unary::ff
         };
     }
     case ExpOp::abs: {
-        return std::vector<Ty> { Unary::ii, Unary::ff };
+        return std::vector<UnaryOpTy> { Unary::ii, Unary::ff };
     }
     case ExpOp::nott: {
-        return std::vector<Ty> { Unary::bb };
+        return std::vector<UnaryOpTy> { Unary::bb };
+    }
+    default:
+        throw_FigException("Not an unary operator");
+    }
+}
+
+std::vector<BinaryOpTy> Operator::binary_types(ExpOp op) {
+    switch(op) {
+    case ExpOp::minus: {
+        return std::vector<BinaryOpTy> {
+            Binary::fff, Binary::iii
+        };
     }
     case ExpOp::times: //same type as plus
     case ExpOp::div: //
     case ExpOp::min: //
     case ExpOp::max: //
     case ExpOp::plus: {
-        return std::vector<Ty> { Binary::fff, Binary::iii };
+        return std::vector<BinaryOpTy> { Binary::fff, Binary::iii };
     }
     case ExpOp::mod: {
-        return std::vector<Ty> { Binary::iii };
+        return std::vector<BinaryOpTy> { Binary::iii };
     }
     case ExpOp::andd: //same type as or
     case ExpOp::orr: {
-        return std::vector<Ty> { Binary::bbb };
+        return std::vector<BinaryOpTy> { Binary::bbb };
     }
     case ExpOp::eq: //same as neq
     case ExpOp::neq: {
-        return std::vector<Ty> {
-            Binary::ffb, Binary::iib, Binary::bbb
+        return std::vector<BinaryOpTy> {
+            Binary::iib, Binary::ffb , Binary::bbb
         };
     }
     case ExpOp::lt: //same type as ge
     case ExpOp::gt: //
     case ExpOp::le: //
     case ExpOp::ge: {
-        return std::vector<Ty> { Binary::ffb, Binary::iib };
+        return std::vector<BinaryOpTy> { Binary::ffb, Binary::iib };
     }
     case ExpOp::log: {
-        return std::vector<Ty> { Binary::fff };
+        return std::vector<BinaryOpTy> { Binary::fff };
     }
     case ExpOp::pow: {
-        return std::vector<Ty> {
+        return std::vector<BinaryOpTy> {
             Binary::fff, Binary::fif,
             Binary::iff, Binary::iii
         };
     }
+    default:
+        throw_FigException("Not a binary operator");
     }
-    return (std::vector<Ty>());
 }
 
 std::function<float (float)> Unary::get_ff(ExpOp op) {

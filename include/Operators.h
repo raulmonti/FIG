@@ -18,7 +18,8 @@ enum class ExpOp {
 class Operator {
 
 public:
-    static std::vector<Ty> supported_types(ExpOp op);
+    static std::vector<UnaryOpTy> unary_types(ExpOp op);
+    static std::vector<BinaryOpTy> binary_types(ExpOp op);
     static bool is_infix_operator(ExpOp op);
     static std::string operator_string(ExpOp op);
 };
