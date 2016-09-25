@@ -100,6 +100,14 @@ FALSE "false"
 PROPT "P"
 PROPS "S"
 UNTIL "U"
+FLOOR "floor"
+CEIL  "ceil"
+SGN "sgn"
+ABS "abs"
+MIN "min"
+MAX "max"
+LOG "log"
+POW "pow"
 ;
 
 %left "|";
@@ -358,11 +366,35 @@ exp : location[loc]
 | exp[e1] "|" exp[e2]
 {$$ = make_shared<BinOpExp>(ExpOp::orr, $e1, $e2);
     save_location($$, @$);}
+| "log" "(" exp[e1] "," exp[e2] ")"
+{$$ = make_shared<BinOpExp>(ExpOp::log, $e1, $e2);
+    save_location($$, @$);}
+| "pow" "(" exp[e1] "," exp[e2] ")"
+{$$ = make_shared<BinOpExp>(ExpOp::pow, $e1, $e2);
+    save_location($$, @$);}
+| "min" "(" exp[e1] "," exp[e2] ")"
+{$$ = make_shared<BinOpExp>(ExpOp::min, $e1, $e2);
+    save_location($$, @$);}
+| "max" "(" exp[e1] "," exp[e2] ")"
+{$$ = make_shared<BinOpExp>(ExpOp::max, $e1, $e2);
+    save_location($$, @$);}
 | "-" exp[e] %prec UMINUS
 {$$ = make_shared<UnOpExp>(ExpOp::minus, $e);
     save_location($$, @$);}
 | "!" exp[e] %prec NEG
 {$$ = make_shared<UnOpExp>(ExpOp::nott, $e);
+    save_location($$, @$);}
+| "floor" exp[e] %prec UMINUS
+{$$ = make_shared<UnOpExp>(ExpOp::floor, $e);
+        save_location($$, @$);}
+| "ceil" exp[e] %prec UMINUS
+{$$ = make_shared<UnOpExp>(ExpOp::ceil, $e);
+        save_location($$, @$);}
+| "abs" exp[e] %prec UMINUS
+{$$ = make_shared<UnOpExp>(ExpOp::abs, $e);
+    save_location($$, @$);}
+| "sgn" exp[e] %prec UMINUS
+{$$ = make_shared<UnOpExp>(ExpOp::sgn, $e);
     save_location($$, @$);}
 | "(" exp[e] ")"
 {$$ = $e; save_location($$, @$);}

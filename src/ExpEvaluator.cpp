@@ -50,6 +50,12 @@ inline void ExpEvaluator::mark_not_reducible() {
     type = Type::tunknown;
 }
 
+inline void ExpEvaluator::accept_cond(shared_ptr<Exp> node) {
+    if (!has_errors()) {
+        node->accept(*this);
+    }
+}
+
 int ExpEvaluator::get_int() {
     assert (type == Type::tint);
     return (value.ivalue);
@@ -70,8 +76,8 @@ float ExpEvaluator::get_float() {
 }
 
 int ExpEvaluator::get_int_v(value_holder_t value, Type type) {
-   assert(type == Type::tint);
-   return (value.ivalue);
+    assert(type == Type::tint);
+    return (value.ivalue);
 }
 
 bool ExpEvaluator::get_bool_v(value_holder_t value, Type type) {
@@ -135,7 +141,10 @@ inline void ExpEvaluator::reduce_unary_operator(shared_ptr<UnOpExp> exp) {
         throw_FigException("Evaluator called without typechecking.");
     }
     UnaryOpTy inferred = exp->get_inferred_type();
-    exp->get_argument()->accept(*this);
+    accept_cond(exp->get_argument());
+    if (has_errors()) {
+        return; //gtfooh
+    }
     //inferred type mus be one of the Operator::supported_types or error.
     if (Unary::fi == inferred) {
         auto f = Unary::get_fi(exp->get_operator());
@@ -157,11 +166,17 @@ inline void ExpEvaluator::reduce_unary_operator(shared_ptr<UnOpExp> exp) {
 
 inline void ExpEvaluator::reduce_binary_operator(shared_ptr<BinOpExp> exp) {
     //reduce left argument and store result
-    exp->get_first_argument()->accept(*this);
+    accept_cond(exp->get_first_argument());
+    if (has_errors()) {
+        return;//ntdh
+    }
     value_holder_t val_left = value;
     Type type_left = type;
     //reduce right argument and store result
-    exp->get_second_argument()->accept(*this);
+    accept_cond(exp->get_second_argument());
+    if (has_errors()) {
+        return;//ntdh,sofab
+    }
     value_holder_t val_right = value;
     Type type_right = type;
     BinaryOpTy inferred = exp->get_inferred_type();
@@ -198,7 +213,7 @@ inline void ExpEvaluator::reduce_binary_operator(shared_ptr<BinOpExp> exp) {
     } else if (Binary::bbb == inferred) {
         auto f = Binary::get_bbb(exp->get_operator());
         bool x = get_bool_v(val_left, type_left);
-        bool y = get_bool_v(val_left, type_right);
+        bool y = get_bool_v(val_right, type_right);
         value.bvalue = f (x, y);
     } else {
         throw_FigException("Operator unsupported type");

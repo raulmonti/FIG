@@ -35,6 +35,8 @@ private:
     /// Signal that the expression is not reducible, for example,
     /// because it depends on state variables.
     void mark_not_reducible();
+    /// accept if no error
+    void accept_cond(shared_ptr<Exp> node);
 public:
     ExpEvaluator(shared_ptr<ModuleScope> scope)
         : scope {scope}, type {Type::tunknown} {}

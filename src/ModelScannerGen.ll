@@ -100,6 +100,14 @@ blank  [ \t]
 "P"           return ModelParser::make_PROPT(loc);
 "S"           return ModelParser::make_PROPS(loc);
 "U"           return ModelParser::make_UNTIL(loc);
+"floor"       return ModelParser::make_FLOOR(loc);
+"ceil"        return ModelParser::make_CEIL(loc);
+"abs"         return ModelParser::make_ABS(loc);
+"sgn"         return ModelParser::make_SGN(loc);
+"log"         return ModelParser::make_LOG(loc);
+"max"         return ModelParser::make_MAX(loc);
+"min"         return ModelParser::make_MIN(loc);
+"pow"         return ModelParser::make_POW(loc);
 
 {id}       return ModelParser::make_ID(yytext, loc);
 {int}      return ModelParser::make_INTL(parse_int(), loc);

@@ -1102,7 +1102,6 @@ public:
     ExpOp get_operator() {
         return (op);
     }
-
 };
 
 /**
@@ -1115,9 +1114,15 @@ private:
     shared_ptr<BinaryOpTy> inferred_type = nullptr;
     shared_ptr<Exp> left;
     shared_ptr<Exp> right;
+    // When adding new members, remember to update ExpReductor visitor!
+    // @todo make a proper copy constructor for that visitor
 public:
     BinOpExp(ExpOp op, shared_ptr<Exp> left, shared_ptr<Exp> right) :
         OpExp(op), left {left}, right {right} {}
+
+    BinOpExp(const BinOpExp&) = delete;
+    void operator=(const BinOpExp &) = delete;
+
 
     /// Create a expression that represents the
     /// conjuction of the given arguments
@@ -1162,6 +1167,9 @@ private:
 public:
     UnOpExp(ExpOp op, shared_ptr<Exp> argument) :
        OpExp(op), argument {argument} {}
+
+    UnOpExp(const UnOpExp&) = delete;
+    void operator=(const UnOpExp &) = delete;
 
     shared_ptr<Exp> get_argument() {
         return (argument);
