@@ -34,6 +34,7 @@ std::string Operator::operator_string(ExpOp op) {
     case ExpOp::div: result = "/"; break;
     case ExpOp::mod: result = "%"; break;
     case ExpOp::andd: result = "&"; break;
+    case ExpOp::implies: result = "=>"; break;
     case ExpOp::orr: result = "|"; break;
     case ExpOp::nott: result = "!"; break;
     case ExpOp::eq: result = "=="; break;
@@ -56,6 +57,7 @@ std::string Operator::operator_string(ExpOp op) {
 
 bool Operator::is_infix_operator(ExpOp op) {
     switch(op) {
+    case ExpOp::implies: return true;
     case ExpOp::andd: return true;
     case ExpOp::orr: return true;
     case ExpOp::le: return true;
@@ -119,6 +121,7 @@ std::vector<BinaryOpTy> Operator::binary_types(ExpOp op) {
         return std::vector<BinaryOpTy> { Binary::iii };
     }
     case ExpOp::andd: //same type as or
+    case ExpOp::implies: //
     case ExpOp::orr: {
         return std::vector<BinaryOpTy> { Binary::bbb };
     }
@@ -276,6 +279,9 @@ std::function<int (int, int)> Binary::get_iii(ExpOp op) {
 
 std::function<bool (bool, bool)> Binary::get_bbb(ExpOp op) {
     switch (op) {
+    case ExpOp::implies: return [] (bool x, bool y) {
+            return ((!x) || y);
+        };
     case ExpOp::andd: return [] (bool x, bool y) -> bool {
             return x && y;
         };

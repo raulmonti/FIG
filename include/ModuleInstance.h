@@ -434,9 +434,15 @@ public:  // Utils
 	 * \endif
 	 */
 	void jump(const Label& label, State<STATE_INTERNAL_TYPE>& state) const;
-        void jump_committed(const Label &label, Traial &traial) const;
+
+	/// @todo TODO write docstring, Leo!
+	void jump_committed(const Label &label, Traial &traial) const;
 
 private:  // Class utils
+
+	/// Check whether all clocks have an exponential distribution
+	/// and update the markovian_ field correspondingly
+	void markovian_check();
 
 	/// Does the clock reside in this ModuleInstance?
 	bool is_our_clock(const std::string& clockName) const;
@@ -542,6 +548,7 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
+	markovian_check();
 	// Copy transitions
 	static_assert(std::is_same< Transition, ValueType2 >::value,
 				  "ERROR: type mismatch. ModuleInstance can only be copy-"
@@ -578,6 +585,7 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
+	markovian_check();
 	// Move transitions
 	static_assert(std::is_same< Transition, ValueType2 >::value,
 				  "ERROR: type mismatch. ModuleInstance can only be move-"
@@ -616,6 +624,7 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
+	markovian_check();
 	// Move transitions
 	static_assert(std::is_same< Transition, ValueType2 >::value,
 				  "ERROR: type mismatch. ModuleInstance can only be move-"
@@ -658,6 +667,7 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
+	markovian_check();
 	// Move transitions
 	static_assert(std::is_same< Transition, ValueTypeIterator >::value,
 				  "ERROR: type mismatch. ModuleInstance ctor needs iterators "

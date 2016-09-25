@@ -423,8 +423,6 @@ inline shared_ptr<Ty> find_binary_compatible(ExpOp op, const Ty& ty) {
     return (result);
 }
 
-
-
 inline void ModelTC::accept_cond(shared_ptr<ModelAST> node) {
     if (!has_errors()) {
         node->accept(*this);

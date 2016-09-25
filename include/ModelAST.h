@@ -645,7 +645,7 @@ public:
     }
 
     /// Has this transition a triggering clock?
-    /// @note overrided by subclasses
+	/// @note overridden by subclasses
     /// @note only OutputTransition (and TauTransition) has a triggering clock
     virtual bool has_triggering_clock() {
         return (false);

@@ -85,6 +85,7 @@ LT "<"
 GT ">"
 LE "<="
 GE ">="
+IMPLY "=>"
 AND "&"
 MID "|"
 PLUS "+"
@@ -110,6 +111,7 @@ LOG "log"
 POW "pow"
 ;
 
+%right "=>"
 %left "|";
 %left "&";
 %nonassoc "==" "!=";
@@ -362,6 +364,9 @@ exp : location[loc]
     save_location($$, @$);}
 | exp[e1] "&" exp[e2]
 {$$ = make_shared<BinOpExp>(ExpOp::andd, $e1, $e2);
+    save_location($$, @$);}
+| exp[e1] "=>" exp[e2]
+{$$ = make_shared<BinOpExp>(ExpOp::implies, $e1, $e2);
     save_location($$, @$);}
 | exp[e1] "|" exp[e2]
 {$$ = make_shared<BinOpExp>(ExpOp::orr, $e1, $e2);

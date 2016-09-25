@@ -30,14 +30,18 @@
 #define JANI_TRANSLATOR_H
 
 // C++
-#include <string>
+#include <set>
+#include <map>
 #include <vector>
 #include <memory>
+#include <string>
 // External code
 #include <json-forwards.h>
 // FIG
 #include <ModelAST.h>
-#include "ModuleScope.h"
+
+
+class ModuleScope;
 
 
 namespace fig
@@ -116,15 +120,48 @@ public:  // Translation facilities
 private:  // Class attributes
 
 	/// JsonCPP of the last parsed model, in JANI Specifiaction format
-	shared_ptr< Json::Value > JANIroot;
+	shared_ptr< Json::Value > JANIroot_;
 
 	/// Current JSON field to fill in with info from last parsed IOSA model
-	shared_ptr< Json::Value > JANIfield;
+	shared_ptr< Json::Value > JANIfield_;
 
-        /// Scope of the module being translated (visited) at the time
-        shared_ptr<ModuleScope> current_scope = nullptr;
+	/// Name of the module currently translated (visited)
+	std::string currentModule_;
 
-private:  // Class utlis
+	/// Scope of the module currently translated (visited)
+	shared_ptr<ModuleScope> currentScope_;
+
+	/// Input/Output label sets of a module
+	typedef std::pair< std::set< std::string >,   // inputs
+					   std::set< std::string > >  // outputs/tau
+		LabelSets;
+
+	/// Labels of each module (for the currently parsed model)
+	std::map< std::string, LabelSets > modulesLabels_;
+
+	/// All model labels grouped together without discrimination
+	std::set< std::string > modelLabels_;
+
+	/// Invariant needed for IOSA -> STA translation to make time progress
+	/// @note Updated by build_JANI_guard()
+	/// @note Reset by visit(shared_ptr<ModuleAST>)
+	shared_ptr< Json::Value> timeProgressInvariant_;
+
+	/// Prefix used to generate a real variable from a clock
+	/// @note Needed for IOSA -> STA translation
+	static constexpr char REAL_VAR_FROM_CLOCK_PREFIX[] = "x_";
+
+	/// An empty Json::Value of "object" type
+	static const Json::Value EMPTY_JSON_OBJ;
+
+	/// An empty Json::Value of "array" type
+	static const Json::Value EMPTY_JSON_ARR;
+
+private:  // Class utils
+
+	/// Get the name of the real variable corresponding to this clock name
+	/// @see REAL_VAR_FROM_CLOCK_PREFIX
+	static std::string rv_from(const std::string& clockName);
 
 	/// Try to evaluate an expression to an integral value;
 	/// put an error in our ErrorMessage if unsuccessfull
@@ -143,6 +180,37 @@ private:  // Class utlis
 	void build_JANI_constant(shared_ptr<InitializedDecl> decl,
 							 Json::Value& JANIobj);
 
+	/// Add to JANIobj the "JANI guard fields" translated from
+	/// the corresponding data inside the IOSA transition 'trans'
+	/// @note If the transition has an output and hence a triggering clock,
+	///       "&& (clock >= real_var)" is added to the guard condition
+	/// @note If the transition has an output and hence a triggering clock,
+	///       "&& (guard implies clock <= real_var)" is added to
+	///       timeProgressInvariant_, where 'guard' is this precondition
+	/// @warning JANIfield_ is used and invalidated
+	void build_JANI_guard(shared_ptr<TransitionAST> trans,
+						  Json::Value& JANIobj);
+
+	/// Build the comparison "(clock op real_var)" and paste it into JANIobj,
+	/// where 'op' must be either "greater or equal" or "less or equal".
+	/// This is needed for IOSA -> STA translation.
+	/// @warning Any previous value of JANIobj is lost
+	void build_JANI_clock_comp(const std::string& clockName,
+							   ExpOp op,
+							   Json::Value& JANIobj);
+
+	/// Add to JANIobj the "JANI destination fields" translated from
+	/// the corresponding data inside the IOSA transition 'trans'
+	/// @warning JANIfield_ is used and invalidated
+	void build_JANI_destinations(shared_ptr<TransitionAST> trans,
+								 Json::Value& JANIobj);
+
+	/// Add to JANIobj the "JANI STA distribution fields" translated from
+	/// the IOSA distribution 'clockDist'
+	/// @warning JANIfield_ is used and invalidated
+	void build_JANI_distribution(shared_ptr<Dist> clockDist,
+								 Json::Value& JANIobj);
+
 private:  // Visitor overrides for parsing
 
 	/// Populate JANIroot with all data we can extract from given Model
@@ -158,6 +226,8 @@ private:  // Visitor overrides for parsing
 	void visit(shared_ptr<RangedDecl> node) override;
 
 	/// Append/assign to JANIfield the JANI translation of this IOSA clock
+	/// @note A real variable named "x_name" is also created, where "name" is
+	///       the clock's id, since JANI actually supports STA rather than SA
 	void visit(shared_ptr<ClockDecl> node) override;
 
 	/// Append/assign to JANIfield the JANI translation of this IOSA array
@@ -188,6 +258,18 @@ private:  // Visitor overrides for parsing
 
 	/// Append/assign to JANIfield the JANI translation of this IOSA module
 	void visit(shared_ptr<ModuleAST> node) override;
+
+	/// Append/assign to JANIfield the JANI translation of this IOSA transition
+	/// @note Specialization'd be pointless, right?
+	void visit(shared_ptr<TransitionAST> node) override;
+
+	/// Append/assign to JANIfield the JANI translation of this IOSA
+	/// postcondition variable assignment
+	void visit(shared_ptr<Assignment> node) override;
+
+	/// Append/assign to JANIfield the JANI translation of this IOSA
+	/// postcondition clock reset
+	void visit(shared_ptr<ClockReset> node) override;
 };
 
 } // namespace fig

@@ -252,6 +252,9 @@ public:  // Accessors
 	/// @copydoc ModuleNetwork::sealed()
 	inline bool sealed() const noexcept { return model->sealed(); }
 
+	/// @copydoc ModuleNetwork::is_markovian()
+	inline bool is_markovian() const noexcept { return model->is_markovian(); }
+
 	/// @copydoc ModuleNetwork::num_clocks()
 	inline size_t num_clocks() const noexcept { return model->num_clocks(); }
 

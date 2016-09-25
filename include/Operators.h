@@ -9,10 +9,10 @@
 /// @brief Expression operators (unary and binary)
 enum class ExpOp {
     plus, times, minus, div, mod,
-    andd, orr, nott,
+    andd, implies, orr, nott,
     eq, neq, lt, gt, le, ge,
     floor, ceil, abs, sgn,
-    min,max,pow,log
+    min, max, pow, log
 };
 
 class Operator {

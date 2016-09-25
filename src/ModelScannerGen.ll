@@ -71,6 +71,7 @@ blank  [ \t]
 ">"           return ModelParser::make_GT(loc);
 "<="          return ModelParser::make_LE(loc);
 ">="          return ModelParser::make_GE(loc);
+"=>"          return ModelParser::make_IMPLY(loc);
 ":"           return ModelParser::make_SEMICOLON(loc);
 "'"           return ModelParser::make_SQUOTE(loc);
 ","           return ModelParser::make_COLON(loc);

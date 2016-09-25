@@ -75,6 +75,7 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
+	markovian_check();
 }
 
 // ModuleInstance can be built from the following containers
@@ -251,6 +252,7 @@ ModuleInstance::adjacent_states(const size_t& s) const
 	return adjacentStates;
 }
 
+
 const Label&
 ModuleInstance::jump(const Traial::Timeout& to,
 					 Traial& traial) const
@@ -283,6 +285,7 @@ ModuleInstance::jump(const Traial::Timeout& to,
 	return TAU;
 }
 
+
 void
 ModuleInstance::jump(const Label& label,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,
@@ -314,6 +317,7 @@ ModuleInstance::jump(const Label& label,
 	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
 }
 
+
 void
 ModuleInstance::jump(const Label& label,
 					 State<STATE_INTERNAL_TYPE>& state) const
@@ -335,8 +339,10 @@ ModuleInstance::jump(const Label& label,
 	}
 }
 
+
 void
-ModuleInstance::jump_committed(const Label &label, Traial &traial) const {
+ModuleInstance::jump_committed(const Label &label, Traial &traial) const
+{
 #ifndef NDEBUG
     if (!sealed_) {
         throw_FigException("this module hasn't been sealed yet");
@@ -361,6 +367,19 @@ ModuleInstance::jump_committed(const Label &label, Traial &traial) const {
         }
     }
 }
+
+
+void
+ModuleInstance::markovian_check()
+{
+	for (const Clock& clk: lClocks_) {
+		if (clk.dist_name() != "exponential") {
+			markovian_ = false;
+			break;
+		}
+	}
+}
+
 
 bool
 ModuleInstance::is_our_clock(const std::string& clockName) const
