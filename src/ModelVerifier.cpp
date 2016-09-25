@@ -5,6 +5,8 @@
 #include "FigException.h"
 #include "location.hh"
 
+// Fix! for new operators.
+
 namespace {
 //"operator%" not defined in z3++.h, let's improvise one.
 z3::expr z3mod(z3::expr const & a, z3::expr const & b) {
