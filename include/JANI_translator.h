@@ -69,7 +69,7 @@ public:  // Ctor/Dtor
 public:  // Translation facilities
 
 	/**
-	 * Translate existing IOSA model file to <a href="http://jani-spec.org/">
+	 * Translate IOSA model file to <a href="http://jani-spec.org/">
 	 * JANI specification format</a>. If specified, include also all properties
 	 * defined in the properties file.
 	 *
@@ -98,7 +98,7 @@ public:  // Translation facilities
 	/**
 	 * Translate model file specified in <a href="http://jani-spec.org/">
 	 * JANI format</a> to IOSA syntax. Properties, if present, will be included
-	 * inside a "properties...endproperties" section of the IOSA file.
+	 * inside a "properties...endproperties" section in the IOSA file.
 	 *
 	 * @param janiModelFile Path to (or name of) file with STA model
 	 *                      written in valid JANI-spec format
@@ -157,7 +157,7 @@ private:  // Class attributes
 	/// An empty Json::Value of "array" type
 	static const Json::Value EMPTY_JSON_ARR;
 
-private:  // Class utils
+private:  // Class utils: general
 
 	/// Get the name of the real variable corresponding to this clock name
 	/// @see REAL_VAR_FROM_CLOCK_PREFIX
@@ -174,6 +174,8 @@ private:  // Class utils
 	/// Try to evaluate an expression to a floating point value;
 	/// put an error in our ErrorMessage if unsuccessfull
 	float get_float_or_error(shared_ptr<Exp> exp, const std::string& msg);
+
+private:  // Class utils: IOSA -> JANI
 
 	/// Interpret 'decl', which should be a boolean/integer/floating point
 	/// constant, and add the corresponding "JANI constant fields" in JANIobj
@@ -276,6 +278,25 @@ private:  // Visitor overrides for parsing
 	/// Append/assign to JANIfield the JANI translation of this IOSA
 	/// postcondition variable assignment
 	void visit(shared_ptr<Assignment> node) override;
+
+private:  // Class utils: JANI -> IOSA
+
+	/// Use the current JANI model specification from JANIroot_
+	/// and translate it to IOSA if possible, writing the result
+	/// progressively into 'iosaFile'
+	/// @param iosaFile Open empty file whereto dump the translated model
+	/// @throw FigException if translation is unsuccessful
+	void derive_IOSA_from_JANI(std::ofstream& iosaFile);
+
+	/// Return the IOSA translation of this JANI expression
+	/// @param JANIexpr Json object with the Expression to translate
+	/// @throw FigException if unsupported or invalid argument passed
+	std::string build_IOSA_expression(const Json::Value& JANIexpr);
+
+	/// Return the IOSA translation of this JANI constant
+	/// @param JANIconst Json object with the ConstantDeclaration to translate
+	/// @throw FigException if unsupported or invalid argument passed
+	std::string build_IOSA_constant(const Json::Value& JANIconst);
 };
 
 } // namespace fig

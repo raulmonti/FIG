@@ -240,6 +240,13 @@ void interact_with_JANI()
 			log(" *** Error: JANI-spec model file \""
 				+ janiSpec.modelFileJANI +"\" not found! ***\n");
 			throw_FigException("file with JANI model not found");
+		} else if (!janiSpec.modelFileIOSA.empty() &&
+		           file_exists(janiSpec.modelFileIOSA) &&
+		           !forceOperation) {
+			log(" *** Error: file \"" + janiSpec.modelFileIOSA +
+			    "\" exists, can't write JANI translation there. ***\n");
+			throw_FigException("can't overwrite file for IOSA translation "
+			                   "(call with --force)");
 		}
 		translator.JANI_2_IOSA(janiSpec.modelFileJANI,
 							   janiSpec.modelFileIOSA);
@@ -250,12 +257,18 @@ void interact_with_JANI()
 			log(" *** Error: IOSA model file \""
 				+ janiSpec.modelFileIOSA +"\" not found! ***\n");
 			throw_FigException("file with IOSA model not found");
-		}
-		if (!janiSpec.propsFileIOSA.empty() &&
+		} else if (!janiSpec.propsFileIOSA.empty() &&
 				!file_exists(janiSpec.propsFileIOSA)) {
 			log(" *** Error: properties file \""
 				+ janiSpec.propsFileIOSA + "\" not found! ***\n");
 			throw_FigException("file with properties not found");
+		} else if (!janiSpec.modelFileJANI.empty() &&
+		           file_exists(janiSpec.modelFileJANI) &&
+		           !forceOperation) {
+			log(" *** Error: file \"" + janiSpec.modelFileJANI +
+			    "\" exists, can't write IOSA translation there. ***\n");
+			throw_FigException("can't overwrite file for JANI translation "
+			                   "(call with --force)");
 		}
 		const bool checkIOSAcorrectness = !forceOperation;
 		translator.IOSA_2_JANI(janiSpec.modelFileIOSA,
