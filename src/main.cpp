@@ -326,6 +326,14 @@ void compile_model(bool modelAlreadyBuilt) {
 	}
 	tech_log("- Type-checking  succeeded\n");
 
+	/// @todo TODO erase debug print
+	{
+		ModelPrinter printer;
+		modelAST->accept(printer);
+		throw_FigException("prematurely aborted!");
+	}
+	///////////////////////////////////////////////////////////////
+
 	// Check IOSA correctness
 	if (ModuleScope::modules_size_bounded_by(ModelVerifier::NTRANS_BOUND)) {
 		modelAST->accept(verifier);

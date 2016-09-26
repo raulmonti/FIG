@@ -1,27 +1,30 @@
 /* Leonardo Rodríguez */
 
 #include "ModelPrinter.h"
+#include "FigException.h"
 #include <string>
 
 using std::cout;
+using std::endl;
 
 string ModelPrinter::to_str(Type type) {
     string result;
     switch(type) {
     case Type::tint:
-        result = "Int";
+		result = "int";
         break;
     case Type::tbool:
-        result = "Bool";
+		result = "bool";
         break;
     case Type::tfloat:
-        result = "Float";
+		result = "float";
         break;
     case Type::tclock:
-        result = "Clock";
+		result = "clock";
         break;
     case Type::tunknown:
-        result = "Unknown";
+	default:
+		throw_FigException("unknown data type");
         break;
     }
     return result;
@@ -76,7 +79,10 @@ string ModelPrinter::to_str(DistType type) {
     case DistType::gamma:
         result = "gamma";
         break;
-    }
+	default:
+		throw_FigException("invalid clock distribution");
+		break;
+	}
     return result;
 }
 
@@ -98,6 +104,7 @@ string ModelPrinter::to_str(ExpOp op) {
     case ExpOp::gt: result = ">"; break;
     case ExpOp::le: result = "<="; break;
     case ExpOp::ge: result = ">="; break;
+	default: throw_FigException("invalid expression operator"); break;
     }
     return result;
 }
@@ -118,23 +125,27 @@ void ModelPrinter::accept_idented(shared_ptr<ModelAST> node) {
 }
 
 void ModelPrinter::print_idented(string str) {
-    cout << string(ident, '\t') << str << endl;
+	out << string(ident, '\t') << str;
 }
 
 void ModelPrinter::visit(shared_ptr<Model> model) {
-    print_idented("=Model=");
-    print_idented("Global constants:");
+	print_idented("\n");
+	// Global constants
+	constant = true;
     for (auto decl : model->get_globals()) {
         accept_idented(decl);
-    }
-    print_idented("Modules:");
+	}
+	constant = false;
+	// Modules
+	print_idented("\n");
     auto& bodies = model->get_modules();
     unsigned int i = 0;
     while (i < bodies.size()) {
         print_idented("Module: " + bodies[i]->get_name());
         accept_idented(bodies[i]);
         i++;
-    }
+	}
+	// Properties
     for (auto prop : model->get_props()) {
         accept_idented(prop);
     }
@@ -153,9 +164,13 @@ void ModelPrinter::visit(shared_ptr<ModuleAST> body) {
 }
 
 void ModelPrinter::visit(shared_ptr<Decl> decl) {
-    print_idented("=Decl=");
-    print_idented("ID: " + decl->get_id());
-    print_idented("Type : " + to_str(decl->get_type()));
+	print_idented(
+		(constant ? ("const ") : ("")) +
+		to_str(decl->get_type())       +
+		" " + decl->get_id());
+//	print_idented("=Decl=");
+//	print_idented("ID: " + decl->get_id());
+//	print_idented("Type : " + to_str(decl->get_type()));
 }
 
 void ModelPrinter::visit(shared_ptr<RangedDecl> decl) {
@@ -175,8 +190,9 @@ void ModelPrinter::visit(shared_ptr<ArrayDecl> decl) {
 
 void ModelPrinter::visit(shared_ptr<InitializedDecl> decl) {
     visit(std::static_pointer_cast<Decl>(decl));
-    print_idented("Init:");
+	out << " = ";
     accept_idented(decl->get_init());
+	out << ";" << endl;
 }
 
 void ModelPrinter::visit(shared_ptr<TransitionAST> action) {
