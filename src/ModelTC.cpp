@@ -399,48 +399,6 @@ inline Type ModelTC::identifier_type(const string &id) {
     return (type);
 }
 
-/*
-inline shared_ptr<Ty> find_binary_compatible(ExpOp op, const BinaryOpTy& ty) {
-    vector<BinaryOpTy> types = Operator::binary_types(op);
-    //remove incompatibles
-    auto nonconv = [ty] (const BinaryOpTy& ty1) {
-        return !(ty1 <= ty);
-    };
-    std::remove_if(types.begin(), types.end(), nonconv);
-    shared_ptr<Ty> result = make_shared<Unknown>();
-    if (types.size() == 1) {
-        //only one convertible, that's the chosen one.
-        result = make_shared<BinaryOpTy>(types.at(0));
-    }
-    return (result);
-}
-
-inline shared_ptr<Ty> find_unary_compatible(ExpOp op, const UnaryOpTy& ty) {
-    vector<UnaryOpTy> types = Operator::unary_types(op);
-    auto nonconv = [ty] (const UnaryOpTy& ty1) {
-        return !(ty1 <= ty);
-    };
-    std::remove_if(types.begin(), types.end(), nonconv);
-    shared_ptr<Ty> result = make_shared<Unknown>();
-    if (types.size() == 1) {
-        //only one convertible, that's the chosen one.
-        result = make_shared<UnaryOpTy>(types.at(0));
-    } else if (types.size() > 1) {
-        //some ambiguity here, what should I do?
-        for (auto ct : types) {
-            if (ct.get_arg_type() == ty.get_arg_type()) {
-                result = make_shared<UnaryOpTy>(ct);
-                break;
-            }
-        }
-        if (*result == Unknown()) {
-            throw_FigException("Could't resolve typechecking for operators.");
-        }
-    }
-    return (result);
-}
-*/
-
 inline void ModelTC::accept_cond(shared_ptr<ModelAST> node) {
     if (!has_errors()) {
         node->accept(*this);
