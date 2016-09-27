@@ -7,25 +7,7 @@
 using std::cout;
 
 string ModelPrinter::to_str(Type type) {
-    string result;
-    switch(type) {
-    case Type::tint:
-        result = "Int";
-        break;
-    case Type::tbool:
-        result = "Bool";
-        break;
-    case Type::tfloat:
-        result = "Float";
-        break;
-    case Type::tclock:
-        result = "Clock";
-        break;
-    case Type::tunknown:
-        result = "Unknown";
-        break;
-    }
-    return result;
+    return Ty::to_string(type);
 }
 
 string ModelPrinter::to_str(LabelType type) {

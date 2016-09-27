@@ -52,7 +52,7 @@ inline const string TC_WRONG_INDEX_INT(const shared_ptr<ModuleScope> &curr,
                                        Type last_type) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Identifier";
+    ss << " - Identifier ";
     ss << " \"" << loc->get_identifier() << "\"";
     ss << *loc;
     ss << " - The expression for the index";
@@ -67,7 +67,7 @@ inline const string TC_ID_REDEFINED(const shared_ptr<ModuleScope> &curr,
                                     const string &id) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Identifier";
+    ss << " - Identifier ";
     ss << " \"" << id << "\"";
     ss << " is already declared";
     ss << " at " << *(prev->get_location());
@@ -78,7 +78,7 @@ inline const string TC_ID_OUT_OF_SCOPE(const shared_ptr<ModuleScope> &curr,
                                        const shared_ptr<Location> &loc) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Identifier";
+    ss << " - Identifier ";
     ss << " \"" << loc->get_identifier() << "\"";
     ss << " [at " << *(loc->get_location()) << "]";
     ss << "is not in scope";
@@ -92,7 +92,7 @@ inline const string TC_WRONG_LOWER_BOUND(
         const Type last_type) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Identifier";
+    ss << " - Identifier ";
     ss << " \"" << id << "\"";
     ss << " - Expression of lower bound";
     ss << *exp;
@@ -108,7 +108,7 @@ inline const string TC_WRONG_UPPER_BOUND(
         const Type last_type) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Identifier";
+    ss << " - Identifier ";
     ss << " \"" << id << "\"";
     ss << " - Expression of upper bound";
     ss << *exp;
@@ -123,7 +123,7 @@ inline const string TC_WRONG_SIZE_EXP(const shared_ptr<ModuleScope>& curr,
                                       const Type last_type) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Identifier";
+    ss << " - Identifier ";
     ss << " \"" << id  << "\"";
     ss << " - Array size expression is ill typed";
     ss << *exp;
@@ -166,7 +166,7 @@ inline const string TC_WRONG_INIT_EXP(const shared_ptr<ModuleScope>& curr,
                                       const Type last_type) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Identifier";
+    ss << " - Identifier ";
     ss << "\"" << id  << "\"";
     ss << " - Initialization is ill-typed";
     ss << *init;
@@ -263,27 +263,54 @@ inline const string TC_WRONG_RHS(const shared_ptr<ModuleScope> &curr,
     return (ss.str());
 }
 
-inline const string TC_WRONG_FST_ARG(
+inline void show_binary_types(stringstream &ss, ExpOp op) {
+    for (auto ty: Operator::binary_types(op)) {
+        ss << "(" << ModelPrinter::to_str(op) << "): "
+           << ty.to_string() << std::endl;
+    }
+}
+
+inline void show_unary_types(stringstream &ss, ExpOp op) {
+    for (auto ty: Operator::unary_types(op)) {
+        ss << "(" << ModelPrinter::to_str(op) << "): "
+           << ty.to_string() << std::endl;
+    }
+}
+
+inline const string TC_WRONG_UNOP(
         const shared_ptr<ModuleScope> &curr, ExpOp op,
-        const shared_ptr<Exp> &exp) {
+        const shared_ptr<UnOpExp> &exp) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Operator";
-    ss << " " << ModelPrinter::to_str(op);
-    ss << " , First argument has an incompatible type";
+    ss << " - Wrong type for argument of operator";
+    ss << " \"" << ModelPrinter::to_str(op) << "\"" << std::endl;
     ss << *exp;
+    ss << std::endl;
+    ss << "- Argument has type: "
+       << ModelPrinter::to_str(exp->get_argument()->get_type())
+       << std::endl;
+    ss << "- Candidates are: " << std::endl;
+    show_unary_types(ss, op);
     return (ss.str());
 }
 
 inline const string TC_WRONG_BINOP(
         const shared_ptr<ModuleScope> &curr, ExpOp op,
-        const shared_ptr<Exp> &exp) {
+        const shared_ptr<BinOpExp> &exp) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Operator";
-    ss << " " << ModelPrinter::to_str(op);
-    ss << " , Arguments have incompatible types";
+    ss << " - Wrong type for arguments of operator";
+    ss << " \"" << ModelPrinter::to_str(op) << "\"" << std::endl;
     ss << *exp;
+    ss << std::endl;
+    ss << "- Argument 1 has type: "
+       << ModelPrinter::to_str(exp->get_first_argument()->get_type())
+       << std::endl;
+    ss << "- Argument 2 has type: "
+       << ModelPrinter::to_str(exp->get_second_argument()->get_type())
+       << std::endl;
+    ss << "- Candidates are: " << std::endl;
+    show_binary_types(ss, op);
     return (ss.str());
 }
 
@@ -786,8 +813,10 @@ void ModelTC::visit(shared_ptr<BinOpExp> exp) {
         //couldn't find type.
         put_error(TC_WRONG_BINOP(current_scope, exp->get_operator(), exp));
     } else {
-        res_type = inferred_type->to_binary_ty().get_result_type();
-        exp->set_inferred_type(inferred_type->to_binary_ty());
+        //¿update the type of the arguments? mm... no.
+        BinaryOpTy opty = inferred_type->to_binary_ty();
+        res_type = opty.get_result_type();
+        exp->set_inferred_type(opty);
     }
     last_type = res_type;
     exp->set_type(res_type);
@@ -800,10 +829,11 @@ void ModelTC::visit(shared_ptr<UnOpExp> exp) {
     UnaryOpTy dummy (arg_type, Type::tunknown);
     auto inferred_type = find_unary_compatible(exp->get_operator(), dummy);
     if ((*inferred_type) == Unknown() || !inferred_type->is_unary_type()) {
-        put_error(TC_WRONG_FST_ARG(current_scope, exp->get_operator(), exp));
+        put_error(TC_WRONG_UNOP(current_scope, exp->get_operator(), exp));
     } else {
-        res_type = inferred_type->to_unary_ty().get_result_type();
-        exp->set_inferred_type(inferred_type->to_unary_ty());
+        UnaryOpTy opty = inferred_type->to_unary_ty();
+        res_type = opty.get_result_type();
+        exp->set_inferred_type(opty);
     }
     last_type = res_type;
     exp->set_type(res_type);

@@ -102,7 +102,7 @@ private:
     PropType type;
 protected:
     /// Protected constructor
-    /// @note Instanted should be made using subclasses.
+    /// @note Instances must be created using subclasses.
     Prop(PropType type) : type {type} {}
 
 public:
@@ -477,7 +477,7 @@ public:
  **/
 class RangedDecl : public Decl, public Initialized, public Ranged {
 public:
-    /// Constructor that takes lower and upper bound, and a initialization
+    /// Constructor that takes lower and upper bound, and an initialization
     RangedDecl(string id, shared_ptr<Exp> lower, shared_ptr<Exp> upper,
                shared_ptr<Exp> init) :
         Decl(Type::tint, id), Initialized(init), Ranged(lower, upper) {}
@@ -984,7 +984,7 @@ public:
         return (type);
     }
 
-    void set_type(Type type) {
+    virtual void set_type(Type type) {
         this->type = type;
     }
 };
@@ -1009,6 +1009,11 @@ public:
 
     int get_value() {
         return (value);
+    }
+
+    void set_type(Type type) override {
+        assert(type == Type::tint);
+        this->type = type;
     }
 };
 

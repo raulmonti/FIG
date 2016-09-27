@@ -37,13 +37,15 @@ string ExpEvaluator::value_to_string() {
 }
 
 shared_ptr<Exp> ExpEvaluator::value_to_ast() {
+    shared_ptr<Exp> result = nullptr;
     switch (type) {
-    case Type::tint: return make_shared<IConst>(value.ivalue);
-    case Type::tfloat: return make_shared<FConst>(value.fvalue);
-    case Type::tbool: return make_shared<BConst>(value.bvalue);
+    case Type::tint: result = make_shared<IConst>(value.ivalue); break;
+    case Type::tfloat: result = make_shared<FConst>(value.fvalue); break;
+    case Type::tbool: result = make_shared<BConst>(value.bvalue); break;
     default:
         throw_FigException("Unsupported ground type for values");
     }
+    return (result);
 }
 
 inline void ExpEvaluator::mark_not_reducible() {

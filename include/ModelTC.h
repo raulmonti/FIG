@@ -98,4 +98,5 @@ public:
     void visit(shared_ptr<RateProp> node) override;
 };
 
+
 #endif
