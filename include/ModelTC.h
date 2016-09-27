@@ -30,6 +30,11 @@ private:
     /// The type of the last node visited.
     Type last_type;
 
+    /// Since expressions may have different types depending on
+    /// the context, we need to check expressions according to
+    /// the expected type.
+    Type expected_exp_type;
+
     /// Is this visitor checking a property?
     /// This allows identifiers of expressions to occur on any module
     /// and not just in the current one.
@@ -37,6 +42,9 @@ private:
 
     /// Accepts if no errors
     void accept_cond(shared_ptr<ModelAST> module);
+
+    /// Accept a expression with an expected type
+    void accept_exp(Type expected, shared_ptr<Exp> exp);
 
     /// If the last inferred type is not "type", put an error
     void check_type(Type type, const string &msg);
@@ -72,6 +80,7 @@ private:
 public:
     ModelTC() : current_scope {nullptr},
         last_type {Type::tunknown},
+        expected_exp_type {Type::tunknown},
         checking_property {false} {}
     virtual ~ModelTC();
     /// Visitor functions

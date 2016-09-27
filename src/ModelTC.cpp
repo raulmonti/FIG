@@ -370,11 +370,10 @@ inline const string TC_WRONG_INIT_VALUE(shared_ptr<Exp> exp) {
     ss << *exp;
     return (ss.str());
 }
-
 }
 
 inline void ModelTC::check_type(Type type, const string &msg) {
-    if (!has_errors() && ! (BasicTy(last_type) <= BasicTy(type))) {
+    if (!has_errors() && !(BasicTy(last_type) <= BasicTy(type))) {
         put_error(msg);
     }
 }
@@ -400,60 +399,57 @@ inline Type ModelTC::identifier_type(const string &id) {
     return (type);
 }
 
-// Min { t | t <= ty } or Unknown if no such type exists.
-inline shared_ptr<Ty> find_unary_compatible(ExpOp op, const Ty& ty) {
-    // possible types of the operator
-    vector<UnaryOpTy> types = Operator::unary_types(op);
-    // sorted by subtype relationship
-    auto cmp = [](const UnaryOpTy& ty1, const UnaryOpTy& ty2) {
-        return (ty1 < ty2);
-    };
-    std::sort(types.begin(), types.end(), cmp);
-    // find the first (least) element that is lower than ty.
-    auto it = types.cbegin();
-    while (it != types.cend() && !(ty <= *it)) {
-        it++;
-    }
-    shared_ptr<Ty> result = nullptr;
-    if (it == types.cend()) {
-        result = make_shared<Unknown>();
-    } else {
-        result = make_shared<UnaryOpTy>(*it);
-    }
-    return (result);
-}
-
-/*void uprint(std::vector<BinaryOpTy>& vec) {
-    std::cout << "vector:" << std::endl;
-    for (auto &x : vec) {
-        std::cout << x.to_string() << std::endl;
-    }
-    std::cout << "endvector" << std::endl;
-}*/
-
-inline shared_ptr<Ty> find_binary_compatible(ExpOp op, const Ty& ty) {
+/*
+inline shared_ptr<Ty> find_binary_compatible(ExpOp op, const BinaryOpTy& ty) {
     vector<BinaryOpTy> types = Operator::binary_types(op);
-    auto cmp = [] (const BinaryOpTy& ty1, const BinaryOpTy& ty2) {
-        return (ty1 < ty2);
+    //remove incompatibles
+    auto nonconv = [ty] (const BinaryOpTy& ty1) {
+        return !(ty1 <= ty);
     };
-    std::sort(types.begin(), types.end(), cmp);
-    auto it = types.cbegin();
-    while (it != types.cend() && !(ty <= *it)) {
-        it++;
-    }
-    shared_ptr<Ty> result = nullptr;
-    if (it == types.cend()) {
-        result = make_shared<Unknown>();
-    } else {
-        result = make_shared<BinaryOpTy>(*it);
+    std::remove_if(types.begin(), types.end(), nonconv);
+    shared_ptr<Ty> result = make_shared<Unknown>();
+    if (types.size() == 1) {
+        //only one convertible, that's the chosen one.
+        result = make_shared<BinaryOpTy>(types.at(0));
     }
     return (result);
 }
+
+inline shared_ptr<Ty> find_unary_compatible(ExpOp op, const UnaryOpTy& ty) {
+    vector<UnaryOpTy> types = Operator::unary_types(op);
+    auto nonconv = [ty] (const UnaryOpTy& ty1) {
+        return !(ty1 <= ty);
+    };
+    std::remove_if(types.begin(), types.end(), nonconv);
+    shared_ptr<Ty> result = make_shared<Unknown>();
+    if (types.size() == 1) {
+        //only one convertible, that's the chosen one.
+        result = make_shared<UnaryOpTy>(types.at(0));
+    } else if (types.size() > 1) {
+        //some ambiguity here, what should I do?
+        for (auto ct : types) {
+            if (ct.get_arg_type() == ty.get_arg_type()) {
+                result = make_shared<UnaryOpTy>(ct);
+                break;
+            }
+        }
+        if (*result == Unknown()) {
+            throw_FigException("Could't resolve typechecking for operators.");
+        }
+    }
+    return (result);
+}
+*/
 
 inline void ModelTC::accept_cond(shared_ptr<ModelAST> node) {
     if (!has_errors()) {
         node->accept(*this);
     }
+}
+
+inline void ModelTC::accept_exp(Type expected, shared_ptr<Exp> exp) {
+    expected_exp_type = expected;
+    accept_cond(exp);
 }
 
 void ModelTC::check_clocks(shared_ptr<ModuleScope> scope) {
@@ -611,39 +607,52 @@ void ModelTC::check_scope(shared_ptr<Decl> decl) {
 }
 
 void ModelTC::visit(shared_ptr<RangedDecl> decl) {
+    assert(decl != nullptr);
     const string &id = decl->get_id();
-    accept_cond(decl->get_lower_bound());
-    auto &error = TC_WRONG_LOWER_BOUND;
-    check_type(Type::tint,
-               error(current_scope, id, decl->get_lower_bound(), last_type));
-    accept_cond(decl->get_upper_bound());
-    auto &error2 = TC_WRONG_UPPER_BOUND;
-    check_type(Type::tint,
-               error2(current_scope, id, decl->get_upper_bound(), last_type));
-    accept_cond(decl->get_init());
-    check_type(Type::tint,
-               TC_WRONG_INIT_EXP(current_scope, id, decl->get_init(),
-                                 decl->get_type(), last_type));
+    shared_ptr<Exp> lower = decl->get_lower_bound();
+    shared_ptr<Exp> upper = decl->get_upper_bound();
+    shared_ptr<Exp> init = decl->get_init();
+    Type decl_type = decl->get_type();
+    assert(decl_type == Type::tint);
+    accept_exp(decl_type, lower);
+    const string msg
+            = TC_WRONG_LOWER_BOUND(current_scope, id, lower, last_type);
+    check_type(decl_type, msg);
+    accept_exp(decl_type, upper);
+    const string msg2
+            = TC_WRONG_UPPER_BOUND(current_scope, id, upper, last_type);
+    check_type(decl_type, msg2);
+    accept_exp(decl_type, init);
+    const string msg3
+            = TC_WRONG_INIT_EXP(current_scope, id, init, decl_type, last_type);
+    check_type(decl_type, msg3);
+    //@note expressions of the range are checked before adding the declared
+    //identifier into scope, to forbid circular declarations
+    //like "q : [0...q+1];"
     check_scope(decl);
 }
 
 void ModelTC::visit(shared_ptr<InitializedDecl> decl) {
     assert(decl != nullptr);
+    shared_ptr<Exp> init = decl->get_init();
+    Type decl_type = decl->get_type();
     const string &id = decl->get_id();
-    accept_cond(decl->get_init());
-    check_type(decl->get_type(),
-               TC_WRONG_INIT_EXP(current_scope, id, decl->get_init(),
-                                 decl->get_type(), last_type));
+    accept_exp(decl_type, init);
+    const string msg
+            = TC_WRONG_INIT_EXP(current_scope, id, init, decl_type, last_type);
+    check_type(decl_type, msg);
     check_scope(decl);
 }
 
 void ModelTC::visit(shared_ptr<ArrayDecl> decl) {
     //check array size expression
     const string &id = decl->get_id();
-    accept_cond(decl->get_size());
-    check_type(Type::tint,
-               TC_WRONG_SIZE_EXP(current_scope, id,
-                                 decl->get_size(), last_type));
+    shared_ptr<Exp> size_exp = decl->get_size();
+    accept_exp(Type::tint, size_exp);
+    const string &msg
+            = TC_WRONG_SIZE_EXP(current_scope, id, size_exp, last_type);
+    check_type(Type::tint, msg);
+    ///@todo complete tc for arrays.
     check_scope(decl);
 }
 
@@ -673,9 +682,10 @@ void ModelTC::visit(shared_ptr<TransitionAST> action) {
     //Note: output label has clock: ensured by grammar.
     //Note: input label has no clock: ensured by grammar.
     assert(action->get_precondition() != nullptr);
-    accept_cond(action->get_precondition());
-    check_type(Type::tbool,
-               TC_WRONG_PRECONDITION(current_scope, action, last_type)) ;
+    accept_exp(Type::tbool, action->get_precondition());
+    const string &msg
+            = TC_WRONG_PRECONDITION(current_scope, action, last_type);
+    check_type(Type::tbool, msg) ;
     if (action->has_triggering_clock()) {
         shared_ptr<OutputTransition> output = action->to_output();
         accept_cond(output->get_triggering_clock());
@@ -719,23 +729,24 @@ void ModelTC::visit(shared_ptr<Assignment> effect) {
     assert(effect != nullptr);
     accept_cond(effect->get_effect_location());
     Type loc_type = last_type;
-    accept_cond(effect->get_rhs());
-    check_type(loc_type,
-               TC_WRONG_RHS(current_scope, effect, loc_type, last_type));
+    accept_exp(loc_type, effect->get_rhs());
+    const string &msg =
+            TC_WRONG_RHS(current_scope, effect, loc_type, last_type);
+    check_type(loc_type, msg);
 }
 
 void ModelTC::visit(shared_ptr<MultipleParameterDist> dist) {
     assert(dist != nullptr);
-    accept_cond(dist->get_first_parameter());
+    accept_exp(Type::tfloat, dist->get_first_parameter());
     check_type(Type::tfloat,
                TC_WRONG_DIST_FST_PARAM(current_scope, dist, last_type));
-    accept_cond(dist->get_second_parameter());
+    accept_exp(Type::tfloat, dist->get_second_parameter());
     check_type(Type::tfloat,
                TC_WRONG_DIST_SND_PARAM(current_scope, dist, last_type));
 }
 
 void ModelTC::visit(shared_ptr<SingleParameterDist> dist) {
-    accept_cond(dist->get_parameter());
+    accept_exp(Type::tfloat, dist->get_parameter());
     check_type(Type::tfloat,
                TC_WRONG_DIST_FST_PARAM(current_scope, dist, last_type));
 }
@@ -767,76 +778,111 @@ void ModelTC::visit(shared_ptr<Location> loc) {
 }
 
 void ModelTC::visit(shared_ptr<ArrayPosition> loc) {
-    accept_cond(loc->get_index());
-    auto &error = TC_WRONG_INDEX_INT;
-    check_type(Type::tint,
-               error(current_scope, loc, loc->get_index(), last_type));
+    accept_exp(Type::tint, loc->get_index());
+    const string &msg =
+            TC_WRONG_INDEX_INT(current_scope, loc, loc->get_index(), last_type);
+    check_type(Type::tint, msg);
     visit(std::static_pointer_cast<Location>(loc));
 }
 
 void ModelTC::visit(shared_ptr<IConst> exp) {
+    assert(expected_exp_type != Type::tunknown);
     last_type = Type::tint;
     //expression should set the inferred type for itself.
     exp->set_type(last_type);
 }
 
 void ModelTC::visit(shared_ptr<BConst> exp){
+    assert(expected_exp_type != Type::tunknown);
     last_type = Type::tbool;
     exp->set_type(last_type);
 }
 
 void ModelTC::visit(shared_ptr<FConst> exp){
+    assert(expected_exp_type != Type::tunknown);
     last_type = Type::tfloat;
     exp->set_type(last_type);
 }
 
 void ModelTC::visit(shared_ptr<LocExp> exp){
+    assert(expected_exp_type != Type::tunknown);
     assert(exp != nullptr);
     accept_cond(exp->get_exp_location());
     exp->set_type(last_type);
 }
 
 void ModelTC::visit(shared_ptr<BinOpExp> exp) {
+    assert(expected_exp_type != Type::tunknown);
     assert(exp != nullptr);
-    Type res_type = Type::tunknown;
-    //find type of first argument
-    accept_cond(exp->get_first_argument());
-    Type arg1_type = last_type;
-    //find type of second argument
-    accept_cond(exp->get_second_argument());
-    Type arg2_type = last_type;
-    // Create dummy binary type to search the correct one
-    BinaryOpTy dummy (arg1_type, arg2_type, Type::tunknown);
-    // find the type
-    auto inferred_type = find_binary_compatible(exp->get_operator(), dummy);
-    if ((*inferred_type) == Unknown() || !inferred_type->is_binary_type()) {
-        //couldn't find type.
-        put_error(TC_WRONG_BINOP(current_scope, exp->get_operator(), exp));
-    } else {
-        //¿update the type of the arguments? mm... no.
-        BinaryOpTy opty = inferred_type->to_binary_ty();
-        res_type = opty.get_result_type();
-        exp->set_inferred_type(opty);
+    Type type_expected = expected_exp_type;
+    ExpOp op = exp->get_operator();
+    vector<BinaryOpTy> types = Operator::binary_types(op);
+    auto ty_gt = [] (const BinaryOpTy& ty1, const BinaryOpTy& ty2) {
+        return (ty2 < ty1);
+    };
+    //sort the type candidates for the operator
+    std::sort(types.begin(), types.end(), ty_gt);
+    //find a compatible type
+    shared_ptr<Exp> arg1 = exp->get_first_argument();
+    shared_ptr<Exp> arg2 = exp->get_second_argument();
+    bool found = false;
+    unsigned int i = 0;
+    while (i < types.size() && !found) {
+        BinaryOpTy ty = types[i];
+        accept_exp(ty.get_arg1_type(), arg1);
+        Type inferred1 = last_type;
+        accept_exp(ty.get_arg2_type(), arg2);
+        Type inferred2 = last_type;
+        BinaryOpTy inf (inferred1, inferred2, type_expected);
+        if (ty <= inf) {
+            found = true;
+        } else {
+            i++;
+        }
     }
-    last_type = res_type;
-    exp->set_type(res_type);
+    if (found) {
+        BinaryOpTy selected = types[i];
+        Type res_type = selected.get_result_type();
+        last_type = res_type;
+        exp->set_inferred_type(selected);
+        exp->set_type(res_type);
+    } else {
+        put_error(TC_WRONG_BINOP(current_scope, op, exp));
+    }
 }
 
 void ModelTC::visit(shared_ptr<UnOpExp> exp) {
-    accept_cond(exp->get_argument());
-    Type arg_type = last_type;
-    Type res_type = Type::tunknown;
-    UnaryOpTy dummy (arg_type, Type::tunknown);
-    auto inferred_type = find_unary_compatible(exp->get_operator(), dummy);
-    if ((*inferred_type) == Unknown() || !inferred_type->is_unary_type()) {
-        put_error(TC_WRONG_UNOP(current_scope, exp->get_operator(), exp));
-    } else {
-        UnaryOpTy opty = inferred_type->to_unary_ty();
-        res_type = opty.get_result_type();
-        exp->set_inferred_type(opty);
+    assert(expected_exp_type != Type::tunknown);
+    ExpOp op = exp->get_operator();
+    Type type_expected = expected_exp_type;
+    vector<UnaryOpTy> types = Operator::unary_types(op);
+    auto ty_gt = [] (const UnaryOpTy &ty1, const UnaryOpTy &ty2) {
+        return (ty2 < ty1);
+    };
+    std::sort(types.begin(), types.end(), ty_gt);
+    shared_ptr<Exp> arg1 = exp->get_argument();
+    bool found = false;
+    unsigned int i = 0;
+    while (i < types.size() && !found) {
+        UnaryOpTy ty = types[i];
+        accept_exp(ty.get_arg_type(), arg1);
+        Type inferred1 = last_type;
+        UnaryOpTy inf (inferred1, type_expected);
+        if (ty <= inf) {
+            found = true;
+        } else {
+            i++;
+        }
     }
-    last_type = res_type;
-    exp->set_type(res_type);
+    if (found) {
+        UnaryOpTy selected = types[i];
+        Type res_type = selected.get_result_type();
+        last_type = res_type;
+        exp->set_inferred_type(selected);
+        exp->set_type(res_type);
+    } else {
+        put_error(TC_WRONG_UNOP(current_scope, op, exp));
+    }
 }
 
 void ModelTC::check_dnf(PropType type, shared_ptr<Exp> exp) {
@@ -851,10 +897,10 @@ void ModelTC::check_dnf(PropType type, shared_ptr<Exp> exp) {
 
 void ModelTC::visit(shared_ptr<TransientProp> prop) {
     checking_property = true;
-    accept_cond(prop->get_left());
+    accept_exp(Type::tbool, prop->get_left());
     check_type(Type::tbool, TC_WRONG_PROPERTY_LEFT(prop, last_type));
     check_dnf(prop->get_type(), prop->get_left());
-    accept_cond(prop->get_right());
+    accept_exp(Type::tbool, prop->get_right());
     check_type(Type::tbool, TC_WRONG_PROPERTY_RIGHT(prop, last_type));
     check_dnf(prop->get_type(), prop->get_right());
     checking_property = false;
@@ -862,7 +908,7 @@ void ModelTC::visit(shared_ptr<TransientProp> prop) {
 
 void ModelTC::visit(shared_ptr<RateProp> prop) {
     checking_property = true;
-    accept_cond(prop->get_expression());
+    accept_exp(Type::tbool, prop->get_expression());
     check_type(Type::tbool, TC_WRONG_PROPERTY_EXP(prop, last_type));
     check_dnf(prop->get_type(), prop->get_expression());
     checking_property = false;

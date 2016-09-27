@@ -52,14 +52,12 @@ bool operator==(const Ty& ty1, const Ty& ty2) {
     return (result);
 }
 
-/*
- *   float
- *      |
- *      |
+/*        tunkwnown
+ *       /  |    |
+ * float    |    |
+ *      |   |    |
+ *      |   |    |
  *     int  bool tclock
- *       \   |   /
- *        \  |  /
- *         tunknown
  *
  *    t0 <= t0' /\ t1' <= t1 => t0' -> t1' <= t0 -> t1
  *
@@ -74,7 +72,7 @@ bool operator<=(const Ty& ty1, const Ty& ty2) {
             //equal
             bool equal = (basic1.get_type() == basic2.get_type());
             //or ty1 is tunkwnown
-            bool compared_to_ns = (basic1.get_type() == Type::tunknown);
+            bool compared_to_ns = (basic2.get_type() == Type::tunknown);
             //or int convertible to float.
             bool int_to_float = (basic1.get_type() == Type::tint)
                     && (basic2.get_type() == Type::tfloat);

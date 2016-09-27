@@ -151,16 +151,16 @@ public:
         FunTy (std::make_shared<BasicTy>(a1type),
                std::make_shared<FunTy>(a2type, result)) {}
 
-    Type get_arg1_type() {
+    Type get_arg1_type() const {
         return  get_ty1()->to_basic().get_type();
     }
 
-    Type get_arg2_type() {
+    Type get_arg2_type() const {
         FunTy snd = get_ty2()->to_fun();
         return (snd.get_ty1()->to_basic().get_type());
     }
 
-    Type get_result_type() {
+    Type get_result_type() const {
         FunTy snd = get_ty2()->to_fun();
         return (snd.get_ty2()->to_basic().get_type());
     }
