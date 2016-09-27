@@ -8,7 +8,7 @@
  *        building a copy of it that has been
  *        reduced as much as posible
  * @example For (q + L == 2 + 2) this will build (q + 5 == 4)
- *          when L = 5 is a constant in the global scope.
+ *          when L = 5 is a constant in the given scope.
  */
 class ExpReductor : public Visitor {
 private:

@@ -45,7 +45,10 @@ void ExpStringBuilder::visit(shared_ptr<BinOpExp> exp) {
     exp->get_second_argument()->accept(*this);
     string right_s = result;
     if (Operator::is_infix_operator(exp->get_operator())) {
-        result = left_s + op + right_s;
+        ///@bug Here we should add parenthesis!!
+        ///@todo Add parenthesis and implement an algorithm
+        /// to eliminate redundant one
+        result = left_s  + op + right_s;
     } else {
         result = op + "(" + left_s + "," + right_s + ")";
     }

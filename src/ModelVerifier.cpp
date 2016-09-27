@@ -5,9 +5,15 @@
 #include "FigException.h"
 #include "location.hh"
 
-// Fix! for new operators.
 
 namespace {
+std::basic_ostream<char>& operator<<(std::basic_ostream<char> &ss, TransitionAST& model) {
+    if (model.get_location() != nullptr) {
+        ss << " [at " << *(model.get_location()) << "]";
+    }
+    return ss;
+}
+
 //"operator%" not defined in z3++.h, let's improvise one.
 z3::expr z3mod(z3::expr const & a, z3::expr const & b) {
     check_context(a, b);
@@ -69,9 +75,9 @@ inline string warning_not_deterministic(shared_ptr<TransitionAST> a1,
                                         shared_ptr<TransitionAST> a2) {
     stringstream ss;
     ss << "Preconditions of transitions";
-    ss << " [at " << *(a1->get_location()) << "]";
+    (ss << " ") << *a1;
     ss << " and";
-    ss << " [at " << *(a2->get_location()) << "]";
+    ss << " " << *a2;
     ss << " are not disjoint and its postconditions produce ";
     ss << " different states, which is a potential source of non-determinism";
     return (ss.str());
@@ -82,15 +88,13 @@ inline string warning_reseted_clocks_input(shared_ptr<TransitionAST> a1,
                                            shared_ptr<TransitionAST> a2) {
     const string &label1_id = a1->get_label();
     const string &label2_id = a2->get_label();
-    auto loc1 = a1->get_location();
-    auto loc2 = a2->get_location();
     assert(label1_id == label2_id);
     stringstream ss;
     ss << "Transitions of input label";
     ss << " \"" << label1_id << "\"";
-    ss << " [at " << *loc1 << "]";
+    ss << " " << *a1;
     ss << " and";
-    ss << " [at " << *loc2 << "]";
+    ss << " " << *a2;
     ss << " must reset the same clocks to ensure non-determinism";
     return (ss.str());
 }
@@ -101,15 +105,13 @@ inline string warning_reseted_clocks_output(const string &clock_id,
                                             shared_ptr<TransitionAST> a2) {
     const string &label1_id = a1->get_label();
     const string &label2_id = a2->get_label();
-    auto loc1 = a1->get_location();
-    auto loc2 = a2->get_location();
     assert(label1_id == label2_id);
     stringstream ss;
     ss << "Transitions of output label";
     ss << " \"" << label1_id << "\"";
-    ss << " [at " << *loc1 << "]";
+    ss << " " << *a1;
     ss << " and";
-    ss << " [at " << *loc2 << "]";
+    ss << " " << *a2;
     ss << " are enabled by the same clock";
     ss << " \"" << clock_id << "\"";
     ss << ", they must reset the same clocks to ensure non-determinism";
@@ -121,15 +123,13 @@ inline string warning_same_clock_different_label(const string &clock_id,
                                                  shared_ptr<TransitionAST> a2) {
     const string &label1_id = a1->get_label();
     const string &label2_id = a2->get_label();
-    auto loc1 = a1->get_location();
-    auto loc2 = a2->get_location();
     stringstream ss;
     ss << "Transition of output labels";
     ss << " \"" << label1_id << "\"";
-    ss << " [at " << *loc1 << "]";
+    ss << " " << *a1;
     ss << " and";
     ss << " \"" << label2_id << "\"";
-    ss << " [at " << *loc2 << "]";
+    ss <<  " " << *a2;
     ss << " are enabled by the same clock";
     ss << " \"" << clock_id << "\"";
     ss << ", which is a potential source of non-determinism";
@@ -141,18 +141,16 @@ inline string warning_clock_exhaustation(const string &clock_id,
                                          shared_ptr<TransitionAST> a2) {
     const string &label1_id = a1->get_label();
     const string &label2_id = a2->get_label();
-    auto loc1 = a1->get_location();
-    auto loc2 = a2->get_location();
     stringstream ss;
     ss << "Transition of output label";
     ss << " \"" << label1_id << "\"";
-    ss << " [at " << *loc1 << "]";
+    ss << " " << *a1;
     ss << " is potentially enabled with an";
     ss << " exhausted clock";
     ss << " \"" << clock_id  << "\"";
     ss << " via another transition with label";
     ss << " \"" << label2_id << "\"";
-    ss << " [at " << *loc2 << "]";
+    ss << " " << *a2;
     return (ss.str());
 }
 

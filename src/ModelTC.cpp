@@ -26,7 +26,9 @@ shared_map<string, Decl> ModuleScope::globals;
 namespace {
 
 stringstream& operator<<(stringstream &ss, ModelAST& model) {
-    ss << " [at " << *(model.get_location()) << "]";
+    if (model.get_location() != nullptr) {
+        ss << " [at " << *(model.get_location()) << "]";
+    }
     return ss;
 }
 
@@ -69,8 +71,8 @@ inline const string TC_ID_REDEFINED(const shared_ptr<ModuleScope> &curr,
     ss << PREFIX(curr);
     ss << " - Identifier ";
     ss << " \"" << id << "\"";
-    ss << " is already declared";
-    ss << " at " << *(prev->get_location());
+    ss << " is already declared ";
+    ss << *prev;
     return (ss.str());
 }
 
@@ -79,8 +81,8 @@ inline const string TC_ID_OUT_OF_SCOPE(const shared_ptr<ModuleScope> &curr,
     stringstream ss;
     ss << PREFIX(curr);
     ss << " - Identifier ";
-    ss << " \"" << loc->get_identifier() << "\"";
-    ss << " [at " << *(loc->get_location()) << "]";
+    ss << " \"" << loc->get_identifier() << "\" ";
+    ss << *loc;
     ss << "is not in scope";
     return (ss.str());
 }
