@@ -40,6 +40,12 @@ public:
         this->msg << "[Warning] " << msg << std::endl;
     }
 
+    void ignore_errors() {
+        _has_errors = false;
+        _has_warnings = false;
+        msg.str(std::string());
+    }
+
     string get_msg() {
         return (msg.str());
     }

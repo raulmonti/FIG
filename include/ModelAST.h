@@ -1325,6 +1325,10 @@ protected:
     void put_error(const string &msg);
     void put_warning(const string &msg);
 
+    /// Ignore errors, has_errors() will be "false" after calling
+    /// this method
+    void ignore_errors();
+
 public:
     /// Default constructor
     Visitor();

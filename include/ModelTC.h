@@ -77,11 +77,21 @@ private:
     int eval_int_or_put(shared_ptr<Exp> exp);
     float eval_float_or_put(shared_ptr<Exp> exp);
 
+    /// Check expression on its own instance of ModelTC but copy
+    /// inferred type to this instance
+    /// @note used to typecheck expressions that are expected
+    /// to fail on several ocations, and hence error messages
+    /// should be ignored.
+    bool dummy_check(Type expected_type, shared_ptr<Exp> exp);
+
 public:
     ModelTC() : current_scope {nullptr},
         last_type {Type::tunknown},
         expected_exp_type {Type::tunknown},
         checking_property {false} {}
+
+    ModelTC(const ModelTC& instance) = default;
+
     virtual ~ModelTC();
     /// Visitor functions
     void visit(shared_ptr<Model> node) override;
