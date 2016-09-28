@@ -30,7 +30,10 @@ string ModelPrinter::to_str(LabelType type) {
     case LabelType::tau:
         result = "Tau";
         break;
-    }
+	default:
+		throw_FigException("invalid label type");
+		break;
+	}
     return result;
 }
 
@@ -69,30 +72,7 @@ string ModelPrinter::to_str(DistType type) {
 }
 
 string ModelPrinter::to_str(ExpOp op) {
-<<<<<<< HEAD
-    string result;
-    switch(op) {
-    case ExpOp::plus: result = "+"; break;
-    case ExpOp::times: result = "*"; break;
-    case ExpOp::minus: result = "-"; break;
-    case ExpOp::div: result = "/"; break;
-    case ExpOp::mod: result = "%"; break;
-	case ExpOp::implies: result = "->"; break;
-    case ExpOp::andd: result = "&"; break;
-    case ExpOp::orr: result = "|"; break;
-    case ExpOp::nott: result = "!"; break;
-    case ExpOp::eq: result = "=="; break;
-    case ExpOp::neq: result = "!="; break;
-    case ExpOp::lt: result = "<"; break;
-    case ExpOp::gt: result = ">"; break;
-    case ExpOp::le: result = "<="; break;
-    case ExpOp::ge: result = ">="; break;
-	default: throw_FigException("invalid expression operator"); break;
-    }
-    return result;
-=======
   return Operator::operator_string(op);
->>>>>>> 79c16fe1502050acbd838552b8f3f484d9a8487e
 }
 
 string ModelPrinter::to_str(PropType prop_type) {
@@ -131,21 +111,23 @@ void ModelPrinter::visit(shared_ptr<Model> model) {
 		decl->accept(*this);
 	}
 	constant = false;
-
-	/// @todo TODO continue rewriting from here
-
 	// Modules
 	out << endl;
 	if (debug) {
 		print_idented("Modules:");
 	}
-	auto& bodies = model->get_modules();
-    unsigned int i = 0;
-    while (i < bodies.size()) {
-        print_idented("Module: " + bodies[i]->get_name());
-        accept_idented(bodies[i]);
-        i++;
+	for (auto module: model->get_modules()) {
+		if (debug) {
+			print_idented("Module \"" + module->get_name() + "\"");
+			accept_idented(module);
+		} else {
+			out << endl;
+			module->accept(*this);
+		}
 	}
+
+	/// @todo TODO continue rewriting from here
+
 	// Properties
 	out << endl;
 	if (debug) {
@@ -157,15 +139,26 @@ void ModelPrinter::visit(shared_ptr<Model> model) {
 }
 
 void ModelPrinter::visit(shared_ptr<ModuleAST> body) {
-    print_idented("=ModuleBody=");
-    print_idented("Local Declarations: ");
+	if (debug) {
+		print_idented("=ModuleBody=");
+		print_idented("Local Declarations: ");
+	} else {
+		out << "module " << body->get_name() << endl;
+	}
     for (auto decl : body->get_local_decls()) {
         accept_idented(decl);
-    }
-    print_idented("Actions: ");
+	}
+	if (debug) {
+		print_idented("Actions: ");
+	} else {
+		out << endl;
+	}
     for (auto action : body->get_transitions()) {
         accept_idented(action);
-    }
+	}
+	if (!debug) {
+		out << "endmodule" << endl;
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<Decl> decl) {
@@ -185,22 +178,28 @@ void ModelPrinter::visit(shared_ptr<Decl> decl) {
 }
 
 void ModelPrinter::visit(shared_ptr<RangedDecl> decl) {
-    visit(std::static_pointer_cast<Decl>(decl));
-    print_idented("Range:");
-    print_idented("Lower:");
-    accept_idented(decl->get_lower_bound());
-    print_idented("Upper:");
-    accept_idented(decl->get_upper_bound());
-}
-
-void ModelPrinter::visit(shared_ptr<ArrayDecl> decl) {
-    visit(std::static_pointer_cast<Decl>(decl));
-    print_idented("Array Size:");
-    accept_idented(decl->get_size());
+	// Print declaration
+	visit(std::static_pointer_cast<Decl>(decl));
+	// Print initialization
+	if (debug) {
+		print_idented("Range:");
+		print_idented("Lower:");
+		accept_idented(decl->get_lower_bound());
+		print_idented("Upper:");
+		accept_idented(decl->get_upper_bound());
+	} else {
+		out << ": [";
+		decl->get_lower_bound()->accept(*this);
+		out << "..";
+		decl->get_upper_bound()->accept(*this);
+		out << "];" << endl;
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<InitializedDecl> decl) {
-    visit(std::static_pointer_cast<Decl>(decl));
+	// Print declaration
+	visit(std::static_pointer_cast<Decl>(decl));
+	// Print initialization
 	if (debug) {
 		print_idented("Init:");
 	} else {
@@ -210,6 +209,19 @@ void ModelPrinter::visit(shared_ptr<InitializedDecl> decl) {
 	if (!debug) {
 		out << ";" << endl;
 	}
+}
+
+void ModelPrinter::visit(shared_ptr<ClockDecl> decl) {
+	visit(std::static_pointer_cast<Decl>(decl));
+	if (!debug) {
+		out << ";" << endl;
+	}
+}
+
+void ModelPrinter::visit(shared_ptr<ArrayDecl> decl) {
+	visit(std::static_pointer_cast<Decl>(decl));
+	print_idented("Array Size:");
+	accept_idented(decl->get_size());
 }
 
 void ModelPrinter::visit(shared_ptr<TransitionAST> action) {
@@ -272,8 +284,12 @@ void ModelPrinter::visit(shared_ptr<MultipleParameterDist> dist) {
 }
 
 void ModelPrinter::visit(shared_ptr<Location> loc) {
-    print_idented("=Location=");
-    print_idented("ID: \"" + loc->get_identifier() + "\"");
+	if (debug) {
+		print_idented("=Location=");
+		print_idented("ID: \"" + loc->get_identifier() + "\"");
+	} else {
+		out << loc->get_identifier() << ";" << endl;
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<ArrayPosition> loc) {
@@ -283,48 +299,95 @@ void ModelPrinter::visit(shared_ptr<ArrayPosition> loc) {
 }
 
 void ModelPrinter::visit(shared_ptr<IConst> node) {
-	if (debug)
+	if (debug) {
 		print_idented("Int Value: " + std::to_string(node->get_value()));
-	else
+	} else {
 		out << node->get_value();
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<BConst> node) {
-    if (node->get_value()) {
-        print_idented("Bool Value: true");
-    } else {
-        print_idented("Bool Value: false");
-    }
+	string value(node->get_value() ? "true" : "false");
+	if (debug) {
+		print_idented("Bool Value: " + value);
+	} else {
+		out << value;
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<FConst> node) {
-    print_idented("Float Value: " + std::to_string(node->get_value()));
+	if (debug) {
+		print_idented("Float Value: " + std::to_string(node->get_value()));
+	} else {
+		out << node->get_value();
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<LocExp> node) {
-    print_idented("Value Of");
-    accept_idented(node->get_exp_location());
+	if (debug) {
+		print_idented("Value Of");
+		accept_idented(node->get_exp_location());
+	} else {
+		out << node->get_exp_location()->get_identifier();
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<OpExp> node) {
-    print_idented("Operator: " + to_str(node->get_operator()));
+	if (debug) {
+		print_idented("Operator: " + to_str(node->get_operator()));
+	} else {
+		out << Operator::operator_string(node->get_operator());
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<BinOpExp> node) {
-    visit(std::static_pointer_cast<OpExp>(node));
-    if (node->has_inferred_type()) {
-       print_idented("Inferred type: " + node->get_inferred_type().to_string());
-    }
-    print_idented("First Argument:");
-    accept_idented(node->get_first_argument());
-    print_idented(("Second Argument:"));
-    accept_idented(node->get_second_argument());
+	if (debug) {
+		visit(std::static_pointer_cast<OpExp>(node));
+		if (node->has_inferred_type()) {
+		   print_idented("Inferred type: " + node->get_inferred_type().to_string());
+		}
+		print_idented("First Argument:");
+		accept_idented(node->get_first_argument());
+		print_idented(("Second Argument:"));
+		accept_idented(node->get_second_argument());
+	} else {
+		auto op(node->get_operator());
+		auto opStr(Operator::operator_string(op));
+		if (Operator::is_infix_operator(op)) {
+			out << "(";
+			node->get_first_argument()->accept(*this);
+			out << opStr;
+			node->get_second_argument()->accept(*this);
+			out << ")";
+		} else {
+			out << opStr;
+			out << "(";
+			node->get_first_argument()->accept(*this);
+			out << ",";
+			node->get_second_argument()->accept(*this);
+			out << ")";
+		}
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<UnOpExp> node) {
-    visit(std::static_pointer_cast<OpExp>(node));
-    print_idented("Argument:");
-    accept_idented(node->get_argument());
+	if (debug) {
+		visit(std::static_pointer_cast<OpExp>(node));
+		print_idented("Argument:");
+		accept_idented(node->get_argument());
+	} else {
+		auto op(node->get_operator());
+		auto opStr(Operator::operator_string(op));
+		if (Operator::is_infix_operator(op)) {
+			out << "(" << opStr;
+			node->get_argument()->accept(*this);
+			out << ")";
+		} else {
+			out << opStr << "(";
+			node->get_argument()->accept(*this);
+			out << ")";
+		}
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<Prop> prop) {

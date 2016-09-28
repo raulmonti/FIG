@@ -67,7 +67,8 @@ public:
 	void visit(shared_ptr<Decl> node);
     void visit(shared_ptr<RangedDecl> node);
     void visit(shared_ptr<InitializedDecl> node);
-    void visit(shared_ptr<ArrayDecl> node);
+	void visit(shared_ptr<ClockDecl> node);
+	void visit(shared_ptr<ArrayDecl> node);
     void visit(shared_ptr<TransitionAST> node);
     void visit(shared_ptr<OutputTransition> node);
     void visit(shared_ptr<Effect> node);

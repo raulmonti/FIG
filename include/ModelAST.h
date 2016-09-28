@@ -1107,7 +1107,7 @@ private:
     bool value;
 public:
     /// Create the boolean constant from its value
-    BConst(bool value) : value {value} {
+	BConst(bool value = false) : value {value} {
         type = Type::tbool;
     }
 

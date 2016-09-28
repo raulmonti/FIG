@@ -39,6 +39,7 @@
 #include <json-forwards.h>
 // FIG
 #include <ModelAST.h>
+#include <core_typedefs.h>
 
 
 class ModuleScope;
@@ -154,8 +155,20 @@ private:  // Class attributes
 	/// @note Reset by visit(shared_ptr<ModuleAST>)
 	shared_ptr< Json::Value> timeProgressInvariant_;
 
+	/// Real variables defined in a JANI Specification file
+	/// which should later be mapped one-to-one to clock variables
+	/// @note Used for STA -> IOSA translation
+	/// @see clock2real_
+	std::set< std::string > realVars_;
+
+	/// Maping of clock variable names to their real variable counterparts,
+	/// used in JANI Specification files to model time progress through
+	/// location invariants.
+	/// @note Used for STA -> IOSA translation
+	std::map< std::string, Reference<std::string> > clock2real_;
+
 	/// Prefix used to generate a real variable from a clock
-	/// @note Needed for IOSA -> STA translation
+	/// @note Used for IOSA -> STA translation
 	static constexpr char REAL_VAR_FROM_CLOCK_PREFIX[] = "x_";
 
 	/// An empty Json::Value of "object" type
@@ -167,6 +180,7 @@ private:  // Class attributes
 private:  // Class utils: general
 
 	/// Get the name of the real variable corresponding to this clock name
+	/// @note Used for IOSA -> STA translations
 	/// @see REAL_VAR_FROM_CLOCK_PREFIX
 	static std::string rv_from(const std::string& clockName);
 
@@ -305,11 +319,6 @@ private:  // Class utils: JANI -> IOSA
 	/// @throw FigException if JANI file is badly formated
 	bool build_IOSA_from_JANI();
 
-//	/// Return the IOSA translation of this JANI expression
-//	/// @param JANIexpr Json object with the Expression to translate
-//	/// @throw FigException if unsupported or invalid argument passed
-//	void build_IOSA_expression(const Json::Value& JANIexpr);
-
 	/// Get IOSA translation of this JANI expression
 	/// @param JANIconst Json object with the Expression to translate
 	/// @return IOSA Exp or nullptr if translation failed
@@ -321,6 +330,60 @@ private:  // Class utils: JANI -> IOSA
 	/// @return IOSA constant declaration or nullptr if translation failed
 	/// @throw FigException if JANI ConstantDeclaration is badly formated
 	shared_ptr<InitializedDecl> build_IOSA_constant(const Json::Value& JANIconst);
+
+	/// Get IOSA translation of this JANI variable
+	/// @param JANIvar Json object with the VariableDeclaration to translate
+	/// @return IOSA variable declaration or nullptr if translation failed
+	/// @throw FigException if JANI VariableDeclaration is badly formated
+	shared_ptr<Decl> build_IOSA_variable(const Json::Value& JANIvar);
+
+	/// Build a RangedDecl from the given data
+	/// @param varName Name of the variable from the JANI spec
+	/// @param varType JANI BoundedType specification
+	/// @param varInit Variable initialization or nullObject if absent
+	/// @return IOSA RangedDecl or nullptr if translation failed
+	/// @throw FigException if JANI data is badly formated
+	shared_ptr<Decl> build_IOSA_ranged_variable(const std::string& varName,
+												const Json::Value& varType,
+												const Json::Value& varInit);
+
+	/// Build an InitializedDecl for a boolean variable from the given data
+	/// @param varName Name of the variable from the JANI spec
+	/// @param varInit Variable initialization or nullObject if absent
+	/// @return IOSA InitializedDecl or nullptr if translation failed
+	/// @throw FigException if JANI data is badly formated
+	shared_ptr<Decl> build_IOSA_boolean_variable(const std::string& varName,
+												 const Json::Value& varInit);
+
+	/// Get IOSA module translated from this JANI automaton
+	/// @param JANIautomaton Json object with the Automaton to translate
+	/// @return IOSA module AST or nullptr if translation failed
+	/// @throw FigException if JANI Automaton is badly formated
+	shared_ptr<ModuleAST> build_IOSA_module(const Json::Value& JANIautomaton);
+
+	/// Get IOSA transition translated from this JANI edge,
+	/// interpreting the JANI automaton as a CTMC
+	/// @param JANIedge     Json object with JANI edge to translate
+	/// @param JANIlocation Json object with the current automaton locations
+	/// @param IOSAmVars    Variables of the current IOSA module
+	/// @return IOSA transition or nullptr if translation failed
+	/// @throw FigException if JANI edge specifiaction is badly formated
+	shared_ptr<TransitionAST> build_IOSA_transition_from_CTMC(
+			const Json::Value& JANIedge,
+			const Json::Value& JANIlocations,
+			const shared_vector<Decl>& IOSAmVars);
+
+	/// Get IOSA transition translated from this JANI edge,
+	/// interpreting the JANI automaton as an STA
+	/// @param JANIedge     Json object with JANI edge to translate
+	/// @param JANIlocation Json object with the current automaton locations
+	/// @param IOSAmVars    Variables of the current IOSA module
+	/// @return IOSA transition or nullptr if translation failed
+	/// @throw FigException if JANI edge specifiaction is badly formated
+	shared_ptr<TransitionAST> build_IOSA_transition_from_STA(
+			const Json::Value& JANIedge,
+			const Json::Value& JANIlocations,
+			const shared_vector<Decl>& IOSAmVars);
 };
 
 } // namespace fig

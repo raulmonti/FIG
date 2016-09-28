@@ -319,23 +319,17 @@ void compile_model(bool modelAlreadyBuilt) {
 		log(" *** Error parsing the model ***\n");
 		throw_FigException("failed parsing the model file");
 	}
+
+	// Debug print:
+	// { ModelPrinter printer(std::cerr,true); modelAST->accept(printer); }
+
 	// Check types
 	modelAST->accept(typechecker);
 	if (typechecker.has_errors()) {
 		log(typechecker.get_messages());
 		throw_FigException("type-check for the model failed");
 	}
-	tech_log("- Type-checking   succeeded\n");
-
-
-	/// @todo TODO erase debug print
-	{
-		ModelPrinter printer;
-		modelAST->accept(printer);
-		throw_FigException("prematurely aborted!");
-	}
-	///////////////////////////////////////////////////////////////
-
+	tech_log("- Type-checking  succeeded\n");
 
     // Reduce expressions (errors when irreducible constants are found)
     modelAST->accept(reductor);
@@ -343,7 +337,7 @@ void compile_model(bool modelAlreadyBuilt) {
         log(reductor.get_messages());
         throw_FigException("reduction of constant expressions failed");
     }
-    tech_log("- Expr. reduction succeeded\n");
+	tech_log("- Expr-reduction succeeded\n");
 
 	// Check IOSA correctness
 	if (ModuleScope::modules_size_bounded_by(ModelVerifier::NTRANS_BOUND)) {
@@ -361,7 +355,7 @@ void compile_model(bool modelAlreadyBuilt) {
 				log("\n");
 			}
 		}
-		tech_log("- IOSA-checking   succeeded\n");
+		tech_log("- IOSA-checking  succeeded\n");
 	} else {
 		log("- IOSA-checking skipped: model is too big\n");
 	}
@@ -372,7 +366,7 @@ void compile_model(bool modelAlreadyBuilt) {
 		log(builder.get_messages());
 		throw_FigException("parser failed to build the model");
 	}
-	tech_log("- Model building  succeeded\n");
+	tech_log("- Model building succeeded\n");
 
 	// Seal model
 	seal_model:
@@ -382,7 +376,7 @@ void compile_model(bool modelAlreadyBuilt) {
 		log(" *** Error sealing the model ***\n");
 		throw_FigException("parser failed to seal the model");
 	}
-	tech_log("- Model sealing   succeeded\n\n");
+	tech_log("- Model sealing  succeeded\n\n");
 
 	log(std::string("Model") +
 	    (propertiesFile.empty() ? (" file ") : (" and properties files "))

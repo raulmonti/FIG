@@ -51,7 +51,8 @@ std::string Operator::operator_string(ExpOp op) {
     case ExpOp::max: result = "max"; break;
     case ExpOp::pow: result = "pow"; break;
     case ExpOp::log: result = "log"; break;
-    }
+	default: throw_FigException("invalid expression operator"); break;
+	}
     return result;
 }
 
@@ -60,7 +61,8 @@ bool Operator::is_infix_operator(ExpOp op) {
     case ExpOp::implies: return true;
     case ExpOp::andd: return true;
     case ExpOp::orr: return true;
-    case ExpOp::le: return true;
+	case ExpOp::nott: return true;
+	case ExpOp::le: return true;
     case ExpOp::lt: return true;
     case ExpOp::ge: return true;
     case ExpOp::gt: return true;
@@ -71,9 +73,8 @@ bool Operator::is_infix_operator(ExpOp op) {
     case ExpOp::div: return true;
     case ExpOp::times: return true;
     case ExpOp::plus: return true;
-    default: ;
+	default: return false;
     }
-    return (false);
 }
 
 std::vector<UnaryOpTy> Operator::unary_types(ExpOp op) {

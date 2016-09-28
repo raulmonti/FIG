@@ -60,16 +60,16 @@ using std::vector;
 namespace   // // // // // // // // // // // // // // // // // // // // // // //
 {
 
-/// Operators arity
-enum OpArity
-{
-	null,      // constant function
-	i_unary,   // infix unary,   e.g. !a
-	s_unary,   // suffix unary,  e.g. floor(a)
-	i_binary,  // infix binary,  e.g. a + b
-	s_binary,  // suffix binary, e.g. log(a,b)
-	ternary    // i-t-e operator
-};
+// /// Operators arity
+// enum OpArity
+// {
+// 	null,      // constant function
+// 	i_unary,   // infix unary,   e.g. !a
+// 	s_unary,   // suffix unary,  e.g. floor(a)
+// 	i_binary,  // infix binary,  e.g. a + b
+// 	s_binary,  // suffix binary, e.g. log(a,b)
+// 	ternary    // i-t-e operator
+// };
 
 
 /// IOSA -> JANI type translator
@@ -82,25 +82,25 @@ const std::map< Type, std::string > JANI_type =
 };
 
 
-/// JANI operators arity
-const std::map< std::string, OpArity > JANI_operator_arity =
-{
-	{ "⇒",  OpArity::i_binary },
-	{ "∧",  OpArity::i_binary },
-	{ "∨",  OpArity::i_binary },
-	{ "¬",  OpArity::i_unary  },
-	{ "=",  OpArity::i_binary },
-	{ "≠",  OpArity::i_binary },
-	{ "<",  OpArity::i_binary },
-	{ ">",  OpArity::i_binary },
-	{ "≤",  OpArity::i_binary },
-	{ "≥",  OpArity::i_binary },
-	{ "+",  OpArity::i_binary },
-	{ "-",  OpArity::i_binary },
-	{ "*",  OpArity::i_binary },
-	{ "/",  OpArity::i_binary },
-	{ "%",  OpArity::i_binary }
-};
+// /// JANI operators arity
+// const std::map< std::string, OpArity > JANI_operator_arity =
+// {
+// 	{ "⇒",  OpArity::i_binary },
+// 	{ "∧",  OpArity::i_binary },
+// 	{ "∨",  OpArity::i_binary },
+// 	{ "¬",  OpArity::i_unary  },
+// 	{ "=",  OpArity::i_binary },
+// 	{ "≠",  OpArity::i_binary },
+// 	{ "<",  OpArity::i_binary },
+// 	{ ">",  OpArity::i_binary },
+// 	{ "≤",  OpArity::i_binary },
+// 	{ "≥",  OpArity::i_binary },
+// 	{ "+",  OpArity::i_binary },
+// 	{ "-",  OpArity::i_binary },
+// 	{ "*",  OpArity::i_binary },
+// 	{ "/",  OpArity::i_binary },
+// 	{ "%",  OpArity::i_binary }
+// };
 
 
 /// IOSA -> JANI operator translator
@@ -1116,9 +1116,12 @@ JaniTranslator::build_IOSA_from_JANI()
 	assert(JANIroot_ != nullptr);
 	assert(JANIroot_->isObject());
 
+	// Format fields to fill in
 	const Json::Value& janiFile = *JANIroot_;
 	IOSAroot_.reset(new Model);
 	Model& iosa = *IOSAroot_;
+	clock2real_.clear();
+	realVars_.clear();
 
 	// Translate the global declarations
 	if (janiFile.isMember("variables") && !janiFile["variables"].empty()) {
@@ -1127,12 +1130,20 @@ JaniTranslator::build_IOSA_from_JANI()
 	} else if (janiFile.isMember("constants") && !janiFile["constants"].empty()) {
 		if (!janiFile["constants"].isArray())
 			throw_FigException("JANI \"constants\" field must be an array");
-		for (const Json::Value& c: janiFile["constants"]) {
+		for (const auto& c: janiFile["constants"]) {
 			auto const_ptr = build_IOSA_constant(c);
 			if (nullptr == const_ptr)
 				return false;
 			iosa.add_decl(const_ptr);
 		}
+	}
+
+	// Translate the modules
+	for (const auto& a: janiFile["automata"]) {
+		auto module_ptr = build_IOSA_module(a);
+		if (nullptr == module_ptr)
+			return false;
+		iosa.add_module(module_ptr);
 	}
 
 
@@ -1237,13 +1248,20 @@ JaniTranslator::build_IOSA_constant(const Json::Value& JANIconst)
 		return nullptr;
 	}
 	// Get type
-	auto iosaType(IOSA_type.at(JANIconst["type"].asString()));
-	if (iosaType != Type::tbool &&
-		iosaType != Type::tint  &&
-		iosaType != Type::tfloat) {
-		figTechLog << "[ERROR] Invalid constant type (in declaration of \""
-				   << name << "\")" << std::endl;
-		return nullptr;
+	Type iosaType(Type::tunknown);
+	try {
+		iosaType = IOSA_type.at(JANIconst["type"].asString());
+		if (iosaType != Type::tbool &&
+			iosaType != Type::tint  &&
+			iosaType != Type::tfloat) {
+			figTechLog << "[ERROR] Invalid constant type (in declaration of \""
+					   << name << "\")" << std::endl;
+			return nullptr;
+		}
+	} catch (std::out_of_range&) {
+		throw_FigException("unrecognized JANI type (\"" +
+						   JANIconst["type"].asString() + "\") in "
+						   "declaration of \"" + name + "\"");
 	}
 	// Get initialization expression
 	if (!JANIconst.isMember("value")) {
@@ -1262,82 +1280,165 @@ JaniTranslator::build_IOSA_constant(const Json::Value& JANIconst)
 }
 
 
+shared_ptr<Decl>
+JaniTranslator::build_IOSA_variable(const Json::Value& JANIvar)
+{
+	assert(JANIvar.isObject());
+	assert(JANIvar.isMember("name"));
+	assert(JANIvar.isMember("type"));
+	// Get identifyer
+	auto name = JANIvar["name"].asString();
+	if (name.empty()) {
+		figTechLog << "[ERROR] Empty name for variable???" << std::endl;
+		return nullptr;
+	}
+	if (JANIvar.isMember("transient")) {
+		figTechLog << "[ERROR] FIG doesn't support transient variables yet "
+				   << "(in declaration of \"" << name << "\")\n";
+		return nullptr;
+	}
+	// Build according to type
+	auto janiType(JANIvar["type"]);
+	auto janiInit(JANIvar.get("initial-value", Json::nullValue));
+	if ( ! (janiType.isString() || janiType.isObject()) )
+		 throw_FigException("unrecognized JANI type (in declaration of "
+							"variable \"" + name + "\")");
+	if (janiType.isObject())
+		return build_IOSA_ranged_variable(name, janiType, janiInit);
+	else if (janiType.asString() == "bool")
+		return build_IOSA_boolean_variable(name, janiInit);
+	else if (janiType.asString() == "clock")
+		return make_shared<ClockDecl>(name);
+	else if (janiType.asString() == "real")
+		return make_shared<InitializedDecl>(Type::tfloat, name, nullptr);
+	else
+		figTechLog << "[ERROR] FIG doesn't support variables of type \""
+				   << janiType.asString() << "\" (in declaration of \""
+				   << name << "\")\n";
+	return nullptr;
+}
+
+
+shared_ptr<Decl>
+JaniTranslator::build_IOSA_ranged_variable(const std::string& varName,
+										   const Json::Value& varType,
+										   const Json::Value& varInit)
+{
+	assert(varType.isObject());
+	// Verify data consistency
+	if ( ! (varType.isMember("kind") && varType.isMember("base")) )
+		throw_FigException("unrecognized JANI type (in declaration of \""
+						   + varName + "\")");
+	else if (varType["kind"].asString() != "bounded")
+		throw_FigException("unrecognized JANI type \"" + varType["kind"].asString()
+						  + "\" (in declaration of \"" + varName + "\")");
+	else if (varType["base"].asString() != "int") {
+		figTechLog << "[ERROR] FIG doesn't support variables of type \""
+				   << varType["base"].asString()
+				   << "\" yet (in declaration of \"" << varName << "\")\n";
+		return nullptr;
+	} else if ( ! (varType.isMember("lower-bound") &&
+				   varType.isMember("upper-bound")) ) {
+		figTechLog << "[ERROR] FIG doesn't support bounded variables "
+				   << "with undefined upper/lower bounds "
+				   << "(in declaration of \"" << varName << "\")\n";
+		return nullptr;
+	}
+	// Build bounds
+	auto lower(build_IOSA_expression(varType["lower-bound"]));
+	auto upper(build_IOSA_expression(varType["upper-bound"]));
+	// Build ranged variable
+	if (varInit.isNull())
+		return make_shared<RangedDecl>(varName, lower, upper);
+	else
+		return make_shared<RangedDecl>(varName, lower, upper,
+									   build_IOSA_expression(varInit));
+}
+
+
+shared_ptr<Decl>
+JaniTranslator::build_IOSA_boolean_variable(const std::string& varName,
+											const Json::Value& varInit)
+{
+	if (varInit.isNull())
+		return make_shared<InitializedDecl>(Type::tbool, varName,
+											make_shared<BConst>());
+	else
+		return make_shared<InitializedDecl>(Type::tbool, varName,
+											build_IOSA_expression(varInit));
+}
+
+
+shared_ptr<ModuleAST>
+JaniTranslator::build_IOSA_module(const Json::Value& JANIautomaton)
+{
+	shared_ptr<ModuleAST> module(make_shared<ModuleAST>());
+	module->set_name(JANIautomaton["name"].asString());
+
+	// Local variables
+	if (JANIautomaton.isMember("variables")) {
+		if (!JANIautomaton["variables"].isArray())
+			throw_FigException("JANI \"variables\" field in an automaton must be an array");
+		for (const Json::Value& v: JANIautomaton["variables"]) {
+			auto var = build_IOSA_variable(v);
+			if (nullptr == var)
+				return nullptr;
+			else if (var->get_type() == Type::tfloat)  // real variable from/for clock
+				realVars_.emplace(var->get_id());
+			else
+				module->add_decl(var);
+		}
+		if (JANIautomaton.isMember("restrict-initial"))
+			figTechLog << "[WARNING] Ignoring \"restrict-initial\" field" << std::endl;
+	}
+
+	// Transitions
+	shared_ptr<TransitionAST> (JaniTranslator::*build_IOSA_transition)
+			(const Json::Value&, const Json::Value&, const shared_vector<Decl>&);
+	if ((*JANIroot_)["type"].asString() == "ctmc")
+		build_IOSA_transition = &JaniTranslator::build_IOSA_transition_from_CTMC;
+	else if ((*JANIroot_)["type"].asString() == "sta")
+		build_IOSA_transition = &JaniTranslator::build_IOSA_transition_from_STA;
+	else {
+		figTechLog << "[ERROR] A IOSA module can't be built from a JANI "
+				   << "model of type " << (*JANIroot_)["type"].asString()
+				   << std::endl;
+		return nullptr;
+	}
+	const auto& locations = JANIautomaton["locations"];
+	const auto& variables = module->get_local_decls();
+	for (const auto& edge: JANIautomaton["edges"]) {
+		auto trans = (this->*build_IOSA_transition)(edge, locations, variables);
+		if (nullptr == trans)
+			return nullptr;
+		module->add_transition(trans);
+	}
+
+	return module;
+}
+
+
+shared_ptr<TransitionAST>
+JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
+												const Json::Value& JANIlocations,
+												const shared_vector<Decl>& IOSAmVars)
+{
+	/// @todo TODO  implement
+	return nullptr;
+}
+
+
+shared_ptr<TransitionAST>
+JaniTranslator::build_IOSA_transition_from_STA(const Json::Value& JANIedge,
+												const Json::Value& JANIlocations,
+												const shared_vector<Decl>& IOSAmVars)
+{
+	/// @todo TODO  implement
+	return nullptr;
+}
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-//std::string
-//JaniTranslator::build_IOSA_expression(const Json::Value& JANIexpr)
-//{
-//	std::stringstream ss;
-//	assert(JANIexpr.isObject());
-//	assert(JANIexpr.isMember("op"));
-//	const auto op = JANIexpr["op"].asString();
-//	switch (JANI_operator_arity.at(op))
-//	{
-//	case OpArity::null:
-//		ss << IOSA_operator_string.at(op);
-//		break;
-//	case OpArity::i_unary:
-//		assert(JANIexpr.isMember("exp"));
-//		ss << "(" << IOSA_operator_string.at(op);
-//		ss << build_IOSA_expression(JANIexpr["exp"].asString()) << ")";
-//		break;
-//	case OpArity::s_unary:
-//		assert(JANIexpr.isMember("exp"));  // NOTE: this fails for JANI's "der"
-//		ss << IOSA_operator_string.at(op) << "(";
-//		ss << build_IOSA_expression(JANIexpr["exp"].asString()) << ")";
-//		break;
-//	case OpArity::i_binary:
-//		assert(JANIexpr.isMember("left"));
-//		assert(JANIexpr.isMember("right"));
-//		ss << "(" << build_IOSA_expression(JANIexpr["left"].asString());
-//		ss << " " << IOSA_operator_string.at(op) << " ";
-//		ss << build_IOSA_expression(JANIexpr["right"].asString()) << ")";
-//		break;
-//	case OpArity::s_binary:
-//		assert(JANIexpr.isMember("left"));
-//		assert(JANIexpr.isMember("right"));
-//		ss << IOSA_operator_string.at(op) << "(";
-//		ss << build_IOSA_expression(JANIexpr["left"].asString())  << ",";
-//		ss << build_IOSA_expression(JANIexpr["right"].asString()) << ")";
-//		break;
-//	case OpArity::ternary:
-//		throw_FigException("IOSA doesn't have the ternary operator yet");
-//		break;
-//	default:
-//		throw_FigException("invalid operator arity");
-//		break;
-//	}
-//	return ss.str();
-//}
-//
-//
-//std::string
-//JaniTranslator::build_IOSA_constant(const Json::Value& JANIconst)
-//{
-//	std::stringstream ss;
-//	assert(JANIconst.isObject());
-//	assert(JANIconst.isMember("name"));
-//	assert(JANIconst.isMember("type"));
-//	if (!JANIconst.isMember("value"))
-//		throw_FigException("FIG doesn't handle model parameters yet");
-//	ss << "const ";
-//	ss << IOSA_type.at(JANIconst["type"].asString()) << " ";
-//	ss << JANIconst["name"].asString()               << " = ";
-//	ss << build_IOSA_expression(JANIconst["value"])  << ";";
-//	ss << std::endl;
-//	return ss.str();
-//}
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //
