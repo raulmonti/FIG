@@ -18,6 +18,13 @@ private:
     shared_ptr<Exp> reduced_exp = nullptr;
     /// Try to evaluate an expression in the given scope.
     shared_ptr<Exp> eval_if_possible(shared_ptr<Exp> exp);
+
+    /// Operators not yet supported by ModelVerifier(z3) and backend.
+    /// Forced to be reducible at compilation time.
+    static const vector<ExpOp> not_supported_op;
+
+    bool is_not_supported_op(ExpOp op);
+
 public:
     ExpReductor(shared_ptr<ModuleScope> scope) : scope {scope} {}
     void visit(shared_ptr<IConst> node);

@@ -153,6 +153,17 @@ public:
         return (right);
     }
 
+    /// Modify left expression
+    void set_left(shared_ptr<Exp> left) {
+        this->left = left;
+    }
+
+    /// Modify right expression
+    void set_right(shared_ptr<Exp> right) {
+        this->right = right;
+    }
+
+
     /// Acceptor.
     virtual void accept(Visitor& visit) override;
 };
@@ -173,6 +184,11 @@ public:
     /// Returns the expression
     shared_ptr<Exp> get_expression() {
         return (exp);
+    }
+
+    /// Modify expression
+    void set_expression(shared_ptr<Exp> exp) {
+        this->exp = exp;
     }
 
     /// Acceptor.
@@ -203,7 +219,7 @@ public:
         add_decl(decl);
     }
     
-    /// Copy and Assignment constructor are disabled.
+    /// Copy and Assignment constructor.
     Model(const Model &model) = delete;
     void operator=(Model const &) = delete;
     
@@ -230,8 +246,8 @@ public:
         return (modules);
     }
 
-	/// Returns (only the id of) the labels of all modules of this model
-	std::set<string> get_labels() const;
+    /// Returns (only the id of) the labels of all modules of this model
+    std::set<string> get_labels() const;
 
     /// Returns the global declarations of this model
     const vector<shared_ptr<class Decl>>& get_globals() const {
@@ -334,6 +350,11 @@ public:
     shared_ptr<Exp> get_init() {
         return (init);
     }
+
+    /// Modify init
+    void set_init(shared_ptr<Exp> init) {
+        this->init = init;
+    }
 };
 
 /** @brief MultipleInitialized mixin
@@ -349,7 +370,7 @@ public:
         : inits {inits} {}
 
     /// Returns the vector of initialization
-    const shared_vector<Exp>& get_inits() {
+    shared_vector<Exp>& get_inits() {
         return (inits);
     }
 };
@@ -376,6 +397,15 @@ public:
     /// Upper bound
     shared_ptr<Exp> get_upper_bound() {
         return (upper);
+    }
+
+    /// Setters
+    void set_lower_bound(shared_ptr<Exp> lower) {
+        this->lower = lower;
+    }
+
+    void set_upper_bound(shared_ptr<Exp> upper) {
+        this->upper = upper;
     }
 };
 
@@ -528,6 +558,11 @@ public:
         return (size);
     }
 
+    /// Set the size
+    void set_size(shared_ptr<Exp> size) {
+        this->size = size;
+    }
+
     /// Acceptor
     virtual void accept(Visitor& visit) override;
 };
@@ -630,18 +665,23 @@ public:
     }
 
     /// Return the vector of assignments
-    const shared_vector<Assignment>& get_assignments() {
+    shared_vector<Assignment>& get_assignments() {
         return (assignments);
     }
 
     /// Return the clock resets of this transition
-    const shared_vector<ClockReset>& get_clock_resets() {
+    shared_vector<ClockReset>& get_clock_resets() {
         return (clock_resets);
     }
 
     /// Return the precondition of this precondition
     shared_ptr<Exp> get_precondition() {
         return (precondition);
+    }
+
+    /// Set precondition
+    void set_precondition(shared_ptr<Exp> pre) {
+        this->precondition = pre;
     }
 
     /// Has this transition a triggering clock?
@@ -802,6 +842,11 @@ public:
     shared_ptr<Exp> get_rhs() {
         return (rhs);
     }
+
+    void set_rhs(shared_ptr<Exp> rhs) {
+        this->rhs = rhs;
+    }
+
     bool is_assignment() override {
         return (true);
     }
@@ -885,6 +930,10 @@ public:
         return (param);
     }
 
+    void set_parameter(shared_ptr<Exp> exp) {
+        this->param = exp;
+    }
+
     virtual bool has_single_parameter() override {
         return (true);
     }
@@ -912,6 +961,14 @@ public:
 
     shared_ptr<Exp> get_second_parameter() {
         return (param2);
+    }
+
+    void set_first_parameter(shared_ptr<Exp> exp) {
+        this->param1 = exp;
+    }
+
+    void set_second_parameter(shared_ptr<Exp> exp) {
+        this->param2 = exp;
     }
 
     virtual bool has_multiple_parameters() override {
@@ -957,8 +1014,13 @@ public:
         : Location(id), index {index} {}
     /// Acceptor
     virtual void accept(Visitor& visit) override;
+
     shared_ptr<Exp> get_index() {
         return (index);
+    }
+
+    void set_index(shared_ptr<Exp> exp) {
+        this->index = exp;
     }
 };
 
@@ -986,6 +1048,18 @@ public:
 
     virtual void set_type(Type type) {
         this->type = type;
+    }
+
+    virtual bool is_constant() {
+        return (false);
+    }
+
+    virtual bool is_binary_operator() {
+        return (false);
+    }
+
+    virtual bool is_unary_operator() {
+        return (false);
     }
 };
 
@@ -1015,6 +1089,11 @@ public:
         assert(type == Type::tint);
         this->type = type;
     }
+
+    bool is_constant() override {
+        return (true);
+    }
+
 };
 
 /**
@@ -1038,6 +1117,10 @@ public:
     bool get_value() {
         return (value);
     }
+
+    bool is_constant() override {
+        return (true);
+    }
 };
 
 /**
@@ -1060,6 +1143,10 @@ public:
 
     float get_value() {
         return (value);
+    }
+
+    bool is_constant() override {
+        return (true);
     }
 };
 
@@ -1094,7 +1181,7 @@ private:
     /// Operator
     ExpOp op;
 
-protected:
+protected: //Protected.
     OpExp(ExpOp op) : op {op} {}
 
     OpExp(const OpExp&) = delete;
@@ -1144,6 +1231,14 @@ public:
         return (right);
     }
 
+    void set_first_argument(shared_ptr<Exp> exp) {
+        this->left = exp;
+    }
+
+    void set_second_argument(shared_ptr<Exp> exp) {
+        this->right = exp;
+    }
+
     void set_inferred_type(BinaryOpTy type) {
         inferred_type = make_shared<BinaryOpTy>(type);
     }
@@ -1155,6 +1250,10 @@ public:
     BinaryOpTy get_inferred_type() {
         assert(inferred_type != nullptr);
         return (*inferred_type);
+    }
+
+    bool is_binary_operator() override {
+        return (true);
     }
 
     virtual void accept(Visitor& visit) override;
@@ -1180,6 +1279,10 @@ public:
         return (argument);
     }
 
+    void set_argument(shared_ptr<Exp> exp) {
+        this->argument = exp;
+    }
+
     /// Create a expression that represents the negation of the given argument
     static shared_ptr<Exp> make_nott(shared_ptr<Exp> exp) {
         return make_shared<UnOpExp>(ExpOp::nott, exp);
@@ -1196,6 +1299,10 @@ public:
 
     bool has_inferred_type() {
         return (inferred_type != nullptr);
+    }
+
+    bool is_unary_operator() override {
+        return (true);
     }
 
     /// Acceptor

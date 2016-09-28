@@ -307,6 +307,7 @@ void ModelBuilder::visit(shared_ptr<ArrayDecl> decl) {
 }
 
 void ModelBuilder::visit(shared_ptr<RangedDecl> decl) {
+    assert(!decl->is_constant());
     int lower = get_int_or_error(decl->get_lower_bound(),
                                  mb_error_range_1(decl->get_id()));
     int upper = get_int_or_error(decl->get_upper_bound(),
@@ -320,6 +321,10 @@ void ModelBuilder::visit(shared_ptr<RangedDecl> decl) {
 }
 
 void ModelBuilder::visit(shared_ptr<InitializedDecl> decl) {
+    if (decl->is_constant()) {
+        //constans where already reduced. ignore them.
+        return;
+    }
     int lower = 0;
     int upper = 0;
     int value = 0;
@@ -338,7 +343,8 @@ void ModelBuilder::visit(shared_ptr<InitializedDecl> decl) {
                 get_bool_or_error(initexp, mb_error_init(decl->get_id(), type));
         value = res ? 1 : 0;
     } else if (type == Type::tfloat) {
-        throw_FigException("Declaration of float unsupported");
+        throw_FigException("Declaration of float"
+                           " unsupported: \"" + decl->get_id() + "\"");
     }
     if (!has_errors()) {
         const auto &var = make_tuple(decl->get_id(), lower, upper, value);

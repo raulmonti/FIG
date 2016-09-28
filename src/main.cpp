@@ -44,6 +44,7 @@
 #include <fig_cli.h>
 #include <string_utils.h>
 #include <ModelBuilder.h>
+#include <ModelReductor.h>
 #include <ModelPrinter.h>
 #include <ModelVerifier.h>
 #include <JANI_translator.h>
@@ -274,8 +275,10 @@ void compile_model(bool modelAlreadyBuilt) {
 	auto tech_log = fig::ModelSuite::tech_log;
 	shared_ptr<ModelAST> modelAST(nullptr);
 	ModelTC typechecker;
+    ModelReductor reductor;
 	ModelVerifier verifier;
 	ModelBuilder builder;
+    ModelPrinter printer;
 
 	if (modelAlreadyBuilt) {
 		// Parsing + model building already done during JANI interaction
@@ -306,12 +309,21 @@ void compile_model(bool modelAlreadyBuilt) {
 	// Check types
 	modelAST->accept(typechecker);
 	if (typechecker.has_errors()) {
-        //ModelPrinter printer;
-        //modelAST->accept(printer);
 		log(typechecker.get_messages());
 		throw_FigException("type-check for the model failed");
 	}
 	tech_log("- Type-checking  succeeded\n");
+
+    // Reduces expressions when possible.
+    // If there are irreducible constants, has_errors() is true.
+    modelAST->accept(reductor);
+    if (reductor.has_errors()) {
+        log(reductor.get_messages());
+        throw_FigException("reduction of constant expressions failed");
+    }
+    tech_log("- Expressions reduction succeeded\n");
+    //modelAST->accept(printer);
+
 
 	// Check IOSA correctness
 	if (ModuleScope::modules_size_bounded_by(ModelVerifier::NTRANS_BOUND)) {
