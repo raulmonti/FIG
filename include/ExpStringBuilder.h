@@ -17,10 +17,7 @@ class ExpStringBuilder : public Visitor {
     vector<std::string> names;
     /// the computed string
     std::string result;
-    /// Put parenthesis to the resulting string?
-    bool should_enclose;
-    // @todo: not used, I never add parenthesis to avoid redundancy.
-    //
+    // @todo:
     // Instead, I think we should add parenthesis and implement a (probably complicated)
     // function that removes parenthesis taking into account the precedence and
     // associativity of the operators. For example in ((a * b) + c) + d no
@@ -29,7 +26,7 @@ class ExpStringBuilder : public Visitor {
 
 public:
     ExpStringBuilder(shared_ptr<ModuleScope> scope)
-        : scope {scope}, result {""}, should_enclose {false} {}
+        : scope {scope}, result {""} {}
     void visit(shared_ptr<IConst> node);
     void visit(shared_ptr<BConst> node);
     void visit(shared_ptr<FConst> node);
@@ -39,7 +36,6 @@ public:
     /// Return the vector of state variables of this expression
     const vector<std::string>& get_names();
 
-    ///
     std::string str();
 
     // Converts a vector of expressions [e1, e2, e3, ...]

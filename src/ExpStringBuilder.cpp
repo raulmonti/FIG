@@ -6,6 +6,7 @@
 #include "ExpEvaluator.h"
 #include "ModelPrinter.h"
 #include "ModelTC.h"
+#include "Operators.h"
 
 using std::vector;
 using std::pair;
@@ -26,40 +27,37 @@ void ExpStringBuilder::visit(shared_ptr<FConst> node) {
 }
 
 void ExpStringBuilder::visit(shared_ptr<LocExp> node) {
-    if (ModuleScope::globals.find(node->get_exp_location()->get_identifier())
-            != ModuleScope::globals.end()) {
-        //a global constant, not a module state.
-        ExpEvaluator eval (scope);
-        node->accept(eval);
-        if (eval.has_errors()) {
-            throw_FigException("Could not reduce constant at compilation time");
-        }
-        result = eval.value_to_string();
-    } else {
+    ExpEvaluator eval (scope);
+    node->accept(eval);
+    if (eval.has_errors()) {
+      //could not reduce the constant.
         result = node->get_exp_location()->get_identifier();
         names.push_back(result);
+    } else {
+        result = eval.value_to_string();
     }
-    should_enclose = false;
 }
 
 void ExpStringBuilder::visit(shared_ptr<BinOpExp> exp) {
     string op = ModelPrinter::to_str(exp->get_operator());
     exp->get_first_argument()->accept(*this);
-    string left_s = should_enclose ? "(" + result + ")" : result;
+    string left_s  = result;
     exp->get_second_argument()->accept(*this);
-    string right_s = should_enclose ? "(" + result + ")" : result;
-    result = left_s + op + right_s;
-    // @todo fixme, not always return false
-    should_enclose = false;
+    string right_s = result;
+    if (Operator::is_infix_operator(exp->get_operator())) {
+        ///@bug Here we should add parenthesis!!
+        ///@todo Add parenthesis and implement an algorithm
+        /// to eliminate redundant one
+        result = left_s  + op + right_s;
+    } else {
+        result = op + "(" + left_s + "," + right_s + ")";
+    }
 }
 
 void ExpStringBuilder::visit(shared_ptr<UnOpExp> exp) {
     string op = ModelPrinter::to_str(exp->get_operator());
     exp->get_argument()->accept(*this);
-    result = should_enclose ? "(" + result + ")" : result;
-    result = op + result;
-    // @todo fixme, not always return false
-    should_enclose = false;
+    result = op + "(" + result + ")";
 }
 
 string ExpStringBuilder::str() {

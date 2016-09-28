@@ -2,32 +2,14 @@
 
 #include "ModelPrinter.h"
 #include "FigException.h"
+#include "Operators.h"
 #include <string>
 
 using std::cout;
 using std::endl;
 
 string ModelPrinter::to_str(Type type) {
-    string result;
-    switch(type) {
-    case Type::tint:
-		result = "int";
-        break;
-    case Type::tbool:
-		result = "bool";
-        break;
-    case Type::tfloat:
-		result = "float";
-        break;
-    case Type::tclock:
-		result = "clock";
-        break;
-    case Type::tunknown:
-	default:
-		throw_FigException("unknown data type");
-        break;
-    }
-    return result;
+    return Ty::to_string(type);
 }
 
 string ModelPrinter::to_str(LabelType type) {
@@ -87,6 +69,7 @@ string ModelPrinter::to_str(DistType type) {
 }
 
 string ModelPrinter::to_str(ExpOp op) {
+<<<<<<< HEAD
     string result;
     switch(op) {
     case ExpOp::plus: result = "+"; break;
@@ -107,6 +90,9 @@ string ModelPrinter::to_str(ExpOp op) {
 	default: throw_FigException("invalid expression operator"); break;
     }
     return result;
+=======
+  return Operator::operator_string(op);
+>>>>>>> 79c16fe1502050acbd838552b8f3f484d9a8487e
 }
 
 string ModelPrinter::to_str(PropType prop_type) {
@@ -326,6 +312,9 @@ void ModelPrinter::visit(shared_ptr<OpExp> node) {
 
 void ModelPrinter::visit(shared_ptr<BinOpExp> node) {
     visit(std::static_pointer_cast<OpExp>(node));
+    if (node->has_inferred_type()) {
+       print_idented("Inferred type: " + node->get_inferred_type().to_string());
+    }
     print_idented("First Argument:");
     accept_idented(node->get_first_argument());
     print_idented(("Second Argument:"));
