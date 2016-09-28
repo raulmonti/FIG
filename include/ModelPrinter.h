@@ -40,6 +40,8 @@ using std::shared_ptr;
 
 /** Visitor to print the Model's AST **/
 class ModelPrinter : public Visitor {
+	/// Print for debugging?  (won't be parseable!)
+	const bool debug;
 	/// Stream where prints will be dumped
 	std::ostream& out;
 	/// Current indentation level to use
@@ -51,7 +53,8 @@ class ModelPrinter : public Visitor {
 	/// Print this module using one more level of indentation
     void accept_idented(shared_ptr<ModelAST> node);
 public:
-	ModelPrinter(std::ostream& sout = std::cout) :
+	ModelPrinter(std::ostream& sout = std::cout, bool debugp = false) :
+		debug(debugp),
 		out(sout),
 		ident(0),
 		constant(false)

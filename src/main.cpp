@@ -249,7 +249,8 @@ void interact_with_JANI()
 			                   "(call with --force)");
 		}
 		translator.JANI_2_IOSA(janiSpec.modelFileJANI,
-							   janiSpec.modelFileIOSA);
+							   janiSpec.modelFileIOSA,
+							   !janiSpec.translateOnly);
 
 	} else if (fig::JaniTranny::TO_JANI == janiSpec.translateDirection) {
 		log("Translating from IOSA model syntax to JANI Specification format\n");

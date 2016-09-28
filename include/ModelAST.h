@@ -197,6 +197,9 @@ private:
     /// Properties of the model.
     shared_vector<Prop> props;
 public:
+	/// Empty ctor
+	Model() {}
+
     /// Construct a model from a single module
     Model(shared_ptr<ModuleAST> mb) {
         add_module(mb);
@@ -1073,6 +1076,7 @@ private:
 public:
     /// Create a location expression
     LocExp(shared_ptr<Location> location) : location {location} {}
+	LocExp(string id) : location(make_shared<Location>(std::forward<string>(id))) {}
 
     LocExp(const LocExp &) = delete;
     void operator=(const LocExp &) = delete;

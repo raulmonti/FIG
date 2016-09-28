@@ -126,19 +126,34 @@ void ModelPrinter::accept_idented(shared_ptr<ModelAST> node) {
 
 void ModelPrinter::print_idented(string str) {
 	out << string(ident, '\t') << str;
+	if (debug) {
+		out << endl;
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<Model> model) {
-	print_idented("\n");
+	if (debug) {
+		print_idented("=Model=");
+	}
 	// Global constants
+	out << endl;
+	if (debug) {
+		print_idented("Global constants:");
+	}
 	constant = true;
-    for (auto decl : model->get_globals()) {
-        accept_idented(decl);
+	for (auto decl : model->get_globals()) {
+		decl->accept(*this);
 	}
 	constant = false;
+
+	/// @todo TODO continue rewriting from here
+
 	// Modules
-	print_idented("\n");
-    auto& bodies = model->get_modules();
+	out << endl;
+	if (debug) {
+		print_idented("Modules:");
+	}
+	auto& bodies = model->get_modules();
     unsigned int i = 0;
     while (i < bodies.size()) {
         print_idented("Module: " + bodies[i]->get_name());
@@ -146,7 +161,11 @@ void ModelPrinter::visit(shared_ptr<Model> model) {
         i++;
 	}
 	// Properties
-    for (auto prop : model->get_props()) {
+	out << endl;
+	if (debug) {
+		print_idented("Properties:");
+	}
+	for (auto prop : model->get_props()) {
         accept_idented(prop);
     }
 }
@@ -164,13 +183,19 @@ void ModelPrinter::visit(shared_ptr<ModuleAST> body) {
 }
 
 void ModelPrinter::visit(shared_ptr<Decl> decl) {
-	print_idented(
-		(constant ? ("const ") : ("")) +
-		to_str(decl->get_type())       +
-		" " + decl->get_id());
-//	print_idented("=Decl=");
-//	print_idented("ID: " + decl->get_id());
-//	print_idented("Type : " + to_str(decl->get_type()));
+	if (debug) {
+		print_idented("=Decl=");
+		print_idented("ID: " + decl->get_id());
+		print_idented("Type : " + to_str(decl->get_type()));
+		if (constant) {
+			print_idented("Is constant");
+		}
+	} else {
+		print_idented(
+			(constant ? ("const ") : ("")) +
+			to_str(decl->get_type())       +
+			" " + decl->get_id());
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<RangedDecl> decl) {
@@ -190,9 +215,15 @@ void ModelPrinter::visit(shared_ptr<ArrayDecl> decl) {
 
 void ModelPrinter::visit(shared_ptr<InitializedDecl> decl) {
     visit(std::static_pointer_cast<Decl>(decl));
-	out << " = ";
-    accept_idented(decl->get_init());
-	out << ";" << endl;
+	if (debug) {
+		print_idented("Init:");
+	} else {
+		out << " = ";
+	}
+	accept_idented(decl->get_init());
+	if (!debug) {
+		out << ";" << endl;
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<TransitionAST> action) {
@@ -266,7 +297,10 @@ void ModelPrinter::visit(shared_ptr<ArrayPosition> loc) {
 }
 
 void ModelPrinter::visit(shared_ptr<IConst> node) {
-    print_idented("Int Value: " + std::to_string(node->get_value()));
+	if (debug)
+		print_idented("Int Value: " + std::to_string(node->get_value()));
+	else
+		out << node->get_value();
 }
 
 void ModelPrinter::visit(shared_ptr<BConst> node) {

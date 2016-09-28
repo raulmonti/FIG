@@ -41,6 +41,7 @@
 #include <JANI_translator.h>
 #include <ModelVerifier.h>
 #include <ModelBuilder.h>
+#include <ModelPrinter.h>
 #include <ModelAST.h>
 #include <ModelTC.h>
 #include <ModuleScope.h>
@@ -72,53 +73,54 @@ enum OpArity
 
 
 /// IOSA -> JANI type translator
-const std::map< std::string, std::string > JANI_type =
+const std::map< Type, std::string > JANI_type =
 {
-	{"bool",   "bool"},
-	{"int",    "int"},
-	{"float",  "real"},
-	{"clock",  "clock"}
+	{ Type::tbool,   "bool"  },
+	{ Type::tint,    "int"   },
+	{ Type::tfloat,  "real"  },
+	{ Type::tclock,  "clock" }
 };
 
 
 /// JANI operators arity
 const std::map< std::string, OpArity > JANI_operator_arity =
 {
-	{ "∧",  OpArity::i_binary},
-	{ "∨",  OpArity::i_binary},
-	{ "¬",  OpArity::i_unary},
-	{ "=",  OpArity::i_binary},
-	{ "≠",  OpArity::i_binary},
-	{ "<",  OpArity::i_binary},
-	{ ">",  OpArity::i_binary},
-	{ "≤",  OpArity::i_binary},
-	{ "≥",  OpArity::i_binary},
-	{ "+",  OpArity::i_binary},
-	{ "-",  OpArity::i_binary},
-	{ "*",  OpArity::i_binary},
-	{ "/",  OpArity::i_binary},
-	{ "%",  OpArity::i_binary}
+	{ "⇒",  OpArity::i_binary },
+	{ "∧",  OpArity::i_binary },
+	{ "∨",  OpArity::i_binary },
+	{ "¬",  OpArity::i_unary  },
+	{ "=",  OpArity::i_binary },
+	{ "≠",  OpArity::i_binary },
+	{ "<",  OpArity::i_binary },
+	{ ">",  OpArity::i_binary },
+	{ "≤",  OpArity::i_binary },
+	{ "≥",  OpArity::i_binary },
+	{ "+",  OpArity::i_binary },
+	{ "-",  OpArity::i_binary },
+	{ "*",  OpArity::i_binary },
+	{ "/",  OpArity::i_binary },
+	{ "%",  OpArity::i_binary }
 };
 
 
 /// IOSA -> JANI operator translator
 const std::map< ExpOp, std::string > JANI_operator_string =
 {
-	{ ExpOp::implies, "⇒"},
-	{ ExpOp::andd,    "∧"},
-	{ ExpOp::orr,     "∨"},
-	{ ExpOp::nott,    "¬"},
-	{ ExpOp::eq,      "="},
-	{ ExpOp::neq,     "≠"},
-	{ ExpOp::lt,      "<"},
-	{ ExpOp::gt,      ">"},
-	{ ExpOp::le,      "≤"},
-	{ ExpOp::ge,      "≥"},
-	{ ExpOp::plus,    "+"},
-	{ ExpOp::minus,   "-"},
-	{ ExpOp::times,   "*"},
-	{ ExpOp::div,     "/"},
-	{ ExpOp::mod,     "%"}
+	{ ExpOp::implies, "⇒" },
+	{ ExpOp::andd,    "∧" },
+	{ ExpOp::orr,     "∨" },
+	{ ExpOp::nott,    "¬" },
+	{ ExpOp::eq,      "=" },
+	{ ExpOp::neq,     "≠" },
+	{ ExpOp::lt,      "<" },
+	{ ExpOp::gt,      ">" },
+	{ ExpOp::le,      "≤" },
+	{ ExpOp::ge,      "≥" },
+	{ ExpOp::plus,    "+" },
+	{ ExpOp::minus,   "-" },
+	{ ExpOp::times,   "*" },
+	{ ExpOp::div,     "/" },
+	{ ExpOp::mod,     "%" }
 };
 
 
@@ -137,32 +139,54 @@ const std::map< DistType, std::string > JANI_distribution_string =
 
 
 /// JANI -> IOSA type translator
-const std::map< std::string, std::string > IOSA_type =
+const std::map< std::string, Type > IOSA_type =
 {
-	{"bool",   "bool"},
-	{"int",    "int"},
-	{"real",   "float"},
-	{"clock",  "clock"}
+	{"bool",   Type::tbool  },
+	{"int",    Type::tint   },
+	{"real",   Type::tfloat },
+	{"clock",  Type::tclock }
 };
 
 
 /// JANI -> IOSA operator translator
+const std::map< std::string, ExpOp > IOSA_operator =
+{
+	{ "⇒", ExpOp::implies },
+	{ "∧", ExpOp::andd    },
+	{ "∨", ExpOp::orr     },
+	{ "¬", ExpOp::nott    },
+	{ "=", ExpOp::eq      },
+	{ "≠", ExpOp::neq     },
+	{ "<", ExpOp::lt      },
+	{ ">", ExpOp::gt      },
+	{ "≤", ExpOp::le      },
+	{ "≥", ExpOp::ge      },
+	{ "+", ExpOp::plus    },
+	{ "-", ExpOp::minus   },
+	{ "*", ExpOp::times   },
+	{ "/", ExpOp::div     },
+	{ "%", ExpOp::mod     }
+};
+
+
+/// JANI -> IOSA operator (string) translator
 const std::map< std::string, std::string > IOSA_operator_string =
 {
-	{ "∧",  "&"},
-	{ "∨",  "|"},
-	{ "¬",  "!"},
-	{ "=",  "="},
-	{ "≠", "!="},
-	{ "<",  "<"},
-	{ ">",  ">"},
-	{ "≤", "<="},
-	{ "≥", ">="},
-	{ "+",  "+"},
-	{ "-",  "-"},
-	{ "*",  "*"},
-	{ "/",  "/"},
-	{ "%",  "%"}
+	{ "⇒", "=>" },
+	{ "∧",  "&" },
+	{ "∨",  "|" },
+	{ "¬",  "!" },
+	{ "=",  "=" },
+	{ "≠", "!=" },
+	{ "<",  "<" },
+	{ ">",  ">" },
+	{ "≤", "<=" },
+	{ "≥", ">=" },
+	{ "+",  "+" },
+	{ "-",  "-" },
+	{ "*",  "*" },
+	{ "/",  "/" },
+	{ "%",  "%" }
 };
 
 
@@ -290,62 +314,44 @@ add_jani_header(Json::Value& root, const string& iosaModelFile)
 }
 
 
-/// Build parser AST model of IOSA model file (and properties)
-shared_ptr<Model>
-parse_IOSA_model(const string& iosaModelFile,
-				 const string& iosaPropsFile = "",
-				 bool validityCheck = true)
+/// Build a IOSA model from given AST (viz. populate the ModelSuite)
+/// performing all necessary checks in the process.
+/// @return Whether the IOSA model could be successfully built
+bool
+build_IOSA_model_from_AST(Model& modelAST, bool verifyIOSA = true)
 {
-	ModelTC typechecker;
-	ModelVerifier verifier;
-	ModelBuilder builder;
-	const string iosaFileNames = iosaPropsFile.empty()
-			? ("file \"" + iosaModelFile + "\"")
-			: ("files \"" + iosaModelFile + " and \"" + iosaPropsFile + "\"");
-
-	// Parse IOSA files
-	shared_ptr<ModelAST> modelAST = ModelAST::from_files(iosaModelFile.c_str(),
-														 iosaPropsFile.c_str());
-	if (nullptr == modelAST) {
-		fig::figTechLog  << "ERROR: failed parsing IOSA "
-						 << iosaFileNames << std::endl;
-		goto exit_point;
-	}
-
 	// Check types
-	modelAST->accept(typechecker);
+	ModelTC typechecker;
+	modelAST.accept(typechecker);
 	if (typechecker.has_errors()) {
-		fig::figTechLog << "ERROR: type-checking failed for IOSA "
-						<< iosaFileNames << std::endl;
+		fig::figTechLog << "[ERROR] Type-checking failed" << std::endl;
 		fig::figTechLog << typechecker.get_messages() << std::endl;
-		modelAST = nullptr;
-		goto exit_point;
+		return false;
 	}
 
 	// Check IOSA compliance if requested
-	if (validityCheck &&
+	if (verifyIOSA &&
 			ModuleScope::modules_size_bounded_by(ModelVerifier::NTRANS_BOUND)) {
-		modelAST->accept(verifier);
+		ModelVerifier verifier;
+		modelAST.accept(verifier);
 		if (verifier.has_errors() || verifier.has_warnings()) {
-			fig::figTechLog << "ERROR: IOSA-checking failed for "
-							<< iosaFileNames << std::endl;
+			fig::figTechLog << "[ERROR] IOSA-checking failed" << std::endl;
 			fig::figTechLog << verifier.get_messages() << std::endl;
-			modelAST = nullptr;
-			goto exit_point;
+			return false;
 		}
 	}
 
 	// Build model (i.e. populate ModelSuite)
-	modelAST->accept(builder);
+	ModelBuilder builder;
+	modelAST.accept(builder);
 	if (builder.has_errors()) {
-		fig::figTechLog << "ERROR: model building failed for IOSA "
-						<< iosaFileNames << std::endl;
+		fig::figTechLog << "[ERROR] Model building failed" << std::endl;
 		fig::figTechLog << builder.get_messages() << std::endl;
-		modelAST = nullptr;
+		return false;
 	}
 
-	exit_point:
-		return std::dynamic_pointer_cast<Model>(modelAST);
+	// Success iff the ModelSuite is sealed
+	return ModelSuite::get_instance().sealed();
 }
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
@@ -377,88 +383,6 @@ JaniTranslator::~JaniTranslator()
 	timeProgressInvariant_.reset();
 	modulesLabels_.clear();
 	modelLabels_.clear();;
-}
-
-
-std::string
-JaniTranslator::IOSA_2_JANI(const std::string& iosaModelFile,
-							const std::string& iosaPropsFile,
-							const std::string& janiFilename,
-							bool validityCheck)
-{
-	// Parse IOSA model file
-	auto model = parse_IOSA_model(iosaModelFile, iosaPropsFile, validityCheck);
-	if (nullptr == model)
-		throw_FigException("failed parsing IOSA files for JANI translation");
-
-	// Translate IOSA to JANI
-	(*JANIroot_) = EMPTY_JSON_OBJ;
-	add_jani_header(*JANIroot_, iosaModelFile);
-	model->accept(*this);
-	if (!jani_is_valid_iosa(*JANIroot_, false))
-#ifndef NDEBUG
-		std::cerr << "\t[ERROR] Invalid JANI file created !!!\n";
-#else
-		throw_FigException("failed translating IOSA files to the "
-						   "JANI Specifiaction format");
-#endif
-
-	// Dump JANI-spec translation in file and exit
-	auto janiFname = compose_jani_fname(iosaModelFile, janiFilename);
-	std::ofstream janiFile(janiFname);
-	janiFile << (*JANIroot_);
-	assert(janiFile.good());
-	janiFile.close();
-	figTechLog << "Translated JANI file: " << janiFname << std::endl;
-
-	return janiFname;
-}
-
-
-std::string
-JaniTranslator::JANI_2_IOSA(const std::string& janiModelFile,
-							const std::string& iosaFilename)
-{
-	// Parse JANI file
-	std::ifstream janiFile(janiModelFile);
-	if (!janiFile.good())
-		throw_FigException("failed opening JANI file \"" + janiModelFile + "\"");
-	(*JANIroot_) = EMPTY_JSON_OBJ;
-	janiFile >> (*JANIroot_);
-
-	// Translate JANI to IOSA dumping progressively the results in a file
-	jani_is_valid_iosa(*JANIroot_);  // exits if invalid
-	auto iosaFname = compose_iosa_fname(janiModelFile, iosaFilename);
-	std::ofstream iosaFile(iosaFname);
-	derive_IOSA_from_JANI(iosaFile);
-	assert(iosaFile.good());
-	if (iosaFile.is_open())
-		iosaFile.close();
-
-	// Parse resulting IOSA model file for a deep validity check
-	auto model = parse_IOSA_model(iosaFname);
-	if (nullptr == model)
-		throw_FigException("invalid IOSA model translated from JANI file (\""
-						   + iosaFname + "\")");
-	figTechLog << "Translated IOSA file: " << iosaFname << std::endl;
-
-
-	// example:
-//	const auto& actions = root.get("actions", Json::nullValue);
-//	assert(actions.isArray() || actions.isNull());
-//	if (!actions.isNull()) {
-//		std::cout << "Model actions:";
-//		for (const auto& a: actions) {
-//			assert(a.isObject());
-//			assert(a.isMember("name"));
-//			std::cout << " " << a.get("name",Json::nullValue).asString();
-//		}
-//		std::cout << std::endl;
-//	}
-	// // // // // // // // // // // // // // // // // // // // //
-
-
-	return iosaFname;
 }
 
 
@@ -511,6 +435,76 @@ JaniTranslator::get_float_or_error(shared_ptr<Exp> exp,
 	else
 		put_error(msg);
 	return res;
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//                   ///////////////////////////////////////////////////////////
+//   IOSA --> JANI   ///////////////////////////////////////////////////////////
+
+
+std::string
+JaniTranslator::IOSA_2_JANI(const std::string& iosaModelFile,
+							const std::string& iosaPropsFile,
+							const std::string& janiFilename,
+							bool validityCheck)
+{
+	// Parse IOSA model file
+	parse_IOSA_model(iosaModelFile, iosaPropsFile, validityCheck);
+	if (IOSAroot_ == nullptr)
+		throw_FigException("invalid IOSA model given for translation to JANI");
+
+	// Translate IOSA to JANI
+	(*JANIroot_) = EMPTY_JSON_OBJ;
+	add_jani_header(*JANIroot_, iosaModelFile);
+	IOSAroot_->accept(*this);
+	if (!jani_is_valid_iosa(*JANIroot_, false)) {
+#ifndef NDEBUG
+		figMainLog << "[ERROR] Invalid JANI model file created !!!\n";
+		figTechLog << "[ERROR] Invalid JANI model file created !!!\n";
+#else
+		throw_FigException("failed translating IOSA files to the "
+						   "JANI Specifiaction format");
+#endif
+	}
+
+	// Dump JANI-spec translation to file and exit
+	auto janiFname = compose_jani_fname(iosaModelFile, janiFilename);
+	std::ofstream janiFile(janiFname);
+	janiFile << (*JANIroot_);
+	assert(janiFile.good());
+	janiFile.close();
+	figTechLog << "Translated JANI file: " << janiFname << std::endl;
+
+	return janiFname;
+}
+
+
+void
+JaniTranslator::parse_IOSA_model(const string& iosaModelFile,
+								 const string& iosaPropsFile,
+								 bool validityCheck)
+{
+	IOSAroot_.reset();
+	const string iosaFileNames = iosaPropsFile.empty()
+			? ("file \"" + iosaModelFile + "\"")
+			: ("files \"" + iosaModelFile + " and \"" + iosaPropsFile + "\"");
+
+	// Parse IOSA files
+	shared_ptr<ModelAST> modelAST = ModelAST::from_files(iosaModelFile.c_str(),
+														 iosaPropsFile.c_str());
+	if (nullptr != modelAST) {
+		// Populate ModelSuite
+		bool success = build_IOSA_model_from_AST(dynamic_cast<Model&>(*modelAST),
+												 validityCheck);
+		if (success)
+			IOSAroot_ = std::dynamic_pointer_cast<Model>(modelAST);
+		else
+			figTechLog << "[ERROR] Failed building IOSA " << iosaFileNames << std::endl;
+	} else {
+		figTechLog << "[ERROR] Failed parsing IOSA " << iosaFileNames << std::endl;
+	}
 }
 
 
@@ -1057,94 +1051,293 @@ JaniTranslator::visit(shared_ptr<Assignment> node)
 }
 
 
-void
-JaniTranslator::derive_IOSA_from_JANI(std::ofstream& iosaFile)
+
+////////////////////////////////////////////////////////////////////////////////
+//                   ///////////////////////////////////////////////////////////
+//   JANI --> IOSA   ///////////////////////////////////////////////////////////
+
+
+std::string
+JaniTranslator::JANI_2_IOSA(const std::string& janiModelFile,
+							const std::string& iosaFilename,
+							bool skipFileDump)
 {
+	// Parse JANI model file
+	parse_JANI_model(janiModelFile);
+	assert(JANIroot_ != nullptr);
+	if ( ! (JANIroot_->isObject() && JANIroot_->isMember("jani-version")) )
+		throw_FigException("invalid JANI file given for translation to IOSA");
+
+	// Translate JANI to IOSA
+	jani_is_valid_iosa(*JANIroot_);  // exits if invalid
+	bool success = build_IOSA_from_JANI();
+	if (!success) {
+#ifndef NDEBUG
+		figMainLog << "[ERROR] Invalid IOSA model file created !!!\n";
+		figTechLog << "[ERROR] Invalid IOSA model file created !!!\n";
+#else
+		throw_FigException("failed translating JANI-spec file"
+						   "to IOSA model syntax");
+#endif
+	}
+
+	// Dump translated IOSA model to file and exit
+	bool dumpToFile( ! (skipFileDump && success));
+	std::string iosaFname;
+	if (dumpToFile) {
+		iosaFname = compose_iosa_fname(janiModelFile, iosaFilename);
+		std::ofstream iosaFile(iosaFname);
+		ModelPrinter printer(iosaFile);
+		IOSAroot_->accept(printer);
+		assert(iosaFile.good());
+		if (iosaFile.is_open())
+			iosaFile.close();
+		figTechLog << "Translated IOSA file: " << iosaFname << std::endl;
+	}
+
+	return iosaFname;
+}
+
+
+void
+JaniTranslator::parse_JANI_model(const std::string& janiModelFile)
+{
+	std::ifstream janiFile(janiModelFile);
+	if (!janiFile.good())
+		throw_FigException("failed opening JANI file \"" + janiModelFile + "\"");
+	(*JANIroot_) = EMPTY_JSON_OBJ;
+	janiFile >> (*JANIroot_);
+}
+
+
+bool
+JaniTranslator::build_IOSA_from_JANI()
+{
+	assert(JANIroot_ != nullptr);
 	assert(JANIroot_->isObject());
-	assert(iosaFile.good());
 
 	const Json::Value& janiFile = *JANIroot_;
-	iosaFile.seekp(0);
+	IOSAroot_.reset(new Model);
+	Model& iosa = *IOSAroot_;
 
 	// Translate the global declarations
-	if (janiFile.isMember("variables") && !janiFile["variables"].empty())
-		throw_FigException("FIG doesn't handle global variables yet");
-	else if (janiFile.isMember("constants") && !janiFile["constants"].empty()) {
-		assert(janiFile["constants"].isArray());
-		iosaFile << std::endl << "// Global constants" << std::endl;
-		for (const Json::Value& c: janiFile["constants"])
-			iosaFile << build_IOSA_constant(c);
-		iosaFile << std::endl;
+	if (janiFile.isMember("variables") && !janiFile["variables"].empty()) {
+		figTechLog << "[ERROR] FIG doesn't handle global variables yet\n";
+		return false;
+	} else if (janiFile.isMember("constants") && !janiFile["constants"].empty()) {
+		if (!janiFile["constants"].isArray())
+			throw_FigException("JANI \"constants\" field must be an array");
+		for (const Json::Value& c: janiFile["constants"]) {
+			auto const_ptr = build_IOSA_constant(c);
+			if (nullptr == const_ptr)
+				return false;
+			iosa.add_decl(const_ptr);
+		}
 	}
 
 
+	/// @todo TODO erase debug print
+	ModelPrinter printer;
+	iosa.accept(printer);
 
-	throw_FigException("prematurely aborted; we're not ready yet!");
+
+	throw_FigException("prematurely aborted; not ready yet!");
+
+
+	return build_IOSA_model_from_AST(iosa);
 }
 
 
-std::string
+shared_ptr<Exp>
 JaniTranslator::build_IOSA_expression(const Json::Value& JANIexpr)
 {
-	std::stringstream ss;
-	assert(JANIexpr.isObject());
-	assert(JANIexpr.isMember("op"));
-	const auto op = JANIexpr["op"].asString();
-	switch (JANI_operator_arity.at(op))
-	{
-	case OpArity::null:
-		ss << IOSA_operator_string.at(op);
-		break;
-	case OpArity::i_unary:
-		assert(JANIexpr.isMember("exp"));
-		ss << "(" << IOSA_operator_string.at(op);
-		ss << build_IOSA_expression(JANIexpr["exp"].asString()) << ")";
-		break;
-	case OpArity::s_unary:
-		assert(JANIexpr.isMember("exp"));  // NOTE: this fails for JANI's "der"
-		ss << IOSA_operator_string.at(op) << "(";
-		ss << build_IOSA_expression(JANIexpr["exp"].asString()) << ")";
-		break;
-	case OpArity::i_binary:
-		assert(JANIexpr.isMember("left"));
-		assert(JANIexpr.isMember("right"));
-		ss << "(" << build_IOSA_expression(JANIexpr["left"].asString());
-		ss << " " << IOSA_operator_string.at(op) << " ";
-		ss << build_IOSA_expression(JANIexpr["right"].asString()) << ")";
-		break;
-	case OpArity::s_binary:
-		assert(JANIexpr.isMember("left"));
-		assert(JANIexpr.isMember("right"));
-		ss << IOSA_operator_string.at(op) << "(";
-		ss << build_IOSA_expression(JANIexpr["left"].asString())  << ",";
-		ss << build_IOSA_expression(JANIexpr["right"].asString()) << ")";
-		break;
-	case OpArity::ternary:
-		throw_FigException("IOSA doesn't have the ternary operator yet");
-		break;
-	default:
-		throw_FigException("invalid operator arity");
-		break;
+	shared_ptr<Exp> expr(nullptr);
+	// Boolean?
+	if (JANIexpr.isBool()) {
+		expr = make_shared<BConst>(JANIexpr.asBool());
+		goto exit_point;
 	}
-	return ss.str();
+	// Integer?
+	if (JANIexpr.isIntegral()) {
+		expr = make_shared<IConst>(JANIexpr.asInt());
+		goto exit_point;
+	}
+	// Floating point?
+	if (JANIexpr.isDouble()) {
+		expr = make_shared<FConst>(JANIexpr.asFloat());
+		goto exit_point;
+	}
+	// Variable?
+	if (JANIexpr.isString()) {
+		expr = make_shared<LocExp>(JANIexpr.asString());
+		goto exit_point;
+	}
+	// Operator!
+	if ( ! (JANIexpr.isObject() && JANIexpr.isMember("op")))
+		throw_FigException("this doesn't look like an operator declaration");
+	else {
+		auto opStr = JANIexpr["op"].asString();
+		auto op = IOSA_operator.at(opStr);
+		switch (op)
+		{
+		case ExpOp::nott:
+		{
+			auto operand  = build_IOSA_expression(JANIexpr["exp"]);
+			if (nullptr == operand)
+				figTechLog << "[ERROR] Failed translating operand of '"
+						   << opStr << "'\n";
+			else
+				expr = make_shared<UnOpExp>(op, operand);
+		}
+			break;
+		case ExpOp::implies:
+		case ExpOp::andd:
+		case ExpOp::orr:
+		case ExpOp::eq:
+		case ExpOp::neq:
+		case ExpOp::lt:
+		case ExpOp::gt:
+		case ExpOp::le:
+		case ExpOp::ge:
+		case ExpOp::plus:
+		case ExpOp::minus:
+		case ExpOp::times:
+		case ExpOp::div:
+		case ExpOp::mod:
+		{
+			auto left  = build_IOSA_expression(JANIexpr["left"]);
+			auto right = build_IOSA_expression(JANIexpr["right"]);
+			if (nullptr == left || nullptr == right)
+				figTechLog << "[ERROR] Failed translating operands of '"
+						   << opStr << "'\n";
+			else
+				expr = make_shared<BinOpExp>(op, left, right);
+		}
+			break;
+		default:
+			throw_FigException("invalid expression operator: " + opStr);
+			break;
+		}
+	}
+	exit_point:
+		return expr;
 }
 
 
-std::string
+shared_ptr<InitializedDecl>
 JaniTranslator::build_IOSA_constant(const Json::Value& JANIconst)
 {
-	std::stringstream ss;
 	assert(JANIconst.isObject());
 	assert(JANIconst.isMember("name"));
 	assert(JANIconst.isMember("type"));
-	if (!JANIconst.isMember("value"))
-		throw_FigException("FIG doesn't handle model parameters yet");
-	ss << "const ";
-	ss << IOSA_type.at(JANIconst["type"].asString()) << " ";
-	ss << JANIconst["name"].asString()               << " = ";
-	ss << build_IOSA_expression(JANIconst["value"])  << ";";
-	ss << std::endl;
-	return ss.str();
+	// Get identifyer
+	auto name = JANIconst["name"].asString();
+	if (name.empty()) {
+		figTechLog << "[ERROR] Empty name for constant???" << std::endl;
+		return nullptr;
+	}
+	// Get type
+	auto iosaType(IOSA_type.at(JANIconst["type"].asString()));
+	if (iosaType != Type::tbool &&
+		iosaType != Type::tint  &&
+		iosaType != Type::tfloat) {
+		figTechLog << "[ERROR] Invalid constant type (in declaration of \""
+				   << name << "\")" << std::endl;
+		return nullptr;
+	}
+	// Get initialization expression
+	if (!JANIconst.isMember("value")) {
+		figTechLog << "[ERROR] FIG doesn't handle model parameters yet "
+				   << "(in declaration of \"" << name << "\")" << std::endl;
+		return nullptr;
+	}
+	auto iosaExp = build_IOSA_expression(JANIconst["value"]);
+	if (nullptr == iosaExp) {
+		figTechLog << "[ERROR] Failed parsing constant value expression "
+				   << "(in declaration of \"" << name << "\")" << std::endl;
+		return nullptr;
+	}
+	// Build IOSA constant
+	return std::make_shared<InitializedDecl>(iosaType, name, iosaExp);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//std::string
+//JaniTranslator::build_IOSA_expression(const Json::Value& JANIexpr)
+//{
+//	std::stringstream ss;
+//	assert(JANIexpr.isObject());
+//	assert(JANIexpr.isMember("op"));
+//	const auto op = JANIexpr["op"].asString();
+//	switch (JANI_operator_arity.at(op))
+//	{
+//	case OpArity::null:
+//		ss << IOSA_operator_string.at(op);
+//		break;
+//	case OpArity::i_unary:
+//		assert(JANIexpr.isMember("exp"));
+//		ss << "(" << IOSA_operator_string.at(op);
+//		ss << build_IOSA_expression(JANIexpr["exp"].asString()) << ")";
+//		break;
+//	case OpArity::s_unary:
+//		assert(JANIexpr.isMember("exp"));  // NOTE: this fails for JANI's "der"
+//		ss << IOSA_operator_string.at(op) << "(";
+//		ss << build_IOSA_expression(JANIexpr["exp"].asString()) << ")";
+//		break;
+//	case OpArity::i_binary:
+//		assert(JANIexpr.isMember("left"));
+//		assert(JANIexpr.isMember("right"));
+//		ss << "(" << build_IOSA_expression(JANIexpr["left"].asString());
+//		ss << " " << IOSA_operator_string.at(op) << " ";
+//		ss << build_IOSA_expression(JANIexpr["right"].asString()) << ")";
+//		break;
+//	case OpArity::s_binary:
+//		assert(JANIexpr.isMember("left"));
+//		assert(JANIexpr.isMember("right"));
+//		ss << IOSA_operator_string.at(op) << "(";
+//		ss << build_IOSA_expression(JANIexpr["left"].asString())  << ",";
+//		ss << build_IOSA_expression(JANIexpr["right"].asString()) << ")";
+//		break;
+//	case OpArity::ternary:
+//		throw_FigException("IOSA doesn't have the ternary operator yet");
+//		break;
+//	default:
+//		throw_FigException("invalid operator arity");
+//		break;
+//	}
+//	return ss.str();
+//}
+//
+//
+//std::string
+//JaniTranslator::build_IOSA_constant(const Json::Value& JANIconst)
+//{
+//	std::stringstream ss;
+//	assert(JANIconst.isObject());
+//	assert(JANIconst.isMember("name"));
+//	assert(JANIconst.isMember("type"));
+//	if (!JANIconst.isMember("value"))
+//		throw_FigException("FIG doesn't handle model parameters yet");
+//	ss << "const ";
+//	ss << IOSA_type.at(JANIconst["type"].asString()) << " ";
+//	ss << JANIconst["name"].asString()               << " = ";
+//	ss << build_IOSA_expression(JANIconst["value"])  << ";";
+//	ss << std::endl;
+//	return ss.str();
+//}
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

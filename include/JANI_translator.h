@@ -103,21 +103,28 @@ public:  // Translation facilities
 	 * @param janiModelFile Path to (or name of) file with STA model
 	 *                      written in valid JANI-spec format
 	 * @param iosaFilename  Desired name of the translated IOSA file to create
+	 * @param skipFileDump  Don't write result to file; just keep the model
+	 *                      compiled in memory (in the ModelSuite singleton)
 	 *
 	 * @return Name of file with the model translated to IOSA syntax (see notes)
 	 *
 	 * @throw FigException if we couldn't generate a valid IOSA translation,
 	 *                     e.g. when the JANI model wasn't a deterministic STA
 	 *
-	 * @note If 'iosaFilename' was passed then the IOSA file generated will
+	 * @note If 'skiṕFileDump' then an empty string is returned.
+	 *       Otherwise if 'iosaFilename' was specified the IOSA file will
 	 *       have that name. Otherwise a name related to 'janiModelFile' is
 	 *       automatically generated.
 	 */
 	std::string
 	JANI_2_IOSA(const std::string& janiModelFile,
-				const std::string& iosaFilename = "");
+				const std::string& iosaFilename = "",
+				bool skipFileDump = false);
 
 private:  // Class attributes
+
+	/// ModelAST of the last parsed model
+	shared_ptr< Model > IOSAroot_;
 
 	/// JsonCPP of the last parsed model, in JANI Specifiaction format
 	shared_ptr< Json::Value > JANIroot_;
@@ -176,6 +183,12 @@ private:  // Class utils: general
 	float get_float_or_error(shared_ptr<Exp> exp, const std::string& msg);
 
 private:  // Class utils: IOSA -> JANI
+
+	/// Parse the given files and populate IOSAroot_
+	/// @warning Any previous content in IOSAroot_ will be lost
+	void parse_IOSA_model(const string& iosaModelFile,
+						  const string& iosaPropsFile = "",
+						  bool validityCheck = true);
 
 	/// Interpret 'decl', which should be a boolean/integer/floating point
 	/// constant, and add the corresponding "JANI constant fields" in JANIobj
@@ -281,22 +294,33 @@ private:  // Visitor overrides for parsing
 
 private:  // Class utils: JANI -> IOSA
 
-	/// Use the current JANI model specification from JANIroot_
-	/// and translate it to IOSA if possible, writing the result
-	/// progressively into 'iosaFile'
-	/// @param iosaFile Open empty file whereto dump the translated model
-	/// @throw FigException if translation is unsuccessful
-	void derive_IOSA_from_JANI(std::ofstream& iosaFile);
+	/// Parse the given file and populate JANIroot_
+	/// @warning Any previous content in JANIroot_ will be lost
+	void parse_JANI_model(const string& janiModelFile);
 
-	/// Return the IOSA translation of this JANI expression
-	/// @param JANIexpr Json object with the Expression to translate
-	/// @throw FigException if unsupported or invalid argument passed
-	std::string build_IOSA_expression(const Json::Value& JANIexpr);
+	/// Use the current JANI model specification from JANIroot_,
+	/// translate it to IOSA if possible and populate IOSAroot_.
+	/// If everything succeeds, build the model in ModelSuite.
+	/// @return Whether a valid IOSA model could be built
+	/// @throw FigException if JANI file is badly formated
+	bool build_IOSA_from_JANI();
 
-	/// Return the IOSA translation of this JANI constant
+//	/// Return the IOSA translation of this JANI expression
+//	/// @param JANIexpr Json object with the Expression to translate
+//	/// @throw FigException if unsupported or invalid argument passed
+//	void build_IOSA_expression(const Json::Value& JANIexpr);
+
+	/// Get IOSA translation of this JANI expression
+	/// @param JANIconst Json object with the Expression to translate
+	/// @return IOSA Exp or nullptr if translation failed
+	/// @throw FigException if JANI Expression is badly formated
+	shared_ptr<Exp> build_IOSA_expression(const Json::Value& JANIexpr);
+
+	/// Get IOSA translation of this JANI constant
 	/// @param JANIconst Json object with the ConstantDeclaration to translate
-	/// @throw FigException if unsupported or invalid argument passed
-	std::string build_IOSA_constant(const Json::Value& JANIconst);
+	/// @return IOSA constant declaration or nullptr if translation failed
+	/// @throw FigException if JANI ConstantDeclaration is badly formated
+	shared_ptr<InitializedDecl> build_IOSA_constant(const Json::Value& JANIconst);
 };
 
 } // namespace fig
