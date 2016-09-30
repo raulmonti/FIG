@@ -1069,9 +1069,8 @@ JaniTranslator::JANI_2_IOSA(const std::string& janiModelFile,
 		throw_FigException("invalid JANI file given for translation to IOSA");
 
 	// Translate JANI to IOSA
-	jani_is_valid_iosa(*JANIroot_);  // exits if invalid
-	bool success = build_IOSA_from_JANI();
-	if (!success) {
+	const bool translated = build_IOSA_from_JANI();
+	if (!translated) {
 #ifndef NDEBUG
 		figMainLog << "[ERROR] Invalid IOSA model file created !!!\n";
 		figTechLog << "[ERROR] Invalid IOSA model file created !!!\n";
@@ -1082,7 +1081,7 @@ JaniTranslator::JANI_2_IOSA(const std::string& janiModelFile,
 	}
 
 	// Dump translated IOSA model to file and exit
-	bool dumpToFile( ! (skipFileDump && success));
+	bool dumpToFile( ! (skipFileDump && translated));
 	std::string iosaFname;
 	if (dumpToFile) {
 		iosaFname = compose_iosa_fname(janiModelFile, iosaFilename);
@@ -1113,49 +1112,78 @@ JaniTranslator::parse_JANI_model(const std::string& janiModelFile)
 bool
 JaniTranslator::build_IOSA_from_JANI()
 {
-	assert(JANIroot_ != nullptr);
+	// Consistency check and initializations
+	assert(nullptr != JANIroot_);
 	assert(JANIroot_->isObject());
+	auto janiModel = *JANIroot_;
+	jani_is_valid_iosa(janiModel);  // exits if invalid
+	IOSAroot_ = make_shared<Model>();
 
-	// Format fields to fill in
-	const Json::Value& janiFile = *JANIroot_;
-	IOSAroot_.reset(new Model);
-	Model& iosa = *IOSAroot_;
-	clock2real_.clear();
-	realVars_.clear();
-
-	// Translate the global declarations
-	if (janiFile.isMember("variables") && !janiFile["variables"].empty()) {
+	// Translate global declarations
+	if (janiModel.isMember("variables") && !janiModel["variables"].empty()) {
 		figTechLog << "[ERROR] FIG doesn't handle global variables yet\n";
 		return false;
-	} else if (janiFile.isMember("constants") && !janiFile["constants"].empty()) {
-		if (!janiFile["constants"].isArray())
+	} else if (janiModel.isMember("constants") && !janiModel["constants"].empty()) {
+		if (!janiModel["constants"].isArray())
 			throw_FigException("JANI \"constants\" field must be an array");
-		for (const auto& c: janiFile["constants"]) {
+		for (const auto& c: janiModel["constants"]) {
 			auto const_ptr = build_IOSA_constant(c);
 			if (nullptr == const_ptr)
 				return false;
-			iosa.add_decl(const_ptr);
+			IOSAroot_->add_decl(const_ptr);
 		}
 	}
 
-	// Translate the modules
-	for (const auto& a: janiFile["automata"]) {
+	// Translate JANI model according to type
+	if ("ctmc" == (*JANIroot_)["type"].asString())
+		return build_IOSA_from_JANI_CTMC(janiModel, *IOSAroot_);
+	else if ("sta" == (*JANIroot_)["type"].asString())
+		return build_IOSA_from_JANI_STA(janiModel, *IOSAroot_);
+	else
+		return false;
+}
+
+
+bool
+JaniTranslator::build_IOSA_from_JANI_CTMC(const Json::Value& janiModel,
+										  Model& iosaModel)
+{
+	assert(janiModel.isObject());
+	assert(janiModel.isMember("type"));
+	assert(janiModel["type"].asString() == "ctmc");
+}
+
+
+bool
+JaniTranslator::build_IOSA_from_JANI_STA(const Json::Value& janiModel,
+										 Model& iosaModel)
+{
+	assert(janiModel.isObject());
+	assert(janiModel.isMember("type"));
+	assert(janiModel["type"].asString() == "sta");
+
+	// Format fields to fill in
+	clock2real_.clear();
+	realVars_.clear();
+
+	// Translate each module
+	for (const auto& a: janiModel["automata"]) {
 		auto module_ptr = build_IOSA_module(a);
 		if (nullptr == module_ptr)
 			return false;
-		iosa.add_module(module_ptr);
+		iosaModel.add_module(module_ptr);
 	}
 
 
 	/// @todo TODO erase debug print
 	ModelPrinter printer;
-	iosa.accept(printer);
+	iosaModel.accept(printer);
 
 
 	throw_FigException("prematurely aborted; not ready yet!");
 
 
-	return build_IOSA_model_from_AST(iosa);
+	return ::build_IOSA_model_from_AST(iosaModel);
 }
 
 
@@ -1393,26 +1421,49 @@ JaniTranslator::build_IOSA_module(const Json::Value& JANIautomaton)
 	}
 
 	// Transitions
-	shared_ptr<TransitionAST> (JaniTranslator::*build_IOSA_transition)
-			(const Json::Value&, const Json::Value&, const shared_vector<Decl>&);
-	if ((*JANIroot_)["type"].asString() == "ctmc")
-		build_IOSA_transition = &JaniTranslator::build_IOSA_transition_from_CTMC;
-	else if ((*JANIroot_)["type"].asString() == "sta")
-		build_IOSA_transition = &JaniTranslator::build_IOSA_transition_from_STA;
-	else {
-		figTechLog << "[ERROR] A IOSA module can't be built from a JANI "
-				   << "model of type " << (*JANIroot_)["type"].asString()
-				   << std::endl;
-		return nullptr;
+	if ( ! (JANIautomaton.isMember("edges") && JANIautomaton["edges"].isArray())) {
+		throw_FigException("invalid \"edges\" field in JANI module \""
+						   + module->get_name() + "\"");
+	} else if ("ctmc" == currentModule_) {
+		std::vector< std::string > allClocks(JANIautomaton["edges"].size());
+		for (size_t i = 0ul ; i < allClocks.size() ; i++)
+			allClocks[i] = "clk" + std::to_string(i);
+		size_t i(0ul);
+		for (const auto& edge: JANIautomaton["edges"]) {
+			auto edgeClock = allClocks[i++];  // one clock per edge
+			auto trans = build_IOSA_transition_from_CTMC(edge, edgeClock, allClocks);
+			if (nullptr == trans)
+				return nullptr;
+			module->add_transition(trans);
+		}
+
+	} else if ("sta" == currentModule_) {
+
+	} else {
+		throw_FigException("invalid model type; we should've noticed before");
 	}
-	const auto& locations = JANIautomaton["locations"];
-	const auto& variables = module->get_local_decls();
-	for (const auto& edge: JANIautomaton["edges"]) {
-		auto trans = (this->*build_IOSA_transition)(edge, locations, variables);
-		if (nullptr == trans)
-			return nullptr;
-		module->add_transition(trans);
-	}
+
+
+//	shared_ptr<TransitionAST> (JaniTranslator::*build_IOSA_transition)
+//			(const Json::Value&, const Json::Value&, const shared_vector<Decl>&);
+//	if ("ctmc" == currentModule_) {
+//		build_IOSA_clocks_from_ctmc()
+//		build_IOSA_transition = &JaniTranslator::build_IOSA_transition_from_CTMC;
+//	} else if ("sta" == currentModule_)
+//		build_IOSA_transition = &JaniTranslator::build_IOSA_transition_from_STA;
+//	else
+//		throw_FigException("invalid model type; we should've noticed before");
+//	const auto& locations = JANIautomaton["locations"];
+//	const auto& variables = module->get_local_decls();
+//	auto nextClock = CTMCclocks.
+//	for (const auto& edge: JANIautomaton["edges"]) {
+//
+//		currentClock_ = (++nextClock != CTMCclocks.end()) ? *nextClock : "";
+//		auto trans = (this->*build_IOSA_transition)(edge, locations, variables);
+//		if (nullptr == trans)
+//			return nullptr;
+//		module->add_transition(trans);
+//	}
 
 	return module;
 }
@@ -1420,9 +1471,10 @@ JaniTranslator::build_IOSA_module(const Json::Value& JANIautomaton)
 
 shared_ptr<TransitionAST>
 JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
-												const Json::Value& JANIlocations,
-												const shared_vector<Decl>& IOSAmVars)
+												const std::string& edgeClock,
+												const std::vector<std::string>& allClocks)
 {
+
 	/// @todo TODO  implement
 	return nullptr;
 }
@@ -1430,8 +1482,8 @@ JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
 
 shared_ptr<TransitionAST>
 JaniTranslator::build_IOSA_transition_from_STA(const Json::Value& JANIedge,
-												const Json::Value& JANIlocations,
-												const shared_vector<Decl>& IOSAmVars)
+											   const Json::Value& JANIlocations,
+											   const shared_vector<Decl>& IOSAmVars)
 {
 	/// @todo TODO  implement
 	return nullptr;

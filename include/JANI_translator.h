@@ -134,10 +134,17 @@ private:  // Class attributes
 	shared_ptr< Json::Value > JANIfield_;
 
 	/// Name of the module currently translated (visited)
+//	/// @note Used for IOSA -> STA translation
+//	/// @note Also used for model-type during JANI -> IOSA translation  :(
 	std::string currentModule_;
 
 	/// Scope of the module currently translated (visited)
+//	/// @note Used for IOSA -> STA translation
 	shared_ptr<ModuleScope> currentScope_;
+
+	/// Name of the clock currently translated (visited)
+	/// @note Used for JANI -> IOSA translation
+	std::string currentClock_;
 
 	/// Input/Output label sets of a module
 	typedef std::pair< std::set< std::string >,   // inputs
@@ -150,9 +157,10 @@ private:  // Class attributes
 	/// All model labels grouped together without discrimination
 	std::set< std::string > modelLabels_;
 
-	/// Invariant needed for IOSA -> STA translation to make time progress
+	/// Invariant needed by STA to make time progress
 	/// @note Updated by build_JANI_guard()
 	/// @note Reset by visit(shared_ptr<ModuleAST>)
+	/// @note Used for IOSA -> STA translation
 	shared_ptr< Json::Value> timeProgressInvariant_;
 
 	/// Real variables defined in a JANI Specification file
@@ -312,12 +320,26 @@ private:  // Class utils: JANI -> IOSA
 	/// @warning Any previous content in JANIroot_ will be lost
 	void parse_JANI_model(const string& janiModelFile);
 
-	/// Use the current JANI model specification from JANIroot_,
-	/// translate it to IOSA if possible and populate IOSAroot_.
-	/// If everything succeeds, build the model in ModelSuite.
+	/// Translate the current JANI specification in JANIroot_, if possible
+	/// @return Whether a valid IOSA model could be built
+	/// @throw FigException if JANI specification is badly formated
+	bool build_IOSA_from_JANI();
+
+	/// Interpret the JANI model in JANIroot_ as a CTMC, translate it to IOSA
+	/// populating IOSAroot_, and build the model in ModelSuite.
+	/// @param janiModel JANI specification of the CTMC model to translate
+	/// @param iosaModel IOSA AST to fill in with translation
+	/// @return true
+	/// @throw FigException if JANI file is badly formated
+	bool build_IOSA_from_JANI_CTMC(const Json::Value& janiModel, Model& iosaModel);
+
+	/// Interpret the JANI model in JANIroot_ as a STA, (if possible) translate
+	/// it to IOSA populating IOSAroot_, and build the model in ModelSuite.
+	/// @param janiModel JANI specification of the STA model to translate
+	/// @param iosaModel IOSA AST to fill in with translation
 	/// @return Whether a valid IOSA model could be built
 	/// @throw FigException if JANI file is badly formated
-	bool build_IOSA_from_JANI();
+	bool build_IOSA_from_JANI_STA(const Json::Value& janiModel, Model& iosaModel);
 
 	/// Get IOSA translation of this JANI expression
 	/// @param JANIconst Json object with the Expression to translate
@@ -363,27 +385,27 @@ private:  // Class utils: JANI -> IOSA
 
 	/// Get IOSA transition translated from this JANI edge,
 	/// interpreting the JANI automaton as a CTMC
-	/// @param JANIedge     Json object with JANI edge to translate
+	/// @param JANIedge     Json object with JANI edge to translate (CTMC-like)
 	/// @param JANIlocation Json object with the current automaton locations
-	/// @param IOSAmVars    Variables of the current IOSA module
+	/// @param IOSAvars     Variables of the current IOSA module
 	/// @return IOSA transition or nullptr if translation failed
 	/// @throw FigException if JANI edge specifiaction is badly formated
 	shared_ptr<TransitionAST> build_IOSA_transition_from_CTMC(
 			const Json::Value& JANIedge,
 			const Json::Value& JANIlocations,
-			const shared_vector<Decl>& IOSAmVars);
+			const shared_vector<Decl>& IOSAvars);
 
 	/// Get IOSA transition translated from this JANI edge,
 	/// interpreting the JANI automaton as an STA
-	/// @param JANIedge     Json object with JANI edge to translate
+	/// @param JANIedge     Json object with JANI edge to translate (STA-like)
 	/// @param JANIlocation Json object with the current automaton locations
-	/// @param IOSAmVars    Variables of the current IOSA module
+	/// @param IOSAvars     Variables of the current IOSA module
 	/// @return IOSA transition or nullptr if translation failed
 	/// @throw FigException if JANI edge specifiaction is badly formated
 	shared_ptr<TransitionAST> build_IOSA_transition_from_STA(
 			const Json::Value& JANIedge,
 			const Json::Value& JANIlocations,
-			const shared_vector<Decl>& IOSAmVars);
+			const shared_vector<Decl>& IOSAvars);
 };
 
 } // namespace fig
