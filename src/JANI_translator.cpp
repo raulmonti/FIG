@@ -1118,6 +1118,7 @@ JaniTranslator::build_IOSA_from_JANI()
 	auto janiModel = *JANIroot_;
 	jani_is_valid_iosa(janiModel);  // exits if invalid
 	IOSAroot_ = make_shared<Model>();
+	auto iosaModel = *IOSAroot_;
 
 	// Translate global declarations
 	if (janiModel.isMember("variables") && !janiModel["variables"].empty()) {
@@ -1130,8 +1131,27 @@ JaniTranslator::build_IOSA_from_JANI()
 			auto const_ptr = build_IOSA_constant(c);
 			if (nullptr == const_ptr)
 				return false;
-			IOSAroot_->add_decl(const_ptr);
+			iosaModel.add_decl(const_ptr);
 		}
+	}
+
+// Verify synchronization is compatible with IOSA label-broadacst
+	// Interpret and build IOSA I/O synchronization if possible
+	bool compatible = test_and_build_IOSA_synchronization(janiModel["system"],
+			janiModel["automata"]
+			);
+	if (!compatible) {
+		figTechLog << "[ERROR] JANI model doesn't seem to be compatible "
+				   << "with the IOSA formalism. Have a good day sir.\n";
+		return false;
+	}
+
+	// Translate each module
+	for (const auto& a: janiModel["automata"]) {
+		auto module_ptr = build_IOSA_module(a);
+		if (nullptr == module_ptr)
+			return false;
+		iosaModel.add_module(module_ptr);
 	}
 
 	// Translate JANI model according to type
@@ -1397,6 +1417,39 @@ JaniTranslator::build_IOSA_boolean_variable(const std::string& varName,
 }
 
 
+
+bool
+JaniTranslator::test_and_build_IOSA_synchronization(const Json::Value& janiComposition,
+													const Json::Value& janiAutomata)
+{
+	assert(janiComposition.isObject());
+	assert(janiComposition.isMember("elements"));
+	assert(janiComposition["elements"].isArray());
+	assert(janiAutomata.isArray());
+
+	modulesLabels_.clear();
+	modelLabels_.clear();
+	labelEClass_.clear();
+
+	// Try to infer I/O distinction from input-enabledness declarations:
+	// IOSA modules are input-enabled in all its input labels, so
+	// !input-enable => !input
+	for (const auto& e: janiComposition["elements"]) {
+		if (!e.isMember("input-enable"))
+			continue;
+		auto automaton = e["automaton"].asString();
+		for (const auto& act: e["input-enable"])
+			modulesLabels_[automaton].first.emplace(act.asString());
+			// NOTE: this action label *could* also be an output
+	}
+
+	//
+	auto add_to_class =
+			[&labelEClass_] (const std::string& lclass, const std::string& label)
+			{ labelEClass_[lclass] = label; };
+}
+
+
 shared_ptr<ModuleAST>
 JaniTranslator::build_IOSA_module(const Json::Value& JANIautomaton)
 {
@@ -1469,25 +1522,25 @@ JaniTranslator::build_IOSA_module(const Json::Value& JANIautomaton)
 }
 
 
-shared_ptr<TransitionAST>
-JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
-												const std::string& edgeClock,
-												const std::vector<std::string>& allClocks)
-{
-
-	/// @todo TODO  implement
-	return nullptr;
-}
-
-
-shared_ptr<TransitionAST>
-JaniTranslator::build_IOSA_transition_from_STA(const Json::Value& JANIedge,
-											   const Json::Value& JANIlocations,
-											   const shared_vector<Decl>& IOSAmVars)
-{
-	/// @todo TODO  implement
-	return nullptr;
-}
+// shared_ptr<TransitionAST>
+// JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
+// 												const std::string& edgeClock,
+// 												const std::vector<std::string>& allClocks)
+// {
+//
+// 	/// @todo TODO  implement
+// 	return nullptr;
+// }
+//
+//
+// shared_ptr<TransitionAST>
+// JaniTranslator::build_IOSA_transition_from_STA(const Json::Value& JANIedge,
+// 											   const Json::Value& JANIlocations,
+// 											   const shared_vector<Decl>& IOSAmVars)
+// {
+// 	/// @todo TODO  implement
+// 	return nullptr;
+// }
 
 
 

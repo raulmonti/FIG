@@ -124,6 +124,16 @@ public:  // Translation facilities
 
 private:  // Class attributes
 
+	/// Prefix used to generate a real variable from a clock
+	/// @note Used for IOSA -> STA translation
+	static constexpr char REAL_VAR_FROM_CLOCK_PREFIX[] = "x_";
+
+	/// An empty Json::Value of "object" type
+	static const Json::Value EMPTY_JSON_OBJ;
+
+	/// An empty Json::Value of "array" type
+	static const Json::Value EMPTY_JSON_ARR;
+
 	/// ModelAST of the last parsed model
 	shared_ptr< Model > IOSAroot_;
 
@@ -134,12 +144,11 @@ private:  // Class attributes
 	shared_ptr< Json::Value > JANIfield_;
 
 	/// Name of the module currently translated (visited)
-//	/// @note Used for IOSA -> STA translation
-//	/// @note Also used for model-type during JANI -> IOSA translation  :(
+	/// @note Used for IOSA -> STA translation
 	std::string currentModule_;
 
 	/// Scope of the module currently translated (visited)
-//	/// @note Used for IOSA -> STA translation
+	/// @note Used for IOSA -> STA translation
 	shared_ptr<ModuleScope> currentScope_;
 
 	/// Name of the clock currently translated (visited)
@@ -151,7 +160,7 @@ private:  // Class attributes
 					   std::set< std::string > >  // outputs/tau
 		LabelSets;
 
-	/// Labels of each module (for the currently parsed model)
+	/// Labels of each module split in I/O
 	std::map< std::string, LabelSets > modulesLabels_;
 
 	/// All model labels grouped together without discrimination
@@ -175,15 +184,10 @@ private:  // Class attributes
 	/// @note Used for STA -> IOSA translation
 	std::map< std::string, Reference<std::string> > clock2real_;
 
-	/// Prefix used to generate a real variable from a clock
-	/// @note Used for IOSA -> STA translation
-	static constexpr char REAL_VAR_FROM_CLOCK_PREFIX[] = "x_";
-
-	/// An empty Json::Value of "object" type
-	static const Json::Value EMPTY_JSON_OBJ;
-
-	/// An empty Json::Value of "array" type
-	static const Json::Value EMPTY_JSON_ARR;
+	/// Maps each label to its equivalence class,
+	/// @note Used for JANI -> IOSA translation
+	/// @note Populated when interpreting flat labels as I/O for synchronization
+	std::map< std::string, std::string > labelEClass_;
 
 private:  // Class utils: general
 
