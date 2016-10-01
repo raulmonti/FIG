@@ -55,6 +55,9 @@ using std::shared_ptr;
 using std::make_shared;
 using std::string;
 using std::vector;
+// ADL
+using std::begin;
+using std::end;
 
 
 namespace   // // // // // // // // // // // // // // // // // // // // // // //
@@ -387,9 +390,26 @@ JaniTranslator::~JaniTranslator()
 
 
 std::string
-JaniTranslator::rv_from(const std::string& clockName)
+JaniTranslator::rv_from(const std::string& clockName, bool force)
 {
-	return REAL_VAR_FROM_CLOCK_PREFIX + clockName;
+	auto realVarNamePtr = clock2real_.find(clockName);
+	if (end(clock2real_) == realVarNamePtr && !force)
+		return "";
+	else if (end(clock2real_) == realVarNamePtr && force)
+		return REAL_VAR_FROM_CLOCK_PREFIX + clockName;
+	else
+		return realVarNamePtr->get();
+}
+
+
+std::string
+JaniTranslator::sync_label(const std::string& module, const std::string& label)
+{
+	auto syncLabelPtr = syncLabel_.find(std::make_pair(module,label));
+	if (end(syncLabel_) == syncLabelPtr)
+		return "";
+	else
+		return *syncLabelPtr;
 }
 
 
@@ -1135,11 +1155,9 @@ JaniTranslator::build_IOSA_from_JANI()
 		}
 	}
 
-// Verify synchronization is compatible with IOSA label-broadacst
 	// Interpret and build IOSA I/O synchronization if possible
 	bool compatible = test_and_build_IOSA_synchronization(janiModel["system"],
-			janiModel["automata"]
-			);
+														  janiModel["automata"]);
 	if (!compatible) {
 		figTechLog << "[ERROR] JANI model doesn't seem to be compatible "
 				   << "with the IOSA formalism. Have a good day sir.\n";
@@ -1164,47 +1182,47 @@ JaniTranslator::build_IOSA_from_JANI()
 }
 
 
-bool
-JaniTranslator::build_IOSA_from_JANI_CTMC(const Json::Value& janiModel,
-										  Model& iosaModel)
-{
-	assert(janiModel.isObject());
-	assert(janiModel.isMember("type"));
-	assert(janiModel["type"].asString() == "ctmc");
-}
-
-
-bool
-JaniTranslator::build_IOSA_from_JANI_STA(const Json::Value& janiModel,
-										 Model& iosaModel)
-{
-	assert(janiModel.isObject());
-	assert(janiModel.isMember("type"));
-	assert(janiModel["type"].asString() == "sta");
-
-	// Format fields to fill in
-	clock2real_.clear();
-	realVars_.clear();
-
-	// Translate each module
-	for (const auto& a: janiModel["automata"]) {
-		auto module_ptr = build_IOSA_module(a);
-		if (nullptr == module_ptr)
-			return false;
-		iosaModel.add_module(module_ptr);
-	}
-
-
-	/// @todo TODO erase debug print
-	ModelPrinter printer;
-	iosaModel.accept(printer);
-
-
-	throw_FigException("prematurely aborted; not ready yet!");
-
-
-	return ::build_IOSA_model_from_AST(iosaModel);
-}
+// bool
+// JaniTranslator::build_IOSA_from_JANI_CTMC(const Json::Value& janiModel,
+// 										  Model& iosaModel)
+// {
+// 	assert(janiModel.isObject());
+// 	assert(janiModel.isMember("type"));
+// 	assert(janiModel["type"].asString() == "ctmc");
+// }
+//
+//
+// bool
+// JaniTranslator::build_IOSA_from_JANI_STA(const Json::Value& janiModel,
+// 										 Model& iosaModel)
+// {
+// 	assert(janiModel.isObject());
+// 	assert(janiModel.isMember("type"));
+// 	assert(janiModel["type"].asString() == "sta");
+//
+// 	// Format fields to fill in
+// 	clock2real_.clear();
+// 	realVars_.clear();
+//
+// 	// Translate each module
+// 	for (const auto& a: janiModel["automata"]) {
+// 		auto module_ptr = build_IOSA_module(a);
+// 		if (nullptr == module_ptr)
+// 			return false;
+// 		iosaModel.add_module(module_ptr);
+// 	}
+//
+//
+// 	/// @todo TODO erase debug print
+// 	ModelPrinter printer;
+// 	iosaModel.accept(printer);
+//
+//
+// 	throw_FigException("prematurely aborted; not ready yet!");
+//
+//
+// 	return ::build_IOSA_model_from_AST(iosaModel);
+// }
 
 
 shared_ptr<Exp>
@@ -1431,22 +1449,31 @@ JaniTranslator::test_and_build_IOSA_synchronization(const Json::Value& janiCompo
 	modelLabels_.clear();
 	labelEClass_.clear();
 
-	// Try to infer I/O distinction from input-enabledness declarations:
-	// IOSA modules are input-enabled in all its input labels, so
-	// !input-enable => !input
+	// Interpret I/O from input-enable declarations:
+	// IOSA modules are input-enabled in all its input labels,
+	// !input-enable => output
 	for (const auto& e: janiComposition["elements"]) {
 		if (!e.isMember("input-enable"))
 			continue;
 		auto automaton = e["automaton"].asString();
 		for (const auto& act: e["input-enable"])
-			modulesLabels_[automaton].first.emplace(act.asString());
-			// NOTE: this action label *could* also be an output
+			modulesLabels_[automaton].first.emplace(act.asString());  // input
+			// NOTE: this action label *could* also be an output, but fuck that
+	}
+	for (const auto& a: janiAutomata) {
+		assert(a.isMember("edges") && a["edges"].isArray());
+		auto labels = modulesLabels_[a["name"].asString()];
+		for (const auto& e: a["edges"]) {
+			if (!e.isMember("action"))
+				continue;
+			auto act = e["action"].asString();
+			if (labels.first.find(act) == end(labels))
+				labels.second.emplace(act);  // output
+		}
 	}
 
-	//
-	auto add_to_class =
-			[&labelEClass_] (const std::string& lclass, const std::string& label)
-			{ labelEClass_[lclass] = label; };
+
+	/// @todo TODO review sync vectors for compatibility
 }
 
 

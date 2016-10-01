@@ -184,17 +184,31 @@ private:  // Class attributes
 	/// @note Used for STA -> IOSA translation
 	std::map< std::string, Reference<std::string> > clock2real_;
 
-	/// Maps each label to its equivalence class,
+	/// Renaming from automata and label to fresh sync label name
 	/// @note Used for JANI -> IOSA translation
 	/// @note Populated when interpreting flat labels as I/O for synchronization
-	std::map< std::string, std::string > labelEClass_;
+	/// @see sync_label()
+	std::map< std::pair< std::string, std::string >,
+			  std::string > syncLabel_;
 
 private:  // Class utils: general
 
 	/// Get the name of the real variable corresponding to this clock name
-	/// @note Used for IOSA -> STA translations
+	/// @return Name of the real variable linked to the clock;
+	///         if none found and '!force' then empty string;
+	///         if none found and 'force' then build one from clockName.
 	/// @see REAL_VAR_FROM_CLOCK_PREFIX
-	static std::string rv_from(const std::string& clockName);
+	/// @see clock2real_
+	std::string rv_from(const std::string& clockName, bool force = true);
+
+	/// Get the name of the sync label assigned to this module-label pair,
+	/// decided after parsing the JANI synchronization vectors
+	/// @param module Module name
+	/// @param label  Label name in the module
+	/// @return Label chosen for synchronization for this module and label,
+	///         or empty string if none assigned
+	/// @note Used for JANI -> IOSA translation
+	std::string sync_label(const std::string& module, const std::string& label);
 
 	/// Try to evaluate an expression to an integral value;
 	/// put an error in our ErrorMessage if unsuccessfull
@@ -329,21 +343,21 @@ private:  // Class utils: JANI -> IOSA
 	/// @throw FigException if JANI specification is badly formated
 	bool build_IOSA_from_JANI();
 
-	/// Interpret the JANI model in JANIroot_ as a CTMC, translate it to IOSA
-	/// populating IOSAroot_, and build the model in ModelSuite.
-	/// @param janiModel JANI specification of the CTMC model to translate
-	/// @param iosaModel IOSA AST to fill in with translation
-	/// @return true
-	/// @throw FigException if JANI file is badly formated
-	bool build_IOSA_from_JANI_CTMC(const Json::Value& janiModel, Model& iosaModel);
-
-	/// Interpret the JANI model in JANIroot_ as a STA, (if possible) translate
-	/// it to IOSA populating IOSAroot_, and build the model in ModelSuite.
-	/// @param janiModel JANI specification of the STA model to translate
-	/// @param iosaModel IOSA AST to fill in with translation
-	/// @return Whether a valid IOSA model could be built
-	/// @throw FigException if JANI file is badly formated
-	bool build_IOSA_from_JANI_STA(const Json::Value& janiModel, Model& iosaModel);
+//	/// Interpret the JANI model in JANIroot_ as a CTMC, translate it to IOSA
+//	/// populating IOSAroot_, and build the model in ModelSuite.
+//	/// @param janiModel JANI specification of the CTMC model to translate
+//	/// @param iosaModel IOSA AST to fill in with translation
+//	/// @return true
+//	/// @throw FigException if JANI file is badly formated
+//	bool build_IOSA_from_JANI_CTMC(const Json::Value& janiModel, Model& iosaModel);
+//
+//	/// Interpret the JANI model in JANIroot_ as a STA, (if possible) translate
+//	/// it to IOSA populating IOSAroot_, and build the model in ModelSuite.
+//	/// @param janiModel JANI specification of the STA model to translate
+//	/// @param iosaModel IOSA AST to fill in with translation
+//	/// @return Whether a valid IOSA model could be built
+//	/// @throw FigException if JANI file is badly formated
+//	bool build_IOSA_from_JANI_STA(const Json::Value& janiModel, Model& iosaModel);
 
 	/// Get IOSA translation of this JANI expression
 	/// @param JANIconst Json object with the Expression to translate
@@ -381,11 +395,33 @@ private:  // Class utils: JANI -> IOSA
 	shared_ptr<Decl> build_IOSA_boolean_variable(const std::string& varName,
 												 const Json::Value& varInit);
 
+	/// Verify synchronization is compatible with IOSA broadacst;
+	/// if so interpret and build IOSA I/O synchronization
+	/// @param janiComposition JANI specification  'system'  field
+	/// @param janiAutomata    JANI specifiaction 'automata' field
+	/// @return Whether the JANI synchronization specified is IOSA-compatibl
+	bool test_and_build_IOSA_synchronization(const Json::Value& janiComposition,
+											 const Json::Value& janiAutomata);
+
 	/// Get IOSA module translated from this JANI automaton
 	/// @param JANIautomaton Json object with the Automaton to translate
 	/// @return IOSA module AST or nullptr if translation failed
 	/// @throw FigException if JANI Automaton is badly formated
 	shared_ptr<ModuleAST> build_IOSA_module(const Json::Value& JANIautomaton);
+
+	/// Interpret this JANI automaton as a CTMC and translate it
+	/// to a IOSA module if possible
+	/// @param janiAutomaton JANI specification of the CTMC module to translate
+	/// @return Whether a valid IOSA module could be built
+	/// @throw FigException if JANI file is badly formated
+	bool build_IOSA_module_from_CTMC(const Json::Value& janiAutomaton);
+
+	/// Interpret this JANI automaton as a STA and translate it
+	/// to a IOSA module if possible
+	/// @param janiAutomaton JANI specification of the STA module to translate
+	/// @return Whether a valid IOSA model could be built
+	/// @throw FigException if JANI file is badly formated
+	bool build_IOSA_module_from_STA(const Json::Value& janiAutomaton);
 
 	/// Get IOSA transition translated from this JANI edge,
 	/// interpreting the JANI automaton as a CTMC
