@@ -390,6 +390,17 @@ JaniTranslator::~JaniTranslator()
 
 
 std::string
+JaniTranslator::fresh_label(const Json::Value& hint)
+{
+	static size_t fresh(0ul);
+	if (!hint.isNull() && hint.isString())
+		return hint.asString();
+	else
+		return "a" + std::to_string(fresh++);
+}
+
+
+std::string
 JaniTranslator::rv_from(const std::string& clockName, bool force)
 {
 	auto realVarNamePtr = clock2real_.find(clockName);
@@ -694,7 +705,7 @@ JaniTranslator::build_JANI_synchronization(Json::Value& JANIobj)
 	for (const auto& pair: modulesLabels_) {
 		auto tmp = EMPTY_JSON_OBJ;
 
-		// Synchronizing elements
+		// Synchronizing elements: one input-enable per module input
 		tmp["automaton"] = pair.first.c_str();
 		tmp["input-enable"] = EMPTY_JSON_ARR;
 		for (const std::string& inputLabel: pair.second.first)
@@ -703,12 +714,15 @@ JaniTranslator::build_JANI_synchronization(Json::Value& JANIobj)
 			tmp.removeMember("input-enable");
 		JANIobj["elements"].append(tmp);
 
-		// Synchronization vectors
-		tmp.clear();
-		for (const std::string& outputLabel: pair.second.second)
+		// Synchronization vectors: one per module output
+		for (const std::string& outputLabel: pair.second.second) {
+			tmp.clear();
 			build_JANI_sync_vector(outputLabel, tmp["synchronize"]);
-		if (tmp["synchronize"].size() > 0ul)
-			JANIobj["syncs"].append(tmp);  // no nested sync => no need for "result"
+			if (!tmp["synchronize"].empty()) {
+				tmp["result"] = outputLabel.c_str();  // we could omit this
+				JANIobj["syncs"].append(tmp);
+			}
+		}
 	}
 	if (JANIobj["syncs"].empty())
 		JANIobj.removeMember("syncs");
@@ -735,7 +749,7 @@ JaniTranslator::build_JANI_sync_vector(const std::string& oLabel,
 		}
 	}
 	if (noSync)
-		JANIarr = EMPTY_JSON_ARR;
+		JANIarr.clear();
 }
 
 
@@ -1132,7 +1146,7 @@ JaniTranslator::parse_JANI_model(const std::string& janiModelFile)
 bool
 JaniTranslator::build_IOSA_from_JANI()
 {
-	// Consistency check and initializations
+	// Fast consistency check and initializations
 	assert(nullptr != JANIroot_);
 	assert(JANIroot_->isObject());
 	auto janiModel = *JANIroot_;
@@ -1165,20 +1179,36 @@ JaniTranslator::build_IOSA_from_JANI()
 	}
 
 	// Translate each module
+	shared_ptr<ModuleAST> (JaniTranslator::*build_IOSA_module)(const Json::Value&);
+	if ("ctmc" == janiModel["type"].asString())
+		build_IOSA_module = &JaniTranslator::build_IOSA_module_from_CTMC;
+	else if ("sta" == janiModel["type"].asString())
+		build_IOSA_module = &JaniTranslator::build_IOSA_module_from_STA;
+	else
+		return false;
 	for (const auto& a: janiModel["automata"]) {
-		auto module_ptr = build_IOSA_module(a);
-		if (nullptr == module_ptr)
+		auto module_ptr = this->*build_IOSA_module(a);
+		if (nullptr == module_ptr) {
+			figTechLog << "[ERROR] JANI automaton \"" << a["name"].asString()
+					   << "\" couldn't be translated to a IOSA module.\n";
 			return false;
+		}
 		iosaModel.add_module(module_ptr);
 	}
 
-	// Translate JANI model according to type
-	if ("ctmc" == (*JANIroot_)["type"].asString())
-		return build_IOSA_from_JANI_CTMC(janiModel, *IOSAroot_);
-	else if ("sta" == (*JANIroot_)["type"].asString())
-		return build_IOSA_from_JANI_STA(janiModel, *IOSAroot_);
-	else
-		return false;
+
+
+	/// @todo TODO erase debug print
+	ModelPrinter printer;
+	iosaModel.accept(printer);
+
+
+	throw_FigException("prematurely aborted; not ready yet!");
+
+
+	/// @todo TODO translate properties, if present
+
+	return ::build_IOSA_model_from_AST(iosaModel);
 }
 
 
@@ -1445,41 +1475,92 @@ JaniTranslator::test_and_build_IOSA_synchronization(const Json::Value& janiCompo
 	assert(janiComposition["elements"].isArray());
 	assert(janiAutomata.isArray());
 
+	std::vector< std::string > automata;
+	automata.reserve(janiComposition["elements"].size());
 	modulesLabels_.clear();
 	modelLabels_.clear();
-	labelEClass_.clear();
+	syncLabel_.clear();
 
 	// Interpret I/O from input-enable declarations:
-	// IOSA modules are input-enabled in all its input labels,
+	// IOSA modules are input-enabled in all its input labels, so
 	// !input-enable => output
 	for (const auto& e: janiComposition["elements"]) {
+		automata.emplace_back(e["automaton"].asString());  // automaton name
 		if (!e.isMember("input-enable"))
 			continue;
-		auto automaton = e["automaton"].asString();
+		auto& labels = modulesLabels_[automata.back()];
 		for (const auto& act: e["input-enable"])
-			modulesLabels_[automaton].first.emplace(act.asString());  // input
+			labels.first.emplace(act.asString());  // input
 			// NOTE: this action label *could* also be an output, but fuck that
 	}
 	for (const auto& a: janiAutomata) {
 		assert(a.isMember("edges") && a["edges"].isArray());
-		auto labels = modulesLabels_[a["name"].asString()];
+		auto& labels = modulesLabels_[a["name"].asString()];
 		for (const auto& e: a["edges"]) {
 			if (!e.isMember("action"))
 				continue;
 			auto act = e["action"].asString();
+			modelLabels_.emplace(act);
 			if (labels.first.find(act) == end(labels))
 				labels.second.emplace(act);  // output
 		}
 	}
 
+	// Build modules synchronization as specified in the sync vectors;
+	// abort if incompatible with IOSA broadcast synchronization
+	auto allLabels = modulesLabels_;
+	for (const auto& vec: janiComposition["sync"]) {
+		std::string vecOutput;  // the output of this sync vector
+		auto freshLabel = fresh_label(vec.get("result",Json::nullValue));
+		auto syncv = vec["synchronise"];
+		for (size_t i = 0ul ; i < syncv.size() ; i++) {
+			if (syncv[i].isNull())
+				continue;
+			// Mark action label as "used" in this module
+			auto label = syncv[i].asString();
+			auto& moduleInputs = allLabels[automata[i]].first;
+			auto& moduleOutputs = allLabels[automata[i]].second;
+			bool isInput = 0ul < moduleInputs.erase(label);
+			bool isOutput = 0ul < moduleOutputs.erase(label);
+			syncLabel_[std::make_pair(automata[i],label)] = freshLabel;
+			// Check for compatibility with IOSA broadcast synchronization
+			if (isOutput && vecOutput.empty()) {
+				assert(!label.empty());
+				vecOutput = label;
+			} else if (isOutput) {
+				figTechLog << "[ERROR] Synchronization pattern incompatible "
+						   << "with IOSA broadcast: there can be only one "
+						   << "output per sync vector (\"" << vecOutput
+						   << "\" and \"" << label << "\" appear together)\n";
+				return false;
+			} else if ( ! (isInput || isOutput) ) {
+				figTechLog << "[ERROR] Synchronization pattern incompatible "
+						   << "with IOSA broadcast: each label from each auto"
+						   << "maton can appear in a single sync vector (\""
+						   << label << "\" appears in two)\n";
+				return false;
+			}
+		}
+	}
 
-	/// @todo TODO review sync vectors for compatibility
+	// Labels not used in the synchronization vectors mustn't synchronize
+	for (const auto& p: allLabels) {
+		for (const auto& input: p.second.first)
+			syncLabel_[std::make_pair(p.first,input)] = "";
+		for (const auto& output: p.second.second)
+			syncLabel_[std::make_pair(p.first,output)] = "";
+	}
+
+	return true;
 }
 
 
 shared_ptr<ModuleAST>
-JaniTranslator::build_IOSA_module(const Json::Value& JANIautomaton)
+JaniTranslator::build_IOSA_module_from_CTMC(const Json::Value& JANIautomaton)
 {
+	assert(JANIautomaton.isMember("edges"));
+	assert(JANIautomaton["edges"].isArray());
+
 	shared_ptr<ModuleAST> module(make_shared<ModuleAST>());
 	module->set_name(JANIautomaton["name"].asString());
 
@@ -1487,41 +1568,55 @@ JaniTranslator::build_IOSA_module(const Json::Value& JANIautomaton)
 	if (JANIautomaton.isMember("variables")) {
 		if (!JANIautomaton["variables"].isArray())
 			throw_FigException("JANI \"variables\" field in an automaton must be an array");
-		for (const Json::Value& v: JANIautomaton["variables"]) {
+		for (const auto& v: JANIautomaton["variables"]) {
 			auto var = build_IOSA_variable(v);
 			if (nullptr == var)
 				return nullptr;
-			else if (var->get_type() == Type::tfloat)  // real variable from/for clock
-				realVars_.emplace(var->get_id());
-			else
-				module->add_decl(var);
+			else if (var->get_type() != Type::tbool &&
+					 var->get_type() != Type::tint) {
+				figTechLog << "[ERROR] Unsupported variable type from CTMC "
+						   << "automaton (\"" << var->get_id() << "\" in \""
+						   << module->get_name() << "\")\n";
+				return nullptr;
+			}
+			module->add_decl(var);
 		}
 		if (JANIautomaton.isMember("restrict-initial"))
-			figTechLog << "[WARNING] Ignoring \"restrict-initial\" field" << std::endl;
+			figTechLog << "[WARNING] Ignoring \"restrict-initial\" field\n";
+
+		/// @todo TODO verify restrict-initial field for IOSA compatibility
+		///            and translate to variables initialization
+	}
+
+	// Build exponential clocks, one per edge
+	const size_t NUM_CLOCKS(JANIautomaton["edges"].size());
+	shared_vector< ClockReset > allClocks(NUM_CLOCKS);
+	for (size_t i = 0ul ; i < NUM_CLOCKS ; i++) {
+		const Json::Value& edge = JANIautomaton["edges"][i];
+		if ( ! (edge.isObject() && edge.isMember("rate")))
+			throw_FigException("CTMC edge without rate expression!");
+		auto rate = build_IOSA_expression(edge["rate"]);
+		if (nullptr == rate) {
+			figTechLog << "[ERROR] FIG failed to translate an edge's rate expres"
+					   << "sion (automaton \"" << module->get_name() << "\")\n";
+			return nullptr;
+		}
+		auto clockDist = std::make_shared<SingleParameterDist>(DistType::exponential, rate);
+		auto clockLoc = std::make_shared<Location>("clk" + std::to_string(i));
+		allClocks[i] = make_shared<ClockReset>(clockLoc, clockDist);
 	}
 
 	// Transitions
-	if ( ! (JANIautomaton.isMember("edges") && JANIautomaton["edges"].isArray())) {
-		throw_FigException("invalid \"edges\" field in JANI module \""
-						   + module->get_name() + "\"");
-	} else if ("ctmc" == currentModule_) {
-		std::vector< std::string > allClocks(JANIautomaton["edges"].size());
-		for (size_t i = 0ul ; i < allClocks.size() ; i++)
-			allClocks[i] = "clk" + std::to_string(i);
-		size_t i(0ul);
-		for (const auto& edge: JANIautomaton["edges"]) {
-			auto edgeClock = allClocks[i++];  // one clock per edge
-			auto trans = build_IOSA_transition_from_CTMC(edge, edgeClock, allClocks);
-			if (nullptr == trans)
-				return nullptr;
-			module->add_transition(trans);
-		}
-
-	} else if ("sta" == currentModule_) {
-
-	} else {
-		throw_FigException("invalid model type; we should've noticed before");
-	}
+	/// @todo TODO Bear in mind labels renaming (use sync_label())
+	///            and resetting all clocks in all postconditions
+//	size_t i(0ul);
+//	for (const auto& edge: JANIautomaton["edges"]) {
+//		auto edgeClock = allClocks[i++];  // one clock per edge
+//		auto trans = build_IOSA_transition_from_CTMC(edge, edgeClock, allClocks);
+//		if (nullptr == trans)
+//			return nullptr;
+//		module->add_transition(trans);
+//	}
 
 
 //	shared_ptr<TransitionAST> (JaniTranslator::*build_IOSA_transition)
@@ -1549,17 +1644,16 @@ JaniTranslator::build_IOSA_module(const Json::Value& JANIautomaton)
 }
 
 
-// shared_ptr<TransitionAST>
-// JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
-// 												const std::string& edgeClock,
-// 												const std::vector<std::string>& allClocks)
-// {
-//
-// 	/// @todo TODO  implement
-// 	return nullptr;
-// }
-//
-//
+shared_ptr<TransitionAST>
+JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
+												const std::string& edgeClock,
+												const std::vector<std::string>& allClocks)
+{
+	/// @todo TODO  implement
+	return nullptr;
+}
+
+
 // shared_ptr<TransitionAST>
 // JaniTranslator::build_IOSA_transition_from_STA(const Json::Value& JANIedge,
 // 											   const Json::Value& JANIlocations,
