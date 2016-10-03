@@ -140,7 +140,7 @@ void ExpEvaluator::visit(shared_ptr<LocExp> loc) {
 
 inline void ExpEvaluator::reduce_unary_operator(shared_ptr<UnOpExp> exp) {
     if (!exp->has_inferred_type()) {
-        throw_FigException("Evaluator called without typechecking.");
+        throw_FigException("ExpEvaluator called without typechecking.");
     }
     UnaryOpTy inferred = exp->get_inferred_type();
     accept_cond(exp->get_argument());

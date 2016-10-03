@@ -47,6 +47,7 @@
 #include <ModelReductor.h>
 #include <ModelPrinter.h>
 #include <ModelVerifier.h>
+#include <ExplicitIOSA.h>
 #include <JANI_translator.h>
 #include <ImportanceFunction.h>
 
@@ -279,6 +280,7 @@ void compile_model(bool modelAlreadyBuilt) {
 	ModelVerifier verifier;
 	ModelBuilder builder;
     ModelPrinter printer;
+    iosa::ConfluenceVerifier confluence_verifier;
 
 	if (modelAlreadyBuilt) {
 		// Parsing + model building already done during JANI interaction
@@ -314,6 +316,9 @@ void compile_model(bool modelAlreadyBuilt) {
 	}
 	tech_log("- Type-checking  succeeded\n");
 
+    modelAST->accept(printer);
+
+
     // Reduces expressions when possible.
     // If there are irreducible constants, has_errors() is true.
     modelAST->accept(reductor);
@@ -322,7 +327,9 @@ void compile_model(bool modelAlreadyBuilt) {
         throw_FigException("reduction of constant expressions failed");
     }
     tech_log("- Expressions reduction succeeded\n");
-    //modelAST->accept(printer);
+
+
+    modelAST->accept(confluence_verifier);
 
 
 	// Check IOSA correctness

@@ -64,7 +64,7 @@ private:
     }
 
     /// Check range and initialization of the declaration
-    void check_ranged_decl(shared_ptr<RangedDecl> decl);
+    void check_ranges(shared_ptr<Decl> decl);
     void check_ranged_all(shared_ptr<ModuleScope> scope);
 
     /// Check if parameters of distributions are reducible

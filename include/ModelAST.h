@@ -471,18 +471,18 @@ public:
         return (false);
     }
 
-    /// Converts this instance of declaration into a RangedDecl
+    /// Converts this instance of declaration into a Ranged object
     /// @note has_range() must be true.
-    shared_ptr<class RangedDecl> to_ranged() {
+    shared_ptr<class Ranged> to_ranged() {
         assert(has_range());
-        return std::static_pointer_cast<RangedDecl>(shared_from_this());
+        return std::dynamic_pointer_cast<Ranged>(shared_from_this());
     }
 
-    /// Converts this instance of declaration into a InitializedDecl
+    /// Converts this instance of declaration into an Initialized object
     /// @note has_init() must be true.
-    shared_ptr<class InitializedDecl> to_initialized() {
+    shared_ptr<class Initialized> to_initialized() {
         assert(has_init());
-        return std::static_pointer_cast<InitializedDecl>(shared_from_this());
+        return std::dynamic_pointer_cast<Initialized>(shared_from_this());
     }
 };
 
@@ -496,7 +496,7 @@ public:
     InitializedDecl(Type type, string id, shared_ptr<Exp> init)
         : Decl(type, id), Initialized(init) {}
     virtual void accept(Visitor& visit) override;
-	virtual bool has_init() override {
+    virtual bool has_init() override {
         return (true);
     }
 };

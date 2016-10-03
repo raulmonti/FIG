@@ -455,13 +455,17 @@ float ModelTC::eval_float_or_put(shared_ptr<Exp> exp) {
     return (result);
 }
 
-void ModelTC::check_ranged_decl(shared_ptr<RangedDecl> decl) {
-    int low  = eval_int_or_put(decl->get_lower_bound());
-    int upp  = eval_int_or_put(decl->get_upper_bound());
-    if (!has_errors()) {
-        int init = eval_int_or_put(decl->get_init());
-        if (! (low <= init && init <= upp)) {
-            put_error(::TC_WRONG_INIT_VALUE(decl->get_init()));
+void ModelTC::check_ranges(shared_ptr<Decl> decl) {
+    if (decl->has_range()) {
+        shared_ptr<Ranged> ranged = decl->to_ranged();
+        int low  = eval_int_or_put(ranged->get_lower_bound());
+        int upp  = eval_int_or_put(ranged->get_upper_bound());
+        if (!has_errors() && decl->has_init()) {
+            shared_ptr<Initialized> in = decl->to_initialized();
+            int init = eval_int_or_put(in->get_init());
+            if (! (low <= init && init <= upp)) {
+                put_error(::TC_WRONG_INIT_VALUE(in->get_init()));
+            }
         }
     }
 }
@@ -485,7 +489,7 @@ void ModelTC::check_ranged_all(shared_ptr<ModuleScope> scope) {
     for (auto entry : scope->local_decls_map()) {
         shared_ptr<Decl> decl = entry.second;
         if (decl->has_range()) {
-            check_ranged_decl(decl->to_ranged());
+            check_ranges(decl);
         }
     }
 }
@@ -524,7 +528,7 @@ void ModelTC::visit(shared_ptr<Model> model) {
         for (auto entry : ModuleScope::globals) {
             shared_ptr<Decl> decl = entry.second;
             if (decl->has_range()) {
-                check_ranged_decl(decl->to_ranged());
+                check_ranges(decl);
             }
         }
         for (auto entry : scopes) {
