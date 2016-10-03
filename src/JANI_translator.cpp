@@ -36,10 +36,12 @@
 #include <memory>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 // FIG
 #include <string_utils.h>
 #include <JANI_translator.h>
 #include <ModelVerifier.h>
+#include <ModelReductor.h>
 #include <ModelBuilder.h>
 #include <ModelPrinter.h>
 #include <ModelAST.h>
@@ -329,6 +331,15 @@ build_IOSA_model_from_AST(Model& modelAST, bool verifyIOSA = true)
 	if (typechecker.has_errors()) {
 		fig::figTechLog << "[ERROR] Type-checking failed" << std::endl;
 		fig::figTechLog << typechecker.get_messages() << std::endl;
+		return false;
+	}
+
+	// Reduce expressions
+	ModelReductor reductor;
+	modelAST->accept(reductor);
+	if (reductor.has_errors()) {
+		fig::figTechLog << "[ERROR] Expressions reduction failed" << std::endl;
+		fig::figTechLog << reductor.get_messages() << std::endl;
 		return false;
 	}
 
@@ -1465,18 +1476,62 @@ JaniTranslator::build_IOSA_boolean_variable(const std::string& varName,
 }
 
 
+shared_ptr<ClockReset>
+JaniTranslator::build_exponential_clock(const Json::Value& JANIedge,
+										const std::string& moduleName)
+{
+	static size_t clkCounter(0ul);
+	std::string edgeLabel;
+	enum { input, output, tau } edgeType(tau);
+	assert(JANIedge.isObject());
+	assert( ! (has_errors() || has_warnings()) );
+	// Retrieve rate parameter
+	if (!JANIedge.isMember("rate"))
+		throw_FigException("this edge doesn't have a rate expression!");
+	auto rate = build_IOSA_expression(JANIedge["rate"]["exp"]);
+	if (nullptr == rate) {
+		figTechLog << "[ERROR] FIG failed to translate an edge's rate expres"
+				   << "sion (automaton \"" << module->get_name() << "\")\n";
+		throw_FigException("internal error, see tech log");
+	}
+	// Classify edge as input, output, or tau
+	if (JANIedge.isMember("action")) {
+		edgeLabel = JANIedge["action"].asString();
+		auto syncLabel = sync_label(moduleName, edgeLabel);
+		if (syncLabel.back() == '!')
+			edgeType = output;
+		else if (syncLabel.back() == '?')
+			edgeType = input;
+		else if (!edgeLabel.empty())
+			throw_FigException("label \"" + edgeLabel +"\" in automaton \"" +
+							   moduleName + "\" wasn't classified as I/O");
+	}
+	// Create edge's clock
+	switch (edgeType)
+	{
+	case input:
+		inputRatesCTMC_.push_back(std::make_tuple(moduleName, edgeLabel, rate));
+		return nullptr;
+	case output:
+	case tau:
+		auto clockDist = std::make_shared<SingleParameterDist>(DistType::exponential, rate);
+		auto clockLoc = std::make_shared<Location>("clk" + std::to_string(clkCounter++));
+		return make_shared<ClockReset>(clockLoc, clockDist);
+	}
+}
+
 
 bool
-JaniTranslator::test_and_build_IOSA_synchronization(const Json::Value& janiComposition,
-													const Json::Value& janiAutomata)
+JaniTranslator::test_and_build_IOSA_synchronization(const Json::Value& JANIcomposition,
+													const Json::Value& JANIautomata)
 {
-	assert(janiComposition.isObject());
-	assert(janiComposition.isMember("elements"));
-	assert(janiComposition["elements"].isArray());
-	assert(janiAutomata.isArray());
+	assert(JANIcomposition.isObject());
+	assert(JANIcomposition.isMember("elements"));
+	assert(JANIcomposition["elements"].isArray());
+	assert(JANIautomata.isArray());
 
 	std::vector< std::string > automata;
-	automata.reserve(janiComposition["elements"].size());
+	automata.reserve(JANIcomposition["elements"].size());
 	modulesLabels_.clear();
 	modelLabels_.clear();
 	syncLabel_.clear();
@@ -1484,7 +1539,7 @@ JaniTranslator::test_and_build_IOSA_synchronization(const Json::Value& janiCompo
 	// Interpret I/O from input-enable declarations:
 	// IOSA modules are input-enabled in all its input labels, so
 	// !input-enable => output
-	for (const auto& e: janiComposition["elements"]) {
+	for (const auto& e: JANIcomposition["elements"]) {
 		automata.emplace_back(e["automaton"].asString());  // automaton name
 		if (!e.isMember("input-enable"))
 			continue;
@@ -1493,7 +1548,7 @@ JaniTranslator::test_and_build_IOSA_synchronization(const Json::Value& janiCompo
 			labels.first.emplace(act.asString());  // input
 			// NOTE: this action label *could* also be an output, but fuck that
 	}
-	for (const auto& a: janiAutomata) {
+	for (const auto& a: JANIautomata) {
 		assert(a.isMember("edges") && a["edges"].isArray());
 		auto& labels = modulesLabels_[a["name"].asString()];
 		for (const auto& e: a["edges"]) {
@@ -1509,7 +1564,7 @@ JaniTranslator::test_and_build_IOSA_synchronization(const Json::Value& janiCompo
 	// Build modules synchronization as specified in the sync vectors;
 	// abort if incompatible with IOSA broadcast synchronization
 	auto allLabels = modulesLabels_;
-	for (const auto& vec: janiComposition["sync"]) {
+	for (const auto& vec: JANIcomposition["sync"]) {
 		std::string vecOutput;  // the output of this sync vector
 		auto freshLabel = fresh_label(vec.get("result",Json::nullValue));
 		auto syncv = vec["synchronise"];
@@ -1520,9 +1575,10 @@ JaniTranslator::test_and_build_IOSA_synchronization(const Json::Value& janiCompo
 			auto label = syncv[i].asString();
 			auto& moduleInputs = allLabels[automata[i]].first;
 			auto& moduleOutputs = allLabels[automata[i]].second;
-			bool isInput = 0ul < moduleInputs.erase(label);
-			bool isOutput = 0ul < moduleOutputs.erase(label);
-			syncLabel_[std::make_pair(automata[i],label)] = freshLabel;
+			const bool isInput = 0ul < moduleInputs.erase(label);
+			const bool isOutput = 0ul < moduleOutputs.erase(label);
+			syncLabel_[std::make_pair(automata[i],label)] =
+					freshLabel + (isInput ? ("?") : ("!");
 			// Check for compatibility with IOSA broadcast synchronization
 			if (isOutput && vecOutput.empty()) {
 				assert(!label.empty());
@@ -1532,6 +1588,9 @@ JaniTranslator::test_and_build_IOSA_synchronization(const Json::Value& janiCompo
 						   << "with IOSA broadcast: there can be only one "
 						   << "output per sync vector (\"" << vecOutput
 						   << "\" and \"" << label << "\" appear together)\n";
+				figTechLog << "[NOTE] I/O is intepreted from the composition "
+						   << "specification: all \"input-enable\" actions in "
+						   << "an automaton will be inputs, the rest outputs.\n";
 				return false;
 			} else if ( ! (isInput || isOutput) ) {
 				figTechLog << "[ERROR] Synchronization pattern incompatible "
@@ -1561,13 +1620,14 @@ JaniTranslator::build_IOSA_module_from_CTMC(const Json::Value& JANIautomaton)
 	assert(JANIautomaton.isMember("edges"));
 	assert(JANIautomaton["edges"].isArray());
 
+	const size_t NUM_EDGES(JANIautomaton["edges"].size());
 	shared_ptr<ModuleAST> module(make_shared<ModuleAST>());
 	module->set_name(JANIautomaton["name"].asString());
 
 	// Local variables
 	if (JANIautomaton.isMember("variables")) {
 		if (!JANIautomaton["variables"].isArray())
-			throw_FigException("JANI \"variables\" field in an automaton must be an array");
+			throw_FigException("JANI automaton's \"variables\" field must be an array");
 		for (const auto& v: JANIautomaton["variables"]) {
 			auto var = build_IOSA_variable(v);
 			if (nullptr == var)
@@ -1588,57 +1648,31 @@ JaniTranslator::build_IOSA_module_from_CTMC(const Json::Value& JANIautomaton)
 		///            and translate to variables initialization
 	}
 
-	// Build exponential clocks, one per edge
-	const size_t NUM_CLOCKS(JANIautomaton["edges"].size());
-	shared_vector< ClockReset > allClocks(NUM_CLOCKS);
-	for (size_t i = 0ul ; i < NUM_CLOCKS ; i++) {
-		const Json::Value& edge = JANIautomaton["edges"][i];
-		if ( ! (edge.isObject() && edge.isMember("rate")))
-			throw_FigException("CTMC edge without rate expression!");
-		auto rate = build_IOSA_expression(edge["rate"]);
-		if (nullptr == rate) {
-			figTechLog << "[ERROR] FIG failed to translate an edge's rate expres"
-					   << "sion (automaton \"" << module->get_name() << "\")\n";
-			return nullptr;
-		}
-		auto clockDist = std::make_shared<SingleParameterDist>(DistType::exponential, rate);
-		auto clockLoc = std::make_shared<Location>("clk" + std::to_string(i));
-		allClocks[i] = make_shared<ClockReset>(clockLoc, clockDist);
+	// Exponential clocks, one per output/tau edge
+	shared_vector< ClockReset > allClocks, notNullClocks(NUM_EDGES);
+	allClocks.reserve(NUM_EDGES);
+	for (const auto& edge: JANIautomaton["edges"]) {
+		auto edgeClock = build_exponential_clock(edge, module->get_name());
+		allClocks.push_back(edgeClock);  // nullptr for input edges
 	}
+	std::copy_if(begin(allClocks), end(allClocks), begin(notNullClocks),
+				 [](shared_ptr<ClockReset> ptr) { return nullptr != ptr; });
+	notNullClocks.erase(std::remove(begin(notNullClocks), end(notNullClocks), nullptr));
 
 	// Transitions
-	/// @todo TODO Bear in mind labels renaming (use sync_label())
-	///            and resetting all clocks in all postconditions
-//	size_t i(0ul);
-//	for (const auto& edge: JANIautomaton["edges"]) {
-//		auto edgeClock = allClocks[i++];  // one clock per edge
-//		auto trans = build_IOSA_transition_from_CTMC(edge, edgeClock, allClocks);
-//		if (nullptr == trans)
-//			return nullptr;
-//		module->add_transition(trans);
-//	}
-
-
-//	shared_ptr<TransitionAST> (JaniTranslator::*build_IOSA_transition)
-//			(const Json::Value&, const Json::Value&, const shared_vector<Decl>&);
-//	if ("ctmc" == currentModule_) {
-//		build_IOSA_clocks_from_ctmc()
-//		build_IOSA_transition = &JaniTranslator::build_IOSA_transition_from_CTMC;
-//	} else if ("sta" == currentModule_)
-//		build_IOSA_transition = &JaniTranslator::build_IOSA_transition_from_STA;
-//	else
-//		throw_FigException("invalid model type; we should've noticed before");
-//	const auto& locations = JANIautomaton["locations"];
-//	const auto& variables = module->get_local_decls();
-//	auto nextClock = CTMCclocks.
-//	for (const auto& edge: JANIautomaton["edges"]) {
-//
-//		currentClock_ = (++nextClock != CTMCclocks.end()) ? *nextClock : "";
-//		auto trans = (this->*build_IOSA_transition)(edge, locations, variables);
-//		if (nullptr == trans)
-//			return nullptr;
-//		module->add_transition(trans);
-//	}
+	for (size_t i = 0ul ; i < NUM_EDGES ; i++) {
+		const auto& edge = JANIautomaton["edges"][i];
+		shared_ptr<Location> edgeClock =
+				nullptr == allClocks[i] ? nullptr
+										: allClocks[i]->get_effect_location();
+		auto trans = build_IOSA_transition_from_CTMC(edge,
+													 module->get_name(),
+													 edgeClock,
+													 notNullClocks);
+		if (nullptr == trans)
+			return nullptr;
+		module->add_transition(trans);
+	}
 
 	return module;
 }
@@ -1646,13 +1680,53 @@ JaniTranslator::build_IOSA_module_from_CTMC(const Json::Value& JANIautomaton)
 
 shared_ptr<TransitionAST>
 JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
-												const std::string& edgeClock,
-												const std::vector<std::string>& allClocks)
+												const std::string& moduleName,
+												std::shared_ptr<Location> edgeClock,
+												const shared_vector<ClockReset>& allClocks)
 {
-	/// @todo TODO  implement
-	return nullptr;
+	assert(JANIedge.isObject());
+	assert(JANIedge.isMember("rate"));
+	assert(JANIedge.isMember("destinations"));
+	// Build precondition
+	shared_ptr<Exp> pre;
+	if (JANIedge.isMember("guard"))
+		pre = build_IOSA_expression(JANIedge["guard"]["exp"]);
+	else
+		pre = make_shared<BConst>(true);  // empty guard => "true"
+	// Build postcondition
+	auto pos = build_IOSA_postcondition(JANIedge["destinations"]);
+	if (pos.empty() && !JANIedge["destinations"].empty()) {
+		figTechLog << "[ERROR] FIG failed translating the destinations in "
+				   << "an edge from automaton \"" << moduleName << "\"\n";
+		return nullptr;
+	} else {
+		// All clocks must be reset in all edges
+		pos.insert(end(postcondition), begin(allClocks), end(allClocks));
+	}
+	// Build transition
+	if (nullptr == edgeClock) {
+		// Input
+		assert(JANIedge.isMember("action"));
+		auto label = sync_label(moduleName, JANIedge["action"].asString());
+		assert(!label.empty());
+		return make_shared<InputTransition>(label, pre, pos);
+	} else if (JANIedge.isMember("action")) {
+		// Output
+		auto label = sync_label(moduleName, JANIedge["action"].asString());
+		assert(!label.empty());
+		return make_shared<OutputTransition>(label, pre, pos, edgeClock);
+	} else {
+		// Tau
+		return make_shared<TauTransition>(pre, pos, edgeClock);
+	}
 }
 
+
+shared_ptr<ModuleAST>
+JaniTranslator::build_IOSA_module_from_STA(const Json::Value& JANIautomaton)
+{
+
+}
 
 // shared_ptr<TransitionAST>
 // JaniTranslator::build_IOSA_transition_from_STA(const Json::Value& JANIedge,
@@ -1664,7 +1738,11 @@ JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
 // }
 
 
-
-
+shared_vector<Effect>
+JaniTranslator::build_IOSA_postcondition(const Json::Value& JANIdest)
+{
+	/// @todo TODO  implement
+	return shared_vector<Effect>();
+}
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //
