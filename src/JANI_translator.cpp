@@ -319,6 +319,69 @@ add_jani_header(Json::Value& root, const string& iosaModelFile)
 }
 
 
+/// Return all sub-expressions of 'expr' where an identifyer from 'ids' occurs
+/// as operand of some binary operators from 'bops' (modulo unary operators).
+/// Examples:
+/// @code
+/// relevant_bin_subexpr({a,b}, {&&,||}, "!(a && b)")      == {"a && b"};
+/// relevant_bin_subexpr({a,b}, {||,<=}, "!(a && b)")      == {};
+/// relevant_bin_subexpr({a},   {&&},    "c || (!a && b)") == {"!a && b"};
+/// relevant_bin_subexpr({a,b}, {+,*,>}, "(3*a+2*b) > c")  == {"3*a", "2*b"};
+/// @endcode
+/// @param ids  Relevant identifiers
+/// @param bops Relevant binary operators
+/// @param expr Expression to parse
+/// @warning Nested sub-expressions are likely to be returned,
+///          e.g. ({a,b}, {+,*}, "a+2*b") would yield {"a+2*b","2*b"}
+shared_vector< BinOpExp >
+relevant_bin_subexpr(const std::vector<std::string>& ids,
+					 const std::vector<ExpOp>& bops,
+					 shared_ptr<Exp> expr)
+{
+	shared_vector<BinOpExp> subexprs;
+	bool selfIncluded(false);
+	// Peel unary operators wrapping up expression and return the juicy pulp
+	static auto peel_off = [](shared_ptr<Exp> expr) {
+		while (expr->is_unary_operator())
+			expr = std::static_pointer_cast<UnOpExp>(expr)->get_argument();
+		return expr;
+	};
+	expr = peel_off(expr);
+	if (!expr->is_binary_operator())
+		return subexprs;
+	auto bexpr = std::static_pointer_cast<BinOpExp>(expr);
+	const bool selfRelevant = std::find(begin(bops), end(bops), bexpr->get_operator())
+								!= end(bops);
+	// Review left
+	auto left = peel_off(bexpr->get_first_argument());
+	if (left->is_binary_operator()) {
+		auto lsubexprs = relevant_bin_subexpr(ids, bops, left);
+		subexprs.insert(end(subexprs), begin(lsubexprs), end(lsubexprs));
+	} else if (!left->is_constant() && selfRelevant) {
+		auto loc = std::static_pointer_cast<LocExp>(left);
+		assert(nullptr != loc);  // must be a location we're talking about
+		auto id = loc->get_exp_location()->get_identifier();
+		if (std::find(begin(ids), end(ids), id) != end(ids)) {
+			subexprs.push_back(bexpr);
+			selfIncluded = true;
+		}
+	}
+	// Review right
+	auto right = peel_off(bexpr->get_second_argument());
+	if (right->is_binary_operator()) {
+		auto rsubexprs = relevant_bin_subexpr(ids, bops, right);
+		subexprs.insert(end(subexprs), begin(rsubexprs), end(rsubexprs));
+	} else if (!right->is_constant() && selfRelevant && !selfIncluded) {
+		auto loc = std::static_pointer_cast<LocExp>(right);
+		assert(nullptr != loc);  // must be a location we're talking about
+		auto id = loc->get_exp_location()->get_identifier();
+		if (std::find(begin(ids), end(ids), id) != end(ids))
+			subexprs.push_back(bexpr);
+	}
+	return subexprs;
+}
+
+
 /// Build a IOSA model from given AST (viz. populate the ModelSuite)
 /// performing all necessary checks in the process.
 /// @return Whether the IOSA model could be successfully built
@@ -414,10 +477,10 @@ JaniTranslator::fresh_label(const Json::Value& hint)
 std::string
 JaniTranslator::rv_from(const std::string& clockName, bool force)
 {
-	auto realVarNamePtr = clock2real_.find(clockName);
-	if (end(clock2real_) == realVarNamePtr && !force)
+	auto realVarNamePtr = clk2rv_.find(clockName);
+	if (end(clk2rv_) == realVarNamePtr && !force)
 		return "";
-	else if (end(clock2real_) == realVarNamePtr && force)
+	else if (end(clk2rv_) == realVarNamePtr && force)
 		return REAL_VAR_FROM_CLOCK_PREFIX + clockName;
 	else
 		return realVarNamePtr->get();
@@ -1223,49 +1286,6 @@ JaniTranslator::build_IOSA_from_JANI()
 }
 
 
-// bool
-// JaniTranslator::build_IOSA_from_JANI_CTMC(const Json::Value& janiModel,
-// 										  Model& iosaModel)
-// {
-// 	assert(janiModel.isObject());
-// 	assert(janiModel.isMember("type"));
-// 	assert(janiModel["type"].asString() == "ctmc");
-// }
-//
-//
-// bool
-// JaniTranslator::build_IOSA_from_JANI_STA(const Json::Value& janiModel,
-// 										 Model& iosaModel)
-// {
-// 	assert(janiModel.isObject());
-// 	assert(janiModel.isMember("type"));
-// 	assert(janiModel["type"].asString() == "sta");
-//
-// 	// Format fields to fill in
-// 	clock2real_.clear();
-// 	realVars_.clear();
-//
-// 	// Translate each module
-// 	for (const auto& a: janiModel["automata"]) {
-// 		auto module_ptr = build_IOSA_module(a);
-// 		if (nullptr == module_ptr)
-// 			return false;
-// 		iosaModel.add_module(module_ptr);
-// 	}
-//
-//
-// 	/// @todo TODO erase debug print
-// 	ModelPrinter printer;
-// 	iosaModel.accept(printer);
-//
-//
-// 	throw_FigException("prematurely aborted; not ready yet!");
-//
-//
-// 	return ::build_IOSA_model_from_AST(iosaModel);
-// }
-
-
 shared_ptr<Exp>
 JaniTranslator::build_IOSA_expression(const Json::Value& JANIexpr)
 {
@@ -1522,6 +1542,104 @@ JaniTranslator::build_exponential_clock(const Json::Value& JANIedge,
 
 
 bool
+JaniTranslator::map_clocks_to_rv(const Json::Value& moduleLocations)
+{
+	assert(moduleLocations.isNull() || moduleLocations.isArray());
+
+	// Binary operators allowed to "combine" clocks with real vars
+	static const std::vector<ExpOp> ops = {
+		ExpOp::lt, ExpOp::le, ExpOp::gt, ExpOp::ge };
+
+	// Gather the names of the clocks and real vars we must pair up
+	std::vector<std::string> cids, rvids, allids;
+	cids.reserve(clk2rv_.size());
+	rvids.reserve(rv2dist_.size());
+	allids.reserve(clk2rv_.size() + rv2dist_.size());
+	for (const auto& p: clk2rv_) {
+		cids.push_back(p.first);
+		allids.push_back(p.first);
+	}
+	for (const auto& p: rv2dist_) {
+		rvids.push_back(p.first);
+		allids.push_back(p.first);
+	}
+
+	// Review all time-progress invariants, where the clocks and the real vars
+	// should appear compared to each other (these comparisons create the map)
+	for (const auto& loc: moduleLocations) {
+		assert(loc.isObject());
+		if (!loc.isMember("time-progress"))
+			continue;
+		assert(loc["time-progress"].isMember("exp"));
+		auto locExpr = build_IOSA_expression(loc["time-progress"]["exp"]);
+		for (auto comparison: relevant_bin_subexpr(allids, ops, locExpr)) {
+			// Check this is a valid clock/real_var comparison
+			auto left = std::dynamic_pointer_cast<LocExp>(comparison->get_first_argument());
+			auto right = std::dynamic_pointer_cast<LocExp>(comparison->get_second_argument());
+			if (nullptr == left || nullptr == right) {
+				figTechLog << "[ERROR] Invalid use of clock/real variable in "
+						   << "time-progress invariant of location \""
+						   << loc["name"].asString() << "\" (operator '"
+						   << Operator::operator_string(comparison->get_operator())
+						   << "' was used)\n";
+				return false;
+			}
+			// Build the map if possible
+			std::string clk, rv;
+			clk = left->get_exp_location()->get_identifier();
+			rv = right->get_exp_location()->get_identifier();
+			if (std::find(begin(cids), end(cids), clk) == end(cids))
+				rv.swap(clk);  // woops
+			if (std::find(begin(rvids), end(rvids), rv) == end(rvids) ||
+				std::find(begin(cids), end(cids), clk) == end(cids)) {
+				figTechLog << "[ERROR] Invalid use of clock/real variable in "
+						   << "time-progress invariant of location \""
+						   << loc["name"].asString() << "\" (variables \""
+						   << clk << "\" and \"" << rv << "\" not found)\n";
+				return false;
+			} else if (!clk2rv_[clk].empty() && rv != clk2rv_[clk]) {
+				figTechLog << "[ERROR] Invalid use of clock/real variable in "
+						   << "time-progress invariant of location \""
+						   << loc["name"].asString() << "\" (clock \"" << clk
+						   << "\" is used with two real variables: \"" << rv
+						   << "\" and \"" << clk2rv_[clk] << "\")\n";
+				return false;
+			} else {
+				clk2rv_[clk] = rv;
+			}
+		}
+	}
+
+	// Check all clocks were uniquely mapped
+	for (const auto& p: clk2rv_) {
+		auto clk = p.first;
+		auto rv = p.second;
+		if (rv.empty()) {
+			figTechLog << "[ERROR] Clock \"" << clk << "\" has no real "
+					   << "variable (and hence no distribution) associated.\n";
+			return false;
+		} else if (std::find(begin(rvids), end(rvids), rv) == end(rvids)) {
+			figTechLog << "[ERROR] Real variable \"" << rv << "\" associated "
+					   << "with clock \"" << clk << "\" is invalid.\n";
+			return false;
+		}
+		if (1 > cids.erase(std::remove(begin(cids), end(cids), clk), end(cids))) {
+			figTechLog << "[ERROR] Clock \"" << clk << "\" was mapped before "
+					   << "to a real variable other than \"" << rv << "\"\n";
+			return false;
+		}
+		if (1 > rvids.erase(std::remove(begin(rvids), end(rvids), rv), end(rvids))) {
+			figTechLog << "[ERROR] Real variable \"" << rv << "\" was mapped "
+					   << "before to a clock other than \"" << clk << "\"\n";
+			return false;
+		}
+	}
+
+	return true;
+}
+
+
+bool
 JaniTranslator::test_and_build_IOSA_synchronization(const Json::Value& JANIcomposition,
 													const Json::Value& JANIautomata)
 {
@@ -1657,7 +1775,8 @@ JaniTranslator::build_IOSA_module_from_CTMC(const Json::Value& JANIautomaton)
 	}
 	std::copy_if(begin(allClocks), end(allClocks), begin(notNullClocks),
 				 [](shared_ptr<ClockReset> ptr) { return nullptr != ptr; });
-	notNullClocks.erase(std::remove(begin(notNullClocks), end(notNullClocks), nullptr));
+	notNullClocks.erase(std::remove(begin(notNullClocks), end(notNullClocks), nullptr),
+						end(notNullClocks));
 
 	// Transitions
 	for (size_t i = 0ul ; i < NUM_EDGES ; i++) {
@@ -1725,6 +1844,46 @@ JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
 shared_ptr<ModuleAST>
 JaniTranslator::build_IOSA_module_from_STA(const Json::Value& JANIautomaton)
 {
+	assert(JANIautomaton.isMember("edges"));
+	assert(JANIautomaton["edges"].isArray());
+
+	shared_ptr<ModuleAST> module(make_shared<ModuleAST>());
+	module->set_name(JANIautomaton["name"].asString());
+
+	// Local variables
+	if (JANIautomaton.isMember("variables")) {
+		if (!JANIautomaton["variables"].isArray())
+			throw_FigException("JANI automaton's \"variables\" field must be an array");
+		for (const auto& v: JANIautomaton["variables"]) {
+			auto var = build_IOSA_variable(v);
+			if (nullptr == var)
+				return nullptr;
+			else if (var->get_type() != Type::tfloat)
+				rv2dist_[var->get_id()] = nullptr;
+			else {
+				if (var->get_type() == Type::tclock)
+					clk2rv_[var->get_id()] = "";
+				module->add_decl(var);
+			}
+		}
+		if (JANIautomaton.isMember("restrict-initial"))
+			figTechLog << "[WARNING] Ignoring \"restrict-initial\" field\n";
+
+		/// @todo TODO verify restrict-initial field for IOSA compatibility
+		///            and translate to variables initialization
+	}
+
+	// Map real vars to clocks
+	bool success = map_clocks_to_rv(JANIautomaton["locations"]);
+	if (!success) {
+		figTechLog << "[ERROR] Clocks manipulation in the STA automaton \""
+				   << module->get_name() << "\" isn't IOSA-compatible.\n";
+		return nullptr;
+	}
+
+
+
+	/// @todo TODO build transitions
 
 }
 

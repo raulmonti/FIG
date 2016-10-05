@@ -172,17 +172,17 @@ private:  // Class attributes
 	/// @note Used for IOSA -> STA translation
 	shared_ptr< Json::Value> timeProgressInvariant_;
 
-	/// Real variables defined in a JANI Specification file
-	/// which should later be mapped one-to-one to clock variables
+	/// Real variables defined in a JANI Specification file,
+	/// used to sample the distributions that IOSA maps to clocks
 	/// @note Used for STA -> IOSA translation
-	/// @see clock2real_
-	std::set< std::string > realVars_;
+	/// @see clk2rv_
+	std::map< std::string, std::shared_ptr<Dist> > rv2dist_;
 
 	/// Maping of clock variable names to their real variable counterparts,
 	/// used in JANI Specification files to model time progress through
 	/// location invariants.
 	/// @note Used for STA -> IOSA translation
-	std::map< std::string, Reference<std::string> > clock2real_;
+	std::map< std::string, std::string > clk2rv_;
 
 	/// Renaming from automata and label to fresh sync label name
 	/// @note Used for JANI -> IOSA translation
@@ -215,7 +215,7 @@ private:  // Class utils: general
 	///         if none found and '!force' then empty string;
 	///         if none found and 'force' then build one from clockName.
 	/// @see REAL_VAR_FROM_CLOCK_PREFIX
-	/// @see clock2real_
+	/// @see clk2rv_
 	std::string rv_from(const std::string& clockName, bool force = true);
 
 	/// Get the name of the sync label assigned to this module-label pair,
@@ -320,11 +320,11 @@ private:  // Visitor overrides for parsing
 	/// Append/assign to JANIfield the reduction of this IOSA boolean constant.
 	void visit(shared_ptr<BConst> node) override;
 
-	/// Append/assign to JANIfield the reduction of this IOSA totegral constant.
+	/// Append/assign to JANIfield the reduction of this IOSA integral constant.
 	void visit(shared_ptr<IConst> node) override;
 
-	/// Append/assign to JANIfield the reduction of this IOSA floattog potot constant
-	/// (i.e. JANI's "real")
+	/// Append/assign to JANIfield the reduction of this IOSA floating point
+	/// constant (i.e. JANI's "real")
 	void visit(shared_ptr<FConst> node) override;
 
 	/// Append/assign to JANIfield the identifier of this IOSA location
@@ -411,6 +411,16 @@ private:  // Class utils: JANI -> IOSA
 	/// @throw FigException if something goes terribly wrong
 	shared_ptr<ClockReset> build_exponential_clock(const Json::Value& JANIedge,
 												   const std::string& moduleName);
+
+	/// In the STA -> IOSA translation there should be a one-to-one map between
+	/// clocks and real variables; this routine interprets the time-progress
+	/// invariant of the locations and generates such map
+	/// @param moduleLocations Json array with the current automaton locations
+	/// @return Whether the required one-to-one map could be generated
+	/// @note Needs clk2rv_ and rv2dist_ with their keys already generated,
+	///       viz. the clocks and real vars names should already be known
+	/// @note Fills in the value data of clk2rv_
+	bool map_clocks_to_rv(const Json::Value& moduleLocations);
 
 	/// Verify synchronization is compatible with IOSA broadacst;
 	/// if so then interpret and build IOSA I/O synchronization
