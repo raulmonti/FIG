@@ -380,7 +380,7 @@ private:  // Class utils: JANI -> IOSA
 	/// @throw FigException if JANI VariableDeclaration is badly formated
 	shared_ptr<Decl> build_IOSA_variable(const Json::Value& JANIvar);
 
-	/// Build a RangedDecl from the given data
+	/// Build a RangedDecl from given data
 	/// @param varName Name of the variable from the JANI spec
 	/// @param varType JANI BoundedType specification
 	/// @param varInit Variable initialization or nullObject if absent
@@ -390,13 +390,21 @@ private:  // Class utils: JANI -> IOSA
 												const Json::Value& varType,
 												const Json::Value& varInit);
 
-	/// Build an InitializedDecl for a boolean variable from the given data
+	/// Build an InitializedDecl for a boolean variable from given data
 	/// @param varName Name of the variable from the JANI spec
 	/// @param varInit Variable initialization or nullObject if absent
 	/// @return IOSA InitializedDecl or nullptr if translation failed
 	/// @throw FigException if JANI data is badly formated
 	shared_ptr<Decl> build_IOSA_boolean_variable(const std::string& varName,
 												 const Json::Value& varInit);
+
+	/// Build a ClockReset for a clock from given data
+	/// @param clockName Name of the clock to reset
+	/// @param JANIdsamp Json object with the DistributionSampling to translate
+	/// @return IOSA ClockReset or nullptr if translation failed
+	/// @throw FigException if JANI DistributionSampling is badly formated
+	shared_ptr<ClockReset> build_IOSA_clock_reset(const std::string& clockName,
+												  const Json::Value& JANIdsamp);
 
 	/// In the CTMC -> IOSA translation there's one clock per non-input edge;
 	/// this routine checks the edge for "CTMC consistency" and builds the clock
@@ -412,15 +420,30 @@ private:  // Class utils: JANI -> IOSA
 	shared_ptr<ClockReset> build_exponential_clock(const Json::Value& JANIedge,
 												   const std::string& moduleName);
 
-	/// In the STA -> IOSA translation there should be a one-to-one map between
+	/// In the STA -> IOSA translation there should be a bijection between
 	/// clocks and real variables; this routine interprets the time-progress
 	/// invariant of the locations and generates such map
-	/// @param moduleLocations Json array with the current automaton locations
+	/// @param moduleLocations Json array with all locations from an automaton
 	/// @return Whether the required one-to-one map could be generated
 	/// @note Needs clk2rv_ and rv2dist_ with their keys already generated,
 	///       viz. the clocks and real vars names should already be known
 	/// @note Fills in the value data of clk2rv_
-	bool map_clocks_to_rv(const Json::Value& moduleLocations);
+	bool map_clocks_to_rvs(const Json::Value& moduleLocations);
+
+	/// In the STA -> IOSA translation there should be a bijection between
+	/// real variables and continuous probabilistic distributions; this
+	/// routine tries to map a real var to one such distribution
+	/// @param rvName    Real variable to map
+	/// @param JANIdsamp Json object with the DistributionSampling to translate
+	/// @return Whether the required one-to-one map could be generated,
+	///         e.g. false if the real var was already mapped to another
+	///         (different) distribution.
+	/// @throw FigException if JANI DistributionSampling is badly formated
+	/// @note map_clocks_to_rvs() must've been called beforehand
+	/// @note Needs rv2dist_ with its keys already generated,
+	///       viz. the real vars names should already be known
+	/// @note Fills in the value data of rv2dist_
+	bool map_rv_to_dist(const std::string rvName, const Json::Value& JANIdsamp);
 
 	/// Verify synchronization is compatible with IOSA broadacst;
 	/// if so then interpret and build IOSA I/O synchronization
@@ -448,7 +471,8 @@ private:  // Class utils: JANI -> IOSA
 	/// Get IOSA transition translated from this JANI edge,
 	/// interpreting the JANI automaton as a CTMC
 	/// @param JANIedge   Json object with JANI edge to translate (CTMC-like)
-	/// @param moduleName Name of the automata to which this edge belongs
+	/// @param moduleName Name of the automaton to which this edge belongs
+	/// @param moduleVars All variables of the automaton to which this edge belongs
 	/// @param edgeClock  Clock assigned to this edge or nullptr if none
 	/// @param allClocks  All the module clocks, to reset in every postcondition
 	/// @return IOSA transition or nullptr if translation failed
@@ -457,27 +481,40 @@ private:  // Class utils: JANI -> IOSA
 	shared_ptr<TransitionAST> build_IOSA_transition_from_CTMC(
 			const Json::Value& JANIedge,
 			const std::string& moduleName,
+			const shared_vector<Decl>& moduleVars,
 			std::shared_ptr<Location> edgeClock,
 			const shared_vector<ClockReset>& allClocks);
 
 	/// Get IOSA transition translated from this JANI edge,
 	/// interpreting the JANI automaton as an STA
-	/// @param JANIedge     Json object with JANI edge to translate (STA-like)
-	/// @param JANIlocation Json object with the current automaton locations
-	/// @param IOSAvars     Variables of the current IOSA module
+	/// @param JANIedge   Json object with JANI edge to translate (STA-like)
+	/// @param moduleName Name of the automaton to which this edge belongs
+	/// @param moduleVars All variables of the automaton to which this edge belongs
 	/// @return IOSA transition or nullptr if translation failed
 	/// @throw FigException if JANI edge specifiaction is badly formated
 	shared_ptr<TransitionAST> build_IOSA_transition_from_STA(
 			const Json::Value& JANIedge,
-			const Json::Value& JANIlocations,
-			const shared_vector<Decl>& IOSAvars);
+			const std::string& moduleName,
+			const shared_vector<Decl>& moduleVars);
+
+	/// Get IOSA precondition translated from this JANI guard,
+	/// interpreting the JANI automaton as an STA
+	/// @param JANIguard Json object with the Expression of an edge's guard
+	/// @return First: IOSA precondition or nullptr if translation failed
+	///         Second: Clock location if the guard belongs to an output edge
+	/// @throw FigException if JANI guard specifiaction is badly formated
+	std::pair< std::shared_ptr<Exp>,
+			   std::shared_ptr<Location> >
+	build_IOSA_precondition_from_STA(const Json::Value& JANIguard);
 
 	/// Get IOSA postcondition from given JANI edge destinations vector
-	/// @param JANIdest Json array with JANI edge-detinations to translate
+	/// @param JANIdest  Json array with JANI edge-detinations to translate
+	/// @param validVars All variables of the current automaton
 	/// @return IOSA transition postcondition or empty vector if translation
-	///         failed (or if JANIdest is empty)
+	///         failed (or if JANIdest is has no assignments)
 	/// @throw FigException if JANI edge-destinations specifiaction is badly formated
-	shared_vector<Effect> build_IOSA_postcondition(const Json::Value& JANIdest);
+	shared_vector<Effect> build_IOSA_postcondition(const Json::Value& JANIdest,
+												   const shared_vector<Decl>& validVars);
 };
 
 } // namespace fig

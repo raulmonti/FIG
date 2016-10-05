@@ -907,6 +907,10 @@ public:
         return (false);
     }
 
+	virtual size_t num_parameters() {
+		return 0ul;
+	}
+
     shared_ptr<class SingleParameterDist> to_single_parameter() {
         assert(has_single_parameter());
         return std::static_pointer_cast<SingleParameterDist>(shared_from_this());
@@ -941,6 +945,10 @@ public:
         return (true);
     }
 
+	virtual size_t num_parameters() {
+		return 1ul;
+	}
+
     /// Acceptor
     virtual void accept(Visitor& visit) override;
 };
@@ -948,6 +956,7 @@ public:
 /**
  * @brief MultipleParameterDist
  * @example uniform(4, 10)
+ * @note Leo, this is a lie, 2 != "multiple"
  */
 class MultipleParameterDist : public Dist {
 private:
@@ -977,6 +986,10 @@ public:
     virtual bool has_multiple_parameters() override {
         return (true);
     }
+
+	virtual size_t num_parameters() {
+		return 2ul;
+	}
 
     virtual void accept(Visitor& visit) override;
 };

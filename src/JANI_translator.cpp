@@ -130,7 +130,7 @@ const std::map< ExpOp, std::string > JANI_operator_string =
 
 
 /// IOSA -> JANI clock distribution translator
-const std::map< DistType, std::string > JANI_distribution_string =
+const std::map< DistType, std::string > JANI_distribution =
 {
 	{ DistType::uniform,     "Uniform"    },
 	{ DistType::exponential, "Exponential"},
@@ -140,6 +140,20 @@ const std::map< DistType, std::string > JANI_distribution_string =
 	{ DistType::rayleigh,    "Rayleigh"   },
 	{ DistType::gamma,       "Gamma"      },
 	{ DistType::erlang,      "Erlang"     }
+};
+
+
+/// IOSA -> JANI clock distribution name translator
+const std::map< std::string, std::string > JANI_distribution_string =
+{
+	{ "uniform",     "Uniform"    },
+	{ "exponential", "Exponential"},
+	{ "normal",      "Normal"     },
+	{ "logNormal",   "LogNormal"  },
+	{ "weibull",     "Weibull"    },
+	{ "rayleigh",    "Rayleigh"   },
+	{ "gamma",       "Gamma"      },
+	{ "erlang",      "Erlang"     }
 };
 
 
@@ -196,6 +210,20 @@ const std::map< std::string, std::string > IOSA_operator_string =
 
 
 /// JANI -> IOSA clock distribution translator
+const std::map< std::string, DistType > IOSA_distribution =
+{
+	{ "Uniform",     DistType::uniform    },
+	{ "Exponential", DistType::exponential},
+	{ "Normal",      DistType::normal     },
+	{ "LogNormal",   DistType::lognormal  },
+	{ "Weibull",     DistType::weibull    },
+	{ "Rayleigh",    DistType::rayleigh   },
+	{ "Gamma",       DistType::gamma      },
+	{ "Erlang",      DistType::erlang     }
+};
+
+
+/// JANI -> IOSA clock distribution name translator
 const std::map< std::string, std::string > IOSA_distribution_string =
 {
 	{ "Uniform",     "uniform"    },
@@ -339,7 +367,7 @@ relevant_bin_subexpr(const std::vector<std::string>& ids,
 					 shared_ptr<Exp> expr)
 {
 	shared_vector<BinOpExp> subexprs;
-	bool selfIncluded(false);
+	bool selfRelevant(false), selfIncluded(false);
 	// Peel unary operators wrapping up expression and return the juicy pulp
 	static auto peel_off = [](shared_ptr<Exp> expr) {
 		while (expr->is_unary_operator())
@@ -350,8 +378,8 @@ relevant_bin_subexpr(const std::vector<std::string>& ids,
 	if (!expr->is_binary_operator())
 		return subexprs;
 	auto bexpr = std::static_pointer_cast<BinOpExp>(expr);
-	const bool selfRelevant = std::find(begin(bops), end(bops), bexpr->get_operator())
-								!= end(bops);
+	selfRelevant = std::find(begin(bops), end(bops), bexpr->get_operator())
+					 != end(bops);
 	// Review left
 	auto left = peel_off(bexpr->get_first_argument());
 	if (left->is_binary_operator()) {
@@ -380,6 +408,10 @@ relevant_bin_subexpr(const std::vector<std::string>& ids,
 	}
 	return subexprs;
 }
+
+
+std::shared_ptr< Exp >
+
 
 
 /// Build a IOSA model from given AST (viz. populate the ModelSuite)
@@ -1310,6 +1342,11 @@ JaniTranslator::build_IOSA_expression(const Json::Value& JANIexpr)
 		expr = make_shared<LocExp>(JANIexpr.asString());
 		goto exit_point;
 	}
+	// Distribution sampling?
+	if (JANIexpr.isObject() && JANIexpr.isMember("distribution")) {
+		figTechLog << "[ERROR] Clock samplings need build_IOSA_clock_reset()\n";
+		goto exit_point;
+	}
 	// Operator!
 	if ( ! (JANIexpr.isObject() && JANIexpr.isMember("op")))
 		throw_FigException("this doesn't look like an operator declaration");
@@ -1497,6 +1534,67 @@ JaniTranslator::build_IOSA_boolean_variable(const std::string& varName,
 
 
 shared_ptr<ClockReset>
+JaniTranslator::build_IOSA_clock_reset(const std::string& clockName,
+									   const Json::Value& JANIdsamp)
+{
+	assert(JANIdsamp.isObject());
+	if ( ! (JANIdsamp.isMember("distribution")   &&
+			JANIdsamp.isMember("args")           &&
+			JANIdsamp["distribution"].isObject() &&
+			JANIdsamp["args"].isArray()) )
+		throw_FigException("doesn't look like a distribution sampling to me");
+	// Check distribution for compatibility
+	const auto JANIdist = JANIdsamp["distribution"].asString();
+	if (IOSA_distribution.find(JANIdist) == end(IOSA_distribution)) {
+		figTechLog << "[ERROR] FIG doesn't handle the \"" << JANIdist
+				   << "\" distribution yet.\n";
+		return nullptr;
+	}
+	const DistType distType(IOSA_distribution[JANIdist]);
+	// Retrieve the distribution parameters
+	shared_vector<Exp> params;
+	params.reserve(JANIdsamp["args"].size());
+	for (const auto& arg: JANIdsamp["args"]) {
+		auto param = build_IOSA_expression(arg);
+		if (nullptr == param) {
+			figTechLog << "[ERROR] Failed to translate an argument from the \""
+					   << JANIdist << "\" distribution.\n";
+			return nullptr;
+		}
+		params.push_back(param);
+	}
+	// Build distribution
+	shared_ptr<Dist> IOSAdist(nullptr);
+	switch (distType)
+	{
+	case DistType::exponential:
+	case DistType::rayleigh:
+		if (params.empty()) {
+			figTechLog << "[ERROR] Missing parameter for \"" << JANIdist
+					   << "\" distribution (one required).\n";
+			return nullptr;
+		}
+		IOSAdist = make_shared<SingleParameterDist>(distType, params[0]);
+		break;
+	case DistType::uniform:
+	case DistType::normal:
+	case DistType::lognormal:
+	case DistType::weibull:
+	case DistType::erlang:
+		if (2ul > params.size()) {
+			figTechLog << "[ERROR] Missing parameters for \"" << JANIdist
+					   << "\" distribution (two required).\n";
+			return nullptr;
+		}
+		IOSAdist = make_shared<MultipleParameterDist>(distType, params[0], params[1]);
+		break;
+	}
+	return make_shared<ClockReset>(make_shared<Location>(clockName), IOSAdist);
+}
+
+
+
+shared_ptr<ClockReset>
 JaniTranslator::build_exponential_clock(const Json::Value& JANIedge,
 										const std::string& moduleName)
 {
@@ -1542,13 +1640,14 @@ JaniTranslator::build_exponential_clock(const Json::Value& JANIedge,
 
 
 bool
-JaniTranslator::map_clocks_to_rv(const Json::Value& moduleLocations)
+JaniTranslator::map_clocks_to_rvs(const Json::Value& moduleLocations)
 {
-	assert(moduleLocations.isNull() || moduleLocations.isArray());
+	assert(moduleLocations.isArray());
 
 	// Binary operators allowed to "combine" clocks with real vars
 	static const std::vector<ExpOp> ops = {
 		ExpOp::lt, ExpOp::le, ExpOp::gt, ExpOp::ge };
+	auto op_str = Operator::operator_string;
 
 	// Gather the names of the clocks and real vars we must pair up
 	std::vector<std::string> cids, rvids, allids;
@@ -1571,17 +1670,16 @@ JaniTranslator::map_clocks_to_rv(const Json::Value& moduleLocations)
 		if (!loc.isMember("time-progress"))
 			continue;
 		assert(loc["time-progress"].isMember("exp"));
+		const std::string errMsg("[ERROR] Invalid use of clock/real variable in "
+			"time-progress invariant of location \"" + loc["name"].asString() + "\"");
 		auto locExpr = build_IOSA_expression(loc["time-progress"]["exp"]);
 		for (auto comparison: relevant_bin_subexpr(allids, ops, locExpr)) {
 			// Check this is a valid clock/real_var comparison
 			auto left = std::dynamic_pointer_cast<LocExp>(comparison->get_first_argument());
 			auto right = std::dynamic_pointer_cast<LocExp>(comparison->get_second_argument());
 			if (nullptr == left || nullptr == right) {
-				figTechLog << "[ERROR] Invalid use of clock/real variable in "
-						   << "time-progress invariant of location \""
-						   << loc["name"].asString() << "\" (operator '"
-						   << Operator::operator_string(comparison->get_operator())
-						   << "' was used)\n";
+				figTechLog << errMsg << " (in comparison with operator '"
+						   << op_str(comparison->get_operator()) << "')\n";
 				return false;
 			}
 			// Build the map if possible
@@ -1592,17 +1690,13 @@ JaniTranslator::map_clocks_to_rv(const Json::Value& moduleLocations)
 				rv.swap(clk);  // woops
 			if (std::find(begin(rvids), end(rvids), rv) == end(rvids) ||
 				std::find(begin(cids), end(cids), clk) == end(cids)) {
-				figTechLog << "[ERROR] Invalid use of clock/real variable in "
-						   << "time-progress invariant of location \""
-						   << loc["name"].asString() << "\" (variables \""
-						   << clk << "\" and \"" << rv << "\" not found)\n";
+				figTechLog << errMsg << " (variables \"" << clk << "\" and \""
+						   << rv << "\" not found)\n";
 				return false;
 			} else if (!clk2rv_[clk].empty() && rv != clk2rv_[clk]) {
-				figTechLog << "[ERROR] Invalid use of clock/real variable in "
-						   << "time-progress invariant of location \""
-						   << loc["name"].asString() << "\" (clock \"" << clk
-						   << "\" is used with two real variables: \"" << rv
-						   << "\" and \"" << clk2rv_[clk] << "\")\n";
+				figTechLog << errMsg << " (clock \"" << clk << "\" is used "
+						   << "with two real variables: \"" << rv << "\" "
+						   << "and \"" << clk2rv_[clk] << "\")\n";
 				return false;
 			} else {
 				clk2rv_[clk] = rv;
@@ -1610,7 +1704,7 @@ JaniTranslator::map_clocks_to_rv(const Json::Value& moduleLocations)
 		}
 	}
 
-	// Check all clocks were uniquely mapped
+	// Double check all clocks were uniquely mapped (this is serious shit)
 	for (const auto& p: clk2rv_) {
 		auto clk = p.first;
 		auto rv = p.second;
@@ -1619,8 +1713,8 @@ JaniTranslator::map_clocks_to_rv(const Json::Value& moduleLocations)
 					   << "variable (and hence no distribution) associated.\n";
 			return false;
 		} else if (std::find(begin(rvids), end(rvids), rv) == end(rvids)) {
-			figTechLog << "[ERROR] Real variable \"" << rv << "\" associated "
-					   << "with clock \"" << clk << "\" is invalid.\n";
+			figTechLog << "[ERROR] Invalid real variable (\"" << rv << "\") "
+					   << "associated with clock \"" << clk << "\".\n";
 			return false;
 		}
 		if (1 > cids.erase(std::remove(begin(cids), end(cids), clk), end(cids))) {
@@ -1635,6 +1729,76 @@ JaniTranslator::map_clocks_to_rv(const Json::Value& moduleLocations)
 		}
 	}
 
+	return true;
+}
+
+
+bool
+JaniTranslator::map_rv_to_dist(const std::string& rvName,
+							   const Json::Value& JANIdsamp)
+{
+	// Find matching clock
+	auto pair = std::find_if(begin(clk2rv_), end(clk2rv_),
+							 [&rvName](const std::pair<string,string>& p)
+							 { return p.second == rvName; } );
+	assert(pair != end(clk2rv_));
+	// Translate distribution sampling
+	auto reset = build_IOSA_clock_reset(pair.first, JANIdsamp);
+	if (nullptr == reset) {
+		figTechLog << "[ERROR] Failed translating distribution sampling "
+				   << "for real variable \"" << rvName << "\"\n";
+		return false;
+	}
+	// Map; if there was any previous sampling then check compatibility
+	if (nullptr == rv2dist_[rvName]) {
+		rv2dist_[rvName] = reset;
+	} else {
+		const string errMsg("[ERROR] IOSA requires a single distribution per clock");
+		auto oldDist = rv2dist_[rvName]->get_dist(),
+			 newDist = reset->get_dist();
+		if (oldDist->get_type() != newDist->get_type()) {
+			figTechLog << errMsg << " (real var \"" << rvName << "\" is "
+					   << "sampled from \"" << JANI_distribution[oldDist->get_type()]
+					   << "\" and also \"" << JANI_distribution[newDist->get_type()]
+					   << "\")\n";
+			return false;
+		} else if (oldDist->num_parameters() != newDist->num_parameters()) {
+			figTechLog << errMsg << " (real var \"" << rvName << "\" "
+					   << "is sampled from several distributions with "
+					   << "different number of arguments)\n";
+			return false;
+		// FIXME: following checks may generate unnecessary trouble
+		} else if (oldDist->has_single_parameter()) {
+			assert(newDist->has_single_parameter());
+			auto oldParamExpr = oldDist->to_single_parameter()->get_parameter();
+			auto newParamExpr = newDist->to_single_parameter()->get_parameter();
+			if (oldParamExpr->get_type() != newParamExpr->get_type()) {
+				figTechLog << errMsg << " (real var \"" << rvName << "\" "
+						   << "is sampled from several single-parameter "
+						   << "distributions with different arguments)\n";
+				return false;
+			}
+		} else {
+			assert(oldDist->has_multiple_parameters());
+			assert(newDist->has_multiple_parameters()());
+			auto oldParamExpr = oldDist->to_multiple_parameter()->get_first_parameter();
+			auto newParamExpr = newDist->to_multiple_parameter()->get_first_parameter();
+			if (oldParamExpr->get_type() != newParamExpr->get_type()) {
+				figTechLog << errMsg << " (real var \"" << rvName << "\" "
+						   << "is sampled from several multiple-parameter "
+						   << "distributions with different first arguments)\n";
+				return false;
+			}
+			oldParamExpr = oldDist->to_multiple_parameter()->get_second_parameter();
+			newParamExpr = newDist->to_multiple_parameter()->get_second_parameter();
+			if (oldParamExpr->get_type() != newParamExpr->get_type()) {
+				figTechLog << errMsg << " (real var \"" << rvName << "\" "
+						   << "is sampled from several multiple-parameter "
+						   << "distributions with different second arguments)\n";
+				return false;
+			}
+		}
+	}
 	return true;
 }
 
@@ -1786,6 +1950,7 @@ JaniTranslator::build_IOSA_module_from_CTMC(const Json::Value& JANIautomaton)
 										: allClocks[i]->get_effect_location();
 		auto trans = build_IOSA_transition_from_CTMC(edge,
 													 module->get_name(),
+													 module->get_local_decls(),
 													 edgeClock,
 													 notNullClocks);
 		if (nullptr == trans)
@@ -1800,6 +1965,7 @@ JaniTranslator::build_IOSA_module_from_CTMC(const Json::Value& JANIautomaton)
 shared_ptr<TransitionAST>
 JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
 												const std::string& moduleName,
+												const shared_vector<Decl>& moduleVars,
 												std::shared_ptr<Location> edgeClock,
 												const shared_vector<ClockReset>& allClocks)
 {
@@ -1813,15 +1979,8 @@ JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
 	else
 		pre = make_shared<BConst>(true);  // empty guard => "true"
 	// Build postcondition
-	auto pos = build_IOSA_postcondition(JANIedge["destinations"]);
-	if (pos.empty() && !JANIedge["destinations"].empty()) {
-		figTechLog << "[ERROR] FIG failed translating the destinations in "
-				   << "an edge from automaton \"" << moduleName << "\"\n";
-		return nullptr;
-	} else {
-		// All clocks must be reset in all edges
-		pos.insert(end(postcondition), begin(allClocks), end(allClocks));
-	}
+	auto pos = build_IOSA_postcondition(JANIedge["destinations"], moduleVars);
+	pos.insert(end(pos), begin(allClocks), end(allClocks));  // reset all clocks
 	// Build transition
 	if (nullptr == edgeClock) {
 		// Input
@@ -1841,7 +2000,7 @@ JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
 }
 
 
-shared_ptr<ModuleAST>
+std::shared_ptr<ModuleAST>
 JaniTranslator::build_IOSA_module_from_STA(const Json::Value& JANIautomaton)
 {
 	assert(JANIautomaton.isMember("edges"));
@@ -1849,6 +2008,8 @@ JaniTranslator::build_IOSA_module_from_STA(const Json::Value& JANIautomaton)
 
 	shared_ptr<ModuleAST> module(make_shared<ModuleAST>());
 	module->set_name(JANIautomaton["name"].asString());
+	clk2rv_.clear();
+	rv2dist_.clear();
 
 	// Local variables
 	if (JANIautomaton.isMember("variables")) {
@@ -1873,35 +2034,150 @@ JaniTranslator::build_IOSA_module_from_STA(const Json::Value& JANIautomaton)
 		///            and translate to variables initialization
 	}
 
-	// Map real vars to clocks
-	bool success = map_clocks_to_rv(JANIautomaton["locations"]);
-	if (!success) {
+	// Map clocks to their distributions
+	if (!map_clocks_to_rvs(JANIautomaton["locations"]) ||
+		!map_rvs_to_dist(JANIautomaton["edges"])) {
 		figTechLog << "[ERROR] Clocks manipulation in the STA automaton \""
 				   << module->get_name() << "\" isn't IOSA-compatible.\n";
 		return nullptr;
 	}
 
+	// Transitions
+	for (const auto& edge: JANIautomaton["edges"]) {
+		auto trans = build_IOSA_transition_from_STA(edge,
+													module->get_name(),
+													module->get_local_decls());
+		if (nullptr == trans)
+			return nullptr;
+		module->add_transition(trans);
+	}
 
-
-	/// @todo TODO build transitions
-
+	return module;
 }
 
-// shared_ptr<TransitionAST>
-// JaniTranslator::build_IOSA_transition_from_STA(const Json::Value& JANIedge,
-// 											   const Json::Value& JANIlocations,
-// 											   const shared_vector<Decl>& IOSAmVars)
-// {
-// 	/// @todo TODO  implement
-// 	return nullptr;
-// }
+std::shared_ptr<TransitionAST>
+JaniTranslator::build_IOSA_transition_from_STA(const Json::Value& JANIedge,
+											   const std::string& moduleName,
+											   const shared_vector<Decl>& moduleVars)
+{
+	assert(JANIedge.isObject());
+	assert(JANIedge.isMember("destinations"));
+	// Build precondition
+	shared_ptr<Exp> pre;
+	std::shared_ptr<Location> edgeClock;
+	if (JANIedge.isMember("guard"))
+		std::tie(pre, edgeClock) =
+				build_IOSA_precondition_from_STA(JANIedge["guard"]["exp"]);
+	else
+		pre = make_shared<BConst>(true);  // empty guard => "true"
+	// Build postcondition
+	auto pos = build_IOSA_postcondition(JANIedge["destinations"], moduleVars);
+	// Build transition
+	if (nullptr == edgeClock) {
+		// Input
+		assert(JANIedge.isMember("action"));
+		auto label = sync_label(moduleName, JANIedge["action"].asString());
+		assert(!label.empty());
+		return make_shared<InputTransition>(label, pre, pos);
+	} else if (JANIedge.isMember("action")) {
+		// Output
+		auto label = sync_label(moduleName, JANIedge["action"].asString());
+		assert(!label.empty());
+		return make_shared<OutputTransition>(label, pre, pos, edgeClock);
+	} else {
+		// Tau
+		return make_shared<TauTransition>(pre, pos, edgeClock);
+	}
+}
+
+
+std::pair< std::shared_ptr<Exp>,
+		   std::shared_ptr<Location> >
+JaniTranslator::build_IOSA_precondition_from_STA(const Json::Value& JANIguard)
+{
+	/// @todo TODO implement!
+	return std::make_pair(nullptr, nullptr);
+}
 
 
 shared_vector<Effect>
-JaniTranslator::build_IOSA_postcondition(const Json::Value& JANIdest)
+JaniTranslator::build_IOSA_postcondition(const Json::Value& JANIdest,
+										 const shared_vector<Decl>& validVars)
 {
-	/// @todo TODO  implement
-	return shared_vector<Effect>();
+	assert(JANIdest.isArray());
+	assert(!JANIdest.empty());
+	assert(JANIdest[0].isObject());
+
+	if (JANIdest.size() > 1ul) {
+		if (!JANIdest[0].isMember("probability"))
+			figTechLog << "[ERROR] IOSA is incompatible with internal non-determinism.\n";
+		else
+			figTechLog << "[ERROR] FIG doesn't handle probabilities in edges yet.\n";
+		return shared_vector<Effect>();
+	}
+
+	// Distinguish clocks from the other vars
+	std::vector<std::string> vVars, vClocks;
+	vVars.reserve(validVars.size());
+	vClocks.reserve(validVars.size());
+	for (auto decl: validVars) {
+		if (decl->get_type() == Type::tclock)
+			vClocks.emplace_back(decl->get_id());
+		else
+			vVars.emplace_back(decl->get_id());
+	}
+	auto is_valid_var = [&vVars] (const std::string& var) {
+		return std::find(begin(vVars), end(vVars), var) != end(vVars); };
+	auto is_valid_clk = [&vClocks] (const std::string& clk) {
+		return std::find(begin(vClocks), end(vClocks), clk) != end(vClocks); };
+
+	// Build assignments and clock resets of this postcondition
+	shared_vector<Effect> pos;
+	pos.reserve(JANIdest[0]["assignments"].size());
+	std::stack<std::string> postponedClockResets;
+	for (const auto& ass: JANIdest[0]["assignments"]) {
+		auto lvalue = ass["ref"].asString();
+		if (is_valid_var(lvalue)) {
+			// Variable assignment
+			auto loc = make_shared<Location>(lvalue);
+			auto rvalue = build_IOSA_expression(ass["value"]);
+			pos.push_back(make_shared<Assignment>(loc, rvalue));
+		} else if (is_valid_clk(lvalue)) {
+			// Clock reset
+			auto reset = rv2dist_.find(clk2rv_[lvalue]);
+			assert(end(rv2dist_) != reset);
+			if (nullptr == *reset)
+				postponedClockResets.emplace(lvalue);
+			else
+				pos.push_back(*reset);
+		} else if (rv2dist_.find(lvalue) != end(rv2dist_)) {
+			// Distribution sampling of real var (map for later)
+			if (!map_rv_to_dist(lvalue, ass["value"])) {
+				figTechLog << "[ERROR] Problems with distribution sampling "
+						   << "for real variable \"" << lvalue << "\"\n";
+				return shared_vector<Effect>();
+			}
+		} else {
+			throw_FigException("invalid assignment for lvalue \""+lvalue+"\"");
+		}
+	}
+
+	// Review postponed clocks
+	while (!postponedClockResets.empty()) {
+		auto clk = postponedClockResets.top();
+		auto reset = rv2dist_.find(clk2rv_[clk]);
+		assert(end(rv2dist_) != reset);
+		if (nullptr != *reset)
+			pos.push_back(*reset);
+		else {
+			figTechLog << "[ERROR] Failed sampling clock \"" << clk << "\" "
+					   << "(mapped to real var \"" << clk2rv_[clk] << "\")\n";
+			return shared_vector<Effect>();
+		}
+		postponedClockResets.pop();
+	}
+
+	return pos;
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //
