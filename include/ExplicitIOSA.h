@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <cassert>
 #include <utility>
+#include <queue>
+#include <functional>
 
 #include "ModelAST.h"
 #include "ModuleScope.h"
@@ -86,10 +88,10 @@ public:
 class Evaluator : public Visitor {
 private:
     state_value_t value;
-    State state;
+    shared_ptr<State> state;
 
 public:
-    Evaluator(const State& state)
+    Evaluator(shared_ptr<State> &state)
         : value {0}, state {state} {}
 
     void visit(shared_ptr<IConst> node);
@@ -154,13 +156,36 @@ public:
         auto snd = its.second;
         bool result = false;
         while (fst != snd && !result) {
-            const Edge<V,D>& edge = fst->second;
-            auto less = edges.key_comp();
-            result = !less(edge.get_dst(), edge.get_src()) &&
-                    !less(edge.get_dst(), edge.get_src());
+            const Edge<V,D>& curr = fst->second;
+            result = same_edge(curr, edge);
+            /*std::cout << "COMPARE: ";
+            edge.get_src()->print_state(std::cout);
+            std::cout << " WITH: ";
+            edge.get_dst()->print_state(std::cout);
+            std::cout << " RESULT : " <<  result;
+            std::cout << std::endl;*/
             fst++;
         }
         return (result);
+    }
+
+    bool same_vertex(const V& v1, const V& v2) {
+        auto less = edges.key_comp();
+        return (!less(v1, v2) && !less(v2, v1));
+    }
+
+    bool same_edge(const Edge<V,D> &edge1, const Edge<V,D> &edge2) {
+        return same_vertex(edge1.get_src(), edge2.get_src()) &&
+                same_vertex(edge1.get_dst(), edge2.get_dst());
+    }
+
+    void print(std::function<void (Edge<V, D>)> printer) {
+        auto it = edges.cbegin();
+        while (it != edges.cend()) {
+            const Edge<V,D>&edge = it->second;
+            printer(edge);
+            it++;
+        }
     }
 };
 
@@ -201,14 +226,24 @@ private:
 
 public:
     ModuleIOSA(std::shared_ptr<ModuleAST> ast) {
-        assert(scope != nullptr);
         this->ast = ast;
         this->scope = ModuleScope::scopes.at(ast->get_name());
         build_initial_state();
-        //build_graph();
+        process_transitions();
+        auto pr  = [] (Edge<shared_ptr<State>,TransitionInfo> edge) -> void {
+            TransitionInfo data = edge.get_data();
+            edge.get_src()->print_state(std::cout);
+            std::cout << "--[ ";
+            std::cout << data.get_label_id();
+            std::cout << " ]-->";
+            edge.get_dst()->print_state(std::cout);
+            std::cout << std::endl;
+        };
+        iosa.print(pr);
     }
 
 private:
+
     int get_value(shared_ptr<Exp> exp) const {
         if(!exp->is_constant()) {
             throw_FigException("Expected a constant expression.");
@@ -237,6 +272,8 @@ private:
         } else if (type == Type::tbool) {
             low = 0;
             upp = 1;
+        } else if (type == Type::tclock) {
+            return; //ignore
         } else {
             throw_FigException("Unsupported type at this stage");
         }
@@ -259,52 +296,59 @@ private:
         }
     }
 
-    /*
-    bool process_transitions() {
-        bool some_new = false;
-        State st = initial_state;
-        for (auto entry : scope->transition_by_label_map()) {
-            shared_ptr<TransitionAST> tr = entry.second;
-            add_edge(st)
+    void process_transitions() {
+        shared_ptr<State> next = initial_state;
+        std::queue<shared_ptr<State>> states;
+        states.push(initial_state);
+        while (!states.empty()) {
+            shared_ptr<State> current = states.front();
+            states.pop();
+            for (auto entry : scope->transition_by_label_map()) {
+                shared_ptr<TransitionAST> tr = entry.second;
+                next = add_edge(current, tr);
+                if (next != nullptr) {
+                    states.push(next);
+                }
+            }
         }
-    }*/
+    }
 
-    bool holds_expression(const State &st, shared_ptr<Exp> bexp) {
+    bool holds_expression(shared_ptr<State> st, shared_ptr<Exp> bexp) {
         Evaluator evaluator (st);
         bexp->accept(evaluator);
         return (evaluator.get_value() == 1);
     }
 
-    bool add_edge(const State& st,
-                    shared_ptr<TransitionAST> transition) {
-        bool result = false;
+    shared_ptr<State> add_edge(shared_ptr<State> st,
+                               shared_ptr<TransitionAST> transition) {
+        shared_ptr<State> result = nullptr;
         shared_ptr<Exp> pre = transition->get_precondition();
         if (holds_expression(st, pre)) {
             shared_vector<Assignment>& as = transition->get_assignments();
-            const State &cpy = process_assignments(st, as);
-            if (!cpy.is_valid()) {
+            shared_ptr<State> cpy = process_assignments(st, as);
+            if (!cpy->is_valid()) {
                 throw_FigException("Generated out-of-range state.");
             }
             TransitionInfo tinfo
                     (transition->get_label(), transition->get_label_type());
-            IEdge edge (make_shared<State>(st), make_shared<State>(cpy), tinfo);
-            result = !iosa.has_edge(edge);
-            if (result) {
+            IEdge edge (st, cpy, tinfo);
+            if (!iosa.has_edge(edge)) {
+                result = cpy;
                 iosa.add_edge(edge);
             }
         }
         return (result);
     }
 
-    State process_assignments(const State& st,
-                              shared_vector<Assignment>& avec) {
-        State copy (st);
+    shared_ptr<State> process_assignments(shared_ptr<State> st,
+                                          shared_vector<Assignment>& avec) {
+        shared_ptr<State> copy = make_shared<State>(*st);
         for (shared_ptr<Assignment> as : avec) {
             shared_ptr<Exp> rhs = as->get_rhs();
             Evaluator evaluator (st);
             rhs->accept(evaluator);
             std::string name = as->get_effect_location()->get_identifier();
-            copy.set_variable_value(name, evaluator.get_value());
+            copy->set_variable_value(name, evaluator.get_value());
         }
         return (copy);
     }
@@ -319,11 +363,6 @@ public:
         }
     }
 };
-
-
-
-
-
 
 } //namespace iosa
 

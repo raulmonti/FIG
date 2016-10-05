@@ -5,7 +5,6 @@
 namespace iosa {
 
 void State::print_state(std::ostream& ss) {
-    ss  << "State:" << std::endl;
     for (auto entry : pos) {
         const std::string &name = entry.first;
         ss << name << ": " << this->get_variable_value(name) << " ";
@@ -39,7 +38,7 @@ void Evaluator::visit(shared_ptr<FConst>) {
 void Evaluator::visit(shared_ptr<LocExp> exp) {
     shared_ptr<Location> loc = exp->get_exp_location();
     string id = loc->get_identifier();
-    value = state.get_variable_value(id);
+    value = state->get_variable_value(id);
 }
 
 void Evaluator::visit(shared_ptr<UnOpExp> exp) {

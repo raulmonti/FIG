@@ -316,8 +316,6 @@ void compile_model(bool modelAlreadyBuilt) {
 	}
 	tech_log("- Type-checking  succeeded\n");
 
-    modelAST->accept(printer);
-
 
     // Reduces expressions when possible.
     // If there are irreducible constants, has_errors() is true.
