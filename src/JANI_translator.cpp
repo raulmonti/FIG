@@ -1965,7 +1965,7 @@ JaniTranslator::build_IOSA_module_from_CTMC(const Json::Value& JANIautomaton)
 shared_ptr<TransitionAST>
 JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
 												const std::string& moduleName,
-												const shared_vector<Decl>& moduleVars,
+												const shared_vector<Decl>& moduleDecls,
 												std::shared_ptr<Location> edgeClock,
 												const shared_vector<ClockReset>& allClocks)
 {
@@ -1979,7 +1979,7 @@ JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
 	else
 		pre = make_shared<BConst>(true);  // empty guard => "true"
 	// Build postcondition
-	auto pos = build_IOSA_postcondition(JANIedge["destinations"], moduleVars);
+	auto pos = build_IOSA_postcondition(JANIedge["destinations"], moduleDecls);
 	pos.insert(end(pos), begin(allClocks), end(allClocks));  // reset all clocks
 	// Build transition
 	if (nullptr == edgeClock) {
@@ -2047,8 +2047,11 @@ JaniTranslator::build_IOSA_module_from_STA(const Json::Value& JANIautomaton)
 		auto trans = build_IOSA_transition_from_STA(edge,
 													module->get_name(),
 													module->get_local_decls());
-		if (nullptr == trans)
+		if (nullptr == trans) {
+			figTechLog << "[ERROR] Failed translating an edge in the STA auto"
+					   << "maton \"" << module->get_name() << "\" to IOSA.\n";
 			return nullptr;
+		}
 		module->add_transition(trans);
 	}
 
@@ -2058,20 +2061,37 @@ JaniTranslator::build_IOSA_module_from_STA(const Json::Value& JANIautomaton)
 std::shared_ptr<TransitionAST>
 JaniTranslator::build_IOSA_transition_from_STA(const Json::Value& JANIedge,
 											   const std::string& moduleName,
-											   const shared_vector<Decl>& moduleVars)
+											   const shared_vector<Decl>& moduleDecls)
 {
 	assert(JANIedge.isObject());
 	assert(JANIedge.isMember("destinations"));
+	// Distinguish clocks from the other vars
+	shared_vector<Decl> moduleVars, moduleClocks;
+	moduleVars.reserve(moduleDecls.size());
+	moduleClocks.reserve(moduleDecls.size());
+	for (auto decl: moduleDecls) {
+		if (decl->get_type() == Type::tclock)
+			moduleClocks.emplace_back(decl);
+		else
+			moduleVars.emplace_back(decl);
+	}
 	// Build precondition
-	shared_ptr<Exp> pre;
+	std::shared_ptr<Exp> pre;
 	std::shared_ptr<Location> edgeClock;
-	if (JANIedge.isMember("guard"))
-		std::tie(pre, edgeClock) =
-				build_IOSA_precondition_from_STA(JANIedge["guard"]["exp"]);
-	else
+	if (!JANIedge.isMember("guard"))
 		pre = make_shared<BConst>(true);  // empty guard => "true"
+	else if (!build_IOSA_precondition_from_STA(JANIedge["guard"]["exp"],
+											   moduleClocks, pre, edgeClock)) {
+		figTechLog << "[ERROR] Failed translating the guard of an edge "
+				   << "in the STA automaton \"" << moduleName << "\".\n";
+		return nullptr;
+	}
+	assert(nullptr != pre);
+//		std::tie(pre, edgeClock) = build_IOSA_precondition_from_STA(
+//									   JANIedge["guard"]["exp"], moduleClocks);
 	// Build postcondition
-	auto pos = build_IOSA_postcondition(JANIedge["destinations"], moduleVars);
+	auto pos = build_IOSA_postcondition(JANIedge["destinations"],
+										moduleVars, moduleClocks);
 	// Build transition
 	if (nullptr == edgeClock) {
 		// Input
@@ -2093,16 +2113,121 @@ JaniTranslator::build_IOSA_transition_from_STA(const Json::Value& JANIedge,
 
 std::pair< std::shared_ptr<Exp>,
 		   std::shared_ptr<Location> >
-JaniTranslator::build_IOSA_precondition_from_STA(const Json::Value& JANIguard)
+JaniTranslator::build_IOSA_precondition_from_STA(const Json::Value& JANIguard,
+												 const shared_vector<Decl>& clocks)
 {
+	/// @note <b>On the validity of JANI guards</b><br>
+	/// We're only accepting guards in the format "g [ && clk ⋈ rv ]",
+	/// where "⋈" ∈ {<,>,≤,≥}, "clk" is a clock, "rv" is a real variable,
+	/// and "g" is any expression using only integral and boolean variables,
+	/// e.g. no clock or real variable must appear in "g". That's because
+	/// IOSA transitions can wait on (at most) a single clock.<br>
+	/// The "&& clk ⋈ rv" section is optional: a valid guard could also be
+	/// composed only of the "g" section. Edges whose guard *has* the clock
+	/// comparison are "output" or "tau"; edges *without it* are "input".
+
+	static constexpr char errMsg[]("[ERROR] One or less clock comparisons are "
+								   "allowed per edge guard, since a transition "
+								   "in IOSA can wait on (at most) one clock");
+
+	if (JANIguard.isObject() && JANIguard.isMember("op") &&
+		JANIguard["op"].asString() == JANI_operator_string.at(ExpOp::andd)) {
+		// May still find a clock comparison, look for it
+		std::shared_ptr<Exp> leftExp, rightExp;
+		std::shared_ptr<Location> leftClk, rightClk;
+		std::tie(leftExp, leftClk) = build_IOSA_precondition_from_STA(
+										 JANIguard["left"], clocks);
+		std::tie(rightExp, rightClk) = build_IOSA_precondition_from_STA(
+										 JANIguard["right"], clocks);
+
+		auto exp = std::make_shared<BinOpExp>(ExpOp::andd, leftExp, rightExp);
+//		return std::make_pair(exp, ???);
+
+//		std::string clockName;
+//		if (vars_occur_in_expr(clocks, JANIguard["left"], clockName)) {
+//			if (nullptr != clockLoc)
+//		}
+//		if (vars_occur_in_expr(clocks, JANIguard["right"])) {
+//
+//		}
+//		stri
+	} else if (JANIguard.isObject() && JANIguard.isMember("op") && (
+		JANIguard["op"].asString() == JANI_operator_string.at(ExpOp::lt) ||
+		JANIguard["op"].asString() == JANI_operator_string.at(ExpOp::gt) ||
+		JANIguard["op"].asString() == JANI_operator_string.at(ExpOp::le) ||
+		JANIguard["op"].asString() == JANI_operator_string.at(ExpOp::ge))) {
+		// This may be a clock comparison
+		auto left = build_IOSA_expression(JANIguard["left"]);
+		auto right = build_IOSA_expression(JANIguard["right"]);
+		auto clockIDL = first_ID_in_expr(left, clocks);
+		auto clockIDR = first_ID_in_expr(right, clocks);
+		if (clockIDL.empty() && clockIDR.empty()) {
+			auto exp = std::make_shared<BinOpExp>(
+						   IOSA_operator.at(JANIguard["op"].asString), left, right);
+			return std::make_pair(exp, std::shared_ptr<Location>());
+		} else if (!clockIDL.empty() && !clockIDR.empty()) {
+			figTechLog << errMsg << " (clocks \"" << clockIDL << "\" and \""
+					   << clockIDR << "\" were found in the same guard)\n";
+			return std::make_pair(std::shared_ptr<Exp>(), std::shared_ptr<Location>());
+		} else if (!clockIDL.empty()) {
+			auto realVar = clk2rv_[clockIDL];
+
+		} else {  // !clockIDR.empty
+		}
+
+
+
+		std::shared_ptr<Exp> leftExp, rightExp;
+		std::shared_ptr<Location> leftClk, rightClk;
+		if (vars_occur_in_expr(clocks, JANIguard["left"], clockID)) {
+
+		}
+		if (vars_occur_in_expr(clocks, JANIguard["right"])) {
+
+		}
+	} else {
+		// From here downwards no more clock comparisons are allowed
+		auto exp = build_IOSA_expression(JANIguard);
+
+
+
+		// Check no more clocks were hidden deep within the expression
+//		std::vector<std::string> clkIDs(clocks.size());
+//		for (size_t i=0ul ; i<clocks.size() ; i++) clkIDs[i] = clocks[i]->get_id();
+		if (vars_occur_in_expr(clocks, exp)) {
+			figTechLog << "[ERROR] At most one clock comparison is allowed per "
+					   << "edge guard, since IOSA transitions can wait on (at "
+					   << "most) one clock.\n";
+			exp = std::shared_ptr<Exp>(nullptr);
+		}
+		return std::make_pair(exp, std::shared_ptr<Location>());
+	}
+
+
+//	std::shared_ptr<Exp> strippedExp;
+//	std::shared_ptr<Location> clockLoc;
+
+//	std::vector<std::string> clks(clocks.size());
+//	for (size_t i=0ul ; i<clks.size() ; i++) clks[i] = clocks[i]->get_id();
+	auto is_clock = [&clocks] (const std::shared_ptr<LocExp>& l) {
+		return std::find_if(begin(clocks), end(clocks),
+							[](const std::shared_ptr<Decl> d)
+							{return d->get_id()==l->get_exp_location()->get_identifier();})
+				!= end(clocks);
+	}
+
+	assert(JANIguard.isObject());
+
 	/// @todo TODO implement!
-	return std::make_pair(nullptr, nullptr);
+	///
+	return std::make_pair(strippedExp, clockLoc);
 }
 
 
 shared_vector<Effect>
 JaniTranslator::build_IOSA_postcondition(const Json::Value& JANIdest,
-										 const shared_vector<Decl>& validVars)
+										 const shared_vector<Decl>& moduleVars,
+										 const shared_vector<Decl>& moduleClocks)
 {
 	assert(JANIdest.isArray());
 	assert(!JANIdest.empty());
@@ -2115,21 +2240,16 @@ JaniTranslator::build_IOSA_postcondition(const Json::Value& JANIdest,
 			figTechLog << "[ERROR] FIG doesn't handle probabilities in edges yet.\n";
 		return shared_vector<Effect>();
 	}
-
-	// Distinguish clocks from the other vars
-	std::vector<std::string> vVars, vClocks;
-	vVars.reserve(validVars.size());
-	vClocks.reserve(validVars.size());
-	for (auto decl: validVars) {
-		if (decl->get_type() == Type::tclock)
-			vClocks.emplace_back(decl->get_id());
-		else
-			vVars.emplace_back(decl->get_id());
-	}
-	auto is_valid_var = [&vVars] (const std::string& var) {
-		return std::find(begin(vVars), end(vVars), var) != end(vVars); };
-	auto is_valid_clk = [&vClocks] (const std::string& clk) {
-		return std::find(begin(vClocks), end(vClocks), clk) != end(vClocks); };
+	auto is_valid_var = [&moduleVars] (const std::string& var) {
+		return std::find_if(begin(moduleVars), end(moduleVars),
+							[](const shared_ptr<Decl> d){return d->get_id()==var;})
+				!= end(moduleVars);
+	};
+	auto is_valid_clk = [&moduleClocks] (const std::string& clk) {
+		return std::find_if(begin(moduleClocks), end(moduleClocks),
+							[](const shared_ptr<Decl> d){return d->get_id()==clk;})
+				!= end(moduleClocks);
+	};
 
 	// Build assignments and clock resets of this postcondition
 	shared_vector<Effect> pos;

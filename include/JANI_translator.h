@@ -470,51 +470,61 @@ private:  // Class utils: JANI -> IOSA
 
 	/// Get IOSA transition translated from this JANI edge,
 	/// interpreting the JANI automaton as a CTMC
-	/// @param JANIedge   Json object with JANI edge to translate (CTMC-like)
-	/// @param moduleName Name of the automaton to which this edge belongs
-	/// @param moduleVars All variables of the automaton to which this edge belongs
-	/// @param edgeClock  Clock assigned to this edge or nullptr if none
-	/// @param allClocks  All the module clocks, to reset in every postcondition
+	/// @param JANIedge    Json object with JANI edge to translate (CTMC-like)
+	/// @param moduleName  Name of the automaton to which this edge belongs
+	/// @param moduleDecls All variables declarations of the automaton
+	/// @param edgeClock   Clock assigned to this edge or nullptr if none
+	/// @param allClocks   All the module clocks, to reset in every postcondition
 	/// @return IOSA transition or nullptr if translation failed
 	/// @throw FigException if JANI edge specifiaction is badly formated
 	/// @note A nullptr 'edgeClock' classifies the edge as "input"
+	/// @note CTMCs should have only boolean and integral variable declarations
 	shared_ptr<TransitionAST> build_IOSA_transition_from_CTMC(
 			const Json::Value& JANIedge,
 			const std::string& moduleName,
-			const shared_vector<Decl>& moduleVars,
+			const shared_vector<Decl>& moduleDecls,
 			std::shared_ptr<Location> edgeClock,
 			const shared_vector<ClockReset>& allClocks);
 
 	/// Get IOSA transition translated from this JANI edge,
 	/// interpreting the JANI automaton as an STA
-	/// @param JANIedge   Json object with JANI edge to translate (STA-like)
-	/// @param moduleName Name of the automaton to which this edge belongs
-	/// @param moduleVars All variables of the automaton to which this edge belongs
+	/// @param JANIedge    Json object with JANI edge to translate (STA-like)
+	/// @param moduleName  Name of the automaton to which this edge belongs
+	/// @param moduleDecls All variable declarations of the automaton (clocks included)
 	/// @return IOSA transition or nullptr if translation failed
 	/// @throw FigException if JANI edge specifiaction is badly formated
 	shared_ptr<TransitionAST> build_IOSA_transition_from_STA(
 			const Json::Value& JANIedge,
 			const std::string& moduleName,
-			const shared_vector<Decl>& moduleVars);
+			const shared_vector<Decl>& moduleDecls);
 
 	/// Get IOSA precondition translated from this JANI guard,
 	/// interpreting the JANI automaton as an STA
 	/// @param JANIguard Json object with the Expression of an edge's guard
-	/// @return First: IOSA precondition or nullptr if translation failed
+	/// @param clocks    Declarations of all clocks in the current automaton
+	/// @param strippedExp
+	/// @param clockLoc
+//	/// @return First: IOSA precondition or nullptr if translation failed
 	///         Second: Clock location if the guard belongs to an output edge
+	/// @return Whether the STA guard could be translated to IOSA
 	/// @throw FigException if JANI guard specifiaction is badly formated
-	std::pair< std::shared_ptr<Exp>,
-			   std::shared_ptr<Location> >
-	build_IOSA_precondition_from_STA(const Json::Value& JANIguard);
+	bool
+	build_IOSA_precondition_from_STA(const Json::Value& JANIguard,
+									 const shared_vector<Decl>& clocks,
+									 std::shared_ptr<Exp>& strippedExp,
+									 std::shared_ptr<Location>& clockLoc);
 
 	/// Get IOSA postcondition from given JANI edge destinations vector
-	/// @param JANIdest  Json array with JANI edge-detinations to translate
-	/// @param validVars All variables of the current automaton
+	/// @param JANIdest     Json array with JANI edge-detinations to translate
+	/// @param moduleVars   All variables of the current automaton (no clocks)
+	/// @param moduleClocks All clock variables of the current automaton
 	/// @return IOSA transition postcondition or empty vector if translation
 	///         failed (or if JANIdest is has no assignments)
 	/// @throw FigException if JANI edge-destinations specifiaction is badly formated
-	shared_vector<Effect> build_IOSA_postcondition(const Json::Value& JANIdest,
-												   const shared_vector<Decl>& validVars);
+	shared_vector<Effect> build_IOSA_postcondition(
+			const Json::Value& JANIdest,
+			const shared_vector<Decl>& moduleVars,
+			const shared_vector<Decl>& moduleClocks = shared_vector<Decl>());
 };
 
 } // namespace fig
