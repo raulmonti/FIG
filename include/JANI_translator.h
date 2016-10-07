@@ -502,17 +502,16 @@ private:  // Class utils: JANI -> IOSA
 	/// interpreting the JANI automaton as an STA
 	/// @param JANIguard Json object with the Expression of an edge's guard
 	/// @param clocks    Declarations of all clocks in the current automaton
-	/// @param strippedExp
-	/// @param clockLoc
-//	/// @return First: IOSA precondition or nullptr if translation failed
-	///         Second: Clock location if the guard belongs to an output edge
-	/// @return Whether the STA guard could be translated to IOSA
+	/// @return pair.first: IOSA precondition or nullptr if translation failed
+	///         pair.second: Clock location if the guard belongs to an output
+	///                      edge, nullptr otherwise
 	/// @throw FigException if JANI guard specifiaction is badly formated
-	bool
+	/// @note The precondition returned as the first component of the pair
+	///       is stripped from the STA expression with the clock comparison
+	std::pair< std::shared_ptr<Exp>,
+			   std::shared_ptr<Location> >
 	build_IOSA_precondition_from_STA(const Json::Value& JANIguard,
-									 const shared_vector<Decl>& clocks,
-									 std::shared_ptr<Exp>& strippedExp,
-									 std::shared_ptr<Location>& clockLoc);
+									 const shared_vector<Decl>& clocks);
 
 	/// Get IOSA postcondition from given JANI edge destinations vector
 	/// @param JANIdest     Json array with JANI edge-detinations to translate

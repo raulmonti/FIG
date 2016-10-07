@@ -410,8 +410,40 @@ relevant_bin_subexpr(const std::vector<std::string>& ids,
 }
 
 
-std::shared_ptr< Exp >
-
+/// Traverse expression and return the ID of the first Location matching
+/// any of the IDs in the vector of Declarations passed.
+/// @param expr Expression to traverse
+/// @param IDs  Declarations with the IDs to look for
+/// @return First Location identifier in 'exp' matching any ID from IDs,
+///         or empty string if none found
+std::string
+first_ID_in_expr(std::shared_ptr<Exp> expr, const shared_vector<Decl>& IDs)
+{
+	if (nullptr == expr) {
+		return "";
+	} else if (expr->is_constant()) {
+		return "";
+	} else if (expr->is_unary_operator()) {
+		return first_ID_in_expr(std::dynamic_pointer_cast<UnOpExp>
+								(expr)->get_argument(), IDs);
+	} else if (expr->is_binary_operator()) {
+		auto bexpr = std::dynamic_pointer_cast<BinOpExp>(expr);
+		auto firstID = first_ID_in_expr(bexpr->get_first_argument(), IDs);
+		if (firstID.empty())
+			firstID = first_ID_in_expr(bexpr->get_second_argument(), IDs);
+		return firstID;
+	} else {
+		auto loc = std::dynamic_pointer_cast<LocExp>(expr);
+		auto id = loc->get_exp_location()->get_identifier();
+		auto first = std::find_if(begin(IDs), end(IDs),
+								  [&id](const std::shared_ptr<Decl>& d)
+								  { return d->get_id() == id; });
+		if (end(IDs) != first)
+			return id;
+		else
+			return "";
+	}
+}
 
 
 /// Build a IOSA model from given AST (viz. populate the ModelSuite)
@@ -2080,15 +2112,14 @@ JaniTranslator::build_IOSA_transition_from_STA(const Json::Value& JANIedge,
 	std::shared_ptr<Location> edgeClock;
 	if (!JANIedge.isMember("guard"))
 		pre = make_shared<BConst>(true);  // empty guard => "true"
-	else if (!build_IOSA_precondition_from_STA(JANIedge["guard"]["exp"],
-											   moduleClocks, pre, edgeClock)) {
+	else
+		std::tie(pre, edgeClock) =
+				build_IOSA_precondition_from_STA(JANIedge["guard"]["exp"], moduleClocks);
+	if (nullptr == pre) {
 		figTechLog << "[ERROR] Failed translating the guard of an edge "
 				   << "in the STA automaton \"" << moduleName << "\".\n";
 		return nullptr;
 	}
-	assert(nullptr != pre);
-//		std::tie(pre, edgeClock) = build_IOSA_precondition_from_STA(
-//									   JANIedge["guard"]["exp"], moduleClocks);
 	// Build postcondition
 	auto pos = build_IOSA_postcondition(JANIedge["destinations"],
 										moduleVars, moduleClocks);
@@ -2129,98 +2160,88 @@ JaniTranslator::build_IOSA_precondition_from_STA(const Json::Value& JANIguard,
 	static constexpr char errMsg[]("[ERROR] One or less clock comparisons are "
 								   "allowed per edge guard, since a transition "
 								   "in IOSA can wait on (at most) one clock");
+	static const std::pair<shared_ptr<Exp>, shared_ptr<Location>> errRet;
 
 	if (JANIguard.isObject() && JANIguard.isMember("op") &&
 		JANIguard["op"].asString() == JANI_operator_string.at(ExpOp::andd)) {
-		// May still find a clock comparison, look for it
+		// May still find clocks, look for them in subexpressions
 		std::shared_ptr<Exp> leftExp, rightExp;
 		std::shared_ptr<Location> leftClk, rightClk;
 		std::tie(leftExp, leftClk) = build_IOSA_precondition_from_STA(
 										 JANIguard["left"], clocks);
 		std::tie(rightExp, rightClk) = build_IOSA_precondition_from_STA(
 										 JANIguard["right"], clocks);
-
+		if (nullptr == leftExp || nullptr == rightExp) {
+			return errRet;  // failed translating subexpression
+		} else if (nullptr != leftClk && nullptr != rightClk) {
+			// Two clocks found! Error
+			figTechLog << errMsg << " (clocks \"" << leftClk->get_identifier()
+					   << "\" and \"" << rightClk->get_identifier() << "\" "
+					   << "were found in the same guard)\n";
+			return errRet;
+		}
+		// Alles in Ordnung
 		auto exp = std::make_shared<BinOpExp>(ExpOp::andd, leftExp, rightExp);
-//		return std::make_pair(exp, ???);
+		if (nullptr != leftClk)
+			return std::make_pair(exp, leftClk);
+		else
+			return std::make_pair(exp, rightClk);  // rightClk may be null
 
-//		std::string clockName;
-//		if (vars_occur_in_expr(clocks, JANIguard["left"], clockName)) {
-//			if (nullptr != clockLoc)
-//		}
-//		if (vars_occur_in_expr(clocks, JANIguard["right"])) {
-//
-//		}
-//		stri
 	} else if (JANIguard.isObject() && JANIguard.isMember("op") && (
 		JANIguard["op"].asString() == JANI_operator_string.at(ExpOp::lt) ||
 		JANIguard["op"].asString() == JANI_operator_string.at(ExpOp::gt) ||
 		JANIguard["op"].asString() == JANI_operator_string.at(ExpOp::le) ||
 		JANIguard["op"].asString() == JANI_operator_string.at(ExpOp::ge))) {
 		// This may be a clock comparison
+		const ExpOp op(IOSA_operator.at(JANIguard["op"].asString));
 		auto left = build_IOSA_expression(JANIguard["left"]);
 		auto right = build_IOSA_expression(JANIguard["right"]);
 		auto clockIDL = first_ID_in_expr(left, clocks);
 		auto clockIDR = first_ID_in_expr(right, clocks);
 		if (clockIDL.empty() && clockIDR.empty()) {
-			auto exp = std::make_shared<BinOpExp>(
-						   IOSA_operator.at(JANIguard["op"].asString), left, right);
+			// No clocks found => this ain't special
+			auto exp = std::make_shared<BinOpExp>(op, left, right);
 			return std::make_pair(exp, std::shared_ptr<Location>());
 		} else if (!clockIDL.empty() && !clockIDR.empty()) {
+			// Two clocks found => error
 			figTechLog << errMsg << " (clocks \"" << clockIDL << "\" and \""
 					   << clockIDR << "\" were found in the same guard)\n";
-			return std::make_pair(std::shared_ptr<Exp>(), std::shared_ptr<Location>());
-		} else if (!clockIDL.empty()) {
-			auto realVar = clk2rv_[clockIDL];
-
-		} else {  // !clockIDR.empty
+			return errRet;
 		}
-
-
-
-		std::shared_ptr<Exp> leftExp, rightExp;
-		std::shared_ptr<Location> leftClk, rightClk;
-		if (vars_occur_in_expr(clocks, JANIguard["left"], clockID)) {
-
+		auto clk = clockIDL+clockIDR;  // one isn't empty
+		auto realVar = clk2rv_[clk];
+		assert(!realVar.empty());
+		shared_ptr<LocExp> loc;
+		if (!clockIDL.empty())
+			loc = std::dynamic_pointer_cast<LocExp>(left);
+		else
+			loc = std::dynamic_pointer_cast<LocExp>(right);
+		if (nullptr == loc) {
+			figTechLog << errMsg << " (clocks can only be compared to a plain "
+					   << "real variable, e.g. clock \"" << clk << "\")\n";
+			return errRet;
+		} else if (loc->get_exp_location()->get_identifier() != realVar) {
+			figTechLog << errMsg << " (clock \"" << clk << "\" is compared to "
+					   << "real var \"" << loc->get_exp_location()->get_identifier()
+					   << "\", but was mapped to the real var \"" << realVar << "\")\n";
+			return errRet;
 		}
-		if (vars_occur_in_expr(clocks, JANIguard["right"])) {
-
-		}
+		// As result return "true", since this was the operand of an 'and'
+		return std::make_pair(std::make_shared<BConst>(true),
+							  std::make_shared<LocExp>(clk));
 	} else {
-		// From here downwards no more clock comparisons are allowed
+		// No more clocks allowed from here downwards
 		auto exp = build_IOSA_expression(JANIguard);
-
-
-
-		// Check no more clocks were hidden deep within the expression
-//		std::vector<std::string> clkIDs(clocks.size());
-//		for (size_t i=0ul ; i<clocks.size() ; i++) clkIDs[i] = clocks[i]->get_id();
-		if (vars_occur_in_expr(clocks, exp)) {
-			figTechLog << "[ERROR] At most one clock comparison is allowed per "
-					   << "edge guard, since IOSA transitions can wait on (at "
-					   << "most) one clock.\n";
-			exp = std::shared_ptr<Exp>(nullptr);
+		auto residualClock = first_ID_in_expr(exp, clocks);
+		if (!residualClock.empty()) {
+			// Unreachable clocks found deep within the guard
+			figTechLog << errMsg << " (clock \"" << residualClock << "\" "
+					   << "found too deep in the guard expression -- it "
+					   << "should be an operand of an uppermost 'and')\n";
+			return errRet;
 		}
 		return std::make_pair(exp, std::shared_ptr<Location>());
 	}
-
-
-//	std::shared_ptr<Exp> strippedExp;
-//	std::shared_ptr<Location> clockLoc;
-
-//	std::vector<std::string> clks(clocks.size());
-//	for (size_t i=0ul ; i<clks.size() ; i++) clks[i] = clocks[i]->get_id();
-	auto is_clock = [&clocks] (const std::shared_ptr<LocExp>& l) {
-		return std::find_if(begin(clocks), end(clocks),
-							[](const std::shared_ptr<Decl> d)
-							{return d->get_id()==l->get_exp_location()->get_identifier();})
-				!= end(clocks);
-	}
-
-	assert(JANIguard.isObject());
-
-	/// @todo TODO implement!
-	///
-	return std::make_pair(strippedExp, clockLoc);
 }
 
 
