@@ -424,16 +424,17 @@ first_ID_in_expr(std::shared_ptr<Exp> expr, const shared_vector<Decl>& IDs)
 	} else if (expr->is_constant()) {
 		return "";
 	} else if (expr->is_unary_operator()) {
-		return first_ID_in_expr(std::dynamic_pointer_cast<UnOpExp>
+		return first_ID_in_expr(std::static_pointer_cast<UnOpExp>
 								(expr)->get_argument(), IDs);
 	} else if (expr->is_binary_operator()) {
-		auto bexpr = std::dynamic_pointer_cast<BinOpExp>(expr);
+		auto bexpr = std::static_pointer_cast<BinOpExp>(expr);
 		auto firstID = first_ID_in_expr(bexpr->get_first_argument(), IDs);
 		if (firstID.empty())
 			firstID = first_ID_in_expr(bexpr->get_second_argument(), IDs);
 		return firstID;
 	} else {
 		auto loc = std::dynamic_pointer_cast<LocExp>(expr);
+		assert(nullptr != loc);
 		auto id = loc->get_exp_location()->get_identifier();
 		auto first = std::find_if(begin(IDs), end(IDs),
 								  [&id](const std::shared_ptr<Decl>& d)
@@ -491,7 +492,7 @@ build_IOSA_model_from_AST(Model& modelAST, bool verifyIOSA = true)
 		return false;
 	}
 
-	// Success iff the ModelSuite is sealed
+	// Success iff the ModelSuite can be sealed
 	ModelSuite::get_instance().seal();
 	return ModelSuite::get_instance().sealed();
 }
@@ -856,8 +857,8 @@ JaniTranslator::build_JANI_synchronization(Json::Value& JANIobj)
 		// Synchronization vectors: one per module output
 		for (const std::string& outputLabel: pair.second.second) {
 			tmp.clear();
-			build_JANI_sync_vector(outputLabel, tmp["synchronize"]);
-			if (!tmp["synchronize"].empty()) {
+			build_JANI_sync_vector(outputLabel, tmp["synchronise"]);
+			if (!tmp["synchronise"].empty()) {
 				tmp["result"] = outputLabel.c_str();  // we could omit this
 				JANIobj["syncs"].append(tmp);
 			}
@@ -1338,7 +1339,7 @@ JaniTranslator::build_IOSA_from_JANI()
 
 
 	/// @todo TODO erase debug print
-	ModelPrinter printer;
+	ModelPrinter printer;//(std::cerr, true);
 	iosaModel.accept(printer);
 
 
@@ -1573,9 +1574,10 @@ JaniTranslator::build_IOSA_clock_reset(const std::string& clockName,
 	assert(JANIdsamp.isObject());
 	if ( ! (JANIdsamp.isMember("distribution")   &&
 			JANIdsamp.isMember("args")           &&
-			JANIdsamp["distribution"].isObject() &&
+			JANIdsamp["distribution"].isString() &&
 			JANIdsamp["args"].isArray()) )
-		throw_FigException("doesn't look like a distribution sampling to me");
+		throw_FigException("assignment to real var mapped to clock \"" + clockName
+						   + "\" doesn't look like a distribution sampling");
 	// Check distribution for compatibility
 	const auto JANIdist = JANIdsamp["distribution"].asString();
 	const auto distType = IOSA_distribution.find(JANIdist);
@@ -2026,10 +2028,12 @@ JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
 		assert(!label.empty());
 		return make_shared<InputTransition>(label, pre, pos);
 	} else if (JANIedge.isMember("action")) {
-		// Output
+		// Output or Tau
 		auto label = sync_label(moduleName, JANIedge["action"].asString());
-		assert(!label.empty());
-		return make_shared<OutputTransition>(label, pre, pos, edgeClock);
+		if (label.empty())
+			return make_shared<TauTransition>(pre, pos, edgeClock);
+		else
+			return make_shared<OutputTransition>(label, pre, pos, edgeClock);
 	} else {
 		// Tau
 		return make_shared<TauTransition>(pre, pos, edgeClock);
@@ -2056,7 +2060,7 @@ JaniTranslator::build_IOSA_module_from_STA(const Json::Value& JANIautomaton)
 			auto var = build_IOSA_variable(v);
 			if (nullptr == var)
 				return nullptr;
-			else if (var->get_type() != Type::tfloat)
+			else if (var->get_type() == Type::tfloat)
 				rv2dist_[var->get_id()] = nullptr;
 			else {
 				if (var->get_type() == Type::tclock)
@@ -2135,10 +2139,12 @@ JaniTranslator::build_IOSA_transition_from_STA(const Json::Value& JANIedge,
 		assert(!label.empty());
 		return make_shared<InputTransition>(label, pre, pos);
 	} else if (JANIedge.isMember("action")) {
-		// Output
+		// Output or Tau
 		auto label = sync_label(moduleName, JANIedge["action"].asString());
-		assert(!label.empty());
-		return make_shared<OutputTransition>(label, pre, pos, edgeClock);
+		if (label.empty())
+			return make_shared<TauTransition>(pre, pos, edgeClock);
+		else
+			return make_shared<OutputTransition>(label, pre, pos, edgeClock);
 	} else {
 		// Tau
 		return make_shared<TauTransition>(pre, pos, edgeClock);
@@ -2216,10 +2222,10 @@ JaniTranslator::build_IOSA_precondition_from_STA(const Json::Value& JANIguard,
 		auto realVar = clk2rv_[clk];
 		assert(!realVar.empty());
 		shared_ptr<LocExp> loc;
-		if (!clockIDL.empty())
-			loc = std::dynamic_pointer_cast<LocExp>(left);
-		else
+		if (!clockIDL.empty())  // clock to the left => real var to the right
 			loc = std::dynamic_pointer_cast<LocExp>(right);
+		else                    // clock to the right => real var to the left
+			loc = std::dynamic_pointer_cast<LocExp>(left);
 		if (nullptr == loc) {
 			figTechLog << errMsg << " (clocks can only be compared to a plain "
 					   << "real variable, e.g. clock \"" << clk << "\")\n";

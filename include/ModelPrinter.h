@@ -70,8 +70,10 @@ public:
 	void visit(shared_ptr<ClockDecl> node);
 	void visit(shared_ptr<ArrayDecl> node);
     void visit(shared_ptr<TransitionAST> node);
-    void visit(shared_ptr<OutputTransition> node);
-    void visit(shared_ptr<Effect> node);
+	void visit(shared_ptr<InputTransition> node);
+	void visit(shared_ptr<OutputTransition> node);
+	void visit(shared_ptr<TauTransition> node);
+	void visit(shared_ptr<Effect> node);
     void visit(shared_ptr<Assignment> node);
     void visit(shared_ptr<ClockReset> node);
     void visit(shared_ptr<Dist> node);
@@ -86,7 +88,8 @@ public:
     void visit(shared_ptr<OpExp> node);
     void visit(shared_ptr<BinOpExp> node);
     void visit(shared_ptr<UnOpExp> node);
-    void visit(shared_ptr<Prop> node);
+	void visit(shared_ptr<Exp> node);
+	void visit(shared_ptr<Prop> node);
     void visit(shared_ptr<TransientProp> node);
     void visit(shared_ptr<RateProp> node);
     static string to_str(Type type);
