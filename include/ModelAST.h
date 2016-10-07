@@ -945,7 +945,7 @@ public:
         return (true);
     }
 
-	virtual size_t num_parameters() {
+	size_t num_parameters() override {
 		return 1ul;
 	}
 
@@ -987,7 +987,7 @@ public:
         return (true);
     }
 
-	virtual size_t num_parameters() {
+	size_t num_parameters() override {
 		return 2ul;
 	}
 

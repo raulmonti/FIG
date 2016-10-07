@@ -80,7 +80,7 @@ int main(int argc, char** argv)
 	auto log(fig::ModelSuite::log);
 	auto tech_log(fig::ModelSuite::tech_log);
 	auto const_argv(const_cast<const char**>(argv));
-	const std::string FIG_ERROR("ERROR: FIG failed to");
+	const std::string FIG_ERROR("[ERROR] FIG failed to");
 	shared_ptr<ModelAST> modelAST = nullptr;
 
 	// "Greetings, human!" and command line parsing
@@ -302,13 +302,13 @@ void compile_model(bool modelAlreadyBuilt) {
 	// Check for required files
 	log("Model file: " + modelFile + "\n");
 	if (!file_exists(modelFile)) {
-		log(" *** Error: file not found! ***\n");
+		log("[ERROR] File \"" + modelFile + "\" not found!\n");
 		throw_FigException("file with model not found");
 	}
 	if (!propertiesFile.empty()) {
 		log("Properties file: " + propertiesFile + "\n");
 		if (!file_exists(propertiesFile)) {
-			log(" *** Error: file not found! ***\n");
+			log("[ERROR] File \"" + propertiesFile + "\" not found!\n");
 			throw_FigException("file with properties not found");
 		}
 	}
@@ -316,7 +316,7 @@ void compile_model(bool modelAlreadyBuilt) {
 	// Build AST from files, viz. parse
 	modelAST = ModelAST::from_files(modelFile.c_str(), propertiesFile.c_str());
 	if (nullptr == modelAST) {
-		log(" *** Error parsing the model ***\n");
+		log("[ERROR] Failed to parse the model.\n");
 		throw_FigException("failed parsing the model file");
 	}
 
@@ -344,7 +344,7 @@ void compile_model(bool modelAlreadyBuilt) {
 		modelAST->accept(verifier);
 		assert(!verifier.has_errors());
 		if (verifier.has_warnings()) {
-			log("\nWARNING: IOSA-checking failed");
+			log("\n[WARNING] IOSA-checking failed");
 			tech_log(verifier.get_messages());
 			if (!forceOperation) {
 				log(" -- aborting\n");
@@ -373,8 +373,8 @@ void compile_model(bool modelAlreadyBuilt) {
 	auto& modelInstance = ModelSuite::get_instance();
 	modelInstance.seal();
 	if (!modelInstance.sealed()) {
-		log(" *** Error sealing the model ***\n");
-		throw_FigException("parser failed to seal the model");
+		log("[ERROR] Failed to seal the model.\n");
+		throw_FigException("parser failed sealing the model");
 	}
 	tech_log("- Model sealing  succeeded\n\n");
 

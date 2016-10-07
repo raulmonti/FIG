@@ -176,7 +176,7 @@ private:  // Class attributes
 	/// used to sample the distributions that IOSA maps to clocks
 	/// @note Used for STA -> IOSA translation
 	/// @see clk2rv_
-	std::map< std::string, std::shared_ptr<Dist> > rv2dist_;
+	std::map< std::string, std::shared_ptr<ClockReset> > rv2dist_;
 
 	/// Maping of clock variable names to their real variable counterparts,
 	/// used in JANI Specification files to model time progress through
@@ -199,16 +199,12 @@ private:  // Class attributes
 	std::vector< std::tuple< std::string, std::string, std::shared_ptr<Exp> > >
 			inputRatesCTMC_;
 
-//	/// Classify JANI automaton edge depending on the I/O resolution
-//	/// of its action label
-//	enum EdgeType { input, output, tau };
-
 private:  // Class utils: general
 
 	/// Generate a fresh label name for use in synchronization
 	/// @param hint Suggested name for the label in Json string format, if any
-	/// @return Content of 'hint' if given, fresh label name otherwise
-	static std::string fresh_label(const Json::Value& hint = 0);
+	/// @return Content of 'hint' if not null, fresh label name otherwise
+	static std::string fresh_label(const Json::Value& hint);
 
 	/// Get the name of the real variable corresponding to this clock name
 	/// @return Name of the real variable linked to the clock;
@@ -443,7 +439,7 @@ private:  // Class utils: JANI -> IOSA
 	/// @note Needs rv2dist_ with its keys already generated,
 	///       viz. the real vars names should already be known
 	/// @note Fills in the value data of rv2dist_
-	bool map_rv_to_dist(const std::string rvName, const Json::Value& JANIdsamp);
+	bool map_rv_to_dist(const std::string& rvName, const Json::Value& JANIdsamp);
 
 	/// Verify synchronization is compatible with IOSA broadacst;
 	/// if so then interpret and build IOSA I/O synchronization
