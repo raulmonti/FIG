@@ -257,12 +257,12 @@ void ModelPrinter::visit(shared_ptr<TransitionAST> action) {
 		// Print effects only;
 		// label, pre and clock should've been printed in sub-class visitor
 		for (auto effect : action->get_assignments()) {
-			visit(effect);
+			accept_idented(effect);
 			out << " &";
 		}
 		out << "\b\b  \b\b";
 		for (auto effect : action->get_clock_resets()) {
-			visit(effect);
+			accept_idented(effect);
 			out << " &";
 		}
 		out << "\b\b  \b\b;\n";
@@ -273,11 +273,13 @@ void ModelPrinter::visit(shared_ptr<InputTransition> transition) {
 	if (debug) {
 		visit(std::static_pointer_cast<TransitionAST>(transition));
 	} else {
-		print_idented("["+transition->get_label()+"?] ");
+		auto label = transition->get_label();
+		label.append(label.back() != '?' ? "?" : "");
+		print_idented("[" + label + "] ");
 		visit(transition->get_precondition());
 		out << std::endl;
 		print_idented("->\n");
-		accept_idented(std::static_pointer_cast<TransitionAST>(transition));
+		visit(std::static_pointer_cast<TransitionAST>(transition));
 	}
 }
 
@@ -287,12 +289,14 @@ void ModelPrinter::visit(shared_ptr<OutputTransition> transition) {
 		print_idented("Triggering Clock:");
 		accept_idented(transition->get_triggering_clock());
 	} else {
-		print_idented("["+transition->get_label()+"!] ");
+		auto label = transition->get_label();
+		label.append(label.back() != '!' ? "!" : "");
+		print_idented("[" + label + "] ");
 		visit(transition->get_precondition());
 		out << " @ " << transition->get_triggering_clock()->get_identifier()
 			<< std::endl;
 		print_idented("->\n");
-		accept_idented(std::static_pointer_cast<TransitionAST>(transition));
+		visit(std::static_pointer_cast<TransitionAST>(transition));
 	}
 }
 
@@ -307,7 +311,7 @@ void ModelPrinter::visit(shared_ptr<TauTransition> transition) {
 		out << " @ " << transition->get_triggering_clock()->get_identifier()
 			<< std::endl;
 		print_idented("->\n");
-		accept_idented(std::static_pointer_cast<TransitionAST>(transition));
+		visit(std::static_pointer_cast<TransitionAST>(transition));
 	}
 }
 
