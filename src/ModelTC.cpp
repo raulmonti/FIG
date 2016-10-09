@@ -11,6 +11,7 @@
 #include "ExpEvaluator.h"
 #include "Operators.h"
 #include "Util.h"
+#include "ErrorMessage.h"
 
 using std::endl;
 using std::shared_ptr;
@@ -281,7 +282,7 @@ inline void show_unary_types(stringstream &ss, ExpOp op) {
 
 inline const string TC_WRONG_UNOP(
         const shared_ptr<ModuleScope> &curr, ExpOp op,
-        const shared_ptr<UnOpExp> &exp) {
+        const shared_ptr<UnOpExp> &exp, Type expected_type) {
     stringstream ss;
     ss << PREFIX(curr);
     ss << " - Wrong type for argument of operator";
@@ -291,6 +292,9 @@ inline const string TC_WRONG_UNOP(
     ss << "- Argument has type: "
        << ModelPrinter::to_str(exp->get_argument()->get_type())
        << std::endl;
+    ss << "- Expected type is: "
+       << ModelPrinter::to_str(expected_type)
+       << std::endl;
     ss << "- Candidates are: " << std::endl;
     show_unary_types(ss, op);
     return (ss.str());
@@ -298,7 +302,7 @@ inline const string TC_WRONG_UNOP(
 
 inline const string TC_WRONG_BINOP(
         const shared_ptr<ModuleScope> &curr, ExpOp op,
-        const shared_ptr<BinOpExp> &exp) {
+        const shared_ptr<BinOpExp> &exp, Type expected_type) {
     stringstream ss;
     ss << PREFIX(curr);
     ss << " - Wrong type for arguments of operator";
@@ -310,6 +314,8 @@ inline const string TC_WRONG_BINOP(
        << std::endl;
     ss << "- Argument 2 has type: "
        << ModelPrinter::to_str(exp->get_second_argument()->get_type())
+       << std::endl;
+    ss << "- Expected type is: " << ModelPrinter::to_str(expected_type)
        << std::endl;
     ss << "- Candidates are: " << std::endl;
     show_binary_types(ss, op);
@@ -771,6 +777,17 @@ void ModelTC::visit(shared_ptr<LocExp> exp){
     exp->set_type(last_type);
 }
 
+// Check an expressions on its own instance of ModelTC
+bool ModelTC::dummy_check(Type expected_type, shared_ptr<Exp> exp) {
+    ModelTC dummy (*this);
+    dummy.message = make_shared<ErrorMessage>();
+    dummy.expected_exp_type = expected_type;
+    exp->accept(dummy);
+    //copy result to this typechecker
+    last_type = dummy.last_type;
+    return (!dummy.has_errors());
+}
+
 void ModelTC::visit(shared_ptr<BinOpExp> exp) {
     assert(expected_exp_type != Type::tunknown);
     assert(exp != nullptr);
@@ -785,29 +802,27 @@ void ModelTC::visit(shared_ptr<BinOpExp> exp) {
     //find a compatible type
     shared_ptr<Exp> arg1 = exp->get_first_argument();
     shared_ptr<Exp> arg2 = exp->get_second_argument();
-    bool found = false;
+    shared_ptr<BinaryOpTy> selected = nullptr;
     unsigned int i = 0;
-    while (i < types.size() && !found) {
+    while (i < types.size() && selected == nullptr) {
         BinaryOpTy ty = types[i];
-        accept_exp(ty.get_arg1_type(), arg1);
+        bool ok1 = dummy_check(ty.get_arg1_type(), arg1);
         Type inferred1 = last_type;
-        accept_exp(ty.get_arg2_type(), arg2);
+        bool ok2 = dummy_check(ty.get_arg2_type(), arg2);
         Type inferred2 = last_type;
         BinaryOpTy inf (inferred1, inferred2, type_expected);
-        if (ty <= inf) {
-            found = true;
-        } else {
-            i++;
+        if (ty <= inf && ok1 && ok2) {
+            selected = make_shared<BinaryOpTy>(ty);
         }
+        i++;
     }
-    if (found) {
-        BinaryOpTy selected = types[i];
-        Type res_type = selected.get_result_type();
+    if (selected != nullptr) {
+        Type res_type = selected->get_result_type();
         last_type = res_type;
-        exp->set_inferred_type(selected);
+        exp->set_inferred_type(*selected);
         exp->set_type(res_type);
     } else {
-        put_error(TC_WRONG_BINOP(current_scope, op, exp));
+        put_error(TC_WRONG_BINOP(current_scope, op, exp, type_expected));
     }
 }
 
@@ -821,27 +836,25 @@ void ModelTC::visit(shared_ptr<UnOpExp> exp) {
     };
     std::sort(types.begin(), types.end(), ty_gt);
     shared_ptr<Exp> arg1 = exp->get_argument();
-    bool found = false;
+    shared_ptr<UnaryOpTy> selected = nullptr;
     unsigned int i = 0;
-    while (i < types.size() && !found) {
+    while (i < types.size() && selected == nullptr) {
         UnaryOpTy ty = types[i];
-        accept_exp(ty.get_arg_type(), arg1);
+        bool ok = dummy_check(ty.get_arg_type(), arg1);
         Type inferred1 = last_type;
         UnaryOpTy inf (inferred1, type_expected);
-        if (ty <= inf) {
-            found = true;
-        } else {
-            i++;
+        if (ty <= inf && ok) {
+            selected = make_shared<UnaryOpTy>(ty);
         }
+        i++;
     }
-    if (found) {
-        UnaryOpTy selected = types[i];
-        Type res_type = selected.get_result_type();
+    if (selected != nullptr) {
+        Type res_type = selected->get_result_type();
         last_type = res_type;
-        exp->set_inferred_type(selected);
+        exp->set_inferred_type(*selected);
         exp->set_type(res_type);
     } else {
-        put_error(TC_WRONG_UNOP(current_scope, op, exp));
+        put_error(TC_WRONG_UNOP(current_scope, op, exp, type_expected));
     }
 }
 

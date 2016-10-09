@@ -252,6 +252,10 @@ Visitor::Visitor() {
     message = make_shared<ErrorMessage>();
 }
 
+void Visitor::ignore_errors() {
+    message->ignore_errors();
+}
+
 void Visitor::put_error(const string &msg) {
     message->put_error(msg);
 }
@@ -322,6 +326,7 @@ void Visitor::visit(shared_ptr<MultipleInitializedArray> node) {
 void Visitor::visit(shared_ptr<RangedInitializedArray> node) {
     visit(std::static_pointer_cast<ArrayDecl>(node));
 }
+
 void Visitor::visit(shared_ptr<RangedMultipleInitializedArray> node)  {
     visit(std::static_pointer_cast<ArrayDecl>(node));
 }
