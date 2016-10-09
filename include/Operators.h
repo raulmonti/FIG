@@ -21,7 +21,7 @@ public:
     static std::vector<UnaryOpTy> unary_types(ExpOp op);
     static std::vector<BinaryOpTy> binary_types(ExpOp op);
     static bool is_infix_operator(ExpOp op);
-    static std::string operator_string(ExpOp op);
+	static std::string operator_string(ExpOp op);
 };
 
 class Unary : public Operator {

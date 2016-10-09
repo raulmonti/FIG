@@ -137,7 +137,7 @@ else
 		echo "[ERROR] Only SUB-directories are supported for builds, aborting."
 		exit 1
 	else
-		BUILD_DIR=$(echo $BUILD_DIR | grep -o "[0-9a-zA-Z/_\-\.]" | tr '\n' '\0')
+		BUILD_DIR=$(echo $BUILD_DIR | grep -o "[0-9a-zA-Z/_\-\.]" | tr -d '\n')
 	fi
 fi
 

@@ -48,19 +48,22 @@ public:
         std::string result;
         switch(type) {
         case Type::tint:
-            result = "Int";
+            result = "int";
             break;
         case Type::tbool:
-            result = "Bool";
+            result = "bool";
             break;
         case Type::tfloat:
-            result = "Float";
+            result = "float";
             break;
         case Type::tclock:
-            result = "Clock";
+            result = "clock";
             break;
         case Type::tunknown:
             result = "[?]";
+            break;
+        default:
+            result = "[TYPERR]";
             break;
         }
         return result;

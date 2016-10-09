@@ -209,6 +209,9 @@ private:
     /// Properties of the model.
     shared_vector<Prop> props;
 public:
+	/// Empty ctor
+	Model() {}
+
     /// Construct a model from a single module
     Model(shared_ptr<ModuleAST> mb) {
         add_module(mb);
@@ -493,8 +496,9 @@ public:
  **/
 class InitializedDecl : public Decl, public Initialized {
 public:
-    InitializedDecl(Type type, string id, shared_ptr<Exp> init)
-        : Decl(type, id), Initialized(init) {}
+	InitializedDecl(Type type, string id, shared_ptr<Exp> init, bool constant = false)
+		: Decl(type, id), Initialized(init)
+		{ if (constant) mark_as_constant(); }
     virtual void accept(Visitor& visit) override;
     virtual bool has_init() override {
         return (true);
@@ -904,6 +908,10 @@ public:
         return (false);
     }
 
+	virtual size_t num_parameters() {
+		return 0ul;
+	}
+
     shared_ptr<class SingleParameterDist> to_single_parameter() {
         assert(has_single_parameter());
         return std::static_pointer_cast<SingleParameterDist>(shared_from_this());
@@ -938,6 +946,10 @@ public:
         return (true);
     }
 
+	size_t num_parameters() override {
+		return 1ul;
+	}
+
     /// Acceptor
     virtual void accept(Visitor& visit) override;
 };
@@ -945,6 +957,7 @@ public:
 /**
  * @brief MultipleParameterDist
  * @example uniform(4, 10)
+ * @note Leo, this is a lie, 2 != "multiple"
  */
 class MultipleParameterDist : public Dist {
 private:
@@ -974,6 +987,10 @@ public:
     virtual bool has_multiple_parameters() override {
         return (true);
     }
+
+	size_t num_parameters() override {
+		return 2ul;
+	}
 
     virtual void accept(Visitor& visit) override;
 };
@@ -1104,7 +1121,7 @@ private:
     bool value;
 public:
     /// Create the boolean constant from its value
-    BConst(bool value) : value {value} {
+	BConst(bool value = false) : value {value} {
         type = Type::tbool;
     }
 
@@ -1161,6 +1178,7 @@ private:
 public:
     /// Create a location expression
     LocExp(shared_ptr<Location> location) : location {location} {}
+	LocExp(string id) : location(make_shared<Location>(std::forward<string>(id))) {}
 
     LocExp(const LocExp &) = delete;
     void operator=(const LocExp &) = delete;

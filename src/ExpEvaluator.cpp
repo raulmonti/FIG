@@ -130,11 +130,11 @@ void ExpEvaluator::visit(shared_ptr<LocExp> loc) {
             init->accept(*this);
             //this could lead to infinite loop if typechecking doesn't
             //check for circular expressions.
-        } else {
+		} else {
             put_error("Attempt to evaluate uninitialized constant");
         }
-    } else {
-        put_error("Location \"" + id + "\" not reducible at compilation time");
+	} else {
+		put_error("Location \"" + id + "\" not reducible at compilation time");
     }
 }
 
