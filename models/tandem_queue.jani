@@ -46,7 +46,7 @@
 					{
 						"exp" : 
 						{
-							"left" : "true",
+							"left" : true,
 							"op" : "∧",
 							"right" : 
 							{
@@ -71,7 +71,7 @@
 					{
 						"exp" : 
 						{
-							"left" : "true",
+							"left" : true,
 							"op" : "⇒",
 							"right" : 
 							{
@@ -366,7 +366,7 @@
 						"base" : "int",
 						"kind" : "bounded",
 						"lower-bound" : 0,
-						"upper-bound" : 8
+						"upper-bound" : "c"
 					}
 				},
 				{
@@ -649,7 +649,7 @@
 						"base" : "int",
 						"kind" : "bounded",
 						"lower-bound" : 0,
-						"upper-bound" : 8
+						"upper-bound" : "c"
 					}
 				},
 				{
@@ -697,9 +697,9 @@
 	{
 		"author" : "FIG translator",
 		"description" : "JANI file generated from IOSA model",
-		"version" : "Sun Sep 25 21:13:30 2016\n"
+		"version" : "Sun Oct  9 16:45:11 2016\n"
 	},
-	"name" : "models/tandem_queue.sa",
+	"name" : "tandem_queue.sa",
 	"system" : 
 	{
 		"elements" : 
@@ -725,6 +725,7 @@
 		"syncs" : 
 		[
 			{
+				"result" : "P0",
 				"synchronise" : 
 				[
 					"P0",
@@ -733,6 +734,7 @@
 				]
 			},
 			{
+				"result" : "P1",
 				"synchronise" : 
 				[
 					null,

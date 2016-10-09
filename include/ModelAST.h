@@ -496,8 +496,9 @@ public:
  **/
 class InitializedDecl : public Decl, public Initialized {
 public:
-    InitializedDecl(Type type, string id, shared_ptr<Exp> init)
-        : Decl(type, id), Initialized(init) {}
+	InitializedDecl(Type type, string id, shared_ptr<Exp> init, bool constant = false)
+		: Decl(type, id), Initialized(init)
+		{ if (constant) mark_as_constant(); }
     virtual void accept(Visitor& visit) override;
 	virtual bool has_init() override {
         return (true);

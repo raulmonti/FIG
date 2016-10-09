@@ -176,17 +176,16 @@ void ModelPrinter::visit(shared_ptr<Decl> decl) {
 }
 
 void ModelPrinter::visit(shared_ptr<RangedDecl> decl) {
-	// Print declaration
-	visit(std::static_pointer_cast<Decl>(decl));
-	// Print initialization
 	if (debug) {
+		visit(std::static_pointer_cast<Decl>(decl));
 		print_idented("Range:");
 		print_idented("Lower:");
 		accept_idented(decl->get_lower_bound());
 		print_idented("Upper:");
 		accept_idented(decl->get_upper_bound());
 	} else {
-		out << ": [";
+		print_idented(decl->get_id());
+		out << " : [";
 		decl->get_lower_bound()->accept(*this);
 		out << "..";
 		decl->get_upper_bound()->accept(*this);
@@ -210,9 +209,10 @@ void ModelPrinter::visit(shared_ptr<InitializedDecl> decl) {
 }
 
 void ModelPrinter::visit(shared_ptr<ClockDecl> decl) {
-	visit(std::static_pointer_cast<Decl>(decl));
-	if (!debug) {
-		out << ";" << endl;
+	if (debug) {
+		visit(std::static_pointer_cast<Decl>(decl));
+	} else {
+		print_idented(decl->get_id() + ": clock;\n");
 	}
 }
 
@@ -242,15 +242,19 @@ void ModelPrinter::visit(shared_ptr<TransitionAST> action) {
 		// label, pre and clock should've been printed in sub-class visitor
 		for (auto effect : action->get_assignments()) {
 			visit(effect);
-			out << ") & ";
+			out << " & ";
 		}
 		for (auto effect : action->get_clock_resets()) {
 			visit(effect);
-			out << ") & ";
+			out << " & ";
 		}
 		if (!action->get_assignments().empty() ||
-			!action->get_clock_resets().empty())
-			out << "\b\b\b   \b\b\b;\n";
+			!action->get_clock_resets().empty()) {
+			out.seekp(static_cast<size_t>(out.tellp())-3ul);
+			out << "; \n";
+		} else {
+			out << ";\n";
+		}
 	}
 }
 
@@ -369,11 +373,19 @@ void ModelPrinter::visit(shared_ptr<SingleParameterDist> dist) {
 }
 
 void ModelPrinter::visit(shared_ptr<MultipleParameterDist> dist) {
-    visit(std::static_pointer_cast<Dist>(dist));
-    print_idented("Parameter1:");
-    accept_idented(dist->get_first_parameter());
-    print_idented("Parameter2:");
-    accept_idented(dist->get_second_parameter());
+	if (debug) {
+		visit(std::static_pointer_cast<Dist>(dist));
+		print_idented("Parameter1:");
+		accept_idented(dist->get_first_parameter());
+		print_idented("Parameter2:");
+		accept_idented(dist->get_second_parameter());
+	} else {
+		out << to_str(dist->get_type()) << "(";
+		visit(dist->get_first_parameter());
+		out << ",";
+		visit(dist->get_second_parameter());
+		out << ")";
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<Location> loc) {
@@ -386,9 +398,13 @@ void ModelPrinter::visit(shared_ptr<Location> loc) {
 }
 
 void ModelPrinter::visit(shared_ptr<ArrayPosition> loc) {
-    visit(std::static_pointer_cast<Location>(loc));
-    print_idented("Array Position:");
-    accept_idented(loc->get_index());
+	if (debug) {
+		visit(std::static_pointer_cast<Location>(loc));
+		print_idented("Array Position:");
+		accept_idented(loc->get_index());
+	} else {
+		throw_FigException("array printing not inplemented yet in non-debug mode");
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<IConst> node) {

@@ -1,0 +1,54 @@
+
+const int c = 8;
+const int lambda = 3;
+const int mu1 = 2;
+const int mu2 = 6;
+
+
+module Arrivals
+	clk0: clock;
+	[P0!] true @ clk0
+		->
+		(clk0' = exponential(lambda)); 
+endmodule
+
+module Queue1
+	q1 : [0..c];
+	clk1: clock;
+	[P0?] (q1==0)
+		->
+		(q1' = (q1+1)) & (clk1' = exponential(mu1)); 
+	[P0?] ((q1>0)&(q1<c))
+		->
+		(q1' = (q1+1)); 
+	[P0?] (q1==c)
+		->
+		;
+	[P1!] (q1==1) @ clk1
+		->
+		(q1' = (q1-1)); 
+	[P1!] (q1>1) @ clk1
+		->
+		(q1' = (q1-1)) & (clk1' = exponential(mu1)); 
+endmodule
+
+module Queue2
+	q2 : [0..c];
+	clk2: clock;
+	[P1?] (q2==0)
+		->
+		(q2' = (q2+1)) & (clk2' = exponential(mu2)); 
+	[P1?] ((q2>0)&(q2<c))
+		->
+		(q2' = (q2+1)); 
+	[P1?] (q2==c)
+		->
+		;
+	[] (q2==1) @ clk2
+		->
+		(q2' = (q2-1)); 
+	[] (q2>1) @ clk2
+		->
+		(q2' = (q2-1)) & (clk2' = exponential(mu2)); 
+endmodule
+

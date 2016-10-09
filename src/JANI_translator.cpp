@@ -31,6 +31,7 @@
 #include <ctime>
 #include <cassert>
 #include <cstring>
+#include <libgen.h>  // basename(), dirname()
 // C++
 #include <map>
 #include <memory>
@@ -323,8 +324,9 @@ add_jani_header(Json::Value& root, const string& iosaModelFile)
 		root = Json::Value(Json::objectValue);
 	else if (!root.isObject())
 		throw_FigException("invalid JsonCPP value root");
+	auto filepath(strndup(iosaModelFile.c_str(), 1ul<<7ul));
 	root["jani-version"] = 1;
-	root["name"] = iosaModelFile.c_str();
+	root["name"] = basename(filepath);
 	root["type"] = "sta";
 	root["metadata"] = Json::Value(Json::objectValue);
 	auto now = std::time(nullptr);
@@ -344,6 +346,7 @@ add_jani_header(Json::Value& root, const string& iosaModelFile)
 		root["features"] = Json::Value(Json::arrayValue);
 		root["features"].append("derived-operators");
 	}
+	free(filepath);
 }
 
 
@@ -451,7 +454,9 @@ first_ID_in_expr(std::shared_ptr<Exp> expr, const shared_vector<Decl>& IDs)
 /// performing all necessary checks in the process.
 /// @return Whether the IOSA model could be successfully built
 bool
-build_IOSA_model_from_AST(Model& modelAST, bool verifyIOSA = true)
+build_IOSA_model_from_AST(Model& modelAST,
+						  bool reduceExpressions = false,
+						  bool verifyIOSA = true)
 {
 	// Check types
 	ModelTC typechecker;
@@ -462,13 +467,15 @@ build_IOSA_model_from_AST(Model& modelAST, bool verifyIOSA = true)
 		return false;
 	}
 
-	// Reduce expressions
-	ModelReductor reductor;
-	modelAST.accept(reductor);
-	if (reductor.has_errors()) {
-		fig::figTechLog << "[ERROR] Expressions reduction failed" << std::endl;
-		fig::figTechLog << reductor.get_messages() << std::endl;
-		return false;
+	// Reduce expressions if requested
+	if (reduceExpressions) {
+		ModelReductor reductor;
+		modelAST.accept(reductor);
+		if (reductor.has_errors()) {
+			fig::figTechLog << "[ERROR] Expressions reduction failed" << std::endl;
+			fig::figTechLog << reductor.get_messages() << std::endl;
+			return false;
+		}
 	}
 
 	// Check IOSA compliance if requested
@@ -536,7 +543,7 @@ JaniTranslator::fresh_label(const Json::Value& hint)
 	if (!hint.isNull() && hint.isString())
 		return hint.asString();
 	else
-		return "a" + std::to_string(fresh++);
+		return "aa" + std::to_string(fresh++);
 }
 
 
@@ -668,6 +675,7 @@ JaniTranslator::parse_IOSA_model(const string& iosaModelFile,
 	if (nullptr != modelAST) {
 		// Populate ModelSuite
 		bool success = build_IOSA_model_from_AST(dynamic_cast<Model&>(*modelAST),
+												 false,  // let constants IDs alone
 												 validityCheck);
 		if (success)
 			IOSAroot_ = std::dynamic_pointer_cast<Model>(modelAST);
@@ -942,28 +950,33 @@ void
 JaniTranslator::visit(shared_ptr<RangedDecl> node)
 {
 	auto JANIobj = EMPTY_JSON_OBJ, type = EMPTY_JSON_OBJ;
+	const auto tmp = *JANIfield_;
 
     assert( ! (has_errors() || has_warnings()) );
     assert(!node->is_constant());
 
+	// Type
     type["kind"] = "bounded";
     type["base"] = "int";
-    type["lower-bound"] = get_int_or_error(node->get_lower_bound(),
-                                  "failed to reduce lower bound of "
-                                  "variable \"" + node->get_id() + "\"\n");
-    type["upper-bound"] = get_int_or_error(node->get_upper_bound(),
-                                  "failed to reduce upper bound of "
-                                  "variable \"" + node->get_id() + "\"\n");
-    JANIobj["type"] = type;
+	(*JANIfield_) = EMPTY_JSON_OBJ;
+	node->get_lower_bound()->accept(*this);
+	type["lower-bound"] = *JANIfield_;
+	(*JANIfield_) = EMPTY_JSON_OBJ;
+	node->get_upper_bound()->accept(*this);
+	type["upper-bound"] = *JANIfield_;
+
+	// Declaration
+	(*JANIfield_) = EMPTY_JSON_OBJ;
+	node->get_init()->accept(*this);
+	JANIobj["initial-value"] = *JANIfield_;
 	JANIobj["name"] = node->get_id();
-	JANIobj["initial-value"] = get_int_or_error(node->get_init(),
-                                  "failed to reduce initial value of "
-                                  "variable \"" + node->get_id() + "\"\n");
+	JANIobj["type"] = type;
 
     if (has_errors() || has_warnings())
 		throw_FigException("error translating declaration: " + get_messages());
 
     // Store translated data in corresponding field
+	*JANIfield_ = tmp;
 	if (JANIfield_->isArray())
 		JANIfield_->append(JANIobj);
     else
@@ -1035,9 +1048,9 @@ void
 JaniTranslator::visit(shared_ptr<BConst> node)
 {
 	if (JANIfield_->isArray())
-		JANIfield_->append(node->get_value() ? "true" : "false");
+		JANIfield_->append(node->get_value());
 	else
-		(*JANIfield_) = node->get_value() ? "true" : "false";
+		(*JANIfield_) = node->get_value();
 }
 
 
@@ -1064,7 +1077,6 @@ JaniTranslator::visit(shared_ptr<FConst> node)
 void
 JaniTranslator::visit(shared_ptr<LocExp> node)
 {
-	/// @todo FIXME: how do we check whether this is an array? Or can't it be?
 	if (JANIfield_->isArray())
 		JANIfield_->append(node->get_exp_location()->get_identifier().c_str());
 	else
@@ -1337,15 +1349,6 @@ JaniTranslator::build_IOSA_from_JANI()
 	}
 
 
-
-	/// @todo TODO erase debug print
-	ModelPrinter printer;//(std::cerr, true);
-	iosaModel.accept(printer);
-
-
-	throw_FigException("prematurely aborted; not ready yet!");
-
-
 	/// @todo TODO translate properties, if present
 
 	return ::build_IOSA_model_from_AST(iosaModel);
@@ -1474,7 +1477,7 @@ JaniTranslator::build_IOSA_constant(const Json::Value& JANIconst)
 		return nullptr;
 	}
 	// Build IOSA constant
-	return std::make_shared<InitializedDecl>(iosaType, name, iosaExp);
+	return std::make_shared<InitializedDecl>(iosaType, name, iosaExp, true);
 }
 
 
