@@ -9,6 +9,9 @@
 
 namespace iosa {
 
+
+using IVert = shared_ptr<State>;
+
 class TransitionInfo {
 private:
     std::string label_id;
@@ -28,8 +31,7 @@ public:
 };
 
 using IEdge = Edge<shared_ptr<State>, TransitionInfo>;
-using IVert = shared_ptr<State>;
-
+using NonConfluentPair = std::pair<IEdge, IEdge>;
 
 struct StatePtrComp {
     bool operator()(const IVert &s1, const IVert &s2) const {
@@ -39,7 +41,7 @@ struct StatePtrComp {
 
 class ModuleIOSA : Graph <shared_ptr<State>, TransitionInfo, StatePtrComp> {
 private:
-    std::shared_ptr<State> initial_state;
+    IVert initial_state;
     std::shared_ptr<ModuleScope> scope;
     std::shared_ptr<ModuleAST> ast;
 
@@ -56,6 +58,11 @@ private:
     bool holds_expression(IVert st, shared_ptr<Exp> bexp) const;
     IVert process_edge(IVert st, shared_ptr<TransitionAST> transition);
     IVert process_assignments(IVert st, shared_vector<Assignment>& avec);
+    std::vector<IEdge> select_edges_of(IVert src, std::function<bool (const IEdge &)> prop);
+    std::vector<IEdge> committed_edges_of(IVert st);
+    std::vector<IEdge> labeled_edges_of(IVert st, const string &label);
+    std::vector<NonConfluentPair> non_confluents_of(IVert st);
+    bool edge_confluent(IEdge &edge1, IEdge &edge2);
 };
 
 } //

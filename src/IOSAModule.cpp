@@ -132,9 +132,8 @@ IVert ModuleIOSA::process_assignments(IVert st,
     return (copy);
 }
 
-/*
 std::vector<IEdge>
-select_edges_of(IVert src,
+ModuleIOSA::select_edges_of(IVert src,
                 std::function<bool (const IEdge &edge)> prop) {
     auto it = edges.equal_range(src);
     auto fst = it.first;
@@ -150,7 +149,7 @@ select_edges_of(IVert src,
     return (result);
 }
 
-std::vector<IEdge> commited_edges_of(IVert st) {
+std::vector<IEdge> ModuleIOSA::committed_edges_of(IVert st) {
     auto prop = [] (const IEdge &edge) -> bool {
        LabelType type = edge.get_data().get_label_type();
        return (type == LabelType::out_committed);
@@ -158,14 +157,15 @@ std::vector<IEdge> commited_edges_of(IVert st) {
     return select_edges_of(st, prop);
 }
 
-std::vector<IEdge> labeled_edges_of(IVert st, const string &label) {
-    auto prop = [] (const IEdge &edge) -> bool {
+std::vector<IEdge> ModuleIOSA::labeled_edges_of(IVert st, const string &label) {
+    auto prop = [label] (const IEdge &edge) -> bool {
         return (edge.get_data().get_label_id() == label);
     };
     return select_edges_of(st, prop);
 }
 
-std::vector<IVert> dst_of(IVert st, const string &label) {
+/*
+std::vector<IVert> ModuleIOSA::dst_of(IVert st, const string &label) {
     auto edges = labeled_edges_of(st, label);
     std::vector<IVert> result;
     for (auto edge : edges) {
@@ -173,19 +173,19 @@ std::vector<IVert> dst_of(IVert st, const string &label) {
     }
     return (result);
 }
+*/
 
-bool confluent_on(IVert st, const string& label1, const string &label2) {
+/*
+bool ModuleIOSA::confluent_on(IVert st, const string& label1, const string &label2) {
     bool result = false;
     std::vector<IVert> d1 = dst_of(st, label1);
     std::vector<IVert> d2 = dst_of(st, label2);
-
 }
+*/
 
-using NonConfluentPair = std::pair<IEdge, IEdge>;
-
-std::vector<NonConfluentPair> non_confluents_of(IVert st) {
+std::vector<NonConfluentPair> ModuleIOSA::non_confluents_of(IVert st) {
     std::vector<NonConfluentPair> result;
-    std::vector<IEdge> c_edges = commited_edges(st);
+    std::vector<IEdge> c_edges = committed_edges_of(st);
     for (IEdge &edge1 : c_edges) {
         for (IEdge &edge2 : c_edges) {
             assert(edge1.get_src() == edge2.get_src());
@@ -196,13 +196,13 @@ std::vector<NonConfluentPair> non_confluents_of(IVert st) {
             }
         }
     }
+    return result;
 }
 
-bool edge_confluent(IEdge &edge1, IEdge &edge2) {
+bool ModuleIOSA::edge_confluent(IEdge &edge1, IEdge &edge2) {
     assert(edge1.get_src() == edge2.get_dst());
-
+    return true;
 }
 
-*/
 
 } //
