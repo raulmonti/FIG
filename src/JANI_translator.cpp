@@ -2181,7 +2181,7 @@ JaniTranslator::build_IOSA_precondition_from_STA(const Json::Value& JANIguard,
 										 JANIguard["left"], clocks);
 		std::tie(rightExp, rightClk) = build_IOSA_precondition_from_STA(
 										 JANIguard["right"], clocks);
-		if (nullptr == leftExp || nullptr == rightExp) {
+		if (nullptr == leftExp && nullptr == rightExp) {
 			return errRet;  // failed translating subexpression
 		} else if (nullptr != leftClk && nullptr != rightClk) {
 			// Two clocks found! Error
@@ -2191,7 +2191,13 @@ JaniTranslator::build_IOSA_precondition_from_STA(const Json::Value& JANIguard,
 			return errRet;
 		}
 		// Alles in Ordnung
-		auto exp = std::make_shared<BinOpExp>(ExpOp::andd, leftExp, rightExp);
+		std::shared_ptr<Exp> exp;
+		if (nullptr == leftExp)
+			exp = rightExp;
+		else if (nullptr == rightExp)
+			exp = leftExp;
+		else
+			exp = std::make_shared<BinOpExp>(ExpOp::andd, leftExp, rightExp);
 		if (nullptr != leftClk)
 			return std::make_pair(exp, leftClk);
 		else
@@ -2237,7 +2243,7 @@ JaniTranslator::build_IOSA_precondition_from_STA(const Json::Value& JANIguard,
 			return errRet;
 		}
 		// As result return "true", since this was the operand of an 'and'
-		return std::make_pair(std::make_shared<BConst>(true),
+		return std::make_pair(nullptr,//std::make_shared<BConst>(true),
 							  std::make_shared<Location>(clk));
 	} else {
 		// No more clocks allowed from here downwards

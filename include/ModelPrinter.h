@@ -46,6 +46,8 @@ class ModelPrinter : public Visitor {
 	std::ostream& out;
 	/// Current indentation level to use
 	unsigned ident;
+	/// Charater used for identation
+	const char identc;
 	/// Is the current declaration a constant value?
 	bool constant;
 	/// Dump to out stream with currently set indentation level
@@ -53,10 +55,13 @@ class ModelPrinter : public Visitor {
 	/// Print this module using one more level of indentation
     void accept_idented(shared_ptr<ModelAST> node);
 public:
-	ModelPrinter(std::ostream& sout = std::cout, bool debugp = false) :
+	ModelPrinter(std::ostream& sout = std::cout,
+				 bool debugp = false,
+				 const char& identChar = '\t') :
 		debug(debugp),
 		out(sout),
 		ident(0),
+		identc(identChar),
 		constant(false)
 	{ /* Not much to do around here */ }
 

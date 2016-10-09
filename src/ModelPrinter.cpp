@@ -91,7 +91,7 @@ void ModelPrinter::accept_idented(shared_ptr<ModelAST> node) {
 }
 
 void ModelPrinter::print_idented(string str) {
-	out << string(ident, '\t') << str;
+	out << string(ident, identc) << str;
 	if (debug) {
 		out << endl;
 	}
@@ -150,8 +150,6 @@ void ModelPrinter::visit(shared_ptr<ModuleAST> body) {
 	}
 	if (debug) {
 		print_idented("Actions: ");
-	} else {
-		out << endl;
 	}
     for (auto action : body->get_transitions()) {
         accept_idented(action);
@@ -240,32 +238,19 @@ void ModelPrinter::visit(shared_ptr<TransitionAST> action) {
 			accept_idented(effect);
 		}
 	} else {
-//		std::stringstream ss;
-//		ss << "[" << action->get_label();
-//		switch (action->get_label_type()) {
-//			case LabelType::in:  ss << "?"; break;
-//			case LabelType::out: ss << "!"; break;
-//			case LabelType::in_committed:  ss << "??"; break;
-//			case LabelType::out_committed: ss << "!!"; break;
-//			case LabelType::tau: default: break;
-//		}
-//		ss << "] ";
-//		print_idented(ss.str());
-//		accept_idented(action->get_precondition());
-//		out << std::endl;
-//		print_idented("->");
 		// Print effects only;
 		// label, pre and clock should've been printed in sub-class visitor
 		for (auto effect : action->get_assignments()) {
-			accept_idented(effect);
-			out << " &";
+			visit(effect);
+			out << ") & ";
 		}
-		out << "\b\b  \b\b";
 		for (auto effect : action->get_clock_resets()) {
-			accept_idented(effect);
-			out << " &";
+			visit(effect);
+			out << ") & ";
 		}
-		out << "\b\b  \b\b;\n";
+		if (!action->get_assignments().empty() ||
+			!action->get_clock_resets().empty())
+			out << "\b\b\b   \b\b\b;\n";
 	}
 }
 
@@ -278,8 +263,11 @@ void ModelPrinter::visit(shared_ptr<InputTransition> transition) {
 		print_idented("[" + label + "] ");
 		visit(transition->get_precondition());
 		out << std::endl;
+		ident++;
 		print_idented("->\n");
+		print_idented("");
 		visit(std::static_pointer_cast<TransitionAST>(transition));
+		ident--;
 	}
 }
 
@@ -293,10 +281,13 @@ void ModelPrinter::visit(shared_ptr<OutputTransition> transition) {
 		label.append(label.back() != '!' ? "!" : "");
 		print_idented("[" + label + "] ");
 		visit(transition->get_precondition());
-		out << " @ " << transition->get_triggering_clock()->get_identifier()
-			<< std::endl;
+		out << " @ " << transition->get_triggering_clock()->get_identifier();
+		out << std::endl;
+		ident++;
 		print_idented("->\n");
+		print_idented("");
 		visit(std::static_pointer_cast<TransitionAST>(transition));
+		ident--;
 	}
 }
 
@@ -308,53 +299,73 @@ void ModelPrinter::visit(shared_ptr<TauTransition> transition) {
 	} else {
 		print_idented("[] ");
 		visit(transition->get_precondition());
-		out << " @ " << transition->get_triggering_clock()->get_identifier()
-			<< std::endl;
+		out << " @ " << transition->get_triggering_clock()->get_identifier();
+		out << std::endl;
+		ident++;
 		print_idented("->\n");
+		print_idented("");
 		visit(std::static_pointer_cast<TransitionAST>(transition));
+		ident--;
 	}
 }
 
 void ModelPrinter::visit(shared_ptr<Effect> effect) {
+	// Print lhs of an effect (rhs handled in derived classes)
 	if (debug) {
 		print_idented("=Effect=");
 		print_idented("Location:");
 		accept_idented(effect->get_effect_location());
 	} else {
-		visit(effect->get_effect_location());
+		visit(effect->get_effect_location());  // prints opening '('
 		out << "' = ";
 	}
 }
 
 void ModelPrinter::visit(shared_ptr<Assignment> effect) {
+	// First print lhs...
 	visit(std::static_pointer_cast<Effect>(effect));
+	// ...then rhs
 	if (debug) {
 		print_idented("Assignment Expression:");
 		accept_idented(effect->get_rhs());
 	} else {
 		visit(effect->get_rhs());
+		// lhs should've printed an opening '('
+		out << ")";
 	}
 }
 
 void ModelPrinter::visit(shared_ptr<ClockReset> effect) {
+	// First print lhs...
 	visit(std::static_pointer_cast<Effect>(effect));
+	// ...then rhs
 	if (debug) {
 		print_idented("Distribution:");
 		accept_idented(effect->get_dist());
 	} else {
-		visit(effect->get_dist());
+		effect->get_dist()->accept(*this);
+		// lhs should've printed an opening '('
+		out << ")";
 	}
 }
 
 void ModelPrinter::visit(shared_ptr<Dist> dist) {
-    print_idented("=Dist=");
-    print_idented("Type: " + to_str(dist->get_type()));
+	if (debug) {
+		print_idented("=Dist=");
+		print_idented("Type: " + to_str(dist->get_type()));
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<SingleParameterDist> dist) {
-    visit(std::static_pointer_cast<Dist>(dist));
-    print_idented("Parameter:");
-    accept_idented(dist->get_parameter());
+	if (debug) {
+		visit(std::static_pointer_cast<Dist>(dist));
+		print_idented("Parameter:");
+		accept_idented(dist->get_parameter());
+	} else {
+		out << to_str(dist->get_type()) << "(";
+		visit(dist->get_parameter());
+		out << ")";
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<MultipleParameterDist> dist) {
@@ -370,7 +381,7 @@ void ModelPrinter::visit(shared_ptr<Location> loc) {
 		print_idented("=Location=");
 		print_idented("ID: \"" + loc->get_identifier() + "\"");
 	} else {
-		out << loc->get_identifier();
+		out << "(" << loc->get_identifier();
 	}
 }
 
