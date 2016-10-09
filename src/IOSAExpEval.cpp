@@ -1,27 +1,10 @@
 /* Leonardo Rodríguez */
-#include "ExplicitIOSA.h"
-#include <sstream>
+
+#include "IOSAExpEval.h"
+#include "Operators.h"
+#include "FigException.h"
 
 namespace iosa {
-
-void State::print_state(std::ostream& ss) {
-    for (auto entry : pos) {
-        const std::string &name = entry.first;
-        ss << name << ": " << this->get_variable_value(name) << " ";
-    }
-}
-
-bool State::operator==(const State &that) {
-    return (this->values == that.values);
-}
-
-bool State::operator!=(const State &that) {
-    return (this->values != that.values);
-}
-
-bool State::operator<(const State&that) {
-    return (this->values < that.values);
-}
 
 void Evaluator::visit(shared_ptr<BConst> node) {
     value = node->get_value() ? 1 : 0;
@@ -86,5 +69,4 @@ void Evaluator::visit(shared_ptr<BinOpExp> exp) {
     }
 }
 
-}
-
+} //

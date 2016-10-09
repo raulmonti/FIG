@@ -47,7 +47,7 @@
 #include <ModelReductor.h>
 #include <ModelPrinter.h>
 #include <ModelVerifier.h>
-#include <ExplicitIOSA.h>
+#include <ConfluenceChecker.h>
 #include <JANI_translator.h>
 #include <ImportanceFunction.h>
 
@@ -280,7 +280,7 @@ void compile_model(bool modelAlreadyBuilt) {
 	ModelVerifier verifier;
 	ModelBuilder builder;
     ModelPrinter printer;
-    iosa::ConfluenceVerifier confluence_verifier;
+    iosa::ConfluenceChecker confluence_verifier;
 
 	if (modelAlreadyBuilt) {
 		// Parsing + model building already done during JANI interaction
