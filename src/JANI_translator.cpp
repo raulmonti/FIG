@@ -946,9 +946,6 @@ JaniTranslator::visit(shared_ptr<Model> node)
 			prop_ptr->accept(*this);
 		(*JANIroot_)["properties"] = *JANIfield_;
 	}
-
-	/// @todo TODO translate properties, if present
-
 }
 
 
@@ -1247,15 +1244,53 @@ JaniTranslator::visit(shared_ptr<Assignment> node)
 void
 JaniTranslator::visit(shared_ptr<TransientProp> node)
 {
-	auto JANIobj(EMPTY_JSON_OBJ);
+	static size_t fresh(0ul);
+	auto JANIobj(EMPTY_JSON_OBJ), transient(EMPTY_JSON_OBJ);
 	const auto tmp = *JANIfield_;
+	// Mandatory fields (name and filter)
+	JANIobj["name"] = "Transient_" + std::to_string(fresh++);
+	JANIobj["expression"] = EMPTY_JSON_OBJ;
+	JANIobj["expression"]["op"] = "filter";
+	JANIobj["expression"]["fun"] = "max";
+	JANIobj["expression"]["states"] = "initial";
+	// Weak-until probability
+	transient["op"] = "Pmax";
+	transient["exp"] = EMPTY_JSON_OBJ;
+	transient["exp"]["op"] = "W";
+	(*JANIfield_) = EMPTY_JSON_OBJ;
+	node->get_left()->accept(*this);
+	transient["exp"]["left"] = *JANIfield_;
+	(*JANIfield_) = EMPTY_JSON_OBJ;
+	node->get_right()->accept(*this);
+	transient["exp"]["right"] = *JANIfield_;
+	JANIobj["expression"]["values"] = transient;
+	// Store translated data in corresponding field
+	*JANIfield_ = tmp;
+	if (JANIfield_->isArray())
+		JANIfield_->append(JANIobj);
+	else
+		(*JANIfield_) = JANIobj;
+}
 
-	JANIobj["op"] = "filter";
-	JANIobj["fun"] = "max";
-	JANIobj["states"] = "initial";
 
-	/// @todo TODO finish property translation
-
+void
+JaniTranslator::visit(shared_ptr<RateProp> node)
+{
+	static size_t fresh(0ul);
+	auto JANIobj(EMPTY_JSON_OBJ), rate(EMPTY_JSON_OBJ);
+	const auto tmp = *JANIfield_;
+	// Mandatory fields (name and filter)
+	JANIobj["name"] = "Rate_" + std::to_string(fresh++);
+	JANIobj["expression"] = EMPTY_JSON_OBJ;
+	JANIobj["expression"]["op"] = "filter";
+	JANIobj["expression"]["fun"] = "max";
+	JANIobj["expression"]["states"] = "initial";
+	// Long run probability
+	rate["values"]["op"] = "Smax";
+	(*JANIfield_) = EMPTY_JSON_OBJ;
+	node->get_expression()->accept(*this);
+	rate["values"]["exp"] = *JANIfield_;
+	JANIobj["expression"]["values"] = rate;
 	// Store translated data in corresponding field
 	*JANIfield_ = tmp;
 	if (JANIfield_->isArray())

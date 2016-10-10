@@ -93,7 +93,6 @@ public:
     void visit(shared_ptr<OpExp> node);
     void visit(shared_ptr<BinOpExp> node);
     void visit(shared_ptr<UnOpExp> node);
-	void visit(shared_ptr<Exp> node);
 	void visit(shared_ptr<Prop> node);
     void visit(shared_ptr<TransientProp> node);
     void visit(shared_ptr<RateProp> node);

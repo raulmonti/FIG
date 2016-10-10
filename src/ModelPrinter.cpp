@@ -265,7 +265,7 @@ void ModelPrinter::visit(shared_ptr<InputTransition> transition) {
 		auto label = transition->get_label();
 		label.append(label.back() != '?' ? "?" : "");
 		print_idented("[" + label + "] ");
-		visit(transition->get_precondition());
+		transition->get_precondition()->accept(*this);
 		out << std::endl;
 		ident++;
 		print_idented("->\n");
@@ -284,7 +284,7 @@ void ModelPrinter::visit(shared_ptr<OutputTransition> transition) {
 		auto label = transition->get_label();
 		label.append(label.back() != '!' ? "!" : "");
 		print_idented("[" + label + "] ");
-		visit(transition->get_precondition());
+		transition->get_precondition()->accept(*this);
 		out << " @ " << transition->get_triggering_clock()->get_identifier();
 		out << std::endl;
 		ident++;
@@ -302,7 +302,7 @@ void ModelPrinter::visit(shared_ptr<TauTransition> transition) {
 		accept_idented(transition->get_triggering_clock());
 	} else {
 		print_idented("[] ");
-		visit(transition->get_precondition());
+		transition->get_precondition()->accept(*this);
 		out << " @ " << transition->get_triggering_clock()->get_identifier();
 		out << std::endl;
 		ident++;
@@ -333,7 +333,7 @@ void ModelPrinter::visit(shared_ptr<Assignment> effect) {
 		print_idented("Assignment Expression:");
 		accept_idented(effect->get_rhs());
 	} else {
-		visit(effect->get_rhs());
+		effect->get_rhs()->accept(*this);
 		// lhs should've printed an opening '('
 		out << ")";
 	}
@@ -367,7 +367,7 @@ void ModelPrinter::visit(shared_ptr<SingleParameterDist> dist) {
 		accept_idented(dist->get_parameter());
 	} else {
 		out << to_str(dist->get_type()) << "(";
-		visit(dist->get_parameter());
+		dist->get_parameter()->accept(*this);
 		out << ")";
 	}
 }
@@ -381,9 +381,9 @@ void ModelPrinter::visit(shared_ptr<MultipleParameterDist> dist) {
 		accept_idented(dist->get_second_parameter());
 	} else {
 		out << to_str(dist->get_type()) << "(";
-		visit(dist->get_first_parameter());
+		dist->get_first_parameter()->accept(*this);
 		out << ",";
-		visit(dist->get_second_parameter());
+		dist->get_second_parameter()->accept(*this);
 		out << ")";
 	}
 }
@@ -496,24 +496,6 @@ void ModelPrinter::visit(shared_ptr<UnOpExp> node) {
 			node->get_argument()->accept(*this);
 			out << ")";
 		}
-	}
-}
-
-void ModelPrinter::visit(shared_ptr<Exp> node) {
-	if (auto bconst = std::dynamic_pointer_cast<BConst>(node)) {
-		visit(bconst);
-	} else if (auto iconst = std::dynamic_pointer_cast<IConst>(node)) {
-		visit(iconst);
-	} else if (auto fconst = std::dynamic_pointer_cast<FConst>(node)) {
-		visit(fconst);
-	} else if (auto locexp = std::dynamic_pointer_cast<LocExp>(node)) {
-		visit(locexp);
-	} else if (auto binop = std::dynamic_pointer_cast<BinOpExp>(node)) {
-		visit(binop);
-	} else if (auto unop = std::dynamic_pointer_cast<UnOpExp>(node)) {
-		visit(unop);
-	} else {
-		throw_FigException("invalid Expression type");
 	}
 }
 
