@@ -30,7 +30,10 @@ public:
     }
 };
 
-template<typename V, typename D, typename VComp = std::less<V>>
+template<typename V,
+         typename D,
+         typename VComp = std::less<V>,
+         typename DEq = std::equal_to<D>>
 class Graph {
 protected:
     // Maybe we should use unordered map and hash the vector
@@ -39,6 +42,8 @@ protected:
 
     std::multimap<V, Edge<V, D>, VComp> edges;
     VComp less = edges.key_comp();
+    DEq data_eq = DEq();
+
 public:
     Graph() {}
 
@@ -55,19 +60,19 @@ public:
     void print(std::function<void (Edge<V, D>)> printer) const;
 };
 
-template<typename V, typename D, typename VComp>
-void Graph<V,D,VComp>::add_edge(const Edge<V,D> &edge) {
+template<typename V, typename D, typename VComp, typename DEq>
+void Graph<V,D,VComp,DEq>::add_edge(const Edge<V,D> &edge) {
     const auto& e = std::make_pair(edge.get_src(), edge);
     edges.insert(e);
 }
 
-template<typename V, typename D, typename VComp>
-bool Graph<V,D,VComp>::has_vertex(const V& v) const {
+template<typename V, typename D, typename VComp, typename DEq>
+bool Graph<V,D,VComp,DEq>::has_vertex(const V& v) const {
     return edges.find(v) != edges.cend();
 }
 
-template<typename V, typename D, typename VComp>
-bool Graph<V,D,VComp>::has_edge(const Edge<V,D> &edge) const {
+template<typename V, typename D, typename VComp, typename DEq>
+bool Graph<V,D,VComp,DEq>::has_edge(const Edge<V,D> &edge) const {
     auto its = edges.equal_range(edge.get_src());
     auto fst = its.first;
     auto snd = its.second;
@@ -80,20 +85,22 @@ bool Graph<V,D,VComp>::has_edge(const Edge<V,D> &edge) const {
     return (result);
 }
 
-template<typename V, typename D, typename VComp>
-bool Graph<V,D,VComp>::same_vertex(const V& v1, const V& v2) const {
+template<typename V, typename D, typename VComp, typename DEq>
+bool Graph<V,D,VComp,DEq>::same_vertex(const V& v1, const V& v2) const {
     return (!less(v1, v2) && !less(v2, v1));
 }
 
-template<typename V, typename D, typename VComp>
-bool Graph<V,D,VComp>::same_edge(const Edge<V,D> &edge1,
+template<typename V, typename D, typename VComp, typename DEq>
+bool Graph<V,D,VComp, DEq>::same_edge(const Edge<V,D> &edge1,
                                  const Edge<V,D> &edge2) const {
     return same_vertex(edge1.get_src(), edge2.get_src()) &&
-            same_vertex(edge1.get_dst(), edge2.get_dst());
+            same_vertex(edge1.get_dst(), edge2.get_dst()) &&
+            data_eq(edge1.get_data(), edge2.get_data());
 }
 
-template<typename V, typename D, typename VComp>
-void Graph<V,D,VComp>::print(std::function<void (Edge<V, D>)> printer) const {
+template<typename V, typename D, typename VComp, typename DEq>
+void Graph<V,D,VComp, DEq>::
+print(std::function<void (Edge<V, D>)> printer) const {
     auto it = edges.cbegin();
     while (it != edges.cend()) {
         const Edge<V,D>&edge = it->second;

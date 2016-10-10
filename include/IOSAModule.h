@@ -21,12 +21,17 @@ public:
     TransitionInfo(const std::string& label_id, LabelType type):
         label_id {label_id}, type {type} {}
 
-    std::string get_label_id() {
+    std::string get_label_id() const {
         return label_id;
     }
 
-    LabelType get_label_type() {
+    LabelType get_label_type() const {
         return type;
+    }
+
+    bool operator==(const TransitionInfo& that) const {
+        return (label_id == that.get_label_id())
+                && (type == that.get_label_type());
     }
 };
 
@@ -63,7 +68,7 @@ private:
     std::vector<IEdge> labeled_edges_of(IVert st, const string &label);
     void non_confluents_of(std::vector<NonConfluentPair> &result, IVert st);
     bool edge_confluent(IEdge &edge1, IEdge &edge2);
-    std::vector<NonConfluentPair> search_non_confluents();
+    void search_non_confluents(std::vector<NonConfluentPair> &result);
 };
 
 } //

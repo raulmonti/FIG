@@ -22,7 +22,8 @@ ModuleIOSA::ModuleIOSA(std::shared_ptr<ModuleAST> ast) {
         std::cout << std::endl;
     };
     print(pr);
-    auto pairs = search_non_confluents();
+    std::vector<NonConfluentPair> pairs;
+    search_non_confluents(pairs);
     for (NonConfluentPair pair : pairs) {
         std::cout << " ID0 : " << pair.first.get_data().get_label_id();
         std::cout << " ID1 : " << pair.second.get_data().get_label_id();
@@ -173,10 +174,9 @@ std::vector<IEdge> ModuleIOSA::labeled_edges_of(IVert st, const string &label) {
     return select_edges_of(st, prop);
 }
 
-std::vector<NonConfluentPair> ModuleIOSA::search_non_confluents() {
+void ModuleIOSA::search_non_confluents(std::vector<NonConfluentPair>& result) {
     std::set<IVert, StatePtrComp> visited;
     std::queue<IVert> queue;
-    std::vector<NonConfluentPair> result;
     queue.push(initial_state);
 
     while (!queue.empty()) {
@@ -196,8 +196,6 @@ std::vector<NonConfluentPair> ModuleIOSA::search_non_confluents() {
             fst++;
         }
     }
-
-    return (result);
 }
 
 void ModuleIOSA::non_confluents_of(std::vector<NonConfluentPair> &result,
