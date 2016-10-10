@@ -68,7 +68,7 @@ string modelFile;
 string propertiesFile;
 string engineName;
 fig::JaniTranny janiSpec;
-fig::ImpFunSpec impFunSpec("noName", "noStrategy");
+fig::ImpFunSpec impFunSpec("no_name", "no_strategy");
 string thrTechnique;
 std::set< unsigned > splittings;
 std::list< fig::StoppingConditions > estBounds;
@@ -314,6 +314,10 @@ get_jani_spec()
 		janiSpec.janiInteraction = true;
 		janiSpec.translateDirection = fromJANI ? fig::JaniTranny::FROM_JANI
 											   : fig::JaniTranny::TO_JANI;
+	} else if (regex_match(modelFile_.getValue(), regex("^.*\\.jani$"))) {
+		// .jani extension: suspicious enough to assume JANI
+		janiSpec.janiInteraction = true;
+		janiSpec.translateDirection = fig::JaniTranny::FROM_JANI;
 	} else {
 		// Superficial check for JANI-like content in the input model file
 		std::ifstream modelFile(modelFile_.getValue());

@@ -939,6 +939,13 @@ JaniTranslator::visit(shared_ptr<Model> node)
 	assert((*JANIroot_)["system"].isMember("elements"));
 	assert((*JANIroot_)["system"]["elements"].isArray());
 
+	// Parse all properties
+	if (node->has_props()) {
+		JANIfield_ = make_shared<Json::Value>(Json::arrayValue);
+		for (auto prop_ptr: node->get_props())
+			prop_ptr->accept(*this);
+		(*JANIroot_)["properties"] = *JANIfield_;
+	}
 
 	/// @todo TODO translate properties, if present
 
@@ -1234,6 +1241,27 @@ JaniTranslator::visit(shared_ptr<Assignment> node)
 	node->get_rhs()->accept(*this);
 	JANIobj["value"] = *JANIfield_;
 	JANIfield_->swap(JANIobj);
+}
+
+
+void
+JaniTranslator::visit(shared_ptr<TransientProp> node)
+{
+	auto JANIobj(EMPTY_JSON_OBJ);
+	const auto tmp = *JANIfield_;
+
+	JANIobj["op"] = "filter";
+	JANIobj["fun"] = "max";
+	JANIobj["states"] = "initial";
+
+	/// @todo TODO finish property translation
+
+	// Store translated data in corresponding field
+	*JANIfield_ = tmp;
+	if (JANIfield_->isArray())
+		JANIfield_->append(JANIobj);
+	else
+		(*JANIfield_) = JANIobj;
 }
 
 

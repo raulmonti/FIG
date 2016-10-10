@@ -347,6 +347,10 @@ private:  // Visitor overrides for parsing
 	/// postcondition variable assignment
 	void visit(shared_ptr<Assignment> node) override;
 
+	/// Append/assign to JANIfield the JANI translation of this
+	/// transient property expression
+	void visit(shared_ptr<TransientProp> node) override;
+
 private:  // Class utils: JANI -> IOSA
 
 	/// Parse the given file and populate JANIroot_

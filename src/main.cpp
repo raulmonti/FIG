@@ -194,8 +194,9 @@ bool print_intro(const int& argc, const char** argv)
 #else
 	main_log("(PCG family RNG)\n");
 #endif
-	main_log(" Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n");
-	main_log("		  Monti, Raúl E.   <raulmonti88@gmail.com>\n");
+	main_log(" Authors: Budde, Carlos E.  <cbudde@famaf.unc.edu.ar>\n");
+	main_log("          Monti, Raúl E.    <raulmonti88@gmail.com>\n");
+	main_log("          Rodriguez, Leo M. <leonardomatiasrodriguez@gmail.com>\n");
 	main_log("\n");
 
 	// Print additional technical info if this is more than a query
@@ -241,7 +242,8 @@ void interact_with_JANI()
 			log(" *** Error: JANI-spec model file \""
 				+ janiSpec.modelFileJANI +"\" not found! ***\n");
 			throw_FigException("file with JANI model not found");
-		} else if (!janiSpec.modelFileIOSA.empty() &&
+		} else if (janiSpec.translateOnly &&
+		           !janiSpec.modelFileIOSA.empty() &&
 		           file_exists(janiSpec.modelFileIOSA) &&
 		           !forceOperation) {
 			log(" *** Error: file \"" + janiSpec.modelFileIOSA +
@@ -287,16 +289,12 @@ void interact_with_JANI()
 void compile_model(bool modelAlreadyBuilt) {
 	auto log = fig::ModelSuite::main_log;
 	auto tech_log = fig::ModelSuite::tech_log;
-	shared_ptr<ModelAST> modelAST(nullptr);
-	ModelTC typechecker;
-    ModelReductor reductor;
-	ModelVerifier verifier;
-	ModelBuilder builder;
 
 	if (modelAlreadyBuilt) {
 		// Parsing + model building already done during JANI interaction
-		tech_log("- Model successfully built during JANI translation\n");
-		goto seal_model;
+		assert(ModelSuite::get_instance().sealed());
+		tech_log("- Model successfully compiled during JANI translation\n");
+		return;
 	}
 
 	// Check for required files
@@ -314,6 +312,7 @@ void compile_model(bool modelAlreadyBuilt) {
 	}
 
 	// Build AST from files, viz. parse
+	shared_ptr<ModelAST> modelAST(nullptr);
 	modelAST = ModelAST::from_files(modelFile.c_str(), propertiesFile.c_str());
 	if (nullptr == modelAST) {
 		log("[ERROR] Failed to parse the model.\n");
@@ -324,6 +323,7 @@ void compile_model(bool modelAlreadyBuilt) {
 	// { ModelPrinter printer(std::cerr,true); modelAST->accept(printer); }
 
 	// Check types
+	ModelTC typechecker;
 	modelAST->accept(typechecker);
 	if (typechecker.has_errors()) {
 		log(typechecker.get_messages());
@@ -332,7 +332,8 @@ void compile_model(bool modelAlreadyBuilt) {
 	tech_log("- Type-checking  succeeded\n");
 
     // Reduce expressions (errors when irreducible constants are found)
-    modelAST->accept(reductor);
+	ModelReductor reductor;
+	modelAST->accept(reductor);
     if (reductor.has_errors()) {
         log(reductor.get_messages());
         throw_FigException("reduction of constant expressions failed");
@@ -341,6 +342,7 @@ void compile_model(bool modelAlreadyBuilt) {
 
 	// Check IOSA correctness
 	if (ModuleScope::modules_size_bounded_by(ModelVerifier::NTRANS_BOUND)) {
+		ModelVerifier verifier;
 		modelAST->accept(verifier);
 		assert(!verifier.has_errors());
 		if (verifier.has_warnings()) {
@@ -361,6 +363,7 @@ void compile_model(bool modelAlreadyBuilt) {
 	}
 
 	// Build model (i.e. populate ModelSuite)
+	ModelBuilder builder;
 	modelAST->accept(builder);
 	if (builder.has_errors()) {
 		log(builder.get_messages());
@@ -369,7 +372,6 @@ void compile_model(bool modelAlreadyBuilt) {
 	tech_log("- Model building succeeded\n");
 
 	// Seal model
-	seal_model:
 	auto& modelInstance = ModelSuite::get_instance();
 	modelInstance.seal();
 	if (!modelInstance.sealed()) {
