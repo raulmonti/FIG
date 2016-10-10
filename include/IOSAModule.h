@@ -61,8 +61,9 @@ private:
     std::vector<IEdge> select_edges_of(IVert src, std::function<bool (const IEdge &)> prop);
     std::vector<IEdge> committed_edges_of(IVert st);
     std::vector<IEdge> labeled_edges_of(IVert st, const string &label);
-    std::vector<NonConfluentPair> non_confluents_of(IVert st);
+    void non_confluents_of(std::vector<NonConfluentPair> &result, IVert st);
     bool edge_confluent(IEdge &edge1, IEdge &edge2);
+    std::vector<NonConfluentPair> search_non_confluents();
 };
 
 } //

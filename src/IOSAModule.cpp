@@ -22,6 +22,15 @@ ModuleIOSA::ModuleIOSA(std::shared_ptr<ModuleAST> ast) {
         std::cout << std::endl;
     };
     print(pr);
+    auto pairs = search_non_confluents();
+    for (NonConfluentPair pair : pairs) {
+        std::cout << " ID0 : " << pair.first.get_data().get_label_id();
+        std::cout << " ID1 : " << pair.second.get_data().get_label_id();
+        std::cout << "STATE : ";
+        pair.first.get_src()->print_state(std::cout);
+        std::cout << "NON CONFLUENT!" << std::endl;
+
+    }
 }
 
 int ModuleIOSA::get_value(shared_ptr<Exp> exp) const {
@@ -164,44 +173,77 @@ std::vector<IEdge> ModuleIOSA::labeled_edges_of(IVert st, const string &label) {
     return select_edges_of(st, prop);
 }
 
-/*
-std::vector<IVert> ModuleIOSA::dst_of(IVert st, const string &label) {
-    auto edges = labeled_edges_of(st, label);
-    std::vector<IVert> result;
-    for (auto edge : edges) {
-        result.push_back(edge.get_dst());
-    }
-    return (result);
-}
-*/
-
-/*
-bool ModuleIOSA::confluent_on(IVert st, const string& label1, const string &label2) {
-    bool result = false;
-    std::vector<IVert> d1 = dst_of(st, label1);
-    std::vector<IVert> d2 = dst_of(st, label2);
-}
-*/
-
-std::vector<NonConfluentPair> ModuleIOSA::non_confluents_of(IVert st) {
+std::vector<NonConfluentPair> ModuleIOSA::search_non_confluents() {
+    std::set<IVert, StatePtrComp> visited;
+    std::queue<IVert> queue;
     std::vector<NonConfluentPair> result;
-    std::vector<IEdge> c_edges = committed_edges_of(st);
-    for (IEdge &edge1 : c_edges) {
-        for (IEdge &edge2 : c_edges) {
-            assert(edge1.get_src() == edge2.get_src());
-            if (edge1.get_dst() != edge2.get_dst()) {
-                if (!edge_confluent(edge1, edge2)) {
-                    result.push_back(std::make_pair(edge1, edge2));
-                }
+    queue.push(initial_state);
+
+    while (!queue.empty()) {
+        IVert current = queue.front();
+        queue.pop();
+        visited.insert(current);
+        non_confluents_of(result, current);
+        auto it = edges.equal_range(current);
+        auto fst = it.first;
+        auto end = it.second;
+        while (fst != end) {
+            IEdge edge = fst->second;
+            IVert dst = edge.get_dst();
+            if (visited.count(dst) == 0) {
+                queue.push(dst);
             }
+            fst++;
         }
     }
-    return result;
+
+    return (result);
+}
+
+void ModuleIOSA::non_confluents_of(std::vector<NonConfluentPair> &result,
+                                   IVert st) {
+    std::vector<IEdge> c_edges = committed_edges_of(st);
+    state_pos_t i = 0;
+    while (i < c_edges.size()) {
+        IEdge &edge1 = c_edges[i];
+        state_pos_t j = i + 1;
+        while (j < c_edges.size()) {
+            IEdge edge2 = c_edges[j];
+            assert(edge1.get_src() == edge2.get_src());
+            if (!edge_confluent(edge1, edge2)) {
+                result.push_back(std::make_pair(edge1, edge2));
+            }
+            j++;
+        }
+        i++;
+    }
 }
 
 bool ModuleIOSA::edge_confluent(IEdge &edge1, IEdge &edge2) {
-    assert(edge1.get_src() == edge2.get_dst());
-    return true;
+    assert(edge1.get_src() == edge2.get_src());
+    string label1 = edge1.get_data().get_label_id();
+    string label2 = edge2.get_data().get_label_id();
+    IVert dst1 = edge1.get_dst();
+    IVert dst2 = edge2.get_dst();
+
+    // edges from dst1 labeled with label2
+    std::vector<IEdge> c1 = labeled_edges_of(dst1, label2);
+    // edges from dst2 labeled with label1
+    std::vector<IEdge> c2 = labeled_edges_of(dst2, label1);
+
+    bool result = false;
+    if (!c1.empty() && !c2.empty()) {
+        // if one of them is empty, they are non confluent.
+        // if they are non-empty, we should check that they all have
+        // the same destination.
+        IEdge one = c1.at(0);
+        auto same = [one] (const IEdge &edge) -> bool {
+            return (*(edge.get_dst()) == *(one.get_dst()));
+        };
+        result = std::all_of(c1.cbegin(), c2.cend(), same);
+        result = result && std::all_of(c2.cbegin(), c2.cend(), same);
+    }
+    return (result);
 }
 
 
