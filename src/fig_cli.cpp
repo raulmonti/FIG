@@ -74,6 +74,7 @@ std::set< unsigned > splittings;
 std::list< fig::StoppingConditions > estBounds;
 std::chrono::seconds simsTimeout;
 bool forceOperation;
+bool confluenceCheck;
 
 } // namespace fig_cli   // // // // // // // // // // // // // // // // // //
 
@@ -291,6 +292,11 @@ SwitchArg forceOperation_(
 	"Force FIG operation disregarding any warning of the model not being IOSA-"
 	"compliant. Depending on the user command, this may force estimation of "
 	"the properties values, or translation to the JANI Specification format.");
+
+// Confluence-checking request
+SwitchArg confluenceCheck_(
+        "c", "confluence",
+        "Run algorithm to check confluence of committed actions.");
 
 
 // Helper routines  ///////////////////////////////////////////////////////////
@@ -636,6 +642,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(timeout);
 		cmd_.add(splittings_);
 		cmd_.add(forceOperation_);
+        cmd_.add(confluenceCheck_);
 
 		// Parse the command line input
 		cmd_.parse(argc, argv);
@@ -646,6 +653,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		engineName     = engineName_.getValue();
 		thrTechnique   = thrTechnique_.getValue();
 		forceOperation = forceOperation_.getValue();
+        confluenceCheck = confluenceCheck_.getValue();
 		if (!get_jani_spec()) {
 			std::cerr << "ERROR: failed parsing the JANI-spec commands.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";

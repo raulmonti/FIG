@@ -62,6 +62,7 @@ static void compile_model(bool modelAlreadyBuilt);
 
 //  Configuration of the estimation run  ///////////////////////////////////////
 
+using fig_cli::confluenceCheck;
 using fig_cli::forceOperation;
 using fig_cli::janiSpec;
 using fig_cli::modelFile;
@@ -343,12 +344,17 @@ void compile_model(bool modelAlreadyBuilt) {
     }
 
 	tech_log("- Expr-reduction succeeded\n");
-    modelAST->accept(confluence_verifier);
-    if (confluence_verifier.has_errors()) {
-        log(confluence_verifier.get_messages());
-        tech_log("- Confluence-checking failed\n");
+
+    if (confluenceCheck) {
+        modelAST->accept(confluence_verifier);
+        if (confluence_verifier.has_errors()) {
+            log(confluence_verifier.get_messages());
+            tech_log("- Confluence-checking failed\n");
+        } else {
+            tech_log("- Confluence-checking succeeded\n");
+        }
     } else {
-        tech_log("- Confluence-checking succeeded\n");
+        tech_log("- Confluence-checking omitted. Call with \"--confluence\"\n");
     }
 
 	// Check IOSA correctness

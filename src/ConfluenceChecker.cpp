@@ -189,6 +189,4 @@ void ConfluenceChecker::print_debug_info() {
     }
 }
 
-}
-
- //
+}//

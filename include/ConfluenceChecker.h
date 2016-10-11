@@ -19,8 +19,6 @@ class ConfluenceChecker : public Visitor {
     std::map<string, unsigned int> position;
     std::vector<std::vector<bool>> matrix;
 
-
-
 public:
     void visit(std::shared_ptr<Model> node);
 private:
