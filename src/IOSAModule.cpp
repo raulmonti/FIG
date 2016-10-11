@@ -12,26 +12,6 @@ ModuleIOSA::ModuleIOSA(std::shared_ptr<ModuleAST> ast) {
     this->scope = ModuleScope::scopes.at(ast->get_name());
     build_initial_state();
     process_transitions();
-    auto pr  = [] (Edge<IVert,TransitionInfo> edge) -> void {
-        TransitionInfo data = edge.get_data();
-        edge.get_src()->print_state(std::cout);
-        std::cout << "--[ ";
-        std::cout << data.get_label_id();
-        std::cout << " ]-->";
-        edge.get_dst()->print_state(std::cout);
-        std::cout << std::endl;
-    };
-    print(pr);
-    std::vector<NonConfluentPair> pairs;
-    search_non_confluents(pairs);
-    for (NonConfluentPair pair : pairs) {
-        std::cout << " ID0 : " << pair.first.get_data().get_label_id();
-        std::cout << " ID1 : " << pair.second.get_data().get_label_id();
-        std::cout << "STATE : ";
-        pair.first.get_src()->print_state(std::cout);
-        std::cout << "NON CONFLUENT!" << std::endl;
-
-    }
 }
 
 int ModuleIOSA::get_value(shared_ptr<Exp> exp) const {
@@ -142,13 +122,25 @@ IVert ModuleIOSA::process_assignments(IVert st,
     return (copy);
 }
 
-std::vector<IEdge>
+//avoids repetitions.
+void ModuleIOSA::insert(IEdgeSet& set, const IEdge& edge) {
+    auto same = [&] (const IEdge& e) {
+        return (this->same_edge(e,edge));
+    };
+    auto it = std::find_if(set.cbegin(), set.cend(), same);
+    if (it == set.cend()) {
+        set.push_back(edge);
+    }
+}
+
+
+IEdgeSet
 ModuleIOSA::select_edges_of(IVert src,
                 std::function<bool (const IEdge &edge)> prop) {
     auto it = edges.equal_range(src);
     auto fst = it.first;
     auto end = it.second;
-    std::vector<IEdge> result;
+    IEdgeSet result;
     while (fst != end) {
         IEdge edge = fst->second;
         if (prop(edge)) {
@@ -159,7 +151,7 @@ ModuleIOSA::select_edges_of(IVert src,
     return (result);
 }
 
-std::vector<IEdge> ModuleIOSA::committed_edges_of(IVert st) {
+IEdgeSet ModuleIOSA::committed_edges_of(IVert st) {
     auto prop = [] (const IEdge &edge) -> bool {
        LabelType type = edge.get_data().get_label_type();
        return (type == LabelType::out_committed);
@@ -167,18 +159,22 @@ std::vector<IEdge> ModuleIOSA::committed_edges_of(IVert st) {
     return select_edges_of(st, prop);
 }
 
-std::vector<IEdge> ModuleIOSA::labeled_edges_of(IVert st, const string &label) {
+IEdgeSet ModuleIOSA::labeled_edges_of(IVert st, const string &label) {
     auto prop = [label] (const IEdge &edge) -> bool {
         return (edge.get_data().get_label_id() == label);
     };
     return select_edges_of(st, prop);
 }
 
+IEdgeSet ModuleIOSA::edges_of(IVert st) {
+    auto any = [] (const IEdge &) -> bool { return (true); };
+    return select_edges_of(st, any);
+}
+
 void ModuleIOSA::search_non_confluents(std::vector<NonConfluentPair>& result) {
     std::set<IVert, StatePtrComp> visited;
     std::queue<IVert> queue;
     queue.push(initial_state);
-
     while (!queue.empty()) {
         IVert current = queue.front();
         queue.pop();
@@ -225,9 +221,9 @@ bool ModuleIOSA::edge_confluent(IEdge &edge1, IEdge &edge2) {
     IVert dst2 = edge2.get_dst();
 
     // edges from dst1 labeled with label2
-    std::vector<IEdge> c1 = labeled_edges_of(dst1, label2);
+    IEdgeSet c1 = labeled_edges_of(dst1, label2);
     // edges from dst2 labeled with label1
-    std::vector<IEdge> c2 = labeled_edges_of(dst2, label1);
+    IEdgeSet c2 = labeled_edges_of(dst2, label1);
 
     bool result = false;
     if (!c1.empty() && !c2.empty()) {
@@ -244,5 +240,98 @@ bool ModuleIOSA::edge_confluent(IEdge &edge1, IEdge &edge2) {
     return (result);
 }
 
+IEdgeSet ModuleIOSA::reachable_edges_of(IVert st) {
+    IEdgeSet st_edges = committed_edges_of(st);
+    if (st_edges.empty()) {
+        st_edges = edges_of(st);
+    }
+    return (st_edges);
+}
+
+void ModuleIOSA::search_triggering_pairs(std::vector<TriggeringPair>& result) {
+    std::set<IVert, StatePtrComp> visited;
+    std::queue<IVert> queue;
+    queue.push(initial_state);
+    while (!queue.empty()) {
+        IVert current = queue.front();
+        queue.pop();
+        visited.insert(current);
+        //committed edges only or any edge if there are no committed.
+        IEdgeSet redges = reachable_edges_of(current);
+        //Note: non-commited edges are ignores when "current" has commited
+        //actions, since they are non stocascally reachable
+        triggering_pairs_on(redges, result);
+        for (IEdge &edge : redges) {
+            IVert dst = edge.get_dst();
+            if (visited.count(dst) == 0) {
+                queue.push(dst);
+            }
+        }
+    }
+}
+
+void ModuleIOSA::triggering_pairs_on(IEdgeSet &edges,
+                                     std::vector<TriggeringPair>& result) {
+    // (1) Looking for (s1) --[a]--> [s2] --[b!!]--> [s3] where
+    // (2) a == b or (s1) --[b!!]--> (s4) does not exists.
+    for (IEdge &current : edges) {
+        string curr_label = current.get_data().get_label_id();
+        // (s1) is current.get_src() and (s2) is current.get_dst()
+        std::vector<IEdge> ca = committed_edges_of(current.get_dst());
+        for (IEdge &edge :  ca) {
+            // (s3) is edge.get_dst()
+            // So we have found (1), check (2)
+            // here "b" is edge.get_data().get_label_id()
+            string edge_label = edge.get_data().get_label_id();
+            auto prop = [edge_label] (const IEdge& stedge) -> bool {
+                bool committed = stedge.get_data().get_label_type()
+                        == LabelType::out_committed;
+                bool same_label = stedge.get_data().get_label_id() == edge_label;
+                return (committed && same_label);
+            };
+            auto res = std::find_if(edges.cbegin(), edges.cend(), prop);
+            if (curr_label == edge_label || res == edges.cend()) {
+                //we conclude (1) and (2) holds. Then a triggers b.
+                result.push_back(std::make_pair(current, edge));
+            }
+        }
+    }
+}
+
+void ModuleIOSA::search_initially_enabled(IEdgeSet &edges) {
+    for (IEdge &e :  edges_of(initial_state)) {
+        edges.push_back(e);
+    }
+}
+
+void ModuleIOSA::search_spontaneous(IEdgeSet& result) {
+    std::set<IVert, StatePtrComp> visited;
+    std::queue<IVert> queue;
+    queue.push(initial_state);
+    while (!queue.empty()) {
+        IVert current = queue.front();
+        queue.pop();
+        visited.insert(current);
+        IEdgeSet redges = reachable_edges_of(current);
+        spontaneous_on(redges, result);
+        for (IEdge &edge : redges) {
+            IVert dst = edge.get_dst();
+            if (visited.count(dst) == 0) {
+                queue.push(dst);
+            }
+        }
+    }
+}
+
+void ModuleIOSA::spontaneous_on(IEdgeSet &edges, IEdgeSet &result) {
+    auto op = [&] (const IEdge& edge) -> void {
+        if (edge.get_data().get_label_type() == LabelType::out) {
+            result.push_back(edge);
+        }
+        //if edge.get_src is not stable, "edges" does not contain
+        //non commited output edges.
+    };
+    std::for_each(edges.cbegin(), edges.cend(), op);
+}
 
 } //

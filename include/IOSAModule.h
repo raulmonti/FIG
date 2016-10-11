@@ -37,6 +37,8 @@ public:
 
 using IEdge = Edge<shared_ptr<State>, TransitionInfo>;
 using NonConfluentPair = std::pair<IEdge, IEdge>;
+using TriggeringPair = std::pair<IEdge, IEdge>;
+using IEdgeSet = std::vector<IEdge>;
 
 struct StatePtrComp {
     bool operator()(const IVert &s1, const IVert &s2) const {
@@ -53,6 +55,10 @@ private:
 public:
 
     ModuleIOSA(std::shared_ptr<ModuleAST> ast);
+    void search_non_confluents(std::vector<NonConfluentPair> &result);
+    void search_triggering_pairs(std::vector<TriggeringPair> &result);
+    void search_initially_enabled(IEdgeSet &edges);
+    void search_spontaneous(IEdgeSet &result);
 
 private:
 
@@ -63,12 +69,16 @@ private:
     bool holds_expression(IVert st, shared_ptr<Exp> bexp) const;
     IVert process_edge(IVert st, shared_ptr<TransitionAST> transition);
     IVert process_assignments(IVert st, shared_vector<Assignment>& avec);
-    std::vector<IEdge> select_edges_of(IVert src, std::function<bool (const IEdge &)> prop);
-    std::vector<IEdge> committed_edges_of(IVert st);
-    std::vector<IEdge> labeled_edges_of(IVert st, const string &label);
+    IEdgeSet select_edges_of(IVert src, std::function<bool (const IEdge &)> prop);
+    IEdgeSet committed_edges_of(IVert st);
+    IEdgeSet labeled_edges_of(IVert st, const string &label);
     void non_confluents_of(std::vector<NonConfluentPair> &result, IVert st);
     bool edge_confluent(IEdge &edge1, IEdge &edge2);
-    void search_non_confluents(std::vector<NonConfluentPair> &result);
+    void triggering_pairs_on(IEdgeSet &edges, std::vector<TriggeringPair> &result);
+    IEdgeSet reachable_edges_of(IVert st);
+    IEdgeSet edges_of(IVert st);
+    void spontaneous_on(IEdgeSet &edges, IEdgeSet &result);
+    void insert(IEdgeSet &set, const IEdge &edge);
 };
 
 } //

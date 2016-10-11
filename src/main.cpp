@@ -344,6 +344,12 @@ void compile_model(bool modelAlreadyBuilt) {
 
 	tech_log("- Expr-reduction succeeded\n");
     modelAST->accept(confluence_verifier);
+    if (confluence_verifier.has_errors()) {
+        log(confluence_verifier.get_messages());
+        tech_log("- Confluence-checking failed\n");
+    } else {
+        tech_log("- Confluence-checking succeeded\n");
+    }
 
 	// Check IOSA correctness
 	if (ModuleScope::modules_size_bounded_by(ModelVerifier::NTRANS_BOUND)) {
