@@ -314,9 +314,9 @@ void ModelVerifier::add_names_limits(const std::set<string> &names) {
     for (const string& name : names) {
         shared_ptr<Decl> decl = current_scope->local_decls_map().at(name);
         if (decl->has_range()) {
-            shared_ptr<RangedDecl> ranged = decl->to_ranged();
+            shared_ptr<Ranged> ranged = decl->to_ranged();
             const auto& sort =
-                    Z3Converter::type_to_sort(ranged->get_type(), *context);
+                    Z3Converter::type_to_sort(decl->get_type(), *context);
             z3::expr low = eval_and_convert(ranged->get_lower_bound());
             z3::expr up  = eval_and_convert(ranged->get_upper_bound());
             solver->add(context->constant(name.c_str(), sort) >= low);

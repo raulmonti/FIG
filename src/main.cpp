@@ -47,6 +47,7 @@
 #include <ModelReductor.h>
 #include <ModelPrinter.h>
 #include <ModelVerifier.h>
+#include <ConfluenceChecker.h>
 #include <JANI_translator.h>
 #include <ImportanceFunction.h>
 
@@ -61,6 +62,7 @@ static void compile_model(bool modelAlreadyBuilt);
 
 //  Configuration of the estimation run  ///////////////////////////////////////
 
+using fig_cli::confluenceCheck;
 using fig_cli::forceOperation;
 using fig_cli::janiSpec;
 using fig_cli::modelFile;
@@ -339,6 +341,18 @@ void compile_model(bool modelAlreadyBuilt) {
         throw_FigException("reduction of constant expressions failed");
     }
 	tech_log("- Expr-reduction succeeded\n");
+
+	// Check confluence if requested
+    if (confluenceCheck) {
+    	iosa::ConfluenceChecker confluence_verifier;
+        modelAST->accept(confluence_verifier);
+        if (confluence_verifier.has_errors()) {
+            log(confluence_verifier.get_messages());
+            tech_log("- Confluence-checking failed\n");
+        } else {
+            tech_log("- Confluence-checking succeeded\n");
+        }
+    }
 
 	// Check IOSA correctness
 	if (ModuleScope::modules_size_bounded_by(ModelVerifier::NTRANS_BOUND)) {

@@ -103,6 +103,9 @@ extern std::chrono::seconds simsTimeout;
 /// of the model not being IOSA-compliant
 extern bool forceOperation;
 
+/// Run algorithm to check confluence of committed actions
+extern bool confluenceCheck;
+
 }
 
 #endif // FIG_CLI_H
