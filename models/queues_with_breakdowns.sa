@@ -279,3 +279,8 @@ module BufferedServer
         [p25?] buf == K          -> ;
 
 endmodule
+
+
+properties
+	P( !reset U buf == K )  // "transient"
+endproperties
