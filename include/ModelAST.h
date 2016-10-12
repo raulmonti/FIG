@@ -236,7 +236,12 @@ public:
         globals.push_back(decl);
     }
 
-    /// Adds a vector of properties to the model.
+	/// Adds a property to the model.
+	void add_prop(const shared_ptr<Prop> &property) {
+		props.push_back(property);
+	}
+
+	/// Adds a vector of properties to the model.
     void add_props(const shared_vector<Prop> &properties) {
         props.insert(props.end(), properties.begin(), properties.end());
     }
@@ -261,6 +266,21 @@ public:
     const vector<shared_ptr<Prop>>& get_props() const {
         return (props);
     }
+
+	/// How many modules this model has
+	size_t num_modules() const {
+		return modules.size();
+	}
+
+	/// How many global declarationsthis model has
+	size_t num_globals() const {
+		return globals.size();
+	}
+
+	/// How many properties this model has
+	size_t num_props() const {
+		return props.size();
+	}
 
     /// Are there properties in the model?
     bool has_props() {

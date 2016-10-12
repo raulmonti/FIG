@@ -66,18 +66,6 @@ using std::end;
 namespace   // // // // // // // // // // // // // // // // // // // // // // //
 {
 
-// /// Operators arity
-// enum OpArity
-// {
-// 	null,      // constant function
-// 	i_unary,   // infix unary,   e.g. !a
-// 	s_unary,   // suffix unary,  e.g. floor(a)
-// 	i_binary,  // infix binary,  e.g. a + b
-// 	s_binary,  // suffix binary, e.g. log(a,b)
-// 	ternary    // i-t-e operator
-// };
-
-
 /// IOSA -> JANI type translator
 const std::map< Type, std::string > JANI_type =
 {
@@ -86,27 +74,6 @@ const std::map< Type, std::string > JANI_type =
 	{ Type::tfloat,  "real"  },
 	{ Type::tclock,  "clock" }
 };
-
-
-// /// JANI operators arity
-// const std::map< std::string, OpArity > JANI_operator_arity =
-// {
-// 	{ "⇒",  OpArity::i_binary },
-// 	{ "∧",  OpArity::i_binary },
-// 	{ "∨",  OpArity::i_binary },
-// 	{ "¬",  OpArity::i_unary  },
-// 	{ "=",  OpArity::i_binary },
-// 	{ "≠",  OpArity::i_binary },
-// 	{ "<",  OpArity::i_binary },
-// 	{ ">",  OpArity::i_binary },
-// 	{ "≤",  OpArity::i_binary },
-// 	{ "≥",  OpArity::i_binary },
-// 	{ "+",  OpArity::i_binary },
-// 	{ "-",  OpArity::i_binary },
-// 	{ "*",  OpArity::i_binary },
-// 	{ "/",  OpArity::i_binary },
-// 	{ "%",  OpArity::i_binary }
-// };
 
 
 /// IOSA -> JANI operator translator
@@ -126,7 +93,15 @@ const std::map< ExpOp, std::string > JANI_operator_string =
 	{ ExpOp::minus,   "-" },
 	{ ExpOp::times,   "*" },
 	{ ExpOp::div,     "/" },
-	{ ExpOp::mod,     "%" }
+	{ ExpOp::mod,     "%" },
+	{ ExpOp::floor,   "floor" },
+	{ ExpOp::ceil,    "ceil"  },
+	{ ExpOp::abs,     "abs"   },
+	{ ExpOp::sgn,     "sgn"   },
+	{ ExpOp::min,     "min"   },
+	{ ExpOp::max,     "max"   },
+	{ ExpOp::pow,     "pow"   },
+	{ ExpOp::log,     "log"   }
 };
 
 
@@ -185,7 +160,17 @@ const std::map< std::string, ExpOp > IOSA_operator =
 	{ "-", ExpOp::minus   },
 	{ "*", ExpOp::times   },
 	{ "/", ExpOp::div     },
-	{ "%", ExpOp::mod     }
+	{ "%", ExpOp::mod     },
+	{ "floor", ExpOp::floor  },
+	{ "ceil",  ExpOp::ceil   },
+	{ "abs",   ExpOp::abs    },
+	{ "sgn",   ExpOp::sgn    },
+	{ "min",   ExpOp::min    },
+	{ "max",   ExpOp::max    },
+	{ "pow",   ExpOp::pow    },
+	{ "log",   ExpOp::log    },
+	{ "trc",   ExpOp::floor  },
+	{ "der",   ExpOp::invalid}
 };
 
 
@@ -206,7 +191,17 @@ const std::map< std::string, std::string > IOSA_operator_string =
 	{ "-",  "-" },
 	{ "*",  "*" },
 	{ "/",  "/" },
-	{ "%",  "%" }
+	{ "%",  "%" },
+	{ "floor", "floor" },
+	{ "ceil",  "ceil"  },
+	{ "abs",   "abs"   },
+	{ "sgn",   "sgn"   },
+	{ "min",   "min"   },
+	{ "max",   "max"   },
+	{ "pow",   "pow"   },
+	{ "log",   "log"   },
+	{ "trc",   "floor" },
+	{ "der",   ""      }
 };
 
 
@@ -1253,10 +1248,10 @@ JaniTranslator::visit(shared_ptr<TransientProp> node)
 	JANIobj["expression"]["op"] = "filter";
 	JANIobj["expression"]["fun"] = "max";
 	JANIobj["expression"]["states"] = "initial";
-	// Weak-until probability
+	// Until probability
 	transient["op"] = "Pmax";
 	transient["exp"] = EMPTY_JSON_OBJ;
-	transient["exp"]["op"] = "W";
+	transient["exp"]["op"] = "U";
 	(*JANIfield_) = EMPTY_JSON_OBJ;
 	node->get_left()->accept(*this);
 	transient["exp"]["left"] = *JANIfield_;
@@ -1286,10 +1281,10 @@ JaniTranslator::visit(shared_ptr<RateProp> node)
 	JANIobj["expression"]["fun"] = "max";
 	JANIobj["expression"]["states"] = "initial";
 	// Long run probability
-	rate["values"]["op"] = "Smax";
+	rate["op"] = "Smax";
 	(*JANIfield_) = EMPTY_JSON_OBJ;
 	node->get_expression()->accept(*this);
-	rate["values"]["exp"] = *JANIfield_;
+	rate["exp"] = *JANIfield_;
 	JANIobj["expression"]["values"] = rate;
 	// Store translated data in corresponding field
 	*JANIfield_ = tmp;
@@ -1411,8 +1406,19 @@ JaniTranslator::build_IOSA_from_JANI()
 		iosaModel.add_module(module_ptr);
 	}
 
-
-	/// @todo TODO translate properties, if present
+	// Translate the properties we know
+	for (const auto& p: janiModel["properties"]) {
+		auto prop_ptr = build_IOSA_property(p);
+		if (nullptr == prop_ptr)
+			figTechLog << "[WARNING] JANI property \"" << p["name"].asString()
+					   << "\" doesn't have a IOSA equivalent; skipping it.\n";
+		else
+			iosaModel.add_prop(prop_ptr);
+	}
+	if (0 >= iosaModel.num_props()) {
+		figTechLog << "[ERROR] Resulting IOSA model has no properties, aborting.\n";
+		return false;
+	}
 
 	return ::build_IOSA_model_from_AST(iosaModel);
 }
@@ -1456,11 +1462,15 @@ JaniTranslator::build_IOSA_expression(const Json::Value& JANIexpr)
 		switch (op)
 		{
 		case ExpOp::nott:
+		case ExpOp::floor:
+		case ExpOp::ceil:
+		case ExpOp::abs:
+		case ExpOp::sgn:
 		{
 			auto operand  = build_IOSA_expression(JANIexpr["exp"]);
 			if (nullptr == operand)
-				figTechLog << "[ERROR] Failed translating operand of '"
-						   << opStr << "'\n";
+				figTechLog << "[ERROR] Failed translating operand of JANI "
+						   << "operator '" << opStr << "'\n";
 			else
 				expr = make_shared<UnOpExp>(op, operand);
 		}
@@ -1479,12 +1489,16 @@ JaniTranslator::build_IOSA_expression(const Json::Value& JANIexpr)
 		case ExpOp::times:
 		case ExpOp::div:
 		case ExpOp::mod:
+		case ExpOp::min:
+		case ExpOp::max:
+		case ExpOp::pow:
+		case ExpOp::log:
 		{
 			auto left  = build_IOSA_expression(JANIexpr["left"]);
 			auto right = build_IOSA_expression(JANIexpr["right"]);
 			if (nullptr == left || nullptr == right)
-				figTechLog << "[ERROR] Failed translating operands of '"
-						   << opStr << "'\n";
+				figTechLog << "[ERROR] Failed translating operands of JANI "
+						   << "operator '" << opStr << "'\n";
 			else
 				expr = make_shared<BinOpExp>(op, left, right);
 		}
@@ -2401,6 +2415,23 @@ JaniTranslator::build_IOSA_postcondition(const Json::Value& JANIdest,
 	}
 
 	return pos;
+}
+
+
+std::shared_ptr<Prop>
+JaniTranslator::build_IOSA_property(const Json::Value& JANIprop)
+{
+	if (!JANIprop.isObject() ||
+		!JANIprop.isMember("name") ||
+		!JANIprop.isMember("exJANIprop.ession"))
+		throw_FigException("invalid property in JANI file");
+
+//	try {
+//
+//	} catch (FigException& e) {
+//		figTechLog << "[ERROR] IOSA has no nested properties "
+//		return nullptr;
+//	}
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

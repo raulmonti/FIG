@@ -528,6 +528,12 @@ private:  // Class utils: JANI -> IOSA
 			const Json::Value& JANIdest,
 			const shared_vector<Decl>& moduleVars,
 			const shared_vector<Decl>& moduleClocks = shared_vector<Decl>());
+
+	/// Get IOSA property from given JANI Property specifiaction
+	/// @param JANIprop Json object with the Property to translate
+	/// @return IOSA property or nullptr if translation failed
+	/// @throw FigException if JANI Property specifiaction is badly formated
+	std::shared_ptr<Prop> build_IOSA_property(const Json::Value& JANIprop);
 };
 
 } // namespace fig

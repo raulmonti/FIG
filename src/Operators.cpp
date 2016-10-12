@@ -57,23 +57,26 @@ std::string Operator::operator_string(ExpOp op) {
 }
 
 bool Operator::is_infix_operator(ExpOp op) {
+	// this is how you do it, you fool! XD
     switch(op) {
-    case ExpOp::implies: return true;
-    case ExpOp::andd: return true;
-    case ExpOp::orr: return true;
-	case ExpOp::nott: return true;
-	case ExpOp::le: return true;
-    case ExpOp::lt: return true;
-    case ExpOp::ge: return true;
-    case ExpOp::gt: return true;
-    case ExpOp::eq: return true;
-    case ExpOp::neq: return true;
-    case ExpOp::mod: return true;
-    case ExpOp::minus: return true;
-    case ExpOp::div: return true;
-    case ExpOp::times: return true;
-    case ExpOp::plus: return true;
-	default: return false;
+	case ExpOp::implies:
+	case ExpOp::andd:
+	case ExpOp::orr:
+	case ExpOp::nott:
+	case ExpOp::le:
+	case ExpOp::lt:
+	case ExpOp::ge:
+	case ExpOp::gt:
+	case ExpOp::eq:
+	case ExpOp::neq:
+	case ExpOp::mod:
+	case ExpOp::minus:
+	case ExpOp::div:
+	case ExpOp::times:
+	case ExpOp::plus:
+		return true;
+	default:
+		return false;
     }
 }
 

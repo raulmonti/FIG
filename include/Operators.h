@@ -12,7 +12,8 @@ enum class ExpOp {
     andd, implies, orr, nott,
     eq, neq, lt, gt, le, ge,
     floor, ceil, abs, sgn,
-    min, max, pow, log
+	min, max, pow, log,
+	invalid
 };
 
 class Operator {
