@@ -125,17 +125,20 @@ void ModelPrinter::visit(shared_ptr<Model> model) {
 			module->accept(*this);
 		}
 	}
-
-	/// @todo TODO continue rewriting from here
-
 	// Properties
 	out << endl;
 	if (debug) {
 		print_idented("Properties:");
+	} else {
+		out << "properties" << endl;
 	}
 	for (auto prop : model->get_props()) {
         accept_idented(prop);
-    }
+	}
+	if (!debug) {
+		out << "endproperties";
+	}
+	out << endl;
 }
 
 void ModelPrinter::visit(shared_ptr<ModuleAST> body) {
@@ -500,21 +503,37 @@ void ModelPrinter::visit(shared_ptr<UnOpExp> node) {
 }
 
 void ModelPrinter::visit(shared_ptr<Prop> prop) {
-    print_idented("=Property=");
-    print_idented(to_str(prop->get_type()));
+	if (debug) {
+		print_idented("=Property=");
+		print_idented(to_str(prop->get_type()));
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<TransientProp> prop) {
-    visit(std::static_pointer_cast<Prop>(prop));
-    print_idented("Left:");
-    accept_idented(prop->get_left());
-    print_idented("Right:");
-    accept_idented(prop->get_right());
+	if (debug) {
+		visit(std::static_pointer_cast<Prop>(prop));
+		print_idented("Left:");
+		accept_idented(prop->get_left());
+		print_idented("Right:");
+		accept_idented(prop->get_right());
+	} else {
+		print_idented("P( ");
+		prop->get_left()->accept(*this);
+		out << " U ";
+		prop->get_right()->accept(*this);
+		out << " )\n";
+	}
 }
 
 void ModelPrinter::visit(shared_ptr<RateProp> prop) {
-    visit(std::static_pointer_cast<Prop>(prop));
-    print_idented("Expression:");
-    accept_idented(prop->get_expression());
+	if (debug) {
+		visit(std::static_pointer_cast<Prop>(prop));
+		print_idented("Expression:");
+		accept_idented(prop->get_expression());
+	} else {
+		print_idented("S( ");
+		prop->get_expression()->accept(*this);
+		out << " )\n";
+	}
 }
 

@@ -697,7 +697,7 @@
 	{
 		"author" : "FIG translator",
 		"description" : "JANI file generated from IOSA model",
-		"version" : "Wed Oct 12 15:00:49 2016\n"
+		"version" : "Wed Oct 12 19:14:21 2016\n"
 	},
 	"name" : "tandem_queue.sa",
 	"properties" : 
@@ -707,7 +707,10 @@
 			{
 				"fun" : "max",
 				"op" : "filter",
-				"states" : "initial",
+				"states" : 
+				{
+					"op" : "initial"
+				},
 				"values" : 
 				{
 					"exp" : 
@@ -736,7 +739,10 @@
 			{
 				"fun" : "max",
 				"op" : "filter",
-				"states" : "initial",
+				"states" : 
+				{
+					"op" : "initial"
+				},
 				"values" : 
 				{
 					"exp" : 

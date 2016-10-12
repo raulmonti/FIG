@@ -288,7 +288,8 @@ void interact_with_JANI()
 }
 
 
-void compile_model(bool modelAlreadyBuilt) {
+void compile_model(bool modelAlreadyBuilt)
+{
 	auto log = fig::ModelSuite::main_log;
 	auto tech_log = fig::ModelSuite::tech_log;
 

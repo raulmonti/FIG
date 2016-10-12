@@ -1247,7 +1247,8 @@ JaniTranslator::visit(shared_ptr<TransientProp> node)
 	JANIobj["expression"] = EMPTY_JSON_OBJ;
 	JANIobj["expression"]["op"] = "filter";
 	JANIobj["expression"]["fun"] = "max";
-	JANIobj["expression"]["states"] = "initial";
+	JANIobj["expression"]["states"] = EMPTY_JSON_OBJ;
+	JANIobj["expression"]["states"]["op"] = "initial";
 	// Until probability
 	transient["op"] = "Pmax";
 	transient["exp"] = EMPTY_JSON_OBJ;
@@ -1279,7 +1280,8 @@ JaniTranslator::visit(shared_ptr<RateProp> node)
 	JANIobj["expression"] = EMPTY_JSON_OBJ;
 	JANIobj["expression"]["op"] = "filter";
 	JANIobj["expression"]["fun"] = "max";
-	JANIobj["expression"]["states"] = "initial";
+	JANIobj["expression"]["states"] = EMPTY_JSON_OBJ;
+	JANIobj["expression"]["states"]["op"] = "initial";
 	// Long run probability
 	rate["op"] = "Smax";
 	(*JANIfield_) = EMPTY_JSON_OBJ;
@@ -1406,14 +1408,31 @@ JaniTranslator::build_IOSA_from_JANI()
 		iosaModel.add_module(module_ptr);
 	}
 
-	// Translate the properties we know
+	// Translate the properties we can
+	// Avoid exact duplicates (not so unlikely from non-deterministic models)
+	std::vector<std::string> translatedProps;
 	for (const auto& p: janiModel["properties"]) {
+		static std::stringstream prop_str;
+		static ModelPrinter printer(prop_str);
 		auto prop_ptr = build_IOSA_property(p);
-		if (nullptr == prop_ptr)
+		if (nullptr == prop_ptr) {
 			figTechLog << "[WARNING] JANI property \"" << p["name"].asString()
-					   << "\" doesn't have a IOSA equivalent; skipping it.\n";
-		else
+					   << "\" doesn't seem to have a IOSA equivalent; skipping it.\n";
+			continue;
+		}
+		prop_ptr->accept(printer);
+		if (std::find(begin(translatedProps), end(translatedProps), prop_str.str())
+				!= end(translatedProps)) {
+			figTechLog << "[WARNING] already translated a JANI property equivalent "
+					   << "to \"" << p["name"].asString() << "\"; skipping it.\n";
+			figTechLog << "[NOTE] IOSA is a (weakly) deterministic language. "
+					   << "Therefore non-det constructs like e.g. 'Pmin' and "
+					   << "'Pmax' are equivalent when translated to IOSA.\n";
+		} else {
 			iosaModel.add_prop(prop_ptr);
+			translatedProps.push_back(prop_str.str());
+			std::stringstream().swap(prop_str);
+		}
 	}
 	if (0 >= iosaModel.num_props()) {
 		figTechLog << "[ERROR] Resulting IOSA model has no properties, aborting.\n";
@@ -2421,17 +2440,107 @@ JaniTranslator::build_IOSA_postcondition(const Json::Value& JANIdest,
 std::shared_ptr<Prop>
 JaniTranslator::build_IOSA_property(const Json::Value& JANIprop)
 {
-	if (!JANIprop.isObject() ||
-		!JANIprop.isMember("name") ||
-		!JANIprop.isMember("exJANIprop.ession"))
+	// Check validity of JANI Property format
+	if ( ! JANIprop.isObject() ||
+		 ! (JANIprop.isMember("name") && JANIprop.isMember("expression")))
 		throw_FigException("invalid property in JANI file");
+	const Json::Value& JANIfilter = JANIprop["expression"];
+	if ( ! JANIfilter.isObject() ||
+		 ! (JANIfilter.isMember("op") && JANIfilter.isMember("fun") &&
+			JANIfilter.isMember("values") && JANIfilter.isMember("states")) ||
+		 ! (JANIfilter["op"].isString() && JANIfilter["op"].asString() == "filter"))
+		throw_FigException("all JANI properties must be wrapped in a filter");
+	else if ( ! (JANIfilter["fun"].isString()    &&
+				 JANIfilter["values"].isObject() &&
+				 JANIfilter["states"].isObject()) ||
+			  ! (JANIfilter["values"].isMember("op") &&
+				 JANIfilter["values"]["op"].isString()) ||
+			  ! (JANIfilter["states"].isMember("op") &&
+				 JANIfilter["states"]["op"].isString()))
+		throw_FigException("invalid JANI filter");
 
-//	try {
-//
-//	} catch (FigException& e) {
-//		figTechLog << "[ERROR] IOSA has no nested properties "
-//		return nullptr;
-//	}
+	// Check IOSA compatibility
+	if (JANIfilter["fun"].asString() != "min" &&
+		JANIfilter["fun"].asString() != "max" &&
+		JANIfilter["fun"].asString() != "avg") {
+		figTechLog << "[ERROR] Filter function \"" << JANIfilter["fun"].asString()
+				   << "\" not supported; IOSA properties are only compatible "
+				   << "with the \"min\", \"max\" and \"avg\" JANI filters.\n";
+		return nullptr;
+	} else if (JANIfilter["states"]["op"].asString() != "initial") {
+		figTechLog << "[ERROR] Filter states \"" << JANIfilter["states"].asString()
+				   << "\" not supported; IOSA properties are only compatible "
+				   << "with the \"initial\" JANI state predicate.\n\"";
+		return nullptr;
+	}
+
+	// Return specialized property, or nullptr if unsupported
+	try {
+		const auto propExprOp(JANIfilter["values"]["op"].asString());
+		if ("Pmin" == propExprOp || "Pmax" == propExprOp) {
+			// Transient
+			if (!JANIfilter["values"].isMember("exp"))
+				throw_FigException("invalid JANI property \"" + propExprOp + "\"");
+			return build_IOSA_transient_property(JANIfilter["values"]["exp"]);
+		} else if ("Smin" == propExprOp || "Smax" == propExprOp) {
+			// Rate
+			if (!JANIfilter["values"].isMember("exp"))
+				throw_FigException("invalid JANI property \"" + propExprOp + "\"");
+			auto states = build_IOSA_expression(JANIfilter["values"]["exp"]);
+			if (nullptr == states) {
+				figTechLog << "[ERROR] Failed translating the content of "
+						   << "PropertyExpression \"" << propExprOp << "\"\n.";
+				return nullptr;
+			}
+			return make_shared<RateProp>(states);
+		} else {
+			// Incompatible
+			figTechLog << "[ERROR] PropertyExpression \"" << propExprOp << "\" "
+					   << "not supported; IOSA properties are only compatible "
+					   << "with \"Pmin\", \"Pmax\", \"Smin\" and \"Smax\" JANI "
+					   << "property expressions.\n";
+			return nullptr;
+		}
+	} catch (std::out_of_range&) {
+		// this may happen when translating the expression, if it turns out
+		// to be another PropertyExpression rather than a plain Expression
+		figTechLog << "[ERROR] IOSA has no support for nested properties "
+				   << "(außer 'U' in 'Pmin'/'Pmax')\n";
+		return nullptr;
+	}
+}
+
+
+std::shared_ptr<TransientProp>
+JaniTranslator::build_IOSA_transient_property(const Json::Value& JANIpexp)
+{
+	if ( ! JANIpexp.isObject() ||
+		 ! (JANIpexp.isMember("op") && JANIpexp["op"].isString()))
+		throw_FigException("invalid Pmin/Pmax PropertyExpression");
+	else if (JANIpexp["op"] != "U") {
+		figTechLog << "[ERROR] Unsupported PropertyExpression; IOSA properties "
+				   << "are only compatible with Pmin/Pmax JANI properties when "
+				   << "these have a nested 'U'.\n";
+		return nullptr;
+	}
+	if ( ! (JANIpexp.isMember("left")  && JANIpexp["left"].isObject()) ||
+		 ! (JANIpexp.isMember("right") && JANIpexp["right"].isObject()) )
+		throw_FigException("invalid 'U' PropertyExpression");
+	if (JANIpexp.isMember("step-bounds"))
+		figTechLog << "[WARNING] Ignoring \"step-bounds\" in 'U' subproperty.\n";
+	if (JANIpexp.isMember("time-bounds"))
+		figTechLog << "[WARNING] Ignoring \"time-bounds\" in 'U' subproperty.\n";
+	if (JANIpexp.isMember("reward-bounds"))
+		figTechLog << "[WARNING] Ignoring \"reward-bounds\" in 'U' subproperty.\n";
+	// out_of_range exceptions due to nested props should be caught above us:
+	auto left = build_IOSA_expression(JANIpexp["left"]);
+	auto right = build_IOSA_expression(JANIpexp["right"]);
+	if (nullptr == left || nullptr == right) {
+		figTechLog << "[ERROR] Failed translating the contents of 'U' inside a "
+				   << "Pmin/Pmax PropertyExpression.\n";
+		return nullptr;
+	}
+	return std::make_shared<TransientProp>(left, right);
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

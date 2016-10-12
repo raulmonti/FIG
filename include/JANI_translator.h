@@ -529,11 +529,20 @@ private:  // Class utils: JANI -> IOSA
 			const shared_vector<Decl>& moduleVars,
 			const shared_vector<Decl>& moduleClocks = shared_vector<Decl>());
 
-	/// Get IOSA property from given JANI Property specifiaction
+	/// Get IOSA property from given JANI property specifiaction
 	/// @param JANIprop Json object with the Property to translate
 	/// @return IOSA property or nullptr if translation failed
 	/// @throw FigException if JANI Property specifiaction is badly formated
 	std::shared_ptr<Prop> build_IOSA_property(const Json::Value& JANIprop);
+
+	/// Get IOSA transient property from given JANI property expression
+	/// coming from the 'exp' field of a Pmin/Pmax property
+	/// @param JANIpexp Json object with the PropertyExpression to translate
+	/// @return IOSA transient property or nullptr if translation failed
+	/// @throw FigException if JANI PropertyExpression specifiaction is badly formated
+	/// @note Pmin/Pmax can only be translated to a IOSA transient property
+	///       if they contain a single 'U' (until) sub-property
+	shared_ptr<TransientProp> build_IOSA_transient_property(const Json::Value& JANIpexp);
 };
 
 } // namespace fig

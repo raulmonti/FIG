@@ -52,3 +52,7 @@ module Queue2
 		(q2' = (q2-1)) & (clk2' = exponential(mu2)); 
 endmodule
 
+properties
+	P( (q2>0) U (q2==c) )
+	S( (q2==c) )
+endproperties
