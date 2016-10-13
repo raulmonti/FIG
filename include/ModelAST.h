@@ -1033,9 +1033,18 @@ public:
     virtual void accept(Visitor& visit) override;
 
     /// The identifier
-    string get_identifier() {
+	string get_identifier() const {
         return (id);
-    }
+	}
+
+	/// Is this an indexed array? (e.g. x[4])
+	virtual bool is_array() const {
+		return (false);
+	}
+
+	virtual bool operator ==(const Location& that) const {
+		return that.id == id;
+	}
 };
 
 /**
@@ -1058,7 +1067,17 @@ public:
 
     void set_index(shared_ptr<Exp> exp) {
         this->index = exp;
-    }
+	}
+
+	bool is_array() const override {
+		return (true);
+	}
+
+	bool operator ==(const Location& that) const override {
+		return  that == *this &&
+				that.is_array() &&
+				static_cast<const ArrayPosition&>(that).index == index;
+	}
 };
 
 /**
@@ -1079,7 +1098,7 @@ public:
     /// Acceptor
     virtual void accept(Visitor& visit) override;
 
-    Type get_type() {
+	Type get_type() const {
         return (type);
     }
 
@@ -1087,17 +1106,23 @@ public:
         this->type = type;
     }
 
-    virtual bool is_constant() {
+	virtual bool is_constant() const {
         return (false);
     }
 
-    virtual bool is_binary_operator() {
+	virtual bool is_binary_operator() const {
         return (false);
     }
 
-    virtual bool is_unary_operator() {
+	virtual bool is_unary_operator() const {
         return (false);
     }
+
+	virtual bool operator==(const Exp& that) const = 0;
+
+	virtual bool operator!=(const Exp& that) const {
+		return !(that == *this);
+	}
 };
 
 /**
@@ -1116,21 +1141,26 @@ public:
     void operator=(const IConst &) = delete;
 
     /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	void accept(Visitor& visit) override;
 
-    int get_value() {
+	int get_value() const {
         return (value);
     }
 
-    void set_type(Type type) override {
+	void set_type(Type type) override {
         assert(type == Type::tint);
         this->type = type;
     }
 
-    bool is_constant() override {
+	bool is_constant() const override {
         return (true);
     }
 
+	bool operator==(const Exp& that) const override {
+		return  that.is_constant() &&
+				that.get_type() == Type::tint &&
+				static_cast<const IConst&>(that).value == value;
+	}
 };
 
 /**
@@ -1149,15 +1179,21 @@ public:
     void operator=(const BConst &) = delete;
 
     /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	void accept(Visitor& visit) override;
 
-    bool get_value() {
+	bool get_value() const {
         return (value);
     }
 
-    bool is_constant() override {
+	bool is_constant() const override {
         return (true);
     }
+
+	bool operator==(const Exp& that) const override {
+		return  that.is_constant() &&
+				that.get_type() == Type::tbool &&
+				static_cast<const BConst&>(that).value == value;
+	}
 };
 
 /**
@@ -1176,15 +1212,21 @@ public:
     void operator=(const FConst &) = delete;
 
     /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	void accept(Visitor& visit) override;
 
-    float get_value() {
+	float get_value() const {
         return (value);
     }
 
-    bool is_constant() override {
+	bool is_constant() const override {
         return (true);
     }
+
+	bool operator==(const Exp& that) const override {
+		return  that.is_constant() &&
+				that.get_type() == Type::tfloat &&
+				static_cast<const FConst&>(that).value == value;
+	}
 };
 
 /**
@@ -1204,11 +1246,18 @@ public:
     void operator=(const LocExp &) = delete;
 
     /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	void accept(Visitor& visit) override;
 
     shared_ptr<Location> get_exp_location() {
         return (location);
     }
+
+	bool operator==(const Exp& that) const override {
+		return  !that.is_constant() &&
+				!that.is_unary_operator() &&
+				!that.is_binary_operator() &&
+				static_cast<const LocExp&>(that).location == location;
+	}
 };
 
 /**
@@ -1227,11 +1276,16 @@ protected: //Protected.
 
 public:
     /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	void accept(Visitor& visit) override;
 
-    ExpOp get_operator() {
+	ExpOp get_operator() const {
         return (op);
     }
+
+	bool operator==(const Exp& that) const override {
+		return  (that.is_binary_operator() || that.is_unary_operator()) &&
+				static_cast<const OpExp&>(that).op == op;
+	}
 };
 
 /**
@@ -1281,7 +1335,7 @@ public:
         inferred_type = make_shared<BinaryOpTy>(type);
     }
 
-    bool has_inferred_type() {
+	bool has_inferred_type() const {
         return (inferred_type != nullptr);
     }
 
@@ -1290,11 +1344,20 @@ public:
         return (*inferred_type);
     }
 
-    bool is_binary_operator() override {
+	bool is_binary_operator() const override {
         return (true);
     }
 
-    virtual void accept(Visitor& visit) override;
+	void accept(Visitor& visit) override;
+
+	bool operator==(const Exp& that) const override {
+		if (!that.is_binary_operator())
+			return false;
+		const auto& thatBinOpExpr(static_cast<const BinOpExp&>(that));
+		return  static_cast<const OpExp&>(that) == *this &&
+				thatBinOpExpr.left == left &&
+				thatBinOpExpr.right == right;
+	}
 };
 
 /**
@@ -1339,12 +1402,20 @@ public:
         return (inferred_type != nullptr);
     }
 
-    bool is_unary_operator() override {
+	bool is_unary_operator() const override {
         return (true);
     }
 
     /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	void accept(Visitor& visit) override;
+
+	bool operator==(const Exp& that) const override {
+		if (!that.is_unary_operator())
+			return false;
+		const auto& thatUnOpExpr(static_cast<const UnOpExp&>(that));
+		return  static_cast<const OpExp&>(that) == *this &&
+				thatUnOpExpr.argument == argument;
+	}
 };
 
 /**

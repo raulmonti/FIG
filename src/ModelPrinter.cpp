@@ -192,7 +192,12 @@ void ModelPrinter::visit(shared_ptr<RangedDecl> decl) {
 		decl->get_lower_bound()->accept(*this);
 		out << "..";
 		decl->get_upper_bound()->accept(*this);
-		out << "];" << endl;
+		out << "]";
+		if (*decl->get_init() != *decl->get_lower_bound()) {
+			out << " init ";
+			decl->get_init()->accept(*this);
+		}
+		out << ";" << endl;
 	}
 }
 

@@ -33,7 +33,7 @@ module Queue1
 endmodule
 
 module Queue2
-	q2 : [0..c];
+	q2 : [0..c] init 1;
 	clk2: clock;
 	[P1?] (q2==0)
 		->
