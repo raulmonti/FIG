@@ -51,6 +51,7 @@
 #include <ExpEvaluator.h>
 #include <FigException.h>
 #include <FigLog.h>
+#include <Label.h>
 // External code
 #include <json.h>
 
@@ -535,7 +536,7 @@ std::string
 JaniTranslator::fresh_label(const Json::Value& hint)
 {
 	static size_t fresh(0ul);
-	if (!hint.isNull() && hint.isString())
+	if (!hint.isNull() && hint.isString() && !hint.asString().empty())
 		return hint.asString();
 	else
 		return "aa" + std::to_string(fresh++);
@@ -555,12 +556,13 @@ JaniTranslator::rv_from(const std::string& clockName, bool force)
 }
 
 
-std::string
+const Label&
 JaniTranslator::sync_label(const std::string& module, const std::string& label)
 {
+	static const Label TAU(Label::make_tau());
 	auto syncLabelPtr = syncLabel_.find(std::make_pair(module,label));
 	if (end(syncLabel_) == syncLabelPtr)
-		return "";
+		return TAU;
 	else
 		return syncLabelPtr->second;
 }
@@ -1756,10 +1758,10 @@ JaniTranslator::build_exponential_clock(const Json::Value& JANIedge,
 	if (JANIedge.isMember("action")) {
 		edgeLabel = JANIedge["action"].asString();
 		auto syncLabel = sync_label(moduleName, edgeLabel);
-		if (syncLabel.back() == '!')
-			edgeType = output;
-		else if (syncLabel.back() == '?')
+		if (syncLabel.is_input())
 			edgeType = input;
+		else if (syncLabel.is_output())
+			edgeType = output;
 		else if (!edgeLabel.empty())
 			throw_FigException("label \"" + edgeLabel +"\" in automaton \"" +
 							   moduleName + "\" wasn't classified as I/O");
@@ -1997,8 +1999,9 @@ JaniTranslator::test_and_build_IOSA_synchronization(const Json::Value& JANIcompo
 			auto& moduleOutputs = allLabels[automata[i]].second;
 			const bool isInput = 0ul < moduleInputs.erase(label);
 			const bool isOutput = 0ul < moduleOutputs.erase(label);
-			syncLabel_[std::make_pair(automata[i],label)] =
-					freshLabel + (isInput ? ("?") : ("!"));
+			syncLabel_.emplace(std::make_pair(automata[i],label),
+							   isInput ? Label::make_input(freshLabel)
+									   : Label::make_output(freshLabel));
 			// Check for compatibility with IOSA broadcast synchronization
 			if (isOutput && vecOutput.empty()) {
 				assert(!label.empty());
@@ -2025,9 +2028,9 @@ JaniTranslator::test_and_build_IOSA_synchronization(const Json::Value& JANIcompo
 	// Labels not used in the synchronization vectors mustn't synchronize
 	for (const auto& p: allLabels) {
 		for (const auto& input: p.second.first)
-			syncLabel_[std::make_pair(p.first,input)] = "";
+			syncLabel_.emplace(std::make_pair(p.first,input), Label::make_tau());
 		for (const auto& output: p.second.second)
-			syncLabel_[std::make_pair(p.first,output)] = "";
+			syncLabel_.emplace(std::make_pair(p.first,output), Label::make_tau());
 	}
 
 	return true;
@@ -2124,15 +2127,15 @@ JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
 		// Input
 		assert(JANIedge.isMember("action"));
 		auto label = sync_label(moduleName, JANIedge["action"].asString());
-		assert(!label.empty());
-		return make_shared<InputTransition>(label, pre, pos);
+		assert(label.is_input());
+		return make_shared<InputTransition>(label.str, pre, pos);
 	} else if (JANIedge.isMember("action")) {
 		// Output or Tau
 		auto label = sync_label(moduleName, JANIedge["action"].asString());
-		if (label.empty())
-			return make_shared<TauTransition>(pre, pos, edgeClock);
+		if (label.is_output())
+			return make_shared<OutputTransition>(label.str, pre, pos, edgeClock);
 		else
-			return make_shared<OutputTransition>(label, pre, pos, edgeClock);
+			return make_shared<TauTransition>(pre, pos, edgeClock);
 	} else {
 		// Tau
 		return make_shared<TauTransition>(pre, pos, edgeClock);
@@ -2235,15 +2238,15 @@ JaniTranslator::build_IOSA_transition_from_STA(const Json::Value& JANIedge,
 		// Input
 		assert(JANIedge.isMember("action"));
 		auto label = sync_label(moduleName, JANIedge["action"].asString());
-		assert(!label.empty());
-		return make_shared<InputTransition>(label, pre, pos);
+		assert(label.is_input());
+		return make_shared<InputTransition>(label.str, pre, pos);
 	} else if (JANIedge.isMember("action")) {
 		// Output or Tau
 		auto label = sync_label(moduleName, JANIedge["action"].asString());
-		if (label.empty())
-			return make_shared<TauTransition>(pre, pos, edgeClock);
+		if (label.is_output())
+			return make_shared<OutputTransition>(label.str, pre, pos, edgeClock);
 		else
-			return make_shared<OutputTransition>(label, pre, pos, edgeClock);
+			return make_shared<TauTransition>(pre, pos, edgeClock);
 	} else {
 		// Tau
 		return make_shared<TauTransition>(pre, pos, edgeClock);

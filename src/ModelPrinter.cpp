@@ -270,9 +270,7 @@ void ModelPrinter::visit(shared_ptr<InputTransition> transition) {
 	if (debug) {
 		visit(std::static_pointer_cast<TransitionAST>(transition));
 	} else {
-		auto label = transition->get_label();
-		label.append(label.back() != '?' ? "?" : "");
-		print_idented("[" + label + "] ");
+		print_idented("[" + transition->get_label() + "?] ");
 		transition->get_precondition()->accept(*this);
 		out << std::endl;
 		ident++;
@@ -289,9 +287,7 @@ void ModelPrinter::visit(shared_ptr<OutputTransition> transition) {
 		print_idented("Triggering Clock:");
 		accept_idented(transition->get_triggering_clock());
 	} else {
-		auto label = transition->get_label();
-		label.append(label.back() != '!' ? "!" : "");
-		print_idented("[" + label + "] ");
+		print_idented("[" + transition->get_label() + "!] ");
 		transition->get_precondition()->accept(*this);
 		out << " @ " << transition->get_triggering_clock()->get_identifier();
 		out << std::endl;

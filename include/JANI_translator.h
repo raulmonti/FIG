@@ -48,6 +48,10 @@ class ModuleScope;
 namespace fig
 {
 
+class Label;
+
+
+
 /// Transform Stochastic Automata model specification files between
 /// <a href="http://jani-spec.org/">JANI format</a> and IOSA syntax.<br>
 /// From JANI's point of view the files correspond to
@@ -184,13 +188,13 @@ private:  // Class attributes
 	/// @note Used for STA -> IOSA translation
 	std::map< std::string, std::string > clk2rv_;
 
-	/// Renaming from automata and label to fresh sync label name
+	/// Renaming from automata and label to fresh sync label
 	/// @note Used for JANI -> IOSA translation
 	/// @note Populated when interpreting flat labels as I/O for synchronization
 	/// @see sync_label()
 	/// @see test_and_build_IOSA_synchronization()
 	std::map< std::pair< std::string, std::string >,
-			  std::string > syncLabel_;
+			  Label > syncLabel_;
 
 	/// Rates of the edges whose action labels where classified as inputs;
 	/// for CTMC parallel synchronization these should reduce to 1 or 0.
@@ -203,7 +207,9 @@ private:  // Class utils: general
 
 	/// Generate a fresh label name for use in synchronization
 	/// @param hint Suggested name for the label in Json string format, if any
-	/// @return Content of 'hint' if not null, fresh label name otherwise
+	/// @return Content of 'hint' if not null nor empty,
+	///         fresh label name otherwise
+	/// @post Not empty string returned
 	static std::string fresh_label(const Json::Value& hint);
 
 	/// Get the name of the real variable corresponding to this clock name
@@ -214,16 +220,15 @@ private:  // Class utils: general
 	/// @see clk2rv_
 	std::string rv_from(const std::string& clockName, bool force = true);
 
-	/// Get the name of the sync label assigned to this module-label pair,
+	/// Get the sync label assigned to this module-label pair,
 	/// decided after parsing the JANI synchronization vectors
 	/// @param module Module name
 	/// @param label  Label name in the module
-	/// @return Label chosen for synchronization for this module and label,
-	///         or empty string if none assigned
+	/// @return Synchronization label chosen for this module and label
+	///         (TAU if none assigned)
 	/// @note Used for JANI -> IOSA translation
-	/// @note Output labels have a '!' suffix; input labels a '?' suffix.
 	/// @see test_and_build_IOSA_synchronization()
-	std::string sync_label(const std::string& module, const std::string& label);
+	const Label& sync_label(const std::string& module, const std::string& label);
 
 	/// Try to evaluate an expression to an integral value;
 	/// put an error in our ErrorMessage if unsuccessfull
@@ -416,9 +421,8 @@ private:  // Class utils: JANI -> IOSA
 	/// @param moduleName  Name of the module to which this edge belongs
 	/// @return For output and tau edges, clock with exponential distribution.
 	///         For input edges, nullptr.
-	/// @note The edge is 'output' if sync_label(moduleName,JANIedge["action"])
-	///       has a '!' suffix; it is 'input' if it has a '?' suffix, and it is
-	///       'tau' otherwise.
+	/// @note The edge is classified as 'input', 'output' or 'tau'
+	///       according to the value of sync_label(moduleName,JANIedge["action"])
 	/// @throw FigException if JANI edge is badly formated (e.g. not CTMC-like)
 	/// @throw FigException if something goes terribly wrong
 	shared_ptr<ClockReset> build_exponential_clock(const Json::Value& JANIedge,
