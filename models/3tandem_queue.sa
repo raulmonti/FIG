@@ -94,3 +94,7 @@ module Queue3
         [P3!] q3  > 1 @ clk3 -> (q3'= q3-1) & (clk3'= erlang(alpha,beta3));
 endmodule
 
+
+properties
+	S( q3 >= L )  // "rate"
+endproperties
