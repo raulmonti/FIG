@@ -306,6 +306,37 @@ typedef  std::unordered_map< std::string, size_t >  PositionsMap;
 ///       of up to 1024 bits, but the standalone headers weight 13 MB!
 typedef uint128::uint128_t uint128_t;
 
+/// When FIG has to interact with the <a href="http://jani-spec.org/">JANI
+/// Specification format</a>, this struct defines the tasks to carry out.
+/// e.g. parse a model file described in the JANI-model format,
+///      or translate a IOSA-syntax model into a JANI-model format
+struct JaniTranny
+{
+	/// Whether there's some interaction with JANI at all
+	bool janiInteraction;
+	/// Only translate from/to JANI to/from IOSA, viz. don't estimate
+	bool translateOnly;
+	/// In which direction is the translation
+	enum {
+		UNDEFINED = 0,
+		FROM_JANI = 1,
+		TO_JANI   = 2
+	} translateDirection;
+	/// IOSA model file name
+	std::string modelFileIOSA;
+	/// IOSA properties file name, if any
+	std::string propsFileIOSA;
+	/// JANI-spec model file name
+	std::string modelFileJANI;
+	/// Empty ctor
+	JaniTranny() : janiInteraction(false),
+				   translateOnly(false),
+				   translateDirection(UNDEFINED),
+				   modelFileIOSA(""),
+				   propsFileIOSA(""),
+				   modelFileJANI("") {}
+};
+
 //
 //
 // // // // // // // // // // // // // // // // // // // // // // // // // //

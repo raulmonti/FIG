@@ -250,8 +250,18 @@ public:  // Utils
 	ImportanceValue peak_simulation(Traial& traial,
 									Update update,
 									Predicate pred) const;
-public: //Debug
-        void print_info(std::ostream &out) const;
+
+private:  // Committed actions processing
+
+	/// @todo TODO write docstring, Leo!
+	bool process_committed_once(Traial &traial) const;
+
+	/// @todo TODO write docstring, Leo!
+	void process_committed(Traial &Traial) const;
+
+public:  // Debug
+
+	void print_info(std::ostream &out) const;
 
 }; // class ModuleNetwork
 

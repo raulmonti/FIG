@@ -229,7 +229,7 @@ public:  // Populating facilities and other modifyers
 	 * @warning The ModelSuite must have been \ref seal() "sealed" beforehand
 	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
 	 */
-	void set_splitting(const unsigned& spt);
+	void set_splitting(const unsigned& spt, bool verbose = false);
 	
 	/**
 	 * @brief Set a wall-clock-time limit for simulations
@@ -251,6 +251,9 @@ public:  // Accessors
 
 	/// @copydoc ModuleNetwork::sealed()
 	inline bool sealed() const noexcept { return model->sealed(); }
+
+	/// @copydoc ModuleNetwork::is_markovian()
+	inline bool is_markovian() const noexcept { return model->is_markovian(); }
 
 	/// @copydoc ModuleNetwork::num_clocks()
 	inline size_t num_clocks() const noexcept { return model->num_clocks(); }
@@ -750,7 +753,7 @@ ModelSuite::process_batch(
 		for (const auto& split: splittingValues) {
 			// ... choose the thresholds ...
 			if ("nosplit" != engineName)
-				set_splitting(split);
+				set_splitting(split, true);
 			build_thresholds(thrTechnique, impFunSpec.name, true);
 			assert(impFuns[impFunSpec.name]->ready());
 

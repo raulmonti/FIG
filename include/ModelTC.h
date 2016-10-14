@@ -3,56 +3,11 @@
 #ifndef MODEL_TC_H
 #define MODEL_TC_H
 
-#include "ModelAST.h"
 #include "Util.h"
+#include "ModuleScope.h"
 #include <utility>
 
 using std::string;
-
-/**
- * @brief A symbol table for a module. Contains the
- * module clocks, the local declarations, and more. Built
- * during type-checking.
- */
-struct ModuleScope {
-    /// Static map that store the symbol table for each module
-    /// indexed by the module's name
-    static shared_map<string, ModuleScope> scopes;
-
-    /// Global constants (name->declaration)
-    static shared_map<string, Decl> globals;
-
-    /// The name of this module
-    string id;
-
-    /// The module itself
-    shared_ptr<ModuleBody> body;
-
-    /// Mapping each label with its type
-    map<string, LabelType> labels;
-
-    /// Mapping each clock with its distribution
-    // @todo redesign this when implementing clock arrays
-    shared_map<string, Dist> clock_dists;
-
-    /// Mapping each identifier with its declaration
-    shared_map<string, Decl> local_decls;
-
-    /// Find an identifier in every module. Mainly used to build
-    /// properties, since they can contain variables of any module.
-    static shared_ptr<Decl> find_in_all_modules(const string &id) {
-        shared_ptr<Decl> result = nullptr;
-        for (auto entry : ModuleScope::scopes) {
-            const shared_ptr<ModuleScope> &curr = entry.second;
-            const shared_map<string, Decl> &local = curr->local_decls;
-            if (local.find(id) != local.end()) {
-                result = local.at(id);
-                break;
-            }
-        }
-        return (result);
-    }
-};
 
 /**
  * @brief A visitor to typecheck the AST. It will traverse the
@@ -75,42 +30,92 @@ private:
     /// The type of the last node visited.
     Type last_type;
 
+    /// Since expressions may have different types depending on
+    /// the context, we need to check expressions according to
+    /// the expected type.
+    Type expected_exp_type;
+
     /// Is this visitor checking a property?
     /// This allows identifiers of expressions to occur on any module
     /// and not just in the current one.
     bool checking_property = false;
 
-    //accepts if no errors
+    /// Accepts if no errors
     void accept_cond(shared_ptr<ModelAST> module);
-    //prefix for log message
+
+    /// Accept a expression with an expected type
+    void accept_exp(Type expected, shared_ptr<Exp> exp);
+
+    /// If the last inferred type is not "type", put an error
     void check_type(Type type, const string &msg);
+
+    /// Check if every clock has a distribution type
     void check_clocks(shared_ptr<ModuleScope> scope);
+
+    /// Check if the given expression is in DNF
     void check_dnf(PropType type, shared_ptr<Exp> exp);
+
+    /// Find the type of the given identifier
     Type identifier_type(const string &id);
+
+    /// Checking the global declarations (constants)
     bool is_global_scope() {
         return (current_scope == nullptr);
     }
-    // result type of a operator given the type of its arguments
-    // may be Type::tunknown
-    static Type operator_type(const ExpOp &id, Type arg);
+
+    /// Check range and initialization of the declaration
+    void check_ranges(shared_ptr<Decl> decl);
+    void check_ranged_all(shared_ptr<ModuleScope> scope);
+
+    /// Check if parameters of distributions are reducible
+    void check_dist(shared_ptr<Dist> dist);
+    void check_dist(shared_ptr<ModuleScope> scope);
+
+    void check_scope(shared_ptr<Decl> decl);
+
+    /// Used to evaluate range bounds and distributions parameters
+    int eval_int_or_put(shared_ptr<Exp> exp);
+    float eval_float_or_put(shared_ptr<Exp> exp);
+
+    /// Check expression on its own instance of ModelTC but copy
+    /// inferred type to this instance
+    /// @note used to typecheck expressions that are expected
+    /// to fail on several ocations, and hence error messages
+    /// should be ignored.
+    bool dummy_check(Type expected_type, shared_ptr<Exp> exp);
+
 public:
     ModelTC() : current_scope {nullptr},
         last_type {Type::tunknown},
-        checking_property {false} {};
+        expected_exp_type {Type::tunknown},
+        checking_property {false} {}
+
+    ModelTC(const ModelTC& instance) = default;
+
     virtual ~ModelTC();
-    void visit(shared_ptr<Model> node);
-    void visit(shared_ptr<ModuleBody> node);
-    void visit(shared_ptr<Decl> node);
-    void visit(shared_ptr<Action> node);
-    void visit(shared_ptr<Effect> node);
-    void visit(shared_ptr<Dist> node);
-    void visit(shared_ptr<Location> node);
-    void visit(shared_ptr<IConst> node);
-    void visit(shared_ptr<BConst> node);
-    void visit(shared_ptr<FConst> node);
-    void visit(shared_ptr<LocExp> node);
-    void visit(shared_ptr<OpExp> node);
-    void visit(shared_ptr<Prop> node);
+    /// Visitor functions
+    void visit(shared_ptr<Model> node) override;
+    void visit(shared_ptr<ModuleAST> node) override;
+    void visit(shared_ptr<RangedDecl> node) override;
+    void visit(shared_ptr<InitializedDecl> node) override;
+    void visit(shared_ptr<ArrayDecl> node) override;
+    void visit(shared_ptr<ClockDecl> node) override;
+    void visit(shared_ptr<TransitionAST> node) override;
+    void visit(shared_ptr<Assignment> node) override;
+    void visit(shared_ptr<ClockReset> node) override;
+    void visit(shared_ptr<MultipleParameterDist> node) override;
+    void visit(shared_ptr<SingleParameterDist> node) override;
+    void visit(shared_ptr<Location> node) override;
+    void visit(shared_ptr<ArrayPosition> node) override;
+    void visit(shared_ptr<IConst> node) override;
+    void visit(shared_ptr<BConst> node) override;
+    void visit(shared_ptr<FConst> node) override;
+    void visit(shared_ptr<LocExp> node) override;
+    void visit(shared_ptr<BinOpExp> node) override;
+    void visit(shared_ptr<UnOpExp> node) override;
+    void visit(shared_ptr<TransientProp> node) override;
+    void visit(shared_ptr<RateProp> node) override;
 };
+
 
 #endif

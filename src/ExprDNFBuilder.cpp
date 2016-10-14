@@ -3,14 +3,21 @@
 #include "ExpReductor.h"
 #include "FigException.h"
 
-namespace {
-shared_ptr<Exp> reduce_exp(shared_ptr<Exp> exp) {
+shared_ptr<Exp> ExprClauseBuilder::reduce_exp(shared_ptr<Exp> exp) {
     shared_ptr<Exp> result = nullptr;
-    ExpReductor red;
+    ExpReductor red (scope);
     exp->accept(red);
     result = red.get_reduced_exp();
     return (result);
 }
+
+//Fix this code duplication
+shared_ptr<Exp> ExprDNFBuilder::reduce_exp(shared_ptr<Exp> exp) {
+    shared_ptr<Exp> result = nullptr;
+    ExpReductor red (scope);
+    exp->accept(red);
+    result = red.get_reduced_exp();
+    return (result);
 }
 
 void ExprClauseBuilder::visit(shared_ptr<IConst> iconst) {
@@ -28,20 +35,20 @@ void ExprClauseBuilder::visit(shared_ptr<FConst> fconst) {
 }
 
 void ExprClauseBuilder::visit(shared_ptr<LocExp> exp) {
-    if (exp->type == Type::tbool) {
-        clause.push_back(::reduce_exp(exp));
+    if (exp->get_type() == Type::tbool) {
+        clause.push_back(reduce_exp(exp));
     } else {
         throw_FigException("Not a boolean expression");
     }
 }
 
-void ExprClauseBuilder::visit(shared_ptr<OpExp> exp) {
-    switch (exp->bop) {
+void ExprClauseBuilder::visit(shared_ptr<BinOpExp> exp) {
+    switch (exp->get_operator()) {
     case ExpOp::andd:
     {
         //look for the clauses in both sides
-        exp->left->accept(*this);
-        exp->right->accept(*this);
+        exp->get_first_argument()->accept(*this);
+        exp->get_second_argument()->accept(*this);
         break;
     }
     case ExpOp::orr:
@@ -52,10 +59,15 @@ void ExprClauseBuilder::visit(shared_ptr<OpExp> exp) {
     default:
     {
         //the expression itself (reduced if possible) considered a clause
-        clause.push_back(::reduce_exp(exp));
+        clause.push_back(reduce_exp(exp));
     }
     }
 }
+
+void ExprClauseBuilder::visit(shared_ptr<UnOpExp> exp) {
+    clause.push_back(reduce_exp(exp));
+}
+
 
 void ExprDNFBuilder::visit(shared_ptr<IConst> iconst) {
     (void) iconst;
@@ -73,29 +85,29 @@ void ExprDNFBuilder::visit(shared_ptr<FConst> node) {
 }
 
 void ExprDNFBuilder::visit(shared_ptr<LocExp> exp) {
-    if (exp->type == Type::tbool) {
-        clause_vector.push_back(vector<shared_ptr<Exp>>{::reduce_exp(exp)});
+    if (exp->get_type() == Type::tbool) {
+        clause_vector.push_back(vector<shared_ptr<Exp>>{reduce_exp(exp)});
     } else {
         throw_FigException("Not a boolean expression");
     }
 }
 
-void ExprDNFBuilder::visit(shared_ptr<OpExp> exp) {
-    switch (exp->bop) {
+void ExprDNFBuilder::visit(shared_ptr<BinOpExp> exp) {
+    switch (exp->get_operator()) {
     case ExpOp::orr:
     {
-        ExprClauseBuilder left_b;
-        exp->left->accept(left_b);
+        ExprClauseBuilder left_b (scope);
+        exp->get_first_argument()->accept(left_b);
         if (left_b.has_errors()) {
             //not a clause, then it must be a dnf
-            exp->left->accept(*this);
+            exp->get_first_argument()->accept(*this);
         } else {
             clause_vector.push_back(left_b.get_clause());
         }
-        ExprClauseBuilder right_b;
-        exp->right->accept(right_b);
+        ExprClauseBuilder right_b (scope);
+        exp->get_second_argument()->accept(right_b);
         if (right_b.has_errors()) {
-            exp->right->accept(*this);
+            exp->get_second_argument()->accept(*this);
         } else {
             clause_vector.push_back(right_b.get_clause());
         }
@@ -109,9 +121,11 @@ void ExprDNFBuilder::visit(shared_ptr<OpExp> exp) {
     default:
     {
         //the expression itself considered a clause
-        clause_vector.push_back(vector<shared_ptr<Exp>>{::reduce_exp(exp)});
+        clause_vector.push_back(vector<shared_ptr<Exp>>{reduce_exp(exp)});
     }
     }
 }
 
-
+void ExprDNFBuilder::visit(shared_ptr<UnOpExp> exp) {
+    clause_vector.push_back(vector<shared_ptr<Exp>>{reduce_exp(exp)});
+}

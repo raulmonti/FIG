@@ -3,6 +3,7 @@ Finite Improbability Generator (FIG tool)
 
 @author  Carlos E. Budde
 @author  Raúl E. Monti
+@author  Leonardo M. Rodriguez
 
   The FIG tool is sofware developed in FaMAF, UNC, Argentina, whose goal is to
 estimate the probability of rare events using importance splitting techniques.

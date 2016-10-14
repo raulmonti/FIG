@@ -65,6 +65,8 @@ namespace fig_cli
 bool
 parse_arguments(const int& argc, const char** argv, bool fatalError = true);
 
+/// Work with <a href="http://jani-spec.org/">JANI-specified</a> files
+extern fig::JaniTranny janiSpec;
 
 /// Abosulte path to the user's SA model file
 extern std::string modelFile;
@@ -96,6 +98,13 @@ extern std::list< fig::StoppingConditions > estBounds;
 /// Simulations timeout. It causes a soft-interrupt in any simulation launched,
 /// after 'simsTimeout' seconds of uninterrupted wall-clock execution
 extern std::chrono::seconds simsTimeout;
+
+/// Attempt to estimate/translate in spite of any warning from the parser
+/// of the model not being IOSA-compliant
+extern bool forceOperation;
+
+/// Run algorithm to check confluence of committed actions
+extern bool confluenceCheck;
 
 }
 

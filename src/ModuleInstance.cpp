@@ -50,7 +50,7 @@ using std::begin;
 using std::end;
 
 
-namespace { const fig::Label TAU; }
+namespace { const fig::Label TAU = fig::Label::make_tau(); }
 
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
@@ -75,6 +75,7 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
+	markovian_check();
 }
 
 // ModuleInstance can be built from the following containers
@@ -275,7 +276,7 @@ ModuleInstance::jump(const Traial::Timeout& to,
 				firstClock_,
 				elapsedTime);
             // Finally broadcast the output label triggered
-			assert(tr.label().is_output());
+            assert(tr.label().is_output() || tr.label().is_tau());
 			return tr.label();
 		}
 	}
@@ -294,7 +295,7 @@ ModuleInstance::jump(const Label& label,
 	if (!sealed_)
 		throw_FigException("this module hasn't been sealed yet");
 #endif
-	assert(label.is_output());
+    assert(label.is_output() || label.is_tau());
 	const auto iter = transitions_by_label_.find(label.str);
     // Foreign labels and taus won't touch us
     if (!label.is_tau() && end(transitions_by_label_) != iter) {
@@ -334,6 +335,47 @@ ModuleInstance::jump(const Label& label,
 		if (tr.pre(state)) { // If the state satisfies this precondition
 			tr.pos(state);   // apply the corresponding postcondition
 			return;  // At most one transition could've been enabled, trust Raúl
+		}
+	}
+}
+
+
+void
+ModuleInstance::jump_committed(const Label &label, Traial &traial) const
+{
+#ifndef NDEBUG
+    if (!sealed_) {
+        throw_FigException("this module hasn't been sealed yet");
+    }
+#endif
+    assert(label.is_out_committed());
+    //find transitions with the given label
+    const auto iter = transitions_by_label_.find(label.str);
+    if (iter != transitions_by_label_.end()) {
+        const auto& transitions = iter->second;
+        //process every transitions
+        for (const Transition &tr : transitions) {
+            //ignore if is not a commited input ready to receive our label.
+            if (tr.label().is_in_committed() && tr.pre(traial.state)) {
+                tr.pos(traial.state);
+                //reset clocks if necessary
+                //elapsedTime is 0 with committed actions.
+                const auto &begin = lClocks_.begin();
+                const auto &end = lClocks_.end();
+                tr.handle_clocks(traial, begin, end, firstClock_, 0.0);
+            }
+        }
+    }
+}
+
+
+void
+ModuleInstance::markovian_check()
+{
+	for (const Clock& clk: lClocks_) {
+		if (clk.dist_name() != "exponential") {
+			markovian_ = false;
+			break;
 		}
 	}
 }

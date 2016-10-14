@@ -37,17 +37,17 @@ blank  [ \t]
 
 %{
   // Code run each time yylex is called.
-  loc.step();
+        loc.step();
 %}
 
 {blank}+   loc.step();
-[\n]+      loc.lines(yyleng); loc.step();
+[\n]+      loc.lines(yyleng);
 "//".*     loc.step();
-"/*"       BEGIN(comment);
-<comment>[^*\n]*    loc.step();
-<comment>"*"+[^*/\n]*   loc.step();
-<comment>\n       loc.lines(1) ; loc.step();
-<comment>"*"+"/"  BEGIN(INITIAL);
+"/*"       loc.step(); BEGIN(comment);
+<comment>[^*\n]* loc.step();
+<comment>"*"+[^*/\n]* loc.step();
+<comment>\n        loc.step(); loc.lines(1);
+<comment>"*"+"/"   loc.step(); BEGIN(INITIAL);
 "module"      return ModelParser::make_MODULE(loc);
 "endmodule"   return ModelParser::make_ENDMODULE(loc);
 "properties"     return ModelParser::make_PROP(loc);
@@ -71,6 +71,7 @@ blank  [ \t]
 ">"           return ModelParser::make_GT(loc);
 "<="          return ModelParser::make_LE(loc);
 ">="          return ModelParser::make_GE(loc);
+"=>"          return ModelParser::make_IMPLY(loc);
 ":"           return ModelParser::make_SEMICOLON(loc);
 "'"           return ModelParser::make_SQUOTE(loc);
 ","           return ModelParser::make_COLON(loc);
@@ -80,6 +81,10 @@ blank  [ \t]
 "normal"      return ModelParser::make_NORMAL(loc);
 "uniform"     return ModelParser::make_UNIFORM(loc);
 "exponential" return ModelParser::make_EXP(loc);
+"lognormal"   return ModelParser::make_LOGNORMAL(loc);
+"gamma"       return ModelParser::make_GAMMA(loc);
+"rayleigh"    return ModelParser::make_RAYLEIGH(loc);
+"weibull"     return ModelParser::make_WEIBULL(loc);
 "init"        return ModelParser::make_INIT(loc);
 "!"           return ModelParser::make_ADM(loc);
 "?"           return ModelParser::make_QMARK(loc);
@@ -96,6 +101,14 @@ blank  [ \t]
 "P"           return ModelParser::make_PROPT(loc);
 "S"           return ModelParser::make_PROPS(loc);
 "U"           return ModelParser::make_UNTIL(loc);
+"floor"       return ModelParser::make_FLOOR(loc);
+"ceil"        return ModelParser::make_CEIL(loc);
+"abs"         return ModelParser::make_ABS(loc);
+"sgn"         return ModelParser::make_SGN(loc);
+"log"         return ModelParser::make_LOG(loc);
+"max"         return ModelParser::make_MAX(loc);
+"min"         return ModelParser::make_MIN(loc);
+"pow"         return ModelParser::make_POW(loc);
 
 {id}       return ModelParser::make_ID(yytext, loc);
 {int}      return ModelParser::make_INTL(parse_int(), loc);

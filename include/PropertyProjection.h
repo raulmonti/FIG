@@ -1,4 +1,6 @@
 /* Leonardo Rodríguez */
+// was DNFClauses.h by Carlos Budde. Implementation was changed to cope with
+// the new front-end.
 
 #ifndef PROPERTY_PROJ_H
 #define PROPERTY_PROJ_H

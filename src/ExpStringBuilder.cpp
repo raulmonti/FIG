@@ -6,6 +6,7 @@
 #include "ExpEvaluator.h"
 #include "ModelPrinter.h"
 #include "ModelTC.h"
+#include "Operators.h"
 
 using std::vector;
 using std::pair;
@@ -13,54 +14,50 @@ using std::string;
 
 // ExpStringBuilder
 void ExpStringBuilder::visit(shared_ptr<IConst> node) {
-    result = std::to_string(node->value);
+    result = std::to_string(node->get_value());
 }
 
 void ExpStringBuilder::visit(shared_ptr<BConst> node) {
     //@todo: support boolean variables directly?
-    result = node->value ? "true" : "false";
+    result = node->get_value() ? "true" : "false";
 }
 
 void ExpStringBuilder::visit(shared_ptr<FConst> node) {
-    result = std::to_string(node->value);
+    result = std::to_string(node->get_value());
 }
 
 void ExpStringBuilder::visit(shared_ptr<LocExp> node) {
-    if (node->location->is_array_position()) {
-        throw_FigException("Array position are not yet supported");
-    }
-    if (ModuleScope::globals.find(node->location->id)
-            != ModuleScope::globals.end()) {
-        //a global constant, not a module state.
-        ExpEvaluator eval;
-        node->accept(eval);
-        if (eval.has_errors()) {
-            throw_FigException("Could not reduce constant at compilation time");
-        }
-        result = eval.value_to_string();
-    } else {
-        result = node->location->id;
+    ExpEvaluator eval (scope);
+    node->accept(eval);
+    if (eval.has_errors()) {
+      //could not reduce the constant.
+        result = node->get_exp_location()->get_identifier();
         names.push_back(result);
+    } else {
+        result = eval.value_to_string();
     }
-    should_enclose = false;
 }
 
-void ExpStringBuilder::visit(shared_ptr<OpExp> exp) {
-    string left_s;
-    string right_s;
-    string op = ModelPrinter::to_str(exp->bop);
-    if (exp->arity == Arity::one) {
-        exp->left->accept(*this);
-        left_s = should_enclose ? "(" + result + ")" : result;
-        result = op + left_s;
-    } else if (exp->arity == Arity::two) {
-        exp->left->accept(*this);
-        left_s = should_enclose ? "(" + result + ")" : result;
-        exp->right->accept(*this);
-        right_s = should_enclose ? "(" + result + ")" : result;
-        result = left_s + op + right_s;
+void ExpStringBuilder::visit(shared_ptr<BinOpExp> exp) {
+    string op = ModelPrinter::to_str(exp->get_operator());
+    exp->get_first_argument()->accept(*this);
+    string left_s  = result;
+    exp->get_second_argument()->accept(*this);
+    string right_s = result;
+    if (Operator::is_infix_operator(exp->get_operator())) {
+        ///@bug Here we should add parenthesis!!
+        ///@todo Add parenthesis and implement an algorithm
+        /// to eliminate redundant one
+        result = left_s  + op + right_s;
+    } else {
+        result = op + "(" + left_s + "," + right_s + ")";
     }
-    should_enclose = false;
+}
+
+void ExpStringBuilder::visit(shared_ptr<UnOpExp> exp) {
+    string op = ModelPrinter::to_str(exp->get_operator());
+    exp->get_argument()->accept(*this);
+    result = op + "(" + result + ")";
 }
 
 string ExpStringBuilder::str() {
@@ -72,12 +69,13 @@ const vector<string>& ExpStringBuilder::get_names() {
 }
 
 pair<string, vector<string>>
-ExpStringBuilder::make_conjunction_str(const vector<shared_ptr<Exp>>& expvec) {
+ExpStringBuilder::make_conjunction_str(shared_ptr<ModuleScope> scope,
+                                       const vector<shared_ptr<Exp>>& expvec) {
     stringstream ss;
     vector<string> names;
     auto it = expvec.begin();
     while (it != expvec.end()) {
-        ExpStringBuilder str_b;
+        ExpStringBuilder str_b (scope);
         (*it)->accept(str_b);
         ss << "(" << str_b.str() << ")";
         auto &vec = str_b.get_names();
