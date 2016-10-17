@@ -61,9 +61,12 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-REDUNDANCY=(  2  3  4  5 )
-TIME_BOUNDS=(3s 60s 1h 6h)  # Specify one per redundancy!
-SPLITS=(2 3 5 8)  # RESTART splittings to test
+## REDUNDANCY=(  2  3  4  5 )
+## TIME_BOUNDS=(3s 60s 1h 6h)  # Specify one per redundancy!
+## SPLITS=(2 3 5 8)  # RESTART splittings to test
+REDUNDANCY=(  2  3 )
+TIME_BOUNDS=(30s 2m)  # Specify one per redundancy!
+SPLITS=(2 5)  # RESTART splittings to test
 NDC=6   # Number of disk clusters
 NCT=2   # Number of controller types
 NPT=2   # Number of processor types
