@@ -36,7 +36,7 @@ const int alpha = 2;    // Service time shape parameter (all queues)
 const int beta1 = 3;    // Service time scale parameter (Queue1)
 const int beta2 = 4;    // Service time scale parameter (Queue2)
 const int beta3 = 6;    // Service time scale parameter (Queue3)
-const int L = 11;               // Threshold occupancy (Queue3)
+const int L = 10;               // Threshold occupancy (Queue3)
 const int c = L+5;              // Queues capacity (all queues)
 
 // -- Combinations tested in the aforementioned article:
