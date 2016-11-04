@@ -134,7 +134,7 @@ public:  // Traial observers/updaters
 				if (traial.numLevelsCrossed < 0 &&
 					traial.depth > static_cast<short>(dieOutDepth_))
 					e = EventType::THR_DOWN;
-				else if (traial.numLevelsCrossed > 0)
+				else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 					e = EventType::THR_UP;
 				else if (property.expr2(traial.state))
 					e = EventType::RARE;
@@ -162,7 +162,7 @@ public:  // Traial observers/updaters
 				if (traial.numLevelsCrossed < 0 &&
 					traial.depth > static_cast<short>(dieOutDepth_))
 					SET_THR_DOWN_EVENT(e);
-				else if (traial.numLevelsCrossed > 0)
+				else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 					SET_THR_UP_EVENT(e);
 				// else: rare event info is already marked inside 'e'
 			}
@@ -184,7 +184,7 @@ public:  // Traial observers/updaters
 			if (traial.numLevelsCrossed < 0 &&
 				traial.depth > static_cast<short>(dieOutDepth_))
 				e = EventType::THR_DOWN;
-			else if (traial.numLevelsCrossed > 0)
+			else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 				e = EventType::THR_UP;
 			else if (property.expr(traial.state))
 				e = EventType::RARE;
@@ -213,7 +213,7 @@ public:  // Traial observers/updaters
 			if (traial.numLevelsCrossed < 0 &&
 				traial.depth > static_cast<short>(dieOutDepth_))
 				SET_THR_DOWN_EVENT(e);
-			else if (traial.numLevelsCrossed > 0)
+			else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 				SET_THR_UP_EVENT(e);
 			// else: rare event info is already marked inside 'e'
 			if (traial.lifeTime > SIM_TIME_CHUNK) {  // reduce fp precision loss
