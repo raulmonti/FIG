@@ -51,7 +51,7 @@ using std::begin;
 using std::end;
 
 
-namespace { const fig::Label TAU = fig::Label::make_tau(); }
+namespace { const fig::Label NoLabel = fig::Label::make_ignored();}
 
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
@@ -283,7 +283,7 @@ ModuleInstance::jump(const Traial::Timeout& to,
 	}
     // No transition was enabled => advance all clocks and broadcast tau
 	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
-	return TAU;
+    return ::NoLabel;
 }
 
 bool
@@ -314,7 +314,10 @@ ModuleInstance::jump(const Label& label,
 	if (!sealed_)
 		throw_FigException("this module hasn't been sealed yet");
 #endif
-    assert(label.is_output() || label.is_tau());
+    assert(label.is_output() || label.is_tau() || label.should_ignore());
+    if (label.should_ignore()) {
+        return; //we do what we should.
+    }
     bool done = false;
 	const auto iter = transitions_by_label_.find(label.str);
     // Foreign labels and taus won't touch us
@@ -325,7 +328,6 @@ ModuleInstance::jump(const Label& label,
         //Attend wildcard inputs.
         const auto iter = transitions_by_label_.find("_");
         if (end(transitions_by_label_) != iter) {
-            //std::cout << this->name << ": " << label.str << " by wildcard" << std::endl;
             //has some wildcars, attend them.
             const auto &transitions = iter->second;
             done = apply_postcondition(elapsedTime, traial, transitions);
@@ -359,7 +361,7 @@ ModuleInstance::jump(const Label& label,
 	if (!sealed_)
 		throw_FigException("this module hasn't been sealed yet");
 #endif
-    if (label.is_input())
+    if (label.is_input() || label.should_ignore())
 		return;  // none of our business
 	const auto trans = transitions_by_label_.find(label.str);
     if (!label.is_tau() && end(transitions_by_label_) != trans) {
