@@ -109,6 +109,7 @@ MIN "min"
 MAX "max"
 LOG "log"
 POW "pow"
+UNDERSCORE "_"
 ;
 
 %right "=>"
@@ -256,6 +257,9 @@ save_location($$, @$);}
     save_location($$, @$);}
 | "[" "]" guard[e] "@" location[loc] "->" effects[eff]
 {$$ = make_shared<TauTransition>($e, $eff, $loc);
+    save_location($$, @$);}
+| "[" "_" "?" "]" guard[e]  "->" effects[eff]
+{$$ = make_shared<WildcardInputTransition>($e, $eff);
     save_location($$, @$);}
 | "[" "id"[id] "!" "!" "]" guard[e] "->" effects[eff]
 {$$ = make_shared<OutputCommittedTransition>($id, $e, $eff);

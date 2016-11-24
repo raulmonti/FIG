@@ -341,6 +341,9 @@ void Visitor::visit(shared_ptr<OutputTransition> node) {
 void Visitor::visit(shared_ptr<TauTransition> node) {
     visit(std::static_pointer_cast<OutputTransition>(node));
 }
+void Visitor::visit(shared_ptr<WildcardInputTransition> node) {
+    visit(std::static_pointer_cast<TransitionAST>(node));
+}
 void Visitor::visit(shared_ptr<InputTransition> node) {
     visit(std::static_pointer_cast<TransitionAST>(node));
 }
