@@ -38,6 +38,7 @@
 #include <unordered_map>
 // C
 #include <cassert>
+#include <cmath>
 // FIG
 #include <core_typedefs.h>
 #include <FigException.h>

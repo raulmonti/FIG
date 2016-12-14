@@ -33,10 +33,11 @@
 #include <MathExpression.h>
 #include <core_typedefs.h>
 #include <State.h>
-
+#include <ModelAST.h>
 
 namespace fig
 {
+using std::shared_ptr;
 
 /**
  * @brief Transition precondition:
@@ -48,51 +49,22 @@ namespace fig
  */
 class Precondition : public MathExpression
 {
-	/// @brief Perform a fake evaluation to exercise our expression
-	/// @note  Useful to reveal parsing errors in MathExpression
-	/// @throw FigException if badly parsed expression
-	void test_evaluation() const;
 
 public:  // Ctors
 
 	/// @copydoc MathExpression::MathExpression
-	template< template< typename, typename... > class Container,
-			  typename ValueType,
-			  typename... OtherContainerArgs >
-	inline Precondition(const std::string& exprStr,
-						const Container<ValueType, OtherContainerArgs...>& varnames) :
-        MathExpression(exprStr, varnames)
+        inline Precondition(shared_ptr<Exp> expr) :
+            MathExpression(expr)
 		{}
 
-	/// Data ctor from generic rvalue container
-	/// @see Equivalent ctor in MathExpression
-	template< template< typename, typename... > class Container,
-			  typename ValueType,
-			  typename... OtherContainerArgs >
-	inline Precondition(const std::string& exprStr,
-						Container<ValueType, OtherContainerArgs...>&& varnames) :
-        MathExpression(exprStr, varnames)
-        {}
+        /// @brief Copy Constructor
+        Precondition(const Precondition& that) = default;
 
-	/// Data ctor from iterator range
-	/// @see Equivalent ctor in MathExpression
-	template< template< typename, typename... > class Iterator,
-			  typename ValueType,
-			  typename... OtherIteratorArgs >
-	inline Precondition(const std::string& exprStr,
-						Iterator<ValueType, OtherIteratorArgs...> from,
-						Iterator<ValueType, OtherIteratorArgs...> to) :
-        MathExpression(exprStr, from, to)
-        {}
+        /// @brief Move Constructor
+        Precondition(Precondition&& that) = default;
 
-	/// Default copy ctor
-	Precondition(const Precondition& that) = default;
-
-	/// Default move ctor
-	Precondition(Precondition&& that) = default;
-
-	/// Copy assignment with copy&swap idiom
-	Precondition& operator=(Precondition that);
+        /// @todo Copy assignment with copy&swap idiom
+        Precondition& operator=(Precondition that) = delete;
 
 public:  // Modifyers, made public since too many other classes use Precondition
 
@@ -121,6 +93,8 @@ public:  // Modifyers, made public since too many other classes use Precondition
 #endif
 
 public:  // Utils
+
+    void test_evaluation() const;
 
 	/**
 	 * @brief Compute truth value of our expression for given variables valuation

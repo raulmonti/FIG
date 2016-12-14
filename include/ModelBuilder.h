@@ -47,7 +47,7 @@ private:
     /// Alias for the global instance of the model.
     ModelSuite &model_suite = ModelSuite::get_instance();
 
-    /// Alias for the map that assigns
+    /// Alias for the module scopes map
     shared_map<string, ModuleScope> &scopes  = ModuleScope::scopes;
 
     /// The current module in construction.
@@ -129,7 +129,7 @@ private:
 public:
     ModelBuilder();
     virtual ~ModelBuilder();
-    /// @note Property id (see Property::get_id) -> ast that generated it.
+    /// @note maps Property id (see Property::get_id) -> ast that generated it.
     /// the ast is needed since the property is projected several times
     /// to different set of variables.
     static map<int, shared_ptr<Prop>> property_ast;

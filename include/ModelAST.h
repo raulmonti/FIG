@@ -846,6 +846,7 @@ protected:
     /// The location in which the changes are made (name of the
     /// state variable or the clock).
     shared_ptr<Location> loc;
+
 protected: //Protected Constructor
     Effect(shared_ptr<Location> loc) : loc {loc} {}
 

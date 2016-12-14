@@ -650,7 +650,7 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
     if (force || !ifun.has_importance_info() || "flat" != ifun.strategy()) {
 		techLog_ << "\nBuilding importance function \"" << ifunName
 				 << "\" with \"flat\" assessment strategy.\n";
-		techLog_ << "Property: " << property.expression << std::endl;
+        techLog_ << "Property: " << property.to_str() << std::endl;
         ifun.clear();
 		const double startTime = omp_get_wtime();
 		if (ifun.concrete())
@@ -708,7 +708,7 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 		techLog_ << "\nBuilding importance function \"" << impFun.name
 				 << "\" with \"adhoc\" assessment strategy (\""
 				 << impFun.algebraicFormula << "\")\n";
-		techLog_ << "Property: " << property.expression << std::endl;
+        techLog_ << "Property: " << property.to_str() << std::endl;
 		ifun.clear();
 		auto allVarnames = model->global_state().varnames();
 		const double startTime = omp_get_wtime();
@@ -780,7 +780,7 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
     if (force || !ifun.has_importance_info() || "auto" != ifun.strategy()) {
 		techLog_ << "\nBuilding importance function \"" << impFun.name
 				 << "\" with \"auto\" assessment strategy.\n";
-		techLog_ << "Property: " << property.expression << std::endl;
+        techLog_ << "Property: " << property.to_str() << std::endl;
 		ifun.clear();
 		const double startTime = omp_get_wtime();
 
@@ -972,7 +972,7 @@ ModelSuite::estimate(const Property& property,
 			? ("(null)") : (ifun.post_processing().name + " "
 							+ to_string(ifun.post_processing().value)));
 
-	mainLog_ << "Estimating " << property.expression << ",\n";
+    mainLog_ << "Estimating " << property.to_str() << ",\n";
 	mainLog_ << " using simulation engine  \"" << engine.name() << "\"\n";
 	mainLog_ << " with importance function \"" << engine.current_imp_fun() << "\"\n";
 	mainLog_ << " built using strategy     \"" << engine.current_imp_strat() << "\"";

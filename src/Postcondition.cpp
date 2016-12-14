@@ -46,17 +46,18 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 Postcondition&
 Postcondition::operator=(Postcondition that)
 {
-	MathExpression::operator=(std::move(that));
+    /*MathExpression::operator=(std::move(that));
 	swap(NUPDATES_, that.NUPDATES_);
 	swap(updatesNames_, that.updatesNames_);
 	swap(updatesPos_, that.updatesPos_);
-	return *this;
+    return *this;*/
 }
 
 
 void
 Postcondition::test_evaluation() const
 {
+    /*
 	assert(pinned());
 	try {
 		const STATE_INTERNAL_TYPE DUMMY(static_cast<STATE_INTERNAL_TYPE>(1.1));
@@ -78,6 +79,7 @@ Postcondition::test_evaluation() const
 		throw_FigException("bad expression for postcondition, "
 						   "did you remember to map all the variables?");
 	}
+    */
 }
 
 
@@ -85,9 +87,10 @@ Postcondition::test_evaluation() const
 void
 Postcondition::pin_up_vars(const PositionsMap& globalVars)
 {
-	MathExpression::pin_up_vars(globalVars);    // Map expression variables
+    /*MathExpression::pin_up_vars(globalVars);    // Map expression variables
 	for (size_t i = 0ul ; i < NUPDATES_ ; i++)  // Map update variables
 		updatesPos_[i] = globalVars.at(updatesNames_[i]);
+        */
 # ifndef NDEBUG
 	test_evaluation();  // Reveal parsing errors in this early stage
 # endif
@@ -96,9 +99,10 @@ Postcondition::pin_up_vars(const PositionsMap& globalVars)
 void
 Postcondition::pin_up_vars(PositionsMap& globalVars)
 {
+    /*
 	MathExpression::pin_up_vars(globalVars);    // Map expression variables
 	for (size_t i = 0ul ; i < NUPDATES_ ; i++)  // Map update variables
-		updatesPos_[i] = globalVars[updatesNames_[i]];
+        updatesPos_[i] = globalVars[updatesNames_[i]]; */
 # ifndef NDEBUG
 	test_evaluation();  // Reveal parsing errors in this early stage
 # endif
@@ -109,10 +113,10 @@ Postcondition::pin_up_vars(PositionsMap& globalVars)
 void
 Postcondition::pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState)
 {
-
-	MathExpression::pin_up_vars(globalState);   // Map expression variables
-	for (size_t i = 0ul ; i < NUPDATES_ ; i++)  // Map update variables
-		updatesPos_[i] = globalState.position_of_var(updatesNames_[i]);
+    /*
+    MathExpression::pin_up_vars(globalState);   // Map expression variables
+    for (size_t i = 0ul ; i < NUPDATES_ ; i++)  // Map update variables
+        updatesPos_[i] = globalState.position_of_var(updatesNames_[i]); */
 #ifndef NDEBUG
 	test_evaluation();  // Reveal parsing errors in this early stage
 #endif
@@ -122,11 +126,12 @@ Postcondition::pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState)
 void
 Postcondition::operator()(State<STATE_INTERNAL_TYPE>& state) const
 {
-#ifndef NDEBUG
-	if (!pinned())
-		throw_FigException("pin_up_vars() hasn't been called yet");
-#endif
+//#ifndef NDEBUG
+//	if (!pinned())
+//		throw_FigException("pin_up_vars() hasn't been called yet");
+// #endif
 	// Copy the useful part of 'state'...
+    /*
 	for (size_t i = 0ul ; i < NVARS_ ; i++) {
 		assert(nullptr != state[varsNames_[i]]);
 		varsValues_[i] = state[varsNames_[i]]->val();  // NOTE see other note
@@ -140,36 +145,37 @@ Postcondition::operator()(State<STATE_INTERNAL_TYPE>& state) const
 		assert(nullptr != state[updatesNames_[i]]);
 		state[updatesNames_[i]]->assign(updates[i]);
 	}
+    */
 }
 
 
 void
 Postcondition::operator()(StateInstance& state) const
 {
-#ifndef NDEBUG
-	if (!pinned())
-		throw_FigException("pin_up_vars() hasn't been called yet");
-#endif
-	// Copy the useful part of 'state'...
-	for (size_t i = 0ul ; i < NVARS_ ; i++) {
-		assert(state.size() > varsPos_[i]);
-		varsValues_[i] = state[varsPos_[i]];  // ugly motherfucker
-		/// @todo
-		/// NOTE As an alternative we could use memcpy() to copy the values,
-		///      but that means bringing a whole chunk of memory of which
-		///      only a few variables will be used. To lighten that we could
-		///      impose an upper bound on the number of variables per guard,
-		///      but then the language's flexibility will be compromised.
-	}
-	// ...evaluate...
-	int numUpdates(NUPDATES_);
-	STATE_INTERNAL_TYPE* updates = expr_.Eval(numUpdates);
-	assert(NUPDATES_ == static_cast<size_t>(numUpdates) || expression().empty());
-	// ...and reflect in state
-	for (size_t i = 0ul ; i < NUPDATES_ ; i++) {
-		assert(state.size() > updatesPos_[i]);
-		state[updatesPos_[i]] = updates[i];
-	}
+//#ifndef NDEBUG
+//	if (!pinned())
+//		throw_FigException("pin_up_vars() hasn't been called yet");
+//#endif
+//	// Copy the useful part of 'state'...
+//	for (size_t i = 0ul ; i < NVARS_ ; i++) {
+//		assert(state.size() > varsPos_[i]);
+//		varsValues_[i] = state[varsPos_[i]];  // ugly motherfucker
+//		/// @todo
+//		/// NOTE As an alternative we could use memcpy() to copy the values,
+//		///      but that means bringing a whole chunk of memory of which
+//		///      only a few variables will be used. To lighten that we could
+//		///      impose an upper bound on the number of variables per guard,
+//		///      but then the language's flexibility will be compromised.
+//	}
+//	// ...evaluate...
+//	int numUpdates(NUPDATES_);
+//	STATE_INTERNAL_TYPE* updates = expr_.Eval(numUpdates);
+//	assert(NUPDATES_ == static_cast<size_t>(numUpdates) || expression().empty());
+//	// ...and reflect in state
+//	for (size_t i = 0ul ; i < NUPDATES_ ; i++) {
+//		assert(state.size() > updatesPos_[i]);
+//		state[updatesPos_[i]] = updates[i];
+//	}
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

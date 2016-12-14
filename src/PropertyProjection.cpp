@@ -38,10 +38,11 @@ bool has_identifiers_in(Term exp, const vector<string>& varnames) {
 }
 
 inline Clause clause_from_terms(const vector<Term> &terms) {
-    shared_ptr<ModuleScope> scope = CompositeModuleScope::get_instance();
-    std::pair<string, vector<string>> str_names
-            =  ExpStringBuilder::make_conjunction_str(scope, terms);
-    return Precondition(str_names.first, str_names.second);
+    //shared_ptr<ModuleScope> scope = CompositeModuleScope::get_instance();
+    //std::pair<string, vector<string>> str_names
+    //        =  ExpStringBuilder::make_conjunction_str(scope, terms);
+    //return Precondition(str_names.first, str_names.second);
+    throw_FigException("FIXME!");
 }
 
 vector<Clause> project_on_var_set(const DNF& dnf,

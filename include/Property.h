@@ -39,6 +39,7 @@
 #include <Precondition.h>
 #include <State.h>
 
+using std::shared_ptr;
 
 namespace fig
 {
@@ -69,17 +70,15 @@ protected:
 public:  // Attributes
 
     /// Property per se in string form
-    const std::string expression;
+    /// const std::string expression;
 
     /// Which type of property the expression represents
     const PropertyType type;
 
 public:  // Ctors
 
-    Property(const std::string& theexpression, PropertyType thetype) :
-	instance_id {++ current_id},
-        expression(theexpression),
-        type(thetype) {};
+    Property(PropertyType thetype) :
+        instance_id {++ current_id}, type {thetype} {}
 
     // Copy/Move constructor deleted to avoid dealing with the unique id.
     Property(const Property& that) = delete;
@@ -94,25 +93,25 @@ public:  // Ctors
 
 protected:  // Modifyers
 
-	/**
-	 * @copydoc fig::MathExpression::pin_up_vars(const PositionMap&)
-	 * \ifnot NDEBUG
-	 *   @throw FigException if there was some error in our math expressions
-	 * \endif
-	 */
+    /**
+     * @copydoc fig::MathExpression::pin_up_vars(const PositionMap&)
+     * \ifnot NDEBUG
+     *   @throw FigException if there was some error in our math expressions
+     * \endif
+     */
 #ifndef NRANGECHK
-	virtual void pin_up_vars(const PositionsMap& globalVars) = 0;
+    virtual void pin_up_vars(const PositionsMap& globalVars) = 0;
 #else
-	virtual void pin_up_vars(PositionsMap& globalVars) = 0;
+    virtual void pin_up_vars(PositionsMap& globalVars) = 0;
 #endif
 
-	/**
-	 * @copydoc fig::MathExpression::pin_up_vars()
-	 * \ifnot NDEBUG
-	 *   @throw FigException if there was some error in our math expressions
-	 * \endif
-	 */
-	virtual void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState) = 0;
+    /**
+     * @copydoc fig::MathExpression::pin_up_vars()
+     * \ifnot NDEBUG
+     *   @throw FigException if there was some error in our math expressions
+     * \endif
+     */
+    virtual void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState) = 0;
 
 public:  // Utils
 
@@ -137,10 +136,13 @@ public:  // Utils
     /// Get instance unique id
     int get_id() const noexcept { return instance_id; }
 
+    /// String representation of property
+    virtual std::string to_str() const = 0;
+
 public: // Debug
     virtual void print_info(std::ostream &out) const = 0;
 };
-    
+
 } // namespace fig
 
 #endif // PROPERTY_H

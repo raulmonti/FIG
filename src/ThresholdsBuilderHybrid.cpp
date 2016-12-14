@@ -29,6 +29,7 @@
 
 // C
 #include <cassert>
+#include <cmath>
 #include <pthread.h>
 // C++
 #include <utility>

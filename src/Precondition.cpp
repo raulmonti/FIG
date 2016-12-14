@@ -41,6 +41,7 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 void
 Precondition::test_evaluation() const
 {
+    /*
 	assert(pinned());
 	try {
 		STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
@@ -57,16 +58,17 @@ Precondition::test_evaluation() const
 		throw_FigException("bad expression for precondition, "
 						   "did you remember to map all the variables?");
 	}
+    */
 }
 
-
+/*
 Precondition&
 Precondition::operator=(Precondition that)
 {
 	MathExpression::operator=(std::move(that));
 	return *this;
 }
-
+*/
 
 #ifndef  NRANGECHK
 void
@@ -102,6 +104,7 @@ Precondition::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 bool
 Precondition::operator()(const StateInstance& state) const
 {
+    /*
 #ifndef NDEBUG
 	if (!pinned())
 		throw_FigException("pin_up_vars() hasn't been called yet");
@@ -119,12 +122,15 @@ Precondition::operator()(const StateInstance& state) const
 	}
 	// ...and evaluate
 	return static_cast<bool>(expr_.Eval());
+    */
+    return (true);
 }
 
 
 bool
 Precondition::operator()(const State<STATE_INTERNAL_TYPE>& state) const
 {
+    /*
 #ifndef NDEBUG
 	if (!pinned())
 		throw_FigException("pin_up_vars() hasn't been called yet");
@@ -136,6 +142,8 @@ Precondition::operator()(const State<STATE_INTERNAL_TYPE>& state) const
 	}
 	// ...and evaluate
 	return static_cast<bool>(expr_.Eval());
+    */
+    return (true);
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

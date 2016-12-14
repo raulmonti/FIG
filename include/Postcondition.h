@@ -75,9 +75,11 @@ namespace fig
  *        its own update, namely 'x_copy == 2', was used for the evaluation
  *        of the MathExpressions on the RHS of the updates.
  */
-class Postcondition : public MathExpression
+class Postcondition //public MathExpression
 {
 	friend class Transition;  // for variables mapping callback
+
+    /*
 
 	/// Number of variables updated by this postcondition
 	size_t NUPDATES_;
@@ -90,6 +92,8 @@ class Postcondition : public MathExpression
 	/// @details Positions of the variables to which the updates will be applied
 	std::vector<size_t> updatesPos_;
 
+    */
+
 	/// @brief Perform a fake evaluation to exercise our expression
 	/// @note  Useful to reveal parsing errors in MathExpression
 	/// @throw FigException if badly parsed expression
@@ -99,68 +103,11 @@ public:  // Ctors/Dtor
 
 	/**
 	 * @brief Data ctor from generic lvalue containers
-	 *
-	 * @param exprStr    String with the comma-separated updates to evaluate
-	 * @param varNames   Container with names of all variables ocurring in exprStr
-	 * @param updateVars Container with the names of the variables taking the updates
-	 *
-	 * @note The content of updateVars is interpreted possitionally w.r.t.
-	 *       the exprStr, e.g. input data: ("x^2,Rand[0,1]", {x}, {y,x})
-	 *       means that on each update, 'y' will be assigned the square of 'x',
-	 *       and 'x' will be assigned some random value between 0 and 1.
-	 *
-	 * @throw FigException if exprStr doesn't define a valid expression
-	 * \ifnot NRANGECHK
-	 *   @throw out_of_range if names of variables not appearing in our
-	 *                       expression were passed as 'varNames'
-	 * \endif
+     *
 	 */
-	template<
-		template< typename, typename... > class Container1,
-			typename ValueType1,
-			typename... OtherArgs1,
-		template< typename, typename... > class Container2,
-			typename ValueType2,
-			typename... OtherArgs2
-	>
-	Postcondition(const std::string& exprStr,
-				  const Container1<ValueType1, OtherArgs1...>& varNames,
-				  const Container2<ValueType2, OtherArgs2...>& updateVars);
-
-	/**
-	 * @brief Data ctor from iterator ranges
-	 *
-	 * @param exprStr String with the comma-separated updates to evaluate
-	 * @param from1   Iterator to  first name of variables ocurring in exprStr
-	 * @param to1     Iterator past last name of variables ocurring in exprStr
-	 * @param from2   Iterator to  first name of the variables taking the updates
-	 * @param to2     Iterator past last name of the variables taking the updates
-	 *
-	 * @note The variables whose names are given in the range [from2, to2)
-	 *       are interpreted possitionally w.r.t. the exprStr, e.g. input
-	 *       data equivalent to: ("x^2,Rand[0,1]", {x}, {y,x}) means that
-	 *       on each update, 'y' will be assigned the square of 'x',
-	 *       and 'x' will be assigned some random value between 0 and 1.
-	 *
-	 * @throw FigException if exprStr doesn't define a valid expression
-	 * \ifnot NRANGECHK
-	 *   @throw out_of_range if names of variables not appearing in our
-	 *                       expression were passed between 'from1' and 'to1'
-	 * \endif
-	 */
-	template<
-		template< typename, typename... > class Iterator1,
-			typename ValueType1,
-			typename... OtherArgs1,
-		template< typename, typename... > class Iterator2,
-			typename ValueType2,
-			typename... OtherArgs2
-	>
-	Postcondition(const std::string& exprStr,
-				  Iterator1<ValueType1, OtherArgs1...> from1,
-				  Iterator1<ValueType1, OtherArgs1...> to1,
-				  Iterator2<ValueType2, OtherArgs2...> from2,
-				  Iterator2<ValueType2, OtherArgs2...> to2);
+    Postcondition(std::vector<shared_ptr<Assignment>> assignments) {
+        (void) assignments;
+    }
 
 	/// Default copy ctor
 	Postcondition(const Postcondition& that) = default;
@@ -170,6 +117,11 @@ public:  // Ctors/Dtor
 
 	/// Copy assignment with copy&swap idiom
 	Postcondition& operator=(Postcondition that);
+
+    /// @todo delete this or inherit math expression
+    inline bool pinned() const {
+        return (true);
+    }
 
 protected:  // Modifyers
 
@@ -182,7 +134,7 @@ protected:  // Modifyers
 	 * @todo TODO unify with the other version using templates;
 	 *            see ImportanceFunction::Formula::set()
 	 */
-	void pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState) override;
+    void pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState); // override;
 
 	/**
 	 * @copydoc fig::MathExpression::pin_up_vars(const PositionsMap&)
@@ -194,7 +146,7 @@ protected:  // Modifyers
 	 *            see ImportanceFunction::Formula::set()
 	 */
 #ifndef NRANGECHK
-	void pin_up_vars(const PositionsMap &globalVars) override;
+    void pin_up_vars(const PositionsMap &globalVars); // override;
 #else
 	void pin_up_vars(PositionsMap& globalVars) override;
 #endif
@@ -235,10 +187,12 @@ public: //Debug
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
 
+
 // Template definitions
 
 // If curious about its presence here take a look at the end of VariableSet.cpp
 
+/*
 template< template< typename, typename... > class Container1,
 			  typename ValueType1,
 			  typename... OtherArgs1,
@@ -287,6 +241,8 @@ Postcondition::Postcondition(
 	// Register update variables names
 	updatesNames_.insert(begin(updatesNames_), from2, to2);
 }
+
+*/
 
 } // namespace fig
 

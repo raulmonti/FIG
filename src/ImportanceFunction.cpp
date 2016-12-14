@@ -77,8 +77,8 @@ wrap_mapper(const fig::State<fig::STATE_INTERNAL_TYPE>& obj)
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-ImportanceFunction::Formula::Formula() :
-    MathExpression("", std::vector<std::string>() )
+ImportanceFunction::Formula::Formula()
+    //MathExpression("", std::vector<std::string>() )
 { /* Not much to do around here */ }
 
 
