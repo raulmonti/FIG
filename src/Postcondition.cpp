@@ -53,7 +53,6 @@ Postcondition::operator=(Postcondition that)
     return *this;*/
 }
 
-
 void
 Postcondition::test_evaluation() const
 {

@@ -74,7 +74,7 @@ Precondition::operator=(Precondition that)
 void
 Precondition::pin_up_vars(const PositionsMap& globalVars)
 {
-	MathExpression::pin_up_vars(globalVars);
+//	MathExpression::pin_up_vars(globalVars);
 # ifndef NDEBUG
 	test_evaluation();  // Reveal parsing errors in this early stage
 # endif
@@ -94,7 +94,7 @@ Precondition::pin_up_vars(PositionsMap& globalVars)
 void
 Precondition::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 {
-	MathExpression::pin_up_vars(globalState);
+    // MathExpression::pin_up_vars(globalState);
 #ifndef NDEBUG
 	test_evaluation();  // Reveal parsing errors in this early stage
 #endif
