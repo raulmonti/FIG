@@ -37,11 +37,12 @@
 #include <utility>      // std::pair<>, std::move()
 #include <string>
 #include <stdexcept>    // std::out_of_range
+// External code
+#include <muParser.h>
 // FIG
 #include <string_utils.h>
 #include <core_typedefs.h>
 #include <State.h>
-#include <ModelAST.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -50,7 +51,6 @@
 // ADL
 using std::begin;
 using std::end;
-using std::shared_ptr;
 
 
 namespace fig
@@ -59,52 +59,108 @@ namespace fig
 /**
  * @brief Mathematical expression with variables mapping
  *
+ *        A mathematical expression is built from an expression string using
+ *        the <a href="http://muparser.beltoforion.de/">MuParser library</a>.
+ *        It requires a separate explicit specification of which literals
+ *        within that expression refer to variables names.
+ *
+ * @note  Offers generic construction from the following STL containers:
+ *        vector, list, forward_list, set, unordered_set, deque.
+ * @note  Will not build from the following STL containers:
+ *        queue, stack, array.
  */
 class MathExpression
 {
-protected: 
-    /// Mathematical expression per se
-    shared_ptr<Exp> expr_;
+protected:
 
-    /// Number of variables defined in our expression
-    size_t NVARS_;
+    typedef mu::Parser Expression;
 
-    /// @brief Names of our variables
-    std::vector< std::string > varsNames_;
+	/// Is the expression empty?
+	/// @note Needed since MuParser doesn't tolerate empty string expressions
+	bool empty_;
 
-    /// @brief Global position of our variables
-    std::vector< size_t > varsPos_;
+    /// String describing the mathematical expression
+    std::string exprStr_;
 
-    /// @brief Values of our variables
-    /// @details "Current values" of our variables in a running simulation
-    mutable StateInstance varsValues_;
+	/// Mathematical expression per se
+	Expression expr_;
 
-    /// Whether the global positional order of our variables
-    /// (i.e. varsPos_) has already been defined and the local values
-    /// (i.e. varsValues_) have been referenced into the Expression
-    bool pinned_;
+	/// Number of variables defined in our expression
+	size_t NVARS_;
+
+	/// @brief Names of our variables
+	/// @details Symbols in exprStr_ which map to variable names
+	std::vector< std::string > varsNames_;
+
+	/// @brief Global position of our variables
+	/// @details Position of the variables from exprStr_ in a global State
+	std::vector< size_t > varsPos_;
+
+	/// @brief Values of our variables
+	/// @details "Current values" of our variables in a running simulation
+	mutable StateInstance varsValues_;
+
+	/// Whether the global positional order of our variables
+	/// (i.e. varsPos_) has already been defined and the local values
+	/// (i.e. varsValues_) have been referenced into the Expression
+	bool pinned_;
 
 public:  // Ctors/Dtor
 
 	/**
-         * @brief Data ctor
-         * @param expr   AST with the matemathical expression to evaluate
+	 * @brief Data ctor from generic lvalue container
+	 *
+	 * @param exprStr   String with the matemathical expression to evaluate
+	 * @param varnames  Container with names of variables ocurring in exprStr
+	 *
 	 * @throw FigException if exprStr doesn't define a valid expression
 	 */
-    MathExpression(shared_ptr<Exp> expr);
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherArgs >
+	MathExpression(const std::string& exprStr,
+				   const Container<ValueType, OtherArgs...>& varnames);
+
+	/**
+	 * @brief Data ctor from generic rvalue container
+	 *
+	 * @param exprStr   String with the mathematical expression to evaluate
+	 * @param varnames  Container with names of variables ocurring in exprStr
+	 *
+	 * @throw FigException if exprStr doesn't define a valid expression
+	 */
+	template< template< typename, typename... > class Container,
+			  typename ValueType,
+			  typename... OtherArgs >
+	MathExpression(const std::string& exprStr,
+				   Container<ValueType, OtherArgs...>&& varnames);
+
+	/**
+	 * @brief Data ctor from iterator range
+	 *
+	 * @param exprStr  String with the mathematical expression to evaluate
+	 * @param from     Iterator to  first name of variables ocurring in exprStr
+	 * @param to       Iterator past last name of variables ocurring in exprStr
+	 *
+	 * @throw FigException if exprStr doesn't define a valid expression
+	 */
+	template< template< typename, typename... > class Iterator,
+			  typename ValueType,
+			  typename... OtherArgs >
+	MathExpression(const std::string& exprStr,
+				   Iterator<ValueType, OtherArgs...> from,
+				   Iterator<ValueType, OtherArgs...> to);
 
 	/// Copy ctor
 	/// @note Explicitly defined for variables pinning into expr_
-    /// @todo shallow copy of a shared pointer.
-    MathExpression(const MathExpression& that) = default;
+	MathExpression(const MathExpression& that);
 
 	/// Default move ctor
 	MathExpression(MathExpression&& that) = default;
 
 	/// Copy assignment with copy&swap idiom
 	/// @note Explicitly defined for variables pinning into expr_
-    /// @todo implement this
-    MathExpression& operator=(MathExpression that) = delete;
+	MathExpression& operator=(MathExpression that);
 
 protected:  // Modifyers
 
@@ -143,12 +199,61 @@ protected:  // Modifyers
 
 public:  // Accessors
 
-        // inline const std::string expression() const noexcept { return empty_ ? "" : exprStr_; }
-        /// @copydoc pinned_
-        inline const bool& pinned() const noexcept { return pinned_; }
+	/// @copydoc exprStr_
+	inline const std::string expression() const noexcept { return empty_ ? "" : exprStr_; }
+
+	/// @copydoc pinned_
+	inline const bool& pinned() const noexcept { return pinned_; }
+
+protected:  // Class utils
+
+    /// Return a "MuParser friendly" formatted version of the expression string
+    std::string muparser_format(const std::string& expr) const;
+
+	/**
+	 * @brief Set 'exprStr_' as the expression to MuParser's 'expr_'
+	 * @note  After successfully parsing the expression string,
+	 *        all offered builtin functions are bound to 'expr_'
+	 * @throw FigException if badly formatted mathematical expression
+	 */
+	void parse_our_expression();
 };
 
+
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
+
+// Template definitions
+
+// If curious about its presence here take a look at the end of VariableSet.cpp
+
+template< template< typename, typename... > class Iterator,
+		  typename ValueType,
+		  typename... OtherArgs >
+MathExpression::MathExpression(
+	const std::string& exprStr,
+	Iterator<ValueType, OtherArgs...> from,
+	Iterator<ValueType, OtherArgs...> to) :
+		empty_(trim(exprStr).empty()),
+        exprStr_(muparser_format(exprStr)),
+        pinned_(false)
+{
+	static_assert(std::is_constructible< std::string, ValueType >::value,
+				  "ERROR: type mismatch. MathExpression needs iterators "
+				  "pointing to variable names");
+	// Setup MuParser expression
+	parse_our_expression();
+	// Register our variables names
+	varsNames_.reserve(std::distance(from, to));
+	for (; from != to ; from++)
+		if (std::find(begin(varsNames_),end(varsNames_),*from) == end(varsNames_)
+				&& exprStr_.find(*from) != std::string::npos)
+			varsNames_.emplace_back(*from);  // copy elision
+	varsNames_.shrink_to_fit();
+	NVARS_ = varsNames_.size();
+	// Positions mapping is done later in pin_up_vars()
+	varsPos_.resize(NVARS_);
+	varsValues_.resize(NVARS_);
+}
 
 } // namespace fig
 
