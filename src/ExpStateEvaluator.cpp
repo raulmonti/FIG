@@ -23,7 +23,7 @@ ExpStateEvaluator::eval(const State<STYPE> &state) const {
     for (size_t i = 0; i < varNum; i++) {
         stateValues[i] = state[statePositions[i]]->val();
     }
-    EvalVisitor eval;
+    EvalVisitor eval(stateValues, positionOf);
     expr->accept(eval);
     return (eval.get_value());
 }
@@ -33,19 +33,19 @@ ExpStateEvaluator::eval(const StateInstance &state) const {
     for (size_t i = 0; i < varNum; i++) {
         stateValues[i] = state[statePositions[i]];
     }
-    EvalVisitor eval;
+    EvalVisitor eval (stateValues, positionOf);
     expr->accept(eval);
     return (eval.get_value());
 }
 
 void
 ExpStateEvaluator::EvalVisitor::visit(shared_ptr<BConst> node) {
-    value = node->value ? 1 : 0;
+    value = node->get_value()? 1 : 0;
 }
 
 void
 ExpStateEvaluator::EvalVisitor::visit(shared_ptr<IConst> node) {
-    value = node->value;
+    value = node->get_value();
 }
 
 void
@@ -72,8 +72,8 @@ ExpStateEvaluator::EvalVisitor::visit(shared_ptr<BinOpExp> node) {
 
 void
 ExpStateEvaluator::EvalVisitor::visit(shared_ptr<LocExp> node) {
-    std::string &name = node->get_exp_location()->get_identifier();
-    value = stateValues[positionOf[name]];
+    const std::string &name = node->get_exp_location()->get_identifier();
+    value = values[positionMap.at(name)];
 }
 
 STYPE

@@ -31,11 +31,11 @@ private:
     std::vector<std::string> varNames;
     // given a variable name give me an index to lookup in the
     // vectors below
-    std::unordered_map<std::string, size_t> positionOf;
+    PositionsMap positionOf;
     // position in the state
     std::vector<size_t> statePositions;
     // value in the state
-    std::vector<STYPE>  stateValues;
+    mutable std::vector<STYPE>  stateValues;
 
 public:
 
@@ -61,7 +61,14 @@ public:
 private:
     class EvalVisitor : public Visitor {
         STYPE value = 0;
+        const std::vector<STYPE>& values;
+        const PositionsMap& positionMap;
+
     public:
+        EvalVisitor(const std::vector<STYPE> &values,
+                    const PositionsMap& positionMap)
+            : values {values}, positionMap {positionMap} {}
+
         void visit(shared_ptr<IConst> node);
         void visit(shared_ptr<BConst> node);
         void visit(shared_ptr<FConst> node);
