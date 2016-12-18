@@ -77,30 +77,8 @@ namespace fig
  *        its own update, namely 'x_copy == 2', was used for the evaluation
  *        of the MathExpressions on the RHS of the updates.
  */
-class Postcondition //public MathExpression
+class Postcondition
 {
-    friend class Transition;  // for variables mapping callback
-
-    /*
-
-    /// Number of variables updated by this postcondition
-    size_t NUPDATES_;
-
-    /// @brief Names of our update variables
-    /// @details Names of the variables to which the updates will be applied
-    std::vector<std::string> updatesNames_;
-
-    /// @brief Positions of our update variables
-    /// @details Positions of the variables to which the updates will be applied
-    std::vector<size_t> updatesPos_;
-
-    */
-
-    /// @brief Perform a fake evaluation to exercise our expression
-    /// @note  Useful to reveal parsing errors in MathExpression
-    /// @throw FigException if badly parsed expression
-    void test_evaluation() const;
-
 public:  // Ctors/Dtor
 
     /**
@@ -120,40 +98,17 @@ public:  // Ctors/Dtor
     /// Copy assignment with copy&swap idiom
     Postcondition& operator=(Postcondition that);
 
-    /// @todo delete this or inherit math expression
-    inline bool pinned() const {
-        return (true);
+public:
+
+    inline void prepare(const PositionsMap& globalVars) {
+        //expr1_.prepare(globalVars);
+        //expr2_.prepare(globalVars);
     }
 
-protected:  // Modifyers
-
-    /**
-     * @copydoc fig::MathExpression::pin_up_vars()
-     * \ifnot NDEBUG
-     *   @throw FigException if there was some error in our math expression
-     * \endif
-     * @note Maps also the positions of the update variables
-     * @todo TODO unify with the other version using templates;
-     *            see ImportanceFunction::Formula::set()
-     */
-    void pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState); // override;
-
-    /**
-     * @copydoc fig::MathExpression::pin_up_vars(const PositionsMap&)
-     * \ifnot NDEBUG
-     *   @throw FigException if there was some error in our math expression
-     * \endif
-     * @note Maps also the positions of the update variables
-     * @todo TODO unify with the other version using templates;
-     *            see ImportanceFunction::Formula::set()
-     */
-#ifndef NRANGECHK
-    void pin_up_vars(const PositionsMap &globalVars); // override;
-#else
-    void pin_up_vars(PositionsMap& globalVars) override;
-#endif
-
-public:  // Utils
+    inline void prepare(const fig::State<STATE_INTERNAL_TYPE>& globalState) {
+        //expr1_.prepare(globalState);
+        //expr2_.prepare(globalState);
+    }
 
     /**
      * @brief Update state's variables values according to our expression
@@ -186,65 +141,6 @@ public:  // Utils
 public: //Debug
     void print_info(std::ostream& out) const;
 };
-
-// // // // // // // // // // // // // // // // // // // // // // // // // // //
-
-
-// Template definitions
-
-// If curious about its presence here take a look at the end of VariableSet.cpp
-
-/*
-template< template< typename, typename... > class Container1,
-              typename ValueType1,
-              typename... OtherArgs1,
-          template< typename, typename... > class Container2,
-              typename ValueType2,
-              typename... OtherArgs2
-        >
-Postcondition::Postcondition(
-    const std::string& exprStr,
-    const Container1<ValueType1, OtherArgs1...>& varNames,
-    const Container2<ValueType2, OtherArgs2...>& updateVars) :
-        MathExpression(exprStr, varNames),
-        NUPDATES_(std::distance(begin(updateVars), end(updateVars))),
-        updatesNames_(NUPDATES_),
-        updatesPos_(NUPDATES_)
-{
-    static_assert(std::is_constructible< std::string, ValueType2 >::value,
-                  "ERROR: type mismatch. Postcondition needs containers "
-                  "with variable names");
-    // Register update variables names
-    updatesNames_.insert(begin(updatesNames_), begin(updateVars), end(updateVars));
-}
-
-
-template< template< typename, typename... > class Iterator1,
-              typename ValueType1,
-              typename... OtherArgs1,
-          template< typename, typename... > class Iterator2,
-              typename ValueType2,
-              typename... OtherArgs2
-        >
-Postcondition::Postcondition(
-    const std::string& exprStr,
-    Iterator1<ValueType1, OtherArgs1...> from1,
-    Iterator1<ValueType1, OtherArgs1...> to1,
-    Iterator2<ValueType2, OtherArgs2...> from2,
-    Iterator2<ValueType2, OtherArgs2...> to2) :
-        MathExpression(exprStr, from1, to1),
-        NUPDATES_(std::distance(from2, to2)),
-        updatesNames_(NUPDATES_),
-        updatesPos_(NUPDATES_)
-{
-    static_assert(std::is_constructible< std::string, ValueType2 >::value,
-                  "ERROR: type mismatch. Postcondition needs iterators "
-                  "pointing to variable names");
-    // Register update variables names
-    updatesNames_.insert(begin(updatesNames_), from2, to2);
-}
-
-*/
 
 } // namespace fig
 

@@ -44,87 +44,17 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 Postcondition&
-Postcondition::operator=(Postcondition that)
-{
+Postcondition::operator=(Postcondition that) {
     /*MathExpression::operator=(std::move(that));
 	swap(NUPDATES_, that.NUPDATES_);
 	swap(updatesNames_, that.updatesNames_);
 	swap(updatesPos_, that.updatesPos_);
     return *this;*/
+    return *this;
 }
 
 void
-Postcondition::test_evaluation() const
-{
-    /*
-	assert(pinned());
-	try {
-		const STATE_INTERNAL_TYPE DUMMY(static_cast<STATE_INTERNAL_TYPE>(1.1));
-		for (STATE_INTERNAL_TYPE& val: varsValues_)
-			val = DUMMY;
-		int numUpdates(NUPDATES_);
-		STATE_INTERNAL_TYPE* ptr = expr_.Eval(numUpdates);
-		assert(NUPDATES_ == static_cast<size_t>(numUpdates) || expression() == "");
-		assert(expr_.GetNumResults() == numUpdates);
-		// MuParser library handles memory, leave ptr alone
-		if (ptr) ptr = nullptr;  // dodge compiler warning
-	} catch (mu::Parser::exception_type& e) {
-		std::cerr << "Failed parsing expression" << std::endl;
-		std::cerr << "    message:  " << e.GetMsg()   << std::endl;
-		std::cerr << "    formula:  " << e.GetExpr()  << std::endl;
-		std::cerr << "    token:    " << e.GetToken() << std::endl;
-		std::cerr << "    position: " << e.GetPos()   << std::endl;
-		std::cerr << "    errc:     " << e.GetCode()  << std::endl;
-		throw_FigException("bad expression for postcondition, "
-						   "did you remember to map all the variables?");
-	}
-    */
-}
-
-
-#ifndef NRANGECHK
-void
-Postcondition::pin_up_vars(const PositionsMap& globalVars)
-{
-    /*MathExpression::pin_up_vars(globalVars);    // Map expression variables
-	for (size_t i = 0ul ; i < NUPDATES_ ; i++)  // Map update variables
-		updatesPos_[i] = globalVars.at(updatesNames_[i]);
-        */
-# ifndef NDEBUG
-	test_evaluation();  // Reveal parsing errors in this early stage
-# endif
-}
-#else
-void
-Postcondition::pin_up_vars(PositionsMap& globalVars)
-{
-    /*
-	MathExpression::pin_up_vars(globalVars);    // Map expression variables
-	for (size_t i = 0ul ; i < NUPDATES_ ; i++)  // Map update variables
-        updatesPos_[i] = globalVars[updatesNames_[i]]; */
-# ifndef NDEBUG
-	test_evaluation();  // Reveal parsing errors in this early stage
-# endif
-}
-#endif
-
-
-void
-Postcondition::pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState)
-{
-    /*
-    MathExpression::pin_up_vars(globalState);   // Map expression variables
-    for (size_t i = 0ul ; i < NUPDATES_ ; i++)  // Map update variables
-        updatesPos_[i] = globalState.position_of_var(updatesNames_[i]); */
-#ifndef NDEBUG
-	test_evaluation();  // Reveal parsing errors in this early stage
-#endif
-}
-
-
-void
-Postcondition::operator()(State<STATE_INTERNAL_TYPE>& state) const
-{
+Postcondition::operator()(State<STATE_INTERNAL_TYPE>& state) const {
 //#ifndef NDEBUG
 //	if (!pinned())
 //		throw_FigException("pin_up_vars() hasn't been called yet");
@@ -146,7 +76,6 @@ Postcondition::operator()(State<STATE_INTERNAL_TYPE>& state) const
 	}
     */
 }
-
 
 void
 Postcondition::operator()(StateInstance& state) const

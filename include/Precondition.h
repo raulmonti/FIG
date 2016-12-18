@@ -33,7 +33,7 @@
 #include <MathExpression.h>
 #include <core_typedefs.h>
 #include <State.h>
-#include <ModelAST.h>
+#include <ExpStateEvaluator.h>
 
 namespace fig
 {
@@ -47,15 +47,11 @@ using std::shared_ptr;
  *        of a Precondition must refer to existing Variables in the global
  *        State of the system, 'gState'.
  */
-class Precondition // public MathExpression
+class Precondition : public ExpStateEvaluator
 {
-private:
-    shared_ptr<Exp> expr_;
-
 public:  // Ctors
 
-    /// @copydoc MathExpression::MathExpression
-    inline Precondition(shared_ptr<Exp> expr) : expr_ {expr}
+    Precondition(shared_ptr<Exp> expr) : ExpStateEvaluator(expr)
     {}
 
     /// @brief Copy Constructor
@@ -67,69 +63,9 @@ public:  // Ctors
     /// @todo Copy assignment with copy&swap idiom
     Precondition& operator=(Precondition that) = delete;
 
-    /// @todo delete this or inherit math expression
-    inline bool pinned() const {
-        return (true);
-    }
-
-public:  // Modifyers, made public since too many other classes use Precondition
-
-    /**
-     * @copydoc fig::MathExpression::pin_up_vars()
-     * \ifnot NDEBUG
-     *   @throw FigException if there was some error in our math expression
-     * \endif
-     * @todo TODO unify with the other version using templates;
-     *            see ImportanceFunction::Formula::set()
-     */
-    void pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState); //override;
-
-    /**
-     * @copydoc fig::MathExpression::pin_up_vars(const PositionMap&)
-     * \ifnot NDEBUG
-     *   @throw FigException if there was some error in our math expression
-     * \endif
-     * @todo TODO unify with the other version using templates;
-     *            see ImportanceFunction::Formula::set()
-     */
-#ifndef NRANGECHK
-    void pin_up_vars(const PositionsMap& globalVars) ;//override;
-#else
-    void pin_up_vars(PositionsMap& globalVars); //override;
-#endif
-
 public:  // Utils
 
-    void test_evaluation() const;
-
-    /**
-     * @brief Compute truth value of our expression for given variables valuation
-     * @param state Valuation of the system's global state
-     * @note pin_up_vars() should have been called before to register the
-     *       position of the expression's variables in the global State
-     * @note To work with local states from the \ref ModuleInstace
-     *       "system modules" use the State variant of this operator
-     * @throw mu::ParserError
-     * \ifnot NDEBUG
-     *   @throw FigException if pin_up_vars() hasn't been called yet
-     * \endif
-     * @todo TODO unify with the other version using templates;
-     *            see ImportanceFunction::Formula::set()
-     */
     bool operator()(const StateInstance& state) const;
-
-    /**
-     * @brief Compute truth value of our expression for given state
-     * @param state The state of any Module (ModuleInstace or ModuleNetwork)
-     * @note Slower than the StateInstance variant of this operator,
-     *       since it has to search for the variables positions in 'state'
-     * @throw mu::ParserError
-     * \ifnot NDEBUG
-     *   @throw FigException if pin_up_vars() hasn't been called yet
-     * \endif
-     * @todo TODO unify with the other version using templates;
-     *            see ImportanceFunction::Formula::set()
-     */
     bool operator()(const State<STATE_INTERNAL_TYPE>& state) const;
 
 public: //Debug

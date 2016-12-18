@@ -211,8 +211,8 @@ protected:  // Utilities offered to ModuleInstance
 #endif
 		{
 			crystallize(globalClocks);
-			pre.pin_up_vars(globalVars);
-			pos.pin_up_vars(globalVars);
+            pre.prepare(globalVars);
+           // pos.prepare(globalVars);
 		}
 
 	/**
@@ -245,8 +245,8 @@ protected:  // Utilities offered to ModuleInstance
 #endif
 		{
 			crystallize(globalClocks);
-			pre.pin_up_vars(globalState);
-			pos.pin_up_vars(globalState);
+            pre.prepare(globalState);
+           // pos.prepare(globalState);
 		}
 
 	/**
@@ -385,8 +385,8 @@ Transition::handle_clocks(Traial& traial,
 				  "pointing to Clock objects");
 	// Make sure callback() has been called already
 	assert(CRYSTAL == resetClocksData_);
-	assert(pre.pinned());
-	assert(pos.pinned());
+    //assert(pre.pinned());
+    //assert(pos.pinned());
 	// Handle clocks
 	unsigned thisClock(firstClock);
 	while (fromClock != toClock) {

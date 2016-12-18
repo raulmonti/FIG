@@ -90,30 +90,7 @@ public:  // Ctors
     /// Can't have move assignment due to const data members from Property
     PropertyRate& operator=(PropertyRate&& that)      = delete;
 
-public:  // Accessors
-
-    /// String expression of the only subformula of this property
-    /// @see PropertyRate::expr
-    inline const std::string expression() const noexcept {
-        /// @todo implement this!
-        //return expr_.expression();
-        return "";
-    }
-
-protected:  // Modifyers
-
-#ifndef NRANGECHK
-    inline void pin_up_vars(const PositionsMap& globalVars) override
-    { condition_.pin_up_vars(globalVars); }
-#else
-    inline void pin_up_vars(PositionsMap& globalVars) override
-    { condition_.pin_up_vars(globalVars); }
-#endif
-
-    inline void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState) override
-    { condition_.pin_up_vars(globalState); }
-
-public:  // Utils
+public:
 
     /**
      * Is the subformula satisfied by the given variables valuation?
@@ -147,6 +124,14 @@ public:  // Utils
         //std::string("S( (").append(expr).append(") / total_time )")
         /// @todo implement this!
         return "";
+    }
+
+    void prepare(const State<STATE_INTERNAL_TYPE>& state) {
+        condition_.prepare(state);
+    }
+
+    void prepare(const PositionsMap& posMap) {
+        condition_.prepare(posMap);
     }
 
 public: //Debug

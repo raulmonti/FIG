@@ -113,11 +113,11 @@ PropertyProjection::project(const State& localState) const {
     }
     auto rares = ::project_on_var_set(rares_, varnames);
     for (Clause& clause: rares) {
-        clause.pin_up_vars(localState);
+        clause.prepare(localState);
     }
     auto others = ::project_on_var_set(others_, varnames);
     for (Clause& clause: others) {
-        clause.pin_up_vars(localState);
+        clause.prepare(localState);
     }
     return std::make_pair(rares, others);
 }

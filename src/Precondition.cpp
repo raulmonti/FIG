@@ -34,116 +34,16 @@
 #include <Precondition.h>
 #include <FigException.h>
 
-
-namespace fig  // // // // // // // // // // // // // // // // // // // // // //
-{
-
-void
-Precondition::test_evaluation() const
-{
-    /*
-	assert(pinned());
-	try {
-		STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
-		for (STATE_INTERNAL_TYPE& val: varsValues_)
-			val = dummy;
-		expr_.Eval();
-	} catch (mu::Parser::exception_type& e) {
-		std::cerr << "Failed parsing expression" << std::endl;
-		std::cerr << "    message:  " << e.GetMsg()   << std::endl;
-		std::cerr << "    formula:  " << e.GetExpr()  << std::endl;
-		std::cerr << "    token:    " << e.GetToken() << std::endl;
-		std::cerr << "    position: " << e.GetPos()   << std::endl;
-		std::cerr << "    errc:     " << e.GetCode()  << std::endl;
-		throw_FigException("bad expression for precondition, "
-						   "did you remember to map all the variables?");
-	}
-    */
-}
-
-/*
-Precondition&
-Precondition::operator=(Precondition that)
-{
-	MathExpression::operator=(std::move(that));
-	return *this;
-}
-*/
-
-#ifndef  NRANGECHK
-void
-Precondition::pin_up_vars(const PositionsMap& globalVars)
-{
-//	MathExpression::pin_up_vars(globalVars);
-# ifndef NDEBUG
-	test_evaluation();  // Reveal parsing errors in this early stage
-# endif
-}
-#else
-void
-Precondition::pin_up_vars(PositionsMap& globalVars)
-{
-	MathExpression::pin_up_vars(globalVars);
-# ifndef NDEBUG
-	test_evaluation();  // Reveal parsing errors in this early stage
-# endif
-}
-#endif
-
-
-void
-Precondition::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
-{
-    // MathExpression::pin_up_vars(globalState);
-#ifndef NDEBUG
-	test_evaluation();  // Reveal parsing errors in this early stage
-#endif
-}
-
+namespace fig { // // // // // // // // // // // // // // // // // // // // // //
 
 bool
-Precondition::operator()(const StateInstance& state) const
-{
-    /*
-#ifndef NDEBUG
-	if (!pinned())
-		throw_FigException("pin_up_vars() hasn't been called yet");
-#endif
-	// Copy the useful part of 'state'...
-	for (size_t i = 0ul ; i < NVARS_ ; i++) {
-		assert(state.size() > varsPos_[i]);
-		varsValues_[i] = state[varsPos_[i]];  // ugly motherfucker
-		/// @todo
-		/// NOTE As an alternative we could use memcpy() to copy the values,
-		///      but that means bringing a whole chunk of memory of which
-		///      only a few variables will be used. To lighten that we could
-		///      impose an upper bound on the number of variables per guard,
-		///      but then the language's flexibility will be compromised.
-	}
-	// ...and evaluate
-	return static_cast<bool>(expr_.Eval());
-    */
-    return (true);
+Precondition::operator()(const StateInstance& state) const {
+    return (this->eval(state));
 }
 
-
 bool
-Precondition::operator()(const State<STATE_INTERNAL_TYPE>& state) const
-{
-    /*
-#ifndef NDEBUG
-	if (!pinned())
-		throw_FigException("pin_up_vars() hasn't been called yet");
-#endif
-	// Copy the useful part of 'state'...
-	for (size_t i = 0ul ; i < NVARS_ ; i++) {
-		assert(nullptr != state[varsNames_[i]]);
-		varsValues_[i] = state[varsNames_[i]]->val();  // NOTE see other note
-	}
-	// ...and evaluate
-	return static_cast<bool>(expr_.Eval());
-    */
-    return (true);
+Precondition::operator()(const State<STATE_INTERNAL_TYPE>& state) const {
+    return (this->eval(state));
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

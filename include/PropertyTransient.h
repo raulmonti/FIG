@@ -32,6 +32,7 @@
 
 #include <core_typedefs.h>
 #include <Property.h>
+#include <ExpStateEvaluator.h>
 
 
 namespace fig
@@ -114,22 +115,15 @@ public:  // Accessors
         return "";
     }
 
-protected:  // Modifyers
-
-#ifndef NRANGECHK
-    inline void pin_up_vars(const PositionsMap& globalVars) override
-#else
-    inline void pin_up_vars(PositionsMap& globalVars) override
-#endif
-    {
-        expr1_.pin_up_vars(globalVars);
-        expr2_.pin_up_vars(globalVars);
+    void prepare(const PositionsMap& globalVars) override {
+      //  expr1_.prepare(globalVars);
+      //  expr2_.prepare(globalVars);
     }
 
-    inline void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
+    void prepare(const fig::State<STATE_INTERNAL_TYPE>& globalState)
     override {
-        expr1_.pin_up_vars(globalState);
-        expr2_.pin_up_vars(globalState);
+       // expr1_.prepare(globalState);
+       // expr2_.prepare(globalState);
     }
 
 public:  // Utils

@@ -394,7 +394,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 		model->seal(initialClocksNames);
 	}
 	for (auto prop: properties)
-		prop->pin_up_vars(model->global_state());
+        prop->prepare(model->global_state());
 
 	// Build offered importance functions
 	impFuns["concrete_coupled"] =
