@@ -39,71 +39,16 @@ using std::swap;
 using std::begin;
 using std::end;
 
-
-namespace fig  // // // // // // // // // // // // // // // // // // // // // //
-{
-
-Postcondition&
-Postcondition::operator=(Postcondition that) {
-    /*MathExpression::operator=(std::move(that));
-	swap(NUPDATES_, that.NUPDATES_);
-	swap(updatesNames_, that.updatesNames_);
-	swap(updatesPos_, that.updatesPos_);
-    return *this;*/
-    return *this;
-}
+namespace fig  { // // // // // // // // // // // // // // // // // // // // // //
 
 void
 Postcondition::operator()(State<STATE_INTERNAL_TYPE>& state) const {
-//#ifndef NDEBUG
-//	if (!pinned())
-//		throw_FigException("pin_up_vars() hasn't been called yet");
-// #endif
-	// Copy the useful part of 'state'...
-    /*
-	for (size_t i = 0ul ; i < NVARS_ ; i++) {
-		assert(nullptr != state[varsNames_[i]]);
-		varsValues_[i] = state[varsNames_[i]]->val();  // NOTE see other note
-	}
-	// ...evaluate...
-	int numUpdates(NUPDATES_);
-	STATE_INTERNAL_TYPE* updates = expr_.Eval(numUpdates);
-	assert(NUPDATES_ == static_cast<size_t>(numUpdates) || expression().empty());
-	// ...and reflect in state
-	for (size_t i = 0ul ; i < NUPDATES_ ; i++) {
-		assert(nullptr != state[updatesNames_[i]]);
-		state[updatesNames_[i]]->assign(updates[i]);
-	}
-    */
+    update(state);
 }
 
 void
-Postcondition::operator()(StateInstance& state) const
-{
-//#ifndef NDEBUG
-//	if (!pinned())
-//		throw_FigException("pin_up_vars() hasn't been called yet");
-//#endif
-//	// Copy the useful part of 'state'...
-//	for (size_t i = 0ul ; i < NVARS_ ; i++) {
-//		assert(state.size() > varsPos_[i]);
-//		varsValues_[i] = state[varsPos_[i]];  // ugly motherfucker
-//		/// @todo
-//		/// NOTE As an alternative we could use memcpy() to copy the values,
-//		///      but that means bringing a whole chunk of memory of which
-//		///      only a few variables will be used. To lighten that we could
-//		///      impose an upper bound on the number of variables per guard,
-//		///      but then the language's flexibility will be compromised.
-//	}
-//	// ...evaluate...
-//	int numUpdates(NUPDATES_);
-//	STATE_INTERNAL_TYPE* updates = expr_.Eval(numUpdates);
-//	assert(NUPDATES_ == static_cast<size_t>(numUpdates) || expression().empty());
-//	// ...and reflect in state
-//	for (size_t i = 0ul ; i < NUPDATES_ ; i++) {
-//		assert(state.size() > updatesPos_[i]);
-//		state[updatesPos_[i]] = updates[i];
-//	}
+Postcondition::operator()(StateInstance& state) const {
+    update(state);
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

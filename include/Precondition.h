@@ -47,8 +47,7 @@ using std::shared_ptr;
  *        of a Precondition must refer to existing Variables in the global
  *        State of the system, 'gState'.
  */
-class Precondition : public ExpStateEvaluator
-{
+class Precondition : public ExpStateEvaluator {
 public:  // Ctors
 
     Precondition(shared_ptr<Exp> expr) : ExpStateEvaluator(expr)

@@ -116,14 +116,14 @@ public:  // Accessors
     }
 
     void prepare(const PositionsMap& globalVars) override {
-      //  expr1_.prepare(globalVars);
-      //  expr2_.prepare(globalVars);
+        expr1_.prepare(globalVars);
+        expr2_.prepare(globalVars);
     }
 
     void prepare(const fig::State<STATE_INTERNAL_TYPE>& globalState)
     override {
-       // expr1_.prepare(globalState);
-       // expr2_.prepare(globalState);
+        expr1_.prepare(globalState);
+        expr2_.prepare(globalState);
     }
 
 public:  // Utils

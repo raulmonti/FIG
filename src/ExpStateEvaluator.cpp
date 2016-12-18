@@ -1,41 +1,93 @@
 #include "ExpStateEvaluator.h"
 #include <functional>
 #include <Operators.h>
+#include <FigException.h>
+
+namespace {
+    inline std::function<int (int, int)> get_iii_forced(ExpOp op) {
+        auto f = Binary::get_iii(op);
+        if (f) {
+            return (f);
+        }
+        auto g = Binary::get_bbb(op);
+        if (g) {
+            return (g);
+        }
+        auto h = Binary::get_iib(op);
+        if (h) {
+            return (h);
+        }
+        throw_FigException("Could not interpret binary operator");
+    }
+
+    inline std::function<int (int)> get_ii_forced(ExpOp op) {
+        auto f = Unary::get_ii(op);
+        if (f) {
+            return (f);
+        }
+        auto g = Unary::get_bb(op);
+        if (g) {
+            return (g);
+        }
+        throw_FigException("Could not interpret binary operator");
+    }
+}
 
 namespace fig {
 
 void ExpStateEvaluator::prepare(const State<STYPE> &state) {
     for (size_t i = 0; i < varNum; i++) {
         positionOf[varNames[i]] = i;
-        statePositions[i] = state.position_of_var(varNames[i]);
+        statePositions.push_back(state.position_of_var(varNames[i]));
     }
 }
 
 void ExpStateEvaluator::prepare(const PositionsMap& posMap) {
     for (size_t i = 0; i < varNum; i++) {
         positionOf[varNames[i]] = i;
-        statePositions[i] = posMap.at(varNames[i]);
+        statePositions.push_back(posMap.at(varNames[i]));
     }
 }
 
 STYPE
 ExpStateEvaluator::eval(const State<STYPE> &state) const {
-    for (size_t i = 0; i < varNum; i++) {
-        stateValues[i] = state[statePositions[i]]->val();
-    }
-    EvalVisitor eval(stateValues, positionOf);
-    expr->accept(eval);
-    return (eval.get_value());
+    return eval_all(state).at(0);
 }
 
 STYPE
 ExpStateEvaluator::eval(const StateInstance &state) const {
+    return eval_all(state).at(0);
+}
+
+std::vector<STYPE> ExpStateEvaluator::eval_all(const StateInstance& state)
+const {
     for (size_t i = 0; i < varNum; i++) {
-        stateValues[i] = state[statePositions[i]];
+        stateValues.push_back(state[statePositions[i]]);
     }
-    EvalVisitor eval (stateValues, positionOf);
-    expr->accept(eval);
-    return (eval.get_value());
+    std::vector<STYPE> results;
+    results.reserve(expVec.size());
+    for (shared_ptr<Exp> exp : expVec) {
+        EvalVisitor eval (stateValues, positionOf);
+        exp->accept(eval);
+        results.push_back(eval.get_value());
+    }
+    return (results);
+}
+
+
+std::vector<STYPE> ExpStateEvaluator::eval_all(const State<STYPE>& state)
+const {
+    for (size_t i = 0; i < varNum; i++) {
+        stateValues.push_back(state[statePositions[i]]->val());
+    }
+    std::vector<STYPE> results;
+    results.reserve(expVec.size());
+    for (shared_ptr<Exp> exp : expVec) {
+        EvalVisitor eval (stateValues, positionOf);
+        exp->accept(eval);
+        results.push_back(eval.get_value());
+    }
+    return (results);
 }
 
 void
@@ -58,7 +110,7 @@ void
 ExpStateEvaluator::EvalVisitor::visit(shared_ptr<UnOpExp> node) {
     node->get_argument()->accept(*this);
     STYPE arg = value;
-    value = Unary::get_ii(node->get_operator())(arg);
+    value = ::get_ii_forced(node->get_operator())(arg);
 }
 
 void
@@ -67,7 +119,7 @@ ExpStateEvaluator::EvalVisitor::visit(shared_ptr<BinOpExp> node) {
     STYPE arg1 = value;
     node->get_second_argument()->accept(*this);
     STYPE arg2 = value;
-    value = Binary::get_iii(node->get_operator())(arg1, arg2);
+    value = ::get_iii_forced(node->get_operator())(arg1, arg2);
 }
 
 void

@@ -75,19 +75,6 @@ private:
     /// The symbol table of the current module in construction.
     shared_ptr<ModuleScope> current_scope;
 
-    /// Variables needed to compute the value of update expressions
-    /// of the transition being constructed at the time.
-    /// @example (q' = 1 + r + p & p' = 5 + s) will give [r,p,s]
-    unique_ptr<vector<string>> transition_read_vars;
-
-    /// Variables that change after an update
-    /// @example the above example will give [q,p]
-    unique_ptr<vector<string>> transition_write_vars;
-
-    /// Comma separated expressions strings to be evaluated
-    /// @example the above example will give "1 + r + p, 5 + s"
-    stringstream transition_update;
-
     /// The clocks reseted by the transition in construction.
     unique_ptr<set<string>> transition_clocks;
 
@@ -102,7 +89,7 @@ private:
 
     /// Update the "module_ie_pre" variable
     /// @see ModelBuilder::model_ie_pre
-    void update_module_ie(shared_ptr<InputTransition> action);
+   // void update_module_ie(shared_ptr<InputTransition> action);
 
     /// Build and add and implicit transition
     /// @see ModelBuilder::model_ie_pre

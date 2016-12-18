@@ -212,13 +212,6 @@ inline void dump_clock_info(const string &module,
 }
 } //namespace
 
-std::pair<string, vector<string>>
-ModelBuilder::exp_desc_pair(shared_ptr<Exp> exp) {
-    ExpStringBuilder str_b (current_scope);
-    exp->accept(str_b);
-    return std::make_pair(str_b.str(), str_b.get_names());
-}
-
 void ModelBuilder::visit(shared_ptr<Model> model) {
     auto& modules = model->get_modules();
     unsigned int i = 0;
@@ -251,9 +244,9 @@ void ModelBuilder::build_input_enabled() {
 }
 
 void ModelBuilder::visit(shared_ptr<ModuleAST> body) {
-    module_vars = make_unique<vector<Var>>();
     module_clocks = make_unique<vector<Clock>>();
     module_transitions = make_unique<vector<Transition>>();
+    module_vars = make_unique<vector<Var>>();
     module_ie_pre = map<string, pair<string, vector<string>>>();
     for (auto &decl : body->get_local_decls()) {
         accept_cond(decl);
@@ -371,6 +364,7 @@ Label build_label(const string &id, LabelType type) {
     }
 }
 
+/*
 void ModelBuilder::update_module_ie(shared_ptr<InputTransition> action) {
     const string &label_id = action->get_label();
     auto guard_p = exp_desc_pair(action->get_precondition());
@@ -385,55 +379,26 @@ void ModelBuilder::update_module_ie(shared_ptr<InputTransition> action) {
         module_ie_pre[label_id]
                 = make_pair(pre_p.first + "& " + nott_guard, names);
     }
-}
+}*/
 
 void ModelBuilder::visit(shared_ptr<TransitionAST> action) {
     const string &label_id = action->get_label();
     LabelType label_type = action->get_label_type();
     Label label = build_label(label_id, label_type);
-    if (label_type == LabelType::in) {
-        update_module_ie(action->to_input());
-    }
+    //if (label_type == LabelType::in) {
+    //    update_module_ie(action->to_input());
+    //}
     //Transition constructor expects the id of the triggering
     //clock,  let's get it:
     string t_clock = std::string();
     if (action->has_triggering_clock()) {
         t_clock = action->to_output()->get_triggering_clock()->get_identifier();
     }
-    //Precondition
-    /*ExpStringBuilder string_builder (current_scope);
-    action->get_precondition()->accept(string_builder);
-    string result = string_builder.str();
-    if (result == "true") {
-        //Ensure the exact same output as Raul's old parser.
-        result = "";
-    }*/
     Precondition pre (action->get_precondition());
     //Postcondition, to build the postcondition we need to visit the effects.
-    transition_read_vars = make_unique<vector<string>>();
-    transition_write_vars = make_unique<vector<string>>();
-    transition_update.str(std::string());
     transition_clocks = make_unique<set<string>>();
-    auto &assig = action->get_assignments();
-    auto it = assig.begin();
-    while (it != assig.end()) {
-        (*it)->accept(*this);
-        //avoid putting a ',' at the end:
-        //we could also let the comma be, and then delete it
-        if ((it + 1) != assig.end()) {
-                transition_update << ",";
-        }
-        it++;
-    }
-    for (auto cr : action->get_clock_resets()) {
-        cr->accept(*this);
-    }
-    const string &update = transition_update.str();
-    //Postcondition post (update, *transition_read_vars, *transition_write_vars);
     assert(current_module != nullptr);
     Postcondition post (action->get_assignments());
-
-
     const Transition &trans {label, t_clock, pre, post, *transition_clocks};
     current_module->add_transition(trans);
 }
@@ -443,26 +408,10 @@ void ModelBuilder::visit(shared_ptr<ClockReset> reset) {
 }
 
 void ModelBuilder::visit(shared_ptr<Assignment> assig) {
-    accept_cond(assig->get_effect_location());
-    ExpStringBuilder str_builder (current_scope);
-    assig->get_rhs()->accept(str_builder);
-    const vector<string> &names = str_builder.get_names();
-    transition_read_vars->insert(transition_read_vars->cend(),
-                                 names.cbegin(), names.cend());
-    transition_write_vars->push_back(
-                assig->get_effect_location()->get_identifier());
-    transition_update << str_builder.str();
+   (void) assig; //do nothing
 }
 
 void ModelBuilder::visit(shared_ptr<TransientProp> prop) {
-    //ExpStringBuilder left_b (current_scope);
-    //prop->get_left()->accept(left_b);
-    //const vector<string> &left_names = left_b.get_names();
-    //const string &left_expr = left_b.str();
-    //ExpStringBuilder right_b (current_scope);
-    //prop->get_right()->accept(right_b);
-    //const vector<string> &right_names = right_b.get_names();
-    //const string &right_expr = right_b.str();
     auto property = make_shared<PropertyTransient>
             (prop->get_left(), prop->get_right());
     if (!has_errors()) {
@@ -474,10 +423,6 @@ void ModelBuilder::visit(shared_ptr<TransientProp> prop) {
 }
 
 void ModelBuilder::visit(shared_ptr<RateProp> prop) {
-    //ExpStringBuilder exp_b (current_scope);
-    //prop->get_expression()->accept(exp_b);
-    //const vector<string> &exp_names = exp_b.get_names();
-    //const string &exp_str = exp_b.str();
     shared_ptr<Property> property
             = make_shared<PropertyRate>(prop->get_expression());
     if (!has_errors()) {

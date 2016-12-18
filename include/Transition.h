@@ -212,7 +212,7 @@ protected:  // Utilities offered to ModuleInstance
 		{
 			crystallize(globalClocks);
             pre.prepare(globalVars);
-           // pos.prepare(globalVars);
+            pos.prepare(globalVars);
 		}
 
 	/**
@@ -244,9 +244,9 @@ protected:  // Utilities offered to ModuleInstance
 						 const State<STATE_INTERNAL_TYPE>& globalState)
 #endif
 		{
-			crystallize(globalClocks);
-            pre.prepare(globalState);
-           // pos.prepare(globalState);
+        crystallize(globalClocks);
+        pre.prepare(globalState);
+        pos.prepare(globalState);
 		}
 
 	/**

@@ -160,7 +160,7 @@ std::function<float (float)> Unary::get_ff(ExpOp op) {
     case ExpOp::minus: return [] (float x) -> float {return -x;};
     case ExpOp::abs: return [] (float x) -> float {return std::abs(x);};
     default:
-        throw_FigException("Operator is not float->float");
+        return (nullptr);
     }
 }
 
@@ -169,7 +169,7 @@ std::function<int (int)> Unary::get_ii(ExpOp op) {
     case ExpOp::minus: return [] (int x) -> int {return -x;};
     case ExpOp::abs: return [] (int x) -> int {return std::abs(x);};
     default:
-        throw_FigException("Operator is not int->int");
+        return (nullptr);
     }
 }
 
@@ -185,7 +185,7 @@ std::function<int (float)> Unary::get_fi(ExpOp op) {
             return std::ceil(x);
         };
     default:
-        throw_FigException("Operator is not float->int");
+        return (nullptr);
     }
 }
 
@@ -195,7 +195,7 @@ std::function<bool (bool)> Unary::get_bb(ExpOp op) {
             return !b;
         };
     default:
-        throw_FigException("Operator is not bool->bool");
+        return (nullptr);
     }
 }
 
@@ -205,7 +205,7 @@ std::function<float (int, float)> Binary::get_iff(ExpOp op) {
             return std::pow(x, y);
         };
     default:
-        throw_FigException("Operator is not int->float->int");
+        return (nullptr);
     }
 }
 
@@ -215,7 +215,7 @@ std::function<float (float, int)> Binary::get_fif(ExpOp op) {
             return std::pow(x, y);
         };
     default:
-        throw_FigException("Operator is not int->float->int");
+        return (nullptr);
     }
 }
 
@@ -246,7 +246,7 @@ std::function<float (float, float)> Binary::get_fff(ExpOp op) {
             return std::log2(x)/std::log2(y);
         };
     default:
-        throw_FigException("Operator is not float->float->float");
+        return (nullptr);
     }
 }
 
@@ -277,7 +277,7 @@ std::function<int (int, int)> Binary::get_iii(ExpOp op) {
             return x % y;
         };
     default:
-        throw_FigException("Operator is not int->int->int");
+        return (nullptr);
     }
 }
 
@@ -299,7 +299,7 @@ std::function<bool (bool, bool)> Binary::get_bbb(ExpOp op) {
             return x != y;
         };
     default:
-        throw_FigException("Operator is not bool->bool->bool");
+        return (nullptr);
     }
 }
 
@@ -324,7 +324,7 @@ std::function<bool (float, float)> Binary::get_ffb(ExpOp op) {
             return x != y;
         };
     default:
-        throw_FigException("Operator float->float->bool");
+        return (nullptr);
     }
 }
 
@@ -349,6 +349,6 @@ std::function<bool (int, int)> Binary::get_iib(ExpOp op) {
             return x != y;
         };
     default:
-        throw_FigException("Operator is not int->int->bool");
+        return (nullptr);
     }
 }
