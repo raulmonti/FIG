@@ -123,7 +123,7 @@ public:
     std::string to_str() const override {
         //std::string("S( (").append(expr).append(") / total_time )")
         /// @todo implement this!
-        return "";
+        return "[STRING OF PROPERTY RATE]";
     }
 
     void prepare(const State<STATE_INTERNAL_TYPE>& state) {

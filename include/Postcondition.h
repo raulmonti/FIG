@@ -56,18 +56,22 @@ private:
 
     static NameContainer updateVars(AssignmentContainer assignments) {
         NameContainer names;
-        names.reserve(assignments.size());
+        names.resize(assignments.size());
+        size_t i = 0;
         for (shared_ptr<Assignment>& assign : assignments) {
-            names.push_back(assign->get_effect_location()->get_identifier());
+            names[i] = assign->get_effect_location()->get_identifier();
+            i++;
         }
         return (names);
     }
 
     static ExpContainer updateExps(AssignmentContainer assignments) {
         ExpContainer exps;
-        exps.reserve(assignments.size());
+        exps.resize(assignments.size());
+        size_t i = 0;
         for (shared_ptr<Assignment>& assign : assignments) {
-            exps.push_back(assign->get_rhs());
+            exps[i] = assign->get_rhs();
+            i++;
         }
         return (exps);
     }

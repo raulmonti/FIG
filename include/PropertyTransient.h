@@ -102,19 +102,6 @@ public:  // Ctors
 
 public:  // Accessors
 
-    /// String expression of the "expr1" subformula of this property
-    /// @see PropertyTransient::expr1_
-    inline const std::string expression1() const noexcept {
-        //return expr1_.expression();
-        return "";
-    }
-
-    /// String expression of the "expr2" subformula of this property
-    /// @see PropertyTransient::expr2_
-    inline const std::string expression2() const noexcept {
-        return "";
-    }
-
     void prepare(const PositionsMap& globalVars) override {
         expr1_.prepare(globalVars);
         expr2_.prepare(globalVars);
@@ -129,7 +116,7 @@ public:  // Accessors
 public:  // Utils
 
     std::string to_str() const override {
-        return "";
+        return "[STRING OF PROPERTY TRANSIENT]";
     }
 
 

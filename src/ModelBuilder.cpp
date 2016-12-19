@@ -364,9 +364,8 @@ Label build_label(const string &id, LabelType type) {
     }
 }
 
-/*
 void ModelBuilder::update_module_ie(shared_ptr<InputTransition> action) {
-    const string &label_id = action->get_label();
+    /*const string &label_id = action->get_label();
     auto guard_p = exp_desc_pair(action->get_precondition());
     const string nott_guard = "!(" + guard_p.first + ")";
     auto &names = guard_p.second;
@@ -378,16 +377,16 @@ void ModelBuilder::update_module_ie(shared_ptr<InputTransition> action) {
                      pre_p.second.cbegin(), pre_p.second.cend());
         module_ie_pre[label_id]
                 = make_pair(pre_p.first + "& " + nott_guard, names);
-    }
-}*/
+    }*/
+}
 
 void ModelBuilder::visit(shared_ptr<TransitionAST> action) {
     const string &label_id = action->get_label();
     LabelType label_type = action->get_label_type();
     Label label = build_label(label_id, label_type);
-    //if (label_type == LabelType::in) {
-    //    update_module_ie(action->to_input());
-    //}
+    if (label_type == LabelType::in) {
+        update_module_ie(action->to_input());
+    }
     //Transition constructor expects the id of the triggering
     //clock,  let's get it:
     string t_clock = std::string();

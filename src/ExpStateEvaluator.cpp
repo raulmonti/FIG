@@ -1,51 +1,98 @@
 #include "ExpStateEvaluator.h"
+#include "ExpStringBuilder.h"
 #include <functional>
-#include <Operators.h>
+#include <cmath>
 #include <FigException.h>
 
 namespace {
-    inline std::function<int (int, int)> get_iii_forced(ExpOp op) {
-        auto f = Binary::get_iii(op);
-        if (f) {
-            return (f);
-        }
-        auto g = Binary::get_bbb(op);
-        if (g) {
-            return (g);
-        }
-        auto h = Binary::get_iib(op);
-        if (h) {
-            return (h);
-        }
-        throw_FigException("Could not interpret binary operator");
-    }
-
-    inline std::function<int (int)> get_ii_forced(ExpOp op) {
-        auto f = Unary::get_ii(op);
-        if (f) {
-            return (f);
-        }
-        auto g = Unary::get_bb(op);
-        if (g) {
-            return (g);
-        }
-        throw_FigException("Could not interpret binary operator");
+///@todo Unify with Operator.cpp
+inline std::function<int (int, int)> binary_fun(ExpOp op) {
+    switch(op) {
+    case ExpOp::plus: return [] (int x, int y) -> int {
+            return (x + y);
+        };
+    case ExpOp::times: return [] (int x, int y) -> int {
+            return (x * y);
+        } ;
+    case ExpOp::minus: return [] (int x, int y) -> int {
+            return (x - y);
+        };
+    case ExpOp::div: return [] (int x, int y) -> int {
+            return (x / y);
+        };
+    case ExpOp::mod: return [] (int x, int y) -> int {
+            return (x % y);
+        };
+    case ExpOp::andd: return [] (int x, int y) -> int {
+            return (x && y);
+        };
+    case ExpOp::implies: return [] (int x, int y) -> int {
+            return (!x || y);
+        };
+    case ExpOp::orr: return [] (int x, int y) -> int {
+            return (x || y);
+        };
+    case ExpOp::eq: return [] (int x, int y) -> int {
+            return (x == y);
+        };
+    case ExpOp::neq: return [] (int x, int y) -> int {
+            return (x != y);
+        };
+    case ExpOp::lt: return [] (int x, int y) -> int {
+            return (x < y);
+        };
+    case ExpOp::gt: return [] (int x, int y) -> int {
+            return (x > y);
+        };
+    case ExpOp::le: return [] (int x, int y) -> int {
+            return (x <= y);
+        };
+    case ExpOp::ge: return [] (int x, int y) -> int {
+            return (x >= y);
+        };
+    case ExpOp::min: return [] (int x, int y) -> int {
+            return (std::min(x, y));
+        };
+    case ExpOp::max: return [] (int x, int y) -> int {
+            return (std::max(x, y));
+        };
+    case ExpOp::pow: return [] (int x, int y) -> int {
+            return (std::pow(x, y));
+        };
+    default: throw_FigException("operator not supported on simulation");
     }
 }
+
+inline std::function<int (int)> unary_fun(ExpOp op) {
+    switch(op) {
+    case ExpOp::nott: return [] (int x) -> int {
+            return (!x);
+        };
+    case ExpOp::minus: return [] (int x) -> int {
+            return (-x);
+        };
+    case ExpOp::abs: return [] (int x) -> int {
+            return (std::abs(x));
+        };
+    default: throw_FigException("invalid expression operator"); break;
+    }
+}
+
+} //namespace
 
 namespace fig {
 
 void ExpStateEvaluator::prepare(const State<STYPE> &state) {
     for (size_t i = 0; i < varNum; i++) {
         positionOf[varNames[i]] = i;
-        statePositions.push_back(state.position_of_var(varNames[i]));
+        statePositions[i] = state.position_of_var(varNames[i]);
     }
 }
 
 void ExpStateEvaluator::prepare(const PositionsMap& posMap) {
     for (size_t i = 0; i < varNum; i++) {
         positionOf[varNames[i]] = i;
-        statePositions.push_back(posMap.at(varNames[i]));
+        statePositions[i] = posMap.at(varNames[i]);
     }
 }
 
@@ -62,14 +109,16 @@ ExpStateEvaluator::eval(const StateInstance &state) const {
 std::vector<STYPE> ExpStateEvaluator::eval_all(const StateInstance& state)
 const {
     for (size_t i = 0; i < varNum; i++) {
-        stateValues.push_back(state[statePositions[i]]);
+        stateValues[i] = state[statePositions[i]];
     }
     std::vector<STYPE> results;
-    results.reserve(expVec.size());
+    results.resize(expVec.size());
+    size_t i = 0;
     for (shared_ptr<Exp> exp : expVec) {
         EvalVisitor eval (stateValues, positionOf);
         exp->accept(eval);
-        results.push_back(eval.get_value());
+        results[i] = eval.get_value();
+        i++;
     }
     return (results);
 }
@@ -78,21 +127,37 @@ const {
 std::vector<STYPE> ExpStateEvaluator::eval_all(const State<STYPE>& state)
 const {
     for (size_t i = 0; i < varNum; i++) {
-        stateValues.push_back(state[statePositions[i]]->val());
+        stateValues[i] = state[statePositions[i]]->val();
     }
     std::vector<STYPE> results;
-    results.reserve(expVec.size());
+    results.resize(expVec.size());
+    size_t i = 0;
     for (shared_ptr<Exp> exp : expVec) {
+
+        ExpStringBuilder builder(CompositeModuleScope::get_instance());
+        exp->accept(builder);
+        std::cout << "EXP:" << builder.str() << std::endl;
+        std::cout << "STATE:" << std::endl;
+        state.print_out(std::cout, true);
+        for (STYPE x : stateValues) {
+            std::cout << "VAL=" << x << ",";
+        }
+        std::cout << std::endl;
+
         EvalVisitor eval (stateValues, positionOf);
         exp->accept(eval);
-        results.push_back(eval.get_value());
+        results[i] = eval.get_value();
+
+        std::cout << "RESULT: " << results[i] << std::endl;
+
+        i++;
     }
     return (results);
 }
 
 void
 ExpStateEvaluator::EvalVisitor::visit(shared_ptr<BConst> node) {
-    value = node->get_value()? 1 : 0;
+    value = node->get_value() ? 1 : 0;
 }
 
 void
@@ -110,7 +175,7 @@ void
 ExpStateEvaluator::EvalVisitor::visit(shared_ptr<UnOpExp> node) {
     node->get_argument()->accept(*this);
     STYPE arg = value;
-    value = ::get_ii_forced(node->get_operator())(arg);
+    value = ::unary_fun(node->get_operator())(arg);
 }
 
 void
@@ -119,7 +184,7 @@ ExpStateEvaluator::EvalVisitor::visit(shared_ptr<BinOpExp> node) {
     STYPE arg1 = value;
     node->get_second_argument()->accept(*this);
     STYPE arg2 = value;
-    value = ::get_iii_forced(node->get_operator())(arg1, arg2);
+    value = ::binary_fun(node->get_operator())(arg1, arg2);
 }
 
 void

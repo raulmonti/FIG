@@ -27,7 +27,7 @@ using ExpContainer = std::vector<shared_ptr<Exp>>;
 using NameContainer = std::vector<std::string>;
 
 class ExpStateEvaluator {
-private:
+protected:
     ExpContainer expVec;
     size_t varNum;
     NameContainer varNames;
@@ -40,7 +40,6 @@ private:
     mutable std::vector<STYPE>  stateValues;
 
 public:
-
     ExpStateEvaluator(const ExpContainer& expVec) :
         expVec {expVec} {
         for (shared_ptr<Exp> exp : expVec) {
@@ -50,8 +49,8 @@ public:
             varNames.insert(varNames.begin(), names.cbegin(), names.cend());
         }
         varNum = varNames.size();
-        statePositions.reserve(varNum);
-        stateValues.reserve(varNum);
+        statePositions.resize(varNum, 0);
+        stateValues.resize(varNum, 0);
     }
 
     ExpStateEvaluator(shared_ptr<Exp> expr) :

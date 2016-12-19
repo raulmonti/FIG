@@ -89,7 +89,7 @@ private:
 
     /// Update the "module_ie_pre" variable
     /// @see ModelBuilder::model_ie_pre
-   // void update_module_ie(shared_ptr<InputTransition> action);
+    void update_module_ie(shared_ptr<InputTransition> action);
 
     /// Build and add and implicit transition
     /// @see ModelBuilder::model_ie_pre
