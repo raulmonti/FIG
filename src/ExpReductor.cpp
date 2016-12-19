@@ -60,6 +60,7 @@ void ExpReductor::visit(shared_ptr<BinOpExp> exp) {
                                   left_reduced, right_reduced);
     new_exp->set_type(exp->get_type());
     new_exp->set_inferred_type(exp->get_inferred_type());
+    new_exp->set_callable(exp->get_callable());
     assert(new_exp->get_inferred_type() == exp->get_inferred_type());
     //may be this new expression could still be reduced
     reduced_exp = eval_if_possible(new_exp);

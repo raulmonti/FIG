@@ -9,17 +9,57 @@
 
 namespace fig {
 
-class ExpNamesCollector : public Visitor {
-private:
-    std::vector<std::string> names;
+class ExpStatePositionSetter : public Visitor {
+    const State<STYPE> *stateptr;
+public:
+    ExpStatePositionSetter(const State<STYPE>& state) : stateptr {&state} {}
 public:
     void visit(shared_ptr<LocExp> node) override;
     void visit(shared_ptr<BinOpExp> node) override;
     void visit(shared_ptr<UnOpExp> node) override;
+};
 
-    std::vector<std::string> get_names() const {
-        return (names);
-    }
+class ExpMapPositionSetter : public Visitor {
+    const PositionsMap *posMapPtr;
+public:
+    ExpMapPositionSetter(const PositionsMap& posMap)
+        : posMapPtr {&posMap} {}
+public:
+    void visit(shared_ptr<LocExp> node) override;
+    void visit(shared_ptr<BinOpExp> node) override;
+    void visit(shared_ptr<UnOpExp> node) override;
+};
+
+class StateEvalVisitor : public Visitor {
+    const State<STYPE> *stateptr;
+    STYPE value;
+public:
+    StateEvalVisitor(const State<STYPE> &state) :
+        stateptr {&state} {}
+
+    void visit(shared_ptr<IConst> node) override;
+    void visit(shared_ptr<BConst> node) override;
+    void visit(shared_ptr<FConst> node) override;
+    void visit(shared_ptr<LocExp> node) override;
+    void visit(shared_ptr<BinOpExp> node) override;
+    void visit(shared_ptr<UnOpExp> node) override;
+    STYPE get_value();
+};
+
+class StateInstanceEvalVisitor : public Visitor {
+    const StateInstance *stateptr;
+    STYPE value;
+public:
+    StateInstanceEvalVisitor(const StateInstance &state) :
+        stateptr {&state} {}
+
+    void visit(shared_ptr<IConst> node) override;
+    void visit(shared_ptr<BConst> node) override;
+    void visit(shared_ptr<FConst> node) override;
+    void visit(shared_ptr<LocExp> node) override;
+    void visit(shared_ptr<BinOpExp> node) override;
+    void visit(shared_ptr<UnOpExp> node) override;
+    STYPE get_value();
 };
 
 ///@todo template the hell out.
@@ -29,29 +69,9 @@ using NameContainer = std::vector<std::string>;
 class ExpStateEvaluator {
 protected:
     ExpContainer expVec;
-    size_t varNum;
-    NameContainer varNames;
-    // given a variable name give me an index to lookup in the
-    // vectors below
-    PositionsMap positionOf;
-    // position in the state
-    std::vector<size_t> statePositions;
-    // value in the state
-    mutable std::vector<STYPE>  stateValues;
-
 public:
     ExpStateEvaluator(const ExpContainer& expVec) :
-        expVec {expVec} {
-        for (shared_ptr<Exp> exp : expVec) {
-            ExpNamesCollector visitor;
-            exp->accept(visitor);
-            const std::vector<std::string>& names = visitor.get_names();
-            varNames.insert(varNames.end(), names.cbegin(), names.cend());
-        }
-        varNum = varNames.size();
-        statePositions.resize(varNum);
-        stateValues.resize(varNum);
-    }
+        expVec {expVec} {}
 
     ExpStateEvaluator(shared_ptr<Exp> expr) :
         ExpStateEvaluator(ExpContainer {expr}) {}
@@ -66,27 +86,7 @@ public:
     STYPE eval(const State<STYPE>& state) const;
     STYPE eval(const StateInstance& state) const;
     std::vector<STYPE> eval_all(const State<STYPE>& state) const;
-    std::vector<STYPE> eval_all(const StateInstance& state) const;
-
-private:
-    class EvalVisitor : public Visitor {
-        STYPE value = 0;
-        const std::vector<STYPE>& stateValues;
-        const PositionsMap& positionOf;
-
-    public:
-        EvalVisitor(const std::vector<STYPE> &values,
-                    const PositionsMap& positionMap)
-            : stateValues {values}, positionOf {positionMap} {}
-
-        void visit(shared_ptr<IConst> node) override;
-        void visit(shared_ptr<BConst> node) override;
-        void visit(shared_ptr<FConst> node) override;
-        void visit(shared_ptr<LocExp> node) override;
-        void visit(shared_ptr<BinOpExp> node) override;
-        void visit(shared_ptr<UnOpExp> node) override;
-        STYPE get_value();
-    };
+    std::vector<STYPE> eval_all(const StateInstance& state) const;    
 };
 
 } // namespace fig

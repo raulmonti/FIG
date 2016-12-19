@@ -1043,6 +1043,11 @@ class Location : public ModelAST {
 private:
     /// The identifier
     string id;
+
+    /// Position in the global state, used
+    /// during simulation to speed up evaluation
+    size_t position;
+
 public:
     Location(const string& id) : id {id} {}
     Location(const Location &) = delete;
@@ -1065,6 +1070,14 @@ public:
 	virtual bool operator ==(const Location& that) const {
 		return that.id == id;
 	}
+
+    void set_position(size_t position) {
+        this->position = position;
+    }
+
+    inline size_t get_position() {
+        return (position);
+    }
 };
 
 /**
@@ -1320,6 +1333,10 @@ private:
     shared_ptr<Exp> right;
     // When adding new members, remember to update ExpReductor visitor!
     // @todo make a proper copy constructor for that visitor
+
+    typedef int (binfun) (int, int);
+    binfun *callable = nullptr;
+
 public:
     BinOpExp(ExpOp op, shared_ptr<Exp> left, shared_ptr<Exp> right) :
         OpExp(op), left {left}, right {right} {}
@@ -1378,6 +1395,14 @@ public:
 				thatBinOpExpr.left == left &&
 				thatBinOpExpr.right == right;
 	}
+
+    void set_callable(binfun *f) {
+        this->callable = f;
+    }
+
+    inline binfun *get_callable() {
+        return (this->callable);
+    }
 };
 
 /**
@@ -1389,6 +1414,11 @@ class UnOpExp : public OpExp {
 private:
     shared_ptr<UnaryOpTy> inferred_type = nullptr;
     shared_ptr<Exp> argument;
+
+    typedef int (unfun) (int);
+    unfun *callable = nullptr;
+
+
 public:
     UnOpExp(ExpOp op, shared_ptr<Exp> argument) :
        OpExp(op), argument {argument} {}
@@ -1436,6 +1466,14 @@ public:
 		return  static_cast<const OpExp&>(that) == *this &&
 				thatUnOpExpr.argument == argument;
 	}
+
+    void set_callable(unfun *f) {
+        this->callable = f;
+    }
+
+    inline unfun *get_callable() {
+        return (callable);
+    }
 };
 
 /**
