@@ -127,58 +127,44 @@ const {
 std::vector<STYPE> ExpStateEvaluator::eval_all(const State<STYPE>& state)
 const {
     for (size_t i = 0; i < varNum; i++) {
-        stateValues[i] = state[varNames[i]]->val();
+        stateValues[i] = state[statePositions[i]]->val();
     }
     std::vector<STYPE> results;
     results.resize(expVec.size());
     size_t i = 0;
     for (shared_ptr<Exp> exp : expVec) {
-
-       /* ExpStringBuilder builder(CompositeModuleScope::get_instance());
-        exp->accept(builder);
-        std::cout << "EXP:" << builder.str() << std::endl;
-        std::cout << "STATE:" << std::endl;
-        state.print_out(std::cout, true);
-        for (STYPE x : stateValues) {
-            std::cout << "VAL=" << x << ",";
-        }
-        std::cout << std::endl;*/
-
         EvalVisitor eval (stateValues, positionOf);
         exp->accept(eval);
         results[i] = eval.get_value();
-
-        // std::cout << "RESULT: " << results[i] << std::endl;
-
         i++;
     }
     return (results);
 }
 
-void
+inline void
 ExpStateEvaluator::EvalVisitor::visit(shared_ptr<BConst> node) {
     value = node->get_value() ? 1 : 0;
 }
 
-void
+inline void
 ExpStateEvaluator::EvalVisitor::visit(shared_ptr<IConst> node) {
     value = node->get_value();
 }
 
-void
+inline void
 ExpStateEvaluator::EvalVisitor::visit(shared_ptr<FConst> node) {
     (void) node;
     throw_FigException("Attempt to evaluate a float during simulation");
 }
 
-void
+inline void
 ExpStateEvaluator::EvalVisitor::visit(shared_ptr<UnOpExp> node) {
     node->get_argument()->accept(*this);
     STYPE arg = value;
     value = ::unary_fun(node->get_operator())(arg);
 }
 
-void
+inline void
 ExpStateEvaluator::EvalVisitor::visit(shared_ptr<BinOpExp> node) {
     node->get_first_argument()->accept(*this);
     STYPE arg1 = value;
@@ -187,7 +173,7 @@ ExpStateEvaluator::EvalVisitor::visit(shared_ptr<BinOpExp> node) {
     value = ::binary_fun(node->get_operator())(arg1, arg2);
 }
 
-void
+inline void
 ExpStateEvaluator::EvalVisitor::visit(shared_ptr<LocExp> node) {
     const std::string &name = node->get_exp_location()->get_identifier();
     value = stateValues[positionOf.at(name)];
@@ -198,18 +184,18 @@ ExpStateEvaluator::EvalVisitor::get_value() {
     return (value);
 }
 
-void
+inline void
 ExpNamesCollector::visit(shared_ptr<BinOpExp> node) {
     node->get_first_argument()->accept(*this);
     node->get_second_argument()->accept(*this);
 }
 
-void
+inline void
 ExpNamesCollector::visit(shared_ptr<UnOpExp> node) {
     node->get_argument()->accept(*this);
 }
 
-void
+inline void
 ExpNamesCollector::visit(shared_ptr<LocExp> node) {
     names.push_back(node->get_exp_location()->get_identifier());
 }

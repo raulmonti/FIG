@@ -13,9 +13,9 @@ class ExpNamesCollector : public Visitor {
 private:
     std::vector<std::string> names;
 public:
-    void visit(shared_ptr<LocExp> node);
-    void visit(shared_ptr<BinOpExp> node);
-    void visit(shared_ptr<UnOpExp> node);
+    void visit(shared_ptr<LocExp> node) override;
+    void visit(shared_ptr<BinOpExp> node) override;
+    void visit(shared_ptr<UnOpExp> node) override;
 
     std::vector<std::string> get_names() const {
         return (names);
@@ -79,12 +79,12 @@ private:
                     const PositionsMap& positionMap)
             : stateValues {values}, positionOf {positionMap} {}
 
-        void visit(shared_ptr<IConst> node);
-        void visit(shared_ptr<BConst> node);
-        void visit(shared_ptr<FConst> node);
-        void visit(shared_ptr<LocExp> node);
-        void visit(shared_ptr<BinOpExp> node);
-        void visit(shared_ptr<UnOpExp> node);
+        void visit(shared_ptr<IConst> node) override;
+        void visit(shared_ptr<BConst> node) override;
+        void visit(shared_ptr<FConst> node) override;
+        void visit(shared_ptr<LocExp> node) override;
+        void visit(shared_ptr<BinOpExp> node) override;
+        void visit(shared_ptr<UnOpExp> node) override;
         STYPE get_value();
     };
 };
