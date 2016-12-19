@@ -226,28 +226,10 @@ void ModelBuilder::visit(shared_ptr<Model> model) {
     }
 }
 
-void ModelBuilder::build_input_enabled() {
-    /*
-    assert(current_module != nullptr);
-    for (auto entry : module_ie_pre) {
-        const string &label_id = entry.first;
-        string &pre_str = entry.second.first;
-        const vector<string> &names = entry.second.second;
-        Precondition prec {"true& " + pre_str, names};
-        //skip:
-        Postcondition post {"", vector<string>(), vector<string>()};
-        const Transition &tr {Label::make_input(label_id), "", prec, post,
-                    vector<string>()};
-        current_module->add_transition(tr);
-    }
-    */
-}
-
 void ModelBuilder::visit(shared_ptr<ModuleAST> body) {
     module_clocks = make_unique<vector<Clock>>();
     module_transitions = make_unique<vector<Transition>>();
     module_vars = make_unique<vector<Var>>();
-    module_ie_pre = map<string, pair<string, vector<string>>>();
     for (auto &decl : body->get_local_decls()) {
         accept_cond(decl);
     }
@@ -261,7 +243,6 @@ void ModelBuilder::visit(shared_ptr<ModuleAST> body) {
     for (auto &transition : body->get_transitions()) {
         accept_cond(transition);
     }
-    build_input_enabled();
     if (!has_errors()) {
         model_suite.add_module(current_module);
     }
@@ -364,29 +345,10 @@ Label build_label(const string &id, LabelType type) {
     }
 }
 
-void ModelBuilder::update_module_ie(shared_ptr<InputTransition> action) {
-    /*const string &label_id = action->get_label();
-    auto guard_p = exp_desc_pair(action->get_precondition());
-    const string nott_guard = "!(" + guard_p.first + ")";
-    auto &names = guard_p.second;
-    if (module_ie_pre.find(label_id) == module_ie_pre.end()) {
-            module_ie_pre[label_id] = make_pair(nott_guard, names);
-    } else {
-        auto &pre_p = module_ie_pre[label_id];
-        names.insert(names.end(),
-                     pre_p.second.cbegin(), pre_p.second.cend());
-        module_ie_pre[label_id]
-                = make_pair(pre_p.first + "& " + nott_guard, names);
-    }*/
-}
-
 void ModelBuilder::visit(shared_ptr<TransitionAST> action) {
     const string &label_id = action->get_label();
     LabelType label_type = action->get_label_type();
     Label label = build_label(label_id, label_type);
-    if (label_type == LabelType::in) {
-        update_module_ie(action->to_input());
-    }
     //Transition constructor expects the id of the triggering
     //clock,  let's get it:
     string t_clock = std::string();
@@ -396,6 +358,9 @@ void ModelBuilder::visit(shared_ptr<TransitionAST> action) {
     Precondition pre (action->get_precondition());
     //Postcondition, to build the postcondition we need to visit the effects.
     transition_clocks = make_unique<set<string>>();
+    for (shared_ptr<ClockReset> reset : action->get_clock_resets()) {
+        accept_cond(reset);
+    }
     assert(current_module != nullptr);
     Postcondition post (action->get_assignments());
     const Transition &trans {label, t_clock, pre, post, *transition_clocks};

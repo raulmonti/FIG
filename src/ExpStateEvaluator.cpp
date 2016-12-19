@@ -127,14 +127,14 @@ const {
 std::vector<STYPE> ExpStateEvaluator::eval_all(const State<STYPE>& state)
 const {
     for (size_t i = 0; i < varNum; i++) {
-        stateValues[i] = state[statePositions[i]]->val();
+        stateValues[i] = state[varNames[i]]->val();
     }
     std::vector<STYPE> results;
     results.resize(expVec.size());
     size_t i = 0;
     for (shared_ptr<Exp> exp : expVec) {
 
-        ExpStringBuilder builder(CompositeModuleScope::get_instance());
+       /* ExpStringBuilder builder(CompositeModuleScope::get_instance());
         exp->accept(builder);
         std::cout << "EXP:" << builder.str() << std::endl;
         std::cout << "STATE:" << std::endl;
@@ -142,13 +142,13 @@ const {
         for (STYPE x : stateValues) {
             std::cout << "VAL=" << x << ",";
         }
-        std::cout << std::endl;
+        std::cout << std::endl;*/
 
         EvalVisitor eval (stateValues, positionOf);
         exp->accept(eval);
         results[i] = eval.get_value();
 
-        std::cout << "RESULT: " << results[i] << std::endl;
+        // std::cout << "RESULT: " << results[i] << std::endl;
 
         i++;
     }
@@ -190,7 +190,7 @@ ExpStateEvaluator::EvalVisitor::visit(shared_ptr<BinOpExp> node) {
 void
 ExpStateEvaluator::EvalVisitor::visit(shared_ptr<LocExp> node) {
     const std::string &name = node->get_exp_location()->get_identifier();
-    value = values[positionMap.at(name)];
+    value = stateValues[positionOf.at(name)];
 }
 
 STYPE

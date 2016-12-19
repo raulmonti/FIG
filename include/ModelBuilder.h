@@ -62,16 +62,6 @@ private:
     /// The transitions of the current module
     unique_ptr<vector<Transition>> module_transitions;
 
-    /// Map of input-enabled preconditions.
-    /// @note This map is used to construct implicit transitions
-    /// to be added in the current module. This transitions are implicit
-    /// since they were not declared by the user. Each of the input labels of
-    /// each module have an associated implicit transition that is enabled
-    /// when the negation of all the explicit preconditions is valid. The
-    /// key of the map is the label, the pair has the string representation of the
-    /// precondition and a vector of names that appear on it.
-    map<string, pair<string, vector<string>>> module_ie_pre;
-
     /// The symbol table of the current module in construction.
     shared_ptr<ModuleScope> current_scope;
 
@@ -86,14 +76,6 @@ private:
 
     /// Build a clock with the given id.
     Clock build_clock(const string &clock_id);
-
-    /// Update the "module_ie_pre" variable
-    /// @see ModelBuilder::model_ie_pre
-    void update_module_ie(shared_ptr<InputTransition> action);
-
-    /// Build and add and implicit transition
-    /// @see ModelBuilder::model_ie_pre
-    void build_input_enabled();
 
     /// Try to evaluate an expression or put an error message if it
     /// was not possible to reduce it.
@@ -110,9 +92,6 @@ private:
     /// @copydoc ModelBuilder::get_int_or_error
     float get_float_or_error(shared_ptr<Exp> exp, const string &msg);
 
-    /// Returns a string representation of the expression paired
-    /// with a vector of names (variables) that occur in that expression
-    std::pair<string, vector<string> > exp_desc_pair(shared_ptr<Exp> exp);
 public:
     ModelBuilder();
     virtual ~ModelBuilder();

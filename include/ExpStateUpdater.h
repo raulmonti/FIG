@@ -10,12 +10,13 @@ namespace fig {
 class ExpStateUpdater : public ExpStateEvaluator {
 private:
     NameContainer updatesVar;
-    PositionsMap updatesPos;
+    std::vector<size_t> updatesPos;
 
 public:
     ExpStateUpdater(const NameContainer& updates, const ExpContainer &expVec) :
         ExpStateEvaluator(expVec), updatesVar {updates} {
         assert(updates.size() == expVec.size());
+        updatesPos.resize(updates.size());
     }
 
     void prepare(const PositionsMap& posMap) override;

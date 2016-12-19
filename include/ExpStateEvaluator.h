@@ -46,11 +46,11 @@ public:
             ExpNamesCollector visitor;
             exp->accept(visitor);
             const std::vector<std::string>& names = visitor.get_names();
-            varNames.insert(varNames.begin(), names.cbegin(), names.cend());
+            varNames.insert(varNames.end(), names.cbegin(), names.cend());
         }
         varNum = varNames.size();
-        statePositions.resize(varNum, 0);
-        stateValues.resize(varNum, 0);
+        statePositions.resize(varNum);
+        stateValues.resize(varNum);
     }
 
     ExpStateEvaluator(shared_ptr<Exp> expr) :
@@ -71,13 +71,13 @@ public:
 private:
     class EvalVisitor : public Visitor {
         STYPE value = 0;
-        const std::vector<STYPE>& values;
-        const PositionsMap& positionMap;
+        const std::vector<STYPE>& stateValues;
+        const PositionsMap& positionOf;
 
     public:
         EvalVisitor(const std::vector<STYPE> &values,
                     const PositionsMap& positionMap)
-            : values {values}, positionMap {positionMap} {}
+            : stateValues {values}, positionOf {positionMap} {}
 
         void visit(shared_ptr<IConst> node);
         void visit(shared_ptr<BConst> node);
