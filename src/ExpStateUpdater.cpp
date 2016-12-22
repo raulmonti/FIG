@@ -30,8 +30,6 @@ void ExpStateUpdater::update(State<STYPE> &state) const {
     for (size_t i = 0; i < results.size(); i++) {
         state[updatesPos[i]]->assign(results[i]);
     }
-    // std::cout << results.size() << " - UPDATE: " << std::endl;
-    // state.print_out(std::cout, true);
 }
 
 } // namespace fig

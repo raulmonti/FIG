@@ -39,6 +39,17 @@ using std::swap;
 using std::begin;
 using std::end;
 
+namespace {
+/*
+void print_state_instance(const fig::StateInstance& state) {
+    for (size_t i = 0; i < state.size(); i++) {
+        std::cout << state[i] << ",";
+    }
+    std::cout << std::endl;
+}
+*/
+}
+
 namespace fig  { // // // // // // // // // // // // // // // // // // // // // //
 
 void
