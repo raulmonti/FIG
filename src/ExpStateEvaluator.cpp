@@ -26,7 +26,6 @@ int show_symbol_table(const symbol_table_t &table) {
 */
 }
 
-
 namespace fig {
 
 // Definitions of ExpTranslatorVisitor:
@@ -38,7 +37,7 @@ ExpTranslatorVisitor::exprtk_name(ExpOp op) {
     case ExpOp::andd: return "&";
     case ExpOp::ceil: return "ceil";
     case ExpOp::div: return "/";
-    case ExpOp::eq: return "equal";
+    case ExpOp::eq: return "equal"; //don't use ==, is floating point equality.
     case ExpOp::floor: return "floor";
     case ExpOp::ge: return ">=";
     case ExpOp::gt: return ">";
@@ -60,7 +59,6 @@ ExpTranslatorVisitor::exprtk_name(ExpOp op) {
     default: throw_FigException("Exprtk not supported operator");
     }
 }
-
 
 inline OpKind
 ExpTranslatorVisitor::exprtk_kind(ExpOp op) {
@@ -281,6 +279,7 @@ ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) noexcept {
     astVec = that.astVec;
     expState = that.expState;
     numExp = that.numExp;
+    prepared = that.prepared;
     exprVec.resize(numExp);
     expStrings = that.expStrings;
     std::vector<std::pair<std::string, NUMTYPE>> v;
@@ -299,10 +298,12 @@ ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) noexcept {
 void ExpStateEvaluator::prepare(const State<STATE_INTERNAL_TYPE> &state)
 noexcept {
     expState.project_positions(state);
+    prepared = true;
 }
 
 void ExpStateEvaluator::prepare(const PositionsMap& posMap) noexcept {
     expState.project_positions(posMap);
+    prepared = true;
 }
 
 STYPE

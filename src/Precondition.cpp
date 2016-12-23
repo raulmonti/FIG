@@ -38,11 +38,13 @@ namespace fig { // // // // // // // // // // // // // // // // // // // // // /
 
 bool
 Precondition::operator()(const StateInstance& state) const {
+    //assert(is_prepared());
     return (eval(state));
 }
 
 bool
 Precondition::operator()(const State<STATE_INTERNAL_TYPE>& state) const {
+    //assert(is_prepared());
     return (eval(state));
 }
 

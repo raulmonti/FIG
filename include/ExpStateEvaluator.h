@@ -117,6 +117,7 @@ protected:
     symbol_table_t table;
     std::vector<std::string> expStrings;
     size_t numExp;
+    bool prepared = false;
 
 public:
     ExpStateEvaluator(const ExpContainer& astVec) noexcept;
@@ -131,6 +132,10 @@ public:
 
     virtual void prepare(const PositionsMap& posMap) noexcept;
     virtual void prepare(const State<STYPE>& state) noexcept;
+
+    bool is_prepared() const noexcept {
+        return (prepared);
+    }
 
     STYPE eval(const State<STYPE>& state) const noexcept;
     STYPE eval(const StateInstance& state) const noexcept;
