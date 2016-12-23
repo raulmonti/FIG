@@ -5,8 +5,8 @@
 #include <ModelAST.h>
 #include <State.h>
 
-//#define exprtk_disable_enhanced_features
-//#define exprtk_enable_debugging
+//define exprtk_disable_enhanced_features
+//define exprtk_enable_debugging
 #include "exprtk.hpp" // 1.3mb
 
 #define STYPE STATE_INTERNAL_TYPE
@@ -40,13 +40,13 @@ public:
     static exprtk::parser<NUMTYPE> parser;
 
     ExpTranslatorVisitor() {}
-    void visit(shared_ptr<IConst> node) override;
-    void visit(shared_ptr<BConst> node) override;
-    void visit(shared_ptr<LocExp> node) override;
-    void visit(shared_ptr<BinOpExp> node) override;
-    void visit(shared_ptr<UnOpExp> node) override;
-    std::string get_string() const;
-    expression_t get_expression(symbol_table_t& table);
+    void visit(shared_ptr<IConst> node) noexcept override;
+    void visit(shared_ptr<BConst> node) noexcept override;
+    void visit(shared_ptr<LocExp> node) noexcept override;
+    void visit(shared_ptr<BinOpExp> node) noexcept override;
+    void visit(shared_ptr<UnOpExp> node) noexcept override;
+    std::string get_string() const noexcept;
+    expression_t get_expression(symbol_table_t& table) noexcept;
 };
 
 
@@ -55,10 +55,10 @@ class ExpNameCollector: public Visitor {
     NameContainer names;
 public:
     ExpNameCollector() {}
-    void visit(shared_ptr<LocExp> node) override;
-    void visit(shared_ptr<BinOpExp> node) override;
-    void visit(shared_ptr<UnOpExp> node) override;
-    inline NameContainer get_names() {
+    void visit(shared_ptr<LocExp> node) noexcept override;
+    void visit(shared_ptr<BinOpExp> node) noexcept override;
+    void visit(shared_ptr<UnOpExp> node) noexcept override;
+    inline NameContainer get_names() const noexcept {
         return (names);
     }
 };
@@ -80,15 +80,15 @@ private:
     PositionContainer varPos;
     ValueContainer varValues;
 protected:
-    size_t get_local_position_of(const std::string &name) const;
+    size_t get_local_position_of(const std::string &name) const noexcept;
 
 public:
     ExpInternalState() {}
-    void add_variables(const ExpContainer &astVec);
-    void project_positions(const State<STYPE> &state);
-    void project_positions(const PositionsMap &posMap);
-    void project_values(const State<STYPE> &state);
-    void project_values(const StateInstance &state);
+    void add_variables(const ExpContainer &astVec) noexcept;
+    void project_positions(const State<STYPE> &state) noexcept;
+    void project_positions(const PositionsMap &posMap) noexcept;
+    void project_values(const State<STYPE> &state) noexcept;
+    void project_values(const StateInstance &state) noexcept;
 };
 
 /// @brief Fill a ExprTk symbol table with mappings of the form
@@ -102,9 +102,9 @@ public:
     ExpTableFiller(symbol_table_t &table, ExpInternalState &expState)
         : table {table}, expState {expState} {}
 
-    void visit(shared_ptr<LocExp> node) override;
-    void visit(shared_ptr<BinOpExp> node) override;
-    void visit(shared_ptr<UnOpExp> node) override;
+    void visit(shared_ptr<LocExp> node) noexcept override;
+    void visit(shared_ptr<BinOpExp> node) noexcept override;
+    void visit(shared_ptr<UnOpExp> node) noexcept override;
 };
 
 /// @brief Evaluate a vector of expressions using ExprTk
@@ -118,23 +118,23 @@ protected:
     std::vector<std::string> expStrings;
 
 public:
-    ExpStateEvaluator(const ExpContainer& astVec);
+    ExpStateEvaluator(const ExpContainer& astVec) noexcept;
 
-    ExpStateEvaluator(shared_ptr<Exp> ast) :
+    ExpStateEvaluator(shared_ptr<Exp> ast) noexcept :
         ExpStateEvaluator(ExpContainer {ast}) {}
 
     /// @brief Copy Constructor
-    ExpStateEvaluator(const ExpStateEvaluator& that);
+    ExpStateEvaluator(const ExpStateEvaluator& that) noexcept;
 
     ExpStateEvaluator(ExpStateEvaluator&& that) = delete;
 
-    virtual void prepare(const PositionsMap& posMap);
-    virtual void prepare(const State<STYPE>& state);
+    virtual void prepare(const PositionsMap& posMap) noexcept;
+    virtual void prepare(const State<STYPE>& state) noexcept;
 
-    STYPE eval(const State<STYPE>& state) const;
-    STYPE eval(const StateInstance& state) const;
-    std::vector<STYPE> eval_all(const State<STYPE>& state) const;
-    std::vector<STYPE> eval_all(const StateInstance& state) const;
+    STYPE eval(const State<STYPE>& state) const noexcept;
+    STYPE eval(const StateInstance& state) const noexcept;
+    std::vector<STYPE> eval_all(const State<STYPE>& state) const noexcept;
+    std::vector<STYPE> eval_all(const StateInstance& state) const noexcept;
 
 };
 

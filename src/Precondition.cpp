@@ -38,12 +38,12 @@ namespace fig { // // // // // // // // // // // // // // // // // // // // // /
 
 bool
 Precondition::operator()(const StateInstance& state) const {
-    return (eval(state) == 0 ? false : true);
+    return (eval(state));
 }
 
 bool
 Precondition::operator()(const State<STATE_INTERNAL_TYPE>& state) const {
-    return (eval(state) == 0 ? false : true);
+    return (eval(state));
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

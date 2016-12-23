@@ -19,10 +19,10 @@ public:
         updatesPos.resize(updates.size());
     }
 
-    void prepare(const PositionsMap& posMap) override;
-    void prepare(const State<STYPE>& state) override;
-    void update(StateInstance& state) const;
-    void update(State<STYPE>& state) const;
+    void prepare(const PositionsMap& posMap) noexcept override;
+    void prepare(const State<STYPE>& state) noexcept override;
+    void update(StateInstance& state) const noexcept;
+    void update(State<STYPE>& state) const noexcept;
 };
 
 }

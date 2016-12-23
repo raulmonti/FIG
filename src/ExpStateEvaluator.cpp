@@ -94,23 +94,23 @@ ExpTranslatorVisitor::exprtk_kind(ExpOp op) {
 }
 
 inline void
-ExpTranslatorVisitor::visit(shared_ptr<IConst> node) {
+ExpTranslatorVisitor::visit(shared_ptr<IConst> node) noexcept {
     exprStr = std::to_string(node->get_value());
 }
 
 inline void
-ExpTranslatorVisitor::visit(shared_ptr<BConst> node) {
+ExpTranslatorVisitor::visit(shared_ptr<BConst> node) noexcept {
     exprStr = std::to_string(node->get_value());
 }
 
 inline void
-ExpTranslatorVisitor::visit(shared_ptr<LocExp> node) {
+ExpTranslatorVisitor::visit(shared_ptr<LocExp> node) noexcept {
     const std::string &id = node->get_exp_location()->get_identifier();
     exprStr = id;
 }
 
 inline void
-ExpTranslatorVisitor::visit(shared_ptr<UnOpExp> node) {
+ExpTranslatorVisitor::visit(shared_ptr<UnOpExp> node) noexcept {
     node->get_argument()->accept(*this);
     std::string arg1 = exprStr;
     std::stringstream ss;
@@ -120,7 +120,7 @@ ExpTranslatorVisitor::visit(shared_ptr<UnOpExp> node) {
 }
 
 inline void
-ExpTranslatorVisitor::visit(shared_ptr<BinOpExp> node) {
+ExpTranslatorVisitor::visit(shared_ptr<BinOpExp> node) noexcept {
     node->get_first_argument()->accept(*this);
     std::string arg1 = exprStr;
     node->get_second_argument()->accept(*this);
@@ -138,14 +138,14 @@ ExpTranslatorVisitor::visit(shared_ptr<BinOpExp> node) {
 }
 
 inline expression_t
-ExpTranslatorVisitor::get_expression(symbol_table_t& table) {
+ExpTranslatorVisitor::get_expression(symbol_table_t& table) noexcept {
     this->expr.register_symbol_table(table);
     ExpTranslatorVisitor::parser.compile(exprStr, this->expr);
     return (this->expr);
 }
 
 inline std::string
-ExpTranslatorVisitor::get_string() const {
+ExpTranslatorVisitor::get_string() const noexcept {
     return (this->exprStr);
 }
 
@@ -153,7 +153,7 @@ exprtk::parser<NUMTYPE> ExpTranslatorVisitor::parser;
 
 //  Definitions of ExpNamesCollector:
 inline void
-ExpNameCollector::visit(shared_ptr<LocExp> node) {
+ExpNameCollector::visit(shared_ptr<LocExp> node) noexcept {
    const std::string &id = node->get_exp_location()->get_identifier();
    if (std::find(names.begin(), names.end(), id) == names.end()) {
        names.push_back(id);
@@ -161,20 +161,20 @@ ExpNameCollector::visit(shared_ptr<LocExp> node) {
 }
 
 inline void
-ExpNameCollector::visit(shared_ptr<BinOpExp> node) {
+ExpNameCollector::visit(shared_ptr<BinOpExp> node) noexcept {
     node->get_first_argument()->accept(*this);
     node->get_second_argument()->accept(*this);
 }
 
 inline void
-ExpNameCollector::visit(shared_ptr<UnOpExp> node) {
+ExpNameCollector::visit(shared_ptr<UnOpExp> node) noexcept {
     node->get_argument()->accept(*this);
 }
 
 // Definitions of ExpInternalState
 
 inline void
-ExpInternalState::add_variables(const ExpContainer &astVec) {
+ExpInternalState::add_variables(const ExpContainer &astVec) noexcept {
     for (shared_ptr<Exp> ast : astVec) {
         ExpNameCollector visitor;
         ast->accept(visitor);
@@ -191,35 +191,38 @@ ExpInternalState::add_variables(const ExpContainer &astVec) {
 }
 
 inline void
-ExpInternalState::project_positions(const State<STATE_INTERNAL_TYPE> &state) {
+ExpInternalState::project_positions(const State<STATE_INTERNAL_TYPE> &state)
+noexcept {
     for (size_t i = 0; i < varNames.size(); i++) {
        varPos[i] = state.position_of_var(varNames[i]);
     }
 }
 
 inline void
-ExpInternalState::project_positions(const PositionsMap &posMap) {
+ExpInternalState::project_positions(const PositionsMap &posMap) noexcept {
     for (size_t i = 0; i < varNames.size(); i++) {
        varPos[i] = posMap.at(varNames[i]);
     }
 }
 
 inline void
-ExpInternalState::project_values(const State<STATE_INTERNAL_TYPE> &state) {
+ExpInternalState::project_values(const State<STATE_INTERNAL_TYPE> &state)
+noexcept {
     for (size_t i = 0; i < varNames.size(); i++) {
         varValues[i] = state[varPos[i]]->val();
     }
 }
 
 inline void
-ExpInternalState::project_values(const StateInstance &state) {
+ExpInternalState::project_values(const StateInstance &state) noexcept {
     for (size_t i = 0; i < varNames.size(); i++) {
         varValues[i] = state[varPos[i]];
     }
 }
 
 inline size_t
-ExpInternalState::get_local_position_of(const std::string &name) const {
+ExpInternalState::get_local_position_of(const std::string &name) const
+noexcept {
     size_t i = 0;
     while (i < varNames.size() && varNames[i] != name) {
         i++;
@@ -230,18 +233,18 @@ ExpInternalState::get_local_position_of(const std::string &name) const {
 
 // Definitions of ExpTableFiller
 inline void
-ExpTableFiller::visit(shared_ptr<BinOpExp> node) {
+ExpTableFiller::visit(shared_ptr<BinOpExp> node) noexcept {
     node->get_first_argument()->accept(*this);
     node->get_second_argument()->accept(*this);
 }
 
 inline void
-ExpTableFiller::visit(shared_ptr<UnOpExp> node) {
+ExpTableFiller::visit(shared_ptr<UnOpExp> node) noexcept {
     node->get_argument()->accept(*this);
 }
 
 inline void
-ExpTableFiller::visit(shared_ptr<LocExp> node) {
+ExpTableFiller::visit(shared_ptr<LocExp> node) noexcept {
     const std::string &id = node->get_exp_location()->get_identifier();
     size_t pos = expState.get_local_position_of(id);
     ///@todo try to avoid references to vector elements, since
@@ -251,7 +254,7 @@ ExpTableFiller::visit(shared_ptr<LocExp> node) {
 
 // Definitions of ExpStateEvaluator
 
-ExpStateEvaluator::ExpStateEvaluator(const ExpContainer& astVec)
+ExpStateEvaluator::ExpStateEvaluator(const ExpContainer& astVec) noexcept
     : astVec {astVec} {
     exprVec.resize(astVec.size());
     expState.add_variables(astVec);
@@ -273,13 +276,13 @@ ExpStateEvaluator::ExpStateEvaluator(const ExpContainer& astVec)
     }
 }
 
-ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) {
+ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) noexcept {
     astVec = that.astVec;
     expState = that.expState;
     exprVec.resize(astVec.size());
     expStrings = that.expStrings;
     std::vector<std::pair<std::string, NUMTYPE>> v;
-    //table.clear();
+    table.clear();
     that.table.get_variable_list(v);
     for (const auto &p : v) {
         size_t pos = that.expState.get_local_position_of(p.first);
@@ -292,26 +295,28 @@ ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) {
 }
 
 
-void ExpStateEvaluator::prepare(const State<STATE_INTERNAL_TYPE> &state) {
+void ExpStateEvaluator::prepare(const State<STATE_INTERNAL_TYPE> &state)
+noexcept {
     expState.project_positions(state);
 }
 
-void ExpStateEvaluator::prepare(const PositionsMap& posMap) {
+void ExpStateEvaluator::prepare(const PositionsMap& posMap) noexcept {
     expState.project_positions(posMap);
 }
 
 STYPE
-ExpStateEvaluator::eval(const State<STATE_INTERNAL_TYPE> &state) const {
-    return eval_all(state).at(0);
+ExpStateEvaluator::eval(const State<STATE_INTERNAL_TYPE> &state) const
+noexcept {
+    return eval_all(state)[0];
 }
 
 STYPE
-ExpStateEvaluator::eval(const StateInstance &state) const {
-    return eval_all(state).at(0);
+ExpStateEvaluator::eval(const StateInstance &state) const noexcept {
+    return eval_all(state)[0];
 }
 
 std::vector<STYPE>
-ExpStateEvaluator::eval_all(const StateInstance& state) const {
+ExpStateEvaluator::eval_all(const StateInstance& state) const noexcept {
     expState.project_values(state);
     std::vector<STYPE> results;
     results.resize(exprVec.size());
@@ -322,7 +327,7 @@ ExpStateEvaluator::eval_all(const StateInstance& state) const {
 }
 
 std::vector<STYPE>
-ExpStateEvaluator::eval_all(const State<STYPE>& state) const {
+ExpStateEvaluator::eval_all(const State<STYPE>& state) const noexcept {
     expState.project_values(state);
     std::vector<STYPE> results;
     results.resize(exprVec.size());

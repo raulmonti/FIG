@@ -4,28 +4,28 @@
 
 namespace fig {
 
-void ExpStateUpdater::prepare(const PositionsMap& posMap) {
+void ExpStateUpdater::prepare(const PositionsMap& posMap) noexcept {
     ExpStateEvaluator::prepare(posMap);
     for (size_t i = 0; i < updatesVar.size(); i++) {
         updatesPos[i] = posMap.at(updatesVar[i]);
     }
 }
 
-void ExpStateUpdater::prepare(const State<STYPE>& state) {
+void ExpStateUpdater::prepare(const State<STYPE>& state) noexcept {
     ExpStateEvaluator::prepare(state);
     for (size_t i = 0; i < updatesVar.size(); i++) {
         updatesPos[i] = state.position_of_var(updatesVar[i]);
     }
 }
 
-void ExpStateUpdater::update(StateInstance &state) const {
+void ExpStateUpdater::update(StateInstance &state) const noexcept {
     std::vector<STYPE> results = eval_all(state);
     for (size_t i = 0; i < results.size(); i++) {
         state[updatesPos[i]] = results[i];
     }
 }
 
-void ExpStateUpdater::update(State<STYPE> &state) const {
+void ExpStateUpdater::update(State<STYPE> &state) const noexcept {
     std::vector<STYPE> results = eval_all(state);
     for (size_t i = 0; i < results.size(); i++) {
         state[updatesPos[i]]->assign(results[i]);
