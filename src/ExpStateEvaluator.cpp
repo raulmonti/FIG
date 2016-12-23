@@ -144,6 +144,11 @@ ExpTranslatorVisitor::get_expression(symbol_table_t& table) {
     return (this->expr);
 }
 
+inline std::string
+ExpTranslatorVisitor::get_string() const {
+    return (this->exprStr);
+}
+
 exprtk::parser<NUMTYPE> ExpTranslatorVisitor::parser;
 
 //  Definitions of ExpNamesCollector:
@@ -214,7 +219,7 @@ ExpInternalState::project_values(const StateInstance &state) {
 }
 
 inline size_t
-ExpInternalState::get_local_position(const std::string &name) {
+ExpInternalState::get_local_position_of(const std::string &name) const {
     size_t i = 0;
     while (i < varNames.size() && varNames[i] != name) {
         i++;
@@ -238,7 +243,7 @@ ExpTableFiller::visit(shared_ptr<UnOpExp> node) {
 inline void
 ExpTableFiller::visit(shared_ptr<LocExp> node) {
     const std::string &id = node->get_exp_location()->get_identifier();
-    size_t pos = expState.get_local_position(id);
+    size_t pos = expState.get_local_position_of(id);
     ///@todo try to avoid references to vector elements, since
     /// pointers to them may change during reallocation:
     table.add_variable(id, expState.varValues[pos]);
@@ -248,13 +253,12 @@ ExpTableFiller::visit(shared_ptr<LocExp> node) {
 
 ExpStateEvaluator::ExpStateEvaluator(const ExpContainer& astVec)
     : astVec {astVec} {
-
-    expState = make_shared<ExpInternalState>();
     exprVec.resize(astVec.size());
-    expState->add_variables(astVec);
+    expState.add_variables(astVec);
+    expStrings.resize(astVec.size());
 
     // fill the symbol table before parsing
-    ExpTableFiller filler (table, *expState);
+    ExpTableFiller filler (table, expState);
     for (size_t i = 0; i < astVec.size(); i++) {
         astVec[i]->accept(filler);
     }
@@ -265,15 +269,35 @@ ExpStateEvaluator::ExpStateEvaluator(const ExpContainer& astVec)
         astVec[i]->accept(visitor);
         //parse string and produce a expression
         exprVec[i] = visitor.get_expression(table);
+        expStrings[i] = visitor.get_string();
     }
 }
 
+ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) {
+    astVec = that.astVec;
+    expState = that.expState;
+    exprVec.resize(astVec.size());
+    expStrings = that.expStrings;
+    std::vector<std::pair<std::string, NUMTYPE>> v;
+    //table.clear();
+    that.table.get_variable_list(v);
+    for (const auto &p : v) {
+        size_t pos = that.expState.get_local_position_of(p.first);
+        table.add_variable(p.first, expState.varValues[pos]);
+    }
+    for (size_t i = 0; i < exprVec.size(); i++) {
+        exprVec[i].register_symbol_table(table);
+        ExpTranslatorVisitor::parser.compile(that.expStrings[i], exprVec[i]);
+    }
+}
+
+
 void ExpStateEvaluator::prepare(const State<STATE_INTERNAL_TYPE> &state) {
-    expState->project_positions(state);
+    expState.project_positions(state);
 }
 
 void ExpStateEvaluator::prepare(const PositionsMap& posMap) {
-    expState->project_positions(posMap);
+    expState.project_positions(posMap);
 }
 
 STYPE
@@ -288,7 +312,7 @@ ExpStateEvaluator::eval(const StateInstance &state) const {
 
 std::vector<STYPE>
 ExpStateEvaluator::eval_all(const StateInstance& state) const {
-    expState->project_values(state);
+    expState.project_values(state);
     std::vector<STYPE> results;
     results.resize(exprVec.size());
     for (size_t i = 0; i < astVec.size(); i++) {
@@ -299,7 +323,7 @@ ExpStateEvaluator::eval_all(const StateInstance& state) const {
 
 std::vector<STYPE>
 ExpStateEvaluator::eval_all(const State<STYPE>& state) const {
-    expState->project_values(state);
+    expState.project_values(state);
     std::vector<STYPE> results;
     results.resize(exprVec.size());
     for (size_t i = 0; i < astVec.size(); i++) {

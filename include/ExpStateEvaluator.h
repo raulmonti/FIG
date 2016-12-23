@@ -33,18 +33,19 @@ class ExpTranslatorVisitor : public Visitor {
 private:
     std::string exprStr;
     expression_t expr;
-    static exprtk::parser<NUMTYPE> parser;
     static std::string exprtk_name(ExpOp op);
     static OpKind exprtk_kind(ExpOp op);
 
 public:
+    static exprtk::parser<NUMTYPE> parser;
+
     ExpTranslatorVisitor() {}
     void visit(shared_ptr<IConst> node) override;
     void visit(shared_ptr<BConst> node) override;
     void visit(shared_ptr<LocExp> node) override;
     void visit(shared_ptr<BinOpExp> node) override;
     void visit(shared_ptr<UnOpExp> node) override;
-    // std::string get_string();
+    std::string get_string() const;
     expression_t get_expression(symbol_table_t& table);
 };
 
@@ -78,16 +79,11 @@ private:
     NameContainer varNames;
     PositionContainer varPos;
     ValueContainer varValues;
-    size_t get_local_position(const std::string &name);
+protected:
+    size_t get_local_position_of(const std::string &name) const;
 
 public:
     ExpInternalState() {}
-    ExpInternalState(const ExpInternalState &state) = delete;
-    ExpInternalState(ExpInternalState &&state) = delete;
-
-
-
-
     void add_variables(const ExpContainer &astVec);
     void project_positions(const State<STYPE> &state);
     void project_positions(const PositionsMap &posMap);
@@ -114,11 +110,12 @@ public:
 /// @brief Evaluate a vector of expressions using ExprTk
 class ExpStateEvaluator {
 private:
-    mutable shared_ptr<ExpInternalState> expState;
+    mutable ExpInternalState expState;
 protected:
     ExpContainer astVec;
     std::vector<expression_t> exprVec;
     symbol_table_t table;
+    std::vector<std::string> expStrings;
 
 public:
     ExpStateEvaluator(const ExpContainer& astVec);
@@ -127,8 +124,9 @@ public:
         ExpStateEvaluator(ExpContainer {ast}) {}
 
     /// @brief Copy Constructor
-    ExpStateEvaluator(const ExpStateEvaluator& that) = default;
-    ExpStateEvaluator(ExpStateEvaluator&& that) = default;
+    ExpStateEvaluator(const ExpStateEvaluator& that);
+
+    ExpStateEvaluator(ExpStateEvaluator&& that) = delete;
 
     virtual void prepare(const PositionsMap& posMap);
     virtual void prepare(const State<STYPE>& state);
