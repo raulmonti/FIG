@@ -116,6 +116,7 @@ protected:
     std::vector<expression_t> exprVec;
     symbol_table_t table;
     std::vector<std::string> expStrings;
+    size_t numExp;
 
 public:
     ExpStateEvaluator(const ExpContainer& astVec) noexcept;

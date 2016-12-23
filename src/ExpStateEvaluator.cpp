@@ -256,18 +256,19 @@ ExpTableFiller::visit(shared_ptr<LocExp> node) noexcept {
 
 ExpStateEvaluator::ExpStateEvaluator(const ExpContainer& astVec) noexcept
     : astVec {astVec} {
-    exprVec.resize(astVec.size());
+    numExp = astVec.size();
+    exprVec.resize(numExp);
     expState.add_variables(astVec);
-    expStrings.resize(astVec.size());
+    expStrings.resize(numExp);
 
     // fill the symbol table before parsing
     ExpTableFiller filler (table, expState);
-    for (size_t i = 0; i < astVec.size(); i++) {
+    for (size_t i = 0; i < numExp; i++) {
         astVec[i]->accept(filler);
     }
 
     // Translate all the ast expressions
-    for (size_t i = 0; i < astVec.size(); i++) {
+    for (size_t i = 0; i < numExp; i++) {
         ExpTranslatorVisitor visitor;
         astVec[i]->accept(visitor);
         //parse string and produce a expression
@@ -279,7 +280,8 @@ ExpStateEvaluator::ExpStateEvaluator(const ExpContainer& astVec) noexcept
 ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) noexcept {
     astVec = that.astVec;
     expState = that.expState;
-    exprVec.resize(astVec.size());
+    numExp = that.numExp;
+    exprVec.resize(numExp);
     expStrings = that.expStrings;
     std::vector<std::pair<std::string, NUMTYPE>> v;
     table.clear();
@@ -288,12 +290,11 @@ ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) noexcept {
         size_t pos = that.expState.get_local_position_of(p.first);
         table.add_variable(p.first, expState.varValues[pos]);
     }
-    for (size_t i = 0; i < exprVec.size(); i++) {
+    for (size_t i = 0; i < numExp; i++) {
         exprVec[i].register_symbol_table(table);
         ExpTranslatorVisitor::parser.compile(that.expStrings[i], exprVec[i]);
     }
 }
-
 
 void ExpStateEvaluator::prepare(const State<STATE_INTERNAL_TYPE> &state)
 noexcept {
@@ -319,8 +320,8 @@ std::vector<STYPE>
 ExpStateEvaluator::eval_all(const StateInstance& state) const noexcept {
     expState.project_values(state);
     std::vector<STYPE> results;
-    results.resize(exprVec.size());
-    for (size_t i = 0; i < astVec.size(); i++) {
+    results.resize(numExp);
+    for (size_t i = 0; i < numExp; i++) {
         results[i] = (STYPE) exprVec[i].value();
     }
     return (results);
@@ -330,8 +331,8 @@ std::vector<STYPE>
 ExpStateEvaluator::eval_all(const State<STYPE>& state) const noexcept {
     expState.project_values(state);
     std::vector<STYPE> results;
-    results.resize(exprVec.size());
-    for (size_t i = 0; i < astVec.size(); i++) {
+    results.resize(numExp);
+    for (size_t i = 0; i < numExp; i++) {
         results[i] = exprVec[i].value();
     }
     return (results);
