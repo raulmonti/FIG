@@ -341,8 +341,8 @@ public:
     }
     
     /// Returns the transitions of the module.
-    const shared_vector<TransitionAST>& get_transitions() {
-        return transitions;
+    const shared_vector<TransitionAST>& get_transitions() const {
+        return (transitions);
     }
 
     /// Returns the name of the module
@@ -354,6 +354,10 @@ public:
     void set_name(const string &name) {
         this->id = name;
     }
+
+    /// Has committed actions?  (input or output)
+    bool has_committed_actions() const;
+
 };
 
 /** @brief Initialized mixin.

@@ -243,6 +243,10 @@ void ModelBuilder::visit(shared_ptr<ModuleAST> body) {
     for (auto &transition : body->get_transitions()) {
         accept_cond(transition);
     }
+    if (body->has_committed_actions()) {
+        //hint that this module has committed actions
+        current_module->mark_with_committed();
+    }
     if (!has_errors()) {
         model_suite.add_module(current_module);
     }

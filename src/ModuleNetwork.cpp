@@ -111,6 +111,7 @@ ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 	for (const Transition& tr: module->transitions_)
 		transitions_.emplace_back(tr);
 	markovian_ &= module->is_markovian();
+    has_committed_ = has_committed_ || module->has_committed_actions();
 	module = nullptr;
 }
 
@@ -257,7 +258,8 @@ ModuleNetwork::process_committed_once(Traial &traial) const
     bool found = false;
     auto modules_it = modules.begin();
     //iterate every module...
-    while (modules_it != modules.end() && !found) {
+    while (modules_it != modules.end() &&
+           (*modules_it)->has_committed_actions() && !found) {
         auto& transitions = (*modules_it)->transitions_;
         auto tr_it = transitions.begin();
         // iterate every transition of the current module
@@ -283,8 +285,10 @@ ModuleNetwork::process_committed_once(Traial &traial) const
 
 
 void
-ModuleNetwork::process_committed(Traial &traial) const
-{
+ModuleNetwork::process_committed(Traial &traial) const {
+    if (!this->has_committed_) {
+        return;
+    }
     while (process_committed_once(traial)) {
         //repeat until no committed action enabled
         ;

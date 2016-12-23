@@ -96,8 +96,10 @@ class ModuleInstance : public Module
         std::unordered_map<std::string, transition_vector_t>
         transitions_by_label_;
 
-public:
+    /// Has committed transitions ?  Setted by \ref ModuleBuilder
+        bool has_committed_ = false;
 
+public:
 	const std::string name;
 
 private:  // Global info to be defined by the ModuleNetwork
@@ -344,6 +346,16 @@ public:  // Accessors
     /// @note Negative value until the module is added to the network.
     inline const int& first_clock_gpos() const noexcept { return firstClock_; }
 
+    /// @brief Hint that this module has committed actions.
+    inline void mark_with_committed(bool has_committed = true) {
+        this->has_committed_ = has_committed;
+    }
+
+    /// @brief Has committed actions?
+    inline bool has_committed_actions() const {
+        return (this->has_committed_);
+    }
+
 public:  // Utils
 
 	State<STATE_INTERNAL_TYPE> initial_state() const override;
@@ -435,7 +447,14 @@ public:  // Utils
 	 */
 	void jump(const Label& label, State<STATE_INTERNAL_TYPE>& state) const;
 
-	/// @todo TODO write docstring, Leo!
+    /** @brief Receives and process an output-committed label broadcasted
+     *         by the module network.
+     * @note If there is a transition in this module with
+     * the same input-committed label and its precondition
+     * is enabled, then this will apply the postcondition
+     * to the given traial. If no such transition exists, this
+     * method does nothing.
+     */
 	void jump_committed(const Label &label, Traial &traial) const;
 
 private:  // Class utils

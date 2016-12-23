@@ -49,8 +49,8 @@ ExpTranslatorVisitor::exprtk_name(ExpOp op) {
     case ExpOp::min: return "min";
     case ExpOp::minus: return "-";
     case ExpOp::mod: return "%";
-    case ExpOp::neq: return "!=";
-    case ExpOp::nott: return "nequal";
+    case ExpOp::neq: return "nequal";
+    case ExpOp::nott: return "not";
     case ExpOp::orr: return "|";
     case ExpOp::plus: return "+";
     case ExpOp::pow: return "pow";

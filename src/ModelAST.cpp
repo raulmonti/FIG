@@ -91,6 +91,19 @@ void ModuleAST::accept(Visitor& visit) {
     visit.visit(static_pointer_cast<my_type>(shared_from_this()));
 }
 
+bool ModuleAST::has_committed_actions() const {
+    for (const shared_ptr<TransitionAST>& tr : this->get_transitions()) {
+        if (tr->get_label_type() == LabelType::in_committed) {
+            return (true);
+        }
+        if (tr->get_label_type() == LabelType::out_committed) {
+            return (true);
+        }
+    }
+    return (false);
+}
+
+
 void Decl::accept(Visitor& visit) {
     visit.visit(static_pointer_cast<Decl>(shared_from_this()));
 }
