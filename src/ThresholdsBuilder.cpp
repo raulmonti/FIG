@@ -32,6 +32,7 @@
 // C++
 #include <algorithm>
 #include <iterator>
+#include <sstream>
 // FIG
 #include <ThresholdsBuilder.h>
 #include <FigException.h>

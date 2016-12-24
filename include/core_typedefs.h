@@ -41,7 +41,6 @@
 #include <functional>  // std::reference_wrapper<>
 // External code
 #include <uint128_t.h>
-#include <muParserDef.h>  // mu::value_type
 
 
 /**
@@ -105,9 +104,7 @@ template< typename T_ > using                              VariableDefinition
 //
 
 /// StateInstances internal storage type
-/// @warning Must match, or be compatible with, that of MuParser library
-///
-typedef  mu::value_type                                  STATE_INTERNAL_TYPE;
+typedef short STATE_INTERNAL_TYPE;
 
 /// Assignment of values to Variables (a logical <i>valuation</i>)
 /// following the order given in some State. A StateInstance can be
