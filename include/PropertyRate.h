@@ -58,7 +58,7 @@ namespace fig
 class PropertyRate : public Property
 {
     /// This identifies the special states whose visiting times are monitored
-    Property::Formula condition_;
+    Precondition condition_;
 
 public:  // Ctors
 

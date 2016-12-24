@@ -28,7 +28,7 @@ void ExpStateUpdater::update(StateInstance &state) const noexcept {
 void ExpStateUpdater::update(State<STYPE> &state) const noexcept {
     std::vector<STYPE> results = eval_all(state);
     for (size_t i = 0; i < results.size(); i++) {
-        state[updatesPos[i]]->assign(results[i]);
+        state[updatesVar[i]]->assign(results[i]);
     }
 }
 

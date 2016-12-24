@@ -59,12 +59,12 @@ class PropertyTransient : public Property
     /// This should be continuously satisfied, otherwise the simulation is
     /// "prematurely interrupted" (it kinda failed)
     /// This is the subformula on the LHS of the '<i>until</i>'
-    Property::Formula expr1_;
+    Precondition expr1_;
 
     /// When this becomes true the simulation reached its "final destination"
     /// (it kinda succeeded)
     /// This is the subformula on the RHS of the '<i>until</i>'
-    Property::Formula expr2_;
+    Precondition expr2_;
 
 public:  // Ctors
 

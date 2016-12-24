@@ -207,7 +207,8 @@ inline void
 ExpInternalState::project_values(const State<STATE_INTERNAL_TYPE> &state)
 noexcept {
     for (size_t i = 0; i < varNames.size(); i++) {
-        varValues[i] = state[varPos[i]]->val();
+        //DO NOT INDEX STATE USING VARPOS[I], USE VARNAMES[I]
+        varValues[i] = state[varNames[i]]->val();
     }
 }
 

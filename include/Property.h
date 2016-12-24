@@ -60,7 +60,7 @@ class Property {
 protected:
 
     /// Nasty hack to avoid code duplication (talk of poor design...)
-    typedef  Precondition  Formula;
+    // typedef  Precondition  Formula;
     /// Used to generate a unique id for each instance.
     static std::atomic<int> current_id;
     /// Instance id.
