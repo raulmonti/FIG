@@ -281,6 +281,9 @@ ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) noexcept {
     expState = that.expState;
     numExp = that.numExp;
     prepared = that.prepared;
+    //expression and tables are shallow copied by default, let's create new ones
+    //new symbol table must refer to the new vector of values.
+    //@todo research why is neccesary to have a copy constructor of this class.
     exprVec.resize(numExp);
     expStrings = that.expStrings;
     std::vector<std::pair<std::string, NUMTYPE>> v;

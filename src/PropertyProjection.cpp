@@ -37,11 +37,11 @@ bool has_identifiers_in(Term exp, const vector<string>& varnames) {
     return (result);
 }
 
-std::string exp_str(shared_ptr<Exp> exp) {
+/*std::string exp_str(shared_ptr<Exp> exp) {
     ExpStringBuilder visitor (CompositeModuleScope::get_instance());
     exp->accept(visitor);
     return (visitor.str());
-}
+}*/
 
 inline Clause clause_from_terms(const vector<Term> &terms) {
     //shared_ptr<ModuleScope> scope = CompositeModuleScope::get_instance();
@@ -53,13 +53,11 @@ inline Clause clause_from_terms(const vector<Term> &terms) {
     if (tam > 0) {
         exp = terms[0];
     }
-    size_t i = 1; //0 one already included.
+    size_t i = 1; //0 already included.
     while (i < tam) {
         exp = BinOpExp::make_andd(exp, terms[i]);
         i++;
     }
-
-    std::cout << "clauses: " << ::exp_str(exp) << std::endl;
 
     if (exp == nullptr) {
         throw_FigException("Can't construct clause");
@@ -82,12 +80,6 @@ vector<Clause> project_on_var_set(const DNF& dnf,
             result.push_back(clause);
         }
     }
-
-    for (Clause &clause : result) {
-        std::cout << "Project - ";
-        clause.print_info(std::cout);
-    }
-
 
     return (result);
 }
