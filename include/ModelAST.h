@@ -599,6 +599,8 @@ public:
  * @brief InitializedArray
  * @example a[4] : int init 2;
  * @note The initialization is the value of all the array elements.
+ *
+ * @deprecated impossible to know the range of each element of the array
  */
 class InitializedArray : public ArrayDecl, public Initialized {
 public:
@@ -614,6 +616,9 @@ public:
  * @brief MultipleInitializedArray
  * @example const a[4] = {0, 4, 1, 2}
  * @note Each initialization correspond to an array element
+ *
+ * @todo Not implemented yet. We should use this only for constant
+ * arrays, so we know the (constant) range of each element.
  */
 class MultipleInitializedArray : public ArrayDecl, public MultipleInitialized {
 public:

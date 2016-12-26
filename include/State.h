@@ -101,6 +101,10 @@ class State
 	mutable std::unordered_map<std::string, size_t> positionOfVar_;
 #endif
 
+    /// Lookup { arrayname -> (first var position, size) }
+    typedef std::unordered_map<std::string, std::pair<size_t,size_t>> ArrayMap;
+    mutable ArrayMap arrayData_;
+
 public:  // Ctors/Dtor
 
 	// Void ctor
@@ -156,6 +160,11 @@ public:  // Modifyers
 	 * \endif
 	 */
 	void append(const State<T_>& tail);
+
+
+    /** @brief Write docstring, Leo */
+    void append_array(const std::string &name, const State<T_> &array);
+
 
 	/**
 	 * @brief Copy values for our Variables from passed State
@@ -339,7 +348,7 @@ private:  // Utils
 	bool is_our_var(const std::string& varName);
 
 public: // Debug
-        void print_info(std::ostream &out) const;
+    void print_info(std::ostream &out) const;
 };
 
 

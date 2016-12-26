@@ -230,13 +230,18 @@ void ModelBuilder::visit(shared_ptr<ModuleAST> body) {
     module_clocks = make_unique<vector<Clock>>();
     module_transitions = make_unique<vector<Transition>>();
     module_vars = make_unique<vector<Var>>();
+    module_arrays = make_unique<vector<Array>>();
     for (auto &decl : body->get_local_decls()) {
         accept_cond(decl);
     }
     if (!has_errors()) {
         auto& clocks = *module_clocks;
+        Vars state (*module_vars);
+        for (Array &p : *module_arrays) {
+            state.append_array(p.first, p.second);
+        }
         current_module = make_shared<ModuleInstance>
-                (current_scope->get_module_name(), *module_vars, clocks);
+                (current_scope->get_module_name(), state, clocks);
     }
     //Note: Transitions can't be copied, we need to add them directly to
     // the current_module instead of accumulate them in a vector
@@ -281,9 +286,27 @@ Clock ModelBuilder::build_clock(const std::string& id) {
     return Clock(id, ModelPrinter::to_str(dist->get_type()), params);
 }
 
-void ModelBuilder::visit(shared_ptr<ArrayDecl> decl) {
-    (void) decl;
-    throw_FigException("Array not yet supported");
+void ModelBuilder::visit(shared_ptr<RangedInitializedArray> decl) {
+    assert(current_scope != nullptr);
+    const std::string& arrayId = decl->get_id();
+    int size = get_int_or_error(decl->get_size(), "Array size must be known");
+    int initValue = get_int_or_error(decl->get_init(),
+                                     "Array initialization must be known");
+    int lower = get_int_or_error(decl->get_lower_bound(),
+                                 "Array elements range must be known");
+    int upper = get_int_or_error(decl->get_upper_bound(),
+                                 "Array elements range must be known");
+    if(has_errors()) {
+        return;
+    }
+    assert(size > 0);
+    std::vector<Var> entries;
+    entries.reserve(size);
+    for (int i = 0; i < size; i++) {
+        std::string name = arrayId + "[" + std::to_string(i) + "]";
+        entries.push_back(std::make_tuple(name, lower, upper, initValue));
+    }
+    module_arrays->push_back(std::make_pair(arrayId, entries));
 }
 
 void ModelBuilder::visit(shared_ptr<RangedDecl> decl) {
@@ -376,7 +399,7 @@ void ModelBuilder::visit(shared_ptr<ClockReset> reset) {
 }
 
 void ModelBuilder::visit(shared_ptr<Assignment> assig) {
-   (void) assig; //do nothing
+   (void) assig; //do nothing, resolved by parent node.
 }
 
 void ModelBuilder::visit(shared_ptr<TransientProp> prop) {

@@ -168,7 +168,7 @@ VariableSet<T_>::assert_invariant() const
 
 // VariableSet can only be instantiated with following numeric types
 template class VariableSet< short              >;
-//template class VariableSet< int                >;   // MuParser can't
+template class VariableSet< int                >;   // MuParser can't
 template class VariableSet< long               >;
 template class VariableSet< long long          >;
 template class VariableSet< unsigned short     >;

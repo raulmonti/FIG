@@ -22,8 +22,10 @@ using std::string;
 using std::shared_ptr;
 using std::unique_ptr;
 using fig::ModuleInstance;
-using Vars = fig::State<fig::STATE_INTERNAL_TYPE>;
-using Var  = fig::VariableDefinition<fig::STATE_INTERNAL_TYPE>;
+using Vars  = fig::State<fig::STATE_INTERNAL_TYPE>;
+using Var   = fig::VariableDefinition<fig::STATE_INTERNAL_TYPE>;
+using ArrayEntries = fig::State<fig::STATE_INTERNAL_TYPE>;
+using Array = std::pair<std::string, ArrayEntries>;
 using fig::Clock;
 using fig::Transition;
 using fig::Label;
@@ -56,6 +58,9 @@ private:
     /// The variables of the current module in construction
     unique_ptr<vector<Var>> module_vars;
 
+    /// The arrays of the current module in construction
+    unique_ptr<vector<Array>> module_arrays;
+
     /// The clocks declared locally in the current module
     unique_ptr<vector<Clock>> module_clocks;
 
@@ -68,10 +73,10 @@ private:
     /// The clocks reseted by the transition in construction.
     unique_ptr<set<string>> transition_clocks;
 
-    /// Accept only if there is no error messages.
+    /// Accept only if there is no error message.
     void accept_visitor(shared_ptr<ModelAST> node, Visitor& visitor);
 
-    /// Accept only if there is no error messages.
+    /// Accept only if there is no error message.
     void accept_cond(shared_ptr<ModelAST> node);
 
     /// Build a clock with the given id.
@@ -105,7 +110,7 @@ public:
     void visit(shared_ptr<RangedDecl> node);
     void visit(shared_ptr<ClockDecl> node);
     void visit(shared_ptr<InitializedDecl> node);
-    void visit(shared_ptr<ArrayDecl> node);
+    void visit(shared_ptr<RangedInitializedArray> node);
     void visit(shared_ptr<TransitionAST> node);
     void visit(shared_ptr<Assignment> node);
     void visit(shared_ptr<ClockReset> node);

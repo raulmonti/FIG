@@ -161,7 +161,7 @@ Variable<T_>::dec()
 
 // Variable can only be instantiated with following numeric types
 template class Variable< short              >;
-//template class Variable< int                >;  // MuParser can't
+template class Variable< int                >;  // MuParser can't
 template class Variable< long               >;
 template class Variable< long long          >;
 template class Variable< unsigned short     >;
