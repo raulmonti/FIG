@@ -110,7 +110,7 @@ public:
     void visit(shared_ptr<RangedDecl> node);
     void visit(shared_ptr<ClockDecl> node);
     void visit(shared_ptr<InitializedDecl> node);
-    void visit(shared_ptr<RangedInitializedArray> node);
+    void visit(shared_ptr<ArrayDecl> node);
     void visit(shared_ptr<TransitionAST> node);
     void visit(shared_ptr<Assignment> node);
     void visit(shared_ptr<ClockReset> node);

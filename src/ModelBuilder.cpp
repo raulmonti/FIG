@@ -286,16 +286,13 @@ Clock ModelBuilder::build_clock(const std::string& id) {
     return Clock(id, ModelPrinter::to_str(dist->get_type()), params);
 }
 
-void ModelBuilder::visit(shared_ptr<RangedInitializedArray> decl) {
+void ModelBuilder::visit(shared_ptr<ArrayDecl> decl) {
     assert(current_scope != nullptr);
     const std::string& arrayId = decl->get_id();
-    int size = get_int_or_error(decl->get_size(), "Array size must be known");
-    int initValue = get_int_or_error(decl->get_init(),
-                                     "Array initialization must be known");
-    int lower = get_int_or_error(decl->get_lower_bound(),
-                                 "Array elements range must be known");
-    int upper = get_int_or_error(decl->get_upper_bound(),
-                                 "Array elements range must be known");
+    ArrayData data = decl->get_data();
+    int size = data.data_size;
+    int lower = data.data_min;
+    int upper = data.data_max;
     if(has_errors()) {
         return;
     }
@@ -304,6 +301,7 @@ void ModelBuilder::visit(shared_ptr<RangedInitializedArray> decl) {
     entries.reserve(size);
     for (int i = 0; i < size; i++) {
         std::string name = arrayId + "[" + std::to_string(i) + "]";
+        int initValue = data.data_inits[i];
         entries.push_back(std::make_tuple(name, lower, upper, initValue));
     }
     module_arrays->push_back(std::make_pair(arrayId, entries));

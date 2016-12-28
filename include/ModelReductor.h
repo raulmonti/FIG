@@ -11,6 +11,9 @@ private:
     shared_ptr<Exp> reduce(shared_ptr<Exp> node);
     void reduce_vector(shared_vector<Exp> &vector);
 
+    //helpers to infer arrays data
+    void compute_int(int &to, shared_ptr<Exp> size);
+
 public:
     ModelReductor() {}
 

@@ -99,11 +99,47 @@ void ModelReductor::visit(shared_ptr<MultipleInitializedArray> node) {
     node->set_size(reduce(node->get_size()));
 }
 
+void ModelReductor::compute_int(int &to,
+                                shared_ptr<Exp> exp) {
+    ExpEvaluator ev (current_scope);
+    exp->accept(ev);
+    if (ev.has_errors()) {
+        put_error("Reduction error, setting value to 0");
+        to = 0;
+    } else if (ev.has_type_int()) {
+        to = ev.get_int();
+    } else if (ev.has_type_bool()){
+        to = ev.get_bool() ? 1 : 0;
+    } else {
+        put_error("Wrong type for value.");
+    }
+}
+
 void ModelReductor::visit(shared_ptr<RangedInitializedArray> node) {
     node->set_lower_bound(reduce(node->get_lower_bound()));
     node->set_upper_bound(reduce(node->get_upper_bound()));
     node->set_init(reduce(node->get_init()));
     node->set_size(reduce(node->get_size()));
+
+    ArrayData data;
+    compute_int(data.data_size, node->get_size());
+    compute_int(data.data_min, node->get_lower_bound());
+    compute_int(data.data_max, node->get_upper_bound());
+    if (has_errors()) {
+        return; //failed on arrays parameters reduction
+    }
+    if (data.data_size <= 0) {
+        put_error("Empty arrays not supported");
+        return;
+    }
+    int x = 0;
+    compute_int(x, node->get_init());
+    data.data_inits.resize(data.data_size);
+    //repeat the same initialization for every element
+    for (int i = 0; i < data.data_size; i++) {
+        data.data_inits[i] = x;
+    }
+    node->set_data(data);
 }
 
 void ModelReductor::visit(shared_ptr<RangedMultipleInitializedArray> node) {
@@ -154,4 +190,13 @@ void ModelReductor::visit(shared_ptr<MultipleParameterDist> node) {
 //Locations
 void ModelReductor::visit(shared_ptr<ArrayPosition> node) {
     node->set_index(reduce(node->get_index()));
+    if (current_scope) {
+        shared_ptr<Decl> decl =
+                current_scope->find_identifier(node->get_identifier());
+        if (decl == nullptr || !decl->is_array()) {
+            put_error("ArrayDeclaration is unknown");
+            return;
+        }
+        node->set_decl(decl->to_array());
+    }
 }

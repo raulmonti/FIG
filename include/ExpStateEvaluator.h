@@ -49,7 +49,6 @@ public:
     expression_t get_expression(symbol_table_t& table) noexcept;
 };
 
-
 /// @brief Collects every variable name occuring on the AST into a vector
 class ExpNameCollector: public Visitor {
     NameContainer names;

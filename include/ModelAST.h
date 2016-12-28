@@ -498,6 +498,11 @@ public:
         return (false);
     }
 
+    /// Check if this is an array declaration
+    virtual bool is_array() {
+        return (false);
+    }
+
     /// Converts this instance of declaration into a Ranged object
     /// @note has_range() must be true.
     shared_ptr<class Ranged> to_ranged() {
@@ -510,6 +515,12 @@ public:
     shared_ptr<class Initialized> to_initialized() {
         assert(has_init());
         return std::dynamic_pointer_cast<Initialized>(shared_from_this());
+    }
+
+    /// Converts this instance of declaration into an Array declaration
+    shared_ptr<class ArrayDecl> to_array() {
+        assert(is_array());
+        return std::dynamic_pointer_cast<ArrayDecl>(shared_from_this());
     }
 };
 
@@ -570,25 +581,53 @@ public:
     virtual void accept(Visitor& visit) override;
 };
 
+/** @brief Array data to be inferred at compilation time. Currently
+ * on ModelBuilder.
+ */
+struct ArrayData {
+    int data_min = 0; //minimum value allowed for each element
+    int data_max = 0; //maximum value allowed for each element
+    int data_size = 0; //size of the array
+    std::vector<int> data_inits; //initial values of the array
+};
+
 /** @brief An array declaration
  **/
 class ArrayDecl : public Decl {
 private:
     /// Expression with the size of the array
     shared_ptr<Exp> size;
+    /// Array compile-time inferred info
+    ArrayData data;
+
 protected:
     /// Protected constructor.
     ArrayDecl(Type type, string id, shared_ptr<Exp> size)
         : Decl(type, id), size {size} {}
 public:
     /// Return the expression with the size of the array
-    shared_ptr<Exp> get_size() {
+    shared_ptr<Exp> get_size() const {
         return (size);
     }
 
     /// Set the size
     void set_size(shared_ptr<Exp> size) {
         this->size = size;
+    }
+
+    /// Set array info
+    void set_data(ArrayData data) {
+        this->data = data;
+    }
+
+    /// Get array info
+    ArrayData get_data() const {
+        return (data);
+    }
+
+    /// Mark as an array declaration
+    virtual bool is_array() {
+        return (true);
     }
 
     /// Acceptor
@@ -1087,6 +1126,12 @@ public:
     inline size_t get_position() {
         return (position);
     }
+
+    /// Converts this location into an ArrayPosition
+    shared_ptr<class ArrayPosition> to_array_position() {
+        assert(is_array());
+        return std::dynamic_pointer_cast<ArrayPosition>(shared_from_this());
+    }
 };
 
 /**
@@ -1097,6 +1142,11 @@ class ArrayPosition : public Location {
 private:
     /// Expression used to compute the index
     shared_ptr<Exp> index;
+
+    /// Convenient pointer to array declaration
+    /// @note setted by ModelReductor
+    shared_ptr<ArrayDecl> decl;
+
 public:
     ArrayPosition(const string &id, shared_ptr<Exp> index)
         : Location(id), index {index} {}
@@ -1120,6 +1170,15 @@ public:
 				that.is_array() &&
 				static_cast<const ArrayPosition&>(that).index == index;
 	}
+
+    void set_decl(shared_ptr<ArrayDecl> decl) {
+        this->decl = decl;
+    }
+
+    shared_ptr<ArrayDecl> get_decl() {
+        return (decl);
+    }
+
 };
 
 /**
