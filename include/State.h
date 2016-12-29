@@ -243,7 +243,26 @@ public:  // Accessors
 	 */
     size_t position_of_var(const std::string& varname) const;
 
-	/**
+
+    /** @brief Position of the first element of the array with
+     * the given name.
+     * @param name of the array
+     */
+    size_t position_of_array_fst(const std::string &name) const;
+
+    /** @brief Size of the array with the given name.
+     * @param name of the array
+     */
+    size_t array_size(const std::string &name) const;
+
+    /** @brief Value of the array in the given position offset
+     * @param name of the array
+     * @param position offset, the actual position would be the
+     * \ref position_of_array_fst plus offset
+     */
+    T_ array_value(const std::string &name, size_t offset) const;
+
+    /**
 	 * @brief Print formatted vector of variables into 'out'
 	 * @param out        Output stream where printing will take place
 	 * @param condensed  Whether to print a summarized version of the data

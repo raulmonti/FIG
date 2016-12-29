@@ -123,7 +123,7 @@ State<T_>::append(const State<T_>& tail)
 	// taking into account the offset from the ones we already have
 	for (const auto& pair: tail.positionOfVar_)
 		positionOfVar_[pair.first] += oldSize;
-    // Compute new arrays global positions, also taking into acount the offset.
+    // Compute new array's global positions, also taking into acount the offset.
     for (const auto& tern : tail.arrayData_) {
         const std::string &array_id = tern.first;
         size_t fst  = tern.second.first;
@@ -223,6 +223,35 @@ State<T_>::position_of_var(const std::string& varname) const
 #else
     return positionOfVar_[varname];  // creates location if inexistent!
 #endif
+}
+
+template<typename T>
+size_t State<T>::position_of_array_fst(const std::__cxx11::string &name) const {
+#ifndef NRANGECHK
+    return this->arrayData_.at(name).first;
+#else
+    return this->arrayData_[name].first;
+#endif
+}
+
+template<typename T>
+size_t State<T>::array_size(const std::__cxx11::string &name) const {
+#ifndef NRANGECHK
+    return this->arrayData_.at(name).second;
+#else
+    return this->arrayData_[name].second;
+#endif
+}
+
+template<typename T>
+T State<T>::array_value(const std::string &name, size_t offset) const {
+    size_t pos = position_of_array_fst(name);
+#ifndef NRANGECHK
+    assert(pos + offset < array_size(name));
+    assert(pvars_[pos + offset]->name() ==
+            name + "[" + std::to_string(offset) + "]");
+#endif
+    return (pvars_[pos + offset]->val());
 }
 
 
