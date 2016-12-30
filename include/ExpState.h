@@ -32,6 +32,7 @@ public:
 
 template<typename T>
 class ExpState {
+private:
 
     enum class VarType {
         SIMPLE, ARRAY
@@ -40,6 +41,11 @@ class ExpState {
     struct SData {
         pos_t localPos_;
         pos_t externalPos_;
+
+        SData() {
+            localPos_ = 0;
+            externalPos_ = 0;
+        }
 
         SData(pos_t local, pos_t external) :
             localPos_ {local}, externalPos_ {external}
@@ -51,6 +57,12 @@ class ExpState {
         pos_t fstExternalPos_;
         size_t size_;
 
+        AData() {
+            fstLocalPos_ = 0;
+            fstExternalPos_ = 0;
+            size_ = 0;
+        }
+
         AData(pos_t fstLocal, pos_t fstExternal, size_t size) :
             fstLocalPos_ {fstLocal}, fstExternalPos_ {fstExternal}, size_ {size}
         {}
@@ -58,9 +70,10 @@ class ExpState {
 
     struct VarData {
         VarType type_;
-        union {
+        union data__ {
             SData sData_;
             AData aData_;
+            data__(){}
         } data_;
 
         static VarData build_simple_var(SData data) {

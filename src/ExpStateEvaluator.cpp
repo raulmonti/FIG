@@ -149,123 +149,14 @@ ExpTranslatorVisitor::get_string() const noexcept {
 
 exprtk::parser<NUMTYPE> ExpTranslatorVisitor::parser;
 
-//  Definitions of ExpNamesCollector:
-inline void
-ExpNameCollector::visit(shared_ptr<LocExp> node) noexcept {
-   const std::string &id = node->get_exp_location()->get_identifier();
-   if (std::find(names.begin(), names.end(), id) == names.end()) {
-       names.push_back(id);
-   }
-}
-
-inline void
-ExpNameCollector::visit(shared_ptr<BinOpExp> node) noexcept {
-    node->get_first_argument()->accept(*this);
-    node->get_second_argument()->accept(*this);
-}
-
-inline void
-ExpNameCollector::visit(shared_ptr<UnOpExp> node) noexcept {
-    node->get_argument()->accept(*this);
-}
-
-// Definitions of ExpInternalState
-
-inline void
-ExpInternalState::add_variables(const ExpContainer &astVec) noexcept {
-    for (shared_ptr<Exp> ast : astVec) {
-        ExpNameCollector visitor;
-        ast->accept(visitor);
-        NameContainer astNames = visitor.get_names();
-        for (const std::string &name : astNames) {
-           auto it = std::find(varNames.begin(), varNames.end(), name);
-           if (it == varNames.end()) {
-               varNames.push_back(name);
-           }
-        }
-    }
-    varPos.resize(varNames.size());
-    varValues.resize(varNames.size(),0);
-}
-
-inline void
-ExpInternalState::project_positions(const State<STATE_INTERNAL_TYPE> &state)
-noexcept {
-    for (size_t i = 0; i < varNames.size(); i++) {
-       varPos[i] = state.position_of_var(varNames[i]);
-    }
-}
-
-inline void
-ExpInternalState::project_positions(const PositionsMap &posMap) noexcept {
-    for (size_t i = 0; i < varNames.size(); i++) {
-       varPos[i] = posMap.at(varNames[i]);
-    }
-}
-
-inline void
-ExpInternalState::project_values(const State<STATE_INTERNAL_TYPE> &state)
-noexcept {
-    for (size_t i = 0; i < varNames.size(); i++) {
-        //DO NOT INDEX STATE USING VARPOS[I], USE VARNAMES[I]
-        varValues[i] = state[varNames[i]]->val();
-    }
-}
-
-inline void
-ExpInternalState::project_values(const StateInstance &state) noexcept {
-    for (size_t i = 0; i < varNames.size(); i++) {
-        varValues[i] = state[varPos[i]];
-    }
-}
-
-inline size_t
-ExpInternalState::get_local_position_of(const std::string &name) const
-noexcept {
-    size_t i = 0;
-    while (i < varNames.size() && varNames[i] != name) {
-        i++;
-    }
-    assert(i < varNames.size());
-    return (i);
-}
-
-// Definitions of ExpTableFiller
-inline void
-ExpTableFiller::visit(shared_ptr<BinOpExp> node) noexcept {
-    node->get_first_argument()->accept(*this);
-    node->get_second_argument()->accept(*this);
-}
-
-inline void
-ExpTableFiller::visit(shared_ptr<UnOpExp> node) noexcept {
-    node->get_argument()->accept(*this);
-}
-
-inline void
-ExpTableFiller::visit(shared_ptr<LocExp> node) noexcept {
-    const std::string &id = node->get_exp_location()->get_identifier();
-    size_t pos = expState.get_local_position_of(id);
-    ///@todo try to avoid references to vector elements, since
-    /// pointers to them may change during reallocation:
-    table.add_variable(id, expState.varValues[pos]);
-}
-
 // Definitions of ExpStateEvaluator
 
 ExpStateEvaluator::ExpStateEvaluator(const ExpContainer& astVec) noexcept
-    : astVec {astVec} {
+    : astVec {astVec}, expState {astVec} {
     numExp = astVec.size();
     exprVec.resize(numExp);
-    expState.add_variables(astVec);
     expStrings.resize(numExp);
-
-    // fill the symbol table before parsing
-    ExpTableFiller filler (table, expState);
-    for (size_t i = 0; i < numExp; i++) {
-        astVec[i]->accept(filler);
-    }
-
+    expState.fill_symbol_table(table);
     // Translate all the ast expressions
     for (size_t i = 0; i < numExp; i++) {
         ExpTranslatorVisitor visitor;
@@ -276,23 +167,18 @@ ExpStateEvaluator::ExpStateEvaluator(const ExpContainer& astVec) noexcept
     }
 }
 
-ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) noexcept {
-    astVec = that.astVec;
-    expState = that.expState;
+ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) noexcept
+    : astVec {that.astVec}, expState {that.expState} {
     numExp = that.numExp;
     prepared = that.prepared;
     //expression and tables are shallow copied by default, let's create new ones
     //new symbol table must refer to the new vector of values.
-    //@todo research why is neccesary to have a copy constructor of this class.
+    //@todo dig up why is neccesary to have a copy constructor of this class.
     exprVec.resize(numExp);
     expStrings = that.expStrings;
     std::vector<std::pair<std::string, NUMTYPE>> v;
     table.clear();
-    that.table.get_variable_list(v);
-    for (const auto &p : v) {
-        size_t pos = that.expState.get_local_position_of(p.first);
-        table.add_variable(p.first, expState.varValues[pos]);
-    }
+    expState.fill_symbol_table(table);
     for (size_t i = 0; i < numExp; i++) {
         exprVec[i].register_symbol_table(table);
         ExpTranslatorVisitor::parser.compile(that.expStrings[i], exprVec[i]);

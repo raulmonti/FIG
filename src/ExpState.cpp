@@ -103,7 +103,7 @@ noexcept {
             pos_t localPos = v.data_.aData_.fstLocalPos_;
             pos_t size = v.data_.aData_.size_;
             for (pos_t i = 0; i < size; i++) {
-                mem_[localPos + i] = state.array_value(name, i);
+                mem_[localPos + i] = T(state.array_value(name, i));
             }
         }
     }
@@ -122,14 +122,14 @@ void ExpState<T>::project_values(const StateInstance &state) noexcept {
             size_t size = v.data_.aData_.size_;
             pos_t externalPos = v.data_.aData_.fstExternalPos_;
             for (pos_t i = 0; i < size; i++) {
-                mem_[localPos + i] = state[externalPos + i];
+                mem_[localPos + i] = T(state[externalPos + i]);
             }
         }
     }
 }
 
 template<typename T>
-void ExpState<T>::fill_symbol_table(exprtk::symbol_table<T>& table) {
+void ExpState<T>::fill_symbol_table(exprtk::symbol_table<T>& table) noexcept {
     for (auto &pair : vars_) {
         const std::string &name = pair.first;
         VarData &v = pair.second;
@@ -145,7 +145,6 @@ void ExpState<T>::fill_symbol_table(exprtk::symbol_table<T>& table) {
     }
 }
 
-
-
+template class ExpState<float>;
 
 } //namespace fig

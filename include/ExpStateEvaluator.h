@@ -7,7 +7,7 @@
 
 //define exprtk_disable_enhanced_features
 //define exprtk_enable_debugging
-#include "exprtk.hpp" // 1.3mb
+#include <ExpState.h>
 
 #define STYPE STATE_INTERNAL_TYPE
 #define NUMTYPE float //exprtk supports float or double.
@@ -49,69 +49,11 @@ public:
     expression_t get_expression(symbol_table_t& table) noexcept;
 };
 
-/// @brief Collects every variable name occuring on the AST into a vector
-class ExpNameCollector: public Visitor {
-    NameContainer names;
-public:
-    ExpNameCollector() {}
-    void visit(shared_ptr<LocExp> node) noexcept override;
-    void visit(shared_ptr<BinOpExp> node) noexcept override;
-    void visit(shared_ptr<UnOpExp> node) noexcept override;
-    inline NameContainer get_names() const noexcept {
-        return (names);
-    }
-};
-
-/// @brief Local state used to evaluate the expressions. Regularly updated
-/// using an external state.
-class ExpInternalState {
-    // grant access to vectors:
-    friend class ExpTableFiller;
-    friend class ExpStateEvaluator;
-private:
-    // varNames: "x" "y" "z"
-    // varPos:   "1" "3" "4"
-    // varValues: 4  17  23
-    // represents the state {x->4, y->17, z->23}
-    // what will be updated to {x->ST(1), y->ST(3), z->ST(4)}
-    // during evaluation with a given state ST.
-    NameContainer varNames;
-    PositionContainer varPos;
-    ValueContainer varValues;
-protected:
-    size_t get_local_position_of(const std::string &name) const noexcept;
-
-public:
-    ExpInternalState() {}
-    void add_variables(const ExpContainer &astVec) noexcept;
-    void project_positions(const State<STYPE> &state) noexcept;
-    void project_positions(const PositionsMap &posMap) noexcept;
-    void project_values(const State<STYPE> &state) noexcept;
-    void project_values(const StateInstance &state) noexcept;
-};
-
-/// @brief Fill a ExprTk symbol table with mappings of the form
-/// [variable->position in local state]
-class ExpTableFiller : public Visitor {
-private:
-    symbol_table_t &table;
-    ExpInternalState &expState;
-
-public:
-    ExpTableFiller(symbol_table_t &table, ExpInternalState &expState)
-        : table {table}, expState {expState} {}
-
-    void visit(shared_ptr<LocExp> node) noexcept override;
-    void visit(shared_ptr<BinOpExp> node) noexcept override;
-    void visit(shared_ptr<UnOpExp> node) noexcept override;
-};
-
 /// @brief Evaluate a vector of expressions using ExprTk
 class ExpStateEvaluator {
-private:
-    mutable ExpInternalState expState;
 protected:
     ExpContainer astVec;
+    mutable ExpState<NUMTYPE> expState;
     std::vector<expression_t> exprVec;
     symbol_table_t table;
     std::vector<std::string> expStrings;
