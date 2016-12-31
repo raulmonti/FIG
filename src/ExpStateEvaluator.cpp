@@ -103,8 +103,14 @@ ExpTranslatorVisitor::visit(shared_ptr<BConst> node) noexcept {
 
 inline void
 ExpTranslatorVisitor::visit(shared_ptr<LocExp> node) noexcept {
-    const std::string &id = node->get_exp_location()->get_identifier();
-    exprStr = id;
+    shared_ptr<Location> loc = node->get_exp_location();
+    if (loc->is_array()) {
+        loc->to_array_position()->get_index()->accept(*this);
+        exprStr = loc->get_identifier() + "[" + exprStr + "]";
+    } else {
+        const std::string &id = loc->get_identifier();
+        exprStr = id;
+    }
 }
 
 inline void

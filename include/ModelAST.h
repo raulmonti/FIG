@@ -918,6 +918,11 @@ public:
     shared_ptr<Location> get_effect_location() {
         return (loc);
     }
+
+    /// Sets effect location
+    void set_effect_location(shared_ptr<Location> location) {
+        this->loc = location;
+    }
 };
 
 /**
@@ -1152,6 +1157,9 @@ public:
         : Location(id), index {index} {}
     /// Acceptor
     virtual void accept(Visitor& visit) override;
+
+    ArrayPosition(const ArrayPosition &pos) = delete;
+    ArrayPosition(ArrayPosition &&pos) = delete;
 
     shared_ptr<Exp> get_index() {
         return (index);

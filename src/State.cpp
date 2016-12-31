@@ -141,6 +141,13 @@ State<T_>::append_array(const std::string& name, const State<T_>& array) {
     arrayData_[name] = std::make_pair(size, array.size());
 }
 
+template<typename T>
+void
+State<T>::update_array(const std::string &name, size_t pos, T value) {
+   auto& p = arrayData_[name];
+   pvars_[p.first + pos]->val(value);
+}
+
 template< typename T_ >
 void
 State<T_>::extract_valuation_from(const State<T_>& that)

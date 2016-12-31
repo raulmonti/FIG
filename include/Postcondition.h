@@ -54,15 +54,16 @@ using AssignmentContainer = std::vector<shared_ptr<Assignment>>;
 class Postcondition : public ExpStateUpdater {
 private:
 
-    static NameContainer updateVars(AssignmentContainer assignments) {
-        NameContainer names;
-        names.resize(assignments.size());
+    static LocationContainer
+    updateLocations(AssignmentContainer assignments) {
+        LocationContainer locs;
+        locs.resize(assignments.size());
         size_t i = 0;
         for (shared_ptr<Assignment>& assign : assignments) {
-            names[i] = assign->get_effect_location()->get_identifier();
+            locs[i] = assign->get_effect_location();
             i++;
         }
-        return (names);
+        return (locs);
     }
 
     static ExpContainer updateExps(AssignmentContainer assignments) {
@@ -79,7 +80,7 @@ private:
 public:
 
     Postcondition(const std::vector<shared_ptr<Assignment>>& assignments) :
-        ExpStateUpdater(updateVars(assignments), updateExps(assignments))
+        ExpStateUpdater(updateLocations(assignments), updateExps(assignments))
     {}
 
     /// Default copy ctor

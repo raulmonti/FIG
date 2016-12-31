@@ -78,6 +78,10 @@ public:
         return (prepared);
     }
 
+    size_t number_of_expressions() const noexcept {
+        return (astVec.size());
+    }
+
     STYPE eval(const State<STYPE>& state) const noexcept;
     STYPE eval(const StateInstance& state) const noexcept;
     std::vector<STYPE> eval_all(const State<STYPE>& state) const noexcept;

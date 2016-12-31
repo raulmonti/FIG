@@ -161,10 +161,19 @@ public:  // Modifyers
 	 */
 	void append(const State<T_>& tail);
 
-
-    /** @brief Write docstring, Leo */
+    /** @brief Same as \ref append except that the state to be appended
+     *  is considered as the description of an array. Each variable on
+     *  the state is a position of the array.
+     *  @param name of the array
+     *  @param array must have the form ["name[0]" -> v0, ..., "name[N]" -> vN]
+     */
     void append_array(const std::string &name, const State<T_> &array);
 
+    /** @brief Update an array position with the given value
+     * @param name of the array
+     * @param position of the array to be updated
+     */
+    void update_array(const std::string &name, size_t pos, T_ value);
 
 	/**
 	 * @brief Copy values for our Variables from passed State
@@ -255,12 +264,9 @@ public:  // Accessors
      */
     size_t array_size(const std::string &name) const;
 
-    /** @brief Value of the array in the given position offset
-     * @param name of the array
-     * @param position offset, the actual position would be the
-     * \ref position_of_array_fst plus offset
+    /** @brief Value of the array in the given position.
      */
-    T_ array_value(const std::string &name, size_t offset) const;
+    T_ array_value(const std::string &name, size_t position) const;
 
     /**
 	 * @brief Print formatted vector of variables into 'out'

@@ -2,6 +2,7 @@
 #include "FigException.h"
 #include "ExpReductor.h"
 #include <algorithm>
+#include <iostream>
 
 void ModelReductor::accept_cond(shared_ptr<ModelAST> node) {
     if (!has_errors()) {
@@ -161,6 +162,18 @@ void ModelReductor::visit(shared_ptr<TransitionAST> node) {
 }
 
 void ModelReductor::visit(shared_ptr<Assignment> node) {
+    shared_ptr<Location> loc = node->get_effect_location();
+    if (loc->is_array()) {
+        assert(current_scope != nullptr);
+        //reduce the index in the array position
+        shared_ptr<ArrayPosition> ap = loc->to_array_position();
+        ap->set_index(reduce(ap->get_index()));
+        // find declararion and save, for convenience
+        const std::string& id = ap->get_identifier();
+        shared_ptr<Decl> decl = current_scope->find_identifier(id);
+        assert(decl != nullptr);
+        ap->set_decl(decl->to_array());
+    }
     node->set_rhs(reduce(node->get_rhs()));
 }
 
@@ -187,16 +200,3 @@ void ModelReductor::visit(shared_ptr<MultipleParameterDist> node) {
     }
 }
 
-//Locations
-void ModelReductor::visit(shared_ptr<ArrayPosition> node) {
-    node->set_index(reduce(node->get_index()));
-    if (current_scope) {
-        shared_ptr<Decl> decl =
-                current_scope->find_identifier(node->get_identifier());
-        if (decl == nullptr || !decl->is_array()) {
-            put_error("ArrayDeclaration is unknown");
-            return;
-        }
-        node->set_decl(decl->to_array());
-    }
-}

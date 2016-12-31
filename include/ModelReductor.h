@@ -46,7 +46,7 @@ public:
     void visit(shared_ptr<MultipleParameterDist>);
 
     //Locations
-    void visit(shared_ptr<ArrayPosition>);
+    //void visit(shared_ptr<ArrayPosition>);
 };
 
 #endif
