@@ -53,6 +53,12 @@ void ExpReductor::visit(shared_ptr<LocExp> node) {
         ap->get_index()->accept(*this);
         shared_ptr<Exp> reduced_index = eval_if_possible(reduced_exp);
         ap->set_index(reduced_index);
+        //for convenience save the declaration
+        const std::string& id = ap->get_identifier();
+        shared_ptr<Decl> decl = scope->find_identifier(id);
+        assert(decl != nullptr);
+        assert(decl->to_array() != nullptr);
+        ap->set_decl(decl->to_array());
         reduced_exp = node;
     } else {
         reduced_exp = eval_if_possible(node);

@@ -172,6 +172,7 @@ void ModelReductor::visit(shared_ptr<Assignment> node) {
         const std::string& id = ap->get_identifier();
         shared_ptr<Decl> decl = current_scope->find_identifier(id);
         assert(decl != nullptr);
+        assert(decl->to_array() != nullptr);
         ap->set_decl(decl->to_array());
     }
     node->set_rhs(reduce(node->get_rhs()));

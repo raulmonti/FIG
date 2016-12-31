@@ -337,6 +337,7 @@ exp : location[loc]
 | exp[e1] "+" exp[e2]
 {
     shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::plus, $e1, $e2);
+    ///@todo the callable is not longer used.
     exp->set_callable(binaryfun::plus);
     $$ = exp;
     save_location($$, @$);

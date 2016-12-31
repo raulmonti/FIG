@@ -98,7 +98,7 @@ public:
     void visit(shared_ptr<ModuleAST> node) override;
     void visit(shared_ptr<RangedDecl> node) override;
     void visit(shared_ptr<InitializedDecl> node) override;
-    void visit(shared_ptr<ArrayDecl> node) override;
+    void visit(shared_ptr<RangedInitializedArray> node) override;
     void visit(shared_ptr<ClockDecl> node) override;
     void visit(shared_ptr<TransitionAST> node) override;
     void visit(shared_ptr<Assignment> node) override;

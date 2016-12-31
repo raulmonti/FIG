@@ -614,7 +614,7 @@ void ModelTC::visit(shared_ptr<InitializedDecl> decl) {
     check_scope(decl);
 }
 
-void ModelTC::visit(shared_ptr<ArrayDecl> decl) {
+void ModelTC::visit(shared_ptr<RangedInitializedArray> decl) {
     //check array size expression
     const string &id = decl->get_id();
     shared_ptr<Exp> size_exp = decl->get_size();
@@ -622,6 +622,23 @@ void ModelTC::visit(shared_ptr<ArrayDecl> decl) {
     const string &msg
             = TC_WRONG_SIZE_EXP(current_scope, id, size_exp, last_type);
     check_type(Type::tint, msg);
+    shared_ptr<Exp> lower = decl->get_lower_bound();
+    shared_ptr<Exp> upper = decl->get_upper_bound();
+    shared_ptr<Exp> init = decl->get_init();
+    Type decl_type = decl->get_type();
+    assert(decl_type == Type::tint);
+    accept_exp(decl_type, lower);
+    const string msg2
+            = TC_WRONG_LOWER_BOUND(current_scope, id, lower, last_type);
+    check_type(decl_type, msg2);
+    accept_exp(decl_type, upper);
+    const string msg3
+            = TC_WRONG_UPPER_BOUND(current_scope, id, upper, last_type);
+    check_type(decl_type, msg3);
+    accept_exp(decl_type, init);
+    const string msg4
+            = TC_WRONG_INIT_EXP(current_scope, id, init, decl_type, last_type);
+    check_type(decl_type, msg4);
     ///@todo complete tc for arrays.
     check_scope(decl);
 }
