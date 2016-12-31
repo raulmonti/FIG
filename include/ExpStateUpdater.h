@@ -38,51 +38,8 @@ private:
 
     struct ResultAcceptor {
         Tag tag_;
-        union {
-            VarAcceptor var_acc_;
-            ArrayAcceptor array_acc_;
-        };
-
-        ResultAcceptor() : tag_ {Tag::SIMPLE}, var_acc_ {VarAcceptor("",0)} {
-            // default constructor deleted with anonymous unions.
-        }
-
-        ~ResultAcceptor() { //suspicious
-            // default destructor deleted with anonymous unions
-            if (tag_ == Tag::SIMPLE) {
-                var_acc_.~VarAcceptor();
-            } else if (tag_ == Tag::ARRAY) {
-                array_acc_.~ArrayAcceptor();
-            }
-            tag_.~Tag();
-        }
-
-        ResultAcceptor& operator=(const ResultAcceptor &that) {
-            //Maybe "that" has another part of the union activated
-            //I should destroy mine first.
-            if (tag_ == Tag::SIMPLE) {
-                var_acc_.~VarAcceptor();
-            } else if (tag_ == Tag::ARRAY) {
-                array_acc_.~ArrayAcceptor();
-            }
-            tag_ = that.tag_;
-            //reconstruct
-            if (tag_ == Tag::SIMPLE) {
-                new (&var_acc_) VarAcceptor(that.var_acc_);
-            } else if (tag_ == Tag::ARRAY) {
-                new (&array_acc_) ArrayAcceptor(that.array_acc_);
-            }
-            return *this;
-        }
-
-        ResultAcceptor(const ResultAcceptor& that) : tag_ {that.tag_} {
-            //default copy constructor deleted with anonymous unions.
-            if (tag_ == Tag::SIMPLE) {
-                new (&var_acc_) VarAcceptor(that.var_acc_);
-            } else if (tag_ == Tag::ARRAY){
-                new (&array_acc_) ArrayAcceptor(that.array_acc_);
-            }
-        }
+        VarAcceptor var_acc_;
+        ArrayAcceptor array_acc_;
 
         static inline ResultAcceptor
         build_simple_acc(const std::string &name, pos_t externalPos) {
