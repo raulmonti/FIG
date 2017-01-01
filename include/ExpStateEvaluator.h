@@ -32,13 +32,10 @@ enum class OpKind {
 class ExpTranslatorVisitor : public Visitor {
 private:
     std::string exprStr;
-    expression_t expr;
     static std::string exprtk_name(ExpOp op);
     static OpKind exprtk_kind(ExpOp op);
 
 public:
-    static exprtk::parser<NUMTYPE> parser;
-
     ExpTranslatorVisitor() {}
     void visit(shared_ptr<IConst> node) noexcept override;
     void visit(shared_ptr<BConst> node) noexcept override;
@@ -46,7 +43,6 @@ public:
     void visit(shared_ptr<BinOpExp> node) noexcept override;
     void visit(shared_ptr<UnOpExp> node) noexcept override;
     std::string get_string() const noexcept;
-    expression_t get_expression(symbol_table_t& table) noexcept;
 };
 
 /// @brief Evaluate a vector of expressions using ExprTk
@@ -55,7 +51,6 @@ protected:
     ExpContainer astVec;
     mutable ExpState<NUMTYPE> expState;
     std::vector<expression_t> exprVec;
-    symbol_table_t table;
     std::vector<std::string> expStrings;
     size_t numExp;
     bool prepared = false;

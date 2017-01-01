@@ -254,7 +254,7 @@ template<typename T>
 T State<T>::array_value(const std::string &name, size_t offset) const {
     size_t pos = position_of_array_fst(name);
 #ifndef NRANGECHK
-    assert(pos + offset < array_size(name));
+    assert(offset < array_size(name));
     assert(pvars_[pos + offset]->name() ==
             name + "[" + std::to_string(offset) + "]");
 #endif

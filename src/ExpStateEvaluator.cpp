@@ -141,19 +141,10 @@ ExpTranslatorVisitor::visit(shared_ptr<BinOpExp> node) noexcept {
     exprStr = ss.str();
 }
 
-inline expression_t
-ExpTranslatorVisitor::get_expression(symbol_table_t& table) noexcept {
-    this->expr.register_symbol_table(table);
-    ExpTranslatorVisitor::parser.compile(exprStr, this->expr);
-    return (this->expr);
-}
-
 inline std::string
 ExpTranslatorVisitor::get_string() const noexcept {
     return (this->exprStr);
 }
-
-exprtk::parser<NUMTYPE> ExpTranslatorVisitor::parser;
 
 // Definitions of ExpStateEvaluator
 
@@ -162,14 +153,15 @@ ExpStateEvaluator::ExpStateEvaluator(const ExpContainer& astVec) noexcept
     numExp = astVec.size();
     exprVec.resize(numExp);
     expStrings.resize(numExp);
-    expState.fill_symbol_table(table);
+    exprtk::parser<NUMTYPE> parser;
     // Translate all the ast expressions
     for (size_t i = 0; i < numExp; i++) {
         ExpTranslatorVisitor visitor;
         astVec[i]->accept(visitor);
         //parse string and produce a expression
-        exprVec[i] = visitor.get_expression(table);
         expStrings[i] = visitor.get_string();
+        expState.register_expression(exprVec[i]);
+        parser.compile(expStrings[i], exprVec[i]);
     }
 }
 
@@ -180,14 +172,13 @@ ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) noexcept
     //expression and tables are shallow copied by default, let's create new ones
     //new symbol table must refer to the new vector of values.
     //@todo dig up why is neccesary to have a copy constructor of this class.
+    new (&exprVec) std::vector<expression_t>();
     exprVec.resize(numExp);
-    expStrings = that.expStrings;
-    std::vector<std::pair<std::string, NUMTYPE>> v;
-    table.clear();
-    expState.fill_symbol_table(table);
+    new (&expStrings) std::vector<std::string>(that.expStrings);
+    exprtk::parser<NUMTYPE> parser;
     for (size_t i = 0; i < numExp; i++) {
-        exprVec[i].register_symbol_table(table);
-        ExpTranslatorVisitor::parser.compile(that.expStrings[i], exprVec[i]);
+        expState.register_expression(exprVec[i]);
+        parser.compile(expStrings[i], exprVec[i]);
     }
 }
 

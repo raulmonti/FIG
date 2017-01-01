@@ -50,6 +50,11 @@ private:
         SData(pos_t local, pos_t external) :
             localPos_ {local}, externalPos_ {external}
         {}
+
+        bool operator==(const SData& sdata) const {
+            return (this->localPos_ == sdata.localPos_) &&
+                    (this->externalPos_ == sdata.externalPos_);
+        }
     };
 
     struct AData {
@@ -66,14 +71,20 @@ private:
         AData(pos_t fstLocal, pos_t fstExternal, size_t size) :
             fstLocalPos_ {fstLocal}, fstExternalPos_ {fstExternal}, size_ {size}
         {}
+
+        bool operator==(const AData &that) const {
+            return (this->fstExternalPos_ == that.fstExternalPos_) &&
+                   (this->fstLocalPos_ == that.fstLocalPos_) &&
+                   (this->size_ == that.size_);
+        }
+
     };
 
     struct VarData {
         VarType type_;
-        union data__ {
+        struct data__ { //wanted a union but had problems.
             SData sData_;
             AData aData_;
-            data__(){}
         } data_;
 
         static VarData build_simple_var(SData data) {
@@ -89,18 +100,47 @@ private:
             d.data_.aData_ = data;
             return (d);
         }
+
+        bool operator==(const VarData& that) const {
+            if (this->type_ != that.type_) {
+                return (false);
+            }
+            if (this->type_ == VarType::SIMPLE) {
+                return (this->data_.sData_ == that.data_.sData_);
+            }
+            if (this->type_ == VarType::ARRAY) {
+                return (this->data_.aData_ == that.data_.aData_);
+            }
+            return (false);
+        }
+
     };
 
     std::vector<T> mem_;
     std::unordered_map<std::string, VarData> vars_;
+    exprtk::symbol_table<T> table_;
 
 public:
     ExpState(const std::vector<std::shared_ptr<Exp>>& astVec);
+    ExpState(const ExpState& that);
+    ExpState(ExpState &&that) = delete;
+    ExpState& operator=(const ExpState& state) = delete;
+
+
     void project_positions(const State<STATE_INTERNAL_TYPE> &state) noexcept;
     void project_positions(const PositionsMap &posMap) noexcept;
     void project_values(const State<STATE_INTERNAL_TYPE> &state) noexcept;
     void project_values(const StateInstance &state) noexcept;
-    void fill_symbol_table(exprtk::symbol_table<T> &table) noexcept;
+
+    void register_expression(exprtk::expression<T> &e) {
+        e.register_symbol_table(table_);
+    }
+
+    void print_table() const noexcept;
+
+private:
+    void fill_symbol_table() noexcept;
+
 };
 
 } //namespace fig
