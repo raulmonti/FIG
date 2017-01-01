@@ -16,7 +16,7 @@ namespace fig {
 typedef size_t pos_t;
 using std::shared_ptr;
 
-/// @brief Collects every variable name occuring on the AST into a vector
+/// @brief Collects every variable name occurring on the AST into a vector
 class ExpNameCollector: public Visitor {
     std::unordered_set<std::string> &vars;
     std::unordered_map<std::string, ArrayData>& arrays;
@@ -82,9 +82,10 @@ private:
 
     struct VarData {
         VarType type_;
-        struct data__ { //wanted a union but had problems.
+        union data__ {
             SData sData_;
             AData aData_;
+            data__(){}
         } data_;
 
         static VarData build_simple_var(SData data) {

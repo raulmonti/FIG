@@ -38,8 +38,49 @@ private:
 
     struct ResultAcceptor {
         Tag tag_;
-        VarAcceptor var_acc_;
-        ArrayAcceptor array_acc_;
+        union { //if strange things happen just remove the union.
+            VarAcceptor var_acc_;
+            ArrayAcceptor array_acc_;
+        };
+
+        //anonymous unions deletes default constructors.
+        ResultAcceptor() : tag_ {Tag::SIMPLE} {
+            new (&var_acc_) VarAcceptor();
+        }
+
+        ResultAcceptor(const ResultAcceptor &that) : tag_ {that.tag_} {
+            if (tag_ == Tag::SIMPLE) {
+                new (&var_acc_) VarAcceptor(that.var_acc_);
+            } else if (tag_ == Tag::ARRAY) {
+                new (&array_acc_) ArrayAcceptor(that.array_acc_);
+            }
+        }
+
+        ResultAcceptor& operator=(const ResultAcceptor &that) {
+            //destroy myself first.
+            if (tag_ == Tag::SIMPLE) {
+                var_acc_.~VarAcceptor();
+            } else if (tag_ == Tag::ARRAY) {
+                array_acc_.~ArrayAcceptor();
+            }
+            //now I'm ready to copy that.
+            tag_ = that.tag_;
+            if (tag_ == Tag::SIMPLE) {
+                var_acc_ = that.var_acc_;
+            } else if (tag_ == Tag::ARRAY) {
+                array_acc_ = that.array_acc_;
+            }
+            return *this;
+        }
+
+        ~ResultAcceptor() {
+            if (tag_ == Tag::SIMPLE) {
+                var_acc_.~VarAcceptor();
+            } else if (tag_ == Tag::ARRAY) {
+                array_acc_.~ArrayAcceptor();
+            }
+            tag_.~Tag();
+        }
 
         static inline ResultAcceptor
         build_simple_acc(const std::string &name, pos_t externalPos) {

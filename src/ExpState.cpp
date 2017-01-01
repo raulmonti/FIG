@@ -191,7 +191,6 @@ void ExpState<T>::print_table() const noexcept {
     }
     for (std::string name : v) {
         exprtk::details::vector_holder<T> *vh = table_.get_vector(name);
-        std::cout << "init pointer: " << vh->data() << std::endl;
         std::cout << "vector " << name << ": size "
                   << vh->size() << ", values: ";
         for (size_t i = 0; i < vh->size(); i++) {

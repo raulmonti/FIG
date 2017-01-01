@@ -40,7 +40,9 @@ void ExpStringBuilder::visit(shared_ptr<LocExp> node) {
         ExpEvaluator ev (scope);
         ap->get_index()->accept(ev);
         if (ev.has_errors()) {
-            throw_FigException("Not reducible index");
+            ///@todo we should recover from this.
+            throw_FigException("PropertyProjection requires"
+                               "reducible index at this stage");
         }
         const std::string pos = location->get_identifier()
                 + "[" + std::to_string(ev.get_int()) + "]";
