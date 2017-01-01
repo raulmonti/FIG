@@ -29,12 +29,26 @@ void ExpStringBuilder::visit(shared_ptr<FConst> node) {
 void ExpStringBuilder::visit(shared_ptr<LocExp> node) {
     ExpEvaluator eval (scope);
     node->accept(eval);
-    if (eval.has_errors()) {
-      //could not reduce the constant.
+    if (!eval.has_errors()) {
+        result = eval.value_to_string();
+        return;
+    }
+    //not reducible
+    shared_ptr<Location> location = node->get_exp_location();
+    if (location->is_array()) {
+        shared_ptr<ArrayPosition> ap = location->to_array_position();
+        ExpEvaluator ev (scope);
+        ap->get_index()->accept(ev);
+        if (ev.has_errors()) {
+            throw_FigException("Not reducible index");
+        }
+        const std::string pos = location->get_identifier()
+                + "[" + std::to_string(ev.get_int()) + "]";
+        result = pos;
+        names.push_back(pos);
+    } else {
         result = node->get_exp_location()->get_identifier();
         names.push_back(result);
-    } else {
-        result = eval.value_to_string();
     }
 }
 
@@ -67,24 +81,3 @@ string ExpStringBuilder::str() {
 const vector<string>& ExpStringBuilder::get_names() {
     return (names);
 }
-
-pair<string, vector<string>>
-ExpStringBuilder::make_conjunction_str(shared_ptr<ModuleScope> scope,
-                                       const vector<shared_ptr<Exp>>& expvec) {
-    stringstream ss;
-    vector<string> names;
-    auto it = expvec.begin();
-    while (it != expvec.end()) {
-        ExpStringBuilder str_b (scope);
-        (*it)->accept(str_b);
-        ss << "(" << str_b.str() << ")";
-        auto &vec = str_b.get_names();
-        names.insert(names.end(), vec.begin(), vec.end());
-        if (it + 1 != expvec.end()) {
-            ss << " & ";
-        }
-        it++;
-    }
-    return make_pair(ss.str(), names);
-}
-

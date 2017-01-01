@@ -7,8 +7,6 @@
 /**
  * @brief Traverse the AST of an expression building a string
  *        representation and a vector of variables occurring on it.
- * @note  This class is mostly used to translate a ModelAST object
- * into a string with the format expected by the ModelSuite API.
  */
 class ExpStringBuilder : public Visitor {
     /// ModuleScope used to evaluate state variables.
@@ -37,14 +35,6 @@ public:
     const vector<std::string>& get_names();
 
     std::string str();
-
-    // Converts a vector of expressions [e1, e2, e3, ...]
-    // into the string "str(e1) & str(e2) & str(e3) & ...."
-    // and returns also the vector with all the names that occur
-    // in the expressions.
-    static std::pair<std::string, std::vector<std::string>>
-    make_conjunction_str(shared_ptr<ModuleScope> scope,
-                         const vector<shared_ptr<Exp>>& expvec);
 };
 
 

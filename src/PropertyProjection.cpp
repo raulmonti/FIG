@@ -21,6 +21,15 @@ using Clause = parser::PropertyProjection::Clause;
 using Term = parser::PropertyProjection::Term;
 using DNF  = parser::PropertyProjection::DNF;
 
+
+//Collecs variables names,
+class ExpNameCollector : public Visitor {
+public:
+
+
+};
+
+
 bool has_identifiers_in(Term exp, const vector<string>& varnames) {
     ExpStringBuilder str_b (CompositeModuleScope::get_instance());
     //@todo write another visitor that returns names without
