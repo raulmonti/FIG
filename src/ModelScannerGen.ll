@@ -109,6 +109,7 @@ blank  [ \t]
 "max"         return ModelParser::make_MAX(loc);
 "min"         return ModelParser::make_MIN(loc);
 "pow"         return ModelParser::make_POW(loc);
+"_"           return ModelParser::make_UNDERSCORE(loc);
 
 {id}       return ModelParser::make_ID(yytext, loc);
 {int}      return ModelParser::make_INTL(parse_int(), loc);

@@ -792,6 +792,25 @@ public:
         TransitionAST(label_id, LabelType::in, pre, effects) {}
     /// Acceptor
     virtual void accept(Visitor& visit) override;
+
+    virtual bool is_wildcard() {
+        return (false);
+    }
+};
+
+/**
+ * @brief Wildcard Input
+ * @example [_?] q1 & q2 -> (q1' = 1)
+ */
+class WildcardInputTransition : public InputTransition {
+public:
+    WildcardInputTransition(shared_ptr<Exp> pre,
+                            const shared_vector<Effect> &effects) :
+        InputTransition("_", pre, effects) {}
+
+    virtual bool is_wildcard() override {
+        return (true);
+    }
 };
 
 /**
@@ -1503,6 +1522,8 @@ public:
     virtual void visit(shared_ptr<TauTransition>);
     /// @copydoc visit(shared_ptr<ModelAST>)
     virtual void visit(shared_ptr<InputTransition>);
+    /// @copydoc visit(shared_ptr<ModelAST>)
+    virtual void visit(shared_ptr<WildcardInputTransition>);
     /// @copydoc visit(shared_ptr<ModelAST>)
     virtual void visit(shared_ptr<InputCommittedTransition>);
     /// @copydoc visit(shared_ptr<ModelAST>)

@@ -84,17 +84,17 @@ class ModuleInstance : public Module
 	State< STATE_INTERNAL_TYPE > lState_;
 
 	/// Local \ref Clock "clocks"
-	std::vector< Clock > lClocks_;
+        std::vector< Clock > lClocks_;
+
+        using transition_vector_t = std::vector<Reference<const Transition>>;
 
 	/// Transitions semi-ordered by their triggering \ref Clock "clock"
-	std::unordered_map<
-		std::string,
-		std::vector< Reference< const Transition > > > transitions_by_clock_;
+        std::unordered_map<std::string, transition_vector_t>
+        transitions_by_clock_;
 
 	/// Transitions semi-ordered by their synchronization \ref Label "label"
-	std::unordered_map<
-		std::string,
-		std::vector< Reference< const Transition > > > transitions_by_label_;
+        std::unordered_map<std::string, transition_vector_t>
+        transitions_by_label_;
 
 public:
 
@@ -511,6 +511,27 @@ private:  // Callback utilities offered to the ModuleNetwork
 	 * \endif
 	 */
 	void seal(const fig::State<STATE_INTERNAL_TYPE>& globalState);
+
+
+        /**
+         * @brief Apply postcondition of the first enabled transition.
+         * Advance clocks by elapsedTime if there is an enabled transition.
+         * @param elapsedTime  Time lapse for the clock to expire
+         * @param traial       Instance of Traial to update
+         * @return true if a transition was enabled, false otherwise
+         */
+        bool
+        apply_postcondition(const CLOCK_INTERNAL_TYPE &elapsedTime,
+                            Traial &traial,
+                            const transition_vector_t &transitions) const;
+        /**
+         * @brief Apply postcondition of the first enabled transition.
+         * @param state to update
+         * @return true if a transition was enabled, false otherwise
+         */
+        bool
+        apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
+                            const transition_vector_t& transitions) const;
 
 
 public: //Debug
