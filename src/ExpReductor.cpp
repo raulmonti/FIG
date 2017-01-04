@@ -1,7 +1,7 @@
 #include "ExpReductor.h"
 
 const vector<ExpOp> ExpReductor::not_supported_op =
-{
+{ //only supported if the expression is reducible at compilation time
     ExpOp::floor,
     ExpOp::ceil,
     ExpOp::log,
@@ -46,23 +46,24 @@ void ExpReductor::visit(shared_ptr<FConst> node) {
 void ExpReductor::visit(shared_ptr<LocExp> node) {
     assert(node->get_type() != Type::tunknown);
     shared_ptr<Location> loc = node->get_exp_location();
-    if (loc->is_array()) {
-        assert (scope != nullptr);
-        shared_ptr<ArrayPosition> ap = loc->to_array_position();
-        //reduce index of array position
-        ap->get_index()->accept(*this);
-        shared_ptr<Exp> reduced_index = eval_if_possible(reduced_exp);
-        ap->set_index(reduced_index);
-        //for convenience save the declaration
-        const std::string& id = ap->get_identifier();
-        shared_ptr<Decl> decl = scope->find_identifier(id);
-        assert(decl != nullptr);
-        assert(decl->to_array() != nullptr);
-        ap->set_decl(decl->to_array());
-        reduced_exp = node;
-    } else {
+    if (!loc->is_array()) {
         reduced_exp = eval_if_possible(node);
+        return;
     }
+    //is array
+    assert (scope != nullptr);
+    shared_ptr<ArrayPosition> ap = loc->to_array_position();
+    //reduce index of array position
+    ap->get_index()->accept(*this);
+    shared_ptr<Exp> reduced_index = eval_if_possible(reduced_exp);
+    ap->set_index(reduced_index);
+    //for convenience save the declaration
+    const std::string& id = ap->get_identifier();
+    shared_ptr<Decl> decl = scope->find_identifier(id);
+    assert(decl != nullptr);
+    assert(decl->to_array() != nullptr);
+    ap->set_decl(decl->to_array());
+    reduced_exp = eval_if_possible(node);
 }
 
 void ExpReductor::visit(shared_ptr<BinOpExp> exp) {

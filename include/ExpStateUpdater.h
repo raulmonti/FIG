@@ -58,12 +58,13 @@ private:
 
         ResultAcceptor& operator=(const ResultAcceptor &that) {
             //destroy myself first.
+            //because maybe I'm simple and 'that' is array, or viceversa.
             if (tag_ == Tag::SIMPLE) {
                 var_acc_.~VarAcceptor();
             } else if (tag_ == Tag::ARRAY) {
                 array_acc_.~ArrayAcceptor();
             }
-            //now I'm ready to copy that.
+            //now I'm ready to copy 'that'.
             tag_ = that.tag_;
             if (tag_ == Tag::SIMPLE) {
                 var_acc_ = that.var_acc_;

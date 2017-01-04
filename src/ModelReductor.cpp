@@ -89,17 +89,6 @@ void ModelReductor::visit(shared_ptr<ArrayDecl> node) {
     node->set_size(reduce(node->get_size()));
 }
 
-void ModelReductor::visit(shared_ptr<InitializedArray> node) {
-    node->set_init(reduce(node->get_init()));
-    node->set_size(reduce(node->get_size()));
-}
-
-void ModelReductor::visit(shared_ptr<MultipleInitializedArray> node) {
-    //reduce every initialization
-    reduce_vector(node->get_inits());
-    node->set_size(reduce(node->get_size()));
-}
-
 void ModelReductor::compute_int(int &to,
                                 shared_ptr<Exp> exp) {
     ExpEvaluator ev (current_scope);
@@ -116,22 +105,65 @@ void ModelReductor::compute_int(int &to,
     }
 }
 
-void ModelReductor::visit(shared_ptr<RangedInitializedArray> node) {
+void ModelReductor::reduce_size(shared_ptr<ArrayDecl> node) {
+    node->set_size(reduce(node->get_size()));
+}
+
+void ModelReductor::reduce_range(shared_ptr<Ranged> node) {
     node->set_lower_bound(reduce(node->get_lower_bound()));
     node->set_upper_bound(reduce(node->get_upper_bound()));
-    node->set_init(reduce(node->get_init()));
-    node->set_size(reduce(node->get_size()));
+}
 
+void ModelReductor::reduce_init(shared_ptr<Initialized> decl) {
+    decl->set_init(reduce(decl->get_init()));
+}
+
+void ModelReductor::reduce_multiple_init(shared_ptr<MultipleInitialized> decl) {
+    reduce_vector(decl->get_inits());
+}
+
+void ModelReductor::check_data(const ArrayData& data) {
+    if (data.data_size <= 0) {
+        put_error("Empty arrays not supported");
+        return;
+    }
+    if (data.data_min > data.data_max) {
+        put_error("Wrong range for array: lower > upper");
+        return;
+    }
+    if (data.data_inits.size() != (size_t) data.data_size) {
+        put_error("Wrong number of array initializations");
+        return;
+    }
+    for (const int x : data.data_inits) {
+        std::cout << "init " << x << std::endl;
+        if (x < data.data_min) {
+            put_error("Initialization lesser than lower bound");
+            return;
+        }
+        if (x > data.data_max) {
+            std::cout << "Value is " << x << " but max is " << data.data_max
+                      << std::endl;
+            put_error("Initialization greater than upper bound");
+            return;
+        }
+    }
+}
+
+void ModelReductor::visit(shared_ptr<RangedInitializedArray> node) {
+    reduce_size(node);
+    reduce_range(node);
+    reduce_init(node);
     ArrayData data;
     compute_int(data.data_size, node->get_size());
     compute_int(data.data_min, node->get_lower_bound());
     compute_int(data.data_max, node->get_upper_bound());
+
+    std::cout << "setting min to " << data.data_min <<
+                 " and max to " << data.data_max << std::endl;
+
     if (has_errors()) {
         return; //failed on arrays parameters reduction
-    }
-    if (data.data_size <= 0) {
-        put_error("Empty arrays not supported");
-        return;
     }
     int x = 0;
     compute_int(x, node->get_init());
@@ -140,14 +172,83 @@ void ModelReductor::visit(shared_ptr<RangedInitializedArray> node) {
     for (int i = 0; i < data.data_size; i++) {
         data.data_inits[i] = x;
     }
+    check_data(data);
     node->set_data(data);
 }
 
 void ModelReductor::visit(shared_ptr<RangedMultipleInitializedArray> node) {
-    reduce_vector(node->get_inits());
-    node->set_lower_bound(reduce(node->get_lower_bound()));
-    node->set_upper_bound(reduce(node->get_upper_bound()));
-    node->set_size(reduce(node->get_size()));
+    reduce_size(node);
+    reduce_range(node);
+    reduce_multiple_init(node);
+    ArrayData data;
+    compute_int(data.data_size, node->get_size());
+    compute_int(data.data_min, node->get_lower_bound());
+    compute_int(data.data_max, node->get_upper_bound());
+
+    std::cout << "setting min to " << data.data_min <<
+                 " and max to " << data.data_max << std::endl;
+
+
+    if (has_errors()) {
+        return; //failed on arrays parameters reduction
+    }
+    std::vector<shared_ptr<Exp>>& exps = node->get_inits();
+    if (exps.size() != (size_t) data.data_size) {
+        put_error("Wrong number of initializations, "
+                  "expected " + std::to_string(data.data_size));
+        return;
+    }
+    data.data_inits.resize(data.data_size);
+    for (int i = 0; i < data.data_size; i++) {
+        int x;
+        compute_int(x, exps[i]);
+        data.data_inits[i] = x;
+    }
+    check_data(data);
+    node->set_data(data);
+}
+
+void ModelReductor::visit(shared_ptr<InitializedArray> node) {
+    reduce_size(node);
+    reduce_init(node);
+    ArrayData data;
+    compute_int(data.data_size, node->get_size());
+    //only boolean supported here:
+    data.data_min = 0;
+    data.data_max = 1;
+    data.data_inits.resize(data.data_size);
+    int x = 0;
+    compute_int(x, node->get_init());
+    for (size_t i = 0; i < (size_t) data.data_size; i++) {
+        data.data_inits[i] = x;
+    }
+    check_data(data);
+    node->set_data(data);
+}
+
+void ModelReductor::visit(shared_ptr<MultipleInitializedArray> node) {
+    reduce_size(node);
+    reduce_multiple_init(node);
+    ArrayData data;
+    compute_int(data.data_size, node->get_size());
+    //only booleands supported here:
+    data.data_min = 0;
+    data.data_max = 1;
+    data.data_inits.resize(data.data_size);
+    std::vector<shared_ptr<Exp>>& exps = node->get_inits();
+    if (exps.size() != (size_t) data.data_size) {
+        put_error("Wrong number of initializations, "
+                  "expected " + std::to_string(data.data_size));
+        return;
+    }
+    data.data_inits.resize(data.data_size);
+    for (size_t i = 0; i < (size_t) data.data_size; i++) {
+        int x;
+        compute_int(x, exps[i]);
+        data.data_inits[i] = x;
+    }
+    check_data(data);
+    node->set_data(data);
 }
 
 //Transitions
@@ -200,4 +301,3 @@ void ModelReductor::visit(shared_ptr<MultipleParameterDist> node) {
         put_error("Distribution paremeters must be reducible at compilation time");
     }
 }
-

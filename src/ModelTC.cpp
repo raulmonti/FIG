@@ -448,7 +448,7 @@ float ModelTC::eval_float_or_put(shared_ptr<Exp> exp) {
     exp->accept(ev);
     float result = -1;
     if (ev.has_errors()) {
-		put_error(::TC_NOT_REDUCIBLE(exp));
+        put_error(ev.get_messages() + ::TC_NOT_REDUCIBLE(exp));
     } else {
         result = ev.get_float();
     }
@@ -467,21 +467,6 @@ void ModelTC::check_ranges(shared_ptr<Decl> decl) {
                 put_error(::TC_WRONG_INIT_VALUE(in->get_init()));
             }
         }
-    }
-}
-
-void ModelTC::check_dist(shared_ptr<Dist> dist) {
-    if (dist->has_single_parameter()) {
-        eval_float_or_put(dist->to_single_parameter()->get_parameter());
-    } else if (dist->has_multiple_parameters()) {
-        eval_float_or_put(dist->to_multiple_parameter()->get_first_parameter());
-        eval_float_or_put(dist->to_multiple_parameter()->get_second_parameter());
-    }
-}
-
-void ModelTC::check_dist(shared_ptr<ModuleScope> scope) {
-    for (auto entry : scope->dist_by_clock_map()) {
-        check_dist(entry.second);
     }
 }
 
@@ -536,7 +521,6 @@ void ModelTC::visit(shared_ptr<Model> model) {
             current_scope = scope_current;
             check_clocks(scope_current);
             check_ranged_all(scope_current);
-            check_dist(scope_current);
         }
     }
 }
@@ -614,7 +598,7 @@ void ModelTC::visit(shared_ptr<InitializedDecl> decl) {
     check_scope(decl);
 }
 
-void ModelTC::visit(shared_ptr<RangedInitializedArray> decl) {
+void ModelTC::check_array_size(shared_ptr<ArrayDecl> decl) {
     //check array size expression
     const string &id = decl->get_id();
     shared_ptr<Exp> size_exp = decl->get_size();
@@ -622,11 +606,13 @@ void ModelTC::visit(shared_ptr<RangedInitializedArray> decl) {
     const string &msg
             = TC_WRONG_SIZE_EXP(current_scope, id, size_exp, last_type);
     check_type(Type::tint, msg);
+}
+
+void ModelTC::check_array_range(const std::string& id,
+                                shared_ptr<Ranged> decl) {
     shared_ptr<Exp> lower = decl->get_lower_bound();
     shared_ptr<Exp> upper = decl->get_upper_bound();
-    shared_ptr<Exp> init = decl->get_init();
-    Type decl_type = decl->get_type();
-    assert(decl_type == Type::tint);
+    Type decl_type = Type::tint; //ranged only allowed to be integers
     accept_exp(decl_type, lower);
     const string msg2
             = TC_WRONG_LOWER_BOUND(current_scope, id, lower, last_type);
@@ -635,11 +621,66 @@ void ModelTC::visit(shared_ptr<RangedInitializedArray> decl) {
     const string msg3
             = TC_WRONG_UPPER_BOUND(current_scope, id, upper, last_type);
     check_type(decl_type, msg3);
+}
+
+void ModelTC::check_array_init(const std::string &id, Type decl_type,
+                               shared_ptr<Initialized> decl) {
+    shared_ptr<Exp> init = decl->get_init();
     accept_exp(decl_type, init);
     const string msg4
             = TC_WRONG_INIT_EXP(current_scope, id, init, decl_type, last_type);
     check_type(decl_type, msg4);
-    ///@todo complete tc for arrays.
+}
+
+void ModelTC::check_array_multiple_init(const std::string &id, Type decl_type,
+                                        shared_ptr<MultipleInitialized> decl) {
+    const std::vector<shared_ptr<Exp>> inits = decl->get_inits();
+    for (shared_ptr<Exp> init : inits) {
+        accept_exp(decl_type, init);
+        const string msg4
+                = TC_WRONG_INIT_EXP(current_scope, id,
+                                    init, decl_type, last_type);
+        check_type(decl_type, msg4);
+    }
+}
+
+void ModelTC::visit(shared_ptr<RangedInitializedArray> decl) {
+    const string &id = decl->get_id();
+    check_array_size(decl);
+    check_array_range(id, decl);
+    check_array_init(id, Type::tint, decl);
+    check_scope(decl);
+}
+
+void ModelTC::visit(shared_ptr<RangedMultipleInitializedArray> decl) {
+    const string &id = decl->get_id();
+    check_array_size(decl);
+    check_array_range(id, decl);
+    check_array_multiple_init(id, Type::tint, decl);
+    check_scope(decl);
+}
+
+void ModelTC::visit(shared_ptr<InitializedArray> decl) {
+    const string &id = decl->get_id();
+    check_array_size(decl);
+    if (decl->get_type() != Type::tbool) {
+        put_error("Only boolean arrays are supported "
+                  "when range is not declared.");
+        return;
+    }
+    check_array_init(id, Type::tbool, decl);
+    check_scope(decl);
+}
+
+void ModelTC::visit(shared_ptr<MultipleInitializedArray> decl) {
+    const string &id = decl->get_id();
+    check_array_size(decl);
+    if (decl->get_type() != Type::tbool) {
+        put_error("Only boolean arrays are supported "
+                  "when range is not declared.");
+        return;
+    }
+    check_array_multiple_init(id, Type::tbool, decl);
     check_scope(decl);
 }
 

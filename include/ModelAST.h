@@ -582,7 +582,7 @@ public:
 };
 
 /** @brief Array data to be inferred at compilation time. Currently
- * on ModelBuilder.
+ * inferred by ModelReducer.
  */
 struct ArrayData {
     int data_min = 0; //minimum value allowed for each element
@@ -636,10 +636,9 @@ public:
 
 /**
  * @brief InitializedArray
- * @example a[4] : int init 2;
+ * @example a[4] : bool init false;
  * @note The initialization is the value of all the array elements.
- *
- * @deprecated impossible to know the range of each element of the array
+ * @note only boolean supported since we have to know the range of each element
  */
 class InitializedArray : public ArrayDecl, public Initialized {
 public:
@@ -653,16 +652,14 @@ public:
 
 /**
  * @brief MultipleInitializedArray
- * @example const a[4] = {0, 4, 1, 2}
+ * @example a[4] = {true, false, true, false}
  * @note Each initialization correspond to an array element
- *
- * @todo Not implemented yet. We should use this only for constant
- * arrays, so we know the (constant) range of each element.
+ * @note only boolean supported since we have to know the range of each element
  */
 class MultipleInitializedArray : public ArrayDecl, public MultipleInitialized {
 public:
     MultipleInitializedArray(Type type, string id, shared_ptr<Exp> size,
-                                 const shared_vector<Exp>& inits) :
+                             const shared_vector<Exp>& inits) :
         ArrayDecl(type, id, size), MultipleInitialized {inits} {}
 
     /// Acceptor

@@ -123,18 +123,46 @@ void ExpEvaluator::visit(shared_ptr<LocExp> loc) {
         //try in global scope
         decl = ModuleScope::find_identifier_global(id);
     }
-    if (decl != nullptr && decl->is_constant()) {
-        if (decl->has_init()) {
-            shared_ptr<Exp> init = decl->to_initialized()->get_init();
-            //evaluate the expression associated with the identifier
-            init->accept(*this);
-            //this could lead to infinite loop if typechecking doesn't
-            //check for circular expressions.
-		} else {
-            put_error("Attempt to evaluate uninitialized constant");
+    if (decl == nullptr || !decl->is_constant()) {
+        put_error("Location \"" + id + "\" not reducible at compilation time");
+        return;
+    }
+    assert(decl->is_constant());
+    if (decl->is_array()) {
+        //location is a position of a constant array
+        shared_ptr<ArrayPosition> ap
+                = loc->get_exp_location()->to_array_position();
+        //try to get the constant, first evaluate the index
+        ap->get_index()->accept(*this);
+        if (has_errors()) {
+            put_error("Couldn't reduce the index of an array position");
+            return;
         }
-	} else {
-		put_error("Location \"" + id + "\" not reducible at compilation time");
+        assert(type == Type::tint); //we should get this ensured by now.
+        int pos = value.ivalue;
+        std::cout << "position " << pos << " reduced " << std::endl;
+        ArrayData data = decl->to_array()->get_data();
+        if (pos < data.data_size) {
+            int x = data.data_inits[pos];
+            type = decl->get_type();
+            std::cout << "An array position reduced to " << x << "at comptime"
+                      << std::endl;
+            if (type == Type::tbool) {
+                value.bvalue = x;
+            } else if (type == Type::tint) {
+                value.ivalue = x;
+            } else {
+                put_error("Array position of unsupported type");
+            }
+        } else {
+            put_error("Array index out of range");
+        }
+    } else if (decl->has_init()) {
+        shared_ptr<Exp> init = decl->to_initialized()->get_init();
+        //evaluate the expression associated with the identifier
+        init->accept(*this);
+        //this could lead to infinite loop if typechecking doesn't
+        //check for circular expressions.
     }
 }
 

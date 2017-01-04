@@ -67,18 +67,24 @@ private:
     void check_ranges(shared_ptr<Decl> decl);
     void check_ranged_all(shared_ptr<ModuleScope> scope);
 
-    /// Check if parameters of distributions are reducible
-    void check_dist(shared_ptr<Dist> dist);
-    void check_dist(shared_ptr<ModuleScope> scope);
-
+    /// Check if an identifier is in scope or redefined.
     void check_scope(shared_ptr<Decl> decl);
 
     /// Used to evaluate range bounds and distributions parameters
     int eval_int_or_put(shared_ptr<Exp> exp);
     float eval_float_or_put(shared_ptr<Exp> exp);
 
-    /// Check expression on its own instance of ModelTC but copy
-    /// inferred type to this instance
+
+    /// Check array's declaration
+    void check_array_size(shared_ptr<ArrayDecl> decl);
+    void check_array_range(const std::string& id, shared_ptr<Ranged> decl);
+    void check_array_init(const std::string& id,
+                          Type expected, shared_ptr<Initialized> decl);
+    void check_array_multiple_init(const std::string& id, Type expected,
+                                   shared_ptr<MultipleInitialized> decl);
+
+    /// Check an expression on its own instance of ModelTC but copy
+    /// the inferred type to this instance
     /// @note used to typecheck expressions that are expected
     /// to fail on several ocations, and hence error messages
     /// should be ignored.
@@ -93,12 +99,16 @@ public:
     ModelTC(const ModelTC& instance) = default;
 
     virtual ~ModelTC();
+
     /// Visitor functions
     void visit(shared_ptr<Model> node) override;
     void visit(shared_ptr<ModuleAST> node) override;
     void visit(shared_ptr<RangedDecl> node) override;
     void visit(shared_ptr<InitializedDecl> node) override;
     void visit(shared_ptr<RangedInitializedArray> node) override;
+    void visit(shared_ptr<RangedMultipleInitializedArray> node) override;
+    void visit(shared_ptr<InitializedArray> node) override;
+    void visit(shared_ptr<MultipleInitializedArray> node) override;
     void visit(shared_ptr<ClockDecl> node) override;
     void visit(shared_ptr<TransitionAST> node) override;
     void visit(shared_ptr<Assignment> node) override;

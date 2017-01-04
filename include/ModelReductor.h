@@ -14,6 +14,14 @@ private:
     //helpers to infer arrays data
     void compute_int(int &to, shared_ptr<Exp> size);
 
+    //reduce array expressions
+    void reduce_size(shared_ptr<ArrayDecl> decl);
+    void reduce_range(shared_ptr<Ranged> decl);
+    void reduce_init(shared_ptr<Initialized> decl);
+    void reduce_multiple_init(shared_ptr<MultipleInitialized> decl);
+    void check_data(const ArrayData &data);
+
+
 public:
     ModelReductor() {}
 
