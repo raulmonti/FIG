@@ -35,7 +35,7 @@ void ExpStringBuilder::visit(shared_ptr<LocExp> node) {
     }
     //not reducible
     shared_ptr<Location> location = node->get_exp_location();
-    if (location->is_array()) {
+    if (location->is_array_position()) {
         shared_ptr<ArrayPosition> ap = location->to_array_position();
         ExpEvaluator ev (scope);
         ap->get_index()->accept(ev);

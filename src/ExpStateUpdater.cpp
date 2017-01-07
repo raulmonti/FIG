@@ -13,7 +13,7 @@ ExpStateUpdater::append_arrays_indices(const ExpContainer &exps,
         astVec.push_back(exp);
     }
     for (shared_ptr<Location> loc : updates) {
-        if (loc->is_array()) {
+        if (loc->is_array_position()) {
             astVec.push_back(loc->to_array_position()->get_index());
             num_arr_pos++;
         }
@@ -36,9 +36,9 @@ ExpStateUpdater::ExpStateUpdater(const LocationContainer &updates,
         //append_array_indices must iterate in the same order
         shared_ptr<Location> loc = updates[i];
         const std::string &name = loc->get_identifier();
-        if (loc->is_array()) {
+        if (loc->is_array_position()) {
             shared_ptr<ArrayDecl> decl
-                    = loc->to_array_position()->get_decl();
+                    = loc->get_decl()->to_array();
             assert(decl != nullptr);
             size_t size = decl->get_data().data_size;
             // this array has its index in the N + offset position

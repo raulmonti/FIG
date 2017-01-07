@@ -378,7 +378,19 @@ inline const string TC_WRONG_INIT_VALUE(shared_ptr<Exp> exp) {
     ss << *exp;
     return (ss.str());
 }
+
+inline const string TC_NOT_ARRAY(const shared_ptr<ModuleScope> &curr,
+                                 const shared_ptr<Location> &loc) {
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Identifier ";
+    ss << " \"" << loc->get_identifier() << "\" ";
+    ss << *loc;
+    ss << " is not an array";
+    return (ss.str());
 }
+
+} //namespace
 
 inline void ModelTC::check_type(Type type, const string &msg) {
     if (!has_errors() && !(BasicTy(last_type) <= BasicTy(type))) {
@@ -663,7 +675,7 @@ void ModelTC::visit(shared_ptr<RangedMultipleInitializedArray> decl) {
 void ModelTC::visit(shared_ptr<InitializedArray> decl) {
     const string &id = decl->get_id();
     check_array_size(decl);
-    if (decl->get_type() != Type::tbool) {
+    if (decl->get_type() != Type::tboolarray) {
         put_error("Only boolean arrays are supported "
                   "when range is not declared.");
         return;
@@ -675,7 +687,7 @@ void ModelTC::visit(shared_ptr<InitializedArray> decl) {
 void ModelTC::visit(shared_ptr<MultipleInitializedArray> decl) {
     const string &id = decl->get_id();
     check_array_size(decl);
-    if (decl->get_type() != Type::tbool) {
+    if (decl->get_type() != Type::tboolarray) {
         put_error("Only boolean arrays are supported "
                   "when range is not declared.");
         return;
@@ -811,6 +823,10 @@ void ModelTC::visit(shared_ptr<ArrayPosition> loc) {
             TC_WRONG_INDEX_INT(current_scope, loc, loc->get_index(), last_type);
     check_type(Type::tint, msg);
     visit(std::static_pointer_cast<Location>(loc));
+    last_type = Ty::array_elem_type(last_type);
+    if (last_type == Type::tunknown) {
+        put_error(::TC_NOT_ARRAY(current_scope, loc));
+    }
 }
 
 void ModelTC::visit(shared_ptr<IConst> exp) {

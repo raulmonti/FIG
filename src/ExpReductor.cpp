@@ -46,23 +46,23 @@ void ExpReductor::visit(shared_ptr<FConst> node) {
 void ExpReductor::visit(shared_ptr<LocExp> node) {
     assert(node->get_type() != Type::tunknown);
     shared_ptr<Location> loc = node->get_exp_location();
-    if (!loc->is_array()) {
+    //for convenience save the declaration
+    const std::string& id = loc->get_identifier();
+    shared_ptr<Decl> decl = ModuleScope::find_identifier_on(scope, id);
+    assert(decl != nullptr);
+    loc->set_decl(decl);
+    if (!loc->is_array_position()) {
         reduced_exp = eval_if_possible(node);
         return;
     }
-    //is array
+    //is array position
+    assert(decl->to_array() != nullptr);
     assert (scope != nullptr);
     shared_ptr<ArrayPosition> ap = loc->to_array_position();
     //reduce index of array position
     ap->get_index()->accept(*this);
     shared_ptr<Exp> reduced_index = eval_if_possible(reduced_exp);
     ap->set_index(reduced_index);
-    //for convenience save the declaration
-    const std::string& id = ap->get_identifier();
-    shared_ptr<Decl> decl = scope->find_identifier(id);
-    assert(decl != nullptr);
-    assert(decl->to_array() != nullptr);
-    ap->set_decl(decl->to_array());
     reduced_exp = eval_if_possible(node);
 }
 
@@ -78,7 +78,6 @@ void ExpReductor::visit(shared_ptr<BinOpExp> exp) {
                                   left_reduced, right_reduced);
     new_exp->set_type(exp->get_type());
     new_exp->set_inferred_type(exp->get_inferred_type());
-    new_exp->set_callable(exp->get_callable());
     assert(new_exp->get_inferred_type() == exp->get_inferred_type());
     //may be this new expression could still be reduced
     reduced_exp = eval_if_possible(new_exp);

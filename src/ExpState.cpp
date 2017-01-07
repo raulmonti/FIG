@@ -5,13 +5,15 @@ namespace fig {
 void ExpNameCollector::visit(shared_ptr<LocExp> node) noexcept {
     shared_ptr<Location> loc = node->get_exp_location();
     const std::string &name = loc->get_identifier();
-    if(loc->is_array()) {
+    if(loc->is_array_position() || loc->get_decl()->is_array()) {
+        //appears as "array[4]" or as "fsteq(array, 1)"
         if (arrays.find(name) == arrays.end()) {
-            shared_ptr<ArrayDecl> decl = loc->to_array_position()->get_decl();
+            shared_ptr<ArrayDecl> decl = loc->get_decl()->to_array();
             assert(decl != nullptr);
             arrays[name] = decl->get_data();
         }
     } else {
+        //add simple variables only
         vars.insert(name);
     }
 }
@@ -24,6 +26,23 @@ void ExpNameCollector::visit(shared_ptr<BinOpExp> node) noexcept {
 void ExpNameCollector::visit(shared_ptr<UnOpExp> node) noexcept {
     node->get_argument()->accept(*this);
 }
+
+template<typename T>
+FstEqFunction<T> ExpState<T>::fsteq_;
+template<typename T>
+LstEqFunction<T> ExpState<T>::lsteq_;
+template<typename T>
+RndEqFunction<T> ExpState<T>::rndeq_;
+template<typename T>
+MaxFromFunction<T> ExpState<T>::maxfrom_;
+template<typename T>
+MinFromFunction<T> ExpState<T>::minfrom_;
+template<typename T>
+SumFromFunction<T> ExpState<T>::sumfrom_;
+template<typename T>
+ConsecFunction<T> ExpState<T>::consec_;
+template<typename T>
+BrokenFunction<T> ExpState<T>::broken_;
 
 template<typename T>
 ExpState<T>::ExpState(const std::vector<std::shared_ptr<Exp>> &astVec) {
@@ -79,7 +98,6 @@ ExpState<T>::ExpState(const ExpState& that) {
 template<typename T>
 void ExpState<T>::project_positions(const State<STATE_INTERNAL_TYPE> &state)
 noexcept {
-    //std::cout << "project position S called" << std::endl;
     for (auto &pair : vars_) {
         const std::string &name = pair.first;
         VarData &v = pair.second;
@@ -95,7 +113,6 @@ noexcept {
 template<typename T>
 void ExpState<T>::project_positions(const PositionsMap &posMap)
 noexcept {
-    //std::cout << "project position called" << std::endl;
     for (auto &pair : vars_) {
         const std::string &name = pair.first;
         VarData &v = pair.second;
@@ -111,7 +128,6 @@ noexcept {
 template<typename T>
 void ExpState<T>::project_values(const State<STATE_INTERNAL_TYPE> &state)
 noexcept {
-    //std::cout << "project values called S" << std::endl;
     for (auto &pair : vars_) {
         const std::string &name = pair.first;
         VarData &v = pair.second;
@@ -132,7 +148,6 @@ noexcept {
 
 template<typename T>
 void ExpState<T>::project_values(const StateInstance &state) noexcept {
-    //std::cout << "project values called" << std::endl;
     for (auto &pair : vars_) {
         VarData &v = pair.second;
         if (v.type_ == VarType::SIMPLE) {
@@ -169,8 +184,21 @@ void ExpState<T>::fill_symbol_table() noexcept {
             table_.add_vector(name, ((T*) mem_.data()) + fstPos, size);
         }
     }
-    //print_table();
+    add_functions();
 }
+
+template<typename T>
+void ExpState<T>::add_functions() noexcept {
+    table_.add_function("fsteq", fsteq_);
+    table_.add_function("lsteq", lsteq_);
+    table_.add_function("rndeq", rndeq_);
+    table_.add_function("maxfrom", maxfrom_);
+    table_.add_function("minfrom", minfrom_);
+    table_.add_function("sumfrom", sumfrom_);
+    table_.add_function("consec", consec_);
+    table_.add_function("broken", broken_);
+}
+
 
 template<typename T>
 void ExpState<T>::print_table() const noexcept {

@@ -355,7 +355,7 @@ void compile_model(bool modelAlreadyBuilt)
             tech_log("- Confluence-checking succeeded\n");
         }
     }
-
+    /*
 	// Check IOSA correctness
 	if (ModuleScope::modules_size_bounded_by(ModelVerifier::NTRANS_BOUND)) {
 		ModelVerifier verifier;
@@ -377,6 +377,7 @@ void compile_model(bool modelAlreadyBuilt)
 	} else {
 		log("- IOSA-checking skipped: model is too big\n");
 	}
+    */
 
 	// Build model (i.e. populate ModelSuite)
 	ModelBuilder builder;

@@ -110,6 +110,14 @@ blank  [ \t]
 "min"         return ModelParser::make_MIN(loc);
 "pow"         return ModelParser::make_POW(loc);
 "_"           return ModelParser::make_UNDERSCORE(loc);
+"fsteq"       return ModelParser::make_FSTEQ(loc);
+"lsteq"       return ModelParser::make_LSTEQ(loc);
+"rndeq"       return ModelParser::make_RNDEQ(loc);
+"minfrom"     return ModelParser::make_MINFROM(loc);
+"maxfrom"     return ModelParser::make_MAXFROM(loc);
+"sumfrom"     return ModelParser::make_SUMFROM(loc);
+"consec"      return ModelParser::make_CONSEC(loc);
+"broken"      return ModelParser::make_BROKEN(loc);
 
 {id}       return ModelParser::make_ID(yytext, loc);
 {int}      return ModelParser::make_INTL(parse_int(), loc);

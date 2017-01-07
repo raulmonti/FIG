@@ -9,7 +9,7 @@
 #include <ModelAST.h>
 #include <State.h>
 #include <FigException.h>
-#include "exprtk.hpp"
+#include <ArrayFunctions.h>
 
 namespace fig {
 
@@ -33,6 +33,14 @@ public:
 template<typename T>
 class ExpState {
 private:
+    static FstEqFunction<T> fsteq_;
+    static LstEqFunction<T> lsteq_;
+    static RndEqFunction<T> rndeq_;
+    static MaxFromFunction<T> maxfrom_;
+    static MinFromFunction<T> minfrom_;
+    static SumFromFunction<T> sumfrom_;
+    static ConsecFunction<T> consec_;
+    static BrokenFunction<T> broken_;
 
     enum class VarType {
         SIMPLE, ARRAY
@@ -141,6 +149,7 @@ public:
 
 private:
     void fill_symbol_table() noexcept;
+    void add_functions() noexcept;
 
 };
 

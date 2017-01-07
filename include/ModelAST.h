@@ -600,10 +600,18 @@ private:
     /// Array compile-time inferred info
     ArrayData data;
 
+    Type array_type(Type type) {
+        switch (type) {
+        case Type::tint: return Type::tintarray;
+        case Type::tbool: return Type::tboolarray;
+        default: return Type::tunknown;
+        }
+    }
+
 protected:
     /// Protected constructor.
     ArrayDecl(Type type, string id, shared_ptr<Exp> size)
-        : Decl(type, id), size {size} {}
+        : Decl(array_type(type), id), size {size} {}
 public:
     /// Return the expression with the size of the array
     shared_ptr<Exp> get_size() const {
@@ -638,14 +646,14 @@ public:
  * @brief InitializedArray
  * @example a[4] : bool init false;
  * @note The initialization is the value of all the array elements.
- * @note only boolean supported since we have to know the range of each element
+ * @note only boolean type is supported for this form of syntax
+ * since we have to know the range of each element
  */
 class InitializedArray : public ArrayDecl, public Initialized {
 public:
     InitializedArray(Type type, string id, shared_ptr<Exp> size,
                 shared_ptr<Exp> init) :
         ArrayDecl(type, id, size), Initialized {init} {}
-
     /// Acceptor
     virtual void accept(Visitor& visit) override;
 };
@@ -654,7 +662,8 @@ public:
  * @brief MultipleInitializedArray
  * @example a[4] = {true, false, true, false}
  * @note Each initialization correspond to an array element
- * @note only boolean supported since we have to know the range of each element
+ * @note only boolean supported for this form of syntax
+ * since we have to know the range of each element
  */
 class MultipleInitializedArray : public ArrayDecl, public MultipleInitialized {
 public:
@@ -1098,6 +1107,10 @@ private:
     /// during simulation to speed up evaluation
     size_t position;
 
+    /// Convenient pointer to identifier declaration
+    /// @note setted by ModelReductor
+    shared_ptr<Decl> decl;
+
 public:
     Location(const string& id) : id {id} {}
     Location(const Location &) = delete;
@@ -1113,7 +1126,7 @@ public:
 	}
 
 	/// Is this an indexed array? (e.g. x[4])
-	virtual bool is_array() const {
+    virtual bool is_array_position() const {
 		return (false);
 	}
 
@@ -1131,8 +1144,16 @@ public:
 
     /// Converts this location into an ArrayPosition
     shared_ptr<class ArrayPosition> to_array_position() {
-        assert(is_array());
+        assert(is_array_position());
         return std::dynamic_pointer_cast<ArrayPosition>(shared_from_this());
+    }
+
+    void set_decl(shared_ptr<Decl> decl) {
+        this->decl = decl;
+    }
+
+    shared_ptr<Decl> get_decl() {
+        return (decl);
     }
 };
 
@@ -1144,10 +1165,6 @@ class ArrayPosition : public Location {
 private:
     /// Expression used to compute the index
     shared_ptr<Exp> index;
-
-    /// Convenient pointer to array declaration
-    /// @note setted by ModelReductor
-    shared_ptr<ArrayDecl> decl;
 
 public:
     ArrayPosition(const string &id, shared_ptr<Exp> index)
@@ -1166,24 +1183,15 @@ public:
         this->index = exp;
 	}
 
-	bool is_array() const override {
+    bool is_array_position() const override {
 		return (true);
 	}
 
 	bool operator ==(const Location& that) const override {
 		return  that == *this &&
-				that.is_array() &&
+                that.is_array_position() &&
 				static_cast<const ArrayPosition&>(that).index == index;
 	}
-
-    void set_decl(shared_ptr<ArrayDecl> decl) {
-        this->decl = decl;
-    }
-
-    shared_ptr<ArrayDecl> get_decl() {
-        return (decl);
-    }
-
 };
 
 /**
@@ -1407,9 +1415,6 @@ private:
     // When adding new members, remember to update ExpReductor visitor!
     // @todo make a proper copy constructor for that visitor
 
-    typedef int (binfun) (int, int);
-    binfun *callable = nullptr;
-
 public:
     BinOpExp(ExpOp op, shared_ptr<Exp> left, shared_ptr<Exp> right) :
         OpExp(op), left {left}, right {right} {}
@@ -1468,14 +1473,6 @@ public:
 				thatBinOpExpr.left == left &&
 				thatBinOpExpr.right == right;
 	}
-
-    void set_callable(binfun *f) {
-        this->callable = f;
-    }
-
-    inline binfun *get_callable() {
-        return (this->callable);
-    }
 };
 
 /**
@@ -1487,10 +1484,6 @@ class UnOpExp : public OpExp {
 private:
     shared_ptr<UnaryOpTy> inferred_type = nullptr;
     shared_ptr<Exp> argument;
-
-    typedef int (unfun) (int);
-    unfun *callable = nullptr;
-
 
 public:
     UnOpExp(ExpOp op, shared_ptr<Exp> argument) :
@@ -1539,14 +1532,6 @@ public:
 		return  static_cast<const OpExp&>(that) == *this &&
 				thatUnOpExpr.argument == argument;
 	}
-
-    void set_callable(unfun *f) {
-        this->callable = f;
-    }
-
-    inline unfun *get_callable() {
-        return (callable);
-    }
 };
 
 /**

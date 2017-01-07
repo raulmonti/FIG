@@ -110,6 +110,16 @@ public:
         return (decl);
     }
 
+    /// Find an identifier in the given scope. If scope is null, the
+    /// global scope is searched
+    static shared_ptr<Decl> find_identifier_on(shared_ptr<ModuleScope> scope,
+                                                const string &id) {
+        return scope == nullptr ?
+                    find_identifier_global(id) : scope->find_identifier(id);
+
+    }
+
+
     /// Find an identifier in every module. Mainly used to build
     /// properties, since they can contain variables of any module.
     static shared_ptr<Decl> find_in_all_modules(const string &id) {

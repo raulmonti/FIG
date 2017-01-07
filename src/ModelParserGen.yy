@@ -24,7 +24,6 @@
     
 #include "ModelAST.h"
 #include "Util.h"
-#include "OperatorFunctions.h"
 
     using std::shared_ptr;
     using std::make_shared;
@@ -111,6 +110,14 @@ MAX "max"
 LOG "log"
 POW "pow"
 UNDERSCORE "_"
+FSTEQ "fsteq"
+LSTEQ "lsteq"
+RNDEQ "rndeq"
+MAXFROM "maxfrom"
+MINFROM "minfrom"
+SUMFROM "sumfrom"
+CONSEC "consec"
+BROKEN "broken"
 ;
 
 %right "=>"
@@ -336,101 +343,72 @@ exp : location[loc]
 {$$ = make_shared<BConst>(false); save_location($$, @$);}
 | exp[e1] "+" exp[e2]
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::plus, $e1, $e2);
-    ///@todo the callable is not longer used.
-    exp->set_callable(binaryfun::plus);
-    $$ = exp;
+    $$ = make_shared<BinOpExp>(ExpOp::plus, $e1, $e2);
     save_location($$, @$);
 }
 | exp[e1] "-" exp[e2]
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::minus, $e1, $e2);
-    exp->set_callable(binaryfun::minus);
-    $$ = exp;
+    $$ = make_shared<BinOpExp>(ExpOp::minus, $e1, $e2);
     save_location($$, @$);
 }
 | exp[e1] "/" exp[e2]
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::div, $e1, $e2);
-    exp->set_callable(binaryfun::div);
-    $$ = exp;
+    $$ = make_shared<BinOpExp>(ExpOp::div, $e1, $e2);
     save_location($$, @$);
 }
 | exp[e1] "*" exp[e2]
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::times, $e1, $e2);
-    exp->set_callable(binaryfun::times);
-    $$ = exp;
+    $$ = make_shared<BinOpExp>(ExpOp::times, $e1, $e2);
     save_location($$, @$);
 }
 | exp[e1] "%" exp[e2]
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::mod, $e1, $e2);
-    exp->set_callable(binaryfun::mod);
-    $$ = exp;
+    $$ = make_shared<BinOpExp>(ExpOp::mod, $e1, $e2);
     save_location($$, @$);
 }
 | exp[e1] "==" exp[e2]
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::eq, $e1, $e2);
-    exp->set_callable(binaryfun::eq);
-    $$ = exp;
+    $$ = make_shared<BinOpExp>(ExpOp::eq, $e1, $e2);
     save_location($$, @$);
 }
 | exp[e1] "!=" exp[e2]
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::neq, $e1, $e2);
-    exp->set_callable(binaryfun::neq);
-    $$ = exp;
+    $$ = make_shared<BinOpExp>(ExpOp::neq, $e1, $e2);
     save_location($$, @$);
 }
 | exp[e1] "<" exp[e2]
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::lt, $e1, $e2);
-    exp->set_callable(binaryfun::lt);
-    $$ = exp;
+    $$ = make_shared<BinOpExp>(ExpOp::lt, $e1, $e2);
     save_location($$, @$);
 }
 | exp[e1] ">" exp[e2]
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::gt, $e1, $e2);
-    exp->set_callable(binaryfun::gt);
-    $$ = exp;
+    $$ = make_shared<BinOpExp>(ExpOp::gt, $e1, $e2);
     save_location($$, @$);
 }
 | exp[e1] "<=" exp[e2]
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::le, $e1, $e2);
-    exp->set_callable(binaryfun::le);
-    $$ = exp;
+    $$ = make_shared<BinOpExp>(ExpOp::le, $e1, $e2);
     save_location($$, @$);
 }
 | exp[e1] ">=" exp[e2]
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::ge, $e1, $e2);
-    exp->set_callable(binaryfun::ge);
-    $$ = exp;
+    $$ =  make_shared<BinOpExp>(ExpOp::ge, $e1, $e2);
     save_location($$, @$);
 }
 | exp[e1] "&" exp[e2]
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::andd, $e1, $e2);
-    exp->set_callable(binaryfun::andd);
-    $$ = exp;
+    $$ = make_shared<BinOpExp>(ExpOp::andd, $e1, $e2);
     save_location($$, @$);
 }
 | exp[e1] "=>" exp[e2]
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::implies, $e1, $e2);
-    exp->set_callable(binaryfun::implies);
-    $$ = exp;
+    $$ = make_shared<BinOpExp>(ExpOp::implies, $e1, $e2);
     save_location($$, @$);
 }
 | exp[e1] "|" exp[e2]
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::orr, $e1, $e2);
-    exp->set_callable(binaryfun::orr);
-    $$ = exp;
+    $$ = make_shared<BinOpExp>(ExpOp::orr, $e1, $e2);
     save_location($$, @$);
 }
 | "log" "(" exp[e1] "," exp[e2] ")"
@@ -438,37 +416,27 @@ exp : location[loc]
     save_location($$, @$);}
 | "pow" "(" exp[e1] "," exp[e2] ")"
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::pow, $e1, $e2);
-    exp->set_callable(binaryfun::pow);
-    $$ = exp;
+    $$ = make_shared<BinOpExp>(ExpOp::pow, $e1, $e2);
     save_location($$, @$);
 }
 | "min" "(" exp[e1] "," exp[e2] ")"
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::min, $e1, $e2);
-    exp->set_callable(binaryfun::min);
-    $$ = exp;
+    $$ = make_shared<BinOpExp>(ExpOp::min, $e1, $e2);
     save_location($$, @$);
 }
 | "max" "(" exp[e1] "," exp[e2] ")"
 {
-    shared_ptr<BinOpExp> exp = make_shared<BinOpExp>(ExpOp::max, $e1, $e2);
-    exp->set_callable(binaryfun::max);
-    $$ = exp;
+    $$ = make_shared<BinOpExp>(ExpOp::max, $e1, $e2);
     save_location($$, @$);
 }
 | "-" exp[e] %prec UMINUS
 {
-    shared_ptr<UnOpExp> exp = make_shared<UnOpExp>(ExpOp::minus, $e);
-    exp->set_callable(unaryfun::minus);
-    $$ = exp;
+    $$ = make_shared<UnOpExp>(ExpOp::minus, $e);
     save_location($$, @$);
 }
 | "!" exp[e] %prec NEG
 {
-    shared_ptr<UnOpExp> exp = make_shared<UnOpExp>(ExpOp::nott, $e);
-    exp->set_callable(unaryfun::nott);
-    $$ = exp;
+    $$ = make_shared<UnOpExp>(ExpOp::nott, $e);
     save_location($$, @$);
 }
 | "floor" exp[e] %prec UMINUS
@@ -479,16 +447,52 @@ exp : location[loc]
         save_location($$, @$);}
 | "abs" exp[e] %prec UMINUS
 {
-    shared_ptr<UnOpExp> exp = make_shared<UnOpExp>(ExpOp::abs, $e);
-    exp->set_callable(unaryfun::abs);
-    $$ = exp;
+    $$ = make_shared<UnOpExp>(ExpOp::abs, $e);
     save_location($$, @$);
 }
 | "sgn" exp[e] %prec UMINUS
 {
-    shared_ptr<UnOpExp> exp = make_shared<UnOpExp>(ExpOp::sgn, $e);
-    exp->set_callable(unaryfun::sgn);
-    $$ = exp;
+    $$ = make_shared<UnOpExp>(ExpOp::sgn, $e);
+    save_location($$, @$);
+}
+| "fsteq" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::fsteq, $e1, $e2);
+    save_location($$, @$);
+}
+| "lsteq" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::lsteq, $e1, $e2);
+    save_location($$, @$);
+}
+| "rndeq" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::rndeq, $e1, $e2);
+    save_location($$, @$);
+}
+| "minfrom" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::minfrom, $e1, $e2);
+    save_location($$, @$);
+}
+| "maxfrom" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::maxfrom, $e1, $e2);
+    save_location($$, @$);
+}
+| "sumfrom" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::sumfrom, $e1, $e2);
+    save_location($$, @$);
+}
+| "consec" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::consec, $e1, $e2);
+    save_location($$, @$);
+}
+| "broken" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::broken, $e1, $e2);
     save_location($$, @$);
 }
 | "(" exp[e] ")"

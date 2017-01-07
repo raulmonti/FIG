@@ -140,19 +140,16 @@ void ExpEvaluator::visit(shared_ptr<LocExp> loc) {
         }
         assert(type == Type::tint); //we should get this ensured by now.
         int pos = value.ivalue;
-        std::cout << "position " << pos << " reduced " << std::endl;
         ArrayData data = decl->to_array()->get_data();
         if (pos < data.data_size) {
             int x = data.data_inits[pos];
-            type = decl->get_type();
-            std::cout << "An array position reduced to " << x << "at comptime"
-                      << std::endl;
+            type = Ty::array_elem_type(decl->get_type());
             if (type == Type::tbool) {
                 value.bvalue = x;
             } else if (type == Type::tint) {
                 value.ivalue = x;
             } else {
-                put_error("Array position of unsupported type");
+                put_error("ModelReductor: Unsupported array type");
             }
         } else {
             put_error("Array index out of range");

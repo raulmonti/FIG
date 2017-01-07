@@ -161,6 +161,11 @@ z3::sort Z3Converter::type_to_sort(Type type, z3::context& ctx) {
     case Type::tbool: return ctx.bool_sort();
     case Type::tint: return ctx.int_sort();
     case Type::tfloat: return ctx.real_sort();
+        ///@todo complete support for arrays in this class.
+    case Type::tboolarray: return ctx.bool_sort();
+        //return ctx.array_sort(ctx.int_sort(), ctx.bool_sort());
+    case Type::tintarray: return ctx.int_sort();
+        //return ctx.array_sort(ctx.int_sort(), ctx.int_sort());
     default:
         throw_FigException("Unsupported type");
     }
@@ -217,6 +222,14 @@ Z3Converter::bop_to_fun(ExpOp op) {
     case ExpOp::mod: return [] (const z3::expr &a, const z3::expr &b) {
             return (::z3mod(a, b));
         };
+    case ExpOp::fsteq:
+    case ExpOp::lsteq:
+    case ExpOp::rndeq:
+    case ExpOp::minfrom:
+    case ExpOp::maxfrom:
+    case ExpOp::sumfrom:
+    case ExpOp::consec:
+    case ExpOp::broken:
     default:
         throw_FigException("Unsupported operator");
     }

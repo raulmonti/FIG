@@ -11,19 +11,25 @@
  const UnaryOpTy Unary::fi = UnaryOpTy(Type::tfloat, Type::tint);
  const UnaryOpTy Unary::bb = UnaryOpTy(Type::tbool, Type::tbool);
  const BinaryOpTy Binary::iff
-= BinaryOpTy(Type::tint, Type::tfloat, Type::tfloat);
+ = BinaryOpTy(Type::tint, Type::tfloat, Type::tfloat);
  const BinaryOpTy Binary::fif
-= BinaryOpTy(Type::tfloat, Type::tint, Type::tfloat);
+ = BinaryOpTy(Type::tfloat, Type::tint, Type::tfloat);
  const BinaryOpTy Binary::fff
-= BinaryOpTy(Type::tfloat, Type::tfloat, Type::tfloat);
+ = BinaryOpTy(Type::tfloat, Type::tfloat, Type::tfloat);
  const BinaryOpTy Binary::iii
-= BinaryOpTy(Type::tint, Type::tint, Type::tint);
+ = BinaryOpTy(Type::tint, Type::tint, Type::tint);
  const BinaryOpTy Binary::bbb
-= BinaryOpTy(Type::tbool, Type::tbool, Type::tbool);
+ = BinaryOpTy(Type::tbool, Type::tbool, Type::tbool);
  const BinaryOpTy Binary::ffb
-= BinaryOpTy(Type::tfloat, Type::tfloat, Type::tbool);
+ = BinaryOpTy(Type::tfloat, Type::tfloat, Type::tbool);
  const BinaryOpTy Binary::iib
-= BinaryOpTy(Type::tint, Type::tint, Type::tbool);
+ = BinaryOpTy(Type::tint, Type::tint, Type::tbool);
+ const BinaryOpTy Binary::Iii
+ = BinaryOpTy(Type::tintarray, Type::tint, Type::tint);
+ const BinaryOpTy Binary::Bbi
+ = BinaryOpTy(Type::tboolarray, Type::tbool, Type::tint);
+ const BinaryOpTy Binary::Bib
+ = BinaryOpTy(Type::tboolarray, Type::tint, Type::tbool);
 
 std::string Operator::operator_string(ExpOp op) {
     std::string result;
@@ -51,13 +57,21 @@ std::string Operator::operator_string(ExpOp op) {
     case ExpOp::max: result = "max"; break;
     case ExpOp::pow: result = "pow"; break;
     case ExpOp::log: result = "log"; break;
+    case ExpOp::fsteq: result = "fsteq"; break;
+    case ExpOp::lsteq: result = "lsteq"; break;
+    case ExpOp::rndeq: result = "rndeq"; break;
+    case ExpOp::minfrom: result = "minfrom"; break;
+    case ExpOp::maxfrom: result = "maxfrom"; break;
+    case ExpOp::sumfrom: result = "sumfrom"; break;
+    case ExpOp::consec: result = "consec"; break;
+    case ExpOp::broken: result = "broken"; break;
 	default: throw_FigException("invalid expression operator"); break;
 	}
     return result;
 }
 
 bool Operator::is_infix_operator(ExpOp op) {
-	// this is how you do it, you fool! XD
+    // this is how you do it, you fool! XD ;)
     switch(op) {
 	case ExpOp::implies:
 	case ExpOp::andd:
@@ -148,6 +162,30 @@ std::vector<BinaryOpTy> Operator::binary_types(ExpOp op) {
         return std::vector<BinaryOpTy> {
             Binary::fff, Binary::fif,
             Binary::iff, Binary::iii
+        };
+    }
+    case ExpOp::fsteq:
+    case ExpOp::lsteq:
+    case ExpOp::rndeq: {
+        return std::vector<BinaryOpTy> {
+            Binary::Iii, Binary::Bbi
+        };
+    }
+    case ExpOp::sumfrom:
+    case ExpOp::maxfrom:
+    case ExpOp::minfrom: {
+        return std::vector<BinaryOpTy> {
+            Binary::Iii
+        };
+    }
+    case ExpOp::consec: {
+        return std::vector<BinaryOpTy> {
+            Binary::Bib
+        };
+    }
+    case ExpOp::broken: {
+        return std::vector<BinaryOpTy> {
+            Binary::Iii
         };
     }
     default:

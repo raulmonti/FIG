@@ -13,11 +13,11 @@ enum class ExpOp {
     eq, neq, lt, gt, le, ge,
     floor, ceil, abs, sgn,
 	min, max, pow, log,
+    fsteq, lsteq, rndeq, maxfrom, minfrom, sumfrom, consec, broken, //arrays
 	invalid
 };
 
 class Operator {
-
 public:
     static std::vector<UnaryOpTy> unary_types(ExpOp op);
     static std::vector<BinaryOpTy> binary_types(ExpOp op);
@@ -53,6 +53,11 @@ public:
     static const BinaryOpTy bbb;
     static const BinaryOpTy ffb;
     static const BinaryOpTy iib;
+    //array
+    static const BinaryOpTy Iii; //array of int, int returns int
+    static const BinaryOpTy Bbi;
+    static const BinaryOpTy Bib;
+
 };
 
 #endif

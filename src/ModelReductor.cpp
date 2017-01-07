@@ -94,7 +94,7 @@ void ModelReductor::compute_int(int &to,
     ExpEvaluator ev (current_scope);
     exp->accept(ev);
     if (ev.has_errors()) {
-        put_error("Reduction error, setting value to 0");
+        put_error(ev.get_messages() + "Reduction error, setting value to 0");
         to = 0;
     } else if (ev.has_type_int()) {
         to = ev.get_int();
@@ -136,14 +136,11 @@ void ModelReductor::check_data(const ArrayData& data) {
         return;
     }
     for (const int x : data.data_inits) {
-        std::cout << "init " << x << std::endl;
         if (x < data.data_min) {
             put_error("Initialization lesser than lower bound");
             return;
         }
         if (x > data.data_max) {
-            std::cout << "Value is " << x << " but max is " << data.data_max
-                      << std::endl;
             put_error("Initialization greater than upper bound");
             return;
         }
@@ -159,12 +156,10 @@ void ModelReductor::visit(shared_ptr<RangedInitializedArray> node) {
     compute_int(data.data_min, node->get_lower_bound());
     compute_int(data.data_max, node->get_upper_bound());
 
-    std::cout << "setting min to " << data.data_min <<
-                 " and max to " << data.data_max << std::endl;
-
     if (has_errors()) {
         return; //failed on arrays parameters reduction
     }
+
     int x = 0;
     compute_int(x, node->get_init());
     data.data_inits.resize(data.data_size);
@@ -184,10 +179,6 @@ void ModelReductor::visit(shared_ptr<RangedMultipleInitializedArray> node) {
     compute_int(data.data_size, node->get_size());
     compute_int(data.data_min, node->get_lower_bound());
     compute_int(data.data_max, node->get_upper_bound());
-
-    std::cout << "setting min to " << data.data_min <<
-                 " and max to " << data.data_max << std::endl;
-
 
     if (has_errors()) {
         return; //failed on arrays parameters reduction
@@ -264,17 +255,18 @@ void ModelReductor::visit(shared_ptr<TransitionAST> node) {
 
 void ModelReductor::visit(shared_ptr<Assignment> node) {
     shared_ptr<Location> loc = node->get_effect_location();
-    if (loc->is_array()) {
+    //find declaration and save for convenience:
+    const std::string& id = loc->get_identifier();
+    shared_ptr<Decl> decl = ModuleScope::find_identifier_on(current_scope, id);
+    assert(decl != nullptr);
+    loc->set_decl(decl);
+    if (loc->is_array_position()) {
         assert(current_scope != nullptr);
         //reduce the index in the array position
         shared_ptr<ArrayPosition> ap = loc->to_array_position();
         ap->set_index(reduce(ap->get_index()));
-        // find declararion and save, for convenience
-        const std::string& id = ap->get_identifier();
-        shared_ptr<Decl> decl = current_scope->find_identifier(id);
-        assert(decl != nullptr);
-        assert(decl->to_array() != nullptr);
-        ap->set_decl(decl->to_array());
+        assert(ap->get_decl() != nullptr); //just set it.
+        assert(ap->get_decl()->to_array() != nullptr);
     }
     node->set_rhs(reduce(node->get_rhs()));
 }

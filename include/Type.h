@@ -8,7 +8,9 @@
 #include "Util.h"
 
 /// @brief Types for local module variables.
-enum class Type {tint, tbool, tfloat, tclock, tunknown};
+enum class Type {tint, tbool, tfloat, tclock, tintarray, tboolarray, tunknown};
+/// @todo arrays shouldn't be basic types, refactor entire type system (originally
+/// designed without arrays)
 
 class BasicTy;
 class FunTy;
@@ -59,6 +61,12 @@ public:
         case Type::tclock:
             result = "clock";
             break;
+        case Type::tintarray:
+            result = "intarray";
+            break;
+        case Type::tboolarray:
+            result = "boolarray";
+            break;
         case Type::tunknown:
             result = "[?]";
             break;
@@ -68,6 +76,23 @@ public:
         }
         return result;
     }
+
+    static Type to_array_type(Type type) {
+        switch (type) {
+        case Type::tint: return Type::tintarray;
+        case Type::tbool: return Type::tboolarray;
+        default: return Type::tunknown;
+        }
+    }
+
+    static Type array_elem_type(Type type) {
+        switch (type) {
+        case Type::tintarray: return Type::tint;
+        case Type::tboolarray: return Type::tbool;
+        default: return Type::tunknown;
+        }
+    }
+
 };
 
 //Type equality

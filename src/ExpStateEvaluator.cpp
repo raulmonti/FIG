@@ -55,7 +55,16 @@ ExpTranslatorVisitor::exprtk_name(ExpOp op) {
     case ExpOp::pow: return "pow";
     case ExpOp::sgn: return "sgn";
     case ExpOp::times: return "*";
-    case ExpOp::implies:
+        //custom functions
+    case ExpOp::fsteq: return "fsteq";
+    case ExpOp::lsteq: return "lsteq";
+    case ExpOp::rndeq: return "rndeq";
+    case ExpOp::minfrom: return "minfrom";
+    case ExpOp::maxfrom: return "maxfrom";
+    case ExpOp::sumfrom: return "sumfrom";
+    case ExpOp::consec: return "consec";
+    case ExpOp::broken: return "broken";
+    case ExpOp::implies: return "implies";
     default: throw_FigException("Exprtk not supported operator");
     }
 }
@@ -71,7 +80,6 @@ ExpTranslatorVisitor::exprtk_kind(ExpOp op) {
     case ExpOp::floor:return OpKind::FUN;
     case ExpOp::ge:return OpKind::OP;
     case ExpOp::gt:return OpKind::OP;
-    case ExpOp::implies:return OpKind::OP;
     case ExpOp::le:return OpKind::OP;
     case ExpOp::log:return OpKind::FUN;
     case ExpOp::lt:return OpKind::OP;
@@ -86,6 +94,15 @@ ExpTranslatorVisitor::exprtk_kind(ExpOp op) {
     case ExpOp::pow:return OpKind::FUN;
     case ExpOp::sgn:return OpKind::FUN;
     case ExpOp::times:return OpKind::OP;
+    case ExpOp::implies: return OpKind::FUN;
+    case ExpOp::fsteq: return OpKind::FUN;
+    case ExpOp::lsteq: return OpKind::FUN;
+    case ExpOp::rndeq: return OpKind::FUN;
+    case ExpOp::minfrom: return OpKind::FUN;
+    case ExpOp::maxfrom: return OpKind::FUN;
+    case ExpOp::sumfrom: return OpKind::FUN;
+    case ExpOp::consec: return OpKind::FUN;
+    case ExpOp::broken: return OpKind::FUN;
     default:
         throw_FigException("ExprTk unsupported operator");
     }
@@ -104,7 +121,7 @@ ExpTranslatorVisitor::visit(shared_ptr<BConst> node) noexcept {
 inline void
 ExpTranslatorVisitor::visit(shared_ptr<LocExp> node) noexcept {
     shared_ptr<Location> loc = node->get_exp_location();
-    if (loc->is_array()) {
+    if (loc->is_array_position()) {
         loc->to_array_position()->get_index()->accept(*this);
         exprStr = loc->get_identifier() + "[" + exprStr + "]";
     } else {
