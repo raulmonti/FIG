@@ -1185,25 +1185,27 @@ JaniTranslator::visit(shared_ptr<TransitionAST> node)
 
 	// Label
 	const auto label = node->get_label();
-	JANIobj["action"] = label.c_str();
-	modelLabels_.emplace(label);
-	switch (node->get_label_type())
-	{
-	case LabelType::in:
-		modulesLabels_[currentModule_].first.emplace(label);
-		break;
-	case LabelType::out:
-	case LabelType::tau:
-		modulesLabels_[currentModule_].second.emplace(label);
-		break;
-	case LabelType::in_committed:
-	case LabelType::out_committed:
-		throw_FigException("committed acctions not yet supported in JANI");
-		break;
-	default:
-		throw_FigException("invalid label type: " + std::to_string(
-							   static_cast<int>(node->get_label_type())));
-		break;
+	if (!label.empty()) {
+		JANIobj["action"] = label.c_str();
+		modelLabels_.emplace(label);
+		switch (node->get_label_type())
+		{
+		case LabelType::in:
+			modulesLabels_[currentModule_].first.emplace(label);
+			break;
+		case LabelType::out:
+		case LabelType::tau:
+			modulesLabels_[currentModule_].second.emplace(label);
+			break;
+		case LabelType::in_committed:
+		case LabelType::out_committed:
+			throw_FigException("committed acctions not yet supported in JANI");
+			break;
+		default:
+			throw_FigException("invalid label type: " + std::to_string(
+								   static_cast<int>(node->get_label_type())));
+			break;
+		}
 	}
 
 	// Precondition
