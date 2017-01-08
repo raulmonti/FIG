@@ -13,7 +13,8 @@ enum class ExpOp {
     eq, neq, lt, gt, le, ge,
     floor, ceil, abs, sgn,
 	min, max, pow, log,
-    fsteq, lsteq, rndeq, maxfrom, minfrom, sumfrom, consec, broken, //arrays
+    fsteq, lsteq, rndeq, maxfrom, minfrom, sumfrom, consec,
+    broken, fstexclude,
 	invalid
 };
 
@@ -57,7 +58,7 @@ public:
     static const BinaryOpTy Iii; //array of int, int returns int
     static const BinaryOpTy Bbi;
     static const BinaryOpTy Bib;
-
+    static const BinaryOpTy Bii;
 };
 
 #endif

@@ -118,6 +118,7 @@ MINFROM "minfrom"
 SUMFROM "sumfrom"
 CONSEC "consec"
 BROKEN "broken"
+FSTEXCLUDE "fstexclude"
 ;
 
 %right "=>"
@@ -495,6 +496,12 @@ exp : location[loc]
     $$ = make_shared<BinOpExp>(ExpOp::broken, $e1, $e2);
     save_location($$, @$);
 }
+| "fstexclude" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::fstexclude, $e1, $e2);
+    save_location($$, @$);
+}
+
 | "(" exp[e] ")"
 {$$ = $e; save_location($$, @$);}
 

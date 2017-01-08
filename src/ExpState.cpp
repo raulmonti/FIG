@@ -43,6 +43,8 @@ template<typename T>
 ArrayFunctions::ConsecFunction<T> ExpState<T>::consec_;
 template<typename T>
 ArrayFunctions::BrokenFunction<T> ExpState<T>::broken_;
+template<typename T>
+ArrayFunctions::FstExcludeFunction<T> ExpState<T>::fstexclude_;
 
 template<typename T>
 ExpState<T>::ExpState(const std::vector<std::shared_ptr<Exp>> &astVec) {
@@ -198,6 +200,7 @@ void ExpState<T>::add_functions() noexcept {
     table_.add_function("sumfrom", sumfrom_);
     table_.add_function("consec", consec_);
     table_.add_function("broken", broken_);
+    table_.add_function("fstexclude", fstexclude_);
 }
 
 

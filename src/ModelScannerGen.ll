@@ -118,7 +118,7 @@ blank  [ \t]
 "sumfrom"     return ModelParser::make_SUMFROM(loc);
 "consec"      return ModelParser::make_CONSEC(loc);
 "broken"      return ModelParser::make_BROKEN(loc);
-
+"fstexclude"  return ModelParser::make_FSTEXCLUDE(loc);
 {id}       return ModelParser::make_ID(yytext, loc);
 {int}      return ModelParser::make_INTL(parse_int(), loc);
 {float}    return ModelParser::make_FLOATL(parse_float(), loc);

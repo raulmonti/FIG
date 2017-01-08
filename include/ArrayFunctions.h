@@ -7,6 +7,17 @@
 
 namespace ArrayFunctions {
 
+/* To add more weird operators:
+    // 1- Add a token in ModelScannerGen.ll
+    // 2- Update Operators.{h,cpp} (check everywhere!)
+    // 3- Update ModelParserGen.yy (add a token and a grammar production)
+    // 4- Add the function code following Exprtk syntax (see this file)
+    // 5- Update ExpState.{h,cpp} (add the function to the symbol table)
+    // 6- Update ExpStateEvaluator.cpp
+    // 7- Pray (to god or to Richard Dawkins)
+*/
+
+
 template<typename T>
 using parameter_list_t = typename exprtk::igeneric_function<T>::parameter_list_t;
 
@@ -224,6 +235,28 @@ struct BrokenFunction : public exprtk::igeneric_function<T> {
             }
         }
         return (0);
+    }
+};
+
+/// fstexclude(array, j) : first (least) position i such that i != j
+/// and array[i] holds, or -1 if no such i exists.
+/// @note j >= array.size makes i != j always true.
+template<typename T>
+struct FstExcludeFunction : public exprtk::igeneric_function<T> {
+
+    FstExcludeFunction() : exprtk::igeneric_function<T>("VT") {}
+    inline T operator()(parameter_list_t<T> parameters) {
+        generic_type<T> &gt = parameters[0];
+        scalar_t<T> value (parameters[1]);
+        vector_t<T> vector(gt);
+        size_t pos;
+        assert(value.to_uint(pos)); //keep it!
+        for (size_t i = 0; i < vector.size(); i++) {
+            if (vector[i] && i != pos) {
+                return T(i);
+            }
+        }
+        return (T(-1));
     }
 };
 

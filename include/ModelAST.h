@@ -1314,7 +1314,7 @@ public:
 	}
 
     std::string to_string() const noexcept override {
-        return (std::to_string(value));
+        return (value ? "true" : "false");
     }
 };
 

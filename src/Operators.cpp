@@ -30,6 +30,8 @@
  = BinaryOpTy(Type::tboolarray, Type::tbool, Type::tint);
  const BinaryOpTy Binary::Bib
  = BinaryOpTy(Type::tboolarray, Type::tint, Type::tbool);
+ const BinaryOpTy Binary::Bii
+ = BinaryOpTy(Type::tboolarray, Type::tint, Type::tint);
 
 std::string Operator::operator_string(ExpOp op) {
     std::string result;
@@ -65,13 +67,14 @@ std::string Operator::operator_string(ExpOp op) {
     case ExpOp::sumfrom: result = "sumfrom"; break;
     case ExpOp::consec: result = "consec"; break;
     case ExpOp::broken: result = "broken"; break;
+    case ExpOp::fstexclude: result = "fstexclude"; break;
 	default: throw_FigException("invalid expression operator"); break;
 	}
     return result;
 }
 
 bool Operator::is_infix_operator(ExpOp op) {
-    // this is how you do it, you fool! XD ;)
+    // this is how you do it, you fool! XD ;) tu hermana!
     switch(op) {
 	case ExpOp::implies:
 	case ExpOp::andd:
@@ -186,6 +189,11 @@ std::vector<BinaryOpTy> Operator::binary_types(ExpOp op) {
     case ExpOp::broken: {
         return std::vector<BinaryOpTy> {
             Binary::Iii
+        };
+    }
+    case ExpOp::fstexclude: {
+        return std::vector<BinaryOpTy> {
+            Binary::Bii
         };
     }
     default:

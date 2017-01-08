@@ -1,0 +1,232 @@
+/*
+ * Non-Markov consecutive-k-out-of-n:F repairable system for the FIG tool
+ * Budde, Monti, D'Argenio | 2016
+ *
+ *{-
+ * Concept of the Non-Markov consecutive-k-out-of-n:F repairable system:
+ *
+ * ---> (P1) ---> (P2) ---> ··· ---> (Pn) --->
+ *
+ * For a graphical illustration imagine an oil pipeline with 'n' equally-spaced
+ * pressure pumps along it, {P1..Pn}. Each pump sends oil to the next and it can
+ * only fail and get repaired (viz. there are just two possible states {up,down})
+ * The whole pipeline "fails" as soon as 'k' (or more) consecutive pumps fail.
+ * A single repairman attends one broken pump at a time and fixes it.
+ *
+ * In this implementation the pumps lifetime will be either exponentially(l)
+ * or Rayleigh(s)* distributed and the repair-time will follow a Log-normal(m,sd)
+ * distribution. The probability of failure of each pump will be independent
+ * of the system's general state; the (k-1)-step Markov dependence of some
+ * typical implementations is thus dropped. Also the repairman will apply a
+ * static repair policy: it will always choose the first failed pump, that is
+ * the broken pump with smallest index in {P1..Pn}.
+ *
+ * Initial state: all pumps are up.
+ * Reference event: any system transition.
+ * Rare event: system failure caused by at least 'k' consecutive failed pumps
+ *
+ * [*] viz. Weibull with shape == 2 and rate == s*sqrt(2)
+ *-}
+ */
+
+// -- The following values were extracted from José Villén-Altamirano,
+// -- "RESTART simulation of non-Markov consecutive-k-out-of-n:F repairable
+// -- systems", Reliability Engineering and System Safety, Vol. 95, Issue 3,
+// -- March 2010, pp. 247-254.
+// --
+// -- Nodes lifetime ~ exponential(1)
+// -- Repair time ~ Log-normal(1.21,0.8)
+
+
+
+///////////////////////////////////////////////////////////////////////
+//
+// -- Nodes | Total: 5
+// --       | Consecutive fails needed: 3
+// --       | Lifetime distribution: exponential(1)
+
+
+module Node1
+	N1clk: clock;          // -- Failure ~ exponential(1)
+	N1: bool init false;   // -- Node failed?
+	[f1!] !N1 @ N1clk -> (N1'= true);
+	[r1?]  N1          -> (N1'= false) & (N1clk'= exponential(1));
+endmodule
+
+
+module Node2
+	N2clk: clock;          // -- Failure ~ exponential(1)
+	N2: bool init false;   // -- Node failed?
+	[f2!] !N2 @ N2clk -> (N2'= true);
+	[r2?]  N2          -> (N2'= false) & (N2clk'= exponential(1));
+endmodule
+
+
+module Node3
+	N3clk: clock;          // -- Failure ~ exponential(1)
+	N3: bool init false;   // -- Node failed?
+	[f3!] !N3 @ N3clk -> (N3'= true);
+	[r3?]  N3          -> (N3'= false) & (N3clk'= exponential(1));
+endmodule
+
+
+module Node4
+	N4clk: clock;          // -- Failure ~ exponential(1)
+	N4: bool init false;   // -- Node failed?
+	[f4!] !N4 @ N4clk -> (N4'= true);
+	[r4?]  N4          -> (N4'= false) & (N4clk'= exponential(1));
+endmodule
+
+
+module Node5
+	N5clk: clock;          // -- Failure ~ exponential(1)
+	N5: bool init false;   // -- Node failed?
+	[f5!] !N5 @ N5clk -> (N5'= true);
+	[r5?]  N5          -> (N5'= false) & (N5clk'= exponential(1));
+endmodule
+
+
+
+///////////////////////////////////////////////////////////////////////
+//
+// -- Repairman | Fixes first broken node found
+// --           | Repair-time distribution: Log-normal(1.21,0.8)
+
+
+module Repairman
+
+	Rclk: clock;    // -- Repair ~ lognormal(1.21,0.8)
+	fix : [0..5];  // -- Which node are we fixing now
+	N1f : bool init false;  // -- Node 1 failed?
+	N2f : bool init false;  // -- Node 2 failed?
+	N3f : bool init false;  // -- Node 3 failed?
+	N4f : bool init false;  // -- Node 4 failed?
+	N5f : bool init false;  // -- Node 5 failed?
+
+	// -- Repair failed node right away
+	[f1?] fix == 0 -> (N1f'= true) & (fix' = 1) & (Rclk'= lognormal(1.21,0.8));
+	[f2?] fix == 0 -> (N2f'= true) & (fix' = 2) & (Rclk'= lognormal(1.21,0.8));
+	[f3?] fix == 0 -> (N3f'= true) & (fix' = 3) & (Rclk'= lognormal(1.21,0.8));
+	[f4?] fix == 0 -> (N4f'= true) & (fix' = 4) & (Rclk'= lognormal(1.21,0.8));
+	[f5?] fix == 0 -> (N5f'= true) & (fix' = 5) & (Rclk'= lognormal(1.21,0.8));
+
+	// -- Register failed node for later repairment
+	[f1?] fix > 0 -> (N1f'= true);
+	[f2?] fix > 0 -> (N2f'= true);
+	[f3?] fix > 0 -> (N3f'= true);
+	[f4?] fix > 0 -> (N4f'= true);
+	[f5?] fix > 0 -> (N5f'= true);
+
+	// -- Report repaired node and seek the next one
+	[r1!] fix == 1 & N2f
+	       @ Rclk -> (N1f'= false) & (fix'= 2) & (Rclk'= lognormal(1.21,0.8));
+	[r1!] fix == 1 & N3f
+	       & !N2f
+	       @ Rclk -> (N1f'= false) & (fix'= 3) & (Rclk'= lognormal(1.21,0.8));
+	[r1!] fix == 1 & N4f
+	       & !N2f
+	       & !N3f
+	       @ Rclk -> (N1f'= false) & (fix'= 4) & (Rclk'= lognormal(1.21,0.8));
+	[r1!] fix == 1 & N5f
+	       & !N2f
+	       & !N3f
+	       & !N4f
+	       @ Rclk -> (N1f'= false) & (fix'= 5) & (Rclk'= lognormal(1.21,0.8));
+	[r2!] fix == 2 & N1f
+	       @ Rclk -> (N2f'= false) & (fix'= 1) & (Rclk'= lognormal(1.21,0.8));
+	[r2!] fix == 2 & N3f
+	       & !N1f
+	       @ Rclk -> (N2f'= false) & (fix'= 3) & (Rclk'= lognormal(1.21,0.8));
+	[r2!] fix == 2 & N4f
+	       & !N1f
+	       & !N3f
+	       @ Rclk -> (N2f'= false) & (fix'= 4) & (Rclk'= lognormal(1.21,0.8));
+	[r2!] fix == 2 & N5f
+	       & !N1f
+	       & !N3f
+	       & !N4f
+	       @ Rclk -> (N2f'= false) & (fix'= 5) & (Rclk'= lognormal(1.21,0.8));
+	[r3!] fix == 3 & N1f
+	       @ Rclk -> (N3f'= false) & (fix'= 1) & (Rclk'= lognormal(1.21,0.8));
+	[r3!] fix == 3 & N2f
+	       & !N1f
+	       @ Rclk -> (N3f'= false) & (fix'= 2) & (Rclk'= lognormal(1.21,0.8));
+	[r3!] fix == 3 & N4f
+	       & !N1f
+	       & !N2f
+	       @ Rclk -> (N3f'= false) & (fix'= 4) & (Rclk'= lognormal(1.21,0.8));
+	[r3!] fix == 3 & N5f
+	       & !N1f
+	       & !N2f
+	       & !N4f
+	       @ Rclk -> (N3f'= false) & (fix'= 5) & (Rclk'= lognormal(1.21,0.8));
+	[r4!] fix == 4 & N1f
+	       @ Rclk -> (N4f'= false) & (fix'= 1) & (Rclk'= lognormal(1.21,0.8));
+	[r4!] fix == 4 & N2f
+	       & !N1f
+	       @ Rclk -> (N4f'= false) & (fix'= 2) & (Rclk'= lognormal(1.21,0.8));
+	[r4!] fix == 4 & N3f
+	       & !N1f
+	       & !N2f
+	       @ Rclk -> (N4f'= false) & (fix'= 3) & (Rclk'= lognormal(1.21,0.8));
+	[r4!] fix == 4 & N5f
+	       & !N1f
+	       & !N2f
+	       & !N3f
+	       @ Rclk -> (N4f'= false) & (fix'= 5) & (Rclk'= lognormal(1.21,0.8));
+	[r5!] fix == 5 & N1f
+	       @ Rclk -> (N5f'= false) & (fix'= 1) & (Rclk'= lognormal(1.21,0.8));
+	[r5!] fix == 5 & N2f
+	       & !N1f
+	       @ Rclk -> (N5f'= false) & (fix'= 2) & (Rclk'= lognormal(1.21,0.8));
+	[r5!] fix == 5 & N3f
+	       & !N1f
+	       & !N2f
+	       @ Rclk -> (N5f'= false) & (fix'= 3) & (Rclk'= lognormal(1.21,0.8));
+	[r5!] fix == 5 & N4f
+	       & !N1f
+	       & !N2f
+	       & !N3f
+	       @ Rclk -> (N5f'= false) & (fix'= 4) & (Rclk'= lognormal(1.21,0.8));
+
+	// -- Report repairment of last failed node and go to sleep
+	[r1!] fix == 1
+	       & !N2f
+	       & !N3f
+	       & !N4f
+	       & !N5f
+	       @ Rclk -> (N1f'= false) & (fix'= 0);
+	[r2!] fix == 2
+	       & !N1f
+	       & !N3f
+	       & !N4f
+	       & !N5f
+	       @ Rclk -> (N2f'= false) & (fix'= 0);
+	[r3!] fix == 3
+	       & !N1f
+	       & !N2f
+	       & !N4f
+	       & !N5f
+	       @ Rclk -> (N3f'= false) & (fix'= 0);
+	[r4!] fix == 4
+	       & !N1f
+	       & !N2f
+	       & !N3f
+	       & !N5f
+	       @ Rclk -> (N4f'= false) & (fix'= 0);
+	[r5!] fix == 5
+	       & !N1f
+	       & !N2f
+	       & !N3f
+	       & !N4f
+	       @ Rclk -> (N5f'= false) & (fix'= 0);
+endmodule
+
+properties
+
+S(
+   (N1 & N2 & N3 & true) |
+   (N2 & N3 & N4 & true) |
+   (N3 & N4 & N5 & true) | false ) // "rate"
+
+endproperties 

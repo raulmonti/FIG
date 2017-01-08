@@ -41,6 +41,7 @@ private:
     static ArrayFunctions::SumFromFunction<T> sumfrom_;
     static ArrayFunctions::ConsecFunction<T> consec_;
     static ArrayFunctions::BrokenFunction<T> broken_;
+    static ArrayFunctions::FstExcludeFunction<T> fstexclude_;
 
     enum class VarType {
         SIMPLE, ARRAY
