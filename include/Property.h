@@ -59,7 +59,7 @@ class Property {
     
 protected:
 
-    /// Nasty hack to avoid code duplication (talk of poor design...)
+    // Nasty hack to avoid code duplication (talk of poor design...)
     // typedef  Precondition  Formula;
     /// Used to generate a unique id for each instance.
     static std::atomic<int> current_id;
@@ -103,7 +103,7 @@ public:  // Utils
     int get_id() const noexcept { return instance_id; }
 
     /// String representation of property
-    virtual std::string to_str() const = 0;
+    virtual std::string to_string() const = 0;
 
     virtual void prepare(const State<STATE_INTERNAL_TYPE>& state) = 0;
     virtual void prepare(const PositionsMap& posMap) = 0;

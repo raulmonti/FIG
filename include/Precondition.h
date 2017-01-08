@@ -43,14 +43,13 @@ using std::shared_ptr;
  * @brief Transition precondition:
  *        a boolean guard with predicates over variables values.
  *
- *        The names of the variables appearing in the expression string
- *        of a Precondition must refer to existing Variables in the global
- *        State of the system, 'gState'.
  */
 class Precondition : public ExpStateEvaluator {
+    shared_ptr<Exp> expr_;
 public:  // Ctors
 
-    Precondition(shared_ptr<Exp> expr) : ExpStateEvaluator(expr)
+    Precondition(shared_ptr<Exp> expr)
+        : ExpStateEvaluator(expr), expr_ {expr}
     {}
 
     /// @brief Copy Constructor
@@ -62,10 +61,14 @@ public:  // Ctors
     /// @todo Copy assignment with copy&swap idiom
     Precondition& operator=(Precondition that) = delete;
 
-public:  // Utils
+public:
 
     bool operator()(const StateInstance& state) const;
     bool operator()(const State<STATE_INTERNAL_TYPE>& state) const;
+
+    shared_ptr<Exp> get_expression() const noexcept {
+        return (expr_);
+    }
 
 public: //Debug
     void print_info(std::ostream& out) const;

@@ -1,30 +1,9 @@
 #include "ExpStateEvaluator.h"
-#include "ExpStringBuilder.h"
 #include <functional>
 #include <cmath>
 #include <FigException.h>
 #include <sstream>
 #include <string.h>
-
-namespace {
-/*
-std::string exp_str(shared_ptr<Exp> exp) {
-    ExpStringBuilder visitor (CompositeModuleScope::get_instance());
-    exp->accept(visitor);
-    return (visitor.str());
-}
-
-int show_symbol_table(const symbol_table_t &table) {
-    std::vector<std::pair<std::string, NUMTYPE>> v;
-    table.get_variable_list(v);
-    for (auto p : v) {
-        std::cout << p.first << " -> "
-                  << static_cast<int>(p.second) << std::endl;
-    }
-    return (0);
-}
-*/
-}
 
 namespace fig {
 

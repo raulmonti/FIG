@@ -188,7 +188,11 @@ protected:  // Modifyers
 	 * \endif
 	 * @todo TODO unify with the other version using templates;
 	 *            see ImportanceFunction::Formula::set()
-	 */
+     *
+     *
+     * @deprecated Not used anymore.
+     * @see ExpState
+     */
 	virtual void pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState);
 
 	/**
@@ -203,6 +207,9 @@ protected:  // Modifyers
 	 * \endif
 	 * @todo TODO unify with the other version using templates;
 	 *            see ImportanceFunction::Formula::set()
+     *
+     * @deprecated Not used anymore.
+     * @see ExpState
 	 */
 #ifndef NRANGECHK
 	virtual void pin_up_vars(const PositionsMap& globalVars);

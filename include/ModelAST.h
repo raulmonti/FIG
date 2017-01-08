@@ -336,7 +336,7 @@ public:
     virtual void accept(Visitor& visit) override;
     
     /// Returns local declaration of the model.
-    const shared_vector<Decl>& get_local_decls() {
+    const shared_vector<Decl>& get_local_decls() const {
         return local_decls;
     }
     
@@ -358,6 +358,8 @@ public:
     /// Has committed actions?  (input or output)
     bool has_committed_actions() const;
 
+    /// Has array declarations?
+    bool has_arrays() const;
 };
 
 /** @brief Initialized mixin.
@@ -1056,7 +1058,8 @@ public:
 /**
  * @brief MultipleParameterDist
  * @example uniform(4, 10)
- * @note Leo, this is a lie, 2 != "multiple"
+ * @note Leo, this is a lie, 2 != "multiple".
+ * @note Carlos, ask to a woman.
  */
 class MultipleParameterDist : public Dist {
 private:
@@ -1103,10 +1106,6 @@ private:
     /// The identifier
     string id;
 
-    /// Position in the global state, used
-    /// during simulation to speed up evaluation
-    size_t position;
-
     /// Convenient pointer to identifier declaration
     /// @note setted by ModelReductor
     shared_ptr<Decl> decl;
@@ -1134,14 +1133,6 @@ public:
 		return that.id == id;
 	}
 
-    void set_position(size_t position) {
-        this->position = position;
-    }
-
-    inline size_t get_position() {
-        return (position);
-    }
-
     /// Converts this location into an ArrayPosition
     shared_ptr<class ArrayPosition> to_array_position() {
         assert(is_array_position());
@@ -1155,6 +1146,11 @@ public:
     shared_ptr<Decl> get_decl() {
         return (decl);
     }
+
+    virtual std::string to_string() const noexcept {
+        return (this->id);
+    }
+
 };
 
 /**
@@ -1192,6 +1188,8 @@ public:
                 that.is_array_position() &&
 				static_cast<const ArrayPosition&>(that).index == index;
 	}
+
+    virtual std::string to_string() const noexcept override;
 };
 
 /**
@@ -1237,6 +1235,8 @@ public:
 	virtual bool operator!=(const Exp& that) const {
 		return !(that == *this);
 	}
+
+    virtual std::string to_string() const noexcept = 0;
 };
 
 /**
@@ -1275,6 +1275,10 @@ public:
 				that.get_type() == Type::tint &&
 				static_cast<const IConst&>(that).value == value;
 	}
+
+    std::string to_string() const noexcept override {
+        return (std::to_string(value));
+    }
 };
 
 /**
@@ -1308,6 +1312,10 @@ public:
 				that.get_type() == Type::tbool &&
 				static_cast<const BConst&>(that).value == value;
 	}
+
+    std::string to_string() const noexcept override {
+        return (std::to_string(value));
+    }
 };
 
 /**
@@ -1341,6 +1349,10 @@ public:
 				that.get_type() == Type::tfloat &&
 				static_cast<const FConst&>(that).value == value;
 	}
+
+    std::string to_string() const noexcept override {
+        return (std::to_string(value));
+    }
 };
 
 /**
@@ -1372,13 +1384,17 @@ public:
 				!that.is_binary_operator() &&
 				static_cast<const LocExp&>(that).location == location;
 	}
+
+    std::string to_string() const noexcept override {
+        return (location->to_string());
+    }
 };
 
 /**
  * @brief A operator expression.
  */
 class OpExp : public Exp {
-private:
+protected:
     /// Operator
     ExpOp op;
 
@@ -1400,6 +1416,10 @@ public:
 		return  (that.is_binary_operator() || that.is_unary_operator()) &&
 				static_cast<const OpExp&>(that).op == op;
 	}
+
+    virtual std::string to_string() const noexcept override {
+        return (Operator::operator_string(op));
+    }
 };
 
 /**
@@ -1473,6 +1493,19 @@ public:
 				thatBinOpExpr.left == left &&
 				thatBinOpExpr.right == right;
 	}
+
+    std::string to_string() const noexcept override {
+        std::string res = "";
+        const std::string & lStr  = left->to_string();
+        const std::string & rStr  = right->to_string();
+        const std::string & opStr = Operator::operator_string(op);
+        if (Operator::is_infix_operator(op)) {
+            res = lStr + opStr + rStr;
+        } else {
+            res = opStr + "(" + lStr + ", " + rStr + ")";
+        }
+        return (res);
+    }
 };
 
 /**
@@ -1532,6 +1565,11 @@ public:
 		return  static_cast<const OpExp&>(that) == *this &&
 				thatUnOpExpr.argument == argument;
 	}
+
+    std::string to_string() const noexcept override {
+        const std::string &opStr = Operator::operator_string(op);
+        return (opStr + "(" + argument->to_string() + ")");
+    }
 };
 
 /**

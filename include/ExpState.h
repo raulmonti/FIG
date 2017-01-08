@@ -33,14 +33,14 @@ public:
 template<typename T>
 class ExpState {
 private:
-    static FstEqFunction<T> fsteq_;
-    static LstEqFunction<T> lsteq_;
-    static RndEqFunction<T> rndeq_;
-    static MaxFromFunction<T> maxfrom_;
-    static MinFromFunction<T> minfrom_;
-    static SumFromFunction<T> sumfrom_;
-    static ConsecFunction<T> consec_;
-    static BrokenFunction<T> broken_;
+    static ArrayFunctions::FstEqFunction<T> fsteq_;
+    static ArrayFunctions::LstEqFunction<T> lsteq_;
+    static ArrayFunctions::RndEqFunction<T> rndeq_;
+    static ArrayFunctions::MaxFromFunction<T> maxfrom_;
+    static ArrayFunctions::MinFromFunction<T> minfrom_;
+    static ArrayFunctions::SumFromFunction<T> sumfrom_;
+    static ArrayFunctions::ConsecFunction<T> consec_;
+    static ArrayFunctions::BrokenFunction<T> broken_;
 
     enum class VarType {
         SIMPLE, ARRAY

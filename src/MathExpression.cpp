@@ -144,6 +144,8 @@ void MathExpression::compile_expression() {
     }
 }
 
+/// @deprecated
+/// @see ExpState
 void
 MathExpression::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 {

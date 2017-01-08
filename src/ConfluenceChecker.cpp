@@ -8,6 +8,11 @@ namespace iosa {
 
 void ConfluenceChecker::visit(std::shared_ptr<Model> node) {
     for (auto module : node->get_modules()) {
+        if (module->has_arrays()) {
+            put_warning("ConfluenceChecker omitted " + module->get_name() +
+                        " support for arrays not yet implemented");
+            continue;
+        }
         ModuleIOSA iosa(module);
         iosa.search_non_confluents(non_confluents);
         iosa.search_triggering_pairs(tr);

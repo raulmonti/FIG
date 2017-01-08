@@ -28,24 +28,25 @@ void ExpNameCollector::visit(shared_ptr<UnOpExp> node) noexcept {
 }
 
 template<typename T>
-FstEqFunction<T> ExpState<T>::fsteq_;
+ArrayFunctions::FstEqFunction<T> ExpState<T>::fsteq_;
 template<typename T>
-LstEqFunction<T> ExpState<T>::lsteq_;
+ArrayFunctions::LstEqFunction<T> ExpState<T>::lsteq_;
 template<typename T>
-RndEqFunction<T> ExpState<T>::rndeq_;
+ArrayFunctions::RndEqFunction<T> ExpState<T>::rndeq_;
 template<typename T>
-MaxFromFunction<T> ExpState<T>::maxfrom_;
+ArrayFunctions::MaxFromFunction<T> ExpState<T>::maxfrom_;
 template<typename T>
-MinFromFunction<T> ExpState<T>::minfrom_;
+ArrayFunctions::MinFromFunction<T> ExpState<T>::minfrom_;
 template<typename T>
-SumFromFunction<T> ExpState<T>::sumfrom_;
+ArrayFunctions::SumFromFunction<T> ExpState<T>::sumfrom_;
 template<typename T>
-ConsecFunction<T> ExpState<T>::consec_;
+ArrayFunctions::ConsecFunction<T> ExpState<T>::consec_;
 template<typename T>
-BrokenFunction<T> ExpState<T>::broken_;
+ArrayFunctions::BrokenFunction<T> ExpState<T>::broken_;
 
 template<typename T>
 ExpState<T>::ExpState(const std::vector<std::shared_ptr<Exp>> &astVec) {
+    //::run_example_and_exit();
     std::unordered_set<std::string> vars;
     std::unordered_map<std::string, ArrayData> arrays;
     for (shared_ptr<Exp> ast : astVec) {
@@ -233,4 +234,68 @@ void ExpState<T>::print_table() const noexcept {
 
 template class ExpState<float>;
 
+
 } //namespace fig
+
+/*
+namespace {
+// Improvised unit test.
+void run_example_and_exit() {
+    std::vector<float> vec
+            = {0,1,0,1,1,1,0,1,0,1,0,0}; //change it!
+    exprtk::symbol_table<float> table;
+    exprtk::parser<float> parser;
+    ArrayFunctions::FstEqFunction<float> fsteq;
+    ArrayFunctions::LstEqFunction<float> lsteq;
+    ArrayFunctions::RndEqFunction<float> rndeq;
+    ArrayFunctions::MinFromFunction<float> minfrom;
+    ArrayFunctions::MaxFromFunction<float> maxfrom;
+    ArrayFunctions::SumFromFunction<float> sumfrom;
+    ArrayFunctions::ConsecFunction<float> consec;
+    ArrayFunctions::BrokenFunction<float> broken;
+    table.add_function("fsteq", fsteq);
+    table.add_function("lsteq", lsteq);
+    table.add_function("rndeq", rndeq);
+    table.add_function("minfrom", minfrom);
+    table.add_function("maxfrom", maxfrom);
+    table.add_function("sumfrom", sumfrom);
+    table.add_function("consec", consec);
+    table.add_function("broken", broken);
+    table.add_vector("array", vec);
+    std::vector<std::string> tests = {
+        "fsteq(array, 4)",
+        "lsteq(array, 3)",
+        "rndeq(array, 3)",
+        "minfrom(array, 1)",
+        "minfrom(array, 5)",
+        "maxfrom(array, 0)",
+        "maxfrom(array, 7)",
+        "sumfrom(array, 0)",
+        "sumfrom(array, 5)",
+        "broken(array, 0)",
+        "consec(array, 2)",
+        "consec(array, 3)",
+        "consec(array, 4)",
+    };
+    std::cout << "Testing vector: ";
+    for (float& x : vec) {
+        std::cout << x << ", ";
+    }
+    std::cout << std::endl;
+    for (std::string t : tests) {
+        exprtk::expression<float> expr;
+        expr.register_symbol_table(table);
+        parser.compile(t, expr);
+        std::cout << t << " = " << expr.value() << std::endl;
+    }
+    std::cout << "Modified vector: ";
+    for (float& x : vec) {
+        std::cout << x << ", ";
+    }
+    std::cout << std::endl;
+    throw_FigException("Bye!");
+}
+}
+*/
+
+

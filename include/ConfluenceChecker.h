@@ -10,6 +10,9 @@
 /**
  * A visitor to check the confluence of committed actions
  * in the model.
+ *
+ * @see Monti, D'Argentio: IOSA with committed actions.
+ * @todo: Support for arrays.
  */
 
 namespace iosa {

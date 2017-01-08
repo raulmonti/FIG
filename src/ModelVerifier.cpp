@@ -365,18 +365,18 @@ void ModelVerifier::check_output_determinism(const string &clock_id) {
             const string &label1_id = a1->get_label();
             const string &label2_id = a2->get_label();
             if (solver->check()) {
-                //this two transition potentially enabled by the same clock
-                //let's check that at least will produce the same output
+                //this two transitions are potentially enabled by the same clock
+                //let's check that at least any choice will produce the same output
                 if (label1_id != label2_id) {
                     auto &warn = ::warning_same_clock_different_label;
-                    put_warning(warn(clock_id, a1, a2));
+                    put_error(warn(clock_id, a1, a2));
                 } else {
                     //now let's check if both transitions reset the same clocks
                     bool same_clocks = ::resets_clocks_of(a1, a2) &&
                             resets_clocks_of(a2, a1);
                     if (!same_clocks) {
                         auto &warn = ::warning_reseted_clocks_output;
-                        put_warning(warn(clock_id, a1, a2));
+                        put_error(warn(clock_id, a1, a2));
                     }
                     //now let's check that resulting state is the same
                     if (!has_warnings()) {
@@ -421,7 +421,7 @@ void ModelVerifier::check_input_determinism(const string &label_id) {
                             ::resets_clocks_of(a2, a1);
                     if (!same_clocks) {
                         auto &warn = ::warning_reseted_clocks_input;
-                        put_warning(warn(a1, a2));
+                        put_error(warn(a1, a2));
                     }
                 }
             }
@@ -433,10 +433,27 @@ void ModelVerifier::check_input_determinism(const string &label_id) {
 }
 
 void ModelVerifier::visit(shared_ptr<Model> model) {
-    auto& modules = model->get_modules();
+    const std::vector<shared_ptr<ModuleAST>>& modules = model->get_modules();
     unsigned int i = 0;
     while (i < modules.size() && !has_warnings()) {
         const string &id = modules[i]->get_name();
+        if (modules[i]->has_arrays()) {
+            put_warning("ModelVerifier: Module "
+                        + modules[i]->get_name() + " omitted,"
+                        + " support for arrays not yet implemented");
+            i++;
+            continue;
+        }
+        if (modules[i]->has_committed_actions()) {
+            put_warning("ModelVerifier: Module "
+                        + modules[i]->get_name() + " has committed actions,"
+                        + "fixed-point condition for \"exhauted clocks\""
+                        + "(modified iosa-compliance condition 4)"
+                        + "not yet implemented.");
+            //donde está definida la nueva condición?
+            i++;
+            continue;
+        }
         current_scope = ModuleScope::scopes.at(id);
         check_input_determinism_all();
         solver->reset();

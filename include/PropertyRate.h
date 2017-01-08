@@ -59,6 +59,7 @@ class PropertyRate : public Property
 {
     /// This identifies the special states whose visiting times are monitored
     Precondition condition_;
+    shared_ptr<Exp> expr_;
 
 public:  // Ctors
 
@@ -76,7 +77,8 @@ public:  // Ctors
      */
     PropertyRate(shared_ptr<Exp> expr) :
         Property(PropertyType::RATE),
-        condition_{expr}
+        condition_{expr},
+        expr_ {expr}
     {}
 
     /// Copy/Move constructor deleted to avoid dealing with the unique id.
@@ -120,10 +122,8 @@ public:
         return condition_(s);
     }
 
-    std::string to_str() const override {
-        //std::string("S( (").append(expr).append(") / total_time )")
-        /// @todo implement this!
-        return "[STRING OF PROPERTY RATE]";
+    std::string to_string() const override {
+        return ("S( (" + expr_->to_string() + ") / total_time )");
     }
 
     void prepare(const State<STATE_INTERNAL_TYPE>& state) {

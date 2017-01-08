@@ -115,8 +115,10 @@ public:  // Accessors
 
 public:  // Utils
 
-    std::string to_str() const override {
-        return "[STRING OF PROPERTY TRANSIENT]";
+    std::string to_string() const override {
+        std::string exp1 = expr1_.get_expression()->to_string();
+        std::string exp2 = expr2_.get_expression()->to_string();
+        return "P( (" + exp1 + ") U (" + exp2 + ") )";
     }
 
 

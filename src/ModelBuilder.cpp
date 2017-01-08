@@ -4,7 +4,6 @@
 #include <cassert>
 #include <ModelBuilder.h>
 #include <ExpEvaluator.h>
-#include <ExpStringBuilder.h>
 #include <ModelPrinter.h>
 
 

@@ -103,6 +103,15 @@ bool ModuleAST::has_committed_actions() const {
     return (false);
 }
 
+bool ModuleAST::has_arrays() const {
+    for (const shared_ptr<Decl> &decl : get_local_decls()) {
+        if (decl->is_array()) {
+            return (true);
+        }
+    }
+    return (false);
+}
+
 
 void Decl::accept(Visitor& visit) {
     visit.visit(static_pointer_cast<Decl>(shared_from_this()));
@@ -208,6 +217,10 @@ void Location::accept(Visitor& visit) {
 
 void ArrayPosition::accept(Visitor& visit) {
     visit.visit(static_pointer_cast<ArrayPosition>(shared_from_this()));
+}
+
+std::string ArrayPosition::to_string() const noexcept {
+    return (this->get_identifier() + "[" + index->to_string() + "]");
 }
 
 void Prop::accept(Visitor& visit) {

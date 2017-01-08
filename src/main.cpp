@@ -74,7 +74,6 @@ using fig_cli::splittings;
 using fig_cli::estBounds;
 using fig_cli::simsTimeout;
 
-
 //  Main stuff  ////////////////////////////////////////////////////////////////
 
 int main(int argc, char** argv)
@@ -355,14 +354,13 @@ void compile_model(bool modelAlreadyBuilt)
             tech_log("- Confluence-checking succeeded\n");
         }
     }
-    /*
+
 	// Check IOSA correctness
 	if (ModuleScope::modules_size_bounded_by(ModelVerifier::NTRANS_BOUND)) {
 		ModelVerifier verifier;
-		modelAST->accept(verifier);
-		assert(!verifier.has_errors());
-		if (verifier.has_warnings()) {
-			log("\n[WARNING] IOSA-checking failed");
+        modelAST->accept(verifier);
+        if (verifier.has_errors()) {
+            log("\n[WARNING] IOSA-checking failed\n");
 			tech_log(verifier.get_messages());
 			if (!forceOperation) {
 				log(" -- aborting\n");
@@ -372,12 +370,14 @@ void compile_model(bool modelAlreadyBuilt)
 			} else {
 				log("\n");
 			}
-		}
+        } else if (verifier.has_warnings()) {
+            tech_log(verifier.get_messages());
+        }
 		tech_log("- IOSA-checking  succeeded\n");
 	} else {
 		log("- IOSA-checking skipped: model is too big\n");
 	}
-    */
+
 
 	// Build model (i.e. populate ModelSuite)
 	ModelBuilder builder;

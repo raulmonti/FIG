@@ -3,9 +3,9 @@
 
 #include <random>
 #include <cassert>
-
 #include "exprtk.hpp"
 
+namespace ArrayFunctions {
 
 template<typename T>
 using parameter_list_t = typename exprtk::igeneric_function<T>::parameter_list_t;
@@ -64,7 +64,6 @@ struct LstEqFunction : public exprtk::igeneric_function<T> {
 template<typename T>
 struct RndEqFunction : public exprtk::igeneric_function<T> {
     ///@todo should I use the same generator than Clock ?
-    /// Clock does not offer access to the generator.
     std::random_device rd;
     std::mt19937 gen;
 
@@ -79,7 +78,7 @@ struct RndEqFunction : public exprtk::igeneric_function<T> {
         vector_t<T> vector(gt);
         std::vector<size_t> positions;
         //collect positions
-        for (size_t j = 0; j < vector.size(); j--) {
+        for (size_t j = 0; j < vector.size(); j++) {
             if (vector[j] == value()) {
                 positions.push_back(j);
             }
@@ -227,6 +226,8 @@ struct BrokenFunction : public exprtk::igeneric_function<T> {
         return (0);
     }
 };
+
+} //namespace
 
 
 #endif
