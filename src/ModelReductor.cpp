@@ -39,6 +39,7 @@ void ModelReductor::visit(shared_ptr<Model> node)  {
         accept_cond(module);
     }
     //visit props
+    current_scope = CompositeModuleScope::get_instance();
     for (auto prop : node->get_props()) {
         accept_cond(prop);
     }
