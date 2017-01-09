@@ -25,7 +25,7 @@
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
-
+// Support for committed actions: Leonardo Rodríguez
 
 // C++
 #include <iterator>   // std::begin(), std::end()

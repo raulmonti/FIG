@@ -501,7 +501,6 @@ exp : location[loc]
     $$ = make_shared<BinOpExp>(ExpOp::fstexclude, $e1, $e2);
     save_location($$, @$);
 }
-
 | "(" exp[e] ")"
 {$$ = $e; save_location($$, @$);}
 
@@ -517,5 +516,5 @@ ModelParserGen::ModelParser::error(const ModelParserGen::location& l,
 
 inline void save_location(shared_ptr<ModelAST> m, location loc) {
     shared_ptr<location> ploc = make_shared<location>(loc);
-    m->set_location(ploc);
+    m->set_file_location(ploc);
 }

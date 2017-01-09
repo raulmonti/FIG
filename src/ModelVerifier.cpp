@@ -1,3 +1,4 @@
+/* Leonardo Rodríguez */
 #include <sstream>
 
 #include "ModelVerifier.h"
@@ -8,8 +9,8 @@
 
 namespace {
 std::basic_ostream<char>& operator<<(std::basic_ostream<char> &ss, TransitionAST& model) {
-    if (model.get_location() != nullptr) {
-        ss << " [at " << *(model.get_location()) << "]";
+    if (model.get_file_location() != nullptr) {
+        ss << " [at " << *(model.get_file_location()) << "]";
     }
     return ss;
 }

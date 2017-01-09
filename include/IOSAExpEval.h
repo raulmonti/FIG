@@ -7,9 +7,15 @@
 
 namespace iosa {
 
+/**
+ * @brief Evaluate expressions according to a given state.
+ */
 class Evaluator : public Visitor {
 private:
+    /// The computed value of the expression
     state_value_t value;
+
+    /// The state used to lookup variable values.
     shared_ptr<State> state;
 
 public:

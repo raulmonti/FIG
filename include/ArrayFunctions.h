@@ -1,3 +1,4 @@
+/* Leonardo Rodríguez */
 #ifndef ARRAY_FUNCTION_H
 #define ARRAY_FUNCTION_H
 
@@ -6,6 +7,10 @@
 #include "exprtk.hpp"
 
 namespace ArrayFunctions {
+
+/** Here we define some functions over arrays. Those functions
+ *  are included in the symbol table of the Exprtk library.
+ */
 
 /* To add more weird operators:
     // 1- Add a token in ModelScannerGen.ll
@@ -33,6 +38,8 @@ using scalar_t  = typename generic_type<T>::scalar_view;
 /// fsteq(array, E) = first j such that array[j]==E, or -1 if no such j exists
 template<typename T>
 struct FstEqFunction : public exprtk::igeneric_function<T> {
+
+    // V: VECTOR, T:SCALAR. Exprtk typechecks on compilation time.
     FstEqFunction() : exprtk::igeneric_function<T>("VT") {}
 
     inline T operator()(parameter_list_t<T> parameters) {
@@ -185,6 +192,7 @@ struct SumFromFunction : public exprtk::igeneric_function<T> {
 ///  consec(array, k)==1 if there is a sequence
 ///  of consecutive numbers i1,....,ik such that
 ///  array[i1] && .... && array[ik] holds (0 otherwise)
+/// @note used for oilpipeline model
 template<typename T>
 struct ConsecFunction : public exprtk::igeneric_function<T> {
 
@@ -216,6 +224,9 @@ struct ConsecFunction : public exprtk::igeneric_function<T> {
 /// broken(array, j) : array[j]=1; array[i]++ if array[i] != 0 and j!=i
 /// @returns 0
 /// @note modifies the array.
+/// @note Until we implement "procedure calls" as allowed "effects" on
+/// a postcondition, you should use this function as "dummy = broken(array, j)"
+/// where "dummy" can be declared as "dummy : [0..0] init 0;"
 template<typename T>
 struct BrokenFunction : public exprtk::igeneric_function<T> {
 
@@ -241,6 +252,7 @@ struct BrokenFunction : public exprtk::igeneric_function<T> {
 /// fstexclude(array, j) : first (least) position i such that i != j
 /// and array[i] holds, or -1 if no such i exists.
 /// @note j >= array.size makes i != j always true.
+/// @note used for oilpipeline model
 template<typename T>
 struct FstExcludeFunction : public exprtk::igeneric_function<T> {
 

@@ -25,7 +25,7 @@
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
-
+// Changed from MuParser to Exprtk: Leonardo Rodríguez.
 
 #ifndef MATHEXPRESSION_H
 #define MATHEXPRESSION_H

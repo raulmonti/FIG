@@ -67,6 +67,7 @@ private:
 
     /// Location from which this ast was created.
     /// save it only for improve error messages.
+    /// @note not to be confused with a "L"ocation node of the AST.
     shared_ptr<location> token_loc = nullptr;
 public:
 
@@ -81,14 +82,13 @@ public:
 
     /// Save location of the first token that
     /// was used to generate this AST.
-    /// @todo not yet used
-    void set_location(shared_ptr<location> loc) {
+    void set_file_location(shared_ptr<location> loc) {
         this->token_loc = loc;
     }
 
     /// Returns the location of the first token
     /// that generated this AST.
-    shared_ptr<location> get_location() {
+    shared_ptr<location> get_file_location() {
         return (this->token_loc);
     }
 };

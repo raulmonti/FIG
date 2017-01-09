@@ -5,7 +5,7 @@
 //  Copyleft 2016-
 //  Authors:
 //  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
-//
+//  - Leonardo Rodríguez
 //------------------------------------------------------------------------------
 //
 //  This file is part of FIG.
@@ -25,6 +25,7 @@
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
+
 
 #ifndef PROPERTYRATE_H
 #define PROPERTYRATE_H

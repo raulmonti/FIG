@@ -1,3 +1,4 @@
+/* Leonardo Rodríguez */
 #include "ExpState.h"
 
 namespace fig {

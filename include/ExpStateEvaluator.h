@@ -28,13 +28,19 @@ enum class OpKind {
     FUN //e.g min(4,5)
 };
 
-/// @brief Translates an AST expression into a ExpTk expression
+/// @brief Translates an AST expression into a string parseable
+/// by the Exprtk library
 class ExpTranslatorVisitor : public Visitor {
 private:
+    /// The resulting string
     std::string exprStr;
-    static std::string exprtk_name(ExpOp op);
-    static OpKind exprtk_kind(ExpOp op);
 
+    /// Exprtk specific name for each operator.
+    static std::string exprtk_name(ExpOp op);
+
+    /// Indicate if the given operator should be treated  as an
+    /// infix operator "e.g 4 + 5" or as a function (prefix) (e.g "max(4,5)")
+    static OpKind exprtk_kind(ExpOp op);
 public:
     ExpTranslatorVisitor() {}
     void visit(shared_ptr<IConst> node) noexcept override;
@@ -48,11 +54,24 @@ public:
 /// @brief Evaluate a vector of expressions using ExprTk
 class ExpStateEvaluator {
 protected:
+    /// The vector of expressions to evaluate
     ExpContainer astVec;
+
+    /// The internal state that contains the values for all the identifiers
+    /// occurring on the expressions.
     mutable ExpState<NUMTYPE> expState;
+
+    /// Vector of Exprtk-expressions to evaluate.
     std::vector<expression_t> exprVec;
+
+    /// Strings that generated our vector of expressions
     std::vector<std::string> expStrings;
+
+    /// How many expressions do we have
     size_t numExp;
+
+    /// Indicate if our internal state has already been syncronized with the main
+    /// simulation state
     bool prepared = false;
 
 public:
@@ -66,21 +85,30 @@ public:
 
     ExpStateEvaluator(ExpStateEvaluator&& that) = delete;
 
+    /// Associate our internal state with the main simulation state.
+    /// @see ExpState::project_positions
+    /// @note this must be called before \ref eval
     virtual void prepare(const PositionsMap& posMap) noexcept;
     virtual void prepare(const State<STYPE>& state) noexcept;
 
+    /// Was \ref prepare called?
     bool is_prepared() const noexcept {
         return (prepared);
     }
 
+    /// How many expressions do we have to evaluate?
     size_t number_of_expressions() const noexcept {
         return (astVec.size());
     }
 
-    STYPE eval(const State<STYPE>& state) const noexcept;
-    STYPE eval(const StateInstance& state) const noexcept;
+    /// Update our internal state and then evaluate all the expressions
+    /// @returns a vector with the results for each expression
     std::vector<STYPE> eval_all(const State<STYPE>& state) const noexcept;
     std::vector<STYPE> eval_all(const StateInstance& state) const noexcept;
+
+    /// Evaluate all the expressions but return the result of the first one.
+    STYPE eval(const State<STYPE>& state) const noexcept;
+    STYPE eval(const StateInstance& state) const noexcept;
 
 };
 

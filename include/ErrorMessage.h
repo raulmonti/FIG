@@ -1,3 +1,4 @@
+/* Leonardo Rodríguez */
 #include <sstream>
 #include "position.hh"
 
@@ -6,10 +7,6 @@
  * @note Visitor class inherits this class, then every extension of Visitor
  * has the ability to save error messages.
  */
-// People say... that I should not use exceptions for control-flow purposes, so
-// I used this class to store error messages and stop the "visitation" of the ast
-// (interrupt the visit functions) instead of throwing an exception with an error
-// message to be catched my the main.cpp function.
 class ErrorMessage {
 private:
     /// The stream that saves the messages

@@ -1,3 +1,5 @@
+/* Leonardo Rodríguez */
+
 #include "ModelReductor.h"
 #include "FigException.h"
 #include "ExpReductor.h"

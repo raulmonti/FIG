@@ -1,3 +1,5 @@
+/* Leonardo Rodríguez */
+
 #include "ExpReductor.h"
 
 const vector<ExpOp> ExpReductor::not_supported_op =

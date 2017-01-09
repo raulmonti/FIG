@@ -27,8 +27,8 @@ shared_map<string, Decl> ModuleScope::globals;
 namespace {
 
 stringstream& operator<<(stringstream &ss, ModelAST& model) {
-    if (model.get_location() != nullptr) {
-        ss << " [at " << *(model.get_location()) << "]";
+    if (model.get_file_location() != nullptr) {
+        ss << " [at " << *(model.get_file_location()) << "]";
     }
     return ss;
 }

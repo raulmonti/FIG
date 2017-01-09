@@ -1,3 +1,5 @@
+/* Leonardo Rodríguez */
+
 #include <fstream>
 #include <string>
 #include "Clock.h"

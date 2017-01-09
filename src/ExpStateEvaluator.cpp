@@ -1,3 +1,5 @@
+/* Leonardo Rodríguez */
+
 #include "ExpStateEvaluator.h"
 #include <functional>
 #include <cmath>
@@ -170,6 +172,8 @@ ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) noexcept
     //expression and tables are shallow copied by default, let's create new ones
     //new symbol table must refer to the new vector of values.
     //@todo dig up why is neccesary to have a copy constructor of this class.
+    //@note just removing the old table of each expression (without reparsing) didn't work
+    // but I don't remember why, we should try again to save some time.
     new (&exprVec) std::vector<expression_t>();
     exprVec.resize(numExp);
     new (&expStrings) std::vector<std::string>(that.expStrings);

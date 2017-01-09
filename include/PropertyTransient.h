@@ -5,7 +5,7 @@
 //  Copyleft 2015-
 //  Authors:
 //  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
-//
+//  - Leonardo Rodríguez
 //------------------------------------------------------------------------------
 //
 //  This file is part of FIG.

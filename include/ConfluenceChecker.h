@@ -62,7 +62,7 @@ private:
     /// Run the actual algorithm
     bool confluence_check();
 
-    /// Check if the given labels are on the
+    /// Check if the given labels are related via the triggering relation
     bool indirectly_triggers(const string &label1, const string &label2);
 
     /// Print debug information

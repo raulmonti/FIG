@@ -25,7 +25,7 @@
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
-
+// Implemented support for arrays: Leonardo Rodríguez.
 
 #ifndef STATE_H
 #define STATE_H

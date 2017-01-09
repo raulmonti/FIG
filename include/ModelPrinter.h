@@ -27,8 +27,6 @@
 //
 //==============================================================================
 
-/* Leonardo Rodríguez */
-
 #ifndef MODEL_PRINTER_H
 #define MODEL_PRINTER_H
 

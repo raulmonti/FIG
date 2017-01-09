@@ -9,9 +9,38 @@ namespace fig {
 
 using LocationContainer = std::vector<shared_ptr<Location>>;
 
+/**
+ * @brief Evaluate a vector of expressions and save the results
+ * on the given locations.
+ *
+ * @see example on \ref ExpState
+ * @example To execute the following sequence of assignments
+ *
+ *   x' =  x + 4, y' = y + z, arr[1 + x]' = x + y * z
+ *
+ * we use this class in the following way.
+ *
+ * Expressions to evaluate by \ref ExpStateEvaluator are:
+ *   x + 4, y + z, x + y * z, 1 + x
+ *
+ * Note that this sequence of expressions has the form
+ *    [rhs of each assignment] ++ [index for each lhs array position]
+ *
+ * When \ref update is called, \ref ExpStateEvaluator builds a vector
+ * of "results" that is used to update the state as follows:
+ *
+ *  x := results[0]
+ *  y := results[1]
+ *  arr[ results[3] ] := results[2]
+ *
+ */
 class ExpStateUpdater {
 private:
 
+    /// We build a table that describes the "place" that will receive
+    /// (or accept) the result of each evaluation. That place could
+    /// be a simple variable, in that case we store the name of the
+    /// variable and its position on the global simulation state...
     struct VarAcceptor {
         std::string name_;
         pos_t externalPos_;
@@ -20,10 +49,17 @@ private:
             name_ {name}, externalPos_ {externalPos} {}
     };
 
+    /// ...Or it could be an array.
     struct ArrayAcceptor {
+        /// @example "arr" in the example above
         std::string name_;
+        /// Position of the first element of the array corresponding to
+        /// the global simulation state.
         pos_t fstExternalPos_;
+        /// @example "3" in the example above, this will remind us that
+        /// "results[3]" has the index in which the array should be updated.
         pos_t indexExprPos_;
+        /// size of the array
         size_t size_;
         ArrayAcceptor() {}
         ArrayAcceptor(const std::string &name,
@@ -34,8 +70,10 @@ private:
             indexExprPos_ {indexExprPos}, size_ {size} {}
     };
 
+    /// A tag to distinguish the acceptor
     enum class Tag {SIMPLE, ARRAY};
 
+    /// The table itself.
     struct ResultAcceptor {
         Tag tag_;
         union { //if strange things happen just remove the union.
@@ -43,7 +81,7 @@ private:
             ArrayAcceptor array_acc_;
         };
 
-        //anonymous unions deletes default constructors.
+        //anonymous unions deletes default constructors. Improvise one.
         ResultAcceptor() : tag_ {Tag::SIMPLE} {
             new (&var_acc_) VarAcceptor();
         }
@@ -75,6 +113,7 @@ private:
         }
 
         ~ResultAcceptor() {
+            //http://i0.kym-cdn.com/entries/icons/original/000/006/026/futuramafry.jpg
             if (tag_ == Tag::SIMPLE) {
                 var_acc_.~VarAcceptor();
             } else if (tag_ == Tag::ARRAY) {
@@ -110,7 +149,7 @@ private:
     // Note: evaluator_.astVec_ has the form [e1, ...., eN] ++ [i1, ..., iM]
     // e1, ..., eN are the expressions to be evaluated in order to know the new
     // values of the locations.
-    // i1, ..., iM are the expressions corrresponding to the indices of the
+    // i1, ..., iM are the expressions corresponding to the indices of the
     // arrays positions that should be updated.
     ExpStateEvaluator evaluator_;
 
@@ -133,8 +172,16 @@ public:
     ExpStateUpdater(const LocationContainer &updates,
                     const ExpContainer &expVec);
 
+    /// @see ExpState::prepare
+    /// Compute the "external position" associtated with each acceptor.
     void prepare(const State<STYPE>& state) noexcept;
     void prepare(const PositionsMap& posMap) noexcept;
+
+    /// First update our internal state, then evaluate our expressions and
+    /// finally update the given external state with the computed results.
+    /// @note Our "result_accs_" table stores "where" the given state should
+    /// be updated.
+    /// @note prepare shold be called first
     void update(State<STYPE>& state) const noexcept;
     void update(StateInstance& state) const noexcept;
 };
