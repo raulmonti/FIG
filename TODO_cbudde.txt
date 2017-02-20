@@ -1,16 +1,24 @@
 
-Urgent:
- 0. profile to determine new hotspot
- 1. is the negative clocks sampling check an efficiency issue?
- 2. investigate the implications of a bad minRareValue_
- 3. implement "array" ADT; requires IOSA extension!
+                        (most  urgent)
+                              :
+ 4. implement "array" ADT for min/max/first/last operators
+ 3. profile to determine new hotspot
+ 2. is the negative clocks sampling check an efficiency issue?
+ 1. investigate the implications of a bad minRareValue_
+ 0. implement random operator for "array" ADT; requires IOSA extension!
+                              :
+                        (least urgent)
+
+------------ ^^^ Urgency stack (read upwards!) ^^^ ------------
+
+-------------- vvv General / Long term goals vvv --------------
+
+Properties FIG should offer:
+ · MTBF (mean time between failures)
+ · MTTF (mean time to failure)
+ · mean queue size?
 
 Papers to read:
  · JVA: Asymptotic opt. of RESTART est. in highly dependable systems (2014)
  · Guyader&Cérou: Sequential MC for rare event estimation (2011)
  · Guyader&Cérou: Sim. and est. of extreme quantiles and extreme probs. (2011)
-
-Properties FIG should offer:
- · mean queue size
- · MTTF (mean time to failure)
- · MTBF (mean time between failures)

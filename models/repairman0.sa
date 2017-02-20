@@ -1,0 +1,96 @@
+/*
+ * Dummy break-repair system with arrays for the FIG tool
+ * Budde, Monti, D'Argenio | 2016
+ *
+ * {-
+ * Generalized repairman concept:
+ *  · system components have a binary up/down state;
+ *  · failures are parallel, decided inside each component;
+ *  · failures distributions can differ among components;
+ *  · repairs are sequentially handled by a "rapairman module";
+ *  · repairs distributions can be different for each component;
+ *  · a repair policy is chosen by the user (random, prioritized, etc)
+ * -}
+ */
+
+// Constants
+
+const int NCOMP = 3;  // Number of system components
+const int RATE[NCOMP] = {1,1,2};
+
+// System components (up/down state each)
+
+module C0
+	up0: bool init true;
+	fail0: clock;
+	[f0!]  up0 @ fail0 -> (up0'= false);
+	[r0?] !up0         -> (up0'= true) & (fail0'= uniform(1.5,3.0));
+endmodule
+
+module C1
+	up1: bool init true;
+	fail1: clock;
+	[f1!]  up1 @ fail1 -> (up1'= false);
+	[r1?] !up1         -> (up1'= true) & (fail1'= uniform(1.5,3.0));
+endmodule
+
+module C2
+	up2: bool init true;
+	fail2: clock;
+	[f2!]  up2 @ fail2 -> (up2'= false);
+	[r2?] !up2         -> (up2'= true) & (fail2'= exponential(0.6));
+endmodule
+
+// Components repairman (uses array variables)
+
+module Repairman
+	busy: bool init false;         // Currently repairing something?
+	state[NCOMP]: bool init true;  // Could be e.g. "init {false,true,true}"
+	repair[NCOMP]: clock;          // User can't define clocks initialization
+	// Failures stalled
+	[f0?] busy -> (state[0]'= false);
+	[f1?] busy -> (state[1]'= false);
+	[f2?] busy -> (state[2]'= false);
+	// Failures attended
+	[f0?] !busy -> (busy'= true) &
+	               (state[0]'= false) &
+	               (repair[0]'= rayleigh(RATE[0]));
+	[f1?] !busy -> (busy'= true) &
+	               (state[1]'= false) &
+	               (repair[1]'= rayleigh(RATE[1]));
+	[f2?] !busy -> (busy'= true) &
+	               (state[2]'= false) &
+	               (repair[2]'= rayleigh(RATE[2]));
+	// Repairs
+	[r0!] (!state[0]) &
+	      (#(state) > first(state,$$))   // Repair next failed component
+	          @ repair[0] ->
+	      (state[0]'= true) &
+	      (repair[first(state,$$)]'= rayleigh(RATE[first(state,$$)]));
+	[r0!] (!state[0]) &
+	      (#(state) <= first(state,$$))  // No failed components left
+	          @ repair[0] ->
+	      (state[0]'= true) &
+	      (busy'= false);
+	[r1!] (!state[1]) &
+	      (#(state) > first(state,$$))   // Repair next failed component
+	          @ repair[1] ->
+	      (state[1]'= true) &
+	      (repair[first(state,$$)]'= rayleigh(RATE[first(state,$$)]));
+	[r1!] (!state[1]) &
+	      (#(state) <= first(state,$$))  // No failed components left
+	          @ repair[1] ->
+	      (state[1]'= true) &
+	      (busy'= false);
+	[r2!] (!state[2]) &
+	      (#(state) > first(state,$$))   // Repair next failed component
+	          @ repair[2] ->
+	      (state[2]'= true) &
+	      (repair[first(state,$$)]'= rayleigh(RATE[first(state,$$)]));
+	[r2!] (!state[2]) &
+	      (#(state) <= first(state,$$))  // No failed components left
+	          @ repair[2] ->
+	      (state[2]'= true) &
+	      (busy'= false);
+endmodule
+
