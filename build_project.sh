@@ -137,19 +137,19 @@ else
 		echo "[ERROR] Only SUB-directories are supported for builds, aborting."
 		exit 1
 	else
-		BUILD_DIR=$(echo $BUILD_DIR | grep -o "[0-9a-zA-Z/_\-\.]" | tr '\n' '\0')
+		BUILD_DIR=$(echo $BUILD_DIR | grep -o "[0-9a-zA-Z/_\-\.]" | tr -d '\n')
 	fi
 fi
 
 # Configure and build from inside BUILD_DIR
 if [ ! -d $BUILD_DIR ]; then mkdir $BUILD_DIR; fi
 cd $BUILD_DIR
-#OPTS="$OPTS -DRELEASE=ON"      # Cmake build options, see CMakeLists.txt
+OPTS="$OPTS -DRELEASE=ON"      # Cmake build options, see CMakeLists.txt
 OPTS="$OPTS -DBUILTIN_RNG=ON"  # Cmake build options, see CMakeLists.txt
 NJOBS=$(2>/dev/null bc <<< "2*`nproc --all`")
 if [ -z "$NJOBS" ]; then NJOBS=2; fi
-CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
-#CC=gcc CXX=g++ cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
+#CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
+CC=gcc CXX=g++ cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
 /bin/echo -e "\n  Project built in $BUILD_DIR\n"
 cd $CWD
 

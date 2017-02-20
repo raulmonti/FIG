@@ -1,3 +1,4 @@
+/* Leonardo Rodríguez */
 #ifndef MODEL_VERIFIER_H
 #define MODEL_VERIFIER_H
 
@@ -176,7 +177,7 @@ private:
     ///        such that
     ///        P(T2)v & !P(T1)v & P(T1)(Q(T2)v) &
     ///        (!OR(W(T1))v || W(T2) = W(T1))
-    /// Here OR(W(T1)) is the OR of the preconditions of the transitions
+    /// Here OR(W(T1)) is the disjunction of the preconditions of the transitions
     /// waiting for W(T1)
     /// @see enables_exhausted
     void check_exhausted_clocks(const string &clock_id);

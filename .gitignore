@@ -24,3 +24,4 @@ bin_*/
 *.out
 *.err
 *.log
+trace.*

@@ -91,6 +91,28 @@ void ModuleAST::accept(Visitor& visit) {
     visit.visit(static_pointer_cast<my_type>(shared_from_this()));
 }
 
+bool ModuleAST::has_committed_actions() const {
+    for (const shared_ptr<TransitionAST>& tr : this->get_transitions()) {
+        if (tr->get_label_type() == LabelType::in_committed) {
+            return (true);
+        }
+        if (tr->get_label_type() == LabelType::out_committed) {
+            return (true);
+        }
+    }
+    return (false);
+}
+
+bool ModuleAST::has_arrays() const {
+    for (const shared_ptr<Decl> &decl : get_local_decls()) {
+        if (decl->is_array()) {
+            return (true);
+        }
+    }
+    return (false);
+}
+
+
 void Decl::accept(Visitor& visit) {
     visit.visit(static_pointer_cast<Decl>(shared_from_this()));
 }
@@ -197,6 +219,10 @@ void ArrayPosition::accept(Visitor& visit) {
     visit.visit(static_pointer_cast<ArrayPosition>(shared_from_this()));
 }
 
+std::string ArrayPosition::to_string() const noexcept {
+    return (this->get_identifier() + "[" + index->to_string() + "]");
+}
+
 void Prop::accept(Visitor& visit) {
     visit.visit(static_pointer_cast<Prop>(shared_from_this()));
 }
@@ -250,6 +276,10 @@ void FConst::accept(Visitor& visit) {
 //Default Visitor does nothing on his visitation ;)
 Visitor::Visitor() {
     message = make_shared<ErrorMessage>();
+}
+
+void Visitor::ignore_errors() {
+    message->ignore_errors();
 }
 
 void Visitor::put_error(const string &msg) {
@@ -322,6 +352,7 @@ void Visitor::visit(shared_ptr<MultipleInitializedArray> node) {
 void Visitor::visit(shared_ptr<RangedInitializedArray> node) {
     visit(std::static_pointer_cast<ArrayDecl>(node));
 }
+
 void Visitor::visit(shared_ptr<RangedMultipleInitializedArray> node)  {
     visit(std::static_pointer_cast<ArrayDecl>(node));
 }
@@ -335,6 +366,9 @@ void Visitor::visit(shared_ptr<OutputTransition> node) {
 }
 void Visitor::visit(shared_ptr<TauTransition> node) {
     visit(std::static_pointer_cast<OutputTransition>(node));
+}
+void Visitor::visit(shared_ptr<WildcardInputTransition> node) {
+    visit(std::static_pointer_cast<TransitionAST>(node));
 }
 void Visitor::visit(shared_ptr<InputTransition> node) {
     visit(std::static_pointer_cast<TransitionAST>(node));

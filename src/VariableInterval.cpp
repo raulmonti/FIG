@@ -232,7 +232,7 @@ VariableInterval<T_>::operator==(const VariableInterval<T_>& that) const
 
 // VariableInterval can only be instantiated with following numeric types
 template class VariableInterval< short              >;
-//template class VariableInterval< int                >;   // MuParser can't
+template class VariableInterval< int                >;   // MuParser can't
 template class VariableInterval< long               >;
 template class VariableInterval< long long          >;
 template class VariableInterval< unsigned short     >;

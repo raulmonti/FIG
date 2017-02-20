@@ -100,57 +100,29 @@ ImportanceFunction::Formula::set(
         throw_FigException("can't define an empty user function");
 
     empty_ = false;
-	exprStr_ = muparser_format(formula);
-	parse_our_expression();  // updates expr_
+    exprStr_ = exprtk_format(formula);
 	NVARS_ = std::distance(begin(varnames), end(varnames));
 	varsNames_.clear();
 	varsNames_.reserve(NVARS_);
 	varsPos_.clear();
 	varsPos_.reserve(NVARS_);
-	varsValues_.resize(NVARS_);
-	try {
-		auto pos_of_var = wrap_mapper(obj);
-		NVARS_ = 0ul;
-		for (const std::string& var: varnames) {
-			if (find(begin(varsNames_),end(varsNames_),var) == end(varsNames_)
-					&& exprStr_.find(var) != std::string::npos) {
-				varsNames_.emplace_back(var);                  // map var
-				varsPos_.emplace_back(pos_of_var(var));        // map global pos
-				expr_.DefineVar(var, &varsValues_[NVARS_++]);  // hook to expr_
-			}
-		}
-	} catch (mu::Parser::exception_type &e) {
-		std::cerr << "Failed parsing expression" << std::endl;
-		std::cerr << "    message:  " << e.GetMsg()   << std::endl;
-		std::cerr << "    formula:  " << e.GetExpr()  << std::endl;
-		std::cerr << "    token:    " << e.GetToken() << std::endl;
-		std::cerr << "    position: " << e.GetPos()   << std::endl;
-		std::cerr << "    errc:     " << e.GetCode()  << std::endl;
-		throw_FigException("bad expression for ImportanceFunction::Formula, "
-						   "did you remember to map all the variables?");
-	}
+    varsValues_.resize(NVARS_);
+    auto pos_of_var = wrap_mapper(obj);
+    NVARS_ = 0ul;
+    for (const std::string& var: varnames) {
+        if (find(begin(varsNames_),end(varsNames_),var) == end(varsNames_)
+                && exprStr_.find(var) != std::string::npos) {
+            varsNames_.emplace_back(var);                  // map var
+            varsPos_.emplace_back(pos_of_var(var));        // map global pos
+            NVARS_++;
+        }
+    }
 	varsNames_.shrink_to_fit();
 	varsPos_.shrink_to_fit();
 	NVARS_ = varsNames_.size();
-	varsValues_.resize(NVARS_);  // breaks references in expr_?
+    varsValues_.resize(NVARS_);
+    compile_expression();
 	pinned_ = true;
-
-    // Fake an evaluation to reveal parsing errors but now... I said NOW!
-    try {
-		STATE_INTERNAL_TYPE dummy(static_cast<STATE_INTERNAL_TYPE>(1.1));
-		for (STATE_INTERNAL_TYPE& val: varsValues_)
-			val = dummy;
-		dummy = expr_.Eval();
-    } catch (mu::Parser::exception_type &e) {
-        std::cerr << "Failed parsing expression" << std::endl;
-        std::cerr << "    message:  " << e.GetMsg()   << std::endl;
-        std::cerr << "    formula:  " << e.GetExpr()  << std::endl;
-        std::cerr << "    token:    " << e.GetToken() << std::endl;
-        std::cerr << "    position: " << e.GetPos()   << std::endl;
-        std::cerr << "    errc:     " << e.GetCode()  << std::endl;
-        throw_FigException("bad expression for ImportanceFunction::Formula, "
-                           "did you remember to map all the variables?");
-    }
 }
 
 // ImportanceFunction::Formula::set() can only be invoked
@@ -187,12 +159,12 @@ ImportanceFunction::Formula::reset() noexcept
 {
     empty_ = true;
     exprStr_ = "1";
-    try { parse_our_expression(); } catch (FigException&) {}
 	NVARS_ = 0ul;
 	varsNames_.clear();
 	varsPos_.clear();
 	varsValues_.clear();
     pinned_ = false;
+    compile_expression();
 }
 
 
@@ -210,7 +182,7 @@ ImportanceFunction::Formula::operator()(const StateInstance& state) const
 	///            impose an upper bound on the number of variables/modules,
 	///            but then the language's flexibility will be compromised.
 	// ...and evaluate
-    return static_cast<ImportanceValue>(expr_.Eval());
+    return static_cast<ImportanceValue>(expr_.value());
 }
 
 
@@ -224,7 +196,7 @@ ImportanceFunction::Formula::operator()(const ImportanceVec& localImportances) c
 		varsValues_[i] = static_cast<STATE_INTERNAL_TYPE>(
 							 localImportances[varsPos_[i]]);  // NOTE see other note
 	// ...and evaluate
-	return static_cast<ImportanceValue>(expr_.Eval());
+    return static_cast<ImportanceValue>(expr_.value());
 }
 
 

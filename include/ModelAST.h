@@ -10,6 +10,8 @@
 #include <sstream>
 #include <algorithm>
 #include "Util.h"
+#include "Type.h"
+#include "Operators.h"
 
 /** Model Abstract Syntax Tree  **/
 
@@ -19,12 +21,6 @@ using std::map;
 using std::shared_ptr;
 using std::make_shared;
 
-
-/// @brief Types for local module variables.
-enum class Type {tint, tbool, tfloat, tclock, tunknown};
-/// @brief Expression operators (unary and binary)
-enum class ExpOp {plus, times, minus, div, mod, andd, orr, nott,
-                  eq, neq, lt, gt, le, ge};
 /// @brief Type of labels allowed in transitions.
 enum class LabelType {in, out, out_committed, in_committed, tau};
 /// @brief Supported distributions
@@ -71,6 +67,7 @@ private:
 
     /// Location from which this ast was created.
     /// save it only for improve error messages.
+    /// @note not to be confused with a "L"ocation node of the AST.
     shared_ptr<location> token_loc = nullptr;
 public:
 
@@ -85,14 +82,13 @@ public:
 
     /// Save location of the first token that
     /// was used to generate this AST.
-    /// @todo not yet used
-    void set_location(shared_ptr<location> loc) {
+    void set_file_location(shared_ptr<location> loc) {
         this->token_loc = loc;
     }
 
     /// Returns the location of the first token
     /// that generated this AST.
-    shared_ptr<location> get_location() {
+    shared_ptr<location> get_file_location() {
         return (this->token_loc);
     }
 };
@@ -106,7 +102,7 @@ private:
     PropType type;
 protected:
     /// Protected constructor
-    /// @note Instanted should be made using subclasses.
+    /// @note Instances must be created using subclasses.
     Prop(PropType type) : type {type} {}
 
 public:
@@ -157,6 +153,17 @@ public:
         return (right);
     }
 
+    /// Modify left expression
+    void set_left(shared_ptr<Exp> left) {
+        this->left = left;
+    }
+
+    /// Modify right expression
+    void set_right(shared_ptr<Exp> right) {
+        this->right = right;
+    }
+
+
     /// Acceptor.
     virtual void accept(Visitor& visit) override;
 };
@@ -179,6 +186,11 @@ public:
         return (exp);
     }
 
+    /// Modify expression
+    void set_expression(shared_ptr<Exp> exp) {
+        this->exp = exp;
+    }
+
     /// Acceptor.
     virtual void accept(Visitor& visit) override;
 };
@@ -197,6 +209,9 @@ private:
     /// Properties of the model.
     shared_vector<Prop> props;
 public:
+	/// Empty ctor
+	Model() {}
+
     /// Construct a model from a single module
     Model(shared_ptr<ModuleAST> mb) {
         add_module(mb);
@@ -207,7 +222,7 @@ public:
         add_decl(decl);
     }
     
-    /// Copy and Assignment constructor are disabled.
+    /// Copy and Assignment constructor.
     Model(const Model &model) = delete;
     void operator=(Model const &) = delete;
     
@@ -221,7 +236,12 @@ public:
         globals.push_back(decl);
     }
 
-    /// Adds a vector of properties to the model.
+	/// Adds a property to the model.
+	void add_prop(const shared_ptr<Prop> &property) {
+		props.push_back(property);
+	}
+
+	/// Adds a vector of properties to the model.
     void add_props(const shared_vector<Prop> &properties) {
         props.insert(props.end(), properties.begin(), properties.end());
     }
@@ -234,8 +254,8 @@ public:
         return (modules);
     }
 
-	/// Returns (only the id of) the labels of all modules of this model
-	std::set<string> get_labels() const;
+    /// Returns (only the id of) the labels of all modules of this model
+    std::set<string> get_labels() const;
 
     /// Returns the global declarations of this model
     const vector<shared_ptr<class Decl>>& get_globals() const {
@@ -246,6 +266,21 @@ public:
     const vector<shared_ptr<Prop>>& get_props() const {
         return (props);
     }
+
+	/// How many modules this model has
+	size_t num_modules() const {
+		return modules.size();
+	}
+
+	/// How many global declarationsthis model has
+	size_t num_globals() const {
+		return globals.size();
+	}
+
+	/// How many properties this model has
+	size_t num_props() const {
+		return props.size();
+	}
 
     /// Are there properties in the model?
     bool has_props() {
@@ -301,13 +336,13 @@ public:
     virtual void accept(Visitor& visit) override;
     
     /// Returns local declaration of the model.
-    const shared_vector<Decl>& get_local_decls() {
+    const shared_vector<Decl>& get_local_decls() const {
         return local_decls;
     }
     
     /// Returns the transitions of the module.
-    const shared_vector<TransitionAST>& get_transitions() {
-        return transitions;
+    const shared_vector<TransitionAST>& get_transitions() const {
+        return (transitions);
     }
 
     /// Returns the name of the module
@@ -319,6 +354,12 @@ public:
     void set_name(const string &name) {
         this->id = name;
     }
+
+    /// Has committed actions?  (input or output)
+    bool has_committed_actions() const;
+
+    /// Has array declarations?
+    bool has_arrays() const;
 };
 
 /** @brief Initialized mixin.
@@ -338,6 +379,11 @@ public:
     shared_ptr<Exp> get_init() {
         return (init);
     }
+
+    /// Modify init
+    void set_init(shared_ptr<Exp> init) {
+        this->init = init;
+    }
 };
 
 /** @brief MultipleInitialized mixin
@@ -353,7 +399,7 @@ public:
         : inits {inits} {}
 
     /// Returns the vector of initialization
-    const shared_vector<Exp>& get_inits() {
+    shared_vector<Exp>& get_inits() {
         return (inits);
     }
 };
@@ -380,6 +426,15 @@ public:
     /// Upper bound
     shared_ptr<Exp> get_upper_bound() {
         return (upper);
+    }
+
+    /// Setters
+    void set_lower_bound(shared_ptr<Exp> lower) {
+        this->lower = lower;
+    }
+
+    void set_upper_bound(shared_ptr<Exp> upper) {
+        this->upper = upper;
     }
 };
 
@@ -445,18 +500,29 @@ public:
         return (false);
     }
 
-    /// Converts this instance of declaration into a RangedDecl
-    /// @note has_range() must be true.
-    shared_ptr<class RangedDecl> to_ranged() {
-        assert(has_range());
-        return std::static_pointer_cast<RangedDecl>(shared_from_this());
+    /// Check if this is an array declaration
+    virtual bool is_array() {
+        return (false);
     }
 
-    /// Converts this instance of declaration into a InitializedDecl
+    /// Converts this instance of declaration into a Ranged object
+    /// @note has_range() must be true.
+    shared_ptr<class Ranged> to_ranged() {
+        assert(has_range());
+        return std::dynamic_pointer_cast<Ranged>(shared_from_this());
+    }
+
+    /// Converts this instance of declaration into an Initialized object
     /// @note has_init() must be true.
-    shared_ptr<class InitializedDecl> to_initialized() {
+    shared_ptr<class Initialized> to_initialized() {
         assert(has_init());
-        return std::static_pointer_cast<InitializedDecl>(shared_from_this());
+        return std::dynamic_pointer_cast<Initialized>(shared_from_this());
+    }
+
+    /// Converts this instance of declaration into an Array declaration
+    shared_ptr<class ArrayDecl> to_array() {
+        assert(is_array());
+        return std::dynamic_pointer_cast<ArrayDecl>(shared_from_this());
     }
 };
 
@@ -467,10 +533,11 @@ public:
  **/
 class InitializedDecl : public Decl, public Initialized {
 public:
-    InitializedDecl(Type type, string id, shared_ptr<Exp> init)
-        : Decl(type, id), Initialized(init) {}
+	InitializedDecl(Type type, string id, shared_ptr<Exp> init, bool constant = false)
+		: Decl(type, id), Initialized(init)
+		{ if (constant) mark_as_constant(); }
     virtual void accept(Visitor& visit) override;
-	virtual bool has_init() override {
+    virtual bool has_init() override {
         return (true);
     }
 };
@@ -481,7 +548,7 @@ public:
  **/
 class RangedDecl : public Decl, public Initialized, public Ranged {
 public:
-    /// Constructor that takes lower and upper bound, and a initialization
+    /// Constructor that takes lower and upper bound, and an initialization
     RangedDecl(string id, shared_ptr<Exp> lower, shared_ptr<Exp> upper,
                shared_ptr<Exp> init) :
         Decl(Type::tint, id), Initialized(init), Ranged(lower, upper) {}
@@ -516,20 +583,61 @@ public:
     virtual void accept(Visitor& visit) override;
 };
 
+/** @brief Array data to be inferred at compilation time. Currently
+ * inferred by ModelReducer.
+ */
+struct ArrayData {
+    int data_min = 0; //minimum value allowed for each element
+    int data_max = 0; //maximum value allowed for each element
+    int data_size = 0; //size of the array
+    std::vector<int> data_inits; //initial values of the array
+};
+
 /** @brief An array declaration
  **/
 class ArrayDecl : public Decl {
 private:
     /// Expression with the size of the array
     shared_ptr<Exp> size;
+    /// Array compile-time inferred info
+    ArrayData data;
+
+    Type array_type(Type type) {
+        switch (type) {
+        case Type::tint: return Type::tintarray;
+        case Type::tbool: return Type::tboolarray;
+        default: return Type::tunknown;
+        }
+    }
+
 protected:
     /// Protected constructor.
     ArrayDecl(Type type, string id, shared_ptr<Exp> size)
-        : Decl(type, id), size {size} {}
+        : Decl(array_type(type), id), size {size} {}
 public:
     /// Return the expression with the size of the array
-    shared_ptr<Exp> get_size() {
+    shared_ptr<Exp> get_size() const {
         return (size);
+    }
+
+    /// Set the size
+    void set_size(shared_ptr<Exp> size) {
+        this->size = size;
+    }
+
+    /// Set array info
+    void set_data(ArrayData data) {
+        this->data = data;
+    }
+
+    /// Get array info
+    ArrayData get_data() const {
+        return (data);
+    }
+
+    /// Mark as an array declaration
+    virtual bool is_array() {
+        return (true);
     }
 
     /// Acceptor
@@ -538,28 +646,31 @@ public:
 
 /**
  * @brief InitializedArray
- * @example a[4] : int init 2;
+ * @example a[4] : bool init false;
  * @note The initialization is the value of all the array elements.
+ * @note only boolean type is supported for this form of syntax
+ * since we have to know the range of each element
  */
 class InitializedArray : public ArrayDecl, public Initialized {
 public:
     InitializedArray(Type type, string id, shared_ptr<Exp> size,
                 shared_ptr<Exp> init) :
         ArrayDecl(type, id, size), Initialized {init} {}
-
     /// Acceptor
     virtual void accept(Visitor& visit) override;
 };
 
 /**
  * @brief MultipleInitializedArray
- * @example const a[4] = {0, 4, 1, 2}
+ * @example a[4] = {true, false, true, false}
  * @note Each initialization correspond to an array element
+ * @note only boolean supported for this form of syntax
+ * since we have to know the range of each element
  */
 class MultipleInitializedArray : public ArrayDecl, public MultipleInitialized {
 public:
     MultipleInitializedArray(Type type, string id, shared_ptr<Exp> size,
-                                 const shared_vector<Exp>& inits) :
+                             const shared_vector<Exp>& inits) :
         ArrayDecl(type, id, size), MultipleInitialized {inits} {}
 
     /// Acceptor
@@ -634,12 +745,12 @@ public:
     }
 
     /// Return the vector of assignments
-    const shared_vector<Assignment>& get_assignments() {
+    shared_vector<Assignment>& get_assignments() {
         return (assignments);
     }
 
     /// Return the clock resets of this transition
-    const shared_vector<ClockReset>& get_clock_resets() {
+    shared_vector<ClockReset>& get_clock_resets() {
         return (clock_resets);
     }
 
@@ -648,8 +759,13 @@ public:
         return (precondition);
     }
 
+    /// Set precondition
+    void set_precondition(shared_ptr<Exp> pre) {
+        this->precondition = pre;
+    }
+
     /// Has this transition a triggering clock?
-    /// @note overrided by subclasses
+	/// @note overridden by subclasses
     /// @note only OutputTransition (and TauTransition) has a triggering clock
     virtual bool has_triggering_clock() {
         return (false);
@@ -732,6 +848,25 @@ public:
         TransitionAST(label_id, LabelType::in, pre, effects) {}
     /// Acceptor
     virtual void accept(Visitor& visit) override;
+
+    virtual bool is_wildcard() {
+        return (false);
+    }
+};
+
+/**
+ * @brief Wildcard Input
+ * @example [_?] q1 & q2 -> (q1' = 1)
+ */
+class WildcardInputTransition : public InputTransition {
+public:
+    WildcardInputTransition(shared_ptr<Exp> pre,
+                            const shared_vector<Effect> &effects) :
+        InputTransition("_", pre, effects) {}
+
+    virtual bool is_wildcard() override {
+        return (true);
+    }
 };
 
 /**
@@ -767,6 +902,7 @@ protected:
     /// The location in which the changes are made (name of the
     /// state variable or the clock).
     shared_ptr<Location> loc;
+
 protected: //Protected Constructor
     Effect(shared_ptr<Location> loc) : loc {loc} {}
 
@@ -790,6 +926,11 @@ public:
     shared_ptr<Location> get_effect_location() {
         return (loc);
     }
+
+    /// Sets effect location
+    void set_effect_location(shared_ptr<Location> location) {
+        this->loc = location;
+    }
 };
 
 /**
@@ -806,6 +947,11 @@ public:
     shared_ptr<Exp> get_rhs() {
         return (rhs);
     }
+
+    void set_rhs(shared_ptr<Exp> rhs) {
+        this->rhs = rhs;
+    }
+
     bool is_assignment() override {
         return (true);
     }
@@ -863,6 +1009,10 @@ public:
         return (false);
     }
 
+	virtual size_t num_parameters() {
+		return 0ul;
+	}
+
     shared_ptr<class SingleParameterDist> to_single_parameter() {
         assert(has_single_parameter());
         return std::static_pointer_cast<SingleParameterDist>(shared_from_this());
@@ -889,9 +1039,17 @@ public:
         return (param);
     }
 
+    void set_parameter(shared_ptr<Exp> exp) {
+        this->param = exp;
+    }
+
     virtual bool has_single_parameter() override {
         return (true);
     }
+
+	size_t num_parameters() override {
+		return 1ul;
+	}
 
     /// Acceptor
     virtual void accept(Visitor& visit) override;
@@ -900,6 +1058,8 @@ public:
 /**
  * @brief MultipleParameterDist
  * @example uniform(4, 10)
+ * @note Leo, this is a lie, 2 != "multiple".
+ * @note Carlos, ask to a woman.
  */
 class MultipleParameterDist : public Dist {
 private:
@@ -918,9 +1078,21 @@ public:
         return (param2);
     }
 
+    void set_first_parameter(shared_ptr<Exp> exp) {
+        this->param1 = exp;
+    }
+
+    void set_second_parameter(shared_ptr<Exp> exp) {
+        this->param2 = exp;
+    }
+
     virtual bool has_multiple_parameters() override {
         return (true);
     }
+
+	size_t num_parameters() override {
+		return 2ul;
+	}
 
     virtual void accept(Visitor& visit) override;
 };
@@ -933,6 +1105,11 @@ class Location : public ModelAST {
 private:
     /// The identifier
     string id;
+
+    /// Convenient pointer to identifier declaration
+    /// @note setted by ModelReductor
+    shared_ptr<Decl> decl;
+
 public:
     Location(const string& id) : id {id} {}
     Location(const Location &) = delete;
@@ -943,9 +1120,37 @@ public:
     virtual void accept(Visitor& visit) override;
 
     /// The identifier
-    string get_identifier() {
+	string get_identifier() const {
         return (id);
+	}
+
+	/// Is this an indexed array? (e.g. x[4])
+    virtual bool is_array_position() const {
+		return (false);
+	}
+
+	virtual bool operator ==(const Location& that) const {
+		return that.id == id;
+	}
+
+    /// Converts this location into an ArrayPosition
+    shared_ptr<class ArrayPosition> to_array_position() {
+        assert(is_array_position());
+        return std::dynamic_pointer_cast<ArrayPosition>(shared_from_this());
     }
+
+    void set_decl(shared_ptr<Decl> decl) {
+        this->decl = decl;
+    }
+
+    shared_ptr<Decl> get_decl() {
+        return (decl);
+    }
+
+    virtual std::string to_string() const noexcept {
+        return (this->id);
+    }
+
 };
 
 /**
@@ -956,14 +1161,35 @@ class ArrayPosition : public Location {
 private:
     /// Expression used to compute the index
     shared_ptr<Exp> index;
+
 public:
     ArrayPosition(const string &id, shared_ptr<Exp> index)
         : Location(id), index {index} {}
     /// Acceptor
     virtual void accept(Visitor& visit) override;
+
+    ArrayPosition(const ArrayPosition &pos) = delete;
+    ArrayPosition(ArrayPosition &&pos) = delete;
+
     shared_ptr<Exp> get_index() {
         return (index);
     }
+
+    void set_index(shared_ptr<Exp> exp) {
+        this->index = exp;
+	}
+
+    bool is_array_position() const override {
+		return (true);
+	}
+
+	bool operator ==(const Location& that) const override {
+		return  that == *this &&
+                that.is_array_position() &&
+				static_cast<const ArrayPosition&>(that).index == index;
+	}
+
+    virtual std::string to_string() const noexcept override;
 };
 
 /**
@@ -984,13 +1210,33 @@ public:
     /// Acceptor
     virtual void accept(Visitor& visit) override;
 
-    Type get_type() {
+	Type get_type() const {
         return (type);
     }
 
-    void set_type(Type type) {
+    virtual void set_type(Type type) {
         this->type = type;
     }
+
+	virtual bool is_constant() const {
+        return (false);
+    }
+
+	virtual bool is_binary_operator() const {
+        return (false);
+    }
+
+	virtual bool is_unary_operator() const {
+        return (false);
+    }
+
+	virtual bool operator==(const Exp& that) const = 0;
+
+	virtual bool operator!=(const Exp& that) const {
+		return !(that == *this);
+	}
+
+    virtual std::string to_string() const noexcept = 0;
 };
 
 /**
@@ -1009,10 +1255,29 @@ public:
     void operator=(const IConst &) = delete;
 
     /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	void accept(Visitor& visit) override;
 
-    int get_value() {
+	int get_value() const {
         return (value);
+    }
+
+	void set_type(Type type) override {
+        assert(type == Type::tint);
+        this->type = type;
+    }
+
+	bool is_constant() const override {
+        return (true);
+    }
+
+	bool operator==(const Exp& that) const override {
+		return  that.is_constant() &&
+				that.get_type() == Type::tint &&
+				static_cast<const IConst&>(that).value == value;
+	}
+
+    std::string to_string() const noexcept override {
+        return (std::to_string(value));
     }
 };
 
@@ -1024,7 +1289,7 @@ private:
     bool value;
 public:
     /// Create the boolean constant from its value
-    BConst(bool value) : value {value} {
+	BConst(bool value = false) : value {value} {
         type = Type::tbool;
     }
 
@@ -1032,10 +1297,24 @@ public:
     void operator=(const BConst &) = delete;
 
     /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	void accept(Visitor& visit) override;
 
-    bool get_value() {
+	bool get_value() const {
         return (value);
+    }
+
+	bool is_constant() const override {
+        return (true);
+    }
+
+	bool operator==(const Exp& that) const override {
+		return  that.is_constant() &&
+				that.get_type() == Type::tbool &&
+				static_cast<const BConst&>(that).value == value;
+	}
+
+    std::string to_string() const noexcept override {
+        return (value ? "true" : "false");
     }
 };
 
@@ -1055,10 +1334,24 @@ public:
     void operator=(const FConst &) = delete;
 
     /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	void accept(Visitor& visit) override;
 
-    float get_value() {
+	float get_value() const {
         return (value);
+    }
+
+	bool is_constant() const override {
+        return (true);
+    }
+
+	bool operator==(const Exp& that) const override {
+		return  that.is_constant() &&
+				that.get_type() == Type::tfloat &&
+				static_cast<const FConst&>(that).value == value;
+	}
+
+    std::string to_string() const noexcept override {
+        return (std::to_string(value));
     }
 };
 
@@ -1073,15 +1366,27 @@ private:
 public:
     /// Create a location expression
     LocExp(shared_ptr<Location> location) : location {location} {}
+	LocExp(string id) : location(make_shared<Location>(std::forward<string>(id))) {}
 
     LocExp(const LocExp &) = delete;
     void operator=(const LocExp &) = delete;
 
     /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	void accept(Visitor& visit) override;
 
     shared_ptr<Location> get_exp_location() {
         return (location);
+    }
+
+	bool operator==(const Exp& that) const override {
+		return  !that.is_constant() &&
+				!that.is_unary_operator() &&
+				!that.is_binary_operator() &&
+				static_cast<const LocExp&>(that).location == location;
+	}
+
+    std::string to_string() const noexcept override {
+        return (location->to_string());
     }
 };
 
@@ -1089,11 +1394,11 @@ public:
  * @brief A operator expression.
  */
 class OpExp : public Exp {
-private:
+protected:
     /// Operator
     ExpOp op;
 
-protected:
+protected: //Protected.
     OpExp(ExpOp op) : op {op} {}
 
     OpExp(const OpExp&) = delete;
@@ -1101,12 +1406,20 @@ protected:
 
 public:
     /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	void accept(Visitor& visit) override;
 
-    ExpOp get_operator() {
+	ExpOp get_operator() const {
         return (op);
     }
 
+	bool operator==(const Exp& that) const override {
+		return  (that.is_binary_operator() || that.is_unary_operator()) &&
+				static_cast<const OpExp&>(that).op == op;
+	}
+
+    virtual std::string to_string() const noexcept override {
+        return (Operator::operator_string(op));
+    }
 };
 
 /**
@@ -1116,11 +1429,19 @@ public:
  */
 class BinOpExp : public OpExp {
 private:
+    shared_ptr<BinaryOpTy> inferred_type = nullptr;
     shared_ptr<Exp> left;
     shared_ptr<Exp> right;
+    // When adding new members, remember to update ExpReductor visitor!
+    // @todo make a proper copy constructor for that visitor
+
 public:
     BinOpExp(ExpOp op, shared_ptr<Exp> left, shared_ptr<Exp> right) :
         OpExp(op), left {left}, right {right} {}
+
+    BinOpExp(const BinOpExp&) = delete;
+    void operator=(const BinOpExp &) = delete;
+
 
     /// Create a expression that represents the
     /// conjuction of the given arguments
@@ -1137,7 +1458,54 @@ public:
         return (right);
     }
 
-    virtual void accept(Visitor& visit) override;
+    void set_first_argument(shared_ptr<Exp> exp) {
+        this->left = exp;
+    }
+
+    void set_second_argument(shared_ptr<Exp> exp) {
+        this->right = exp;
+    }
+
+    void set_inferred_type(BinaryOpTy type) {
+        inferred_type = make_shared<BinaryOpTy>(type);
+    }
+
+	bool has_inferred_type() const {
+        return (inferred_type != nullptr);
+    }
+
+    BinaryOpTy get_inferred_type() {
+        assert(inferred_type != nullptr);
+        return (*inferred_type);
+    }
+
+	bool is_binary_operator() const override {
+        return (true);
+    }
+
+	void accept(Visitor& visit) override;
+
+	bool operator==(const Exp& that) const override {
+		if (!that.is_binary_operator())
+			return false;
+		const auto& thatBinOpExpr(static_cast<const BinOpExp&>(that));
+		return  static_cast<const OpExp&>(that) == *this &&
+				thatBinOpExpr.left == left &&
+				thatBinOpExpr.right == right;
+	}
+
+    std::string to_string() const noexcept override {
+        std::string res = "";
+        const std::string & lStr  = left->to_string();
+        const std::string & rStr  = right->to_string();
+        const std::string & opStr = Operator::operator_string(op);
+        if (Operator::is_infix_operator(op)) {
+            res = lStr + opStr + rStr;
+        } else {
+            res = opStr + "(" + lStr + ", " + rStr + ")";
+        }
+        return (res);
+    }
 };
 
 /**
@@ -1147,13 +1515,22 @@ public:
  */
 class UnOpExp : public OpExp {
 private:
+    shared_ptr<UnaryOpTy> inferred_type = nullptr;
     shared_ptr<Exp> argument;
+
 public:
     UnOpExp(ExpOp op, shared_ptr<Exp> argument) :
        OpExp(op), argument {argument} {}
 
+    UnOpExp(const UnOpExp&) = delete;
+    void operator=(const UnOpExp &) = delete;
+
     shared_ptr<Exp> get_argument() {
         return (argument);
+    }
+
+    void set_argument(shared_ptr<Exp> exp) {
+        this->argument = exp;
     }
 
     /// Create a expression that represents the negation of the given argument
@@ -1161,8 +1538,38 @@ public:
         return make_shared<UnOpExp>(ExpOp::nott, exp);
     }
 
+    void set_inferred_type(UnaryOpTy type) {
+        inferred_type = make_shared<UnaryOpTy>(type);
+    }
+
+    UnaryOpTy get_inferred_type() {
+        assert(inferred_type != nullptr);
+        return (*inferred_type);
+    }
+
+    bool has_inferred_type() {
+        return (inferred_type != nullptr);
+    }
+
+	bool is_unary_operator() const override {
+        return (true);
+    }
+
     /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	void accept(Visitor& visit) override;
+
+	bool operator==(const Exp& that) const override {
+		if (!that.is_unary_operator())
+			return false;
+		const auto& thatUnOpExpr(static_cast<const UnOpExp&>(that));
+		return  static_cast<const OpExp&>(that) == *this &&
+				thatUnOpExpr.argument == argument;
+	}
+
+    std::string to_string() const noexcept override {
+        const std::string &opStr = Operator::operator_string(op);
+        return (opStr + "(" + argument->to_string() + ")");
+    }
 };
 
 /**
@@ -1180,6 +1587,10 @@ protected:
     /// user when the AST traversing is finished.
     void put_error(const string &msg);
     void put_warning(const string &msg);
+
+    /// Ignore errors, has_errors() will be "false" after calling
+    /// this method
+    void ignore_errors();
 
 public:
     /// Default constructor
@@ -1246,6 +1657,8 @@ public:
     virtual void visit(shared_ptr<TauTransition>);
     /// @copydoc visit(shared_ptr<ModelAST>)
     virtual void visit(shared_ptr<InputTransition>);
+    /// @copydoc visit(shared_ptr<ModelAST>)
+    virtual void visit(shared_ptr<WildcardInputTransition>);
     /// @copydoc visit(shared_ptr<ModelAST>)
     virtual void visit(shared_ptr<InputCommittedTransition>);
     /// @copydoc visit(shared_ptr<ModelAST>)

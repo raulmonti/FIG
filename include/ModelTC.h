@@ -30,6 +30,11 @@ private:
     /// The type of the last node visited.
     Type last_type;
 
+    /// Since expressions may have different types depending on
+    /// the context, we need to check expressions according to
+    /// the expected type.
+    Type expected_exp_type;
+
     /// Is this visitor checking a property?
     /// This allows identifiers of expressions to occur on any module
     /// and not just in the current one.
@@ -37,6 +42,9 @@ private:
 
     /// Accepts if no errors
     void accept_cond(shared_ptr<ModelAST> module);
+
+    /// Accept a expression with an expected type
+    void accept_exp(Type expected, shared_ptr<Exp> exp);
 
     /// If the last inferred type is not "type", put an error
     void check_type(Type type, const string &msg);
@@ -55,35 +63,52 @@ private:
         return (current_scope == nullptr);
     }
 
-    /// Type of the result of an operator application, given the
-    /// type of its arguments.
-    static Type operator_type(const ExpOp &id, Type arg);
-
     /// Check range and initialization of the declaration
-    void check_ranged_decl(shared_ptr<RangedDecl> decl);
+    void check_ranges(shared_ptr<Decl> decl);
     void check_ranged_all(shared_ptr<ModuleScope> scope);
 
-    /// Check if parameters of distributions are reducible
-    void check_dist(shared_ptr<Dist> dist);
-    void check_dist(shared_ptr<ModuleScope> scope);
-
+    /// Check if an identifier is in scope or redefined.
     void check_scope(shared_ptr<Decl> decl);
 
     /// Used to evaluate range bounds and distributions parameters
     int eval_int_or_put(shared_ptr<Exp> exp);
     float eval_float_or_put(shared_ptr<Exp> exp);
 
+
+    /// Check array's declaration
+    void check_array_size(shared_ptr<ArrayDecl> decl);
+    void check_array_range(const std::string& id, shared_ptr<Ranged> decl);
+    void check_array_init(const std::string& id,
+                          Type expected, shared_ptr<Initialized> decl);
+    void check_array_multiple_init(const std::string& id, Type expected,
+                                   shared_ptr<MultipleInitialized> decl);
+
+    /// Check an expression on its own instance of ModelTC but copy
+    /// the inferred type to this instance
+    /// @note used to typecheck expressions that are expected
+    /// to fail on several ocations, and hence error messages
+    /// should be ignored.
+    bool dummy_check(Type expected_type, shared_ptr<Exp> exp);
+
 public:
     ModelTC() : current_scope {nullptr},
         last_type {Type::tunknown},
+        expected_exp_type {Type::tunknown},
         checking_property {false} {}
+
+    ModelTC(const ModelTC& instance) = default;
+
     virtual ~ModelTC();
+
     /// Visitor functions
     void visit(shared_ptr<Model> node) override;
     void visit(shared_ptr<ModuleAST> node) override;
     void visit(shared_ptr<RangedDecl> node) override;
     void visit(shared_ptr<InitializedDecl> node) override;
-    void visit(shared_ptr<ArrayDecl> node) override;
+    void visit(shared_ptr<RangedInitializedArray> node) override;
+    void visit(shared_ptr<RangedMultipleInitializedArray> node) override;
+    void visit(shared_ptr<InitializedArray> node) override;
+    void visit(shared_ptr<MultipleInitializedArray> node) override;
     void visit(shared_ptr<ClockDecl> node) override;
     void visit(shared_ptr<TransitionAST> node) override;
     void visit(shared_ptr<Assignment> node) override;
@@ -101,5 +126,6 @@ public:
     void visit(shared_ptr<TransientProp> node) override;
     void visit(shared_ptr<RateProp> node) override;
 };
+
 
 #endif

@@ -84,20 +84,22 @@ class ModuleInstance : public Module
 	State< STATE_INTERNAL_TYPE > lState_;
 
 	/// Local \ref Clock "clocks"
-	std::vector< Clock > lClocks_;
+        std::vector< Clock > lClocks_;
+
+        using transition_vector_t = std::vector<Reference<const Transition>>;
 
 	/// Transitions semi-ordered by their triggering \ref Clock "clock"
-	std::unordered_map<
-		std::string,
-		std::vector< Reference< const Transition > > > transitions_by_clock_;
+        std::unordered_map<std::string, transition_vector_t>
+        transitions_by_clock_;
 
 	/// Transitions semi-ordered by their synchronization \ref Label "label"
-	std::unordered_map<
-		std::string,
-		std::vector< Reference< const Transition > > > transitions_by_label_;
+        std::unordered_map<std::string, transition_vector_t>
+        transitions_by_label_;
+
+    /// Has committed transitions ?  Setted by \ref ModuleBuilder
+        bool has_committed_ = false;
 
 public:
-
 	const std::string name;
 
 private:  // Global info to be defined by the ModuleNetwork
@@ -344,6 +346,16 @@ public:  // Accessors
     /// @note Negative value until the module is added to the network.
     inline const int& first_clock_gpos() const noexcept { return firstClock_; }
 
+    /// @brief Hint that this module has committed actions.
+    inline void mark_with_committed(bool has_committed = true) {
+        this->has_committed_ = has_committed;
+    }
+
+    /// @brief Has committed actions?
+    inline bool has_committed_actions() const {
+        return (this->has_committed_);
+    }
+
 public:  // Utils
 
 	State<STATE_INTERNAL_TYPE> initial_state() const override;
@@ -434,9 +446,22 @@ public:  // Utils
 	 * \endif
 	 */
 	void jump(const Label& label, State<STATE_INTERNAL_TYPE>& state) const;
-        void jump_committed(const Label &label, Traial &traial) const;
+
+    /** @brief Receives and process an output-committed label broadcasted
+     *         by the module network.
+     * @note If there is a transition in this module with
+     * the same input-committed label and its precondition
+     * is enabled, then this will apply the postcondition
+     * to the given traial. If no such transition exists, this
+     * method does nothing.
+     */
+	void jump_committed(const Label &label, Traial &traial) const;
 
 private:  // Class utils
+
+	/// Check whether all clocks have an exponential distribution
+	/// and update the markovian_ field correspondingly
+	void markovian_check();
 
 	/// Does the clock reside in this ModuleInstance?
 	bool is_our_clock(const std::string& clockName) const;
@@ -507,6 +532,27 @@ private:  // Callback utilities offered to the ModuleNetwork
 	void seal(const fig::State<STATE_INTERNAL_TYPE>& globalState);
 
 
+        /**
+         * @brief Apply postcondition of the first enabled transition.
+         * Advance clocks by elapsedTime if there is an enabled transition.
+         * @param elapsedTime  Time lapse for the clock to expire
+         * @param traial       Instance of Traial to update
+         * @return true if a transition was enabled, false otherwise
+         */
+        bool
+        apply_postcondition(const CLOCK_INTERNAL_TYPE &elapsedTime,
+                            Traial &traial,
+                            const transition_vector_t &transitions) const;
+        /**
+         * @brief Apply postcondition of the first enabled transition.
+         * @param state to update
+         * @return true if a transition was enabled, false otherwise
+         */
+        bool
+        apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
+                            const transition_vector_t& transitions) const;
+
+
 public: //Debug
         void print_info(std::ostream &out) const;
 };
@@ -542,6 +588,7 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
+	markovian_check();
 	// Copy transitions
 	static_assert(std::is_same< Transition, ValueType2 >::value,
 				  "ERROR: type mismatch. ModuleInstance can only be copy-"
@@ -578,6 +625,7 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
+	markovian_check();
 	// Move transitions
 	static_assert(std::is_same< Transition, ValueType2 >::value,
 				  "ERROR: type mismatch. ModuleInstance can only be move-"
@@ -616,6 +664,7 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
+	markovian_check();
 	// Move transitions
 	static_assert(std::is_same< Transition, ValueType2 >::value,
 				  "ERROR: type mismatch. ModuleInstance can only be move-"
@@ -658,6 +707,7 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance ctors require a "
 				  "container with the clocks defined in this module");
 	lClocks_.insert(begin(lClocks_), begin(clocks), end(clocks));
+	markovian_check();
 	// Move transitions
 	static_assert(std::is_same< Transition, ValueTypeIterator >::value,
 				  "ERROR: type mismatch. ModuleInstance ctor needs iterators "

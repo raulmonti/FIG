@@ -9,6 +9,9 @@
 #include "DNFChecker.h"
 #include "location.hh"
 #include "ExpEvaluator.h"
+#include "Operators.h"
+#include "Util.h"
+#include "ErrorMessage.h"
 
 using std::endl;
 using std::shared_ptr;
@@ -24,7 +27,9 @@ shared_map<string, Decl> ModuleScope::globals;
 namespace {
 
 stringstream& operator<<(stringstream &ss, ModelAST& model) {
-    ss << " [at " << *(model.get_location()) << "]";
+    if (model.get_file_location() != nullptr) {
+        ss << " [at " << *(model.get_file_location()) << "]";
+    }
     return ss;
 }
 
@@ -50,7 +55,7 @@ inline const string TC_WRONG_INDEX_INT(const shared_ptr<ModuleScope> &curr,
                                        Type last_type) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Identifier";
+    ss << " - Identifier ";
     ss << " \"" << loc->get_identifier() << "\"";
     ss << *loc;
     ss << " - The expression for the index";
@@ -65,10 +70,10 @@ inline const string TC_ID_REDEFINED(const shared_ptr<ModuleScope> &curr,
                                     const string &id) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Identifier";
+    ss << " - Identifier ";
     ss << " \"" << id << "\"";
-    ss << " is already declared";
-    ss << " at " << *(prev->get_location());
+    ss << " is already declared ";
+    ss << *prev;
     return (ss.str());
 }
 
@@ -76,9 +81,9 @@ inline const string TC_ID_OUT_OF_SCOPE(const shared_ptr<ModuleScope> &curr,
                                        const shared_ptr<Location> &loc) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Identifier";
-    ss << " \"" << loc->get_identifier() << "\"";
-    ss << " [at " << *(loc->get_location()) << "]";
+    ss << " - Identifier ";
+    ss << " \"" << loc->get_identifier() << "\" ";
+    ss << *loc;
     ss << "is not in scope";
     return (ss.str());
 }
@@ -90,7 +95,7 @@ inline const string TC_WRONG_LOWER_BOUND(
         const Type last_type) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Identifier";
+    ss << " - Identifier ";
     ss << " \"" << id << "\"";
     ss << " - Expression of lower bound";
     ss << *exp;
@@ -106,7 +111,7 @@ inline const string TC_WRONG_UPPER_BOUND(
         const Type last_type) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Identifier";
+    ss << " - Identifier ";
     ss << " \"" << id << "\"";
     ss << " - Expression of upper bound";
     ss << *exp;
@@ -121,7 +126,7 @@ inline const string TC_WRONG_SIZE_EXP(const shared_ptr<ModuleScope>& curr,
                                       const Type last_type) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Identifier";
+    ss << " - Identifier ";
     ss << " \"" << id  << "\"";
     ss << " - Array size expression is ill typed";
     ss << *exp;
@@ -164,7 +169,7 @@ inline const string TC_WRONG_INIT_EXP(const shared_ptr<ModuleScope>& curr,
                                       const Type last_type) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Identifier";
+    ss << " - Identifier ";
     ss << "\"" << id  << "\"";
     ss << " - Initialization is ill-typed";
     ss << *init;
@@ -261,27 +266,59 @@ inline const string TC_WRONG_RHS(const shared_ptr<ModuleScope> &curr,
     return (ss.str());
 }
 
-inline const string TC_WRONG_FST_ARG(
+inline void show_binary_types(stringstream &ss, ExpOp op) {
+    for (auto ty: Operator::binary_types(op)) {
+        ss << "(" << ModelPrinter::to_str(op) << "): "
+           << ty.to_string() << std::endl;
+    }
+}
+
+inline void show_unary_types(stringstream &ss, ExpOp op) {
+    for (auto ty: Operator::unary_types(op)) {
+        ss << "(" << ModelPrinter::to_str(op) << "): "
+           << ty.to_string() << std::endl;
+    }
+}
+
+inline const string TC_WRONG_UNOP(
         const shared_ptr<ModuleScope> &curr, ExpOp op,
-        const shared_ptr<Exp> &exp) {
+        const shared_ptr<UnOpExp> &exp, Type expected_type) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Operator";
-    ss << " " << ModelPrinter::to_str(op);
-    ss << " , First argument has an incompatible type";
+    ss << " - Wrong type for argument of operator";
+    ss << " \"" << ModelPrinter::to_str(op) << "\"" << std::endl;
     ss << *exp;
+    ss << std::endl;
+    ss << "- Argument has type: "
+       << ModelPrinter::to_str(exp->get_argument()->get_type())
+       << std::endl;
+    ss << "- Expected type is: "
+       << ModelPrinter::to_str(expected_type)
+       << std::endl;
+    ss << "- Candidates are: " << std::endl;
+    show_unary_types(ss, op);
     return (ss.str());
 }
 
-inline const string TC_WRONG_SND_ARG(
+inline const string TC_WRONG_BINOP(
         const shared_ptr<ModuleScope> &curr, ExpOp op,
-        const shared_ptr<Exp> &exp) {
+        const shared_ptr<BinOpExp> &exp, Type expected_type) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Operator";
-    ss << " " << ModelPrinter::to_str(op);
-    ss << " , Second argument has an incompatible type";
+    ss << " - Wrong type for arguments of operator";
+    ss << " \"" << ModelPrinter::to_str(op) << "\"" << std::endl;
     ss << *exp;
+    ss << std::endl;
+    ss << "- Argument 1 has type: "
+       << ModelPrinter::to_str(exp->get_first_argument()->get_type())
+       << std::endl;
+    ss << "- Argument 2 has type: "
+       << ModelPrinter::to_str(exp->get_second_argument()->get_type())
+       << std::endl;
+    ss << "- Expected type is: " << ModelPrinter::to_str(expected_type)
+       << std::endl;
+    ss << "- Candidates are: " << std::endl;
+    show_binary_types(ss, op);
     return (ss.str());
 }
 
@@ -342,16 +379,21 @@ inline const string TC_WRONG_INIT_VALUE(shared_ptr<Exp> exp) {
     return (ss.str());
 }
 
+inline const string TC_NOT_ARRAY(const shared_ptr<ModuleScope> &curr,
+                                 const shared_ptr<Location> &loc) {
+    stringstream ss;
+    ss << PREFIX(curr);
+    ss << " - Identifier ";
+    ss << " \"" << loc->get_identifier() << "\" ";
+    ss << *loc;
+    ss << " is not an array";
+    return (ss.str());
 }
 
-bool type_leq(Type t1, Type t2) {
-    bool res = (t1 == Type::tint && t2 == Type::tfloat);
-    res = res || (t1 == t2);
-    return (res);
-}
+} //namespace
 
 inline void ModelTC::check_type(Type type, const string &msg) {
-    if (!has_errors() && !type_leq(last_type, type)) {
+    if (!has_errors() && !(BasicTy(last_type) <= BasicTy(type))) {
         put_error(msg);
     }
 }
@@ -377,63 +419,15 @@ inline Type ModelTC::identifier_type(const string &id) {
     return (type);
 }
 
-inline Type _numeric_result(Type type) {
-    Type result;
-    if (type == Type::tint) {
-        result = type;
-    } else if (type == Type::tfloat) {
-        result = type;
-    } else {
-        result = Type::tunknown;
-    }
-    return (result);
-}
-
-inline Type _bool_op(Type type) {
-    Type result;
-    if (type == Type::tbool) {
-        result = type;
-    } else {
-        result = Type::tunknown;
-    }
-    return (result);
-}
-
-inline Type _rel_op(Type type) {
-    Type result;
-    if (type == Type::tint || type == Type::tfloat) {
-        result = Type::tbool;
-    } else {
-        result = Type::tunknown;
-    }
-    return (result);
-}
-
-inline Type ModelTC::operator_type(const ExpOp &op, Type arg) {
-    Type result = Type::tunknown;
-    switch(op) {
-    case ExpOp::plus: result = _numeric_result(arg); break;
-    case ExpOp::times: result = _numeric_result(arg); break;
-    case ExpOp::minus: result = _numeric_result(arg); break;
-    case ExpOp::div: result = _numeric_result(arg); break;
-    case ExpOp::mod: result = _numeric_result(arg); break;
-    case ExpOp::andd: result = _bool_op(arg); break;
-    case ExpOp::orr: result = _bool_op(arg); break;
-    case ExpOp::nott: result = _bool_op(arg); break;
-    case ExpOp::eq: result = Type::tbool; break; //equality for all types?
-    case ExpOp::neq: result = Type::tbool;  break;
-    case ExpOp::lt: result = _rel_op(arg); break;
-    case ExpOp::gt: result = _rel_op(arg); break;
-    case ExpOp::le: result = _rel_op(arg); break;
-    case ExpOp::ge: result = _rel_op(arg); break;
-    }
-    return (result);
-}
-
 inline void ModelTC::accept_cond(shared_ptr<ModelAST> node) {
     if (!has_errors()) {
         node->accept(*this);
     }
+}
+
+inline void ModelTC::accept_exp(Type expected, shared_ptr<Exp> exp) {
+    expected_exp_type = expected;
+    accept_cond(exp);
 }
 
 void ModelTC::check_clocks(shared_ptr<ModuleScope> scope) {
@@ -466,36 +460,25 @@ float ModelTC::eval_float_or_put(shared_ptr<Exp> exp) {
     exp->accept(ev);
     float result = -1;
     if (ev.has_errors()) {
-        put_error(::TC_NOT_REDUCIBLE(exp));
+        put_error(ev.get_messages() + ::TC_NOT_REDUCIBLE(exp));
     } else {
         result = ev.get_float();
     }
     return (result);
 }
 
-void ModelTC::check_ranged_decl(shared_ptr<RangedDecl> decl) {
-    int low  = eval_int_or_put(decl->get_lower_bound());
-    int upp  = eval_int_or_put(decl->get_upper_bound());
-    if (!has_errors()) {
-        int init = eval_int_or_put(decl->get_init());
-        if (! (low <= init && init <= upp)) {
-            put_error(::TC_WRONG_INIT_VALUE(decl->get_init()));
+void ModelTC::check_ranges(shared_ptr<Decl> decl) {
+    if (decl->has_range()) {
+        shared_ptr<Ranged> ranged = decl->to_ranged();
+        int low  = eval_int_or_put(ranged->get_lower_bound());
+        int upp  = eval_int_or_put(ranged->get_upper_bound());
+        if (!has_errors() && decl->has_init()) {
+            shared_ptr<Initialized> in = decl->to_initialized();
+            int init = eval_int_or_put(in->get_init());
+            if (! (low <= init && init <= upp)) {
+                put_error(::TC_WRONG_INIT_VALUE(in->get_init()));
+            }
         }
-    }
-}
-
-void ModelTC::check_dist(shared_ptr<Dist> dist) {
-    if (dist->has_single_parameter()) {
-        eval_float_or_put(dist->to_single_parameter()->get_parameter());
-    } else if (dist->has_multiple_parameters()) {
-        eval_float_or_put(dist->to_multiple_parameter()->get_first_parameter());
-        eval_float_or_put(dist->to_multiple_parameter()->get_second_parameter());
-    }
-}
-
-void ModelTC::check_dist(shared_ptr<ModuleScope> scope) {
-    for (auto entry : scope->dist_by_clock_map()) {
-        check_dist(entry.second);
     }
 }
 
@@ -503,7 +486,7 @@ void ModelTC::check_ranged_all(shared_ptr<ModuleScope> scope) {
     for (auto entry : scope->local_decls_map()) {
         shared_ptr<Decl> decl = entry.second;
         if (decl->has_range()) {
-            check_ranged_decl(decl->to_ranged());
+            check_ranges(decl);
         }
     }
 }
@@ -542,7 +525,7 @@ void ModelTC::visit(shared_ptr<Model> model) {
         for (auto entry : ModuleScope::globals) {
             shared_ptr<Decl> decl = entry.second;
             if (decl->has_range()) {
-                check_ranged_decl(decl->to_ranged());
+                check_ranges(decl);
             }
         }
         for (auto entry : scopes) {
@@ -550,7 +533,6 @@ void ModelTC::visit(shared_ptr<Model> model) {
             current_scope = scope_current;
             check_clocks(scope_current);
             check_ranged_all(scope_current);
-            check_dist(scope_current);
         }
     }
 }
@@ -591,39 +573,126 @@ void ModelTC::check_scope(shared_ptr<Decl> decl) {
 }
 
 void ModelTC::visit(shared_ptr<RangedDecl> decl) {
+    assert(decl != nullptr);
     const string &id = decl->get_id();
-    accept_cond(decl->get_lower_bound());
-    auto &error = TC_WRONG_LOWER_BOUND;
-    check_type(Type::tint,
-               error(current_scope, id, decl->get_lower_bound(), last_type));
-    accept_cond(decl->get_upper_bound());
-    auto &error2 = TC_WRONG_UPPER_BOUND;
-    check_type(Type::tint,
-               error2(current_scope, id, decl->get_upper_bound(), last_type));
-    accept_cond(decl->get_init());
-    check_type(Type::tint,
-               TC_WRONG_INIT_EXP(current_scope, id, decl->get_init(),
-                                 decl->get_type(), last_type));
+    shared_ptr<Exp> lower = decl->get_lower_bound();
+    shared_ptr<Exp> upper = decl->get_upper_bound();
+    shared_ptr<Exp> init = decl->get_init();
+    Type decl_type = decl->get_type();
+    assert(decl_type == Type::tint);
+    accept_exp(decl_type, lower);
+    const string msg
+            = TC_WRONG_LOWER_BOUND(current_scope, id, lower, last_type);
+    check_type(decl_type, msg);
+    accept_exp(decl_type, upper);
+    const string msg2
+            = TC_WRONG_UPPER_BOUND(current_scope, id, upper, last_type);
+    check_type(decl_type, msg2);
+    accept_exp(decl_type, init);
+    const string msg3
+            = TC_WRONG_INIT_EXP(current_scope, id, init, decl_type, last_type);
+    check_type(decl_type, msg3);
+    //@note expressions of the range are checked before adding the declared
+    //identifier into scope, to forbid circular declarations
+    //like "q : [0...q+1];"
     check_scope(decl);
 }
 
 void ModelTC::visit(shared_ptr<InitializedDecl> decl) {
     assert(decl != nullptr);
+    shared_ptr<Exp> init = decl->get_init();
+    Type decl_type = decl->get_type();
     const string &id = decl->get_id();
-    accept_cond(decl->get_init());
-    check_type(decl->get_type(),
-               TC_WRONG_INIT_EXP(current_scope, id, decl->get_init(),
-                                 decl->get_type(), last_type));
+    accept_exp(decl_type, init);
+    const string msg
+            = TC_WRONG_INIT_EXP(current_scope, id, init, decl_type, last_type);
+    check_type(decl_type, msg);
     check_scope(decl);
 }
 
-void ModelTC::visit(shared_ptr<ArrayDecl> decl) {
+void ModelTC::check_array_size(shared_ptr<ArrayDecl> decl) {
     //check array size expression
     const string &id = decl->get_id();
-    accept_cond(decl->get_size());
-    check_type(Type::tint,
-               TC_WRONG_SIZE_EXP(current_scope, id,
-                                 decl->get_size(), last_type));
+    shared_ptr<Exp> size_exp = decl->get_size();
+    accept_exp(Type::tint, size_exp);
+    const string &msg
+            = TC_WRONG_SIZE_EXP(current_scope, id, size_exp, last_type);
+    check_type(Type::tint, msg);
+}
+
+void ModelTC::check_array_range(const std::string& id,
+                                shared_ptr<Ranged> decl) {
+    shared_ptr<Exp> lower = decl->get_lower_bound();
+    shared_ptr<Exp> upper = decl->get_upper_bound();
+    Type decl_type = Type::tint; //ranged only allowed to be integers
+    accept_exp(decl_type, lower);
+    const string msg2
+            = TC_WRONG_LOWER_BOUND(current_scope, id, lower, last_type);
+    check_type(decl_type, msg2);
+    accept_exp(decl_type, upper);
+    const string msg3
+            = TC_WRONG_UPPER_BOUND(current_scope, id, upper, last_type);
+    check_type(decl_type, msg3);
+}
+
+void ModelTC::check_array_init(const std::string &id, Type decl_type,
+                               shared_ptr<Initialized> decl) {
+    shared_ptr<Exp> init = decl->get_init();
+    accept_exp(decl_type, init);
+    const string msg4
+            = TC_WRONG_INIT_EXP(current_scope, id, init, decl_type, last_type);
+    check_type(decl_type, msg4);
+}
+
+void ModelTC::check_array_multiple_init(const std::string &id, Type decl_type,
+                                        shared_ptr<MultipleInitialized> decl) {
+    const std::vector<shared_ptr<Exp>> inits = decl->get_inits();
+    for (shared_ptr<Exp> init : inits) {
+        accept_exp(decl_type, init);
+        const string msg4
+                = TC_WRONG_INIT_EXP(current_scope, id,
+                                    init, decl_type, last_type);
+        check_type(decl_type, msg4);
+    }
+}
+
+void ModelTC::visit(shared_ptr<RangedInitializedArray> decl) {
+    const string &id = decl->get_id();
+    check_array_size(decl);
+    check_array_range(id, decl);
+    check_array_init(id, Type::tint, decl);
+    check_scope(decl);
+}
+
+void ModelTC::visit(shared_ptr<RangedMultipleInitializedArray> decl) {
+    const string &id = decl->get_id();
+    check_array_size(decl);
+    check_array_range(id, decl);
+    check_array_multiple_init(id, Type::tint, decl);
+    check_scope(decl);
+}
+
+void ModelTC::visit(shared_ptr<InitializedArray> decl) {
+    const string &id = decl->get_id();
+    check_array_size(decl);
+    if (decl->get_type() != Type::tboolarray) {
+        put_error("Only boolean arrays are supported "
+                  "when range is not declared.");
+        return;
+    }
+    check_array_init(id, Type::tbool, decl);
+    check_scope(decl);
+}
+
+void ModelTC::visit(shared_ptr<MultipleInitializedArray> decl) {
+    const string &id = decl->get_id();
+    check_array_size(decl);
+    if (decl->get_type() != Type::tboolarray) {
+        put_error("Only boolean arrays are supported "
+                  "when range is not declared.");
+        return;
+    }
+    check_array_multiple_init(id, Type::tbool, decl);
     check_scope(decl);
 }
 
@@ -653,9 +722,10 @@ void ModelTC::visit(shared_ptr<TransitionAST> action) {
     //Note: output label has clock: ensured by grammar.
     //Note: input label has no clock: ensured by grammar.
     assert(action->get_precondition() != nullptr);
-    accept_cond(action->get_precondition());
-    check_type(Type::tbool,
-               TC_WRONG_PRECONDITION(current_scope, action, last_type)) ;
+    accept_exp(Type::tbool, action->get_precondition());
+    const string &msg
+            = TC_WRONG_PRECONDITION(current_scope, action, last_type);
+    check_type(Type::tbool, msg) ;
     if (action->has_triggering_clock()) {
         shared_ptr<OutputTransition> output = action->to_output();
         accept_cond(output->get_triggering_clock());
@@ -699,23 +769,24 @@ void ModelTC::visit(shared_ptr<Assignment> effect) {
     assert(effect != nullptr);
     accept_cond(effect->get_effect_location());
     Type loc_type = last_type;
-    accept_cond(effect->get_rhs());
-    check_type(loc_type,
-               TC_WRONG_RHS(current_scope, effect, loc_type, last_type));
+    accept_exp(loc_type, effect->get_rhs());
+    const string &msg =
+            TC_WRONG_RHS(current_scope, effect, loc_type, last_type);
+    check_type(loc_type, msg);
 }
 
 void ModelTC::visit(shared_ptr<MultipleParameterDist> dist) {
     assert(dist != nullptr);
-    accept_cond(dist->get_first_parameter());
+    accept_exp(Type::tfloat, dist->get_first_parameter());
     check_type(Type::tfloat,
                TC_WRONG_DIST_FST_PARAM(current_scope, dist, last_type));
-    accept_cond(dist->get_second_parameter());
+    accept_exp(Type::tfloat, dist->get_second_parameter());
     check_type(Type::tfloat,
                TC_WRONG_DIST_SND_PARAM(current_scope, dist, last_type));
 }
 
 void ModelTC::visit(shared_ptr<SingleParameterDist> dist) {
-    accept_cond(dist->get_parameter());
+    accept_exp(Type::tfloat, dist->get_parameter());
     check_type(Type::tfloat,
                TC_WRONG_DIST_FST_PARAM(current_scope, dist, last_type));
 }
@@ -747,66 +818,122 @@ void ModelTC::visit(shared_ptr<Location> loc) {
 }
 
 void ModelTC::visit(shared_ptr<ArrayPosition> loc) {
-    accept_cond(loc->get_index());
-    auto &error = TC_WRONG_INDEX_INT;
-    check_type(Type::tint,
-               error(current_scope, loc, loc->get_index(), last_type));
+    accept_exp(Type::tint, loc->get_index());
+    const string &msg =
+            TC_WRONG_INDEX_INT(current_scope, loc, loc->get_index(), last_type);
+    check_type(Type::tint, msg);
     visit(std::static_pointer_cast<Location>(loc));
+    last_type = Ty::array_elem_type(last_type);
+    if (last_type == Type::tunknown) {
+        put_error(::TC_NOT_ARRAY(current_scope, loc));
+    }
 }
 
 void ModelTC::visit(shared_ptr<IConst> exp) {
+    assert(expected_exp_type != Type::tunknown);
     last_type = Type::tint;
     //expression should set the inferred type for itself.
     exp->set_type(last_type);
 }
 
 void ModelTC::visit(shared_ptr<BConst> exp){
+    assert(expected_exp_type != Type::tunknown);
     last_type = Type::tbool;
     exp->set_type(last_type);
 }
 
 void ModelTC::visit(shared_ptr<FConst> exp){
+    assert(expected_exp_type != Type::tunknown);
     last_type = Type::tfloat;
     exp->set_type(last_type);
 }
 
 void ModelTC::visit(shared_ptr<LocExp> exp){
+    assert(expected_exp_type != Type::tunknown);
     assert(exp != nullptr);
     accept_cond(exp->get_exp_location());
     exp->set_type(last_type);
 }
 
-void ModelTC::visit(shared_ptr<BinOpExp> exp){
+// Check an expressions on its own instance of ModelTC
+bool ModelTC::dummy_check(Type expected_type, shared_ptr<Exp> exp) {
+    ModelTC dummy (*this);
+    dummy.message = make_shared<ErrorMessage>();
+    dummy.expected_exp_type = expected_type;
+    exp->accept(dummy);
+    //copy result to this typechecker
+    last_type = dummy.last_type;
+    return (!dummy.has_errors());
+}
+
+void ModelTC::visit(shared_ptr<BinOpExp> exp) {
+    assert(expected_exp_type != Type::tunknown);
     assert(exp != nullptr);
-    Type res_type = Type::tunknown;
-    accept_cond(exp->get_first_argument());
-    res_type = operator_type(exp->get_operator(), last_type);
-    if (!has_errors() && res_type == Type::tunknown) {
-        put_error(TC_WRONG_FST_ARG(current_scope, exp->get_operator(), exp));
+    Type type_expected = expected_exp_type;
+    ExpOp op = exp->get_operator();
+    vector<BinaryOpTy> types = Operator::binary_types(op);
+    auto ty_gt = [] (const BinaryOpTy& ty1, const BinaryOpTy& ty2) {
+        return (ty2 < ty1);
+    };
+    //sort the type candidates for the operator
+    std::sort(types.begin(), types.end(), ty_gt);
+    //find a compatible type
+    shared_ptr<Exp> arg1 = exp->get_first_argument();
+    shared_ptr<Exp> arg2 = exp->get_second_argument();
+    shared_ptr<BinaryOpTy> selected = nullptr;
+    unsigned int i = 0;
+    while (i < types.size() && selected == nullptr) {
+        BinaryOpTy ty = types[i];
+        bool ok1 = dummy_check(ty.get_arg1_type(), arg1);
+        Type inferred1 = last_type;
+        bool ok2 = dummy_check(ty.get_arg2_type(), arg2);
+        Type inferred2 = last_type;
+        BinaryOpTy inf (inferred1, inferred2, type_expected);
+        if (ty <= inf && ok1 && ok2) {
+            selected = make_shared<BinaryOpTy>(ty);
+        }
+        i++;
     }
-    Type fst_type = last_type;
-    accept_cond(exp->get_second_argument());
-    res_type = operator_type(exp->get_operator(), last_type);
-    if (!has_errors() &&  res_type == Type::tunknown) {
-        put_error(TC_WRONG_SND_ARG(current_scope, exp->get_operator(), exp));
+    if (selected != nullptr) {
+        Type res_type = selected->get_result_type();
+        last_type = res_type;
+        exp->set_inferred_type(*selected);
+        exp->set_type(res_type);
+    } else {
+        put_error(TC_WRONG_BINOP(current_scope, op, exp, type_expected));
     }
-    Type snd_type = last_type;
-    if (! (type_leq(fst_type, snd_type) || type_leq(snd_type, fst_type))) {
-        //both types should be equal or subtypes (int->float)
-        put_error(TC_WRONG_SND_ARG(current_scope, exp->get_operator(), exp));
-    }
-    last_type = res_type;
-    exp->set_type(res_type);
 }
 
 void ModelTC::visit(shared_ptr<UnOpExp> exp) {
-    accept_cond(exp->get_argument());
-    Type res_type = operator_type(exp->get_operator(), last_type);
-    if (!has_errors() && res_type == Type::tunknown) {
-        put_error(TC_WRONG_FST_ARG(current_scope, exp->get_operator(), exp));
+    assert(expected_exp_type != Type::tunknown);
+    ExpOp op = exp->get_operator();
+    Type type_expected = expected_exp_type;
+    vector<UnaryOpTy> types = Operator::unary_types(op);
+    auto ty_gt = [] (const UnaryOpTy &ty1, const UnaryOpTy &ty2) {
+        return (ty2 < ty1);
+    };
+    std::sort(types.begin(), types.end(), ty_gt);
+    shared_ptr<Exp> arg1 = exp->get_argument();
+    shared_ptr<UnaryOpTy> selected = nullptr;
+    unsigned int i = 0;
+    while (i < types.size() && selected == nullptr) {
+        UnaryOpTy ty = types[i];
+        bool ok = dummy_check(ty.get_arg_type(), arg1);
+        Type inferred1 = last_type;
+        UnaryOpTy inf (inferred1, type_expected);
+        if (ty <= inf && ok) {
+            selected = make_shared<UnaryOpTy>(ty);
+        }
+        i++;
     }
-    last_type = res_type;
-    exp->set_type(res_type);
+    if (selected != nullptr) {
+        Type res_type = selected->get_result_type();
+        last_type = res_type;
+        exp->set_inferred_type(*selected);
+        exp->set_type(res_type);
+    } else {
+        put_error(TC_WRONG_UNOP(current_scope, op, exp, type_expected));
+    }
 }
 
 void ModelTC::check_dnf(PropType type, shared_ptr<Exp> exp) {
@@ -821,10 +948,10 @@ void ModelTC::check_dnf(PropType type, shared_ptr<Exp> exp) {
 
 void ModelTC::visit(shared_ptr<TransientProp> prop) {
     checking_property = true;
-    accept_cond(prop->get_left());
+    accept_exp(Type::tbool, prop->get_left());
     check_type(Type::tbool, TC_WRONG_PROPERTY_LEFT(prop, last_type));
     check_dnf(prop->get_type(), prop->get_left());
-    accept_cond(prop->get_right());
+    accept_exp(Type::tbool, prop->get_right());
     check_type(Type::tbool, TC_WRONG_PROPERTY_RIGHT(prop, last_type));
     check_dnf(prop->get_type(), prop->get_right());
     checking_property = false;
@@ -832,7 +959,7 @@ void ModelTC::visit(shared_ptr<TransientProp> prop) {
 
 void ModelTC::visit(shared_ptr<RateProp> prop) {
     checking_property = true;
-    accept_cond(prop->get_expression());
+    accept_exp(Type::tbool, prop->get_expression());
     check_type(Type::tbool, TC_WRONG_PROPERTY_EXP(prop, last_type));
     check_dnf(prop->get_type(), prop->get_expression());
     checking_property = false;

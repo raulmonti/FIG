@@ -1,3 +1,5 @@
+/* Leonardo Rodríguez */
+
 #include <fstream>
 #include <string>
 #include "Clock.h"
@@ -60,17 +62,17 @@ void State<T_>::print_info(std::ostream &out) const {
 }
 
 void Precondition::print_info(std::ostream &out) const {
-    out << "PRECONDITION" << std::endl;
+    /*out << "PRECONDITION" << std::endl;
     out << "EXPRESSION:" << this->expression() << std::endl;
     out << "NVAR:" << this->NVARS_ << std::endl;
     ::print_vec(out, "NAMES:", this->varsNames_);
     ::print_vec(out, "POSITIONS:", this->varsPos_);
     ::print_vec(out, "VALUES:", this->varsValues_);
-    out << "ENDOF-PRECONDITION" << std::endl;
+    out << "ENDOF-PRECONDITION" << std::endl;*/
 }
 
 void Postcondition::print_info(std::ostream &out) const {
-    out << "POSTCONDITION" << std::endl;
+    /*out << "POSTCONDITION" << std::endl;
     out << "EXPRESSION:" << this->exprStr_ << std::endl;
     out << "NUM-VAR-UPDATES:" << this->NUPDATES_ << std::endl;
     out << "NUM-VAR:" << this->NVARS_ << std::endl;
@@ -79,7 +81,7 @@ void Postcondition::print_info(std::ostream &out) const {
     ::print_vec(out, "NAMES:", this->varsNames_);
     ::print_vec(out, "POSITIONS:", this->varsPos_);
     ::print_vec(out, "VALUES:", this->varsValues_);
-    out << "ENDOF-POSTCONDITION" << std::endl;
+    out << "ENDOF-POSTCONDITION" << std::endl;*/
 }
 
 void Transition::print_info(std::ostream &out) const {
@@ -147,21 +149,21 @@ void ModuleNetwork::print_info(std::ostream &out) const {
 }
 
 void PropertyTransient::print_info(std::ostream &out) const {
-    out << "PROPERTY-TRANSIENT" << std::endl;
+    /*out << "PROPERTY-TRANSIENT" << std::endl;
     out << "EXPRESSION:" << this->expression << std::endl;
     out << "LEFT-EXPRESSION:" << std::endl;
     this->expr1_.print_info(out);
     out << "RIGHT-EXPRESSION:" << std::endl;
     this->expr2_.print_info(out);
-    out << "ENDOF-PROPERTY-TRANSIENT" << std::endl;
+    out << "ENDOF-PROPERTY-TRANSIENT" << std::endl;*/
 }
 
 void PropertyRate::print_info(std::ostream &out) const {
-    out << "PROPERTY-RATE" << std::endl;
+    /*out << "PROPERTY-RATE" << std::endl;
     out << "EXPRESSION:" << this->expression() << std::endl;
     out << "LEFT-EXPRESSION:" << std::endl;
     this->expr_.print_info(out);
-    out << "ENDOF-PROPERTY-RATE" << std::endl;
+    out << "ENDOF-PROPERTY-RATE" << std::endl;*/
 }
 
 void ModelSuite::print_info(std::ostream &out) const {

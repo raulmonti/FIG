@@ -44,8 +44,10 @@
 #include <fig_cli.h>
 #include <string_utils.h>
 #include <ModelBuilder.h>
+#include <ModelReductor.h>
 #include <ModelPrinter.h>
 #include <ModelVerifier.h>
+#include <ConfluenceChecker.h>
 #include <JANI_translator.h>
 #include <ImportanceFunction.h>
 
@@ -60,6 +62,7 @@ static void compile_model(bool modelAlreadyBuilt);
 
 //  Configuration of the estimation run  ///////////////////////////////////////
 
+using fig_cli::confluenceCheck;
 using fig_cli::forceOperation;
 using fig_cli::janiSpec;
 using fig_cli::modelFile;
@@ -71,7 +74,6 @@ using fig_cli::splittings;
 using fig_cli::estBounds;
 using fig_cli::simsTimeout;
 
-
 //  Main stuff  ////////////////////////////////////////////////////////////////
 
 int main(int argc, char** argv)
@@ -79,7 +81,7 @@ int main(int argc, char** argv)
 	auto log(fig::ModelSuite::log);
 	auto tech_log(fig::ModelSuite::tech_log);
 	auto const_argv(const_cast<const char**>(argv));
-	const std::string FIG_ERROR("ERROR: FIG failed to");
+	const std::string FIG_ERROR("[ERROR] FIG failed to");
 	shared_ptr<ModelAST> modelAST = nullptr;
 
 	// "Greetings, human!" and command line parsing
@@ -193,8 +195,9 @@ bool print_intro(const int& argc, const char** argv)
 #else
 	main_log("(PCG family RNG)\n");
 #endif
-	main_log(" Authors: Budde, Carlos E. <cbudde@famaf.unc.edu.ar>\n");
-	main_log("		  Monti, Raúl E.   <raulmonti88@gmail.com>\n");
+	main_log(" Authors: Budde, Carlos E.  <cbudde@famaf.unc.edu.ar>\n");
+	main_log("          Monti, Raúl E.    <raulmonti88@gmail.com>\n");
+	main_log("          Rodriguez, Leo M. <leonardomatiasrodriguez@gmail.com>\n");
 	main_log("\n");
 
 	// Print additional technical info if this is more than a query
@@ -240,9 +243,18 @@ void interact_with_JANI()
 			log(" *** Error: JANI-spec model file \""
 				+ janiSpec.modelFileJANI +"\" not found! ***\n");
 			throw_FigException("file with JANI model not found");
+		} else if (janiSpec.translateOnly &&
+		           !janiSpec.modelFileIOSA.empty() &&
+		           file_exists(janiSpec.modelFileIOSA) &&
+		           !forceOperation) {
+			log(" *** Error: file \"" + janiSpec.modelFileIOSA +
+			    "\" exists, can't write JANI translation there. ***\n");
+			throw_FigException("can't overwrite file for IOSA translation "
+			                   "(call with --force)");
 		}
 		translator.JANI_2_IOSA(janiSpec.modelFileJANI,
-							   janiSpec.modelFileIOSA);
+							   janiSpec.modelFileIOSA,
+							   !janiSpec.translateOnly);
 
 	} else if (fig::JaniTranny::TO_JANI == janiSpec.translateDirection) {
 		log("Translating from IOSA model syntax to JANI Specification format\n");
@@ -250,12 +262,18 @@ void interact_with_JANI()
 			log(" *** Error: IOSA model file \""
 				+ janiSpec.modelFileIOSA +"\" not found! ***\n");
 			throw_FigException("file with IOSA model not found");
-		}
-		if (!janiSpec.propsFileIOSA.empty() &&
+		} else if (!janiSpec.propsFileIOSA.empty() &&
 				!file_exists(janiSpec.propsFileIOSA)) {
 			log(" *** Error: properties file \""
 				+ janiSpec.propsFileIOSA + "\" not found! ***\n");
 			throw_FigException("file with properties not found");
+		} else if (!janiSpec.modelFileJANI.empty() &&
+		           file_exists(janiSpec.modelFileJANI) &&
+		           !forceOperation) {
+			log(" *** Error: file \"" + janiSpec.modelFileJANI +
+			    "\" exists, can't write IOSA translation there. ***\n");
+			throw_FigException("can't overwrite file for JANI translation "
+			                   "(call with --force)");
 		}
 		const bool checkIOSAcorrectness = !forceOperation;
 		translator.IOSA_2_JANI(janiSpec.modelFileIOSA,
@@ -269,56 +287,80 @@ void interact_with_JANI()
 }
 
 
-void compile_model(bool modelAlreadyBuilt) {
+void compile_model(bool modelAlreadyBuilt)
+{
 	auto log = fig::ModelSuite::main_log;
 	auto tech_log = fig::ModelSuite::tech_log;
-	shared_ptr<ModelAST> modelAST(nullptr);
-	ModelTC typechecker;
-	ModelVerifier verifier;
-	ModelBuilder builder;
 
 	if (modelAlreadyBuilt) {
 		// Parsing + model building already done during JANI interaction
-		tech_log("- Model successfully built during JANI translation\n");
-		goto seal_model;
+		assert(ModelSuite::get_instance().sealed());
+		tech_log("- Model successfully compiled during JANI translation\n");
+		return;
 	}
 
 	// Check for required files
 	log("Model file: " + modelFile + "\n");
 	if (!file_exists(modelFile)) {
-		log(" *** Error: file not found! ***\n");
+		log("[ERROR] File \"" + modelFile + "\" not found!\n");
 		throw_FigException("file with model not found");
 	}
 	if (!propertiesFile.empty()) {
 		log("Properties file: " + propertiesFile + "\n");
 		if (!file_exists(propertiesFile)) {
-			log(" *** Error: file not found! ***\n");
+			log("[ERROR] File \"" + propertiesFile + "\" not found!\n");
 			throw_FigException("file with properties not found");
 		}
 	}
 
 	// Build AST from files, viz. parse
+	shared_ptr<ModelAST> modelAST(nullptr);
 	modelAST = ModelAST::from_files(modelFile.c_str(), propertiesFile.c_str());
 	if (nullptr == modelAST) {
-		log(" *** Error parsing the model ***\n");
+		log("[ERROR] Failed to parse the model.\n");
 		throw_FigException("failed parsing the model file");
 	}
+    tech_log("- Parsing succeeded\n");
+
+	// Debug print:
+	// { ModelPrinter printer(std::cerr,true); modelAST->accept(printer); }
+
 	// Check types
+	ModelTC typechecker;
 	modelAST->accept(typechecker);
 	if (typechecker.has_errors()) {
-        //ModelPrinter printer;
-        //modelAST->accept(printer);
 		log(typechecker.get_messages());
 		throw_FigException("type-check for the model failed");
 	}
 	tech_log("- Type-checking  succeeded\n");
 
+    // Reduce expressions (errors when irreducible constants are found)
+	ModelReductor reductor;
+	modelAST->accept(reductor);
+    if (reductor.has_errors()) {
+        log(reductor.get_messages());
+        throw_FigException("reduction of constant expressions failed");
+    }
+	tech_log("- Expr-reduction succeeded\n");
+
+	// Check confluence if requested
+    if (confluenceCheck) {
+    	iosa::ConfluenceChecker confluence_verifier;
+        modelAST->accept(confluence_verifier);
+        if (confluence_verifier.has_errors()) {
+            log(confluence_verifier.get_messages());
+            tech_log("- Confluence-checking failed\n");
+        } else {
+            tech_log("- Confluence-checking succeeded\n");
+        }
+    }
+
 	// Check IOSA correctness
 	if (ModuleScope::modules_size_bounded_by(ModelVerifier::NTRANS_BOUND)) {
-		modelAST->accept(verifier);
-		assert(!verifier.has_errors());
-		if (verifier.has_warnings()) {
-			log("\nWARNING: IOSA-checking failed");
+		ModelVerifier verifier;
+        modelAST->accept(verifier);
+        if (verifier.has_errors()) {
+            log("\n[WARNING] IOSA-checking failed\n");
 			tech_log(verifier.get_messages());
 			if (!forceOperation) {
 				log(" -- aborting\n");
@@ -328,13 +370,17 @@ void compile_model(bool modelAlreadyBuilt) {
 			} else {
 				log("\n");
 			}
-		}
+        } else if (verifier.has_warnings()) {
+            tech_log(verifier.get_messages());
+        }
 		tech_log("- IOSA-checking  succeeded\n");
 	} else {
 		log("- IOSA-checking skipped: model is too big\n");
 	}
 
+
 	// Build model (i.e. populate ModelSuite)
+	ModelBuilder builder;
 	modelAST->accept(builder);
 	if (builder.has_errors()) {
 		log(builder.get_messages());
@@ -343,12 +389,11 @@ void compile_model(bool modelAlreadyBuilt) {
 	tech_log("- Model building succeeded\n");
 
 	// Seal model
-	seal_model:
 	auto& modelInstance = ModelSuite::get_instance();
 	modelInstance.seal();
 	if (!modelInstance.sealed()) {
-		log(" *** Error sealing the model ***\n");
-		throw_FigException("parser failed to seal the model");
+		log("[ERROR] Failed to seal the model.\n");
+		throw_FigException("parser failed sealing the model");
 	}
 	tech_log("- Model sealing  succeeded\n\n");
 

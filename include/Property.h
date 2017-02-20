@@ -39,6 +39,7 @@
 #include <Precondition.h>
 #include <State.h>
 
+using std::shared_ptr;
 
 namespace fig
 {
@@ -53,14 +54,13 @@ namespace fig
  *
  * @see PropertyType
  */
-class Property
-{
-    friend class ModelSuite;  // for variables mapping callback
+class Property {
+    // friend class ModelSuite;  // for variables mapping callback
     
 protected:
 
-    /// Nasty hack to avoid code duplication (talk of poor design...)
-    typedef  Precondition  Formula;
+    // Nasty hack to avoid code duplication (talk of poor design...)
+    // typedef  Precondition  Formula;
     /// Used to generate a unique id for each instance.
     static std::atomic<int> current_id;
     /// Instance id.
@@ -69,17 +69,14 @@ protected:
 public:  // Attributes
 
     /// Property per se in string form
-    const std::string expression;
-
+    /// const std::string expression;
     /// Which type of property the expression represents
     const PropertyType type;
 
 public:  // Ctors
 
-    Property(const std::string& theexpression, PropertyType thetype) :
-	instance_id {++ current_id},
-        expression(theexpression),
-        type(thetype) {};
+    Property(PropertyType thetype) :
+        instance_id {++ current_id}, type {thetype} {}
 
     // Copy/Move constructor deleted to avoid dealing with the unique id.
     Property(const Property& that) = delete;
@@ -92,42 +89,10 @@ public:  // Ctors
     /// Can't move assign due to const data members
     Property& operator=(Property&& that)      = delete;
 
-protected:  // Modifyers
-
-	/**
-	 * @copydoc fig::MathExpression::pin_up_vars(const PositionMap&)
-	 * \ifnot NDEBUG
-	 *   @throw FigException if there was some error in our math expressions
-	 * \endif
-	 */
-#ifndef NRANGECHK
-	virtual void pin_up_vars(const PositionsMap& globalVars) = 0;
-#else
-	virtual void pin_up_vars(PositionsMap& globalVars) = 0;
-#endif
-
-	/**
-	 * @copydoc fig::MathExpression::pin_up_vars()
-	 * \ifnot NDEBUG
-	 *   @throw FigException if there was some error in our math expressions
-	 * \endif
-	 */
-	virtual void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState) = 0;
-
 public:  // Utils
 
     /**
      * @brief Is this state considered "rare" for importance simulation?
-     *
-     * @param s  Valuation of the module/model variables to use
-     *
-     * @note pin_up_vars() should have been called before to register the
-     *       position of the expression's variables in the global State
-     *
-     * @throw mu::ParserError
-     * @ifnot NDEBUG
-     *   @throw FigException if pin_up_vars() hasn't been called yet
-     * @endif
      */
     virtual bool is_rare(const StateInstance& s) const = 0;
 
@@ -137,10 +102,17 @@ public:  // Utils
     /// Get instance unique id
     int get_id() const noexcept { return instance_id; }
 
+    /// String representation of property
+    virtual std::string to_string() const = 0;
+
+    virtual void prepare(const State<STATE_INTERNAL_TYPE>& state) = 0;
+    virtual void prepare(const PositionsMap& posMap) = 0;
+
+
 public: // Debug
     virtual void print_info(std::ostream &out) const = 0;
 };
-    
+
 } // namespace fig
 
 #endif // PROPERTY_H

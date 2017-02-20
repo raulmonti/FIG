@@ -25,7 +25,7 @@
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
-
+// Support for committed actions: Leonardo Rodríguez
 
 // C++
 #include <iterator>   // std::begin(), std::end()
@@ -60,7 +60,10 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 ModuleNetwork::ModuleNetwork() :
 	numClocks_(0u),
 	sealed_(false)
-{}
+{
+	// Empty range of "forall" is:
+	markovian_ = true;
+}
 
 
 ModuleNetwork::ModuleNetwork(const ModuleNetwork& that) :
@@ -107,6 +110,8 @@ ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 	transitions_.reserve(transitions_.size() + module->transitions_.size());
 	for (const Transition& tr: module->transitions_)
 		transitions_.emplace_back(tr);
+	markovian_ &= module->is_markovian();
+    has_committed_ = has_committed_ || module->has_committed_actions();
 	module = nullptr;
 }
 
@@ -246,11 +251,15 @@ ModuleNetwork::adjacent_states(const size_t& s) const
 	return adjacentStates;
 }
 
-inline bool ModuleNetwork::process_committed_once(Traial &traial) const {
+
+bool
+ModuleNetwork::process_committed_once(Traial &traial) const
+{
     bool found = false;
     auto modules_it = modules.begin();
     //iterate every module...
-    while (modules_it != modules.end() && !found) {
+    while (modules_it != modules.end() &&
+           (*modules_it)->has_committed_actions() && !found) {
         auto& transitions = (*modules_it)->transitions_;
         auto tr_it = transitions.begin();
         // iterate every transition of the current module
@@ -274,12 +283,18 @@ inline bool ModuleNetwork::process_committed_once(Traial &traial) const {
     return (found);
 }
 
-inline void ModuleNetwork::process_committed(Traial &traial) const {
+
+void
+ModuleNetwork::process_committed(Traial &traial) const {
+    if (!this->has_committed_) {
+        return;
+    }
     while (process_committed_once(traial)) {
         //repeat until no committed action enabled
         ;
     }
 }
+
 
 template< typename DerivedProperty,
           class Simulator,

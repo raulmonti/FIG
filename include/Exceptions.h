@@ -13,7 +13,9 @@
 #include <exception>
 #include <string>
 
-
+/**
+  * This file is @deprecated
+  */
 
 //==============================================================================
 

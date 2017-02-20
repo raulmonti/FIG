@@ -85,6 +85,7 @@ LT "<"
 GT ">"
 LE "<="
 GE ">="
+IMPLY "=>"
 AND "&"
 MID "|"
 PLUS "+"
@@ -100,8 +101,27 @@ FALSE "false"
 PROPT "P"
 PROPS "S"
 UNTIL "U"
+FLOOR "floor"
+CEIL  "ceil"
+SGN "sgn"
+ABS "abs"
+MIN "min"
+MAX "max"
+LOG "log"
+POW "pow"
+UNDERSCORE "_"
+FSTEQ "fsteq"
+LSTEQ "lsteq"
+RNDEQ "rndeq"
+MAXFROM "maxfrom"
+MINFROM "minfrom"
+SUMFROM "sumfrom"
+CONSEC "consec"
+BROKEN "broken"
+FSTEXCLUDE "fstexclude"
 ;
 
+%right "=>"
 %left "|";
 %left "&";
 %nonassoc "==" "!=";
@@ -247,6 +267,9 @@ save_location($$, @$);}
 | "[" "]" guard[e] "@" location[loc] "->" effects[eff]
 {$$ = make_shared<TauTransition>($e, $eff, $loc);
     save_location($$, @$);}
+| "[" "_" "?" "]" guard[e]  "->" effects[eff]
+{$$ = make_shared<WildcardInputTransition>($e, $eff);
+    save_location($$, @$);}
 | "[" "id"[id] "!" "!" "]" guard[e] "->" effects[eff]
 {$$ = make_shared<OutputCommittedTransition>($id, $e, $eff);
     save_location($$, @$);}
@@ -320,50 +343,164 @@ exp : location[loc]
 | "false"
 {$$ = make_shared<BConst>(false); save_location($$, @$);}
 | exp[e1] "+" exp[e2]
-{$$ = make_shared<BinOpExp>(ExpOp::plus, $e1, $e2);
-    save_location($$, @$);}
+{
+    $$ = make_shared<BinOpExp>(ExpOp::plus, $e1, $e2);
+    save_location($$, @$);
+}
 | exp[e1] "-" exp[e2]
-{$$ = make_shared<BinOpExp>(ExpOp::minus, $e1, $e2);
-    save_location($$, @$);}
+{
+    $$ = make_shared<BinOpExp>(ExpOp::minus, $e1, $e2);
+    save_location($$, @$);
+}
 | exp[e1] "/" exp[e2]
-{$$ = make_shared<BinOpExp>(ExpOp::div, $e1, $e2);
-    save_location($$, @$);}
+{
+    $$ = make_shared<BinOpExp>(ExpOp::div, $e1, $e2);
+    save_location($$, @$);
+}
 | exp[e1] "*" exp[e2]
-{$$ = make_shared<BinOpExp>(ExpOp::times, $e1, $e2);
-    save_location($$, @$);}
+{
+    $$ = make_shared<BinOpExp>(ExpOp::times, $e1, $e2);
+    save_location($$, @$);
+}
 | exp[e1] "%" exp[e2]
-{$$ = make_shared<BinOpExp>(ExpOp::mod, $e1, $e2);
-    save_location($$, @$);}
+{
+    $$ = make_shared<BinOpExp>(ExpOp::mod, $e1, $e2);
+    save_location($$, @$);
+}
 | exp[e1] "==" exp[e2]
-{$$ = make_shared<BinOpExp>(ExpOp::eq, $e1, $e2);
-    save_location($$, @$);}
+{
+    $$ = make_shared<BinOpExp>(ExpOp::eq, $e1, $e2);
+    save_location($$, @$);
+}
 | exp[e1] "!=" exp[e2]
-{$$ = make_shared<BinOpExp>(ExpOp::neq, $e1, $e2);
-    save_location($$, @$);}
+{
+    $$ = make_shared<BinOpExp>(ExpOp::neq, $e1, $e2);
+    save_location($$, @$);
+}
 | exp[e1] "<" exp[e2]
-{$$ = make_shared<BinOpExp>(ExpOp::lt, $e1, $e2);
-    save_location($$, @$);}
+{
+    $$ = make_shared<BinOpExp>(ExpOp::lt, $e1, $e2);
+    save_location($$, @$);
+}
 | exp[e1] ">" exp[e2]
-{$$ = make_shared<BinOpExp>(ExpOp::gt, $e1, $e2);
-    save_location($$, @$);}
+{
+    $$ = make_shared<BinOpExp>(ExpOp::gt, $e1, $e2);
+    save_location($$, @$);
+}
 | exp[e1] "<=" exp[e2]
-{$$ = make_shared<BinOpExp>(ExpOp::le, $e1, $e2);
-    save_location($$, @$);}
+{
+    $$ = make_shared<BinOpExp>(ExpOp::le, $e1, $e2);
+    save_location($$, @$);
+}
 | exp[e1] ">=" exp[e2]
-{$$ = make_shared<BinOpExp>(ExpOp::ge, $e1, $e2);
-    save_location($$, @$);}
+{
+    $$ =  make_shared<BinOpExp>(ExpOp::ge, $e1, $e2);
+    save_location($$, @$);
+}
 | exp[e1] "&" exp[e2]
-{$$ = make_shared<BinOpExp>(ExpOp::andd, $e1, $e2);
-    save_location($$, @$);}
+{
+    $$ = make_shared<BinOpExp>(ExpOp::andd, $e1, $e2);
+    save_location($$, @$);
+}
+| exp[e1] "=>" exp[e2]
+{
+    $$ = make_shared<BinOpExp>(ExpOp::implies, $e1, $e2);
+    save_location($$, @$);
+}
 | exp[e1] "|" exp[e2]
-{$$ = make_shared<BinOpExp>(ExpOp::orr, $e1, $e2);
+{
+    $$ = make_shared<BinOpExp>(ExpOp::orr, $e1, $e2);
+    save_location($$, @$);
+}
+| "log" "(" exp[e1] "," exp[e2] ")"
+{$$ = make_shared<BinOpExp>(ExpOp::log, $e1, $e2);
     save_location($$, @$);}
+| "pow" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::pow, $e1, $e2);
+    save_location($$, @$);
+}
+| "min" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::min, $e1, $e2);
+    save_location($$, @$);
+}
+| "max" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::max, $e1, $e2);
+    save_location($$, @$);
+}
 | "-" exp[e] %prec UMINUS
-{$$ = make_shared<UnOpExp>(ExpOp::minus, $e);
-    save_location($$, @$);}
+{
+    $$ = make_shared<UnOpExp>(ExpOp::minus, $e);
+    save_location($$, @$);
+}
 | "!" exp[e] %prec NEG
-{$$ = make_shared<UnOpExp>(ExpOp::nott, $e);
-    save_location($$, @$);}
+{
+    $$ = make_shared<UnOpExp>(ExpOp::nott, $e);
+    save_location($$, @$);
+}
+| "floor" exp[e] %prec UMINUS
+{$$ = make_shared<UnOpExp>(ExpOp::floor, $e);
+        save_location($$, @$);}
+| "ceil" exp[e] %prec UMINUS
+{$$ = make_shared<UnOpExp>(ExpOp::ceil, $e);
+        save_location($$, @$);}
+| "abs" exp[e] %prec UMINUS
+{
+    $$ = make_shared<UnOpExp>(ExpOp::abs, $e);
+    save_location($$, @$);
+}
+| "sgn" exp[e] %prec UMINUS
+{
+    $$ = make_shared<UnOpExp>(ExpOp::sgn, $e);
+    save_location($$, @$);
+}
+| "fsteq" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::fsteq, $e1, $e2);
+    save_location($$, @$);
+}
+| "lsteq" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::lsteq, $e1, $e2);
+    save_location($$, @$);
+}
+| "rndeq" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::rndeq, $e1, $e2);
+    save_location($$, @$);
+}
+| "minfrom" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::minfrom, $e1, $e2);
+    save_location($$, @$);
+}
+| "maxfrom" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::maxfrom, $e1, $e2);
+    save_location($$, @$);
+}
+| "sumfrom" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::sumfrom, $e1, $e2);
+    save_location($$, @$);
+}
+| "consec" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::consec, $e1, $e2);
+    save_location($$, @$);
+}
+| "broken" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::broken, $e1, $e2);
+    save_location($$, @$);
+}
+| "fstexclude" "(" exp[e1] "," exp[e2] ")"
+{
+    $$ = make_shared<BinOpExp>(ExpOp::fstexclude, $e1, $e2);
+    save_location($$, @$);
+}
 | "(" exp[e] ")"
 {$$ = $e; save_location($$, @$);}
 
@@ -379,5 +516,5 @@ ModelParserGen::ModelParser::error(const ModelParserGen::location& l,
 
 inline void save_location(shared_ptr<ModelAST> m, location loc) {
     shared_ptr<location> ploc = make_shared<location>(loc);
-    m->set_location(ploc);
+    m->set_file_location(ploc);
 }

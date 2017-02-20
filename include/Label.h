@@ -58,7 +58,13 @@ public:  // Attributes
 
 private:
         /// Type of labels
-        enum class LType {input, output, tau, out_committed, in_committed};
+        enum class LType {input, //[a?]
+                          output, // [a!]
+                          tau,    // [ ]
+                          out_committed, //[a!!]
+                          in_committed, // [a??]
+                          ignore //sent when no transition is enabled
+                         };
 
         /// Label type.
         LType type_;
@@ -86,6 +92,10 @@ public:
 
         static Label make_tau() {
             return Label(std::string(), LType::tau);
+        }
+
+        static Label make_ignored() {
+            return Label(std::string(), LType::ignore);
         }
 
         static Label make_in_committed(const std::string &str) {
@@ -141,6 +151,9 @@ public:  // Accessors
         }
         inline bool is_in_committed() const noexcept {
             return (type_ == LType::in_committed);
+        }
+        inline bool should_ignore() const noexcept {
+            return (type_ == LType::ignore);
         }
 };
 

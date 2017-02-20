@@ -61,6 +61,10 @@ State<T_>::State(const State<T_>& that) :
 	positionOfVar_.reserve(that.size());
 	copy(::begin(that.positionOfVar_), ::end(that.positionOfVar_),
 		 std::inserter(positionOfVar_, ::begin(positionOfVar_)));
+    // Copy arrays data:
+    arrayData_.reserve(that.arrayData_.size());
+    copy(::begin(that.arrayData_), ::end(that.arrayData_),
+         std::inserter(arrayData_, ::begin(arrayData_)));
 }
 
 
@@ -72,9 +76,14 @@ State<T_>::State(State<T_>&& that) :
 	positionOfVar_.reserve(that.size());
 	std::move(::begin(that.positionOfVar_), ::end(that.positionOfVar_),
 			  std::inserter(positionOfVar_, ::begin(positionOfVar_)));
+    //Copy array data
+    arrayData_.reserve(that.arrayData_.size());
+    std::move(::begin(that.arrayData_), ::end(that.arrayData_),
+              std::inserter(arrayData_, ::begin(arrayData_)));
 	// Clean that up
 	that.pvars_.clear();
 	that.positionOfVar_.clear();
+    that.arrayData_.clear();
 	that.maxConcreteState_ = 0;
 }
 
@@ -85,6 +94,7 @@ State<T_>& State<T_>::operator=(State<T_> that)
 	swap(pvars_, that.pvars_);
 	swap(maxConcreteState_, that.maxConcreteState_);
 	swap(positionOfVar_, that.positionOfVar_);
+    swap(arrayData_, that.arrayData_);
 //  TODO erase below or erase above?
 //	positionOfVar_.clear();
 //	positionOfVar_.reserve(pvars_.size());
@@ -108,13 +118,35 @@ State<T_>::append(const State<T_>& tail)
 	size_t oldSize(pvars_.size());
 	pvars_.insert(::end(pvars_), ::begin(tail), ::end(tail));
 	positionOfVar_.insert(::begin(tail.positionOfVar_), ::end(tail.positionOfVar_));
-	// Compute new variables global positions,
+    arrayData_.insert(::begin(tail.arrayData_), ::end(tail.arrayData_));
+    // Compute new variables global positions,
 	// taking into account the offset from the ones we already have
 	for (const auto& pair: tail.positionOfVar_)
 		positionOfVar_[pair.first] += oldSize;
+    // Compute new array's global positions, also taking into acount the offset.
+    for (const auto& tern : tail.arrayData_) {
+        const std::string &array_id = tern.first;
+        size_t fst  = tern.second.first;
+        size_t size = tern.second.second;
+        arrayData_[array_id] = std::make_pair(oldSize + fst, size);
+    }
 	build_concrete_bound();
 }
 
+template< typename T_ >
+void
+State<T_>::append_array(const std::string& name, const State<T_>& array) {
+    size_t size = pvars_.size();
+    append(array);
+    arrayData_[name] = std::make_pair(size, array.size());
+}
+
+template<typename T>
+void
+State<T>::update_array(const std::string &name, size_t pos, T value) {
+   auto& p = arrayData_[name];
+   pvars_[p.first + pos]->assign(value);
+}
 
 template< typename T_ >
 void
@@ -154,6 +186,9 @@ State<T_>::shallow_copy(State<T_>& that)
 	positionOfVar_.reserve(that.size());
 	copy(::begin(that.positionOfVar_), ::end(that.positionOfVar_),
 		 std::inserter(positionOfVar_, ::begin(positionOfVar_)));
+    arrayData_.reserve(that.size());
+    copy(::begin(that.arrayData_), ::end(that.arrayData_),
+         std::inserter(arrayData_, ::begin(arrayData_)));
 }
 
 
@@ -195,6 +230,35 @@ State<T_>::position_of_var(const std::string& varname) const
 #else
     return positionOfVar_[varname];  // creates location if inexistent!
 #endif
+}
+
+template<typename T>
+size_t State<T>::position_of_array_fst(const std::__cxx11::string &name) const {
+#ifndef NRANGECHK
+    return this->arrayData_.at(name).first;
+#else
+    return this->arrayData_[name].first;
+#endif
+}
+
+template<typename T>
+size_t State<T>::array_size(const std::__cxx11::string &name) const {
+#ifndef NRANGECHK
+    return this->arrayData_.at(name).second;
+#else
+    return this->arrayData_[name].second;
+#endif
+}
+
+template<typename T>
+T State<T>::array_value(const std::string &name, size_t offset) const {
+    size_t pos = position_of_array_fst(name);
+#ifndef NRANGECHK
+    assert(offset < array_size(name));
+    assert(pvars_[pos + offset]->name() ==
+            name + "[" + std::to_string(offset) + "]");
+#endif
+    return (pvars_[pos + offset]->val());
 }
 
 
@@ -385,7 +449,7 @@ State<T_>::is_our_var(const std::string& varName)
 
 // State can only be instantiated with following integral types
 template class State< short              >;
-//template class State< int                >;   // MuParser can't
+template class State< int                >;
 template class State< long               >;
 template class State< long long          >;
 template class State< unsigned short     >;

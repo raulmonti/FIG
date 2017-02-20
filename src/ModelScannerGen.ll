@@ -71,6 +71,7 @@ blank  [ \t]
 ">"           return ModelParser::make_GT(loc);
 "<="          return ModelParser::make_LE(loc);
 ">="          return ModelParser::make_GE(loc);
+"=>"          return ModelParser::make_IMPLY(loc);
 ":"           return ModelParser::make_SEMICOLON(loc);
 "'"           return ModelParser::make_SQUOTE(loc);
 ","           return ModelParser::make_COLON(loc);
@@ -100,7 +101,24 @@ blank  [ \t]
 "P"           return ModelParser::make_PROPT(loc);
 "S"           return ModelParser::make_PROPS(loc);
 "U"           return ModelParser::make_UNTIL(loc);
-
+"floor"       return ModelParser::make_FLOOR(loc);
+"ceil"        return ModelParser::make_CEIL(loc);
+"abs"         return ModelParser::make_ABS(loc);
+"sgn"         return ModelParser::make_SGN(loc);
+"log"         return ModelParser::make_LOG(loc);
+"max"         return ModelParser::make_MAX(loc);
+"min"         return ModelParser::make_MIN(loc);
+"pow"         return ModelParser::make_POW(loc);
+"_"           return ModelParser::make_UNDERSCORE(loc);
+"fsteq"       return ModelParser::make_FSTEQ(loc);
+"lsteq"       return ModelParser::make_LSTEQ(loc);
+"rndeq"       return ModelParser::make_RNDEQ(loc);
+"minfrom"     return ModelParser::make_MINFROM(loc);
+"maxfrom"     return ModelParser::make_MAXFROM(loc);
+"sumfrom"     return ModelParser::make_SUMFROM(loc);
+"consec"      return ModelParser::make_CONSEC(loc);
+"broken"      return ModelParser::make_BROKEN(loc);
+"fstexclude"  return ModelParser::make_FSTEXCLUDE(loc);
 {id}       return ModelParser::make_ID(yytext, loc);
 {int}      return ModelParser::make_INTL(parse_int(), loc);
 {float}    return ModelParser::make_FLOATL(parse_float(), loc);

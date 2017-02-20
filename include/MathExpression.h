@@ -25,7 +25,7 @@
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
-
+// Changed from MuParser to Exprtk: Leonardo Rodríguez.
 
 #ifndef MATHEXPRESSION_H
 #define MATHEXPRESSION_H
@@ -38,7 +38,7 @@
 #include <string>
 #include <stdexcept>    // std::out_of_range
 // External code
-#include <muParser.h>
+#include "exprtk.hpp" // 1.3mb
 // FIG
 #include <string_utils.h>
 #include <core_typedefs.h>
@@ -52,6 +52,9 @@
 using std::begin;
 using std::end;
 
+//typed used internally by Exprtk.
+//STATE_INTERNAL_TYPE must be convertible to NUMTYPE
+#define NUMTYPE float
 
 namespace fig
 {
@@ -60,7 +63,7 @@ namespace fig
  * @brief Mathematical expression with variables mapping
  *
  *        A mathematical expression is built from an expression string using
- *        the <a href="http://muparser.beltoforion.de/">MuParser library</a>.
+ *        the <a href="https://github.com/ArashPartow/exprtk">Exprtk</a>.
  *        It requires a separate explicit specification of which literals
  *        within that expression refer to variables names.
  *
@@ -68,22 +71,32 @@ namespace fig
  *        vector, list, forward_list, set, unordered_set, deque.
  * @note  Will not build from the following STL containers:
  *        queue, stack, array.
+ *
+ * @todo This class is currently used only by \ref ImportanceFunction. Replace
+ * this class with a subclass of \ref ExprStateEvaluator
  */
 class MathExpression
 {
 protected:
 
-    typedef mu::Parser Expression;
+    typedef exprtk::expression<NUMTYPE> expression_t;
+    typedef exprtk::symbol_table<NUMTYPE> symbol_table_t;
 
 	/// Is the expression empty?
-	/// @note Needed since MuParser doesn't tolerate empty string expressions
+    /// @note Needed since Exprtk doesn't tolerate empty string expressions
 	bool empty_;
 
     /// String describing the mathematical expression
     std::string exprStr_;
 
 	/// Mathematical expression per se
-	Expression expr_;
+    expression_t expr_;
+
+    /// Symbol table of mathematical expression
+    symbol_table_t table_;
+
+    /// Exprtk parser
+    exprtk::parser<NUMTYPE> parser;
 
 	/// Number of variables defined in our expression
 	size_t NVARS_;
@@ -98,7 +111,7 @@ protected:
 
 	/// @brief Values of our variables
 	/// @details "Current values" of our variables in a running simulation
-	mutable StateInstance varsValues_;
+    mutable std::vector<NUMTYPE> varsValues_;
 
 	/// Whether the global positional order of our variables
 	/// (i.e. varsPos_) has already been defined and the local values
@@ -153,14 +166,14 @@ public:  // Ctors/Dtor
 
 	/// Copy ctor
 	/// @note Explicitly defined for variables pinning into expr_
-	MathExpression(const MathExpression& that);
+    MathExpression(const MathExpression& that) = delete;
 
 	/// Default move ctor
-	MathExpression(MathExpression&& that) = default;
+    MathExpression(MathExpression&& that) = delete;
 
 	/// Copy assignment with copy&swap idiom
 	/// @note Explicitly defined for variables pinning into expr_
-	MathExpression& operator=(MathExpression that);
+    // MathExpression& operator=(MathExpression that);
 
 protected:  // Modifyers
 
@@ -175,7 +188,11 @@ protected:  // Modifyers
 	 * \endif
 	 * @todo TODO unify with the other version using templates;
 	 *            see ImportanceFunction::Formula::set()
-	 */
+     *
+     *
+     * @deprecated Not used anymore.
+     * @see ExpState
+     */
 	virtual void pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState);
 
 	/**
@@ -190,12 +207,17 @@ protected:  // Modifyers
 	 * \endif
 	 * @todo TODO unify with the other version using templates;
 	 *            see ImportanceFunction::Formula::set()
+     *
+     * @deprecated Not used anymore.
+     * @see ExpState
 	 */
 #ifndef NRANGECHK
 	virtual void pin_up_vars(const PositionsMap& globalVars);
 #else
 	virtual void pin_up_vars(PositionsMap& globalVars);
 #endif
+
+    void compile_expression();
 
 public:  // Accessors
 
@@ -207,16 +229,8 @@ public:  // Accessors
 
 protected:  // Class utils
 
-    /// Return a "MuParser friendly" formatted version of the expression string
-    std::string muparser_format(const std::string& expr) const;
-
-	/**
-	 * @brief Set 'exprStr_' as the expression to MuParser's 'expr_'
-	 * @note  After successfully parsing the expression string,
-	 *        all offered builtin functions are bound to 'expr_'
-	 * @throw FigException if badly formatted mathematical expression
-	 */
-	void parse_our_expression();
+    /// Return a "Exprtk friendly" formatted version of the expression string
+    std::string exprtk_format(const std::string& expr) const;
 };
 
 
@@ -234,14 +248,12 @@ MathExpression::MathExpression(
 	Iterator<ValueType, OtherArgs...> from,
 	Iterator<ValueType, OtherArgs...> to) :
 		empty_(trim(exprStr).empty()),
-        exprStr_(muparser_format(exprStr)),
+        exprStr_(exprtk_format(exprStr)),
         pinned_(false)
 {
 	static_assert(std::is_constructible< std::string, ValueType >::value,
 				  "ERROR: type mismatch. MathExpression needs iterators "
 				  "pointing to variable names");
-	// Setup MuParser expression
-	parse_our_expression();
 	// Register our variables names
 	varsNames_.reserve(std::distance(from, to));
 	for (; from != to ; from++)
@@ -253,6 +265,7 @@ MathExpression::MathExpression(
 	// Positions mapping is done later in pin_up_vars()
 	varsPos_.resize(NVARS_);
 	varsValues_.resize(NVARS_);
+    compile_expression();
 }
 
 } // namespace fig

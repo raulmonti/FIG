@@ -25,7 +25,7 @@
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
-
+// Implemented support for arrays: Leonardo Rodríguez.
 
 #ifndef STATE_H
 #define STATE_H
@@ -101,6 +101,10 @@ class State
 	mutable std::unordered_map<std::string, size_t> positionOfVar_;
 #endif
 
+    /// Lookup { arrayname -> (first var position, size) }
+    typedef std::unordered_map<std::string, std::pair<size_t,size_t>> ArrayMap;
+    mutable ArrayMap arrayData_;
+
 public:  // Ctors/Dtor
 
 	// Void ctor
@@ -156,6 +160,20 @@ public:  // Modifyers
 	 * \endif
 	 */
 	void append(const State<T_>& tail);
+
+    /** @brief Same as \ref append except that the state to be appended
+     *  is considered as the description of an array. Each variable on
+     *  the state is a position of the array.
+     *  @param name of the array
+     *  @param array must have the form ["name[0]" -> v0, ..., "name[N]" -> vN]
+     */
+    void append_array(const std::string &name, const State<T_> &array);
+
+    /** @brief Update an array position with the given value
+     * @param name of the array
+     * @param position of the array to be updated
+     */
+    void update_array(const std::string &name, size_t pos, T_ value);
 
 	/**
 	 * @brief Copy values for our Variables from passed State
@@ -234,7 +252,23 @@ public:  // Accessors
 	 */
     size_t position_of_var(const std::string& varname) const;
 
-	/**
+
+    /** @brief Position of the first element of the array with
+     * the given name.
+     * @param name of the array
+     */
+    size_t position_of_array_fst(const std::string &name) const;
+
+    /** @brief Size of the array with the given name.
+     * @param name of the array
+     */
+    size_t array_size(const std::string &name) const;
+
+    /** @brief Value of the array in the given position.
+     */
+    T_ array_value(const std::string &name, size_t position) const;
+
+    /**
 	 * @brief Print formatted vector of variables into 'out'
 	 * @param out        Output stream where printing will take place
 	 * @param condensed  Whether to print a summarized version of the data
@@ -339,7 +373,7 @@ private:  // Utils
 	bool is_our_var(const std::string& varName);
 
 public: // Debug
-        void print_info(std::ostream &out) const;
+    void print_info(std::ostream &out) const;
 };
 
 

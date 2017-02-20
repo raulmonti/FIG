@@ -1,4 +1,4 @@
-/** Leonardo Rodríguez **/
+/* Leonardo Rodríguez */
 
 // C++
 #include <iterator>
@@ -9,7 +9,6 @@
 #include <PropertyRate.h>
 #include <string_utils.h>
 #include <ExprDNFBuilder.h>
-#include <ExpStringBuilder.h>
 #include <ModelBuilder.h>
 
 // ADL
@@ -21,27 +20,87 @@ using Clause = parser::PropertyProjection::Clause;
 using Term = parser::PropertyProjection::Term;
 using DNF  = parser::PropertyProjection::DNF;
 
+
+/// Find if an expression may depend on the given set of identifiers.
+class NameFinderVisitor : public Visitor {
+    std::set<std::string> names;
+    bool hasIdentifiersIn = false;
+public:
+    NameFinderVisitor(const std::vector<std::string>& names) {
+        for (const std::string &str :names) {
+            this->names.insert(str);
+        }
+    }
+
+    void visit(shared_ptr<LocExp> node) override {
+        shared_ptr<Location> loc = node->get_exp_location();
+        if (loc->is_array_position() || loc->get_decl()->is_array()) {
+            //the expressions is of the form "arr" or "arr[j]" where "j" may not
+            //be known statically. We consider "arr" or "arr[j]" relevant if
+            // "arr" or "arr[i]" with any "i" appears on names.
+            hasIdentifiersIn = names.find(loc->get_identifier()) != names.end();
+            shared_ptr<ArrayDecl> decl = loc->get_decl()->to_array();
+            const ArrayData &data = decl->get_data();
+            size_t i = 0;
+            while (i < (size_t) data.data_size && !hasIdentifiersIn) {
+                std::string indexed
+                        = loc->get_identifier() + "[" + std::to_string(i) + "]";
+                hasIdentifiersIn = names.find(indexed) != names.end();
+                i++;
+            }
+        } else {
+            //simple var, just check if it is in the set
+            hasIdentifiersIn = names.find(loc->get_identifier()) != names.end();
+        }
+    }
+
+    void visit(shared_ptr<UnOpExp> node) override {
+        if (!hasIdentifiersIn) {
+            node->get_argument()->accept(*this);
+        }
+    }
+
+    void visit(shared_ptr<BinOpExp> node) override {
+        if (!hasIdentifiersIn) {
+            node->get_first_argument()->accept(*this);
+        }
+        if (!hasIdentifiersIn) {
+            node->get_second_argument()->accept(*this);
+        }
+    }
+
+    bool has_identifiers_in() const {
+        return (hasIdentifiersIn);
+    }
+};
+
+/// Decides whether the term may depend on the set of variables
 bool has_identifiers_in(Term exp, const vector<string>& varnames) {
-    ExpStringBuilder str_b (CompositeModuleScope::get_instance());
-    //@todo write another visitor that returns names without
-    // making a string in the process
-    exp->accept(str_b);
-    auto in_varnames = [&] (const std::string &id) -> bool
-    {
-        auto it = std::find(varnames.begin(), varnames.end(), id);
-        return (it != varnames.end());
-    };
-    auto &names = str_b.get_names();
-    bool result = std::find_if(names.begin(), names.end(), in_varnames)
-            != names.end();
-    return (result);
+    NameFinderVisitor visitor (varnames);
+    exp->accept(visitor);
+    return (visitor.has_identifiers_in());
 }
 
+
 inline Clause clause_from_terms(const vector<Term> &terms) {
-    shared_ptr<ModuleScope> scope = CompositeModuleScope::get_instance();
-    std::pair<string, vector<string>> str_names
-            =  ExpStringBuilder::make_conjunction_str(scope, terms);
-    return Precondition(str_names.first, str_names.second);
+    //shared_ptr<ModuleScope> scope = CompositeModuleScope::get_instance();
+    //std::pair<string, vector<string>> str_names
+    //        =  ExpStringBuilder::make_conjunction_str(scope, terms);
+    //return Precondition(str_names.first, str_names.second);
+    shared_ptr<Exp> exp = nullptr;
+    size_t tam = terms.size();
+    if (tam > 0) {
+        exp = terms[0];
+    }
+    size_t i = 1; //0 already included.
+    while (i < tam) {
+        exp = BinOpExp::make_andd(exp, terms[i]);
+        i++;
+    }
+    if (exp == nullptr) {
+        throw_FigException("Can't construct clause");
+    }
+    return Precondition(exp);
 }
 
 vector<Clause> project_on_var_set(const DNF& dnf,
@@ -59,6 +118,7 @@ vector<Clause> project_on_var_set(const DNF& dnf,
             result.push_back(clause);
         }
     }
+
     return (result);
 }
 }
@@ -112,11 +172,11 @@ PropertyProjection::project(const State& localState) const {
     }
     auto rares = ::project_on_var_set(rares_, varnames);
     for (Clause& clause: rares) {
-        clause.pin_up_vars(localState);
+        clause.prepare(localState);
     }
     auto others = ::project_on_var_set(others_, varnames);
     for (Clause& clause: others) {
-        clause.pin_up_vars(localState);
+        clause.prepare(localState);
     }
     return std::make_pair(rares, others);
 }

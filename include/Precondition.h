@@ -5,7 +5,7 @@
 //  Copyleft 2015-
 //  Authors:
 //  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
-//
+//  - Leonardo Rodríguez
 //------------------------------------------------------------------------------
 //
 //  This file is part of FIG.
@@ -33,127 +33,45 @@
 #include <MathExpression.h>
 #include <core_typedefs.h>
 #include <State.h>
-
+#include <ExpStateEvaluator.h>
 
 namespace fig
 {
+using std::shared_ptr;
 
 /**
  * @brief Transition precondition:
  *        a boolean guard with predicates over variables values.
  *
- *        The names of the variables appearing in the expression string
- *        of a Precondition must refer to existing Variables in the global
- *        State of the system, 'gState'.
  */
-class Precondition : public MathExpression
-{
-	/// @brief Perform a fake evaluation to exercise our expression
-	/// @note  Useful to reveal parsing errors in MathExpression
-	/// @throw FigException if badly parsed expression
-	void test_evaluation() const;
-
+class Precondition : public ExpStateEvaluator {
+    shared_ptr<Exp> expr_;
 public:  // Ctors
 
-	/// @copydoc MathExpression::MathExpression
-	template< template< typename, typename... > class Container,
-			  typename ValueType,
-			  typename... OtherContainerArgs >
-	inline Precondition(const std::string& exprStr,
-						const Container<ValueType, OtherContainerArgs...>& varnames) :
-        MathExpression(exprStr, varnames)
-		{}
+    Precondition(shared_ptr<Exp> expr)
+        : ExpStateEvaluator(expr), expr_ {expr}
+    {}
 
-	/// Data ctor from generic rvalue container
-	/// @see Equivalent ctor in MathExpression
-	template< template< typename, typename... > class Container,
-			  typename ValueType,
-			  typename... OtherContainerArgs >
-	inline Precondition(const std::string& exprStr,
-						Container<ValueType, OtherContainerArgs...>&& varnames) :
-        MathExpression(exprStr, varnames)
-        {}
+    /// @brief Copy Constructor
+    Precondition(const Precondition& that) = default;
 
-	/// Data ctor from iterator range
-	/// @see Equivalent ctor in MathExpression
-	template< template< typename, typename... > class Iterator,
-			  typename ValueType,
-			  typename... OtherIteratorArgs >
-	inline Precondition(const std::string& exprStr,
-						Iterator<ValueType, OtherIteratorArgs...> from,
-						Iterator<ValueType, OtherIteratorArgs...> to) :
-        MathExpression(exprStr, from, to)
-        {}
+    /// @brief Move Constructor
+    Precondition(Precondition&& that) = default;
 
-	/// Default copy ctor
-	Precondition(const Precondition& that) = default;
+    /// @todo Copy assignment with copy&swap idiom
+    Precondition& operator=(Precondition that) = delete;
 
-	/// Default move ctor
-	Precondition(Precondition&& that) = default;
+public:
 
-	/// Copy assignment with copy&swap idiom
-	Precondition& operator=(Precondition that);
+    bool operator()(const StateInstance& state) const;
+    bool operator()(const State<STATE_INTERNAL_TYPE>& state) const;
 
-public:  // Modifyers, made public since too many other classes use Precondition
-
-	/**
-	 * @copydoc fig::MathExpression::pin_up_vars()
-	 * \ifnot NDEBUG
-	 *   @throw FigException if there was some error in our math expression
-	 * \endif
-	 * @todo TODO unify with the other version using templates;
-	 *            see ImportanceFunction::Formula::set()
-	 */
-	void pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState) override;
-
-	/**
-	 * @copydoc fig::MathExpression::pin_up_vars(const PositionMap&)
-	 * \ifnot NDEBUG
-	 *   @throw FigException if there was some error in our math expression
-	 * \endif
-	 * @todo TODO unify with the other version using templates;
-	 *            see ImportanceFunction::Formula::set()
-	 */
-#ifndef NRANGECHK
-	void pin_up_vars(const PositionsMap& globalVars) override;
-#else
-	void pin_up_vars(PositionsMap& globalVars) override;
-#endif
-
-public:  // Utils
-
-	/**
-	 * @brief Compute truth value of our expression for given variables valuation
-	 * @param state Valuation of the system's global state
-	 * @note pin_up_vars() should have been called before to register the
-	 *       position of the expression's variables in the global State
-	 * @note To work with local states from the \ref ModuleInstace
-	 *       "system modules" use the State variant of this operator
-	 * @throw mu::ParserError
-	 * \ifnot NDEBUG
-	 *   @throw FigException if pin_up_vars() hasn't been called yet
-	 * \endif
-	 * @todo TODO unify with the other version using templates;
-	 *            see ImportanceFunction::Formula::set()
-	 */
-	bool operator()(const StateInstance& state) const;
-
-	/**
-	 * @brief Compute truth value of our expression for given state
-	 * @param state The state of any Module (ModuleInstace or ModuleNetwork)
-	 * @note Slower than the StateInstance variant of this operator,
-	 *       since it has to search for the variables positions in 'state'
-	 * @throw mu::ParserError
-	 * \ifnot NDEBUG
-	 *   @throw FigException if pin_up_vars() hasn't been called yet
-	 * \endif
-	 * @todo TODO unify with the other version using templates;
-	 *            see ImportanceFunction::Formula::set()
-	 */
-	bool operator()(const State<STATE_INTERNAL_TYPE>& state) const;
+    shared_ptr<Exp> get_expression() const noexcept {
+        return (expr_);
+    }
 
 public: //Debug
-        void print_info(std::ostream& out) const;
+    void print_info(std::ostream& out) const;
 };
 
 } // namespace fig

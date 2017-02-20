@@ -68,12 +68,13 @@ string modelFile;
 string propertiesFile;
 string engineName;
 fig::JaniTranny janiSpec;
-fig::ImpFunSpec impFunSpec("noName", "noStrategy");
+fig::ImpFunSpec impFunSpec("no_name", "no_strategy");
 string thrTechnique;
 std::set< unsigned > splittings;
 std::list< fig::StoppingConditions > estBounds;
 std::chrono::seconds simsTimeout;
 bool forceOperation;
+bool confluenceCheck;
 
 } // namespace fig_cli   // // // // // // // // // // // // // // // // // //
 
@@ -292,6 +293,11 @@ SwitchArg forceOperation_(
 	"compliant. Depending on the user command, this may force estimation of "
 	"the properties values, or translation to the JANI Specification format.");
 
+// Confluence-checking request
+SwitchArg confluenceCheck_(
+        "c", "confluence",
+        "Run algorithm to check confluence of committed actions.");
+
 
 // Helper routines  ///////////////////////////////////////////////////////////
 
@@ -314,6 +320,10 @@ get_jani_spec()
 		janiSpec.janiInteraction = true;
 		janiSpec.translateDirection = fromJANI ? fig::JaniTranny::FROM_JANI
 											   : fig::JaniTranny::TO_JANI;
+	} else if (regex_match(modelFile_.getValue(), regex("^.*\\.jani$"))) {
+		// .jani extension: suspicious enough to assume JANI
+		janiSpec.janiInteraction = true;
+		janiSpec.translateDirection = fig::JaniTranny::FROM_JANI;
 	} else {
 		// Superficial check for JANI-like content in the input model file
 		std::ifstream modelFile(modelFile_.getValue());
@@ -636,6 +646,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(timeout);
 		cmd_.add(splittings_);
 		cmd_.add(forceOperation_);
+        cmd_.add(confluenceCheck_);
 
 		// Parse the command line input
 		cmd_.parse(argc, argv);
@@ -646,6 +657,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		engineName     = engineName_.getValue();
 		thrTechnique   = thrTechnique_.getValue();
 		forceOperation = forceOperation_.getValue();
+        confluenceCheck = confluenceCheck_.getValue();
 		if (!get_jani_spec()) {
 			std::cerr << "ERROR: failed parsing the JANI-spec commands.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";

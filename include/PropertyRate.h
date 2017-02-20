@@ -5,7 +5,7 @@
 //  Copyleft 2016-
 //  Authors:
 //  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
-//
+//  - Leonardo Rodríguez
 //------------------------------------------------------------------------------
 //
 //  This file is part of FIG.
@@ -26,12 +26,14 @@
 //
 //==============================================================================
 
+
 #ifndef PROPERTYRATE_H
 #define PROPERTYRATE_H
 
 #include <core_typedefs.h>
 #include <Property.h>
 
+using std::shared_ptr;
 
 namespace fig
 {
@@ -56,112 +58,83 @@ namespace fig
  */
 class PropertyRate : public Property
 {
-	/// This identifies the special states whose visiting times are monitored
-	Property::Formula expr_;
+    /// This identifies the special states whose visiting times are monitored
+    Precondition condition_;
+    shared_ptr<Exp> expr_;
 
 public:  // Ctors
 
-	/**
-	 * @brief Data ctor from generic lvalue container
-	 *
-	 * @param expr     Mathematical expression for the only subformula
-	 * @param exprVars Names of the variables ocurring in "expr"
-	 *
-	 * @throw FigException if "expr" isn't a valid expressions
-	 * \ifnot NRANGECHK
-	 *   @throw out_of_range if names of variables not appearing
-	 *                       in the expression string were passed
-	 * \endif
-	 */
-	template< template <typename, typename... > class Container,
-			  typename ValueType,
-			  typename... OtherArgs >
-	PropertyRate(const std::string& expr,
-				 const Container<ValueType, OtherArgs...>& exprVars) :
-		Property(std::string("S( (").append(expr).append(") / total_time )"),
-				 PropertyType::RATE),
-		expr_(expr, exprVars)
-		{}
+    /**
+     * @brief Data ctor from generic lvalue container
+     *
+     * @param expr     Mathematical expression for the only subformula
+     * @param exprVars Names of the variables ocurring in "expr"
+     *
+     * @throw FigException if "expr" isn't a valid expressions
+     * \ifnot NRANGECHK
+     *   @throw out_of_range if names of variables not appearing
+     *                       in the expression string were passed
+     * \endif
+     */
+    PropertyRate(shared_ptr<Exp> expr) :
+        Property(PropertyType::RATE),
+        condition_{expr},
+        expr_ {expr}
+    {}
 
-	/**
-	 * @brief Data ctor from iterator ranges
-	 *
-	 * @param expr         Mathematical expression for the only subformula
-	 * @param exprVarsFrom Iterator to  first name of variables ocurring in expr
-	 * @param exprVarsTo   Iterator past last name of variables ocurring in expr
-	 *
-	 * @throw FigException if "expr" isn't a valid expressions
-	 * \ifnot NRANGECHK
-	 *   @throw out_of_range if names of variables not appearing
-	 *                       in the expression string were passed
-	 * \endif
-	 */
-	template< template <typename, typename... > class Iterator,
-			  typename ValueType,
-			  typename... OtherArgs >
-	PropertyRate(const std::string& expr,
-				 Iterator<ValueType, OtherArgs...> exprVarsFrom,
-				 Iterator<ValueType, OtherArgs...> exprVarsTo) :
-		Property(std::string("S( (").append(expr).append(") / total_time )"),
-				 PropertyType::RATE),
-		expr_(expr, exprVarsFrom, exprVarsTo)
-		{}
+    /// Copy/Move constructor deleted to avoid dealing with the unique id.
+    PropertyRate(const PropertyRate& that) = delete;
+    PropertyRate(PropertyRate&& that)      = delete;
 
-	/// Copy/Move constructor deleted to avoid dealing with the unique id.
-	PropertyRate(const PropertyRate& that) = delete;
-	PropertyRate(PropertyRate&& that)      = delete;
+    /// Can't have empty ctor due to const data members from Property
+    PropertyRate()                                         = delete;
+    /// Can't have copy assignment due to const data members from Property
+    PropertyRate& operator=(const PropertyRate& that) = delete;
+    /// Can't have move assignment due to const data members from Property
+    PropertyRate& operator=(PropertyRate&& that)      = delete;
 
-	/// Can't have empty ctor due to const data members from Property
-	PropertyRate()                                         = delete;
-	/// Can't have copy assignment due to const data members from Property
-	PropertyRate& operator=(const PropertyRate& that) = delete;
-	/// Can't have move assignment due to const data members from Property
-	PropertyRate& operator=(PropertyRate&& that)      = delete;
+public:
 
-public:  // Accessors
+    /**
+     * Is the subformula satisfied by the given variables valuation?
+     * @param s Valuation of the system's global state
+     * @note To work with local states from the \ref ModuleInstace
+     *       "system modules" use the State variant
+     * @see PropertyRate::expr_
+     */
+    inline bool expr(const StateInstance& s) const { return condition_(s); }
 
-	/// String expression of the only subformula of this property
-	/// @see PropertyRate::expr
-	inline const std::string expression() const noexcept
-		{ return expr_.expression(); }
+    /**
+     * Is the subformula satisfied by the given state?
+     * @param s The state of any Module (ModuleInstace or ModuleNetwork)
+     * @note Slower than the StateInstance variant
+     * @see PropertyRate::expr_
+     */
+    inline bool expr(const State<STATE_INTERNAL_TYPE>& s) const {
+        return condition_(s);
+    }
 
-protected:  // Modifyers
+    inline bool is_rare(const StateInstance& s) const override {
+        return condition_(s);
+    }
 
-#ifndef NRANGECHK
-	inline void pin_up_vars(const PositionsMap& globalVars) override
-		{ expr_.pin_up_vars(globalVars); }
-#else
-	inline void pin_up_vars(PositionsMap& globalVars) override
-		{ expr_.pin_up_vars(globalVars); }
-#endif
+    inline bool is_rare(const State<STATE_INTERNAL_TYPE>& s)
+    const override {
+        return condition_(s);
+    }
 
-	inline void pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState) override
-		{ expr_.pin_up_vars(globalState); }
+    std::string to_string() const override {
+        return ("S( (" + expr_->to_string() + ") / total_time )");
+    }
 
-public:  // Utils
+    void prepare(const State<STATE_INTERNAL_TYPE>& state) {
+        condition_.prepare(state);
+    }
 
-	/**
-	 * Is the subformula satisfied by the given variables valuation?
-	 * @param s Valuation of the system's global state
-	 * @note To work with local states from the \ref ModuleInstace
-	 *       "system modules" use the State variant
-	 * @see PropertyRate::expr_
-	 */
-	inline bool expr(const StateInstance& s) const { return expr_(s); }
+    void prepare(const PositionsMap& posMap) {
+        condition_.prepare(posMap);
+    }
 
-	/**
-	 * Is the subformula satisfied by the given state?
-	 * @param s The state of any Module (ModuleInstace or ModuleNetwork)
-	 * @note Slower than the StateInstance variant
-	 * @see PropertyRate::expr_
-	 */
-	inline bool expr(const State<STATE_INTERNAL_TYPE>& s) const { return expr_(s); }
-
-	inline bool is_rare(const StateInstance& s) const override
-		{ return expr(s); }
-
-	inline bool is_rare(const State<STATE_INTERNAL_TYPE>& s) const override
-		{ return expr(s); }
 public: //Debug
     void print_info(std::ostream &out) const override;
 };

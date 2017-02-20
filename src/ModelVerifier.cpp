@@ -1,3 +1,4 @@
+/* Leonardo Rodríguez */
 #include <sstream>
 
 #include "ModelVerifier.h"
@@ -5,7 +6,15 @@
 #include "FigException.h"
 #include "location.hh"
 
+
 namespace {
+std::basic_ostream<char>& operator<<(std::basic_ostream<char> &ss, TransitionAST& model) {
+    if (model.get_file_location() != nullptr) {
+        ss << " [at " << *(model.get_file_location()) << "]";
+    }
+    return ss;
+}
+
 //"operator%" not defined in z3++.h, let's improvise one.
 z3::expr z3mod(z3::expr const & a, z3::expr const & b) {
     check_context(a, b);
@@ -67,9 +76,9 @@ inline string warning_not_deterministic(shared_ptr<TransitionAST> a1,
                                         shared_ptr<TransitionAST> a2) {
     stringstream ss;
     ss << "Preconditions of transitions";
-    ss << " [at " << *(a1->get_location()) << "]";
+    (ss << " ") << *a1;
     ss << " and";
-    ss << " [at " << *(a2->get_location()) << "]";
+    ss << " " << *a2;
     ss << " are not disjoint and its postconditions produce ";
     ss << " different states, which is a potential source of non-determinism";
     return (ss.str());
@@ -80,15 +89,13 @@ inline string warning_reseted_clocks_input(shared_ptr<TransitionAST> a1,
                                            shared_ptr<TransitionAST> a2) {
     const string &label1_id = a1->get_label();
     const string &label2_id = a2->get_label();
-    auto loc1 = a1->get_location();
-    auto loc2 = a2->get_location();
     assert(label1_id == label2_id);
     stringstream ss;
     ss << "Transitions of input label";
     ss << " \"" << label1_id << "\"";
-    ss << " [at " << *loc1 << "]";
+    ss << " " << *a1;
     ss << " and";
-    ss << " [at " << *loc2 << "]";
+    ss << " " << *a2;
     ss << " must reset the same clocks to ensure non-determinism";
     return (ss.str());
 }
@@ -99,15 +106,13 @@ inline string warning_reseted_clocks_output(const string &clock_id,
                                             shared_ptr<TransitionAST> a2) {
     const string &label1_id = a1->get_label();
     const string &label2_id = a2->get_label();
-    auto loc1 = a1->get_location();
-    auto loc2 = a2->get_location();
     assert(label1_id == label2_id);
     stringstream ss;
     ss << "Transitions of output label";
     ss << " \"" << label1_id << "\"";
-    ss << " [at " << *loc1 << "]";
+    ss << " " << *a1;
     ss << " and";
-    ss << " [at " << *loc2 << "]";
+    ss << " " << *a2;
     ss << " are enabled by the same clock";
     ss << " \"" << clock_id << "\"";
     ss << ", they must reset the same clocks to ensure non-determinism";
@@ -119,15 +124,13 @@ inline string warning_same_clock_different_label(const string &clock_id,
                                                  shared_ptr<TransitionAST> a2) {
     const string &label1_id = a1->get_label();
     const string &label2_id = a2->get_label();
-    auto loc1 = a1->get_location();
-    auto loc2 = a2->get_location();
     stringstream ss;
     ss << "Transition of output labels";
     ss << " \"" << label1_id << "\"";
-    ss << " [at " << *loc1 << "]";
+    ss << " " << *a1;
     ss << " and";
     ss << " \"" << label2_id << "\"";
-    ss << " [at " << *loc2 << "]";
+    ss <<  " " << *a2;
     ss << " are enabled by the same clock";
     ss << " \"" << clock_id << "\"";
     ss << ", which is a potential source of non-determinism";
@@ -139,18 +142,16 @@ inline string warning_clock_exhaustation(const string &clock_id,
                                          shared_ptr<TransitionAST> a2) {
     const string &label1_id = a1->get_label();
     const string &label2_id = a2->get_label();
-    auto loc1 = a1->get_location();
-    auto loc2 = a2->get_location();
     stringstream ss;
     ss << "Transition of output label";
     ss << " \"" << label1_id << "\"";
-    ss << " [at " << *loc1 << "]";
+    ss << " " << *a1;
     ss << " is potentially enabled with an";
     ss << " exhausted clock";
     ss << " \"" << clock_id  << "\"";
     ss << " via another transition with label";
     ss << " \"" << label2_id << "\"";
-    ss << " [at " << *loc2 << "]";
+    ss << " " << *a2;
     return (ss.str());
 }
 
@@ -161,6 +162,11 @@ z3::sort Z3Converter::type_to_sort(Type type, z3::context& ctx) {
     case Type::tbool: return ctx.bool_sort();
     case Type::tint: return ctx.int_sort();
     case Type::tfloat: return ctx.real_sort();
+        ///@todo complete support for arrays in this class.
+    case Type::tboolarray: return ctx.bool_sort();
+        //return ctx.array_sort(ctx.int_sort(), ctx.bool_sort());
+    case Type::tintarray: return ctx.int_sort();
+        //return ctx.array_sort(ctx.int_sort(), ctx.int_sort());
     default:
         throw_FigException("Unsupported type");
     }
@@ -217,6 +223,14 @@ Z3Converter::bop_to_fun(ExpOp op) {
     case ExpOp::mod: return [] (const z3::expr &a, const z3::expr &b) {
             return (::z3mod(a, b));
         };
+    case ExpOp::fsteq:
+    case ExpOp::lsteq:
+    case ExpOp::rndeq:
+    case ExpOp::minfrom:
+    case ExpOp::maxfrom:
+    case ExpOp::sumfrom:
+    case ExpOp::consec:
+    case ExpOp::broken:
     default:
         throw_FigException("Unsupported operator");
     }
@@ -314,9 +328,9 @@ void ModelVerifier::add_names_limits(const std::set<string> &names) {
     for (const string& name : names) {
         shared_ptr<Decl> decl = current_scope->local_decls_map().at(name);
         if (decl->has_range()) {
-            shared_ptr<RangedDecl> ranged = decl->to_ranged();
+            shared_ptr<Ranged> ranged = decl->to_ranged();
             const auto& sort =
-                    Z3Converter::type_to_sort(ranged->get_type(), *context);
+                    Z3Converter::type_to_sort(decl->get_type(), *context);
             z3::expr low = eval_and_convert(ranged->get_lower_bound());
             z3::expr up  = eval_and_convert(ranged->get_upper_bound());
             solver->add(context->constant(name.c_str(), sort) >= low);
@@ -352,18 +366,18 @@ void ModelVerifier::check_output_determinism(const string &clock_id) {
             const string &label1_id = a1->get_label();
             const string &label2_id = a2->get_label();
             if (solver->check()) {
-                //this two transition potentially enabled by the same clock
-                //let's check that at least will produce the same output
+                //this two transitions are potentially enabled by the same clock
+                //let's check that at least any choice will produce the same output
                 if (label1_id != label2_id) {
                     auto &warn = ::warning_same_clock_different_label;
-                    put_warning(warn(clock_id, a1, a2));
+                    put_error(warn(clock_id, a1, a2));
                 } else {
                     //now let's check if both transitions reset the same clocks
                     bool same_clocks = ::resets_clocks_of(a1, a2) &&
                             resets_clocks_of(a2, a1);
                     if (!same_clocks) {
                         auto &warn = ::warning_reseted_clocks_output;
-                        put_warning(warn(clock_id, a1, a2));
+                        put_error(warn(clock_id, a1, a2));
                     }
                     //now let's check that resulting state is the same
                     if (!has_warnings()) {
@@ -408,7 +422,7 @@ void ModelVerifier::check_input_determinism(const string &label_id) {
                             ::resets_clocks_of(a2, a1);
                     if (!same_clocks) {
                         auto &warn = ::warning_reseted_clocks_input;
-                        put_warning(warn(a1, a2));
+                        put_error(warn(a1, a2));
                     }
                 }
             }
@@ -420,10 +434,27 @@ void ModelVerifier::check_input_determinism(const string &label_id) {
 }
 
 void ModelVerifier::visit(shared_ptr<Model> model) {
-    auto& modules = model->get_modules();
+    const std::vector<shared_ptr<ModuleAST>>& modules = model->get_modules();
     unsigned int i = 0;
     while (i < modules.size() && !has_warnings()) {
         const string &id = modules[i]->get_name();
+        if (modules[i]->has_arrays()) {
+            put_warning("ModelVerifier: Module "
+                        + modules[i]->get_name() + " omitted,"
+                        + " support for arrays not yet implemented");
+            i++;
+            continue;
+        }
+        if (modules[i]->has_committed_actions()) {
+            put_warning("ModelVerifier: Module "
+                        + modules[i]->get_name() + " has committed actions,"
+                        + "fixed-point condition for \"exhauted clocks\""
+                        + "(modified iosa-compliance condition 4)"
+                        + "not yet implemented.");
+            //donde está definida la nueva condición?
+            i++;
+            continue;
+        }
         current_scope = ModuleScope::scopes.at(id);
         check_input_determinism_all();
         solver->reset();

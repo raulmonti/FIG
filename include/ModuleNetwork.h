@@ -80,13 +80,16 @@ private:  // Attributes shared with our friends
 	/// The modules network per se
 	std::vector< std::shared_ptr< ModuleInstance > > modules;
 
+    /// Whether or not this module network has committed actions
+    bool has_committed_ = false;
+
 private:
 
 	/// Total number of clocks, considering all modules in the network
 	size_t numClocks_;
 
 	/// Whether the system model has already been sealed for simulations
-        bool sealed_;
+	bool sealed_;
 
 public:  // Ctors/Dtor
 
@@ -250,11 +253,32 @@ public:  // Utils
 	ImportanceValue peak_simulation(Traial& traial,
 									Update update,
 									Predicate pred) const;
-private: //Committed actions processing
-        bool process_committed_once(Traial &traial) const;        
-        void process_committed(Traial &Traial) const;
-public: //Debug
-        void print_info(std::ostream &out) const;
+
+private:  // Committed actions processing
+
+    /**
+     * @brief Find (if any) an enabled output-committed
+     * transition and broadcast it to all the modules.
+     * @return true if such a transition exists, false otherwise.
+     * @note This will choose *the first* enabled transition.
+     * Assuming the model is confluent this choice is safe.
+     * @param Traial that receives the changes in the state.
+     */
+	bool process_committed_once(Traial &traial) const;
+
+    /**
+     * @brief Process all the committed actions repeatedly until
+     * no committed transition is enabled.
+     * @note The execution of the postcondition of a committed transition could
+     * enable another committed transition that should be executed inmmediately,
+     * and that is why this method is necessary.
+     * @param Traial that receives the changes in the state.
+     */
+	void process_committed(Traial &Traial) const;
+
+public:  // Debug
+
+	void print_info(std::ostream &out) const;
 
 }; // class ModuleNetwork
 

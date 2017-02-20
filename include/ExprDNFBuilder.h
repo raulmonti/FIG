@@ -15,7 +15,7 @@ using ClauseType = vector<shared_ptr<Exp>>;
  *        where each l_ij does not contain "&&" or "||"
  * @class ExprClauseBuilder collects the terms "l_ij" in a vector.
  * @class ExprDNFBuilder collects the clauses (l_i1 &&  .... && l_ij) in
- *        a vector (both assuming that the expressions visited *is* in DNF)
+ *        a vector (both assuming that the expression visited *is* in DNF)
  * @see DNFChecker: checks if an expression is in DNF
  */
 class ExprClauseBuilder : public Visitor {
