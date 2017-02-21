@@ -16,7 +16,7 @@ done
 echo
 j=$((0))
 for i in $3; do
-    echo "    [ repair_${i}!! ] busy_${1} = false & first(xs_${1}) = ${j} -> (busy_${1}' = true);";
+    echo "    [ repair_${i}!! ] busy_${1} == false & fsteq(xs_${1},true) == ${j} -> (busy_${1}' = true);";
     j=$((${j}+1));
 done
 echo

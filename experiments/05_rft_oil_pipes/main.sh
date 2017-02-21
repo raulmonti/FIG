@@ -1,6 +1,7 @@
 
 # $1 : number of pipes
-# $2 : output file name
+# $2 : output file name for model
+# $3 : output file name for props
 # TODO enable seting consecutive broken pipes limite (now 4)
 
 #BUILD PIPES
@@ -25,3 +26,6 @@ for i in $(seq 1 $END); do
     ands=${ands}" and$i"
 done
 bash or.sh "pipeline" $END "$ands" >> $2;
+
+#BUILD PROPS FILE
+echo "S(inform_pipeline & k_pipeline == 0|false)" >> $3;
