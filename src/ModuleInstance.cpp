@@ -236,17 +236,21 @@ ModuleInstance::adjacent_states(const size_t& s) const
 	std::forward_list<size_t> adjacentStates;
 	State<STATE_INTERNAL_TYPE> state(lState_);
 	state.decode(s);
-	for (const Transition& tr: transitions_) {
-		// For each enabled transition of the module...
-		if (tr.precondition()(state)) {
-			// ...update variables...
-			tr.postcondition()(state);
-			// ...and store resulting concrete state
-			adjacentStates.push_front(state.encode());
-			// Restore original state
-			state.decode(s);
-		}
-	}
+    for (const Transition& tr: transitions_) {
+	    // For each enabled transition of the module...
+	    if (tr.precondition()(state)) {
+		    // ...update variables...
+            try{
+		        tr.postcondition()(state);
+            }catch(const FigException &e){
+                continue;
+            }
+		    // ...and store resulting concrete state
+		    adjacentStates.push_front(state.encode());
+		    // Restore original state
+		    state.decode(s);
+	    }
+    }
 	// Remove duplicates before returning
 	adjacentStates.sort();
 	adjacentStates.unique();

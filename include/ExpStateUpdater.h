@@ -182,8 +182,8 @@ public:
     /// @note Our "result_accs_" table stores "where" the given state should
     /// be updated.
     /// @note prepare shold be called first
-    void update(State<STYPE>& state) const noexcept;
-    void update(StateInstance& state) const noexcept;
+    void update(State<STYPE>& state) const ;
+    void update(StateInstance& state) const ;
 };
 
 }

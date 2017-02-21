@@ -82,7 +82,7 @@ void ExpStateUpdater::prepare(const PositionsMap& posMap) noexcept {
     }
 }
 
-void ExpStateUpdater::update(State<STYPE> &state) const noexcept {
+void ExpStateUpdater::update(State<STYPE> &state) const {
     std::vector<STYPE> results = evaluator_.eval_all(state);
     assert(results.size() == num_updates + num_arr_pos);
     for (size_t i = 0; i < num_updates; i++) {
@@ -93,13 +93,14 @@ void ExpStateUpdater::update(State<STYPE> &state) const noexcept {
             pos_t index = results[resultIndex];
             state.update_array(name, index, results[i]);
         } else if (acc.tag_ == Tag::SIMPLE) {
-           const std::string &name = acc.var_acc_.name_;
-           state[name]->assign(results[i]);
+            const std::string &name = acc.var_acc_.name_;
+            state[name]->assign(results[i]);
+
         }
     }
 }
 
-void ExpStateUpdater::update(StateInstance &state) const noexcept {
+void ExpStateUpdater::update(StateInstance &state) const {
     std::vector<STYPE> results = evaluator_.eval_all(state);
     assert(results.size() == num_updates + num_arr_pos);
     for (size_t i = 0; i < num_updates; i++) {
