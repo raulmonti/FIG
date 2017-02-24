@@ -492,6 +492,7 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 
 //	#pragma omp parallel for default(shared) private(state) reduction(min:minI,minrI)
 	for (size_t i = 0ul ; i < NUM_CONCRETE_STATES ; i++) {
+
 		const StateInstance symbState = state.decode(i).to_state_instance();
 		const ImportanceValue importance = importance_of(symbState);
 		minI = importance < minI ? importance : minI;
@@ -508,6 +509,7 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
                 importance_of(state.decode(i).to_state_instance());
 		maxI = importance > maxI ? importance : maxI;
     }
+
     assert(minrI <= maxI);
 
 	minValue_ = minI;

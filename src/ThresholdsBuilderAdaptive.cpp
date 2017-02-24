@@ -71,7 +71,7 @@ ThresholdsBuilderAdaptive::build_thresholds(const unsigned& splitsPerThreshold,
 		assert(1.0f > p);  // 'p' is a probability
 		n_ = std::max(MIN_N, n);
 		k_ = std::round(p*n);
-	} else {
+    } else {
 		tune(net.concrete_state_size(),
 			 net.num_transitions(),
 			 impFun.max_value() - impFun.min_value(),
@@ -99,7 +99,7 @@ ThresholdsBuilderAdaptive::tune(const uint128_t &numStates,
 								const ImportanceValue& maxImportance,
 								const unsigned& splitsPerThr)
 {
-	assert(uint128::uint128_0 < numStates);
+    //assert(uint128::uint128_0 < numStates);
 	assert(0ul < numTrans);
 	assert(0u < splitsPerThr);
 
@@ -108,23 +108,27 @@ ThresholdsBuilderAdaptive::tune(const uint128_t &numStates,
 	assert(thresholds_.size() == 0u);
 	assert(thresholds_.capacity() > 0u);
 
-	/// @todo FIXME heuristic imported from bluemoon -- Replace with calculi
-	///             based on mathematical analysis if possible
+//	/// @todo FIXME heuristic imported from bluemoon -- Replace with calculi
+//	///             based on mathematical analysis if possible
 
-	// Heuristic for 'n_':
-	//   the more importance values, the more independent runs we need
-	//   for some of them to be successfull.
-	//   Number of states and transitions in the model play a role too.
-    const unsigned explFactor = 1u<<6u;
-	const unsigned statesExtra = numStates.upper() > 0ul ? 1u<<7u :
-								 std::min(numStates.lower()/explFactor, 1ul<<7ul);
-	const unsigned transExtra = std::min(2u*numTrans/explFactor, 1ul<<8ul);
-    n_  = std::ceil(std::log(maxImportance)) * explFactor + statesExtra + transExtra;
+//	// Heuristic for 'n_':
+//	//   the more importance values, the more independent runs we need
+//	//   for some of them to be successfull.
+//	//   Number of states and transitions in the model play a role too.
+//    const unsigned explFactor = 1u<<6u;
+//	const unsigned statesExtra = numStates.upper() > 0ul ? 1u<<7u :
+//								 std::min(numStates.lower()/explFactor, 1ul<<7ul);
+//	const unsigned transExtra = std::min(2u*numTrans/explFactor, 1ul<<8ul);
+//    n_  = std::ceil(std::log(maxImportance)) * explFactor + statesExtra + transExtra;
 
-	// Heuristic for 'k_':
+    n_ = 50 * numTrans;
+
+    // Heuristic for 'k_':
     //   splitsPerThr * levelUpProb == 1  ("balanced growth")
-	//   where levelUpProb == k_/n_
+    //   where levelUpProb == k_/n_
     k_ = std::round(n_ / static_cast<float>(splitsPerThr));
+
+
 
     assert(0u < k_ || static_cast<ImportanceValue>(1u) >= maxImportance);
     assert(k_ < n_ || static_cast<ImportanceValue>(1u) >= maxImportance);

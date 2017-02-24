@@ -522,6 +522,7 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	// global rarity can't be encoded split in vectors for later simulations
 	concreteSimulation_ = numRelevantModules < 2u;
 
+
 	// Find extreme importance values for current assessment
 	if ("flat" == strategy) {
 		// Little to find out
@@ -537,7 +538,8 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		minRareValue_ = userMinValue_;  // play it safe
 		initialValue_ = userMinValue_;
 
-	} else if (globalStateCopy.concrete_size() < (1ul<<20ul)) {
+    } else if (globalStateCopy.concrete_size() > uint128::uint128_0 &&
+               globalStateCopy.concrete_size() < (1ul<<20ul)) {
 		// We can afford a full-state-space scan
 		find_extreme_values(globalStateCopy, prop);
 
