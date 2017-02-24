@@ -4,6 +4,10 @@
 # $3 : output file name for props
 # TODO enable seting consecutive broken pipes limite (now 4)
 
+
+echo "" > ${2} 
+echo "" > ${3}
+
 #BUILD PIPES
 for i in $(seq 1 ${1}); do bash be.sh pipe$i >> $2 ; done
 
@@ -27,5 +31,14 @@ for i in $(seq 1 $END); do
 done
 bash or.sh "pipeline" $END "$ands" >> $2;
 
+#BUILD SYSTEM NODE
+echo "module System" >> $2;
+echo "    sys_broken: bool init false;" >> $2;
+echo "    [fail_pipeline??] -> (sys_broken'=true);" >> $2;
+echo "    [repair_pipeline??] -> (sys_broken'=false);" >> $2;
+echo "endmodule" >> $2;
+
+
+
 #BUILD PROPS FILE
-echo "S(inform_pipeline & k_pipeline == 0|false)" >> $3;
+echo "S(sys_broken==true)" >> $3;
