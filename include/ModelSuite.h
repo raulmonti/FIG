@@ -752,8 +752,7 @@ ModelSuite::process_batch(
 		// ... and for each splitting specified ...
 		for (const auto& split: splittingValues) {
 			// ... choose the thresholds ...
-			if ("nosplit" != engineName)
-				set_splitting(split, true);
+			set_splitting(split, true);
 			build_thresholds(thrTechnique, impFunSpec.name, true);
 			assert(impFuns[impFunSpec.name]->ready());
 

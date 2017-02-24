@@ -604,7 +604,7 @@ get_splitting_values()
 	} else {
 		// If we set a default for "splittings_" we shouldn't be here...
 		// anyway, use a single default splitting value if none was specified
-		splittings.emplace(2u);
+		splittings.emplace(1u);
 	}
 	return true;
 }
@@ -672,7 +672,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
-		} else if ("flat" == impFunSpec.name) {
+		} else if ("flat" == impFunSpec.strategy) {
 			engineName = "nosplit";  // only compatible engine
 		}
 		if (!get_stopping_conditions()) {

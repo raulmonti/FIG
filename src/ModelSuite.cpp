@@ -447,8 +447,9 @@ ModelSuite::set_splitting(const unsigned& spt, bool verbose)
 {
     if (!sealed())
         throw_FigException("ModelSuite hasn't been sealed yet");
-    dynamic_cast<SimulationEngineRestart&>(*simulators["restart"])
-            .set_splits_per_threshold(spt);
+	if (1u < spt)  // i.e. if we actually use splitting
+		dynamic_cast<SimulationEngineRestart&>(*simulators["restart"])
+				.set_splits_per_threshold(spt);
 	splitsPerThreshold = spt;
 	if (verbose)
 		// Show in tech log
@@ -644,7 +645,7 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
 						   "\". Call \"available_importance_functions()\" "
 						   "for a list of available options.");
 
-    ImportanceFunction& ifun = *impFuns[ifunName];
+	ImportanceFunction& ifun = *impFuns[ifunName];
     // "flat" strategy is compatible with all ImportanceFunction derived types
 
     if (force || !ifun.has_importance_info() || "flat" != ifun.strategy()) {
@@ -863,7 +864,7 @@ ModelSuite::build_thresholds(const std::string& technique,
 	if (force || ifun.thresholds_technique() != technique) {
 		techLog_ << "\nBuilding thresholds for importance function \"" << ifunName
 				 << "\",\nusing technique \"" << technique << "\" with splitting "
-				 << "== " << to_string(splitsPerThreshold) << std::endl;
+				 << "== " << splitsPerThreshold << std::endl;
 		const double startTime = omp_get_wtime();
 		if (thrBuilder.adaptive() && lvlUpProb > 0.0)
 			ifun.build_thresholds_adaptively(

@@ -59,12 +59,22 @@ ThresholdsBuilderAdaptive::ThresholdsBuilderAdaptive(
 
 
 ImportanceVec
-ThresholdsBuilderAdaptive::build_thresholds(const unsigned& splitsPerThreshold,
+ThresholdsBuilderAdaptive::build_thresholds(
+	const unsigned& splitsPerThreshold,
 	const ImportanceFunction& impFun,
 	const float &p,
 	const unsigned& n)
 {
     const ModuleNetwork& net = *ModelSuite::get_instance().modules_network();
+
+	if (splitsPerThreshold < 2u) {
+		// For flat importance function we need a dummy thresholds vector
+		ImportanceVec().swap(thresholds_);
+		thresholds_.reserve(2ul);
+		thresholds_.push_back(0ul);
+		thresholds_.push_back(1ul);
+		goto consistency_check;
+	}
 
 	// Choose values for n_ and k_
 	if (0.0f < p) {
@@ -85,6 +95,8 @@ ThresholdsBuilderAdaptive::build_thresholds(const unsigned& splitsPerThreshold,
 	build_thresholds_vector(impFun);
 
 	show_thresholds(thresholds_);
+
+consistency_check:
 	assert(!thresholds_.empty());
 	assert(thresholds_[0] == impFun.initial_value());
 	assert(thresholds_.back() == 1 + impFun.max_value());
