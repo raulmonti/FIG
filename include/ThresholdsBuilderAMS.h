@@ -62,10 +62,6 @@ protected:  // Utils for the class and its kin
 
 	void build_thresholds_vector(const ImportanceFunction& impFun) override;
 
-	void tune(const uint128_t &numStates,
-			  const size_t& numTrans,
-			  const ImportanceValue& maxImportance,
-			  const unsigned& splitsPerThr) override;
 };
 
 } // namespace fig

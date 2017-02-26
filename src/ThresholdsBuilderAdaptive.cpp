@@ -43,7 +43,8 @@
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-const unsigned ThresholdsBuilderAdaptive::MIN_N = 1ul<<8ul;  // 256
+const unsigned ThresholdsBuilderAdaptive::MIN_N = 1ul<<8ul;   //  256
+const unsigned ThresholdsBuilderAdaptive::MAX_N = 1ul<<13ul;  // 8192
 
 
 ThresholdsBuilderAdaptive::ThresholdsBuilderAdaptive(
@@ -79,8 +80,7 @@ ThresholdsBuilderAdaptive::build_thresholds(
 		n_ = std::max(MIN_N, n);
 		k_ = std::round(p*n);
     } else {
-		tune(net.concrete_state_size(),
-			 net.num_transitions(),
+		tune(net.num_transitions(),
 			 impFun.max_value() - impFun.min_value(),
 			 splitsPerThreshold);
 	}
@@ -103,8 +103,7 @@ consistency_check:
 
 
 void
-ThresholdsBuilderAdaptive::tune(const uint128_t &numStates,
-								const size_t& numTrans,
+ThresholdsBuilderAdaptive::tune(const size_t& numTrans,
 								const ImportanceValue& maxImportance,
 								const unsigned& splitsPerThr)
 {
@@ -117,27 +116,30 @@ ThresholdsBuilderAdaptive::tune(const uint128_t &numStates,
 	assert(thresholds_.size() == 0u);
 	assert(thresholds_.capacity() > 0u);
 
-//	/// @todo FIXME heuristic imported from bluemoon -- Replace with calculi
-//	///             based on mathematical analysis if possible
+	/// @todo FIXME Following choices are heuristic -- Replace with calculi
+	///             based on mathematical analysis if possible
 
-//	// Heuristic for 'n_':
-//	//   the more importance values, the more independent runs we need
-//	//   for some of them to be successfull.
-//	//   Number of states and transitions in the model play a role too.
-//    const unsigned explFactor = 1u<<6u;
-//	const unsigned statesExtra = numStates.upper() > 0ul ? 1u<<7u :
-//								 std::min(numStates.lower()/explFactor, 1ul<<7ul);
-//	const unsigned transExtra = std::min(2u*numTrans/explFactor, 1ul<<8ul);
-//    n_  = std::ceil(std::log(maxImportance)) * explFactor + statesExtra + transExtra;
+	// Heuristic for 'n_':
+	//   the more importance values, the more independent runs we need
+	//   for some of them to be successfull.
+	//   The same applies to the number of edges (aka symbolic transitions).
 
-    n_ = 50 * numTrans;
+	// Importance typically grows exponentially with the rarity paremeter,
+	// thus we use (a scaled version of) its logarithm.
+	const unsigned impFactor = (1u<<6u) * std::ceil(std::log(maxImportance));
+	// Instead, the number of transitions tends to grow linearly
+	const unsigned transFactor = 5u*numTrans;
+
+	const double balance = 0.5;  // must be within (0.0, 1.0)
+	// more relevance to importance  => balance++
+	// more relevance to transitions => balance--
+	n_  = std::min(impFactor  , static_cast<unsigned>((    balance)*MAX_N))
+	    + std::min(transFactor, static_cast<unsigned>((1.0-balance)*MAX_N));
 
     // Heuristic for 'k_':
     //   splitsPerThr * levelUpProb == 1  ("balanced growth")
     //   where levelUpProb == k_/n_
     k_ = std::round(n_ / static_cast<float>(splitsPerThr));
-
-
 
     assert(0u < k_ || static_cast<ImportanceValue>(1u) >= maxImportance);
     assert(k_ < n_ || static_cast<ImportanceValue>(1u) >= maxImportance);

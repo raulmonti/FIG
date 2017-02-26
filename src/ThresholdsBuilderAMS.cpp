@@ -191,19 +191,4 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 		throw_FigException(errMsg.str());
 }
 
-
-void
-ThresholdsBuilderAMS::tune(const uint128_t& numStates,
-						   const size_t& numTrans,
-						   const ImportanceValue& maxImportance,
-						   const unsigned& splitsPerThr)
-{
-	const unsigned n(n_);
-	ThresholdsBuilderAdaptive::tune(numStates, numTrans, maxImportance, splitsPerThr);
-    // Impose our own minimum if it was larger than the one automatically chosen
-    const float p(static_cast<float>(k_)/n_);
-	n_ = std::max({n, n_, ThresholdsBuilderAdaptive::MIN_N});
-	k_ = std::round(p*n_);
-}
-
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

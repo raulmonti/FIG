@@ -333,19 +333,17 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 
 
 void
-ThresholdsBuilderSMC::tune(const uint128_t &numStates,
-						   const size_t& numTrans,
+ThresholdsBuilderSMC::tune(const size_t& numTrans,
 						   const ImportanceValue& maxImportance,
 						   const unsigned& splitsPerThr)
 {
-	const unsigned n(n_);
-	ThresholdsBuilderAdaptive::tune(numStates, numTrans, maxImportance, splitsPerThr);
+	ThresholdsBuilderAdaptive::tune(numTrans, maxImportance, splitsPerThr);
     // This algorith is statistically better (way better) than AMS,
 	// resulting in the thresholds being chosen really close to each other.
 	// The counterpart is that too many thresholds are chosen and thus the
     // thresholds building takes too long.
 	// We try to counter that a little by reducing the probability of level up
-	/// @todo TODO change for "theoretical optimal" p_i ~ e^-1  forall i
+	/// @note NOTE can we change for "theoretic optimal" p_i ~ e^-1  forall i ?
 	///            See analysis by Garvels (PhD thesis) and Rubino&Tuffin (RES book)
 	///            which derive this constant for optimal p_i = p^(-T) forall i
 	///            where 'T' is the number of threshold levels and 'p_i' the
@@ -353,12 +351,16 @@ ThresholdsBuilderSMC::tune(const uint128_t &numStates,
 	///            Note the constant value e^-1 is subject to having the optimal
 	///            number of thresholds T = -log(p)/2, which may not be the case
 	const float p((k_*0.333f)/n_);
-	n_ = std::max({n, n_, ThresholdsBuilderAdaptive::MIN_N});
 	k_ = std::round(p*n_);
+
 	// Simulations length will be directly proportional to the probability 'p'
 	// within the range (0.06 , 0.1)
-	::SIM_EFFORT = p < 0.06 || numStates > (1ul<<20u) ? MIN_SIM_EFFORT :
-				   p > 0.1  || numStates < (1ul<<10u) ? MAX_SIM_EFFORT :
+	const uint128_t numStates =
+	        ModelSuite::get_instance().modules_network()->concrete_state_size();
+	const bool fewStates = numStates > uint128::uint128_0 && numStates < (1ul<<10u);
+	const bool manyStates = numStates == uint128::uint128_0 || numStates > (1ul<<20u);
+	::SIM_EFFORT = p < 0.06 || manyStates ? MIN_SIM_EFFORT :
+	               p > 0.1  || fewStates  ? MAX_SIM_EFFORT :
 				   std::round(25.f*(MAX_SIM_EFFORT-MIN_SIM_EFFORT) * p
 							  + 2.5f*MIN_SIM_EFFORT - 1.5f*MAX_SIM_EFFORT);
 	// The allowed # of failures will be inversely proportional to 'density'

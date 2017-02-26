@@ -68,8 +68,11 @@ public:
 
 protected:
 
-	/// Min number of simulations to launch for each new threshold
+	/// Min number of pilot runs to launch for finding thresholds
 	static const unsigned MIN_N;
+
+	/// Max number of pilot runs to launch for finding thresholds
+	static const unsigned MAX_N;
 
 	/// Number of simulations to launch for each new threshold construction
 	unsigned n_;
@@ -145,10 +148,9 @@ protected:  // Utils for the class and its kin
 	 * @param maxImportance  Maximum ImportanceValue computed
 	 * @param splitsPerThr   Number of splits upon a threshold level-up
 	 */
-	virtual void tune(const uint128_t& numStates,
-					  const size_t& numTrans,
-					  const ImportanceValue& maxImportance,
-					  const unsigned& splitsPerThr);
+	virtual void tune(const size_t& numTrans,
+	                  const ImportanceValue& maxImportance,
+	                  const unsigned& splitsPerThr);
 
 	/**
 	 * Get initialized Traial instances
