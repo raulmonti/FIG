@@ -604,7 +604,7 @@ get_splitting_values()
 	} else {
 		// If we set a default for "splittings_" we shouldn't be here...
 		// anyway, use a single default splitting value if none was specified
-		splittings.emplace(1u);
+		splittings.emplace(2u);
 	}
 	return true;
 }
@@ -667,13 +667,26 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 			// avoid further parsing
 			goto exit_with_success;
 		}
+		if (!get_splitting_values()) {
+			std::cerr << "ERROR: splitting values must be specified as a "
+			             "comma-sperated list of positive integral values. "
+			             "There should be no spaces in this list.\n\n";
+			std::cerr << "For complete USAGE and HELP type:\n";
+			std::cerr << "   " << argv[0] << " --help\n\n";
+			goto exit_with_failure;
+		}
 		if (!get_ifun_specification()) {
 			std::cerr << "ERROR: must specify an importance function.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
 		} else if ("flat" == impFunSpec.strategy) {
-			engineName = "nosplit";  // only compatible engine
+			// make amendments to set the only possible "flat" configuration
+			engineName = "nosplit";
+			if (splittings.size() > 1ul)
+				std::cerr << "WARNING: splitting is incompatible with a "
+				             "\"flat\" importance function, ignoring values.\n";
+			std::set< unsigned >({1u}).swap(splittings);
 		}
 		if (!get_stopping_conditions()) {
 			std::cerr << "ERROR: must specify at least one stopping condition ";
@@ -685,14 +698,6 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		if (!get_timeout()) {
 			std::cerr << "ERROR: something failed while parsing the ";
 			std::cerr << "timeout specification.\n\n";
-			std::cerr << "For complete USAGE and HELP type:\n";
-			std::cerr << "   " << argv[0] << " --help\n\n";
-			goto exit_with_failure;
-		}
-		if (!get_splitting_values()) {
-			std::cerr << "ERROR: splitting values must be specified as a "
-						 "comma-sperated list of positive integral values. "
-						 "There should be no spaces in this list.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;

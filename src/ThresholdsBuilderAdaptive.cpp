@@ -69,10 +69,7 @@ ThresholdsBuilderAdaptive::build_thresholds(
 
 	if (splitsPerThreshold < 2u) {
 		// For flat importance function we need a dummy thresholds vector
-		ImportanceVec().swap(thresholds_);
-		thresholds_.reserve(2ul);
-		thresholds_.push_back(0ul);
-		thresholds_.push_back(1ul);
+		ImportanceVec({0ul,1ul}).swap(thresholds_);
 		goto consistency_check;
 	}
 

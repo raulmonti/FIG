@@ -560,3 +560,7 @@ module BufferedServer
 	                                          (reset'= true);
 endmodule
 
+
+properties
+	P( !reset U lost )  // "transient"
+endproperties
