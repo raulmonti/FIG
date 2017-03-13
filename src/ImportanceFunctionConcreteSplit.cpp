@@ -154,6 +154,7 @@ find_extreme_values(const Formula& f, const ExtremeValuesVec& moduleValues)
  *         of importance values of the modules
  *
  * @throw FigException for invalid CompositionType
+ * @throw FigException if overflow detected
  */
 ExtremeValues
 find_extreme_values(const Formula& f,
@@ -161,6 +162,10 @@ find_extreme_values(const Formula& f,
 					const CompositionType& compStrategy)
 {
 	ImportanceValue min, max, minR;
+	static auto check_for_overflow =
+			[] (const ImportanceValue& min, const ImportanceValue& max)
+			{ if (min > max) throw_FigException("overflow detected while "
+							 "post-processing extreme importance values"); };
 
 	switch (compStrategy) {
 
@@ -172,6 +177,7 @@ find_extreme_values(const Formula& f,
 			min += std::get<0>(e);
 			max += std::get<1>(e);
 			minR += std::get<2>(e);
+			check_for_overflow(min,max);
 		}
 		break;
 
@@ -183,6 +189,7 @@ find_extreme_values(const Formula& f,
 			min *= std::get<0>(e);
 			max *= std::get<1>(e);
 			minR *= std::get<2>(e);
+			check_for_overflow(min,max);
 		}
 		break;
 
@@ -528,14 +535,12 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		minValue_ = importance_of(systemInitialValuation);
 		maxValue_ = minValue_;
 		minRareValue_ = minValue_;
-//		initialValue_ = minValue_;
 
 	} else if (userDefinedData) {
 		// Trust blindly in the user-defined extreme values
 		minValue_ = userMinValue_;
 		maxValue_ = userMaxValue_;
 		minRareValue_ = userMinValue_;  // play it safe
-//		initialValue_ = userMinValue_;
 
     } else if (globalStateCopy.concrete_size() > uint128::uint128_0 &&
                globalStateCopy.concrete_size() < (1ul<<20ul)) {
@@ -543,20 +548,11 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		find_extreme_values(globalStateCopy, prop);
 
 	} else {
-//		/// @todo TODO erase debug print
-//		std::cerr << "  ------     Home-made extreme values     ------\n";
-//
 		// Concrete state space is too big, resort to smarter ways
 		std::tie(minValue_, maxValue_, minRareValue_) =
 				::find_extreme_values(userFun_, moduleValues, compositionStrategy_);
 	}
 	initialValue_ = importance_of(systemInitialValuation);
-
-	/// @todo TODO erase debug print
-	std::cerr << "min: " << minValue_ << std::endl;
-	std::cerr << "max: " << maxValue_ << std::endl;
-	std::cerr << "minR: " << minRareValue_ << std::endl;
-	std::cerr << "init: " << initialValue_ << std::endl;
 
 	assert(minValue_ <= initialValue_);
 	assert(initialValue_ <= minRareValue_);
