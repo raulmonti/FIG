@@ -33,6 +33,7 @@
 // C+
 #include <vector>
 #include <string>
+#include <tuple>
 // FIG
 #include <core_typedefs.h>
 #include <State.h>
@@ -66,6 +67,12 @@ using parser::PropertyProjection;
  */
 class ImportanceFunctionConcrete : public ImportanceFunction
 {
+public:
+
+	/// ImportanceValue extremes: (minValue_, maxValue_, minRareValue_)
+	typedef std::tuple< ImportanceValue, ImportanceValue, ImportanceValue >
+	        ExtremeValues;
+
 public:  // Class attributes/members
 
 	/// How many kinds of post-processings are offered for the stored values
@@ -81,7 +88,8 @@ public:  // Class attributes/members
 	post_processings() noexcept;
 
 	/// Build post-processing specification from user provided data
-	/// @throw FigException if user data is invalid
+	/// @return post-processing when valid data is provided;
+	///         INVALID post-processing otherwise
 	static PostProcessing
 	interpret_post_processing(const std::pair<std::string, float>& pp) noexcept;
 
@@ -236,13 +244,18 @@ protected:  // Utils for the class and its kin
 	 *        must be one of the \ref post_processings() "available options".
 	 *        An empty string is interpreted as NOP.
 	 *
+	 * @param postProc  Post-processing to apply
+	 * @param extrVals  Extreme values of all system modules
+	 *
 	 * \ifnot NDEBUG
 	 *   @throw FigException if there's no \ref has_importance_info()
 	 *                       "importance information" currently
 	 * \endif
 	 * @throw FigException if requested post-processing isn't recognized
+	 * @throw FigException if overflow/underflow detected
 	 */
-	void post_process(const PostProcessing& postProc);
+	void post_process(const PostProcessing& postProc,
+	                  std::vector<ExtremeValues>& extrVals);
 
 private:  // Class utils
 
@@ -253,10 +266,12 @@ private:  // Class utils
 	 *        This means the importance 'i' of a state will be changed for the
 	 *        value 'i+offset'.
 	 *
-	 * @throw FigException if some ImportanceValue ends up negative
-	 * @todo TODO Implement this one!
+	 * @param extrVals  Extreme values of all system modules (needed by split!)
+	 * @param offset    Offset by which to shift the importance
+	 *
+	 * @throw FigException if underflow/overflow is detected
 	 */
-	void pp_shift(const int& offset);
+	void pp_shift(std::vector<ExtremeValues>& extrVals, const int& offset = 0);
 
 	/**
 	 * @brief Post-processing: exponentiate importance values
@@ -266,9 +281,12 @@ private:  // Class utils
 	 *        importance '0' will then have importance 1 == b^0, and all states
 	 *        with importance '1' will get b == b^1, and so on and so forth.
 	 *
+	 * @param extrVals  Extreme values of all system modules (needed by split!)
+	 * @param b         Base to use for exponentiation
+	 *
 	 * @throw FigException if b <= 0.0
 	 */
-	void pp_exponentiate(const float b = 2.0);
+	void pp_exponentiate(std::vector<ExtremeValues>& extrVals, const float b = 2.0);
 };
 
 } // namespace fig

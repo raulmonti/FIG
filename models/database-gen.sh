@@ -210,9 +210,9 @@ echo ""
 # We need to build the M-combinations of N...
 fac() { if [ $1 -lt 2 ]; then echo $1; else echo $(($1*`fac $(($1 - 1))`)); fi }
 comb() { echo "scale=0; `fac $1` / (`fac $2` * `fac $(($1-$2))`)" | bc -l; }
-print() { /bin/echo -en "$@" 1>&2; }
+print() { /bin/echo -en "$@"; } # -en 1>&2; }
 
-print "S("
+print "properties\n  S("
 
 # ...for Disks...
 M=$RED
@@ -223,7 +223,7 @@ for (( d=1 ; d <= $D_NUM ; d++ )); do
 	i=$((M-1))
 	while [ true ]; do
 		# print this combination
-		print "\n   ("
+		print "\n\t("
 		for idx in ${index[@]}; do
 			print "d${d}${idx}f & "
 		done
@@ -257,7 +257,7 @@ for (( c=1 ; c <= $C_NUM ; c++ )); do
 	i=$((M-1))
 	while [ true ]; do
 		# print this combination
-		print "\n   ("
+		print "\n\t("
 		for idx in ${index[@]}; do
 			print "c${c}${idx}f & "
 		done
@@ -291,7 +291,7 @@ for (( p=1 ; p <= $P_NUM ; p++ )); do
 	i=$((M-1))
 	while [ true ]; do
 		# print this combination
-		print "\n   ("
+		print "\n\t("
 		for idx in ${index[@]}; do
 			print "p${p}${idx}f & "
 		done
@@ -317,6 +317,7 @@ for (( p=1 ; p <= $P_NUM ; p++ )); do
 done
 
 print " false ) // \"rate\"\n"
+print "endproperties\n"
 
 exit 0
 

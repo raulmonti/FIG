@@ -149,7 +149,8 @@ public:  // Accessors
 	///                          <i>O(mu::Parser::Eval(localValues_))</i>
 	ImportanceValue importance_of(const StateInstance& state) const override;
 
-	void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE> s) const override;
+	void print_out(std::ostream& out,
+	               State<STATE_INTERNAL_TYPE> s = State<STATE_INTERNAL_TYPE>()) const override;
 
 public:  // Utils
 

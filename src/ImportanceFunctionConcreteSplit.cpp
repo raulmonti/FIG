@@ -31,7 +31,6 @@
 #include <limits>     // std::numeric_limits<>
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // find_if_not()
-#include <unordered_map>
 #include <tuple>
 // FIG
 #include <ImportanceFunctionConcreteSplit.h>
@@ -53,14 +52,11 @@ namespace  // // // // // // // // // // // // // // // // // // // // // // //
 using fig::ImportanceVec;
 using fig::ImportanceValue;
 using Formula = fig::ImportanceFunction::Formula;
+using ExtremeValues = fig::ImportanceFunctionConcrete::ExtremeValues;
 using CompositionType = fig::ImportanceFunctionConcreteSplit::CompositionType;
 
-/// ImportanceValue extremes: (minValue_, maxValue_, minRareValue_)
-typedef std::tuple< ImportanceValue, ImportanceValue, ImportanceValue >
-	ExtremeValues;
 /// ImportanceValue extremes per Module
-typedef std::unordered_map< std::string, ExtremeValues >
-	ModulesExtremeValues;
+typedef std::vector< ExtremeValues > ExtremeValuesVec;
 
 
 /**
@@ -74,13 +70,13 @@ typedef std::unordered_map< std::string, ExtremeValues >
  *
  * @return Whether a value could be incremented
  */
-bool advance(const ModulesExtremeValues& moduleValues, ImportanceVec& values)
+bool advance(const ExtremeValuesVec& moduleValues, ImportanceVec& values)
 {
 	unsigned pos(0ul);
 	// Find next value (according to 'moduleValues' order)
 	// which can be incremented
 	for (const auto& e: moduleValues) {
-		if (values[pos] < std::get<1>(e.second))
+		if (values[pos] < std::get<1>(e))
 			break;
 		pos++;
 	}
@@ -92,7 +88,7 @@ bool advance(const ModulesExtremeValues& moduleValues, ImportanceVec& values)
 	unsigned i(0u);
 	for (const auto& e: moduleValues)
 		if (i < pos)
-			values[i++] = std::get<0>(e.second);
+			values[i++] = std::get<0>(e);
 	return true;
 }
 
@@ -108,7 +104,7 @@ bool advance(const ModulesExtremeValues& moduleValues, ImportanceVec& values)
  *        the third component.
  *
  * @param f  Algebraic formula used to compose the modules importance values
- * @param moduleValues Extreme values (i.e. (min, max, minRare)) of every module
+ * @param moduleValues Extreme values of every module, i.e. (min, max, minRare)
  *
  * @return (min,max,minRare) evaluations of 'f' for all possible combination
  *         of values from the [min,max] ranges provided per module
@@ -117,7 +113,7 @@ bool advance(const ModulesExtremeValues& moduleValues, ImportanceVec& values)
  *                          than <i>O(globalState.concrete_size())</i> anyway.
  */
 ExtremeValues
-find_extreme_values(const Formula& f, const ModulesExtremeValues& moduleValues)
+find_extreme_values(const Formula& f, const ExtremeValuesVec& moduleValues)
 {
 	ImportanceValue min(std::numeric_limits<ImportanceValue>::max());
 	ImportanceValue max(std::numeric_limits<ImportanceValue>::min());
@@ -127,7 +123,7 @@ find_extreme_values(const Formula& f, const ModulesExtremeValues& moduleValues)
 	// Notice the order in 'values' will follow that of 'moduleValues'
 	size_t i(0ul);
 	for (const auto& e: moduleValues)
-		values[i++] = std::get<0>(e.second);
+		values[i++] = std::get<0>(e);
 
 	// Test all values combinations for the relevant variables
 	do {
@@ -161,7 +157,7 @@ find_extreme_values(const Formula& f, const ModulesExtremeValues& moduleValues)
  */
 ExtremeValues
 find_extreme_values(const Formula& f,
-					const ModulesExtremeValues& moduleValues,
+                    const ExtremeValuesVec& moduleValues,
 					const CompositionType& compStrategy)
 {
 	ImportanceValue min, max, minR;
@@ -173,9 +169,9 @@ find_extreme_values(const Formula& f,
 		max = static_cast<ImportanceValue>(0u);
 		minR = static_cast<ImportanceValue>(0u);
 		for (const auto& e: moduleValues) {
-			min += std::get<0>(e.second);
-			max += std::get<1>(e.second);
-			minR += std::get<2>(e.second);
+			min += std::get<0>(e);
+			max += std::get<1>(e);
+			minR += std::get<2>(e);
 		}
 		break;
 
@@ -184,9 +180,9 @@ find_extreme_values(const Formula& f,
 		max = static_cast<ImportanceValue>(1u);
 		minR = static_cast<ImportanceValue>(1u);
 		for (const auto& e: moduleValues) {
-			min *= std::get<0>(e.second);
-			max *= std::get<1>(e.second);
-			minR *= std::get<2>(e.second);
+			min *= std::get<0>(e);
+			max *= std::get<1>(e);
+			minR *= std::get<2>(e);
 		}
 		break;
 
@@ -195,9 +191,9 @@ find_extreme_values(const Formula& f,
 		max = std::numeric_limits<ImportanceValue>::min();
 		minR = std::numeric_limits<ImportanceValue>::min();
 		for (const auto& e: moduleValues) {
-			min = std::max(min, std::get<0>(e.second));
-			max = std::max(max, std::get<1>(e.second));
-			minR = std::max(minR, std::get<2>(e.second));
+			min = std::max(min, std::get<0>(e));
+			max = std::max(max, std::get<1>(e));
+			minR = std::max(minR, std::get<2>(e));
 		}
 		break;
 
@@ -206,9 +202,9 @@ find_extreme_values(const Formula& f,
 		max = std::numeric_limits<ImportanceValue>::max();
 		minR = std::numeric_limits<ImportanceValue>::max();
 		for (const auto& e: moduleValues) {
-			min = std::min(min, std::get<0>(e.second));
-			max = std::min(max, std::get<1>(e.second));
-			minR = std::min(minR, std::get<2>(e.second));
+			min = std::min(min, std::get<0>(e));
+			max = std::min(max, std::get<1>(e));
+			minR = std::min(minR, std::get<2>(e));
 		}
 		break;
 
@@ -499,20 +495,20 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	concreteSimulation_ = false;
 	unsigned numRelevantModules(0u);
 	propertyClauses.populate(prop);
-	ModulesExtremeValues moduleValues(numModules_);
-	for (size_t index = 0ul ; index < numModules_ ; index++) {
+	ExtremeValuesVec moduleValues;
+	moduleValues.reserve(numModules_);
+	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		const bool moduleIsRelevant =
-			ImportanceFunctionConcrete::assess_importance(*modules_[index],
+		    ImportanceFunctionConcrete::assess_importance(*modules_[i],
 														  prop,
 														  strategy,
-														  index,
+		                                                  i,
 														  propertyClauses);
 		assert(minValue_ <= initialValue_);
 		assert(initialValue_ <= minRareValue_);
 		assert(minRareValue_ <= maxValue_);
-		moduleValues[modules_[index]->name] =
-				std::make_tuple(minValue_, maxValue_, minRareValue_);
-		isRelevant_[index] = moduleIsRelevant;
+		moduleValues.emplace_back(minValue_, maxValue_, minRareValue_);
+		isRelevant_[i] = moduleIsRelevant;
 		numRelevantModules += moduleIsRelevant ? 1u : 0u;
 	}
 	hasImportanceInfo_ = true;
@@ -522,6 +518,9 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	// global rarity can't be encoded split in vectors for later simulations
 	concreteSimulation_ = numRelevantModules < 2u;
 
+	// Apply post processing (shift, exponentiation, etc.)
+	if ("flat" != strategy)
+		post_process(postProc, moduleValues);
 
 	// Find extreme importance values for current assessment
 	if ("flat" == strategy) {
@@ -529,32 +528,39 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		minValue_ = importance_of(systemInitialValuation);
 		maxValue_ = minValue_;
 		minRareValue_ = minValue_;
-		initialValue_ = minValue_;
+//		initialValue_ = minValue_;
 
-	} else if (userMinValue_ < userMaxValue_) {
+	} else if (userDefinedData) {
 		// Trust blindly in the user-defined extreme values
 		minValue_ = userMinValue_;
 		maxValue_ = userMaxValue_;
 		minRareValue_ = userMinValue_;  // play it safe
-		initialValue_ = userMinValue_;
+//		initialValue_ = userMinValue_;
 
     } else if (globalStateCopy.concrete_size() > uint128::uint128_0 &&
                globalStateCopy.concrete_size() < (1ul<<20ul)) {
-		// We can afford a full-state-space scan
+		// A brute force, full-state-space scan is affordable
 		find_extreme_values(globalStateCopy, prop);
 
 	} else {
-		// Concrete state space is too big, resort to faster ways
+		/// @todo TODO erase debug print
+		std::cerr << "  ------     Home-made extreme values     ------\n";
+
+		// Concrete state space is too big, resort to smarter ways
 		std::tie(minValue_, maxValue_, minRareValue_) =
 				::find_extreme_values(userFun_, moduleValues, compositionStrategy_);
 	}
+	initialValue_ = importance_of(systemInitialValuation);
+
+	/// @todo TODO erase debug print
+	std::cerr << "min: " << minValue_ << std::endl;
+	std::cerr << "max: " << maxValue_ << std::endl;
+	std::cerr << "minR: " << minRareValue_ << std::endl;
+	std::cerr << "init: " << initialValue_ << std::endl;
 
 	assert(minValue_ <= initialValue_);
 	assert(initialValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);
-
-	if ("flat" != strategy)
-		post_process(postProc);
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

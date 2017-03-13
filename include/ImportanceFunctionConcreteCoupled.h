@@ -118,7 +118,8 @@ public:  // Accessors
 												   [globalStateCopy.encode()]);
 		}
 
-	void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE>) const override;
+	void print_out(std::ostream& out,
+	               State<STATE_INTERNAL_TYPE> s = State<STATE_INTERNAL_TYPE>()) const override;
 
 public:  // Utils
 

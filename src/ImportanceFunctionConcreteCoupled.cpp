@@ -64,15 +64,22 @@ ImportanceFunctionConcreteCoupled::assess_importance(const Property& prop,
 													  strategy,
 													  importanceInfoIndex_);
 	assert(importanceAssessed);
-	assert(minValue_ <= initialValue_);
-	assert(initialValue_ <= minRareValue_);
-	assert(minRareValue_ <= maxValue_);
-
 	hasImportanceInfo_ = importanceAssessed;
 	strategy_ = strategy;
 
+	// Apply post processing (shift, exponentiation, etc.)
+	auto extrVals = std::vector<ExtremeValues>(
+	                    {std::tie(minValue_, maxValue_, minRareValue_)});
 	if ("flat" != strategy)
-		post_process(postProc);
+		post_process(postProc, extrVals);
+	minValue_ = std::get<0>(extrVals.front());
+	maxValue_ = std::get<1>(extrVals.front());
+	minRareValue_ = std::get<2>(extrVals.front());
+	initialValue_ = minValue_;  // invariant for auto concrete coupled ifun
+
+	assert(minValue_ <= initialValue_);
+	assert(initialValue_ <= minRareValue_);
+	assert(minRareValue_ <= maxValue_);
 }
 
 

@@ -250,12 +250,26 @@ inline bool IS_STOP_EVENT     (const Event& e) { return e & EventType::STOP;    
 inline bool IS_REFERENCE_EVENT(const Event& e) { return e & EventType::REFERENCE; }
 inline bool IS_THR_UP_EVENT   (const Event& e) { return e & EventType::THR_UP;    }
 inline bool IS_THR_DOWN_EVENT (const Event& e) { return e & EventType::THR_DOWN;  }
+inline bool IS_SOME_EVENT (const Event& e) {
+	return e & (EventType::RARE      |
+	            EventType::STOP      |
+	            EventType::REFERENCE |
+	            EventType::THR_UP    |
+	            EventType::THR_DOWN);
+}
 
 inline void SET_RARE_EVENT     (Event& e) { e |= EventType::RARE;      }
 inline void SET_STOP_EVENT     (Event& e) { e |= EventType::STOP;      }
 inline void SET_REFERENCE_EVENT(Event& e) { e |= EventType::REFERENCE; }
 inline void SET_THR_UP_EVENT   (Event& e) { e |= EventType::THR_UP;    }
 inline void SET_THR_DOWN_EVENT (Event& e) { e |= EventType::THR_DOWN;  }
+inline void SET_ALL_EVENTS (Event& e) {
+	e |= EventType::RARE
+	    | EventType::STOP
+	    | EventType::REFERENCE
+	    | EventType::THR_UP
+	    | EventType::THR_DOWN;
+}
 
 //
 //

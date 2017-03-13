@@ -320,7 +320,7 @@ void compile_model(bool modelAlreadyBuilt)
 		log("[ERROR] Failed to parse the model.\n");
 		throw_FigException("failed parsing the model file");
 	}
-    tech_log("- Parsing succeeded\n");
+	tech_log("- Parsing        succeeded\n");
 
 	// Debug print:
 	// { ModelPrinter printer(std::cerr,true); modelAST->accept(printer); }

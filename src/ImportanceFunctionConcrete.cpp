@@ -665,7 +665,8 @@ bool ImportanceFunctionConcrete::assess_importance(
 
 
 void
-ImportanceFunctionConcrete::post_process(const PostProcessing& postProc)
+ImportanceFunctionConcrete::post_process(const PostProcessing& postProc,
+                                         std::vector<ExtremeValues>& extrVals)
 {
 	if (!has_importance_info())
 #ifndef NDEBUG
@@ -684,10 +685,10 @@ ImportanceFunctionConcrete::post_process(const PostProcessing& postProc)
 		return;  // meh, called for nothing
 		break;
 	case (PostProcessing::SHIFT):
-		pp_shift(std::round(postProc.value));
+		pp_shift(extrVals, std::round(postProc.value));
 		break;
 	case (PostProcessing::EXP):
-		pp_exponentiate(postProc.value);
+		pp_exponentiate(extrVals, postProc.value);
 		break;
 	default:
 		throw_FigException("invalid post-processing specified (\""
@@ -698,34 +699,89 @@ ImportanceFunctionConcrete::post_process(const PostProcessing& postProc)
 
 
 void
-ImportanceFunctionConcrete::pp_shift(const int& offset)
+ImportanceFunctionConcrete::pp_shift(std::vector<ExtremeValues>& extrVals, const int& offset)
 {
-	throw_FigException("TODO!");
+	assert(has_importance_info());
+	if (ready())
+		std::cerr << "WARNING: changing importance values after choosing thresholds;\n"
+		          << "         you may need to choose them again!\n";
+
+	// Update extreme values first
+	std::string flow = (offset>=0) ? "over" : "under";
+	auto shiftOK = (offset>=0)
+	        ? ([] (const ImportanceValue& oldVal, const ImportanceValue& newVal)
+	           { return oldVal <= newVal; })
+	        : ([] (const ImportanceValue& oldVal, const ImportanceValue& newVal)
+	           { return oldVal > newVal; });
+	if (userDefinedData)
+		goto main_loop;  // user took care, screw this
+	for (ExtremeValues& ev: extrVals) {
+		ImportanceValue& min  = std::get<0>(ev);
+		ImportanceValue& max  = std::get<1>(ev);
+		ImportanceValue& minR = std::get<2>(ev);
+		// Extreme values are sensitive to {under,over}flows
+		if (!shiftOK(min, min+offset))
+			throw_FigException(flow+"flow while post-processing min importance value");
+		else if (!shiftOK(max, max+offset))
+			throw_FigException(flow+"flow while post-processing max importance value");
+		min  += offset;
+		max  += offset;
+		minR += offset;
+	}
+
+main_loop:
+	// Now shift importance values (disregard {under,over}flows here)
+	for (ImportanceVec& vec: modulesConcreteImportance)
+		for (ImportanceValue& val: vec)
+			val = MASK(val) | (UNMASK(val)+offset);
+//			val += offset;
 }
 
 
 void
-ImportanceFunctionConcrete::pp_exponentiate(const float b)
+ImportanceFunctionConcrete::pp_exponentiate(std::vector<ExtremeValues>& extrVals, const float b)
 {
 	assert(has_importance_info());
-	if (b <= 0.0f)
-		throw_FigException("a positive base is required for exponentiation");
+	if (b <= 1.0f)
+		throw_FigException("the \"exponentiation\" post-processing requires "
+		                   "a base greater than 1.0");
 	else if (ready())
 		std::cerr << "WARNING: changing importance values after choosing thresholds;\n"
 				  << "         you may need to choose them again!\n";
-	if (!userDefinedData) {
-		// First update the extreme values: piece of cake
-		// since exponentiation is a monotonously non-decreasing function
-		minValue_ = std::round(std::pow(b, minValue_));
-		maxValue_ = std::round(std::pow(b, maxValue_));
-		minRareValue_ = std::round(std::pow(b, minRareValue_));
-		initialValue_ = std::round(std::pow(b, initialValue_));
+
+	// Update extreme values first
+	auto expOK = [&b] (const ImportanceValue& imp)
+	    { auto tmp = static_cast<ImportanceValue>(std::round(std::pow(b,imp)));
+		  return tmp > static_cast<ImportanceValue>(0) && !IS_SOME_EVENT(tmp); };
+	if (userDefinedData)
+		goto main_loop;  // user took care, screw this
+	for (ExtremeValues& ev: extrVals) {
+		ImportanceValue& min  = std::get<0>(ev);
+		ImportanceValue& max  = std::get<1>(ev);
+		ImportanceValue& minR = std::get<2>(ev);
+		// Extreme values are the most sensitive to numerical problems
+		if (!expOK(min))
+			throw_FigException("error while post-processing min importance value");
+		else if (!expOK(max))
+			throw_FigException("error while post-processing max importance value");
+		min  = std::round<ImportanceValue>(std::pow(b, min));
+		max  = std::round<ImportanceValue>(std::pow(b, max));
+		minR = std::round<ImportanceValue>(std::pow(b, minR));
 	}
+//	// First update the extreme values
+//	if (!userDefinedData) {
+//		// piece of cake, exponentiation is a monotonously non-decreasing function
+//		minValue_ = std::round(std::pow(b, minValue_));
+//		maxValue_ = std::round(std::pow(b, maxValue_));
+//		minRareValue_ = std::round(std::pow(b, minRareValue_));
+//		initialValue_ = std::round(std::pow(b, initialValue_));
+//	}
+main_loop:
 	// Now exponentiate all the importance values stored
 	for (ImportanceVec& vec: modulesConcreteImportance)
 		for (ImportanceValue& val: vec)
 			val = MASK(val) | static_cast<ImportanceValue>(std::round(
-								std::pow(b, UNMASK(val))));
+			                    std::pow(b, UNMASK(val))));
 }
 
 

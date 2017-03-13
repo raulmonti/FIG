@@ -351,7 +351,7 @@ public:  // Accessors
 	ImportanceValue level_of(const ImportanceValue& val) const;
 
 	/**
-	 * @brief Print formatted internal importance information
+	 * @brief Print (formatted) importance information
 	 * @details States are printed along their importance (or threshold level)
 	 *          If events masks are present they are somehow marked,
 	 *          and a legend is included to interpret the marking.
@@ -359,7 +359,8 @@ public:  // Accessors
 	 * @param s   Global system state, i.e. with all variables of the model
 	 * @warning This can be <b>a lot</b> of printing, use with care.
 	 */
-	virtual void print_out(std::ostream& out, State<STATE_INTERNAL_TYPE> s) const = 0;
+	virtual void print_out(std::ostream& out,
+	                       State<STATE_INTERNAL_TYPE> s = State<STATE_INTERNAL_TYPE>()) const = 0;
 
 public:  // Utils
 
