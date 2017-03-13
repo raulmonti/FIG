@@ -369,8 +369,9 @@ public:  // Utils
 	 *
 	 *        This fills up the threshold2importance_ vector member. After a
 	 *        successfull call this instance is \ref ImportanceFunction::ready()
-	 *        "ready for simulations": \ref SimulationEngine "simulation engines"
-	 *        will use the thresholds info when coupled with this ImportanceFunction.
+	 *        "ready for simulations": the \ref SimulationEngine "simulation
+	 *        engines" will use these thresholds when coupled with this
+	 *        ImportanceFunction.
 	 *
 	 * @param tb  ThresholdsBuilder to use
 	 * @param spt Splits per threshold, i.e. #{simulation-run-replicas} + 1
@@ -412,7 +413,7 @@ public:  // Utils
 
 private:  // Class utils
 
-	/// Post-processing once the thresholds have been built
+	/// Optimize (already chosen) thresholds storage, when feasible
 	/// @param tb ThresholdsBuilder used last
 	/// @see build_thresholds()
 	/// @see build_thresholds_adaptively()

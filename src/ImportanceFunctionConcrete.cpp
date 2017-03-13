@@ -734,7 +734,6 @@ main_loop:
 	for (ImportanceVec& vec: modulesConcreteImportance)
 		for (ImportanceValue& val: vec)
 			val = MASK(val) | (UNMASK(val)+offset);
-//			val += offset;
 }
 
 
@@ -768,14 +767,7 @@ ImportanceFunctionConcrete::pp_exponentiate(std::vector<ExtremeValues>& extrVals
 		max  = std::round<ImportanceValue>(std::pow(b, max));
 		minR = std::round<ImportanceValue>(std::pow(b, minR));
 	}
-//	// First update the extreme values
-//	if (!userDefinedData) {
-//		// piece of cake, exponentiation is a monotonously non-decreasing function
-//		minValue_ = std::round(std::pow(b, minValue_));
-//		maxValue_ = std::round(std::pow(b, maxValue_));
-//		minRareValue_ = std::round(std::pow(b, minRareValue_));
-//		initialValue_ = std::round(std::pow(b, initialValue_));
-//	}
+
 main_loop:
 	// Now exponentiate all the importance values stored
 	for (ImportanceVec& vec: modulesConcreteImportance)

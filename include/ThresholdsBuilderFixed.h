@@ -104,7 +104,7 @@ public:  // Accessors
 protected:  // Utils for the class and its kin
 
 	/// Choose a stride based on all information available
-	virtual unsigned
+	virtual ImportanceValue
 	choose_stride(const size_t& impRange,
 				  const unsigned& splitsPerThreshold,
 				  const PostProcessing& postProcessing) const;
@@ -134,7 +134,7 @@ protected:  // Utils for the class and its kin
 	build_thresholds(const ImportanceFunction& impFun,
 					 const unsigned& margin,
 					 const unsigned& stride,
-					 const PostProcessing& postProcessing,
+					 PostProcessing postProcessing,
 					 ImportanceVec& thresholds);
 };
 

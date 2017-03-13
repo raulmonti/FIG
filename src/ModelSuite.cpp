@@ -861,12 +861,6 @@ ModelSuite::build_thresholds(const std::string& technique,
 						   "\"build_importance_function_xxx()\" routines with "
 						   "\"" + ifunName + "\" beforehand");
 
-	/// @todo TODO erase debug print
-	ifun.print_out(techLog_);
-	techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
-	techLog_ << "Initial state importance: " << ifun.importance_of(model->initial_state()) << std::endl;
-	exit(1);
-
 	if (force || ifun.thresholds_technique() != technique) {
 		techLog_ << "\nBuilding thresholds for importance function \"" << ifunName
 				 << "\",\nusing technique \"" << technique << "\" with splitting "

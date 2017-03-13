@@ -543,9 +543,9 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		find_extreme_values(globalStateCopy, prop);
 
 	} else {
-		/// @todo TODO erase debug print
-		std::cerr << "  ------     Home-made extreme values     ------\n";
-
+//		/// @todo TODO erase debug print
+//		std::cerr << "  ------     Home-made extreme values     ------\n";
+//
 		// Concrete state space is too big, resort to smarter ways
 		std::tie(minValue_, maxValue_, minRareValue_) =
 				::find_extreme_values(userFun_, moduleValues, compositionStrategy_);

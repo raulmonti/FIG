@@ -139,6 +139,8 @@ public:  // Accessors
 
 	inline bool concrete_simulation() const noexcept override final { return concreteSimulation_; }
 
+	inline const CompositionType& composition_type() const noexcept { return compositionStrategy_; }
+
 	/// @copydoc ImportanceFunctionConcrete::info_of()
 	/// @note <b>Complexity:</b> <i>O(size(state))</i> +
 	///                          <i>O(mu::Parser::Eval(localValues_))</i>

@@ -99,12 +99,12 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 }
 
 
-unsigned
+ImportanceValue
 ThresholdsBuilderHybrid::choose_stride(const size_t& impRange,
 									   const unsigned& splitsPerThreshold,
 									   const PostProcessing& postProcessing) const
 {
-	unsigned basicStride(1u), expansionFactor(1u);
+	ImportanceValue basicStride(1u), expansionFactor(1u);
 	assert(splitsPerThreshold > 1u);
 	if (impRange < MIN_IMP_RANGE)
 		return basicStride;  // Don't even bother

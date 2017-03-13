@@ -37,6 +37,7 @@
 // FIG
 #include <ThresholdsBuilderFixed.h>
 #include <ImportanceFunction.h>
+#include <ImportanceFunctionConcreteSplit.h>
 #include <FigLog.h>
 
 // ADL
@@ -105,12 +106,12 @@ ThresholdsBuilderFixed::min_imp_range() const noexcept
 }
 
 
-unsigned
+ImportanceValue
 ThresholdsBuilderFixed::choose_stride(const size_t& impRange,
 									  const unsigned& splitsPerThreshold,
 									  const PostProcessing& postProcessing) const
 {
-	unsigned basicStride(1u), expansionFactor(1u);
+	ImportanceValue basicStride(1u), expansionFactor(1u);
 	assert(splitsPerThreshold > 1u);
 	if (impRange < MIN_IMP_RANGE)
 		return basicStride;  // Don't even bother
@@ -152,13 +153,21 @@ void
 ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 										 const unsigned& margin,
 										 const unsigned& stride,
-										 const PostProcessing& postProcessing,
+										 PostProcessing postProcessing,
 										 ImportanceVec& thresholds)
 {
 	assert(impFun.max_value() > impFun.initial_value() + margin);
 
 	const size_t IMP_RANGE(impFun.max_value() - impFun.initial_value() - margin),
 	             FIRST_THR(impFun.initial_value() + margin);
+
+	// Importance function concrete split (aka compositional ifun)
+	// using '*' as composition operator has the same effect than
+	// an exponentiation post-processing; this patch fixes that issue:
+	if (impFun.name() == "concrete_split" &&
+		ImportanceFunctionConcreteSplit::CompositionType::PRODUCT ==
+			static_cast<const ImportanceFunctionConcreteSplit&>(impFun).composition_type())
+		postProcessing.type = PostProcessing::EXP;
 
 	switch (postProcessing.type)
 	{

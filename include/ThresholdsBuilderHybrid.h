@@ -82,7 +82,7 @@ public:
 
 protected:
 
-	unsigned
+	ImportanceValue
 	choose_stride(const size_t& impRange,
 				  const unsigned& splitsPerThreshold,
 				  const PostProcessing& postProcessing) const override;

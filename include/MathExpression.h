@@ -5,6 +5,7 @@
 //  Copyleft 2015-
 //  Authors:
 //  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
+//  - Leandro Rodríguez: changed from MuParser to Exprtk
 //
 //------------------------------------------------------------------------------
 //
@@ -25,7 +26,7 @@
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
-// Changed from MuParser to Exprtk: Leonardo Rodríguez.
+
 
 #ifndef MATHEXPRESSION_H
 #define MATHEXPRESSION_H
@@ -38,7 +39,7 @@
 #include <string>
 #include <stdexcept>    // std::out_of_range
 // External code
-#include "exprtk.hpp" // 1.3mb
+#include "exprtk.hpp"   // 1.3mb   <-- shieeeit!
 // FIG
 #include <string_utils.h>
 #include <core_typedefs.h>
