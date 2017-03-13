@@ -102,10 +102,9 @@ do
 
 	# Generate model and properties files to fit this experiment
 	MODEL_FILE=${EXPNAME}_r${R}.sa
-	PROPS_FILE=${EXPNAME}_r${R}.pp
 	LOG=${RESULTS}/${EXPNAME}_r${R}
-	bash $EXP_GEN $R $NDC $NCT $NPT $MFT 1>$MODEL_FILE 2>$PROPS_FILE
-	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE $PROPS_FILE"`
+	bash $EXP_GEN $R $NDC $NCT $NPT $MFT >$MODEL_FILE
+	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE"`
 
 	# Launch a job for each splitting value (improves load balance)
 	for s in "${SPLITS[@]}"
