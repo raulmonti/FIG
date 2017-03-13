@@ -1,0 +1,11 @@
+# Ignore all local copies of model and properties files
+oil*.sh
+oil*.sa
+oil*.pp
+pipe*.sh
+pipe*.sa
+pipe*.pp
+
+# Ignore results unless forcefully added
+results*
+*_results*
