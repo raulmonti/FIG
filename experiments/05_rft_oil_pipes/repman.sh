@@ -20,6 +20,7 @@ for i in $3; do
     j=$((${j}+1));
 done
 echo
+j=$((0))
 for i in $3; do
     echo "    [ repaired_${i}?? ] -> (busy_${1}' = false) & (xs_${1}[$j]' = false );"
     j=$((${j}+1));
