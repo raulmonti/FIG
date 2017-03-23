@@ -297,11 +297,16 @@ ModuleNetwork::peak_simulation(Traial& traial,
 	StateInstance maxImportanceState(traial.state);
 
 	while ( pred(traial) ) {
+		// First process committed actions
+		// (this could reset clocks and change next timeout)
+		process_committed(traial);
+		// Now process timed actions
 		const Traial::Timeout& to = traial.next_timeout();
 		const float elapsedTime(to.value);
 		assert(0.0f <= elapsedTime);
 		// Active jump in the module whose clock timed-out
 		const Label& label = to.module->jump(to, traial);
+
 		// Passive jumps in the modules listening to label
 		for (auto module_ptr: modules)
 			if (module_ptr->name != to.module->name)

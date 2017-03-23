@@ -274,7 +274,7 @@ ModuleNetwork::process_committed_once(Traial &traial) const
                 //broadcast committed output to all the modules
                 for (auto module_ptr : modules) {
                     module_ptr->jump_committed(label, traial);
-                }
+				}
             }
             tr_it++;
         }
@@ -309,10 +309,11 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 
     // Jump...
     do {
-        //process committed actions
-        //note: this could reset clocks and change next timeout.
-        process_committed(traial);
-        const Traial::Timeout& to = traial.next_timeout();
+		// First process committed actions
+		// (this could reset clocks and change next timeout)
+		process_committed(traial);
+		// Now process timed actions
+		const Traial::Timeout& to = traial.next_timeout();
         const float elapsedTime(to.value);
         assert(0.0f <= elapsedTime);
         // Active jump in the module whose clock timed-out
@@ -322,7 +323,7 @@ Event ModuleNetwork::simulation_step(Traial& traial,
             if (module_ptr->name != to.module->name)
                 module_ptr->jump(label, elapsedTime, traial);
         traial.lifeTime += elapsedTime;
-    // ...until a relevant event is observed
+	// ...until a relevant event is observed
     } while ( !(engine.*watch_events)(property, traial, e) );
 
     return e;
