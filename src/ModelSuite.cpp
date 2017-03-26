@@ -728,7 +728,7 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 							 impFun.maxValue);
 		}
 		if (PostProcessing::NONE != impFun.postProcessing.type)
-			techLog_ << "\nWARNING: post-processing \"" << impFun.postProcessing.name
+			techLog_ << "\n[WARNING] post-processing \"" << impFun.postProcessing.name
 					 << "\" ignored; can't specify a post-processing for "
 					 << "\"adhoc\" importance assessment (build that into "
 					 << "the expression you provided!)\n";

@@ -703,8 +703,8 @@ ImportanceFunctionConcrete::pp_shift(std::vector<ExtremeValues>& extrVals, const
 {
 	assert(has_importance_info());
 	if (ready())
-		std::cerr << "WARNING: changing importance values after choosing thresholds;\n"
-		          << "         you may need to choose them again!\n";
+		figTechLog << "[WARNING] changing importance values after choosing thresholds;\n"
+		           << "          you may need to choose them again!\n";
 
 	// Update extreme values first
 	std::string flow = (offset>=0) ? "over" : "under";
@@ -745,8 +745,8 @@ ImportanceFunctionConcrete::pp_exponentiate(std::vector<ExtremeValues>& extrVals
 		throw_FigException("the \"exponentiation\" post-processing requires "
 		                   "a base greater than 1.0");
 	else if (ready())
-		std::cerr << "WARNING: changing importance values after choosing thresholds;\n"
-				  << "         you may need to choose them again!\n";
+		figTechLog << "[WARNING] changing importance values after choosing thresholds;\n"
+		           << "          you may need to choose them again!\n";
 
 	// Update extreme values first
 	auto expOK = [&b] (const ImportanceValue& imp)

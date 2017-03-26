@@ -153,6 +153,7 @@ build_states_distribution(const fig::ModuleNetwork& network,
             network.peak_simulation(t, update, predicate);
 		} while (!halt && lastThr != t.level && ++fails < TOLERANCE);
 	}
+
 	if (fails >= TOLERANCE || halt) {
 		// Either halted or couldn't make the 'n' traials reach lastThr
 		fig::ModelSuite::tech_log("*");  // report failure
@@ -306,7 +307,7 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
         const ImportanceValue lastThr = thresholds_.back();
 		// Find "initial states" (and clocks valuations) realizing last threshold
 		if (!build_states_distribution(network, impFun, traials, n_, k_, lastThr, halted_)
-			|| halted_)
+		    || halted_)
 			goto exit_with_fail;  // couldn't find those initial states
 		// Find sims' 1-k/n quantile starting from those initial states
 		newThreshold = find_new_threshold(network, impFun, traials, n_, k_, lastThr, halted_);

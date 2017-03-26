@@ -269,7 +269,7 @@ ImportanceFunctionAlgebraic::print_out(std::ostream& out,
 			   "any importance information to print." << std::endl;
 		return;
 	} else if (s.size() < 1ul) {
-		out << "\nWARNING: Importance function \"" << name() << "\" "
+		out << "\n[WARNING] Importance function \"" << name() << "\" "
 			   "print_out() method needs a valid virtual state as input; "
 			   "skipping importance information printing." << std::endl;
 		return;

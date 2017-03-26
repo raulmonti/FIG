@@ -44,6 +44,7 @@
 #include <Module.h>
 #include <ModuleInstance.h>
 #include <TraialPool.h>
+#include <FigLog.h>
 
 
 namespace fig
@@ -296,29 +297,42 @@ ModuleNetwork::peak_simulation(Traial& traial,
 	ImportanceValue maxImportance(UNMASK(traial.level));
 	StateInstance maxImportanceState(traial.state);
 
-	while ( pred(traial) ) {
-		// First process committed actions
-		// (this could reset clocks and change next timeout)
-		process_committed(traial);
-		// Now process timed actions
-		const Traial::Timeout& to = traial.next_timeout();
-		const float elapsedTime(to.value);
-		assert(0.0f <= elapsedTime);
-		// Active jump in the module whose clock timed-out
-		const Label& label = to.module->jump(to, traial);
+	try {
+		while ( pred(traial) ) {
+			// First process committed actions
+			// (this could reset clocks and change next timeout)
+			process_committed(traial);
+			// Now process timed actions
+			const Traial::Timeout& to = traial.next_timeout();
+			const float elapsedTime(to.value);
+			assert(0.0f <= elapsedTime);
+			// Active jump in the module whose clock timed-out
+			const Label& label = to.module->jump(to, traial);
 
-		// Passive jumps in the modules listening to label
-		for (auto module_ptr: modules)
-			if (module_ptr->name != to.module->name)
-				module_ptr->jump(label, elapsedTime, traial);
-		// Update traial internals
-		traial.lifeTime += elapsedTime;
-		update(traial);
-		if (UNMASK(traial.level) > maxImportance) {
-			maxImportance = UNMASK(traial.level);
-			maxImportanceState = traial.state;
+			// Passive jumps in the modules listening to label
+			for (auto module_ptr: modules)
+				if (module_ptr->name != to.module->name)
+					module_ptr->jump(label, elapsedTime, traial);
+			// Update traial internals
+			traial.lifeTime += elapsedTime;
+			update(traial);
+			if (UNMASK(traial.level) > maxImportance) {
+				maxImportance = UNMASK(traial.level);
+				maxImportanceState = traial.state;
+			}
 		}
+	} catch (const FigException& e) {
+		// Ignore: this is one of many, hopefully it won't matter
+#ifndef NDEBUG
+		figTechLog << "\n[WARNING] Exception during peak_simulation: "
+		           << e.msg();
+#endif
+	} catch (const std::exception& e) {
+		figTechLog << "\n[WARNING] Unexpected exception during "
+		           << "peak_simulation: " << e.what() << std::endl;
+		throw;
 	}
+
 	traial.level = maxImportance;
 	traial.state = maxImportanceState;
 
