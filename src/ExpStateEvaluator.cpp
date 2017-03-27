@@ -153,7 +153,7 @@ ExpStateEvaluator::ExpStateEvaluator(const ExpContainer& astVec) noexcept
     numExp = astVec.size();
     exprVec.resize(numExp);
     expStrings.resize(numExp);
-    exprtk::parser<NUMTYPE> parser;
+	exprtk::parser<NTYPE> parser;
     // Translate all the ast expressions
     for (size_t i = 0; i < numExp; i++) {
         ExpTranslatorVisitor visitor;
@@ -177,7 +177,7 @@ ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) noexcept
     new (&exprVec) std::vector<expression_t>();
     exprVec.resize(numExp);
     new (&expStrings) std::vector<std::string>(that.expStrings);
-    exprtk::parser<NUMTYPE> parser;
+	exprtk::parser<NTYPE> parser;
     for (size_t i = 0; i < numExp; i++) {
         expState.register_expression(exprVec[i]);
         parser.compile(expStrings[i], exprVec[i]);

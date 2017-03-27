@@ -232,10 +232,10 @@ enum EventType : Event
 	/// Time elapsed, e.g. "reference" event for proportion simulations
 	REFERENCE  = 1ul<<(8*sizeof(Event)-3),
 
-	/// When a Traial jumps to a higher (on importance) threshold level
+	/// When a Traial jumps to a higher threshold level
 	THR_UP     = 1ul<<(8*sizeof(Event)-4),
 
-	/// When a Traial jumps to a lower (on importance) threshold level
+	/// When a Traial jumps to a lower threshold level
 	THR_DOWN   = 1ul<<(8*sizeof(Event)-5)
 };
 

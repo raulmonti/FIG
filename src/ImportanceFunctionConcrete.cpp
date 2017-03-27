@@ -699,7 +699,8 @@ ImportanceFunctionConcrete::post_process(const PostProcessing& postProc,
 
 
 void
-ImportanceFunctionConcrete::pp_shift(std::vector<ExtremeValues>& extrVals, const int& offset)
+ImportanceFunctionConcrete::pp_shift(std::vector<ExtremeValues>& extrVals,
+									 const int& offset)
 {
 	assert(has_importance_info());
 	if (ready())
@@ -738,9 +739,13 @@ main_loop:
 
 
 void
-ImportanceFunctionConcrete::pp_exponentiate(std::vector<ExtremeValues>& extrVals, const float b)
+ImportanceFunctionConcrete::pp_exponentiate(std::vector<ExtremeValues>& extrVals,
+											const float b)
 {
+	using std::round;
+	using std::pow;
 	assert(has_importance_info());
+
 	if (b <= 1.0f)
 		throw_FigException("the \"exponentiation\" post-processing requires "
 		                   "a base greater than 1.0");
@@ -750,7 +755,7 @@ ImportanceFunctionConcrete::pp_exponentiate(std::vector<ExtremeValues>& extrVals
 
 	// Update extreme values first
 	auto expOK = [&b] (const ImportanceValue& imp)
-	    { auto tmp = static_cast<ImportanceValue>(std::round(std::pow(b,imp)));
+		{ auto tmp = static_cast<ImportanceValue>(round(pow(b,imp)));
 		  return tmp > static_cast<ImportanceValue>(0) && !IS_SOME_EVENT(tmp); };
 	if (userDefinedData)
 		goto main_loop;  // user took care, screw this
@@ -760,20 +765,20 @@ ImportanceFunctionConcrete::pp_exponentiate(std::vector<ExtremeValues>& extrVals
 		ImportanceValue& minR = std::get<2>(ev);
 		// Extreme values are the most sensitive to numerical problems
 		if (!expOK(min))
-			throw_FigException("error while post-processing min importance value");
+			throw_FigException("error post-processing min importance value");
 		else if (!expOK(max))
-			throw_FigException("error while post-processing max importance value");
-		min  = std::round<ImportanceValue>(std::pow(b, min));
-		max  = std::round<ImportanceValue>(std::pow(b, max));
-		minR = std::round<ImportanceValue>(std::pow(b, minR));
+			throw_FigException("error post-processing max importance value");
+		min  = static_cast<ImportanceValue>(round(pow(b, min)));
+		max  = static_cast<ImportanceValue>(round(pow(b, max)));
+		minR = static_cast<ImportanceValue>(round(pow(b, minR)));
 	}
 
 main_loop:
 	// Now exponentiate all the importance values stored
 	for (ImportanceVec& vec: modulesConcreteImportance)
 		for (ImportanceValue& val: vec)
-			val = MASK(val) | static_cast<ImportanceValue>(std::round(
-			                    std::pow(b, UNMASK(val))));
+			val = MASK(val) |
+				  static_cast<ImportanceValue>(round(pow(b,UNMASK(val))));
 }
 
 

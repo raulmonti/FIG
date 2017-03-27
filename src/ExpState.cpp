@@ -237,6 +237,7 @@ void ExpState<T>::print_table() const noexcept {
 }
 
 template class ExpState<float>;
+template class ExpState<double>;
 
 
 } //namespace fig

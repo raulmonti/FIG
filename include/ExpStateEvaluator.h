@@ -10,10 +10,12 @@
 #include <ExpState.h>
 
 #define STYPE STATE_INTERNAL_TYPE
-#define NUMTYPE float //exprtk supports float or double.
+#ifndef NTYPE
+#  define NTYPE float  //exprtk supports float or double.
+#endif
 
-typedef exprtk::expression<NUMTYPE> expression_t;
-typedef exprtk::symbol_table<NUMTYPE> symbol_table_t;
+typedef exprtk::expression<NTYPE> expression_t;
+typedef exprtk::symbol_table<NTYPE> symbol_table_t;
 
 namespace fig {
 
@@ -21,7 +23,7 @@ namespace fig {
 using ExpContainer = std::vector<shared_ptr<Exp>>;
 using NameContainer = std::vector<std::string>;
 using PositionContainer = std::vector<size_t>;
-using ValueContainer = std::vector<NUMTYPE>;
+using ValueContainer = std::vector<NTYPE>;
 
 enum class OpKind {
     OP, //e.g 4 + 5
@@ -59,7 +61,7 @@ protected:
 
     /// The internal state that contains the values for all the identifiers
     /// occurring on the expressions.
-    mutable ExpState<NUMTYPE> expState;
+	mutable ExpState<NTYPE> expState;
 
     /// Vector of Exprtk-expressions to evaluate.
     std::vector<expression_t> exprVec;

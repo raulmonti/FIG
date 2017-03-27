@@ -526,8 +526,11 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	concreteSimulation_ = numRelevantModules < 2u;
 
 	// Apply post processing (shift, exponentiation, etc.)
-	if ("flat" != strategy)
+	if ("flat" != strategy) {
 		post_process(postProc, moduleValues);
+		if (postProc.type == PostProcessing::EXP)
+			neutralElement_ = static_cast<ImportanceValue>(1);
+	}
 
 	// Find extreme importance values for current assessment
 	if ("flat" == strategy) {
@@ -542,8 +545,8 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		maxValue_ = userMaxValue_;
 		minRareValue_ = userMinValue_;  // play it safe
 
-    } else if (globalStateCopy.concrete_size() > uint128::uint128_0 &&
-               globalStateCopy.concrete_size() < (1ul<<20ul)) {
+	} else if (globalStateCopy.concrete_size() > uint128::uint128_0 &&
+			   globalStateCopy.concrete_size() < (1ul<<20ul)) {
 		// A brute force, full-state-space scan is affordable
 		find_extreme_values(globalStateCopy, prop);
 

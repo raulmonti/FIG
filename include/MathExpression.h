@@ -55,7 +55,9 @@ using std::end;
 
 //typed used internally by Exprtk.
 //STATE_INTERNAL_TYPE must be convertible to NUMTYPE
-#define NUMTYPE float
+#ifndef NUMTYPE
+#  define NUMTYPE float
+#endif
 
 namespace fig
 {
@@ -218,6 +220,8 @@ protected:  // Modifyers
 	virtual void pin_up_vars(PositionsMap& globalVars);
 #endif
 
+	/// Bind variables to mathematical expression,
+	/// i.e. embed \a varsValues_ into \a expr_
     void compile_expression();
 
 public:  // Accessors

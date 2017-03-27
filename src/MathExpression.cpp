@@ -37,8 +37,6 @@
 #include <iostream>
 #include <algorithm>  // std::min<>(), std::max<>()
 #include <initializer_list>
-// C
-#include <cstdarg>  // va_start, va_arg
 // FIG
 #include <MathExpression.h>
 #include <string_utils.h>
@@ -134,15 +132,17 @@ template MathExpression::MathExpression(const std::string&,
 template MathExpression::MathExpression(const std::string&,
                                         std::unordered_set<std::string>&&);
 
-void MathExpression::compile_expression() {
-    for (size_t i = 0ul; i < NVARS_; i++) {
+
+void
+MathExpression::compile_expression()
+{
+	for (size_t i = 0ul; i < NVARS_; i++)
         table_.add_variable(varsNames_[i], varsValues_[i]);
-    }
     expr_.register_symbol_table(table_);
-    if (!parser.compile(exprStr_, expr_)) {
+	if (!parser.compile(exprStr_, expr_))
         throw_FigException("MathExpression: Couldn't parse expression");
-    }
 }
+
 
 /// @deprecated
 /// @see ExpState

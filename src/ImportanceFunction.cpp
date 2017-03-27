@@ -182,7 +182,7 @@ ImportanceFunction::Formula::operator()(const StateInstance& state) const
 	///            impose an upper bound on the number of variables/modules,
 	///            but then the language's flexibility will be compromised.
 	// ...and evaluate
-    return static_cast<ImportanceValue>(expr_.value());
+	return static_cast<ImportanceValue>(expr_.value());
 }
 
 
@@ -192,9 +192,10 @@ ImportanceFunction::Formula::operator()(const ImportanceVec& localImportances) c
 	if (!pinned())
 		throw_FigException("this Formula is empty!");
 	// Copy the values internally...
-	for (size_t i = 0ul ; i < NVARS_ ; i++)
-		varsValues_[i] = static_cast<STATE_INTERNAL_TYPE>(
-							 localImportances[varsPos_[i]]);  // NOTE see other note
+	for (size_t i = 0ul ; i < NVARS_ ; i++) {
+		assert(!IS_SOME_EVENT(localImportances[varsPos_[i]]));
+		varsValues_[i] = localImportances[varsPos_[i]];  // NOTE see other note
+	}
 	// ...and evaluate
     return static_cast<ImportanceValue>(expr_.value());
 }
@@ -492,7 +493,6 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 
 //	#pragma omp parallel for default(shared) private(state) reduction(min:minI,minrI)
 	for (size_t i = 0ul ; i < NUM_CONCRETE_STATES ; i++) {
-
 		const StateInstance symbState = state.decode(i).to_state_instance();
 		const ImportanceValue importance = importance_of(symbState);
 		minI = importance < minI ? importance : minI;
@@ -506,7 +506,7 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 //	#pragma omp parallel for default(shared) private(state) reduction(max:maxI)
 	for (size_t i = 0ul ; i < NUM_CONCRETE_STATES ; i++) {
 		const ImportanceValue importance =
-                importance_of(state.decode(i).to_state_instance());
+				importance_of(state.decode(i).to_state_instance());
 		maxI = importance > maxI ? importance : maxI;
     }
 
