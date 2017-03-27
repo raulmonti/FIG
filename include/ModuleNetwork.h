@@ -296,32 +296,20 @@ ModuleNetwork::peak_simulation(Traial& traial,
 	assert(sealed());
 	ImportanceValue maxImportance(UNMASK(traial.level));
 	StateInstance maxImportanceState(traial.state);
-
-	/// @todo TODO erase debug var
-	static int calln(0);
-	calln++;
-
-	    /// @todo TODO erase debug var
-	    int itern(0);
+	std::vector<Traial::Timeout> maxImportanceClocks(TraialPool::get_timeouts(traial));
 
 	try {
-
+		// Start up processing the initial commited actions
+		process_committed(traial);
+		// (that could've reset clocks and changed next timeout)
 		while ( pred(traial) ) {
-			// First process committed actions
-			// (this could reset clocks and change next timeout)
-			process_committed(traial);
-			// Now process timed actions
+			// Process timed actions
 			const Traial::Timeout& to = traial.next_timeout();
 			const float elapsedTime(to.value);
 			assert(0.0f <= elapsedTime);
-			// Active jump in the module whose clock timed-out
+			// Active jump in the module whose clock timed-out:
 			const Label& label = to.module->jump(to, traial);
-
-			/// @todo TODO erase debug print
-			if (calln>1090)
-				std::cerr << label.str << "! ";
-
-			// Passive jumps in the modules listening to label
+			// Passive jumps in the modules listening to label:
 			for (auto module_ptr: modules)
 				if (module_ptr->name != to.module->name)
 					module_ptr->jump(label, elapsedTime, traial);
@@ -331,20 +319,17 @@ ModuleNetwork::peak_simulation(Traial& traial,
 			if (UNMASK(traial.level) > maxImportance) {
 				maxImportance = UNMASK(traial.level);
 				maxImportanceState = traial.state;
+				maxImportanceClocks = TraialPool::get_timeouts(traial);
 			}
-			/// @todo FIXME Call committed processing again?
-			///             There could be trouble otherwise due to the guard of the loop
+			// Process any newly activated committed action
 			process_committed(traial);
 		}
 	} catch (const FigException& e) {
 		// Ignore: this is one of many, hopefully it won't matter
-//#ifndef NDEBUG
+#ifndef NDEBUG
 		figTechLog << "\n[WARNING] Exception during peak_simulation: "
 		           << e.msg();
-		/// @todo TODO erase debug print
-		figTechLog << "During call #" << calln << std::endl;
-		exit(1);
-//#endif
+#endif
 	} catch (const std::exception& e) {
 		figTechLog << "\n[WARNING] Unexpected exception during "
 		           << "peak_simulation: " << e.what() << std::endl;
@@ -353,6 +338,7 @@ ModuleNetwork::peak_simulation(Traial& traial,
 
 	traial.level = maxImportance;
 	traial.state = maxImportanceState;
+	TraialPool::set_timeouts(traial, maxImportanceClocks);
 
 	return UNMASK(maxImportance);
 }

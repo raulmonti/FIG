@@ -140,9 +140,6 @@ build_states_distribution(const fig::ModuleNetwork& network,
         t.level = impFun.importance_of(t.state);
     };
 
-	/// @todo TODO erase debug print
-	std::cerr << "\nBuilding thresholds start distrib\n";
-
 	// Starting uniformly random from initial states computed before,
     // advance the first 'n' traials until they meet a state realizing lastThr
     std::uniform_int_distribution<unsigned> uniK(0, k-1);
@@ -239,11 +236,6 @@ find_new_threshold(const fig::ModuleNetwork& network,
             traials[i].get() = traials[n + uniK(RNG)];  // copy values, not addresses
 		return true;
 	};
-
-	/// @todo TODO erase debug print
-	std::cerr << "\nSearching for new thresholds\n";
-
-	/// @bug FIXME Are choosing and reseting the traials correctly?
 
 	do {
 		// Run 'n' simulations

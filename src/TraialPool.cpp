@@ -39,6 +39,7 @@
 #include <functional>  // std::ref()
 // FIG
 #include <TraialPool.h>
+#include <FigLog.h>
 
 // ADL
 using std::begin;
@@ -410,6 +411,20 @@ size_t
 TraialPool::num_resources() const noexcept
 {
 	return std::distance(begin(available_traials_), end(available_traials_));
+}
+
+
+std::vector<Traial::Timeout>
+TraialPool::get_timeouts(const Traial& t)
+{
+	return t.clocks_;
+}
+
+
+void
+TraialPool::set_timeouts(Traial& t, std::vector<Traial::Timeout> clocks)
+{
+	t.clocks_.swap(clocks);
 }
 
 } // namespace fig

@@ -244,9 +244,9 @@ protected:  // Utilities offered to ModuleInstance
 						 const State<STATE_INTERNAL_TYPE>& globalState)
 #endif
 		{
-        crystallize(globalClocks);
-        pre.prepare(globalState);
-        pos.prepare(globalState);
+			crystallize(globalClocks);
+			pre.prepare(globalState);
+			pos.prepare(globalState);
 		}
 
 	/**
@@ -334,7 +334,7 @@ Transition::Transition(
 				  "ERROR: type mismatch. Transition ctor needs a "
 				  "container with the names of the resetting clocks");
 	// Input enabledness: no triggering clock for input labels
-        assert(!label_.is_input() || triggeringClock.empty());
+	assert(!label_.is_input() || triggeringClock.empty());
 	// Copy reset clocks names
 	resetClocksList_.insert(begin(resetClocksList_),
 							begin(resetClocks),
@@ -385,20 +385,11 @@ Transition::handle_clocks(Traial& traial,
 				  "pointing to Clock objects");
 	// Make sure callback() has been called already
 	assert(CRYSTAL == resetClocksData_);
-    //assert(pre.pinned());
-    //assert(pos.pinned());
 	// Handle clocks
 	unsigned thisClock(firstClock);
 	while (fromClock != toClock) {
 		if (resetClocks_[thisClock]) {
 			traial.clocks_[thisClock].value = fromClock->sample();
-//
-//			/// @todo TODO erase debug print
-//			if (thisClock == 17 && elapsedTime == static_cast<CLOCK_INTERNAL_TYPE>(0.0))
-//				std::cerr << "\nReset committed clock \""
-//				          << traial.clocks_[thisClock].name << "\": "
-//				          << traial.clocks_[thisClock].value << std::endl;
-//
 			// should be non-negative
 			if (!std::isfinite(traial.clocks_[thisClock].value)
 				|| 0 >= traial.clocks_[thisClock].value) {  // Resample?

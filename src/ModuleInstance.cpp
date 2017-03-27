@@ -290,11 +290,12 @@ ModuleInstance::jump(const Traial::Timeout& to,
     return ::NoLabel;
 }
 
+
 bool
-ModuleInstance::
-apply_postcondition(const CLOCK_INTERNAL_TYPE& elapsedTime,
-                    Traial &traial,
-                    const transition_vector_t& transitions) const {
+ModuleInstance::apply_postcondition(const CLOCK_INTERNAL_TYPE& elapsedTime,
+									Traial &traial,
+									const transition_vector_t& transitions) const
+{
     // iterate over transitions vector
     for (const Transition &tr : transitions) {
         if (tr.pre(traial.state)) { // If the traial satisfies this precondition
@@ -308,6 +309,7 @@ apply_postcondition(const CLOCK_INTERNAL_TYPE& elapsedTime,
     }
     return (false);
 }
+
 
 void
 ModuleInstance::jump(const Label& label,
@@ -343,10 +345,11 @@ ModuleInstance::jump(const Label& label,
     }
 }
 
+
 bool
-ModuleInstance::
-apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
-                    const transition_vector_t& transitions) const {
+ModuleInstance::apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
+									const transition_vector_t& transitions) const
+{
     // iterate over transitions vector
     for (const Transition &tr : transitions) {
         if (tr.pre(state)) { // If the traial satisfies this precondition
@@ -358,9 +361,11 @@ apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
     return (false);
 }
 
+
 void
 ModuleInstance::jump(const Label& label,
-                     State<STATE_INTERNAL_TYPE>& state) const {
+					 State<STATE_INTERNAL_TYPE>& state) const
+{
 #ifndef NDEBUG
 	if (!sealed_)
 		throw_FigException("this module hasn't been sealed yet");
@@ -378,8 +383,10 @@ ModuleInstance::jump(const Label& label,
     }
 }
 
+
 void
-ModuleInstance::jump_committed(const Label &label, Traial &traial) const {
+ModuleInstance::jump_committed(const Label &label, Traial &traial) const
+{
 #ifndef NDEBUG
 	if (!sealed_)
         throw_FigException("this module hasn't been sealed yet");

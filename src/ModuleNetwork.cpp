@@ -257,34 +257,23 @@ ModuleNetwork::process_committed_once(Traial &traial) const
 {
     bool found = false;
     auto modules_it = modules.begin();
-
-	/// @todo TODO erase debug var
-	static int calln;
-	calln++;
-
-    //iterate every module...
+	// For every module...
     while (modules_it != modules.end() &&
 	       (*modules_it)->has_committed_actions() && !found) {
         auto& transitions = (*modules_it)->transitions_;
         auto tr_it = transitions.begin();
-        // iterate every transition of the current module
+		// ... for every transition of the module ...
 		while (tr_it != transitions.end() && !found) {
             const Transition& tr = *tr_it;
             const Label &label = tr.label();
-            // check if an enabled output-committed transition has been found
+			// ... check if there is an enabled output-committed transition ...
             if (label.is_out_committed() && tr.precondition()(traial.state)) {
-
-				/// @todo TODO erase debug print
-				if (calln > 2120040)
-					std::cerr << label.str << "!! ";
-
-                //apply postcondition
+				// ... apply postcondition ...
                 tr.postcondition()(traial.state);
 				found = true;
-                //broadcast committed output to all the modules
-                for (auto module_ptr : modules) {
+				// ... and broadcast committed output to all other modules
+				for (auto module_ptr : modules)
                     module_ptr->jump_committed(label, traial);
-				}
             }
             tr_it++;
         }

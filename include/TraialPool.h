@@ -196,6 +196,21 @@ public:  // Utils
 	/// How many \ref Traial "traials" are currently available?
 	/// @note <b>Complexity:</b> <i>O(num_resources())</i>
 	size_t num_resources() const noexcept;
+
+	/// Allow our friend ModuleNetwork to get the time-state of a Traial
+	/// @return The Timeouts vector of the Traial (aka its active clocks)
+	/// @note Used by ModuleNetwork::peak_simulation()
+	/// @note Using the friend of a friend to access private data is nasty,
+	///       don't do this at home
+	static std::vector<Traial::Timeout> get_timeouts(const Traial& t);
+
+	/// Allow our friend ModuleNetwork to change the time-state of a Traial
+	/// @param t      Traial whose Timeouts vector will be modified
+	/// @param clocks Vector of Timeouts which will
+	/// @note Used by ModuleNetwork::peak_simulation()
+	/// @note Using the friend of a friend to access private data is nasty,
+	///       don't do this at home
+	static void set_timeouts(Traial& t, std::vector<Traial::Timeout> clocks);
 };
 
 } // namespace fig
