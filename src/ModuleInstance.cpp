@@ -381,9 +381,8 @@ ModuleInstance::jump(const Label& label,
 void
 ModuleInstance::jump_committed(const Label &label, Traial &traial) const {
 #ifndef NDEBUG
-    if (!sealed_) {
+	if (!sealed_)
         throw_FigException("this module hasn't been sealed yet");
-    }
 #endif
     assert(label.is_out_committed());
     //find transitions with the given label

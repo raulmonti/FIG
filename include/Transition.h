@@ -392,6 +392,13 @@ Transition::handle_clocks(Traial& traial,
 	while (fromClock != toClock) {
 		if (resetClocks_[thisClock]) {
 			traial.clocks_[thisClock].value = fromClock->sample();
+//
+//			/// @todo TODO erase debug print
+//			if (thisClock == 17 && elapsedTime == static_cast<CLOCK_INTERNAL_TYPE>(0.0))
+//				std::cerr << "\nReset committed clock \""
+//				          << traial.clocks_[thisClock].name << "\": "
+//				          << traial.clocks_[thisClock].value << std::endl;
+//
 			// should be non-negative
 			if (!std::isfinite(traial.clocks_[thisClock].value)
 				|| 0 >= traial.clocks_[thisClock].value) {  // Resample?

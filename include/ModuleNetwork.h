@@ -297,7 +297,15 @@ ModuleNetwork::peak_simulation(Traial& traial,
 	ImportanceValue maxImportance(UNMASK(traial.level));
 	StateInstance maxImportanceState(traial.state);
 
+	/// @todo TODO erase debug var
+	static int calln(0);
+	calln++;
+
+	    /// @todo TODO erase debug var
+	    int itern(0);
+
 	try {
+
 		while ( pred(traial) ) {
 			// First process committed actions
 			// (this could reset clocks and change next timeout)
@@ -308,6 +316,10 @@ ModuleNetwork::peak_simulation(Traial& traial,
 			assert(0.0f <= elapsedTime);
 			// Active jump in the module whose clock timed-out
 			const Label& label = to.module->jump(to, traial);
+
+			/// @todo TODO erase debug print
+			if (calln>1090)
+				std::cerr << label.str << "! ";
 
 			// Passive jumps in the modules listening to label
 			for (auto module_ptr: modules)
@@ -320,13 +332,19 @@ ModuleNetwork::peak_simulation(Traial& traial,
 				maxImportance = UNMASK(traial.level);
 				maxImportanceState = traial.state;
 			}
+			/// @todo FIXME Call committed processing again?
+			///             There could be trouble otherwise due to the guard of the loop
+			process_committed(traial);
 		}
 	} catch (const FigException& e) {
 		// Ignore: this is one of many, hopefully it won't matter
-#ifndef NDEBUG
+//#ifndef NDEBUG
 		figTechLog << "\n[WARNING] Exception during peak_simulation: "
 		           << e.msg();
-#endif
+		/// @todo TODO erase debug print
+		figTechLog << "During call #" << calln << std::endl;
+		exit(1);
+//#endif
 	} catch (const std::exception& e) {
 		figTechLog << "\n[WARNING] Unexpected exception during "
 		           << "peak_simulation: " << e.what() << std::endl;
