@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<language id="sa" _name="SA" version="2.0" _section="Markup">
+  <metadata>
+    <property name="mimetypes">text/plain</property>
+    <property name="globs">*.</property>
+  </metadata>
+
+  <styles>
+    <style id="at"      _name="@ sign"  map-to="def:keyword" />
+    <style id="arrow" _name="arrow sign"  map-to="def:keyword" />
+    <style id="comment" _name="comment"  map-to="def:comment" />
+    <style id="trans" _name="trans"  map-to="def:string" />
+    <style id="and" _name="and"  map-to="def:string" />
+  </styles>
+  <definitions>
+    <context id="sa">
+      <include>
+
+        <context id="at" style-ref="at">
+          <start>@</start>
+          <end></end>
+        </context>
+
+        <context id="and" style-ref="and">
+          <start>&amp;</start>
+          <end></end>
+        </context>
+
+        <context id="arrow" style-ref="arrow">
+          <start>-></start>
+          <end></end>
+        </context>
+
+        <context id="comment" style-ref="comment">
+          <start>\/\/</start>
+          <end>$</end>
+        </context>
+
+        <context id="trans" style-ref="trans">
+          <start>\[</start>
+          <end>\]</end>
+        </context>
+
+
+      </include>
+    </context>
+  </definitions>
+</language>
