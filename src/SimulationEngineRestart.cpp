@@ -55,7 +55,8 @@ SimulationEngineRestart::SimulationEngineRestart(
 	const unsigned& dieOutDepth) :
 		SimulationEngine("restart", network),
 		splitsPerThreshold_(splitsPerThreshold),
-		dieOutDepth_(dieOutDepth)
+		dieOutDepth_(dieOutDepth),
+		numChunksTruncated_(0u)
 { /* Not much to do around here */ }
 
 
@@ -226,6 +227,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	static Traial& originalTraial(tpool.get_traial());
 	static std::stack< Reference< Traial > > stack;
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
+	numChunksTruncated_ = 0u;
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	bool (SimulationEngineRestart::*watch_events)
@@ -261,93 +263,52 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		stack.swap(tmp);
 	}
 
-	/// @todo TODO erase debug var
-	static int NUM_PRINTS(40);
-
 	// Run a single RESTART importance-splitting simulation for "runLength"
 	// simulation time units and starting from the last saved stack,
 	// or from the system's initial state if requested.
 	while (!stack.empty() && !interrupted) {
 		Event e(EventType::NONE);
 		Traial& traial = stack.top();
+		assert(&traial != &originalTraial || stack.size() == 1ul);
 
 		// Check whether we're standing on a rare event
 		(this->*watch_events)(property, traial, e);
 		if (IS_RARE_EVENT(e)) {
-
-			/// @todo TODO erase debug print
-			if (--NUM_PRINTS > 0) {
-				if (traial.depth < 0)
-					std::cerr << "original" << std::endl;
-				else
-					std::cerr << "OFFSPRING" << std::endl;
-			}
-
 			// We are? Then register rare time
 			assert(static_cast<ImportanceValue>(0) < traial.level
 				   || impFun_->strategy() == "adhoc");
 			const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // reduce fp prec. loss
-			traial.lifeTime = 0.0;
+			traial.lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
 			network_->simulation_step(traial, property, *this, register_time);
 			assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < traial.lifeTime);
 			raresCount[traial.level] += traial.lifeTime;
 			traial.lifeTime += simLength;
 		}
 
-		/// @todo TODO erase from here...
-//		if (traial.depth >= 0) {
-			if (--NUM_PRINTS > 0) {
-				(this->*watch_events)(property, traial, e);
-				std::cerr << std::endl
-						  << "depth: " << traial.depth
-						  << "  level: " << traial.level
-						  << "  crlvl: " << traial.numLevelsCrossed
-						  << "  ltime: " << traial.lifeTime << std::endl;
-			}
-//			// assert((this->*watch_events)(property, traial, e));
-//		}
-		/// ... up to here  /////////////////////////////
-
 		// Check where are we and whether we should do another sprint
 		if (!(this->*watch_events)(property, traial, e))
 			e = network_->simulation_step(traial, property, *this, watch_events);
 
-		/// @note WARNING adding the following makes the fabricated example work,
-		///               but messes up estimations in real models
-//		if (IS_RARE_EVENT(e)) {
-//			// We are? Then register rare time
-//			assert(static_cast<ImportanceValue>(0) < traial.level
-//				   || impFun_->strategy() == "adhoc");
-//			const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // reduce fp prec. loss
-//			traial.lifeTime = 0.0;
-//			network_->simulation_step(traial, property, *this, register_time);
-//			assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < traial.lifeTime);
-//			raresCount[traial.level] += traial.lifeTime;
-//			traial.lifeTime += simLength;
-//		}
-
 		// Checking order of the following events is relevant!
-		if (traial.lifeTime >= simsLifetime || IS_THR_DOWN_EVENT(e)) {
+		if (traial.lifeTime > simsLifetime || IS_THR_DOWN_EVENT(e)) {
 			// Traial reached EOS or went down => kill it
 			assert(!(&traial==&originalTraial && IS_THR_DOWN_EVENT(e)));
-
-			/// @todo TODO erase from here...
-			assert(!(IS_RARE_EVENT(e) && IS_THR_DOWN_EVENT(e)));
-//			if (IS_RARE_EVENT(e)) {
-//				if (NUM_PRINTS-- == 0)
-//					exit(1);
-//				std::cerr << "depth: " << traial.depth
-//						  << "  level: " << traial.level
-//						  << "  crlvl: " << traial.numLevelsCrossed
-//						  << "  ltime: " << traial.lifeTime << std::endl;
-//			}
-			/// ... up to here  ///////////////////////////////
-
 			if (&traial != &originalTraial)  // avoid future aliasing!
 				tpool.return_traial(std::move(stack.top()));
 			stack.pop();
+			// Revert any time truncation
+			if (0u < numChunksTruncated_) {
+				simsLifetime += numChunksTruncated_ * SIM_TIME_CHUNK;
+				numChunksTruncated_ = 0u;
+			}
 
 		} else if (IS_THR_UP_EVENT(e)) {
+			// Revert any time truncation
+			if (0u < numChunksTruncated_) {
+				simsLifetime += numChunksTruncated_ * SIM_TIME_CHUNK;
+				traial.lifeTime += numChunksTruncated_ * SIM_TIME_CHUNK;
+				numChunksTruncated_ = 0u;
+			}
 			// Could have gone up several thresholds => split accordingly
 			assert(traial.numLevelsCrossed > 0);
 			for (ImportanceValue i = static_cast<ImportanceValue>(1u)
@@ -360,6 +321,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 				assert(thisLevelRetrials < pow(splitsPerThreshold_, numThresholds));
 				tpool.get_traial_copies(stack, traial, thisLevelRetrials,
 										static_cast<short>(i)-traial.numLevelsCrossed);
+				assert(&(static_cast<Traial&>(stack.top())) != &originalTraial);
 			}
 			// Offsprings are on top of stack now: continue attending them
 		}
@@ -368,24 +330,10 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	if (stack.empty())  // allow next iteration of batch means
 		stack.push(originalTraial);
 
-	/// @todo TODO erase debug print
-	static bool printout(true);
-
 	// To estimate, weigh times by the relative importance of their thresholds
 	double weighedAccTime(0.0);
-	for (int t = 0 ; t <= (int)numThresholds ; t++) {
+	for (int t = 0 ; t <= (int)numThresholds ; t++)
 		weighedAccTime += raresCount[t] * pow(splitsPerThreshold_, -t);
-
-		/// @todo TODO erase from here downwards   /////////
-		if (printout)
-			std::cerr << pow(splitsPerThreshold_, -t) << std::endl;
-		assert(raresCount[t] == 0.0 || t>0);
-		/// erase up to here
-	}
-
-	/// @todo TODO erase debug print
-	printout = false;
-
 	// Return the (weighed) simulation-time spent on rare states
 	assert(0.0 <= weighedAccTime);
 	return weighedAccTime;

@@ -128,10 +128,19 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 		const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // reduce fp prec. loss
 		traial.lifeTime = 0.0;
 		network_->simulation_step(traial, property, *this, register_time);
+		assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < traial.lifeTime);
 		accTime += traial.lifeTime;
 		traial.lifeTime += simLength;
+		if (traial.lifeTime > SIM_TIME_CHUNK
+			&& simsLifetime > SIM_TIME_CHUNK) {
+			// reduce fp precision loss
+			traial.lifeTime -= SIM_TIME_CHUNK;
+			simsLifetime -= SIM_TIME_CHUNK;
+		}
 	} while (traial.lifeTime < simsLifetime && !interrupted);
-	if (traial.lifeTime == FIRST_TIME)  // allow next iteration of batch means
+
+	// Allow next iteration of batch means
+	if (traial.lifeTime == FIRST_TIME)
 		traial.lifeTime = (FIRST_TIME + 1.1) * 2.2;
 	assert(traial.lifeTime != FIRST_TIME);
 

@@ -65,6 +65,9 @@ class SimulationEngineRestart : public SimulationEngine
 	/// (i.e. loosing on importance) to be discarded
 	unsigned dieOutDepth_;
 
+	/// Times the simulation time has been truncated to reduce fp precision loss
+	mutable unsigned numChunksTruncated_;
+
 public:  // Ctor
 
 	/// Data ctor
@@ -193,6 +196,7 @@ public:  // Traial observers/updaters
 				// reduce fp precision loss
 				traial.lifeTime -= SIM_TIME_CHUNK;
 				simsLifetime    -= SIM_TIME_CHUNK;
+				numChunksTruncated_ += 1u;
 			}
 			return traial.lifeTime > simsLifetime || EventType::NONE != e;
 		}
@@ -223,6 +227,7 @@ public:  // Traial observers/updaters
 				// reduce fp precision loss
 				traial.lifeTime -= SIM_TIME_CHUNK;
 				simsLifetime    -= SIM_TIME_CHUNK;
+				numChunksTruncated_ += 1u;
 			}
 			return traial.lifeTime > simsLifetime || EventType::NONE != e;
 		}
@@ -231,14 +236,20 @@ public:  // Traial observers/updaters
 	/// among rare states. Used for time registration in rate simulations.
 	/// @note Makes no assumption about the ImportanceFunction altogether
 	inline bool count_time(const PropertyRate& prop, Traial& t, Event&) const
-		{ return !prop.expr(t.state); }
+		{
+			return !prop.expr(t.state) ||
+					t.lifeTime > simsLifetime;
+		}
 
 	/// Turn off splitting and simulate (accumulating time) as long as we are
 	/// among rare states. Used for time registration in rate simulations.
 	/// @note This function assumes a \ref ImportanceFunctionConcrete
 	///       "concrete importance function" is currently bound to the engine
 	inline bool count_time_concrete(const PropertyRate&, Traial& t, Event&) const
-		{ return !IS_RARE_EVENT(cImpFun_->info_of(t.state)); }
+		{
+			return !IS_RARE_EVENT(cImpFun_->info_of(t.state)) ||
+					t.lifeTime > simsLifetime;
+		}
 };
 
 } // namespace fig
