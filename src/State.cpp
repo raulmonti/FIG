@@ -263,23 +263,35 @@ T State<T>::array_value(const std::string &name, size_t offset) const {
 
 
 template< typename T_ >
+std::string
+State<T_>::to_string(bool condensed) const
+{
+	std::stringstream sstr;
+	if (condensed) {
+		sstr << "(";
+		for (const auto& pvar: pvars_)
+			sstr << pvar->name_ << "=" << pvar->val() << ", ";
+		if (!pvars_.empty())
+			sstr.seekp(-2, sstr.cur);
+		sstr << ")";
+	} else {
+		for (const auto& pvar: pvars_)
+			sstr << pvar->name_ << " = "
+				 << pvar->val() << " : ("
+				 << pvar->min() << ", "
+				 << pvar->max() << ", "
+				 << pvar->ini() << ")" << std::endl;
+	}
+	return sstr.str();
+}
+
+
+template< typename T_ >
 void
 State<T_>::print_out(std::ostream& out, bool condensed) const
 {
-	if (condensed) {
-		for (const auto& pvar: pvars_)
-			out << pvar->name_ << "=" << pvar->val() << ", ";
-		if (!pvars_.empty())
-			out << "\b\b  \b\b" << std::endl;
-	} else {
-		for (const auto& pvar: pvars_)
-			out << pvar->name_ << " = "
-				<< pvar->val() << " : ("
-				<< pvar->min() << ", "
-				<< pvar->max() << ", "
-				<< pvar->ini() << ")"
-				<< std::endl;
-	}
+	auto str = to_string(condensed);
+	out << str << std::endl;
 }
 
 

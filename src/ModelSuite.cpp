@@ -778,6 +778,12 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 						   "function (\"" + impFun.name + "\") using the "
 						   "\"auto\" importance assessment strategy");
 
+	if (property.is_rare(model->initial_state()))
+		throw_FigException("automatic importance functions don't tolerate "
+						   "a rare initial system state (property: " +
+						   property.to_string() + " ; initial state: " +
+						   model->initial_state().to_string() + ")");
+
     if (force || !ifun.has_importance_info() || "auto" != ifun.strategy()) {
 		techLog_ << "\nBuilding importance function \"" << impFun.name
 				 << "\" with \"auto\" assessment strategy.\n";

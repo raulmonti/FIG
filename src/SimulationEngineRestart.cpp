@@ -160,6 +160,8 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			(this->*watch_events)(property, traial, e);
 			if (IS_RARE_EVENT(e)) {
 				// We are? Then count and kill
+				assert(static_cast<ImportanceValue>(0) < traial.level
+					   || impFun_->strategy() == "adhoc");
 				raresCount[traial.level]++;
 				tpool.return_traial(std::move(traial));
 				stack.pop();
@@ -259,6 +261,9 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		stack.swap(tmp);
 	}
 
+	/// @todo TODO erase debug var
+	static int NUM_PRINTS(40);
+
 	// Run a single RESTART importance-splitting simulation for "runLength"
 	// simulation time units and starting from the last saved stack,
 	// or from the system's initial state if requested.
@@ -269,22 +274,75 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		// Check whether we're standing on a rare event
 		(this->*watch_events)(property, traial, e);
 		if (IS_RARE_EVENT(e)) {
+
+			/// @todo TODO erase debug print
+			if (--NUM_PRINTS > 0) {
+				if (traial.depth < 0)
+					std::cerr << "original" << std::endl;
+				else
+					std::cerr << "OFFSPRING" << std::endl;
+			}
+
 			// We are? Then register rare time
+			assert(static_cast<ImportanceValue>(0) < traial.level
+				   || impFun_->strategy() == "adhoc");
 			const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // reduce fp prec. loss
 			traial.lifeTime = 0.0;
 			network_->simulation_step(traial, property, *this, register_time);
+			assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < traial.lifeTime);
 			raresCount[traial.level] += traial.lifeTime;
 			traial.lifeTime += simLength;
 		}
 
-		// Check where we are and whether we should do another sprint
+		/// @todo TODO erase from here...
+//		if (traial.depth >= 0) {
+			if (--NUM_PRINTS > 0) {
+				(this->*watch_events)(property, traial, e);
+				std::cerr << std::endl
+						  << "depth: " << traial.depth
+						  << "  level: " << traial.level
+						  << "  crlvl: " << traial.numLevelsCrossed
+						  << "  ltime: " << traial.lifeTime << std::endl;
+			}
+//			// assert((this->*watch_events)(property, traial, e));
+//		}
+		/// ... up to here  /////////////////////////////
+
+		// Check where are we and whether we should do another sprint
 		if (!(this->*watch_events)(property, traial, e))
 			e = network_->simulation_step(traial, property, *this, watch_events);
+
+		/// @note WARNING adding the following makes the fabricated example work,
+		///               but messes up estimations in real models
+//		if (IS_RARE_EVENT(e)) {
+//			// We are? Then register rare time
+//			assert(static_cast<ImportanceValue>(0) < traial.level
+//				   || impFun_->strategy() == "adhoc");
+//			const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // reduce fp prec. loss
+//			traial.lifeTime = 0.0;
+//			network_->simulation_step(traial, property, *this, register_time);
+//			assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < traial.lifeTime);
+//			raresCount[traial.level] += traial.lifeTime;
+//			traial.lifeTime += simLength;
+//		}
 
 		// Checking order of the following events is relevant!
 		if (traial.lifeTime >= simsLifetime || IS_THR_DOWN_EVENT(e)) {
 			// Traial reached EOS or went down => kill it
 			assert(!(&traial==&originalTraial && IS_THR_DOWN_EVENT(e)));
+
+			/// @todo TODO erase from here...
+			assert(!(IS_RARE_EVENT(e) && IS_THR_DOWN_EVENT(e)));
+//			if (IS_RARE_EVENT(e)) {
+//				if (NUM_PRINTS-- == 0)
+//					exit(1);
+//				std::cerr << "depth: " << traial.depth
+//						  << "  level: " << traial.level
+//						  << "  crlvl: " << traial.numLevelsCrossed
+//						  << "  ltime: " << traial.lifeTime << std::endl;
+//			}
+			/// ... up to here  ///////////////////////////////
+
 			if (&traial != &originalTraial)  // avoid future aliasing!
 				tpool.return_traial(std::move(stack.top()));
 			stack.pop();
@@ -310,10 +368,24 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	if (stack.empty())  // allow next iteration of batch means
 		stack.push(originalTraial);
 
+	/// @todo TODO erase debug print
+	static bool printout(true);
+
 	// To estimate, weigh times by the relative importance of their thresholds
 	double weighedAccTime(0.0);
-	for (int t = 0 ; t <= (int)numThresholds ; t++)
+	for (int t = 0 ; t <= (int)numThresholds ; t++) {
 		weighedAccTime += raresCount[t] * pow(splitsPerThreshold_, -t);
+
+		/// @todo TODO erase from here downwards   /////////
+		if (printout)
+			std::cerr << pow(splitsPerThreshold_, -t) << std::endl;
+		assert(raresCount[t] == 0.0 || t>0);
+		/// erase up to here
+	}
+
+	/// @todo TODO erase debug print
+	printout = false;
+
 	// Return the (weighed) simulation-time spent on rare states
 	assert(0.0 <= weighedAccTime);
 	return weighedAccTime;

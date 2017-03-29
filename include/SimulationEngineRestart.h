@@ -188,14 +188,16 @@ public:  // Traial observers/updaters
 				e = EventType::THR_UP;
 			else if (property.expr(traial.state))
 				e = EventType::RARE;
-			if (traial.lifeTime > SIM_TIME_CHUNK) {  // reduce fp precision loss
+			if (traial.lifeTime > SIM_TIME_CHUNK
+				&& simsLifetime > SIM_TIME_CHUNK) {
+				// reduce fp precision loss
 				traial.lifeTime -= SIM_TIME_CHUNK;
-				simsLifetime -= SIM_TIME_CHUNK;
+				simsLifetime    -= SIM_TIME_CHUNK;
 			}
 			return traial.lifeTime > simsLifetime || EventType::NONE != e;
 		}
 
-	/// @copydoc SimulationEngine::transient_event()
+	/// @copydoc SimulationEngine::rate_event()
 	/// @note This function assumes a \ref ImportanceFunctionConcrete
 	///       "concrete importance function" is currently bound to the engine
 	inline bool rate_event_concrete(const PropertyRate&,
@@ -216,9 +218,11 @@ public:  // Traial observers/updaters
 			else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 				SET_THR_UP_EVENT(e);
 			// else: rare event info is already marked inside 'e'
-			if (traial.lifeTime > SIM_TIME_CHUNK) {  // reduce fp precision loss
+			if (traial.lifeTime > SIM_TIME_CHUNK
+				&& simsLifetime > SIM_TIME_CHUNK) {
+				// reduce fp precision loss
 				traial.lifeTime -= SIM_TIME_CHUNK;
-				simsLifetime -= SIM_TIME_CHUNK;
+				simsLifetime    -= SIM_TIME_CHUNK;
 			}
 			return traial.lifeTime > simsLifetime || EventType::NONE != e;
 		}

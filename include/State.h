@@ -264,14 +264,21 @@ public:  // Accessors
      */
     size_t array_size(const std::string &name) const;
 
-    /** @brief Value of the array in the given position.
-     */
+	/// @brief Value of the array in the given position.
     T_ array_value(const std::string &name, size_t position) const;
 
-    /**
+	/**
+	 * @brief Return formatted string with a printout of the state's variables
+	 * @param condensed  Whether to print a summarized version of the data
+	 * @warning Currently ommits array info
+	 */
+	std::string to_string(bool condensed = true) const;
+
+	/**
 	 * @brief Print formatted vector of variables into 'out'
 	 * @param out        Output stream where printing will take place
 	 * @param condensed  Whether to print a summarized version of the data
+	 * @see to_string()
 	 */
 	void print_out(std::ostream& out, bool condensed = false) const;
 
