@@ -1,4 +1,6 @@
 #$1=unique name for this module
+#$2=fail clock distribution
+#$3=repair clock distribution
 
 
 echo "module BE_${1}"
@@ -18,8 +20,8 @@ echo ""
 echo "    [fail_${1}!!] inform_${1} == 1 -> (inform_${1}'=0);"
 echo
 echo "    // reparation (with repairman)"
-echo "    [repair_${1}??] broken_${1}==1 & inform_${1}==0 -> (broken_${1}'=2) & (c_repair_${1}'=lognormal(1.21,0.64));"
-echo "    [r${1}!] broken_${1} == 2 @ c_repair_${1} -> (inform_${1}'=2) & (c_fail_${1}'=exponential(0.001)) & (broken_${1}'=0);"
+echo "    [repair_${1}??] broken_${1}==1 & inform_${1}==0 -> (broken_${1}'=2) & (c_repair_${1}'=${3});"
+echo "    [r${1}!] broken_${1} == 2 @ c_repair_${1} -> (inform_${1}'=2) & (c_fail_${1}'=${2}) & (broken_${1}'=0);"
 echo "    [repaired_${1}!!] inform_${1} == 2 -> (inform_${1}'=0);"
 echo
 echo "endmodule"
