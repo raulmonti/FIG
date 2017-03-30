@@ -237,8 +237,8 @@ public:  // Traial observers/updaters
 	/// @note Makes no assumption about the ImportanceFunction altogether
 	inline bool count_time(const PropertyRate& prop, Traial& t, Event&) const
 		{
-			return !prop.expr(t.state) ||
-					t.lifeTime > simsLifetime;
+			return t.lifeTime > simsLifetime ||
+					!prop.expr(t.state);
 		}
 
 	/// Turn off splitting and simulate (accumulating time) as long as we are
@@ -247,8 +247,8 @@ public:  // Traial observers/updaters
 	///       "concrete importance function" is currently bound to the engine
 	inline bool count_time_concrete(const PropertyRate&, Traial& t, Event&) const
 		{
-			return !IS_RARE_EVENT(cImpFun_->info_of(t.state)) ||
-					t.lifeTime > simsLifetime;
+			return t.lifeTime > simsLifetime ||
+					!IS_RARE_EVENT(cImpFun_->info_of(t.state));
 		}
 };
 

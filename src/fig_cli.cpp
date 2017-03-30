@@ -73,6 +73,7 @@ string thrTechnique;
 std::set< unsigned > splittings;
 std::list< fig::StoppingConditions > estBounds;
 std::chrono::seconds simsTimeout;
+string rngSeed;
 bool forceOperation;
 bool confluenceCheck;
 
@@ -285,6 +286,13 @@ ValueArg<string> splittings_(
 	"specified as a comma-separated list of integral values greater than '1'",
 	false, "2",
 	"comma-separated-split-values");
+
+// RNG seed specification
+ValueArg<string> rngSeed_(
+	"", "rng-seed",
+	"Specify the (numeric) seed of the RNG; may also specify \"random\" "
+	"to use randomized seeding in all simulation runs",
+	false, "", "random/<digit>+");
 
 // Ignore not-IOSA-compliance warnings
 SwitchArg forceOperation_(
@@ -579,6 +587,19 @@ get_timeout()
 }
 
 
+/// Check for timeout specification and set it for simulations
+/// time-bounding if found.
+/// @return Whether the information could be successfully retrieved
+bool
+get_rng_seed()
+{
+	if (rngSeed_.isSet()) {
+		/// @todo TODO FILLME!
+	}
+	return true;
+}
+
+
 /// Check the splitting values specifications parsed from the command line
 /// into the TCLAP holders. Use them to fill in the global information offered
 /// to FIG for estimation (viz: the 'splittings' set)
@@ -645,6 +666,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(impPostProc);
 		cmd_.add(timeout);
 		cmd_.add(splittings_);
+		cmp_.add(rngSeed_);
 		cmd_.add(forceOperation_);
         cmd_.add(confluenceCheck_);
 
@@ -698,6 +720,13 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		if (!get_timeout()) {
 			std::cerr << "ERROR: something failed while parsing the ";
 			std::cerr << "timeout specification.\n\n";
+			std::cerr << "For complete USAGE and HELP type:\n";
+			std::cerr << "   " << argv[0] << " --help\n\n";
+			goto exit_with_failure;
+		}
+		if (!get_rng_seed()) {
+			std::cerr << "ERROR: something failed while parsing the ";
+			std::cerr << "RNG seed specification.\n\n";
 			std::cerr << "For complete USAGE and HELP type:\n";
 			std::cerr << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;

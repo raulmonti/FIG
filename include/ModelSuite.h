@@ -749,8 +749,10 @@ ModelSuite::process_batch(
 		else if ("adhoc" == impFunSpec.strategy)
 			build_importance_function_adhoc(impFunSpec, *property, true);
 		assert(impFuns[impFunSpec.name]->has_importance_info());
+
 		// ... and for each splitting specified ...
 		for (const auto& split: splittingValues) {
+
 			// ... choose the thresholds ...
 			set_splitting(split, true);
 			build_thresholds(thrTechnique, impFunSpec.name, true);

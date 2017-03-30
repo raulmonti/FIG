@@ -46,6 +46,10 @@ namespace
 typedef  fig::CLOCK_INTERNAL_TYPE     return_t;
 typedef  fig::DistributionParameters  params_t;
 
+/// @todo TODO Change below for new sheme of RNG seeding
+///            Make sure random_device{} returns a randomised sequence,
+///            use its entropy? (http://en.cppreference.com/w/cpp/numeric/random/random_device)
+
 /// RNG seed selection:
 /// \ifnot RANDOM_RNG_SEED
 ///   deterministic
@@ -166,6 +170,9 @@ return_t erlang(const params_t& params)
 namespace fig
 {
 
+bool Clock::randomSeed_ = false;
+
+
 unsigned long Clock::rng_seed() noexcept
 {
 #if !defined RANDOM_RNG_SEED || !defined RNG_PCG
@@ -177,16 +184,34 @@ unsigned long Clock::rng_seed() noexcept
 #endif
 }
 
+
+void Clock::change_rng_seed(const unsigned long& seed)
+{
+	randomSeed_ = 0ul == seed;
+	rngSeed = seed;
+}
+
+
 void Clock::seed_rng()
 {
-#ifndef RANDOM_RNG_SEED
-	rng.seed(rngSeed);  // repeat sequence
-#elif !defined PCG_RNG
-	rngSeed = std::random_device{}();
-	rng.seed(rngSeed);
-#else
-	rng.seed(rngSeed);  // rngSeed is pcg_extras::seed_seq_from<std::random_device>
+	if (randomSeed_) {
+#ifndef PCG_RNG
+		rngSeed = std::random_device{}();
+// else rngSeed is pcg_extras::seed_seq_from<std::random_device>
 #endif
+	}
+
+	rng.seed(rngSeed);  // if non randomized, this repeats the sequence
+
+	/// @todo TODO erase dead code below
+//	#ifndef RANDOM_RNG_SEED
+//		rng.seed(rngSeed);  // repeat sequence
+//	#elif !defined PCG_RNG
+//		rngSeed = std::random_device{}();
+//		rng.seed(rngSeed);
+//	#else
+//		rng.seed(rngSeed);  // rngSeed is pcg_extras::seed_seq_from<std::random_device>
+//	#endif
 }
 
 std::unordered_map< std::string, Distribution > distributions_list =
