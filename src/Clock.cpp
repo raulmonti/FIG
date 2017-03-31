@@ -27,52 +27,167 @@
 //==============================================================================
 
 // C
-#include <cmath>    // std::round()
+#include <cmath>      // std::round()
 // C++
+#include <array>
 #include <random>
-#include <numeric>  // std::max<>
+#include <numeric>    // std::max<>
+#include <iterator>   // std::begin(), std::end()
+#include <algorithm>  // std::find()
 #include <unordered_map>
 // External code
 #include <pcg_random.hpp>
 // FIG
 #include <Clock.h>
 #include <core_typedefs.h>
+#include <FigException.h>
+
+
+// ADL
+using std::find;
+using std::begin;
+using std::end;
 
 
 /// @brief RNG and distributions available for time sampling of the clocks
 namespace
 {
 
-typedef  fig::CLOCK_INTERNAL_TYPE     return_t;
-typedef  fig::DistributionParameters  params_t;
+typedef  fig::CLOCK_INTERNAL_TYPE                       return_t;
+typedef  fig::DistributionParameters                    params_t;
+typedef  pcg_extras::seed_seq_from<std::random_device>  PCGSeedSeq;
 
-/// @todo TODO Change below for new sheme of RNG seeding
-///            Make sure random_device{} returns a randomised sequence,
-///            use its entropy? (http://en.cppreference.com/w/cpp/numeric/random/random_device)
 
-/// RNG seed selection:
-/// \ifnot RANDOM_RNG_SEED
-///   deterministic
+/// Non-deterministic random number generator for randomized seeding,
+/// used by Mersenne-Twister RNG
+std::random_device MT_nondet_RNG;
+
+/// Non-deterministic random number generator for randomized seeding,
+/// used by PCG-family RNG
+pcg_extras::seed_seq_from<std::random_device> PCG_nondet_RNG;
+
+
+/// Default RNG seed:
+/// \if RANDOM_RNG_SEED
+///   use system's random device (a quasi-random number generator)
 /// \else
-///   taken from the system's random device
+///   deterministic (RNG's default)
 /// \endif
 #if   !defined RANDOM_RNG_SEED && !defined PCG_RNG
-  const unsigned long rngSeed(std::mt19937_64::default_seed);
+  unsigned long rngSeed(std::mt19937_64::default_seed);
 #elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
-  const unsigned long rngSeed(0xCAFEF00DD15EA5E5ull);  // PCG's default seed
+  unsigned long rngSeed(0xCAFEF00DD15EA5E5ull);  // PCG's default seed
 #elif  defined RANDOM_RNG_SEED && !defined PCG_RNG
-  unsigned long rngSeed(std::random_device{}());
+  unsigned long rngSeed(MT_nondet_RNG());
 #else
-  pcg_extras::seed_seq_from<std::random_device> rngSeed;
+  unsigned long rngSeed = pcg_extras::generate_one<size_t>(
+							  std::forward<PCGSeedSeq>(PCG_nondet_RNG));
 #endif
 
-/// \ifnot PCG_RNG Mersenne-Twister RNG \else PCG family RNG \endif
+
+// RNGs offered
+// NOTE: reflect changes in RNGs_offered, rngType, and Clock::available_RNGs()
+std::mt19937_64 MT_RNG(rngSeed);
+pcg32_k16384 PCG32_RNG(rngSeed);
+pcg64_oneseq PCG64_RNG(rngSeed);
+
+class ClocksRNG
+{
+	// Members are based on the RNGs offered above
+	std::mt19937_64*  mt64;
+	pcg32_k16384*    pcg32;
+	pcg64_oneseq*    pcg64;
+	size_t i;
+
+public:
+
+	typedef unsigned long result_type;
+
+public:
+
+	ClocksRNG(std::mt19937_64& rng) :
+		mt64(&rng),
+		pcg32(nullptr),
+		pcg64(nullptr),
+		i(0ul)
+	{}
+
+	ClocksRNG(pcg32_k16384& rng) :
+		mt64(nullptr),
+		pcg32(&rng),
+		pcg64(nullptr),
+		i(1ul)
+	{}
+
+	ClocksRNG(pcg64_oneseq& rng) :
+		mt64(nullptr),
+		pcg32(nullptr),
+		pcg64(&rng),
+		i(2ul)
+	{}
+
+	static result_type min() {
+		switch (i) :
+		case 0:
+			return mt64->min();
+			break;
+		case 1:
+			return pcg32->min();
+			break;
+		case 2:
+			return pcg64->min();
+			break;
+		default:
+			throw_FigException("invalid RNG type");
+			break;
+	}
+
+	result_type max() {
+		switch (i) :
+		case 0:
+			return mt64->max();
+			break;
+		case 1:
+			return pcg32->max();
+			break;
+		case 2:
+			return pcg64->max();
+			break;
+		default:
+			throw_FigException("invalid RNG type");
+			break;
+	}
+};
+
+//class ClocksRNG : public std::mt19937_64, pcg32_k16384, pcg64_oneseq
+//	{ /* Inheritance is based on the RNGs offered above */ };
+std::unordered_map< std::string, ClocksRNG > RNGs =
+{
+	{"mt64",  ClocksRNG(MT_RNG)   },
+	{"pcg32", ClocksRNG(PCG32_RNG)},
+	{"pcg64", ClocksRNG(PCG64_RNG)},
+};
+
+/// Default RNG: \if PCG_RNG PCG-family \else Mersenne-Twister (C++ STL) \endif
 #ifndef PCG_RNG
-  std::mt19937_64 rng(rngSeed);
+  std::string rngType = "mt64";
 #elif !defined NDEBUG
-  pcg32_k16384 rng(rngSeed);
+  std::string rngType = "pcg32";
 #else
-  pcg64_oneseq rng(rngSeed);
+  std::string rngType = "pcg64";
+#endif
+
+/// RNG instance
+auto rng = RNGs[rngType];
+
+
+/// Default RNG: \if PCG_RNG PCG-family \else Mersenne-Twister (C++ STL) \endif
+#ifndef PCG_RNG
+  ClocksRNG& rng = RNGs_offered["mt64"];
+#elif !defined NDEBUG
+  ClocksRNG& rng = RNGs_offered["pcg32"];
+#else
+  ClocksRNG& rng = RNGs_offered["pcg64"];
 #endif
 
 
@@ -170,37 +285,89 @@ return_t erlang(const params_t& params)
 namespace fig
 {
 
-bool Clock::randomSeed_ = false;
-
-
-unsigned long Clock::rng_seed() noexcept
-{
-#if !defined RANDOM_RNG_SEED || !defined RNG_PCG
-	return rngSeed;
+#ifndef RANDOM_RNG_SEED
+  bool Clock::randomSeed_ = false;
 #else
-	// return changing seeds, to make the user realize how's it coming
-	typedef pcg_extras::seed_seq_from<std::random_device> SeedSeq;
-	return pcg_extras::generate_one<size_t>(std::forward<SeedSeq>(rngSeed));
+  bool Clock::randomSeed_ = true;
 #endif
+
+
+const std::array<std::string, Clock::NUM_RNGS >&
+Clock::RNGs() noexcept
+{
+	// NOTE: reflect updates in change_rng_seed()
+
+	static const std::array< std::string, NUM_RNGS > RNGs =
+	{{
+		// 64 bit Mersenne-Twister (C++ STL)
+		"mt64",
+
+		// 32 bit RNG from PCG family (with an insanely huge period: 2^524352)
+		"pcg32",
+
+		// 64 bit RNG from PCG family (single sequence)
+		"pcg64",
+	}};
+	return RNGs;
 }
 
 
-void Clock::change_rng_seed(const unsigned long& seed)
+const std::string& Clock::rng_type() noexcept { return rngType; }
+
+
+unsigned long Clock::rng_seed() noexcept { return rngSeed; }
+//
+// 	/// @todo TODO update, current code is incorrect
+//
+//
+// 	if (randomSeed_)
+// 		return 0ul;
+// 	else
+// 		return rngSeed;
+// #if !defined RANDOM_RNG_SEED || !defined RNG_PCG
+// 	return rngSeed;
+// #else
+// 	// return changing seeds, to make the user realize how's it coming
+// 	typedef pcg_extras::seed_seq_from<std::random_device> SeedSeq;
+// 	return pcg_extras::generate_one<size_t>(std::forward<SeedSeq>(rngSeed));
+// #endif
+// }
+
+
+bool Clock::rng_seed_is_random() noexcept { return randomSeed_; }
+
+
+void Clock::change_rng(const std::string& rngType)
+{
+	const auto& available_rngs(RNGs());
+	if (end(available_rngs) ==
+			find(begin(available_rngs), end(available_rngs), rngType))
+		throw_FigException("invalid RNG type specified: " + rngType);
+	::rngType = rngType;
+	rng = RNGs[rngType];
+	seed_rng();
+}
+
+
+void Clock::change_rng_seed(unsigned long seed)
 {
 	randomSeed_ = 0ul == seed;
-	rngSeed = seed;
+	if (randomSeed_) {
+		if (std::string::npos == rngType.find("pcg"))
+			rngSeed = MT_nondet_RNG();
+		else
+			rngSeed = pcg_extras::generate_one<size_t>(
+						  std::forward<PCGSeedSeq>(PCG_nondet_RNG));
+	} else {
+		rngSeed = seed;
+	}
 }
 
 
 void Clock::seed_rng()
 {
-	if (randomSeed_) {
-#ifndef PCG_RNG
-		rngSeed = std::random_device{}();
-// else rngSeed is pcg_extras::seed_seq_from<std::random_device>
-#endif
-	}
-
+	if (randomSeed_)
+		change_rng_seed(0ul);
 	rng.seed(rngSeed);  // if non randomized, this repeats the sequence
 
 	/// @todo TODO erase dead code below

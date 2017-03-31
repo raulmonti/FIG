@@ -476,6 +476,24 @@ ModelSuite::set_timeout(const seconds& timeLimit)
 }
 
 
+void
+ModelSuite::set_rng(const std::string& rngType, const size_t& rngSeed)
+{
+	const auto& valid_RNGs(available_RNGs());
+	if (find(begin(valid_RNGs), end(valid_RNGs), rngType) == end(valid_RNGs))
+		throw_FigException("invalid RNG specified: " + rngType);
+
+	Clock::change_rng_seed(rngSeed);  // change seed first! (seeding policies)
+	Clock::change_rng(rngType);
+
+	tech_log("Using RNG \"" + rngType + "\" with ");
+	if (0ul == rngSeed)
+		tech_log(" randomized seeding.\n");
+	else
+		tech_log(" seed " + to_string(rngSeed) + "\n");
+}
+
+
 std::shared_ptr< const Property >
 ModelSuite::get_property(const size_t& i) const noexcept
 {
@@ -569,6 +587,19 @@ ModelSuite::available_threshold_techniques() noexcept
 			thresholdsBuildersTechniques.push_back(technique);
 	}
 	return thresholdsBuildersTechniques;
+}
+
+
+const std::vector< std::string >&
+ModelSuite::available_RNGs() noexcept
+{
+	static std::vector< std::string > RNGs;
+	if (RNGs.empty()) {
+		RNGs.reserve(num_RNGs());
+		for (const auto& rng: Clock::RNGs())
+			RNGs.push_back(rng);
+	}
+	return RNGs;
 }
 
 
@@ -929,7 +960,7 @@ void
 ModelSuite::release_resources(const std::string& ifunName,
 							  const std::string& engineName) noexcept
 {
-    techLog_ << "\nReleasing resources";
+	techLog_ << "\treleasing resources";
     if (exists_importance_function(ifunName)) {
         techLog_ << " of importance function \"" << ifunName << "\"";
 		impFuns[ifunName]->clear();
@@ -953,7 +984,7 @@ ModelSuite::release_resources() noexcept
 {
 	if (!sealed())
         return;
-    techLog_ << "\nReleasing all system resources\n";
+	techLog_ << "\nReleasing all system resources:\n";
 	try {
 		for (auto ifunName: available_importance_functions())
 			release_resources(ifunName);

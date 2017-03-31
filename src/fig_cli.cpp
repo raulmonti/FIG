@@ -45,6 +45,7 @@
 #include <UnlabeledValueArg.h>
 // FIG
 #include <fig_cli.h>
+#include <FigLog.h>
 #include <FigConfig.h>
 #include <FigException.h>
 #include <ModelSuite.h>
@@ -57,6 +58,7 @@
 using namespace TCLAP;
 using std::to_string;
 using std::string;
+using fig::figTechLog;
 
 
 namespace fig_cli  // // // // // // // // // // // // // // // // // // // //
@@ -73,7 +75,8 @@ string thrTechnique;
 std::set< unsigned > splittings;
 std::list< fig::StoppingConditions > estBounds;
 std::chrono::seconds simsTimeout;
-string rngSeed;
+string rngType;
+size_t rngSeed;
 bool forceOperation;
 bool confluenceCheck;
 
@@ -287,7 +290,16 @@ ValueArg<string> splittings_(
 	false, "2",
 	"comma-separated-split-values");
 
-// RNG seed specification
+// RNG to use
+ValuesConstraint<string> RNGConstraints(
+	fig::ModelSuite::available_RNGs());
+ValueArg<string> rngType_(
+	"r", "rng",
+	"Specify the pseudo Random Number Generator (aka RNG) to use for "
+	"sampling the time values of clocks",
+	false, "mt64", RNGConstraints);
+
+// User-specified seed for RNG
 ValueArg<string> rngSeed_(
 	"", "rng-seed",
 	"Specify the (numeric) seed of the RNG; may also specify \"random\" "
@@ -361,7 +373,7 @@ get_jani_spec()
 		if (janiSpec.janiInteraction)
 			janiSpec.translateDirection = fig::JaniTranny::FROM_JANI;
 		else if (matches[0].second) {  // found "jani-version" !?
-			std::cerr << "JANI ERROR: failed parsing JANI input model file\n";
+			figTechLog << "JANI [ERROR] failed parsing JANI input model file\n";
 			return false;
 		}
 	}
@@ -426,9 +438,9 @@ parse_ifun_details(const std::string& details)
 		min = std::strtoul(strValues[1].data(), &err, 10);
 		if (nullptr != err && err[0] != '\0') {
 			// Mimic TCLAP's 'parsing error' message style
-			std::cerr << "PARSE ERROR: When parsing the algebraic expression \""
+			figTechLog << "PARSE [ERROR] When parsing the algebraic expression \""
 					  << details << "\"\n";
-			std::cerr << "             After the first semicolon, the function's "
+			figTechLog << "             After the first semicolon, the function's "
 					  << "min value should've been provided.\n\n";
 			return UserDefImpFun();
 		}
@@ -437,9 +449,9 @@ parse_ifun_details(const std::string& details)
 		max = std::strtoul(strValues[2].data(), &err, 10);
 		if (nullptr != err && err[0] != '\0') {
 			// Mimic TCLAP's 'parsing error' message style
-			std::cerr << "PARSE ERROR: When parsing the algebraic expression \""
+			figTechLog << "PARSE [ERROR] When parsing the algebraic expression \""
 					  << details << "\"\n";
-			std::cerr << "             After the second semicolon, the function's "
+			figTechLog << "             After the second semicolon, the function's "
 					  << "max value should've been provided.\n\n";
 			return UserDefImpFun();
 		}
@@ -448,9 +460,9 @@ parse_ifun_details(const std::string& details)
 		neutralElement = std::strtoul(strValues[3].data(), &err, 10);
 		if (nullptr != err && err[0] != '\0') {
 			// Mimic TCLAP's 'parsing error' message style
-			std::cerr << "PARSE ERROR: When parsing the algebraic expression \""
+			figTechLog << "PARSE [ERROR] When parsing the algebraic expression \""
 					  << details << "\"\n";
-			std::cerr << "             After the third semicolon, the function's "
+			figTechLog << "             After the third semicolon, the function's "
 					  << "neutral element should've been provided.\n\n";
 			return UserDefImpFun();
 		}
@@ -472,7 +484,7 @@ get_ifun_specification()
 	if (impPostProc.isSet()) {
 		if (impPostProc.getValues().size() > 1) {
 			// Mimic TCLAP's 'parsing error' message style
-			std::cerr << "PARSE ERROR: Argument: (" << impPostProc.getName()
+			figTechLog << "PARSE [ERROR] Argument: (" << impPostProc.getName()
 					  << ")\n             Can only be defined once!\n";
 			return false;
 		} else {
@@ -587,14 +599,38 @@ get_timeout()
 }
 
 
-/// Check for timeout specification and set it for simulations
-/// time-bounding if found.
+/// Check for customizations in the RNG mechanisms.
 /// @return Whether the information could be successfully retrieved
 bool
-get_rng_seed()
+get_rng_specs()
 {
+	if (rngType_.isSet()) {
+		rngType = rngType_.getValue();
+	} else {
+		/// @todo TODO erase this (supposedly dead) code
+		figTechLog << "WTF???" << std::endl;
+		exit(1);
+	}
 	if (rngSeed_.isSet()) {
-		/// @todo TODO FILLME!
+		const string& seed(rngSeed_.getValue());
+		if (std::isalpha(seed.back())) {
+			if (0 == seed.compare("random"))
+				rngSeed = 0ul;
+			else {
+				figTechLog << "[ERROR] Invalid RNG seed: " << seed << std::endl;
+				return false;
+			}
+		} else {
+			char *err(nullptr);
+			rngSeed = std::strtoul(seed.data(), &err, 10);
+			if (nullptr != err && err[0] != '\0') {
+				figTechLog << "[ERROR] Invalid RNG seed: " << seed << std::endl;
+				return false;
+			} else if (0ul == rngSeed) {
+				figTechLog << "[WARNING] RNG seed == 0 is interpreted as "
+						   << "randomized seeding. Is that what you want?\n";
+			}
+		}
 	}
 	return true;
 }
@@ -615,9 +651,9 @@ get_splitting_values()
 				splittings.emplace(value);
 			} else {
 				// Mimic TCLAP's 'parsing error' message style
-				std::cerr << "PARSE ERROR: Argument: (--"
+				figTechLog << "PARSE [ERROR] Argument: (--"
 						  << splittings_.getName() << ")\n";
-				std::cerr << "             Invalid value given \""
+				figTechLog << "             Invalid value given \""
 						  << err << "\"\n\n";
 				return false;
 			}
@@ -646,8 +682,8 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 	// Called with no arguments? Print briefest help and exit gracefully
 	if (argc==1) {
 		// Mimic TCLAP's messages style
-		std::cerr << "For complete USAGE and HELP type:\n";
-		std::cerr << "   " << argv[0] << " --help\n\n";
+		figTechLog << "For complete USAGE and HELP type:\n";
+		figTechLog << "   " << argv[0] << " --help\n\n";
 		exit(EXIT_SUCCESS);
 	}
 
@@ -666,7 +702,8 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(impPostProc);
 		cmd_.add(timeout);
 		cmd_.add(splittings_);
-		cmp_.add(rngSeed_);
+		cmd_.add(rngType_);
+		cmd_.add(rngSeed_);
 		cmd_.add(forceOperation_);
         cmd_.add(confluenceCheck_);
 
@@ -681,54 +718,54 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		forceOperation = forceOperation_.getValue();
         confluenceCheck = confluenceCheck_.getValue();
 		if (!get_jani_spec()) {
-			std::cerr << "ERROR: failed parsing the JANI-spec commands.\n\n";
-			std::cerr << "For complete USAGE and HELP type:\n";
-			std::cerr << "   " << argv[0] << " --help\n\n";
+			figTechLog << "[ERROR] Failed parsing the JANI-spec commands.\n\n";
+			figTechLog << "For complete USAGE and HELP type:\n";
+			figTechLog << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
 		} else if (janiSpec.janiInteraction && janiSpec.translateOnly) {
 			// avoid further parsing
 			goto exit_with_success;
 		}
 		if (!get_splitting_values()) {
-			std::cerr << "ERROR: splitting values must be specified as a "
+			figTechLog << "[ERROR] Splitting values must be specified as a "
 			             "comma-sperated list of positive integral values. "
 			             "There should be no spaces in this list.\n\n";
-			std::cerr << "For complete USAGE and HELP type:\n";
-			std::cerr << "   " << argv[0] << " --help\n\n";
+			figTechLog << "For complete USAGE and HELP type:\n";
+			figTechLog << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
 		}
 		if (!get_ifun_specification()) {
-			std::cerr << "ERROR: must specify an importance function.\n\n";
-			std::cerr << "For complete USAGE and HELP type:\n";
-			std::cerr << "   " << argv[0] << " --help\n\n";
+			figTechLog << "[ERROR] Must specify an importance function.\n\n";
+			figTechLog << "For complete USAGE and HELP type:\n";
+			figTechLog << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
 		} else if ("flat" == impFunSpec.strategy) {
 			// make amendments to set the only possible "flat" configuration
 			engineName = "nosplit";
 			if (splittings.size() > 1ul)
-				std::cerr << "WARNING: splitting is incompatible with a "
+				figTechLog << "[WARNING] Splitting is incompatible with a "
 				             "\"flat\" importance function, ignoring values.\n";
 			std::set< unsigned >({1u}).swap(splittings);
 		}
 		if (!get_stopping_conditions()) {
-			std::cerr << "ERROR: must specify at least one stopping condition ";
-			std::cerr << "(--stop-conf|--stop-time).\n\n";
-			std::cerr << "For complete USAGE and HELP type:\n";
-			std::cerr << "   " << argv[0] << " --help\n\n";
+			figTechLog << "[ERROR] Must specify at least one stopping condition ";
+			figTechLog << "(--stop-conf|--stop-time).\n\n";
+			figTechLog << "For complete USAGE and HELP type:\n";
+			figTechLog << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
 		}
 		if (!get_timeout()) {
-			std::cerr << "ERROR: something failed while parsing the ";
-			std::cerr << "timeout specification.\n\n";
-			std::cerr << "For complete USAGE and HELP type:\n";
-			std::cerr << "   " << argv[0] << " --help\n\n";
+			figTechLog << "[ERROR] Something failed while parsing the ";
+			figTechLog << "timeout specification.\n\n";
+			figTechLog << "For complete USAGE and HELP type:\n";
+			figTechLog << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
 		}
-		if (!get_rng_seed()) {
-			std::cerr << "ERROR: something failed while parsing the ";
-			std::cerr << "RNG seed specification.\n\n";
-			std::cerr << "For complete USAGE and HELP type:\n";
-			std::cerr << "   " << argv[0] << " --help\n\n";
+		if (!get_rng_specs()) {
+			figTechLog << "[ERROR] Something failed while parsing the ";
+			figTechLog << "RNG specifications.\n\n";
+			figTechLog << "For complete USAGE and HELP type:\n";
+			figTechLog << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
 		}
 

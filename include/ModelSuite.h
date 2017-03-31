@@ -247,6 +247,22 @@ public:  // Populating facilities and other modifyers
 	 */
 	void set_timeout(const std::chrono::seconds& timeLimit);
 
+	/**
+	 * @brief Set RNG specs for time sampling
+	 *
+	 *        When a clock is reset, its new timeout value is sampled from a
+	 *        distribution based on a Random Number Generator Engine (aka RNG).
+	 *        This routine specifies which RNG algorithm to use,
+	 *        and which value to seed it with on each independent simulation.
+	 *
+	 * @param rngType  Any of available_RNGs()
+	 * @param rngSeed  Seed to use with the RNG;
+	 *                 null value turns on randomized seeding
+	 *
+	 * @throw FigException if invalid rngType is specified
+	 */
+	void set_rng(const std::string& rngType, const size_t& rngSeed);
+
 public:  // Accessors
 
 	/// @copydoc ModuleNetwork::sealed()
@@ -316,6 +332,10 @@ public:  // Accessors
 	/// as they should be requested by the user.
 	static const std::vector< std::string >& available_threshold_techniques() noexcept;
 
+	/// Pseudo Random Number Generator algorithms (aka RNGs),
+	/// as they should be requested by the user.
+	static const std::vector< std::string >& available_RNGs() noexcept;
+
 	/// Size of the vector returned by available_simulators()
 	/// as a constexpr
 	static constexpr size_t num_simulators() noexcept
@@ -340,6 +360,11 @@ public:  // Accessors
 	/// as a constexpr
 	static constexpr size_t num_threshold_techniques() noexcept
 		{ return ThresholdsBuilder::NUM_TECHNIQUES; }
+
+	/// Size of the vector returned by available_RNGs()
+	/// as a constexpr
+	static constexpr size_t num_RNGs() noexcept
+		{ return Clock::NUM_RNGS; }
 
 public:  // Utils
 
