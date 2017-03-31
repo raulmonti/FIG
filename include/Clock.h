@@ -74,9 +74,6 @@ public:
 
 private:
 
-	/// RNG used for all clocks
-	static std::string rngType_;
-
 	/// Whether to use randomized RNG seeding (affects all clocks)
 	static bool randomSeed_;
 

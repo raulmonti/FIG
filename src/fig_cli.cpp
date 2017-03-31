@@ -297,7 +297,7 @@ ValueArg<string> rngType_(
 	"r", "rng",
 	"Specify the pseudo Random Number Generator (aka RNG) to use for "
 	"sampling the time values of clocks",
-	false, "mt64", RNGConstraints);
+	false, "mt64", &RNGConstraints);
 
 // User-specified seed for RNG
 ValueArg<string> rngSeed_(

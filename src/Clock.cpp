@@ -57,6 +57,218 @@ typedef  fig::CLOCK_INTERNAL_TYPE                       return_t;
 typedef  fig::DistributionParameters                    params_t;
 typedef  pcg_extras::seed_seq_from<std::random_device>  PCGSeedSeq;
 
+typedef  std::mt19937_64   MT64_t;
+typedef  pcg32_k16384     PCG32_t;
+typedef  pcg64_oneseq     PCG64_t;
+
+
+/**
+ * @brief RNG interface used for sampling the time in the clocks
+ *
+ *        BasicRNG implements \ref https://sourcemaking.com/design_patterns/adapter
+ *        "an adapter" to unify the interfaces of the various RNGs offered.
+ *        This allows an easy switch between RNG types upon the user's request.
+ *
+ * @note Implements the \ref http://en.cppreference.com/w/cpp/concept/UniformRandomBitGenerator
+ *       "UniformRandomBitGenerator C++ concept"
+ * @note Inheritance is based on the RNGs offered above
+ */
+class BasicRNG
+{
+public:
+	typedef unsigned long result_type;
+	virtual result_type min() const = 0;
+	virtual result_type max() const = 0;
+	virtual result_type operator()() = 0;
+	virtual void seed(result_type s) = 0;
+};
+
+class BasicRNG_MT64 : public BasicRNG, MT64_t
+{
+	typedef BasicRNG::result_type result_type;
+public:  // Ctors
+	BasicRNG_MT64(result_type seed)  : MT64_t(seed) {}
+	BasicRNG_MT64(const MT64_t& rng) : MT64_t(rng)  {}
+	BasicRNG_MT64(MT64_t&& rng)      : MT64_t(rng)  {}
+	BasicRNG_MT64& operator=(MT64_t rng)
+	{
+		std::swap(static_cast<MT64_t&>(*this), rng);
+		return *this;
+	}
+public:
+	result_type min() const  override { return MT64_t::min(); }
+	result_type max() const  override { return MT64_t::max(); }
+	result_type operator()() override { return dynamic_cast<MT64_t&>(*this)(); }
+	void seed(result_type s) override { dynamic_cast<MT64_t&>(*this).seed(s);  }
+};
+
+class BasicRNG_PCG32 : public BasicRNG, PCG32_t
+{
+	typedef BasicRNG::result_type result_type;
+public:  // Ctors
+	BasicRNG_PCG32(result_type seed)   : PCG32_t(seed) {}
+	BasicRNG_PCG32(const PCG32_t& rng) : PCG32_t(rng)  {}
+	BasicRNG_PCG32(PCG32_t&& rng)      : PCG32_t(rng)  {}
+	BasicRNG_PCG32& operator=(PCG32_t rng)
+	{
+		std::swap(static_cast<PCG32_t&>(*this), rng);
+		return *this;
+	}
+public:
+	result_type min() const  override { return PCG32_t::min(); }
+	result_type max() const  override { return PCG32_t::max(); }
+	result_type operator()() override { return dynamic_cast<PCG32_t&>(*this)(); }
+	void seed(result_type s) override { dynamic_cast<PCG32_t&>(*this).seed(s);  }
+};
+
+class BasicRNG_PCG64 : public BasicRNG, PCG64_t
+{
+	typedef BasicRNG::result_type result_type;
+public:  // Ctors
+	BasicRNG_PCG64(result_type seed)   : PCG64_t(seed) {}
+	BasicRNG_PCG64(const PCG64_t& rng) : PCG64_t(rng)  {}
+	BasicRNG_PCG64(PCG64_t&& rng)      : PCG64_t(rng)  {}
+	BasicRNG_PCG64& operator=(PCG64_t rng)
+	{
+		std::swap(static_cast<PCG64_t&>(*this), rng);
+		return *this;
+	}
+public:
+	result_type min() const  override { return PCG64_t::min(); }
+	result_type max() const  override { return PCG64_t::max(); }
+	result_type operator()() override { return dynamic_cast<PCG64_t&>(*this)(); }
+	void seed(result_type s) override { dynamic_cast<PCG64_t&>(*this).seed(s);  }
+};
+
+//	class BasicRNG : private MT64_t, PCG32_t, PCG64_t
+//	{
+//
+//		enum RNG_TYPE { MT64, PCG32, PCG64 } rngType_;
+//
+//	public:  // Discriminated ctors
+//
+//		BasicRNG(MT64_t&  rng) : MT64_t(rng),  rngType_(RNG_TYPE::MT64)  {}
+//		BasicRNG(PCG32_t& rng) : PCG32_t(rng), rngType_(RNG_TYPE::PCG32) {}
+//		BasicRNG(PCG64_t& rng) : PCG64_t(rng), rngType_(RNG_TYPE::PCG64) {}
+//
+//	public:  // Copy ctors
+//
+//		BasicRNG(BasicRNG* that) :
+//			MT64_t (that->rngType_ == MT64  ? *dynamic_cast<MT64_t*>(that)  : nullptr),
+//			PCG32_t(that->rngType_ == PCG32 ? *dynamic_cast<PCG32_t*>(that) : nullptr),
+//			PCG64_t(that->rngType_ == PCG64 ? *dynamic_cast<PCG64_t*>(that) : nullptr),
+//			rngType_(that->rngType_) {}
+//	//		switch (rngType_)
+//	//		{
+//	//		case RNG_TYPE::MT64:
+//	//			MT64_t(dynamic_cast<const MT64_t&>(that));
+//	//			break;
+//	//		case RNG_TYPE::PCG32:
+//	//			PCG32_t(dynamic_cast<const PCG32_t&>(that));
+//	//			break;
+//	//		case RNG_TYPE::PCG64:
+//	//			PCG64_t(dynamic_cast<const PCG64_t&>(that));
+//	//			break;
+//	//		default:
+//	//			throw_FigException("internal error in RNG selection");
+//	//			break;
+//	//		}
+//	//	}
+//
+//	//	BasicRNG& operator=(BasicRNG that)
+//	//	{
+//	//		std::swap(*this, that);
+//	//		return *this;
+//	//	}
+//
+//	public:  // UniformRandomBitGenerator C++ concept specifics
+//
+//		typedef unsigned long result_type;
+//
+//		result_type min()
+//		{
+//			switch (rngType_) {
+//			case RNG_TYPE::MT64:
+//				return MT64_t::min();
+//			case RNG_TYPE::PCG32:
+//				return PCG32_t::min();
+//			case RNG_TYPE::PCG64:
+//				return PCG64_t::min();
+//			default:
+//				throw_FigException("internal error in RNG selection");
+//			}
+//		}
+//
+//		result_type max()
+//		{
+//			switch (rngType_) {
+//			case RNG_TYPE::MT64:
+//				return MT64_t::max();
+//			case RNG_TYPE::PCG32:
+//				return PCG32_t::max();
+//			case RNG_TYPE::PCG64:
+//				return PCG64_t::max();
+//			default:
+//				throw_FigException("internal error in RNG selection");
+//			}
+//		}
+//
+//		result_type operator ()()
+//		{
+//			switch (rngType_) {
+//			case RNG_TYPE::MT64:
+//				return static_cast<MT64_t*>(this)->operator()();
+//			case RNG_TYPE::PCG32:
+//				return static_cast<PCG32_t*>(this)->operator()();
+//			case RNG_TYPE::PCG64:
+//				return static_cast<PCG64_t*>(this)->operator()();
+//			default:
+//				throw_FigException("internal error in RNG selection");
+//			}
+//		}
+//
+//		void seed(result_type s)
+//		{
+//			switch (rngType_) {
+//			case RNG_TYPE::MT64:
+//				static_cast<MT64_t*>(this)->seed(s);
+//				break;
+//			case RNG_TYPE::PCG32:
+//				static_cast<PCG32_t*>(this)->seed(s);
+//				break;
+//			case RNG_TYPE::PCG64:
+//				static_cast<PCG64_t*>(this)->seed(s);
+//				break;
+//			default:
+//				throw_FigException("internal error in RNG selection");
+//			}
+//		}
+//
+//	//private:
+//	//	result_type_ (*min_)();
+//	//	result_type_ (*max_)();
+//	//	result_type_ (*operator_)();
+//	//	void (*seed_)(result_type_);
+//	//public:
+//	//	BasicRNG(PCG32_t& rng) :
+//	//		PCG32_t(rng),
+//	//		min_(&PCG32_t::min),
+//	//		max_(&PCG32_t::max),
+//	//		seed_(&rng.seed),
+//	//		operator_(&rng.operator()) {}
+//	//	BasicRNG(PCG64_t& rng) :
+//	//		PCG64_t(rng),
+//	//		min_(&PCG64_t::min),
+//	//		max_(&PCG64_t::max),
+//	//		seed_(&rng.seed),
+//	//		operator_(&rng.operator()) {}
+//	//public:
+//	//	result_type min() { return (*min_)(); }
+//	//	result_type max() { return (*max_)(); }
+//	//	result_type operator()() { return (*operator_)(); }
+//	//	void seed(result_type s) { (*seed_)(s); }
+//	};
+
 
 /// Non-deterministic random number generator for randomized seeding,
 /// used by Mersenne-Twister RNG
@@ -73,122 +285,50 @@ pcg_extras::seed_seq_from<std::random_device> PCG_nondet_RNG;
 /// \else
 ///   deterministic (RNG's default)
 /// \endif
+unsigned long rngSeed =
 #if   !defined RANDOM_RNG_SEED && !defined PCG_RNG
-  unsigned long rngSeed(std::mt19937_64::default_seed);
+  std::mt19937_64::default_seed;
 #elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
-  unsigned long rngSeed(0xCAFEF00DD15EA5E5ull);  // PCG's default seed
+  0xCAFEF00DD15EA5E5ull;  // PCG's default seed
 #elif  defined RANDOM_RNG_SEED && !defined PCG_RNG
-  unsigned long rngSeed(MT_nondet_RNG());
+  MT_nondet_RNG();
 #else
-  unsigned long rngSeed = pcg_extras::generate_one<size_t>(
-							  std::forward<PCGSeedSeq>(PCG_nondet_RNG));
+  pcg_extras::generate_one<size_t>(std::forward<PCGSeedSeq>(PCG_nondet_RNG));
 #endif
 
 
 // RNGs offered
-// NOTE: reflect changes in RNGs_offered, rngType, and Clock::available_RNGs()
-std::mt19937_64 MT_RNG(rngSeed);
-pcg32_k16384 PCG32_RNG(rngSeed);
-pcg64_oneseq PCG64_RNG(rngSeed);
+// NOTE: reflect changes in BasicRNG, rngType, RNGs, and Clock::available_RNGs()
+BasicRNG_MT64  MT_RNG(rngSeed);
+BasicRNG_PCG32 PCG32_RNG(rngSeed);
+BasicRNG_PCG64 PCG64_RNG(rngSeed);
 
-class ClocksRNG
+/// Collection of available RNGs
+std::unordered_map< std::string, fig::Reference< BasicRNG > > RNGs =
 {
-	// Members are based on the RNGs offered above
-	std::mt19937_64*  mt64;
-	pcg32_k16384*    pcg32;
-	pcg64_oneseq*    pcg64;
-	size_t i;
-
-public:
-
-	typedef unsigned long result_type;
-
-public:
-
-	ClocksRNG(std::mt19937_64& rng) :
-		mt64(&rng),
-		pcg32(nullptr),
-		pcg64(nullptr),
-		i(0ul)
-	{}
-
-	ClocksRNG(pcg32_k16384& rng) :
-		mt64(nullptr),
-		pcg32(&rng),
-		pcg64(nullptr),
-		i(1ul)
-	{}
-
-	ClocksRNG(pcg64_oneseq& rng) :
-		mt64(nullptr),
-		pcg32(nullptr),
-		pcg64(&rng),
-		i(2ul)
-	{}
-
-	static result_type min() {
-		switch (i) :
-		case 0:
-			return mt64->min();
-			break;
-		case 1:
-			return pcg32->min();
-			break;
-		case 2:
-			return pcg64->min();
-			break;
-		default:
-			throw_FigException("invalid RNG type");
-			break;
-	}
-
-	result_type max() {
-		switch (i) :
-		case 0:
-			return mt64->max();
-			break;
-		case 1:
-			return pcg32->max();
-			break;
-		case 2:
-			return pcg64->max();
-			break;
-		default:
-			throw_FigException("invalid RNG type");
-			break;
-	}
-};
-
-//class ClocksRNG : public std::mt19937_64, pcg32_k16384, pcg64_oneseq
-//	{ /* Inheritance is based on the RNGs offered above */ };
-std::unordered_map< std::string, ClocksRNG > RNGs =
-{
-	{"mt64",  ClocksRNG(MT_RNG)   },
-	{"pcg32", ClocksRNG(PCG32_RNG)},
-	{"pcg64", ClocksRNG(PCG64_RNG)},
+	{"mt64",  MT_RNG   },
+	{"pcg32", PCG32_RNG},
+	{"pcg64", PCG64_RNG}
 };
 
 /// Default RNG: \if PCG_RNG PCG-family \else Mersenne-Twister (C++ STL) \endif
+std::string rngType =
 #ifndef PCG_RNG
-  std::string rngType = "mt64";
+  "mt64";
 #elif !defined NDEBUG
-  std::string rngType = "pcg32";
+  "pcg32";
 #else
-  std::string rngType = "pcg64";
+  "pcg64";
 #endif
 
-/// RNG instance
-auto rng = RNGs[rngType];
+/// @todo TODO erase debug vector
+/// @bug FIXME Why can we instantiate 'rng' from a vector but not from a map ???
+std::vector< fig::Reference< BasicRNG > > RNGs2 = { MT_RNG, PCG32_RNG, PCG64_RNG };
 
-
-/// Default RNG: \if PCG_RNG PCG-family \else Mersenne-Twister (C++ STL) \endif
-#ifndef PCG_RNG
-  ClocksRNG& rng = RNGs_offered["mt64"];
-#elif !defined NDEBUG
-  ClocksRNG& rng = RNGs_offered["pcg32"];
-#else
-  ClocksRNG& rng = RNGs_offered["pcg64"];
-#endif
+/// Default RNG instance
+BasicRNG& rng = RNGs2[0];
+//BasicRNG& rng = RNGs[rngType];
+//BasicRNG& rng = MT_RNG;
 
 
 /// Random deviate ~ Uniform[a,b]<br>
@@ -339,12 +479,13 @@ bool Clock::rng_seed_is_random() noexcept { return randomSeed_; }
 
 void Clock::change_rng(const std::string& rngType)
 {
-	const auto& available_rngs(RNGs());
+	const auto& available_rngs(Clock::RNGs());
 	if (end(available_rngs) ==
 			find(begin(available_rngs), end(available_rngs), rngType))
 		throw_FigException("invalid RNG type specified: " + rngType);
 	::rngType = rngType;
-	rng = RNGs[rngType];
+
+	rng = ::RNGs[rngType];
 	seed_rng();
 }
 
