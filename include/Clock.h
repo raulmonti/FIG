@@ -67,6 +67,16 @@ class Clock
 	friend class ModelSuite;
 	friend class Transition;
 
+public:
+
+	/// Number of offered pseudo Random Number Generator algorithms, aka RNGs
+	static constexpr size_t NUM_RNGS = 3ul;
+
+private:
+
+	/// Whether to use randomized RNG seeding (affects all clocks)
+	static bool randomSeed_;
+
 	/// Clock name
 	std::string name_;
 
@@ -79,31 +89,65 @@ class Clock
 	/// Clock's distribution parameters
 	DistributionParameters distParams_;
 
-public:  // Class' RNG manipulations
+public:  // Class' RNG observers
+
+	/// RNGs offered to the user,
+	/// as he should requested them through the CLI/GUI.
+	/// @note Implements the <a href="https://goo.gl/yhTgLq"><i>Construct On
+	///       First Use</i> idiom</a> for static data members,
+	///       to avoid the <a href="https://goo.gl/chH5Kg"><i>static
+	///       initialization order fiasco</i>>.
+	static const std::array< std::string, NUM_RNGS >& RNGs() noexcept;
+
+	/// Internal RNG used for clock values sampling
+	static const std::string& rng_type() noexcept;
 
 	/// Seed used to initialized the internal RNG.
-	/// Null iff (device-) random seeding is used
 	static unsigned long rng_seed() noexcept;
 
-private:
+	/// Whether randomized seeding is used
+	static bool rng_seed_is_random() noexcept;
 
-	/// Restart RNG sequence
-	/// \ifnot NDEBUG
-	///   @details Apply same seed as before (chosen at initialization)
-	/// \else
-	///   @details Apply random seed taken from the system's random device
-	/// \endif
-	static void seed_rng();  // offered to ModelSuite
+private:  // RNG manipulation via ModelSuite
+
+
+	/**
+	 * @brief Change the internal RNG used (must be an eligible option)
+	 * @note The new RNG is seeded with the \ref rng_seed() "current seed"
+	 * @see RNGs()
+	 * @throw FigException if invalid argument passed
+	 */
+	static void change_rng(const std::string& rngType);
+
+	/**
+	 * @brief Change seed used by the internal RNG.
+	 * @param seed Seed to use in following calls to seed_rng().
+	 * @warning A null seed (viz. passing '0' as value of \p seed)
+	 *          will turn on randomized seeding.
+	 * @note This doesn't re-seed the RNG; it changes the internally stored
+	 *       seed value. To actually re-seed call seed_rng() afterwards.
+	 * @see seed_rng()
+	 */
+	static void change_rng_seed(unsigned long seed);
+
+	/**
+	 * @brief Restart RNG sequence
+	 * @details Re-seed the RNG with the last value specified with
+	 *          change_rng_seed(), or a default value if none was.
+	 * @note Seeding might be randomized, see change_rng_seed()
+	 * @see change_rng_seed()
+	 */
+	static void seed_rng();
 
 public:  // Ctors
 
 	Clock(const std::string& clockName,
 		  const std::string& distName,
 		  const DistributionParameters& params) :
-		name_(clockName),
-		distName_(distName),
-		dist_(distributions_list.at(distName)),  // may throw out_of_range
-		distParams_(params)
+			name_(clockName),
+			distName_(distName),
+			dist_(distributions_list.at(distName)),  // may throw out_of_range
+			distParams_(params)
 		{
 			assert(!clockName.empty());
 		}
@@ -132,7 +176,7 @@ public:  // Utils
 	inline CLOCK_INTERNAL_TYPE operator()() const { return dist_(distParams_); }
 
 public:  // Debugging info
-        void print_info(std::ostream &out) const;
+	void print_info(std::ostream &out) const;
 };
 
 

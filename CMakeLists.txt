@@ -98,8 +98,9 @@ SET(PARSER_CODE "${PARSER_SRC}/ModelParser.cpp")
 
 # Build type: debug vs. release
 IF(RELEASE)
-	ADD_DEFINITIONS(-DNDEBUG)     # General No-Debug
-	ADD_DEFINITIONS(-DNRANGECHK)  # Don't check ranges every f***ing time
+	ADD_DEFINITIONS(-DNDEBUG)           # General No-Debug
+	ADD_DEFINITIONS(-DNRANGECHK)        # Don't check ranges every f***ing time
+	ADD_DEFINITIONS(-DRANDOM_RNG_SEED)  # Use random RNG seed by default
 ENDIF()
 
 # RNG algorithm: C++ STL Mersenne-Twister vs. PCG default

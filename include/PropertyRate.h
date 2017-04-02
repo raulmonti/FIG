@@ -118,8 +118,7 @@ public:
         return condition_(s);
     }
 
-    inline bool is_rare(const State<STATE_INTERNAL_TYPE>& s)
-    const override {
+	inline bool is_rare(const State<STATE_INTERNAL_TYPE>& s) const override {
         return condition_(s);
     }
 
@@ -127,11 +126,11 @@ public:
         return ("S( (" + expr_->to_string() + ") / total_time )");
     }
 
-    void prepare(const State<STATE_INTERNAL_TYPE>& state) {
+	void prepare(const State<STATE_INTERNAL_TYPE>& state) override {
         condition_.prepare(state);
     }
 
-    void prepare(const PositionsMap& posMap) {
+	void prepare(const PositionsMap& posMap) override {
         condition_.prepare(posMap);
     }
 

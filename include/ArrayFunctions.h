@@ -69,7 +69,8 @@ struct LstEqFunction : public exprtk::igeneric_function<T> {
             // we do not support empty arrays anyway.
             return (-1);
         }
-        for (size_t j = vector.size() - 1; j >= 0; j--) {
+//      for (size_t j = vector.size() - 1; j >= 0; j--) {  // dafuk Leo? size_t is always >= 0 !!!
+		for (size_t j = 0ul ; j < vector.size() ; j++) {
             if (vector[j] == value()) {
                 return T(j);
             }

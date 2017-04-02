@@ -99,6 +99,12 @@ extern std::list< fig::StoppingConditions > estBounds;
 /// after 'simsTimeout' seconds of uninterrupted wall-clock execution
 extern std::chrono::seconds simsTimeout;
 
+/// CLocks' RNG
+extern std::string rngType;
+
+/// Seed for the RNG
+extern size_t rngSeed;
+
 /// Attempt to estimate/translate in spite of any warning from the parser
 /// of the model not being IOSA-compliant
 extern bool forceOperation;
