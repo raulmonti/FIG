@@ -180,46 +180,6 @@ public:  // Ctors/Dtor
 
 protected:  // Modifyers
 
-	/**
-	 * @brief Register the global-system-state position of our variables
-	 *
-	 * @param globalState State who knows all the variables mappings required
-	 *
-	 * @warning Asynchronous callback to be called <b>exactly once</b>
-	 * \ifnot NRANGECHK
-	 *   @throw out_of_range if some of our variables isn't mapped
-	 * \endif
-	 * @todo TODO unify with the other version using templates;
-	 *            see ImportanceFunction::Formula::set()
-     *
-     *
-     * @deprecated Not used anymore.
-     * @see ExpState
-     */
-	virtual void pin_up_vars(const State<STATE_INTERNAL_TYPE>& globalState);
-
-	/**
-	 * @brief Register the global-system-state position of our variables
-	 *
-	 * @param globalVars Mapping of our variables names to their
-	 *                   respective positions in a global array
-	 *
-	 * @warning Asynchronous callback to be called <b>exactly once</b>
-	 * \ifnot NRANGECHK
-	 *   @throw out_of_range if some of our variables isn't mapped
-	 * \endif
-	 * @todo TODO unify with the other version using templates;
-	 *            see ImportanceFunction::Formula::set()
-     *
-     * @deprecated Not used anymore.
-     * @see ExpState
-	 */
-#ifndef NRANGECHK
-	virtual void pin_up_vars(const PositionsMap& globalVars);
-#else
-	virtual void pin_up_vars(PositionsMap& globalVars);
-#endif
-
 	/// Bind variables to mathematical expression,
 	/// i.e. embed \a varsValues_ into \a expr_
     void compile_expression();
@@ -267,7 +227,7 @@ MathExpression::MathExpression(
 			varsNames_.emplace_back(*from);  // copy elision
 	varsNames_.shrink_to_fit();
 	NVARS_ = varsNames_.size();
-	// Positions mapping is done later in pin_up_vars()
+	// Positions mapping is done later in compile_expression()
 	varsPos_.resize(NVARS_);
 	varsValues_.resize(NVARS_);
     compile_expression();

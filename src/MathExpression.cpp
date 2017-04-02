@@ -69,7 +69,7 @@ MathExpression::MathExpression(
 			varsNames_.emplace_back(name);  // copy elision
 	varsNames_.shrink_to_fit();
 	NVARS_ = varsNames_.size();
-	// Positions mapping is done later in pin_up_vars()
+	// Positions mapping is done later in compile_expression()
 	varsPos_.resize(NVARS_);
 	varsValues_.resize(NVARS_);
     compile_expression();
@@ -112,7 +112,7 @@ MathExpression::MathExpression(
 	varnames.clear();
 	varsNames_.shrink_to_fit();
 	NVARS_ = varsNames_.size();
-	// Positions mapping is done later in pin_up_vars()
+	// Positions mapping is done later in compile_expression()
 	varsPos_.resize(NVARS_);
 	varsValues_.resize(NVARS_);
     compile_expression();
@@ -142,39 +142,6 @@ MathExpression::compile_expression()
 	if (!parser.compile(exprStr_, expr_))
         throw_FigException("MathExpression: Couldn't parse expression");
 }
-
-
-/// @deprecated
-/// @see ExpState
-void
-MathExpression::pin_up_vars(const fig::State<STATE_INTERNAL_TYPE>& globalState)
-{
-	for (size_t i = 0ul ; i < NVARS_ ; i++) {
-		varsPos_[i] = globalState.position_of_var(varsNames_[i]);
-	}
-	pinned_ = true;
-}
-
-
-#ifndef NRANGECHK
-void
-MathExpression::pin_up_vars(const PositionsMap& globalVars)
-{
-	for (size_t i = 0ul ; i < NVARS_ ; i++) {
-		varsPos_[i] = globalVars.at(varsNames_[i]);
-	}
-	pinned_ = true;
-}
-#else
-void
-MathExpression::pin_up_vars(PositionsMap& globalVars)
-{
-	for (size_t i = 0ul ; i < NVARS_ ; i++) {
-		varsPos_[i] = globalVars[varsNames_[i]];
-	}
-	pinned_ = true;
-}
-#endif
 
 
 std::string
