@@ -101,9 +101,9 @@ const std::string versionStr(
 #elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
 	"PCG RNG (seed:" + to_string(fig::Clock::rng_seed()) + ")"
 #elif !defined PCG_RNG
-	"MT RNG (random seed)");
+    "MT RNG (random seed)"
 #else
-	"PCG RNG (random seed)");
+    "PCG RNG (random seed)"
 #endif
 );
 
@@ -604,13 +604,7 @@ get_timeout()
 bool
 get_rng_specs()
 {
-	if (rngType_.isSet()) {
-		rngType = rngType_.getValue();
-	} else {
-		/// @todo TODO erase this (supposedly dead) code
-		figTechLog << "WTF???" << std::endl;
-		exit(1);
-	}
+	rngType = rngType_.getValue();
 	if (rngSeed_.isSet()) {
 		const string& seed(rngSeed_.getValue());
 		if (std::isalpha(seed.back())) {
@@ -628,7 +622,7 @@ get_rng_specs()
 				return false;
 			} else if (0ul == rngSeed) {
 				figTechLog << "[WARNING] RNG seed == 0 is interpreted as "
-						   << "randomized seeding. Is that what you want?\n";
+				           << "randomized seeding. Is that what you want?\n\n";
 			}
 		}
 	}

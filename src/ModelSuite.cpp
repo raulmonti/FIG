@@ -488,9 +488,9 @@ ModelSuite::set_rng(const std::string& rngType, const size_t& rngSeed)
 
 	tech_log("Using RNG \"" + rngType + "\" with ");
 	if (0ul == rngSeed)
-		tech_log(" randomized seeding.\n");
+		tech_log("randomized seeding.\n");
 	else
-		tech_log(" seed " + to_string(rngSeed) + "\n");
+		tech_log("seed " + to_string(rngSeed) + "\n");
 }
 
 
@@ -960,7 +960,7 @@ void
 ModelSuite::release_resources(const std::string& ifunName,
 							  const std::string& engineName) noexcept
 {
-	techLog_ << "\treleasing resources";
+	techLog_ << " · releasing resources";
     if (exists_importance_function(ifunName)) {
         techLog_ << " of importance function \"" << ifunName << "\"";
 		impFuns[ifunName]->clear();
@@ -1010,6 +1010,7 @@ ModelSuite::estimate(const Property& property,
 			? ("(null)") : (ifun.post_processing().name + " "
 							+ to_string(ifun.post_processing().value)));
 
+	mainLog_ << "RNG algorithm used: " << Clock::rng_type() << "\n";
     mainLog_ << "Estimating " << property.to_string() << ",\n";
 	mainLog_ << " using simulation engine  \"" << engine.name() << "\"\n";
 	mainLog_ << " with importance function \"" << engine.current_imp_fun() << "\"\n";
@@ -1053,19 +1054,23 @@ ModelSuite::estimate_for_times(const Property& property,
 
 	for (const unsigned long& wallTimeInSeconds: bounds.time_budgets()) {
 
-		// Show simulation run info
-		const seconds timeLimit(timeout_.count() > 0l
-				? std::min<long>(wallTimeInSeconds, timeout_.count())
-				: wallTimeInSeconds);
-		mainLog_ << std::setprecision(0) << std::fixed;
-		mainLog_ << "   Estimation timeout: " << timeLimit.count() << " s\n";
-
 		// Configure simulation
 		auto ci_ptr = build_empty_ci(property.type);
 		interruptCI_ = ci_ptr.get();  // bad boy
 		engine.interrupted = false;
 		lastEstimationStartTime_ = omp_get_wtime();
 		Clock::seed_rng();  // restart RNG sequence for this estimation
+
+		// Show simulation run info
+		const seconds timeLimit(timeout_.count() > 0l
+		        ? std::min<long>(wallTimeInSeconds, timeout_.count())
+		        : wallTimeInSeconds);
+		mainLog_ << std::setprecision(0) << std::fixed;
+		mainLog_ << "   Estimation timeout: " << timeLimit.count() << " s\n";
+		mainLog_ << "   RNG seed: " << Clock::rng_seed()
+		         << (Clock::rng_seed_is_random() ? (" (randomized)\n") : ("\n"));
+
+		// Start timer
 		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),
 									   timeLimit, std::ref(mainLog_), lastEstimationStartTime_);
 		// Simulate
@@ -1103,21 +1108,25 @@ ModelSuite::estimate_for_confs(const Property& property,
 					 precVal(std::get<1>(criterion));  // precision to achieve
 		const bool precRel(std::get<2>(criterion));    // is precision relative?
 
-		// Show simulation run info
-		mainLog_ << "   Confidence level: "
-				 << std::setprecision(0) << std::fixed << 100*(confCo) << "%\n";
-		mainLog_ << "   Precision: ";
-		if (precRel)
-			mainLog_ << std::setprecision(0) << std::fixed << (100*precVal) << "%\n";
-		else
-			mainLog_ << std::setprecision(2) << std::scientific << (2*precVal) << "\n";
-
 		// Configure simulation
 		auto ci_ptr = build_empty_ci(property.type, confCo, precVal, precRel);
 		interruptCI_ = ci_ptr.get();  // bad boy
 		engine.interrupted = false;
 		lastEstimationStartTime_ = omp_get_wtime();
 		Clock::seed_rng();  // restart RNG sequence for this estimation
+
+		// Show simulation run info
+		mainLog_ << "   Confidence level: "
+		         << std::setprecision(0) << std::fixed << 100*(confCo) << "%\n";
+		mainLog_ << "   Precision: ";
+		if (precRel)
+			mainLog_ << std::setprecision(0) << std::fixed << (100*precVal) << "%\n";
+		else
+			mainLog_ << std::setprecision(2) << std::scientific << (2*precVal) << "\n";
+		mainLog_ << "   RNG seed: " << Clock::rng_seed()
+		         << (Clock::rng_seed_is_random() ? (" (randomized)\n") : ("\n"));
+
+		// Start timer
 		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),
 									   timeLimit, std::ref(mainLog_), lastEstimationStartTime_);
 		// Simulate

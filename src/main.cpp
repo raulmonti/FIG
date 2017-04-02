@@ -162,6 +162,8 @@ int main(int argc, char** argv)
 	}
 
 	exit_point:
+	    fig::ModelSuite::main_log("\n\n   \"El Tiempo sólo es tardanza de "
+		                          "lo que está por venir, Mendieta\"\n\n");
 		return EXIT_SUCCESS;
 }
 
@@ -174,7 +176,7 @@ bool print_intro(const int& argc, const char** argv)
 	auto tech_log = fig::ModelSuite::tech_log;
 	using std::to_string;
 	const std::time_t now = std::chrono::system_clock::to_time_t(
-				std::chrono::system_clock::now());
+	            std::chrono::system_clock::now());
 
 	// First check if this is a version query and we should omit the greeting
 	if (argc == 2 && (trim(argv[1]) == "-v" || trim(argv[1]) == "--version"))
@@ -190,14 +192,9 @@ bool print_intro(const int& argc, const char** argv)
 	main_log(" Version: " + std::string(fig_VERSION_STR) + "\n");
 	main_log(" Build:   ");
 	if (is_substring_ci(fig_CURRENT_BUILD, "release"))
-		main_log("Release ");
+		main_log("Release\n");
 	else
-		main_log("Debug ");
-#ifndef PCG_RNG
-	main_log("(Mersenne-Twister RNG)\n");
-#else
-	main_log("(PCG family RNG)\n");
-#endif
+		main_log("Debug\n");
 	main_log(" Authors: Budde, Carlos E.  <cbudde@famaf.unc.edu.ar>\n");
 	main_log("          Monti, Raúl E.    <raulmonti88@gmail.com>\n");
 	main_log("          Rodriguez, Leo M. <leonardomatiasrodriguez@gmail.com>\n");
@@ -207,17 +204,20 @@ bool print_intro(const int& argc, const char** argv)
 	if (argc > 1 && trim(argv[1]) != "-h" && trim(argv[1]) != "--help") {
 		tech_log(std::string("\nFIG tool invoked on ") + std::ctime(&now));
 		tech_log("Build: " fig_CURRENT_BUILD "\n");
-		tech_log("64-bit RNG: ");
-#ifndef PCG_RNG
-		tech_log("STL's Mersenne-Twister ");
-#else
-		tech_log("Builtin PCG ");
-#endif
-#ifndef RANDOM_RNG_SEED
-		tech_log("(seed: " + std::to_string(fig::Clock::rng_seed()) + ")\n\n");
-#else
-		tech_log("(seeded from system's random device)\n\n");
-#endif
+		tech_log("Default RNG: ");
+		if (Clock::rng_type() == "mt64")
+			tech_log("64-bit STL's Mersenne-Twister.\n");
+		else if (Clock::rng_type() == "pcg32")
+			tech_log("32-bit PCG-family generator with huge period.\n");
+		else if (Clock::rng_type() == "pcg64")
+			tech_log("64-bit PCG-family generator.\n");
+		else
+			tech_log("UNKNOWN!\n");
+		tech_log("Default RNG seed: ");
+		if (Clock::rng_seed_is_random())
+			tech_log("randomized seeding.\n");
+		else
+			tech_log(std::to_string(fig::Clock::rng_seed()) + ".\n\n");
 		tech_log("Invocation command:");
 		for (int i = 0 ; i < argc ; i++)
 			tech_log(std::string(" ") + argv[i]);

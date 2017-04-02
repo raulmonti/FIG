@@ -636,12 +636,12 @@ public:
     }
 
     /// Mark as an array declaration
-    virtual bool is_array() {
+	bool is_array() override {
         return (true);
     }
 
     /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	void accept(Visitor& visit) override;
 };
 
 /**
@@ -657,7 +657,7 @@ public:
                 shared_ptr<Exp> init) :
         ArrayDecl(type, id, size), Initialized {init} {}
     /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	void accept(Visitor& visit) override;
 };
 
 /**
@@ -674,7 +674,7 @@ public:
         ArrayDecl(type, id, size), MultipleInitialized {inits} {}
 
     /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	void accept(Visitor& visit) override;
 };
 
 /**
