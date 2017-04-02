@@ -5,6 +5,7 @@
 
 
 echo module repman_${1}
+echo
 echo "    xs_${1}[${2}] : bool init false;"
 echo "    busy_${1} : bool init false;"
 echo

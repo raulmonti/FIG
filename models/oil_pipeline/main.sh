@@ -2,19 +2,31 @@
 # $2 : consecutive broken pipes
 # $3 : fail distribution
 # $4 : repair distribution
-# $5 : output file name for model
-# $6 : output file name for props
+# $5 : output file name for model (and properties)
 # TODO enable seting consecutive broken pipes limit (now 4)
+
+# Check calling arguments
+if [ $# -ne 5 ]; then
+	echo "[ERROR] Invalid invocation, call with 5 arguments:"
+	echo "  1. Number of pipes                       (aka 'N', e.g. 60)"
+	echo "  2. Number of consecutive broken pipes    (aka 'K', e.g.  4)"
+	echo "  3. Fail distribution             (e.g. exponential(0.001) )"
+	echo "  4. Repair distribution           (e.g. lognormal(1.21,.64))"
+	echo "  5. Output filename               (e.g. \"oil_pipes_60_4.sa\")"
+	exit 1
+fi
 
 # Clear the old model if any.
 echo "" > ${5} 
-echo "" > ${6}
 
 # Macro
 END=$((${1}-${2}+1))
 
 #BUILD PIPES
-for i in $(seq 1 ${1}); do bash be.sh pipe$i $3 $4 >> $5 ; done
+for i in $(seq 1 ${1}); do
+	bash be.sh pipe$i $3 $4 >> $5;
+	echo -en "\n\n" >> $5;
+done
 
 #BUILD ANDS
 
@@ -27,7 +39,7 @@ bes=""
 for i in $(seq 1 ${1}); do
     bes=${bes}" pipe$i"
 done
-bash repman.sh "pepe" ${1} "$bes" >> $5;
+bash repman.sh "A" ${1} "$bes" >> $5;
 
 #BUILD THE OR TOP NODE
 #ands=""
@@ -43,15 +55,15 @@ bash repman.sh "pepe" ${1} "$bes" >> $5;
 #echo "    [repair_pipeline??] -> (sys_broken'=false);" >> $2;
 #echo "endmodule" >> $2;
 
-#BUILD PROPS FILE
-echo "S( " >> $6;
+#BUILD PROPERTIES
+echo -e "\n\nproperties\n  S( " >> $5;
 for i in $(seq 0 $((${END}-1))); do
-    clause="("
+    clause="    ("
     for j in $(seq 1 ${2}); do
         clause=$clause" broken_pipe$(($i+$j))>0 &"
     done
     clause=$clause" true ) |"
-    echo $clause >> $6;
+    echo "$clause" >> $5;
 done
-echo "false )" >> $6;
+echo -e "    false )\nendproperties" >> $5;
 
