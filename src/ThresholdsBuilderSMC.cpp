@@ -61,27 +61,35 @@ unsigned SIM_EFFORT = 1u<<6u; // 64
 unsigned NUM_FAILURES = 6u;
 
 // RNG for randomized traial selection  ///////////////////////////
-/// RNG seed selection:
-/// \ifnot RANDOM_RNG_SEED
-///   deterministic
-/// \else
-///   taken from the system's random device
-/// \endif
-#if   !defined RANDOM_RNG_SEED && !defined PCG_RNG
-  const unsigned long RNG_SEED(std::mt19937_64::default_seed);
-#elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
-  const unsigned long RNG_SEED(0xCAFEF00DD15EA5E5ull);  // PCG's default seed
-#elif  defined RANDOM_RNG_SEED && !defined PCG_RNG
-  unsigned long RNG_SEED(std::random_device{}());
-#else
-  pcg_extras::seed_seq_from<std::random_device> RNG_SEED;
-#endif
-/// \ifnot PCG_RNG Mersenne-Twister RNG \else PCG family RNG \endif
-#ifndef PCG_RNG
-  std::mt19937_64 RNG(RNG_SEED);
-#else
-  pcg64_oneseq RNG(RNG_SEED);
-#endif
+//
+const unsigned long RNG_SEED =
+    fig::Clock::rng_seed_is_random() ? std::random_device{}()
+                                     : std::mt19937_64::default_seed;
+std::mt19937 RNG(RNG_SEED);
+//
+//  TODO erase hazardous code commented out below
+//
+//  /// RNG seed selection:
+//  /// \ifnot RANDOM_RNG_SEED
+//  ///   deterministic
+//  /// \else
+//  ///   taken from the system's random device
+//  /// \endif
+//  #if   !defined RANDOM_RNG_SEED && !defined PCG_RNG
+//    const unsigned long RNG_SEED(std::mt19937_64::default_seed);
+//  #elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
+//    const unsigned long RNG_SEED(0xCAFEF00DD15EA5E5ull);  // PCG's default seed
+//  #elif  defined RANDOM_RNG_SEED && !defined PCG_RNG
+//    unsigned long RNG_SEED(std::random_device{}());
+//  #else
+//    pcg_extras::seed_seq_from<std::random_device> RNG_SEED;
+//  #endif
+//  /// \ifnot PCG_RNG Mersenne-Twister RNG \else PCG family RNG \endif
+//  #ifndef PCG_RNG
+//    std::mt19937_64 RNG(RNG_SEED);
+//  #else
+//    pcg64_oneseq RNG(RNG_SEED);
+//  #endif
 // ////////////////////////////////////////////////////////////////
 
 
