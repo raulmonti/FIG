@@ -84,13 +84,7 @@ do
 	R=${REDUNDANCY[i]}
 	show -n "  · for redundancy $R..."
 
-	# Generate importance functions to fit this experiment
-	MIN_OC=$(min_num_oc $R $NDC $NCT $NPT)
-	COMP_FUN_COA=$(comp_fun_coarse $R $NDC $NCT $NPT)  # Coarse
-	COMP_FUN_MED=$(comp_fun_med    $R $NDC $NCT $NPT)  # Medium
-	COMP_FUN_FIN=$(comp_fun_fine   $R $NDC $NCT $NPT)  # Fine
-
-	# Time limits and execution lines corresponding to this experiment
+	# Experiment's time limits
 	TB=${TIME_BOUNDS[i]}
 	if [ `compute_seconds $TB` -lt 600 ]  # Experiment TO: ifun + thr + sim
 	then
@@ -99,22 +93,30 @@ do
 		ETIMEOUT="${TB##*[0-9]}"
 		ETIMEOUT=$(bc -l <<< "scale=0; ${TB%%[a-z]*}*2/1")"$ETIMEOUT"
 	fi
+
+	# Experiment's importance functions
+	MIN_OC=$(min_num_oc $R $NDC $NCT $NPT)
+	COMP_FUN_COA=$(comp_fun_coarse $R $NDC $NCT $NPT)  # Coarse
+	COMP_FUN_MED=$(comp_fun_med    $R $NDC $NCT $NPT)  # Medium
+	COMP_FUN_FIN=$(comp_fun_fine   $R $NDC $NCT $NPT)  # Fine
+
+	# Experiment's execution commands
 	STOP_CRITERION="--stop-time $TB"  # Simulation only TO
-	STANDARD_MC="--flat -e nosplit $STOP_CRITERION"
-	RESTART_ADHOC="--adhoc $MIN_OC $STOP_CRITERION"
 	RESTART_ACOMP1="--acomp \"+\" $STOP_CRITERION"
 	RESTART_ACOMP2="--acomp $COMP_FUN_COA $STOP_CRITERION --post-process exp 2"
 	RESTART_ACOMP3="--acomp $COMP_FUN_MED $STOP_CRITERION --post-process exp 2"
 	RESTART_ACOMP4="--acomp $COMP_FUN_FIN $STOP_CRITERION --post-process exp 2"
+	RESTART_ADHOC="--adhoc $MIN_OC $STOP_CRITERION"
+	STANDARD_MC="--flat -e nosplit $STOP_CRITERION"
 
-	# Generate model and properties files to fit this experiment
+	# Experiment's model and properties
 	MODEL_FILE=${EXPNAME}_r${R}.sa
 	LOG=${RESULTS}/${EXPNAME}_r${R}
 	bash $EXP_GEN $R $NDC $NCT $NPT $MFT >$MODEL_FILE
 	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE"`
 
 	# Launch a job for each splitting value (improves load balance)
-	for s in "${SPLITS[@]}"
+	for s in "${SPLITS[@]}";
 	do
 		# RESTART with monolithic (auto ifun) experiments are omitted
 		# since the importance vector wouldn't fit in memory

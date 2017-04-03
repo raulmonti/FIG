@@ -13,7 +13,7 @@
 
 # Max number of continuously broken nodes (aka oil pumps)
 # Intended for ad hoc ifun
-max_continuous_failures() {
+max_continuous_failures_adhoc() {
 	if [ $# -ne 2 ]; then
 		echo "[ERROR] Requires # of nodes and # of consecutive failures"
 		echo "        that make up a system failure (aka 'N' and 'K')"
@@ -31,9 +31,29 @@ max_continuous_failures() {
 	echo $EXPR
 }
 
+# Max number of continuously broken nodes (aka oil pumps)
+# Intended for acomp ifun
+max_continuous_failures_acomp() {
+	if [ $# -ne 2 ]; then
+		echo "[ERROR] Requires # of nodes and # of consecutive failures"
+		echo "        that make up a system failure (aka 'N' and 'K')"
+		return 1
+	fi
+	local N=$1
+	local K=$2
+	local ECHO=`echo "echo -en"`
+	EXPR="max( "
+	for (( i=1 ; i<=N-K+1 ; i++ )) do
+		CLUSTER=`printf "BE_pipe%d+" $(seq $i $((i+K-1)))`
+		EXPR+=$CLUSTER"0, "
+	done
+	EXPR+="0);0;$K"
+	echo $EXPR
+}
+
 # Add the product of the number of continuously broken nodes
 # Inteded for acomp ifun
-sum_continuous_failures() {
+sum_continuous_failures_acomp() {
 	if [ $# -ne 2 ]; then
 		echo "[ERROR] Requires # of nodes and # of consecutive failures"
 		echo "        that make up a system failure (aka 'N' and 'K')"
