@@ -13,7 +13,7 @@ if [ $# -ne 5 ]; then
 	echo "  1. Number of pipes                       (aka 'N', e.g. 60)"
 	echo "  2. Number of consecutive broken pipes    (aka 'K', e.g.  4)"
 	echo "  3. Fail distribution             (e.g. exponential(0.001) )"
-	echo "  4. Repair distribution           (e.g. lognormal(1.21,.64))"
+	echo "  4. Repair distribution           (e.g. lognormal(1.21,0.8))"
 	echo "  5. Output filename               (e.g. \"oil_pipes_60_4.sa\")"
 	exit 1
 fi

@@ -23,17 +23,6 @@ then
 	show "[ERROR] Bash function \"copy_model_file\" is undefined"
 	exit 1;
 fi
-source "$CWD/../ifuns.sh" || \
-	(show "[ERROR] Couldn't find ifuns.sh" && exit 1)
-if [[ "$(type -t max_continuous_failures)" != "function" ]]
-then
-	show "[ERROR] Bash function \"max_continuous_failures\" is undefined"
-	exit 1;
-elif [[ "$(type -t sum_continuous_failures)" != "function" ]]
-then
-	show "[ERROR] Bash function \"sum_continuous_failures\" is undefined"
-	exit 1;
-fi
 
 
 # Build project
@@ -54,67 +43,38 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-PARAM_N=(20 40 60)
-PARAM_K=(3 4 5 6)
-TIME_BOUNDS=(90m 180m 6h 10h)  # one per vale in $PARAM_K
-CONF=0.9  # Confidence coefficient
-PREC=0.2  # Relative precision
-SPLITS=(2 5 10 15)  # RESTART splittings to test
-EXPNAME="oilpipe"
+TO="16h"
+CONF=0.8  # Confidence coefficient
+PREC=0.4  # Relative precision
+SPLITS=(2 3 6)  # RESTART splittings to test
+EXPNAME="oil_pipeline"
 #
-show "Configuring experiments"
+show "Configuring experiments for pipelines with 60 pumps"
 SPLITTING="--splitting "
 for S in "${SPLITS[@]}"; do SPLITTING+="$S,"; done; SPLITTING="${SPLITTING%,}"
 STOP_CRITERION="--stop-conf $CONF $PREC"
-## ETIMEOUT="${TO##*[0-9]}"  # Timeout per experiment (one ifun, all splits)
-## ETIMEOUT=$(bc <<< "${TO%%[a-z]*}*${#SPLITS[@]}*2")"$ETIMEOUT"
-## show "Timeouts: $TO per split; $ETIMEOUT per experiment"
-## # Exponential failure rates
-## E_LIFE_TIME_DISTRIB_PARAM=(0.001 0.0003 0.0001)
-## # Weibull failure rates with same mean as exp:
-## # 1/0.001 = sigma*sqrt(pi/2) -> sigma = 798
-## W_LIFE_TIME_DISTRIB_PARAM=(798 2659.615 7978.845)
+ETIMEOUT="${TO##*[0-9]}"  # Timeout per experiment (one ifun, all splits)
+ETIMEOUT=$(bc <<< "${TO%%[a-z]*}*${#SPLITS[@]}*2")"$ETIMEOUT"
+show "Timeouts: $TO per split; $ETIMEOUT per experiment"
+# Exponential failure rates
+E_LIFE_TIME_DISTRIB_PARAM=(0.001 0.0003 0.0001)
+# Weibull failure rates with same mean as exp:
+# 1/0.001 = sigma*sqrt(pi/2) -> sigma = 798
+W_LIFE_TIME_DISTRIB_PARAM=(798 2659.615 7978.845)
 
 #for i in {1..57}; do echo -n max\(N$(($i))+N$(($i+1))+N$(($i+2))+N$(($i+3)), ; done; for i in {1..57}; do echo -n \); done; echo ";0;4";
 MAX_4="max(N1+N2+N3+N4,max(N2+N3+N4+N5,max(N3+N4+N5+N6,max(N4+N5+N6+N7,max(N5+N6+N7+N8,max(N6+N7+N8+N9,max(N7+N8+N9+N10,max(N8+N9+N10+N11,max(N9+N10+N11+N12,max(N10+N11+N12+N13,max(N11+N12+N13+N14,max(N12+N13+N14+N15,max(N13+N14+N15+N16,max(N14+N15+N16+N17,max(N15+N16+N17+N18,max(N16+N17+N18+N19,max(N17+N18+N19+N20,max(N18+N19+N20+N21,max(N19+N20+N21+N22,max(N20+N21+N22+N23,max(N21+N22+N23+N24,max(N22+N23+N24+N25,max(N23+N24+N25+N26,max(N24+N25+N26+N27,max(N25+N26+N27+N28,max(N26+N27+N28+N29,max(N27+N28+N29+N30,max(N28+N29+N30+N31,max(N29+N30+N31+N32,max(N30+N31+N32+N33,max(N31+N32+N33+N34,max(N32+N33+N34+N35,max(N33+N34+N35+N36,max(N34+N35+N36+N37,max(N35+N36+N37+N38,max(N36+N37+N38+N39,max(N37+N38+N39+N40,max(N38+N39+N40+N41,max(N39+N40+N41+N42,max(N40+N41+N42+N43,max(N41+N42+N43+N44,max(N42+N43+N44+N45,max(N43+N44+N45+N46,max(N44+N45+N46+N47,max(N45+N46+N47+N48,max(N46+N47+N48+N49,max(N47+N48+N49+N50,max(N48+N49+N50+N51,max(N49+N50+N51+N52,max(N50+N51+N52+N53,max(N51+N52+N53+N54,max(N52+N53+N54+N55,max(N53+N54+N55+N56,max(N54+N55+N56+N57,max(N55+N56+N57+N58,max(N56+N57+N58+N59,N57+N58+N59+N60))))))))))))))))))))))))))))))))))))))))))))))))))))))));0;4"
 
-STANDARD_MC="--flat $STOP_CRITERION --timeout $TO"
-## RESTART_ADHOC4="--adhoc ${MAX_4} $STOP_CRITERION $SPLITTING --timeout $TO"
-## RESTART_ADHOC6="--adhoc ${MAX_6} $STOP_CRITERION $SPLITTING --timeout $TO"
-RESTART_ACOMP1="--acomp \'+\' $STOP_CRITERION $SPLITTING --timeout $TO"
-RESTART_ACOMP2="--acomp \'*\' --post-process exp 2 $STOP_CRITERION $SPLITTING --timeout $TO"
+#for i in {1..55}; do echo -n max\(N$(($i))+N$(($i+1))+N$(($i+2))+N$(($i+3))+N$(($i+4))+N$(($i+5)), ; done; for i in {1..55}; do echo -n \); done; echo ";0;6";
+MAX_6="max(N1+N2+N3+N4+N5+N6,max(N2+N3+N4+N5+N6+N7,max(N3+N4+N5+N6+N7+N8,max(N4+N5+N6+N7+N8+N9,max(N5+N6+N7+N8+N9+N10,max(N6+N7+N8+N9+N10+N11,max(N7+N8+N9+N10+N11+N12,max(N8+N9+N10+N11+N12+N13,max(N9+N10+N11+N12+N13+N14,max(N10+N11+N12+N13+N14+N15,max(N11+N12+N13+N14+N15+N16,max(N12+N13+N14+N15+N16+N17,max(N13+N14+N15+N16+N17+N18,max(N14+N15+N16+N17+N18+N19,max(N15+N16+N17+N18+N19+N20,max(N16+N17+N18+N19+N20+N21,max(N17+N18+N19+N20+N21+N22,max(N18+N19+N20+N21+N22+N23,max(N19+N20+N21+N22+N23+N24,max(N20+N21+N22+N23+N24+N25,max(N21+N22+N23+N24+N25+N26,max(N22+N23+N24+N25+N26+N27,max(N23+N24+N25+N26+N27+N28,max(N24+N25+N26+N27+N28+N29,max(N25+N26+N27+N28+N29+N30,max(N26+N27+N28+N29+N30+N31,max(N27+N28+N29+N30+N31+N32,max(N28+N29+N30+N31+N32+N33,max(N29+N30+N31+N32+N33+N34,max(N30+N31+N32+N33+N34+N35,max(N31+N32+N33+N34+N35+N36,max(N32+N33+N34+N35+N36+N37,max(N33+N34+N35+N36+N37+N38,max(N34+N35+N36+N37+N38+N39,max(N35+N36+N37+N38+N39+N40,max(N36+N37+N38+N39+N40+N41,max(N37+N38+N39+N40+N41+N42,max(N38+N39+N40+N41+N42+N43,max(N39+N40+N41+N42+N43+N44,max(N40+N41+N42+N43+N44+N45,max(N41+N42+N43+N44+N45+N46,max(N42+N43+N44+N45+N46+N47,max(N43+N44+N45+N46+N47+N48,max(N44+N45+N46+N47+N48+N49,max(N45+N46+N47+N48+N49+N50,max(N46+N47+N48+N49+N50+N51,max(N47+N48+N49+N50+N51+N52,max(N48+N49+N50+N51+N52+N53,max(N49+N50+N51+N52+N53+N54,max(N50+N51+N52+N53+N54+N55,max(N51+N52+N53+N54+N55+N56,max(N52+N53+N54+N55+N56+N57,max(N53+N54+N55+N56+N57+N58,max(N54+N55+N56+N57+N58+N59,N55+N56+N57+N58+N59+N60))))))))))))))))))))))))))))))))))))))))))))))))))))));0;6"
+
+STANDARD_MC="-e nosplit --flat $STOP_CRITERION -t fix --timeout $TO"
+RESTART_ADHOC4="--adhoc ${MAX_4} $STOP_CRITERION $SPLITTING -t fix --timeout $TO"
+RESTART_ADHOC6="--adhoc ${MAX_6} $STOP_CRITERION $SPLITTING -t fix --timeout $TO"
+RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION $SPLITTING -t fix --timeout $TO"
 
 # Launch experiments
-show "Launching experiments (exponential MFT):"
-for N in "${PARAM_N}"; do
-for (( i=0 ; i<${#PARAM_K[*]} ; i++ ));
-do
-	K=${PARAM_K[i]}
-	show -n "  · for $K-out-of-$N ..."
-
-	# Time limits and execution lines corresponding to this experiment
-	TB=${TIME_BOUNDS[i]}
-	if [ `compute_seconds $TB` -lt 600 ]  # Experiment TO: ifun + thr + sim
-	then
-		ETIMEOUT="10m"
-	else
-		ETIMEOUT="${TB##*[0-9]}"
-		ETIMEOUT=$(bc -l <<< "scale=0; ${TB%%[a-z]*}*2/1")"$ETIMEOUT"
-	fi
-
-	# Generate importance functions to fit this experiment
-	MAX_CONT_FAILS=$(max_continuous_failures $N $K)
-	SUM_CONT_FAILS=$(sum_continuous_failures $N $K)
-
-	# TODO fill me up!
-
-done
-done
-
-
-# TODO erase selectively from here downwards
-
-
+show "Launching experiments:"
 for eltdp in "${E_LIFE_TIME_DISTRIB_PARAM[@]}"
 do
 	show -n "  · for 4-out-of-60:F with Exponentials..."
