@@ -382,8 +382,8 @@ public:  // Utils
 	 * @param elapsedTime  Time lapse for the clock to expire
 	 * @param traial       Instance of Traial to update
 	 *
-	 * @return Pointer to output label fired by the transition taken.
-	 *         If none was enabled then 'tau' is returned.
+	 * @return Output label fired by the transition taken.
+	 *         If none was enabled then a "should_ignore" label is returned.
 	 *
 	 * @note <b>Complexity:</b> <i>O(t*v+c)</i>, where
 	 *       <ul>
@@ -398,6 +398,9 @@ public:  // Utils
 	 * \ifnot NDEBUG
 	 *   @throw FigException if the module hasn't been sealed yet
 	 * \endif
+	 *
+	 * @see jump(const Label&, const CLOCK_INTERNAL_TYPE&, Traial&)
+	 * @see jump_committed(Traial&)
 	 */
 	const Label& jump(const Traial::Timeout& to,
 					  Traial& traial) const;
@@ -422,6 +425,9 @@ public:  // Utils
 	 * \ifnot NDEBUG
 	 *   @throw FigException if the module hasn't been sealed yet
 	 * \endif
+	 *
+	 * @see jump(const Traial::Timeout&, Traial&)
+	 * @see jump_committed(const Label&, Traial&)
 	 */
 	void jump(const Label& label,
 			  const CLOCK_INTERNAL_TYPE& elapsedTime,
@@ -447,15 +453,51 @@ public:  // Utils
 	 */
 	void jump(const Label& label, State<STATE_INTERNAL_TYPE>& state) const;
 
-    /** @brief Receives and process an output-committed label broadcasted
-     *         by the module network.
-     * @note If there is a transition in this module with
-     * the same input-committed label and its precondition
-     * is enabled, then this will apply the postcondition
-     * to the given traial. If no such transition exists, this
-     * method does nothing.
-     */
-	void jump_committed(const Label &label, Traial &traial) const;
+	/**
+	 * @brief Active module jump executing an output-committed transition
+	 *
+	 *        Check whether there's an output-committed transition whose
+	 *        precondition is satisfied by the current state of \p traial.
+	 *        If so, the transition's postcondition is applied and the
+	 *        corresponding output-committed action is returned.
+	 *        Otherwise nothing is done.
+	 *
+	 * @param traial  Instance of Traial to update
+	 *
+	 * @return Output-committed label fired by the transition taken.
+	 *         If none was enabled then a "should_ignore" label is returned.
+	 *
+	 * @warning seal() must have been called beforehand
+	 * \ifnot NDEBUG
+	 *   @throw FigException if the module hasn't been sealed yet
+	 * \endif
+	 *
+	 * @see jump_committed(const Label&, Traial&)
+	 * @see jump(const Traial::Timeout&, Traial&)
+	 */
+	 const Label& jump_committed(Traial& traial);
+
+	/**
+	 * @brief Passive module jump executing an input-committed transition
+	 *
+	 *        Receives and processes an output-committed label broadcasted
+	 *        by the module network. If there is a transition in this module
+	 *        with the same input-committed label and its precondition
+	 *        is enabled, this will apply the postcondition to the given traial.
+	 *        Otherwise nothing is done.
+	 *
+	 * @param label   Output-committed label triggered by current active jump
+	 * @param traial  Instance of Traial to update
+	 *
+	 * @warning seal() must have been called beforehand
+	 * \ifnot NDEBUG
+	 *   @throw FigException if the module hasn't been sealed yet
+	 * \endif
+	 *
+	 * @see jump_committed(Traial&)
+	 * @see jump(const Label&, const CLOCK_INTERNAL_TYPE&, Traial&)
+	 */
+	void jump_committed(const Label& label, Traial& traial) const;
 
 private:  // Class utils
 

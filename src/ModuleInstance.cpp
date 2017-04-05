@@ -285,7 +285,7 @@ ModuleInstance::jump(const Traial::Timeout& to,
 			return tr.label();
 		}
 	}
-    // No transition was enabled => advance all clocks and broadcast tau
+	// No transition was enabled => advance all clocks and broadcast should_ignore label
 	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
     return ::NoLabel;
 }
@@ -298,11 +298,14 @@ ModuleInstance::apply_postcondition(const CLOCK_INTERNAL_TYPE& elapsedTime,
 {
     // iterate over transitions vector
     for (const Transition &tr : transitions) {
-        if (tr.pre(traial.state)) { // If the traial satisfies this precondition
-            tr.pos(traial.state); // apply postcondition to its state
-            auto begin_ = begin(lClocks_); // and update clocks according to it.
-            auto end_ = end(lClocks_);
-            tr.handle_clocks(traial, begin_, end_, firstClock_, elapsedTime);
+		if (tr.pre(traial.state)) {  // If the traial satisfies this precondition
+			tr.pos(traial.state);    // apply postcondition to its state
+			tr.handle_clocks(        // and update clocks according to it.
+				traial,
+				begin(lClocks_),
+				end(lClocks_),
+				firstClock_,
+				elapsedTime);
             return (true);
             // At most one transition could've been enabled, trust IOSA Checking
         }
@@ -321,9 +324,8 @@ ModuleInstance::jump(const Label& label,
 		throw_FigException("this module hasn't been sealed yet");
 #endif
     assert(label.is_output() || label.is_tau() || label.should_ignore());
-    if (label.should_ignore()) {
-        return; //we do what we should.
-    }
+	if (label.should_ignore())
+		return;  // we are obedient and do as we're told
     bool done = false;
 	const auto iter = transitions_by_label_.find(label.str);
     // Foreign labels and taus won't touch us
@@ -384,6 +386,31 @@ ModuleInstance::jump(const Label& label,
 }
 
 
+const Label&
+ModuleInstance::jump_committed(Traial& traial)
+{
+#ifndef NDEBUG
+	if (!sealed_)
+		throw_FigException("this module hasn't been sealed yet");
+#endif
+	/// @todo TODO don't iterate over all transitions; filter out_committed
+	///            transitions and iterate over them
+	for (Transition& tr: transitions_) {
+		if (tr.label().is_out_committed() && tr.pre(traial.state)) {
+			tr.pos(traial.state);
+			tr.handle_clocks(traial,
+							 begin(lClocks_),
+							 end(lClocks_),
+							 firstClock_,
+							 static_cast<CLOCK_INTERNAL_TYPE>(0.0));
+			return tr.label();
+		}
+	}
+	// No output-committed transition was enabled => broadcast should_ignore label
+	return ::NoLabel;
+}
+
+
 void
 ModuleInstance::jump_committed(const Label &label, Traial &traial) const
 {
@@ -391,8 +418,10 @@ ModuleInstance::jump_committed(const Label &label, Traial &traial) const
 	if (!sealed_)
         throw_FigException("this module hasn't been sealed yet");
 #endif
-    assert(label.is_out_committed());
-    //find transitions with the given label
+	assert(label.is_out_committed() || label.should_ignore());
+	if (label.should_ignore())
+		return;  // we are obedient and do as we're told
+	//find transitions with the given label
     const auto iter = transitions_by_label_.find(label.str);
     if (iter != transitions_by_label_.end()) {
         const auto& transitions = iter->second;

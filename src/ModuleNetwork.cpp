@@ -256,30 +256,18 @@ bool
 ModuleNetwork::process_committed_once(Traial &traial) const
 {
     bool found = false;
-    auto modules_it = modules.begin();
-	// For every module...
-    while (modules_it != modules.end() &&
-	       (*modules_it)->has_committed_actions() && !found) {
-        auto& transitions = (*modules_it)->transitions_;
-        auto tr_it = transitions.begin();
-		// ... for every transition of the module ...
-		while (tr_it != transitions.end() && !found) {
-            const Transition& tr = *tr_it;
-            const Label &label = tr.label();
-			// ... check if there is an enabled output-committed transition ...
-            if (label.is_out_committed() && tr.precondition()(traial.state)) {
-				// ... apply postcondition ...
-                tr.postcondition()(traial.state);
-				found = true;
-				// ... and broadcast committed output to all other modules
-				for (auto module_ptr : modules)
-                    module_ptr->jump_committed(label, traial);
-            }
-            tr_it++;
-        }
-		modules_it++;
+	for (shared_ptr<ModuleInstance> module_ptr : modules) {
+		if (!module_ptr->has_committed_actions())
+			continue;
+		const Label& committedLabel = module_ptr->jump_committed(traial);
+		if (committedLabel.should_ignore())
+			continue;
+		for (auto module_ptr_passive: modules)
+			module_ptr_passive->jump_committed(committedLabel, traial);
+		found = true;
+		break;
 	}
-    return (found);
+	return found;
 }
 
 
@@ -288,10 +276,8 @@ ModuleNetwork::process_committed(Traial &traial) const {
     if (!this->has_committed_) {
         return;
     }
-    while (process_committed_once(traial)) {
-        //repeat until no committed action enabled
-        ;
-    }
+	while (process_committed_once(traial))
+		;  // repeat until no committed actions are enabled
 }
 
 
@@ -306,24 +292,26 @@ Event ModuleNetwork::simulation_step(Traial& traial,
     assert(sealed());
     Event e(EventType::NONE);
 
-    // Jump...
-    do {
-		// First process committed actions
-		// (this could reset clocks and change next timeout)
-		process_committed(traial);
-		// Now process timed actions
+	// Start up processing the initial commited actions
+	// (this could reset clocks and change next timeout)
+	process_committed(traial);
+
+	// Now, until a relevant event is observed...
+	while ( !(engine.*watch_events)(property, traial, e) ) {
+		// ...process timed actions...
 		const Traial::Timeout& to = traial.next_timeout();
-        const float elapsedTime(to.value);
-        assert(0.0f <= elapsedTime);
-        // Active jump in the module whose clock timed-out
-        const Label& label = to.module->jump(to, traial);
-        // Passive jumps in all modules listening to label
-        for (auto module_ptr: modules)
-            if (module_ptr->name != to.module->name)
-                module_ptr->jump(label, elapsedTime, traial);
-        traial.lifeTime += elapsedTime;
-	// ...until a relevant event is observed
-    } while ( !(engine.*watch_events)(property, traial, e) );
+		const float elapsedTime(to.value);
+		assert(0.0f <= elapsedTime);
+		// ...do active jump in the module whose clock timed-out...
+		const Label& label = to.module->jump(to, traial);
+		// ...do passive jumps in all modules listening to label...
+		for (auto module_ptr: modules)
+			if (module_ptr->name != to.module->name)
+				module_ptr->jump(label, elapsedTime, traial);
+		traial.lifeTime += elapsedTime;
+		// ...and process any newly activated committed action.
+		process_committed(traial);
+	}
 
     return e;
 }
