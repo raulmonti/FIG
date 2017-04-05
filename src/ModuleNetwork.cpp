@@ -256,30 +256,48 @@ bool
 ModuleNetwork::process_committed_once(Traial &traial) const
 {
     bool found = false;
-    auto modules_it = modules.begin();
+//	auto modules_it = modules.begin();
 	// For every module...
-    while (modules_it != modules.end() &&
-	       (*modules_it)->has_committed_actions() && !found) {
-        auto& transitions = (*modules_it)->transitions_;
-        auto tr_it = transitions.begin();
-		// ... for every transition of the module ...
-		while (tr_it != transitions.end() && !found) {
-            const Transition& tr = *tr_it;
-            const Label &label = tr.label();
-			// ... check if there is an enabled output-committed transition ...
-            if (label.is_out_committed() && tr.precondition()(traial.state)) {
-				// ... apply postcondition ...
-                tr.postcondition()(traial.state);
-				found = true;
-				// ... and broadcast committed output to all other modules
-				for (auto module_ptr : modules)
-                    module_ptr->jump_committed(label, traial);
-            }
-            tr_it++;
-        }
-		modules_it++;
+//	while (modules_it != modules.end() &&
+//	       (*modules_it)->has_committed_actions() && !found) {
+	/// @bug FIXME: the loop condition above stops all checks as soon as
+	///             as a single module without committed actions is found
+	///             That should not be so!
+	///             It's OK to skip checks for modules without committed actions,
+	///             but do check the whole lot.
+
+	for (shared_ptr<ModuleInstance> module_ptr : modules) {
+		if (!module_ptr->has_committed_actions())
+			continue;
+		const Label& committedLabel = module_ptr->jump_committed(traial);
+		if (committedLabel.should_ignore())
+			continue;
+		for (auto module_ptr_passive: modules)
+			module_ptr_passive->jump_committed(committedLabel, traial);
+		found = true;
+		break;
+//		auto& transitions = module_ptr->transitions_;
+//        auto tr_it = transitions.begin();
+//		// ... for every transition of the module ...
+//		while (tr_it != transitions.end() && !found) {
+//            const Transition& tr = *tr_it;
+//            const Label &label = tr.label();
+//			// ... check if there is an enabled output-committed transition ...
+//			if (label.is_out_committed() &&
+//				module_ptr
+//					tr.precondition()(traial.state)) {
+//				// ... apply postcondition ...
+//                tr.postcondition()(traial.state);
+//				found = true;
+//				// ... and broadcast committed output to all other modules
+//				for (auto module_ptr : modules)
+//                    module_ptr->jump_committed(label, traial);
+//            }
+//            tr_it++;
+//        }
+//		modules_it++;
 	}
-    return (found);
+	return found;
 }
 
 
@@ -288,10 +306,8 @@ ModuleNetwork::process_committed(Traial &traial) const {
     if (!this->has_committed_) {
         return;
     }
-    while (process_committed_once(traial)) {
-        //repeat until no committed action enabled
-        ;
-    }
+	while (process_committed_once(traial))
+		;  // repeat until no committed actions are enabled
 }
 
 
