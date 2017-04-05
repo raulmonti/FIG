@@ -256,16 +256,6 @@ bool
 ModuleNetwork::process_committed_once(Traial &traial) const
 {
     bool found = false;
-//	auto modules_it = modules.begin();
-	// For every module...
-//	while (modules_it != modules.end() &&
-//	       (*modules_it)->has_committed_actions() && !found) {
-	/// @bug FIXME: the loop condition above stops all checks as soon as
-	///             as a single module without committed actions is found
-	///             That should not be so!
-	///             It's OK to skip checks for modules without committed actions,
-	///             but do check the whole lot.
-
 	for (shared_ptr<ModuleInstance> module_ptr : modules) {
 		if (!module_ptr->has_committed_actions())
 			continue;
@@ -276,26 +266,6 @@ ModuleNetwork::process_committed_once(Traial &traial) const
 			module_ptr_passive->jump_committed(committedLabel, traial);
 		found = true;
 		break;
-//		auto& transitions = module_ptr->transitions_;
-//        auto tr_it = transitions.begin();
-//		// ... for every transition of the module ...
-//		while (tr_it != transitions.end() && !found) {
-//            const Transition& tr = *tr_it;
-//            const Label &label = tr.label();
-//			// ... check if there is an enabled output-committed transition ...
-//			if (label.is_out_committed() &&
-//				module_ptr
-//					tr.precondition()(traial.state)) {
-//				// ... apply postcondition ...
-//                tr.postcondition()(traial.state);
-//				found = true;
-//				// ... and broadcast committed output to all other modules
-//				for (auto module_ptr : modules)
-//                    module_ptr->jump_committed(label, traial);
-//            }
-//            tr_it++;
-//        }
-//		modules_it++;
 	}
 	return found;
 }
@@ -322,24 +292,26 @@ Event ModuleNetwork::simulation_step(Traial& traial,
     assert(sealed());
     Event e(EventType::NONE);
 
-    // Jump...
-    do {
-		// First process committed actions
-		// (this could reset clocks and change next timeout)
-		process_committed(traial);
-		// Now process timed actions
+	// Start up processing the initial commited actions
+	// (this could reset clocks and change next timeout)
+	process_committed(traial);
+
+	// Now, until a relevant event is observed...
+	while ( !(engine.*watch_events)(property, traial, e) ) {
+		// ...process timed actions...
 		const Traial::Timeout& to = traial.next_timeout();
-        const float elapsedTime(to.value);
-        assert(0.0f <= elapsedTime);
-        // Active jump in the module whose clock timed-out
-        const Label& label = to.module->jump(to, traial);
-        // Passive jumps in all modules listening to label
-        for (auto module_ptr: modules)
-            if (module_ptr->name != to.module->name)
-                module_ptr->jump(label, elapsedTime, traial);
-        traial.lifeTime += elapsedTime;
-	// ...until a relevant event is observed
-    } while ( !(engine.*watch_events)(property, traial, e) );
+		const float elapsedTime(to.value);
+		assert(0.0f <= elapsedTime);
+		// ...do active jump in the module whose clock timed-out...
+		const Label& label = to.module->jump(to, traial);
+		// ...do passive jumps in all modules listening to label...
+		for (auto module_ptr: modules)
+			if (module_ptr->name != to.module->name)
+				module_ptr->jump(label, elapsedTime, traial);
+		traial.lifeTime += elapsedTime;
+		// ...and process any newly activated committed action.
+		process_committed(traial);
+	}
 
     return e;
 }
