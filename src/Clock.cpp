@@ -160,7 +160,7 @@ pcg_extras::seed_seq_from<std::random_device> PCG_nondet_RNG;
 /// \else
 ///   deterministic (RNG's default)
 /// \endif
-unsigned long rngSeed =
+static unsigned long rngSeed =
 #if   !defined RANDOM_RNG_SEED && !defined PCG_RNG
   std::mt19937_64::default_seed;
 #elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
@@ -188,7 +188,7 @@ std::unordered_map< std::string, std::shared_ptr< BasicRNG > > RNGs =
 /// Default RNG: \if PCG_RNG PCG-family \else Mersenne-Twister (C++ STL) \endif
 /// @note This must match the keys of the entries in the
 ///       \ref ::RNGs "RNGs" unordered_map.
-std::string rngType =
+static std::string rngType =
 #ifndef PCG_RNG
   "mt64";
 #elif !defined NDEBUG
