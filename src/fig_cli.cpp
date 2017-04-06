@@ -115,9 +115,9 @@ const std::string versionStrLong(
 #ifdef RANDOM_RNG_SEED
 		"randomized seeding"
 #elif defined PCG_RNG
-		std::to_string(0xCAFEF00DD15EA5E5ull)  // PCG's default seed
+		"seed: " + std::to_string(0xCAFEF00DD15EA5E5ull)  // PCG's default seed
 #else
-		std::to_string(std::mt19937_64::default_seed)
+		"seed: " + std::to_string(std::mt19937_64::default_seed)
 #endif
 	+ ")\n");
 
@@ -311,7 +311,7 @@ ValueArg<string> rngType_(
 	"r", "rng",
 	"Specify the pseudo Random Number Generator (aka RNG) to use for "
 	"sampling the time values of clocks",
-	false, fig::Clock::rng_type().c_str(), &RNGConstraints);
+	false, fig::Clock::DEFAULT_RNG, &RNGConstraints);
 
 // User-specified seed for RNG
 ValueArg<string> rngSeed_(
