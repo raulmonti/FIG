@@ -261,7 +261,7 @@ public:  // Populating facilities and other modifyers
 	 *
 	 * @throw FigException if invalid rngType is specified
 	 */
-	void set_rng(const std::string& rngType, const size_t& rngSeed);
+	void set_rng(const std::string& rngType, const size_t& rngSeed = Clock::DEFAULT_RNG_SEED);
 
 public:  // Accessors
 
