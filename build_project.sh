@@ -145,7 +145,7 @@ fi
 if [ ! -d $BUILD_DIR ]; then mkdir $BUILD_DIR; fi
 cd $BUILD_DIR
 #OPTS="$OPTS -DRELEASE=ON"      # Cmake build options, see CMakeLists.txt
-#OPTS="$OPTS -DBUILTIN_RNG=ON"  # Cmake build options, see CMakeLists.txt
+OPTS="$OPTS -DBUILTIN_RNG=ON"  # Cmake build options, see CMakeLists.txt
 NJOBS=$(2>/dev/null bc <<< "2*`nproc --all`")
 if [ -z "$NJOBS" ]; then NJOBS=2; fi
 CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \

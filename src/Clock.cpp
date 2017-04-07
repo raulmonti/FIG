@@ -160,7 +160,7 @@ pcg_extras::seed_seq_from<std::random_device> PCG_nondet_RNG;
 /// \else
 ///   deterministic (RNG's default)
 /// \endif
-static unsigned long rngSeed =
+unsigned long rngSeed =
 #if   !defined RANDOM_RNG_SEED && !defined PCG_RNG
   std::mt19937_64::default_seed;
 #elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
@@ -185,10 +185,10 @@ std::unordered_map< std::string, std::shared_ptr< BasicRNG > > RNGs =
 };
 
 /// Current RNG
-static std::string rngType(fig::Clock::DEFAULT_RNG);
+std::string rngType(fig::Clock::DEFAULT_RNG);
 
 /// RNG instance
-static auto rng = RNGs[rngType];
+auto rng = RNGs[rngType];
 
 
 /// Random deviate ~ Uniform[a,b]<br>
