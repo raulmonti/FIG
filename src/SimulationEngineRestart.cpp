@@ -275,7 +275,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		(this->*watch_events)(property, traial, e);
 		if (IS_RARE_EVENT(e)) {
 			// We are? Then register rare time
-			assert(static_cast<ImportanceValue>(0) < traial.level
+			assert(impFun_->importance_of(traial.state) > static_cast<ImportanceValue>(0)
 				   || impFun_->strategy() == "adhoc");
 			const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // reduce fp prec. loss
 			traial.lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
