@@ -464,13 +464,8 @@ ModelSuite::set_timeout(const seconds& timeLimit)
 		throw_FigException("ModelSuite hasn't been sealed yet");
 	timeout_ = timeLimit;
 	// Show in tech log
-	const unsigned hours(timeLimit.count()/3600u);
-	const unsigned minutes((timeLimit.count()%3600)/60);
-	const unsigned seconds(timeLimit.count()%60);
-	char timeStr[9] = {'\0'};
-	std::sprintf(timeStr, "%02u:%02u:%02u", hours, minutes, seconds);
 	if (timeLimit.count() > 0l)
-		tech_log("Timeout set to " + std::string(timeStr) + "\n");
+		tech_log("Timeout set to " + get_timeout_str() + "\n");
 	else
 		tech_log("Timeout was unset\n");
 }
@@ -515,6 +510,18 @@ const seconds&
 ModelSuite::get_timeout() const noexcept
 {
 	return timeout_;
+}
+
+
+std::string
+ModelSuite::get_timeout_str() const noexcept
+{
+	const unsigned hours(timeout_.count()/3600u);
+	const unsigned minutes((timeout_.count()%3600)/60);
+	const unsigned seconds(timeout_.count()%60);
+	char timeStr[9] = {'\0'};
+	std::sprintf(timeStr, "%02u:%02u:%02u", hours, minutes, seconds);
+	return timeStr;
 }
 
 
@@ -1123,6 +1130,8 @@ ModelSuite::estimate_for_confs(const Property& property,
 			mainLog_ << std::setprecision(0) << std::fixed << (100*precVal) << "%\n";
 		else
 			mainLog_ << std::setprecision(2) << std::scientific << (2*precVal) << "\n";
+		if (timeout_.count() > 0l)
+			mainLog_ << "   Timeout: " << get_timeout_str() << "\n";
 		mainLog_ << "   RNG seed: " << Clock::rng_seed()
 		         << (Clock::rng_seed_is_random() ? (" (randomized)\n") : ("\n"));
 
