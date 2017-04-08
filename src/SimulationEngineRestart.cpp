@@ -31,6 +31,7 @@
 #include <cmath>
 // C++
 #include <stack>
+#include <deque>
 #include <iterator>
 #include <algorithm>  // std::fill
 // FIG
@@ -254,13 +255,14 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		stack.push(originalTraial);
 	} else {
 		// Batch means, but reset life times
-		decltype(stack) tmp;
+		typedef decltype(stack)::value_type StackValueType;
+		std::deque< StackValueType > tmp;
 		while (!stack.empty()) {
 			stack.top().get().lifeTime = 0.0;
-			tmp.push(stack.top().get());
+			tmp.push_front(stack.top().get());  // make swap() below respect order
 			stack.pop();
 		}
-		stack.swap(tmp);
+		std::stack<StackValueType>(std::move(tmp)).swap(stack);
 	}
 
 	// Run a single RESTART importance-splitting simulation for "runLength"
@@ -275,7 +277,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		(this->*watch_events)(property, traial, e);
 		if (IS_RARE_EVENT(e)) {
 			// We are? Then register rare time
-			assert(static_cast<ImportanceValue>(0) < traial.level
+			assert(impFun_->importance_of(traial.state) > static_cast<ImportanceValue>(0)
 				   || impFun_->strategy() == "adhoc");
 			const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // reduce fp prec. loss
 			traial.lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
@@ -321,7 +323,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 				assert(thisLevelRetrials < pow(splitsPerThreshold_, numThresholds));
 				tpool.get_traial_copies(stack, traial, thisLevelRetrials,
 										static_cast<short>(i)-traial.numLevelsCrossed);
-				assert(&(static_cast<Traial&>(stack.top())) != &originalTraial);
+				assert(&(stack.top().get()) != &originalTraial);
 			}
 			// Offsprings are on top of stack now: continue attending them
 		}

@@ -261,7 +261,7 @@ public:  // Populating facilities and other modifyers
 	 *
 	 * @throw FigException if invalid rngType is specified
 	 */
-	void set_rng(const std::string& rngType, const size_t& rngSeed);
+	void set_rng(const std::string& rngType, const size_t& rngSeed = Clock::DEFAULT_RNG_SEED);
 
 public:  // Accessors
 
@@ -305,9 +305,17 @@ public:  // Accessors
 	/// @see set_splitting()
 	const unsigned& get_splitting() const noexcept;
 
-	/// Get the wall-clock-time execution limit imposed to simulations
+	/// Get the wall-clock-time execution limit imposed to simulations,
+	/// in seconds
+	/// @see get_timeout_str()
 	/// @see set_timeout()
 	const std::chrono::seconds& get_timeout() const noexcept;
+
+	/// Get the wall-clock-time execution limit imposed to simulations,
+	/// as a nicely formatted string
+	/// @see get_timeout()
+	/// @see set_timeout()
+	std::string get_timeout_str() const noexcept;
 
 	/// @copydoc confCoToShow_
 	static const std::vector< float >& get_cc_to_show() noexcept;

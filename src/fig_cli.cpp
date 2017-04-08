@@ -48,11 +48,13 @@
 #include <FigLog.h>
 #include <FigConfig.h>
 #include <FigException.h>
+#include <Clock.h>
 #include <ModelSuite.h>
 #include <ImportanceFunctionConcrete.h>  // interpret_post_processing()
 #include <MultiDoubleArg.h>
 #include <NumericConstraint.h>
 #include <TimeConstraint.h>
+#include <FigVersionVisitor.h>
 
 
 using namespace TCLAP;
@@ -92,20 +94,32 @@ using namespace fig_cli;
 using fig::ImportanceValue;
 
 
-/// FIG's full --version message
-const std::string versionStr(
-	"FIG tool " + std::string(fig_VERSION_STR) + "\n"
-	"Build: " + std::string(fig_CURRENT_BUILD) + " with "
-#if   !defined RANDOM_RNG_SEED && !defined PCG_RNG
-	"MT RNG (seed: " + to_string(fig::Clock::rng_seed()) + ")"
-#elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
-	"PCG RNG (seed:" + to_string(fig::Clock::rng_seed()) + ")"
-#elif !defined PCG_RNG
-    "MT RNG (random seed)"
+/// Short version message, requested with --version
+const std::string versionStrShort("Fig tool " + std::string(fig_VERSION_STR)
+								 + " (" + std::string(fig_BUILD_TYPE) + ")");
+
+/// Long version message, requested with -v/--version-full
+const std::string versionStrLong(
+	"FIG tool version " + std::string(fig_VERSION_STR) + "\n\n"
+	"Build:       " + std::string(fig_CURRENT_BUILD) + "\n"
+	"Compiler:    " + std::string(fig_COMPILER_USED) + "\n"
+	"Default RNG: " +
+// NOTE: check Clock.cpp for the default RNG selection order
+#ifndef PCG_RNG
+		"C++ STL's 64-bit Mersenne-Twister (" +
+#elif !defined NDEBUG
+		"PCG-family 32-bit generator (" +
 #else
-    "PCG RNG (random seed)"
+		"PCG-family 64-bit generator (" +
 #endif
-);
+#ifdef RANDOM_RNG_SEED
+		"randomized seeding"
+#elif defined PCG_RNG
+		"seed: " + std::to_string(0xCAFEF00DD15EA5E5ull)  // PCG's default seed
+#else
+		"seed: " + std::to_string(std::mt19937_64::default_seed)
+#endif
+	+ ")\n");
 
 
 // TCLAP parameter holders and stuff  /////////////////////////////////////////
@@ -143,12 +157,12 @@ CmdLine cmd_("\nSample usage:\n"
 			 "for this configuration and for each one of the three stopping "
 			 "conditions, or until the wall-clock timeout is reached in "
 			 "each case.",
-			 ' ', versionStr);
+			 ' ', versionStrShort);
 
 // IOSA model file path
 UnlabeledValueArg<string> modelFile_(
 	"modelFile",
-	"Path to the file with the IOSA/JANI model to study",
+	"Path to the file with the IOSA/JANI model",
 	true, "",
 	"modelFile");
 
@@ -297,7 +311,7 @@ ValueArg<string> rngType_(
 	"r", "rng",
 	"Specify the pseudo Random Number Generator (aka RNG) to use for "
 	"sampling the time values of clocks",
-	false, "mt64", &RNGConstraints);
+	false, fig::Clock::DEFAULT_RNG, &RNGConstraints);
 
 // User-specified seed for RNG
 ValueArg<string> rngSeed_(
@@ -320,6 +334,30 @@ SwitchArg confluenceCheck_(
 
 
 // Helper routines  ///////////////////////////////////////////////////////////
+
+/// Add parsing for long version info requests,
+/// just like TCLAP's default version printing.
+/// @note The switches to request full version info are "-v" and "--version-full"
+void
+add_full_version_parsing(CmdLine& cl)
+{
+	auto v = new FigVersionVisitor(fig::figMainLog, versionStrLong);
+	SwitchArg* vers = new SwitchArg("v","version-full", "Displays full "
+									"version information and exits.",
+									false, v);
+	cl.add( vers );
+
+//	// These member functions are protected so we can't use them
+//	cl.deleteOnExit(vers);
+//	cl.deleteOnExit(v);
+//	// To avoid the leak we could use smart pointers like below,
+//	// but TCLAP's CmdLine can't work with them (piece of filthy shit)
+//	auto v = std::make_shared<FigVersionVisitor>(fig::figMainLog, versionStrLong);
+//	auto vers(std::make_shared<SwitchArg>(
+//				"v", "version-full",
+//				"Displays full version information and exits.",
+//				false, v));
+}
 
 /// Check for any JANI specification parsed from the command line into the
 /// TCLAP holders. Use it to fill in the global information offered to FIG
@@ -625,6 +663,10 @@ get_rng_specs()
 				           << "randomized seeding. Is that what you want?\n\n";
 			}
 		}
+	} else if (fig::Clock::rng_seed_is_random()) {
+		rngSeed = 0ul;
+	} else {
+		rngSeed = fig::Clock::rng_seed();
 	}
 	return true;
 }
@@ -683,12 +725,13 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 
 	try {
 		// Add all defined arguments and options to TCLAP's command line parser
+		add_full_version_parsing(cmd_);
 		cmd_.add(modelFile_);
 		cmd_.add(propertiesFile_);
-		auto ifunOrJaniSpec(impFunSpecs);
-		ifunOrJaniSpec.emplace_back(&JANIimport_);
-		ifunOrJaniSpec.emplace_back(&JANIexport_);
-		cmd_.xorAdd(ifunOrJaniSpec);
+		auto ifun_or_JANI(impFunSpecs);  // jani spec XOR ifun
+		ifun_or_JANI.emplace_back(&JANIimport_);
+		ifun_or_JANI.emplace_back(&JANIexport_);
+		cmd_.xorAdd(ifun_or_JANI);
 		cmd_.add(engineName_);
 		cmd_.add(thrTechnique_);
 		cmd_.add(confidenceCriteria);
@@ -699,18 +742,18 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(rngType_);
 		cmd_.add(rngSeed_);
 		cmd_.add(forceOperation_);
-        cmd_.add(confluenceCheck_);
+		cmd_.add(confluenceCheck_);
 
 		// Parse the command line input
 		cmd_.parse(argc, argv);
 
 		// Fill the globally offered objects
-		modelFile      = modelFile_.getValue();
-		propertiesFile = propertiesFile_.getValue();
-		engineName     = engineName_.getValue();
-		thrTechnique   = thrTechnique_.getValue();
-		forceOperation = forceOperation_.getValue();
-        confluenceCheck = confluenceCheck_.getValue();
+		modelFile       = modelFile_.getValue();
+		propertiesFile  = propertiesFile_.getValue();
+		engineName      = engineName_.getValue();
+		thrTechnique    = thrTechnique_.getValue();
+		forceOperation  = forceOperation_.getValue();
+		confluenceCheck = confluenceCheck_.getValue();
 		if (!get_jani_spec()) {
 			figTechLog << "[ERROR] Failed parsing the JANI-spec commands.\n\n";
 			figTechLog << "For complete USAGE and HELP type:\n";

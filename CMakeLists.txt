@@ -32,7 +32,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11)
 PROJECT (fig)
 
 SET(fig_VERSION_MAJOR 1)
-SET(fig_VERSION_MINOR 0)
+SET(fig_VERSION_MINOR 1)
 
 STRING(TIMESTAMP CURRENT_TIME "%H:%M:%S %d.%m.%Y")
 
@@ -45,12 +45,15 @@ OPTION(BUILTIN_RNG "Use the PCG RNG provided with FIG"      OFF)
 OPTION(USE_DTIME   "Double fp precision for time tracking"  OFF)
 
 IF(RELEASE)
-	MESSAGE("Building FIG in release mode")
-	SET(fig_CURRENT_BUILD "${CURRENT_TIME} (release)")
+	MESSAGE("Building FIG in *** RELEASE mode ***")
+	SET(fig_BUILD_TYPE "release")
+#	SET(fig_CURRENT_BUILD "${CURRENT_TIME} (${fig_BUILD_TYPE})")
 ELSE()
-	MESSAGE("Building FIG in debug mode")
-	SET(fig_CURRENT_BUILD "${CURRENT_TIME} (debug)")
+	MESSAGE("Building FIG in *** DEBUG mode ***")
+	SET(fig_BUILD_TYPE "debug")
+#	SET(fig_CURRENT_BUILD "${CURRENT_TIME} (debug)")
 ENDIF()
+SET(fig_CURRENT_BUILD "${CURRENT_TIME} (${fig_BUILD_TYPE})")
 
  
 

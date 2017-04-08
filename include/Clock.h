@@ -72,6 +72,26 @@ public:
 	/// Number of offered pseudo Random Number Generator algorithms, aka RNGs
 	static constexpr size_t NUM_RNGS = 3ul;
 
+	/// Default RNG algorithm
+	static const constexpr char* DEFAULT_RNG =
+#ifndef PCG_RNG
+		"mt64";
+#elif !defined NDEBUG
+		"pcg32";
+#else
+		"pcg64";
+#endif
+
+	/// Default seed for the RNG
+	static const constexpr size_t DEFAULT_RNG_SEED =
+#ifdef RANDOM_RNG_SEED
+		0ul;
+#elif !defined PCG_RNG
+		5489ul;  // C++ STL's random.h: class mersenne_twister_engine
+#else
+		0xCAFEF00DD15EA5E5ull;  // pcg_random.hpp: class engine ctor
+#endif
+
 private:
 
 	/// Whether to use randomized RNG seeding (affects all clocks)
@@ -99,7 +119,7 @@ public:  // Class' RNG observers
 	///       initialization order fiasco</i>>.
 	static const std::array< std::string, NUM_RNGS >& RNGs() noexcept;
 
-	/// Internal RNG used for clock values sampling
+	/// Current RNG used internally for clock values sampling
 	static const std::string& rng_type() noexcept;
 
 	/// Seed used to initialized the internal RNG.

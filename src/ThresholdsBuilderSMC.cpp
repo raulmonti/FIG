@@ -63,33 +63,14 @@ unsigned NUM_FAILURES = 6u;
 // RNG for randomized traial selection  ///////////////////////////
 //
 const unsigned long RNG_SEED =
-    fig::Clock::rng_seed_is_random() ? std::random_device{}()
-                                     : std::mt19937_64::default_seed;
+#ifdef RANDOM_RNG_SEED
+	std::random_device{}();
+#else
+	std::mt19937::default_seed;
+#endif
+//
 std::mt19937 RNG(RNG_SEED);
 //
-//  TODO erase hazardous code commented out below
-//
-//  /// RNG seed selection:
-//  /// \ifnot RANDOM_RNG_SEED
-//  ///   deterministic
-//  /// \else
-//  ///   taken from the system's random device
-//  /// \endif
-//  #if   !defined RANDOM_RNG_SEED && !defined PCG_RNG
-//    const unsigned long RNG_SEED(std::mt19937_64::default_seed);
-//  #elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
-//    const unsigned long RNG_SEED(0xCAFEF00DD15EA5E5ull);  // PCG's default seed
-//  #elif  defined RANDOM_RNG_SEED && !defined PCG_RNG
-//    unsigned long RNG_SEED(std::random_device{}());
-//  #else
-//    pcg_extras::seed_seq_from<std::random_device> RNG_SEED;
-//  #endif
-//  /// \ifnot PCG_RNG Mersenne-Twister RNG \else PCG family RNG \endif
-//  #ifndef PCG_RNG
-//    std::mt19937_64 RNG(RNG_SEED);
-//  #else
-//    pcg64_oneseq RNG(RNG_SEED);
-//  #endif
 // ////////////////////////////////////////////////////////////////
 
 
@@ -140,7 +121,7 @@ build_states_distribution(const fig::ModuleNetwork& network,
 				   SIM_LENGTH(SIM_EFFORT*OVERLENGTH);
 	unsigned jumpsLeft, pos, fails(0u);
 
-	// Function pointers matching ModuleNetwork::peak_simulation() signatures
+	// Function pointers matching ModuleNetwork::peak_simulation() signature
 	auto predicate = [&jumpsLeft,lastThr](const Traial& t) -> bool {
 		return --jumpsLeft > 0u && lastThr != t.level;
     };
@@ -157,7 +138,11 @@ build_states_distribution(const fig::ModuleNetwork& network,
         do {
 			jumpsLeft = SIM_LENGTH * (1u+fails);
 			t = traials[n + uniK(RNG)];  // choose randomly among last 'k'
-			assert(lastThr > t.level);
+#ifndef NDEBUG
+			/// @bug FIXME is the following check logical?
+			if (lastThr <= t.level)
+				throw_FigException("internal error during thresholds selection");
+#endif
             network.peak_simulation(t, update, predicate);
 		} while (!halt && lastThr != t.level && ++fails < TOLERANCE);
 	}
@@ -232,7 +217,7 @@ find_new_threshold(const fig::ModuleNetwork& network,
     auto update = [&impFun](Traial& t) -> void {
         t.level = impFun.importance_of(t.state);
     };
-    // What happens when the new quantile isn't higher than lastThr
+	// 'reinit' is what happens when the new quantile isn't higher than lastThr
 	auto reinit = [&n, &k, &fails, &simEffort] (TraialsVec& traials) {
 		fig::ModelSuite::tech_log("-");  // report failure
 		if (++fails >= ::NUM_FAILURES)
@@ -301,6 +286,7 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 	// SMC initialization
 	thresholds_.push_back(impFun.initial_value());  // start from initial state importance
 	assert(thresholds_.back() < impFun.max_value());
+	ModelSuite::tech_log("(seed:" + std::to_string(RNG_SEED) + ")");
 	ImportanceValue newThreshold =
 		find_new_threshold(network, impFun, traials, n_, k_, thresholds_.back(), halted_);
 	if (impFun.max_value() <= newThreshold)

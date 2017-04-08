@@ -174,7 +174,7 @@ unsigned long rngSeed =
 
 /// Collection of available RNGs
 /// @note Updates in the keys of this unordered_map must be reflected in
-///       \ref rngType,
+///       \ref fig::Clock::DEFAULT_RNG,
 ///       \ref fig::Clock::RNGs(), and
 ///       \ref fig::Clock::change_rng_seed()
 std::unordered_map< std::string, std::shared_ptr< BasicRNG > > RNGs =
@@ -184,19 +184,8 @@ std::unordered_map< std::string, std::shared_ptr< BasicRNG > > RNGs =
     {"pcg64", std::make_shared< BasicRNG_PCG64 >(rngSeed) }
 };
 
-
-/// Default RNG: \if PCG_RNG PCG-family \else Mersenne-Twister (C++ STL) \endif
-/// @note This must match the keys of the entries in the
-///       \ref ::RNGs "RNGs" unordered_map.
-std::string rngType =
-#ifndef PCG_RNG
-  "mt64";
-#elif !defined NDEBUG
-  "pcg32";
-#else
-  "pcg64";
-#endif
-
+/// Current RNG
+std::string rngType(fig::Clock::DEFAULT_RNG);
 
 /// RNG instance
 auto rng = RNGs[rngType];

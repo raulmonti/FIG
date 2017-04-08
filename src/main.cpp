@@ -179,7 +179,9 @@ bool print_intro(const int& argc, const char** argv)
 	            std::chrono::system_clock::now());
 
 	// First check if this is a version query and we should omit the greeting
-	if (argc == 2 && (trim(argv[1]) == "-v" || trim(argv[1]) == "--version"))
+	if (argc == 2 && (trim(argv[1]) == "-v"            ||
+					  trim(argv[1]) == "--version"     ||
+					  trim(argv[1]) == "--version-full"))
 		return true;
 
 	// Print the big fat greeting the user deserves
@@ -198,6 +200,7 @@ bool print_intro(const int& argc, const char** argv)
 	main_log(" Authors: Budde, Carlos E.  <cbudde@famaf.unc.edu.ar>\n");
 	main_log("          Monti, Raúl E.    <raulmonti88@gmail.com>\n");
 	main_log("          Rodriguez, Leo M. <leonardomatiasrodriguez@gmail.com>\n");
+	main_log("          Lee, Matías D.    <lee@famaf.unc.edu.ar>\n");
 	main_log("\n");
 
 	// Print additional technical info if this is more than a query
@@ -205,11 +208,11 @@ bool print_intro(const int& argc, const char** argv)
 		tech_log(std::string("\nFIG tool invoked on ") + std::ctime(&now));
 		tech_log("Build: " fig_CURRENT_BUILD "\n");
 		tech_log("Default RNG: ");
-		if (Clock::rng_type() == "mt64")
+		if (0 == std::strncmp("mt64", Clock::DEFAULT_RNG, 6ul))
 			tech_log("64-bit STL's Mersenne-Twister.\n");
-		else if (Clock::rng_type() == "pcg32")
+		else if (0 == std::strncmp("pcg32", Clock::DEFAULT_RNG, 6ul))
 			tech_log("32-bit PCG-family generator with huge period.\n");
-		else if (Clock::rng_type() == "pcg64")
+		else if (0 == std::strncmp("pcg64", Clock::DEFAULT_RNG, 6ul))
 			tech_log("64-bit PCG-family generator.\n");
 		else
 			tech_log("UNKNOWN!\n");
