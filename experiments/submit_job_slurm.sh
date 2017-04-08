@@ -16,7 +16,7 @@
 #SBATCH --partition=multi
 
 ### Amount of nodes to use
-#SBATCH --nodes=1
+#SBATCH --nodes=2
 
 ### Processes per node
 #SBATCH --ntasks-per-node=1

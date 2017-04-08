@@ -4,6 +4,8 @@
 # Date:    22.03.2016
 # License: GPLv3
 #
+# 08.04.2017  NOTE: Script updated to work with FIG 1.1
+#
 
 #set -e
 show(){ /bin/echo -e "$@"; }
@@ -32,12 +34,12 @@ if [ ! -f ./fig ]; then show "[ERROR] Something went wrong"; exit 1; fi
 
 # Prepare experiment's directory and files
 show "Preparing experiments environment:"
-MODEL_FILE="tandem_queue.sa"
+MODEL_FILE="tandem_queue.sa"; TMP=tmp.sa
 copy_model_file $MODEL_FILE $CWD && \
+	gawk 'BEGIN{flag=1}/^properties/{flag=0}/^endproperties/{next;flag=1}flag' $MODEL_FILE > $TMP && \
+	echo -e "\nproperties\n\tP( q2>0 U q2==c )\nendproperties\n" >> $TMP && \
+	mv $TMP $MODEL_FILE && rm $TMP && \\
 	show "  · using model file $MODEL_FILE"
-PROPS_FILE="tandem_queue.pp"
-echo 'P( q2 > 0 U q2 == c )' > $PROPS_FILE && \
-	show "  · using properties file $PROPS_FILE"
 N=0; RESULTS="results_$N"
 while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
 mkdir $RESULTS && unset N && \
@@ -48,7 +50,7 @@ mkdir $RESULTS && unset N && \
 TO="90m"
 CONF=0.9  # Confidence coefficient
 PREC=0.2  # Relative precision
-SPLITS=(3 6 9 12)  # RESTART splittings to test
+SPLITS=(2 5 10 15)  # RESTART splittings to test
 QUEUES_CAPACITIES=(8 10 12 14)  # --> changes here affect plots!
 EXPNAME="tandem_queue"
 #
@@ -57,7 +59,7 @@ STOP_CRITERION="--stop-conf $CONF $PREC"
 ETIMEOUT="${TO##*[0-9]}"  # Experiment timeout (ifun&thr building + sim)
 ETIMEOUT=$(bc -l <<< "scale=0; ${TO%%[a-z]*}*1.4/1")"$ETIMEOUT"
 show "Timeouts: $TO per simulation; $ETIMEOUT per experiment"
-STANDARD_MC="-e nosplit --flat $STOP_CRITERION --timeout $TO"
+STANDARD_MC="--flat $STOP_CRITERION --timeout $TO"
 RESTART_ADHOC="--adhoc q2 $STOP_CRITERION --timeout $TO"
 RESTART_AMONO="--amono $STOP_CRITERION --timeout $TO"
 RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION --timeout $TO"
