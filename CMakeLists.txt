@@ -108,7 +108,7 @@ ENDIF()
 
 # RNG algorithm: C++ STL Mersenne-Twister vs. PCG default
 IF(BUILTIN_RNG)
-	MESSAGE("Using (alternative) RNG from the PCG family")
+	MESSAGE("Using builtin RNG from the PCG family")
 	ADD_DEFINITIONS(-DPCG_RNG)  # PCG family RNG (http://www.pcg-random.org/)
 ELSE()
 	MESSAGE("Using C++ STL's Mersenne-Twister RNG")

@@ -40,8 +40,6 @@ using std::exp;
 using std::log;
 using std::log1p;
 using std::sqrt;
-using std::isnan;
-using std::isinf;
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
@@ -64,15 +62,15 @@ ConfidenceIntervalTransient::update(const double& weighedNRE)
 	// Incremental (stable) computation of mean and variance (http://goo.gl/ytk6B)
 	const double delta = abs(weighedNRE - estimate_),
 				 sgn   = weighedNRE < estimate_ ? -1.0 : 1.0;
-	assert(!(isnan(delta)||isinf(delta)));
+	assert(!(std::isnan(delta)||std::isinf(delta)));
 	if (++numSamples_ <= 0l)
 		throw_FigException("numSamples_ became negative, overflow?");
 	logNumSamples_ = log(numSamples_);
 	estimate_ += sgn * exp(log(delta)-logNumSamples_);
 	M2 += sgn * delta * (weighedNRE-estimate_);
 	logVariance_ = log(M2)-logNumSamples_;  // should use "numSamples_-1" for unbiasedness...
-	assert(!isnan(logVariance_));
-	if (0.0 < M2 && isinf(logVariance_))
+	assert(!std::isnan(logVariance_));
+	if (0.0 < M2 && std::isinf(logVariance_))
 		throw_FigException("invalid internal value, overflow?");
 	// Half-width of the new confidence interval
 	halfWidth_ = quantile * sqrt(exp(logVariance_-logNumSamples_));
@@ -87,17 +85,17 @@ ConfidenceIntervalTransient::update(const std::vector<double>& weighedNREs)
 	for (const double& weighedNRE: weighedNREs) {
 		const double delta = abs(weighedNRE - estimate_),
 					 sgn   = weighedNRE < estimate_ ? -1.0 : 1.0;
-		assert(!(isnan(delta)||isinf(delta)));
+		assert(!(std::isnan(delta)||std::isinf(delta)));
 		if (++numSamples_ <= 0l)
 			throw_FigException("numSamples_ became negative, overflow?");
 		estimate_ += sgn * exp(log(delta)-log(numSamples_));
 		M2 += sgn * delta * (weighedNRE-estimate_);
-		assert(!(isnan(M2)||isinf(M2)));
+		assert(!(std::isnan(M2)||std::isinf(M2)));
 	}
 	logNumSamples_ = log(numSamples_);
 	logVariance_ = log(M2)-logNumSamples_;  // should use "numSamples_-1" for unbiasedness...
-	assert(!isnan(logVariance_));
-	if (0.0 < M2 && isinf(logVariance_))
+	assert(!std::isnan(logVariance_));
+	if (0.0 < M2 && std::isinf(logVariance_))
 		throw_FigException("invalid internal value, overflow?");
 	// Half-width of the new confidence interval
 	halfWidth_ = quantile * sqrt(exp(logVariance_-logNumSamples_));

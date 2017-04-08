@@ -233,7 +233,7 @@ State<T_>::position_of_var(const std::string& varname) const
 }
 
 template<typename T>
-size_t State<T>::position_of_array_fst(const std::__cxx11::string &name) const {
+size_t State<T>::position_of_array_fst(const std::string &name) const {
 #ifndef NRANGECHK
     return this->arrayData_.at(name).first;
 #else
@@ -242,7 +242,7 @@ size_t State<T>::position_of_array_fst(const std::__cxx11::string &name) const {
 }
 
 template<typename T>
-size_t State<T>::array_size(const std::__cxx11::string &name) const {
+size_t State<T>::array_size(const std::string &name) const {
 #ifndef NRANGECHK
     return this->arrayData_.at(name).second;
 #else

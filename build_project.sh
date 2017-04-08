@@ -31,6 +31,7 @@
 set -e
 
 # Choose compiler (prefer clang over gcc)
+unset -v CC CXX
 if [ "`which clang 2>/dev/null`" ]
 then
 	# We need version 3.7 or later
@@ -39,22 +40,31 @@ then
 	CLANG_VERSION_MAJOR=$(echo $CLANG_VERSION_MAJOR | cut -d"." -f 1)
 	if [ $CLANG_VERSION_MAJOR -ge 3 ] && [ $CLANG_VERSION_MINOR -ge 7 ]
 	then
-		CCOMP=clang
+		CC=clang
+		CXX=clang++
 	fi
 fi
-if [ -z "$CCOMP" ] && [ "`which gcc`" ]
+if [ -z "$CC" ] && [ "`which gcc`" ]
 then
 	# Any c++11 compatible version is fine (that's checked in cmake)
-	CCOMP=gcc
+	CC=`which gcc`
+	CXX=`which g++`
 fi
 if [[ $HOSTNAME == "mendieta" ]]  # Mendieta requires special treatment
 then
-	CCOMP=`find /opt/spack/opt/ -path "*gcc-6*/bin/gcc" | tail -n 1`
-	#CCOMP=`find /opt/spack/opt/ -path "*gcc-5.4*/bin/gcc" | tail -n 1`
+	module load gcc
+	CC=`which gcc`
+	CXX=`which g++`
+#	module unload gcc
+#	module unload intel
+#	module load xeonphi/2016
+#	CC=`which icc`
+#	CXX=$CC
+	module load bison  # for GNU Bison 3.0.4
 fi
-if [ -z "$CCOMP" ]
+if [ -z "$CC" ]
 then
-	echo "[ERROR] No compatible clang or gcc version was found, aborting."
+	echo "[ERROR] No compatible C compiler was found, aborting."
 	exit 1
 fi
 
@@ -144,12 +154,11 @@ fi
 # Configure and build from inside BUILD_DIR
 if [ ! -d $BUILD_DIR ]; then mkdir $BUILD_DIR; fi
 cd $BUILD_DIR
-#OPTS="$OPTS -DRELEASE=ON"      # Cmake build options, see CMakeLists.txt
+OPTS="$OPTS -DRELEASE=ON"      # Cmake build options, see CMakeLists.txt
 OPTS="$OPTS -DBUILTIN_RNG=ON"  # Cmake build options, see CMakeLists.txt
 NJOBS=$(2>/dev/null bc <<< "2*`nproc --all`")
 if [ -z "$NJOBS" ]; then NJOBS=2; fi
-CC=$CCOMP CXX=${CCOMP%cc}++ cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
-#CC=gcc CXX=g++ cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
+CC=$CC CXX=$CXX cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
 /bin/echo -e "\n  Project built in $BUILD_DIR\n"
 cd $CWD
 
@@ -165,7 +174,8 @@ unset -v BUILD_DIR
 unset -v CMAKE_DIR
 unset -v CWD
 unset -v DIR
-unset -v CCOMP
+unset -v CC
+unset -v CXX
 
 exit 0
 
