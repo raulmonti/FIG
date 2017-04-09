@@ -34,12 +34,16 @@ if [ ! -f ./fig ]; then show "[ERROR] Something went wrong"; exit 1; fi
 
 # Prepare experiment's directory and files
 show "Preparing experiments environment:"
-MODEL_FILE="tandem_queue.sa"; TMP=tmp.sa
+MODEL_FILE="tandem_queue.sa"
+PROPERTY="P( q2>0 U q2==c )"
+TMP=tmp.sa
+CUT_PROPS='BEGIN{flag=1}/^properties/{flag=0}/^endproperties/{next;flag=1}flag'
 copy_model_file $MODEL_FILE $CWD && \
-	gawk 'BEGIN{flag=1}/^properties/{flag=0}/^endproperties/{next;flag=1}flag' $MODEL_FILE > $TMP && \
-	echo -e "\nproperties\n\tP( q2>0 U q2==c )\nendproperties\n" >> $TMP && \
-	mv $TMP $MODEL_FILE && rm $TMP && \\
-	show "  · using model file $MODEL_FILE"
+	show "  · using model file $MODEL_FILE"; \
+	gawk "$CUT_PROPS" $MODEL_FILE > $TMP && \
+	echo -e "\nproperties\n\t$PROPERTY\nendproperties\n" >> $TMP && \
+	show "  · to study property \"$PROPERTY\""; \
+	mv $TMP $MODEL_FILE
 N=0; RESULTS="results_$N"
 while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
 mkdir $RESULTS && unset N && \
@@ -77,7 +81,7 @@ do
 	C_DEF="^const${BLANK}int${BLANK}c${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
 	sed -e "s/${C_DEF}/const int c = $c;/1" $MODEL_FILE > $MODEL_FILE_C
 	LOG=${RESULTS}/${EXPNAME}_c${c}
-	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE_C $PROPS_FILE"`
+	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE_C"`
 
 	# Launch a job for each splitting value (improves load balance)
 	for s in "${SPLITS[@]}"

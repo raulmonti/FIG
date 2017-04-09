@@ -33,11 +33,15 @@ if [ ! -f ./fig ]; then show "[ERROR] Something went wrong"; exit 1; fi
 # Prepare experiment's directory and files
 show "Preparing experiments environment:"
 MODEL_FILE="3tandem_queue.sa"
+PROPERTY="S( q3 >= L )"
+TMP=tmp.sa
+CUT_PROPS='BEGIN{flag=1}/^properties/{flag=0}/^endproperties/{next;flag=1}flag'
 copy_model_file $MODEL_FILE $CWD && \
-	show "  · using model file $MODEL_FILE"
-PROPS_FILE="3tandem_queue.pp"
-echo 'S( q3 >= L )  // "rate"' > $PROPS_FILE && \
-	show "  · using properties file $PROPS_FILE"
+	show "  · using model file $MODEL_FILE"; \
+	gawk "$CUT_PROPS" $MODEL_FILE > $TMP && \
+	echo -e "\nproperties\n\t$PROPERTY\nendproperties\n" >> $TMP && \
+	show "  · to study property \"$PROPERTY\""; \
+	mv $TMP $MODEL_FILE
 N=0; RESULTS="results_$N"
 while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
 mkdir $RESULTS && unset N && \
@@ -48,7 +52,7 @@ mkdir $RESULTS && unset N && \
 TO="4h"
 CONF=0.9  # Confidence coefficient
 PREC=0.2  # Relative precision
-SPLITS=(2 3 6 11)  # RESTART splittings to test
+SPLITS=(2 5 10 15)  # RESTART splittings to test
 #OCUPA=(18  13  20  16  24  21)  # estimates ~ 10^-15
 OCUPA=(10   7  11   9  14  12)  # estimates ~ 5*10^-9
 ALPHA=( 2   3   2   3   2   3)
@@ -80,7 +84,7 @@ show "Launching experiments:"
 for (( i=0 ; i < NUM_EXPERIMENTS ; i++ ))
 do
 	L=${OCUPA[i]}
-	show -n "  · for threshold occupancy = $L..."
+	show -n "  · for max occupancy = $L..."
 
 	# Select optimal ad hoc ifun for this experiment (from V-A's paper)
 	RESTART_ADHOC_OPT="--adhoc ${AHFUN[i]} $STOP_CRITERION --timeout $TO"
@@ -100,7 +104,7 @@ do
 	sed -i -e "s/${B2_USE}/= erlang(alpha,${BETA2[i]}));/g" $MODEL_FILE_L
 	sed -i -e "s/${B3_USE}/= erlang(alpha,${BETA3[i]}));/g" $MODEL_FILE_L
 	LOG=${RESULTS}/${EXPNAME}_l${L}
-	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE_L $PROPS_FILE"`
+	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE_L"`
 
 	# Launch a job for each splitting value (improves load balance)
 	for s in "${SPLITS[@]}"
