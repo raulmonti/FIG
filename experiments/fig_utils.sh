@@ -271,7 +271,7 @@ extract_value() {
 		local TBOUND=""
 		local CONFLVL=$6
 		local VAL=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" $FILE \
-		           | grep --after=8 "Confidence level: $CONFLVL")
+		           | grep --after=10 "Confidence level: $CONFLVL")
 	elif [[ $6 =~ ^[0-9]+[smhd]?$ ]]; then
 		local CONFLVL=""
 		local TBOUND=$(compute_seconds $6)
