@@ -13,17 +13,17 @@
 ### (even though they look like bash comments)
 
 ### Job queue to use (options: mono, gpu, multi, phi)
-#SBATCH --partition=multi
+#SBATCH --partition=mono
 
 ### Amount of nodes to use
-#SBATCH --nodes=2
+#SBATCH --nodes=1
 
 ### Processes per node
 #SBATCH --ntasks-per-node=1
 
 ### Available cores per node
-#SBATCH --cpus-per-task=20
-export MAXJOBSN=20  # must equal value of "--cpus-per-task"
+#SBATCH --cpus-per-task=8
+export MAXJOBSN=8  # must equal value of "--cpus-per-task"
 
 ### execution time. Format: days-hours:minutes:seconds -- Max: a week
 #SBATCH --time 3-00:00

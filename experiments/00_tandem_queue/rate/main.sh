@@ -4,6 +4,8 @@
 # Date:    22.03.2016
 # License: GPLv3
 #
+# 10.04.2017  NOTE: Script updated to work with FIG 1.1
+#
 
 set -e
 show(){ /bin/echo -e "$@"; }
@@ -33,11 +35,15 @@ if [ ! -f ./fig ]; then show "[ERROR] Something went wrong"; exit 1; fi
 # Prepare experiment's directory and files
 show "Preparing experiments environment:"
 MODEL_FILE="tandem_queue.sa"
+PROPERTY="S( q2 == c )"
+TMP=tmp.sa
+CUT_PROPS='BEGIN{flag=1}/^properties/{flag=0}/^endproperties/{next;flag=1}flag'
 copy_model_file $MODEL_FILE $CWD && \
-	show "  · using model file $MODEL_FILE"
-PROPS_FILE="tandem_queue.pp"
-echo 'S( q2 == c )' > $PROPS_FILE && \
-	show "  · using properties file $PROPS_FILE"
+	show "  · using model file $MODEL_FILE"; \
+	gawk "$CUT_PROPS" $MODEL_FILE > $TMP && \
+	echo -e "\nproperties\n\t$PROPERTY\nendproperties\n" >> $TMP && \
+	show "  · to study property \"$PROPERTY\""; \
+	mv $TMP $MODEL_FILE
 N=0; RESULTS="results_$N"
 while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
 mkdir $RESULTS && unset N && \
@@ -48,9 +54,8 @@ mkdir $RESULTS && unset N && \
 TO="6h"
 CONF=0.9  # Confidence coefficient
 PREC=0.4  # Relative precision
-SPLITS=(2 3 6 11)  # RESTART splittings to test
-#QUEUES_CAPACITIES=(10 15 20 25)
-QUEUES_CAPACITIES=(10 13 16 18 21)
+SPLITS=(2 5 10 15)  # RESTART splittings to test
+QUEUES_CAPACITIES=(10 13 16 18 21)  # =(10 15 20 25)
 EXPNAME="tandem_queue"
 #
 show "Configuring experiments"
@@ -58,7 +63,7 @@ STOP_CRITERION="--stop-conf $CONF $PREC"
 ETIMEOUT="${TO##*[0-9]}"  # Experiment timeout (ifun&thr building + sim)
 ETIMEOUT=$(bc -l <<< "scale=0; ${TO%%[a-z]*}*1.4/1")"$ETIMEOUT"
 show "Timeouts: $TO per simulation; $ETIMEOUT per experiment"
-STANDARD_MC="-e nosplit --flat $STOP_CRITERION --timeout $TO"
+STANDARD_MC="--flat $STOP_CRITERION --timeout $TO"
 RESTART_ADHOC="--adhoc q2 $STOP_CRITERION --timeout $TO"
 RESTART_AMONO="--amono $STOP_CRITERION --timeout $TO"
 RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION --timeout $TO"
@@ -76,7 +81,7 @@ do
 	C_DEF="^const${BLANK}int${BLANK}c${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
 	sed -e "s/${C_DEF}/const int c = $c;/1" $MODEL_FILE > $MODEL_FILE_C
 	LOG=${RESULTS}/${EXPNAME}_c${c}
-	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE_C $PROPS_FILE"`
+	EXE=`/bin/echo -e "timeout -s 15 $ETIMEOUT ./fig $MODEL_FILE_C"`
 
 	# Launch a job for each splitting value (improves load balance)
 	for s in "${SPLITS[@]}"

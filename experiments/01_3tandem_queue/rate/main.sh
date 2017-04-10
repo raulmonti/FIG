@@ -4,6 +4,8 @@
 # Date:    22.03.2016
 # License: GPLv3
 #
+# 09.04.2017  NOTE: Script updated to work with FIG 1.1
+#
 
 set -e
 show(){ /bin/echo -e "$@"; }
@@ -73,7 +75,7 @@ STOP_CRITERION="--stop-conf $CONF $PREC"
 ETIMEOUT="${TO##*[0-9]}"  # Experiment timeout (ifun&thr building + sim)
 ETIMEOUT=$(bc -l <<< "scale=0; ${TO%%[a-z]*}*1.4/1")"$ETIMEOUT"
 show "Timeouts: $TO per simulation; $ETIMEOUT per experiment"
-STANDARD_MC="-e nosplit --flat $STOP_CRITERION --timeout $TO"
+STANDARD_MC="--flat $STOP_CRITERION --timeout $TO"
 RESTART_ADHOC="--adhoc q3 $STOP_CRITERION --timeout $TO"
 RESTART_AMONO="--amono $STOP_CRITERION --timeout $TO"
 RESTART_ACOMP="--acomp \"+\" $STOP_CRITERION --timeout $TO"
@@ -138,7 +140,7 @@ do
 done
 
 
-# Wait till termination, making sure everything dies after $TO
+# Wait till termination, making sure everything dies after the timeout
 show -n "Waiting for all experiments to finish..."
 `PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }') \
  sleep $ETIMEOUT; kill -15 $PIDS &>/dev/null;              \
