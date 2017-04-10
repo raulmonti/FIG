@@ -24,13 +24,17 @@ then
 fi
 source "$CWD/../ifuns.sh" || \
 	(show "[ERROR] Couldn't find ifuns.sh" && exit 1)
-if [[ "$(type -t max_continuous_failures)" != "function" ]]
+if [[ "$(type -t max_continuous_failures_adhoc)" != "function" ]]
 then
-	show "[ERROR] Bash function \"max_continuous_failures\" is undefined"
+	show "[ERROR] Bash function \"max_continuous_failures_adhoc\" is undefined"
 	exit 1;
-elif [[ "$(type -t sum_continuous_failures)" != "function" ]]
+elif [[ "$(type -t max_continuous_failures_acomp)" != "function" ]]
 then
-	show "[ERROR] Bash function \"sum_continuous_failures\" is undefined"
+	show "[ERROR] Bash function \"max_continuous_failures_acomp\" is undefined"
+	exit 1;
+elif [[ "$(type -t sum_continuous_failures_acomp)" != "function" ]]
+then
+	show "[ERROR] Bash function \"sum_continuous_failures_acomp\" is undefined"
 	exit 1;
 fi
 
@@ -44,7 +48,7 @@ if [ ! -f ./fig ]; then show "[ERROR] Something went wrong"; exit 1; fi
 # Prepare experiment's directory and files
 show "Preparing experiments environment:"
 EXP_GEN="oil_pipeline-gen.sh"
-copy_model_file $EXP_GEN $CWD && \
+copy_model_file $EXP_GEN $CWD "link" && \
 	show "  · using model&properties generator \"$EXP_GEN\""
 N=0; RESULTS="results_$N"
 while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
@@ -58,7 +62,7 @@ PARAM_N=(20 40 60)
 PARAM_K=(3 4 5 6)
 TIME_BOUNDS=(90m 180m 6h 10h)  # one per vale in $PARAM_K
 CONF=0.9  # Confidence coefficient
-PREC=0.2  # Relative precision
+PREC=0.4  # Relative precision
 SPLITS=(2 5 10 15)  # RESTART splittings to test
 EXPNAME="oilpipe"
 #
@@ -95,11 +99,11 @@ for N in "${PARAM_N}"; do                    # N loop
 	SUM_CF_AC=$(sum_continuous_failures_acomp $N $K)
 
 	# Experiment's execution commands
-	RESTART_ACOMP1="--acomp \'+\' $STOP_CRITERION --timeout $TB"
-	RESTART_ACOMP2="--acomp \'*\' $STOP_CRITERION --timeout $TB --post-process exp 2"
-	RESTART_ACOMP3="--acomp '$MAX_CF_AC' $STOP_CRITERION --timeout $TB"
-	RESTART_ACOMP4="--acomp '$SUM_CF_AC' $STOP_CRITERION --timeout $TB --post-process exp 2"
-	RESTART_ADHOC= "--adhoc '$MAX_CF_AH' $STOP_CRITERION --timeout $TB"
+	RESTART_ACOMP1="--acomp \"+\" $STOP_CRITERION --timeout $TB"
+	RESTART_ACOMP2="--acomp \"*\" $STOP_CRITERION --timeout $TB --post-process exp 2"
+	RESTART_ACOMP3="--acomp $MAX_CF_AC $STOP_CRITERION --timeout $TB"
+	RESTART_ACOMP4="--acomp $SUM_CF_AC $STOP_CRITERION --timeout $TB --post-process exp 2"
+	RESTART_ADHOC=" --adhoc $MAX_CF_AH $STOP_CRITERION --timeout $TB"
 	STANDARD_MC="--flat $STOP_CRITERION --timeout $TB"
 
 	# Experiment's model and properties

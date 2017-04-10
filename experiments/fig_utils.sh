@@ -76,6 +76,8 @@ build_fig() {
 
 
 # Copy some SA model file from the FIG project into specified (absolute) path
+# Optionally create a soft link to the file instead of performing a copy,
+# if third argument "link" is specified
 copy_model_file() {
 	# Check arguments
 	if [ $# -lt 1 ]
@@ -107,7 +109,14 @@ copy_model_file() {
 		return 1
 	fi
 	# Copy the file into the requested path
-	cp $MODELS_DIR/$1 $2
+	if [ $# -lt 3 ]; then
+		cp $MODELS_DIR/$1 $2         # Copy in destination
+	elif [[ "link" == $3 ]]; then
+		ln -sf $MODELS_DIR/$1 $2/$1  # Link to destination
+	else
+		echo "[ERROR] Bad third parameter \"$3\" (did you mean \"link\"?)";
+		return 1;
+	fi
 }
 
 

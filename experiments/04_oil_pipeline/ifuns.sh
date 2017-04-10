@@ -22,10 +22,10 @@ max_continuous_failures_adhoc() {
 	local N=$1
 	local K=$2
 	local ECHO=`echo "echo -en"`
-	EXPR="max( "
+	EXPR="max("
 	for (( i=1 ; i<=N-K+1 ; i++ )) do
 		CLUSTER=`printf "(broken_pipe%d>0)+" $(seq $i $((i+K-1)))`
-		EXPR+=$CLUSTER"0, "
+		EXPR+=$CLUSTER"0,"
 	done
 	EXPR+="0);0;$K"
 	echo $EXPR
@@ -42,10 +42,10 @@ max_continuous_failures_acomp() {
 	local N=$1
 	local K=$2
 	local ECHO=`echo "echo -en"`
-	EXPR="max( "
+	EXPR="max("
 	for (( i=1 ; i<=N-K+1 ; i++ )) do
 		CLUSTER=`printf "BE_pipe%d+" $(seq $i $((i+K-1)))`
-		EXPR+=$CLUSTER"0, "
+		EXPR+=$CLUSTER"0,"
 	done
 	EXPR+="0);0;$K"
 	echo $EXPR
