@@ -4,6 +4,8 @@
 # Date:    22.04.2016
 # License: GPLv3
 #
+# 10.04.2017  NOTE: Script updated to work with FIG 1.1
+#
 
 #set -e
 show(){ /bin/echo -e "$@"; }
@@ -63,8 +65,8 @@ mkdir $RESULTS && unset N && \
 # Experiments configuration
 TO="6h"
 CONF=0.9  # Confidence coefficient
-PREC=0.3  # Relative precision
-SPLITS=(2 3 5 8)  # RESTART splittings to test
+PREC=0.4  # Relative precision
+SPLITS=(2 5 10 15)  # RESTART splittings to test
 REDUNDANCY=(2 3 4 5)
 NDC=6   # Number of disk clusters
 NCT=2   # Number of controller types
@@ -80,7 +82,7 @@ STOP_CRITERION="--stop-conf $CONF $PREC"
 ETIMEOUT="${TO##*[0-9]}"  # Experiment timeout (ifun&thr building + sim)
 ETIMEOUT=$(bc -l <<< "scale=0; ${TO%%[a-z]*}*1.4/1")"$ETIMEOUT"
 show "Timeouts: $TO per simulation; $ETIMEOUT per experiment"
-STANDARD_MC="--flat -e nosplit $STOP_CRITERION --timeout $TO"
+STANDARD_MC="--flat $STOP_CRITERION --timeout $TO"
 RESTART_ACOMP1="--acomp \"+\" $STOP_CRITERION --timeout $TO"
 
 

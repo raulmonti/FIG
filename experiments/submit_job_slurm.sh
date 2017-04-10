@@ -26,7 +26,7 @@
 export MAXJOBSN=8  # must equal value of "--cpus-per-task"
 
 ### execution time. Format: days-hours:minutes:seconds -- Max: a week
-#SBATCH --time 3-00:00
+#SBATCH --time 4-12:00
 
 ### Check invocation line
 if [ $# -ne 1 ] || [ ! -f $1 ]
