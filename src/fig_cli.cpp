@@ -95,7 +95,7 @@ using fig::ImportanceValue;
 
 
 /// Short version message, requested with --version
-const std::string versionStrShort("Fig tool " + std::string(fig_VERSION_STR)
+const std::string versionStrShort("FIG tool " + std::string(fig_VERSION_STR)
 								 + " (" + std::string(fig_BUILD_TYPE) + ")");
 
 /// Long version message, requested with -v/--version-full
@@ -103,21 +103,20 @@ const std::string versionStrLong(
 	"FIG tool version " + std::string(fig_VERSION_STR) + "\n\n"
 	"Build:       " + std::string(fig_CURRENT_BUILD) + "\n"
 	"Compiler:    " + std::string(fig_COMPILER_USED) + "\n"
-	"Default RNG: " +
-// NOTE: check Clock.cpp for the default RNG selection order
-#ifndef PCG_RNG
-		"C++ STL's 64-bit Mersenne-Twister (" +
-#elif !defined NDEBUG
-		"PCG-family 32-bit generator (" +
-#else
-		"PCG-family 64-bit generator (" +
-#endif
+	"Default RNG: " + (
+		(0 == std::strncmp("mt64", fig::Clock::DEFAULT_RNG,  6ul))
+			? std::string("C++ STL's 64-bit Mersenne-Twister (") : (
+		(0 == std::strncmp("pcg32", fig::Clock::DEFAULT_RNG, 6ul))
+			? std::string("PCG-family 32-bit generator (")       : (
+		(0 == std::strncmp("pcg64", fig::Clock::DEFAULT_RNG, 6ul))
+			? std::string("PCG-family 64-bit generator (")       : (
+			std::string("Unknown! (") ) ) ) )
 #ifdef RANDOM_RNG_SEED
-		"randomized seeding"
+		+ "randomized seeding"
 #elif defined PCG_RNG
-		"seed: " + std::to_string(0xCAFEF00DD15EA5E5ull)  // PCG's default seed
+		+ "seed: " + std::to_string(0xCAFEF00DD15EA5E5ull)  // PCG default seed
 #else
-		"seed: " + std::to_string(std::mt19937_64::default_seed)
+		+ "seed: " + std::to_string(std::mt19937_64::default_seed)
 #endif
 	+ ")\n");
 

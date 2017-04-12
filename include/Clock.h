@@ -77,9 +77,9 @@ public:
 #ifndef PCG_RNG
 		"mt64";
 #elif !defined NDEBUG
-		"pcg32";
-#else
 		"pcg64";
+#else
+		"pcg32";
 #endif
 
 	/// Default seed for the RNG
