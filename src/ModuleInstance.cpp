@@ -319,30 +319,29 @@ ModuleInstance::jump(const Label& label,
 					 const CLOCK_INTERNAL_TYPE& elapsedTime,
 					 Traial& traial) const
 {
+	bool done(false);
 #ifndef NDEBUG
 	if (!sealed_)
 		throw_FigException("this module hasn't been sealed yet");
 #endif
     assert(label.is_output() || label.is_tau() || label.should_ignore());
 	if (label.should_ignore())
-		return;  // we are obedient and do as we're told
-    bool done = false;
+		done = true;  // we are obedient and do as we're told
 	const auto iter = transitions_by_label_.find(label.str);
     // Foreign labels and taus won't touch us
-    if (!label.is_tau() && end(transitions_by_label_) != iter) {
+	if (!done && !label.is_tau() && end(transitions_by_label_) != iter) {
         const auto& transitions = iter->second;
         done = apply_postcondition(elapsedTime, traial, transitions);
-    } else {
-        //Attend wildcard inputs.
+	} else if (!done) {
+		// Attend wildcard inputs.
         const auto iter = transitions_by_label_.find("_");
         if (end(transitions_by_label_) != iter) {
-            //has some wildcars, attend them.
             const auto &transitions = iter->second;
             done = apply_postcondition(elapsedTime, traial, transitions);
         }
     }
     if (!done) {
-        // No transition was enabled? Then just advance all clocks
+		// No transition taken, just advance all clocks
         traial.kill_time(firstClock_, num_clocks(), elapsedTime);
     }
 }
