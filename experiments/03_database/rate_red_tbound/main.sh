@@ -4,6 +4,8 @@
 # Date:    26.06.2016
 # License: GPLv3
 #
+# 19.04.2017  NOTE: Script updated to work with FIG 1.1
+#
 
 #set -e
 show(){ /bin/echo -e "$@"; }
@@ -62,8 +64,8 @@ mkdir $RESULTS && unset N && \
 
 # Experiments configuration
 REDUNDANCY=(  2  3  4  5 )
-TIME_BOUNDS=(3s 60s 1h 6h)  # Specify one per redundancy!
-SPLITS=(2 3 5 8)  # RESTART splittings to test
+TIME_BOUNDS=(10s 3m 1h 8h)  # Specify one per redundancy!
+SPLITS=(2 5 10 15)  # RESTART splittings to test
 NDC=6   # Number of disk clusters
 NCT=2   # Number of controller types
 NPT=2   # Number of processor types
@@ -107,7 +109,7 @@ do
 	RESTART_ACOMP3="--acomp $COMP_FUN_MED $STOP_CRITERION --post-process exp 2"
 	RESTART_ACOMP4="--acomp $COMP_FUN_FIN $STOP_CRITERION --post-process exp 2"
 	RESTART_ADHOC="--adhoc $MIN_OC $STOP_CRITERION"
-	STANDARD_MC="--flat -e nosplit $STOP_CRITERION"
+	STANDARD_MC="--flat $STOP_CRITERION"
 
 	# Experiment's model and properties
 	MODEL_FILE=${EXPNAME}_r${R}.sa
