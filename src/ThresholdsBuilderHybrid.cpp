@@ -115,10 +115,13 @@ ThresholdsBuilderHybrid::choose_stride(const size_t& impRange,
 	{
 	case (PostProcessing::NONE):
 	case (PostProcessing::SHIFT):
-		basicStride = splitsPerThreshold <  4u ? 2u :      // 2,3 -------------> 2
-					  splitsPerThreshold <  7u ? 3u :      // 4,5,6 -----------> 3
-					  splitsPerThreshold < 11u ? 4u :      // 7,8,9,10 --------> 4
-					  splitsPerThreshold < 16u ? 5u : 6u;  // 11,12,13,14,15 --> 5
+//		basicStride = splitsPerThreshold <  4u ? 2u :      // 2,3 -------------> 2
+//					  splitsPerThreshold <  7u ? 3u :      // 4,5,6 -----------> 3
+//					  splitsPerThreshold < 11u ? 4u :      // 7,8,9,10 --------> 4
+//					  splitsPerThreshold < 16u ? 5u : 6u;  // 11,12,13,14,15 --> 5
+		basicStride = splitsPerThreshold <  6u ? 2u :      // 2,3,4,5 ---------> 2
+					  splitsPerThreshold < 11u ? 3u :      // 6,7,8,9,10 ------> 3
+					  splitsPerThreshold < 16u ? 4u : 5u;  // 11,12,13,14,15 --> 4
 		expansionFactor = std::ceil(static_cast<float>(impRange) / EXPAND_EVERY);
 		// Make sure return type can represent the computed stride
 		assert(std::log2(static_cast<float>(basicStride)*expansionFactor)
