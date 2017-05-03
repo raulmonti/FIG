@@ -11,6 +11,7 @@
 # Cool site: http://wiki.bash-hackers.org
 #
 
+
 # Max number of continuously broken nodes (aka oil pumps)
 # Intended for ad hoc ifun
 max_continuous_failures_adhoc() {
@@ -68,5 +69,24 @@ sum_continuous_failures_acomp() {
 		EXPR+=$CLUSTER"1+"
 	done
 	EXPR+="0;$((N-K+1));$(((N-K+1)*(2**K)))"
+	echo $EXPR
+}
+
+# Add the product of the number of continuously broken nodes
+# Optimized for K=3: math expression uses less operations
+# Inteded for acomp ifun
+sum_continuous_failures_acomp_K3() {
+	if [ $# -ne 1 ]; then
+		echo "[ERROR] Requires # of nodes in the system (aka 'N')"
+		return 1
+	fi
+	local N=$1
+	local K=3
+	local ECHO=`echo "echo -en"`
+	EXPR=""
+	for (( i=1 ; i<=(N-K+1)/K ; i++ )) do
+		# TODO!
+	done
+	# EXPR+="0;$((N-K+1));$(((N-K+1)*(2**K)))"
 	echo $EXPR
 }
