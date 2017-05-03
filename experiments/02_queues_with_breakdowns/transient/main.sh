@@ -55,7 +55,8 @@ TO="6h"
 CONF=0.9  # Confidence coefficient
 PREC=0.4  # Relative precision
 SPLITS=(2 5 10 15)  # RESTART splittings to test
-BUFFER_CAPACITIES=(40 60 80 100 120 140 160)  # =(40 80 120 160)
+BUFFER_CAPACITIES=(40 60 80 100 120) #140)  # 160)  # =(40 80 120 160)
+
 EXPNAME="queues_with_breakdowns"
 #
 show "Configuring experiments"
@@ -115,7 +116,7 @@ show -n "Waiting for all experiments to finish..."
 `PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }') \
  sleep $ETIMEOUT; kill -15 $PIDS &>/dev/null;              \
  sleep 2;         kill  -9 $PIDS &>/dev/null`              &
-disown %%; wait &>/dev/null; killall sleep &>/dev/null
+disown %%; wait &>/dev/null;   # killall sleep &>/dev/null
 show " done"
 
 

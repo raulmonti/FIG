@@ -153,7 +153,7 @@ show -n "Waiting for all experiments to finish..."
 `PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }') \
  sleep $ETIMEOUT; kill -15 $PIDS &>/dev/null;              \
  sleep 2;         kill  -9 $PIDS &>/dev/null`              &
-disown %%; wait &>/dev/null; killall sleep &>/dev/null
+disown %%; wait &>/dev/null;   # killall sleep &>/dev/null
 show " done"
 
 

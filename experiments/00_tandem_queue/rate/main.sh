@@ -56,7 +56,7 @@ CONF=0.9  # Confidence coefficient
 PREC=0.4  # Relative precision
 SPLITS=(2 5 10 15)  # RESTART splittings to test
 QUEUES_CAPACITIES=(10 13 16 18 21)  # =(10 15 20 25)
-EXPNAME="tandem_queue"
+EXPNAME="${MODEL_FILE%.sa}_ss"
 #
 show "Configuring experiments"
 STOP_CRITERION="--stop-conf $CONF $PREC"
@@ -76,7 +76,7 @@ do
 	show -n "  · for queues capacity = $c..."
 
 	# Modify model file to fit this experiment
-	MODEL_FILE_C=${MODEL_FILE%.sa}"_c${c}.sa"
+	MODEL_FILE_C="${EXPNAME}_c${c}.sa"
 	BLANK="[[:space:]]*"
 	C_DEF="^const${BLANK}int${BLANK}c${BLANK}=${BLANK}[_\-\+[:alnum:]]*;"
 	sed -e "s/${C_DEF}/const int c = $c;/1" $MODEL_FILE > $MODEL_FILE_C
@@ -115,7 +115,7 @@ show -n "Waiting for all experiments to finish..."
 `PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }') \
  sleep $ETIMEOUT; kill -15 $PIDS &>/dev/null;              \
  sleep 2;         kill  -9 $PIDS &>/dev/null`              &
-disown %%; wait &>/dev/null; killall sleep &>/dev/null
+disown %%; wait &>/dev/null;   # killall sleep &>/dev/null
 show " done"
 
 

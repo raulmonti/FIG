@@ -53,7 +53,7 @@ mkdir $RESULTS && unset N && \
 # Experiments configuration
 TO="4h"
 CONF=0.9  # Confidence coefficient
-PREC=0.2  # Relative precision
+PREC=0.4  # Relative precision
 SPLITS=(2 5 10 15)  # RESTART splittings to test
 #OCUPA=(18  13  20  16  24  21)  # estimates ~ 10^-15
 OCUPA=(10   7  11   9  14  12)  # estimates ~ 5*10^-9
@@ -145,7 +145,7 @@ show -n "Waiting for all experiments to finish..."
 `PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }') \
  sleep $ETIMEOUT; kill -15 $PIDS &>/dev/null;              \
  sleep 2;         kill  -9 $PIDS &>/dev/null`              &
-disown %%; wait &>/dev/null; killall sleep &>/dev/null
+disown %%; wait &>/dev/null;   # killall sleep &>/dev/null
 show " done"
 
 
