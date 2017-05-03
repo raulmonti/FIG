@@ -25,7 +25,9 @@
 #SBATCH --cpus-per-task=8
 export MAXJOBSN=8  # must equal value of "--cpus-per-task"
 
-### execution time. Format: days-hours:minutes:seconds -- Max: a week
+### Execution time. Format: days-hours:minutes:seconds -- Max: a week
+### XXX  DEPRECATED!  Should have been set with "-t" option
+### XXX               when called as argument to enqueue_job.sh
 #SBATCH --time 4-12:00
 
 ### Check invocation line

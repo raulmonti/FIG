@@ -63,8 +63,12 @@ mkdir $RESULTS && unset N && \
 
 
 # Experiments configuration
-REDUNDANCY=(  2  3  4  5 )
-TIME_BOUNDS=(10s 3m 1h 8h)  # Specify one per redundancy!
+REDUNDANCY=(  2    3   4  5 )
+TIME_BOUNDS=(10s 120s 20m 6h)  # Specify one per redundancy!
+## REDUNDANCY=(  2   4  6 )
+## TIME_BOUNDS=(10s 20m 6h)  # Specify one per redundancy!
+# REDUNDANCY=(   3   4  5  6 )
+# TIME_BOUNDS=(100s 15m 1h 6h)  # Specify one per redundancy!
 SPLITS=(2 5 10 15)  # RESTART splittings to test
 NDC=6   # Number of disk clusters
 NCT=2   # Number of controller types
@@ -165,7 +169,7 @@ ETIMEOUT=$(bc -l <<< "scale=0; ${TO%%[a-z]*}*1.4/1")"$ETIMEOUT"
 `PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }') \
  sleep $ETIMEOUT; kill -15 $PIDS &>/dev/null;              \
  sleep 2;         kill  -9 $PIDS &>/dev/null`              &
-disown %%; wait &>/dev/null; killall sleep &>/dev/null
+disown %%; wait &>/dev/null;  # killall sleep &>/dev/null
 show " done"
 
 

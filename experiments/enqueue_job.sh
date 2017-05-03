@@ -56,7 +56,13 @@ fi
 if [[ "$1" == "-d" ]]
 then
 	sbatch -J ${NAME} debug_job_slurm.sh "$FILENAME"
-else
+elif [[ $HOSTNAME == "jupiterace" ]]  # JupiterAce: 3-days  time limit
+then
+	sbatch -J ${NAME} -t 3-00:00 submit_job_slurm.sh "$FILENAME"
+elif [[ $HOSTNAME == "mendieta" ]]    # Mendieta:   7-days  time limit
+then
+	sbatch -J ${NAME} -t 5-01:00 submit_job_slurm.sh "$FILENAME"
+else                                  # Unknown:    default time limit
 	sbatch -J ${NAME} submit_job_slurm.sh "$FILENAME"
 fi
 

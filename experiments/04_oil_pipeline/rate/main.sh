@@ -58,9 +58,9 @@ mkdir $RESULTS && unset N && \
 
 # Experiments configuration
 FAIL_DISTRIBUTIONS=("exponential(0.001)" "rayleigh(729)")
-PARAM_N=(20 40 60)
-PARAM_K=(3 4 5 6)
-TIME_BOUNDS=(90m 180m 6h 10h)  # one per vale in $PARAM_K
+PARAM_N=(60)  # (20 40 60)
+PARAM_K=(3 4 5)
+TIME_BOUNDS=(90m 180m 6h)  # one per vale in $PARAM_K
 CONF=0.9  # Confidence coefficient
 PREC=0.4  # Relative precision
 SPLITS=(2 5 10 15)  # RESTART splittings to test
@@ -163,7 +163,7 @@ ETIMEOUT=$(bc -l <<< "scale=0; ${TO%%[a-z]*}*1.4/1")"$ETIMEOUT"
 `PIDS=$(ps -fC "fig" | grep $EXPNAME | awk '{ print $2 }') \
  sleep $ETIMEOUT; kill -15 $PIDS &>/dev/null;              \
  sleep 2;         kill  -9 $PIDS &>/dev/null`              &
-disown %%; wait &>/dev/null; killall sleep &>/dev/null
+disown %%; wait &>/dev/null;  # killall sleep &>/dev/null
 show " done"
 
 

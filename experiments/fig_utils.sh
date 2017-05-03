@@ -132,7 +132,7 @@ poll_till_free() {
 	fi
 	# do-while syntax sugar for bash
 	while
-		local RUNNING=`ps -fC "fig" | grep "$1" | wc -l`
+		local RUNNING=`ps -fC "fig" | grep "\<$1" | wc -l`
 		[ $RUNNING -ge $JOBSBOUND ]
 	do
 		sleep 10s
