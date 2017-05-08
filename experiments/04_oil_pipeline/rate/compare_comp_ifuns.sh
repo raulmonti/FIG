@@ -51,7 +51,7 @@ EXP_GEN="oil_pipeline-gen.sh"
 copy_model_file $EXP_GEN $CWD "link" && \
 	show "  · using model&properties generator \"$EXP_GEN\""
 N=0; RESULTS="ifuncomp_$N"
-while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
+while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="ifuncomp_$N"; done
 mkdir $RESULTS && unset N && \
 	show "  · results will be stored in subdir \"${RESULTS}\""
 
@@ -62,7 +62,7 @@ PARAM_N=(20 60)  # (20 40 60)
 PARAM_K=(3 4 5)
 TIME_BOUNDS=(60m 120m 240m)  # one per vale in $PARAM_K
 CONF=0.8  # Confidence coefficient
-PREC=0.7  # Relative precision
+PREC=0.6  # Relative precision
 SPLITS=(3 8)  # RESTART splittings to test
 EXPNAME="oilpipe_ifun_comp"
 #
@@ -79,7 +79,7 @@ for (( i=0 ; i<${#PARAM_K[*]} ; i++ )); do   # K loop
 #
 	K=${PARAM_K[i]}
 #
-for N in "${PARAM_N}"; do                    # N loop
+for N in "${PARAM_N[@]}"; do                 # N loop
 #
 	show -n "  · for $K-out-of-$N ..."
 
