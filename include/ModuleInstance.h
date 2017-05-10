@@ -84,20 +84,26 @@ class ModuleInstance : public Module
 	State< STATE_INTERNAL_TYPE > lState_;
 
 	/// Local \ref Clock "clocks"
-        std::vector< Clock > lClocks_;
+	std::vector< Clock > lClocks_;
 
-        using transition_vector_t = std::vector<Reference<const Transition>>;
+	using transition_vector_t = std::vector<Reference<const Transition>>;
 
 	/// Transitions semi-ordered by their triggering \ref Clock "clock"
-        std::unordered_map<std::string, transition_vector_t>
-        transitions_by_clock_;
+	std::unordered_map<std::string, transition_vector_t>
+	transitions_by_clock_;
 
 	/// Transitions semi-ordered by their synchronization \ref Label "label"
-        std::unordered_map<std::string, transition_vector_t>
-        transitions_by_label_;
+	std::unordered_map<std::string, transition_vector_t>
+	transitions_by_label_;
 
-    /// Has committed transitions ?  Setted by \ref ModuleBuilder
-        bool has_committed_ = false;
+	/// Transitions whose \ref Label "labels" are out-committed
+	transition_vector_t transitions_out_committed_;
+
+	/// Transitions whose \ref Label "labels" are in-committed
+	transition_vector_t transitions_in_committed_;
+
+	/// Has committed transitions ?  Setted by \ref ModuleBuilder
+	bool has_committed_ = false;
 
 public:
 	const std::string name;
@@ -573,26 +579,26 @@ private:  // Callback utilities offered to the ModuleNetwork
 	 */
 	void seal(const fig::State<STATE_INTERNAL_TYPE>& globalState);
 
-
-        /**
-         * @brief Apply postcondition of the first enabled transition.
-         * Advance clocks by elapsedTime if there is an enabled transition.
-         * @param elapsedTime  Time lapse for the clock to expire
-         * @param traial       Instance of Traial to update
-         * @return true if a transition was enabled, false otherwise
-         */
-        bool
-        apply_postcondition(const CLOCK_INTERNAL_TYPE &elapsedTime,
-                            Traial &traial,
-                            const transition_vector_t &transitions) const;
-        /**
-         * @brief Apply postcondition of the first enabled transition.
-         * @param state to update
-         * @return true if a transition was enabled, false otherwise
-         */
-        bool
-        apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
-                            const transition_vector_t& transitions) const;
+	/**
+	 * @brief Apply postcondition of the (first) enabled transition, if any.
+	 *        If there is an enabled transition then reset corresponding clocks.
+	 * @param traial       Instance of Traial to update
+	 * @param transitions  Transitions to consider
+	 * @return Label of the matching transition if one was enabled,
+	 *         a \ref Label::should_ignore() "label to ignore" otherwise.
+	 */
+	const Label&
+	apply_postcondition(Traial &traial,
+						const transition_vector_t &transitions) const;
+	/**
+	 * @brief Apply postcondition of the (first) enabled transition, if any.
+	 * @param state        State to update
+	 * @param transitions  Transitions to consider
+	 * @return true if a transition was enabled, false otherwise
+	 */
+	bool
+	apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
+						const transition_vector_t& transitions) const;
 
 
 public: //Debug
@@ -636,10 +642,14 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance can only be copy-"
 				  "constructed from a container with Transition objects");
 	transitions_.insert(begin(transitions_), begin(transitions), end(transitions));
-	for(const Transition& tr: transitions_) {
-		transitions_by_label_[tr.label().str].emplace_back(tr);
-		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
-	}
+//	for(const Transition& tr: transitions_) {
+//		transitions_by_label_[tr.label().str].emplace_back(tr);
+//		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
+//		if (tr.label().is_out_committed())
+//			transitions_out_committed_.emplace_back(tr);
+//		else if (tr.label().is_in_committed())
+//			transitions_in_committed_.emplace_back(tr);
+//	}
 }
 
 
@@ -674,10 +684,14 @@ ModuleInstance::ModuleInstance(
 				  "constructed from a container with instances or raw pointers "
 				  "to Transition objects");
 	transitions_.insert(begin(transitions_), begin(transitions), end(transitions));
-	for(const Transition& tr: transitions_) {
-		transitions_by_label_[tr.label().str].emplace_back(tr);
-		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
-	}
+//	for(const Transition& tr: transitions_) {
+//		transitions_by_label_[tr.label().str].emplace_back(tr);
+//		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
+//		if (tr.label().is_out_committed())
+//			transitions_out_committed_.emplace_back(tr);
+//		else if (tr.label().is_in_committed())
+//			transitions_in_committed_.emplace_back(tr);
+//	}
 	transitions.clear();
 }
 
@@ -716,9 +730,13 @@ ModuleInstance::ModuleInstance(
 		assert(nullptr != tr_ptr);
 		transitions_.emplace_back(std::forward<Transition&&>(*tr_ptr));
 		tr_ptr = nullptr;
-		const Transition& tr = transitions_.back();
-		transitions_by_label_[tr.label().str].emplace_back(tr);
-		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
+//		const Transition& tr = transitions_.back();
+//		transitions_by_label_[tr.label().str].emplace_back(tr);
+//		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
+//		if (tr.label().is_out_committed())
+//			transitions_out_committed_.emplace_back(tr);
+//		else if (tr.label().is_in_committed())
+//			transitions_in_committed_.emplace_back(tr);
 	}
 	transitions.clear();
 }
@@ -755,10 +773,14 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance ctor needs iterators "
 				  "poiting to Transition objects");
 	transitions_.insert(begin(transitions_), from, to);
-	for(const Transition& tr: transitions_) {
-		transitions_by_label_[tr.label().str].emplace_back(tr);
-		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
-	}
+//	for(const Transition& tr: transitions_) {
+//		transitions_by_label_[tr.label().str].emplace_back(tr);
+//		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
+//		if (tr.label().is_out_committed())
+//			transitions_out_committed_.emplace_back(tr);
+//		else if (tr.label().is_in_committed())
+//			transitions_in_committed_.emplace_back(tr);
+//	}
 }
 
 } // namespace fig
