@@ -524,13 +524,11 @@ private:  // Class utils
 	const Label&
 	apply_postcondition(Traial &traial,
 	                    const transition_vector_t &transitions) const;
-	/**
-	 * @brief Apply postcondition of the (first) enabled transition, if any.
-	 * @param state        State to update
-	 * @param transitions  Transitions to consider
-	 * @return true if a transition was enabled, false otherwise
-	 */
-	bool
+
+	/// Apply postcondition of the (first) enabled transition, if any.
+	/// @param state        State to update
+	/// @param transitions  Transitions to consider
+	void
 	apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
 	                    const transition_vector_t& transitions) const;
 

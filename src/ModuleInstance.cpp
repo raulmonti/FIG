@@ -297,12 +297,10 @@ ModuleInstance::jump(const Traial::Timeout& to,
 	assert(end(transitions_by_clock_) != iter);  // deny foreign clocks
 	// Step 1: make time elapse in all clocks
 	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
-	// Step 2: mark this clock specially as 'expired'
-	traial.kill_time(to.gpos, 1ul, 100.0f);
-	// Step 3: attend any enabled transition with matching clock name
+	traial.kill_time(to.gpos, 1ul, 100.0f);  // mark this clock as 'expired'
+	// Step 2: attend any enabled transition with matching clock name
 	return apply_postcondition(traial, iter->second);
 }
-
 
 
 void
@@ -365,7 +363,7 @@ ModuleInstance::jump_committed(const Label& label, Traial& traial) const
 }
 
 
-bool
+void
 ModuleInstance::apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
                                     const transition_vector_t& transitions) const
 {
@@ -373,11 +371,10 @@ ModuleInstance::apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
 	for (const Transition &tr : transitions) {
 		if (tr.pre(state)) { // If the traial satisfies this precondition
 			tr.pos(state); // apply postcondition to its state
-			return (true);
+			break;
 			// At most one transition could've been enabled, trust IOSA Checking
 		}
 	}
-	return (false);
 }
 
 
