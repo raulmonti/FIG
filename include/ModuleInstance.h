@@ -412,7 +412,7 @@ public:  // Utils
 					  Traial& traial) const;
 
 	/**
-	 * @brief Passive module jump following "label" label
+	 * @brief Passive module jump following a <i>timed</i> input \p label
 	 *
 	 * @param label        Output label triggered by current active jump
 	 * @param elapsedTime  Time lapse for the clock to expire
@@ -424,7 +424,7 @@ public:  // Utils
 	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
 	 *       <li> <i>c</i> is the number of   clocks    of this module and</li>
 	 *       </ul>
-	 * @note Modifies sections both in StateInstance and clock-vector within "traial"
+	 * @note Modifies sections both in StateInstance and clock-vector within \p traial
 	 *       which correspond to variables and clocks from this module.
 	 *
 	 * @warning seal() must have been called beforehand
@@ -444,7 +444,7 @@ public:  // Utils
 	 * "passive jump" but for reachability purposes only
 	 *
 	 * @param label Output label to which we may react
-	 * @param state State to update if we have a transition reacting to 'label'
+	 * @param state State to update if we have a transition reacting to \p label
 	 *
 	 * @note Useful for ImportanceFunction construction, not for simulations
 	 * @note <b>Complexity:</b> <i>O(t*v)</i>, where
@@ -471,7 +471,8 @@ public:  // Utils
 	 * @param traial  Instance of Traial to update
 	 *
 	 * @return Output-committed label fired by the transition taken.
-	 *         If none was enabled then a "should_ignore" label is returned.
+	 *         If none was enabled then a \ref Label::should_ignore()
+	 *         "label to ignore"  is returned.
 	 *
 	 * @warning seal() must have been called beforehand
 	 * \ifnot NDEBUG
@@ -486,10 +487,10 @@ public:  // Utils
 	/**
 	 * @brief Passive module jump executing an input-committed transition
 	 *
-	 *        Receives and processes an output-committed label broadcasted
+	 *        Receives and processes an output-committed \p label broadcasted
 	 *        by the module network. If there is a transition in this module
-	 *        with the same input-committed label and its precondition
-	 *        is enabled, this will apply the postcondition to the given traial.
+	 *        with the same input-committed label and its precondition is
+	 *        enabled, this will apply the postcondition to the given \p traial.
 	 *        Otherwise nothing is done.
 	 *
 	 * @param label   Output-committed label triggered by current active jump
@@ -506,6 +507,32 @@ public:  // Utils
 	void jump_committed(const Label& label, Traial& traial) const;
 
 private:  // Class utils
+
+	/**
+	 * @brief  Apply (first) enabled transition, if any.
+	 *
+	 *         Look for an enabled transition for this \p traial:
+	 *         if one is found then apply its postcondition and reset its clocks;
+	 *         otherwise nothing is done.
+	 *
+	 * @param traial       Instance of Traial to update
+	 * @param transitions  Transitions to consider
+	 *
+	 * @return Label of the matching transition if one was enabled,
+	 *         a \ref Label::should_ignore() "label to ignore" otherwise.
+	 */
+	const Label&
+	apply_postcondition(Traial &traial,
+	                    const transition_vector_t &transitions) const;
+	/**
+	 * @brief Apply postcondition of the (first) enabled transition, if any.
+	 * @param state        State to update
+	 * @param transitions  Transitions to consider
+	 * @return true if a transition was enabled, false otherwise
+	 */
+	bool
+	apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
+	                    const transition_vector_t& transitions) const;
 
 	/// Check whether all clocks have an exponential distribution
 	/// and update the markovian_ field correspondingly
@@ -579,28 +606,6 @@ private:  // Callback utilities offered to the ModuleNetwork
 	 */
 	void seal(const fig::State<STATE_INTERNAL_TYPE>& globalState);
 
-	/**
-	 * @brief Apply postcondition of the (first) enabled transition, if any.
-	 *        If there is an enabled transition then reset corresponding clocks.
-	 * @param traial       Instance of Traial to update
-	 * @param transitions  Transitions to consider
-	 * @return Label of the matching transition if one was enabled,
-	 *         a \ref Label::should_ignore() "label to ignore" otherwise.
-	 */
-	const Label&
-	apply_postcondition(Traial &traial,
-						const transition_vector_t &transitions) const;
-	/**
-	 * @brief Apply postcondition of the (first) enabled transition, if any.
-	 * @param state        State to update
-	 * @param transitions  Transitions to consider
-	 * @return true if a transition was enabled, false otherwise
-	 */
-	bool
-	apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
-						const transition_vector_t& transitions) const;
-
-
 public: //Debug
         void print_info(std::ostream &out) const;
 };
@@ -642,14 +647,6 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance can only be copy-"
 				  "constructed from a container with Transition objects");
 	transitions_.insert(begin(transitions_), begin(transitions), end(transitions));
-//	for(const Transition& tr: transitions_) {
-//		transitions_by_label_[tr.label().str].emplace_back(tr);
-//		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
-//		if (tr.label().is_out_committed())
-//			transitions_out_committed_.emplace_back(tr);
-//		else if (tr.label().is_in_committed())
-//			transitions_in_committed_.emplace_back(tr);
-//	}
 }
 
 
@@ -684,14 +681,6 @@ ModuleInstance::ModuleInstance(
 				  "constructed from a container with instances or raw pointers "
 				  "to Transition objects");
 	transitions_.insert(begin(transitions_), begin(transitions), end(transitions));
-//	for(const Transition& tr: transitions_) {
-//		transitions_by_label_[tr.label().str].emplace_back(tr);
-//		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
-//		if (tr.label().is_out_committed())
-//			transitions_out_committed_.emplace_back(tr);
-//		else if (tr.label().is_in_committed())
-//			transitions_in_committed_.emplace_back(tr);
-//	}
 	transitions.clear();
 }
 
@@ -730,13 +719,6 @@ ModuleInstance::ModuleInstance(
 		assert(nullptr != tr_ptr);
 		transitions_.emplace_back(std::forward<Transition&&>(*tr_ptr));
 		tr_ptr = nullptr;
-//		const Transition& tr = transitions_.back();
-//		transitions_by_label_[tr.label().str].emplace_back(tr);
-//		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
-//		if (tr.label().is_out_committed())
-//			transitions_out_committed_.emplace_back(tr);
-//		else if (tr.label().is_in_committed())
-//			transitions_in_committed_.emplace_back(tr);
 	}
 	transitions.clear();
 }
@@ -773,14 +755,6 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance ctor needs iterators "
 				  "poiting to Transition objects");
 	transitions_.insert(begin(transitions_), from, to);
-//	for(const Transition& tr: transitions_) {
-//		transitions_by_label_[tr.label().str].emplace_back(tr);
-//		transitions_by_clock_[tr.triggeringClock].emplace_back(tr);
-//		if (tr.label().is_out_committed())
-//			transitions_out_committed_.emplace_back(tr);
-//		else if (tr.label().is_in_committed())
-//			transitions_in_committed_.emplace_back(tr);
-//	}
 }
 
 } // namespace fig

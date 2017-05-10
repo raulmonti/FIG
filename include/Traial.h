@@ -66,9 +66,7 @@ class ImportanceFunction;
  */
 class Traial
 {
-//	friend class Transition;  // to handle our clocks
 	friend class TraialPool;  // to instantiate (ctor)
-//	friend class ModuleInstance;
 
 	/// @todo TODO maybe remove following and use copy elision in TraialPool::ensure_resources()?
 	friend class std::vector< Traial >;

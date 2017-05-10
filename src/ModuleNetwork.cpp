@@ -292,7 +292,7 @@ Event ModuleNetwork::simulation_step(Traial& traial,
     assert(sealed());
     Event e(EventType::NONE);
 
-	// Start up processing the initial commited actions
+	// Start up processing the initial committed actions
 	// (this could reset clocks and change next timeout)
 	process_committed(traial);
 

@@ -259,6 +259,32 @@ ModuleInstance::adjacent_states(const size_t& s) const
 
 
 const Label&
+ModuleInstance::apply_postcondition(Traial &traial,
+                                    const transition_vector_t& transitions) const
+{
+	for (const Transition &tr : transitions) {
+		// If the traial satisfies this precondition...
+		if (tr.pre(traial.state)) {
+			// ...apply postcondition to its state...
+			tr.pos(traial.state);
+			// ...and reset corresponing clocks (the other clocks aint touched)
+			const size_t NUM_CLOCKS(num_clocks());
+			std::vector<CLOCK_INTERNAL_TYPE> clockValues(NUM_CLOCKS);
+			for (size_t i = firstClock_ ; i < firstClock_+NUM_CLOCKS ; i++ ) {
+				clockValues[i-firstClock_] =
+				        tr.resetClocks()[i] ? lClocks_[i-firstClock_].sample()
+				                            : traial.clock_value(i);
+			}
+			traial.update_clocks(firstClock_, NUM_CLOCKS, clockValues);
+			return tr.label();
+			// At most one transition could've been enabled, trust IOSA Checking
+		}
+	}
+	return ::NoLabel;  // no matching enabled transition found
+}
+
+
+const Label&
 ModuleInstance::jump(const Traial::Timeout& to,
 					 Traial& traial) const
 {
@@ -269,74 +295,14 @@ ModuleInstance::jump(const Traial::Timeout& to,
 	const float elapsedTime(to.value);
 	const auto iter = transitions_by_clock_.find(to.name);
 	assert(end(transitions_by_clock_) != iter);  // deny foreign clocks
-	traial.kill_time(to.gpos, 1ul, 100.0f);      // mark this clock 'expired'
-
-
-	traial.kill_time(firstClock_, num_clocks(), elapsedTime);  // advance clocks
+	// Step 1: make time elapse in all clocks
+	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
+	// Step 2: mark this clock specially as 'expired'
+	traial.kill_time(to.gpos, 1ul, 100.0f);
+	// Step 3: attend any enabled transition with matching clock name
 	return apply_postcondition(traial, iter->second);
-
-//	const auto& transitions = iter->second;
-//	for (const Transition& tr: transitions) {
-//		if (tr.pre(traial.state)) { // If the traial satisfies this precondition
-//			tr.pos(traial.state);   // apply postcondition to its state
-//			tr.handle_clocks(       // and update clocks according to it.
-//				traial,
-//				begin(lClocks_),
-//				end(lClocks_),
-//				firstClock_,
-//				elapsedTime);
-//            // Finally broadcast the output label triggered
-//            assert(tr.label().is_output() || tr.label().is_tau());
-//			return tr.label();
-//		}
-//	}
-//	// No transition was enabled => advance all clocks and broadcast should_ignore label
-//	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
-//    return ::NoLabel;
 }
 
-
-const Label&
-ModuleInstance::apply_postcondition(Traial &traial,
-									const transition_vector_t& transitions) const
-{
-	for (const Transition &tr : transitions) {
-		// If the traial satisfies this precondition...
-		if (tr.pre(traial.state)) {
-			// ...apply postcondition to its state...
-			tr.pos(traial.state);
-//			tr.handle_clocks(        // and update clocks according to it.
-//				traial,
-//				begin(lClocks_),
-//				end(lClocks_),
-//				firstClock_,
-//				elapsedTime);
-
-//			const Bitflag& resetClocks(tr.resetClocks());
-//			for (size_t i = firstClock_ ; i < firstClock_+num_clocks() ; i++ ) {
-//				if (resetClocks[i]) {
-//					auto clk = lClocks_.begin()+(i-firstClock_);
-//					traial.clocks_[i].value = clk->sample();
-//					assert(0.0 < traial.clocks_[i].value);
-//				}
-//			}
-			// ...and reset corresponing clocks (other clocks aren't touched)
-			const size_t NUM_CLOCKS(num_clocks());
-			std::vector<CLOCK_INTERNAL_TYPE> clockValues(NUM_CLOCKS);
-			for (size_t i = firstClock_ ; i < firstClock_+NUM_CLOCKS ; i++ ) {
-				clockValues[i-firstClock_] =
-						tr.resetClocks()[i] ? lClocks_[i-firstClock_].sample()
-											: traial.clock_value(i);
-			}
-			traial.update_clocks(firstClock_, NUM_CLOCKS, clockValues);
-			return tr.label();
-//            return (true);
-            // At most one transition could've been enabled, trust IOSA Checking
-        }
-	}
-	return ::NoLabel;  // no matching enabled transition found
-//    return (false);
-}
 
 
 void
@@ -349,18 +315,15 @@ ModuleInstance::jump(const Label& label,
 		throw_FigException("this module hasn't been sealed yet");
 #endif
     assert(label.is_output() || label.is_tau() || label.should_ignore());
-
 	// Step 1: make time elapse in all clocks
 	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
 	if (label.should_ignore())
 		return;
-
 	// Step 2: attend any enabled transition with matching input label
 	const auto iter = transitions_by_label_.find(label.str);
 	if (!label.is_tau() && end(transitions_by_label_) != iter) {
 		const auto& transitions = iter->second;
 		apply_postcondition(traial, transitions);
-
 	// Step 3: if step 2 matched nothing, attend any enabled wildcard transition
 	} else {
 		const auto iter = transitions_by_label_.find("_");
@@ -369,69 +332,6 @@ ModuleInstance::jump(const Label& label,
 			apply_postcondition(traial, transitions);
 		}
 	}
-
-
-
-//	bool done(false);
-//	if (label.should_ignore()) {
-//		traial.kill_time(firstClock_, num_clocks(), elapsedTime);
-//		done = true;  // we are obedient and do as we're told
-//	}
-//	const auto iter = transitions_by_label_.find(label.str);
-//	// Foreign labels and taus won't touch us
-//	if (!done && !label.is_tau() && end(transitions_by_label_) != iter) {
-//		const auto& transitions = iter->second;
-//		done = apply_postcondition(elapsedTime, traial, transitions);
-//	} else if (!done) {
-//		// Attend wildcard inputs.
-//		const auto iter = transitions_by_label_.find("_");
-//		if (end(transitions_by_label_) != iter) {
-//			const auto &transitions = iter->second;
-//			done = apply_postcondition(elapsedTime, traial, transitions);
-//		}
-//	}
-//	if (!done) {
-//		// No transition taken, just advance all clocks
-//		traial.kill_time(firstClock_, num_clocks(), elapsedTime);
-//	}
-}
-
-
-bool
-ModuleInstance::apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
-									const transition_vector_t& transitions) const
-{
-    // iterate over transitions vector
-    for (const Transition &tr : transitions) {
-        if (tr.pre(state)) { // If the traial satisfies this precondition
-            tr.pos(state); // apply postcondition to its state
-            return (true);
-            // At most one transition could've been enabled, trust IOSA Checking
-        }
-    }
-    return (false);
-}
-
-
-void
-ModuleInstance::jump(const Label& label,
-					 State<STATE_INTERNAL_TYPE>& state) const
-{
-#ifndef NDEBUG
-	if (!sealed_)
-		throw_FigException("this module hasn't been sealed yet");
-#endif
-    if (label.is_input() || label.should_ignore())
-		return;  // none of our business
-	const auto trans = transitions_by_label_.find(label.str);
-    if (!label.is_tau() && end(transitions_by_label_) != trans) {
-        apply_postcondition(state, trans->second);
-    } else {
-        const auto trans = transitions_by_label_.find("_");
-        if (end(transitions_by_label_) != trans) {
-            apply_postcondition(state, trans->second);
-        }
-    }
 }
 
 
@@ -442,44 +342,13 @@ ModuleInstance::jump_committed(Traial& traial)
 	if (!sealed_)
 		throw_FigException("this module hasn't been sealed yet");
 #endif
-
+	// Look for (and apply) any enabled output committed transition
 	return apply_postcondition(traial, transitions_out_committed_);
-
-//	for (const Transition &tr : transitions_out_committed_) {
-//		if (tr.pre(traial.state)) {
-//			tr.pos(traial.state);
-//			std::vector<CLOCK_INTERNAL_TYPE> clockValues(num_clocks());
-//			for (size_t i = firstClock_ ; i < firstClock_+num_clocks() ; i++ ) {
-//				clockValues[i-firstClock_] =
-//						tr.resetClocks()[i] ? lClocks_[i-firstClock_].sample()
-//											: traial.clock_value(i);
-//			}
-//			traial.update_clocks(firstClock_, num_clocks(), clockValues);
-//			return tr.label();
-//		}
-//	}
-//	return ::NoLabel;
-
-//	/// @todo TODO don't iterate over all transitions; filter out_committed
-//	///            transitions and iterate over them
-//	for (Transition& tr: transitions_) {
-//		if (tr.label().is_out_committed() && tr.pre(traial.state)) {
-//			tr.pos(traial.state);
-//			tr.handle_clocks(traial,
-//							 begin(lClocks_),
-//							 end(lClocks_),
-//							 firstClock_,
-//							 static_cast<CLOCK_INTERNAL_TYPE>(0.0));
-//			return tr.label();
-//		}
-//	}
-//	// No output-committed transition was enabled => broadcast should_ignore label
-//	return ::NoLabel;
 }
 
 
 void
-ModuleInstance::jump_committed(const Label &label, Traial &traial) const
+ModuleInstance::jump_committed(const Label& label, Traial& traial) const
 {
 #ifndef NDEBUG
 	if (!sealed_)
@@ -493,32 +362,44 @@ ModuleInstance::jump_committed(const Label &label, Traial &traial) const
     const auto iter = transitions_by_label_.find(label.str);
 	if (iter != transitions_by_label_.end())
 		apply_postcondition(traial, iter->second);
-// 	{
-// 		const auto& transitions = iter->second;
-// 		//process every transitions
-// 		for (const Transition &tr : transitions) {
-// 			//ignore if is not a commited input ready to receive our label.
-// 			if (tr.label().is_in_committed() && tr.pre(traial.state)) {
-//
-// 				tr.pos(traial.state);
-// 				std::vector<CLOCK_INTERNAL_TYPE> clockValues(num_clocks());
-// 				for (size_t i = firstClock_ ; i < firstClock_+num_clocks() ; i++ ) {
-// 					clockValues[i-firstClock_] =
-// 							tr.resetClocks()[i] ? lClocks_[i-firstClock_].sample()
-// 												: traial.clock_value(i);
-// 				}
-// 				traial.update_clocks(firstClock_, num_clocks(), clockValues);
-// 			}
-//
-// //                tr.pos(traial.state);
-// //                //reset clocks if necessary
-// //                //elapsedTime is 0 with committed actions.
-// //                const auto &begin = lClocks_.begin();
-// //                const auto &end = lClocks_.end();
-// //                tr.handle_clocks(traial, begin, end, firstClock_, 0.0);
-// //            }
-// 		}
-// 	}
+}
+
+
+bool
+ModuleInstance::apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
+                                    const transition_vector_t& transitions) const
+{
+	// iterate over transitions vector
+	for (const Transition &tr : transitions) {
+		if (tr.pre(state)) { // If the traial satisfies this precondition
+			tr.pos(state); // apply postcondition to its state
+			return (true);
+			// At most one transition could've been enabled, trust IOSA Checking
+		}
+	}
+	return (false);
+}
+
+
+void
+ModuleInstance::jump(const Label& label,
+                     State<STATE_INTERNAL_TYPE>& state) const
+{
+#ifndef NDEBUG
+	if (!sealed_)
+		throw_FigException("this module hasn't been sealed yet");
+#endif
+	if (label.is_input() || label.should_ignore())
+		return;  // none of our business
+	const auto trans = transitions_by_label_.find(label.str);
+	if (!label.is_tau() && end(transitions_by_label_) != trans) {
+		apply_postcondition(state, trans->second);
+	} else {
+		const auto trans = transitions_by_label_.find("_");
+		if (end(transitions_by_label_) != trans) {
+			apply_postcondition(state, trans->second);
+		}
+	}
 }
 
 
