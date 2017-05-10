@@ -1,2 +1,27 @@
-Profiling traces for various FIG models and run configurations.
-Open the .svg files with any web browser.
+#!/usr/bin/env vim
+#
+# 03.05.2017	Carlos E. Budde	created this.
+
+This is prepared to run profiling using UNIX's perf and Flamegraph[0].
+
+The "profiler.sh" script should be copied into the system's local copy
+of the git repo of flamegraph[1].
+The script should be granted execution permissions, e.g.
+
+  $ chmod +x path/to/profiler.sh
+
+Then simply invoke the script passing the executable command as argument,
+e.g.
+
+  $ path/to/profiler.sh fig models/tandem_queue.sa --amono --stop-time 10
+
+This will generate a series of trace."ext" files with various "ext"ensions.
+The final result is the .svg file, which can be opened with any web browser.
+
+
+Some sample profiling traces for various FIG models and run configurations
+are also included in this directory. View the .svg files with a web browser.
+
+
+[0] http://www.brendangregg.com/flamegraphs.html
+[1] https://github.com/brendangregg/FlameGraph

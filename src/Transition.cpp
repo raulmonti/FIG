@@ -41,6 +41,9 @@ using std::end;
 namespace fig
 {
 
+Bitflag Transition::emptyBitflag_;
+
+
 Transition::Transition(const Transition& that) :
 	label_(that.label_),
 	triggeringClock(that.triggeringClock),

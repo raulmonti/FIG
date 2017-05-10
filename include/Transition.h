@@ -104,6 +104,9 @@ private:
 	} __attribute__((aligned(4)));
 	enum { CARBON, CRYSTAL } resetClocksData_ __attribute__((aligned(4)));
 
+	/// Dummy resetClocks_ bitflag prior crystallisation
+	static Bitflag emptyBitflag_;
+
 public:  // Ctors/Dtor
 
 	/**
@@ -172,12 +175,12 @@ public:  // Read access to some attributes
 		}
 
 	/// Clocks to reset when transition is taken, encoded as Bitflag
-	inline const Bitflag resetClocks() const noexcept
+	inline const Bitflag& resetClocks() const noexcept
 		{
 			if (CRYSTAL == resetClocksData_)
 				return resetClocks_;
 			else
-				return Bitflag();
+				return emptyBitflag_;
 		}
 
 protected:  // Utilities offered to ModuleInstance
@@ -248,36 +251,6 @@ protected:  // Utilities offered to ModuleInstance
 			pre.prepare(globalState);
 			pos.prepare(globalState);
 		}
-
-	/**
-	 * @brief Reset and/or make time elapse in specified range of clocks
-	 *
-	 *        During a simulation run, and within the specified range,
-	 *        the \ref resetClocks() "reset clocks" of this transition
-	 *        will have their time value resampled from the corresponding
-	 *        stochastic distributions. All other clocks in the specified
-	 *        range will undergo an advance in their internal time of
-	 *        'timeLapse' units.
-	 *
-	 * @param traial     Traial whose clock values will be affected
-	 * @param fromClock  Iterator pointing  to  the first affected clock
-	 * @param toClock    Iterator pointing past the last  affected clock
-	 * @param firstClock Index of the first affected clock in the global
-	 *                   vector of clocks
-	 * @param elapsedTime Amount of time elapsed for the non-reseting clocks
-	 *
-	 * @warning callback() must have been called beforehand
-	 *
-	 * @note <b>Complexity:</b> <i>O(std::distance(from,to))</i>
-	 */
-	template< template< typename, typename... > class Iterator,
-			  typename ValueType = Clock,
-			  typename... OtherIteratorArgs >
-	void handle_clocks(Traial& traial,
-					   Iterator<ValueType, OtherIteratorArgs...> fromClock,
-					   const Iterator<ValueType, OtherIteratorArgs...>& toClock,
-					   const unsigned& firstClock,
-					   const CLOCK_INTERNAL_TYPE& elapsedTime) const;
 
 private:  // Utils
 
@@ -369,44 +342,6 @@ Transition::Transition(
 							end(resetClocks));
 }
 
-
-template< template< typename, typename... > class Iterator,
-		  typename ValueType,
-		  typename... OtherIteratorArgs >
-void
-Transition::handle_clocks(Traial& traial,
-						  Iterator<ValueType, OtherIteratorArgs...> fromClock,
-						  const Iterator<ValueType, OtherIteratorArgs...>& toClock,
-						  const unsigned& firstClock,
-						  const CLOCK_INTERNAL_TYPE& elapsedTime) const
-{
-	static_assert(std::is_convertible< Clock*, ValueType >::value,
-				  "ERROR: type mismatch. handle_clocks() takes iterators "
-				  "pointing to Clock objects");
-	// Make sure callback() has been called already
-	assert(CRYSTAL == resetClocksData_);
-	// Handle clocks
-	unsigned thisClock(firstClock);
-	while (fromClock != toClock) {
-		if (resetClocks_[thisClock]) {
-			traial.clocks_[thisClock].value = fromClock->sample();
-			// should be non-negative
-			if (!std::isfinite(traial.clocks_[thisClock].value)
-				|| 0 >= traial.clocks_[thisClock].value) {  // Resample?
-				traial.clocks_[thisClock].value = fromClock->sample();
-				if (!std::isfinite(traial.clocks_[thisClock].value)
-					|| 0 >= traial.clocks_[thisClock].value)
-					throw_FigException("time sampling failed for clock \"" +
-					                   traial.clocks_[thisClock].name + "\"");
-			}
-		} else {
-			traial.clocks_[thisClock].value -= elapsedTime;
-			// that will be negative iff this clock had already expired
-		}
-		fromClock++;
-		thisClock++;
-    }
-}
 
 } // namespace fig
 

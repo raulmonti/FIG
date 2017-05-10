@@ -36,6 +36,7 @@
 #include <memory>     // std::shared_ptr<>
 #include <algorithm>  // std::swap(), std::find()
 #include <utility>    // std::move(), std::pair<>
+#include <type_traits>  // std::is_unsigned
 // FIG
 #include <core_typedefs.h>
 #include <State.h>
@@ -65,7 +66,6 @@ class ImportanceFunction;
  */
 class Traial
 {
-	friend class Transition;  // to handle our clocks
 	friend class TraialPool;  // to instantiate (ctor)
 
 	/// @todo TODO maybe remove following and use copy elision in TraialPool::ensure_resources()?
@@ -181,6 +181,10 @@ public:  // Copy/Assign/Dtor
 
 public:  // Accessors
 
+	/// Get the current time value of the clock at position \p clkPos
+	inline const CLOCK_INTERNAL_TYPE& clock_value(const size_t& clkPos) const
+		{ assert(clkPos < clocks_.size()); return clocks_[clkPos].value; }
+
 	/// Get the current time values of the clocks (attached to their names)
 	/// @param ordered Whether to return the increasing-order view of the clocks
 	std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >
@@ -213,7 +217,7 @@ public:  // Utils
 	 * @param reorder  Whether to reorder internal clocks prior the retrieval
 	 * @note  <b>Complexity:</b> <i>O(m log(m))</i> if reorder, <i>O(1)</i>
 	 *        otherwise, where 'm' is the number of clocks in the system.
-	 * @note  Attempted inlined for efficiency, sorry
+	 * @note  Attempted inlined for efficiency, canadian sorry
 	 * @throw FigException if all clocks are expired
 	 */
 	inline const Timeout&
@@ -237,7 +241,7 @@ public:  // Utils
      * @param numClocks  Number of clocks of the affected ModuleInstance
 	 * @param timeLapse  Amount of time to kill
 	 *
-	 * @note  Attempted inlined for efficiency, sorry
+	 * @note  Attempted inlined for efficiency, canadian sorry
 	 */
 	inline void
 	kill_time(const size_t& firstClock,
@@ -246,6 +250,41 @@ public:  // Utils
 		{
 			for (size_t i = firstClock ; i < firstClock + numClocks ; i++)
 				clocks_[i].value -= timeLapse;
+		}
+
+	/**
+	 * @brief Update the value of all clocks in specified range
+	 *
+	 *        The range [firstClock, firstClock+numClocks) should specify
+	 *        the global indices of all the clocks in a ModuleInstance,
+	 *        whose internal times will be set to the values contained
+	 *        in the third argument
+	 *
+	 * @param firstClock  First clock's index in the affected ModuleInstance
+	 * @param numClocks   Number of clocks of the affected ModuleInstance
+	 * @param clockValues Container with the values to use to update the clocks,
+	 *                    with at least \p numClocks elements
+	 *
+	 * @note  Attempted inlined for efficiency, canadian sorry
+	 */
+	template< template< typename, typename... > class Container,
+			  typename ValueArg,
+			  typename... OtherArgs >
+	inline void
+	update_clocks(const size_t& firstClock,
+				  const size_t& numClocks,
+				  const Container<ValueArg, OtherArgs...> & clockValues)
+		{
+			static_assert(std::is_floating_point<ValueArg>::value,
+					"ERROR: type mismatch. Traial::update_clocks() takes "
+					"a container with (floating point) clock values");
+			auto clkValIter = begin(clockValues);
+			for (size_t i = firstClock ; i < firstClock+numClocks ; i++) {
+				assert(clkValIter != end(clockValues));
+				assert(0.0 < *clkValIter);
+				clocks_[i].value = *clkValIter;
+				clkValIter++;
+			}
 		}
 
 private:  // Class utils
