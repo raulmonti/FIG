@@ -5,6 +5,7 @@
 #include "ExpReductor.h"
 #include "FigException.h"
 #include "location.hh"
+#include "ModuleScope.h"
 
 
 namespace {
@@ -433,9 +434,58 @@ void ModelVerifier::check_input_determinism(const string &label_id) {
     }
 }
 
+
+inline bool isCommitted(const LabelType lt){
+    return lt == LabelType::in_committed || lt == LabelType::out_committed;
+}
+
+inline bool isOutput(const LabelType lt){
+    return  lt == LabelType::out ||
+            lt == LabelType::out_committed ||
+            lt == LabelType::tau;
+}
+
+void ModelVerifier::check_label_compatible(shared_ptr<Model> model){
+
+    const std::vector<shared_ptr<ModuleAST>>& modules = model->get_modules();
+
+    for(size_t i = 0; i < modules.size(); ++i){
+        string module1 = modules[i]->get_name();
+        auto &scope_i = ModuleScope::scopes.at(module1);
+        for(size_t j = i+1; j < modules.size(); ++j){
+            string module2 = modules[j]->get_name();
+            auto scope_j = ModuleScope::scopes.at(module2);
+            for (auto const &it: scope_i->type_by_label_map()){
+                try{
+                    auto itTypeInJ = scope_j->type_by_label_map().at(it.first);
+                    // *** output labels should be unique ***
+                    if(isOutput(it.second) && isOutput(itTypeInJ)){
+                        put_error( "Duplicated output label <"+ it.first 
+                                 + "> between modules " + module1 + " and " 
+                                 + module2);
+                    }
+                    // *** modules should agree on committed actions ***
+                    if(isCommitted(it.second) != isCommitted(itTypeInJ)){
+                        put_error( "Modules " + module1 + " and " + module2 
+                                 + " do not agree on whether label <" 
+                                 + it.first + "> is committed or not.");
+                    }
+                }catch(std::out_of_range){
+                    ;
+                }
+            }
+        }
+    }
+}
+
+
 void ModelVerifier::visit(shared_ptr<Model> model) {
     const std::vector<shared_ptr<ModuleAST>>& modules = model->get_modules();
     unsigned int i = 0;
+
+    // Check that the moduls are label-compatible for parallelization
+    check_label_compatible(model);
+
     while (i < modules.size() && !has_warnings()) {
         const string &id = modules[i]->get_name();
         if (modules[i]->has_arrays()) {

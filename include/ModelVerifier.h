@@ -145,6 +145,13 @@ private: // Auxiliar functions
                            const string &clock_id);
 
 private:
+    ///
+    /// \brief check_label_compatible for modules to be compatible
+    /// they shold not share output labels and should agree on
+    /// committed labels.
+    /// \param model
+    ///
+    void check_label_compatible(shared_ptr<Model> model);
     /// Check condition 3 of IOSA.
     /// Let [a!] b1 @ c -> e1 and [b!] b2 @ c -> e2 be transitions waiting
     /// for the same clock "c".
