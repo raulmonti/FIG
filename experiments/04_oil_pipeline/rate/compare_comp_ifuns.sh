@@ -58,12 +58,12 @@ mkdir $RESULTS && unset N && \
 
 # Experiments configuration
 FAIL_DISTRIBUTIONS=("exponential(0.001)" "rayleigh(729)")
-PARAM_N=(20 60)  # (20 40 60)
-PARAM_K=(3 4 5)
+PARAM_N=(20 40 60)  # (20 40 60)
+PARAM_K=(3 4 )  # 5)
 TIME_BOUNDS=(60m 120m 240m)  # one per vale in $PARAM_K
 CONF=0.8  # Confidence coefficient
 PREC=0.6  # Relative precision
-SPLITS=(3 8)  # RESTART splittings to test
+SPLITS=(2 5 10)  # RESTART splittings to test
 EXPNAME="oilpipe_ifun_comp"
 #
 show "Configuring experiments"
@@ -107,8 +107,9 @@ for N in "${PARAM_N[@]}"; do                 # N loop
 	fi
 
 	# Experiment's execution commands
-	RESTART_DEF_ACOMP="--acomp $AC_DEF $STOP_CRITERION --timeout $TB --post-process exp 2"
-	RESTART_OPT_ACOMP="--acomp $AC_OPT $STOP_CRITERION --timeout $TB --post-process exp 2"
+	COMMON_CONF="--post-process exp 2 --timeout $TB --rng mt64 --rng-seed 5489"
+	RESTART_DEF_ACOMP="--acomp $AC_DEF $STOP_CRITERION $COMMON_CONF"
+	RESTART_OPT_ACOMP="--acomp $AC_OPT $STOP_CRITERION $COMMON_CONF"
 
 	# Experiment's model and properties
 	MODEL_FILE=${EXPNAME}_${FDIST:0:3}_N${N}_K${K}.sa

@@ -58,7 +58,7 @@ mkdir $RESULTS && unset N && \
 
 # Experiments configuration
 FAIL_DISTRIBUTIONS=("exponential(0.001)" "rayleigh(729)")
-PARAM_N=(40)  # (20 40 60)
+PARAM_N=(20)  # (20 40 60)
 PARAM_K=(3 4 5)
 TIME_BOUNDS=(90m 180m 6h)  # one per vale in $PARAM_K
 CONF=0.9  # Confidence coefficient
