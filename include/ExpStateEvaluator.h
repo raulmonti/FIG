@@ -61,7 +61,7 @@ protected:
 
     /// The internal state that contains the values for all the identifiers
     /// occurring on the expressions.
-	mutable ExpState<NTYPE> expState;
+    mutable ExpState<NTYPE> expState;
 
     /// Vector of Exprtk-expressions to evaluate.
     std::vector<expression_t> exprVec;
@@ -75,6 +75,11 @@ protected:
     /// Indicate if our internal state has already been syncronized with the main
     /// simulation state
     bool prepared = false;
+
+    ///
+    /// \brief valuation results of valuating all our expresions in a state
+    ///
+    mutable std::vector<STYPE> valuation;
 
 public:
     ExpStateEvaluator(const ExpContainer& astVec) noexcept;
@@ -105,8 +110,8 @@ public:
 
     /// Update our internal state and then evaluate all the expressions
     /// @returns a vector with the results for each expression
-    std::vector<STYPE> eval_all(const State<STYPE>& state) const noexcept;
-    std::vector<STYPE> eval_all(const StateInstance& state) const noexcept;
+    std::vector<STYPE>& eval_all(const State<STYPE>& state) const noexcept;
+    std::vector<STYPE>& eval_all(const StateInstance& state) const noexcept;
 
     /// Evaluate all the expressions but return the result of the first one.
     STYPE eval(const State<STYPE>& state) const noexcept;

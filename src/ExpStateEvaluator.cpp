@@ -149,7 +149,7 @@ ExpTranslatorVisitor::get_string() const noexcept {
 // Definitions of ExpStateEvaluator
 
 ExpStateEvaluator::ExpStateEvaluator(const ExpContainer& astVec) noexcept
-    : astVec {astVec}, expState {astVec} {
+    : astVec {astVec}, expState {astVec}, valuation(astVec.size()) {
     numExp = astVec.size();
     exprVec.resize(numExp);
     expStrings.resize(numExp);
@@ -166,7 +166,7 @@ ExpStateEvaluator::ExpStateEvaluator(const ExpContainer& astVec) noexcept
 }
 
 ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) noexcept
-    : astVec {that.astVec}, expState {that.expState} {
+    : astVec {that.astVec}, expState {that.expState}, valuation(that.numExp) {
     numExp = that.numExp;
     prepared = that.prepared;
     //expression and tables are shallow copied by default, let's create new ones
@@ -196,36 +196,34 @@ void ExpStateEvaluator::prepare(const PositionsMap& posMap) noexcept {
 }
 
 STYPE
-ExpStateEvaluator::eval(const State<STATE_INTERNAL_TYPE> &state) const
-noexcept {
-    return eval_all(state)[0];
+ExpStateEvaluator::eval(const State<STATE_INTERNAL_TYPE> &state) const noexcept {
+    expState.project_values(state);
+    return exprVec[0].value();
 }
 
 STYPE
 ExpStateEvaluator::eval(const StateInstance &state) const noexcept {
-    return eval_all(state)[0];
+    expState.project_values(state);
+    return exprVec[0].value();
 }
 
-std::vector<STYPE>
+
+std::vector<STYPE> &
 ExpStateEvaluator::eval_all(const StateInstance& state) const noexcept {
     expState.project_values(state);
-    std::vector<STYPE> results;
-    results.resize(numExp);
     for (size_t i = 0; i < numExp; i++) {
-        results[i] = (STYPE) exprVec[i].value();
+        valuation[i] = (STYPE) exprVec[i].value();
     }
-    return (results);
+    return (valuation);
 }
 
-std::vector<STYPE>
+std::vector<STYPE> &
 ExpStateEvaluator::eval_all(const State<STYPE>& state) const noexcept {
     expState.project_values(state);
-    std::vector<STYPE> results;
-    results.resize(numExp);
     for (size_t i = 0; i < numExp; i++) {
-        results[i] = exprVec[i].value();
+        valuation[i] = exprVec[i].value();
     }
-    return (results);
+    return (valuation);
 }
 
 } //namespace fig

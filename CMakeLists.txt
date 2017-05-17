@@ -43,6 +43,7 @@ STRING(TIMESTAMP CURRENT_TIME "%H:%M:%S %d.%m.%Y")
 OPTION(RELEASE     "Build release version of FIG"           OFF)
 OPTION(BUILTIN_RNG "Use the PCG RNG provided with FIG"      OFF)
 OPTION(USE_DTIME   "Double fp precision for time tracking"  OFF)
+OPTION(PROFILING   "-g and -pg options for profiling."      OFF)
 
 IF(RELEASE)
 	MESSAGE("Building FIG in *** RELEASE mode ***")
@@ -171,6 +172,10 @@ ELSE()
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 	# Stop compiling after *one* error
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wfatal-errors")
+ENDIF()
+
+IF(PROFILING)
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -pg")
 ENDIF()
 
 # OpenMP
