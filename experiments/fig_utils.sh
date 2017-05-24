@@ -283,9 +283,9 @@ extract_value() {
 		           | grep --after=10 "Confidence level: $CONFLVL")
 	elif [[ $6 =~ ^[0-9]+[smhd]?$ ]]; then
 		local CONFLVL=""
-		local TBOUND=$(compute_seconds $6)
+		local TBOUND=$(format_seconds `compute_seconds $6`)
 		local VAL=$(awk "/splitting $SPLIT/{f=1;next} /splitting/{f=0} f" $FILE \
-		           | grep --after=15 "Estimation timeout: $TBOUND s")
+		           | grep --after=15 "Estimation time bound: ${TBOUND##*-}")
 	fi
 	# Print value (or '-' if not found)
 	if [ -z "${VAL}" ]; then

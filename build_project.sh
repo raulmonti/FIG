@@ -38,7 +38,8 @@ then
 	CLANG_VERSION_MAJOR=$(clang --version | grep -o "[0-9]\.[0-9.]*" | head -1)
 	CLANG_VERSION_MINOR=$(echo $CLANG_VERSION_MAJOR | cut -d"." -f 2)
 	CLANG_VERSION_MAJOR=$(echo $CLANG_VERSION_MAJOR | cut -d"." -f 1)
-	if [ $CLANG_VERSION_MAJOR -ge 3 ] && [ $CLANG_VERSION_MINOR -ge 7 ]
+	if [ $CLANG_VERSION_MAJOR -ge 4 ] ||
+		([ $CLANG_VERSION_MAJOR -ge 3 ] && [ $CLANG_VERSION_MINOR -ge 7 ])
 	then
 		CC=clang
 		CXX=clang++
@@ -160,6 +161,7 @@ OPTS="$OPTS -DBUILTIN_RNG=ON"  # Cmake build options, see CMakeLists.txt
 NJOBS=$(2>/dev/null bc <<< "2*`nproc --all`")
 if [ -z "$NJOBS" ]; then NJOBS=2; fi
 CC=$CC CXX=$CXX cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
+#CC=gcc CXX=g++ cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
 /bin/echo -e "\n  Project built in $BUILD_DIR\n"
 cd $CWD
 

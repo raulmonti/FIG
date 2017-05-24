@@ -307,15 +307,8 @@ public:  // Accessors
 
 	/// Get the wall-clock-time execution limit imposed to simulations,
 	/// in seconds
-	/// @see get_timeout_str()
 	/// @see set_timeout()
 	const std::chrono::seconds& get_timeout() const noexcept;
-
-	/// Get the wall-clock-time execution limit imposed to simulations,
-	/// as a nicely formatted string
-	/// @see get_timeout()
-	/// @see set_timeout()
-	std::string get_timeout_str() const noexcept;
 
 	/// @copydoc confCoToShow_
 	static const std::vector< float >& get_cc_to_show() noexcept;

@@ -259,6 +259,19 @@ start_timer(ConfidenceInterval& ci,
 	ci.reset();
 }
 
+
+/// Format time given in seconds as a hh:mm:ss string
+std::string
+time_formatted_str(size_t timeInSeconds)
+{
+	const size_t hours(timeInSeconds/3600ul);
+	const size_t minutes((timeInSeconds%3600ul)/60ul);
+	const size_t seconds(timeInSeconds%60ul);
+	char timeStr[9] = {'\0'};
+	std::sprintf(timeStr, "%02zu:%02zu:%02zu", hours, minutes, seconds);
+	return timeStr;
+}
+
 } // namespace  // // // // // // // // // // // // // // // // // // // // //
 
 
@@ -465,7 +478,7 @@ ModelSuite::set_timeout(const seconds& timeLimit)
 	timeout_ = timeLimit;
 	// Show in tech log
 	if (timeLimit.count() > 0l)
-		tech_log("Timeout set to " + get_timeout_str() + "\n");
+		tech_log("Timeout set to " + time_formatted_str(timeout_.count()) + "\n");
 	else
 		tech_log("Timeout was unset\n");
 }
@@ -510,18 +523,6 @@ const seconds&
 ModelSuite::get_timeout() const noexcept
 {
 	return timeout_;
-}
-
-
-std::string
-ModelSuite::get_timeout_str() const noexcept
-{
-	const unsigned hours(timeout_.count()/3600u);
-	const unsigned minutes((timeout_.count()%3600)/60);
-	const unsigned seconds(timeout_.count()%60);
-	char timeStr[9] = {'\0'};
-	std::sprintf(timeStr, "%02u:%02u:%02u", hours, minutes, seconds);
-	return timeStr;
 }
 
 
@@ -1073,7 +1074,7 @@ ModelSuite::estimate_for_times(const Property& property,
 		        ? std::min<long>(wallTimeInSeconds, timeout_.count())
 		        : wallTimeInSeconds);
 		mainLog_ << std::setprecision(0) << std::fixed;
-		mainLog_ << "   Estimation timeout: " << timeLimit.count() << " s\n";
+		mainLog_ << "   Estimation time bound: " << time_formatted_str(timeLimit.count()) << "\n";
 		mainLog_ << "   RNG seed: " << Clock::rng_seed()
 		         << (Clock::rng_seed_is_random() ? (" (randomized)\n") : ("\n"));
 
@@ -1131,7 +1132,7 @@ ModelSuite::estimate_for_confs(const Property& property,
 		else
 			mainLog_ << std::setprecision(2) << std::scientific << (2*precVal) << "\n";
 		if (timeout_.count() > 0l)
-			mainLog_ << "   Timeout: " << get_timeout_str() << "\n";
+			mainLog_ << "   Timeout: " << time_formatted_str(timeout_.count()) << "\n";
 		mainLog_ << "   RNG seed: " << Clock::rng_seed()
 		         << (Clock::rng_seed_is_random() ? (" (randomized)\n") : ("\n"));
 
