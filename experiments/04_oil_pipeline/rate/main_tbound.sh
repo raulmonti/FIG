@@ -61,12 +61,15 @@ FAIL_DISTRIBUTIONS=("exponential(0.001)" "rayleigh(729)")
 REPETITIONS=3
 PARAM_N=(20)  # (20 40 60)
 PARAM_K=(5)
-TIME_BOUNDS=(7h)  # one per vale in $PARAM_K
+TIME_BOUNDS=(5h)  # one per vale in $PARAM_K
 SPLITS=(2 5 10 15)  # RESTART splittings to test
 EXPNAME="oilpipe_tbound"
 #
 show "Configuring experiments"
-STOP_CRITERION="--stop-conf $CONF $PREC"
+show "  · repetitions: $REPETITIONS"
+show "  · values of N: (${PARAM_N[*]})"
+show "  · values of K: (${PARAM_K[*]})"
+show "  · time bounds: (${TIME_BOUNDS[*]})"
 
 
 # Launch experiments

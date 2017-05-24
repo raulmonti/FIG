@@ -68,6 +68,12 @@ EXPNAME="oilpipe"
 #
 show "Configuring experiments"
 STOP_CRITERION="--stop-conf $CONF $PREC"
+show "Configuring experiments"
+show "  · conf. lvl.:  `bc <<< "scale=0;$CONF*100/1"`%"
+show "  · rel. prec.:  `bc <<< "scale=0;$PREC*100/1"`%"
+show "  · values of N: (${PARAM_N[*]})"
+show "  · values of K: (${PARAM_K[*]})"
+show "  · time limits: (${TIME_BOUNDS[*]})"
 
 
 # Launch experiments
