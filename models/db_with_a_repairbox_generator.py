@@ -3,6 +3,7 @@
 # -*- coding: utf-8 -*- 
 
 from string import Template
+import os
 
 disk_template = """module Disk_${MOD}_${NUMBER}
 
@@ -190,7 +191,65 @@ for module in process_modules:
 
 print "endmodule"
 
+def disk_prop():
+	disks = {}
+	for module in disk_modules:
+		disks[module] = []
+		for number in range(0, disks_for_modules):
+			disks[module].append((module, number))
+	
+	template = Template("    (dstatus_${M1}_${N1} > 0 & dstatus_${M2}_${N2} > 0) |")
+	prop = ""
+	data = {}
+	for module in disk_modules:
+		for i in range(0, len(disks[module])-1):
+			(data['M1'],data['N1']) = disks[module][i]
+			for j in range(i+1, len(disks[module])): 
+				(data['M2'],data['N2']) = disks[module][j]
+				prop += template.substitute(data) + os.linesep
+	return prop
+
+def cont_prop():
+	controllers = {}
+	for module in control_modules:
+		controllers[module] = []
+		for number in range(0, controllers_for_modules):
+			controllers[module].append((module, number))
+
+	template = Template("(cstatus_${M1}_${N1} > 0) & ")	
+	prop = ""
+	data = {}
+	for module in control_modules:
+		prop += "    "
+		for i in range(0, len(controllers[module])):
+			(data['M1'],data['N1']) = controllers[module][i]
+			prop += template.substitute(data)
+		prop += "true | " + os.linesep 
+	return prop
+
+def proc_prop():
+	processors = {}
+	for module in process_modules:
+		processors[module] = []
+		for number in range(0, processors_for_modules):
+			processors[module].append((module, number))
+
+	template = Template("(pstatus_${M1}_${N1} > 0) & ")	
+	prop = ""
+	data = {}
+	for module in process_modules:
+		prop += "    "
+		for i in range(0, len(processors[module])):
+			(data['M1'],data['N1']) = processors[module][i]
+			prop += template.substitute(data)
+		prop += "true | " + os.linesep 
+	return prop
+
 print """properties
-	S (!idle) 
+    S ( """
+print disk_prop()
+print cont_prop()
+print proc_prop()
+print """    false ) 
 endproperties"""
 
