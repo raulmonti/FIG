@@ -85,10 +85,11 @@ bool advance(const ExtremeValuesVec& moduleValues, ImportanceVec& values)
 	// Increment it
 	values[pos]++;
 	// Reset previous values (according to 'moduleValues' order) to minimums
-	unsigned i(0u);
+    unsigned i(0u);
 	for (const auto& e: moduleValues)
-		if (i < pos)
-			values[i++] = std::get<0>(e);
+        if (i < pos)
+            values[i] = std::get<0>(e);
+            i++;
 	return true;
 }
 
@@ -127,11 +128,10 @@ find_extreme_values(const Formula& f, const ExtremeValuesVec& moduleValues)
 
 	// Test all values combinations for the relevant variables
 	do {
-		ImportanceValue imp = f(values);
-		min = std::min(min, imp);
-		max = std::max(max, imp);
-	} while (advance(moduleValues, values));
-
+        ImportanceValue imp = f(values);
+        min = std::min(min, imp);
+        max = std::max(max, imp);
+    } while (advance(moduleValues, values));
 	// Play it safe and assume minRareValue_ == minValue_
 	return std::make_tuple(min, max, min);
 
@@ -216,7 +216,7 @@ find_extreme_values(const Formula& f,
 		break;
 
 	case CompositionType::AD_HOC:
-		return find_extreme_values(f, moduleValues);
+        return find_extreme_values(f, moduleValues);
 
 	default:
 		throw_FigException("unrecognized composition function strategy: "
@@ -524,7 +524,6 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	// If the rare event depends on the state of more than one module,
 	// global rarity can't be encoded split in vectors for later simulations
 	concreteSimulation_ = numRelevantModules < 2u;
-
 	// Apply post processing (shift, exponentiation, etc.)
 	if ("flat" != strategy) {
 		post_process(postProc, moduleValues);
@@ -544,16 +543,15 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		minValue_ = userMinValue_;
 		maxValue_ = userMaxValue_;
 		minRareValue_ = userMinValue_;  // play it safe
-
 	} else if (globalStateCopy.concrete_size() > uint128::uint128_0 &&
 			   globalStateCopy.concrete_size() < (1ul<<20ul)) {
 		// A brute force, full-state-space scan is affordable
 		find_extreme_values(globalStateCopy, prop);
-
 	} else {
 		// Concrete state space is too big, resort to smarter ways
 		std::tie(minValue_, maxValue_, minRareValue_) =
 				::find_extreme_values(userFun_, moduleValues, compositionStrategy_);
+
 	}
 	initialValue_ = importance_of(systemInitialValuation);
 

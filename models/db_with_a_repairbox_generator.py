@@ -249,7 +249,7 @@ def disk_things_generator(string_template):
 # 		prop += "true | " + os.linesep 
 # 	return prop
 
-def cont_model_generator(string_template, last_part):
+def cont_model_generator(string_template, last_part, white_space):
 	controllers = {}
 	for module in control_modules:
 		controllers[module] = []
@@ -260,7 +260,7 @@ def cont_model_generator(string_template, last_part):
 	prop = ""
 	data = {}
 	for module in control_modules:
-		prop += "    "
+		prop += white_space
 		for i in range(0, len(controllers[module])):
 			(data['M1'],data['N1']) = controllers[module][i]
 			prop += template.substitute(data)
@@ -269,7 +269,7 @@ def cont_model_generator(string_template, last_part):
 
 
 
-def proc_model_generator(string_template, last_part):
+def proc_model_generator(string_template, last_part, white_space):
 	processors = {}
 	for module in process_modules:
 		processors[module] = []
@@ -280,7 +280,7 @@ def proc_model_generator(string_template, last_part):
 	prop = ""
 	data = {}
 	for module in process_modules:
-		prop += "    "
+		prop += white_space
 		for i in range(0, len(processors[module])):
 			(data['M1'],data['N1']) = processors[module][i]
 			prop += template.substitute(data)
@@ -290,15 +290,15 @@ def proc_model_generator(string_template, last_part):
 print """properties
     S ( """
 print disk_things_generator("    (dstatus_${M1}_${N1} > 0 & dstatus_${M2}_${N2} > 0) |" + os.linesep)
-print cont_model_generator("(cstatus_${M1}_${N1} > 0) & ", "true | " + os.linesep )
-print proc_model_generator("(pstatus_${M1}_${N1} > 0) & ", "true | " + os.linesep)
+print cont_model_generator("(cstatus_${M1}_${N1} > 0) & ", "true | " + os.linesep, "    ")
+print proc_model_generator("(pstatus_${M1}_${N1} > 0) & ", "true | " + os.linesep, "    ")
 print """    false ) 
 endproperties"""
 
 
 
-pp =  disk_things_generator("(Disk_${M1}_${N1} * Disk_${M2}_${N2}) + ")
-pp += cont_model_generator("Controller_${M1}_${N1} * ", " 1  + ")
-pp += cont_model_generator("Processor_${M1}_${N1} * ", " 1  + ") 
+pp =  disk_things_generator("(Disk_${M1}_${N1}*Disk_${M2}_${N2})+")
+pp += cont_model_generator("Controller_${M1}_${N1}*", "1+", "")
+pp += cont_model_generator("Processor_${M1}_${N1}*", "1+", "") 
 pp += "0"
 print "//", pp

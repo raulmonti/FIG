@@ -829,7 +829,6 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
         techLog_ << "Property: " << property.to_string() << std::endl;
 		ifun.clear();
 		const double startTime = omp_get_wtime();
-
 		// Compositional importance functions need a composition function
 		if (impFun.name.find("split") != std::string::npos)
 			static_cast<ImportanceFunctionConcreteSplit&>(ifun)
@@ -837,11 +836,11 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 									 impFun.neutralElement,
 									 impFun.minValue,
 									 impFun.maxValue);
+
 		try {
 			// Compute importance automatically -- here hides the magic!
-			static_cast<ImportanceFunctionConcrete&>(ifun)
+            static_cast<ImportanceFunctionConcrete&>(ifun)
 					.assess_importance(property, "auto", impFun.postProcessing);
-
 		} catch (std::bad_alloc&) {
 			throw_FigException("couldn't build importance function \""
 							   + impFun.name + "\" automatically: not enough "
