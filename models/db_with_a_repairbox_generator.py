@@ -114,21 +114,6 @@ repair_transitions_4processor = Template("""
 	[ processor_${MOD}_${NUMBER}_repair!! ] idle & rndeq(request, true) == ${BE_ID} -> (request[${BE_ID}]' = false) & (idle' = false);
 	[ processor_${MOD}_${NUMBER}_repaired? ] idle == false -> (idle' = true);""")
 
-	# # Redundancy
-	# RED=$1
-	# D_RED=$((2+$RED))
-	# C_RED=$RED
-	# P_RED=$RED
-	# # Number of components
-	# D_NUM=$2
-	# C_NUM=$3
-	# P_NUM=$4
-	# # Mean fail time
-	# FTIME=$5
-	# D_FTIME=$((3*$FTIME))
-	# C_FTIME=$FTIME
-	# P_FTIME=$FTIME
-
 def print_repair_transitions(template, modules, components, initial_id): 
 	data = {}
 	for module in range(1, modules+1):
@@ -148,7 +133,6 @@ def print_module(template, modules, components, dict_initialized):
 			dict_initialized['NUMBER'] = number
 			print template.substitute(data)	
 
-
 def or_of_ands_generator(or_template, and_template, proposition_template, modules, components):
 	prop_with_and = Template(proposition_template + and_template)
 	proposition = Template(proposition_template)
@@ -161,7 +145,6 @@ def or_of_ands_generator(or_template, and_template, proposition_template, module
 		(data['M'], data['D']) = (m, components)
 		p += proposition.substitute(data) + or_template + os.linesep
 	return p
-
 
 
 if __name__ == '__main__':
@@ -237,125 +220,6 @@ if __name__ == '__main__':
 	print p
 	print or_of_ands_generator(" | ", " & ", "cstatus_${M}_${D} > 0", control_modules, controllers)
 	print or_of_ands_generator(" | ", " & ", "pstatus_${M}_${D} > 0", process_modules, processors)
-
-
 	print ("""    false )
 endproperties""")
-# # def disk_prop():
-# # 	disks = {}
-# # 	for module in disk_modules:
-# # 		disks[module] = []
-# # 		for number in range(0, disks_for_modules):
-# # 			disks[module].append((module, number))
-	
-# # 	template = Template("    (dstatus_${M1}_${N1} > 0 & dstatus_${M2}_${N2} > 0) |")
-# # 	prop = ""
-# # 	data = {}
-# # 	for module in disk_modules:
-# # 		for i in range(0, len(disks[module])-1):
-# # 			(data['M1'],data['N1']) = disks[module][i]
-# # 			for j in range(i+1, len(disks[module])): 
-# # 				(data['M2'],data['N2']) = disks[module][j]
-# # 				prop += template.substitute(data) + os.linesep
-# # 	return prop
-
-
-# # Generalization of the previous function
-# #########################################
-
-# def disk_things_generator(string_template):
-# 	disks = {}
-# 	for module in disk_modules:
-# 		disks[module] = []
-# 		for number in range(0, disks_for_modules):
-# 			disks[module].append((module, number))
-	
-# 	template = Template(string_template)
-# 	prop = ""
-# 	data = {}
-# 	for module in disk_modules:
-# 		for i in range(0, len(disks[module])-1):
-# 			(data['M1'],data['N1']) = disks[module][i]
-# 			for j in range(i+1, len(disks[module])): 
-# 				(data['M2'],data['N2']) = disks[module][j]
-# 				prop += template.substitute(data) 
-# 	return prop
-
-# # def cont_prop():
-# # 	controllers = {}
-# # 	for module in control_modules:
-# # 		controllers[module] = []
-# # 		for number in range(0, controllers_for_modules):
-# # 			controllers[module].append((module, number))
-
-# # 	template = Template("(cstatus_${M1}_${N1} > 0) & ")	
-# # 	prop = ""
-# # 	data = {}
-# # 	for module in control_modules:
-# # 		prop += "    "
-# # 		for i in range(0, len(controllers[module])):
-# # 			(data['M1'],data['N1']) = controllers[module][i]
-# # 			prop += template.substitute(data)
-# # 		prop += "true | " + os.linesep 
-# # 	return prop
-
-# def cont_model_generator(string_template, last_part):
-# 	controllers = {}
-# 	for module in control_modules:
-# 		controllers[module] = []
-# 		for number in range(0, controllers_for_modules):
-# 			controllers[module].append((module, number))
-
-# 	template = Template(string_template)	
-# 	prop = ""
-# 	data = {}
-# 	for module in control_modules:
-# 		prop += "    "
-# 		for i in range(0, len(controllers[module])):
-# 			(data['M1'],data['N1']) = controllers[module][i]
-# 			prop += template.substitute(data)
-# 		prop += last_part 
-# 	return prop
-
-
-
-# def proc_model_generator(string_template, last_part):
-# 	processors = {}
-# 	for module in process_modules:
-# 		processors[module] = []
-# 		for number in range(0, processors_for_modules):
-# 			processors[module].append((module, number))
-
-# 	template = Template(string_template,)	
-# 	prop = ""
-# 	data = {}
-# 	for module in process_modules:
-# 		prop += "    "
-# 		for i in range(0, len(processors[module])):
-# 			(data['M1'],data['N1']) = processors[module][i]
-# 			prop += template.substitute(data)
-# 		prop += last_part 
-# 	return prop
-
-# print """properties
-#     S ( """
-# print disk_things_generator("    (dstatus_${M1}_${N1} > 0 & dstatus_${M2}_${N2} > 0) |" + os.linesep)
-# print cont_model_generator("(cstatus_${M1}_${N1} > 0) & ", "true | " + os.linesep )
-# print proc_model_generator("(pstatus_${M1}_${N1} > 0) & ", "true | " + os.linesep)
-# print """    false ) 
-# endproperties"""
-
-
-
-# pp =  disk_things_generator("(Disk_${M1}_${N1} * Disk_${M2}_${N2}) + ")
-# pp += cont_model_generator("Controller_${M1}_${N1} * ", " 1  + ")
-# pp += cont_model_generator("Processor_${M1}_${N1} * ", " 1  + ") 
-# pp += "0"
-# print "//", pp
-
-
-# print "// La cosa máxima para all-disks product + all-controllers product + all-processors product: " 
-# print "// # NOTE: this assumes '--post-process exp 2' is used with '--acomp'" 
-# print "// MAX ", (disks_for_modules*(2**( REDUNDANCY + 2))+ controllers_for_modules*(2**REDUNDANCY) + processors_for_modules * (2**REDUNDANCY))
-
 
