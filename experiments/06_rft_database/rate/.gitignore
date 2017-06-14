@@ -1,0 +1,8 @@
+# Ignore all local copies of model and properties files
+database*.sh
+database*.sa
+database*.pp
+
+# Ignore results unless forcefully added
+results*
+*_results*
