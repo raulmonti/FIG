@@ -38,8 +38,9 @@ SET(fig_VERSION_MINOR 42)
 ###  Project directory structure  #############################################
 
 # Default directories configuration
-SET(SOURCES_DIR ${PROJECT_SOURCE_DIR}/../../src)
+SET(TEST_HEADERS ${PROJECT_SOURCE_DIR}/include)
 SET(HEADERS_DIR ${PROJECT_SOURCE_DIR}/../../include)
+SET(SOURCES_DIR ${PROJECT_SOURCE_DIR}/../../src)
 SET(LIBRARIES_DIR ${PROJECT_SOURCE_DIR}/../../lib)
 SET(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/../../bin)
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/test)
@@ -60,6 +61,8 @@ ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../../ext
  
 # Register all include paths
 INCLUDE_DIRECTORIES(${HEADERS_DIR})
+INCLUDE_DIRECTORIES(${TEST_HEADERS})
+SET(TEST_HEADER_FILES ${TEST_HEADERS}/*.h  ${TEST_HEADERS}/*.hpp)
 
 # Register all source files, this test is big enough
 AUX_SOURCE_DIRECTORY(${SOURCES_DIR} MAIN_SOURCE_FILES)
@@ -180,5 +183,5 @@ ADD_CUSTOM_COMMAND(
 	DEPENDS ${LEXER_L}
 )
 
-ADD_EXECUTABLE(test_estimations ${ALL_SOURCES} ${LEXER_CC})
+ADD_EXECUTABLE(test_estimations ${ALL_SOURCES} ${LEXER_CC} ${TEST_HEADER_FILES})
 

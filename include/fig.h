@@ -75,18 +75,21 @@
 #include "config.h"
 #include "core_typedefs.h"
 #include "string_utils.h"
+#include "Util.h"
 #include "Exceptions.h"
 #include "FigException.h"
 #include "FigConfig.h"
 #include "FigLog.h"
-// Parser
-
+#include "ErrorMessage.h"
+// #include "SignalSetter.h"  // leave out to avoid double include
 // CLI
 #include "fig_cli.h"
 #include "MultiDoubleArg.h"
 #include "NumericConstraint.h"
 #include "TimeConstraint.h"
+#include "FigVersionVisitor.h"
 // Basic ADTs
+#include "ArrayFunctions.h"
 #include "Clock.h"
 #include "Label.h"
 #include "Variable.h"
@@ -96,11 +99,20 @@
 #include "MathExpression.h"
 #include "Precondition.h"
 #include "Postcondition.h"
+#include "Traial.h"
+#include "StoppingConditions.h"
+// Property queries
 #include "Property.h"
 #include "PropertyRate.h"
 #include "PropertyTransient.h"
-#include "Traial.h"
-#include "StoppingConditions.h"
+#include "PropertyProjection.h"
+// Confidence intervals
+#include "ConfidenceInterval.h"
+#include "ConfidenceIntervalMean.h"
+#include "ConfidenceIntervalProportion.h"
+#include "ConfidenceIntervalRate.h"
+#include "ConfidenceIntervalTransient.h"
+#include "ConfidenceIntervalWilson.h"
 // Importance functions
 #include "ImportanceFunction.h"
 #include "ImportanceFunctionAlgebraic.h"
@@ -118,12 +130,38 @@
 #include "SimulationEngine.h"
 #include "SimulationEngineNosplit.h"
 #include "SimulationEngineRestart.h"
-// Composite ADTs
+// High level ADTs
 #include "Transition.h"
 #include "ModuleInstance.h"
 #include "ModuleNetwork.h"
 #include "ModelSuite.h"
 #include "TraialPool.h"
+// Lexer & Parser
+#include "Type.h"
+#include "Graph.h"
+#include "Operators.h"
+#include "ExprDNFBuilder.h"
+#include "ExpEvaluator.h"
+#include "ExpReductor.h"
+#include "ExpState.h"
+#include "ExpStateUpdater.h"
+#include "ExpStateEvaluator.h"
+#include "ModuleScope.h"
+#include "ModelTC.h"
+#include "ModelAST.h"
+#include "ModelParser.hpp"
+#include "ModelBuilder.h"
+#include "ModelReductor.h"
+#include "ModelVerifier.h"
+#include "ModelPrinter.h"
+// Language validation
+#include "ConfluenceChecker.h"
+#include "DNFChecker.h"
+#include "IOSAState.h"
+#include "IOSAModule.h"
+#include "IOSAExpEval.h"
+// Translators to other languages
+#include "JANI_translator.h"
 
 #endif // FIG_H
 

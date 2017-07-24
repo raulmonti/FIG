@@ -1,0 +1,5 @@
+# CMake rubbish
+CMakeCache.txt
+CMakeFiles
+*.cmake
+Makefile

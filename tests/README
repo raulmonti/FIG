@@ -1,0 +1,5 @@
+Test suite based on the Catch Test Framework:
+https://github.com/philsquared/Catch
+
+To update the framework download the latest single header version from:
+https://raw.githubusercontent.com/philsquared/Catch/master/single_include/catch.hpp
