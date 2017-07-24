@@ -289,12 +289,12 @@ ADD_CUSTOM_COMMAND(
 SET (ALL_SOURCES ${ALL_SOURCES} ${PARSER_CODE} ${LEXER_CODE})
 
 # Build executable
-ADD_EXECUTABLE(tests ${ALL_SOURCES})
+ADD_EXECUTABLE(test ${ALL_SOURCES})
 
 
 
 ###  Link dynamic libraries  ##################################################
 
-TARGET_LINK_LIBRARIES(tests ${DYNAMIC_LIBRARIES})
-#TARGET_LINK_LIBRARIES(tests -static-libgcc -static-libstdc++ ${DYNAMIC_LIBRARIES})
+TARGET_LINK_LIBRARIES(test ${DYNAMIC_LIBRARIES})
+#TARGET_LINK_LIBRARIES(test -static-libgcc -static-libstdc++ ${DYNAMIC_LIBRARIES})
 

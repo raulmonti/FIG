@@ -1,0 +1,8 @@
+FILE						| PURPOSE
+----------------------------|-----------------------------------------------
+build_fig					| Paste in /etc/bash_completion.d/ to have bash
+							| auto-complete the ./build_project.sh script
+iosa.vim					| IOSA syntax highlight for VIM (the glorious)
+sa.lang						| IOSA syntax highlight for Gedit
+license_template.txt		| License template for IDEs like QtCreator
+TODO_cbudde.txt				| Legacy ToDo list, for nostalgia mostly

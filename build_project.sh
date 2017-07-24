@@ -73,19 +73,19 @@ fi
 if [ $# -eq 0 ]
 then
 	echo; echo "Called with no arguments, building main project"; echo
-	BUILD="main"
+	BUILD="fig"
 	DIR="."
 elif [ $# -eq 1 ]
 then
 	if [ "$1" = "main" ]
 	then
 		echo; echo "Building main project"; echo
-		BUILD="main"
+		BUILD="fig"
 		DIR="."
 	elif [ "$1" = "tests" ]
 	then
-		echo; echo "Building test suite"; echo
-		BUILD="tests"
+		echo; echo "Building tests suite"; echo
+		BUILD="test"
 		DIR="tests"
 	else
 		echo "[ERROR] Unrecognized build option \"$1\""
@@ -98,8 +98,6 @@ else
 	exit 1
 fi
 
-sleep .1  # FIXME: what was this here for?
-
 # Check there's a CMake build file in the corresponding directory
 if [ ! -f ${DIR}/CMakeLists.txt ]
 then
@@ -111,19 +109,9 @@ else
 	CMAKE_DIR=$PWD/$DIR
 fi
 
-# Set CMake's build subdir
-BUILD_BASE="./bin"
-shopt -s nocasematch  # case-insensitive string comparison
-if [[ $BUILD == "main" ]]; then
-	BUILD_DIR=$BUILD_BASE/fig_files
-elif [[ $BUILD == "tests" ]]; then
-	BUILD_DIR=$BUILD_BASE/tests_files
-else
-	echo "[ERROR] Unrecognised build type \"$BUILD\", aborting."
-	exit 1
-fi
-
-# Configure and build from inside BUILD_DIR
+# Set CMake's build subdir (create a neat build tree)
+BUILD_BASE=./bin
+BUILD_DIR=$BUILD_BASE/${BUILD}_files
 NJOBS=$(2>/dev/null bc <<< "2*`nproc --all`")
 if [ -z "$NJOBS" ]; then NJOBS=2; fi
 #OPTS="$OPTS -DRELEASE=ON"      # Cmake build options, see CMakeLists.txt
@@ -135,9 +123,9 @@ CC=$CC CXX=$CXX cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
 cd $CWD
 
 # Symlink main executable in current dir and in BUILD_BASE
-FIND_CMD=`echo -maxdepth 2 -type f -executable -print -quit`
-ln -rsf `find $BUILD_DIR  $FIND_CMD` -t .
-ln -rsf `find $BUILD_BASE $FIND_CMD` -t $BUILD_BASE
+FIND_CMD=`echo -maxdepth 2 -type f -executable -name $BUILD -print -quit`
+ln -rsf `find $BUILD_DIR $FIND_CMD` -t .
+ln -rsf ./$BUILD -t $BUILD_BASE
 /bin/echo -e "\n  Project built in $BUILD_DIR\n"
 
 # Clean and leave, in that order
@@ -150,8 +138,6 @@ unset -v BUILD_DIR
 unset -v CMAKE_DIR
 unset -v CWD
 unset -v DIR
-unset -v CC
-unset -v CXX
 
 exit 0
 

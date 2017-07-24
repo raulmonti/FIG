@@ -16,6 +16,7 @@ FIG*.includes
 
 # Build
 fig
+test
 bin/
 *_bin/
 bin_*/

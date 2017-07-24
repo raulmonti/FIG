@@ -1,0 +1,11 @@
+# bash completion for the FIG project
+
+_build_fig() {
+	local cur opts
+	cur="${COMP_WORDS[COMP_CWORD]}"
+	opts="main tests"
+	COMPREPLY=($(compgen -W "$opts" -- "$cur"))
+	return 0
+}
+complete -F _build_fig build_project.sh
+
