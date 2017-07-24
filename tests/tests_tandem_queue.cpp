@@ -27,13 +27,13 @@
 //==============================================================================
 
 
-#include <test_definitions.h>
+#include <tests_definitions.h>
 
 
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
 
-const string MODEL(MODELS_DIR + "tandem_queue.sa")
+const string MODEL(MODELS_DIR + "tandem_queue.sa");
 
 
 } // namespace tests   // // // // // // // // // // // // // // // // // // //
