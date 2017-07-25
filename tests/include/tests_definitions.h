@@ -29,21 +29,23 @@
 
 // C++
 #include <string>
+#include <memory>
 // CATCH
 #include <catch.hpp>
 // FIG
 #include <fig.h>
 
 using std::string;
+using std::make_shared;
 
 
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
 
-/// Path (relative to .) where model files are to be found
-static const string MODELS_DIR("../models/");
-
 /// Default IOSA model compilation
 bool compile_model(const string& modelFilePath);
+
+/// Absolute path where model files are to be found
+extern const string MODELS_DIR;
 
 } // namespace tests   // // // // // // // // // // // // // // // // // // //

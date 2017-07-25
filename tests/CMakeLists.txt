@@ -289,6 +289,7 @@ ADD_CUSTOM_COMMAND(
 SET (ALL_SOURCES ${ALL_SOURCES} ${PARSER_CODE} ${LEXER_CODE})
 
 # Build executable
+CMAKE_POLICY(SET CMP0037 OLD)  # avoid warning "test is a reserved target name"
 ADD_EXECUTABLE(test ${ALL_SOURCES})
 
 

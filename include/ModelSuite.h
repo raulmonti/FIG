@@ -175,13 +175,15 @@ public:  // Populating facilities and other modifyers
 	 * @brief Add a new property to estimate during experimentation
 	 * @details Properties are added orderly; they can be later accessed
 	 *          by specifying the order in which they were added.
+	 * @return The property index, as it should be passed to get_property()
+	 *         to get a reference to it
 	 * @warning Do not invoke after seal()
 	 * \ifnot NDEBUG
 	 *   @throw FigException if the network has already been sealed()
 	 * \endif
 	 * @see get_property()
 	 */
-	void add_property(std::shared_ptr<Property>);
+	size_t add_property(std::shared_ptr<Property>);
 
 	/**
 	 * @brief Shut the system model to begin with simulations

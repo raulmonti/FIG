@@ -37,13 +37,44 @@ TEST_CASE("Tandem queue tests", "[tandem-queue]")
 {
 
 const string MODEL(MODELS_DIR + "tandem_queue.sa");
+auto& model(fig::ModelSuite::get_instance());
 
-SECTION("Model compilation")
+SECTION("Compile model file")
 {
 	REQUIRE(compile_model(MODEL));
-	REQUIRE(fig::ModelSuite::get_instance().sealed());
+	REQUIRE(model.sealed());
 	// XXX ModelSuite is a singleton: the compiled model is available
 	//                                to all following SECTION blocks
+}
+
+SECTION("Model compiled is consistent")
+{
+	REQUIRE(model.sealed());
+	REQUIRE(model.num_modules() > 0ul);
+	CHECK(model.num_properties() > 0ul);  // we need some property to verify!
+	REQUIRE(model.num_simulators() > 0ul);
+	REQUIRE(model.num_importance_functions() > 0ul);
+	REQUIRE(model.num_importance_strategies() > 0ul);
+	REQUIRE(model.num_threshold_techniques() > 0ul);
+	REQUIRE(model.num_RNGs() > 0ul);
+}
+
+SECTION("Add properties to verify")
+{
+	auto U_LHS = make_shared<BinOpExp>(ExpOp::gt,
+										make_shared<LocExp>("q2"),
+										make_shared<IConst>(0));
+	auto U_RHS = make_shared<BinOpExp>(ExpOp::eq,
+										make_shared<LocExp>("q2"),
+										make_shared<IConst>(8));
+	/// @todo TODO continue here
+
+	//model.add_property
+}
+
+SECTION("Change simulation environment")
+{
+	
 }
 
 	

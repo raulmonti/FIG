@@ -373,9 +373,10 @@ void ModelSuite::add_module(std::shared_ptr< ModuleInstance >& module)
 }
 
 
-void ModelSuite::add_property(std::shared_ptr<Property> property)
+size_t ModelSuite::add_property(std::shared_ptr<Property> property)
 {
 	properties.push_back(property);
+	return properties.size()-1ul;
 }
 
 

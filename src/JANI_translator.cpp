@@ -1451,32 +1451,32 @@ shared_ptr<Exp>
 JaniTranslator::build_IOSA_expression(const Json::Value& JANIexpr)
 {
 	shared_ptr<Exp> expr(nullptr);
-	// Boolean?
+	// Boolean
 	if (JANIexpr.isBool()) {
 		expr = make_shared<BConst>(JANIexpr.asBool());
 		goto exit_point;
 	}
-	// Integer?
+	// Integer
 	if (JANIexpr.isIntegral()) {
 		expr = make_shared<IConst>(JANIexpr.asInt());
 		goto exit_point;
 	}
-	// Floating point?
+	// Floating point
 	if (JANIexpr.isDouble()) {
 		expr = make_shared<FConst>(JANIexpr.asFloat());
 		goto exit_point;
 	}
-	// Variable?
+	// Variable
 	if (JANIexpr.isString()) {
 		expr = make_shared<LocExp>(JANIexpr.asString());
 		goto exit_point;
 	}
-	// Distribution sampling?
+	// Distribution sampling
 	if (JANIexpr.isObject() && JANIexpr.isMember("distribution")) {
 		figTechLog << "[ERROR] Clock samplings need build_IOSA_clock_reset()\n";
 		goto exit_point;
 	}
-	// Operator!
+	// Operator
 	if ( ! (JANIexpr.isObject() && JANIexpr.isMember("op")))
 		throw_FigException("this doesn't look like an operator declaration");
 	else {
