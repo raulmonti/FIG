@@ -40,6 +40,10 @@ using std::string;
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
 
+/// Path (relative to .) where model files are to be found
 static const string MODELS_DIR("../models/");
+
+/// Default IOSA model compilation
+bool compile_model(const string& modelFilePath);
 
 } // namespace tests   // // // // // // // // // // // // // // // // // // //

@@ -33,7 +33,20 @@
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
 
+TEST_CASE("Tandem queue tests", "[tandem-queue]")
+{
+
 const string MODEL(MODELS_DIR + "tandem_queue.sa");
 
+SECTION("Model compilation")
+{
+	REQUIRE(compile_model(MODEL));
+	REQUIRE(fig::ModelSuite::get_instance().sealed());
+	// XXX ModelSuite is a singleton: the compiled model is available
+	//                                to all following SECTION blocks
+}
+
+	
+}
 
 } // namespace tests   // // // // // // // // // // // // // // // // // // //
