@@ -61,6 +61,7 @@ namespace fig
 class Property;
 class ThresholdsBuilder;
 class StoppingConditions;
+class ConfidenceIntervalResult;
 class SignalSetter;
 
 /**
@@ -121,6 +122,9 @@ class ModelSuite
 
 	/// Wall-clock-time execution limit for simulations (in seconds)
 	static std::chrono::seconds timeout_;
+
+	/// Confidence intervals produced during the last call to estimate()
+	static std::vector<ConfidenceIntervalResult> lastEstimates_;
 
 	// Interruptions handling
 
@@ -315,6 +319,10 @@ public:  // Accessors
 	/// @copydoc confCoToShow_
 	static const std::vector< float >& get_cc_to_show() noexcept;
 
+	/// Get the \ref ConfidenceInterval "confidence intervals" produced
+	/// during the last call to estimate()
+	static const std::vector<ConfidenceIntervalResult>& get_last_estimates() noexcept;
+
 	/// Names of available simulation engines,
 	/// as they should be requested by the user.
 	static const std::vector< std::string >& available_simulators() noexcept;
@@ -371,25 +379,29 @@ public:  // Accessors
 
 public:  // Utils
 
-	/// Is 'engineName' the name of an available simulation engine?
+	/// Is \a engineName the name of an available simulation engine?
 	/// @see available_simulators()
 	static bool exists_simulator(const std::string& engineName) noexcept;
 
-	/// Is 'ifunName' the name of an available importance function?
+	/// Is \a ifunName the name of an available importance function?
 	/// @see available_importance_functions()
 	static bool exists_importance_function(const std::string& ifunName) noexcept;
 
-	/// Is 'ifunStrategy' an available importance assessment strategy?
+	/// Is \a ifunStrategy an available importance assessment strategy?
 	/// @see available_importance_strategies()
 	static bool exists_importance_strategy(const std::string& impStrategy) noexcept;
 
-	/// Is "postProc" an available pos-processing for ImportanceFunctionConcrete?
+	/// Is \a postProc an available pos-processing for ImportanceFunctionConcrete?
 	/// @see available_importance_post_processings()
 	static bool exists_importance_post_processing(const std::string& postProc) noexcept;
 
-	/// Is 'thrTechnique' an available thresholds building technique?
+	/// Is \a thrTechnique an available thresholds building technique?
 	/// @see available_threshold_techniques()
 	static bool exists_threshold_technique(const std::string& thrTechnique) noexcept;
+
+	/// Is \a rng an available thresholds building technique?
+	/// @see available_RNGs()
+	static bool exists_rng(const std::string& rng) noexcept;
 
 	/// Print message in main log
 	static void main_log(const std::string& msg);
@@ -618,6 +630,8 @@ public:  // Simulation utils
 	 * @throw FigException if engine wasn't \ref SimulationEngine::bound()
 	 *                     "ready for simulations"
 	 * @throw FigException if a simulation gave an invalid result
+	 *
+	 * @note Resets previous estimations as returned by get_last_estimates()
 	 */
 	void estimate(const Property& property,
 				  const SimulationEngine& engine,

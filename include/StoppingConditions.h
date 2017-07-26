@@ -209,6 +209,9 @@ public:  // Populating facilities
 
 public:  // Utils
 
+	/// Number of conditions
+	inline size_t size() const noexcept { return confidenceCriteria_.size() + timeBudgets_.size(); }
+
 	/// Are these stopping conditions for "value simulations"?
 	/// @see StoppingConditions
 	inline bool is_value() const noexcept { return !confidenceCriteria_.empty(); }

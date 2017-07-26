@@ -69,26 +69,26 @@ SECTION("Add properties to verify")
 	assert(!q2->is_array_position());
 	assert(!q2->get_decl()->is_array());
 
-	// Rare event (RHS of transient prop)
+	// Rare event (RHS of transient prop): q2 == 8
 	auto goal = make_shared<BinOpExp>(ExpOp::eq,
 									  make_shared<LocExp>(q2),
 									  make_shared<IConst>(8));
 	REQUIRE(nullptr != goal);
 
-	// Stop event (LHS of transient prop)
+	// Stop event (LHS of transient prop): q2 > 0
 	auto noStop = make_shared<BinOpExp>(ExpOp::gt,
 										make_shared<LocExp>(q2),
 										make_shared<IConst>(0));
 	REQUIRE(nullptr != noStop);
 
-	// Steady-state property
+	// Steady-state property: S( rare )
 	auto ssProp = make_shared<fig::PropertyRate>(goal);
 	REQUIRE(nullptr != ssProp);
 	ssPropId = model.add_property(ssProp);
 	ssProp.reset();
 	REQUIRE(nullptr != model.get_property(ssPropId));
 
-	// Transient property
+	// Transient property: P( !stop U rare )
 	auto trProp = make_shared<fig::PropertyTransient>(noStop, goal);
 	REQUIRE(nullptr != trProp);
 	trPropId = model.add_property(trProp);
@@ -108,9 +108,17 @@ SECTION("Seal model and check consistency")
 	REQUIRE(model.num_RNGs() > 0ul);
 }
 
-SECTION("Change simulation environment")
+SECTION("Estimate using standard Monte Carlo simulation")
 {
-	
+	auto rng = model.available_RNGs().front();
+	REQUIRE(model.exists_rng(rng));
+	model.set_rng(rng, 8);
+	model.set_timeout(std::chrono::seconds(30));
+	REQUIRE(model.exists_simulator("nosplit"));
+	auto ifunSpec = fig::ImpFunSpec("algebraic", "flat");
+
+	// TODO: run ModelSuite::estimate()
+	//       retrieve results with ModelSuite::get_last_estimates()
 }
 
 	

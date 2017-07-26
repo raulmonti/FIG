@@ -70,6 +70,7 @@
 #include <ThresholdsBuilderFixed.h>
 #include <ThresholdsBuilderHybrid.h>
 #include <ConfidenceInterval.h>
+#include <ConfidenceIntervalResult.h>
 #include <ConfidenceIntervalRate.h>
 #include <ConfidenceIntervalTransient.h>
 
@@ -308,6 +309,8 @@ double ModelSuite::lastEstimationStartTime_;
 
 seconds ModelSuite::timeout_(0l);
 
+std::vector<ConfidenceIntervalResult> ModelSuite::lastEstimates_;
+
 const ConfidenceInterval* ModelSuite::interruptCI_ = nullptr;
 
 const std::vector< float > ModelSuite::confCoToShow_ = {0.8, 0.9, 0.95, 0.99};
@@ -533,6 +536,12 @@ ModelSuite::get_cc_to_show() noexcept
 	return confCoToShow_;
 }
 
+const std::vector<ConfidenceIntervalResult>&
+ModelSuite::get_last_estimates() noexcept
+{
+	return lastEstimates_;
+}
+
 
 const std::vector< std::string >&
 ModelSuite::available_simulators() noexcept
@@ -650,6 +659,14 @@ ModelSuite::exists_threshold_technique(const std::string& thrTechnique) noexcept
 {
 	const auto& thrTechs = available_threshold_techniques();
 	return find(begin(thrTechs), end(thrTechs), thrTechnique) != end(thrTechs);
+}
+
+
+bool
+ModelSuite::exists_rng(const std::string& rng) noexcept
+{
+	const auto& RNGs = available_RNGs();
+	return find(begin(RNGs), end(RNGs), rng) != end(RNGs);
 }
 
 
@@ -1009,6 +1026,9 @@ ModelSuite::estimate(const Property& property,
                      const SimulationEngine& engine,
                      const StoppingConditions& bounds) const
 {
+	lastEstimates_.clear();
+	lastEstimates_.reserve(bounds.size());
+
 	if (!engine.ready())
 		throw_FigException("SimulationEngine \"" + engine.name()
 						  +"\" isn't ready for simulations");
@@ -1096,6 +1116,7 @@ ModelSuite::estimate_for_times(const Property& property,
 		}
 		techLog_ << std::endl;
 		interruptCI_ = nullptr;
+		lastEstimates_.push_back(*ci_ptr);
 
 		// Results should've been shown on TO interruption
 	}
@@ -1165,6 +1186,7 @@ ModelSuite::estimate_for_confs(const Property& property,
 			timer.join();
 		}
 		interruptCI_ = nullptr;
+		lastEstimates_.push_back(*ci_ptr);
 	}
 }
 
