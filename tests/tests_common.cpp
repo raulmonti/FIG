@@ -41,13 +41,13 @@
 namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
-/// Absolute path of current Process Working Directory
-/// https://stackoverflow.com/a/2203177
-string getPWD()
-{
-	char tmp[128ul];
-	return (NULL != getcwd(tmp, 128ul) ? string(tmp) : string(""));
-}
+//	/// Absolute path of current Process Working Directory
+//	/// https://stackoverflow.com/a/2203177
+//	string getPWD()
+//	{
+//		char tmp[128ul];
+//		return (NULL != getcwd(tmp, 128ul) ? string(tmp) : string(""));
+//	}
 
 /// Absolute path to the dir containing this source file
 /// @note Must be defined in an anonymous namespace in the corresp. file
@@ -78,9 +78,8 @@ namespace tests  // // // // // // // // // // // // // // // // // // // // //
 //const string MODELS_DIR(getCWD() + "../models/");
 const string MODELS_DIR(getThisDir() + "/../models/");
 
-/// Default IOSA model compilation
-/// @return  Whether the model file could be successfully compiled
-/// @warning Must be called from within a TEST_CASE
+
+/// See declaration in tests_definitions.h
 bool compile_model(const string& modelFilePath)
 {
 	REQUIRE(file_exists(modelFilePath));
@@ -116,10 +115,16 @@ bool compile_model(const string& modelFilePath)
 	modelAST->accept(builder);
 	REQUIRE_FALSE(builder.has_errors());
 
-	// Seal model for simulation
-	fig::ModelSuite::get_instance().seal();
-	REQUIRE(fig::ModelSuite::get_instance().sealed());
+	return true;
+}
 
+
+/// See declaration in tests_definitions.h
+bool seal_model()
+{
+	static auto& model(fig::ModelSuite::get_instance());
+	model.seal();
+	REQUIRE(model.sealed());
 	return true;
 }
 

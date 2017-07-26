@@ -30,20 +30,41 @@
 // C++
 #include <string>
 #include <memory>
+#include <iostream>
+#include <type_traits>  // std::is_same<>...
 // CATCH
 #include <catch.hpp>
 // FIG
 #include <fig.h>
 
+using std::cout;
+using std::cerr;
+using std::endl;
 using std::string;
+using std::shared_ptr;
 using std::make_shared;
 
 
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
 
-/// Default IOSA model compilation
+/**
+ * Default IOSA model compilation
+ * @return Whether the model file could be successfully compiled
+ * @note The model is compiled and built <b>but not sealed</b>
+ * @see seal_current_model()
+ * @warning Must be called from within a TEST_CASE
+ */
 bool compile_model(const string& modelFilePath);
+
+/**
+ * Seal model for simulation
+ * @return Whether the model file could be successfully sealed
+ * @note The model must have been built beforehand
+ * @see build_model()
+ * @warning Must be called from within a TEST_CASE
+ */
+bool seal_model();
 
 /// Absolute path where model files are to be found
 extern const string MODELS_DIR;

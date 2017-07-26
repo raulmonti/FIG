@@ -54,13 +54,11 @@ namespace fig
  *
  * @see PropertyType
  */
-class Property {
-    // friend class ModelSuite;  // for variables mapping callback
+class Property
+{
     
 protected:
 
-    // Nasty hack to avoid code duplication (talk of poor design...)
-    // typedef  Precondition  Formula;
     /// Used to generate a unique id for each instance.
     static std::atomic<int> current_id;
     /// Instance id.
@@ -76,7 +74,9 @@ public:  // Attributes
 public:  // Ctors
 
     Property(PropertyType thetype) :
-        instance_id {++ current_id}, type {thetype} {}
+	    instance_id(++current_id),
+	    type(thetype)
+	{}
 
     // Copy/Move constructor deleted to avoid dealing with the unique id.
     Property(const Property& that) = delete;

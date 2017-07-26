@@ -1107,7 +1107,7 @@ private:
     string id;
 
     /// Convenient pointer to identifier declaration
-    /// @note setted by ModelReductor
+	/// @note set by ModelReductor
     shared_ptr<Decl> decl;
 
 public:
@@ -1198,7 +1198,7 @@ public:
 class Exp : public ModelAST {
 protected:
     /// Type of the expression
-    /// @note This member is setted by ModelTC (typechecking)
+	/// @note This member is set by ModelTC (typechecking)
     /// or by the parser when the type is inferred by the syntax,
     /// by default is equal to Type::tunknown
     Type type;

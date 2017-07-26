@@ -86,7 +86,7 @@ public:  // Ctors
         Property(PropertyType::TRANSIENT),
         expr1_(expr1),
         expr2_(expr2)
-    {}
+	{}
 
 
     // Copy/Move constructor deleted to avoid dealing with the unique id.

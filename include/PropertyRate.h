@@ -80,14 +80,14 @@ public:  // Ctors
         Property(PropertyType::RATE),
         condition_{expr},
         expr_ {expr}
-    {}
+	{}
 
     /// Copy/Move constructor deleted to avoid dealing with the unique id.
     PropertyRate(const PropertyRate& that) = delete;
     PropertyRate(PropertyRate&& that)      = delete;
 
     /// Can't have empty ctor due to const data members from Property
-    PropertyRate()                                         = delete;
+	PropertyRate()                                    = delete;
     /// Can't have copy assignment due to const data members from Property
     PropertyRate& operator=(const PropertyRate& that) = delete;
     /// Can't have move assignment due to const data members from Property

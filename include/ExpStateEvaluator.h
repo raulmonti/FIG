@@ -85,7 +85,7 @@ public:
     ExpStateEvaluator(const ExpContainer& astVec) noexcept;
 
     ExpStateEvaluator(shared_ptr<Exp> ast) noexcept :
-        ExpStateEvaluator(ExpContainer {ast}) {}
+		ExpStateEvaluator(ExpContainer {ast}) {}
 
     /// @brief Copy Constructor
     ExpStateEvaluator(const ExpStateEvaluator& that) noexcept;

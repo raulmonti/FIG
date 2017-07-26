@@ -4,9 +4,12 @@
 namespace fig {
 
 void ExpNameCollector::visit(shared_ptr<LocExp> node) noexcept {
+	assert(nullptr != node);
     shared_ptr<Location> loc = node->get_exp_location();
-    const std::string &name = loc->get_identifier();
-    if(loc->is_array_position() || loc->get_decl()->is_array()) {
+	assert(nullptr != loc->get_decl());
+	const std::string &name = loc->get_identifier();
+	if(loc->is_array_position() ||
+			loc->get_decl()->is_array()) {
         //appears as "array[4]" or as "fsteq(array, 1)"
         if (arrays.find(name) == arrays.end()) {
             shared_ptr<ArrayDecl> decl = loc->get_decl()->to_array();

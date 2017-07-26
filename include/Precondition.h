@@ -50,7 +50,7 @@ public:  // Ctors
 
     Precondition(shared_ptr<Exp> expr)
         : ExpStateEvaluator(expr), expr_ {expr}
-    {}
+	{}
 
     /// @brief Copy Constructor
     Precondition(const Precondition& that) = default;
