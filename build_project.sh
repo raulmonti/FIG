@@ -118,8 +118,8 @@ if [ -z "$NJOBS" ]; then NJOBS=2; fi
 #OPTS="$OPTS -DBUILTIN_RNG=ON"  # Cmake build options, see CMakeLists.txt
 #OPTS="$OPTS -DPROFILING=ON"    # Cmake build options, see CMakeLists.txt
 mkdir -p $BUILD_DIR && cd $BUILD_DIR
-#CC=$CC CXX=$CXX cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
-CC=gcc CXX=g++ cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
+CC=$CC CXX=$CXX cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
+#CC=gcc CXX=g++ cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
 cd $CWD
 
 # Symlink main executable in current dir and in BUILD_BASE
