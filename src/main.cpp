@@ -40,8 +40,8 @@
 #include <cassert>
 #include <sys/stat.h>
 // FIG
-#include <fig.h>
 #include <fig_cli.h>
+#include <FigConfig.h>
 #include <string_utils.h>
 #include <ModelBuilder.h>
 #include <ModelReductor.h>

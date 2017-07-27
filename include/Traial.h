@@ -281,7 +281,6 @@ public:  // Utils
 			auto clkValIter = begin(clockValues);
 			for (size_t i = firstClock ; i < firstClock+numClocks ; i++) {
 				assert(clkValIter != end(clockValues));
-				assert(0.0 < *clkValIter);
 				clocks_[i].value = *clkValIter;
 				clkValIter++;
 			}

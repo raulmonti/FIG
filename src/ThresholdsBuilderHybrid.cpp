@@ -57,11 +57,11 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 					  { std::this_thread::sleep_for(limit); halt=true; },
 					  std::ref(halted_), TIMEOUT);
 	try {
-		// Start out using an adaptive technique, which may just work btw
+		// Start out using an adaptive technique, which may just work btw...
 		halted_ = false;
 		ThresholdsBuilderAdaptive::build_thresholds(splitsPerThreshold, impFun,
 													postProcessing);
-		pthread_cancel(timer.native_handle());  // it worked!
+		pthread_cancel(timer.native_handle());  // ...it worked!
 
 	} catch (FigException&) {
 		// Adaptive algorithm couldn't finish but achievements remain

@@ -309,7 +309,7 @@ double ModelSuite::lastEstimationStartTime_;
 
 seconds ModelSuite::timeout_(0l);
 
-std::vector<ConfidenceIntervalResult> ModelSuite::lastEstimates_;
+std::vector< ConfidenceIntervalResult > ModelSuite::lastEstimates_;
 
 const ConfidenceInterval* ModelSuite::interruptCI_ = nullptr;
 
@@ -536,7 +536,7 @@ ModelSuite::get_cc_to_show() noexcept
 	return confCoToShow_;
 }
 
-const std::vector<ConfidenceIntervalResult>&
+const std::vector< ConfidenceIntervalResult >&
 ModelSuite::get_last_estimates() noexcept
 {
 	return lastEstimates_;

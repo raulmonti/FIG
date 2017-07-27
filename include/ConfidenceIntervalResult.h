@@ -30,7 +30,8 @@
 #ifndef CONFIDENCEINTERVALRESULT_H
 #define CONFIDENCEINTERVALRESULT_H
 
-#include <ConfidenceInterval.h>
+#include <ConfidenceIntervalTransient.h>
+#include <ConfidenceIntervalRate.h>
 
 
 namespace fig
@@ -38,22 +39,42 @@ namespace fig
 
 /// Observer class for ConfidenceInterval,
 /// used e.g. to show the results to the user.
-/// @warning Unfit for estimations
-class ConfidenceIntervalResult : public ConfidenceInterval
+/// @warning Immutable: instances of this class are unfit for estimations
+class ConfidenceIntervalResult// : public ConfidenceInterval
+        /// @todo TODO this must be an observer class for ConfidenceInterval
+        ///       that has the "double precision(double)" member function
+        ///       from either ConfidenceIntervalRate or ConfidenceIntervalTransient,
+        ///       depending on which does it derive from.
+        ///       Multiple inheritance doesn't help because both classes define
+        ///       the same methods, and we get "more than one final overrider"
+        ///       The union solution used in the Transition class is hideous.
+        ///       HELP!
 {
+	union {
+		ConfidenceIntervalTransient tr;
+		ConfidenceIntervalRate ss;
+	} ci_instance_;
+	enum { TRANSIENT, RATE } ci_type_;
+
 public:
 
 	ConfidenceIntervalResult() :
-	    ConfidenceInterval("invalid", .9, 1.0) {}
+	    ConfidenceInterval("immutable", .9, 1.0) {}
 
-	ConfidenceIntervalResult(const ConfidenceInterval& that) :
-	    ConfidenceInterval(that) {}
+	ConfidenceIntervalResult(const ConfidenceIntervalTransient& that) :
+	ConfidenceIntervalResult(const ConfidenceIntervalRate& that) :
+//	    ConfidenceInterval("immutable",
+//	                       that.confidence,
+//	                       that.errorMargin*2.0,
+//	                       that.percent,
+//	                       that.alwaysInvalid)
+//	{ /* Not much to do around here... */ }
 
 private:
 
 	void update(const double&) override {}
-	bool min_samples_covered(bool) const noexcept override { return false; }
-	double precision(const double&) const override { return 0.0; }
+//	bool min_samples_covered(bool) const noexcept override { return false; }
+//	double precision(const double&) const override { return 0.0; }
 	void reset(bool) noexcept override {}
 };
 

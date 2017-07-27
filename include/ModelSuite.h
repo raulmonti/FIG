@@ -124,7 +124,7 @@ class ModelSuite
 	static std::chrono::seconds timeout_;
 
 	/// Confidence intervals produced during the last call to estimate()
-	static std::vector<ConfidenceIntervalResult> lastEstimates_;
+	static std::vector< ConfidenceIntervalResult > lastEstimates_;
 
 	// Interruptions handling
 
@@ -321,7 +321,7 @@ public:  // Accessors
 
 	/// Get the \ref ConfidenceInterval "confidence intervals" produced
 	/// during the last call to estimate()
-	static const std::vector<ConfidenceIntervalResult>& get_last_estimates() noexcept;
+	static const std::vector< ConfidenceIntervalResult >& get_last_estimates() noexcept;
 
 	/// Names of available simulation engines,
 	/// as they should be requested by the user.
@@ -684,7 +684,7 @@ public:  // Simulation utils
 					   const Container2<ValueType2, OtherArgs2...>& splittingValues
 						   = std::vector<unsigned>());
 
-	/// @todo TODO design and implement interactive processing
+	/// @todo TODO design and implement user-interactive processing
 	void process_interactive();
 
 private:  // Class utils

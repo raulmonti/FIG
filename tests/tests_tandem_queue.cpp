@@ -108,17 +108,35 @@ SECTION("Seal model and check consistency")
 	REQUIRE(model.num_RNGs() > 0ul);
 }
 
-SECTION("Estimate using standard Monte Carlo simulation")
+SECTION("Estimate transient property using standard MC")
 {
+	const string nameEngine("nosplit");
+	const string nameIFun("algebraic");
+	const string nameThr("fix");
+	REQUIRE(model.exists_simulator(nameEngine));
+	REQUIRE(model.exists_importance_function(nameIFun));
+	REQUIRE(model.exists_threshold_technique(nameThr));
+	// Prepare engine
+	model.set_splitting(1);
+	model.build_importance_function_flat(nameIFun, trPropId, true);
+	model.build_thresholds(nameThr, nameIFun);
+	auto engine = model.prepare_simulation_engine(nameEngine, nameIFun);
+	REQUIRE(engine->ready());
+	// Set estimation criteria
 	auto rng = model.available_RNGs().front();
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 8);
-	model.set_timeout(std::chrono::seconds(30));
-	REQUIRE(model.exists_simulator("nosplit"));
-	auto ifunSpec = fig::ImpFunSpec("algebraic", "flat");
-
-	// TODO: run ModelSuite::estimate()
-	//       retrieve results with ModelSuite::get_last_estimates()
+	fig::StoppingConditions timeBound;
+	timeBound.add_time_budget(10);  // estimate for 10 seconds
+	// Estimate
+	model.estimate(trPropId, *engine, timeBound);
+	auto results = model.get_last_estimates();
+	REQUIRE(results.size() == 1ul);
+	const auto& ci = results.front();
+	const double TR_PROB(5.6e-6);  // true transient probability of the RE
+	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.8));
+	REQUIRE(ci.precision(.9) > 0.0);
+	REQUIRE(ci.precision(.9) < TR_PROB*1.5);
 }
 
 	

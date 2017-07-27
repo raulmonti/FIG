@@ -27,6 +27,9 @@
 //==============================================================================
 
 
+#ifndef TESTS_DEFINITIONS_H
+#define TESTS_DEFINITIONS_H
+
 // C++
 #include <string>
 #include <memory>
@@ -71,3 +74,6 @@ bool seal_model();
 extern const string MODELS_DIR;
 
 } // namespace tests   // // // // // // // // // // // // // // // // // // //
+
+#endif
+

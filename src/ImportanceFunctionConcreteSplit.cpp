@@ -85,11 +85,12 @@ bool advance(const ExtremeValuesVec& moduleValues, ImportanceVec& values)
 	// Increment it
 	values[pos]++;
 	// Reset previous values (according to 'moduleValues' order) to minimums
-    unsigned i(0u);
+	unsigned i(0u);
 	for (const auto& e: moduleValues)
-        if (i < pos)
-            values[i] = std::get<0>(e);
-            i++;
+		if (i < pos)
+			values[i++] = std::get<0>(e);
+	        // XXX If you really want the "i++" out of the vector access,
+	        //	 *please* put braces for the scopes of the "for" and the "if"
 	return true;
 }
 
