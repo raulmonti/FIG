@@ -66,7 +66,12 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 
 	figTechLog << "Building thresholds with \"" << name << "\" ";
 
-	if (IMP_RANGE < MIN_IMP_RANGE) {
+	if (splitsPerThreshold < 2u) {
+		// For flat importance function we need a dummy thresholds vector
+		ImportanceVec({impFun.initial_value(),impFun.max_value()+1}).swap(thresholds);
+		goto consistency_check;
+
+	} else if (IMP_RANGE < MIN_IMP_RANGE) {
 		stride_ = 1u;
 		figTechLog << "using all importance values as thresholds.\n";
 		thresholds.resize(2+impFun.max_value()-impFun.min_value());
@@ -84,6 +89,8 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 	}
 
 	show_thresholds(thresholds);
+
+consistency_check:
 	assert(!thresholds.empty());
 	assert(thresholds[0] == impFun.initial_value());
 	assert(thresholds.back() == 1 + impFun.max_value());

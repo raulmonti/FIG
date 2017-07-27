@@ -38,16 +38,21 @@ namespace fig
 
 /// Observer class for ConfidenceInterval,
 /// used e.g. to show the results to the user.
-/// @warning Unfit for estimations
+/// @warning Immutable: instances of this class are unfit for estimations
 class ConfidenceIntervalResult : public ConfidenceInterval
 {
 public:
 
 	ConfidenceIntervalResult() :
-	    ConfidenceInterval("invalid", .9, 1.0) {}
+	    ConfidenceInterval("immutable", .9, 1.0) {}
 
 	ConfidenceIntervalResult(const ConfidenceInterval& that) :
-	    ConfidenceInterval(that) {}
+	    ConfidenceInterval("immutable",
+	                       that.confidence,
+	                       that.errorMargin*2.0,
+	                       that.percent,
+	                       that.alwaysInvalid)
+	{ /* Not much to do around here... */ }
 
 private:
 

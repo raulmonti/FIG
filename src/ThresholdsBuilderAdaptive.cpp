@@ -68,9 +68,9 @@ ThresholdsBuilderAdaptive::build_thresholds(
 {
     const ModuleNetwork& net = *ModelSuite::get_instance().modules_network();
 
+	// For flat importance function we need a dummy thresholds vector
 	if (splitsPerThreshold < 2u) {
-		// For flat importance function we need a dummy thresholds vector
-		ImportanceVec({0ul,1ul}).swap(thresholds_);
+		ImportanceVec({impFun.initial_value(),impFun.max_value()+1}).swap(thresholds_);
 		goto consistency_check;
 	}
 
