@@ -108,7 +108,6 @@
 #include "PropertyProjection.h"
 // Confidence intervals
 #include "ConfidenceInterval.h"
-#include "ConfidenceIntervalResult.h"
 #include "ConfidenceIntervalMean.h"
 #include "ConfidenceIntervalProportion.h"
 #include "ConfidenceIntervalRate.h"

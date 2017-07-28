@@ -30,39 +30,108 @@
 #ifndef CONFIDENCEINTERVALRESULT_H
 #define CONFIDENCEINTERVALRESULT_H
 
-#include <ConfidenceIntervalTransient.h>
+// C++
+#include <memory>
+// FIG
+#include <ConfidenceInterval.h>
 #include <ConfidenceIntervalRate.h>
+#include <ConfidenceIntervalTransient.h>
 
 
 namespace fig
 {
 
 /// Observer class for ConfidenceInterval,
-/// used e.g. to show the results to the user.
+/// used e.g. to show resulting estimates to the user.
 /// @warning Immutable: instances of this class are unfit for estimations
-class ConfidenceIntervalResult// : public ConfidenceInterval
-        /// @todo TODO this must be an observer class for ConfidenceInterval
-        ///       that has the "double precision(double)" member function
-        ///       from either ConfidenceIntervalRate or ConfidenceIntervalTransient,
-        ///       depending on which does it derive from.
-        ///       Multiple inheritance doesn't help because both classes define
-        ///       the same methods, and we get "more than one final overrider"
-        ///       The union solution used in the Transition class is hideous.
-        ///       HELP!
+class ConfidenceIntervalResult : public ConfidenceInterval
 {
-	union {
-		ConfidenceIntervalTransient tr;
-		ConfidenceIntervalRate ss;
-	} ci_instance_;
-	enum { TRANSIENT, RATE } ci_type_;
 
-public:
+//	/// Type of the instance (of the derived class of ConfidenceInterval)
+//	/// from which we were created
+//	enum {
+//		TRANSIENT = 0,
+//		RATE,
+//		NUM_CI_TYPES
+//	} ci_type_;
 
+	/// (Derived) Instance of ConfidenceInterval we're wrapping
+	std::shared_ptr< ConfidenceInterval > instance_;
+
+//	//	/// Instances of ConfidenceIntervalResult can only be constructed
+//	//	/// from an instance of one of the following classes:
+//	//	union {
+//	//		ConfidenceIntervalTransient trCI;
+//	//		ConfidenceIntervalRate ssCI;
+//	//	};
+//
+//	//	/// Fun. ptr. to overrider of ConfidenceInterval::update()
+//	//	void (ConfidenceInterval::*fptr_update_) (const double&);
+//
+//		/// Fun. ptr. to overrider of ConfidenceInterval::min_samples_covered()
+//	//	bool (*fptr_min_samples_covered_) (bool);
+//		bool (ConfidenceInterval::*fptr_min_samples_covered_) (bool) const noexcept;
+//
+//		/// Fun. ptr. to overrider of ConfidenceInterval::precision(const double&)
+//	//	double (*fptr_precision_) (const double&);
+//		double (ConfidenceInterval::*fptr_precision_) (const double&) const;
+//
+//	//	/// Fun. ptr. to overrider of ConfidenceInterval::reset()
+//	//	void (ConfidenceInterval::*fptr_reset_) (bool fullReset) noexcept;
+
+private:
+
+	/// Empty ctor to allow a vector of ConfidenceIntervalResult
 	ConfidenceIntervalResult() :
-	    ConfidenceInterval("immutable", .9, 1.0) {}
+	    ConfidenceInterval("immutable", .9, 1.0, false, true),
+	    instance_(nullptr)
+//	    fptr_update_(nullptr),
+//	    fptr_reset_(nullptr),
+//	    fptr_min_samples_covered_(nullptr),
+//	    fptr_precision_(nullptr)
+	{}
 
+public:  // Ctors from the other derived classes of ConfidenceInterval
+
+	/// Ctor for \ref ConfidenceIntervalTransient "transient confidence intervals"
 	ConfidenceIntervalResult(const ConfidenceIntervalTransient& that) :
+	    ConfidenceInterval(that),
+	    instance_(std::make_shared<ConfidenceInterval>(that))
+//	    trCI(that),
+//	    fptr_min_samples_covered_(&trCI.min_samples_covered),
+//	    fptr_precision_(&trCI.precision)
+	{ /* Not much to do around here... */ }
+
+	/// Ctor for \ref ConfidenceIntervalRate "rate confidence intervals"
 	ConfidenceIntervalResult(const ConfidenceIntervalRate& that) :
+	    ConfidenceInterval(that),
+	    instance_(std::make_shared<ConfidenceInterval>(that))
+//	    ssCI(that),
+//	    fptr_min_samples_covered_(&ssCI.min_samples_covered),
+//	    fptr_precision_(&ssCI.precision)
+	{ /* Not much to do around here... */ }
+
+public:  // Methods linked to the real functions of our creation class
+
+	/// Stub to method of creation class
+	/// @copydoc ConfidenceInterval::min_samples_covered()
+	bool min_samples_covered(bool considerEpsilon = false) const noexcept override
+	    {
+		    return (nullptr == instance_)
+			            ? false
+			            : instance_->min_samples_covered(considerEpsilon);
+	    }
+
+	/// Stub to method of creation class
+	/// @copydoc ConfidenceInterval::precision(const double&)
+	double precision(const double& confco) const override
+	    {
+		    return (nullptr == instance_)
+			            ? 0.0
+			            : instance_->precision(confco);
+	    }
+
+//	ConfidenceIntervalResult(const ConfidenceIntervalRate& that) :
 //	    ConfidenceInterval("immutable",
 //	                       that.confidence,
 //	                       that.errorMargin*2.0,
@@ -70,10 +139,9 @@ public:
 //	                       that.alwaysInvalid)
 //	{ /* Not much to do around here... */ }
 
-private:
+private:  // This is an observer class: the following methods are banned
 
 	void update(const double&) override {}
-//	bool min_samples_covered(bool) const noexcept override { return false; }
 //	double precision(const double&) const override { return 0.0; }
 	void reset(bool) noexcept override {}
 };

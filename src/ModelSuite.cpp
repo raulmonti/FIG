@@ -252,12 +252,14 @@ start_timer(ConfidenceInterval& ci,
 			bool& timeoutSignal,
 			const seconds& timeLimit,
 			std::ostream& out,
-			const double& startTime)
+            const double& startTime)
 {
 	std::this_thread::sleep_for(timeLimit);
 	timeoutSignal = true;  // this should stop computations
 	interrupt_print(ci, fig::ModelSuite::get_cc_to_show(), out, startTime);
-	ci.reset();
+// * @param reset         Reset ConfidenceInterval after printing?
+//	if (reset)
+//		ci.reset();
 }
 
 
@@ -1100,7 +1102,7 @@ ModelSuite::estimate_for_times(const Property& property,
 
 		// Start timer
 		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),
-									   timeLimit, std::ref(mainLog_), lastEstimationStartTime_);
+		                               timeLimit, std::ref(mainLog_), lastEstimationStartTime_);
 		// Simulate
 		try {
 			engine.lock();
@@ -1117,6 +1119,11 @@ ModelSuite::estimate_for_times(const Property& property,
 		techLog_ << std::endl;
 		interruptCI_ = nullptr;
 		lastEstimates_.push_back(*ci_ptr);
+
+		/// @todo TODO erase debug print
+		std::cout << std::setprecision(8);
+		std::cout << "   --> " << ci_ptr->precision(.9) << " <--" << std::endl;
+		std::cout << "   ~~) " << lastEstimates_.back().precision(.9) << " (~~" << std::endl;
 
 		// Results should've been shown on TO interruption
 	}
@@ -1159,7 +1166,7 @@ ModelSuite::estimate_for_confs(const Property& property,
 
 		// Start timer
 		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),
-									   timeLimit, std::ref(mainLog_), lastEstimationStartTime_);
+		                               timeLimit, std::ref(mainLog_), lastEstimationStartTime_);
 		// Simulate
 		try {
 			engine.lock();

@@ -40,6 +40,15 @@ namespace fig
 /**
  * @brief Abstract base class for the confidence interval which is to be built
  *        around the probability's estimated value.
+ *
+ * @details ConfidenceInterval has two roles:
+ *          <li>
+ *          <ul> offer a common interface to its derived classes,
+ *               which should implement confidence intervals from the literature
+ *               (e.g. a CI for binomial proportions using Agresti-Coull);
+ *          <ul> serve as observer for estimation results,
+ *               which can be passed to the user for evaluation.
+ *          </li>
  */
 class ConfidenceInterval
 {
@@ -93,8 +102,11 @@ protected:  // Attributes: estimation correction factors
 
 public:  // Ctor
 
+	/// Void ctor to allow a vector of ConfidenceInterval (observer role)
+	ConfidenceInterval();
+
 	/**
-	 * Only data ctor provided
+	 * Only data ctor provided (interface role)
 	 * @param name             @copybrief name
 	 * @param confidence       Interval's confidence coefficient ∈ (0.0, 1.0)
 	 * @param precision        Interval's desired full width > 0.0
@@ -149,7 +161,8 @@ public:  // Modifyers
 	 * @throw FigException if detected possible overflow
 	 * @see update(const double&, const double&)
 	 */
-	virtual void update(const double& newSample) = 0;
+	virtual void update(const double&) = 0;
+//	    { /* Implement in derived classes! */ }
 
 public:  // Utils
 
@@ -168,7 +181,8 @@ public:  // Utils
 	 *
 	 * @see is_valid()
 	 */
-	virtual bool min_samples_covered(bool safeguard) const noexcept = 0;
+	virtual bool min_samples_covered(bool) const noexcept = 0;
+//	    { /* Implement in derived classes! */ return false; }
 
 	/**
 	 * Does current estimation satisfy the interval's confidence criteria?
@@ -189,11 +203,14 @@ public:  // Utils
 
 	/// Theoretical width for creation's confidence coefficient
 	/// @copydoc value_simulations_
+	/// @see precision(const double&)
 	double precision() const noexcept;
 
 	/// Achieved width for requested confidence coefficient
 	/// @copydoc time_simulations_
-	virtual double precision(const double& confco) const = 0;
+	/// @see precision()
+	virtual double precision(const double&) const = 0;
+//	    { /* Implement in derived classes! */ return 0.0; }
 
 	/// Theoretical lower limit for creation's confidence coefficient
 	/// @copydoc value_simulations_

@@ -114,6 +114,22 @@ bool ConfidenceInterval::value_simulations_;  // defined only to copy the doc!
 bool ConfidenceInterval::time_simulations_;   // defined only to copy the doc!
 
 
+ConfidenceInterval::ConfidenceInterval() :
+    name("dummy"),
+    errorMargin(0.0),
+    percent(false),
+    confidence(0.0),
+    quantile(0.0),
+    alwaysInvalid(true),
+    numSamples_(0),
+    estimate_(0.0),
+    prevEstimate_(0.0),
+    variance_(std::numeric_limits<double>::infinity()),
+    halfWidth_(std::numeric_limits<double>::infinity()),
+    statOversample_(0.0),
+    varCorrection_(0.0)
+{ /* Not much to do around here... */ }
+
 ConfidenceInterval::ConfidenceInterval(const std::string& thename,
 									   double confidence,
 									   double precision,

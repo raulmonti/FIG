@@ -321,6 +321,7 @@ public:  // Accessors
 
 	/// Get the \ref ConfidenceInterval "confidence intervals" produced
 	/// during the last call to estimate()
+	/// @note For <i>observation</i>, not for modification
 	static const std::vector< ConfidenceIntervalResult >& get_last_estimates() noexcept;
 
 	/// Names of available simulation engines,
