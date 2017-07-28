@@ -254,7 +254,7 @@ public:  // Simulation functions
      *        updates of the interrupted flag is also possible.
      *
      * @param property Property whose probability value is to be estimated
-     * @param ci       ConfidenceInterval updated with estimation info <b>(modified)</b>
+	 * @param ci       ConfidenceInterval where the estimation info will be placed
      *
      * @note  The ImportanceFunction used is taken from the last call to bind()
      *

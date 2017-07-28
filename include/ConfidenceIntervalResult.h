@@ -59,12 +59,10 @@ public:  // Ctors from the other derived classes of ConfidenceInterval
 public:  // Methods linked to the real functions of our creation class
 
 	/// Stub to method of creation class
-	/// @copydetails ConfidenceInterval::min_samples_covered()
 	bool min_samples_covered(bool considerEpsilon = false) const noexcept override
 	    { assert(nullptr != instance_); return instance_->min_samples_covered(considerEpsilon); }
 
 	/// Stub to method of creation class
-	/// @copydetails ConfidenceInterval::precision(const double&)
 	double precision(const double& confco) const override
 	    { assert(nullptr != instance_); return instance_->precision(confco); }
 

@@ -1181,7 +1181,6 @@ ModelSuite::estimate_for_confs(const Property& property,
 			timer.detach();
 			estimate_print(*ci_ptr, omp_get_wtime()-lastEstimationStartTime_, mainLog_);
 			techLog_ << std::endl;
-			ci_ptr->reset();
 		} else {
 			// Simulations timed-out: wait for interrupt_print() to finish
 			timer.join();

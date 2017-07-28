@@ -193,7 +193,7 @@ public:  // Populating facilities
 	 */
 	void add_confidence_criterion(const double& confCo,
 								  const double& prec,
-								  const bool& dynPrec);
+	                              const bool& dynPrec = true);
 
 	/**
 	 * @brief Include one wall time limit more to experiment with

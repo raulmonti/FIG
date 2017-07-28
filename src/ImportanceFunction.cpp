@@ -509,8 +509,7 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 				importance_of(state.decode(i).to_state_instance());
 		maxI = importance > maxI ? importance : maxI;
     }
-
-    assert(minrI <= maxI);
+	assert(minrI <= maxI);
 
 	minValue_ = minI;
 	maxValue_ = maxI;

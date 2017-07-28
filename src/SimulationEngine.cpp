@@ -301,10 +301,8 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 	if (interrupted)
 		throw_FigException("called with an interrupted simulation");
 
-	switch (property.type) {
-
-	ci.reset();
-
+	switch (property.type)
+	{
 	case PropertyType::TRANSIENT: {
 		const auto& pTransient(dynamic_cast<const PropertyTransient&>(property));
 		auto& ciTransient(dynamic_cast<ConfidenceIntervalTransient&>(ci));
