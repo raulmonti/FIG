@@ -102,9 +102,6 @@ protected:  // Attributes: estimation correction factors
 
 public:  // Ctor
 
-	/// Void ctor to allow a vector of ConfidenceInterval (observer role)
-	ConfidenceInterval();
-
 	/**
 	 * Only data ctor provided (interface role)
 	 * @param name             @copybrief name
@@ -145,13 +142,13 @@ public:  // Modifyers
 	/// @note Typically needed when rare events can occur in any threshold level
 	/// @see statistical_oversampling()
 	/// @deprecated Used by binomial proportion CIs (e.g. Wilson score interval)
-	void set_statistical_oversampling(const double& statOversamp);
+	virtual void set_statistical_oversampling(const double& statOversamp);
 
 	/// Set the variance correction factor for interval precision computation.
 	/// @note Typically needed when rare events can occur in any threshold level
 	/// @see variance_correction()
 	/// @deprecated Used by binomial proportion CIs (e.g. Wilson score interval)
-	void set_variance_correction(const double& varCorrection);
+	virtual void set_variance_correction(const double& varCorrection);
 
 	/**
 	 * @brief Update current estimation with a new sample value.
@@ -161,8 +158,7 @@ public:  // Modifyers
 	 * @throw FigException if detected possible overflow
 	 * @see update(const double&, const double&)
 	 */
-	virtual void update(const double&) = 0;
-//	    { /* Implement in derived classes! */ }
+	virtual void update(const double& newSample) = 0;
 
 public:  // Utils
 
@@ -181,8 +177,7 @@ public:  // Utils
 	 *
 	 * @see is_valid()
 	 */
-	virtual bool min_samples_covered(bool) const noexcept = 0;
-//	    { /* Implement in derived classes! */ return false; }
+	virtual bool min_samples_covered(bool safeguard) const noexcept = 0;
 
 	/**
 	 * Does current estimation satisfy the interval's confidence criteria?
@@ -209,8 +204,7 @@ public:  // Utils
 	/// Achieved width for requested confidence coefficient
 	/// @copydoc time_simulations_
 	/// @see precision()
-	virtual double precision(const double&) const = 0;
-//	    { /* Implement in derived classes! */ return 0.0; }
+	virtual double precision(const double& confco) const = 0;
 
 	/// Theoretical lower limit for creation's confidence coefficient
 	/// @copydoc value_simulations_

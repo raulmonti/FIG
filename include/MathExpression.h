@@ -39,7 +39,7 @@
 #include <string>
 #include <stdexcept>    // std::out_of_range
 // External code
-#include "exprtk.hpp"   // 1.3mb   <-- shieeeit!
+#include <exprtk.hpp>   // 1.3mb   <-- shieeeit!
 // FIG
 #include <string_utils.h>
 #include <core_typedefs.h>

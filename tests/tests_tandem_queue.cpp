@@ -132,7 +132,7 @@ SECTION("Estimate transient property using standard MC")
 	model.estimate(trPropId, *engine, timeBound);
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
-	const auto& ci = results.front();
+	auto ci = results.front();
 	const double TR_PROB(5.6e-6);  // true transient probability of the RE
 	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.8));
 	REQUIRE(ci.precision(.9) > 0.0);

@@ -36,7 +36,7 @@
 #include <chrono>
 #include <iostream>
 #include <type_traits>  // std::is_same<>...
-// CATCH
+// External code
 #include <catch.hpp>
 // FIG
 #include <fig.h>

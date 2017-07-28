@@ -1118,13 +1118,7 @@ ModelSuite::estimate_for_times(const Property& property,
 		}
 		techLog_ << std::endl;
 		interruptCI_ = nullptr;
-		lastEstimates_.push_back(*ci_ptr);
-
-		/// @todo TODO erase debug print
-		std::cout << std::setprecision(8);
-		std::cout << "   --> " << ci_ptr->precision(.9) << " <--" << std::endl;
-		std::cout << "   ~~) " << lastEstimates_.back().precision(.9) << " (~~" << std::endl;
-
+		lastEstimates_.push_back(ci_ptr);
 		// Results should've been shown on TO interruption
 	}
 }
@@ -1193,7 +1187,7 @@ ModelSuite::estimate_for_confs(const Property& property,
 			timer.join();
 		}
 		interruptCI_ = nullptr;
-		lastEstimates_.push_back(*ci_ptr);
+		lastEstimates_.push_back(ci_ptr);
 	}
 }
 
