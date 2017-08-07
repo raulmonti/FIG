@@ -179,6 +179,7 @@ ThresholdsBuilderAMS::build_thresholds_vector(
 
 	TraialPool::get_instance().return_traials(traials);
 	thresholds_.push_back(impFun.max_value() + static_cast<ImportanceValue>(1u));
+	ModelSuite::tech_log("\n");
 	return;
 
 	exit_with_fail:

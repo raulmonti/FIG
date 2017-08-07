@@ -50,7 +50,7 @@ using std::end;
 
 
 /// @brief RNG and distributions available for time sampling of the clocks
-namespace
+namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 typedef  fig::CLOCK_INTERNAL_TYPE                       return_t;
@@ -278,11 +278,11 @@ return_t erlang(const params_t& params)
 	return erlang(*rng);
 }
 
-} // namespace
+} // namespace  // // // // // // // // // // // // // // // // // // // // //
 
 
 
-namespace fig
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 #ifndef RANDOM_RNG_SEED
@@ -367,4 +367,4 @@ std::unordered_map< std::string, Distribution > distributions_list =
 	{"erlang",      erlang     },
 };
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

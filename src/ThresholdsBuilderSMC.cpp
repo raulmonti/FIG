@@ -64,9 +64,9 @@ unsigned NUM_FAILURES = 6u;
 //
 const unsigned long RNG_SEED =
 #ifdef RANDOM_RNG_SEED
-	std::random_device{}();
+    std::random_device{}();
 #else
-	std::mt19937::default_seed;
+    std::mt19937::default_seed;
 #endif
 //
 std::mt19937 RNG(RNG_SEED);
