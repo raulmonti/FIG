@@ -1,0 +1,74 @@
+/*
+ * Tandem queue for the FIG tool
+ * Budde, Monti, D'Argenio | 2016
+ *
+ * {-
+ * Stochastic tandem queue concept:
+ *
+ *   'P0'       (q1)   'P1'      (q2)   'P2'
+ * -------> [..@@@@] ------> [....@@] ------>
+ *  lambda             mu1              mu2
+ *
+ * 'P0' tells a new packet arrives at q1    (clock 'clk0')
+ * 'P1' tells a packet passes from q1 to q2 (clock 'clk1')
+ * 'P2' tells a packet exits q2             (clock 'clk2')
+ * 
+ * Property type: TRANSIENT ("probability of rare event before stop event")
+ *                RATE      ("steady-state probability of rare event")
+ * Rare events: packets bouncing on q2
+ * Stopping events (TRANSIENT): q2 becoming empty
+ * Reference events (RATE): any system transition
+ * Initial state: Queue1 empty, Queue2 holds 1 packet
+ * Initial clocks: clk0, clk2
+ * -}
+ */
+
+
+// Values taken from Marnix Garvels' PhD Thesis:
+// "The splitting method in rare event simulation", p. 85.
+
+const int c = 8;        // Queues capacity: transient    = { 8, 10, 12, 14}
+                        //                  steady-state = {10, 15, 20, 25}
+const int lambda = 3;   // rate(--> q1           )
+const int    mu1 = 2;   // rate(    q1 --> q2    )
+const int    mu2 = 6;   // rate(           q2 -->)
+
+// The following values are in p. 61 of the same work:
+// const int lambda = 1;
+// const int    mu1 = 4;
+// const int    mu2 = 2;
+
+module Arrivals
+        clk0: clock;  // External arrivals ~ Exponential(lambda)
+        [P0!] @ clk0 -> (clk0'= exponential(lambda));
+endmodule
+
+module Queue1
+        q1: [0..c];
+        clk1: clock;  // Queue1 processing ~ Exponential(mu1)
+        // Packet arrival
+        [P0?] q1 == 0          -> (q1'= q1+1) & (clk1'= exponential(mu1));
+        [P0?] q1  > 0 & q1 < c -> (q1'= q1+1);
+        [P0?] q1 == c          -> ;
+        // Packet processing
+        [P1!] q1 == 1 @ clk1 -> (q1'= q1-1);
+        [P1!] q1  > 1 @ clk1 -> (q1'= q1-1) & (clk1'= exponential(mu1));
+endmodule
+
+module Queue2
+        q2: [0..c] init 1;
+        clk2: clock;  // Queue2 processing ~ Exponential(mu2)
+        // Packet arrival
+        [P1?] q2 == 0          -> (q2'= q2+1) & (clk2'= exponential(mu2));
+        [P1?] q2  > 0 & q2 < c -> (q2'= q2+1);
+        [P1?] q2 == c          -> ;
+        // Packet processing
+        [P2!] q2 == 1 @ clk2 -> (q2'= q2-1);
+        [P2!] q2  > 1 @ clk2 -> (q2'= q2-1) & (clk2'= exponential(mu2));
+endmodule
+
+
+properties
+	P( q2 > 0 U q2 == c )  // "transient"
+	S( q2 == c )           // "rate"
+endproperties

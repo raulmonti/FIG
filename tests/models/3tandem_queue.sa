@@ -1,0 +1,100 @@
+/*
+ * Three queue tandem network for the FIG tool
+ * Budde, Monti, D'Argenio | 2016
+ *
+ * {-
+ * Stochastic three-queue tandem network concept:
+ *            q1               q2               q3
+ * ----> [..@@@@] ------> [....@@] ------> [....@@] ----->
+ * 'arr'          'pass1'          'pass2'          'exit'
+ *
+ * 'arr'   tells a packet arrives at q1         (clock 'clkA' )
+ * 'pass1' tells a packet passes from q1 to q2  (clock 'clkP1')
+ * 'pass2' tells a packet passes from q2 to q3  (clock 'clkP2')
+ * 'exit'  tells a packet exits q3              (clock 'clkP3')
+ * 
+ * Packet arrivals at the first queue are Poisson with rate = 1.
+ * Queues service times are Erlang (i.e. Gamma for integral shape parameter)
+ * with shape parameter 'alpha' = 2,3 and various scale parameters 'beta1',
+ * 'beta2' and 'beta3'.
+ *
+ * Property type: RATE ("steady-state probability of rare event")
+ * Rare events: reach threshold occupancy 'L' in q3
+ * Reference events: any system transition
+ * Initial state: all queues empty
+ * Initial clocks: clkA
+ * -}
+ */
+
+
+// The following values were extracted from José Villén-Altamirano,
+// "RESTART simulation of networks of queues with Erlang service times",
+// Winter Simulation Conference, 2009, pp. 1146-1154.
+// This model corresponds to the system described in Section 4.1
+
+const int alpha = 2;    // Service time shape parameter (all queues)
+const int beta1 = 3;    // Service time scale parameter (Queue1)
+const int beta2 = 4;    // Service time scale parameter (Queue2)
+const int beta3 = 6;    // Service time scale parameter (Queue3)
+const int L = 7;                // Threshold occupancy (Queue3)
+const int c = L+5;              // Queues capacity (all queues)
+
+// Combinations tested in the aforementioned article:
+// 
+//     L  alpha beta1 beta2 beta3
+//  a) 18   2     3     4     6
+//  b) 13   3    4.5    6     9
+//  c) 20   2     6     4     6
+//  d) 16   3     9     6     9
+//  e) 24   2    10     8     6
+//  f) 21   3    15    12     9
+// 
+// Those values of 'L' yield rare events of probability ~ 10^-15.
+// Alternatively the following values yield rare events ~ 10^-9:
+// L = (a:11, b:8, c:12, d:9, e:14, f:13)
+
+module Arrivals
+        clk0: clock;  // External arrivals ~ Exponential(1)
+        [P0!] @ clk0 -> (clk0'= exponential(1));
+endmodule
+
+module Queue1
+        q1: [0..c];
+        clk1: clock;  // Queue1 'P'rocessing ~ Erlang(alpha;beta1)
+        // Packet arrival
+        [P0?] q1 == 0          -> (q1'= q1+1) & (clk1'= erlang(alpha,beta1));
+        [P0?] q1  > 0 & q1 < c -> (q1'= q1+1);
+        [P0?] q1 == c          -> ;
+        // Packet processing
+        [P1!] q1 == 1 @ clk1 -> (q1'= q1-1);
+        [P1!] q1  > 1 @ clk1 -> (q1'= q1-1) & (clk1'= erlang(alpha,beta1));
+endmodule
+
+module Queue2
+        q2: [0..c];
+        clk2: clock;  // Queue2 'P'rocessing ~ Erlang(alpha;beta2)
+        // Packet arrival
+        [P1?] q2 == 0          -> (q2'= q2+1) & (clk2'= erlang(alpha,beta2));
+        [P1?] q2  > 0 & q2 < c -> (q2'= q2+1);
+        [P1?] q2 == c          -> ;
+        // Packet processing
+        [P2!] q2 == 1 @ clk2 -> (q2'= q2-1);
+        [P2!] q2  > 1 @ clk2 -> (q2'= q2-1) & (clk2'= erlang(alpha,beta2));
+endmodule
+
+module Queue3
+        q3: [0..c];
+        clk3: clock;  // Queue3 'P'rocessing ~ Erlang(alpha;beta3)
+        // Packet arrival
+        [P2?] q3 == 0          -> (q3'= q3+1) & (clk3'= erlang(alpha,beta3));
+        [P2?] q3  > 0 & q3 < c -> (q3'= q3+1);
+        [P2?] q3 == c          -> ;
+        // Packet processing
+        [P3!] q3 == 1 @ clk3 -> (q3'= q3-1);
+        [P3!] q3  > 1 @ clk3 -> (q3'= q3-1) & (clk3'= erlang(alpha,beta3));
+endmodule
+
+
+properties
+	S( q3 >= L )  // "rate"
+endproperties

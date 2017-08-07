@@ -1,0 +1,654 @@
+/*
+ * Non-Markov consecutive-k-out-of-n:F repairable system for the FIG tool
+ * Budde, Monti, Rodríguez, D'Argenio | 2017
+ *
+ *{-
+ * Concept of the Non-Markov consecutive-k-out-of-n:F repairable system:
+ *
+ * ---> (P1) ---> (P2) ---> ··· ---> (Pn) --->
+ *
+ * For a graphical illustration imagine an oil pipeline with 'n' equally-spaced
+ * pressure pumps along it, {P1..Pn}. Each pump sends oil to the next and it can
+ * only fail and get repaired (viz. there are just two possible states {up,down})
+ * The whole pipeline "fails" as soon as 'k' (or more) consecutive pumps fail.
+ * A single repairman attends one broken pump at a time and fixes it.
+ *
+ * In this implementation the probability of failure of each pump will be 
+ * independent of the system's general state; the (k-1)-step Markov dependence 
+ * that some authors assume is thus dropped. Also the repairman will apply a
+ * static repair policy: it will always choose the first failed pump, that is,
+ * the broken pump with smallest index in {P1..Pn}.
+ *
+ * Initial state: all pumps are up.
+ * Reference event: any system transition.
+ * Rare event: system failure caused by at least 'k' consecutive failed pumps
+ *-}
+ */
+
+// The following distributions are used in page 252, Section 4.1,
+// "System steady-state unavailability and MTBF" of José Villén-Altamirano
+// "RESTART simulation of non-Markov consecutive-k-out-of-n:F repairable
+// systems", Reliability Engineering and System Safety, Vol. 95, Issue 3,
+// March 2010, pp. 247-254:
+//  · Repair time ~ Log-normal(1.21,0.8)
+//  · Nodes lifetime ~ Exponential(lambda) or Rayleigh(sigma)
+//                     for (lambda,sigma) in {(0.001 ,  798.0  ),
+//                                            (0.0003, 2659.615),
+//                                            (0.0001, 7978.845)}
+// NOTE: Rayleigh(s) distribution is actually
+//       a Weibull distribution with shape == 2 and rate == s*sqrt(2)
+
+
+module BE_pipe1
+
+    c_fail_pipe1: clock;
+    c_repair_pipe1: clock;
+    inform_pipe1: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe1: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe1!] broken_pipe1==0 & inform_pipe1==0 @ c_fail_pipe1 
+                 -> (inform_pipe1'=1) &
+                    (broken_pipe1'=1);
+    [fail_pipe1!!] inform_pipe1 == 1 -> (inform_pipe1'=0);
+
+    // reparation (with repairman)
+    [repair_pipe1??] broken_pipe1==1 & inform_pipe1==0
+                        -> (broken_pipe1'=2) &
+                           (c_repair_pipe1'=lognormal(1.21,0.8));
+    [rpipe1!] broken_pipe1 == 2 @ c_repair_pipe1
+                 -> (inform_pipe1'=2) &
+                    (broken_pipe1'=0) &
+                    (c_fail_pipe1'=exponential(0.001));
+    [repaired_pipe1!!] inform_pipe1 == 2 -> (inform_pipe1'=0);
+
+endmodule
+
+
+module BE_pipe2
+
+    c_fail_pipe2: clock;
+    c_repair_pipe2: clock;
+    inform_pipe2: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe2: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe2!] broken_pipe2==0 & inform_pipe2==0 @ c_fail_pipe2 
+                 -> (inform_pipe2'=1) &
+                    (broken_pipe2'=1);
+    [fail_pipe2!!] inform_pipe2 == 1 -> (inform_pipe2'=0);
+
+    // reparation (with repairman)
+    [repair_pipe2??] broken_pipe2==1 & inform_pipe2==0
+                        -> (broken_pipe2'=2) &
+                           (c_repair_pipe2'=lognormal(1.21,0.8));
+    [rpipe2!] broken_pipe2 == 2 @ c_repair_pipe2
+                 -> (inform_pipe2'=2) &
+                    (broken_pipe2'=0) &
+                    (c_fail_pipe2'=exponential(0.001));
+    [repaired_pipe2!!] inform_pipe2 == 2 -> (inform_pipe2'=0);
+
+endmodule
+
+
+module BE_pipe3
+
+    c_fail_pipe3: clock;
+    c_repair_pipe3: clock;
+    inform_pipe3: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe3: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe3!] broken_pipe3==0 & inform_pipe3==0 @ c_fail_pipe3 
+                 -> (inform_pipe3'=1) &
+                    (broken_pipe3'=1);
+    [fail_pipe3!!] inform_pipe3 == 1 -> (inform_pipe3'=0);
+
+    // reparation (with repairman)
+    [repair_pipe3??] broken_pipe3==1 & inform_pipe3==0
+                        -> (broken_pipe3'=2) &
+                           (c_repair_pipe3'=lognormal(1.21,0.8));
+    [rpipe3!] broken_pipe3 == 2 @ c_repair_pipe3
+                 -> (inform_pipe3'=2) &
+                    (broken_pipe3'=0) &
+                    (c_fail_pipe3'=exponential(0.001));
+    [repaired_pipe3!!] inform_pipe3 == 2 -> (inform_pipe3'=0);
+
+endmodule
+
+
+module BE_pipe4
+
+    c_fail_pipe4: clock;
+    c_repair_pipe4: clock;
+    inform_pipe4: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe4: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe4!] broken_pipe4==0 & inform_pipe4==0 @ c_fail_pipe4 
+                 -> (inform_pipe4'=1) &
+                    (broken_pipe4'=1);
+    [fail_pipe4!!] inform_pipe4 == 1 -> (inform_pipe4'=0);
+
+    // reparation (with repairman)
+    [repair_pipe4??] broken_pipe4==1 & inform_pipe4==0
+                        -> (broken_pipe4'=2) &
+                           (c_repair_pipe4'=lognormal(1.21,0.8));
+    [rpipe4!] broken_pipe4 == 2 @ c_repair_pipe4
+                 -> (inform_pipe4'=2) &
+                    (broken_pipe4'=0) &
+                    (c_fail_pipe4'=exponential(0.001));
+    [repaired_pipe4!!] inform_pipe4 == 2 -> (inform_pipe4'=0);
+
+endmodule
+
+
+module BE_pipe5
+
+    c_fail_pipe5: clock;
+    c_repair_pipe5: clock;
+    inform_pipe5: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe5: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe5!] broken_pipe5==0 & inform_pipe5==0 @ c_fail_pipe5 
+                 -> (inform_pipe5'=1) &
+                    (broken_pipe5'=1);
+    [fail_pipe5!!] inform_pipe5 == 1 -> (inform_pipe5'=0);
+
+    // reparation (with repairman)
+    [repair_pipe5??] broken_pipe5==1 & inform_pipe5==0
+                        -> (broken_pipe5'=2) &
+                           (c_repair_pipe5'=lognormal(1.21,0.8));
+    [rpipe5!] broken_pipe5 == 2 @ c_repair_pipe5
+                 -> (inform_pipe5'=2) &
+                    (broken_pipe5'=0) &
+                    (c_fail_pipe5'=exponential(0.001));
+    [repaired_pipe5!!] inform_pipe5 == 2 -> (inform_pipe5'=0);
+
+endmodule
+
+
+module BE_pipe6
+
+    c_fail_pipe6: clock;
+    c_repair_pipe6: clock;
+    inform_pipe6: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe6: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe6!] broken_pipe6==0 & inform_pipe6==0 @ c_fail_pipe6 
+                 -> (inform_pipe6'=1) &
+                    (broken_pipe6'=1);
+    [fail_pipe6!!] inform_pipe6 == 1 -> (inform_pipe6'=0);
+
+    // reparation (with repairman)
+    [repair_pipe6??] broken_pipe6==1 & inform_pipe6==0
+                        -> (broken_pipe6'=2) &
+                           (c_repair_pipe6'=lognormal(1.21,0.8));
+    [rpipe6!] broken_pipe6 == 2 @ c_repair_pipe6
+                 -> (inform_pipe6'=2) &
+                    (broken_pipe6'=0) &
+                    (c_fail_pipe6'=exponential(0.001));
+    [repaired_pipe6!!] inform_pipe6 == 2 -> (inform_pipe6'=0);
+
+endmodule
+
+
+module BE_pipe7
+
+    c_fail_pipe7: clock;
+    c_repair_pipe7: clock;
+    inform_pipe7: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe7: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe7!] broken_pipe7==0 & inform_pipe7==0 @ c_fail_pipe7 
+                 -> (inform_pipe7'=1) &
+                    (broken_pipe7'=1);
+    [fail_pipe7!!] inform_pipe7 == 1 -> (inform_pipe7'=0);
+
+    // reparation (with repairman)
+    [repair_pipe7??] broken_pipe7==1 & inform_pipe7==0
+                        -> (broken_pipe7'=2) &
+                           (c_repair_pipe7'=lognormal(1.21,0.8));
+    [rpipe7!] broken_pipe7 == 2 @ c_repair_pipe7
+                 -> (inform_pipe7'=2) &
+                    (broken_pipe7'=0) &
+                    (c_fail_pipe7'=exponential(0.001));
+    [repaired_pipe7!!] inform_pipe7 == 2 -> (inform_pipe7'=0);
+
+endmodule
+
+
+module BE_pipe8
+
+    c_fail_pipe8: clock;
+    c_repair_pipe8: clock;
+    inform_pipe8: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe8: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe8!] broken_pipe8==0 & inform_pipe8==0 @ c_fail_pipe8 
+                 -> (inform_pipe8'=1) &
+                    (broken_pipe8'=1);
+    [fail_pipe8!!] inform_pipe8 == 1 -> (inform_pipe8'=0);
+
+    // reparation (with repairman)
+    [repair_pipe8??] broken_pipe8==1 & inform_pipe8==0
+                        -> (broken_pipe8'=2) &
+                           (c_repair_pipe8'=lognormal(1.21,0.8));
+    [rpipe8!] broken_pipe8 == 2 @ c_repair_pipe8
+                 -> (inform_pipe8'=2) &
+                    (broken_pipe8'=0) &
+                    (c_fail_pipe8'=exponential(0.001));
+    [repaired_pipe8!!] inform_pipe8 == 2 -> (inform_pipe8'=0);
+
+endmodule
+
+
+module BE_pipe9
+
+    c_fail_pipe9: clock;
+    c_repair_pipe9: clock;
+    inform_pipe9: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe9: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe9!] broken_pipe9==0 & inform_pipe9==0 @ c_fail_pipe9 
+                 -> (inform_pipe9'=1) &
+                    (broken_pipe9'=1);
+    [fail_pipe9!!] inform_pipe9 == 1 -> (inform_pipe9'=0);
+
+    // reparation (with repairman)
+    [repair_pipe9??] broken_pipe9==1 & inform_pipe9==0
+                        -> (broken_pipe9'=2) &
+                           (c_repair_pipe9'=lognormal(1.21,0.8));
+    [rpipe9!] broken_pipe9 == 2 @ c_repair_pipe9
+                 -> (inform_pipe9'=2) &
+                    (broken_pipe9'=0) &
+                    (c_fail_pipe9'=exponential(0.001));
+    [repaired_pipe9!!] inform_pipe9 == 2 -> (inform_pipe9'=0);
+
+endmodule
+
+
+module BE_pipe10
+
+    c_fail_pipe10: clock;
+    c_repair_pipe10: clock;
+    inform_pipe10: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe10: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe10!] broken_pipe10==0 & inform_pipe10==0 @ c_fail_pipe10 
+                 -> (inform_pipe10'=1) &
+                    (broken_pipe10'=1);
+    [fail_pipe10!!] inform_pipe10 == 1 -> (inform_pipe10'=0);
+
+    // reparation (with repairman)
+    [repair_pipe10??] broken_pipe10==1 & inform_pipe10==0
+                        -> (broken_pipe10'=2) &
+                           (c_repair_pipe10'=lognormal(1.21,0.8));
+    [rpipe10!] broken_pipe10 == 2 @ c_repair_pipe10
+                 -> (inform_pipe10'=2) &
+                    (broken_pipe10'=0) &
+                    (c_fail_pipe10'=exponential(0.001));
+    [repaired_pipe10!!] inform_pipe10 == 2 -> (inform_pipe10'=0);
+
+endmodule
+
+
+module BE_pipe11
+
+    c_fail_pipe11: clock;
+    c_repair_pipe11: clock;
+    inform_pipe11: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe11: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe11!] broken_pipe11==0 & inform_pipe11==0 @ c_fail_pipe11 
+                 -> (inform_pipe11'=1) &
+                    (broken_pipe11'=1);
+    [fail_pipe11!!] inform_pipe11 == 1 -> (inform_pipe11'=0);
+
+    // reparation (with repairman)
+    [repair_pipe11??] broken_pipe11==1 & inform_pipe11==0
+                        -> (broken_pipe11'=2) &
+                           (c_repair_pipe11'=lognormal(1.21,0.8));
+    [rpipe11!] broken_pipe11 == 2 @ c_repair_pipe11
+                 -> (inform_pipe11'=2) &
+                    (broken_pipe11'=0) &
+                    (c_fail_pipe11'=exponential(0.001));
+    [repaired_pipe11!!] inform_pipe11 == 2 -> (inform_pipe11'=0);
+
+endmodule
+
+
+module BE_pipe12
+
+    c_fail_pipe12: clock;
+    c_repair_pipe12: clock;
+    inform_pipe12: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe12: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe12!] broken_pipe12==0 & inform_pipe12==0 @ c_fail_pipe12 
+                 -> (inform_pipe12'=1) &
+                    (broken_pipe12'=1);
+    [fail_pipe12!!] inform_pipe12 == 1 -> (inform_pipe12'=0);
+
+    // reparation (with repairman)
+    [repair_pipe12??] broken_pipe12==1 & inform_pipe12==0
+                        -> (broken_pipe12'=2) &
+                           (c_repair_pipe12'=lognormal(1.21,0.8));
+    [rpipe12!] broken_pipe12 == 2 @ c_repair_pipe12
+                 -> (inform_pipe12'=2) &
+                    (broken_pipe12'=0) &
+                    (c_fail_pipe12'=exponential(0.001));
+    [repaired_pipe12!!] inform_pipe12 == 2 -> (inform_pipe12'=0);
+
+endmodule
+
+
+module BE_pipe13
+
+    c_fail_pipe13: clock;
+    c_repair_pipe13: clock;
+    inform_pipe13: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe13: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe13!] broken_pipe13==0 & inform_pipe13==0 @ c_fail_pipe13 
+                 -> (inform_pipe13'=1) &
+                    (broken_pipe13'=1);
+    [fail_pipe13!!] inform_pipe13 == 1 -> (inform_pipe13'=0);
+
+    // reparation (with repairman)
+    [repair_pipe13??] broken_pipe13==1 & inform_pipe13==0
+                        -> (broken_pipe13'=2) &
+                           (c_repair_pipe13'=lognormal(1.21,0.8));
+    [rpipe13!] broken_pipe13 == 2 @ c_repair_pipe13
+                 -> (inform_pipe13'=2) &
+                    (broken_pipe13'=0) &
+                    (c_fail_pipe13'=exponential(0.001));
+    [repaired_pipe13!!] inform_pipe13 == 2 -> (inform_pipe13'=0);
+
+endmodule
+
+
+module BE_pipe14
+
+    c_fail_pipe14: clock;
+    c_repair_pipe14: clock;
+    inform_pipe14: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe14: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe14!] broken_pipe14==0 & inform_pipe14==0 @ c_fail_pipe14 
+                 -> (inform_pipe14'=1) &
+                    (broken_pipe14'=1);
+    [fail_pipe14!!] inform_pipe14 == 1 -> (inform_pipe14'=0);
+
+    // reparation (with repairman)
+    [repair_pipe14??] broken_pipe14==1 & inform_pipe14==0
+                        -> (broken_pipe14'=2) &
+                           (c_repair_pipe14'=lognormal(1.21,0.8));
+    [rpipe14!] broken_pipe14 == 2 @ c_repair_pipe14
+                 -> (inform_pipe14'=2) &
+                    (broken_pipe14'=0) &
+                    (c_fail_pipe14'=exponential(0.001));
+    [repaired_pipe14!!] inform_pipe14 == 2 -> (inform_pipe14'=0);
+
+endmodule
+
+
+module BE_pipe15
+
+    c_fail_pipe15: clock;
+    c_repair_pipe15: clock;
+    inform_pipe15: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe15: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe15!] broken_pipe15==0 & inform_pipe15==0 @ c_fail_pipe15 
+                 -> (inform_pipe15'=1) &
+                    (broken_pipe15'=1);
+    [fail_pipe15!!] inform_pipe15 == 1 -> (inform_pipe15'=0);
+
+    // reparation (with repairman)
+    [repair_pipe15??] broken_pipe15==1 & inform_pipe15==0
+                        -> (broken_pipe15'=2) &
+                           (c_repair_pipe15'=lognormal(1.21,0.8));
+    [rpipe15!] broken_pipe15 == 2 @ c_repair_pipe15
+                 -> (inform_pipe15'=2) &
+                    (broken_pipe15'=0) &
+                    (c_fail_pipe15'=exponential(0.001));
+    [repaired_pipe15!!] inform_pipe15 == 2 -> (inform_pipe15'=0);
+
+endmodule
+
+
+module BE_pipe16
+
+    c_fail_pipe16: clock;
+    c_repair_pipe16: clock;
+    inform_pipe16: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe16: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe16!] broken_pipe16==0 & inform_pipe16==0 @ c_fail_pipe16 
+                 -> (inform_pipe16'=1) &
+                    (broken_pipe16'=1);
+    [fail_pipe16!!] inform_pipe16 == 1 -> (inform_pipe16'=0);
+
+    // reparation (with repairman)
+    [repair_pipe16??] broken_pipe16==1 & inform_pipe16==0
+                        -> (broken_pipe16'=2) &
+                           (c_repair_pipe16'=lognormal(1.21,0.8));
+    [rpipe16!] broken_pipe16 == 2 @ c_repair_pipe16
+                 -> (inform_pipe16'=2) &
+                    (broken_pipe16'=0) &
+                    (c_fail_pipe16'=exponential(0.001));
+    [repaired_pipe16!!] inform_pipe16 == 2 -> (inform_pipe16'=0);
+
+endmodule
+
+
+module BE_pipe17
+
+    c_fail_pipe17: clock;
+    c_repair_pipe17: clock;
+    inform_pipe17: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe17: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe17!] broken_pipe17==0 & inform_pipe17==0 @ c_fail_pipe17 
+                 -> (inform_pipe17'=1) &
+                    (broken_pipe17'=1);
+    [fail_pipe17!!] inform_pipe17 == 1 -> (inform_pipe17'=0);
+
+    // reparation (with repairman)
+    [repair_pipe17??] broken_pipe17==1 & inform_pipe17==0
+                        -> (broken_pipe17'=2) &
+                           (c_repair_pipe17'=lognormal(1.21,0.8));
+    [rpipe17!] broken_pipe17 == 2 @ c_repair_pipe17
+                 -> (inform_pipe17'=2) &
+                    (broken_pipe17'=0) &
+                    (c_fail_pipe17'=exponential(0.001));
+    [repaired_pipe17!!] inform_pipe17 == 2 -> (inform_pipe17'=0);
+
+endmodule
+
+
+module BE_pipe18
+
+    c_fail_pipe18: clock;
+    c_repair_pipe18: clock;
+    inform_pipe18: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe18: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe18!] broken_pipe18==0 & inform_pipe18==0 @ c_fail_pipe18 
+                 -> (inform_pipe18'=1) &
+                    (broken_pipe18'=1);
+    [fail_pipe18!!] inform_pipe18 == 1 -> (inform_pipe18'=0);
+
+    // reparation (with repairman)
+    [repair_pipe18??] broken_pipe18==1 & inform_pipe18==0
+                        -> (broken_pipe18'=2) &
+                           (c_repair_pipe18'=lognormal(1.21,0.8));
+    [rpipe18!] broken_pipe18 == 2 @ c_repair_pipe18
+                 -> (inform_pipe18'=2) &
+                    (broken_pipe18'=0) &
+                    (c_fail_pipe18'=exponential(0.001));
+    [repaired_pipe18!!] inform_pipe18 == 2 -> (inform_pipe18'=0);
+
+endmodule
+
+
+module BE_pipe19
+
+    c_fail_pipe19: clock;
+    c_repair_pipe19: clock;
+    inform_pipe19: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe19: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe19!] broken_pipe19==0 & inform_pipe19==0 @ c_fail_pipe19 
+                 -> (inform_pipe19'=1) &
+                    (broken_pipe19'=1);
+    [fail_pipe19!!] inform_pipe19 == 1 -> (inform_pipe19'=0);
+
+    // reparation (with repairman)
+    [repair_pipe19??] broken_pipe19==1 & inform_pipe19==0
+                        -> (broken_pipe19'=2) &
+                           (c_repair_pipe19'=lognormal(1.21,0.8));
+    [rpipe19!] broken_pipe19 == 2 @ c_repair_pipe19
+                 -> (inform_pipe19'=2) &
+                    (broken_pipe19'=0) &
+                    (c_fail_pipe19'=exponential(0.001));
+    [repaired_pipe19!!] inform_pipe19 == 2 -> (inform_pipe19'=0);
+
+endmodule
+
+
+module BE_pipe20
+
+    c_fail_pipe20: clock;
+    c_repair_pipe20: clock;
+    inform_pipe20: [0..2] init 0;  // 0 idle, 1 inform fail, 2 inform repair
+    broken_pipe20: [0..2] init 0;  // 0 not broken, 1 broken, 2 being fixed
+
+    // failing (by itself)
+    [fpipe20!] broken_pipe20==0 & inform_pipe20==0 @ c_fail_pipe20 
+                 -> (inform_pipe20'=1) &
+                    (broken_pipe20'=1);
+    [fail_pipe20!!] inform_pipe20 == 1 -> (inform_pipe20'=0);
+
+    // reparation (with repairman)
+    [repair_pipe20??] broken_pipe20==1 & inform_pipe20==0
+                        -> (broken_pipe20'=2) &
+                           (c_repair_pipe20'=lognormal(1.21,0.8));
+    [rpipe20!] broken_pipe20 == 2 @ c_repair_pipe20
+                 -> (inform_pipe20'=2) &
+                    (broken_pipe20'=0) &
+                    (c_fail_pipe20'=exponential(0.001));
+    [repaired_pipe20!!] inform_pipe20 == 2 -> (inform_pipe20'=0);
+
+endmodule
+
+
+module repman_A
+
+    xs_A[20] : bool init false;
+    busy_A : bool init false;
+
+    [ fail_pipe1?? ] -> (xs_A[0]' = true);
+    [ fail_pipe2?? ] -> (xs_A[1]' = true);
+    [ fail_pipe3?? ] -> (xs_A[2]' = true);
+    [ fail_pipe4?? ] -> (xs_A[3]' = true);
+    [ fail_pipe5?? ] -> (xs_A[4]' = true);
+    [ fail_pipe6?? ] -> (xs_A[5]' = true);
+    [ fail_pipe7?? ] -> (xs_A[6]' = true);
+    [ fail_pipe8?? ] -> (xs_A[7]' = true);
+    [ fail_pipe9?? ] -> (xs_A[8]' = true);
+    [ fail_pipe10?? ] -> (xs_A[9]' = true);
+    [ fail_pipe11?? ] -> (xs_A[10]' = true);
+    [ fail_pipe12?? ] -> (xs_A[11]' = true);
+    [ fail_pipe13?? ] -> (xs_A[12]' = true);
+    [ fail_pipe14?? ] -> (xs_A[13]' = true);
+    [ fail_pipe15?? ] -> (xs_A[14]' = true);
+    [ fail_pipe16?? ] -> (xs_A[15]' = true);
+    [ fail_pipe17?? ] -> (xs_A[16]' = true);
+    [ fail_pipe18?? ] -> (xs_A[17]' = true);
+    [ fail_pipe19?? ] -> (xs_A[18]' = true);
+    [ fail_pipe20?? ] -> (xs_A[19]' = true);
+
+    [ repair_pipe1!! ] busy_A == false & fsteq(xs_A,true) == 0 -> (busy_A' = true);
+    [ repair_pipe2!! ] busy_A == false & fsteq(xs_A,true) == 1 -> (busy_A' = true);
+    [ repair_pipe3!! ] busy_A == false & fsteq(xs_A,true) == 2 -> (busy_A' = true);
+    [ repair_pipe4!! ] busy_A == false & fsteq(xs_A,true) == 3 -> (busy_A' = true);
+    [ repair_pipe5!! ] busy_A == false & fsteq(xs_A,true) == 4 -> (busy_A' = true);
+    [ repair_pipe6!! ] busy_A == false & fsteq(xs_A,true) == 5 -> (busy_A' = true);
+    [ repair_pipe7!! ] busy_A == false & fsteq(xs_A,true) == 6 -> (busy_A' = true);
+    [ repair_pipe8!! ] busy_A == false & fsteq(xs_A,true) == 7 -> (busy_A' = true);
+    [ repair_pipe9!! ] busy_A == false & fsteq(xs_A,true) == 8 -> (busy_A' = true);
+    [ repair_pipe10!! ] busy_A == false & fsteq(xs_A,true) == 9 -> (busy_A' = true);
+    [ repair_pipe11!! ] busy_A == false & fsteq(xs_A,true) == 10 -> (busy_A' = true);
+    [ repair_pipe12!! ] busy_A == false & fsteq(xs_A,true) == 11 -> (busy_A' = true);
+    [ repair_pipe13!! ] busy_A == false & fsteq(xs_A,true) == 12 -> (busy_A' = true);
+    [ repair_pipe14!! ] busy_A == false & fsteq(xs_A,true) == 13 -> (busy_A' = true);
+    [ repair_pipe15!! ] busy_A == false & fsteq(xs_A,true) == 14 -> (busy_A' = true);
+    [ repair_pipe16!! ] busy_A == false & fsteq(xs_A,true) == 15 -> (busy_A' = true);
+    [ repair_pipe17!! ] busy_A == false & fsteq(xs_A,true) == 16 -> (busy_A' = true);
+    [ repair_pipe18!! ] busy_A == false & fsteq(xs_A,true) == 17 -> (busy_A' = true);
+    [ repair_pipe19!! ] busy_A == false & fsteq(xs_A,true) == 18 -> (busy_A' = true);
+    [ repair_pipe20!! ] busy_A == false & fsteq(xs_A,true) == 19 -> (busy_A' = true);
+
+    [ repaired_pipe1?? ] -> (busy_A' = false) & (xs_A[0]' = false );
+    [ repaired_pipe2?? ] -> (busy_A' = false) & (xs_A[1]' = false );
+    [ repaired_pipe3?? ] -> (busy_A' = false) & (xs_A[2]' = false );
+    [ repaired_pipe4?? ] -> (busy_A' = false) & (xs_A[3]' = false );
+    [ repaired_pipe5?? ] -> (busy_A' = false) & (xs_A[4]' = false );
+    [ repaired_pipe6?? ] -> (busy_A' = false) & (xs_A[5]' = false );
+    [ repaired_pipe7?? ] -> (busy_A' = false) & (xs_A[6]' = false );
+    [ repaired_pipe8?? ] -> (busy_A' = false) & (xs_A[7]' = false );
+    [ repaired_pipe9?? ] -> (busy_A' = false) & (xs_A[8]' = false );
+    [ repaired_pipe10?? ] -> (busy_A' = false) & (xs_A[9]' = false );
+    [ repaired_pipe11?? ] -> (busy_A' = false) & (xs_A[10]' = false );
+    [ repaired_pipe12?? ] -> (busy_A' = false) & (xs_A[11]' = false );
+    [ repaired_pipe13?? ] -> (busy_A' = false) & (xs_A[12]' = false );
+    [ repaired_pipe14?? ] -> (busy_A' = false) & (xs_A[13]' = false );
+    [ repaired_pipe15?? ] -> (busy_A' = false) & (xs_A[14]' = false );
+    [ repaired_pipe16?? ] -> (busy_A' = false) & (xs_A[15]' = false );
+    [ repaired_pipe17?? ] -> (busy_A' = false) & (xs_A[16]' = false );
+    [ repaired_pipe18?? ] -> (busy_A' = false) & (xs_A[17]' = false );
+    [ repaired_pipe19?? ] -> (busy_A' = false) & (xs_A[18]' = false );
+    [ repaired_pipe20?? ] -> (busy_A' = false) & (xs_A[19]' = false );
+
+endmodule
+
+
+properties
+  S( 
+    ( broken_pipe1>0 & broken_pipe2>0 & broken_pipe3>0 & true ) |
+    ( broken_pipe2>0 & broken_pipe3>0 & broken_pipe4>0 & true ) |
+    ( broken_pipe3>0 & broken_pipe4>0 & broken_pipe5>0 & true ) |
+    ( broken_pipe4>0 & broken_pipe5>0 & broken_pipe6>0 & true ) |
+    ( broken_pipe5>0 & broken_pipe6>0 & broken_pipe7>0 & true ) |
+    ( broken_pipe6>0 & broken_pipe7>0 & broken_pipe8>0 & true ) |
+    ( broken_pipe7>0 & broken_pipe8>0 & broken_pipe9>0 & true ) |
+    ( broken_pipe8>0 & broken_pipe9>0 & broken_pipe10>0 & true ) |
+    ( broken_pipe9>0 & broken_pipe10>0 & broken_pipe11>0 & true ) |
+    ( broken_pipe10>0 & broken_pipe11>0 & broken_pipe12>0 & true ) |
+    ( broken_pipe11>0 & broken_pipe12>0 & broken_pipe13>0 & true ) |
+    ( broken_pipe12>0 & broken_pipe13>0 & broken_pipe14>0 & true ) |
+    ( broken_pipe13>0 & broken_pipe14>0 & broken_pipe15>0 & true ) |
+    ( broken_pipe14>0 & broken_pipe15>0 & broken_pipe16>0 & true ) |
+    ( broken_pipe15>0 & broken_pipe16>0 & broken_pipe17>0 & true ) |
+    ( broken_pipe16>0 & broken_pipe17>0 & broken_pipe18>0 & true ) |
+    ( broken_pipe17>0 & broken_pipe18>0 & broken_pipe19>0 & true ) |
+    ( broken_pipe18>0 & broken_pipe19>0 & broken_pipe20>0 & true ) |
+    false )  // "rate"
+endproperties
