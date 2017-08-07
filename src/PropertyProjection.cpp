@@ -132,6 +132,7 @@ void PropertyProjection::populate(const fig::Property& property) {
     }
     populated_ids.insert(p_id);
     shared_ptr<Prop> prop = ModelBuilder::property_ast[p_id];
+	assert(nullptr != prop);
     switch (prop->get_type()) {
     case PropType::transient:
     {

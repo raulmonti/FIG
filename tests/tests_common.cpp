@@ -76,7 +76,7 @@ namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
 
 //const string MODELS_DIR(getCWD() + "../models/");
-const string MODELS_DIR(getThisDir() + "/../models/");
+const string MODELS_DIR(getThisDir() + "/models/");
 
 
 /// See declaration in tests_definitions.h

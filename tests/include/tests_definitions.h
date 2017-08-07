@@ -54,6 +54,7 @@ namespace tests  // // // // // // // // // // // // // // // // // // // // //
 
 /**
  * Default IOSA model compilation
+ * @param modelFilePath Full path to the model file
  * @return Whether the model file could be successfully compiled
  * @note The model is compiled and built <b>but not sealed</b>
  * @see seal_current_model()

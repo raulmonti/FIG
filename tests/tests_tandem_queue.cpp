@@ -37,15 +37,15 @@ namespace  // // // // // // // // // // // // // // // // // // // // // // //
 const string MODEL(tests::MODELS_DIR + "tandem_queue.sa");
 
 // TAD which will contain the compiled model
-auto& model(fig::ModelSuite::get_instance());
+fig::ModelSuite& model(fig::ModelSuite::get_instance());
 
 // Transient query: P ( q2 > 0 U q2 == 8 )
 const double TR_PROB(5.59e-6);  // expected result of transient query
-size_t trPropId;                // index of the query within our TAD
+int trPropId(-1);               // index of the query within our TAD
 
-// Steady-state query: S ( q2 == 10 )
-const double SS_PROB(7.25e-6);  // expected result of steady-state query
-size_t ssPropId;                // index of the query within our TAD
+// Steady-state query: S ( q2 == 8 )
+const double SS_PROB(6.23e-5);  // expected result of steady-state query (C=10: 7.25e-6)
+int ssPropId(-1);               // index of the query within our TAD
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
 
@@ -59,53 +59,23 @@ TEST_CASE("Tandem queue tests", "[tandem-queue]")
 SECTION("Compile model file")
 {
 	REQUIRE(compile_model(MODEL));
-	REQUIRE_FALSE(model.sealed());
 	// XXX ModelSuite is a singleton: the compiled model is available
 	//                                to all following SECTION blocks
-	CHECK(model.num_modules() > 0ul);
-}
-
-SECTION("Add properties to verify")
-{
 	REQUIRE_FALSE(model.sealed());
+	CHECK(model.num_modules() > 0ul);
 
-	// Create an AST variable for the counter of the second queue
-	auto q2 = make_shared<Location>("q2");
-	q2->set_decl(ModuleScope::find_identifier_on(
-		CompositeModuleScope::get_instance(), "q2"));
-	REQUIRE(nullptr != q2->get_decl());
-	assert(!q2->is_array_position());
-	assert(!q2->get_decl()->is_array());
-
-	// Rare event (RHS of transient prop): q2 == 8
-	auto goal = make_shared<BinOpExp>(ExpOp::eq,
-									  make_shared<LocExp>(q2),
-									  make_shared<IConst>(8));
-	REQUIRE(nullptr != goal);
-
-	// Stop event (LHS of transient prop): q2 > 0
-	auto noStop = make_shared<BinOpExp>(ExpOp::gt,
-										make_shared<LocExp>(q2),
-										make_shared<IConst>(0));
-	REQUIRE(nullptr != noStop);
-
-	// Transient property: P( !stop U rare )
-	auto trProp = make_shared<fig::PropertyTransient>(noStop, goal);
-	REQUIRE(nullptr != trProp);
-	trPropId = model.add_property(trProp);
-	trProp.reset();
+	// Register one transient and one steady-state property
+	REQUIRE(model.num_properties() >= 2ul);
+	for (size_t i = 0ul ; i < model.num_properties() ; i++) {
+		auto prop = model.get_property(i);
+		if (prop->type == fig::PropertyType::TRANSIENT)
+			trPropId = i;
+		else if (prop->type == fig::PropertyType::RATE)
+			ssPropId = i;
+		if (0 <= trPropId && 0 <= ssPropId)
+			break;  // already got one of each kind
+	}
 	REQUIRE(nullptr != model.get_property(trPropId));
-
-	// Rare event other (argument of steady-state prop): q2 == 10
-	auto goal2 = make_shared<BinOpExp>(ExpOp::eq,
-										make_shared<LocExp>(q2),
-										make_shared<IConst>(10));
-	REQUIRE(nullptr != goal2);
-	// Steady-state property: S( rare )
-	auto ssProp = make_shared<fig::PropertyRate>(goal2);
-	REQUIRE(nullptr != ssProp);
-	ssPropId = model.add_property(ssProp);
-	ssProp.reset();
 	REQUIRE(nullptr != model.get_property(ssPropId));
 }
 
@@ -253,7 +223,7 @@ SECTION("Estimate transient property using RESTART and compositional ifun")
 	REQUIRE(ci.precision(confCo) > 0.0);
 	REQUIRE(ci.precision(confCo) < TR_PROB*prec);
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-		      == Approx(TR_PROB*prec).epsilon(TR_PROB*0.1));
+	          == Approx(TR_PROB*prec).epsilon(TR_PROB*0.1));
 }
 
 } // TEST_CASE [tandem-queue]
