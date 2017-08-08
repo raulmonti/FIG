@@ -226,6 +226,12 @@ SECTION("Estimate transient property using RESTART and compositional ifun")
 	          == Approx(TR_PROB*prec).epsilon(TR_PROB*0.1));
 }
 
+SECTION("Tear model down")
+{
+	model.clear();
+	REQUIRE_FALSE(model.sealed());
+}
+
 } // TEST_CASE [tandem-queue]
 
 } // namespace tests   // // // // // // // // // // // // // // // // // // //

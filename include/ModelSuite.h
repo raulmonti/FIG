@@ -609,9 +609,12 @@ public:  // Utils
 	release_resources(const std::string& ifunName,
 					  const std::string& engineName = "") noexcept;
 
-	/// Release all internal information regarding \ref ImportanceFunction
-	/// "importance functions" and \ref SimulationEngine "simulaion engines".
-	void release_resources() noexcept;
+	/**
+	 * Erase all internal information: the \ref ModuleNetwork "model",
+	 * the \ref ImportanceFunction "importance functions",
+	 * the \ref SimulationEngine "simulaion engines", etc.
+	 */
+	void clear() noexcept;
 
 public:  // Simulation utils
 

@@ -150,7 +150,7 @@ int main(int argc, char** argv)
 							thrTechnique,
 							estBounds,
 							splittings);
-		model.release_resources();
+		model.clear();
 	} catch (fig::FigException& e) {
 		log(FIG_ERROR + " perform estimations.\n\n");
 		tech_log("Error message: " + e.msg() + "\n");

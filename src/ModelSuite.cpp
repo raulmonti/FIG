@@ -369,7 +369,10 @@ std::once_flag ModelSuite::singleInstance_;
 // ModelSuite class member functions
 
 
-ModelSuite::~ModelSuite() { /* Just relax and let everything go */ }
+ModelSuite::~ModelSuite()
+{
+	clear();  // just relax and let everything go...
+}
 
 
 void ModelSuite::add_module(std::shared_ptr< ModuleInstance >& module)
@@ -1007,11 +1010,20 @@ ModelSuite::release_resources(const std::string& ifunName,
 
 
 void
-ModelSuite::release_resources() noexcept
+ModelSuite::clear() noexcept
 {
-	if (!sealed())
-        return;
+//	if (!sealed())
+//        return;
 	techLog_ << "\nReleasing all system resources:\n";
+	// Reset class memebers
+	std::make_shared<ModuleNetwork>().swap(model);
+	properties.clear();
+	splitsPerThreshold = 2u;
+	lastEstimationStartTime_ = 0.0;
+	timeout_ = std::chrono::seconds::zero();
+	lastEstimates_.clear();
+	interruptCI_ = nullptr;
+	// Release more complex resources (ifuns, thr. builders, sim. engines)
 	try {
 		for (auto ifunName: available_importance_functions())
 			release_resources(ifunName);
@@ -1019,6 +1031,9 @@ ModelSuite::release_resources() noexcept
 			simulators[engineName]->unlock();
 			simulators[engineName]->unbind();
 		}
+		impFuns.clear();
+		thrBuilders.clear();
+		simulators.clear();
 	} catch (std::exception&) {}  // Meh... everything was going to hell anyway
 }
 
