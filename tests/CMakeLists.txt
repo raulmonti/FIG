@@ -202,7 +202,7 @@ ENDIF()
 ## ENDIF()
 ## That's not working!
 ## A special version of Clang with OpenMP activated seems to be required.
-## We just pasted gcc's "omp.h" into ext/openmp/include
+## ...pasted gcc's "omp.h" into ext/openmp/include
 
 # Turn some warnings off
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -225,6 +225,8 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 IF(NOT RELEASE)
 	# From Z3 library "check_context()" and others: "unused parameter 'a'"...
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+	# From jsoncpp 1.7.4: this statement may fall through
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wimplicit-fallthrough=0")
 	# Avoid warnings in flex 2.6.1 (previous versions do not have that warning)
 	SET_SOURCE_FILES_PROPERTIES(${LEXER_CODE}
 	                            PROPERTIES COMPILE_FLAGS -Wno-sign-compare)
