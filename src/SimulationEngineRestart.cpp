@@ -154,7 +154,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 		stack.top().get().initialize(*network_, *impFun_);
 
 		// RESTART importance-splitting simulation:
-		while (!stack.empty()) {
+		while (!stack.empty() & !interrupted) {
 			Event e(EventType::NONE);
 			Traial& traial = stack.top();
 
