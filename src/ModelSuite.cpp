@@ -52,6 +52,8 @@
 #include <thread>
 // FIG
 #include <ModelSuite.h>
+#include <ModelBuilder.h>
+#include <ModuleScope.h>
 #include <FigException.h>
 #include <FigLog.h>
 #include <SignalSetter.h>
@@ -990,13 +992,16 @@ void
 ModelSuite::release_resources(const std::string& ifunName,
 							  const std::string& engineName) noexcept
 {
-	techLog_ << " · releasing resources";
-    if (exists_importance_function(ifunName)) {
+	const std::string msgBase(" · releasing resources");
+	std::stringstream msg(msgBase);
+	if (exists_importance_function(ifunName) &&
+	        nullptr != impFuns[ifunName]) {
         techLog_ << " of importance function \"" << ifunName << "\"";
 		impFuns[ifunName]->clear();
 		assert(!impFuns[ifunName]->has_importance_info());
 	}
-    if (exists_simulator(engineName)) {
+	if (exists_simulator(engineName) &&
+	        nullptr != simulators[engineName]) {
         if (exists_importance_function(ifunName))
             techLog_ << " and";
         else
@@ -1005,16 +1010,16 @@ ModelSuite::release_resources(const std::string& ifunName,
 		simulators[engineName]->unbind();
 		assert(!simulators[engineName]->bound());
     }
-    techLog_ << std::endl;
+	if (msg.str() != msgBase)
+		techLog_ << msg.str() << std::endl;
 }
-
 
 void
 ModelSuite::clear() noexcept
 {
 //	if (!sealed())
 //        return;
-	techLog_ << "\nReleasing all system resources:\n";
+	techLog_ << "\nReleasing all system resources...\n";
 	// Reset class memebers
 	std::make_shared<ModuleNetwork>().swap(model);
 	properties.clear();
@@ -1023,14 +1028,18 @@ ModelSuite::clear() noexcept
 	timeout_ = std::chrono::seconds::zero();
 	lastEstimates_.clear();
 	interruptCI_ = nullptr;
+	// Clean some static data left from parsing
+	ModelAST::from_files();
+	ModelBuilder::property_ast.clear();
+	CompositeModuleScope::get_instance()->clear();
 	// Release more complex resources (ifuns, thr. builders, sim. engines)
 	try {
+		for (auto simEngine: simulators) {
+			simEngine.second->unlock();
+			simEngine.second->unbind();
+		}
 		for (auto ifunName: available_importance_functions())
 			release_resources(ifunName);
-		for (auto engineName: available_simulators()) {
-			simulators[engineName]->unlock();
-			simulators[engineName]->unbind();
-		}
 		impFuns.clear();
 		thrBuilders.clear();
 		simulators.clear();

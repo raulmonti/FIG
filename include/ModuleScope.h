@@ -29,6 +29,13 @@ public:
     static shared_map<string, Decl> globals;
 
 protected:
+	/// Delete all information about model/modules scopes,
+	static void clear() {
+		ModuleScope::scopes.clear();
+		ModuleScope::globals.clear();
+	}
+
+protected:
     /// The name of this module
     string id;
 
@@ -50,6 +57,7 @@ protected:
 
     /// Mapping transitions triggered by a clock.
     triggered_map triggered_transitions;
+
 public:
     virtual string get_module_name() {
         return (id);
@@ -168,9 +176,25 @@ private:
 public:
     static inline shared_ptr<CompositeModuleScope> get_instance() {
         std::call_once(singleInstance_,
-                       [] () { instance_.reset(new CompositeModuleScope);});
+					   [] () { instance_.reset(new CompositeModuleScope);});
+//		/// @todo TODO erase below
+//		if (local_decls.empty())
+//			build_scope();  // clear() was used before this call
         return instance_;
-    }
+	}
+
+	/// Delete all information about model/modules scopes,
+	/// <b>including the one that resides in static class members</b>
+	inline void clear() {
+		ModuleScope::clear();
+		id.clear();
+		body.reset();
+		labels.clear();
+		label_transitions.clear();
+		clock_dists.clear();
+		local_decls.clear();
+		triggered_transitions.clear();
+	}
 
     string get_module_name() override {
         throw_FigException("Not implemented");

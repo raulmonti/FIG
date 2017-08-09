@@ -5,6 +5,8 @@
 #include "ExpReductor.h"
 #include <algorithm>
 #include <iostream>
+    /// @todo TODO erase debug include
+    #include <ModelPrinter.h>
 
 void ModelReductor::accept_cond(shared_ptr<ModelAST> node) {
     if (!has_errors()) {
@@ -13,7 +15,11 @@ void ModelReductor::accept_cond(shared_ptr<ModelAST> node) {
 }
 
 shared_ptr<Exp> ModelReductor::reduce(shared_ptr<Exp> node) {
-    ExpReductor reductor (current_scope);
+	/// @todo TODO erase debug print
+	ModelPrinter printer(std::cerr, true);
+	node->accept(printer);
+
+	ExpReductor reductor (current_scope);
     node->accept(reductor);
     if (reductor.has_errors()) {
         put_error(reductor.get_messages());

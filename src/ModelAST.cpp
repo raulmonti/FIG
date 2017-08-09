@@ -14,16 +14,18 @@ void ModelAST::accept(Visitor &visit) {
     visit.visit(shared_from_this());
 }
 
-shared_ptr<ModelAST> ModelAST::from_files(const char *model_file,
-										  const char *prop_file) {
+shared_ptr<ModelAST> ModelAST::from_files(const std::string& model_file,
+                                          const std::string& prop_file) {
 	shared_ptr<ModelAST> result = nullptr;
 	ModelParserGen::ModelParser parser {&result};
 	int res(1);
 	// Process model file
-	FILE* file = std::fopen(model_file, "r");
-	if (nullptr == file) {
+	FILE* file = std::fopen(model_file.c_str(), "r");
+	if (nullptr == file && !model_file.empty()) {
 		figTechLog << "Model file \"" << model_file << "\" does not exists!\n";
 		res = 1;
+		goto exit_point;
+	} else if (model_file.empty()) {
 		goto exit_point;
 	}
 	scan_begin(file);
@@ -34,10 +36,10 @@ shared_ptr<ModelAST> ModelAST::from_files(const char *model_file,
 		goto exit_point;
 	}
 	// Process properties file, if any
-	if (nullptr != prop_file && 0ul < strnlen(prop_file, 128ul)) {
-		file = fopen(prop_file, "r");
+	if (!prop_file.empty()) {
+		file = fopen(prop_file.c_str(), "r");
 		if (nullptr == file) {
-			figTechLog << "Properties file \"" << model_file
+			figTechLog << "Properties file \"" << prop_file
 							<< "\" does not exists!\n";
 			res = 1;
 			goto exit_point;
@@ -51,7 +53,7 @@ shared_ptr<ModelAST> ModelAST::from_files(const char *model_file,
 		}
 	}
 	exit_point:
-		if (0 <= fileno(file))
+	    if (nullptr != file && 0 <= fileno(file))
 			std::fclose(file);
 		return (res == 0 ? result : nullptr);
 }

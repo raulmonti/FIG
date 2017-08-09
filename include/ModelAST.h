@@ -73,8 +73,8 @@ public:
 
     /// Build an AST from two files corresponding to the model and
     /// the properties (e.g. tandem-queue.sa, tandem-queue.pp)
-    static shared_ptr<ModelAST> from_files(const char *model_file,
-                                           const char *prop_file);
+	static shared_ptr<ModelAST> from_files(const string& model_file = "",
+										   const string& prop_file = "");
 
     /// Acceptor
     /// @see https://en.wikipedia.org/wiki/Visitor_pattern

@@ -91,10 +91,13 @@ private:
     bool dummy_check(Type expected_type, shared_ptr<Exp> exp);
 
 public:
-    ModelTC() : current_scope {nullptr},
-        last_type {Type::tunknown},
-        expected_exp_type {Type::tunknown},
-        checking_property {false} {}
+	ModelTC() : scopes(ModuleScope::scopes),
+				globals(ModuleScope::globals),
+				current_scope(nullptr),
+				last_type(Type::tunknown),
+				expected_exp_type(Type::tunknown),
+				checking_property(false)
+		{ /* Not much to do around here... */ }
 
     ModelTC(const ModelTC& instance) = default;
 
