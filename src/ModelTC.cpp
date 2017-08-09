@@ -492,6 +492,9 @@ void ModelTC::check_ranged_all(shared_ptr<ModuleScope> scope) {
 }
 
 void ModelTC::visit(shared_ptr<Model> model) {
+	//clear any previous data
+	scopes.clear();
+	globals.clear();
     //check globals
     for (auto decl : model->get_globals()) {
         //no module selected yet

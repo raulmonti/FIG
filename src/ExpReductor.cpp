@@ -51,18 +51,8 @@ void ExpReductor::visit(shared_ptr<LocExp> node) {
     //for convenience save the declaration
     const std::string& id = loc->get_identifier();
 	shared_ptr<Decl> decl = ModuleScope::find_identifier_on(scope, id);
-
-	/// @todo TODO erase debug code
-	if (nullptr == decl) {
-		std::cerr << "Missing identifier: " << id << std::endl;
-		decl = ModuleScope::find_identifier_on(scope, "buf");
-		if (nullptr != decl)
-			std::cerr << "But identifier \"buf\" is there!" << std::endl;
-		else
-			std::cerr << "Identifier \"buf\" is not there either." << std::endl;
-		exit(1);
-	}
-
+	if (nullptr == decl)
+		decl = ModuleScope::find_in_all_modules(id);  // may be a property referring to a module-local variable
 	assert(decl != nullptr);
     loc->set_decl(decl);
     if (!loc->is_array_position()) {

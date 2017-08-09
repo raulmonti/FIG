@@ -30,6 +30,9 @@ public:
 
 protected:
 	/// Delete all information about model/modules scopes,
+	/// @note These fields are deleted JIT by the \ref ModelTC "model type
+	///       checker", in the function ModelTC::visit(shared_ptr<Model>),
+	///       before a new model file is parsed and checked.
 	static void clear() {
 		ModuleScope::scopes.clear();
 		ModuleScope::globals.clear();
@@ -177,11 +180,10 @@ public:
     static inline shared_ptr<CompositeModuleScope> get_instance() {
         std::call_once(singleInstance_,
 					   [] () { instance_.reset(new CompositeModuleScope);});
-//		/// @todo TODO erase below
-//		if (local_decls.empty())
-//			build_scope();  // clear() was used before this call
         return instance_;
 	}
+
+	~CompositeModuleScope() { clear(); }
 
 	/// Delete all information about model/modules scopes,
 	/// <b>including the one that resides in static class members</b>

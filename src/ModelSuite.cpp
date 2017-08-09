@@ -993,23 +993,24 @@ ModelSuite::release_resources(const std::string& ifunName,
 							  const std::string& engineName) noexcept
 {
 	const std::string msgBase(" · releasing resources");
-	std::stringstream msg(msgBase);
+	std::stringstream msg;
+	msg << msgBase;
 	if (exists_importance_function(ifunName) &&
 	        nullptr != impFuns[ifunName]) {
-        techLog_ << " of importance function \"" << ifunName << "\"";
+		msg << " of importance function \"" << ifunName << "\"";
 		impFuns[ifunName]->clear();
 		assert(!impFuns[ifunName]->has_importance_info());
 	}
 	if (exists_simulator(engineName) &&
 	        nullptr != simulators[engineName]) {
         if (exists_importance_function(ifunName))
-            techLog_ << " and";
+			msg << " and";
         else
-            techLog_ << " of";
-        techLog_ << " simulation engine \"" << engineName << "\"";
+			msg << " of";
+		msg << " simulation engine \"" << engineName << "\"";
 		simulators[engineName]->unbind();
 		assert(!simulators[engineName]->bound());
-    }
+	}
 	if (msg.str() != msgBase)
 		techLog_ << msg.str() << std::endl;
 }
@@ -1028,10 +1029,6 @@ ModelSuite::clear() noexcept
 	timeout_ = std::chrono::seconds::zero();
 	lastEstimates_.clear();
 	interruptCI_ = nullptr;
-	// Clean some static data left from parsing
-	ModelAST::from_files();
-	ModelBuilder::property_ast.clear();
-	CompositeModuleScope::get_instance()->clear();
 	// Release more complex resources (ifuns, thr. builders, sim. engines)
 	try {
 		for (auto simEngine: simulators) {
@@ -1043,7 +1040,13 @@ ModelSuite::clear() noexcept
 		impFuns.clear();
 		thrBuilders.clear();
 		simulators.clear();
-	} catch (std::exception&) {}  // Meh... everything was going to hell anyway
+	} catch (std::exception&) {
+		// Meh... everything was going to hell anyway
+	}
+	// Clean some static data from other classes
+	TraialPool::clear();
+	ModelBuilder::property_ast.clear();
+	// CompositeModuleScope::get_instance()->clear();  // suicides
 }
 
 

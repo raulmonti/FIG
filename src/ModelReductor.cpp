@@ -5,8 +5,6 @@
 #include "ExpReductor.h"
 #include <algorithm>
 #include <iostream>
-    /// @todo TODO erase debug include
-    #include <ModelPrinter.h>
 
 void ModelReductor::accept_cond(shared_ptr<ModelAST> node) {
     if (!has_errors()) {
@@ -15,10 +13,6 @@ void ModelReductor::accept_cond(shared_ptr<ModelAST> node) {
 }
 
 shared_ptr<Exp> ModelReductor::reduce(shared_ptr<Exp> node) {
-	/// @todo TODO erase debug print
-	ModelPrinter printer(std::cerr, true);
-	node->accept(printer);
-
 	ExpReductor reductor (current_scope);
     node->accept(reductor);
     if (reductor.has_errors()) {
@@ -40,12 +34,12 @@ void ModelReductor::visit(shared_ptr<Model> node)  {
     //visit globals
     for (auto decl : node->get_globals()) {
         accept_cond(decl);
-    }
+	}
     //visit modules
     for (auto module : node->get_modules()) {
         current_scope = ModuleScope::scopes.at(module->get_name());
         accept_cond(module);
-    }
+	}
     //visit props
     current_scope = CompositeModuleScope::get_instance();
     for (auto prop : node->get_props()) {

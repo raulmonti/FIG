@@ -272,7 +272,7 @@ public:  // Populating facilities and other modifyers
 public:  // Accessors
 
 	/// @copydoc ModuleNetwork::sealed()
-	inline bool sealed() const noexcept { return model->sealed(); }
+	inline bool sealed() const noexcept { return (nullptr != model) && model->sealed(); }
 
 	/// @copydoc ModuleNetwork::is_markovian()
 	inline bool is_markovian() const noexcept { return model->is_markovian(); }

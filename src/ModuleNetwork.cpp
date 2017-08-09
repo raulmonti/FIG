@@ -81,11 +81,8 @@ ModuleNetwork::ModuleNetwork(const ModuleNetwork& that) :
 
 ModuleNetwork::~ModuleNetwork()
 {
-//	modules.clear();
-
-//	Deleting this vector would be linear in its size.
-//	Since the ModuleNetwork should only be deleted after simulations conclusion,
-///	@warning we ignore this (potential?) memory leak due to its short life.
+	initialClocks.clear();
+	modules.clear();
 }
 
 

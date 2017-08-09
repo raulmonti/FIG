@@ -153,7 +153,7 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	REQUIRE(ci.precision(confCo) > 0.0);
 	REQUIRE(ci.precision(confCo) < SS_PROB*prec);
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-		      == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
+	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
 
 SECTION("Estimate steady-state property using RESTART and monolithic ifun")
@@ -188,7 +188,7 @@ SECTION("Estimate steady-state property using RESTART and monolithic ifun")
 	REQUIRE(ci.precision(confCo) > 0.0);
 	REQUIRE(ci.precision(confCo) < SS_PROB*prec);
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-		      == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
+	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
 
 SECTION("Estimate transient property using RESTART and compositional ifun")

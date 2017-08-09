@@ -427,4 +427,14 @@ TraialPool::set_timeouts(Traial& t, std::vector<Traial::Timeout> clocks)
 	t.clocks_.swap(clocks);
 }
 
+
+void
+TraialPool::clear()
+{
+	available_traials_.clear();
+	traials_.clear();
+	numVariables = 0ul;
+	numClocks = 0ul;
+}
+
 } // namespace fig

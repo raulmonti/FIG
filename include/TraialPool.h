@@ -211,6 +211,10 @@ public:  // Utils
 	/// @note Using the friend of a friend to access private data is nasty,
 	///       don't do this at home
 	static void set_timeouts(Traial& t, std::vector<Traial::Timeout> clocks);
+
+	/// Delete all instances of Traial we hold,
+	/// and erase infor like \p numVariables and \p numClocks
+	static void clear();
 };
 
 } // namespace fig
