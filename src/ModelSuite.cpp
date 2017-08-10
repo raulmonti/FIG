@@ -315,6 +315,8 @@ seconds ModelSuite::timeout_(0l);
 
 std::vector< ConfidenceIntervalResult > ModelSuite::lastEstimates_;
 
+bool ModelSuite::pristineModel_(false);
+
 const ConfidenceInterval* ModelSuite::interruptCI_ = nullptr;
 
 const std::vector< float > ModelSuite::confCoToShow_ = {0.8, 0.9, 0.95, 0.99};
@@ -380,12 +382,14 @@ ModelSuite::~ModelSuite()
 void ModelSuite::add_module(std::shared_ptr< ModuleInstance >& module)
 {
 	model->add_module(module);
+	pristineModel_ = false;
 }
 
 
 size_t ModelSuite::add_property(std::shared_ptr<Property> property)
 {
 	properties.push_back(property);
+	pristineModel_ = false;
 	return properties.size()-1ul;
 }
 
@@ -455,6 +459,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
             throw_FigException("Hey.  Hey you...  HEY, DEVELOPER! You forgot to "
                                "create the '"+engineName+"' simulation engine");
 #endif
+	pristineModel_ = false;
 }
 
 // ModelSuite::seal() can only be invoked with the following containers
@@ -570,7 +575,7 @@ ModelSuite::available_importance_functions() noexcept
 	if (ifunsNames.empty()) {
 		ifunsNames.reserve(num_importance_functions());
 		for (const auto& name: ImportanceFunction::names())
-			ifunsNames.push_back(name);
+			ifunsNames.emplace_back(name);
 	}
 	return ifunsNames;
 }
@@ -631,7 +636,7 @@ ModelSuite::available_RNGs() noexcept
 bool
 ModelSuite::exists_simulator(const std::string& engineName) noexcept
 {
-	const auto& simulators = available_simulators();
+	static const auto& simulators = available_simulators();
 	return find(begin(simulators), end(simulators), engineName) != end(simulators);
 }
 
@@ -639,7 +644,7 @@ ModelSuite::exists_simulator(const std::string& engineName) noexcept
 bool
 ModelSuite::exists_importance_function(const std::string& ifunName) noexcept
 {
-	const auto& impFuns = available_importance_functions();
+	static const auto& impFuns = available_importance_functions();
 	return find(begin(impFuns), end(impFuns), ifunName) != end(impFuns);
 }
 
@@ -647,7 +652,7 @@ ModelSuite::exists_importance_function(const std::string& ifunName) noexcept
 bool
 ModelSuite::exists_importance_strategy(const std::string& impStrategy) noexcept
 {
-	const auto& impStrats = available_importance_strategies();
+	static const auto& impStrats = available_importance_strategies();
 	return find(begin(impStrats), end(impStrats), impStrategy) != end(impStrats);
 }
 
@@ -655,7 +660,7 @@ ModelSuite::exists_importance_strategy(const std::string& impStrategy) noexcept
 bool
 ModelSuite::exists_importance_post_processing(const std::string& postProc) noexcept
 {
-	const auto& impPostProc = available_importance_post_processings();
+	static const auto& impPostProc = available_importance_post_processings();
 	return postProc.empty() ||
 			end(impPostProc) != find(begin(impPostProc), end(impPostProc), postProc);
 }
@@ -664,7 +669,7 @@ ModelSuite::exists_importance_post_processing(const std::string& postProc) noexc
 bool
 ModelSuite::exists_threshold_technique(const std::string& thrTechnique) noexcept
 {
-	const auto& thrTechs = available_threshold_techniques();
+	static const auto& thrTechs = available_threshold_techniques();
 	return find(begin(thrTechs), end(thrTechs), thrTechnique) != end(thrTechs);
 }
 
@@ -672,7 +677,7 @@ ModelSuite::exists_threshold_technique(const std::string& thrTechnique) noexcept
 bool
 ModelSuite::exists_rng(const std::string& rng) noexcept
 {
-	const auto& RNGs = available_RNGs();
+	static const auto& RNGs = available_RNGs();
 	return find(begin(RNGs), end(RNGs), rng) != end(RNGs);
 }
 
@@ -704,7 +709,10 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
                                            const Property& property,
                                            bool force)
 {
-    if (!exists_importance_function(ifunName))
+	if (!sealed())
+		throw_FigException("can't build an importance function before "
+		                   "the model is sealed.");
+	if (!exists_importance_function(ifunName))
 		throw_FigException("inexistent importance function \"" + ifunName +
 						   "\". Call \"available_importance_functions()\" "
 						   "for a list of available options.");
@@ -741,6 +749,7 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
 	if (ifun.min_value() != ifun.max_value())
 		throw_FigException("bad function built (non-flat importance)");
 #endif
+	pristineModel_ = false;
 }
 
 
@@ -761,6 +770,9 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 											const Property& property,
 											bool force)
 {
+	if (!sealed())
+		throw_FigException("can't build an importance function before "
+		                   "the model is sealed.");
 	if (!exists_importance_function(impFun.name))
 		throw_FigException("inexistent importance function \"" + impFun.name +
 						   "\". Call \"available_importance_functions()\" "
@@ -811,6 +823,7 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 	if (ifun.min_value() == ifun.max_value())
 		throw_FigException("bad function built (flat importance)");
 #endif
+	pristineModel_ = false;
 }
 
 
@@ -831,6 +844,9 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 										   const Property& property,
 										   bool force)
 {
+	if (!sealed())
+		throw_FigException("can't build an importance function before "
+		                   "the model is sealed.");
 	if (!exists_importance_function(impFun.name))
 		throw_FigException("inexistent importance function \"" + impFun.name +
 						   "\". Call \"available_importance_functions()\" "
@@ -890,6 +906,7 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 	if (ifun.min_value() == ifun.max_value())
 		throw_FigException("bad function built (flat importance)");
 #endif
+	pristineModel_ = false;
 }
 
 
@@ -952,6 +969,7 @@ ModelSuite::build_thresholds(const std::string& technique,
 
     assert(ifun.ready());
     assert(technique == ifun.thresholds_technique());
+	pristineModel_ = false;
 }
 
 
@@ -984,6 +1002,7 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
 	assert(engine_ptr->bound());
 	assert(ifunName == engine_ptr->current_imp_fun());
 
+	pristineModel_ = false;
 	return engine_ptr;
 }
 
@@ -1018,8 +1037,10 @@ ModelSuite::release_resources(const std::string& ifunName,
 void
 ModelSuite::clear() noexcept
 {
-//	if (!sealed())
-//        return;
+	if (pristineModel_) {
+		techLog_ << "\nSystem resources have been released already; shutting down.\n";
+		return;
+	}
 	techLog_ << "\nReleasing all system resources...\n";
 	// Reset class memebers
 	std::make_shared<ModuleNetwork>().swap(model);
@@ -1047,6 +1068,7 @@ ModelSuite::clear() noexcept
 	TraialPool::clear();
 	ModelBuilder::property_ast.clear();
 	// CompositeModuleScope::get_instance()->clear();  // suicides
+	pristineModel_ = true;
 }
 
 

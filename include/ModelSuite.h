@@ -126,6 +126,9 @@ class ModelSuite
 	/// Confidence intervals produced during the last call to estimate()
 	static std::vector< ConfidenceIntervalResult > lastEstimates_;
 
+	/// Whether the single instance of ModelSuite is "empty as new"
+	static bool pristineModel_;
+
 	// Interruptions handling
 
 	/// Signal handler for when we're interrupted (e.g. ^C) mid-estimation
@@ -172,6 +175,7 @@ public:  // Access to the ModelSuite instance
 public:  // Populating facilities and other modifyers
 
 	/// @copydoc ModuleNetwork::add_module(std::shared_ptr<ModuleInstance>&)
+	/// @note Supresses the \ref pristineModel_ "pristine condition"
 	/// @throw FigException if the model's clocks quota is exceeded
 	void add_module(std::shared_ptr<ModuleInstance>&);
 
@@ -181,6 +185,7 @@ public:  // Populating facilities and other modifyers
 	 *          by specifying the order in which they were added.
 	 * @return The property index, as it should be passed to get_property()
 	 *         to get a reference to it
+	 * @note Supresses the \ref pristineModel_ "pristine condition"
 	 * @warning Do not invoke after seal()
 	 * \ifnot NDEBUG
 	 *   @throw FigException if the network has already been sealed()
@@ -206,6 +211,7 @@ public:  // Populating facilities and other modifyers
 	 * @note seal() must have been invoked before the beginning of simulations,
 	 *       also to create the \ref SimulationEngine "engines" and
 	 *       \ref ImportanceFunction "importance functions" required.
+	 * @note Supresses the \ref pristineModel_ "pristine condition"
 	 *
 	 * @warning No more modules or properties can be added after this invocation
 	 * \ifnot NDEBUG
@@ -428,6 +434,8 @@ public:  // Utils
 	 * @param force    Assess importance again, even if importance info
 	 *                 already exists for this importance function and strategy
 	 *
+	 * @note Supresses the \ref pristineModel_ "pristine condition"
+	 *
 	 * @throw FigException if 'ifunName' is invalid or incompatible with the
 	 *                     "flat" importance assessment strategy.
 	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
@@ -464,6 +472,8 @@ public:  // Utils
 	 * @param property  The Property whose value is to be estimated
 	 * @param force     Assess importance again, even if importance info
 	 *                  already exists for this importance function and strategy
+	 *
+	 * @note Supresses the \ref pristineModel_ "pristine condition"
 	 *
 	 * @throw FigException if 'impFun.name' is invalid or incompatible with the
 	 *                     "adhoc" importance assessment strategy.
@@ -503,6 +513,8 @@ public:  // Utils
 	 * @param property The Property whose value is to be estimated
 	 * @param force    Assess importance again, even if importance info
 	 *                 already exists for this importance function and strategy
+	 *
+	 * @note Supresses the \ref pristineModel_ "pristine condition"
 	 *
 	 * @throw FigException if 'impFun.name' is invalid or incompatible with the
 	 *                     "auto" importance assessment strategy.
@@ -548,6 +560,8 @@ public:  // Utils
 	 *                    threshold (relevant for \ref ThresholdsBuilderAdaptive
 	 *                    "adaptive thresholds builders" only)
 	 *
+	 * @note Supresses the \ref pristineModel_ "pristine condition"
+	 *
 	 * @throw FigException if "technique" or "ifunName" are invalid
 	 * @throw FigException if the ImportanceFunction "ifunName" doesn't have
 	 *                     \ref ImportanceFunction::has_importance_info()
@@ -581,6 +595,8 @@ public:  // Utils
 	 *
 	 * @return Pointer to the SimulationEngine to be used for estimations
 	 *
+	 * @note Supresses the \ref pristineModel_ "pristine condition"
+	 *
 	 * @throw FigException if "engineName" or "ifunName" are invalid
 	 * @throw FigException if the ImportanceFunction "ifunName" isn't
 	 *                     \ref ImportanceFunction::ready() "ready for
@@ -613,6 +629,8 @@ public:  // Utils
 	 * Erase all internal information: the \ref ModuleNetwork "model",
 	 * the \ref ImportanceFunction "importance functions",
 	 * the \ref SimulationEngine "simulaion engines", etc.
+	 *
+	 * @note Restores the \ref pristineModel_ "pristine condition"
 	 */
 	void clear() noexcept;
 
