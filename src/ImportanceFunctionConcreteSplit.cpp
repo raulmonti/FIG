@@ -365,7 +365,7 @@ ImportanceFunctionConcreteSplit::importance_of(const StateInstance& state) const
 		} else {
 			auto& localState = localStatesCopies_[i];
 #ifndef NDEBUG
-			localState.extract_from_state_instance(state, globalVarsIPos[i], true);
+			localState.extract_from_state_instance(state, globalVarsIPos.at(i), true);
 #else
 			localState.extract_from_state_instance(state, globalVarsIPos[i], false);
 #endif
@@ -423,18 +423,15 @@ ImportanceFunctionConcreteSplit::set_composition_fun(
 	const ImportanceValue& minVal,
 	const ImportanceValue& maxVal)
 {
-	static std::vector< std::string > modulesNames;
-	static PositionsMap modulesMap;
-	if (modulesNames.empty()) {
-		modulesNames.resize(numModules_);
-		modulesMap.reserve(numModules_);
-		for (size_t i=0ul ; i < numModules_ ; i++) {
-			const std::string& name = modules_[i]->name;
-			modulesNames[i] = name;
-			modulesMap[name] = i;
-		}
+	std::vector< std::string > modulesNames(numModules_);
+	PositionsMap modulesMap;
+	modulesMap.reserve(numModules_);
+	for (size_t i=0ul ; i < numModules_ ; i++) {
+		const std::string& name = modules_[i]->name;
+		modulesNames[i] = name;
+		modulesMap[name] = i;
 	}
-	// clean unescaped quotation marks
+	// Clean unescaped quotation marks
 	delete_substring(compFunExpr, "\"");
 	delete_substring(compFunExpr, "'");
 	if (compFunExpr.length() <= 3ul) {

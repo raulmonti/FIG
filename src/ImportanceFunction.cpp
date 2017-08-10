@@ -495,20 +495,22 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 	for (size_t i = 0ul ; i < NUM_CONCRETE_STATES ; i++) {
 		const StateInstance symbState = state.decode(i).to_state_instance();
 		const ImportanceValue importance = importance_of(symbState);
-		minI = importance < minI ? importance : minI;
+		minI = std::min(minI, importance);
+		maxI = std::max(maxI, importance);
 		if (property.is_rare(symbState) && importance < minrI) {
 			minrI = importance;
 			/// @bug FIXME This rare state may be unreachable; how to know?
 		}
 	}
-    assert(minI <= minrI);
-
+//	NOTE: A separate loop for 'maxI' is only needed when OpenMP is used
 //	#pragma omp parallel for default(shared) private(state) reduction(max:maxI)
-	for (size_t i = 0ul ; i < NUM_CONCRETE_STATES ; i++) {
-		const ImportanceValue importance =
-				importance_of(state.decode(i).to_state_instance());
-		maxI = importance > maxI ? importance : maxI;
-    }
+//	for (size_t i = 0ul ; i < NUM_CONCRETE_STATES ; i++) {
+//		const ImportanceValue importance =
+//				importance_of(state.decode(i).to_state_instance());
+//		maxI = importance > maxI ? importance : maxI;
+//    }
+
+	assert(minI <= minrI);
 	assert(minrI <= maxI);
 
 	minValue_ = minI;
