@@ -54,10 +54,16 @@ class PropertyTransient;
  */
 class SimulationEngineNosplit : public SimulationEngine
 {
+	/// Original Traial for a batch means mechanism
+	Traial& oTraial_;
+//	thread_local Traial& oTraial_;
+
 public:  // Ctor
 
 	/// Data ctor
 	SimulationEngineNosplit(std::shared_ptr<const ModuleNetwork> network);
+
+	~SimulationEngineNosplit();
 
 public:  // Accessors
 

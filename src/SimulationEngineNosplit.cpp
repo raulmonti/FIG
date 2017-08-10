@@ -46,8 +46,15 @@ namespace fig
 // Available engine names in SimulationEngine::names
 SimulationEngineNosplit::SimulationEngineNosplit(
     std::shared_ptr<const ModuleNetwork> network) :
-		SimulationEngine("nosplit", network)
+        SimulationEngine("nosplit", network),
+        oTraial_(TraialPool::get_instance().get_traial())
 { /* Not much to do around here */ }
+
+
+SimulationEngineNosplit::~SimulationEngineNosplit()
+{
+	TraialPool::get_instance().return_traial(oTraial_);
+}
 
 
 double
@@ -97,7 +104,7 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 	assert(0ul < runLength);
 	double accTime(0.0);
 //	static thread_local Traial& traial(TraialPool::get_instance().get_traial());
-	static Traial& traial(TraialPool::get_instance().get_traial());
+//	static Traial& traial(TraialPool::get_instance().get_traial());
 	const CLOCK_INTERNAL_TYPE FIRST_TIME(0.0);
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 
@@ -117,32 +124,32 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 	// Run a single standard Monte Carlo simulation for "runLength"
 	// simulation time units and starting from the last saved state,
 	// or from the system's initial state if requested.
-	if (reinit || traial.lifeTime == FIRST_TIME)
-		traial.initialize(*network_, *impFun_);
+	if (reinit || oTraial_.lifeTime == FIRST_TIME)
+		oTraial_.initialize(*network_, *impFun_);
 	else
-		traial.lifeTime = 0.0;
+		oTraial_.lifeTime = 0.0;
 	do {
-		Event e = network_->simulation_step(traial, property, *this, watch_events);
+		Event e = network_->simulation_step(oTraial_, property, *this, watch_events);
 		if (!IS_RARE_EVENT(e))
 			break;  // reached EOS
-		const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // reduce fp prec. loss
-		traial.lifeTime = 0.0;
-		network_->simulation_step(traial, property, *this, register_time);
-		assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < traial.lifeTime);
-		accTime += traial.lifeTime;
-		traial.lifeTime += simLength;
-		if (traial.lifeTime > SIM_TIME_CHUNK
+		const CLOCK_INTERNAL_TYPE simLength(oTraial_.lifeTime);  // reduce fp prec. loss
+		oTraial_.lifeTime = 0.0;
+		network_->simulation_step(oTraial_, property, *this, register_time);
+		assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < oTraial_.lifeTime);
+		accTime += oTraial_.lifeTime;
+		oTraial_.lifeTime += simLength;
+		if (oTraial_.lifeTime > SIM_TIME_CHUNK
 			&& simsLifetime > SIM_TIME_CHUNK) {
 			// reduce fp precision loss
-			traial.lifeTime -= SIM_TIME_CHUNK;
+			oTraial_.lifeTime -= SIM_TIME_CHUNK;
 			simsLifetime -= SIM_TIME_CHUNK;
 		}
-	} while (traial.lifeTime < simsLifetime && !interrupted);
+	} while (oTraial_.lifeTime < simsLifetime && !interrupted);
 
 	// Allow next iteration of batch means
-	if (traial.lifeTime == FIRST_TIME)
-		traial.lifeTime = (FIRST_TIME + 1.1) * 2.2;
-	assert(traial.lifeTime != FIRST_TIME);
+	if (oTraial_.lifeTime == FIRST_TIME)
+		oTraial_.lifeTime = (FIRST_TIME + 1.1) * 2.2;
+	assert(oTraial_.lifeTime != FIRST_TIME);
 
 	// Return the simulation-time spent on rare states
 	assert(0.0 <= accTime);

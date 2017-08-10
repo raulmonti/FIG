@@ -68,12 +68,21 @@ class SimulationEngineRestart : public SimulationEngine
 	/// Times the simulation time has been truncated to reduce fp precision loss
 	mutable unsigned numChunksTruncated_;
 
+	/// Original Traial for a batch means mechanism
+	Traial& oTraial_;
+//	thread_local Traial& oTraial_;
+
+	/// Stack of \ref Traial "traials" for a batch means mechanism
+	mutable std::stack< Reference< Traial > > stack_;
+
 public:  // Ctor
 
 	/// Data ctor
 	SimulationEngineRestart(std::shared_ptr<const ModuleNetwork> network,
 							const unsigned& splitsPerThreshold = 2u,
 							const unsigned& dieOutDepth = 0u);
+
+	~SimulationEngineRestart();
 
 public:  // Accessors
 
