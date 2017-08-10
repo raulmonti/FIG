@@ -268,34 +268,14 @@ ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 		neutralElement_(0u),
 		concreteSimulation_(true)
 {
-	/// @todo TODO erase debug print
-	std::cerr << "\n --------->  ImportanceFunctionConcreteSplit ctor ["
-	          << numModules_ << "]  <------------\n\n";
-
-//	std::vector<unsigned>(numModules_).swap(globalVarsIPos);
 	model.initial_state().to_state_instance().swap(systemInitialValuation);
 	assert(0ul < numModules_);
 	assert(globalVarsIPos.size() == numModules_);
 	assert(!systemInitialValuation.empty());
-
-//	bool initialize(false);  // initialize (non-const) static class members?
-//	if (globalVarsIPos.size() != numModules_) {
-//
-//		/// @todo TODO erase debug print
-//		std::cerr << "\n\n----     ------\n\n"
-//		          << "\tInitialising ImportanceFunctionConcreteSplit " << numModules_
-//		          <<  "\n\n----     ------\n\n";
-//
-//		initialize = true;
-//		globalVarsIPos.resize(numModules_);
-//		systemInitialValuation = model.initial_state().to_state_instance();
-//	}
-
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		assert(modules_[i]->global_index() == static_cast<int>(i));
 		localStatesCopies_[i] = modules_[i]->local_state();
-//		if (initialize)
-			globalVarsIPos[i] = static_cast<unsigned>(modules_[i]->first_var_gpos());
+		globalVarsIPos[i] = static_cast<unsigned>(modules_[i]->first_var_gpos());
 	}
 }
 

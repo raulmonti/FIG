@@ -234,9 +234,6 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	const unsigned numThresholds(impFun_->num_thresholds());
 	std::vector< double > raresCount(numThresholds+1, 0.0);
 	auto tpool = TraialPool::get_instance();
-//	static thread_local Traial& originalTraial(tpool.get_traial());
-//	static Traial& originalTraial(tpool.get_traial());
-//	static std::stack< Reference< Traial > > stack;
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 	numChunksTruncated_ = 0u;
 

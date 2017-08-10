@@ -103,8 +103,6 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 {
 	assert(0ul < runLength);
 	double accTime(0.0);
-//	static thread_local Traial& traial(TraialPool::get_instance().get_traial());
-//	static Traial& traial(TraialPool::get_instance().get_traial());
 	const CLOCK_INTERNAL_TYPE FIRST_TIME(0.0);
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 
