@@ -197,7 +197,6 @@ public:  // Utils
 								   const std::string& formulaExprStr,
 								   const std::vector<std::string>& varnames) = 0;
 
-	/// Erase all internal importance information (free resources along the way)
 	void clear() noexcept override;
 
 protected:  // Utils for the class and its kin

@@ -143,13 +143,13 @@ TraialPool::get_traials(Container<Reference<Traial>, OtherArgs...>& cont,
 {
 	assert(0u < numTraials);
 	numTraials++;  // loop guard condition requires this increment
-	retrieve_traials:
+retrieve_traials:
 	while (!available_traials_.empty() && 0u < --numTraials) {
 		cont.emplace(end(cont), available_traials_.front());
 		available_traials_.pop_front();
 	}
 	if (0u < numTraials) {
-		ensure_resources(std::max<unsigned>(numTraials++, sizeChunkIncrement));
+		ensure_resources(std::max<unsigned>(numTraials+1, sizeChunkIncrement));
 		goto retrieve_traials;
 	}
 }

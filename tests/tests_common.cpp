@@ -28,10 +28,11 @@
 
 
 // C
-#include <libgen.h>		// dirname()
+#include <libgen.h>		// dirname(), basename()
 #include <unistd.h>		// getcwd()
 #include <sys/stat.h>	// stat()
 // C++
+#include <iostream>
 #include <cstring>		// strndup()
 #include <cassert>
 // TESTS
@@ -50,14 +51,17 @@ namespace  // // // // // // // // // // // // // // // // // // // // // // //
 //	}
 
 /// Absolute path to the dir containing this source file
-/// @note Must be defined in an anonymous namespace in the corresp. file
+/// @note Define this function in an anon. namespace in the desired file
 string getThisDir()
 {
-	static const size_t MAXLEN(128ul);
-	char tmp[MAXLEN];
-	string fullpath(strndup(__FILE__, MAXLEN));
-	assert(fullpath.length() > 3ul);
-	return dirname(const_cast<char*>(fullpath.data()));
+	static string thisDir;
+	if (thisDir.empty()) {
+		char* fullpath(strndup(__FILE__, 128ul));
+		assert(strnlen(fullpath, 128ul) > 3ul);
+		thisDir = dirname(fullpath);
+		free(fullpath); fullpath = nullptr;
+	}
+	return thisDir;
 }
 
 /// Check file accessibility
@@ -83,6 +87,9 @@ const string MODELS_DIR(getThisDir() + "/models/");
 bool compile_model(const string& modelFilePath)
 {
 	REQUIRE(file_exists(modelFilePath));
+	char* fullpath(strndup(modelFilePath.c_str(), 128ul));
+	std::cerr << "\n\nCompiling model \"" << basename(fullpath) << "\"\n";
+	free(fullpath); fullpath = nullptr;
 
 	// Parse model file
 	auto modelAST(ModelAST::from_files(modelFilePath.c_str(),""));

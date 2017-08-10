@@ -152,6 +152,10 @@ ThresholdsBuilderAdaptive::get_traials(const unsigned& numTraials,
 {
 	TraialsVec traials;
 	fig::TraialPool::get_instance().get_traials(traials, numTraials);
+
+	/// @todo TODO erase debug print
+	std::cerr << "\n*** Requested " << numTraials << " Traials and got " << traials.size() << std::endl;
+
 	assert(traials.size() == numTraials);
 	const ModuleNetwork& net = *ModelSuite::get_instance().modules_network();
 	for (fig::Traial& t: traials)

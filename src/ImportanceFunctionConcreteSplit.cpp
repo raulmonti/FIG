@@ -269,6 +269,12 @@ ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 {
 	bool initialize(false);  // initialize (non-const) static class members?
 	if (globalVarsIPos.size() == 0ul) {
+
+		/// @todo TODO erase debug print
+		std::cerr << "\n\n----     ------\n\n"
+		          << "\tInitialising ImportanceFunctionConcreteSplit"
+		          <<  "\n\n----     ------\n\n";
+
 		initialize = true;
 		globalVarsIPos.resize(numModules_);
 		systemInitialValuation = model.initial_state().to_state_instance();
@@ -559,6 +565,14 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	assert(minValue_ <= initialValue_);
 	assert(initialValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);
+}
+
+
+void
+ImportanceFunctionConcreteSplit::clear() noexcept
+{
+	globalVarsIPos.clear();
+	ImportanceFunctionConcrete::clear();
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

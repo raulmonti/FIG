@@ -182,6 +182,8 @@ public:  // Utils
 						   const std::string& strategy = "flat",
 						   const PostProcessing& postProc = PostProcessing()) override;
 
+	void clear() noexcept override;
+
 private:
 
 	/// ImportanceFunctionConcreteSplit for 'adhoc' assessment strategy is

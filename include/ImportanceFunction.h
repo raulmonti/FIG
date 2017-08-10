@@ -404,11 +404,16 @@ public:  // Utils
 									 const float& p,
 									 const unsigned& n);
 
-	/// @brief  Release memory allocated in the heap during importance assessment
-	/// @details This destroys any importance and thresholds info:
-	///          the ImportanceFunction won't hold \ref has_importance_info()
-	///          "importance information" any longer and will thus not be
-	///          \ref ready() "ready for simulations" either.
+	/**
+	 * @brief Release memory allocated in the heap during importance assessment
+	 *
+	 *        This destroys any importance and thresholds info:
+	 *        the ImportanceFunction won't hold \ref has_importance_info()
+	 *        "importance information" any longer and will thus not be
+	 *        \ref ready() "ready for simulations" either.
+	 *
+	 * @note Non-const static members of the class are also reset
+	 */
 	virtual void clear() noexcept;
 
 private:  // Class utils

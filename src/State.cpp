@@ -333,6 +333,7 @@ State<T_>::extract_from_state_instance(const StateInstance& s,
 		std::cerr << "Attemped to extract state of size " << size()
 				  << " from position " << ipos << " of a StateInstace"
 				  << " with only " << s.size() << " variables.\n";
+		assert(false);
 #endif
 		throw_FigException("attempted to copy values from an invalid state");
 	}
