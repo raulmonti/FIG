@@ -92,7 +92,7 @@ private:
 	std::vector<bool> isRelevant_;
 
 	/// Position, in a global system state, of the first variable of each module
-	static std::vector< unsigned > globalVarsIPos;
+	std::vector< unsigned > globalVarsIPos;
 
 	/// Temporal storage for the local importance
 	/// computed for each ("split") ModuleInstance
@@ -181,8 +181,6 @@ public:  // Utils
 	void assess_importance(const Property& prop,
 						   const std::string& strategy = "flat",
 						   const PostProcessing& postProc = PostProcessing()) override;
-
-	void clear() noexcept override;
 
 private:
 

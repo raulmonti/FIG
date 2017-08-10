@@ -247,7 +247,7 @@ ImportanceFunctionConcreteSplit::compositionOperands =
 	// the "compose_comp_function()" class member function
 }};
 
-std::vector< unsigned > ImportanceFunctionConcreteSplit::globalVarsIPos;
+// std::vector< unsigned > ImportanceFunctionConcreteSplit::globalVarsIPos;
 
 
 
@@ -259,6 +259,7 @@ ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 		modules_(model.modules),
 		numModules_(model.modules.size()),
 		isRelevant_(numModules_, false),
+        globalVarsIPos(numModules_),
 		localValues_(numModules_),
 		localStatesCopies_(numModules_),
 		compositionStrategy_(CompositionType::INVALID),
@@ -267,22 +268,33 @@ ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 		neutralElement_(0u),
 		concreteSimulation_(true)
 {
-	bool initialize(false);  // initialize (non-const) static class members?
-	if (globalVarsIPos.size() == 0ul) {
+	/// @todo TODO erase debug print
+	std::cerr << "\n --------->  ImportanceFunctionConcreteSplit ctor ["
+	          << numModules_ << "]  <------------\n\n";
 
-		/// @todo TODO erase debug print
-		std::cerr << "\n\n----     ------\n\n"
-		          << "\tInitialising ImportanceFunctionConcreteSplit"
-		          <<  "\n\n----     ------\n\n";
+//	std::vector<unsigned>(numModules_).swap(globalVarsIPos);
+	model.initial_state().to_state_instance().swap(systemInitialValuation);
+	assert(0ul < numModules_);
+	assert(globalVarsIPos.size() == numModules_);
+	assert(!systemInitialValuation.empty());
 
-		initialize = true;
-		globalVarsIPos.resize(numModules_);
-		systemInitialValuation = model.initial_state().to_state_instance();
-	}
+//	bool initialize(false);  // initialize (non-const) static class members?
+//	if (globalVarsIPos.size() != numModules_) {
+//
+//		/// @todo TODO erase debug print
+//		std::cerr << "\n\n----     ------\n\n"
+//		          << "\tInitialising ImportanceFunctionConcreteSplit " << numModules_
+//		          <<  "\n\n----     ------\n\n";
+//
+//		initialize = true;
+//		globalVarsIPos.resize(numModules_);
+//		systemInitialValuation = model.initial_state().to_state_instance();
+//	}
+
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		assert(modules_[i]->global_index() == static_cast<int>(i));
 		localStatesCopies_[i] = modules_[i]->local_state();
-		if (initialize)
+//		if (initialize)
 			globalVarsIPos[i] = static_cast<unsigned>(modules_[i]->first_var_gpos());
 	}
 }
@@ -303,7 +315,12 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 #ifndef NDEBUG
 	if (!has_importance_info())
 		throw_FigException("importance function \"" + name() + "\" "
-						   "doesn't hold importance information");
+		                   "doesn't hold importance information");
+	assert(isRelevant_.size() == numModules_);
+	assert(localValues_.size() == numModules_);
+	assert(globalVarsIPos.size() == numModules_);
+	assert(localStatesCopies_.size() == numModules_);
+	assert(modulesConcreteImportance.size() == numModules_);
 #endif
 	Event e(EventType::NONE);
     // Gather the local ImportanceValue of each module
@@ -313,7 +330,7 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 		} else {
 			auto& localState = localStatesCopies_[i];
 #ifndef NDEBUG
-			localState.extract_from_state_instance(state, globalVarsIPos[i], true);
+			localState.extract_from_state_instance(state, globalVarsIPos.at(i), true);
 #else
 			localState.extract_from_state_instance(state, globalVarsIPos[i], false);
 #endif
@@ -336,6 +353,11 @@ ImportanceFunctionConcreteSplit::importance_of(const StateInstance& state) const
 	if (!has_importance_info())
 		throw_FigException("importance function \"" + name() + "\" "
 						   "doesn't hold importance information");
+	assert(isRelevant_.size() == numModules_);
+	assert(localValues_.size() == numModules_);
+	assert(globalVarsIPos.size() == numModules_);
+	assert(localStatesCopies_.size() == numModules_);
+	assert(modulesConcreteImportance.size() == numModules_);
 #endif
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		if (!isRelevant_[i]) {
@@ -565,14 +587,6 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	assert(minValue_ <= initialValue_);
 	assert(initialValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);
-}
-
-
-void
-ImportanceFunctionConcreteSplit::clear() noexcept
-{
-	globalVarsIPos.clear();
-	ImportanceFunctionConcrete::clear();
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //
