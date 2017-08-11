@@ -134,8 +134,20 @@ ENDIF()
 
 ###  Compiler configuration  ##################################################
  
+# Only GCC and Clang are supported at the moment
+OPTION(COMPILER_IS_CLANG "Using LLVM compiler collection (clang)" OFF)
+OPTION(COMPILER_IS_GCC   "Using GNU compiler collection (gcc)"    OFF)
+STRING(TOLOWER "${CMAKE_CXX_COMPILER_ID}" COMPILER_USED)
+IF(COMPILER_USED MATCHES "clang")
+	SET(COMPILER_IS_CLANG ON)
+ELSEIF(COMPILER_USED MATCHES "gnu")
+	SET(COMPILER_IS_GCC ON)
+ELSE()
+	MESSAGE(FATAL_ERROR "Unsupported compiler: ${CMAKE_CXX_COMPILER_ID}\n")
+ENDIF()
+ 
 # If Clang was chosen check for compatible version
-IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+IF(COMPILER_IS_CLANG)
 	SET(CLANG_VERSION_REQUIRED 3.7)
 	IF(CMAKE_CXX_COMPILER_VERSION VERSION_LESS CLANG_VERSION_REQUIRED)
 		MESSAGE(FATAL_ERROR
@@ -153,7 +165,7 @@ CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 IF(COMPILER_SUPPORTS_CXX11)
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 ELSE()
-	MESSAGE(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support.")
+	MESSAGE(FATAL_ERROR "Compiler ${CMAKE_CXX_COMPILER} has no C++11 support.")
 ENDIF()
 
 
@@ -163,10 +175,10 @@ ENDIF()
 # Build type: release vs. debug
 IF(RELEASE)
 	# As much automatic optimization as we can get
-	IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-	ELSE()
+	IF(COMPILER_IS_GCC)
 		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 --fast-math -march=native")
+	ELSE()
+		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 	ENDIF()
 	## # Auto vectorization  (not yet proved efficient)
 	## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorize")
@@ -186,9 +198,9 @@ IF(PROFILING)
 ENDIF()
 
 # OpenMP
-IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+IF(COMPILER_IS_CLANG)
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp=libgomp")
-ELSEIF(CMAKE_CXX_COMPILER_ID STRGREATER_EQUAL "GNU")
+ELSEIF(COMPILER_IS_GCC)
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 ENDIF()
 ## # Clang needs to be told where to look for OpenMP headers
@@ -205,7 +217,7 @@ ENDIF()
 ## ...pasted gcc's "omp.h" into ext/openmp/include
 
 # Turn some warnings off
-IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+IF(COMPILER_IS_CLANG)
 	# From MuParser-2.2.5 library -- http://muparser.beltoforion.de/:
 	# "anonymous types declared in an anonymous union"
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-nested-anon-types")
@@ -217,8 +229,7 @@ IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	                            PROPERTIES COMPILE_FLAGS -Wno-unused-function)
 	SET_SOURCE_FILES_PROPERTIES(${SOURCES_DIR}/ModelTC.cpp
 	                            PROPERTIES COMPILE_FLAGS -Wno-unused-function)
-ELSEIF(CMAKE_CXX_COMPILER_ID STRGREATER_EQUAL "GNU"
-		AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
+ELSEIF(COMPILER_IS_GCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
 	# From jsoncpp 1.7.4: this statement may fall through
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wimplicit-fallthrough=0")
 ENDIF()
@@ -229,7 +240,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 IF(NOT RELEASE)
 	# From Z3 library "check_context()" and others: "unused parameter 'a'"...
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
-	# From jsoncpp 1.7.4: this statement may fall through
+	# Avoid warnings in flex 2.6.1 (previous versions do not have that warning)
 	SET_SOURCE_FILES_PROPERTIES(${LEXER_CODE}
 	                            PROPERTIES COMPILE_FLAGS -Wno-sign-compare)
 	# Avoid warnings due to deprecated function
