@@ -181,7 +181,7 @@ ENDIF()
 # OpenMP
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp=libgomp")
-ELSE()
+ELSEIF(CMAKE_CXX_COMPILER_ID STRGREATER_EQUAL "GNU")
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 ENDIF()
 ## # Clang needs to be told where to look for OpenMP headers
@@ -210,6 +210,10 @@ IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	                            PROPERTIES COMPILE_FLAGS -Wno-unused-function)
 	SET_SOURCE_FILES_PROPERTIES(${SOURCES_DIR}/ModelTC.cpp
 	                            PROPERTIES COMPILE_FLAGS -Wno-unused-function)
+ELSEIF(CMAKE_CXX_COMPILER_ID STRGREATER_EQUAL "GNU"
+		AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
+	# From jsoncpp 1.7.4: this statement may fall through
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wimplicit-fallthrough=0")
 ENDIF()
 # From MuParser-2.2.5 library -- http://muparser.beltoforion.de/:
 # "auto_ptr is deprecated" (TODO: update library ourselves?)
@@ -218,8 +222,6 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 IF(NOT RELEASE)
 	# From Z3 library "check_context()" and others: "unused parameter 'a'"...
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
-	# From jsoncpp 1.7.4: this statement may fall through
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wimplicit-fallthrough=0")
 	# Avoid warnings in flex 2.6.1 (previous versions do not have that warning)
 	SET_SOURCE_FILES_PROPERTIES(${LEXER_CODE}
 	                            PROPERTIES COMPILE_FLAGS -Wno-sign-compare)
