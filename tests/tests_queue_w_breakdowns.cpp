@@ -34,7 +34,7 @@ namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 // Model file (full path to)
-const string MODEL(tests::MODELS_DIR + "queue_w_breakdowns.sa");
+const string MODEL(tests::models_dir() + "queue_w_breakdowns.sa");
 
 // TAD which will contain the compiled model
 fig::ModelSuite& model(fig::ModelSuite::get_instance());
@@ -69,6 +69,7 @@ SECTION("Compile model file")
 			break;
 		}
 	}
+	REQUIRE(0 <= trPropId);
 	REQUIRE(nullptr != model.get_property(trPropId));
 }
 

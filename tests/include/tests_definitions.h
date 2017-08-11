@@ -52,6 +52,9 @@ using std::make_shared;
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
 
+/// Absolute path where (tests) model files reside
+const string& models_dir();
+
 /**
  * Default IOSA model compilation
  * @param modelFilePath Full path to the model file
@@ -70,9 +73,6 @@ bool compile_model(const string& modelFilePath);
  * @warning Must be called from within a TEST_CASE
  */
 bool seal_model();
-
-/// Absolute path where model files are to be found
-extern const string MODELS_DIR;
 
 } // namespace tests   // // // // // // // // // // // // // // // // // // //
 

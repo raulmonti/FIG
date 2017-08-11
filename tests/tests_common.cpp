@@ -79,8 +79,13 @@ bool file_exists(const std::string& filepath)
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
 
-//const string MODELS_DIR(getCWD() + "../models/");
-const string MODELS_DIR(getThisDir() + "/models/");
+/// See declaration in tests_definitions.h
+const string& models_dir()
+{
+//	static const string MODELS_DIR(getCWD() + "../models/");
+	static const string MODELS_DIR(getThisDir() + "/models/");
+	return MODELS_DIR;
+}
 
 
 /// See declaration in tests_definitions.h

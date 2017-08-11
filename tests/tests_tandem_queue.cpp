@@ -34,7 +34,7 @@ namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 // Model file (full path to)
-const string MODEL(tests::MODELS_DIR + "tandem_queue.sa");
+const string MODEL(tests::models_dir() + "tandem_queue.sa");
 
 // TAD which will contain the compiled model
 fig::ModelSuite& model(fig::ModelSuite::get_instance());
@@ -75,6 +75,8 @@ SECTION("Compile model file")
 		if (0 <= trPropId && 0 <= ssPropId)
 			break;  // already got one of each kind
 	}
+	REQUIRE(0 <= trPropId);
+	REQUIRE(0 <= ssPropId);
 	REQUIRE(nullptr != model.get_property(trPropId));
 	REQUIRE(nullptr != model.get_property(ssPropId));
 }
