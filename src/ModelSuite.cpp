@@ -88,6 +88,7 @@ namespace  // // // // // // // // // // // // // // // // // // // // // // //
 
 using fig::ConfidenceInterval;
 using std::chrono::seconds;
+typedef std::chrono::duration<size_t> duration;
 
 
 /**
@@ -487,7 +488,7 @@ ModelSuite::set_splitting(const unsigned& spt, bool verbose)
 
 
 void
-ModelSuite::set_timeout(const seconds& timeLimit)
+ModelSuite::set_timeout(const duration& timeLimit)
 {
 	if (!sealed())
 		throw_FigException("ModelSuite hasn't been sealed yet");
@@ -497,6 +498,13 @@ ModelSuite::set_timeout(const seconds& timeLimit)
 		tech_log("Timeout set to " + time_formatted_str(timeout_.count()) + "\n");
 	else
 		tech_log("Timeout was unset\n");
+}
+
+
+void
+ModelSuite::set_timeout(const size_t& timeLimitSeconds)
+{
+	set_timeout(seconds(timeLimitSeconds));
 }
 
 

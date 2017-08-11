@@ -34,6 +34,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <chrono>
 #include <iterator>     // std::begin(), std::end(), std::distance()
 #include <type_traits>  // std::is_constructible<>
 #include <unordered_map>
@@ -252,12 +253,17 @@ public:  // Populating facilities and other modifyers
 	 *        happens first; "time simulations" will stop for the lower of
 	 *        the time bounds (their own limit or this global limit)
 	 *
-	 * @param timeLimit @copydoc timeout_
+	 * @param timeLimit Wall-clock-time execution limit for simulations
 	 *
 	 * @warning The ModelSuite must have been \ref seal() "sealed" beforehand
 	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
 	 */
-	void set_timeout(const std::chrono::seconds& timeLimit);
+	void set_timeout(const std::chrono::duration<size_t>& timeLimit);
+
+	/// @brief Set a wall-clock-time limit for simulations (in seconds)
+	/// @copydetails set_timeout(const std::chrono::duration&)
+	/// @see set_timeout(const std::chrono::duration&)
+	void set_timeout(const size_t& timeLimitSeconds);
 
 	/**
 	 * @brief Set RNG specs for time sampling
