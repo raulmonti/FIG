@@ -54,6 +54,11 @@ TEST_CASE("Queue with breakdowns tests", "[queue-w-breakdowns]")
 
 SECTION("Compile model file")
 {
+	// If this is not the first test then we need to clean
+	// the ModelSuite singleton before loading the new model
+	if (model.sealed())
+		model.clear();
+	REQUIRE_FALSE(model.sealed());
 	REQUIRE(compile_model(MODEL));
 	// XXX ModelSuite is a singleton: the compiled model is available
 	//                                to all following SECTION blocks
@@ -224,12 +229,6 @@ SECTION("Estimate transient property using RESTART and compositional ifun")
 	REQUIRE(ci.precision(confCo) <= Approx(TR_PROB*prec).epsilon(TR_PROB*0.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          == Approx(TR_PROB*prec).epsilon(TR_PROB*0.2));
-}
-
-SECTION("Tear model down")
-{
-	model.clear();
-	REQUIRE_FALSE(model.sealed());
 }
 
 } // TEST_CASE [queue-w-breakdowns]
