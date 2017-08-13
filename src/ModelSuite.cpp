@@ -376,7 +376,13 @@ std::once_flag ModelSuite::singleInstance_;
 
 ModelSuite::~ModelSuite()
 {
-	clear();  // just relax and let everything go...
+	// XXX Don't call clear() !!!
+	//
+	// All memory is held in shared_ptr<>, memory cleans itself up.
+	// Calling clear() in this dtor will cause double free corruptions
+	// and other weird behaviour.
+	//
+	// Just relax and let everything go...
 }
 
 
@@ -930,7 +936,7 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 }
 
 
-void
+bool
 ModelSuite::build_thresholds(const std::string& technique,
 							 const std::string& ifunName,
 							 bool force,
@@ -978,6 +984,7 @@ ModelSuite::build_thresholds(const std::string& technique,
     assert(ifun.ready());
     assert(technique == ifun.thresholds_technique());
 	pristineModel_ = false;
+	return true;
 }
 
 
@@ -1046,7 +1053,7 @@ void
 ModelSuite::clear() noexcept
 {
 	if (pristineModel_) {
-		techLog_ << "\nSystem resources have been released already; shutting down.\n";
+		techLog_ << "\nSystem resources have been released already, clear() skipped.\n";
 		return;
 	}
 	techLog_ << "\nReleasing all system resources...\n";

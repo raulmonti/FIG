@@ -566,6 +566,8 @@ public:  // Utils
 	 *                    threshold (relevant for \ref ThresholdsBuilderAdaptive
 	 *                    "adaptive thresholds builders" only)
 	 *
+	 * @return True if the thresholds could be successfully built
+	 *
 	 * @note Supresses the \ref pristineModel_ "pristine condition"
 	 *
 	 * @throw FigException if "technique" or "ifunName" are invalid
@@ -578,7 +580,7 @@ public:  // Utils
 	 * @see build_importance_function_auto()
 	 * @see build_importance_function_adhoc()
 	 */
-	void
+	bool
 	build_thresholds(const std::string& technique,
 					 const std::string& ifunName,
 					 bool force = true,
@@ -637,6 +639,11 @@ public:  // Utils
 	 * the \ref SimulationEngine "simulaion engines", etc.
 	 *
 	 * @note Restores the \ref pristineModel_ "pristine condition"
+	 *
+	 * @warning Not to be used when estimations finish!
+	 *          clear() is intended for class re-use with a new model file;
+	 *          <b>don't invoke this method if you're done using
+	 *          FIG</b>---dynamic memory uses smart pointers to free itself.
 	 */
 	void clear() noexcept;
 

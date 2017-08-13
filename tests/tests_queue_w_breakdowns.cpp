@@ -129,7 +129,15 @@ SECTION("Estimate transient property using RESTART and adhoc ifun")
 	// Prepare engine
 	model.set_splitting(9);
 	model.build_importance_function_adhoc(ifunSpec, trPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	bool thresholdsChosen(false);
+	while (!thresholdsChosen) {
+		try {
+			thresholdsChosen = model.build_thresholds(nameThr, ifunSpec.name);
+		} catch (fig::FigException&) {
+			// just keep trying; we're stubborn and want to have
+			// all thresholds selected by Sequential Monte Carlo
+		}
+	}
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria

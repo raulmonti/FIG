@@ -107,7 +107,8 @@ SECTION("Estimate steady-state property using standard MC")
 	const double prec(.6);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(30);  // don't estimate for more than half a minute
+	/// @todo TODO set timeout to 45 (seconds)
+	model.set_timeout(3);  // don't estimate for that long a time
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit);
 	auto results = model.get_last_estimates();

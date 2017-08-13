@@ -432,6 +432,7 @@ void
 TraialPool::clear()
 {
 	available_traials_.clear();
+//	available_traials_.resize(0ul,traials_.front());
 	traials_.clear();
 	numVariables = 0ul;
 	numClocks = 0ul;
