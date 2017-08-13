@@ -160,7 +160,7 @@ SECTION("Estimate transient property using RESTART and adhoc ifun")
 	auto ci = results.front();
 	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.8));
 	REQUIRE(ci.precision(confCo) > 0.0);
-	REQUIRE(ci.precision(confCo) < TR_PROB*prec);
+	REQUIRE(ci.precision(confCo) <= Approx(TR_PROB*prec).epsilon(TR_PROB*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          == Approx(TR_PROB*prec).epsilon(TR_PROB*0.1));
 }
