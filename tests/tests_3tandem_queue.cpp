@@ -52,9 +52,6 @@ namespace tests  // // // // // // // // // // // // // // // // // // // // //
 TEST_CASE("Triple tandem queue tests", "[triple-tandem-queue]")
 {
 
-	/// @todo TODO erase this early quit
-	return;
-
 SECTION("Compile model file")
 {
 	// If this is not the first test then we need to clean
@@ -122,7 +119,7 @@ SECTION("Estimate steady-state property using standard MC")
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();
-	REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.4));
+	REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*prec));
 	REQUIRE(ci.precision(.9) > 0.0);
 	REQUIRE(ci.precision(.9) < SS_PROB);
 }
@@ -146,10 +143,11 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	auto rng = model.available_RNGs().back();
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 1234567890987ul);
-	const double confCo(.9);
+	const double confCo(.95);
 	const double prec(.4);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit);
 	auto results = model.get_last_estimates();
@@ -157,7 +155,7 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	auto ci = results.front();
 	REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.8));
 	REQUIRE(ci.precision(confCo) > 0.0);
-	REQUIRE(ci.precision(confCo) < SS_PROB*prec);
+	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB*prec).epsilon(SS_PROB*0.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
@@ -181,10 +179,11 @@ SECTION("Estimate steady-state property using RESTART and monolithic ifun")
 	auto rng = model.available_RNGs().front();
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 42);
-	const double confCo(.9);
+	const double confCo(.95);
 	const double prec(.3);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(std::chrono::minutes(2));  // estimate for 2 min max
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit);
 	auto results = model.get_last_estimates();
@@ -192,9 +191,9 @@ SECTION("Estimate steady-state property using RESTART and monolithic ifun")
 	auto ci = results.front();
 	REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.8));
 	REQUIRE(ci.precision(confCo) > 0.0);
-	REQUIRE(ci.precision(confCo) < SS_PROB*prec);
+	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB*prec).epsilon(SS_PROB*0.4));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
+	          <= Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
 
 SECTION("Estimate steady-state property using RESTART and compositional ifun")
@@ -216,10 +215,11 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun")
 	auto rng = model.available_RNGs().front();
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 0);
-	const double confCo(.9);
+	const double confCo(.95);
 	const double prec(.35);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit);
 	auto results = model.get_last_estimates();
@@ -227,9 +227,9 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun")
 	auto ci = results.front();
 	REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.8));
 	REQUIRE(ci.precision(confCo) > 0.0);
-	REQUIRE(ci.precision(confCo) < SS_PROB*prec);
+	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB*prec).epsilon(SS_PROB*0.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
+	          <= Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
 
 } // TEST_CASE [triple-tandem-queue]

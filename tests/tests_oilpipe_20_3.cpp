@@ -376,7 +376,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (+,
 	REQUIRE(ci.precision(confCo) > 0.0);
 	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-			  <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*0.1));
+			  <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.3));
 }
 
 } // TEST_CASE [oilpipes-RAY-N20-K3]

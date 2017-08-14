@@ -56,9 +56,6 @@ namespace tests  // // // // // // // // // // // // // // // // // // // // //
 TEST_CASE("Tandem queue tests", "[tandem-queue]")
 {
 
-	/// @todo TODO erase this early quit
-	return;
-
 SECTION("Compile model file")
 {
 	// If this is not the first test then we need to clean
@@ -152,18 +149,19 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	auto rng = model.available_RNGs().front();
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 12);
-	const double confCo(.9);
+	const double confCo(.95);
 	const double prec(.4);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit);
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();
-	REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.8));
+	REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.2));
 	REQUIRE(ci.precision(confCo) > 0.0);
-	REQUIRE(ci.precision(confCo) < SS_PROB*prec);
+	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB*prec).epsilon(SS_PROB*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
@@ -187,18 +185,19 @@ SECTION("Estimate steady-state property using RESTART and monolithic ifun")
 	auto rng = model.available_RNGs().front();
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 42);
-	const double confCo(.9);
+	const double confCo(.95);
 	const double prec(.3);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(std::chrono::minutes(1));  // estimate for a min max
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit);
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();
-	REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.8));
+	REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.6));
 	REQUIRE(ci.precision(confCo) > 0.0);
-	REQUIRE(ci.precision(confCo) < SS_PROB*prec);
+	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB*prec).epsilon(SS_PROB*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
@@ -222,18 +221,19 @@ SECTION("Estimate transient property using RESTART and compositional ifun")
 	auto rng = model.available_RNGs().front();
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 126);
-	const double confCo(.9);
+	const double confCo(.95);
 	const double prec(.35);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(trPropId, *engine, confCrit);
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();
-	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.8));
+	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.3));
 	REQUIRE(ci.precision(confCo) > 0.0);
-	REQUIRE(ci.precision(confCo) < TR_PROB*prec);
+	REQUIRE(ci.precision(confCo) <= Approx(TR_PROB*prec).epsilon(TR_PROB*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          == Approx(TR_PROB*prec).epsilon(TR_PROB*0.1));
 }

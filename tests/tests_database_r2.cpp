@@ -60,9 +60,6 @@ namespace tests  // // // // // // // // // // // // // // // // // // // // //
 TEST_CASE("Database with R=2 tests", "[database-R2]")
 {
 
-	/// @todo TODO erase this early quit
-	return;
-
 SECTION("Compile model file")
 {
 	// If this is not the first test then we need to clean
@@ -162,6 +159,7 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	const double prec(.4);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit);
 	auto results = model.get_last_estimates();
@@ -169,7 +167,7 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	auto ci = results.front();
 	REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.8));
 	REQUIRE(ci.precision(confCo) > 0.0);
-	REQUIRE(ci.precision(confCo) < SS_PROB*prec);
+	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB*prec).epsilon(SS_PROB*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
@@ -199,6 +197,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (op
 	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit);
 	auto results = model.get_last_estimates();
@@ -206,7 +205,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (op
 	auto ci = results.front();
 	REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.8));
 	REQUIRE(ci.precision(confCo) > 0.0);
-	REQUIRE(ci.precision(confCo) < SS_PROB*prec);
+	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB*prec).epsilon(SS_PROB*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
@@ -238,6 +237,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (co
 	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(std::chrono::minutes(2));  // estimate for 2 min max
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit);
 	auto results = model.get_last_estimates();
@@ -245,7 +245,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (co
 	auto ci = results.front();
 	REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.8));
 	REQUIRE(ci.precision(confCo) > 0.0);
-	REQUIRE(ci.precision(confCo) < SS_PROB*prec);
+	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB*prec).epsilon(SS_PROB*.4));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
@@ -277,14 +277,15 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (+,
 	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit);
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();
-	REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.8));
+	REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.4));
 	REQUIRE(ci.precision(confCo) > 0.0);
-	REQUIRE(ci.precision(confCo) < SS_PROB*prec);
+	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB*prec).epsilon(SS_PROB*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }

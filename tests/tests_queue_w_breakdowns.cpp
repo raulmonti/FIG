@@ -39,8 +39,8 @@ const string MODEL(tests::models_dir() + "queue_w_breakdowns.sa");
 // TAD which will contain the compiled model
 fig::ModelSuite& model(fig::ModelSuite::get_instance());
 
-// Transient query: P ( q2 > 0 U q2 == 8 )
-const double TR_PROB(1.25e-5);  // expected result of transient query
+// Transient query: P ( !reset U buf == 50 )
+const double TR_PROB(7.53e-5);  // expected result of transient query
 int trPropId(-1);               // index of the query within our TAD
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
@@ -51,9 +51,6 @@ namespace tests  // // // // // // // // // // // // // // // // // // // // //
 
 TEST_CASE("Queue with breakdowns tests", "[queue-w-breakdowns]")
 {
-
-	/// @todo TODO erase this early quit
-	return;
 
 SECTION("Compile model file")
 {
@@ -153,16 +150,17 @@ SECTION("Estimate transient property using RESTART and adhoc ifun")
 	auto rng = model.available_RNGs().back();
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 911);
-	const double confCo(.93);
+	const double confCo(.95);
 	const double prec(.4);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(trPropId, *engine, confCrit);
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();
-	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.8));
+	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.4));
 	REQUIRE(ci.precision(confCo) > 0.0);
 	REQUIRE(ci.precision(confCo) <= Approx(TR_PROB*prec).epsilon(TR_PROB*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
@@ -197,7 +195,7 @@ SECTION("Estimate transient property using RESTART and monolithic ifun")
 	auto ci = results.front();
 	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.8));
 	REQUIRE(ci.precision(.8) > 0.0);
-	REQUIRE(ci.precision(.8) <= Approx(TR_PROB*.5).epsilon(TR_PROB*0.2));
+	REQUIRE(ci.precision(.8) <= Approx(TR_PROB*.5).epsilon(TR_PROB*0.4));
 }
 
 SECTION("Estimate transient property using RESTART and compositional ifun")
@@ -219,7 +217,7 @@ SECTION("Estimate transient property using RESTART and compositional ifun")
 	auto rng = model.available_RNGs().back();
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 666);
-	const double confCo(.9);
+	const double confCo(.95);
 	const double prec(.4);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
