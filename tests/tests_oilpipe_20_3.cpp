@@ -139,7 +139,7 @@ SECTION("Estimate steady-state property using standard MC")
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();
-	REQUIRE(ci.point_estimate() == Approx(SS_PROB_EXP).epsilon(SS_PROB_EXP*.3));
+	REQUIRE(ci.point_estimate() == Approx(SS_PROB_EXP).epsilon(SS_PROB_EXP*prec*2.0));
 	REQUIRE(ci.precision(confCo) > 0.0);
 	REQUIRE(ci.precision(confCo) < SS_PROB_EXP);
 }
@@ -167,8 +167,8 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	auto rng = model.available_RNGs().front();
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng);
-	const double confCo(.9);
-	const double prec(.4);
+	const double confCo(.95);
+	const double prec(.3);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
 	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
@@ -179,125 +179,47 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	auto ci = results.front();
 	REQUIRE(ci.point_estimate() == Approx(SS_PROB_EXP).epsilon(SS_PROB_EXP*.8));
 	REQUIRE(ci.precision(confCo) > 0.0);
-	REQUIRE(ci.precision(confCo) < SS_PROB_EXP*prec);
+	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.2));
+	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
+			  == Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.1));
+}
+
+SECTION("Estimate steady-state property using RESTART and compositional ifun (op:*)")
+{
+	const string nameEngine("restart");
+	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "*",
+								   fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0));
+	const string nameThr("hyb");
+	REQUIRE(model.exists_simulator(nameEngine));
+	REQUIRE(model.exists_importance_function(ifunSpec.name));
+	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
+	REQUIRE(model.exists_threshold_technique(nameThr));
+	// Prepare engine
+	model.set_splitting(4);
+	model.build_importance_function_auto(ifunSpec, ssPropId, true);
+	model.build_thresholds(nameThr, ifunSpec.name);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
+	REQUIRE(engine->ready());
+	// Set estimation criteria
+	auto rng = model.available_RNGs().front();
+	REQUIRE(model.exists_rng(rng));
+	model.set_rng(rng, 0);
+	const double confCo(.95);
+	const double prec(.3);
+	fig::StoppingConditions confCrit;
+	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
+	// Estimate
+	model.estimate(ssPropId, *engine, confCrit);
+	auto results = model.get_last_estimates();
+	REQUIRE(results.size() == 1ul);
+	auto ci = results.front();
+	REQUIRE(ci.point_estimate() == Approx(SS_PROB_EXP).epsilon(SS_PROB_EXP*.8));
+	REQUIRE(ci.precision(confCo) > 0.0);
+	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 			  == Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*0.1));
 }
-
-//	SECTION("Estimate steady-state property using RESTART and compositional ifun (op:+)")
-//	{
-//		const string nameEngine("restart");
-//		const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "+",
-//		                               fig::PostProcessing(),
-//		                               0, 32, 0);
-//		const string nameThr("hyb");
-//		REQUIRE(model.exists_simulator(nameEngine));
-//		REQUIRE(model.exists_importance_function(ifunSpec.name));
-//		REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
-//		REQUIRE(model.exists_threshold_technique(nameThr));
-//		// Prepare engine
-//		model.set_splitting(8);
-//		model.build_importance_function_auto(ifunSpec, ssPropId, true);
-//		model.build_thresholds(nameThr, ifunSpec.name);
-//		auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
-//		REQUIRE(engine->ready());
-//		// Set estimation criteria
-//		auto rng = model.available_RNGs().front();
-//		REQUIRE(model.exists_rng(rng));
-//		model.set_rng(rng, 0);
-//		const double confCo(.95);
-//		const double prec(.2);
-//		fig::StoppingConditions confCrit;
-//		confCrit.add_confidence_criterion(confCo, prec);
-//		// Estimate
-//		model.estimate(ssPropId, *engine, confCrit);
-//		auto results = model.get_last_estimates();
-//		REQUIRE(results.size() == 1ul);
-//		auto ci = results.front();
-//		REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.8));
-//		REQUIRE(ci.precision(confCo) > 0.0);
-//		REQUIRE(ci.precision(confCo) < SS_PROB*prec);
-//		REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-//		          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
-//	}
-//
-//	SECTION("Estimate steady-state property using RESTART and compositional ifun (coarse)")
-//	{
-//		const string nameEngine("restart");
-//		const string ifunComp("(Disk11*Disk12*Disk13*Disk14*Disk21*Disk22*Disk23*Disk24*Disk31*Disk32*Disk33*Disk34*Disk41*Disk42*Disk43*Disk44*Disk51*Disk52*Disk53*Disk54*Disk61*Disk62*Disk63*Disk64)+(Controller11*Controller12*Controller21*Controller22)+(Processor11*Processor12*Processor21*Processor22)");
-//		const fig::ImpFunSpec ifunSpec("concrete_split", "auto",
-//		                               ifunComp,
-//		                               fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0),
-//		                               3, 16777248, 1);
-//		const string nameThr("hyb");
-//		REQUIRE(model.exists_simulator(nameEngine));
-//		REQUIRE(model.exists_importance_function(ifunSpec.name));
-//		REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
-//		REQUIRE(model.exists_threshold_technique(nameThr));
-//		// Prepare engine
-//		model.set_splitting(16);
-//		model.build_importance_function_auto(ifunSpec, ssPropId, true);
-//		model.build_thresholds(nameThr, ifunSpec.name);
-//		auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
-//		REQUIRE(engine->ready());
-//		// Set estimation criteria
-//		auto rng = model.available_RNGs().front();
-//		REQUIRE(model.exists_rng(rng));
-//		model.set_rng(rng, 0);
-//		const double confCo(.95);
-//		const double prec(.2);
-//		fig::StoppingConditions confCrit;
-//		confCrit.add_confidence_criterion(confCo, prec);
-//		// Estimate
-//		model.estimate(ssPropId, *engine, confCrit);
-//		auto results = model.get_last_estimates();
-//		REQUIRE(results.size() == 1ul);
-//		auto ci = results.front();
-//		REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.8));
-//		REQUIRE(ci.precision(confCo) > 0.0);
-//		REQUIRE(ci.precision(confCo) < SS_PROB*prec);
-//		REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-//		          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
-//	}
-//
-//	SECTION("Estimate steady-state property using RESTART and compositional ifun (+,*)")
-//	{
-//		const string nameEngine("restart");
-//		const string ifunComp("(Disk11*Disk12)+(Disk11*Disk13)+(Disk11*Disk14)+(Disk12*Disk13)+(Disk12*Disk14)+(Disk13*Disk14)+(Disk21*Disk22)+(Disk21*Disk23)+(Disk21*Disk24)+(Disk22*Disk23)+(Disk22*Disk24)+(Disk23*Disk24)+(Disk31*Disk32)+(Disk31*Disk33)+(Disk31*Disk34)+(Disk32*Disk33)+(Disk32*Disk34)+(Disk33*Disk34)+(Disk41*Disk42)+(Disk41*Disk43)+(Disk41*Disk44)+(Disk42*Disk43)+(Disk42*Disk44)+(Disk43*Disk44)+(Disk51*Disk52)+(Disk51*Disk53)+(Disk51*Disk54)+(Disk52*Disk53)+(Disk52*Disk54)+(Disk53*Disk54)+(Disk61*Disk62)+(Disk61*Disk63)+(Disk61*Disk64)+(Disk62*Disk63)+(Disk62*Disk64)+(Disk63*Disk64)+(Controller11*Controller12)+(Controller21*Controller22)+(Processor11*Processor12)+(Processor21*Processor22)");
-//		const fig::ImpFunSpec ifunSpec("concrete_split", "auto",
-//		                               ifunComp,
-//		                               fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0),
-//		                               40, 160, 1);
-//		const string nameThr("hyb");
-//		REQUIRE(model.exists_simulator(nameEngine));
-//		REQUIRE(model.exists_importance_function(ifunSpec.name));
-//		REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
-//		REQUIRE(model.exists_threshold_technique(nameThr));
-//		// Prepare engine
-//		model.set_splitting(11);
-//		model.build_importance_function_auto(ifunSpec, ssPropId, true);
-//		model.build_thresholds(nameThr, ifunSpec.name);
-//		auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
-//		REQUIRE(engine->ready());
-//		// Set estimation criteria
-//		auto rng = model.available_RNGs().back();
-//		REQUIRE(model.exists_rng(rng));
-//		model.set_rng(rng, 0);
-//		const double confCo(.95);
-//		const double prec(.2);
-//		fig::StoppingConditions confCrit;
-//		confCrit.add_confidence_criterion(confCo, prec);
-//		// Estimate
-//		model.estimate(ssPropId, *engine, confCrit);
-//		auto results = model.get_last_estimates();
-//		REQUIRE(results.size() == 1ul);
-//		auto ci = results.front();
-//		REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.8));
-//		REQUIRE(ci.precision(confCo) > 0.0);
-//		REQUIRE(ci.precision(confCo) < SS_PROB*prec);
-//		REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-//		          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
-//	}
 
 } // TEST_CASE [oilpipes-EXP-N20-K3]
 
@@ -342,6 +264,119 @@ SECTION("Seal model and check consistency")
 	REQUIRE(model.num_importance_strategies() > 0ul);
 	REQUIRE(model.num_threshold_techniques() > 0ul);
 	REQUIRE(model.num_RNGs() > 0ul);
+}
+
+SECTION("Estimate steady-state property using standard MC")
+{
+	const string nameEngine("nosplit");
+	const string nameIFun("algebraic");
+	const string nameThr("fix");
+	const string rng("mt64");
+	REQUIRE(model.exists_simulator(nameEngine));
+	REQUIRE(model.exists_importance_function(nameIFun));
+	REQUIRE(model.exists_threshold_technique(nameThr));
+	REQUIRE(model.exists_rng(rng));
+	// Prepare engine
+	model.set_splitting(1);
+	model.build_importance_function_flat(nameIFun, ssPropId, true);
+	model.build_thresholds(nameThr, nameIFun);
+	auto engine = model.prepare_simulation_engine(nameEngine, nameIFun);
+	REQUIRE(engine->ready());
+	// Set estimation criteria
+	model.set_rng(rng, 0ul);
+	const double confCo(.8);
+	const double prec(.4);
+	fig::StoppingConditions confCrit;
+	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(30);  // don't estimate for that long a time
+	// Estimate
+	model.estimate(ssPropId, *engine, confCrit);
+	auto results = model.get_last_estimates();
+	REQUIRE(results.size() == 1ul);
+	auto ci = results.front();
+	REQUIRE(ci.point_estimate() == Approx(SS_PROB_EXP).epsilon(SS_PROB_EXP*prec*2.0));
+	REQUIRE(ci.precision(confCo) > 0.0);
+	REQUIRE(ci.precision(confCo) < SS_PROB_EXP);
+}
+
+SECTION("Estimate steady-state property using RESTART and compositional ifun (max,+)")
+{
+	const string nameEngine("restart");
+	const string ifunComp("max(BE_pipe1+BE_pipe2+BE_pipe3,BE_pipe2+BE_pipe3+BE_pipe4,BE_pipe3+BE_pipe4+BE_pipe5,BE_pipe4+BE_pipe5+BE_pipe6,BE_pipe5+BE_pipe6+BE_pipe7,BE_pipe6+BE_pipe7+BE_pipe8,BE_pipe7+BE_pipe8+BE_pipe9,BE_pipe8+BE_pipe9+BE_pipe10,BE_pipe9+BE_pipe10+BE_pipe11,BE_pipe10+BE_pipe11+BE_pipe12,BE_pipe11+BE_pipe12+BE_pipe13,BE_pipe12+BE_pipe13+BE_pipe14,BE_pipe13+BE_pipe14+BE_pipe15,BE_pipe14+BE_pipe15+BE_pipe16,BE_pipe15+BE_pipe16+BE_pipe17,BE_pipe16+BE_pipe17+BE_pipe18,BE_pipe17+BE_pipe18+BE_pipe19,BE_pipe18+BE_pipe19+BE_pipe20,0)");
+	const fig::ImpFunSpec ifunSpec("concrete_split", "auto",
+								   ifunComp,
+								   fig::PostProcessing(),
+								   0, 3);
+	const string nameThr("hyb");
+	REQUIRE(model.exists_simulator(nameEngine));
+	REQUIRE(model.exists_importance_function(ifunSpec.name));
+	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
+	REQUIRE(model.exists_threshold_technique(nameThr));
+	// Prepare engine
+	model.set_splitting(3);
+	model.build_importance_function_auto(ifunSpec, ssPropId, true);
+	model.build_thresholds(nameThr, ifunSpec.name);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
+	REQUIRE(engine->ready());
+	// Set estimation criteria
+	auto rng = model.available_RNGs().front();
+	REQUIRE(model.exists_rng(rng));
+	model.set_rng(rng, 111ul);
+	const double confCo(.95);
+	const double prec(.3);
+	fig::StoppingConditions confCrit;
+	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
+	// Estimate
+	model.estimate(ssPropId, *engine, confCrit);
+	auto results = model.get_last_estimates();
+	REQUIRE(results.size() == 1ul);
+	auto ci = results.front();
+	REQUIRE(ci.point_estimate() == Approx(SS_PROB_EXP).epsilon(SS_PROB_EXP*.8));
+	REQUIRE(ci.precision(confCo) > 0.0);
+	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.2));
+	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
+			  <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.3));
+}
+
+SECTION("Estimate steady-state property using RESTART and compositional ifun (+,*)")
+{
+	const string nameEngine("restart");
+	const string ifunComp("BE_pipe1*BE_pipe2*BE_pipe3+BE_pipe2*BE_pipe3*BE_pipe4+BE_pipe3*BE_pipe4*BE_pipe5+BE_pipe4*BE_pipe5*BE_pipe6+BE_pipe5*BE_pipe6*BE_pipe7+BE_pipe6*BE_pipe7*BE_pipe8+BE_pipe7*BE_pipe8*BE_pipe9+BE_pipe8*BE_pipe9*BE_pipe10+BE_pipe9*BE_pipe10*BE_pipe11+BE_pipe10*BE_pipe11*BE_pipe12+BE_pipe11*BE_pipe12*BE_pipe13+BE_pipe12*BE_pipe13*BE_pipe14+BE_pipe13*BE_pipe14*BE_pipe15+BE_pipe14*BE_pipe15*BE_pipe16+BE_pipe15*BE_pipe16*BE_pipe17+BE_pipe16*BE_pipe17*BE_pipe18+BE_pipe17*BE_pipe18*BE_pipe19+BE_pipe18*BE_pipe19*BE_pipe20");
+	const fig::ImpFunSpec ifunSpec("concrete_split", "auto",
+								   ifunComp,
+								   fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0),
+								   18, 144);
+	const string nameThr("hyb");
+	REQUIRE(model.exists_simulator(nameEngine));
+	REQUIRE(model.exists_importance_function(ifunSpec.name));
+	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
+	REQUIRE(model.exists_threshold_technique(nameThr));
+	// Prepare engine
+	model.set_splitting(4);
+	model.build_importance_function_auto(ifunSpec, ssPropId, true);
+	model.build_thresholds(nameThr, ifunSpec.name);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
+	REQUIRE(engine->ready());
+	// Set estimation criteria
+	auto rng = model.available_RNGs().back();
+	REQUIRE(model.exists_rng(rng));
+	model.set_rng(rng, 3444057033415490ul);
+	const double confCo(.95);
+	const double prec(.3);
+	fig::StoppingConditions confCrit;
+	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
+	// Estimate
+	model.estimate(ssPropId, *engine, confCrit);
+	auto results = model.get_last_estimates();
+	REQUIRE(results.size() == 1ul);
+	auto ci = results.front();
+	REQUIRE(ci.point_estimate() == Approx(SS_PROB_EXP).epsilon(SS_PROB_EXP*.8));
+	REQUIRE(ci.precision(confCo) > 0.0);
+	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.2));
+	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
+			  <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*0.1));
 }
 
 } // TEST_CASE [oilpipes-RAY-N20-K3]
