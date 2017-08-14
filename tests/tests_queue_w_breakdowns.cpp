@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  tests_tandem_queue.cpp
+//  tests_queue_w_breakdowns.cpp
 //	
 //	Copyleft 2017-
 //	Authors:
@@ -52,6 +52,9 @@ namespace tests  // // // // // // // // // // // // // // // // // // // // //
 TEST_CASE("Queue with breakdowns tests", "[queue-w-breakdowns]")
 {
 
+	/// @todo TODO erase this early quit
+	return;
+
 SECTION("Compile model file")
 {
 	// If this is not the first test then we need to clean
@@ -66,6 +69,7 @@ SECTION("Compile model file")
 	CHECK(model.num_modules() > 0ul);
 
 	// Register one transient property
+	trPropId = -1;
 	REQUIRE(model.num_properties() >= 1ul);
 	for (size_t i = 0ul ; i < model.num_properties() ; i++) {
 		auto prop = model.get_property(i);

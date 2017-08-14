@@ -631,24 +631,22 @@ endmodule
 
 
 properties
-  S( 
-    ( broken_pipe1>0 & broken_pipe2>0 & broken_pipe3>0 & true ) |
-    ( broken_pipe2>0 & broken_pipe3>0 & broken_pipe4>0 & true ) |
-    ( broken_pipe3>0 & broken_pipe4>0 & broken_pipe5>0 & true ) |
-    ( broken_pipe4>0 & broken_pipe5>0 & broken_pipe6>0 & true ) |
-    ( broken_pipe5>0 & broken_pipe6>0 & broken_pipe7>0 & true ) |
-    ( broken_pipe6>0 & broken_pipe7>0 & broken_pipe8>0 & true ) |
-    ( broken_pipe7>0 & broken_pipe8>0 & broken_pipe9>0 & true ) |
-    ( broken_pipe8>0 & broken_pipe9>0 & broken_pipe10>0 & true ) |
-    ( broken_pipe9>0 & broken_pipe10>0 & broken_pipe11>0 & true ) |
-    ( broken_pipe10>0 & broken_pipe11>0 & broken_pipe12>0 & true ) |
-    ( broken_pipe11>0 & broken_pipe12>0 & broken_pipe13>0 & true ) |
-    ( broken_pipe12>0 & broken_pipe13>0 & broken_pipe14>0 & true ) |
-    ( broken_pipe13>0 & broken_pipe14>0 & broken_pipe15>0 & true ) |
-    ( broken_pipe14>0 & broken_pipe15>0 & broken_pipe16>0 & true ) |
-    ( broken_pipe15>0 & broken_pipe16>0 & broken_pipe17>0 & true ) |
-    ( broken_pipe16>0 & broken_pipe17>0 & broken_pipe18>0 & true ) |
-    ( broken_pipe17>0 & broken_pipe18>0 & broken_pipe19>0 & true ) |
-    ( broken_pipe18>0 & broken_pipe19>0 & broken_pipe20>0 & true ) |
-    false )  // "rate"
+  S((broken_pipe1>0 & broken_pipe2>0 & broken_pipe3>0) |
+    (broken_pipe2>0 & broken_pipe3>0 & broken_pipe4>0) |
+    (broken_pipe3>0 & broken_pipe4>0 & broken_pipe5>0) |
+    (broken_pipe4>0 & broken_pipe5>0 & broken_pipe6>0) |
+    (broken_pipe5>0 & broken_pipe6>0 & broken_pipe7>0) |
+    (broken_pipe6>0 & broken_pipe7>0 & broken_pipe8>0) |
+    (broken_pipe7>0 & broken_pipe8>0 & broken_pipe9>0) |
+    (broken_pipe8>0 & broken_pipe9>0 & broken_pipe10>0) |
+    (broken_pipe9>0 & broken_pipe10>0 & broken_pipe11>0) |
+    (broken_pipe10>0 & broken_pipe11>0 & broken_pipe12>0) |
+    (broken_pipe11>0 & broken_pipe12>0 & broken_pipe13>0) |
+    (broken_pipe12>0 & broken_pipe13>0 & broken_pipe14>0) |
+    (broken_pipe13>0 & broken_pipe14>0 & broken_pipe15>0) |
+    (broken_pipe14>0 & broken_pipe15>0 & broken_pipe16>0) |
+    (broken_pipe15>0 & broken_pipe16>0 & broken_pipe17>0) |
+    (broken_pipe16>0 & broken_pipe17>0 & broken_pipe18>0) |
+    (broken_pipe17>0 & broken_pipe18>0 & broken_pipe19>0) |
+    (broken_pipe18>0 & broken_pipe19>0 & broken_pipe20>0) )  // "rate"
 endproperties
