@@ -345,7 +345,7 @@ ThresholdsBuilderSMC::tune(const size_t& numTrans,
 	///            probability of crossing the i-th level upwards
 	///            Note the constant value e^-1 is subject to having the optimal
 	///            number of thresholds T = -log(p)/2, which may not be the case
-	const float p((k_*0.4f)/n_);
+	const float p((k_*0.333f)/n_);
 	k_ = std::round(p*n_);
 
 	// Simulations length will be directly proportional to the probability 'p'

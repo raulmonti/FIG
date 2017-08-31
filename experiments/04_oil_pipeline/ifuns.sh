@@ -11,6 +11,7 @@
 # Cool site: http://wiki.bash-hackers.org
 #
 
+
 # Max number of continuously broken nodes (aka oil pumps)
 # Intended for ad hoc ifun
 max_continuous_failures_adhoc() {
@@ -68,5 +69,98 @@ sum_continuous_failures_acomp() {
 		EXPR+=$CLUSTER"1+"
 	done
 	EXPR+="0;$((N-K+1));$(((N-K+1)*(2**K)))"
+	echo $EXPR
+}
+
+# Helper function for the optimised functions below
+# Inteded for acomp ifun
+sum_continuous_failures_acomp_remainder() {
+	if [ $# -ne 2 ]; then
+		echo "[ERROR] Requires # of nodes and # of consecutive failures"
+		echo "        that make up a system failure (aka 'N' and 'K')"
+		return 1
+	fi
+	local N=$1
+	local K=$2
+	local ECHO=`echo "echo -en"`
+	local VARi="BE_pipe%d"
+	local REMAINDER=""
+	for (( i=(N-K+1)-(N-K+1)%K+1 ; i<=N-K+1 ; i++ )) do
+		CLUSTER=`printf "$VARi*" $(seq $i $((i+K-1)))`
+		REMAINDER+=$CLUSTER"1+"
+	done
+	REMAINDER+="0;$((N-K+1));$(((N-K+1)*(2**K)))"
+	echo $REMAINDER
+}
+
+# Add the product of the number of continuously broken nodes
+# Optimized for K=3: math expression uses less operations
+# Inteded for acomp ifun
+sum_continuous_failures_acomp_K3() {
+	if [ $# -ne 1 ]; then
+		echo "[ERROR] Requires # of nodes in the system (aka 'N')"
+		return 1
+	fi
+	local N=$1
+	local K=3
+	local ECHO=`echo "echo -en"`
+	local VARi="BE_pipe%d"
+	EXPR=""
+	for (( i=1 ; i<=(N-K+1)/K ; i++ )) do
+		EXPR+=`printf "$VARi*($VARi*$VARi+$VARi*($VARi+$VARi))+" \
+		       $((3*i))                                          \
+			   $((3*i-2)) $((3*i-1))                             \
+			   $((3*i+1)) $((3*i-1)) $((3*i+2))`
+	done
+	EXPR+="`sum_continuous_failures_acomp_remainder $N $K`"
+	echo $EXPR
+}
+
+# Add the product of the number of continuously broken nodes
+# Optimized for K=4: math expression uses less operations
+# Inteded for acomp ifun
+sum_continuous_failures_acomp_K4() {
+	if [ $# -ne 1 ]; then
+		echo "[ERROR] Requires # of nodes in the system (aka 'N')"
+		return 1
+	fi
+	local N=$1
+	local K=4
+	local ECHO=`echo "echo -en"`
+	local VARi="BE_pipe%d"
+	EXPR=""
+	for (( i=1 ; i<=(N-K+1)/K ; i++ )) do
+		EXPR+=`printf "$VARi*($VARi*$VARi*($VARi+$VARi)+$VARi*$VARi*($VARi+$VARi))+" \
+		       $((4*i))                                                              \
+			   $((4*i-2)) $((4*i-1)) $((4*i-3)) $((4*i+1))                           \
+			   $((4*i+1)) $((4*i+2)) $((4*i-1)) $((4*i+3))`
+	done
+	EXPR+="`sum_continuous_failures_acomp_remainder $N $K`"
+	echo $EXPR
+}
+
+# Add the product of the number of continuously broken nodes
+# Optimized for K=5: math expression uses less operations
+# Inteded for acomp ifun
+sum_continuous_failures_acomp_K5() {
+	if [ $# -ne 1 ]; then
+		echo "[ERROR] Requires # of nodes in the system (aka 'N')"
+		return 1
+	fi
+	local N=$1
+	local K=5
+	local ECHO=`echo "echo -en"`
+	local VARi="BE_pipe%d"
+	EXPR=""
+	for (( i=1 ; i<=(N-K+1)/K ; i++ )) do
+		EXPR+=`printf "$VARi*($VARi*$VARi*$VARi*($VARi+$VARi)+$VARi*$VARi*($VARi*($VARi+$VARi)+$VARi*$VARi))+" \
+		       $((5*i))                                                                                        \
+			   $((5*i-3)) $((5*i-2)) $((5*i-1))                                                                \
+			   $((5*i-4)) $((5*i+1))                                                                           \
+			   $((5*i+1)) $((5*i+2))                                                                           \
+			   $((5*i-1)) $((5*i-2)) $((5*i+3))                                                                \
+			   $((5*i+3)) $((5*i+4))`
+	done
+	EXPR+="`sum_continuous_failures_acomp_remainder $N $K`"
 	echo $EXPR
 }

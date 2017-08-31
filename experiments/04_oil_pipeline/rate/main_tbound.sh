@@ -50,47 +50,48 @@ show "Preparing experiments environment:"
 EXP_GEN="oil_pipeline-gen.sh"
 copy_model_file $EXP_GEN $CWD "link" && \
 	show "  · using model&properties generator \"$EXP_GEN\""
-N=0; RESULTS="results_$N"
-while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
+N=0; RESULTS="results_tbound_$N"
+while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_tbound_$N"; done
 mkdir $RESULTS && unset N && \
 	show "  · results will be stored in subdir \"${RESULTS}\""
 
 
 # Experiments configuration
 FAIL_DISTRIBUTIONS=("exponential(0.001)" "rayleigh(729)")
+REPETITIONS=3
 PARAM_N=(20)  # (20 40 60)
-PARAM_K=(3 4 5)
-TIME_BOUNDS=(90m 180m 6h)  # one per vale in $PARAM_K
-CONF=0.9  # Confidence coefficient
-PREC=0.4  # Relative precision
+PARAM_K=(5)
+TIME_BOUNDS=(5h)  # one per vale in $PARAM_K
 SPLITS=(2 5 10 15)  # RESTART splittings to test
-EXPNAME="oilpipe"
+EXPNAME="oilpipe_tbound"
 #
 show "Configuring experiments"
-STOP_CRITERION="--stop-conf $CONF $PREC"
-show "Configuring experiments"
-show "  · conf. lvl.:  `bc <<< "scale=0;$CONF*100/1"`%"
-show "  · rel. prec.:  `bc <<< "scale=0;$PREC*100/1"`%"
+show "  · repetitions: $REPETITIONS"
 show "  · values of N: (${PARAM_N[*]})"
 show "  · values of K: (${PARAM_K[*]})"
-show "  · time limits: (${TIME_BOUNDS[*]})"
+show "  · time bounds: (${TIME_BOUNDS[*]})"
 
 
 # Launch experiments
-for FDIST in "${FAIL_DISTRIBUTIONS[@]}"; do  # Distributions loop
+for (( REP=0 ; REP<REPETITIONS ; REP++ )); do  # Repetitions loop
+#
+	show ">>> Repetition #$REP"
+#
+for FDIST in "${FAIL_DISTRIBUTIONS[@]}"; do    # Distributions loop
 #
 	show "Launching experiments (${FDIST%(*} failures):"
 #
-for (( i=0 ; i<${#PARAM_K[*]} ; i++ )); do   # K loop
+for (( i=0 ; i<${#PARAM_K[*]} ; i++ )); do     # K loop
 #
 	K=${PARAM_K[i]}
 #
-for N in "${PARAM_N[@]}"; do                 # N loop
+for N in "${PARAM_N[@]}"; do                   # N loop
 #
 	show -n "  · for $K-out-of-$N ..."
 
 	# Experiment's time limits
 	TB=${TIME_BOUNDS[i]}
+	STOP_CRITERION="--stop-time $TB"
 	if [ `compute_seconds $TB` -lt 600 ]  # Experiment TO: ifun + thr + sim
 	then
 		ETIMEOUT="10m"
@@ -105,12 +106,12 @@ for N in "${PARAM_N[@]}"; do                 # N loop
 	SUM_CF_AC=$(sum_continuous_failures_acomp $N $K)
 
 	# Experiment's execution commands
-	RESTART_ACOMP1="--acomp \"+\" $STOP_CRITERION --timeout $TB"
-	RESTART_ACOMP2="--acomp \"*\" $STOP_CRITERION --timeout $TB --post-process exp 2"
-	RESTART_ACOMP3="--acomp $MAX_CF_AC $STOP_CRITERION --timeout $TB"
-	RESTART_ACOMP4="--acomp $SUM_CF_AC $STOP_CRITERION --timeout $TB --post-process exp 2"
-	RESTART_ADHOC=" --adhoc $MAX_CF_AH $STOP_CRITERION --timeout $TB"
-	STANDARD_MC="--flat $STOP_CRITERION --timeout $TB"
+	RESTART_ACOMP1="--acomp \"+\" $STOP_CRITERION"
+	RESTART_ACOMP2="--acomp \"*\" $STOP_CRITERION --post-process exp 2"
+	RESTART_ACOMP3="--acomp $MAX_CF_AC $STOP_CRITERION"
+	RESTART_ACOMP4="--acomp $SUM_CF_AC $STOP_CRITERION --post-process exp 2"
+	RESTART_ADHOC=" --adhoc $MAX_CF_AH $STOP_CRITERION"
+	STANDARD_MC="--flat $STOP_CRITERION"
 
 	# Experiment's model and properties
 	MODEL_FILE=${EXPNAME}_${FDIST:0:3}_N${N}_K${K}.sa
@@ -126,39 +127,41 @@ for N in "${PARAM_N[@]}"; do                 # N loop
 
 		# RESTART with compositional (auto ifun), version 1
 		poll_till_free $EXPNAME; show -n " AC1_s${s},"
-		$EXE $RESTART_ACOMP1 -s $s 1>>${LOG}"_AC1_s${s}.out" \
-		                           2>>${LOG}"_AC1_s${s}.err" &
+		$EXE $RESTART_ACOMP1 -s $s 1>>${LOG}"_AC1_s${s}_$REP.out" \
+		                           2>>${LOG}"_AC1_s${s}_$REP.err" &
 	
 		# RESTART with compositional (auto ifun), version 2
 		poll_till_free $EXPNAME; show -n " AC2_s${s},"
-		$EXE $RESTART_ACOMP2 -s $s 1>>${LOG}"_AC2_s${s}.out" \
-		                           2>>${LOG}"_AC2_s${s}.err" &
+		$EXE $RESTART_ACOMP2 -s $s 1>>${LOG}"_AC2_s${s}_$REP.out" \
+		                           2>>${LOG}"_AC2_s${s}_$REP.err" &
 	
 		# RESTART with compositional (auto ifun), version 3
 		poll_till_free $EXPNAME; show -n " AC3_s${s},"
-		$EXE $RESTART_ACOMP3 -s $s 1>>${LOG}"_AC3_s${s}.out" \
-		                           2>>${LOG}"_AC3_s${s}.err" &
+		$EXE $RESTART_ACOMP3 -s $s 1>>${LOG}"_AC3_s${s}_$REP.out" \
+		                           2>>${LOG}"_AC3_s${s}_$REP.err" &
 	
 		# RESTART with compositional (auto ifun), version 4
 		poll_till_free $EXPNAME; show -n " AC4_s${s},"
-		$EXE $RESTART_ACOMP4 -s $s 1>>${LOG}"_AC4_s${s}.out" \
-		                           2>>${LOG}"_AC4_s${s}.err" &
+		$EXE $RESTART_ACOMP4 -s $s 1>>${LOG}"_AC4_s${s}_$REP.out" \
+		                           2>>${LOG}"_AC4_s${s}_$REP.err" &
 	
 		# RESTART with ad hoc
 		poll_till_free $EXPNAME; show -n " AH_s${s},"
-		$EXE $RESTART_ADHOC -s $s 1>>${LOG}"_AH_s${s}.out" \
-		                          2>>${LOG}"_AH_s${s}.err" &
+		$EXE $RESTART_ADHOC -s $s 1>>${LOG}"_AH_s${s}_$REP.out" \
+		                          2>>${LOG}"_AH_s${s}_$REP.err" &
 	done
 
 	# Standard Monte Carlo
 	poll_till_free $EXPNAME; show -n " MC"
-	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
+	$EXE $STANDARD_MC 1>>${LOG}"_MC_$REP.out"
+	                  2>>${LOG}"_MC_$REP.err" &
 
 	show "... done"
 
 done  # N loop
 done  # K loop
 done  # Distributions loop
+done  # Repetitions loop
 
 
 # Wait till termination, making sure everything dies after the timeout

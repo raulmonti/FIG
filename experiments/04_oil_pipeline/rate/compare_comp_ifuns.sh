@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Author:  Carlos E. Budde
-# Date:    03.04.2017
+# Date:    04.05.2017
 # License: GPLv3
 #
 
@@ -50,30 +50,24 @@ show "Preparing experiments environment:"
 EXP_GEN="oil_pipeline-gen.sh"
 copy_model_file $EXP_GEN $CWD "link" && \
 	show "  · using model&properties generator \"$EXP_GEN\""
-N=0; RESULTS="results_$N"
-while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="results_$N"; done
+N=0; RESULTS="ifuncomp_$N"
+while [ -d $RESULTS ]; do N=$((N+1)); RESULTS="ifuncomp_$N"; done
 mkdir $RESULTS && unset N && \
 	show "  · results will be stored in subdir \"${RESULTS}\""
 
 
 # Experiments configuration
 FAIL_DISTRIBUTIONS=("exponential(0.001)" "rayleigh(729)")
-PARAM_N=(20)  # (20 40 60)
-PARAM_K=(3 4 5)
-TIME_BOUNDS=(90m 180m 6h)  # one per vale in $PARAM_K
-CONF=0.9  # Confidence coefficient
-PREC=0.4  # Relative precision
-SPLITS=(2 5 10 15)  # RESTART splittings to test
-EXPNAME="oilpipe"
+PARAM_N=(20 40 60)  # (20 40 60)
+PARAM_K=(3 4 )  # 5)
+TIME_BOUNDS=(60m 120m 240m)  # one per vale in $PARAM_K
+CONF=0.8  # Confidence coefficient
+PREC=0.6  # Relative precision
+SPLITS=(2 5 10)  # RESTART splittings to test
+EXPNAME="oilpipe_ifun_comp"
 #
 show "Configuring experiments"
 STOP_CRITERION="--stop-conf $CONF $PREC"
-show "Configuring experiments"
-show "  · conf. lvl.:  `bc <<< "scale=0;$CONF*100/1"`%"
-show "  · rel. prec.:  `bc <<< "scale=0;$PREC*100/1"`%"
-show "  · values of N: (${PARAM_N[*]})"
-show "  · values of K: (${PARAM_K[*]})"
-show "  · time limits: (${TIME_BOUNDS[*]})"
 
 
 # Launch experiments
@@ -100,17 +94,22 @@ for N in "${PARAM_N[@]}"; do                 # N loop
 	fi
 
 	# Experiment's importance functions
-	MAX_CF_AH=$(max_continuous_failures_adhoc $N $K)
-	MAX_CF_AC=$(max_continuous_failures_acomp $N $K)
-	SUM_CF_AC=$(sum_continuous_failures_acomp $N $K)
+	AC_DEF=$(sum_continuous_failures_acomp $N $K)
+	if   [ $K -eq 3 ]; then
+		AC_OPT=$(sum_continuous_failures_acomp_K3 $N)
+	elif [ $K -eq 4 ]; then
+		AC_OPT=$(sum_continuous_failures_acomp_K4 $N)
+	elif [ $K -eq 5 ]; then
+		AC_OPT=$(sum_continuous_failures_acomp_K5 $N)
+	else
+		show "This script is not prepared for K>5"
+		exit 1
+	fi
 
 	# Experiment's execution commands
-	RESTART_ACOMP1="--acomp \"+\" $STOP_CRITERION --timeout $TB"
-	RESTART_ACOMP2="--acomp \"*\" $STOP_CRITERION --timeout $TB --post-process exp 2"
-	RESTART_ACOMP3="--acomp $MAX_CF_AC $STOP_CRITERION --timeout $TB"
-	RESTART_ACOMP4="--acomp $SUM_CF_AC $STOP_CRITERION --timeout $TB --post-process exp 2"
-	RESTART_ADHOC=" --adhoc $MAX_CF_AH $STOP_CRITERION --timeout $TB"
-	STANDARD_MC="--flat $STOP_CRITERION --timeout $TB"
+	COMMON_CONF="--post-process exp 2 --timeout $TB --rng mt64 --rng-seed 5489"
+	RESTART_DEF_ACOMP="--acomp $AC_DEF $STOP_CRITERION $COMMON_CONF"
+	RESTART_OPT_ACOMP="--acomp $AC_OPT $STOP_CRITERION $COMMON_CONF"
 
 	# Experiment's model and properties
 	MODEL_FILE=${EXPNAME}_${FDIST:0:3}_N${N}_K${K}.sa
@@ -121,38 +120,16 @@ for N in "${PARAM_N[@]}"; do                 # N loop
 	# Launch an independent job for each splitting value (improves load balance)
 	for s in "${SPLITS[@]}";
 	do
-		# RESTART with monolithic (auto ifun) experiments are omitted
-		# since the importance vector wouldn't fit in memory
+		# RESTART with default compositional ifun
+		poll_till_free $EXPNAME; show -n " ACD_s${s},"
+		$EXE $RESTART_DEF_ACOMP -s $s 1>>${LOG}"_ACD_s${s}.out" \
+		                              2>>${LOG}"_ACD_s${s}.err" &
 
-		# RESTART with compositional (auto ifun), version 1
-		poll_till_free $EXPNAME; show -n " AC1_s${s},"
-		$EXE $RESTART_ACOMP1 -s $s 1>>${LOG}"_AC1_s${s}.out" \
-		                           2>>${LOG}"_AC1_s${s}.err" &
-	
-		# RESTART with compositional (auto ifun), version 2
-		poll_till_free $EXPNAME; show -n " AC2_s${s},"
-		$EXE $RESTART_ACOMP2 -s $s 1>>${LOG}"_AC2_s${s}.out" \
-		                           2>>${LOG}"_AC2_s${s}.err" &
-	
-		# RESTART with compositional (auto ifun), version 3
-		poll_till_free $EXPNAME; show -n " AC3_s${s},"
-		$EXE $RESTART_ACOMP3 -s $s 1>>${LOG}"_AC3_s${s}.out" \
-		                           2>>${LOG}"_AC3_s${s}.err" &
-	
-		# RESTART with compositional (auto ifun), version 4
-		poll_till_free $EXPNAME; show -n " AC4_s${s},"
-		$EXE $RESTART_ACOMP4 -s $s 1>>${LOG}"_AC4_s${s}.out" \
-		                           2>>${LOG}"_AC4_s${s}.err" &
-	
-		# RESTART with ad hoc
-		poll_till_free $EXPNAME; show -n " AH_s${s},"
-		$EXE $RESTART_ADHOC -s $s 1>>${LOG}"_AH_s${s}.out" \
-		                          2>>${LOG}"_AH_s${s}.err" &
+		# RESTART with optimised compositional ifun
+		poll_till_free $EXPNAME; show -n " ACO_s${s},"
+		$EXE $RESTART_OPT_ACOMP -s $s 1>>${LOG}"_ACO_s${s}.out" \
+		                              2>>${LOG}"_ACO_s${s}.err" &
 	done
-
-	# Standard Monte Carlo
-	poll_till_free $EXPNAME; show -n " MC"
-	$EXE $STANDARD_MC 1>>${LOG}"_MC.out" 2>>${LOG}"_MC.err" &
 
 	show "... done"
 
