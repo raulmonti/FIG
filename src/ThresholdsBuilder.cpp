@@ -81,7 +81,11 @@ ThresholdsBuilder::techniques() noexcept
 
 		// Hybrid thresholds selection: Sequential Monte Carlo + Fixed
 		// See ThresholdsBuilderHybrid class
-		"hyb"
+		"hyb",
+
+		// Expected Success (Budde, D'Argenio, Hartmanns '17)
+		// See ThresholdsBuilderES class
+		"es"
 	}};
 	return techniques;
 }

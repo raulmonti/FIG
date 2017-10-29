@@ -142,7 +142,10 @@ typedef  std::bitset<MAX_NUM_CLOCKS>                                 Bitflag;
 typedef  size_t                                              ImportanceValue;
 
 /// Vector of \ref ImportanceValue "importance values"
-typedef  std::vector< ImportanceValue >                        ImportanceVec;
+typedef  std::vector< ImportanceValue >                      ImportanceVec;
+
+/// Vector of thresholds for the Importance Splitting simulation techniques
+typedef  std::vector< std::pair<ImportanceValue,unsigned> >  ThresholdsVec;
 
 /// Post-process applied to the \ref ImportanceValue "importance values" assessed
 struct PostProcessing

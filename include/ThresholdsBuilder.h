@@ -60,7 +60,7 @@ public:
 	/// Long story short: number of concrete derived classes.
 	/// More in detail this is the size of the array returned by techniques(),
 	/// i.e. how many ThresholdsBuilder implementations are offered to the end user.
-	static constexpr size_t NUM_TECHNIQUES = 4;
+	static constexpr size_t NUM_TECHNIQUES = 5;
 
 	/// Thresholds building technique implemented by this instance
 	/// Check ThresholdsBuilder::names for available options.
@@ -86,9 +86,12 @@ public:
 	/**
 	 * @brief Choose thresholds based on given importance function
 	 *
-	 *        Choose threshold values and return a threshold-to-importance map:
-	 *        the i-th position of the vector holds the minimum ImportanceValue
-	 *        inside the i-th threshold level.<br>
+	 *        Choose threshold values and return a map of pairs
+	 *        ("threshold-to-importance") where the i-th position holds:
+	 * 	      <li>
+	 *        <ul>	first: the minimum ImportanceValue of the i-th threshold level;
+	 *        <ul>	second: the splitting/effort to perform there.
+	 * 		  </li>
 	 *        A <i>threshold level</i> is a range of importance values.
 	 *        The i-th threshold level comprises all importance values between
 	 *        threshold i (including it) and threshold i+1 (excluding it).
@@ -111,8 +114,20 @@ public:
 	 *
 	 * @throw FigException if thresholds building failed
 	 */
-	virtual ImportanceVec
-	build_thresholds(const unsigned& splitsPerThreshold,
+	virtual ThresholdsVec
+	build_thresholds(const ImportanceFunction& impFun,
+					 const PostProcessing& postProcessing) = 0;
+
+	/**
+	 * @brief Same as the two parameters version but for a single global
+	 *        splitting/effort per threshold level
+	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
+	 *                           "threshold level up" event
+	 * @copydetails build_thresholds(const ImportanceFunction&, const PostProcessing&)
+	 * @see build_thresholds(const ImportanceFunction&, const PostProcessing&)
+	 */
+	virtual ThresholdsVec
+	build_thresholds(const unsigned& effortPerThreshold,
 					 const ImportanceFunction& impFun,
 					 const PostProcessing& postProcessing) = 0;
 
