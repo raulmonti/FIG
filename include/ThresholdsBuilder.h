@@ -88,16 +88,14 @@ public:
 	 *
 	 *        Choose threshold values and return a map of pairs
 	 *        ("threshold-to-importance") where the i-th position holds:
-	 * 	      <li>
-	 *        <ul>	first: the minimum ImportanceValue of the i-th threshold level;
-	 *        <ul>	second: the splitting/effort to perform there.
-	 * 		  </li>
-	 *        A <i>threshold level</i> is a range of importance values.
-	 *        The i-th threshold level comprises all importance values between
+	 * 	      <ul>
+	 *        <li><i>first</i>: the minimum ImportanceValue of the i-th level;</li>
+	 *        <li><i>second</i>: the splitting/effort to perform there.</li>
+	 * 		  </ul>
+	 *        A (threshold) <i>level</i> is a range of importance values.
+	 *        The i-th level comprises all importance values between
 	 *        threshold i (including it) and threshold i+1 (excluding it).
 	 *
-	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
-	 *                           "threshold level up" event
 	 * @param impFun ImportanceFunction with internal
 	 *               \ref ImportanceFunction::has_importance_info()
 	 *               "importance information" to use for the task
@@ -120,9 +118,10 @@ public:
 
 	/**
 	 * @brief Same as the two parameters version but for a single global
-	 *        splitting/effort per threshold level
+	 *        splitting/effort per level
 	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
 	 *                           "threshold level up" event
+	 *
 	 * @copydetails build_thresholds(const ImportanceFunction&, const PostProcessing&)
 	 * @see build_thresholds(const ImportanceFunction&, const PostProcessing&)
 	 */

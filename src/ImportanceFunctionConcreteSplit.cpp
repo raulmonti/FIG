@@ -543,7 +543,6 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		minValue_ = importance_of(systemInitialValuation);
 		maxValue_ = minValue_;
 		minRareValue_ = minValue_;
-
 	} else if (userDefinedData) {
 		// Trust blindly in the user-defined extreme values
 		minValue_ = userMinValue_;

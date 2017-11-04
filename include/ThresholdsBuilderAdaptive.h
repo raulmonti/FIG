@@ -55,6 +55,12 @@ class Traial;
  * @see ThresholdsBuilderFixed
  */
 class ThresholdsBuilderAdaptive : public virtual ThresholdsBuilder
+
+// TODO: refactor this class as "ThresholdBuilderAdaptiveSimple"
+// TODO: create new class "ThresholdsBuilderAdaptive"
+// TODO: ThresholdBuilderAdaptiveSimple will inherit from ThresholdsBuilderAdaptive
+// TODO: ThresholdBuilderES will inherit from ThresholdsBuilderAdaptive
+
 {
 public:
 

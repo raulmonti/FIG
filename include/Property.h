@@ -66,8 +66,9 @@ protected:
 
 public:  // Attributes
 
-    /// Property per se in string form
-    /// const std::string expression;
+//	/// Property per se in string form
+//	const std::string expression;
+
     /// Which type of property the expression represents
     const PropertyType type;
 
@@ -91,13 +92,17 @@ public:  // Ctors
 
 public:  // Utils
 
-    /**
-     * @brief Is this state considered "rare" for importance simulation?
-     */
-    virtual bool is_rare(const StateInstance& s) const = 0;
+	/// @brief Is this state considered "rare" for importance simulation?
+	virtual bool is_rare(const StateInstance&) const = 0;
 
     /// @copydoc is_rare()
-    virtual bool is_rare(const State<STATE_INTERNAL_TYPE>& s) const = 0;
+	virtual bool is_rare(const State<STATE_INTERNAL_TYPE>&) const = 0;
+
+	/// @copydoc is_rare()
+	inline bool operator()(const StateInstance& s) const { return is_rare(s); }
+
+	/// @copydoc is_rare()
+	inline bool operator()(const State<STATE_INTERNAL_TYPE>& s) const { return is_rare(s); }
 
     /// Get instance unique id
     int get_id() const noexcept { return instance_id; }
