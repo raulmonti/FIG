@@ -328,26 +328,13 @@ public:  // Accessors
 	inline ImportanceValue level_of(const StateInstance& state) const
 		{
 			assert(has_importance_info());
-			if (importance2threshold_.size() > 0ul)
-				// We have the direct map
-				return importance2threshold_[importance_of(state)];
-			else
-				// Search the corresponding threshold level
-				return level_of(importance_of(state));
+			return (importance2threshold_.size() > 0ul)
+			        ? importance2threshold_[importance_of(state)]  // use direct map
+			        : level_of(importance_of(state));  // search threshold level
 		}
 
-	/**
-	 * Threshold level to which given ImportanceValue belongs.
-	 * @note The j-th threshold level is composed of all the states to which
-	 *       the ImportanceFunction assigns an ImportanceValue between the
-	 *       values of threshold 'j' (included) and 'j+1' (excluded)
-	 * @note <b>Complexity:</b> <i>O(log(num_thresholds()))</i>
-	 * \ifnot NDEBUG
-	 *   @throw FigException if this instance isn't \ref ready()
-	 *                       "ready for simulations"
-	 * \endif
-	 * @see ThresholdsBuilder::build_thresholds()
-	 */
+	/// Threshold level to which given ImportanceValue belongs.
+	/// @copydetails level_of(const StateInstance&)
 	ImportanceValue level_of(const ImportanceValue& val) const;
 
 	/**

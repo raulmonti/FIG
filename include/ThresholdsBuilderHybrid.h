@@ -57,7 +57,12 @@ namespace fig
  * @see ThresholdsBuilderAdaptive
  */
 class ThresholdsBuilderHybrid : public ThresholdsBuilderFixed,
-								public ThresholdsBuilderSMC
+                                public ThresholdsBuilderSMC
+
+// TODO: create new class "ThresholdsBuilderAdaptive"
+// TODO: ThresholdBuilderES will inherit from (the new) ThresholdsBuilderAdaptive
+// TODO: ThresholdsBuilderHybrid will inherit from  ThresholdBuilderFixed and (the new) ThresholdsBuilderAdaptive
+
 {
 public:
 
