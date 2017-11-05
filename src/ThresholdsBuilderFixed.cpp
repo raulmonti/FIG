@@ -56,17 +56,17 @@ ThresholdsBuilderFixed::ThresholdsBuilderFixed(ImportanceValue minImpRange,
 { /* Not much to do around here */ }
 
 
-ImportanceVec
-ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
-										 const ImportanceFunction& impFun,
-										 const PostProcessing& postProcessing)
+ThresholdsVec
+ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
+                                         const PostProcessing& postProcessing,
+                                         const unsigned& globalEffort)
 {
 	ImportanceVec thresholds;
 	const ImportanceValue IMP_RANGE(impFun.max_value()-impFun.initial_value());
 
 	figTechLog << "Building thresholds with \"" << name << "\" ";
 
-	if (splitsPerThreshold < 2u) {
+	if (globalEffort < 2u) {
 		// For flat importance function we need a dummy thresholds vector
 		ImportanceVec({impFun.initial_value(),impFun.max_value()+1}).swap(thresholds);
 		goto consistency_check;
@@ -79,7 +79,7 @@ ThresholdsBuilderFixed::build_thresholds(const unsigned& splitsPerThreshold,
 		std::iota(begin(thresholds), end(thresholds), impFun.initial_value());
 
 	} else {
-		stride_ = choose_stride(IMP_RANGE, splitsPerThreshold, postProcessing);
+		stride_ = choose_stride(IMP_RANGE, globalEffort, postProcessing);
 		figTechLog << "for 1 out of every " << stride_ << " importance value"
 				   << (stride_ > 1 ? ("s.\n") : (".\n"));
 		thresholds.push_back(impFun.initial_value());
@@ -95,6 +95,8 @@ consistency_check:
 	assert(thresholds[0] == impFun.initial_value());
 	assert(thresholds.back() == 1 + impFun.max_value());
 
+	/// @todo TODO Transform ImportanceVec in ThresholdsVec
+	///
 	return thresholds;
 }
 

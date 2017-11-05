@@ -59,17 +59,15 @@ namespace fig
 class ThresholdsBuilderHybrid : public ThresholdsBuilderFixed,
                                 public ThresholdsBuilderSMC
 
-// TODO: create new class "ThresholdsBuilderAdaptive"
-// TODO: ThresholdBuilderES will inherit from (the new) ThresholdsBuilderAdaptive
-// TODO: ThresholdsBuilderHybrid will inherit from  ThresholdBuilderFixed and (the new) ThresholdsBuilderAdaptive
-
+/// @todo TODO Change inheritance from ThresholdsBuilderSMC to ThresholdsBuilderES
+///
 {
 public:
 
 	/// Execution time (minutes) granted to the adaptive technique.<br>
 	/// If computations don't finish within this limit, resort to a fixed
 	/// technique to choose the missing thresholds "instantaneously".
-	static constexpr std::chrono::minutes ADAPTIVE_TIMEOUT = std::chrono::minutes(5u);
+	static constexpr std::chrono::minutes ADAPTIVE_TIMEOUT = std::chrono::minutes(2u);
 
 public:
 
@@ -80,10 +78,10 @@ public:
 
 	inline bool adaptive() const noexcept override { return true; }
 
-	ImportanceVec
-	build_thresholds(const unsigned& splitsPerThreshold,
-					 const ImportanceFunction& impFun,
-					 const PostProcessing& postProcessing) override;
+	ThresholdsVec
+	build_thresholds(const ImportanceFunction& impFun,
+	                 const PostProcessing& postProcessing,
+	                 const unsigned& splitsPerThreshold) override;
 
 protected:
 

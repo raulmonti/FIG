@@ -59,8 +59,7 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 	try {
 		// Start out using an adaptive technique, which may just work btw...
 		halted_ = false;
-		ThresholdsBuilderAdaptive::build_thresholds(splitsPerThreshold, impFun,
-													postProcessing);
+		ThresholdsBuilderAdaptive::build_thresholds(impFun, postProcessing);
 		pthread_cancel(timer.native_handle());  // ...it worked!
 
 	} catch (FigException&) {

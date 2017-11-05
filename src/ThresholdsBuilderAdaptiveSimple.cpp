@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  ThresholdsBuilderAdaptive.cpp
+//  ThresholdsBuilderAdaptiveSimple.cpp
 //
 //  Copyleft 2016-
 //  Authors:
@@ -35,32 +35,25 @@
 // External code
 #include <uint128_t.h>  // uint128::uint128_0
 // FIG
-#include <ThresholdsBuilderAdaptive.h>
+#include <ThresholdsBuilderAdaptiveSimple.h>
 #include <ModelSuite.h>
-#include <TraialPool.h>
 
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-const unsigned ThresholdsBuilderAdaptive::MIN_N = 1ul<<8ul;   //  256
-const unsigned ThresholdsBuilderAdaptive::MAX_N = 1ul<<13ul;  // 8192
-
-
-ThresholdsBuilderAdaptive::ThresholdsBuilderAdaptive(
+ThresholdsBuilderAdaptiveSimple::ThresholdsBuilderAdaptiveSimple(
 	const std::string& name,
 	const unsigned& n,
 	const unsigned& k) :
-		ThresholdsBuilder(name),
-		n_(n),
+        ThresholdsBuilderAdaptive(name, n),
 		k_(k),
-		thresholds_(),
-		halted_(false)
+        thresholds_()
 { /* Not much to do around here */ }
 
 
-ImportanceVec
-ThresholdsBuilderAdaptive::build_thresholds(
+ThresholdsVec
+ThresholdsBuilderAdaptiveSimple::build_thresholds(
 	const unsigned& splitsPerThreshold,
 	const ImportanceFunction& impFun,
 	const float &p,
@@ -98,12 +91,15 @@ consistency_check:
 	assert(thresholds_[0] == impFun.initial_value());
 	assert(thresholds_.back() == 1 + impFun.max_value());
 
+
+	/// @todo TODO Transform ImportanceVec in ThresholdsVec
+	///
 	return thresholds_;
 }
 
 
 void
-ThresholdsBuilderAdaptive::tune(const size_t& numTrans,
+ThresholdsBuilderAdaptiveSimple::tune(const size_t& numTrans,
 								const ImportanceValue& maxImportance,
 								const unsigned& splitsPerThr)
 {
@@ -143,20 +139,6 @@ ThresholdsBuilderAdaptive::tune(const size_t& numTrans,
 
     assert(0u < k_ || static_cast<ImportanceValue>(1u) >= maxImportance);
     assert(k_ < n_ || static_cast<ImportanceValue>(1u) >= maxImportance);
-}
-
-
-ThresholdsBuilderAdaptive::TraialsVec
-ThresholdsBuilderAdaptive::get_traials(const unsigned& numTraials,
-									   const fig::ImportanceFunction& impFun)
-{
-	TraialsVec traials;
-	fig::TraialPool::get_instance().get_traials(traials, numTraials);
-	assert(traials.size() == numTraials);
-	const ModuleNetwork& net = *ModelSuite::get_instance().modules_network();
-	for (fig::Traial& t: traials)
-		t.initialize(net, impFun);
-	return traials;
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

@@ -400,55 +400,63 @@ ImportanceFunction::initial_value() const noexcept
 }
 
 
+// TODO ERASE below
+//	void
+//	ImportanceFunction::build_thresholds(
+//		ThresholdsBuilder& tb,
+//		const unsigned& spt)
+//	{
+//		if (!has_importance_info())
+//			throw_FigException("importance function \"" + name() + "\" "
+//			                   "has no importance information");
+//		ImportanceVec().swap(threshold2importance_);
+//		ImportanceVec().swap(importance2threshold_);
+//		thresholdsTechnique_ = "";
+//		readyForSims_ = false;
+//		threshold2importance_ = tb.build_thresholds(spt, *this, post_processing());
+//		post_process_thresholds(tb);
+//	}
+//
+//
+//	void
+//	ImportanceFunction::build_thresholds_global_effort(
+//	    ThresholdsBuilderAdaptiveSimple& atb,
+//		const unsigned& spt,
+//		const float& p,
+//		const unsigned& n)
+//	{
+//		if (!has_importance_info())
+//			throw_FigException("importance function \"" + name() + "\" "
+//							   "doesn't yet have importance information");
+//		ImportanceVec().swap(threshold2importance_);
+//		ImportanceVec().swap(importance2threshold_);
+//		thresholdsTechnique_ = "";
+//		readyForSims_ = false;
+//		threshold2importance_ = atb.build_thresholds(spt, *this, p, n);
+//		post_process_thresholds(atb);
+//	}
+
+
 void
 ImportanceFunction::build_thresholds(
-	ThresholdsBuilder& tb,
-	const unsigned& spt)
+    ThresholdsBuilder& tb,
+    const unsigned& ge,
+    const float& p,
+    const unsigned& n)
 {
 	if (!has_importance_info())
 		throw_FigException("importance function \"" + name() + "\" "
-						   "doesn't yet have importance information");
+		                   "has no importance information");
 	ImportanceVec().swap(threshold2importance_);
 	ImportanceVec().swap(importance2threshold_);
 	thresholdsTechnique_ = "";
 	readyForSims_ = false;
-	threshold2importance_ = tb.build_thresholds(spt, *this, post_processing());
+	auto atbs = std::dynamic_pointer_cast<ThresholdsBuilderAdaptiveSimple>(tb);  // I'm an idiot
+	if (0u < ge || nullptr != atbs)  // adaptive simple threshold builder ?
+		threshold2importance_ = atbs->build_thresholds(*this, ge, p, n);
+	else
+		threshold2importance_ = tb.build_thresholds(*this, post_processing(), ge);
 	post_process_thresholds(tb);
-}
-
-
-void
-ImportanceFunction::build_thresholds_adaptively(
-	ThresholdsBuilderAdaptive& atb,
-	const unsigned& spt,
-	const float& p,
-	const unsigned& n)
-{
-	if (!has_importance_info())
-		throw_FigException("importance function \"" + name() + "\" "
-						   "doesn't yet have importance information");
-	ImportanceVec().swap(threshold2importance_);
-	ImportanceVec().swap(importance2threshold_);
-	thresholdsTechnique_ = "";
-	readyForSims_ = false;
-	threshold2importance_ = atb.build_thresholds(spt, *this, p, n);
-	post_process_thresholds(atb);
-}
-
-
-void
-ImportanceFunction::clear() noexcept
-{
-	hasImportanceInfo_ = false;
-	readyForSims_ = false;
-	strategy_ = "";
-	thresholdsTechnique_ = "";
-	minValue_ = static_cast<ImportanceValue>(0u);
-	maxValue_ = static_cast<ImportanceValue>(0u);
-	minRareValue_ = static_cast<ImportanceValue>(0u);
-	ImportanceVec().swap(threshold2importance_);
-	ImportanceVec().swap(importance2threshold_);
-	userFun_.reset();
 }
 
 
@@ -475,6 +483,22 @@ ImportanceFunction::post_process_thresholds(const ThresholdsBuilder& tb)
 	// Set relevant attributes
 	thresholdsTechnique_ = tb.name;
 	readyForSims_ = true;
+}
+
+
+void
+ImportanceFunction::clear() noexcept
+{
+	hasImportanceInfo_ = false;
+	readyForSims_ = false;
+	strategy_ = "";
+	thresholdsTechnique_ = "";
+	minValue_ = static_cast<ImportanceValue>(0u);
+	maxValue_ = static_cast<ImportanceValue>(0u);
+	minRareValue_ = static_cast<ImportanceValue>(0u);
+	ImportanceVec().swap(threshold2importance_);
+	ImportanceVec().swap(importance2threshold_);
+	userFun_.reset();
 }
 
 

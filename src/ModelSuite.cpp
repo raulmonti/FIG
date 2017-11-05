@@ -966,14 +966,18 @@ ModelSuite::build_thresholds(const std::string& technique,
 				 << "\",\nusing technique \"" << technique << "\" with splitting "
 				 << "== " << splitsPerThreshold << std::endl;
 		const double startTime = omp_get_wtime();
-		if (thrBuilder.adaptive() && lvlUpProb > 0.0)
-			ifun.build_thresholds_adaptively(
-					*std::dynamic_pointer_cast<ThresholdsBuilderAdaptive>(thrBuilders[technique]),
-					splitsPerThreshold,
-					lvlUpProb,
-					simsPerIter);
-		else
+		if (!thrBuilder.adaptive())
+			// Non-adaptive threshold building
 			ifun.build_thresholds(thrBuilder, splitsPerThreshold);
+		else if (1u < splitsPerThreshold)
+			// Adaptive threshold building: Global effort, i.e. one global splitting value
+			ifun.build_thresholds_global_effort(
+			    *std::dynamic_pointer_cast<ThresholdsBuilderAdaptiveSimple>(thrBuilders[technique]),
+			    splitsPerThreshold,
+			    lvlUpProb,  simsPerIter);
+		else
+			// Adaptive threshold building: Effort can variate per level
+			ifun.build_thresholds(thrBuilder);
 		techLog_ << "Thresholds building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"

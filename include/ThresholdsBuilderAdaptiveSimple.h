@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//  ThresholdsBuilderAdaptive.h
+//  ThresholdsBuilderAdaptiveSimple.h
 //
 //  Copyleft 2016-
 //  Authors:
@@ -26,96 +26,60 @@
 //
 //==============================================================================
 
-#ifndef THRESHOLDSBUILDERADAPTIVE_H
-#define THRESHOLDSBUILDERADAPTIVE_H
+#ifndef THRESHOLDSBUILDERADAPTIVESIMPLE_H
+#define THRESHOLDSBUILDERADAPTIVESIMPLE_H
 
 // C++
 #include <vector>
 // FIG
-#include <ThresholdsBuilder.h>
+#include <ThresholdsBuilderAdaptive.h>
 #include <core_typedefs.h>
 
 
 namespace fig
 {
 
-class Traial;
-
 /**
- * @brief Asbtract base "adaptive builder" of importance thresholds.
+ * @brief Adaptive threshold builders with one global splitting/effort
+ *        for all levels, based on the theory of Guyader & Cérou
+ *        (<i>Adaptive Multilevel Splitting</i> and <i>Sequential Monte Carlo</i>)
  *
- *        Adaptive threshold builders take into consideration the semantics
- *        of the user model to choose the (precomputed) \ref ImportanceValue
- *        "importance values" which will play the role of thresholds.<br>
- *        In general the final resulting number of thresholds built is a
- *        random variable of the probability of reaching the highest
- *        ImportanceValue provided.
- *
- * @see ThresholdsBuilder
+ * @see ThresholdsBuilderAdaptive
  * @see ThresholdsBuilderFixed
  */
-class ThresholdsBuilderAdaptive : public virtual ThresholdsBuilder
-
-// TODO: refactor this class as "ThresholdBuilderAdaptiveSimple"
-// TODO: create new class "ThresholdsBuilderAdaptive"
-// TODO: ThresholdBuilderAdaptiveSimple will inherit from ThresholdsBuilderAdaptive
-// TODO: ThresholdBuilderES will inherit from ThresholdsBuilderAdaptive
-
+class ThresholdsBuilderAdaptiveSimple : public virtual ThresholdsBuilderAdaptive
 {
-public:
-
-	/// Vector of references to Traial instances taken from the TraialPool
-	typedef  std::vector< fig::Reference< fig::Traial > >  TraialsVec;
-
-public:
-
-	/// Default max number of thresholds
-	static constexpr size_t MAX_NUM_THRESHOLDS = 200ul;
-
 protected:
 
-	/// Min number of pilot runs to launch for finding thresholds
-	static const unsigned MIN_N;
-
-	/// Max number of pilot runs to launch for finding thresholds
-	static const unsigned MAX_N;
-
-	/// Number of simulations to launch for each new threshold construction
-	unsigned n_;
-
-	/// Number of surviving simulations to consider (less than n_)
+	/// Number of surviving simulations per iteration,
+	/// always less than ThresholdsBuilderAdaptive::n_
 	unsigned k_;
 
-	/// Thresholds importance values
+	/// Thresholds importance values (there is one global effort for all levels)
 	ImportanceVec thresholds_;
-
-	/// Allow derived classes to halt computations via parallel threads
-	bool halted_;
 
 public:
 
 	/// Ctor
-	ThresholdsBuilderAdaptive(const std::string& name = "",
-							  const unsigned& n = 0u,
-							  const unsigned& k = 0u);
+	ThresholdsBuilderAdaptiveSimple(const std::string& name = "",
+	                                const unsigned& n = 0u,
+	                                const unsigned& k = 0u);
 
-	inline bool adaptive() const noexcept override { return true; }
-
-	/// Stub to build_thresholds(const unsigned&, const ImportanceFunction&, const float&, const unsigned&)
+	/// Stub to build_thresholds(const ImportanceFunction&, const unsigned&, const float&, const unsigned&)
 	/// for automatically computed values of 'p' and 'n'
-	inline ImportanceVec
-	build_thresholds(const unsigned& splitsPerThreshold,
-					 const ImportanceFunction& impFun,
-					 const PostProcessing&) override
-		{ return build_thresholds(splitsPerThreshold, impFun, 0.0f, 0u); }
+	inline ThresholdsVec
+	build_thresholds(const ImportanceFunction& impFun,
+	                 const PostProcessing&,
+	                 const unsigned& globalEffort) override
+	    { return build_thresholds(impFun, globalEffort, 0.0f, 0u); }
 
 	/// Implement ThresholdsBuilder::build_thresholds() using 'p' as the
 	/// adaptive probability of threshold level-up and running 'n' independet
 	/// simulations for the selection of each threshold
-	ImportanceVec
-	build_thresholds(const unsigned& splitsPerThreshold,
-					 const ImportanceFunction& impFun,
-					 const float& p,
+	ThresholdsVec
+	build_thresholds(const ImportanceFunction& impFun,
+	                 const unsigned& globalEffort,
+	                 const float& p,
 					 const unsigned& n);
 
 protected:  // Utils for the class and its kin
@@ -157,19 +121,8 @@ protected:  // Utils for the class and its kin
 	virtual void tune(const size_t& numTrans,
 	                  const ImportanceValue& maxImportance,
 	                  const unsigned& splitsPerThr);
-
-	/**
-	 * Get initialized Traial instances
-	 * @param numTraials Number of traials to retrieve from the TraialPool
-	 * @param impFun     ImportanceFunction with \ref ImportanceFunction::has_importance_info()
-	 *                   "importance info" to use for initialization
-	 * @return std::vector of references to initialized Traial instances
-	 */
-	TraialsVec
-	get_traials(const unsigned& numTraials,
-				const fig::ImportanceFunction& impFun);
 };
 
 } // namespace fig
 
-#endif // THRESHOLDSBUILDERADAPTIVE_H
+#endif // THRESHOLDSBUILDERADAPTIVESIMPLE_H

@@ -29,7 +29,7 @@
 #ifndef THRESHOLDSBUILDERSMC_H
 #define THRESHOLDSBUILDERSMC_H
 
-#include <ThresholdsBuilderAdaptive.h>
+#include <ThresholdsBuilderAdaptiveSimple.h>
 
 
 namespace fig
@@ -52,10 +52,10 @@ class ModuleNetwork;
  *        from AMS in the way the internal Monte Carlo simulations are handled,
  *        improving the statistical virtues of the algorithm's iterations.
  *
- * @see ThresholdsBuilderAdaptive
+ * @see ThresholdsBuilderAdaptiveSimple
  * @see ThresholdsBuilderAMS
  */
-class ThresholdsBuilderSMC : public virtual ThresholdsBuilderAdaptive
+class ThresholdsBuilderSMC : public virtual ThresholdsBuilderAdaptiveSimple
 {
 	/// Min simulation length (in # of jumps) to find new thresholds
 	static constexpr unsigned MIN_SIM_EFFORT = 1u<<6u;
@@ -70,8 +70,7 @@ class ThresholdsBuilderSMC : public virtual ThresholdsBuilderAdaptive
 public:
 
 	/// Default ctor
-	ThresholdsBuilderSMC() : ThresholdsBuilder("smc"),
-							 ThresholdsBuilderAdaptive()
+	ThresholdsBuilderSMC() : ThresholdsBuilderAdaptiveSimple("smc")
 		{ /* Not much to do around here */ }
 
 protected:  // Utils for the class and its kin

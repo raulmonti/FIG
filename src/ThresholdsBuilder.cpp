@@ -79,7 +79,7 @@ ThresholdsBuilder::techniques() noexcept
 		// See ThresholdsBuilderSMC class
 		"smc",
 
-		// Hybrid thresholds selection: Sequential Monte Carlo + Fixed
+	    // Hybrid thresholds selection: Adaptive + Fixed
 		// See ThresholdsBuilderHybrid class
 		"hyb",
 
@@ -91,9 +91,11 @@ ThresholdsBuilder::techniques() noexcept
 }
 
 
-ImportanceVec
-ThresholdsBuilder::invert_thresholds_map(const ImportanceVec& t2i) const
+ThresholdsVec
+ThresholdsBuilder::invert_thresholds_map(const ThresholdsVec& t2i) const
 {
+	/// @todo TODO refactor for the new type, ThresholdsVec
+
 	assert(t2i.size() > 0ul);
 	assert(t2i.back() > 1ul);
 	const size_t SIZE(t2i.back());

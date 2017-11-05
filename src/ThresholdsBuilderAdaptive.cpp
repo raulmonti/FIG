@@ -26,9 +26,41 @@
 //
 //==============================================================================
 
-#include "ThresholdsBuilderAdaptive.h"
 
-ThresholdsBuilderAdaptive::ThresholdsBuilderAdaptive()
+// FIG
+#include "ThresholdsBuilderAdaptive.h"
+#include <ModelSuite.h>
+#include <TraialPool.h>
+
+
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
+const unsigned ThresholdsBuilderAdaptive::MIN_N = 1ul<<8ul;   //  256
+const unsigned ThresholdsBuilderAdaptive::MAX_N = 1ul<<13ul;  // 8192
+
+
+ThresholdsBuilderAdaptive::ThresholdsBuilderAdaptive(
+        const std::string& name,
+        const unsigned& n) :
+    ThresholdsBuilder(name),
+    n_(n),
+    thresholds_(),
+    halted_(false)
+{ /* Not much to do around here */ }
+
+
+ThresholdsBuilderAdaptive::TraialsVec
+ThresholdsBuilderAdaptive::get_traials(const unsigned& numTraials,
+                                       const fig::ImportanceFunction& impFun)
+{
+	TraialsVec traials;
+	fig::TraialPool::get_instance().get_traials(traials, numTraials);
+	assert(traials.size() == numTraials);
+	const ModuleNetwork& net = *ModelSuite::get_instance().modules_network();
+	for (fig::Traial& t: traials)
+		t.initialize(net, impFun);
+	return traials;
 }
+
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

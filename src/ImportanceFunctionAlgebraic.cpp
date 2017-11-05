@@ -40,8 +40,6 @@
 #include <numeric>    // std::numeric_limits<>
 // FIG
 #include <ImportanceFunctionAlgebraic.h>
-#include <ThresholdsBuilder.h>
-#include <ThresholdsBuilderAdaptive.h>
 #include <Property.h>
 
 // ADL

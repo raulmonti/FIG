@@ -31,5 +31,12 @@
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
+ThresholdsVec
+ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun,
+                                      const PostProcessing& postProcessing,
+                                      const unsigned& globalEffort)
+{
+	/// @todo TODO FILLME!
+}
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

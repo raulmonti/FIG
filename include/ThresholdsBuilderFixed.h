@@ -88,10 +88,10 @@ public:
 
 	inline bool adaptive() const noexcept override { return false; }
 
-	std::vector< ImportanceValue >
-	build_thresholds(const unsigned& splitsPerThreshold,
-					 const ImportanceFunction& impFun,
-					 const PostProcessing& postProcessing) override;
+	ThresholdsVec
+	build_thresholds(const ImportanceFunction& impFun,
+	                 const PostProcessing& postProcessing,
+	                 const unsigned& globalEffort) override;
 
 public:  // Accessors
 

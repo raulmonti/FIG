@@ -30,7 +30,6 @@
 #include <ImportanceFunctionConcreteCoupled.h>
 #include <ModuleNetwork.h>
 #include <ThresholdsBuilder.h>
-#include <ThresholdsBuilderAdaptive.h>
 
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //

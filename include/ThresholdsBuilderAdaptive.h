@@ -29,11 +29,77 @@
 #ifndef THRESHOLDSBUILDERADAPTIVE_H
 #define THRESHOLDSBUILDERADAPTIVE_H
 
+// C++
+#include <vector>
+// FIG
+#include <ThresholdsBuilder.h>
+#include <core_typedefs.h>
 
+
+namespace fig
+{
+
+class Traial;
+
+/**
+ * @brief Asbtract base "adaptive builder" of importance thresholds.
+ *
+ *        Adaptive threshold builders take into consideration the semantics
+ *        of the user model to choose the (precomputed) \ref ImportanceValue
+ *        "importance values" which will play the role of thresholds.<br>
+ *        In general the final resulting number of thresholds built is a
+ *        random variable of the probability of reaching the highest
+ *        ImportanceValue provided.
+ *
+ * @see ThresholdsBuilder
+ * @see ThresholdsBuilderFixed
+ */
 class ThresholdsBuilderAdaptive : public ThresholdsBuilder
 {
 public:
-	ThresholdsBuilderAdaptive();
+
+	/// Vector of references to Traial instances taken from the TraialPool
+	typedef  std::vector< fig::Reference< fig::Traial > >  TraialsVec;
+
+protected:
+
+	/// Number of pilot simulations to launch for each new threshold construction
+	unsigned n_;
+
+	/// Min value for n_
+	static const unsigned MIN_N;
+
+	/// Max value for n_
+	static const unsigned MAX_N;
+
+	/// Thresholds: the importance values that defines them,
+	/// and the effort to perform on each ("threshold-") level
+	ThresholdsVec thresholds_;
+
+	/// Allow derived classes to halt computations via parallel threads
+	bool halted_;
+
+public:
+
+	/// Ctor
+	ThresholdsBuilderAdaptive(const std::string& name = "", const unsigned& n = 0u);
+
+	inline bool adaptive() const noexcept override { return true; }
+
+protected:  // Utils for the class and its kin
+
+	/**
+	 * Get initialized Traial instances
+	 * @param numTraials Number of traials to retrieve from the TraialPool
+	 * @param impFun     ImportanceFunction with \ref ImportanceFunction::has_importance_info()
+	 *                   "importance info" to use for initialization
+	 * @return std::vector of references to initialized Traial instances
+	 */
+	TraialsVec
+	get_traials(const unsigned& numTraials,
+	            const fig::ImportanceFunction& impFun);
 };
+
+} // namespace fig
 
 #endif // THRESHOLDSBUILDERADAPTIVE_H

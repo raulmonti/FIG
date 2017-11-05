@@ -53,16 +53,20 @@ namespace fig
  *        This defines the thresholds and also the optimal splitting to perform
  *        in each threshold.
  *
+ * @see ThresholdsBuilderAdaptiveSimple
  * @see ThresholdsBuilderAdaptive
- * @see ThresholdsBuilderSMC
  */
 class ThresholdsBuilderES : public ThresholdsBuilderAdaptive
 {
 public:
 	/// Default ctor
-	ThresholdsBuilderES() : ThresholdsBuilder("es"),
-							ThresholdsBuilderAdaptive()
+	ThresholdsBuilderES() : ThresholdsBuilderAdaptive("es")
 		{ /* Not much to do around here */ }
+
+	ThresholdsVec
+	build_thresholds(const ImportanceFunction&,
+	                 const PostProcessing&,
+	                 const unsigned&) override;
 };
 
 } // namespace fig

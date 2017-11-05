@@ -35,6 +35,7 @@
 #include <string>
 // FIG
 #include <core_typedefs.h>
+#include <FigException.h>
 
 
 namespace fig
@@ -56,6 +57,9 @@ class ImportanceFunction;
 class ThresholdsBuilder
 {
 public:
+
+	/// Default max number of thresholds
+	static constexpr size_t MAX_NUM_THRESHOLDS = 200ul;
 
 	/// Long story short: number of concrete derived classes.
 	/// More in detail this is the size of the array returned by techniques(),
@@ -87,11 +91,11 @@ public:
 	 * @brief Choose thresholds based on given importance function
 	 *
 	 *        Choose threshold values and return a map of pairs
-	 *        ("threshold-to-importance") where the i-th position holds:
-	 * 	      <ul>
-	 *        <li><i>first</i>: the minimum ImportanceValue of the i-th level;</li>
-	 *        <li><i>second</i>: the splitting/effort to perform there.</li>
-	 * 		  </ul>
+	 *        ("threshold-to-importance") where the i-th position pair holds:
+	 * 	      <ol>
+	 *        <li>the minimum ImportanceValue of the i-th level;</li>
+	 *        <li>the splitting/effort to perform there.</li>
+	 * 		  </ol>
 	 *        A (threshold) <i>level</i> is a range of importance values.
 	 *        The i-th level comprises all importance values between
 	 *        threshold i (including it) and threshold i+1 (excluding it).
@@ -101,8 +105,15 @@ public:
 	 *               "importance information" to use for the task
 	 * @param postProcessing Post-processing applied to the ImportanceValue s
 	 *                       after importance assessment
+	 * @param globalEffort <b>Optional</b>: Global effort for all levels.
+	 *                     For RESTART == 1 + num. of replicas when going
+	 *                     one level up; for Fixed Effort == number of
+	 *                     pilot simulations launched per level
 	 *
 	 * @return Thresholds levels map as explained in the details.
+	 *
+	 * @warning Call with positive @a globalEffort only when a global
+	 *          splitting/effort must be used for all ("threshold-") levels
 	 *
 	 * @note The size of the resulting vector  <br>
 	 *       == 1 + number of threshold levels <br>
@@ -114,29 +125,34 @@ public:
 	 */
 	virtual ThresholdsVec
 	build_thresholds(const ImportanceFunction& impFun,
-					 const PostProcessing& postProcessing) = 0;
+	                 const PostProcessing& postProcessing,
+	                 const unsigned& globalEffort = 0u) = 0;
 
-	/**
-	 * @brief Same as the two parameters version but for a single global
-	 *        splitting/effort per level
-	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
-	 *                           "threshold level up" event
-	 *
-	 * @copydetails build_thresholds(const ImportanceFunction&, const PostProcessing&)
-	 * @see build_thresholds(const ImportanceFunction&, const PostProcessing&)
-	 */
-	virtual ThresholdsVec
-	build_thresholds(const unsigned& effortPerThreshold,
-					 const ImportanceFunction& impFun,
-					 const PostProcessing& postProcessing) = 0;
+/// @todo TODO Erase code commented-out below
+//	/**
+//	 * @brief Same as the two parameters version but for a single global
+//	 *        splitting/effort per level
+//	 * @param effortPerLevel For RESTART == 1 + num. of replicas when going
+//	 *                       one level up; for Fixed Effort == number of
+//	 *                       pilot simulations launched per level
+//	 *
+//	 * @copydetails build_thresholds(const ImportanceFunction&, const PostProcessing&)
+//	 * @note This is not pure virtual because I'm a bad designer
+//	 * @see build_thresholds(const ImportanceFunction&, const PostProcessing&)
+//	 */
+//	virtual ThresholdsVec
+//	build_thresholds(const unsigned& effortPerLevel,
+//	                 const ImportanceFunction& impFun,
+//	                 const PostProcessing& postProcessing)
+//	    { throw_FigException("this method must be overriden in a derived class"); }
 
 	/**
 	 * @brief Turn map around, building an importance-to-threshold map
 	 *
 	 *        From the threshold-to-importance map passed as argument,
 	 *        build a reversed importance-to-threshold map: the j-th position
-	 *        of the vector returned will hold the threshold level
-	 *        corresponding to the j-th ImportanceValue.
+	 *        of the vector returned will hold the ("threshold-") level and
+	 *        corresponding splitting/effort of the j-th ImportanceValue.
 	 *
 	 * @param t2i threshold-to-importance map as returned by build_thresholds()
 	 *
@@ -145,11 +161,10 @@ public:
 	 * @throw bad_alloc if there wasn't enough memory to allocate the vector
 	 * @throw FigException if the translation failed
 	 *
-	 * @warning The size of the map returned is the last value of 't2i',
-	 *          viz. the maximum importance referred to in the argument.
+	 * @warning The size of the map returned is the maximum importance in @a t2i
 	 */
-	ImportanceVec
-	invert_thresholds_map(const ImportanceVec& t2i) const;
+	ThresholdsVec
+	invert_thresholds_map(const ThresholdsVec &t2i) const;
 
 protected:  // Utils for the class and its kin
 
