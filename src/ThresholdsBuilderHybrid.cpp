@@ -46,10 +46,10 @@
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-ImportanceVec
-ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
-										  const ImportanceFunction& impFun,
-										  const PostProcessing& postProcessing)
+ThresholdsVec
+ThresholdsBuilderHybrid::build_thresholds(const ImportanceFunction& impFun,
+                                          const PostProcessing& postProcessing,
+                                          const unsigned& globalEffort)
 {
 	// Impose an execution wall time limit...
 	const std::chrono::minutes TIMEOUT = ADAPTIVE_TIMEOUT;  // take by value!
@@ -59,7 +59,7 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 	try {
 		// Start out using an adaptive technique, which may just work btw...
 		halted_ = false;
-		ThresholdsBuilderAdaptive::build_thresholds(impFun, postProcessing);
+		ThresholdsBuilderSMC::build_thresholds(impFun, postProcessing, globalEffort);
 		pthread_cancel(timer.native_handle());  // ...it worked!
 
 	} catch (FigException&) {
@@ -69,7 +69,8 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 		const size_t MARGIN(thresholds_.back());
 		figTechLog << "\nResorting to fixed choice of thresholds starting "
 				   << "above the ImportanceValue " << MARGIN << "\n";
-		stride_ = choose_stride(impFun.max_value()-MARGIN, splitsPerThreshold,
+		stride_ = choose_stride(impFun.max_value()-MARGIN,
+		                        globalEffort,
 								postProcessing);
 		ThresholdsBuilderFixed::build_thresholds(impFun,
 		                                         MARGIN-impFun.initial_value(),
@@ -94,7 +95,12 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 	assert(thresholds[0] == impFun.initial_value());
 	assert(thresholds.back() == 1 + impFun.max_value());
 
-	return thresholds;
+	// Build ThresholdsVec to return
+	ThresholdsVec result;
+	result.reserve(thresholds.size());
+	for (auto imp: thresholds)
+		result.emplace_back(imp, globalEffort);
+	return result;
 }
 
 

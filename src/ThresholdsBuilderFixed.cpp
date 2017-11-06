@@ -95,9 +95,12 @@ consistency_check:
 	assert(thresholds[0] == impFun.initial_value());
 	assert(thresholds.back() == 1 + impFun.max_value());
 
-	/// @todo TODO Transform ImportanceVec in ThresholdsVec
-	///
-	return thresholds;
+	// Build ThresholdsVec to return
+	ThresholdsVec result;
+	result.reserve(thresholds.size());
+	for (auto imp: thresholds)
+		result.emplace_back(imp, globalEffort);
+	return result;
 }
 
 

@@ -257,6 +257,12 @@ find_new_threshold(const fig::ModuleNetwork& network,
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
+ThresholdsBuilderSMC::ThresholdsBuilderSMC() :
+    ThresholdsBuilder("smc"),  // virtual inheritance forces this...
+    ThresholdsBuilderAdaptiveSimple()
+{ /* Not much to do around here */ }
+
+
 void
 ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 {

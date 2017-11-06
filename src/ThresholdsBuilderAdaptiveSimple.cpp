@@ -43,65 +43,55 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 ThresholdsBuilderAdaptiveSimple::ThresholdsBuilderAdaptiveSimple(
-	const std::string& name,
-	const unsigned& n,
-	const unsigned& k) :
-        ThresholdsBuilderAdaptive(name, n),
-		k_(k),
+    const unsigned& n,
+    const unsigned& k) :
+        ThresholdsBuilderAdaptive(n),
+        k_(k),
         thresholds_()
 { /* Not much to do around here */ }
 
 
 ThresholdsVec
 ThresholdsBuilderAdaptiveSimple::build_thresholds(
-	const unsigned& splitsPerThreshold,
 	const ImportanceFunction& impFun,
-	const float &p,
-	const unsigned& n)
+    const PostProcessing&,
+    const unsigned& globalEffort)
 {
-    const ModuleNetwork& net = *ModelSuite::get_instance().modules_network();
-
 	// For flat importance function we need a dummy thresholds vector
-	if (splitsPerThreshold < 2u) {
+	if (globalEffort < 2u) {
 		ImportanceVec({impFun.initial_value(),impFun.max_value()+1}).swap(thresholds_);
 		goto consistency_check;
 	}
 
 	// Choose values for n_ and k_
-	if (0.0f < p) {
-		assert(1.0f > p);  // 'p' is a probability
-		n_ = std::max(MIN_N, n);
-		k_ = std::round(p*n);
-    } else {
-		tune(net.num_transitions(),
-			 impFun.max_value() - impFun.min_value(),
-			 splitsPerThreshold);
-	}
+	tune(ModelSuite::get_instance().modules_network()->num_transitions(),
+	     impFun.max_value() - impFun.min_value(),
+	     globalEffort);
 	ModelSuite::tech_log("Building thresholds with \""+ name +"\" for k/n == "
 						 + std::to_string(k_) + "/" + std::to_string(n_) + " ≈ "
 						 + std::to_string(static_cast<float>(k_)/n_) + "\n");
 
-	// Chose the thresholds importance values, i.e. run the adaptive algorithm
+	// Run the adaptive algorithm to choose the thresholds
 	build_thresholds_vector(impFun);
-
 	show_thresholds(thresholds_);
-
 consistency_check:
 	assert(!thresholds_.empty());
 	assert(thresholds_[0] == impFun.initial_value());
 	assert(thresholds_.back() == 1 + impFun.max_value());
 
-
-	/// @todo TODO Transform ImportanceVec in ThresholdsVec
-	///
-	return thresholds_;
+	// Build ThresholdsVec to return
+	ThresholdsVec thresholds;
+	thresholds.reserve(thresholds_.size());
+	for (auto imp: thresholds_)
+		thresholds.emplace_back(imp, globalEffort);
+	return thresholds;
 }
 
 
 void
 ThresholdsBuilderAdaptiveSimple::tune(const size_t& numTrans,
-								const ImportanceValue& maxImportance,
-								const unsigned& splitsPerThr)
+                                      const ImportanceValue& maxImportance,
+                                      const unsigned& splitsPerThr)
 {
     //assert(uint128::uint128_0 < numStates);
 	assert(0ul < numTrans);
@@ -119,18 +109,7 @@ ThresholdsBuilderAdaptiveSimple::tune(const size_t& numTrans,
 	//   the more importance values, the more independent runs we need
 	//   for some of them to be successfull.
 	//   The same applies to the number of edges (aka symbolic transitions).
-
-	// Importance typically grows exponentially with the rarity paremeter,
-	// thus we use (a scaled version of) its logarithm.
-	const unsigned impFactor = (1u<<6u) * std::ceil(std::log(maxImportance));
-	// Instead, the number of transitions tends to grow linearly
-	const unsigned transFactor = 5u*numTrans;
-
-	const double balance = 0.5;  // must be within (0.0, 1.0)
-	// more relevance to importance  => balance++
-	// more relevance to transitions => balance--
-	n_  = std::min(impFactor  , static_cast<unsigned>((    balance)*MAX_N))
-	    + std::min(transFactor, static_cast<unsigned>((1.0-balance)*MAX_N));
+	ThresholdsBuilderAdaptive::tune(numTrans, maxImportance);
 
     // Heuristic for 'k_':
     //   splitsPerThr * levelUpProb == 1  ("balanced growth")

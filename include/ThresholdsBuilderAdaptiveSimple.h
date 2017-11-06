@@ -47,7 +47,7 @@ namespace fig
  * @see ThresholdsBuilderAdaptive
  * @see ThresholdsBuilderFixed
  */
-class ThresholdsBuilderAdaptiveSimple : public virtual ThresholdsBuilderAdaptive
+class ThresholdsBuilderAdaptiveSimple : public ThresholdsBuilderAdaptive
 {
 protected:
 
@@ -56,31 +56,19 @@ protected:
 	unsigned k_;
 
 	/// Thresholds importance values (there is one global effort for all levels)
+	/// @note Intentionally obscures ThresholdsBuilderAdaptive::thresholds_
 	ImportanceVec thresholds_;
 
 public:
 
-	/// Ctor
-	ThresholdsBuilderAdaptiveSimple(const std::string& name = "",
-	                                const unsigned& n = 0u,
+	/// Data & default ctor
+	ThresholdsBuilderAdaptiveSimple(const unsigned& n = 0u,
 	                                const unsigned& k = 0u);
 
-	/// Stub to build_thresholds(const ImportanceFunction&, const unsigned&, const float&, const unsigned&)
-	/// for automatically computed values of 'p' and 'n'
-	inline ThresholdsVec
-	build_thresholds(const ImportanceFunction& impFun,
-	                 const PostProcessing&,
-	                 const unsigned& globalEffort) override
-	    { return build_thresholds(impFun, globalEffort, 0.0f, 0u); }
-
-	/// Implement ThresholdsBuilder::build_thresholds() using 'p' as the
-	/// adaptive probability of threshold level-up and running 'n' independet
-	/// simulations for the selection of each threshold
 	ThresholdsVec
 	build_thresholds(const ImportanceFunction& impFun,
-	                 const unsigned& globalEffort,
-	                 const float& p,
-					 const unsigned& n);
+	                 const PostProcessing&,
+	                 const unsigned& globalEffort) override;
 
 protected:  // Utils for the class and its kin
 
@@ -99,28 +87,20 @@ protected:  // Utils for the class and its kin
 	 *               \ref ImportanceFunction::has_importance_info()
 	 *               "importance information" to use for the task
 	 *
-	 * @note The size of thresholds_ will be   <br>
+	 * @note The size of the resulting vector  <br>
 	 *       == 1 + number of threshold levels <br>
 	 *       == 2 + number of thresholds built
-	 * @note The first value in thresholds_ == initial state importance
-	 * @note The last  value in thresholds_ > impFun.max_value()
+	 * @note The first ImportanceValue in the map == initial state importance
+	 * @note The last  ImportanceValue in the map == 1 + impFun.max_importance()
 	 *
 	 * @throw FigException if thresholds building failed
 	 */
 	virtual void
 	build_thresholds_vector(const ImportanceFunction& impFun) = 0;
 
-	/**
-	 * @brief Choose values for n_ and k_ depending on the nature of the Module
-	 *        (states and transitions space size) and the simulation.
-	 * @param numStates      Size of the concrete state space in the Module
-	 * @param numTrans       Number of (symbolic) transitions in the Module
-	 * @param maxImportance  Maximum ImportanceValue computed
-	 * @param splitsPerThr   Number of splits upon a threshold level-up
-	 */
-	virtual void tune(const size_t& numTrans,
-	                  const ImportanceValue& maxImportance,
-	                  const unsigned& splitsPerThr);
+	/// Choose values for n_ and k_
+	/// @copydetails ThresholdsBuilderAdaptive::tune()
+	void tune(const size_t&, const ImportanceValue&, const unsigned&) override;
 };
 
 } // namespace fig

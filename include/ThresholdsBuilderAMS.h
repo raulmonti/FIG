@@ -49,18 +49,15 @@ namespace fig
  * @see ThresholdsBuilderAdaptiveSimple
  * @see ThresholdsBuilderSMC
  */
-class ThresholdsBuilderAMS : public virtual ThresholdsBuilderAdaptiveSimple
+class ThresholdsBuilderAMS : public ThresholdsBuilderAdaptiveSimple
 {
 public:
 
-	/// Default ctor
-	ThresholdsBuilderAMS() : ThresholdsBuilderAdaptiveSimple("ams")
-		{ /* Not much to do around here */ }
+	ThresholdsBuilderAMS();
 
 protected:  // Utils for the class and its kin
 
 	void build_thresholds_vector(const ImportanceFunction& impFun) override;
-
 };
 
 } // namespace fig

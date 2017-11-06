@@ -559,14 +559,8 @@ public:  // Utils
 	 *                  "importance information"
 	 * @param force     Build thresholds again, even if they already have been
 	 *                  for this importance function and technique
-	 * @param lvlUpProb Desired probability of crossing the threshold levels
-	 *                  upwards (relevant for \ref ThresholdsBuilderAdaptive
-	 *                  "adaptive thresholds builders" only)
-	 * @param simsPerIter Number of simulation to run for the selection of each
-	 *                    threshold (relevant for \ref ThresholdsBuilderAdaptive
-	 *                    "adaptive thresholds builders" only)
 	 *
-	 * @return True if the thresholds could be successfully built
+	 * @return Whether the thresholds could be successfully built
 	 *
 	 * @note Supresses the \ref pristineModel_ "pristine condition"
 	 *
@@ -583,9 +577,7 @@ public:  // Utils
 	bool
 	build_thresholds(const std::string& technique,
 					 const std::string& ifunName,
-					 bool force = true,
-					 const float& lvlUpProb = 0.0,
-					 const unsigned& simsPerIter = 0u);
+	                 bool force = true);
 
 	/**
 	 * @brief Set a SimulationEngine ready for upcoming estimations
@@ -832,7 +824,7 @@ ModelSuite::process_batch(
 
 			// ... choose the thresholds ...
 			set_splitting(split, true);
-			build_thresholds(thrTechnique, impFunSpec.name, true);
+			build_thresholds(thrTechnique, impFunSpec.name);
 			assert(impFuns[impFunSpec.name]->ready());
 
 			// ... prepare the simulator ...

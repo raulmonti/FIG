@@ -67,6 +67,7 @@
 #include <ImportanceFunctionConcreteSplit.h>
 #include <ImportanceFunctionConcreteCoupled.h>
 #include <ThresholdsBuilder.h>
+#include <ThresholdsBuilderES.h>
 #include <ThresholdsBuilderAMS.h>
 #include <ThresholdsBuilderSMC.h>
 #include <ThresholdsBuilderFixed.h>
@@ -173,7 +174,7 @@ build_empty_ci(const fig::PropertyType& propertyType,
  *          those whose stopping condition was the running time.
  * @param ci ConfidenceInterval with the current estimate to show
  * @param confidenceCoefficients Confidence criteria to build the intervals
- * @param startTime (<i>optional</i>) Starting time, as returned by
+ * @param startTime <i>(Optional)</i> Starting time, as returned by
  *                  omp_get_wtime(), of the last estimation launched
  * @note This should be implemented as a reentrant function,
  *       as it may be called from within signal handlers.
@@ -443,6 +444,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 	thrBuilders["fix"] = std::make_shared< ThresholdsBuilderFixed >();
 	thrBuilders["ams"] = std::make_shared< ThresholdsBuilderAMS >();
 	thrBuilders["smc"] = std::make_shared< ThresholdsBuilderSMC >();
+	thrBuilders["es" ] = std::make_shared< ThresholdsBuilderES >();
 	thrBuilders["hyb"] = std::make_shared< ThresholdsBuilderHybrid >();
 
 	// Build offered simulation engines
@@ -938,10 +940,8 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 
 bool
 ModelSuite::build_thresholds(const std::string& technique,
-							 const std::string& ifunName,
-							 bool force,
-							 const float& lvlUpProb,
-							 const unsigned& simsPerIter)
+                             const std::string& ifunName,
+                             bool force)
 {
 	if (!exists_threshold_technique(technique))
 		throw_FigException("inexistent threshold building technique \"" + technique
@@ -952,7 +952,7 @@ ModelSuite::build_thresholds(const std::string& technique,
 						   "\". Call \"available_importance_functions()\" "
 						   "for a list of available options.");
 
-	ThresholdsBuilder& thrBuilder = *thrBuilders[technique];
+//	ThresholdsBuilder& thrBuilder = *thrBuilders[technique];
 	ImportanceFunction& ifun = *impFuns[ifunName];
 
 	if (!ifun.has_importance_info())
@@ -966,18 +966,20 @@ ModelSuite::build_thresholds(const std::string& technique,
 				 << "\",\nusing technique \"" << technique << "\" with splitting "
 				 << "== " << splitsPerThreshold << std::endl;
 		const double startTime = omp_get_wtime();
-		if (!thrBuilder.adaptive())
-			// Non-adaptive threshold building
-			ifun.build_thresholds(thrBuilder, splitsPerThreshold);
-		else if (1u < splitsPerThreshold)
-			// Adaptive threshold building: Global effort, i.e. one global splitting value
-			ifun.build_thresholds_global_effort(
-			    *std::dynamic_pointer_cast<ThresholdsBuilderAdaptiveSimple>(thrBuilders[technique]),
-			    splitsPerThreshold,
-			    lvlUpProb,  simsPerIter);
-		else
-			// Adaptive threshold building: Effort can variate per level
-			ifun.build_thresholds(thrBuilder);
+		ifun.build_thresholds(*thrBuilders[technique], splitsPerThreshold);
+//	TODO Erase commented-out code below
+//		if (!thrBuilder.adaptive())
+//			// Non-adaptive threshold building
+//			ifun.build_thresholds(thrBuilder, splitsPerThreshold);
+//		else if (1u < splitsPerThreshold)
+//			// Adaptive threshold building: Global effort, i.e. one global splitting value
+//			ifun.build_thresholds_global_effort(
+//			    *std::dynamic_pointer_cast<ThresholdsBuilderAdaptiveSimple>(thrBuilders[technique]),
+//			    splitsPerThreshold,
+//			    lvlUpProb,  simsPerIter);
+//		else
+//			// Adaptive threshold building: Effort can variate per level
+//			ifun.build_thresholds(thrBuilder);
 		techLog_ << "Thresholds building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"

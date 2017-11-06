@@ -284,7 +284,7 @@ ImportanceFunctionConcreteSplit::~ImportanceFunctionConcreteSplit()
 {
     ImportanceVec().swap(localValues_);
     std::vector< State< STATE_INTERNAL_TYPE > >().swap(localStatesCopies_);
-	std::vector< ImportanceValue >().swap(importance2threshold_);
+	ThresholdsVec().swap(importance2threshold_);
 	ImportanceFunctionConcrete::clear();
 }
 
@@ -390,7 +390,7 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
     if (ready()) {
         out << "\nImportanceValue to threshold level conversion:";
         for (size_t i = 0ul ; i < importance2threshold_.size() ; i++)
-            out << " (" << i << ":" << importance2threshold_[i] << ")";
+			out << " (" << i << ":" << importance2threshold_[i].first << ")";
     }
     out << std::endl;
 }

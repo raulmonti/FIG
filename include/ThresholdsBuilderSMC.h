@@ -55,7 +55,7 @@ class ModuleNetwork;
  * @see ThresholdsBuilderAdaptiveSimple
  * @see ThresholdsBuilderAMS
  */
-class ThresholdsBuilderSMC : public virtual ThresholdsBuilderAdaptiveSimple
+class ThresholdsBuilderSMC : public ThresholdsBuilderAdaptiveSimple
 {
 	/// Min simulation length (in # of jumps) to find new thresholds
 	static constexpr unsigned MIN_SIM_EFFORT = 1u<<6u;
@@ -69,9 +69,7 @@ class ThresholdsBuilderSMC : public virtual ThresholdsBuilderAdaptiveSimple
 
 public:
 
-	/// Default ctor
-	ThresholdsBuilderSMC() : ThresholdsBuilderAdaptiveSimple("smc")
-		{ /* Not much to do around here */ }
+	ThresholdsBuilderSMC();
 
 protected:  // Utils for the class and its kin
 

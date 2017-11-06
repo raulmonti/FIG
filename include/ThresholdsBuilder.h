@@ -96,19 +96,20 @@ public:
 	 *        <li>the minimum ImportanceValue of the i-th level;</li>
 	 *        <li>the splitting/effort to perform there.</li>
 	 * 		  </ol>
-	 *        A (threshold) <i>level</i> is a range of importance values.
+	 *        A <i>threshold-level</i> or simply <i>level</i>
+	 *        is a range of importance values.
 	 *        The i-th level comprises all importance values between
 	 *        threshold i (including it) and threshold i+1 (excluding it).
 	 *
 	 * @param impFun ImportanceFunction with internal
 	 *               \ref ImportanceFunction::has_importance_info()
-	 *               "importance information" to use for the task
+	 *               "importance information", i.e. the structure must not be empty
 	 * @param postProcessing Post-processing applied to the ImportanceValue s
 	 *                       after importance assessment
-	 * @param globalEffort <b>Optional</b>: Global effort for all levels.
+	 * @param globalEffort <i>(Optional)</i> Global effort for all levels.
 	 *                     For RESTART == 1 + num. of replicas when going
 	 *                     one level up; for Fixed Effort == number of
-	 *                     pilot simulations launched per level
+	 *                     simulations launched per level.
 	 *
 	 * @return Thresholds levels map as explained in the details.
 	 *
@@ -118,8 +119,8 @@ public:
 	 * @note The size of the resulting vector  <br>
 	 *       == 1 + number of threshold levels <br>
 	 *       == 2 + number of thresholds built
-	 * @note The first value in the map == initial state importance
-	 * @note The last  value in the map == 1 + impFun.max_importance()
+	 * @note The first ImportanceValue in the map == initial state importance
+	 * @note The last  ImportanceValue in the map == 1 + impFun.max_importance()
 	 *
 	 * @throw FigException if thresholds building failed
 	 */
@@ -170,6 +171,11 @@ protected:  // Utils for the class and its kin
 
 	/// Print thresholds info in FIG's tech log
 	/// @param t2i threshold-to-importance map as returned by build_thresholds()
+	void show_thresholds(const ThresholdsVec& t2i);
+
+	/// Print thresholds info in FIG's tech log
+	/// @param t2i threshold-to-importance map as returned by build_thresholds()
+	///            but without the per-level-effort
 	void show_thresholds(const ImportanceVec& t2i);
 };
 

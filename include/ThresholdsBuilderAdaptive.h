@@ -54,7 +54,7 @@ class Traial;
  * @see ThresholdsBuilder
  * @see ThresholdsBuilderFixed
  */
-class ThresholdsBuilderAdaptive : public ThresholdsBuilder
+class ThresholdsBuilderAdaptive : public virtual ThresholdsBuilder
 {
 public:
 
@@ -81,12 +81,27 @@ protected:
 
 public:
 
-	/// Ctor
-	ThresholdsBuilderAdaptive(const std::string& name = "", const unsigned& n = 0u);
+	ThresholdsBuilderAdaptive(const unsigned& n = 0u);
 
 	inline bool adaptive() const noexcept override { return true; }
 
+	ThresholdsVec
+	build_thresholds(const ImportanceFunction&,
+	                 const PostProcessing&,
+	                 const unsigned& globalEffort = 0u) override = 0;
+
 protected:  // Utils for the class and its kin
+
+	/**
+	 * @brief Choose values for internal parameters depending on the user model
+	 *        (states and transitions space size) and the simulation.
+	 * @param numTrans       Number of (symbolic) transitions in the system model
+	 * @param maxImportance  Maximum ImportanceValue computed
+	 * @param globalEffort   <i>(Optional)</i> Global splitting/effort per level
+	 */
+	virtual void tune(const size_t& numTrans,
+	                  const ImportanceValue& maxImportance,
+	                  const unsigned& globalEffort = 0u);
 
 	/**
 	 * Get initialized Traial instances

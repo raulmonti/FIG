@@ -59,9 +59,8 @@ namespace fig
 class ThresholdsBuilderES : public ThresholdsBuilderAdaptive
 {
 public:
-	/// Default ctor
-	ThresholdsBuilderES() : ThresholdsBuilderAdaptive("es")
-		{ /* Not much to do around here */ }
+
+	ThresholdsBuilderES();
 
 	ThresholdsVec
 	build_thresholds(const ImportanceFunction&,

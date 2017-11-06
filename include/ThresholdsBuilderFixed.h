@@ -76,15 +76,9 @@ protected:
 
 public:
 
-	/// Default ctor
-	ThresholdsBuilderFixed() : ThresholdsBuilder("fix"),
-							   MIN_IMP_RANGE(3),
-							   EXPAND_EVERY(64)
-		{ /* Not much to do around here */ }
-
-	/// Data ctor
-	ThresholdsBuilderFixed(ImportanceValue minImpRange,
-						   ImportanceValue expandEvery);
+	/// Data & default ctor
+	ThresholdsBuilderFixed(ImportanceValue minImpRange = 3,
+	                       ImportanceValue expandEvery = 64);
 
 	inline bool adaptive() const noexcept override { return false; }
 

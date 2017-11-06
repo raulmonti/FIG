@@ -55,12 +55,12 @@ namespace fig
  * @see ThresholdsBuilder
  * @see ThresholdsBuilderFixed
  * @see ThresholdsBuilderAdaptive
- */
-class ThresholdsBuilderHybrid : public ThresholdsBuilderFixed,
-                                public ThresholdsBuilderSMC
 
 /// @todo TODO Change inheritance from ThresholdsBuilderSMC to ThresholdsBuilderES
 ///
+ */
+class ThresholdsBuilderHybrid : public ThresholdsBuilderFixed,
+                                public ThresholdsBuilderSMC
 {
 public:
 
@@ -81,7 +81,7 @@ public:
 	ThresholdsVec
 	build_thresholds(const ImportanceFunction& impFun,
 	                 const PostProcessing& postProcessing,
-	                 const unsigned& splitsPerThreshold) override;
+	                 const unsigned& globalEffort) override;
 
 protected:
 

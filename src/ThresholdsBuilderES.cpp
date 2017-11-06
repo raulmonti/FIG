@@ -31,6 +31,12 @@
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
+ThresholdsBuilderES::ThresholdsBuilderES() :
+    ThresholdsBuilder("es"),  // virtual inheritance forces this...
+    ThresholdsBuilderAdaptive()
+{ /* Not much to do around here */ }
+
+
 ThresholdsVec
 ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun,
                                       const PostProcessing& postProcessing,
