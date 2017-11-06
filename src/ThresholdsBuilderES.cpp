@@ -26,23 +26,169 @@
 //
 //==============================================================================
 
-#include "ThresholdsBuilderES.h"
+// C
+#include <cassert>
+#include <cmath>
+// C++
+#include <vector>
+#include <deque>
+#include <algorithm>
+// FIG
+#include <ImportanceFunction.h>
+#include <ThresholdsBuilderES.h>
+#include <ModuleNetwork.h>
+#include <ModelSuite.h>
+#include <TraialPool.h>
+#include <Traial.h>
+
+
+// ADL
+using std::begin;
+using std::end;
+
+
+namespace  // // // // // // // // // // // // // // // // // // // // // // //
+{
+
+using fig::Traial;
+using fig::ImportanceValue;
+using TraialsVec = fig::ThresholdsBuilderAdaptive::TraialsVec;
+
+
+/**
+ * @brief Run Fixed Effort to roughly estimate the level-up probabilities
+ *
+ *        Run a "fine" Fixed Effort where the threshold-levels are all adjacent
+ *        importance values. The probabilities of going up from one importance
+ *        value to the next are stored in the vector of floats.
+ *
+ * @param impFun  Importance function defining the threshold-levels for FE
+ * @param traials Traials to perform the FE simulations
+ * @param Pup     Vector to fill with the level-up probabilities
+ *
+ * @note The effort used per level equals the number of traials provided
+ *
+ * @todo We currently disregard rare events below max importance,
+ *       and we force Fixed Effort to reach the max importance value.<br>
+ *       This can be generalised to have "still successful Fixed Effort runs"
+ *       when they don't reach the next importance value but hit a rare event.
+ */
+void
+fixed_effort_for_expected_success(const fig::ImportanceFunction& impFun,
+                                  TraialsVec& traials,
+                                  std::vector<float>& Pup)
+{
+	const fig::ModuleNetwork& network(*ModelSuite::get_instance().modules_network());
+	const size_t N = traials.size();  // effort per level
+	std::vector< fig::Reference< Traial > > freeNow, freeNext, startNow, startNext;
+
+	assert(0ul < N);
+	assert(impFun.initial_value() < impFun.max_value());
+	assert(Pup.size() >= impFun.max_value() - impFun.initial_value());
+
+	// Init ADTs
+	std::fill(begin(Pup), end(Pup), 0.0f);
+	freeNow.reserve(N);
+	freeNext.reserve(N);
+	startNow.reserve(N);
+	startNext.reserve(N);
+	for (Traial& t: traials) {
+		t.initialise(network,impFun);
+		startNow.push_back(t);
+	}
+
+	// For each importance value 'i' ...
+	for (ImportanceValue i = impFun.initial_value() ;
+	     i < impFun.max_value() && !startNow.empty() ;
+	     i++)
+	{
+		// ... run Fixed Effort until the next importance value 'i+1' ...
+		size_t startTrialIdx(0ul);
+		for (size_t j = 0ul ; j < N ; j++) {
+			// (Traial fetching for simulation)
+			const bool usingFreeTr = !freeTr.empty();
+			Traial& t( usingFreeTr ? freeTr.back() : nowStartTr.back());
+			if (usingFreeTr) {
+				freeTr.pop_back();
+				t = startTraials[startTrialIdx++].get();
+				startTrialIdx %= nowStartTr.size();
+			} else {
+				nowStartTr.pop_back();
+			}
+			// (simulation & book keeping)
+			//////////////////////////////////////////////////////////
+			network.simulation_step();
+			// TODO use ModuleNetwork::simulation_step(),
+			//      Extend the template implementation in ModuleNetwork.cpp
+			//////////////////////////////////////////////////////////
+			if (t.level > i)
+				startNext.push_back(std::move(t));
+			else
+				freeNext.push_back(std::move(t));
+		}
+		// ... and estimate the probability of reaching 'i+1' from 'i'
+		Pup[i] = startNext.size() / N;
+		std::swap(freeNow, freeNext);
+		std::swap(startNow, startNext);
+	}
+}
+
+} // namespace  // // // // // // // // // // // // // // // // // // // // //
+
+
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-ThresholdsBuilderES::ThresholdsBuilderES() :
+ThresholdsBuilderES::ThresholdsBuilderES(const size_t& n) :
     ThresholdsBuilder("es"),  // virtual inheritance forces this...
-    ThresholdsBuilderAdaptive()
+    ThresholdsBuilderAdaptive(n)
 { /* Not much to do around here */ }
 
 
 ThresholdsVec
 ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun,
-                                      const PostProcessing& postProcessing,
-                                      const unsigned& globalEffort)
+                                      const PostProcessing&,
+                                      const unsigned&)
 {
-	/// @todo TODO FILLME!
+	const ImportanceValue IMP_RANGE(impFun.max_value()-impFun.initial_value());
+	std::vector<float> Pup(IMP_RANGE), aux(IMP_RANGE);
+
+	// Adapted from Alg. 3 of Budde, D'Argenio, Hartmanns,
+	// "Better Automated Importance Splitting for Transient Rare Events", 2017.
+	ModelSuite::tech_log("Building thresholds with \""+ name +"\" for n = "
+	                     + std::to_string(n_) + "\n");
+
+	// Roughly estimate the level-up probabilities of all importance levels
+	TraialsVec traials(get_traials(n_, impFun, false));
+	do {
+		static size_t m(0ul);
+		m++;
+		fixed_effort_for_expected_success(impFun, traials, aux);
+		std::for_each(begin(Pup), end(Pup), [&aux,&m](float& p){ p += (aux-p)/m; });
+	} while (0.0f >= Pup.back());  // "until we reach the max importance"
+	TraialPool::get_instance().return_traials(traials);
+
+	// Turn level-up probabilities into splitting factors
+	decltype(aux)& split(aux);
+	std::fill(begin(split), end(split), 0.0f);
+	for (size_t i = 0ul ; i < IMP_RANGE ; i++) {
+		float prev = split[(i-1)%IMP_RANGE];
+		split[i] = 1.0f/Pup[i] + (prev-std::round(prev));  // expected # of sims reaching lvl i
+	}
+
+	// Select the thresholds based on the splitting factors
+	thresholds_.clear();
+	thresholds_.emplace_back(impFun.initial_value(), 1ul);
+	for (ImportanceValue i = impFun.initial_value()+1 ; i <= impFun.max_value() ; i++) {
+		const int thisSplit = std::round(split[i]);
+		if (1 < thisSplit)
+			thresholds_.emplace_back(i, thisSplit);
+	}
+	thresholds_.push_back(impFun.max_value()+static_cast<ImportanceValue>(1u), 1ul);
+	show_thresholds(thresholds_);
+
+	return thresholds_;
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

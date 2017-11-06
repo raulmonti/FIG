@@ -402,32 +402,6 @@ public:  // Utils
 	 */
 	void build_thresholds(ThresholdsBuilder& tb, const unsigned& ge = 0);
 
-// TODO ERASE below
-//	/**
-//	 * @brief Like build_thresholds() but for a global effort for all levels
-//	 *
-//	 *        Use a simple adaptive thresholds building algorithm, viz.
-//	 *        \ref ThresholdsBuilderAMS "AMS" or \ref ThresholdsBuilderSMC "SMC".<br>
-//	 *        This requires choosing a global effort. For RESTART it means
-//	 *        the same splitting value will be used in all thresholds. For
-//	 *        Fixed Effort it means the same number of simulations performed
-//	 *        on each level.<br>
-//	 *        Some other parameters specific to the ThresholdsBuilderAdaptiveSimple
-//	 *        class family can be specified.
-//	 *
-//	 * @param atb ThresholdsBuilderAdaptiveSimple to use
-//	 * @param ge  Global effort, the same for all ("threshold-") levels
-//	 * @param p   Desired probability of crossing a threshold level upwards
-//	 * @param n   Number of simulation to run for building each threshold
-//	 *
-//	 * @see ThresholdsBuilderAdaptiveSimple
-//	 */
-//	inline void build_thresholds_global_effort(ThresholdsBuilderAdaptiveSimple& atb,
-//	                                           const unsigned& ge,
-//	                                           const float& p = 0.0,
-//	                                           const unsigned& n = 0u)
-//	    { assert(0u < ge); build_thresholds(atb, ge, p, n); }
-
 	/**
 	 * @brief Release memory allocated in the heap during importance assessment
 	 *
@@ -441,15 +415,6 @@ public:  // Utils
 	virtual void clear() noexcept;
 
 private:  // Class utils
-
-// TODO ERASE below
-//	/// Unifier of the other two functions to build thresholds
-//	/// @see build_thresholds(ThresholdsBuilder&,const unsigned&)
-//	/// @see build_thresholds_global_effort()
-//	void build_thresholds(ThresholdsBuilder&,
-//	                      const unsigned&,
-//	                      const float&,
-//	                      const unsigned& n = 0);
 
 	/// Try to optimize the storage of the thresholds that have been chosen
 	/// @param tb ThresholdsBuilder last used

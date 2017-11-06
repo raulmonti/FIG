@@ -60,8 +60,12 @@ class ThresholdsBuilderES : public ThresholdsBuilderAdaptive
 {
 public:
 
-	ThresholdsBuilderES();
+	/// Data & default ctor
+	/// @param n Number of pilot simulations used per importance level, see Budde et al.
+	ThresholdsBuilderES(const size_t& n = (1ul<<8ul));
 
+	/// @copydoc ThresholdsBuilder::build_thresholds()
+	/// @warning The third parameter, @a globalEffort, is always ignored
 	ThresholdsVec
 	build_thresholds(const ImportanceFunction&,
 	                 const PostProcessing&,

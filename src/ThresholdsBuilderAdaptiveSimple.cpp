@@ -67,7 +67,8 @@ ThresholdsBuilderAdaptiveSimple::build_thresholds(
 	tune(ModelSuite::get_instance().modules_network()->num_transitions(),
 	     impFun.max_value() - impFun.min_value(),
 	     globalEffort);
-	ModelSuite::tech_log("Building thresholds with \""+ name +"\" for k/n == "
+	ModelSuite::tech_log("Building thresholds with \""+ name +"\" for splitting/"
+	                     "effort = " + std::to_string(globalEffort) + " and k/n = "
 						 + std::to_string(k_) + "/" + std::to_string(n_) + " ≈ "
 						 + std::to_string(static_cast<float>(k_)/n_) + "\n");
 

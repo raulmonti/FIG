@@ -266,14 +266,14 @@ ThresholdsBuilderSMC::ThresholdsBuilderSMC() :
 void
 ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 {
-	const ImportanceValue impRange = impFun.max_value() - impFun.min_value();
-	if (impRange < static_cast<ImportanceValue>(2u)) {
+	const ImportanceValue IMP_RANGE = impFun.max_value() - impFun.min_value();
+	if (IMP_RANGE < static_cast<ImportanceValue>(2u)) {
 		// Too few importance levels: default to max possible # of thresholds
-		std::vector< ImportanceValue >(impRange+2u).swap(thresholds_);
+		std::vector< ImportanceValue >(IMP_RANGE+2u).swap(thresholds_);
 		thresholds_[0u] = impFun.min_value();
 		thresholds_[1u] = impFun.max_value();
-		thresholds_[impRange+1u] = impFun.max_value()
-								   + static_cast<ImportanceValue>(1u);
+		thresholds_[IMP_RANGE+1u] = impFun.max_value()
+		                            + static_cast<ImportanceValue>(1u);
 		return;
 	}
 
@@ -286,7 +286,7 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 	if (thresholds_.capacity() < MAX_NUM_THRESHOLDS)
 		thresholds_.reserve(MAX_NUM_THRESHOLDS);
 
-	TraialsVec traials = ThresholdsBuilderAdaptive::get_traials(n_+k_, impFun);
+	TraialsVec traials = get_traials(n_+k_, impFun);
 	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
 
 	// SMC initialization

@@ -331,7 +331,7 @@ ModuleNetwork::peak_simulation(Traial& traial,
 		           << e.msg();
 #endif
 	} catch (const std::exception& e) {
-		figTechLog << "\n[WARNING] Unexpected exception during "
+		figTechLog << "\n[ERROR] Unexpected exception during "
 		           << "peak_simulation: " << e.what() << std::endl;
 		throw;
 	}

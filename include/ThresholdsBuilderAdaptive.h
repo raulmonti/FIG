@@ -72,7 +72,7 @@ protected:
 	/// Max value for n_
 	static const unsigned MAX_N;
 
-	/// Thresholds: the importance values that defines them,
+	/// Thresholds: the importance values that define them,
 	/// and the effort to perform on each ("threshold-") level
 	ThresholdsVec thresholds_;
 
@@ -81,7 +81,9 @@ protected:
 
 public:
 
-	ThresholdsBuilderAdaptive(const unsigned& n = 0u);
+	/// Data & default ctor
+	/// @param n @copydoc n_
+	ThresholdsBuilderAdaptive(const unsigned& n = MIN_N);
 
 	inline bool adaptive() const noexcept override { return true; }
 
@@ -107,12 +109,14 @@ protected:  // Utils for the class and its kin
 	 * Get initialized Traial instances
 	 * @param numTraials Number of traials to retrieve from the TraialPool
 	 * @param impFun     ImportanceFunction with \ref ImportanceFunction::has_importance_info()
-	 *                   "importance info" to use for initialization
+	 *                   "importance info" to use for (optional) initialization
+	 * @param initialise <i>(Optional)</i> Whether the traials should be initialised
 	 * @return std::vector of references to initialized Traial instances
 	 */
 	TraialsVec
 	get_traials(const unsigned& numTraials,
-	            const fig::ImportanceFunction& impFun);
+	            const fig::ImportanceFunction& impFun,
+	            bool initialise = true);
 };
 
 } // namespace fig

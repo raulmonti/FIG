@@ -416,48 +416,6 @@ ImportanceFunction::build_thresholds(ThresholdsBuilder& tb,
 }
 
 
-// TODO ERASE below
-//	void
-//	ImportanceFunction::build_thresholds_global_effort(
-//	    ThresholdsBuilderAdaptiveSimple& atb,
-//		const unsigned& spt,
-//		const float& p,
-//		const unsigned& n)
-//	{
-//		if (!has_importance_info())
-//			throw_FigException("importance function \"" + name() + "\" "
-//							   "doesn't yet have importance information");
-//		ImportanceVec().swap(threshold2importance_);
-//		ImportanceVec().swap(importance2threshold_);
-//		thresholdsTechnique_ = "";
-//		readyForSims_ = false;
-//		threshold2importance_ = atb.build_thresholds(spt, *this, p, n);
-//		post_process_thresholds(atb);
-//	}
-// TODO ERASE below
-//	void
-//	ImportanceFunction::build_thresholds(
-//	    ThresholdsBuilder& tb,
-//	    const unsigned& ge,
-//	    const float& p,
-//	    const unsigned& n)
-//	{
-//		if (!has_importance_info())
-//			throw_FigException("importance function \"" + name() + "\" "
-//			                   "has no importance information");
-//		ImportanceVec().swap(threshold2importance_);
-//		ImportanceVec().swap(importance2threshold_);
-//		thresholdsTechnique_ = "";
-//		readyForSims_ = false;
-//		auto atbs = std::dynamic_pointer_cast<ThresholdsBuilderAdaptiveSimple>(tb);  // I'm an idiot
-//		if (0u < ge || nullptr != atbs)  // adaptive simple threshold builder ?
-//			threshold2importance_ = atbs->build_thresholds(*this, ge, p, n);
-//		else
-//			threshold2importance_ = tb.build_thresholds(*this, post_processing(), ge);
-//		post_process_thresholds(tb);
-//	}
-
-
 void
 ImportanceFunction::post_process_thresholds(const ThresholdsBuilder& tb)
 {

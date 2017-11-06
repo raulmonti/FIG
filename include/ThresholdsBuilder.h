@@ -90,8 +90,8 @@ public:
 	/**
 	 * @brief Choose thresholds based on given importance function
 	 *
-	 *        Choose threshold values and return a map of pairs
-	 *        ("threshold-to-importance") where the i-th position pair holds:
+	 *        Choose the importance values to use as thresholds for splitting.
+	 *        A map of pairs is built where the pair at the i-th position holds:
 	 * 	      <ol>
 	 *        <li>the minimum ImportanceValue of the i-th level;</li>
 	 *        <li>the splitting/effort to perform there.</li>
@@ -128,24 +128,6 @@ public:
 	build_thresholds(const ImportanceFunction& impFun,
 	                 const PostProcessing& postProcessing,
 	                 const unsigned& globalEffort = 0u) = 0;
-
-/// @todo TODO Erase code commented-out below
-//	/**
-//	 * @brief Same as the two parameters version but for a single global
-//	 *        splitting/effort per level
-//	 * @param effortPerLevel For RESTART == 1 + num. of replicas when going
-//	 *                       one level up; for Fixed Effort == number of
-//	 *                       pilot simulations launched per level
-//	 *
-//	 * @copydetails build_thresholds(const ImportanceFunction&, const PostProcessing&)
-//	 * @note This is not pure virtual because I'm a bad designer
-//	 * @see build_thresholds(const ImportanceFunction&, const PostProcessing&)
-//	 */
-//	virtual ThresholdsVec
-//	build_thresholds(const unsigned& effortPerLevel,
-//	                 const ImportanceFunction& impFun,
-//	                 const PostProcessing& postProcessing)
-//	    { throw_FigException("this method must be overriden in a derived class"); }
 
 	/**
 	 * @brief Turn map around, building an importance-to-threshold map

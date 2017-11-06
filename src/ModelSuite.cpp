@@ -951,42 +951,24 @@ ModelSuite::build_thresholds(const std::string& technique,
 		throw_FigException("inexistent importance function \"" + ifunName +
 						   "\". Call \"available_importance_functions()\" "
 						   "for a list of available options.");
-
-//	ThresholdsBuilder& thrBuilder = *thrBuilders[technique];
 	ImportanceFunction& ifun = *impFuns[ifunName];
-
 	if (!ifun.has_importance_info())
 		throw_FigException("importance function \"" + ifunName + "\" doesn't "
 						   "have importance information yet. Call any of the "
 						   "\"build_importance_function_xxx()\" routines with "
 						   "\"" + ifunName + "\" beforehand");
-
 	if (force || ifun.thresholds_technique() != technique) {
 		techLog_ << "\nBuilding thresholds for importance function \"" << ifunName
 				 << "\",\nusing technique \"" << technique << "\" with splitting "
 				 << "== " << splitsPerThreshold << std::endl;
 		const double startTime = omp_get_wtime();
 		ifun.build_thresholds(*thrBuilders[technique], splitsPerThreshold);
-//	TODO Erase commented-out code below
-//		if (!thrBuilder.adaptive())
-//			// Non-adaptive threshold building
-//			ifun.build_thresholds(thrBuilder, splitsPerThreshold);
-//		else if (1u < splitsPerThreshold)
-//			// Adaptive threshold building: Global effort, i.e. one global splitting value
-//			ifun.build_thresholds_global_effort(
-//			    *std::dynamic_pointer_cast<ThresholdsBuilderAdaptiveSimple>(thrBuilders[technique]),
-//			    splitsPerThreshold,
-//			    lvlUpProb,  simsPerIter);
-//		else
-//			// Adaptive threshold building: Effort can variate per level
-//			ifun.build_thresholds(thrBuilder);
 		techLog_ << "Thresholds building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"
 //				 << std::defaultfloat;
 				 << std::setprecision(6);
 	}
-
     assert(ifun.ready());
     assert(technique == ifun.thresholds_technique());
 	pristineModel_ = false;
@@ -1006,7 +988,6 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
         throw_FigException("inexistent importance function \"" + ifunName +
                            "\". Call \"available_importance_functions()\" "
                            "for a list of available options.");
-
 	auto engine_ptr = simulators[engineName];
 	auto ifun_ptr = impFuns[ifunName];
 
@@ -1014,7 +995,6 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
         throw_FigException("importance function \"" + ifunName + "\" isn't yet "
                            "ready for simulations. Call \"build_importance_"
                            "function()\" and \"build_thresholds()\" beforehand");
-
 	if (engine_ptr->bound())
 		engine_ptr->unbind();
     techLog_ << "\nBinding simulation engine \"" << engineName << ""
@@ -1022,7 +1002,6 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
     engine_ptr->bind(ifun_ptr);
 	assert(engine_ptr->bound());
 	assert(ifunName == engine_ptr->current_imp_fun());
-
 	pristineModel_ = false;
 	return engine_ptr;
 }

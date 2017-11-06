@@ -73,14 +73,15 @@ ThresholdsBuilderAdaptive::tune(const size_t& numTrans,
 
 ThresholdsBuilderAdaptive::TraialsVec
 ThresholdsBuilderAdaptive::get_traials(const unsigned& numTraials,
-                                       const fig::ImportanceFunction& impFun)
+                                       const fig::ImportanceFunction& impFun,
+                                       bool initialise)
 {
 	TraialsVec traials;
 	fig::TraialPool::get_instance().get_traials(traials, numTraials);
 	assert(traials.size() == numTraials);
-	const ModuleNetwork& net = *ModelSuite::get_instance().modules_network();
-	for (fig::Traial& t: traials)
-		t.initialize(net, impFun);
+	if (initialise)
+		for (fig::Traial& t: traials)
+			t.initialize(*ModelSuite::get_instance().modules_network(), impFun);
 	return traials;
 }
 
