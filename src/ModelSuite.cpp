@@ -273,7 +273,7 @@ time_formatted_str(size_t timeInSeconds)
 	const size_t hours(timeInSeconds/3600ul);
 	const size_t minutes((timeInSeconds%3600ul)/60ul);
 	const size_t seconds(timeInSeconds%60ul);
-	char timeStr[9] = {'\0'};
+	char timeStr[23] = {'\0'};
 	std::sprintf(timeStr, "%02zu:%02zu:%02zu", hours, minutes, seconds);
 	return timeStr;
 }
@@ -566,6 +566,16 @@ const std::vector< ConfidenceIntervalResult >&
 ModelSuite::get_last_estimates() noexcept
 {
 	return lastEstimates_;
+}
+
+
+State<STATE_INTERNAL_TYPE>
+ModelSuite::get_initial_state()
+{
+	if (nullptr == model)
+		throw_FigException("There is no system to get the initial state from");
+	else
+		return model->initial_state();
 }
 
 

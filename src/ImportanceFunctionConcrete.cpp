@@ -478,8 +478,12 @@ assess_importance_auto(const fig::Module& module,
 	if (split) {
 		// Project the property for this Module's local variables
 		std::tie(rareClauses, otherClauses) = clauses.project(module.initial_state());
-		if (rareClauses.empty())
-			return maxImportance;  // module is irrelevant
+		if (rareClauses.empty()) {
+			// module is irrelevant for importance but may hold other info
+			label_local_states(module.initial_state(), impVec, property.type,
+			                   rareClauses, otherClauses);
+			return maxImportance;  // skip (futile) importance computation
+		}
 	}
 	check_mem_limits(module.concrete_state_size(), module.id());
 

@@ -305,19 +305,15 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 	Event e(EventType::NONE);
     // Gather the local ImportanceValue of each module
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
-		if (!isRelevant_[i]) {
-			localValues_[i] = neutralElement_;
-		} else {
-			auto& localState = localStatesCopies_[i];
+		auto& localState = localStatesCopies_[i];
 #ifndef NDEBUG
-			localState.extract_from_state_instance(state, globalVarsIPos.at(i), true);
+		localState.extract_from_state_instance(state, globalVarsIPos.at(i), true);
 #else
-			localState.extract_from_state_instance(state, globalVarsIPos[i], false);
+		localState.extract_from_state_instance(state, globalVarsIPos[i], false);
 #endif
-			const auto& val = modulesConcreteImportance[i][localState.encode()];
-			e |= MASK(val);  // events are marked per-module but affect the global model
-			localValues_[i] = UNMASK(val);
-		}
+		const auto& val = modulesConcreteImportance[i][localState.encode()];
+		e |= MASK(val);  // events are marked per-module but affect the global model
+		localValues_[i] = isRelevant_[i] ? UNMASK(val) : neutralElement_;
     }
 	// Combine those values with the user-defined composition function
 	return e | (ready() ? level_of(userFun_(localValues_))

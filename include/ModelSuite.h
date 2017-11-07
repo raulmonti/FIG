@@ -336,6 +336,10 @@ public:  // Accessors
 	/// @note For <i>observation</i>, not for modification
 	static const std::vector< ConfidenceIntervalResult >& get_last_estimates() noexcept;
 
+	/// @copydoc Module::initial_state()
+	/// @throw FigException if there is no ModuleNetwork loaded
+	static State<STATE_INTERNAL_TYPE> get_initial_state();
+
 	/// Names of available simulation engines,
 	/// as they should be requested by the user.
 	static const std::vector< std::string >& available_simulators() noexcept;
