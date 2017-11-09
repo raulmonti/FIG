@@ -34,8 +34,10 @@
 #include <deque>
 #include <algorithm>
 // FIG
-#include <ImportanceFunction.h>
 #include <ThresholdsBuilderES.h>
+#include <ImportanceFunction.h>
+#include <PropertyTransient.h>
+#include <PropertyRate.h>
 #include <ModuleNetwork.h>
 #include <ModelSuite.h>
 #include <TraialPool.h>
@@ -56,7 +58,7 @@ using TraialsVec = fig::ThresholdsBuilderAdaptive::TraialsVec;
 
 
 /**
- * @brief Run Fixed Effort to roughly estimate the level-up probabilities
+ * @brief Run Fixed Effort to roughly estimate level-up probabilities
  *
  *        Run a "fine" Fixed Effort where the threshold-levels are all adjacent
  *        importance values. The probabilities of going up from one importance
@@ -78,7 +80,7 @@ fixed_effort_for_expected_success(const fig::ImportanceFunction& impFun,
                                   TraialsVec& traials,
                                   std::vector<float>& Pup)
 {
-	const fig::ModuleNetwork& network(*ModelSuite::get_instance().modules_network());
+	const fig::ModuleNetwork& network(*fig::ModelSuite::get_instance().modules_network());
 	const size_t N = traials.size();  // effort per level
 	std::vector< fig::Reference< Traial > > freeNow, freeNext, startNow, startNext;
 
@@ -103,28 +105,28 @@ fixed_effort_for_expected_success(const fig::ImportanceFunction& impFun,
 	     i++)
 	{
 		// ... run Fixed Effort until the next importance value 'i+1' ...
-		size_t startTrialIdx(0ul);
+		size_t startNowIdx(0ul);
 		for (size_t j = 0ul ; j < N ; j++) {
 			// (Traial fetching for simulation)
-			const bool usingFreeTr = !freeTr.empty();
-			Traial& t( usingFreeTr ? freeTr.back() : nowStartTr.back());
-			if (usingFreeTr) {
-				freeTr.pop_back();
-				t = startTraials[startTrialIdx++].get();
-				startTrialIdx %= nowStartTr.size();
+			const bool useFree = !freeNow.empty();
+			Traial& traial( useFree ? freeNow.back() : startNow.back());
+			if (useFree) {
+				freeNow.pop_back();
+				traial = startNow[startNowIdx++].get();
+				startNowIdx %= startNow.size();
 			} else {
-				nowStartTr.pop_back();
+				startNow.pop_back();
 			}
 			// (simulation & book keeping)
 			//////////////////////////////////////////////////////////
-			network.simulation_step();
+//			network.simulation_step();
 			// TODO use ModuleNetwork::simulation_step(),
 			//      Extend the template implementation in ModuleNetwork.cpp
 			//////////////////////////////////////////////////////////
-			if (t.level > i)
-				startNext.push_back(std::move(t));
-			else
-				freeNext.push_back(std::move(t));
+//			if (traial.level > i)
+//				startNext.push_back(std::move(traial));
+//			else
+//				freeNext.push_back(std::move(traial));
 		}
 		// ... and estimate the probability of reaching 'i+1' from 'i'
 		Pup[i] = startNext.size() / N;
@@ -142,14 +144,20 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 
 ThresholdsBuilderES::ThresholdsBuilderES(const size_t& n) :
     ThresholdsBuilder("es"),  // virtual inheritance forces this...
-    ThresholdsBuilderAdaptive(n)
+    ThresholdsBuilderAdaptive(n),
+    property_(nullptr)
 { /* Not much to do around here */ }
 
 
+void
+ThresholdsBuilderES::setup(const PostProcessing &,
+                           std::shared_ptr<const Property> property,
+                           const unsigned)
+{ property_ = property; }
+
+
 ThresholdsVec
-ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun,
-                                      const PostProcessing&,
-                                      const unsigned&)
+ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 {
 	const ImportanceValue IMP_RANGE(impFun.max_value()-impFun.initial_value());
 	std::vector<float> Pup(IMP_RANGE), aux(IMP_RANGE);
@@ -165,7 +173,8 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun,
 		static size_t m(0ul);
 		m++;
 		fixed_effort_for_expected_success(impFun, traials, aux);
-		std::for_each(begin(Pup), end(Pup), [&aux,&m](float& p){ p += (aux-p)/m; });
+		for (size_t i = 0ul ; i < IMP_RANGE && 0.0f < aux[i] ; i++)
+			Pup[i] += (aux[i]-Pup[i])/m;
 	} while (0.0f >= Pup.back());  // "until we reach the max importance"
 	TraialPool::get_instance().return_traials(traials);
 
@@ -185,7 +194,7 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun,
 		if (1 < thisSplit)
 			thresholds_.emplace_back(i, thisSplit);
 	}
-	thresholds_.push_back(impFun.max_value()+static_cast<ImportanceValue>(1u), 1ul);
+	thresholds_.emplace_back(impFun.max_value()+static_cast<ImportanceValue>(1u), 1ul);
 	show_thresholds(thresholds_);
 
 	return thresholds_;

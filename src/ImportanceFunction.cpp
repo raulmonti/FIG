@@ -401,8 +401,7 @@ ImportanceFunction::initial_value() const noexcept
 
 
 void
-ImportanceFunction::build_thresholds(ThresholdsBuilder& tb,
-                                     const unsigned& ge)
+ImportanceFunction::build_thresholds(ThresholdsBuilder& tb)
 {
 	if (!has_importance_info())
 		throw_FigException("importance function \"" + name() + "\" "
@@ -411,7 +410,7 @@ ImportanceFunction::build_thresholds(ThresholdsBuilder& tb,
 	ThresholdsVec().swap(importance2threshold_);
 	thresholdsTechnique_ = "";
 	readyForSims_ = false;
-	threshold2importance_ = tb.build_thresholds(*this, post_processing(), ge);
+	threshold2importance_ = tb.build_thresholds(*this);
 	post_process_thresholds(tb);
 }
 

@@ -46,19 +46,24 @@ ThresholdsBuilderAdaptiveSimple::ThresholdsBuilderAdaptiveSimple(
     const unsigned& n,
     const unsigned& k) :
         ThresholdsBuilderAdaptive(n),
+        globEff_(0u),
         k_(k),
         thresholds_()
 { /* Not much to do around here */ }
 
 
+void
+ThresholdsBuilderAdaptiveSimple::setup(const PostProcessing &,
+                                       std::shared_ptr<const Property>,
+                                       const unsigned globalEffort)
+{ globEff_ = globalEffort; }
+
+
 ThresholdsVec
-ThresholdsBuilderAdaptiveSimple::build_thresholds(
-	const ImportanceFunction& impFun,
-    const PostProcessing&,
-    const unsigned& globalEffort)
+ThresholdsBuilderAdaptiveSimple::build_thresholds(const ImportanceFunction& impFun)
 {
 	// For flat importance function we need a dummy thresholds vector
-	if (globalEffort < 2u) {
+	if (globEff_ < 2u) {
 		ImportanceVec({impFun.initial_value(),impFun.max_value()+1}).swap(thresholds_);
 		goto consistency_check;
 	}
@@ -66,9 +71,9 @@ ThresholdsBuilderAdaptiveSimple::build_thresholds(
 	// Choose values for n_ and k_
 	tune(ModelSuite::get_instance().modules_network()->num_transitions(),
 	     impFun.max_value() - impFun.min_value(),
-	     globalEffort);
+	     globEff_);
 	ModelSuite::tech_log("Building thresholds with \""+ name +"\" for splitting/"
-	                     "effort = " + std::to_string(globalEffort) + " and k/n = "
+	                     "effort = " + std::to_string(globEff_) + " and k/n = "
 						 + std::to_string(k_) + "/" + std::to_string(n_) + " ≈ "
 						 + std::to_string(static_cast<float>(k_)/n_) + "\n");
 
@@ -84,7 +89,7 @@ consistency_check:
 	ThresholdsVec thresholds;
 	thresholds.reserve(thresholds_.size());
 	for (auto imp: thresholds_)
-		thresholds.emplace_back(imp, globalEffort);
+		thresholds.emplace_back(imp, globEff_);
 	return thresholds;
 }
 

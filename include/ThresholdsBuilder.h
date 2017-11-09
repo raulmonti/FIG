@@ -33,6 +33,7 @@
 #include <array>
 #include <vector>
 #include <string>
+#include <memory>
 // FIG
 #include <core_typedefs.h>
 #include <FigException.h>
@@ -41,6 +42,7 @@
 namespace fig
 {
 
+class Property;
 class ImportanceFunction;
 
 /**
@@ -88,6 +90,32 @@ public:
 	static const std::array< std::string, NUM_TECHNIQUES >& techniques() noexcept;
 
 	/**
+	 * @brief Depending on the thresholds builder sub-class,
+	 *        provide extra information required to select the thresholds.
+	 *
+	 * @param postProcess  Post-processing to apply to the importance values
+	 * @param property     User property query being estimated
+	 * @param globalEffort Splitting/effort to use in all ("threshold-") levels
+	 *
+	 * @note @a gobalEffort means different things depending on
+	 *       the type of importance splitting used:
+	 *       <ul>
+	 *       <li>For RESTART it means the same splitting value is used
+	 *           in all thresholds, i.e. @a globalEffort-1 replicas
+	 *           will be created in a level-up;</li>
+	 *       <li>For Fixed Effort it will run the same number of simulations
+	 *           (namely @a globalEffort) in all ("threshold-") levels.</li>
+	 *       </ul>
+	 *
+	 * @bug The presence of this function is a consequence of a
+	 *      <b>poorly designed class</b>
+	 */
+	virtual void
+	setup(const PostProcessing& postProcess = PostProcessing(),
+	      std::shared_ptr<const Property> property = nullptr,
+	      const unsigned globalEffort = 0u) = 0;
+
+	/**
 	 * @brief Choose thresholds based on given importance function
 	 *
 	 *        Choose the importance values to use as thresholds for splitting.
@@ -104,17 +132,8 @@ public:
 	 * @param impFun ImportanceFunction with internal
 	 *               \ref ImportanceFunction::has_importance_info()
 	 *               "importance information", i.e. the structure must not be empty
-	 * @param postProcessing Post-processing applied to the ImportanceValue s
-	 *                       after importance assessment
-	 * @param globalEffort <i>(Optional)</i> Global effort for all levels.
-	 *                     For RESTART == 1 + num. of replicas when going
-	 *                     one level up; for Fixed Effort == number of
-	 *                     simulations launched per level.
 	 *
 	 * @return Thresholds levels map as explained in the details.
-	 *
-	 * @warning Call with positive @a globalEffort only when a global
-	 *          splitting/effort must be used for all ("threshold-") levels
 	 *
 	 * @note The size of the resulting vector  <br>
 	 *       == 1 + number of threshold levels <br>
@@ -125,9 +144,7 @@ public:
 	 * @throw FigException if thresholds building failed
 	 */
 	virtual ThresholdsVec
-	build_thresholds(const ImportanceFunction& impFun,
-	                 const PostProcessing& postProcessing,
-	                 const unsigned& globalEffort = 0u) = 0;
+	build_thresholds(const ImportanceFunction& impFun) = 0;
 
 	/**
 	 * @brief Turn map around, building an importance-to-threshold map

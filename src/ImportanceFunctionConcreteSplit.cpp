@@ -121,7 +121,7 @@ find_extreme_values(const Formula& f, const ExtremeValuesVec& moduleValues)
 	ImportanceValue max(std::numeric_limits<ImportanceValue>::min());
 	ImportanceVec values(moduleValues.size());
 
-	// Initialize importance values to the minimal value of each Module
+	// initialise importance values to the minimal value of each Module
 	// Notice the order in 'values' will follow that of 'moduleValues'
 	size_t i(0ul);
 	for (const auto& e: moduleValues)

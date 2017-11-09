@@ -81,7 +81,7 @@ ThresholdsBuilderAdaptive::get_traials(const unsigned& numTraials,
 	assert(traials.size() == numTraials);
 	if (initialise)
 		for (fig::Traial& t: traials)
-			t.initialize(*ModelSuite::get_instance().modules_network(), impFun);
+			t.initialise(*ModelSuite::get_instance().modules_network(), impFun);
 	return traials;
 }
 

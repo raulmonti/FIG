@@ -941,6 +941,7 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 bool
 ModelSuite::build_thresholds(const std::string& technique,
                              const std::string& ifunName,
+                             const std::shared_ptr<Property> property,
                              bool force)
 {
 	if (!exists_threshold_technique(technique))
@@ -952,6 +953,7 @@ ModelSuite::build_thresholds(const std::string& technique,
 						   "\". Call \"available_importance_functions()\" "
 						   "for a list of available options.");
 	ImportanceFunction& ifun = *impFuns[ifunName];
+	ThresholdsBuilder& tb = *thrBuilders[technique];
 	if (!ifun.has_importance_info())
 		throw_FigException("importance function \"" + ifunName + "\" doesn't "
 						   "have importance information yet. Call any of the "
@@ -962,7 +964,8 @@ ModelSuite::build_thresholds(const std::string& technique,
 				 << "\",\nusing technique \"" << technique << "\" with splitting "
 				 << "== " << splitsPerThreshold << std::endl;
 		const double startTime = omp_get_wtime();
-		ifun.build_thresholds(*thrBuilders[technique], splitsPerThreshold);
+		tb.setup(ifun.post_processing(), property, splitsPerThreshold);
+		ifun.build_thresholds(tb);
 		techLog_ << "Thresholds building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"

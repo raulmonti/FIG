@@ -382,17 +382,8 @@ public:  // Utils
 	 *        engines" will use these thresholds when coupled with this
 	 *        ImportanceFunction.
 	 *
-	 * @param tb ThresholdsBuilder to use
-	 * @param ge <i>(Optional)</i> Global effort
-	 *
-	 * @note If specified, the global effort @a ge has different meanings
-	 *       depending on the importance splitting technique used for simulations:
-	 *       <ul>
-	 *       <li>For RESTART it uses the same splitting value in all thresholds,
-	 *           i.e. @a ge-1 replicas will be created in a level-up;</li>
-	 *       <li>For Fixed Effort it launches the same number of simulations
-	 *           (namely @a ge) in all ("threshold-") levels.</li>
-	 *       </ul>
+	 * @warning It may be needed to \ref ThresholdsBuilder::setup() "setup
+	 *          the ThresholdsBuilder" before calling this function.
 	 *
 	 * @throw FigException if there was no precomputed \ref has_importance_info()
 	 *                     "importance information"
@@ -400,7 +391,7 @@ public:  // Utils
 	 * @see ready()
 	 * @see ThresholdsBuilder
 	 */
-	void build_thresholds(ThresholdsBuilder& tb, const unsigned& ge = 0);
+	void build_thresholds(ThresholdsBuilder& tb);
 
 	/**
 	 * @brief Release memory allocated in the heap during importance assessment

@@ -62,6 +62,10 @@ namespace fig
 class ThresholdsBuilderHybrid : public ThresholdsBuilderFixed,
                                 public ThresholdsBuilderSMC
 {
+	/// Opaque base classes member to avoid ambiguity
+	/// @copydoc ThresholdsBuilderFixed::globEff_
+	unsigned globEff_;
+
 public:
 
 	/// Execution time (minutes) granted to the adaptive technique.<br>
@@ -71,24 +75,24 @@ public:
 
 public:
 
-	/// Default ctor
-	ThresholdsBuilderHybrid() : ThresholdsBuilder("hyb"),
-								ThresholdsBuilderFixed(6,32)  // formerly: (6,16)
-		{ /* Not much to do around here */ }
+	/// Data & default ctor
+	ThresholdsBuilderHybrid(ImportanceValue minImpRange = 6,
+	                        ImportanceValue expandEvery = 32);
 
 	inline bool adaptive() const noexcept override { return true; }
 
+	void
+	setup(const PostProcessing& pp,
+	      std::shared_ptr<const Property> prop = nullptr,
+	      const unsigned ge = 0u) override;
+
 	ThresholdsVec
-	build_thresholds(const ImportanceFunction& impFun,
-	                 const PostProcessing& postProcessing,
-	                 const unsigned& globalEffort) override;
+	build_thresholds(const ImportanceFunction& impFun) override;
 
 protected:
 
 	ImportanceValue
-	choose_stride(const size_t& impRange,
-				  const unsigned& splitsPerThreshold,
-				  const PostProcessing& postProcessing) const override;
+	choose_stride(const size_t& impRange) const override;
 };
 
 } // namespace fig

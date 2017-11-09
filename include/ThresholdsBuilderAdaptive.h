@@ -88,9 +88,7 @@ public:
 	inline bool adaptive() const noexcept override { return true; }
 
 	ThresholdsVec
-	build_thresholds(const ImportanceFunction&,
-	                 const PostProcessing&,
-	                 const unsigned& globalEffort = 0u) override = 0;
+	build_thresholds(const ImportanceFunction&) override = 0;
 
 protected:  // Utils for the class and its kin
 
@@ -112,6 +110,7 @@ protected:  // Utils for the class and its kin
 	 *                   "importance info" to use for (optional) initialization
 	 * @param initialise <i>(Optional)</i> Whether the traials should be initialised
 	 * @return std::vector of references to initialized Traial instances
+	 * @note Remember to return these traials to the TraialPool
 	 */
 	TraialsVec
 	get_traials(const unsigned& numTraials,

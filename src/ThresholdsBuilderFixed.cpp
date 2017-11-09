@@ -52,21 +52,31 @@ ThresholdsBuilderFixed::ThresholdsBuilderFixed(ImportanceValue minImpRange,
 											   ImportanceValue expandEvery) :
 	ThresholdsBuilder("fix"),
 	MIN_IMP_RANGE(minImpRange),
-	EXPAND_EVERY(expandEvery)
+    EXPAND_EVERY(expandEvery),
+    globEff_(2ul),
+    postPro_()
 { /* Not much to do around here */ }
 
 
+void
+ThresholdsBuilderFixed::setup(const PostProcessing &pp,
+                              std::shared_ptr<const Property>,
+                              const unsigned ge)
+{
+	globEff_ = ge;
+	postPro_ = pp;
+}
+
+
 ThresholdsVec
-ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
-                                         const PostProcessing& postProcessing,
-                                         const unsigned& globalEffort)
+ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun)
 {
 	ImportanceVec thresholds;
 	const ImportanceValue IMP_RANGE(impFun.max_value()-impFun.initial_value());
 
 	figTechLog << "Building thresholds with \"" << name << "\" ";
 
-	if (globalEffort < 2u) {
+	if (globEff_ < 2u) {
 		// For flat importance function we need a dummy thresholds vector
 		ImportanceVec({impFun.initial_value(),impFun.max_value()+1}).swap(thresholds);
 		goto consistency_check;
@@ -79,13 +89,13 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 		std::iota(begin(thresholds), end(thresholds), impFun.initial_value());
 
 	} else {
-		stride_ = choose_stride(IMP_RANGE, globalEffort, postProcessing);
+		stride_ = choose_stride(IMP_RANGE);
 		figTechLog << "for 1 out of every " << stride_ << " importance value"
 				   << (stride_ > 1 ? ("s.\n") : (".\n"));
 		thresholds.push_back(impFun.initial_value());
 		// Start above initial importance value? May reduce oversampling
 		const unsigned margin(IMP_RANGE>>3);
-		build_thresholds(impFun, margin, stride_, postProcessing, thresholds);
+		build_thresholds(impFun, margin, stride_, thresholds);
 	}
 
 	show_thresholds(thresholds);
@@ -99,7 +109,7 @@ consistency_check:
 	ThresholdsVec result;
 	result.reserve(thresholds.size());
 	for (auto imp: thresholds)
-		result.emplace_back(imp, globalEffort);
+		result.emplace_back(imp, globEff_);
 	return result;
 }
 
@@ -119,24 +129,22 @@ ThresholdsBuilderFixed::min_imp_range() const noexcept
 
 
 ImportanceValue
-ThresholdsBuilderFixed::choose_stride(const size_t& impRange,
-									  const unsigned& splitsPerThreshold,
-									  const PostProcessing& postProcessing) const
+ThresholdsBuilderFixed::choose_stride(const size_t& impRange) const
 {
 	ImportanceValue basicStride(1u), expansionFactor(1u);
-	assert(splitsPerThreshold > 1u);
+	assert(globEff_ > 1u);
 	if (impRange < MIN_IMP_RANGE)
 		return basicStride;  // Don't even bother
 
 	// What follows is clearly arbitrary, but then we warned the user
 	// in the class' docstring, didn't we?
-	switch (postProcessing.type)
+	switch (postPro_.type)
 	{
 	case (PostProcessing::NONE):
 	case (PostProcessing::SHIFT):
-		basicStride = splitsPerThreshold <  5u ? 2u :      // 2,3,4 ----------> 2
-					  splitsPerThreshold <  9u ? 3u :      // 5,6,7,8 --------> 3
-					  splitsPerThreshold < 14u ? 4u : 5u;  // 9,10,11,12,13 --> 4
+		basicStride = globEff_ <  5u ? 2u :      // 2,3,4 ----------> 2
+		              globEff_ <  9u ? 3u :      // 5,6,7,8 --------> 3
+		              globEff_ < 14u ? 4u : 5u;  // 9,10,11,12,13 --> 4
 		expansionFactor = std::ceil(static_cast<float>(impRange) / EXPAND_EVERY);
 		// Make sure return type can represent the computed stride
 		assert(std::log2(static_cast<float>(basicStride)*expansionFactor)
@@ -145,17 +153,17 @@ ThresholdsBuilderFixed::choose_stride(const size_t& impRange,
 		break;
 
 	case (PostProcessing::EXP):
-		basicStride = splitsPerThreshold <  5u ? 1u :      // 2,3,4 ------> 1
-					  splitsPerThreshold <  9u ? 2u : 3u;  // 5,6,7,8 ----> 2
+		basicStride = globEff_ <  5u ? 1u :      // 2,3,4 ------> 1
+		              globEff_ <  9u ? 2u : 3u;  // 5,6,7,8 ----> 2
 		expansionFactor = std::ceil(std::log(impRange) / EXPAND_EVERY);
 		// Make sure return type can represent the computed stride
 		assert(basicStride*expansionFactor < sizeof(decltype(basicStride))*8u);
-		return std::pow(postProcessing.value, basicStride*expansionFactor);
+		return std::pow(postPro_.value, basicStride*expansionFactor);
 		break;
 
 	default:
-		throw_FigException("invalid post-processing specified ("
-						  + std::to_string(postProcessing.type) + ")");
+		throw_FigException("invalid post-processing \"" + postPro_.name
+		                  + "\" (" + std::to_string(postPro_.type) + ")");
 		break;
 	}
 }
@@ -165,7 +173,6 @@ void
 ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 										 const unsigned& margin,
 										 const unsigned& stride,
-										 PostProcessing postProcessing,
 										 ImportanceVec& thresholds)
 {
 	assert(impFun.max_value() > impFun.initial_value() + margin);
@@ -179,9 +186,9 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 	if (impFun.name() == "concrete_split" &&
 		ImportanceFunctionConcreteSplit::CompositionType::PRODUCT ==
 			static_cast<const ImportanceFunctionConcreteSplit&>(impFun).composition_type())
-		postProcessing.type = PostProcessing::EXP;
+		postPro_.type = PostProcessing::EXP;
 
-	switch (postProcessing.type)
+	switch (postPro_.type)
 	{
 	case (PostProcessing::NONE):
 	case (PostProcessing::SHIFT):
@@ -203,8 +210,8 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 		}; break;
 
 	default:
-		throw_FigException("invalid post-processing specified (\""
-						  + postProcessing.name + "\")");
+		throw_FigException("invalid post-processing \"" + postPro_.name
+		                  + "\" (" + std::to_string(postPro_.type) + ")");
 		break;
 	};
 

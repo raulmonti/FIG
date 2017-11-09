@@ -161,7 +161,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 
 		std::fill(begin(raresCount), end(raresCount), 0u);  // reset counts
 		tpool.get_traials(stack, 1u);
-		stack.top().get().initialize(*network_, *impFun_);
+		stack.top().get().initialise(*network_, *impFun_);
 
 		// RESTART importance-splitting simulation:
 		while (!stack.empty() && !interrupted) {
@@ -258,7 +258,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 				tpool.return_traial(std::move(stack_.top().get()));
 			stack_.pop();
 		}
-		oTraial_.initialize(*network_, *impFun_);
+		oTraial_.initialise(*network_, *impFun_);
 		stack_.push(oTraial_);
 	} else {
 		// Batch means, but reset life times

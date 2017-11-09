@@ -51,6 +51,9 @@ class ThresholdsBuilderAdaptiveSimple : public ThresholdsBuilderAdaptive
 {
 protected:
 
+	/// Global effort used during simulations
+	unsigned globEff_;
+
 	/// Number of surviving simulations per iteration,
 	/// always less than ThresholdsBuilderAdaptive::n_
 	unsigned k_;
@@ -65,10 +68,27 @@ public:
 	ThresholdsBuilderAdaptiveSimple(const unsigned& n = 0u,
 	                                const unsigned& k = 0u);
 
+	/**
+	 * @brief Register the global effort used for simulations
+	 *
+	 *        <i>Global effort</i> means different things depending on
+	 *        the type of importance splitting used:
+	 *        <ul>
+	 *        <li>For RESTART it means the same splitting value is used
+	 *            in all thresholds, i.e. @a globalEffort-1 replicas
+	 *            will be created in a level-up;</li>
+	 *        <li>For Fixed Effort it means launching the same number
+	 *            of simulations (namely @a globalEffort)
+	 *            in all ("threshold-") levels.</li>
+	 *        </ul>
+	 */
+	void
+	setup(const PostProcessing&,
+	      std::shared_ptr<const Property>,
+	      const unsigned globalEffort) override;
+
 	ThresholdsVec
-	build_thresholds(const ImportanceFunction& impFun,
-	                 const PostProcessing&,
-	                 const unsigned& globalEffort) override;
+	build_thresholds(const ImportanceFunction& impFun) override;
 
 protected:  // Utils for the class and its kin
 
@@ -100,7 +120,8 @@ protected:  // Utils for the class and its kin
 
 	/// Choose values for n_ and k_
 	/// @copydetails ThresholdsBuilderAdaptive::tune()
-	void tune(const size_t&, const ImportanceValue&, const unsigned&) override;
+	void
+	tune(const size_t&, const ImportanceValue&, const unsigned&) override;
 };
 
 } // namespace fig

@@ -58,18 +58,29 @@ namespace fig
  */
 class ThresholdsBuilderES : public ThresholdsBuilderAdaptive
 {
+protected:
+
+	/// Property to estimate, for which the thresholds will be selected
+	std::shared_ptr<const Property> property_;
+
 public:
 
 	/// Data & default ctor
 	/// @param n Number of pilot simulations used per importance level, see Budde et al.
 	ThresholdsBuilderES(const size_t& n = (1ul<<8ul));
 
-	/// @copydoc ThresholdsBuilder::build_thresholds()
-	/// @warning The third parameter, @a globalEffort, is always ignored
+	/// Register the Property being estimated, which may affect
+	/// the internal Fixed Effort runs of the thresholds selection algorithm.
+	void
+	setup(const PostProcessing&,
+	      std::shared_ptr<const Property>,
+	      const unsigned) override;
+
 	ThresholdsVec
-	build_thresholds(const ImportanceFunction&,
-	                 const PostProcessing&,
-	                 const unsigned&) override;
+	build_thresholds(const ImportanceFunction&) override;
+
+public:  // Traial observers/updaters
+//	inline bool transient_sim(const PropertyTransient)
 };
 
 } // namespace fig

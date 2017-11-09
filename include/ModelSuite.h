@@ -557,6 +557,7 @@ public:  // Utils
 	 *                  refering to an ImportanceFunction which has
 	 *                  \ref ImportanceFunction::has_importance_info()
 	 *                  "importance information"
+	 * @param property  User property query being estimated
 	 * @param force     Build thresholds again, even if they already have been
 	 *                  for this importance function and technique
 	 *
@@ -576,7 +577,8 @@ public:  // Utils
 	 */
 	bool
 	build_thresholds(const std::string& technique,
-					 const std::string& ifunName,
+	                 const std::string& ifunName,
+	                 const std::shared_ptr<Property> property,
 	                 bool force = true);
 
 	/**
@@ -824,7 +826,7 @@ ModelSuite::process_batch(
 
 			// ... choose the thresholds ...
 			set_splitting(split, true);
-			build_thresholds(thrTechnique, impFunSpec.name);
+			build_thresholds(thrTechnique, impFunSpec.name, property);
 			assert(impFuns[impFunSpec.name]->ready());
 
 			// ... prepare the simulator ...
