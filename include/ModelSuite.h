@@ -578,7 +578,17 @@ public:  // Utils
 	bool
 	build_thresholds(const std::string& technique,
 	                 const std::string& ifunName,
-	                 const std::shared_ptr<Property> property,
+	                 std::shared_ptr<const Property> property,
+	                 bool force = true);
+
+	/// Same as build_thresholds() for the property
+	/// added to the system in the specified index
+	/// @throw FigException if there's no property at index 'propertyIndex'
+	/// @see get_property()
+	bool
+	build_thresholds(const std::string& technique,
+	                 const std::string& ifunName,
+	                 const size_t& propertyIndex,
 	                 bool force = true);
 
 	/**

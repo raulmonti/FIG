@@ -112,7 +112,7 @@ SECTION("Estimate steady-state property using standard MC")
 	// Prepare engine
 	model.set_splitting(1);
 	model.build_importance_function_flat(nameIFun, ssPropId, true);
-	model.build_thresholds(nameThr, nameIFun);
+	model.build_thresholds(nameThr, nameIFun, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, nameIFun);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -148,7 +148,7 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	// Prepare engine
 	model.set_splitting(6);
 	model.build_importance_function_adhoc(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -186,7 +186,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (op
 	// Prepare engine
 	model.set_splitting(8);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -226,7 +226,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (co
 	// Prepare engine
 	model.set_splitting(16);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -266,7 +266,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (+,
 	// Prepare engine
 	model.set_splitting(11);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria

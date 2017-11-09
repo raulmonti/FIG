@@ -941,7 +941,7 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 bool
 ModelSuite::build_thresholds(const std::string& technique,
                              const std::string& ifunName,
-                             const std::shared_ptr<Property> property,
+                             std::shared_ptr<const Property> property,
                              bool force)
 {
 	if (!exists_threshold_technique(technique))
@@ -976,6 +976,19 @@ ModelSuite::build_thresholds(const std::string& technique,
     assert(technique == ifun.thresholds_technique());
 	pristineModel_ = false;
 	return true;
+}
+
+
+bool
+ModelSuite::build_thresholds(const std::string& technique,
+                             const std::string& ifunName,
+                             const size_t& propertyIndex,
+                             bool force)
+{
+	auto propertyPtr = get_property(propertyIndex);
+	if (nullptr == propertyPtr)
+		throw_FigException("no property at index " + to_string(propertyIndex));
+	return build_thresholds(technique, ifunName, propertyPtr, force);
 }
 
 
