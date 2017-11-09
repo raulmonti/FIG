@@ -49,103 +49,28 @@ using std::begin;
 using std::end;
 
 
-namespace  // // // // // // // // // // // // // // // // // // // // // // //
-{
-
-using fig::Traial;
-using fig::ImportanceValue;
-using TraialsVec = fig::ThresholdsBuilderAdaptive::TraialsVec;
-
-
-/**
- * @brief Run Fixed Effort to roughly estimate level-up probabilities
- *
- *        Run a "fine" Fixed Effort where the threshold-levels are all adjacent
- *        importance values. The probabilities of going up from one importance
- *        value to the next are stored in the vector of floats.
- *
- * @param impFun  Importance function defining the threshold-levels for FE
- * @param traials Traials to perform the FE simulations
- * @param Pup     Vector to fill with the level-up probabilities
- *
- * @note The effort used per level equals the number of traials provided
- *
- * @todo We currently disregard rare events below max importance,
- *       and we force Fixed Effort to reach the max importance value.<br>
- *       This can be generalised to have "still successful Fixed Effort runs"
- *       when they don't reach the next importance value but hit a rare event.
- */
-void
-fixed_effort_for_expected_success(const fig::ImportanceFunction& impFun,
-                                  TraialsVec& traials,
-                                  std::vector<float>& Pup)
-{
-	const fig::ModuleNetwork& network(*fig::ModelSuite::get_instance().modules_network());
-	const size_t N = traials.size();  // effort per level
-	std::vector< fig::Reference< Traial > > freeNow, freeNext, startNow, startNext;
-
-	assert(0ul < N);
-	assert(impFun.initial_value() < impFun.max_value());
-	assert(Pup.size() >= impFun.max_value() - impFun.initial_value());
-
-	// Init ADTs
-	std::fill(begin(Pup), end(Pup), 0.0f);
-	freeNow.reserve(N);
-	freeNext.reserve(N);
-	startNow.reserve(N);
-	startNext.reserve(N);
-	for (Traial& t: traials) {
-		t.initialise(network,impFun);
-		startNow.push_back(t);
-	}
-
-	// For each importance value 'i' ...
-	for (ImportanceValue i = impFun.initial_value() ;
-	     i < impFun.max_value() && !startNow.empty() ;
-	     i++)
-	{
-		// ... run Fixed Effort until the next importance value 'i+1' ...
-		size_t startNowIdx(0ul);
-		for (size_t j = 0ul ; j < N ; j++) {
-			// (Traial fetching for simulation)
-			const bool useFree = !freeNow.empty();
-			Traial& traial( useFree ? freeNow.back() : startNow.back());
-			if (useFree) {
-				freeNow.pop_back();
-				traial = startNow[startNowIdx++].get();
-				startNowIdx %= startNow.size();
-			} else {
-				startNow.pop_back();
-			}
-			// (simulation & book keeping)
-			//////////////////////////////////////////////////////////
-//			network.simulation_step();
-			// TODO use ModuleNetwork::simulation_step(),
-			//      Extend the template implementation in ModuleNetwork.cpp
-			//////////////////////////////////////////////////////////
-//			if (traial.level > i)
-//				startNext.push_back(std::move(traial));
-//			else
-//				freeNext.push_back(std::move(traial));
-		}
-		// ... and estimate the probability of reaching 'i+1' from 'i'
-		Pup[i] = startNext.size() / N;
-		std::swap(freeNow, freeNext);
-		std::swap(startNow, startNext);
-	}
-}
-
-} // namespace  // // // // // // // // // // // // // // // // // // // // //
-
-
-
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
+
+//	namespace  // // // // // // // // // // // // // // // // // // // // // // //
+//	{
+//
+//	using fig::Traial;
+//	using fig::ImportanceValue;
+//	using TraialsVec = fig::ThresholdsBuilderAdaptive::TraialsVec;
+//
+//
+
+//	} // namespace  // // // // // // // // // // // // // // // // // // // // //
+//
+//
+
 
 ThresholdsBuilderES::ThresholdsBuilderES(const size_t& n) :
     ThresholdsBuilder("es"),  // virtual inheritance forces this...
     ThresholdsBuilderAdaptive(n),
-    property_(nullptr)
+    property_(nullptr),
+    impFun_(nullptr)
 { /* Not much to do around here */ }
 
 
@@ -164,17 +89,20 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 
 	// Adapted from Alg. 3 of Budde, D'Argenio, Hartmanns,
 	// "Better Automated Importance Splitting for Transient Rare Events", 2017.
-	ModelSuite::tech_log("Building thresholds with \""+ name +"\" for n = "
-	                     + std::to_string(n_) + "\n");
+	ModelSuite::tech_log("Building thresholds with \"" + name
+	                    + "\" for n = " + std::to_string(n_)
+	                    + "\nRunning FE on all adjacent importance values");
 
 	// Roughly estimate the level-up probabilities of all importance levels
+	impFun_ = &impFun;
 	TraialsVec traials(get_traials(n_, impFun, false));
 	do {
 		static size_t m(0ul);
 		m++;
-		fixed_effort_for_expected_success(impFun, traials, aux);
+		FE_for_ES(impFun, traials, aux);
 		for (size_t i = 0ul ; i < IMP_RANGE && 0.0f < aux[i] ; i++)
 			Pup[i] += (aux[i]-Pup[i])/m;
+		ModelSuite::tech_log(".");
 	} while (0.0f >= Pup.back());  // "until we reach the max importance"
 	TraialPool::get_instance().return_traials(traials);
 
@@ -195,9 +123,90 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 			thresholds_.emplace_back(i, thisSplit);
 	}
 	thresholds_.emplace_back(impFun.max_value()+static_cast<ImportanceValue>(1u), 1ul);
+
+	ModelSuite::tech_log("\n");
 	show_thresholds(thresholds_);
+	impFun_ = nullptr;
 
 	return thresholds_;
+}
+
+
+void
+ThresholdsBuilderES::FE_for_ES(const fig::ImportanceFunction& impFun,
+                               TraialsVec& traials,
+                               std::vector<float>& Pup)
+{
+	const ModuleNetwork& network(*fig::ModelSuite::get_instance().modules_network());
+	const size_t N = traials.size();  // effort per level
+	std::vector< Reference< Traial > > freeNow, freeNext, startNow, startNext;
+
+	assert(0ul < N);
+	assert(impFun.initial_value() < impFun.max_value());
+	assert(Pup.size() >= impFun.max_value() - impFun.initial_value());
+
+	// Init ADTs
+	std::fill(begin(Pup), end(Pup), 0.0f);
+	freeNow.reserve(N);
+	freeNext.reserve(N);
+	startNow.reserve(N);
+	startNext.reserve(N);
+	for (Traial& t: traials) {
+		t.initialise(network,impFun);
+		startNow.push_back(t);
+	}
+//	auto watch_events =
+//	    property_->type == PropertyType::TRANSIENT ? &ThresholdsBuilderES::transient_sim :
+//	    property_->type == PropertyType::RATE ? &ThresholdsBuilderES::rate_sim :
+//	    nullptr;
+
+//	bool (fig::ThresholdsBuilderES::*watch_events)
+//		 (const PropertyTransient&, Traial&, Event&) const;
+//	switch
+//	if (impFun_->concrete_simulation())
+//		watch_events = &SimulationEngineRestart::transient_event_concrete;
+//	else
+//		watch_events = &SimulationEngineRestart::transient_event;
+
+	// For each importance value 'i' ...
+	for (ImportanceValue i = impFun.initial_value() ;
+	     i < impFun.max_value() && !startNow.empty() ;
+	     i++)
+	{
+		// ... run Fixed Effort until the next importance value 'i+1' ...
+		size_t startNowIdx(0ul);
+		for (size_t j = 0ul ; j < N ; j++) {
+			// (Traial fetching for simulation)
+			const bool useFree = !freeNow.empty();
+			Traial& traial( useFree ? freeNow.back() : startNow.back());
+			if (useFree) {
+				freeNow.pop_back();
+				traial = startNow[startNowIdx++].get();
+				startNowIdx %= startNow.size();
+			} else {
+				startNow.pop_back();
+			}
+			// (simulation & bookkeeping)
+			assert(traial.level == i);
+			traial.depth = 0;
+			traial.lifeTime = 0.0f;
+			Event e = network.simulation_step(traial, *property_.get(), *this,
+			                                  &fig::ThresholdsBuilderES::FE_watcher);
+			//////////////////////////////////////////////////////////
+//			network.simulation_step();
+			// TODO use ModuleNetwork::simulation_step(),
+			//      Extend the template implementation in ModuleNetwork.cpp
+			//////////////////////////////////////////////////////////
+//			if (traial.level > i)
+//				startNext.push_back(std::move(traial));
+//			else
+//				freeNext.push_back(std::move(traial));
+		}
+		// ... and estimate the probability of reaching 'i+1' from 'i'
+		Pup[i] = startNext.size() / N;
+		std::swap(freeNow, freeNext);
+		std::swap(startNow, startNext);
+	}
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

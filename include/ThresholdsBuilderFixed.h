@@ -55,6 +55,17 @@ class ThresholdsBuilderFixed : public virtual ThresholdsBuilder
 {
 protected:
 
+	/// Minimal importance range (ifun.maxVal() - ifun.minVal())
+	/// If there are less values avaliable then every ImportanceValue
+	/// above ifun.minVal() will be considered a threshold.
+	const ImportanceValue MIN_IMP_RANGE;
+
+	/// The chosen stride_ will be expanded times the ceiling of
+	/// '(impFun.max_value() - impFun.initial_value()) / EXPAND_EVERY'
+	/// @note stride_ is also affected by the splitting and
+	///       the postProcessing specified in build_thresholds()
+	const ImportanceValue EXPAND_EVERY;
+
 	/// Global effort used during simulations
 	unsigned globEff_;
 
@@ -70,17 +81,6 @@ protected:
 	/// @note This is automatically updated during build_thresholds() according
 	///       to the splitting and the details of the ImportanceFunction
 	ImportanceValue stride_;
-
-	/// Minimal importance range (ifun.maxVal() - ifun.minVal())
-	/// If there are less values avaliable then every ImportanceValue
-	/// above ifun.minVal() will be considered a threshold.
-	const ImportanceValue MIN_IMP_RANGE;
-
-	/// The chosen stride_ will be expanded times the ceiling of
-	/// '(impFun.max_value() - impFun.initial_value()) / EXPAND_EVERY'
-	/// @note stride_ is also affected by the splitting and
-	///       the postProcessing specified in build_thresholds()
-	const ImportanceValue EXPAND_EVERY;
 
 public:
 

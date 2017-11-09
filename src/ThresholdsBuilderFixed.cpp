@@ -54,7 +54,8 @@ ThresholdsBuilderFixed::ThresholdsBuilderFixed(ImportanceValue minImpRange,
 	MIN_IMP_RANGE(minImpRange),
     EXPAND_EVERY(expandEvery),
     globEff_(2ul),
-    postPro_()
+    postPro_(),
+    stride_(0)
 { /* Not much to do around here */ }
 
 

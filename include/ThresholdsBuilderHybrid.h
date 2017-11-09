@@ -44,7 +44,7 @@ namespace fig
  *
  *        This member of the ThresholdsBuilder family combines adaptive
  *        techniques, studying the semantics of the user model, with fixed
- *        thresholds selection based on the splitting value chosen by the user.<br>
+ *        thresholds selection based on other data chosen by the user.<br>
  *        The goal is to ensure termination of the thresholds building routine,
  *        resorting to a fixed, semantics-oblivious heuristic whenever the
  *        adaptive algorithms fail to terminate within predefined bounds.

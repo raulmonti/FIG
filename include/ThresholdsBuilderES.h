@@ -30,6 +30,10 @@
 #define THRESHOLDSBUILDERES_H
 
 #include <ThresholdsBuilderAdaptive.h>
+#include <ImportanceFunction.h>
+#include <PropertyTransient.h>
+#include <PropertyRate.h>
+#include <Traial.h>
 
 
 namespace fig
@@ -58,10 +62,16 @@ namespace fig
  */
 class ThresholdsBuilderES : public ThresholdsBuilderAdaptive
 {
+	/// Max lifetime allowed for each internal Fixed Effort simulation
+	static constexpr float MAX_FESIM_TIME = 10000.0f;
+
 protected:
 
 	/// Property to estimate, for which the thresholds will be selected
-	std::shared_ptr<const Property> property_;
+	std::shared_ptr< const Property > property_;
+
+	/// Importance function currently built
+	const ImportanceFunction* impFun_;
 
 public:
 
@@ -79,8 +89,60 @@ public:
 	ThresholdsVec
 	build_thresholds(const ImportanceFunction&) override;
 
-public:  // Traial observers/updaters
-//	inline bool transient_sim(const PropertyTransient)
+private:  // Class utils
+
+	/**
+	 * @brief Run Fixed Effort to roughly estimate level-up probabilities
+	 *
+	 *        Run a "fine" Fixed Effort where the threshold-levels are all
+	 *        adjacent importance values. The probabilities of going up from an
+	 *        importance value to the next are stored in the vector of floats.
+	 *
+	 * @param impFun  Importance function defining the threshold-levels for FE
+	 * @param traials Traials to perform the FE simulations
+	 * @param Pup     Vector to fill with the level-up probabilities
+	 *
+	 * @note The effort used per level equals the number of traials provided
+	 *
+	 * @todo We currently disregard rare events below max importance,
+	 *       and we force Fixed Effort to reach the max importance value.<br>
+	 *       This can be generalised to have "still successful Fixed Effort runs"
+	 *       when they don't reach the next importance value but hit a rare event.
+	 */
+	void
+	FE_for_ES(const ImportanceFunction& impFun,
+	          TraialsVec& traials,
+	          std::vector<float>& Pup);
+
+	/// @brief Event-watcher for the internal Fixed Effort simulations
+	/// @details Interpret and mark the events triggered by a Traial
+	///          in its most recent traversal through the system model.
+	inline bool
+	FE_watcher(const Property& property, Traial& traial, Event&) const
+	    {
+		    ImportanceValue newThrLvl = impFun_->level_of(traial.state);
+			traial.numLevelsCrossed = newThrLvl - traial.level;
+			traial.depth -= traial.numLevelsCrossed;
+			traial.level = newThrLvl;
+			return traial.depth < 0 ||
+			       traial.lifeTime > MAX_FESIM_TIME ||
+			       property.is_stop(traial.state);
+//			if (traial.numLevelsCrossed < 0 &&
+//			    traial.depth > static_cast<short>(dieOutDepth_))
+//				e = EventType::THR_DOWN;
+//			else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
+//				e = EventType::THR_UP;
+//			else if (property.is_rare(traial.state))
+//				e = EventType::RARE;
+//			if (traial.lifeTime > SIM_TIME_CHUNK
+//			    && simsLifetime > SIM_TIME_CHUNK) {
+//				// reduce fp precision loss
+//				traial.lifeTime -= SIM_TIME_CHUNK;
+//				simsLifetime    -= SIM_TIME_CHUNK;
+//				numChunksTruncated_ += 1u;
+//			}
+//			return traial.lifeTime > simsLifetime || EventType::NONE != e;
+	    }
 };
 
 } // namespace fig
