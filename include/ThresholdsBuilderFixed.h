@@ -55,14 +55,6 @@ class ThresholdsBuilderFixed : public virtual ThresholdsBuilder
 {
 protected:
 
-	/// Number of \ref ImportanceValue "importance values" to group in a
-	/// single threshold level. So for instance stride==2 means there will be
-	/// two importance values per threshold level, i.e. a threshold will be set
-	/// every two importance values.
-	/// @note This is automatically updated during build_thresholds() according
-	///       to the splitting and the details of the ImportanceFunction
-	ImportanceValue stride_;
-
 	/// Minimal importance range (ifun.maxVal() - ifun.minVal())
 	/// If there are less values avaliable then every ImportanceValue
 	/// above ifun.minVal() will be considered a threshold.
@@ -74,40 +66,53 @@ protected:
 	///       the postProcessing specified in build_thresholds()
 	const ImportanceValue EXPAND_EVERY;
 
+	/// Global effort used during simulations
+	unsigned globEff_;
+
+	/// PostProcessing applied to the importance function values,
+	/// which may affect the distance between values and is hence
+	/// relevant during a non-adaptive selection of thresholds.
+	PostProcessing postPro_;
+
+	/// Number of \ref ImportanceValue "importance values" to group in a
+	/// single threshold level. So for instance stride==2 means there will be
+	/// two importance values per threshold level, i.e. a threshold will be set
+	/// every two importance values.
+	/// @note This is automatically updated during build_thresholds() according
+	///       to the splitting and the details of the ImportanceFunction
+	ImportanceValue stride_;
+
 public:
 
-	/// Default ctor
-	ThresholdsBuilderFixed() : ThresholdsBuilder("fix"),
-							   MIN_IMP_RANGE(3),
-							   EXPAND_EVERY(64)
-		{ /* Not much to do around here */ }
-
-	/// Data ctor
-	ThresholdsBuilderFixed(ImportanceValue minImpRange,
-						   ImportanceValue expandEvery);
+	/// Data & default ctor
+	ThresholdsBuilderFixed(ImportanceValue minImpRange = 3,
+	                       ImportanceValue expandEvery = 64);
 
 	inline bool adaptive() const noexcept override { return false; }
 
-	std::vector< ImportanceValue >
-	build_thresholds(const unsigned& splitsPerThreshold,
-					 const ImportanceFunction& impFun,
-					 const PostProcessing& postProcessing) override;
+	/// Register the post-processing and the global effort (if any)
+	/// @param pp PostProcessing that will be applied to the ImportanceValue s
+	/// @param ge Global splitting/effort to use in all ("threshold-") levels
+	void setup(const PostProcessing& pp,
+	           std::shared_ptr<const Property>,
+	           const unsigned ge = 2ul) override;
+
+	ThresholdsVec
+	build_thresholds(const ImportanceFunction& impFun) override;
 
 public:  // Accessors
 
 	/// @copydoc stride_
 	const ImportanceValue& stride() const noexcept;
 
-	/// @copydoc minImpRange_
+	/// @copydoc MIN_IMP_RANGE
 	const ImportanceValue& min_imp_range() const noexcept;
 
 protected:  // Utils for the class and its kin
 
 	/// Choose a stride based on all information available
-	virtual ImportanceValue
-	choose_stride(const size_t& impRange,
-				  const unsigned& splitsPerThreshold,
-				  const PostProcessing& postProcessing) const;
+	/// @note Relies on data previously set by setup()
+	virtual ImportanceValue choose_stride(const size_t& impRange) const;
 
 	/**
 	 * Choose threshold and store them in given ImportanceVec
@@ -123,8 +128,6 @@ protected:  // Utils for the class and its kin
 	 * @param thresholds Where the thresholds-to-importance map will be built
 	 * @param margin Start 'margin' importance values above the initial import.
 	 * @param stride Number of importance values to jump per threshold
-	 * @param postProcessing Post-processing applied to the ImportanceValue s
-	 *                       after importance assessment
 	 *
 	 * @note Any previous content in 'thresholds' is left untouched:
 	 *       the vector is resized and the thresholds selection is stored
@@ -134,7 +137,6 @@ protected:  // Utils for the class and its kin
 	build_thresholds(const ImportanceFunction& impFun,
 					 const unsigned& margin,
 					 const unsigned& stride,
-					 PostProcessing postProcessing,
 					 ImportanceVec& thresholds);
 };
 

@@ -125,7 +125,7 @@ protected:  // Simulation helper functions
 						   const size_t& runLength,
 						   bool reinit = false) const override;
 
-public:  // Traial observers/updaters
+private:  // Traial observers/updaters
 
 	/// @copydoc SimulationEngine::transient_event()
 	/// @note Makes no assumption about the ImportanceFunction altogether
@@ -136,7 +136,7 @@ public:  // Traial observers/updaters
 		{
 			// Event marking is done in accordance with the checks performed
 			// in the transient_simulations() overriden member function
-			if (!property.expr1(traial.state)) {
+		    if (property.is_stop(traial.state)) {
 				e = EventType::STOP;
 			} else {
 				ImportanceValue newThrLvl = impFun_->level_of(traial.state);
@@ -148,7 +148,7 @@ public:  // Traial observers/updaters
 					e = EventType::THR_DOWN;
 				else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 					e = EventType::THR_UP;
-				else if (property.expr2(traial.state))
+				else if (property.is_rare(traial.state))
 					e = EventType::RARE;
 			}
 			return EventType::NONE != e;
@@ -198,7 +198,7 @@ public:  // Traial observers/updaters
 				e = EventType::THR_DOWN;
 			else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 				e = EventType::THR_UP;
-			else if (property.expr(traial.state))
+			else if (property.is_rare(traial.state))
 				e = EventType::RARE;
 			if (traial.lifeTime > SIM_TIME_CHUNK
 				&& simsLifetime > SIM_TIME_CHUNK) {

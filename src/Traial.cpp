@@ -181,7 +181,7 @@ Traial::clocks_values(bool ordered) const
 
 
 void
-Traial::initialize(const ModuleNetwork& network,
+Traial::initialise(const ModuleNetwork& network,
 				   const ImportanceFunction& impFun)
 {
 #ifndef NDEBUG
@@ -190,19 +190,19 @@ Traial::initialize(const ModuleNetwork& network,
 	else if (!impFun.has_importance_info())
 		throw_FigException(std::string("importance function \"")
 						  .append(impFun.name()).append("\" doesn't have ")
-						  .append("importance info; can't initialize Traial"));
+						  .append("importance info; can't initialise Traial"));
 #else
 	if (! (network.sealed() && impFun.has_importance_info()) )
 		return;  // we can't do anything without that data
 #endif
-	// Initialize variables value
+	// initialise variables value
 	network.instantiate_initial_state(state);
-	// Initialize clocks (reset all and then resample initials)
+	// initialise clocks (reset all and then resample initials)
 	for (auto& timeout : clocks_)
 		timeout.value = 0.0f;
 	for (const auto& posCLK: network.initialClocks)
 		clocks_[posCLK.first].value = posCLK.second.sample();  // should be non-negative
-	// Initialize importance and simulation time
+	// initialise importance and simulation time
 	level = impFun.ready() ? impFun.level_of(state)
 						   : impFun.importance_of(state);
 	depth = -static_cast<short>(level);

@@ -557,16 +557,11 @@ public:  // Utils
 	 *                  refering to an ImportanceFunction which has
 	 *                  \ref ImportanceFunction::has_importance_info()
 	 *                  "importance information"
+	 * @param property  User property query being estimated
 	 * @param force     Build thresholds again, even if they already have been
 	 *                  for this importance function and technique
-	 * @param lvlUpProb Desired probability of crossing the threshold levels
-	 *                  upwards (relevant for \ref ThresholdsBuilderAdaptive
-	 *                  "adaptive thresholds builders" only)
-	 * @param simsPerIter Number of simulation to run for the selection of each
-	 *                    threshold (relevant for \ref ThresholdsBuilderAdaptive
-	 *                    "adaptive thresholds builders" only)
 	 *
-	 * @return True if the thresholds could be successfully built
+	 * @return Whether the thresholds could be successfully built
 	 *
 	 * @note Supresses the \ref pristineModel_ "pristine condition"
 	 *
@@ -582,10 +577,19 @@ public:  // Utils
 	 */
 	bool
 	build_thresholds(const std::string& technique,
-					 const std::string& ifunName,
-					 bool force = true,
-					 const float& lvlUpProb = 0.0,
-					 const unsigned& simsPerIter = 0u);
+	                 const std::string& ifunName,
+	                 std::shared_ptr<const Property> property,
+	                 bool force = true);
+
+	/// Same as build_thresholds() for the property
+	/// added to the system in the specified index
+	/// @throw FigException if there's no property at index 'propertyIndex'
+	/// @see get_property()
+	bool
+	build_thresholds(const std::string& technique,
+	                 const std::string& ifunName,
+	                 const size_t& propertyIndex,
+	                 bool force = true);
 
 	/**
 	 * @brief Set a SimulationEngine ready for upcoming estimations
@@ -832,7 +836,7 @@ ModelSuite::process_batch(
 
 			// ... choose the thresholds ...
 			set_splitting(split, true);
-			build_thresholds(thrTechnique, impFunSpec.name, true);
+			build_thresholds(thrTechnique, impFunSpec.name, property);
 			assert(impFuns[impFunSpec.name]->ready());
 
 			// ... prepare the simulator ...

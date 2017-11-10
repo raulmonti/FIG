@@ -124,8 +124,10 @@
 #include "ThresholdsBuilder.h"
 #include "ThresholdsBuilderFixed.h"
 #include "ThresholdsBuilderAdaptive.h"
+#include "ThresholdsBuilderAdaptiveSimple.h"
 #include "ThresholdsBuilderAMS.h"
 #include "ThresholdsBuilderSMC.h"
+#include "ThresholdsBuilderES.h"
 #include "ThresholdsBuilderHybrid.h"
 // Simulation engines
 #include "SimulationEngine.h"

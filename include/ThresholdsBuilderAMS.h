@@ -29,7 +29,7 @@
 #ifndef THRESHOLDSBUILDERAMS_H
 #define THRESHOLDSBUILDERAMS_H
 
-#include <ThresholdsBuilderAdaptive.h>
+#include <ThresholdsBuilderAdaptiveSimple.h>
 
 
 namespace fig
@@ -46,22 +46,18 @@ namespace fig
  *        simulation run traversing the i-th level upwards, that is, going up
  *        the i-th importance threshold having started at the (i-1)-th threshold.
  *
- * @see ThresholdsBuilderAdaptive
+ * @see ThresholdsBuilderAdaptiveSimple
  * @see ThresholdsBuilderSMC
  */
-class ThresholdsBuilderAMS : public virtual ThresholdsBuilderAdaptive
+class ThresholdsBuilderAMS : public ThresholdsBuilderAdaptiveSimple
 {
 public:
 
-	/// Default ctor
-	ThresholdsBuilderAMS() : ThresholdsBuilder("ams"),
-							 ThresholdsBuilderAdaptive()
-		{ /* Not much to do around here */ }
+	ThresholdsBuilderAMS();
 
 protected:  // Utils for the class and its kin
 
 	void build_thresholds_vector(const ImportanceFunction& impFun) override;
-
 };
 
 } // namespace fig

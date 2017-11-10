@@ -350,11 +350,11 @@ ImportanceFunction::level_of(const ImportanceValue& val) const
 	assert(val >= minValue_);
 	assert(val <= maxValue_);
 	if (importance2threshold_.size() > 0ul)  // Do we have the direct map?
-		return importance2threshold_[val];
+		return importance2threshold_[val].first;
 	ImportanceValue tlvl(threshold2importance_.size()/2ul), step(tlvl/2);
-	while (val <  threshold2importance_[tlvl] ||
-		   val >= threshold2importance_[tlvl+1]) {
-		if (val < threshold2importance_[tlvl])
+	while (val <  threshold2importance_[tlvl].first ||
+	       val >= threshold2importance_[tlvl+1].first) {
+		if (val < threshold2importance_[tlvl].first)
 			tlvl -= step;
 		else
 			tlvl += step;
@@ -401,38 +401,43 @@ ImportanceFunction::initial_value() const noexcept
 
 
 void
-ImportanceFunction::build_thresholds(
-	ThresholdsBuilder& tb,
-	const unsigned& spt)
+ImportanceFunction::build_thresholds(ThresholdsBuilder& tb)
 {
 	if (!has_importance_info())
 		throw_FigException("importance function \"" + name() + "\" "
-						   "doesn't yet have importance information");
-	ImportanceVec().swap(threshold2importance_);
-	ImportanceVec().swap(importance2threshold_);
+		                   "has no importance information");
+	ThresholdsVec().swap(threshold2importance_);
+	ThresholdsVec().swap(importance2threshold_);
 	thresholdsTechnique_ = "";
 	readyForSims_ = false;
-	threshold2importance_ = tb.build_thresholds(spt, *this, post_processing());
+	threshold2importance_ = tb.build_thresholds(*this);
 	post_process_thresholds(tb);
 }
 
 
 void
-ImportanceFunction::build_thresholds_adaptively(
-	ThresholdsBuilderAdaptive& atb,
-	const unsigned& spt,
-	const float& p,
-	const unsigned& n)
+ImportanceFunction::post_process_thresholds(const ThresholdsBuilder& tb)
 {
-	if (!has_importance_info())
-		throw_FigException("importance function \"" + name() + "\" "
-						   "doesn't yet have importance information");
-	ImportanceVec().swap(threshold2importance_);
-	ImportanceVec().swap(importance2threshold_);
-	thresholdsTechnique_ = "";
-	readyForSims_ = false;
-	threshold2importance_ = atb.build_thresholds(spt, *this, p, n);
-	post_process_thresholds(atb);
+	if (static_cast<size_t>(maxValue_-minValue_) < (MAX_MEM_REQ/8ul) &&
+			strategy_ != "flat") {
+		// Few importance values: we can afford direct "translator"
+		importance2threshold_ = tb.invert_thresholds_map(threshold2importance_);
+		// Check the consistency of the translator built
+		assert(!importance2threshold_.empty());
+		assert(importance2threshold_[0].first == static_cast<ImportanceValue>(0u));
+		assert(importance2threshold_[0].first <= importance2threshold_.back().first);
+		// As specified in ThresholdsBuilder::invert_thresholds_map() implementation:
+		assert(0u == importance2threshold_[minValue_].first);
+		assert(0u == importance2threshold_[initialValue_].first);
+		assert(threshold2importance_.size() == importance2threshold_[maxValue_].first + 2u);
+		// Threshold levels are a non-decreasing function of the importance:
+		assert(importance2threshold_[minValue_].first <= importance2threshold_[initialValue_].first);
+		assert(importance2threshold_[initialValue_].first <= importance2threshold_[minRareValue_].first);
+		assert(importance2threshold_[minRareValue_].first <= importance2threshold_[maxValue_].first);
+	}
+	// Set relevant attributes
+	thresholdsTechnique_ = tb.name;
+	readyForSims_ = true;
 }
 
 
@@ -446,35 +451,9 @@ ImportanceFunction::clear() noexcept
 	minValue_ = static_cast<ImportanceValue>(0u);
 	maxValue_ = static_cast<ImportanceValue>(0u);
 	minRareValue_ = static_cast<ImportanceValue>(0u);
-	ImportanceVec().swap(threshold2importance_);
-	ImportanceVec().swap(importance2threshold_);
+	ThresholdsVec().swap(threshold2importance_);
+	ThresholdsVec().swap(importance2threshold_);
 	userFun_.reset();
-}
-
-
-void
-ImportanceFunction::post_process_thresholds(const ThresholdsBuilder& tb)
-{
-	if (static_cast<size_t>(maxValue_-minValue_) < (MAX_MEM_REQ/8ul) &&
-			strategy_ != "flat") {
-		// Few importance values: we can afford direct "translator"
-		importance2threshold_ = tb.invert_thresholds_map(threshold2importance_);
-		// Check the consistency of the translator built
-		assert(!importance2threshold_.empty());
-		assert(importance2threshold_[0] == static_cast<ImportanceValue>(0u));
-		assert(importance2threshold_[0] <= importance2threshold_.back());
-		// As specified in ThresholdsBuilder::invert_thresholds_map() implementation:
-		assert(0u == importance2threshold_[minValue_]);
-		assert(0u == importance2threshold_[initialValue_]);
-		assert(threshold2importance_.size() == importance2threshold_[maxValue_] + 2u);
-		// Threshold levels are a non-decreasing function of the importance:
-		assert(importance2threshold_[minValue_] <= importance2threshold_[initialValue_]);
-		assert(importance2threshold_[initialValue_] <= importance2threshold_[minRareValue_]);
-		assert(importance2threshold_[minRareValue_] <= importance2threshold_[maxValue_]);
-	}
-	// Set relevant attributes
-	thresholdsTechnique_ = tb.name;
-	readyForSims_ = true;
 }
 
 

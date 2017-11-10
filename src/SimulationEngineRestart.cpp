@@ -161,10 +161,10 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 
 		std::fill(begin(raresCount), end(raresCount), 0u);  // reset counts
 		tpool.get_traials(stack, 1u);
-		stack.top().get().initialize(*network_, *impFun_);
+		stack.top().get().initialise(*network_, *impFun_);
 
 		// RESTART importance-splitting simulation:
-		while (!stack.empty() & !interrupted) {
+		while (!stack.empty() && !interrupted) {
 			Event e(EventType::NONE);
 			Traial& traial = stack.top();
 
@@ -258,10 +258,22 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 				tpool.return_traial(std::move(stack_.top().get()));
 			stack_.pop();
 		}
-		oTraial_.initialize(*network_, *impFun_);
+		oTraial_.initialise(*network_, *impFun_);
 		stack_.push(oTraial_);
 	} else {
-		// Batch means, but reset life times
+
+//		/// @todo TODO erase debug print below
+//		std::cerr << stack_.size() << ":";
+//
+//		// Batch means, but reset life times
+//		std::stack< Reference< Traial > > tmp;
+//		while (!stack_.empty()) {
+//			stack_.top().get().lifeTime = 0.0;
+//			tmp.push(stack_.top());
+//			stack_.pop();
+//		}
+//		stack_.swap(tmp);  // note: the order of the Traials in stack_ is now inverted!
+//		std::deque< Reference< Traial > > tmp;
 		typedef decltype(stack_)::value_type StackValueType;
 		std::deque< StackValueType > tmp;
 		while (!stack_.empty()) {
@@ -269,7 +281,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 			tmp.push_front(stack_.top().get());  // make swap() below respect order
 			stack_.pop();
 		}
-		std::stack<StackValueType>(std::move(tmp)).swap(stack_);
+		std::stack< Reference< Traial > >(std::move(tmp)).swap(stack_);
 	}
 
 	// Run a single RESTART importance-splitting simulation for "runLength"

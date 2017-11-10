@@ -124,7 +124,7 @@ SECTION("Estimate steady-state property using standard MC")
 	// Prepare engine
 	model.set_splitting(1);
 	model.build_importance_function_flat(nameIFun, ssPropId, true);
-	model.build_thresholds(nameThr, nameIFun);
+	model.build_thresholds(nameThr, nameIFun, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, nameIFun);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -149,9 +149,9 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	const string nameEngine("restart");
 	const string ifunAdHoc("max((broken_pipe1>0)+(broken_pipe2>0)+(broken_pipe3>0),(broken_pipe2>0)+(broken_pipe3>0)+(broken_pipe4>0),(broken_pipe3>0)+(broken_pipe4>0)+(broken_pipe5>0),(broken_pipe4>0)+(broken_pipe5>0)+(broken_pipe6>0),(broken_pipe5>0)+(broken_pipe6>0)+(broken_pipe7>0),(broken_pipe6>0)+(broken_pipe7>0)+(broken_pipe8>0),(broken_pipe7>0)+(broken_pipe8>0)+(broken_pipe9>0),(broken_pipe8>0)+(broken_pipe9>0)+(broken_pipe10>0),(broken_pipe9>0)+(broken_pipe10>0)+(broken_pipe11>0),(broken_pipe10>0)+(broken_pipe11>0)+(broken_pipe12>0),(broken_pipe11>0)+(broken_pipe12>0)+(broken_pipe13>0),(broken_pipe12>0)+(broken_pipe13>0)+(broken_pipe14>0),(broken_pipe13>0)+(broken_pipe14>0)+(broken_pipe15>0),(broken_pipe14>0)+(broken_pipe15>0)+(broken_pipe16>0),(broken_pipe15>0)+(broken_pipe16>0)+(broken_pipe17>0),(broken_pipe16>0)+(broken_pipe17>0)+(broken_pipe18>0),(broken_pipe17>0)+(broken_pipe18>0)+(broken_pipe19>0),(broken_pipe18>0)+(broken_pipe19>0)+(broken_pipe20>0),0)");
 	const fig::ImpFunSpec ifunSpec("algebraic", "adhoc",
-								   ifunAdHoc,
-								   fig::PostProcessing(),
-								   0, 3);
+	                               ifunAdHoc,
+	                               fig::PostProcessing(),
+	                               0, 3);
 	const string nameThr("hyb");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
@@ -160,7 +160,7 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	// Prepare engine
 	model.set_splitting(3);
 	model.build_importance_function_adhoc(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -181,7 +181,7 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	REQUIRE(ci.precision(confCo) > 0.0);
 	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-			  == Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.1));
+	          == Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.1));
 }
 
 SECTION("Estimate steady-state property using RESTART and compositional ifun (op:*)")
@@ -197,7 +197,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (op
 	// Prepare engine
 	model.set_splitting(4);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -279,7 +279,7 @@ SECTION("Estimate steady-state property using standard MC")
 	// Prepare engine
 	model.set_splitting(1);
 	model.build_importance_function_flat(nameIFun, ssPropId, true);
-	model.build_thresholds(nameThr, nameIFun);
+	model.build_thresholds(nameThr, nameIFun, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, nameIFun);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -315,7 +315,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (ma
 	// Prepare engine
 	model.set_splitting(3);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -355,7 +355,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (+,
 	// Prepare engine
 	model.set_splitting(4);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria

@@ -45,6 +45,7 @@ namespace fig
 
 class ThresholdsBuilder;
 class ThresholdsBuilderAdaptive;
+class ThresholdsBuilderAdaptiveSimple;
 class ModuleInstance;
 class ModuleNetwork;
 class Property;
@@ -154,15 +155,36 @@ protected:  // Attributes for derived classes
 	/// Importance of the system's initial state
 	ImportanceValue initialValue_;
 
-	/// Map from a state's ImportanceValue to the corresponding threshold level
-	/// @note Present only when the importance range is "small"
-	ImportanceVec importance2threshold_;
+	/**
+	 * @brief Map from a <i>threshold-level</i> to the ImportanceValue
+	 *        and splitting/effort that defines it.
+	 *
+	 *        The i-th <i>("threshold-") level</i> comprises all importance
+	 *        values between threshold2importance_[i] (including it)
+	 *        and threshold2importance_[i+1] (excluding it).<br>
+	 *        The pair at the i-th position of this vector holds:
+	 *        <ol>
+	 *        <li>the minimum ImportanceValue in the i-th level,</li>
+	 *        <li>the splitting/effort to perform on that level.</li>
+	 *        </ol>
+	 *
+	 * @see importance2threshold_
+	 */
+	ThresholdsVec threshold2importance_;
 
-	/// Map from a threshold level to the minimum ImportanceValue in it.<br>
-	/// The "i-th threshold level" comprises all importance values between
-	/// threshold2importance_[i] (including it) and threshold2importance_[i+1]
-	/// (excluding it)
-	ImportanceVec threshold2importance_;
+	/**
+	 * @brief Like threshold2importance_ but swapping threshold and importance
+	 *
+	 *        Map from the ImportanceValue of a state to a pair containing:
+	 *        <ol>
+	 *        <li>the ("threshold-") level that holds that importance,</li>
+	 *        <li>the splitting/effort to perform on that level.</li>
+	 *        </ol>
+	 *
+	 *  @see threshold2importance_
+	 *  @note Built only when the importance range is "small"
+	 */
+	ThresholdsVec importance2threshold_;
 
 	/// @brief Algebraic formula defined by the user.
 	/// @note Useful both for ad hoc strategy and concrete_split functions
@@ -329,7 +351,7 @@ public:  // Accessors
 		{
 			assert(has_importance_info());
 			return (importance2threshold_.size() > 0ul)
-			        ? importance2threshold_[importance_of(state)]  // use direct map
+			        ? importance2threshold_[importance_of(state)].first  // use direct map
 			        : level_of(importance_of(state));  // search threshold level
 		}
 
@@ -360,9 +382,8 @@ public:  // Utils
 	 *        engines" will use these thresholds when coupled with this
 	 *        ImportanceFunction.
 	 *
-	 * @param tb  ThresholdsBuilder to use
-	 * @param spt Splits per threshold, i.e. #{simulation-run-replicas} + 1
-	 *            upon a "threshold level up" event
+	 * @warning It may be needed to \ref ThresholdsBuilder::setup() "setup
+	 *          the ThresholdsBuilder" before calling this function.
 	 *
 	 * @throw FigException if there was no precomputed \ref has_importance_info()
 	 *                     "importance information"
@@ -370,26 +391,7 @@ public:  // Utils
 	 * @see ready()
 	 * @see ThresholdsBuilder
 	 */
-	void build_thresholds(ThresholdsBuilder& tb,
-						  const unsigned& spt);
-
-	/**
-	 * @brief Like build_thresholds() but specifically using an adaptive
-	 *        thresholds building algorithm, e.g. \ref ThresholdsBuilderAMS
-	 *        "AMS" and \ref ThresholdsBuilderSMC "SMC"
-	 *
-	 * @param atb ThresholdsBuilderAdaptive to use
-	 * @param spt Splits per threshold, i.e. #{simulation-run-replicas} + 1
-	 *            upon a "threshold level up" event
-	 * @param p   Desired probability of crossing a threshold level upwards
-	 * @param n   Number of simulation to run for building each threshold
-	 *
-	 * @see ThresholdsBuilderAdaptive
-	 */
-	void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
-									 const unsigned& spt,
-									 const float& p,
-									 const unsigned& n);
+	void build_thresholds(ThresholdsBuilder& tb);
 
 	/**
 	 * @brief Release memory allocated in the heap during importance assessment
@@ -405,10 +407,9 @@ public:  // Utils
 
 private:  // Class utils
 
-	/// Optimize (already chosen) thresholds storage, when feasible
-	/// @param tb ThresholdsBuilder used last
+	/// Try to optimize the storage of the thresholds that have been chosen
+	/// @param tb ThresholdsBuilder last used
 	/// @see build_thresholds()
-	/// @see build_thresholds_adaptively()
 	void post_process_thresholds(const ThresholdsBuilder& tb);
 
 protected:  // Utils for derived classes

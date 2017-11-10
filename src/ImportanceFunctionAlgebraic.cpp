@@ -40,8 +40,6 @@
 #include <numeric>    // std::numeric_limits<>
 // FIG
 #include <ImportanceFunctionAlgebraic.h>
-#include <ThresholdsBuilder.h>
-#include <ThresholdsBuilderAdaptive.h>
 #include <Property.h>
 
 // ADL
@@ -119,7 +117,7 @@ find_extreme_values(const Formula& f, State s)
 	ImportanceValue max(std::numeric_limits<ImportanceValue>::min());
 	const std::vector< std::string > vars(f.get_free_vars());
 
-	// Initialize (in 's') all relevant variables to their minimal values
+	// initialise (in 's') all relevant variables to their minimal values
 	for (const auto& var: vars) {
 		VariablePtr var_p = s[var];
 		if (nullptr == var_p)

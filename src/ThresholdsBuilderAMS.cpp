@@ -107,6 +107,12 @@ simulate(const fig::ModuleNetwork& network,
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
+ThresholdsBuilderAMS::ThresholdsBuilderAMS() :
+    ThresholdsBuilder("ams"),  // virtual inheritance forces this...
+    ThresholdsBuilderAdaptiveSimple()
+{ /* Not much to do around here */ }
+
+
 void
 ThresholdsBuilderAMS::build_thresholds_vector(
 	const ImportanceFunction& impFun)

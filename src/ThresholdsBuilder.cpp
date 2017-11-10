@@ -79,7 +79,7 @@ ThresholdsBuilder::techniques() noexcept
 		// See ThresholdsBuilderSMC class
 		"smc",
 
-		// Hybrid thresholds selection: Sequential Monte Carlo + Fixed
+	    // Hybrid thresholds selection: Adaptive + Fixed
 		// See ThresholdsBuilderHybrid class
 		"hyb",
 
@@ -91,18 +91,19 @@ ThresholdsBuilder::techniques() noexcept
 }
 
 
-ImportanceVec
-ThresholdsBuilder::invert_thresholds_map(const ImportanceVec& t2i) const
+ThresholdsVec
+ThresholdsBuilder::invert_thresholds_map(const ThresholdsVec& t2i) const
 {
 	assert(t2i.size() > 0ul);
-	assert(t2i.back() > 1ul);
-	const size_t SIZE(t2i.back());
-	ImportanceVec i2t(SIZE);
+	assert(t2i.back().first > 1ul);
+	const size_t SIZE(t2i.back().first), NTHR(t2i.size()-1);
+	ThresholdsVec i2t(SIZE);
 	unsigned currThr(0ul);
 	for (size_t i = 0ul ; i < SIZE ; i++) {
-		while (currThr < t2i.size()-1 && i >= t2i[currThr+1])
+		while (currThr < NTHR && i >= t2i[currThr+1].first)
 			currThr++;
-		i2t[i] = static_cast<ImportanceValue>(currThr);
+		i2t[i] = std::make_pair(currThr, t2i[currThr].second);
+//		i2t[i] = static_cast<ImportanceValue>(currThr);
 	}
 	return i2t;
 	/* * * * *
@@ -115,9 +116,19 @@ ThresholdsBuilder::invert_thresholds_map(const ImportanceVec& t2i) const
 
 
 void
+ThresholdsBuilder::show_thresholds(const ThresholdsVec &t2i)
+{
+	figTechLog << "Thresholds chosen (and corresp. effort):";
+	for (size_t i = 1ul ; i < t2i.size()-1 ; i++)
+		figTechLog << " " << t2i[i].first << " (e:" << t2i[i].second << ")";
+	figTechLog << "\n";
+}
+
+
+void
 ThresholdsBuilder::show_thresholds(const ImportanceVec& t2i)
 {
-	figTechLog << "ImportanceValue of the chosen thresholds:";
+	figTechLog << "Thresholds chosen:";
 	for (size_t i = 1ul ; i < t2i.size()-1 ; i++)
 		figTechLog << " " << t2i[i];
 	figTechLog << "\n";

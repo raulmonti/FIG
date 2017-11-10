@@ -30,6 +30,10 @@
 #define THRESHOLDSBUILDERES_H
 
 #include <ThresholdsBuilderAdaptive.h>
+#include <ImportanceFunction.h>
+#include <PropertyTransient.h>
+#include <PropertyRate.h>
+#include <Traial.h>
 
 
 namespace fig
@@ -53,16 +57,77 @@ namespace fig
  *        This defines the thresholds and also the optimal splitting to perform
  *        in each threshold.
  *
+ * @see ThresholdsBuilderAdaptiveSimple
  * @see ThresholdsBuilderAdaptive
- * @see ThresholdsBuilderSMC
  */
 class ThresholdsBuilderES : public ThresholdsBuilderAdaptive
 {
+	/// Max # steps allowed for each internal Fixed Effort simulation
+	static constexpr size_t MAX_FE_SIM_LEN = 10000ul;
+
+protected:
+
+	/// Property to estimate, for which the thresholds will be selected
+	std::shared_ptr< const Property > property_;
+
+	/// Importance function currently built
+	const ImportanceFunction* impFun_;
+
 public:
-	/// Default ctor
-	ThresholdsBuilderES() : ThresholdsBuilder("es"),
-							ThresholdsBuilderAdaptive()
-		{ /* Not much to do around here */ }
+
+	/// Data & default ctor
+	/// @param n Number of pilot simulations used per importance level, see Budde et al.
+	ThresholdsBuilderES(const size_t& n = (1ul<<11ul));
+
+	/// Register the Property being estimated, which may affect
+	/// the internal Fixed Effort runs of the thresholds selection algorithm.
+	void
+	setup(const PostProcessing&,
+	      std::shared_ptr<const Property>,
+	      const unsigned) override;
+
+	ThresholdsVec
+	build_thresholds(const ImportanceFunction&) override;
+
+private:  // Class utils
+
+	/**
+	 * @brief Run Fixed Effort to roughly estimate level-up probabilities
+	 *
+	 *        Run a "fine" Fixed Effort where the threshold-levels are all
+	 *        adjacent importance values. The probabilities of going up from an
+	 *        importance value to the next are stored in the vector of floats.
+	 *
+	 * @param impFun  Importance function defining the threshold-levels for FE
+	 * @param traials Traials to perform the FE simulations
+	 * @param Pup     Vector to fill with the level-up probabilities
+	 *
+	 * @note The effort used per level equals the number of traials provided
+	 *
+	 * @todo We currently disregard rare events below max importance,
+	 *       and we force Fixed Effort to reach the max importance value.<br>
+	 *       This can be generalised to have "still successful Fixed Effort runs"
+	 *       when they don't reach the next importance value but hit a rare event.
+	 */
+	void
+	FE_for_ES(const ImportanceFunction& impFun,
+	          TraialsVec& traials,
+	          std::vector<float>& Pup);
+
+	/// @brief Event-watcher for the internal Fixed Effort simulations
+	/// @details Interpret and mark the events triggered by a Traial
+	///          in its most recent traversal through the system model.
+	inline bool
+	FE_watcher(const Property& property, Traial& traial, Event&) const
+	    {
+			const ImportanceValue newThrLvl = impFun_->level_of(traial.state);
+			traial.depth += newThrLvl - traial.level;
+			traial.level = newThrLvl;
+			traial.numLevelsCrossed++;  // encode here the # steps taken
+			return /* level-up:     */ traial.depth < 0 ||
+				   /* sim too long: */ traial.numLevelsCrossed > MAX_FE_SIM_LEN ||
+				   /* stop event:   */ property.is_stop(traial.state);
+	    }
 };
 
 } // namespace fig

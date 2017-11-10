@@ -102,7 +102,7 @@ SECTION("Estimate transient property using standard MC")
 	// Prepare engine
 	model.set_splitting(1);
 	model.build_importance_function_flat(nameIFun, trPropId, true);
-	model.build_thresholds(nameThr, nameIFun);
+	model.build_thresholds(nameThr, nameIFun, trPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, nameIFun);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -138,7 +138,7 @@ SECTION("Estimate transient property using RESTART and adhoc ifun")
 	bool thresholdsChosen(false);
 	while (!thresholdsChosen) {
 		try {
-			thresholdsChosen = model.build_thresholds(nameThr, ifunSpec.name);
+			thresholdsChosen = model.build_thresholds(nameThr, ifunSpec.name, trPropId);
 		} catch (fig::FigException&) {
 			// just keep trying; we're stubborn and want to have
 			// all thresholds selected by Sequential Monte Carlo
@@ -179,7 +179,7 @@ SECTION("Estimate transient property using RESTART and monolithic ifun")
 	// Prepare engine
 	model.set_splitting(2);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, trPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -210,7 +210,7 @@ SECTION("Estimate transient property using RESTART and compositional ifun")
 	// Prepare engine
 	model.set_splitting(7);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, trPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria

@@ -317,11 +317,13 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 		const auto& pRate(dynamic_cast<const PropertyRate&>(property));
 		auto& ciRate(dynamic_cast<ConfidenceIntervalRate&>(ci));
 		size_t runLength = min_run_length(name(), impFun_->name());
-		while ( ! (interrupted || ci.is_valid()) ) {
+		bool firstRun(true);
+		do {
 			std::clock_t t0 = std::clock();
-			auto value = rate_simulation(pRate, runLength, false);  // use batch-means
+			auto value = rate_simulation(pRate, runLength, firstRun);  // use batch-means
 			rate_update(ciRate, value, runLength, (std::clock()-t0)/CLOCKS_PER_SEC);
-		}
+			firstRun = false;
+		} while ( ! (interrupted || ci.is_valid()) );
 		} break;
 
 	case PropertyType::THROUGHPUT:

@@ -236,7 +236,7 @@ const std::map< std::string, std::string > IOSA_distribution_string =
 
 /// Compose filename for JANI file translated from IOSA model
 /// @param iosaFname Name of the model file in IOSA syntax
-/// @param janiFname Desired name for translated JANI file (optional)
+/// @param janiFname <i>(Optional)</i> Desired name for translated JANI file
 /// @return If 'janiFname' is empty then change the extension of 'iosaFname'
 ///         from '.sa/.iosa' to '.jani' ; else 'janiFname' is returned.
 string
@@ -254,7 +254,7 @@ compose_jani_fname(const string& iosaFname, const string& janiFname = "")
 
 /// Compose filename for IOSA model translated from JANI Specifiaction format
 /// @param janiFname Name of the model file in JANI Specification format
-/// @param iosaFname Desired name for translated IOSA model (optional)
+/// @param iosaFname <i>(Optional)</i> Desired name for translated IOSA model
 /// @return If 'iosaFname' is empty then change the extension of 'janiFname'
 ///         from '.jani' to '.sa' ; else 'iosaFname' is returned.
 string

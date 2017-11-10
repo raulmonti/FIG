@@ -33,13 +33,16 @@
 #include <array>
 #include <vector>
 #include <string>
+#include <memory>
 // FIG
 #include <core_typedefs.h>
+#include <FigException.h>
 
 
 namespace fig
 {
 
+class Property;
 class ImportanceFunction;
 
 /**
@@ -56,6 +59,9 @@ class ImportanceFunction;
 class ThresholdsBuilder
 {
 public:
+
+	/// Default max number of thresholds
+	static constexpr size_t MAX_NUM_THRESHOLDS = 200ul;
 
 	/// Long story short: number of concrete derived classes.
 	/// More in detail this is the size of the array returned by techniques(),
@@ -84,59 +90,69 @@ public:
 	static const std::array< std::string, NUM_TECHNIQUES >& techniques() noexcept;
 
 	/**
+	 * @brief Depending on the thresholds builder sub-class,
+	 *        provide extra information required to select the thresholds.
+	 *
+	 * @param postProcess  Post-processing to apply to the importance values
+	 * @param property     User property query being estimated
+	 * @param globalEffort Splitting/effort to use in all ("threshold-") levels
+	 *
+	 * @note @a gobalEffort means different things depending on
+	 *       the type of importance splitting used:
+	 *       <ul>
+	 *       <li>For RESTART it means the same splitting value is used
+	 *           in all thresholds, i.e. @a globalEffort-1 replicas
+	 *           will be created in a level-up;</li>
+	 *       <li>For Fixed Effort it will run the same number of simulations
+	 *           (namely @a globalEffort) in all ("threshold-") levels.</li>
+	 *       </ul>
+	 *
+	 * @bug The presence of this function is a consequence of a
+	 *      <b>poorly designed class</b>
+	 */
+	virtual void
+	setup(const PostProcessing& postProcess = PostProcessing(),
+	      std::shared_ptr<const Property> property = nullptr,
+	      const unsigned globalEffort = 0u) = 0;
+
+	/**
 	 * @brief Choose thresholds based on given importance function
 	 *
-	 *        Choose threshold values and return a map of pairs
-	 *        ("threshold-to-importance") where the i-th position holds:
-	 * 	      <ul>
-	 *        <li><i>first</i>: the minimum ImportanceValue of the i-th level;</li>
-	 *        <li><i>second</i>: the splitting/effort to perform there.</li>
-	 * 		  </ul>
-	 *        A (threshold) <i>level</i> is a range of importance values.
+	 *        Choose the importance values to use as thresholds for splitting.
+	 *        A map of pairs is built where the pair at the i-th position holds:
+	 * 	      <ol>
+	 *        <li>the minimum ImportanceValue of the i-th level;</li>
+	 *        <li>the splitting/effort to perform there.</li>
+	 * 		  </ol>
+	 *        A <i>threshold-level</i> or simply <i>level</i>
+	 *        is a range of importance values.
 	 *        The i-th level comprises all importance values between
 	 *        threshold i (including it) and threshold i+1 (excluding it).
 	 *
 	 * @param impFun ImportanceFunction with internal
 	 *               \ref ImportanceFunction::has_importance_info()
-	 *               "importance information" to use for the task
-	 * @param postProcessing Post-processing applied to the ImportanceValue s
-	 *                       after importance assessment
+	 *               "importance information", i.e. the structure must not be empty
 	 *
 	 * @return Thresholds levels map as explained in the details.
 	 *
 	 * @note The size of the resulting vector  <br>
 	 *       == 1 + number of threshold levels <br>
 	 *       == 2 + number of thresholds built
-	 * @note The first value in the map == initial state importance
-	 * @note The last  value in the map == 1 + impFun.max_importance()
+	 * @note The first ImportanceValue in the map == initial state importance
+	 * @note The last  ImportanceValue in the map == 1 + impFun.max_importance()
 	 *
 	 * @throw FigException if thresholds building failed
 	 */
 	virtual ThresholdsVec
-	build_thresholds(const ImportanceFunction& impFun,
-					 const PostProcessing& postProcessing) = 0;
-
-	/**
-	 * @brief Same as the two parameters version but for a single global
-	 *        splitting/effort per level
-	 * @param splitsPerThreshold 1 + Number of simulation-run-replicas upon a
-	 *                           "threshold level up" event
-	 *
-	 * @copydetails build_thresholds(const ImportanceFunction&, const PostProcessing&)
-	 * @see build_thresholds(const ImportanceFunction&, const PostProcessing&)
-	 */
-	virtual ThresholdsVec
-	build_thresholds(const unsigned& effortPerThreshold,
-					 const ImportanceFunction& impFun,
-					 const PostProcessing& postProcessing) = 0;
+	build_thresholds(const ImportanceFunction& impFun) = 0;
 
 	/**
 	 * @brief Turn map around, building an importance-to-threshold map
 	 *
 	 *        From the threshold-to-importance map passed as argument,
 	 *        build a reversed importance-to-threshold map: the j-th position
-	 *        of the vector returned will hold the threshold level
-	 *        corresponding to the j-th ImportanceValue.
+	 *        of the vector returned will hold the ("threshold-") level and
+	 *        corresponding splitting/effort of the j-th ImportanceValue.
 	 *
 	 * @param t2i threshold-to-importance map as returned by build_thresholds()
 	 *
@@ -145,16 +161,20 @@ public:
 	 * @throw bad_alloc if there wasn't enough memory to allocate the vector
 	 * @throw FigException if the translation failed
 	 *
-	 * @warning The size of the map returned is the last value of 't2i',
-	 *          viz. the maximum importance referred to in the argument.
+	 * @warning The size of the map returned is the maximum importance in @a t2i
 	 */
-	ImportanceVec
-	invert_thresholds_map(const ImportanceVec& t2i) const;
+	ThresholdsVec
+	invert_thresholds_map(const ThresholdsVec &t2i) const;
 
 protected:  // Utils for the class and its kin
 
 	/// Print thresholds info in FIG's tech log
 	/// @param t2i threshold-to-importance map as returned by build_thresholds()
+	void show_thresholds(const ThresholdsVec& t2i);
+
+	/// Print thresholds info in FIG's tech log
+	/// @param t2i threshold-to-importance map as returned by build_thresholds()
+	///            but without the per-level-effort
 	void show_thresholds(const ImportanceVec& t2i);
 };
 
