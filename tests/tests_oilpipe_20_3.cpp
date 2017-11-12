@@ -188,7 +188,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (op
 {
 	const string nameEngine("restart");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "*",
-								   fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0));
+	                               fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0));
 	const string nameThr("hyb");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
@@ -218,7 +218,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (op
 	REQUIRE(ci.precision(confCo) > 0.0);
 	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-			  == Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*0.1));
+	          == Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*0.1));
 }
 
 } // TEST_CASE [oilpipes-EXP-N20-K3]
@@ -344,9 +344,9 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (+,
 	const string nameEngine("restart");
 	const string ifunComp("BE_pipe1*BE_pipe2*BE_pipe3+BE_pipe2*BE_pipe3*BE_pipe4+BE_pipe3*BE_pipe4*BE_pipe5+BE_pipe4*BE_pipe5*BE_pipe6+BE_pipe5*BE_pipe6*BE_pipe7+BE_pipe6*BE_pipe7*BE_pipe8+BE_pipe7*BE_pipe8*BE_pipe9+BE_pipe8*BE_pipe9*BE_pipe10+BE_pipe9*BE_pipe10*BE_pipe11+BE_pipe10*BE_pipe11*BE_pipe12+BE_pipe11*BE_pipe12*BE_pipe13+BE_pipe12*BE_pipe13*BE_pipe14+BE_pipe13*BE_pipe14*BE_pipe15+BE_pipe14*BE_pipe15*BE_pipe16+BE_pipe15*BE_pipe16*BE_pipe17+BE_pipe16*BE_pipe17*BE_pipe18+BE_pipe17*BE_pipe18*BE_pipe19+BE_pipe18*BE_pipe19*BE_pipe20");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto",
-								   ifunComp,
-								   fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0),
-								   18, 144);
+	                               ifunComp,
+	                               fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0),
+	                               18, 144);
 	const string nameThr("hyb");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
@@ -376,7 +376,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (+,
 	REQUIRE(ci.precision(confCo) > 0.0);
 	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-			  <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.3));
+	          <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.3));
 }
 
 } // TEST_CASE [oilpipes-RAY-N20-K3]

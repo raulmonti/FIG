@@ -58,16 +58,14 @@ SimulationEngineRestart::SimulationEngineRestart(
 		splitsPerThreshold_(splitsPerThreshold),
 		dieOutDepth_(dieOutDepth),
         numChunksTruncated_(0u),
-        oTraial_(TraialPool::get_instance().get_traial()),
-        stack_()
+        oTraial_(TraialPool::get_instance().get_traial())
 { /* Not much to do around here */ }
 
 
 SimulationEngineRestart::~SimulationEngineRestart()
 {
 	TraialPool::get_instance().return_traials(stack_);
-	// The stack_ should always contain the oTraial_ for batch means,
-	// so the line above already returned that Traial to the TraialPool
+	unbind();
 }
 
 
@@ -98,6 +96,7 @@ SimulationEngineRestart::bind(std::shared_ptr< const ImportanceFunction > ifun_p
 	else if (impStrategy == "flat")
 		throw_FigException("RESTART simulation engine requires an importance "
 						   "building strategy other than \"flat\"");
+	reinit_stack();
 	SimulationEngine::bind(ifun_ptr);
 }
 
@@ -123,6 +122,19 @@ SimulationEngineRestart::set_die_out_depth(unsigned dieOutDepth)
         throw_FigException("engine \"" + name() + "\" is currently locked "
                            "in \"simulation mode\"");
     dieOutDepth_ = dieOutDepth;
+}
+
+
+void
+SimulationEngineRestart::reinit_stack() const
+{
+	static auto tpool = TraialPool::get_instance();
+	while (!stack_.empty()) {
+		if (&stack_.top().get() != &oTraial_)  // avoid future aliasing!
+			tpool.return_traial(std::move(stack_.top()));
+		stack_.pop();
+	}
+	stack_.push(oTraial_);
 }
 
 
@@ -237,6 +249,25 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 	numChunksTruncated_ = 0u;
 
+	// Reset batch or run with batch means?
+	if (reinit || stack_.empty()) {
+		reinit_stack();
+		assert(&oTraial_ == &stack_.top().get());
+		oTraial_.initialise(*network_, *impFun_);
+	} else {
+		// Batch means, but reset life times
+		std::stack< Reference< Traial > > tmp;
+		while (!stack_.empty()) {
+			stack_.top().get().lifeTime = 0.0;
+			tmp.push(std::move(stack_.top()));
+			stack_.pop();
+		}
+		while (!tmp.empty()) {
+			stack_.push(std::move(tmp.top()));
+			tmp.pop();
+		}
+	}
+
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	bool (SimulationEngineRestart::*watch_events)
 		 (const PropertyRate&, Traial&, Event&) const;
@@ -248,40 +279,6 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	} else {
 		watch_events = &SimulationEngineRestart::rate_event;
 		register_time = &SimulationEngineRestart::count_time;
-	}
-
-	// Reset batch or run with batch means?
-	if (reinit || stack_.empty()) {
-		// Start over/anew
-		while (!stack_.empty()) {
-			if (&stack_.top().get() != &oTraial_)  // avoid future aliasing!
-				tpool.return_traial(std::move(stack_.top().get()));
-			stack_.pop();
-		}
-		oTraial_.initialise(*network_, *impFun_);
-		stack_.push(oTraial_);
-	} else {
-
-//		/// @todo TODO erase debug print below
-//		std::cerr << stack_.size() << ":";
-//
-//		// Batch means, but reset life times
-//		std::stack< Reference< Traial > > tmp;
-//		while (!stack_.empty()) {
-//			stack_.top().get().lifeTime = 0.0;
-//			tmp.push(stack_.top());
-//			stack_.pop();
-//		}
-//		stack_.swap(tmp);  // note: the order of the Traials in stack_ is now inverted!
-//		std::deque< Reference< Traial > > tmp;
-		typedef decltype(stack_)::value_type StackValueType;
-		std::deque< StackValueType > tmp;
-		while (!stack_.empty()) {
-			stack_.top().get().lifeTime = 0.0;
-			tmp.push_front(stack_.top().get());  // make swap() below respect order
-			stack_.pop();
-		}
-		std::stack< Reference< Traial > >(std::move(tmp)).swap(stack_);
 	}
 
 	// Run a single RESTART importance-splitting simulation for "runLength"

@@ -93,6 +93,9 @@ public:  // Accessors
 
 public:  // Engine setup
 
+	/// @copydoc SimulationEngine::bind()
+	/// @note Reinits the \ref stack_ "internal ADT" used for batch means
+	/// @see reinit_stack()
 	void bind(std::shared_ptr< const ImportanceFunction >) override;
 
 	/**
@@ -114,6 +117,10 @@ public:  // Engine setup
 	void set_die_out_depth(unsigned dieOutDepth);
 
 protected:  // Simulation helper functions
+
+	/// Clean \ref stack_ "internal ADT" used for batch means,
+	/// forcing the next simulation to be <i>fresh</i>.
+	void reinit_stack() const;
 
 	double log_experiments_per_sim() const override;
 

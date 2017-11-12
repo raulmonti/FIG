@@ -631,11 +631,11 @@ public:  // Utils
 	 *        will be \ref SimulationEngine::bound() "unbound".
 	 *
 	 * @param ifunName   Name of the ImportanceFunction to clear
-	 * @param engineName Name of the SimulationEngine to unbind
+	 * @param engineName <i>(Optional)</i> Name of the SimulationEngine to unbind
 	 */
 	void
 	release_resources(const std::string& ifunName,
-					  const std::string& engineName = "") noexcept;
+	                  const std::string& engineName = "");
 
 	/**
 	 * Erase all internal information: the \ref ModuleNetwork "model",

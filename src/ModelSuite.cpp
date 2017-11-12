@@ -1025,29 +1025,21 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
 
 void
 ModelSuite::release_resources(const std::string& ifunName,
-							  const std::string& engineName) noexcept
+                              const std::string& engineName)
 {
-	const std::string msgBase(" · releasing resources");
+	const std::string msgBase("\n · cleaning ADT of");
 	std::stringstream msg;
-	msg << msgBase;
-	if (exists_importance_function(ifunName) &&
-	        nullptr != impFuns[ifunName]) {
-		msg << " of importance function \"" << ifunName << "\"";
+	if (exists_importance_function(ifunName) && nullptr != impFuns[ifunName]) {
+		msg << msgBase << " importance function \"" << ifunName << "\"";
 		impFuns[ifunName]->clear();
 		assert(!impFuns[ifunName]->has_importance_info());
 	}
-	if (exists_simulator(engineName) &&
-	        nullptr != simulators[engineName]) {
-        if (exists_importance_function(ifunName))
-			msg << " and";
-        else
-			msg << " of";
-		msg << " simulation engine \"" << engineName << "\"";
+	if (exists_simulator(engineName) && nullptr != simulators[engineName]) {
+		msg << msgBase << " simulation engine \"" << engineName << "\"";
 		simulators[engineName]->unbind();
 		assert(!simulators[engineName]->bound());
 	}
-	if (msg.str() != msgBase)
-		techLog_ << msg.str() << std::endl;
+	techLog_ << msg.str();
 }
 
 void
@@ -1057,7 +1049,7 @@ ModelSuite::clear() noexcept
 		techLog_ << "\nSystem resources have been released already, clear() skipped.\n";
 		return;
 	}
-	techLog_ << "\nReleasing all system resources...\n";
+	techLog_ << "\nReleasing all system resources...";
 	// Reset class memebers
 	std::make_shared<ModuleNetwork>().swap(model);
 	properties.clear();
@@ -1077,13 +1069,17 @@ ModelSuite::clear() noexcept
 		impFuns.clear();
 		thrBuilders.clear();
 		simulators.clear();
-	} catch (std::exception&) {
+	} catch (FigException& e) {
 		// Meh... everything was going to hell anyway
+		techLog_ << "\n[ERROR] FigException caught: " << e.what() << std::endl;
+	} catch (std::exception& e) {
+		techLog_ << "\n[ERROR] Exception caught: " << e.what() << std::endl;
 	}
 	// Clean some static data from other classes
 	TraialPool::clear();
 	ModelBuilder::property_ast.clear();
 	// CompositeModuleScope::get_instance()->clear();  // suicides
+	techLog_ << "\n... done." << std::endl;
 	pristineModel_ = true;
 }
 

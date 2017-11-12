@@ -176,7 +176,7 @@ public:  // Engine setup
      */
     virtual void bind(std::shared_ptr< const ImportanceFunction > ifun);
 
-    /// Deregister the last ImportanceFunction which was tied to us
+	/// Deregister the last ImportanceFunction which was tied to us
     /// @throw FigException if the engine was \ref lock() "locked"
     /// @see bind()
 	void unbind();
