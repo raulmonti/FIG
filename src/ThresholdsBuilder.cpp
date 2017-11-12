@@ -120,7 +120,7 @@ ThresholdsBuilder::show_thresholds(const ThresholdsVec &t2i)
 {
 	figTechLog << "Thresholds chosen (and corresp. effort):";
 	for (size_t i = 1ul ; i < t2i.size()-1 ; i++)
-		figTechLog << " " << t2i[i].first << " (e:" << t2i[i].second << ")";
+		figTechLog << " " << t2i[i].first << "(" << t2i[i].second << ")";
 	figTechLog << "\n";
 }
 

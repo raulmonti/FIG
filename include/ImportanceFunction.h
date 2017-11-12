@@ -344,6 +344,9 @@ public:  // Accessors
 	 * \ifnot NDEBUG
 	 *   @throw FigException if this instance isn't \ref ready()
 	 *                       "ready for simulations"
+	 * \else
+	 *   @warning If this instance isn't \ref ready() "ready for simulations"
+	 *            then 0 is always returned
 	 * \endif
 	 * @see ThresholdsBuilder::build_thresholds()
 	 */
@@ -355,9 +358,23 @@ public:  // Accessors
 			        : level_of(importance_of(state));  // search threshold level
 		}
 
-	/// Threshold level to which given ImportanceValue belongs.
+	/// Threshold level to which the given ImportanceValue belongs.
 	/// @copydetails level_of(const StateInstance&)
-	ImportanceValue level_of(const ImportanceValue& val) const;
+	ImportanceValue level_of(const ImportanceValue& imp) const;
+
+	/**
+	 * Splitting/effort associated with this ("threshold-") level
+	 * @param lvl  Threshold-level whose associated effort is queried
+	 * \ifnot NDEBUG
+	 *   @throw FigException if this instance isn't \ref ready()
+	 *                       "ready for simulations"
+	 * \else
+	 *   @warning If this instance isn't \ref ready() "ready for simulations"
+	 *            then 0 is always returned
+	 * \endif
+	 * @see level_of()
+	 */
+	unsigned long effort_of(const ImportanceValue& lvl) const;
 
 	/**
 	 * @brief Print (formatted) importance information

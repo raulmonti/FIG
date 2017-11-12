@@ -205,17 +205,31 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			} else if (IS_THR_UP_EVENT(e)) {
 				// Could have gone up several thresholds => split accordingly
 				assert(traial.numLevelsCrossed > 0);
-				for (ImportanceValue i = static_cast<ImportanceValue>(1u)
-					; i <= static_cast<ImportanceValue>(traial.numLevelsCrossed)
-					; i++)
-				{
-					const unsigned thisLevelRetrials = std::round(
-						(splitsPerThreshold_-1u) * pow(splitsPerThreshold_, i-1));
-					assert(0u < thisLevelRetrials);
-					assert(thisLevelRetrials < pow(splitsPerThreshold_, numThresholds));
-					tpool.get_traial_copies(stack, traial, thisLevelRetrials,
-											static_cast<short>(i)-traial.numLevelsCrossed);
+				if (traial.numLevelsCrossed == 1) {
+
+					/// @todo TODO erase debug print
+					static int N=20;
+					if(N-- > 0)
+						std::cerr << impFun_->effort_of(traial.level) << std::endl;
+
+					tpool.get_traial_copies(stack_, traial, impFun_->effort_of(traial.level), 0);
+				} else {
+//					std::vector<unsigned long> efforts(traial.numLevelsCrossed);
+//					for (ImportanceValue lvl = )
+					assert(false);
+					throw_FigException("UNIMPLEMENTED: multiple level crossing!");
 				}
+//				for (ImportanceValue i = static_cast<ImportanceValue>(1u)
+//					; i <= static_cast<ImportanceValue>(traial.numLevelsCrossed)
+//					; i++)
+//				{
+//					const unsigned thisLevelRetrials = std::round(
+//						(splitsPerThreshold_-1u) * pow(splitsPerThreshold_, i-1));
+//					assert(0u < thisLevelRetrials);
+//					assert(thisLevelRetrials < pow(splitsPerThreshold_, numThresholds));
+//					tpool.get_traial_copies(stack, traial, thisLevelRetrials,
+//											static_cast<short>(i)-traial.numLevelsCrossed);
+//				}
 				// Offsprings are on top of stack now: continue attending them
 			}
 			// RARE events are checked first thing in next iteration
@@ -329,18 +343,34 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 			}
 			// Could have gone up several thresholds => split accordingly
 			assert(traial.numLevelsCrossed > 0);
-			for (ImportanceValue i = static_cast<ImportanceValue>(1u)
-				; i <= static_cast<ImportanceValue>(traial.numLevelsCrossed)
-				; i++)
-			{
-				const unsigned thisLevelRetrials = std::round(
-					(splitsPerThreshold_-1u) * pow(splitsPerThreshold_, i-1));
-				assert(0u < thisLevelRetrials);
-				assert(thisLevelRetrials < pow(splitsPerThreshold_, numThresholds));
-				tpool.get_traial_copies(stack_, traial, thisLevelRetrials,
-										static_cast<short>(i)-traial.numLevelsCrossed);
-				assert(&(stack_.top().get()) != &oTraial_);
+			if (traial.numLevelsCrossed == 1) {
+
+				/// @todo TODO erase debug print
+				static int N=20;
+				if(N-- > 0)
+					std::cerr << impFun_->effort_of(traial.level) << std::endl;
+
+				tpool.get_traial_copies(stack_, traial, impFun_->effort_of(traial.level), 0);
+			} else {
+//				std::vector<unsigned long> efforts(traial.numLevelsCrossed);
+//				for (ImportanceValue lvl = )
+				assert(false);
+				throw_FigException("UNIMPLEMENTED: multiple level crossing!");
 			}
+//			for (ImportanceValue i = static_cast<ImportanceValue>(1u)
+//				; i <= static_cast<ImportanceValue>(traial.numLevelsCrossed)
+//				; i++)
+//			{
+//				const unsigned thisLevelRetrials =
+//
+//				const unsigned thisLevelRetrials = std::round(
+//					(splitsPerThreshold_-1u) * pow(splitsPerThreshold_, i-1));
+//				assert(0u < thisLevelRetrials);
+//				assert(thisLevelRetrials < pow(splitsPerThreshold_, numThresholds));
+//				tpool.get_traial_copies(stack_, traial, thisLevelRetrials,
+//										static_cast<short>(i)-traial.numLevelsCrossed);
+//				assert(&(stack_.top().get()) != &oTraial_);
+//			}
 			// Offsprings are on top of stack_ now: continue attending them
 		}
 		// RARE events are checked first thing in next iteration

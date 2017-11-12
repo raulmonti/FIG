@@ -91,7 +91,8 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	// "Better Automated Importance Splitting for Transient Rare Events", 2017.
 	ModelSuite::tech_log("Building thresholds with \"" + name
 	                    + "\" for n = " + std::to_string(n_)
-	                    + "\nRunning FE on all adjacent importance values");
+	                    + "\nRunning FE on all " + std::to_string(IMP_RANGE)
+	                    + " adjacent importance values");
 
 	// Roughly estimate the level-up probabilities of all importance levels
 	impFun_ = &impFun;
@@ -103,6 +104,13 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 		for (size_t i = 0ul ; i < IMP_RANGE && 0.0f < aux[i] ; i++)
 			Pup[i] += (aux[i]-Pup[i])/m;
 		ModelSuite::tech_log(".");
+
+		/// @todo TODO erase debug print
+		std::cerr << "\nPup: ";
+		for (auto p: Pup)
+			std::cerr << p << ",";
+		std::cerr << "\b \b\n";
+
 	} while (0.0f >= Pup.back());  // "until we reach the max importance"
 	TraialPool::get_instance().return_traials(traials);
 
@@ -169,9 +177,9 @@ ThresholdsBuilderES::FE_for_ES(const fig::ImportanceFunction& impFun,
 			const bool useFree = !freeNow.empty();
 			Traial& traial( useFree ? freeNow.back() : startNow.back());
 			if (useFree) {
-				freeNow.pop_back();
 				traial = startNow[startNowIdx++].get();  // just copy contents!
 				startNowIdx %= startNow.size();
+				freeNow.pop_back();
 			} else {
 				startNow.pop_back();
 			}
@@ -180,22 +188,13 @@ ThresholdsBuilderES::FE_for_ES(const fig::ImportanceFunction& impFun,
 			traial.depth = 0;
 			traial.numLevelsCrossed = 0;
 			network.simulation_step(traial, *property_, *this, FE_watcher);
-
-			/// @todo TODO erase debug print
-//			std::cerr << "lvl: " << traial.level
-//					  << "  steps: " << traial.numLevelsCrossed << std::endl;
-
 			if (traial.level > i)
 				startNext.push_back(traial);
 			else
 				freeNext.push_back(traial);
 		}
-
-		/// @todo TODO erase debug print
-		std::cerr << startNext.size() << "/" << N << endl;
-
 		// ... and estimate the probability of reaching 'i+1' from 'i'
-		Pup[i] = startNext.size() / N;
+		Pup[i] = static_cast<float>(startNext.size()) / N;
 		std::swap(freeNow, freeNext);
 		std::swap(startNow, startNext);
 	}

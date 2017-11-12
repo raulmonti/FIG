@@ -338,7 +338,7 @@ ImportanceFunction::post_processing() const noexcept
 
 
 ImportanceValue
-ImportanceFunction::level_of(const ImportanceValue& val) const
+ImportanceFunction::level_of(const ImportanceValue& imp) const
 {
 	if (!ready())
 #ifndef NDEBUG
@@ -347,20 +347,35 @@ ImportanceFunction::level_of(const ImportanceValue& val) const
 #else
 		return static_cast<ImportanceValue>(0u);
 #endif
-	assert(val >= minValue_);
-	assert(val <= maxValue_);
+	assert(imp >= minValue_);
+	assert(imp <= maxValue_);
 	if (importance2threshold_.size() > 0ul)  // Do we have the direct map?
-		return importance2threshold_[val].first;
+		return importance2threshold_[imp].first;
 	ImportanceValue tlvl(threshold2importance_.size()/2ul), step(tlvl/2);
-	while (val <  threshold2importance_[tlvl].first ||
-	       val >= threshold2importance_[tlvl+1].first) {
-		if (val < threshold2importance_[tlvl].first)
+	while (imp <  threshold2importance_[tlvl].first ||
+	       imp >= threshold2importance_[tlvl+1].first) {
+		if (imp < threshold2importance_[tlvl].first)
 			tlvl -= step;
 		else
 			tlvl += step;
 		step = std::max(static_cast<ImportanceValue>(1), step/2);
 	}
 	return tlvl;
+}
+
+
+unsigned long
+ImportanceFunction::effort_of(const ImportanceValue& lvl) const
+{
+	if (!ready())
+#ifndef NDEBUG
+		throw_FigException("importance function \"" + name_ + "\" "
+		                   "doesn't hold thresholds information.");
+#else
+		return static_cast<ImportanceValue>(0u);
+#endif
+	assert(lvl < threshold2importance_.size());
+	return threshold2importance_[lvl].second;
 }
 
 

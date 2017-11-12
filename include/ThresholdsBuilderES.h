@@ -63,7 +63,7 @@ namespace fig
 class ThresholdsBuilderES : public ThresholdsBuilderAdaptive
 {
 	/// Max # steps allowed for each internal Fixed Effort simulation
-	static constexpr size_t MAX_FE_SIM_LEN = 10000ul;
+	static constexpr decltype(Traial::numLevelsCrossed) MAX_FE_SIM_LEN = 10000ul;
 
 protected:
 
@@ -77,7 +77,7 @@ public:
 
 	/// Data & default ctor
 	/// @param n Number of pilot simulations used per importance level, see Budde et al.
-	ThresholdsBuilderES(const size_t& n = (1ul<<11ul));
+	ThresholdsBuilderES(const size_t& n = (1ul<<8ul));
 
 	/// Register the Property being estimated, which may affect
 	/// the internal Fixed Effort runs of the thresholds selection algorithm.
@@ -120,13 +120,13 @@ private:  // Class utils
 	inline bool
 	FE_watcher(const Property& property, Traial& traial, Event&) const
 	    {
-			const ImportanceValue newThrLvl = impFun_->level_of(traial.state);
-			traial.depth += newThrLvl - traial.level;
-			traial.level = newThrLvl;
+		    const ImportanceValue newImp = impFun_->importance_of(traial.state);
+			traial.depth -= newImp - traial.level;
+			traial.level = newImp;
 			traial.numLevelsCrossed++;  // encode here the # steps taken
 			return /* level-up:     */ traial.depth < 0 ||
-				   /* sim too long: */ traial.numLevelsCrossed > MAX_FE_SIM_LEN ||
-				   /* stop event:   */ property.is_stop(traial.state);
+			       /* sim too long: */ traial.numLevelsCrossed > MAX_FE_SIM_LEN ||
+			       /* stop event:   */ property.is_stop(traial.state);
 	    }
 };
 
