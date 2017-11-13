@@ -97,9 +97,8 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	// Roughly estimate the level-up probabilities of all importance levels
 	impFun_ = &impFun;
 	TraialsVec traials(get_traials(n_, impFun, false));
+	size_t m(1ul);
 	do {
-		static size_t m(0ul);
-		m++;
 		FE_for_ES(impFun, traials, aux);
 		for (size_t i = 0ul ; i < IMP_RANGE && 0.0f < aux[i] ; i++)
 			Pup[i] += (aux[i]-Pup[i])/m;
@@ -111,7 +110,7 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 			std::cerr << p << ",";
 		std::cerr << "\b \b\n";
 
-	} while (0.0f >= Pup.back());  // "until we reach the max importance"
+	} while (0.0f >= Pup.back() || m++ < 5ul);  // "until we reach the max importance"
 	TraialPool::get_instance().return_traials(traials);
 
 	// Turn level-up probabilities into splitting factors

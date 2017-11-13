@@ -205,20 +205,15 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			} else if (IS_THR_UP_EVENT(e)) {
 				// Could have gone up several thresholds => split accordingly
 				assert(traial.numLevelsCrossed > 0);
-				if (traial.numLevelsCrossed == 1) {
-
-					/// @todo TODO erase debug print
-					static int N=20;
-					if(N-- > 0)
-						std::cerr << impFun_->effort_of(traial.level) << std::endl;
-
-					tpool.get_traial_copies(stack_, traial, impFun_->effort_of(traial.level), 0);
-				} else {
-//					std::vector<unsigned long> efforts(traial.numLevelsCrossed);
-//					for (ImportanceValue lvl = )
-					assert(false);
-					throw_FigException("UNIMPLEMENTED: multiple level crossing!");
+				unsigned long prevEffort(1ul), currEffort(1ul);
+				for (short i = 0 ; i < traial.numLevelsCrossed ; i++) {
+					prevEffort *= currEffort;
+					currEffort = impFun_->effort_of(traial.level+i);
+					assert(1ul < currEffort);
+					tpool.get_traial_copies(stack_, traial, prevEffort*(currEffort-1),
+					                        i+1-traial.numLevelsCrossed);
 				}
+				assert(&(stack_.top().get()) != &oTraial_);
 //				for (ImportanceValue i = static_cast<ImportanceValue>(1u)
 //					; i <= static_cast<ImportanceValue>(traial.numLevelsCrossed)
 //					; i++)
@@ -342,21 +337,16 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 				numChunksTruncated_ = 0u;
 			}
 			// Could have gone up several thresholds => split accordingly
-			assert(traial.numLevelsCrossed > 0);
-			if (traial.numLevelsCrossed == 1) {
-
-				/// @todo TODO erase debug print
-				static int N=20;
-				if(N-- > 0)
-					std::cerr << impFun_->effort_of(traial.level) << std::endl;
-
-				tpool.get_traial_copies(stack_, traial, impFun_->effort_of(traial.level), 0);
-			} else {
-//				std::vector<unsigned long> efforts(traial.numLevelsCrossed);
-//				for (ImportanceValue lvl = )
-				assert(false);
-				throw_FigException("UNIMPLEMENTED: multiple level crossing!");
+			assert(0 < traial.numLevelsCrossed);
+			unsigned long prevEffort(1ul), currEffort(1ul);
+			for (short i = 0 ; i < traial.numLevelsCrossed ; i++) {
+				prevEffort *= currEffort;
+				currEffort = impFun_->effort_of(traial.level+i);
+				assert(1ul < currEffort);
+				tpool.get_traial_copies(stack_, traial, prevEffort*(currEffort-1),
+				                        i+1-traial.numLevelsCrossed);
 			}
+			assert(&(stack_.top().get()) != &oTraial_);
 //			for (ImportanceValue i = static_cast<ImportanceValue>(1u)
 //				; i <= static_cast<ImportanceValue>(traial.numLevelsCrossed)
 //				; i++)
@@ -369,7 +359,6 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 //				assert(thisLevelRetrials < pow(splitsPerThreshold_, numThresholds));
 //				tpool.get_traial_copies(stack_, traial, thisLevelRetrials,
 //										static_cast<short>(i)-traial.numLevelsCrossed);
-//				assert(&(stack_.top().get()) != &oTraial_);
 //			}
 			// Offsprings are on top of stack_ now: continue attending them
 		}
