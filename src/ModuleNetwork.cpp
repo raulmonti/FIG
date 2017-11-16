@@ -43,6 +43,7 @@
 #include <SimulationEngine.h>
 #include <SimulationEngineNosplit.h>
 #include <SimulationEngineRestart.h>
+#include <SimulationEngineFixedEffort.h>
 #include <ThresholdsBuilderES.h>
 
 #if __cplusplus < 201103L
@@ -338,6 +339,12 @@ typedef bool(SimulationEngineRestart::*restart_transient_event)
 typedef bool(SimulationEngineRestart::*restart_rate_event)
     (const PropertyRate&, Traial&, Event&) const;
 
+/// "SimulationEngineFixedEffort + PropertyTransient"
+/// TraialMonitor specialization
+/// for "template<...> ModuleNetwork::simulation_step()"
+typedef bool(SimulationEngineFixedEffort::*fixedeffort_transient_event)
+    (const PropertyTransient&, Traial&, Event&) const;
+
 /// "ThresholdsBuilderES"
 /// TraialMonitor specialization
 /// for "template<...> ModuleNetwork::simulation_step()"
@@ -363,6 +370,10 @@ template Event ModuleNetwork::simulation_step(Traial&,
                                               const PropertyRate&,
                                               const SimulationEngineRestart&,
                                               restart_rate_event) const;
+template Event ModuleNetwork::simulation_step(Traial&,
+                                              const PropertyTransient&,
+                                              const SimulationEngineFixedEffort&,
+                                              fixedeffort_transient_event) const;
 template Event ModuleNetwork::simulation_step(Traial&,
                                               const Property&,
                                               const ThresholdsBuilderES&,

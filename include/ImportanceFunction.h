@@ -255,36 +255,44 @@ public:  // Accessors
 	const std::string adhoc_fun() const noexcept;
 
 	/// @copydoc minValue_
+	/// @param returnImportance Return min <b>importance value</b>
+	///                         regardless of whether the thresholds are built
 	/// @returns Zero if function doesn't has_importance_info(),
 	///          last and lowest value assessed otherwise.
 	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
 	///       were already built" then the value returned will be the lowest
 	///       threshold level.
-	ImportanceValue min_value() const noexcept;
+	ImportanceValue min_value(bool returnImportance = false) const noexcept;
 
 	/// @copydoc maxValue_
+	/// @param returnImportance Return max <b>importance value</b>
+	///                         regardless of whether the thresholds are built
 	/// @returns Zero if function doesn't has_importance_info(),
 	///          last and highest value assessed otherwise
 	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
 	///       were already built" the value returned will be the highest
 	///       threshold level.
-	ImportanceValue max_value() const noexcept;
+	ImportanceValue max_value(bool returnImportance = false) const noexcept;
 
 	/// @copydoc minRareValue_
+	/// @param returnImportance Return min <b>importance value</b> of rare state
+	///                         regardless of whether the thresholds are built
 	/// @returns Zero if function doesn't has_importance_info(),
 	///          last and lowest value assessed for a rare state otherwise.
 	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
 	///       were already built" the value returned will be the lowest
 	///       threshold level containing a rare state.
-	ImportanceValue min_rare_value() const noexcept;
+	ImportanceValue min_rare_value(bool returnImportance = false) const noexcept;
 
 	/// @copydoc initialValue_
+	/// @param returnImportance Return initial <b>importance value</b>
+	///                         regardless of whether the thresholds are built
 	/// @returns Zero if function doesn't has_importance_info(),
 	///          importance value of the system's initial state otherwise.
 	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
 	///       were already built" the value returned will be the threshold
 	///       level containing the system's initial state.
-	ImportanceValue initial_value() const noexcept;
+	ImportanceValue initial_value(bool returnImportance = false) const noexcept;
 
 	/// @brief Whether the instance derives from ImportanceFunctionConcrete
 	/// @details Concrete importance functions store info for the concrete state

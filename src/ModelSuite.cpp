@@ -62,6 +62,7 @@
 #include <SimulationEngine.h>
 #include <SimulationEngineNosplit.h>
 #include <SimulationEngineRestart.h>
+#include <SimulationEngineFixedEffort.h>
 #include <ImportanceFunction.h>
 #include <ImportanceFunctionAlgebraic.h>
 #include <ImportanceFunctionConcreteSplit.h>
@@ -450,6 +451,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 	// Build offered simulation engines
 	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
 	simulators["restart"] = std::make_shared< SimulationEngineRestart >(model);
+	simulators["fixedeffort"] = std::make_shared< SimulationEngineFixedEffort >(model);
 	set_splitting(splitsPerThreshold);
 
 #ifndef NDEBUG

@@ -41,9 +41,10 @@
 #include <FigException.h>
 #include <FigLog.h>
 
-using std::pow;
+// ADL
 using std::begin;
 using std::end;
+using std::pow;
 
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
@@ -65,7 +66,6 @@ SimulationEngineRestart::SimulationEngineRestart(
 SimulationEngineRestart::~SimulationEngineRestart()
 {
 	TraialPool::get_instance().return_traials(stack_);
-	unbind();
 }
 
 
@@ -86,14 +86,10 @@ SimulationEngineRestart::die_out_depth() const noexcept
 void
 SimulationEngineRestart::bind(std::shared_ptr< const ImportanceFunction > ifun_ptr)
 {
-    if (locked())
-        throw_FigException("engine \"" + name() + "\" is currently locked "
-                           "in \"simulation mode\"");
-    const std::string impStrategy(ifun_ptr->strategy());
-	if (impStrategy == "")
+	if (ifun_ptr->strategy() == "")
 		throw_FigException("ImportanceFunction doesn't seem to have "
 						   "internal importance information");
-	else if (impStrategy == "flat")
+	else if (ifun_ptr->strategy() == "flat")
 		throw_FigException("RESTART simulation engine requires an importance "
 						   "building strategy other than \"flat\"");
 	reinit_stack();

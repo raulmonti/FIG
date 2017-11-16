@@ -69,7 +69,7 @@ public:
     /// Long story short: number of concrete derived classes.
     /// More in detail this is the size of the array returned by names(), i.e.
     /// how many SimualtionEngine implementations are offered to the end user.
-    static constexpr size_t NUM_NAMES = 2;
+	static constexpr size_t NUM_NAMES = 3;
 
 protected:  // Attributes for simulation update policies
 

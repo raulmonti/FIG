@@ -380,38 +380,42 @@ ImportanceFunction::effort_of(const ImportanceValue& lvl) const
 
 
 ImportanceValue
-ImportanceFunction::min_value() const noexcept
+ImportanceFunction::min_value(bool returnImportance) const noexcept
 {
-	return ready() ? level_of(minValue_)
-				   : has_importance_info() ? minValue_
-										   : static_cast<ImportanceValue>(0u);
+	return ready() && !returnImportance
+	        ? level_of(minValue_)
+	        : has_importance_info() ? minValue_
+	                                : static_cast<ImportanceValue>(0u);
 }
 
 
 ImportanceValue
-ImportanceFunction::max_value() const noexcept
+ImportanceFunction::max_value(bool returnImportance) const noexcept
 {
-	return ready() ? level_of(maxValue_)
-				   : has_importance_info() ? maxValue_
-										   : static_cast<ImportanceValue>(0u);
+	return ready() && !returnImportance
+	        ? level_of(maxValue_)
+	        : has_importance_info() ? maxValue_
+	                                : static_cast<ImportanceValue>(0u);
 }
 
 
 ImportanceValue
-ImportanceFunction::min_rare_value() const noexcept
+ImportanceFunction::min_rare_value(bool returnImportance) const noexcept
 {
-	return ready() ? level_of(minRareValue_)
-				   : has_importance_info() ? minRareValue_
-										   : static_cast<ImportanceValue>(0u);
+	return ready() && !returnImportance
+	        ? level_of(minRareValue_)
+	        : has_importance_info() ? minRareValue_
+	                                : static_cast<ImportanceValue>(0u);
 }
 
 
 ImportanceValue
-ImportanceFunction::initial_value() const noexcept
+ImportanceFunction::initial_value(bool returnImportance) const noexcept
 {
-	return ready() ? level_of(initialValue_)
-				   : has_importance_info() ? initialValue_
-										   : static_cast<ImportanceValue>(0u);
+	return ready() && !returnImportance
+	        ? level_of(initialValue_)
+	        : has_importance_info() ? initialValue_
+	                                : static_cast<ImportanceValue>(0u);
 }
 
 

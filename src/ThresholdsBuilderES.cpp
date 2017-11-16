@@ -32,7 +32,7 @@
 // C++
 #include <vector>
 #include <deque>
-#include <algorithm>
+#include <algorithm>  // std::fill()
 // FIG
 #include <ThresholdsBuilderES.h>
 #include <ImportanceFunction.h>
@@ -183,7 +183,7 @@ ThresholdsBuilderES::FE_for_ES(const fig::ImportanceFunction& impFun,
 			const bool useFree = !freeNow.empty();
 			Traial& traial( useFree ? freeNow.back() : startNow.back());
 			if (useFree) {
-				traial = startNow[startNowIdx++].get();  // just copy contents!
+				traial = startNow[startNowIdx++].get();  // copy *contents*
 				startNowIdx %= startNow.size();
 				freeNow.pop_back();
 			} else {

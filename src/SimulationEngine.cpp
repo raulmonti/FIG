@@ -75,8 +75,9 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 	//       the tandem queue and the queue with breaks models, using the
 	//       "ConfidenceIntervalTransient" class for interval construction.
 	static const size_t batch_sizes[NUM_ENGINES][NUM_IMPFUNS] = {
-		{ 1ul<<4, 1ul<<3, 1ul<<8 },  // nosplit x {concrete_coupled, concrete_split, algebraic
-		{ 1ul<<8, 1ul<<8, 1ul<<8 }   // restart x {concrete_coupled, concrete_split, algebraic}
+	    { 1ul<<4, 1ul<<3, 1ul<<8 },  //     nosplit x {concrete_coupled, concrete_split, algebraic
+	    { 1ul<<8, 1ul<<8, 1ul<<8 },  //     restart x {concrete_coupled, concrete_split, algebraic}
+	    { 1ul<<8, 1ul<<9, 1ul<<8 }   // fixedeffort x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -244,9 +245,13 @@ SimulationEngine::names() noexcept
 		// See SimualtionEngineNosplit class
 		"nosplit",
 
-		// RESTART-like importance splitting, from the Villén-Altamirano brothers
-		// See SimualtionEngineRestart class
-		"restart"
+	    // RESTART-like importance splitting, from the Villén-Altamirano brothers
+	    // See SimualtionEngineRestart class
+	    "restart",
+
+	    // Fixed Effort importance splitting, from Garvels' PhD thesis
+	    // See SimualtionEngineFixedEffort class
+	    "fixedeffort"
 	}};
 	return names;
 }
