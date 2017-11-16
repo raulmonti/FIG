@@ -43,6 +43,8 @@
 #include <TraialPool.h>
 #include <Traial.h>
 
+/// @todo TODO erase debug include
+#include <iomanip>      // std::setprecision()
 
 // ADL
 using std::begin;
@@ -112,6 +114,11 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 
 	} while (0.0f >= Pup.back() || m++ < 5ul);  // "until we reach the max importance"
 	TraialPool::get_instance().return_traials(traials);
+
+	float est = 1.0;
+	for (auto p: Pup)
+		est *= p;
+	std::cerr << std::setprecision(2) << std::scientific <<  "Est: " << est << std::endl;
 
 	// Turn level-up probabilities into splitting factors
 	decltype(aux)& split(aux);

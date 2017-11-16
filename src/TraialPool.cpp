@@ -67,10 +67,6 @@ std::vector< Traial > TraialPool::traials_;
 
 std::forward_list< Reference< Traial > > TraialPool::available_traials_;
 
-const size_t TraialPool::initialSize = (1u) << 16;  // 64K
-
-const size_t TraialPool::sizeChunkIncrement = TraialPool::initialSize >> 5;  // initialSize/32
-
 size_t TraialPool::numVariables = 0u;
 
 size_t TraialPool::numClocks = 0u;
@@ -80,8 +76,7 @@ size_t TraialPool::numClocks = 0u;
 
 TraialPool::TraialPool()
 {
-
-	ensure_resources(initialSize);
+	ensure_resources(initial_size());
 }
 
 
@@ -114,7 +109,7 @@ Traial&
 TraialPool::get_traial()
 {
 	if (available_traials_.empty())
-		ensure_resources(sizeChunkIncrement);  // Need to create more Traials
+		ensure_resources(increment_size());  // Need to create more Traials
 	Traial& traial(available_traials_.front());
 	available_traials_.pop_front();
 	return traial;
@@ -149,7 +144,7 @@ retrieve_traials:
 		available_traials_.pop_front();
 	}
 	if (0u < numTraials) {
-		ensure_resources(std::max<unsigned>(numTraials+1, sizeChunkIncrement));
+		ensure_resources(std::max<unsigned>(numTraials+1, increment_size()));
 		goto retrieve_traials;
 	}
 }
@@ -171,7 +166,7 @@ TraialPool::get_traials(std::stack< Reference<Traial> >& stack,
 		available_traials_.pop_front();
 	}
 	if (0u < numTraials) {
-		ensure_resources(std::max<unsigned>(numTraials++, sizeChunkIncrement));
+		ensure_resources(std::max<unsigned>(numTraials++, increment_size()));
 		goto retrieve_traials;
 	}
 }
@@ -189,7 +184,7 @@ TraialPool::get_traials(std::forward_list< Reference<Traial> >& flist,
 		available_traials_.pop_front();
 	}
 	if (0u < numTraials) {
-		ensure_resources(std::max<unsigned>(numTraials++, sizeChunkIncrement));
+		ensure_resources(std::max<unsigned>(numTraials++, increment_size()));
 		goto retrieve_traials;
 	}
 }
@@ -215,7 +210,7 @@ TraialPool::get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
 		cont.emplace(end(cont), std::ref(t));  // copy elision
 	}
 	if (0u < numCopies) {
-		ensure_resources(std::max<unsigned>(numCopies++, sizeChunkIncrement));
+		ensure_resources(std::max<unsigned>(numCopies++, increment_size()));
 		goto retrieve_traials;
 	}
 }
@@ -252,7 +247,7 @@ TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
 		stack.push(std::ref(t));  // copy elision
 	}
 	if (0u < numCopies) {
-		ensure_resources(std::max<unsigned>(numCopies++, sizeChunkIncrement));
+		ensure_resources(std::max<unsigned>(numCopies++, increment_size()));
 		goto retrieve_traials;
 	}
 }
@@ -278,7 +273,7 @@ TraialPool::get_traial_copies(std::stack< Reference< Traial >,
 		stack.push(std::ref(t));  // copy elision
 	}
 	if (0u < numCopies) {
-		ensure_resources(std::max<unsigned>(numCopies++, sizeChunkIncrement));
+		ensure_resources(std::max<unsigned>(numCopies++, increment_size()));
 		goto retrieve_traials;
 	}
 }
@@ -302,7 +297,7 @@ TraialPool::get_traial_copies(std::forward_list< Reference<Traial> >& flist,
 		flist.push_front(std::ref(t));  // copy elision
     }
 	if (0u < numCopies) {
-		ensure_resources(std::max<unsigned>(numCopies++, sizeChunkIncrement));
+		ensure_resources(std::max<unsigned>(numCopies++, increment_size()));
 		goto retrieve_traials;
 	}
 }
@@ -370,7 +365,7 @@ TraialPool::ensure_resources(const size_t& requiredResources)
 	if (newSize == oldSize) {
 		return;  // nothing to do!
 	} else if (oldSize == 0ul) {
-		traials_.reserve(initialSize*4ul);  // called by TraialPool ctor[*]
+		traials_.reserve(INITIAL_SIZE*4ul);  // called by TraialPool ctor[*]
 		TRAIALS_MEM_ADDR = traials_.data();
 	} else {
 		traials_.reserve(newSize);
@@ -399,10 +394,10 @@ TraialPool::ensure_resources(const size_t& requiredResources)
 	 * 'traials_' vector in a different memory page, which would invalidate
 	 * all the references held by the users of the TraialPool.
 	 *
-	 * We're currently avoiding the problem by reserving a memory space
-	 * for 'traials_' much greater than the creation 'initialSize'.
-	 * This is however no permanent solution but merely a workaround:
-	 * the problem will still arise after sufficient new resources requests.
+	 * We're trying to dodge the problem by reserving a memory space
+	 * for 'traials_' greater than the creation 'INITIAL_SIZE'.
+	 * This is a flimsy workaround: the problem will still arise
+	 * after sufficient new resources requests.
 	 */
 }
 
