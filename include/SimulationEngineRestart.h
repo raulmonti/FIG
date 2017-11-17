@@ -72,8 +72,9 @@ class SimulationEngineRestart : public SimulationEngine
 	Traial& oTraial_;
 //	thread_local Traial& oTraial_;
 
-	/// Stack of \ref Traial "traials" for a batch means mechanism
-	mutable std::stack< Reference< Traial > > stack_;
+	/// Stack of \ref Traial "traials" for a batch means mechanism,
+	/// typically used for steady-state simulations
+	mutable std::stack< Reference< Traial > > ssstack_;
 
 public:  // Ctor
 
@@ -94,7 +95,7 @@ public:  // Accessors
 public:  // Engine setup
 
 	/// @copydoc SimulationEngine::bind()
-	/// @note Reinits the \ref stack_ "internal ADT" used for batch means
+	/// @note Reinits the \ref ssstack_ "internal ADT" used for batch means
 	/// @see reinit_stack()
 	void bind(std::shared_ptr< const ImportanceFunction >) override;
 
@@ -118,7 +119,7 @@ public:  // Engine setup
 
 protected:  // Simulation helper functions
 
-	/// Clean \ref stack_ "internal ADT" used for batch means,
+	/// Do a clean in the \ref ssstack_ "internal ADT" used for batch means,
 	/// forcing the next simulation to be <i>fresh</i>.
 	void reinit_stack() const;
 

@@ -64,7 +64,7 @@ SimulationEngineRestart::SimulationEngineRestart(
 
 SimulationEngineRestart::~SimulationEngineRestart()
 {
-	TraialPool::get_instance().return_traials(stack_);
+	TraialPool::get_instance().return_traials(ssstack_);
 	unbind();
 }
 
@@ -129,12 +129,12 @@ void
 SimulationEngineRestart::reinit_stack() const
 {
 	static auto tpool = TraialPool::get_instance();
-	while (!stack_.empty()) {
-		if (&stack_.top().get() != &oTraial_)  // avoid future aliasing!
-			tpool.return_traial(std::move(stack_.top()));
-		stack_.pop();
+	while (!ssstack_.empty()) {
+		if (&ssstack_.top().get() != &oTraial_)  // avoid future aliasing!
+			tpool.return_traial(std::move(ssstack_.top()));
+		ssstack_.pop();
 	}
-	stack_.push(oTraial_);
+	ssstack_.push(oTraial_);
 }
 
 
@@ -210,10 +210,9 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 					prevEffort *= currEffort;
 					currEffort = impFun_->effort_of(traial.level+i);
 					assert(1ul < currEffort);
-					tpool.get_traial_copies(stack_, traial, prevEffort*(currEffort-1),
-					                        i+1-traial.numLevelsCrossed);
+					tpool.get_traial_copies(stack, traial, prevEffort*(currEffort-1),
+											i+1-traial.numLevelsCrossed);
 				}
-				assert(&(stack_.top().get()) != &oTraial_);
 //				for (ImportanceValue i = static_cast<ImportanceValue>(1u)
 //					; i <= static_cast<ImportanceValue>(traial.numLevelsCrossed)
 //					; i++)
@@ -225,6 +224,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 //					tpool.get_traial_copies(stack, traial, thisLevelRetrials,
 //											static_cast<short>(i)-traial.numLevelsCrossed);
 //				}
+				assert(&(stack.top().get()) != &oTraial_);
 				// Offsprings are on top of stack now: continue attending them
 			}
 			// RARE events are checked first thing in next iteration
@@ -259,20 +259,20 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	numChunksTruncated_ = 0u;
 
 	// Reset batch or run with batch means?
-	if (reinit || stack_.empty()) {
+	if (reinit || ssstack_.empty()) {
 		reinit_stack();
-		assert(&oTraial_ == &stack_.top().get());
+		assert(&oTraial_ == &ssstack_.top().get());
 		oTraial_.initialise(*network_, *impFun_);
 	} else {
 		// Batch means, but reset life times
 		std::stack< Reference< Traial > > tmp;
-		while (!stack_.empty()) {
-			stack_.top().get().lifeTime = 0.0;
-			tmp.push(std::move(stack_.top()));
-			stack_.pop();
+		while (!ssstack_.empty()) {
+			ssstack_.top().get().lifeTime = 0.0;
+			tmp.push(std::move(ssstack_.top()));
+			ssstack_.pop();
 		}
 		while (!tmp.empty()) {
-			stack_.push(std::move(tmp.top()));
+			ssstack_.push(std::move(tmp.top()));
 			tmp.pop();
 		}
 	}
@@ -291,12 +291,12 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	}
 
 	// Run a single RESTART importance-splitting simulation for "runLength"
-	// simulation time units and starting from the last saved stack_,
+	// simulation time units and starting from the last saved ssstack_,
 	// or from the system's initial state if requested.
-	while (!stack_.empty() && !interrupted) {
+	while (!ssstack_.empty() && !interrupted) {
 		Event e(EventType::NONE);
-		Traial& traial = stack_.top();
-		assert(&traial != &oTraial_ || stack_.size() == 1ul);
+		Traial& traial = ssstack_.top();
+		assert(&traial != &oTraial_ || ssstack_.size() == 1ul);
 
 		// Check whether we're standing on a rare event
 		(this->*watch_events)(property, traial, e);
@@ -321,8 +321,8 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 			// Traial reached EOS or went down => kill it
 			assert(!(&traial==&oTraial_ && IS_THR_DOWN_EVENT(e)));
 			if (&traial != &oTraial_)  // avoid future aliasing!
-				tpool.return_traial(std::move(stack_.top()));
-			stack_.pop();
+				tpool.return_traial(std::move(ssstack_.top()));
+			ssstack_.pop();
 			// Revert any time truncation
 			if (0u < numChunksTruncated_) {
 				simsLifetime += numChunksTruncated_ * SIM_TIME_CHUNK;
@@ -343,10 +343,10 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 				prevEffort *= currEffort;
 				currEffort = impFun_->effort_of(traial.level+i);
 				assert(1ul < currEffort);
-				tpool.get_traial_copies(stack_, traial, prevEffort*(currEffort-1),
+				tpool.get_traial_copies(ssstack_, traial, prevEffort*(currEffort-1),
 				                        i+1-traial.numLevelsCrossed);
 			}
-			assert(&(stack_.top().get()) != &oTraial_);
+			assert(&(ssstack_.top().get()) != &oTraial_);
 //			for (ImportanceValue i = static_cast<ImportanceValue>(1u)
 //				; i <= static_cast<ImportanceValue>(traial.numLevelsCrossed)
 //				; i++)
@@ -357,15 +357,15 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 //					(splitsPerThreshold_-1u) * pow(splitsPerThreshold_, i-1));
 //				assert(0u < thisLevelRetrials);
 //				assert(thisLevelRetrials < pow(splitsPerThreshold_, numThresholds));
-//				tpool.get_traial_copies(stack_, traial, thisLevelRetrials,
+//				tpool.get_traial_copies(ssstack_, traial, thisLevelRetrials,
 //										static_cast<short>(i)-traial.numLevelsCrossed);
 //			}
-			// Offsprings are on top of stack_ now: continue attending them
+			// Offsprings are on top of ssstack_ now: continue attending them
 		}
 		// RARE events are checked first thing in next iteration
 	}
-	if (stack_.empty())  // allow next iteration of batch means
-		stack_.push(oTraial_);
+	if (ssstack_.empty())  // allow next iteration of batch means
+		ssstack_.push(oTraial_);
 
 	// To estimate, weigh times by the relative importance of their thresholds
 	double weighedAccTime(0.0);
