@@ -115,6 +115,9 @@ ThresholdsBuilderHybrid::build_thresholds(const ImportanceFunction& impFun)
 	result.reserve(thresholds.size());
 	for (auto imp: thresholds)
 		result.emplace_back(imp, globEff_);
+	result.front().second = 1ul;  // fake first thr
+	result.back().second = 1ul;   // fake last thre
+
 	return result;
 }
 

@@ -90,6 +90,9 @@ consistency_check:
 	thresholds.reserve(thresholds_.size());
 	for (auto imp: thresholds_)
 		thresholds.emplace_back(imp, globEff_);
+	thresholds.front().second = 1ul;  // fake first thr
+	thresholds.back().second = 1ul;   // fake last thre
+
 	return thresholds;
 }
 

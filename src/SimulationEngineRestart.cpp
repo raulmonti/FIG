@@ -233,8 +233,11 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 		// Save weighed RE counts of this run, downscaling the # of RE observed
 		// by the relative importance of the threshold level they belong to
 		weighedRaresCount.push_back(0.0);
-		for (int t = 0u ; t <= (int)numThresholds ; t++)
-			weighedRaresCount[i] += raresCount[t] * pow(splitsPerThreshold_, -t);
+		double effort(1.0);
+		for (int t = 0u ; t <= (int)numThresholds ; t++) {
+			effort *= impFun_->effort_of(t);
+			weighedRaresCount[i] += raresCount[t] / effort;
+		}
 		assert(!std::isnan(weighedRaresCount.back()));
 		assert(!std::isinf(weighedRaresCount.back()));
 		assert(0.0 <= weighedRaresCount.back());
@@ -369,8 +372,11 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 
 	// To estimate, weigh times by the relative importance of their thresholds
 	double weighedAccTime(0.0);
-	for (int t = 0 ; t <= (int)numThresholds ; t++)
-		weighedAccTime += raresCount[t] * pow(splitsPerThreshold_, -t);
+	unsigned long effort(1ul);
+	for (int t = 0 ; t <= (int)numThresholds ; t++) {
+		effort *= impFun_->effort_of(t);
+		weighedAccTime += raresCount[t] / effort;
+	}
 	// Return the (weighed) simulation-time spent on rare states
 	assert(0.0 <= weighedAccTime);
 	return weighedAccTime;
