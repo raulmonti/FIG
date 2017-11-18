@@ -128,6 +128,15 @@ private:  // Class utils
 			       /* sim too long: */ traial.numLevelsCrossed > MAX_FE_SIM_LEN ||
 			       /* stop event:   */ property.is_stop(traial.state);
 	    }
+
+	/// Artificial selection of thresholds when the algorithm fails
+	/// @details Last resort for when Expected Success can't reach the max imp:
+	///          this routine selects values for the effort of all levels
+	///          above the last successful level inspected by the ES.
+	/// @param Pup Vector with the level-up probabilities that Expected Success
+	///            could compute (this will guide the artificial selection)
+	void
+	artificial_thresholds_selection(std::vector< float >& Pup) const;
 };
 
 } // namespace fig

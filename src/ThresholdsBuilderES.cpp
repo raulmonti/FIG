@@ -98,14 +98,17 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	// Roughly estimate the level-up probabilities of all importance levels
 	impFun_ = &impFun;
 	TraialsVec traials(get_traials(n_, impFun, false));
-	size_t m(1ul);
-	do {
+	for (size_t m = 1ul; m < 3ul || (m < 2ul && 0.0f >= Pup.back()); m++) {
+		// until we iterate seven times, or
+		// until we iterate three times and reach max importance
 		FE_for_ES(impFun, traials, aux);
 		for (size_t i = 0ul ; i < IMP_RANGE && 0.0f < aux[i] ; i++)
 			Pup[i] += (aux[i]-Pup[i])/m;
 		ModelSuite::tech_log(".");
-	} while (0.0f >= Pup.back() || m++ < 5ul);  // "until we reach the max importance"
+	}
 	TraialPool::get_instance().return_traials(traials);
+	if (0.0f >= Pup.back())
+		artificial_thresholds_selection(Pup);  // didn't reach max importance
 #ifndef NDEBUG
 	// Some debug print
 	float est(1.0f);
@@ -203,6 +206,29 @@ ThresholdsBuilderES::FE_for_ES(const fig::ImportanceFunction& impFun,
 		Pup[i] = static_cast<float>(startNext.size()) / N;
 		std::swap(freeNow, freeNext);
 		std::swap(startNow, startNext);
+	}
+}
+
+
+void
+ThresholdsBuilderES::artificial_thresholds_selection(std::vector< float >& Pup) const
+{
+	assert(1ul < Pup.size());  // we require at least two importance levels
+	assert(0.0f < Pup.front());
+	ModelSuite::tech_log("\nResorting to fixed choice of thresholds starting "
+	                     "above the ImportanceValue ");
+	/// @todo Implement regresive average to follow the trend of the probabilities
+	bool print(true);
+	for (size_t i = 2ul ; i < Pup.size() ; i++) {
+		if (0.0 < Pup[i])
+			continue;  // this value was chosen by Expected Success
+		const auto HI = std::max(Pup[i-1], Pup[i-2]),
+		           LO = std::min(Pup[i-1], Pup[i-2]);
+		const double trend = std::pow(LO,2.0)/HI;
+		Pup[i] = std::max(trend, 1e-2);  // bound the max effort we can choose
+		if (print)
+			ModelSuite::tech_log(std::to_string(i-1)+"\n");
+		print = false;
 	}
 }
 
