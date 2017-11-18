@@ -213,18 +213,6 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 					tpool.get_traial_copies(stack, traial, prevEffort*(currEffort-1),
 											i+1-traial.numLevelsCrossed);
 				}
-//				for (ImportanceValue i = static_cast<ImportanceValue>(1u)
-//					; i <= static_cast<ImportanceValue>(traial.numLevelsCrossed)
-//					; i++)
-//				{
-//					const unsigned thisLevelRetrials = std::round(
-//						(splitsPerThreshold_-1u) * pow(splitsPerThreshold_, i-1));
-//					assert(0u < thisLevelRetrials);
-//					assert(thisLevelRetrials < pow(splitsPerThreshold_, numThresholds));
-//					tpool.get_traial_copies(stack, traial, thisLevelRetrials,
-//											static_cast<short>(i)-traial.numLevelsCrossed);
-//				}
-				assert(&(stack.top().get()) != &oTraial_);
 				// Offsprings are on top of stack now: continue attending them
 			}
 			// RARE events are checked first thing in next iteration
@@ -350,19 +338,6 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 				                        i+1-traial.numLevelsCrossed);
 			}
 			assert(&(ssstack_.top().get()) != &oTraial_);
-//			for (ImportanceValue i = static_cast<ImportanceValue>(1u)
-//				; i <= static_cast<ImportanceValue>(traial.numLevelsCrossed)
-//				; i++)
-//			{
-//				const unsigned thisLevelRetrials =
-//
-//				const unsigned thisLevelRetrials = std::round(
-//					(splitsPerThreshold_-1u) * pow(splitsPerThreshold_, i-1));
-//				assert(0u < thisLevelRetrials);
-//				assert(thisLevelRetrials < pow(splitsPerThreshold_, numThresholds));
-//				tpool.get_traial_copies(ssstack_, traial, thisLevelRetrials,
-//										static_cast<short>(i)-traial.numLevelsCrossed);
-//			}
 			// Offsprings are on top of ssstack_ now: continue attending them
 		}
 		// RARE events are checked first thing in next iteration

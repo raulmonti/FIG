@@ -103,20 +103,19 @@ ThresholdsBuilder::invert_thresholds_map(const ThresholdsVec& t2i) const
 		while (currThr < NTHR && i >= t2i[currThr+1].first)
 			currThr++;
 		i2t[i] = std::make_pair(currThr, t2i[currThr].second);
-//		i2t[i] = static_cast<ImportanceValue>(currThr);
 	}
 	return i2t;
 	/* * * * *
 	 * Assertions to check in the map returned:
-	 *   assert(i2t[impFun.min_value()] == 0);
-	 *   assert(i2t[impFun.initial_value()] == 0);
-	 *   assert(i2t[impFun.max_value()] == t2i.size()-2);
+	 *   assert(i2t[impFun.min_value()].first == 0);
+	 *   assert(i2t[impFun.initial_value()].first == 0);
+	 *   assert(i2t[impFun.max_value()].first == t2i.size()-2);
 	 */
 }
 
 
 void
-ThresholdsBuilder::show_thresholds(const ThresholdsVec &t2i)
+ThresholdsBuilder::show_thresholds(const ThresholdsVec &t2i) const
 {
 	figTechLog << "Thresholds chosen (and corresp. effort):";
 	for (size_t i = 1ul ; i < t2i.size()-1 ; i++)
@@ -126,7 +125,7 @@ ThresholdsBuilder::show_thresholds(const ThresholdsVec &t2i)
 
 
 void
-ThresholdsBuilder::show_thresholds(const ImportanceVec& t2i)
+ThresholdsBuilder::show_thresholds(const ImportanceVec& t2i) const
 {
 	figTechLog << "Thresholds chosen:";
 	for (size_t i = 1ul ; i < t2i.size()-1 ; i++)

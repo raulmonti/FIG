@@ -32,7 +32,8 @@
 // C++
 #include <vector>
 #include <deque>
-#include <algorithm>
+#include <algorithm>  // std::fill()
+#include <iomanip>  // std::setprecision()
 // FIG
 #include <ThresholdsBuilderES.h>
 #include <ImportanceFunction.h>
@@ -42,9 +43,7 @@
 #include <ModelSuite.h>
 #include <TraialPool.h>
 #include <Traial.h>
-
-/// @todo TODO erase debug include
-#include <iomanip>      // std::setprecision()
+#include <FigLog.h>
 
 // ADL
 using std::begin;
@@ -105,20 +104,21 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 		for (size_t i = 0ul ; i < IMP_RANGE && 0.0f < aux[i] ; i++)
 			Pup[i] += (aux[i]-Pup[i])/m;
 		ModelSuite::tech_log(".");
-
-		/// @todo TODO erase debug print
-		std::cerr << "\nPup: ";
-		for (auto p: Pup)
-			std::cerr << p << ",";
-		std::cerr << "\b \b\n";
-
 	} while (0.0f >= Pup.back() || m++ < 5ul);  // "until we reach the max importance"
 	TraialPool::get_instance().return_traials(traials);
-
-	float est = 1.0;
-	for (auto p: Pup)
+#ifndef NDEBUG
+	// Some debug print
+	float est(1.0f);
+	const auto defaultLogFlags(figTechLog.flags());
+	figTechLog << std::setprecision(2) << std::scientific;
+	figTechLog << "\nLvl-up probabilities:";
+	for (auto p: Pup) {
+		figTechLog << " " << p;
 		est *= p;
-	std::cerr << std::setprecision(2) << std::scientific <<  "Est: " << est << std::endl;
+	}
+	figTechLog << "\nRare event probability spoiler: " << est << std::endl;
+	figTechLog.flags(defaultLogFlags);
+#endif
 
 	// Turn level-up probabilities into splitting factors
 	decltype(aux)& split(aux);

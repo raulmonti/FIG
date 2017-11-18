@@ -170,12 +170,12 @@ protected:  // Utils for the class and its kin
 
 	/// Print thresholds info in FIG's tech log
 	/// @param t2i threshold-to-importance map as returned by build_thresholds()
-	void show_thresholds(const ThresholdsVec& t2i);
+	void show_thresholds(const ThresholdsVec& t2i) const;
 
 	/// Print thresholds info in FIG's tech log
 	/// @param t2i threshold-to-importance map as returned by build_thresholds()
 	///            but without the per-level-effort
-	void show_thresholds(const ImportanceVec& t2i);
+	void show_thresholds(const ImportanceVec& t2i) const;
 };
 
 } // namespace fig
