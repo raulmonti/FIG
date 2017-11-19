@@ -74,7 +74,7 @@ string engineName;
 fig::JaniTranny janiSpec;
 fig::ImpFunSpec impFunSpec("no_name", "no_strategy");
 string thrTechnique;
-std::set< unsigned > splittings;
+std::set< unsigned > globalEfforts;
 std::list< fig::StoppingConditions > estBounds;
 std::chrono::seconds simsTimeout;
 string rngType;
@@ -126,10 +126,11 @@ const std::string versionStrLong(
 CmdLine cmd_("\nSample usage:\n"
 			 "~$ fig models/tandem.{sa,pp} --amono --stop-time 5m\n"
 			 "Use an automatically computed \"monolithic\" importance function "
-			 "built on the global model's state space, performing a 5 minutes "
+             "built on the global state space of the model, running a 5 minutes "
 			 "estimation which will employ the RESTART simulation engine "
-			 "(default) for splitting 2 (default) and the hybrid thresholds "
-			 "building technique, i.e. \"hyb\" (default)\n"
+             "(default) for global effort (aka splitting for RESTART) == 2 "
+             "(default) and the hybrid thresholds building technique "
+             "i.e. \"hyb\" (default)\n"
 			 "~$ fig models/tandem.{sa,pp} --flat -e nosplit            \\"
 			 "       --stop-conf 0.8 0.4 --timeout 1h\n"
 			 "Use a flat importance function to perform a standard Monte Carlo "
@@ -137,25 +138,32 @@ CmdLine cmd_("\nSample usage:\n"
 			 "the relative precision achieved for an 80% confidence interval "
 			 "equals 40% of the value estimated for each property, or 1 hour "
 			 "of wall clock time has passed, whichever happens first.\n"
-			 "~$ fig models/tandem.{sa,pp} --adhoc \"10*q2+q1\" -t ams    \\"
-			 "       --stop-conf 0.9 0.2\n"
+             "~$ fig models/tandem.{sa,pp} --adhoc \"10*q2+q1\" -t ams    \\"
+             "       -e fixedeffort --stop-conf 0.9 0.2\n"
 			 "Use the importance function \"10*q2+q1\" defined ad hoc by the "
-			 "user, with the RESTART simulation engine (default) for splitting "
-			 "2 (default), employing the Adaptive Multilevel Splitting "
-			 "thresholds building technique, i.e. \"ams\", estimating until "
-			 "the relative precision achieved for a 90% confidence interval "
-			 "equals 20% of the value estimated for each property.\n"
-			 "~$ fig models/tandem.{sa,pp} --acomp \"+\" -t hyb           \\"
+             "user, with the Fixed Effort simulation engine for global effort "
+             "1024 (default for that engine), employing the Adaptive "
+             "Multilevel Splitting thresholds building technique (\"ams\"), "
+             "estimating until the relative precision achieved "
+             "for a 90% confidence interval equals 20% of the value "
+             "estimated for each property.\n"
+             "~$ fig models/tandem.{sa,pp} --adhoc \"10*q2+q1\" -t es     \\"
+             "       -e restart --stop-conf 0.9 0.2\n"
+             "Same as before but using RESTART with the Expected Success "
+             "thresholds building technique (\"es\"), which automatically "
+             "selects the best effort for each level and thus requires no "
+             "specification of global effort values.\n"
+             "~$ fig models/tandem.{sa,pp} --acomp \"+\" -t hyb           \\"
 			 "       --stop-conf .8 .4 --stop-time 1h --stop-conf .95 .1       \\"
-			 "       --splitting 2,3,5,9,15 -e restart --timeout 30m\n"
+             "       --global-effort 2,3,5,9,15 -e restart --timeout 30m\n"
 			 "Use an automatically computed \"compositional\" importance "
 			 "function, built modularly on every module's state space, "
-			 "simulating with the RESTART engine for the splitting values "
-			 "explicitly specified, using the hybrid thresholds building "
-			 "technique, i.e. \"hyb\", estimating the value of each property "
-			 "for this configuration and for each one of the three stopping "
-			 "conditions, or until the wall-clock timeout is reached in "
-			 "each case.",
+             "simulating with the RESTART engine for the given global effort "
+             "values (aka splitting values for RESTART), using the hybrid "
+             "thresholds building technique (\"hyb\"), estimating the value "
+             "of each property for this configuration and for each one "
+             "of the three stopping conditions, or until the wall-clock "
+             "timeout is reached in each case.",
 			 ' ', versionStrShort);
 
 // IOSA model file path
@@ -296,12 +304,12 @@ ValueArg<string> timeout(
 	false, "", &timeDurationConstraint);
 
 // Splitting values to test
-ValueArg<string> splittings_(
-	"s", "splitting",
-	"Define splitting values to try out with RESTART-like simulation engines, "
-	"specified as a comma-separated list of integral values greater than '1'",
+ValueArg<string> globalEfforts_(
+    "g", "global-effort",
+    "Global effort values to use with Importance Splitting simulation engines; "
+    "this must be a comma-separated list of integral values greater than 1",
 	false, "2",
-	"comma-separated-split-values");
+    "comma-separated-integral-values");
 
 // RNG to use
 ValuesConstraint<string> RNGConstraints(
@@ -671,32 +679,30 @@ get_rng_specs()
 }
 
 
-/// Check the splitting values specifications parsed from the command line
+/// Check the global effort values specifications parsed from the command line
 /// into the TCLAP holders. Use them to fill in the global information offered
-/// to FIG for estimation (viz: the 'splittings' set)
+/// to FIG for estimation (viz: the 'globalEffort' set)
 /// @return Whether the information could be successfully retrieved
 bool
-get_splitting_values()
+get_global_effort_values()
 {
-	if (splittings_.isSet()) {
+	if (globalEfforts_.isSet()) {
 		char* err(nullptr);
-		for (auto strValue: split(splittings_.getValue(), ',')) {
+		for (auto strValue: split(globalEfforts_.getValue(), ',')) {
 			unsigned value = std::strtoul(strValue.data(), &err, 10);
 			if (nullptr == err || err[0] == '\0') {
-				splittings.emplace(value);
+				globalEfforts.emplace(value);
 			} else {
 				// Mimic TCLAP's 'parsing error' message style
 				figTechLog << "PARSE [ERROR] Argument: (--"
-						  << splittings_.getName() << ")\n";
+				          << globalEfforts_.getName() << ")\n";
 				figTechLog << "             Invalid value given \""
 						  << err << "\"\n\n";
 				return false;
 			}
 		}
 	} else {
-		// If we set a default for "splittings_" we shouldn't be here...
-		// anyway, use a single default splitting value if none was specified
-		splittings.emplace(2u);
+		globalEfforts.emplace(0u);  // per-engine default effort selection
 	}
 	return true;
 }
@@ -737,7 +743,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(timeCriteria);
 		cmd_.add(impPostProc);
 		cmd_.add(timeout);
-		cmd_.add(splittings_);
+		cmd_.add(globalEfforts_);
 		cmd_.add(rngType_);
 		cmd_.add(rngSeed_);
 		cmd_.add(forceOperation_);
@@ -762,8 +768,8 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 			// avoid further parsing
 			goto exit_with_success;
 		}
-		if (!get_splitting_values()) {
-			figTechLog << "[ERROR] Splitting values must be specified as a "
+		if (!get_global_effort_values()) {
+			figTechLog << "[ERROR] Global effort values must be specified as a "
 			             "comma-sperated list of positive integral values. "
 			             "There should be no spaces in this list.\n\n";
 			figTechLog << "For complete USAGE and HELP type:\n";
@@ -778,10 +784,10 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		} else if ("flat" == impFunSpec.strategy) {
 			// make amendments to set the only possible "flat" configuration
 			engineName = "nosplit";
-			if (splittings.size() > 1ul)
-				figTechLog << "[WARNING] Splitting is incompatible with a "
+			if (globalEfforts.size() > 1ul)
+				figTechLog << "[WARNING] Global effort is incompatible with a "
 				             "\"flat\" importance function, ignoring values.\n";
-			std::set< unsigned >({1u}).swap(splittings);
+			std::set< unsigned >({1u}).swap(globalEfforts);
 		}
 		if (!get_stopping_conditions()) {
 			figTechLog << "[ERROR] Must specify at least one stopping condition ";

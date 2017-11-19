@@ -110,7 +110,7 @@ SECTION("Estimate steady-state property using standard MC")
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	REQUIRE(model.exists_rng(rng));
 	// Prepare engine
-	model.set_splitting(1);
+	model.set_global_effort(1);
 	model.build_importance_function_flat(nameIFun, ssPropId, true);
 	model.build_thresholds(nameThr, nameIFun, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, nameIFun);
@@ -146,7 +146,7 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_splitting(6);
+	model.set_global_effort(6);
 	model.build_importance_function_adhoc(ifunSpec, ssPropId, true);
 	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
@@ -184,7 +184,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (op
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_splitting(8);
+	model.set_global_effort(8);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
 	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
@@ -224,7 +224,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (co
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_splitting(16);
+	model.set_global_effort(16);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
 	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
@@ -264,7 +264,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (+,
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_splitting(11);
+	model.set_global_effort(11);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
 	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);

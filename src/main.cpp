@@ -70,7 +70,7 @@ using fig_cli::propertiesFile;
 using fig_cli::engineName;
 using fig_cli::impFunSpec;
 using fig_cli::thrTechnique;
-using fig_cli::splittings;
+using fig_cli::globalEfforts;
 using fig_cli::estBounds;
 using fig_cli::simsTimeout;
 using fig_cli::rngType;
@@ -84,7 +84,6 @@ int main(int argc, char** argv)
 	auto tech_log(fig::ModelSuite::tech_log);
 	auto const_argv(const_cast<const char**>(argv));
 	const std::string FIG_ERROR("[ERROR] FIG failed to");
-	shared_ptr<ModelAST> modelAST = nullptr;
 
 	// "Greetings, human!" and command line parsing
 	try {
@@ -149,7 +148,7 @@ int main(int argc, char** argv)
 							impFunSpec,
 							thrTechnique,
 							estBounds,
-							splittings);
+		                    globalEfforts);
 	} catch (fig::FigException& e) {
 		log(FIG_ERROR + " perform estimations.\n\n");
 		tech_log("Error message: " + e.msg() + "\n");

@@ -335,10 +335,10 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 
 void
 ThresholdsBuilderSMC::tune(const size_t& numTrans,
-						   const ImportanceValue& maxImportance,
-						   const unsigned& splitsPerThr)
+                           const ImportanceValue& maxImportance,
+                           const unsigned& globalEffort)
 {
-	ThresholdsBuilderAdaptiveSimple::tune(numTrans, maxImportance, splitsPerThr);
+	ThresholdsBuilderAdaptiveSimple::tune(numTrans, maxImportance, globalEffort);
     // This algorith is statistically better (way better) than AMS,
 	// resulting in the thresholds being chosen really close to each other.
 	// The counterpart is that too many thresholds are chosen and thus the

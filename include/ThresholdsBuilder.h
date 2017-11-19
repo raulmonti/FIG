@@ -81,6 +81,10 @@ public:
 	/// viz. taking into consideration the user model's semantics
 	virtual bool adaptive() const noexcept = 0;
 
+	/// Whether a global effort value is needed to select the thresholds
+	/// @see setup()
+	virtual bool uses_global_effort() const noexcept = 0;
+
 	/// Threshold building techniques offered to the user,
 	/// as he should requested them through the CLI/GUI.
 	/// @note Implements the <a href="https://goo.gl/yhTgLq"><i>Construct On

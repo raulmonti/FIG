@@ -181,6 +181,16 @@ public:  // Engine setup
     /// @see bind()
 	void unbind();
 
+	/// Set the global effort to use in all threshold-levels
+	/// @note Relevant only for the Importance Splitting engines
+	/// @see global_effort()
+	/// @see ModelSuite::set_global_effort()
+	virtual void set_global_effort(unsigned) = 0;
+
+	/// Set the engine-specific default global effort
+	/// @see set_global_effort()
+	inline void set_global_effort() { set_global_effort(global_effort_default()); }
+
 private:
 
     /**
@@ -233,10 +243,30 @@ public:  // Accessors
     /// or void string if none is.
     const std::string current_imp_strat() const noexcept;
 
-	/// 1 + Number of replicas made of a Traial when it crosses
-	/// an importance threshold upwards (i.e. gaining on importance)
-	/// @see ThresholdsBuilder
-	virtual unsigned splits_per_threshold() const noexcept = 0;
+	/**
+	 * @brief (Global) Effort performed per step-advance of the simulations
+	 *
+	 *         If a non-global thresholds selection mechanism is chosen,
+	 *         e.g. \ref ThresholdsBuilderES "Expected Success",
+	 *         0 is returned; else:
+	 *         <ul>
+	 *         <li>In RESTART this is 1 + #(replicas) made of a Traial
+	 *             when it crosses a threshold-level upwards,</li>
+	 *         <li>In Fixed Effort this is the #(simulations) launched
+	 *             on each threshold-level.</li>
+	 *         </ul>
+	 *
+	 * @return Global effort as described in the details,
+	 *         or 0 if the thresholds builder isn't ThresholdsBuilderAdaptiveSimple
+	 * @note Relevant only for Importance Splitting engines,
+	 *       and when a global effort mechanism is used to choose the thresholds.
+	 * @see ThresholdsBuilderAdaptiveSimple
+	 * @see ThresholdsBuilderES
+	 */
+	virtual unsigned global_effort() const noexcept = 0;
+
+	/// Engine-specific default value for the global effort
+	virtual unsigned global_effort_default() const noexcept = 0;
 
 public:  // Simulation functions
 
@@ -265,11 +295,6 @@ public:  // Simulation functions
     void simulate(const Property& property, ConfidenceInterval& ci) const;
 
 protected:  // Simulation helper functions
-
-	/// Logarithm of the number of experiments virtually performed
-	/// on each internal iteration of a simulate() function
-	/// @throw FigException if the engine wasn't bound() to an ImportanceFunction
-	virtual double log_experiments_per_sim() const = 0;
 
 	/**
 	 * @brief Run independent transient-like simulations to estimate

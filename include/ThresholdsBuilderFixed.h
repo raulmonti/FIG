@@ -44,9 +44,9 @@ namespace fig
  *        uses a policy which is oblivious of the underlying user model.<br>
  *        The final resulting number of thresholds built is fully determined
  *        by the "useful range" of the ImportanceFunction (i.e. the difference
- *        between the max value and the initial value), the splitting selected
- *        by the user, and the post-processing applied to the importance values
- *        after their computation (if any).
+ *        between the max value and the initial value), the global effort
+ *        selected by the user, and the post-processing applied to the
+ *        importance values after their computation (if any).
  *
  * @see ThresholdsBuilder
  * @see ThresholdsBuilderAdaptive
@@ -62,7 +62,7 @@ protected:
 
 	/// The chosen stride_ will be expanded times the ceiling of
 	/// '(impFun.max_value() - impFun.initial_value()) / EXPAND_EVERY'
-	/// @note stride_ is also affected by the splitting and
+	/// @note stride_ is also affected by the global effort and
 	///       the postProcessing specified in build_thresholds()
 	const ImportanceValue EXPAND_EVERY;
 
@@ -79,7 +79,7 @@ protected:
 	/// two importance values per threshold level, i.e. a threshold will be set
 	/// every two importance values.
 	/// @note This is automatically updated during build_thresholds() according
-	///       to the splitting and the details of the ImportanceFunction
+	///       to the global effort and the details of the ImportanceFunction
 	ImportanceValue stride_;
 
 public:
@@ -89,6 +89,8 @@ public:
 	                       ImportanceValue expandEvery = 64);
 
 	inline bool adaptive() const noexcept override { return false; }
+
+	bool uses_global_effort() const noexcept override { return true; }
 
 	/// Register the post-processing and the global effort (if any)
 	/// @param pp PostProcessing that will be applied to the ImportanceValue s

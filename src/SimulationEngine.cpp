@@ -106,8 +106,9 @@ min_run_length(const std::string& engineName, const std::string& ifunName)
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
 	static const size_t run_lengths[NUM_ENGINES][NUM_IMPFUNS] = {
-		{ 1ul<<15, 1ul<<16, 1ul<<16 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 1ul<<14, 1ul<<14, 1ul<<14 }   // restart x {concrete_coupled, concrete_split, algebraic}
+	    { 1ul<<15, 1ul<<16, 1ul<<16 },  //     nosplit x {concrete_coupled, concrete_split, algebraic}
+	    { 1ul<<14, 1ul<<14, 1ul<<14 },  //     restart x {concrete_coupled, concrete_split, algebraic}
+	    { 1ul<<12, 1ul<<12, 1ul<<12 }   // fixedeffort x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -138,8 +139,9 @@ increase_run_length(const std::string& engineName,
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
 	static const float inc_length[NUM_ENGINES][NUM_IMPFUNS] = {
-		{ 1.7f, 1.7f, 1.4f },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 1.4f, 1.4f, 1.4f }   // restart x {concrete_coupled, concrete_split, algebraic}
+	    { 1.7f, 1.7f, 1.4f },  //     nosplit x {concrete_coupled, concrete_split, algebraic}
+	    { 1.4f, 1.4f, 1.4f },  //     restart x {concrete_coupled, concrete_split, algebraic}
+	    { 1.4f, 1.4f, 1.4f }   // fixedeffort x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);

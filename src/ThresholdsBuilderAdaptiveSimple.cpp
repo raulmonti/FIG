@@ -72,7 +72,7 @@ ThresholdsBuilderAdaptiveSimple::build_thresholds(const ImportanceFunction& impF
 	tune(ModelSuite::get_instance().modules_network()->num_transitions(),
 	     impFun.max_value() - impFun.min_value(),
 	     globEff_);
-	ModelSuite::tech_log("Building thresholds with \""+ name +"\" for splitting/"
+	ModelSuite::tech_log("Building thresholds with \""+ name +"\" for global "
 	                     "effort = " + std::to_string(globEff_) + " and k/n = "
 						 + std::to_string(k_) + "/" + std::to_string(n_) + " ≈ "
 						 + std::to_string(static_cast<float>(k_)/n_) + "\n");

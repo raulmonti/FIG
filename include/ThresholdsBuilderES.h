@@ -79,6 +79,8 @@ public:
 	/// @param n Number of pilot simulations used per importance level, see Budde et al.
 	ThresholdsBuilderES(const size_t& n = (1ul<<8ul));
 
+	bool uses_global_effort() const noexcept override final { return false; }
+
 	/// Register the Property being estimated, which may affect
 	/// the internal Fixed Effort runs of the thresholds selection algorithm.
 	void

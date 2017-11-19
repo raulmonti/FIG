@@ -100,7 +100,7 @@ SECTION("Estimate transient property using standard MC")
 	REQUIRE(model.exists_importance_function(nameIFun));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_splitting(1);
+	model.set_global_effort(1);
 	model.build_importance_function_flat(nameIFun, trPropId, true);
 	model.build_thresholds(nameThr, nameIFun, trPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, nameIFun);
@@ -133,7 +133,7 @@ SECTION("Estimate transient property using RESTART and adhoc ifun")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_splitting(9);
+	model.set_global_effort(9);
 	model.build_importance_function_adhoc(ifunSpec, trPropId, true);
 	bool thresholdsChosen(false);
 	while (!thresholdsChosen) {
@@ -177,7 +177,7 @@ SECTION("Estimate transient property using RESTART and monolithic ifun")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_splitting(2);
+	model.set_global_effort(2);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
 	model.build_thresholds(nameThr, ifunSpec.name, trPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
@@ -208,7 +208,7 @@ SECTION("Estimate transient property using RESTART and compositional ifun")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_splitting(7);
+	model.set_global_effort(7);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
 	model.build_thresholds(nameThr, ifunSpec.name, trPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);

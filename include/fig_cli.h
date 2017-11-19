@@ -86,9 +86,10 @@ extern fig::ImpFunSpec impFunSpec;
 /// technique" to use for estimations
 extern std::string thrTechnique;
 
-/// Splitting values to test during estimations,
-/// valid only for RESTART-like \ref fig::SimulationEngine "simulation engines"
-extern std::set< unsigned > splittings;
+/// Global effort values to use with Importance Splitting simulation engines,
+/// valid only when a global-effort thresholds selection algorithm is used,
+/// e.g. ThresholdsBuilderAdaptiveSimple and <i>not</i> ThresholdsBuilderES
+extern std::set< unsigned > globalEfforts;
 
 /// Estimation bounds specified by the user. These can be either temporal
 /// (e.g. run for 30 m) or value-driven (e.g. stop after building a 90%

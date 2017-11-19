@@ -57,15 +57,6 @@ SimulationEngineNosplit::~SimulationEngineNosplit()
 }
 
 
-double
-SimulationEngineNosplit::log_experiments_per_sim() const
-{
-	if (!bound())
-		throw_FigException("engine isn't bound to any importance function");
-	return 0.0;  // == log(1)
-}
-
-
 std::vector<double>
 SimulationEngineNosplit::transient_simulations(const PropertyTransient& property,
                                                const size_t& numRuns) const

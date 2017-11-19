@@ -50,7 +50,7 @@ namespace fig
  *        adaptive algorithms fail to terminate within predefined bounds.
  *        The resulting number of thresholds built is a random variable of
  *        the probability of reaching the highest ImportanceValue, also
- *        influenced by the user-specified splitting value.
+ *        influenced by the user-specified global effort value.
  *
  * @see ThresholdsBuilder
  * @see ThresholdsBuilderFixed
@@ -80,6 +80,8 @@ public:
 	                        ImportanceValue expandEvery = 32);
 
 	inline bool adaptive() const noexcept override { return true; }
+
+	bool uses_global_effort() const noexcept override { return true; }
 
 	void
 	setup(const PostProcessing& pp,

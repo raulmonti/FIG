@@ -68,6 +68,8 @@ public:
 	ThresholdsBuilderAdaptiveSimple(const unsigned& n = 0u,
 	                                const unsigned& k = 0u);
 
+	bool uses_global_effort() const noexcept override { return true; }
+
 	/**
 	 * @brief Register the global effort used for simulations
 	 *

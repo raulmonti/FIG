@@ -43,16 +43,23 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 SimulationEngineFixedEffort::SimulationEngineFixedEffort(
-    std::shared_ptr<const ModuleNetwork> network) :
-        SimulationEngine("fixedeffort", network)
-{
-	TraialPool::get_instance().get_traials(traials_, effort_per_level());
-}
+    std::shared_ptr<const ModuleNetwork> network,
+    unsigned effortPerLevel) :
+        SimulationEngine("fixedeffort", network),
+        effortPerLevel_(effortPerLevel)
+{ /* Not much to do around here */ }
 
 
 SimulationEngineFixedEffort::~SimulationEngineFixedEffort()
 {
 	TraialPool::get_instance().return_traials(traials_);
+}
+
+
+unsigned
+SimulationEngineFixedEffort::global_effort() const noexcept
+{
+	return effortPerLevel_;
 }
 
 
@@ -69,6 +76,20 @@ SimulationEngineFixedEffort::bind(std::shared_ptr< const ImportanceFunction > if
 }
 
 
+void
+SimulationEngineFixedEffort::set_global_effort(unsigned epl)
+{
+	if (locked())
+		throw_FigException("engine \"" + name() + "\" is currently locked "
+		                   "in \"simulation mode\"");
+	if (epl < 2u)
+		throw_FigException("bad global effort per level \"" + std::to_string(epl) + "\". "
+		                   "At least 2 simulations must be launched per level "
+		                   "to guarantee some basic statistical properties");
+	effortPerLevel_ = epl;
+}
+
+
 std::vector<double>
 SimulationEngineFixedEffort::transient_simulations(const PropertyTransient& property,
                                                    const size_t& numRuns) const
@@ -76,18 +97,19 @@ SimulationEngineFixedEffort::transient_simulations(const PropertyTransient& prop
 	auto event_watcher = &fig::SimulationEngineFixedEffort::transient_event;
 	const ModuleNetwork& network(*fig::ModelSuite::get_instance().modules_network());
 	const size_t IMP_RANGE(impFun_->max_value(true) - impFun_->initial_value(true));
+	TraialPool::get_instance().get_traials(traials_, effortPerLevel_);
 	std::vector< Reference< Traial > > freeNow, freeNext, startNow, startNext;
 	std::vector< double > results(numRuns);
 	std::vector< double > Pup(IMP_RANGE);
 
 	assert(0ul < numRuns);
 	assert(0ul < IMP_RANGE);
-	assert(0ul < effort_per_level());
-	assert(traials_.size() == effort_per_level());
-	freeNow.reserve(effort_per_level());
-	freeNext.reserve(effort_per_level());
-	startNow.reserve(effort_per_level());
-	startNext.reserve(effort_per_level());
+	assert(0ul < effortPerLevel_);
+	assert(traials_.size() == effortPerLevel_);
+	freeNow.reserve(effortPerLevel_);
+	freeNext.reserve(effortPerLevel_);
+	startNow.reserve(effortPerLevel_);
+	startNext.reserve(effortPerLevel_);
 
 	// Perform 'numRuns' independent Fixed Effort simulations
 	for (size_t i = 0ul ; i < numRuns ; i++) {
@@ -137,7 +159,7 @@ SimulationEngineFixedEffort::transient_simulations(const PropertyTransient& prop
 				}
 			}
 			// ... estimate the probability of reaching 'i+1' from 'i' ...
-			Pup[imp] = numSuccesses / effort_per_level();
+			Pup[imp] = numSuccesses / effortPerLevel_;
 			std::swap(freeNow, freeNext);
 			std::swap(startNow, startNext);
 		}
@@ -146,6 +168,7 @@ SimulationEngineFixedEffort::transient_simulations(const PropertyTransient& prop
 		for (auto p: Pup)
 			results[i] *= p;
 	}
+	TraialPool::get_instance().return_traials(traials_);
 	return results;
 }
 

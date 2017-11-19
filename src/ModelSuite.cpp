@@ -135,12 +135,12 @@ build_empty_ci(const fig::PropertyType& propertyType,
 														  dynamicPrecision,
 														  timeBoundSim));
 //		// The statistical oversampling incurred here is bounded:
-//		//  · from below by splitsPerThreshold ^ minRareValue,
-//		//  · from above by splitsPerThreshold ^ numThresholds.
+//		//  · from below by globalEffort ^ minRareValue,
+//		//  · from above by globalEffort ^ numThresholds.
 //		// NOTE: Deprecated - This was used by the binomial proportion CIs
-//		double minStatOversamp = std::pow(splitsPerThreshold,
+//		double minStatOversamp = std::pow(globalEffort,
 //										  impFun.min_rare_value());
-//		double maxStatOversamp = std::pow(splitsPerThreshold,
+//		double maxStatOversamp = std::pow(globalEffort,
 //										  impFun.num_thresholds());
 //		ci_ptr->set_statistical_oversampling(maxStatOversamp);
 //		ci_ptr->set_variance_correction(minStatOversamp/maxStatOversamp);
@@ -297,7 +297,7 @@ std::shared_ptr< ModuleNetwork > ModelSuite::model(std::make_shared<ModuleNetwor
 
 std::vector< std::shared_ptr< Property > > ModelSuite::properties;
 
-unsigned ModelSuite::splitsPerThreshold = 2u;
+unsigned ModelSuite::globalEffort = 0u;
 
 std::unordered_map< std::string, std::shared_ptr< ImportanceFunction > >
 	ModelSuite::impFuns;
@@ -452,7 +452,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
 	simulators["restart"] = std::make_shared< SimulationEngineRestart >(model);
 	simulators["fixedeffort"] = std::make_shared< SimulationEngineFixedEffort >(model);
-	set_splitting(splitsPerThreshold);
+	set_global_effort();
 
 #ifndef NDEBUG
 	// Check all offered importance functions, thresholds builders and
@@ -483,17 +483,21 @@ template void ModelSuite::seal(const std::unordered_set<std::string>&);
 
 
 void
-ModelSuite::set_splitting(const unsigned& spt, bool verbose)
+ModelSuite::set_global_effort(const unsigned& ge, bool verbose)
 {
     if (!sealed())
         throw_FigException("ModelSuite hasn't been sealed yet");
-	if (1u < spt)  // i.e. if we actually use splitting
-		dynamic_cast<SimulationEngineRestart&>(*simulators["restart"])
-				.set_splits_per_threshold(spt);
-	splitsPerThreshold = spt;
-	if (verbose)
-		// Show in tech log
-		tech_log("\nSplitting set to " + std::to_string(spt) + "\n");
+	if (1u < ge)  // i.e. if we actually use a global effort
+		for (auto& pair: simulators)
+			pair.second->set_global_effort(ge);
+	else
+		for (auto& pair: simulators)
+			pair.second->set_global_effort();
+	globalEffort = ge;
+	if (verbose && 1u < ge)
+		tech_log("\nGlobal effort set to " + std::to_string(ge) + "\n");
+	else if (verbose && 1u >= ge)
+		tech_log("\nGlobal effort reset to default values\n");
 }
 
 
@@ -547,9 +551,9 @@ ModelSuite::get_property(const size_t& i) const noexcept
 
 
 const unsigned&
-ModelSuite::get_splitting() const noexcept
+ModelSuite::get_global_effort() const noexcept
 {
-	return splitsPerThreshold;
+	return globalEffort;
 }
 
 
@@ -960,13 +964,15 @@ ModelSuite::build_thresholds(const std::string& technique,
 		throw_FigException("importance function \"" + ifunName + "\" doesn't "
 						   "have importance information yet. Call any of the "
 						   "\"build_importance_function_xxx()\" routines with "
-						   "\"" + ifunName + "\" beforehand");
+		                   "\"" + ifunName + "\" beforehand");
 	if (force || ifun.thresholds_technique() != technique) {
+		const auto gEffortSpec(tb.uses_global_effort()
+		            ? (" with global effort "+std::to_string(globalEffort)) : (""));
 		techLog_ << "\nBuilding thresholds for importance function \"" << ifunName
-				 << "\",\nusing technique \"" << technique << "\" with splitting "
-				 << "== " << splitsPerThreshold << std::endl;
+		         << "\",\nusing technique \"" << technique << "\"" << gEffortSpec
+		         << std::endl;
 		const double startTime = omp_get_wtime();
-		tb.setup(ifun.post_processing(), property, splitsPerThreshold);
+		tb.setup(ifun.post_processing(), property, globalEffort);
 		ifun.build_thresholds(tb);
 		techLog_ << "Thresholds building time: "
 				 << std::fixed << std::setprecision(2)
@@ -1055,7 +1061,7 @@ ModelSuite::clear() noexcept
 	// Reset class memebers
 	std::make_shared<ModuleNetwork>().swap(model);
 	properties.clear();
-	splitsPerThreshold = 2u;
+	globalEffort = 0u;
 	lastEstimationStartTime_ = 0.0;
 	timeout_ = std::chrono::seconds::zero();
 	lastEstimates_.clear();
@@ -1112,7 +1118,7 @@ ModelSuite::estimate(const Property& property,
 	mainLog_ << " with post-processing     \"" << postProcStr << "\"\n";
 	mainLog_ << " and thresholds technique \"" << ifun.thresholds_technique() << "\"\n";
 	mainLog_ << " [ " << ifun.num_thresholds() << " thresholds";
-	mainLog_ << " | splitting " << engine.splits_per_threshold() << " ]\n";
+	mainLog_ << " | effort " << engine.global_effort() << " ]\n";
 
 	if (bounds.is_time())
 		// Simulation bounds are wall clock time limits

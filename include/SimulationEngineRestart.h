@@ -58,8 +58,12 @@ class PropertyTransient;
  */
 class SimulationEngineRestart : public SimulationEngine
 {
-	/// @copydoc SimulationEngine::splits_per_threshold()
+	/// Number of replicas made of a Traial when it crosses a threshold upwards
 	unsigned splitsPerThreshold_;
+
+	/// Default value for splitsPerThreshold_
+	static constexpr decltype(splitsPerThreshold_) DEFAULT_GLOBAL_EFFORT = 2;
+	static inline decltype(splitsPerThreshold_) splitting_default() { return DEFAULT_GLOBAL_EFFORT; }
 
 	/// Number of importance thresholds a simulation run must cross downwards
 	/// (i.e. loosing on importance) to be discarded
@@ -79,14 +83,17 @@ public:  // Ctor
 
 	/// Data ctor
 	SimulationEngineRestart(std::shared_ptr<const ModuleNetwork> network,
-							const unsigned& splitsPerThreshold = 2u,
-							const unsigned& dieOutDepth = 0u);
+	                        const unsigned& splitsPerThreshold = splitting_default(),
+	                        const unsigned& dieOutDepth = 0u);
 
 	~SimulationEngineRestart();
 
 public:  // Accessors
 
-	unsigned splits_per_threshold() const noexcept override;
+	unsigned global_effort() const noexcept override;
+
+	/// @copydoc DEFAULT_GLOBAL_EFFORT
+	inline unsigned global_effort_default() const noexcept override { return DEFAULT_GLOBAL_EFFORT; }
 
 	/// @copydoc dieOutDepth_
 	const unsigned& die_out_depth() const noexcept;
@@ -107,9 +114,8 @@ public:  // Engine setup
 	 *            plus the newly created replica
 	 * @throw FigException if the value is invalid
 	 * @throw FigException if the engine was \ref lock() "locked"
-	 * @see splits_per_threshold()
 	 */
-	void set_splits_per_threshold(unsigned spt);
+	void set_global_effort(unsigned spt = splitting_default()) override;
 
 	/// @see die_out_depth()
 	/// @throw FigException if the value is invalid
@@ -121,8 +127,6 @@ protected:  // Simulation helper functions
 	/// Clean \ref stack_ "internal ADT" used for batch means,
 	/// forcing the next simulation to be <i>fresh</i>.
 	void reinit_stack() const;
-
-	double log_experiments_per_sim() const override;
 
 	std::vector<double>
 	transient_simulations(const PropertyTransient& property,

@@ -77,7 +77,7 @@ protected:  // Utils for the class and its kin
 
 	void tune(const size_t& numTrans,
 			  const ImportanceValue& maxImportance,
-	          const unsigned& splitsPerThr) override;
+	          const unsigned& globalEffort) override;
 };
 
 } // namespace fig

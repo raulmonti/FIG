@@ -52,11 +52,11 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 
 // Available engine names in SimulationEngine::names
 SimulationEngineRestart::SimulationEngineRestart(
-	std::shared_ptr<const ModuleNetwork> network,
-	const unsigned& splitsPerThreshold,
-	const unsigned& dieOutDepth) :
+    std::shared_ptr<const ModuleNetwork> network,
+    const unsigned& splitsPerThreshold,
+    const unsigned& dieOutDepth) :
 		SimulationEngine("restart", network),
-		splitsPerThreshold_(splitsPerThreshold),
+        splitsPerThreshold_(splitsPerThreshold),
 		dieOutDepth_(dieOutDepth),
         numChunksTruncated_(0u),
         oTraial_(TraialPool::get_instance().get_traial())
@@ -70,7 +70,7 @@ SimulationEngineRestart::~SimulationEngineRestart()
 
 
 unsigned
-SimulationEngineRestart::splits_per_threshold() const noexcept
+SimulationEngineRestart::global_effort() const noexcept
 {
 	return splitsPerThreshold_;
 }
@@ -98,13 +98,13 @@ SimulationEngineRestart::bind(std::shared_ptr< const ImportanceFunction > ifun_p
 
 
 void
-SimulationEngineRestart::set_splits_per_threshold(unsigned spt)
+SimulationEngineRestart::set_global_effort(unsigned spt)
 {
     if (locked())
         throw_FigException("engine \"" + name() + "\" is currently locked "
                            "in \"simulation mode\"");
-    if (spt < 2u)
-		throw_FigException("bad splitting value \"" + std::to_string(spt) + "\". "
+	if (spt < 2u)
+		throw_FigException("bad global splitting value \"" + std::to_string(spt) + "\". "
 						   "At least one Traial must be created, besides the "
 						   "original one, when crossing a threshold upwards");
     splitsPerThreshold_ = spt;
@@ -131,16 +131,6 @@ SimulationEngineRestart::reinit_stack() const
 		stack_.pop();
 	}
 	stack_.push(oTraial_);
-}
-
-
-double
-SimulationEngineRestart::log_experiments_per_sim() const
-{
-	if (!bound())
-		throw_FigException("engine isn't bound to any importance function");
-	// log( splitsPerThreshold ^ numThresholds )
-	return impFun_->num_thresholds() * std::log(splitsPerThreshold_);
 }
 
 

@@ -94,8 +94,10 @@ class ModelSuite
 	/// Properties to estimate
 	static std::vector< std::shared_ptr< Property > > properties;
 
-	/// Splitting factor used by all splitting engines (typically RESTART)
-	static unsigned splitsPerThreshold;
+	/// Global effort used by all splitting engines
+	/// @note Relevant only when a \ref ThresholdsBuilderAdaptiveSimple
+	///       "global-effort thresholds builder" is used
+	static unsigned globalEffort;
 
 	/// Importance functions available
 	static std::unordered_map<
@@ -230,19 +232,24 @@ public:  // Populating facilities and other modifyers
 	inline void seal() { seal(std::vector<std::string>()); }
 
 	/**
-	 * @brief Set the splitting factor for all engines using splitting
+	 * @brief Set the global effort for all Importance Splitting engines
 	 *
-	 *        The splitting factor equals 1 + the number of replicas made of
-	 *        a Traial when it crosses an importance threshold upwards,
-	 *        i.e. gaining importance. It is only relevant for simulation
-	 *        engines performing splitting, e.g. RESTART
+	 *         If a non-global thresholds selection mechanism is chosen,
+	 *         e.g. \ref ThresholdsBuilderES "Expected Success", this value
+	 *         is ignored. Else the global effort:
+	 *         <ul>
+	 *         <li>In RESTART is 1 + #(replicas) made of a Traial
+	 *             when it crosses a threshold-level upwards;</li>
+	 *         <li>In Fixed Effort is the #(simulations) launched
+	 *             on each threshold-level.</li>
+	 *         </ul>
 	 *
-	 * @param spt @copydoc splitsPerThreshold
+	 * @param ge @copydoc globalEffort
 	 *
 	 * @warning The ModelSuite must have been \ref seal() "sealed" beforehand
 	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
 	 */
-	void set_splitting(const unsigned& spt, bool verbose = false);
+	void set_global_effort(const unsigned& ge = 0u, bool verbose = false);
 	
 	/**
 	 * @brief Set a wall-clock-time limit for simulations
@@ -319,9 +326,9 @@ public:  // Accessors
 	 */
 	std::shared_ptr< const Property > get_property(const size_t& i) const noexcept;
 
-	/// Get the splitting factor used by all engines which implement splitting
-	/// @see set_splitting()
-	const unsigned& get_splitting() const noexcept;
+	/// Get the global effort used by all Importance Splitting engines
+	/// @see set_global_effort()
+	const unsigned& get_global_effort() const noexcept;
 
 	/// Get the wall-clock-time execution limit imposed to simulations,
 	/// in seconds
@@ -720,7 +727,7 @@ public:  // Simulation utils
 					   const ImpFunSpec& impFunSpec,
 					   const std::string& thrTechnique,
 					   const Container1<ValueType1, OtherArgs1...>& estimationBounds,
-					   const Container2<ValueType2, OtherArgs2...>& splittingValues
+	                   const Container2<ValueType2, OtherArgs2...>& globalEffortValues
 						   = std::vector<unsigned>());
 
 	/// @todo TODO design and implement user-interactive processing
@@ -759,19 +766,18 @@ template<
 		typename... OtherArgs2
 >
 void
-ModelSuite::process_batch(
-	const std::string& engineName,
-	const ImpFunSpec& impFunSpec,
-	const std::string& thrTechnique,
-	const Container1<ValueType1, OtherArgs1...>& estimationBounds,
-	const Container2<ValueType2, OtherArgs2...>& splittingValues)
+ModelSuite::process_batch(const std::string& engineName,
+    const ImpFunSpec& impFunSpec,
+    const std::string& thrTechnique,
+    const Container1<ValueType1, OtherArgs1...>& estimationBounds,
+    const Container2<ValueType2, OtherArgs2...>& globalEffortValues)
 {
 	static_assert(std::is_constructible< StoppingConditions, ValueType1 >::value,
 				  "ERROR: type mismatch. ModelSuite::process_batch() takes a "
 				  "container with stopping conditions as fifth parameter");
 	static_assert(std::is_constructible< unsigned, ValueType2 >::value,
 				  "ERROR: type mismatch. ModelSuite::process_batch() takes a "
-				  "container with splitting values as (optional) sixth parameter");
+	              "container with global effort values as (optional) sixth parameter");
 
 	// Validity check
 	if (!sealed()) {
@@ -810,11 +816,11 @@ ModelSuite::process_batch(
 		log("Can't estimate: no stopping conditions were specified.\n");
 		throw_FigException("aborting execution since no estimation bounds "
 						   "were specified.");
-	} else if (distance(begin(splittingValues), end(splittingValues))
+	} else if (distance(begin(globalEffortValues), end(globalEffortValues))
 			   == 0ul && "nosplit" != engineName) {
-		log("Can't estimate: no splitting value was specified for engine \""
+		log("Can't estimate: no global effort value was specified for engine \""
 			+ engineName + "\"\n");
-		throw_FigException("aborting execution since no splitting values "
+		throw_FigException("aborting execution since no global effort values "
 						   "were chosen for simulation engine \"" +
 						   engineName + "\"");
 	}
@@ -831,11 +837,11 @@ ModelSuite::process_batch(
 			build_importance_function_adhoc(impFunSpec, *property, true);
 		assert(impFuns[impFunSpec.name]->has_importance_info());
 
-		// ... and for each splitting specified ...
-		for (const auto& split: splittingValues) {
+		// ... and for each global effort specified ...
+		for (auto ge: globalEffortValues) {
 
 			// ... choose the thresholds ...
-			set_splitting(split, true);
+			set_global_effort(0u < ge ? ge : simulators[engineName]->global_effort(), true);
 			build_thresholds(thrTechnique, impFunSpec.name, property);
 			assert(impFuns[impFunSpec.name]->ready());
 
