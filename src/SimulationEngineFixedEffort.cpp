@@ -96,14 +96,14 @@ SimulationEngineFixedEffort::transient_simulations(const PropertyTransient& prop
 {
 	auto event_watcher = &fig::SimulationEngineFixedEffort::transient_event;
 	const ModuleNetwork& network(*fig::ModelSuite::get_instance().modules_network());
-	const size_t IMP_RANGE(impFun_->max_value(true) - impFun_->initial_value(true));
+	const size_t LVL_MAX(impFun_->max_value()+1), LVL_INI(impFun_->initial_value());
 	TraialPool::get_instance().get_traials(traials_, effortPerLevel_);
 	std::vector< Reference< Traial > > freeNow, freeNext, startNow, startNext;
 	std::vector< double > results(numRuns);
-	std::vector< double > Pup(IMP_RANGE);
+	std::vector< double > Pup(LVL_MAX);
 
 	assert(0ul < numRuns);
-	assert(0ul < IMP_RANGE);
+	assert(LVL_INI < LVL_MAX);
 	assert(0ul < effortPerLevel_);
 	assert(traials_.size() == effortPerLevel_);
 	freeNow.reserve(effortPerLevel_);
@@ -114,22 +114,19 @@ SimulationEngineFixedEffort::transient_simulations(const PropertyTransient& prop
 	// Perform 'numRuns' independent Fixed Effort simulations
 	for (size_t i = 0ul ; i < numRuns ; i++) {
 		// Re-init ADTs
-		std::fill(begin(Pup), end(Pup), 1.0f);
+		std::fill(begin(Pup), end(Pup), 0.0f);
 		freeNow.clear();
 		freeNext.clear();
 		startNow.clear();
 		startNext.clear();
 		for (Traial& t: traials_) {
 			t.initialise(network,*impFun_);
-			t.level = impFun_->initial_value(true);  // use importance value, not threshold level
 			startNow.push_back(t);  // could use 'freeNow' as well
 		}
-		// For each importance value 'i' ...
-		ImportanceValue imp;
+		// For each threshold level 'l' ...
+		ImportanceValue l;
 		double numSuccesses(1.0);
-		for (imp = impFun_->initial_value(true) ;
-		     imp < impFun_->max_value(true) && !startNow.empty() && numSuccesses > 0.0;
-		     imp++)
+		for (l = LVL_INI ; l < LVL_MAX && !startNow.empty() && numSuccesses > 0.0; l++)
 		{
 			// ... run Fixed Effort until the next importance value 'i+1' ...
 			numSuccesses = 0.0;
@@ -146,10 +143,10 @@ SimulationEngineFixedEffort::transient_simulations(const PropertyTransient& prop
 					startNow.pop_back();
 				}
 				// (simulation & bookkeeping)
-				assert(traial.level == imp);
+				assert(traial.level == l);
 				traial.depth = 0;
 				network.simulation_step(traial, property, *this, event_watcher);
-				if (traial.level > imp) {
+				if (traial.level > l) {
 					numSuccesses += 1.0;
 					startNext.push_back(traial);
 				} else {
@@ -159,14 +156,15 @@ SimulationEngineFixedEffort::transient_simulations(const PropertyTransient& prop
 				}
 			}
 			// ... estimate the probability of reaching 'i+1' from 'i' ...
-			Pup[imp] = numSuccesses / effortPerLevel_;
+			Pup[l] = numSuccesses / effortPerLevel_;
 			std::swap(freeNow, freeNext);
 			std::swap(startNow, startNext);
 		}
 		// ... and the final product of everything is the rare event estimate
 		results[i] = 1.0;
-		for (auto p: Pup)
-			results[i] *= p;
+		for (l = LVL_INI ; l < LVL_MAX && 0.0 < results[i] ; l++)
+			results[i] *= Pup[l];
+		assert(numSuccesses > 0.0 || 0.0 == results[i]);
 	}
 	TraialPool::get_instance().return_traials(traials_);
 	return results;
