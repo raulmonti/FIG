@@ -66,7 +66,7 @@ class SimulationEngineFixedEffort : public SimulationEngine
 	unsigned effortPerLevel_;
 
 	/// Default value for effortPerLevel_
-	static constexpr decltype(effortPerLevel_) DEFAULT_GLOBAL_EFFORT = (1u)<<(6u);  // 64
+	static constexpr decltype(effortPerLevel_) DEFAULT_GLOBAL_EFFORT = (1u)<<(4u);  // 16
 	static inline decltype(effortPerLevel_) effort_per_level_default() { return DEFAULT_GLOBAL_EFFORT; }
 
 	/// Stack of \ref Traial "traials" for a batch means mechanism
@@ -123,9 +123,9 @@ private:  // Traial observers/updaters
 	inline bool
 	transient_event(const PropertyTransient& property, Traial& traial, Event&) const override
 		{
-			const ImportanceValue newImp = impFun_->importance_of(traial.state);
-			traial.depth -= newImp - traial.level;
-			traial.level = newImp;
+		    const ImportanceValue newLvl = impFun_->level_of(traial.state);
+			traial.depth -= newLvl - traial.level;
+			traial.level = newLvl;
 			return /* level-up:   */ traial.depth < 0 ||
 				   /* rare event: */ property.is_rare(traial.state) ||
 				   /* stop event: */ property.is_stop(traial.state);
