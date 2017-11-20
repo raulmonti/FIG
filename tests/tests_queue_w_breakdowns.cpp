@@ -91,7 +91,7 @@ SECTION("Seal model and check consistency")
 	REQUIRE(model.num_RNGs() > 0ul);
 }
 
-SECTION("Estimate transient property using standard MC")
+SECTION("Transient: standard MC")
 {
 	const string nameEngine("nosplit");
 	const string nameIFun("algebraic");
@@ -123,7 +123,7 @@ SECTION("Estimate transient property using standard MC")
 	REQUIRE(ci.precision(.9) < TR_PROB*1.6);
 }
 
-SECTION("Estimate transient property using RESTART and adhoc ifun")
+SECTION("Transient: RESTART, ad hoc, smc")
 {
 	const string nameEngine("restart");
 	const fig::ImpFunSpec ifunSpec("algebraic", "adhoc", "buf");
@@ -167,7 +167,7 @@ SECTION("Estimate transient property using RESTART and adhoc ifun")
 	          == Approx(TR_PROB*prec).epsilon(TR_PROB*0.1));
 }
 
-SECTION("Estimate transient property using RESTART and monolithic ifun")
+SECTION("Transient: RESTART, monolithic, hyb")
 {
 	const string nameEngine("restart");
 	const fig::ImpFunSpec ifunSpec("concrete_coupled", "auto");
@@ -198,7 +198,7 @@ SECTION("Estimate transient property using RESTART and monolithic ifun")
 	REQUIRE(ci.precision(.8) <= Approx(TR_PROB*.5).epsilon(TR_PROB*0.4));
 }
 
-SECTION("Estimate transient property using RESTART and compositional ifun")
+SECTION("Transient: RESTART, compositional (max operator), es")
 {
 	const string nameEngine("restart");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "max");
@@ -208,7 +208,41 @@ SECTION("Estimate transient property using RESTART and compositional ifun")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_global_effort(7);
+	model.build_importance_function_auto(ifunSpec, trPropId, true);
+	model.build_thresholds(nameThr, ifunSpec.name, trPropId);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
+	REQUIRE(engine->ready());
+	// Set estimation criteria
+	auto rng = model.available_RNGs().back();
+	REQUIRE(model.exists_rng(rng));
+	model.set_rng(rng, 666);
+	const double confCo(.95);
+	const double prec(.4);
+	fig::StoppingConditions confCrit;
+	confCrit.add_confidence_criterion(confCo, prec);
+	// Estimate
+	model.estimate(trPropId, *engine, confCrit);
+	auto results = model.get_last_estimates();
+	REQUIRE(results.size() == 1ul);
+	auto ci = results.front();
+	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.8));
+	REQUIRE(ci.precision(confCo) > 0.0);
+	REQUIRE(ci.precision(confCo) <= Approx(TR_PROB*prec).epsilon(TR_PROB*0.2));
+	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
+	          == Approx(TR_PROB*prec).epsilon(TR_PROB*0.2));
+}
+
+SECTION("Transient: Fixed Effort, compositional (+ operator), hyb")
+{
+	const string nameEngine("fixedeffort");
+	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "+");
+	const string nameThr("hyb");
+	REQUIRE(model.exists_simulator(nameEngine));
+	REQUIRE(model.exists_importance_function(ifunSpec.name));
+	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
+	REQUIRE(model.exists_threshold_technique(nameThr));
+	// Prepare engine
+	model.set_global_effort(3);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
 	model.build_thresholds(nameThr, ifunSpec.name, trPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);

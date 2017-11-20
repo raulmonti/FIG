@@ -111,7 +111,7 @@ SECTION("Seal model and check consistency")
 	REQUIRE(model.num_RNGs() > 0ul);
 }
 
-SECTION("Estimate steady-state property using standard MC")
+SECTION("Steady-state: standard MC")
 {
 	const string nameEngine("nosplit");
 	const string nameIFun("algebraic");
@@ -144,7 +144,7 @@ SECTION("Estimate steady-state property using standard MC")
 	REQUIRE(ci.precision(confCo) < SS_PROB_EXP);
 }
 
-SECTION("Estimate steady-state property using RESTART and adhoc ifun")
+SECTION("Steady-state: RESTART, adhoc, hyb")
 {
 	const string nameEngine("restart");
 	const string ifunAdHoc("max((broken_pipe1>0)+(broken_pipe2>0)+(broken_pipe3>0),(broken_pipe2>0)+(broken_pipe3>0)+(broken_pipe4>0),(broken_pipe3>0)+(broken_pipe4>0)+(broken_pipe5>0),(broken_pipe4>0)+(broken_pipe5>0)+(broken_pipe6>0),(broken_pipe5>0)+(broken_pipe6>0)+(broken_pipe7>0),(broken_pipe6>0)+(broken_pipe7>0)+(broken_pipe8>0),(broken_pipe7>0)+(broken_pipe8>0)+(broken_pipe9>0),(broken_pipe8>0)+(broken_pipe9>0)+(broken_pipe10>0),(broken_pipe9>0)+(broken_pipe10>0)+(broken_pipe11>0),(broken_pipe10>0)+(broken_pipe11>0)+(broken_pipe12>0),(broken_pipe11>0)+(broken_pipe12>0)+(broken_pipe13>0),(broken_pipe12>0)+(broken_pipe13>0)+(broken_pipe14>0),(broken_pipe13>0)+(broken_pipe14>0)+(broken_pipe15>0),(broken_pipe14>0)+(broken_pipe15>0)+(broken_pipe16>0),(broken_pipe15>0)+(broken_pipe16>0)+(broken_pipe17>0),(broken_pipe16>0)+(broken_pipe17>0)+(broken_pipe18>0),(broken_pipe17>0)+(broken_pipe18>0)+(broken_pipe19>0),(broken_pipe18>0)+(broken_pipe19>0)+(broken_pipe20>0),0)");
@@ -184,7 +184,7 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	          == Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.1));
 }
 
-SECTION("Estimate steady-state property using RESTART and compositional ifun (op:*)")
+SECTION("Steady-state: RESTART, compositional (* operator), hyb")
 {
 	const string nameEngine("restart");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "*",
@@ -266,7 +266,7 @@ SECTION("Seal model and check consistency")
 	REQUIRE(model.num_RNGs() > 0ul);
 }
 
-SECTION("Estimate steady-state property using standard MC")
+SECTION("Steady-state: standard MC")
 {
 	const string nameEngine("nosplit");
 	const string nameIFun("algebraic");
@@ -299,7 +299,7 @@ SECTION("Estimate steady-state property using standard MC")
 	REQUIRE(ci.precision(confCo) < SS_PROB_EXP);
 }
 
-SECTION("Estimate steady-state property using RESTART and compositional ifun (max,+)")
+SECTION("Steady-state: RESTART, compositional ([max,+] semiring), es")
 {
 	const string nameEngine("restart");
 	const string ifunComp("max(BE_pipe1+BE_pipe2+BE_pipe3,BE_pipe2+BE_pipe3+BE_pipe4,BE_pipe3+BE_pipe4+BE_pipe5,BE_pipe4+BE_pipe5+BE_pipe6,BE_pipe5+BE_pipe6+BE_pipe7,BE_pipe6+BE_pipe7+BE_pipe8,BE_pipe7+BE_pipe8+BE_pipe9,BE_pipe8+BE_pipe9+BE_pipe10,BE_pipe9+BE_pipe10+BE_pipe11,BE_pipe10+BE_pipe11+BE_pipe12,BE_pipe11+BE_pipe12+BE_pipe13,BE_pipe12+BE_pipe13+BE_pipe14,BE_pipe13+BE_pipe14+BE_pipe15,BE_pipe14+BE_pipe15+BE_pipe16,BE_pipe15+BE_pipe16+BE_pipe17,BE_pipe16+BE_pipe17+BE_pipe18,BE_pipe17+BE_pipe18+BE_pipe19,BE_pipe18+BE_pipe19+BE_pipe20,0)");
@@ -307,13 +307,12 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (ma
 								   ifunComp,
 								   fig::PostProcessing(),
 								   0, 3);
-	const string nameThr("hyb");
+	const string nameThr("es");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_global_effort(3);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
 	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
@@ -339,7 +338,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (ma
 			  <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.3));
 }
 
-SECTION("Estimate steady-state property using RESTART and compositional ifun (+,*)")
+SECTION("Steady-state: RESTART, compositional ([+,*] ring), hyb")
 {
 	const string nameEngine("restart");
 	const string ifunComp("BE_pipe1*BE_pipe2*BE_pipe3+BE_pipe2*BE_pipe3*BE_pipe4+BE_pipe3*BE_pipe4*BE_pipe5+BE_pipe4*BE_pipe5*BE_pipe6+BE_pipe5*BE_pipe6*BE_pipe7+BE_pipe6*BE_pipe7*BE_pipe8+BE_pipe7*BE_pipe8*BE_pipe9+BE_pipe8*BE_pipe9*BE_pipe10+BE_pipe9*BE_pipe10*BE_pipe11+BE_pipe10*BE_pipe11*BE_pipe12+BE_pipe11*BE_pipe12*BE_pipe13+BE_pipe12*BE_pipe13*BE_pipe14+BE_pipe13*BE_pipe14*BE_pipe15+BE_pipe14*BE_pipe15*BE_pipe16+BE_pipe15*BE_pipe16*BE_pipe17+BE_pipe16*BE_pipe17*BE_pipe18+BE_pipe17*BE_pipe18*BE_pipe19+BE_pipe18*BE_pipe19*BE_pipe20");
