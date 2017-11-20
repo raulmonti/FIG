@@ -63,11 +63,17 @@ class SimulationEngineFixedEffort : public SimulationEngine
 {
 	/// Number of simulations launched per threshold-level;
 	/// this is the global variant, where the same effort is used on all levels
+	/// @deprecated Now each threshold level has its own effort;
+	///             this class member isn't used anymore
 	unsigned effortPerLevel_;
 
 	/// Default value for effortPerLevel_
 	static constexpr decltype(effortPerLevel_) DEFAULT_GLOBAL_EFFORT = (1u)<<(4u);  // 16
 	static inline decltype(effortPerLevel_) effort_per_level_default() { return DEFAULT_GLOBAL_EFFORT; }
+
+	/// Basis for the number of simulations run on each ("threshold-") level
+	/// @note #(sims) launched on level 'l' ∝ effort(l)*BASE_NUM_SIMS
+	static constexpr decltype(effortPerLevel_) BASE_NUM_SIMS = 3ul;
 
 	/// Stack of \ref Traial "traials" for a batch means mechanism
 	mutable std::vector< Reference< Traial > > traials_;
@@ -86,6 +92,9 @@ public:  // Accessors
 
 	/// @copydoc DEFAULT_GLOBAL_EFFORT
 	inline unsigned global_effort_default() const noexcept override { return DEFAULT_GLOBAL_EFFORT; }
+
+	/// @copydoc BASE_NUM_SIMS
+	inline unsigned base_nsims() const noexcept { return BASE_NUM_SIMS; }
 
 public:  // Engine setup
 

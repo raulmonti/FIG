@@ -186,6 +186,12 @@ protected:  // Attributes for derived classes
 	 */
 	ThresholdsVec importance2threshold_;
 
+	/// Minimum splitting/effort selected among all threshold levels
+	unsigned long minThresholdsEffort_;
+
+	/// Maximum splitting/effort selected among all threshold levels
+	unsigned long maxThresholdsEffort_;
+
 	/// @brief Algebraic formula defined by the user.
 	/// @note Useful both for ad hoc strategy and concrete_split functions
 	Formula userFun_;
@@ -261,7 +267,7 @@ public:  // Accessors
 	///          last and lowest value assessed otherwise.
 	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
 	///       were already built" then the value returned will be the lowest
-	///       threshold level.
+	///       <b>threshold level</b>.
 	ImportanceValue min_value(bool returnImportance = false) const noexcept;
 
 	/// @copydoc maxValue_
@@ -271,7 +277,7 @@ public:  // Accessors
 	///          last and highest value assessed otherwise
 	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
 	///       were already built" the value returned will be the highest
-	///       threshold level.
+	///       <b>threshold level</b>.
 	ImportanceValue max_value(bool returnImportance = false) const noexcept;
 
 	/// @copydoc minRareValue_
@@ -281,7 +287,7 @@ public:  // Accessors
 	///          last and lowest value assessed for a rare state otherwise.
 	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
 	///       were already built" the value returned will be the lowest
-	///       threshold level containing a rare state.
+	///       <b>threshold level</b> containing a rare state.
 	ImportanceValue min_rare_value(bool returnImportance = false) const noexcept;
 
 	/// @copydoc initialValue_
@@ -290,9 +296,44 @@ public:  // Accessors
 	/// @returns Zero if function doesn't has_importance_info(),
 	///          importance value of the system's initial state otherwise.
 	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
-	///       were already built" the value returned will be the threshold
-	///       level containing the system's initial state.
+	///       were already built" the value returned will be the <b>threshold
+	///       level</b> containing the system's initial state.
 	ImportanceValue initial_value(bool returnImportance = false) const noexcept;
+
+	/// @copydoc thresholdsTechnique_
+	/// @returns Empty string if function isn't ready(),
+	///          last thresholds building technique used otherwise
+	const std::string thresholds_technique() const noexcept;
+
+	/// Number of thresholds built on last call to build_thresholds()
+	/// \ifnot NDEBUG
+	///   @throw FigException if this instance isn't \ref ready()
+	///                       "ready for simulations"
+	/// \endif
+	/// @see build_thresholds()
+	unsigned num_thresholds() const;
+
+	/// @copydoc minThresholdEffort_
+	/// @returns 0 if function isn't ready(), else: min { effort per threshold }
+	/// \ifnot NDEBUG
+	///   @throw FigException if this instance isn't \ref ready()
+	///                       "ready for simulations"
+	/// \endif
+	/// @see build_thresholds()
+	unsigned long min_thresholds_effort() const;
+
+	/// @copydoc maxThresholdEffort_
+	/// @returns 0 if function isn't ready(), else: max { effort per threshold }
+	/// \ifnot NDEBUG
+	///   @throw FigException if this instance isn't \ref ready()
+	///                       "ready for simulations"
+	/// \endif
+	/// @see build_thresholds()
+	unsigned long max_thresholds_effort() const;
+
+	/// Post-processing applied to the \ref ImportanceValue "importance values"
+	/// computed last; an empty first component means none was.
+	virtual PostProcessing post_processing() const noexcept;
 
 	/// @brief Whether the instance derives from ImportanceFunctionConcrete
 	/// @details Concrete importance functions store info for the concrete state
@@ -311,22 +352,6 @@ public:  // Accessors
 	///          function to identify special states during simulations.
 	/// @note concrete_simulation() => concrete()
 	virtual bool concrete_simulation() const noexcept = 0;
-
-	/// @copydoc thresholdsTechnique_
-	/// @returns Empty string if function isn't ready(),
-	///          last thresholds building technique used otherwise
-	const std::string thresholds_technique() const noexcept;
-
-	/// Number of thresholds built on last call to build_thresholds()
-	/// \ifnot NDEBUG
-	///   @throw FigException if this instance isn't \ref ready()
-	///                       "ready for simulations"
-	/// \endif
-	unsigned num_thresholds() const;
-
-	/// Post-processing applied to the \ref ImportanceValue "importance values"
-	/// computed last; an empty first component means none was.
-	virtual PostProcessing post_processing() const noexcept;
 
 	/**
 	 * Tell the pre-computed importance of the given StateInstance.

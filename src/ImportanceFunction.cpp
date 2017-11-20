@@ -35,6 +35,7 @@
 #include <forward_list>
 #include <unordered_set>
 #include <sstream>
+#include <limits>
 #include <numeric>    // std::numeric_limits<>()
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // std::find()
@@ -323,10 +324,36 @@ ImportanceFunction::num_thresholds() const
 #ifndef NDEBUG
 	if (!ready())
 		throw_FigException("this ImportanceFunction hasn't "
-						   "any thresholds built in it yet");
+		                   "any thresholds built in it yet");
 #endif
 	assert(threshold2importance_.size() > 1ul);
 	return threshold2importance_.size() - 2ul;
+}
+
+
+unsigned long
+ImportanceFunction::min_thresholds_effort() const
+{
+#ifndef NDEBUG
+	if (!ready())
+		throw_FigException("this ImportanceFunction hasn't "
+		                   "any thresholds built in it yet");
+#endif
+	assert(0ul < minThresholdsEffort_);
+	return minThresholdsEffort_;
+}
+
+
+unsigned long
+ImportanceFunction::max_thresholds_effort() const
+{
+#ifndef NDEBUG
+	if (!ready())
+		throw_FigException("this ImportanceFunction hasn't "
+						   "any thresholds built in it yet");
+#endif
+	assert(0ul < maxThresholdsEffort_);
+	return maxThresholdsEffort_;
 }
 
 
@@ -455,6 +482,13 @@ ImportanceFunction::post_process_thresholds(const ThresholdsBuilder& tb)
 		assert(importance2threshold_[minRareValue_].first <= importance2threshold_[maxValue_].first);
 	}
 	// Set relevant attributes
+	using myLimits = std::numeric_limits<decltype(minThresholdsEffort_)>;  // I'm this close...
+	minThresholdsEffort_ = myLimits::max();
+	for (const auto& p: threshold2importance_)
+		minThresholdsEffort_ = std::min(minThresholdsEffort_, p.second);
+	maxThresholdsEffort_ = myLimits::min();
+	for (const auto& p: threshold2importance_)
+		maxThresholdsEffort_ = std::max(maxThresholdsEffort_, p.second);
 	thresholdsTechnique_ = tb.name;
 	readyForSims_ = true;
 }

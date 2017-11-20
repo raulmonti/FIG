@@ -59,6 +59,8 @@ class PropertyTransient;
 class SimulationEngineRestart : public SimulationEngine
 {
 	/// Number of replicas made of a Traial when it crosses a threshold upwards
+	/// @deprecated Now each threshold level has its own effort;
+	///             this class member isn't used anymore
 	unsigned splitsPerThreshold_;
 
 	/// Default value for splitsPerThreshold_

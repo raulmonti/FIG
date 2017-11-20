@@ -403,6 +403,6 @@ void compile_model(bool modelAlreadyBuilt)
 
 	log(std::string("Model") +
 	    (propertiesFile.empty() ? (" file ") : (" and properties files "))
-	    + "successfully compiled.\n\n");
+	    + "successfully compiled.\n");
 }
 

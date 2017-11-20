@@ -27,7 +27,7 @@
 //==============================================================================
 
 // C++
-#include <algorithm>  // std::fill()
+#include <algorithm>  // std::fill(), std::move()
 // FIG
 #include <SimulationEngineFixedEffort.h>
 #include <PropertyTransient.h>
@@ -95,77 +95,85 @@ SimulationEngineFixedEffort::transient_simulations(const PropertyTransient& prop
                                                    const size_t& numRuns) const
 {
 	auto event_watcher = &fig::SimulationEngineFixedEffort::transient_event;
+	auto lvl_effort = [this](const size_t& effort){ return effort*base_nsims(); };
 	const ModuleNetwork& network(*fig::ModelSuite::get_instance().modules_network());
-	const size_t LVL_MAX(impFun_->max_value()+1), LVL_INI(impFun_->initial_value());
-	TraialPool::get_instance().get_traials(traials_, effortPerLevel_);
-	std::vector< Reference< Traial > > freeNow, freeNext, startNow, startNext;
+	const size_t LVL_MAX(impFun_->max_value()+1),
+	             LVL_INI(impFun_->initial_value()),
+	             EFF_MAX(lvl_effort(impFun_->max_thresholds_effort()));
+	TraialPool::get_instance().get_traials(traials_, EFF_MAX);
+	std::vector< Reference< Traial > > traialsNow, traialsNext;
 	std::vector< double > results(numRuns);
 	std::vector< double > Pup(LVL_MAX);
 
 	assert(0ul < numRuns);
 	assert(LVL_INI < LVL_MAX);
 	assert(0ul < effortPerLevel_);
-	assert(traials_.size() == effortPerLevel_);
-	freeNow.reserve(effortPerLevel_);
-	freeNext.reserve(effortPerLevel_);
-	startNow.reserve(effortPerLevel_);
-	startNext.reserve(effortPerLevel_);
+	traialsNow.reserve(EFF_MAX);
+	traialsNext.reserve(EFF_MAX);
 
 	// Perform 'numRuns' independent Fixed Effort simulations
 	for (size_t i = 0ul ; i < numRuns ; i++) {
 		// Re-init ADTs
 		std::fill(begin(Pup), end(Pup), 0.0f);
-		freeNow.clear();
-		freeNext.clear();
-		startNow.clear();
-		startNext.clear();
-		for (Traial& t: traials_) {
-			t.initialise(network,*impFun_);
-			startNow.push_back(t);  // could use 'freeNow' as well
+		std::move(begin(traialsNow), end(traialsNow), std::back_inserter(traials_));
+		std::move(begin(traialsNext), end(traialsNext), std::back_inserter(traials_));
+		traialsNow.clear();
+		traialsNext.clear();
+		assert(traials_.size() == EFF_MAX);
+		for (auto j = 0ul ; j < lvl_effort(impFun_->effort_of(LVL_INI)) ; j++) {
+			traials_.back().get().initialise(network,*impFun_);
+			traialsNext.push_back(std::move(traials_.back()));
+			traials_.pop_back();
 		}
 		// For each threshold level 'l' ...
 		ImportanceValue l;
-		double numSuccesses(1.0);
-		for (l = LVL_INI ; l < LVL_MAX && !startNow.empty() && numSuccesses > 0.0; l++)
-		{
-			// ... run Fixed Effort until the next importance value 'i+1' ...
-			numSuccesses = 0.0;
-			size_t startNowIdx(0ul);
-			while ( ! (freeNow.empty() && startNow.empty()) ) {
-				// (Traial fetching for simulation)
-				const bool useFree = !freeNow.empty();
-				Traial& traial( useFree ? freeNow.back() : startNow.back());
-				if (useFree) {
-					traial = startNow[startNowIdx++].get();  // copy *contents*
-					startNowIdx %= startNow.size();
-					freeNow.pop_back();
-				} else {
-					startNow.pop_back();
+		size_t numSuccesses(1ul);
+		for (l = LVL_INI ; l < LVL_MAX && 0ul < numSuccesses ; l++) {
+			// ... prepare the Traials to run the simulations ...
+			numSuccesses = 0ul;
+			assert(traialsNow.empty());
+			assert(!traialsNext.empty());
+			const auto LVL_EFFORT(lvl_effort(impFun_->effort_of(l)));
+			for (auto j = 0ul ; j < LVL_EFFORT ; j++) {
+				const bool useFresh(j >= traialsNext.size());
+				Traial& traial(useFresh ? traials_.back() : traialsNext[j]);
+				if (useFresh) {
+					traials_.pop_back();
+					traial = traialsNext[j%traialsNext.size()].get();  // copy *contents*
 				}
-				// (simulation & bookkeeping)
 				assert(traial.level == l);
 				traial.depth = 0;
+				traialsNow.push_back(traial);
+			}
+			if (traialsNext.size() > LVL_EFFORT) {
+				traialsNext.erase(begin(traialsNext), begin(traialsNext)+LVL_EFFORT);
+				std::move(begin(traialsNext), end(traialsNext), std::back_inserter(traials_));
+			}
+			traialsNext.clear();
+			// ... run Fixed Effort until the next level 'l+1' ...
+			do {
+				Traial& traial(traialsNow.back());
+				traialsNow.pop_back();
 				network.simulation_step(traial, property, *this, event_watcher);
 				if (traial.level > l) {
-					numSuccesses += 1.0;
-					startNext.push_back(traial);
+					numSuccesses++;
+					traialsNext.push_back(traial);
 				} else {
 					if (property.is_rare(traial.state))
-						numSuccesses += 1.0;
-					freeNext.push_back(traial);
+						numSuccesses++;
+					traials_.push_back(traial);
 				}
-			}
-			// ... estimate the probability of reaching 'i+1' from 'i' ...
-			Pup[l] = numSuccesses / effortPerLevel_;
-			std::swap(freeNow, freeNext);
-			std::swap(startNow, startNext);
+			} while (!traialsNow.empty());
+			// ... estimate the probability of reaching 'l+1' from 'l' ...
+			Pup[l] = static_cast<double>(numSuccesses) / LVL_EFFORT;
 		}
 		// ... and the final product of everything is the rare event estimate
 		results[i] = 1.0;
 		for (l = LVL_INI ; l < LVL_MAX && 0.0 < results[i] ; l++)
 			results[i] *= Pup[l];
-		assert(numSuccesses > 0.0 || 0.0 == results[i]);
+		assert(0ul < numSuccesses || 0.0 == results[i]);
 	}
+
 	TraialPool::get_instance().return_traials(traials_);
 	return results;
 }
