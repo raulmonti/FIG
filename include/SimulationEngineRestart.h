@@ -78,8 +78,9 @@ class SimulationEngineRestart : public SimulationEngine
 	Traial& oTraial_;
 //	thread_local Traial& oTraial_;
 
-	/// Stack of \ref Traial "traials" for a batch means mechanism
-	mutable std::stack< Reference< Traial > > stack_;
+	/// Stack of \ref Traial "traials" for a batch means mechanism,
+	/// typically used for steady-state simulations
+	mutable std::stack< Reference< Traial > > ssstack_;
 
 public:  // Ctor
 
@@ -103,7 +104,7 @@ public:  // Accessors
 public:  // Engine setup
 
 	/// @copydoc SimulationEngine::bind()
-	/// @note Reinits the \ref stack_ "internal ADT" used for batch means
+	/// @note Reinits the \ref ssstack_ "internal ADT" used for batch means
 	/// @see reinit_stack()
 	void bind(std::shared_ptr< const ImportanceFunction >) override;
 
@@ -126,7 +127,7 @@ public:  // Engine setup
 
 protected:  // Simulation helper functions
 
-	/// Clean \ref stack_ "internal ADT" used for batch means,
+	/// Do a clean in the \ref ssstack_ "internal ADT" used for batch means,
 	/// forcing the next simulation to be <i>fresh</i>.
 	void reinit_stack() const;
 
@@ -209,13 +210,8 @@ private:  // Traial observers/updaters
 			if (traial.numLevelsCrossed < 0 &&
 				traial.depth > static_cast<short>(dieOutDepth_))
 				e = EventType::THR_DOWN;
-			else if (traial.numLevelsCrossed > 0 && traial.depth < 0) {
+			else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 				e = EventType::THR_UP;
-				/// @todo TODO erase debug print
-				static int N=100;
-				if (N-->0)
-					std::cerr << newThrLvl-traial.numLevelsCrossed << "->" << newThrLvl << " ";
-			}
 			else if (property.is_rare(traial.state))
 				e = EventType::RARE;
 			if (traial.lifeTime > SIM_TIME_CHUNK
@@ -246,13 +242,8 @@ private:  // Traial observers/updaters
 			if (traial.numLevelsCrossed < 0 &&
 				traial.depth > static_cast<short>(dieOutDepth_))
 				SET_THR_DOWN_EVENT(e);
-			else if (traial.numLevelsCrossed > 0 && traial.depth < 0) {
+			else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 				SET_THR_UP_EVENT(e);
-				/// @todo TODO erase debug print
-				static int N=100;
-				if (N-->0)
-					std::cerr << newThrLvl-traial.numLevelsCrossed << "->" << newThrLvl << " ";
-			}
 			// else: rare event info is already marked inside 'e'
 			if (traial.lifeTime > SIM_TIME_CHUNK
 				&& simsLifetime > SIM_TIME_CHUNK) {

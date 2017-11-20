@@ -178,7 +178,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (op
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "+",
 	                               fig::PostProcessing(),
 	                               0, 32, 0);
-	const string nameThr("hyb");
+	const string nameThr("es");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));

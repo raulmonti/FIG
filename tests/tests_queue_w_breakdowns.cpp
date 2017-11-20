@@ -202,7 +202,7 @@ SECTION("Estimate transient property using RESTART and compositional ifun")
 {
 	const string nameEngine("restart");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "max");
-	const string nameThr("hyb");
+	const string nameThr("es");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));

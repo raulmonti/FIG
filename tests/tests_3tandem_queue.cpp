@@ -128,7 +128,7 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 {
 	const string nameEngine("restart");
 	const fig::ImpFunSpec ifunSpec("algebraic", "adhoc", "q3");
-	const string nameThr("hyb");
+	const string nameThr("es");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
