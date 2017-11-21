@@ -41,9 +41,10 @@
 #include <FigException.h>
 #include <FigLog.h>
 
-using std::pow;
+// ADL
 using std::begin;
 using std::end;
+using std::pow;
 
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
@@ -51,28 +52,25 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 
 // Available engine names in SimulationEngine::names
 SimulationEngineRestart::SimulationEngineRestart(
-	std::shared_ptr<const ModuleNetwork> network,
-	const unsigned& splitsPerThreshold,
-	const unsigned& dieOutDepth) :
+    std::shared_ptr<const ModuleNetwork> network,
+    const unsigned& splitsPerThreshold,
+    const unsigned& dieOutDepth) :
 		SimulationEngine("restart", network),
-		splitsPerThreshold_(splitsPerThreshold),
+        splitsPerThreshold_(splitsPerThreshold),
 		dieOutDepth_(dieOutDepth),
         numChunksTruncated_(0u),
-        oTraial_(TraialPool::get_instance().get_traial()),
-        stack_()
+        oTraial_(TraialPool::get_instance().get_traial())
 { /* Not much to do around here */ }
 
 
 SimulationEngineRestart::~SimulationEngineRestart()
 {
-	TraialPool::get_instance().return_traials(stack_);
-	// The stack_ should always contain the oTraial_ for batch means,
-	// so the line above already returned that Traial to the TraialPool
+	TraialPool::get_instance().return_traials(ssstack_);
 }
 
 
 unsigned
-SimulationEngineRestart::splits_per_threshold() const noexcept
+SimulationEngineRestart::global_effort() const noexcept
 {
 	return splitsPerThreshold_;
 }
@@ -88,28 +86,25 @@ SimulationEngineRestart::die_out_depth() const noexcept
 void
 SimulationEngineRestart::bind(std::shared_ptr< const ImportanceFunction > ifun_ptr)
 {
-    if (locked())
-        throw_FigException("engine \"" + name() + "\" is currently locked "
-                           "in \"simulation mode\"");
-    const std::string impStrategy(ifun_ptr->strategy());
-	if (impStrategy == "")
+	if (ifun_ptr->strategy() == "")
 		throw_FigException("ImportanceFunction doesn't seem to have "
 						   "internal importance information");
-	else if (impStrategy == "flat")
+	else if (ifun_ptr->strategy() == "flat")
 		throw_FigException("RESTART simulation engine requires an importance "
 						   "building strategy other than \"flat\"");
+	reinit_stack();
 	SimulationEngine::bind(ifun_ptr);
 }
 
 
 void
-SimulationEngineRestart::set_splits_per_threshold(unsigned spt)
+SimulationEngineRestart::set_global_effort(unsigned spt)
 {
     if (locked())
         throw_FigException("engine \"" + name() + "\" is currently locked "
                            "in \"simulation mode\"");
-    if (spt < 2u)
-		throw_FigException("bad splitting value \"" + std::to_string(spt) + "\". "
+	if (spt < 2u)
+		throw_FigException("bad global splitting value \"" + std::to_string(spt) + "\". "
 						   "At least one Traial must be created, besides the "
 						   "original one, when crossing a threshold upwards");
     splitsPerThreshold_ = spt;
@@ -126,13 +121,16 @@ SimulationEngineRestart::set_die_out_depth(unsigned dieOutDepth)
 }
 
 
-double
-SimulationEngineRestart::log_experiments_per_sim() const
+void
+SimulationEngineRestart::reinit_stack() const
 {
-	if (!bound())
-		throw_FigException("engine isn't bound to any importance function");
-	// log( splitsPerThreshold ^ numThresholds )
-	return impFun_->num_thresholds() * std::log(splitsPerThreshold_);
+	static auto tpool = TraialPool::get_instance();
+	while (!ssstack_.empty()) {
+		if (&ssstack_.top().get() != &oTraial_)  // avoid future aliasing!
+			tpool.return_traial(std::move(ssstack_.top()));
+		ssstack_.pop();
+	}
+	ssstack_.push(oTraial_);
 }
 
 
@@ -161,10 +159,10 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 
 		std::fill(begin(raresCount), end(raresCount), 0u);  // reset counts
 		tpool.get_traials(stack, 1u);
-		stack.top().get().initialize(*network_, *impFun_);
+		stack.top().get().initialise(*network_, *impFun_);
 
 		// RESTART importance-splitting simulation:
-		while (!stack.empty() & !interrupted) {
+		while (!stack.empty() && !interrupted) {
 			Event e(EventType::NONE);
 			Traial& traial = stack.top();
 
@@ -193,16 +191,13 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			} else if (IS_THR_UP_EVENT(e)) {
 				// Could have gone up several thresholds => split accordingly
 				assert(traial.numLevelsCrossed > 0);
-				for (ImportanceValue i = static_cast<ImportanceValue>(1u)
-					; i <= static_cast<ImportanceValue>(traial.numLevelsCrossed)
-					; i++)
-				{
-					const unsigned thisLevelRetrials = std::round(
-						(splitsPerThreshold_-1u) * pow(splitsPerThreshold_, i-1));
-					assert(0u < thisLevelRetrials);
-					assert(thisLevelRetrials < pow(splitsPerThreshold_, numThresholds));
-					tpool.get_traial_copies(stack, traial, thisLevelRetrials,
-											static_cast<short>(i)-traial.numLevelsCrossed);
+				unsigned long prevEffort(1ul), currEffort(1ul);
+				for (short i = 0 ; i < traial.numLevelsCrossed ; i++) {
+					prevEffort *= currEffort;
+					currEffort = impFun_->effort_of(traial.level+i);
+					assert(1ul < currEffort);
+					tpool.get_traial_copies(stack, traial, prevEffort*(currEffort-1),
+											i+1-traial.numLevelsCrossed);
 				}
 				// Offsprings are on top of stack now: continue attending them
 			}
@@ -212,8 +207,11 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 		// Save weighed RE counts of this run, downscaling the # of RE observed
 		// by the relative importance of the threshold level they belong to
 		weighedRaresCount.push_back(0.0);
-		for (int t = 0u ; t <= (int)numThresholds ; t++)
-			weighedRaresCount[i] += raresCount[t] * pow(splitsPerThreshold_, -t);
+		double effort(1.0);
+		for (int t = 0u ; t <= (int)numThresholds ; t++) {
+			effort *= impFun_->effort_of(t);
+			weighedRaresCount[i] += raresCount[t] / effort;
+		}
 		assert(!std::isnan(weighedRaresCount.back()));
 		assert(!std::isinf(weighedRaresCount.back()));
 		assert(0.0 <= weighedRaresCount.back());
@@ -237,6 +235,25 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 	numChunksTruncated_ = 0u;
 
+	// Reset batch or run with batch means?
+	if (reinit || ssstack_.empty()) {
+		reinit_stack();
+		assert(&oTraial_ == &ssstack_.top().get());
+		oTraial_.initialise(*network_, *impFun_);
+	} else {
+		// Batch means, but reset life times
+		std::stack< Reference< Traial > > tmp;
+		while (!ssstack_.empty()) {
+			ssstack_.top().get().lifeTime = 0.0;
+			tmp.push(std::move(ssstack_.top()));
+			ssstack_.pop();
+		}
+		while (!tmp.empty()) {
+			ssstack_.push(std::move(tmp.top()));
+			tmp.pop();
+		}
+	}
+
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	bool (SimulationEngineRestart::*watch_events)
 		 (const PropertyRate&, Traial&, Event&) const;
@@ -250,35 +267,13 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		register_time = &SimulationEngineRestart::count_time;
 	}
 
-	// Reset batch or run with batch means?
-	if (reinit || stack_.empty()) {
-		// Start over/anew
-		while (!stack_.empty()) {
-			if (&stack_.top().get() != &oTraial_)  // avoid future aliasing!
-				tpool.return_traial(std::move(stack_.top().get()));
-			stack_.pop();
-		}
-		oTraial_.initialize(*network_, *impFun_);
-		stack_.push(oTraial_);
-	} else {
-		// Batch means, but reset life times
-		typedef decltype(stack_)::value_type StackValueType;
-		std::deque< StackValueType > tmp;
-		while (!stack_.empty()) {
-			stack_.top().get().lifeTime = 0.0;
-			tmp.push_front(stack_.top().get());  // make swap() below respect order
-			stack_.pop();
-		}
-		std::stack<StackValueType>(std::move(tmp)).swap(stack_);
-	}
-
 	// Run a single RESTART importance-splitting simulation for "runLength"
-	// simulation time units and starting from the last saved stack_,
+	// simulation time units and starting from the last saved ssstack_,
 	// or from the system's initial state if requested.
-	while (!stack_.empty() && !interrupted) {
+	while (!ssstack_.empty() && !interrupted) {
 		Event e(EventType::NONE);
-		Traial& traial = stack_.top();
-		assert(&traial != &oTraial_ || stack_.size() == 1ul);
+		Traial& traial = ssstack_.top();
+		assert(&traial != &oTraial_ || ssstack_.size() == 1ul);
 
 		// Check whether we're standing on a rare event
 		(this->*watch_events)(property, traial, e);
@@ -303,8 +298,8 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 			// Traial reached EOS or went down => kill it
 			assert(!(&traial==&oTraial_ && IS_THR_DOWN_EVENT(e)));
 			if (&traial != &oTraial_)  // avoid future aliasing!
-				tpool.return_traial(std::move(stack_.top()));
-			stack_.pop();
+				tpool.return_traial(std::move(ssstack_.top()));
+			ssstack_.pop();
 			// Revert any time truncation
 			if (0u < numChunksTruncated_) {
 				simsLifetime += numChunksTruncated_ * SIM_TIME_CHUNK;
@@ -319,30 +314,30 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 				numChunksTruncated_ = 0u;
 			}
 			// Could have gone up several thresholds => split accordingly
-			assert(traial.numLevelsCrossed > 0);
-			for (ImportanceValue i = static_cast<ImportanceValue>(1u)
-				; i <= static_cast<ImportanceValue>(traial.numLevelsCrossed)
-				; i++)
-			{
-				const unsigned thisLevelRetrials = std::round(
-					(splitsPerThreshold_-1u) * pow(splitsPerThreshold_, i-1));
-				assert(0u < thisLevelRetrials);
-				assert(thisLevelRetrials < pow(splitsPerThreshold_, numThresholds));
-				tpool.get_traial_copies(stack_, traial, thisLevelRetrials,
-										static_cast<short>(i)-traial.numLevelsCrossed);
-				assert(&(stack_.top().get()) != &oTraial_);
+			assert(0 < traial.numLevelsCrossed);
+			unsigned long prevEffort(1ul), currEffort(1ul);
+			for (short i = 0 ; i < traial.numLevelsCrossed ; i++) {
+				prevEffort *= currEffort;
+				currEffort = impFun_->effort_of(traial.level+i);
+				assert(1ul < currEffort);
+				tpool.get_traial_copies(ssstack_, traial, prevEffort*(currEffort-1),
+				                        i+1-traial.numLevelsCrossed);
 			}
-			// Offsprings are on top of stack_ now: continue attending them
+			assert(&(ssstack_.top().get()) != &oTraial_);
+			// Offsprings are on top of ssstack_ now: continue attending them
 		}
 		// RARE events are checked first thing in next iteration
 	}
-	if (stack_.empty())  // allow next iteration of batch means
-		stack_.push(oTraial_);
+	if (ssstack_.empty())  // allow next iteration of batch means
+		ssstack_.push(oTraial_);
 
 	// To estimate, weigh times by the relative importance of their thresholds
 	double weighedAccTime(0.0);
-	for (int t = 0 ; t <= (int)numThresholds ; t++)
-		weighedAccTime += raresCount[t] * pow(splitsPerThreshold_, -t);
+	unsigned long effort(1ul);
+	for (int t = 0 ; t <= (int)numThresholds ; t++) {
+		effort *= impFun_->effort_of(t);
+		weighedAccTime += raresCount[t] / effort;
+	}
 	// Return the (weighed) simulation-time spent on rare states
 	assert(0.0 <= weighedAccTime);
 	return weighedAccTime;

@@ -81,11 +81,11 @@ class TraialPool
 public:
 
 	/// Size of available_traials_ on pool creation
-	static const size_t initialSize;
+	static constexpr size_t INITIAL_SIZE = 1ul << 18ul;  // 256 K
 
 	/// How many new resources to allocate when either get_traial_copies() or
 	/// get_traial() is invoked and available_traials_ is empty.
-	static const size_t sizeChunkIncrement;
+	static constexpr size_t INCREMENT_SIZE = INITIAL_SIZE >> 6ul;  // INITIAL_SIZE/64
 
 private:
 
@@ -117,6 +117,14 @@ public:  // Access to the TraialPool instance
 
 	~TraialPool();
 
+public:  // Accessors
+
+	/// @copydoc INITIAL_SIZE
+	static inline size_t initial_size() { return INITIAL_SIZE; }
+
+	/// @copydoc INCREMENT_SIZE
+	static inline size_t increment_size() { return INCREMENT_SIZE; }
+
 public:  // Access to resources (viz Traials)
 
 	/**
@@ -128,7 +136,7 @@ public:  // Access to resources (viz Traials)
 	 *          Don't use the 'auto' keyword to define the variable.
 	 * @return Dirty Traial
 	 * @note <b>Complexity:</b> <i>O(1)</i> if free resources are available,
-	 *       <i>O(sizeChunkIncrement)</i> if new resources need to be allocated.
+	 *       <i>O(INCREMENT_SIZE)</i> if new resources need to be allocated.
 	 */
 	Traial& get_traial();
 
@@ -149,7 +157,7 @@ public:  // Access to resources (viz Traials)
      * @param numTraials Number of \ref Traial "traials" requested
      *
      * @note <b>Complexity:</b> <i>O(numTraials)</i> if enough free resources
-     *       are available, <i>O(max(numTraials,sizeChunkIncrement_))</i>
+	 *       are available, <i>O(max(numTraials,INCREMENT_SIZE))</i>
      *       if new resources need to be allocated.
      */
     template< template< typename... > class Container,
@@ -166,7 +174,7 @@ public:  // Access to resources (viz Traials)
      * @param depth     Depth assigned to the delivered \ref Traial "traials"
      *
      * @note <b>Complexity:</b> <i>O(numCopies)</i> if enough free resources
-     *       are available, <i>O(max(numCopies,sizeChunkIncrement_))</i>
+	 *       are available, <i>O(max(numCopies,INCREMENT_SIZE))</i>
      *       if new resources need to be allocated.
      */
 	template< template< typename... > class Container,

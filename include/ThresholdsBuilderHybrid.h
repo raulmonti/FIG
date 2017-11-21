@@ -44,48 +44,57 @@ namespace fig
  *
  *        This member of the ThresholdsBuilder family combines adaptive
  *        techniques, studying the semantics of the user model, with fixed
- *        thresholds selection based on the splitting value chosen by the user.<br>
+ *        thresholds selection based on other data chosen by the user.<br>
  *        The goal is to ensure termination of the thresholds building routine,
  *        resorting to a fixed, semantics-oblivious heuristic whenever the
  *        adaptive algorithms fail to terminate within predefined bounds.
  *        The resulting number of thresholds built is a random variable of
  *        the probability of reaching the highest ImportanceValue, also
- *        influenced by the user-specified splitting value.
+ *        influenced by the user-specified global effort value.
  *
  * @see ThresholdsBuilder
  * @see ThresholdsBuilderFixed
  * @see ThresholdsBuilderAdaptive
+
+/// @todo TODO Change inheritance from ThresholdsBuilderSMC to ThresholdsBuilderES
+///
  */
 class ThresholdsBuilderHybrid : public ThresholdsBuilderFixed,
-								public ThresholdsBuilderSMC
+                                public ThresholdsBuilderSMC
 {
+	/// Opaque base classes member to avoid ambiguity
+	/// @copydoc ThresholdsBuilderFixed::globEff_
+	unsigned globEff_;
+
 public:
 
 	/// Execution time (minutes) granted to the adaptive technique.<br>
 	/// If computations don't finish within this limit, resort to a fixed
 	/// technique to choose the missing thresholds "instantaneously".
-	static constexpr std::chrono::minutes ADAPTIVE_TIMEOUT = std::chrono::minutes(5u);
+	static constexpr std::chrono::minutes ADAPTIVE_TIMEOUT = std::chrono::minutes(2u);
 
 public:
 
-	/// Default ctor
-	ThresholdsBuilderHybrid() : ThresholdsBuilder("hyb"),
-								ThresholdsBuilderFixed(6,20)  // formerly: (6,16)
-		{ /* Not much to do around here */ }
+	/// Data & default ctor
+	ThresholdsBuilderHybrid(ImportanceValue minImpRange = 6,
+	                        ImportanceValue expandEvery = 32);
 
 	inline bool adaptive() const noexcept override { return true; }
 
-	ImportanceVec
-	build_thresholds(const unsigned& splitsPerThreshold,
-					 const ImportanceFunction& impFun,
-					 const PostProcessing& postProcessing) override;
+	bool uses_global_effort() const noexcept override { return true; }
+
+	void
+	setup(const PostProcessing& pp,
+	      std::shared_ptr<const Property> prop = nullptr,
+	      const unsigned ge = 0u) override;
+
+	ThresholdsVec
+	build_thresholds(const ImportanceFunction& impFun) override;
 
 protected:
 
 	ImportanceValue
-	choose_stride(const size_t& impRange,
-				  const unsigned& splitsPerThreshold,
-				  const PostProcessing& postProcessing) const override;
+	choose_stride(const size_t& impRange) const override;
 };
 
 } // namespace fig

@@ -121,7 +121,7 @@ find_extreme_values(const Formula& f, const ExtremeValuesVec& moduleValues)
 	ImportanceValue max(std::numeric_limits<ImportanceValue>::min());
 	ImportanceVec values(moduleValues.size());
 
-	// Initialize importance values to the minimal value of each Module
+	// initialise importance values to the minimal value of each Module
 	// Notice the order in 'values' will follow that of 'moduleValues'
 	size_t i(0ul);
 	for (const auto& e: moduleValues)
@@ -284,7 +284,7 @@ ImportanceFunctionConcreteSplit::~ImportanceFunctionConcreteSplit()
 {
     ImportanceVec().swap(localValues_);
     std::vector< State< STATE_INTERNAL_TYPE > >().swap(localStatesCopies_);
-	std::vector< ImportanceValue >().swap(importance2threshold_);
+	ThresholdsVec().swap(importance2threshold_);
 	ImportanceFunctionConcrete::clear();
 }
 
@@ -386,7 +386,7 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
     if (ready()) {
         out << "\nImportanceValue to threshold level conversion:";
         for (size_t i = 0ul ; i < importance2threshold_.size() ; i++)
-            out << " (" << i << ":" << importance2threshold_[i] << ")";
+			out << " (" << i << ":" << importance2threshold_[i].first << ")";
     }
     out << std::endl;
 }
@@ -539,7 +539,6 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 		minValue_ = importance_of(systemInitialValuation);
 		maxValue_ = minValue_;
 		minRareValue_ = minValue_;
-
 	} else if (userDefinedData) {
 		// Trust blindly in the user-defined extreme values
 		minValue_ = userMinValue_;

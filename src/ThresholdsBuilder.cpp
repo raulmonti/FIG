@@ -79,41 +79,55 @@ ThresholdsBuilder::techniques() noexcept
 		// See ThresholdsBuilderSMC class
 		"smc",
 
-		// Hybrid thresholds selection: Sequential Monte Carlo + Fixed
+	    // Hybrid thresholds selection: Adaptive + Fixed
 		// See ThresholdsBuilderHybrid class
-		"hyb"
+		"hyb",
+
+		// Expected Success (Budde, D'Argenio, Hartmanns '17)
+		// See ThresholdsBuilderES class
+		"es"
 	}};
 	return techniques;
 }
 
 
-ImportanceVec
-ThresholdsBuilder::invert_thresholds_map(const ImportanceVec& t2i) const
+ThresholdsVec
+ThresholdsBuilder::invert_thresholds_map(const ThresholdsVec& t2i) const
 {
 	assert(t2i.size() > 0ul);
-	assert(t2i.back() > 1ul);
-	const size_t SIZE(t2i.back());
-	ImportanceVec i2t(SIZE);
+	assert(t2i.back().first > 1ul);
+	const size_t SIZE(t2i.back().first), NTHR(t2i.size()-1);
+	ThresholdsVec i2t(SIZE);
 	unsigned currThr(0ul);
 	for (size_t i = 0ul ; i < SIZE ; i++) {
-		while (currThr < t2i.size()-1 && i >= t2i[currThr+1])
+		while (currThr < NTHR && i >= t2i[currThr+1].first)
 			currThr++;
-		i2t[i] = static_cast<ImportanceValue>(currThr);
+		i2t[i] = std::make_pair(currThr, t2i[currThr].second);
 	}
 	return i2t;
 	/* * * * *
 	 * Assertions to check in the map returned:
-	 *   assert(i2t[impFun.min_value()] == 0);
-	 *   assert(i2t[impFun.initial_value()] == 0);
-	 *   assert(i2t[impFun.max_value()] == t2i.size()-2);
+	 *   assert(i2t[impFun.min_value()].first == 0);
+	 *   assert(i2t[impFun.initial_value()].first == 0);
+	 *   assert(i2t[impFun.max_value()].first == t2i.size()-2);
 	 */
 }
 
 
 void
-ThresholdsBuilder::show_thresholds(const ImportanceVec& t2i)
+ThresholdsBuilder::show_thresholds(const ThresholdsVec &t2i) const
 {
-	figTechLog << "ImportanceValue of the chosen thresholds:";
+	figTechLog << "Thresholds chosen (and corresp. effort):";
+	for (size_t i = 1ul ; i < t2i.size()-1 ; i++)
+		figTechLog << " " << t2i[i].first << "(" << t2i[i].second << ")";
+	figTechLog << "\n";
+}
+
+
+void
+ThresholdsBuilder::show_thresholds(const ImportanceVec& t2i) const
+{
+	figTechLog << "Thresholds chosen:";
 	for (size_t i = 1ul ; i < t2i.size()-1 ; i++)
 		figTechLog << " " << t2i[i];
 	figTechLog << "\n";

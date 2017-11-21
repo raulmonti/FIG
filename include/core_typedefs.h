@@ -104,7 +104,7 @@ template< typename T_ > using                              VariableDefinition
 //
 
 /// StateInstances internal storage type
-typedef short STATE_INTERNAL_TYPE;
+typedef  short                                           STATE_INTERNAL_TYPE;
 
 /// Assignment of values to Variables (a logical <i>valuation</i>)
 /// following the order given in some State. A StateInstance can be
@@ -144,6 +144,9 @@ typedef  size_t                                              ImportanceValue;
 /// Vector of \ref ImportanceValue "importance values"
 typedef  std::vector< ImportanceValue >                        ImportanceVec;
 
+/// Vector of thresholds & efforts for the ISplit simulation techniques
+typedef  std::vector< std::pair<unsigned long, unsigned long> > ThresholdsVec;
+
 /// Post-process applied to the \ref ImportanceValue "importance values" assessed
 struct PostProcessing
 {
@@ -180,13 +183,13 @@ struct ImpFunSpec
 	const std::string strategy;
 	/// User-defined ad hoc expression needed by some ImportanceFunction s
 	const std::string algebraicFormula;
-	/// <i>Optional</i>: post-processing to perform to the importance values computed
+	/// <i>(Optional)</i> Post-processing to perform to the importance values computed
 	const PostProcessing postProcessing;
-	/// <i>Optional</i>: min value the user-defined ad hoc function can take
+	/// <i>(Optional)</i> Min value the user-defined ad hoc function can take
 	const ImportanceValue minValue;
-	/// <i>Optional</i>: max value the user-defined ad hoc function can take
+	/// <i>(Optional)</i> Max value the user-defined ad hoc function can take
 	const ImportanceValue maxValue;
-	/// <i>Optional</i>: neutral element fot the user-defined composition function
+	/// <i>(Optional)</i> Neutral element fot the user-defined composition function
 	const ImportanceValue neutralElement;
 	/// Data ctor needs at least a name and a strategy
 	ImpFunSpec(const std::string& theName,
@@ -306,16 +309,17 @@ enum PropertyType
 //
 
 /// For <a href="http://stackoverflow.com/a/23488449">containers of references</a>
-template< typename T_ > using Reference = std::reference_wrapper<T_>;
+template< typename T_ > using                                       Reference
+    = std::reference_wrapper<T_>;
 
 /// Mapping of names (of clocks or variables or whatever) to their
 /// respective positions in some global or local array
-typedef  std::unordered_map< std::string, size_t >  PositionsMap;
+typedef  std::unordered_map< std::string, size_t >               PositionsMap;
 
 /// 128-bit integer for concrete state size representation (they're that big)
-/// @note Might use boost multiprecision library which defines integers
-///       of up to 1024 bits, but the standalone headers weight 13 MB!
-typedef uint128::uint128_t uint128_t;
+/// @note Might use boost multiprecision library which defines integers of
+///       up to 1024 bits, but the standalone headers are 13 MB!
+typedef  uint128::uint128_t                                         uint128_t;
 
 /// When FIG has to interact with the <a href="http://jani-spec.org/">JANI
 /// Specification format</a>, this struct defines the tasks to carry out.

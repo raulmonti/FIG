@@ -43,6 +43,8 @@
 #include <SimulationEngine.h>
 #include <SimulationEngineNosplit.h>
 #include <SimulationEngineRestart.h>
+#include <SimulationEngineFixedEffort.h>
+#include <ThresholdsBuilderES.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -335,7 +337,20 @@ typedef bool(SimulationEngineRestart::*restart_transient_event)
 /// TraialMonitor specialization
 /// for "template<...> ModuleNetwork::simulation_step()"
 typedef bool(SimulationEngineRestart::*restart_rate_event)
-	(const PropertyRate&, Traial&, Event&) const;
+    (const PropertyRate&, Traial&, Event&) const;
+
+/// "SimulationEngineFixedEffort + PropertyTransient"
+/// TraialMonitor specialization
+/// for "template<...> ModuleNetwork::simulation_step()"
+typedef bool(SimulationEngineFixedEffort::*fixedeffort_transient_event)
+    (const PropertyTransient&, Traial&, Event&) const;
+
+/// "ThresholdsBuilderES"
+/// TraialMonitor specialization
+/// for "template<...> ModuleNetwork::simulation_step()"
+typedef bool(ThresholdsBuilderES::*fixed_effort_watcher)
+    (const Property&, Traial&, Event&) const;
+
 
 // ModuleNetwork::simulation_step() can only be invoked with the following
 // "DerivedProperty", "Simulator" and "TraialMonitor" combinations
@@ -352,8 +367,16 @@ template Event ModuleNetwork::simulation_step(Traial&,
                                               const SimulationEngineRestart&,
                                               restart_transient_event) const;
 template Event ModuleNetwork::simulation_step(Traial&,
-											  const PropertyRate&,
-											  const SimulationEngineRestart&,
-											  restart_rate_event) const;
+                                              const PropertyRate&,
+                                              const SimulationEngineRestart&,
+                                              restart_rate_event) const;
+template Event ModuleNetwork::simulation_step(Traial&,
+                                              const PropertyTransient&,
+                                              const SimulationEngineFixedEffort&,
+                                              fixedeffort_transient_event) const;
+template Event ModuleNetwork::simulation_step(Traial&,
+                                              const Property&,
+                                              const ThresholdsBuilderES&,
+                                              fixed_effort_watcher) const;
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

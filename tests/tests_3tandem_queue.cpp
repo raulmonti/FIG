@@ -49,7 +49,7 @@ int ssPropId(-1);               // index of the query within our TAD
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
 
-TEST_CASE("Triple tandem queue tests", "[triple-tandem-queue]")
+TEST_CASE("Triple tandem queue tests", "[3-tandem-queue]")
 {
 
 SECTION("Compile model file")
@@ -91,7 +91,7 @@ SECTION("Seal model and check consistency")
 	REQUIRE(model.num_RNGs() > 0ul);
 }
 
-SECTION("Estimate steady-state property using standard MC")
+SECTION("Steady-state: standard MC")
 {
 	const string nameEngine("nosplit");
 	const string nameIFun("algebraic");
@@ -102,9 +102,9 @@ SECTION("Estimate steady-state property using standard MC")
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	REQUIRE(model.exists_rng(rng));
 	// Prepare engine
-	model.set_splitting(1);
+	model.set_global_effort(1);
 	model.build_importance_function_flat(nameIFun, ssPropId, true);
-	model.build_thresholds(nameThr, nameIFun);
+	model.build_thresholds(nameThr, nameIFun, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, nameIFun);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -124,19 +124,18 @@ SECTION("Estimate steady-state property using standard MC")
 	REQUIRE(ci.precision(.9) < SS_PROB);
 }
 
-SECTION("Estimate steady-state property using RESTART and adhoc ifun")
+SECTION("Steady-state: RESTART, ad hoc, es")
 {
 	const string nameEngine("restart");
 	const fig::ImpFunSpec ifunSpec("algebraic", "adhoc", "q3");
-	const string nameThr("hyb");
+	const string nameThr("es");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_splitting(6);
 	model.build_importance_function_adhoc(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -160,7 +159,7 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
 
-SECTION("Estimate steady-state property using RESTART and monolithic ifun")
+SECTION("Steady-state: RESTART, monolithic, hyb")
 {
 	const string nameEngine("restart");
 	const fig::ImpFunSpec ifunSpec("concrete_coupled", "auto");
@@ -170,9 +169,9 @@ SECTION("Estimate steady-state property using RESTART and monolithic ifun")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_splitting(4);
+	model.set_global_effort(8);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -196,19 +195,18 @@ SECTION("Estimate steady-state property using RESTART and monolithic ifun")
 	          <= Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
 
-SECTION("Estimate steady-state property using RESTART and compositional ifun")
+SECTION("Steady-state: RESTART, compositional, es")
 {
 	const string nameEngine("restart");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "max");
-	const string nameThr("hyb");
+	const string nameThr("es");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_splitting(12);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria

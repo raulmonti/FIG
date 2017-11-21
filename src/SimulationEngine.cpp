@@ -75,8 +75,9 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 	//       the tandem queue and the queue with breaks models, using the
 	//       "ConfidenceIntervalTransient" class for interval construction.
 	static const size_t batch_sizes[NUM_ENGINES][NUM_IMPFUNS] = {
-		{ 1ul<<4, 1ul<<3, 1ul<<8 },  // nosplit x {concrete_coupled, concrete_split, algebraic
-		{ 1ul<<8, 1ul<<8, 1ul<<8 }   // restart x {concrete_coupled, concrete_split, algebraic}
+	    { 1ul<<4, 1ul<<3, 1ul<<8 },  //     nosplit x {concrete_coupled, concrete_split, algebraic
+	    { 1ul<<8, 1ul<<8, 1ul<<8 },  //     restart x {concrete_coupled, concrete_split, algebraic}
+	    { 1ul<<8, 1ul<<9, 1ul<<8 }   // fixedeffort x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -105,8 +106,9 @@ min_run_length(const std::string& engineName, const std::string& ifunName)
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
 	static const size_t run_lengths[NUM_ENGINES][NUM_IMPFUNS] = {
-		{ 1ul<<15, 1ul<<16, 1ul<<16 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 1ul<<14, 1ul<<14, 1ul<<14 }   // restart x {concrete_coupled, concrete_split, algebraic}
+	    { 1ul<<15, 1ul<<16, 1ul<<16 },  //     nosplit x {concrete_coupled, concrete_split, algebraic}
+	    { 1ul<<14, 1ul<<14, 1ul<<14 },  //     restart x {concrete_coupled, concrete_split, algebraic}
+	    { 1ul<<12, 1ul<<12, 1ul<<12 }   // fixedeffort x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -137,8 +139,9 @@ increase_run_length(const std::string& engineName,
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
 	static const float inc_length[NUM_ENGINES][NUM_IMPFUNS] = {
-		{ 1.7f, 1.7f, 1.4f },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 1.4f, 1.4f, 1.4f }   // restart x {concrete_coupled, concrete_split, algebraic}
+	    { 1.7f, 1.7f, 1.4f },  //     nosplit x {concrete_coupled, concrete_split, algebraic}
+	    { 1.4f, 1.4f, 1.4f },  //     restart x {concrete_coupled, concrete_split, algebraic}
+	    { 1.4f, 1.4f, 1.4f }   // fixedeffort x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -244,9 +247,13 @@ SimulationEngine::names() noexcept
 		// See SimualtionEngineNosplit class
 		"nosplit",
 
-		// RESTART-like importance splitting, from the Villén-Altamirano brothers
-		// See SimualtionEngineRestart class
-		"restart"
+	    // RESTART-like importance splitting, from the Villén-Altamirano brothers
+	    // See SimualtionEngineRestart class
+	    "restart",
+
+	    // Fixed Effort importance splitting, from Garvels' PhD thesis
+	    // See SimualtionEngineFixedEffort class
+	    "fixedeffort"
 	}};
 	return names;
 }
@@ -317,11 +324,13 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 		const auto& pRate(dynamic_cast<const PropertyRate&>(property));
 		auto& ciRate(dynamic_cast<ConfidenceIntervalRate&>(ci));
 		size_t runLength = min_run_length(name(), impFun_->name());
-		while ( ! (interrupted || ci.is_valid()) ) {
+		bool firstRun(true);
+		do {
 			std::clock_t t0 = std::clock();
-			auto value = rate_simulation(pRate, runLength, false);  // use batch-means
+			auto value = rate_simulation(pRate, runLength, firstRun);  // use batch-means
 			rate_update(ciRate, value, runLength, (std::clock()-t0)/CLOCKS_PER_SEC);
-		}
+			firstRun = false;
+		} while ( ! (interrupted || ci.is_valid()) );
 		} break;
 
 	case PropertyType::THROUGHPUT:

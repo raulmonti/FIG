@@ -45,6 +45,7 @@ namespace fig
 
 class ThresholdsBuilder;
 class ThresholdsBuilderAdaptive;
+class ThresholdsBuilderAdaptiveSimple;
 class ModuleInstance;
 class ModuleNetwork;
 class Property;
@@ -154,15 +155,42 @@ protected:  // Attributes for derived classes
 	/// Importance of the system's initial state
 	ImportanceValue initialValue_;
 
-	/// Map from a state's ImportanceValue to the corresponding threshold level
-	/// @note Present only when the importance range is "small"
-	ImportanceVec importance2threshold_;
+	/**
+	 * @brief Map from a <i>threshold-level</i> to the ImportanceValue
+	 *        and splitting/effort that defines it.
+	 *
+	 *        The i-th <i>("threshold-") level</i> comprises all importance
+	 *        values between threshold2importance_[i] (including it)
+	 *        and threshold2importance_[i+1] (excluding it).<br>
+	 *        The pair at the i-th position of this vector holds:
+	 *        <ol>
+	 *        <li>the minimum ImportanceValue in the i-th level,</li>
+	 *        <li>the splitting/effort to perform on that level.</li>
+	 *        </ol>
+	 *
+	 * @see importance2threshold_
+	 */
+	ThresholdsVec threshold2importance_;
 
-	/// Map from a threshold level to the minimum ImportanceValue in it.<br>
-	/// The "i-th threshold level" comprises all importance values between
-	/// threshold2importance_[i] (including it) and threshold2importance_[i+1]
-	/// (excluding it)
-	ImportanceVec threshold2importance_;
+	/**
+	 * @brief Like threshold2importance_ but swapping threshold and importance
+	 *
+	 *        Map from the ImportanceValue of a state to a pair containing:
+	 *        <ol>
+	 *        <li>the ("threshold-") level that holds that importance,</li>
+	 *        <li>the splitting/effort to perform on that level.</li>
+	 *        </ol>
+	 *
+	 *  @see threshold2importance_
+	 *  @note Built only when the importance range is "small"
+	 */
+	ThresholdsVec importance2threshold_;
+
+	/// Minimum splitting/effort selected among all threshold levels
+	unsigned long minThresholdsEffort_;
+
+	/// Maximum splitting/effort selected among all threshold levels
+	unsigned long maxThresholdsEffort_;
 
 	/// @brief Algebraic formula defined by the user.
 	/// @note Useful both for ad hoc strategy and concrete_split functions
@@ -233,36 +261,79 @@ public:  // Accessors
 	const std::string adhoc_fun() const noexcept;
 
 	/// @copydoc minValue_
+	/// @param returnImportance Return min <b>importance value</b>
+	///                         regardless of whether the thresholds are built
 	/// @returns Zero if function doesn't has_importance_info(),
 	///          last and lowest value assessed otherwise.
 	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
 	///       were already built" then the value returned will be the lowest
-	///       threshold level.
-	ImportanceValue min_value() const noexcept;
+	///       <b>threshold level</b>.
+	ImportanceValue min_value(bool returnImportance = false) const noexcept;
 
 	/// @copydoc maxValue_
+	/// @param returnImportance Return max <b>importance value</b>
+	///                         regardless of whether the thresholds are built
 	/// @returns Zero if function doesn't has_importance_info(),
 	///          last and highest value assessed otherwise
 	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
 	///       were already built" the value returned will be the highest
-	///       threshold level.
-	ImportanceValue max_value() const noexcept;
+	///       <b>threshold level</b>.
+	ImportanceValue max_value(bool returnImportance = false) const noexcept;
 
 	/// @copydoc minRareValue_
+	/// @param returnImportance Return min <b>importance value</b> of rare state
+	///                         regardless of whether the thresholds are built
 	/// @returns Zero if function doesn't has_importance_info(),
 	///          last and lowest value assessed for a rare state otherwise.
 	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
 	///       were already built" the value returned will be the lowest
-	///       threshold level containing a rare state.
-	ImportanceValue min_rare_value() const noexcept;
+	///       <b>threshold level</b> containing a rare state.
+	ImportanceValue min_rare_value(bool returnImportance = false) const noexcept;
 
 	/// @copydoc initialValue_
+	/// @param returnImportance Return initial <b>importance value</b>
+	///                         regardless of whether the thresholds are built
 	/// @returns Zero if function doesn't has_importance_info(),
 	///          importance value of the system's initial state otherwise.
 	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
-	///       were already built" the value returned will be the threshold
-	///       level containing the system's initial state.
-	ImportanceValue initial_value() const noexcept;
+	///       were already built" the value returned will be the <b>threshold
+	///       level</b> containing the system's initial state.
+	ImportanceValue initial_value(bool returnImportance = false) const noexcept;
+
+	/// @copydoc thresholdsTechnique_
+	/// @returns Empty string if function isn't ready(),
+	///          last thresholds building technique used otherwise
+	const std::string thresholds_technique() const noexcept;
+
+	/// Number of thresholds built on last call to build_thresholds()
+	/// \ifnot NDEBUG
+	///   @throw FigException if this instance isn't \ref ready()
+	///                       "ready for simulations"
+	/// \endif
+	/// @see build_thresholds()
+	unsigned num_thresholds() const;
+
+	/// @copydoc minThresholdEffort_
+	/// @returns 0 if function isn't ready(), else: min { effort per threshold }
+	/// \ifnot NDEBUG
+	///   @throw FigException if this instance isn't \ref ready()
+	///                       "ready for simulations"
+	/// \endif
+	/// @see build_thresholds()
+	unsigned long min_thresholds_effort() const;
+
+	/// @copydoc maxThresholdEffort_
+	/// @returns 0 if function isn't ready(), else: max { effort per threshold }
+	/// \ifnot NDEBUG
+	///   @throw FigException if this instance isn't \ref ready()
+	///                       "ready for simulations"
+	/// \endif
+	/// @see build_thresholds()
+	unsigned long max_thresholds_effort() const;
+
+	/// Post-processing applied to the \ref ImportanceValue "importance values"
+	/// computed last; an empty first component means none was.
+	virtual PostProcessing post_processing() const noexcept;
 
 	/// @brief Whether the instance derives from ImportanceFunctionConcrete
 	/// @details Concrete importance functions store info for the concrete state
@@ -281,22 +352,6 @@ public:  // Accessors
 	///          function to identify special states during simulations.
 	/// @note concrete_simulation() => concrete()
 	virtual bool concrete_simulation() const noexcept = 0;
-
-	/// @copydoc thresholdsTechnique_
-	/// @returns Empty string if function isn't ready(),
-	///          last thresholds building technique used otherwise
-	const std::string thresholds_technique() const noexcept;
-
-	/// Number of thresholds built on last call to build_thresholds()
-	/// \ifnot NDEBUG
-	///   @throw FigException if this instance isn't \ref ready()
-	///                       "ready for simulations"
-	/// \endif
-	unsigned num_thresholds() const;
-
-	/// Post-processing applied to the \ref ImportanceValue "importance values"
-	/// computed last; an empty first component means none was.
-	virtual PostProcessing post_processing() const noexcept;
 
 	/**
 	 * Tell the pre-computed importance of the given StateInstance.
@@ -322,33 +377,37 @@ public:  // Accessors
 	 * \ifnot NDEBUG
 	 *   @throw FigException if this instance isn't \ref ready()
 	 *                       "ready for simulations"
+	 * \else
+	 *   @warning If this instance isn't \ref ready() "ready for simulations"
+	 *            then 0 is always returned
 	 * \endif
 	 * @see ThresholdsBuilder::build_thresholds()
 	 */
 	inline ImportanceValue level_of(const StateInstance& state) const
 		{
 			assert(has_importance_info());
-			if (importance2threshold_.size() > 0ul)
-				// We have the direct map
-				return importance2threshold_[importance_of(state)];
-			else
-				// Search the corresponding threshold level
-				return level_of(importance_of(state));
+			return (importance2threshold_.size() > 0ul)
+			        ? importance2threshold_[importance_of(state)].first  // use direct map
+			        : level_of(importance_of(state));  // search threshold level
 		}
 
+	/// Threshold level to which the given ImportanceValue belongs.
+	/// @copydetails level_of(const StateInstance&)
+	ImportanceValue level_of(const ImportanceValue& imp) const;
+
 	/**
-	 * Threshold level to which given ImportanceValue belongs.
-	 * @note The j-th threshold level is composed of all the states to which
-	 *       the ImportanceFunction assigns an ImportanceValue between the
-	 *       values of threshold 'j' (included) and 'j+1' (excluded)
-	 * @note <b>Complexity:</b> <i>O(log(num_thresholds()))</i>
+	 * Splitting/effort associated with this ("threshold-") level
+	 * @param lvl  Threshold-level whose associated effort is queried
 	 * \ifnot NDEBUG
 	 *   @throw FigException if this instance isn't \ref ready()
 	 *                       "ready for simulations"
+	 * \else
+	 *   @warning If this instance isn't \ref ready() "ready for simulations"
+	 *            then 0 is always returned
 	 * \endif
-	 * @see ThresholdsBuilder::build_thresholds()
+	 * @see level_of()
 	 */
-	ImportanceValue level_of(const ImportanceValue& val) const;
+	unsigned long effort_of(const ImportanceValue& lvl) const;
 
 	/**
 	 * @brief Print (formatted) importance information
@@ -373,9 +432,8 @@ public:  // Utils
 	 *        engines" will use these thresholds when coupled with this
 	 *        ImportanceFunction.
 	 *
-	 * @param tb  ThresholdsBuilder to use
-	 * @param spt Splits per threshold, i.e. #{simulation-run-replicas} + 1
-	 *            upon a "threshold level up" event
+	 * @warning It may be needed to \ref ThresholdsBuilder::setup() "setup
+	 *          the ThresholdsBuilder" before calling this function.
 	 *
 	 * @throw FigException if there was no precomputed \ref has_importance_info()
 	 *                     "importance information"
@@ -383,26 +441,7 @@ public:  // Utils
 	 * @see ready()
 	 * @see ThresholdsBuilder
 	 */
-	void build_thresholds(ThresholdsBuilder& tb,
-						  const unsigned& spt);
-
-	/**
-	 * @brief Like build_thresholds() but specifically using an adaptive
-	 *        thresholds building algorithm, e.g. \ref ThresholdsBuilderAMS
-	 *        "AMS" and \ref ThresholdsBuilderSMC "SMC"
-	 *
-	 * @param atb ThresholdsBuilderAdaptive to use
-	 * @param spt Splits per threshold, i.e. #{simulation-run-replicas} + 1
-	 *            upon a "threshold level up" event
-	 * @param p   Desired probability of crossing a threshold level upwards
-	 * @param n   Number of simulation to run for building each threshold
-	 *
-	 * @see ThresholdsBuilderAdaptive
-	 */
-	void build_thresholds_adaptively(ThresholdsBuilderAdaptive& atb,
-									 const unsigned& spt,
-									 const float& p,
-									 const unsigned& n);
+	void build_thresholds(ThresholdsBuilder& tb);
 
 	/**
 	 * @brief Release memory allocated in the heap during importance assessment
@@ -418,10 +457,9 @@ public:  // Utils
 
 private:  // Class utils
 
-	/// Optimize (already chosen) thresholds storage, when feasible
-	/// @param tb ThresholdsBuilder used last
+	/// Try to optimize the storage of the thresholds that have been chosen
+	/// @param tb ThresholdsBuilder last used
 	/// @see build_thresholds()
-	/// @see build_thresholds_adaptively()
 	void post_process_thresholds(const ThresholdsBuilder& tb);
 
 protected:  // Utils for derived classes

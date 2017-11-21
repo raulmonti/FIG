@@ -99,7 +99,7 @@ SECTION("Seal model and check consistency")
 	REQUIRE(model.num_RNGs() > 0ul);
 }
 
-SECTION("Estimate steady-state property using standard MC")
+SECTION("Steady-state: standard MC")
 {
 	const string nameEngine("nosplit");
 	const string nameIFun("algebraic");
@@ -110,9 +110,9 @@ SECTION("Estimate steady-state property using standard MC")
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	REQUIRE(model.exists_rng(rng));
 	// Prepare engine
-	model.set_splitting(1);
+	model.set_global_effort(1);
 	model.build_importance_function_flat(nameIFun, ssPropId, true);
-	model.build_thresholds(nameThr, nameIFun);
+	model.build_thresholds(nameThr, nameIFun, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, nameIFun);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -132,7 +132,7 @@ SECTION("Estimate steady-state property using standard MC")
 	REQUIRE(ci.precision(confCo) < SS_PROB);
 }
 
-SECTION("Estimate steady-state property using RESTART and adhoc ifun")
+SECTION("Steady-state: RESTART, ad hoc, hyb")
 {
 	const string nameEngine("restart");
 	const string ifunAdHoc("max(d11f+d12f+d13f+d14f+0,max(d21f+d22f+d23f+d24f+0,max(d31f+d32f+d33f+d34f+0,max(d41f+d42f+d43f+d44f+0,max(d51f+d52f+d53f+d54f+0,max(d61f+d62f+d63f+d64f+0,max(c11f+c12f+0,max(c21f+c22f+0,max(p11f+p12f+0,max(p21f+p22f+0,0))))))))))");
@@ -146,9 +146,9 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_splitting(6);
+	model.set_global_effort(6);
 	model.build_importance_function_adhoc(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -172,21 +172,20 @@ SECTION("Estimate steady-state property using RESTART and adhoc ifun")
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
 
-SECTION("Estimate steady-state property using RESTART and compositional ifun (op:+)")
+SECTION("Steady-state: RESTART, compositional (+ operator), es")
 {
 	const string nameEngine("restart");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "+",
 	                               fig::PostProcessing(),
 	                               0, 32, 0);
-	const string nameThr("hyb");
+	const string nameThr("es");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_splitting(8);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -210,7 +209,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (op
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
 
-SECTION("Estimate steady-state property using RESTART and compositional ifun (coarse)")
+SECTION("Steady-state: RESTART, compositional (coarse ifun), es")
 {
 	const string nameEngine("restart");
 	const string ifunComp("(Disk11*Disk12*Disk13*Disk14*Disk21*Disk22*Disk23*Disk24*Disk31*Disk32*Disk33*Disk34*Disk41*Disk42*Disk43*Disk44*Disk51*Disk52*Disk53*Disk54*Disk61*Disk62*Disk63*Disk64)+(Controller11*Controller12*Controller21*Controller22)+(Processor11*Processor12*Processor21*Processor22)");
@@ -218,15 +217,14 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (co
 	                               ifunComp,
 	                               fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0),
 	                               3, 16777248, 1);
-	const string nameThr("hyb");
+	const string nameThr("es");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_splitting(16);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
@@ -250,7 +248,7 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (co
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
 
-SECTION("Estimate steady-state property using RESTART and compositional ifun (+,*)")
+SECTION("Steady-state: RESTART, compositional ([+,*] ring), hyb")
 {
 	const string nameEngine("restart");
 	const string ifunComp("(Disk11*Disk12)+(Disk11*Disk13)+(Disk11*Disk14)+(Disk12*Disk13)+(Disk12*Disk14)+(Disk13*Disk14)+(Disk21*Disk22)+(Disk21*Disk23)+(Disk21*Disk24)+(Disk22*Disk23)+(Disk22*Disk24)+(Disk23*Disk24)+(Disk31*Disk32)+(Disk31*Disk33)+(Disk31*Disk34)+(Disk32*Disk33)+(Disk32*Disk34)+(Disk33*Disk34)+(Disk41*Disk42)+(Disk41*Disk43)+(Disk41*Disk44)+(Disk42*Disk43)+(Disk42*Disk44)+(Disk43*Disk44)+(Disk51*Disk52)+(Disk51*Disk53)+(Disk51*Disk54)+(Disk52*Disk53)+(Disk52*Disk54)+(Disk53*Disk54)+(Disk61*Disk62)+(Disk61*Disk63)+(Disk61*Disk64)+(Disk62*Disk63)+(Disk62*Disk64)+(Disk63*Disk64)+(Controller11*Controller12)+(Controller21*Controller22)+(Processor11*Processor12)+(Processor21*Processor22)");
@@ -264,9 +262,9 @@ SECTION("Estimate steady-state property using RESTART and compositional ifun (+,
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_splitting(11);
+	model.set_global_effort(12);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name);
+	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria

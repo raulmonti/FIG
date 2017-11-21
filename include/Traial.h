@@ -209,7 +209,7 @@ public:  // Utils
 	 *                       or the ImportanceFunction has no importance info
 	 * \endif
 	 */
-	void initialize(const ModuleNetwork& network,
+	void initialise(const ModuleNetwork& network,
 					const ImportanceFunction& impFun);
 
 	/**

@@ -57,15 +57,6 @@ SimulationEngineNosplit::~SimulationEngineNosplit()
 }
 
 
-double
-SimulationEngineNosplit::log_experiments_per_sim() const
-{
-	if (!bound())
-		throw_FigException("engine isn't bound to any importance function");
-	return 0.0;  // == log(1)
-}
-
-
 std::vector<double>
 SimulationEngineNosplit::transient_simulations(const PropertyTransient& property,
                                                const size_t& numRuns) const
@@ -85,7 +76,7 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
 
 	// Perform 'numRuns' independent standard Monte Carlo simulations
 	for (size_t i = 0ul ; i < numRuns && !interrupted ; i++) {
-		traial.initialize(*network_, *impFun_);
+		traial.initialise(*network_, *impFun_);
         Event e = network_->simulation_step(traial, property, *this, watch_events);
 		raresCount.push_back(IS_RARE_EVENT(e) ? 1.0l : 0.0l);
     }
@@ -123,7 +114,7 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 	// simulation time units and starting from the last saved state,
 	// or from the system's initial state if requested.
 	if (reinit || oTraial_.lifeTime == FIRST_TIME)
-		oTraial_.initialize(*network_, *impFun_);
+		oTraial_.initialise(*network_, *impFun_);
 	else
 		oTraial_.lifeTime = 0.0;
 	do {

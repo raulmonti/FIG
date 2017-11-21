@@ -62,11 +62,13 @@
 #include <SimulationEngine.h>
 #include <SimulationEngineNosplit.h>
 #include <SimulationEngineRestart.h>
+#include <SimulationEngineFixedEffort.h>
 #include <ImportanceFunction.h>
 #include <ImportanceFunctionAlgebraic.h>
 #include <ImportanceFunctionConcreteSplit.h>
 #include <ImportanceFunctionConcreteCoupled.h>
 #include <ThresholdsBuilder.h>
+#include <ThresholdsBuilderES.h>
 #include <ThresholdsBuilderAMS.h>
 #include <ThresholdsBuilderSMC.h>
 #include <ThresholdsBuilderFixed.h>
@@ -133,12 +135,12 @@ build_empty_ci(const fig::PropertyType& propertyType,
 														  dynamicPrecision,
 														  timeBoundSim));
 //		// The statistical oversampling incurred here is bounded:
-//		//  · from below by splitsPerThreshold ^ minRareValue,
-//		//  · from above by splitsPerThreshold ^ numThresholds.
+//		//  · from below by globalEffort ^ minRareValue,
+//		//  · from above by globalEffort ^ numThresholds.
 //		// NOTE: Deprecated - This was used by the binomial proportion CIs
-//		double minStatOversamp = std::pow(splitsPerThreshold,
+//		double minStatOversamp = std::pow(globalEffort,
 //										  impFun.min_rare_value());
-//		double maxStatOversamp = std::pow(splitsPerThreshold,
+//		double maxStatOversamp = std::pow(globalEffort,
 //										  impFun.num_thresholds());
 //		ci_ptr->set_statistical_oversampling(maxStatOversamp);
 //		ci_ptr->set_variance_correction(minStatOversamp/maxStatOversamp);
@@ -173,7 +175,7 @@ build_empty_ci(const fig::PropertyType& propertyType,
  *          those whose stopping condition was the running time.
  * @param ci ConfidenceInterval with the current estimate to show
  * @param confidenceCoefficients Confidence criteria to build the intervals
- * @param startTime (<i>optional</i>) Starting time, as returned by
+ * @param startTime <i>(Optional)</i> Starting time, as returned by
  *                  omp_get_wtime(), of the last estimation launched
  * @note This should be implemented as a reentrant function,
  *       as it may be called from within signal handlers.
@@ -295,7 +297,7 @@ std::shared_ptr< ModuleNetwork > ModelSuite::model(std::make_shared<ModuleNetwor
 
 std::vector< std::shared_ptr< Property > > ModelSuite::properties;
 
-unsigned ModelSuite::splitsPerThreshold = 2u;
+unsigned ModelSuite::globalEffort = 0u;
 
 std::unordered_map< std::string, std::shared_ptr< ImportanceFunction > >
 	ModelSuite::impFuns;
@@ -443,12 +445,14 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 	thrBuilders["fix"] = std::make_shared< ThresholdsBuilderFixed >();
 	thrBuilders["ams"] = std::make_shared< ThresholdsBuilderAMS >();
 	thrBuilders["smc"] = std::make_shared< ThresholdsBuilderSMC >();
+	thrBuilders["es" ] = std::make_shared< ThresholdsBuilderES >();
 	thrBuilders["hyb"] = std::make_shared< ThresholdsBuilderHybrid >();
 
 	// Build offered simulation engines
 	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
 	simulators["restart"] = std::make_shared< SimulationEngineRestart >(model);
-	set_splitting(splitsPerThreshold);
+	simulators["fixedeffort"] = std::make_shared< SimulationEngineFixedEffort >(model);
+	set_global_effort();
 
 #ifndef NDEBUG
 	// Check all offered importance functions, thresholds builders and
@@ -479,17 +483,21 @@ template void ModelSuite::seal(const std::unordered_set<std::string>&);
 
 
 void
-ModelSuite::set_splitting(const unsigned& spt, bool verbose)
+ModelSuite::set_global_effort(const unsigned& ge, bool verbose)
 {
     if (!sealed())
         throw_FigException("ModelSuite hasn't been sealed yet");
-	if (1u < spt)  // i.e. if we actually use splitting
-		dynamic_cast<SimulationEngineRestart&>(*simulators["restart"])
-				.set_splits_per_threshold(spt);
-	splitsPerThreshold = spt;
-	if (verbose)
-		// Show in tech log
-		tech_log("\nSplitting set to " + std::to_string(spt) + "\n");
+	if (1u < ge)  // i.e. if we actually use a global effort
+		for (auto& pair: simulators)
+			pair.second->set_global_effort(ge);
+	else
+		for (auto& pair: simulators)
+			pair.second->set_global_effort();
+	globalEffort = ge;
+	if (verbose && 1u < ge)
+		tech_log("\nGlobal effort set to " + std::to_string(ge) + "\n");
+	else if (verbose && 1u >= ge)
+		tech_log("\nGlobal effort reset to default values\n");
 }
 
 
@@ -543,9 +551,9 @@ ModelSuite::get_property(const size_t& i) const noexcept
 
 
 const unsigned&
-ModelSuite::get_splitting() const noexcept
+ModelSuite::get_global_effort() const noexcept
 {
-	return splitsPerThreshold;
+	return globalEffort;
 }
 
 
@@ -948,10 +956,9 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 
 bool
 ModelSuite::build_thresholds(const std::string& technique,
-							 const std::string& ifunName,
-							 bool force,
-							 const float& lvlUpProb,
-							 const unsigned& simsPerIter)
+                             const std::string& ifunName,
+                             std::shared_ptr<const Property> property,
+                             bool force)
 {
 	if (!exists_threshold_technique(technique))
 		throw_FigException("inexistent threshold building technique \"" + technique
@@ -961,40 +968,45 @@ ModelSuite::build_thresholds(const std::string& technique,
 		throw_FigException("inexistent importance function \"" + ifunName +
 						   "\". Call \"available_importance_functions()\" "
 						   "for a list of available options.");
-
-	ThresholdsBuilder& thrBuilder = *thrBuilders[technique];
 	ImportanceFunction& ifun = *impFuns[ifunName];
-
+	ThresholdsBuilder& tb = *thrBuilders[technique];
 	if (!ifun.has_importance_info())
 		throw_FigException("importance function \"" + ifunName + "\" doesn't "
 						   "have importance information yet. Call any of the "
 						   "\"build_importance_function_xxx()\" routines with "
-						   "\"" + ifunName + "\" beforehand");
-
+		                   "\"" + ifunName + "\" beforehand");
 	if (force || ifun.thresholds_technique() != technique) {
+		const auto gEffortSpec(tb.uses_global_effort()
+		            ? (" with global effort "+std::to_string(globalEffort)) : (""));
 		techLog_ << "\nBuilding thresholds for importance function \"" << ifunName
-				 << "\",\nusing technique \"" << technique << "\" with splitting "
-				 << "== " << splitsPerThreshold << std::endl;
+		         << "\",\nusing technique \"" << technique << "\"" << gEffortSpec
+		         << std::endl;
 		const double startTime = omp_get_wtime();
-		if (thrBuilder.adaptive() && lvlUpProb > 0.0)
-			ifun.build_thresholds_adaptively(
-					*std::dynamic_pointer_cast<ThresholdsBuilderAdaptive>(thrBuilders[technique]),
-					splitsPerThreshold,
-					lvlUpProb,
-					simsPerIter);
-		else
-			ifun.build_thresholds(thrBuilder, splitsPerThreshold);
+		tb.setup(ifun.post_processing(), property, globalEffort);
+		ifun.build_thresholds(tb);
 		techLog_ << "Thresholds building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"
 //				 << std::defaultfloat;
 				 << std::setprecision(6);
 	}
-
     assert(ifun.ready());
     assert(technique == ifun.thresholds_technique());
 	pristineModel_ = false;
 	return true;
+}
+
+
+bool
+ModelSuite::build_thresholds(const std::string& technique,
+                             const std::string& ifunName,
+                             const size_t& propertyIndex,
+                             bool force)
+{
+	auto propertyPtr = get_property(propertyIndex);
+	if (nullptr == propertyPtr)
+		throw_FigException("no property at index " + to_string(propertyIndex));
+	return build_thresholds(technique, ifunName, propertyPtr, force);
 }
 
 
@@ -1010,7 +1022,6 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
         throw_FigException("inexistent importance function \"" + ifunName +
                            "\". Call \"available_importance_functions()\" "
                            "for a list of available options.");
-
 	auto engine_ptr = simulators[engineName];
 	auto ifun_ptr = impFuns[ifunName];
 
@@ -1018,7 +1029,6 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
         throw_FigException("importance function \"" + ifunName + "\" isn't yet "
                            "ready for simulations. Call \"build_importance_"
                            "function()\" and \"build_thresholds()\" beforehand");
-
 	if (engine_ptr->bound())
 		engine_ptr->unbind();
     techLog_ << "\nBinding simulation engine \"" << engineName << ""
@@ -1026,7 +1036,6 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
     engine_ptr->bind(ifun_ptr);
 	assert(engine_ptr->bound());
 	assert(ifunName == engine_ptr->current_imp_fun());
-
 	pristineModel_ = false;
 	return engine_ptr;
 }
@@ -1034,29 +1043,21 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
 
 void
 ModelSuite::release_resources(const std::string& ifunName,
-							  const std::string& engineName) noexcept
+                              const std::string& engineName)
 {
-	const std::string msgBase(" · releasing resources");
+	const std::string msgBase("\n · cleaning ADT of");
 	std::stringstream msg;
-	msg << msgBase;
-	if (exists_importance_function(ifunName) &&
-	        nullptr != impFuns[ifunName]) {
-		msg << " of importance function \"" << ifunName << "\"";
+	if (exists_importance_function(ifunName) && nullptr != impFuns[ifunName]) {
+		msg << msgBase << " importance function \"" << ifunName << "\"";
 		impFuns[ifunName]->clear();
 		assert(!impFuns[ifunName]->has_importance_info());
 	}
-	if (exists_simulator(engineName) &&
-	        nullptr != simulators[engineName]) {
-        if (exists_importance_function(ifunName))
-			msg << " and";
-        else
-			msg << " of";
-		msg << " simulation engine \"" << engineName << "\"";
+	if (exists_simulator(engineName) && nullptr != simulators[engineName]) {
+		msg << msgBase << " simulation engine \"" << engineName << "\"";
 		simulators[engineName]->unbind();
 		assert(!simulators[engineName]->bound());
 	}
-	if (msg.str() != msgBase)
-		techLog_ << msg.str() << std::endl;
+	techLog_ << msg.str();
 }
 
 void
@@ -1066,11 +1067,11 @@ ModelSuite::clear() noexcept
 		techLog_ << "\nSystem resources have been released already, clear() skipped.\n";
 		return;
 	}
-	techLog_ << "\nReleasing all system resources...\n";
+	techLog_ << "\nReleasing all system resources...";
 	// Reset class memebers
 	std::make_shared<ModuleNetwork>().swap(model);
 	properties.clear();
-	splitsPerThreshold = 2u;
+	globalEffort = 0u;
 	lastEstimationStartTime_ = 0.0;
 	timeout_ = std::chrono::seconds::zero();
 	lastEstimates_.clear();
@@ -1086,13 +1087,17 @@ ModelSuite::clear() noexcept
 		impFuns.clear();
 		thrBuilders.clear();
 		simulators.clear();
-	} catch (std::exception&) {
+	} catch (FigException& e) {
 		// Meh... everything was going to hell anyway
+		techLog_ << "\n[ERROR] FigException caught: " << e.what() << std::endl;
+	} catch (std::exception& e) {
+		techLog_ << "\n[ERROR] Exception caught: " << e.what() << std::endl;
 	}
 	// Clean some static data from other classes
 	TraialPool::clear();
 	ModelBuilder::property_ast.clear();
 	// CompositeModuleScope::get_instance()->clear();  // suicides
+	techLog_ << "\n... done." << std::endl;
 	pristineModel_ = true;
 }
 
@@ -1123,7 +1128,7 @@ ModelSuite::estimate(const Property& property,
 	mainLog_ << " with post-processing     \"" << postProcStr << "\"\n";
 	mainLog_ << " and thresholds technique \"" << ifun.thresholds_technique() << "\"\n";
 	mainLog_ << " [ " << ifun.num_thresholds() << " thresholds";
-	mainLog_ << " | splitting " << engine.splits_per_threshold() << " ]\n";
+	mainLog_ << " | effort " << engine.global_effort() << " ]\n";
 
 	if (bounds.is_time())
 		// Simulation bounds are wall clock time limits

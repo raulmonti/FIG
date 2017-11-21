@@ -46,10 +46,28 @@
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-ImportanceVec
-ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
-										  const ImportanceFunction& impFun,
-										  const PostProcessing& postProcessing)
+ThresholdsBuilderHybrid::ThresholdsBuilderHybrid(ImportanceValue minImpRange,
+                                                 ImportanceValue expandEvery) :
+    ThresholdsBuilder("hyb"),
+    ThresholdsBuilderFixed(minImpRange,expandEvery),
+    globEff_(0u)
+{ /* Not much to do around here */ }
+
+
+void
+ThresholdsBuilderHybrid::setup(const PostProcessing &pp,
+                               std::shared_ptr<const Property> prop,
+                               const unsigned ge)
+{
+	postPro_ = pp;  // inherited from ThresholdsBuilderFixed
+	globEff_ = ge;  // opaqued from base classes to avoid ambiguity
+	ThresholdsBuilderFixed::setup(pp, prop, ge);
+	ThresholdsBuilderAdaptiveSimple::setup(pp, prop, ge);
+}
+
+
+ThresholdsVec
+ThresholdsBuilderHybrid::build_thresholds(const ImportanceFunction& impFun)
 {
 	// Impose an execution wall time limit...
 	const std::chrono::minutes TIMEOUT = ADAPTIVE_TIMEOUT;  // take by value!
@@ -59,8 +77,7 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 	try {
 		// Start out using an adaptive technique, which may just work btw...
 		halted_ = false;
-		ThresholdsBuilderAdaptive::build_thresholds(splitsPerThreshold, impFun,
-													postProcessing);
+		ThresholdsBuilderSMC::build_thresholds(impFun);
 		pthread_cancel(timer.native_handle());  // ...it worked!
 
 	} catch (FigException&) {
@@ -70,12 +87,10 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 		const size_t MARGIN(thresholds_.back());
 		figTechLog << "\nResorting to fixed choice of thresholds starting "
 				   << "above the ImportanceValue " << MARGIN << "\n";
-		stride_ = choose_stride(impFun.max_value()-MARGIN, splitsPerThreshold,
-								postProcessing);
+		stride_ = choose_stride(impFun.max_value()-MARGIN);
 		ThresholdsBuilderFixed::build_thresholds(impFun,
 		                                         MARGIN-impFun.initial_value(),
 		                                         stride_,
-												 postProcessing,
 		                                         thresholds_);
 		halted_ = true;
 
@@ -95,34 +110,40 @@ ThresholdsBuilderHybrid::build_thresholds(const unsigned& splitsPerThreshold,
 	assert(thresholds[0] == impFun.initial_value());
 	assert(thresholds.back() == 1 + impFun.max_value());
 
-	return thresholds;
+	// Build ThresholdsVec to return
+	ThresholdsVec result;
+	result.reserve(thresholds.size());
+	for (auto imp: thresholds)
+		result.emplace_back(imp, globEff_);
+	result.front().second = 1ul;  // fake first thr
+	result.back().second = 1ul;   // fake last thre
+
+	return result;
 }
 
 
 ImportanceValue
-ThresholdsBuilderHybrid::choose_stride(const size_t& impRange,
-									   const unsigned& splitsPerThreshold,
-									   const PostProcessing& postProcessing) const
+ThresholdsBuilderHybrid::choose_stride(const size_t& impRange) const
 {
 	ImportanceValue basicStride(1u), expansionFactor(1u);
-	assert(splitsPerThreshold > 1u);
+	assert(globEff_ > 1u);
 	if (impRange < MIN_IMP_RANGE)
 		return basicStride;  // Don't even bother
 
 	// What follows is clearly arbitrary, but then we warned the user
 	// in the class' docstring, didn't we?
-	switch (postProcessing.type)
+	switch (postPro_.type)
 	{
 	case (PostProcessing::NONE):
 	case (PostProcessing::SHIFT):
-		basicStride = splitsPerThreshold <  4u ? 2u :      // 2,3 -------------> 2
-					  splitsPerThreshold <  7u ? 3u :      // 4,5,6 -----------> 3
-					  splitsPerThreshold < 11u ? 4u :      // 7,8,9,10 --------> 4
-					  splitsPerThreshold < 16u ? 5u : 6u;  // 11,12,13,14,15 --> 5
+		basicStride = globEff_ <  4u ? 2u :      // 2,3 -------------> 2
+		              globEff_ <  7u ? 3u :      // 4,5,6 -----------> 3
+		              globEff_ < 11u ? 4u :      // 7,8,9,10 --------> 4
+		              globEff_ < 16u ? 5u : 6u;  // 11,12,13,14,15 --> 5
 //		XXX A narrower alternative:
-//		basicStride = splitsPerThreshold <  6u ? 2u :      // 2,3,4,5 ---------> 2
-//					  splitsPerThreshold < 11u ? 3u :      // 6,7,8,9,10 ------> 3
-//					  splitsPerThreshold < 16u ? 4u : 5u;  // 11,12,13,14,15 --> 4
+//		basicStride = globEff_ <  6u ? 2u :      // 2,3,4,5 ---------> 2
+//					  globEff_ < 11u ? 3u :      // 6,7,8,9,10 ------> 3
+//					  globEff_ < 16u ? 4u : 5u;  // 11,12,13,14,15 --> 4
 		expansionFactor = std::ceil(static_cast<float>(impRange) / EXPAND_EVERY);
 		// Make sure return type can represent the computed stride
 		assert(std::log2(static_cast<float>(basicStride)*expansionFactor)
@@ -131,17 +152,17 @@ ThresholdsBuilderHybrid::choose_stride(const size_t& impRange,
 		break;
 
 	case (PostProcessing::EXP):
-		basicStride = splitsPerThreshold < 4u ? 1u :      // 2,3 ------> 1
-					  splitsPerThreshold < 7u ? 2u : 3u;  // 4,5,6 ----> 2
+		basicStride = globEff_ < 4u ? 1u :      // 2,3 ------> 1
+		              globEff_ < 7u ? 2u : 3u;  // 4,5,6 ----> 2
 		expansionFactor = std::ceil(std::log(impRange) / EXPAND_EVERY);
 		// Make sure return type can represent the computed stride
 		assert(basicStride*expansionFactor < sizeof(decltype(basicStride))*8u);
-		return std::pow(postProcessing.value, basicStride*expansionFactor);
+		return std::pow(postPro_.value, basicStride*expansionFactor);
 		break;
 
 	default:
-		throw_FigException("invalid post-processing specified (\""
-						  + postProcessing.name + "\")");
+		throw_FigException("invalid post-processing \"" + postPro_.name
+		                  + "\" (" + std::to_string(postPro_.type) + ")");
 		break;
 	}
 }

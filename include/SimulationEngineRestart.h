@@ -58,8 +58,14 @@ class PropertyTransient;
  */
 class SimulationEngineRestart : public SimulationEngine
 {
-	/// @copydoc SimulationEngine::splits_per_threshold()
+	/// Number of replicas made of a Traial when it crosses a threshold upwards
+	/// @deprecated Now each threshold level has its own effort;
+	///             this class member isn't used anymore
 	unsigned splitsPerThreshold_;
+
+	/// Default value for splitsPerThreshold_
+	static constexpr decltype(splitsPerThreshold_) DEFAULT_GLOBAL_EFFORT = 2;
+	static inline decltype(splitsPerThreshold_) splitting_default() { return DEFAULT_GLOBAL_EFFORT; }
 
 	/// Number of importance thresholds a simulation run must cross downwards
 	/// (i.e. loosing on importance) to be discarded
@@ -72,27 +78,34 @@ class SimulationEngineRestart : public SimulationEngine
 	Traial& oTraial_;
 //	thread_local Traial& oTraial_;
 
-	/// Stack of \ref Traial "traials" for a batch means mechanism
-	mutable std::stack< Reference< Traial > > stack_;
+	/// Stack of \ref Traial "traials" for a batch means mechanism,
+	/// typically used for steady-state simulations
+	mutable std::stack< Reference< Traial > > ssstack_;
 
 public:  // Ctor
 
 	/// Data ctor
 	SimulationEngineRestart(std::shared_ptr<const ModuleNetwork> network,
-							const unsigned& splitsPerThreshold = 2u,
-							const unsigned& dieOutDepth = 0u);
+	                        const unsigned& splitsPerThreshold = splitting_default(),
+	                        const unsigned& dieOutDepth = 0u);
 
 	~SimulationEngineRestart();
 
 public:  // Accessors
 
-	unsigned splits_per_threshold() const noexcept override;
+	unsigned global_effort() const noexcept override;
+
+	/// @copydoc DEFAULT_GLOBAL_EFFORT
+	inline unsigned global_effort_default() const noexcept override { return DEFAULT_GLOBAL_EFFORT; }
 
 	/// @copydoc dieOutDepth_
 	const unsigned& die_out_depth() const noexcept;
 
 public:  // Engine setup
 
+	/// @copydoc SimulationEngine::bind()
+	/// @note Reinits the \ref ssstack_ "internal ADT" used for batch means
+	/// @see reinit_stack()
 	void bind(std::shared_ptr< const ImportanceFunction >) override;
 
 	/**
@@ -104,9 +117,8 @@ public:  // Engine setup
 	 *            plus the newly created replica
 	 * @throw FigException if the value is invalid
 	 * @throw FigException if the engine was \ref lock() "locked"
-	 * @see splits_per_threshold()
 	 */
-	void set_splits_per_threshold(unsigned spt);
+	void set_global_effort(unsigned spt = splitting_default()) override;
 
 	/// @see die_out_depth()
 	/// @throw FigException if the value is invalid
@@ -115,7 +127,9 @@ public:  // Engine setup
 
 protected:  // Simulation helper functions
 
-	double log_experiments_per_sim() const override;
+	/// Do a clean in the \ref ssstack_ "internal ADT" used for batch means,
+	/// forcing the next simulation to be <i>fresh</i>.
+	void reinit_stack() const;
 
 	std::vector<double>
 	transient_simulations(const PropertyTransient& property,
@@ -125,7 +139,7 @@ protected:  // Simulation helper functions
 						   const size_t& runLength,
 						   bool reinit = false) const override;
 
-public:  // Traial observers/updaters
+private:  // Traial observers/updaters
 
 	/// @copydoc SimulationEngine::transient_event()
 	/// @note Makes no assumption about the ImportanceFunction altogether
@@ -136,7 +150,7 @@ public:  // Traial observers/updaters
 		{
 			// Event marking is done in accordance with the checks performed
 			// in the transient_simulations() overriden member function
-			if (!property.expr1(traial.state)) {
+		    if (property.is_stop(traial.state)) {
 				e = EventType::STOP;
 			} else {
 				ImportanceValue newThrLvl = impFun_->level_of(traial.state);
@@ -148,7 +162,7 @@ public:  // Traial observers/updaters
 					e = EventType::THR_DOWN;
 				else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 					e = EventType::THR_UP;
-				else if (property.expr2(traial.state))
+				else if (property.is_rare(traial.state))
 					e = EventType::RARE;
 			}
 			return EventType::NONE != e;
@@ -198,7 +212,7 @@ public:  // Traial observers/updaters
 				e = EventType::THR_DOWN;
 			else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 				e = EventType::THR_UP;
-			else if (property.expr(traial.state))
+			else if (property.is_rare(traial.state))
 				e = EventType::RARE;
 			if (traial.lifeTime > SIM_TIME_CHUNK
 				&& simsLifetime > SIM_TIME_CHUNK) {

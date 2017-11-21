@@ -171,6 +171,14 @@ public:  // Utils
         return expr2(s);
     }
 
+	inline bool is_stop(const StateInstance& s) const override {
+		return !expr1(s);
+	}
+
+	inline bool is_stop(const State<STATE_INTERNAL_TYPE>& s) const override {
+		return !expr1(s);
+	}
+
 public: //Debug
     void print_info(std::ostream &out) const override;
 };

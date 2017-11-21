@@ -20,6 +20,8 @@ test
 bin/
 *_bin/
 bin_*/
+tests_bin*
+CMakeFiles*
 
 # Simulation/Cluster logs
 *.out

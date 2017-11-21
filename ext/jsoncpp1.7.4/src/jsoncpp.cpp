@@ -2293,8 +2293,8 @@ ValueIteratorBase::computeDistance(const SelfType& other) const {
 #ifdef JSON_USE_CPPTL_SMALLMAP
   return other.current_ - current_;
 #else
-  // Iterator for null value are initialized using the default
-  // constructor, which initialize current_ to the default
+  // Iterator for null value are initialised using the default
+  // constructor, which initialise current_ to the default
   // std::map::iterator. As begin() and end() are two instance
   // of the default std::map::iterator, they can not be compared.
   // To allow this, we handle this comparison specifically.

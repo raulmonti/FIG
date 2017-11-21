@@ -67,15 +67,18 @@ public:  // Ctor
 
 public:  // Accessors
 
-	unsigned splits_per_threshold() const noexcept override { return 1u; }
+	inline unsigned global_effort() const noexcept override { return global_effort_default(); }
+
+	inline unsigned global_effort_default() const noexcept override { return 1u; }
 
 public:  // Engine setup
 
-//	virtual void bind(...);  // We can hook up with any, no check needed
+//	void bind(...) override;  // We can hook up with any, no check needed
+
+	/// Irrelevant for standard Monte Carlo
+	void set_global_effort(unsigned) override {}
 
 protected:  // Simulation helper functions
-
-	double log_experiments_per_sim() const override;
 
 	std::vector<double>
 	transient_simulations(const PropertyTransient& property,

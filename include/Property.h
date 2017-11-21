@@ -66,8 +66,9 @@ protected:
 
 public:  // Attributes
 
-    /// Property per se in string form
-    /// const std::string expression;
+//	/// Property per se in string form
+//	const std::string expression;
+
     /// Which type of property the expression represents
     const PropertyType type;
 
@@ -91,13 +92,27 @@ public:  // Ctors
 
 public:  // Utils
 
-    /**
-     * @brief Is this state considered "rare" for importance simulation?
-     */
-    virtual bool is_rare(const StateInstance& s) const = 0;
+	/// @brief Is this state considered "rare" for importance simulation?
+	virtual bool is_rare(const StateInstance&) const = 0;
 
-    /// @copydoc is_rare()
-    virtual bool is_rare(const State<STATE_INTERNAL_TYPE>& s) const = 0;
+	/// @copydoc is_rare()
+	virtual bool is_rare(const State<STATE_INTERNAL_TYPE>&) const = 0;
+
+	/// @brief Should simulations be truncated when reaching this state?
+	/// @note Only relevant for transient-like properties,
+	///       i.e. types TRANSIENT and BOUNDED_REACHABILITY
+	virtual inline bool is_stop(const StateInstance&) const { return false; }
+
+	/// @copydoc is_stop()
+	virtual inline bool is_stop(const State<STATE_INTERNAL_TYPE>&) const { return false; }
+
+	/// Is the property satisfied by the given state?
+	inline bool operator()(const StateInstance& s) const
+	    { return !is_stop(s) && is_rare(s); }
+
+	/// @copydoc operator ()()
+	inline bool operator()(const State<STATE_INTERNAL_TYPE>& s) const
+	    { return !is_stop(s) && is_rare(s); }
 
     /// Get instance unique id
     int get_id() const noexcept { return instance_id; }

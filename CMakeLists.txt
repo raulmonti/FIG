@@ -239,6 +239,9 @@ IF(NOT RELEASE)
 	# Avoid warnings due to deprecated function
 	SET_SOURCE_FILES_PROPERTIES(${SOURCES_DIR}/ConfidenceInterval.cpp
 	                            PROPERTIES COMPILE_FLAGS -Wno-unused-function)
+	# Avoid warnings due to decltype() in static function header
+	SET_SOURCE_FILES_PROPERTIES(${HEADERS_DIR}/TraialPool.h
+	                            PROPERTIES COMPILE_FLAGS -Wno-ignored-qualifiers)
 ENDIF()
 
 
