@@ -49,6 +49,7 @@
 // ADL
 using std::begin;
 using std::end;
+using std::find;
 
 
 namespace  // // // // // // // // // // // // // // // // // // // // // // //
@@ -63,6 +64,7 @@ using fig::ImportanceValue;
 using parser::PropertyProjection;
 using Clause = parser::PropertyProjection::Clause;
 using State = fig::State< fig::STATE_INTERNAL_TYPE >;
+using Indices = fig::ImportanceFunctionConcrete::Indices;
 typedef ImportanceVec EventVec;
 typedef unsigned STATE_T;
 
@@ -124,7 +126,7 @@ reversed_edges_DFS(const fig::Module& module,
 	const size_t NUM_CONCRETE_STATES(module.concrete_state_size());
 
 	assert(NOT_VISITED != VISITED);
-	assert(visits.size() == 0u);
+	assert(visits.empty());
 	assert(module.concrete_state_size().upper() == 0ul);
 
 	// STL's forward_list is the perfect stack
@@ -182,7 +184,7 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 					 const size_t initialState,
 					 ImportanceVec& cStates)
 {
-	if (raresQueue.size() == 0ul)
+	if (raresQueue.empty())
 		return static_cast<ImportanceValue>(0u);
 //	assert(std::find(begin(raresQueue), end(raresQueue), initialState)
 //		   == end(raresQueue));
@@ -309,7 +311,7 @@ label_local_others(State s,
 /**
  * @brief Label concrete states with Event masks corresponding to the Property
  *
- *        This is specifically intended for ImporatanceFunctionConcreteSplit,
+ *        This is specifically intended for ImportanceFunctionConcreteSplit,
  *        where the Property is to be evaluated locally in each of the modules,
  *        i.e. in a local state with only a subset of the variables that may
  *        appear in the Property.
@@ -448,6 +450,7 @@ label_global_states(State globalState,
 }
 
 
+
 /**
  * Assign automatic importance to reachable states in concrete vector
  *
@@ -457,6 +460,9 @@ label_global_states(State globalState,
  * @param clauses  Property parsed as a DNF list of clauses
  *                 (used only by ImportanceFunctionConcreteSplit)
  * @param split    Whether we're working for ImportanceFunctionConcreteSplit
+ * @param relevant Indices (from impVec) of concrete states that,
+ *                 regardless of the property, are considered rare
+ *                 <i>but only for importance construction purposes</i>.
  *
  * @note "impVec" should be provided empty, and is reallocated
  *       to the size of "state.concrete_size()"
@@ -468,9 +474,10 @@ assess_importance_auto(const fig::Module& module,
 					   ImportanceVec& impVec,
 					   const Property& property,
 					   const PropertyProjection& clauses,
-					   const bool split)
+                       const bool split,
+                       const Indices& relevant = Indices())
 {
-    assert(impVec.size() == 0ul);
+	assert(impVec.empty());
 	ImportanceValue maxImportance(0u);
 	std::vector< Clause > rareClauses, otherClauses;
 
@@ -478,7 +485,7 @@ assess_importance_auto(const fig::Module& module,
 	if (split) {
 		// Project the property for this Module's local variables
 		std::tie(rareClauses, otherClauses) = clauses.project(module.initial_state());
-		if (rareClauses.empty()) {
+		if (rareClauses.empty() && relevant.empty()) {
 			// module is irrelevant for importance but may hold other info
 			label_local_states(module.initial_state(), impVec, property.type,
 			                   rareClauses, otherClauses);
@@ -504,10 +511,21 @@ assess_importance_auto(const fig::Module& module,
 		rares = label_global_states(module.initial_state(), impVec, property, true);
 
 	// Step 3: run BFS to compute importance of every concrete state
-	maxImportance = build_importance_BFS(reverseEdges,
-										 rares,
-										 module.initial_concrete_state(),
-										 impVec);
+	Indices skipReset;
+	skipReset.reserve(relevant.size());
+	for (const auto& idx: relevant)
+		if (!fig::IS_RARE_EVENT(impVec[idx]))
+			fig::SET_RARE_EVENT(impVec[idx]);  // mark relevant for importance
+		else
+			skipReset.push_back(idx);  // already considered for importance
+	maxImportance =
+	        build_importance_BFS(reverseEdges,
+	                             rares,
+	                             module.initial_concrete_state(),
+	                             impVec);
+	for (const auto& idx: relevant)
+		if (find(begin(skipReset), end(skipReset), idx) != end(skipReset))
+			impVec[idx] &= fig::EventType::RARE;  // clean marking
 	fig::AdjacencyList().swap(reverseEdges);  // free mem!
 
 	return maxImportance;
@@ -530,9 +548,9 @@ assess_importance_flat(const State& state,
 					   const PropertyProjection& clauses,
 					   const bool split)
 {
-	assert(state.size() > 0ul);
+	assert(impVec.empty());
+	assert(!state.empty());
 	assert(state.concrete_size().upper() == 0ul);
-	assert(impVec.size() == 0ul);
 	// Build vector the size of concrete state space filled with zeros ...
 	ImportanceVec(state.concrete_size().lower()).swap(impVec);
 	// ... and label according to the property
@@ -606,18 +624,19 @@ ImportanceFunctionConcrete::post_processing() const noexcept
 
 
 bool ImportanceFunctionConcrete::assess_importance(
-	const Module& module,
-	const Property& property,
-	const std::string& strategy,
-	const unsigned& index,
-	const PropertyProjection& clauses)
+    const Module& module,
+    const Property& property,
+    const std::string& strategy,
+    const unsigned& index,
+    const PropertyProjection& clauses,
+    const Indices &relevant)
 {
 	if (modulesConcreteImportance.size() <= index)
 		modulesConcreteImportance.resize(index+1);
-    else if (modulesConcreteImportance[index].size() > 0ul)
+	else if (!modulesConcreteImportance[index].empty())
 		throw_FigException("importance info already exists at position "
 						  + std::to_string(index));
-	bool relevant(false);
+	bool moduleIsRelevant(false);
 	const bool split(name().find("split") != std::string::npos);
 
 	// Compute importance according to the chosen strategy
@@ -638,9 +657,10 @@ bool ImportanceFunctionConcrete::assess_importance(
 										   modulesConcreteImportance[index],
 										   property,
 										   clauses,
-										   split);
+		                                   split,
+		                                   relevant);
 		if (static_cast<ImportanceValue>(0u) < maxValue_ ) {
-			relevant = true;
+			moduleIsRelevant = true;
 			// For auto importance functions the initial state has always
 			// the lowest importance, and all rare states have the highest:
 			minValue_ = UNMASK(
@@ -664,7 +684,7 @@ bool ImportanceFunctionConcrete::assess_importance(
 						   "ModelSuite::available_importance_strategies()");
 	}
 
-	return relevant;
+	return moduleIsRelevant;
 }
 
 

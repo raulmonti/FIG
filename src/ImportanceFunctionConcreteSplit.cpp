@@ -515,6 +515,22 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	ExtremeValuesVec moduleValues;
 	moduleValues.reserve(numModules_);
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
+
+//		const auto& module(*modules_[i]);
+//		auto rares = special_case(module);  // e.g. DFT translated IOSA
+//		const bool moduleIsRelevant = enforceRare
+//
+//
+//		if (DFTmodel_) {
+//		    const ModuleInstance& m(*modules_[i]);
+//		    if m.name.find()
+//		Size_t position_of_var(const std::string& varname) const;
+//		    ModuleInstance m;
+//		    State s = m.initial_state();
+//		    s.encode();
+//		    /// @todo TODO: int varIdx = assess_relevance(*modules_[i]);
+//	    }
+
 		const bool moduleIsRelevant =
 		    ImportanceFunctionConcrete::assess_importance(*modules_[i],
 														  prop,

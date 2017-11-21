@@ -189,6 +189,9 @@ public:  // Accessors
 	/// Symbolic size, i.e. number of variables
 	inline size_t size() const noexcept { return pvars_.size(); }
 
+	/// Does the state hold any variable at all?
+	inline bool empty() const noexcept { return pvars_.empty(); }
+
 	/// Concrete size, i.e. cross product of all variables ranges
 	inline uint128_t concrete_size() const noexcept { return maxConcreteState_; }
 

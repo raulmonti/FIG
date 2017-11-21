@@ -73,6 +73,9 @@ public:
 	typedef std::tuple< ImportanceValue, ImportanceValue, ImportanceValue >
 	        ExtremeValues;
 
+	/// Vector of indices for an array
+	typedef std::vector< unsigned short > Indices;
+
 public:  // Class attributes/members
 
 	/// How many kinds of post-processings are offered for the stored values
@@ -215,6 +218,8 @@ protected:  // Utils for the class and its kin
 	 * @param index    Internal location where resulting info will be kept
 	 * @param clauses  Property parsed as a DNF list of clauses (required only
 	 *                 by ImportanceFunctionConcreteSplit for the 'auto' strategy)
+	 * @param relavant <i>(Optional)</i> Indices of concrete states that must be
+	 *                 used for importance assessment regardless of the property
 	 *
 	 * @return Whether the assessed module is relevant to importance splitting
 	 *         (e.g. identically false for the "flat" strategy)
@@ -233,7 +238,8 @@ protected:  // Utils for the class and its kin
 						   const Property& property,
 						   const std::string& strategy,
 						   const unsigned& index = 0,
-						   const PropertyProjection& clauses = PropertyProjection());
+	                       const PropertyProjection& clauses = PropertyProjection(),
+	                       const Indices& relevant = Indices());
 
 	/**
 	 * @brief Apply a post-processing to the information stored
