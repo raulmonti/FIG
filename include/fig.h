@@ -133,6 +133,7 @@
 #include "SimulationEngine.h"
 #include "SimulationEngineNosplit.h"
 #include "SimulationEngineRestart.h"
+#include "SimulationEngineFixedEffort.h"
 // High level ADTs
 #include "Transition.h"
 #include "ModuleInstance.h"

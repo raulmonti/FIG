@@ -113,6 +113,9 @@ extern bool forceOperation;
 /// Run algorithm to check confluence of committed actions
 extern bool confluenceCheck;
 
+/// Does the model com from a Dynamic Fault Tree description?
+extern bool isDFT;
+
 }
 
 #endif // FIG_CLI_H

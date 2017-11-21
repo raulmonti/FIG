@@ -266,7 +266,8 @@ ImportanceFunctionConcreteSplit::ImportanceFunctionConcreteSplit(
 		userMinValue_(0u),
 		userMaxValue_(0u),
 		neutralElement_(0u),
-		concreteSimulation_(true)
+        concreteSimulation_(true),
+        DFTmodel_(false)
 {
 	model.initial_state().to_state_instance().swap(systemInitialValuation);
 	assert(0ul < numModules_);
@@ -432,6 +433,13 @@ ImportanceFunctionConcreteSplit::set_composition_fun(
 		userMaxValue_ = maxVal;
 		userDefinedData = true;
 	}
+}
+
+
+void
+ImportanceFunctionConcreteSplit::set_DFT(bool isDFT)
+{
+	DFTmodel_ = isDFT;
 }
 
 

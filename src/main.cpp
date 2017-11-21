@@ -65,6 +65,7 @@ static void compile_model(bool modelAlreadyBuilt);
 using fig_cli::confluenceCheck;
 using fig_cli::forceOperation;
 using fig_cli::janiSpec;
+using fig_cli::isDFT;
 using fig_cli::modelFile;
 using fig_cli::propertiesFile;
 using fig_cli::engineName;
@@ -394,6 +395,8 @@ void compile_model(bool modelAlreadyBuilt)
 
 	// Seal model
 	auto& modelInstance = ModelSuite::get_instance();
+	if (isDFT)
+		modelInstance.set_DFT();
 	modelInstance.seal();
 	if (!modelInstance.sealed()) {
 		log("[ERROR] Failed to seal the model.\n");

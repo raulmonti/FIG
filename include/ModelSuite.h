@@ -99,6 +99,9 @@ class ModelSuite
 	///       "global-effort thresholds builder" is used
 	static unsigned globalEffort;
 
+	/// Does the \ref ModuleNetwork "IOSA model" come from a Dynamic Fault Tree?
+	static bool DFTmodel;
+
 	/// Importance functions available
 	static std::unordered_map<
 		std::string,
@@ -251,6 +254,14 @@ public:  // Populating facilities and other modifyers
 	 */
 	void set_global_effort(const unsigned& ge = 0u, bool verbose = false);
 	
+	/// @brief Inform the system model was (or not) translated from a Dynamic Fault Tree
+	/// @param isDFT Whether the IOSA comes from a DFT translation
+	/// @warning This is used to trigger mechanism that rely on a specific
+	///          naming of the IOSA modules and their variables,
+	///          viz. <b>this is implementation-specific</b> to the
+	///          translation applied, which was developed by Monti et al.
+	void set_DFT(bool isDFT = true);
+
 	/**
 	 * @brief Set a wall-clock-time limit for simulations
 	 *
@@ -329,6 +340,11 @@ public:  // Accessors
 	/// Get the global effort used by all Importance Splitting engines
 	/// @see set_global_effort()
 	const unsigned& get_global_effort() const noexcept;
+
+	/// Was the currently built model translated from a Dynamic Fault Tree
+	/// specification (e.g. GALILEO)?
+	/// @see set_DFT()
+	bool get_DFT() const noexcept;
 
 	/// Get the wall-clock-time execution limit imposed to simulations,
 	/// in seconds

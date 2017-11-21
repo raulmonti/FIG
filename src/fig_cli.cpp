@@ -81,6 +81,7 @@ string rngType;
 size_t rngSeed;
 bool forceOperation;
 bool confluenceCheck;
+bool isDFT;
 
 } // namespace fig_cli   // // // // // // // // // // // // // // // // // //
 
@@ -338,6 +339,11 @@ SwitchArg forceOperation_(
 SwitchArg confluenceCheck_(
         "c", "confluence",
         "Run algorithm to check confluence of committed actions.");
+
+// Does the model come from a Dynamic Faul Tree specification (e.g. GALILEO)?
+SwitchArg isDFT_(
+        "", "dft",
+        "The model was translated from a Dynamic Fault Tree.");
 
 
 // Helper routines  ///////////////////////////////////////////////////////////
@@ -748,6 +754,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(rngSeed_);
 		cmd_.add(forceOperation_);
 		cmd_.add(confluenceCheck_);
+		cmd_.add(isDFT_);
 
 		// Parse the command line input
 		cmd_.parse(argc, argv);
@@ -759,6 +766,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		thrTechnique    = thrTechnique_.getValue();
 		forceOperation  = forceOperation_.getValue();
 		confluenceCheck = confluenceCheck_.getValue();
+		isDFT           = isDFT_.getValue();
 		if (!get_jani_spec()) {
 			figTechLog << "[ERROR] Failed parsing the JANI-spec commands.\n\n";
 			figTechLog << "For complete USAGE and HELP type:\n";
@@ -788,6 +796,14 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 				figTechLog << "[WARNING] Global effort is incompatible with a "
 				             "\"flat\" importance function, ignoring values.\n";
 			std::set< unsigned >({1u}).swap(globalEfforts);
+		} else if (isDFT && (impFunSpec.name.find("split") == std::string::npos
+		                     || "auto" != impFunSpec.strategy)) {
+			figTechLog << "[ERROR] Special DFT processing using importance "
+			              "splitting requires the compositional importance "
+			              "function (i.e. acomp).\n\n";
+			figTechLog << "For complete USAGE and HELP type:\n";
+			figTechLog << "   " << argv[0] << " --help\n\n";
+			goto exit_with_failure;
 		}
 		if (!get_stopping_conditions()) {
 			figTechLog << "[ERROR] Must specify at least one stopping condition ";

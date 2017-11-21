@@ -119,6 +119,9 @@ private:
     /// @copydoc ImportanceFunction::concrete_simulation()
     bool concreteSimulation_;
 
+	/// @copydoc ModelSuite::DFTmodel
+	bool DFTmodel_;
+
 public:  // Ctor/Dtor
 
 	/// @brief Data ctor
@@ -136,6 +139,10 @@ public:  // Ctor/Dtor
 	operator=(const ImportanceFunctionConcreteSplit&) = delete;
 
 public:  // Accessors
+
+	/// @copydoc DFTmodel_
+	/// @see set_DFT()
+	inline bool get_DFT() { return DFTmodel_; }
 
 	inline bool concrete_simulation() const noexcept override final { return concreteSimulation_; }
 
@@ -177,6 +184,9 @@ public:  // Utils
 							 const ImportanceValue& nullVal = 0u,
 							 const ImportanceValue& minVal  = 0u,
 							 const ImportanceValue& maxVal  = 0u);
+
+	/// @copydoc ModelSuite::set_DFT()
+	void set_DFT(bool isDFT = true);
 
 	void assess_importance(const Property& prop,
 						   const std::string& strategy = "flat",

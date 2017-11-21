@@ -299,6 +299,8 @@ std::vector< std::shared_ptr< Property > > ModelSuite::properties;
 
 unsigned ModelSuite::globalEffort = 0u;
 
+bool ModelSuite::DFTmodel = false;
+
 std::unordered_map< std::string, std::shared_ptr< ImportanceFunction > >
 	ModelSuite::impFuns;
 
@@ -502,6 +504,13 @@ ModelSuite::set_global_effort(const unsigned& ge, bool verbose)
 
 
 void
+ModelSuite::set_DFT(bool isDFT)
+{
+	DFTmodel = isDFT;
+}
+
+
+void
 ModelSuite::set_timeout(const duration& timeLimit)
 {
 	if (!sealed())
@@ -554,6 +563,13 @@ const unsigned&
 ModelSuite::get_global_effort() const noexcept
 {
 	return globalEffort;
+}
+
+
+bool
+ModelSuite::get_DFT() const noexcept
+{
+	return DFTmodel;
 }
 
 
@@ -903,13 +919,15 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 		ifun.clear();
 		const double startTime = omp_get_wtime();
 		// Compositional importance functions need a composition function
-		if (impFun.name.find("split") != std::string::npos)
-			static_cast<ImportanceFunctionConcreteSplit&>(ifun)
-				.set_composition_fun(impFun.algebraicFormula,
-									 impFun.neutralElement,
-									 impFun.minValue,
-									 impFun.maxValue);
-
+		if (impFun.name.find("split") != std::string::npos) {
+			auto& impFunSplit(static_cast<ImportanceFunctionConcreteSplit&>(ifun));
+			impFunSplit.set_composition_fun(impFun.algebraicFormula,
+			                                impFun.neutralElement,
+			                                impFun.minValue,
+			                                impFun.maxValue);
+			if (DFTmodel)
+				impFunSplit.set_DFT();
+		}
 		try {
 			// Compute importance automatically -- here hides the magic!
             static_cast<ImportanceFunctionConcrete&>(ifun)
