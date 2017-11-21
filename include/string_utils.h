@@ -36,13 +36,20 @@
 /// Count the number of times character 'c' appears in string 's'
 size_t count(const std::string& s, const char& c);
 
-/// Tells whether 'substr' is a substring of 'str'
-bool is_substring(const std::string& str, const std::string& substr);
+/// Is \a substr a substring of \a str?
+/// @note Case insensitive version taken from
+///       <a href="http://stackoverflow.com/a/19839371">this SO answer by user CC.</a>
+bool is_substring(const std::string& str,
+                  const std::string& substr,
+                  const bool caseSensitive = true);
 
-/// Tells whether 'substr' is a substring of 'str', case insensitive
-/// @note Taken from <a href="http://stackoverflow.com/a/19839371">
-///       this SO answer by user CC.</a>
-bool is_substring_ci(const std::string& str, const std::string& substr);
+/// Is \a prefix a prefix of \a str?
+bool is_prefix(const std::string& str,
+               const std::string& prefix,
+               const bool caseSensitive = true);
+
+/// Is \a suffix a suffix of \a str?
+bool is_suffix(const std::string& str, const std::string& suffix);
 
 /**
  * @brief Replace in "s" all occurrences of "from" for "to"

@@ -45,7 +45,8 @@
 using std::string;
 using std::isspace;
 using std::find_if_not;
-const size_t& NPOS = std::string::npos;
+using namespace std::regex_constants;
+const auto& NPOS = std::string::npos;
 
 
 size_t
@@ -62,17 +63,29 @@ count(const string &s, const char &c)
 }
 
 
-bool is_substring(const string& str, const string& substr)
+bool is_substring(const string& str, const string& substr, const bool caseSensitive)
 {
-	return str.find(substr) != NPOS;
+	return caseSensitive
+	        ? str.find(substr) != NPOS
+	        : str.end() != std::search(
+	            str.begin(), str.end(), substr.begin(), substr.end(),
+	            [](char c1, char c2) { return std::toupper(c1) == std::toupper(c2); } );
 }
 
 
-bool is_substring_ci(const string& str, const string& substr)
+bool is_prefix(const string& str, const string& prefix, const bool caseSensitive)
 {
-	return str.end() != std::search(
-		str.begin(), str.end(), substr.begin(), substr.end(),
-		[](char c1, char c2) { return std::toupper(c1) == std::toupper(c2); } );
+	const std::regex re("^" + prefix + ".*$",
+	                    caseSensitive ? ECMAScript : ECMAScript|icase);
+	return std::regex_match(str, re);
+}
+
+
+bool is_suffix(const string& str, const string& suffix, const bool caseSensitive)
+{
+	const std::regex re("^.*" + suffix + "$",
+	                    caseSensitive ? ECMAScript : ECMAScript|icase);
+	return std::regex_match(str, re);
 }
 
 

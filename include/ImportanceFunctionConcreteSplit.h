@@ -163,6 +163,9 @@ public:  // Accessors
 
 public:  // Utils
 
+	/// @copydoc ModelSuite::set_DFT()
+	void set_DFT(bool isDFT = true);
+
 	/**
 	 * @brief Set the function to use for composing the stored importance
 	 *        values of the \ref ModuleInstance "modules".
@@ -184,9 +187,6 @@ public:  // Utils
 							 const ImportanceValue& nullVal = 0u,
 							 const ImportanceValue& minVal  = 0u,
 							 const ImportanceValue& maxVal  = 0u);
-
-	/// @copydoc ModelSuite::set_DFT()
-	void set_DFT(bool isDFT = true);
 
 	void assess_importance(const Property& prop,
 						   const std::string& strategy = "flat",
@@ -220,6 +220,26 @@ private:  // Class utils
 	std::string compose_comp_function(
 			const std::vector<std::string>& modulesNames,
 			const std::string& compOperand);
+
+	/**
+	 * @brief Assess whether \a module is a special case and needs
+	 *        a local importance function regardless of the property query.
+	 *
+	 *        Sometimes a \ref ModuleInstance "module" is relevant for the
+	 *        global importance of the system model, but none of its variables
+	 *        appears in the property and would thus have a null local
+	 *        importance function.<br>
+	 *        This routine identifies such cases and returns the indices
+	 *        of the concrete states to be regarded as <i>rare</i> while
+	 *        assessing a local importance function for \a module.
+	 *
+	 * @param module ModuleInstance to consider for special local ifun assessment
+	 *
+	 * @return Indices identifying concrete states from \a module
+	 *         which are relevant for importance computation;
+	 *         empty vector if the module needs no local ifun
+	 */
+	Indices special_case(const ModuleInstance& module) const;
 };
 
 } // namespace fig

@@ -192,7 +192,7 @@ bool print_intro(const int& argc, const char** argv)
 	main_log(" This is the Finite Improbability Generator.\n");
 	main_log(" Version: " + std::string(fig_VERSION_STR) + "\n");
 	main_log(" Build:   ");
-	if (is_substring_ci(fig_CURRENT_BUILD, "release"))
+	if (is_substring(fig_CURRENT_BUILD, "release", false))
 		main_log("Release\n");
 	else
 		main_log("Debug\n");

@@ -394,6 +394,13 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
 
 
 void
+ImportanceFunctionConcreteSplit::set_DFT(bool isDFT)
+{
+	DFTmodel_ = isDFT;
+}
+
+
+void
 ImportanceFunctionConcreteSplit::set_composition_fun(
 	std::string compFunExpr,
 	const ImportanceValue& nullVal,
@@ -433,13 +440,6 @@ ImportanceFunctionConcreteSplit::set_composition_fun(
 		userMaxValue_ = maxVal;
 		userDefinedData = true;
 	}
-}
-
-
-void
-ImportanceFunctionConcreteSplit::set_DFT(bool isDFT)
-{
-	DFTmodel_ = isDFT;
 }
 
 
@@ -515,28 +515,15 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	ExtremeValuesVec moduleValues;
 	moduleValues.reserve(numModules_);
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
-
-//		const auto& module(*modules_[i]);
-//		auto rares = special_case(module);  // e.g. DFT translated IOSA
-//		const bool moduleIsRelevant = enforceRare
-//
-//
-//		if (DFTmodel_) {
-//		    const ModuleInstance& m(*modules_[i]);
-//		    if m.name.find()
-//		Size_t position_of_var(const std::string& varname) const;
-//		    ModuleInstance m;
-//		    State s = m.initial_state();
-//		    s.encode();
-//		    /// @todo TODO: int varIdx = assess_relevance(*modules_[i]);
-//	    }
-
+		const auto& module(*modules_[i]);
+		Indices relevant = special_case(module);  // e.g. DFT translated IOSA
 		const bool moduleIsRelevant =
-		    ImportanceFunctionConcrete::assess_importance(*modules_[i],
+		    ImportanceFunctionConcrete::assess_importance(module,
 														  prop,
 														  strategy,
 		                                                  i,
-														  propertyClauses);
+		                                                  propertyClauses,
+		                                                  relevant);
 		assert(minValue_ <= initialValue_);
 		assert(initialValue_ <= minRareValue_);
 		assert(minRareValue_ <= maxValue_);
@@ -583,6 +570,58 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	assert(minValue_ <= initialValue_);
 	assert(initialValue_ <= minRareValue_);
 	assert(minRareValue_ <= maxValue_);
+}
+
+
+/// @warning Hardcoded for DFT --> IOSA translation by Monti et al.
+/// @todo Generalise to per-module decorations as suggested by Marco Biagi
+ImportanceFunctionConcrete::Indices
+ImportanceFunctionConcreteSplit::special_case(const ModuleInstance& module) const
+{
+	Indices relevant;
+	if (!DFTmodel_)
+		goto exit_special_case;
+
+	if (is_prefix(module.name, "BE_")) {  // Basic Event?
+		std::string varname;
+		const std::string varPrefix("brokenFlag_");
+		const auto& s = module.initial_state();
+		for (const auto& name : s.varnames())
+			if (is_prefix(name, varPrefix))
+				varname = name;
+		assert(!varname.empty());
+
+		/// @todo TODO build the Indices of concrete states
+		///            out of the state 's' and the variable 'varname'
+		///
+		figTechLog << "\n###"
+		           << "\n    BE:  " << module.name
+		           << "\n    var: " << varname
+		           << "\n    range: " << s[s.position_of_var(varname)]->range()
+		           << "\n###\n";
+
+	} else if (is_prefix(module.name, "PAND_")) {  // Priority AND?
+		std::string varname;
+		const std::string varPrefix("broken_");
+		const auto& s = module.initial_state();
+		for (const auto& name : s.varnames())
+			if (is_prefix(name, varPrefix))
+				varname = name;
+		assert(!varname.empty());
+
+		/// @todo TODO build the Indices of concrete states
+		///            out of the state 's' and the variable 'varname'
+		///
+		figTechLog << "\n###"
+		           << "\n    BE:  " << module.name
+		           << "\n    var: " << varname
+		           << "\n    range: " << s[s.position_of_var(varname)]->range()
+		           << "\n###\n";
+
+	}  // else: all other DFT gates/components need no local ifun
+
+exit_special_case:
+	return relevant;
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //
