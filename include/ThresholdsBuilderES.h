@@ -91,28 +91,49 @@ public:
 
 private:  // Class utils
 
+	/// Probe the model and the importance space to determine reachable
+	/// importance values among which thresholds could be selected.
+	/// @return Ordered vector of reachable importance values
+	/// @note Some *very high importance values* may be missing from the result
+	///       although they might be theoretically reachable
+	ImportanceVec
+	reachable_importance_values() const;
+
 	/**
 	 * @brief Run Fixed Effort to roughly estimate level-up probabilities
 	 *
 	 *        Run a "fine" Fixed Effort where the threshold-levels are all
-	 *        adjacent importance values. The probabilities of going up from an
-	 *        importance value to the next are stored in the vector of floats.
+	 *        adjacent (reachable) importance values.<br>
+	 *        The probabilities of going up from a reachable importance value
+	 *        to the next are stored in the vector of floats.
 	 *
-	 * @param impFun  Importance function defining the threshold-levels for FE
+	 * @param reachableImportanceValues Result from reachable_importance_values()
 	 * @param traials Traials to perform the FE simulations
 	 * @param Pup     Vector to fill with the level-up probabilities
 	 *
 	 * @note The effort used per level equals the number of traials provided
-	 *
-	 * @todo We currently disregard rare events below max importance,
+	 * @note We currently disregard rare events below max importance,
 	 *       and we force Fixed Effort to reach the max importance value.<br>
 	 *       This can be generalised to have "still successful Fixed Effort runs"
 	 *       when they don't reach the next importance value but hit a rare event.
 	 */
 	void
-	FE_for_ES(const ImportanceFunction& impFun,
-	          TraialsVec& traials,
-	          std::vector<float>& Pup);
+	FE_for_ES(const ImportanceVec& reachableImportanceValues,
+	          TraialsVec &traials,
+	          std::vector<float> &Pup) const;
+
+	/**
+	 * @brief Artificial selection of thresholds when the algorithm fails
+	 *
+	 *        Last resort for when Expected Success can't reach the max imp:
+	 *        this routine selects values for the effort of all levels
+	 *        above the last successful level inspected by the ES.
+	 *
+	 * @param Pup Vector with the level-up probabilities that Expected Success
+	 *            could compute (this will guide the artificial selection)
+	 */
+	void
+	artificial_thresholds_selection(std::vector< float >& Pup) const;
 
 	/// @brief Event-watcher for the internal Fixed Effort simulations
 	/// @details Interpret and mark the events triggered by a Traial
@@ -128,15 +149,6 @@ private:  // Class utils
 			       /* sim too long: */ traial.numLevelsCrossed > MAX_FE_SIM_LEN ||
 			       /* stop event:   */ property.is_stop(traial.state);
 	    }
-
-	/// Artificial selection of thresholds when the algorithm fails
-	/// @details Last resort for when Expected Success can't reach the max imp:
-	///          this routine selects values for the effort of all levels
-	///          above the last successful level inspected by the ES.
-	/// @param Pup Vector with the level-up probabilities that Expected Success
-	///            could compute (this will guide the artificial selection)
-	void
-	artificial_thresholds_selection(std::vector< float >& Pup) const;
 };
 
 } // namespace fig

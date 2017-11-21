@@ -121,7 +121,7 @@ protected:  // Utils for the class and its kin
 	TraialsVec
 	get_traials(const unsigned& numTraials,
 	            const fig::ImportanceFunction& impFun,
-	            bool initialise = true);
+	            bool initialise = true) const;
 };
 
 } // namespace fig

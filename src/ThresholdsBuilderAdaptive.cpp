@@ -74,7 +74,7 @@ ThresholdsBuilderAdaptive::tune(const size_t& numTrans,
 ThresholdsBuilderAdaptive::TraialsVec
 ThresholdsBuilderAdaptive::get_traials(const unsigned& numTraials,
                                        const fig::ImportanceFunction& impFun,
-                                       bool initialise)
+                                       bool initialise) const
 {
 	TraialsVec traials;
 	fig::TraialPool::get_instance().get_traials(traials, numTraials);
