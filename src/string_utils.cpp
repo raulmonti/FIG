@@ -46,7 +46,7 @@ using std::string;
 using std::isspace;
 using std::find_if_not;
 using namespace std::regex_constants;
-const auto& NPOS = std::string::npos;
+const auto& NPOS(std::string::npos);
 
 
 size_t

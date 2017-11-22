@@ -31,6 +31,7 @@
 #include <limits>     // std::numeric_limits<>
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // find_if_not()
+#include <functional>
 #include <tuple>
 // FIG
 #include <ImportanceFunctionConcreteSplit.h>
@@ -517,6 +518,16 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		const auto& module(*modules_[i]);
 		Indices relevant = special_case(module);  // e.g. DFT translated IOSA
+
+		/// @todo TODO erase debug print
+		if (!relevant.empty()) {
+			figTechLog << "\n###"
+			           << "\nConcrete rare states of " << module.name << ":\n\t";
+			for (const auto& s: relevant)
+				figTechLog << s << ", ";
+			figTechLog << "\b\b  \n###\n";
+		}
+
 		const bool moduleIsRelevant =
 		    ImportanceFunctionConcrete::assess_importance(module,
 														  prop,
@@ -578,50 +589,56 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 ImportanceFunctionConcrete::Indices
 ImportanceFunctionConcreteSplit::special_case(const ModuleInstance& module) const
 {
-	Indices relevant;
+	typedef fig::State<STATE_INTERNAL_TYPE> State;
+	const auto& moduleName(module.name);
+	State s(module.initial_state());
+	// Search State 's' for a variable with prefix 'varPrefix';
+	// return a list of concrete states satisfying 'condition'
+	auto fetch_concrete_states = [&moduleName,&s] (
+	        const std::string& varPrefix,
+	        std::function<bool(const std::string&,const size_t&)> condition) {
+		Indices relevant;
+		std::string varname;
+		for (auto name : s.varnames())
+			if (is_prefix(name, varPrefix))
+				varname = name;
+		if (varname.empty()) {
+			figTechLog << "[ERROR] Special module \"" << moduleName
+			           << "\" doesn't have a variable with prefix \"" << varPrefix
+			           << "\" needed for local ifun assessment." << std::endl;
+			return relevant;
+		}
+		for (auto cState = 0ul ; cState < s.concrete_size() ; cState++)
+			if (condition(varname,cState))
+				relevant.push_back(cState);
+		if (relevant.empty())
+			figTechLog << "[ERROR] No state in special module \"" << moduleName
+			           << "\" satisfies the condition on variable \"" << varname
+			           << "\" needed for local ifun assessment." << std::endl;
+		return relevant;
+	};
+
 	if (!DFTmodel_)
-		goto exit_special_case;
+		return Indices();  // irrelevant module
 
-	if (is_prefix(module.name, "BE_")) {  // Basic Event?
-		std::string varname;
-		const std::string varPrefix("brokenFlag_");
-		const auto& s = module.initial_state();
-		for (const auto& name : s.varnames())
-			if (is_prefix(name, varPrefix))
-				varname = name;
-		assert(!varname.empty());
-
-		/// @todo TODO build the Indices of concrete states
-		///            out of the state 's' and the variable 'varname'
-		///
-		figTechLog << "\n###"
-		           << "\n    BE:  " << module.name
-		           << "\n    var: " << varname
-		           << "\n    range: " << s[s.position_of_var(varname)]->range()
-		           << "\n###\n";
-
-	} else if (is_prefix(module.name, "PAND_")) {  // Priority AND?
-		std::string varname;
-		const std::string varPrefix("broken_");
-		const auto& s = module.initial_state();
-		for (const auto& name : s.varnames())
-			if (is_prefix(name, varPrefix))
-				varname = name;
-		assert(!varname.empty());
-
-		/// @todo TODO build the Indices of concrete states
-		///            out of the state 's' and the variable 'varname'
-		///
-		figTechLog << "\n###"
-		           << "\n    BE:  " << module.name
-		           << "\n    var: " << varname
-		           << "\n    range: " << s[s.position_of_var(varname)]->range()
-		           << "\n###\n";
-
-	}  // else: all other DFT gates/components need no local ifun
-
-exit_special_case:
-	return relevant;
+	if (is_prefix(moduleName, "BE_")) {
+		// Basic Event
+		return fetch_concrete_states("brokenFlag_",
+		                             [&s](const std::string& var, size_t cs) {
+			    const auto varPtr(s.decode(cs)[var]);  // var value in conrete state
+				return nullptr != varPtr && varPtr->val() != 0;
+		    });
+	} else if (is_prefix(moduleName, "PAND_")) {
+		// Priority AND
+		return fetch_concrete_states("broken_",
+		                             [&s](const std::string& var, size_t cs) {
+			    const auto varPtr(s.decode(cs)[var]);  // var value in conrete state
+				return nullptr != varPtr && varPtr->val() == 1;
+		    });
+	} else {
+		// All other DFT gates/components need no local ifun
+		return Indices();
+	}
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

@@ -49,7 +49,9 @@ bool is_prefix(const std::string& str,
                const bool caseSensitive = true);
 
 /// Is \a suffix a suffix of \a str?
-bool is_suffix(const std::string& str, const std::string& suffix);
+bool is_suffix(const std::string& str,
+               const std::string& suffix,
+               const bool caseSensitive = true);
 
 /**
  * @brief Replace in "s" all occurrences of "from" for "to"

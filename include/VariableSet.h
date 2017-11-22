@@ -55,6 +55,8 @@ namespace fig
  *        Useful to handle non-integer values, such as floats or strings,
  *        which the VariableInterval class can't cope with.
  *
+ * @see   VariableInterval
+ *
  * @note  Offers generic construction from the following STL containers:
  *        vector, list, forward_list, set, unordered_set, deque.
  * @note  Will not build from the following STL containers:

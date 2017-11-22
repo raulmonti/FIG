@@ -55,7 +55,8 @@ namespace fig
  *
  *        This implementation can only handle discrete types,
  *        so the template parameter must be integral.
- *        For a more flexible implementation see VariableSet.
+ *
+ * @see VariableSet
  */
 template< typename T_ >
 class VariableInterval : public Variable< T_ >
