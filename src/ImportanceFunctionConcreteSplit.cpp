@@ -372,6 +372,8 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
         << "\n      ~  denotes a state is STOP,"
         << "\n      ^  denotes a state is REFERENCE.";
     for (size_t i = 0ul ; i < numModules_ ; i++) {
+		auto lmin(std::numeric_limits<ImportanceValue>::max());
+		auto lmax(std::numeric_limits<ImportanceValue>::min());
 		out << "\nValues for module \"" << modules_[i]->name << "\":";
         const ImportanceVec& impVec = modulesConcreteImportance[i];
 		if (impVec.empty())
@@ -382,8 +384,11 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
             out << (IS_STOP_EVENT     (impVec[i]) ? "~" : "");
             out << (IS_REFERENCE_EVENT(impVec[i]) ? "^" : "");
             out << "," << UNMASK(impVec[i]) << ")";
-        }
-        out.flush();
+			lmin = std::min(lmin, UNMASK(impVec[i]));
+			lmax = std::max(lmax, UNMASK(impVec[i]));
+		}
+		out << "\n ~~> Importance range: [" << lmin << "," << lmax << "]";
+		out.flush();
     }
     if (ready()) {
         out << "\nImportanceValue to threshold level conversion:";
@@ -518,16 +523,6 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 	for (size_t i = 0ul ; i < numModules_ ; i++) {
 		const auto& module(*modules_[i]);
 		Indices relevant = special_case(module);  // e.g. DFT translated IOSA
-
-		/// @todo TODO erase debug print
-		if (!relevant.empty()) {
-			figTechLog << "\n###"
-			           << "\nConcrete rare states of " << module.name << ":\n\t";
-			for (const auto& s: relevant)
-				figTechLog << s << ", ";
-			figTechLog << "\b\b  \n###\n";
-		}
-
 		const bool moduleIsRelevant =
 		    ImportanceFunctionConcrete::assess_importance(module,
 														  prop,

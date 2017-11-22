@@ -509,23 +509,15 @@ assess_importance_auto(const fig::Module& module,
 								   rareClauses, otherClauses);
 	else
 		rares = label_global_states(module.initial_state(), impVec, property, true);
+	for (const auto& enforcedRare: relevant)
+		rares.push(enforcedRare);  // include enforced relevant states
 
 	// Step 3: run BFS to compute importance of every concrete state
-	Indices skipReset;
-	skipReset.reserve(relevant.size());
-	for (const auto& idx: relevant)
-		if (!fig::IS_RARE_EVENT(impVec[idx]))
-			fig::SET_RARE_EVENT(impVec[idx]);  // mark relevant for importance
-		else
-			skipReset.push_back(idx);  // already considered for importance
 	maxImportance =
 	        build_importance_BFS(reverseEdges,
 	                             rares,
 	                             module.initial_concrete_state(),
 	                             impVec);
-	for (const auto& idx: relevant)
-		if (find(begin(skipReset), end(skipReset), idx) != end(skipReset))
-			impVec[idx] &= fig::EventType::RARE;  // clean marking
 	fig::AdjacencyList().swap(reverseEdges);  // free mem!
 
 	return maxImportance;

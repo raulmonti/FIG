@@ -955,6 +955,8 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
     assert("auto" == ifun.strategy());
 	if (ifun.min_value() == ifun.max_value())
 		throw_FigException("bad function built (flat importance)");
+	else
+		ifun.print_out(figTechLog);
 #endif
 	pristineModel_ = false;
 }
