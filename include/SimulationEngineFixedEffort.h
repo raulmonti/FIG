@@ -94,7 +94,7 @@ public:  // Accessors
 	inline unsigned global_effort_default() const noexcept override { return DEFAULT_GLOBAL_EFFORT; }
 
 	/// @copydoc BASE_NUM_SIMS
-	inline unsigned base_nsims() const noexcept { return BASE_NUM_SIMS; }
+	static inline unsigned base_nsims() noexcept { return BASE_NUM_SIMS; }
 
 public:  // Engine setup
 

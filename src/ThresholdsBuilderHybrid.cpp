@@ -83,8 +83,9 @@ ThresholdsBuilderHybrid::build_thresholds(const ImportanceFunction& impFun)
 	} catch (FigException&) {
 		// Adaptive algorithm couldn't finish but achievements remain
 		// stored in the vector member 'thresholds_'
-		assert(thresholds_.back() >= impFun.initial_value());
-		const size_t MARGIN(thresholds_.back());
+		// assert(thresholds_.back() >= impFun.initial_value());  // may be empty!
+		const size_t MARGIN(thresholds_.empty() ? impFun.initial_value()
+		                                        : thresholds_.back());
 		figTechLog << "\nResorting to fixed choice of thresholds starting "
 				   << "above the ImportanceValue " << MARGIN << "\n";
 		stride_ = choose_stride(impFun.max_value()-MARGIN);

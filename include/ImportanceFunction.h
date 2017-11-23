@@ -443,6 +443,14 @@ public:  // Utils
 	 */
 	void build_thresholds(ThresholdsBuilder& tb);
 
+	/// Fetch random sample of ImportanceValue
+	/// @param s Any global state of the system
+	/// @return (Possibly empty!) Set of valid state importance values
+	/// @throw FigException if there was no precomputed \ref has_importance_info()
+	///                     "importance information"
+	std::set<ImportanceValue>
+	random_sample(State<STATE_INTERNAL_TYPE> s) const;
+
 	/**
 	 * @brief Release memory allocated in the heap during importance assessment
 	 *

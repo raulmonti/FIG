@@ -170,8 +170,8 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			(this->*watch_events)(property, traial, e);
 			if (IS_RARE_EVENT(e)) {
 				// We are? Then count and kill
-				assert(static_cast<ImportanceValue>(0) < traial.level
-					   || impFun_->strategy() == "adhoc");
+//				assert(static_cast<ImportanceValue>(0) < traial.level
+//					   || impFun_->strategy() == "adhoc");
 				raresCount[traial.level]++;
 				tpool.return_traial(std::move(traial));
 				stack.pop();
@@ -319,9 +319,12 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 			for (short i = 0 ; i < traial.numLevelsCrossed ; i++) {
 				prevEffort *= currEffort;
 				currEffort = impFun_->effort_of(traial.level+i);
-				assert(1ul < currEffort);
-				tpool.get_traial_copies(ssstack_, traial, prevEffort*(currEffort-1),
-				                        i+1-traial.numLevelsCrossed);
+				assert(1ul < currEffort || traial.level+i == impFun_->max_value());
+				if (1ul < currEffort)
+					tpool.get_traial_copies(ssstack_,
+					                        traial,
+					                        prevEffort*(currEffort-1),
+					                        i+1-traial.numLevelsCrossed);
 			}
 			assert(&(ssstack_.top().get()) != &oTraial_);
 			// Offsprings are on top of ssstack_ now: continue attending them

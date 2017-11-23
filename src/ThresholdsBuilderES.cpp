@@ -79,7 +79,7 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	                    + "\" for n = " + std::to_string(n_));
 
 	// Probe for reachable importance values to select threshold candidates
-	const ImportanceVec thrCandidates = reachable_importance_values();
+	ImportanceVec thrCandidates = reachable_importance_values();
 	const size_t DEFACTO_IMP_RANGE(thrCandidates.size());
 	std::vector<float> Pup(DEFACTO_IMP_RANGE), aux(DEFACTO_IMP_RANGE);
 #ifndef NDEBUG
@@ -87,7 +87,7 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	                    + " relevant importance values:");
 	for (auto imp: thrCandidates)
 		ModelSuite::tech_log(" "+std::to_string(imp));
-	ModelSuite::tech_log("\nRunning internal Fixed Effort now");
+	ModelSuite::tech_log("\nRunning internal Fixed Effort");
 #endif
 
 	// Estimate the probabilities of going from one (reachable) importance value to the next
@@ -101,9 +101,8 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	}
 	TraialPool::get_instance().return_traials(traials);
 	if (0.0f >= Pup.back())
-		artificial_thresholds_selection(thrCandidates, Pup);  // didn't reach max importance
-#ifndef NDEBUG
-	// Some debug print
+		artificial_thresholds_selection(thrCandidates, Pup);
+#ifndef NDEBUG  // Some debug print
 	float est(1.0f);
 	const auto defaultLogFlags(figTechLog.flags());
 	figTechLog << std::setprecision(2) << std::scientific;
@@ -119,15 +118,15 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	// Turn level-up probabilities into splitting factors
 	decltype(aux)& split(aux);
 	std::fill(begin(split), end(split), 0.0f);
-	for (size_t i = 0ul ; i < DEFACTO_IMP_RANGE ; i++) {
-		float prev = split[(i-1)%DEFACTO_IMP_RANGE];
+	for (size_t i = 0ul ; i < Pup.size() ; i++) {
+		float prev = split[(i-1)%Pup.size()];
 		split[i] = 1.0f/Pup[i] + (prev-std::round(prev));  // expected # of sims reaching lvl i
 	}
 
 	// Select the thresholds based on the splitting factors
 	thresholds_.clear();
 	thresholds_.emplace_back(impFun.initial_value(), 1ul);
-	for (ImportanceValue i = impFun.initial_value()+1 ; i <= impFun.max_value() ; i++) {
+	for (size_t i = 1ul ; i < Pup.size() ; i++) {
 		const int thisSplit = std::round(split[i]);
 		if (1 < thisSplit)
 			thresholds_.emplace_back(thrCandidates[i], thisSplit);
@@ -153,6 +152,7 @@ ThresholdsBuilderES::reachable_importance_values() const
 	auto FE_watcher = &fig::ThresholdsBuilderES::FE_watcher;
 	const ModuleNetwork& network(*ModelSuite::get_instance().modules_network());
 
+	Traial& backupTraial(TraialPool::get_instance().get_traial());
 	ImportanceValue maxImportanceReached(impFun.initial_value());
 	std::unordered_set< ImportanceValue > reachableImpValues = {impFun.initial_value()};
 	TraialsVec traialsNow(get_traials(NUM_INDEPENDENT_RUNS, impFun)),
@@ -168,8 +168,10 @@ ThresholdsBuilderES::reachable_importance_values() const
 			const ImportanceValue startImp(traial.level);
 			traial.depth = 0;
 			traial.numLevelsCrossed = 0;
+			backupTraial = traial;
 			network.simulation_step(traial, *property_, *this, FE_watcher);
 			if (startImp < traial.level) {
+
 				reachableImpValues.emplace(traial.level);
 				maxImportanceReached = std::max(maxImportanceReached, traial.level);
 				traialsNext.push_back(traial);
@@ -179,7 +181,7 @@ ThresholdsBuilderES::reachable_importance_values() const
 				else if (traialsNow.size() > 1ul)
 					traial = traialsNow[numFails%traialsNow.size()].get();
 				else
-					traial.initialise(network, impFun);
+					traial = backupTraial;  // a new chance
 				traialsNow.push_back(traial);
 			}
 			assert(traialsNow.size()+traialsNext.size() == NUM_INDEPENDENT_RUNS);
@@ -190,6 +192,7 @@ ThresholdsBuilderES::reachable_importance_values() const
     fuck_this_shit:
 	    TraialPool::get_instance().return_traials(traialsNow);
 		TraialPool::get_instance().return_traials(traialsNext);
+		TraialPool::get_instance().return_traial(backupTraial);
 
 	ImportanceVec result(begin(reachableImpValues), end(reachableImpValues));
 	std::sort(begin(result), end(result));
@@ -218,11 +221,11 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 	startNext.reserve(N);
 	for (Traial& t: traials) {
 		t.initialise(network,*impFun_);
-		startNow.push_back(t);  // could use 'freeNow' as well
+		startNow.push_back(t);
 	}
 
 	// For each reachable importance value 'i' ...
-	for (size_t i = 0ul ; i < reachableImportanceValues.size() ; i++) {
+	for (size_t i = 0ul ; i < reachableImportanceValues.size() && !startNow.empty() ; i++) {
 		const auto& currImp = reachableImportanceValues[i];
 		// ... run Fixed Effort until the next rechable importance value 'j' > 'i' ...
 		size_t startNowIdx(0ul);
@@ -258,12 +261,36 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 
 void
 ThresholdsBuilderES::artificial_thresholds_selection(
-        const ImportanceVec& reachableImportanceValues,
+        ImportanceVec& reachableImportanceValues,
         std::vector< float >& Pup) const
 {
-	assert(1ul < Pup.size());  // we require at least two importance levels
-	assert(0.0f < Pup.front());
-	ModelSuite::tech_log("\nResorting to fixed choice of thresholds starting "
+	assert(reachableImportanceValues.size() == Pup.size());
+	ModelSuite::tech_log("\nExpected Success failed");
+
+	if (reachableImportanceValues.size() < 3ul) {
+		// There's *nothing*, try desperately to build some threshold
+		auto moreValues = impFun_->random_sample(
+		            ModelSuite::get_instance().modules_network()->initial_state());
+		moreValues.insert(begin(reachableImportanceValues), end(reachableImportanceValues));
+		reachableImportanceValues.clear();
+		reachableImportanceValues.insert(end(reachableImportanceValues),
+		                                 begin(moreValues), end(moreValues));
+		if (reachableImportanceValues.size() < 2ul) {
+			ModelSuite::tech_log("; cannot find *any* threshold!");
+			return;
+		}
+		Pup.resize(reachableImportanceValues.size());
+	}
+	if (0.0f >= Pup[0]) {
+		Pup[0] = 5.0e-2;
+		Pup[1] = 1.0e-3;
+		ModelSuite::tech_log(" on the first iteration");
+	} else if (0.0 >= Pup[1]) {
+		Pup[1] = Pup[0]/10.0f;
+		ModelSuite::tech_log(" on the second iteration");
+	}
+
+	ModelSuite::tech_log("!\nResorting to fixed choice of thresholds starting "
 	                     "above the ImportanceValue ");
 	/// @todo Implement regresive average to follow the trend of the probabilities
 	bool print(true);

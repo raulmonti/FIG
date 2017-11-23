@@ -63,7 +63,7 @@ namespace fig
 class ThresholdsBuilderES : public ThresholdsBuilderAdaptive
 {
 	/// Max # steps allowed for each internal Fixed Effort simulation
-	static constexpr decltype(Traial::numLevelsCrossed) MAX_FE_SIM_LEN = 10000ul;
+	static constexpr decltype(Traial::numLevelsCrossed) MAX_FE_SIM_LEN = (1ul)<<(9ul);
 
 protected:
 
@@ -129,14 +129,20 @@ private:  // Class utils
 	 *
 	 *        Last resort for when Expected Success can't reach the max imp:
 	 *        this routine selects values for the effort of all levels
-	 *        above the last successful level inspected by the ES.
+	 *        above the last successful level inspected by ES
 	 *
 	 * @param reachableImportanceValues Result from reachable_importance_values()
 	 * @param Pup Vector with the level-up probabilities that Expected Success
 	 *            could compute (this will guide the artificial selection)
+	 *
+	 * @note If there are less than two reachableImportanceValues
+	 *       the routine will try to randomly sample more values,
+	 *       to have a richer (although heavily artificial) set of thresholds.
+	 *
+	 * @see ImportanceFunction::random_sample()
 	 */
 	void
-	artificial_thresholds_selection(const ImportanceVec& reachableImportanceValues,
+	artificial_thresholds_selection(ImportanceVec& reachableImportanceValues,
 	                                std::vector< float >& Pup) const;
 
 	/// @brief Event-watcher for the internal Fixed Effort simulations

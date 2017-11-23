@@ -35,6 +35,7 @@
 #include <forward_list>
 #include <unordered_set>
 #include <sstream>
+#include <random>     // for random_sample()
 #include <limits>
 #include <numeric>    // std::numeric_limits<>()
 #include <iterator>   // std::begin(), std::end()
@@ -443,6 +444,27 @@ ImportanceFunction::initial_value(bool returnImportance) const noexcept
 	        ? level_of(initialValue_)
 	        : has_importance_info() ? initialValue_
 	                                : static_cast<ImportanceValue>(0u);
+}
+
+
+std::set<ImportanceValue>
+ImportanceFunction::random_sample(State<STATE_INTERNAL_TYPE> s) const
+{
+	static constexpr size_t NUM_SAMPLES = (1ul)<<(9ul);
+	static std::mt19937 RNG(std::mt19937::default_seed);;
+	if (!has_importance_info())
+		throw_FigException("importance function \"" + name() + "\" "
+		                   "has no importance information");
+	const size_t NUM_CONCRETE_STATES(s.concrete_size());
+	assert(0ul < NUM_CONCRETE_STATES);
+	std::uniform_int_distribution<unsigned> anyConcreteState(0, NUM_CONCRETE_STATES);
+	std::set<ImportanceValue> randomSample;
+	for (auto i = 0ul ; i < NUM_SAMPLES ; i++)
+		randomSample.emplace(importance_of(s.decode(anyConcreteState(RNG))));
+	return randomSample;
+//	ImportanceVec result;
+//	std::move(begin(randomSample), end(randomSample), std::back_inserter(result));
+//	return result;
 }
 
 
