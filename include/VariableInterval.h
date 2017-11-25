@@ -117,8 +117,20 @@ public:  // Modifiers
 
 public:  // Relational operators
 
-	bool operator==(const Variable<T_>& that) const override;
 	bool operator==(const VariableInterval<T_>& that) const;
+	bool operator<=(const VariableInterval<T_>& that) const;
+
+	inline bool operator==(const Variable<T_>& that) const override
+	    {
+		    auto pthat = dynamic_cast<const VariableInterval<T_>*>(&that);
+			return nullptr != pthat && (*this) == (*pthat);
+	    }
+
+	inline bool operator<=(const Variable<T_>& that) const override
+	    {
+		    auto pthat = dynamic_cast<const VariableInterval<T_>*>(&that);
+			return nullptr != pthat && (*this) <= (*pthat);
+	    }
 
 	inline bool is_valid_value(const T_& val) const override final
 		// http://stackoverflow.com/a/19954164

@@ -137,9 +137,20 @@ public:  // Modifiers
 
 public:  // Relational operators
 
-	/// @copydoc Variable::operator==()
-	bool operator==(const Variable<T_>& that) const override;
 	bool operator==(const VariableSet<T_>& that) const;
+	bool operator<=(const VariableSet<T_>& that) const;
+
+	inline bool operator==(const Variable<T_>& that) const override
+	    {
+		    auto pthat = dynamic_cast<const VariableSet<T_>*>(&that);
+			return nullptr != pthat && (*this) == (*pthat);
+	    }
+
+	inline bool operator<=(const Variable<T_>& that) const override
+	    {
+		    auto pthat = dynamic_cast<const VariableSet<T_>*>(&that);
+			return nullptr != pthat && (*this) <= (*pthat);
+	    }
 
 	/// @copydoc Variable::is_valid_value()
 	bool is_valid_value(const T_& val) const override final;

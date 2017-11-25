@@ -39,6 +39,7 @@
 #include <type_traits>  // std::is_unsigned
 // FIG
 #include <core_typedefs.h>
+#include <FigLog.h>
 #include <State.h>
 #include <Clock.h>
 
@@ -285,6 +286,9 @@ public:  // Utils
 				clkValIter++;
 			}
 		}
+
+	/// Show Traial contents on stream
+	void print_out(std::ostream& ostr = figTechLog, bool flush = true) const;
 
 private:  // Class utils
 

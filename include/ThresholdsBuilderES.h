@@ -151,8 +151,10 @@ private:  // Class utils
 	inline bool
 	FE_watcher(const Property& property, Traial& traial, Event&) const
 	    {
-		    const ImportanceValue newImp = impFun_->importance_of(traial.state);
-			traial.depth -= newImp - traial.level;
+		    auto newImp = static_cast<short>(impFun_->importance_of(traial.state));
+			assert(impFun_->min_value() <= static_cast<ImportanceValue>(newImp));
+			assert(impFun_->max_value() >= static_cast<ImportanceValue>(newImp));
+			traial.depth -= newImp - static_cast<short>(traial.level);
 			traial.level = newImp;
 			traial.numLevelsCrossed++;  // encode here the # steps taken
 			return /* level-up:     */ traial.depth < 0 ||

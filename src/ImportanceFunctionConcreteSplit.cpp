@@ -366,12 +366,13 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
     out << "\nPrinting importance function \"" << name() << "\" values.";
     out << "\nImportance assessment strategy: " << strategy();
     out << "\nImportance merging function: " << userFun_.expression();
-    out << "\nLegend: ( concrete_state[*~^] , importance_value )";
+	out << "\nLegend: concrete_state[*~^] == (symbolic_state)  : importance_value";
     out << "\nwhere"
         << "\n      *  denotes a state is RARE,"
         << "\n      ~  denotes a state is STOP,"
         << "\n      ^  denotes a state is REFERENCE.";
     for (size_t i = 0ul ; i < numModules_ ; i++) {
+		auto s(modules_[i]->initial_state());
 		auto lmin(std::numeric_limits<ImportanceValue>::max());
 		auto lmax(std::numeric_limits<ImportanceValue>::min());
 		out << "\nValues for module \"" << modules_[i]->name << "\":";
@@ -379,15 +380,18 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
 		if (impVec.empty())
 			out << " <nodata>";
         for (size_t i = 0ul ; i < impVec.size() ; i++) {
-            out << " (" << i;
-            out << (IS_RARE_EVENT     (impVec[i]) ? "*" : "");
-            out << (IS_STOP_EVENT     (impVec[i]) ? "~" : "");
-            out << (IS_REFERENCE_EVENT(impVec[i]) ? "^" : "");
-            out << "," << UNMASK(impVec[i]) << ")";
+			out << "\n  " << i
+			    << (IS_RARE_EVENT	 (impVec[i]) ? "*" : "")
+			    << (IS_STOP_EVENT	 (impVec[i]) ? "~" : "")
+			    << (IS_REFERENCE_EVENT(impVec[i]) ? "^" : "")
+			    << " == ";
+			assert(s.concrete_size() > i);
+			s.decode(i).print_out(out,true);
+			out << " : " << UNMASK(impVec[i]);
 			lmin = std::min(lmin, UNMASK(impVec[i]));
 			lmax = std::max(lmax, UNMASK(impVec[i]));
 		}
-		out << "\n ~~> Importance range: [" << lmin << "," << lmax << "]";
+		out << "\n  --> Importance range: [" << lmin << ".." << lmax << "]";
 		out.flush();
     }
     if (ready()) {
@@ -621,14 +625,14 @@ ImportanceFunctionConcreteSplit::special_case(const ModuleInstance& module) cons
 		return fetch_concrete_states("brokenFlag_",
 		                             [&s](const std::string& var, size_t cs) {
 			    const auto varPtr(s.decode(cs)[var]);  // var value in conrete state
-				return nullptr != varPtr && varPtr->val() != 0;
+				return nullptr != varPtr && (*varPtr) > 0;
 		    });
 	} else if (is_prefix(moduleName, "PAND_")) {
 		// Priority AND
 		return fetch_concrete_states("broken_",
 		                             [&s](const std::string& var, size_t cs) {
 			    const auto varPtr(s.decode(cs)[var]);  // var value in conrete state
-				return nullptr != varPtr && varPtr->val() == 1;
+				return nullptr != varPtr && (*varPtr) != 0;
 		    });
 	} else {
 		// All other DFT gates/components need no local ifun

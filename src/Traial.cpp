@@ -212,6 +212,32 @@ Traial::initialise(const ModuleNetwork& network,
 
 
 void
+Traial::print_out(std::ostream& ostr, bool flush) const
+{
+	if (flush)
+		ostr << std::endl;
+	ostr << "Traial state: (";
+	for (const auto& v: state)
+		ostr << v << ",";
+	ostr << "\b)[";
+	for (const auto& t: clocks_)
+		if (!flush)
+			ostr << t.name << ":" << t.value << ",";
+		else if (std::isfinite(t.value))
+			ostr << t.name << ":" << t.value << ",";
+	ostr << "\b]";
+	if (flush)
+		ostr << "*";
+	ostr << "  Lvl: " << level;
+	ostr << "  Ltime: " << lifeTime;
+	ostr << "  LCrss: " << numLevelsCrossed;
+	ostr << "  Depth: " << depth;
+	if (flush)
+		ostr << std::endl << "* Missing clocks are NaN/inf." << std::endl;
+}
+
+
+void
 Traial::reorder_clocks()
 {
 	// Sort orderedIndex_ vector according to our current clock values
@@ -234,14 +260,8 @@ void
 Traial::report_deadlock()
 {
 	std::stringstream errMsg;
-	errMsg << "all clocks are null, deadlock? State is (";
-	for (const auto& v: state)
-		errMsg << v << ",";
-	errMsg << "\b)[";
-	for (const auto& t: clocks_)
-		if (std::isfinite(t.value))
-			errMsg << t.name << ":" << t.value << "|";
-	errMsg << "\b] -- Omitted clocks have nan/inf value.";
+	errMsg << "all clocks are expired, aka timelock! ";
+	print_out(errMsg, false);
 	throw_FigException(errMsg.str());
 }
 

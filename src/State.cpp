@@ -291,7 +291,7 @@ void
 State<T_>::print_out(std::ostream& out, bool condensed) const
 {
 	auto str = to_string(condensed);
-	out << str << std::endl;
+	out << str;
 }
 
 

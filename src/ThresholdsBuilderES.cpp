@@ -92,7 +92,7 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 
 	// Estimate the probabilities of going from one (reachable) importance value to the next
 	TraialsVec traials(get_traials(n_, impFun, false));
-	for (size_t m = 1ul; m < 5ul || (m < 3ul && 0.0f >= Pup.back()); m++) {
+	for (size_t m = 1ul; m < 15ul || (m < 3ul && 0.0f >= Pup.back()); m++) {
 		// until we iterate four times, or twice and reach max importance
 		FE_for_ES(thrCandidates, traials, aux);
 		for (size_t i = 0ul ; i < DEFACTO_IMP_RANGE && 0.0f < aux[i] ; i++)
@@ -136,6 +136,8 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	ModelSuite::tech_log("\n");
 	show_thresholds(thresholds_);
 
+//	exit(EXIT_FAILURE);  /// @todo TODO erase debug exit
+
 	impFun_ = nullptr;
 	return thresholds_;
 }
@@ -171,7 +173,6 @@ ThresholdsBuilderES::reachable_importance_values() const
 			backupTraial = traial;
 			network.simulation_step(traial, *property_, *this, FE_watcher);
 			if (startImp < traial.level) {
-
 				reachableImpValues.emplace(traial.level);
 				maxImportanceReached = std::max(maxImportanceReached, traial.level);
 				traialsNext.push_back(traial);
@@ -180,8 +181,10 @@ ThresholdsBuilderES::reachable_importance_values() const
 					goto fuck_this_shit;  // assume max importance unreachable and quit
 				else if (traialsNow.size() > 1ul)
 					traial = traialsNow[numFails%traialsNow.size()].get();
-				else
+				else if (numFails < MAX_FAILS/2)
 					traial = backupTraial;  // a new chance
+				else
+					traial.initialise(network,impFun);  // start over
 				traialsNow.push_back(traial);
 			}
 			assert(traialsNow.size()+traialsNext.size() == NUM_INDEPENDENT_RUNS);
@@ -302,7 +305,7 @@ ThresholdsBuilderES::artificial_thresholds_selection(
 		const double trend = std::pow(LO,2.0)/HI;
 		Pup[i] = std::max(trend, 1e-2);  // bound the max effort we can choose
 		if (print)
-			ModelSuite::tech_log(std::to_string(reachableImportanceValues[i-1])+"+\n");
+			ModelSuite::tech_log(std::to_string(reachableImportanceValues[i-1]));
 		print = false;
 	}
 }

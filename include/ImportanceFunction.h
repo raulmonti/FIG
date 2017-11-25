@@ -412,7 +412,7 @@ public:  // Accessors
 	/**
 	 * @brief Print (formatted) importance information
 	 * @details States are printed along their importance (or threshold level)
-	 *          If events masks are present they are somehow marked,
+	 *          If events masks are present they are marked,
 	 *          and a legend is included to interpret the marking.
 	 * @param out Output stream where printing will take place
 	 * @param s   Global system state, i.e. with all variables of the model
@@ -445,11 +445,17 @@ public:  // Utils
 
 	/// Fetch random sample of ImportanceValue
 	/// @param s Any global state of the system
+	/// @param numValues Max number of importance values to look for
 	/// @return (Possibly empty!) Set of valid state importance values
 	/// @throw FigException if there was no precomputed \ref has_importance_info()
 	///                     "importance information"
 	std::set<ImportanceValue>
-	random_sample(State<STATE_INTERNAL_TYPE> s) const;
+	random_sample(State<STATE_INTERNAL_TYPE> s, size_t numValues = 256ul) const;
+
+	/// @copydoc random_sample()
+	/// @todo TODO erase debug fun
+	std::set<std::pair<size_t, ImportanceValue>>
+	random_sample2(State<STATE_INTERNAL_TYPE> s, size_t numValues = 256ul) const;
 
 	/**
 	 * @brief Release memory allocated in the heap during importance assessment

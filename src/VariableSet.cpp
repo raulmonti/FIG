@@ -113,31 +113,35 @@ VariableSet<T_>::assign(const T_& value)
 
 template< typename T_ >
 bool
-VariableSet<T_>::operator==(const Variable<T_>& that) const
-{
-	auto pthat = dynamic_cast<const VariableSet<T_>*>(&that);
-	if (nullptr == pthat)
-		return false;
-	else
-		return (*this) == (*pthat);
-}
-
-
-template< typename T_ >
-bool
 VariableSet<T_>::operator==(const VariableSet<T_>& that) const
 {
 	if (  Variable<T_>::name_   != that.name_
 	   || Variable<T_>::min_    != that.min_
 	   || Variable<T_>::max_    != that.max_
 	   || Variable<T_>::ini_    != that.ini_
-	   || Variable<T_>::range_  != that.range_
-	   || Variable<T_>::offset_ != that.offset_)
+	   || Variable<T_>::range_  != that.range_)
 		return false;
-	for (size_t i = 0u ; i < values_.size() ; i++)
-		if (values_[i] != that.values_[i])
-			return false;
-	return true;
+	else
+		return val() == that.val();
+//	for (size_t i = 0u ; i < values_.size() ; i++)
+//		if (values_[i] != that.values_[i])
+//			return false;
+//	return true;
+}
+
+
+template< typename T_ >
+bool
+VariableSet<T_>::operator<=(const VariableSet<T_>& that) const
+{
+	if (  Variable<T_>::name_   != that.name_
+	   || Variable<T_>::min_    != that.min_
+	   || Variable<T_>::max_    != that.max_
+	   || Variable<T_>::ini_    != that.ini_
+	   || Variable<T_>::range_  != that.range_)
+		return false;
+	else
+		return val() <= that.val();
 }
 
 

@@ -448,9 +448,9 @@ ImportanceFunction::initial_value(bool returnImportance) const noexcept
 
 
 std::set<ImportanceValue>
-ImportanceFunction::random_sample(State<STATE_INTERNAL_TYPE> s) const
+ImportanceFunction::random_sample(State<STATE_INTERNAL_TYPE> s,
+                                  size_t numValues) const
 {
-	static constexpr size_t NUM_SAMPLES = (1ul)<<(9ul);
 	static std::mt19937 RNG(std::mt19937::default_seed);;
 	if (!has_importance_info())
 		throw_FigException("importance function \"" + name() + "\" "
@@ -459,12 +459,32 @@ ImportanceFunction::random_sample(State<STATE_INTERNAL_TYPE> s) const
 	assert(0ul < NUM_CONCRETE_STATES);
 	std::uniform_int_distribution<unsigned> anyConcreteState(0, NUM_CONCRETE_STATES);
 	std::set<ImportanceValue> randomSample;
-	for (auto i = 0ul ; i < NUM_SAMPLES ; i++)
+	for (auto i = 0ul ; i < numValues ; i++)
 		randomSample.emplace(importance_of(s.decode(anyConcreteState(RNG))));
 	return randomSample;
 //	ImportanceVec result;
 //	std::move(begin(randomSample), end(randomSample), std::back_inserter(result));
 //	return result;
+}
+
+
+std::set<std::pair<size_t, ImportanceValue>>
+ImportanceFunction::random_sample2(State<STATE_INTERNAL_TYPE> s,
+                                  size_t numValues) const
+{
+	static std::mt19937 RNG(std::mt19937::default_seed);;
+	if (!has_importance_info())
+		throw_FigException("importance function \"" + name() + "\" "
+		                   "has no importance information");
+	const size_t NUM_CONCRETE_STATES(s.concrete_size());
+	assert(0ul < NUM_CONCRETE_STATES);
+	std::uniform_int_distribution<unsigned> anyConcreteState(0, NUM_CONCRETE_STATES);
+	std::set<std::pair<size_t,ImportanceValue>> randomSample;
+	for (auto i = 0ul ; i < numValues ; i++) {
+		auto cs(anyConcreteState(RNG));
+		randomSample.emplace(cs, importance_of(s.decode(cs)));
+	}
+	return randomSample;
 }
 
 

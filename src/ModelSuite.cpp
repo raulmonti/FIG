@@ -950,6 +950,16 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 				 << std::setprecision(6);
 	}
 
+	/// @todo TODO erase debug print
+//	figTechLog << "\n======-----------+++++++++++++++++++++++++++++++++++";
+//	for (auto p : (ifun.random_sample2(model->initial_state(), 10ul))) {
+//		static auto s(model->initial_state());
+//		figTechLog << std::endl;
+//		s.decode(p.first).print_out(figTechLog, true);
+//		figTechLog << " has importance " << p.second;  //ifun.importance_of(s.decode(i));
+//	}
+//	figTechLog << "\n======-----------+++++++++++++++++++++++++++++++++++\n";
+
 #ifndef NDEBUG
     assert(ifun.has_importance_info());
     assert("auto" == ifun.strategy());

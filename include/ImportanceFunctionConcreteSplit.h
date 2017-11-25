@@ -158,6 +158,8 @@ public:  // Accessors
 	///                          <i>O(mu::Parser::Eval(localValues_))</i>
 	ImportanceValue importance_of(const StateInstance& state) const override;
 
+	/// @copydoc ImportanceFunction::print_out()
+	/// @note This overriden function ignores the second parameter \a s
 	void print_out(std::ostream& out,
 	               State<STATE_INTERNAL_TYPE> s = State<STATE_INTERNAL_TYPE>()) const override;
 

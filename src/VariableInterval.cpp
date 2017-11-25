@@ -207,18 +207,6 @@ VariableInterval<T_>::assign(const T_& value)
 
 template< typename T_ >
 bool
-VariableInterval<T_>::operator==(const Variable<T_>& that) const
-{
-	auto pthat = dynamic_cast<const VariableInterval<T_>*>(&that);
-	if (nullptr == pthat)
-		return false;
-	else
-		return (*this) == (*pthat);
-}
-
-
-template< typename T_ >
-bool
 VariableInterval<T_>::operator==(const VariableInterval<T_>& that) const
 {
 	return Variable<T_>::name_ == that.name_ &&
@@ -226,6 +214,18 @@ VariableInterval<T_>::operator==(const VariableInterval<T_>& that) const
 		   Variable<T_>::max_ == that.max_ &&
 		   Variable<T_>::ini_ == that.ini_ &&
 		   Variable<T_>::offset_ == that.offset_;
+}
+
+
+template< typename T_ >
+bool
+VariableInterval<T_>::operator<=(const VariableInterval<T_>& that) const
+{
+	return Variable<T_>::name_ == that.name_ &&
+	       Variable<T_>::min_ == that.min_ &&
+	       Variable<T_>::max_ == that.max_ &&
+	       Variable<T_>::ini_ == that.ini_ &&
+	       Variable<T_>::offset_ <= that.offset_;
 }
 
 

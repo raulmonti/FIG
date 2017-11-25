@@ -134,9 +134,20 @@ public:  // Modifiers
 
 public:  // Relational operators
 
-	/// @note Also compares "current value", i.e. offset_
+	// These operators can be used to compare both:
+	// - this instance against another Variable<T_> instance
+	// - a value (of type T_) against the val() of this instance
 	virtual bool operator==(const Variable<T_>& that) const = 0;
-	inline  bool operator!=(const Variable<T_>& that) const { return !(*this == that);}
+	virtual bool operator<=(const Variable<T_>& that) const = 0;
+	inline  bool operator!=(const Variable<T_>& that) const { return !(*this == that); }
+	inline  bool operator> (const Variable<T_>& that) const { return !(*this <= that); }
+	inline  bool operator>=(const Variable<T_>& that) const { return *this>that || *this==that; }
+	inline  bool operator< (const Variable<T_>& that) const { return !(*this >= that); }
+
+	inline bool operator==(const T_& value) const { return val() == value; }
+	inline bool operator!=(const T_& value) const { return val() != value; }
+	inline bool operator<=(const T_& value) const { return val() <= value; }
+	inline bool operator> (const T_& value) const { return val() >  value; }
 
 	/// @brief Is 'val' a valid value for this Variable?
 	virtual bool is_valid_value(const T_& val) const = 0;

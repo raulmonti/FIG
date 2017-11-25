@@ -494,6 +494,16 @@ assess_importance_auto(const fig::Module& module,
 	}
 	check_mem_limits(module.concrete_state_size(), module.id());
 
+	    /// @todo TODO erase debug
+	    std::cerr << "Special states for module " << module.id();
+		auto s(module.initial_state());
+		for (auto cs: relevant) {
+			std::cerr << "\n  ";
+			s.decode(cs).print_out(std::cerr, true);
+		}
+		std::cerr << std::endl;
+
+
 	// Step 1: run DFS from initial state to compute reachable reversed edges
 	fig::AdjacencyList reverseEdges = reversed_edges_DFS(module, impVec);
 	/// @todo NOTE: there's a more memory friendly way,
@@ -509,16 +519,25 @@ assess_importance_auto(const fig::Module& module,
 								   rareClauses, otherClauses);
 	else
 		rares = label_global_states(module.initial_state(), impVec, property, true);
-	for (const auto& enforcedRare: relevant)
-		rares.push(enforcedRare);  // include enforced relevant states
 
 	// Step 3: run BFS to compute importance of every concrete state
-	maxImportance =
-	        build_importance_BFS(reverseEdges,
-	                             rares,
-	                             module.initial_concrete_state(),
-	                             impVec);
+	Indices skipReset;
+	skipReset.reserve(relevant.size());
+	for (const auto& idx: relevant) {  // include enforced relevant states
+		rares.push(idx);
+		if (fig::IS_RARE_EVENT(impVec[idx]))
+		   skipReset.emplace_back(idx);  // already considered for importance
+		else
+		   fig::SET_RARE_EVENT(impVec[idx]);  // mark relevant for importance
+	}
+	maxImportance = build_importance_BFS(reverseEdges,
+	                                     rares,
+	                                     module.initial_concrete_state(),
+	                                     impVec);
 	fig::AdjacencyList().swap(reverseEdges);  // free mem!
+	for (const auto& idx: relevant)
+		if (find(begin(skipReset), end(skipReset), idx) == end(skipReset))
+			impVec[idx] &= ~fig::EventType::RARE;  // clean marking
 
 	return maxImportance;
 }
