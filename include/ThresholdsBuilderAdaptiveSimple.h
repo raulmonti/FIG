@@ -31,6 +31,7 @@
 
 // C++
 #include <vector>
+#include <memory>
 // FIG
 #include <ThresholdsBuilderAdaptive.h>
 #include <core_typedefs.h>
@@ -38,6 +39,8 @@
 
 namespace fig
 {
+
+class Property;
 
 /**
  * @brief Adaptive threshold builders with one global splitting/effort
@@ -50,6 +53,9 @@ namespace fig
 class ThresholdsBuilderAdaptiveSimple : public ThresholdsBuilderAdaptive
 {
 protected:
+
+	/// Property to estimate, for which the thresholds will be selected
+	std::shared_ptr< const Property > property_;
 
 	/// Global effort used during simulations
 	unsigned globEff_;
@@ -86,7 +92,7 @@ public:
 	 */
 	void
 	setup(const PostProcessing&,
-	      std::shared_ptr<const Property>,
+	      std::shared_ptr<const Property> property,
 	      const unsigned globalEffort) override;
 
 	ThresholdsVec

@@ -46,6 +46,7 @@ ThresholdsBuilderAdaptiveSimple::ThresholdsBuilderAdaptiveSimple(
     const unsigned& n,
     const unsigned& k) :
         ThresholdsBuilderAdaptive(n),
+        property_(nullptr),
         globEff_(0u),
         k_(k),
         thresholds_()
@@ -54,9 +55,12 @@ ThresholdsBuilderAdaptiveSimple::ThresholdsBuilderAdaptiveSimple(
 
 void
 ThresholdsBuilderAdaptiveSimple::setup(const PostProcessing &,
-                                       std::shared_ptr<const Property>,
+                                       std::shared_ptr<const Property> property,
                                        const unsigned globalEffort)
-{ globEff_ = globalEffort; }
+{
+	property_ = property;
+	globEff_ = globalEffort;
+}
 
 
 ThresholdsVec

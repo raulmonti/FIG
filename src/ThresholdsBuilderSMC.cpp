@@ -40,6 +40,7 @@
 #include <ThresholdsBuilderSMC.h>
 #include <ModuleNetwork.h>
 #include <ModelSuite.h>
+#include <Property.h>
 #include <Traial.h>
 
 // ADL
@@ -196,6 +197,7 @@ build_states_distribution(const fig::ModuleNetwork& network,
 ImportanceValue
 find_new_threshold(const fig::ModuleNetwork& network,
 				   const fig::ImportanceFunction& impFun,
+                   const fig::Property& property,
 				   TraialsVec& traials,
 				   const unsigned& n,
 				   const unsigned& k,
@@ -211,8 +213,8 @@ find_new_threshold(const fig::ModuleNetwork& network,
     ImportanceValue newThr(lastThr);
 
 	// Function pointers matching ModuleNetwork::peak_simulation() signatures
-	auto predicate = [&jumpsLeft,&MAX_IMP](const Traial& t) -> bool {
-		return --jumpsLeft > 0u && MAX_IMP > t.level;
+	auto predicate = [&jumpsLeft,&MAX_IMP,&property](const Traial& t) -> bool {
+		return --jumpsLeft > 0u && MAX_IMP > t.level && !property.is_stop(t.state);
     };
     auto update = [&impFun](Traial& t) -> void {
         t.level = impFun.importance_of(t.state);
@@ -280,6 +282,7 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
     assert(0u < k_);
     assert(k_ < n_);
 	assert(!halted_);
+	assert(nullptr != property_);
 
 	if (thresholds_.size() > 0ul)
 		std::vector< ImportanceValue >().swap(thresholds_);
@@ -293,8 +296,14 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 	thresholds_.push_back(impFun.initial_value());  // start from initial state importance
 	assert(thresholds_.back() < impFun.max_value());
 	ModelSuite::tech_log("(seed:" + std::to_string(RNG_SEED) + ")");
-	ImportanceValue newThreshold =
-		find_new_threshold(network, impFun, traials, n_, k_, thresholds_.back(), halted_);
+	auto newThreshold = find_new_threshold(network,
+	                                       impFun,
+	                                       *property_,
+	                                       traials,
+	                                       n_,
+	                                       k_,
+	                                       thresholds_.back(),
+	                                       halted_);
 	if (impFun.max_value() <= newThreshold)
 		ModelSuite::tech_log("\nFirst iteration of SMC reached max importance, "
 							 "rare event doesn't seem so rare!\n");
@@ -310,7 +319,14 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 		    || halted_)
 			goto exit_with_fail;  // couldn't find those initial states
 		// Find sims' 1-k/n quantile starting from those initial states
-		newThreshold = find_new_threshold(network, impFun, traials, n_, k_, lastThr, halted_);
+		newThreshold = find_new_threshold(network,
+		                                  impFun,
+		                                  *property_,
+		                                  traials,
+		                                  n_,
+		                                  k_,
+		                                  lastThr,
+		                                  halted_);
         // Use said quantile as new threshold if possible
 		if (newThreshold <= thresholds_.back() || halted_)
 			goto exit_with_fail;  // well, fuck
