@@ -62,8 +62,11 @@ namespace fig
  */
 class ThresholdsBuilderES : public ThresholdsBuilderAdaptive
 {
+	/// Upper bound for the effort assignable to a threshold-level
+	static constexpr size_t MAX_FEASIBLE_EFFORT = (1ul)<<(4ul);
+
 	/// Max # steps allowed for each internal Fixed Effort simulation
-	static constexpr decltype(Traial::numLevelsCrossed) MAX_FE_SIM_LEN = (1ul)<<(9ul);
+	static constexpr decltype(Traial::numLevelsCrossed) MAX_FE_SIM_LEN = (1ul)<<(8ul);
 
 protected:
 
@@ -160,6 +163,19 @@ private:  // Class utils
 			return /* level-up:     */ traial.depth < 0 ||
 			       /* sim too long: */ traial.numLevelsCrossed > MAX_FE_SIM_LEN ||
 			       /* stop event:   */ property.is_stop(traial.state);
+	    }
+
+	/// @brief Event-watcher for the ImportanceValue space exploration
+	/// @details Similar to FE_watcher() but disregard the property
+	inline bool
+	importance_seeker(const Property&, Traial& traial, Event&) const
+	    {
+		    auto newImp = static_cast<short>(impFun_->importance_of(traial.state));
+			traial.depth -= newImp - static_cast<short>(traial.level);
+			traial.level = newImp;
+			traial.numLevelsCrossed++;  // encode here the # steps taken
+			return /* level-up:     */ traial.depth < 0 ||
+			       /* sim too long: */ traial.numLevelsCrossed > MAX_FE_SIM_LEN;
 	    }
 };
 

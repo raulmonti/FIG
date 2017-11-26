@@ -184,6 +184,7 @@ SECTION("Steady-state: RESTART, compositional (+ operator), es")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
+	model.set_global_effort();
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
 	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
@@ -223,6 +224,7 @@ SECTION("Steady-state: RESTART, compositional (coarse ifun), es")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
+	model.set_global_effort();
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
 	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);

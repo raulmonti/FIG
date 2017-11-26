@@ -494,16 +494,6 @@ assess_importance_auto(const fig::Module& module,
 	}
 	check_mem_limits(module.concrete_state_size(), module.id());
 
-	    /// @todo TODO erase debug
-	    std::cerr << "Special states for module " << module.id();
-		auto s(module.initial_state());
-		for (auto cs: relevant) {
-			std::cerr << "\n  ";
-			s.decode(cs).print_out(std::cerr, true);
-		}
-		std::cerr << std::endl;
-
-
 	// Step 1: run DFS from initial state to compute reachable reversed edges
 	fig::AdjacencyList reverseEdges = reversed_edges_DFS(module, impVec);
 	/// @todo NOTE: there's a more memory friendly way,

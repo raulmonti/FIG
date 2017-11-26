@@ -87,22 +87,30 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	                    + " relevant importance values:");
 	for (auto imp: thrCandidates)
 		ModelSuite::tech_log(" "+std::to_string(imp));
-	ModelSuite::tech_log("\nRunning internal Fixed Effort");
 #endif
 
 	// Estimate the probabilities of going from one (reachable) importance value to the next
+#ifndef NDEBUG
+	ModelSuite::tech_log("\nRunning internal Fixed Effort");
+#endif
 	TraialsVec traials(get_traials(n_, impFun, false));
-	for (size_t m = 1ul; m < 15ul || (m < 3ul && 0.0f >= Pup.back()); m++) {
-		// until we iterate four times, or twice and reach max importance
+	for (size_t m = 1ul ; m < 5ul && 0.0f >= Pup.back() ; m++) {
 		FE_for_ES(thrCandidates, traials, aux);
 		for (size_t i = 0ul ; i < DEFACTO_IMP_RANGE && 0.0f < aux[i] ; i++)
 			Pup[i] += (aux[i]-Pup[i])/m;
-		ModelSuite::tech_log(".");
+		if (0.0f >= Pup.back()) {
+			ModelSuite::tech_log("-");
+			// last iteration didn't reach max importance: Increase effort
+			auto moreTraials(get_traials(traials.size(), impFun, false));
+			traials.insert(end(traials), begin(moreTraials), end(moreTraials));
+		} else {
+			ModelSuite::tech_log("+");
+		}
 	}
 	TraialPool::get_instance().return_traials(traials);
 	if (0.0f >= Pup.back())
 		artificial_thresholds_selection(thrCandidates, Pup);
-#ifndef NDEBUG  // Some debug print
+#ifndef NDEBUG
 	float est(1.0f);
 	const auto defaultLogFlags(figTechLog.flags());
 	figTechLog << std::setprecision(2) << std::scientific;
@@ -115,29 +123,27 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	figTechLog.flags(defaultLogFlags);
 #endif
 
-	// Turn level-up probabilities into splitting factors
-	decltype(aux)& split(aux);
-	std::fill(begin(split), end(split), 0.0f);
+	// Turn level-up probabilities into effort factors
+	decltype(aux)& effort(aux);
+	std::fill(begin(effort), end(effort), 0.0f);
 	for (size_t i = 0ul ; i < Pup.size() ; i++) {
-		float prev = split[(i-1)%Pup.size()];
-		split[i] = 1.0f/Pup[i] + (prev-std::round(prev));  // expected # of sims reaching lvl i
+		float prev = effort[(i-1)%Pup.size()];
+		effort[i] = 1.0f/Pup[i] + (prev-std::round(prev));  // expected # of sims reaching lvl i
+		effort[i] = std::min<float>(effort[i], MAX_FEASIBLE_EFFORT);
 	}
 
-	// Select the thresholds based on the splitting factors
+	// Select the thresholds based on the effort factors
 	thresholds_.clear();
 	thresholds_.emplace_back(impFun.initial_value(), 1ul);
 	for (size_t i = 1ul ; i < Pup.size() ; i++) {
-		const int thisSplit = std::round(split[i]);
-		if (1 < thisSplit)
-			thresholds_.emplace_back(thrCandidates[i], thisSplit);
+		const int thisEffort = std::round(effort[i]);
+		if (1 < thisEffort)
+			thresholds_.emplace_back(thrCandidates[i], thisEffort);
 	}
 	thresholds_.emplace_back(impFun.max_value()+static_cast<ImportanceValue>(1u), 1ul);
 
 	ModelSuite::tech_log("\n");
 	show_thresholds(thresholds_);
-
-//	exit(EXIT_FAILURE);  /// @todo TODO erase debug exit
-
 	impFun_ = nullptr;
 	return thresholds_;
 }
@@ -147,14 +153,13 @@ ImportanceVec
 ThresholdsBuilderES::reachable_importance_values() const
 {
 	static constexpr size_t NUM_INDEPENDENT_RUNS = 20ul;
-	static constexpr size_t MAX_FAILS = (1ul)<<(10ul);  // 1 K
+	static constexpr size_t MAX_FAILS = (1ul)<<(10ul);
 	size_t numFails(0ul);
 
 	const ImportanceFunction& impFun(*impFun_);
-	auto FE_watcher = &fig::ThresholdsBuilderES::FE_watcher;
+	auto events_watcher = &fig::ThresholdsBuilderES::importance_seeker;
 	const ModuleNetwork& network(*ModelSuite::get_instance().modules_network());
 
-	Traial& backupTraial(TraialPool::get_instance().get_traial());
 	ImportanceValue maxImportanceReached(impFun.initial_value());
 	std::unordered_set< ImportanceValue > reachableImpValues = {impFun.initial_value()};
 	TraialsVec traialsNow(get_traials(NUM_INDEPENDENT_RUNS, impFun)),
@@ -170,8 +175,7 @@ ThresholdsBuilderES::reachable_importance_values() const
 			const ImportanceValue startImp(traial.level);
 			traial.depth = 0;
 			traial.numLevelsCrossed = 0;
-			backupTraial = traial;
-			network.simulation_step(traial, *property_, *this, FE_watcher);
+			network.simulation_step(traial, *property_, *this, events_watcher);
 			if (startImp < traial.level) {
 				reachableImpValues.emplace(traial.level);
 				maxImportanceReached = std::max(maxImportanceReached, traial.level);
@@ -181,8 +185,6 @@ ThresholdsBuilderES::reachable_importance_values() const
 					goto fuck_this_shit;  // assume max importance unreachable and quit
 				else if (traialsNow.size() > 1ul)
 					traial = traialsNow[numFails%traialsNow.size()].get();
-				else if (numFails < MAX_FAILS/2)
-					traial = backupTraial;  // a new chance
 				else
 					traial.initialise(network,impFun);  // start over
 				traialsNow.push_back(traial);
@@ -190,12 +192,10 @@ ThresholdsBuilderES::reachable_importance_values() const
 			assert(traialsNow.size()+traialsNext.size() == NUM_INDEPENDENT_RUNS);
 		}
 		std::swap(traialsNow, traialsNext);
-		numFails = 0ul;
 	} while (maxImportanceReached < impFun.max_value());
     fuck_this_shit:
 	    TraialPool::get_instance().return_traials(traialsNow);
 		TraialPool::get_instance().return_traials(traialsNext);
-		TraialPool::get_instance().return_traial(backupTraial);
 
 	ImportanceVec result(begin(reachableImpValues), end(reachableImpValues));
 	std::sort(begin(result), end(result));
@@ -208,7 +208,7 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
                                TraialsVec& traials,
                                std::vector<float>& Pup) const
 {
-	auto FE_watcher = &fig::ThresholdsBuilderES::FE_watcher;
+	auto events_watcher = &fig::ThresholdsBuilderES::FE_watcher;
 	const ModuleNetwork& network(*ModelSuite::get_instance().modules_network());
 	const size_t N = traials.size();  // effort per level
 	std::vector< Reference< Traial > > freeNow, freeNext, startNow, startNext;
@@ -244,11 +244,10 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 				startNow.pop_back();
 			}
 			// (simulation & bookkeeping)
-//			traial.level = currImp;  // enforce this
-			assert(traial.level >= currImp);
+			assert(traial.level >= currImp || startNow.size() < 2ul);
 			traial.depth = 0;
 			traial.numLevelsCrossed = 0;
-			network.simulation_step(traial, *property_, *this, FE_watcher);
+			network.simulation_step(traial, *property_, *this, events_watcher);
 			if (traial.level > currImp)
 				startNext.push_back(traial);
 			else
@@ -270,7 +269,7 @@ ThresholdsBuilderES::artificial_thresholds_selection(
 	assert(reachableImportanceValues.size() == Pup.size());
 	ModelSuite::tech_log("\nExpected Success failed");
 
-	if (reachableImportanceValues.size() < 3ul) {
+	if (reachableImportanceValues.size() < 2ul) {
 		// There's *nothing*, try desperately to build some threshold
 		auto moreValues = impFun_->random_sample(
 		            ModelSuite::get_instance().modules_network()->initial_state());
@@ -283,6 +282,7 @@ ThresholdsBuilderES::artificial_thresholds_selection(
 			return;
 		}
 		Pup.resize(reachableImportanceValues.size());
+		ModelSuite::tech_log(" utterly");
 	}
 	if (0.0f >= Pup[0]) {
 		Pup[0] = 5.0e-2;
@@ -292,7 +292,6 @@ ThresholdsBuilderES::artificial_thresholds_selection(
 		Pup[1] = Pup[0]/10.0f;
 		ModelSuite::tech_log(" on the second iteration");
 	}
-
 	ModelSuite::tech_log("!\nResorting to fixed choice of thresholds starting "
 	                     "above the ImportanceValue ");
 	/// @todo Implement regresive average to follow the trend of the probabilities
@@ -303,7 +302,7 @@ ThresholdsBuilderES::artificial_thresholds_selection(
 		const auto HI = std::max(Pup[i-1], Pup[i-2]),
 		           LO = std::min(Pup[i-1], Pup[i-2]);
 		const double trend = std::pow(LO,2.0)/HI;
-		Pup[i] = std::max(trend, 1e-2);  // bound the max effort we can choose
+		Pup[i] = std::max(trend, 1.0/MAX_FEASIBLE_EFFORT);  // bound max effort
 		if (print)
 			ModelSuite::tech_log(std::to_string(reachableImportanceValues[i-1]));
 		print = false;

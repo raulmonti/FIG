@@ -148,11 +148,11 @@ SimulationEngineFixedEffort::transient_simulations(const PropertyTransient& prop
 				traial.depth = 0;
 				traialsNow.push_back(traial);
 			}
+			assert(traialsNow.size() == LVL_EFFORT);
 			traialsNext.erase(begin(traialsNext),
 			                  begin(traialsNext)+std::min(traialsNext.size(),LVL_EFFORT));
 			std::move(begin(traialsNext), end(traialsNext), std::back_inserter(traials_));
-			assert(traialsNow.size() == LVL_EFFORT);
-			assert(traialsNext.empty());
+			traialsNext.clear();
 			// ... run Fixed Effort until the next level 'l+1' ...
 			do {
 				Traial& traial(traialsNow.back());

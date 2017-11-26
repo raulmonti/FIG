@@ -28,6 +28,7 @@
 
 
 // C++
+#include <iomanip>    // std::setw()
 #include <limits>     // std::numeric_limits<>
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // find_if_not()
@@ -366,7 +367,7 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
     out << "\nPrinting importance function \"" << name() << "\" values.";
     out << "\nImportance assessment strategy: " << strategy();
     out << "\nImportance merging function: " << userFun_.expression();
-	out << "\nLegend: concrete_state[*~^] == (symbolic_state)  : importance_value";
+	out << "\nLegend: concrete_state[*~^]| (symbolic_state) == importance_value";
     out << "\nwhere"
         << "\n      *  denotes a state is RARE,"
         << "\n      ~  denotes a state is STOP,"
@@ -379,15 +380,15 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
         const ImportanceVec& impVec = modulesConcreteImportance[i];
 		if (impVec.empty())
 			out << " <nodata>";
-        for (size_t i = 0ul ; i < impVec.size() ; i++) {
-			out << "\n  " << i
-			    << (IS_RARE_EVENT	 (impVec[i]) ? "*" : "")
-			    << (IS_STOP_EVENT	 (impVec[i]) ? "~" : "")
+		for (size_t i = 0ul ; i < impVec.size() ; i++) {
+			out << "\n  " << std::setw(3) << i << std::setw(1)
+			    << (IS_RARE_EVENT     (impVec[i]) ? "*" : "")
+			    << (IS_STOP_EVENT     (impVec[i]) ? "~" : "")
 			    << (IS_REFERENCE_EVENT(impVec[i]) ? "^" : "")
-			    << " == ";
+			    << "| ";
 			assert(s.concrete_size() > i);
 			s.decode(i).print_out(out,true);
-			out << " : " << UNMASK(impVec[i]);
+			out << "== " << UNMASK(impVec[i]);
 			lmin = std::min(lmin, UNMASK(impVec[i]));
 			lmax = std::max(lmax, UNMASK(impVec[i]));
 		}

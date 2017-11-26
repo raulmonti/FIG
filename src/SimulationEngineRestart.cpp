@@ -319,7 +319,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 			for (short i = 0 ; i < traial.numLevelsCrossed ; i++) {
 				prevEffort *= currEffort;
 				currEffort = impFun_->effort_of(traial.level+i);
-				assert(1ul < currEffort || traial.level+i == impFun_->max_value());
+				assert(1ul < currEffort || traial.level+i >= impFun_->max_value());
 				if (1ul < currEffort)
 					tpool.get_traial_copies(ssstack_,
 					                        traial,
