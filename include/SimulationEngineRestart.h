@@ -131,6 +131,11 @@ protected:  // Simulation helper functions
 	/// forcing the next simulation to be <i>fresh</i>.
 	void reinit_stack() const;
 
+	/// Fill \a stack with clones of \a traial due to level-up splitting
+	/// @note Can handle several-levels-up situations
+	void handle_lvl_up(const Traial &traial,
+	                   std::stack< Reference< Traial > >& stack) const;
+
 	std::vector<double>
 	transient_simulations(const PropertyTransient& property,
 						  const size_t& numRuns) const override;
@@ -203,7 +208,7 @@ private:  // Traial observers/updaters
 		{
 			// Event marking is done in accordance with the checks performed
 			// in the rate_simulation() overriden member function
-			ImportanceValue newThrLvl = impFun_->level_of(traial.state);
+		    const ImportanceValue newThrLvl(impFun_->level_of(traial.state));
 			traial.numLevelsCrossed = newThrLvl - traial.level;
 			traial.depth -= traial.numLevelsCrossed;
 			traial.level = newThrLvl;
@@ -233,7 +238,7 @@ private:  // Traial observers/updaters
 		{
 			// Event marking is done in accordance with the checks performed
 			// in the rate_simulation() overriden member function
-			auto newStateInfo = cImpFun_->info_of(traial.state);
+		    const auto newStateInfo = cImpFun_->info_of(traial.state);
 			e = MASK(newStateInfo);
 			const ImportanceValue newThrLvl = UNMASK(newStateInfo);
 			traial.numLevelsCrossed = newThrLvl - traial.level;

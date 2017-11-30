@@ -60,7 +60,7 @@ ExpState<T>::ExpState(const std::vector<std::shared_ptr<Exp>> &astVec) {
         ast->accept(visitor); //fills vars and arrays
     }
     //compute local data size
-    int size = vars.size(); //number of variables
+	auto size = vars.size(); //number of variables
     for (auto& pair : arrays) { //plus array sizes
         size += pair.second.data_size;
     }
@@ -71,7 +71,7 @@ ExpState<T>::ExpState(const std::vector<std::shared_ptr<Exp>> &astVec) {
     for (const std::string& var : vars) {
         SData sData (i, 0);
         vars_[var] = VarData::build_simple_var(sData);
-        assert(i < (size_t) size);
+		assert(i < size);
         mem_[i] = T(0);
         i++;
     }
@@ -101,6 +101,13 @@ ExpState<T>::ExpState(const ExpState& that) {
     new (&table_) exprtk::symbol_table<T>();
     fill_symbol_table();
 }
+
+template<typename T>
+ExpState<T>::ExpState(ExpState&& that) :
+    mem_(std::move(that.mem_)),
+    vars_(std::move(that.vars_)),
+    table_(std::move(that.table_))
+{}
 
 template<typename T>
 void ExpState<T>::project_positions(const State<STATE_INTERNAL_TYPE> &state)
@@ -196,7 +203,7 @@ void ExpState<T>::fill_symbol_table() noexcept {
 
 template<typename T>
 void ExpState<T>::add_functions() noexcept {
-    table_.add_function("fsteq", fsteq_);
+	table_.add_function("fsteq", fsteq_);
     table_.add_function("lsteq", lsteq_);
     table_.add_function("rndeq", rndeq_);
     table_.add_function("maxfrom", maxfrom_);

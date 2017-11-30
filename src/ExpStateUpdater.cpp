@@ -22,37 +22,39 @@ ExpStateUpdater::append_arrays_indices(const ExpContainer &exps,
     return (astVec);
 }
 
-ExpStateUpdater::ExpStateUpdater(const LocationContainer &updates,
-                                 const ExpContainer &expVec)
+
+ExpStateUpdater::ExpStateUpdater(LocationContainer&& updates,
+                                 ExpContainer&& expVec)
     : evaluator_(append_arrays_indices(expVec, updates)) {
-    assert(expVec.size() == updates.size());
-    num_updates = expVec.size();
-    //create space for the total number of updates
-    result_accs_.resize(num_updates);
-    //num_updates holds the first position of the evaluator's internal vector
-    //that contains an array index to be evaluated ("N" in the note above)
-    size_t first_index = num_updates;
-    size_t offset = 0;
-    for (size_t i = 0; i < num_updates; i++) {
-        //append_array_indices must iterate in the same order
-        shared_ptr<Location> loc = updates[i];
-        const std::string &name = loc->get_identifier();
-        if (loc->is_array_position()) {
-            shared_ptr<ArrayDecl> decl
-                    = loc->get_decl()->to_array();
-            assert(decl != nullptr);
-            size_t size = decl->get_data().data_size;
-            // this array has its index in the N + offset position
-            // of evaluator_.astVec
-            pos_t pos = first_index + offset;
-            auto acc = ResultAcceptor::build_array_acc(name, 0, pos, size);
-            result_accs_[i] = acc;
-            offset++;
-        } else {
-            result_accs_[i] = ResultAcceptor::build_simple_acc(name, 0);
-        }
-    }
+	assert(expVec.size() == updates.size());
+	num_updates = expVec.size();
+	//create space for the total number of updates
+	result_accs_.resize(num_updates);
+	//num_updates holds the first position of the evaluator's internal vector
+	//that contains an array index to be evaluated ("N" in the note above)
+	size_t first_index = num_updates;
+	size_t offset = 0;
+	for (size_t i = 0; i < num_updates; i++) {
+		//append_array_indices must iterate in the same order
+		shared_ptr<Location> loc = updates[i];
+		const std::string &name = loc->get_identifier();
+		if (loc->is_array_position()) {
+			shared_ptr<ArrayDecl> decl
+			        = loc->get_decl()->to_array();
+			assert(decl != nullptr);
+			size_t size = decl->get_data().data_size;
+			// this array has its index in the N + offset position
+			// of evaluator_.astVec
+			pos_t pos = first_index + offset;
+			auto acc = ResultAcceptor::build_array_acc(name, 0, pos, size);
+			result_accs_[i] = acc;
+			offset++;
+		} else {
+			result_accs_[i] = ResultAcceptor::build_simple_acc(name, 0);
+		}
+	}
 }
+
 
 void ExpStateUpdater::prepare(const State<STYPE>& state) noexcept {
     evaluator_.prepare(state);

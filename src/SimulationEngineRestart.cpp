@@ -124,13 +124,40 @@ SimulationEngineRestart::set_die_out_depth(unsigned dieOutDepth)
 void
 SimulationEngineRestart::reinit_stack() const
 {
-	static auto tpool = TraialPool::get_instance();
+	static TraialPool& tpool(TraialPool::get_instance());
 	while (!ssstack_.empty()) {
 		if (&ssstack_.top().get() != &oTraial_)  // avoid future aliasing!
 			tpool.return_traial(std::move(ssstack_.top()));
 		ssstack_.pop();
 	}
 	ssstack_.push(oTraial_);
+}
+
+
+void
+SimulationEngineRestart::handle_lvl_up(
+    const Traial& traial,
+    std::stack< Reference < Traial > >& stack) const
+{
+	static TraialPool& tpool(TraialPool::get_instance());
+	const auto previousLvl(static_cast<short>(traial.level)-traial.numLevelsCrossed);
+	unsigned long prevEffort(1ul), currEffort(1ul);
+
+	assert(0 < traial.level);
+	assert(0 < traial.numLevelsCrossed);
+	assert(0 <= previousLvl);
+
+	// Could have gone up several thresholds => split accordingly
+	for (short i = 1 ; i <= traial.numLevelsCrossed ; i++) {
+		assert(impFun_->max_value() >= static_cast<ImportanceValue>(previousLvl+i));
+		prevEffort *= currEffort;
+		currEffort = impFun_->effort_of(previousLvl+i);
+		assert(1ul < currEffort);
+		tpool.get_traial_copies(stack,
+		                        traial,
+		                        prevEffort*(currEffort-1),
+		                        i-traial.numLevelsCrossed);
+	}
 }
 
 
@@ -144,11 +171,11 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	std::vector< double > weighedRaresCount;
 	weighedRaresCount.reserve(numRuns);
 	std::stack< Reference< Traial > > stack;
-	auto tpool = TraialPool::get_instance();
+	static TraialPool& tpool(TraialPool::get_instance());
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	bool (SimulationEngineRestart::*watch_events)
-		 (const PropertyTransient&, Traial&, Event&) const;
+	     (const PropertyTransient&, Traial&, Event&) const;
 	if (impFun_->concrete_simulation())
 		watch_events = &SimulationEngineRestart::transient_event_concrete;
 	else
@@ -190,15 +217,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 
 			} else if (IS_THR_UP_EVENT(e)) {
 				// Could have gone up several thresholds => split accordingly
-				assert(traial.numLevelsCrossed > 0);
-				unsigned long prevEffort(1ul), currEffort(1ul);
-				for (short i = 0 ; i < traial.numLevelsCrossed ; i++) {
-					prevEffort *= currEffort;
-					currEffort = impFun_->effort_of(traial.level+i);
-					assert(1ul < currEffort);
-					tpool.get_traial_copies(stack, traial, prevEffort*(currEffort-1),
-											i+1-traial.numLevelsCrossed);
-				}
+				handle_lvl_up(traial, stack);
 				// Offsprings are on top of stack now: continue attending them
 			}
 			// RARE events are checked first thing in next iteration
@@ -231,26 +250,30 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	assert(0u < runLength);
 	const unsigned numThresholds(impFun_->num_thresholds());
 	std::vector< double > raresCount(numThresholds+1, 0.0);
-	auto tpool = TraialPool::get_instance();
+	static TraialPool& tpool(TraialPool::get_instance());
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 	numChunksTruncated_ = 0u;
 
 	// Reset batch or run with batch means?
 	if (reinit || ssstack_.empty()) {
 		reinit_stack();
+		assert(ssstack_.size() == 1ul);
 		assert(&oTraial_ == &ssstack_.top().get());
 		oTraial_.initialise(*network_, *impFun_);
 	} else {
 		// Batch means, but reset life times
 		std::stack< Reference< Traial > > tmp;
+		const auto numTraialsBatchMeans(ssstack_.size());
 		while (!ssstack_.empty()) {
 			ssstack_.top().get().lifeTime = 0.0;
 			tmp.push(std::move(ssstack_.top()));
 			ssstack_.pop();
+			assert(tmp.size()+ssstack_.size() == numTraialsBatchMeans);
 		}
 		while (!tmp.empty()) {
 			ssstack_.push(std::move(tmp.top()));
 			tmp.pop();
+			assert(tmp.size()+ssstack_.size() == numTraialsBatchMeans);
 		}
 	}
 
@@ -273,7 +296,15 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	while (!ssstack_.empty() && !interrupted) {
 		Event e(EventType::NONE);
 		Traial& traial = ssstack_.top();
-		assert(&traial != &oTraial_ || ssstack_.size() == 1ul);
+#ifndef NDEBUG
+		if (&traial == &oTraial_ && ssstack_.size() > 1ul) {
+			std::stringstream errMsg;
+			errMsg << "[ERROR] Aliasing!!! Traials stack size: " << ssstack_.size()
+			       << " | State of \"original Traial\" from batch means: ";
+			oTraial_.print_out(errMsg);
+			throw_FigException(errMsg.str());
+		}
+#endif
 
 		// Check whether we're standing on a rare event
 		(this->*watch_events)(property, traial, e);
@@ -298,7 +329,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 			// Traial reached EOS or went down => kill it
 			assert(!(&traial==&oTraial_ && IS_THR_DOWN_EVENT(e)));
 			if (&traial != &oTraial_)  // avoid future aliasing!
-				tpool.return_traial(std::move(ssstack_.top()));
+				tpool.return_traial(std::move(traial));
 			ssstack_.pop();
 			// Revert any time truncation
 			if (0u < numChunksTruncated_) {
@@ -314,18 +345,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 				numChunksTruncated_ = 0u;
 			}
 			// Could have gone up several thresholds => split accordingly
-			assert(0 < traial.numLevelsCrossed);
-			unsigned long prevEffort(1ul), currEffort(1ul);
-			for (short i = 0 ; i < traial.numLevelsCrossed ; i++) {
-				prevEffort *= currEffort;
-				currEffort = impFun_->effort_of(traial.level+i);
-				assert(1ul < currEffort || traial.level+i >= impFun_->max_value());
-				if (1ul < currEffort)
-					tpool.get_traial_copies(ssstack_,
-					                        traial,
-					                        prevEffort*(currEffort-1),
-					                        i+1-traial.numLevelsCrossed);
-			}
+			handle_lvl_up(traial, ssstack_);
 			assert(&(ssstack_.top().get()) != &oTraial_);
 			// Offsprings are on top of ssstack_ now: continue attending them
 		}

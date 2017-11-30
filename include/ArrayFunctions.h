@@ -42,7 +42,7 @@ struct FstEqFunction : public exprtk::igeneric_function<T> {
     // V: VECTOR, T:SCALAR. Exprtk typechecks on compilation time.
     FstEqFunction() : exprtk::igeneric_function<T>("VT") {}
 
-    inline T operator()(parameter_list_t<T> parameters) {
+	inline T operator()(parameter_list_t<T> parameters) override {
         generic_type<T> &gt = parameters[0];
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector(gt);
@@ -60,7 +60,7 @@ template<typename T>
 struct LstEqFunction : public exprtk::igeneric_function<T> {
     LstEqFunction() : exprtk::igeneric_function<T>("VT") {}
 
-    inline T operator()(parameter_list_t<T> parameters) {
+	inline T operator()(parameter_list_t<T> parameters) override {
         generic_type<T> &gt = parameters[0];
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector(gt);
@@ -91,7 +91,7 @@ struct RndEqFunction : public exprtk::igeneric_function<T> {
         new (&gen) std::mt19937 (rd());
     }
 
-    inline T operator()(parameter_list_t<T> parameters) {
+	inline T operator()(parameter_list_t<T> parameters) override {
         generic_type<T> &gt = parameters[0];
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector(gt);
@@ -121,7 +121,7 @@ struct MinFromFunction : public exprtk::igeneric_function<T> {
 
     MinFromFunction() : exprtk::igeneric_function<T>("VT") {}
 
-    inline T operator()(parameter_list_t<T> parameters) {
+	inline T operator()(parameter_list_t<T> parameters) override {
         generic_type<T> &gt = parameters[0];
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector(gt);
@@ -149,7 +149,7 @@ struct MaxFromFunction : public exprtk::igeneric_function<T> {
 
     MaxFromFunction() : exprtk::igeneric_function<T>("VT") {}
 
-    inline T operator()(parameter_list_t<T> parameters) {
+	inline T operator()(parameter_list_t<T> parameters) override {
         generic_type<T> &gt = parameters[0];
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector(gt);
@@ -175,7 +175,7 @@ template<typename T>
 struct SumFromFunction : public exprtk::igeneric_function<T> {
 
     SumFromFunction() : exprtk::igeneric_function<T>("VT") {}
-    inline T operator()(parameter_list_t<T> parameters) {
+	inline T operator()(parameter_list_t<T> parameters) override {
         generic_type<T> &gt = parameters[0];
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector(gt);
@@ -199,7 +199,7 @@ struct ConsecFunction : public exprtk::igeneric_function<T> {
 
     ConsecFunction() : exprtk::igeneric_function<T>("VT") {}
 
-    inline T operator()(parameter_list_t<T> parameters) {
+	inline T operator()(parameter_list_t<T> parameters) override {
         generic_type<T> &gt = parameters[0];
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector (gt);
@@ -233,7 +233,7 @@ struct BrokenFunction : public exprtk::igeneric_function<T> {
 
     BrokenFunction() : exprtk::igeneric_function<T>("VT") {}
 
-    inline T operator()(parameter_list_t<T> parameters) {
+	inline T operator()(parameter_list_t<T> parameters) override {
         generic_type<T> &gt = parameters[0];
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector(gt);
@@ -258,7 +258,7 @@ template<typename T>
 struct FstExcludeFunction : public exprtk::igeneric_function<T> {
 
     FstExcludeFunction() : exprtk::igeneric_function<T>("VT") {}
-    inline T operator()(parameter_list_t<T> parameters) {
+	inline T operator()(parameter_list_t<T> parameters) override {
         generic_type<T> &gt = parameters[0];
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector(gt);

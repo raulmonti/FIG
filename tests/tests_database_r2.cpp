@@ -210,7 +210,7 @@ SECTION("Steady-state: RESTART, compositional (+ operator), es")
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
 
-SECTION("Steady-state: RESTART, compositional (coarse ifun), es")
+SECTION("Steady-state: RESTART, compositional (coarse ifun), hyb")
 {
 	const string nameEngine("restart");
 	const string ifunComp("(Disk11*Disk12*Disk13*Disk14*Disk21*Disk22*Disk23*Disk24*Disk31*Disk32*Disk33*Disk34*Disk41*Disk42*Disk43*Disk44*Disk51*Disk52*Disk53*Disk54*Disk61*Disk62*Disk63*Disk64)+(Controller11*Controller12*Controller21*Controller22)+(Processor11*Processor12*Processor21*Processor22)");
@@ -218,13 +218,13 @@ SECTION("Steady-state: RESTART, compositional (coarse ifun), es")
 	                               ifunComp,
 	                               fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0),
 	                               3, 16777248, 1);
-	const string nameThr("es");
+	const string nameThr("hyb");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_global_effort();
+	model.set_global_effort(12);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
 	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
@@ -250,7 +250,7 @@ SECTION("Steady-state: RESTART, compositional (coarse ifun), es")
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
 
-SECTION("Steady-state: RESTART, compositional ([+,*] ring), hyb")
+SECTION("Steady-state: RESTART, compositional ([+,*] ring), es")
 {
 	const string nameEngine("restart");
 	const string ifunComp("(Disk11*Disk12)+(Disk11*Disk13)+(Disk11*Disk14)+(Disk12*Disk13)+(Disk12*Disk14)+(Disk13*Disk14)+(Disk21*Disk22)+(Disk21*Disk23)+(Disk21*Disk24)+(Disk22*Disk23)+(Disk22*Disk24)+(Disk23*Disk24)+(Disk31*Disk32)+(Disk31*Disk33)+(Disk31*Disk34)+(Disk32*Disk33)+(Disk32*Disk34)+(Disk33*Disk34)+(Disk41*Disk42)+(Disk41*Disk43)+(Disk41*Disk44)+(Disk42*Disk43)+(Disk42*Disk44)+(Disk43*Disk44)+(Disk51*Disk52)+(Disk51*Disk53)+(Disk51*Disk54)+(Disk52*Disk53)+(Disk52*Disk54)+(Disk53*Disk54)+(Disk61*Disk62)+(Disk61*Disk63)+(Disk61*Disk64)+(Disk62*Disk63)+(Disk62*Disk64)+(Disk63*Disk64)+(Controller11*Controller12)+(Controller21*Controller22)+(Processor11*Processor12)+(Processor21*Processor22)");
@@ -258,13 +258,13 @@ SECTION("Steady-state: RESTART, compositional ([+,*] ring), hyb")
 	                               ifunComp,
 	                               fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0),
 	                               40, 160, 1);
-	const string nameThr("hyb");
+	const string nameThr("es");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_global_effort(12);
+	model.set_global_effort();
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
 	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
@@ -277,7 +277,7 @@ SECTION("Steady-state: RESTART, compositional ([+,*] ring), hyb")
 	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
+	model.set_timeout(360);  // 6 min
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit);
 	auto results = model.get_last_estimates();

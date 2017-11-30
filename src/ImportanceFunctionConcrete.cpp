@@ -340,8 +340,8 @@ std::queue< STATE_T >
 label_local_states(const State& localState,
 				   EventVec& cStates,
 				   const fig::PropertyType& propertyType,
-				   std::vector< Clause > rareClauses,
-				   std::vector< Clause > otherClauses)
+                   std::vector< Clause >& rareClauses,
+                   std::vector< Clause >& otherClauses)
 {
 	std::set< STATE_T > rares;
 	assert(localState.concrete_size().upper() == 0ul);

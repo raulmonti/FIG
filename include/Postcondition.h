@@ -80,7 +80,8 @@ private:
 public:
 
     Postcondition(const std::vector<shared_ptr<Assignment>>& assignments) :
-        ExpStateUpdater(updateLocations(assignments), updateExps(assignments))
+	    ExpStateUpdater(std::move(updateLocations(assignments)),
+	                    std::move(updateExps(assignments)))
     {}
 
     /// Default copy ctor

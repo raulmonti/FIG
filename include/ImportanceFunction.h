@@ -446,15 +446,16 @@ public:  // Utils
 	/// Fetch random sample of ImportanceValue
 	/// @param s Any global state of the system
 	/// @param numValues Max number of importance values to look for
-	/// @return (Possibly empty!) Set of valid state importance values
+	/// @return (Possibly empty!) Vector of valid state importance values
+	/// @note No value will appear repeated, e.g. as in a set
 	/// @throw FigException if there was no precomputed \ref has_importance_info()
 	///                     "importance information"
-	std::set<ImportanceValue>
+	std::vector<ImportanceValue>
 	random_sample(State<STATE_INTERNAL_TYPE> s, size_t numValues = 256ul) const;
 
 	/// @copydoc random_sample()
-	/// @todo TODO erase debug fun
-	std::set<std::pair<size_t, ImportanceValue>>
+	/// @return (Possibly empty!) Set of valid (state, importance value) pairs
+	std::set<std::pair<uint128_t, ImportanceValue> >
 	random_sample2(State<STATE_INTERNAL_TYPE> s, size_t numValues = 256ul) const;
 
 	/**

@@ -38,6 +38,7 @@
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // std::find_if()
 #include <iostream>
+#include <sstream>
 // C
 #include <cassert>
 // FIG
@@ -45,6 +46,7 @@
 #include <ModuleInstance.h>
 #include <ImportanceFunction.h>
 #include <Traial.h>
+
 
 // ADL
 using std::begin;
@@ -147,14 +149,14 @@ void
 ModuleInstance::add_transition(
 	const Label& label,
 	const std::string& triggeringClock,
-	const Precondition& pre,
-	const Postcondition& pos,
+    const Precondition& pre,
+    const Postcondition& pos,
 	const Container<ValueType, OtherContainerArgs...>& resetClocks)
 {
 	add_transition(Transition(
 		std::forward<const Label&>(label),
 		std::forward<const std::string&>(triggeringClock),
-		std::forward<const Precondition&>(pre),
+	    std::forward<const Precondition&>(pre),
 		std::forward<const Postcondition&>(pos),
 		std::forward<const Container<ValueType, OtherContainerArgs...>&>(resetClocks)
 	));
@@ -163,33 +165,33 @@ ModuleInstance::add_transition(
 // ModuleInstance::add_transition(...) can only be invoked with the following containers
 template void ModuleInstance::add_transition(const Label& label,
 											 const std::string& triggeringClock,
-											 const Precondition& pre,
-											 const Postcondition& pos,
+                                             const Precondition& pre,
+                                             const Postcondition& pos,
 											 const std::set< std::string >& resetClocks);
 template void ModuleInstance::add_transition(const Label& label,
 											 const std::string& triggeringClock,
-											 const Precondition& pre,
-											 const Postcondition& pos,
+                                             const Precondition& pre,
+                                             const Postcondition& pos,
 											 const std::list< std::string >& resetClocks);
 template void ModuleInstance::add_transition(const Label& label,
 											 const std::string& triggeringClock,
-											 const Precondition& pre,
-											 const Postcondition& pos,
+                                             const Precondition& pre,
+                                             const Postcondition& pos,
 											 const std::deque< std::string >& resetClocks);
 template void ModuleInstance::add_transition(const Label& label,
 											 const std::string& triggeringClock,
-											 const Precondition& pre,
-											 const Postcondition& pos,
+                                             const Precondition& pre,
+                                             const Postcondition& pos,
 											 const std::vector< std::string >& resetClocks);
 template void ModuleInstance::add_transition(const Label& label,
 											 const std::string& triggeringClock,
-											 const Precondition& pre,
-											 const Postcondition& pos,
+                                             const Precondition& pre,
+                                             const Postcondition& pos,
 											 const std::forward_list< std::string >& resetClocks);
 template void ModuleInstance::add_transition(const Label& label,
 											 const std::string& triggeringClock,
-											 const Precondition& pre,
-											 const Postcondition& pos,
+                                             const Precondition& pre,
+                                             const Postcondition& pos,
 											 const std::unordered_set< std::string >& resetClocks);
 
 
@@ -262,9 +264,19 @@ const Label&
 ModuleInstance::apply_postcondition(Traial &traial,
                                     const transition_vector_t& transitions) const
 {
+#ifndef NDEBUG
+	// Check for nondeterminism only in DEBUG mode
+	const Label* labPtr(nullptr);
+	StateInstance traialState = traial.state;
+#endif
+
 	for (const Transition &tr : transitions) {
 		// If the traial satisfies this precondition...
+#ifndef NDEBUG
+		if (tr.pre(traialState)) {
+#else
 		if (tr.pre(traial.state)) {
+#endif
 			// ...apply postcondition to its state...
 			tr.pos(traial.state);
 			// ...and reset corresponing clocks (the other clocks aint touched)
@@ -276,11 +288,30 @@ ModuleInstance::apply_postcondition(Traial &traial,
 				                            : traial.clock_value(i);
 			}
 			traial.update_clocks(firstClock_, NUM_CLOCKS, clockValues);
-			return tr.label();
-			// At most one transition could've been enabled, trust IOSA Checking
+#ifndef NDEBUG
+			if (nullptr != labPtr
+			        && !tr.label().is_in_committed()
+			        && !tr.label().is_out_committed()) {
+				std::stringstream errMsg;
+				errMsg << "[ERROR] Nondeterminism detected in Module "
+				       << name << ": Label of trans.#1: "
+				       << labPtr->str << " , Label of trans.#2: "
+				       << tr.label().str;
+				throw_FigException(errMsg.str());
+			} else {
+				labPtr = &tr.label();
+			}
+#else
+			return tr.label();  // At most one transition should've been enabled
+#endif
 		}
 	}
-	return ::NoLabel;  // no matching enabled transition found
+#ifndef NDEBUG
+	if (nullptr == labPtr)
+		return ::NoLabel;
+	else
+		return *labPtr;
+#endif
 }
 
 
@@ -367,12 +398,38 @@ void
 ModuleInstance::apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
                                     const transition_vector_t& transitions) const
 {
+#ifndef NDEBUG
+	// Check for nondeterminism only in DEBUG mode
+	std::string labStr;
+	typedef State<STATE_INTERNAL_TYPE> state_t;
+	state_t initialState(const_cast<const state_t&>(state));
+#endif
 	// iterate over transitions vector
 	for (const Transition &tr : transitions) {
-		if (tr.pre(state)) { // If the traial satisfies this precondition
-			tr.pos(state); // apply postcondition to its state
-			break;
-			// At most one transition could've been enabled, trust IOSA Checking
+		// If the state satisfies this precondition
+#ifndef NDEBUG
+		if (tr.pre(initialState)) {
+#else
+		if (tr.pre(state)) {
+#endif
+			// Apply the postcondition
+			tr.pos(state);
+#ifndef NDEBUG
+			if (!labStr.empty()
+			        && !tr.label().is_in_committed()
+			        && !tr.label().is_out_committed()) {
+				std::stringstream errMsg;
+				errMsg << "[ERROR] Nondeterminism detected in Module "
+				       << name << ": Label of trans #1: "
+				       << labStr << " , Label of trans #2: "
+				       << tr.label().str;
+				throw_FigException(errMsg.str());
+			} else {
+				labStr = tr.label().str;
+			}
+#else
+			break;  // At most one transition should've been enabled
+#endif
 		}
 	}
 }

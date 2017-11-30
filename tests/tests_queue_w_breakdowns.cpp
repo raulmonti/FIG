@@ -123,27 +123,19 @@ SECTION("Transient: standard MC")
 	REQUIRE(ci.precision(.9) < TR_PROB*1.6);
 }
 
-SECTION("Transient: RESTART, ad hoc, smc")
+SECTION("Transient: RESTART, ad hoc, es")
 {
 	const string nameEngine("restart");
 	const fig::ImpFunSpec ifunSpec("algebraic", "adhoc", "buf");
-	const string nameThr("smc");
+	const string nameThr("es");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_global_effort(9);
+	model.set_global_effort();
 	model.build_importance_function_adhoc(ifunSpec, trPropId, true);
-	bool thresholdsChosen(false);
-	while (!thresholdsChosen) {
-		try {
-			thresholdsChosen = model.build_thresholds(nameThr, ifunSpec.name, trPropId);
-		} catch (fig::FigException&) {
-			// just keep trying; we're stubborn and want to have
-			// all thresholds selected by Sequential Monte Carlo
-		}
-	}
+	model.build_thresholds(nameThr, ifunSpec.name, trPropId);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
 	REQUIRE(engine->ready());
 	// Set estimation criteria

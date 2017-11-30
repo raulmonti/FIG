@@ -349,10 +349,11 @@ State<T_>::extract_from_state_instance(const StateInstance& s,
 
 
 template< typename T_ >
-void
+State<T_>&
 State<T_>::copy_from_state_instance(const StateInstance &s, bool checkValidity)
 {
 	extract_from_state_instance(s, 0ul, checkValidity);
+	return *this;
 }
 
 
@@ -404,9 +405,28 @@ State<T_>::decode(const size_t& n)
 		size_t stride(1u);
 		for (size_t j = i+1 ; j < numVars ; j++)
 			stride *= pvars_[j]->range_;
+		assert(0ul < stride);
 		pvars_[i]->offset_ = (n / stride) % pvars_[i]->range_;
 	}
 	return *this;
+}
+
+
+template< typename T_ >
+const State<T_>&
+State<T_>::decode(const uint128_t& n)
+{
+	const size_t numVars(size());
+	assert(n < maxConcreteState_);
+	for (size_t i=0 ; i < numVars ; i++) {
+		uint128_t stride(uint128::uint128_1);
+		for (size_t j = i+1 ; j < numVars ; j++)
+			stride *= pvars_[j]->range_;
+		assert(uint128::uint128_0 < stride);
+		pvars_[i]->offset_ = static_cast<size_t>(n / stride) % pvars_[i]->range_;
+	}
+	return *this;
+
 }
 
 

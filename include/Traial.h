@@ -227,7 +227,7 @@ public:  // Utils
 			if (reorder)
 				reorder_clocks();
 			if (0 > nextClock_)
-				report_deadlock();
+				report_timelock();
 			return clocks_[nextClock_];
 		}
 
@@ -300,10 +300,10 @@ private:  // Class utils
 	void
 	reorder_clocks();
 
-	/// Throw an exception showing current (supposedly) deadlock state
+	/// Throw an exception showing current timelock state
 	/// @throw FigException Always throws
 	void
-	report_deadlock();
+	report_timelock();
 };
 
 } // namespace fig

@@ -373,22 +373,22 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
         << "\n      ~  denotes a state is STOP,"
         << "\n      ^  denotes a state is REFERENCE.";
     for (size_t i = 0ul ; i < numModules_ ; i++) {
-		auto s(modules_[i]->initial_state());
+//		auto s(modules_[i]->initial_state());
 		auto lmin(std::numeric_limits<ImportanceValue>::max());
 		auto lmax(std::numeric_limits<ImportanceValue>::min());
 		out << "\nValues for module \"" << modules_[i]->name << "\":";
-        const ImportanceVec& impVec = modulesConcreteImportance[i];
+		const ImportanceVec& impVec = modulesConcreteImportance[i];
 		if (impVec.empty())
 			out << " <nodata>";
 		for (size_t i = 0ul ; i < impVec.size() ; i++) {
-			out << "\n  " << std::setw(3) << i << std::setw(1)
-			    << (IS_RARE_EVENT     (impVec[i]) ? "*" : "")
-			    << (IS_STOP_EVENT     (impVec[i]) ? "~" : "")
-			    << (IS_REFERENCE_EVENT(impVec[i]) ? "^" : "")
-			    << "| ";
-			assert(s.concrete_size() > i);
-			s.decode(i).print_out(out,true);
-			out << "== " << UNMASK(impVec[i]);
+//			out << "\n  " << std::setw(3) << i << std::setw(1)
+//			    << (IS_RARE_EVENT     (impVec[i]) ? "*" : "")
+//			    << (IS_STOP_EVENT     (impVec[i]) ? "~" : "")
+//			    << (IS_REFERENCE_EVENT(impVec[i]) ? "^" : "")
+//			    << "| ";
+//			assert(s.concrete_size() > i);
+//			s.decode(i).to_string(print_out(out,true);
+//			out << "== " << UNMASK(impVec[i]);
 			lmin = std::min(lmin, UNMASK(impVec[i]));
 			lmax = std::max(lmax, UNMASK(impVec[i]));
 		}

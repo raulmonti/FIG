@@ -39,6 +39,8 @@
 namespace fig
 {
 
+class ModuleNetwork;
+
 /**
  * @brief ThresholdsBuilder implementing Expected Success (ES)
  *
@@ -63,7 +65,7 @@ namespace fig
 class ThresholdsBuilderES : public ThresholdsBuilderAdaptive
 {
 	/// Upper bound for the effort assignable to a threshold-level
-	static constexpr size_t MAX_FEASIBLE_EFFORT = (1ul)<<(4ul);
+	static constexpr size_t MAX_FEASIBLE_EFFORT = 10ul;
 
 	/// Max # steps allowed for each internal Fixed Effort simulation
 	static constexpr decltype(Traial::numLevelsCrossed) MAX_FE_SIM_LEN = (1ul)<<(8ul);
@@ -72,6 +74,9 @@ protected:
 
 	/// Property to estimate, for which the thresholds will be selected
 	std::shared_ptr< const Property > property_;
+
+	/// Model currently built
+	const ModuleNetwork* model_;
 
 	/// Importance function currently built
 	const ImportanceFunction* impFun_;

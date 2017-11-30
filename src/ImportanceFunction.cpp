@@ -447,41 +447,35 @@ ImportanceFunction::initial_value(bool returnImportance) const noexcept
 }
 
 
-std::set<ImportanceValue>
+std::vector<ImportanceValue>
 ImportanceFunction::random_sample(State<STATE_INTERNAL_TYPE> s,
                                   size_t numValues) const
 {
-	static std::mt19937 RNG(std::mt19937::default_seed);;
-	if (!has_importance_info())
-		throw_FigException("importance function \"" + name() + "\" "
-		                   "has no importance information");
-	const size_t NUM_CONCRETE_STATES(s.concrete_size());
-	assert(0ul < NUM_CONCRETE_STATES);
-	std::uniform_int_distribution<unsigned> anyConcreteState(0, NUM_CONCRETE_STATES);
-	std::set<ImportanceValue> randomSample;
-	for (auto i = 0ul ; i < numValues ; i++)
-		randomSample.emplace(importance_of(s.decode(anyConcreteState(RNG))));
+	auto randomSamplePairs(random_sample2(s, numValues));
+	std::vector<ImportanceValue> randomSample;
+	randomSample.reserve(randomSamplePairs.size());
+	for (auto& p: randomSamplePairs)
+		randomSample.emplace_back(p.second);
 	return randomSample;
-//	ImportanceVec result;
-//	std::move(begin(randomSample), end(randomSample), std::back_inserter(result));
-//	return result;
 }
 
 
-std::set<std::pair<size_t, ImportanceValue>>
+std::set<std::pair<uint128_t, ImportanceValue>>
 ImportanceFunction::random_sample2(State<STATE_INTERNAL_TYPE> s,
                                   size_t numValues) const
 {
-	static std::mt19937 RNG(std::mt19937::default_seed);;
+	static std::mt19937 RNG(std::mt19937::default_seed);
 	if (!has_importance_info())
 		throw_FigException("importance function \"" + name() + "\" "
 		                   "has no importance information");
-	const size_t NUM_CONCRETE_STATES(s.concrete_size());
-	assert(0ul < NUM_CONCRETE_STATES);
-	std::uniform_int_distribution<unsigned> anyConcreteState(0, NUM_CONCRETE_STATES);
-	std::set<std::pair<size_t,ImportanceValue>> randomSample;
+	static const uint128_t INI_CONCRETE_STATE(uint128::uint128_0);
+	const uint128_t NUM_CONCRETE_STATES(s.concrete_size());
+	assert(INI_CONCRETE_STATE < NUM_CONCRETE_STATES);
+	std::uniform_int_distribution<size_t> anyCStateL(INI_CONCRETE_STATE, NUM_CONCRETE_STATES.lower());
+	std::uniform_int_distribution<size_t> anyCStateU(INI_CONCRETE_STATE, NUM_CONCRETE_STATES.upper());
+	std::set<std::pair<uint128_t,ImportanceValue>> randomSample;
 	for (auto i = 0ul ; i < numValues ; i++) {
-		auto cs(anyConcreteState(RNG));
+		uint128_t cs(anyCStateU(RNG), anyCStateL(RNG));
 		randomSample.emplace(cs, importance_of(s.decode(cs)));
 	}
 	return randomSample;

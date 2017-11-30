@@ -216,22 +216,18 @@ Traial::print_out(std::ostream& ostr, bool flush) const
 {
 	if (flush)
 		ostr << std::endl;
-	ostr << "Traial state: (";
-	for (const auto& v: state)
-		ostr << v << ",";
-	ostr << "\b)[";
+	ostr << "State: "
+	     << ModelSuite::get_instance().model->initial_state()
+	        .copy_from_state_instance(state).to_string();
+	ostr << "| Clocks: [";
 	for (const auto& t: clocks_)
-		if (!flush)
-			ostr << t.name << ":" << t.value << ",";
-		else if (std::isfinite(t.value))
-			ostr << t.name << ":" << t.value << ",";
-	ostr << "\b]";
-	if (flush)
-		ostr << "*";
-	ostr << "  Lvl: " << level;
-	ostr << "  Ltime: " << lifeTime;
-	ostr << "  LCrss: " << numLevelsCrossed;
-	ostr << "  Depth: " << depth;
+		if (!flush || std::isfinite(t.value))
+			ostr << t.name << ":" << t.value << ", ";
+	ostr << (flush ? ("]*") : ("]"));
+	ostr << " | Lvl: " << level;
+	ostr << " | Ltime: " << lifeTime;
+	ostr << " | LCrss: " << numLevelsCrossed;
+	ostr << " | Depth: " << depth;
 	if (flush)
 		ostr << std::endl << "* Missing clocks are NaN/inf." << std::endl;
 }
@@ -257,7 +253,7 @@ Traial::reorder_clocks()
 
 
 void
-Traial::report_deadlock()
+Traial::report_timelock()
 {
 	std::stringstream errMsg;
 	errMsg << "all clocks are expired, aka timelock! ";

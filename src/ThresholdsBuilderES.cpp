@@ -57,6 +57,7 @@ ThresholdsBuilderES::ThresholdsBuilderES(const size_t& n) :
     ThresholdsBuilder("es"),  // virtual inheritance forces this...
     ThresholdsBuilderAdaptive(n),
     property_(nullptr),
+    model_(nullptr),
     impFun_(nullptr)
 { /* Not much to do around here */ }
 
@@ -71,6 +72,7 @@ ThresholdsBuilderES::setup(const PostProcessing &,
 ThresholdsVec
 ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 {
+	model_ = ModelSuite::get_instance().modules_network().get();
 	impFun_ = &impFun;
 
 	// Adapted from Alg. 3 of Budde, D'Argenio, Hartmanns,
@@ -93,6 +95,7 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 #ifndef NDEBUG
 	ModelSuite::tech_log("\nRunning internal Fixed Effort");
 #endif
+	ModelSuite::tech_log(" [");
 	TraialsVec traials(get_traials(n_, impFun, false));
 	for (size_t m = 1ul ; m < 5ul && 0.0f >= Pup.back() ; m++) {
 		FE_for_ES(thrCandidates, traials, aux);
@@ -107,6 +110,7 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 			ModelSuite::tech_log("+");
 		}
 	}
+	ModelSuite::tech_log("]");
 	TraialPool::get_instance().return_traials(traials);
 	if (0.0f >= Pup.back())
 		artificial_thresholds_selection(thrCandidates, Pup);
@@ -145,6 +149,7 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	ModelSuite::tech_log("\n");
 	show_thresholds(thresholds_);
 	impFun_ = nullptr;
+	model_ = nullptr;
 	return thresholds_;
 }
 
@@ -158,7 +163,6 @@ ThresholdsBuilderES::reachable_importance_values() const
 
 	const ImportanceFunction& impFun(*impFun_);
 	auto events_watcher = &fig::ThresholdsBuilderES::importance_seeker;
-	const ModuleNetwork& network(*ModelSuite::get_instance().modules_network());
 
 	ImportanceValue maxImportanceReached(impFun.initial_value());
 	std::unordered_set< ImportanceValue > reachableImpValues = {impFun.initial_value()};
@@ -175,7 +179,7 @@ ThresholdsBuilderES::reachable_importance_values() const
 			const ImportanceValue startImp(traial.level);
 			traial.depth = 0;
 			traial.numLevelsCrossed = 0;
-			network.simulation_step(traial, *property_, *this, events_watcher);
+			model_->simulation_step(traial, *property_, *this, events_watcher);
 			if (startImp < traial.level) {
 				reachableImpValues.emplace(traial.level);
 				maxImportanceReached = std::max(maxImportanceReached, traial.level);
@@ -186,7 +190,7 @@ ThresholdsBuilderES::reachable_importance_values() const
 				else if (traialsNow.size() > 1ul)
 					traial = traialsNow[numFails%traialsNow.size()].get();
 				else
-					traial.initialise(network,impFun);  // start over
+					traial.initialise(*model_,impFun);  // start over
 				traialsNow.push_back(traial);
 			}
 			assert(traialsNow.size()+traialsNext.size() == NUM_INDEPENDENT_RUNS);
@@ -209,7 +213,6 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
                                std::vector<float>& Pup) const
 {
 	auto events_watcher = &fig::ThresholdsBuilderES::FE_watcher;
-	const ModuleNetwork& network(*ModelSuite::get_instance().modules_network());
 	const size_t N = traials.size();  // effort per level
 	std::vector< Reference< Traial > > freeNow, freeNext, startNow, startNext;
 
@@ -223,7 +226,7 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 	startNow.reserve(N);
 	startNext.reserve(N);
 	for (Traial& t: traials) {
-		t.initialise(network,*impFun_);
+		t.initialise(*model_,*impFun_);
 		startNow.push_back(t);
 	}
 
@@ -244,10 +247,10 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 				startNow.pop_back();
 			}
 			// (simulation & bookkeeping)
-			assert(traial.level >= currImp || startNow.size() < 2ul);
+			//assert(traial.level >= currImp || startNow.size() < 2ul);
 			traial.depth = 0;
 			traial.numLevelsCrossed = 0;
-			network.simulation_step(traial, *property_, *this, events_watcher);
+			model_->simulation_step(traial, *property_, *this, events_watcher);
 			if (traial.level > currImp)
 				startNext.push_back(traial);
 			else
@@ -271,12 +274,11 @@ ThresholdsBuilderES::artificial_thresholds_selection(
 
 	if (reachableImportanceValues.size() < 2ul) {
 		// There's *nothing*, try desperately to build some threshold
-		auto moreValues = impFun_->random_sample(
-		            ModelSuite::get_instance().modules_network()->initial_state());
-		moreValues.insert(begin(reachableImportanceValues), end(reachableImportanceValues));
-		reachableImportanceValues.clear();
+		auto moreValues = impFun_->random_sample(model_->initial_state());
 		reachableImportanceValues.insert(end(reachableImportanceValues),
 		                                 begin(moreValues), end(moreValues));
+		std::sort(begin(reachableImportanceValues), end(reachableImportanceValues));
+		std::unique(begin(reachableImportanceValues), end(reachableImportanceValues));
 		if (reachableImportanceValues.size() < 2ul) {
 			ModelSuite::tech_log("; cannot find *any* threshold!");
 			return;

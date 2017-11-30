@@ -169,8 +169,9 @@ private:
                                        const LocationContainer &updates);
 
 public:
-    ExpStateUpdater(const LocationContainer &updates,
-                    const ExpContainer &expVec);
+
+	ExpStateUpdater(LocationContainer&& updates,
+	                ExpContainer&& expVec);
 
     /// @see ExpState::prepare
     /// Compute the "external position" associtated with each acceptor.

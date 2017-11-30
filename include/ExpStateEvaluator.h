@@ -59,7 +59,10 @@ protected:
     /// The vector of expressions to evaluate
     ExpContainer astVec;
 
-    /// The internal state that contains the values for all the identifiers
+	/// How many expressions do we have
+	size_t numExp;
+
+	/// The internal state that contains the values for all the identifiers
     /// occurring on the expressions.
     mutable ExpState<NTYPE> expState;
 
@@ -68,9 +71,6 @@ protected:
 
     /// Strings that generated our vector of expressions
     std::vector<std::string> expStrings;
-
-    /// How many expressions do we have
-    size_t numExp;
 
     /// Indicate if our internal state has already been syncronized with the main
     /// simulation state
@@ -82,15 +82,15 @@ protected:
     mutable std::vector<STYPE> valuation;
 
 public:
-    ExpStateEvaluator(const ExpContainer& astVec) noexcept;
+	ExpStateEvaluator(const ExpContainer& astVector);
 
-    ExpStateEvaluator(shared_ptr<Exp> ast) noexcept :
+	ExpStateEvaluator(shared_ptr<Exp> ast) :
 		ExpStateEvaluator(ExpContainer {ast}) {}
 
     /// @brief Copy Constructor
-    ExpStateEvaluator(const ExpStateEvaluator& that) noexcept;
+	ExpStateEvaluator(const ExpStateEvaluator& that);
 
-    ExpStateEvaluator(ExpStateEvaluator&& that) = delete;
+	ExpStateEvaluator(ExpStateEvaluator&& that);
 
     /// Associate our internal state with the main simulation state.
     /// @see ExpState::project_positions

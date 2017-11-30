@@ -82,7 +82,8 @@ bool has_identifiers_in(Term exp, const vector<string>& varnames) {
 }
 
 
-inline Clause clause_from_terms(const vector<Term> &terms) {
+std::shared_ptr<Exp>
+clause_from_terms(const vector<Term> &terms) {
     //shared_ptr<ModuleScope> scope = CompositeModuleScope::get_instance();
     //std::pair<string, vector<string>> str_names
     //        =  ExpStringBuilder::make_conjunction_str(scope, terms);
@@ -100,7 +101,7 @@ inline Clause clause_from_terms(const vector<Term> &terms) {
     if (exp == nullptr) {
         throw_FigException("Can't construct clause");
     }
-    return Precondition(exp);
+	return exp;
 }
 
 vector<Clause> project_on_var_set(const DNF& dnf,
@@ -114,8 +115,7 @@ vector<Clause> project_on_var_set(const DNF& dnf,
             }
         }
         if (p_term_vec.size() > 0) {
-            const Clause& clause = clause_from_terms(p_term_vec);
-            result.push_back(clause);
+			result.emplace_back(clause_from_terms(p_term_vec));
         }
     }
 
@@ -179,7 +179,7 @@ PropertyProjection::project(const State& localState) const {
     for (Clause& clause: others) {
         clause.prepare(localState);
     }
-    return std::make_pair(rares, others);
+	return std::make_pair(std::move(rares), std::move(others));
 }
 
 PropertyProjection::~PropertyProjection() {}

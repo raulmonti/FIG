@@ -174,7 +174,7 @@ private:
 public:
     ExpState(const std::vector<std::shared_ptr<Exp>>& astVec);
     ExpState(const ExpState& that);
-    ExpState(ExpState &&that) = delete;
+	ExpState(ExpState &&that);
     ExpState& operator=(const ExpState& state) = delete;
 
     /// Associate an external position to each variable on the state.

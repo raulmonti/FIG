@@ -83,25 +83,24 @@ TraialPool::TraialPool()
 TraialPool&
 TraialPool::get_instance()
 {
-	if (0u >= numVariables && 0u >= numClocks)
 #ifndef NDEBUG
+	if (0u >= numVariables && 0u >= numClocks)
 		throw_FigException("can't build the TraialPool since the "
 						   "ModelSuite hasn't been sealed yet");
 #endif
 	std::call_once(singleInstance_,
-				   [] () {instance_.reset(new TraialPool);});
+	               [] () {instance_.reset(new TraialPool);});
+	assert(nullptr != instance_);
 	return *instance_;
 }
 
 
 TraialPool::~TraialPool()
 {
-//	available_traials_.clear();
-//	traials_.clear();
-
-//	Deleting these containers would be linear in their sizes.
-//	Since the TraialPool should only be deleted after simulations conclusion,
-///	@warning we ingnore this (potential?) memory leak due to its short life.
+	// clear();  // NO!
+	// Deleting these containers has produced double free() errors.
+	// Since the TraialPool should only be deleted after simulations conclusion,
+	/// @warning we ingnore this potential memory leak due to its short life.
 }
 
 
@@ -360,22 +359,22 @@ void
 TraialPool::ensure_resources(const size_t& requiredResources)
 {
 	const size_t oldSize = traials_.size();
-	const size_t newSize = oldSize + std::max<long>(0, requiredResources - num_resources());
+	const size_t newSize = (oldSize == 0ul)
+	        ? initial_size()
+	        : oldSize + std::max(0l, static_cast<long>(requiredResources) - static_cast<long>(num_resources()));
 
-	if (newSize == oldSize) {
+	if (newSize <= oldSize)
 		return;  // nothing to do!
-	} else if (oldSize == 0ul) {
-		traials_.reserve(INITIAL_SIZE*4ul);  // called by TraialPool ctor[*]
-		TRAIALS_MEM_ADDR = traials_.data();
-	} else {
-		traials_.reserve(newSize);
-		if (traials_.data() != TRAIALS_MEM_ADDR)  // we're fucked
-			throw_FigException("memory corrupted after reallocation of the "
-							   "Traials vector; ABORTING");
-	}
+
+	traials_.reserve(newSize);
+	if (0ul == oldSize)  // called by ctor? register mem address
+		::TRAIALS_MEM_ADDR = traials_.data();
+	else if (traials_.data() != ::TRAIALS_MEM_ADDR)  // we're fucked [*]
+		throw_FigException("memory corrupted after reallocation of the "
+		                   "Traials vector; ABORTING");
 
 	// A reservation could have moved the memory segment: reproduce references
-	/// @bug FIXME: references in users' ADTs would still be corrupted
+	/// @bug FIXME: references in users' ADTs would still be corrupted [*]
 	available_traials_.clear();
 	for (size_t i = 0ul ; i < oldSize ; i++)
 		available_traials_.emplace_front(std::ref(traials_[i]));
@@ -385,6 +384,8 @@ TraialPool::ensure_resources(const size_t& requiredResources)
 		traials_.emplace_back(numVariables, numClocks);
 		available_traials_.emplace_front(std::ref(traials_[i]));
 	}
+
+	assert(traials_.data() == ::TRAIALS_MEM_ADDR);
 
 	/* [*] Important note for developers
 	 *

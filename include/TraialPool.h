@@ -81,11 +81,11 @@ class TraialPool
 public:
 
 	/// Size of available_traials_ on pool creation
-	static constexpr size_t INITIAL_SIZE = 1ul << 18ul;  // 256 K
+	static constexpr size_t INITIAL_SIZE = ((1ul)<<(18ul));  // 256 K
 
 	/// How many new resources to allocate when either get_traial_copies() or
 	/// get_traial() is invoked and available_traials_ is empty.
-	static constexpr size_t INCREMENT_SIZE = INITIAL_SIZE >> 6ul;  // INITIAL_SIZE/64
+	static constexpr size_t INCREMENT_SIZE = ((INITIAL_SIZE)>>(6ul));  // INITIAL_SIZE/64
 
 private:
 

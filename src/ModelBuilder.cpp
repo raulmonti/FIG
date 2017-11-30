@@ -357,7 +357,7 @@ void ModelBuilder::visit(shared_ptr<ClockDecl> decl) {
     module_clocks->push_back(build_clock(decl->get_id()));
 }
 
-Label build_label(const string &id, LabelType type) {
+Label build_label(string&& id, LabelType type) {
     switch(type) {
     case LabelType::in : return Label::make_input(id);
     case LabelType::out: return Label::make_output(id);
@@ -370,25 +370,23 @@ Label build_label(const string &id, LabelType type) {
 }
 
 void ModelBuilder::visit(shared_ptr<TransitionAST> action) {
-    const string &label_id = action->get_label();
-    LabelType label_type = action->get_label_type();
-    Label label = build_label(label_id, label_type);
+	assert(nullptr != current_module);
+	Label label = build_label(std::move(action->get_label()),
+	                          action->get_label_type());
     //Transition constructor expects the id of the triggering
     //clock,  let's get it:
-    string t_clock = std::string();
-    if (action->has_triggering_clock()) {
+	string t_clock("");
+	if (action->has_triggering_clock())
         t_clock = action->to_output()->get_triggering_clock()->get_identifier();
-    }
-    Precondition pre (action->get_precondition());
-    //Postcondition, to build the postcondition we need to visit the effects.
     transition_clocks = make_unique<set<string>>();
-    for (shared_ptr<ClockReset> reset : action->get_clock_resets()) {
+	for (shared_ptr<ClockReset> reset : action->get_clock_resets())
         accept_cond(reset);
-    }
-    assert(current_module != nullptr);
-    Postcondition post (action->get_assignments());
-    const Transition &trans {label, t_clock, pre, post, *transition_clocks};
-    current_module->add_transition(trans);
+	current_module->add_transition(
+	            label,
+	            t_clock,
+	            std::move(Precondition(action->get_precondition())),
+	            std::move(Postcondition(action->get_assignments())),
+	            *transition_clocks);
 }
 
 void ModelBuilder::visit(shared_ptr<ClockReset> reset) {

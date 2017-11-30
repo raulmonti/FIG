@@ -1,6 +1,7 @@
 /* Leonardo Rodríguez */
 
 #include "ExpStateEvaluator.h"
+#include "string_utils.h"
 #include <functional>
 #include <cmath>
 #include <FigException.h>
@@ -29,17 +30,17 @@ ExpTranslatorVisitor::exprtk_name(ExpOp op) {
     case ExpOp::min: return "min";
     case ExpOp::minus: return "-";
     case ExpOp::mod: return "%";
-    case ExpOp::neq: return "nequal";
-    case ExpOp::nott: return "not";
+	case ExpOp::neq: return "not_equal";  // documentation says "nequal" but exprtk code has "not_equal" !!!
+	case ExpOp::nott: return "not";
     case ExpOp::orr: return "|";
     case ExpOp::plus: return "+";
     case ExpOp::pow: return "pow";
     case ExpOp::sgn: return "sgn";
     case ExpOp::times: return "*";
         //custom functions
-    case ExpOp::fsteq: return "fsteq";
+	case ExpOp::fsteq: return "fsteq";
     case ExpOp::lsteq: return "lsteq";
-    case ExpOp::rndeq: return "rndeq";
+	case ExpOp::rndeq: return "rndeq";
     case ExpOp::minfrom: return "minfrom";
     case ExpOp::maxfrom: return "maxfrom";
     case ExpOp::sumfrom: return "sumfrom";
@@ -148,41 +149,67 @@ ExpTranslatorVisitor::get_string() const noexcept {
 
 // Definitions of ExpStateEvaluator
 
-ExpStateEvaluator::ExpStateEvaluator(const ExpContainer& astVec) noexcept
-    : astVec {astVec}, expState {astVec}, valuation(astVec.size()) {
-    numExp = astVec.size();
-    exprVec.resize(numExp);
-    expStrings.resize(numExp);
+ExpStateEvaluator::ExpStateEvaluator(const ExpContainer& astVector) :
+    astVec(astVector),
+    numExp(astVector.size()),
+    expState(astVector),
+    expStrings(numExp),
+    prepared(false),
+    valuation(numExp)
+{
+#ifndef NDEBUG
+	static exprtk::expression_helper<NTYPE> checkExpr;
+#endif
+	exprVec.resize(numExp);
 	exprtk::parser<NTYPE> parser;
     // Translate all the ast expressions
     for (size_t i = 0; i < numExp; i++) {
         ExpTranslatorVisitor visitor;
-        astVec[i]->accept(visitor);
-        //parse string and produce a expression
-        expStrings[i] = visitor.get_string();
-        expState.register_expression(exprVec[i]);
+		astVec[i]->accept(visitor);
+		// Now parse string and produce an expression
+		expStrings[i] = visitor.get_string();
+		expState.register_expression(exprVec[i]);
         parser.compile(expStrings[i], exprVec[i]);
+		assert(exprtk::is_valid<NTYPE>(exprVec[i]));
+		assert(!checkExpr.is_null(exprVec[i]) || expStrings[i].length() < 2);
     }
 }
 
-ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) noexcept
-    : astVec {that.astVec}, expState {that.expState}, valuation(that.numExp) {
-    numExp = that.numExp;
-    prepared = that.prepared;
-    //expression and tables are shallow copied by default, let's create new ones
-    //new symbol table must refer to the new vector of values.
-    //@todo dig up why is neccesary to have a copy constructor of this class.
-    //@note just removing the old table of each expression (without reparsing) didn't work
-    // but I don't remember why, we should try again to save some time.
-    new (&exprVec) std::vector<expression_t>();
-    exprVec.resize(numExp);
-    new (&expStrings) std::vector<std::string>(that.expStrings);
+ExpStateEvaluator::ExpStateEvaluator(const ExpStateEvaluator &that) :
+    astVec(that.astVec),  // is deep copy because contents are shared_ptr<>
+    numExp(that.numExp),
+    expState(astVec),
+    expStrings(that.expStrings),  // default is deep-copy
+    prepared(that.prepared),
+    valuation(that.valuation)
+{
+#ifndef NDEBUG
+	static exprtk::expression_helper<NTYPE> checkExpr;
+#endif
+	//new symbol table must refer to the new vector of values.
+	//@todo dig up why is neccesary to have a copy constructor of this class.
+	//@note just removing the old table of each expression (without reparsing) didn't work
+	// but I don't remember why, we should try again to save some time.
+	exprVec.resize(numExp);
 	exprtk::parser<NTYPE> parser;
-    for (size_t i = 0; i < numExp; i++) {
-        expState.register_expression(exprVec[i]);
-        parser.compile(expStrings[i], exprVec[i]);
-    }
+	for (size_t i = 0; i < numExp; i++) {
+		expState.register_expression(exprVec[i]);
+		parser.compile(expStrings[i], exprVec[i]);
+		assert(exprtk::is_valid<NTYPE>(exprVec[i]));
+		assert(!checkExpr.is_null(exprVec[i]) || expStrings[i].length() < 2);
+	}
 }
+
+
+ExpStateEvaluator::ExpStateEvaluator(ExpStateEvaluator&& that) :
+    astVec(std::move(that.astVec)),
+    numExp(that.numExp),
+    expState(std::move(that.expState)),
+    exprVec(std::move(that.exprVec)),
+    expStrings(std::move(that.expStrings)),
+    prepared(that.prepared),
+    valuation(std::move(that.valuation)) {}
+
 
 void ExpStateEvaluator::prepare(const State<STATE_INTERNAL_TYPE> &state)
 noexcept {
@@ -198,13 +225,15 @@ void ExpStateEvaluator::prepare(const PositionsMap& posMap) noexcept {
 STYPE
 ExpStateEvaluator::eval(const State<STATE_INTERNAL_TYPE> &state) const noexcept {
     expState.project_values(state);
-    return exprVec[0].value();
+	assert(exprVec.size() == 1ul);  // TODO erase?
+	return exprVec[0].value();
 }
 
 STYPE
 ExpStateEvaluator::eval(const StateInstance &state) const noexcept {
     expState.project_values(state);
-    return exprVec[0].value();
+	assert(exprVec.size() == 1ul);  // TODO erase?
+	return exprVec[0].value();
 }
 
 

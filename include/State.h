@@ -320,11 +320,13 @@ public:  // Interaction with state instances
 	 * @brief Copy values for our Variables from passed StateInstance.
 	 *        Optionally check for validity of 's' beforehand.
 	 * @param s StateInstance, same size as this State, to copy all values from
+	 * @return Reference to self after a successfull copy
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 * @throw FigException if StateInstance with different size passed
 	 * @throw FigException if checking validity and invalid value found
 	 */
-	void copy_from_state_instance(const StateInstance& s, bool checkValidity = false);
+	State<T_>&
+	copy_from_state_instance(const StateInstance& s, bool checkValidity = false);
 
 	/**
 	 * @brief Copy our \ref Variable "variables" values to the StateInstance 's'
@@ -355,6 +357,9 @@ public:  // Encode/Decode between symbolic and concrete representations
 	 * @note <b>Complexity:</b> <i>O(size()<sup>2</sup>)</i>
 	 */
 	const State<T_>& decode(const size_t& n);
+
+	/// @copydoc decode
+	const State<T_>& decode(const uint128_t& n);
 
 	/**
 	 * @brief Decode concrete state 'n' into corresponding Variable value
