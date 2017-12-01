@@ -294,10 +294,15 @@ ModuleInstance::apply_postcondition(Traial &traial,
 			        && !tr.label().is_out_committed()) {
 				std::stringstream errMsg;
 				errMsg << "[ERROR] Nondeterminism detected in Module "
-				       << name << ": Label of trans.#1: "
-				       << labPtr->str << " , Label of trans.#2: "
+				       << name << ": Label of trans #1: "
+				       << labPtr->str << " , Label of trans #2: "
 				       << tr.label().str;
 				throw_FigException(errMsg.str());
+			} else if (nullptr != labPtr) {
+				figTechLog << "\n[WARNING] Nondeterminism of committed actions "
+				              "detected in Module " << name
+				           << ": the transition labels are \"" << labPtr->str
+				           << "\" and \"" << tr.label().str << "\"\n";
 			} else {
 				labPtr = &tr.label();
 			}
@@ -311,6 +316,8 @@ ModuleInstance::apply_postcondition(Traial &traial,
 		return ::NoLabel;
 	else
 		return *labPtr;
+#else
+	return ::NoLabel;
 #endif
 }
 
@@ -424,6 +431,11 @@ ModuleInstance::apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
 				       << labStr << " , Label of trans #2: "
 				       << tr.label().str;
 				throw_FigException(errMsg.str());
+			} else if (!labStr.empty()) {
+				figTechLog << "\n[WARNING] Nondeterminism of committed actions "
+				              "detected in Module " << name
+				           << ": the transition labels are \"" << labStr
+				           << "\" and \"" << tr.label().str << "\"\n";
 			} else {
 				labStr = tr.label().str;
 			}

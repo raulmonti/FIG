@@ -126,7 +126,7 @@ struct MinFromFunction : public exprtk::igeneric_function<T> {
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector(gt);
         assert(vector.size() > 0); //non empty
-        size_t pos;
+		size_t pos(0ul);
         assert(value.to_uint(pos)); //keep it!
         assert(pos < vector.size());
         size_t selected = pos;
@@ -154,7 +154,7 @@ struct MaxFromFunction : public exprtk::igeneric_function<T> {
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector(gt);
         assert(vector.size() > 0); //non empty
-        size_t pos;
+		size_t pos(0ul);
         assert(value.to_uint(pos)); //keep it!
         assert(pos < vector.size());
         size_t selected = pos;
@@ -179,7 +179,7 @@ struct SumFromFunction : public exprtk::igeneric_function<T> {
         generic_type<T> &gt = parameters[0];
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector(gt);
-        size_t pos;
+		size_t pos(0ul);
         assert(value.to_uint(pos)); //keep it!
         assert(pos < vector.size());
         T sum  = 0;
@@ -237,7 +237,7 @@ struct BrokenFunction : public exprtk::igeneric_function<T> {
         generic_type<T> &gt = parameters[0];
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector(gt);
-        unsigned int pos;
+		unsigned int pos(0u);
         assert(value.to_uint(pos)); //keep it!
         assert(pos < vector.size());
         vector[pos] = 1;
@@ -262,7 +262,7 @@ struct FstExcludeFunction : public exprtk::igeneric_function<T> {
         generic_type<T> &gt = parameters[0];
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector(gt);
-        size_t pos;
+		size_t pos(0ul);
         assert(value.to_uint(pos)); //keep it!
         for (size_t i = 0; i < vector.size(); i++) {
             if (vector[i] && i != pos) {
