@@ -134,6 +134,12 @@ protected:
 	mutable CLOCK_INTERNAL_TYPE simsLifetime;
 //	mutable thread_local CLOCK_INTERNAL_TYPE simsLifetime;
 
+	/// How many Traials reached each threshold level in the last simulation
+	/// @note Useful for debugging purposes
+	/// @note Only applicable to \ref isplit() "engines implementing
+	///       some sort of importance splitting"
+	mutable std::vector< size_t > reachCount_;
+
 public:  // Ctors/Dtor
 
     /**
@@ -223,6 +229,9 @@ public:  // Accessors
     /// @copydoc name_
     const std::string& name() const noexcept;
 
+	/// Does this engine implement some sort of importance splitting?
+	virtual bool isplit() const noexcept = 0;
+
     /// @brief Is this engine tied up to an ImportanceFunction,
     ///        and thus ready for simulations?
     /// @details True after a successfull call to bind().
@@ -267,6 +276,9 @@ public:  // Accessors
 
 	/// Engine-specific default value for the global effort
 	virtual unsigned global_effort_default() const noexcept = 0;
+
+	/// @copydoc reachCount_
+	inline std::vector< size_t > get_reach_counts() const noexcept { return reachCount_; }
 
 public:  // Simulation functions
 

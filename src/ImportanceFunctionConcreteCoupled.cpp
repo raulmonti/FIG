@@ -97,6 +97,7 @@ void
 ImportanceFunctionConcreteCoupled::print_out(std::ostream& out,
                                              State<STATE_INTERNAL_TYPE>) const
 {
+	static constexpr auto MAX_PRINT_LEN((1ul)<<(10ul));
 	if (!has_importance_info()) {
 		out << "\nImportance function \"" << name() << "\" doesn't yet have "
 			   "any importance information to print." << std::endl;
@@ -114,7 +115,10 @@ ImportanceFunctionConcreteCoupled::print_out(std::ostream& out,
         << "\n      ^  denotes a state is REFERENCE.";
     out << "\nValues for coupled model:";
     const ImportanceVec& impVec = modulesConcreteImportance[importanceInfoIndex_];
-	for (size_t i = 0ul ; i < impVec.size() ; i++) {
+	if (impVec.size() > MAX_PRINT_LEN)
+		out << " (printing only the first " << MAX_PRINT_LEN
+		    << " out of a total of " << impVec.size() << " values)";
+	for (size_t i = 0ul ; i < std::min(impVec.size(),MAX_PRINT_LEN) ; i++) {
         out << " (" << i;
 		out << (IS_RARE_EVENT     (impVec[i]) ? "*" : "");
 		out << (IS_STOP_EVENT     (impVec[i]) ? "~" : "");

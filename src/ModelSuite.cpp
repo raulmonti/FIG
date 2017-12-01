@@ -1218,6 +1218,15 @@ ModelSuite::estimate_for_times(const Property& property,
 		interruptCI_ = nullptr;
 		lastEstimates_.push_back(ci_ptr);
 		// Results should've been shown on TO interruption
+#ifndef NDEBUG
+		if (engine.isplit()) {
+			size_t i(0ul);
+			techLog_ << "# of sims reaching each threshold level:";
+			for (auto cnt: engine.get_reach_counts())
+				techLog_ << "\n" << std::setw(3) << (i++) << " | " << cnt;
+			techLog_ << std::endl << std::endl;
+		}
+#endif
 	}
 }
 
@@ -1285,6 +1294,15 @@ ModelSuite::estimate_for_confs(const Property& property,
 		}
 		interruptCI_ = nullptr;
 		lastEstimates_.push_back(ci_ptr);
+#ifndef NDEBUG
+		if (engine.isplit()) {
+			size_t i(0ul);
+			techLog_ << "\n# of sims reaching each threshold level:";
+			for (auto cnt: engine.get_reach_counts())
+				techLog_ << "\n" << std::setw(3) << (i++) << " | " << cnt;
+			techLog_ << std::endl << std::endl;
+		}
+#endif
 	}
 }
 

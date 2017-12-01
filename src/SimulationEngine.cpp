@@ -170,7 +170,8 @@ SimulationEngine::SimulationEngine(
 		network_(network),
 		impFun_(nullptr),
 		cImpFun_(nullptr),
-        interrupted(false)
+        interrupted(false),
+        reachCount_()
 {
 	if (std::find(begin(names()), end(names()), name) == end(names())) {
 		std::stringstream errMsg;

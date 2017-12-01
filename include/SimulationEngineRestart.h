@@ -93,6 +93,8 @@ public:  // Ctor
 
 public:  // Accessors
 
+	inline bool isplit() const noexcept override final { return true; }
+
 	unsigned global_effort() const noexcept override;
 
 	/// @copydoc DEFAULT_GLOBAL_EFFORT

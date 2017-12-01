@@ -173,6 +173,9 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	std::stack< Reference< Traial > > stack;
 	static TraialPool& tpool(TraialPool::get_instance());
 
+	if (reachCount_.size() != numThresholds+1)
+		decltype(reachCount_)(numThresholds+1,0).swap(reachCount_);
+
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	bool (SimulationEngineRestart::*watch_events)
 	     (const PropertyTransient&, Traial&, Event&) const;
@@ -192,6 +195,8 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 		while (!stack.empty() && !interrupted) {
 			Event e(EventType::NONE);
 			Traial& traial = stack.top();
+			assert(traial.level <= numThresholds);
+			reachCount_[traial.level]++;
 
 			// Check whether we're standing on a rare event first
 			(this->*watch_events)(property, traial, e);
@@ -251,8 +256,11 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	const unsigned numThresholds(impFun_->num_thresholds());
 	std::vector< double > raresCount(numThresholds+1, 0.0);
 	static TraialPool& tpool(TraialPool::get_instance());
+
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 	numChunksTruncated_ = 0u;
+	if (reachCount_.size() != numThresholds+1 || reinit)
+		decltype(reachCount_)(numThresholds+1,0).swap(reachCount_);
 
 	// Reset batch or run with batch means?
 	if (reinit || ssstack_.empty()) {
@@ -296,6 +304,8 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	while (!ssstack_.empty() && !interrupted) {
 		Event e(EventType::NONE);
 		Traial& traial = ssstack_.top();
+		assert(traial.level <= numThresholds);
+		reachCount_[traial.level]++;
 #ifndef NDEBUG
 		if (&traial == &oTraial_ && ssstack_.size() > 1ul) {
 			std::stringstream errMsg;

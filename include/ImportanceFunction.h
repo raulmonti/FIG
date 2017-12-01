@@ -278,6 +278,7 @@ public:  // Accessors
 	/// @note If the \ref TresholdsBuilder::build_thresholds() "thresholds
 	///       were already built" the value returned will be the highest
 	///       <b>threshold level</b>.
+	/// @see num_thresholds()
 	ImportanceValue max_value(bool returnImportance = false) const noexcept;
 
 	/// @copydoc minRareValue_
@@ -305,11 +306,13 @@ public:  // Accessors
 	///          last thresholds building technique used otherwise
 	const std::string thresholds_technique() const noexcept;
 
-	/// Number of thresholds built on last call to build_thresholds()
+	/// Number of thresholds built on last call to build_thresholds(),
+	/// equal to max_value() after building the thresholds
 	/// \ifnot NDEBUG
 	///   @throw FigException if this instance isn't \ref ready()
 	///                       "ready for simulations"
 	/// \endif
+	/// @see max_value()
 	/// @see build_thresholds()
 	unsigned num_thresholds() const;
 

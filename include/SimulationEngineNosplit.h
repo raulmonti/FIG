@@ -67,6 +67,8 @@ public:  // Ctor
 
 public:  // Accessors
 
+	inline bool isplit() const noexcept override final { return false; }
+
 	inline unsigned global_effort() const noexcept override { return global_effort_default(); }
 
 	inline unsigned global_effort_default() const noexcept override { return 1u; }

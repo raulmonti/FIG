@@ -55,9 +55,6 @@ namespace fig
  * @see ThresholdsBuilder
  * @see ThresholdsBuilderFixed
  * @see ThresholdsBuilderAdaptive
-
-/// @todo TODO Change inheritance from ThresholdsBuilderSMC to ThresholdsBuilderES
-///
  */
 class ThresholdsBuilderHybrid : public ThresholdsBuilderFixed,
                                 public ThresholdsBuilderSMC

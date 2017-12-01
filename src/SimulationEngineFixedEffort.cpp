@@ -112,6 +112,8 @@ SimulationEngineFixedEffort::transient_simulations(const PropertyTransient& prop
 	std::vector< Reference< Traial > > traialsNow, traialsNext;
 	traialsNow.reserve(EFF_MAX);
 	traialsNext.reserve(EFF_MAX);
+	if (reachCount_.size() != LVL_MAX)
+		decltype(reachCount_)(LVL_MAX,0).swap(reachCount_);
 
 	// Perform 'numRuns' independent Fixed Effort simulations
 	for (size_t i = 0ul ; i < numRuns ; i++) {
@@ -157,6 +159,8 @@ SimulationEngineFixedEffort::transient_simulations(const PropertyTransient& prop
 			do {
 				Traial& traial(traialsNow.back());
 				traialsNow.pop_back();
+				assert(traial.level < LVL_MAX);
+				reachCount_[traial.level]++;
 				network.simulation_step(traial, property, *this, event_watcher);
 				if (traial.level > l) {
 					numSuccesses++;
