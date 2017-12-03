@@ -1221,7 +1221,7 @@ ModelSuite::estimate_for_times(const Property& property,
 #ifndef NDEBUG
 		if (engine.isplit()) {
 			size_t i(0ul);
-			techLog_ << "# of sims reaching each threshold level:";
+			techLog_ << "#(sims) reaching each threshold level:";
 			for (auto cnt: engine.get_reach_counts())
 				techLog_ << "\n" << std::setw(3) << (i++) << " | " << cnt;
 			techLog_ << std::endl << std::endl;
@@ -1297,7 +1297,7 @@ ModelSuite::estimate_for_confs(const Property& property,
 #ifndef NDEBUG
 		if (engine.isplit()) {
 			size_t i(0ul);
-			techLog_ << "\n# of sims reaching each threshold level:";
+			techLog_ << "\n#(sims) reaching each threshold level:";
 			for (auto cnt: engine.get_reach_counts())
 				techLog_ << "\n" << std::setw(3) << (i++) << " | " << cnt;
 			techLog_ << std::endl << std::endl;

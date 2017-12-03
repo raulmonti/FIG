@@ -215,7 +215,10 @@ find_new_threshold(const fig::ModuleNetwork& network,
 
 	// Function pointers matching ModuleNetwork::peak_simulation() signatures
 	auto predicate = [&jumpsLeft,&MAX_IMP,&property](const Traial& t) -> bool {
-		return --jumpsLeft > 0u && MAX_IMP > t.level && !property.is_stop(t.state);
+		return --jumpsLeft > 0u
+		        && MAX_IMP > t.level
+		        //&& !property.is_stop(t.state) // no! too harsh, SEQ never succeeds
+		        ;
     };
     auto update = [&impFun](Traial& t) -> void {
         t.level = impFun.importance_of(t.state);
