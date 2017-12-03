@@ -102,7 +102,7 @@ else
 fi
 
 # Build in release mode? Or in debug mode?
-RELEASE=true;
+RELEASE=false;
 
 # Cmake build options, see CMakeLists.txt
 if ! $RELEASE ; then

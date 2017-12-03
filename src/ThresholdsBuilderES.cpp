@@ -141,6 +141,10 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	auto postprocess = [] (effort_t& e, const effort_t& MAX_FEASIBLE_EFFORT) {
 		static constexpr auto SCALE_DOWN_COEFFICIENT(1.4f);
 		e = std::min<float>(e/SCALE_DOWN_COEFFICIENT, MAX_FEASIBLE_EFFORT);
+		/// @todo TODO research: is this balanced? We've seen ES
+		///       selecting 0/49 thresholds in the queue with breakdowns!
+		///       Make sure that when a threshold is "avoided," the effort
+		///       that wasn't used is carried onto the next potential threshold
 	};
 	for (size_t i = 0ul ; i < Pup.size() ; i++) {
 		float prev = effort[(i-1)%Pup.size()];

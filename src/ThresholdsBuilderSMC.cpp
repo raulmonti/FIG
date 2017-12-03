@@ -218,6 +218,9 @@ find_new_threshold(const fig::ModuleNetwork& network,
 		return --jumpsLeft > 0u
 		        && MAX_IMP > t.level
 		        //&& !property.is_stop(t.state) // no! too harsh, SEQ never succeeds
+		                                        // but if we don't consider the property
+		                                        // then the thresholds are less realistic
+		        /// @todo TODO research: is it better or worse to consider the property?
 		        ;
     };
     auto update = [&impFun](Traial& t) -> void {
