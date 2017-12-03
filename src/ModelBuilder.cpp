@@ -371,7 +371,7 @@ Label build_label(string&& id, LabelType type) {
 
 void ModelBuilder::visit(shared_ptr<TransitionAST> action) {
 	assert(nullptr != current_module);
-	Label label = build_label(std::move(action->get_label()),
+	Label label = build_label(action->get_label(),  // rely on copy elision!
 	                          action->get_label_type());
     //Transition constructor expects the id of the triggering
     //clock,  let's get it:

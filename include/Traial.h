@@ -205,13 +205,16 @@ public:  // Utils
 	 * @param network ModuleNetwork already sealed
 	 * @param impFun  ImportanceFunction currently on use for simulations
 	 *
+	 * @return Reference to self
+	 *
 	 * \ifnot NDEBUG
 	 *   @throw FigException if the system model hasn't been sealed yet
 	 *                       or the ImportanceFunction has no importance info
 	 * \endif
 	 */
-	void initialise(const ModuleNetwork& network,
-					const ImportanceFunction& impFun);
+	Traial&
+	initialise(const ModuleNetwork& network,
+	           const ImportanceFunction& impFun);
 
 	/**
 	 * @brief Retrieve next expiring clock

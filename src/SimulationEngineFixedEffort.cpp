@@ -52,7 +52,9 @@ SimulationEngineFixedEffort::SimulationEngineFixedEffort(
 
 SimulationEngineFixedEffort::~SimulationEngineFixedEffort()
 {
-	TraialPool::get_instance().return_traials(traials_);
+	//TraialPool::get_instance().return_traials(traials_);
+	// ^^^ pointless, and besides the TraialPool might be dead already,
+	//     so this would trigger a re-creation of the pool
 }
 
 

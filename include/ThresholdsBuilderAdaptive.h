@@ -93,8 +93,8 @@ public:
 protected:  // Utils for the class and its kin
 
 	/**
-	 * @brief Choose values for internal parameters depending on the user model
-	 *        (states and transitions space size) and the simulation.
+	 * @brief Choose values for internal parameters depending on the model
+	 *        (states and transitions space size) and simulation parameters.
 	 * @param numTrans       Number of (symbolic) transitions in the system model
 	 * @param maxImportance  Maximum ImportanceValue computed
 	 * @param globalEffort   <i>(Optional)</i> Global splitting/effort per level

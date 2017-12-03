@@ -67,10 +67,23 @@ class ThresholdsBuilderES : public ThresholdsBuilderAdaptive
 	/// Upper bound for the effort assignable to a threshold-level
 	static constexpr size_t MAX_FEASIBLE_EFFORT = 10ul;
 
-	/// Max # steps allowed for each internal Fixed Effort simulation
-	static constexpr decltype(Traial::numLevelsCrossed) MAX_FE_SIM_LEN = (1ul)<<(8ul);
+	/// Min # pilot runs launched in the internal Fixed Effort
+	static constexpr size_t MIN_NSIMS = (1ul)<<(8ul);
+	/// Max # pilot runs launched in the internal Fixed Effort
+	static constexpr size_t MAX_NSIMS = (1ul)<<(12ul);
+
+	/// Min # steps allowed for each internal Fixed Effort pilot run
+	static constexpr decltype(Traial::numLevelsCrossed) MIN_SIM_LEN = (1ul)<<(7ul);
+	/// Max # steps allowed for each internal Fixed Effort pilot run
+	static constexpr decltype(Traial::numLevelsCrossed) MAX_SIM_LEN = (1ul)<<(9ul);
 
 protected:
+
+	/// #(FE-sims) launched per iteration of the internal Fixed Effort
+	size_t nSims_;
+
+	/// #(steps) allowed for each internal Fixed Effort pilot run
+	decltype(Traial::numLevelsCrossed) maxSimLen_;
 
 	/// Property to estimate, for which the thresholds will be selected
 	std::shared_ptr< const Property > property_;
@@ -166,7 +179,7 @@ private:  // Class utils
 			traial.level = newImp;
 			traial.numLevelsCrossed++;  // encode here the # steps taken
 			return /* level-up:     */ traial.depth < 0 ||
-			       /* sim too long: */ traial.numLevelsCrossed > MAX_FE_SIM_LEN ||
+			       /* sim too long: */ traial.numLevelsCrossed > maxSimLen_ ||
 			       /* stop event:   */ property.is_stop(traial.state);
 	    }
 
@@ -180,8 +193,43 @@ private:  // Class utils
 			traial.level = newImp;
 			traial.numLevelsCrossed++;  // encode here the # steps taken
 			return /* level-up:     */ traial.depth < 0 ||
-			       /* sim too long: */ traial.numLevelsCrossed > MAX_FE_SIM_LEN;
+			       /* sim too long: */ traial.numLevelsCrossed > maxSimLen_;
 	    }
+
+protected:  // Utils for the class and its kin
+
+	/**
+	 * @brief Tune the nature of the internal Fixed Effort pilot runs
+	 *
+	 *        The goal is to find good thresholds and do it fast.
+	 *        The trade-off is between effort spent and quality achieved:
+	 *        good thresholds require a lot of long simulations.
+	 *        <br>
+	 *        There are two parameters to decide on:
+	 *        <ul>
+	 *        <li>[1] #(FE-sims) to launch per (potential) threshold level, and</li>
+	 *        <li>[2] #(steps) allowed to each of these simulations.</li>
+	 *        </ul>
+	 *        The maximum importance value of the current \p impFun_
+	 *        has a negative influence on [1],
+	 *        because we may have to escalate through a lot of importance levels.
+	 *        We disregard any influence of this factor on parameter [2].
+	 *        <br>
+	 *        The size of the fully composed model, here #(clocks)+log(#(states)),
+	 *        has a negative influence on [2],
+	 *        because each simulation step needs to update a lot of things.
+	 *        We disregard any influence of this factor on parameter [1].
+	 *
+	 * @note All parameters are ignored; The relevant information is taken
+	 *       directly from the current model and importance function built.
+	 *
+	 * @see ThresholdsBuilderAdaptive::tune()
+	 * @see ThresholdsBuilderAdaptiveSimple::tune()
+	 */
+	void
+	tune(const size_t& = 0,
+	     const ImportanceValue& = 0,
+	     const unsigned& = 0) override;
 };
 
 } // namespace fig

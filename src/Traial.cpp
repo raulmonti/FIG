@@ -180,7 +180,7 @@ Traial::clocks_values(bool ordered) const
 }
 
 
-void
+Traial&
 Traial::initialise(const ModuleNetwork& network,
 				   const ImportanceFunction& impFun)
 {
@@ -192,8 +192,10 @@ Traial::initialise(const ModuleNetwork& network,
 						  .append(impFun.name()).append("\" doesn't have ")
 						  .append("importance info; can't initialise Traial"));
 #else
-	if (! (network.sealed() && impFun.has_importance_info()) )
-		return;  // we can't do anything without that data
+	if (! (network.sealed() && impFun.has_importance_info()) ) {
+		ModelSuite::tech_log("[ERROR] Failed to initialise Traial\n");
+		return *this;  // we can't do anything without that data
+	}
 #endif
 	// initialise variables value
 	network.instantiate_initial_state(state);
@@ -208,6 +210,7 @@ Traial::initialise(const ModuleNetwork& network,
 	depth = -static_cast<short>(level);
 	numLevelsCrossed = 0;
 	lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
+	return *this;
 }
 
 

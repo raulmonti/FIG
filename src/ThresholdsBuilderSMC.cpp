@@ -28,6 +28,7 @@
 
 
 // C
+#include <cmath>  // std::log2()
 #include <cassert>
 // C++
 #include <random>
@@ -381,10 +382,10 @@ ThresholdsBuilderSMC::tune(const size_t& numTrans,
 							  + 2.5f*MIN_SIM_EFFORT - 1.5f*MAX_SIM_EFFORT);
 	// The allowed # of failures will be inversely proportional to 'density'
 	// within the range (0.01 , 5.0)
-	const double logStates(log2(numStates.lower())+64*log2(1+numStates.upper()));
+	const double logStates(std::log2(numStates.lower())+64*std::log2(1+numStates.upper()));
 	const float density(numTrans/logStates);  // we deal with sparse graphs
-	::NUM_FAILURES = density > 5.00f || numStates > (1ul<<20u) ? MIN_NUM_FAILURES :
-					 density < 0.01f                           ? MAX_NUM_FAILURES :
+	::NUM_FAILURES = density > 5.00f || manyStates ? MIN_NUM_FAILURES :
+	                 density < 0.01f               ? MAX_NUM_FAILURES :
 					 std::round((MIN_NUM_FAILURES*.2004f-MAX_NUM_FAILURES*.2004f) * density
 								 + 1.002f*MAX_NUM_FAILURES - .002f*MIN_NUM_FAILURES);
 }

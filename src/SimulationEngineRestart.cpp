@@ -65,7 +65,9 @@ SimulationEngineRestart::SimulationEngineRestart(
 
 SimulationEngineRestart::~SimulationEngineRestart()
 {
-	TraialPool::get_instance().return_traials(ssstack_);
+	//TraialPool::get_instance().return_traials(ssstack_);
+	// ^^^ pointless, and besides the TraialPool might be dead already,
+	//     so this would trigger a re-creation of the pool
 }
 
 

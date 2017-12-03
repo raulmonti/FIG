@@ -126,7 +126,7 @@ protected:  // Utils for the class and its kin
 	virtual void
 	build_thresholds_vector(const ImportanceFunction& impFun) = 0;
 
-	/// Choose values for n_ and k_
+	/// Choose values for n_ and k_, following Garvels' <i>balanced growth</i>
 	/// @copydetails ThresholdsBuilderAdaptive::tune()
 	void
 	tune(const size_t&, const ImportanceValue&, const unsigned&) override;

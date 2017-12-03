@@ -27,8 +27,8 @@
 //==============================================================================
 
 // C
+#include <cmath>  // std::log(), std::round(), etc.
 #include <cassert>
-#include <cmath>
 // C++
 #include <vector>
 #include <deque>
@@ -56,6 +56,8 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 ThresholdsBuilderES::ThresholdsBuilderES(const size_t& n) :
     ThresholdsBuilder("es"),  // virtual inheritance forces this...
     ThresholdsBuilderAdaptive(n),
+    nSims_(0ul),
+    maxSimLen_(0ul),
     property_(nullptr),
     model_(nullptr),
     impFun_(nullptr)
@@ -77,12 +79,16 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 
 	// Adapted from Alg. 3 of Budde, D'Argenio, Hartmanns,
 	// "Better Automated Importance Splitting for Transient Rare Events", 2017.
+	tune();
+	n_ = nSims_;
 	ModelSuite::tech_log("Building thresholds with \"" + name
 	                    + "\" for n = " + std::to_string(n_));
 
 	// Probe for reachable importance values to select threshold candidates
 	ImportanceVec thrCandidates = reachable_importance_values();
-	const size_t DEFACTO_IMP_RANGE(thrCandidates.size());
+	if (thrCandidates.size() < 2ul)  // we must have reached beyond initial importance
+		throw_FigException("ES could not find reachable importance values");
+	const size_t DEFACTO_IMP_RANGE(thrCandidates.size()-1ul);
 	std::vector<float> Pup(DEFACTO_IMP_RANGE), aux(DEFACTO_IMP_RANGE);
 #ifndef NDEBUG
 	ModelSuite::tech_log("\nFound " + std::to_string(DEFACTO_IMP_RANGE)
@@ -123,17 +129,23 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 		figTechLog << " " << p;
 		est *= p;
 	}
-	figTechLog << "\nRare event probability spoiler: " << est << std::endl;
+	figTechLog << "\nEstimate spoiler (transient properties only!): "
+	           << est << std::endl;
 	figTechLog.flags(defaultLogFlags);
 #endif
 
 	// Turn level-up probabilities into effort factors
 	decltype(aux)& effort(aux);
-	std::fill(begin(effort), end(effort), 0.0f);
+	typedef decltype(aux)::value_type effort_t;
+	std::fill(begin(effort), end(effort), static_cast<effort_t>(0));
+	auto postprocess = [] (effort_t& e, const effort_t& MAX_FEASIBLE_EFFORT) {
+		static constexpr auto SCALE_DOWN_COEFFICIENT(1.4f);
+		e = std::min<float>(e/SCALE_DOWN_COEFFICIENT, MAX_FEASIBLE_EFFORT);
+	};
 	for (size_t i = 0ul ; i < Pup.size() ; i++) {
 		float prev = effort[(i-1)%Pup.size()];
 		effort[i] = 1.0f/Pup[i] + (prev-std::round(prev));  // expected # of sims reaching lvl i
-		effort[i] = std::min<float>(effort[i], MAX_FEASIBLE_EFFORT);
+		postprocess(effort[i], MAX_FEASIBLE_EFFORT);
 	}
 
 	// Select the thresholds based on the effort factors
@@ -186,7 +198,7 @@ ThresholdsBuilderES::reachable_importance_values() const
 				traialsNext.push_back(traial);
 			} else {
 				if (MAX_FAILS < ++numFails)
-					goto fuck_this_shit;  // assume max importance unreachable and quit
+					goto end_reachability_analysis;  // assume max importance unreachable and quit
 				else if (traialsNow.size() > 1ul)
 					traial = traialsNow[numFails%traialsNow.size()].get();
 				else
@@ -197,7 +209,7 @@ ThresholdsBuilderES::reachable_importance_values() const
 		}
 		std::swap(traialsNow, traialsNext);
 	} while (maxImportanceReached < impFun.max_value());
-    fuck_this_shit:
+    end_reachability_analysis:
 	    TraialPool::get_instance().return_traials(traialsNow);
 		TraialPool::get_instance().return_traials(traialsNext);
 
@@ -217,7 +229,9 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 	std::vector< Reference< Traial > > freeNow, freeNext, startNow, startNext;
 
 	assert(0ul < N);
-	assert(Pup.size() >= reachableImportanceValues.size());
+	if (reachableImportanceValues.size() < 2ul)
+		return;  // only one reachable importance value: ES failed!
+	assert(Pup.size() == reachableImportanceValues.size()-1ul);
 
 	// Init ADTs
 	std::fill(begin(Pup), end(Pup), 0.0f);
@@ -225,15 +239,13 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 	freeNext.reserve(N);
 	startNow.reserve(N);
 	startNext.reserve(N);
-	for (Traial& t: traials) {
-		t.initialise(*model_,*impFun_);
-		startNow.push_back(t);
-	}
+	for (Traial& t: traials)
+		startNow.push_back(t.initialise(*model_,*impFun_));
 
 	// For each reachable importance value 'i' ...
-	for (size_t i = 0ul ; i < reachableImportanceValues.size() && !startNow.empty() ; i++) {
+	for (auto i = 0ul ; i < reachableImportanceValues.size()-1ul && !startNow.empty() ; i++) {
 		const auto& currImp = reachableImportanceValues[i];
-		// ... run Fixed Effort until the next rechable importance value 'j' > 'i' ...
+		// ... run Fixed Effort until the next reachable importance value 'j' > 'i' ...
 		size_t startNowIdx(0ul);
 		while ( ! (freeNow.empty() && startNow.empty()) ) {
 			// (Traial fetching for simulation)
@@ -309,6 +321,47 @@ ThresholdsBuilderES::artificial_thresholds_selection(
 			ModelSuite::tech_log(std::to_string(reachableImportanceValues[i-1]));
 		print = false;
 	}
+}
+
+
+void
+ThresholdsBuilderES::tune(const size_t &,
+                          const ImportanceValue &,
+                          const unsigned &)
+{
+	assert(nullptr != model_);
+	assert(nullptr != impFun_);
+
+	// Factor [1], #(FE-sims) per iteration,
+	// will be inversely proportional to the importance range
+	// in the interval (3,20)
+	const auto PP_EXP(impFun_->post_processing().type == PostProcessing::EXP);
+	const auto PP_EXP_BASE(PP_EXP ? impFun_->post_processing().value : 0.0f);
+	const auto normalise = [&PP_EXP,&PP_EXP_BASE] (const double& x)
+	    { return PP_EXP ? (log(x)/log(PP_EXP_BASE)) : x; };
+	const size_t IMP_RANGE(normalise(impFun_->max_value(true))
+	                       - normalise(impFun_->initial_value(true)));
+	nSims_ = IMP_RANGE <  3ul ? MAX_NSIMS :
+	         IMP_RANGE > 20ul ? MIN_NSIMS :
+	         std::round((MIN_NSIMS*0.0588f-MAX_NSIMS*0.0588f) * IMP_RANGE
+	                    + 1.176f*MAX_NSIMS - 0.176f*MIN_NSIMS);
+	assert(nSims_ >= MIN_NSIMS);
+	assert(nSims_ <= MAX_NSIMS);
+
+	// Factor [2], #(steps) per FE-sim,
+	// will be inversely proportional to the model size,
+	// understood as the #(clocks)+log(#(concrete_states)),
+	// in the interval (1K,5K)
+	const uint128_t NSTATES(model_->concrete_state_size());
+	const auto LOG_STATES(std::log(NSTATES.lower())+64*std::log(1+NSTATES.upper()));
+	const size_t MODEL_SIZE(model_->num_clocks()+LOG_STATES);
+	const auto ONE_K(1ul<<10ul);
+	maxSimLen_ = MODEL_SIZE <     (ONE_K) ? MAX_SIM_LEN :
+	             MODEL_SIZE > (5ul*ONE_K) ? MIN_SIM_LEN :
+	             std::round((MIN_SIM_LEN*0.25-MAX_SIM_LEN*0.25) * MODEL_SIZE
+	                        + 1.25f*MAX_SIM_LEN - 0.25f*MIN_SIM_LEN);
+	assert(maxSimLen_ >= MIN_SIM_LEN);
+	assert(maxSimLen_ <= MAX_SIM_LEN);
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //
