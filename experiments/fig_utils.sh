@@ -4,74 +4,72 @@
 # Date:    22.03.2016
 # License: GPLv3
 #
-# NOTE: this script should be sourced from another script
-# Cool site: http://wiki.bash-hackers.org
-#
+#   NOTE: this script should be sourced from another script
+#   Cool site: http://wiki.bash-hackers.org
 
 
 # Following assumes this script file is one level deeper than the project base
-BASE_DIR=`readlink -f "$(dirname ${BASH_SOURCE[0]})/.."`
-if [ ! -d $BASE_DIR ]
+BASE_DIR=`readlink -f "$(dirname ${BASH_SOURCE[0]})/.."`;
+if [ ! -d $BASE_DIR ] \
+	|| [ ! -f $BASE_DIR/CMakeLists.txt ] \
+	|| [ ! -f $BASE_DIR/build_project.sh ]
 then
-	echo "[ERROR] Couldn't find project's base directory"
-	return 1
+	echo "[ERROR] Couldn't find the base directory of the FIG project";
+	return 1;
 fi
 
 
 # Check argument is a regular file
 is_file() {
-	if [ ! -f "$1" ]
-	then
-		echo "[ERROR] Couldn't find file \"$1\"" 1>&2
-		exit 1
+	if [ ! -f "$1" ]; then
+		echo "[ERROR] No file named \"$1\"" 1>&2;
+		exit 1;
 	else
-		echo "File \"$1\" found"
+		echo "File \"$1\" found";
 	fi
 }
 
 
-# Build main FIG project and link binary into specified (absolute) path
+# Build main FIG project and link binary to specified (absolute) path
 build_fig() {
 	# Check arguments
-	if [ $# -lt 1 ]
-	then
-		echo "[ERROR] Must provide absolute path to link FIG's binary into"
-		return 1
-	elif [ ! -d $1 ]
-	then
-		echo "[ERROR] \"$1\" isn't a valid path"
-		return 1
-	elif [[ "$1" != /* ]]
-	then
-		echo "[ERROR] An *absolute* path for linking must be given"
-		return 1
+	if [ $# -lt 1 ]; then
+		echo "[ERROR] Must provide an absolute path to link FIG binary into";
+		return 1;
+	elif [[ "$1" != /* ]]; then
+		echo "[ERROR] Must provide an *absolute* path to link FIG binary into";
+		return 1;
+	elif [ ! -d $1 ]; then
+		echo "[ERROR] \"$1\" is no valid path";
+		return 1;
 	fi
-	is_file "${BASE_DIR}/CMakeLists.txt"   >/dev/null
-	is_file "${BASE_DIR}/build_project.sh" >/dev/null
+	is_file "${BASE_DIR}/CMakeLists.txt"   >/dev/null;
+	is_file "${BASE_DIR}/build_project.sh" >/dev/null;
 	# Build if need be
-	CWD=$PWD
-	cd $BASE_DIR
-	if [ ! -d bin ]
-	then
-		./build_project.sh main
-	elif [ ! -f bin/fig/fig ]
-	then
-		if [ -d OLD_bin ]; then rm -rf OLD_bin; fi; mv bin OLD_bin
-		./build_project.sh main
-	elif `bin/fig/fig --help &> /dev/null` [ $? -ne 0 ]
-	then
-		rm -rf bin
-		./build_project.sh main
+	CWD=$PWD;
+	cd $BASE_DIR;
+	if [ ! -d bin ]; then
+		./build_project.sh main;
+	elif [ ! -f bin/fig ]; then
+		if [ -d OLD_bin ]; then
+			rm -rf OLD_bin;
+		fi
+		mv bin OLD_bin;
+		./build_project.sh main;
+	elif `bin/fig --help &> /dev/null` [ $? -ne 0 ]; then
+		rm -rf bin;
+		./build_project.sh main;
 	fi
-	cd $CWD
-	if [ ! -f $BASE_DIR/bin/fig/fig ]
-	then
-		echo "[ERROR] Couldn't build FIG project."
-		return 1
+	cd $CWD;
+	if [ ! -f $BASE_DIR/bin/fig ]; then
+		echo "[ERROR] Couldn't build FIG project.";
+		return 1;
 	fi
 	# Copy where requested
-	if [ -f $1/fig ]; then rm $1/fig; fi
-	cp $BASE_DIR/bin/fig/fig $1/fig
+	if [ -f $1/fig ]; then
+		rm $1/fig;
+	fi
+	cp $BASE_DIR/bin/fig $1/fig;
 }
 
 
@@ -80,39 +78,35 @@ build_fig() {
 # if third argument "link" is specified
 copy_model_file() {
 	# Check arguments
-	if [ $# -lt 1 ]
-	then
-		echo "[ERROR] Must provide the name of the model file to copy"
-		return 1
-	elif [ $# -lt 2 ]
-	then
-		echo "[ERROR] Must provide a path to copy the model into"
-		return 1
-	elif [ ! -d $2 ]
-	then
-		echo "[ERROR] \"$2\" isn't a valid directory"
-		return 1
-	elif [[ "$2" != /* ]]
-	then
-		echo "[ERROR] An *absolute* path to copy the model into must be given"
-		return 1
+	if [ $# -lt 1 ]; then
+		echo "[ERROR] Must provide the name of the model file to copy";
+		return 1;
+	elif [ $# -lt 2 ]; then
+		echo "[ERROR] Must provide an absolute path to copy the model into";
+		return 1;
+	elif [[ "$2" != /* ]]; then
+		echo "[ERROR] Must provide an *absolute* path to copy the model into";
+		return 1;
+	elif [ ! -d $2 ]; then
+		echo "[ERROR] \"$2\" isn't a valid directory";
+		return 1;
 	fi
 	# Look for the model file
-	local MODELS_DIR="$BASE_DIR/models"
-	if [ ! -d $MODELS_DIR ]
-	then
-		echo "[ERROR] Couldn't find models directory \"$MODELS_DIR\""
-		return 1
-	elif [ ! -f $MODELS_DIR/$1 ]
-	then
-		echo "[ERROR] Couldn't find model file \"$1\" in dir \"$MODELS_DIR\""
-		return 1
+	local MODELS_DIR="$BASE_DIR/models";
+	if [ ! -d $MODELS_DIR ]; then
+		echo "[ERROR] Couldn't find models directory \"$MODELS_DIR\"";
+		return 1;
+	fi
+	local MODEL=`find $MODELS_DIR -name "$1" -print -quit`
+	if [ ! -f $MODEL ]; then
+		echo "[ERROR] Couldn't find model file \"$1\" in dir \"$MODELS_DIR\"";
+		return 1;
 	fi
 	# Copy the file into the requested path
 	if [ $# -lt 3 ]; then
-		cp $MODELS_DIR/$1 $2         # Copy in destination
+		cp $MODEL $2;         # Copy in destination
 	elif [[ "link" == $3 ]]; then
-		ln -sf $MODELS_DIR/$1 $2/$1  # Link to destination
+		ln -sf $MODEL $2/$1;  # Link to destination
 	else
 		echo "[ERROR] Bad third parameter \"$3\" (did you mean \"link\"?)";
 		return 1;
@@ -124,20 +118,19 @@ copy_model_file() {
 # Optionally takes part of the invocation command as single argument
 # for thinner filtering
 poll_till_free() {
-	if [ -z "$MAXJOBSN" ]
-	then
-		local JOBSBOUND=`nproc --all`
+	if [ -z "$MAXJOBSN" ]; then
+		local JOBSBOUND=`nproc --all`;
 	else
-		local JOBSBOUND=$MAXJOBSN
+		local JOBSBOUND=$MAXJOBSN;
 	fi
 	# do-while syntax sugar for bash
 	while
 		local RUNNING=`ps -fC "fig" | grep "\<$1" | wc -l`
 		[ $RUNNING -ge $JOBSBOUND ]
 	do
-		sleep 10s
+		sleep 10s;
 	done
-	sleep 0.1  # give previous job a little while to sink in
+	sleep 0.1;  # give previous job a little while to sink in
 }
 
 
@@ -148,21 +141,21 @@ poll_till_free() {
 #       number of seconds since the shell was started
 # See: http://unix.stackexchange.com/a/52318
 format_seconds() {
-	local S_DAY=86400  # seconds in a day
-	local S_HOUR=3600  # seconds in an hour
-	local S_MINUTE=60  # seconds in a minute
+	local S_DAY=86400;  # seconds in a day
+	local S_HOUR=3600;  # seconds in an hour
+	local S_MINUTE=60;  # seconds in a minute
 	# Check arguments
 	if [ $# -ne 1 ]
 	then
-		echo "[ERROR] Single integer argument (seconds) required"
-		return 1
+		echo "[ERROR] Single integer argument (seconds) required";
+		return 1;
 	else
 		# Format seconds and print
-		local DAYS=$(($1 / S_DAY))
-		local HOURS=$((($1 % S_DAY) / S_HOUR))
-		local MINUTES=$((($1 % S_HOUR) / S_MINUTE))
-		printf "%d-%02d:%02d:%02d" $DAYS $HOURS $MINUTES $(($1%S_MINUTE))
-		return 0
+		local DAYS=$(($1 / S_DAY));
+		local HOURS=$((($1 % S_DAY) / S_HOUR));
+		local MINUTES=$((($1 % S_HOUR) / S_MINUTE));
+		printf "%d-%02d:%02d:%02d" $DAYS $HOURS $MINUTES $(($1%S_MINUTE));
+		return 0;
 	fi
 }
 
@@ -174,19 +167,19 @@ format_seconds() {
 # hours (h), or days (d). By default no suffix is interpreted as seconds.
 compute_seconds() {
 	if [ $# -ne 1 ]; then
-		echo "[ERROR] Argument required (duration with suffix)"; return 1
+		echo "[ERROR] Argument required (duration with suffix)"; return 1;
 	elif [[ $1 =~ ^[0-9]+d$ ]]; then
-		echo $(echo "scale=0; ${1%d}*86400" | bc)  # days
+		echo $(echo "scale=0; ${1%d}*86400" | bc);  # days
 	elif [[ $1 =~ ^[0-9]+h$ ]]; then
-		echo $(echo "scale=0; ${1%h}*3600" | bc)   # hours
+		echo $(echo "scale=0; ${1%h}*3600" | bc);   # hours
 	elif [[ $1 =~ ^[0-9]+m$ ]]; then
-		echo $(echo "scale=0; ${1%m}*60" | bc)     # minutes
+		echo $(echo "scale=0; ${1%m}*60" | bc);     # minutes
 	elif [[ $1 =~ ^[0-9]+s$ ]] || [[ $1 =~ ^[0-9]+$ ]]; then
-		echo ${1%s}
+		echo ${1%s};
 	else
-		echo "[ERROR] Bad argument: \"$1\""; return 1
+		echo "[ERROR] Bad argument: \"$1\""; return 1;
 	fi
-	return 0
+	return 0;
 }
 
 

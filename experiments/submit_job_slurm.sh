@@ -12,8 +12,10 @@
 ### Lines "#SBATCH" configure the job resources
 ### (even though they look like bash comments)
 
-### Job queue to use (options: mono, gpu, multi, phi)
-#SBATCH --partition=mono
+### Job queue to use
+### Available in Argentina clusters: mono, gpu, multi, phi
+### Available in UT clusters: main, debug, m610, t630, r730
+#SBATCH --partition=main
 
 ### Amount of nodes to use
 #SBATCH --nodes=1
@@ -22,8 +24,8 @@
 #SBATCH --ntasks-per-node=1
 
 ### Available cores per node
-#SBATCH --cpus-per-task=8
-export MAXJOBSN=8  # must equal value of "--cpus-per-task"
+#SBATCH --cpus-per-task=24
+export MAXJOBSN=24  # must equal value of "--cpus-per-task"
 
 ### Execution time. Format: days-hours:minutes:seconds -- Max: a week
 ### XXX  DEPRECATED!  Should have been set with "-t" option
@@ -31,24 +33,24 @@ export MAXJOBSN=8  # must equal value of "--cpus-per-task"
 #SBATCH --time 4-12:00
 
 ### Check invocation line
-if [ $# -ne 1 ] || [ ! -f $1 ]
-then
-	echo "[ERROR] Must invoke through \"enqueue_job.sh\""
-	exit 1
+if [ $# -ne 1 ] || [ ! -f $1 ]; then
+	echo "[ERROR] Must invoke through \"enqueue_job.sh\"";
+	exit 1;
 fi
 
 ## Load environment modules
-module load gcc
-module load bison
+set +e;
+module load gcc;
+module load bison;
 #source /opt/spack/share/spack/setup-env.sh
 #module load compilers/gcc/4.9
 #module load gcc-5.4.0-gcc-4.4.7-xtrdik54ugxvc5fs55kl7lobaguiorqj
 
 ### Enqueue job
-CWD=$PWD
-cd `dirname $1`
-srun -o %j.out -e %j.err /bin/bash `basename $1`
-cd $CWD
+CWD=$PWD;
+cd `dirname $1`;
+srun -o %j.out -e %j.err /bin/bash `basename $1`;
+cd $CWD;
 
-exit 0
+exit 0;
 

@@ -1,0 +1,755 @@
+//Type: Basic event; Original name: BUS_11; Assigned unique id: 0
+module BE_0
+  fc_0 : clock;
+  rc_0 : clock;
+  inform_0 : [0..2] init 0;
+  brokenFlag_0 : [0..2] init 0;
+
+  [] brokenFlag_0==0 @ fc_0 -> (inform_0'=1) & (brokenFlag_0'=1);
+  [r_0??] brokenFlag_0==1 -> (brokenFlag_0'=2) & (rc_0'=uniform(6,12));
+  [] brokenFlag_0==2 @ rc_0 -> (inform_0'=2) & (brokenFlag_0'=0) & (fc_0'=exponential(0.0000010));
+  
+
+  [f_0!!] inform_0==1 -> (inform_0'=0);
+  [u_0!!] inform_0==2 -> (inform_0'=0);
+endmodule
+
+//Type: Basic event; Original name: BUS_12; Assigned unique id: 1
+module BE_1
+  fc_1 : clock;
+  rc_1 : clock;
+  inform_1 : [0..2] init 0;
+  brokenFlag_1 : [0..2] init 0;
+
+  [] brokenFlag_1==0 @ fc_1 -> (inform_1'=1) & (brokenFlag_1'=1);
+  [r_1??] brokenFlag_1==1 -> (brokenFlag_1'=2) & (rc_1'=uniform(6,12));
+  [] brokenFlag_1==2 @ rc_1 -> (inform_1'=2) & (brokenFlag_1'=0) & (fc_1'=exponential(0.0000010));
+  
+
+  [f_1!!] inform_1==1 -> (inform_1'=0);
+  [u_1!!] inform_1==2 -> (inform_1'=0);
+endmodule
+
+//Type: AND gate; Original name: BSF_1; Assigned unique id: 2
+module AND_2
+  informf_2: bool init false;
+  informu_2: bool init false;
+  count_2: [0..2] init 0;
+
+  [f_0??] count_2==0 -> (count_2'=1);
+  [f_0??] count_2==1 -> (count_2'=2) & (informf_2'=true);
+  [f_1??] count_2==0 -> (count_2'=1);
+  [f_1??] count_2==1 -> (count_2'=2) & (informf_2'=true);
+
+  [u_0??] count_2==1 -> (count_2'=0);
+  [u_0??] count_2==2 -> (count_2'=1) & (informu_2'=true);
+  [u_1??] count_2==1 -> (count_2'=0);
+  [u_1??] count_2==2 -> (count_2'=1) & (informu_2'=true);
+
+  [f_2!!] informf_2 & count_2==2 -> (informf_2'=false);
+  [u_2!!] informu_2 & count_2<2 -> (informu_2'=false);
+endmodule
+
+//Type: Basic event; Original name: SW_1; Assigned unique id: 3
+module BE_3
+  fc_3 : clock;
+  rc_3 : clock;
+  inform_3 : [0..2] init 0;
+  brokenFlag_3 : [0..2] init 0;
+
+  [] brokenFlag_3==0 @ fc_3 -> (inform_3'=1) & (brokenFlag_3'=1);
+  [r_3??] brokenFlag_3==1 -> (brokenFlag_3'=2) & (rc_3'=uniform(6,12));
+  [] brokenFlag_3==2 @ rc_3 -> (inform_3'=2) & (brokenFlag_3'=0) & (fc_3'=exponential(0.000060));
+  
+
+  [f_3!!] inform_3==1 -> (inform_3'=0);
+  [u_3!!] inform_3==2 -> (inform_3'=0);
+endmodule
+
+//Type: Basic event; Original name: CPOW; Assigned unique id: 4
+module BE_4
+  fc_4 : clock;
+  rc_4 : clock;
+  inform_4 : [0..2] init 0;
+  brokenFlag_4 : [0..2] init 0;
+
+  [] brokenFlag_4==0 @ fc_4 -> (inform_4'=1) & (brokenFlag_4'=1);
+  [r_4??] brokenFlag_4==1 -> (brokenFlag_4'=2) & (rc_4'=uniform(6,12));
+  [] brokenFlag_4==2 @ rc_4 -> (inform_4'=2) & (brokenFlag_4'=0) & (fc_4'=exponential(0.000010));
+  
+
+  [f_4!!] inform_4==1 -> (inform_4'=0);
+  [u_4!!] inform_4==2 -> (inform_4'=0);
+endmodule
+
+//Type: Basic event; Original name: POW_1; Assigned unique id: 5
+module BE_5
+  fc_5 : clock;
+  rc_5 : clock;
+  inform_5 : [0..2] init 0;
+  brokenFlag_5 : [0..2] init 0;
+
+  [] brokenFlag_5==0 @ fc_5 -> (inform_5'=1) & (brokenFlag_5'=1);
+  [r_5??] brokenFlag_5==1 -> (brokenFlag_5'=2) & (rc_5'=uniform(6,12));
+  [] brokenFlag_5==2 @ rc_5 -> (inform_5'=2) & (brokenFlag_5'=0) & (fc_5'=exponential(0.000060));
+  
+
+  [f_5!!] inform_5==1 -> (inform_5'=0);
+  [u_5!!] inform_5==2 -> (inform_5'=0);
+endmodule
+
+//Type: OR gate; Original name: POW_1_FDEP; Assigned unique id: 6
+module OR_6
+  informf_6: bool init false;
+  informu_6: bool init false;
+  count_6: [0..2] init 0;
+
+  [f_4??] count_6==0 -> (count_6'=1) & (informf_6'=true);
+  [f_4??] count_6==1 -> (count_6'=2);
+  [f_5??] count_6==0 -> (count_6'=1) & (informf_6'=true);
+  [f_5??] count_6==1 -> (count_6'=2);
+
+  [u_4??] count_6==1 -> (count_6'=0) & (informu_6'=true);
+  [u_4??] count_6==2 -> (count_6'=1);
+  [u_5??] count_6==1 -> (count_6'=0) & (informu_6'=true);
+  [u_5??] count_6==2 -> (count_6'=1);
+
+  [f_6!!] informf_6 & count_6>0 -> (informf_6'=false);
+  [u_6!!] informu_6 & count_6==0 -> (informu_6'=false);
+endmodule
+
+//Type: Basic event; Original name: HW_1; Assigned unique id: 7
+module BE_7
+  fc_7 : clock;
+  rc_7 : clock;
+  inform_7 : [0..2] init 0;
+  brokenFlag_7 : [0..2] init 0;
+
+  [] brokenFlag_7==0 @ fc_7 -> (inform_7'=1) & (brokenFlag_7'=1);
+  [r_7??] brokenFlag_7==1 -> (brokenFlag_7'=2) & (rc_7'=uniform(6,12));
+  [] brokenFlag_7==2 @ rc_7 -> (inform_7'=2) & (brokenFlag_7'=0) & (fc_7'=exponential(0.000050));
+  
+
+  [f_7!!] inform_7==1 -> (inform_7'=0);
+  [u_7!!] inform_7==2 -> (inform_7'=0);
+endmodule
+
+//Type: OR gate; Original name: IF_1; Assigned unique id: 8
+module OR_8
+  informf_8: bool init false;
+  informu_8: bool init false;
+  count_8: [0..3] init 0;
+
+  [f_3??] count_8==0 -> (count_8'=1) & (informf_8'=true);
+  [f_3??] count_8==1 -> (count_8'=2);
+  [f_3??] count_8==2 -> (count_8'=3);
+  [f_6??] count_8==0 -> (count_8'=1) & (informf_8'=true);
+  [f_6??] count_8==1 -> (count_8'=2);
+  [f_6??] count_8==2 -> (count_8'=3);
+  [f_7??] count_8==0 -> (count_8'=1) & (informf_8'=true);
+  [f_7??] count_8==1 -> (count_8'=2);
+  [f_7??] count_8==2 -> (count_8'=3);
+
+  [u_3??] count_8==1 -> (count_8'=0) & (informu_8'=true);
+  [u_3??] count_8==2 -> (count_8'=1);
+  [u_3??] count_8==3 -> (count_8'=2);
+  [u_6??] count_8==1 -> (count_8'=0) & (informu_8'=true);
+  [u_6??] count_8==2 -> (count_8'=1);
+  [u_6??] count_8==3 -> (count_8'=2);
+  [u_7??] count_8==1 -> (count_8'=0) & (informu_8'=true);
+  [u_7??] count_8==2 -> (count_8'=1);
+  [u_7??] count_8==3 -> (count_8'=2);
+
+  [f_8!!] informf_8 & count_8>0 -> (informf_8'=false);
+  [u_8!!] informu_8 & count_8==0 -> (informu_8'=false);
+endmodule
+
+//Type: Basic event; Original name: A_11; Assigned unique id: 9
+module BE_9
+  fc_9 : clock;
+  rc_9 : clock;
+  inform_9 : [0..2] init 0;
+  brokenFlag_9 : [0..2] init 0;
+
+  [] brokenFlag_9==0 @ fc_9 -> (inform_9'=1) & (brokenFlag_9'=1);
+  [r_9??] brokenFlag_9==1 -> (brokenFlag_9'=2) & (rc_9'=uniform(6,12));
+  [] brokenFlag_9==2 @ rc_9 -> (inform_9'=2) & (brokenFlag_9'=0) & (fc_9'=exponential(0.00010));
+  
+
+  [f_9!!] inform_9==1 -> (inform_9'=0);
+  [u_9!!] inform_9==2 -> (inform_9'=0);
+endmodule
+
+//Type: MUX with priority policy; Assigned name: MUX_for_A_1S; Assigned unique id: 13
+module MUX_13
+  rej_13[2]: bool init false;
+  queue_13[2]: bool init false;
+  available_13: bool init true;
+  broken_13: bool init false;
+  activate_13 : [0..2] init 0;
+
+  [f_10??] -> (broken_13'=true) & (available_13'=true);
+  [u_10??] -> (broken_13'=false);
+
+//Comunication from multiplexers to spare gates. The relationship is many to many. We use the naming convention <action_name>_<id_from>_<id_to>
+  [rq_13_11??] broken_13 | !available_13 -> (queue_13[0]'=true) & (rej_13[0]'=true);
+  [rq_13_11??] !broken_13 & available_13 -> (queue_13[0]'=true);
+  [asg_13_11!!] !broken_13 & available_13 & fsteq(queue_13,true) == 0 & activate_13==0 -> (available_13'=false) & (queue_13[0]'=false) & (activate_13' = 1);
+  [rel_13_11??] -> (available_13'=true) & (activate_13' = 2);
+  [rj_13_11!!] rej_13[0] -> (rej_13[0]'=false);
+  [rq_13_12??] broken_13 | !available_13 -> (queue_13[1]'=true) & (rej_13[1]'=true);
+  [rq_13_12??] !broken_13 & available_13 -> (queue_13[1]'=true);
+  [asg_13_12!!] !broken_13 & available_13 & fsteq(queue_13,true) == 1 & activate_13==0 -> (available_13'=false) & (queue_13[1]'=false) & (activate_13' = 1);
+  [rel_13_12??] -> (available_13'=true) & (activate_13' = 2);
+  [rj_13_12!!] rej_13[1] -> (rej_13[1]'=false);
+
+  [a_10!!] activate_13 == 1 -> (activate_13'=0);
+  [d_10!!] activate_13 == 2 -> (activate_13'=0);
+
+endmodule
+
+//Type: Basic event; Original name: A_1S; Assigned unique id: 10
+module BE_10
+  fc_10 : clock;
+  dfc_10 : clock;
+  rc_10 : clock;
+  inform_10 : [0..2] init 0;
+  active_10 : bool init false;
+  brokenFlag_10 : [0..2] init 0;
+
+  [a_10??] !active_10 -> (active_10'=true) & (fc_10'=exponential(0.00010));
+  [d_10??] active_10 -> (active_10'=false) & (dfc_10'=exponential(0.0));
+  
+  [] active_10 & brokenFlag_10==0 @ fc_10 -> (inform_10'=1) & (brokenFlag_10'=1);
+  [] !active_10 & brokenFlag_10==0 @ dfc_10 -> (inform_10'=1) & (brokenFlag_10'=1);
+  [r_10??] brokenFlag_10==1 -> (brokenFlag_10'=2) & (rc_10'=uniform(6,12));
+  [] active_10 & brokenFlag_10==2 @ rc_10 -> (inform_10'=2) & (brokenFlag_10'=0) & (fc_10'=exponential(0.00010));
+  [] !active_10 & brokenFlag_10==2 @ rc_10 -> (inform_10'=2) & (brokenFlag_10'=0) & (dfc_10'=exponential(0.0));
+  
+
+  [f_10!!] inform_10==1 -> (inform_10'=0);
+  [u_10!!] inform_10==2 -> (inform_10'=0);
+endmodule
+
+//Type: spare gate; Original name: P_11; Assigned unique id: 11
+module SPAREGATE_11
+  state_11: [0..4] init 0; // on main, request, wait, on spare, broken
+  inform_11: [0..2] init 0;
+  release_11: [0..1] init 0;
+  idx_11: [1..1] init 1;
+
+  [f_9??] state_11==0 -> (state_11'=1) & (idx_11'=1); // main fails
+  [u_9??] state_11==4 -> (inform_11'=2) & (state_11'=0); // main gets repaired
+  [u_9??] state_11==3 -> (release_11'=idx_11) & (state_11'=0);
+
+
+  [f_10??] state_11==3 & idx_11==1 -> (state_11'=1) & (idx_11'=1); // $Number 1 spare fails
+
+  [rq_13_11!!] state_11==1 & idx_11==1 -> (state_11'=2); // request spare number 1
+
+  [asg_13_11??] state_11==0 | state_11==1 | state_11==3 -> (release_11'=1); // we are assigned spare 1 but we dont want it
+  [asg_13_11??] state_11==2 & idx_11==1 -> (state_11'=3); // we are assigned spare 1
+  [asg_13_11??] state_11==4 -> (state_11'=3) & (idx_11'=1) & (inform_11'=2); // we 'get fixed' by a spare assignment
+  
+  [rj_13_11??] state_11==2 & idx_11==1 -> (state_11'=4) & (idx_11'=1) & (inform_11'=1);
+  
+  [rel_13_11!!] release_11==1 -> (release_11'= 0); // release spare 1
+
+  [f_11!!] inform_11 == 1 -> (inform_11'=0);
+  [u_11!!] inform_11 == 2 -> (inform_11'=0);
+endmodule
+
+//Type: Basic event; Original name: A_12; Assigned unique id: 14
+module BE_14
+  fc_14 : clock;
+  rc_14 : clock;
+  inform_14 : [0..2] init 0;
+  brokenFlag_14 : [0..2] init 0;
+
+  [] brokenFlag_14==0 @ fc_14 -> (inform_14'=1) & (brokenFlag_14'=1);
+  [r_14??] brokenFlag_14==1 -> (brokenFlag_14'=2) & (rc_14'=uniform(6,12));
+  [] brokenFlag_14==2 @ rc_14 -> (inform_14'=2) & (brokenFlag_14'=0) & (fc_14'=exponential(0.00010));
+  
+
+  [f_14!!] inform_14==1 -> (inform_14'=0);
+  [u_14!!] inform_14==2 -> (inform_14'=0);
+endmodule
+
+//Type: spare gate; Original name: P_12; Assigned unique id: 12
+module SPAREGATE_12
+  state_12: [0..4] init 0; // on main, request, wait, on spare, broken
+  inform_12: [0..2] init 0;
+  release_12: [0..1] init 0;
+  idx_12: [1..1] init 1;
+
+  [f_14??] state_12==0 -> (state_12'=1) & (idx_12'=1); // main fails
+  [u_14??] state_12==4 -> (inform_12'=2) & (state_12'=0); // main gets repaired
+  [u_14??] state_12==3 -> (release_12'=idx_12) & (state_12'=0);
+
+
+  [f_10??] state_12==3 & idx_12==1 -> (state_12'=1) & (idx_12'=1); // $Number 1 spare fails
+
+  [rq_13_12!!] state_12==1 & idx_12==1 -> (state_12'=2); // request spare number 1
+
+  [asg_13_12??] state_12==0 | state_12==1 | state_12==3 -> (release_12'=1); // we are assigned spare 1 but we dont want it
+  [asg_13_12??] state_12==2 & idx_12==1 -> (state_12'=3); // we are assigned spare 1
+  [asg_13_12??] state_12==4 -> (state_12'=3) & (idx_12'=1) & (inform_12'=2); // we 'get fixed' by a spare assignment
+  
+  [rj_13_12??] state_12==2 & idx_12==1 -> (state_12'=4) & (idx_12'=1) & (inform_12'=1);
+  
+  [rel_13_12!!] release_12==1 -> (release_12'= 0); // release spare 1
+
+  [f_12!!] inform_12 == 1 -> (inform_12'=0);
+  [u_12!!] inform_12 == 2 -> (inform_12'=0);
+endmodule
+
+//Type: AND gate; Original name: PSF_1; Assigned unique id: 15
+module AND_15
+  informf_15: bool init false;
+  informu_15: bool init false;
+  count_15: [0..2] init 0;
+
+  [f_11??] count_15==0 -> (count_15'=1);
+  [f_11??] count_15==1 -> (count_15'=2) & (informf_15'=true);
+  [f_12??] count_15==0 -> (count_15'=1);
+  [f_12??] count_15==1 -> (count_15'=2) & (informf_15'=true);
+
+  [u_11??] count_15==1 -> (count_15'=0);
+  [u_11??] count_15==2 -> (count_15'=1) & (informu_15'=true);
+  [u_12??] count_15==1 -> (count_15'=0);
+  [u_12??] count_15==2 -> (count_15'=1) & (informu_15'=true);
+
+  [f_15!!] informf_15 & count_15==2 -> (informf_15'=false);
+  [u_15!!] informu_15 & count_15<2 -> (informu_15'=false);
+endmodule
+
+//Type: Basic event; Original name: MIU1_1; Assigned unique id: 16
+module BE_16
+  fc_16 : clock;
+  rc_16 : clock;
+  inform_16 : [0..2] init 0;
+  brokenFlag_16 : [0..2] init 0;
+
+  [] brokenFlag_16==0 @ fc_16 -> (inform_16'=1) & (brokenFlag_16'=1);
+  [r_16??] brokenFlag_16==1 -> (brokenFlag_16'=2) & (rc_16'=uniform(6,12));
+  [] brokenFlag_16==2 @ rc_16 -> (inform_16'=2) & (brokenFlag_16'=0) & (fc_16'=exponential(0.000050));
+  
+
+  [f_16!!] inform_16==1 -> (inform_16'=0);
+  [u_16!!] inform_16==2 -> (inform_16'=0);
+endmodule
+
+//Type: Basic event; Original name: M_1_1; Assigned unique id: 17
+module BE_17
+  fc_17 : clock;
+  rc_17 : clock;
+  inform_17 : [0..2] init 0;
+  brokenFlag_17 : [0..2] init 0;
+
+  [] brokenFlag_17==0 @ fc_17 -> (inform_17'=1) & (brokenFlag_17'=1);
+  [r_17??] brokenFlag_17==1 -> (brokenFlag_17'=2) & (rc_17'=uniform(6,12));
+  [] brokenFlag_17==2 @ rc_17 -> (inform_17'=2) & (brokenFlag_17'=0) & (fc_17'=exponential(0.000060));
+  
+
+  [f_17!!] inform_17==1 -> (inform_17'=0);
+  [u_17!!] inform_17==2 -> (inform_17'=0);
+endmodule
+
+//Type: OR gate; Original name: M_1_1_FDEP; Assigned unique id: 18
+module OR_18
+  informf_18: bool init false;
+  informu_18: bool init false;
+  count_18: [0..2] init 0;
+
+  [f_16??] count_18==0 -> (count_18'=1) & (informf_18'=true);
+  [f_16??] count_18==1 -> (count_18'=2);
+  [f_17??] count_18==0 -> (count_18'=1) & (informf_18'=true);
+  [f_17??] count_18==1 -> (count_18'=2);
+
+  [u_16??] count_18==1 -> (count_18'=0) & (informu_18'=true);
+  [u_16??] count_18==2 -> (count_18'=1);
+  [u_17??] count_18==1 -> (count_18'=0) & (informu_18'=true);
+  [u_17??] count_18==2 -> (count_18'=1);
+
+  [f_18!!] informf_18 & count_18>0 -> (informf_18'=false);
+  [u_18!!] informu_18 & count_18==0 -> (informu_18'=false);
+endmodule
+
+//Type: Basic event; Original name: M_1_2; Assigned unique id: 19
+module BE_19
+  fc_19 : clock;
+  rc_19 : clock;
+  inform_19 : [0..2] init 0;
+  brokenFlag_19 : [0..2] init 0;
+
+  [] brokenFlag_19==0 @ fc_19 -> (inform_19'=1) & (brokenFlag_19'=1);
+  [r_19??] brokenFlag_19==1 -> (brokenFlag_19'=2) & (rc_19'=uniform(6,12));
+  [] brokenFlag_19==2 @ rc_19 -> (inform_19'=2) & (brokenFlag_19'=0) & (fc_19'=exponential(0.000060));
+  
+
+  [f_19!!] inform_19==1 -> (inform_19'=0);
+  [u_19!!] inform_19==2 -> (inform_19'=0);
+endmodule
+
+//Type: OR gate; Original name: M_1_2_FDEP; Assigned unique id: 20
+module OR_20
+  informf_20: bool init false;
+  informu_20: bool init false;
+  count_20: [0..2] init 0;
+
+  [f_16??] count_20==0 -> (count_20'=1) & (informf_20'=true);
+  [f_16??] count_20==1 -> (count_20'=2);
+  [f_19??] count_20==0 -> (count_20'=1) & (informf_20'=true);
+  [f_19??] count_20==1 -> (count_20'=2);
+
+  [u_16??] count_20==1 -> (count_20'=0) & (informu_20'=true);
+  [u_16??] count_20==2 -> (count_20'=1);
+  [u_19??] count_20==1 -> (count_20'=0) & (informu_20'=true);
+  [u_19??] count_20==2 -> (count_20'=1);
+
+  [f_20!!] informf_20 & count_20>0 -> (informf_20'=false);
+  [u_20!!] informu_20 & count_20==0 -> (informu_20'=false);
+endmodule
+
+//Type: Basic event; Original name: MIU2_1; Assigned unique id: 21
+module BE_21
+  fc_21 : clock;
+  rc_21 : clock;
+  inform_21 : [0..2] init 0;
+  brokenFlag_21 : [0..2] init 0;
+
+  [] brokenFlag_21==0 @ fc_21 -> (inform_21'=1) & (brokenFlag_21'=1);
+  [r_21??] brokenFlag_21==1 -> (brokenFlag_21'=2) & (rc_21'=uniform(6,12));
+  [] brokenFlag_21==2 @ rc_21 -> (inform_21'=2) & (brokenFlag_21'=0) & (fc_21'=exponential(0.000050));
+  
+
+  [f_21!!] inform_21==1 -> (inform_21'=0);
+  [u_21!!] inform_21==2 -> (inform_21'=0);
+endmodule
+
+//Type: AND gate; Original name: MSIU_1; Assigned unique id: 22
+module AND_22
+  informf_22: bool init false;
+  informu_22: bool init false;
+  count_22: [0..2] init 0;
+
+  [f_16??] count_22==0 -> (count_22'=1);
+  [f_16??] count_22==1 -> (count_22'=2) & (informf_22'=true);
+  [f_21??] count_22==0 -> (count_22'=1);
+  [f_21??] count_22==1 -> (count_22'=2) & (informf_22'=true);
+
+  [u_16??] count_22==1 -> (count_22'=0);
+  [u_16??] count_22==2 -> (count_22'=1) & (informu_22'=true);
+  [u_21??] count_22==1 -> (count_22'=0);
+  [u_21??] count_22==2 -> (count_22'=1) & (informu_22'=true);
+
+  [f_22!!] informf_22 & count_22==2 -> (informf_22'=false);
+  [u_22!!] informu_22 & count_22<2 -> (informu_22'=false);
+endmodule
+
+//Type: Basic event; Original name: M_1_3; Assigned unique id: 23
+module BE_23
+  fc_23 : clock;
+  rc_23 : clock;
+  inform_23 : [0..2] init 0;
+  brokenFlag_23 : [0..2] init 0;
+
+  [] brokenFlag_23==0 @ fc_23 -> (inform_23'=1) & (brokenFlag_23'=1);
+  [r_23??] brokenFlag_23==1 -> (brokenFlag_23'=2) & (rc_23'=uniform(6,12));
+  [] brokenFlag_23==2 @ rc_23 -> (inform_23'=2) & (brokenFlag_23'=0) & (fc_23'=exponential(0.000060));
+  
+
+  [f_23!!] inform_23==1 -> (inform_23'=0);
+  [u_23!!] inform_23==2 -> (inform_23'=0);
+endmodule
+
+//Type: OR gate; Original name: M_1_3_FDEP; Assigned unique id: 24
+module OR_24
+  informf_24: bool init false;
+  informu_24: bool init false;
+  count_24: [0..2] init 0;
+
+  [f_22??] count_24==0 -> (count_24'=1) & (informf_24'=true);
+  [f_22??] count_24==1 -> (count_24'=2);
+  [f_23??] count_24==0 -> (count_24'=1) & (informf_24'=true);
+  [f_23??] count_24==1 -> (count_24'=2);
+
+  [u_22??] count_24==1 -> (count_24'=0) & (informu_24'=true);
+  [u_22??] count_24==2 -> (count_24'=1);
+  [u_23??] count_24==1 -> (count_24'=0) & (informu_24'=true);
+  [u_23??] count_24==2 -> (count_24'=1);
+
+  [f_24!!] informf_24 & count_24>0 -> (informf_24'=false);
+  [u_24!!] informu_24 & count_24==0 -> (informu_24'=false);
+endmodule
+
+//Type: Basic event; Original name: M_1_4; Assigned unique id: 25
+module BE_25
+  fc_25 : clock;
+  rc_25 : clock;
+  inform_25 : [0..2] init 0;
+  brokenFlag_25 : [0..2] init 0;
+
+  [] brokenFlag_25==0 @ fc_25 -> (inform_25'=1) & (brokenFlag_25'=1);
+  [r_25??] brokenFlag_25==1 -> (brokenFlag_25'=2) & (rc_25'=uniform(6,12));
+  [] brokenFlag_25==2 @ rc_25 -> (inform_25'=2) & (brokenFlag_25'=0) & (fc_25'=exponential(0.000060));
+  
+
+  [f_25!!] inform_25==1 -> (inform_25'=0);
+  [u_25!!] inform_25==2 -> (inform_25'=0);
+endmodule
+
+//Type: OR gate; Original name: M_1_4_FDEP; Assigned unique id: 26
+module OR_26
+  informf_26: bool init false;
+  informu_26: bool init false;
+  count_26: [0..2] init 0;
+
+  [f_21??] count_26==0 -> (count_26'=1) & (informf_26'=true);
+  [f_21??] count_26==1 -> (count_26'=2);
+  [f_25??] count_26==0 -> (count_26'=1) & (informf_26'=true);
+  [f_25??] count_26==1 -> (count_26'=2);
+
+  [u_21??] count_26==1 -> (count_26'=0) & (informu_26'=true);
+  [u_21??] count_26==2 -> (count_26'=1);
+  [u_25??] count_26==1 -> (count_26'=0) & (informu_26'=true);
+  [u_25??] count_26==2 -> (count_26'=1);
+
+  [f_26!!] informf_26 & count_26>0 -> (informf_26'=false);
+  [u_26!!] informu_26 & count_26==0 -> (informu_26'=false);
+endmodule
+
+//Type: Basic event; Original name: M_1_5; Assigned unique id: 27
+module BE_27
+  fc_27 : clock;
+  rc_27 : clock;
+  inform_27 : [0..2] init 0;
+  brokenFlag_27 : [0..2] init 0;
+
+  [] brokenFlag_27==0 @ fc_27 -> (inform_27'=1) & (brokenFlag_27'=1);
+  [r_27??] brokenFlag_27==1 -> (brokenFlag_27'=2) & (rc_27'=uniform(6,12));
+  [] brokenFlag_27==2 @ rc_27 -> (inform_27'=2) & (brokenFlag_27'=0) & (fc_27'=exponential(0.000060));
+  
+
+  [f_27!!] inform_27==1 -> (inform_27'=0);
+  [u_27!!] inform_27==2 -> (inform_27'=0);
+endmodule
+
+//Type: OR gate; Original name: M_1_5_FDEP; Assigned unique id: 28
+module OR_28
+  informf_28: bool init false;
+  informu_28: bool init false;
+  count_28: [0..2] init 0;
+
+  [f_21??] count_28==0 -> (count_28'=1) & (informf_28'=true);
+  [f_21??] count_28==1 -> (count_28'=2);
+  [f_27??] count_28==0 -> (count_28'=1) & (informf_28'=true);
+  [f_27??] count_28==1 -> (count_28'=2);
+
+  [u_21??] count_28==1 -> (count_28'=0) & (informu_28'=true);
+  [u_21??] count_28==2 -> (count_28'=1);
+  [u_27??] count_28==1 -> (count_28'=0) & (informu_28'=true);
+  [u_27??] count_28==2 -> (count_28'=1);
+
+  [f_28!!] informf_28 & count_28>0 -> (informf_28'=false);
+  [u_28!!] informu_28 & count_28==0 -> (informu_28'=false);
+endmodule
+
+//Type: Voting 3/5 gate; Original name: MSF_1; Assigned unique id: 29
+module VOTING_29
+  informf_29: bool init false;
+  informu_29: bool init false;
+  count_29: [0..5] init 0;
+
+  [f_18??] count_29==0 -> (count_29'=1);
+  [f_18??] count_29==1 -> (count_29'=2);
+  [f_18??] count_29==2 -> (count_29'=3) & (informf_29'=true);
+  [f_18??] count_29==3 -> (count_29'=4) & (informf_29'=true);
+  [f_18??] count_29==4 -> (count_29'=5) & (informf_29'=true);
+  [f_20??] count_29==0 -> (count_29'=1);
+  [f_20??] count_29==1 -> (count_29'=2);
+  [f_20??] count_29==2 -> (count_29'=3) & (informf_29'=true);
+  [f_20??] count_29==3 -> (count_29'=4) & (informf_29'=true);
+  [f_20??] count_29==4 -> (count_29'=5) & (informf_29'=true);
+  [f_24??] count_29==0 -> (count_29'=1);
+  [f_24??] count_29==1 -> (count_29'=2);
+  [f_24??] count_29==2 -> (count_29'=3) & (informf_29'=true);
+  [f_24??] count_29==3 -> (count_29'=4) & (informf_29'=true);
+  [f_24??] count_29==4 -> (count_29'=5) & (informf_29'=true);
+  [f_26??] count_29==0 -> (count_29'=1);
+  [f_26??] count_29==1 -> (count_29'=2);
+  [f_26??] count_29==2 -> (count_29'=3) & (informf_29'=true);
+  [f_26??] count_29==3 -> (count_29'=4) & (informf_29'=true);
+  [f_26??] count_29==4 -> (count_29'=5) & (informf_29'=true);
+  [f_28??] count_29==0 -> (count_29'=1);
+  [f_28??] count_29==1 -> (count_29'=2);
+  [f_28??] count_29==2 -> (count_29'=3) & (informf_29'=true);
+  [f_28??] count_29==3 -> (count_29'=4) & (informf_29'=true);
+  [f_28??] count_29==4 -> (count_29'=5) & (informf_29'=true);
+
+  [u_18??] count_29==1 -> (count_29'=0);
+  [u_18??] count_29==2 -> (count_29'=1);
+  [u_18??] count_29==3 -> (count_29'=2) & (informu_29'=true);
+  [u_18??] count_29==4 -> (count_29'=3) & (informu_29'=true);
+  [u_18??] count_29==5 -> (count_29'=4) & (informu_29'=true);
+  [u_20??] count_29==1 -> (count_29'=0);
+  [u_20??] count_29==2 -> (count_29'=1);
+  [u_20??] count_29==3 -> (count_29'=2) & (informu_29'=true);
+  [u_20??] count_29==4 -> (count_29'=3) & (informu_29'=true);
+  [u_20??] count_29==5 -> (count_29'=4) & (informu_29'=true);
+  [u_24??] count_29==1 -> (count_29'=0);
+  [u_24??] count_29==2 -> (count_29'=1);
+  [u_24??] count_29==3 -> (count_29'=2) & (informu_29'=true);
+  [u_24??] count_29==4 -> (count_29'=3) & (informu_29'=true);
+  [u_24??] count_29==5 -> (count_29'=4) & (informu_29'=true);
+  [u_26??] count_29==1 -> (count_29'=0);
+  [u_26??] count_29==2 -> (count_29'=1);
+  [u_26??] count_29==3 -> (count_29'=2) & (informu_29'=true);
+  [u_26??] count_29==4 -> (count_29'=3) & (informu_29'=true);
+  [u_26??] count_29==5 -> (count_29'=4) & (informu_29'=true);
+  [u_28??] count_29==1 -> (count_29'=0);
+  [u_28??] count_29==2 -> (count_29'=1);
+  [u_28??] count_29==3 -> (count_29'=2) & (informu_29'=true);
+  [u_28??] count_29==4 -> (count_29'=3) & (informu_29'=true);
+  [u_28??] count_29==5 -> (count_29'=4) & (informu_29'=true);
+
+  [f_29!!] informf_29 & count_29>=3 -> (informf_29'=false);
+  [u_29!!] informu_29 & count_29<3 -> (informu_29'=false);
+endmodule
+
+//Type: OR gate; Original name: System_1; Assigned unique id: 30
+module OR_30
+  informf_30: bool init false;
+  informu_30: bool init false;
+  count_30: [0..4] init 0;
+
+  [f_2??] count_30==0 -> (count_30'=1) & (informf_30'=true);
+  [f_2??] count_30==1 -> (count_30'=2);
+  [f_2??] count_30==2 -> (count_30'=3);
+  [f_2??] count_30==3 -> (count_30'=4);
+  [f_8??] count_30==0 -> (count_30'=1) & (informf_30'=true);
+  [f_8??] count_30==1 -> (count_30'=2);
+  [f_8??] count_30==2 -> (count_30'=3);
+  [f_8??] count_30==3 -> (count_30'=4);
+  [f_15??] count_30==0 -> (count_30'=1) & (informf_30'=true);
+  [f_15??] count_30==1 -> (count_30'=2);
+  [f_15??] count_30==2 -> (count_30'=3);
+  [f_15??] count_30==3 -> (count_30'=4);
+  [f_29??] count_30==0 -> (count_30'=1) & (informf_30'=true);
+  [f_29??] count_30==1 -> (count_30'=2);
+  [f_29??] count_30==2 -> (count_30'=3);
+  [f_29??] count_30==3 -> (count_30'=4);
+
+  [u_2??] count_30==1 -> (count_30'=0) & (informu_30'=true);
+  [u_2??] count_30==2 -> (count_30'=1);
+  [u_2??] count_30==3 -> (count_30'=2);
+  [u_2??] count_30==4 -> (count_30'=3);
+  [u_8??] count_30==1 -> (count_30'=0) & (informu_30'=true);
+  [u_8??] count_30==2 -> (count_30'=1);
+  [u_8??] count_30==3 -> (count_30'=2);
+  [u_8??] count_30==4 -> (count_30'=3);
+  [u_15??] count_30==1 -> (count_30'=0) & (informu_30'=true);
+  [u_15??] count_30==2 -> (count_30'=1);
+  [u_15??] count_30==3 -> (count_30'=2);
+  [u_15??] count_30==4 -> (count_30'=3);
+  [u_29??] count_30==1 -> (count_30'=0) & (informu_30'=true);
+  [u_29??] count_30==2 -> (count_30'=1);
+  [u_29??] count_30==3 -> (count_30'=2);
+  [u_29??] count_30==4 -> (count_30'=3);
+
+  [f_30!!] informf_30 & count_30>0 -> (informf_30'=false);
+  [u_30!!] informu_30 & count_30==0 -> (informu_30'=false);
+endmodule
+
+//Type: Repair box with priority policy; Original name: RS1; Assigned unique id: 31
+module RBOX_31
+  brokenFlag_31[15]: bool init false;
+  busy_31: bool init false;
+
+  [f_7??] -> (brokenFlag_31[0]'=true);
+  [f_3??] -> (brokenFlag_31[1]'=true);
+  [f_0??] -> (brokenFlag_31[2]'=true);
+  [f_1??] -> (brokenFlag_31[3]'=true);
+  [f_14??] -> (brokenFlag_31[4]'=true);
+  [f_9??] -> (brokenFlag_31[5]'=true);
+  [f_10??] -> (brokenFlag_31[6]'=true);
+  [f_16??] -> (brokenFlag_31[7]'=true);
+  [f_21??] -> (brokenFlag_31[8]'=true);
+  [f_18??] -> (brokenFlag_31[9]'=true);
+  [f_20??] -> (brokenFlag_31[10]'=true);
+  [f_24??] -> (brokenFlag_31[11]'=true);
+  [f_26??] -> (brokenFlag_31[12]'=true);
+  [f_28??] -> (brokenFlag_31[13]'=true);
+  [f_6??] -> (brokenFlag_31[14]'=true);
+
+  [r_7!!] !busy_31 & fsteq(brokenFlag_31,true) == 0 -> (busy_31'=true);
+  [r_3!!] !busy_31 & fsteq(brokenFlag_31,true) == 1 -> (busy_31'=true);
+  [r_0!!] !busy_31 & fsteq(brokenFlag_31,true) == 2 -> (busy_31'=true);
+  [r_1!!] !busy_31 & fsteq(brokenFlag_31,true) == 3 -> (busy_31'=true);
+  [r_14!!] !busy_31 & fsteq(brokenFlag_31,true) == 4 -> (busy_31'=true);
+  [r_9!!] !busy_31 & fsteq(brokenFlag_31,true) == 5 -> (busy_31'=true);
+  [r_10!!] !busy_31 & fsteq(brokenFlag_31,true) == 6 -> (busy_31'=true);
+  [r_16!!] !busy_31 & fsteq(brokenFlag_31,true) == 7 -> (busy_31'=true);
+  [r_21!!] !busy_31 & fsteq(brokenFlag_31,true) == 8 -> (busy_31'=true);
+  [r_18!!] !busy_31 & fsteq(brokenFlag_31,true) == 9 -> (busy_31'=true);
+  [r_20!!] !busy_31 & fsteq(brokenFlag_31,true) == 10 -> (busy_31'=true);
+  [r_24!!] !busy_31 & fsteq(brokenFlag_31,true) == 11 -> (busy_31'=true);
+  [r_26!!] !busy_31 & fsteq(brokenFlag_31,true) == 12 -> (busy_31'=true);
+  [r_28!!] !busy_31 & fsteq(brokenFlag_31,true) == 13 -> (busy_31'=true);
+  [r_6!!] !busy_31 & fsteq(brokenFlag_31,true) == 14 -> (busy_31'=true);
+
+  [u_7??] -> (brokenFlag_31[0]'=false) & (busy_31'=false);
+  [u_3??] -> (brokenFlag_31[1]'=false) & (busy_31'=false);
+  [u_0??] -> (brokenFlag_31[2]'=false) & (busy_31'=false);
+  [u_1??] -> (brokenFlag_31[3]'=false) & (busy_31'=false);
+  [u_14??] -> (brokenFlag_31[4]'=false) & (busy_31'=false);
+  [u_9??] -> (brokenFlag_31[5]'=false) & (busy_31'=false);
+  [u_10??] -> (brokenFlag_31[6]'=false) & (busy_31'=false);
+  [u_16??] -> (brokenFlag_31[7]'=false) & (busy_31'=false);
+  [u_21??] -> (brokenFlag_31[8]'=false) & (busy_31'=false);
+  [u_18??] -> (brokenFlag_31[9]'=false) & (busy_31'=false);
+  [u_20??] -> (brokenFlag_31[10]'=false) & (busy_31'=false);
+  [u_24??] -> (brokenFlag_31[11]'=false) & (busy_31'=false);
+  [u_26??] -> (brokenFlag_31[12]'=false) & (busy_31'=false);
+  [u_28??] -> (brokenFlag_31[13]'=false) & (busy_31'=false);
+  [u_6??] -> (brokenFlag_31[14]'=false) & (busy_31'=false);
+
+endmodule
+
+//Type: Repair box with priority policy; Original name: RCommonPower; Assigned unique id: 32
+module RBOX_32
+  brokenFlag_32[1]: bool init false;
+  busy_32: bool init false;
+
+  [f_4??] -> (brokenFlag_32[0]'=true);
+
+  [r_4!!] !busy_32 & fsteq(brokenFlag_32,true) == 0 -> (busy_32'=true);
+
+  [u_4??] -> (brokenFlag_32[0]'=false) & (busy_32'=false);
+
+endmodule
+
+
+const float t_limit = 1.0; 
+const float epsilon = 0.01;
+
+module ReliabilityTimer
+  ReliabilityTimeOut: [0..2] init 0;
+  clkTO: clock;
+  [TOinit!!] ReliabilityTimeOut == 0 -> (ReliabilityTimeOut'=1) & (clkTO'=uniform(t_limit - epsilon,t_limit + epsilon));
+  [] ReliabilityTimeOut==1 @ clkTO -> (ReliabilityTimeOut'=2);
+endmodule
+
+properties
+  P( ReliabilityTimeOut<2  U count_30>0  ) //Top event
+endproperties
+
+
+// FIG command examples:
+// fig <filePath> --flat --stop-conf .8 .4 --timeout 2m
+// fig <filePath> --dft --stop-conf .8 .4 --timeout 2m -e restart -t es --acomp 'max(BE_0+BE_1,max(BE_3,max(BE_4,BE_5),BE_7),BE_9+BE_10+BE_14+BE_10,min(3,max(BE_16,BE_17)+max(BE_16,BE_19)+max(BE_16+BE_21,BE_23)+max(BE_21,BE_25)+max(BE_21,BE_27)));0;4'
+// fig <filePath> --dft --stop-conf .8 .4 --timeout 2m -e restart -t hyb --acomp 'max(BE_0+BE_1,max(BE_3,max(BE_4,BE_5),BE_7),BE_9+BE_10+BE_14+BE_10,min(3,max(BE_16,BE_17)+max(BE_16,BE_19)+max(BE_16+BE_21,BE_23)+max(BE_21,BE_25)+max(BE_21,BE_27)));0;4'
+// fig <filePath> --dft --stop-conf .8 .4 --timeout 2m -e fixedeffort -t es --acomp 'max(BE_0+BE_1,max(BE_3,max(BE_4,BE_5),BE_7),BE_9+BE_10+BE_14+BE_10,min(3,max(BE_16,BE_17)+max(BE_16,BE_19)+max(BE_16+BE_21,BE_23)+max(BE_21,BE_25)+max(BE_21,BE_27)));0;4'
+// fig <filePath> --dft --stop-conf .8 .4 --timeout 2m -e fixedeffort -t hyb --acomp 'max(BE_0+BE_1,max(BE_3,max(BE_4,BE_5),BE_7),BE_9+BE_10+BE_14+BE_10,min(3,max(BE_16,BE_17)+max(BE_16,BE_19)+max(BE_16+BE_21,BE_23)+max(BE_21,BE_25)+max(BE_21,BE_27)));0;4'
+// Compositional importance function for FIG tool:
+// max(BE_0+BE_1,max(BE_3,max(BE_4,BE_5),BE_7),BE_9+BE_10+BE_14+BE_10,min(3,max(BE_16,BE_17)+max(BE_16,BE_19)+max(BE_16+BE_21,BE_23)+max(BE_21,BE_25)+max(BE_21,BE_27)));0;4
