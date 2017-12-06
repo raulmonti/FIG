@@ -75,7 +75,7 @@ class ThresholdsBuilderES : public ThresholdsBuilderAdaptive
 	/// Min # steps allowed for each internal Fixed Effort pilot run
 	static constexpr decltype(Traial::numLevelsCrossed) MIN_SIM_LEN = (1ul)<<(7ul);
 	/// Max # steps allowed for each internal Fixed Effort pilot run
-	static constexpr decltype(Traial::numLevelsCrossed) MAX_SIM_LEN = (1ul)<<(9ul);
+	static constexpr decltype(Traial::numLevelsCrossed) MAX_SIM_LEN = (1ul)<<(10ul);
 
 protected:
 
@@ -210,12 +210,12 @@ protected:  // Utils for the class and its kin
 	 *        <li>[1] #(FE-sims) to launch per (potential) threshold level, and</li>
 	 *        <li>[2] #(steps) allowed to each of these simulations.</li>
 	 *        </ul>
-	 *        The maximum importance value of the current \p impFun_
+	 *        The number of importance values to test as potential thresholds
 	 *        has a negative influence on [1],
 	 *        because we may have to escalate through a lot of importance levels.
 	 *        We disregard any influence of this factor on parameter [2].
 	 *        <br>
-	 *        The size of the fully composed model, here #(clocks)+log(#(states)),
+	 *        The size of the fully composed model, here #(clocks)+#(variables),
 	 *        has a negative influence on [2],
 	 *        because each simulation step needs to update a lot of things.
 	 *        We disregard any influence of this factor on parameter [1].

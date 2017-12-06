@@ -50,6 +50,23 @@ using std::begin;
 using std::end;
 
 
+namespace   // // // // // // // // // // // // // // // // // // // // // // //
+{
+
+float
+inverse_proportional(const float& x0, const float& x1,
+                     const float& y0, const float& y1,
+                     const float& x)
+{
+	return (y1 / (x1 - x0) -
+	        y0 / (x1 - x0)) * x
+	        + ((x1 * y0)/(x1 - x0))
+	        - ((x0 * y1)/(x1 - x0));
+}
+
+}
+
+
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
@@ -82,7 +99,8 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	tune();
 	n_ = nSims_;
 	ModelSuite::tech_log("Building thresholds with \"" + name
-	                    + "\" for n = " + std::to_string(n_));
+	                    + "\" for n,l = " + std::to_string(n_)
+	                    + "," + std::to_string(maxSimLen_));
 
 	// Probe for reachable importance values to select threshold candidates
 	ImportanceVec thrCandidates = reachable_importance_values();
@@ -138,18 +156,9 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	decltype(aux)& effort(aux);
 	typedef decltype(aux)::value_type effort_t;
 	std::fill(begin(effort), end(effort), static_cast<effort_t>(0));
-	auto postprocess = [] (effort_t& e, const effort_t& MAX_FEASIBLE_EFFORT) {
-		static constexpr auto SCALE_DOWN_COEFFICIENT(1.4f);
-		e = std::min<float>(e/SCALE_DOWN_COEFFICIENT, MAX_FEASIBLE_EFFORT);
-		/// @todo TODO research: is this balanced? We've seen ES
-		///       selecting 0/49 thresholds in the queue with breakdowns!
-		///       Make sure that when a threshold is "avoided," the effort
-		///       that wasn't used is carried onto the next potential threshold
-	};
 	for (size_t i = 0ul ; i < Pup.size() ; i++) {
-		float prev = effort[(i-1)%Pup.size()];
+		const auto prev = effort[(i-1)%Pup.size()];
 		effort[i] = 1.0f/Pup[i] + (prev-std::round(prev));  // expected # of sims reaching lvl i
-		postprocess(effort[i], MAX_FEASIBLE_EFFORT);
 	}
 
 	// Select the thresholds based on the effort factors
@@ -161,6 +170,12 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 			thresholds_.emplace_back(thrCandidates[i], thisEffort);
 	}
 	thresholds_.emplace_back(impFun.max_value()+static_cast<ImportanceValue>(1u), 1ul);
+
+	/// @todo if these thresholds_ would produce too much splitting,
+	///       e.g. thresholds_[i..i+5] = (imp,imp+1,...,imp+4) for effort ~ 10,
+	///       pick a threshold, remove it, and increase proportionally
+	///       the effort in the thresholds directly below and above it,
+	///       e.g. thresholds_[i..i+3] = (imp,imp+2,imp+4) for effort ~ 15.
 
 	ModelSuite::tech_log("\n");
 	show_thresholds(thresholds_);
@@ -345,10 +360,13 @@ ThresholdsBuilderES::tune(const size_t &,
 	    { return PP_EXP ? (log(x)/log(PP_EXP_BASE)) : x; };
 	const size_t IMP_RANGE(normalise(impFun_->max_value(true))
 	                       - normalise(impFun_->initial_value(true)));
-	nSims_ = IMP_RANGE <  3ul ? MAX_NSIMS :
-	         IMP_RANGE > 20ul ? MIN_NSIMS :
-	         std::round((MIN_NSIMS*0.0588f-MAX_NSIMS*0.0588f) * IMP_RANGE
-	                    + 1.176f*MAX_NSIMS - 0.176f*MIN_NSIMS);
+	constexpr auto MIN_IMP_RANGE =  3ul;
+	constexpr auto MAX_IMP_RANGE = 20ul;
+	nSims_ = IMP_RANGE < MIN_IMP_RANGE ? MAX_NSIMS :
+	         IMP_RANGE > MAX_IMP_RANGE ? MIN_NSIMS :
+	         std::round(inverse_proportional(MIN_IMP_RANGE, MAX_IMP_RANGE,
+	                                         MIN_NSIMS, MAX_NSIMS,
+	                                         IMP_RANGE));
 	assert(nSims_ >= MIN_NSIMS);
 	assert(nSims_ <= MAX_NSIMS);
 
@@ -356,14 +374,18 @@ ThresholdsBuilderES::tune(const size_t &,
 	// will be inversely proportional to the model size,
 	// understood as the #(clocks)+log(#(concrete_states)),
 	// in the interval (1K,5K)
-	const uint128_t NSTATES(model_->concrete_state_size());
-	const auto LOG_STATES(std::log(NSTATES.lower())+64*std::log(1+NSTATES.upper()));
-	const size_t MODEL_SIZE(model_->num_clocks()+LOG_STATES);
-	const auto ONE_K(1ul<<10ul);
-	maxSimLen_ = MODEL_SIZE <     (ONE_K) ? MAX_SIM_LEN :
-	             MODEL_SIZE > (5ul*ONE_K) ? MIN_SIM_LEN :
-	             std::round((MIN_SIM_LEN*0.25-MAX_SIM_LEN*0.25) * MODEL_SIZE
-	                        + 1.25f*MAX_SIM_LEN - 0.25f*MIN_SIM_LEN);
+	/// @todo TODO we are testing to consider #(variables) instead of concrete state space size, REVISE!
+//	const uint128_t NSTATES(model_->concrete_state_size());
+//	const auto LOG_STATES(std::log(NSTATES.lower())+64*std::log(1+NSTATES.upper()));
+//	const size_t MODEL_SIZE(model_->num_clocks()+LOG_STATES);
+	const size_t MODEL_SIZE(model_->num_clocks()+model_->state_size());
+	constexpr auto MIN_MODEL_SIZE = (1ul) << (6ul);
+	constexpr auto MAX_MODEL_SIZE = (1ul) << (10ul);
+	maxSimLen_ = MODEL_SIZE < MIN_MODEL_SIZE ? MAX_SIM_LEN :
+	             MODEL_SIZE > MAX_MODEL_SIZE ? MIN_SIM_LEN :
+	             std::round(inverse_proportional(MIN_MODEL_SIZE, MAX_MODEL_SIZE,
+	                                             MIN_SIM_LEN, MAX_SIM_LEN,
+	                                             MODEL_SIZE));
 	assert(maxSimLen_ >= MIN_SIM_LEN);
 	assert(maxSimLen_ <= MAX_SIM_LEN);
 }

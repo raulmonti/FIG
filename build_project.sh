@@ -102,17 +102,17 @@ else
 fi
 
 # Build in release mode? Or in debug mode?
-RELEASE=false;
+RELEASE_BUILD=false;
 
 # Cmake build options, see CMakeLists.txt
-if ! $RELEASE ; then
+#OPTS="$OPTS -DBUILTIN_RNG=ON";
+#OPTS="$OPTS -DPROFILING=ON";
+if ! $RELEASE_BUILD ; then
 	MODE="debug";
 else
 	MODE="release";
 	OPTS="$OPTS -DRELEASE=ON";
 fi
-#OPTS="$OPTS -DBUILTIN_RNG=ON";
-#OPTS="$OPTS -DPROFILING=ON";
 
 # Set CMake's build subdir (create a neat build tree)
 BUILD_BASE=./bin;

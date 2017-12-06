@@ -21,6 +21,7 @@ test
 bin/
 *_bin/
 bin_*/
+qtbin*/
 tests_bin*
 CMakeFiles*
 
