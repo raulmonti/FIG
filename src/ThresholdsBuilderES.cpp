@@ -346,7 +346,7 @@ ThresholdsBuilderES::artificial_thresholds_selection(
 void
 ThresholdsBuilderES::tune(const size_t &,
                           const ImportanceValue &,
-                          const unsigned &)
+                          const unsigned&)
 {
 	assert(nullptr != model_);
 	assert(nullptr != impFun_);
@@ -354,30 +354,37 @@ ThresholdsBuilderES::tune(const size_t &,
 	// Factor [1], #(FE-sims) per iteration,
 	// will be inversely proportional to the importance range
 	// in the interval (3,20)
-	const auto PP_EXP(impFun_->post_processing().type == PostProcessing::EXP);
-	const auto PP_EXP_BASE(PP_EXP ? impFun_->post_processing().value : 0.0f);
-	const auto normalise = [&PP_EXP,&PP_EXP_BASE] (const double& x)
-	    { return PP_EXP ? (log(x)/log(PP_EXP_BASE)) : x; };
-	const size_t IMP_RANGE(normalise(impFun_->max_value(true))
-	                       - normalise(impFun_->initial_value(true)));
-	constexpr auto MIN_IMP_RANGE =  3ul;
-	constexpr auto MAX_IMP_RANGE = 20ul;
-	nSims_ = IMP_RANGE < MIN_IMP_RANGE ? MAX_NSIMS :
-	         IMP_RANGE > MAX_IMP_RANGE ? MIN_NSIMS :
-	         std::round(inverse_proportional(MIN_IMP_RANGE, MAX_IMP_RANGE,
-	                                         MIN_NSIMS, MAX_NSIMS,
-	                                         IMP_RANGE));
+	// unless we have user specified info on the probability of importance lvl up
+	if (ModelSuite::get_DFT() < 0.0) {
+		// Just use the importance function range
+		const auto PP_EXP(impFun_->post_processing().type == PostProcessing::EXP);
+		const auto PP_EXP_BASE(PP_EXP ? impFun_->post_processing().value : 0.0f);
+		const auto normalise = [&PP_EXP,&PP_EXP_BASE] (const double& x)
+		    { return PP_EXP ? (log(x)/log(PP_EXP_BASE)) : x; };
+		const size_t IMP_RANGE(normalise(impFun_->max_value(true))
+		                       - normalise(impFun_->initial_value(true)));
+		constexpr auto MIN_IMP_RANGE =  3ul;
+		constexpr auto MAX_IMP_RANGE = 20ul;
+		nSims_ = IMP_RANGE < MIN_IMP_RANGE ? MAX_NSIMS :
+		         IMP_RANGE > MAX_IMP_RANGE ? MIN_NSIMS :
+		         std::round(inverse_proportional(MIN_IMP_RANGE, MAX_IMP_RANGE,
+		                                         MIN_NSIMS, MAX_NSIMS,
+		                                         IMP_RANGE));
+	} else {
+		// We're working on a DFT for which the user specified an explicit
+		// probability of observing any failure before any repair,
+		// i.e. the probability of increasing one level in importance
+		const auto probImpLvlUp(ModelSuite::get_DFT());
+		nSims_ = probImpLvlUp < 1e-20 ? MAX_NSIMS
+		                              : static_cast<size_t>(1.0/probImpLvlUp);
+	}
 	assert(nSims_ >= MIN_NSIMS);
-	assert(nSims_ <= MAX_NSIMS);
+//	assert(nSims_ <= MAX_NSIMS);  // may be false due to user-specified value
 
 	// Factor [2], #(steps) per FE-sim,
 	// will be inversely proportional to the model size,
 	// understood as the #(clocks)+log(#(concrete_states)),
 	// in the interval (1K,5K)
-	/// @todo TODO we are testing to consider #(variables) instead of concrete state space size, REVISE!
-//	const uint128_t NSTATES(model_->concrete_state_size());
-//	const auto LOG_STATES(std::log(NSTATES.lower())+64*std::log(1+NSTATES.upper()));
-//	const size_t MODEL_SIZE(model_->num_clocks()+LOG_STATES);
 	const size_t MODEL_SIZE(model_->num_clocks()+model_->state_size());
 	constexpr auto MIN_MODEL_SIZE = (1ul) << (6ul);
 	constexpr auto MAX_MODEL_SIZE = (1ul) << (10ul);

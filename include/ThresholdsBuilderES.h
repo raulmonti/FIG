@@ -70,7 +70,7 @@ class ThresholdsBuilderES : public ThresholdsBuilderAdaptive
 	/// Min # pilot runs launched in the internal Fixed Effort
 	static constexpr size_t MIN_NSIMS = (1ul)<<(8ul);
 	/// Max # pilot runs launched in the internal Fixed Effort
-	static constexpr size_t MAX_NSIMS = (1ul)<<(12ul);
+	static constexpr size_t MAX_NSIMS = (1ul)<<(13ul);
 
 	/// Min # steps allowed for each internal Fixed Effort pilot run
 	static constexpr decltype(Traial::numLevelsCrossed) MIN_SIM_LEN = (1ul)<<(7ul);
@@ -220,16 +220,16 @@ protected:  // Utils for the class and its kin
 	 *        because each simulation step needs to update a lot of things.
 	 *        We disregard any influence of this factor on parameter [1].
 	 *
-	 * @note All parameters are ignored; The relevant information is taken
-	 *       directly from the current model and importance function built.
+	 * @note All parameters are ignored; The relevant information is
+	 *       extracted from the current model and importance function built.
 	 *
 	 * @see ThresholdsBuilderAdaptive::tune()
 	 * @see ThresholdsBuilderAdaptiveSimple::tune()
 	 */
 	void
-	tune(const size_t& = 0,
+	tune(const size_t& = 0ul,
 	     const ImportanceValue& = 0,
-	     const unsigned& = 0) override;
+	     const unsigned& = 0u) override;
 };
 
 } // namespace fig

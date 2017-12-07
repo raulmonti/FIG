@@ -113,8 +113,9 @@ extern bool forceOperation;
 /// Run algorithm to check confluence of committed actions
 extern bool confluenceCheck;
 
-/// Does the model com from a Dynamic Fault Tree description?
-extern bool isDFT;
+/// For models that come from a Dynamic Fault Tree description,
+/// this is the *rough and unified* probability of having a fail before a repair
+extern double failProbDFT;
 
 }
 

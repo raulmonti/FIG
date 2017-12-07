@@ -81,7 +81,7 @@ string rngType;
 size_t rngSeed;
 bool forceOperation;
 bool confluenceCheck;
-bool isDFT;
+double failProbDFT;
 
 } // namespace fig_cli   // // // // // // // // // // // // // // // // // //
 
@@ -340,10 +340,15 @@ SwitchArg confluenceCheck_(
         "c", "confluence",
         "Run algorithm to check confluence of committed actions.");
 
-// Does the model come from a Dynamic Faul Tree specification (e.g. GALILEO)?
-SwitchArg isDFT_(
-        "", "dft",
-        "The model was translated from a Dynamic Fault Tree.");
+// For models that come from a Dynamic Faul Tree specification (e.g. GALILEO),
+// the user may specify the the probability of fail before repair,
+// e.g. of increasing one lvl of importance
+ValueArg<double> failProbDFT_(
+    "", "dft",
+    "For models that come from Dynamic Fault Tree descriptions, specify "
+    "a *rough and unified* probability of observing a fail before a repair."
+    "Call with value 0.0 for an automatic choice.",
+    false, -1.0, "probFail ∈ (0,1)");
 
 
 // Helper routines  ///////////////////////////////////////////////////////////
@@ -754,7 +759,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(rngSeed_);
 		cmd_.add(forceOperation_);
 		cmd_.add(confluenceCheck_);
-		cmd_.add(isDFT_);
+		cmd_.add(failProbDFT_);
 
 		// Parse the command line input
 		cmd_.parse(argc, argv);
@@ -766,7 +771,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		thrTechnique    = thrTechnique_.getValue();
 		forceOperation  = forceOperation_.getValue();
 		confluenceCheck = confluenceCheck_.getValue();
-		isDFT           = isDFT_.getValue();
+		failProbDFT     = failProbDFT_.getValue();
 		if (!get_jani_spec()) {
 			figTechLog << "[ERROR] Failed parsing the JANI-spec commands.\n\n";
 			figTechLog << "For complete USAGE and HELP type:\n";
@@ -796,8 +801,9 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 				figTechLog << "[WARNING] Global effort is incompatible with a "
 				             "\"flat\" importance function, ignoring values.\n";
 			std::set< unsigned >({1u}).swap(globalEfforts);
-		} else if (isDFT && (impFunSpec.name.find("split") == std::string::npos
-		                     || "auto" != impFunSpec.strategy)) {
+		} else if (0.0 <= failProbDFT
+		           && (impFunSpec.name.find("split") == std::string::npos
+		               || "auto" != impFunSpec.strategy)) {
 			figTechLog << "[ERROR] Special DFT processing using importance "
 			              "splitting requires the compositional importance "
 			              "function (i.e. acomp).\n\n";

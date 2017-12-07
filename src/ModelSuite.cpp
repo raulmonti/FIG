@@ -299,7 +299,7 @@ std::vector< std::shared_ptr< Property > > ModelSuite::properties;
 
 unsigned ModelSuite::globalEffort = 0u;
 
-bool ModelSuite::DFTmodel = false;
+double ModelSuite::failProbDFT = -1.0;  // reflect docstring of get_DFT()
 
 std::unordered_map< std::string, std::shared_ptr< ImportanceFunction > >
 	ModelSuite::impFuns;
@@ -504,9 +504,9 @@ ModelSuite::set_global_effort(const unsigned& ge, bool verbose)
 
 
 void
-ModelSuite::set_DFT(bool isDFT)
+ModelSuite::set_DFT(double failProbDFT)
 {
-	DFTmodel = isDFT;
+	ModelSuite::failProbDFT = failProbDFT;
 }
 
 
@@ -566,10 +566,10 @@ ModelSuite::get_global_effort() const noexcept
 }
 
 
-bool
-ModelSuite::get_DFT() const noexcept
+double
+ModelSuite::get_DFT() noexcept
 {
-	return DFTmodel;
+	return failProbDFT;
 }
 
 
@@ -925,7 +925,7 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 			                                impFun.neutralElement,
 			                                impFun.minValue,
 			                                impFun.maxValue);
-			if (DFTmodel)
+			if (0.0 <= get_DFT())
 				impFunSplit.set_DFT();
 		}
 		try {

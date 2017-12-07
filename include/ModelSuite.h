@@ -100,7 +100,9 @@ class ModelSuite
 	static unsigned globalEffort;
 
 	/// Does the \ref ModuleNetwork "IOSA model" come from a Dynamic Fault Tree?
-	static bool DFTmodel;
+	/// Then this is the probability of observing a failure in a system component
+	/// before any repair takes place, e.g. of increasing one level of importance
+	static double failProbDFT;
 
 	/// Importance functions available
 	static std::unordered_map<
@@ -254,13 +256,16 @@ public:  // Populating facilities and other modifyers
 	 */
 	void set_global_effort(const unsigned& ge = 0u, bool verbose = false);
 	
-	/// @brief Inform the system model was (or not) translated from a Dynamic Fault Tree
-	/// @param isDFT Whether the IOSA comes from a DFT translation
+	/// @brief Inform the system model was translated from a Dynamic Fault Tree
+	/// @param failProbDFT A <i>rough and unified</i> probability of observing
+	///                    a failure in a system component before any repairs
+	///                    occurs; if == 0.0 then an automatic choice is used.
+	/// isDFT Whether the IOSA comes from a DFT translation
 	/// @warning This is used to trigger mechanism that rely on a specific
 	///          naming of the IOSA modules and their variables,
-	///          viz. <b>this is implementation-specific</b> to the
+	///          viz. <b>this is implementation-specific</b> to the DFT-->IOSA-C
 	///          translation applied, which was developed by Monti et al.
-	void set_DFT(bool isDFT = true);
+	void set_DFT(double failProbDFT = 0.0);
 
 	/**
 	 * @brief Set a wall-clock-time limit for simulations
@@ -341,10 +346,14 @@ public:  // Accessors
 	/// @see set_global_effort()
 	const unsigned& get_global_effort() const noexcept;
 
-	/// Was the currently built model translated from a Dynamic Fault Tree
-	/// specification (e.g. GALILEO)?
+	/// For models translated from a Dynamic Fault Tree specification,
+	/// e.g. GALILEO, this is the user specified probability of observing
+	/// a failure in any 'OK' component before repair is observed
+	/// in any 'DOWN' component
+	/// @return The paremater specified by the user by set_DFT();
+	///         -1.0 if set_DFT() was never called
 	/// @see set_DFT()
-	bool get_DFT() const noexcept;
+	static double get_DFT() noexcept;
 
 	/// Get the wall-clock-time execution limit imposed to simulations,
 	/// in seconds
