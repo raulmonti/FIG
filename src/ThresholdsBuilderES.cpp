@@ -44,27 +44,11 @@
 #include <TraialPool.h>
 #include <Traial.h>
 #include <FigLog.h>
+#include <Util.h>
 
 // ADL
 using std::begin;
 using std::end;
-
-
-namespace   // // // // // // // // // // // // // // // // // // // // // // //
-{
-
-float
-inverse_proportional(const float& x0, const float& x1,
-                     const float& y0, const float& y1,
-                     const float& x)
-{
-	return (y1 / (x1 - x0) -
-	        y0 / (x1 - x0)) * x
-	        + ((x1 * y0)/(x1 - x0))
-	        - ((x0 * y1)/(x1 - x0));
-}
-
-}
 
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
@@ -301,6 +285,7 @@ ThresholdsBuilderES::artificial_thresholds_selection(
         std::vector< float >& Pup) const
 {
 	assert(reachableImportanceValues.size() == Pup.size());
+	assert(Pup.size() == reachableImportanceValues.size()-1ul);
 	ModelSuite::tech_log("\nExpected Success failed");
 
 	if (reachableImportanceValues.size() < 2ul) {
@@ -367,9 +352,11 @@ ThresholdsBuilderES::tune(const size_t &,
 		constexpr auto MAX_IMP_RANGE = 20ul;
 		nSims_ = IMP_RANGE < MIN_IMP_RANGE ? MAX_NSIMS :
 		         IMP_RANGE > MAX_IMP_RANGE ? MIN_NSIMS :
-		         std::round(inverse_proportional(MIN_IMP_RANGE, MAX_IMP_RANGE,
-		                                         MIN_NSIMS, MAX_NSIMS,
-		                                         IMP_RANGE));
+		         std::round(linear_interpol<float>(MIN_IMP_RANGE, MAX_IMP_RANGE,
+		                                           MIN_NSIMS, MAX_NSIMS,
+		                                           IMP_RANGE));
+		assert(nSims_ >= MIN_NSIMS);
+		assert(nSims_ <= MAX_NSIMS);
 	} else {
 		// We're working on a DFT for which the user specified an explicit
 		// probability of observing any failure before any repair,
@@ -378,8 +365,6 @@ ThresholdsBuilderES::tune(const size_t &,
 		nSims_ = probImpLvlUp < 1e-20 ? MAX_NSIMS
 		                              : static_cast<size_t>(1.0/probImpLvlUp);
 	}
-	assert(nSims_ >= MIN_NSIMS);
-//	assert(nSims_ <= MAX_NSIMS);  // may be false due to user-specified value
 
 	// Factor [2], #(steps) per FE-sim,
 	// will be inversely proportional to the model size,
@@ -390,9 +375,9 @@ ThresholdsBuilderES::tune(const size_t &,
 	constexpr auto MAX_MODEL_SIZE = (1ul) << (10ul);
 	maxSimLen_ = MODEL_SIZE < MIN_MODEL_SIZE ? MAX_SIM_LEN :
 	             MODEL_SIZE > MAX_MODEL_SIZE ? MIN_SIM_LEN :
-	             std::round(inverse_proportional(MIN_MODEL_SIZE, MAX_MODEL_SIZE,
-	                                             MIN_SIM_LEN, MAX_SIM_LEN,
-	                                             MODEL_SIZE));
+	             std::round(linear_interpol<float>(MIN_MODEL_SIZE, MAX_MODEL_SIZE,
+	                                               MIN_SIM_LEN, MAX_SIM_LEN,
+	                                               MODEL_SIZE));
 	assert(maxSimLen_ >= MIN_SIM_LEN);
 	assert(maxSimLen_ <= MAX_SIM_LEN);
 }

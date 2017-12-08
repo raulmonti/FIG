@@ -66,4 +66,21 @@ std::unique_ptr<T> make_unique(Args&&... args)
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
+
+/// For point x return f(x), where \a "f : R -> R" is the linear function
+/// such that \a "f(x0) = y0" and \a "f(x1) = y1"
+/// @param  x  Point whose value will be evaluated in the linear function
+template< typename T >
+T linear_interpol(const T& x0, const T& x1,
+                  const T& y0, const T& y1,
+                  const T& x)
+{
+	static_assert(std::is_floating_point<T>::value,
+	              "ERROR: type mismatch. Only floating point numbers supported");
+	return (y1 / (x1 - x0) -
+	        y0 / (x1 - x0)) * x
+	        + ((x1 * y0)/(x1 - x0))
+	        - ((x0 * y1)/(x1 - x0));
+}
+
 #endif

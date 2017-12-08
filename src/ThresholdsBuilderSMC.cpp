@@ -43,6 +43,7 @@
 #include <ModelSuite.h>
 #include <Property.h>
 #include <Traial.h>
+#include <Util.h>
 
 // ADL
 using std::begin;
@@ -384,16 +385,22 @@ ThresholdsBuilderSMC::tune(const size_t& numTrans,
 	const bool manyStates = numStates == uint128::uint128_0 || numStates > (1ul<<20u);
 	::SIM_EFFORT = p < 0.06 || manyStates ? MIN_SIM_EFFORT :
 	               p > 0.1  || fewStates  ? MAX_SIM_EFFORT :
-				   std::round(25.f*(MAX_SIM_EFFORT-MIN_SIM_EFFORT) * p
-							  + 2.5f*MIN_SIM_EFFORT - 1.5f*MAX_SIM_EFFORT);
+	               std::round(linear_interpol<float>(0.06f, 0.1f,
+	                                                 MIN_SIM_EFFORT, MAX_SIM_EFFORT,
+	                                                 p));
+//				   std::round(25.f*(MAX_SIM_EFFORT-MIN_SIM_EFFORT) * p
+//							  + 2.5f*MIN_SIM_EFFORT - 1.5f*MAX_SIM_EFFORT);
 	// The allowed # of failures will be inversely proportional to 'density'
 	// within the range (0.01 , 5.0)
 	const double logStates(std::log2(numStates.lower())+64*std::log2(1+numStates.upper()));
 	const float density(numTrans/logStates);  // we deal with sparse graphs
 	::NUM_FAILURES = density > 5.00f || manyStates ? MIN_NUM_FAILURES :
 	                 density < 0.01f               ? MAX_NUM_FAILURES :
-					 std::round((MIN_NUM_FAILURES*.2004f-MAX_NUM_FAILURES*.2004f) * density
-								 + 1.002f*MAX_NUM_FAILURES - .002f*MIN_NUM_FAILURES);
+	                 std::round(linear_interpol<float>(0.01f, 5.0f,
+	                                                   MAX_NUM_FAILURES, MIN_NUM_FAILURES,
+	                                                   density));
+//					 std::round((MIN_NUM_FAILURES*.2004f-MAX_NUM_FAILURES*.2004f) * density
+//								 + 1.002f*MAX_NUM_FAILURES - .002f*MIN_NUM_FAILURES);
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //
