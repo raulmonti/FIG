@@ -264,31 +264,12 @@ const Label&
 ModuleInstance::apply_postcondition(Traial &traial,
                                     const transition_vector_t& transitions) const
 {
-#ifndef NDEBUG
-	// Check for nondeterminism only in DEBUG mode
+#ifndef NDEBUG  // Check for nondeterminism only in DEBUG mode
 	const Label* labPtr(nullptr);
 	StateInstance traialState = traial.state;
-#endif
-
 	for (const Transition &tr : transitions) {
 		// If the traial satisfies this precondition...
-#ifndef NDEBUG
 		if (tr.pre(traialState)) {
-#else
-		if (tr.pre(traial.state)) {
-#endif
-			// ...apply postcondition to its state...
-			tr.pos(traial.state);
-			// ...and reset corresponing clocks (the other clocks aint touched)
-			const size_t NUM_CLOCKS(num_clocks());
-			std::vector<CLOCK_INTERNAL_TYPE> clockValues(NUM_CLOCKS);
-			for (size_t i = firstClock_ ; i < firstClock_+NUM_CLOCKS ; i++ ) {
-				clockValues[i-firstClock_] =
-				        tr.resetClocks()[i] ? lClocks_[i-firstClock_].sample()
-				                            : traial.clock_value(i);
-			}
-			traial.update_clocks(firstClock_, NUM_CLOCKS, clockValues);
-#ifndef NDEBUG
 			if (nullptr != labPtr
 			        && !tr.label().is_in_committed()
 			        && !tr.label().is_out_committed()) {
@@ -303,21 +284,38 @@ ModuleInstance::apply_postcondition(Traial &traial,
 				              "detected in Module " << name
 				           << ": the transition labels are \"" << labPtr->str
 				           << "\" and \"" << tr.label().str << "\"\n";
+				continue;  // avoid applying postcondition now! do it next time
 			} else {
 				labPtr = &tr.label();
 			}
 #else
-			return tr.label();  // At most one transition should've been enabled
+	for (const Transition &tr : transitions) {
+		// If the traial satisfies this precondition...
+		if (tr.pre(traial.state)) {
 #endif
+			// ...apply postcondition to its state...
+			tr.pos(traial.state);
+			// ...and reset corresponing clocks (the other clocks aint touched)
+			const size_t NUM_CLOCKS(num_clocks());
+			std::vector<CLOCK_INTERNAL_TYPE> clockValues(NUM_CLOCKS);
+			for (size_t i = firstClock_ ; i < firstClock_+NUM_CLOCKS ; i++ ) {
+				clockValues[i-firstClock_] =
+				        tr.resetClocks()[i] ? lClocks_[i-firstClock_].sample()
+				                            : traial.clock_value(i);
+			}
+			traial.update_clocks(firstClock_, NUM_CLOCKS, clockValues);
+#ifndef NDEBUG
 		}
 	}
-#ifndef NDEBUG
 	if (nullptr == labPtr)
-		return ::NoLabel;
+		return ::NoLabel;  // No enabled transition found
 	else
 		return *labPtr;
 #else
-	return ::NoLabel;
+			return tr.label();  // At most one transition should've been enabled
+		}
+	}
+	return ::NoLabel;  // No enabled transition found
 #endif
 }
 
