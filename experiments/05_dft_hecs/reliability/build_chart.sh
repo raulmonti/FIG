@@ -61,7 +61,7 @@ for (( i=0 ; i < ${#SYS_CFG[@]} ; i++ )); do
 	EST_AVG[$i]=0;
 	EST_STDEV[$i]=NaN;
 	CFG="${SYS_CFG[i]}";
-	FILES=$RESULTS/*${CFG}*${GE}*${TO}*.out;
+	FILES=$RESULTS/*${CFG}*${TO}*${GE}*.out;
 	# Incremental computation of mean and standard deviation,
 	# omitting cases where there is no estimate:
 	for EST in `gawk '/Computed estimate:/{print $4}' $FILES`; do
@@ -81,7 +81,6 @@ for (( i=0 ; i < ${#SYS_CFG[@]} ; i++ )); do
 done
 
 # Build chart and print it to stdout
-SEP="\t";  # column separator
 NUL="x";   # null/invalid value display
 TIME_REGEXP="^[[:digit:]]+(\.[[:digit:]]+)?$";
 show "#";
@@ -89,21 +88,22 @@ show "# $TITLE";
 show "#";
 show "# TO: ${TO}   GE: ${GE}";
 show "#";
-show -n "# Sys.cfg. & estimate$SEP";
-(IFS=$'\t'; show "${ISPLIT_CFG[*]}");  # subshell to avoid messing IFS
+show -n "# Sys.cfg. & estimate ";
+for IS_CFG in "${ISPLIT_CFG[@]}"; do
+	printf "%16s" $IS_CFG;
+done
+show; # newline
 for (( i=0 ; i < ${#SYS_CFG[@]} ; i++ )); do
 	show "# ${SYS_CFG[i]}";
-	printf "  %.2e  %.2e" "${EST_AVG[i]}" "${EST_STDEV[i]}";
+	printf "  %.2e  %.2e  " "${EST_AVG[i]}" "${EST_STDEV[i]}";
 	for IS_CFG in ${ISPLIT_CFG[@]}; do
-		show -n "$SEP";
-		FILE="${RESULTS}/*${SYS_CFG[i]}*${IS_CFG}";
-		[[ $IS_CFG =~ flat ]] && FILE+="*" || FILE+="*${GE}*";
-		FILE+="${TO}*.out";
+		FILE="${RESULTS}/*${SYS_CFG[i]}*${IS_CFG}*${TO}*";
+		[[ $IS_CFG =~ flat ]] && FILE+=".out" || FILE+="${GE}*.out";
 		TIME=$(gawk '/Estimation time:/{print $4}' $FILE 2>/dev/null);
 		if [[ $TIME =~ $TIME_REGEXP ]]; then
-			show -n "$TIME";  #    valid time value
+			printf "%16.2f" "$TIME";  #    valid time value
 		else
-			show -n "$NUL";   # no valid time value
+			printf "%16s" "$NUL";     # no valid time value
 		fi
 	done
 	show;  # newline

@@ -97,7 +97,8 @@ copy_model_file() {
 		echo "[ERROR] Couldn't find models directory \"$MODELS_DIR\"";
 		return 1;
 	fi
-	local MODEL=`find $MODELS_DIR -name "$1" -print -quit`
+	#local MODEL=`find $MODELS_DIR -name "$1" -print -quit`
+	local MODEL=`find $MODELS_DIR -path "*$1" -print -quit`
 	if [ ! -f $MODEL ]; then
 		echo "[ERROR] Couldn't find model file \"$1\" in dir \"$MODELS_DIR\"";
 		return 1;

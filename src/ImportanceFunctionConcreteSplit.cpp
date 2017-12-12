@@ -387,8 +387,7 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
 //			    << (IS_REFERENCE_EVENT(impVec[i]) ? "^" : "")
 //			    << "| ";
 //			assert(s.concrete_size() > i);
-//			s.decode(i).to_string(print_out(out,true);
-//			out << "== " << UNMASK(impVec[i]);
+//			out << s.decode(i).to_string() << "== " << UNMASK(impVec[i]);
 			lmin = std::min(lmin, UNMASK(impVec[i]));
 			lmax = std::max(lmax, UNMASK(impVec[i]));
 		}

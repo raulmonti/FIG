@@ -161,7 +161,7 @@ int main(int argc, char** argv)
 	}
 
 	exit_point:
-	    fig::ModelSuite::main_log("   \"El Tiempo sólo es tardanza de "
+	    fig::ModelSuite::main_log("\n   \"El Tiempo sólo es tardanza de "
 		                          "lo que está por venir, Mendieta\"\n\n");
 		return EXIT_SUCCESS;
 }

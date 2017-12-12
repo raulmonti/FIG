@@ -1214,11 +1214,11 @@ ModelSuite::estimate_for_times(const Property& property,
 			timer.detach();
 			throw;
 		}
-		techLog_ << std::endl;
 		interruptCI_ = nullptr;
 		lastEstimates_.push_back(ci_ptr);
 		// Results should've been shown on TO interruption
 #ifndef NDEBUG
+		techLog_ << std::endl;
 		if (engine.isplit()) {
 			size_t i(0ul);
 			techLog_ << "#(sims) reaching each threshold level:";
@@ -1287,7 +1287,6 @@ ModelSuite::estimate_for_confs(const Property& property,
 			pthread_cancel(timer.native_handle());  // cancel pending TO
 			timer.detach();
 			estimate_print(*ci_ptr, omp_get_wtime()-lastEstimationStartTime_, mainLog_);
-			techLog_ << std::endl;
 		} else {
 			// Simulations timed-out: wait for interrupt_print() to finish
 			timer.join();
@@ -1295,6 +1294,7 @@ ModelSuite::estimate_for_confs(const Property& property,
 		interruptCI_ = nullptr;
 		lastEstimates_.push_back(ci_ptr);
 #ifndef NDEBUG
+		techLog_ << std::endl;
 		if (engine.isplit()) {
 			size_t i(0ul);
 			techLog_ << "\n#(sims) reaching each threshold level:";

@@ -11,16 +11,28 @@ showe(){ /bin/echo -e "$@" >&2; }  # echo with regexp to stderr
 CWD=`readlink -f "$(dirname ${BASH_SOURCE[0]})"`;
 
 
-# Probe resources & Build project
-source "$CWD/../../fig_utils.sh" || \
-	(showe "[ERROR] Couldn't find fig_utils.sh" && exit 1)
+# Probe resources
+FIG_EXP_UTILS=$CWD/../../fig_utils.sh;
+PPTY_SCRIPT=prepare_property.sh;
+CHARTS_SCRIPT=build_chart.sh;
+source "$FIG_EXP_UTILS" || \
+	(showe "[ERROR] Can't run: file $FIG_EXP_UTILS not found" && exit 1)
 if [[ "$(type -t build_fig)" != "function" ]]; then
 	showe "[ERROR] Bash function \"build_fig\" is undefined";
 	exit 1;
 elif [[ "$(type -t copy_model_file)" != "function" ]]; then
 	showe "[ERROR] Bash function \"copy_model_file\" is undefined";
 	exit 1;
+elif [ ! -f $PPTY_SCRIPT ]; then
+	showe "[ERROR] Can't prepare property: file $PPTY_SCRIPT not found";
+	exit 1;
+elif [ ! -f $CHARTS_SCRIPT ]; then
+	showe "[ERROR] Can't build summary tables: file $CHARTS_SCRIPT not found";
+	exit 1;
 fi
+
+
+# Build FIG locally
 show "Building FIG";
 build_fig $CWD;
 if [ ! -f ./fig ]; then
@@ -36,7 +48,7 @@ export MAXJOBSN=$MAXJOBSN;
 show "Using $MAXJOBSN parallel processors in host \"`hostname`\"";
 
 
-# Prepare experiment's directory and files
+# Prepare experiments' directory and files
 show "Preparing experiments environment:"
 source "$CWD/fetch_models.sh" || \
 	(showe "[ERROR] Couldn't find fetch_models.sh" && exit 1)
@@ -77,12 +89,36 @@ show "  · time limits: (${TIME_BOUNDS[*]})";
 show "  · global eff:  (${GEFFORT[*]})";
 
 
+# Make local copies of the model files
+show "Preparing local copies of the model files...";
+declare -a MODEL_FILES;
+for MODEL in "${MODEL_LIST[@]}"; do
+	show "  · Working on `basename $MODEL`";
+	# Fetch model file
+	copy_model_file $MODEL $CWD/models;
+	MODEL=$(basename $MODEL);
+	MODEL_FILE=$CWD/models/$MODEL;
+	# Prepare the property (singular) on the model file
+	source $PPTY_SCRIPT $MODEL_FILE;  # "source" to run in same environment
+	if [ ! -f $MODEL_FILE ]; then
+		showe "[ERROR] Failed to copy locally a model file";
+		exit 1;
+	fi
+	MODEL_FILES+=($MODEL_FILE);
+done
+if [ ${#MODEL_LIST[*]} -ne ${#MODEL_FILES[*]} ]; then
+	showe "[ERROR] Failed to make local copies of the model files";
+	exit 1;
+fi
+show "...done";
+
+
 # Run experiments
 show "Enqueueing all jobs in SLURM...";
 ISPLIT_CFG=("flat");
 LOG_ISCONFIG_STR=true;
 for TB  in "${TIME_BOUNDS[@]}"; do
-	RUN_SMC=true;  # Run Standard Monte Carlo, once for each time bound
+	RUN_SMC=true;  # run Standard Monte Carlo once for each time bound
 for GE  in "${GEFFORT[@]}"; do
 	# Experiment's time limits (ifun + thr + sim)
 	if [ `compute_seconds $TB` -lt 600 ]; then
@@ -99,44 +135,41 @@ for CFG in "${ISCONFIG[@]}"; do
 		ISPLIT_CFG+=("$CFG_STR");
 	fi
 	CFG_STR="${CFG_STR}_${TB}_${GE}";
-for MODEL in "${MODEL_LIST[@]}"; do
+for MODEL_PATH in "${MODEL_FILES[@]}"; do
+	MODEL=$(basename $MODEL_PATH);
 	show "  · Running experiments on model $MODEL";
-	copy_model_file $MODEL $CWD/models;
-	MODEL=$(basename $MODEL);
-	MODEL_FILE=$CWD/models/$MODEL;
 	# Logs
 	LOG="${RESULTS}/${MODEL%%_with*}_${CFG_STR}";
 	# Compositional ifun  (in last line of model file)
-	IFUNC="`tail -n 1 $MODEL_FILE | sed 's/\/\/\ *//'`";
+	IFUNC="`tail -n 1 $MODEL_PATH | sed 's/\/\/\ *//'`";
 	IFUNC=${IFUNC//\ /};
 	if [ `echo $IFUNC | wc -c` -lt 8 ]; then
 		showe "[ERROR] No compositional ifun. found in model \"$MODEL\"";
 		continue;
 	fi
-	EXE_FIG="$UNIX_TIMEOUT $ETIMEOUT";
-	EXE_FIG+=" ./fig $MODEL_FILE $STOP_CRITERION -g $GE --timeout $TB";
-	EXE_FIG+=" $CFG --dft --acomp '$IFUNC'"
 	# Execution
+	EXE_FIG="$UNIX_TIMEOUT $ETIMEOUT";
+	EXE_FIG+=" ./fig $MODEL_PATH $STOP_CRITERION -g $GE --timeout $TB";
+	EXE_FIG+=" $CFG --dft 0 --acomp '$IFUNC'"
 	poll_till_free $EXPNAME;
 	eval $EXE_FIG 1>>${LOG}".out" 2>>${LOG}".err" &
-
-	# If requested, for each Model run also Standard Monte Carlo
+	# For each model run also Standard Monte Carlo
 	if $RUN_SMC ; then
 		LOG="${RESULTS}/${MODEL%%_with*}_flat_${TB}";
 		EXE_FIG="$UNIX_TIMEOUT $ETIMEOUT"
-		EXE_FIG+=" ./fig $MODEL_FILE $STOP_CRITERION --timeout $TB";
+		EXE_FIG+=" ./fig $MODEL_PATH $STOP_CRITERION --timeout $TB";
 		EXE_FIG+=" --flat";
 		poll_till_free $EXPNAME;
 		eval $EXE_FIG 1>>${LOG}".out" 2>>${LOG}".err" &
 	fi
 
-done  # loop MODEL in MODEL_LIST
+done  # loop MODEL in MODEL_FILES
 	RUN_SMC=false;  # Standard Monte Carlo runs once per time bound
 done  # loop CFG   in ISCONFIG
 	LOG_ISCONFIG_STR=false;
 done  # loop GE    in GEFFORT
 done  # loop TB    in TIME_BOUNDS
-show " done";
+show "...done";
 
 
 # Wait till termination, making sure everything dies after the timeout
@@ -153,11 +186,6 @@ show " done";
 
 # Build summary charts
 set +e;
-CHARTS_SCRIPT=build_chart.sh;
-if [ ! -f $CHARTS_SCRIPT ]; then
-	showe "[ERROR] Can't build summary tables: file $CHARTS_SCRIPT not found";
-	exit 1;
-fi
 show -n "Building summary tables...";
 TITLE="hecs${EXPNAME: -1}";  # https://stackoverflow.com/a/17542946
 for TB  in "${TIME_BOUNDS[@]}"; do

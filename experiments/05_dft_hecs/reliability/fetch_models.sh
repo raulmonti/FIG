@@ -1,11 +1,10 @@
-#!/usr/bin/env bash
 #
 # Author:  Carlos E. Budde
 # Date:    04.12.2017
 # License: GPLv3
 #
 #   Export array MODEL_LIST[*] with all models for experimentation
-#   NOTE: this script should be sourced from another script
+#   NOTE: this script should be sourced from another script  XXX
 #
 declare -a MODEL_LIST
 MODEL_LIST=(\
