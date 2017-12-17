@@ -447,7 +447,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 	thrBuilders["fix"] = std::make_shared< ThresholdsBuilderFixed >();
 	thrBuilders["ams"] = std::make_shared< ThresholdsBuilderAMS >();
 	thrBuilders["smc"] = std::make_shared< ThresholdsBuilderSMC >();
-	thrBuilders["es" ] = std::make_shared< ThresholdsBuilderES >();
+	thrBuilders["es" ] = std::make_shared< ThresholdsBuilderES >(model);
 	thrBuilders["hyb"] = std::make_shared< ThresholdsBuilderHybrid >();
 
 	// Build offered simulation engines

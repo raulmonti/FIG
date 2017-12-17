@@ -34,7 +34,6 @@
 // FIG
 #include <SimulationEngine.h>
 #include <ImportanceFunction.h>
-#include <PropertyTransient.h>
 #include <core_typedefs.h>
 #include <FigException.h>
 #include <Traial.h>
@@ -48,19 +47,18 @@ class PropertyRate;
 /**
  * @brief Engine for Fixed Effort importance-splitting simulations
  *
- *        This engine implements the importance splitting strategy
+ *        This is an abstract base class for \ref SimulationEngine
+ *        "simulation engines" based on the importance splitting strategy
  *        named "Fixed Effort" in Marnix Garvel's PhD thesis.<br>
- *        A fixed number of simulations is run on each threshold-level,
- *        counting how many make it to the next level and how many don't.
- *        The resulting proportion is the probability of "going up" on that
- *        threshold level; an estimate of the rare event is a product of
- *        the proportions computed for all threshold-levels.
- *
- * @warning Hard-coded to use importance values as threshold-levels,
- *          i.e. every value of the ImportanceFunction is a threshold.
+ *        Generally speaking the approach is to compute, <i>as independently
+ *        as possible</i>, the conditional probabilities of visiting upper
+ *        threshold levels from lower threshold levels. Then the rare event
+ *        estimate is a product of such conditional probabilities.
  */
 class SimulationEngineFixedEffort : public SimulationEngine
 {
+protected:
+
 	/// Number of simulations launched per threshold-level;
 	/// this is the global variant, where the same effort is used on all levels
 	/// @deprecated Now each threshold level has its own effort;
@@ -81,8 +79,9 @@ class SimulationEngineFixedEffort : public SimulationEngine
 public:
 
 	/// Default ctor
-	SimulationEngineFixedEffort(std::shared_ptr<const ModuleNetwork> network,
-	                            unsigned effortPerLevel = effort_per_level_default());
+	SimulationEngineFixedEffort(const std::string& simEngineName,
+								std::shared_ptr<const ModuleNetwork> network,
+								unsigned effortPerLevel = effort_per_level_default());
 
 	~SimulationEngineFixedEffort();
 
@@ -112,11 +111,7 @@ public:  // Engine setup
 	 */
 	void set_global_effort(unsigned epl = effort_per_level_default()) override;
 
-protected:  // Simulation helper functions
-
-	/// Clean \ref stack_ "internal ADT" used for batch means,
-	/// forcing the next simulation to be <i>fresh</i>.
-	void reinit_stack() const;
+private:  // Simulation helper functions
 
 	std::vector<double>
 	transient_simulations(const PropertyTransient& property,
@@ -127,25 +122,47 @@ protected:  // Simulation helper functions
 	rate_simulation(const PropertyRate&, const size_t&, bool) const override
 		{ throw_FigException("TODO: implement!"); }
 
-private:  // Traial observers/updaters
+protected:  // Utils for the class and its kin
 
-	/// @copydoc SimulationEngine::transient_event()
-	/// @note Makes no assumption about the ImportanceFunction altogether
-	inline bool
-	transient_event(const PropertyTransient& property, Traial& traial, Event&) const override
-		{
-		    const ImportanceValue newLvl = impFun_->level_of(traial.state);
-			traial.depth -= newLvl - traial.level;
-			traial.level = newLvl;
-			return /* level-up:   */ traial.depth < 0 ||
-				   /* rare event: */ property.is_rare(traial.state) ||
-				   /* stop event: */ property.is_stop(traial.state);
-		}
+	/**
+	 * @brief Perform <i>one sweep</i> of the Fixed Effort algorithm.
+	 *
+	 *        Starting from the initial system state, for every <i>importance
+	 *        region</i> (i.e. states between two threshold levels)
+	 *        run effortPerLevel_ simulations. A simulation ends when it reaches
+	 *        either: an upper threshold; a stop event; or a rare event.<br>
+	 *        When the uppermost threshold is reached (rare event boundary),
+	 *        or when there are no initial states to start the Traials from in
+	 *        the current step, computations stop.
+	 *
+	 * @param property Property whose value is currently being estimated
+	 * @param engine   Instance of the SimulationEngine/ThresholdsBuilder
+	 *                 that is performing the fixed effort
+	 * @param watch_events Member function of \a engine telling when finishes a
+	 *                     \ref ModuleNetwork::simulation_step "simulation step"
+	 * @param thresholds Thresholds (and effort of each threshold) which
+	 *                   delimit the importance regions considered on each step
+	 * @param Pup        Array where the estimated conditional probabilities
+	 *                   of threshold-level-up will be stored.
+	 *
+	 * @note What exactly is meant by <i>next</i> or <i>upper threshold level</i>
+	 *       depends on the class implementing this method
+	 */
 
-	/// @todo TODO implement
-	inline bool
-	rate_event(const PropertyRate&, Traial&, Event&) const override
-		{ throw_FigException("TODO: implement!"); }
+
+// [SO] Virtual/template in C++:
+// - https://stackoverflow.com/q/2354210
+// - https://stackoverflow.com/q/7968023
+//
+//	template< typename DerivedProperty,
+//			  class Simulator,
+//			  class TraialMonitor >
+	virtual void fixed_effort(const DerivedProperty& property,
+							  const Simulator& engine,
+							  TraialMonitor watch_events,
+							  const ThresholdsVec& thresholds,
+							  std::vector< double >& Pup) const = 0;
+
 };
 
 } // namespace fig

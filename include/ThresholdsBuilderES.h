@@ -31,8 +31,7 @@
 
 #include <ThresholdsBuilderAdaptive.h>
 #include <ImportanceFunction.h>
-#include <PropertyTransient.h>
-#include <PropertyRate.h>
+#include <Property.h>
 #include <Traial.h>
 
 
@@ -40,6 +39,7 @@ namespace fig
 {
 
 class ModuleNetwork;
+class SimulationEngineBFE;
 
 /**
  * @brief ThresholdsBuilder implementing Expected Success (ES)
@@ -89,16 +89,20 @@ protected:
 	std::shared_ptr< const Property > property_;
 
 	/// Model currently built
-	const ModuleNetwork* model_;
+	std::shared_ptr< const ModuleNetwork> model_;
 
 	/// Importance function currently built
-	const ImportanceFunction* impFun_;
+	std::shared_ptr< const ImportanceFunction > impFun_;
+
+	/// Simulator for the internal Fixed Effort runs
+	SimulationEngineBFE simulator_;
 
 public:
 
 	/// Data & default ctor
 	/// @param n Number of pilot simulations used per importance level, see Budde et al.
-	ThresholdsBuilderES(const size_t& n = (1ul<<8ul));
+	ThresholdsBuilderES(std::shared_ptr<const ModuleNetwork> model,
+						const size_t& n = (1ul<<8ul));
 
 	bool uses_global_effort() const noexcept override final { return false; }
 

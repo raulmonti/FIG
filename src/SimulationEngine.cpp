@@ -105,6 +105,10 @@ min_run_length(const std::string& engineName, const std::string& ifunName)
 	constexpr size_t NUM_IMPFUNS(fig::ImportanceFunction::NUM_NAMES);
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
+
+
+	///  @todo TODO change fixedeffort below for SFE & BFE
+
 	static const size_t run_lengths[NUM_ENGINES][NUM_IMPFUNS] = {
 	    { 1ul<<15, 1ul<<16, 1ul<<16 },  //     nosplit x {concrete_coupled, concrete_split, algebraic}
 	    { 1ul<<14, 1ul<<14, 1ul<<14 },  //     restart x {concrete_coupled, concrete_split, algebraic}
@@ -138,6 +142,10 @@ increase_run_length(const std::string& engineName,
 	constexpr size_t NUM_IMPFUNS(fig::ImportanceFunction::NUM_NAMES);
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
+
+
+	///  @todo TODO change fixedeffort below for SFE & BFE
+
 	static const float inc_length[NUM_ENGINES][NUM_IMPFUNS] = {
 	    { 1.7f, 1.7f, 1.4f },  //     nosplit x {concrete_coupled, concrete_split, algebraic}
 	    { 1.4f, 1.4f, 1.4f },  //     restart x {concrete_coupled, concrete_split, algebraic}
@@ -251,6 +259,9 @@ SimulationEngine::names() noexcept
 	    // RESTART-like importance splitting, from the Villén-Altamirano brothers
 	    // See SimualtionEngineRestart class
 	    "restart",
+
+
+		 /// @todo TODO change fixedeffort below for SFE & BF
 
 	    // Fixed Effort importance splitting, from Garvels' PhD thesis
 	    // See SimualtionEngineFixedEffort class

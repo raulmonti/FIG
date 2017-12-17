@@ -332,6 +332,18 @@ ImportanceFunction::num_thresholds() const
 }
 
 
+const ThresholdsVec&
+ImportanceFunction::thresholds() const
+{
+#ifndef NDEBUG
+	if (!ready())
+		throw_FigException("this ImportanceFunction hasn't "
+						   "any thresholds built in it yet");
+#endif
+	return threshold2importance_;
+}
+
+
 unsigned long
 ImportanceFunction::min_thresholds_effort() const
 {

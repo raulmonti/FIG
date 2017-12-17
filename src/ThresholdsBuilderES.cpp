@@ -36,6 +36,7 @@
 #include <iomanip>  // std::setprecision()
 // FIG
 #include <ThresholdsBuilderES.h>
+#include <SimulationEngineBFE.h>
 #include <ImportanceFunction.h>
 #include <PropertyTransient.h>
 #include <PropertyRate.h>
@@ -51,17 +52,46 @@ using std::begin;
 using std::end;
 
 
+namespace   // // // // // // // // // // // // // // // // // // // // // // //
+{
+
+/// DEBUG mode: Show in tech log the probability of level-up for each level
+/// RELEASE mode: NOP
+void
+debug_print_lvlup(const std::vector< float >& Pup)
+{
+#ifndef NDEBUG
+	float est(1.0f);
+	const auto defaultLogFlags(fig::figTechLog.flags());
+	fig::figTechLog << std::setprecision(2) << std::scientific;
+	fig::figTechLog << "\nLvl-up probabilities:";
+	for (auto p: Pup) {
+		fig::figTechLog << " " << p;
+		est *= p;
+	}
+	fig::figTechLog << "\nEstimate spoiler (transient properties only!): "
+			   << est << std::endl;
+	fig:: figTechLog.flags(defaultLogFlags);
+#endif
+}
+
+} // namespace   // // // // // // // // // // // // // // // // // // // // //
+
+
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-ThresholdsBuilderES::ThresholdsBuilderES(const size_t& n) :
+ThresholdsBuilderES::ThresholdsBuilderES(
+		std::shared_ptr<const ModuleNetwork> model,
+		const size_t& n) :
     ThresholdsBuilder("es"),  // virtual inheritance forces this...
-    ThresholdsBuilderAdaptive(n),
+	ThresholdsBuilderAdaptive(n),
     nSims_(0ul),
     maxSimLen_(0ul),
     property_(nullptr),
     model_(nullptr),
-    impFun_(nullptr)
+	impFun_(nullptr),
+	simFE_(model)
 { /* Not much to do around here */ }
 
 
@@ -75,8 +105,8 @@ ThresholdsBuilderES::setup(const PostProcessing &,
 ThresholdsVec
 ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 {
-	model_ = ModelSuite::get_instance().modules_network().get();
-	impFun_ = &impFun;
+	model_ = ModelSuite::get_instance().modules_network();
+	impFun_ = std::make_shared< const ImportanceFunction >(&impFun);
 
 	// Adapted from Alg. 3 of Budde, D'Argenio, Hartmanns,
 	// "Better Automated Importance Splitting for Transient Rare Events", 2017.
@@ -91,7 +121,7 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	if (thrCandidates.size() < 2ul)  // we must have reached beyond initial importance
 		throw_FigException("ES could not find reachable importance values");
 	const size_t DEFACTO_IMP_RANGE(thrCandidates.size()-1ul);
-	std::vector<float> Pup(DEFACTO_IMP_RANGE), aux(DEFACTO_IMP_RANGE);
+	std::vector< float > Pup(DEFACTO_IMP_RANGE), aux(DEFACTO_IMP_RANGE);
 #ifndef NDEBUG
 	ModelSuite::tech_log("\nFound " + std::to_string(DEFACTO_IMP_RANGE)
 	                    + " relevant importance values:");
@@ -105,6 +135,12 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 #endif
 	ModelSuite::tech_log(" [");
 	TraialsVec traials(get_traials(n_, impFun, false));
+
+
+
+	FE_for_ES(thrCandidates, traials, aux);
+	/// @todo TODO embedd following loop fully inside FE_for_ES()
+
 	for (size_t m = 1ul ; m < 5ul && 0.0f >= Pup.back() ; m++) {
 		FE_for_ES(thrCandidates, traials, aux);
 		for (size_t i = 0ul ; i < DEFACTO_IMP_RANGE && 0.0f < aux[i] ; i++)
@@ -122,19 +158,7 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	TraialPool::get_instance().return_traials(traials);
 	if (0.0f >= Pup.back())
 		artificial_thresholds_selection(thrCandidates, Pup);
-#ifndef NDEBUG
-	float est(1.0f);
-	const auto defaultLogFlags(figTechLog.flags());
-	figTechLog << std::setprecision(2) << std::scientific;
-	figTechLog << "\nLvl-up probabilities:";
-	for (auto p: Pup) {
-		figTechLog << " " << p;
-		est *= p;
-	}
-	figTechLog << "\nEstimate spoiler (transient properties only!): "
-	           << est << std::endl;
-	figTechLog.flags(defaultLogFlags);
-#endif
+	debug_print_lvlup(Pup);  // print debug info in tech log
 
 	// Turn level-up probabilities into effort factors
 	decltype(aux)& effort(aux);
@@ -163,8 +187,8 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 
 	ModelSuite::tech_log("\n");
 	show_thresholds(thresholds_);
-	impFun_ = nullptr;
-	model_ = nullptr;
+	impFun_.reset();
+	model_.reset();
 	return thresholds_;
 }
 
@@ -236,6 +260,21 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 		return;  // only one reachable importance value: ES failed!
 	assert(Pup.size() == reachableImportanceValues.size()-1ul);
 
+
+
+	/// @todo TODO implement
+	auto thresholds = wrap_as_thresholds(reachableImportanceValues);
+
+
+	simFE_.bind(make_shared<ImportanceFunction>(impFun_));  /// @todo TODO necessary?
+	simFE_.fixed_effort(property_,
+						*this,
+						events_watcher,
+						thresholds,
+						Pup);
+
+
+
 	// Init ADTs
 	std::fill(begin(Pup), end(Pup), 0.0f);
 	freeNow.reserve(N);
@@ -276,6 +315,11 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 		std::swap(freeNow, freeNext);
 		std::swap(startNow, startNext);
 	}
+
+
+
+
+	simFE_.unbind();
 }
 
 

@@ -316,6 +316,9 @@ public:  // Accessors
 	/// @see build_thresholds()
 	unsigned num_thresholds() const;
 
+	/// @copydoc threshold2importance_
+	const ThresholdsVec& thresholds() const;
+
 	/// @copydoc minThresholdEffort_
 	/// @returns 0 if function isn't ready(), else: min { effort per threshold }
 	/// \ifnot NDEBUG
