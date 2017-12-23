@@ -32,8 +32,9 @@
 // C++
 #include <vector>
 #include <deque>
+#include <memory>     // std::make_unique<>
 #include <algorithm>  // std::fill()
-#include <iomanip>  // std::setprecision()
+#include <iomanip>    // std::setprecision()
 // FIG
 #include <ThresholdsBuilderES.h>
 #include <SimulationEngineBFE.h>
@@ -91,7 +92,7 @@ ThresholdsBuilderES::ThresholdsBuilderES(
     property_(nullptr),
     model_(nullptr),
 	impFun_(nullptr),
-	simFE_(model)
+	simulator_(std::make_unique<SimulatorEngineSFE>(model))
 { /* Not much to do around here */ }
 
 
@@ -122,39 +123,29 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 		throw_FigException("ES could not find reachable importance values");
 	const size_t DEFACTO_IMP_RANGE(thrCandidates.size()-1ul);
 	std::vector< float > Pup(DEFACTO_IMP_RANGE), aux(DEFACTO_IMP_RANGE);
-#ifndef NDEBUG
-	ModelSuite::tech_log("\nFound " + std::to_string(DEFACTO_IMP_RANGE)
+	ModelSuite::debug_log("\nFound " + std::to_string(DEFACTO_IMP_RANGE)
 	                    + " relevant importance values:");
 	for (auto imp: thrCandidates)
-		ModelSuite::tech_log(" "+std::to_string(imp));
-#endif
+		ModelSuite::debug_log(" "+std::to_string(imp));
 
 	// Estimate the probabilities of going from one (reachable) importance value to the next
-#ifndef NDEBUG
-	ModelSuite::tech_log("\nRunning internal Fixed Effort");
-#endif
-	ModelSuite::tech_log(" [");
+	ModelSuite::debug_log("\nRunning internal Fixed Effort");
 	TraialsVec traials(get_traials(n_, impFun, false));
-
-
-
 	FE_for_ES(thrCandidates, traials, aux);
 	/// @todo TODO embedd following loop fully inside FE_for_ES()
-
-	for (size_t m = 1ul ; m < 5ul && 0.0f >= Pup.back() ; m++) {
-		FE_for_ES(thrCandidates, traials, aux);
-		for (size_t i = 0ul ; i < DEFACTO_IMP_RANGE && 0.0f < aux[i] ; i++)
-			Pup[i] += (aux[i]-Pup[i])/m;
-		if (0.0f >= Pup.back()) {
-			ModelSuite::tech_log("-");
-			// last iteration didn't reach max importance: Increase effort
-			auto moreTraials(get_traials(traials.size(), impFun, false));
-			traials.insert(end(traials), begin(moreTraials), end(moreTraials));
-		} else {
-			ModelSuite::tech_log("+");
-		}
-	}
-	ModelSuite::tech_log("]");
+//	for (size_t m = 1ul ; m < 5ul && 0.0f >= Pup.back() ; m++) {
+//		FE_for_ES(thrCandidates, traials, aux);
+//		for (size_t i = 0ul ; i < DEFACTO_IMP_RANGE && 0.0f < aux[i] ; i++)
+//			Pup[i] += (aux[i]-Pup[i])/m;
+//		if (0.0f >= Pup.back()) {
+//			ModelSuite::tech_log("-");
+//			// last iteration didn't reach max importance: Increase effort
+//			auto moreTraials(get_traials(traials.size(), impFun, false));
+//			traials.insert(end(traials), begin(moreTraials), end(moreTraials));
+//		} else {
+//			ModelSuite::tech_log("+");
+//		}
+//	}
 	TraialPool::get_instance().return_traials(traials);
 	if (0.0f >= Pup.back())
 		artificial_thresholds_selection(thrCandidates, Pup);
@@ -251,6 +242,44 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
                                TraialsVec& traials,
                                std::vector<float>& Pup) const
 {
+	auto event_watcher = std::bind(&ThresholdsBuilderES::FE_watcher,
+								   this,
+								   std::placeholders::_1,
+								   std::placeholders::_2,
+								   std::placeholders::_3);
+	assert(Pup.size() == reachableImportanceValues.size()-1ul);
+	if (reachableImportanceValues.size() < 2ul)
+		return;  // only one reachable importance value: ES failed!
+	decltype(Pup) aux(Pup.size());
+	simulator_.property_ = property_;
+	simulator_.bind(make_shared<ImportanceFunction>(impFun_));
+
+
+	/// @todo TODO implement
+	auto thresholds = wrap_as_thresholds(reachableImportanceValues);
+
+
+	ModelSuite::tech_log(" [");
+	for (size_t m = 1ul ; m < 5ul && 0.0f >= Pup.back() ; m++) {
+		simulator_.fixed_effort(thresholds, aux, event_watcher);
+		for (size_t i = 0ul ; i < Pup.size() && 0.0f < aux[i] ; i++)
+			Pup[i] += (aux[i]-Pup[i])/m;
+		if (0.0f >= Pup.back()) {
+			ModelSuite::tech_log("-");
+			// last iteration didn't reach max importance: Increase effort
+//			auto moreTraials(get_traials(traials.size(), impFun, false));
+//			traials.insert(end(traials), begin(moreTraials), end(moreTraials));
+		} else {
+			ModelSuite::tech_log("+");
+		}
+	}
+	ModelSuite::tech_log("]");
+	simulator_.unbind();
+
+
+
+
+
 	auto events_watcher = &fig::ThresholdsBuilderES::FE_watcher;
 	const size_t N = traials.size();  // effort per level
 	std::vector< Reference< Traial > > freeNow, freeNext, startNow, startNext;
@@ -259,21 +288,6 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 	if (reachableImportanceValues.size() < 2ul)
 		return;  // only one reachable importance value: ES failed!
 	assert(Pup.size() == reachableImportanceValues.size()-1ul);
-
-
-
-	/// @todo TODO implement
-	auto thresholds = wrap_as_thresholds(reachableImportanceValues);
-
-
-	simFE_.bind(make_shared<ImportanceFunction>(impFun_));  /// @todo TODO necessary?
-	simFE_.fixed_effort(property_,
-						*this,
-						events_watcher,
-						thresholds,
-						Pup);
-
-
 
 	// Init ADTs
 	std::fill(begin(Pup), end(Pup), 0.0f);
@@ -315,11 +329,6 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 		std::swap(freeNow, freeNext);
 		std::swap(startNow, startNext);
 	}
-
-
-
-
-	simFE_.unbind();
 }
 
 

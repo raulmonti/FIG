@@ -744,6 +744,11 @@ ModelSuite::tech_log(const std::string& msg)
 }
 
 
+#ifndef NDEBUG
+void ModelSuite::debug_log(const std::string& msg) { techLog_ << msg; }
+#endif
+
+
 void
 ModelSuite::log(const std::string& msg)
 {

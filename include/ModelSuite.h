@@ -458,6 +458,13 @@ public:  // Utils
 	/// Print message in technical log
 	static void tech_log(const std::string& msg);
 
+	/// Print message in technical log if DEBUG mode is on; else NOP
+#ifndef NDEBUG
+	static void debug_log(const std::string& msg);
+#else
+	static inline void debug_log(const std::string&) {}
+#endif
+
 	/// Print message both in main and technical log
 	static void log(const std::string& msg);
 

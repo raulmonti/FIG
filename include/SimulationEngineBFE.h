@@ -53,24 +53,33 @@ class PropertyRate;
  *        that generalises "Fixed Effort" to consider branching paths
  *        in the importance (or thresholds) space.<br>
  *        In contrast to \ref SimulationEngineSFE "Standard Fixed Effort",
- *        BFE <i>does not assume</i> that threshold-level <tt>i+1</tt>
- *        can only be reached from below by simualtions coming from
- *        threshold-level <i>i</i>.
- *        Instead, all conditional probabilities <tt>P(j|i)</tt> for
- *        <tt>j>i</tt> are considered, and the probability of the rare event
- *        is estimated by the equation:
- *        <p>&prod;<tt><sub>i=0</sub><sup>N</sup></tt>
- *           &sum;<tt><sub>j=i+1</sub><sup>N</sup></tt>
- *           <tt>P(j|i)</tt>,</p>
- *        i.e. the product of the sum of the conditional probabilities of
- *        reaching any threshold level higher than <tt>i</tt> from <tt>i</tt>.
+ *        BFE <i>does not assume</i> the existence of <i>a single path</i>
+ *        leading from threshold <tt>i</tt> to some higher threshold
+ *        <tt>j>i</tt>.
+ *        Instead all possible importance (or threshold) trails from the
+ *        initial state to the rare event are considered.<br>
+ *        The probability of the rare event is estimated by the equation:
+ *        <p>&sum;<sub>l∊L</sub> <tt>Prob(path<sub>l</sub>)</tt>,</p>
+ *        where the <tt>l</tt>-th path is a trail of
+ *        <tt>N<sub>l</sub>>0</tt> thresholds:
+ *        <p><tt>path<sub>l</sub> = T<sub>1<sub>l</sub></sub> ···
+ *                                  T<sub>N<sub>l</sub></sub></tt>.</p>
+ *
+ * @note Correctness depends on path independence: each potential trail
+ *       <tt>path<sub>l</sub></tt> must be disjoint of all others
+ *       <tt>k∊L,k&ne;l</tt>. In other words, once a simulation "chooses"
+ *       a path then it must follow <i>that path only</i> until the rare event
+ *       is found or the simulation is truncated. If this condition is not met,
+ *       and paths can merge, then the &sum; used as estimate for the
+ *       rare event probability could e.g. yield a value > 1.
  *
  * @see SimulationEngineSFE
  * @see SimulationEngineFixedEffort
  */
 class SimulationEngineBFE : public SimulationEngineFixedEffort
 {
-	friend class ThresholdsBuilderES;
+	/// Internal Traials for fixed_effort() computations
+	std::vector< std::forward_list< Reference< Traial > > > traials_;
 
 public:
 
@@ -78,48 +87,11 @@ public:
 	SimulationEngineBFE(std::shared_ptr<const ModuleNetwork> network,
 								unsigned effortPerLevel = effort_per_level_default());
 
-protected:  // Simulation helper functions
+protected:  // Utils for the class and its kin
 
-	/**
-	 * @brief Perform <i>one sweep</i> of the Branching Fixed Effort algorithm.
-	 *
-	 *        Starting from the initial system state, for every <i>importance
-	 *        region</i> (i.e. states between two consecutive threhold levels)
-	 *        run effortPerLevel_ simulations. Each simulation ends when either:
-	 *        the next threshold is reached; a stop event is reached; a rare
-	 *        event is reached. Do as many steps as there are importance
-	 *        regions.<br>
-	 *        When the uppermost threshold is reached (rare event boundary),
-	 *        or when there are no initial states to start the Traials from in
-	 *        the current step, computations stop.
-	 *
-	 * @param property Property whose value is currently being estimated
-	 * @param engine   Instance of the SimulationEngine/ThresholdsBuilder
-	 *                 that is performing the fixed effort
-	 * @param watch_events Member function of \a engine telling when finishes a
-	 *                     \ref ModuleNetwork::simulation_step "simulation step"
-	 * @param thresholds Thresholds (and effort of each threshold) which
-	 *                   delimit the importance regions considered on each step
-	 * @param Pup        Array where the estimated conditional probabilities
-	 *                   of threshold-level-up will be stored.
-	 */
-	template< typename DerivedProperty,
-			  class Simulator,
-			  class TraialMonitor >
-	void fixed_effort(const DerivedProperty& property,
-					  const Simulator& engine,
-					  TraialMonitor watch_events,
-					  const ThresholdsVec& thresholds,
-					  std::vector< double >& Pup) const;
-
-	std::vector<double>
-	transient_simulations(const PropertyTransient& property,
-						  const size_t& numRuns) const override;
-
-	/// @todo TODO implement
-	inline double
-	rate_simulation(const PropertyRate&, const size_t&, bool) const override
-		{ throw_FigException("TODO: implement!"); }
+	void fixed_effort(const ThresholdsVec& thresholds,
+					  ThresholdsPathCandidates& result,
+					  EventWatcher fun = nullptr) const override;
 
 private:  // Traial observers/updaters
 

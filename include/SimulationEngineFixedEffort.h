@@ -31,6 +31,8 @@
 
 // C++
 #include <vector>
+#include <functional>
+#include <unordered_set>
 // FIG
 #include <SimulationEngine.h>
 #include <ImportanceFunction.h>
@@ -57,6 +59,8 @@ class PropertyRate;
  */
 class SimulationEngineFixedEffort : public SimulationEngine
 {
+	friend class ThresholdsBuilderES;
+
 protected:
 
 	/// Number of simulations launched per threshold-level;
@@ -76,6 +80,9 @@ protected:
 	/// Stack of \ref Traial "traials" for a batch means mechanism
 	mutable std::vector< Reference< Traial > > traials_;
 
+	/// Property currently being estimated
+	std::shared_ptr< Property > property_;
+
 public:
 
 	/// Default ctor
@@ -92,7 +99,7 @@ public:  // Accessors
 	unsigned global_effort() const noexcept override;
 
 	/// @copydoc DEFAULT_GLOBAL_EFFORT
-	inline unsigned global_effort_default() const noexcept override { return DEFAULT_GLOBAL_EFFORT; }
+	inline unsigned global_effort_default() const noexcept override { return effort_per_level_default(); }
 
 	/// @copydoc BASE_NUM_SIMS
 	static inline unsigned base_nsims() noexcept { return BASE_NUM_SIMS; }
@@ -124,6 +131,9 @@ private:  // Simulation helper functions
 
 protected:  // Utils for the class and its kin
 
+//	/// Fetch traials for future invocations to fixed_effort()
+//	virtual void fetch_internal_traials(const size_t& N = effort_per_level_default()) const = 0;
+
 	/**
 	 * @brief Perform <i>one sweep</i> of the Fixed Effort algorithm.
 	 *
@@ -131,11 +141,12 @@ protected:  // Utils for the class and its kin
 	 *        region</i> (i.e. states between two threshold levels)
 	 *        run effortPerLevel_ simulations. A simulation ends when it reaches
 	 *        either: an upper threshold; a stop event; or a rare event.<br>
+	 *        The \ref property_ "Property class member" is used to determine
+	 *        which states represent a stop/rare event.<br>
 	 *        When the uppermost threshold is reached (rare event boundary),
 	 *        or when there are no initial states to start the Traials from in
 	 *        the current step, computations stop.
 	 *
-	 * @param property Property whose value is currently being estimated
 	 * @param engine   Instance of the SimulationEngine/ThresholdsBuilder
 	 *                 that is performing the fixed effort
 	 * @param watch_events Member function of \a engine telling when finishes a
@@ -148,21 +159,21 @@ protected:  // Utils for the class and its kin
 	 * @note What exactly is meant by <i>next</i> or <i>upper threshold level</i>
 	 *       depends on the class implementing this method
 	 */
-
-
+//	template< class Simulator,
+//			  class TraialMonitor >
+	typedef std::pair< ImportanceValue, double >            ThresholdLvlUpProb;
+	typedef std::vector< ThresholdLvlUpProb >               ThresholdsPathProb;
+	typedef std::unordered_set< ThresholdsPathProb >  ThresholdsPathCandidates;
+	typedef std::function<bool(const Property&, Traial&, Event&)> EventWatcher;
+	virtual void fixed_effort(const ThresholdsVec& thresholds,
+							  ThresholdsPathCandidates& result,
+							  EventWatcher fun = nullptr) const = 0;
 // [SO] Virtual/template in C++:
 // - https://stackoverflow.com/q/2354210
 // - https://stackoverflow.com/q/7968023
-//
-//	template< typename DerivedProperty,
-//			  class Simulator,
-//			  class TraialMonitor >
-	virtual void fixed_effort(const DerivedProperty& property,
-							  const Simulator& engine,
-							  TraialMonitor watch_events,
-							  const ThresholdsVec& thresholds,
-							  std::vector< double >& Pup) const = 0;
-
+// [SO] Member function passing with std::functional and std::bind:
+//	https://stackoverflow.com/a/12663020
+// Also see "member_function_as_parameter.cpp" in fig/sandbox (outside git repo)
 };
 
 } // namespace fig

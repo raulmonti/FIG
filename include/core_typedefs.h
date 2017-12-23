@@ -144,8 +144,14 @@ typedef  size_t                                              ImportanceValue;
 /// Vector of \ref ImportanceValue "importance values"
 typedef  std::vector< ImportanceValue >                        ImportanceVec;
 
-/// Vector of thresholds & efforts for the ISplit simulation techniques
-typedef  std::vector< std::pair<unsigned long, unsigned long> > ThresholdsVec;
+//	/// Vector of thresholds & efforts for the ISplit simulation techniques
+//	typedef  std::vector< std::pair<unsigned long, unsigned long> > ThresholdsVec;
+
+/// Threshold for ISplit: its ImportanceValue and Effort
+typedef  std::pair<ImportanceValue, unsigned long>                 Threshold;
+
+/// Vector of thresholds for the ISplit simulation techniques
+typedef  std::vector< Threshold >                              ThresholdsVec;
 
 /// Post-process applied to the \ref ImportanceValue "importance values" assessed
 struct PostProcessing

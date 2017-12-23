@@ -39,7 +39,7 @@ namespace fig
 {
 
 class ModuleNetwork;
-class SimulationEngineBFE;
+class SimulationEngineFixedEffort;
 
 /**
  * @brief ThresholdsBuilder implementing Expected Success (ES)
@@ -95,7 +95,7 @@ protected:
 	std::shared_ptr< const ImportanceFunction > impFun_;
 
 	/// Simulator for the internal Fixed Effort runs
-	SimulationEngineBFE simulator_;
+	std::unique_ptr< SimulationEngineFixedEffort > simulator_;
 
 public:
 

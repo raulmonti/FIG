@@ -54,28 +54,41 @@ class PropertyRate;
  *        An estimate of the rare event probability is a product
  *        of such conditional probabilities computed for all threshold-levels.
  *
- * @note Standard Fixed Effort assumes all paths to the rare event visit
- *       monotonically-increasing importance values (and threshold levels)
- *       and that there is no importance skipping.
- *       That is, it relies on the assumption that any simulation path reaching
- *       level <tt>i+1</ttt> has visited level <tt>i</tt>.
+ * @note The <i>original</i> Fixed Effort algorithm assumes that no
+ *       simulation path can peform importance skipping, i.e. all simulations
+ *       reaching level <tt>i+1</tt> must have visited level <tt>i</tt>.<br>
+ *       This implementation is more general and <i>tolerates importance
+ *       skipping in simulations</i>, so the "next level" after threshold-level
+ *       <tt>i</tt> can be any <tt>j>i</tt>.
+ *
+ * @note This algorithm only uses the thresholds in <i>the</i> (hopefully)
+ *       likeliest path towards the rare event. If importance skipping exhibits
+ *       branching behaviour, e.g. the rare event can be reached doing
+ *       <tt>0-->1-->3-->RARE</tt> or doing <tt>0-->2-->3-->RARE</tt>,
+ *       the \ref SimulationEngineBFE "branching variant of Fixed Effort"
+ *       may be better suited.
  *
  * @see SimulationEngineBFE
  * @see SimulationEngineFixedEffort
  */
 class SimulationEngineSFE : public SimulationEngineFixedEffort
 {
+	/// Internal Traials for fixed_effort() computations
+	std::vector< Reference< Traial > > traials_;
+
 public:
 
 	SimulationEngineSFE();
 
 protected:  // Utils for the class and its kin
 
-	virtual void fixed_effort(const DerivedProperty& property,
-							  const Simulator& engine,
-							  TraialMonitor watch_events,
-							  const ThresholdsVec& thresholds,
-							  std::vector< double >& Pup) const override;
+//	void fetch_internal_traials(const size_t& N) const override;
+
+	/// @brief Perform <i>one sweep</i> of the Fixed Effort algorithm.
+	/// @copydetails SimulationEngineFixedEffort::fixed_effort()
+	void fixed_effort(const ThresholdsVec& thresholds,
+					  ThresholdsPathCandidates& result,
+					  EventWatcher fun = nullptr) const override;
 
 private:  // Traial observers/updaters
 
