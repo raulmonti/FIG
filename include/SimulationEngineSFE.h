@@ -84,8 +84,12 @@ protected:  // Utils for the class and its kin
 
 //	void fetch_internal_traials(const size_t& N) const override;
 
-	/// @brief Perform <i>one sweep</i> of the Fixed Effort algorithm.
+	/// @brief Run <i>once</i> the Standard Fixed Effort algorithm,
+	///        generalised to cope with importance skipping.
 	/// @copydetails SimulationEngineFixedEffort::fixed_effort()
+	/// @note The \p result will contain a single path candidate,
+	///       since this is a <i>greedy version</i> of Fixed Effort which
+	///       ignores paths to the rare event other than the easiest to find
 	void fixed_effort(const ThresholdsVec& thresholds,
 					  ThresholdsPathCandidates& result,
 					  EventWatcher fun = nullptr) const override;

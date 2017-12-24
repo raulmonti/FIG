@@ -52,10 +52,10 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 
 // Available engine names in SimulationEngine::names
 SimulationEngineRestart::SimulationEngineRestart(
-    std::shared_ptr<const ModuleNetwork> network,
+    std::shared_ptr<const ModuleNetwork> model,
     const unsigned& splitsPerThreshold,
     const unsigned& dieOutDepth) :
-		SimulationEngine("restart", network),
+        SimulationEngine("restart", model),
         splitsPerThreshold_(splitsPerThreshold),
 		dieOutDepth_(dieOutDepth),
         numChunksTruncated_(0u),
@@ -191,7 +191,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 
 		std::fill(begin(raresCount), end(raresCount), 0u);  // reset counts
 		tpool.get_traials(stack, 1u);
-		stack.top().get().initialise(*network_, *impFun_);
+		stack.top().get().initialise(*model_, *impFun_);
 
 		// RESTART importance-splitting simulation:
 		while (!stack.empty() && !interrupted) {
@@ -204,22 +204,20 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			(this->*watch_events)(property, traial, e);
 			if (IS_RARE_EVENT(e)) {
 				// We are? Then count and kill
-//				assert(static_cast<ImportanceValue>(0) < traial.level
-//					   || impFun_->strategy() == "adhoc");
+//				assert(static_cast<ImportanceValue>(0) < traial.level || impFun_->strategy() == "adhoc");
 				raresCount[traial.level]++;
 				tpool.return_traial(std::move(traial));
 				stack.pop();
 				continue;
 			}
 			// We aren't? Then keep dancing
-			e = network_->simulation_step(traial, property, *this, watch_events);
+			e = model_->simulation_step(traial, property, *this, watch_events);
 
 			// The following events are treated as mutually exclusive
 			// Checking order is relevant!
 			if (IS_STOP_EVENT(e) || IS_THR_DOWN_EVENT(e)) {
 				// Traial reached a stop event or went down => kill it
-				tpool.return_traial(std::move(traial));
-//				tpool.return_traial(stack.top());  // alternative way
+				tpool.return_traial(std::move(traial));  // alternative way: tpool.return_traial(stack.top());
 				stack.pop();
 
 			} else if (IS_THR_UP_EVENT(e)) {
@@ -269,7 +267,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		reinit_stack();
 		assert(ssstack_.size() == 1ul);
 		assert(&oTraial_ == &ssstack_.top().get());
-		oTraial_.initialise(*network_, *impFun_);
+		oTraial_.initialise(*model_, *impFun_);
 	} else {
 		// Batch means, but reset life times
 		std::stack< Reference< Traial > > tmp;
@@ -326,7 +324,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 				   || impFun_->strategy() == "adhoc");
 			const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // reduce fp prec. loss
 			traial.lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
-			network_->simulation_step(traial, property, *this, register_time);
+			model_->simulation_step(traial, property, *this, register_time);
 			assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < traial.lifeTime);
 			raresCount[traial.level] += traial.lifeTime;
 			traial.lifeTime += simLength;
@@ -334,7 +332,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 
 		// Check where are we and whether we should do another sprint
 		if (!(this->*watch_events)(property, traial, e))
-			e = network_->simulation_step(traial, property, *this, watch_events);
+			e = model_->simulation_step(traial, property, *this, watch_events);
 
 		// Checking order of the following events is relevant!
 		if (traial.lifeTime > simsLifetime || IS_THR_DOWN_EVENT(e)) {

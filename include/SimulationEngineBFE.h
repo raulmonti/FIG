@@ -89,9 +89,15 @@ public:
 
 protected:  // Utils for the class and its kin
 
-	void fixed_effort(const ThresholdsVec& thresholds,
-					  ThresholdsPathCandidates& result,
-					  EventWatcher fun = nullptr) const override;
+	/// @brief Run <i>once</i> the Branching Fixed Effort algorithm
+	/// @copydetails SimulationEngineFixedEffort::fixed_effort()
+	/// @note The \p result may contain several path candidates,
+	///       since this version of Fixed Effort considers all potential
+	///       paths from the initial state towards the rare event
+	void fixed_effort(const ThresholdsVec&,
+	                  ThresholdsPathCandidates&,
+	                  EventWatcher) const override
+	    { throw_FigException("TODO: implement!"); }
 
 private:  // Traial observers/updaters
 

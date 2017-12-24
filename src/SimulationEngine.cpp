@@ -170,12 +170,11 @@ increase_run_length(const std::string& engineName,
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-SimulationEngine::SimulationEngine(
-	const std::string& name,
-    std::shared_ptr< const ModuleNetwork> network) :
+SimulationEngine::SimulationEngine(const std::string& name,
+    std::shared_ptr< const ModuleNetwork> model) :
 		name_(name),
 		locked_(false),
-		network_(network),
+        model_(model),
 		impFun_(nullptr),
 		cImpFun_(nullptr),
         interrupted(false),
@@ -190,7 +189,7 @@ SimulationEngine::SimulationEngine(
 		errMsg << "\n";
 		throw_FigException(errMsg.str());
 	}
-    if (!network->sealed())
+	if (!model->sealed())
         throw_FigException("ModuleNetwork hasn't been sealed yet");
 }
 

@@ -135,7 +135,12 @@ void
 TraialPool::get_traials(Container<Reference<Traial>, OtherArgs...>& cont,
 						unsigned numTraials)
 {
-	assert(0u < numTraials);
+	if (0u < numTraials) {
+#ifndef NDEBUG
+		figTechLog << "[WARNING] TraialPool invoked to get 0 Traials\n";
+#endif
+		return;
+	}
 	numTraials++;  // loop guard condition requires this increment
 retrieve_traials:
 	while (!available_traials_.empty() && 0u < --numTraials) {

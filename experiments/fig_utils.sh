@@ -67,7 +67,7 @@ build_fig() {
 	fi
 	# Copy where requested
 	if [ -f $1/fig ]; then
-		rm $1/fig;
+		rm -f $1/fig;
 	fi
 	cp $BASE_DIR/bin/fig $1/fig;
 }

@@ -44,9 +44,8 @@ namespace fig
 {
 
 // Available engine names in SimulationEngine::names
-SimulationEngineNosplit::SimulationEngineNosplit(
-    std::shared_ptr<const ModuleNetwork> network) :
-        SimulationEngine("nosplit", network),
+SimulationEngineNosplit::SimulationEngineNosplit(std::shared_ptr<const ModuleNetwork> model) :
+        SimulationEngine("nosplit", model),
         oTraial_(TraialPool::get_instance().get_traial())
 { /* Not much to do around here */ }
 
@@ -78,8 +77,8 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
 
 	// Perform 'numRuns' independent standard Monte Carlo simulations
 	for (size_t i = 0ul ; i < numRuns && !interrupted ; i++) {
-		traial.initialise(*network_, *impFun_);
-        Event e = network_->simulation_step(traial, property, *this, watch_events);
+		traial.initialise(*model_, *impFun_);
+		Event e = model_->simulation_step(traial, property, *this, watch_events);
 		raresCount.push_back(IS_RARE_EVENT(e) ? 1.0l : 0.0l);
     }
     TraialPool::get_instance().return_traial(std::move(traial));
@@ -116,16 +115,16 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 	// simulation time units and starting from the last saved state,
 	// or from the system's initial state if requested.
 	if (reinit || oTraial_.lifeTime == FIRST_TIME)
-		oTraial_.initialise(*network_, *impFun_);
+		oTraial_.initialise(*model_, *impFun_);
 	else
 		oTraial_.lifeTime = 0.0;
 	do {
-		Event e = network_->simulation_step(oTraial_, property, *this, watch_events);
+		Event e = model_->simulation_step(oTraial_, property, *this, watch_events);
 		if (!IS_RARE_EVENT(e))
 			break;  // reached EOS
 		const CLOCK_INTERNAL_TYPE simLength(oTraial_.lifeTime);  // reduce fp prec. loss
 		oTraial_.lifeTime = 0.0;
-		network_->simulation_step(oTraial_, property, *this, register_time);
+		model_->simulation_step(oTraial_, property, *this, register_time);
 		assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < oTraial_.lifeTime);
 		accTime += oTraial_.lifeTime;
 		oTraial_.lifeTime += simLength;

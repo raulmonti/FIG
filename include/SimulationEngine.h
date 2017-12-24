@@ -118,7 +118,7 @@ private:  // Instance attributes
 protected:
 
     /// User's system model, already sealed
-    std::shared_ptr< const ModuleNetwork > network_;
+	std::shared_ptr< const ModuleNetwork > model_;
 
     /// Importance function currently built
     std::shared_ptr< const ImportanceFunction > impFun_;
@@ -145,12 +145,12 @@ public:  // Ctors/Dtor
     /**
      * Data ctor
      * @param name @copybrief name_
-     * @param network @copybrief network_
+	 * @param model @copybrief model_
      * @throw FigException if the name doesn't match a valid engine
      * @throw FigException if the system model hasn't been sealed yet
      */
     SimulationEngine(const std::string& name,
-                     std::shared_ptr<const ModuleNetwork> network);
+	                 std::shared_ptr<const ModuleNetwork> model);
     /// Default copy ctor
     SimulationEngine(const SimulationEngine& that) = default;
     /// Default move ctor

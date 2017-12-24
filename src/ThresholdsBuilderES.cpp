@@ -267,8 +267,7 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 		if (0.0f >= Pup.back()) {
 			ModelSuite::tech_log("-");
 			// last iteration didn't reach max importance: Increase effort
-//			auto moreTraials(get_traials(traials.size(), impFun, false));
-//			traials.insert(end(traials), begin(moreTraials), end(moreTraials));
+			simulator_->set_global_effort(simulator_->global_effort()*2u);
 		} else {
 			ModelSuite::tech_log("+");
 		}

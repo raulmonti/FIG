@@ -131,6 +131,11 @@ private:  // Simulation helper functions
 
 protected:  // Utils for the class and its kin
 
+	typedef std::pair< ImportanceValue, double >            ThresholdLvlUpProb;
+	typedef std::vector< ThresholdLvlUpProb >               ThresholdsPathProb;
+	typedef std::unordered_set< ThresholdsPathProb >  ThresholdsPathCandidates;
+	typedef std::function<bool(const Property&, Traial&, Event&)> EventWatcher;
+
 //	/// Fetch traials for future invocations to fixed_effort()
 //	virtual void fetch_internal_traials(const size_t& N = effort_per_level_default()) const = 0;
 
@@ -161,10 +166,6 @@ protected:  // Utils for the class and its kin
 	 */
 //	template< class Simulator,
 //			  class TraialMonitor >
-	typedef std::pair< ImportanceValue, double >            ThresholdLvlUpProb;
-	typedef std::vector< ThresholdLvlUpProb >               ThresholdsPathProb;
-	typedef std::unordered_set< ThresholdsPathProb >  ThresholdsPathCandidates;
-	typedef std::function<bool(const Property&, Traial&, Event&)> EventWatcher;
 	virtual void fixed_effort(const ThresholdsVec& thresholds,
 							  ThresholdsPathCandidates& result,
 							  EventWatcher fun = nullptr) const = 0;

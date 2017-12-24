@@ -85,7 +85,7 @@ class SimulationEngineRestart : public SimulationEngine
 public:  // Ctor
 
 	/// Data ctor
-	SimulationEngineRestart(std::shared_ptr<const ModuleNetwork> network,
+	SimulationEngineRestart(std::shared_ptr<const ModuleNetwork> model,
 	                        const unsigned& splitsPerThreshold = splitting_default(),
 	                        const unsigned& dieOutDepth = 0u);
 

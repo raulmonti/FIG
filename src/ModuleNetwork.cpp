@@ -379,4 +379,19 @@ template Event ModuleNetwork::simulation_step(Traial&,
                                               const ThresholdsBuilderES&,
                                               fixed_effort_watcher) const;
 
+template< typename DerivedProperty,
+          class TraialMonitor >
+Event ModuleNetwork::simulation_step(Traial& traial,
+                                     const DerivedProperty& property,
+                                     TraialMonitor watch_events) const
+{
+	throw_FigException("TODO: Implement!");
+
+	// Should be a copy of its twin, just changing the loop guard for:
+	//   ! watch_events(property, traial, e)
+
+	// TODO: is there a better way to implement these duality
+	//       i.e. without having two implementations of the same function?
+}
+
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //
