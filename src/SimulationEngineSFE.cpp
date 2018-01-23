@@ -27,6 +27,7 @@
 //==============================================================================
 
 // C++
+#include <map>
 #include <algorithm>  // std::fill(), std::max_element(), std::move()
 // FIG
 #include <SimulationEngineSFE.h>
@@ -43,8 +44,9 @@ namespace   // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 using fig::Traial;
-using TraialVec = std::vector< fig::Reference< Traial > >;
 using fig::ImportanceValue;
+typedef std::vector< fig::Reference< Traial > > TraialVec;
+typedef fig::SimulationEngine::ReachabilityCount ReachabilityCount;
 
 /**
  * @brief Select the most likely "next step value" from several posibilities
@@ -56,7 +58,7 @@ using fig::ImportanceValue;
  *
  * @param traials    Traials to analyse and filter
  * @param traialSink Container where discarded Traials will be placed
- * @param reachCount Vector stating how often each ImportanceValue was reached,
+ * @param reachCount How often each ImportanceValue was reached,
  *                   from among the importance values that occurr in \p traials
  * @param ifun       Importance function to assess the importance of each Traial
  *
@@ -65,27 +67,22 @@ using fig::ImportanceValue;
 ImportanceValue
 filter_next_value(TraialVec& traials,
                   TraialVec& traialSink,
-                  std::vector< size_t >& reachCount,
+                  const ReachabilityCount& reachCount,
                   const fig::ImportanceFunction& ifun)
 {
     assert(!traials.empty());
+	assert(!reachCount.empty());
+	using pairt_ = decltype(reachCount)::value_type;
     decltype(traials) chosenTraials;
     const auto N(traials.size());
     chosenTraials.reserve(N);
-
-    auto nextStep = std::max_element(begin(reachCount), end(reachCount));
-    const ImportanceValue nextValue(*nextStep);
-    const size_t nextValueIndex(std::distance(begin(reachCount), nextStep));
-
-    /// @todo TODO Find the most frequent ImportanceValue from the reachCount
-    ///            passed as argument.
-    ///       That vector is the sizer of the Importance range, could be huge:
-    ///       Request another TAD? e.g. a map<ImportanceValue,unsigned>
-    ///                            where map[i] has the #(occurrences)
-    ///                            of ImportanceValue 'i' in traials
-
-
-
+	// Find most frequent ImportanceValue
+	auto nextStep = std::max_element(begin(reachCount), end(reachCount),
+	                                 [](const pairt_& p1, const pairt_& p2)
+	                                 { return p1.second < p2.second; });
+	const ImportanceValue nextValue(nextStep->second);
+	const size_t nextValueIndex(nextStep->first);
+	// Filter the traials vectors
     for (auto i = 0ul ; i < N ; i++) {
         Traial& t(traials.back());
         traials.pop_back();
@@ -94,10 +91,10 @@ filter_next_value(TraialVec& traials,
         else
             traialSink.push_back(std::move(t));
     }
-
-    /// @todo TODO finish implementation
-
-    return nextValue;
+	assert(traials.empty());
+	assert(chosenTraials.size() <= N);
+	chosenTraials.swap(traials);
+	return nextValueIndex;
 }
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
@@ -106,7 +103,7 @@ filter_next_value(TraialVec& traials,
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-using SimulationEngineFixedEffort::EventWatcher;
+//using SimulationEngineFixedEffort::EventWatcher;
 
 
 SimulationEngineSFE::SimulationEngineSFE(
@@ -115,6 +112,12 @@ SimulationEngineSFE::SimulationEngineSFE(
 		SimulationEngineFixedEffort("sfe", network),
 		effortPerLevel_(effortPerLevel)
 { /* Not much to do around here */ }
+
+
+SimulationEngineSFE::~SimulationEngineSFE()
+{
+	TraialPool.get_instance().return_traials(traials_);
+}
 
 
 void
@@ -130,32 +133,33 @@ SimulationEngineSFE::fixed_effort(const ThresholdsVec& thresholds,
 							 ? &fig::SimulationEngineSFE::rate_event
 							 : nullptr;
 	auto lvl_effort = [&](const size_t& effort){ return effort*base_nsims(); };
-	const size_t LVL_MAX(impFun_->max_value()+1),
+	const size_t LVL_MAX(impFun_->max_value()),
 				 LVL_INI(impFun_->initial_value()),
 				 EFF_MAX(lvl_effort(impFun_->max_thresholds_effort()));
-    // Init result
+	decltype(reachCount_) reachCountLocal(reachCount_);
+	std::vector< Reference< Traial > > traialsNow, traialsNext;
+
+	// Init result & internal ADTs
     if (result.empty())
         result.insert(ThresholdsPathProb());
-    auto pathFound(*result.begin());
-    pathFound.reserve(thresholds.size());
-    pathFound.clear();
-    // Init internal TADs
-	std::vector< Reference< Traial > > traialsNow, traialsNext;
+	auto pathToRare(*result.begin());
+	pathToRare.reserve(thresholds.size());
+	pathToRare.clear();
 	traialsNow.reserve(EFF_MAX);
 	traialsNext.reserve(EFF_MAX);
 	if (traials_.size() < EFF_MAX)
-		TraialPool::get_instance().get_traials(traials_, EFF_MAX);
-    if (reachCount_.size() != LVL_MAX)
-        decltype(reachCount_)(LVL_MAX,0).swap(reachCount_);
-    // Bootstrap Fixed Effort loop below
+		TraialPool::get_instance().get_traials(traials_, EFF_MAX-traials_.size());
+//	if (reachCount_.size() != LVL_MAX+1)
+//		decltype(reachCount_)(LVL_MAX+1,0).swap(reachCount_);
+
+	// Bootstrap for the Fixed Effort loop that follows
     traials_.back().get().initialise(*model_, *impFun_);
-    traialsNow.push_back(std::move(traials_.back()));
+	traialsNext.push_back(std::move(traials_.back()));
     traials_.pop_back();
-
-
-    // Fixed Effort loop: For each threshold level 'l' ...
-    size_t numSuccesses;
+	size_t numSuccesses;
 	ImportanceValue l(LVL_INI);
+
+	// Fixed Effort loop: For each threshold level 'l' ...
 	do {
         // ... prepare the Traials to run the simulations ...
         numSuccesses = 0ul;
@@ -174,34 +178,34 @@ SimulationEngineSFE::fixed_effort(const ThresholdsVec& thresholds,
             traial.depth = 0;
             traialsNow.push_back(traial);
         }
-        // ... run Fixed Effort until any level > 'l' ...
+		assert(traialsNow.size() == LVL_EFFORT);
+		traialsNext.erase(begin(traialsNext),
+		                  begin(traialsNext)+std::min(traialsNext.size(),LVL_EFFORT));
+		std::move(begin(traialsNext), end(traialsNext), std::back_inserter(traials_));
+		traialsNext.clear();
+		reachCountLocal.clear();
+		// ... run Fixed Effort until any level > 'l' ...
         for (auto i = 0ul ; i < LVL_EFFORT ; i++) {
             Traial& traial(traialsNow.back());
             traialsNow.pop_back();
             assert(traial.level < LVL_MAX);
-//			reachCount_[traial.level]++;
-            network.simulation_step(traial, property, event_watcher);
-//          network.simulation_step(traial, property, *this, &fig::SimulationEngineSFE::transient_event);
+			model_.simulation_step(traial, property_, event_watcher);
             if (traial.level > l) {
                 numSuccesses++;
                 traialsNext.push_back(traial);
                 reachCount_[l]++;
-            } else {
-                if (property.is_rare(traial.state))
+				reachCountLocal[l]++;
+			} else {
+				if (property_.is_rare(traial.state))
                     numSuccesses++;
                 traials_.push_back(traial);
             }
         }
         // ... and interpret the results
-        l = filter_next_value(traialsNext, traials_, reachCount_, *impFun_);
-
-        /// @todo TODO implement function above!
-
+		l = filter_next_value(traialsNext, traials_, reachCountLocal, *impFun_);
         assert(l <= LVL_MAX);
-        pathFound.emplace_back(l, static_cast<double>(numSuccesses)/LVL_EFFORT);
+		pathToRare.emplace_back(l, static_cast<double>(numSuccesses)/LVL_EFFORT);
 	} while (l < LVL_MAX && traialsNext.size() > 0ul);
-
-
 //	// For each threshold level 'l' ...
 //	ImportanceValue l;
 //	size_t numSuccesses(1ul);

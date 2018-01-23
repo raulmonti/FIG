@@ -31,6 +31,7 @@
 #define SIMULATIONENGINE_H
 
 // C++
+#include <map>
 #include <array>
 #include <string>
 #include <memory>
@@ -134,11 +135,18 @@ protected:
 	mutable CLOCK_INTERNAL_TYPE simsLifetime;
 //	mutable thread_local CLOCK_INTERNAL_TYPE simsLifetime;
 
+public:
+
+	typedef std::map< ImportanceValue, unsigned > ReachabilityCount;
+
+protected:
+
 	/// How many Traials reached each threshold level in the last simulation
 	/// @note Useful for debugging purposes
 	/// @note Only applicable to \ref isplit() "engines implementing
 	///       some sort of importance splitting"
-	mutable std::vector< size_t > reachCount_;
+//	mutable std::vector< size_t > reachCount_;
+	mutable ReachabilityCount reachCount_;
 
 public:  // Ctors/Dtor
 
@@ -278,7 +286,7 @@ public:  // Accessors
 	virtual unsigned global_effort_default() const noexcept = 0;
 
 	/// @copydoc reachCount_
-	inline std::vector< size_t > get_reach_counts() const noexcept { return reachCount_; }
+	inline decltype(reachCount_) get_reach_counts() const noexcept { return reachCount_; }
 
 public:  // Simulation functions
 

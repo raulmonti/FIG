@@ -176,7 +176,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	static TraialPool& tpool(TraialPool::get_instance());
 
 	if (reachCount_.size() != numThresholds+1)
-		decltype(reachCount_)(numThresholds+1,0).swap(reachCount_);
+		reachCount_.clear();
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	bool (SimulationEngineRestart::*watch_events)
@@ -260,7 +260,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 	numChunksTruncated_ = 0u;
 	if (reachCount_.size() != numThresholds+1 || reinit)
-		decltype(reachCount_)(numThresholds+1,0).swap(reachCount_);
+		reachCount_.clear();
 
 	// Reset batch or run with batch means?
 	if (reinit || ssstack_.empty()) {

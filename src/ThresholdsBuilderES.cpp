@@ -76,6 +76,20 @@ debug_print_lvlup(const std::vector< float >& Pup)
 #endif
 }
 
+//
+//	/// Wrap a vector of reachable importance values as a thresholds vector ADT
+//	fig::ThresholdsVec
+//	wrap_as_thresholds(const fig::ImportanceVec& impVec)
+//	{
+//		constexpr unsigned dummyEffort(1u);
+//		fig::ThresholdsVec result;
+//		result.reserve(impVec.size());
+//		std::fill_n()
+//		        std::for_each
+//		for (const auto& imp: impVec)
+//			result.emplace_back(imp);
+//	}
+
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
 
 
@@ -239,7 +253,6 @@ ThresholdsBuilderES::reachable_importance_values() const
 
 void
 ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
-                               TraialsVec& traials,
                                std::vector<float>& Pup) const
 {
 	auto event_watcher = std::bind(&ThresholdsBuilderES::FE_watcher,
@@ -250,84 +263,75 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 	assert(Pup.size() == reachableImportanceValues.size()-1ul);
 	if (reachableImportanceValues.size() < 2ul)
 		return;  // only one reachable importance value: ES failed!
-	decltype(Pup) aux(Pup.size());
-	simulator_.property_ = property_;
-	simulator_.bind(make_shared<ImportanceFunction>(impFun_));
-
-
-	/// @todo TODO implement
-	auto thresholds = wrap_as_thresholds(reachableImportanceValues);
-
-
+	SimulationEngineFixedEffort::ThresholdsPathCandidates paths;
+	ThresholdsVec thresholds;
+	thresholds.reserve(reachableImportanceValues.size());
+	std::for_each(begin(reachableImportanceValues), end(reachableImportanceValues),
+	              [](const ImportanceValue& imp){ thresholds.emplace_back(imp, 1u); });
+	simulator_->property_ = property_;
+	simulator_->bind(make_shared<ImportanceFunction>(impFun_));
+	// Run Fixed Effort a couple of times
 	ModelSuite::tech_log(" [");
 	for (size_t m = 1ul ; m < 5ul && 0.0f >= Pup.back() ; m++) {
-		simulator_.fixed_effort(thresholds, aux, event_watcher);
-		for (size_t i = 0ul ; i < Pup.size() && 0.0f < aux[i] ; i++)
-			Pup[i] += (aux[i]-Pup[i])/m;
-		if (0.0f >= Pup.back()) {
-			ModelSuite::tech_log("-");
-			// last iteration didn't reach max importance: Increase effort
-			simulator_->set_global_effort(simulator_->global_effort()*2u);
-		} else {
-			ModelSuite::tech_log("+");
-		}
+		simulator_->fixed_effort(thresholds, paths, event_watcher);
+		const auto& path(paths.begin());
+		// A path to th
+		for (size_t i = 0ul ; i < Pup.size() && 0.0f < path[i].second ; i++)
+			Pup[i] += (path[i].second - Pup[i]) / m;
+		ModelSuite::tech_log( ((0.0f >= Pup.back()) ? "-" : "+") );
 	}
 	ModelSuite::tech_log("]");
-	simulator_.unbind();
-
-
-
-
-
-	auto events_watcher = &fig::ThresholdsBuilderES::FE_watcher;
-	const size_t N = traials.size();  // effort per level
-	std::vector< Reference< Traial > > freeNow, freeNext, startNow, startNext;
-
-	assert(0ul < N);
-	if (reachableImportanceValues.size() < 2ul)
-		return;  // only one reachable importance value: ES failed!
-	assert(Pup.size() == reachableImportanceValues.size()-1ul);
-
-	// Init ADTs
-	std::fill(begin(Pup), end(Pup), 0.0f);
-	freeNow.reserve(N);
-	freeNext.reserve(N);
-	startNow.reserve(N);
-	startNext.reserve(N);
-	for (Traial& t: traials)
-		startNow.push_back(t.initialise(*model_,*impFun_));
-
-	// For each reachable importance value 'i' ...
-	for (auto i = 0ul ; i < reachableImportanceValues.size()-1ul && !startNow.empty() ; i++) {
-		const auto& currImp = reachableImportanceValues[i];
-		// ... run Fixed Effort until the next reachable importance value 'j' > 'i' ...
-		size_t startNowIdx(0ul);
-		while ( ! (freeNow.empty() && startNow.empty()) ) {
-			// (Traial fetching for simulation)
-			const bool useFree = !freeNow.empty();
-			Traial& traial( useFree ? freeNow.back() : startNow.back());
-			if (useFree) {
-				traial = startNow[startNowIdx].get();  // copy *contents*
-				++startNowIdx %= std::max(1ul,startNow.size());
-				freeNow.pop_back();
-			} else {
-				startNow.pop_back();
-			}
-			// (simulation & bookkeeping)
-			//assert(traial.level >= currImp || startNow.size() < 2ul);
-			traial.depth = 0;
-			traial.numLevelsCrossed = 0;
-			model_->simulation_step(traial, *property_, *this, events_watcher);
-			if (traial.level > currImp)
-				startNext.push_back(traial);
-			else
-				freeNext.push_back(traial);
-		}
-		// ... and estimate the probability of reaching 'j' from 'i'
-		Pup[i] = static_cast<float>(startNext.size()) / N;
-		std::swap(freeNow, freeNext);
-		std::swap(startNow, startNext);
-	}
+	simulator_->unbind();
+	simulator_->property_.reset();
+//	auto events_watcher = &fig::ThresholdsBuilderES::FE_watcher;
+//	const size_t N = traials.size();  // effort per level
+//	std::vector< Reference< Traial > > freeNow, freeNext, startNow, startNext;
+//
+//	assert(0ul < N);
+//	if (reachableImportanceValues.size() < 2ul)
+//		return;  // only one reachable importance value: ES failed!
+//	assert(Pup.size() == reachableImportanceValues.size()-1ul);
+//
+//	// Init ADTs
+//	std::fill(begin(Pup), end(Pup), 0.0f);
+//	freeNow.reserve(N);
+//	freeNext.reserve(N);
+//	startNow.reserve(N);
+//	startNext.reserve(N);
+//	for (Traial& t: traials)
+//		startNow.push_back(t.initialise(*model_,*impFun_));
+//
+//	// For each reachable importance value 'i' ...
+//	for (auto i = 0ul ; i < reachableImportanceValues.size()-1ul && !startNow.empty() ; i++) {
+//		const auto& currImp = reachableImportanceValues[i];
+//		// ... run Fixed Effort until the next reachable importance value 'j' > 'i' ...
+//		size_t startNowIdx(0ul);
+//		while ( ! (freeNow.empty() && startNow.empty()) ) {
+//			// (Traial fetching for simulation)
+//			const bool useFree = !freeNow.empty();
+//			Traial& traial( useFree ? freeNow.back() : startNow.back());
+//			if (useFree) {
+//				traial = startNow[startNowIdx].get();  // copy *contents*
+//				++startNowIdx %= std::max(1ul,startNow.size());
+//				freeNow.pop_back();
+//			} else {
+//				startNow.pop_back();
+//			}
+//			// (simulation & bookkeeping)
+//			//assert(traial.level >= currImp || startNow.size() < 2ul);
+//			traial.depth = 0;
+//			traial.numLevelsCrossed = 0;
+//			model_->simulation_step(traial, *property_, *this, events_watcher);
+//			if (traial.level > currImp)
+//				startNext.push_back(traial);
+//			else
+//				freeNext.push_back(traial);
+//		}
+//		// ... and estimate the probability of reaching 'j' from 'i'
+//		Pup[i] = static_cast<float>(startNext.size()) / N;
+//		std::swap(freeNow, freeNext);
+//		std::swap(startNow, startNext);
+//	}
 }
 
 

@@ -98,41 +98,45 @@ SimulationEngineFixedEffort::transient_simulations(
 		const PropertyTransient& property,
 		const size_t& numRuns) const
 {
-//	auto event_watcher = &fig::SimulationEngineSFE::transient_event;
-	auto lvl_effort = [&](const size_t& effort){ return effort*base_nsims(); };
-	const ModuleNetwork& model(*ModelSuite::get_instance().modules_network());
-	const size_t LVL_MAX(impFun_->max_value()+1),
-				 LVL_INI(impFun_->initial_value()),
-				 EFF_MAX(lvl_effort(impFun_->max_thresholds_effort()));
+////	auto event_watcher = &fig::SimulationEngineSFE::transient_event;
+//	auto lvl_effort = [&](const size_t& effort){ return effort*base_nsims(); };
+////	const ModuleNetwork& model(*ModelSuite::get_instance().modules_network());
+//	const size_t EFF_INI(lvl_effort(impFun_->effort_of(impFun_->initial_value()))),
+//				 EFF_MAX(lvl_effort(impFun_->max_thresholds_effort()));
 
-	assert(0ul < numRuns);
-	assert(LVL_INI < LVL_MAX);
-	assert(0ul < EFF_MAX);
-	assert(0ul < effortPerLevel_);
+//	assert(0ul < numRuns);
+//	assert(0ul < EFF_INI);
+//	assert(EFF_INI <= EFF_MAX);
+//	assert(0ul < effortPerLevel_);
 
-	std::vector< double > Pup(LVL_MAX);
+	if (nullptr == property_ || property_->get_id() != property.get_id()) {
+		// New property, reset counters
+		property_ = std::make_shared<Property>(property);
+		reachCount_.clear();
+	}
+
+	ThresholdsPathCandidates Pup;
 	std::vector< double > results(numRuns);
-	TraialPool::get_instance().get_traials(traials_, EFF_MAX);
-	std::vector< Reference< Traial > > traialsNow, traialsNext;
-	traialsNow.reserve(EFF_MAX);
-	traialsNext.reserve(EFF_MAX);
-	if (reachCount_.size() != LVL_MAX)
-		decltype(reachCount_)(LVL_MAX,0).swap(reachCount_);
+//	if (traials_.size() < EFF_MAX)
+//		TraialPool::get_instance().get_traials(traials_, EFF_MAX-traials_.size());
+// //	std::vector< Reference< Traial > > traialsNow, traialsNext;
+// //	traialsNow.reserve(EFF_MAX);
+// //	traialsNext.reserve(EFF_MAX);
 
 	// Perform 'numRuns' independent Fixed Effort simulations
 	for (size_t i = 0ul ; i < numRuns ; i++) {
-		// Re-init ADTs
-		std::fill(begin(Pup), end(Pup), 1.0f);
-		std::move(begin(traialsNow), end(traialsNow), std::back_inserter(traials_));
-		std::move(begin(traialsNext), end(traialsNext), std::back_inserter(traials_));
-		traialsNow.clear();
-		traialsNext.clear();
-		assert(traials_.size() == EFF_MAX);
-		for (auto j = 0ul ; j < lvl_effort(impFun_->effort_of(LVL_INI)) ; j++) {
-			traials_.back().get().initialise(network,*impFun_);
-			traialsNext.push_back(std::move(traials_.back()));
-			traials_.pop_back();
-		}
+//		// Re-init ADTs
+//		std::move(begin(traialsNow), end(traialsNow), std::back_inserter(traials_));
+//		std::move(begin(traialsNext), end(traialsNext), std::back_inserter(traials_));
+//		traialsNow.clear();
+//		traialsNext.clear();
+//		// Pup should be cleaned by the fixed_effort() overridden routine
+//		assert(traials_.size() == EFF_MAX);
+//		for (auto j = 0ul ; j < EFF_INI ; j++) {
+//			traials_.back().get().initialise(network,*impFun_);
+//			traialsNext.push_back(std::move(traials_.back()));
+//			traials_.pop_back();
+//		}
 
 		fixed_effort(impFun_->thresholds(), Pup);
 
@@ -182,15 +186,22 @@ SimulationEngineFixedEffort::transient_simulations(
 //			Pup[l] = static_cast<double>(numSuccesses) / LVL_EFFORT;
 //		}
 
-		// The product of these conditional probabilities for all levels
-		// is the rare event estimate
-		results[i] = 1.0;
-		for (l = LVL_INI ; l < LVL_MAX && 0.0 < results[i] ; l++)
-			results[i] *= Pup[l];
+		// For each potential path from the initial state to the rare event,
+		// the product of the conditional probabilities for all levels
+		// is the rare event estimate. If several (*disjoint*) paths exist
+		// then the summation for all paths is the rare event estimate.
+		results[i] = 0.0;
+		for (const auto& path: Pup) {
+			double pathEstimate(1.0);
+			for (const auto& condProb: path)
+				pathEstimate *= condProb.second;
+			results[i] += pathEstimate;
+		}
 		assert(0ul < numSuccesses || 0.0 == results[i]);
 	}
 
-	TraialPool::get_instance().return_traials(traials_);
+	//TraialPool::get_instance().return_traials(traials_);
+	//property_ = nullptr;
 	return results;
 }
 

@@ -135,7 +135,6 @@ private:  // Class utils
 	 *        to the next are stored in the vector of floats.
 	 *
 	 * @param reachableImportanceValues Result from reachable_importance_values()
-	 * @param traials Traials to perform the FE simulations
 	 * @param Pup     Vector to fill with the level-up probabilities
 	 *
 	 * @note The effort used per level equals the number of traials provided
@@ -146,7 +145,6 @@ private:  // Class utils
 	 */
 	void
 	FE_for_ES(const ImportanceVec& reachableImportanceValues,
-	          TraialsVec &traials,
 	          std::vector<float> &Pup) const;
 
 	/**

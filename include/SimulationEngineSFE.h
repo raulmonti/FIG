@@ -79,6 +79,7 @@ class SimulationEngineSFE : public SimulationEngineFixedEffort
 public:
 
 	SimulationEngineSFE();
+	virtual ~SimulationEngineSFE();
 
 protected:  // Utils for the class and its kin
 
