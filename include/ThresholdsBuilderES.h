@@ -142,10 +142,23 @@ private:  // Class utils
 	 *       and we force Fixed Effort to reach the max importance value.<br>
 	 *       This can be generalised to have "still successful Fixed Effort runs"
 	 *       when they don't reach the next importance value but hit a rare event.
+	 *
+	 * @warning Hardcoded to work with SimulationEngineSFE as internal simulator_
 	 */
 	void
 	FE_for_ES(const ImportanceVec& reachableImportanceValues,
 	          std::vector<float> &Pup) const;
+
+//	/**
+//	 * @brief Build a ThresholdsVec to resemble \p path as the single sequence
+//	 *        of ImportanceValue that can lead to a rare event
+//	 * @param path A sequence of reachable ImportanceValue (and probabilities)
+//	 *             leading from the initial state to some rare state
+//	 * @return A ThresholdsVec (with dummy efforts) resembling the sequence
+//	 *         of ImportanceValue from \p path
+//	 */
+//	ThresholdsVec
+//	set_rare_path(const SimulationEngineFixedEffort::ThresholdsPathProb& path);
 
 	/**
 	 * @brief Artificial selection of thresholds when the algorithm fails

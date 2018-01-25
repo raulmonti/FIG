@@ -263,6 +263,7 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 	assert(Pup.size() == reachableImportanceValues.size()-1ul);
 	if (reachableImportanceValues.size() < 2ul)
 		return;  // only one reachable importance value: ES failed!
+	bool rarePathWasSet(false);
 	SimulationEngineFixedEffort::ThresholdsPathCandidates paths;
 	ThresholdsVec thresholds;
 	thresholds.reserve(reachableImportanceValues.size());
@@ -274,8 +275,20 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 	ModelSuite::tech_log(" [");
 	for (size_t m = 1ul ; m < 5ul && 0.0f >= Pup.back() ; m++) {
 		simulator_->fixed_effort(thresholds, paths, event_watcher);
+		//\begin{section0}//////////////////////////////////////////////////////
+		// A path to the rare event has been chosen: save as *the* path ////////
 		const auto& path(paths.begin());
-		// A path to th
+		if (!rarePathWasSet) {
+			thresholds.clear();
+			thresholds.reserve(path->size());
+			using pairt_ = decltype(path)::value_type;
+			std::for_each(begin(path), end(path),
+			              [](const pairt_& p){ thresholds.emplace_back(p.first,1u); });
+			rarePathWasSet = true;
+		}
+		// TODO: above heuristic sets on the *first* path chosen, a bit risky
+		// TODO: above heuristic is hardcoded for SimulationEngineSFE; generalise
+		//\end{section0}////////////////////////////////////////////////////////
 		for (size_t i = 0ul ; i < Pup.size() && 0.0f < path[i].second ; i++)
 			Pup[i] += (path[i].second - Pup[i]) / m;
 		ModelSuite::tech_log( ((0.0f >= Pup.back()) ? "-" : "+") );
@@ -333,6 +346,22 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 //		std::swap(startNow, startNext);
 //	}
 }
+
+
+//	ThresholdsVec
+//	ThresholdsBuilderES::set_rare_path(
+//	    const SimulationEngineFixedEffort::ThresholdsPathProb& path)
+//	{
+//		using pairt_ = decltype(path)::value_type;
+//		ThresholdsVec result;
+//		result.reserve(path.size());
+//		std::for_each(begin(path), end(path),
+//		              [](const pairt_& p){ result.emplace_back(p.first, 1u); });
+//		/// @todo TODO implement
+//		typedef std::pair< ImportanceValue, double >            ThresholdLvlUpProb;
+//		typedef std::vector< ThresholdLvlUpProb >               ThresholdsPathProb;
+//		decltype(traials) chosenTraials;
+//	}
 
 
 void

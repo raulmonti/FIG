@@ -127,7 +127,7 @@ public:  // Engine setup
 	/// @throw FigException if the engine was \ref lock() "locked"
 	void set_die_out_depth(unsigned dieOutDepth);
 
-protected:  // Simulation helper functions
+private:  // Simulation helper functions
 
 	/// Do a clean in the \ref ssstack_ "internal ADT" used for batch means,
 	/// forcing the next simulation to be <i>fresh</i>.
