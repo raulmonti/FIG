@@ -195,15 +195,15 @@ public:  // Engine setup
     /// @see bind()
 	void unbind();
 
-	/// Set the global effort to use in all threshold-levels
-	/// @note Relevant only for the Importance Splitting engines
-	/// @see global_effort()
-	/// @see ModelSuite::set_global_effort()
-	virtual void set_global_effort(unsigned) = 0;
-
-	/// Set the engine-specific default global effort
-	/// @see set_global_effort()
-	inline void set_global_effort() { set_global_effort(global_effort_default()); }
+//	/// Set the global effort to use in all threshold-levels
+//	/// @note Relevant only for the Importance Splitting engines
+//	/// @see global_effort()
+//	/// @see ModelSuite::set_global_effort()
+//	virtual void set_global_effort(unsigned) = 0;
+//
+//	/// Set the engine-specific default global effort
+//	/// @see set_global_effort()
+//	inline void set_global_effort() { set_global_effort(global_effort_default()); }
 
 private:
 
@@ -280,10 +280,10 @@ public:  // Accessors
 	 * @see ThresholdsBuilderAdaptiveSimple
 	 * @see ThresholdsBuilderES
 	 */
-	virtual unsigned global_effort() const noexcept = 0;
-
-	/// Engine-specific default value for the global effort
 	virtual unsigned global_effort_default() const noexcept = 0;
+
+//	/// Set an engine-specific value for the global effort
+//	virtual unsigned global_effort() const noexcept = 0;
 
 	/// @copydoc reachCount_
 	inline decltype(reachCount_) get_reach_counts() const noexcept { return reachCount_; }

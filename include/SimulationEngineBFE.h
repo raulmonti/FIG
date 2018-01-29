@@ -84,8 +84,7 @@ class SimulationEngineBFE : public SimulationEngineFixedEffort
 public:
 
 	/// Default ctor
-	SimulationEngineBFE(std::shared_ptr<const ModuleNetwork> network,
-								unsigned effortPerLevel = effort_per_level_default());
+	SimulationEngineBFE(std::shared_ptr<const ModuleNetwork> model);
 
 protected:  // Utils for the class and its kin
 

@@ -259,9 +259,6 @@ SimulationEngine::names() noexcept
 	    // See SimualtionEngineRestart class
 	    "restart",
 
-
-		 /// @todo TODO change fixedeffort below for SFE & BF
-
 	    // Fixed Effort importance splitting, from Garvels' PhD thesis
 	    // See SimualtionEngineFixedEffort class
 	    "fixedeffort"

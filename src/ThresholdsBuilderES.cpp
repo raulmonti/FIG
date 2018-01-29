@@ -37,7 +37,7 @@
 #include <iomanip>    // std::setprecision()
 // FIG
 #include <ThresholdsBuilderES.h>
-#include <SimulationEngineBFE.h>
+#include <SimulationEngineSFE.h>
 #include <ImportanceFunction.h>
 #include <PropertyTransient.h>
 #include <PropertyRate.h>
@@ -106,7 +106,7 @@ ThresholdsBuilderES::ThresholdsBuilderES(
     property_(nullptr),
     model_(nullptr),
 	impFun_(nullptr),
-	simulator_(std::make_unique<SimulatorEngineSFE>(model))
+    simulator_(make_unique<SimulationEngineSFE>(model))
 { /* Not much to do around here */ }
 
 
@@ -136,7 +136,7 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	if (thrCandidates.size() < 2ul)  // we must have reached beyond initial importance
 		throw_FigException("ES could not find reachable importance values");
 	const size_t DEFACTO_IMP_RANGE(thrCandidates.size()-1ul);
-	std::vector< float > Pup(DEFACTO_IMP_RANGE), aux(DEFACTO_IMP_RANGE);
+	std::vector< float > Pup(DEFACTO_IMP_RANGE);
 	ModelSuite::debug_log("\nFound " + std::to_string(DEFACTO_IMP_RANGE)
 	                    + " relevant importance values:");
 	for (auto imp: thrCandidates)
@@ -145,7 +145,7 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	// Estimate the probabilities of going from one (reachable) importance value to the next
 	ModelSuite::debug_log("\nRunning internal Fixed Effort");
 	TraialsVec traials(get_traials(n_, impFun, false));
-	FE_for_ES(thrCandidates, traials, aux);
+	FE_for_ES(thrCandidates, Pup);
 	/// @todo TODO embedd following loop fully inside FE_for_ES()
 //	for (size_t m = 1ul ; m < 5ul && 0.0f >= Pup.back() ; m++) {
 //		FE_for_ES(thrCandidates, traials, aux);
@@ -166,9 +166,10 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 	debug_print_lvlup(Pup);  // print debug info in tech log
 
 	// Turn level-up probabilities into effort factors
-	decltype(aux)& effort(aux);
-	typedef decltype(aux)::value_type effort_t;
-	std::fill(begin(effort), end(effort), static_cast<effort_t>(0));
+	auto effort(Pup);
+//	decltype(Pupaux)& effort(aux);
+//	using effort_t = decltype(aux)::value_type;
+	std::fill(begin(effort), end(effort), static_cast<decltype(effort)::value_type>(0));
 	for (size_t i = 0ul ; i < Pup.size() ; i++) {
 		const auto prev = effort[(i-1)%Pup.size()];
 		effort[i] = 1.0f/Pup[i] + (prev-std::round(prev));  // expected # of sims reaching lvl i
@@ -268,7 +269,8 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 	ThresholdsVec thresholds;
 	thresholds.reserve(reachableImportanceValues.size());
 	std::for_each(begin(reachableImportanceValues), end(reachableImportanceValues),
-	              [](const ImportanceValue& imp){ thresholds.emplace_back(imp, 1u); });
+	              [&thresholds](const ImportanceValue& imp)
+	              { thresholds.emplace_back(imp, 1u); });
 	simulator_->property_ = property_;
 	simulator_->bind(make_shared<ImportanceFunction>(impFun_));
 	// Run Fixed Effort a couple of times
@@ -281,9 +283,9 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 		if (!rarePathWasSet) {
 			thresholds.clear();
 			thresholds.reserve(path->size());
-			using pairt_ = decltype(path)::value_type;
+			using pair_t = decltype(path)::value_type;
 			std::for_each(begin(path), end(path),
-			              [](const pairt_& p){ thresholds.emplace_back(p.first,1u); });
+			              [](const pair_t& p){ thresholds.emplace_back(p.first,1u); });
 			rarePathWasSet = true;
 		}
 		// TODO: above heuristic sets on the *first* path chosen, a bit risky

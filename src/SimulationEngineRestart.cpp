@@ -53,10 +53,9 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 // Available engine names in SimulationEngine::names
 SimulationEngineRestart::SimulationEngineRestart(
     std::shared_ptr<const ModuleNetwork> model,
-    const unsigned& splitsPerThreshold,
     const unsigned& dieOutDepth) :
         SimulationEngine("restart", model),
-        splitsPerThreshold_(splitsPerThreshold),
+//        splitsPerThreshold_(splitsPerThreshold),
 		dieOutDepth_(dieOutDepth),
         numChunksTruncated_(0u),
         oTraial_(TraialPool::get_instance().get_traial())
@@ -71,11 +70,11 @@ SimulationEngineRestart::~SimulationEngineRestart()
 }
 
 
-unsigned
-SimulationEngineRestart::global_effort() const noexcept
-{
-	return splitsPerThreshold_;
-}
+//	unsigned
+//	SimulationEngineRestart::global_effort() const noexcept
+//	{
+//		return splitsPerThreshold_;
+//	}
 
 
 const unsigned&
@@ -99,18 +98,18 @@ SimulationEngineRestart::bind(std::shared_ptr< const ImportanceFunction > ifun_p
 }
 
 
-void
-SimulationEngineRestart::set_global_effort(unsigned spt)
-{
-    if (locked())
-        throw_FigException("engine \"" + name() + "\" is currently locked "
-                           "in \"simulation mode\"");
-	if (spt < 2u)
-		throw_FigException("bad global splitting value \"" + std::to_string(spt) + "\". "
-						   "At least one Traial must be created, besides the "
-						   "original one, when crossing a threshold upwards");
-    splitsPerThreshold_ = spt;
-}
+//	void
+//	SimulationEngineRestart::set_global_effort(unsigned spt)
+//	{
+//	    if (locked())
+//	        throw_FigException("engine \"" + name() + "\" is currently locked "
+//	                           "in \"simulation mode\"");
+//		if (spt < 2u)
+//			throw_FigException("bad global splitting value \"" + std::to_string(spt) + "\". "
+//							   "At least one Traial must be created, besides the "
+//							   "original one, when crossing a threshold upwards");
+//	    splitsPerThreshold_ = spt;
+//	}
 
 
 void

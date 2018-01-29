@@ -72,13 +72,14 @@ filter_next_value(TraialVec& traials,
 {
     assert(!traials.empty());
 	assert(!reachCount.empty());
-	using pairt_ = decltype(reachCount)::value_type;
-    decltype(traials) chosenTraials;
+	std::remove_reference<decltype(reachCount)> typeVar;
+	using pair_t = decltype(typeVar)::value_type;
+	TraialVec chosenTraials;
     const auto N(traials.size());
     chosenTraials.reserve(N);
 	// Find most frequent ImportanceValue
 	auto nextStep = std::max_element(begin(reachCount), end(reachCount),
-	                                 [](const pairt_& p1, const pairt_& p2)
+	                                 [](const pair_t::value_type& p1, const pair_t::value_type& p2)
 	                                 { return p1.second < p2.second; });
 	const ImportanceValue nextValue(nextStep->second);
 	const size_t nextValueIndex(nextStep->first);
@@ -103,14 +104,8 @@ filter_next_value(TraialVec& traials,
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-//using SimulationEngineFixedEffort::EventWatcher;
-
-
-SimulationEngineSFE::SimulationEngineSFE(
-	std::shared_ptr<const ModuleNetwork> network,
-	unsigned effortPerLevel) :
-		SimulationEngineFixedEffort("sfe", network),
-		effortPerLevel_(effortPerLevel)
+SimulationEngineSFE::SimulationEngineSFE(std::shared_ptr<const ModuleNetwork> model) :
+        SimulationEngineFixedEffort("sfe", model)
 { /* Not much to do around here */ }
 
 
@@ -141,7 +136,7 @@ SimulationEngineSFE::fixed_effort(const ThresholdsVec& thresholds,
 
 	// Init result & internal ADTs
     if (result.empty())
-        result.insert(ThresholdsPathProb());
+		result.push_back(ThresholdsPathProb());
 	auto pathToRare(*result.begin());
 	pathToRare.reserve(thresholds.size());
 	pathToRare.clear();

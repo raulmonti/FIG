@@ -129,8 +129,8 @@ private:  // Class utils
 	/**
 	 * @brief Run Fixed Effort to roughly estimate level-up probabilities
 	 *
-	 *        Run a "fine" Fixed Effort where the threshold-levels are all
-	 *        adjacent (reachable) importance values.<br>
+	 *        Do a Fixed Effort run where the threshold-levels are given
+	 *        by the \p reachableImportanceValues.<br>
 	 *        The probabilities of going up from a reachable importance value
 	 *        to the next are stored in the vector of floats.
 	 *

@@ -69,7 +69,7 @@ public:  // Accessors
 
 	inline bool isplit() const noexcept override final { return false; }
 
-	inline unsigned global_effort() const noexcept override { return global_effort_default(); }
+//	inline unsigned global_effort() const noexcept override { return global_effort_default(); }
 
 	inline unsigned global_effort_default() const noexcept override { return 1u; }
 
@@ -77,8 +77,8 @@ public:  // Engine setup
 
 //	void bind(...) override;  // We can hook up with any, no check needed
 
-	/// Irrelevant for standard Monte Carlo
-	void set_global_effort(unsigned) override {}
+//	/// Irrelevant for standard Monte Carlo
+//	void set_global_effort(unsigned) override {}
 
 protected:  // Simulation helper functions
 

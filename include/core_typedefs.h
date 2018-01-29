@@ -148,6 +148,10 @@ typedef  std::vector< ImportanceValue >                        ImportanceVec;
 //	typedef  std::vector< std::pair<unsigned long, unsigned long> > ThresholdsVec;
 
 /// Threshold for ISplit: its ImportanceValue and Effort
+/// @note The effort is used only by importance splitting simulation engines,
+///       and it can be interpreted as <i>splitting</i> or <i>#sims</i>
+///       (\ref SimulationEngineRestart "RESTART" and
+///        \ref SimulationEngineFixedEffort "Fixed Effort" respectively)
 typedef  std::pair<ImportanceValue, unsigned long>                 Threshold;
 
 /// Vector of thresholds for the ISplit simulation techniques

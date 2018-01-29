@@ -43,11 +43,9 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 SimulationEngineFixedEffort::SimulationEngineFixedEffort(
-	const std::string& simEngineName,
-    std::shared_ptr<const ModuleNetwork> network,
-    unsigned effortPerLevel) :
-		SimulationEngine(simEngineName, network),
-        effortPerLevel_(effortPerLevel)
+    const std::string& simEngineName,
+    std::shared_ptr<const ModuleNetwork> model) :
+        SimulationEngine(simEngineName, model)
 { /* Not much to do around here */ }
 
 
@@ -59,11 +57,11 @@ SimulationEngineFixedEffort::~SimulationEngineFixedEffort()
 }
 
 
-unsigned
-SimulationEngineFixedEffort::global_effort() const noexcept
-{
-	return effortPerLevel_;
-}
+//	unsigned
+//	SimulationEngineFixedEffort::global_effort() const noexcept
+//	{
+//		return effortPerLevel_;
+//	}
 
 
 void
@@ -79,18 +77,18 @@ SimulationEngineFixedEffort::bind(std::shared_ptr< const ImportanceFunction > if
 }
 
 
-void
-SimulationEngineFixedEffort::set_global_effort(unsigned epl)
-{
-	if (locked())
-		throw_FigException("engine \"" + name() + "\" is currently locked "
-		                   "in \"simulation mode\"");
-	if (epl < 2u)
-		throw_FigException("bad global effort per level \"" + std::to_string(epl) + "\". "
-		                   "At least 2 simulations must be launched per level "
-		                   "to guarantee some basic statistical properties");
-	effortPerLevel_ = epl;
-}
+//	void
+//	SimulationEngineFixedEffort::set_global_effort(unsigned epl)
+//	{
+//		if (locked())
+//			throw_FigException("engine \"" + name() + "\" is currently locked "
+//			                   "in \"simulation mode\"");
+//		if (epl < 2u)
+//			throw_FigException("bad global effort per level \"" + std::to_string(epl) + "\". "
+//			                   "At least 2 simulations must be launched per level "
+//			                   "to guarantee some basic statistical properties");
+//		effortPerLevel_ = epl;
+//	}
 
 
 std::vector<double>
@@ -111,7 +109,7 @@ SimulationEngineFixedEffort::transient_simulations(
 
 	if (nullptr == property_ || property_->get_id() != property.get_id()) {
 		// New property, reset counters
-		property_ = std::make_shared<Property>(property);
+		property_ = make_shared<const Property>(property);
 		reachCount_.clear();
 	}
 
@@ -197,7 +195,7 @@ SimulationEngineFixedEffort::transient_simulations(
 				pathEstimate *= condProb.second;
 			results[i] += pathEstimate;
 		}
-		assert(0ul < numSuccesses || 0.0 == results[i]);
+//		assert(0ul < numSuccesses || 0.0 == results[i]);
 	}
 
 	//TraialPool::get_instance().return_traials(traials_);

@@ -62,7 +62,7 @@
 #include <SimulationEngine.h>
 #include <SimulationEngineNosplit.h>
 #include <SimulationEngineRestart.h>
-#include <SimulationEngineFixedEffort.h>
+#include <SimulationEngineSFE.h>
 #include <ImportanceFunction.h>
 #include <ImportanceFunctionAlgebraic.h>
 #include <ImportanceFunctionConcreteSplit.h>
@@ -453,8 +453,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 	// Build offered simulation engines
 	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
 	simulators["restart"] = std::make_shared< SimulationEngineRestart >(model);
-	simulators["fixedeffort"] = std::make_shared< SimulationEngineFixedEffort >(model);
-	set_global_effort();
+	simulators["fixedeffort"] = std::make_shared< SimulationEngineSFE >(model);
 
 #ifndef NDEBUG
 	// Check all offered importance functions, thresholds builders and
@@ -485,21 +484,30 @@ template void ModelSuite::seal(const std::unordered_set<std::string>&);
 
 
 void
-ModelSuite::set_global_effort(const unsigned& ge, bool verbose)
+ModelSuite::set_global_effort(const unsigned& ge,
+                              const std::string& engineName,
+                              bool verbose)
 {
     if (!sealed())
-        throw_FigException("ModelSuite hasn't been sealed yet");
-	if (1u < ge)  // i.e. if we actually use a global effort
-		for (auto& pair: simulators)
-			pair.second->set_global_effort(ge);
+		throw_FigException("ModelSuite hasn't been sealed yet");
+	if (0u < ge)
+		globalEffort = ge;
+	else if (exists_simulator(engineName))
+		globalEffort = simulators[engineName]->global_effort_default();
 	else
-		for (auto& pair: simulators)
-			pair.second->set_global_effort();
-	globalEffort = ge;
+		throw_FigException("inexistent simulation engine \"" + engineName +
+		                   "\". Call \"available_simulators()\" for a list "
+		                   "of available options.");
+//	if (1u < ge)  // i.e. if we actually use a global effort
+//		for (auto& pair: simulators)
+//			pair.second->set_global_effort(ge);
+//	else
+//		for (auto& pair: simulators)
+//			pair.second->set_global_effort();
 	if (verbose && 1u < ge)
 		tech_log("\nGlobal effort set to " + std::to_string(ge) + "\n");
 	else if (verbose && 1u >= ge)
-		tech_log("\nGlobal effort reset to default values\n");
+		tech_log("\nGlobal effort reset to default value\n");
 }
 
 
@@ -1144,15 +1152,17 @@ ModelSuite::estimate(const Property& property,
 							+ to_string(ifun.post_processing().value)));
 
 	mainLog_ << "RNG algorithm used: " << Clock::rng_type() << "\n";
-    mainLog_ << "Estimating " << property.to_string() << ",\n";
-	mainLog_ << " using simulation engine  \"" << engine.name() << "\"\n";
-	mainLog_ << " with importance function \"" << engine.current_imp_fun() << "\"\n";
-	mainLog_ << " built using strategy     \"" << engine.current_imp_strat() << "\"";
+	mainLog_ << "Property: " << property.to_string() << ",\n";
+	mainLog_ << " - simulation engine:   " << engine.name() << "\n";
+	mainLog_ << " - importance function: " << engine.current_imp_fun();
+	mainLog_ << " ^^ " << engine.current_imp_strat();
 	mainLog_ << (adHocFun.empty() ? ("") : (" ("+adHocFun+")")) << std::endl;
-	mainLog_ << " with post-processing     \"" << postProcStr << "\"\n";
-	mainLog_ << " and thresholds technique \"" << ifun.thresholds_technique() << "\"\n";
-	mainLog_ << " [ " << ifun.num_thresholds() << " thresholds";
-	mainLog_ << " | effort " << engine.global_effort() << " ]\n";
+	mainLog_ << " - post-processing:     " << postProcStr << "\n";
+	mainLog_ << " - threshold builder:   " << ifun.thresholds_technique() << "\n";
+	mainLog_ << " [ " << ifun.num_thresholds() << " thresholds | ";
+	mainLog_ << (globalEffort > 0ul
+	             ? ("global effort = " + std::to_string(globalEffort) + "]\n")
+	             : ("per-threshold effort ]\n"));
 
 	if (bounds.is_time())
 		// Simulation bounds are wall clock time limits

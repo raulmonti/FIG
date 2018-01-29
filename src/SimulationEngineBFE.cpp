@@ -42,12 +42,8 @@ using std::end;
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-SimulationEngineBFE::SimulationEngineBFE(
-	std::shared_ptr<const ModuleNetwork> network,
-	unsigned effortPerLevel) :
-		SimulationEngineFixedEffort("bfe", network),
-		effortPerLevel_(effortPerLevel)
+SimulationEngineBFE::SimulationEngineBFE(std::shared_ptr<const ModuleNetwork> model) :
+        SimulationEngineFixedEffort("bfe", model)
 { /* Not much to do around here */ }
-
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

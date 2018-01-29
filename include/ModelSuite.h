@@ -137,6 +137,11 @@ class ModelSuite
 	/// Whether the single instance of ModelSuite is "empty as new"
 	static bool pristineModel_;
 
+//	/// Default value of global effort for splitting engines
+//	/// @see Threshold
+//	static constexpr unsigned GLOBAL_EFFORT_DEFAULT = 2u;
+	// TODO: delete above
+
 	// Interruptions handling
 
 	/// Signal handler for when we're interrupted (e.g. ^C) mid-estimation
@@ -249,12 +254,16 @@ public:  // Populating facilities and other modifyers
 	 *             on each threshold-level.</li>
 	 *         </ul>
 	 *
-	 * @param ge @copydoc globalEffort
+	 * @param ge         @copydoc globalEffort
+	 * @param enginaName Name of the simulation engine to use
+	 * @param verbose    Whether to output info in the tech_log
 	 *
 	 * @warning The ModelSuite must have been \ref seal() "sealed" beforehand
 	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
 	 */
-	void set_global_effort(const unsigned& ge = 0u, bool verbose = false);
+	void set_global_effort(const unsigned& ge,
+	                       const std::string& engineName,
+	                       bool verbose = false);
 	
 	/// @brief Inform the system model was translated from a Dynamic Fault Tree
 	/// @param failProbDFT A <i>rough and unified</i> probability of observing
@@ -345,6 +354,10 @@ public:  // Accessors
 	/// Get the global effort used by all Importance Splitting engines
 	/// @see set_global_effort()
 	const unsigned& get_global_effort() const noexcept;
+
+//	/// @copydoc GLOBAL_EFFORT_DEFAULT
+//	inline static unsigned get_default_global_effort() noexcept { return GLOBAL_EFFORT_DEFAULT; }
+	// TODO: delete above
 
 	/// For models translated from a Dynamic Fault Tree specification,
 	/// e.g. GALILEO, this is the user specified probability of observing
@@ -877,7 +890,7 @@ ModelSuite::process_batch(const std::string& engineName,
 		for (auto ge: globalEffortValues) {
 
 			// ... choose the thresholds ...
-			set_global_effort(0u < ge ? ge : simulators[engineName]->global_effort(), true);
+			set_global_effort(ge, engineName, true);
 			build_thresholds(thrTechnique, impFunSpec.name, property);
 			assert(impFuns[impFunSpec.name]->ready());
 
