@@ -89,7 +89,7 @@ protected:
 	std::shared_ptr< const Property > property_;
 
 	/// Model currently built
-	std::shared_ptr< const ModuleNetwork> model_;
+	std::shared_ptr< const ModuleNetwork > model_;
 
 	/// Importance function currently built
 	std::shared_ptr< const ImportanceFunction > impFun_;
@@ -101,7 +101,7 @@ public:
 
 	/// Data & default ctor
 	/// @param n Number of pilot simulations used per importance level, see Budde et al.
-	ThresholdsBuilderES(std::shared_ptr<const ModuleNetwork> model,
+	ThresholdsBuilderES(std::shared_ptr< const ModuleNetwork > model,
 						const size_t& n = (1ul<<8ul));
 
 	bool uses_global_effort() const noexcept override final { return false; }
@@ -114,7 +114,7 @@ public:
 	      const unsigned) override;
 
 	ThresholdsVec
-	build_thresholds(const ImportanceFunction&) override;
+	build_thresholds(std::shared_ptr<const ImportanceFunction>) override;
 
 private:  // Class utils
 

@@ -96,7 +96,7 @@ public:
 	      const unsigned globalEffort) override;
 
 	ThresholdsVec
-	build_thresholds(const ImportanceFunction& impFun) override;
+	build_thresholds(std::shared_ptr<const ImportanceFunction> impFun) override;
 
 protected:  // Utils for the class and its kin
 

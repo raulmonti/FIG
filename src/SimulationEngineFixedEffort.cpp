@@ -109,7 +109,7 @@ SimulationEngineFixedEffort::transient_simulations(
 
 	if (nullptr == property_ || property_->get_id() != property.get_id()) {
 		// New property, reset counters
-		property_ = make_shared<const Property>(property);
+		property_ = &property;
 		reachCount_.clear();
 	}
 

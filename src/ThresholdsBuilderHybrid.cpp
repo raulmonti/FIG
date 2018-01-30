@@ -67,7 +67,7 @@ ThresholdsBuilderHybrid::setup(const PostProcessing &pp,
 
 
 ThresholdsVec
-ThresholdsBuilderHybrid::build_thresholds(const ImportanceFunction& impFun)
+ThresholdsBuilderHybrid::build_thresholds(std::shared_ptr<const ImportanceFunction> impFun)
 {
 	// Impose an execution wall time limit...
 	const std::chrono::minutes TIMEOUT = ADAPTIVE_TIMEOUT;  // take by value!
@@ -84,14 +84,14 @@ ThresholdsBuilderHybrid::build_thresholds(const ImportanceFunction& impFun)
 		// Adaptive algorithm couldn't finish but achievements remain
 		// stored in the vector member 'thresholds_'
 		assert(thresholds_.empty() ||
-		       thresholds_.back() >= impFun.initial_value());
-		const size_t MARGIN(thresholds_.empty() ? impFun.initial_value()
+		       thresholds_.back() >= impFun->initial_value());
+		const size_t MARGIN(thresholds_.empty() ? impFun->initial_value()
 		                                        : thresholds_.back());
 		figTechLog << "\nResorting to fixed choice of thresholds starting "
 				   << "above the ImportanceValue " << MARGIN << "\n";
-		stride_ = choose_stride(impFun.max_value()-MARGIN);
-		ThresholdsBuilderFixed::build_thresholds(impFun,
-		                                         MARGIN-impFun.initial_value(),
+		stride_ = choose_stride(impFun->max_value()-MARGIN);
+		ThresholdsBuilderFixed::build_thresholds(*impFun,
+		                                         MARGIN-impFun->initial_value(),
 		                                         stride_,
 		                                         thresholds_);
 		halted_ = true;
@@ -109,8 +109,8 @@ ThresholdsBuilderHybrid::build_thresholds(const ImportanceFunction& impFun)
 	if (halted_)
 		show_thresholds(thresholds);
 	assert(!thresholds.empty());
-	assert(thresholds[0] == impFun.initial_value());
-	assert(thresholds.back() == 1 + impFun.max_value());
+	assert(thresholds[0] == impFun->initial_value());
+	assert(thresholds.back() == 1 + impFun->max_value());
 
 	// Build ThresholdsVec to return
 	ThresholdsVec result;

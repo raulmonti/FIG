@@ -70,41 +70,41 @@ ThresholdsBuilderFixed::setup(const PostProcessing &pp,
 
 
 ThresholdsVec
-ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun)
+ThresholdsBuilderFixed::build_thresholds(std::shared_ptr<const ImportanceFunction> impFun)
 {
 	ImportanceVec thresholds;
-	const ImportanceValue IMP_RANGE(impFun.max_value()-impFun.initial_value());
+	const ImportanceValue IMP_RANGE(impFun->max_value()-impFun->initial_value());
 
 	figTechLog << "Building thresholds with \"" << name << "\" ";
 
 	if (globEff_ < 2u) {
 		// For flat importance function we need a dummy thresholds vector
-		ImportanceVec({impFun.initial_value(),impFun.max_value()+1}).swap(thresholds);
+		ImportanceVec({impFun->initial_value(),impFun->max_value()+1}).swap(thresholds);
 		goto consistency_check;
 
 	} else if (IMP_RANGE < MIN_IMP_RANGE) {
 		stride_ = 1u;
 		figTechLog << "using all importance values as thresholds.\n";
-		thresholds.resize(2+impFun.max_value()-impFun.min_value());
-		ImportanceVec thresholds(2+impFun.max_value()-impFun.initial_value());
-		std::iota(begin(thresholds), end(thresholds), impFun.initial_value());
+		thresholds.resize(2+impFun->max_value()-impFun->min_value());
+		ImportanceVec thresholds(2+impFun->max_value()-impFun->initial_value());
+		std::iota(begin(thresholds), end(thresholds), impFun->initial_value());
 
 	} else {
 		stride_ = choose_stride(IMP_RANGE);
 		figTechLog << "for 1 out of every " << stride_ << " importance value"
 				   << (stride_ > 1 ? ("s.\n") : (".\n"));
-		thresholds.push_back(impFun.initial_value());
+		thresholds.push_back(impFun->initial_value());
 		// Start above initial importance value? May reduce oversampling
 		const unsigned margin(IMP_RANGE>>3);
-		build_thresholds(impFun, margin, stride_, thresholds);
+		build_thresholds(*impFun, margin, stride_, thresholds);
 	}
 
 	show_thresholds(thresholds);
 
 consistency_check:
 	assert(!thresholds.empty());
-	assert(thresholds[0] == impFun.initial_value());
-	assert(thresholds.back() == 1 + impFun.max_value());
+	assert(thresholds[0] == impFun->initial_value());
+	assert(thresholds.back() == 1 + impFun->max_value());
 
 	// Build ThresholdsVec to return
 	ThresholdsVec result;

@@ -32,6 +32,7 @@
 
 // C++
 #include <ostream>
+#include <memory>  // std::enable_shared_from_this<>
 #include <string>
 #include <array>
 // FIG
@@ -64,7 +65,7 @@ class Property;
  *        "strategy" (flat, auto, ad hoc...) to decide how the relative
  *        importance between states will be measured.
  */
-class ImportanceFunction
+class ImportanceFunction : public std::enable_shared_from_this<ImportanceFunction>
 {
 public:
 

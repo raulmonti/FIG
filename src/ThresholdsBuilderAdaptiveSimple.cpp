@@ -64,17 +64,17 @@ ThresholdsBuilderAdaptiveSimple::setup(const PostProcessing &,
 
 
 ThresholdsVec
-ThresholdsBuilderAdaptiveSimple::build_thresholds(const ImportanceFunction& impFun)
+ThresholdsBuilderAdaptiveSimple::build_thresholds(std::shared_ptr<const ImportanceFunction> impFun)
 {
 	// For flat importance function we need a dummy thresholds vector
 	if (globEff_ < 2u) {
-		ImportanceVec({impFun.initial_value(),impFun.max_value()+1}).swap(thresholds_);
+		ImportanceVec({impFun->initial_value(),impFun->max_value()+1}).swap(thresholds_);
 		goto consistency_check;
 	}
 
 	// Choose values for n_ and k_
 	tune(ModelSuite::get_instance().modules_network()->num_transitions(),
-	     impFun.max_value() - impFun.min_value(),
+	     impFun->max_value() - impFun->min_value(),
 	     globEff_);
 	ModelSuite::tech_log("Building thresholds with \""+ name +"\" for global "
 	                     "effort = " + std::to_string(globEff_) + " and k/n = "
@@ -82,12 +82,12 @@ ThresholdsBuilderAdaptiveSimple::build_thresholds(const ImportanceFunction& impF
 						 + std::to_string(static_cast<float>(k_)/n_) + "\n");
 
 	// Run the adaptive algorithm to choose the thresholds
-	build_thresholds_vector(impFun);
+	build_thresholds_vector(*impFun);
 	show_thresholds(thresholds_);
 consistency_check:
 	assert(!thresholds_.empty());
-	assert(thresholds_[0] == impFun.initial_value());
-	assert(thresholds_.back() == 1 + impFun.max_value());
+	assert(thresholds_[0] == impFun->initial_value());
+	assert(thresholds_.back() == 1 + impFun->max_value());
 
 	// Build ThresholdsVec to return
 	ThresholdsVec thresholds;

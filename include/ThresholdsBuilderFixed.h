@@ -100,7 +100,7 @@ public:
 	           const unsigned ge = 2ul) override;
 
 	ThresholdsVec
-	build_thresholds(const ImportanceFunction& impFun) override;
+	build_thresholds(std::shared_ptr<const ImportanceFunction> impFun) override;
 
 public:  // Accessors
 

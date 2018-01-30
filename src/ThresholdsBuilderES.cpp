@@ -118,10 +118,10 @@ ThresholdsBuilderES::setup(const PostProcessing &,
 
 
 ThresholdsVec
-ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
+ThresholdsBuilderES::build_thresholds(std::shared_ptr<const ImportanceFunction> impFun)
 {
 	model_ = ModelSuite::get_instance().modules_network();
-	impFun_ = std::make_shared< const ImportanceFunction >(&impFun);
+	impFun_ = impFun;
 
 	// Adapted from Alg. 3 of Budde, D'Argenio, Hartmanns,
 	// "Better Automated Importance Splitting for Transient Rare Events", 2017.
@@ -144,7 +144,7 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 
 	// Estimate the probabilities of going from one (reachable) importance value to the next
 	ModelSuite::debug_log("\nRunning internal Fixed Effort");
-	TraialsVec traials(get_traials(n_, impFun, false));
+	TraialsVec traials(get_traials(n_, *impFun, false));
 	FE_for_ES(thrCandidates, Pup);
 	/// @todo TODO embedd following loop fully inside FE_for_ES()
 //	for (size_t m = 1ul ; m < 5ul && 0.0f >= Pup.back() ; m++) {
@@ -177,13 +177,13 @@ ThresholdsBuilderES::build_thresholds(const ImportanceFunction& impFun)
 
 	// Select the thresholds based on the effort factors
 	thresholds_.clear();
-	thresholds_.emplace_back(impFun.initial_value(), 1ul);
+	thresholds_.emplace_back(impFun->initial_value(), 1ul);
 	for (size_t i = 1ul ; i < Pup.size() ; i++) {
 		const int thisEffort = std::round(effort[i]);
 		if (1 < thisEffort)
 			thresholds_.emplace_back(thrCandidates[i], thisEffort);
 	}
-	thresholds_.emplace_back(impFun.max_value()+static_cast<ImportanceValue>(1u), 1ul);
+	thresholds_.emplace_back(impFun->max_value()+static_cast<ImportanceValue>(1u), 1ul);
 
 	/// @todo if these thresholds_ would produce too much splitting,
 	///       e.g. thresholds_[i..i+5] = (imp,imp+1,...,imp+4) for effort ~ 10,
@@ -206,12 +206,11 @@ ThresholdsBuilderES::reachable_importance_values() const
 	static constexpr size_t MAX_FAILS = (1ul)<<(10ul);
 	size_t numFails(0ul);
 
-	const ImportanceFunction& impFun(*impFun_);
 	auto events_watcher = &fig::ThresholdsBuilderES::importance_seeker;
 
-	ImportanceValue maxImportanceReached(impFun.initial_value());
-	std::unordered_set< ImportanceValue > reachableImpValues = {impFun.initial_value()};
-	TraialsVec traialsNow(get_traials(NUM_INDEPENDENT_RUNS, impFun)),
+	ImportanceValue maxImportanceReached(impFun_->initial_value());
+	std::unordered_set< ImportanceValue > reachableImpValues = {impFun_->initial_value()};
+	TraialsVec traialsNow(get_traials(NUM_INDEPENDENT_RUNS, *impFun_)),
 	           traialsNext;
 	assert(!traialsNow.empty());
 	assert(traialsNext.empty());
@@ -235,13 +234,13 @@ ThresholdsBuilderES::reachable_importance_values() const
 				else if (traialsNow.size() > 1ul)
 					traial = traialsNow[numFails%traialsNow.size()].get();
 				else
-					traial.initialise(*model_,impFun);  // start over
+					traial.initialise(*model_,*impFun_);  // start over
 				traialsNow.push_back(traial);
 			}
 			assert(traialsNow.size()+traialsNext.size() == NUM_INDEPENDENT_RUNS);
 		}
 		std::swap(traialsNow, traialsNext);
-	} while (maxImportanceReached < impFun.max_value());
+	} while (maxImportanceReached < impFun_->max_value());
     end_reachability_analysis:
 	    TraialPool::get_instance().return_traials(traialsNow);
 		TraialPool::get_instance().return_traials(traialsNext);
@@ -271,21 +270,23 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 	std::for_each(begin(reachableImportanceValues), end(reachableImportanceValues),
 	              [&thresholds](const ImportanceValue& imp)
 	              { thresholds.emplace_back(imp, 1u); });
-	simulator_->property_ = property_;
-	simulator_->bind(make_shared<ImportanceFunction>(impFun_));
+	simulator_->property_ = property_.get();
+	simulator_->bind(impFun_);
 	// Run Fixed Effort a couple of times
 	ModelSuite::tech_log(" [");
 	for (size_t m = 1ul ; m < 5ul && 0.0f >= Pup.back() ; m++) {
 		simulator_->fixed_effort(thresholds, paths, event_watcher);
 		//\begin{section0}//////////////////////////////////////////////////////
 		// A path to the rare event has been chosen: save as *the* path ////////
-		const auto& path(paths.begin());
+		assert(!paths.empty());
+		const auto& path(paths.front());
 		if (!rarePathWasSet) {
 			thresholds.clear();
-			thresholds.reserve(path->size());
-			using pair_t = decltype(path)::value_type;
+			thresholds.reserve(path.size());
+			using pair_t = std::remove_reference<decltype(path)>::type::value_type;
 			std::for_each(begin(path), end(path),
-			              [](const pair_t& p){ thresholds.emplace_back(p.first,1u); });
+			              [&thresholds](const pair_t& p)
+			              { thresholds.emplace_back(p.first,1u); });
 			rarePathWasSet = true;
 		}
 		// TODO: above heuristic sets on the *first* path chosen, a bit risky
@@ -297,7 +298,7 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 	}
 	ModelSuite::tech_log("]");
 	simulator_->unbind();
-	simulator_->property_.reset();
+	simulator_->property_ = nullptr;
 //	auto events_watcher = &fig::ThresholdsBuilderES::FE_watcher;
 //	const size_t N = traials.size();  // effort per level
 //	std::vector< Reference< Traial > > freeNow, freeNext, startNow, startNext;

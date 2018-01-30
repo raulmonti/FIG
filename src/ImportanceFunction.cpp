@@ -504,7 +504,7 @@ ImportanceFunction::build_thresholds(ThresholdsBuilder& tb)
 	ThresholdsVec().swap(importance2threshold_);
 	thresholdsTechnique_ = "";
 	readyForSims_ = false;
-	threshold2importance_ = tb.build_thresholds(*this);
+	threshold2importance_ = tb.build_thresholds(shared_from_this());
 	post_process_thresholds(tb);
 }
 

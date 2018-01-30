@@ -72,14 +72,14 @@ filter_next_value(TraialVec& traials,
 {
     assert(!traials.empty());
 	assert(!reachCount.empty());
-	std::remove_reference<decltype(reachCount)> typeVar;
-	using pair_t = decltype(typeVar)::value_type;
+	using pair_t = std::remove_reference<decltype(reachCount)>::type::value_type;
+//	using pair_t = decltype(typeVar)::value_type;
 	TraialVec chosenTraials;
     const auto N(traials.size());
     chosenTraials.reserve(N);
 	// Find most frequent ImportanceValue
 	auto nextStep = std::max_element(begin(reachCount), end(reachCount),
-	                                 [](const pair_t::value_type& p1, const pair_t::value_type& p2)
+	                                 [](const pair_t& p1, const pair_t& p2)
 	                                 { return p1.second < p2.second; });
 	const ImportanceValue nextValue(nextStep->second);
 	const size_t nextValueIndex(nextStep->first);
@@ -88,9 +88,9 @@ filter_next_value(TraialVec& traials,
         Traial& t(traials.back());
         traials.pop_back();
         if (ifun.importance_of(t.state) == nextValue)
-            chosenTraials.push_back(std::move(t));
+			chosenTraials.push_back(t);
         else
-            traialSink.push_back(std::move(t));
+			traialSink.push_back(t);
     }
 	assert(traials.empty());
 	assert(chosenTraials.size() <= N);
@@ -111,21 +111,21 @@ SimulationEngineSFE::SimulationEngineSFE(std::shared_ptr<const ModuleNetwork> mo
 
 SimulationEngineSFE::~SimulationEngineSFE()
 {
-	TraialPool.get_instance().return_traials(traials_);
+	TraialPool::get_instance().return_traials(traials_);
 }
 
 
 void
 SimulationEngineSFE::fixed_effort(const ThresholdsVec& thresholds,
                                   ThresholdsPathCandidates& result,
-								  EventWatcher fun)
+                                  EventWatcher fun) const
 {
 	auto event_watcher =
 		(nullptr != fun) ? fun
 						 : (property_->type == PropertyType::TRANSIENT)
-						   ? &fig::SimulationEngineSFE::transient_event
+	                       ? static_cast<EventWatcher>(&fig::SimulationEngineSFE::transient_event)
 						   : (property_->type == PropertyType::RATE)
-							 ? &fig::SimulationEngineSFE::rate_event
+	                         ? static_cast<EventWatcher>(&fig::SimulationEngineSFE::rate_event)
 							 : nullptr;
 	auto lvl_effort = [&](const size_t& effort){ return effort*base_nsims(); };
 	const size_t LVL_MAX(impFun_->max_value()),

@@ -87,9 +87,6 @@ public:
 
 	inline bool adaptive() const noexcept override { return true; }
 
-	ThresholdsVec
-	build_thresholds(const ImportanceFunction&) override = 0;
-
 protected:  // Utils for the class and its kin
 
 	/**

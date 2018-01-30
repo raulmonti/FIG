@@ -148,7 +148,7 @@ public:
 	 * @throw FigException if thresholds building failed
 	 */
 	virtual ThresholdsVec
-	build_thresholds(const ImportanceFunction& impFun) = 0;
+	build_thresholds(std::shared_ptr<const ImportanceFunction> impFun) = 0;
 
 	/**
 	 * @brief Turn map around, building an importance-to-threshold map

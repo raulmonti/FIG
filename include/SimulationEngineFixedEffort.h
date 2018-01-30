@@ -82,7 +82,7 @@ protected:
 	mutable std::vector< Reference< Traial > > traials_;
 
 	/// Property currently being estimated
-	mutable std::shared_ptr< const Property > property_;
+	mutable const Property* property_;
 
 public:
 
