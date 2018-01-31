@@ -27,7 +27,8 @@
 //==============================================================================
 
 // C++
-#include <algorithm>  // std::fill(), std::move()
+#include <algorithm>   // std::fill(), std::move()
+#include <functional>  // std::bind()
 // FIG
 #include <SimulationEngineBFE.h>
 #include <PropertyTransient.h>
@@ -45,5 +46,18 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 SimulationEngineBFE::SimulationEngineBFE(std::shared_ptr<const ModuleNetwork> model) :
         SimulationEngineFixedEffort("bfe", model)
 { /* Not much to do around here */ }
+
+
+SimulationEngineFixedEffort::EventWatcher
+SimulationEngineBFE::get_event_watcher(const Property& property) const
+{
+	using namespace std::placeholders;
+	if (property.type == PropertyType::TRANSIENT)
+		return std::bind(&SimulationEngineBFE::transient_event, *this, _1, _2, _3);
+	else if (property.type == PropertyType::RATE)
+		return std::bind(&SimulationEngineBFE::rate_event, *this, _1, _2, _3);
+	else
+		throw_FigException("unsupported property type: "+std::to_string(property.type));
+}
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

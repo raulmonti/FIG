@@ -135,7 +135,12 @@ protected:  // Utils for the class and its kin
 	typedef std::pair< ImportanceValue, double >  ThresholdLvlUpProb;
 	typedef std::vector< ThresholdLvlUpProb >     ThresholdsPathProb;
 	typedef std::vector< ThresholdsPathProb >     ThresholdsPathCandidates;
-	typedef std::function<bool(const Property&, Traial&, Event&)> EventWatcher;
+
+	/// Retrieve the member function, wrapped as std::function via std::bind(),
+	/// to be used as TraialMonitor by ModuleNetwork::simulation_step()
+	/// @see EventWatcher
+	/// @example transient_event(), rate_event()
+	virtual EventWatcher get_event_watcher(const Property&) const = 0;
 
 	/**
 	 * @brief Perform <i>one sweep</i> of the Fixed Effort algorithm.
@@ -153,9 +158,7 @@ protected:  // Utils for the class and its kin
 	 *        or when there are no initial states to start the Traials from in
 	 *        the current step, computations stop.
 	 *
-	 * @param engine   Instance of the SimulationEngine/ThresholdsBuilder
-	 *                 that is performing the fixed effort
-	 * @param watch_events Member function of \a engine telling when finishes a
+	 * @param watch_events Function to tell how many transitions lasts a
 	 *                     \ref ModuleNetwork::simulation_step "simulation step"
 	 * @param thresholds Thresholds (and effort of each threshold) which
 	 *                   delimit the importance regions considered on each step
@@ -165,11 +168,9 @@ protected:  // Utils for the class and its kin
 	 * @note What exactly is meant by <i>next</i> or <i>upper threshold level</i>
 	 *       depends on the class implementing this method
 	 */
-//	template< class Simulator,
-//			  class TraialMonitor >
 	virtual void fixed_effort(const ThresholdsVec& thresholds,
 							  ThresholdsPathCandidates& result,
-							  EventWatcher fun = nullptr) const = 0;
+	                          EventWatcher watch_events) const = 0;
 // [SO] Virtual/template in C++:
 // - https://stackoverflow.com/q/2354210
 // - https://stackoverflow.com/q/7968023

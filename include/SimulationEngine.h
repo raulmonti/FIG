@@ -137,7 +137,13 @@ protected:
 
 public:
 
+	/// Count how many Traials make it to each importance/threshold level
 	typedef std::map< ImportanceValue, unsigned > ReachabilityCount;
+
+	/// Wrapper for member functions to be forwarded to
+	/// ModuleNetwork::simulation_step(), to use as TraialMonitor
+	/// @see transient_event(), rate_event()
+	typedef std::function<bool(const Property&, Traial&, Event&)> EventWatcher;
 
 protected:
 
@@ -381,17 +387,17 @@ protected:  // Traial observers/updaters
      * @brief Interpret and mark the transient events triggered by a Traial
      *        in its most recent traversal through the system model.
      *
-     * @param property PropertyTransient with events of interest (expr1 & expr2)
-     * @param traial   Embodiment of a simulation running through the system
-     *                 model <b>(modified)</b>
-     * @param e        Variable to update with observed events <b>(modified)</b>
+	 * @param transientProperty  PropertyTransient with events of interest (expr1 & expr2)
+	 * @param traial  Embodiment of a simulation running through the system
+	 *                model <b>(modified)</b>
+	 * @param e       Variable to update with observed events <b>(modified)</b>
      *
      * @return Whether a \ref ModuleNetwork::simulation_step() "simulation step"
      *         has finished and the Traial should be further inspected.
      *
      * @note  The ImportanceFunction used is taken from the last call to bind()
      */
-    virtual bool transient_event(const PropertyTransient& property,
+	virtual bool transient_event(const Property& transientProperty,
                                  Traial& traial,
                                  Event& e) const = 0;
 
@@ -400,10 +406,10 @@ protected:  // Traial observers/updaters
      *        traversal through the system model. After a positive return
      *        the Traial's evolution should be watched more closely.
      *
-     * @param property  PropertyRate with the event of interest (expr)
-     * @param traial    Embodiment of a simulation running through the system
-     *                  model <b>(modified)</b>
-     * @param e         Variable to update with observed events <b>(modified)</b>
+	 * @param rateProperty  PropertyRate with the event of interest (expr)
+	 * @param traial  Embodiment of a simulation running through the system
+	 *                model <b>(modified)</b>
+	 * @param e       Variable to update with observed events <b>(modified)</b>
      *
      * @return Whether a \ref ModuleNetwork::simulation_step() "simulation step"
      *         has finished and the Traial is in a state whose sojourn time
@@ -411,7 +417,7 @@ protected:  // Traial observers/updaters
      *
      * @note  The ImportanceFunction used is taken from the last call to bind()
      */
-    virtual bool rate_event(const PropertyRate& property,
+	virtual bool rate_event(const Property& rateProperty,
                             Traial& traial,
                             Event& e) const = 0;
 

@@ -28,7 +28,8 @@
 
 // C++
 #include <map>
-#include <algorithm>  // std::fill(), std::max_element(), std::move()
+#include <algorithm>   // std::fill(), std::max_element(), std::move()
+#include <functional>  // std::bind()
 // FIG
 #include <SimulationEngineSFE.h>
 #include <PropertyTransient.h>
@@ -115,18 +116,31 @@ SimulationEngineSFE::~SimulationEngineSFE()
 }
 
 
+SimulationEngineFixedEffort::EventWatcher
+SimulationEngineSFE::get_event_watcher(const Property& property) const
+{
+	using namespace std::placeholders;  // _1, _2, ...
+	if (property.type == PropertyType::TRANSIENT)
+		return std::bind(&SimulationEngineSFE::transient_event, *this, _1, _2, _3);
+	else if (property.type == PropertyType::RATE)
+		return std::bind(&SimulationEngineSFE::rate_event, *this, _1, _2, _3);
+	else
+		throw_FigException("unsupported property type: "+std::to_string(property.type));
+}
+
+
 void
 SimulationEngineSFE::fixed_effort(const ThresholdsVec& thresholds,
                                   ThresholdsPathCandidates& result,
-                                  EventWatcher fun) const
+                                  EventWatcher watch_events) const
 {
-	auto event_watcher =
-		(nullptr != fun) ? fun
-						 : (property_->type == PropertyType::TRANSIENT)
-	                       ? static_cast<EventWatcher>(&fig::SimulationEngineSFE::transient_event)
-						   : (property_->type == PropertyType::RATE)
-	                         ? static_cast<EventWatcher>(&fig::SimulationEngineSFE::rate_event)
-							 : nullptr;
+//	auto event_watcher =
+//		(nullptr != watch_events) ? watch_events
+//						 : (property_->type == PropertyType::TRANSIENT)
+//	                       ? static_cast<EventWatcher>(&fig::SimulationEngineSFE::transient_event)
+//						   : (property_->type == PropertyType::RATE)
+//	                         ? static_cast<EventWatcher>(&fig::SimulationEngineSFE::rate_event)
+//							 : nullptr;
 	auto lvl_effort = [&](const size_t& effort){ return effort*base_nsims(); };
 	const size_t LVL_MAX(impFun_->max_value()),
 				 LVL_INI(impFun_->initial_value()),
@@ -184,7 +198,7 @@ SimulationEngineSFE::fixed_effort(const ThresholdsVec& thresholds,
             Traial& traial(traialsNow.back());
             traialsNow.pop_back();
             assert(traial.level < LVL_MAX);
-			model_.simulation_step(traial, property_, event_watcher);
+			model_.simulation_step(traial, property_, watch_events);
             if (traial.level > l) {
                 numSuccesses++;
                 traialsNext.push_back(traial);

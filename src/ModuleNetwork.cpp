@@ -28,8 +28,9 @@
 // Support for committed actions: Leonardo Rodríguez
 
 // C++
-#include <iterator>   // std::begin(), std::end()
-#include <algorithm>  // std::find_if()
+#include <iterator>    // std::begin(), std::end()
+#include <algorithm>   // std::find_if()
+#include <functional>  // std::function<>
 #include <set>
 #include <list>
 #include <deque>
@@ -315,69 +316,69 @@ Event ModuleNetwork::simulation_step(Traial& traial,
     return e;
 }
 
-/// "SimulationEngineNosplit + PropertyTransient"
-/// TraialMonitor specialization
-/// for "template<...> ModuleNetwork::simulation_step()"
-typedef bool(SimulationEngineNosplit::*nosplit_transient_event)
-	(const PropertyTransient&, Traial&, Event&) const;
-
-/// "SimulationEngineNosplit + PropertyRate"
-/// TraialMonitor specialization
-/// for "template<...> ModuleNetwork::simulation_step()"
-typedef bool(SimulationEngineNosplit::*nosplit_rate_event)
-	(const PropertyRate&, Traial&, Event&) const;
-
-/// "SimulationEngineRestart + PropertyTransient"
-/// TraialMonitor specialization
-/// for "template<...> ModuleNetwork::simulation_step()"
-typedef bool(SimulationEngineRestart::*restart_transient_event)
-    (const PropertyTransient&, Traial&, Event&) const;
-
-/// "SimulationEngineRestart + PropertyRate"
-/// TraialMonitor specialization
-/// for "template<...> ModuleNetwork::simulation_step()"
-typedef bool(SimulationEngineRestart::*restart_rate_event)
-    (const PropertyRate&, Traial&, Event&) const;
-
-/// "SimulationEngineFixedEffort + PropertyTransient"
-/// TraialMonitor specialization
-/// for "template<...> ModuleNetwork::simulation_step()"
-typedef bool(SimulationEngineFixedEffort::*fixedeffort_transient_event)
-    (const PropertyTransient&, Traial&, Event&) const;
-
-/// "ThresholdsBuilderES"
-/// TraialMonitor specialization
-/// for "template<...> ModuleNetwork::simulation_step()"
-typedef bool(ThresholdsBuilderES::*fixed_effort_watcher)
-    (const Property&, Traial&, Event&) const;
-
-
-// ModuleNetwork::simulation_step() can only be invoked with the following
-// "DerivedProperty", "Simulator" and "TraialMonitor" combinations
-template Event ModuleNetwork::simulation_step(Traial&,
-											  const PropertyTransient&,
-											  const SimulationEngineNosplit&,
-											  nosplit_transient_event) const;
-template Event ModuleNetwork::simulation_step(Traial&,
-											  const PropertyRate&,
-                                              const SimulationEngineNosplit&,
-											  nosplit_rate_event) const;
-template Event ModuleNetwork::simulation_step(Traial&,
-                                              const PropertyTransient&,
-                                              const SimulationEngineRestart&,
-                                              restart_transient_event) const;
-template Event ModuleNetwork::simulation_step(Traial&,
-                                              const PropertyRate&,
-                                              const SimulationEngineRestart&,
-                                              restart_rate_event) const;
-template Event ModuleNetwork::simulation_step(Traial&,
-                                              const PropertyTransient&,
-                                              const SimulationEngineFixedEffort&,
-                                              fixedeffort_transient_event) const;
-template Event ModuleNetwork::simulation_step(Traial&,
-                                              const Property&,
-                                              const ThresholdsBuilderES&,
-                                              fixed_effort_watcher) const;
+//	/// "SimulationEngineNosplit + PropertyTransient"
+//	/// TraialMonitor specialization
+//	/// for "template<...> ModuleNetwork::simulation_step()"
+//	typedef bool(SimulationEngineNosplit::*nosplit_transient_event)
+//		(const PropertyTransient&, Traial&, Event&) const;
+//
+//	/// "SimulationEngineNosplit + PropertyRate"
+//	/// TraialMonitor specialization
+//	/// for "template<...> ModuleNetwork::simulation_step()"
+//	typedef bool(SimulationEngineNosplit::*nosplit_rate_event)
+//		(const PropertyRate&, Traial&, Event&) const;
+//
+//	/// "SimulationEngineRestart + PropertyTransient"
+//	/// TraialMonitor specialization
+//	/// for "template<...> ModuleNetwork::simulation_step()"
+//	typedef bool(SimulationEngineRestart::*restart_transient_event)
+//	    (const PropertyTransient&, Traial&, Event&) const;
+//
+//	/// "SimulationEngineRestart + PropertyRate"
+//	/// TraialMonitor specialization
+//	/// for "template<...> ModuleNetwork::simulation_step()"
+//	typedef bool(SimulationEngineRestart::*restart_rate_event)
+//	    (const PropertyRate&, Traial&, Event&) const;
+//
+//	/// "SimulationEngineFixedEffort + PropertyTransient"
+//	/// TraialMonitor specialization
+//	/// for "template<...> ModuleNetwork::simulation_step()"
+//	typedef bool(SimulationEngineFixedEffort::*fixedeffort_transient_event)
+//	    (const PropertyTransient&, Traial&, Event&) const;
+//
+//	/// "ThresholdsBuilderES"
+//	/// TraialMonitor specialization
+//	/// for "template<...> ModuleNetwork::simulation_step()"
+//	typedef bool(ThresholdsBuilderES::*fixed_effort_watcher)
+//	    (const Property&, Traial&, Event&) const;
+//
+//
+//	// ModuleNetwork::simulation_step() can only be invoked with the following
+//	// "DerivedProperty", "Simulator" and "TraialMonitor" combinations
+//	template Event ModuleNetwork::simulation_step(Traial&,
+//												  const PropertyTransient&,
+//												  const SimulationEngineNosplit&,
+//												  nosplit_transient_event) const;
+//	template Event ModuleNetwork::simulation_step(Traial&,
+//												  const PropertyRate&,
+//	                                              const SimulationEngineNosplit&,
+//												  nosplit_rate_event) const;
+//	template Event ModuleNetwork::simulation_step(Traial&,
+//	                                              const PropertyTransient&,
+//	                                              const SimulationEngineRestart&,
+//	                                              restart_transient_event) const;
+//	template Event ModuleNetwork::simulation_step(Traial&,
+//	                                              const PropertyRate&,
+//	                                              const SimulationEngineRestart&,
+//	                                              restart_rate_event) const;
+//	template Event ModuleNetwork::simulation_step(Traial&,
+//	                                              const PropertyTransient&,
+//	                                              const SimulationEngineFixedEffort&,
+//	                                              fixedeffort_transient_event) const;
+//	template Event ModuleNetwork::simulation_step(Traial&,
+//	                                              const Property&,
+//	                                              const ThresholdsBuilderES&,
+//	                                              fixed_effort_watcher) const;
 
 template< typename DerivedProperty,
           class TraialMonitor >
@@ -385,6 +386,31 @@ Event ModuleNetwork::simulation_step(Traial& traial,
                                      const DerivedProperty& property,
                                      TraialMonitor watch_events) const
 {
+	assert(sealed());
+	Event e(EventType::NONE);
+
+	// Start up processing the initial committed actions
+	// (this could reset clocks and change next timeout)
+	process_committed(traial);
+
+	// Now, until a relevant event is observed...
+	while ( !watch_events(property, traial, e) ) {
+		// ...process timed actions...
+		const Traial::Timeout& to = traial.next_timeout();
+		const float elapsedTime(to.value);
+		assert(0.0f <= elapsedTime);
+		// ...do active jump in the module whose clock timed-out...
+		const Label& label = to.module->jump(to, traial);
+		// ...do passive jumps in all modules listening to label...
+		for (auto module_ptr: modules)
+			if (module_ptr->name != to.module->name)
+				module_ptr->jump(label, elapsedTime, traial);
+		traial.lifeTime += elapsedTime;
+		// ...and process any newly activated committed action.
+		process_committed(traial);
+	}
+
+	return e;
 	throw_FigException("TODO: Implement!");
 
 	// Should be a copy of its twin, just changing the loop guard for:
@@ -393,5 +419,24 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 	// TODO: is there a better way to implement these duality
 	//       i.e. without having two implementations of the same function?
 }
+
+//	#define  TM_TRANSIENT_ARGS  const PropertyTransient&, Traial&, Event&
+//	#define  TM_RATE_ARGS       const PropertyRate&, Traial&, Event&
+//	/// "SimulationEngineNosplit"
+//	/// TraialMonitor specializations
+//	/// for "template<...> ModuleNetwork::simulation_step()"
+//	using inosplit_transient_event = std::function<bool(TM_TRANSIENT_ARGS)>;
+//	using inosplit_rate_event      = std::function<bool(TM_RATE_ARGS)>;
+//	//bool(ThresholdsBuilderES::*fixed_effort_watcher)
+//	//    (const Property&, Traial&, Event&) const;
+
+
+// ModuleNetwork::simulation_step() can only be invoked with the following
+// "DerivedProperty" and "TraialMonitor" combinations
+using TraialMonitor = SimulationEngine::EventWatcher;
+template
+Event ModuleNetwork::simulation_step(Traial&, const PropertyTransient&, TraialMonitor) const;
+template
+Event ModuleNetwork::simulation_step(Traial&, const PropertyRate&, TraialMonitor) const;
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

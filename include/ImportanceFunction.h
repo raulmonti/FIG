@@ -348,6 +348,7 @@ public:  // Accessors
 	///          This can be taken advantage of during simulations by using the
 	///          \ref ImportanceFunctionConcrete::info_of() "info_of()" member
 	///          function they offer.
+	/// @see concrete_simulation()
 	virtual bool concrete() const noexcept = 0;
 
 	/// @brief Whether the instance offers a reliable info_of() member function
@@ -357,6 +358,7 @@ public:  // Accessors
 	///          \ref ImportanceFunctionConcrete::info_of() "info_of()" member
 	///          function. This method tells whether its safe to use that
 	///          function to identify special states during simulations.
+	/// @see concrete()
 	/// @note concrete_simulation() => concrete()
 	virtual bool concrete_simulation() const noexcept = 0;
 

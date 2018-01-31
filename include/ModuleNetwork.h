@@ -227,8 +227,8 @@ public:  // Utils
 						  const Simulator& engine,
 						  TraialMonitor watch_events) const;
 
-	/// Like the 4-parameters version but using std::function<>
-	/// to bind the TraialMonitor (instead of the C++ member function pointer template)
+	/// Like the 4-parameters version but to use with any TraialMonitor function,
+	/// instead of the explicit C++ member function pointer template
 	template< typename DerivedProperty,
 	          class TraialMonitor >
 	Event simulation_step(Traial& traial,

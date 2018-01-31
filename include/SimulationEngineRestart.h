@@ -151,7 +151,7 @@ private:  // Traial observers/updaters
 	/// @copydoc SimulationEngine::transient_event()
 	/// @note Makes no assumption about the ImportanceFunction altogether
 	/// @note Attempted inline in a desperate need for speed
-	inline bool transient_event(const PropertyTransient& property,
+	inline bool transient_event(const Property& property,
 								Traial& traial,
 								Event& e) const override
 		{
@@ -179,7 +179,7 @@ private:  // Traial observers/updaters
 	/// @note This function assumes a \ref ImportanceFunctionConcrete
 	///       "concrete importance function" is currently bound to the engine
 	/// @note Attempted inline in a desperate need for speed
-	inline bool transient_event_concrete(const PropertyTransient&,
+	inline bool transient_event_concrete(const Property&,
 										 Traial& traial,
 										 Event& e) const
 		{
@@ -204,7 +204,7 @@ private:  // Traial observers/updaters
 
 	/// @copydoc SimulationEngine::rate_event()
 	/// @note Makes no assumption about the ImportanceFunction altogether
-	inline bool rate_event(const PropertyRate& property,
+	inline bool rate_event(const Property& property,
 						   Traial& traial,
 						   Event& e) const override
 		{
@@ -234,7 +234,7 @@ private:  // Traial observers/updaters
 	/// @copydoc SimulationEngine::rate_event()
 	/// @note This function assumes a \ref ImportanceFunctionConcrete
 	///       "concrete importance function" is currently bound to the engine
-	inline bool rate_event_concrete(const PropertyRate&,
+	inline bool rate_event_concrete(const Property&,
 									Traial& traial,
 									Event& e) const
 		{
@@ -265,17 +265,17 @@ private:  // Traial observers/updaters
 	/// Turn off splitting and simulate (accumulating time) as long as we are
 	/// among rare states. Used for time registration in rate simulations.
 	/// @note Makes no assumption about the ImportanceFunction altogether
-	inline bool count_time(const PropertyRate& prop, Traial& t, Event&) const
+	inline bool count_time(const Property& prop, Traial& t, Event&) const
 		{
 			return t.lifeTime > simsLifetime ||
-					!prop.expr(t.state);
+			        !prop.is_rare(t.state);
 		}
 
 	/// Turn off splitting and simulate (accumulating time) as long as we are
 	/// among rare states. Used for time registration in rate simulations.
 	/// @note This function assumes a \ref ImportanceFunctionConcrete
 	///       "concrete importance function" is currently bound to the engine
-	inline bool count_time_concrete(const PropertyRate&, Traial& t, Event&) const
+	inline bool count_time_concrete(const Property&, Traial& t, Event&) const
 		{
 			return t.lifeTime > simsLifetime ||
 					!IS_RARE_EVENT(cImpFun_->info_of(t.state));

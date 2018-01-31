@@ -84,6 +84,7 @@ public:
 protected:  // Utils for the class and its kin
 
 //	void fetch_internal_traials(const size_t& N) const override;
+	EventWatcher get_event_watcher(const Property&) const override;
 
 	/// @brief Run <i>once</i> the Standard Fixed Effort algorithm,
 	///        generalised to cope with importance skipping.
@@ -93,14 +94,17 @@ protected:  // Utils for the class and its kin
 	///       ignores paths to the rare event other than the easiest to find
 	void fixed_effort(const ThresholdsVec& thresholds,
 					  ThresholdsPathCandidates& result,
-					  EventWatcher fun = nullptr) const override;
+	                  EventWatcher watch_events) const override;
 
 private:  // Traial observers/updaters
+
+	/// @todo TODO erase dummy function
+	bool goo_event(const Property&, Traial&, Event&) const { return true; }
 
 	/// @copydoc SimulationEngine::transient_event()
 	/// @note Makes no assumption about the ImportanceFunction altogether
 	inline bool
-	transient_event(const PropertyTransient& property, Traial& traial, Event&) const override
+	transient_event(const Property& property, Traial& traial, Event&) const override
 		{
 			const ImportanceValue newLvl = impFun_->level_of(traial.state);
 			traial.depth -= newLvl - traial.level;
@@ -112,7 +116,7 @@ private:  // Traial observers/updaters
 
 	/// @todo TODO implement
 	inline bool
-	rate_event(const PropertyRate&, Traial&, Event&) const override
+	rate_event(const Property&, Traial&, Event&) const override
 		{ throw_FigException("TODO: implement!"); }
 };
 

@@ -88,6 +88,8 @@ public:
 
 protected:  // Utils for the class and its kin
 
+	EventWatcher get_event_watcher(const Property&) const override;
+
 	/// @brief Run <i>once</i> the Branching Fixed Effort algorithm
 	/// @copydetails SimulationEngineFixedEffort::fixed_effort()
 	/// @note The \p result may contain several path candidates,
@@ -103,7 +105,7 @@ private:  // Traial observers/updaters
 	/// @copydoc SimulationEngine::transient_event()
 	/// @note Makes no assumption about the ImportanceFunction altogether
 	inline bool
-	transient_event(const PropertyTransient& property, Traial& traial, Event&) const override
+	transient_event(const Property& property, Traial& traial, Event&) const override
 		{
 			const ImportanceValue newLvl = impFun_->level_of(traial.state);
 			traial.depth -= newLvl - traial.level;
@@ -115,7 +117,7 @@ private:  // Traial observers/updaters
 
 	/// @todo TODO implement
 	inline bool
-	rate_event(const PropertyRate&, Traial&, Event&) const override
+	rate_event(const Property&, Traial&, Event&) const override
 		{ throw_FigException("TODO: implement!"); }
 };
 
