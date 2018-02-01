@@ -74,7 +74,7 @@ class PropertyRate;
 class SimulationEngineSFE : public SimulationEngineFixedEffort
 {
 	/// Internal Traials for fixed_effort() computations
-	std::vector< Reference< Traial > > traials_;
+	mutable std::vector< Reference< Traial > > traials_;
 
 public:
 
@@ -94,7 +94,7 @@ protected:  // Utils for the class and its kin
 	///       ignores paths to the rare event other than the easiest to find
 	void fixed_effort(const ThresholdsVec& thresholds,
 					  ThresholdsPathCandidates& result,
-	                  EventWatcher watch_events) const override;
+					  EventWatcher& watch_events) const override;
 
 private:  // Traial observers/updaters
 

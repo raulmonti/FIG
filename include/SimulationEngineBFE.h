@@ -97,7 +97,7 @@ protected:  // Utils for the class and its kin
 	///       paths from the initial state towards the rare event
 	void fixed_effort(const ThresholdsVec&,
 	                  ThresholdsPathCandidates&,
-	                  EventWatcher) const override
+					  EventWatcher&) const override
 	    { throw_FigException("TODO: implement!"); }
 
 private:  // Traial observers/updaters

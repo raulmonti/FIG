@@ -41,6 +41,9 @@
 #include <FigLog.h>
 
 
+using namespace std::placeholders;  // _1, _2, _3, ...
+
+
 namespace fig
 {
 
@@ -63,17 +66,16 @@ std::vector<double>
 SimulationEngineNosplit::transient_simulations(const PropertyTransient& property,
                                                const size_t& numRuns) const
 {
-	using namespace std::placeholders;  // _1, _2, _3, ...
-
 	assert(0ul < numRuns);
 	std::vector< double > raresCount;
 	raresCount.reserve(numRuns);
 	Traial& traial = TraialPool::get_instance().get_traial();
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
-	auto watch_events = impFun_->concrete_simulation()
-	        ? std::bind(&SimulationEngineNosplit::transient_event_concrete, *this, _1, _2, _3)
-	        : std::bind(&SimulationEngineNosplit::transient_event,          *this, _1, _2, _3);
+//	auto watch_events = impFun_->concrete_simulation()
+	EventWatcher watch_events = impFun_->concrete_simulation()
+			? std::bind(&SimulationEngineNosplit::transient_event_concrete, *this, _1, _2, _3)
+			: std::bind(&SimulationEngineNosplit::transient_event,          *this, _1, _2, _3);
 //    bool (SimulationEngineNosplit::*watch_events)
 //         (const PropertyTransient&, Traial&, Event&) const;
 //    if (impFun_->concrete())
@@ -100,22 +102,20 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 										 const size_t& runLength,
 										 bool reinit) const
 {
-	using namespace std::placeholders;  // _1, _2, _3, ...
-
 	assert(0ul < runLength);
 	double accTime(0.0);
 	const CLOCK_INTERNAL_TYPE FIRST_TIME(0.0);
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
-	auto watch_events = impFun_->concrete_simulation()
-	        ? std::bind(&SimulationEngineNosplit::rate_event_concrete, *this, _1, _2, _3)
+//	auto watch_events = impFun_->concrete_simulation()
+	EventWatcher watch_events = impFun_->concrete_simulation()
+			? std::bind(&SimulationEngineNosplit::rate_event_concrete, *this, _1, _2, _3)
 	        : std::bind(&SimulationEngineNosplit::rate_event,          *this, _1, _2, _3);
-	auto register_time = impFun_->concrete_simulation()
-	        ? std::bind(&SimulationEngineNosplit::count_time_concrete, *this, _1, _2, _3)
+//	auto register_time = impFun_->concrete_simulation()
+	EventWatcher register_time = impFun_->concrete_simulation()
+			? std::bind(&SimulationEngineNosplit::count_time_concrete, *this, _1, _2, _3)
 	        : std::bind(&SimulationEngineNosplit::count_time,          *this, _1, _2, _3);
-
-//	// For the sake of efficiency, distinguish when operating with a concrete ifun
 //	bool (SimulationEngineNosplit::*watch_events)
 //		 (const PropertyRate&, Traial&, Event&) const;
 //	bool (SimulationEngineNosplit::*register_time)

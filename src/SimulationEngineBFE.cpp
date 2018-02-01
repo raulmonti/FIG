@@ -51,7 +51,7 @@ SimulationEngineBFE::SimulationEngineBFE(std::shared_ptr<const ModuleNetwork> mo
 SimulationEngineFixedEffort::EventWatcher
 SimulationEngineBFE::get_event_watcher(const Property& property) const
 {
-	using namespace std::placeholders;
+	using namespace std::placeholders;  // _1, _2, ...
 	if (property.type == PropertyType::TRANSIENT)
 		return std::bind(&SimulationEngineBFE::transient_event, *this, _1, _2, _3);
 	else if (property.type == PropertyType::RATE)

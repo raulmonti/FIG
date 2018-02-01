@@ -132,7 +132,7 @@ SimulationEngineSFE::get_event_watcher(const Property& property) const
 void
 SimulationEngineSFE::fixed_effort(const ThresholdsVec& thresholds,
                                   ThresholdsPathCandidates& result,
-                                  EventWatcher watch_events) const
+								  EventWatcher& watch_events) const
 {
 //	auto event_watcher =
 //		(nullptr != watch_events) ? watch_events
@@ -198,14 +198,14 @@ SimulationEngineSFE::fixed_effort(const ThresholdsVec& thresholds,
             Traial& traial(traialsNow.back());
             traialsNow.pop_back();
             assert(traial.level < LVL_MAX);
-			model_.simulation_step(traial, property_, watch_events);
+			model_->simulation_step(traial, property_, watch_events);
             if (traial.level > l) {
                 numSuccesses++;
                 traialsNext.push_back(traial);
                 reachCount_[l]++;
 				reachCountLocal[l]++;
 			} else {
-				if (property_.is_rare(traial.state))
+				if (property_->is_rare(traial.state))
                     numSuccesses++;
                 traials_.push_back(traial);
             }

@@ -33,13 +33,18 @@
 #include <stack>
 #include <deque>
 #include <iterator>
-#include <algorithm>  // std::fill
+#include <algorithm>   // std::fill
+#include <functional>  // std::functional<>
 // FIG
 #include <SimulationEngineRestart.h>
 #include <ModuleNetwork.h>
 #include <TraialPool.h>
 #include <FigException.h>
 #include <FigLog.h>
+
+
+using namespace std::placeholders;  // _1, _2, _3, ...
+
 
 // ADL
 using std::begin;
@@ -178,12 +183,16 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 		reachCount_.clear();
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
-	bool (SimulationEngineRestart::*watch_events)
-	     (const PropertyTransient&, Traial&, Event&) const;
-	if (impFun_->concrete_simulation())
-		watch_events = &SimulationEngineRestart::transient_event_concrete;
-	else
-		watch_events = &SimulationEngineRestart::transient_event;
+//	auto watch_events = impFun_->concrete_simulation()
+	EventWatcher watch_events = impFun_->concrete_simulation()
+			? std::bind(&SimulationEngineRestart::transient_event_concrete, *this, _1, _2, _3)
+			: std::bind(&SimulationEngineRestart::transient_event,          *this, _1, _2, _3);
+//	bool (SimulationEngineRestart::*watch_events)
+//	     (const PropertyTransient&, Traial&, Event&) const;
+//	if (impFun_->concrete_simulation())
+//		watch_events = &SimulationEngineRestart::transient_event_concrete;
+//	else
+//		watch_events = &SimulationEngineRestart::transient_event;
 
 	// Perform 'numRuns' independent RESTART simulations
 	for (size_t i = 0ul ; i < numRuns && !interrupted ; i++) {
@@ -200,7 +209,8 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			reachCount_[traial.level]++;
 
 			// Check whether we're standing on a rare event first
-			(this->*watch_events)(property, traial, e);
+//			(this->*watch_events)(property, traial, e);
+			watch_events(property, traial, e);
 			if (IS_RARE_EVENT(e)) {
 				// We are? Then count and kill
 //				assert(static_cast<ImportanceValue>(0) < traial.level || impFun_->strategy() == "adhoc");
@@ -210,7 +220,8 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 				continue;
 			}
 			// We aren't? Then keep dancing
-			e = model_->simulation_step(traial, property, *this, watch_events);
+//			e = model_->simulation_step(traial, property, *this, watch_events);
+			e = model_->simulation_step(traial, property, watch_events);
 
 			// The following events are treated as mutually exclusive
 			// Checking order is relevant!
@@ -285,17 +296,25 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	}
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
-	bool (SimulationEngineRestart::*watch_events)
-		 (const PropertyRate&, Traial&, Event&) const;
-	bool (SimulationEngineRestart::*register_time)
-		 (const PropertyRate&, Traial&, Event&) const;
-	if (impFun_->concrete_simulation()) {
-		watch_events = &SimulationEngineRestart::rate_event_concrete;
-		register_time = &SimulationEngineRestart::count_time_concrete;
-	} else {
-		watch_events = &SimulationEngineRestart::rate_event;
-		register_time = &SimulationEngineRestart::count_time;
-	}
+//	auto watch_events = impFun_->concrete_simulation()
+	EventWatcher watch_events = impFun_->concrete_simulation()
+			? std::bind(&SimulationEngineRestart::rate_event_concrete, *this, _1, _2, _3)
+			: std::bind(&SimulationEngineRestart::rate_event,          *this, _1, _2, _3);
+//	auto register_time = impFun_->concrete_simulation()
+	EventWatcher register_time = impFun_->concrete_simulation()
+			? std::bind(&SimulationEngineRestart::count_time_concrete, *this, _1, _2, _3)
+			: std::bind(&SimulationEngineRestart::count_time,          *this, _1, _2, _3);
+//	bool (SimulationEngineRestart::*watch_events)
+//		 (const PropertyRate&, Traial&, Event&) const;
+//	bool (SimulationEngineRestart::*register_time)
+//		 (const PropertyRate&, Traial&, Event&) const;
+//	if (impFun_->concrete_simulation()) {
+//		watch_events = &SimulationEngineRestart::rate_event_concrete;
+//		register_time = &SimulationEngineRestart::count_time_concrete;
+//	} else {
+//		watch_events = &SimulationEngineRestart::rate_event;
+//		register_time = &SimulationEngineRestart::count_time;
+//	}
 
 	// Run a single RESTART importance-splitting simulation for "runLength"
 	// simulation time units and starting from the last saved ssstack_,
@@ -316,22 +335,26 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 #endif
 
 		// Check whether we're standing on a rare event
-		(this->*watch_events)(property, traial, e);
+//		(this->*watch_events)(property, traial, e);
+		watch_events(property, traial, e);
 		if (IS_RARE_EVENT(e)) {
 			// We are? Then register rare time
 			assert(impFun_->importance_of(traial.state) > static_cast<ImportanceValue>(0)
 				   || impFun_->strategy() == "adhoc");
 			const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // reduce fp prec. loss
 			traial.lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
-			model_->simulation_step(traial, property, *this, register_time);
+//			model_->simulation_step(traial, property, *this, register_time);
+			model_->simulation_step(traial, property, register_time);
 			assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < traial.lifeTime);
 			raresCount[traial.level] += traial.lifeTime;
 			traial.lifeTime += simLength;
 		}
 
 		// Check where are we and whether we should do another sprint
-		if (!(this->*watch_events)(property, traial, e))
-			e = model_->simulation_step(traial, property, *this, watch_events);
+//		if (!(this->*watch_events)(property, traial, e))
+		if (!watch_events(property, traial, e))
+//			e = model_->simulation_step(traial, property, *this, watch_events);
+			e = model_->simulation_step(traial, property, watch_events);
 
 		// Checking order of the following events is relevant!
 		if (traial.lifeTime > simsLifetime || IS_THR_DOWN_EVENT(e)) {

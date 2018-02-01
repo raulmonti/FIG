@@ -138,6 +138,7 @@ protected:  // Utils for the class and its kin
 
 	/// Retrieve the member function, wrapped as std::function via std::bind(),
 	/// to be used as TraialMonitor by ModuleNetwork::simulation_step()
+	/// in the internal pilot runs
 	/// @see EventWatcher
 	/// @example transient_event(), rate_event()
 	virtual EventWatcher get_event_watcher(const Property&) const = 0;
@@ -170,7 +171,7 @@ protected:  // Utils for the class and its kin
 	 */
 	virtual void fixed_effort(const ThresholdsVec& thresholds,
 							  ThresholdsPathCandidates& result,
-	                          EventWatcher watch_events) const = 0;
+							  EventWatcher& watch_events) const = 0;
 // [SO] Virtual/template in C++:
 // - https://stackoverflow.com/q/2354210
 // - https://stackoverflow.com/q/7968023

@@ -32,9 +32,10 @@
 // C++
 #include <vector>
 #include <deque>
-#include <memory>     // std::make_unique<>
-#include <algorithm>  // std::fill()
-#include <iomanip>    // std::setprecision()
+#include <memory>      // std::make_unique<>
+#include <algorithm>   // std::fill()
+#include <functional>  // std::bind()
+#include <iomanip>     // std::setprecision()
 // FIG
 #include <ThresholdsBuilderES.h>
 #include <SimulationEngineSFE.h>
@@ -202,11 +203,12 @@ ThresholdsBuilderES::build_thresholds(std::shared_ptr<const ImportanceFunction> 
 ImportanceVec
 ThresholdsBuilderES::reachable_importance_values() const
 {
+	using namespace std::placeholders;  // _1, _2, ...
+
 	static constexpr size_t NUM_INDEPENDENT_RUNS = 20ul;
 	static constexpr size_t MAX_FAILS = (1ul)<<(10ul);
 	size_t numFails(0ul);
-
-	auto events_watcher = &fig::ThresholdsBuilderES::importance_seeker;
+	auto watch_events = std::bind(&ThresholdsBuilderES::importance_seeker, *this, _1, _2, _3);
 
 	ImportanceValue maxImportanceReached(impFun_->initial_value());
 	std::unordered_set< ImportanceValue > reachableImpValues = {impFun_->initial_value()};
@@ -223,7 +225,8 @@ ThresholdsBuilderES::reachable_importance_values() const
 			const ImportanceValue startImp(traial.level);
 			traial.depth = 0;
 			traial.numLevelsCrossed = 0;
-			model_->simulation_step(traial, *property_, *this, events_watcher);
+//			model_->simulation_step(traial, *property_, *this, events_watcher);
+			model_->simulation_step(traial, *property_, watch_events);
 			if (startImp < traial.level) {
 				reachableImpValues.emplace(traial.level);
 				maxImportanceReached = std::max(maxImportanceReached, traial.level);
