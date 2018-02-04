@@ -88,7 +88,7 @@ public:
 
 protected:  // Utils for the class and its kin
 
-	EventWatcher get_event_watcher(const Property&) const override;
+	const EventWatcher& get_event_watcher(const Property&) const override;
 
 	/// @brief Run <i>once</i> the Branching Fixed Effort algorithm
 	/// @copydetails SimulationEngineFixedEffort::fixed_effort()
@@ -97,7 +97,7 @@ protected:  // Utils for the class and its kin
 	///       paths from the initial state towards the rare event
 	void fixed_effort(const ThresholdsVec&,
 	                  ThresholdsPathCandidates&,
-					  EventWatcher&) const override
+					  const EventWatcher&) const override
 	    { throw_FigException("TODO: implement!"); }
 
 private:  // Traial observers/updaters

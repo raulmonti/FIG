@@ -233,7 +233,7 @@ public:  // Utils
 	          class TraialMonitor >
 	Event simulation_step(Traial& traial,
 	                      const DerivedProperty& property,
-						  TraialMonitor& watch_events) const;
+						  const TraialMonitor& watch_events) const;
 
 	/**
 	 * @brief Advance a traial and keep track of maximum importance reached

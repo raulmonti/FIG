@@ -97,6 +97,9 @@ debug_print_lvlup(const std::vector< float >& Pup)
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
+using EventWatcher = SimulationEngine::EventWatcher;
+
+
 ThresholdsBuilderES::ThresholdsBuilderES(
 		std::shared_ptr<const ModuleNetwork> model,
 		const size_t& n) :
@@ -204,11 +207,12 @@ ImportanceVec
 ThresholdsBuilderES::reachable_importance_values() const
 {
 	using namespace std::placeholders;  // _1, _2, ...
+	static const EventWatcher& watch_events =
+			std::bind(&ThresholdsBuilderES::importance_seeker, this, _1, _2, _3);
 
 	static constexpr size_t NUM_INDEPENDENT_RUNS = 20ul;
 	static constexpr size_t MAX_FAILS = (1ul)<<(10ul);
 	size_t numFails(0ul);
-	auto watch_events = std::bind(&ThresholdsBuilderES::importance_seeker, *this, _1, _2, _3);
 
 	ImportanceValue maxImportanceReached(impFun_->initial_value());
 	std::unordered_set< ImportanceValue > reachableImpValues = {impFun_->initial_value()};
@@ -258,27 +262,29 @@ void
 ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
                                std::vector<float>& Pup) const
 {
-	auto event_watcher = std::bind(&ThresholdsBuilderES::FE_watcher,
-								   this,
-								   std::placeholders::_1,
-								   std::placeholders::_2,
-								   std::placeholders::_3);
+	using namespace std::placeholders;  // _1, _2, ...
+	static const EventWatcher& watch_events =
+			std::bind(&ThresholdsBuilderES::FE_watcher, this, _1, _2, _3);
+
 	assert(Pup.size() == reachableImportanceValues.size()-1ul);
 	if (reachableImportanceValues.size() < 2ul)
 		return;  // only one reachable importance value: ES failed!
+
 	bool rarePathWasSet(false);
 	SimulationEngineFixedEffort::ThresholdsPathCandidates paths;
 	ThresholdsVec thresholds;
 	thresholds.reserve(reachableImportanceValues.size());
-	std::for_each(begin(reachableImportanceValues), end(reachableImportanceValues),
+	std::for_each(begin(reachableImportanceValues),
+				  end(reachableImportanceValues),
 	              [&thresholds](const ImportanceValue& imp)
-	              { thresholds.emplace_back(imp, 1u); });
+							   { thresholds.emplace_back(imp, 1u); });
+
 	simulator_->property_ = property_.get();
 	simulator_->bind(impFun_);
 	// Run Fixed Effort a couple of times
 	ModelSuite::tech_log(" [");
 	for (size_t m = 1ul ; m < 5ul && 0.0f >= Pup.back() ; m++) {
-		simulator_->fixed_effort(thresholds, paths, event_watcher);
+		simulator_->fixed_effort(thresholds, paths, watch_events);
 		//\begin{section0}//////////////////////////////////////////////////////
 		// A path to the rare event has been chosen: save as *the* path ////////
 		assert(!paths.empty());

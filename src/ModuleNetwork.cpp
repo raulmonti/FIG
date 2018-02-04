@@ -384,7 +384,7 @@ template< typename DerivedProperty,
           class TraialMonitor >
 Event ModuleNetwork::simulation_step(Traial& traial,
 									 const DerivedProperty& property,
-									 TraialMonitor& watch_events) const
+									 const TraialMonitor& watch_events) const
 {
 	assert(sealed());
 	Event e(EventType::NONE);
@@ -436,8 +436,10 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 //using TraialMonitor = SimulationEngine::EventWatcher;
 using TraialMonitor = std::function<bool(const Property&, Traial&, Event&)>;
 template
-Event ModuleNetwork::simulation_step(Traial&, const PropertyTransient&, TraialMonitor&) const;
+Event ModuleNetwork::simulation_step(Traial&, const Property&, const TraialMonitor&) const;
 template
-Event ModuleNetwork::simulation_step(Traial&, const PropertyRate&, TraialMonitor&) const;
+Event ModuleNetwork::simulation_step(Traial&, const PropertyTransient&, const TraialMonitor&) const;
+template
+Event ModuleNetwork::simulation_step(Traial&, const PropertyRate&, const TraialMonitor&) const;
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

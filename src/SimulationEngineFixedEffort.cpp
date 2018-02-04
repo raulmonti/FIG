@@ -115,7 +115,7 @@ SimulationEngineFixedEffort::transient_simulations(
 
 	ThresholdsPathCandidates Pup;
 	std::vector< double > results(numRuns);
-	auto watch_events(get_event_watcher(property));
+	/// auto watch_events(get_event_watcher(property));
 //	if (traials_.size() < EFF_MAX)
 //		TraialPool::get_instance().get_traials(traials_, EFF_MAX-traials_.size());
 // //	std::vector< Reference< Traial > > traialsNow, traialsNext;
@@ -137,7 +137,8 @@ SimulationEngineFixedEffort::transient_simulations(
 //			traials_.pop_back();
 //		}
 
-		fixed_effort(impFun_->thresholds(), Pup, watch_events);
+		fixed_effort(impFun_->thresholds(), Pup, get_event_watcher(property));
+		/// fixed_effort(impFun_->thresholds(), Pup, watch_events);
 
 //		// For each threshold level 'l' ...
 //		ImportanceValue l;

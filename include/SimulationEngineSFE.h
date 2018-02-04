@@ -84,7 +84,7 @@ public:
 protected:  // Utils for the class and its kin
 
 //	void fetch_internal_traials(const size_t& N) const override;
-	EventWatcher get_event_watcher(const Property&) const override;
+	const EventWatcher& get_event_watcher(const Property&) const override;
 
 	/// @brief Run <i>once</i> the Standard Fixed Effort algorithm,
 	///        generalised to cope with importance skipping.
@@ -94,7 +94,7 @@ protected:  // Utils for the class and its kin
 	///       ignores paths to the rare event other than the easiest to find
 	void fixed_effort(const ThresholdsVec& thresholds,
 					  ThresholdsPathCandidates& result,
-					  EventWatcher& watch_events) const override;
+					  const EventWatcher& watch_events) const override;
 
 private:  // Traial observers/updaters
 

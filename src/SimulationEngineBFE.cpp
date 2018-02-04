@@ -48,16 +48,41 @@ SimulationEngineBFE::SimulationEngineBFE(std::shared_ptr<const ModuleNetwork> mo
 { /* Not much to do around here */ }
 
 
-SimulationEngineFixedEffort::EventWatcher
+const SimulationEngine::EventWatcher&
 SimulationEngineBFE::get_event_watcher(const Property& property) const
 {
 	using namespace std::placeholders;  // _1, _2, ...
-	if (property.type == PropertyType::TRANSIENT)
-		return std::bind(&SimulationEngineBFE::transient_event, *this, _1, _2, _3);
-	else if (property.type == PropertyType::RATE)
-		return std::bind(&SimulationEngineBFE::rate_event, *this, _1, _2, _3);
-	else
+	if (property.type == PropertyType::TRANSIENT) {
+		static const EventWatcher& transient_event_watcher(
+					std::bind(&SimulationEngineBFE::transient_event, this, _1, _2, _3));
+		return transient_event_watcher;
+	} else if (property.type == PropertyType::RATE) {
+		static const EventWatcher& rate_event_watcher(
+					std::bind(&SimulationEngineBFE::rate_event, this, _1, _2, _3));
+		return rate_event_watcher;
+	} else {
 		throw_FigException("unsupported property type: "+std::to_string(property.type));
+	}
+// //		static std::unordered_map< PropertyType,
+// //								   const Reference< EventWatcher >
+// //								 > event_watchers;
+// //		if (event_watchers.empty()) {
+// //			event_watchers.emplace(PropertyType::TRANSIENT,
+// //								   std::bind(&SimulationEngineBFE::transient_event, this, _1, _2, _3));
+// //			event_watchers.emplace(PropertyType::RATE,
+// //								   std::bind(&SimulationEngineBFE::rate_event, this, _1, _2, _3));
+// //		}
+// //		if (property.type != PropertyType::TRANSIENT &&
+// //			property.type != PropertyType::RATE)
+// //			throw_FigException("unsupported property type: "+std::to_string(property.type));
+// //		else
+// //			return event_watchers[property.type].get();
+//	if (property.type == PropertyType::TRANSIENT)
+//		return std::bind(&SimulationEngineBFE::transient_event, *this, _1, _2, _3);
+//	else if (property.type == PropertyType::RATE)
+//		return std::bind(&SimulationEngineBFE::rate_event, *this, _1, _2, _3);
+//	else
+//		throw_FigException("unsupported property type: "+std::to_string(property.type));
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

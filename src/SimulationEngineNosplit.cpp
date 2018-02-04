@@ -73,9 +73,9 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 //	auto watch_events = impFun_->concrete_simulation()
-	EventWatcher watch_events = impFun_->concrete_simulation()
-			? std::bind(&SimulationEngineNosplit::transient_event_concrete, *this, _1, _2, _3)
-			: std::bind(&SimulationEngineNosplit::transient_event,          *this, _1, _2, _3);
+	const EventWatcher& watch_events = impFun_->concrete_simulation()
+			? std::bind(&SimulationEngineNosplit::transient_event_concrete, this, _1, _2, _3)
+			: std::bind(&SimulationEngineNosplit::transient_event,          this, _1, _2, _3);
 //    bool (SimulationEngineNosplit::*watch_events)
 //         (const PropertyTransient&, Traial&, Event&) const;
 //    if (impFun_->concrete())

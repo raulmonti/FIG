@@ -141,7 +141,7 @@ protected:  // Utils for the class and its kin
 	/// in the internal pilot runs
 	/// @see EventWatcher
 	/// @example transient_event(), rate_event()
-	virtual EventWatcher get_event_watcher(const Property&) const = 0;
+	virtual const EventWatcher& get_event_watcher(const Property&) const = 0;
 
 	/**
 	 * @brief Perform <i>one sweep</i> of the Fixed Effort algorithm.
@@ -171,7 +171,7 @@ protected:  // Utils for the class and its kin
 	 */
 	virtual void fixed_effort(const ThresholdsVec& thresholds,
 							  ThresholdsPathCandidates& result,
-							  EventWatcher& watch_events) const = 0;
+							  const EventWatcher& watch_events) const = 0;
 // [SO] Virtual/template in C++:
 // - https://stackoverflow.com/q/2354210
 // - https://stackoverflow.com/q/7968023

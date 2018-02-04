@@ -297,13 +297,13 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 //	auto watch_events = impFun_->concrete_simulation()
-	EventWatcher watch_events = impFun_->concrete_simulation()
-			? std::bind(&SimulationEngineRestart::rate_event_concrete, *this, _1, _2, _3)
-			: std::bind(&SimulationEngineRestart::rate_event,          *this, _1, _2, _3);
+	const EventWatcher& watch_events = impFun_->concrete_simulation()
+			? std::bind(&SimulationEngineRestart::rate_event_concrete, this, _1, _2, _3)
+			: std::bind(&SimulationEngineRestart::rate_event,          this, _1, _2, _3);
 //	auto register_time = impFun_->concrete_simulation()
-	EventWatcher register_time = impFun_->concrete_simulation()
-			? std::bind(&SimulationEngineRestart::count_time_concrete, *this, _1, _2, _3)
-			: std::bind(&SimulationEngineRestart::count_time,          *this, _1, _2, _3);
+	const EventWatcher& register_time = impFun_->concrete_simulation()
+			? std::bind(&SimulationEngineRestart::count_time_concrete, this, _1, _2, _3)
+			: std::bind(&SimulationEngineRestart::count_time,          this, _1, _2, _3);
 //	bool (SimulationEngineRestart::*watch_events)
 //		 (const PropertyRate&, Traial&, Event&) const;
 //	bool (SimulationEngineRestart::*register_time)

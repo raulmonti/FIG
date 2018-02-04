@@ -27,7 +27,7 @@
 //==============================================================================
 
 // C++
-#include <map>
+#include <unordered_map>
 #include <algorithm>   // std::fill(), std::max_element(), std::move()
 #include <functional>  // std::bind()
 // FIG
@@ -116,23 +116,43 @@ SimulationEngineSFE::~SimulationEngineSFE()
 }
 
 
-SimulationEngineFixedEffort::EventWatcher
+const SimulationEngineFixedEffort::EventWatcher&
 SimulationEngineSFE::get_event_watcher(const Property& property) const
 {
 	using namespace std::placeholders;  // _1, _2, ...
-	if (property.type == PropertyType::TRANSIENT)
-		return std::bind(&SimulationEngineSFE::transient_event, *this, _1, _2, _3);
-	else if (property.type == PropertyType::RATE)
-		return std::bind(&SimulationEngineSFE::rate_event, *this, _1, _2, _3);
-	else
+//	static std::unordered_map< PropertyType,
+//							   Reference< EventWatcher >
+//							 > event_watchers;
+//	if (event_watchers.empty()) {
+//		event_watchers.emplace(PropertyType::TRANSIENT,
+//							   std::bind(&SimulationEngineSFE::transient_event, this, _1, _2, _3));
+//		event_watchers.emplace(PropertyType::RATE,
+//							   std::bind(&SimulationEngineSFE::rate_event, this, _1, _2, _3));
+//	}
+//	if (property.type != PropertyType::TRANSIENT &&
+//		property.type != PropertyType::RATE)
+//		throw_FigException("unsupported property type: "+std::to_string(property.type));
+//	else
+//		return event_watchers[property.type].get();
+	if (property.type == PropertyType::TRANSIENT) {
+		static const EventWatcher& transient_event_watcher(
+					std::bind(&SimulationEngineSFE::transient_event, this, _1, _2, _3));
+		return transient_event_watcher;
+	} else if (property.type == PropertyType::RATE) {
+		static const EventWatcher& rate_event_watcher(
+					std::bind(&SimulationEngineSFE::rate_event, this, _1, _2, _3));
+		return rate_event_watcher;
+//		return std::bind(&SimulationEngineSFE::rate_event, this, _1, _2, _3);
+	} else {
 		throw_FigException("unsupported property type: "+std::to_string(property.type));
+	}
 }
 
 
 void
 SimulationEngineSFE::fixed_effort(const ThresholdsVec& thresholds,
-                                  ThresholdsPathCandidates& result,
-								  EventWatcher& watch_events) const
+								  ThresholdsPathCandidates& result,
+								  const EventWatcher& watch_events) const
 {
 //	auto event_watcher =
 //		(nullptr != watch_events) ? watch_events
@@ -198,7 +218,7 @@ SimulationEngineSFE::fixed_effort(const ThresholdsVec& thresholds,
             Traial& traial(traialsNow.back());
             traialsNow.pop_back();
             assert(traial.level < LVL_MAX);
-			model_->simulation_step(traial, property_, watch_events);
+			model_->simulation_step(traial, *property_, watch_events);
             if (traial.level > l) {
                 numSuccesses++;
                 traialsNext.push_back(traial);
