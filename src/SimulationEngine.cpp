@@ -260,8 +260,8 @@ SimulationEngine::names() noexcept
 	    "restart",
 
 	    // Fixed Effort importance splitting, from Garvels' PhD thesis
-	    // See SimualtionEngineFixedEffort class
-	    "fixedeffort"
+		// See SimualtionEngineSFE class
+		"sfe"
 	}};
 	return names;
 }

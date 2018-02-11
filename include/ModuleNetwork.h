@@ -219,13 +219,13 @@ public:  // Utils
 	 *
 	 * @warning seal() must have been called beforehand
 	 */
-//	template< typename DerivedProperty,
-//			  class Simulator,
-//			  class TraialMonitor >
-//	Event simulation_step(Traial& traial,
-//						  const DerivedProperty& property,
-//						  const Simulator& engine,
-//						  TraialMonitor watch_events) const;
+	template< typename DerivedProperty,
+			  class Simulator,
+			  class TraialMonitor >
+	Event simulation_step(Traial& traial,
+						  const DerivedProperty& property,
+						  const Simulator& engine,
+						  TraialMonitor watch_events) const;
 
 	/// Like the 4-parameters version but to use with any TraialMonitor function,
 	/// instead of the explicit C++ member function pointer template

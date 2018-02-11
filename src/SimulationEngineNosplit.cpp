@@ -72,21 +72,21 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
 	Traial& traial = TraialPool::get_instance().get_traial();
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
-//	auto watch_events = impFun_->concrete_simulation()
 	const EventWatcher& watch_events = impFun_->concrete_simulation()
 			? std::bind(&SimulationEngineNosplit::transient_event_concrete, this, _1, _2, _3)
 			: std::bind(&SimulationEngineNosplit::transient_event,          this, _1, _2, _3);
-//    bool (SimulationEngineNosplit::*watch_events)
-//         (const PropertyTransient&, Traial&, Event&) const;
-//    if (impFun_->concrete())
+//	bool (SimulationEngineNosplit::*watch_events)
+//		 (const Property&, Traial&, Event&) const;
+//	if (impFun_->concrete())
 //		watch_events = &SimulationEngineNosplit::transient_event_concrete;
-//    else
+//	else
 //		watch_events = &SimulationEngineNosplit::transient_event;
+//	const Property& prop(property);
 
 	// Perform 'numRuns' independent standard Monte Carlo simulations
 	for (size_t i = 0ul ; i < numRuns && !interrupted ; i++) {
 		traial.initialise(*model_, *impFun_);
-//		Event e = model_->simulation_step(traial, property, *this, watch_events);
+//		Event e = model_->simulation_step(traial, prop, *this, watch_events);
 		Event e = model_->simulation_step(traial, property, watch_events);
 		raresCount.push_back(IS_RARE_EVENT(e) ? 1.0l : 0.0l);
     }

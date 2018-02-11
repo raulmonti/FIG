@@ -730,7 +730,8 @@ public:  // Simulation utils
 	 */
 	void estimate(const Property& property,
 				  const SimulationEngine& engine,
-				  const StoppingConditions& bounds) const;
+				  const StoppingConditions& bounds,
+				  const ImpFunSpec ifunSpec = ImpFunSpec("null","null")) const;
 
 	/// Same as estimate() for the property added to the system in the requested index
 	/// @throw FigException if there's no property at index 'propertyIndex'
@@ -900,7 +901,7 @@ ModelSuite::process_batch(const std::string& engineName,
 
 			// ... and estimate the property's value for all stopping conditions
 			for (const StoppingConditions& bounds: estimationBounds)
-				estimate(*property, *engine, bounds);
+				estimate(*property, *engine, bounds, impFunSpec);
 
 			if ("flat" == impFunSpec.strategy)
 				break;  // no splits are used, avoid repetitions

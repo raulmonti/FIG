@@ -325,7 +325,7 @@ void compile_model(bool modelAlreadyBuilt)
 		log("[ERROR] Failed to parse the model.\n");
 		throw_FigException("failed parsing the model file");
 	}
-	tech_log("- Parsing        succeeded\n");
+	tech_log(" - Parsing        succeeded\n");
 
 	// Debug print:
 	// { ModelPrinter printer(std::cerr,true); modelAST->accept(printer); }
@@ -337,7 +337,7 @@ void compile_model(bool modelAlreadyBuilt)
 		log(typechecker.get_messages());
 		throw_FigException("type-check for the model failed");
 	}
-	tech_log("- Type-checking  succeeded\n");
+	tech_log(" - Type-checking  succeeded\n");
 
     // Reduce expressions (errors when irreducible constants are found)
 	ModelReductor reductor;
@@ -346,7 +346,7 @@ void compile_model(bool modelAlreadyBuilt)
         log(reductor.get_messages());
         throw_FigException("reduction of constant expressions failed");
     }
-	tech_log("- Expr-reduction succeeded\n");
+	tech_log(" - Expr-reduction succeeded\n");
 
 	// Check confluence if requested
     if (confluenceCheck) {
@@ -354,9 +354,9 @@ void compile_model(bool modelAlreadyBuilt)
         modelAST->accept(confluence_verifier);
         if (confluence_verifier.has_errors()) {
             log(confluence_verifier.get_messages());
-            tech_log("- Confluence-checking failed\n");
+			tech_log(" - Confluence-checking failed\n");
         } else {
-            tech_log("- Confluence-checking succeeded\n");
+			tech_log(" - Confluence-checking succeeded\n");
         }
     }
 
@@ -378,9 +378,9 @@ void compile_model(bool modelAlreadyBuilt)
         } else if (verifier.has_warnings()) {
             tech_log(verifier.get_messages());
         }
-		tech_log("- IOSA-checking  succeeded\n");
+		tech_log(" - IOSA-checking  succeeded\n");
 	} else {
-		log("- IOSA-checking skipped: model is too big\n");
+		log(" - IOSA-checking skipped: model is too big\n");
 	}
 
 
@@ -391,7 +391,7 @@ void compile_model(bool modelAlreadyBuilt)
 		log(builder.get_messages());
 		throw_FigException("parser failed to build the model");
 	}
-	tech_log("- Model building succeeded\n");
+	tech_log(" - Model building succeeded\n");
 
 	// Seal model
 	auto& modelInstance = ModelSuite::get_instance();
@@ -402,7 +402,7 @@ void compile_model(bool modelAlreadyBuilt)
 		log("[ERROR] Failed to seal the model.\n");
 		throw_FigException("parser failed sealing the model");
 	}
-	tech_log("- Model sealing  succeeded\n\n");
+	tech_log(" - Model sealing  succeeded\n\n");
 
 	log(std::string("Model") +
 	    (propertiesFile.empty() ? (" file ") : (" and properties files "))

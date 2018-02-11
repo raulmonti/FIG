@@ -46,15 +46,32 @@ using std::begin;
 using std::end;
 
 
-namespace
+namespace   // // // // // // // // // // // // // // // // // // // // // // //
 {
+
 /// We use delicate move-semantics; keep track of the actual memory location
 static fig::Traial* TRAIALS_MEM_ADDR(nullptr);
+
+/// Check whether the TraialPool was requested a positive number of Traials
+/// @return Whether \p numTraials > 0u
+/// @note Print warning if DEBUG mode is on and numTraials == 0u
+bool
+positive_num_traials(const unsigned& numTraials)
+{
+	if (0u == numTraials) {
+#ifndef NDEBUG
+		fig::figTechLog << "[WARNING] TraialPool invoked to get 0 Traials\n";
+#endif
+		return false;
+	}
+	return true;
 }
 
+} // namespace   // // // // // // // // // // // // // // // // // // // // //
 
 
-namespace fig
+
+namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 // Static variables initialization
@@ -135,12 +152,8 @@ void
 TraialPool::get_traials(Container<Reference<Traial>, OtherArgs...>& cont,
 						unsigned numTraials)
 {
-	if (0u < numTraials) {
-#ifndef NDEBUG
-		figTechLog << "[WARNING] TraialPool invoked to get 0 Traials\n";
-#endif
+	if (!positive_num_traials(numTraials))
 		return;
-	}
 	numTraials++;  // loop guard condition requires this increment
 retrieve_traials:
 	while (!available_traials_.empty() && 0u < --numTraials) {
@@ -162,7 +175,8 @@ template<> void
 TraialPool::get_traials(std::stack< Reference<Traial> >& stack,
 						unsigned numTraials)
 {
-	assert(0u < numTraials);
+	if (!positive_num_traials(numTraials))
+		return;
 	numTraials++;  // loop guard condition requires this increment
 	retrieve_traials:
 	while (!available_traials_.empty() && 0u < --numTraials) {
@@ -180,7 +194,8 @@ template<> void
 TraialPool::get_traials(std::forward_list< Reference<Traial> >& flist,
 						unsigned numTraials)
 {
-	assert(0u < numTraials);
+	if (!positive_num_traials(numTraials))
+		return;
 	numTraials++;  // loop guard condition requires this increment
 	retrieve_traials:
 	while (!available_traials_.empty() && 0u < --numTraials) {
@@ -202,7 +217,8 @@ TraialPool::get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
 							  unsigned numCopies,
 							  short depth)
 {
-	assert(0u < numCopies);
+	if (!positive_num_traials(numCopies))
+		return;
 	assert(0 >= depth);  // we're typically called on a threshold-level-up
 	numCopies++;  // loop guard condition requires this increment
 	retrieve_traials:
@@ -239,7 +255,8 @@ TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
 							  unsigned numCopies,
 							  short depth)
 {
-	assert(0u < numCopies);
+	if (!positive_num_traials(numCopies))
+		return;
 	assert(0 >= depth);  // we're typically called on a threshold-level-up
 	numCopies++;  // loop guard condition requires this increment
 	retrieve_traials:
@@ -265,7 +282,8 @@ TraialPool::get_traial_copies(std::stack< Reference< Traial >,
 							  unsigned numCopies,
 							  short depth)
 {
-	assert(0u < numCopies);
+	if (!positive_num_traials(numCopies))
+		return;
 	assert(0 >= depth);  // we're typically called on a threshold-level-up
 	numCopies++;  // loop guard condition requires this increment
 	retrieve_traials:
@@ -289,7 +307,8 @@ TraialPool::get_traial_copies(std::forward_list< Reference<Traial> >& flist,
 							  unsigned numCopies,
 							  short depth)
 {
-	assert(0u < numCopies);
+	if (!positive_num_traials(numCopies))
+		return;
 	assert(0 >= depth);  // we're typically called on a threshold-level-up
 	numCopies++;  // loop guard condition requires this increment
 	retrieve_traials:
@@ -439,4 +458,4 @@ TraialPool::clear()
 	numClocks = 0ul;
 }
 
-} // namespace fig
+} // namespace fig  // // // // // // // // // // // // // // // // // // // //

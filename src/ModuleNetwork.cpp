@@ -281,41 +281,50 @@ ModuleNetwork::process_committed(Traial &traial) const {
 }
 
 
-//	template< typename DerivedProperty,
-//	          class Simulator,
-//	          class TraialMonitor >
-//	Event ModuleNetwork::simulation_step(Traial& traial,
-//	                                     const DerivedProperty& property,
-//	                                     const Simulator& engine,
-//	                                     TraialMonitor watch_events) const
-//	{
-//	    assert(sealed());
-//	    Event e(EventType::NONE);
-//
-//		// Start up processing the initial committed actions
-//		// (this could reset clocks and change next timeout)
-//		process_committed(traial);
-//
-//		// Now, until a relevant event is observed...
-//		while ( !(engine.*watch_events)(property, traial, e) ) {
-//			// ...process timed actions...
-//			const Traial::Timeout& to = traial.next_timeout();
-//			const float elapsedTime(to.value);
-//			assert(0.0f <= elapsedTime);
-//			// ...do active jump in the module whose clock timed-out...
-//			const Label& label = to.module->jump(to, traial);
-//			// ...do passive jumps in all modules listening to label...
-//			for (auto module_ptr: modules)
-//				if (module_ptr->name != to.module->name)
-//					module_ptr->jump(label, elapsedTime, traial);
-//			traial.lifeTime += elapsedTime;
-//			// ...and process any newly activated committed action.
-//			process_committed(traial);
-//		}
-//
-//	    return e;
-//	}
-//
+template< typename DerivedProperty,
+		  class Simulator,
+		  class TraialMonitor >
+Event ModuleNetwork::simulation_step(Traial& traial,
+									 const DerivedProperty& property,
+									 const Simulator& engine,
+									 TraialMonitor watch_events) const
+{
+	assert(sealed());
+	Event e(EventType::NONE);
+
+	// Start up processing the initial committed actions
+	// (this could reset clocks and change next timeout)
+	process_committed(traial);
+
+	// Now, until a relevant event is observed...
+	while ( !(engine.*watch_events)(property, traial, e) ) {
+		// ...process timed actions...
+		const Traial::Timeout& to = traial.next_timeout();
+		const float elapsedTime(to.value);
+		assert(0.0f <= elapsedTime);
+		// ...do active jump in the module whose clock timed-out...
+		const Label& label = to.module->jump(to, traial);
+		// ...do passive jumps in all modules listening to label...
+		for (auto module_ptr: modules)
+			if (module_ptr->name != to.module->name)
+				module_ptr->jump(label, elapsedTime, traial);
+		traial.lifeTime += elapsedTime;
+		// ...and process any newly activated committed action.
+		process_committed(traial);
+	}
+
+	return e;
+}
+
+/// TraialMonitor specialization for SimulationEngineNosplit
+/// for "template<...> ModuleNetwork::simulation_step()"
+typedef bool(SimulationEngineNosplit::*nosplit_event) (const Property&, Traial&, Event&) const;
+template Event ModuleNetwork::simulation_step(Traial&,
+											  const Property&,
+											  const SimulationEngineNosplit&,
+											  nosplit_event) const;
+
+
 //	/// "SimulationEngineNosplit + PropertyTransient"
 //	/// TraialMonitor specialization
 //	/// for "template<...> ModuleNetwork::simulation_step()"

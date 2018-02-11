@@ -280,6 +280,24 @@ time_formatted_str(size_t timeInSeconds)
 	return timeStr;
 }
 
+
+/// Parse the importance function specification
+/// and return a human-readable string to identify it
+std::string
+user_friendly_ifun_name(const fig::ImpFunSpec& ifunSpec)
+{
+	if (ifunSpec.strategy == "flat")
+		return "flat";
+	else if (ifunSpec.strategy == "adhoc")
+		return "adhoc (" + ifunSpec.algebraicFormula + ")";
+	else if (ifunSpec.strategy == "auto" && ifunSpec.name == "concrete_coupled")
+		return "monolithic";
+	else if (ifunSpec.strategy == "auto" && ifunSpec.name == "concrete_split")
+		return "compositional (" + ifunSpec.algebraicFormula + ")";
+	else
+		return "unknown?";
+}
+
 } // namespace  // // // // // // // // // // // // // // // // // // // // //
 
 
@@ -453,7 +471,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 	// Build offered simulation engines
 	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
 	simulators["restart"] = std::make_shared< SimulationEngineRestart >(model);
-	simulators["fixedeffort"] = std::make_shared< SimulationEngineSFE >(model);
+	simulators["sfe"]     = std::make_shared< SimulationEngineSFE >(model);
 
 #ifndef NDEBUG
 	// Check all offered importance functions, thresholds builders and
@@ -1011,7 +1029,7 @@ ModelSuite::build_thresholds(const std::string& technique,
 		const auto gEffortSpec(tb.uses_global_effort()
 		            ? (" with global effort "+std::to_string(globalEffort)) : (""));
 		techLog_ << "\nBuilding thresholds for importance function \"" << ifunName
-		         << "\",\nusing technique \"" << technique << "\"" << gEffortSpec
+				 << ",\"\nusing technique \"" << technique << "\"" << gEffortSpec
 		         << std::endl;
 		const double startTime = omp_get_wtime();
 		tb.setup(ifun.post_processing(), property, globalEffort);
@@ -1137,7 +1155,8 @@ ModelSuite::clear() noexcept
 void
 ModelSuite::estimate(const Property& property,
                      const SimulationEngine& engine,
-                     const StoppingConditions& bounds) const
+					 const StoppingConditions& bounds,
+					 const ImpFunSpec ifunSpec) const
 {
 	lastEstimates_.clear();
 	lastEstimates_.reserve(bounds.size());
@@ -1154,9 +1173,7 @@ ModelSuite::estimate(const Property& property,
 	mainLog_ << "RNG algorithm used: " << Clock::rng_type() << "\n";
 	mainLog_ << "Property: " << property.to_string() << ",\n";
 	mainLog_ << " - simulation engine:   " << engine.name() << "\n";
-	mainLog_ << " - importance function: " << engine.current_imp_fun();
-	mainLog_ << " ^^ " << engine.current_imp_strat();
-	mainLog_ << (adHocFun.empty() ? ("") : (" ("+adHocFun+")")) << std::endl;
+	mainLog_ << " - importance function: " << user_friendly_ifun_name(ifunSpec) << "\n";
 	mainLog_ << " - post-processing:     " << postProcStr << "\n";
 	mainLog_ << " - threshold builder:   " << ifun.thresholds_technique() << "\n";
 	mainLog_ << " [ " << ifun.num_thresholds() << " thresholds | ";

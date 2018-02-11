@@ -76,8 +76,9 @@ ThresholdsBuilderAdaptive::get_traials(const unsigned& numTraials,
                                        const fig::ImportanceFunction& impFun,
                                        bool initialise) const
 {
+	static auto tpool(fig::TraialPool::get_instance());
 	TraialsVec traials;
-	fig::TraialPool::get_instance().get_traials(traials, numTraials);
+	tpool.get_traials(traials, numTraials);
 	assert(traials.size() == numTraials);
 	if (initialise)
 		for (fig::Traial& t: traials)
