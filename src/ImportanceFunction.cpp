@@ -361,9 +361,9 @@ unsigned long
 ImportanceFunction::max_thresholds_effort() const
 {
 #ifndef NDEBUG
-	if (!ready())
-		throw_FigException("this ImportanceFunction hasn't "
-						   "any thresholds built in it yet");
+    if (!ready())
+        throw_FigException("this ImportanceFunction hasn't "
+                           "any thresholds built in it yet");
 #endif
 	assert(0ul < maxThresholdsEffort_);
 	return maxThresholdsEffort_;
@@ -452,7 +452,7 @@ ImportanceFunction::min_rare_value(bool returnImportance) const noexcept
 ImportanceValue
 ImportanceFunction::initial_value(bool returnImportance) const noexcept
 {
-	return ready() && !returnImportance
+    return ready() && !returnImportance
 	        ? level_of(initialValue_)
 	        : has_importance_info() ? initialValue_
 	                                : static_cast<ImportanceValue>(0u);
@@ -503,9 +503,9 @@ ImportanceFunction::build_thresholds(ThresholdsBuilder& tb)
 	ThresholdsVec().swap(threshold2importance_);
 	ThresholdsVec().swap(importance2threshold_);
 	thresholdsTechnique_ = "";
-	readyForSims_ = false;
-	threshold2importance_ = tb.build_thresholds(shared_from_this());
-	post_process_thresholds(tb);
+    readyForSims_ = false;
+    threshold2importance_ = tb.build_thresholds(shared_from_this());
+    post_process_thresholds(tb);
 }
 
 

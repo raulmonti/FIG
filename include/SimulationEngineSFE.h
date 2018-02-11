@@ -78,7 +78,8 @@ class SimulationEngineSFE : public SimulationEngineFixedEffort
 
 public:
 
-	SimulationEngineSFE(std::shared_ptr<const ModuleNetwork> model);
+	SimulationEngineSFE(std::shared_ptr<const ModuleNetwork> model,
+						const bool thresholds = false);
 	virtual ~SimulationEngineSFE();
 
 protected:  // Utils for the class and its kin

@@ -170,14 +170,17 @@ increase_run_length(const std::string& engineName,
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-SimulationEngine::SimulationEngine(const std::string& name,
-    std::shared_ptr< const ModuleNetwork> model) :
+SimulationEngine::SimulationEngine(
+    const std::string& name,
+    std::shared_ptr< const ModuleNetwork> model,
+    const bool thresholds) :
 		name_(name),
 		locked_(false),
         model_(model),
 		impFun_(nullptr),
 		cImpFun_(nullptr),
         interrupted(false),
+        toBuildThresholds_(thresholds),
         reachCount_()
 {
 	if (std::find(begin(names()), end(names()), name) == end(names())) {
@@ -207,8 +210,8 @@ void
 SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun)
 {
 	assert(nullptr != ifun);
-	if (!ifun->ready())
-		throw_FigException("ImportanceFunction isn't ready for simulations");
+    if (!ifun->ready())
+        throw_FigException("ImportanceFunction isn't ready for simulations");
     if (locked())
         throw_FigException("engine \"" + name() + "\" is currently locked "
                            "in \"simulation mode\"");
@@ -224,8 +227,8 @@ SimulationEngine::unbind()
     if (locked())
         throw_FigException("engine \"" + name() + "\" is currently locked "
                            "in \"simulation mode\"");
-    impFun_  = nullptr;
-	cImpFun_ = nullptr;
+    impFun_.reset();
+    cImpFun_.reset();
 }
 
 

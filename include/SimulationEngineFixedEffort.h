@@ -88,7 +88,8 @@ public:
 
 	/// Default ctor
 	SimulationEngineFixedEffort(const std::string& simEngineName,
-	                            std::shared_ptr<const ModuleNetwork> network);
+								std::shared_ptr<const ModuleNetwork> model,
+								bool thresholds = false);
 
 	~SimulationEngineFixedEffort();
 

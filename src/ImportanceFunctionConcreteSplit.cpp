@@ -392,7 +392,7 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
 			lmax = std::max(lmax, UNMASK(impVec[i]));
 		}
 //		out << "\n  ";
-		out << "--> Importance range: [" << lmin << ".." << lmax << "]";
+        out << " Importance range == [" << lmin << ".." << lmax << "]";
 		out.flush();
     }
     if (ready()) {

@@ -105,14 +105,18 @@ filter_next_value(TraialVec& traials,
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-SimulationEngineSFE::SimulationEngineSFE(std::shared_ptr<const ModuleNetwork> model) :
-        SimulationEngineFixedEffort("sfe", model)
+SimulationEngineSFE::SimulationEngineSFE(
+    std::shared_ptr<const ModuleNetwork> model,
+    const bool thresholds) :
+        SimulationEngineFixedEffort("sfe", model, thresholds)
 { /* Not much to do around here */ }
 
 
 SimulationEngineSFE::~SimulationEngineSFE()
 {
-	TraialPool::get_instance().return_traials(traials_);
+    //TraialPool::get_instance().return_traials(traials_);
+    // ^^^ pointless, and besides the TraialPool might be dead already,
+    //     so this would trigger a re-creation of the pool or something worse
 }
 
 

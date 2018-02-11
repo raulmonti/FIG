@@ -130,6 +130,9 @@ protected:
 	/// Were we just interrupted in an estimation timeout?
 	mutable bool interrupted;
 
+	/// The engine is intended to be used by a ThresholdsBuilder
+	const bool toBuildThresholds_;
+
 	/// Maximum simulation time to reach, for long-run simulations only
 	/// @note Used only by derived classes
 	mutable CLOCK_INTERNAL_TYPE simsLifetime;
@@ -158,13 +161,15 @@ public:  // Ctors/Dtor
 
     /**
      * Data ctor
-     * @param name @copybrief name_
-	 * @param model @copybrief model_
+	 * @param name        @copybrief name_
+	 * @param model       @copybrief model_
+	 * @param thresholds  @copybrief toBuildThresholds_
      * @throw FigException if the name doesn't match a valid engine
      * @throw FigException if the system model hasn't been sealed yet
      */
-    SimulationEngine(const std::string& name,
-	                 std::shared_ptr<const ModuleNetwork> model);
+	SimulationEngine(const std::string& name,
+					 std::shared_ptr<const ModuleNetwork> model,
+					 const bool thresholds = false);
     /// Default copy ctor
     SimulationEngine(const SimulationEngine& that) = default;
     /// Default move ctor
@@ -211,7 +216,7 @@ public:  // Engine setup
 //	/// @see set_global_effort()
 //	inline void set_global_effort() { set_global_effort(global_effort_default()); }
 
-private:
+private:  // Intended for ModelSuite
 
     /**
      * @brief Lock this engine into "simulation mode"

@@ -77,6 +77,15 @@ debug_print_lvlup(const std::vector< float >& Pup)
 #endif
 }
 
+
+/// Retrieve initial importance of the ImportanceFunction instance,
+/// taking care to ask for <i>importance</i> and not for <i>threshold-level</i>.
+fig::ImportanceValue
+initial_importance(const fig::ImportanceFunction& ifun)
+{
+    return ifun.initial_value(true);
+}
+
 //
 //	/// Wrap a vector of reachable importance values as a thresholds vector ADT
 //	fig::ThresholdsVec
@@ -110,7 +119,7 @@ ThresholdsBuilderES::ThresholdsBuilderES(
     property_(nullptr),
     model_(nullptr),
 	impFun_(nullptr),
-    simulator_(make_unique<SimulationEngineSFE>(model))
+    simulator_(make_unique<SimulationEngineSFE>(model, true))
 { /* Not much to do around here */ }
 
 
@@ -181,8 +190,8 @@ ThresholdsBuilderES::build_thresholds(std::shared_ptr<const ImportanceFunction> 
 
 	// Select the thresholds based on the effort factors
 	thresholds_.clear();
-	thresholds_.emplace_back(impFun->initial_value(), 1ul);
-	for (size_t i = 1ul ; i < Pup.size() ; i++) {
+    thresholds_.emplace_back(initial_importance(*impFun), 1ul);
+    for (size_t i = 1ul ; i < Pup.size() ; i++) {
 		const int thisEffort = std::round(effort[i]);
 		if (1 < thisEffort)
 			thresholds_.emplace_back(thrCandidates[i], thisEffort);
@@ -214,8 +223,8 @@ ThresholdsBuilderES::reachable_importance_values() const
 	static constexpr size_t MAX_FAILS = (1ul)<<(10ul);
 	size_t numFails(0ul);
 
-	ImportanceValue maxImportanceReached(impFun_->initial_value());
-	std::unordered_set< ImportanceValue > reachableImpValues = {impFun_->initial_value()};
+    ImportanceValue maxImportanceReached(initial_importance(*impFun_));
+    std::unordered_set< ImportanceValue > reachableImpValues = { maxImportanceReached };
 	TraialsVec traialsNow(get_traials(NUM_INDEPENDENT_RUNS, *impFun_)),
 	           traialsNext;
 	assert(!traialsNow.empty());
@@ -279,9 +288,36 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 	              [&thresholds](const ImportanceValue& imp)
 							   { thresholds.emplace_back(imp, 1u); });
 
+
+    // TODO: refactor SimulationEngine to allow running simulations
+    //       with an importance function which has no thresholds.
+    //       That is precisely what we need here: use the SimulationEngineSFE
+    //       to *build the thresholds*, later to be attached to the impFun_
+
+
+
+
+
+
+
+//	    // Hack: Ifun must be tampered with to allow the fixed_effort() runs
+//	    // This data should be overwritten by the ImportanceFunction
+//	    // on return of our build_thresholds() method, invoked by it.
+//	    const size_t effort(8ul);
+//	    const auto maxReachableImportance(reachableImportanceValues.back());
+//	    impFun_->minThresholdsEffort_ = effort;
+//	    impFun_->maxThresholdsEffort_ = effort;
+//	    impFun_->threshold2importance_.reserve(maxReachableImportance);
+//	    for (size_t i = 0ul ; i < maxReachableImportance ; i++)
+//	        impFun_->threshold2importance_.emplace_back(reachableImportanceValues[i], effort);
+//	//    ThresholdsVec(effort, reachableImportanceValues.back()).swap(impFun_->threshold2importance_);
+
 	simulator_->property_ = property_.get();
-	simulator_->bind(impFun_);
-	// Run Fixed Effort a couple of times
+//    simulator_->use_for_thresholds(true);
+    simulator_->bind(impFun_);
+//    impFun_->readyForSims_ = false;
+
+    // Run Fixed Effort a couple of times
 	ModelSuite::tech_log(" [");
 	for (size_t m = 1ul ; m < 5ul && 0.0f >= Pup.back() ; m++) {
 		simulator_->fixed_effort(thresholds, paths, watch_events);
@@ -298,8 +334,8 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 			              { thresholds.emplace_back(p.first,1u); });
 			rarePathWasSet = true;
 		}
-		// TODO: above heuristic sets on the *first* path chosen, a bit risky
-		// TODO: above heuristic is hardcoded for SimulationEngineSFE; generalise
+        // TODO: ^^^ heuristic settles on the *first* path chosen, a bit risky
+        // TODO: ^^^ heuristic is hardcoded for SimulationEngineSFE; generalise
 		//\end{section0}////////////////////////////////////////////////////////
 		for (size_t i = 0ul ; i < Pup.size() && 0.0f < path[i].second ; i++)
 			Pup[i] += (path[i].second - Pup[i]) / m;
@@ -307,7 +343,7 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 	}
 	ModelSuite::tech_log("]");
 	simulator_->unbind();
-	simulator_->property_ = nullptr;
+    simulator_->property_ = nullptr;
 //	auto events_watcher = &fig::ThresholdsBuilderES::FE_watcher;
 //	const size_t N = traials.size();  // effort per level
 //	std::vector< Reference< Traial > > freeNow, freeNext, startNow, startNext;
@@ -444,7 +480,7 @@ ThresholdsBuilderES::tune(const size_t &,
 		const auto normalise = [&PP_EXP,&PP_EXP_BASE] (const double& x)
 		    { return PP_EXP ? (log(x)/log(PP_EXP_BASE)) : x; };
 		const size_t IMP_RANGE(normalise(impFun_->max_value(true))
-		                       - normalise(impFun_->initial_value(true)));
+                               - normalise(initial_importance(*impFun_)));
 		constexpr auto MIN_IMP_RANGE =  3ul;
 		constexpr auto MAX_IMP_RANGE = 20ul;
 		nSims_ = IMP_RANGE < MIN_IMP_RANGE ? MAX_NSIMS :
