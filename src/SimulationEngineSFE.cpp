@@ -46,11 +46,12 @@ namespace   // // // // // // // // // // // // // // // // // // // // // // //
 
 using fig::Traial;
 using fig::ImportanceValue;
+using fig::ImportanceFunction;
 typedef std::vector< fig::Reference< Traial > > TraialVec;
 typedef fig::SimulationEngine::ReachabilityCount ReachabilityCount;
 
 /**
- * @brief Select the most likely "next step value" from several posibilities
+ * @brief Select the most likely "next step value" from several possibilities
  *
  *        The vector given as argument contains several Traial instances
  *        that could be the next step of a Fixed Effort sweep.
@@ -69,12 +70,16 @@ ImportanceValue
 filter_next_value(TraialVec& traials,
                   TraialVec& traialSink,
                   const ReachabilityCount& reachCount,
-                  const fig::ImportanceFunction& ifun)
+                  const ImportanceFunction& ifun)
 {
     assert(!traials.empty());
 	assert(!reachCount.empty());
 	using pair_t = std::remove_reference<decltype(reachCount)>::type::value_type;
-//	using pair_t = decltype(typeVar)::value_type;
+	using levelof_t = ImportanceValue(ImportanceFunction::*)(const fig::StateInstance&) const;
+	using namespace std::placeholders;  // _1, _2, ...
+	auto ifun_level_of = ifun.ready()
+	        ? std::bind(static_cast<levelof_t>(&ImportanceFunction::level_of),      &ifun, _1)
+	        : std::bind(static_cast<levelof_t>(&ImportanceFunction::importance_of), &ifun, _1);
 	TraialVec chosenTraials;
     const auto N(traials.size());
     chosenTraials.reserve(N);
@@ -82,13 +87,14 @@ filter_next_value(TraialVec& traials,
 	auto nextStep = std::max_element(begin(reachCount), end(reachCount),
 	                                 [](const pair_t& p1, const pair_t& p2)
 	                                 { return p1.second < p2.second; });
-	const ImportanceValue nextValue(nextStep->second);
-	const size_t nextValueIndex(nextStep->first);
+	const ImportanceValue nextValue(nextStep->first);
+//	const size_t nextValueIndex(nextStep->second);
 	// Filter the traials vectors
     for (auto i = 0ul ; i < N ; i++) {
         Traial& t(traials.back());
         traials.pop_back();
-        if (ifun.importance_of(t.state) == nextValue)
+//		if (ifun.importance_of(t.state) == nextValue)
+		if (ifun_level_of(t.state) == nextValue)
 			chosenTraials.push_back(t);
         else
 			traialSink.push_back(t);
@@ -96,7 +102,7 @@ filter_next_value(TraialVec& traials,
 	assert(traials.empty());
 	assert(chosenTraials.size() <= N);
 	chosenTraials.swap(traials);
-	return nextValueIndex;
+	return nextValue;
 }
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
@@ -154,10 +160,11 @@ SimulationEngineSFE::get_event_watcher(const Property& property) const
 
 
 void
-SimulationEngineSFE::fixed_effort(const ThresholdsVec& thresholds,
-								  ThresholdsPathCandidates& result,
-								  const EventWatcher& watch_events) const
+SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
+                                  const EventWatcher& watch_events) const
 {
+	assert(nullptr != impFun_);
+
 //	auto event_watcher =
 //		(nullptr != watch_events) ? watch_events
 //						 : (property_->type == PropertyType::TRANSIENT)
@@ -166,9 +173,9 @@ SimulationEngineSFE::fixed_effort(const ThresholdsVec& thresholds,
 //	                         ? static_cast<EventWatcher>(&fig::SimulationEngineSFE::rate_event)
 //							 : nullptr;
 	auto lvl_effort = [&](const size_t& effort){ return effort*base_nsims(); };
-	const size_t LVL_MAX(impFun_->max_value()),
-				 LVL_INI(impFun_->initial_value()),
-				 EFF_MAX(lvl_effort(impFun_->max_thresholds_effort()));
+	const size_t LVL_MAX(impFun_->max_value(toBuildThresholds_)),
+	             LVL_INI(impFun_->initial_value(toBuildThresholds_)),
+	             EFF_MAX(lvl_effort(impFun_->max_thresholds_effort(toBuildThresholds_)));
 	decltype(reachCount_) reachCountLocal(reachCount_);
 	std::vector< Reference< Traial > > traialsNow, traialsNext;
 
@@ -176,7 +183,7 @@ SimulationEngineSFE::fixed_effort(const ThresholdsVec& thresholds,
     if (result.empty())
 		result.push_back(ThresholdsPathProb());
 	auto pathToRare(*result.begin());
-	pathToRare.reserve(thresholds.size());
+	pathToRare.reserve(toBuildThresholds_ ? result.size() : LVL_MAX);
 	pathToRare.clear();
 	traialsNow.reserve(EFF_MAX);
 	traialsNext.reserve(EFF_MAX);

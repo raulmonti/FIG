@@ -281,12 +281,12 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 
 	bool rarePathWasSet(false);
 	SimulationEngineFixedEffort::ThresholdsPathCandidates paths;
-	ThresholdsVec thresholds;
-	thresholds.reserve(reachableImportanceValues.size());
+	ThresholdsVec().swap(currentThresholds_);
+	currentThresholds_.reserve(reachableImportanceValues.size());
 	std::for_each(begin(reachableImportanceValues),
 				  end(reachableImportanceValues),
-	              [&thresholds](const ImportanceValue& imp)
-							   { thresholds.emplace_back(imp, 1u); });
+	              [this](const ImportanceValue& imp)
+	                    { currentThresholds_.emplace_back(imp, 1u); });
 
 
     // TODO: refactor SimulationEngine to allow running simulations
@@ -320,18 +320,18 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
     // Run Fixed Effort a couple of times
 	ModelSuite::tech_log(" [");
 	for (size_t m = 1ul ; m < 5ul && 0.0f >= Pup.back() ; m++) {
-		simulator_->fixed_effort(thresholds, paths, watch_events);
+		simulator_->fixed_effort(paths, watch_events);
 		//\begin{section0}//////////////////////////////////////////////////////
 		// A path to the rare event has been chosen: save as *the* path ////////
 		assert(!paths.empty());
 		const auto& path(paths.front());
 		if (!rarePathWasSet) {
-			thresholds.clear();
-			thresholds.reserve(path.size());
+			ThresholdsVec().swap(currentThresholds_);
+			currentThresholds_.reserve(path.size());
 			using pair_t = std::remove_reference<decltype(path)>::type::value_type;
 			std::for_each(begin(path), end(path),
-			              [&thresholds](const pair_t& p)
-			              { thresholds.emplace_back(p.first,1u); });
+			              [this](const pair_t& p)
+			              { currentThresholds_.emplace_back(p.first, 1.0f/p.second); });
 			rarePathWasSet = true;
 		}
         // TODO: ^^^ heuristic settles on the *first* path chosen, a bit risky

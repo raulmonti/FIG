@@ -87,7 +87,7 @@ public:  // Ctor
 
 	/// Data ctor
 	SimulationEngineRestart(std::shared_ptr<const ModuleNetwork> model,
-	                        const unsigned& dieOutDepth = 0u);
+	                        bool thresholds = false);
 
 	~SimulationEngineRestart();
 

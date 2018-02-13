@@ -84,7 +84,8 @@ class SimulationEngineBFE : public SimulationEngineFixedEffort
 public:
 
 	/// Default ctor
-	SimulationEngineBFE(std::shared_ptr<const ModuleNetwork> model);
+	SimulationEngineBFE(std::shared_ptr<const ModuleNetwork> model,
+	                    bool thresholds = false);
 
 protected:  // Utils for the class and its kin
 
@@ -95,8 +96,7 @@ protected:  // Utils for the class and its kin
 	/// @note The \p result may contain several path candidates,
 	///       since this version of Fixed Effort considers all potential
 	///       paths from the initial state towards the rare event
-	void fixed_effort(const ThresholdsVec&,
-	                  ThresholdsPathCandidates&,
+	void fixed_effort(ThresholdsPathCandidates&,
 					  const EventWatcher&) const override
 	    { throw_FigException("TODO: implement!"); }
 

@@ -58,13 +58,18 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 // Available engine names in SimulationEngine::names
 SimulationEngineRestart::SimulationEngineRestart(
     std::shared_ptr<const ModuleNetwork> model,
-    const unsigned& dieOutDepth) :
-        SimulationEngine("restart", model),
+    bool thresholds) :
+        SimulationEngine("restart", model, thresholds),
 //        splitsPerThreshold_(splitsPerThreshold),
-		dieOutDepth_(dieOutDepth),
+        dieOutDepth_(0u),
         numChunksTruncated_(0u),
         oTraial_(TraialPool::get_instance().get_traial())
-{ /* Not much to do around here */ }
+{
+	if (thresholds)
+		throw_FigException("RESTART engine has not yet been implemented "
+		                   "to use for building thresholds");
+	/* Not much to do around here */
+}
 
 
 SimulationEngineRestart::~SimulationEngineRestart()

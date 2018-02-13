@@ -48,10 +48,17 @@ namespace fig
 {
 
 // Available engine names in SimulationEngine::names
-SimulationEngineNosplit::SimulationEngineNosplit(std::shared_ptr<const ModuleNetwork> model) :
-        SimulationEngine("nosplit", model),
+SimulationEngineNosplit::SimulationEngineNosplit(
+    std::shared_ptr<const ModuleNetwork> model,
+    bool thresholds) :
+        SimulationEngine("nosplit", model, thresholds),
         oTraial_(TraialPool::get_instance().get_traial())
-{ /* Not much to do around here */ }
+{
+	if (thresholds)
+		throw_FigException("No-split engine (aka standard monte carlo) has "
+		                   "not yet been implemented to use for building thresholds");
+	/* Not much to do around here */
+}
 
 
 SimulationEngineNosplit::~SimulationEngineNosplit()

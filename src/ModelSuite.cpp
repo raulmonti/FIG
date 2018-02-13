@@ -1228,7 +1228,8 @@ ModelSuite::estimate_for_times(const Property& property,
 		mainLog_ << std::setprecision(0) << std::fixed;
 		mainLog_ << "   Estimation time bound: " << time_formatted_str(timeLimit.count()) << "\n";
 		mainLog_ << "   RNG seed: " << Clock::rng_seed()
-		         << (Clock::rng_seed_is_random() ? (" (randomized)\n") : ("\n"));
+		         << (Clock::rng_seed_is_random() ? (" (randomized)") : (""));
+		mainLog_ << std::endl;
 
 		// Start timer
 		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),
@@ -1294,7 +1295,8 @@ ModelSuite::estimate_for_confs(const Property& property,
 		if (timeout_.count() > 0l)
 			mainLog_ << "   Timeout: " << time_formatted_str(timeout_.count()) << "\n";
 		mainLog_ << "   RNG seed: " << Clock::rng_seed()
-		         << (Clock::rng_seed_is_random() ? (" (randomized)\n") : ("\n"));
+		         << (Clock::rng_seed_is_random() ? (" (randomized)") : (""));
+		mainLog_ << std::endl;
 
 		// Start timer
 		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),

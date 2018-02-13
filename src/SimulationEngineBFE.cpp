@@ -43,9 +43,16 @@ using std::end;
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-SimulationEngineBFE::SimulationEngineBFE(std::shared_ptr<const ModuleNetwork> model) :
-        SimulationEngineFixedEffort("bfe", model)
-{ /* Not much to do around here */ }
+SimulationEngineBFE::SimulationEngineBFE(
+    std::shared_ptr<const ModuleNetwork> model,
+    bool thresholds) :
+        SimulationEngineFixedEffort("bfe", model, thresholds)
+{
+	if (thresholds)
+		throw_FigException("Branching Fixed Effort engine has not yet been implemented "
+		                   "to use for building thresholds");
+	/* Not much to do around here */
+}
 
 
 const SimulationEngine::EventWatcher&

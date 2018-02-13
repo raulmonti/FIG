@@ -321,22 +321,24 @@ public:  // Accessors
 	const ThresholdsVec& thresholds() const;
 
 	/// @copydoc minThresholdEffort_
+	/// @param dryrun If no thresholds are available, return a dummy value
 	/// @returns 0 if function isn't ready(), else: min { effort per threshold }
 	/// \ifnot NDEBUG
-	///   @throw FigException if this instance isn't \ref ready()
+	///   @throw FigException if \p !dryrun and this instance isn't \ref ready()
 	///                       "ready for simulations"
 	/// \endif
 	/// @see build_thresholds()
-	unsigned long min_thresholds_effort() const;
+	unsigned long min_thresholds_effort(bool dryrun = false) const;
 
 	/// @copydoc maxThresholdEffort_
+	/// @param dryrun If no thresholds are available, return a dummy value
 	/// @returns 0 if function isn't ready(), else: max { effort per threshold }
 	/// \ifnot NDEBUG
-	///   @throw FigException if this instance isn't \ref ready()
+	///   @throw FigException if \p !dryrun and this instance isn't \ref ready()
 	///                       "ready for simulations"
 	/// \endif
 	/// @see build_thresholds()
-	unsigned long max_thresholds_effort() const;
+	unsigned long max_thresholds_effort(bool dryrun = false) const;
 
 	/// Post-processing applied to the \ref ImportanceValue "importance values"
 	/// computed last; an empty first component means none was.
@@ -395,7 +397,7 @@ public:  // Accessors
 	inline ImportanceValue level_of(const StateInstance& state) const
 		{
 			assert(has_importance_info());
-			return (importance2threshold_.size() > 0ul)
+			return (!importance2threshold_.empty())
 			        ? importance2threshold_[importance_of(state)].first  // use direct map
 			        : level_of(importance_of(state));  // search threshold level
 		}

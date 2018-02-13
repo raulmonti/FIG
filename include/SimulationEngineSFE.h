@@ -93,9 +93,8 @@ protected:  // Utils for the class and its kin
 	/// @note The \p result will contain a single path candidate,
 	///       since this is a <i>greedy version</i> of Fixed Effort which
 	///       ignores paths to the rare event other than the easiest to find
-	void fixed_effort(const ThresholdsVec& thresholds,
-					  ThresholdsPathCandidates& result,
-					  const EventWatcher& watch_events) const override;
+	void fixed_effort(ThresholdsPathCandidates& result,
+	                  const EventWatcher& watch_events) const override;
 
 private:  // Traial observers/updaters
 

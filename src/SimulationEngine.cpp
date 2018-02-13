@@ -210,7 +210,7 @@ void
 SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun)
 {
 	assert(nullptr != ifun);
-    if (!ifun->ready())
+	if (!ifun->ready() && !toBuildThresholds_)
         throw_FigException("ImportanceFunction isn't ready for simulations");
     if (locked())
         throw_FigException("engine \"" + name() + "\" is currently locked "
@@ -262,7 +262,7 @@ SimulationEngine::names() noexcept
 	    // See SimualtionEngineRestart class
 	    "restart",
 
-	    // Fixed Effort importance splitting, from Garvels' PhD thesis
+	    // (Standard) Fixed Effort importance splitting, from Garvels' PhD thesis
 		// See SimualtionEngineSFE class
 		"sfe"
 	}};

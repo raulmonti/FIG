@@ -97,6 +97,11 @@ SimulationEngineFixedEffort::transient_simulations(
 		const PropertyTransient& property,
 		const size_t& numRuns) const
 {
+	if (toBuildThresholds_)
+		throw_FigException("invalid invocation of transient_simulations(): "
+		                   "this instance of SimulationEngineFixedEffort "
+		                   "was created to build thresholds");
+
 ////	auto event_watcher = &fig::SimulationEngineSFE::transient_event;
 //	auto lvl_effort = [&](const size_t& effort){ return effort*base_nsims(); };
 ////	const ModuleNetwork& model(*ModelSuite::get_instance().modules_network());
@@ -138,7 +143,8 @@ SimulationEngineFixedEffort::transient_simulations(
 //			traials_.pop_back();
 //		}
 
-		fixed_effort(impFun_->thresholds(), Pup, get_event_watcher(property));
+		// Populate 'Pup' with importance paths towards the rare event
+		fixed_effort(Pup, get_event_watcher(property));
 		/// fixed_effort(impFun_->thresholds(), Pup, watch_events);
 
 //		// For each threshold level 'l' ...
