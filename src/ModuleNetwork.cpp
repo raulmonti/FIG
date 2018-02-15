@@ -439,11 +439,12 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 //	//bool(ThresholdsBuilderES::*fixed_effort_watcher)
 //	//    (const Property&, Traial&, Event&) const;
 
+//using TraialMonitor = std::function<bool(const Property&, Traial&, Event&)>;
+
 
 // ModuleNetwork::simulation_step() can only be invoked with the following
 // "DerivedProperty" and "TraialMonitor" combinations
-//using TraialMonitor = SimulationEngine::EventWatcher;
-using TraialMonitor = std::function<bool(const Property&, Traial&, Event&)>;
+using TraialMonitor = SimulationEngine::EventWatcher;
 template
 Event ModuleNetwork::simulation_step(Traial&, const Property&, const TraialMonitor&) const;
 template

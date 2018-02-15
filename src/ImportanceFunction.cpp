@@ -45,15 +45,16 @@
 // FIG
 #include <string_utils.h>
 #include <ImportanceFunction.h>
+#include <SimulationEngine.h>
 #include <ThresholdsBuilder.h>
 #include <ThresholdsBuilderAdaptive.h>
 #include <FigException.h>
 #include <Property.h>
 
 // ADL
+using std::find;
 using std::begin;
 using std::end;
-using std::find;
 
 
 namespace  // // // // // // // // // // // // // // // // // // // // // // //
@@ -301,6 +302,13 @@ ImportanceFunction::strategy() const noexcept
 }
 
 
+const std::string&
+ImportanceFunction::sim_engine_bound() const noexcept
+{
+	return simEngine_;
+}
+
+
 const std::string
 ImportanceFunction::adhoc_fun() const noexcept
 {
@@ -493,6 +501,30 @@ ImportanceFunction::random_sample2(State<STATE_INTERNAL_TYPE> s,
 		randomSample.emplace(cs, importance_of(s.decode(cs)));
 	}
 	return randomSample;
+}
+
+
+void
+ImportanceFunction::bind_sim_engine(const std::string& name) const
+{
+	assert(!name.empty());
+	static std::vector< std::string > simulatorsNames;
+	if (simulatorsNames.empty()) {
+		simulatorsNames.reserve(SimulationEngine::NUM_NAMES);
+		for (const auto& name: SimulationEngine::names())
+			simulatorsNames.emplace_back(name);
+	}
+	assert(!simulatorsNames.empty());
+	if (find(begin(simulatorsNames), end(simulatorsNames), name) == end(simulatorsNames))
+		throw_FigException("cannot bind to invalid SimulationEgine name \"" + name + "\"");
+	else
+		simEngine_ = name;
+}
+
+
+void ImportanceFunction::unbind_sim_engine() const
+{
+	simEngine_.clear();
 }
 
 

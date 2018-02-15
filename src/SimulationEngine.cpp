@@ -216,7 +216,8 @@ SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun)
         throw_FigException("engine \"" + name() + "\" is currently locked "
                            "in \"simulation mode\"");
     impFun_ = ifun;
-	if (ifun->concrete())
+	impFun_->bind_sim_engine(name());
+	if (impFun_->concrete())
 		cImpFun_ = std::dynamic_pointer_cast<const ImportanceFunctionConcrete>(ifun);
 }
 
@@ -227,6 +228,7 @@ SimulationEngine::unbind()
     if (locked())
         throw_FigException("engine \"" + name() + "\" is currently locked "
                            "in \"simulation mode\"");
+	impFun_->unbind_sim_engine();
     impFun_.reset();
     cImpFun_.reset();
 }

@@ -33,12 +33,10 @@
 #include <vector>
 // FIG
 #include <SimulationEngineFixedEffort.h>
-#include <PropertyTransient.h>
+#include <Property.h>
 
 namespace fig
 {
-
-class PropertyRate;
 
 /**
  * @brief Engine for Standard Fixed Effort importance-splitting simulations
@@ -97,9 +95,6 @@ protected:  // Utils for the class and its kin
 	                  const EventWatcher& watch_events) const override;
 
 private:  // Traial observers/updaters
-
-	/// @todo TODO erase dummy function
-	bool goo_event(const Property&, Traial&, Event&) const { return true; }
 
 	/// @copydoc SimulationEngine::transient_event()
 	/// @note Makes no assumption about the ImportanceFunction altogether

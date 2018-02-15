@@ -124,10 +124,11 @@ ThresholdsBuilderES::ThresholdsBuilderES(
 
 
 void
-ThresholdsBuilderES::setup(const PostProcessing &,
-                           std::shared_ptr<const Property> property,
+ThresholdsBuilderES::setup(std::shared_ptr<const Property> property,
                            const unsigned)
-{ property_ = property; }
+{
+	property_ = property;
+}
 
 
 ThresholdsVec

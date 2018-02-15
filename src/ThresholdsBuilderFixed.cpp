@@ -60,20 +60,21 @@ ThresholdsBuilderFixed::ThresholdsBuilderFixed(ImportanceValue minImpRange,
 
 
 void
-ThresholdsBuilderFixed::setup(const PostProcessing &pp,
-                              std::shared_ptr<const Property>,
+ThresholdsBuilderFixed::setup(std::shared_ptr<const Property>,
                               const unsigned ge)
 {
 	globEff_ = ge;
-	postPro_ = pp;
 }
 
 
 ThresholdsVec
 ThresholdsBuilderFixed::build_thresholds(std::shared_ptr<const ImportanceFunction> impFun)
 {
+	assert(nullptr != impFun);
+
 	ImportanceVec thresholds;
 	const ImportanceValue IMP_RANGE(impFun->max_value()-impFun->initial_value());
+	postPro_ = impFun->post_processing();
 
 	figTechLog << "Building thresholds with \"" << name << "\" ";
 

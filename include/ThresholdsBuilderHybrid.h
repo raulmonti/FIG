@@ -81,8 +81,7 @@ public:
 	bool uses_global_effort() const noexcept override { return true; }
 
 	void
-	setup(const PostProcessing& pp,
-	      std::shared_ptr<const Property> prop = nullptr,
+	setup(std::shared_ptr<const Property> prop = nullptr,
 	      const unsigned ge = 0u) override;
 
 	ThresholdsVec

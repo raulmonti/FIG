@@ -362,7 +362,7 @@ ThresholdsBuilderSMC::tune(const size_t& numTrans,
                            const unsigned& globalEffort)
 {
 	ThresholdsBuilderAdaptiveSimple::tune(numTrans, maxImportance, globalEffort);
-    // This algorith is statistically better (way better) than AMS,
+	// This algorith is statistically better (way better) than AMS,
 	// resulting in the thresholds being chosen really close to each other.
 	// The counterpart is that too many thresholds are chosen and thus the
     // thresholds building takes too long.
@@ -374,8 +374,9 @@ ThresholdsBuilderSMC::tune(const size_t& numTrans,
 	///            probability of crossing the i-th level upwards
 	///            Note the constant value e^-1 is subject to having the optimal
 	///            number of thresholds T = -log(p)/2, which may not be the case
-	const float p((k_*0.333f)/n_);
+	const float p(k_ * (simEngineName_ == "restart" ? 0.333f : 1.0f) / n_);
 	k_ = std::round(p*n_);
+	assert(0ul < k_);
 
 	// Simulations length will be directly proportional to the probability 'p'
 	// within the range (0.06 , 0.1)

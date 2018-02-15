@@ -54,8 +54,7 @@ ThresholdsBuilderAdaptiveSimple::ThresholdsBuilderAdaptiveSimple(
 
 
 void
-ThresholdsBuilderAdaptiveSimple::setup(const PostProcessing &,
-                                       std::shared_ptr<const Property> property,
+ThresholdsBuilderAdaptiveSimple::setup(std::shared_ptr<const Property> property,
                                        const unsigned globalEffort)
 {
 	property_ = property;
@@ -73,6 +72,7 @@ ThresholdsBuilderAdaptiveSimple::build_thresholds(std::shared_ptr<const Importan
 	}
 
 	// Choose values for n_ and k_
+	simEngineName_ = impFun->sim_engine_bound();
 	tune(ModelSuite::get_instance().modules_network()->num_transitions(),
 	     impFun->max_value() - impFun->min_value(),
 	     globEff_);
@@ -104,11 +104,11 @@ consistency_check:
 void
 ThresholdsBuilderAdaptiveSimple::tune(const size_t& numTrans,
                                       const ImportanceValue& maxImportance,
-                                      const unsigned& splitsPerThr)
+                                      const unsigned& globalEffort)
 {
     //assert(uint128::uint128_0 < numStates);
 	assert(0ul < numTrans);
-	assert(0u < splitsPerThr);
+	assert(0u < globalEffort);
 
 	ImportanceVec().swap(thresholds_);
 	thresholds_.reserve(MAX_NUM_THRESHOLDS);
@@ -122,12 +122,12 @@ ThresholdsBuilderAdaptiveSimple::tune(const size_t& numTrans,
 	//   the more importance values, the more independent runs we need
 	//   for some of them to be successfull.
 	//   The same applies to the number of edges (aka symbolic transitions).
-	ThresholdsBuilderAdaptive::tune(numTrans, maxImportance);
+	ThresholdsBuilderAdaptive::tune(numTrans, maxImportance, globalEffort);
 
     // Heuristic for 'k_':
     //   splitsPerThr * levelUpProb == 1  ("balanced growth")
     //   where levelUpProb == k_/n_
-    k_ = std::round(n_ / static_cast<float>(splitsPerThr));
+	k_ = std::round(n_ / static_cast<float>(globalEffort));
 
     assert(0u < k_ || static_cast<ImportanceValue>(1u) >= maxImportance);
     assert(k_ < n_ || static_cast<ImportanceValue>(1u) >= maxImportance);

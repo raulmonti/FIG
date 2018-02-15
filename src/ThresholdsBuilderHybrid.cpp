@@ -55,14 +55,12 @@ ThresholdsBuilderHybrid::ThresholdsBuilderHybrid(ImportanceValue minImpRange,
 
 
 void
-ThresholdsBuilderHybrid::setup(const PostProcessing &pp,
-                               std::shared_ptr<const Property> prop,
+ThresholdsBuilderHybrid::setup(std::shared_ptr<const Property> prop,
                                const unsigned ge)
 {
-	postPro_ = pp;  // inherited from ThresholdsBuilderFixed
 	globEff_ = ge;  // opaqued from base classes to avoid ambiguity
-	ThresholdsBuilderFixed::setup(pp, prop, ge);
-	ThresholdsBuilderAdaptiveSimple::setup(pp, prop, ge);
+	ThresholdsBuilderFixed::setup(prop, ge);
+	ThresholdsBuilderAdaptiveSimple::setup(prop, ge);
 }
 
 
@@ -89,6 +87,7 @@ ThresholdsBuilderHybrid::build_thresholds(std::shared_ptr<const ImportanceFuncti
 		                                        : thresholds_.back());
 		figTechLog << "\nResorting to fixed choice of thresholds starting "
 				   << "above the ImportanceValue " << MARGIN << "\n";
+		postPro_ = impFun->post_processing();
 		stride_ = choose_stride(impFun->max_value()-MARGIN);
 		ThresholdsBuilderFixed::build_thresholds(*impFun,
 		                                         MARGIN-impFun->initial_value(),

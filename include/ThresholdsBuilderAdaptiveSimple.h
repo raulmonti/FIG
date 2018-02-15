@@ -57,6 +57,10 @@ protected:
 	/// Property to estimate, for which the thresholds will be selected
 	std::shared_ptr< const Property > property_;
 
+	/// Name of the SimulationEngine for which the thresholds are built
+	/// e.g. RESTART, Fixed Effort, etc.
+	std::string simEngineName_;
+
 	/// Global effort used during simulations
 	unsigned globEff_;
 
@@ -76,23 +80,8 @@ public:
 
 	bool uses_global_effort() const noexcept override { return true; }
 
-	/**
-	 * @brief Register the global effort used for simulations
-	 *
-	 *        <i>Global effort</i> means different things depending on
-	 *        the type of importance splitting used:
-	 *        <ul>
-	 *        <li>For RESTART it means the same splitting value is used
-	 *            in all thresholds, i.e. @a globalEffort-1 replicas
-	 *            will be created in a level-up;</li>
-	 *        <li>For Fixed Effort it means launching the same number
-	 *            of simulations (namely @a globalEffort)
-	 *            in all ("threshold-") levels.</li>
-	 *        </ul>
-	 */
 	void
-	setup(const PostProcessing&,
-	      std::shared_ptr<const Property> property,
+	setup(std::shared_ptr<const Property> property,
 	      const unsigned globalEffort) override;
 
 	ThresholdsVec

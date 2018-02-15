@@ -68,9 +68,12 @@ protected:
 //	///             this class member isn't used anymore
 //	unsigned effortPerLevel_;
 
-	/// Default Number of simulations launched per threshold-level;
+	/// Min number of simulations to launch per threshold-level
+	static constexpr unsigned MIN_LEVEL_EFFORT = (1u)<<(4u);  // 16
+
+	/// Default number of simulations launched per threshold-level;
 	/// this is the global variant, where the same effort is used on all levels
-	static constexpr unsigned DEFAULT_GLOBAL_EFFORT = (1u)<<(4u);  // 16
+	static constexpr unsigned DEFAULT_GLOBAL_EFFORT = MIN_LEVEL_EFFORT;
 //	static inline decltype(effortPerLevel_) effort_per_level_default() { return DEFAULT_GLOBAL_EFFORT; }
 
 	/// Basis for the number of simulations run on each ("threshold-") level
@@ -101,6 +104,9 @@ public:  // Accessors
 //
 	/// @copydoc DEFAULT_GLOBAL_EFFORT
 	inline unsigned global_effort_default() const noexcept override { return DEFAULT_GLOBAL_EFFORT; }
+
+	/// @copydoc MIN_LEVEL_EFFORT
+	static inline unsigned lvl_effort_min() noexcept { return MIN_LEVEL_EFFORT; }
 
 	/// @copydoc BASE_NUM_SIMS
 	static inline unsigned base_nsims() noexcept { return BASE_NUM_SIMS; }

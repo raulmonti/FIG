@@ -636,7 +636,7 @@ ModelSuite::available_simulators() noexcept
 	if (simulatorsNames.empty()) {
 		simulatorsNames.reserve(num_simulators());
 		for (const auto& name: SimulationEngine::names())
-			simulatorsNames.push_back(name);
+			simulatorsNames.emplace_back(name);
 	}
 	return simulatorsNames;
 }
@@ -1032,7 +1032,7 @@ ModelSuite::build_thresholds(const std::string& technique,
 				 << ",\"\nusing technique \"" << technique << "\"" << gEffortSpec
 		         << std::endl;
 		const double startTime = omp_get_wtime();
-		tb.setup(ifun.post_processing(), property, globalEffort);
+		tb.setup(property, globalEffort);
 		ifun.build_thresholds(tb);
 		techLog_ << "Thresholds building time: "
 				 << std::fixed << std::setprecision(2)
@@ -1178,8 +1178,9 @@ ModelSuite::estimate(const Property& property,
 	mainLog_ << " - threshold builder:   " << ifun.thresholds_technique() << "\n";
 	mainLog_ << " [ " << ifun.num_thresholds() << " thresholds | ";
 	mainLog_ << (globalEffort > 0ul
-	             ? ("global effort = " + std::to_string(globalEffort) + "]\n")
-	             : ("per-threshold effort ]\n"));
+	             ? ("global effort = " + std::to_string(globalEffort))
+	             : ("per-threshold effort"));
+	mainLog_ << " ]" << std::endl;
 
 	if (bounds.is_time())
 		// Simulation bounds are wall clock time limits

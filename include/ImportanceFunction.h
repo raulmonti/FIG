@@ -144,6 +144,9 @@ protected:  // Attributes for derived classes
 	/// Technique used last to build the importance thresholds in this function
 	std::string thresholdsTechnique_;
 
+	/// Name of the SimulationEngine currently bound to the instance, if any
+	mutable std::string simEngine_;
+
 	/// Minimum importance currently held
 	ImportanceValue minValue_;
 
@@ -255,6 +258,9 @@ public:  // Accessors
 	/// @returns Empty string if function doesn't has_importance_info(),
 	///          last used strategy otherwise
 	const std::string strategy() const noexcept;
+
+	/// @copydoc simEngine_
+	const std::string& sim_engine_bound() const noexcept;
 
 	/// @returns Algebraic formula for ad hoc importance assessment if function
 	///          has_importance_info() and current strategy is "adhoc",
@@ -433,6 +439,12 @@ public:  // Accessors
 	                       State<STATE_INTERNAL_TYPE> s = State<STATE_INTERNAL_TYPE>()) const = 0;
 
 public:  // Utils
+
+	/// Register SimulationEngine called \p name as currently bound to this intance
+	void bind_sim_engine(const std::string& name) const;
+
+	/// Deregister any SimulationEngine currently bound to this instance
+	void unbind_sim_engine() const;
 
 	/**
 	 * @brief Build thresholds from precomputed importance information

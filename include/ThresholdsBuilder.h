@@ -97,7 +97,6 @@ public:
 	 * @brief Depending on the thresholds builder sub-class,
 	 *        provide extra information required to select the thresholds.
 	 *
-	 * @param postProcess  Post-processing to apply to the importance values
 	 * @param property     User property query being estimated
 	 * @param globalEffort Splitting/effort to use in all ("threshold-") levels
 	 *
@@ -115,8 +114,7 @@ public:
 	 *      <b>poorly designed class</b>
 	 */
 	virtual void
-	setup(const PostProcessing& postProcess = PostProcessing(),
-	      std::shared_ptr<const Property> property = nullptr,
+	setup(std::shared_ptr<const Property> property = nullptr,
 	      const unsigned globalEffort = 0u) = 0;
 
 	/**

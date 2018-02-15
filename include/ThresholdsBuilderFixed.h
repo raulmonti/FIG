@@ -93,11 +93,9 @@ public:
 	bool uses_global_effort() const noexcept override { return true; }
 
 	/// Register the post-processing and the global effort (if any)
-	/// @param pp PostProcessing that will be applied to the ImportanceValue s
 	/// @param ge Global splitting/effort to use in all ("threshold-") levels
-	void setup(const PostProcessing& pp,
-	           std::shared_ptr<const Property>,
-	           const unsigned ge = 2ul) override;
+	void
+	setup(std::shared_ptr<const Property>, const unsigned ge = 2ul) override;
 
 	ThresholdsVec
 	build_thresholds(std::shared_ptr<const ImportanceFunction> impFun) override;

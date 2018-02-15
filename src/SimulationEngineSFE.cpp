@@ -55,14 +55,15 @@ typedef fig::SimulationEngine::ReachabilityCount ReachabilityCount;
  *
  *        The vector given as argument contains several Traial instances
  *        that could be the next step of a Fixed Effort sweep.
- *        Using \p ifun check which ImportanceValue has the most occurrences,
- *        and delete from the vector any Traial with different ImportanceValue.
+ *        Check with \p ifun which threshold/importance value occurs most often,
+ *        and delete from the vector any Traial with different value.
  *
  * @param traials    Traials to analyse and filter
  * @param traialSink Container where discarded Traials will be placed
- * @param reachCount How often each ImportanceValue was reached,
- *                   from among the importance values that occurr in \p traials
+ * @param reachCount How often each importance/threshold was reached,
+ *                   from among the values that occurr in \p traials
  * @param ifun       Importance function to assess the importance of each Traial
+ * @param useImp     Use ImportanceValue rather than threshold-level to filter
  *
  * @return Next step value, viz. ImportanceValue of the chosen (surviving) Traials
  */
@@ -70,16 +71,17 @@ ImportanceValue
 filter_next_value(TraialVec& traials,
                   TraialVec& traialSink,
                   const ReachabilityCount& reachCount,
-                  const ImportanceFunction& ifun)
+                  const ImportanceFunction& ifun,
+                  const bool useImportance)
 {
     assert(!traials.empty());
 	assert(!reachCount.empty());
 	using pair_t = std::remove_reference<decltype(reachCount)>::type::value_type;
 	using levelof_t = ImportanceValue(ImportanceFunction::*)(const fig::StateInstance&) const;
 	using namespace std::placeholders;  // _1, _2, ...
-	auto ifun_level_of = ifun.ready()
-	        ? std::bind(static_cast<levelof_t>(&ImportanceFunction::level_of),      &ifun, _1)
-	        : std::bind(static_cast<levelof_t>(&ImportanceFunction::importance_of), &ifun, _1);
+	auto ifun_level_of = useImportance
+	        ? std::bind(static_cast<levelof_t>(&ImportanceFunction::importance_of), &ifun, _1)
+	        : std::bind(static_cast<levelof_t>(&ImportanceFunction::level_of),      &ifun, _1);
 	TraialVec chosenTraials;
     const auto N(traials.size());
     chosenTraials.reserve(N);
@@ -87,7 +89,7 @@ filter_next_value(TraialVec& traials,
 	auto nextStep = std::max_element(begin(reachCount), end(reachCount),
 	                                 [](const pair_t& p1, const pair_t& p2)
 	                                 { return p1.second < p2.second; });
-	const ImportanceValue nextValue(nextStep->first);
+	const auto nextValue(nextStep->first);
 //	const size_t nextValueIndex(nextStep->second);
 	// Filter the traials vectors
     for (auto i = 0ul ; i < N ; i++) {
@@ -165,17 +167,11 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 {
 	assert(nullptr != impFun_);
 
-//	auto event_watcher =
-//		(nullptr != watch_events) ? watch_events
-//						 : (property_->type == PropertyType::TRANSIENT)
-//	                       ? static_cast<EventWatcher>(&fig::SimulationEngineSFE::transient_event)
-//						   : (property_->type == PropertyType::RATE)
-//	                         ? static_cast<EventWatcher>(&fig::SimulationEngineSFE::rate_event)
-//							 : nullptr;
-	auto lvl_effort = [&](const size_t& effort){ return effort*base_nsims(); };
+	auto lvl_effort = [&](const unsigned& effort){ return effort*base_nsims(); };
 	const size_t LVL_MAX(impFun_->max_value(toBuildThresholds_)),
 	             LVL_INI(impFun_->initial_value(toBuildThresholds_)),
-	             EFF_MAX(lvl_effort(impFun_->max_thresholds_effort(toBuildThresholds_)));
+	             EFF_MAX(std::max(lvl_effort_min(),
+	                              lvl_effort(impFun_->max_thresholds_effort(toBuildThresholds_))));
 	decltype(reachCount_) reachCountLocal(reachCount_);
 	std::vector< Reference< Traial > > traialsNow, traialsNext;
 
@@ -192,19 +188,21 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 //	if (reachCount_.size() != LVL_MAX+1)
 //		decltype(reachCount_)(LVL_MAX+1,0).swap(reachCount_);
 
-	// Bootstrap for the Fixed Effort loop that follows
+	// Bootstrap the Fixed Effort run
     traials_.back().get().initialise(*model_, *impFun_);
 	traialsNext.push_back(std::move(traials_.back()));
     traials_.pop_back();
 	size_t numSuccesses;
 	ImportanceValue l(LVL_INI);
 
-	// Fixed Effort loop: For each threshold level 'l' ...
+	// Run Fixed Effort: For each threshold level 'l' ...
 	do {
         // ... prepare the Traials to run the simulations ...
         numSuccesses = 0ul;
-		const auto LVL_EFFORT(lvl_effort(impFun_->effort_of(l)));
-		assert(0 < LVL_EFFORT);
+		const size_t LVL_EFFORT = toBuildThresholds_
+		    ? lvl_effort_min()
+		    : std::max(lvl_effort_min(), lvl_effort(impFun_->effort_of(l)));
+		assert(0ul < LVL_EFFORT);
         assert(traialsNow.empty());
         assert(!traialsNext.empty());
         for (auto i = 0ul ; i < LVL_EFFORT ; i++) {
@@ -233,8 +231,8 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
             if (traial.level > l) {
                 numSuccesses++;
                 traialsNext.push_back(traial);
-                reachCount_[l]++;
-				reachCountLocal[l]++;
+				reachCount_[traial.level]++;
+				reachCountLocal[traial.level]++;
 			} else {
 				if (property_->is_rare(traial.state))
                     numSuccesses++;
@@ -242,10 +240,26 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
             }
         }
         // ... and interpret the results
-		l = filter_next_value(traialsNext, traials_, reachCountLocal, *impFun_);
-        assert(l <= LVL_MAX);
-		pathToRare.emplace_back(l, static_cast<double>(numSuccesses)/LVL_EFFORT);
-	} while (l < LVL_MAX && traialsNext.size() > 0ul);
+		if (!traialsNext.empty()) {
+			l = filter_next_value(traialsNext,
+			                      traials_,
+			                      reachCountLocal,
+			                      *impFun_,
+			                      toBuildThresholds_);
+			assert(l <= LVL_MAX);
+
+//			    /// @todo TODO erase debug print
+//			    std::cerr << l << "++\n";
+
+			pathToRare.emplace_back(l, static_cast<double>(numSuccesses)/LVL_EFFORT);
+//		} else {
+//
+//			    /// @todo TODO erase debug print
+//			    static int cnt(0);
+//				std::cerr << cnt++ << " ";
+
+		}
+	} while (l < LVL_MAX && !traialsNext.empty());
 //	// For each threshold level 'l' ...
 //	ImportanceValue l;
 //	size_t numSuccesses(1ul);
