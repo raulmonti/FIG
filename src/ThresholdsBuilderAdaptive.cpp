@@ -68,7 +68,7 @@ ThresholdsBuilderAdaptive::tune(const size_t& numTrans,
 	// with the number of model transitions.
 	const unsigned transFactor = 5u*numTrans;
 
-	const double balance = 0.5;  // must be within (0.0, 1.0)
+	const double balance = 0.6;  // must be within (0.0, 1.0)
 	// more relevance to importance  => balance++
 	// more relevance to transitions => balance--
 	n_  = std::min(impFactor  , static_cast<unsigned>((    balance)*MAX_N))

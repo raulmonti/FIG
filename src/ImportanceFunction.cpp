@@ -220,6 +220,7 @@ ImportanceFunction::ImportanceFunction(const std::string& name) :
 	readyForSims_(false),
 	strategy_(""),
 	thresholdsTechnique_(""),
+	simEngine_(""),
 	minValue_(static_cast<ImportanceValue>(0u)),
 	maxValue_(static_cast<ImportanceValue>(0u)),
 	minRareValue_(static_cast<ImportanceValue>(0u)),

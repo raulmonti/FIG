@@ -176,9 +176,14 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 	std::vector< Reference< Traial > > traialsNow, traialsNext;
 
 	// Init result & internal ADTs
-    if (result.empty())
-		result.push_back(ThresholdsPathProb());
-	auto pathToRare(*result.begin());
+	ThresholdsPathCandidates(1).swap(result);
+	assert(result.size() == 1);
+//	ThresholdsPathCandidates
+//    if (result.empty())
+//		result.emplace_back();
+////		result.push_back(ThresholdsPathProb());
+	auto& pathToRare(result.front());
+	assert(&(*result.begin()) == &pathToRare);
 	pathToRare.reserve(toBuildThresholds_ ? result.size() : LVL_MAX);
 	pathToRare.clear();
 	traialsNow.reserve(EFF_MAX);
@@ -249,7 +254,7 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 			assert(l <= LVL_MAX);
 
 //			    /// @todo TODO erase debug print
-//			    std::cerr << l << "++\n";
+//			    std::cerr << l << "++";
 
 			pathToRare.emplace_back(l, static_cast<double>(numSuccesses)/LVL_EFFORT);
 //		} else {
@@ -260,6 +265,13 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 
 		}
 	} while (l < LVL_MAX && !traialsNext.empty());
+
+	if (l < LVL_MAX)
+		pathToRare.clear();  // signal we didn't reach the rare event
+
+
+//	assert(!pathToRare.empty());
+//	assert(result.front().size() == pathToRare.size());
 //	// For each threshold level 'l' ...
 //	ImportanceValue l;
 //	size_t numSuccesses(1ul);

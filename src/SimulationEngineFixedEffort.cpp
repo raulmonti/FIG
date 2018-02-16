@@ -199,6 +199,8 @@ SimulationEngineFixedEffort::transient_simulations(
 		// then the summation for all paths is the rare event estimate.
 		results[i] = 0.0;
 		for (const auto& path: Pup) {
+			if (path.empty())
+				continue;
 			double pathEstimate(1.0);
 			for (const auto& condProb: path)
 				pathEstimate *= condProb.second;

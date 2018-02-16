@@ -228,8 +228,9 @@ SimulationEngine::unbind()
     if (locked())
         throw_FigException("engine \"" + name() + "\" is currently locked "
                            "in \"simulation mode\"");
-	impFun_->unbind_sim_engine();
-    impFun_.reset();
+	if (nullptr != impFun_)
+		impFun_->unbind_sim_engine();
+	impFun_.reset();
     cImpFun_.reset();
 }
 
