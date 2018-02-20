@@ -1056,13 +1056,17 @@ ModelSuite::build_thresholds(const std::string& technique,
 	auto propertyPtr = get_property(propertyIndex);
 	if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
-	return build_thresholds(technique, ifunName, propertyPtr, force);
+	else
+		return build_thresholds(technique, ifunName, propertyPtr, force);
 }
 
 
 std::shared_ptr< SimulationEngine >
 ModelSuite::prepare_simulation_engine(const std::string& engineName,
-									  const std::string& ifunName)
+                                      const std::string& ifunName,
+                                      const std::string& thrTechnique,
+                                      std::shared_ptr<const Property> property,
+                                      bool force)
 {
 	if (!exists_simulator(engineName))
         throw_FigException("inexistent simulation engine \"" + engineName +
@@ -1086,8 +1090,28 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
     engine_ptr->bind(ifun_ptr);
 	assert(engine_ptr->bound());
 	assert(ifunName == engine_ptr->current_imp_fun());
+	assert(engineName == ifun_ptr->sim_engine_bound());
 	pristineModel_ = false;
 	return engine_ptr;
+}
+
+
+std::shared_ptr< SimulationEngine >
+ModelSuite::prepare_simulation_engine(const std::string& engineName,
+                                      const std::string& ifunName,
+                                      const std::string& thrTechnique,
+                                      const size_t& propertyIndex,
+                                      bool force)
+{
+	auto propertyPtr = get_property(propertyIndex);
+	if (nullptr == propertyPtr)
+		throw_FigException("no property at index " + to_string(propertyIndex));
+	else
+		return prepare_simulation_engine(engineName,
+		                                 ifunName,
+		                                 thrTechnique,
+		                                 propertyPtr,
+		                                 force);
 }
 
 

@@ -599,6 +599,8 @@ public:  // Utils
 								   const size_t& propertyIndex,
 								   bool force = false);
 
+private:  // Embedded into prepare_simulation_engine()
+
 	/**
 	 * @brief Build thresholds from precomputed importance information
 	 *
@@ -647,36 +649,55 @@ public:  // Utils
 	                 const size_t& propertyIndex,
 	                 bool force = true);
 
+public:  // Utils
+
 	/**
-	 * @brief Set a SimulationEngine ready for upcoming estimations
+	 * @brief Make ready a SimulationEngine for upcoming estimations
 	 *
-	 *        Bind the ImportanceFunction 'ifunName' to the SimulationEngine
-	 *        'engineName', if compatible. The ImportanceFunction must be
-	 *        \ref ImportanceFunction::ready() "ready for simulations".
+	 *        Set the global effort (if any), choose thresholds with technique
+	 *        \p thrTechnique for the ImportanceFunction \p ifunName,
+	 *        and bind \p ifunName to the SimulationEngine \p engineName
+	 *        if compatible.<br>
 	 *        After a successfull call the returned engine can be used
 	 *        with estimate().
 	 *
-	 * @param engineName Any from available_simulators()
-	 * @param ifunName   Any from available_importance_functions(),
-	 *                   refering to an ImportanceFunction which is
-	 *                   \ref ImportanceFunction::ready() "ready for simulations"
+	 * @param engineName    Any from available_simulators()
+	 * @param ifunName      Any from available_importance_functions()
+	 * @param thrTechnique  Any from available_threshold_techniques()
+	 * @param property      User property query being estimated
+	 * @param force         Forcefully perform all operations even when
+	 *                      the engine is already ready
 	 *
 	 * @return Pointer to the SimulationEngine to be used for estimations
 	 *
 	 * @note Supresses the \ref pristineModel_ "pristine condition"
 	 *
-	 * @throw FigException if "engineName" or "ifunName" are invalid
-	 * @throw FigException if the ImportanceFunction "ifunName" isn't
-	 *                     \ref ImportanceFunction::ready() "ready for
-	 *                     simulations"
-	 * @throw FigException if "engineName" is incompatible with "ifunName"
+	 * @throw FigException if \p engineName, \p ifunName, or \p thrTechnique
+	 *                     are invalid identifiers
+	 * @throw FigException if \p ifunName   is incompatible with \p thrTechnique
+	 * @throw FigException if \p engineName is incompatible with \p ifunName
+	 * @throw FigException if thresholds building fails
 	 *
 	 * @see build_importance_function()
 	 * @see build_thresholds()
 	 */
 	std::shared_ptr< SimulationEngine >
 	prepare_simulation_engine(const std::string& engineName,
-							  const std::string& ifunName);
+	                          const std::string& ifunName,
+	                          const std::string& thrTechnique,
+	                          std::shared_ptr< const Property > property,
+	                          bool force = true);
+
+	/// Same as prepare_simulation_engine() for the property
+	/// added to the system in the specified index
+	/// @throw FigException if there's no property at index 'propertyIndex'
+	/// @see get_property()
+	std::shared_ptr< SimulationEngine >
+	prepare_simulation_engine(const std::string& engineName,
+	                          const std::string& ifunName,
+	                          const std::string& thrTechnique,
+	                          const size_t& propertyIndex,
+	                          bool force = true);
 
 	/**
 	 * @brief Release memory resources and decouple internals
@@ -890,13 +911,13 @@ ModelSuite::process_batch(const std::string& engineName,
 		// ... and for each global effort specified ...
 		for (auto ge: globalEffortValues) {
 
-			// ... choose the thresholds ...
+			// ... choose thresholds, bind engine and ifun, etc ...
 			set_global_effort(ge, engineName, true);
-			build_thresholds(thrTechnique, impFunSpec.name, property);
+			auto engine = prepare_simulation_engine(engineName,
+			                                        impFunSpec.name,
+			                                        thrTechnique,
+			                                        property);
 			assert(impFuns[impFunSpec.name]->ready());
-
-			// ... prepare the simulator ...
-			auto engine = prepare_simulation_engine(engineName, impFunSpec.name);
 			assert(engine->ready());
 
 			// ... and estimate the property's value for all stopping conditions
