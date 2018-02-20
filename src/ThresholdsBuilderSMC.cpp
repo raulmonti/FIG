@@ -361,12 +361,31 @@ ThresholdsBuilderSMC::tune(const size_t& numTrans,
                            const ImportanceValue& maxImportance,
                            const unsigned& globalEffort)
 {
+	float scaleFactor;
 	ThresholdsBuilderAdaptiveSimple::tune(numTrans, maxImportance, globalEffort);
-	// This algorith is statistically better (way better) than AMS,
-	// resulting in the thresholds being chosen really close to each other.
-	// The counterpart is that too many thresholds are chosen and thus the
-    // thresholds building takes too long.
-	// We try to counter that a little by reducing the probability of level up
+
+	if (simEngineName_ == "restart") {
+		// SMC is statistically way better than AMS.
+		// This makes the "balanced growth" equation to yield lots of
+		// thresholds really close to each other.
+		// For RESTART, this has shown a simulation overhead in practice,
+		// thus we counter it a little by reducing the probability of level up.
+		scaleFactor = .333f;
+
+	} else if (simEngineName_ == "sfe") {
+		// For Standard Fixed Effort, the "balanced growth" equation
+		// used with SMC typically yields too small a probability of level-up,
+		// maybe because globalEffort is the number of pilot runs per level
+		// and not a "stacking-up splitting" like in RESTART.
+		// Thus we increase a little the probability of level up.
+		scaleFactor = globalEffort / 3.0f;
+
+	} else {
+		ModelSuite::tech_log("ThresholdsBuilderSMC: Unsupported simulation "
+		                     "engine: \"" + simEngineName_ + "\"\n");
+		throw_FigException("unsupported simulation engine: \"" + simEngineName_ + "\"");
+	}
+
 	/// @note NOTE can we change for "theoretic optimal" p_i ~ e^-1  forall i ?
 	///            See analysis by Garvels (PhD thesis) and Rubino&Tuffin (RES book)
 	///            which derive this constant for optimal p_i = p^(-T) forall i
@@ -374,9 +393,10 @@ ThresholdsBuilderSMC::tune(const size_t& numTrans,
 	///            probability of crossing the i-th level upwards
 	///            Note the constant value e^-1 is subject to having the optimal
 	///            number of thresholds T = -log(p)/2, which may not be the case
-	const float p(k_ * (simEngineName_ == "restart" ? 0.333f : 1.0f) / n_);
+	const float p(k_ * scaleFactor / n_);
 	k_ = std::round(p*n_);
-	assert(0ul < k_);
+	assert(0u < k_);
+	assert(k_ < n_);
 
 	// Simulations length will be directly proportional to the probability 'p'
 	// within the range (0.06 , 0.1)
