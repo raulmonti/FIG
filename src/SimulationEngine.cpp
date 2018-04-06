@@ -210,12 +210,15 @@ void
 SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun)
 {
 	assert(nullptr != ifun);
-	if (!ifun->ready() && !toBuildThresholds_)
-        throw_FigException("ImportanceFunction isn't ready for simulations");
     if (locked())
         throw_FigException("engine \"" + name() + "\" is currently locked "
                            "in \"simulation mode\"");
-    impFun_ = ifun;
+	// NOTE: bind/unbind are now exclusive for ModelSuite use,
+	//       thus we omit the "ready()" check
+	//       which would cause a circular dependency with build_thresholds
+	// if (!ifun->ready() && !toBuildThresholds_)
+	//        throw_FigException("ImportanceFunction isn't ready for simulations");
+	impFun_ = ifun;
 	impFun_->bind_sim_engine(name());
 	if (impFun_->concrete())
 		cImpFun_ = std::dynamic_pointer_cast<const ImportanceFunctionConcrete>(ifun);

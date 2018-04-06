@@ -1068,6 +1068,7 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
                                       std::shared_ptr<const Property> property,
                                       bool force)
 {
+	// Step 0: Validity checks
 	if (!exists_simulator(engineName))
         throw_FigException("inexistent simulation engine \"" + engineName +
                            "\". Call \"available_simulators()\" for a list "
@@ -1078,20 +1079,25 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
                            "for a list of available options.");
 	auto engine_ptr = simulators[engineName];
 	auto ifun_ptr = impFuns[ifunName];
-
 	if (!ifun_ptr->has_importance_info())
         throw_FigException("importance function \"" + ifunName + "\" isn't yet "
                            "ready for simulations. Call \"build_importance_"
                            "function()\" and \"build_thresholds()\" beforehand");
-	if (engine_ptr->bound())
-		engine_ptr->unbind();
-    techLog_ << "\nBinding simulation engine \"" << engineName << ""
-             << "\" to importance function \"" << ifunName << "\"\n";
-    engine_ptr->bind(ifun_ptr);
+	if (engine_ptr->bound() && !force)
+		throw_FigException("simulation engine \"" + engineName + "\" is still bound to "
+		                   "importance function \"" + engine_ptr->current_imp_fun() + "\"");
+	// Step 1: Make ImportanceFunction acquainted with SimulationEngine
+	techLog_ << "\nBinding simulation engine \"" << engineName << ""
+	         << "\" to importance function \"" << ifunName << "\"\n";
+	engine_ptr->unbind();
+	engine_ptr->bind(ifun_ptr);
 	assert(engine_ptr->bound());
 	assert(ifunName == engine_ptr->current_imp_fun());
 	assert(engineName == ifun_ptr->sim_engine_bound());
 	pristineModel_ = false;
+	// Step 2: Build the thresholds from (and into) the ImportanceFunction
+	build_thresholds(thrTechnique, ifunName, property, force);
+	assert(ifun_ptr->ready());
 	return engine_ptr;
 }
 

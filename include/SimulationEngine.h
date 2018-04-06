@@ -181,7 +181,7 @@ public:  // Ctors/Dtor
     /// Virtual dtor
     virtual ~SimulationEngine() noexcept;
 
-public:  // Engine setup
+protected:  // Engine setup (by ModelSuite)
 
     /**
      * @brief Couple with an ImportanceFunction for future estimations
@@ -216,7 +216,7 @@ public:  // Engine setup
 //	/// @see set_global_effort()
 //	inline void set_global_effort() { set_global_effort(global_effort_default()); }
 
-private:  // Intended for ModelSuite
+private:  // Engine setup (by ModelSuite)
 
     /**
      * @brief Lock this engine into "simulation mode"
