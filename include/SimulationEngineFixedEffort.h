@@ -111,7 +111,7 @@ public:  // Accessors
 	/// @copydoc BASE_NUM_SIMS
 	static inline unsigned base_nsims() noexcept { return BASE_NUM_SIMS; }
 
-public:  // Engine setup
+protected:  // Engine setup
 
 	void bind(std::shared_ptr< const ImportanceFunction >) override;
 

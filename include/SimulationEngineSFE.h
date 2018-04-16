@@ -88,9 +88,10 @@ protected:  // Utils for the class and its kin
 	/// @brief Run <i>once</i> the Standard Fixed Effort algorithm,
 	///        generalised to cope with importance skipping.
 	/// @copydetails SimulationEngineFixedEffort::fixed_effort()
-	/// @note The \p result will contain a single path candidate,
+	/// @note The \p result will <i>always>/i> contain a single path,
 	///       since this is a <i>greedy version</i> of Fixed Effort which
-	///       ignores paths to the rare event other than the easiest to find
+	///       ignores paths to the rare event other than the easiest to find.
+	///       Is no path is found, \p result will contain a single empty path.
 	void fixed_effort(ThresholdsPathCandidates& result,
 	                  const EventWatcher& watch_events) const override;
 

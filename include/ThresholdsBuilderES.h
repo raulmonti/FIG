@@ -95,7 +95,7 @@ protected:
 	std::shared_ptr< const ImportanceFunction > impFun_;
 
 	/// Simulator for the internal Fixed Effort runs
-	std::unique_ptr< SimulationEngineFixedEffort > simulator_;
+	std::unique_ptr< SimulationEngineFixedEffort > internalSimulator_;
 
 	/// (Temporal) Map from importance to threshold-levels,
 	/// storing the thresholds currently under consideration
@@ -145,7 +145,7 @@ private:  // Class utils
 	 *       This can be generalised to have "still successful Fixed Effort runs"
 	 *       when they don't reach the next importance value but hit a rare event.
 	 *
-	 * @warning Hardcoded to work with SimulationEngineSFE as internal simulator_
+	 * @warning Hardcoded to work with SimulationEngineSFE as internalSimulator_
 	 */
 	void
 	FE_for_ES(const ImportanceVec& reachableImportanceValues,
@@ -240,7 +240,7 @@ private:  // Class utils
 					tlvl += step;
 				step = std::max(1, step/2);
 			}
-			return tlvl;
+			return std::max<short>(0, tlvl);
 	    }
 
 protected:  // Utils for the class and its kin

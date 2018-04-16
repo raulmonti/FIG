@@ -218,6 +218,8 @@ SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun)
 	//       which would cause a circular dependency with build_thresholds
 	// if (!ifun->ready() && !toBuildThresholds_)
 	//        throw_FigException("ImportanceFunction isn't ready for simulations");
+	if (bound())
+		unbind();
 	impFun_ = ifun;
 	impFun_->bind_sim_engine(name());
 	if (impFun_->concrete())

@@ -375,7 +375,7 @@ ImportanceFunction::max_thresholds_effort(bool dryrun) const
         throw_FigException("this ImportanceFunction hasn't "
                            "any thresholds built in it yet");
 	else
-		assert(0ul < maxThresholdsEffort_);
+		assert(0ul < maxThresholdsEffort_ || dryrun);
 #endif
 	return dryrun ? (1ul<<3ul) : maxThresholdsEffort_;
 }

@@ -1086,10 +1086,9 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
 	if (engine_ptr->bound() && !force)
 		throw_FigException("simulation engine \"" + engineName + "\" is still bound to "
 		                   "importance function \"" + engine_ptr->current_imp_fun() + "\"");
-	// Step 1: Make ImportanceFunction acquainted with SimulationEngine
+	// Step 1: Couple the ImportanceFunction and SimulationEngine instances
 	techLog_ << "\nBinding simulation engine \"" << engineName << ""
 	         << "\" to importance function \"" << ifunName << "\"\n";
-	engine_ptr->unbind();
 	engine_ptr->bind(ifun_ptr);
 	assert(engine_ptr->bound());
 	assert(ifunName == engine_ptr->current_imp_fun());
