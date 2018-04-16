@@ -91,7 +91,9 @@ protected:  // Utils for the class and its kin
 	/// @note The \p result will <i>always>/i> contain a single path,
 	///       since this is a <i>greedy version</i> of Fixed Effort which
 	///       ignores paths to the rare event other than the easiest to find.
-	///       Is no path is found, \p result will contain a single empty path.
+	/// @note If no path is found to the rare event, \p result
+	///       will contain a single path whose last element.second == 0.0,
+	///       meaning there is zero probability to reach further up
 	void fixed_effort(ThresholdsPathCandidates& result,
 	                  const EventWatcher& watch_events) const override;
 

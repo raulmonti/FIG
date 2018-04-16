@@ -150,9 +150,9 @@ ThresholdsBuilderES::build_thresholds(std::shared_ptr<const ImportanceFunction> 
 	ImportanceVec thrCandidates = reachable_importance_values();
 	if (thrCandidates.size() < 2ul)  // we must have reached beyond initial importance
 		throw_FigException("ES could not find reachable importance values");
-	const size_t DEFACTO_IMP_RANGE(thrCandidates.size()-1ul);
-	std::vector< float > Pup(DEFACTO_IMP_RANGE);
-	ModelSuite::debug_log("\nFound " + std::to_string(DEFACTO_IMP_RANGE)
+//	const size_t DEFACTO_IMP_RANGE(thrCandidates.size()-1ul);
+//	std::vector< float > Pup(DEFACTO_IMP_RANGE);
+	ModelSuite::debug_log("\nFound " + std::to_string(thrCandidates.size()-1ul)
 	                    + " relevant importance values:");
 	for (auto imp: thrCandidates)
 		ModelSuite::debug_log(" "+std::to_string(imp));
@@ -160,6 +160,7 @@ ThresholdsBuilderES::build_thresholds(std::shared_ptr<const ImportanceFunction> 
 	// Estimate probabilities of going from one (reachable) importance value to the next
 	ModelSuite::debug_log("\nRunning internal Fixed Effort");
 //	TraialsVec traials(get_traials(n_, *impFun, false));
+	std::vector< float > Pup(1, 0.0);
 	FE_for_ES(thrCandidates, Pup);
 	/// @todo TODO embedd following loop fully inside FE_for_ES()
 //	for (size_t m = 1ul ; m < 5ul && 0.0f >= Pup.back() ; m++) {
@@ -279,76 +280,50 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 
 	if (reachableImportanceValues.size() < 2ul)
 		return;  // only one reachable importance value: ES failed!
-//	decltype(Pup)(reachableImportanceValues.size()-1ul, 0.0f).swap(Pup);
-//	assert(Pup.size() == reachableImportanceValues.size()-1ul);
-//	std::fill(begin(Pup), end(Pup), 0.0f);
 
 	SimulationEngineFixedEffort::ThresholdsPathCandidates paths;
 	ThresholdsVec().swap(currentThresholds_);
 	currentThresholds_.reserve(reachableImportanceValues.size());
-	std::for_each(begin(reachableImportanceValues),
-				  end(reachableImportanceValues),
-	              [this](const ImportanceValue& imp)
-	                    { currentThresholds_.emplace_back(imp, 1u); });
-
-
-    // TODO: refactor SimulationEngine to allow running simulations
-    //       with an importance function which has no thresholds.
-    //       That is precisely what we need here: use the SimulationEngineSFE
-    //       to *build the thresholds*, later to be attached to the impFun_
-
-
-
-
-
-
-
-//	    // Hack: Ifun must be tampered with to allow the fixed_effort() runs
-//	    // This data should be overwritten by the ImportanceFunction
-//	    // on return of our build_thresholds() method, invoked by it.
-//	    const size_t effort(8ul);
-//	    const auto maxReachableImportance(reachableImportanceValues.back());
-//	    impFun_->minThresholdsEffort_ = effort;
-//	    impFun_->maxThresholdsEffort_ = effort;
-//	    impFun_->threshold2importance_.reserve(maxReachableImportance);
-//	    for (size_t i = 0ul ; i < maxReachableImportance ; i++)
-//	        impFun_->threshold2importance_.emplace_back(reachableImportanceValues[i], effort);
-//	//    ThresholdsVec(effort, reachableImportanceValues.back()).swap(impFun_->threshold2importance_);
-
+	for (size_t i = 0ul ; i < reachableImportanceValues.size() ; i++)
+		currentThresholds_.emplace_back(reachableImportanceValues[i], 1u);
 	internalSimulator_->property_ = property_.get();
-//    internalSimulator_->use_for_thresholds(true);
 	internalSimulator_->bind(impFun_);
-//    impFun_->readyForSims_ = false;
 
     // Run Fixed Effort a couple of times
 	ModelSuite::tech_log(" [");
 	bool rarePathWasSet(false);
 	for (size_t m = 1ul ; m < 5ul ; m++) {
-		int numAttemptsLeft(1<<8);
+		int numAttemptsLeft(1 << (rarePathWasSet ? 7 : 7+m));
 		do
 			internalSimulator_->fixed_effort(paths, watch_events);
-		while (paths.front().empty() && 0 < --numAttemptsLeft);
+		while (0.0 >= paths.front().back().second && 0 < --numAttemptsLeft);
 		const auto& path(paths.front());
-		ModelSuite::tech_log(path.empty() ? "-" : "+");
-		if (path.empty()) {
-			continue;  // no path to the rare event found in this attempt :(
+		ModelSuite::tech_log(0.0 >= path.back().second ? "-" : "+");
+		if (!rarePathWasSet && 0.0 >= path.back().second) {
+			continue;  // no path to the rare event found yet, try again
 		} else if (!rarePathWasSet) {
 			//\////////////////////////////////////////////////////////////////
 			// First time a path to the rare event is found: Save as *the* path
 			ThresholdsVec().swap(currentThresholds_);
 			currentThresholds_.reserve(path.size());
-			using pair_t = std::remove_reference<decltype(path)>::type::value_type;
-			std::for_each(begin(path), end(path),
-			              [this](const pair_t& p)
-						  { currentThresholds_.emplace_back(p.first, 1.0f/p.second); });
+			double probLvlUp(1.0);
+			for (const auto& p: path) {
+				probLvlUp *= p.second;
+				if (probLvlUp < .5) {
+					const unsigned long effort(std::floor(1.0/probLvlUp));
+					probLvlUp = 1.0 - (1.0/effort - probLvlUp);  // carry
+					assert(0.0 <= probLvlUp && probLvlUp <= 1.0);
+					currentThresholds_.emplace_back(p.first, effort);
+				}
+			}
 			std::vector<float>(path.size(), 0.0f).swap(Pup);
 			rarePathWasSet = true;
 			// TODO: ^^^ heuristic settles on *first* path chosen, a bit risky
 			// TODO: ^^^ heuristic hardcoded for SimulationEngineSFE: Generalise!
 			//\////////////////////////////////////////////////////////////////
 		}
-		assert(path.size() == Pup.size());
-		for (size_t i = 0ul ; i < Pup.size() ; i++) {
+		assert(path.size() <= Pup.size());
+		for (size_t i = 0ul ; i < path.size() && 0.0 < path[i].second ; i++) {
 			assert(0.0f < path[i].second);
 			Pup[i] += (path[i].second - Pup[i]) / m;
 		}
@@ -356,55 +331,6 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues,
 	ModelSuite::tech_log("]");
 	internalSimulator_->unbind();
 	internalSimulator_->property_ = nullptr;
-//	auto events_watcher = &fig::ThresholdsBuilderES::FE_watcher;
-//	const size_t N = traials.size();  // effort per level
-//	std::vector< Reference< Traial > > freeNow, freeNext, startNow, startNext;
-//
-//	assert(0ul < N);
-//	if (reachableImportanceValues.size() < 2ul)
-//		return;  // only one reachable importance value: ES failed!
-//	assert(Pup.size() == reachableImportanceValues.size()-1ul);
-//
-//	// Init ADTs
-//	std::fill(begin(Pup), end(Pup), 0.0f);
-//	freeNow.reserve(N);
-//	freeNext.reserve(N);
-//	startNow.reserve(N);
-//	startNext.reserve(N);
-//	for (Traial& t: traials)
-//		startNow.push_back(t.initialise(*model_,*impFun_));
-//
-//	// For each reachable importance value 'i' ...
-//	for (auto i = 0ul ; i < reachableImportanceValues.size()-1ul && !startNow.empty() ; i++) {
-//		const auto& currImp = reachableImportanceValues[i];
-//		// ... run Fixed Effort until the next reachable importance value 'j' > 'i' ...
-//		size_t startNowIdx(0ul);
-//		while ( ! (freeNow.empty() && startNow.empty()) ) {
-//			// (Traial fetching for simulation)
-//			const bool useFree = !freeNow.empty();
-//			Traial& traial( useFree ? freeNow.back() : startNow.back());
-//			if (useFree) {
-//				traial = startNow[startNowIdx].get();  // copy *contents*
-//				++startNowIdx %= std::max(1ul,startNow.size());
-//				freeNow.pop_back();
-//			} else {
-//				startNow.pop_back();
-//			}
-//			// (simulation & bookkeeping)
-//			//assert(traial.level >= currImp || startNow.size() < 2ul);
-//			traial.depth = 0;
-//			traial.numLevelsCrossed = 0;
-//			model_->simulation_step(traial, *property_, *this, events_watcher);
-//			if (traial.level > currImp)
-//				startNext.push_back(traial);
-//			else
-//				freeNext.push_back(traial);
-//		}
-//		// ... and estimate the probability of reaching 'j' from 'i'
-//		Pup[i] = static_cast<float>(startNext.size()) / N;
-//		std::swap(freeNow, freeNext);
-//		std::swap(startNow, startNext);
-//	}
 }
 
 
@@ -429,9 +355,8 @@ ThresholdsBuilderES::artificial_thresholds_selection(
         ImportanceVec& reachableImportanceValues,
         std::vector< float >& Pup) const
 {
-	assert(reachableImportanceValues.size() == Pup.size());
-	assert(Pup.size() == reachableImportanceValues.size()-1ul);
 	ModelSuite::tech_log("\nExpected Success failed");
+	Pup.resize(reachableImportanceValues.size());
 
 	if (reachableImportanceValues.size() < 2ul) {
 		// There's *nothing*, try desperately to build some threshold

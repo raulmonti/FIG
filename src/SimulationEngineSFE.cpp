@@ -252,22 +252,12 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 			                      *impFun_,
 			                      toBuildThresholds_);
 			assert(l <= LVL_MAX);
-
-//			    /// @todo TODO erase debug print
-//			    std::cerr << l << "++";
-
 			pathToRare.emplace_back(l, static_cast<double>(numSuccesses)/LVL_EFFORT);
-//		} else {
-//
-//			    /// @todo TODO erase debug print
-//			    static int cnt(0);
-//				std::cerr << cnt++ << " ";
-
 		}
 	} while (l < LVL_MAX && !traialsNext.empty());
 
 	if (l < LVL_MAX)
-		pathToRare.clear();  // signal we didn't reach the rare event
+		pathToRare.emplace_back(l,0.0);  // signal we didn't reach the rare event
 
 
 //	assert(!pathToRare.empty());

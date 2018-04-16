@@ -189,10 +189,6 @@ private:  // Class utils
 	inline bool
 	FE_watcher(const Property& property, Traial& traial, Event&) const
 	    {
-
-		/// @todo TODO: use currentThresholds_ !!!
-		///       We must decide if we moved one threshold-level higher
-		///       by looking at the ***current thresholds we're considering***
 		    auto newLvl = current_level_of(impFun_->importance_of(traial.state));
 			assert(0 <= newLvl);
 			assert(static_cast<size_t>(newLvl) < currentThresholds_.size());
@@ -202,6 +198,10 @@ private:  // Class utils
 			return /* level-up:     */ traial.depth < 0 ||
 			       /* sim too long: */ traial.numLevelsCrossed > maxSimLen_ ||
 			       /* stop event:   */ property.is_stop(traial.state);
+
+//		/// @todo TODO: use currentThresholds_ !!!
+//		///       We must decide if we moved one threshold-level higher
+//		///       by looking at the ***current thresholds we're considering***
 //		    auto newImp = static_cast<short>(impFun_->importance_of(traial.state));
 //			assert(impFun_->min_value(true) <= static_cast<ImportanceValue>(newImp));
 //			assert(impFun_->max_value(true) >= static_cast<ImportanceValue>(newImp));
