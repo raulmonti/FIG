@@ -43,10 +43,10 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 SimulationEngineFixedEffort::SimulationEngineFixedEffort(
-    const std::string& simEngineName,
-    std::shared_ptr<const ModuleNetwork> model,
-    bool thresholds) :
-        SimulationEngine(simEngineName, model, thresholds)
+	const std::string& simEngineName,
+	std::shared_ptr<const ModuleNetwork> model,
+	bool thresholds) :
+		SimulationEngine(simEngineName, model, thresholds)
 { /* Not much to do around here */ }
 
 

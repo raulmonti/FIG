@@ -132,14 +132,13 @@ private:  // Class utils
 	 * @brief Run Fixed Effort to roughly estimate level-up probabilities
 	 *
 	 *        Do a Fixed Effort run where the threshold-levels are given
-	 *        by the \p reachableImportanceValues.<br>
-	 *        The probabilities of going up from a reachable importance value
-	 *        to the next are stored in the vector of floats.
+	 *        by the \p reachableImportanceValues.
 	 *
 	 * @param reachableImportanceValues Result from reachable_importance_values()
-	 * @param Pup     Vector to fill with the level-up probabilities
 	 *
-	 * @note The effort used per level equals the number of traials provided
+	 * @return Probabilities of going from each reachable importance value to the next
+	 *
+	 * @note The effort to used per level is read from nSims_
 	 * @note We currently disregard rare events below max importance,
 	 *       and we force Fixed Effort to reach the max importance value.<br>
 	 *       This can be generalised to have "still successful Fixed Effort runs"
@@ -147,20 +146,8 @@ private:  // Class utils
 	 *
 	 * @warning Hardcoded to work with SimulationEngineSFE as internalSimulator_
 	 */
-	void
-	FE_for_ES(const ImportanceVec& reachableImportanceValues,
-	          std::vector<float> &Pup) const;
-
-//	/**
-//	 * @brief Build a ThresholdsVec to resemble \p path as the single sequence
-//	 *        of ImportanceValue that can lead to a rare event
-//	 * @param path A sequence of reachable ImportanceValue (and probabilities)
-//	 *             leading from the initial state to some rare state
-//	 * @return A ThresholdsVec (with dummy efforts) resembling the sequence
-//	 *         of ImportanceValue from \p path
-//	 */
-//	ThresholdsVec
-//	set_rare_path(const SimulationEngineFixedEffort::ThresholdsPathProb& path);
+	std::vector<float>
+	FE_for_ES(const ImportanceVec& reachableImportanceValues) const;
 
 	/**
 	 * @brief Artificial selection of thresholds when the algorithm fails
@@ -189,9 +176,10 @@ private:  // Class utils
 	inline bool
 	FE_watcher(const Property& property, Traial& traial, Event&) const
 	    {
-		    auto newLvl = current_level_of(impFun_->importance_of(traial.state));
-			assert(0 <= newLvl);
-			assert(static_cast<size_t>(newLvl) < currentThresholds_.size());
+//			auto newLvl = current_level_of(impFun_->importance_of(traial.state));
+			auto newLvl = impFun_->importance_of(traial.state);
+//			assert(0 <= newLvl);
+//			assert(static_cast<size_t>(newLvl) < currentThresholds_.size());
 			traial.depth -= newLvl - static_cast<short>(traial.level);
 			traial.level = newLvl;
 			traial.numLevelsCrossed++;  // encode here the # steps taken

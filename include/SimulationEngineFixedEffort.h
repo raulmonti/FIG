@@ -81,6 +81,9 @@ protected:
 	static constexpr unsigned BASE_NUM_SIMS = 3u;
 //	static constexpr decltype(effortPerLevel_) BASE_NUM_SIMS = 3ul;
 
+	/// When the engine is intended for threshold building, this might be used
+	unsigned arbitraryLevelEffort;
+
 	/// Stack of \ref Traial "traials" for a batch means mechanism
 	mutable std::vector< Reference< Traial > > traials_;
 
