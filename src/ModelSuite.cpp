@@ -1201,10 +1201,12 @@ ModelSuite::estimate(const Property& property,
 
 	mainLog_ << "RNG algorithm used: " << Clock::rng_type() << "\n";
 	mainLog_ << "Property: " << property.to_string() << ",\n";
-	mainLog_ << " - simulation engine:   " << engine.name() << "\n";
 	mainLog_ << " - importance function: " << user_friendly_ifun_name(ifunSpec) << "\n";
 	mainLog_ << " - post-processing:     " << postProcStr << "\n";
 	mainLog_ << " - threshold builder:   " << ifun.thresholds_technique() << "\n";
+	mainLog_ << " - simulation engine:   " << engine.name() << "\n";
+	mainLog_ << " - RNG seed:            " << Clock::rng_seed()
+			 << (Clock::rng_seed_is_random() ? ("(randomized)\n") : ("\n"));
 	mainLog_ << " [ " << ifun.num_thresholds() << " thresholds | ";
 	mainLog_ << (globalEffort > 0ul
 	             ? ("global effort = " + std::to_string(globalEffort))
@@ -1257,8 +1259,6 @@ ModelSuite::estimate_for_times(const Property& property,
 		        : wallTimeInSeconds);
 		mainLog_ << std::setprecision(0) << std::fixed;
 		mainLog_ << "   Estimation time bound: " << time_formatted_str(timeLimit.count()) << "\n";
-		mainLog_ << "   RNG seed: " << Clock::rng_seed()
-		         << (Clock::rng_seed_is_random() ? (" (randomized)") : (""));
 		mainLog_ << std::endl;
 
 		// Start timer
@@ -1315,17 +1315,15 @@ ModelSuite::estimate_for_confs(const Property& property,
 		Clock::seed_rng();  // restart RNG sequence for this estimation
 
 		// Show simulation run info
-		mainLog_ << "   Confidence level: "
+		mainLog_ << " · Confidence level:    "
 		         << std::setprecision(0) << std::fixed << 100*(confCo) << "%\n";
-		mainLog_ << "   Precision: ";
+		mainLog_ << " · Precision:           ";
 		if (precRel)
 			mainLog_ << std::setprecision(0) << std::fixed << (100*precVal) << "%\n";
 		else
 			mainLog_ << std::setprecision(2) << std::scientific << (2*precVal) << "\n";
 		if (timeout_.count() > 0l)
-			mainLog_ << "   Timeout: " << time_formatted_str(timeout_.count()) << "\n";
-		mainLog_ << "   RNG seed: " << Clock::rng_seed()
-		         << (Clock::rng_seed_is_random() ? (" (randomized)") : (""));
+			mainLog_ << " · Timeout:        " << time_formatted_str(timeout_.count()) << "\n";
 		mainLog_ << std::endl;
 
 		// Start timer

@@ -137,11 +137,6 @@ class ModelSuite
 	/// Whether the single instance of ModelSuite is "empty as new"
 	static bool pristineModel_;
 
-//	/// Default value of global effort for splitting engines
-//	/// @see Threshold
-//	static constexpr unsigned GLOBAL_EFFORT_DEFAULT = 2u;
-	// TODO: delete above
-
 	// Interruptions handling
 
 	/// Signal handler for when we're interrupted (e.g. ^C) mid-estimation
@@ -354,10 +349,6 @@ public:  // Accessors
 	/// Get the global effort used by all Importance Splitting engines
 	/// @see set_global_effort()
 	const unsigned& get_global_effort() const noexcept;
-
-//	/// @copydoc GLOBAL_EFFORT_DEFAULT
-//	inline static unsigned get_default_global_effort() noexcept { return GLOBAL_EFFORT_DEFAULT; }
-	// TODO: delete above
 
 	/// For models translated from a Dynamic Fault Tree specification,
 	/// e.g. GALILEO, this is the user specified probability of observing

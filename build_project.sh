@@ -102,7 +102,7 @@ else
 fi
 
 # Build in release mode? Or in debug mode?
-RELEASE_BUILD=false;
+RELEASE_BUILD=true;
 
 # Cmake build options, see CMakeLists.txt
 #OPTS="$OPTS -DBUILTIN_RNG=ON";
@@ -122,8 +122,8 @@ if [ -z "$NJOBS" ]; then
 	NJOBS=2;
 fi
 mkdir -p $BUILD_DIR && cd $BUILD_DIR;
-#CC=$CC CXX=$CXX cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
-CC=gcc CXX=g++ cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
+CC=$CC CXX=$CXX cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
+#CC=gcc CXX=g++ cmake $CMAKE_DIR $OPTS && make -j$NJOBS && \
 cd $CWD;
 
 # Symlink main executable in current dir and in BUILD_BASE

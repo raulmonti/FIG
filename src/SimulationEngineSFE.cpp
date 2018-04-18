@@ -180,9 +180,7 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 
 	// Init result & internal ADTs
 	ThresholdsPathCandidates(1).swap(result);
-	//assert(result.size() == 1);
 	auto& pathToRare(result.front());
-	//assert(&(*result.begin()) == &pathToRare);
 	pathToRare.reserve(LVL_MAX);
 	traialsNow.reserve(EFF_MAX);
 	traialsNext.reserve(EFF_MAX);
@@ -203,13 +201,6 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 		const size_t LVL_EFFORT =
 				std::max(lvl_effort_min(), toBuildThresholds_ ? arbitraryLevelEffort
 															  : lvl_effort(impFun_->effort_of(l)));
-
-		/// @todo TODO erase debug print
-		static int kkk = 99;
-		if (0 < kkk--)
-			ModelSuite::debug_log("{"+std::to_string(LVL_EFFORT)+"}");
-
-
 		assert(0ul < LVL_EFFORT);
         assert(traialsNow.empty());
         assert(!traialsNext.empty());
@@ -234,8 +225,7 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 		for (auto i = 0ul ; i < LVL_EFFORT ; i++) {
             Traial& traial(traialsNow.back());
 			traialsNow.pop_back();
-			assert(traial.level <  LVL_MAX ||
-				  (traial.level <= LVL_MAX && !toBuildThresholds_));
+			assert(traial.level < LVL_MAX+(toBuildThresholds_?0:1));
 			model_->simulation_step(traial, *property_, watch_events);
 			if (traial.level > l || property_->is_rare(traial.state))
 				numSuccesses++;
@@ -247,13 +237,9 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 				traials_.push_back(traial);
 			}
         }
-        // ... and interpret the results
+		// ... and interpret the results
 		pathToRare.emplace_back(l, static_cast<double>(numSuccesses)/LVL_EFFORT);
-		/// @todo TODO revise whether 'l' (or 'nextLvl'? see below)
-		///            should be emplaced_back in 'pathToRare'
-
 		if (!traialsNext.empty()) {
-
 			auto nextLvl = filter_next_value(traialsNext,
 											 traials_,
 											 reachCountLocal,
@@ -261,90 +247,11 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 											 toBuildThresholds_);
 			assert(l < nextLvl);
 			assert(nextLvl <= LVL_MAX);
-
-
-			/// @todo TODO erase debug print
-			static int lll = 119;
-			if (0 < lll--)
-				ModelSuite::debug_log("."+std::to_string(l)+
-									  "->"+std::to_string(nextLvl)+
-									  "("+std::to_string(pathToRare.back().second)+").");
-
 			l = nextLvl;
 			if (toBuildThresholds_ && l == LVL_MAX)
 				pathToRare.emplace_back(l,1.0);
 		}
-
-		/// @todo TODO erase debug print
-//		else {
-//			ModelSuite::debug_log("Can't go up from lvl "+std::to_string(l)+"\n");
-//		}
-
-	} while (!traialsNext.empty() &&
-				 (( toBuildThresholds_ && l <  LVL_MAX) ||
-				 ( !toBuildThresholds_ && l <= LVL_MAX)));
-
-//	// If we didn't reach the rare event, last probability must be 0.0
-//	assert(l >= LVL_MAX || 0.0 >= pathToRare.back().second);
-
-	/// @todo TODO erase debug print
-	static bool doPrint(true);
-	if (doPrint && l >= LVL_MAX && !toBuildThresholds_) {
-		doPrint = false;
-		ModelSuite::debug_log("\nSuccessful path: ");
-		for (auto p: pathToRare)
-			ModelSuite::debug_log("("+std::to_string(p.first)+
-								  ":"+std::to_string(p.second)+") ");
-		ModelSuite::debug_log("\n");
-	}
-
-//	assert(!pathToRare.empty());
-//	assert(result.front().size() == pathToRare.size());
-//	// For each threshold level 'l' ...
-//	ImportanceValue l;
-//	size_t numSuccesses(1ul);
-//	for (l = LVL_INI ; l < LVL_MAX && 0ul < traialsNext.size() ; l++) {
-//		// ... prepare the Traials to run the simulations ...
-//		numSuccesses = 0ul;
-//		const auto LVL_EFFORT(lvl_effort(impFun_->effort_of(l)));
-//		assert(0 < LVL_EFFORT);
-//		assert(traialsNow.empty());
-//		assert(!traialsNext.empty());
-//		for (auto j = 0ul ; j < LVL_EFFORT ; j++) {
-//			const bool useFresh(j >= traialsNext.size());
-//			Traial& traial(useFresh ? traials_.back() : traialsNext[j]);
-//			if (useFresh) {
-//				traials_.pop_back();
-//				traial = traialsNext[j%traialsNext.size()].get();  // copy *contents*
-//			}
-//			assert(traial.level == l);
-//			traial.depth = 0;
-//			traialsNow.push_back(traial);
-//		}
-//		assert(traialsNow.size() == LVL_EFFORT);
-//		traialsNext.erase(begin(traialsNext),
-//						  begin(traialsNext)+std::min(traialsNext.size(),LVL_EFFORT));
-//		std::move(begin(traialsNext), end(traialsNext), std::back_inserter(traials_));
-//		traialsNext.clear();
-//		// ... run Fixed Effort until the next level 'l+1' ...
-//		do {
-//			Traial& traial(traialsNow.back());
-//			traialsNow.pop_back();
-//			assert(traial.level < LVL_MAX);
-//			reachCount_[traial.level]++;
-//			network.simulation_step(traial, property, *this, event_watcher);
-//			if (traial.level > l) {
-//				numSuccesses++;
-//				traialsNext.push_back(traial);
-//			} else {
-//				if (property.is_rare(traial.state))
-//					numSuccesses++;
-//				traials_.push_back(traial);
-//			}
-//		} while (!traialsNow.empty());
-//		// ... and estimate the probability of reaching 'l+1' from 'l'
-//		Pup[l] = static_cast<double>(numSuccesses) / LVL_EFFORT;
-//	}
+	} while (!traialsNext.empty() && l < LVL_MAX+(toBuildThresholds_?0:1));
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

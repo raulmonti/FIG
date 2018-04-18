@@ -75,9 +75,10 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 	//       the tandem queue and the queue with breaks models, using the
 	//       "ConfidenceIntervalTransient" class for interval construction.
 	static const size_t batch_sizes[NUM_ENGINES][NUM_IMPFUNS] = {
-	    { 1ul<<4, 1ul<<3, 1ul<<8 },  //     nosplit x {concrete_coupled, concrete_split, algebraic
-	    { 1ul<<8, 1ul<<8, 1ul<<8 },  //     restart x {concrete_coupled, concrete_split, algebraic}
-	    { 1ul<<8, 1ul<<9, 1ul<<8 }   // fixedeffort x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<4, 1ul<<3, 1ul<<8 },  // nosplit x {concrete_coupled, concrete_split, algebraic
+		{ 1ul<<8, 1ul<<8, 1ul<<8 },  // restart x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<8, 1ul<<9, 1ul<<8 }   //     sfe x {concrete_coupled, concrete_split, algebraic}
+//		{ 1ul<<8, 1ul<<9, 1ul<<8 }   //     bfe x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -105,14 +106,11 @@ min_run_length(const std::string& engineName, const std::string& ifunName)
 	constexpr size_t NUM_IMPFUNS(fig::ImportanceFunction::NUM_NAMES);
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
-
-
-	///  @todo TODO change fixedeffort below for SFE & BFE
-
 	static const size_t run_lengths[NUM_ENGINES][NUM_IMPFUNS] = {
-	    { 1ul<<15, 1ul<<16, 1ul<<16 },  //     nosplit x {concrete_coupled, concrete_split, algebraic}
-	    { 1ul<<14, 1ul<<14, 1ul<<14 },  //     restart x {concrete_coupled, concrete_split, algebraic}
-	    { 1ul<<12, 1ul<<12, 1ul<<12 }   // fixedeffort x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<15, 1ul<<16, 1ul<<16 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<14, 1ul<<14, 1ul<<14 },  // restart x {concrete_coupled, concrete_split, algebraic}
+		{ 1ul<<12, 1ul<<12, 1ul<<12 }   //     sfe x {concrete_coupled, concrete_split, algebraic}
+//		{ 1ul<<12, 1ul<<12, 1ul<<12 }   //     bfe x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
@@ -142,14 +140,11 @@ increase_run_length(const std::string& engineName,
 	constexpr size_t NUM_IMPFUNS(fig::ImportanceFunction::NUM_NAMES);
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
-
-
-	///  @todo TODO change fixedeffort below for SFE & BFE
-
 	static const float inc_length[NUM_ENGINES][NUM_IMPFUNS] = {
-	    { 1.7f, 1.7f, 1.4f },  //     nosplit x {concrete_coupled, concrete_split, algebraic}
-	    { 1.4f, 1.4f, 1.4f },  //     restart x {concrete_coupled, concrete_split, algebraic}
-	    { 1.4f, 1.4f, 1.4f }   // fixedeffort x {concrete_coupled, concrete_split, algebraic}
+		{ 1.7f, 1.7f, 1.4f },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+		{ 1.4f, 1.4f, 1.4f },  // restart x {concrete_coupled, concrete_split, algebraic}
+		{ 1.4f, 1.4f, 1.4f }   //     sfe x {concrete_coupled, concrete_split, algebraic}
+//		{ 1.4f, 1.4f, 1.4f }   //     bfe x {concrete_coupled, concrete_split, algebraic}
 	};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);

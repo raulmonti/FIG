@@ -58,15 +58,10 @@ class PropertyTransient;
  */
 class SimulationEngineRestart : public SimulationEngine
 {
-//	/// Number of replicas made of a Traial when it crosses a threshold upwards
-//	/// @deprecated Now each threshold level has its own effort;
-//	///             this class member isn't used anymore
-//	unsigned splitsPerThreshold_;
 
 	/// Default number of replicas made of a Traial when it crosses
 	/// a threshold upwards
 	static constexpr unsigned DEFAULT_GLOBAL_EFFORT = 2u;
-//	static inline decltype(splitsPerThreshold_) splitting_default() { return DEFAULT_GLOBAL_EFFORT; }
 
 	/// Number of importance thresholds a simulation run must cross downwards
 	/// (i.e. loosing on importance) to be discarded
@@ -77,7 +72,6 @@ class SimulationEngineRestart : public SimulationEngine
 
 	/// Original Traial for a batch means mechanism
 	Traial& oTraial_;
-//	thread_local Traial& oTraial_;
 
 	/// Stack of \ref Traial "traials" for a batch means mechanism,
 	/// typically used for steady-state simulations
@@ -95,8 +89,6 @@ public:  // Accessors
 
 	inline bool isplit() const noexcept override final { return true; }
 
-//	unsigned global_effort() const noexcept override;
-//
 	/// @copydoc DEFAULT_GLOBAL_EFFORT
 	inline unsigned global_effort_default() const noexcept override { return DEFAULT_GLOBAL_EFFORT; }
 
@@ -109,18 +101,6 @@ public:  // Engine setup
 	/// @note Reinits the \ref ssstack_ "internal ADT" used for batch means
 	/// @see reinit_stack()
 	void bind(std::shared_ptr< const ImportanceFunction >) override;
-
-//	/**
-//	 * Set the number of replicas made of a Traial when it crosses
-//	 * an importance threshold upwards (i.e. gaining on importance)
-//	 * @param spt 1 + number of replicas made; e.g. if spt == 2 then
-//	 *            one replica is made, so that when a Traial crosses
-//	 *            a threshold then two continue: the original Traial
-//	 *            plus the newly created replica
-//	 * @throw FigException if the value is invalid
-//	 * @throw FigException if the engine was \ref lock() "locked"
-//	 */
-//	void set_global_effort(unsigned spt = splitting_default()) override;
 
 	/// @see die_out_depth()
 	/// @throw FigException if the value is invalid

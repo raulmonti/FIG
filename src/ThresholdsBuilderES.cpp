@@ -178,7 +178,7 @@ ThresholdsBuilderES::build_thresholds(std::shared_ptr<const ImportanceFunction> 
 	thresholds_.reserve(effort.size()+2ul);
 	const auto IMP_INI(initial_importance(*impFun));
 	const bool THR_HAS_INI(currentThresholds_.front().first == IMP_INI);
-	thresholds_.emplace_back(IMP_INI, THR_HAS_INI ? effort.front() : 1u);
+	thresholds_.emplace_back(IMP_INI, 1u);
 	for (size_t i = THR_HAS_INI ? 1ul : 0ul ; i < Pup.size() ; i++) {
 		const int thisEffort = std::round(effort[i]);
 		if (1 < thisEffort)
@@ -226,7 +226,6 @@ ThresholdsBuilderES::reachable_importance_values() const
 			const ImportanceValue startImp(traial.level);
 			traial.depth = 0;
 			traial.numLevelsCrossed = 0;
-//			model_->simulation_step(traial, *property_, *this, events_watcher);
 			model_->simulation_step(traial, *property_, watch_events);
 			if (startImp < traial.level) {
 				reachableImpValues.emplace(traial.level);
@@ -292,7 +291,6 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues) c
 		ModelSuite::tech_log(0.0 >= path.back().second ? "-" : "+");
 		if (0.0 >= path.back().second) {
 			continue;  // no path to the rare event found yet, try again
-
 		} else if (!rarePathWasSet) {
 			//\////////////////////////////////////////////////////////////////
 			// First time a path to the rare event is found: Save as *the* path
@@ -307,14 +305,6 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues) c
 				assert(0.0 <= probLvlUp && probLvlUp <= 1.0);
 				currentThresholds_.emplace_back(p.first, effort);
 			}
-
-			/// @todo TODO erase debug print
-			ModelSuite::debug_log("Thresholds considered: ");
-			for (auto t: currentThresholds_)
-				ModelSuite::debug_log(std::to_string(t.first)+","+
-									  std::to_string(t.second)+" | ");
-			ModelSuite::debug_log("\n");
-
 			std::vector<float>(path.size(), 0.0f).swap(Pup);
 			effortPerLevel = std::ceil(1.0/minProbLvlUp);  // maximise effort (this the hardest level-up!)
 			rarePathWasSet = true;
