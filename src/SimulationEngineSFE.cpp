@@ -272,8 +272,9 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 			l = nextLvl;
 		}
 	} while (l < LVL_MAX && !traialsNext.empty());
-	// If we didn't reach the rare event, last probability must be 0.0
-	assert(l >= LVL_MAX || 0.0 >= pathToRare.back().second);
+
+//	// If we didn't reach the rare event, last probability must be 0.0
+//	assert(l >= LVL_MAX || 0.0 >= pathToRare.back().second);
 
 	/// @todo TODO erase debug print
 	static bool doPrint(true);

@@ -68,9 +68,9 @@ class ThresholdsBuilderES : public ThresholdsBuilderAdaptive
 	static constexpr size_t MAX_FEASIBLE_EFFORT = 10ul;
 
 	/// Min # pilot runs launched in the internal Fixed Effort
-	static constexpr size_t MIN_NSIMS = (1ul)<<(8ul);
+	static constexpr size_t MIN_NSIMS = (1ul)<<(9ul);
 	/// Max # pilot runs launched in the internal Fixed Effort
-	static constexpr size_t MAX_NSIMS = (1ul)<<(13ul);
+	static constexpr size_t MAX_NSIMS = (1ul)<<(11ul);
 
 	/// Min # steps allowed for each internal Fixed Effort pilot run
 	static constexpr decltype(Traial::numLevelsCrossed) MIN_SIM_LEN = (1ul)<<(7ul);

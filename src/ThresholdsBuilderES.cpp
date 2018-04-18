@@ -318,8 +318,8 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues) c
 			// TODO: ^^^ heuristic hardcoded for SimulationEngineSFE: Generalise!
 			//\////////////////////////////////////////////////////////////////
 		}
-		assert(path.size() == Pup.size());
-		for (size_t i = 0ul ; i < path.size() && 0.0 < path[i].second ; i++) {
+		assert(path.size() >= Pup.size());
+		for (size_t i = 0ul ; i < Pup.size() && 0.0 < path[i].second ; i++) {
 			assert(0.0f < path[i].second);
 			Pup[i] += (path[i].second - Pup[i]) / m;
 		}
