@@ -263,14 +263,22 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 
 
 			/// @todo TODO erase debug print
-			static int lll = 999;
+			static int lll = 199;
 			if (0 < lll--)
 				ModelSuite::debug_log("."+std::to_string(l)+
 									  "->"+std::to_string(nextLvl)+
 									  "("+std::to_string(pathToRare.back().second)+").");
 
 			l = nextLvl;
+			if (l == LVL_MAX)
+				pathToRare.emplace_back(l,1.0);
 		}
+
+		/// @todo TODO erase debug print
+//		else {
+//			ModelSuite::debug_log("Can't go up from lvl "+std::to_string(l)+"\n");
+//		}
+
 	} while (l < LVL_MAX && !traialsNext.empty());
 
 //	// If we didn't reach the rare event, last probability must be 0.0

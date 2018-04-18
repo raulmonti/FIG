@@ -312,17 +312,15 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues) c
 			ModelSuite::debug_log("\n");
 
 			std::vector<float>(path.size(), 0.0f).swap(Pup);
-			effortPerLevel = std::ceil(1.0/minProbLvlUp);
+			effortPerLevel = std::ceil(1.0/minProbLvlUp);  // maximise effort (this the hardest level-up!)
 			rarePathWasSet = true;
 			// TODO: ^^^ heuristic settles on *first* path chosen, a bit risky
 			// TODO: ^^^ heuristic hardcoded for SimulationEngineSFE: Generalise!
 			//\////////////////////////////////////////////////////////////////
 		}
-		assert(path.size() >= Pup.size());
-		for (size_t i = 0ul ; i < Pup.size() && 0.0 < path[i].second ; i++) {
-			assert(0.0f < path[i].second);
+		assert(path.size() == Pup.size());
+		for (size_t i = 0ul ; i < path.size() && 0.0 < path[i].second ; i++)
 			Pup[i] += (path[i].second - Pup[i]) / m;
-		}
 	}
 	ModelSuite::tech_log("]");
 	internalSimulator_->unbind();
