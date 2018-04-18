@@ -64,13 +64,10 @@ class SimulationEngineFixedEffort;
  */
 class ThresholdsBuilderES : public ThresholdsBuilderAdaptive
 {
-	/// Upper bound for the effort assignable to a threshold-level
-	static constexpr size_t MAX_FEASIBLE_EFFORT = 10ul;
-
 	/// Min # pilot runs launched in the internal Fixed Effort
-	static constexpr size_t MIN_NSIMS = (1ul)<<(9ul);
+	static constexpr size_t MIN_NSIMS = (1ul)<<(8ul);
 	/// Max # pilot runs launched in the internal Fixed Effort
-	static constexpr size_t MAX_NSIMS = (1ul)<<(11ul);
+	static constexpr size_t MAX_NSIMS = (1ul)<<(10ul);
 
 	/// Min # steps allowed for each internal Fixed Effort pilot run
 	static constexpr decltype(Traial::numLevelsCrossed) MIN_SIM_LEN = (1ul)<<(7ul);
@@ -187,10 +184,6 @@ private:  // Class utils
 			return /* level-up:     */ traial.depth < 0 ||
 			       /* sim too long: */ traial.numLevelsCrossed > maxSimLen_ ||
 			       /* stop event:   */ property.is_stop(traial.state);
-
-//		/// @todo TODO: use currentThresholds_ !!!
-//		///       We must decide if we moved one threshold-level higher
-//		///       by looking at the ***current thresholds we're considering***
 	    }
 
 	/// @brief Event-watcher for the ImportanceValue space exploration

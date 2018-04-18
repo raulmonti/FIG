@@ -159,6 +159,8 @@ ThresholdsBuilderES::build_thresholds(std::shared_ptr<const ImportanceFunction> 
 	// Estimate probabilities of going from one (reachable) importance value to the next
 	ModelSuite::debug_log("\nRunning internal Fixed Effort");
 	auto Pup = FE_for_ES(thrCandidates);
+	assert(!currentThresholds_.empty());  // could we build something?
+	assert(!Pup.empty());
 	if (0.0f >= Pup.back())
 		artificial_thresholds_selection(thrCandidates, Pup);
 	debug_print_lvlup(Pup);  // print debug info in tech log
@@ -168,14 +170,16 @@ ThresholdsBuilderES::build_thresholds(std::shared_ptr<const ImportanceFunction> 
 	std::fill(begin(effort), end(effort), static_cast<decltype(effort)::value_type>(0));
 	for (size_t i = 0ul ; i < Pup.size() ; i++) {
 		const auto prev = effort[(i-1)%Pup.size()];
-		effort[i] = 1.0f/Pup[i] + (prev-std::round(prev));  // expected # of sims reaching lvl i
+		effort[i] = 1.0f/Pup[i] + (prev-std::round(prev));  // E [# sims to move up from lvl i]
 	}
 
 	// Select the thresholds based on the effort factors
 	ThresholdsVec().swap(thresholds_);
-	thresholds_.reserve(Pup.size()+2ul);
-	thresholds_.emplace_back(initial_importance(*impFun), 1ul);
-    for (size_t i = 1ul ; i < Pup.size() ; i++) {
+	thresholds_.reserve(effort.size()+2ul);
+	const auto IMP_INI(initial_importance(*impFun));
+	const bool THR_HAS_INI(currentThresholds_.front().first == IMP_INI);
+	thresholds_.emplace_back(IMP_INI, THR_HAS_INI ? effort.front() : 1u);
+	for (size_t i = THR_HAS_INI ? 1ul : 0ul ; i < Pup.size() ; i++) {
 		const int thisEffort = std::round(effort[i]);
 		if (1 < thisEffort)
 			thresholds_.emplace_back(thrCandidates[i], thisEffort);
@@ -318,7 +322,7 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues) c
 			// TODO: ^^^ heuristic hardcoded for SimulationEngineSFE: Generalise!
 			//\////////////////////////////////////////////////////////////////
 		}
-		assert(path.size() == Pup.size());
+		assert(path.size() <= Pup.size());
 		for (size_t i = 0ul ; i < path.size() && 0.0 < path[i].second ; i++)
 			Pup[i] += (path[i].second - Pup[i]) / m;
 	}
@@ -369,7 +373,7 @@ ThresholdsBuilderES::artificial_thresholds_selection(
 		const auto HI = std::max(Pup[i-1], Pup[i-2]),
 		           LO = std::min(Pup[i-1], Pup[i-2]);
 		const double trend = std::pow(LO,2.0)/HI;
-		Pup[i] = std::max(trend, 1.0/MAX_FEASIBLE_EFFORT);  // bound max effort
+		Pup[i] = std::max(trend, 0.1);  // bound max effort
 		if (print)
 			ModelSuite::tech_log(std::to_string(reachableImportanceValues[i-1]));
 		print = false;

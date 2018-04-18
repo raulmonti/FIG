@@ -231,10 +231,11 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 		traialsNext.clear();
 		reachCountLocal.clear();
 		// ... run Fixed Effort until any level > 'l' ...
-        for (auto i = 0ul ; i < LVL_EFFORT ; i++) {
+		for (auto i = 0ul ; i < LVL_EFFORT ; i++) {
             Traial& traial(traialsNow.back());
 			traialsNow.pop_back();
-			assert(traial.level < LVL_MAX);
+			assert(traial.level <  LVL_MAX ||
+				  (traial.level <= LVL_MAX && !toBuildThresholds_));
 			model_->simulation_step(traial, *property_, watch_events);
 			if (traial.level > l || property_->is_rare(traial.state))
 				numSuccesses++;
@@ -263,14 +264,14 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 
 
 			/// @todo TODO erase debug print
-			static int lll = 199;
+			static int lll = 119;
 			if (0 < lll--)
 				ModelSuite::debug_log("."+std::to_string(l)+
 									  "->"+std::to_string(nextLvl)+
 									  "("+std::to_string(pathToRare.back().second)+").");
 
 			l = nextLvl;
-			if (l == LVL_MAX)
+			if (toBuildThresholds_ && l == LVL_MAX)
 				pathToRare.emplace_back(l,1.0);
 		}
 
@@ -279,7 +280,9 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 //			ModelSuite::debug_log("Can't go up from lvl "+std::to_string(l)+"\n");
 //		}
 
-	} while (l < LVL_MAX && !traialsNext.empty());
+	} while (!traialsNext.empty() &&
+				 (( toBuildThresholds_ && l <  LVL_MAX) ||
+				 ( !toBuildThresholds_ && l <= LVL_MAX)));
 
 //	// If we didn't reach the rare event, last probability must be 0.0
 //	assert(l >= LVL_MAX || 0.0 >= pathToRare.back().second);

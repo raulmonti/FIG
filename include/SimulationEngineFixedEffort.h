@@ -69,7 +69,7 @@ protected:
 //	unsigned effortPerLevel_;
 
 	/// Min number of simulations to launch per threshold-level
-	static constexpr unsigned MIN_LEVEL_EFFORT = (1u)<<(4u);  // 16
+	static constexpr unsigned MIN_LEVEL_EFFORT = (1u)<<(3u);  // 8
 
 	/// Default number of simulations launched per threshold-level;
 	/// this is the global variant, where the same effort is used on all levels

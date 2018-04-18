@@ -96,11 +96,11 @@ ThresholdsBuilder::invert_thresholds_map(const ThresholdsVec& t2i) const
 {
 	assert(t2i.size() > 0ul);
 	assert(t2i.back().first > 1ul);
-	const size_t SIZE(t2i.back().first), NTHR(t2i.size()-1);
+	const size_t SIZE(t2i.back().first), NUM_THR(t2i.size()-1);
 	ThresholdsVec i2t(SIZE);
 	unsigned currThr(0ul);
 	for (size_t i = 0ul ; i < SIZE ; i++) {
-		while (currThr < NTHR && i >= t2i[currThr+1].first)
+		while (currThr < NUM_THR && i >= t2i[currThr+1].first)
 			currThr++;
 		i2t[i] = std::make_pair(currThr, t2i[currThr].second);
 	}
