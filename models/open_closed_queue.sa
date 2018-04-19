@@ -1,0 +1,74 @@
+/*
+ * Open/Closed queue system for the FIG tool
+ * Budde, D'Argenio, Hartmanns | 2018
+ *
+ *{-
+ * Concept of the mixed open/closed queueing network:
+ *    l       oq   Server1       |
+ * ----->[···###]-->(m11)---->   |    Open System
+ *                  ( | )        | 
+ *            cq    ( | )        |===================
+ *    +--->[···#]-->(m12)--->+   |
+ *    |                      |   |   Closed System
+ *    |  Server2    cqq      |   |
+ *    +<---(m2)<--[###·]<----+   |
+ *
+ * Open queue 'oq' has capacity b.
+ * Closed queues 'cq' and 'cqq' have capacity N2, where cq+cqq=N2.
+ * Packages arrive at oq with rate 'l'.
+ * Server1 attends packages from oq with rate 'm11' iff cq is empty.
+ * Server1 attends packages from cq with rate 'm12'.
+ * Server2 attends packages from cqq with rate 'm2'.
+ *
+ * Property type: TRANSIENT ("probability of rare event before stop event")
+ * Rare events: oq reaching its maximum capacity b.
+ * Stopping event: oq becoming empty after the first arrival into oq.
+ * Initial state: oq is empty and cq has N2 packages.
+ * Initial clocks: clkArr, clkS2
+ *-}
+ */
+
+// The following values were extracted from Glasserman, Heidelberger,
+// Shahabuddin, and Zajic
+// "Multilevel Splitting For Estimating Rare Event Probabilities",
+// Operations Research, Vol. 47, No. 4, July–August 1999, pp. 585–600
+
+const int b     = 20;   // Open queue (oq) capacity
+const int N2    = 1;    // Closed system (cq+cqq) fixed size
+const float l   = 1.0;  // oq arrival rate
+const float m11 = 4.0;  // oq Server1 rate
+const float m12 = 2.0;  // cq Server1 rate
+const float m2  = 0.5;  // cq Server2 rate
+
+
+module OpenClosedQueue
+	oq: [0..b]  init 0;  // Open   queue
+	cq: [0..N2] init 0;  // Closed queue
+	reset: bool init false;
+	clkArr: clock;  // External arrival
+	clkS11: clock;  // Service open   queue  (de-queue from oq)
+	clkS12: clock;  // Service closed queue  (de-queue from cq)
+	clkS2:  clock;  // Service internal buff (en-queue into cq)
+
+	// Packet arrival: en-queue into oq
+	[] oq  < b           @ clkArr -> (clkArr'= exponential(l)) & (oq'= oq+1);
+	[] oq >= b           @ clkArr -> (clkArr'= exponential(l));
+	// Packet service: de-queue from oq
+	[] oq  > 1           @ clkS11 -> (clkS11'= exponential(m11)) & (oq'= oq-1);
+	[] oq  < 1           @ clkS11 -> (clkS11'= exponential(m11));
+	[] oq == 1 & cq != 0 @ clkS11 -> (clkS11'= exponential(m11)) & (oq'= 0);
+	[] oq == 1 & cq == 0 @ clkS11 -> (clkS11'= exponential(m11)) & (reset'= true);
+	// Internal packet: de-queue from cq
+	[] cq  > 1           @ clkS12 -> (clkS12'= exponential(m12)) & (cq'= cq-1);
+	[] cq  < 1           @ clkS12 -> (clkS12'= exponential(m12));
+	[] cq == 1 & oq != 0 @ clkS12 -> (clkS12'= exponential(m12)) & (cq'= 0);
+	[] cq == 1 & oq == 0 @ clkS12 -> (clkS12'= exponential(m12)) & (reset'= true);
+	// Internal packet: en-queue into cq
+	[] cq  < N2          @ clkS2  -> (clkS2'= exponential(m2)) & (cq'= cq+1);
+	[] cq >= N2          @ clkS2  -> (clkS2'= exponential(m2));
+endmodule
+
+
+properties
+	P( !reset U oq == b )  // "transient"
+endproperties
