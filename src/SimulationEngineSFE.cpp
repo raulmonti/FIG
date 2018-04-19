@@ -55,33 +55,22 @@ typedef fig::SimulationEngine::ReachabilityCount ReachabilityCount;
  *
  *        The vector given as argument contains several Traial instances
  *        that could be the next step of a Fixed Effort sweep.
- *        Check with \p ifun which threshold/importance value occurs most often,
+ *        Check which threshold/importance value occurs most often,
  *        and delete from the vector any Traial with different value.
  *
  * @param traials    Traials to analyse and filter
- * @param traialSink Container where discarded Traials will be placed
  * @param reachCount How often each importance/threshold was reached,
  *                   from among the values that occurr in \p traials
- * @param ifun       Importance function to assess the importance of each Traial
- * @param useImp     Use ImportanceValue rather than threshold-level to filter
  *
  * @return Next step value, viz. ImportanceValue of the chosen (surviving) Traials
  */
 ImportanceValue
 filter_next_value(TraialVec& traials,
-                  TraialVec& traialSink,
-                  const ReachabilityCount& reachCount,
-                  const ImportanceFunction& ifun,
-                  const bool useImportance)
+				  const ReachabilityCount& reachCount)
 {
     assert(!traials.empty());
 	assert(!reachCount.empty());
 	using pair_t = std::remove_reference<decltype(reachCount)>::type::value_type;
-//	using levelof_t = ImportanceValue(ImportanceFunction::*)(const fig::StateInstance&) const;
-//	using namespace std::placeholders;  // _1, _2, ...
-//	auto ifun_level_of = useImportance
-//	        ? std::bind(static_cast<levelof_t>(&ImportanceFunction::importance_of), &ifun, _1)
-//	        : std::bind(static_cast<levelof_t>(&ImportanceFunction::level_of),      &ifun, _1);
 	TraialVec chosenTraials;
     const auto N(traials.size());
     chosenTraials.reserve(N);
@@ -90,16 +79,14 @@ filter_next_value(TraialVec& traials,
 	                                 [](const pair_t& p1, const pair_t& p2)
 	                                 { return p1.second < p2.second; });
 	const auto nextValue(nextStep->first);
-//	const size_t nextValueIndex(nextStep->second);
 	// Filter the traials vectors
     for (auto i = 0ul ; i < N ; i++) {
         Traial& t(traials.back());
         traials.pop_back();
-//		if (ifun_level_of(t.state) == nextValue)
 		if (t.level == nextValue)
 			chosenTraials.push_back(t);
         else
-			traialSink.push_back(t);
+			fig::TraialPool::get_instance().return_traial(std::move(t));
     }
 	assert(traials.empty());
 	assert(!chosenTraials.empty());
@@ -133,20 +120,6 @@ const SimulationEngineFixedEffort::EventWatcher&
 SimulationEngineSFE::get_event_watcher(const Property& property) const
 {
 	using namespace std::placeholders;  // _1, _2, ...
-//	static std::unordered_map< PropertyType,
-//							   Reference< EventWatcher >
-//							 > event_watchers;
-//	if (event_watchers.empty()) {
-//		event_watchers.emplace(PropertyType::TRANSIENT,
-//							   std::bind(&SimulationEngineSFE::transient_event, this, _1, _2, _3));
-//		event_watchers.emplace(PropertyType::RATE,
-//							   std::bind(&SimulationEngineSFE::rate_event, this, _1, _2, _3));
-//	}
-//	if (property.type != PropertyType::TRANSIENT &&
-//		property.type != PropertyType::RATE)
-//		throw_FigException("unsupported property type: "+std::to_string(property.type));
-//	else
-//		return event_watchers[property.type].get();
 	if (property.type == PropertyType::TRANSIENT) {
 		static const EventWatcher& transient_event_watcher(
 					std::bind(&SimulationEngineSFE::transient_event, this, _1, _2, _3));
@@ -155,7 +128,6 @@ SimulationEngineSFE::get_event_watcher(const Property& property) const
 		static const EventWatcher& rate_event_watcher(
 					std::bind(&SimulationEngineSFE::rate_event, this, _1, _2, _3));
 		return rate_event_watcher;
-//		return std::bind(&SimulationEngineSFE::rate_event, this, _1, _2, _3);
 	} else {
 		throw_FigException("unsupported property type: "+std::to_string(property.type));
 	}
@@ -169,28 +141,33 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 	assert(nullptr != impFun_);
 
 	auto lvl_effort = [&](const unsigned& effort){ return effort*base_nsims(); };
-	const size_t LVL_MAX(impFun_->max_value(toBuildThresholds_)),
+	const size_t LVL_MAX(toBuildThresholds_ ? arbitraryMaxLevel : impFun_->max_value()),
 	             LVL_INI(impFun_->initial_value(toBuildThresholds_)),
 				 EFF_MAX(std::max(std::max(
 							lvl_effort_min(),
 							arbitraryLevelEffort),
 							lvl_effort(impFun_->max_thresholds_effort(toBuildThresholds_))));
 	decltype(reachCount_) reachCountLocal(reachCount_);
+	static auto tpool(TraialPool::get_instance());
 	std::vector< Reference< Traial > > traialsNow, traialsNext;
 
 	// Init result & internal ADTs
 	ThresholdsPathCandidates(1).swap(result);
 	auto& pathToRare(result.front());
+	assert(pathToRare.empty());
 	pathToRare.reserve(LVL_MAX);
 	traialsNow.reserve(EFF_MAX);
 	traialsNext.reserve(EFF_MAX);
-	if (traials_.size() < EFF_MAX)
-		TraialPool::get_instance().get_traials(traials_, EFF_MAX-traials_.size());
+//	if (traials_.size() < EFF_MAX)
+//		TraialPool::get_instance().get_traials(traials_, EFF_MAX-traials_.size());
 
 	// Bootstrap the Fixed Effort run
-    traials_.back().get().initialise(*model_, *impFun_);
-	traialsNext.push_back(std::move(traials_.back()));
-    traials_.pop_back();
+	Traial& seedTraial(tpool.get_traial());
+	seedTraial.initialise(*model_, *impFun_);
+	traialsNext.push_back(seedTraial);
+//	traials_.back().get().initialise(*model_, *impFun_);
+//	traialsNext.push_back(std::move(traials_.back()));
+//	traials_.pop_back();
 	size_t numSuccesses;
 	ImportanceValue l(LVL_INI);
 
@@ -206,14 +183,15 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
         assert(!traialsNext.empty());
         for (auto i = 0ul ; i < LVL_EFFORT ; i++) {
             const bool useFresh(i >= traialsNext.size());
-            Traial& traial(useFresh ? traials_.back() : traialsNext[i]);
-            if (useFresh) {
-                traials_.pop_back();
-                traial = traialsNext[i%traialsNext.size()].get();  // copy *contents*
+			Traial& traial(useFresh ? tpool.get_traial() : traialsNext[i].get());
+//            Traial& traial(useFresh ? traials_.back() : traialsNext[i]);
+			if (useFresh) {
+//                traials_.pop_back();
+				traial = traialsNext[i%traialsNext.size()].get();  // copy *contents*
             }
             assert(traial.level == l);
             traial.depth = 0;
-            traialsNow.push_back(traial);
+			traialsNow.push_back(traial);
         }
 		assert(traialsNow.size() == LVL_EFFORT);
 		traialsNext.erase(begin(traialsNext),
@@ -234,24 +212,26 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 				reachCount_[traial.level]++;
 				reachCountLocal[traial.level]++;
 			} else {
-				traials_.push_back(traial);
+				tpool.return_traial(traial);
+//				traials_.push_back(traial);
 			}
         }
+		assert(traialsNow.empty());
 		// ... and interpret the results
 		pathToRare.emplace_back(l, static_cast<double>(numSuccesses)/LVL_EFFORT);
 		if (!traialsNext.empty()) {
-			auto nextLvl = filter_next_value(traialsNext,
-											 traials_,
-											 reachCountLocal,
-											 *impFun_,
-											 toBuildThresholds_);
+			auto nextLvl = filter_next_value(traialsNext, reachCountLocal);
 			assert(l < nextLvl);
 			assert(nextLvl <= LVL_MAX);
 			l = nextLvl;
 			if (toBuildThresholds_ && l == LVL_MAX)
 				pathToRare.emplace_back(l,1.0);
 		}
-	} while (!traialsNext.empty() && l < LVL_MAX+(toBuildThresholds_?0:1));
+	} while (!traialsNext.empty() &&
+			 l < LVL_MAX + (toBuildThresholds_ ? 0 : 1 ));
+
+	tpool.return_traials(traialsNow);
+	tpool.return_traials(traialsNext);
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

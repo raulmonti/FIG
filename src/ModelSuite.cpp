@@ -1206,7 +1206,7 @@ ModelSuite::estimate(const Property& property,
 	mainLog_ << " - threshold builder:   " << ifun.thresholds_technique() << "\n";
 	mainLog_ << " - simulation engine:   " << engine.name() << "\n";
 	mainLog_ << " - RNG seed:            " << Clock::rng_seed()
-			 << (Clock::rng_seed_is_random() ? ("(randomized)\n") : ("\n"));
+			 << (Clock::rng_seed_is_random() ? (" (randomized)\n") : ("\n"));
 	mainLog_ << " [ " << ifun.num_thresholds() << " thresholds | ";
 	mainLog_ << (globalEffort > 0ul
 	             ? ("global effort = " + std::to_string(globalEffort))

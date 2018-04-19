@@ -272,7 +272,9 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues) c
 		currentThresholds_.emplace_back(reachableImportanceValues[i], 1u);
 	internalSimulator_->property_ = property_.get();
 	internalSimulator_->bind(impFun_);
+	auto& maxImportanceLvl = internalSimulator_.get()->arbitraryMaxLevel;
 	auto& effortPerLevel = internalSimulator_.get()->arbitraryLevelEffort;
+	maxImportanceLvl = reachableImportanceValues.back();
 	effortPerLevel = n_;
 
     // Run Fixed Effort a couple of times
@@ -282,8 +284,9 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues) c
 		constexpr int NUM_ATTEMPTS(1<<3);
 		int numAttemptsLeft(NUM_ATTEMPTS);
 		do {
-			const unsigned factor(std::pow(2.0, rarePathWasSet ? 0 : NUM_ATTEMPTS-numAttemptsLeft));
-			effortPerLevel = std::max(effortPerLevel, n_*factor);
+			const unsigned FAIL_BOOST =
+				std::pow(rarePathWasSet ? 1 : NUM_ATTEMPTS-numAttemptsLeft+1, 1.3);
+			effortPerLevel = std::max(effortPerLevel, n_*FAIL_BOOST);
 			internalSimulator_->fixed_effort(paths, watch_events);
 		} while (0.0 >= paths.front().back().second && 0 < --numAttemptsLeft);
 
@@ -306,6 +309,7 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues) c
 				currentThresholds_.emplace_back(p.first, effort);
 			}
 			std::vector<float>(path.size(), 0.0f).swap(Pup);
+			maxImportanceLvl = path.back().first;
 			effortPerLevel = std::ceil(1.0/minProbLvlUp);  // maximise effort (this the hardest level-up!)
 			rarePathWasSet = true;
 			// TODO: ^^^ heuristic settles on *first* path chosen, a bit risky

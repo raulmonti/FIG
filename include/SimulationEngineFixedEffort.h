@@ -84,6 +84,9 @@ protected:
 	/// When the engine is intended for threshold building, this might be used
 	unsigned arbitraryLevelEffort;
 
+	/// When the engine is intended for threshold building, this might be used
+	unsigned arbitraryMaxLevel;
+
 	/// Stack of \ref Traial "traials" for a batch means mechanism
 	mutable std::vector< Reference< Traial > > traials_;
 
