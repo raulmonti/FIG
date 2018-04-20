@@ -146,10 +146,18 @@ trim(const string &s)
 
 
 string
+trim(string& s)
+{
+	s = trim(const_cast<const string&>(s));
+	return s;
+}
+
+
+string
 trim(string&& s)
 {
 	const string s2(s);
-	return trim(s);
+	return trim(s2);
 }
 
 

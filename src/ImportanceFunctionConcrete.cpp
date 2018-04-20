@@ -344,7 +344,7 @@ label_local_states(const State& localState,
                    std::vector< Clause >& otherClauses)
 {
 	std::set< STATE_T > rares;
-	assert(localState.concrete_size().upper() == 0ul);
+	assert(localState.concrete_size() < (1ul<<30ul));  // bad_alloc warning bell
 	cStates.resize(localState.concrete_size().lower());
 
 	// Mark events according to the clauses
@@ -485,6 +485,11 @@ assess_importance_auto(const fig::Module& module,
 	if (split) {
 		// Project the property for this Module's local variables
 		std::tie(rareClauses, otherClauses) = clauses.project(module.initial_state());
+		if (rareClauses.empty() && otherClauses.empty() && relevant.empty()) {
+			// utterly irrelevant module, skip computations
+			return maxImportance;
+		}
+		check_mem_limits(module.concrete_state_size(), module.id());
 		if (rareClauses.empty() && relevant.empty()) {
 			// module is irrelevant for importance but may hold other info
 			label_local_states(module.initial_state(), impVec, property.type,
@@ -492,7 +497,6 @@ assess_importance_auto(const fig::Module& module,
 			return maxImportance;  // skip (futile) importance computation
 		}
 	}
-	check_mem_limits(module.concrete_state_size(), module.id());
 
 	// Step 1: run DFS from initial state to compute reachable reversed edges
 	fig::AdjacencyList reverseEdges = reversed_edges_DFS(module, impVec);

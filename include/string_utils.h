@@ -96,6 +96,9 @@ std::string delete_substring(const std::string& s, const std::string& substr);
 std::string trim(const std::string &s);
 
 /// @copydoc trim
+std::string trim(std::string& s);
+
+/// @copydoc trim
 std::string trim(std::string&& s);
 
 /**
