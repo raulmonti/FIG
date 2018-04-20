@@ -102,7 +102,7 @@ else
 fi
 
 # Build in release mode? Or in debug mode?
-RELEASE_BUILD=false;
+RELEASE_BUILD=true;
 
 # Cmake build options, see CMakeLists.txt
 #OPTS="$OPTS -DBUILTIN_RNG=ON";
