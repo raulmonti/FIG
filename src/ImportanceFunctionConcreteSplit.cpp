@@ -314,9 +314,13 @@ ImportanceFunctionConcreteSplit::info_of(const StateInstance& state) const
 #else
 		localState.extract_from_state_instance(state, globalVarsIPos[i], false);
 #endif
+		if (!isRelevant_[i]) {
+			localValues_[i] = neutralElement_;
+			continue;
+		}
 		const auto& val = modulesConcreteImportance[i][localState.encode()];
 		e |= MASK(val);  // events are marked per-module but affect the global model
-		localValues_[i] = isRelevant_[i] ? UNMASK(val) : neutralElement_;
+		localValues_[i] = UNMASK(val);
     }
 	// Combine those values with the user-defined composition function
 	return e | (ready() ? level_of(userFun_(localValues_))

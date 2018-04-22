@@ -164,27 +164,24 @@ public:  // Ctors/Dtor
 
 public:  // Engine setup
 
-    /**
-     * @brief Couple with an ImportanceFunction for future estimations
-     *
-     *        Attach passed ImportanceFunction, which must be
-     *        \ref ImportanceFunction::ready() "ready for simulations",
-     *        to be used by this engine in estimations to come.
-     *        Any previously bound ImportanceFunction is kicked out.
-     *
-     * @param ifun  ImportanceFunction to use, \ref ImportanceFunction::ready()
-     *              "ready for simulations"
-     * @throw FigException if the ImportanceFunction isn't
-     *                     \ref ImportanceFunction::ready() "ready",
-     *                     or if it is incompatible with this engine
-     * @throw FigException if the engine was \ref lock() "locked"
-     * @see unbind()
-     */
-    virtual void bind(std::shared_ptr< const ImportanceFunction > ifun);
+	/**
+	 * @brief Couple with an ImportanceFunction for future estimations
+	 *
+	 *		Register \p ifun as the ImportanceFunction to use in estimations,
+	 *		and register ourselves into \p ifun as the user engine.
+	 *		Any previously bound ImportanceFunction is kicked out.
+	 *
+	 * @param ifun  ImportanceFunction to bind and be bound to
+	 *
+	 * @throw FigException if \p ifun is incompatible with this engine
+	 * @throw FigException if the engine was \ref lock() "locked"
+	 * @see unbind()
+	 */
+	virtual void bind(std::shared_ptr< const ImportanceFunction > ifun);
 
-	/// Deregister the last ImportanceFunction which was tied to us
-    /// @throw FigException if the engine was \ref lock() "locked"
-    /// @see bind()
+	/// Deregister the last ImportanceFunction coupled to us
+	/// @throw FigException if the engine was \ref lock() "locked"
+	/// @see bind()
 	void unbind();
 
 	/// Set the global effort to use in all threshold-levels
