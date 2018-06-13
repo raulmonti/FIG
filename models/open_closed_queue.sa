@@ -54,9 +54,10 @@ module OpenClosedQueue
 	[] oq  < b           @ clkArr -> (clkArr'= exponential(l)) & (oq'= oq+1);
 	[] oq >= b           @ clkArr -> (clkArr'= exponential(l));
 	// Packet service: de-queue from oq
-	[] oq  > 1           @ clkS11 -> (clkS11'= exponential(m11)) & (oq'= oq-1);
+	[] oq  > 1 & cq != 0 @ clkS11 -> (clkS11'= exponential(m11));
+	[] oq  > 1 & cq == 0 @ clkS11 -> (clkS11'= exponential(m11)) & (oq'= oq-1);
 	[] oq  < 1           @ clkS11 -> (clkS11'= exponential(m11));
-	[] oq == 1 & cq != 0 @ clkS11 -> (clkS11'= exponential(m11)) & (oq'= 0);
+	[] oq == 1 & cq != 0 @ clkS11 -> (clkS11'= exponential(m11));
 	[] oq == 1 & cq == 0 @ clkS11 -> (clkS11'= exponential(m11)) & (reset'= true);
 	// Internal packet: de-queue from cq
 	[] cq  > 1           @ clkS12 -> (clkS12'= exponential(m12)) & (cq'= cq-1);

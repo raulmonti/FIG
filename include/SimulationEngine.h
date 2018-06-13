@@ -195,12 +195,12 @@ protected:  // Engine setup (by ModelSuite)
 	 * @throw FigException if \p ifun is incompatible with this engine
 	 * @throw FigException if the engine was \ref lock() "locked"
 	 * @see unbind()
-     */
-    virtual void bind(std::shared_ptr< const ImportanceFunction > ifun);
+	 */
+	virtual void bind(std::shared_ptr< const ImportanceFunction > ifun);
 
 	/// Deregister the last ImportanceFunction coupled to us
-    /// @throw FigException if the engine was \ref lock() "locked"
-    /// @see bind()
+	/// @throw FigException if the engine was \ref lock() "locked"
+	/// @see bind()
 	void unbind();
 
 //	/// Set the global effort to use in all threshold-levels
