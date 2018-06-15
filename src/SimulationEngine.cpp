@@ -31,8 +31,10 @@
 // C
 #include <cmath>
 #include <ctime>      // clock()
+#include <omp.h>      // omp_get_wtime()
 // C++
 #include <memory>     // std::dynamic_pointer_cast<>
+#include <iomanip>    // std:setprecision()
 #include <sstream>
 #include <iterator>   // std::begin, std::end
 #include <algorithm>  // std::find()
@@ -365,9 +367,22 @@ void
 SimulationEngine::transient_update(ConfidenceIntervalTransient& ci,
 								   const std::vector<double>& weighedNREs) const
 {
+	static const double TIME_FOR_PRINT(M_PI);  // in seconds
+	double thisCallTime(omp_get_wtime());
+	static double lastCallTime(thisCallTime);
 	if (interrupted)
 		return;  // don't update interrupted simulations
 	ci.update(weighedNREs);
+	// Print updated CI if enough time elpased since last print
+	if (thisCallTime-lastCallTime > TIME_FOR_PRINT) {
+		figTechLog << std::setprecision(2) << std::scientific
+				   << "\nEstimate: " << ci.point_estimate()
+				   << " (var="  << ci.estimation_variance()
+				   << ",prec=" << ci.precision(ci.confidence) << ")";
+		figTechLog << std::defaultfloat;
+		//figTechLog << std::setprecision(6) << std::fixed;
+		lastCallTime = thisCallTime;
+	}
 }
 
 
@@ -397,6 +412,13 @@ SimulationEngine::rate_update(ConfidenceIntervalRate& ci,
 		ci.update(thisRate);
 		figTechLog << (rareTime > MIN_ACC_RARE_TIME ? ("+")    // report "success"
 													: ("-"));  // report "failure"
+		// Print updated CI (detailed progress report)
+		figTechLog << std::setprecision(2) << std::scientific
+				   << " Estimate: " << ci.point_estimate()
+				   << " (var=" << ci.estimation_variance()
+				   << ",prec=" << ci.precision(ci.confidence) << ")\n";
+		figTechLog << std::defaultfloat;
+		//figTechLog << std::setprecision(6) << std::fixed;
 	} else {
 		increase_run_length(name_, impFun_->name(), simTime);
 		figTechLog << "*";  // report "discarded"

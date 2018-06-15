@@ -199,7 +199,6 @@ bool print_intro(const int& argc, const char** argv)
 	main_log(" Authors: Budde, Carlos E.  <cbudde@famaf.unc.edu.ar>\n");
 	main_log("          Monti, Raúl E.    <raulmonti88@gmail.com>\n");
 	main_log("          Rodriguez, Leo M. <leonardomatiasrodriguez@gmail.com>\n");
-	main_log("          Lee, Matías D.    <lee@famaf.unc.edu.ar>\n");
 	main_log("\n");
 
 	// Print additional technical info if this is more than a query

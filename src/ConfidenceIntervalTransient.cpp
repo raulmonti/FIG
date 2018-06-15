@@ -58,6 +58,7 @@ ConfidenceIntervalTransient::ConfidenceIntervalTransient(double confidence,
 void
 ConfidenceIntervalTransient::update(const double& weighedNRE)
 {
+	assert(false);
 	prevEstimate_ = estimate_;
 	// Incremental (stable) computation of mean and variance (http://goo.gl/ytk6B)
 	const double delta = abs(weighedNRE - estimate_),
@@ -72,6 +73,8 @@ ConfidenceIntervalTransient::update(const double& weighedNRE)
 	assert(!std::isnan(logVariance_));
 	if (0.0 < M2 && std::isinf(logVariance_))
 		throw_FigException("invalid internal value, overflow?");
+	else
+		variance_ = exp(logVariance_);
 	// Half-width of the new confidence interval
 	halfWidth_ = quantile * sqrt(exp(logVariance_-logNumSamples_));
 }
@@ -97,6 +100,8 @@ ConfidenceIntervalTransient::update(const std::vector<double>& weighedNREs)
 	assert(!std::isnan(logVariance_));
 	if (0.0 < M2 && std::isinf(logVariance_))
 		throw_FigException("invalid internal value, overflow?");
+	else
+		variance_ = exp(logVariance_);
 	// Half-width of the new confidence interval
 	halfWidth_ = quantile * sqrt(exp(logVariance_-logNumSamples_));
 }

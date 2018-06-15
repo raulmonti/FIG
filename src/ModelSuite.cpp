@@ -191,12 +191,13 @@ interrupt_print(const ConfidenceInterval& ci,
 	out << std::setprecision(2) << std::scientific;
 	out << "   · Computed estimate: " << ci.point_estimate() << " ("
 									  << ci.num_samples() << " samples)\n";
+	out << "   · Estimate variance: " << ci.estimation_variance() << endl;
 	for (const float& confCo: confidenceCoefficients) {
         out << "   · " << std::setprecision(0) << std::fixed
             << confCo*100 << "% confidence" << std::endl
             << std::setprecision(2) << std::scientific
-            << "       - precision: "  << ci.precision(confCo) << std::endl
-            << "       - interval: [ " << ci.lower_limit(confCo) << ", "
+			<< "       - precision: "  << ci.precision(confCo) << std::endl
+			<< "       - interval: [ " << ci.lower_limit(confCo) << ", "
                                        << ci.upper_limit(confCo) << "]"
             << std::endl;
     }
@@ -224,9 +225,10 @@ estimate_print(const ConfidenceInterval& ci,
 {
     out << std::endl;
 	out << std::setprecision(2) << std::scientific;
-	out << "   · Computed estimate: " << ci.point_estimate() << " ("
+	out << "   · Computed estimate:  " << ci.point_estimate() << " ("
 									  << ci.num_samples() << " samples)\n";
 	out << std::setprecision(2) << std::scientific;
+	out << "   · Computed variance:  " << ci.estimation_variance() << std::endl;
 	out << "   · Computed precision: " << ci.precision(ci.confidence) << std::endl;
 	out << "   · Precision: " << ci.precision() << std::endl;
 	out << "   · Confidence interval: [ " << ci.lower_limit() << ", "
