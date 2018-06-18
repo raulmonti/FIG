@@ -282,5 +282,6 @@ endmodule
 
 
 properties
+	S( buf == K )  // "rate"
 	P( !reset U buf == K )  // "transient"
 endproperties

@@ -31,7 +31,9 @@
 #include <cmath>   // sqrt(), exp(), erf(), M_constants...
 #include <cassert>
 // C++
-#include <limits>  // std::numeric_limits<>::quiet_NaN
+#include <limits>   // std::numeric_limits<>::quiet_NaN
+#include <ostream>
+#include <iomanip>  // std:setprecision()
 // External code
 #include <gsl_cdf.h>  // gsl_cdf_{ugaussian,tdist}_Pinv()
 #include <gsl_sys.h>  // gsl_finite(), gsl_nan()
@@ -220,6 +222,22 @@ ConfidenceInterval::reset(bool fullReset) noexcept
 		statOversample_ = 1.0;
 		varCorrection_ = 1.0;
 	}
+}
+
+
+void ConfidenceInterval::print(std::ostream& out,
+                               unsigned printPrecision,
+                               bool printScientific)
+{
+	if (printScientific)
+		out << std::setprecision(2) << std::scientific;
+	else
+		out << std::setprecision(printPrecision);
+	out << "Estimate: " << point_estimate()
+	    << " (var="  << estimation_variance()
+	    << ",prec=" << precision(confidence) << ")";
+	out << std::defaultfloat;
+	//out << std::setprecision(6) << std::fixed;
 }
 
 

@@ -85,7 +85,7 @@ protected:  // Attributes for simulation update policies
     /// in rare states to consider a simulation "good"
     /// @note Relevant for steady-state-like simulations only
     /// @warning Value is arbitrary af
-    static constexpr double MIN_ACC_RARE_TIME = 0.3;
+	static constexpr double MIN_ACC_RARE_TIME = 1E-5;
 
     /// Upper bound of CPU time (seconds) for a single simulation.
     /// If simulations take longer than this then the update policies
@@ -93,7 +93,7 @@ protected:  // Attributes for simulation update policies
     /// @note This doesn't imply truncation: simulations running longer than
     ///       MAX_CPU_TIME seconds <b>won't</b> be stopped prematurely.
     /// @warning Value is arbitrary af
-    static constexpr long MAX_CPU_TIME = 120l;
+	static constexpr long MAX_CPU_TIME = 8l;
 
     /// Maximum simulation-time units any Traial is allowed to accumulate
     /// before having its lifetime reset
@@ -203,16 +203,6 @@ protected:  // Engine setup (by ModelSuite)
 	/// @see bind()
 	void unbind();
 
-//	/// Set the global effort to use in all threshold-levels
-//	/// @note Relevant only for the Importance Splitting engines
-//	/// @see global_effort()
-//	/// @see ModelSuite::set_global_effort()
-//	virtual void set_global_effort(unsigned) = 0;
-//
-//	/// Set the engine-specific default global effort
-//	/// @see set_global_effort()
-//	inline void set_global_effort() { set_global_effort(global_effort_default()); }
-
 private:  // Engine setup (by ModelSuite)
 
     /**
@@ -289,9 +279,6 @@ public:  // Accessors
 	 * @see ThresholdsBuilderES
 	 */
 	virtual unsigned global_effort_default() const noexcept = 0;
-
-//	/// Set an engine-specific value for the global effort
-//	virtual unsigned global_effort() const noexcept = 0;
 
 	/// @copydoc reachCount_
 	inline decltype(reachCount_) get_reach_counts() const noexcept { return reachCount_; }

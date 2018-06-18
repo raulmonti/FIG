@@ -228,6 +228,14 @@ public:  // Utils
 	///                  "variance correction" values currently held
 	virtual void reset(bool fullReset = false) noexcept;
 
+	/// Print current estimate, variance, and precision in a line of \p out
+	/// @param out              Out-stream to use for printing
+	/// @param printPrecision   Print with specified floating point precision
+	/// @param printScientific  Use scientific notation print (ignores printPrecision)
+	void print(std::ostream& out,
+	           unsigned printPrecision = 6u,
+	           bool printScientific = true);
+
 protected:
 
 	/**

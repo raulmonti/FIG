@@ -34,7 +34,6 @@
 #include <omp.h>      // omp_get_wtime()
 // C++
 #include <memory>     // std::dynamic_pointer_cast<>
-#include <iomanip>    // std:setprecision()
 #include <sstream>
 #include <iterator>   // std::begin, std::end
 #include <algorithm>  // std::find()
@@ -159,6 +158,24 @@ increase_run_length(const std::string& engineName,
 	runLength *= inc_length[std::distance(begin(engineNames), engineIt)]
 						   [std::distance(begin(ifunNames), ifunIt)];
 }
+
+//
+//	/// Print the latest estimate from the simulations
+//	CI_print(fig::ConfidenceInterval ci,
+//	         std::ostream out,
+//	         int precisionPrint = 2,
+//	         bool scientificPrint = true)
+//	{
+//		if (scientificPrint)
+//			out << std::setprecision(2) << std::scientific;
+//		else
+//			out << std::setprecision(precisionPrint);
+//		out << "\nEstimate: " << ci.point_estimate()
+//		    << " (var="  << ci.estimation_variance()
+//		    << ",prec=" << ci.precision(ci.confidence) << ")";
+//		out << std::defaultfloat;
+//		//out << std::setprecision(6) << std::fixed;
+//	}
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
 
@@ -367,22 +384,31 @@ void
 SimulationEngine::transient_update(ConfidenceIntervalTransient& ci,
 								   const std::vector<double>& weighedNREs) const
 {
-	static const double TIME_FOR_PRINT(M_PI);  // in seconds
-	double thisCallTime(omp_get_wtime());
-	static double lastCallTime(thisCallTime);
 	if (interrupted)
 		return;  // don't update interrupted simulations
+
 	ci.update(weighedNREs);
-	// Print updated CI if enough time elpased since last print
-	if (thisCallTime-lastCallTime > TIME_FOR_PRINT) {
-		figTechLog << std::setprecision(2) << std::scientific
-				   << "\nEstimate: " << ci.point_estimate()
-				   << " (var="  << ci.estimation_variance()
-				   << ",prec=" << ci.precision(ci.confidence) << ")";
-		figTechLog << std::defaultfloat;
-		//figTechLog << std::setprecision(6) << std::fixed;
+
+	// Print updated CI, providing enough time elapsed since last print
+	static constexpr double TIMEOUT_PRINT(M_PI);  // in seconds
+	const bool newCI(ci.num_samples() <= 1ul);
+	const double thisCallTime(omp_get_wtime());
+	static double lastCallTime(newCI ? thisCallTime : lastCallTime);
+	static unsigned cnt(newCI ? 0u : cnt);
+	if (thisCallTime-lastCallTime > TIMEOUT_PRINT) {
+		figTechLog << "\n[" << cnt++ << "] ";
+		ci.print(figTechLog);
 		lastCallTime = thisCallTime;
 	}
+//		CI_print(ci, figTechLog);
+//		figTechLog << std::setprecision(2) << std::scientific
+//				   << "\nEstimate: " << ci.point_estimate()
+//				   << " (var="  << ci.estimation_variance()
+//				   << ",prec=" << ci.precision(ci.confidence) << ")";
+//		figTechLog << std::defaultfloat;
+//		//figTechLog << std::setprecision(6) << std::fixed;
+//		lastCallTime = thisCallTime;
+//	}
 }
 
 
@@ -392,33 +418,38 @@ SimulationEngine::rate_update(ConfidenceIntervalRate& ci,
 							  size_t& simTime,
 							  const long& CPUtime) const
 {
-	// Number of successes requested to acnowledge steady-state behaviour
-	static constexpr size_t NHITS_REQUIRED = 3u;
-	// Number of successes observed in last simulation ran
-	static size_t NHITS(0ul);
-
 	if (interrupted)
 		return;  // don't update interrupted simulations
 
-	// Determine whether we are observing a steady-state behaviour:
-	NHITS = ci.num_samples() <= 0l && NHITS >= NHITS_REQUIRED ? 0ul : NHITS;
-	NHITS += MIN_ACC_RARE_TIME < rareTime ? 1ul : 0ul;
+	// Try to determine whether we are observing steady-state behaviour
+	static constexpr size_t NHITS_REQUIRED = 3u;  // #{"successes"} to acnowledge steady-state behaviour
+	static size_t NHITS(0ul);  // #{"successes"} observed in last simulations
+	const bool RESET(ci.num_samples() <= 0ul && NHITS >= NHITS_REQUIRED);
+	static unsigned cnt(RESET ? 0u : cnt);
+	NHITS = RESET ? 0ul : NHITS;
+	NHITS += rareTime > MIN_ACC_RARE_TIME ? 1ul : 0ul;
+	double thisCallTime(omp_get_wtime());  // time since last update
+	static double lastCallTime(omp_get_wtime());
+	lastCallTime = RESET || lastCallTime<thisCallTime+.001 ? thisCallTime
+	                                                       : lastCallTime;
+	const bool BATCH_TAKES_TOO_LONG(thisCallTime-lastCallTime > MAX_CPU_TIME);
 	const bool isSteadyState = ci.num_samples() > 0l  ||  // yes, this was decided before
-							   CPUtime > MAX_CPU_TIME ||  // yes, time constraints force us
+	                           BATCH_TAKES_TOO_LONG   ||  // yes, time constraints force us
 							   NHITS >= NHITS_REQUIRED;   // yes, we succeeded enough times
 	if (isSteadyState) {
 		// Reduce fp precision loss (is this any good?)
 		const double thisRate(std::exp(std::log(rareTime)-std::log(simTime)));
 		ci.update(thisRate);
-		figTechLog << (rareTime > MIN_ACC_RARE_TIME ? ("+")    // report "success"
-													: ("-"));  // report "failure"
-		// Print updated CI (detailed progress report)
-		figTechLog << std::setprecision(2) << std::scientific
-				   << " Estimate: " << ci.point_estimate()
-				   << " (var=" << ci.estimation_variance()
-				   << ",prec=" << ci.precision(ci.confidence) << ")\n";
-		figTechLog << std::defaultfloat;
-		//figTechLog << std::setprecision(6) << std::fixed;
+		figTechLog << "\n[" << cnt++ << "] ";
+		ci.print(figTechLog);
+//		CI_print(ci, figTechLog);
+//		// Print updated CI (detailed progress report)
+//		figTechLog << std::setprecision(2) << std::scientific
+//		           << "\nEstimate: " << ci.point_estimate()
+//				   << " (var=" << ci.estimation_variance()
+//		           << ",prec=" << ci.precision(ci.confidence) << ")";
+//		figTechLog << std::defaultfloat;
+//		//figTechLog << std::setprecision(6) << std::fixed;
 	} else {
 		increase_run_length(name_, impFun_->name(), simTime);
 		figTechLog << "*";  // report "discarded"

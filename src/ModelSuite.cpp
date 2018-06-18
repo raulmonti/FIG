@@ -1196,7 +1196,6 @@ ModelSuite::estimate(const Property& property,
 		throw_FigException("SimulationEngine \"" + engine.name()
 						  +"\" isn't ready for simulations");
 	const ImportanceFunction& ifun(*impFuns[engine.current_imp_fun()]);
-	const std::string adHocFun(ifun.adhoc_fun());
 	const std::string postProcStr(ifun.post_processing().name.empty()
 			? ("(null)") : (ifun.post_processing().name + " "
 							+ to_string(ifun.post_processing().value)));
