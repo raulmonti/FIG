@@ -159,11 +159,10 @@ void PropertyTransient::print_info(std::ostream &out) const {
 }
 
 void PropertyRate::print_info(std::ostream &out) const {
-    /*out << "PROPERTY-RATE" << std::endl;
-    out << "EXPRESSION:" << this->expression() << std::endl;
-    out << "LEFT-EXPRESSION:" << std::endl;
-    this->expr_.print_info(out);
-    out << "ENDOF-PROPERTY-RATE" << std::endl;*/
+	out << "PROPERTY-RATE" << std::endl;
+	out << "EXPRESSION:" << std::endl;
+	out << this->expr_->to_string() << std::endl;
+	out << "ENDOF-PROPERTY-RATE" << std::endl;
 }
 
 void ModelSuite::print_info(std::ostream &out) const {

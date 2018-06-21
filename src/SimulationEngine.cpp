@@ -159,24 +159,6 @@ increase_run_length(const std::string& engineName,
 						   [std::distance(begin(ifunNames), ifunIt)];
 }
 
-//
-//	/// Print the latest estimate from the simulations
-//	CI_print(fig::ConfidenceInterval ci,
-//	         std::ostream out,
-//	         int precisionPrint = 2,
-//	         bool scientificPrint = true)
-//	{
-//		if (scientificPrint)
-//			out << std::setprecision(2) << std::scientific;
-//		else
-//			out << std::setprecision(precisionPrint);
-//		out << "\nEstimate: " << ci.point_estimate()
-//		    << " (var="  << ci.estimation_variance()
-//		    << ",prec=" << ci.precision(ci.confidence) << ")";
-//		out << std::defaultfloat;
-//		//out << std::setprecision(6) << std::fixed;
-//	}
-
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
 
 
@@ -359,9 +341,8 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 		size_t runLength = min_run_length(name(), impFun_->name());
 		bool firstRun(true);
 		do {
-			std::clock_t t0 = std::clock();
 			auto value = rate_simulation(pRate, runLength, firstRun);  // use batch-means
-			rate_update(ciRate, value, runLength, (std::clock()-t0)/CLOCKS_PER_SEC);
+			rate_update(ciRate, value, runLength);
 			firstRun = false;
 		} while ( ! (interrupted || ci.is_valid()) );
 		} break;
@@ -391,32 +372,23 @@ SimulationEngine::transient_update(ConfidenceIntervalTransient& ci,
 
 	// Print updated CI, providing enough time elapsed since last print
 	static constexpr double TIMEOUT_PRINT(M_PI);  // in seconds
-	const bool newCI(ci.num_samples() <= 1ul);
+	static unsigned cnt(0u);
+	const bool newCI(ci.num_samples() < 1l);
 	const double thisCallTime(omp_get_wtime());
 	static double lastCallTime(newCI ? thisCallTime : lastCallTime);
-	static unsigned cnt(newCI ? 0u : cnt);
+	cnt = newCI ? 0u : cnt;
 	if (thisCallTime-lastCallTime > TIMEOUT_PRINT) {
 		figTechLog << "\n[" << cnt++ << "] ";
 		ci.print(figTechLog);
 		lastCallTime = thisCallTime;
 	}
-//		CI_print(ci, figTechLog);
-//		figTechLog << std::setprecision(2) << std::scientific
-//				   << "\nEstimate: " << ci.point_estimate()
-//				   << " (var="  << ci.estimation_variance()
-//				   << ",prec=" << ci.precision(ci.confidence) << ")";
-//		figTechLog << std::defaultfloat;
-//		//figTechLog << std::setprecision(6) << std::fixed;
-//		lastCallTime = thisCallTime;
-//	}
 }
 
 
 void
 SimulationEngine::rate_update(ConfidenceIntervalRate& ci,
 							  const double& rareTime,
-							  size_t& simTime,
-							  const long& CPUtime) const
+                              size_t& simTime) const
 {
 	if (interrupted)
 		return;  // don't update interrupted simulations
@@ -424,8 +396,10 @@ SimulationEngine::rate_update(ConfidenceIntervalRate& ci,
 	// Try to determine whether we are observing steady-state behaviour
 	static constexpr size_t NHITS_REQUIRED = 3u;  // #{"successes"} to acnowledge steady-state behaviour
 	static size_t NHITS(0ul);  // #{"successes"} observed in last simulations
-	const bool RESET(ci.num_samples() <= 0ul && NHITS >= NHITS_REQUIRED);
-	static unsigned cnt(RESET ? 0u : cnt);
+	static unsigned cnt(0u);
+	const bool newCI(ci.num_samples() < 1l);
+	const bool RESET(newCI && NHITS >= NHITS_REQUIRED);
+	cnt = newCI ? 0u : cnt;
 	NHITS = RESET ? 0ul : NHITS;
 	NHITS += rareTime > MIN_ACC_RARE_TIME ? 1ul : 0ul;
 	double thisCallTime(omp_get_wtime());  // time since last update
@@ -433,7 +407,7 @@ SimulationEngine::rate_update(ConfidenceIntervalRate& ci,
 	lastCallTime = RESET || lastCallTime<thisCallTime+.001 ? thisCallTime
 	                                                       : lastCallTime;
 	const bool BATCH_TAKES_TOO_LONG(thisCallTime-lastCallTime > MAX_CPU_TIME);
-	const bool isSteadyState = ci.num_samples() > 0l  ||  // yes, this was decided before
+	const bool isSteadyState = !newCI                 ||  // yes, this was decided before
 	                           BATCH_TAKES_TOO_LONG   ||  // yes, time constraints force us
 							   NHITS >= NHITS_REQUIRED;   // yes, we succeeded enough times
 	if (isSteadyState) {
@@ -442,14 +416,6 @@ SimulationEngine::rate_update(ConfidenceIntervalRate& ci,
 		ci.update(thisRate);
 		figTechLog << "\n[" << cnt++ << "] ";
 		ci.print(figTechLog);
-//		CI_print(ci, figTechLog);
-//		// Print updated CI (detailed progress report)
-//		figTechLog << std::setprecision(2) << std::scientific
-//		           << "\nEstimate: " << ci.point_estimate()
-//				   << " (var=" << ci.estimation_variance()
-//		           << ",prec=" << ci.precision(ci.confidence) << ")";
-//		figTechLog << std::defaultfloat;
-//		//figTechLog << std::setprecision(6) << std::fixed;
 	} else {
 		increase_run_length(name_, impFun_->name(), simTime);
 		figTechLog << "*";  // report "discarded"

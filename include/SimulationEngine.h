@@ -433,7 +433,6 @@ private:  // Class utils
 	 * @param ci       ConfidenceInterval to update <b>(modified)</b>
 	 * @param rareTime Simulation-time units spent on rare states in the last simulation
 	 * @param simTime  Total simulation-time units spent in last simulation <b>(modified)</b>
-	 * @param CPUtime  Processor time used in last simulation, in seconds
 	 *
 	 * @note Current policy discards the first "not-steady-state" trace
 	 *       (check source for details)
@@ -443,8 +442,7 @@ private:  // Class utils
 	 */
 	void rate_update(ConfidenceIntervalRate& ci,
 					 const double& rareTime,
-					 size_t& simTime,
-					 const long& CPUtime) const;
+	                 size_t& simTime) const;
 };
 
 } // namespace fig

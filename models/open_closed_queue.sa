@@ -71,7 +71,7 @@ endmodule
 
 
 properties
+	S( oq >= b/2 )  // "rate"
 	S( oq == b )  // "rate"
-	S( oq > b/2.0 )  // "rate"
 	P( !reset U oq == b )  // "transient"
 endproperties
