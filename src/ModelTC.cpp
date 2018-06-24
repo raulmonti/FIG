@@ -876,8 +876,8 @@ void ModelTC::visit(shared_ptr<BinOpExp> exp) {
     ExpOp op = exp->get_operator();
     vector<BinaryOpTy> types = Operator::binary_types(op);
     auto ty_gt = [] (const BinaryOpTy& ty1, const BinaryOpTy& ty2) {
-        return (ty2 < ty1);
-    };
+		return (ty2 < ty1);
+	};
     //sort the type candidates for the operator
     std::sort(types.begin(), types.end(), ty_gt);
     //find a compatible type
@@ -892,8 +892,11 @@ void ModelTC::visit(shared_ptr<BinOpExp> exp) {
         bool ok2 = dummy_check(ty.get_arg2_type(), arg2);
         Type inferred2 = last_type;
         BinaryOpTy inf (inferred1, inferred2, type_expected);
-        if (ty <= inf && ok1 && ok2) {
-            selected = make_shared<BinaryOpTy>(ty);
+//		if (ty <= inf && ok1 && ok2) {
+		/// @bug FIXME Enforced type *equality* due to Issue #12
+		///            [https://git.cs.famaf.unc.edu.ar/dsg/fig/issues/12]
+		if (ty == inf && ok1 && ok2) {
+			selected = make_shared<BinaryOpTy>(ty);
         }
         i++;
     }

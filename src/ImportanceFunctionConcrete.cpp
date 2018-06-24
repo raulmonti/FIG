@@ -127,7 +127,9 @@ reversed_edges_DFS(const fig::Module& module,
 
 	assert(NOT_VISITED != VISITED);
 	assert(visits.empty());
-	assert(module.concrete_state_size().upper() == 0ul);
+	if (module.concrete_state_size().upper() > 0ul)
+		throw_FigException("This concrete state space is too big to build "
+						   "an importance function for it -- Aborting.");
 
 	// STL's forward_list is the perfect stack
 	std::forward_list< size_t > toVisit;
