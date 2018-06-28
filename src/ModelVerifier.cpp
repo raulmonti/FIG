@@ -470,7 +470,7 @@ void ModelVerifier::check_label_compatible(shared_ptr<Model> model){
                                  + " do not agree on whether label <" 
                                  + it.first + "> is committed or not.");
                     }
-                }catch(std::out_of_range){
+				}catch(std::out_of_range&){
                     ;
                 }
             }

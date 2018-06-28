@@ -110,10 +110,8 @@ SECTION("Steady-state: standard MC")
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	REQUIRE(model.exists_rng(rng));
 	// Prepare engine
-	model.set_global_effort(1);
 	model.build_importance_function_flat(nameIFun, ssPropId, true);
-	model.build_thresholds(nameThr, nameIFun, ssPropId);
-	auto engine = model.prepare_simulation_engine(nameEngine, nameIFun);
+	auto engine = model.prepare_simulation_engine(nameEngine, nameIFun, nameThr, ssPropId);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
 	model.set_rng(rng, 0ul);
@@ -123,7 +121,7 @@ SECTION("Steady-state: standard MC")
 	confCrit.add_confidence_criterion(confCo, prec);
 	model.set_timeout(15);  // don't estimate for that long a time
 	// Estimate
-	model.estimate(ssPropId, *engine, confCrit);
+	model.estimate(ssPropId, *engine, confCrit, fig::ImpFunSpec(nameIFun, "flat"));
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();
@@ -146,10 +144,9 @@ SECTION("Steady-state: RESTART, ad hoc, hyb")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_global_effort(6);
+	model.set_global_effort(6, nameEngine);
 	model.build_importance_function_adhoc(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
-	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, ssPropId);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
 	auto rng = model.available_RNGs().back();
@@ -161,7 +158,7 @@ SECTION("Steady-state: RESTART, ad hoc, hyb")
 	confCrit.add_confidence_criterion(confCo, prec);
 	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
 	// Estimate
-	model.estimate(ssPropId, *engine, confCrit);
+	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();
@@ -184,10 +181,9 @@ SECTION("Steady-state: RESTART, compositional (+ operator), es")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_global_effort();
+	model.set_global_effort(2, nameEngine);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
-	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, ssPropId);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
 	auto rng = model.available_RNGs().front();
@@ -199,7 +195,7 @@ SECTION("Steady-state: RESTART, compositional (+ operator), es")
 	confCrit.add_confidence_criterion(confCo, prec);
 	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
 	// Estimate
-	model.estimate(ssPropId, *engine, confCrit);
+	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();
@@ -224,10 +220,9 @@ SECTION("Steady-state: RESTART, compositional (coarse ifun), hyb")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_global_effort(12);
+	model.set_global_effort(12, nameEngine);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
-	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, ssPropId);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
 	auto rng = model.available_RNGs().front();
@@ -239,7 +234,7 @@ SECTION("Steady-state: RESTART, compositional (coarse ifun), hyb")
 	confCrit.add_confidence_criterion(confCo, prec);
 	model.set_timeout(std::chrono::minutes(2));  // estimate for 2 min max
 	// Estimate
-	model.estimate(ssPropId, *engine, confCrit);
+	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();
@@ -264,10 +259,9 @@ SECTION("Steady-state: RESTART, compositional ([+,*] ring), es")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_global_effort();
+	model.set_global_effort(2, nameEngine);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name, ssPropId);
-	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, ssPropId);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
 	auto rng = model.available_RNGs().back();
@@ -279,7 +273,7 @@ SECTION("Steady-state: RESTART, compositional ([+,*] ring), es")
 	confCrit.add_confidence_criterion(confCo, prec);
 	model.set_timeout(360);  // 6 min
 	// Estimate
-	model.estimate(ssPropId, *engine, confCrit);
+	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();

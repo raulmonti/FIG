@@ -1229,12 +1229,13 @@ ModelSuite::estimate(const Property& property,
 void
 ModelSuite::estimate(const size_t& propertyIndex,
 					 const SimulationEngine& engine,
-					 const StoppingConditions& bounds) const
+                     const StoppingConditions& bounds,
+                     const ImpFunSpec ifunSpec) const
 {
 	auto propertyPtr = get_property(propertyIndex);
 	if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
-	estimate(*propertyPtr, engine, bounds);
+	estimate(*propertyPtr, engine, bounds, ifunSpec);
 }
 
 

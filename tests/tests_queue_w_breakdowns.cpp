@@ -100,10 +100,8 @@ SECTION("Transient: standard MC")
 	REQUIRE(model.exists_importance_function(nameIFun));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_global_effort(1);
 	model.build_importance_function_flat(nameIFun, trPropId, true);
-	model.build_thresholds(nameThr, nameIFun, trPropId);
-	auto engine = model.prepare_simulation_engine(nameEngine, nameIFun);
+	auto engine = model.prepare_simulation_engine(nameEngine, nameIFun, nameThr, trPropId);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
 	auto rng = model.available_RNGs().back();
@@ -114,7 +112,7 @@ SECTION("Transient: standard MC")
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
 	// Estimate
-	model.estimate(trPropId, *engine, confCrit);
+	model.estimate(trPropId, *engine, confCrit, fig::ImpFunSpec(nameIFun, "flat"));
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();
@@ -133,10 +131,9 @@ SECTION("Transient: RESTART, ad hoc, es")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_global_effort();
+	model.set_global_effort(2, nameEngine);
 	model.build_importance_function_adhoc(ifunSpec, trPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name, trPropId);
-	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, trPropId);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
 	auto rng = model.available_RNGs().back();
@@ -148,7 +145,7 @@ SECTION("Transient: RESTART, ad hoc, es")
 	confCrit.add_confidence_criterion(confCo, prec);
 	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
 	// Estimate
-	model.estimate(trPropId, *engine, confCrit);
+	model.estimate(trPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();
@@ -169,10 +166,9 @@ SECTION("Transient: RESTART, monolithic, hyb")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_global_effort(2);
+	model.set_global_effort(2, nameEngine);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name, trPropId);
-	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, trPropId);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
 	auto rng = model.available_RNGs().front();
@@ -181,7 +177,7 @@ SECTION("Transient: RESTART, monolithic, hyb")
 	fig::StoppingConditions timeBound;
 	timeBound.add_time_budget(30);  // estimate for 30 seconds
 	// Estimate
-	model.estimate(trPropId, *engine, timeBound);
+	model.estimate(trPropId, *engine, timeBound, ifunSpec);
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();
@@ -201,8 +197,7 @@ SECTION("Transient: RESTART, compositional (max operator), es")
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name, trPropId);
-	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, trPropId);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
 	auto rng = model.available_RNGs().back();
@@ -213,7 +208,7 @@ SECTION("Transient: RESTART, compositional (max operator), es")
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
 	// Estimate
-	model.estimate(trPropId, *engine, confCrit);
+	model.estimate(trPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();
@@ -226,7 +221,7 @@ SECTION("Transient: RESTART, compositional (max operator), es")
 
 SECTION("Transient: Fixed Effort, compositional (+ operator), hyb")
 {
-	const string nameEngine("fixedeffort");
+	const string nameEngine("sfe");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "+");
 	const string nameThr("hyb");
 	REQUIRE(model.exists_simulator(nameEngine));
@@ -234,10 +229,9 @@ SECTION("Transient: Fixed Effort, compositional (+ operator), hyb")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_global_effort(3);
+	model.set_global_effort(3, nameEngine);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
-	model.build_thresholds(nameThr, ifunSpec.name, trPropId);
-	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, trPropId);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
 	auto rng = model.available_RNGs().back();
@@ -248,7 +242,7 @@ SECTION("Transient: Fixed Effort, compositional (+ operator), hyb")
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
 	// Estimate
-	model.estimate(trPropId, *engine, confCrit);
+	model.estimate(trPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
 	REQUIRE(results.size() == 1ul);
 	auto ci = results.front();

@@ -30,14 +30,14 @@
 // systems", Simulation, Vol. 83, Issue 12, December 2007, pp. 821-828.
 //
 // Processors
-const int PF = 50;  // Processors' mean time to failure (in hours)
+const float PF = 50;  // Processors' mean time to failure (in hours)
 // unsupported! const double IPF = 0.01;  // Processors' inter-type failure rate
 //
 // Controllers
-const int CF = 50;  // Controllers' mean time to failure (in hours)
+const float CF = 50;  // Controllers' mean time to failure (in hours)
 //
 // Disk clusters
-const int DF = 150;  // Disks' mean time to failure (in hours)
+const float DF = 150;  // Disks' mean time to failure (in hours)
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -52,8 +52,8 @@ module Disk11
 
 	d11f: bool init false;  // Disk failed?
 	d11t: [1..2];           // Failure type
-	d11clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d11clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d11clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d11clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d11clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d11clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -64,11 +64,11 @@ module Disk11
 	                                (d11t'= 2)     &
 	                                (d11clkR2'= exponential(0.5));
 	[] d11f & d11t==1 @ d11clkR1 -> (d11f'= false) &
-	                                (d11clkF1'= exponential(1/(DF*2))) &
-	                                (d11clkF2'= exponential(1/(DF*2)));
+	                                (d11clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d11clkF2'= exponential(1.0/(DF*2.0)));
 	[] d11f & d11t==2 @ d11clkR2 -> (d11f'= false) &
-	                                (d11clkF1'= exponential(1/(DF*2))) &
-	                                (d11clkF2'= exponential(1/(DF*2)));
+	                                (d11clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d11clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -76,8 +76,8 @@ module Disk12
 
 	d12f: bool init false;  // Disk failed?
 	d12t: [1..2];           // Failure type
-	d12clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d12clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d12clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d12clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d12clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d12clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -88,11 +88,11 @@ module Disk12
 	                                (d12t'= 2)     &
 	                                (d12clkR2'= exponential(0.5));
 	[] d12f & d12t==1 @ d12clkR1 -> (d12f'= false) &
-	                                (d12clkF1'= exponential(1/(DF*2))) &
-	                                (d12clkF2'= exponential(1/(DF*2)));
+	                                (d12clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d12clkF2'= exponential(1.0/(DF*2.0)));
 	[] d12f & d12t==2 @ d12clkR2 -> (d12f'= false) &
-	                                (d12clkF1'= exponential(1/(DF*2))) &
-	                                (d12clkF2'= exponential(1/(DF*2)));
+	                                (d12clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d12clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -100,8 +100,8 @@ module Disk13
 
 	d13f: bool init false;  // Disk failed?
 	d13t: [1..2];           // Failure type
-	d13clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d13clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d13clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d13clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d13clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d13clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -112,11 +112,11 @@ module Disk13
 	                                (d13t'= 2)     &
 	                                (d13clkR2'= exponential(0.5));
 	[] d13f & d13t==1 @ d13clkR1 -> (d13f'= false) &
-	                                (d13clkF1'= exponential(1/(DF*2))) &
-	                                (d13clkF2'= exponential(1/(DF*2)));
+	                                (d13clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d13clkF2'= exponential(1.0/(DF*2.0)));
 	[] d13f & d13t==2 @ d13clkR2 -> (d13f'= false) &
-	                                (d13clkF1'= exponential(1/(DF*2))) &
-	                                (d13clkF2'= exponential(1/(DF*2)));
+	                                (d13clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d13clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -124,8 +124,8 @@ module Disk14
 
 	d14f: bool init false;  // Disk failed?
 	d14t: [1..2];           // Failure type
-	d14clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d14clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d14clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d14clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d14clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d14clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -136,11 +136,11 @@ module Disk14
 	                                (d14t'= 2)     &
 	                                (d14clkR2'= exponential(0.5));
 	[] d14f & d14t==1 @ d14clkR1 -> (d14f'= false) &
-	                                (d14clkF1'= exponential(1/(DF*2))) &
-	                                (d14clkF2'= exponential(1/(DF*2)));
+	                                (d14clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d14clkF2'= exponential(1.0/(DF*2.0)));
 	[] d14f & d14t==2 @ d14clkR2 -> (d14f'= false) &
-	                                (d14clkF1'= exponential(1/(DF*2))) &
-	                                (d14clkF2'= exponential(1/(DF*2)));
+	                                (d14clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d14clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -148,8 +148,8 @@ module Disk21
 
 	d21f: bool init false;  // Disk failed?
 	d21t: [1..2];           // Failure type
-	d21clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d21clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d21clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d21clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d21clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d21clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -160,11 +160,11 @@ module Disk21
 	                                (d21t'= 2)     &
 	                                (d21clkR2'= exponential(0.5));
 	[] d21f & d21t==1 @ d21clkR1 -> (d21f'= false) &
-	                                (d21clkF1'= exponential(1/(DF*2))) &
-	                                (d21clkF2'= exponential(1/(DF*2)));
+	                                (d21clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d21clkF2'= exponential(1.0/(DF*2.0)));
 	[] d21f & d21t==2 @ d21clkR2 -> (d21f'= false) &
-	                                (d21clkF1'= exponential(1/(DF*2))) &
-	                                (d21clkF2'= exponential(1/(DF*2)));
+	                                (d21clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d21clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -172,8 +172,8 @@ module Disk22
 
 	d22f: bool init false;  // Disk failed?
 	d22t: [1..2];           // Failure type
-	d22clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d22clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d22clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d22clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d22clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d22clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -184,11 +184,11 @@ module Disk22
 	                                (d22t'= 2)     &
 	                                (d22clkR2'= exponential(0.5));
 	[] d22f & d22t==1 @ d22clkR1 -> (d22f'= false) &
-	                                (d22clkF1'= exponential(1/(DF*2))) &
-	                                (d22clkF2'= exponential(1/(DF*2)));
+	                                (d22clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d22clkF2'= exponential(1.0/(DF*2.0)));
 	[] d22f & d22t==2 @ d22clkR2 -> (d22f'= false) &
-	                                (d22clkF1'= exponential(1/(DF*2))) &
-	                                (d22clkF2'= exponential(1/(DF*2)));
+	                                (d22clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d22clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -196,8 +196,8 @@ module Disk23
 
 	d23f: bool init false;  // Disk failed?
 	d23t: [1..2];           // Failure type
-	d23clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d23clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d23clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d23clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d23clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d23clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -208,11 +208,11 @@ module Disk23
 	                                (d23t'= 2)     &
 	                                (d23clkR2'= exponential(0.5));
 	[] d23f & d23t==1 @ d23clkR1 -> (d23f'= false) &
-	                                (d23clkF1'= exponential(1/(DF*2))) &
-	                                (d23clkF2'= exponential(1/(DF*2)));
+	                                (d23clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d23clkF2'= exponential(1.0/(DF*2.0)));
 	[] d23f & d23t==2 @ d23clkR2 -> (d23f'= false) &
-	                                (d23clkF1'= exponential(1/(DF*2))) &
-	                                (d23clkF2'= exponential(1/(DF*2)));
+	                                (d23clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d23clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -220,8 +220,8 @@ module Disk24
 
 	d24f: bool init false;  // Disk failed?
 	d24t: [1..2];           // Failure type
-	d24clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d24clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d24clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d24clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d24clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d24clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -232,11 +232,11 @@ module Disk24
 	                                (d24t'= 2)     &
 	                                (d24clkR2'= exponential(0.5));
 	[] d24f & d24t==1 @ d24clkR1 -> (d24f'= false) &
-	                                (d24clkF1'= exponential(1/(DF*2))) &
-	                                (d24clkF2'= exponential(1/(DF*2)));
+	                                (d24clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d24clkF2'= exponential(1.0/(DF*2.0)));
 	[] d24f & d24t==2 @ d24clkR2 -> (d24f'= false) &
-	                                (d24clkF1'= exponential(1/(DF*2))) &
-	                                (d24clkF2'= exponential(1/(DF*2)));
+	                                (d24clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d24clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -244,8 +244,8 @@ module Disk31
 
 	d31f: bool init false;  // Disk failed?
 	d31t: [1..2];           // Failure type
-	d31clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d31clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d31clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d31clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d31clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d31clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -256,11 +256,11 @@ module Disk31
 	                                (d31t'= 2)     &
 	                                (d31clkR2'= exponential(0.5));
 	[] d31f & d31t==1 @ d31clkR1 -> (d31f'= false) &
-	                                (d31clkF1'= exponential(1/(DF*2))) &
-	                                (d31clkF2'= exponential(1/(DF*2)));
+	                                (d31clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d31clkF2'= exponential(1.0/(DF*2.0)));
 	[] d31f & d31t==2 @ d31clkR2 -> (d31f'= false) &
-	                                (d31clkF1'= exponential(1/(DF*2))) &
-	                                (d31clkF2'= exponential(1/(DF*2)));
+	                                (d31clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d31clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -268,8 +268,8 @@ module Disk32
 
 	d32f: bool init false;  // Disk failed?
 	d32t: [1..2];           // Failure type
-	d32clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d32clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d32clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d32clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d32clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d32clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -280,11 +280,11 @@ module Disk32
 	                                (d32t'= 2)     &
 	                                (d32clkR2'= exponential(0.5));
 	[] d32f & d32t==1 @ d32clkR1 -> (d32f'= false) &
-	                                (d32clkF1'= exponential(1/(DF*2))) &
-	                                (d32clkF2'= exponential(1/(DF*2)));
+	                                (d32clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d32clkF2'= exponential(1.0/(DF*2.0)));
 	[] d32f & d32t==2 @ d32clkR2 -> (d32f'= false) &
-	                                (d32clkF1'= exponential(1/(DF*2))) &
-	                                (d32clkF2'= exponential(1/(DF*2)));
+	                                (d32clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d32clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -292,8 +292,8 @@ module Disk33
 
 	d33f: bool init false;  // Disk failed?
 	d33t: [1..2];           // Failure type
-	d33clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d33clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d33clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d33clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d33clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d33clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -304,11 +304,11 @@ module Disk33
 	                                (d33t'= 2)     &
 	                                (d33clkR2'= exponential(0.5));
 	[] d33f & d33t==1 @ d33clkR1 -> (d33f'= false) &
-	                                (d33clkF1'= exponential(1/(DF*2))) &
-	                                (d33clkF2'= exponential(1/(DF*2)));
+	                                (d33clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d33clkF2'= exponential(1.0/(DF*2.0)));
 	[] d33f & d33t==2 @ d33clkR2 -> (d33f'= false) &
-	                                (d33clkF1'= exponential(1/(DF*2))) &
-	                                (d33clkF2'= exponential(1/(DF*2)));
+	                                (d33clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d33clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -316,8 +316,8 @@ module Disk34
 
 	d34f: bool init false;  // Disk failed?
 	d34t: [1..2];           // Failure type
-	d34clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d34clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d34clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d34clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d34clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d34clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -328,11 +328,11 @@ module Disk34
 	                                (d34t'= 2)     &
 	                                (d34clkR2'= exponential(0.5));
 	[] d34f & d34t==1 @ d34clkR1 -> (d34f'= false) &
-	                                (d34clkF1'= exponential(1/(DF*2))) &
-	                                (d34clkF2'= exponential(1/(DF*2)));
+	                                (d34clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d34clkF2'= exponential(1.0/(DF*2.0)));
 	[] d34f & d34t==2 @ d34clkR2 -> (d34f'= false) &
-	                                (d34clkF1'= exponential(1/(DF*2))) &
-	                                (d34clkF2'= exponential(1/(DF*2)));
+	                                (d34clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d34clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -340,8 +340,8 @@ module Disk41
 
 	d41f: bool init false;  // Disk failed?
 	d41t: [1..2];           // Failure type
-	d41clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d41clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d41clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d41clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d41clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d41clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -352,11 +352,11 @@ module Disk41
 	                                (d41t'= 2)     &
 	                                (d41clkR2'= exponential(0.5));
 	[] d41f & d41t==1 @ d41clkR1 -> (d41f'= false) &
-	                                (d41clkF1'= exponential(1/(DF*2))) &
-	                                (d41clkF2'= exponential(1/(DF*2)));
+	                                (d41clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d41clkF2'= exponential(1.0/(DF*2.0)));
 	[] d41f & d41t==2 @ d41clkR2 -> (d41f'= false) &
-	                                (d41clkF1'= exponential(1/(DF*2))) &
-	                                (d41clkF2'= exponential(1/(DF*2)));
+	                                (d41clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d41clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -364,8 +364,8 @@ module Disk42
 
 	d42f: bool init false;  // Disk failed?
 	d42t: [1..2];           // Failure type
-	d42clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d42clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d42clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d42clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d42clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d42clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -376,11 +376,11 @@ module Disk42
 	                                (d42t'= 2)     &
 	                                (d42clkR2'= exponential(0.5));
 	[] d42f & d42t==1 @ d42clkR1 -> (d42f'= false) &
-	                                (d42clkF1'= exponential(1/(DF*2))) &
-	                                (d42clkF2'= exponential(1/(DF*2)));
+	                                (d42clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d42clkF2'= exponential(1.0/(DF*2.0)));
 	[] d42f & d42t==2 @ d42clkR2 -> (d42f'= false) &
-	                                (d42clkF1'= exponential(1/(DF*2))) &
-	                                (d42clkF2'= exponential(1/(DF*2)));
+	                                (d42clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d42clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -388,8 +388,8 @@ module Disk43
 
 	d43f: bool init false;  // Disk failed?
 	d43t: [1..2];           // Failure type
-	d43clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d43clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d43clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d43clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d43clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d43clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -400,11 +400,11 @@ module Disk43
 	                                (d43t'= 2)     &
 	                                (d43clkR2'= exponential(0.5));
 	[] d43f & d43t==1 @ d43clkR1 -> (d43f'= false) &
-	                                (d43clkF1'= exponential(1/(DF*2))) &
-	                                (d43clkF2'= exponential(1/(DF*2)));
+	                                (d43clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d43clkF2'= exponential(1.0/(DF*2.0)));
 	[] d43f & d43t==2 @ d43clkR2 -> (d43f'= false) &
-	                                (d43clkF1'= exponential(1/(DF*2))) &
-	                                (d43clkF2'= exponential(1/(DF*2)));
+	                                (d43clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d43clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -412,8 +412,8 @@ module Disk44
 
 	d44f: bool init false;  // Disk failed?
 	d44t: [1..2];           // Failure type
-	d44clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d44clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d44clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d44clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d44clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d44clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -424,11 +424,11 @@ module Disk44
 	                                (d44t'= 2)     &
 	                                (d44clkR2'= exponential(0.5));
 	[] d44f & d44t==1 @ d44clkR1 -> (d44f'= false) &
-	                                (d44clkF1'= exponential(1/(DF*2))) &
-	                                (d44clkF2'= exponential(1/(DF*2)));
+	                                (d44clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d44clkF2'= exponential(1.0/(DF*2.0)));
 	[] d44f & d44t==2 @ d44clkR2 -> (d44f'= false) &
-	                                (d44clkF1'= exponential(1/(DF*2))) &
-	                                (d44clkF2'= exponential(1/(DF*2)));
+	                                (d44clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d44clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -436,8 +436,8 @@ module Disk51
 
 	d51f: bool init false;  // Disk failed?
 	d51t: [1..2];           // Failure type
-	d51clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d51clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d51clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d51clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d51clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d51clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -448,11 +448,11 @@ module Disk51
 	                                (d51t'= 2)     &
 	                                (d51clkR2'= exponential(0.5));
 	[] d51f & d51t==1 @ d51clkR1 -> (d51f'= false) &
-	                                (d51clkF1'= exponential(1/(DF*2))) &
-	                                (d51clkF2'= exponential(1/(DF*2)));
+	                                (d51clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d51clkF2'= exponential(1.0/(DF*2.0)));
 	[] d51f & d51t==2 @ d51clkR2 -> (d51f'= false) &
-	                                (d51clkF1'= exponential(1/(DF*2))) &
-	                                (d51clkF2'= exponential(1/(DF*2)));
+	                                (d51clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d51clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -460,8 +460,8 @@ module Disk52
 
 	d52f: bool init false;  // Disk failed?
 	d52t: [1..2];           // Failure type
-	d52clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d52clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d52clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d52clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d52clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d52clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -472,11 +472,11 @@ module Disk52
 	                                (d52t'= 2)     &
 	                                (d52clkR2'= exponential(0.5));
 	[] d52f & d52t==1 @ d52clkR1 -> (d52f'= false) &
-	                                (d52clkF1'= exponential(1/(DF*2))) &
-	                                (d52clkF2'= exponential(1/(DF*2)));
+	                                (d52clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d52clkF2'= exponential(1.0/(DF*2.0)));
 	[] d52f & d52t==2 @ d52clkR2 -> (d52f'= false) &
-	                                (d52clkF1'= exponential(1/(DF*2))) &
-	                                (d52clkF2'= exponential(1/(DF*2)));
+	                                (d52clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d52clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -484,8 +484,8 @@ module Disk53
 
 	d53f: bool init false;  // Disk failed?
 	d53t: [1..2];           // Failure type
-	d53clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d53clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d53clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d53clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d53clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d53clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -496,11 +496,11 @@ module Disk53
 	                                (d53t'= 2)     &
 	                                (d53clkR2'= exponential(0.5));
 	[] d53f & d53t==1 @ d53clkR1 -> (d53f'= false) &
-	                                (d53clkF1'= exponential(1/(DF*2))) &
-	                                (d53clkF2'= exponential(1/(DF*2)));
+	                                (d53clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d53clkF2'= exponential(1.0/(DF*2.0)));
 	[] d53f & d53t==2 @ d53clkR2 -> (d53f'= false) &
-	                                (d53clkF1'= exponential(1/(DF*2))) &
-	                                (d53clkF2'= exponential(1/(DF*2)));
+	                                (d53clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d53clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -508,8 +508,8 @@ module Disk54
 
 	d54f: bool init false;  // Disk failed?
 	d54t: [1..2];           // Failure type
-	d54clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d54clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d54clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d54clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d54clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d54clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -520,11 +520,11 @@ module Disk54
 	                                (d54t'= 2)     &
 	                                (d54clkR2'= exponential(0.5));
 	[] d54f & d54t==1 @ d54clkR1 -> (d54f'= false) &
-	                                (d54clkF1'= exponential(1/(DF*2))) &
-	                                (d54clkF2'= exponential(1/(DF*2)));
+	                                (d54clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d54clkF2'= exponential(1.0/(DF*2.0)));
 	[] d54f & d54t==2 @ d54clkR2 -> (d54f'= false) &
-	                                (d54clkF1'= exponential(1/(DF*2))) &
-	                                (d54clkF2'= exponential(1/(DF*2)));
+	                                (d54clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d54clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -532,8 +532,8 @@ module Disk61
 
 	d61f: bool init false;  // Disk failed?
 	d61t: [1..2];           // Failure type
-	d61clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d61clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d61clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d61clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d61clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d61clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -544,11 +544,11 @@ module Disk61
 	                                (d61t'= 2)     &
 	                                (d61clkR2'= exponential(0.5));
 	[] d61f & d61t==1 @ d61clkR1 -> (d61f'= false) &
-	                                (d61clkF1'= exponential(1/(DF*2))) &
-	                                (d61clkF2'= exponential(1/(DF*2)));
+	                                (d61clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d61clkF2'= exponential(1.0/(DF*2.0)));
 	[] d61f & d61t==2 @ d61clkR2 -> (d61f'= false) &
-	                                (d61clkF1'= exponential(1/(DF*2))) &
-	                                (d61clkF2'= exponential(1/(DF*2)));
+	                                (d61clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d61clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -556,8 +556,8 @@ module Disk62
 
 	d62f: bool init false;  // Disk failed?
 	d62t: [1..2];           // Failure type
-	d62clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d62clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d62clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d62clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d62clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d62clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -568,11 +568,11 @@ module Disk62
 	                                (d62t'= 2)     &
 	                                (d62clkR2'= exponential(0.5));
 	[] d62f & d62t==1 @ d62clkR1 -> (d62f'= false) &
-	                                (d62clkF1'= exponential(1/(DF*2))) &
-	                                (d62clkF2'= exponential(1/(DF*2)));
+	                                (d62clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d62clkF2'= exponential(1.0/(DF*2.0)));
 	[] d62f & d62t==2 @ d62clkR2 -> (d62f'= false) &
-	                                (d62clkF1'= exponential(1/(DF*2))) &
-	                                (d62clkF2'= exponential(1/(DF*2)));
+	                                (d62clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d62clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -580,8 +580,8 @@ module Disk63
 
 	d63f: bool init false;  // Disk failed?
 	d63t: [1..2];           // Failure type
-	d63clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d63clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d63clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d63clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d63clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d63clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -592,11 +592,11 @@ module Disk63
 	                                (d63t'= 2)     &
 	                                (d63clkR2'= exponential(0.5));
 	[] d63f & d63t==1 @ d63clkR1 -> (d63f'= false) &
-	                                (d63clkF1'= exponential(1/(DF*2))) &
-	                                (d63clkF2'= exponential(1/(DF*2)));
+	                                (d63clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d63clkF2'= exponential(1.0/(DF*2.0)));
 	[] d63f & d63t==2 @ d63clkR2 -> (d63f'= false) &
-	                                (d63clkF1'= exponential(1/(DF*2))) &
-	                                (d63clkF2'= exponential(1/(DF*2)));
+	                                (d63clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d63clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -604,8 +604,8 @@ module Disk64
 
 	d64f: bool init false;  // Disk failed?
 	d64t: [1..2];           // Failure type
-	d64clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2))
-	d64clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2))
+	d64clkF1: clock;        // Type 1 failure ~ exp(1/(DF*2.0))
+	d64clkF2: clock;        // Type 2 failure ~ exp(1/(DF*2.0))
 	d64clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	d64clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -616,11 +616,11 @@ module Disk64
 	                                (d64t'= 2)     &
 	                                (d64clkR2'= exponential(0.5));
 	[] d64f & d64t==1 @ d64clkR1 -> (d64f'= false) &
-	                                (d64clkF1'= exponential(1/(DF*2))) &
-	                                (d64clkF2'= exponential(1/(DF*2)));
+	                                (d64clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d64clkF2'= exponential(1.0/(DF*2.0)));
 	[] d64f & d64t==2 @ d64clkR2 -> (d64f'= false) &
-	                                (d64clkF1'= exponential(1/(DF*2))) &
-	                                (d64clkF2'= exponential(1/(DF*2)));
+	                                (d64clkF1'= exponential(1.0/(DF*2.0))) &
+	                                (d64clkF2'= exponential(1.0/(DF*2.0)));
 endmodule
 
 
@@ -636,8 +636,8 @@ module Controller11
 
 	c11f: bool init false;  // Controller failed?
 	c11t: [1..2];           // Failure type
-	c11clkF1: clock;        // Type 1 failure ~ exp(1/(CF*2))
-	c11clkF2: clock;        // Type 2 failure ~ exp(1/(CF*2))
+	c11clkF1: clock;        // Type 1 failure ~ exp(1/(CF*2.0))
+	c11clkF2: clock;        // Type 2 failure ~ exp(1/(CF*2.0))
 	c11clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	c11clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -648,11 +648,11 @@ module Controller11
 	                                (c11t'= 2)     &
 	                                (c11clkR2'= exponential(0.5));
 	[] c11f & c11t==1 @ c11clkR1 -> (c11f'= false) &
-	                                (c11clkF1'= exponential(1/(CF*2))) &
-	                                (c11clkF2'= exponential(1/(CF*2)));
+	                                (c11clkF1'= exponential(1.0/(CF*2.0))) &
+	                                (c11clkF2'= exponential(1.0/(CF*2.0)));
 	[] c11f & c11t==2 @ c11clkR2 -> (c11f'= false) &
-	                                (c11clkF1'= exponential(1/(CF*2))) &
-	                                (c11clkF2'= exponential(1/(CF*2)));
+	                                (c11clkF1'= exponential(1.0/(CF*2.0))) &
+	                                (c11clkF2'= exponential(1.0/(CF*2.0)));
 endmodule
 
 
@@ -660,8 +660,8 @@ module Controller12
 
 	c12f: bool init false;  // Controller failed?
 	c12t: [1..2];           // Failure type
-	c12clkF1: clock;        // Type 1 failure ~ exp(1/(CF*2))
-	c12clkF2: clock;        // Type 2 failure ~ exp(1/(CF*2))
+	c12clkF1: clock;        // Type 1 failure ~ exp(1/(CF*2.0))
+	c12clkF2: clock;        // Type 2 failure ~ exp(1/(CF*2.0))
 	c12clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	c12clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -672,11 +672,11 @@ module Controller12
 	                                (c12t'= 2)     &
 	                                (c12clkR2'= exponential(0.5));
 	[] c12f & c12t==1 @ c12clkR1 -> (c12f'= false) &
-	                                (c12clkF1'= exponential(1/(CF*2))) &
-	                                (c12clkF2'= exponential(1/(CF*2)));
+	                                (c12clkF1'= exponential(1.0/(CF*2.0))) &
+	                                (c12clkF2'= exponential(1.0/(CF*2.0)));
 	[] c12f & c12t==2 @ c12clkR2 -> (c12f'= false) &
-	                                (c12clkF1'= exponential(1/(CF*2))) &
-	                                (c12clkF2'= exponential(1/(CF*2)));
+	                                (c12clkF1'= exponential(1.0/(CF*2.0))) &
+	                                (c12clkF2'= exponential(1.0/(CF*2.0)));
 endmodule
 
 
@@ -684,8 +684,8 @@ module Controller21
 
 	c21f: bool init false;  // Controller failed?
 	c21t: [1..2];           // Failure type
-	c21clkF1: clock;        // Type 1 failure ~ exp(1/(CF*2))
-	c21clkF2: clock;        // Type 2 failure ~ exp(1/(CF*2))
+	c21clkF1: clock;        // Type 1 failure ~ exp(1/(CF*2.0))
+	c21clkF2: clock;        // Type 2 failure ~ exp(1/(CF*2.0))
 	c21clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	c21clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -696,11 +696,11 @@ module Controller21
 	                                (c21t'= 2)     &
 	                                (c21clkR2'= exponential(0.5));
 	[] c21f & c21t==1 @ c21clkR1 -> (c21f'= false) &
-	                                (c21clkF1'= exponential(1/(CF*2))) &
-	                                (c21clkF2'= exponential(1/(CF*2)));
+	                                (c21clkF1'= exponential(1.0/(CF*2.0))) &
+	                                (c21clkF2'= exponential(1.0/(CF*2.0)));
 	[] c21f & c21t==2 @ c21clkR2 -> (c21f'= false) &
-	                                (c21clkF1'= exponential(1/(CF*2))) &
-	                                (c21clkF2'= exponential(1/(CF*2)));
+	                                (c21clkF1'= exponential(1.0/(CF*2.0))) &
+	                                (c21clkF2'= exponential(1.0/(CF*2.0)));
 endmodule
 
 
@@ -708,8 +708,8 @@ module Controller22
 
 	c22f: bool init false;  // Controller failed?
 	c22t: [1..2];           // Failure type
-	c22clkF1: clock;        // Type 1 failure ~ exp(1/(CF*2))
-	c22clkF2: clock;        // Type 2 failure ~ exp(1/(CF*2))
+	c22clkF1: clock;        // Type 1 failure ~ exp(1/(CF*2.0))
+	c22clkF2: clock;        // Type 2 failure ~ exp(1/(CF*2.0))
 	c22clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	c22clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -720,11 +720,11 @@ module Controller22
 	                                (c22t'= 2)     &
 	                                (c22clkR2'= exponential(0.5));
 	[] c22f & c22t==1 @ c22clkR1 -> (c22f'= false) &
-	                                (c22clkF1'= exponential(1/(CF*2))) &
-	                                (c22clkF2'= exponential(1/(CF*2)));
+	                                (c22clkF1'= exponential(1.0/(CF*2.0))) &
+	                                (c22clkF2'= exponential(1.0/(CF*2.0)));
 	[] c22f & c22t==2 @ c22clkR2 -> (c22f'= false) &
-	                                (c22clkF1'= exponential(1/(CF*2))) &
-	                                (c22clkF2'= exponential(1/(CF*2)));
+	                                (c22clkF1'= exponential(1.0/(CF*2.0))) &
+	                                (c22clkF2'= exponential(1.0/(CF*2.0)));
 endmodule
 
 
@@ -740,8 +740,8 @@ module Processor11
 
 	p11f: bool init false;  // Processor failed?
 	p11t: [1..2];           // Failure type
-	p11clkF1: clock;        // Type 1 failure ~ exp(1/(PF*2))
-	p11clkF2: clock;        // Type 2 failure ~ exp(1/(PF*2))
+	p11clkF1: clock;        // Type 1 failure ~ exp(1/(PF*2.0))
+	p11clkF2: clock;        // Type 2 failure ~ exp(1/(PF*2.0))
 	p11clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	p11clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -752,11 +752,11 @@ module Processor11
 	                                (p11t'= 2)     &
 	                                (p11clkR2'= exponential(0.5));
 	[] p11f & p11t==1 @ p11clkR1 -> (p11f'= false) &
-	                                (p11clkF1'= exponential(1/(PF*2))) &
-	                                (p11clkF2'= exponential(1/(PF*2)));
+	                                (p11clkF1'= exponential(1.0/(PF*2.0))) &
+	                                (p11clkF2'= exponential(1.0/(PF*2.0)));
 	[] p11f & p11t==2 @ p11clkR2 -> (p11f'= false) &
-	                                (p11clkF1'= exponential(1/(PF*2))) &
-	                                (p11clkF2'= exponential(1/(PF*2)));
+	                                (p11clkF1'= exponential(1.0/(PF*2.0))) &
+	                                (p11clkF2'= exponential(1.0/(PF*2.0)));
 endmodule
 
 
@@ -764,8 +764,8 @@ module Processor12
 
 	p12f: bool init false;  // Processor failed?
 	p12t: [1..2];           // Failure type
-	p12clkF1: clock;        // Type 1 failure ~ exp(1/(PF*2))
-	p12clkF2: clock;        // Type 2 failure ~ exp(1/(PF*2))
+	p12clkF1: clock;        // Type 1 failure ~ exp(1/(PF*2.0))
+	p12clkF2: clock;        // Type 2 failure ~ exp(1/(PF*2.0))
 	p12clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	p12clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -776,11 +776,11 @@ module Processor12
 	                                (p12t'= 2)     &
 	                                (p12clkR2'= exponential(0.5));
 	[] p12f & p12t==1 @ p12clkR1 -> (p12f'= false) &
-	                                (p12clkF1'= exponential(1/(PF*2))) &
-	                                (p12clkF2'= exponential(1/(PF*2)));
+	                                (p12clkF1'= exponential(1.0/(PF*2.0))) &
+	                                (p12clkF2'= exponential(1.0/(PF*2.0)));
 	[] p12f & p12t==2 @ p12clkR2 -> (p12f'= false) &
-	                                (p12clkF1'= exponential(1/(PF*2))) &
-	                                (p12clkF2'= exponential(1/(PF*2)));
+	                                (p12clkF1'= exponential(1.0/(PF*2.0))) &
+	                                (p12clkF2'= exponential(1.0/(PF*2.0)));
 endmodule
 
 
@@ -788,8 +788,8 @@ module Processor21
 
 	p21f: bool init false;  // Processor failed?
 	p21t: [1..2];           // Failure type
-	p21clkF1: clock;        // Type 1 failure ~ exp(1/(PF*2))
-	p21clkF2: clock;        // Type 2 failure ~ exp(1/(PF*2))
+	p21clkF1: clock;        // Type 1 failure ~ exp(1/(PF*2.0))
+	p21clkF2: clock;        // Type 2 failure ~ exp(1/(PF*2.0))
 	p21clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	p21clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -800,11 +800,11 @@ module Processor21
 	                                (p21t'= 2)     &
 	                                (p21clkR2'= exponential(0.5));
 	[] p21f & p21t==1 @ p21clkR1 -> (p21f'= false) &
-	                                (p21clkF1'= exponential(1/(PF*2))) &
-	                                (p21clkF2'= exponential(1/(PF*2)));
+	                                (p21clkF1'= exponential(1.0/(PF*2.0))) &
+	                                (p21clkF2'= exponential(1.0/(PF*2.0)));
 	[] p21f & p21t==2 @ p21clkR2 -> (p21f'= false) &
-	                                (p21clkF1'= exponential(1/(PF*2))) &
-	                                (p21clkF2'= exponential(1/(PF*2)));
+	                                (p21clkF1'= exponential(1.0/(PF*2.0))) &
+	                                (p21clkF2'= exponential(1.0/(PF*2.0)));
 endmodule
 
 
@@ -812,8 +812,8 @@ module Processor22
 
 	p22f: bool init false;  // Processor failed?
 	p22t: [1..2];           // Failure type
-	p22clkF1: clock;        // Type 1 failure ~ exp(1/(PF*2))
-	p22clkF2: clock;        // Type 2 failure ~ exp(1/(PF*2))
+	p22clkF1: clock;        // Type 1 failure ~ exp(1/(PF*2.0))
+	p22clkF2: clock;        // Type 2 failure ~ exp(1/(PF*2.0))
 	p22clkR1: clock;        // Repair for type 1 failure ~ exp(1.0)
 	p22clkR2: clock;        // Repair for type 2 failure ~ exp(0.5)
 
@@ -824,11 +824,11 @@ module Processor22
 	                                (p22t'= 2)     &
 	                                (p22clkR2'= exponential(0.5));
 	[] p22f & p22t==1 @ p22clkR1 -> (p22f'= false) &
-	                                (p22clkF1'= exponential(1/(PF*2))) &
-	                                (p22clkF2'= exponential(1/(PF*2)));
+	                                (p22clkF1'= exponential(1.0/(PF*2.0))) &
+	                                (p22clkF2'= exponential(1.0/(PF*2.0)));
 	[] p22f & p22t==2 @ p22clkR2 -> (p22f'= false) &
-	                                (p22clkF1'= exponential(1/(PF*2))) &
-	                                (p22clkF2'= exponential(1/(PF*2)));
+	                                (p22clkF1'= exponential(1.0/(PF*2.0))) &
+	                                (p22clkF2'= exponential(1.0/(PF*2.0)));
 endmodule
 
 properties

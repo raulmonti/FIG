@@ -148,7 +148,7 @@ ThresholdsBuilderES::build_thresholds(std::shared_ptr<const ImportanceFunction> 
 	                    + "," + std::to_string(maxSimLen_));
 
 	// Probe for reachable importance values to select threshold candidates
-	ImportanceVec thrCandidates = reachable_importance_values();
+	ImportanceVec thrCandidates(reachable_importance_values());
 	if (thrCandidates.size() < 2ul)  // we must have reached beyond initial importance
 		throw_FigException("ES could not find reachable importance values");
 	ModelSuite::debug_log("\nFound " + std::to_string(thrCandidates.size()-1ul)
@@ -204,7 +204,7 @@ ImportanceVec
 ThresholdsBuilderES::reachable_importance_values() const
 {
 	using namespace std::placeholders;  // _1, _2, ...
-	static const EventWatcher& watch_events =
+	const EventWatcher& watch_events =
 			std::bind(&ThresholdsBuilderES::importance_seeker, this, _1, _2, _3);
 
 	static constexpr size_t NUM_INDEPENDENT_RUNS = 20ul;

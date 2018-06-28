@@ -750,7 +750,8 @@ public:  // Simulation utils
 	/// @see get_property()
 	void estimate(const size_t& propertyIndex,
 				  const SimulationEngine& engine,
-				  const StoppingConditions& bounds) const;
+	              const StoppingConditions& bounds,
+	              const ImpFunSpec ifunSpec = ImpFunSpec("null","null")) const;
 
 	/**
 	 * @brief Estimate the value of all \ref Property "stored properties"
