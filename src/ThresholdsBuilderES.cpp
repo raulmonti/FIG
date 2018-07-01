@@ -259,7 +259,7 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues) c
 {
 	std::vector< float > Pup({0.0});
 	using namespace std::placeholders;  // _1, _2, ...
-	static const EventWatcher& watch_events =
+	const EventWatcher& watch_events =
 			std::bind(&ThresholdsBuilderES::FE_watcher, this, _1, _2, _3);
 
 	if (reachableImportanceValues.size() < 2ul)

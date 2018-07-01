@@ -213,12 +213,10 @@ inline void dump_clock_info(const string &module,
 
 void ModelBuilder::visit(shared_ptr<Model> model) {
     auto& modules = model->get_modules();
-    unsigned int i = 0;
-    while (i < modules.size()) {
-        current_scope = scopes[modules[i]->get_name()];
-        accept_cond(modules[i]);
-        i++;
-    }
+	for (unsigned i = 0u ; i < modules.size() ; i++) {
+		current_scope = scopes[modules[i]->get_name()];
+		accept_cond(modules[i]);
+	}
     for (auto &prop : model->get_props()) {
         current_scope = nullptr;
         accept_cond(prop);
