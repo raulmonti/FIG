@@ -108,7 +108,7 @@ SECTION("Transient: standard MC")
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng);
 	const double confCo(.77);
-	const double prec(.8);
+	const double prec(.6);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
 	// Estimate
@@ -140,7 +140,7 @@ SECTION("Transient: RESTART, ad hoc, es")
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 911);
 	const double confCo(.95);
-	const double prec(.4);
+	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
 	model.set_timeout(0);  // unset timeout; estimate for as long as necessary

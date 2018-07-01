@@ -161,7 +161,7 @@ SECTION("Steady-state: RESTART, ad hoc, hyb")
 	REQUIRE(ci.precision(confCo) > 0.0);
 	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB*prec).epsilon(SS_PROB*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
+			  == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
 
 SECTION("Steady-state: RESTART, monolithic, hyb")
@@ -235,7 +235,7 @@ SECTION("Transient: RESTART, compositional (+ operator), es")
 
 SECTION("Transient: Fixed Effort, monolithic, hyb")
 {
-	const string nameEngine("fixedeffort");
+	const string nameEngine("sfe");
 	const fig::ImpFunSpec ifunSpec("concrete_coupled", "auto");
 	const string nameThr("hyb");
 	REQUIRE(model.exists_simulator(nameEngine));
@@ -270,7 +270,7 @@ SECTION("Transient: Fixed Effort, monolithic, hyb")
 
 SECTION("Transient: Fixed Effort, compositional (max operator), es")
 {
-	const string nameEngine("fixedeffort");
+	const string nameEngine("sfe");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "max");
 	const string nameThr("es");
 	REQUIRE(model.exists_simulator(nameEngine));

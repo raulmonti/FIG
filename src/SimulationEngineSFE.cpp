@@ -148,7 +148,7 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 							arbitraryLevelEffort),
 							lvl_effort(impFun_->max_thresholds_effort(toBuildThresholds_))));
 	decltype(reachCount_) reachCountLocal(reachCount_);
-	static auto tpool(TraialPool::get_instance());
+	auto tpool(TraialPool::get_instance());
 	std::vector< Reference< Traial > > traialsNow, traialsNext;
 
 	// Init result & internal ADTs
