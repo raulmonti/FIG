@@ -492,32 +492,32 @@ void ModelTC::check_ranged_all(shared_ptr<ModuleScope> scope) {
 }
 
 void ModelTC::visit(shared_ptr<Model> model) {
+	assert(nullptr != model);
 	//clear any previous data
 	scopes.clear();
 	globals.clear();
-    //check globals
+	//check globals
     for (auto decl : model->get_globals()) {
         //no module selected yet
-        current_scope = nullptr;
+		current_scope.reset();
         accept_cond(decl);
     }
     //check modules
-    auto& modules = model->get_modules();
-    unsigned int i = 0;
-    while (i < modules.size()) {
-        const shared_ptr<ModuleScope>& new_scope = make_shared<ModuleScope>();
-        const string &id = modules[i]->get_name();
-        if (scopes.find(id) != scopes.end()) {
+	const auto& modules(model->get_modules());
+	for (auto i = 0u ; i < modules.size() ; i++) {
+		auto new_scope(make_shared<ModuleScope>());
+		const string& id(modules[i]->get_name());
+		assert(0ul < id.length());
+		if (scopes.find(id) != scopes.end()) {
             shared_ptr<ModelAST> prev = scopes[id]->module_ast();
             put_error(TC_ID_REDEFINED(current_scope, prev, id));
         }
         new_scope->set_module_ast(modules[i]);
-        new_scope->set_module_name(modules[i]->get_name());
+		new_scope->set_module_name(id);
         //set current scope before accepting module body
         current_scope = new_scope;
         scopes[id] = new_scope;
         accept_cond(new_scope->module_ast());
-        i++;
     }
     current_scope = nullptr;
     for (auto prop : model->get_props()) {
@@ -969,7 +969,4 @@ void ModelTC::visit(shared_ptr<RateProp> prop) {
     check_type(Type::tbool, TC_WRONG_PROPERTY_EXP(prop, last_type));
     check_dnf(prop->get_type(), prop->get_expression());
     checking_property = false;
-}
-
-ModelTC::~ModelTC() {
 }

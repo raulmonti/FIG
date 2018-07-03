@@ -101,7 +101,7 @@ public:
 
     ModelTC(const ModelTC& instance) = default;
 
-    virtual ~ModelTC();
+	virtual ~ModelTC() {}
 
     /// Visitor functions
     void visit(shared_ptr<Model> node) override;

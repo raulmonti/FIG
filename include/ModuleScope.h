@@ -21,7 +21,9 @@ using transition_map = unordered_multimap<string, shared_ptr<TransitionAST>>;
  */
 class ModuleScope {
 public:
-	inline virtual ~ModuleScope() { clear(); }
+	inline virtual ~ModuleScope() {
+		// clear();  // don't clear! Later module building relies on shared data
+	}
 
 public:
     /// Static map that store the symbol table for each module
