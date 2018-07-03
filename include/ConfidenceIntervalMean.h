@@ -59,6 +59,9 @@ public:  // Ctor
 						   double precision,
 						   bool dynamicPrecision = false,
 						   bool neverStop = false);
+
+	virtual ~ConfidenceIntervalMean() {}
+
 public:  // Modifyers
 
 	/**

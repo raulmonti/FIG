@@ -66,6 +66,10 @@ protected:
 	/// Whether all clocks distributions' are exponential
 	bool markovian_;
 
+public:  // Dtor
+
+	virtual ~Module() {}
+
 public:  // Accessors
 
 	/// The ModuleNetwork returns "GlobalModel", a ModuleInstance returns its name

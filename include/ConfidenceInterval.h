@@ -117,6 +117,8 @@ public:  // Ctor
 					   bool dynamicPrecision = false,
 					   bool neverStop = false);
 
+	virtual ~ConfidenceInterval() {}
+
 public:  // Accessors
 
 	/// @copydoc numSamples_

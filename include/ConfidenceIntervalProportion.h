@@ -69,6 +69,8 @@ public:  // Ctor
 								 bool dynamicPrecision = false,
 								 bool neverStop = false);
 
+	virtual ~ConfidenceIntervalProportion() {}
+
 public:  // Modifyers
 
 	/**

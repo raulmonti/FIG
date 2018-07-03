@@ -67,6 +67,8 @@ public:  // Ctor
 							 bool dynamicPrecision = false,
 							 bool neverStop = false);
 
+	virtual ~ConfidenceIntervalWilson() {}
+
 public:  // Modifyers
 
 	/// @copydoc ConfidenceIntervalProportion::update(const double&)

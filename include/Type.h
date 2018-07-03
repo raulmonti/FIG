@@ -21,7 +21,10 @@ class Ty {
 protected:
     Ty() {}
 public:
-    virtual bool is_basic() const {
+	virtual ~Ty() {}
+
+public:
+	virtual bool is_basic() const {
         return (false);
     }
 
@@ -109,6 +112,7 @@ private:
     Type type;
 public:
     BasicTy(Type type) : type {type} {}
+	virtual ~BasicTy() {}
 
     bool is_basic() const override {
         return (true);
@@ -124,6 +128,7 @@ public:
 class Unknown : public BasicTy {
 public:
     Unknown() : BasicTy(Type::tunknown) {}
+	virtual ~Unknown() {}
 };
 
 class FunTy : public Ty {
@@ -138,7 +143,9 @@ public:
     FunTy(Type type1, Type type2) {
         ty1 = std::make_shared<BasicTy>(type1);
         ty2 = std::make_shared<BasicTy>(type2);
-    }
+	}
+
+	virtual ~FunTy() { ty1.reset(); ty2.reset(); }
 
     std::shared_ptr<Ty> get_ty1() const {
         return (ty1);
@@ -160,6 +167,8 @@ public:
     UnaryOpTy(Type argtype, Type result) :
         FunTy (argtype, result) {}
 
+	virtual ~UnaryOpTy() {}
+
     Type get_arg_type() const {
         return get_ty1()->to_basic().get_type();
     }
@@ -178,6 +187,8 @@ public:
     BinaryOpTy(Type a1type, Type a2type, Type result) :
         FunTy (std::make_shared<BasicTy>(a1type),
                std::make_shared<FunTy>(a2type, result)) {}
+
+	virtual ~BinaryOpTy() {}
 
     Type get_arg1_type() const {
         return  get_ty1()->to_basic().get_type();

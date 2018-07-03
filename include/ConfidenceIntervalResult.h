@@ -42,6 +42,8 @@ namespace fig
 /// Observer class for ConfidenceInterval,
 /// used e.g. to show resulting estimates to the user.
 /// @warning Immutable: instances of this class are unfit for estimations
+/// @todo FIXME: why do we have a shared_ptr of the base class ???
+///              What on earth was I trying to do here ???
 class ConfidenceIntervalResult : public ConfidenceInterval
 {
 	/// (Derived) Instance of ConfidenceInterval we're wrapping
@@ -55,6 +57,9 @@ public:  // Ctors from the other derived classes of ConfidenceInterval
 	    ConfidenceInterval(*ci),
 	    instance_(ci)
 	{ /* Not much to do around here... */ }
+
+	inline virtual ~ConfidenceIntervalResult()
+		{ instance_.reset(); }
 
 public:  // Methods linked to the real functions of our creation class
 

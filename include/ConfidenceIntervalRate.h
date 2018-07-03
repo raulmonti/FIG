@@ -60,6 +60,8 @@ public:
 		ConfidenceInterval("rate", confidence, precision, dynamicPrecision, neverStop),
 		ConfidenceIntervalMean(confidence, precision, dynamicPrecision, neverStop)
 		{ /* Not much to do around here... */ }
+
+	virtual ~ConfidenceIntervalRate() {}
 };
 
 }

@@ -21,6 +21,9 @@ using transition_map = unordered_multimap<string, shared_ptr<TransitionAST>>;
  */
 class ModuleScope {
 public:
+	inline virtual ~ModuleScope() { clear(); }
+
+public:
     /// Static map that store the symbol table for each module
     /// indexed by the module's name
     static shared_map<string, ModuleScope> scopes;
@@ -183,7 +186,7 @@ public:
         return instance_;
 	}
 
-	~CompositeModuleScope() { clear(); }
+	virtual ~CompositeModuleScope() { clear(); }
 
 	/// Delete all information about model/modules scopes,
 	/// <b>including the one that resides in static class members</b>

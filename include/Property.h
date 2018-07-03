@@ -90,6 +90,8 @@ public:  // Ctors
     /// Can't move assign due to const data members
     Property& operator=(Property&& that)      = delete;
 
+	virtual ~Property() {}
+
 public:  // Utils
 
 	/// @brief Is this state considered "rare" for importance simulation?

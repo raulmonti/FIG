@@ -92,6 +92,8 @@ public:
 
 	ExpStateEvaluator(ExpStateEvaluator&& that);
 
+	inline virtual ~ExpStateEvaluator() {}
+
     /// Associate our internal state with the main simulation state.
     /// @see ExpState::project_positions
     /// @note this must be called before \ref eval

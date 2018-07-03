@@ -77,6 +77,8 @@ public:
 	/// Ctor
 	ThresholdsBuilder(const std::string& thename);
 
+	virtual ~ThresholdsBuilder() {}
+
 	/// Whether the class builds the thresholds <i>adaptively</i>,
 	/// viz. taking into consideration the user model's semantics
 	virtual bool adaptive() const noexcept = 0;
