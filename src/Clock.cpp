@@ -74,6 +74,8 @@ typedef  pcg64_oneseq     PCG64_t;
 class BasicRNG
 {
 public:
+	virtual ~BasicRNG() {}
+public:
 	typedef unsigned long result_type;
 	virtual result_type min() const = 0;
 	virtual result_type max() const = 0;

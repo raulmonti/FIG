@@ -382,8 +382,10 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
 		auto lmax(std::numeric_limits<ImportanceValue>::min());
 		out << "\nValues for module \"" << modules_[i]->name << "\":";
 		const ImportanceVec& impVec = modulesConcreteImportance[i];
-		if (impVec.empty())
+		if (impVec.empty()) {
 			out << " <nodata>";
+			continue;
+		}
 		for (size_t i = 0ul ; i < impVec.size() ; i++) {
 //			out << "\n  " << std::setw(3) << i << std::setw(1)
 //			    << (IS_RARE_EVENT     (impVec[i]) ? "*" : "")
@@ -395,7 +397,6 @@ ImportanceFunctionConcreteSplit::print_out(std::ostream& out,
 			lmin = std::min(lmin, UNMASK(impVec[i]));
 			lmax = std::max(lmax, UNMASK(impVec[i]));
 		}
-//		out << "\n  ";
         out << " Importance range == [" << lmin << ".." << lmax << "]";
 		out.flush();
     }

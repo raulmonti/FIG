@@ -33,7 +33,7 @@
 // "Multilevel Splitting For Estimating Rare Event Probabilities",
 // Operations Research, Vol. 47, No. 4, July–August 1999, pp. 585–600
 
-const int b     = 20;   // Open queue (oq) capacity
+const int b     = 15;   // Open queue (oq) capacity
 const int N2    = 1;    // Closed system (cq+cqq) fixed size
 const float l   = 1.0;  // oq arrival rate
 const float m11 = 4.0;  // oq Server1 rate

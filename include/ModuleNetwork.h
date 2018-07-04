@@ -206,10 +206,7 @@ public:  // Utils
 	 *
 	 * @param traial   Traial instance keeping track of the simulation <b>(modified)</b>
 	 * @param property Property whose value is currently being estimated
-	 * @param engine   Semantics of the current simulation strategy,
-	 *                 viz. object of any class derived from SimulationEngine
-	 * @param watch_events Member function of 'engine' telling when
-	 *                     is a simulation step considered finished
+	 * @param watch_events Function telling when does a simulation step finish
 	 *
 	 * @return Events observed/marked by the 'watch_event' member function
 	 *         when a finishing event for this simulation step is triggered.
@@ -219,16 +216,6 @@ public:  // Utils
 	 *
 	 * @warning seal() must have been called beforehand
 	 */
-	template< typename DerivedProperty,
-			  class Simulator,
-			  class TraialMonitor >
-	Event simulation_step(Traial& traial,
-						  const DerivedProperty& property,
-						  const Simulator& engine,
-						  TraialMonitor watch_events) const;
-
-	/// Like the 4-parameters version but to use with any TraialMonitor function,
-	/// instead of the explicit C++ member function pointer template
 	template< typename DerivedProperty,
 	          class TraialMonitor >
 	Event simulation_step(Traial& traial,

@@ -82,7 +82,6 @@ public:
 
 protected:  // Utils for the class and its kin
 
-//	void fetch_internal_traials(const size_t& N) const override;
 	const EventWatcher& get_event_watcher(const Property&) const override;
 
 	/// @brief Run <i>once</i> the Standard Fixed Effort algorithm,

@@ -139,8 +139,8 @@ SECTION("Transient: RESTART, ad hoc, es")
 	auto rng = model.available_RNGs().back();
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 911);
-	const double confCo(.95);
-	const double prec(.2);
+	const double confCo(.9);
+	const double prec(.333);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
 	model.set_timeout(0);  // unset timeout; estimate for as long as necessary

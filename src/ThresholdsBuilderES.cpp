@@ -270,6 +270,7 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues) c
 	currentThresholds_.reserve(reachableImportanceValues.size());
 	for (size_t i = 0ul ; i < reachableImportanceValues.size() ; i++)
 		currentThresholds_.emplace_back(reachableImportanceValues[i], 1u);
+	assert(nullptr != property_);
 	internalSimulator_->property_ = property_.get();
 	internalSimulator_->bind(impFun_);
 	auto& maxImportanceLvl = internalSimulator_.get()->arbitraryMaxLevel;

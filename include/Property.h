@@ -66,9 +66,6 @@ protected:
 
 public:  // Attributes
 
-//	/// Property per se in string form
-//	const std::string expression;
-
     /// Which type of property the expression represents
     const PropertyType type;
 
