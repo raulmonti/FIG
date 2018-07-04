@@ -120,17 +120,22 @@ const SimulationEngineFixedEffort::EventWatcher&
 SimulationEngineSFE::get_event_watcher(const Property& property) const
 {
 	using namespace std::placeholders;  // _1, _2, ...
-	if (property.type == PropertyType::TRANSIENT) {
-		static const EventWatcher& transient_event_watcher(
-					std::bind(&SimulationEngineSFE::transient_event, this, _1, _2, _3));
-		return transient_event_watcher;
-	} else if (property.type == PropertyType::RATE) {
-		static const EventWatcher& rate_event_watcher(
-					std::bind(&SimulationEngineSFE::rate_event, this, _1, _2, _3));
-		return rate_event_watcher;
-	} else {
+	// shared_ptr avoids memory leaks and also deletion when exiting scope
+	static std::shared_ptr<const EventWatcher> event_watcher(nullptr);
+	switch (property.type) {
+	case PropertyType::TRANSIENT:
+		event_watcher = std::make_shared<const EventWatcher>(
+				std::bind(&SimulationEngineSFE::transient_event, this, _1, _2, _3));
+		break;
+	case PropertyType::RATE:
+		event_watcher = std::make_shared<const EventWatcher>(
+				std::bind(&SimulationEngineSFE::rate_event, this, _1, _2, _3));
+		break;
+	default:
 		throw_FigException("unsupported property type: "+std::to_string(property.type));
+		break;
 	}
+	return *event_watcher;
 }
 
 
@@ -158,16 +163,11 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 	pathToRare.reserve(LVL_MAX);
 	traialsNow.reserve(EFF_MAX);
 	traialsNext.reserve(EFF_MAX);
-//	if (traials_.size() < EFF_MAX)
-//		TraialPool::get_instance().get_traials(traials_, EFF_MAX-traials_.size());
 
 	// Bootstrap the Fixed Effort run
 	Traial& seedTraial(tpool.get_traial());
 	seedTraial.initialise(*model_, *impFun_);
 	traialsNext.push_back(seedTraial);
-//	traials_.back().get().initialise(*model_, *impFun_);
-//	traialsNext.push_back(std::move(traials_.back()));
-//	traials_.pop_back();
 	size_t numSuccesses;
 	ImportanceValue l(LVL_INI);
 
@@ -184,9 +184,7 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
         for (auto i = 0ul ; i < LVL_EFFORT ; i++) {
             const bool useFresh(i >= traialsNext.size());
 			Traial& traial(useFresh ? tpool.get_traial() : traialsNext[i].get());
-//            Traial& traial(useFresh ? traials_.back() : traialsNext[i]);
 			if (useFresh) {
-//                traials_.pop_back();
 				traial = traialsNext[i%traialsNext.size()].get();  // copy *contents*
             }
             assert(traial.level == l);
@@ -213,7 +211,6 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 				reachCountLocal[traial.level]++;
 			} else {
 				tpool.return_traial(traial);
-//				traials_.push_back(traial);
 			}
         }
 		assert(traialsNow.empty());
@@ -222,6 +219,8 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 		if (!traialsNext.empty()) {
 			auto nextLvl = filter_next_value(traialsNext, reachCountLocal);
 			assert(l < nextLvl);
+			if (LVL_MAX < nextLvl && LVL_MAX == arbitraryMaxLevel)
+				nextLvl = LVL_MAX;  // patch for badly chosen arbitraryMaxLevel
 			assert(nextLvl <= LVL_MAX);
 			l = nextLvl;
 			if (toBuildThresholds_ && l == LVL_MAX)
