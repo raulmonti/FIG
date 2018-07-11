@@ -746,7 +746,7 @@ ImportanceFunctionConcrete::pp_shift(std::vector<ExtremeValues>& extrVals,
 	        : ([] (const ImportanceValue& oldVal, const ImportanceValue& newVal)
 	           { return oldVal > newVal; });
 	if (userDefinedData)
-		goto main_loop;  // user took care, screw this
+		goto main_loop_pp_shift;  // user took care, screw this
 	for (ExtremeValues& ev: extrVals) {
 		ImportanceValue& min  = std::get<0>(ev);
 		ImportanceValue& max  = std::get<1>(ev);
@@ -761,7 +761,7 @@ ImportanceFunctionConcrete::pp_shift(std::vector<ExtremeValues>& extrVals,
 		minR += offset;
 	}
 
-main_loop:
+main_loop_pp_shift:
 	// Now shift importance values (disregard {under,over}flows here)
 	for (ImportanceVec& vec: modulesConcreteImportance)
 		for (ImportanceValue& val: vec)
@@ -789,7 +789,7 @@ ImportanceFunctionConcrete::pp_exponentiate(std::vector<ExtremeValues>& extrVals
 		{ auto tmp = static_cast<ImportanceValue>(round(pow(b,imp)));
 		  return tmp > static_cast<ImportanceValue>(0) && !IS_SOME_EVENT(tmp); };
 	if (userDefinedData)
-		goto main_loop;  // user took care, screw this
+		goto main_loop_pp_exp;  // user took care, screw this
 	for (ExtremeValues& ev: extrVals) {
 		ImportanceValue& min  = std::get<0>(ev);
 		ImportanceValue& max  = std::get<1>(ev);
@@ -804,7 +804,7 @@ ImportanceFunctionConcrete::pp_exponentiate(std::vector<ExtremeValues>& extrVals
 		minR = static_cast<ImportanceValue>(round(pow(b, minR)));
 	}
 
-main_loop:
+main_loop_pp_exp:
 	// Now exponentiate all the importance values stored
 	for (ImportanceVec& vec: modulesConcreteImportance)
 		for (ImportanceValue& val: vec)
