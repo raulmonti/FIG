@@ -2,7 +2,9 @@
 #ifndef ARRAY_FUNCTION_H
 #define ARRAY_FUNCTION_H
 
+#include <queue>       // std::priority_queue<>
 #include <random>
+#include <functional>  // std::greater<>
 #include <cassert>
 #include "exprtk.hpp"
 
@@ -127,7 +129,8 @@ struct MinFromFunction : public exprtk::igeneric_function<T> {
         vector_t<T> vector(gt);
         assert(vector.size() > 0); //non empty
 		size_t pos(0ul);
-        assert(value.to_uint(pos)); //keep it!
+		const auto conversionOK = value.to_uint(pos); //keep it!
+		assert(conversionOK);
         assert(pos < vector.size());
         size_t selected = pos;
         T min = vector[selected];
@@ -155,7 +158,8 @@ struct MaxFromFunction : public exprtk::igeneric_function<T> {
         vector_t<T> vector(gt);
         assert(vector.size() > 0); //non empty
 		size_t pos(0ul);
-        assert(value.to_uint(pos)); //keep it!
+		const auto conversionOK = value.to_uint(pos); //keep it!
+		assert(conversionOK);
         assert(pos < vector.size());
         size_t selected = pos;
         T max = vector[selected];
@@ -174,19 +178,53 @@ struct MaxFromFunction : public exprtk::igeneric_function<T> {
 template<typename T>
 struct SumFromFunction : public exprtk::igeneric_function<T> {
 
-    SumFromFunction() : exprtk::igeneric_function<T>("VT") {}
+	SumFromFunction() : exprtk::igeneric_function<T>("VT") {}
+	inline T operator()(parameter_list_t<T> parameters) override {
+		generic_type<T> &gt = parameters[0];
+		scalar_t<T> value (parameters[1]);
+		vector_t<T> vector(gt);
+		size_t pos(0ul);
+		const auto conversionOK = value.to_uint(pos); //keep it!
+		assert(conversionOK);
+		assert(pos < vector.size());
+		T sum  = 0;
+		for (size_t i = pos; i < vector.size(); i++) {
+			sum += vector[i];
+		}
+		return (sum);
+	}
+};
+
+///  summax(array, k) : <Sum i : 0 <= i < k : sorted_descending(array)[i]>
+///  returns the sum of the 'k' max elements of array
+///  @see https://stackoverflow.com/a/7675816
+template<typename T>
+struct SumMaxFunction : public exprtk::igeneric_function<T> {
+
+	SumMaxFunction() : exprtk::igeneric_function<T>("VT") {}
 	inline T operator()(parameter_list_t<T> parameters) override {
         generic_type<T> &gt = parameters[0];
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector(gt);
-		size_t pos(0ul);
-        assert(value.to_uint(pos)); //keep it!
-        assert(pos < vector.size());
-        T sum  = 0;
-        for (size_t i = pos; i < vector.size(); i++) {
-            sum += vector[i];
-        }
-        return (sum);
+		size_t k(0ul);
+		const auto conversionOK = value.to_uint(k);
+		assert(conversionOK);
+		assert(k < vector.size());
+		std::priority_queue<T, std::vector<T>, std::greater<T>> minHeap(
+					std::begin(vector), std::begin(vector)+k);
+		// min_heap keeps the 'k' greatest elements of vector[0..i)
+		for (size_t i = k ; i < vector.size() ; i++) {
+			if (minHeap.top() < vector[i]) {
+				minHeap.pop();
+				minHeap.push(vector[i]);
+			}
+		}
+		T sumj(0);
+		while (!minHeap.empty()) {
+			sumj += minHeap.top();
+			minHeap.pop();
+		}
+		return (sumj);
     }
 };
 
@@ -238,7 +276,8 @@ struct BrokenFunction : public exprtk::igeneric_function<T> {
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector(gt);
 		unsigned int pos(0u);
-        assert(value.to_uint(pos)); //keep it!
+		const auto conversionOK = value.to_uint(pos); //keep it!
+		assert(conversionOK);
         assert(pos < vector.size());
         vector[pos] = 1;
         for (size_t i = 0; i < vector.size(); i++) {
@@ -263,7 +302,8 @@ struct FstExcludeFunction : public exprtk::igeneric_function<T> {
         scalar_t<T> value (parameters[1]);
         vector_t<T> vector(gt);
 		size_t pos(0ul);
-        assert(value.to_uint(pos)); //keep it!
+		const auto conversionOK = value.to_uint(pos); //keep it!
+		assert(conversionOK);
         for (size_t i = 0; i < vector.size(); i++) {
             if (vector[i] && i != pos) {
                 return T(i);

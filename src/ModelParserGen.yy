@@ -116,6 +116,7 @@ RNDEQ "rndeq"
 MAXFROM "maxfrom"
 MINFROM "minfrom"
 SUMFROM "sumfrom"
+SUMMAX "summax"
 CONSEC "consec"
 BROKEN "broken"
 FSTEXCLUDE "fstexclude"
@@ -483,7 +484,12 @@ exp : location[loc]
 }
 | "sumfrom" "(" exp[e1] "," exp[e2] ")"
 {
-    $$ = make_shared<BinOpExp>(ExpOp::sumfrom, $e1, $e2);
+	$$ = make_shared<BinOpExp>(ExpOp::sumfrom, $e1, $e2);
+	save_location($$, @$);
+}
+| "summax" "(" exp[e1] "," exp[e2] ")"
+{
+	$$ = make_shared<BinOpExp>(ExpOp::summax, $e1, $e2);
     save_location($$, @$);
 }
 | "consec" "(" exp[e1] "," exp[e2] ")"

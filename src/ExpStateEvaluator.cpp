@@ -44,7 +44,8 @@ ExpTranslatorVisitor::exprtk_name(ExpOp op) {
     case ExpOp::minfrom: return "minfrom";
     case ExpOp::maxfrom: return "maxfrom";
     case ExpOp::sumfrom: return "sumfrom";
-    case ExpOp::consec: return "consec";
+	case ExpOp::summax: return "summax";
+	case ExpOp::consec: return "consec";
     case ExpOp::broken: return "broken";
     case ExpOp::fstexclude: return "fstexclude";
     case ExpOp::implies: return "implies";
@@ -84,7 +85,8 @@ ExpTranslatorVisitor::exprtk_kind(ExpOp op) {
     case ExpOp::minfrom: return OpKind::FUN;
     case ExpOp::maxfrom: return OpKind::FUN;
     case ExpOp::sumfrom: return OpKind::FUN;
-    case ExpOp::consec: return OpKind::FUN;
+	case ExpOp::summax: return OpKind::FUN;
+	case ExpOp::consec: return OpKind::FUN;
     case ExpOp::broken: return OpKind::FUN;
     case ExpOp::fstexclude: return OpKind::FUN;
     default:

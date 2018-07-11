@@ -44,6 +44,8 @@ ArrayFunctions::MinFromFunction<T> ExpState<T>::minfrom_;
 template<typename T>
 ArrayFunctions::SumFromFunction<T> ExpState<T>::sumfrom_;
 template<typename T>
+ArrayFunctions::SumMaxFunction<T> ExpState<T>::summax_;
+template<typename T>
 ArrayFunctions::ConsecFunction<T> ExpState<T>::consec_;
 template<typename T>
 ArrayFunctions::BrokenFunction<T> ExpState<T>::broken_;
@@ -209,7 +211,8 @@ void ExpState<T>::add_functions() noexcept {
     table_.add_function("maxfrom", maxfrom_);
     table_.add_function("minfrom", minfrom_);
     table_.add_function("sumfrom", sumfrom_);
-    table_.add_function("consec", consec_);
+	table_.add_function("summax", summax_);
+	table_.add_function("consec", consec_);
     table_.add_function("broken", broken_);
     table_.add_function("fstexclude", fstexclude_);
 }
@@ -266,7 +269,8 @@ void run_example_and_exit() {
     ArrayFunctions::MinFromFunction<float> minfrom;
     ArrayFunctions::MaxFromFunction<float> maxfrom;
     ArrayFunctions::SumFromFunction<float> sumfrom;
-    ArrayFunctions::ConsecFunction<float> consec;
+	ArrayFunctions::SumMaxFunction<float> summax;
+	ArrayFunctions::ConsecFunction<float> consec;
     ArrayFunctions::BrokenFunction<float> broken;
     table.add_function("fsteq", fsteq);
     table.add_function("lsteq", lsteq);
@@ -274,7 +278,8 @@ void run_example_and_exit() {
     table.add_function("minfrom", minfrom);
     table.add_function("maxfrom", maxfrom);
     table.add_function("sumfrom", sumfrom);
-    table.add_function("consec", consec);
+	table.add_function("summax", summax);
+	table.add_function("consec", consec);
     table.add_function("broken", broken);
     table.add_vector("array", vec);
     std::vector<std::string> tests = {
@@ -285,8 +290,10 @@ void run_example_and_exit() {
         "minfrom(array, 5)",
         "maxfrom(array, 0)",
         "maxfrom(array, 7)",
-        "sumfrom(array, 0)",
-        "sumfrom(array, 5)",
+		"sumfrom(array, 0)",
+		"sumfrom(array, 5)",
+		"summax(array, 1)",
+		"summax(array, 4)",
         "broken(array, 0)",
         "consec(array, 2)",
         "consec(array, 3)",

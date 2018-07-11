@@ -65,7 +65,8 @@ std::string Operator::operator_string(ExpOp op) {
     case ExpOp::minfrom: result = "minfrom"; break;
     case ExpOp::maxfrom: result = "maxfrom"; break;
     case ExpOp::sumfrom: result = "sumfrom"; break;
-    case ExpOp::consec: result = "consec"; break;
+	case ExpOp::summax: result = "summax"; break;
+	case ExpOp::consec: result = "consec"; break;
     case ExpOp::broken: result = "broken"; break;
     case ExpOp::fstexclude: result = "fstexclude"; break;
 	default: throw_FigException("invalid expression operator"); break;
@@ -175,7 +176,8 @@ std::vector<BinaryOpTy> Operator::binary_types(ExpOp op) {
         };
     }
     case ExpOp::sumfrom:
-    case ExpOp::maxfrom:
+	case ExpOp::summax:
+	case ExpOp::maxfrom:
     case ExpOp::minfrom: {
         return std::vector<BinaryOpTy> {
             Binary::Iii

@@ -635,10 +635,17 @@ ImportanceFunctionConcreteSplit::special_case(const ModuleInstance& module) cons
 		    });
 	} else if (is_prefix(moduleName, "PAND_")) {
 		// Priority AND
-		return fetch_concrete_states("broken_",
+		return fetch_concrete_states("st_",
+									 [&s](const std::string& var, size_t cs) {
+				const auto varPtr(s.decode(cs)[var]);  // var value in conrete state
+				return nullptr != varPtr && (*varPtr) == 2;
+			});
+	} else if (is_prefix(moduleName, "SPARE_")) {
+		// SPARE
+		return fetch_concrete_states("state_",
 		                             [&s](const std::string& var, size_t cs) {
 			    const auto varPtr(s.decode(cs)[var]);  // var value in conrete state
-				return nullptr != varPtr && (*varPtr) != 0;
+				return nullptr != varPtr && (*varPtr) == 4;
 		    });
 	} else {
 		// All other DFT gates/components need no local ifun

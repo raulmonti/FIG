@@ -116,6 +116,7 @@ blank  [ \t]
 "minfrom"     return ModelParser::make_MINFROM(loc);
 "maxfrom"     return ModelParser::make_MAXFROM(loc);
 "sumfrom"     return ModelParser::make_SUMFROM(loc);
+"summax"      return ModelParser::make_SUMMAX(loc);
 "consec"      return ModelParser::make_CONSEC(loc);
 "broken"      return ModelParser::make_BROKEN(loc);
 "fstexclude"  return ModelParser::make_FSTEXCLUDE(loc);

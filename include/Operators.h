@@ -13,7 +13,7 @@ enum class ExpOp {
     eq, neq, lt, gt, le, ge,
     floor, ceil, abs, sgn,
 	min, max, pow, log,
-    fsteq, lsteq, rndeq, maxfrom, minfrom, sumfrom, consec,
+	fsteq, lsteq, rndeq, maxfrom, minfrom, sumfrom, summax, consec,
     broken, fstexclude,
 	invalid
 };
