@@ -79,6 +79,7 @@ std::list< fig::StoppingConditions > estBounds;
 std::chrono::seconds simsTimeout;
 string rngType;
 size_t rngSeed;
+bool verboseOutput;
 bool forceOperation;
 bool confluenceCheck;
 double failProbDFT;
@@ -328,6 +329,18 @@ ValueArg<string> rngSeed_(
 	"to use randomized seeding in all simulation runs",
 	false, "", "random/<digit>+");
 
+// Verbose output printing (default ON for debug build, OFF for release build)
+ValueArg<bool> verboseOutput_(
+	"", "parlare",
+	"Verbose output printing: make FIG talk more than an Italian.",
+	false,
+#   ifndef NDEBUG
+		true,
+#   else
+		false,
+#   endif
+	"0/1");
+
 // Ignore not-IOSA-compliance warnings
 SwitchArg forceOperation_(
 	"f", "force",
@@ -337,8 +350,8 @@ SwitchArg forceOperation_(
 
 // Confluence-checking request
 SwitchArg confluenceCheck_(
-        "c", "confluence",
-        "Run algorithm to check confluence of committed actions.");
+	"c", "confluence",
+	"Run algorithm to check confluence of committed actions.");
 
 // For models that come from a Dynamic Faul Tree specification (e.g. GALILEO),
 // the user may specify the the probability of fail before repair,
@@ -757,6 +770,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(globalEfforts_);
 		cmd_.add(rngType_);
 		cmd_.add(rngSeed_);
+		cmd_.add(verboseOutput_);
 		cmd_.add(forceOperation_);
 		cmd_.add(confluenceCheck_);
 		cmd_.add(failProbDFT_);
@@ -769,6 +783,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		propertiesFile  = propertiesFile_.getValue();
 		engineName      = engineName_.getValue();
 		thrTechnique    = thrTechnique_.getValue();
+		verboseOutput   = verboseOutput_.getValue();
 		forceOperation  = forceOperation_.getValue();
 		confluenceCheck = confluenceCheck_.getValue();
 		failProbDFT     = failProbDFT_.getValue();

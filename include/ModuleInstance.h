@@ -78,7 +78,13 @@ class Property;
 class ModuleInstance : public Module
 {
 	friend class ModuleNetwork;
-        friend class Traial;
+	friend class Traial;
+
+private:  // Class variables
+
+	static bool highVerbosity;
+
+private:  // Instance variables
 
 	/// Local \ref Variable "variables"
 	State< STATE_INTERNAL_TYPE > lState_;
@@ -363,6 +369,9 @@ public:  // Accessors
     }
 
 public:  // Utils
+
+	/// Set (high) verbosity output printing in logs
+	static void set_verbosity(bool verboseOutput) noexcept;
 
 	State<STATE_INTERNAL_TYPE> initial_state() const override;
 

@@ -125,6 +125,9 @@ class ModelSuite
 	/// Technical system log
 	static std::ostream& techLog_;
 
+	/// Print extra information in logs
+	static bool highVerbosity_;
+
 	/// Starting time (according to omp_get_wtime) of last estimation launched
 	static double lastEstimationStartTime_;
 
@@ -431,6 +434,9 @@ public:  // Accessors
 		{ return Clock::NUM_RNGS; }
 
 public:  // Utils
+
+	/// Set (high) verbosity output printing in logs
+	static void set_verbosity(bool verboseOutput) noexcept;
 
 	/// Is \a engineName the name of an available simulation engine?
 	/// @see available_simulators()

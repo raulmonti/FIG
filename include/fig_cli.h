@@ -106,6 +106,9 @@ extern std::string rngType;
 /// Seed for the RNG
 extern size_t rngSeed;
 
+/// Verbose mode (default is OFF for release build, ON for debug build)
+extern bool verboseOutput;
+
 /// Attempt to estimate/translate in spite of any warning from the parser
 /// of the model not being IOSA-compliant
 extern bool forceOperation;

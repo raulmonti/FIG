@@ -59,6 +59,14 @@ namespace { const fig::Label NoLabel = fig::Label::make_ignored();}
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
+bool ModuleInstance::highVerbosity =
+#ifndef NDEBUG
+	true;
+#else
+	false;
+#endif
+
+
 template< template< typename, typename... > class Container1,
 		  typename ValueType1,
 		  typename... OtherContainerArgs1 >
@@ -195,6 +203,13 @@ template void ModuleInstance::add_transition(const Label& label,
 											 const std::unordered_set< std::string >& resetClocks);
 
 
+void
+ModuleInstance::set_verbosity(bool verboseOutput) noexcept
+{
+	highVerbosity = verboseOutput;
+}
+
+
 State<STATE_INTERNAL_TYPE>
 ModuleInstance::initial_state() const
 {
@@ -279,7 +294,7 @@ ModuleInstance::apply_postcondition(Traial &traial,
 				       << labPtr->str << " , Label of trans #2: "
 				       << tr.label().str;
 				throw_FigException(errMsg.str());
-			} else if (nullptr != labPtr) {
+			} else if (nullptr != labPtr && highVerbosity) {
 				figTechLog << "\n[WARNING] Nondeterminism of committed actions "
 				              "detected in Module " << name
 				           << ": the transition labels are \"" << labPtr->str
@@ -429,7 +444,7 @@ ModuleInstance::apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
 				       << labStr << " , Label of trans #2: "
 				       << tr.label().str;
 				throw_FigException(errMsg.str());
-			} else if (!labStr.empty()) {
+			} else if (!labStr.empty() && highVerbosity) {
 				figTechLog << "\n[WARNING] Nondeterminism of committed actions "
 				              "detected in Module " << name
 				           << ": the transition labels are \"" << labStr

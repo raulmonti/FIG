@@ -334,6 +334,8 @@ std::ostream& ModelSuite::mainLog_(figMainLog);
 
 std::ostream& ModelSuite::techLog_(figTechLog);
 
+bool ModelSuite::highVerbosity_;
+
 double ModelSuite::lastEstimationStartTime_;
 
 seconds ModelSuite::timeout_(0l);
@@ -709,6 +711,14 @@ ModelSuite::available_RNGs() noexcept
 }
 
 
+void
+ModelSuite::set_verbosity(bool verboseOutput) noexcept
+{
+	highVerbosity_ = verboseOutput;
+	ModuleInstance::set_verbosity(verboseOutput);
+}
+
+
 bool
 ModelSuite::exists_simulator(const std::string& engineName) noexcept
 {
@@ -987,10 +997,10 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
     assert("auto" == ifun.strategy());
 	if (ifun.min_value() == ifun.max_value())
 		throw_FigException("bad function built (flat importance)");
-	else
-		ifun.print_out(figTechLog);
 #endif
 	pristineModel_ = false;
+	if (highVerbosity_)
+		ifun.print_out(figTechLog);
 }
 
 
@@ -1282,15 +1292,15 @@ ModelSuite::estimate_for_times(const Property& property,
 		interruptCI_ = nullptr;
 		lastEstimates_.push_back(ci_ptr);
 		// Results should've been shown on TO interruption
-#ifndef NDEBUG
-		techLog_ << std::endl;
-		if (engine.isplit()) {
-			techLog_ << "#(sims) reaching each threshold level:";
-			for (const auto& pair: engine.get_reach_counts())
-				techLog_ << "\n" << std::setw(3) << pair.first << " | " << pair.second;
-			techLog_ << std::endl << std::endl;
+		if (highVerbosity_) {
+			techLog_ << std::endl;
+			if (engine.isplit()) {
+				techLog_ << "#(sims) reaching each threshold level:";
+				for (const auto& pair: engine.get_reach_counts())
+					techLog_ << "\n" << std::setw(3) << pair.first << " | " << pair.second;
+				techLog_ << std::endl << std::endl;
+			}
 		}
-#endif
 	}
 }
 
@@ -1356,15 +1366,15 @@ ModelSuite::estimate_for_confs(const Property& property,
 		}
 		interruptCI_ = nullptr;
 		lastEstimates_.push_back(ci_ptr);
-#ifndef NDEBUG
-		techLog_ << std::endl;
-		if (engine.isplit()) {
-			techLog_ << "\n#(sims) reaching each threshold level:";
-			for (const auto& pair: engine.get_reach_counts())
-				techLog_ << "\n" << std::setw(3) << pair.first << " | " << pair.second;
-			techLog_ << std::endl << std::endl;
+		if (highVerbosity_) {
+			techLog_ << std::endl;
+			if (engine.isplit()) {
+				techLog_ << "\n#(sims) reaching each threshold level:";
+				for (const auto& pair: engine.get_reach_counts())
+					techLog_ << "\n" << std::setw(3) << pair.first << " | " << pair.second;
+				techLog_ << std::endl << std::endl;
+			}
 		}
-#endif
 	}
 }
 
