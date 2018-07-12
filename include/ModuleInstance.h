@@ -82,6 +82,7 @@ class ModuleInstance : public Module
 
 private:  // Class variables
 
+	/// @copydoc ModelSuite::highVerbosity_
 	static bool highVerbosity;
 
 private:  // Instance variables
@@ -370,8 +371,9 @@ public:  // Accessors
 
 public:  // Utils
 
-	/// Set (high) verbosity output printing in logs
-	static void set_verbosity(bool verboseOutput) noexcept;
+	/// @copydoc highVerbosity
+	static inline void set_verbosity(bool verboseOutput) noexcept
+		{ highVerbosity = verboseOutput; }
 
 	State<STATE_INTERNAL_TYPE> initial_state() const override;
 

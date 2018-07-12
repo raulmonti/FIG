@@ -44,6 +44,7 @@
 // FIG
 #include <FigException.h>
 #include <ModuleInstance.h>
+#include <ModelSuite.h>
 #include <ImportanceFunction.h>
 #include <Traial.h>
 
@@ -59,12 +60,7 @@ namespace { const fig::Label NoLabel = fig::Label::make_ignored();}
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-bool ModuleInstance::highVerbosity =
-#ifndef NDEBUG
-	true;
-#else
-	false;
-#endif
+bool ModuleInstance::highVerbosity = ModelSuite::get_verbosity();
 
 
 template< template< typename, typename... > class Container1,
@@ -201,13 +197,6 @@ template void ModuleInstance::add_transition(const Label& label,
                                              const Precondition& pre,
                                              const Postcondition& pos,
 											 const std::unordered_set< std::string >& resetClocks);
-
-
-void
-ModuleInstance::set_verbosity(bool verboseOutput) noexcept
-{
-	highVerbosity = verboseOutput;
-}
 
 
 State<STATE_INTERNAL_TYPE>

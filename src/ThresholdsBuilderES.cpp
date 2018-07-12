@@ -57,12 +57,10 @@ using std::end;
 namespace   // // // // // // // // // // // // // // // // // // // // // // //
 {
 
-/// DEBUG mode: Show in tech log the probability of level-up for each level
-/// RELEASE mode: NOP
+/// Show in tech log the probability of level-up for each level
 void
-debug_print_lvlup(const std::vector< float >& Pup)
+print_lvlup(const std::vector< float >& Pup)
 {
-#ifndef NDEBUG
 	float est(1.0f);
 	const auto defaultLogFlags(fig::figTechLog.flags());
 	fig::figTechLog << std::setprecision(2) << std::scientific;
@@ -74,7 +72,6 @@ debug_print_lvlup(const std::vector< float >& Pup)
 	fig::figTechLog << "\nEstimate spoiler (transient properties only!): "
 			   << est << std::endl;
 	fig:: figTechLog.flags(defaultLogFlags);
-#endif
 }
 
 
@@ -151,19 +148,23 @@ ThresholdsBuilderES::build_thresholds(std::shared_ptr<const ImportanceFunction> 
 	ImportanceVec thrCandidates(reachable_importance_values());
 	if (thrCandidates.size() < 2ul)  // we must have reached beyond initial importance
 		throw_FigException("ES could not find reachable importance values");
-	ModelSuite::debug_log("\nFound " + std::to_string(thrCandidates.size()-1ul)
-	                    + " relevant importance values:");
-	for (auto imp: thrCandidates)
-		ModelSuite::debug_log(" "+std::to_string(imp));
+	if (highVerbosity) {
+		ModelSuite::tech_log("\nFound " + std::to_string(thrCandidates.size()-1ul)
+							+ " relevant importance values:");
+		for (auto imp: thrCandidates)
+			ModelSuite::tech_log(" "+std::to_string(imp));
+	}
 
 	// Estimate probabilities of going from one (reachable) importance value to the next
-	ModelSuite::debug_log("\nRunning internal Fixed Effort");
+	if (highVerbosity)
+		ModelSuite::tech_log("\nRunning internal Fixed Effort");
 	auto Pup = FE_for_ES(thrCandidates);
 	assert(!currentThresholds_.empty());  // could we build something?
 	assert(!Pup.empty());
 	if (0.0f >= Pup.back())
 		artificial_thresholds_selection(thrCandidates, Pup);
-	debug_print_lvlup(Pup);  // print debug info in tech log
+	if (highVerbosity)
+		print_lvlup(Pup);
 
 	// Turn level-up probabilities into effort factors
 	auto effort(Pup);

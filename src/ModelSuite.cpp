@@ -334,7 +334,12 @@ std::ostream& ModelSuite::mainLog_(figMainLog);
 
 std::ostream& ModelSuite::techLog_(figTechLog);
 
-bool ModelSuite::highVerbosity_;
+bool ModelSuite::highVerbosity_ =
+#ifndef NDEBUG
+	true;
+#else
+	false;
+#endif
 
 double ModelSuite::lastEstimationStartTime_;
 
@@ -579,6 +584,15 @@ ModelSuite::set_rng(const std::string& rngType, const size_t& rngSeed)
 }
 
 
+void
+ModelSuite::set_verbosity(bool verboseOutput) noexcept
+{
+	highVerbosity_ = verboseOutput;
+	ModuleInstance::set_verbosity(verboseOutput);
+	ThresholdsBuilderAdaptive::set_verbosity(verboseOutput);
+}
+
+
 std::shared_ptr< const Property >
 ModelSuite::get_property(const size_t& i) const noexcept
 {
@@ -708,14 +722,6 @@ ModelSuite::available_RNGs() noexcept
 			RNGs.push_back(rng);
 	}
 	return RNGs;
-}
-
-
-void
-ModelSuite::set_verbosity(bool verboseOutput) noexcept
-{
-	highVerbosity_ = verboseOutput;
-	ModuleInstance::set_verbosity(verboseOutput);
 }
 
 

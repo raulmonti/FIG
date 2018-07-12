@@ -72,6 +72,9 @@ protected:
 	/// Max value for n_
 	static const unsigned MAX_N;
 
+	/// @copydoc ModelSuite::highVerbosity_
+	static bool highVerbosity;
+
 	/// Thresholds: the importance values that define them,
 	/// and the effort to perform on each ("threshold-") level
 	ThresholdsVec thresholds_;
@@ -86,6 +89,10 @@ public:
 	ThresholdsBuilderAdaptive(const unsigned& n = MIN_N);
 
 	inline bool adaptive() const noexcept override { return true; }
+
+	/// @copydoc highVerbosity
+	static inline void set_verbosity(bool verboseOutput) noexcept
+		{ highVerbosity = verboseOutput; }
 
 protected:  // Utils for the class and its kin
 

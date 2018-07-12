@@ -125,7 +125,7 @@ class ModelSuite
 	/// Technical system log
 	static std::ostream& techLog_;
 
-	/// Print extra information in logs
+	/// Extra-verbose output printing in logs (aka Italian mode)
 	static bool highVerbosity_;
 
 	/// Starting time (according to omp_get_wtime) of last estimation launched
@@ -311,7 +311,13 @@ public:  // Populating facilities and other modifyers
 	 */
 	void set_rng(const std::string& rngType, const size_t& rngSeed = Clock::rng_seed());
 
+	/// Set (high) verbosity output printing in logs
+	static void set_verbosity(bool verboseOutput) noexcept;
+
 public:  // Accessors
+
+	/// Is output printing in logs highly verbose?
+	static inline bool get_verbosity() noexcept { return highVerbosity_; }
 
 	/// @copydoc ModuleNetwork::sealed()
 	inline bool sealed() const noexcept { return (nullptr != model) && model->sealed(); }
@@ -434,9 +440,6 @@ public:  // Accessors
 		{ return Clock::NUM_RNGS; }
 
 public:  // Utils
-
-	/// Set (high) verbosity output printing in logs
-	static void set_verbosity(bool verboseOutput) noexcept;
 
 	/// Is \a engineName the name of an available simulation engine?
 	/// @see available_simulators()
