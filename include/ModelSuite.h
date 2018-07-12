@@ -737,8 +737,9 @@ public:  // Simulation utils
 	 *        "simulation bounds" requested for experimentation, and logged
 	 *        as they are produced.
 	 *
-	 * @param engine SimulationEngine already tied to an ImportanceFunction
-	 * @param bounds List of stopping conditions to experiment with
+	 * @param property User property query being estimated
+	 * @param engine   SimulationEngine already tied to an ImportanceFunction
+	 * @param bounds   List of stopping conditions to experiment with
 	 *
 	 * @throw FigException if engine wasn't \ref SimulationEngine::bound()
 	 *                     "ready for simulations"
@@ -747,7 +748,7 @@ public:  // Simulation utils
 	 * @note Resets previous estimations as returned by get_last_estimates()
 	 */
 	void estimate(const Property& property,
-				  const SimulationEngine& engine,
+				  SimulationEngine &engine,
 				  const StoppingConditions& bounds,
 				  const ImpFunSpec ifunSpec = ImpFunSpec("null","null")) const;
 
@@ -755,7 +756,7 @@ public:  // Simulation utils
 	/// @throw FigException if there's no property at index 'propertyIndex'
 	/// @see get_property()
 	void estimate(const size_t& propertyIndex,
-				  const SimulationEngine& engine,
+				  SimulationEngine& engine,
 	              const StoppingConditions& bounds,
 	              const ImpFunSpec ifunSpec = ImpFunSpec("null","null")) const;
 

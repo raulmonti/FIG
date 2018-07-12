@@ -35,6 +35,7 @@
 // C++
 #include <memory>     // std::dynamic_pointer_cast<>
 #include <sstream>
+#include <iomanip>    // std::setw()
 #include <iterator>   // std::begin, std::end
 #include <algorithm>  // std::find()
 // FIG
@@ -328,7 +329,11 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 	case PropertyType::TRANSIENT: {
 		const auto& pTransient(dynamic_cast<const PropertyTransient&>(property));
 		auto& ciTransient(dynamic_cast<ConfidenceIntervalTransient&>(ci));
-		size_t batchSize = min_batch_size(name(), impFun_->name());
+		size_t batchSize = batch_size() > 0ul ? batch_size()
+											  : min_batch_size(name(), impFun_->name());
+
+		figMainLog << " · Batch (ini):" << std::setw(12) << batchSize;
+		figMainLog << std::endl << std::endl;
 		while ( ! (interrupted || ci.is_valid()) ) {
 			auto counts = transient_simulations(pTransient, batchSize);
 			transient_update(ciTransient, counts);
@@ -338,7 +343,10 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 	case PropertyType::RATE: {
 		const auto& pRate(dynamic_cast<const PropertyRate&>(property));
 		auto& ciRate(dynamic_cast<ConfidenceIntervalRate&>(ci));
-		size_t runLength = min_run_length(name(), impFun_->name());
+		size_t runLength = batch_size() > 0ul ? batch_size()
+											  : min_run_length(name(), impFun_->name());
+		figMainLog << " · Batch (ini):" << std::setw(12) << runLength;
+		figMainLog << std::endl << std::endl;
 		bool firstRun(true);
 		do {
 			auto value = rate_simulation(pRate, runLength, firstRun);  // use batch-means

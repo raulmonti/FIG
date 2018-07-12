@@ -46,17 +46,17 @@ namespace fig
 /**
  * @brief Criteria to stop simulations
  *
- *        There are two basic ways to tell a simulation has run long enough:
- *        either it has achieved some desired confidence criterion, or it has
- *        reached the wall time limit imposed by the user.
+ *        There are two ways to tell when an estimation has run long enough.
+ *        It either:
+ *        - has achieved some desired confidence criterion, or else
+ *        - has reached the wall time limit imposed by the user.
  *        The first we call "value simulations" since the goal is to estimate
  *        the property's value with a specified accuracy, regardless of how
- *        long that may take.
- *        The second we call "time simulations" for obvious reasons.
+ *        long that may take. The second we call "time simulations."
  *
  *        A single instance of the StoppingConditions class can hold several
  *        end-of-simulation criteria, but either of the "value" or of the "time"
- *        kind, not a Mischung.
+ *        kind, not a mix.
  */
 class StoppingConditions
 {
@@ -66,11 +66,16 @@ class StoppingConditions
 	/// List of wall clock time values (in seconds) to experiment with
 	std::vector< unsigned long > timeBudgets_;
 
+	/// <i>(Optional)</i> Internal size of estimation steps:<br>
+	/// - for transient this is the size of the batch of each CI update;<br>
+	/// - for steady-state this is the simulation time length of each batch.
+	size_t batchSize_;
+
 public:  // Ctors/Dtor
 
 	/// Empty ctor, still undecided if for value or time simulations
 	/// @see StoppingConditions
-	StoppingConditions() {}
+	StoppingConditions(size_t batchSize = 0ul) : batchSize_(batchSize) {}
 
 	/**
 	 * @brief Data ctor for confidence criteria tuples from lvalue container
@@ -208,6 +213,9 @@ public:  // Populating facilities
 	void add_time_budget(const unsigned long& seconds);
 
 public:  // Utils
+
+	/// @copydoc batchSize_
+	inline size_t batch_size() const noexcept { return batchSize_; }
 
 	/// Number of conditions
 	inline size_t size() const noexcept { return confidenceCriteria_.size() + timeBudgets_.size(); }

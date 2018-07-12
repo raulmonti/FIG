@@ -113,6 +113,12 @@ private:  // Instance attributes
 	/// @note Check names() for available options.
 	std::string name_;
 
+	/// @copydoc fig::StoppingConditions::batchSize_
+	///
+	/// @note This is zero if a batch size was not selected by the user,
+	///       and will thus be chosen automatically by the engine during simulations
+	size_t userDefinedBatchSize_;
+
     /// Is the engine currently being used in an estimation?
     mutable bool locked_;
 
@@ -205,6 +211,11 @@ protected:  // Engine setup (by ModelSuite)
 
 private:  // Engine setup (by ModelSuite)
 
+	/// Set an initial batch size that was defined by the user in the CLI
+	/// @see StoppingConditions::batch_size()
+	inline void set_batch_size(size_t batchSize) noexcept
+		{ userDefinedBatchSize_ = batchSize; }
+
     /**
      * @brief Lock this engine into "simulation mode"
      * @details When an engine is locked only its const-qualified
@@ -223,6 +234,9 @@ private:  // Engine setup (by ModelSuite)
     void unlock() const noexcept;
 
 public:  // Accessors
+
+	/// @copydoc userDefinedBatchSize_
+	inline size_t batch_size() const noexcept { return userDefinedBatchSize_; }
 
 	/// Names of the simulation engines offered to the user,
 	/// as he should requested them through the CLI/GUI.
@@ -290,8 +304,8 @@ public:  // Simulation functions
      *
      *        There are two ways of defining when does a simulation end:
      *        "by time" or "by value".<br>
-     *        In <i>time simulations</i> the estimation runs indefinitely until
-     *        the engine is externally signaled by an update of the
+	 *        In <i>time simulations</i> the estimation runs until the engine
+	 *        is externally signaled by an update of the
      *        \ref interrupted "interrupted flag". Signals are usually time-
      *        driven, e.g. "stop after running for 2h".<br>
      *        In <i>value simulations</i> the estimation finishes as soon as

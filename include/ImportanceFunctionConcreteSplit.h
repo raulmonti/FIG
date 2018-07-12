@@ -104,10 +104,10 @@ private:
     /// Strategy to used for composing the importance values of the modules
     CompositionType compositionStrategy_;
 
-    /// (Optional) User-defined minimal value of the composition function
+	/// <i>(Optional)</i> User-defined minimal value of the composition function
     ImportanceValue userMinValue_;
 
-    /// (Optional) User-defined maximal value of the composition function
+	/// <i>(Optional)</i> User-defined maximal value of the composition function
     ImportanceValue userMaxValue_;
 
     /// Value of the neutral element for the composition strategy chosen
@@ -180,8 +180,8 @@ public:  // Utils
 	 * @param compFunExpr Algebraic expression to use as composition function.
 	 * @param nullVal Neutral element of the algebraic expression, needed only
 	 *                for fully defined functions (i.e. not for operands)
-	 * @param minVal  Optional user-defined min value of the algebraic expression
-	 * @param maxVal  Optional user-defined max value of the algebraic expression
+	 * @param minVal  <i>(Optional)</i> user-defined min value of the algebraic expression
+	 * @param maxVal  <i>(Optional)</i> user-defined max value of the algebraic expression
 	 *
 	 * @throw FigException if invalid or badly formatted function expression
 	 */

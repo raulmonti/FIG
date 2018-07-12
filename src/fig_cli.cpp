@@ -329,6 +329,14 @@ ValueArg<string> rngSeed_(
 	"to use randomized seeding in all simulation runs",
 	false, "", "random/<digit>+");
 
+// User-defined batch size
+ValueArg<size_t> batchSize_(
+	"b", "batch-size",
+	"Batch size for CI updates: for transient properties this is the number "
+	"of independent runs performed for each CI update; for steady-state "
+	"properties this is the simulation time of each batch.",
+	false, 0ul, "A (big!) positive integral");
+
 // Verbose output printing (default ON for debug build, OFF for release build)
 ValueArg<bool> verboseOutput_(
 	"", "parlare",
@@ -615,14 +623,15 @@ get_stopping_conditions()
 {
 	if (!confidenceCriteria.isSet() && !timeCriteria.isSet())
 		return false;
+	auto const batchSize(batchSize_.getValue());
 	if (confidenceCriteria.isSet()) {
-		fig::StoppingConditions stopCond;
+		fig::StoppingConditions stopCond(batchSize);
 		for (const auto& confCrit: confidenceCriteria.getValues())
 			stopCond.add_confidence_criterion(confCrit.first, confCrit.second, true);
 		estBounds.emplace(estBounds.begin(), stopCond);
 	}
 	if (timeCriteria.isSet()) {
-		fig::StoppingConditions stopCond;
+		fig::StoppingConditions stopCond(batchSize);
 		for (string timeCrit: timeCriteria.getValue()) {
 			char *err(nullptr), timeUnit(timeCrit.back());
 			if (!std::isalpha(timeUnit))
@@ -770,6 +779,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(globalEfforts_);
 		cmd_.add(rngType_);
 		cmd_.add(rngSeed_);
+		cmd_.add(batchSize_);
 		cmd_.add(verboseOutput_);
 		cmd_.add(forceOperation_);
 		cmd_.add(confluenceCheck_);
@@ -778,7 +788,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		// Parse the command line input
 		cmd_.parse(argc, argv);
 
-		// Fill the globally offered objects
+		// Fill in the objects that are offered globally
 		modelFile       = modelFile_.getValue();
 		propertiesFile  = propertiesFile_.getValue();
 		engineName      = engineName_.getValue();

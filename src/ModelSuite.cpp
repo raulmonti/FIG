@@ -1195,7 +1195,7 @@ ModelSuite::clear() noexcept
 
 void
 ModelSuite::estimate(const Property& property,
-                     const SimulationEngine& engine,
+					 SimulationEngine& engine,
 					 const StoppingConditions& bounds,
 					 const ImpFunSpec ifunSpec) const
 {
@@ -1205,6 +1205,8 @@ ModelSuite::estimate(const Property& property,
 	if (!engine.ready())
 		throw_FigException("SimulationEngine \"" + engine.name()
 						  +"\" isn't ready for simulations");
+	else
+		engine.set_batch_size(bounds.batch_size());
 	const ImportanceFunction& ifun(*impFuns[engine.current_imp_fun()]);
 	const std::string postProcStr(ifun.post_processing().name.empty()
 			? ("(null)") : (ifun.post_processing().name + " "
@@ -1238,9 +1240,9 @@ ModelSuite::estimate(const Property& property,
 
 void
 ModelSuite::estimate(const size_t& propertyIndex,
-					 const SimulationEngine& engine,
-                     const StoppingConditions& bounds,
-                     const ImpFunSpec ifunSpec) const
+					 SimulationEngine &engine,
+					 const StoppingConditions& bounds,
+					 const ImpFunSpec ifunSpec) const
 {
 	auto propertyPtr = get_property(propertyIndex);
 	if (nullptr == propertyPtr)
@@ -1270,8 +1272,7 @@ ModelSuite::estimate_for_times(const Property& property,
 		        ? std::min<long>(wallTimeInSeconds, timeout_.count())
 		        : wallTimeInSeconds);
 		mainLog_ << std::setprecision(0) << std::fixed;
-		mainLog_ << "   Estimation time bound: " << time_formatted_str(timeLimit.count()) << "\n";
-		mainLog_ << std::endl;
+		mainLog_ << " · Estimation time bound: " << time_formatted_str(timeLimit.count()) << "\n";
 
 		// Start timer
 		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),
@@ -1336,7 +1337,6 @@ ModelSuite::estimate_for_confs(const Property& property,
 			mainLog_ << std::setprecision(2) << std::scientific << (2*precVal) << "\n";
 		if (timeout_.count() > 0l)
 			mainLog_ << " · Timeout:        " << time_formatted_str(timeout_.count()) << "\n";
-		mainLog_ << std::endl;
 
 		// Start timer
 		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),
