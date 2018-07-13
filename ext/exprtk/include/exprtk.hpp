@@ -42,6 +42,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <deque>
+#include <queue>
 #include <exception>
 #include <functional>
 #include <iterator>
@@ -380,7 +381,7 @@ namespace exprtk
                                     "repeat", "return", "root", "round", "roundn", "sec", "sgn",
                                     "shl", "shr", "sin", "sinc", "sinh", "sqrt",  "sum", "swap",
                                     "switch", "tan",  "tanh", "true",  "trunc", "until",  "var",
-                                    "while", "xnor", "xor", "&", "|"
+									"while", "xnor", "xor", "&", "|", "summax"
                                   };
 
       static const std::size_t reserved_symbols_size = sizeof(reserved_symbols) / sizeof(std::string);
@@ -395,7 +396,7 @@ namespace exprtk
                                     "ncdf",  "pow",  "root",  "round",  "roundn",  "sec", "sgn",
                                     "sin", "sinc", "sinh", "sqrt", "sum", "swap", "tan", "tanh",
                                     "trunc",  "not_equal",  "inrange",  "deg2grad",   "deg2rad",
-                                    "rad2deg", "grad2deg"
+									"rad2deg", "grad2deg", "summax"
                                   };
 
       static const std::size_t base_function_list_size = sizeof(base_function_list) / sizeof(std::string);
@@ -4269,7 +4270,7 @@ namespace exprtk
       {
          e_default , e_null    , e_add     , e_sub     ,
          e_mul     , e_div     , e_mod     , e_pow     ,
-         e_atan2   , e_min     , e_max     , e_avg     ,
+		 e_atan2   , e_min     , e_max     , e_avg     , e_summax,
          e_sum     , e_prod    , e_lt      , e_lte     ,
          e_eq      , e_equal   , e_ne      , e_nequal  ,
          e_gte     , e_gt      , e_and     , e_nand    ,
@@ -12135,6 +12136,124 @@ namespace exprtk
          }
       };
 
+	  template <typename T>
+	  struct vararg_summax_op : public opr_base<T>
+	  {
+		 typedef typename opr_base<T>::Type Type;
+
+		 // Let k := arglist[0], n := size(arglist)
+		 // Return   sum(0 <= j < k : sort_descending(arglist[1..n))[j] ),
+		 // i.e. the sum of the k max elements of arglist[1..n)
+		 template <typename Type,
+				   typename Allocator,
+				   template <typename,typename> class Sequence>
+		 static inline T process(const Sequence<Type,Allocator>& arg_list)
+		 {
+			// static_assert(std::is_integral<T>::value,
+			// 			  "Type error: only integral types supported");
+
+			const int numargs(static_cast<int>(arg_list.size()));
+
+			if (numargs < 2)
+				return std::numeric_limits<T>::quiet_NaN();
+			const int k(value(arg_list[0]));
+			if (numargs < k || k <= T(0))
+				return std::numeric_limits<T>::quiet_NaN();
+			switch (numargs-1)
+			{
+			   case 1  : return process_1(k, arg_list);
+			   case 2  : return process_2(k, arg_list);
+			   case 3  : return process_3(k, arg_list);
+			   case 4  : return process_4(k, arg_list);
+			   default :
+				{
+					auto greater = [](const Type& a, const Type& b)
+								   { return value(a) > value(b); };
+					std::priority_queue< Type, std::vector<Type>, decltype(greater) >
+							minHeap(std::begin(arg_list)+1,
+									std::begin(arg_list)+k+1,
+									greater);
+					// min_heap keeps the 'k' greatest elements of vec[0..i)
+					for (auto i = k+1 ; i < numargs ; i++) {
+						if (value(minHeap.top()) < value(arg_list[i])) {
+							minHeap.pop();
+							minHeap.push(arg_list[i]);
+						}
+					}
+					T result(0);
+					while (!minHeap.empty()) {
+						result += value(minHeap.top());
+						minHeap.pop();
+					}
+					return (result);
+				}
+			}
+		 }
+
+		 template <typename Sequence>
+		 static inline T process_1(const int&, const Sequence& arg_list)
+		 {
+			return value(arg_list[1]);
+		 }
+
+		 template <typename Sequence>
+		 static inline T process_2(const int& k, const Sequence& arg_list)
+		 {
+			if (k == 1)
+				return std::max<T>(value(arg_list[1]), value(arg_list[2]));
+			else
+				return (value(arg_list[1]) + value(arg_list[2]));
+		 }
+
+		 template <typename Sequence>
+		 static inline T process_3(const int& k, const Sequence& arg_list)
+		 {
+			if (k == 1)
+				return std::max<T>(value(arg_list[1]),
+					   std::max<T>(value(arg_list[2]),
+								   value(arg_list[3])));
+			else if (k == 2)
+				return std::max<T>(value(arg_list[1])+value(arg_list[2]),
+					   std::max<T>(value(arg_list[1])+value(arg_list[3]),
+								   value(arg_list[2])+value(arg_list[3])));
+			else
+				return (value(arg_list[1]) + value(arg_list[2]) +
+						value(arg_list[3]));
+		 }
+
+		 template <typename Sequence>
+		 static inline T process_4(const int& k, const Sequence& arg_list)
+		 {
+			if (k == 1)
+				return std::max<T>(
+							std::max<T>(value(arg_list[1]), value(arg_list[2])),
+							std::max<T>(value(arg_list[3]), value(arg_list[4]))
+						);
+			else if (k == 2)
+				return std::max<T>(
+							std::max<T>(value(arg_list[1])+value(arg_list[2]),
+							std::max<T>(value(arg_list[1])+value(arg_list[3]),
+										value(arg_list[1])+value(arg_list[4]))),
+							std::max<T>(value(arg_list[2])+value(arg_list[3]),
+							std::max<T>(value(arg_list[2])+value(arg_list[4]),
+										value(arg_list[3])+value(arg_list[4])))
+						);
+			else if (k == 3)
+				return std::max<T>(
+						 std::max<T>(
+							value(arg_list[1])+value(arg_list[2])+value(arg_list[3]),
+							value(arg_list[1])+value(arg_list[2])+value(arg_list[4])),
+						 std::max<T>(
+							value(arg_list[1])+value(arg_list[3])+value(arg_list[4]),
+							value(arg_list[2])+value(arg_list[3])+value(arg_list[4]))
+						);
+			else
+				return (value(arg_list[1]) + value(arg_list[2]) +
+						value(arg_list[3]) + value(arg_list[4]));
+		 }
+	  };
+
+
       template <typename T>
       struct vararg_min_op : public opr_base<T>
       {
@@ -12753,6 +12872,45 @@ namespace exprtk
             return vec_add_op<T>::process(v) / vec_size;
          }
       };
+
+	  template <typename T>
+	  struct vec_summax_op
+	  {
+		 typedef vector_interface<T>* ivector_ptr;
+
+		 // Let k := v[0], n := size(v)
+		 // Return   sum(0 <= j < k : sort_descending(v[1..n))[j] ),
+		 // i.e. the sum of the k max elements of v[1..n)
+		 static inline T process(const ivector_ptr v)
+		 {
+			// static_assert(std::is_integral<T>::value,
+			// 			  "Type error: only integral types supported");
+
+			auto ivec(v->vec()->vds());
+			if (ivec.size()<2)
+				return std::numeric_limits<T>::quiet_NaN();
+			const int vec_size = ivec.size();
+			const T* vec(ivec.data());
+			const int k(vec[0]);
+			if (k >= vec_size)
+				return std::numeric_limits<T>::quiet_NaN();
+			std::priority_queue< T, std::vector<T>, std::greater<T> >
+					minHeap(vec+1, vec+k+1);
+			// min_heap keeps the 'k' greatest elements of vec[1..i)
+			for (auto i = k+1 ; i < vec_size ; i++) {
+				if (minHeap.top() < vec[i]) {
+					minHeap.pop();
+					minHeap.push(vec[i]);
+				}
+			}
+			T result(0);
+			while (!minHeap.empty()) {
+				result += minHeap.top();
+				minHeap.pop();
+			}
+			return (result);
+		 }
+	  };
 
       template <typename T>
       struct vec_min_op
@@ -18816,7 +18974,7 @@ namespace exprtk
             e_bf_sinc      , e_bf_sinh     , e_bf_sqrt     , e_bf_sum    ,
             e_bf_swap      , e_bf_tan      , e_bf_tanh     , e_bf_trunc  ,
             e_bf_not_equal , e_bf_inrange  , e_bf_deg2grad , e_bf_deg2rad,
-            e_bf_rad2deg   , e_bf_grad2deg
+			e_bf_rad2deg   , e_bf_grad2deg , e_bf_summax
          };
 
          enum settings_control_structs
@@ -19761,7 +19919,8 @@ namespace exprtk
          static const std::string s_sum     = "sum" ;
          static const std::string s_mul     = "mul" ;
          static const std::string s_avg     = "avg" ;
-         static const std::string s_min     = "min" ;
+		 static const std::string s_summax  = "summax" ;
+		 static const std::string s_min     = "min" ;
          static const std::string s_max     = "max" ;
          static const std::string s_mand    = "mand";
          static const std::string s_mor     = "mor" ;
@@ -19773,7 +19932,8 @@ namespace exprtk
                   details::imatch(symbol,s_sum    ) ||
                   details::imatch(symbol,s_mul    ) ||
                   details::imatch(symbol,s_avg    ) ||
-                  details::imatch(symbol,s_min    ) ||
+				  details::imatch(symbol,s_summax ) ||
+				  details::imatch(symbol,s_min    ) ||
                   details::imatch(symbol,s_max    ) ||
                   details::imatch(symbol,s_mand   ) ||
                   details::imatch(symbol,s_mor    ) ||
@@ -21704,7 +21864,8 @@ namespace exprtk
             return parse_multi_switch_statement();
          }
          else if (details::imatch(symbol,"avg" )) opt_type = details::e_avg;
-         else if (details::imatch(symbol,"mand")) opt_type = details::e_mand;
+		 else if (details::imatch(symbol,"summax"))opt_type= details::e_summax;
+		 else if (details::imatch(symbol,"mand")) opt_type = details::e_mand;
          else if (details::imatch(symbol,"max" )) opt_type = details::e_max;
          else if (details::imatch(symbol,"min" )) opt_type = details::e_min;
          else if (details::imatch(symbol,"mor" )) opt_type = details::e_mor;
@@ -26169,7 +26330,8 @@ namespace exprtk
                case_stmt(details::e_sum,  details::vararg_add_op  )
                case_stmt(details::e_prod, details::vararg_mul_op  )
                case_stmt(details::e_avg,  details::vararg_avg_op  )
-               case_stmt(details::e_min,  details::vararg_min_op  )
+			   case_stmt(details::e_summax,details::vararg_summax_op)
+			   case_stmt(details::e_min,  details::vararg_min_op  )
                case_stmt(details::e_max,  details::vararg_max_op  )
                case_stmt(details::e_mand, details::vararg_mand_op )
                case_stmt(details::e_mor,  details::vararg_mor_op  )
@@ -26190,7 +26352,8 @@ namespace exprtk
                      (details::e_sum  == operation) ||
                      (details::e_prod == operation) ||
                      (details::e_avg  == operation) ||
-                     (details::e_min  == operation) ||
+					 (details::e_summax == operation) ||
+					 (details::e_min  == operation) ||
                      (details::e_max  == operation)
                    );
          }
@@ -26208,7 +26371,8 @@ namespace exprtk
                case_stmt(details::e_sum,  details::vararg_add_op  )
                case_stmt(details::e_prod, details::vararg_mul_op  )
                case_stmt(details::e_avg,  details::vararg_avg_op  )
-               case_stmt(details::e_min,  details::vararg_min_op  )
+			   case_stmt(details::e_summax,details::vararg_summax_op)
+			   case_stmt(details::e_min,  details::vararg_min_op  )
                case_stmt(details::e_max,  details::vararg_max_op  )
                case_stmt(details::e_mand, details::vararg_mand_op )
                case_stmt(details::e_mor,  details::vararg_mor_op  )
@@ -26233,7 +26397,8 @@ namespace exprtk
                   case_stmt(details::e_sum,  details::vec_add_op)
                   case_stmt(details::e_prod, details::vec_mul_op)
                   case_stmt(details::e_avg,  details::vec_avg_op)
-                  case_stmt(details::e_min,  details::vec_min_op)
+				  case_stmt(details::e_summax,details::vec_summax_op)
+				  case_stmt(details::e_min,  details::vec_min_op)
                   case_stmt(details::e_max,  details::vec_max_op)
                   #undef case_stmt
                   default : return error_node();
@@ -26271,7 +26436,8 @@ namespace exprtk
                case_stmt(details::e_sum,  details::vararg_add_op  )
                case_stmt(details::e_prod, details::vararg_mul_op  )
                case_stmt(details::e_avg,  details::vararg_avg_op  )
-               case_stmt(details::e_min,  details::vararg_min_op  )
+			   case_stmt(details::e_summax,details::vararg_summax_op)
+			   case_stmt(details::e_min,  details::vararg_min_op  )
                case_stmt(details::e_max,  details::vararg_max_op  )
                case_stmt(details::e_mand, details::vararg_mand_op )
                case_stmt(details::e_mor,  details::vararg_mor_op  )
