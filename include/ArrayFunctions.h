@@ -199,13 +199,13 @@ struct SumFromFunction : public exprtk::igeneric_function<T> {
 ///  returns the sum of the 'k' max elements of array
 ///  @see https://stackoverflow.com/a/7675816
 template<typename T>
-struct SumMaxFunction : public exprtk::igeneric_function<T> {
+struct SumKMaxFunction : public exprtk::igeneric_function<T> {
+	SumKMaxFunction() : exprtk::igeneric_function<T>("VT") {}
 
-	SumMaxFunction() : exprtk::igeneric_function<T>("VT") {}
 	inline T operator()(parameter_list_t<T> parameters) override {
-        generic_type<T> &gt = parameters[0];
-        scalar_t<T> value (parameters[1]);
-        vector_t<T> vector(gt);
+		generic_type<T> &gt = parameters[0];
+		scalar_t<T> value (parameters[1]);
+		vector_t<T> vector(gt);
 		size_t k(0ul);
 		const auto conversionOK = value.to_uint(k);
 		assert(conversionOK);
@@ -219,13 +219,41 @@ struct SumMaxFunction : public exprtk::igeneric_function<T> {
 				minHeap.push(vector[i]);
 			}
 		}
-		T sumj(0);
+		T sumk(0);
 		while (!minHeap.empty()) {
-			sumj += minHeap.top();
+			sumk += minHeap.top();
 			minHeap.pop();
 		}
-		return (sumj);
-    }
+		return (sumk);
+	}
+
+//	// Alternative implementation using the exprtk interface "ivararg_function"
+//
+//	struct SumKMaxFunction : public exprtk::ivararg_function<T> {
+//		SumKMaxFunction() : exprtk::ivararg_function<T>() {}
+//		inline T operator()(const std::vector<T>& arglist) override {
+//			const int numargs(static_cast<int>(arglist.size()));
+//			if (numargs < 2)
+//				return std::numeric_limits<T>::quiet_NaN();
+//			const int k(arglist[0]);
+//			if (numargs <= k || k < T(0))
+//				return std::numeric_limits<T>::quiet_NaN();
+//			std::priority_queue<T, std::vector<T>, std::greater<T>> minHeap(
+//						std::begin(arglist)+1, std::begin(arglist)+k+1);
+//			// minHeap keeps the 'k' greatest elements of arglist[1..i)
+//			for (auto i = k+1 ; i < numargs ; i++) {
+//				if (minHeap.top() < arglist[i]) {
+//					minHeap.pop();
+//					minHeap.push(arglist[i]);
+//				}
+//			}
+//			T sumk(0);
+//			while (!minHeap.empty()) {
+//				sumk += minHeap.top();
+//				minHeap.pop();
+//			}
+//			return (sumk);
+//		}
 };
 
 ///  consec(array, k)==1 if there is a sequence

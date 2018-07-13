@@ -70,7 +70,7 @@ private:
     static ArrayFunctions::MaxFromFunction<T> maxfrom_;
     static ArrayFunctions::MinFromFunction<T> minfrom_;
     static ArrayFunctions::SumFromFunction<T> sumfrom_;
-	static ArrayFunctions::SumMaxFunction<T> summax_;
+	static ArrayFunctions::SumKMaxFunction<T> sumkmax_;
 	static ArrayFunctions::ConsecFunction<T> consec_;
     static ArrayFunctions::BrokenFunction<T> broken_;
     static ArrayFunctions::FstExcludeFunction<T> fstexclude_;

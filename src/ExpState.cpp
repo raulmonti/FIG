@@ -44,7 +44,7 @@ ArrayFunctions::MinFromFunction<T> ExpState<T>::minfrom_;
 template<typename T>
 ArrayFunctions::SumFromFunction<T> ExpState<T>::sumfrom_;
 template<typename T>
-ArrayFunctions::SumMaxFunction<T> ExpState<T>::summax_;
+ArrayFunctions::SumKMaxFunction<T> ExpState<T>::sumkmax_;
 template<typename T>
 ArrayFunctions::ConsecFunction<T> ExpState<T>::consec_;
 template<typename T>
@@ -211,7 +211,7 @@ void ExpState<T>::add_functions() noexcept {
     table_.add_function("maxfrom", maxfrom_);
     table_.add_function("minfrom", minfrom_);
     table_.add_function("sumfrom", sumfrom_);
-	table_.add_function("summax", summax_);
+	table_.add_function("sumkmax", sumkmax_);
 	table_.add_function("consec", consec_);
     table_.add_function("broken", broken_);
     table_.add_function("fstexclude", fstexclude_);
@@ -269,7 +269,7 @@ void run_example_and_exit() {
     ArrayFunctions::MinFromFunction<float> minfrom;
     ArrayFunctions::MaxFromFunction<float> maxfrom;
     ArrayFunctions::SumFromFunction<float> sumfrom;
-	ArrayFunctions::SumMaxFunction<float> summax;
+	ArrayFunctions::SumKMaxFunction<float> sumkmax;
 	ArrayFunctions::ConsecFunction<float> consec;
     ArrayFunctions::BrokenFunction<float> broken;
     table.add_function("fsteq", fsteq);
@@ -278,7 +278,7 @@ void run_example_and_exit() {
     table.add_function("minfrom", minfrom);
     table.add_function("maxfrom", maxfrom);
     table.add_function("sumfrom", sumfrom);
-	table.add_function("summax", summax);
+	table.add_function("sumkmax", sumkmax);
 	table.add_function("consec", consec);
     table.add_function("broken", broken);
     table.add_vector("array", vec);
@@ -292,8 +292,8 @@ void run_example_and_exit() {
         "maxfrom(array, 7)",
 		"sumfrom(array, 0)",
 		"sumfrom(array, 5)",
-		"summax(array, 1)",
-		"summax(array, 4)",
+		"sumkmax(array, 1)",
+		"sumkmax(array, 4)",
         "broken(array, 0)",
         "consec(array, 2)",
         "consec(array, 3)",

@@ -140,7 +140,8 @@ MathExpression::compile_expression()
         table_.add_variable(varsNames_[i], varsValues_[i]);
     expr_.register_symbol_table(table_);
 	if (!parser.compile(exprStr_, expr_))
-        throw_FigException("MathExpression: Couldn't parse expression");
+		throw_FigException("MathExpression: failed parsing expression \""
+						   + exprStr_ + "\"");
 }
 
 
