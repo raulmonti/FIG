@@ -153,7 +153,7 @@ public:  // Access to resources (viz Traials)
     /**
      * Obtain specified amount of (dirty) Traial instances
      *
-     * @param cont       Container where traials are to be stored
+	 * @param cont       Container where traials will be stored (added/emplaced)
      * @param numTraials Number of \ref Traial "traials" requested
      *
      * @note <b>Complexity:</b> <i>O(numTraials)</i> if enough free resources
@@ -168,8 +168,8 @@ public:  // Access to resources (viz Traials)
 	/**
 	 * Obtain specified amount of copies of given Traial instance with 0 depth
      *
-     * @param cont      Container where Traial copies are to be stored
-     * @param traial    Traial instance whose internals will be copied
+	 * @param cont      Container where Traial copies will be stored (added/emplaced)
+	 * @param traial    Traial instance whose internals will be copied
      * @param numCopies Number of \ref Traial "traials" requested
      * @param depth     Depth assigned to the delivered \ref Traial "traials"
      *

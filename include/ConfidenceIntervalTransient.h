@@ -68,6 +68,7 @@ public:  // Modifyers
 	 * @param weighedNRE Weighed number of rare events from last simulation
 	 * @throw FigException if detected possible overflow
 	 * @see update(const std::vector<double>&)
+	 * @deprecated Use the vector-input version
 	 */
 	void update(const double& weighedNRE) override;
 

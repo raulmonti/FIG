@@ -142,8 +142,7 @@ private:  // RNG manipulation via ModelSuite
 	/**
 	 * @brief Change seed used by the internal RNG.
 	 * @param seed Seed to use in following calls to seed_rng().
-	 * @warning A null seed (viz. passing '0' as value of \p seed)
-	 *          will turn on randomized seeding.
+	 * @note Passing 0 as value of \p seed turns on <i>randomized seeding</i>.
 	 * @note This doesn't re-seed the RNG; it changes the internally stored
 	 *       seed value. To actually re-seed call seed_rng() afterwards.
 	 * @see seed_rng()

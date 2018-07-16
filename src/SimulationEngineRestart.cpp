@@ -165,8 +165,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	assert(0u < numRuns);
 	const unsigned numThresholds(impFun_->num_thresholds());
 	std::vector< unsigned > raresCount(numThresholds+1, 0u);
-	std::vector< double > weighedRaresCount;
-	weighedRaresCount.reserve(numRuns);
+	std::vector< double > weighedRaresCount(numRuns, 0.0l);
 	std::stack< Reference< Traial > > stack;
 	static TraialPool& tpool(TraialPool::get_instance());
 
@@ -221,7 +220,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 
 		// Save weighed RE counts of this run, downscaling the # of RE observed
 		// by the relative importance of the threshold level they belong to
-		weighedRaresCount.push_back(0.0);
+		weighedRaresCount[i] = 0.0l;
 		double effort(1.0);
 		for (int t = 0u ; t <= (int)numThresholds ; t++) {
 			effort *= impFun_->effort_of(t);

@@ -58,7 +58,8 @@ ConfidenceIntervalTransient::ConfidenceIntervalTransient(double confidence,
 void
 ConfidenceIntervalTransient::update(const double& weighedNRE)
 {
-	assert(false);
+	assert(false);  // NOTE deprecated
+
 	prevEstimate_ = estimate_;
 	// Incremental (stable) computation of mean and variance (http://goo.gl/ytk6B)
 	const double delta = abs(weighedNRE - estimate_),
