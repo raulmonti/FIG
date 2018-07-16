@@ -85,8 +85,11 @@ ThresholdsBuilderHybrid::build_thresholds(std::shared_ptr<const ImportanceFuncti
 		       thresholds_.back() >= impFun->initial_value());
 		const size_t MARGIN(thresholds_.empty() ? impFun->initial_value()
 		                                        : thresholds_.back());
-		figTechLog << "\nResorting to fixed choice of thresholds starting "
-				   << "above the ImportanceValue " << MARGIN << "\n";
+		if (highVerbosity)
+			figTechLog << "\nResorting to fixed choice of thresholds starting "
+					   << "above the ImportanceValue " << MARGIN << "\n";
+		else
+			figTechLog << "\nSetting fixed thresholds above " << MARGIN << "\n";
 		postPro_ = impFun->post_processing();
 		stride_ = choose_stride(impFun->max_value()-MARGIN);
 		ThresholdsBuilderFixed::build_thresholds(*impFun,

@@ -575,6 +575,7 @@ ModelSuite::set_rng(const std::string& rngType, const size_t& rngSeed)
 
 	Clock::change_rng_seed(rngSeed);  // change seed first! (seeding policies)
 	Clock::change_rng(rngType);
+	ThresholdsBuilderSMC::change_rng_seed(rngSeed);
 
 	tech_log("Using RNG \"" + rngType + "\" with ");
 	if (0ul == rngSeed)

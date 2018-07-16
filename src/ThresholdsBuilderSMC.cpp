@@ -35,8 +35,6 @@
 #include <sstream>
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // std::sort(), std::max({})
-// External code
-#include <pcg_random.hpp>
 // FIG
 #include <ThresholdsBuilderSMC.h>
 #include <ModuleNetwork.h>
@@ -65,9 +63,10 @@ unsigned NUM_FAILURES = 6u;
 
 // RNG for randomized traial selection  ///////////////////////////
 //
-const unsigned long RNG_SEED =
+std::random_device MT_nondet_RNG;  // Mersenne-Twister nondeterministic RNG seeding
+unsigned long RNG_SEED =
 #ifdef RANDOM_RNG_SEED
-    std::random_device{}();
+	MT_nondet_RNG();
 #else
     std::mt19937::default_seed;
 #endif
@@ -75,6 +74,28 @@ const unsigned long RNG_SEED =
 std::mt19937 RNG(RNG_SEED);
 //
 // ////////////////////////////////////////////////////////////////
+
+
+/**
+ * @brief Duplicate the number of simulations used for finding new thresholds
+ * @param n       Number of traials to use for reaching states
+ * @param k       Number of traials where initial states to start simulations from
+ * @param traials Vector of size = n+k with references to Traials
+ */
+bool
+increase_simulation_effort(unsigned& n, unsigned& k, TraialsVec& traials)
+{
+	if (traials.size() != n+k)
+		return false;
+	fig::TraialPool::get_instance().get_traials(traials, n+k);
+	if (traials.size() != 2*(n+k))
+		return false;
+	for (auto i=n+k ; i < 2*(n+k) ; i++)
+		traials[i] = traials[i%(n+k)].get();  // copy *contents*
+	n *= 2;
+	k *= 2;
+	return true;
+}
 
 
 /**
@@ -218,11 +239,7 @@ find_new_threshold(const fig::ModuleNetwork& network,
 	auto predicate = [&jumpsLeft,&MAX_IMP,&property](const Traial& t) -> bool {
 		return --jumpsLeft > 0u
 		        && MAX_IMP > t.level
-		        //&& !property.is_stop(t.state) // no! too harsh, SEQ never succeeds
-		                                        // but if we don't consider the property
-		                                        // then the thresholds are less realistic
-		        /// @todo TODO research: is it better or worse to consider the property?
-		        ;
+				&& !property.is_stop(t.state);
     };
     auto update = [&impFun](Traial& t) -> void {
         t.level = impFun.importance_of(t.state);
@@ -274,6 +291,25 @@ ThresholdsBuilderSMC::ThresholdsBuilderSMC() :
 
 
 void
+ThresholdsBuilderSMC::change_rng_seed(unsigned long seed)
+{
+	const auto randomSeed(0ul==seed);
+	if (randomSeed)
+		RNG_SEED = ::MT_nondet_RNG();
+	else
+		RNG_SEED = seed;
+	::RNG.seed(RNG_SEED);  // re-seed the RNG
+}
+
+
+unsigned long
+ThresholdsBuilderSMC::rng_seed() noexcept
+{
+	return RNG_SEED;
+}
+
+
+void
 ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 {
 	const ImportanceValue IMP_RANGE = impFun.max_value() - impFun.min_value();
@@ -299,23 +335,28 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 
 	TraialsVec traials = get_traials(n_+k_, impFun);
 	const ModuleNetwork& network = *ModelSuite::get_instance().modules_network();
+	if (highVerbosity)
+		ModelSuite::tech_log("[RNG seed: " + std::to_string(RNG_SEED) + "] ");
 
 	// SMC initialization
 	thresholds_.push_back(impFun.initial_value());  // start from initial state importance
 	assert(thresholds_.back() < impFun.max_value());
-	ModelSuite::tech_log("(seed:" + std::to_string(RNG_SEED) + ")");
-	auto newThreshold = find_new_threshold(network,
-	                                       impFun,
-	                                       *property_,
-	                                       traials,
-	                                       n_,
-	                                       k_,
-	                                       thresholds_.back(),
-	                                       halted_);
-	if (impFun.max_value() <= newThreshold)
+	ImportanceValue newThreshold(thresholds_.back());
+	do {
+		newThreshold = find_new_threshold(network,
+										  impFun,
+										  *property_,
+										  traials,
+										  n_,
+										  k_,
+										  thresholds_.back(),
+										  halted_);
+	} while (newThreshold <= thresholds_.back()
+			 && increase_simulation_effort(n_, k_, traials));
+	if (impFun.max_value() <= newThreshold && highVerbosity)
 		ModelSuite::tech_log("\nFirst iteration of SMC reached max importance!\n");
 	else if (newThreshold <= thresholds_.back())
-		goto exit_with_fail;  // couldn't make it, so sad
+		goto exit_with_fail;  // couldn't make it
 	thresholds_.push_back(newThreshold);
 
 	// SMC main loop
@@ -334,10 +375,19 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 		                                  k_,
 		                                  lastThr,
 		                                  halted_);
-        // Use said quantile as new threshold if possible
-		if (newThreshold <= thresholds_.back() || halted_)
-			goto exit_with_fail;  // well, fuck
-		thresholds_.push_back(newThreshold);
+		if (halted_)
+			goto exit_with_fail;
+		// If reached an upper level, use it as new threshold...
+		if (newThreshold > thresholds_.back()) {
+			thresholds_.push_back(newThreshold);
+			continue;
+		}
+		// ...else increase effort (if feasible) and retry
+		increase_simulation_effort(n_, k_, traials);
+		if (highVerbosity)
+			ModelSuite::tech_log("|n:="+std::to_string(n_)+"|");
+		if (n_ > ThresholdsBuilderAdaptive::MAX_N)
+			goto exit_with_fail;
 	}
 
 	TraialPool::get_instance().return_traials(traials);
@@ -352,6 +402,8 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 		for (const auto thr: thresholds_)
 			errMsg << thr << ", ";
 		errMsg << "\b\b  ";
+		if (highVerbosity)
+			ModelSuite::tech_log(errMsg.str());
 		throw_FigException(errMsg.str());
 }
 
@@ -361,30 +413,31 @@ ThresholdsBuilderSMC::tune(const size_t& numTrans,
                            const ImportanceValue& maxImportance,
                            const unsigned& globalEffort)
 {
-	float scaleFactor;
+	float scaleFactor(1.0f);
 	ThresholdsBuilderAdaptiveSimple::tune(numTrans, maxImportance, globalEffort);
 
-	if (simEngineName_ == "restart") {
-		// SMC is statistically way better than AMS.
-		// This makes the "balanced growth" equation to yield lots of
-		// thresholds really close to each other.
-		// For RESTART, this has shown a simulation overhead in practice,
-		// thus we counter it a little by reducing the probability of level up.
-		scaleFactor = .333f;
-
-	} else if (simEngineName_ == "sfe") {
-		// For Standard Fixed Effort, the "balanced growth" equation
-		// used with SMC typically yields too small a probability of level-up,
-		// maybe because globalEffort is the number of pilot runs per level
-		// and not a "stacking-up splitting" like in RESTART.
-		// Thus we increase a little the probability of level up.
-		scaleFactor = globalEffort / 3.0f;
-
-	} else {
-		ModelSuite::tech_log("ThresholdsBuilderSMC: Unsupported simulation "
-		                     "engine: \"" + simEngineName_ + "\"\n");
-		throw_FigException("unsupported simulation engine: \"" + simEngineName_ + "\"");
-	}
+/// @bug FIXME When/why was this introduced? Delete forever if possible
+//	if (simEngineName_ == "restart") {
+//		// SMC is statistically way better than AMS.
+//		// This makes the "balanced growth" equation to yield lots of
+//		// thresholds really close to each other.
+//		// For RESTART, this has shown a simulation overhead in practice,
+//		// thus we counter it a little by reducing the probability of level up.
+//		scaleFactor = .333f;
+//
+//	} else if (simEngineName_ == "sfe") {
+//		// For Standard Fixed Effort, the "balanced growth" equation
+//		// used with SMC typically yields too small a probability of level-up,
+//		// maybe because globalEffort is the number of pilot runs per level
+//		// and not a "stacking-up splitting" like in RESTART.
+//		// Thus we increase a little the probability of level up.
+//		scaleFactor = globalEffort / 3.0f;
+//
+//	} else {
+//		ModelSuite::tech_log("ThresholdsBuilderSMC: Unsupported simulation "
+//		                     "engine: \"" + simEngineName_ + "\"\n");
+//		throw_FigException("unsupported simulation engine: \"" + simEngineName_ + "\"");
+//	}
 
 	/// @note NOTE can we change for "theoretic optimal" p_i ~ e^-1  forall i ?
 	///            See analysis by Garvels (PhD thesis) and Rubino&Tuffin (RES book)

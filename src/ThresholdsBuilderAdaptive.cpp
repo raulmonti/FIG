@@ -36,8 +36,8 @@
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-const unsigned ThresholdsBuilderAdaptive::MIN_N = 1ul<<8ul;   //  256
-const unsigned ThresholdsBuilderAdaptive::MAX_N = 1ul<<13ul;  // 8192
+const unsigned ThresholdsBuilderAdaptive::MIN_N = 1ul<<9ul;   //   512
+const unsigned ThresholdsBuilderAdaptive::MAX_N = 1ul<<14ul;  // 16384
 bool ThresholdsBuilderAdaptive::highVerbosity = ModelSuite::get_verbosity();
 
 
@@ -75,6 +75,7 @@ ThresholdsBuilderAdaptive::tune(const size_t& numTrans,
 	n_  = std::min(impFactor  , static_cast<unsigned>((    balance)*MAX_N))
 	    + std::min(transFactor, static_cast<unsigned>((1.0-balance)*MAX_N));
 	n_ *= std::log10(globalEffort);
+	n_ = std::max(std::min(n_, MAX_N),MIN_N);
 	assert(0ul < n_);
 }
 

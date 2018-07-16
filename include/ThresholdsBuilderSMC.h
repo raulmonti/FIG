@@ -69,6 +69,19 @@ class ThresholdsBuilderSMC : public ThresholdsBuilderAdaptiveSimple
 
 public:
 
+	/**
+	 * @brief Change seed used by the internal RNG.
+	 * @param seed Seed to use in following calls to seed_rng().
+	 * @note Passing 0 as value of \p seed turns on <i>randomized seeding</i>.
+	 * @note This re-seeds the internal RNG
+	 */
+	static void change_rng_seed (unsigned long seed);
+
+	/// Get current seed used by the internal RNG
+	static unsigned long rng_seed() noexcept;
+
+public:
+
 	ThresholdsBuilderSMC();
 
 protected:  // Utils for the class and its kin
