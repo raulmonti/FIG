@@ -1,11 +1,45 @@
-# bash completion for the FIG project
+# Bash completion to build the fig tool (https://git.cs.famaf.unc.edu.ar/dsg/fig)
+#
+# Requires the bash-completion Linux package.
+# Copy this file in ~/.bash_completion.d/ (create the directory if unexistent)
+# and make sure you have a ~/.bash_completion file with the following content:
+#
+#	for bcfile in ~/.bash_completion.d/* ; do
+#	  . $bcfile
+#	done
+#
+# Related SO entries:
+#  - https://serverfault.com/a/831184
+#  - https://stackoverflow.com/a/5303225
 
-_build_fig() {
-	local cur opts
-	cur="${COMP_WORDS[COMP_CWORD]}"
-	opts="main tests"
-	COMPREPLY=($(compgen -W "$opts" -- "$cur"))
-	return 0
+_build_fig_tab_complete() {
+	local cur opts;
+	COMPREPLY=();
+
+	cur="${COMP_WORDS[COMP_CWORD]}";
+	prev="${COMP_WORDS[COMP_CWORD-1]}";
+	opts="-p --project -m --mode -c --compiler -v --verbose";
+
+	if [ $COMP_CWORD -eq 1 ]; then
+		COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) );
+
+	elif [ $COMP_CWORD -eq 2 ]; then
+		case "$prev" in
+		"-p"|"--project")
+			COMPREPLY=( $(compgen -W "main tests" -- $cur) )
+			;;
+		"-m"|"--mode")
+			COMPREPLY=( $(compgen -W "release debug" -- $cur) )
+			;;
+		"-c"|"--compiler")
+			COMPREPLY=( $(compgen -W "clang gcc" -- $cur) )
+			;;
+		*)
+			;;
+		esac
+	fi
+	return 0;
 }
-complete -F _build_fig build_project.sh
+
+complete -F _build_fig_tab_complete build_project.sh;
 
