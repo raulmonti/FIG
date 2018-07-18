@@ -117,13 +117,23 @@ public:
 
 private:  // Class utils
 
-	/// Probe the model and the importance space to determine reachable
-	/// importance values among which thresholds could be selected.
-	/// @return Ordered vector of reachable importance values
-	/// @note Some *very high importance values* may be missing from the result
-	///       although they might be theoretically reachable
+	/**
+	 * @brief Return (a set of) importance values that simulations can reach.
+	 *
+	 *        Probe the model and the importance space to determine reachable
+	 *        importance values among which thresholds could be selected.
+	 *
+	 * @param forceRealMax Include in the result, forcefully if necessary,
+	 *                     the max value of the current importance function.
+	 *
+	 * @return Ordered vector of reachable importance values
+	 *
+	 * @note If \p forceRealMax is \p false, some very high importance values
+	 *       may be missing from the result although they might be
+	 *       theoretically reachable
+	 */
 	ImportanceVec
-	reachable_importance_values() const;
+	reachable_importance_values(bool forceRealMax = false) const;
 
 	/**
 	 * @brief Run Fixed Effort to roughly estimate level-up probabilities

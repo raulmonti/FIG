@@ -122,11 +122,13 @@ private:  // Simulation helper functions
 	rate_simulation(const PropertyRate&, const size_t&, bool) const override
 		{ throw_FigException("TODO: implement!"); }
 
-protected:  // Utils for the class and its kin
+public:  // Utils for the class and its kin
 
 	typedef std::pair< ImportanceValue, double >  ThresholdLvlUpProb;
 	typedef std::vector< ThresholdLvlUpProb >     ThresholdsPathProb;
 	typedef std::vector< ThresholdsPathProb >     ThresholdsPathCandidates;
+
+protected:
 
 	/// Retrieve the member function, wrapped as std::function via std::bind(),
 	/// to be used as TraialMonitor by ModuleNetwork::simulation_step()
