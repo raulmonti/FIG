@@ -37,7 +37,7 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 const unsigned ThresholdsBuilderAdaptive::MIN_N = 1ul<<9ul;   //   512
-const unsigned ThresholdsBuilderAdaptive::MAX_N = 1ul<<14ul;  // 16384
+const unsigned ThresholdsBuilderAdaptive::MAX_N = 1ul<<13ul;  //  8192
 bool ThresholdsBuilderAdaptive::highVerbosity = ModelSuite::get_verbosity();
 
 

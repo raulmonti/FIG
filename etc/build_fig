@@ -18,12 +18,12 @@ _build_fig_tab_complete() {
 
 	cur="${COMP_WORDS[COMP_CWORD]}";
 	prev="${COMP_WORDS[COMP_CWORD-1]}";
-	opts="-p --project -m --mode -c --compiler -v --verbose";
+	opts="-p --project -m --mode -c --compiler";  # -v --verbose";
 
-	if [ $COMP_CWORD -eq 1 ]; then
+	if (( $COMP_CWORD % 2 )); then
 		COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) );
 
-	elif [ $COMP_CWORD -eq 2 ]; then
+	else  # [ $COMP_CWORD -eq 2 ]; then
 		case "$prev" in
 		"-p"|"--project")
 			COMPREPLY=( $(compgen -W "main tests" -- $cur) )
