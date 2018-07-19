@@ -183,13 +183,10 @@ private:  // Class utils
 	inline bool
 	FE_watcher(const Property& property, Traial& traial, Event&) const
 	    {
-//			auto newLvl = current_level_of(impFun_->importance_of(traial.state));
-			short newLvl = impFun_->importance_of(traial.state);
-//			assert(0 <= newLvl);
-//			assert(static_cast<size_t>(newLvl) < currentThresholds_.size());
-//			traial.depth -= newLvl - static_cast<short>(traial.level);
-			traial.depth -= current_level_of(newLvl) - current_level_of(traial.level);
-			traial.level = newLvl;
+			const long newImp = impFun_->importance_of(traial.state);
+			traial.depth -= static_cast<short>(current_level_of(newImp)
+											   - current_level_of(traial.level));
+			traial.level = newImp;
 			traial.numLevelsCrossed++;  // encode here the # steps taken
 			return /* level-up:     */ traial.depth < 0 ||
 			       /* sim too long: */ traial.numLevelsCrossed > maxSimLen_ ||
@@ -201,8 +198,8 @@ private:  // Class utils
 	inline bool
 	importance_seeker(const Property&, Traial& traial, Event&) const
 	    {
-		    auto newImp = static_cast<short>(impFun_->importance_of(traial.state));
-			traial.depth -= newImp - static_cast<short>(traial.level);
+			long newImp = impFun_->importance_of(traial.state);
+			traial.depth -= static_cast<short>(newImp - static_cast<long>(traial.level));
 			traial.level = newImp;
 			traial.numLevelsCrossed++;  // encode here the # steps taken
 			return /* level-up:     */ traial.depth < 0 ||
@@ -211,19 +208,19 @@ private:  // Class utils
 
 	/// Binary search in currentThresholds_ to find the threshold-level
 	/// to which \p imp corresponds
-	inline short
+	inline long
 	current_level_of(const ImportanceValue& imp) const
 	    {
-		    short tlvl(currentThresholds_.size()/2), step(tlvl/2);
+			long tlvl(currentThresholds_.size()/2), step(tlvl/2);
 			while (imp <  currentThresholds_[tlvl].first ||
 			       imp >= currentThresholds_[tlvl+1].first) {
 				if (imp < currentThresholds_[tlvl].first)
 					tlvl -= step;
 				else
 					tlvl += step;
-				step = std::max(1, step/2);
+				step = std::max(1l, step/2l);
 			}
-			return std::max<short>(0, tlvl);
+			return std::max(0l, tlvl);
 	    }
 
 protected:  // Utils for the class and its kin
