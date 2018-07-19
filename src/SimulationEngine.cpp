@@ -373,7 +373,7 @@ void
 SimulationEngine::transient_update(ConfidenceIntervalTransient& ci,
 								   const std::vector<double>& weighedNREs) const
 {
-	if (interrupted && ci.num_samples() > 0l)
+	if (interrupted)
 		return;  // don't update interrupted simulations
 
 	ci.update(weighedNREs);
@@ -398,7 +398,7 @@ SimulationEngine::rate_update(ConfidenceIntervalRate& ci,
 							  const double& rareTime,
                               size_t& simTime) const
 {
-	if (interrupted && ci.num_samples() > 0l)
+	if (interrupted)
 		return;  // don't update interrupted simulations
 
 	// Try to determine whether we are observing steady-state behaviour
