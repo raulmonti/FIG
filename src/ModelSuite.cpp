@@ -1047,9 +1047,8 @@ ModelSuite::build_thresholds(const std::string& technique,
 	if (force || ifun.thresholds_technique() != technique) {
 		const auto gEffortSpec(tb.uses_global_effort()
 		            ? (" with global effort "+std::to_string(globalEffort)) : (""));
-		techLog_ << "\nBuilding thresholds for importance function \"" << ifunName
-				 << ",\"\nusing technique \"" << technique << "\"" << gEffortSpec
-		         << std::endl;
+		techLog_ << "\nBuilding thresholds using technique \"" << technique
+				 << "\"" << gEffortSpec << std::endl;
 		const double startTime = omp_get_wtime();
 		tb.setup(property, globalEffort);
 		ifun.build_thresholds(tb);
