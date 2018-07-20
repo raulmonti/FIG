@@ -32,6 +32,7 @@
 #include <functional>  // std::bind()
 // FIG
 #include <SimulationEngineSFE.h>
+#include <ThresholdsBuilderAdaptive.h>
 #include <PropertyTransient.h>
 #include <TraialPool.h>
 #include <ModelSuite.h>
@@ -145,13 +146,24 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 {
 	assert(nullptr != impFun_);
 
-	auto lvl_effort = [&](const unsigned& effort){ return effort*base_nsims(); };
-	const size_t LVL_MAX(toBuildThresholds_ ? arbitraryMaxLevel : impFun_->max_value()),
-	             LVL_INI(impFun_->initial_value(toBuildThresholds_)),
-				 EFF_MAX(std::max(std::max(
-							lvl_effort_min(),
-							arbitraryLevelEffort),
-							lvl_effort(impFun_->max_thresholds_effort(toBuildThresholds_))));
+	auto lvl_effort = [&](const unsigned& n) -> unsigned
+		{ return toBuildThresholds_ ? arbitrary_effort(n) : n*base_nsims(); };
+//	toBuildThresholds_
+//		? [&](const unsigned& level ) -> unsigned { return arbitrary_effort(level); }
+//		: [&](const unsigned& effort) -> unsigned { return effort*base_nsims();     };
+	auto max_lvl_effort = [&]() { return std::max(lvl_effort_min(),
+												  lvl_effort(impFun_->max_thresholds_effort())); };
+//	auto max_arbitrary_effort = [&]()
+//		{
+//			using T_ = ThresholdLvlUpProb;
+//			return (*std::max_element(begin(arbitraryLevelEffort),
+//									  end(arbitraryLevelEffort),
+//									  [](const T_& a, const T_&b)
+//									  { return a.second > b.second; })).second;
+//		};
+	const size_t LVL_MAX = toBuildThresholds_ ? arbitraryMaxLevel : impFun_->max_value(),
+				 EFF_MAX = toBuildThresholds_ ? ThresholdsBuilderAdaptive::max_n() : max_lvl_effort(),
+				 LVL_INI = impFun_->initial_value(toBuildThresholds_);
 	decltype(reachCount_) reachCountLocal(reachCount_);
 	auto tpool(TraialPool::get_instance());
 	std::vector< Reference< Traial > > traialsNow, traialsNext;
@@ -169,16 +181,21 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 	seedTraial.initialise(*model_, *impFun_);
 	traialsNext.push_back(seedTraial);
 	size_t numSuccesses;
-	ImportanceValue l(LVL_INI);
+	ImportanceValue l = LVL_INI;
 
 	// Run Fixed Effort: For each threshold level 'l' ...
 	do {
         // ... prepare the Traials to run the simulations ...
         numSuccesses = 0ul;
-		const size_t LVL_EFFORT =
-				std::max(lvl_effort_min(), toBuildThresholds_ ? arbitraryLevelEffort
-															  : lvl_effort(impFun_->effort_of(l)));
-		assert(0ul < LVL_EFFORT);
+		const auto LE = toBuildThresholds_ ? l : std::max<size_t>(lvl_effort_min(), impFun_->effort_of(l));
+		const size_t LVL_EFFORT = lvl_effort(static_cast<unsigned>(LE));
+		if (LVL_EFFORT == 0ul && toBuildThresholds_) {
+			// we deviate from a designated path: abort simulation
+			pathToRare.clear();
+			result.clear();
+			break;
+		}
+		assert(LVL_EFFORT > 0ul);
         assert(traialsNow.empty());
         assert(!traialsNext.empty());
         for (auto i = 0ul ; i < LVL_EFFORT ; i++) {

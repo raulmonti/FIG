@@ -31,6 +31,7 @@
 #include <cmath>  // std::log2()
 #include <cassert>
 // C++
+#include <thread>
 #include <random>
 #include <sstream>
 #include <iterator>   // std::begin(), std::end()
@@ -162,11 +163,7 @@ build_states_distribution(const fig::ModuleNetwork& network,
         do {
 			jumpsLeft = SIM_LENGTH * (1u+fails);
 			t = traials[n + uniK(RNG)];  // choose randomly among last 'k'
-#ifndef NDEBUG
-			/// @bug FIXME is the following check logical?
-			if (lastThr <= t.level)
-				throw_FigException("internal error during thresholds selection");
-#endif
+//			assert(lastThr <= t.level);  // FIXME is this check logical?
             network.peak_simulation(t, update, predicate);
 		} while (!halt && lastThr != t.level && ++fails < TOLERANCE);
 	}
@@ -361,11 +358,16 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 
 	// SMC main loop
 	while (thresholds_.back() < impFun.max_value()) {
-        const ImportanceValue lastThr = thresholds_.back();
+		const ImportanceValue lastThr = thresholds_.back();
 		// Find "initial states" (and clocks valuations) realizing last threshold
 		if (!build_states_distribution(network, impFun, traials, n_, k_, lastThr, halted_)
 		    || halted_)
 			goto exit_with_fail;  // couldn't find those initial states
+		// Impose (hardcoded) time limit
+		static constexpr std::chrono::seconds TIMEOUT(8);
+		std::thread timer([] (bool& halt, const std::chrono::seconds& limit)
+						  { std::this_thread::sleep_for(limit); halt=true; },
+						  std::ref(halted_), TIMEOUT);
 		// Find sims' 1-k/n quantile starting from those initial states
 		newThreshold = find_new_threshold(network,
 		                                  impFun,
@@ -375,19 +377,20 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 		                                  k_,
 		                                  lastThr,
 		                                  halted_);
+		timer.detach();
 		if (halted_)
 			goto exit_with_fail;
-		// If reached an upper level, use it as new threshold...
 		if (newThreshold > thresholds_.back()) {
+			// If reached an upper level, use it as new threshold...
 			thresholds_.push_back(newThreshold);
-			continue;
+		} else {
+			// ...else increase effort (if feasible) and retry
+			increase_simulation_effort(n_, k_, traials);
+			if (highVerbosity)
+				ModelSuite::tech_log("|n:="+std::to_string(n_)+"|");
+			if (n_ > ThresholdsBuilderAdaptive::MAX_N)
+				goto exit_with_fail;
 		}
-		// ...else increase effort (if feasible) and retry
-		increase_simulation_effort(n_, k_, traials);
-		if (highVerbosity)
-			ModelSuite::tech_log("|n:="+std::to_string(n_)+"|");
-		if (n_ > ThresholdsBuilderAdaptive::MAX_N)
-			goto exit_with_fail;
 	}
 
 	TraialPool::get_instance().return_traials(traials);
@@ -415,29 +418,6 @@ ThresholdsBuilderSMC::tune(const size_t& numTrans,
 {
 	float scaleFactor(1.0f);
 	ThresholdsBuilderAdaptiveSimple::tune(numTrans, maxImportance, globalEffort);
-
-/// @bug FIXME When/why was this introduced? Delete forever if possible
-//	if (simEngineName_ == "restart") {
-//		// SMC is statistically way better than AMS.
-//		// This makes the "balanced growth" equation to yield lots of
-//		// thresholds really close to each other.
-//		// For RESTART, this has shown a simulation overhead in practice,
-//		// thus we counter it a little by reducing the probability of level up.
-//		scaleFactor = .333f;
-//
-//	} else if (simEngineName_ == "sfe") {
-//		// For Standard Fixed Effort, the "balanced growth" equation
-//		// used with SMC typically yields too small a probability of level-up,
-//		// maybe because globalEffort is the number of pilot runs per level
-//		// and not a "stacking-up splitting" like in RESTART.
-//		// Thus we increase a little the probability of level up.
-//		scaleFactor = globalEffort / 3.0f;
-//
-//	} else {
-//		ModelSuite::tech_log("ThresholdsBuilderSMC: Unsupported simulation "
-//		                     "engine: \"" + simEngineName_ + "\"\n");
-//		throw_FigException("unsupported simulation engine: \"" + simEngineName_ + "\"");
-//	}
 
 	/// @note NOTE can we change for "theoretic optimal" p_i ~ e^-1  forall i ?
 	///            See analysis by Garvels (PhD thesis) and Rubino&Tuffin (RES book)

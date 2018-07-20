@@ -36,8 +36,8 @@
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
-const unsigned ThresholdsBuilderAdaptive::MIN_N = 1ul<<9ul;   //   512
-const unsigned ThresholdsBuilderAdaptive::MAX_N = 1ul<<13ul;  //  8192
+const unsigned ThresholdsBuilderAdaptive::MIN_N = 1ul<<10ul;  //  1024
+const unsigned ThresholdsBuilderAdaptive::MAX_N = 1ul<<14ul;  // 16384
 bool ThresholdsBuilderAdaptive::highVerbosity = ModelSuite::get_verbosity();
 
 
@@ -67,9 +67,9 @@ ThresholdsBuilderAdaptive::tune(const size_t& numTrans,
 	// but more transitions mean more divergence in the paths towards the rare
 	// event. Thus we increase the number of simulation runs linearly
 	// with the number of model transitions.
-	const unsigned transFactor = 5u*numTrans;
+	const unsigned transFactor = 5u*static_cast<unsigned>(numTrans);
 
-	const double balance = 0.6;  // must be within (0.0, 1.0)
+	const double balance = 0.8;  // must be within (0.0, 1.0)
 	// more relevance to importance  => balance++
 	// more relevance to transitions => balance--
 	n_  = std::min(impFactor  , static_cast<unsigned>((    balance)*MAX_N))

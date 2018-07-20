@@ -66,10 +66,12 @@ protected:
 	/// Number of pilot simulations to launch for each new threshold construction
 	unsigned n_;
 
-	/// Min value for n_
+	/// Min value for the number of pilot simulations launched
+	/// @see n_
 	static const unsigned MIN_N;
 
-	/// Max value for n_
+	/// Max value for the number of pilot simulations launched
+	/// @see n_
 	static const unsigned MAX_N;
 
 	/// @copydoc ModelSuite::highVerbosity_
@@ -91,8 +93,13 @@ public:
 	inline bool adaptive() const noexcept override { return true; }
 
 	/// @copydoc highVerbosity
-	static inline void set_verbosity(bool verboseOutput) noexcept
-		{ highVerbosity = verboseOutput; }
+	static inline void set_verbosity(bool verbose) noexcept { highVerbosity=verbose; }
+
+	/// @copydoc MIN_N
+	static inline unsigned min_n() noexcept { return MIN_N; }
+
+	/// @copydoc MAX_N
+	static inline unsigned max_n() noexcept { return MAX_N; }
 
 protected:  // Utils for the class and its kin
 

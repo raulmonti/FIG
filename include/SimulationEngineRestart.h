@@ -41,6 +41,7 @@ namespace fig
 {
 
 class PropertyTransient;
+class TraialPool;
 
 /**
  * @brief Engine for RESTART importance-splitting simulations
@@ -116,7 +117,8 @@ private:  // Simulation helper functions
 	/// Fill \a stack with clones of \a traial due to level-up splitting
 	/// @note Can handle several-levels-up situations
 	void handle_lvl_up(const Traial &traial,
-	                   std::stack< Reference< Traial > >& stack) const;
+					   TraialPool& tpool,
+					   std::stack< Reference< Traial > >& stack) const;
 
 	std::vector<double>
 	transient_simulations(const PropertyTransient& property,

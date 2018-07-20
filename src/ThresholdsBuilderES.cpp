@@ -54,12 +54,15 @@ using std::begin;
 using std::end;
 
 using PathCandidate = fig::SimulationEngineFixedEffort::ThresholdsPathCandidates;
-template<typename T> std::string str(const T& val) { return std::to_string(val); }
+using PathContent = PathCandidate::value_type;
+template<typename T> std::string str(const T& val) { return std::to_string(val);  }
+template<typename T> std::string str(const T* val) { return std::to_string(*val); }
 template std::string str(const int&);
 template std::string str(const long&);
 template std::string str(const unsigned&);
 template std::string str(const float&);
 template std::string str(const double&);
+template std::string str(const char*);
 
 
 namespace   // // // // // // // // // // // // // // // // // // // // // // //
@@ -87,41 +90,60 @@ print_lvlup(const std::vector< float >& Pup)
 fig::ImportanceValue
 initial_importance(const fig::ImportanceFunction& ifun)
 {
-    return ifun.initial_value(true);
+	return ifun.initial_value(true);
+}
+
+
+/// Retrieve max importance of the ImportanceFunction instance,
+/// taking care to ask for <i>importance</i> and not for <i>threshold-level</i>.
+fig::ImportanceValue
+max_importance(const fig::ImportanceFunction& ifun)
+{
+	return ifun.max_value(true);
 }
 
 
 /// Return the element from \p paths that reached the highest ImportanceValue;
 /// if there are N>1 such paths then average their probability values.
-/// @warning Side effect: \p paths is deleted
-PathCandidate::value_type
-choose_best_path_to_rare(std::vector< PathCandidate >& paths)
+PathContent
+choose_best_path_to_rare(const std::vector< PathCandidate >& paths)
 {
 	assert(!paths.empty());
 	using Importance = fig::ImportanceValue;
-	PathCandidate bestPath(paths.front());
-	Importance bestPathImportance(bestPath.front().back().first);
 	auto importance_of_at = [] (const PathCandidate& path, const size_t i) -> Importance
 		{
 			return path.front().at(i).first;
 		};
-	auto top_importance = [&paths] (size_t i) -> Importance
+	auto top_importance = [] (const PathCandidate& path) -> Importance
 		{
-			return paths[i].front().back().first;
+			return path.front().back().first;
 		};
-	auto is_better_path = [&paths,&bestPath,bestPathImportance,&top_importance](size_t i) -> bool
+	auto path_probability = [] (const PathContent& path) -> double
 		{
-			return top_importance(i) > bestPathImportance
-					|| (top_importance(i) == bestPathImportance
-						&& paths[i].front().size() > bestPath.front().size());
+			double pathProbability = 1.0;
+			for (const auto& p: path)
+				pathProbability *= p.second > 0.0 ? p.second : 1.0;
+			assert(0.0 < pathProbability);
+			assert(1.0 > pathProbability);
+			return pathProbability;
 		};
-	//\/////////////////////////////////////////////////////////////////////
-	for (size_t i=0ul ; i < paths.size() ; i++) {
-		if (is_better_path(i)) {
-			bestPath = paths[i];
-			bestPathImportance = top_importance(i);
+
+	PathCandidate bestPath(paths.front());
+	Importance bestPathImportance(top_importance(bestPath));
+	double bestPathProbability(path_probability(bestPath.front()));
+
+	for (const auto& path: paths) {
+		const auto thisPathImportance  = top_importance(path);
+		const auto thisPathProbability = path_probability(path.front());
+		if (thisPathImportance > bestPathImportance ||
+				(thisPathImportance == bestPathImportance &&
+				 thisPathProbability > bestPathProbability)) {
+			bestPath = path;
+			bestPathImportance = thisPathImportance;
+			bestPathProbability = thisPathProbability;
 		}
 	}
+
 	std::vector< PathCandidate > bestPaths;
 	for (auto path: paths) {
 		if (path.front().size() == bestPath.front().size()) {
@@ -145,7 +167,6 @@ choose_best_path_to_rare(std::vector< PathCandidate >& paths)
 			acc += path.front().at(i).second;  // probability of i-th jump in this path
 		resultContent.emplace_back(importance_of_at(bestPath,i), acc/NUM_BEST_PATHS);
 	}
-	std::vector<PathCandidate>().swap(paths);
 	assert (!result.empty());
 	assert (!resultContent.empty());
 	return resultContent;
@@ -181,9 +202,10 @@ ThresholdsBuilderES::ThresholdsBuilderES(
 		std::shared_ptr<const ModuleNetwork> model,
 		const size_t& n) :
     ThresholdsBuilder("es"),  // virtual inheritance forces this...
-	ThresholdsBuilderAdaptive(n),
+	ThresholdsBuilderAdaptive(static_cast<unsigned>(n)),
     nSims_(0ul),
     maxSimLen_(0ul),
+	maxImportanceReached_(0ul),
     property_(nullptr),
     model_(nullptr),
 	impFun_(nullptr),
@@ -209,8 +231,7 @@ ThresholdsBuilderES::build_thresholds(std::shared_ptr<const ImportanceFunction> 
 	// "Better Automated Importance Splitting for Transient Rare Events,"
 	// SETTA 2017.
 	tune();
-	n_ = nSims_;
-	internalSimulator_.get()->arbitraryLevelEffort = n_;
+	n_ = static_cast<unsigned>(nSims_);
 	ModelSuite::tech_log("Building thresholds with \"" + name
 						+ "\" for num_sims,sim_len = " + str(n_)
 						+ "," + str(maxSimLen_));
@@ -231,37 +252,37 @@ ThresholdsBuilderES::build_thresholds(std::shared_ptr<const ImportanceFunction> 
 	auto Pup = FE_for_ES(thrCandidates);
 	assert(!currentThresholds_.empty());  // could we build something?
 	assert(!Pup.empty());
-	if (0.0f >= Pup.back())
-		artificial_thresholds_selection(thrCandidates, Pup);
+	process_artificial_thresholds(Pup);
 	if (highVerbosity)
 		print_lvlup(Pup);
+
+	// SimualtionEngineRestart can't split on initial! Patch if this is the case:
+	const auto IMP_INI = initial_importance(*impFun_);
+	if (IMP_INI == currentThresholds_.front().first) {
+		assert(Pup.size() > 1ul);
+		Pup[1] *= Pup[0];
+		Pup[0] = 1.0f;
+	}
 
 	// Turn level-up probabilities into effort factors
 	auto effort(Pup);
 	std::fill(begin(effort), end(effort), static_cast<decltype(effort)::value_type>(0));
-	for (size_t i = 0ul ; i < Pup.size() ; i++) {
+	for (auto i = 0ul ; i < Pup.size() ; i++) {
 		const auto prev = effort[(i-1)%Pup.size()];
 		effort[i] = 1.0f/Pup[i] + (prev-std::round(prev));  // E [# sims to move up from lvl i]
 	}
 
 	// Select the thresholds based on the effort factors
-	ThresholdsVec().swap(thresholds_);
+	decltype(thresholds_)().swap(thresholds_);
 	thresholds_.reserve(effort.size()+2ul);
-	const auto IMP_INI(initial_importance(*impFun));
-	const bool THR_HAS_INI(currentThresholds_.front().first == IMP_INI);
-	thresholds_.emplace_back(IMP_INI, 1u);
-	for (size_t i = THR_HAS_INI ? 1ul : 0ul ; i < Pup.size() ; i++) {
-		const int thisEffort = std::round(effort[i]);
-		if (1 < thisEffort)
-			thresholds_.emplace_back(thrCandidates[i], thisEffort);
+	thresholds_.emplace_back(IMP_INI, 1ul);  // formatting of thresholds_
+	for (auto i = 0ul ; i < Pup.size() ; i++) {
+		const auto thisEffort = static_cast<size_t>(std::round(effort[i]));
+		assert(currentThresholds_[i].first > IMP_INI || thisEffort <= 1ul);
+		if (thisEffort > 1ul)
+			thresholds_.emplace_back(currentThresholds_[i].first, thisEffort);
 	}
-	thresholds_.emplace_back(impFun->max_value(true)+static_cast<ImportanceValue>(1u), 1ul);
-
-	// NOTE If these thresholds produce too much splitting,
-	//      e.g. thresholds_[i..i+5] = (imp,imp+1,...,imp+4) for effort ~ 10,
-	//      pick a threshold, remove it, and increase proportionally
-	//      the effort in the thresholds directly below and above it,
-	//      e.g. thresholds_[i..i+3] = (imp,imp+2,imp+4) for effort ~ 15.
+	thresholds_.emplace_back(max_importance(*impFun_)+1u, 1ul);  // formatting of thresholds_
 
 	ModelSuite::tech_log("\n");
 	show_thresholds(thresholds_);
@@ -272,18 +293,22 @@ ThresholdsBuilderES::build_thresholds(std::shared_ptr<const ImportanceFunction> 
 
 
 ImportanceVec
-ThresholdsBuilderES::reachable_importance_values(bool forceRealMax) const
+ThresholdsBuilderES::reachable_importance_values(bool forceRealMax)
 {
 	using namespace std::placeholders;  // _1, _2, ...
 	const EventWatcher& watch_events =
 			std::bind(&ThresholdsBuilderES::importance_seeker, this, _1, _2, _3);
 
+	assert(nullptr != impFun_);
+	assert(nullptr != property_);
+
 	static constexpr size_t NUM_INDEPENDENT_RUNS = 20ul;
 	static constexpr size_t MAX_FAILS = (1ul)<<(10ul);
+	const auto MAX_IMPORTANCE = max_importance(*impFun_);
 	size_t numFails(0ul);
 
-    ImportanceValue maxImportanceReached(initial_importance(*impFun_));
-	std::unordered_set< ImportanceValue > reachableImpValues = { maxImportanceReached };
+	maxImportanceReached_ = initial_importance(*impFun_);
+	std::unordered_set< ImportanceValue > reachableImpValues = { maxImportanceReached_ };
 	TraialsVec traialsNow(get_traials(NUM_INDEPENDENT_RUNS, *impFun_)),
 	           traialsNext;
 	assert(!traialsNow.empty());
@@ -300,7 +325,7 @@ ThresholdsBuilderES::reachable_importance_values(bool forceRealMax) const
 			model_->simulation_step(traial, *property_, watch_events);
 			if (startImp < traial.level) {
 				reachableImpValues.emplace(traial.level);
-				maxImportanceReached = std::max(maxImportanceReached, traial.level);
+				maxImportanceReached_ = std::max(maxImportanceReached_, traial.level);
 				traialsNext.push_back(traial);
 			} else {
 				if (MAX_FAILS < ++numFails)
@@ -314,30 +339,30 @@ ThresholdsBuilderES::reachable_importance_values(bool forceRealMax) const
 			assert(traialsNow.size()+traialsNext.size() == NUM_INDEPENDENT_RUNS);
 		}
 		std::swap(traialsNow, traialsNext);
-	} while (maxImportanceReached < impFun_->max_value(true));
+	} while (maxImportanceReached_ < MAX_IMPORTANCE);
     end_reachability_analysis:
 	    TraialPool::get_instance().return_traials(traialsNow);
 		TraialPool::get_instance().return_traials(traialsNext);
 
 	ImportanceVec result(begin(reachableImpValues), end(reachableImpValues));
 	std::sort(begin(result), end(result));
+	assert(result.back() == maxImportanceReached_);
 
 	// Some models require ES to reach the (real) max importance value
 	if (forceRealMax) {
-		const long maxReachedValue(result.back());
-		const long maxImportanceValue(impFun_->max_value(true));
-		assert(maxImportanceValue >= maxReachedValue);
-		if (maxImportanceValue > maxReachedValue) {
+		const auto maxImportance = max_importance(*impFun_);
+		assert(maxImportance >= maxImportanceReached_);
+		if (maxImportance > maxImportanceReached_) {
 			if (highVerbosity)
-				ModelSuite::tech_log("\nReached importance value " + str(maxReachedValue) +
-									 "; forcing to reach value " + str(maxImportanceValue));
-			std::set<ImportanceValue> greaterImportanceValues;
-			auto randomImportanceValues = impFun_->random_sample(model_->initial_state(), 50);
+				ModelSuite::tech_log("\nReached importance value " + str(maxImportanceReached_) +
+									 "; forcing to reach value " + str(maxImportance));
+			std::set< ImportanceValue > greaterImportanceValues;
+			// fill gap between maxImportanceReached_ and maxImportance (sure?)
+/*			auto randomImportanceValues = impFun_->random_sample(model_->initial_state(), 50);
 			std::copy_if (begin(randomImportanceValues), end(randomImportanceValues),
 						  std::inserter(greaterImportanceValues,end(greaterImportanceValues)),
-						  [&maxReachedValue](const long& imp)
-						  { return imp > maxReachedValue; });
-			greaterImportanceValues.emplace(maxImportanceValue);
+						  [&] (const ImportanceValue& imp) { return imp > maxImportanceReached_; });
+*/			greaterImportanceValues.emplace(maxImportance);
 			result.reserve(result.size()+greaterImportanceValues.size());
 			for (const auto& imp: greaterImportanceValues) {
 				assert(imp > result.back());
@@ -350,117 +375,177 @@ ThresholdsBuilderES::reachable_importance_values(bool forceRealMax) const
 }
 
 
+/**
+ * @details This routine performs three distinct tasks/steps:
+ *          <ol>
+ *          <li>find <i>real</i> importance paths to the rare event;
+ *          <li>choose <i>the best</i> path found and settle for that one only;
+ *          <li>compute and refine the conditional probabilities of performing
+ *              the level-ups in such best path.
+ *          </ol>
+ *          For the <b>first task</b>, "unguided" FE simulations are run,
+ *          where the \p reachableImportanceValues define the threshold-levels,
+ *          and the same effort is used for every level.<br>
+ *          For the <b>second task</b>, the path (from the first step) that
+ *          reached the highest importance with highest probability is selected.<br>
+ *          For the <b>third task</b> heavier FE simulations are run, using the
+ *          probability values computed in the first step to select "preliminary
+ *          effort values" for each threshold-level, and making all runs follow
+ *          the importance values of the best path selected in step two.
+ * @todo Improve modularisation
+ */
 std::vector< float >
-ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues) const
+ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues)
 {
-	std::vector< float > Pup({0.0});
 	static constexpr auto NUM_PATHS = 4ul;
 	using namespace std::placeholders;  // _1, _2, ...
 	const EventWatcher& watch_events =
 			std::bind(&ThresholdsBuilderES::FE_watcher, this, _1, _2, _3);
 
 	if (reachableImportanceValues.size() < 2ul)
-		return Pup;  // only one reachable importance value: ES failed!
+		return std::vector<float>();  // only one reachable importance value: ES failed!
+
+	//\///////////////////////////////////////////////////////////////////
+	// Step #1: find real importance paths to the rare event
 
 	// Use reachableImportanceValues as candidates to paths to the rare event
 	std::vector<PathCandidate> paths(NUM_PATHS);
-	ThresholdsVec().swap(currentThresholds_);
+	decltype(currentThresholds_)().swap(currentThresholds_);
 	currentThresholds_.reserve(reachableImportanceValues.size());
-	for (size_t i = 0ul ; i < reachableImportanceValues.size() ; i++)
-		currentThresholds_.emplace_back(reachableImportanceValues[i], 1u);
+	for (auto i = 0ul ; i < reachableImportanceValues.size() ; i++)
+		currentThresholds_.emplace_back(reachableImportanceValues[i], 0ul);
 	assert(nullptr != property_);
 	internalSimulator_->property_ = property_.get();
 	internalSimulator_->bind(impFun_);
 	auto& maxImportanceLvl = internalSimulator_.get()->arbitraryMaxLevel;
-	auto& effortPerLevel = internalSimulator_.get()->arbitraryLevelEffort;
+	auto& level_effort = internalSimulator_.get()->arbitrary_effort;
 	maxImportanceLvl = reachableImportanceValues.back();
-	effortPerLevel = n_;
+	level_effort = [&](const unsigned&) -> unsigned long { return n_; };
 
-	// Check possible (importance) paths to the rare event, and keep "the best"
+	// Check possible (importance) paths to the rare event
 	if (highVerbosity)
 		ModelSuite::tech_log("\nLooking for feasible paths to the rare event: ");
 	auto idx = 0ul;
 	do {
 		internalSimulator_->fixed_effort(paths[idx], watch_events);
-		if (paths[idx].empty() || paths[idx].front().size() < 2ul)
+		const auto& path(paths[idx]);
+		if (path.empty() || path.front().size() < 2ul)
 			continue;
-		if (paths[idx].front().back().first < reachableImportanceValues.back()
-				&& effortPerLevel < MAX_N) {
+		if (path.front().back().first < reachableImportanceValues.back() && n_ < MAX_N) {
 			ModelSuite::tech_log(highVerbosity ? ("-") : (""));
-			effortPerLevel *= 2;
+			n_ *= 2;
 		} else {
 			ModelSuite::tech_log(highVerbosity ? ("+") : (""));
 			idx++;
 		}
 	} while (idx < NUM_PATHS);
-	auto path = choose_best_path_to_rare(paths);
+
+	//\///////////////////////////////////////////////////////////////////
+	// Step #2: choose the best path from step #1 and settle for it alone
+
+	auto bestPath = choose_best_path_to_rare(paths);
 	/// @todo TODO: ^^^ hardcoded for SimulationEngineSFE: generalise!
+	assert(bestPath.size() <= reachableImportanceValues.size());
 	if (highVerbosity) {
-		ModelSuite::tech_log("\nChosen path visits "+str(path.size())+" ImportanceValues:");
-		for (const auto& p: path)
+		ModelSuite::tech_log("\nChosen path visits "+str(bestPath.size())+" ImportanceValues:");
+		for (const auto& p: bestPath)
 			ModelSuite::tech_log(" " + str(p.first));
 	}
 
-	// Set internals (of this class instance) to follow such "best path"
-	ThresholdsVec().swap(currentThresholds_);
-	currentThresholds_.reserve(path.size());
-	static constexpr auto MIN_EFFORT(1l<<8l);
+	// Set internals of this class instance to follow bestPath
+	decltype(currentThresholds_)().swap(currentThresholds_);
+	static constexpr auto MIN_PROB(0.001);
+	static constexpr auto MIN_EFFORT(1l<<7l);
+	std::vector< double > prelimPup;
 	long maxEffort(MIN_EFFORT);
 	double probLvlUp(1.0);
-	for (auto i = 0ul ; i < path.size() ; i++) {
-		// bound these (preliminary) effort values
-		static constexpr auto MIN_PROB(0.01);
-		probLvlUp *= std::max(MIN_PROB, probability_next_lvl_up(path, i));
-		const long effort(std::floor(1.0/probLvlUp));
+	for (auto i = 0ul ; i < bestPath.size() ; i++) {
+		// up-and-low-bound these (preliminary) effort values
+		prelimPup.emplace_back(probability_next_lvl_up(bestPath, i));
+		probLvlUp *= std::max(MIN_PROB, prelimPup.back());
+		const long effort = static_cast<long>(std::floor(1.0/probLvlUp));
 		probLvlUp = 1.0 - (1.0/effort - probLvlUp);  // carry
 		assert(0.0 <= probLvlUp && probLvlUp <= 1.0);
-		currentThresholds_.emplace_back(path[i].first, std::max(MIN_EFFORT, effort));
+		currentThresholds_.emplace_back(bestPath[i].first, std::max(MIN_EFFORT, effort));
 		maxEffort = std::max(maxEffort, effort);
 	}
-	maxImportanceLvl = path.back().first;
-	effortPerLevel = maxEffort;  // max effort, to tolerate the hardest level-up
-	for (const auto& impVal: reachableImportanceValues)  {
-		// try to reach all reachable ImportanceValues
-		if (path.back().first < impVal)
-			path.emplace_back(impVal, effortPerLevel);
+
+	// Maximise effort for (yet) unreached ImportanceValues
+	currentThresholds_.reserve(reachableImportanceValues.size());
+	for (const auto& impVal: reachableImportanceValues)
 		if (currentThresholds_.back().first < impVal)
-			currentThresholds_.emplace_back(impVal, effortPerLevel);
-	}
-	std::vector<float>(path.size(), 0.0f).swap(Pup);
+			currentThresholds_.emplace_back(impVal, maxEffort);
+	assert(currentThresholds_.size() >= prelimPup.size());
+	prelimPup.resize(currentThresholds_.size(), 0.0);
+
+	// Set internals of our SimulationEngine to use these preliminary effort values
+	maxImportanceLvl = currentThresholds_.back().first;
+	level_effort = [&](const unsigned& level) -> unsigned long
+		{
+			auto it = std::find_if(begin(currentThresholds_), end(currentThresholds_),
+								   [&level](const Threshold& t) { return t.first >= level;});
+			// return the effort for the (known) level reached,
+			// or 0 if an ImportanceValue outside the "best bestPath" is observed
+			if (end(currentThresholds_) == it || (*it).first != level)
+				return 0ul;           // deviates from best bestPath: abort simulation
+			else
+				return (*it).second;  // known level: return this effort
+		};
+
 	if (highVerbosity) {
-		ModelSuite::tech_log("\nPreliminary effort for the reachable importance values:");
-		for (const auto& p: currentThresholds_)
-			ModelSuite::tech_log(" " + str(p.second));
+		assert(currentThresholds_.size() == prelimPup.size());
+		ModelSuite::tech_log("\nPreliminary results for reachable importance "
+							 "values: (value, lvl-up-prob, effort) = ");
+		for (auto i = 0ul ; i < currentThresholds_.size() ; i++ )
+			ModelSuite::tech_log(" (" + str(currentThresholds_[i].first)
+								+ "," + str(prelimPup[i])
+								+ "," + str(currentThresholds_[i].second) + ")");
 	}
 
-	// Run Fixed Effort a couple of times following the "best path"
-	static constexpr auto NUM_FE_RUNS = 4ul;
-	paths.reserve(NUM_FE_RUNS);
+	//\///////////////////////////////////////////////////////////////////
+	// Step #3: refine the probabilities of level-up in the best path
+
+	// Run Fixed Effort a couple of times following the "best bestPath"
+	static constexpr auto NUM_SAMPLES_FROM_BEST_PATH = 4ul;
+	decltype(paths)().swap(paths);
+	paths.reserve(NUM_SAMPLES_FROM_BEST_PATH);
+	auto maxSteps = bestPath.size();
 	ModelSuite::tech_log("\nRunning internal Fixed Effort [");
-	for (auto i = 0ul ; i < NUM_FE_RUNS ; i++) {
+	do {
 		PathCandidate pathWrapper;
-		internalSimulator_->fixed_effort(pathWrapper,watch_events);
-		assert(!pathWrapper.empty());
-		assert(!pathWrapper.front().empty());
-		paths.emplace_back(pathWrapper);
-		ModelSuite::tech_log(0.0 >= pathWrapper.front().back().second ? "-" : "+");
-	}
+		internalSimulator_->fixed_effort(pathWrapper, watch_events);
+		// We discard runs that deviate form bestPath...
+		if (pathWrapper.empty())
+			continue;
+		const auto& newPath(pathWrapper.front());
+		// ...or that died too early
+		if (newPath.size() < 2ul)
+			continue;
+		ModelSuite::tech_log(0.0 >= newPath.back().second ? "-" : "+");
+		maxSteps = std::max(maxSteps, newPath.size());
+		paths.emplace_back(std::move(pathWrapper));
+	} while (paths.size() < NUM_SAMPLES_FROM_BEST_PATH);
+	paths.emplace_back(PathCandidate(1,std::move(bestPath)));
 	ModelSuite::tech_log("]");
 
 	// Average the probabilities found by those Fixed Effort runs
-	for (auto i = 0ul ; i < Pup.size() ; i++) {
+	std::vector< float > Pup;
+	for (auto i = 0ul ; i < maxSteps ; i++) {
 		auto num(0u);
-		auto acc(0.0);
+		auto acc(0.0f);
 		for (const auto& pathWrapper: paths) {
-			if (pathWrapper.front().size() <= i)
+			const auto& path(pathWrapper.front());
+			if (path.size() <= i)
 				continue;
-			const auto& thisPathProbability = pathWrapper.front()[i].second;
-			if (std::isnormal(thisPathProbability)) {  // avoid NaN, inf, 0.0
+			const auto& pathProbability = path[i].second;
+			if (std::isnormal(pathProbability)) {  // avoid NaN, inf, 0.0
 				num++;
-				acc += thisPathProbability;
+				acc += pathProbability;
+			} else if (pathProbability == 0.0 && 0ul < i && 0.0 < path[i-1].second) {
+				num++;  // simulation died in this step => 0.0 prob of lvl up
 			}
 		}
-		Pup[i] = 0u < num ? acc/static_cast<decltype(acc)>(num) : 0.0;
+		Pup.emplace_back(0u < num ? acc/static_cast<decltype(acc)>(num) : 0.0f);
 	}
 
 	internalSimulator_->unbind();
@@ -470,20 +555,19 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues) c
 
 
 void
-ThresholdsBuilderES::artificial_thresholds_selection(
-        ImportanceVec& reachableImportanceValues,
-        std::vector< float >& Pup) const
+ThresholdsBuilderES::process_artificial_thresholds(std::vector< float >& Pup) const
 {
-	ModelSuite::tech_log("\nExpected Success failed");
-	Pup.resize(reachableImportanceValues.size(), 0.0f);
-
-	if (reachableImportanceValues.size() < 2ul) {
+	assert(!Pup.empty());
+	ModelSuite::tech_log(std::string("\nExpected Success ") +
+						 (Pup.back() <= 0.0f ? ("couldn't reach the rare event")
+											 : ("finished successfully")));
+	if (currentThresholds_.size() < 2ul) {
 		ModelSuite::tech_log("; cannot even find reachable importance values\n");
 		goto throw_fail_exception;
 	} else if (0.0f >= Pup[0]) {
 		ModelSuite::tech_log("; cannot even evaluate the first potential threshold\n");
 		goto throw_fail_exception;
-	} else if (0.0 >= Pup[1]) {
+	} else if (0.0f >= Pup[1]) {
 		ModelSuite::tech_log("; cannot even evaluate the second potential threshold\n");
 		goto throw_fail_exception;
 	} else {
@@ -491,22 +575,32 @@ ThresholdsBuilderES::artificial_thresholds_selection(
 	}
 throw_fail_exception:
 		throw_FigException("Expected Success failed to find thresholds");
+
 continue_artificial_selection:
-	bool print(true);
-	ModelSuite::tech_log("!\nResorting to fixed choice of thresholds starting "
-	                     "above the ImportanceValue ");
+	// Delete artificial thresholds between the last reached ImportanceValue
+	// and the (real) max ImportanceValue
+	assert(currentThresholds_.size() >= Pup.size());
+	Pup.resize(currentThresholds_.size(), 0.0f);
+	const auto iterFirstFake = std::find(begin(Pup), end(Pup), 0.0f);
+	const auto numReachedValues = std::distance(begin(Pup), iterFirstFake) - 1ul;
+	assert(numReachedValues > 1);
+	const auto& lastPup = Pup.at(numReachedValues);
+	assert(lastPup > 0.0f);
+	const auto MIN_PROB(lastPup/2.0f);  // bound max effort
+
+	if (highVerbosity && Pup.back() <= 0.0f)
+		ModelSuite::tech_log("!\nArtificial thresholds will be set above the ImportanceValue "
+							 + str(currentThresholds_[numReachedValues].first));
+
 	/// @todo Implement regresive average to follow the trend of all probabilities
-	for (size_t i = 2ul ; i < Pup.size() ; i++) {
-		if (0.0f < Pup[i])
-			continue;  // this value has already been chosen by Expected Success
+	for (auto i = numReachedValues+1 ; i < Pup.size() ; i++) {
+		assert(0.0f == Pup[i]);
+		assert(0.0f < Pup[i-1]);
+		assert(0.0f < Pup[i-2]);
 		const auto HI = std::max(Pup[i-1], Pup[i-2]),
 				   LO = std::min(Pup[i-1], Pup[i-2]),
 				   TREND = LO*LO/HI;
-		static constexpr auto MIN_PROB(0.1f);  // bound max effort
-		Pup[i] = std::max(MIN_PROB, TREND);
-		if (print)
-			ModelSuite::tech_log(str(reachableImportanceValues[i-1]));
-		print = false;
+		Pup[i] = std::max(MIN_PROB, TREND);  // bound max effort
 	}
 }
 

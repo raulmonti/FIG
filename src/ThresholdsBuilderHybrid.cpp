@@ -86,10 +86,11 @@ ThresholdsBuilderHybrid::build_thresholds(std::shared_ptr<const ImportanceFuncti
 		const size_t MARGIN(thresholds_.empty() ? impFun->initial_value()
 		                                        : thresholds_.back());
 		if (highVerbosity)
-			figTechLog << "\nResorting to fixed choice of thresholds starting "
-					   << "above the ImportanceValue " << MARGIN << "\n";
+			figTechLog << "Sequential Monte Carlo couldn't reach the rare event!"
+					   << "\nArtificial thresholds will be set above the "
+					   << "ImportanceValue " << MARGIN << "\n";
 		else
-			figTechLog << "\nSetting fixed thresholds above " << MARGIN << "\n";
+			figTechLog << "\nChoosing artificial thresholds above " << MARGIN << "\n";
 		postPro_ = impFun->post_processing();
 		stride_ = choose_stride(impFun->max_value()-MARGIN);
 		ThresholdsBuilderFixed::build_thresholds(*impFun,

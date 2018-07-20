@@ -170,7 +170,7 @@ module BE_7
 endmodule
 
 //Type: spare gate; Original name: P_11; Assigned unique id: 8
-module SPAREGATE_8
+module SPARE_8
   state_8: [0..4] init 0; // on main, request, wait, on spare, broken
   inform_8: [0..2] init 0;
   release_8: [0..1] init 0;
@@ -214,7 +214,7 @@ module BE_11
 endmodule
 
 //Type: spare gate; Original name: P_12; Assigned unique id: 9
-module SPAREGATE_9
+module SPARE_9
   state_9: [0..4] init 0; // on main, request, wait, on spare, broken
   inform_9: [0..2] init 0;
   release_9: [0..1] init 0;

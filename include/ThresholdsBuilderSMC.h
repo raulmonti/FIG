@@ -58,14 +58,14 @@ class ModuleNetwork;
 class ThresholdsBuilderSMC : public ThresholdsBuilderAdaptiveSimple
 {
 	/// Min simulation length (in # of jumps) to find new thresholds
-	static constexpr unsigned MIN_SIM_EFFORT = 1u<<6u;
+	static constexpr unsigned MIN_SIM_EFFORT = 1u<<7u;
 	/// Max simulation length (in # of jumps) to find new thresholds
-	static constexpr unsigned MAX_SIM_EFFORT = 1u<<9u;
+	static constexpr unsigned MAX_SIM_EFFORT = 1u<<11u;
 
 	/// Min # of failures allowed when searching for a new threshold
 	static constexpr unsigned MIN_NUM_FAILURES = 5u;
 	/// Max # of failures allowed when searching for a new threshold
-	static constexpr unsigned MAX_NUM_FAILURES = 7u;
+	static constexpr unsigned MAX_NUM_FAILURES = 20u;
 
 public:
 

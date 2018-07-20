@@ -96,5 +96,6 @@ endmodule
 
 
 properties
-	S( q3 >= L )  // "rate"
+//	S( q3 >= L )  // "rate"
+	S( (q1 >= c/2 & q2 >= L) | q3 >= L )  // "rate"
 endproperties

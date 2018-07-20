@@ -82,6 +82,9 @@ protected:
 	/// #(steps) allowed for each internal Fixed Effort pilot run
 	decltype(Traial::numLevelsCrossed) maxSimLen_;
 
+	/// Highest ImportanceValue observed in internal simulations
+	ImportanceValue maxImportanceReached_;
+
 	/// Property to estimate, for which the thresholds will be selected
 	std::shared_ptr< const Property > property_;
 
@@ -133,7 +136,7 @@ private:  // Class utils
 	 *       theoretically reachable
 	 */
 	ImportanceVec
-	reachable_importance_values(bool forceRealMax = false) const;
+	reachable_importance_values(bool forceRealMax = false);
 
 	/**
 	 * @brief Run Fixed Effort to roughly estimate level-up probabilities
@@ -154,28 +157,26 @@ private:  // Class utils
 	 * @warning Hardcoded to work with SimulationEngineSFE as internalSimulator_
 	 */
 	std::vector<float>
-	FE_for_ES(const ImportanceVec& reachableImportanceValues) const;
+	FE_for_ES(const ImportanceVec& reachableImportanceValues);
 
 	/**
-	 * @brief Artificial selection of thresholds when the algorithm fails
+	 * @brief Selection/deletion of artificially chosen thresholds
 	 *
-	 *        Last resort for when Expected Success can't reach the max imp:
+	 *        When Expected Success can't reach the max importance,
 	 *        this routine selects values for the effort of all levels
-	 *        above the last successful level inspected by ES
+	 *        above the last successful level inspected by ES.<br>
+	 *        When ImportanceValues were artificially selected during internal
+	 *        simulations, but ES could finally reach the max importance,
+	 *        this routine deletes any artificial threshold that is left.
 	 *
-	 * @param reachableImportanceValues Result from reachable_importance_values()
 	 * @param Pup Vector with the level-up probabilities that Expected Success
-	 *            could compute (this will guide the artificial selection)
+	 *            could compute (this guides the artificial selection/deletion)
 	 *
-	 * @note If there are less than two reachableImportanceValues
-	 *       the routine will try to randomly sample more values,
-	 *       to have a richer (although heavily artificial) set of thresholds.
-	 *
-	 * @see ImportanceFunction::random_sample()
+	 * @note Selects effort for the \ref ImportanceValue "importance values"
+	 *       from \p currentThresholds_ that (according to Pup) where not reached
 	 */
 	void
-	artificial_thresholds_selection(ImportanceVec& reachableImportanceValues,
-	                                std::vector< float >& Pup) const;
+	process_artificial_thresholds(std::vector< float >& Pup) const;
 
 	/// @brief Event-watcher for the internal Fixed Effort simulations
 	/// @details Interpret and mark the events triggered by a Traial
@@ -183,7 +184,7 @@ private:  // Class utils
 	inline bool
 	FE_watcher(const Property& property, Traial& traial, Event&) const
 	    {
-			const long newImp = impFun_->importance_of(traial.state);
+			const auto newImp = impFun_->importance_of(traial.state);
 			traial.depth -= static_cast<short>(current_level_of(newImp)
 											   - current_level_of(traial.level));
 			traial.level = newImp;
@@ -198,9 +199,9 @@ private:  // Class utils
 	inline bool
 	importance_seeker(const Property&, Traial& traial, Event&) const
 	    {
-			long newImp = impFun_->importance_of(traial.state);
+			const long newImp = impFun_->importance_of(traial.state);
 			traial.depth -= static_cast<short>(newImp - static_cast<long>(traial.level));
-			traial.level = newImp;
+			traial.level = static_cast<ImportanceValue>(newImp);
 			traial.numLevelsCrossed++;  // encode here the # steps taken
 			return /* level-up:     */ traial.depth < 0 ||
 			       /* sim too long: */ traial.numLevelsCrossed > maxSimLen_;

@@ -71,14 +71,11 @@ namespace fig
  */
 class SimulationEngineSFE : public SimulationEngineFixedEffort
 {
-	/// Internal Traials for fixed_effort() computations
-	mutable std::vector< Reference< Traial > > traials_;
-
 public:
 
 	SimulationEngineSFE(std::shared_ptr<const ModuleNetwork> model,
 						const bool thresholds = false);
-	virtual ~SimulationEngineSFE();
+	virtual ~SimulationEngineSFE() override;
 
 protected:  // Utils for the class and its kin
 
@@ -87,9 +84,9 @@ protected:  // Utils for the class and its kin
 	/// @brief Run <i>once</i> the Standard Fixed Effort algorithm,
 	///        generalised to cope with importance skipping.
 	/// @copydetails SimulationEngineFixedEffort::fixed_effort()
-	/// @note The \p result will <i>always>/i> contain a single path,
-	///       since this is a <i>greedy version</i> of Fixed Effort which
-	///       ignores paths to the rare event other than the easiest to find.
+	/// @note The \p result will contain <i>a single path</i>,
+	///       since this is a "greedy Fixed Effort"
+	///       that goes to the rare event through the first path found only.
 	/// @note If no path is found to the rare event, \p result
 	///       will contain a single path whose last element.second == 0.0,
 	///       meaning there is zero probability to reach further up

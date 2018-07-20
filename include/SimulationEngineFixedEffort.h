@@ -60,6 +60,12 @@ class SimulationEngineFixedEffort : public SimulationEngine
 {
 	friend class ThresholdsBuilderES;
 
+public:
+
+	typedef std::pair< ImportanceValue, double >  ThresholdLvlUpProb;
+	typedef std::vector< ThresholdLvlUpProb >     ThresholdsPathProb;
+	typedef std::vector< ThresholdsPathProb >     ThresholdsPathCandidates;
+
 protected:
 
 	/// Min number of simulations to launch per threshold-level
@@ -73,11 +79,12 @@ protected:
 	/// @note #(sims) launched on level 'l' ∝ effort(l)*BASE_NUM_SIMS
 	static constexpr unsigned BASE_NUM_SIMS = 3u;
 
-	/// When the engine is intended for threshold building, this might be used
-	unsigned arbitraryLevelEffort;
+	/// When the engine is intended for thresholds building,
+	/// this replaces the (yet unbuilt) thresholds
+	std::function<unsigned long(const unsigned&)> arbitrary_effort;
 
 	/// When the engine is intended for threshold building, this might be used
-	unsigned arbitraryMaxLevel;
+	unsigned long arbitraryMaxLevel;
 
 	/// Stack of \ref Traial "traials" for a batch means mechanism
 	mutable std::vector< Reference< Traial > > traials_;
@@ -122,13 +129,7 @@ private:  // Simulation helper functions
 	rate_simulation(const PropertyRate&, const size_t&, bool) const override
 		{ throw_FigException("TODO: implement!"); }
 
-public:  // Utils for the class and its kin
-
-	typedef std::pair< ImportanceValue, double >  ThresholdLvlUpProb;
-	typedef std::vector< ThresholdLvlUpProb >     ThresholdsPathProb;
-	typedef std::vector< ThresholdsPathProb >     ThresholdsPathCandidates;
-
-protected:
+protected:  // Utils for the class and its kin
 
 	/// Retrieve the member function, wrapped as std::function via std::bind(),
 	/// to be used as TraialMonitor by ModuleNetwork::simulation_step()

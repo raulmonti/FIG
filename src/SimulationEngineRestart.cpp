@@ -134,10 +134,10 @@ SimulationEngineRestart::reinit_stack() const
 void
 SimulationEngineRestart::handle_lvl_up(
     const Traial& traial,
+	TraialPool& tpool,
     std::stack< Reference < Traial > >& stack) const
 {
-	static TraialPool& tpool(TraialPool::get_instance());
-	const auto previousLvl(static_cast<short>(traial.level)-traial.numLevelsCrossed);
+	const auto previousLvl(static_cast<long>(traial.level)-traial.numLevelsCrossed);
 	unsigned long prevEffort(1ul), currEffort(1ul);
 
 	assert(0 < traial.level);
@@ -167,7 +167,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	std::vector< unsigned > raresCount(numThresholds+1, 0u);
 	std::vector< double > weighedRaresCount(numRuns, 0.0l);
 	std::stack< Reference< Traial > > stack;
-	static TraialPool& tpool(TraialPool::get_instance());
+	TraialPool& tpool(TraialPool::get_instance());
 
 	if (reachCount_.size() != numThresholds+1)
 		reachCount_.clear();
@@ -212,7 +212,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 
 			} else if (IS_THR_UP_EVENT(e)) {
 				// Could have gone up several thresholds => split accordingly
-				handle_lvl_up(traial, stack);
+				handle_lvl_up(traial, tpool, stack);
 				// Offsprings are on top of stack now: continue attending them
 			}
 			// RARE events are checked first thing in next iteration
@@ -245,7 +245,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	assert(0u < runLength);
 	const unsigned numThresholds(impFun_->num_thresholds());
 	std::vector< double > raresCount(numThresholds+1, 0.0);
-	static TraialPool& tpool(TraialPool::get_instance());
+	TraialPool& tpool(TraialPool::get_instance());
 
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 	numChunksTruncated_ = 0u;
@@ -340,7 +340,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 				numChunksTruncated_ = 0u;
 			}
 			// Could have gone up several thresholds => split accordingly
-			handle_lvl_up(traial, ssstack_);
+			handle_lvl_up(traial, tpool, ssstack_);
 			assert(&(ssstack_.top().get()) != &oTraial_);
 			// Offsprings are on top of ssstack_ now: continue attending them
 		}
