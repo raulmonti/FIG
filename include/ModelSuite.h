@@ -242,26 +242,32 @@ public:  // Populating facilities and other modifyers
 	/**
 	 * @brief Set the global effort for all Importance Splitting engines
 	 *
-	 *         If a non-global thresholds selection mechanism is chosen,
-	 *         e.g. \ref ThresholdsBuilderES "Expected Success", this value
-	 *         is ignored. Else the global effort:
-	 *         <ul>
-	 *         <li>In RESTART is 1 + #(replicas) made of a Traial
-	 *             when it crosses a threshold-level upwards;</li>
-	 *         <li>In Fixed Effort is the #(simulations) launched
-	 *             on each threshold-level.</li>
-	 *         </ul>
+	 *        If \p ge == 0, the default global effort of the SimulationEngine
+	 *        named \p defaultFromEngine will be used.<br>
+	 *        If \p ge == 0 and \p defaultFromEngine == "", the global effort
+	 *        is unset.
 	 *
-	 * @param ge         @copydoc globalEffort
-	 * @param enginaName Name of the simulation engine to use
-	 * @param verbose    Whether to output info in the tech_log
+	 * @param ge                @copydoc globalEffort
+	 * @param defaultFromEngine Name of the SimulationEngine from which the
+	 *                          default global effort value shall be copied
+	 *
+	 * @note If a non-global thresholds selection mechanism is chosen,
+	 *       e.g. \ref ThresholdsBuilderES "Expected Success", this value
+	 *       is ignored. Else <i>"global effort"</i> means:
+	 *       <ul>
+	 *       <li>In RESTART is 1 + #(replicas) made of a Traial
+	 *           when it crosses a threshold-level upwards;</li>
+	 *       <li>In Fixed Effort is the #(simulations) launched
+	 *           on each threshold-level.</li>
+	 *       </ul>
 	 *
 	 * @warning The ModelSuite must have been \ref seal() "sealed" beforehand
 	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
+	 *
+	 * @see globalEffort
 	 */
 	void set_global_effort(const unsigned& ge,
-	                       const std::string& engineName,
-	                       bool verbose = false);
+	                       const std::string& defaultFromEngine = "");
 	
 	/// @brief Inform the system model was translated from a Dynamic Fault Tree
 	/// @param failProbDFT A <i>rough and unified</i> probability of observing
@@ -899,7 +905,7 @@ ModelSuite::process_batch(const std::string& engineName,
 	}
 
 	// For each property ...
-	for (const auto property: properties) {
+	for (const auto& property: properties) {
 
 		// ... build the importance function ...
 		if ("flat" == impFunSpec.strategy)
@@ -914,7 +920,7 @@ ModelSuite::process_batch(const std::string& engineName,
 		for (auto ge: globalEffortValues) {
 
 			// ... choose thresholds, bind engine and ifun, etc ...
-			set_global_effort(ge, engineName, true);
+			set_global_effort(ge, engineName);
 			auto engine = prepare_simulation_engine(engineName,
 			                                        impFunSpec.name,
 			                                        thrTechnique,

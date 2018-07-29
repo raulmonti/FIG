@@ -512,29 +512,28 @@ template void ModelSuite::seal(const std::unordered_set<std::string>&);
 
 void
 ModelSuite::set_global_effort(const unsigned& ge,
-                              const std::string& engineName,
-                              bool verbose)
+                              const std::string& engineName)
 {
     if (!sealed())
 		throw_FigException("ModelSuite hasn't been sealed yet");
 	if (0u < ge)
 		globalEffort = ge;
-	else if (exists_simulator(engineName))
+	else if (!engineName.empty() && exists_simulator(engineName))
 		globalEffort = simulators[engineName]->global_effort_default();
-	else
+	else if (!engineName.empty())
 		throw_FigException("inexistent simulation engine \"" + engineName +
 		                   "\". Call \"available_simulators()\" for a list "
 		                   "of available options.");
-//	if (1u < ge)  // i.e. if we actually use a global effort
-//		for (auto& pair: simulators)
-//			pair.second->set_global_effort(ge);
-//	else
-//		for (auto& pair: simulators)
-//			pair.second->set_global_effort();
-	if (verbose && 1u < ge)
+	else
+		globalEffort = 0u;
+	// Print info in logs
+	if (highVerbosity_ && globalEffort == 0u)
+		tech_log("\nGlobal effort unset\n");
+	else if (highVerbosity_ && 1u < ge)
 		tech_log("\nGlobal effort set to " + std::to_string(ge) + "\n");
-	else if (verbose && 1u >= ge)
-		tech_log("\nGlobal effort reset to default value\n");
+	else if (highVerbosity_ && 1u >= ge)
+		tech_log("\nGlobal effort set to default of engine \"" + engineName
+		        +"\" (i.e. " + std::to_string(globalEffort) + ")\n");
 }
 
 
@@ -1045,10 +1044,15 @@ ModelSuite::build_thresholds(const std::string& technique,
 						   "\"build_importance_function_xxx()\" routines with "
 		                   "\"" + ifunName + "\" beforehand");
 	if (force || ifun.thresholds_technique() != technique) {
-		const auto gEffortSpec(tb.uses_global_effort()
-		            ? (" with global effort "+std::to_string(globalEffort)) : (""));
-		techLog_ << "\nBuilding thresholds using technique \"" << technique
-				 << "\"" << gEffortSpec << std::endl;
+		const auto geStr = tb.uses_global_effort()
+		            ? (" with global effort "+std::to_string(globalEffort)) : ("");
+		techLog_ << "\nBuilding thresholds using technique \"" << technique << "\"" << geStr;
+		if (!tb.uses_global_effort() && globalEffort > 0) {
+			if (highVerbosity_)
+				techLog_ << " (which disregards global efforts)";
+			set_global_effort(0);
+		}
+		techLog_ << std::endl;
 		const double startTime = omp_get_wtime();
 		tb.setup(property, globalEffort);
 		ifun.build_thresholds(tb);
