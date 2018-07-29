@@ -64,7 +64,7 @@ public:  // Ctor
 	SimulationEngineNosplit(std::shared_ptr<const ModuleNetwork> model,
 	                        bool thresholds = false);
 
-	~SimulationEngineNosplit();
+	~SimulationEngineNosplit() override;
 
 public:  // Accessors
 

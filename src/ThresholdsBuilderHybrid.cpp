@@ -86,7 +86,7 @@ ThresholdsBuilderHybrid::build_thresholds(std::shared_ptr<const ImportanceFuncti
 		const size_t MARGIN(thresholds_.empty() ? impFun->initial_value()
 		                                        : thresholds_.back());
 		if (highVerbosity)
-			figTechLog << "Sequential Monte Carlo couldn't reach the rare event!"
+			figTechLog << "\nSequential Monte Carlo couldn't reach the rare event!"
 					   << "\nArtificial thresholds will be set above the "
 					   << "ImportanceValue " << MARGIN << "\n";
 		else

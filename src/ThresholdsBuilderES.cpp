@@ -153,8 +153,7 @@ choose_best_path_to_rare(const std::vector< PathCandidate >& paths)
 			}
 			bestPaths.emplace_back(path);  // same as bestPath: store
 		}
-		discard_this_path:
-		;
+        discard_this_path: ;
 	}
 	assert(!bestPaths.empty());  // at least bestPath should've been stored
 	const auto NUM_BEST_PATHS(static_cast<float>(bestPaths.size()));

@@ -75,7 +75,7 @@ public:
 
 	SimulationEngineSFE(std::shared_ptr<const ModuleNetwork> model,
 						const bool thresholds = false);
-	virtual ~SimulationEngineSFE() override;
+	~SimulationEngineSFE() override;
 
 protected:  // Utils for the class and its kin
 

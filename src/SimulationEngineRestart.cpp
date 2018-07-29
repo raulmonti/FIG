@@ -250,7 +250,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 	numChunksTruncated_ = 0u;
 	if (reachCount_.size() != numThresholds+1 || reinit)
-		reachCount_.clear();
+		decltype(reachCount_)().swap(reachCount_);
 
 	// Reset batch or run with batch means?
 	if (reinit || ssstack_.empty()) {

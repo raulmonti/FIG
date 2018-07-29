@@ -84,7 +84,7 @@ public:  // Ctor
 	SimulationEngineRestart(std::shared_ptr<const ModuleNetwork> model,
 	                        bool thresholds = false);
 
-	~SimulationEngineRestart();
+	~SimulationEngineRestart() override;
 
 public:  // Accessors
 

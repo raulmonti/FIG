@@ -134,7 +134,6 @@ SimulationEngineSFE::get_event_watcher(const Property& property) const
 		break;
 	default:
 		throw_FigException("unsupported property type: "+std::to_string(property.type));
-		break;
 	}
 	return *event_watcher;
 }
@@ -148,19 +147,8 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 
 	auto lvl_effort = [&](const unsigned& n) -> unsigned
 		{ return toBuildThresholds_ ? arbitrary_effort(n) : n*base_nsims(); };
-//	toBuildThresholds_
-//		? [&](const unsigned& level ) -> unsigned { return arbitrary_effort(level); }
-//		: [&](const unsigned& effort) -> unsigned { return effort*base_nsims();     };
 	auto max_lvl_effort = [&]() { return std::max(lvl_effort_min(),
 												  lvl_effort(impFun_->max_thresholds_effort())); };
-//	auto max_arbitrary_effort = [&]()
-//		{
-//			using T_ = ThresholdLvlUpProb;
-//			return (*std::max_element(begin(arbitraryLevelEffort),
-//									  end(arbitraryLevelEffort),
-//									  [](const T_& a, const T_&b)
-//									  { return a.second > b.second; })).second;
-//		};
 	const size_t LVL_MAX = toBuildThresholds_ ? arbitraryMaxLevel : impFun_->max_value(),
 				 EFF_MAX = toBuildThresholds_ ? ThresholdsBuilderAdaptive::max_n() : max_lvl_effort(),
 				 LVL_INI = impFun_->initial_value(toBuildThresholds_);

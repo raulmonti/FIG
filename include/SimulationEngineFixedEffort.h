@@ -99,7 +99,7 @@ public:
 								std::shared_ptr<const ModuleNetwork> model,
 								bool thresholds = false);
 
-	~SimulationEngineFixedEffort();
+	~SimulationEngineFixedEffort() override;
 
 public:  // Accessors
 
