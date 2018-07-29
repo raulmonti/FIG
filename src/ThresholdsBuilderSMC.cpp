@@ -364,20 +364,23 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 		    || halted_)
 			goto exit_with_fail;  // couldn't find those initial states
 		// Impose (hardcoded) time limit
-		static constexpr std::chrono::seconds TIMEOUT(8);
+		static constexpr std::chrono::seconds TIMEOUT(2ul<<4ul);
 		std::thread timer([] (bool& halt, const std::chrono::seconds& limit)
 						  { std::this_thread::sleep_for(limit); halt=true; },
 						  std::ref(halted_), TIMEOUT);
-		// Find sims' 1-k/n quantile starting from those initial states
-		newThreshold = find_new_threshold(network,
-		                                  impFun,
-		                                  *property_,
-		                                  traials,
-		                                  n_,
-		                                  k_,
-		                                  lastThr,
-		                                  halted_);
-		timer.detach();
+		try {
+			// Find sims' 1-k/n quantile starting from those initial states
+			newThreshold = find_new_threshold(network, impFun, *property_,
+			                                  traials,
+			                                  n_, k_,
+			                                  lastThr,
+			                                  halted_);
+			pthread_cancel(timer.native_handle());
+			timer.detach();
+		} catch (...) {
+			timer.detach();
+			throw;
+		}
 		if (halted_)
 			goto exit_with_fail;
 		if (newThreshold > thresholds_.back()) {
