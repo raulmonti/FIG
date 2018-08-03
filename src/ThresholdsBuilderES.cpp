@@ -281,6 +281,8 @@ ThresholdsBuilderES::build_thresholds(std::shared_ptr<const ImportanceFunction> 
 		if (thisEffort > 1ul)
 			thresholds_.emplace_back(currentThresholds_[i].first, thisEffort);
 	}
+	if (max_importance(*impFun_) == thresholds_.back().first)
+		thresholds_.back().second = 1ul;
 	thresholds_.emplace_back(max_importance(*impFun_)+1u, 1ul);  // formatting of thresholds_
 
 	ModelSuite::tech_log("\n");
@@ -396,7 +398,7 @@ ThresholdsBuilderES::reachable_importance_values(bool forceRealMax)
 std::vector< float >
 ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues)
 {
-	static constexpr auto NUM_PATHS = 4ul;
+	static constexpr auto NUM_PATHS = 3ul;
 	using namespace std::placeholders;  // _1, _2, ...
 	const EventWatcher& watch_events =
 			std::bind(&ThresholdsBuilderES::FE_watcher, this, _1, _2, _3);
@@ -431,10 +433,12 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues)
 		if (path.empty() || path.front().size() < 2ul)
 			continue;
 		if (path.front().back().first < reachableImportanceValues.back() && n_ < MAX_N) {
-			ModelSuite::tech_log(highVerbosity ? ("-") : (""));
+			ModelSuite::tech_log(highVerbosity ? ("*") : (""));
 			n_ *= 2;
 		} else {
-			ModelSuite::tech_log(highVerbosity ? ("+") : (""));
+			auto updatePrint = !highVerbosity ? ("") :
+				path.front().back().first < reachableImportanceValues.back() ? ("-") : ("+");
+			ModelSuite::tech_log(updatePrint);
 			idx++;
 		}
 	} while (idx < NUM_PATHS);
@@ -453,7 +457,7 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues)
 
 	// Set internals of this class instance to follow bestPath
 	decltype(currentThresholds_)().swap(currentThresholds_);
-	static constexpr auto MIN_PROB(0.001);
+	static constexpr auto MIN_PROB(0.005);
 	static constexpr auto MIN_EFFORT(1l<<7l);
 	std::vector< double > prelimPup;
 	long maxEffort(MIN_EFFORT);
@@ -505,7 +509,7 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues)
 	// Step #3: refine the probabilities of level-up in the best path
 
 	// Run Fixed Effort a couple of times following the "best bestPath"
-	static constexpr auto NUM_SAMPLES_FROM_BEST_PATH = 4ul;
+	static constexpr auto NUM_SAMPLES_FROM_BEST_PATH = NUM_PATHS;
 	decltype(paths)().swap(paths);
 	paths.reserve(NUM_SAMPLES_FROM_BEST_PATH);
 	auto maxSteps = bestPath.size();
