@@ -69,7 +69,7 @@ public:  // Attributes
     /// Which type of property the expression represents
     const PropertyType type;
 
-public:  // Ctors
+public:  // Ctors/Dtor
 
     Property(PropertyType thetype) :
 	    instance_id(++current_id),
@@ -87,7 +87,7 @@ public:  // Ctors
     /// Can't move assign due to const data members
     Property& operator=(Property&& that)      = delete;
 
-	virtual ~Property() {}
+	inline virtual ~Property() {}
 
 public:  // Utils
 
@@ -114,7 +114,7 @@ public:  // Utils
 	    { return !is_stop(s) && is_rare(s); }
 
     /// Get instance unique id
-    int get_id() const noexcept { return instance_id; }
+	inline int get_id() const noexcept { return instance_id; }
 
     /// String representation of property
     virtual std::string to_string() const = 0;

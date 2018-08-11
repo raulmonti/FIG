@@ -66,7 +66,7 @@ class PropertyTransient : public Property
     /// This is the subformula on the RHS of the '<i>until</i>'
     Precondition expr2_;
 
-public:  // Ctors
+public:  // Ctors/Dtor
 
     /**
      * @brief Data ctor from generic lvalue containers
@@ -99,6 +99,8 @@ public:  // Ctors
     PropertyTransient& operator=(const PropertyTransient& that) = delete;
     /// Can't have move assignment due to const data members from Property
     PropertyTransient& operator=(PropertyTransient&& that)      = delete;
+
+	inline ~PropertyTransient() override {}
 
 public:  // Accessors
 

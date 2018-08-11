@@ -4,21 +4,18 @@
 .*.swo
 *.autosave
 
-# IDEs temp files
+# IDEs config files
+*.cbp
 *.user
-fig*.config
-fig*.creator
-fig*.files
-fig*.includes
-FIG*.config
-FIG*.creator
-FIG*.files
-FIG*.includes
+*.config
+*.creator
+*.files
+*.includes
 
 # Build
 fig
 test
-bin/
+bin
 *_bin/
 bin_*/
 qtbin*/

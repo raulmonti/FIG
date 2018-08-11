@@ -93,6 +93,8 @@ public:  // Ctors
     /// Can't have move assignment due to const data members from Property
     PropertyRate& operator=(PropertyRate&& that)      = delete;
 
+	inline ~PropertyRate() override {}
+
 public:
 
     /**
