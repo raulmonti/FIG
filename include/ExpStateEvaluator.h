@@ -45,6 +45,7 @@ private:
     static OpKind exprtk_kind(ExpOp op);
 public:
     ExpTranslatorVisitor() {}
+	inline virtual ~ExpTranslatorVisitor() {}
     void visit(shared_ptr<IConst> node) noexcept override;
     void visit(shared_ptr<BConst> node) noexcept override;
     void visit(shared_ptr<LocExp> node) noexcept override;
@@ -119,6 +120,9 @@ public:
     STYPE eval(const State<STYPE>& state) const noexcept;
     STYPE eval(const StateInstance& state) const noexcept;
 
+	/// Vector with strings for all internal expressions
+	inline const std::vector<std::string>& to_string() const noexcept
+		{ return expStrings; }
 };
 
 } // namespace fig

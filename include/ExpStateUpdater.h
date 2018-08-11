@@ -3,6 +3,7 @@
 #ifndef EXP_STATE_UPDATER_H
 #define EXP_STATE_UPDATER_H
 
+#include <string>
 #include <ExpStateEvaluator.h>
 
 namespace fig {
@@ -185,6 +186,10 @@ public:
     /// @note prepare shold be called first
     void update(State<STYPE>& state) const ;
     void update(StateInstance& state) const ;
+
+	/// @copydoc ExprStateEvaluator::to_string()
+	inline const std::vector<std::string>& to_string() const noexcept
+		{ return evaluator_.to_string(); }
 };
 
 }
