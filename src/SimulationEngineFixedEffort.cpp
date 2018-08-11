@@ -47,7 +47,9 @@ SimulationEngineFixedEffort::SimulationEngineFixedEffort(
 	std::shared_ptr<const ModuleNetwork> model,
 	bool thresholds) :
 		SimulationEngine(simEngineName, model, thresholds),
-		arbitrary_effort([](const unsigned&){return 0u;})
+		arbitrary_effort([](const unsigned&){return 0u;}),
+		arbitraryMaxLevel(0ul),
+		property_(nullptr)
 { /* Not much to do around here */ }
 
 
