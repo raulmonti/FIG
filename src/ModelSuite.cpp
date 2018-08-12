@@ -624,6 +624,13 @@ ModelSuite::get_timeout() const noexcept
 }
 
 
+double
+ModelSuite::get_running_time() const noexcept
+{
+	return omp_get_wtime()-lastEstimationStartTime_;
+}
+
+
 const std::vector< float >&
 ModelSuite::get_cc_to_show() noexcept
 {

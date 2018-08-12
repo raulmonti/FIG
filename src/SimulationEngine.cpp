@@ -49,6 +49,7 @@
 #include <ConfidenceIntervalRate.h>
 #include <ConfidenceIntervalTransient.h>
 #include <ModuleNetwork.h>
+#include <ModelSuite.h>
 #include <TraialPool.h>
 #include <FigException.h>
 #include <FigLog.h>
@@ -158,6 +159,21 @@ increase_run_length(const std::string& engineName,
 	// Update runLength with corresponding entry from table, rely on type promotion
 	runLength *= inc_length[std::distance(begin(engineNames), engineIt)]
 						   [std::distance(begin(ifunNames), ifunIt)];
+}
+
+
+/// Print in \p out stream the number of seconds elapsed
+/// since the beginning of the currently running estimation
+/// @see ModelSuite::get_running_time()
+void
+print_runtime(std::ostream& out,
+              const std::string& prefix = "",
+              const std::string& suffix = "")
+{
+	auto runtime = fig::ModelSuite::get_instance().get_running_time();
+	out << prefix;
+	out << std::setprecision(1) << std::fixed << runtime << "s" << std::defaultfloat;
+	out << suffix;
 }
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
@@ -360,11 +376,8 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 	case PropertyType::BOUNDED_REACHABILITY:
 		throw_FigException("property type isn't supported by \"" + name_ +
 						   "\" simulation engine yet");
-		break;
-
 	default:
 		throw_FigException("invalid property type");
-		break;
 	}
 }
 
@@ -378,17 +391,20 @@ SimulationEngine::transient_update(ConfidenceIntervalTransient& ci,
 
 	ci.update(weighedNREs);
 
-	// Print updated CI, providing enough time elapsed since last print
-	static constexpr double TIMEOUT_PRINT(M_PI);  // in seconds
-	static unsigned cnt(0u);
-	const bool newCI(ci.num_samples() < 1l);
-	const double thisCallTime(omp_get_wtime());
-	static double lastCallTime(newCI ? thisCallTime : lastCallTime);
-	cnt = newCI ? 0u : cnt;
-	if (thisCallTime-lastCallTime > TIMEOUT_PRINT) {
-		figTechLog << "\n[" << cnt++ << "] ";
-		ci.print(figTechLog);
-		lastCallTime = thisCallTime;
+	if (ModelSuite::get_verbosity()) {
+		// Print updated CI, providing enough time elapsed since last print
+		static constexpr double TIMEOUT_PRINT(M_PI);  // in seconds
+		static unsigned cnt(0u);
+		const bool newCI(ci.num_samples() <= min_batch_size(name(), impFun_->name()));
+		const double thisCallTime(omp_get_wtime());
+		static double lastCallTime(newCI ? thisCallTime : lastCallTime);
+		cnt = newCI ? 0u : cnt;
+		if (thisCallTime-lastCallTime > TIMEOUT_PRINT) {
+			figTechLog << "\n[" << cnt++ << "] ";
+			ci.print(figTechLog);
+			print_runtime(figTechLog, " time:", " samples:"+std::to_string(ci.num_samples()));
+			lastCallTime = thisCallTime;
+		}
 	}
 }
 
@@ -405,7 +421,7 @@ SimulationEngine::rate_update(ConfidenceIntervalRate& ci,
 	static constexpr size_t NHITS_REQUIRED = 3u;  // #{"successes"} to acnowledge steady-state behaviour
 	static size_t NHITS(0ul);  // #{"successes"} observed in last simulations
 	static unsigned cnt(0u);
-	const bool newCI(ci.num_samples() < 1l);
+	const bool newCI(ci.num_samples() <= 1l);
 	const bool RESET(newCI && NHITS >= NHITS_REQUIRED);
 	cnt = newCI ? 0u : cnt;
 	NHITS = RESET ? 0ul : NHITS;
@@ -422,8 +438,12 @@ SimulationEngine::rate_update(ConfidenceIntervalRate& ci,
 		// Reduce fp precision loss (is this any good?)
 		const double thisRate(std::exp(std::log(rareTime)-std::log(simTime)));
 		ci.update(thisRate);
-		figTechLog << "\n[" << cnt++ << "] ";
-		ci.print(figTechLog);
+		if (ModelSuite::get_verbosity()) {
+			// Print some info about the updated CI
+			figTechLog << "\n[" << cnt++ << "] ";
+			ci.print(figTechLog);
+			print_runtime(figTechLog, " time:", " samples:"+std::to_string(ci.num_samples()));
+		}
 	} else {
 		increase_run_length(name_, impFun_->name(), simTime);
 		figTechLog << "*";  // report "discarded"

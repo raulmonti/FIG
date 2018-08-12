@@ -379,6 +379,10 @@ public:  // Accessors
 	/// @see set_timeout()
 	const std::chrono::seconds& get_timeout() const noexcept;
 
+	/// Get the wall-clock-time elapsed since the beginning of the current
+	/// estimation, in seconds
+	double get_running_time() const noexcept;
+
 	/// @copydoc confCoToShow_
 	static const std::vector< float >& get_cc_to_show() noexcept;
 
