@@ -177,7 +177,7 @@ SECTION("Transient: Fixed Effort, monolithic, hyb")
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, std::mt19937_64::default_seed);
 	fig::StoppingConditions timeBound;
-    timeBound.add_time_budget(TIMEOUT_(45));  // estimate for < 1 min
+    timeBound.add_time_budget(TIMEOUT_(90));  // estimate for 1.5 min
 	// Estimate
 	model.estimate(trPropId, *engine, timeBound, ifunSpec);
 	auto results = model.get_last_estimates();
