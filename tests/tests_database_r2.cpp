@@ -62,7 +62,9 @@ TEST_CASE("Database with R=2 tests", "[database-R2]")
 
 SECTION("Compile model file")
 {
-	// If this is not the first test then we need to clean
+    preamble_testcase(fig::figTechLog, "database-R2");
+
+    // If this is not the first test then we need to clean
 	// the ModelSuite singleton before loading the new model
 	if (model.sealed())
 		model.clear();
@@ -119,7 +121,7 @@ SECTION("Steady-state: standard MC")
 	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(15);  // don't estimate for that long a time
+    model.set_timeout(TIMEOUT_(15));  // don't estimate for that long a time
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, fig::ImpFunSpec(nameIFun, "flat"));
 	auto results = model.get_last_estimates();
@@ -156,7 +158,7 @@ SECTION("Steady-state: RESTART, ad hoc, hyb")
 	const double prec(.4);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
+    model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -193,7 +195,7 @@ SECTION("Steady-state: RESTART, compositional (+ operator), es")
 	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
+    model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -232,7 +234,7 @@ SECTION("Steady-state: RESTART, compositional (coarse ifun), hyb")
 	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(std::chrono::minutes(2));  // estimate for 2 min max
+    model.set_timeout(TIMEOUT_(std::chrono::minutes(2)));  // estimate for 2 min max
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -271,7 +273,7 @@ SECTION("Steady-state: RESTART, compositional ([+,*] ring), es")
 	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(480);  // 8 min
+    model.set_timeout(TIMEOUT_(std::chrono::minutes(8)));
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();

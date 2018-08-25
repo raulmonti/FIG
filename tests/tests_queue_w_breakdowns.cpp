@@ -54,7 +54,9 @@ TEST_CASE("Queue with breakdowns tests", "[queue-w-breakdowns]")
 
 SECTION("Compile model file")
 {
-	// If this is not the first test then we need to clean
+    preamble_testcase(fig::figTechLog, "queue-w-breakdowns");
+
+    // If this is not the first test then we need to clean
 	// the ModelSuite singleton before loading the new model
 	if (model.sealed())
 		model.clear();
@@ -143,7 +145,7 @@ SECTION("Transient: RESTART, ad hoc, es")
 	const double prec(.333);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
+    model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(trPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -156,9 +158,9 @@ SECTION("Transient: RESTART, ad hoc, es")
 	          == Approx(TR_PROB*prec).epsilon(TR_PROB*0.1));
 }
 
-SECTION("Transient: RESTART, monolithic, hyb")
+SECTION("Transient: Fixed Effort, monolithic, hyb")
 {
-	const string nameEngine("restart");
+    const string nameEngine("sfe");
 	const fig::ImpFunSpec ifunSpec("concrete_coupled", "auto");
 	const string nameThr("hyb");
 	REQUIRE(model.exists_simulator(nameEngine));
@@ -166,7 +168,7 @@ SECTION("Transient: RESTART, monolithic, hyb")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_global_effort(2, nameEngine);
+    model.set_global_effort(4, nameEngine);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, trPropId);
 	REQUIRE(engine->ready());
@@ -175,7 +177,7 @@ SECTION("Transient: RESTART, monolithic, hyb")
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, std::mt19937_64::default_seed);
 	fig::StoppingConditions timeBound;
-	timeBound.add_time_budget(30);  // estimate for 30 seconds
+    timeBound.add_time_budget(TIMEOUT_(45));  // estimate for < 1 min
 	// Estimate
 	model.estimate(trPropId, *engine, timeBound, ifunSpec);
 	auto results = model.get_last_estimates();

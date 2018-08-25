@@ -58,7 +58,9 @@ TEST_CASE("Tandem queue tests", "[tandem-queue]")
 
 SECTION("Compile model file")
 {
-	// If this is not the first test then we need to clean
+    preamble_testcase(fig::figTechLog, "tandem-queue");
+
+    // If this is not the first test then we need to clean
 	// the ModelSuite singleton before loading the new model
 	if (model.sealed())
 		model.clear();
@@ -151,7 +153,7 @@ SECTION("Steady-state: RESTART, ad hoc, hyb")
 	const double prec(.4);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
+    model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -186,7 +188,7 @@ SECTION("Steady-state: RESTART, monolithic, hyb")
 	const double prec(.3);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(std::chrono::minutes(1));  // estimate for a min max
+    model.set_timeout(TIMEOUT_(std::chrono::minutes(1)));  // estimate for a min max
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -220,7 +222,7 @@ SECTION("Transient: RESTART, compositional (+ operator), es")
 	const double prec(.35);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
+    model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(trPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -255,7 +257,7 @@ SECTION("Transient: Fixed Effort, monolithic, hyb")
 	const double prec(.35);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
+    model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(trPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -289,7 +291,7 @@ SECTION("Transient: Fixed Effort, compositional (max operator), es")
 	const double prec(.35);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
+    model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(trPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
