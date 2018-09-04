@@ -30,6 +30,8 @@
 // C
 #include <cmath>
 #include <cassert>
+// C++
+#include <limits>
 // FIG
 #include <ConfidenceIntervalTransient.h>
 #include <FigException.h>
@@ -51,7 +53,7 @@ ConfidenceIntervalTransient::ConfidenceIntervalTransient(double confidence,
 	ConfidenceInterval("transient", confidence, precision, dynamicPrecision, neverStop),
 	M2(0.0),
 	logNumSamples_(0.0),
-	logVariance_(INFINITY)
+    logVariance_(std::numeric_limits<decltype(logVariance_)>::infinity())
 { /* Not much to do around here... */ }
 
 
@@ -59,7 +61,6 @@ void
 ConfidenceIntervalTransient::update(const double& weighedNRE)
 {
 	assert(false);  // NOTE deprecated
-
 	prevEstimate_ = estimate_;
 	// Incremental (stable) computation of mean and variance (http://goo.gl/ytk6B)
 	const double delta = abs(weighedNRE - estimate_),
@@ -111,19 +112,19 @@ ConfidenceIntervalTransient::update(const std::vector<double>& weighedNREs)
 bool
 ConfidenceIntervalTransient::min_samples_covered(bool considerEpsilon) const noexcept
 {
-	// Rule of thumb for the lower bound of the magnitude "n*p",
-	// derived from experiments with tandem queue and queue with breakdowns.
-	static const double TH_LBOUND(log(0.25));
-	// Notice this value for TH_LBOUND equals 5% of the generic "n*p > 5"
-	// rule of thumb for binomial proportions CIs using normal approximation
+	// Rule of thumb for the lower bound of the magnitude "n*p":
+	static const double THEORETICAL_LBOUND(log(0.25));
+	// - THEORETICAL_LBOUND is 5% of the usual "n*p > 5" rule for the CI of
+	//   binomial proportions using normal approximation;
+	// - for queueing and high reliability systems, it is the variance
+	//   rather than the num_samples what prolongues estimations.
 	const bool
-		// CLT + considerations for binomial proportions
-		theoreticallySound = 30l <= numSamples_ &&
-							 TH_LBOUND < logNumSamples_+log(estimate_),
+	    // 4K-CLT or considerations for binomial proportions
+	    theoreticallySound = (1l<<12l)*30l <= numSamples_ ||
+	                         THEORETICAL_LBOUND < logNumSamples_+log(estimate_),
 		// If requested, ask also for little change w.r.t. the last estimate
-		practicallySound =
-			considerEpsilon ? std::abs(prevEstimate_-estimate_) < 0.01*estimate_
-							: true;
+	    practicallySound = considerEpsilon ? std::abs(prevEstimate_-estimate_) < 0.05*estimate_
+	                                       : true;
 	return theoreticallySound && practicallySound;
 }
 
@@ -133,8 +134,9 @@ ConfidenceIntervalTransient::precision(const double& confco) const
 {
 	if (0.0 >= confco || 1.0 <= confco)
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
-	return 2.0 * confidence_quantile(confco)
-			   * sqrt(exp(logVariance_-logNumSamples_));
+	return 2.0 * halfWidth_ * (confidence_quantile(confco)/quantile);
+//	return 2.0 * confidence_quantile(confco)
+//			   * sqrt(exp(logVariance_-logNumSamples_));
 }
 
 
@@ -144,7 +146,7 @@ ConfidenceIntervalTransient::reset(bool fullReset) noexcept
 	ConfidenceInterval::reset(fullReset);
 	M2 = 0.0;
 	logNumSamples_ = 0.0;
-	logVariance_ = INFINITY;
+	logVariance_ = std::numeric_limits<decltype(logVariance_)>::infinity();
 }
 
 }  // namespace fig  // // // // // // // // // // // // // // // // // // // //

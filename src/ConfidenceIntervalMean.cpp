@@ -70,7 +70,7 @@ ConfidenceIntervalMean::min_samples_covered(bool considerEpsilon) const noexcept
 		theoreticallySound = 30l <= numSamples_,
 		// If requested, ask also for little change w.r.t. the last estimate
 		practicallySound =
-			considerEpsilon ? std::abs(prevEstimate_-estimate_) < 0.01*estimate_
+	        considerEpsilon ? std::abs(prevEstimate_-estimate_) < 0.05*estimate_
 							: true;
 	return theoreticallySound && practicallySound;
 }
