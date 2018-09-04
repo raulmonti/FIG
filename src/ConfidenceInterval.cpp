@@ -125,7 +125,7 @@ ConfidenceInterval::ConfidenceInterval(const std::string& thename,
 	errorMargin(precision/2.0),
 	percent(dynamicPrecision),
 	confidence(confidence),
-	quantile(confidence_quantile(confidence)),
+    quantile(confidence_quantile(confidence)),
 	alwaysInvalid(neverStop),
 	numSamples_(0),
 	estimate_(0.0),
@@ -220,8 +220,8 @@ ConfidenceInterval::reset(bool fullReset) noexcept
     numSamples_ = 0;
     estimate_ = 0.0;
 	prevEstimate_ = 0.0;
-    variance_ = std::numeric_limits<double>::infinity();
-	halfWidth_ = std::numeric_limits<double>::infinity();
+	variance_ = std::numeric_limits<decltype(variance_)>::infinity();
+	halfWidth_ = std::numeric_limits<decltype(halfWidth_)>::infinity();
 	if (fullReset) {
 		statOversample_ = 1.0;
 		varCorrection_ = 1.0;
@@ -230,8 +230,8 @@ ConfidenceInterval::reset(bool fullReset) noexcept
 
 
 void ConfidenceInterval::print(std::ostream& out,
-                               unsigned printPrecision,
-                               bool printScientific)
+                               bool printScientific,
+                               int printPrecision)
 {
 	if (printScientific)
 		out << std::setprecision(2) << std::scientific;
@@ -256,10 +256,12 @@ ConfidenceInterval::confidence_quantile(const double& cc) const
 	double quantile = gsl_nan();
 	// Following usually runs once, but Murphy has showed his face around here
 	do {
-//		double quantile = probit(significance);                   // old way
-//		double quantile = gsl_cdf_ugaussian_Pinv(significance);   // new way
-		quantile = gsl_cdf_tdist_Pinv(significance,               // right way
-									  std::max(1.0, numSamples_-1.0));
+//		double quantile = probit(significance);                  // old way
+//		double quantile = gsl_cdf_ugaussian_Pinv(significance);  // new way
+		quantile = gsl_cdf_tdist_Pinv(significance,              // correct way
+		                              numSamples_ < 1l ? 11.0 : numSamples_-1.0);
+		// ^^^ for the ctor of the CI, before estimations begin,
+		//     we emulate 10 degrees of freedom which symbolise 11 samples
 		significance += 0.000001;
 	} while (!gsl_finite(quantile)    &&
 			 !std::isfinite(quantile) &&
@@ -271,7 +273,6 @@ ConfidenceInterval::confidence_quantile(const double& cc) const
 		if ( ! (std::isfinite(quantile) && gsl_finite(quantile)) )
 			throw_FigException("error computing confidence quantile");
 	}
-
 	return quantile;
 }
 
