@@ -137,7 +137,7 @@ build_empty_ci(const fig::PropertyType& propertyType,
 //		// The statistical oversampling incurred here is bounded:
 //		//  · from below by globalEffort ^ minRareValue,
 //		//  · from above by globalEffort ^ numThresholds.
-//		// NOTE: Deprecated - This was used by the binomial proportion CIs
+//		// NOTE: deprecated (this was used by the binomial proportion CI)
 //		double minStatOversamp = std::pow(globalEffort,
 //										  impFun.min_rare_value());
 //		double maxStatOversamp = std::pow(globalEffort,
@@ -157,11 +157,8 @@ build_empty_ci(const fig::PropertyType& propertyType,
 	case fig::PropertyType::RATIO:
     case fig::PropertyType::BOUNDED_REACHABILITY:
         throw_FigException("property type isn't supported yet");
-        break;
-
-    default:
-        throw_FigException("unrecognized property type");
-        break;
+//	default:
+//		throw_FigException("unrecognized property type");
     }
 
 	return ci_ptr;
@@ -187,11 +184,11 @@ interrupt_print(const ConfidenceInterval& ci,
 				const double& startTime = -1.0)
 {
     /// @todo TODO: implement proper reentrant logging and discard use of streams
-    out << std::endl;
+	out << "Interruption\n\n";
 	out << std::setprecision(2) << std::scientific;
 	out << "   · Computed estimate: " << ci.point_estimate() << " ("
 									  << ci.num_samples() << " samples)\n";
-	out << "   · Estimate variance: " << ci.estimation_variance() << endl;
+	out << "   · Computed variance: " << ci.estimation_variance() << std::endl;
 	for (const float& confCo: confidenceCoefficients) {
         out << "   · " << std::setprecision(0) << std::fixed
             << confCo*100 << "% confidence" << std::endl
@@ -263,6 +260,7 @@ start_timer(ConfidenceInterval& ci,
 {
 	std::this_thread::sleep_for(timeLimit);
 	timeoutSignal = true;  // this should stop computations
+	out << "\nTime-out ";
 	interrupt_print(ci, fig::ModelSuite::get_cc_to_show(), out, startTime);
 // * @param reset         Reset ConfidenceInterval after printing?
 //	if (reset)

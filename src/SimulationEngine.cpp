@@ -395,14 +395,15 @@ SimulationEngine::transient_update(ConfidenceIntervalTransient& ci,
 		// Print updated CI, providing enough time elapsed since last print
 		static constexpr double TIMEOUT_PRINT(M_PI);  // in seconds
 		static unsigned cnt(0u);
-		const bool newCI(ci.num_samples() <= min_batch_size(name(), impFun_->name()));
+		const auto numSamples = static_cast<size_t>(ci.num_samples());
+		const bool newCI(numSamples <= min_batch_size(name(), impFun_->name()));
 		const double thisCallTime(omp_get_wtime());
 		static double lastCallTime(newCI ? thisCallTime : lastCallTime);
 		cnt = newCI ? 0u : cnt;
 		if (thisCallTime-lastCallTime > TIMEOUT_PRINT) {
 			figTechLog << "\n[" << cnt++ << "] ";
 			ci.print(figTechLog);
-			print_runtime(figTechLog, " time:", " samples:"+std::to_string(ci.num_samples()));
+			print_runtime(figTechLog, " time:", " samples:"+std::to_string(numSamples));
 			lastCallTime = thisCallTime;
 		}
 	}
