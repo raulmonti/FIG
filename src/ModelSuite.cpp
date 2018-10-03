@@ -889,21 +889,40 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 				 << impFun.algebraicFormula << "\")\n";
         techLog_ << "Property: " << property.to_string() << std::endl;
 		ifun.clear();
-		auto allVarnames = model->global_state().varnames();
+		auto varNames = model->global_state().varnames();
 		const double startTime = omp_get_wtime();
 		if (ifun.concrete()) {
-			std::vector<std::string> varnamesVec(begin(allVarnames), end(allVarnames));
 			static_cast<ImportanceFunctionConcrete&>(ifun)
-				.assess_importance(property, impFun.algebraicFormula, varnamesVec);
+				.assess_importance(property, impFun.algebraicFormula, varNames);
 		} else {
 			static_cast<ImportanceFunctionAlgebraic&>(ifun)
 				.set_formula("adhoc",
 							 impFun.algebraicFormula,
-							 allVarnames,
+							 varNames,
 							 model->global_state(),
 							 property,
 							 impFun.minValue,
 							 impFun.maxValue);
+		}
+
+		/// @todo TODO modularise code below as "parse_time_factor,"
+		///       and do it also for importance_function_auto
+		///
+		/// parse_time_factor(impFun.timeFactor);
+		///
+		if (!impFun.timeFactor.empty()) {
+
+			/// @todo TODO map only the names of the clocks
+			///            occurring in the time factor expression formula
+			/// @note NOTE to do it, get all clocks names
+			///            and search in the impFun.timeFactor expression
+			///            for substrings matching those names
+
+			std::vector< std::string > clocksNames(model->num_clocks());
+			auto clocks = model->clocks();
+			for (size_t i = 0ul ; i < model->num_clocks() ; i++)
+				clocksNames[i] = clocks[i].get().name();
+			ifun.set_time_factor(impFun.timeFactor, clocksNames);
 		}
 		if (PostProcessing::NONE != impFun.postProcessing.type)
 			techLog_ << "\n[WARNING] post-processing \"" << impFun.postProcessing.name
@@ -912,6 +931,7 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 					 << "the expression you provided!)\n";
 		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
 		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
+		techLog_ << "Time factor: " << impFun.timeFactor << std::endl;
 		techLog_ << "Importance function building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"
@@ -995,8 +1015,11 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 							   + impFun.name + "\" automatically: " + e.msg());
 		}
 
+		parse_time_factor(impFun.timeFactor);
+
 		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
 		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
+		techLog_ << "Time factor: " << impFun.timeFactor << std::endl;
 		techLog_ << "Importance function building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"

@@ -123,6 +123,10 @@ private:
 	/// Access for friends is safely granted through next_timeout()
 	std::vector< unsigned > orderedIndex_;
 
+	/// Projection of \ref Clock "clocks" valuations into a continuous array
+	/// @note Same order as clocks_ vector
+	std::vector< Reference< CLOCK_INTERNAL_TYPE > > clocksValuations_;
+
 	/// Position of smallest non-negative Clock value in clocks_.
 	/// Negative if all are null.
 	int nextClock_;
@@ -183,13 +187,25 @@ public:  // Copy/Assign/Dtor
 public:  // Accessors
 
 	/// Get the current time value of the clock at position \p clkPos
+	inline CLOCK_INTERNAL_TYPE& clock_value(const size_t& clkPos)
+		{ assert(clkPos < clocks_.size()); return clocks_[clkPos].value; }
+
+	/// const version of clock_value()
 	inline const CLOCK_INTERNAL_TYPE& clock_value(const size_t& clkPos) const
 		{ assert(clkPos < clocks_.size()); return clocks_[clkPos].value; }
 
-	/// Get the current time values of the clocks (attached to their names)
+	/// Get the current time value of all clocks
+	inline std::vector< Reference< CLOCK_INTERNAL_TYPE > > clocks_values()
+		{ return clocksValuations_; }
+
+	/// const version of clocks_values()
+	inline const std::vector< Reference< CLOCK_INTERNAL_TYPE > >& clocks_values() const
+		{ return clocksValuations_; }
+
+	/// Get the names and current time values of the clocks
 	/// @param ordered Whether to return the increasing-order view of the clocks
 	std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >
-	clocks_values(bool ordered = false) const;
+	get_clocks(bool ordered = false) const;
 
 public:  // Utils
 

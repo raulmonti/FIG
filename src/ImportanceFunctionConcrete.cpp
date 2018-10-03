@@ -464,7 +464,7 @@ label_global_states(State globalState,
  * @param split    Whether we're working for ImportanceFunctionConcreteSplit
  * @param relevant Indices (from impVec) of concrete states that,
  *                 regardless of the property, are considered rare
- *                 <i>but only for importance construction purposes</i>.
+ *                 <i>for importance assessment purposes only</i>.
  *
  * @note "impVec" should be provided empty, and is reallocated
  *       to the size of "state.concrete_size()"
@@ -634,7 +634,7 @@ bool ImportanceFunctionConcrete::assess_importance(
     const Module& module,
     const Property& property,
     const std::string& strategy,
-    const unsigned& index,
+    const size_t &index,
     const PropertyProjection& clauses,
     const Indices &relevant)
 {
@@ -716,7 +716,7 @@ ImportanceFunctionConcrete::post_process(const PostProcessing& postProc,
 		return;  // meh, called for nothing
 		break;
 	case (PostProcessing::SHIFT):
-		pp_shift(extrVals, std::round(postProc.value));
+		pp_shift(extrVals, static_cast<int>(std::round(postProc.value)));
 		break;
 	case (PostProcessing::EXP):
 		pp_exponentiate(extrVals, postProc.value);

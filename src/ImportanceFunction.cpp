@@ -45,11 +45,13 @@
 // FIG
 #include <string_utils.h>
 #include <ImportanceFunction.h>
+#include <ModuleNetwork.h>
 #include <SimulationEngine.h>
 #include <ThresholdsBuilder.h>
 #include <ThresholdsBuilderAdaptive.h>
 #include <FigException.h>
 #include <Property.h>
+#include <Traial.h>
 
 // ADL
 using std::find;
@@ -91,9 +93,9 @@ template< template< typename... > class Container,
 >
 void
 ImportanceFunction::Formula::set(
-    const std::string& formula,
-    const Container<std::string, OtherArgs...>& varnames,
-    const Mapper& obj)
+	const std::string& formula,
+	const Container<std::string, OtherArgs...>& varNames,
+	const Mapper& obj)
 {
     static_assert(std::is_same<PositionsMap, Mapper>::value ||
                   std::is_convertible<State<STATE_INTERNAL_TYPE>, Mapper>::value,
@@ -104,7 +106,9 @@ ImportanceFunction::Formula::set(
 
     empty_ = false;
     exprStr_ = exprtk_format(formula);
-	NVARS_ = std::distance(begin(varnames), end(varnames));
+	const auto numVars = std::distance(begin(varNames), end(varNames));
+	assert(0 <= numVars);
+	NVARS_ = static_cast< decltype(NVARS_) >(numVars);
 	varsNames_.clear();
 	varsNames_.reserve(NVARS_);
 	varsPos_.clear();
@@ -112,7 +116,7 @@ ImportanceFunction::Formula::set(
     varsValues_.resize(NVARS_);
     auto pos_of_var = wrap_mapper(obj);
     NVARS_ = 0ul;
-    for (const std::string& var: varnames) {
+	for (const std::string& var: varNames) {
         if (find(begin(varsNames_),end(varsNames_),var) == end(varsNames_)
                 && exprStr_.find(var) != std::string::npos) {
             varsNames_.emplace_back(var);                  // map var
@@ -175,7 +179,7 @@ ImportanceValue
 ImportanceFunction::Formula::operator()(const StateInstance& state) const
 {
 	if (!pinned())
-		throw_FigException("this Formula is empty!");
+		throw_FigException("this Formula is not pinned!");
 	// Copy the useful part of 'state'...
 	for (size_t i = 0ul ; i < NVARS_ ; i++)
 		varsValues_[i] = state[varsPos_[i]];  // ugly motherfucker
@@ -193,7 +197,7 @@ ImportanceValue
 ImportanceFunction::Formula::operator()(const ImportanceVec& localImportances) const
 {
 	if (!pinned())
-		throw_FigException("this Formula is empty!");
+		throw_FigException("this Formula is not pinned!");
 	// Copy the values internally...
 	for (size_t i = 0ul ; i < NVARS_ ; i++) {
 		assert(!IS_SOME_EVENT(localImportances[varsPos_[i]]));
@@ -211,6 +215,20 @@ ImportanceFunction::Formula::get_free_vars() const noexcept
 }
 
 
+ImportanceValue
+ImportanceFunction::TimeFormula::operator()(const Traial& traial) const
+{
+	if (!pinned())
+		throw_FigException("this TimeFormula is not pinned!");
+	// Copy all needed clocks valuations...
+	const auto& clocksValues(traial.clocks_values());
+	for (size_t i = 0ul ; i < NVARS_ ; i++)
+		varsValues_[i] = clocksValues[varsPos_[i]];
+	// ...and evaluate
+	return static_cast<ImportanceValue>(expr_.value());
+}
+
+
 
 // ImportanceFunction class member functions
 
@@ -225,7 +243,8 @@ ImportanceFunction::ImportanceFunction(const std::string& name) :
 	maxValue_(static_cast<ImportanceValue>(0u)),
 	minRareValue_(static_cast<ImportanceValue>(0u)),
 	importance2threshold_(),
-	userFun_()
+    userFun_(),
+    timeFun_()
 {
 	if (find(begin(names()), end(names()), name) == end(names())) {
 		std::stringstream errMsg;
@@ -314,8 +333,18 @@ const std::string
 ImportanceFunction::adhoc_fun() const noexcept
 {
 	if (has_importance_info() &&
-			("adhoc" == strategy_ || "concrete_split" == name_))
+	        ("adhoc" == strategy_ || "concrete_split" == name_))
 		return userFun_.expression();
+	else
+		return "";
+}
+
+
+const std::string
+ImportanceFunction::time_fun() const noexcept
+{
+	if (has_importance_info() && timeFun_.pinned())
+		return timeFun_.expression();
 	else
 		return "";
 }
@@ -503,6 +532,38 @@ ImportanceFunction::random_sample2(State<STATE_INTERNAL_TYPE> s,
 	}
 	return randomSample;
 }
+
+
+template< template< typename... > class Container, typename... OtherArgs >
+void
+ImportanceFunction::set_time_factor(
+	const std::string& formulaExprStr,
+	const Container< std::string, OtherArgs... >& clockNames)
+{
+	const auto numClocksFormula = std::distance(begin(clockNames), end(clockNames));
+	assert(0 <= numClocksFormula);
+	auto allClocks(ModuleNetwork::clocks())
+	PositionsMap clocksMap;
+	clocksMap.reserve(static_cast< size_t >(numClocksFormula));
+
+	for (size_t i=0ul ; i < numClocksFormula ; i++) {
+
+		/// @todo TODO build clocksMap with global poisitions of clock names
+		///            Copy code from ImportanceFunctionConcreteSplit
+		///
+		const std::string& name = modules_[i]->name;
+		modulesNames[i] = name;
+		modulesMap[name] = i;
+	}
+}
+
+// ImportanceFunction::set_time_factor() can only be invoked with the following containers
+template void ImportanceFunction::set_time_factor(const std::string&, const std::set<std::string>&);
+template void ImportanceFunction::set_time_factor(const std::string&, const std::list<std::string>&);
+template void ImportanceFunction::set_time_factor(const std::string&, const std::deque<std::string>&);
+template void ImportanceFunction::set_time_factor(const std::string&, const std::vector<std::string>&);
+template void ImportanceFunction::set_time_factor(const std::string&, const std::forward_list<std::string>&);
+template void ImportanceFunction::set_time_factor(const std::string&, const std::unordered_set<std::string>&);
 
 
 void

@@ -193,6 +193,8 @@ struct ImpFunSpec
 	const std::string strategy;
 	/// User-defined ad hoc expression needed by some ImportanceFunction s
 	const std::string algebraicFormula;
+	/// User-defined ad hoc expression that consider time for Importance
+	const std::string timeFactor;
 	/// <i>(Optional)</i> Post-processing to perform to the importance values computed
 	const PostProcessing postProcessing;
 	/// <i>(Optional)</i> Min value the user-defined ad hoc function can take
@@ -205,13 +207,15 @@ struct ImpFunSpec
 	ImpFunSpec(const std::string& theName,
 			   const std::string& theStrategy,
 			   const std::string& theAlgebraicFormula = "",
-			   const PostProcessing& thePostProcessing = PostProcessing(),
+	           const std::string& theTimeFactor = "",
+	           const PostProcessing& thePostProcessing = PostProcessing(),
 			   const ImportanceValue& theMinValue = static_cast<ImportanceValue>(0u),
 			   const ImportanceValue& theMaxValue = static_cast<ImportanceValue>(0u),
 			   const ImportanceValue& theNeutralElement = static_cast<ImportanceValue>(0u)) :
 		name(theName),
 		strategy(theStrategy),
 		algebraicFormula(theAlgebraicFormula),
+	    timeFactor(theTimeFactor),
 		postProcessing(thePostProcessing),
 		minValue(theMinValue),
 		maxValue(theMaxValue),

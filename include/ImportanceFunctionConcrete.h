@@ -119,7 +119,7 @@ public:  // Ctor/Dtor
 							   const State< STATE_INTERNAL_TYPE >& globalState);
 
 	/// Dtor
-	virtual ~ImportanceFunctionConcrete();
+	~ImportanceFunctionConcrete() override;
 
 public:  // Accessors
 
@@ -237,7 +237,7 @@ protected:  // Utils for the class and its kin
 	bool assess_importance(const Module& module,
 						   const Property& property,
 						   const std::string& strategy,
-						   const unsigned& index = 0,
+	                       const size_t& index = 0ul,
 	                       const PropertyProjection& clauses = PropertyProjection(),
 	                       const Indices& relevant = Indices());
 
