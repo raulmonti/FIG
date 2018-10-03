@@ -50,6 +50,7 @@
 #include <ThresholdsBuilderAdaptive.h>
 #include <FigException.h>
 #include <Property.h>
+#include <Traial.h>
 
 // ADL
 using std::find;
@@ -211,6 +212,13 @@ ImportanceFunction::Formula::get_free_vars() const noexcept
 }
 
 
+ImportanceValue
+ImportanceFunction::TimeFormula::operator()(const Traial& traial) const
+{
+	/// @todo TODO implement
+}
+
+
 
 // ImportanceFunction class member functions
 
@@ -225,7 +233,8 @@ ImportanceFunction::ImportanceFunction(const std::string& name) :
 	maxValue_(static_cast<ImportanceValue>(0u)),
 	minRareValue_(static_cast<ImportanceValue>(0u)),
 	importance2threshold_(),
-	userFun_()
+    userFun_(),
+    timeFun_()
 {
 	if (find(begin(names()), end(names()), name) == end(names())) {
 		std::stringstream errMsg;
@@ -314,8 +323,18 @@ const std::string
 ImportanceFunction::adhoc_fun() const noexcept
 {
 	if (has_importance_info() &&
-			("adhoc" == strategy_ || "concrete_split" == name_))
+	        ("adhoc" == strategy_ || "concrete_split" == name_))
 		return userFun_.expression();
+	else
+		return "";
+}
+
+
+const std::string
+ImportanceFunction::time_fun() const noexcept
+{
+	if (has_importance_info() && timeFun_.pinned())
+		return timeFun_.expression();
 	else
 		return "";
 }
@@ -385,6 +404,13 @@ PostProcessing
 ImportanceFunction::post_processing() const noexcept
 {
 	return PostProcessing();
+}
+
+
+float
+ImportanceFunction::time_factor(const Traial& traial) const
+{
+	/// @todo TODO implement, after implementing
 }
 
 

@@ -62,7 +62,7 @@ public:  // Ctor/Dtor
 	ImportanceFunctionAlgebraic();
 
 	/// Dtor
-	virtual ~ImportanceFunctionAlgebraic();
+	~ImportanceFunctionAlgebraic() override;
 
 public:  // Accessors
 
@@ -81,10 +81,10 @@ public:  // Utils
 
 	/**
 	 * @brief Set a new mathematical formula to assess the importance
-	 *        of the symbolic states in the system model.
+	 *        of the symbolic (discrete) states in the system model.
 	 *
 	 * @param strategy       Importance assessment strategy ("flat" or "adhoc")
-	 * @param formulaExprStr String with the new mathematical expression
+	 * @param formulaExprStr String with the mathematical expression
 	 * @param varnames       Names of variables ocurring in formulaExprStr,
 	 *                       viz. substrings in it that refer to variable names
 	 * @param gState         Model's global state in its initial valuation

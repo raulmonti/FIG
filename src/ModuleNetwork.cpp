@@ -260,8 +260,10 @@ ModuleNetwork::process_committed_once(Traial &traial) const
 		if (!module_ptr->has_committed_actions())
 			continue;
 		const Label& committedLabel = module_ptr->jump_committed(traial);
-		if (committedLabel.should_ignore())
+		if (committedLabel.should_ignore())  // i.e. no enabled transition found
 			continue;
+		// reached here? then an enabled committed transition was found:
+		// will have to re-run this function after applying postconditions
 		for (auto module_ptr_passive: modules)
 			module_ptr_passive->jump_committed(committedLabel, traial);
 		found = true;
@@ -273,9 +275,8 @@ ModuleNetwork::process_committed_once(Traial &traial) const
 
 void
 ModuleNetwork::process_committed(Traial &traial) const {
-    if (!this->has_committed_) {
+	if (!this->has_committed_)
         return;
-    }
 	while (process_committed_once(traial))
 		;  // repeat until no committed actions are enabled
 }

@@ -103,14 +103,14 @@ private:  // Instance variables
 	std::unordered_map<std::string, transition_vector_t>
 	transitions_by_label_;
 
-	/// Transitions whose \ref Label "labels" are out-committed
+	/// Transitions with out-committed \ref Label "labels"
 	transition_vector_t transitions_out_committed_;
 
-	/// Transitions whose \ref Label "labels" are in-committed
+	/// Transitions with in-committed \ref Label "labels"
 	transition_vector_t transitions_in_committed_;
 
-	/// Has committed transitions ?  Setted by \ref ModuleBuilder
-	bool has_committed_ = false;
+	/// Has committed transitions? (set by ModuleBuilder)
+	bool has_committed_;
 
 public:
 	const std::string name;
@@ -639,11 +639,12 @@ ModuleInstance::ModuleInstance(
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 	const Container2< ValueType2, OtherContainerArgs2... >& transitions) :
 		lState_(state),
-		name(thename),
+        has_committed_(false),
+        name(thename),
 		globalIndex_(-1),
         firstVar_(-1),
         firstClock_(-1),
-		sealed_(false)
+        sealed_(false)
 {
 	// Copy clocks
 	static_assert(std::is_constructible< Clock, ValueType1 >::value,
@@ -672,7 +673,8 @@ ModuleInstance::ModuleInstance(
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 	Container2< ValueType2, OtherContainerArgs2... >&& transitions) :
 		lState_(state),
-		name(thename),
+        has_committed_(false),
+        name(thename),
 		globalIndex_(-1),
         firstVar_(-1),
         firstClock_(-1),
@@ -707,7 +709,8 @@ ModuleInstance::ModuleInstance(
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 	Container2< ValueType2*, OtherContainerArgs2... >&& transitions) :
 		lState_(state),
-		name(thename),
+        has_committed_(false),
+        name(thename),
 		globalIndex_(-1),
         firstVar_(-1),
         firstClock_(-1),
@@ -747,7 +750,8 @@ ModuleInstance::ModuleInstance(
 	Iterator< ValueTypeIterator, OtherIteratorArgs... > from,
 	Iterator< ValueTypeIterator, OtherIteratorArgs... > to) :
 		lState_(state),
-		name(thename),
+        has_committed_(false),
+        name(thename),
 		globalIndex_(-1),
         firstVar_(-1),
 		firstClock_(-1),

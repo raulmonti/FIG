@@ -123,6 +123,10 @@ private:
 	/// Access for friends is safely granted through next_timeout()
 	std::vector< unsigned > orderedIndex_;
 
+	/// Projection of \ref Clock "clocks" valuations into a continuous array
+	/// @note Same order as clocks_ vector
+	std::vector< Reference< CLOCK_INTERNAL_TYPE > > clocksValuations_;
+
 	/// Position of smallest non-negative Clock value in clocks_.
 	/// Negative if all are null.
 	int nextClock_;

@@ -418,10 +418,10 @@ ImportanceFunctionConcreteSplit::set_DFT(bool isDFT)
 
 void
 ImportanceFunctionConcreteSplit::set_composition_fun(
-	std::string compFunExpr,
-	const ImportanceValue& nullVal,
-	const ImportanceValue& minVal,
-	const ImportanceValue& maxVal)
+    std::string compFunExpr,
+    const ImportanceValue& nullVal,
+    const ImportanceValue& minVal,
+    const ImportanceValue& maxVal)
 {
 	std::vector< std::string > modulesNames(numModules_);
 	PositionsMap modulesMap;
@@ -432,8 +432,11 @@ ImportanceFunctionConcreteSplit::set_composition_fun(
 		modulesMap[name] = i;
 	}
 	// Clean unescaped quotation marks
-	delete_substring(compFunExpr, "\"");
-	delete_substring(compFunExpr, "'");
+//	delete_substring(compFunExpr, "\"");
+//	delete_substring(compFunExpr, "'");
+	for (auto quotMark: std::vector< std::string >({"\"","'"}))
+		delete_substring(compFunExpr, quotMark);
+	// Prepare the composition function expression string
 	if (compFunExpr.length() <= 3ul) {
 		// An operand was specified => make it a function
 		compFunExpr = compose_comp_function(modulesNames, compFunExpr);
@@ -443,12 +446,12 @@ ImportanceFunctionConcreteSplit::set_composition_fun(
 		neutralElement_ = nullVal;
 	}
 	assert(CompositionType::NUM_TYPES > compositionStrategy_);
+	// Parse the resulting function expression
 	try {
 		userFun_.set(compFunExpr, modulesNames, modulesMap);
 	} catch (std::out_of_range& e) {
-		throw_FigException("something went wrong while setting the composition "
-						   "function \"" + compFunExpr + "\" for auto split "
-						   "importance assessment: " + e.what());
+		throw_FigException("failed to set the composition function \""
+		                  + compFunExpr + "\": " + e.what());
 	}
 	if (minVal < maxVal) {
 		// Set the user defined extreme values for the composition function
@@ -597,6 +600,7 @@ ImportanceFunctionConcreteSplit::special_case(const ModuleInstance& module) cons
 	typedef fig::State<STATE_INTERNAL_TYPE> State;
 	const auto& moduleName(module.name);
 	State s(module.initial_state());
+
 	// Search State 's' for a variable with prefix 'varPrefix';
 	// return a list of concrete states satisfying 'condition'
 	auto fetch_concrete_states = [&moduleName,&s] (
@@ -636,7 +640,7 @@ ImportanceFunctionConcreteSplit::special_case(const ModuleInstance& module) cons
 	} else if (is_prefix(moduleName, "PAND_")) {
 		// Priority AND
 		return fetch_concrete_states("st_",
-									 [&s](const std::string& var, size_t cs) {
+		                             [&s](const std::string& var, size_t cs) {
 				const auto varPtr(s.decode(cs)[var]);  // var value in conrete state
 				return nullptr != varPtr && (*varPtr) == 2;
 			});

@@ -129,7 +129,7 @@ public:  // Ctor/Dtor
 	ImportanceFunctionConcreteSplit(const ModuleNetwork& model);
 
 	/// Dtor
-	virtual ~ImportanceFunctionConcreteSplit();
+	~ImportanceFunctionConcreteSplit() override;
 
 	/// Avoid accidental copies
 	ImportanceFunctionConcreteSplit(const ImportanceFunctionConcreteSplit&) = delete;
@@ -186,9 +186,9 @@ public:  // Utils
 	 * @throw FigException if invalid or badly formatted function expression
 	 */
 	void set_composition_fun(std::string compFunExpr,
-							 const ImportanceValue& nullVal = 0u,
-							 const ImportanceValue& minVal  = 0u,
-							 const ImportanceValue& maxVal  = 0u);
+	                         const ImportanceValue& nullVal = 0u,
+	                         const ImportanceValue& minVal  = 0u,
+	                         const ImportanceValue& maxVal  = 0u);
 
 	void assess_importance(const Property& prop,
 						   const std::string& strategy = "flat",

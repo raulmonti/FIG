@@ -32,6 +32,7 @@
 
 #include <ImportanceFunctionConcrete.h>
 #include <State.h>
+#include <Traial.h>
 #include <FigException.h>
 
 
@@ -69,7 +70,7 @@ public:  // Ctor/Dtor
 	ImportanceFunctionConcreteCoupled(const ModuleNetwork& model);
 
 	/// Dtor
-	virtual ~ImportanceFunctionConcreteCoupled();
+	~ImportanceFunctionConcreteCoupled() override;
 
 	/// Avoid accidental copies
 	ImportanceFunctionConcreteCoupled(const ImportanceFunctionConcreteCoupled&) = delete;
@@ -105,17 +106,24 @@ public:  // Accessors
 	/// @note Attempted inline in a desperate need for speed
 	/// @note <b>Complexity:</b> <i>O(size(state)<sup>2</sup>)</i>
 	inline ImportanceValue importance_of(const StateInstance& state) const override
-		{
+	    {
 #       ifndef NDEBUG
-			if (!has_importance_info())
+		    if (!has_importance_info())
 				throw_FigException("importance function \"" + name() + "\" "
-								   "doesn't hold importance information.");
+				                   "doesn't hold importance information.");
 			globalStateCopy.copy_from_state_instance(state, true);
 #       else
-			globalStateCopy.copy_from_state_instance(state, false);
+		    globalStateCopy.copy_from_state_instance(state, false);
 #       endif
 			return UNMASK(modulesConcreteImportance[importanceInfoIndex_]
-												   [globalStateCopy.encode()]);
+			                                       [globalStateCopy.encode()]);
+	    }
+
+	/// @copydoc ImportanceFunction::importance_of()
+	inline ImportanceValue importance_of(const Traial& traial) const override
+		{
+		    const auto discreteSpaceImportance = importance_of(traial.state);
+			return timeFun_(traial.clocks_values())*importance_of(traial.state);
 		}
 
 	void print_out(std::ostream& out,

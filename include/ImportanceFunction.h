@@ -50,6 +50,7 @@ class ThresholdsBuilderAdaptiveSimple;
 class ModuleInstance;
 class ModuleNetwork;
 class Property;
+class Traial;
 
 /**
  * @brief Abstract base importance assessor (or function)
@@ -70,7 +71,8 @@ class ImportanceFunction : public std::enable_shared_from_this<ImportanceFunctio
 public:
 
 	/// Mathematical formula to evaluate an algebraic expression,
-	/// e.g. ad hoc function or combination of split importance values.
+	/// e.g. ad hoc function or combination of split importance values,
+	/// to compute the importance of the <em>discrete state space</em>.
 	class Formula : public MathExpression
 	{
 	public:
@@ -108,6 +110,17 @@ public:
 		/// Return the free variables (or modules) names occurring in our
 		/// expression, viz. the 'varnames' from the last call to set()
 		const std::vector< std::string >& get_free_vars() const noexcept;
+	};
+
+	/// Like Formula but for time, aka <em>continuous state space</em>:
+	/// instances of this class operate on valuations of clock variables.
+	class TimeFormula : public Formula
+	{
+	public:
+		/// Evaluate current formula expression on given symbolic state
+		/// and clocks valuations
+		/// @copydetails Formula::operator()
+		ImportanceValue operator()(const Traial& traial) const;
 	};
 
 public:  // Class attributes
@@ -200,6 +213,13 @@ protected:  // Attributes for derived classes
 	/// @note Useful both for ad hoc strategy and concrete_split functions
 	Formula userFun_;
 
+	/// @brief Algebraic formula on clocks defined by the user
+	/// @details The value of this formula will be the <em>time factor</em> that
+	///          comes from the "continuous state space," and is multiplied by
+	///          the ImportanceValue that comes from the discrete state space
+	/// @note This formula should yield values in the [0.0, 1.0] interval
+	TimeFormula timeFun_;
+
 public:  // Ctor/Dtor
 
 	/**
@@ -266,6 +286,10 @@ public:  // Accessors
 	///          has_importance_info() and current strategy is "adhoc",
 	///          empty string otherwise
 	const std::string adhoc_fun() const noexcept;
+
+	/// @returns Time function expression if set, empty string otherwise
+	/// @see timeFun_
+	const std::string time_fun() const noexcept;
 
 	/// @copydoc minValue_
 	/// @param returnImportance Return min <b>importance value</b>
@@ -383,7 +407,15 @@ public:  // Accessors
 
 	/// Stub to importance_of(const StateInstance&)
 	inline ImportanceValue importance_of(const State<STATE_INTERNAL_TYPE> &state) const
-		{ return importance_of(state.to_state_instance()); }
+	    { return importance_of(state.to_state_instance()); }
+
+	/// @copybrief importance_of(const StateInstance& state
+	/// @return ImportanceValue, multiplied by the time factor (if set)
+	virtual ImportanceValue importance_of(const Traial& traial) const = 0;
+
+	/// Evaluate the \ref timeFun_ "time formula" on the clocks of the traial
+	/// @return Formula evaluation, or 1.0 if none set
+	float time_factor(const Traial& traial) const;
 
 	/**
 	 * Threshold level to which given StateInstance belongs.
@@ -439,6 +471,26 @@ public:  // Accessors
 	                       State<STATE_INTERNAL_TYPE> s = State<STATE_INTERNAL_TYPE>()) const = 0;
 
 public:  // Utils
+
+
+	/**
+	 * @brief Set a TimeFormula to scale importance according to time
+	 * @details Set a new mathematical formula to compute the time factor
+	 *          from the system clocks (aka the continuous state space).<br>
+	 *          During simulations, to evaluate the importance of the system
+	 *          state, this time factor will be multiplied by the
+	 *          ImportanceValue of the variables (aka the discrete state space).
+	 * @param formulaExprStr String with the mathematical expression
+	 * @param clockNames     Names of variables ocurring in formulaExprStr,
+	 *                       viz. substrings in it that refer to clock names
+	 * @param clockMap       ???
+	 * @throw FigException if badly formatted 'formulaExprStr' or 'varnames'
+	 *                     has names not appearing in 'formulaExprStr'
+	 */
+	template< template< typename... > class Container, typename... OtherArgs >
+	void set_time_factor(const std::string& formulaExprStr,
+	                     const Container< std::string, OtherArgs... >& clockNames,
+	                     const ??? clockMap);
 
 	/// Register SimulationEngine called \p name as currently bound to this intance
 	void bind_sim_engine(const std::string& name) const;

@@ -71,7 +71,8 @@ ModuleInstance::ModuleInstance(
 	const State< STATE_INTERNAL_TYPE >& state,
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks) :
 		lState_(state),
-		name(thename),
+        has_committed_(false),
+        name(thename),
 		globalIndex_(-1),
 		firstVar_(-1),
 		firstClock_(-1),
@@ -299,7 +300,7 @@ ModuleInstance::apply_postcondition(Traial &traial,
 #endif
 			// ...apply postcondition to its state...
 			tr.pos(traial.state);
-			// ...and reset corresponing clocks (the other clocks aint touched)
+			// ...and reset corresponing clocks
 			const size_t NUM_CLOCKS(num_clocks());
 			std::vector<CLOCK_INTERNAL_TYPE> clockValues(NUM_CLOCKS);
 			for (size_t i = firstClock_ ; i < firstClock_+NUM_CLOCKS ; i++ ) {

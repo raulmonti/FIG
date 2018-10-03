@@ -463,7 +463,7 @@ void
 State<T_>::build_concrete_bound()
 {
 	maxConcreteState_ = uint128::uint128_1;
-	for(const auto pvar: pvars_)
+	for(const auto& pvar: pvars_)
 		maxConcreteState_ *= pvar->range_;  // ignore overflow :D
 }
 

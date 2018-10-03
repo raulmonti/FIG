@@ -914,10 +914,10 @@ ModelSuite::process_batch(const std::string& engineName,
 		// ... build the importance function ...
 		if ("flat" == impFunSpec.strategy)
 			build_importance_function_flat(impFunSpec.name, *property, true);
-		else if ("auto" == impFunSpec.strategy)
-			build_importance_function_auto(impFunSpec, *property, true);
 		else if ("adhoc" == impFunSpec.strategy)
 			build_importance_function_adhoc(impFunSpec, *property, true);
+		else if ("auto" == impFunSpec.strategy)
+			build_importance_function_auto(impFunSpec, *property, true);
 		assert(impFuns[impFunSpec.name]->has_importance_info());
 
 		// ... and for each global effort specified ...
