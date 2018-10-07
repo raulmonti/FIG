@@ -142,7 +142,13 @@ private:  // Traial observers/updaters
 		    if (property.is_stop(traial.state)) {
 				e = EventType::STOP;
 			} else {
+
 				ImportanceValue newThrLvl = impFun_->level_of(traial.state);
+
+				/// @warning FIXME debugging!
+//				// experiment with time factor:
+//				ImportanceValue newThrLvl = impFun_->level_of(traial);
+
 				traial.numLevelsCrossed = newThrLvl - traial.level;
 				traial.depth -= traial.numLevelsCrossed;
 				traial.level = newThrLvl;
@@ -167,7 +173,12 @@ private:  // Traial observers/updaters
 		{
 			// Event marking is done in accordance with the checks performed
 			// in the transient_simulations() overriden member function
-			auto newStateInfo = cImpFun_->info_of(traial.state);
+//			auto newStateInfo = cImpFun_->info_of(traial.state);
+
+		    /// @warning FIXME debugging!
+		    // experiment with time factor:
+		    auto newStateInfo = cImpFun_->info_of(traial);
+
 			e = MASK(newStateInfo);
 			if (!IS_STOP_EVENT(e)) {
 				const ImportanceValue newThrLvl = UNMASK(newStateInfo);

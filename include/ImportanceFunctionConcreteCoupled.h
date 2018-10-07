@@ -119,13 +119,6 @@ public:  // Accessors
 			                                       [globalStateCopy.encode()]);
 	    }
 
-	/// @copydoc ImportanceFunction::importance_of()
-	inline ImportanceValue importance_of(const Traial& traial) const override
-		{
-		    const auto discreteSpaceImportance = importance_of(traial.state);
-			return timeFun_(traial.clocks_values())*importance_of(traial.state);
-		}
-
 	void print_out(std::ostream& out,
 	               State<STATE_INTERNAL_TYPE> s = State<STATE_INTERNAL_TYPE>()) const override;
 

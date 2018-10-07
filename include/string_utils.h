@@ -38,7 +38,7 @@ size_t count(const std::string& s, const char& c);
 
 /// Is \a substr a substring of \a str?
 /// @note Case insensitive version taken from
-///       <a href="http://stackoverflow.com/a/19839371">this SO answer by user CC.</a>
+///       <a href="http://stackoverflow.com/a/19839371">this SO answer</a>.
 bool is_substring(const std::string& str,
                   const std::string& substr,
                   const bool caseSensitive = true);

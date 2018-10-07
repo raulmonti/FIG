@@ -889,27 +889,29 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 				 << impFun.algebraicFormula << "\")\n";
         techLog_ << "Property: " << property.to_string() << std::endl;
 		ifun.clear();
-		auto allVarnames = model->global_state().varnames();
+		auto varNames = model->global_state().varnames();
 		const double startTime = omp_get_wtime();
 		if (ifun.concrete()) {
-			std::vector<std::string> varnamesVec(begin(allVarnames), end(allVarnames));
 			static_cast<ImportanceFunctionConcrete&>(ifun)
-				.assess_importance(property, impFun.algebraicFormula, varnamesVec);
+				.assess_importance(property, impFun.algebraicFormula, varNames);
 		} else {
 			static_cast<ImportanceFunctionAlgebraic&>(ifun)
 				.set_formula("adhoc",
 							 impFun.algebraicFormula,
-							 allVarnames,
+							 varNames,
 							 model->global_state(),
 							 property,
 							 impFun.minValue,
 							 impFun.maxValue);
 		}
+		// Parse time factor if given
+		set_time_factor(impFun.timeFactor, ifun);
+		// DON'T apply post-processing
 		if (PostProcessing::NONE != impFun.postProcessing.type)
 			techLog_ << "\n[WARNING] post-processing \"" << impFun.postProcessing.name
 					 << "\" ignored; can't specify a post-processing for "
 					 << "\"adhoc\" importance assessment (build that into "
-					 << "the expression you provided!)\n";
+			         << "the ad hoc expression!)\n";
 		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
 		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
 		techLog_ << "Importance function building time: "
@@ -973,7 +975,7 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 		ifun.clear();
 		const double startTime = omp_get_wtime();
 		// Compositional importance functions need a composition function
-		if (impFun.name.find("split") != std::string::npos) {
+		if (is_substring(impFun.name, "split", false)) {
 			auto& impFunSplit(static_cast<ImportanceFunctionConcreteSplit&>(ifun));
 			impFunSplit.set_composition_fun(impFun.algebraicFormula,
 			                                impFun.neutralElement,
@@ -994,7 +996,9 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 			throw_FigException("couldn't build importance function \""
 							   + impFun.name + "\" automatically: " + e.msg());
 		}
-
+		// Parse time factor if given
+		set_time_factor(impFun.timeFactor, ifun);
+		// Post-processing should have been applied on ifun construction, above
 		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
 		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
 		techLog_ << "Importance function building time: "
@@ -1024,6 +1028,20 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
     if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
 	build_importance_function_auto(impFun, *propertyPtr, force);
+}
+
+
+void
+ModelSuite::set_time_factor(const std::string& timeFormulaStr,
+                            ImportanceFunction& ifun)
+{
+	std::vector< std::string > clocksNames;
+	for (const auto& clk: model->clocks())
+		clocksNames.emplace_back(clk.get().name());
+	assert(0ul < clocksNames.size());
+	ifun.set_time_factor(timeFormulaStr.empty() ? "1" : timeFormulaStr, clocksNames);
+	if (!timeFormulaStr.empty())
+		techLog_ << "Time factor: " << timeFormulaStr << std::endl;
 }
 
 

@@ -37,6 +37,7 @@
 // FIG
 #include <core_typedefs.h>
 #include <State.h>
+#include <Traial.h>
 #include <PropertyProjection.h>
 #include <ImportanceFunction.h>
 
@@ -140,6 +141,19 @@ public:  // Accessors
 	 * @see importance_of()
 	 */
 	virtual ImportanceValue info_of(const StateInstance& state) const = 0;
+
+	/// @overload
+	/// @note Consider also the clocks: multiply the ImportanceValue (from the
+	///       discrete state space) by the time factor (from the continuous
+	///       state space)
+	inline ImportanceValue info_of(const Traial& traial) const
+	    {
+		    const auto info = info_of(traial.state);
+			const auto scaledImportance =
+			    static_cast<ImportanceValue>(std::roundf(
+			        time_factor(traial)*static_cast<float>(UNMASK(info))));
+			return MASK(info) | ready() ? level_of(scaledImportance) : scaledImportance;
+	    }
 
 public:  // Utils
 

@@ -609,7 +609,16 @@ public:  // Utils
 								   const size_t& propertyIndex,
 								   bool force = false);
 
-private:  // Embedded into prepare_simulation_engine()
+private:
+
+	/// Set \p timeFormulaStr as the \ref ImportanceFunction::set_time_factor
+	/// "time factor" of this \p ifun
+	/// @note If \p timeFormulaStr is empty use a constant time factor == 1,
+	///       i.e. use the ImportanceValue from the discrete state space as is
+	void
+	set_time_factor(const std::string& timeFormulaStr, ImportanceFunction& ifun);
+
+private:  // Routines embedded into prepare_simulation_engine()
 
 	/**
 	 * @brief Build thresholds from precomputed importance information

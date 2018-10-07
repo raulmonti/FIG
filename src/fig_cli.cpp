@@ -220,9 +220,9 @@ SwitchArg ifunFlat(
 ValueArg<string> ifunAdhoc(
 	"", "adhoc",
 	"Use an ad hoc importance function, i.e. assign importance to the "
-	"states using an user-provided algebraic function on them. "
-	"Information is kept symbolically as an algebraic expression, "
-	"thus using very little memory.",
+    "states using an user-provided algebraic function on them, that can use "
+    "as free variables the name of any (non-clock) variable in the system."
+    "Information is kept symbolically as an algebraic expression.",
 	false, "",
 	"adhoc_fun");
 //ValueArg<string> ifunAdhocCoupled(
@@ -244,7 +244,10 @@ ValueArg<string> ifunAutoCompositional(
 	"Use an automatically computed \"compositional\" importance function, "
 	"i.e. store information separately for each module. This stores in "
 	"memory one vector per module, and then uses the algebraic expression "
-	"provided to \"compose\" the global importance from these.",
+    "provided to \"compose\" the global importance from these. "
+    "The algebraic expression for the composition function is like for "
+    "the ad hoc importance function, but here the free variable names "
+    "must be the names of modules in the system",
 	false, "",
 	"composition_fun");
 std::vector< Arg* > impFunSpecs = {
@@ -254,6 +257,19 @@ std::vector< Arg* > impFunSpecs = {
 	&ifunAutoMonolithic,
 	&ifunAutoCompositional,
 };
+
+// Importance function time factor
+ValueArg<string> impTimeFactor(
+    "", "time-factor",
+    "Scale importance using a time factor; this lets the user make the value "
+    "of the clocks (aka \"continuous state space\") influence the importance "
+    "computed from the value of the other variables (aka \"discrete state "
+    "space\") The algebraic expression for the function used as time factor "
+    "is like for the ad hoc importance function, but here the free variable "
+    "names must be clock names. This function should yields values in the "
+    "[0.0, 1.0] interval",
+    false, "",
+    "time_fun");
 
 // Importance function post-processing
 ValuesConstraint<string> postProcConstraints(
@@ -557,6 +573,12 @@ parse_ifun_details(const std::string& details)
 bool
 get_ifun_specification()
 {
+	// Time factor (fake a constant function "\lambda . 1" if unspecified)
+	const std::string timeFactor = impTimeFactor.isSet()
+	        ? impTimeFactor.getValue()
+	        : "1.0";
+
+	// Post-processing
 	fig::PostProcessing postProc;
 	if (impPostProc.isSet()) {
 		if (impPostProc.getValues().size() > 1) {
@@ -580,6 +602,7 @@ get_ifun_specification()
 			return false;  // no expression? something went wrong
 		new(&impFunSpec) fig::ImpFunSpec("algebraic", "adhoc",
 										 std::get<0>(details),   // expr
+		                                 timeFactor,             // time factor
 										 postProc,               // post-process
 										 std::get<1>(details),   // min
 										 std::get<2>(details));  // max
@@ -594,7 +617,7 @@ get_ifun_specification()
 //										 std::get<2>(details));  // max
 
 	} else if (ifunAutoMonolithic.isSet()) {
-		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "auto", "", postProc);
+		new(&impFunSpec) fig::ImpFunSpec("concrete_coupled", "auto", "", timeFactor, postProc);
 
 	} else if (ifunAutoCompositional.isSet()) {
 		UserDefImpFun details = parse_ifun_details(ifunAutoCompositional.getValue());
@@ -602,6 +625,7 @@ get_ifun_specification()
 			return false;  // no expression? something went wrong
 		new(&impFunSpec) fig::ImpFunSpec("concrete_split", "auto",
 										 std::get<0>(details),   // expr
+		                                 timeFactor,             // time factor
 										 postProc,               // post-process
 										 std::get<1>(details),   // min
 										 std::get<2>(details),   // max
@@ -774,6 +798,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(thrTechnique_);
 		cmd_.add(confidenceCriteria);
 		cmd_.add(timeCriteria);
+		cmd_.add(impTimeFactor);
 		cmd_.add(impPostProc);
 		cmd_.add(timeout);
 		cmd_.add(globalEfforts_);

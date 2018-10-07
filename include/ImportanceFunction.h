@@ -81,7 +81,7 @@ public:
 
 		/// Set internal mathematical expression to the given formula
 		/// @param formula  String with mathematical expression to evaluate
-		/// @param varnames Names of variables ocurring in exprStr
+		/// @param varNames Names of variables ocurring in exprStr
 		/// @param obj      Either a global State<...> or a PositionsMap
 		///                 mapping all names in 'varnames' to positions
 		/// @throw FigException if badly formatted mathematical expression
@@ -89,7 +89,7 @@ public:
 							typename... OtherArgs,
 				  class Mapper >
 		void set(const std::string& formula,
-				 const Container< std::string, OtherArgs... >& varnames,
+				 const Container< std::string, OtherArgs... >& varNames,
 				 const Mapper& obj);
 
 		/// Reset internal mathematical expression to (void) creation values
@@ -209,7 +209,7 @@ protected:  // Attributes for derived classes
 	/// Maximum splitting/effort selected among all threshold levels
 	unsigned long maxThresholdsEffort_;
 
-	/// @brief Algebraic formula defined by the user.
+	/// @brief Algebraic formula defined by the user
 	/// @note Useful both for ad hoc strategy and concrete_split functions
 	Formula userFun_;
 
@@ -397,25 +397,36 @@ public:  // Accessors
 	/**
 	 * Tell the pre-computed importance of the given StateInstance.
 	 * @return ImportanceValue requested
-	 * @note This returns the importance alone without any kind of Event mask
+	 * @note This returns the <em>crude importance</em> stripped of Event masks,
+	 *       and considering only the discrete state space given by \p state
 	 * \ifnot NDEBUG
 	 *   @throw FigException if there's no \ref has_importance_info()
 	 *                       "importance information" currently
 	 * \endif
+	 * @see importance_of(const Traial&)
 	 */
 	virtual ImportanceValue importance_of(const StateInstance& state) const = 0;
 
-	/// Stub to importance_of(const StateInstance&)
+	/// @overload
 	inline ImportanceValue importance_of(const State<STATE_INTERNAL_TYPE> &state) const
 	    { return importance_of(state.to_state_instance()); }
 
-	/// @copybrief importance_of(const StateInstance& state
-	/// @return ImportanceValue, multiplied by the time factor (if set)
-	virtual ImportanceValue importance_of(const Traial& traial) const = 0;
+	/// @overload
+	/// @return ImportanceValue, from the discrete state space,
+	///         multiplied by the time factor (from the continuous state space)<br>
+	ImportanceValue importance_of(const Traial& traial) const;
 
 	/// Evaluate the \ref timeFun_ "time formula" on the clocks of the traial
-	/// @return Formula evaluation, or 1.0 if none set
-	float time_factor(const Traial& traial) const;
+	inline float time_factor(const Traial& traial) const
+//		{ return timeFun_(traial); }
+	    {
+		    /// @todo TODO erase debug (and uncomment line above)
+		    const auto timeFactor = timeFun_(traial);
+			static int N(10000);
+			if (N-- > 0)
+				std::cerr << ", tf:" << timeFactor;
+			return timeFactor;
+	    }
 
 	/**
 	 * Threshold level to which given StateInstance belongs.
@@ -431,6 +442,7 @@ public:  // Accessors
 	 *            then 0 is always returned
 	 * \endif
 	 * @see ThresholdsBuilder::build_thresholds()
+	 * @see level_of(const Traial&)
 	 */
 	inline ImportanceValue level_of(const StateInstance& state) const
 		{
@@ -440,9 +452,21 @@ public:  // Accessors
 			        : level_of(importance_of(state));  // search threshold level
 		}
 
-	/// Threshold level to which the given ImportanceValue belongs.
-	/// @copydetails level_of(const StateInstance&)
+	/// @overload
+	/// @brief Threshold level to which the given ImportanceValue belongs.
 	ImportanceValue level_of(const ImportanceValue& imp) const;
+
+	/// @overload
+	/// @note Consider also the clocks: multiply the ImportanceValue (from the
+	///       discrete state space) by the time factor (from the continuous
+	///       state space)
+	inline ImportanceValue level_of(const Traial& traial) const
+	    {
+		    assert(has_importance_info());
+			return (!importance2threshold_.empty())
+			        ? importance2threshold_[importance_of(traial)].first  // use direct map
+			        : level_of(importance_of(traial));  // search threshold level
+		}
 
 	/**
 	 * Splitting/effort associated with this ("threshold-") level
@@ -474,23 +498,27 @@ public:  // Utils
 
 
 	/**
-	 * @brief Set a TimeFormula to scale importance according to time
-	 * @details Set a new mathematical formula to compute the time factor
-	 *          from the system clocks (aka the continuous state space).<br>
-	 *          During simulations, to evaluate the importance of the system
-	 *          state, this time factor will be multiplied by the
-	 *          ImportanceValue of the variables (aka the discrete state space).
+	 * @brief Set a TimeFormula to scale importance as (simulation) time elapses
+	 *
+	 *        Set a new mathematical formula to compute the time factor
+	 *        from the system clocks (aka the continuous state space).<br>
+	 *        During simulations, to evaluate the importance of the system
+	 *        state, this time factor will be multiplied by the
+	 *        ImportanceValue of the variables (aka the discrete state space).
+	 *
 	 * @param formulaExprStr String with the mathematical expression
-	 * @param clockNames     Names of variables ocurring in formulaExprStr,
-	 *                       viz. substrings in it that refer to clock names
-	 * @param clockMap       ???
-	 * @throw FigException if badly formatted 'formulaExprStr' or 'varnames'
-	 *                     has names not appearing in 'formulaExprStr'
+	 * @param allClocksNames Names of all clocks in the system, in the same
+	 *                       order in which they are stored in Traial.clocks_
+	 *
+	 * @throw FigException if badly formatted \p formulaExprStr or if
+	 *                     \p allClocksNames has names not appearing in
+	 *                     \p formulaExprStr
+	 *
+	 * @see timeFun_
 	 */
 	template< template< typename... > class Container, typename... OtherArgs >
 	void set_time_factor(const std::string& formulaExprStr,
-	                     const Container< std::string, OtherArgs... >& clockNames,
-	                     const ??? clockMap);
+	                     const Container< std::string, OtherArgs... >& allClocksNames);
 
 	/// Register SimulationEngine called \p name as currently bound to this intance
 	void bind_sim_engine(const std::string& name) const;

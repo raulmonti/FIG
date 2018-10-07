@@ -418,7 +418,7 @@ ImportanceFunctionConcreteSplit::set_DFT(bool isDFT)
 
 void
 ImportanceFunctionConcreteSplit::set_composition_fun(
-    std::string compFunExpr,
+    std::string funExprStr,
     const ImportanceValue& nullVal,
     const ImportanceValue& minVal,
     const ImportanceValue& maxVal)
@@ -427,19 +427,19 @@ ImportanceFunctionConcreteSplit::set_composition_fun(
 	PositionsMap modulesMap;
 	modulesMap.reserve(numModules_);
 	for (size_t i=0ul ; i < numModules_ ; i++) {
-		const std::string& name = modules_[i]->name;
+		const std::string& name(modules_[i]->name);
 		modulesNames[i] = name;
 		modulesMap[name] = i;
 	}
 	// Clean unescaped quotation marks
-//	delete_substring(compFunExpr, "\"");
-//	delete_substring(compFunExpr, "'");
-	for (auto quotMark: std::vector< std::string >({"\"","'"}))
-		delete_substring(compFunExpr, quotMark);
+//	for (auto quotMark: std::vector< std::string >({"\"","'"}))
+//		delete_substring(funExprStr, quotMark);
+	delete_substring(funExprStr, "\"");
+	delete_substring(funExprStr, "'");
 	// Prepare the composition function expression string
-	if (compFunExpr.length() <= 3ul) {
+	if (funExprStr.length() <= 3ul) {
 		// An operand was specified => make it a function
-		compFunExpr = compose_comp_function(modulesNames, compFunExpr);
+		funExprStr = compose_comp_function(modulesNames, funExprStr);
 	} else {
 		// A fully defined function was specified
 		compositionStrategy_ = CompositionType::AD_HOC;
@@ -448,10 +448,10 @@ ImportanceFunctionConcreteSplit::set_composition_fun(
 	assert(CompositionType::NUM_TYPES > compositionStrategy_);
 	// Parse the resulting function expression
 	try {
-		userFun_.set(compFunExpr, modulesNames, modulesMap);
+		userFun_.set(funExprStr, modulesNames, modulesMap);
 	} catch (std::out_of_range& e) {
 		throw_FigException("failed to set the composition function \""
-		                  + compFunExpr + "\": " + e.what());
+		                  + funExprStr + "\": " + e.what());
 	}
 	if (minVal < maxVal) {
 		// Set the user defined extreme values for the composition function

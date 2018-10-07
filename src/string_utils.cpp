@@ -122,7 +122,7 @@ string
 delete_substring(string&& s, const string& substr)
 {
 	string ss = replace_substring(s, substr, "");
-	return s;
+	return ss;
 }
 
 

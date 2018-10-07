@@ -109,7 +109,7 @@ public:  // Ctors/Dtor
 	/// Can't move assign since Transitions can't
 	ModuleNetwork& operator=(ModuleNetwork&&) = delete;
 
-	~ModuleNetwork();
+	~ModuleNetwork() override;
 
 public:  // Populating facilities
 

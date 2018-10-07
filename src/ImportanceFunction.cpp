@@ -92,38 +92,37 @@ template< template< typename... > class Container,
 >
 void
 ImportanceFunction::Formula::set(
-    const std::string& formula,
-    const Container<std::string, OtherArgs...>& varnames,
-    const Mapper& obj)
+	const std::string& formula,
+	const Container<std::string, OtherArgs...>& varNames,
+	const Mapper& obj)
 {
     static_assert(std::is_same<PositionsMap, Mapper>::value ||
                   std::is_convertible<State<STATE_INTERNAL_TYPE>, Mapper>::value,
                   "ERROR: type mismatch. ImportanceFunction::Formula::set() can"
                   " only be called with a State<...> object or a PositionsMap.");
     if ("" == formula || formula.length() == 0ul)
-        throw_FigException("can't define an empty user function");
+		throw_FigException("can't set an empty user function");
 
     empty_ = false;
     exprStr_ = exprtk_format(formula);
-	NVARS_ = std::distance(begin(varnames), end(varnames));
+	const auto numVars = std::distance(begin(varNames), end(varNames));
+	assert(0 <= numVars);
 	varsNames_.clear();
-	varsNames_.reserve(NVARS_);
 	varsPos_.clear();
-	varsPos_.reserve(NVARS_);
-    varsValues_.resize(NVARS_);
     auto pos_of_var = wrap_mapper(obj);
     NVARS_ = 0ul;
-    for (const std::string& var: varnames) {
+	for (const std::string& var: varNames) {
+		// register any (previously unregistered) variable occurring in exprStr_
         if (find(begin(varsNames_),end(varsNames_),var) == end(varsNames_)
                 && exprStr_.find(var) != std::string::npos) {
-            varsNames_.emplace_back(var);                  // map var
-            varsPos_.emplace_back(pos_of_var(var));        // map global pos
+			varsNames_.emplace_back(var);            // map var
+			varsPos_.emplace_back(pos_of_var(var));  // map global pos
             NVARS_++;
         }
     }
+	assert(NVARS_ <= static_cast<decltype(NVARS_)>(numVars));
 	varsNames_.shrink_to_fit();
 	varsPos_.shrink_to_fit();
-	NVARS_ = varsNames_.size();
     varsValues_.resize(NVARS_);
     compile_expression();
 	pinned_ = true;
@@ -132,30 +131,18 @@ ImportanceFunction::Formula::set(
 // ImportanceFunction::Formula::set() can only be invoked
 // with the following Container and Mapper types
 typedef State<STATE_INTERNAL_TYPE> state_t;
-template void ImportanceFunction::Formula::set(
-    const std::string&, const std::set<std::string>&, const PositionsMap&);
-template void ImportanceFunction::Formula::set(
-    const std::string&, const std::set<std::string>&, const state_t&);
-template void ImportanceFunction::Formula::set(
-    const std::string&, const std::list<std::string>&, const PositionsMap&);
-template void ImportanceFunction::Formula::set(
-    const std::string&, const std::list<std::string>&, const state_t&);
-template void ImportanceFunction::Formula::set(
-    const std::string&, const std::deque<std::string>&, const PositionsMap&);
-template void ImportanceFunction::Formula::set(
-    const std::string&, const std::deque<std::string>&, const state_t&);
-template void ImportanceFunction::Formula::set(
-    const std::string&, const std::vector<std::string>&, const PositionsMap&);
-template void ImportanceFunction::Formula::set(
-    const std::string&, const std::vector<std::string>&, const state_t&);
-template void ImportanceFunction::Formula::set(
-    const std::string&, const std::forward_list<std::string>&, const PositionsMap&);
-template void ImportanceFunction::Formula::set(
-    const std::string&, const std::forward_list<std::string>&, const state_t&);
-template void ImportanceFunction::Formula::set(
-    const std::string&, const std::unordered_set<std::string>&, const PositionsMap&);
-template void ImportanceFunction::Formula::set(
-    const std::string&, const std::unordered_set<std::string>&, const state_t&);
+template void ImportanceFunction::Formula::set(const std::string&, const std::set<std::string>&, const PositionsMap&);
+template void ImportanceFunction::Formula::set(const std::string&, const std::set<std::string>&, const state_t&);
+template void ImportanceFunction::Formula::set(const std::string&, const std::list<std::string>&, const PositionsMap&);
+template void ImportanceFunction::Formula::set(const std::string&, const std::list<std::string>&, const state_t&);
+template void ImportanceFunction::Formula::set(const std::string&, const std::deque<std::string>&, const PositionsMap&);
+template void ImportanceFunction::Formula::set(const std::string&, const std::deque<std::string>&, const state_t&);
+template void ImportanceFunction::Formula::set(const std::string&, const std::vector<std::string>&, const PositionsMap&);
+template void ImportanceFunction::Formula::set(const std::string&, const std::vector<std::string>&, const state_t&);
+template void ImportanceFunction::Formula::set(const std::string&, const std::forward_list<std::string>&, const PositionsMap&);
+template void ImportanceFunction::Formula::set(const std::string&, const std::forward_list<std::string>&, const state_t&);
+template void ImportanceFunction::Formula::set(const std::string&, const std::unordered_set<std::string>&, const PositionsMap&);
+template void ImportanceFunction::Formula::set(const std::string&, const std::unordered_set<std::string>&, const state_t&);
 
 
 void
@@ -176,7 +163,7 @@ ImportanceValue
 ImportanceFunction::Formula::operator()(const StateInstance& state) const
 {
 	if (!pinned())
-		throw_FigException("this Formula is empty!");
+		throw_FigException("this Formula is not pinned!");
 	// Copy the useful part of 'state'...
 	for (size_t i = 0ul ; i < NVARS_ ; i++)
 		varsValues_[i] = state[varsPos_[i]];  // ugly motherfucker
@@ -194,7 +181,7 @@ ImportanceValue
 ImportanceFunction::Formula::operator()(const ImportanceVec& localImportances) const
 {
 	if (!pinned())
-		throw_FigException("this Formula is empty!");
+		throw_FigException("this Formula is not pinned!");
 	// Copy the values internally...
 	for (size_t i = 0ul ; i < NVARS_ ; i++) {
 		assert(!IS_SOME_EVENT(localImportances[varsPos_[i]]));
@@ -215,7 +202,21 @@ ImportanceFunction::Formula::get_free_vars() const noexcept
 ImportanceValue
 ImportanceFunction::TimeFormula::operator()(const Traial& traial) const
 {
-	/// @todo TODO implement
+	if (!pinned())
+		throw_FigException("this TimeFormula is not pinned!");
+	// Copy all needed clocks valuations...
+//	const auto& clocksValues(traial.clocks_values());
+//	for (size_t i = 0ul ; i < NVARS_ ; i++)
+//		varsValues_[i] = clocksValues[varsPos_[i]];
+
+	/// @bug BUG code above does not return the proper reference to the clock valuation
+	///          Revise Traial::clocks_values()
+	const auto& clocks(traial.get_clocks());
+	for (size_t i = 0ul ; i < NVARS_ ; i++)
+		varsValues_[i] = clocks[varsPos_[i]].second;
+
+	// ...and evaluate
+	return static_cast<ImportanceValue>(expr_.value());
 }
 
 
@@ -407,10 +408,16 @@ ImportanceFunction::post_processing() const noexcept
 }
 
 
-float
-ImportanceFunction::time_factor(const Traial& traial) const
+ImportanceValue
+ImportanceFunction::importance_of(const Traial& traial) const
 {
-	/// @todo TODO implement, after implementing
+#ifndef NDEBUG
+	if (!has_importance_info())
+		throw_FigException("importance function \"" + name() + "\" "
+		                   "doesn't hold importance information.");
+#endif
+	return static_cast<ImportanceValue>(std::roundf(
+	    time_factor(traial) * static_cast<float>(importance_of(traial.state))));
 }
 
 
@@ -529,6 +536,35 @@ ImportanceFunction::random_sample2(State<STATE_INTERNAL_TYPE> s,
 	}
 	return randomSample;
 }
+
+
+template< template< typename... > class Container, typename... OtherArgs >
+void
+ImportanceFunction::set_time_factor(
+    const std::string& formulaExprStr,
+    const Container< std::string, OtherArgs... >& allClocksNames)
+{
+	// Build map from clock names to positions
+	size_t i = 0ul;
+	PositionsMap clocksMap;
+	for (const std::string& clockName: allClocksNames)
+		clocksMap[clockName] = i++;
+	// Parse the function expression
+	try {
+		timeFun_.set(formulaExprStr, allClocksNames, clocksMap);
+	} catch (std::out_of_range& e) {
+		throw_FigException("failed to set the time factor \""
+		                  + formulaExprStr + "\": " + e.what());
+	}
+}
+
+// ImportanceFunction::set_time_factor() can only be invoked with the following containers
+template void ImportanceFunction::set_time_factor(const std::string&, const std::set<std::string>&);
+template void ImportanceFunction::set_time_factor(const std::string&, const std::list<std::string>&);
+template void ImportanceFunction::set_time_factor(const std::string&, const std::deque<std::string>&);
+template void ImportanceFunction::set_time_factor(const std::string&, const std::vector<std::string>&);
+template void ImportanceFunction::set_time_factor(const std::string&, const std::forward_list<std::string>&);
+template void ImportanceFunction::set_time_factor(const std::string&, const std::unordered_set<std::string>&);
 
 
 void
