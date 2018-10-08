@@ -78,6 +78,7 @@ EXP "exponential"
 WEIBULL "weibull"
 GAMMA "gamma"
 RAYLEIGH "rayleigh"
+DIRAC "dirac"
 INIT "init"
 EQQ "=="
 NEQ "!="
@@ -315,6 +316,9 @@ save_location($$, @$);}
     save_location($$, @$);}
 | "rayleigh" "(" exp[e] ")"
 {$$ = make_shared<SingleParameterDist>(DistType::rayleigh, $e);
+	save_location($$, @$);}
+| "dirac" "(" exp[e] ")"
+{$$ = make_shared<SingleParameterDist>(DistType::dirac, $e);
     save_location($$, @$);}
 
 location: "id"[id]

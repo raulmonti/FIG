@@ -221,7 +221,7 @@ return_t exponential(const params_t& params)
 return_t normal(const params_t& params)
 {
 	std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal(params[0], params[1]);
-	return std::max<double>(0.000001, normal(*rng));
+	return std::max(0.000001f, normal(*rng));
 }
 
 
@@ -253,7 +253,7 @@ return_t weibull(const params_t& params)
 /// Check <a href="https://en.wikipedia.org/wiki/Rayleigh_distribution">the wiki</a>
 return_t rayleigh(const params_t& params)
 {
-	std::weibull_distribution< fig::CLOCK_INTERNAL_TYPE > rayleigh(2.0, params[0]*M_SQRT2);
+	std::weibull_distribution< fig::CLOCK_INTERNAL_TYPE > rayleigh(2.0, params[0]*M_SQRT2f32);
 	return rayleigh(*rng);
 }
 
@@ -270,14 +270,23 @@ return_t gamma(const params_t& params)
 
 
 /// Random deviate ~ Erlang(k,l) ~ Gamma(k,1/l)<br>
-///  where 'k' = params[0] is the <i>integral</i> shape parameter<br>
+///  where 'k' = params[0] is the <em>integral</em> shape parameter<br>
 ///    and 'l' = params[1] is the rate parameter (aka reciprocal of the scale)<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Erlang_distribution">the wiki</a>
 return_t erlang(const params_t& params)
 {
-	const int k(std::round(params[0]));
-	std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > erlang(k, 1.0/params[1]);
+	const int k(static_cast<int>(std::round(params[0])));
+	std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > erlang(k, 1.0f/params[1]);
 	return erlang(*rng);
+}
+
+
+/// (Non-) Random deviate ~ Dirac(x)<br>
+///  where [x,x] is the <em>point-wise</em> support of the distribution<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Dirac_delta_function">the wiki</a>
+return_t dirac(const params_t& params)
+{
+	return static_cast<return_t>(params[0]);
 }
 
 } // namespace  // // // // // // // // // // // // // // // // // // // // //
@@ -367,6 +376,7 @@ std::unordered_map< std::string, Distribution > distributions_list =
 	{"rayleigh",    rayleigh   },
 	{"gamma",       gamma      },
 	{"erlang",      erlang     },
+    {"dirac",       dirac      },
 };
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

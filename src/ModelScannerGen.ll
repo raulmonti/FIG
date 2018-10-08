@@ -85,6 +85,7 @@ blank  [ \t]
 "gamma"       return ModelParser::make_GAMMA(loc);
 "rayleigh"    return ModelParser::make_RAYLEIGH(loc);
 "weibull"     return ModelParser::make_WEIBULL(loc);
+"dirac"       return ModelParser::make_DIRAC(loc);
 "init"        return ModelParser::make_INIT(loc);
 "!"           return ModelParser::make_ADM(loc);
 "?"           return ModelParser::make_QMARK(loc);
