@@ -120,7 +120,7 @@ public:
 		/// Evaluate current formula expression on given symbolic state
 		/// and clocks valuations
 		/// @copydetails Formula::operator()
-		ImportanceValue operator()(const Traial& traial) const;
+		CLOCK_INTERNAL_TYPE operator()(const Traial& traial) const;
 	};
 
 public:  // Class attributes

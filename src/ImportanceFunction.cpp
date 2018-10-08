@@ -203,7 +203,7 @@ ImportanceFunction::Formula::get_free_vars() const noexcept
 }
 
 
-ImportanceValue
+fig::CLOCK_INTERNAL_TYPE
 ImportanceFunction::TimeFormula::operator()(const Traial& traial) const
 {
 #ifndef NDEBGU
@@ -215,7 +215,7 @@ ImportanceFunction::TimeFormula::operator()(const Traial& traial) const
 	for (auto i = 0ul ; i < NVARS_ ; i++)
 		varsValues_[i] = clocksValues[varsPos_[i]];
 	// ...and evaluate
-	return static_cast<ImportanceValue>(expr_.value());
+	return static_cast<fig::CLOCK_INTERNAL_TYPE>(expr_.value());
 }
 
 

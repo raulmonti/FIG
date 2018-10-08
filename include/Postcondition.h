@@ -40,18 +40,13 @@
 #include <State.h>
 #include <ModelAST.h>
 
-// ADL
-using std::copy;
-using std::begin;
-using std::end;
-using std::shared_ptr;
-
 
 namespace fig {
 
-using AssignmentContainer = std::vector<shared_ptr<Assignment>>;
+using AssignmentContainer = std::vector<std::shared_ptr<Assignment>>;
 
-class Postcondition : public ExpStateUpdater {
+class Postcondition : public ExpStateUpdater
+{
 private:
 
     static LocationContainer
@@ -59,7 +54,7 @@ private:
         LocationContainer locs;
         locs.resize(assignments.size());
         size_t i = 0;
-        for (shared_ptr<Assignment>& assign : assignments) {
+		for (std::shared_ptr<Assignment>& assign : assignments) {
             locs[i] = assign->get_effect_location();
             i++;
         }
@@ -70,31 +65,35 @@ private:
         ExpContainer exps;
         exps.resize(assignments.size());
         size_t i = 0;
-        for (shared_ptr<Assignment>& assign : assignments) {
+		for (std::shared_ptr<Assignment>& assign : assignments) {
             exps[i] = assign->get_rhs();
             i++;
         }
         return (exps);
     }
 
-public:
+public:  // Ctors
 
-    Postcondition(const std::vector<shared_ptr<Assignment>>& assignments) :
-	    ExpStateUpdater(updateLocations(assignments),
-	                    updateExps(assignments))  // rely on copy elision!
-    {}
+	Postcondition(const std::vector<std::shared_ptr<Assignment>>& assignments)
+	    : ExpStateUpdater(updateLocations(assignments), updateExps(assignments))
+	    { /* Not much to do around here */ }
 
     /// Default copy ctor
     Postcondition(const Postcondition& that) = default;
+
     /// Default move ctor
     Postcondition(Postcondition&& that) = default;
 
-public:
+public: // Utils
 
-    void operator()(State<STATE_INTERNAL_TYPE>& state) const;
-    void operator()(StateInstance& state) const;
+	inline void operator()(State<STATE_INTERNAL_TYPE>& state) const
+	    { update(state); }
 
-public: //Debug
+	inline void operator()(StateInstance& state) const
+	    { update(state); }
+
+public:  // Debug
+
     void print_info(std::ostream& out) const;
 };
 

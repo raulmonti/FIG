@@ -266,9 +266,9 @@ ValueArg<string> impTimeFactor(
     "computed from the value of the other variables (aka \"discrete state "
     "space\") The algebraic expression for the function used as time factor "
     "is like for the ad hoc importance function, but here the free variable "
-    "names must be clock names. This function should yields values in the "
-    "[0.0, 1.0] interval",
-    false, "",
+    "names must be clock names. This function should yield values in the "
+    "[0.0, 1.0] interval; by default is 1.0, viz. no scaling",
+    false, "1.0",
     "time_fun");
 
 // Importance function post-processing
@@ -401,17 +401,6 @@ add_full_version_parsing(CmdLine& cl)
 									"version information and exits.",
 									false, v);
 	cl.add( vers );
-
-//	// These member functions are protected so we can't use them
-//	cl.deleteOnExit(vers);
-//	cl.deleteOnExit(v);
-//	// To avoid the leak we could use smart pointers like below,
-//	// but TCLAP's CmdLine can't work with them (piece of filthy shit)
-//	auto v = std::make_shared<FigVersionVisitor>(fig::figMainLog, versionStrLong);
-//	auto vers(std::make_shared<SwitchArg>(
-//				"v", "version-full",
-//				"Displays full version information and exits.",
-//				false, v));
 }
 
 /// Check for any JANI specification parsed from the command line into the
@@ -573,10 +562,8 @@ parse_ifun_details(const std::string& details)
 bool
 get_ifun_specification()
 {
-	// Time factor (fake a constant function "\lambda . 1" if unspecified)
-	const std::string timeFactor = impTimeFactor.isSet()
-	        ? impTimeFactor.getValue()
-	        : "1.0";
+	// Time factor (defaults to 1.0 if unspecified)
+	const std::string timeFactor = impTimeFactor.getValue();
 
 	// Post-processing
 	fig::PostProcessing postProc;

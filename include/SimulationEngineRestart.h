@@ -173,11 +173,11 @@ private:  // Traial observers/updaters
 		{
 			// Event marking is done in accordance with the checks performed
 			// in the transient_simulations() overriden member function
-//			auto newStateInfo = cImpFun_->info_of(traial.state);
+		    auto newStateInfo = cImpFun_->info_of(traial.state);
 
 		    /// @warning FIXME debugging!
-		    // experiment with time factor:
-		    auto newStateInfo = cImpFun_->info_of(traial);
+//		    // experiment with time factor:
+//		    auto newStateInfo = cImpFun_->info_of(traial);
 
 			e = MASK(newStateInfo);
 			if (!IS_STOP_EVENT(e)) {

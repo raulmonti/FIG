@@ -37,6 +37,7 @@
 // External code
 #include <gsl_cdf.h>  // gsl_cdf_{ugaussian,tdist}_Pinv()
 #include <gsl_sys.h>  // gsl_finite(), gsl_nan()
+#include <gsl_errno.h>
 // FIG
 #include <ConfidenceInterval.h>
 #include <FigException.h>
@@ -135,13 +136,16 @@ ConfidenceInterval::ConfidenceInterval(const std::string& thename,
 	statOversample_(1.0),
 	varCorrection_(1.0)
 {
-	assert(std::isfinite(quantile) && gsl_finite(quantile));
+	assert(std::isfinite(quantile));
+	assert(gsl_finite(quantile));
 	if (0.0 >= precision)
 		throw_FigException("requires precision > 0.0");
 //	if (percent && 1.0 <= precision)
 //		throw_FigException("dynamic precision must ∈ (0.0, 1.0)");
 	if (0.0 >= confidence || 1.0 <= confidence)
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
+	// Turn off error messages from GSL
+	gsl_set_error_handler_off();
 }
 
 

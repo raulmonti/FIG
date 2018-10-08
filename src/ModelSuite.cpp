@@ -1039,7 +1039,8 @@ ModelSuite::set_time_factor(const std::string& timeFormulaStr,
 	for (const auto& clk: model->clocks())
 		clocksNames.emplace_back(clk.get().name());
 	assert(0ul < clocksNames.size());
-	ifun.set_time_factor(timeFormulaStr.empty() ? "1" : timeFormulaStr, clocksNames);
+	assert(!timeFormulaStr.empty());
+	ifun.set_time_factor(timeFormulaStr, clocksNames);
 	if (!timeFormulaStr.empty())
 		techLog_ << "Time factor: " << timeFormulaStr << std::endl;
 }

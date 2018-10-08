@@ -32,6 +32,7 @@
 
 // C++
 #include <memory>
+#include <cassert>
 // FIG
 #include <ConfidenceInterval.h>
 
@@ -58,7 +59,7 @@ public:  // Ctors from the other derived classes of ConfidenceInterval
 	    instance_(ci)
 	{ /* Not much to do around here... */ }
 
-	inline virtual ~ConfidenceIntervalResult()
+	inline ~ConfidenceIntervalResult() override
 		{ instance_.reset(); }
 
 public:  // Methods linked to the real functions of our creation class
