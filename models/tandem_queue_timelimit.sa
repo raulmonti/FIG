@@ -85,12 +85,11 @@ endmodule
 //  Timer  /////////////////////////////////////////////////////////////////////
 
 const float TIME_LIMIT = 10.0; 
-const float EPS = 0.001;
 
 module Timer
-        TimeOut: [0..2] init 0;  // 0:init, 1:ticking, 2:expired
+        TimeOut: [0..2] init 0;  // init (0) --> ticking (1) --> expired (2)
         clkTO: clock;
-        [TOinit!!] TimeOut == 0 -> (TimeOut'=1) & (clkTO'=uniform(TIME_LIMIT-EPS,TIME_LIMIT+EPS));
+        [TOinit!!] TimeOut == 0 -> (TimeOut'=1) & (clkTO'=dirac(TIME_LIMIT));
         [TO!] TimeOut == 1 @ clkTO -> (TimeOut'=2);
 endmodule
 
@@ -98,6 +97,6 @@ endmodule
 //  Properties  ////////////////////////////////////////////////////////////////
 
 properties
-	P( q2 > 0 U q2 == c )  // "transient"
-	P( q2 < c U TimeOut == 2 )  // "reliability," aka "time-bounded transient"
+	P(      q2 > 0 U q2 == c )  // "transient"
+	P( TimeOut < 2 U q2 == c )  // "reliability," aka "time-bounded transient"
 endproperties

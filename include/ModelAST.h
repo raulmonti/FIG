@@ -25,7 +25,7 @@ using std::make_shared;
 enum class LabelType {in, out, out_committed, in_committed, tau};
 /// @brief Supported distributions
 enum class DistType {erlang, normal, lognormal, uniform, exponential,
-                     weibull, rayleigh, gamma};
+	                 weibull, rayleigh, gamma, dirac};
 /// @brief Supported properties
 enum class PropType {transient, rate};
 
