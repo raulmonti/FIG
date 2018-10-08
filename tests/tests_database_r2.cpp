@@ -138,7 +138,7 @@ SECTION("Steady-state: RESTART, ad hoc, hyb")
 	const string ifunAdHoc("max(d11f+d12f+d13f+d14f+0,max(d21f+d22f+d23f+d24f+0,max(d31f+d32f+d33f+d34f+0,max(d41f+d42f+d43f+d44f+0,max(d51f+d52f+d53f+d54f+0,max(d61f+d62f+d63f+d64f+0,max(c11f+c12f+0,max(c21f+c22f+0,max(p11f+p12f+0,max(p21f+p22f+0,0))))))))))");
 	const fig::ImpFunSpec ifunSpec("algebraic", "adhoc",
 								   ifunAdHoc,
-								   fig::PostProcessing(),
+	                               "", fig::PostProcessing(),
 								   0, 2);
 	const string nameThr("hyb");
 	REQUIRE(model.exists_simulator(nameEngine));
@@ -175,7 +175,7 @@ SECTION("Steady-state: RESTART, compositional (+ operator), es")
 {
 	const string nameEngine("restart");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "+",
-								   fig::PostProcessing(),
+	                               "", fig::PostProcessing(),
 								   0, 32, 0);
 	const string nameThr("es");
 	REQUIRE(model.exists_simulator(nameEngine));
@@ -214,7 +214,7 @@ SECTION("Steady-state: RESTART, compositional (coarse ifun), hyb")
 	const string ifunComp("(Disk11*Disk12*Disk13*Disk14*Disk21*Disk22*Disk23*Disk24*Disk31*Disk32*Disk33*Disk34*Disk41*Disk42*Disk43*Disk44*Disk51*Disk52*Disk53*Disk54*Disk61*Disk62*Disk63*Disk64)+(Controller11*Controller12*Controller21*Controller22)+(Processor11*Processor12*Processor21*Processor22)");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto",
 								   ifunComp,
-								   fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0),
+	                               "", fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0),
 								   3, 16777248, 1);
 	const string nameThr("hyb");
 	REQUIRE(model.exists_simulator(nameEngine));
@@ -253,7 +253,7 @@ SECTION("Steady-state: RESTART, compositional ([+,*] ring), es")
 	const string ifunComp("(Disk11*Disk12)+(Disk11*Disk13)+(Disk11*Disk14)+(Disk12*Disk13)+(Disk12*Disk14)+(Disk13*Disk14)+(Disk21*Disk22)+(Disk21*Disk23)+(Disk21*Disk24)+(Disk22*Disk23)+(Disk22*Disk24)+(Disk23*Disk24)+(Disk31*Disk32)+(Disk31*Disk33)+(Disk31*Disk34)+(Disk32*Disk33)+(Disk32*Disk34)+(Disk33*Disk34)+(Disk41*Disk42)+(Disk41*Disk43)+(Disk41*Disk44)+(Disk42*Disk43)+(Disk42*Disk44)+(Disk43*Disk44)+(Disk51*Disk52)+(Disk51*Disk53)+(Disk51*Disk54)+(Disk52*Disk53)+(Disk52*Disk54)+(Disk53*Disk54)+(Disk61*Disk62)+(Disk61*Disk63)+(Disk61*Disk64)+(Disk62*Disk63)+(Disk62*Disk64)+(Disk63*Disk64)+(Controller11*Controller12)+(Controller21*Controller22)+(Processor11*Processor12)+(Processor21*Processor22)");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto",
 	                               ifunComp,
-	                               fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0),
+	                               "", fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0),
 	                               40, 160, 1);
 	const string nameThr("es");
 	REQUIRE(model.exists_simulator(nameEngine));

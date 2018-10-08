@@ -311,7 +311,6 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 		// ...and process any newly activated committed action.
 		process_committed(traial);
 	}
-
 	return e;
 }
 

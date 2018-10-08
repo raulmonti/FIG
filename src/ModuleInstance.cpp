@@ -338,7 +338,7 @@ ModuleInstance::jump(const Traial::Timeout& to,
 	assert(end(transitions_by_clock_) != iter);  // deny foreign clocks
 	// Step 1: make time elapse in all clocks
 	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
-	traial.kill_time(to.gpos, 1ul, 100.0f);  // mark this clock as 'expired'
+	traial.kill_time(to.gpos, 100.0f);  // mark this clock as 'expired'
 	// Step 2: attend any enabled transition with matching clock name
 	return apply_postcondition(traial, iter->second);
 }

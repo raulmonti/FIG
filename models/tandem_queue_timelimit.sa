@@ -26,7 +26,12 @@
 
 
 // oneliner:
-// fig models/tandem_queue_time_limit.sa --parlare 1--stop-time 10 -e restart -t es --acomp 'Queue1+5*Queue2' --time-factor 'TIME_LIMIT-clkTO'
+// fig models/tandem_queue_timelimit.sa --parlare 1 --stop-conf .8 .4 --timeout 3s -e restart -t es --acomp 'Queue1+5*Queue2' --time-factor 'clkTO/100.0'
+//
+// Time factor functions:
+// - linear decay:      clkTO/TIME_LIMIT
+// - log decay:         log(clkTO)/log(TIME_LIMIT)
+// - inverse log decay: 1.0-log(TIME_LIMIT-clkTO)/log(TIME_LIMIT)
 
 
 

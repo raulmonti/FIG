@@ -162,8 +162,10 @@ ImportanceFunction::Formula::reset() noexcept
 ImportanceValue
 ImportanceFunction::Formula::operator()(const StateInstance& state) const
 {
+#ifndef NDEBGU
 	if (!pinned())
 		throw_FigException("this Formula is not pinned!");
+#endif
 	// Copy the useful part of 'state'...
 	for (size_t i = 0ul ; i < NVARS_ ; i++)
 		varsValues_[i] = state[varsPos_[i]];  // ugly motherfucker
@@ -180,8 +182,10 @@ ImportanceFunction::Formula::operator()(const StateInstance& state) const
 ImportanceValue
 ImportanceFunction::Formula::operator()(const ImportanceVec& localImportances) const
 {
+#ifndef NDEBGU
 	if (!pinned())
 		throw_FigException("this Formula is not pinned!");
+#endif
 	// Copy the values internally...
 	for (size_t i = 0ul ; i < NVARS_ ; i++) {
 		assert(!IS_SOME_EVENT(localImportances[varsPos_[i]]));
@@ -202,19 +206,14 @@ ImportanceFunction::Formula::get_free_vars() const noexcept
 ImportanceValue
 ImportanceFunction::TimeFormula::operator()(const Traial& traial) const
 {
+#ifndef NDEBGU
 	if (!pinned())
 		throw_FigException("this TimeFormula is not pinned!");
+#endif
 	// Copy all needed clocks valuations...
-//	const auto& clocksValues(traial.clocks_values());
-//	for (size_t i = 0ul ; i < NVARS_ ; i++)
-//		varsValues_[i] = clocksValues[varsPos_[i]];
-
-	/// @bug BUG code above does not return the proper reference to the clock valuation
-	///          Revise Traial::clocks_values()
-	const auto& clocks(traial.get_clocks());
-	for (size_t i = 0ul ; i < NVARS_ ; i++)
-		varsValues_[i] = clocks[varsPos_[i]].second;
-
+	const auto& clocksValues(traial.clocks_values());
+	for (auto i = 0ul ; i < NVARS_ ; i++)
+		varsValues_[i] = clocksValues[varsPos_[i]];
 	// ...and evaluate
 	return static_cast<ImportanceValue>(expr_.value());
 }

@@ -76,6 +76,13 @@ Traial::Traial(const size_t& stateSize, const size_t& numClocks) :
 			clocksValuations_.emplace_back(clocks_.back().value);
 		}
 	}
+	clocks_.shrink_to_fit();
+	clocksValuations_.shrink_to_fit();
+#ifndef NDEBUG
+	assert(clocks_.size() == clocksValuations_.size());
+	for (auto i = 0ul ; i < clocks_.size() ; i++)
+		assert(&(clocksValuations_[i].get()) == &(clocks_[i].value));
+#endif
 }
 
 
@@ -111,6 +118,13 @@ Traial::Traial(const size_t& stateSize,
 	}
 	if (orderTimeouts)
 		reorder_clocks();
+	clocks_.shrink_to_fit();
+	clocksValuations_.shrink_to_fit();
+#ifndef NDEBUG
+	assert(clocks_.size() == clocksValuations_.size());
+	for (auto i = 0ul ; i < clocks_.size() ; i++)
+		assert(&(clocksValuations_[i].get()) == &(clocks_[i].value));
+#endif
 }
 
 
@@ -149,10 +163,17 @@ Traial::Traial(const size_t& stateSize,
 								 clock.name(),
 								 must_reset(clock.name()) ? clock.sample() : 0.0f,
 								 firstClock++);
-			clocksValuations_.emplace_back(clocks_.back().value);
+		    clocksValuations_.emplace_back(clocks_.back().value);
 	}
 	if (orderTimeouts)
 		reorder_clocks();
+	clocks_.shrink_to_fit();
+	clocksValuations_.shrink_to_fit();
+#ifndef NDEBUG
+	assert(clocks_.size() == clocksValuations_.size());
+	for (auto i = 0ul ; i < clocks_.size() ; i++)
+		assert(&(clocksValuations_[i].get()) == &(clocks_[i].value));
+#endif
 }
 // Traial() template ctor can only be invoked with the following containers
 template Traial::Traial(const size_t&, const size_t&, const std::set<std::string>&, bool);

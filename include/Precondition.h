@@ -58,7 +58,7 @@ public:  // Ctors
     /// @brief Move Constructor
     Precondition(Precondition&& that) = default;
 
-    /// @todo Copy assignment with copy&swap idiom
+	/// No copy assignment
     Precondition& operator=(Precondition that) = delete;
 
 public:
