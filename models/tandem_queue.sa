@@ -27,7 +27,7 @@
 // Values taken from Marnix Garvels' PhD Thesis:
 // "The splitting method in rare event simulation", p. 85.
 
-const int c = 12;       // Queues capacity: transient    = { 8, 10, 12, 14}
+const int c = 8;       // Queues capacity: transient    = { 8, 10, 12, 14}
                         //                  steady-state = {10, 15, 20, 25}
 const int lambda = 3;   // rate(--> q1           )
 const int    mu1 = 2;   // rate(    q1 --> q2    )
@@ -69,6 +69,6 @@ endmodule
 
 
 properties
-	S( q2 == c )           // "rate"
+//	S( q2 == c )           // "rate"
 	P( q2 > 0 U q2 == c )  // "transient"
 endproperties

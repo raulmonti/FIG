@@ -198,8 +198,8 @@ private:  // Class utils
 	/// @details Similar to FE_watcher() but disregard the property
 	inline bool
 	importance_seeker(const Property&, Traial& traial, Event&) const
-	    {
-			const long newImp = impFun_->importance_of(traial.state);
+		{
+			const long newImp = static_cast<long>(impFun_->importance_of(traial.state));
 			traial.depth -= static_cast<short>(newImp - static_cast<long>(traial.level));
 			traial.level = static_cast<ImportanceValue>(newImp);
 			traial.numLevelsCrossed++;  // encode here the # steps taken

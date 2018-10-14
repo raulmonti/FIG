@@ -379,8 +379,8 @@ ThresholdsBuilderES::reachable_importance_values(bool forceRealMax)
 /**
  * @details This routine performs three distinct tasks/steps:
  *          <ol>
- *          <li>find <i>real</i> importance paths to the rare event;
- *          <li>choose <i>the best</i> path found and settle for that one only;
+ *          <li>find <em>real</em> importance paths to the rare event;
+ *          <li>choose <em>the best path</em> found and settle for that one only;
  *          <li>compute and refine the conditional probabilities of performing
  *              the level-ups in such best path.
  *          </ol>
@@ -535,7 +535,7 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues)
 	std::vector< float > Pup;
 	for (auto i = 0ul ; i < maxSteps ; i++) {
 		auto num(0u);
-		auto acc(0.0f);
+		auto acc(0.0);
 		for (const auto& pathWrapper: paths) {
 			const auto& path(pathWrapper.front());
 			if (path.size() <= i)
@@ -548,7 +548,7 @@ ThresholdsBuilderES::FE_for_ES(const ImportanceVec& reachableImportanceValues)
 				num++;  // simulation died in this step => 0.0 prob of lvl up
 			}
 		}
-		Pup.emplace_back(0u < num ? acc/static_cast<decltype(acc)>(num) : 0.0f);
+		Pup.emplace_back(0u < num ? acc/static_cast<decltype(acc)>(num) : 0.0);
 	}
 
 	internalSimulator_->unbind();

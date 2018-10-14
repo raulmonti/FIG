@@ -39,7 +39,7 @@
 // Values taken from Marnix Garvels' PhD Thesis:
 // "The splitting method in rare event simulation", p. 85.
 
-const int c = 8;		// Queues capacity
+const int c = 2;		// Queues capacity
 const int lambda = 3;	// rate(--> q1           )
 const int    mu1 = 2;	// rate(    q1 --> q2    )
 const int    mu2 = 6;	// rate(           q2 -->)
@@ -84,7 +84,7 @@ endmodule
 
 //  Timer  /////////////////////////////////////////////////////////////////////
 
-const float TIME_LIMIT = 10.0; 
+const float TIME_LIMIT = 4.0;  // 320.0; 
 
 module Timer
         TimeOut: [0..2] init 0;  // init (0) --> ticking (1) --> expired (2)
@@ -97,6 +97,6 @@ endmodule
 //  Properties  ////////////////////////////////////////////////////////////////
 
 properties
-	P(      q2 > 0 U q2 == c )  // "transient"
-	P( TimeOut < 2 U q2 == c )  // "reliability," aka "time-bounded transient"
+//	P(      q2 > 0 U q2 == c )  // "transient"
+	P( TimeOut < 2 U q2 == c & TimeOut == 1 )  // "reliability," aka "time-bounded transient"
 endproperties

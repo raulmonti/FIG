@@ -112,7 +112,7 @@ typedef  short                                           STATE_INTERNAL_TYPE;
 typedef  std::vector< STATE_INTERNAL_TYPE >                    StateInstance;
 
 /// Adjacency list for concrete states transitions graph
-typedef  std::vector< std::forward_list< unsigned > >          AdjacencyList;
+typedef  std::vector< std::forward_list< size_t > >          AdjacencyList;
 
 //
 //

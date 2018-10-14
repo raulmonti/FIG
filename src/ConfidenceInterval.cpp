@@ -193,28 +193,28 @@ ConfidenceInterval::precision() const noexcept
 double
 ConfidenceInterval::lower_limit() const
 {
-    return std::max(0.0, estimate_ - precision()/2.0);
+	return std::min(1.0, std::max(0.0, estimate_ - precision()/2.0));
 }
 
 
 double
 ConfidenceInterval::lower_limit(const double& confco) const
 {
-    return std::max(0.0, estimate_ - precision(confco)/2.0);
+	return std::min(1.0, std::max(0.0, estimate_ - precision(confco)/2.0));
 }
 
 
 double
 ConfidenceInterval::upper_limit() const
 {
-    return std::min(1.0, estimate_ + precision()/2.0);
+	return std::max(0.0, std::min(1.0, estimate_ + precision()/2.0));
 }
 
 
 double
 ConfidenceInterval::upper_limit(const double& confco) const
 {
-    return std::min(1.0, estimate_ + precision(confco)/2.0);
+	return std::max(0.0, std::min(1.0, estimate_ + precision(confco)/2.0));
 }
 
 
