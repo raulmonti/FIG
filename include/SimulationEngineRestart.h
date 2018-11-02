@@ -160,7 +160,10 @@ private:  // Traial observers/updaters
 				else if (property.is_rare(traial.state))
 					e = EventType::RARE;
 			}
-			return EventType::NONE != e;
+			return interrupted ||
+			(
+			    EventType::NONE != e
+			);
 		}
 
 	/// @copydoc SimulationEngine::transient_event()
@@ -192,7 +195,10 @@ private:  // Traial observers/updaters
 					SET_THR_UP_EVENT(e);
 				// else: rare event info is already marked inside 'e'
 			}
-			return EventType::NONE != e;
+			return interrupted ||
+			(
+			    EventType::NONE != e
+			);
 		}
 
 	/// @copydoc SimulationEngine::rate_event()
@@ -221,7 +227,10 @@ private:  // Traial observers/updaters
 				simsLifetime    -= SIM_TIME_CHUNK;
 				numChunksTruncated_ += 1u;
 			}
-			return traial.lifeTime > simsLifetime || EventType::NONE != e;
+			return interrupted ||
+			(
+			    traial.lifeTime > simsLifetime || EventType::NONE != e
+			);
 		}
 
 	/// @copydoc SimulationEngine::rate_event()
@@ -252,7 +261,10 @@ private:  // Traial observers/updaters
 				simsLifetime    -= SIM_TIME_CHUNK;
 				numChunksTruncated_ += 1u;
 			}
-			return traial.lifeTime > simsLifetime || EventType::NONE != e;
+			return interrupted ||
+			(
+			    traial.lifeTime > simsLifetime || EventType::NONE != e
+			);
 		}
 
 	/// Turn off splitting and simulate (accumulating time) as long as we are

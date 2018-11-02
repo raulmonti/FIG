@@ -103,9 +103,12 @@ private:  // Traial observers/updaters
 			const ImportanceValue newLvl = impFun_->level_of(traial.state);
 			traial.depth -= newLvl - traial.level;
 			traial.level = newLvl;
-			return /* level-up:   */ traial.depth < 0 ||
-				   /* rare event: */ property.is_rare(traial.state) ||
-				   /* stop event: */ property.is_stop(traial.state);
+			return interrupted ||
+			(
+			    /* level-up:   */  traial.depth < 0 ||
+			    /* rare event: */  property.is_rare(traial.state) ||
+			    /* stop event: */  property.is_stop(traial.state)
+			);
 		}
 
 	/// @todo TODO implement

@@ -103,7 +103,10 @@ public:  // Traial observers/updaters
 			                                   : EventType::NONE;
 			if (property.is_rare(traial.state))
 				SET_RARE_EVENT(e);
-			return EventType::NONE != e;
+			return interrupted ||
+			(
+			    EventType::NONE != e
+			);
 		}
 
 	/// @copydoc SimulationEngine::transient_event()
@@ -114,7 +117,10 @@ public:  // Traial observers/updaters
 										 Event& e) const
 		{
 			e = MASK(cImpFun_->info_of(traial.state));
-			return IS_RARE_EVENT(e) || IS_STOP_EVENT(e);
+			return interrupted ||
+			(
+			    IS_RARE_EVENT(e) || IS_STOP_EVENT(e)
+			);
 		}
 
 	/// @copydoc SimulationEngine::rate_event()
@@ -129,7 +135,10 @@ public:  // Traial observers/updaters
 				traial.lifeTime -= SIM_TIME_CHUNK;
 				simsLifetime -= SIM_TIME_CHUNK;
 			}
-			return interrupted || traial.lifeTime > simsLifetime || IS_RARE_EVENT(e);
+			return interrupted ||
+			(
+			    traial.lifeTime > simsLifetime || IS_RARE_EVENT(e)
+			);
 		}
 
 	/// @copydoc SimulationEngine::transient_event()
@@ -144,7 +153,10 @@ public:  // Traial observers/updaters
 				traial.lifeTime -= SIM_TIME_CHUNK;
 				simsLifetime -= SIM_TIME_CHUNK;
 			}
-			return interrupted || traial.lifeTime > simsLifetime || IS_RARE_EVENT(e);
+			return interrupted ||
+			(
+			    traial.lifeTime > simsLifetime || IS_RARE_EVENT(e)
+			);
 		}
 
 	/// Simulate (accumulating time) as long as we remain in rare states.

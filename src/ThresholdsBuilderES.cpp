@@ -585,7 +585,7 @@ continue_artificial_selection:
 	assert(currentThresholds_.size() >= Pup.size());
 	Pup.resize(currentThresholds_.size(), 0.0f);
 	const auto iterFirstFake = std::find(begin(Pup), end(Pup), 0.0f);
-	const auto numReachedValues = std::distance(begin(Pup), iterFirstFake) - 1ul;
+	const auto numReachedValues = std::distance(begin(Pup), iterFirstFake) - 1;
 	assert(numReachedValues > 1);
 	const auto& lastPup = Pup.at(numReachedValues);
 	assert(lastPup > 0.0f);
