@@ -905,7 +905,8 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 							 impFun.maxValue);
 		}
 		// Parse time factor if given
-		set_time_factor(impFun.timeFactor, ifun);
+		if (!impFun.timeFactor.empty())
+			set_time_factor(impFun.timeFactor, ifun);
 		// DON'T apply post-processing
 		if (PostProcessing::NONE != impFun.postProcessing.type)
 			techLog_ << "\n[WARNING] post-processing \"" << impFun.postProcessing.name
@@ -997,7 +998,8 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 							   + impFun.name + "\" automatically: " + e.msg());
 		}
 		// Parse time factor if given
-		set_time_factor(impFun.timeFactor, ifun);
+		if (!impFun.timeFactor.empty())
+			set_time_factor(impFun.timeFactor, ifun);
 		// Post-processing should have been applied on ifun construction, above
 		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
 		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
