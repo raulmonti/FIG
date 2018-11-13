@@ -163,14 +163,24 @@ public:  // Traial observers/updaters
 	/// Used for time registration in rate simulations.
 	/// @note Makes no assumption about the ImportanceFunction altogether
 	inline bool count_time(const Property& prop, Traial& t, Event&) const
-	    { return !prop.is_rare(t.state); }
+		{
+			return interrupted ||
+			(
+				t.lifeTime > simsLifetime || !prop.is_rare(t.state)
+			);
+		}
 
 	/// Simulate (accumulating time) as long as we remain in rare states.
 	/// Used for time registration in rate simulations.
 	/// @note This function assumes a \ref ImportanceFunctionConcrete
 	///       "concrete importance function" is currently bound to the engine
 	inline bool count_time_concrete(const Property&, Traial& t, Event&) const
-		{ return !IS_RARE_EVENT(cImpFun_->info_of(t.state)); }
+		{
+			return interrupted ||
+			(
+				t.lifeTime > simsLifetime || !IS_RARE_EVENT(cImpFun_->info_of(t.state))
+			);
+		}
 };
 
 } // namespace fig

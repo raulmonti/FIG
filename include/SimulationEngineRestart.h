@@ -68,9 +68,6 @@ class SimulationEngineRestart : public SimulationEngine
 	/// (i.e. loosing on importance) to be discarded
 	unsigned dieOutDepth_;
 
-	/// Times the simulation time has been truncated to reduce fp precision loss
-	mutable unsigned numChunksTruncated_;
-
 	/// Original Traial for a batch means mechanism
 	Traial& oTraial_;
 
@@ -220,13 +217,6 @@ private:  // Traial observers/updaters
 				e = EventType::THR_UP;
 			else if (property.is_rare(traial.state))
 				e = EventType::RARE;
-			if (traial.lifeTime > SIM_TIME_CHUNK
-				&& simsLifetime > SIM_TIME_CHUNK) {
-				// reduce fp precision loss
-				traial.lifeTime -= SIM_TIME_CHUNK;
-				simsLifetime    -= SIM_TIME_CHUNK;
-				numChunksTruncated_ += 1u;
-			}
 			return interrupted ||
 			(
 			    traial.lifeTime > simsLifetime || EventType::NONE != e
@@ -254,13 +244,6 @@ private:  // Traial observers/updaters
 			else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 				SET_THR_UP_EVENT(e);
 			// else: rare event info is already marked inside 'e'
-			if (traial.lifeTime > SIM_TIME_CHUNK
-				&& simsLifetime > SIM_TIME_CHUNK) {
-				// reduce fp precision loss
-				traial.lifeTime -= SIM_TIME_CHUNK;
-				simsLifetime    -= SIM_TIME_CHUNK;
-				numChunksTruncated_ += 1u;
-			}
 			return interrupted ||
 			(
 			    traial.lifeTime > simsLifetime || EventType::NONE != e
@@ -272,8 +255,10 @@ private:  // Traial observers/updaters
 	/// @note Makes no assumption about the ImportanceFunction altogether
 	inline bool count_time(const Property& prop, Traial& t, Event&) const
 		{
-			return t.lifeTime > simsLifetime ||
-			        !prop.is_rare(t.state);
+			return interrupted ||
+			(
+				t.lifeTime > simsLifetime || !prop.is_rare(t.state)
+			);
 		}
 
 	/// Turn off splitting and simulate (accumulating time) as long as we are
@@ -282,8 +267,10 @@ private:  // Traial observers/updaters
 	///       "concrete importance function" is currently bound to the engine
 	inline bool count_time_concrete(const Property&, Traial& t, Event&) const
 		{
-			return t.lifeTime > simsLifetime ||
-					!IS_RARE_EVENT(cImpFun_->info_of(t.state));
+			return interrupted ||
+			(
+				t.lifeTime > simsLifetime || !IS_RARE_EVENT(cImpFun_->info_of(t.state))
+			);
 		}
 };
 

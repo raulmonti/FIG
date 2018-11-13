@@ -62,7 +62,6 @@ SimulationEngineRestart::SimulationEngineRestart(
         SimulationEngine("restart", model, thresholds),
 //        splitsPerThreshold_(splitsPerThreshold),
         dieOutDepth_(0u),
-        numChunksTruncated_(0u),
         oTraial_(TraialPool::get_instance().get_traial())
 {
 	if (thresholds)
@@ -222,7 +221,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 		// by the relative importance of the threshold level they belong to
 		weighedRaresCount[i] = 0.0l;
 		double effort(1.0);
-		for (int t = 0u ; t <= (int)numThresholds ; t++) {
+		for (auto t = 0u ; t <= numThresholds ; t++) {
 			effort *= impFun_->effort_of(t);
 			weighedRaresCount[i] += raresCount[t] / effort;
 		}
@@ -248,7 +247,6 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	TraialPool& tpool(TraialPool::get_instance());
 
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
-	numChunksTruncated_ = 0u;
 	if (reachCount_.size() != numThresholds+1 || reinit)
 		decltype(reachCount_)().swap(reachCount_);
 
@@ -307,10 +305,11 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 			// We are? Then register rare time
 			assert(impFun_->importance_of(traial.state) > static_cast<ImportanceValue>(0)
 				   || impFun_->strategy() == "adhoc");
-			const CLOCK_INTERNAL_TYPE simLength(traial.lifeTime);  // reduce fp prec. loss
-			traial.lifeTime = static_cast<CLOCK_INTERNAL_TYPE>(0.0);
+			const auto simLength(traial.lifeTime);  // reduce fp prec. loss
+			traial.lifeTime = 0.0;
 			model_->simulation_step(traial, property, register_time);
 			assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < traial.lifeTime);
+			traial.lifeTime = std::min(traial.lifeTime, simsLifetime);
 			raresCount[traial.level] += traial.lifeTime;
 			traial.lifeTime += simLength;
 		}
@@ -326,19 +325,8 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 			if (&traial != &oTraial_)  // avoid future aliasing!
 				tpool.return_traial(std::move(traial));
 			ssstack_.pop();
-			// Revert any time truncation
-			if (0u < numChunksTruncated_) {
-				simsLifetime += numChunksTruncated_ * SIM_TIME_CHUNK;
-				numChunksTruncated_ = 0u;
-			}
 
 		} else if (IS_THR_UP_EVENT(e)) {
-			// Revert any time truncation
-			if (0u < numChunksTruncated_) {
-				simsLifetime += numChunksTruncated_ * SIM_TIME_CHUNK;
-				traial.lifeTime += numChunksTruncated_ * SIM_TIME_CHUNK;
-				numChunksTruncated_ = 0u;
-			}
 			// Could have gone up several thresholds => split accordingly
 			handle_lvl_up(traial, tpool, ssstack_);
 			assert(&(ssstack_.top().get()) != &oTraial_);
@@ -346,13 +334,13 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		}
 		// RARE events are checked first thing in next iteration
 	}
-	if (ssstack_.empty())  // allow next iteration of batch means
+	if (ssstack_.empty())  // enable next iteration of batch means
 		ssstack_.push(oTraial_);
 
 	// To estimate, weigh times by the relative importance of their thresholds
 	double weighedAccTime(0.0);
 	unsigned long effort(1ul);
-	for (int t = 0 ; t <= (int)numThresholds ; t++) {
+	for (auto t = 0u ; t <= numThresholds ; t++) {
 		effort *= impFun_->effort_of(t);
 		weighedAccTime += raresCount[t] / effort;
 	}
