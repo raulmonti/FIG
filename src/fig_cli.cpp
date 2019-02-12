@@ -375,10 +375,6 @@ get_jani_spec()
 		janiSpec.modelFileJANI = (regex_match(iosaFile, iosaExt))
 								 ? regex_replace(iosaFile, iosaExt, "$1.jani")
 								 : iosaFile + ".jani";
-		if (regex_match(iosaFile, iosaExt))
-			janiSpec.modelFileJANI = regex_replace(iosaFile, iosaExt, "$1.jani");
-		else
-			janiSpec.modelFileJANI = iosaFile + ".jani";
 	}
 
 	return true;

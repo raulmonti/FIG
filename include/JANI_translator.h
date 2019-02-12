@@ -69,7 +69,7 @@ public:  // Ctor/Dtor
 	JaniTranslator();
 
 	/// Default dtor
-	~JaniTranslator();
+	virtual ~JaniTranslator();
 
 public:  // Translation facilities
 
@@ -132,6 +132,11 @@ private:  // Class attributes
 	/// @note Used for IOSA -> STA translation
 	static constexpr char REAL_VAR_FROM_CLOCK_PREFIX[] = "x_";
 
+	/// If a label in a module synchronises es with no other module,
+	/// still create a sync-array for it where the module talks to itself
+	/// @note For compatibility with the Modest Toolset
+	static constexpr bool ALLOW_SELF_SYNCING = true;
+
 	/// An empty Json::Value of "object" type
 	static const Json::Value EMPTY_JSON_OBJ;
 
@@ -144,7 +149,7 @@ private:  // Class attributes
 	/// JsonCPP of the last parsed model, in JANI Specifiaction format
 	shared_ptr< Json::Value > JANIroot_;
 
-	/// Current JSON field to fill in with info from last parsed IOSA model
+	/// Current JSON field to fill in with info from just-parsed IOSA model
 	shared_ptr< Json::Value > JANIfield_;
 
 	/// Name of the module currently translated (visited)
@@ -167,8 +172,14 @@ private:  // Class attributes
 	/// Labels of each module split in I/O
 	std::map< std::string, LabelSets > modulesLabels_;
 
-	/// All model labels grouped together without discrimination
+	/// Labels from all modules
 	std::set< std::string > modelLabels_;
+
+	/// Variables that appear in the properties
+	/// @note For compatibility with the Modest Toolset,
+	///       these will be stored as *** global variables ***
+	/// @note The resulting JANI file is no longer an IOSA !!!
+	std::set< Json::Value > variablesInProperties_;
 
 	/// Invariant needed by STA to make time progress
 	/// @note Updated by build_JANI_guard()
@@ -287,12 +298,11 @@ private:  // Class utils: IOSA -> JANI
 								 Json::Value& JANIobj);
 
 	/// Add to JANIobj the "JANI automata composition fields" translated
-	/// from the info gathered into modulesLabels_ from the current model
+	/// from the info gathered into modulesLabels_
 	void build_JANI_synchronization(Json::Value& JANIobj);
 
 	/// Append to JANIarr the "JANI synchronization vector" corresponding to
 	/// this output label, using the info gathered into modulesLabels_
-	/// from the current model under translation
 	void build_JANI_sync_vector(const std::string& oLabel,
 								Json::Value& JANIarr);
 
@@ -302,6 +312,9 @@ private:  // Visitor overrides for parsing
 	/// @warning If there's some previously parsed model information
 	///	         then JANIroot will be cleared from all data
 	void visit(shared_ptr<Model> node) override;
+
+	/// Append/assign to JANIfield the JANI translation of this IOSA module
+	void visit(shared_ptr<ModuleAST> node) override;
 
 	/// Append/assign to JANIfield the JANI translation of this IOSA constant
 	/// (or boolean variable)
@@ -340,9 +353,6 @@ private:  // Visitor overrides for parsing
 	/// Append/assign to JANIfield the JANI translation of this IOSA
 	/// binary operator.
 	void visit(shared_ptr<BinOpExp> node) override;
-
-	/// Append/assign to JANIfield the JANI translation of this IOSA module
-	void visit(shared_ptr<ModuleAST> node) override;
 
 	/// Append/assign to JANIfield the JANI translation of this IOSA transition
 	/// @note Specialization'd be pointless, right?
