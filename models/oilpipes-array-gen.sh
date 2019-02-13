@@ -72,11 +72,22 @@ echo " */"
 # PARAMETERS
 
 echo ""
-echo "// -- The following values were extracted from José Villén-Altamirano,"
-echo "// -- \"RESTART simulation of non-Markov consecutive-k-out-of-n:F repairable"
-echo "// -- systems\", Reliability Engineering and System Safety, Vol. 95, Issue 3,"
-echo "// -- March 2010, pp. 247-254."
-echo "// --"
+echo "// The following distributions are used in page 252, Section 4.1,"
+echo "// \"System steady-state unavailability and MTBF\" of José Villén-Altamirano"
+echo "// \"RESTART simulation of non-Markov consecutive-k-out-of-n:F repairable"
+echo "// systems\", Reliability Engineering and System Safety, Vol. 95, Issue 3,"
+echo "// March 2010, pp. 247-254:"
+echo "//  · Repair time ~ Log-normal(1.21,0.8)"
+echo "//  · Nodes lifetime ~ Exponential(lambda) or Rayleigh(sigma)"
+echo "//                     for (lambda,sigma) in {(0.001 ,  798.0  ),"
+echo "//                                            (0.0003, 2659.615),"
+echo "//                                            (0.0001, 7978.845)}"
+echo "// NOTE: Rayleigh(s) distribution is actually"
+echo "//       a Weibull distribution with shape == 2 and rate == s*sqrt(2)"
+echo "//       Thus the lambda and sigma values above are paired up so that"
+echo "//       the resulting exponential/Rayleigh distrib. have equal mean,"
+echo "//       e.g. 1/lambda = 1/0.001 = sigma*sqrt(pi/2) => sigma = 797.88"
+echo "//"
 if [[ "$D" == "E" ]]; then
 	F_DIST="exponential($P)"
 elif [[ "$D" == "W" ]]; then
@@ -87,8 +98,8 @@ fi
 LN_M=1.21
 LN_SD=0.8
 R_DIST="lognormal($LN_M,$LN_SD)"
-echo "// -- Nodes lifetime ~ $F_DIST"
-echo "// -- Repair time ~ Log-normal($LN_M,$LN_SD)"
+echo "// Chosen nodes lifetime ~ $F_DIST"
+echo "// Chosen repair time    ~ Log-normal($LN_M,$LN_SD)"
 echo ""
 
 
@@ -98,17 +109,17 @@ echo ""
 echo ""
 echo "///////////////////////////////////////////////////////////////////////"
 echo "//"
-echo "// -- Nodes | Total: $N"
-echo "// --       | Consecutive fails needed: $K"
-echo "// --       | Lifetime distribution: $F_DIST"
+echo "// Nodes | Total: $N"
+echo "//       | Consecutive fails needed: $K"
+echo "//       | Lifetime distribution: $F_DIST"
 
 for (( i=1 ; i<=$N ; i++ ))
 do
 	echo ""
 	echo ""
 	echo "module Node$i"
-	echo "	N${i}clk: clock;          // -- Failure ~ $F_DIST"
-	echo "	N${i}: bool init false;   // -- Node failed?"
+	echo "	N${i}clk: clock;          // Failure ~ $F_DIST"
+	echo "	N${i}: bool init false;   // Node failed?"
 	echo "	[f$i!] !N$i @ N${i}clk -> (N$i'= true);"
 	echo "	[r$i?]  N$i          -> (N$i'= false) & (N${i}clk'= $F_DIST);"
 	echo "endmodule"
@@ -122,27 +133,27 @@ echo ""
 echo ""
 echo "///////////////////////////////////////////////////////////////////////"
 echo "//"
-echo "// -- Repairman | Fixes first broken node found"
-echo "// --           | Repair-time distribution: Log-normal($LN_M,$LN_SD)"
+echo "// Repairman | Fixes first broken node found"
+echo "//           | Repair-time distribution: Log-normal($LN_M,$LN_SD)"
 echo ""
 echo ""
 echo "module Repairman"
 echo ""
-echo "	Rclk: clock;    // -- Repair ~ $R_DIST"
-echo "	fix : [0..$N];  // -- Which node are we fixing now"
-for i in $(seq $N); do echo "	N${i}f : bool init false;  // -- Node $i failed?"; done
+echo "	Rclk: clock;    // Repair ~ $R_DIST"
+echo "	fix : [0..$N];  // Which node are we fixing now"
+for i in $(seq $N); do echo "	N${i}f : bool init false;  // Node $i failed?"; done
 echo ""
-echo "	// -- Repair failed node right away"
+echo "	// Repair failed node right away"
 for (( i=1 ; i<=$N ; i++ )); do
 	echo "	[f$i?] fix == 0 -> (N${i}f'= true) & (fix' = $i) & (Rclk'= $R_DIST);"
 done
 echo ""
-echo "	// -- Register failed node for later repairment"
+echo "	// Register failed node for later repairment"
 for (( i=1 ; i<=$N ; i++ )); do
 	echo "	[f$i?] fix > 0 -> (N${i}f'= true);"
 done
 echo ""
-echo "	// -- Report repaired node and seek the next one"
+echo "	// Report repaired node and seek the next one"
 for (( i=1 ; i<=$N ; i++ )); do
 for (( k=1 ; k<=$N ; k++ )); do
 	if [ $i -eq $k ]; then continue; fi
@@ -153,7 +164,7 @@ for (( k=1 ; k<=$N ; k++ )); do
 	echo "	       @ Rclk -> (N${i}f'= false) & (fix'= $k) & (Rclk'= $R_DIST);"
 done; done
 echo ""
-echo "	// -- Report repairment of last failed node and go to sleep"
+echo "	// Report repairment of last failed node and go to sleep"
 for (( i=1 ; i<=$N ; i++ )); do
 	echo "	[r$i!] fix == $i"
 	for (( j=1 ; j<=$N ; j++ )); do

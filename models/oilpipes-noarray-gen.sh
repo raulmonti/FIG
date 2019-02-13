@@ -59,6 +59,11 @@ echo "//                                            (0.0003, 2659.615)," >> $MOD
 echo "//                                            (0.0001, 7978.845)}" >> $MODEL;
 echo "// NOTE: Rayleigh(s) distribution is actually" >> $MODEL;
 echo "//       a Weibull distribution with shape == 2 and rate == s*sqrt(2)" >> $MODEL;
+echo "//       Thus the lambda and sigma values above are paired up so that" >> $MODEL;
+echo "//       the resulting exponential/Rayleigh distrib. have equal mean," >> $MODEL;
+echo "//       e.g. 1/lambda = 1/0.001 = sigma*sqrt(pi/2) => sigma = 797.88" >> $MODEL;
+
+# 
 echo -en "\n\n" >> $MODEL;
 
 # NODES (e.g. "oil pressure-pumps")
@@ -94,6 +99,7 @@ echo "module Repairman" >> $MODEL;
 echo "" >> $MODEL;
 echo "	Rclk: clock;    // Repair ~ $R_DIST" >> $MODEL;
 echo "	fix : [0..$N];  // Which node are we fixing now" >> $MODEL;
+echo "	reset : bool init false;  // Are all fixed? (after at least one fail)" >> $MODEL;
 #for i in $(seq $N); do echo "	N${i}f : bool init false;  // Node $i failed?"; done >> $MODEL;
 for (( i=1 ; i<=$N ; i++ )); do
 	echo "	N${i}f : bool init false;  // Node $i failed?" >> $MODEL;
@@ -131,7 +137,7 @@ for (( i=1 ; i<=$N ; i++ )); do
 			echo "	       & !N${j}f" >> $MODEL;
 		fi
 	done
-	echo "	       @ Rclk -> (N${i}f'= false) & (fix'= 0);" >> $MODEL;
+	echo "	       @ Rclk -> (N${i}f'= false) & (fix'= 0) & (reset'=true);" >> $MODEL;
 done
 echo "endmodule" >> $MODEL;
 echo "" >> $MODEL;
@@ -139,7 +145,19 @@ echo "" >> $MODEL;
 # PROPERTY
 echo "" >> $MODEL;
 echo "properties" >> $MODEL;
-echo -en "  S(" >> $MODEL;
+# STEADY-STATE
+##	echo -en "  S(" >> $MODEL;
+##	for (( i=1 ; i <= N-K+1 ; i++ )); do
+##		echo -en "\n    (" >> $MODEL;
+##		for (( j=i ; j < i+K ; j++ )); do >> $MODEL;
+##			echo -en "N$j & " >> $MODEL;
+##		done;
+##		echo -en "true) |" >> $MODEL;
+##	done;
+##	echo " false" >> $MODEL;
+##	echo "   ) // \"rate\"" >> $MODEL;
+# TRANSIENT
+echo -en "  P( !reset U" >> $MODEL;
 for (( i=1 ; i <= N-K+1 ; i++ )); do
 	echo -en "\n    (" >> $MODEL;
 	for (( j=i ; j < i+K ; j++ )); do >> $MODEL;
@@ -148,7 +166,7 @@ for (( i=1 ; i <= N-K+1 ; i++ )); do
 	echo -en "true) |" >> $MODEL;
 done;
 echo " false" >> $MODEL;
-echo "   ) // \"rate\"" >> $MODEL;
+echo "   ) // \"transient\"" >> $MODEL;
 echo "endproperties" >> $MODEL;
 echo "" >> $MODEL;
 
