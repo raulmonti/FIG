@@ -34,10 +34,13 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <list>
 // C
 #include <omp.h>
 #include <cassert>
+#include <csignal>
+#include <pthread.h>  // pthread_cancel()
 #include <sys/stat.h>
 // FIG
 #include <fig.h>
@@ -72,7 +75,7 @@ using fig_cli::impFunSpec;
 using fig_cli::thrTechnique;
 using fig_cli::splittings;
 using fig_cli::estBounds;
-using fig_cli::simsTimeout;
+using fig_cli::globalTimeout;
 
 
 //  Main stuff  ////////////////////////////////////////////////////////////////
@@ -90,7 +93,7 @@ int main(int argc, char** argv)
 		const bool versionQuery = print_intro(argc, const_argv);
 		fig_cli::parse_arguments(argc, const_argv);  // exit on error
 		if (versionQuery)
-			goto exit_point;  // we're done
+			return EXIT_SUCCESS;  // we're done
 	} catch (fig::FigException& e) {
 		log(FIG_ERROR + " parse the command line.\n\n");
 		tech_log("Error message: " + e.msg() + "\n");
@@ -110,7 +113,7 @@ int main(int argc, char** argv)
 			ss << std::setprecision(2) << omp_get_wtime()-start << " s\n\n";
 			tech_log(ss.str());
 			if (janiSpec.translateOnly)
-				goto exit_point;  // we're done
+				return EXIT_SUCCESS;  // we're done
 		}
 	} catch (fig::FigException& e) {
 		log(FIG_ERROR + " communicate with the JANI Specification format.\n\n");
@@ -139,10 +142,26 @@ int main(int argc, char** argv)
 		exit(EXIT_FAILURE);
 	}
 
+	// Set "infinite" global timeout if the user didn't define one
+	if (0 >= globalTimeout.count()) {
+		globalTimeout = std::chrono::seconds(99999999l);
+	} else {
+		char timeStr[9] = {'\0'};
+		const auto secs = static_cast<unsigned>(globalTimeout.count());
+		std::sprintf(timeStr, "%02u:%02u:%02u", secs/3600u, (secs%3600u)/60u, secs%60u);
+		log("Global timeout set to " + std::string(timeStr) + "\n");
+	}
+	const auto MAIN_THREAD = pthread_self();
+	std::thread timer([&MAIN_THREAD,&tech_log](const std::chrono::seconds& timeout)
+	                  { std::this_thread::sleep_for(timeout);
+		                tech_log("\n\nGLOBAL TIMEOUT: cancelling all pending computations\n\n");
+						pthread_kill(MAIN_THREAD, SIGINT); },
+	                  std::ref(globalTimeout));
+
 	// Estimate using requested configuration
 	try {
 		auto model = fig::ModelSuite::get_instance();
-		model.set_timeout(simsTimeout);
+//		model.set_timeout(globalTimeout);  // behaviour changed, see globalTimeout above
 		model.process_batch(engineName,
 							impFunSpec,
 							thrTechnique,
@@ -152,15 +171,22 @@ int main(int argc, char** argv)
 	} catch (fig::FigException& e) {
 		log(FIG_ERROR + " perform estimations.\n\n");
 		tech_log("Error message: " + e.msg() + "\n");
-		exit(EXIT_FAILURE);
+		goto exit_failure;
 	} catch (std::exception& e) {
 		log("UNEXPECTED " + FIG_ERROR + " perform estimations.\n\n");
 		tech_log(std::string("Error message: ") + e.what() + "\n");
-		exit(EXIT_FAILURE);
+		goto exit_failure;
 	}
 
-	exit_point:
-		return EXIT_SUCCESS;
+	// Global timeout never reached
+	pthread_cancel(timer.native_handle());
+	timer.detach();
+	return EXIT_SUCCESS;
+
+    exit_failure:
+	    pthread_cancel(timer.native_handle());
+		timer.detach();
+		exit(EXIT_FAILURE);
 }
 
 

@@ -72,7 +72,7 @@ fig::ImpFunSpec impFunSpec("no_name", "no_strategy");
 string thrTechnique;
 std::set< unsigned > splittings;
 std::list< fig::StoppingConditions > estBounds;
-std::chrono::seconds simsTimeout;
+std::chrono::seconds globalTimeout;
 bool forceOperation;
 bool confluenceCheck;
 
@@ -116,10 +116,11 @@ CmdLine cmd_("\nSample usage:\n"
 			 "~$ fig models/tandem.{sa,pp} --flat -e nosplit            \\"
 			 "       --stop-conf 0.8 0.4 --timeout 1h\n"
 			 "Use a flat importance function to perform a standard Monte Carlo "
-			 "simulation (i.e. no splitting), which will run until either "
-			 "the relative precision achieved for an 80% confidence interval "
-			 "equals 40% of the value estimated for each property, or 1 hour "
-			 "of wall clock time has passed, whichever happens first.\n"
+             "simulation (i.e. no splitting). This will run until the "
+             "relative precision achieved for an 80% confidence interval "
+             "equals 40% of the value estimated for each property; unless 1 h "
+             "(of wall-clock time) elapses from the time point in which the "
+             "model was compiled, in which case computations are interrupted.\n"
 			 "~$ fig models/tandem.{sa,pp} --adhoc \"10*q2+q1\" -t ams    \\"
 			 "       --stop-conf 0.9 0.2\n"
 			 "Use the importance function \"10*q2+q1\" defined ad hoc by the "
@@ -129,16 +130,15 @@ CmdLine cmd_("\nSample usage:\n"
 			 "the relative precision achieved for a 90% confidence interval "
 			 "equals 20% of the value estimated for each property.\n"
 			 "~$ fig models/tandem.{sa,pp} --acomp \"+\" -t hyb           \\"
-			 "       --stop-conf .8 .4 --stop-time 1h --stop-conf .95 .1       \\"
-			 "       --splitting 2,3,5,9,15 -e restart --timeout 30m\n"
+             "       --stop-conf .8 .4 --stop-time 15m --stop-conf .95 .1       \\"
+             "       --splitting 2,3,5,9,15 -e restart --timeout 2h\n"
 			 "Use an automatically computed \"compositional\" importance "
 			 "function, built modularly on every module's state space, "
 			 "simulating with the RESTART engine for the splitting values "
 			 "explicitly specified, using the hybrid thresholds building "
 			 "technique, i.e. \"hyb\", estimating the value of each property "
 			 "for this configuration and for each one of the three stopping "
-			 "conditions, or until the wall-clock timeout is reached in "
-			 "each case.",
+             "conditions, or until the wall-clock timeout is globally reached.",
 			 ' ', versionStr);
 
 // IOSA model file path
@@ -272,10 +272,12 @@ std::vector< Arg* > stopCondSpecs = {
 
 // Simulations timeout
 ValueArg<string> timeout(
-	"", "timeout",
-	"Running time limit: if set, any simulation will be soft-interrupted "
-	"after running for this (wall clock) time. If the stopping condition for "
-	"a simulation is also time based, the lowest of the two values will apply.",
+    "", "timeout",
+    "Global timeout: when set to T > 0, FIG will be soft-interrupted after T "
+    "(wall-clock) seconds elapsed, counting from the moment when the model "
+    "has been successfully compiled. "
+    "Time duration T may have a prefix: 's' for seconds "
+    "(default), 'm' for minutes, 'h' for hours, 'd' for days.",
 	false, "", &timeDurationConstraint);
 
 // Splitting values to test
@@ -569,7 +571,7 @@ get_timeout()
 							timeUnit == 'd' ? 86400ul : 0ul);
 		const size_t timeLen = std::strtoul(TO.data(), &err, 10);
 		assert (nullptr == err || err[0] == '\0');
-		simsTimeout = std::chrono::seconds(timeLen * FACTOR);
+		globalTimeout = std::chrono::seconds(timeLen * FACTOR);
 	}
 	return true;
 }

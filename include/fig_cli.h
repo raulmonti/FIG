@@ -95,9 +95,10 @@ extern std::set< unsigned > splittings;
 /// confidence interval with 2.3x10^-5 precision)
 extern std::list< fig::StoppingConditions > estBounds;
 
-/// Simulations timeout. It causes a soft-interrupt in any simulation launched,
-/// after 'simsTimeout' seconds of uninterrupted wall-clock execution
-extern std::chrono::seconds simsTimeout;
+/// Global tool timeout. It causes a soft-interrupt in the whole execution
+/// of FIG after 'globalTimeout' (wall-clock) seconds, counting from the
+/// time point in which the model has been successfully compiled
+extern std::chrono::seconds globalTimeout;
 
 /// Attempt to estimate/translate in spite of any warning from the parser
 /// of the model not being IOSA-compliant
