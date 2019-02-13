@@ -509,6 +509,7 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 constexpr char JaniTranslator::REAL_VAR_FROM_CLOCK_PREFIX[];
+constexpr char JaniTranslator::INIT_CLOCKS[];
 const Json::Value JaniTranslator::EMPTY_JSON_OBJ = Json::Value(Json::objectValue);
 const Json::Value JaniTranslator::EMPTY_JSON_ARR = Json::Value(Json::arrayValue);
 
@@ -889,6 +890,16 @@ JaniTranslator::build_JANI_synchronization(Json::Value& JANIobj)
 			}
 		}
 	}
+
+	// For compatibility with the Modest Toolset:
+	// An extra action to sync all modules from initial-location to location
+	auto initSync = EMPTY_JSON_OBJ;
+	initSync["result"] = INIT_CLOCKS;
+	initSync["synchronise"] = EMPTY_JSON_ARR;
+	for (auto i=0ul ; i<modulesLabels_.size() ; i++)
+		initSync["synchronise"].append(INIT_CLOCKS);
+	JANIobj["syncs"].append(initSync);
+
 	if (JANIobj["syncs"].empty())
 		JANIobj.removeMember("syncs");
 }
@@ -968,6 +979,12 @@ JaniTranslator::visit(shared_ptr<Model> node)
 		(*JANIroot_)["actions"].append(action);
 	}
 
+	// For compatibility with the Modest Toolset:
+	// An extra action to sync all modules from initial-location to location
+	auto initAction = EMPTY_JSON_OBJ;
+	initAction["name"] = INIT_CLOCKS;
+	(*JANIroot_)["actions"].append(initAction);
+
 	// Compose the automata with synchronization vectors
 	build_JANI_synchronization((*JANIroot_)["system"]);
 	assert((*JANIroot_)["system"].isObject());
@@ -1001,9 +1018,11 @@ JaniTranslator::visit(shared_ptr<ModuleAST> node)
 	}
 	JANIobj["variables"] = *JANIfield_;
 
+	// For compatibility with the Modest Toolset:
 	// Prepare initialisation edge from initial-location to the "real location"
 	// that initialises all clocks and never goes back to the initial-location.
 	initEdge = EMPTY_JSON_OBJ;
+	initEdge["action"] = INIT_CLOCKS;
 	initEdge["location"] = "initial-location";
 	initEdge["destinations"] = EMPTY_JSON_ARR;
 	initEdge["destinations"].append(EMPTY_JSON_OBJ);

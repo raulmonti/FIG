@@ -132,6 +132,11 @@ private:  // Class attributes
 	/// @note Used for IOSA -> STA translation
 	static constexpr char REAL_VAR_FROM_CLOCK_PREFIX[] = "x_";
 
+	/// Label used to synchronise modules when moving from their
+	/// initial-location to their "real location"
+	/// @note For compatibility with the Modest Toolset
+	static constexpr char INIT_CLOCKS[] = "init_clocks";
+
 	/// If a label in a module synchronises es with no other module,
 	/// still create a sync-array for it where the module talks to itself
 	/// @note For compatibility with the Modest Toolset
