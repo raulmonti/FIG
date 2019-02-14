@@ -1,4 +1,6 @@
-#!/bin/env bash
+#!/usr/bin/env bash
+# @author Carlos E. Budde
+# @date 14.02.2019
 
 # CALLING ARGUMENTS
 if [ $# -ne 5 ]; then

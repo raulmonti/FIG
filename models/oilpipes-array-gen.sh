@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# @author Carlos E. Budde
+# @date 14.02.2019
 
 # Check calling arguments
 if [ $# -ne 5 ]

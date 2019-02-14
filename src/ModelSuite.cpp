@@ -297,7 +297,7 @@ seconds ModelSuite::timeout_(0l);
 
 const ConfidenceInterval* ModelSuite::interruptCI_ = nullptr;
 
-const std::vector< float > ModelSuite::confCoToShow_ = {0.8, 0.9, 0.95, 0.99};
+const std::vector< float > ModelSuite::confCoToShow_ = {0.8f, 0.9f, 0.95f, 0.99f};
 
 SignalSetter ModelSuite::SIGINThandler_(SIGINT, [] (const int signal) {
 #ifndef NDEBUG
@@ -865,7 +865,7 @@ ModelSuite::build_thresholds(const std::string& technique,
 				 << "\",\nusing technique \"" << technique << "\" with splitting "
 				 << "== " << to_string(splitsPerThreshold) << std::endl;
 		const double startTime = omp_get_wtime();
-		if (thrBuilder.adaptive() && lvlUpProb > 0.0)
+		if (thrBuilder.adaptive() && lvlUpProb > 0.0f)
 			ifun.build_thresholds_adaptively(
 					*std::dynamic_pointer_cast<ThresholdsBuilderAdaptive>(thrBuilders[technique]),
 					splitsPerThreshold,

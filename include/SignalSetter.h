@@ -34,6 +34,7 @@
 
 // C
 #include <csignal>  // std::signal()
+#include <cassert>
 // C++
 #include <array>
 #include <utility>  // std::swap()
