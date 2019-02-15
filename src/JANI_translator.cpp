@@ -1114,7 +1114,7 @@ JaniTranslator::visit(shared_ptr<InitializedDecl> node)
         JANIobj["initial-value"] = get_bool_or_error(node->get_init(),
                                       "failed to reduce initial value of \""
                                       + node->get_id() + "\"\n");
-    } else {
+	} else {
 		// Constant
 		build_JANI_constant(node, JANIobj);
     }
@@ -1123,10 +1123,17 @@ JaniTranslator::visit(shared_ptr<InitializedDecl> node)
 		throw_FigException("error translating declaration: " + get_messages());
 
 	// Store translated data in corresponding field
-	if (JANIfield_->isArray())
-		JANIfield_->append(JANIobj);
-	else
-		(*JANIfield_) = JANIobj;
+	// For compatibility with the Modest Toolset,
+	// if the variable appears in a property,
+	// store as a *** global variable *** instead
+	if (varNamesRegister.find(node->get_id()) != end(varNamesRegister)) {
+		variablesInProperties_.insert(JANIobj);
+	} else {
+		if (JANIfield_->isArray())
+			JANIfield_->append(JANIobj);
+		else
+			(*JANIfield_) = JANIobj;
+	}
 }
 
 
