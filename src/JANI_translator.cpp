@@ -518,8 +518,7 @@ JaniTranslator::JaniTranslator() :
 	JANIroot_(make_shared<Json::Value>(EMPTY_JSON_OBJ)),
 	JANIfield_(make_shared<Json::Value>(EMPTY_JSON_OBJ)),
 	currentModule_(),
-	currentScope_(nullptr),
-	timeProgressInvariant_(make_shared<Json::Value>(Json::nullValue))
+    currentScope_(nullptr)
 { /* Not much to do around here */ }
 
 
@@ -528,7 +527,7 @@ JaniTranslator::~JaniTranslator()
 	JANIroot_.reset();
 	JANIfield_.reset();
 	currentScope_.reset();
-	timeProgressInvariant_.reset();
+	timeProgressInvariant_.clear();
 	modulesLabels_.clear();
 	modelLabels_.clear();
 	variablesInProperties_.clear();
@@ -740,22 +739,24 @@ JaniTranslator::build_JANI_guard(shared_ptr<TransitionAST> trans,
 							   ->get_triggering_clock()->get_identifier();
 		// Add STA guard for the clock: "clk >= real_var"
 		auto guard(EMPTY_JSON_OBJ);
-		guard["left"]  = *JANIfield_;
-		guard["op"]    = JANI_operator_string.at(ExpOp::andd).c_str();
+		guard["left"] = *JANIfield_;
+		guard["op"]   = JANI_operator_string.at(ExpOp::andd).c_str();
 		build_JANI_clock_comp(clockName, ExpOp::ge, guard["right"]);
 		JANIfield_->swap(guard);  // now 'guard' has the "clean precondition"
 		// Add STA condition for time progress invariant: "guard implies clk <= real_var"
-		auto tmp(EMPTY_JSON_OBJ);
-		tmp["left"]  = *timeProgressInvariant_;
-		tmp["op"]    = JANI_operator_string.at(ExpOp::andd).c_str();
-		tmp["right"] = EMPTY_JSON_OBJ;
-		tmp["right"]["left"]  = guard;
-		tmp["right"]["op"]    = JANI_operator_string.at(ExpOp::implies).c_str();
-		build_JANI_clock_comp(clockName, ExpOp::le, tmp["right"]["right"]);
-		if (timeProgressInvariant_->isNull())
-			timeProgressInvariant_->swap(tmp["right"]);
-		else
-			timeProgressInvariant_->swap(tmp);
+		if (timeProgressInvariant_.find(clockName) == end(timeProgressInvariant_))
+			timeProgressInvariant_[clockName] = guard;
+		else {
+			// Group guards by clock, e.g. for IOSA edges
+			// [] cond1 @ clk -> ...
+			// [] cond2 @ clk ->
+			// we build the invariant ((cond1 || cond2) -> clk <= x_clk)
+			auto tmp(EMPTY_JSON_OBJ);
+			tmp["left"]  = timeProgressInvariant_[clockName];
+			tmp["op"]    = JANI_operator_string.at(ExpOp::orr).c_str();
+			tmp["right"] = guard;
+			timeProgressInvariant_[clockName] = tmp;
+		}
 	}
 	JANIobj["guard"] = EMPTY_JSON_OBJ;
 	JANIobj["guard"]["exp"] = *JANIfield_;
@@ -776,6 +777,30 @@ JaniTranslator::build_JANI_clock_comp(const std::string& clockName,
 	JANIobj["left"]  = clockName.c_str();
 	JANIobj["op"]    = JANI_operator_string.at(op).c_str();
 	JANIobj["right"] = rv_from(clockName).c_str();
+}
+
+
+Json::Value
+JaniTranslator::build_JANI_time_progress()
+{
+	auto tpinv = EMPTY_JSON_OBJ;
+	assert(!timeProgressInvariant_.empty());
+	// Time progress invariants: "guards -> clk <= x_clk" for clk in timeProgressInvariant_
+	auto iter = begin(timeProgressInvariant_);
+	tpinv["left"] = iter->second;
+	tpinv["op"]   = JANI_operator_string.at(ExpOp::implies).c_str();
+	build_JANI_clock_comp(iter->first, ExpOp::le, tpinv["right"]);
+	for (++iter ; iter != end(timeProgressInvariant_) ; iter++) {
+		auto tmp = EMPTY_JSON_OBJ;
+		tmp["left"]  = tpinv;
+		tmp["op"]    = JANI_operator_string.at(ExpOp::andd).c_str();
+		tmp["right"] = EMPTY_JSON_OBJ;
+		tmp["right"]["left"]  = iter->second;
+		tmp["right"]["op"]    = JANI_operator_string.at(ExpOp::implies).c_str();
+		build_JANI_clock_comp(iter->first, ExpOp::le, tmp["right"]["right"]);
+		tpinv = tmp;
+	}
+	return tpinv;
 }
 
 
@@ -1004,7 +1029,7 @@ JaniTranslator::visit(shared_ptr<ModuleAST> node)
 	// Reference this module as "current"
 	currentModule_ = node->get_name();
 	currentScope_  = ModuleScope::scopes.at(currentModule_);
-	*timeProgressInvariant_ = Json::Value(Json::nullValue);
+	timeProgressInvariant_.clear();  // new module -> new time-progress
 	modulesLabels_[currentModule_] = std::make_pair(std::set<string>(),
 	                                                std::set<string>());
 	// Easy-to-guess module fields
@@ -1038,16 +1063,18 @@ JaniTranslator::visit(shared_ptr<ModuleAST> node)
 	JANIobj["edges"] = *JANIfield_;
 	JANIobj["edges"].append(initEdge);  // register also the initialisation edge
 
-	// STA time-progress invariant
+	// STA time-progress invariant:
+	// no time progress in "initial-location"
 	JANIobj["locations"] = EMPTY_JSON_ARR;
 	JANIobj["locations"].append(EMPTY_JSON_OBJ);
 	JANIobj["locations"][0]["name"] = "initial-location";
 	JANIobj["locations"][0]["time-progress"] = EMPTY_JSON_OBJ;
 	JANIobj["locations"][0]["time-progress"]["exp"] = false;
+	// guards-constructed time progress in "location"
 	JANIobj["locations"].append(EMPTY_JSON_OBJ);
 	JANIobj["locations"][1]["name"] = "location";
 	JANIobj["locations"][1]["time-progress"] = EMPTY_JSON_OBJ;
-	JANIobj["locations"][1]["time-progress"]["exp"] = *timeProgressInvariant_;
+	JANIobj["locations"][1]["time-progress"]["exp"] = build_JANI_time_progress();
 
 	// Store translated data in corresponding field
 	*JANIfield_ = tmp;

@@ -190,7 +190,7 @@ private:  // Class attributes
 	/// @note Updated by build_JANI_guard()
 	/// @note Reset by visit(shared_ptr<ModuleAST>)
 	/// @note Used for IOSA -> STA translation
-	shared_ptr< Json::Value> timeProgressInvariant_;
+	std::map< std::string, Json::Value > timeProgressInvariant_;
 
 	/// Real variables defined in a JANI Specification file,
 	/// used to sample the distributions that IOSA maps to clocks
@@ -289,6 +289,11 @@ private:  // Class utils: IOSA -> JANI
 	void build_JANI_clock_comp(const std::string& clockName,
 							   ExpOp op,
 							   Json::Value& JANIobj);
+
+	/// Process the time-progress conditions extracted during guards parsing,
+	/// and build a "condensed" time-progress invariant that groups
+	/// preconditions by clocks
+	Json::Value build_JANI_time_progress();
 
 	/// Add to JANIobj the "JANI destination fields" translated from
 	/// the corresponding data inside the IOSA transition 'trans'
