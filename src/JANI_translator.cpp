@@ -610,6 +610,8 @@ JaniTranslator::get_float_or_error(shared_ptr<Exp> exp,
 	exp->accept(ev);
 	if (ev.has_type_float())
 		res = ev.get_float();
+	else if (ev.has_type_int())
+		res = static_cast<float>(ev.get_int());
 	else
 		put_error(msg);
 	return res;
@@ -1107,13 +1109,14 @@ JaniTranslator::visit(shared_ptr<InitializedDecl> node)
 	auto JANIobj(EMPTY_JSON_OBJ);
 	assert( ! (has_errors() || has_warnings()) );
 
-    JANIobj["name"] = node->get_id();
+	const auto name =  node->get_id();
+	JANIobj["name"] = name;
     if (!node->is_constant() && node->get_type() == Type::tbool) {
 		// Variable of type bool (not "ranged")
         JANIobj["type"] = "bool";
         JANIobj["initial-value"] = get_bool_or_error(node->get_init(),
                                       "failed to reduce initial value of \""
-                                      + node->get_id() + "\"\n");
+									  + name + "\"\n");
 	} else {
 		// Constant
 		build_JANI_constant(node, JANIobj);
@@ -1124,9 +1127,9 @@ JaniTranslator::visit(shared_ptr<InitializedDecl> node)
 
 	// Store translated data in corresponding field
 	// For compatibility with the Modest Toolset,
-	// if the variable appears in a property,
+	// if the declaration is of a variable that appears in a property,
 	// store as a *** global variable *** instead
-	if (varNamesRegister.find(node->get_id()) != end(varNamesRegister)) {
+	if (!node->is_constant() && varNamesRegister.find(name) != end(varNamesRegister)) {
 		variablesInProperties_.insert(JANIobj);
 	} else {
 		if (JANIfield_->isArray())
