@@ -6,45 +6,67 @@ if [ $# -lt 2 ]; then
 	echo "[ERROR] Call with at least two arguments:";
 	echo "  1. System redundancy >= 2";
 	echo "  2. Root mean fail time";
-	echo "  3. [OPT] Number of Disk clusters";
-	echo "  4. [OPT] Number of (disk) Controller types";
-	echo "  5. [OPT] Number of Porcessor types";
+	echo "  3. [optional,default=no] Bound variables increment";
+	echo "  4. [optional,default=6]  Number of Disk clusters";
+	echo "  5. [optional,default=2]  Number of (disk) Controller types";
+	echo "  6. [optional,default=2]  Number of Porcessor types";
 	exit 1;
+else
+	BOUND=false;
+	D_NUM=6;
+	C_NUM=2;
+	P_NUM=2;
 fi
 
+check_ge() {
+	if (( $1<$2 )); then
+		echo "[ERROR] $3 must be an integer greater than $(($2-1))";
+		exit 1;
+	fi
+}
+
 # Redundancy
-if (( $1<2 )); then
-	echo "[ERROR] First argument must be an integer greater than 1";
-	exit 1;
-fi
+check_ge $1 2 "First argument (redundancy)";
 RED=$1;
 D_RED=$((2+$RED));
 C_RED=$RED;
 P_RED=$RED;
+
 # Mean fail time
-if (( $2<1 )); then
-	echo "[ERROR] Second argument must be an integer greater than 0";
-	exit 1;
-fi
+check_ge $2 1 "Second argument (MTTF)";
 FTIME=$2;
 D_FTIME=$((3*$FTIME));
 C_FTIME=$FTIME;
 P_FTIME=$FTIME;
-# Number of components
+
+# Bound variables increment?
 if [ $# -ge 3 ]; then
-	D_NUM=$3;
-else
-	D_NUM=6;
+	SHELLCASEMATCH=`shopt -p nocasematch`;
+	shopt -s nocasematch;
+	case $3 in
+	"y"|"yes"|"t"|"true")
+		BOUND=true;;
+	"n"|"no"|"f"|"false")
+		BOUND=false;;
+	*)
+		echo "[ERROR] Invalid third argument ($3); should specify yes or no";
+		exit 1;;
+	esac
+	$SHELLCASEMATCH;  # restore default
 fi
+
+# Number of components
 if [ $# -ge 4 ]; then
-	C_NUM=$4;
-else
-	C_NUM=2;
+	check_ge $4 1 "Fourth argument (#{disk-clusters})";
+	D_NUM=$4;
 fi
 if [ $# -ge 5 ]; then
-	P_NUM=$5;
-else
-	P_NUM=2;
+	check_ge $5 1 "Fifth argument (#{controller-types})";
+	C_NUM=$5;
+fi
+if [ $# -ge 6 ]; then
+	check_ge $6 1 "Sixth argument (#{processor-types})";
+	P_NUM=$6;
 fi
 
 # Compute failure rate for given failure mean time and global REDundancy
@@ -245,6 +267,7 @@ echo "";
 
 # OBSERVER
 
+MAX_NFAILS=${#F_LABELS[@]};
 echo "";
 echo "";
 echo "///////////////////////////////////////////////////////////////////////";
@@ -256,16 +279,24 @@ echo "";
 echo "module Observer";
 echo "";
 echo "	reset: bool init false;"
-echo "	nfails: [0..${#F_LABELS[@]}];"
+echo "	nfails: [0..$MAX_NFAILS];"
 echo "";
 echo "	// Failures";
 for FL in "${F_LABELS[@]}"; do
-	echo "	[$FL?] -> (nfails'=nfails+1);";
+	if $BOUND; then
+		echo "	[$FL?] -> (nfails'=min($MAX_NFAILS,nfails+1));";
+	else
+		echo "	[$FL?] -> (nfails'=nfails+1);";
+	fi
 done
 echo "";
 echo "	// Repair, but still some components broken somewhere";
 for RL in "${R_LABELS[@]}"; do
-	echo "	[$RL?] nfails>1 -> (nfails'=nfails-1);";
+	if $BOUND; then
+		echo "	[$RL?] nfails>1 -> (nfails'=max(0,nfails-1));";
+	else
+		echo "	[$RL?] nfails>1 -> (nfails'=nfails-1);";
+	fi
 done
 echo "";
 echo "	// Repair: all components up again (regeneration point)"
