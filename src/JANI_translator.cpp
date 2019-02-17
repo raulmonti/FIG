@@ -783,9 +783,10 @@ JaniTranslator::build_JANI_clock_comp(const std::string& clockName,
 Json::Value
 JaniTranslator::build_JANI_time_progress()
 {
-	auto tpinv = EMPTY_JSON_OBJ;
-	assert(!timeProgressInvariant_.empty());
+	if (timeProgressInvariant_.empty())
+		return Json::Value(true);  // nothing to restrict, let time flow
 	// Time progress invariants: "guards -> clk <= x_clk" for clk in timeProgressInvariant_
+	auto tpinv = EMPTY_JSON_OBJ;
 	auto iter = begin(timeProgressInvariant_);
 	tpinv["left"] = iter->second;
 	tpinv["op"]   = JANI_operator_string.at(ExpOp::implies).c_str();
