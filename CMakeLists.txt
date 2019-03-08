@@ -100,6 +100,7 @@ SET(PARSER_CODE "${PARSER_SRC}/ModelParser.cpp")
 IF(RELEASE)
 	ADD_DEFINITIONS(-DNDEBUG)     # General No-Debug
 	ADD_DEFINITIONS(-DNRANGECHK)  # Don't check ranges every f***ing time
+	ADD_DEFINITIONS(-DRANDOM_RNG_SEED)     # Randomize RNG seeding
 ENDIF()
 
 # RNG algorithm: C++ STL Mersenne-Twister vs. PCG default

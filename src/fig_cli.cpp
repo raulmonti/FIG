@@ -97,9 +97,9 @@ const std::string versionStr(
 #elif !defined RANDOM_RNG_SEED &&  defined PCG_RNG
 	"PCG RNG (seed:" + to_string(fig::Clock::rng_seed()) + ")"
 #elif !defined PCG_RNG
-	"MT RNG (random seed)");
+    "MT RNG (random seed)"
 #else
-	"PCG RNG (random seed)");
+    "PCG RNG (random seed)"
 #endif
 );
 
