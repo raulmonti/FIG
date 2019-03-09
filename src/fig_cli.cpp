@@ -83,6 +83,7 @@ bool verboseOutput;
 bool forceOperation;
 bool confluenceCheck;
 double failProbDFT;
+std::ostream* traceDump(nullptr);
 
 } // namespace fig_cli   // // // // // // // // // // // // // // // // // //
 
@@ -360,6 +361,15 @@ SwitchArg forceOperation_(
 SwitchArg confluenceCheck_(
 	"c", "confluence",
 	"Run algorithm to check confluence of committed actions.");
+
+// Simulation trace dumping
+ValueArg<string> dumpTrace_(
+    "", "trace",
+    "Dump in given file/stream the trace generated in simulations. "
+    "Intended for standard MC runs, i.e. the no-split simulation engine; "
+    "using this option together with a splitting engine MAY result in "
+    "undefined behaviour.",
+    false, "stderr", "stderr/stdout/filename");
 
 // For models that come from a Dynamic Faul Tree specification (e.g. GALILEO),
 // the user may specify the the probability of fail before repair,
@@ -740,6 +750,28 @@ get_global_effort_values()
 	return true;
 }
 
+
+/// Check whether the user specified a file/stream to dump traces in
+/// @return Whether the information could be successfully retrieved
+bool
+get_traces_dumpfile()
+{
+	if (dumpTrace_.isSet()) {
+		const string& dumpStream(dumpTrace_.getValue());
+		if (dumpStream == "stdout") {
+			traceDump = &std::cout;
+		} else if (dumpStream == "stderr") {
+			traceDump = &std::cerr;
+		} else if (dumpStream != "null" && dumpStream != "/dev/null") {
+			figTechLog << "[ERROR] Invalid trace-dump stream/filename \""
+			           << dumpStream << "\"; currently there is only support "
+			           << "for dumping to stdout or stderr" << std::endl;
+			return false;
+		}
+	}
+	return true;
+}
+
 } // namespace  // // // // // // // // // // // // // // // // // // // // //
 
 
@@ -784,6 +816,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(forceOperation_);
 		cmd_.add(confluenceCheck_);
 		cmd_.add(failProbDFT_);
+		cmd_.add(dumpTrace_);
 
 		// Parse the command line input
 		cmd_.parse(argc, argv);
@@ -799,8 +832,6 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		failProbDFT     = failProbDFT_.getValue();
 		if (!get_jani_spec()) {
 			figTechLog << "[ERROR] Failed parsing the JANI-spec commands.\n\n";
-			figTechLog << "For complete USAGE and HELP type:\n";
-			figTechLog << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
 		} else if (janiSpec.janiInteraction && janiSpec.translateOnly) {
 			// avoid further parsing
@@ -810,14 +841,10 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 			figTechLog << "[ERROR] Global effort values must be specified as a "
 			             "comma-sperated list of positive integral values. "
 			             "There should be no spaces in this list.\n\n";
-			figTechLog << "For complete USAGE and HELP type:\n";
-			figTechLog << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
 		}
 		if (!get_ifun_specification()) {
 			figTechLog << "[ERROR] Must specify an importance function.\n\n";
-			figTechLog << "For complete USAGE and HELP type:\n";
-			figTechLog << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
 		} else if ("flat" == impFunSpec.strategy) {
 			// make amendments to set the only possible "flat" configuration
@@ -832,29 +859,26 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 			figTechLog << "[ERROR] Special DFT processing using importance "
 			              "splitting requires the compositional importance "
 			              "function (i.e. acomp).\n\n";
-			figTechLog << "For complete USAGE and HELP type:\n";
-			figTechLog << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
 		}
 		if (!get_stopping_conditions()) {
 			figTechLog << "[ERROR] Must specify at least one stopping condition ";
 			figTechLog << "(--stop-conf|--stop-time).\n\n";
-			figTechLog << "For complete USAGE and HELP type:\n";
-			figTechLog << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
 		}
 		if (!get_timeout()) {
 			figTechLog << "[ERROR] Something failed while parsing the ";
 			figTechLog << "timeout specification.\n\n";
-			figTechLog << "For complete USAGE and HELP type:\n";
-			figTechLog << "   " << argv[0] << " --help\n\n";
 			goto exit_with_failure;
 		}
 		if (!get_rng_specs()) {
 			figTechLog << "[ERROR] Something failed while parsing the ";
 			figTechLog << "RNG specifications.\n\n";
-			figTechLog << "For complete USAGE and HELP type:\n";
-			figTechLog << "   " << argv[0] << " --help\n\n";
+			goto exit_with_failure;
+		}
+		if (!get_traces_dumpfile()) {
+			figTechLog << "[ERROR] Something failed while parsing the ";
+			figTechLog << "trace-dump stream/file destination.\n\n";
 			goto exit_with_failure;
 		}
 
@@ -867,6 +891,8 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		return true;
 
 	exit_with_failure:
+		figTechLog << "For complete USAGE and HELP type:\n";
+		figTechLog << "   " << argv[0] << " --help\n\n";
 		if (fatalError)
 			exit(EXIT_FAILURE);
 		else

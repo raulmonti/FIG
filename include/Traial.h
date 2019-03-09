@@ -291,6 +291,7 @@ public:  // Utils
 		}
 
 	/// Show Traial contents on stream
+	/// @param flush Extra-verbose and flush before and after use
 	void print_out(std::ostream& ostr = figTechLog, bool flush = true) const;
 
 private:  // Class utils

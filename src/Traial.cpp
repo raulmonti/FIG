@@ -227,12 +227,13 @@ Traial::print_out(std::ostream& ostr, bool flush) const
 		if (!flush || std::isfinite(t.value))
 			ostr << t.name << ":" << t.value << ", ";
 	ostr << (flush ? ("]*") : ("]"));
-	ostr << " | Lvl: " << level;
-	ostr << " | Ltime: " << lifeTime;
-	ostr << " | LCrss: " << numLevelsCrossed;
-	ostr << " | Depth: " << depth;
-	if (flush)
+	if (flush) {
+		ostr << " | Lvl: " << level;
+		ostr << " | Ltime: " << lifeTime;
+		ostr << " | LCrss: " << numLevelsCrossed;
+		ostr << " | Depth: " << depth;
 		ostr << std::endl << "* Missing clocks are NaN/inf." << std::endl;
+	}
 }
 
 

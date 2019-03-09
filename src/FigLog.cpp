@@ -28,7 +28,7 @@
 
 
 #include <iostream>
-
+#include <FigLog.h>
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {

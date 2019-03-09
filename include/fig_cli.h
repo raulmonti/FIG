@@ -120,6 +120,8 @@ extern bool confluenceCheck;
 /// this is the *rough and unified* probability of having a fail before a repair
 extern double failProbDFT;
 
+/// Stream where to dump the simulation trace, null by default (i.e. no dump)
+extern std::ostream* traceDump;
 }
 
 #endif // FIG_CLI_H
