@@ -102,7 +102,7 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 {
 	assert(0ul < runLength);
 	double accTime(0.0);
-	const CLOCK_INTERNAL_TYPE FIRST_TIME(0.0);
+	static constexpr CLOCK_INTERNAL_TYPE FIRST_TIME(0.0);
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
@@ -128,7 +128,7 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 		oTraial_.lifeTime = 0.0;
 		model_->simulation_step(oTraial_, property, register_time);
 		assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < oTraial_.lifeTime);
-		accTime += oTraial_.lifeTime;
+		accTime += static_cast<double>(oTraial_.lifeTime);
 		oTraial_.lifeTime += simLength;
 		if (oTraial_.lifeTime > SIM_TIME_CHUNK
 			&& simsLifetime > SIM_TIME_CHUNK) {
@@ -140,7 +140,7 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 
 	// Allow next iteration of batch means
 	if (oTraial_.lifeTime == FIRST_TIME)
-		oTraial_.lifeTime = (FIRST_TIME + 1.1) * 2.2;
+		oTraial_.lifeTime = (FIRST_TIME + 1.1f) * 2.2f;
 	assert(oTraial_.lifeTime != FIRST_TIME);
 
 	// Return the simulation-time spent on rare states

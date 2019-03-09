@@ -31,6 +31,8 @@
 #include <iterator>    // std::begin(), std::end()
 #include <algorithm>   // std::find_if()
 #include <functional>  // std::function<>
+#include <iomanip>     // std::setprecision()
+#include <ios>         // std::scientific, std::fixed
 #include <set>
 #include <list>
 #include <deque>
@@ -294,6 +296,10 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 									 const TraialMonitor& watch_events) const
 {
 	using fig_cli::traceDump;
+	const auto defaultStreamFlags(traceDump != nullptr ? traceDump->flags()
+	                                                   : std::ios_base::dec);
+	if (traceDump != nullptr)
+		(*traceDump) << std::setprecision(3) << std::fixed;
 
 	assert(sealed());
 	Event e(EventType::NONE);
@@ -323,6 +329,9 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 		// ...and process any newly activated committed action.
 		process_committed(traial);
 	}
+
+	if (traceDump != nullptr)
+		traceDump->flags(defaultStreamFlags);
 
 	return e;
 }
