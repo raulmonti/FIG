@@ -76,18 +76,13 @@ MathExpression::MathExpression(
 }
 
 // MathExpression can only be constructed with the following lvalue containers
-template MathExpression::MathExpression(const std::string&,
-                                        const std::set<std::string>&);
-template MathExpression::MathExpression(const std::string&,
-                                        const std::list<std::string>&);
-template MathExpression::MathExpression(const std::string&,
-                                        const std::deque<std::string>&);
-template MathExpression::MathExpression(const std::string&,
-                                        const std::vector<std::string>&);
-template MathExpression::MathExpression(const std::string&,
-                                        const std::forward_list<std::string>&);
-template MathExpression::MathExpression(const std::string&,
-                                        const std::unordered_set<std::string>&);
+using str = const std::string&;
+template MathExpression::MathExpression(str, const std::set<std::string>&);
+template MathExpression::MathExpression(str, const std::list<std::string>&);
+template MathExpression::MathExpression(str, const std::deque<std::string>&);
+template MathExpression::MathExpression(str, const std::vector<std::string>&);
+template MathExpression::MathExpression(str, const std::forward_list<std::string>&);
+template MathExpression::MathExpression(str, const std::unordered_set<std::string>&);
 
 
 template< template< typename, typename... > class Container,
@@ -119,18 +114,13 @@ MathExpression::MathExpression(
 }
 
 // MathExpression can only be constructed with the following rvalue containers
-template MathExpression::MathExpression(const std::string&,
-                                        std::set<std::string>&&);
-template MathExpression::MathExpression(const std::string&,
-                                        std::list<std::string>&&);
-template MathExpression::MathExpression(const std::string&,
-                                        std::deque<std::string>&&);
-template MathExpression::MathExpression(const std::string&,
-                                        std::vector<std::string>&&);
-template MathExpression::MathExpression(const std::string&,
-                                        std::forward_list<std::string>&&);
-template MathExpression::MathExpression(const std::string&,
-                                        std::unordered_set<std::string>&&);
+using str = const std::string&;
+template MathExpression::MathExpression(str, std::set<std::string>&&);
+template MathExpression::MathExpression(str, std::list<std::string>&&);
+template MathExpression::MathExpression(str, std::deque<std::string>&&);
+template MathExpression::MathExpression(str, std::vector<std::string>&&);
+template MathExpression::MathExpression(str, std::forward_list<std::string>&&);
+template MathExpression::MathExpression(str, std::unordered_set<std::string>&&);
 
 
 void

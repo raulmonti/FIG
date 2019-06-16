@@ -174,8 +174,10 @@ ImportanceFunction::Formula::reset() noexcept
 ImportanceValue
 ImportanceFunction::Formula::operator()(const StateInstance& state) const
 {
+#ifndef NDEBGU
 	if (!pinned())
-		throw_FigException("this Formula is empty!");
+		throw_FigException("this Formula is not pinned!");
+#endif
 	// Copy the useful part of 'state'...
 	for (size_t i = 0ul ; i < NVARS_ ; i++)
 		varsValues_[i] = state[varsPos_[i]];  // ugly motherfucker
@@ -192,8 +194,10 @@ ImportanceFunction::Formula::operator()(const StateInstance& state) const
 ImportanceValue
 ImportanceFunction::Formula::operator()(const ImportanceVec& localImportances) const
 {
+#ifndef NDEBGU
 	if (!pinned())
 		throw_FigException("this Formula is empty!");
+#endif
 	// Copy the values internally...
 	for (size_t i = 0ul ; i < NVARS_ ; i++) {
 		assert(!IS_SOME_EVENT(localImportances[varsPos_[i]]));

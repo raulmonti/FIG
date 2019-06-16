@@ -180,10 +180,10 @@ public:  // Ctors/Dtor
     SimulationEngine(const SimulationEngine& that) = default;
     /// Default move ctor
     SimulationEngine(SimulationEngine&& that) = default;
-    /// Default copy assignment
-    SimulationEngine& operator=(const SimulationEngine& that) = default;
-    /// Default move assignment
-    SimulationEngine& operator=(SimulationEngine&& that) = default;
+	/// No copy assignment
+	SimulationEngine& operator=(const SimulationEngine& that) = delete;
+	/// No move assignment
+	SimulationEngine& operator=(SimulationEngine&& that) = delete;
     /// Virtual dtor
     virtual ~SimulationEngine() noexcept;
 

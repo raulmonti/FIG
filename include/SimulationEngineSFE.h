@@ -41,30 +41,30 @@ namespace fig
 /**
  * @brief Engine for Standard Fixed Effort importance-splitting simulations
  *
- *        This engine implements the importance splitting strategy
- *        named "Fixed Effort" in Marnix Garvel's PhD thesis.<br>
- *        A fixed number of simulations is run on each threshold-level,
- *        counting how many make it to the <i>next</i> level and how many don't.
- *        The resulting proportion is the probability of "going up"
- *        from that threshold level (<tt>i</tt>) to the next (<tt>i+1</tt>),
- *        i.e. the conditional probability of reaching level <tt>i+1</tt>
- *        given simulations start on level <tt>i</tt>.<br>
- *        An estimate of the rare event probability is a product
- *        of such conditional probabilities computed for all threshold-levels.
+ *		This engine implements the importance splitting strategy
+ *		named "Fixed Effort" in Marnix Garvel's PhD thesis.<br>
+ *		A fixed number of simulations is run on each threshold-level,
+ *		counting how many make it to the <i>next</i> level and how many don't.
+ *		The resulting proportion is the probability of "going up"
+ *		from that threshold level (<tt>i</tt>) to the next (<tt>i+1</tt>),
+ *		i.e. the conditional probability of reaching level <tt>i+1</tt>
+ *		given simulations start on level <tt>i</tt>.<br>
+ *		An estimate of the rare event probability is a product
+ *		of such conditional probabilities computed for all threshold-levels.
  *
  * @note The <i>original</i> Fixed Effort algorithm assumes that no
- *       simulation path can peform importance skipping, i.e. all simulations
- *       reaching level <tt>i+1</tt> must have visited level <tt>i</tt>.<br>
- *       This implementation is more general and <i>tolerates importance
- *       skipping in simulations</i>, so the "next level" after threshold-level
- *       <tt>i</tt> can be any <tt>j>i</tt>.
+ *	   simulation path can peform importance skipping, i.e. all simulations
+ *	   reaching level <tt>i+1</tt> must have visited level <tt>i</tt>.<br>
+ *	   This implementation is more general and <i>tolerates importance
+ *	   skipping in simulations</i>, so the "next level" after threshold-level
+ *	   <tt>i</tt> can be any <tt>j>i</tt>.
  *
  * @note This algorithm only uses the thresholds in <i>the</i> (hopefully)
- *       likeliest path towards the rare event. If importance skipping exhibits
- *       branching behaviour, e.g. the rare event can be reached doing
- *       <tt>0-->1-->3-->RARE</tt> or doing <tt>0-->2-->3-->RARE</tt>,
- *       the \ref SimulationEngineBFE "branching variant of Fixed Effort"
- *       may be better suited.
+ *	   likeliest path towards the rare event. If importance skipping exhibits
+ *	   branching behaviour, e.g. the rare event can be reached doing
+ *	   <tt>0-->1-->3-->RARE</tt> or doing <tt>0-->2-->3-->RARE</tt>,
+ *	   the \ref SimulationEngineBFE "branching variant of Fixed Effort"
+ *	   may be better suited.
  *
  * @see SimulationEngineBFE
  * @see SimulationEngineFixedEffort
@@ -82,14 +82,14 @@ protected:  // Utils for the class and its kin
 	const EventWatcher& get_event_watcher(const Property&) const override;
 
 	/// @brief Run <i>once</i> the Standard Fixed Effort algorithm,
-	///        generalised to cope with importance skipping.
+	///		generalised to cope with importance skipping.
 	/// @copydetails SimulationEngineFixedEffort::fixed_effort()
 	/// @note The \p result will contain <i>a single path</i>,
-	///       since this is a "greedy Fixed Effort"
-	///       that goes to the rare event through the first path found only.
+	///	   since this is a "greedy Fixed Effort"
+	///	   that goes to the rare event through the first path found only.
 	/// @note If no path is found to the rare event, \p result
-	///       will contain a single path whose last element.second == 0.0,
-	///       meaning there is zero probability to reach further up
+	///	   will contain a single path whose last element.second == 0.0,
+	///	   meaning there is zero probability to reach further up
 	void fixed_effort(ThresholdsPathCandidates& result,
 	                  const EventWatcher& watch_events) const override;
 
@@ -103,9 +103,12 @@ private:  // Traial observers/updaters
 			const ImportanceValue newLvl = impFun_->level_of(traial.state);
 			traial.depth -= newLvl - traial.level;
 			traial.level = newLvl;
-			return /* level-up:   */ traial.depth < 0 ||
-				   /* rare event: */ property.is_rare(traial.state) ||
-				   /* stop event: */ property.is_stop(traial.state);
+			return interrupted ||
+			(
+			    /* level-up:   */  traial.depth < 0 ||
+			    /* rare event: */  property.is_rare(traial.state) ||
+			    /* stop event: */  property.is_stop(traial.state)
+			);
 		}
 
 	/// @todo TODO implement

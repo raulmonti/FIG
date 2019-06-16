@@ -32,70 +32,70 @@
 
 // C++
 #include <vector>
-#include <iterator>     // std::distance(), std::begin()
-#include <algorithm>    // std::copy() ranges
+#include <iterator>	 // std::distance(), std::begin()
+#include <algorithm>	// std::copy() ranges
 #include <type_traits>  // std::is_constructible<>
 // FIG
 #include <ExpStateUpdater.h>
 #include <State.h>
 #include <ModelAST.h>
 
-// ADL
-using std::copy;
-using std::begin;
-using std::end;
-using std::shared_ptr;
 
+namespace fig
+{
 
-namespace fig {
+using AssignmentContainer = std::vector<std::shared_ptr<Assignment>>;
 
-using AssignmentContainer = std::vector<shared_ptr<Assignment>>;
-
-class Postcondition : public ExpStateUpdater {
+class Postcondition : public ExpStateUpdater
+{
 private:
 
-    static LocationContainer
-    updateLocations(AssignmentContainer assignments) {
-        LocationContainer locs;
-        locs.resize(assignments.size());
-        size_t i = 0;
-        for (shared_ptr<Assignment>& assign : assignments) {
-            locs[i] = assign->get_effect_location();
-            i++;
-        }
-        return (locs);
-    }
+	static LocationContainer
+	updateLocations(AssignmentContainer assignments) {
+		LocationContainer locs;
+		locs.resize(assignments.size());
+		size_t i = 0;
+		for (std::shared_ptr<Assignment>& assign : assignments) {
+			locs[i] = assign->get_effect_location();
+			i++;
+		}
+		return (locs);
+	}
 
-    static ExpContainer updateExps(AssignmentContainer assignments) {
-        ExpContainer exps;
-        exps.resize(assignments.size());
-        size_t i = 0;
-        for (shared_ptr<Assignment>& assign : assignments) {
-            exps[i] = assign->get_rhs();
-            i++;
-        }
-        return (exps);
-    }
+	static ExpContainer updateExps(AssignmentContainer assignments) {
+		ExpContainer exps;
+		exps.resize(assignments.size());
+		size_t i = 0;
+		for (std::shared_ptr<Assignment>& assign : assignments) {
+			exps[i] = assign->get_rhs();
+			i++;
+		}
+		return (exps);
+	}
 
-public:
+public:  // Ctors
 
-    Postcondition(const std::vector<shared_ptr<Assignment>>& assignments) :
-	    ExpStateUpdater(updateLocations(assignments),
-	                    updateExps(assignments))  // rely on copy elision!
-    {}
+	Postcondition(const std::vector<std::shared_ptr<Assignment>>& assignments)
+	    : ExpStateUpdater(updateLocations(assignments), updateExps(assignments))
+	    { /* Not much to do around here */ }
 
-    /// Default copy ctor
-    Postcondition(const Postcondition& that) = default;
-    /// Default move ctor
-    Postcondition(Postcondition&& that) = default;
+	/// Default copy ctor
+	Postcondition(const Postcondition& that) = default;
 
-public:
+	/// Default move ctor
+	Postcondition(Postcondition&& that) = default;
 
-    void operator()(State<STATE_INTERNAL_TYPE>& state) const;
-    void operator()(StateInstance& state) const;
+public:  // Utils
 
-public: //Debug
-    void print_info(std::ostream& out) const;
+	inline void operator()(State<STATE_INTERNAL_TYPE>& state) const
+	    { update(state); }
+
+	inline void operator()(StateInstance& state) const
+	    { update(state); }
+
+public:  // Debug
+
+	void print_info(std::ostream& out) const;
 };
 
 } // namespace fig

@@ -167,16 +167,14 @@ public:  // Ctors/Dtor
 				   Iterator<ValueType, OtherArgs...> from,
 				   Iterator<ValueType, OtherArgs...> to);
 
-	/// Copy ctor
-	/// @note Explicitly defined for variables pinning into expr_
+	/// No copy ctor
     MathExpression(const MathExpression& that) = delete;
 
-	/// Default move ctor
+	/// No move ctor
     MathExpression(MathExpression&& that) = delete;
 
-	/// Copy assignment with copy&swap idiom
-	/// @note Explicitly defined for variables pinning into expr_
-    // MathExpression& operator=(MathExpression that);
+	/// No copy assignment
+	MathExpression& operator=(MathExpression that) = delete;
 
 protected:  // Modifyers
 

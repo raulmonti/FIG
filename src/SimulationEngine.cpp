@@ -436,6 +436,8 @@ SimulationEngine::rate_update(ConfidenceIntervalRate& ci,
 	                           BATCH_TAKES_TOO_LONG   ||  // yes, time constraints force us
 							   NHITS >= NHITS_REQUIRED;   // yes, we succeeded enough times
 	if (isSteadyState) {
+		assert(0 <= rareTime);
+		assert(rareTime <= simTime);
 		// Reduce fp precision loss (is this any good?)
 		const double thisRate(std::exp(std::log(rareTime)-std::log(simTime)));
 		ci.update(thisRate);

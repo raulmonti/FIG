@@ -86,16 +86,13 @@ ModuleInstance::ModuleInstance(
 }
 
 // ModuleInstance can be built from the following containers
-template ModuleInstance::ModuleInstance(const std::string&,
-	const State<STATE_INTERNAL_TYPE>&, const std::set<Clock>&);
-template ModuleInstance::ModuleInstance(const std::string&,
-	const State<STATE_INTERNAL_TYPE>&, const std::list<Clock>&);
-template ModuleInstance::ModuleInstance(const std::string&,
-	const State<STATE_INTERNAL_TYPE>&, const std::deque<Clock>&);
-template ModuleInstance::ModuleInstance(const std::string&,
-	const State<STATE_INTERNAL_TYPE>&, const std::vector<Clock>&);
-template ModuleInstance::ModuleInstance(const std::string&,
-	const State<STATE_INTERNAL_TYPE>&, const std::forward_list<Clock>&);
+using str = const std::string&;
+using st  = const State<STATE_INTERNAL_TYPE>&;
+template ModuleInstance::ModuleInstance(str, st, const std::set<Clock>&);
+template ModuleInstance::ModuleInstance(str, st, const std::list<Clock>&);
+template ModuleInstance::ModuleInstance(str, st, const std::deque<Clock>&);
+template ModuleInstance::ModuleInstance(str, st, const std::vector<Clock>&);
+template ModuleInstance::ModuleInstance(str, st, const std::forward_list<Clock>&);
 
 
 void
@@ -167,36 +164,16 @@ ModuleInstance::add_transition(
 }
 
 // ModuleInstance::add_transition(...) can only be invoked with the following containers
-template void ModuleInstance::add_transition(const Label& label,
-											 const std::string& triggeringClock,
-                                             const Precondition& pre,
-                                             const Postcondition& pos,
-											 const std::set< std::string >& resetClocks);
-template void ModuleInstance::add_transition(const Label& label,
-											 const std::string& triggeringClock,
-                                             const Precondition& pre,
-                                             const Postcondition& pos,
-											 const std::list< std::string >& resetClocks);
-template void ModuleInstance::add_transition(const Label& label,
-											 const std::string& triggeringClock,
-                                             const Precondition& pre,
-                                             const Postcondition& pos,
-											 const std::deque< std::string >& resetClocks);
-template void ModuleInstance::add_transition(const Label& label,
-											 const std::string& triggeringClock,
-                                             const Precondition& pre,
-                                             const Postcondition& pos,
-											 const std::vector< std::string >& resetClocks);
-template void ModuleInstance::add_transition(const Label& label,
-											 const std::string& triggeringClock,
-                                             const Precondition& pre,
-                                             const Postcondition& pos,
-											 const std::forward_list< std::string >& resetClocks);
-template void ModuleInstance::add_transition(const Label& label,
-											 const std::string& triggeringClock,
-                                             const Precondition& pre,
-                                             const Postcondition& pos,
-											 const std::unordered_set< std::string >& resetClocks);
+using lab = const Label&;
+using str = const std::string&;
+using pre = const Precondition&;
+using pos = const Postcondition&;
+template void ModuleInstance::add_transition(lab, str, pre, pos, const std::set< std::string >&);
+template void ModuleInstance::add_transition(lab, str, pre, pos, const std::list< std::string >&);
+template void ModuleInstance::add_transition(lab, str, pre, pos, const std::deque< std::string >&);
+template void ModuleInstance::add_transition(lab, str, pre, pos, const std::vector< std::string >&);
+template void ModuleInstance::add_transition(lab, str, pre, pos, const std::forward_list< std::string >&);
+template void ModuleInstance::add_transition(lab, str, pre, pos, const std::unordered_set< std::string >&);
 
 
 State<STATE_INTERNAL_TYPE>
@@ -337,7 +314,7 @@ ModuleInstance::jump(const Traial::Timeout& to,
 	assert(end(transitions_by_clock_) != iter);  // deny foreign clocks
 	// Step 1: make time elapse in all clocks
 	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
-	traial.kill_time(to.gpos, 1ul, 100.0f);  // mark this clock as 'expired'
+	traial.kill_time(to.gpos, 100.0f);  // mark this clock as 'expired'
 	// Step 2: attend any enabled transition with matching clock name
 	return apply_postcondition(traial, iter->second);
 }

@@ -46,16 +46,16 @@ class TraialPool;
 /**
  * @brief Engine for RESTART importance-splitting simulations
  *
- *        This engine implements the importance splitting strategy developed
- *        by Manuel and José Villén-Altamirano.<br>
- *        In RESTART a Traial advances until it reaches a predefined importance
- *        threshold and tries to cross it "upwards", i.e. gaining on importance.
- *        At that point the state is saved and the Traial is replicated some
- *        predefined number of times. Each replica follows from them own its
- *        own independent simulation path.<br>
- *        To lighten the overhead in the number of simulation runs,
- *        all Traials going down the importance threshold where they were
- *        created, i.e. loosing on importance, are discarded.
+ *		This engine implements the importance splitting strategy developed
+ *		by Manuel and José Villén-Altamirano.<br>
+ *		In RESTART a Traial advances until it reaches a predefined importance
+ *		threshold and tries to cross it "upwards", i.e. gaining on importance.
+ *		At that point the state is saved and the Traial is replicated some
+ *		predefined number of times. Each replica follows from them own its
+ *		own independent simulation path.<br>
+ *		To lighten the overhead in the number of simulation runs,
+ *		all Traials going down the importance threshold where they were
+ *		created, i.e. loosing on importance, are discarded.
  */
 class SimulationEngineRestart : public SimulationEngine
 {
@@ -67,9 +67,6 @@ class SimulationEngineRestart : public SimulationEngine
 	/// Number of importance thresholds a simulation run must cross downwards
 	/// (i.e. loosing on importance) to be discarded
 	unsigned dieOutDepth_;
-
-	/// Times the simulation time has been truncated to reduce fp precision loss
-	mutable unsigned numChunksTruncated_;
 
 	/// Original Traial for a batch means mechanism
 	Traial& oTraial_;
@@ -154,12 +151,15 @@ private:  // Traial observers/updaters
 				else if (property.is_rare(traial.state))
 					e = EventType::RARE;
 			}
-			return EventType::NONE != e;
+			return interrupted ||
+			(
+			    EventType::NONE != e
+			);
 		}
 
 	/// @copydoc SimulationEngine::transient_event()
 	/// @note This function assumes a \ref ImportanceFunctionConcrete
-	///       "concrete importance function" is currently bound to the engine
+	///	   "concrete importance function" is currently bound to the engine
 	/// @note Attempted inline in a desperate need for speed
 	inline bool transient_event_concrete(const Property&,
 										 Traial& traial,
@@ -181,8 +181,11 @@ private:  // Traial observers/updaters
 					SET_THR_UP_EVENT(e);
 				// else: rare event info is already marked inside 'e'
 			}
-			return EventType::NONE != e;
-		}
+			return interrupted ||
+			(
+			    EventType::NONE != e
+			);
+	    }
 
 	/// @copydoc SimulationEngine::rate_event()
 	/// @note Makes no assumption about the ImportanceFunction altogether
@@ -193,7 +196,7 @@ private:  // Traial observers/updaters
 			// Event marking is done in accordance with the checks performed
 			// in the rate_simulation() overriden member function
 		    const ImportanceValue newThrLvl(impFun_->level_of(traial.state));
-			traial.numLevelsCrossed = newThrLvl - traial.level;
+			traial.numLevelsCrossed = static_cast<int>(newThrLvl - traial.level);
 			traial.depth -= traial.numLevelsCrossed;
 			traial.level = newThrLvl;
 			if (traial.numLevelsCrossed < 0 &&
@@ -203,19 +206,15 @@ private:  // Traial observers/updaters
 				e = EventType::THR_UP;
 			else if (property.is_rare(traial.state))
 				e = EventType::RARE;
-			if (traial.lifeTime > SIM_TIME_CHUNK
-				&& simsLifetime > SIM_TIME_CHUNK) {
-				// reduce fp precision loss
-				traial.lifeTime -= SIM_TIME_CHUNK;
-				simsLifetime    -= SIM_TIME_CHUNK;
-				numChunksTruncated_ += 1u;
-			}
-			return traial.lifeTime > simsLifetime || EventType::NONE != e;
+			return interrupted ||
+			(
+			    traial.lifeTime > simsLifetime || EventType::NONE != e
+			);
 		}
 
 	/// @copydoc SimulationEngine::rate_event()
 	/// @note This function assumes a \ref ImportanceFunctionConcrete
-	///       "concrete importance function" is currently bound to the engine
+	///	   "concrete importance function" is currently bound to the engine
 	inline bool rate_event_concrete(const Property&,
 									Traial& traial,
 									Event& e) const
@@ -225,7 +224,7 @@ private:  // Traial observers/updaters
 		    const auto newStateInfo = cImpFun_->info_of(traial.state);
 			e = MASK(newStateInfo);
 			const ImportanceValue newThrLvl = UNMASK(newStateInfo);
-			traial.numLevelsCrossed = newThrLvl - traial.level;
+			traial.numLevelsCrossed = static_cast<int>(newThrLvl - traial.level);
 			traial.depth -= traial.numLevelsCrossed;
 			traial.level = newThrLvl;
 			if (traial.numLevelsCrossed < 0 &&
@@ -234,14 +233,10 @@ private:  // Traial observers/updaters
 			else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 				SET_THR_UP_EVENT(e);
 			// else: rare event info is already marked inside 'e'
-			if (traial.lifeTime > SIM_TIME_CHUNK
-				&& simsLifetime > SIM_TIME_CHUNK) {
-				// reduce fp precision loss
-				traial.lifeTime -= SIM_TIME_CHUNK;
-				simsLifetime    -= SIM_TIME_CHUNK;
-				numChunksTruncated_ += 1u;
-			}
-			return traial.lifeTime > simsLifetime || EventType::NONE != e;
+			return interrupted ||
+			(
+			    traial.lifeTime > simsLifetime || EventType::NONE != e
+			);
 		}
 
 	/// Turn off splitting and simulate (accumulating time) as long as we are
@@ -249,18 +244,22 @@ private:  // Traial observers/updaters
 	/// @note Makes no assumption about the ImportanceFunction altogether
 	inline bool count_time(const Property& prop, Traial& t, Event&) const
 		{
-			return t.lifeTime > simsLifetime ||
-			        !prop.is_rare(t.state);
+		    return interrupted ||
+			(
+			    t.lifeTime > simsLifetime || !prop.is_rare(t.state)
+			);
 		}
 
 	/// Turn off splitting and simulate (accumulating time) as long as we are
 	/// among rare states. Used for time registration in rate simulations.
 	/// @note This function assumes a \ref ImportanceFunctionConcrete
-	///       "concrete importance function" is currently bound to the engine
+	///	   "concrete importance function" is currently bound to the engine
 	inline bool count_time_concrete(const Property&, Traial& t, Event&) const
 		{
-			return t.lifeTime > simsLifetime ||
-					!IS_RARE_EVENT(cImpFun_->info_of(t.state));
+		    return interrupted ||
+			(
+			    t.lifeTime > simsLifetime || !IS_RARE_EVENT(cImpFun_->info_of(t.state))
+			);
 		}
 };
 
