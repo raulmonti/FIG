@@ -30,27 +30,28 @@
 #ifndef PRECONDITION_H
 #define PRECONDITION_H
 
-#include <MathExpression.h>
 #include <core_typedefs.h>
 #include <State.h>
 #include <ExpStateEvaluator.h>
 
+
 namespace fig
 {
-using std::shared_ptr;
 
 /**
  * @brief Transition precondition:
  *        a boolean guard with predicates over variables values.
  *
  */
-class Precondition : public ExpStateEvaluator {
-    shared_ptr<Exp> expr_;
+class Precondition : public ExpStateEvaluator
+{
+	std::shared_ptr<Exp> expr_;
+
 public:  // Ctors
 
-    Precondition(shared_ptr<Exp> expr)
-        : ExpStateEvaluator(expr), expr_ {expr}
-	{}
+	Precondition(std::shared_ptr<Exp> expr)
+	    : ExpStateEvaluator(expr), expr_(expr)
+	    { /* Not much to do around here*/ }
 
     /// @brief Copy Constructor
     Precondition(const Precondition& that) = default;
@@ -58,19 +59,24 @@ public:  // Ctors
     /// @brief Move Constructor
     Precondition(Precondition&& that) = default;
 
-    /// @todo Copy assignment with copy&swap idiom
+	/// No copy assignment
     Precondition& operator=(Precondition that) = delete;
 
-public:
+	~Precondition() override {}
 
-    bool operator()(const StateInstance& state) const;
-    bool operator()(const State<STATE_INTERNAL_TYPE>& state) const;
+public:  // Utils
 
-    shared_ptr<Exp> get_expression() const noexcept {
-        return (expr_);
-    }
+	inline bool operator()(const StateInstance& state) const
+	    { return (eval(state)); }
 
-public: //Debug
+	inline bool operator()(const State<STATE_INTERNAL_TYPE>& state) const
+	    { return (eval(state)); }
+
+	shared_ptr<Exp> get_expression() const noexcept
+	    { return (expr_); }
+
+public:  // Debug
+
     void print_info(std::ostream& out) const;
 };
 

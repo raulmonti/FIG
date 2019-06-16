@@ -139,7 +139,8 @@ reversed_edges_DFS(const fig::Module& module,
 
 	// DFS
 	while (!toVisit.empty()) {
-		const size_t currentState = toVisit.front(); toVisit.pop_front();
+		const size_t currentState = toVisit.front();
+		toVisit.pop_front();
 		assert(visits.size() > currentState);
 		if (VISITED == visits[currentState])
 			continue;

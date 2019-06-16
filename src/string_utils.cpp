@@ -90,24 +90,23 @@ bool is_suffix(const string& str, const string& suffix, const bool caseSensitive
 
 
 string&
-replace_substring(string& s, const string& from, const string& to)
+replace_substring(string& s, const string& dis, const string& todis)
 {
-	if (from.empty())
+	if (dis.empty())
 		return s;
 	size_t start_pos(0ul);
-	while ((start_pos = s.find(from, start_pos)) != NPOS) {
-		s.replace(start_pos, from.length(), to);
-		start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
+	while ((start_pos = s.find(dis, start_pos)) != NPOS) {
+		s.replace(start_pos, dis.length(), todis);
+		start_pos += todis.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
 	}
 	return s;
 }
 
 
-string
-replace_substring(std::string &&s, const string& from, const string& to)
+std::string&
+replace_substring(std::string &&s, const string& dis, const string& todis)
 {
-	string ss = replace_substring(s, from, to);
-	return ss;
+	return replace_substring(s, dis, todis);
 }
 
 
@@ -118,11 +117,10 @@ delete_substring(string& s, const string& substr)
 }
 
 
-string
+std::string&
 delete_substring(string&& s, const string& substr)
 {
-	string ss = replace_substring(s, substr, "");
-	return s;
+	return replace_substring(s, substr, "");
 }
 
 

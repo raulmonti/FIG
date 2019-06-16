@@ -61,8 +61,11 @@ string ModelPrinter::to_str(DistType type) {
     case DistType::rayleigh:
         result = "rayleigh";
         break;
-    case DistType::gamma:
-        result = "gamma";
+	case DistType::gamma:
+		result = "gamma";
+		break;
+	case DistType::dirac:
+		result = "dirac";
         break;
 	default:
 		throw_FigException("invalid clock distribution");

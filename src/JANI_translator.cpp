@@ -116,7 +116,8 @@ const std::map< DistType, std::string > JANI_distribution =
 	{ DistType::weibull,     "Weibull"    },
 	{ DistType::rayleigh,    "Rayleigh"   },
 	{ DistType::gamma,       "Gamma"      },
-	{ DistType::erlang,      "Erlang"     }
+    { DistType::erlang,      "Erlang"     },
+    { DistType::dirac,       "Dirac"      },
 };
 
 
@@ -130,7 +131,8 @@ const std::map< std::string, std::string > JANI_distribution_string =
 	{ "weibull",     "Weibull"    },
 	{ "rayleigh",    "Rayleigh"   },
 	{ "gamma",       "Gamma"      },
-	{ "erlang",      "Erlang"     }
+    { "erlang",      "Erlang"     },
+    { "dirac",       "Dirac"      },
 };
 
 
@@ -216,7 +218,8 @@ const std::map< std::string, DistType > IOSA_distribution =
 	{ "Weibull",     DistType::weibull    },
 	{ "Rayleigh",    DistType::rayleigh   },
 	{ "Gamma",       DistType::gamma      },
-	{ "Erlang",      DistType::erlang     }
+    { "Erlang",      DistType::erlang     },
+    { "Dirac",       DistType::dirac      },
 };
 
 
@@ -230,7 +233,8 @@ const std::map< std::string, std::string > IOSA_distribution_string =
 	{ "Weibull",     "weibull"    },
 	{ "Rayleigh",    "rayleigh"   },
 	{ "Gamma",       "gamma"      },
-	{ "Erlang",      "erlang"     }
+    { "Erlang",      "erlang"     },
+    { "Dirac",       "dirac"      },
 };
 
 
@@ -1707,6 +1711,7 @@ JaniTranslator::build_IOSA_clock_reset(const std::string& clockName,
 	{
 	case DistType::exponential:
 	case DistType::rayleigh:
+	case DistType::dirac:
 		if (params.empty()) {
 			figTechLog << "[ERROR] Missing parameter for \"" << JANIdist
 					   << "\" distribution (one required).\n";

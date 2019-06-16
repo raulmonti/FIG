@@ -42,14 +42,6 @@
 namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
-//	/// Absolute path of current Process Working Directory
-//	/// https://stackoverflow.com/a/2203177
-//	string getPWD()
-//	{
-//		char tmp[128ul];
-//		return (NULL != getcwd(tmp, 128ul) ? string(tmp) : string(""));
-//	}
-
 /// Absolute path to the dir containing this source file
 /// @note Define this function in an anon. namespace in the desired file
 string getThisDir()
@@ -79,6 +71,17 @@ bool file_exists(const std::string& filepath)
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
 
+void preamble_testcase(std::ostream& out, const string& suffix)
+{
+    out << "\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+           "\n\nRunning new test-case with fig " << fig_VERSION_STR
+        << " (" << fig_BUILD_TYPE << ")";
+    if (suffix.length() > 0ul)
+        out << ": " << suffix << "";
+    out << "\n\n~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~\n" << std::endl;
+}
+
+
 /// See declaration in tests_definitions.h
 const string& models_dir()
 {
@@ -93,7 +96,7 @@ bool compile_model(const string& modelFilePath)
 {
 	REQUIRE(file_exists(modelFilePath));
 	char* fullpath(strndup(modelFilePath.c_str(), 128ul));
-	std::cerr << "\n\nCompiling model \"" << basename(fullpath) << "\"\n";
+    fig::figTechLog << "\n\nCompiling model \"" << basename(fullpath) << "\"\n";
 	free(fullpath); fullpath = nullptr;
 
 	// Parse model file

@@ -232,11 +232,11 @@ public:  // Utils
 
 	/// Print current estimate, variance, and precision in a line of \p out
 	/// @param out              Out-stream to use for printing
-	/// @param printPrecision   Print with specified floating point precision
 	/// @param printScientific  Use scientific notation print (ignores printPrecision)
+	/// @param printPrecision   Print with specified floating point precision
 	void print(std::ostream& out,
-	           unsigned printPrecision = 6u,
-	           bool printScientific = true);
+			   bool printScientific = true,
+			   int printPrecision = 6u);
 
 protected:
 

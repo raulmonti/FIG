@@ -100,10 +100,10 @@ public:  // Attributes
     ImportanceValue level;
 
 	/// How far down the current level is w.r.t. the creation level
-	short depth;
+	int depth;
 
 	/// Simulation's temporal field to keep track of thresholds crossing
-	short numLevelsCrossed;
+	int numLevelsCrossed;
 
 	/// Time span this Traial has been running around the system model
 	CLOCK_INTERNAL_TYPE lifeTime;
@@ -122,6 +122,10 @@ private:
 	/// Time-increasing-ordered view of 'clocks_' vector.
 	/// Access for friends is safely granted through next_timeout()
 	std::vector< unsigned > orderedIndex_;
+
+	/// Projection of \ref Clock "clocks" valuations into a continuous array
+	/// @note Same order as clocks_ vector
+	std::vector< Reference< const CLOCK_INTERNAL_TYPE > > clocksValuations_;
 
 	/// Position of smallest non-negative Clock value in clocks_.
 	/// Negative if all are null.
@@ -173,7 +177,19 @@ public:  // Copy/Assign/Dtor
 	Traial(Traial&& that) = default;
 
 	/// Copy assignment
-	Traial& operator=(const Traial& that) = default;
+	/// @note Avoid copying the references in that.clocksValuations_
+	inline Traial& operator=(const Traial& that)
+	    {
+		    level            = that.level;
+			depth            = that.depth;
+			numLevelsCrossed = that.numLevelsCrossed;
+			lifeTime         = that.lifeTime;
+			state            = that.state;
+			clocks_          = that.clocks_;
+			orderedIndex_    = that.orderedIndex_;
+			nextClock_       = that.nextClock_;
+			return *this;
+	    }
 
 	/// Move assignemnt
 	Traial& operator=(Traial&&) = default;
@@ -183,11 +199,21 @@ public:  // Copy/Assign/Dtor
 public:  // Accessors
 
 	/// Get the current time value of the clock at position \p clkPos
+	inline CLOCK_INTERNAL_TYPE& clock_value(const size_t& clkPos)
+		{ assert(clkPos < clocks_.size()); return clocks_[clkPos].value; }
+
+	/// @overload
+	/// @note const version
 	inline const CLOCK_INTERNAL_TYPE& clock_value(const size_t& clkPos) const
 		{ assert(clkPos < clocks_.size()); return clocks_[clkPos].value; }
 
-	/// Get the current time values of the clocks (attached to their names)
+	/// Get the current time value of all clocks
+	inline const decltype(clocksValuations_)& clocks_values() const
+		{ return clocksValuations_; }
+
+	/// Get the names and current time values of all the clocks in the system
 	/// @param ordered Whether to return the increasing-order view of the clocks
+	/// @return Fresh vector with names and values of clocks in this Traial
 	std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >
 	clocks_values(bool ordered = false) const;
 
@@ -247,14 +273,41 @@ public:  // Utils
 	 *
 	 * @note  Attempted inlined for efficiency, canadian sorry
 	 */
+	template< typename size_type_1_, typename size_type_2_ >
 	inline void
-	kill_time(const size_t& firstClock,
-			  const size_t& numClocks,
+	kill_time(const size_type_1_& firstClock,
+	          const size_type_2_& numClocks,
 			  const CLOCK_INTERNAL_TYPE& timeLapse)
-		{
-			for (size_t i = firstClock ; i < firstClock + numClocks ; i++)
+	    {
+		    // checks
+		    static_assert(std::is_integral<size_type_1_>::value,
+			              "ERROR: type mismatch, size types must be "
+			              "(non-negative) integrals");
+			static_assert(std::is_integral<size_type_2_>::value,
+			              "ERROR: type mismatch, size types must be "
+			              "(non-negative) integrals");
+			assert(static_cast<size_type_1_>(0) <= firstClock);
+			assert(static_cast<size_type_2_>(0) <= numClocks);
+			// code
+			for (auto i = firstClock ; i < static_cast<size_type_1_>(firstClock+numClocks) ; i++)
 				clocks_[i].value -= timeLapse;
 		}
+
+	/// @overload
+	/// Single-clock version of the above to avoid loop (is this useful?)
+	template< typename size_type_ >
+	inline void
+	kill_time(const size_type_& clkPos,
+	          const CLOCK_INTERNAL_TYPE& timeLapse)
+	    {
+		    // checks
+		    static_assert (std::is_integral<size_type_>::value,
+			               "ERROR: type mismatch, size types must be "
+			               "(non-negative) integrals");
+			assert(static_cast<size_type_>(0) <= clkPos);
+			//code
+			clocks_[clkPos].value -= timeLapse;
+	    }
 
 	/**
 	 * @brief Update the value of all clocks in specified range
@@ -271,19 +324,30 @@ public:  // Utils
 	 *
 	 * @note  Attempted inlined for efficiency, canadian sorry
 	 */
-	template< template< typename, typename... > class Container,
+	template< typename size_type_1_, typename  size_type_2_,
+	          template< typename, typename... > class Container,
 			  typename ValueArg,
 			  typename... OtherArgs >
 	inline void
-	update_clocks(const size_t& firstClock,
-				  const size_t& numClocks,
+	update_clocks(const size_type_1_& firstClock,
+	              const size_type_2_& numClocks,
 				  const Container<ValueArg, OtherArgs...> & clockValues)
-		{
+	    {
+		    // checks
+		    static_assert(std::is_integral<size_type_1_>::value,
+			              "ERROR: type mismatch, size types must be "
+			              "(non-negative) integrals");
+			static_assert(std::is_integral<size_type_2_>::value,
+			              "ERROR: type mismatch, size types must be "
+			              "(non-negative) integrals");
 			static_assert(std::is_floating_point<ValueArg>::value,
 					"ERROR: type mismatch. Traial::update_clocks() takes "
 					"a container with (floating point) clock values");
+			assert(static_cast<size_type_1_>(0) <= firstClock);
+			assert(static_cast<size_type_2_>(0) <= numClocks);
+			// code
 			auto clkValIter = begin(clockValues);
-			for (size_t i = firstClock ; i < firstClock+numClocks ; i++) {
+			for (auto i = firstClock ; i < static_cast<size_type_1_>(firstClock+numClocks) ; i++) {
 				assert(clkValIter != end(clockValues));
 				clocks_[i].value = *clkValIter;
 				clkValIter++;
@@ -291,6 +355,7 @@ public:  // Utils
 		}
 
 	/// Show Traial contents on stream
+	/// @param flush Extra-verbose and flush before and after use
 	void print_out(std::ostream& ostr = figTechLog, bool flush = true) const;
 
 private:  // Class utils

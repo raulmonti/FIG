@@ -41,6 +41,16 @@
 // FIG
 #include <fig.h>
 
+
+// Prolongue timeouts for DEBUG builds
+#ifndef TIMEOUT_
+#  ifndef NDEBUG
+#    define TIMEOUT_(x) (3*x)
+#  else
+#    define TIMEOUT_(x) (x)
+#  endif
+#endif
+
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -51,6 +61,9 @@ using std::make_shared;
 
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
+
+/// Print build preamble in \p out stream
+void preamble_testcase(std::ostream& out, const string& suffix = "");
 
 /// Absolute path where (tests) model files reside
 const string& models_dir();

@@ -31,6 +31,8 @@
 #include <iterator>    // std::begin(), std::end()
 #include <algorithm>   // std::find_if()
 #include <functional>  // std::function<>
+#include <iomanip>     // std::setprecision()
+#include <ios>         // std::scientific, std::fixed
 #include <set>
 #include <list>
 #include <deque>
@@ -46,6 +48,7 @@
 #include <SimulationEngineRestart.h>
 #include <SimulationEngineFixedEffort.h>
 #include <ThresholdsBuilderES.h>
+#include <fig_cli.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"
@@ -255,7 +258,8 @@ ModuleNetwork::adjacent_states(const size_t& s) const
 bool
 ModuleNetwork::process_committed_once(Traial &traial) const
 {
-    bool found = false;
+	using fig_cli::traceDump;
+	bool found = false;
 	for (shared_ptr<ModuleInstance> module_ptr : modules) {
 		if (!module_ptr->has_committed_actions())
 			continue;
@@ -265,6 +269,10 @@ ModuleNetwork::process_committed_once(Traial &traial) const
 		for (auto module_ptr_passive: modules)
 			module_ptr_passive->jump_committed(committedLabel, traial);
 		found = true;
+		if (traceDump != nullptr) {
+			(*traceDump) << "\nAction: " << committedLabel.str << "!! | ";
+			traial.print_out(*traceDump, false);
+		}
 		break;
 	}
 	return found;
@@ -287,6 +295,12 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 									 const DerivedProperty& property,
 									 const TraialMonitor& watch_events) const
 {
+	using fig_cli::traceDump;
+	const auto defaultStreamFlags(traceDump != nullptr ? traceDump->flags()
+	                                                   : std::ios_base::dec);
+	if (traceDump != nullptr)
+		(*traceDump) << std::setprecision(3) << std::fixed;
+
 	assert(sealed());
 	Event e(EventType::NONE);
 
@@ -302,6 +316,11 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 		assert(0.0f <= elapsedTime);
 		// ...do active jump in the module whose clock timed-out...
 		const Label& label = to.module->jump(to, traial);
+		if (traceDump != nullptr) {
+			(*traceDump) << "\nAction: " << (label.is_tau() ? "τ" : label.str) << " | ";
+			(*traceDump) << "Time: " << traial.lifeTime << " | ";
+			traial.print_out(*traceDump, false);
+		}
 		// ...do passive jumps in all modules listening to label...
 		for (auto module_ptr: modules)
 			if (module_ptr->name != to.module->name)
@@ -310,6 +329,9 @@ Event ModuleNetwork::simulation_step(Traial& traial,
 		// ...and process any newly activated committed action.
 		process_committed(traial);
 	}
+
+	if (traceDump != nullptr)
+		traceDump->flags(defaultStreamFlags);
 
 	return e;
 }

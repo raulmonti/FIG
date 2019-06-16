@@ -28,7 +28,7 @@
 
 
 // C
-#include <cmath>       // std::log
+#include <cmath>	   // std::log
 #include <functional>  // std::placeholders
 // FIG
 #include <core_typedefs.h>
@@ -65,7 +65,7 @@ SimulationEngineNosplit::~SimulationEngineNosplit()
 {
 	//TraialPool::get_instance().return_traial(oTraial_);
 	// ^^^ pointless, and besides the TraialPool might be dead already,
-    //     so this would trigger a re-creation of the pool or something worse
+	//	 so this would trigger a re-creation of the pool or something worse
 }
 
 
@@ -80,15 +80,15 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	const EventWatcher& watch_events = impFun_->concrete_simulation()
 			? std::bind(&SimulationEngineNosplit::transient_event_concrete, this, _1, _2, _3)
-			: std::bind(&SimulationEngineNosplit::transient_event,          this, _1, _2, _3);
+	        : std::bind(&SimulationEngineNosplit::transient_event,		  this, _1, _2, _3);
 
 	// Perform 'numRuns' independent standard Monte Carlo simulations
 	for (size_t i = 0ul ; i < numRuns && !interrupted ; i++) {
 		traial.initialise(*model_, *impFun_);
 		Event e = model_->simulation_step(traial, property, watch_events);
 		raresCount[i] = IS_RARE_EVENT(e) ? 1.0l : 0.0l;
-    }
-    TraialPool::get_instance().return_traial(std::move(traial));
+	}
+	TraialPool::get_instance().return_traial(std::move(traial));
 
 	// Return number of rare states visited
 	return raresCount;
@@ -102,33 +102,33 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 {
 	assert(0ul < runLength);
 	double accTime(0.0);
-	const CLOCK_INTERNAL_TYPE FIRST_TIME(0.0);
+	const decltype(oTraial_.lifeTime) FIRST_TIME(0.0);
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	EventWatcher watch_events = impFun_->concrete_simulation()
 			? std::bind(&SimulationEngineNosplit::rate_event_concrete, *this, _1, _2, _3)
-	        : std::bind(&SimulationEngineNosplit::rate_event,          *this, _1, _2, _3);
+	        : std::bind(&SimulationEngineNosplit::rate_event,		   *this, _1, _2, _3);
 	EventWatcher register_time = impFun_->concrete_simulation()
 			? std::bind(&SimulationEngineNosplit::count_time_concrete, *this, _1, _2, _3)
-	        : std::bind(&SimulationEngineNosplit::count_time,          *this, _1, _2, _3);
+	        : std::bind(&SimulationEngineNosplit::count_time,		   *this, _1, _2, _3);
 
 	// Run a single standard Monte Carlo simulation for "runLength"
-	// simulation time units and starting from the last saved state,
-	// or from the system's initial state if requested.
-	if (reinit || oTraial_.lifeTime == FIRST_TIME)
+	// simulation time units and starting from the last saved state...
+	oTraial_.lifeTime = 0.0;
+	// ...or from the system's initial state if requested.
+	if (reinit || oTraial_.lifeTime <= FIRST_TIME)
 		oTraial_.initialise(*model_, *impFun_);
-	else
-		oTraial_.lifeTime = 0.0;
 	do {
 		Event e = model_->simulation_step(oTraial_, property, watch_events);
 		if (!IS_RARE_EVENT(e))
 			break;  // reached EOS
-		const CLOCK_INTERNAL_TYPE simLength(oTraial_.lifeTime);  // reduce fp prec. loss
+		const auto simLength(oTraial_.lifeTime);  // reduce fp prec. loss
 		oTraial_.lifeTime = 0.0;
 		model_->simulation_step(oTraial_, property, register_time);
 		assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < oTraial_.lifeTime);
-		accTime += oTraial_.lifeTime;
+		oTraial_.lifeTime = std::min(oTraial_.lifeTime, simsLifetime);
+		accTime += static_cast<decltype(accTime)>(oTraial_.lifeTime);
 		oTraial_.lifeTime += simLength;
 		if (oTraial_.lifeTime > SIM_TIME_CHUNK
 			&& simsLifetime > SIM_TIME_CHUNK) {
@@ -139,13 +139,18 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 	} while (oTraial_.lifeTime < simsLifetime && !interrupted);
 
 	// Allow next iteration of batch means
-	if (oTraial_.lifeTime == FIRST_TIME)
-		oTraial_.lifeTime = (FIRST_TIME + 1.1) * 2.2;
-	assert(oTraial_.lifeTime != FIRST_TIME);
+	if (oTraial_.lifeTime <= FIRST_TIME)
+		oTraial_.lifeTime = (FIRST_TIME + 1.1f) * 2.2f;
+	assert(oTraial_.lifeTime > FIRST_TIME);
 
 	// Return the simulation-time spent on rare states
+#ifndef NDEBUG
 	assert(0.0 <= accTime);
-	return accTime;
+	assert(accTime <= runLength);
+#else
+	accTime = std::min<double>(accTime, runLength);
+#endif
+	return static_cast<double>(accTime);
 }
 
 } // namespace fig

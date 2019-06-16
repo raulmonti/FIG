@@ -74,7 +74,9 @@ TEST_CASE("Oil pipeline (EXP) tests, for N=20 and K=3", "[oilpipes-EXP-N20-K3]")
 
 SECTION("Compile model file")
 {
-	// If this is not the first test then we need to clean
+    preamble_testcase(fig::figTechLog, "oilpipes-EXP-N20-K3");
+
+    // If this is not the first test then we need to clean
 	// the ModelSuite singleton before loading the new model
 	if (model.sealed())
 		model.clear();
@@ -131,7 +133,7 @@ SECTION("Steady-state: standard MC")
 	const double prec(.4);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(20);  // don't estimate for that long a time
+    model.set_timeout(TIMEOUT_(20));  // don't estimate for that long a time
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, fig::ImpFunSpec(nameIFun, "flat"));
 	auto results = model.get_last_estimates();
@@ -168,7 +170,7 @@ SECTION("Steady-state: RESTART, adhoc, hyb")
 	const double prec(.3);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
+    model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -204,7 +206,7 @@ SECTION("Steady-state: RESTART, compositional (* operator), hyb")
 	const double prec(.3);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
+    model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -225,7 +227,9 @@ TEST_CASE("Oil pipeline (RAY) tests, for N=20 and K=3", "[oilpipes-RAY-N20-K3]")
 
 SECTION("Compile model file")
 {
-	// If this is not the first test then we need to clean
+    preamble_testcase(fig::figTechLog, "oilpipes-RAY-N20-K3");
+
+    // If this is not the first test then we need to clean
 	// the ModelSuite singleton before loading the new model
 	if (model.sealed())
 		model.clear();
@@ -282,7 +286,7 @@ SECTION("Steady-state: standard MC")
 	const double prec(.4);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(30);  // don't estimate for that long a time
+    model.set_timeout(TIMEOUT_(30));  // don't estimate for that long a time
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, fig::ImpFunSpec(nameIFun, "flat"));
 	auto results = model.get_last_estimates();
@@ -318,7 +322,7 @@ SECTION("Steady-state: RESTART, compositional ([max,+] semiring), es")
 	const double prec(.3);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
+    model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -357,7 +361,7 @@ SECTION("Steady-state: RESTART, compositional ([+,*] ring), hyb")
 	const double prec(.3);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(0);  // unset timeout; estimate for as long as necessary
+    model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
