@@ -335,12 +335,36 @@ inline const string TC_WRONG_PROPERTY_LEFT(shared_ptr<TransientProp> prop,
 
 inline const string TC_WRONG_PROPERTY_EXP(shared_ptr<RateProp> prop,
                                            Type last_type) {
+	stringstream ss;
+	ss << "Property";
+	ss << ModelPrinter::to_str(prop->get_type());
+	ss << " expression must be boolean";
+	ss << *(prop->get_expression());
+	ss << " - " << UNEXPECTED_TYPE(Type::tbool, last_type);
+	return (ss.str());
+}
+
+inline const string TC_WRONG_PROPERTY_EXP(shared_ptr<TBoundSSProp> prop,
+                                          Type last_type) {
+	stringstream ss;
+	ss << "Property";
+	ss << ModelPrinter::to_str(prop->get_type());
+	ss << " expression must be boolean";
+	ss << *(prop->get_expression());
+	ss << " - " << UNEXPECTED_TYPE(Type::tbool, last_type);
+	return (ss.str());
+}
+
+inline const string TC_WRONG_PROPERTY_TBOUNDS(shared_ptr<TBoundSSProp> prop,
+                                              Type last_type) {
     stringstream ss;
     ss << "Property";
     ss << ModelPrinter::to_str(prop->get_type());
-    ss << " expression must be boolean";
-    ss << *(prop->get_expression());
-    ss << " - " << UNEXPECTED_TYPE(Type::tbool, last_type);
+	ss << " time bounds must be integer constants";
+	ss << *(prop->get_tbound_low());
+	ss << ":";
+	ss << *(prop->get_tbound_upp());
+	ss << " - " << UNEXPECTED_TYPE(Type::tint, last_type);
     return (ss.str());
 }
 
@@ -964,8 +988,20 @@ void ModelTC::visit(shared_ptr<TransientProp> prop) {
 }
 
 void ModelTC::visit(shared_ptr<RateProp> prop) {
+	checking_property = true;
+	accept_exp(Type::tbool, prop->get_expression());
+	check_type(Type::tbool, TC_WRONG_PROPERTY_EXP(prop, last_type));
+	check_dnf(prop->get_type(), prop->get_expression());
+	checking_property = false;
+}
+
+void ModelTC::visit(shared_ptr<TBoundSSProp> prop) {
     checking_property = true;
-    accept_exp(Type::tbool, prop->get_expression());
+	accept_exp(Type::tint, prop->get_tbound_low());
+	check_type(Type::tint, TC_WRONG_PROPERTY_TBOUNDS(prop, last_type));
+	accept_exp(Type::tint, prop->get_tbound_upp());
+	check_type(Type::tint, TC_WRONG_PROPERTY_TBOUNDS(prop, last_type));
+	accept_exp(Type::tbool, prop->get_expression());
     check_type(Type::tbool, TC_WRONG_PROPERTY_EXP(prop, last_type));
     check_dnf(prop->get_type(), prop->get_expression());
     checking_property = false;

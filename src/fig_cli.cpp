@@ -106,14 +106,7 @@ const std::string versionStrLong(
 	"FIG tool version " + std::string(fig_VERSION_STR) + "\n\n"
 	"Build:       " + std::string(fig_CURRENT_BUILD) + "\n"
 	"Compiler:    " + std::string(fig_COMPILER_USED) + "\n"
-	"Default RNG: " + (
-		(0 == std::strncmp("mt64", fig::Clock::DEFAULT_RNG,  6ul))
-			? std::string("C++ STL's 64-bit Mersenne-Twister (") : (
-		(0 == std::strncmp("pcg32", fig::Clock::DEFAULT_RNG, 6ul))
-			? std::string("PCG-family 32-bit generator (")       : (
-		(0 == std::strncmp("pcg64", fig::Clock::DEFAULT_RNG, 6ul))
-			? std::string("PCG-family 64-bit generator (")       : (
-			std::string("Unknown! (") ) ) ) )
+    "Default RNG: " + std::string(fig::Clock::DEFAULT_RNG.second) + " ("
 #ifdef RANDOM_RNG_SEED
 		+ "randomized seeding"
 #elif defined PCG_RNG
@@ -321,7 +314,7 @@ ValueArg<string> rngType_(
 	"r", "rng",
 	"Specify the pseudo Random Number Generator (aka RNG) to use for "
 	"sampling the time values of clocks",
-	false, fig::Clock::DEFAULT_RNG, &RNGConstraints);
+    false, fig::Clock::DEFAULT_RNG.first, &RNGConstraints);
 
 // User-specified seed for RNG
 ValueArg<string> rngSeed_(

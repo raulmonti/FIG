@@ -1,7 +1,36 @@
-/* Leonardo Rodríguez */
+//==============================================================================
+//
+//  ModelAST.h
+//
+//  Copyright 2016-
+//  Authors:
+//  - Leonardo Rodríguez (Universidad Nacional de Córdoba)
+//  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
+//
+//------------------------------------------------------------------------------
+//
+//  This file is part of FIG.
+//
+//  The Finite Improbability Generator (FIG) project is free software;
+//  you can redistribute it and/or modify it under the terms of the GNU
+//  General Public License as published by the Free Software Foundation;
+//  either version 3 of the License, or (at your option) any later version.
+//
+//  FIG is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//
+//	You should have received a copy of the GNU General Public License
+//	along with FIG; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//==============================================================================
 
 #ifndef __MODEL_AST_H__
 #define __MODEL_AST_H__
+
+// C++
 #include <cassert>
 #include <map>
 #include <set>
@@ -9,25 +38,26 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
-#include "Util.h"
-#include "Type.h"
-#include "Operators.h"
+// fig
+#include <Util.h>
+#include <Type.h>
+#include <Operators.h>
 
 /** Model Abstract Syntax Tree  **/
 
 using std::string;
 using std::vector;
 using std::map;
-using std::shared_ptr;
+//using std::std::shared_ptr;
 using std::make_shared;
 
 /// @brief Type of labels allowed in transitions.
 enum class LabelType {in, out, out_committed, in_committed, tau};
 /// @brief Supported distributions
 enum class DistType {erlang, normal, lognormal, uniform, exponential,
-	                 weibull, rayleigh, gamma, dirac};
+					 weibull, rayleigh, gamma, dirac};
 /// @brief Supported properties
-enum class PropType {transient, rate};
+enum class PropType {transient, rate, tboundss};
 
 /// @brief Declaration qualifiers
 enum class DeclQualifier {constant};
@@ -51,46 +81,46 @@ using ModelParserGen::location;
  */
 class ModelAST : public std::enable_shared_from_this<ModelAST> {
 public:
-    virtual ~ModelAST() {}
+	virtual ~ModelAST() {}
 private:
-    friend class ModelParserGen::ModelParser;
-    friend class ModelParserGen::ModelScanner;
+	friend class ModelParserGen::ModelParser;
+	friend class ModelParserGen::ModelScanner;
 
-    /// Starts lexer on the given file
-    static void scan_begin(FILE *file);
+	/// Starts lexer on the given file
+	static void scan_begin(FILE *file);
 
-    /// Ends lexer (defined in ModelParserGen.yy)
-    static void scan_end();
+	/// Ends lexer (defined in ModelParserGen.yy)
+	static void scan_end();
 
-    /// Prints error message if a lexer error occurs.
-    static void on_scanner_error(const std::string &msg);
+	/// Prints error message if a lexer error occurs.
+	static void on_scanner_error(const std::string &msg);
 
-    /// Location from which this ast was created.
-    /// save it only for improve error messages.
-    /// @note not to be confused with a "L"ocation node of the AST.
-    shared_ptr<location> token_loc = nullptr;
+	/// Location from which this ast was created.
+	/// save it only for improve error messages.
+	/// @note not to be confused with a "L"ocation node of the AST.
+	std::shared_ptr<location> token_loc = nullptr;
 public:
 
-    /// Build an AST from two files corresponding to the model and
-    /// the properties (e.g. tandem-queue.sa, tandem-queue.pp)
-	static shared_ptr<ModelAST> from_files(const string& model_file = "",
+	/// Build an AST from two files corresponding to the model and
+	/// the properties (e.g. tandem-queue.sa, tandem-queue.pp)
+	static std::shared_ptr<ModelAST> from_files(const string& model_file = "",
 										   const string& prop_file = "");
 
-    /// Acceptor
-    /// @see https://en.wikipedia.org/wiki/Visitor_pattern
-    virtual void accept(class Visitor& visit);
+	/// Acceptor
+	/// @see https://en.wikipedia.org/wiki/Visitor_pattern
+	virtual void accept(class Visitor& visit);
 
-    /// Save location of the first token that
-    /// was used to generate this AST.
-    void set_file_location(shared_ptr<location> loc) {
-        this->token_loc = loc;
-    }
+	/// Save location of the first token that
+	/// was used to generate this AST.
+	void set_file_location(std::shared_ptr<location> loc) {
+		this->token_loc = loc;
+	}
 
-    /// Returns the location of the first token
-    /// that generated this AST.
-    shared_ptr<location> get_file_location() {
-        return (this->token_loc);
-    }
+	/// Returns the location of the first token
+	/// that generated this AST.
+	std::shared_ptr<location> get_file_location() {
+		return (this->token_loc);
+	}
 };
 
 /**
@@ -98,174 +128,211 @@ public:
  */
 class Prop : public ModelAST {
 private:
-    /// Type of the property (Transient, Rate)
-    PropType type;
+	/// Type of the property (Transient, Rate)
+	PropType type;
 protected:
-    /// Protected constructor
-    /// @note Instances must be created using subclasses.
-    Prop(PropType type) : type {type} {}
+	/// Protected constructor
+	/// @note Instances must be created using subclasses.
+	Prop(PropType type) : type {type} {}
 
 public:
 
-    /// Return the type of the property
-    PropType get_type() {
-        return (type);
-    }
+	/// Return the type of the property
+	PropType get_type() {
+		return (type);
+	}
 
-    /// Acceptor.
-    virtual void accept(Visitor& visit) override;
+	/// Acceptor.
+	virtual void accept(Visitor& visit) override;
 
-    /// Converts this instance of property to a TransientProp
-    /// @note The instance must be convertible to TransientProp
-    shared_ptr<class TransientProp> to_transient() {
-        assert(type == PropType::transient);
-        return std::static_pointer_cast<TransientProp>(shared_from_this());
-    }
+	/// Converts this instance of property to a TransientProp
+	/// @note The instance must be convertible to TransientProp
+	std::shared_ptr<class TransientProp> to_transient() {
+		assert(type == PropType::transient);
+		return std::static_pointer_cast<TransientProp>(shared_from_this());
+	}
 
-    /// Converts this instance of propery into a RateProp
-    shared_ptr<class RateProp> to_rate() {
-        assert(type == PropType::rate);
-        return std::static_pointer_cast<RateProp>(shared_from_this());
-    }
+	/// Converts this instance of propery into a RateProp
+	std::shared_ptr<class RateProp> to_rate() {
+		assert(type == PropType::rate);
+		return std::static_pointer_cast<RateProp>(shared_from_this());
+	}
+
+	/// Converts this instance of propery into a TBoundSSProp
+	std::shared_ptr<class TBoundSSProp> to_tboundss() {
+		assert(type == PropType::tboundss);
+		return std::static_pointer_cast<TBoundSSProp>(shared_from_this());
+	}
 };
+
+class Exp;
 
 /** @brief Transient Property
  *  @example P (left U right)
+ * @see fig::PropertyTransient
  **/
 class TransientProp : public Prop {
 private:
-    /// Left expression.
-    shared_ptr<class Exp> left;
-    /// Right expression
-    shared_ptr<class Exp> right;
+	/// Left expression.
+	std::shared_ptr<Exp> left;
+	/// Right expression
+	std::shared_ptr<Exp> right;
 public:
-    /// Constructor
-    TransientProp(shared_ptr<Exp> left, shared_ptr<Exp> right) :
-        Prop(PropType::transient), left {left}, right {right} {}
+	/// Constructor
+	TransientProp(std::shared_ptr<Exp> left, std::shared_ptr<Exp> right) :
+		Prop(PropType::transient), left {left}, right {right} {}
 
-    /// Return the left expression
-    shared_ptr<Exp> get_left() {
-        return (left);
-    }
+	/// Return the left expression
+	inline std::shared_ptr<Exp> get_left() { return (left); }
 
-    /// Return the right expression
-    shared_ptr<Exp> get_right() {
-        return (right);
-    }
+	/// Return the right expression
+	inline std::shared_ptr<Exp> get_right() { return (right); }
 
-    /// Modify left expression
-    void set_left(shared_ptr<Exp> left) {
-        this->left = left;
-    }
+	/// Modify left expression
+	inline void set_left(std::shared_ptr<Exp> left) { this->left = left; }
 
-    /// Modify right expression
-    void set_right(shared_ptr<Exp> right) {
-        this->right = right;
-    }
+	/// Modify right expression
+	inline void set_right(std::shared_ptr<Exp> right) { this->right = right; }
 
-
-    /// Acceptor.
-    virtual void accept(Visitor& visit) override;
+	/// Acceptor.
+	virtual void accept(Visitor& visit) override;
 };
 
 /**
  * @brief The RateProp class
  * @example S (exp)
+ * @see fig::PropertyRate
  */
 class RateProp : public Prop {
 private:
-    /// Expression
-    shared_ptr<Exp> exp;
+	/// Expression
+	std::shared_ptr<Exp> exp;
 public:
 
-    /// Constructor
-    RateProp(shared_ptr<Exp> exp) : Prop(PropType::rate), exp {exp} {}
+	/// Constructor
+	RateProp(std::shared_ptr<Exp> exp) : Prop(PropType::rate), exp {exp} {}
 
-    /// Returns the expression
-    shared_ptr<Exp> get_expression() {
-        return (exp);
-    }
+	/// Returns the expression
+	inline std::shared_ptr<Exp> get_expression() { return (exp); }
 
-    /// Modify expression
-    void set_expression(shared_ptr<Exp> exp) {
-        this->exp = exp;
-    }
+	/// Modify expression
+	inline void set_expression(std::shared_ptr<Exp> exp) { this->exp = exp; }
 
-    /// Acceptor.
-    virtual void accept(Visitor& visit) override;
+	/// Acceptor.
+	virtual void accept(Visitor& visit) override;
 };
 
+/**
+ * @brief Time-Bounded steady-state property
+ * @example S[low:upp](prop) ~ S [ exp : exp ] (exp)
+ * @see fig::PropertyTBoundSS
+ */
+class TBoundSSProp : public Prop {
+private:
+	/// Lower time bound (should specialise to IConst)
+	std::shared_ptr<Exp> tbound_low;
+	/// Upper time bound (should specialise to IConst)
+	std::shared_ptr<Exp> tbound_upp;
+	/// Main expression
+	std::shared_ptr<Exp> exp;
+public:
+
+	/// Ctor
+	TBoundSSProp(std::shared_ptr<Exp> tbl,
+	             std::shared_ptr<Exp> tbu,
+				 std::shared_ptr<Exp> exp) :
+		Prop(PropType::tboundss),
+	    tbound_low {tbl},
+	    tbound_upp {tbu},
+	    exp {exp}
+	{ /* Not much to do around here... */ }
+
+	/// @copydoc tbound_low
+	inline std::shared_ptr<Exp> get_tbound_low() { return tbound_low; }
+
+	/// @copydoc tbound_upp
+	inline std::shared_ptr<Exp> get_tbound_upp() { return tbound_upp; }
+
+	/// @copydoc exp
+	inline std::shared_ptr<Exp> get_expression() { return (exp); }
+
+	/// Modify expression
+	inline void set_expression(std::shared_ptr<Exp> exp) { this->exp = exp; }
+
+	/// Acceptor.
+	virtual void accept(Visitor& visit) override;
+};
 
 /**
  * @brief The root of the AST. Contains declaration of
- *        global constants, modules and properties.
+ *		global constants, modules and properties.
  */
 class Model : public ModelAST {
 private:
-    /// Modules of the model.
-    shared_vector<class ModuleAST> modules;
-    /// Global declarations
-    shared_vector<class Decl> globals;
-    /// Properties of the model.
-    shared_vector<Prop> props;
+	/// Modules of the model.
+	shared_vector<class ModuleAST> modules;
+	/// Global declarations
+	shared_vector<class Decl> globals;
+	/// Properties of the model.
+	shared_vector<Prop> props;
 public:
 	/// Empty ctor
 	Model() {}
 
-    /// Construct a model from a single module
-    Model(shared_ptr<ModuleAST> mb) {
-        add_module(mb);
-    }
-    
-    /// Construct a model from a single declaration.
-    Model(shared_ptr<Decl> decl) {
-        add_decl(decl);
-    }
-    
-    /// Copy and Assignment constructor.
-    Model(const Model &model) = delete;
-    void operator=(Model const &) = delete;
-    
-    /// Adds a module to the model.
-    void add_module(shared_ptr<ModuleAST> mb) {
-        modules.push_back(mb);
-    }
-    
-    /// Adds a declaration to the model.
-    void add_decl(shared_ptr<Decl> decl) {
-        globals.push_back(decl);
-    }
+	/// Construct a model from a single module
+	Model(std::shared_ptr<ModuleAST> mb) {
+		add_module(mb);
+	}
+
+	/// Construct a model from a single declaration.
+	Model(std::shared_ptr<Decl> decl) {
+		add_decl(decl);
+	}
+
+	/// Copy and Assignment constructor.
+	Model(const Model &model) = delete;
+	void operator=(Model const &) = delete;
+
+	/// Adds a module to the model.
+	void add_module(std::shared_ptr<ModuleAST> mb) {
+		modules.push_back(mb);
+	}
+
+	/// Adds a declaration to the model.
+	void add_decl(std::shared_ptr<Decl> decl) {
+		globals.push_back(decl);
+	}
 
 	/// Adds a property to the model.
-	void add_prop(const shared_ptr<Prop> &property) {
+	void add_prop(const std::shared_ptr<Prop> &property) {
 		props.push_back(property);
 	}
 
 	/// Adds a vector of properties to the model.
-    void add_props(const shared_vector<Prop> &properties) {
-        props.insert(props.end(), properties.begin(), properties.end());
-    }
-    
-    /// Is there a model with the given name?
-    bool has_module(const string& id);
+	void add_props(const shared_vector<Prop> &properties) {
+		props.insert(props.end(), properties.begin(), properties.end());
+	}
 
-    /// Returns the modules of this model
-    const shared_vector<ModuleAST> &get_modules() const {
-        return (modules);
-    }
+	/// Is there a model with the given name?
+	bool has_module(const string& id);
 
-    /// Returns (only the id of) the labels of all modules of this model
-    std::set<string> get_labels() const;
+	/// Returns the modules of this model
+	const shared_vector<ModuleAST> &get_modules() const {
+		return (modules);
+	}
 
-    /// Returns the global declarations of this model
-    const vector<shared_ptr<class Decl>>& get_globals() const {
-        return (globals);
-    }
+	/// Returns (only the id of) the labels of all modules of this model
+	std::set<string> get_labels() const;
 
-    /// Get properties of this model
-    const vector<shared_ptr<Prop>>& get_props() const {
-        return (props);
-    }
+	/// Returns the global declarations of this model
+	const vector<std::shared_ptr<class Decl>>& get_globals() const {
+		return (globals);
+	}
+
+	/// Get properties of this model
+	const vector<std::shared_ptr<Prop>>& get_props() const {
+		return (props);
+	}
 
 	/// How many modules this model has
 	size_t num_modules() const {
@@ -282,84 +349,84 @@ public:
 		return props.size();
 	}
 
-    /// Are there properties in the model?
-    bool has_props() {
-        return (props.size() > 0);
-    }
-    
-    /// Acceptor.
-    virtual void accept(Visitor& visit) override;
+	/// Are there properties in the model?
+	bool has_props() {
+		return (props.size() > 0);
+	}
+
+	/// Acceptor.
+	virtual void accept(Visitor& visit) override;
 };
 
 /**
  * @brief A Module AST. Contains local declarations,
- *        and transitions.
+ *		and transitions.
  */
 class ModuleAST : public ModelAST {
 private:
-    /// Module Name
-    string id;
+	/// Module Name
+	string id;
 
-    /// Local declarations of the model.
-    shared_vector<Decl> local_decls;
+	/// Local declarations of the model.
+	shared_vector<Decl> local_decls;
 
-    /// Transitions of the model.
-    shared_vector<class TransitionAST> transitions;
+	/// Transitions of the model.
+	shared_vector<class TransitionAST> transitions;
 public:
-    /// Default constructor
-    ModuleAST() {}
-    
-    /// Create a module from a single declaration
-    ModuleAST(shared_ptr<Decl> decl) {
-        add_decl(decl);
-    }
-    
-    /// Create a module from a single transition
-    ModuleAST(shared_ptr<TransitionAST> transition) {
-        add_transition(transition);
-    }
-    
-    ModuleAST(const ModuleAST &) = delete;
-    void operator=(const ModuleAST &) = delete;
-    
-    /// Add a local declaration to the module
-    void add_decl(shared_ptr<Decl> decl) {
-        local_decls.push_back(decl);
-    }
-    
-    /// Add a transition to the module
-    void add_transition(shared_ptr<TransitionAST> transition) {
-        transitions.push_back(transition);
-    }
-    
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
-    
-    /// Returns local declaration of the model.
-    const shared_vector<Decl>& get_local_decls() const {
-        return local_decls;
-    }
-    
-    /// Returns the transitions of the module.
-    const shared_vector<TransitionAST>& get_transitions() const {
-        return (transitions);
-    }
+	/// Default constructor
+	ModuleAST() {}
 
-    /// Returns the name of the module
-    string get_name() {
-        return (id);
-    }
+	/// Create a module from a single declaration
+	ModuleAST(std::shared_ptr<Decl> decl) {
+		add_decl(decl);
+	}
 
-    /// Change the name of the module
-    void set_name(const string &name) {
-        this->id = name;
-    }
+	/// Create a module from a single transition
+	ModuleAST(std::shared_ptr<TransitionAST> transition) {
+		add_transition(transition);
+	}
 
-    /// Has committed actions?  (input or output)
-    bool has_committed_actions() const;
+	ModuleAST(const ModuleAST &) = delete;
+	void operator=(const ModuleAST &) = delete;
 
-    /// Has array declarations?
-    bool has_arrays() const;
+	/// Add a local declaration to the module
+	void add_decl(std::shared_ptr<Decl> decl) {
+		local_decls.push_back(decl);
+	}
+
+	/// Add a transition to the module
+	void add_transition(std::shared_ptr<TransitionAST> transition) {
+		transitions.push_back(transition);
+	}
+
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
+
+	/// Returns local declaration of the model.
+	const shared_vector<Decl>& get_local_decls() const {
+		return local_decls;
+	}
+
+	/// Returns the transitions of the module.
+	const shared_vector<TransitionAST>& get_transitions() const {
+		return (transitions);
+	}
+
+	/// Returns the name of the module
+	string get_name() {
+		return (id);
+	}
+
+	/// Change the name of the module
+	void set_name(const string &name) {
+		this->id = name;
+	}
+
+	/// Has committed actions?  (input or output)
+	bool has_committed_actions() const;
+
+	/// Has array declarations?
+	bool has_arrays() const;
 };
 
 /** @brief Initialized mixin.
@@ -368,22 +435,22 @@ public:
  **/
 class Initialized {
 private:
-    /// Initialization (for a declaration)
-    shared_ptr<Exp> init;
+	/// Initialization (for a declaration)
+	std::shared_ptr<Exp> init;
 public:
-    /// Constructor
-    Initialized(shared_ptr<Exp> init) :
-       init {init} {}
+	/// Constructor
+	Initialized(std::shared_ptr<Exp> init) :
+	   init {init} {}
 
-    /// Returns the initialization
-    shared_ptr<Exp> get_init() {
-        return (init);
-    }
+	/// Returns the initialization
+	std::shared_ptr<Exp> get_init() {
+		return (init);
+	}
 
-    /// Modify init
-    void set_init(shared_ptr<Exp> init) {
-        this->init = init;
-    }
+	/// Modify init
+	void set_init(std::shared_ptr<Exp> init) {
+		this->init = init;
+	}
 };
 
 /** @brief MultipleInitialized mixin
@@ -392,16 +459,16 @@ public:
  **/
 class MultipleInitialized {
 private:
-    /// Vector of expressions to initialize an array
-    shared_vector<Exp> inits;
+	/// Vector of expressions to initialize an array
+	shared_vector<Exp> inits;
 public:
-    MultipleInitialized(const shared_vector<Exp>& inits)
-        : inits {inits} {}
+	MultipleInitialized(const shared_vector<Exp>& inits)
+		: inits {inits} {}
 
-    /// Returns the vector of initialization
-    shared_vector<Exp>& get_inits() {
-        return (inits);
-    }
+	/// Returns the vector of initialization
+	shared_vector<Exp>& get_inits() {
+		return (inits);
+	}
 };
 
 /** @brief Ranged mixin.
@@ -410,120 +477,120 @@ public:
 **/
 class Ranged {
 private:
-    /// Lower bound
-    shared_ptr<Exp> lower;
-    /// Upper bound
-    shared_ptr<Exp> upper;
+	/// Lower bound
+	std::shared_ptr<Exp> lower;
+	/// Upper bound
+	std::shared_ptr<Exp> upper;
 public:
-    Ranged(shared_ptr<Exp> lower, shared_ptr<Exp> upper):
-        lower {lower}, upper {upper} {}
+	Ranged(std::shared_ptr<Exp> lower, std::shared_ptr<Exp> upper):
+		lower {lower}, upper {upper} {}
 
-    /// Lower bound
-    shared_ptr<Exp> get_lower_bound() {
-        return (lower);
-    }
+	/// Lower bound
+	std::shared_ptr<Exp> get_lower_bound() {
+		return (lower);
+	}
 
-    /// Upper bound
-    shared_ptr<Exp> get_upper_bound() {
-        return (upper);
-    }
+	/// Upper bound
+	std::shared_ptr<Exp> get_upper_bound() {
+		return (upper);
+	}
 
-    /// Setters
-    void set_lower_bound(shared_ptr<Exp> lower) {
-        this->lower = lower;
-    }
+	/// Setters
+	void set_lower_bound(std::shared_ptr<Exp> lower) {
+		this->lower = lower;
+	}
 
-    void set_upper_bound(shared_ptr<Exp> upper) {
-        this->upper = upper;
-    }
+	void set_upper_bound(std::shared_ptr<Exp> upper) {
+		this->upper = upper;
+	}
 };
 
 /** @brief The ast of a declaration */
 class Decl : public ModelAST {
 private:
-    /// Declaration type (int, float, bool, clock)
-    Type type;
+	/// Declaration type (int, float, bool, clock)
+	Type type;
 
-    /// Declaration identifier (the variable or constant being declared)
-    string id;
+	/// Declaration identifier (the variable or constant being declared)
+	string id;
 
-    /// Vector of qualifiers (currently only DeclQualifier::constant)
-    std::vector<DeclQualifier> qualifiers;
+	/// Vector of qualifiers (currently only DeclQualifier::constant)
+	std::vector<DeclQualifier> qualifiers;
 
 protected:
-    /// Protected constructor. Instances constructed via subclasses.
-    Decl(Type type, string id):
-        type {type}, id {id} {}
+	/// Protected constructor. Instances constructed via subclasses.
+	Decl(Type type, string id):
+		type {type}, id {id} {}
 public:
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 
-    /// Add a qualifier to this declaration
-    void add_qualifier(DeclQualifier qualifier) {
-        qualifiers.push_back(qualifier);
-    }
+	/// Add a qualifier to this declaration
+	void add_qualifier(DeclQualifier qualifier) {
+		qualifiers.push_back(qualifier);
+	}
 
-    /// Is this declaration a constant ?
-    /// @example const int x = 4 is a constant.
-    /// @note checks if DeclQualifier::constant is among the qualifiers.
-    bool is_constant() {
-       const auto &it = std::find(qualifiers.begin(),
-               qualifiers.end(), DeclQualifier::constant);
-       return (it != qualifiers.end());
-    }
+	/// Is this declaration a constant ?
+	/// @example const int x = 4 is a constant.
+	/// @note checks if DeclQualifier::constant is among the qualifiers.
+	bool is_constant() {
+	   const auto &it = std::find(qualifiers.begin(),
+			   qualifiers.end(), DeclQualifier::constant);
+	   return (it != qualifiers.end());
+	}
 
-    /// Mark this declarations as constant
-    /// @node adds DeclQualifier::constant as qualifier.
-    void mark_as_constant() {
-        add_qualifier(DeclQualifier::constant);
-    }
+	/// Mark this declarations as constant
+	/// @node adds DeclQualifier::constant as qualifier.
+	void mark_as_constant() {
+		add_qualifier(DeclQualifier::constant);
+	}
 
-    /// Return the type of the declaration (int, float, bool, clock)
-    Type get_type() const {
-        return (type);
-    }
+	/// Return the type of the declaration (int, float, bool, clock)
+	Type get_type() const {
+		return (type);
+	}
 
-    /// Return the identifier of this declaration
-    string get_id() const {
-        return (id);
-    }
+	/// Return the identifier of this declaration
+	string get_id() const {
+		return (id);
+	}
 
-    /// Check if this declaration has a range (lower and upper bound)
-    /// @note overrided by RangedDecl class
-    virtual bool has_range() {
-        return (false);
-    }
+	/// Check if this declaration has a range (lower and upper bound)
+	/// @note overrided by RangedDecl class
+	virtual bool has_range() {
+		return (false);
+	}
 
-    /// Check if this declaration has an initialization
-    /// @note overrided by InitializedDecl
-    virtual bool has_init() {
-        return (false);
-    }
+	/// Check if this declaration has an initialization
+	/// @note overrided by InitializedDecl
+	virtual bool has_init() {
+		return (false);
+	}
 
-    /// Check if this is an array declaration
-    virtual bool is_array() {
-        return (false);
-    }
+	/// Check if this is an array declaration
+	virtual bool is_array() {
+		return (false);
+	}
 
-    /// Converts this instance of declaration into a Ranged object
-    /// @note has_range() must be true.
-    shared_ptr<class Ranged> to_ranged() {
-        assert(has_range());
-        return std::dynamic_pointer_cast<Ranged>(shared_from_this());
-    }
+	/// Converts this instance of declaration into a Ranged object
+	/// @note has_range() must be true.
+	std::shared_ptr<class Ranged> to_ranged() {
+		assert(has_range());
+		return std::dynamic_pointer_cast<Ranged>(shared_from_this());
+	}
 
-    /// Converts this instance of declaration into an Initialized object
-    /// @note has_init() must be true.
-    shared_ptr<class Initialized> to_initialized() {
-        assert(has_init());
-        return std::dynamic_pointer_cast<Initialized>(shared_from_this());
-    }
+	/// Converts this instance of declaration into an Initialized object
+	/// @note has_init() must be true.
+	std::shared_ptr<class Initialized> to_initialized() {
+		assert(has_init());
+		return std::dynamic_pointer_cast<Initialized>(shared_from_this());
+	}
 
-    /// Converts this instance of declaration into an Array declaration
-    shared_ptr<class ArrayDecl> to_array() {
-        assert(is_array());
-        return std::dynamic_pointer_cast<ArrayDecl>(shared_from_this());
-    }
+	/// Converts this instance of declaration into an Array declaration
+	std::shared_ptr<class ArrayDecl> to_array() {
+		assert(is_array());
+		return std::dynamic_pointer_cast<ArrayDecl>(shared_from_this());
+	}
 };
 
 /** @brief A declaration with an initialization
@@ -533,13 +600,13 @@ public:
  **/
 class InitializedDecl : public Decl, public Initialized {
 public:
-	InitializedDecl(Type type, string id, shared_ptr<Exp> init, bool constant = false)
+	InitializedDecl(Type type, string id, std::shared_ptr<Exp> init, bool constant = false)
 		: Decl(type, id), Initialized(init)
 		{ if (constant) mark_as_constant(); }
-    virtual void accept(Visitor& visit) override;
-    virtual bool has_init() override {
-        return (true);
-    }
+	virtual void accept(Visitor& visit) override;
+	virtual bool has_init() override {
+		return (true);
+	}
 };
 
 /** @brief A declaration with a range (lower, upper) bound
@@ -548,99 +615,99 @@ public:
  **/
 class RangedDecl : public Decl, public Initialized, public Ranged {
 public:
-    /// Constructor that takes lower and upper bound, and an initialization
-    RangedDecl(string id, shared_ptr<Exp> lower, shared_ptr<Exp> upper,
-               shared_ptr<Exp> init) :
-        Decl(Type::tint, id), Initialized(init), Ranged(lower, upper) {}
+	/// Constructor that takes lower and upper bound, and an initialization
+	RangedDecl(string id, std::shared_ptr<Exp> lower, std::shared_ptr<Exp> upper,
+			   std::shared_ptr<Exp> init) :
+		Decl(Type::tint, id), Initialized(init), Ranged(lower, upper) {}
 
-    /// Constructor that takes lower and upper bound, initialization is
-    /// taken as the lower bound
-    RangedDecl(string id, shared_ptr<Exp> lower, shared_ptr<Exp> upper) :
-        Decl(Type::tint, id), Initialized(lower), Ranged(lower, upper) {}
+	/// Constructor that takes lower and upper bound, initialization is
+	/// taken as the lower bound
+	RangedDecl(string id, std::shared_ptr<Exp> lower, std::shared_ptr<Exp> upper) :
+		Decl(Type::tint, id), Initialized(lower), Ranged(lower, upper) {}
 
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 
-    /// Override Decl::has_range() to indicate that this instance has a range
-    bool has_range() override {
-        return (true);
-    }
+	/// Override Decl::has_range() to indicate that this instance has a range
+	bool has_range() override {
+		return (true);
+	}
 
-    /// Override Decl::has_init() to indicate that this instance has an
-    /// initialization
-    bool has_init() override {
-        return (true);
-    }
+	/// Override Decl::has_init() to indicate that this instance has an
+	/// initialization
+	bool has_init() override {
+		return (true);
+	}
 };
 
 /** @brief A declaration of a clock
 **/
 class ClockDecl : public Decl {
-    //here we could expect an optional distribution type.
+	//here we could expect an optional distribution type.
 public:
-    ClockDecl(string id) : Decl(Type::tclock, id) {}
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	ClockDecl(string id) : Decl(Type::tclock, id) {}
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 };
 
 /** @brief Array data to be inferred at compilation time. Currently
  * inferred by ModelReducer.
  */
 struct ArrayData {
-    int data_min = 0; //minimum value allowed for each element
-    int data_max = 0; //maximum value allowed for each element
-    int data_size = 0; //size of the array
-    std::vector<int> data_inits; //initial values of the array
+	int data_min = 0; //minimum value allowed for each element
+	int data_max = 0; //maximum value allowed for each element
+	int data_size = 0; //size of the array
+	std::vector<int> data_inits; //initial values of the array
 };
 
 /** @brief An array declaration
  **/
 class ArrayDecl : public Decl {
 private:
-    /// Expression with the size of the array
-    shared_ptr<Exp> size;
-    /// Array compile-time inferred info
-    ArrayData data;
+	/// Expression with the size of the array
+	std::shared_ptr<Exp> size;
+	/// Array compile-time inferred info
+	ArrayData data;
 
-    Type array_type(Type type) {
-        switch (type) {
-        case Type::tint: return Type::tintarray;
-        case Type::tbool: return Type::tboolarray;
-        default: return Type::tunknown;
-        }
-    }
+	Type array_type(Type type) {
+		switch (type) {
+		case Type::tint: return Type::tintarray;
+		case Type::tbool: return Type::tboolarray;
+		default: return Type::tunknown;
+		}
+	}
 
 protected:
-    /// Protected constructor.
-    ArrayDecl(Type type, string id, shared_ptr<Exp> size)
-        : Decl(array_type(type), id), size {size} {}
+	/// Protected constructor.
+	ArrayDecl(Type type, string id, std::shared_ptr<Exp> size)
+		: Decl(array_type(type), id), size {size} {}
 public:
-    /// Return the expression with the size of the array
-    shared_ptr<Exp> get_size() const {
-        return (size);
-    }
+	/// Return the expression with the size of the array
+	std::shared_ptr<Exp> get_size() const {
+		return (size);
+	}
 
-    /// Set the size
-    void set_size(shared_ptr<Exp> size) {
-        this->size = size;
-    }
+	/// Set the size
+	void set_size(std::shared_ptr<Exp> size) {
+		this->size = size;
+	}
 
-    /// Set array info
-    void set_data(ArrayData data) {
-        this->data = data;
-    }
+	/// Set array info
+	void set_data(ArrayData data) {
+		this->data = data;
+	}
 
-    /// Get array info
-    ArrayData get_data() const {
-        return (data);
-    }
+	/// Get array info
+	ArrayData get_data() const {
+		return (data);
+	}
 
-    /// Mark as an array declaration
+	/// Mark as an array declaration
 	bool is_array() override {
-        return (true);
-    }
+		return (true);
+	}
 
-    /// Acceptor
+	/// Acceptor
 	void accept(Visitor& visit) override;
 };
 
@@ -653,10 +720,10 @@ public:
  */
 class InitializedArray : public ArrayDecl, public Initialized {
 public:
-    InitializedArray(Type type, string id, shared_ptr<Exp> size,
-                shared_ptr<Exp> init) :
-        ArrayDecl(type, id, size), Initialized {init} {}
-    /// Acceptor
+	InitializedArray(Type type, string id, std::shared_ptr<Exp> size,
+				std::shared_ptr<Exp> init) :
+		ArrayDecl(type, id, size), Initialized {init} {}
+	/// Acceptor
 	void accept(Visitor& visit) override;
 };
 
@@ -669,11 +736,11 @@ public:
  */
 class MultipleInitializedArray : public ArrayDecl, public MultipleInitialized {
 public:
-    MultipleInitializedArray(Type type, string id, shared_ptr<Exp> size,
-                             const shared_vector<Exp>& inits) :
-        ArrayDecl(type, id, size), MultipleInitialized {inits} {}
+	MultipleInitializedArray(Type type, string id, std::shared_ptr<Exp> size,
+							 const shared_vector<Exp>& inits) :
+		ArrayDecl(type, id, size), MultipleInitialized {inits} {}
 
-    /// Acceptor
+	/// Acceptor
 	void accept(Visitor& visit) override;
 };
 
@@ -683,16 +750,16 @@ public:
  * @note The range is the same for all the elements of the array
  */
 class RangedInitializedArray : public ArrayDecl,
-        public Initialized, public Ranged {
+		public Initialized, public Ranged {
 public:
-    RangedInitializedArray(string id, shared_ptr<Exp> size,
-                              shared_ptr<Exp> lower, shared_ptr<Exp> upper,
-                              shared_ptr<Exp> init) :
-        ArrayDecl(Type::tint, id, size),
-        Initialized(init), Ranged(lower, upper) {}
+	RangedInitializedArray(string id, std::shared_ptr<Exp> size,
+							  std::shared_ptr<Exp> lower, std::shared_ptr<Exp> upper,
+							  std::shared_ptr<Exp> init) :
+		ArrayDecl(Type::tint, id, size),
+		Initialized(init), Ranged(lower, upper) {}
 
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 };
 
 /**
@@ -700,95 +767,95 @@ public:
  * @example a[4] : [0 .. 8] init {0, 4, 1, 8}
  */
 class RangedMultipleInitializedArray :
-        public ArrayDecl, public MultipleInitialized, public Ranged {
+		public ArrayDecl, public MultipleInitialized, public Ranged {
 public:
-    RangedMultipleInitializedArray(string id, shared_ptr<Exp> size,
-                                shared_ptr<Exp> lower, shared_ptr<Exp> upper,
-                                const shared_vector<Exp>& inits) :
-        ArrayDecl(Type::tint, id, size),
-        MultipleInitialized(inits), Ranged(lower, upper) {}
+	RangedMultipleInitializedArray(string id, std::shared_ptr<Exp> size,
+								std::shared_ptr<Exp> lower, std::shared_ptr<Exp> upper,
+								const shared_vector<Exp>& inits) :
+		ArrayDecl(Type::tint, id, size),
+		MultipleInitialized(inits), Ranged(lower, upper) {}
 
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 };
 
 /** @brief A transition of the module.
  */
 class TransitionAST : public ModelAST {
 protected:
-    /// Name of the label.
-    string id;
-    /// Type of the transition (input, output, commited)
-    LabelType type;
-    /// Precondition of the transition
-    /// @note: when the parser finds no precondition, "true" is the default.
-    shared_ptr<Exp>  precondition;
-    /// Vector of assignments (to modify the current state)
-    shared_vector<class Assignment> assignments;
-    /// Vector of clock resets
-    shared_vector<class ClockReset> clock_resets;
+	/// Name of the label.
+	string id;
+	/// Type of the transition (input, output, commited)
+	LabelType type;
+	/// Precondition of the transition
+	/// @note: when the parser finds no precondition, "true" is the default.
+	std::shared_ptr<Exp>  precondition;
+	/// Vector of assignments (to modify the current state)
+	shared_vector<class Assignment> assignments;
+	/// Vector of clock resets
+	shared_vector<class ClockReset> clock_resets;
 
 protected: //Protected Constructor
-    TransitionAST(string label_id, LabelType type, shared_ptr<Exp> pre,
-           const shared_vector<class Effect> &effects);
+	TransitionAST(string label_id, LabelType type, std::shared_ptr<Exp> pre,
+		   const shared_vector<class Effect> &effects);
 
-    TransitionAST(const TransitionAST &Decl) = delete;
-    void operator=(const TransitionAST &Decl) = delete;
+	TransitionAST(const TransitionAST &Decl) = delete;
+	void operator=(const TransitionAST &Decl) = delete;
 
 public:
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 
-    /// Returns the label of the module
-    string get_label() {
-        return (id);
-    }
+	/// Returns the label of the module
+	string get_label() {
+		return (id);
+	}
 
-    /// Return the vector of assignments
-    shared_vector<Assignment>& get_assignments() {
-        return (assignments);
-    }
+	/// Return the vector of assignments
+	shared_vector<Assignment>& get_assignments() {
+		return (assignments);
+	}
 
-    /// Return the clock resets of this transition
-    shared_vector<ClockReset>& get_clock_resets() {
-        return (clock_resets);
-    }
+	/// Return the clock resets of this transition
+	shared_vector<ClockReset>& get_clock_resets() {
+		return (clock_resets);
+	}
 
-    /// Return the precondition of this precondition
-    shared_ptr<Exp> get_precondition() {
-        return (precondition);
-    }
+	/// Return the precondition of this precondition
+	std::shared_ptr<Exp> get_precondition() {
+		return (precondition);
+	}
 
-    /// Set precondition
-    void set_precondition(shared_ptr<Exp> pre) {
-        this->precondition = pre;
-    }
+	/// Set precondition
+	void set_precondition(std::shared_ptr<Exp> pre) {
+		this->precondition = pre;
+	}
 
-    /// Has this transition a triggering clock?
+	/// Has this transition a triggering clock?
 	/// @note overridden by subclasses
-    /// @note only OutputTransition (and TauTransition) has a triggering clock
-    virtual bool has_triggering_clock() {
-        return (false);
-    }
+	/// @note only OutputTransition (and TauTransition) has a triggering clock
+	virtual bool has_triggering_clock() {
+		return (false);
+	}
 
-    /// Converts this instance into an OutputTransition
-    /// @note has_triggering_clock() must be true
-    shared_ptr<class OutputTransition> to_output() {
-        assert(has_triggering_clock());
-        return std::static_pointer_cast<OutputTransition>(shared_from_this());
-    }
+	/// Converts this instance into an OutputTransition
+	/// @note has_triggering_clock() must be true
+	std::shared_ptr<class OutputTransition> to_output() {
+		assert(has_triggering_clock());
+		return std::static_pointer_cast<OutputTransition>(shared_from_this());
+	}
 
-    /// Converts this instance into an InputTransition
-    /// @note the type of the transition must be LabelType::in
-    shared_ptr<class InputTransition> to_input() {
-        assert(type == LabelType::in);
-        return std::static_pointer_cast<InputTransition>(shared_from_this());
-    }
+	/// Converts this instance into an InputTransition
+	/// @note the type of the transition must be LabelType::in
+	std::shared_ptr<class InputTransition> to_input() {
+		assert(type == LabelType::in);
+		return std::static_pointer_cast<InputTransition>(shared_from_this());
+	}
 
-    /// Returns the label type
-    LabelType get_label_type() {
-        return (type);
-    }
+	/// Returns the label type
+	LabelType get_label_type() {
+		return (type);
+	}
 };
 
 /**
@@ -797,28 +864,28 @@ public:
  */
 class OutputTransition : public TransitionAST {
 private:
-    /// Location of Triggering clock
-    shared_ptr<class Location> clock_loc;
+	/// Location of Triggering clock
+	std::shared_ptr<class Location> clock_loc;
 public:
-    OutputTransition(string label_id, shared_ptr<Exp> pre,
-                     const shared_vector<Effect> &effects,
-                     shared_ptr<Location> clock_loc) :
-        TransitionAST(label_id, LabelType::out, pre, effects),
-        clock_loc {clock_loc} {}
+	OutputTransition(string label_id, std::shared_ptr<Exp> pre,
+					 const shared_vector<Effect> &effects,
+					 std::shared_ptr<Location> clock_loc) :
+		TransitionAST(label_id, LabelType::out, pre, effects),
+		clock_loc {clock_loc} {}
 
-    /// The location of the triggering clock
-    shared_ptr<Location> get_triggering_clock() {
-        return (clock_loc);
-    }
+	/// The location of the triggering clock
+	std::shared_ptr<Location> get_triggering_clock() {
+		return (clock_loc);
+	}
 
-    /// Overrides TransitionAST::has_triggering_clock() to indicate
-    /// that this transition has a clock.
-    virtual bool has_triggering_clock() override {
-        return (true);
-    }
+	/// Overrides TransitionAST::has_triggering_clock() to indicate
+	/// that this transition has a clock.
+	virtual bool has_triggering_clock() override {
+		return (true);
+	}
 
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 };
 
 /**
@@ -827,14 +894,14 @@ public:
  */
 class TauTransition : public OutputTransition {
 public:
-    TauTransition(shared_ptr<Exp> pre, const shared_vector<Effect>& effects,
-                  shared_ptr<Location> clock_loc) :
-        OutputTransition("", pre, effects, clock_loc) {
-        type = LabelType::tau;
-    }
+	TauTransition(std::shared_ptr<Exp> pre, const shared_vector<Effect>& effects,
+				  std::shared_ptr<Location> clock_loc) :
+		OutputTransition("", pre, effects, clock_loc) {
+		type = LabelType::tau;
+	}
 
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 };
 
 /**
@@ -843,15 +910,15 @@ public:
  */
 class InputTransition : public TransitionAST {
 public:
-    InputTransition(string label_id, shared_ptr<Exp> pre,
-                    const shared_vector<Effect> &effects) :
-        TransitionAST(label_id, LabelType::in, pre, effects) {}
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	InputTransition(string label_id, std::shared_ptr<Exp> pre,
+					const shared_vector<Effect> &effects) :
+		TransitionAST(label_id, LabelType::in, pre, effects) {}
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 
-    virtual bool is_wildcard() {
-        return (false);
-    }
+	virtual bool is_wildcard() {
+		return (false);
+	}
 };
 
 /**
@@ -860,13 +927,13 @@ public:
  */
 class WildcardInputTransition : public InputTransition {
 public:
-    WildcardInputTransition(shared_ptr<Exp> pre,
-                            const shared_vector<Effect> &effects) :
-        InputTransition("_", pre, effects) {}
+	WildcardInputTransition(std::shared_ptr<Exp> pre,
+							const shared_vector<Effect> &effects) :
+		InputTransition("_", pre, effects) {}
 
-    virtual bool is_wildcard() override {
-        return (true);
-    }
+	virtual bool is_wildcard() override {
+		return (true);
+	}
 };
 
 /**
@@ -875,11 +942,11 @@ public:
  */
 class InputCommittedTransition : public TransitionAST {
 public:
-    InputCommittedTransition(string label_id, shared_ptr<Exp> pre,
-                             const shared_vector<Effect> &effects) :
-    TransitionAST(label_id, LabelType::in_committed, pre, effects) {}
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	InputCommittedTransition(string label_id, std::shared_ptr<Exp> pre,
+							 const shared_vector<Effect> &effects) :
+	TransitionAST(label_id, LabelType::in_committed, pre, effects) {}
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 };
 
 /**
@@ -888,49 +955,49 @@ public:
  */
 class OutputCommittedTransition : public TransitionAST {
 public:
-    OutputCommittedTransition(string label_id, shared_ptr<Exp> pre,
-                              const shared_vector<Effect> &effects) :
-        TransitionAST(label_id, LabelType::out_committed, pre, effects) {}
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	OutputCommittedTransition(string label_id, std::shared_ptr<Exp> pre,
+							  const shared_vector<Effect> &effects) :
+		TransitionAST(label_id, LabelType::out_committed, pre, effects) {}
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 };
 
 /** @brief Effects of a transition (assginments or clock resets)
  */
 class Effect : public ModelAST {
 protected:
-    /// The location in which the changes are made (name of the
-    /// state variable or the clock).
-    shared_ptr<Location> loc;
+	/// The location in which the changes are made (name of the
+	/// state variable or the clock).
+	std::shared_ptr<Location> loc;
 
 protected: //Protected Constructor
-    Effect(shared_ptr<Location> loc) : loc {loc} {}
+	Effect(std::shared_ptr<Location> loc) : loc {loc} {}
 
-    Effect(const Effect &effect) = delete;
-    void operator=(const Effect &effect) = delete;
+	Effect(const Effect &effect) = delete;
+	void operator=(const Effect &effect) = delete;
 public:
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 
-    /// Is this a clock reset?
-    virtual bool is_clock_reset() {
-        return (false);
-    }
+	/// Is this a clock reset?
+	virtual bool is_clock_reset() {
+		return (false);
+	}
 
-    /// Is this an assignment?
-    virtual bool is_assignment() {
-        return (false);
-    }
+	/// Is this an assignment?
+	virtual bool is_assignment() {
+		return (false);
+	}
 
-    /// Return the location of the effect
-    shared_ptr<Location> get_effect_location() {
-        return (loc);
-    }
+	/// Return the location of the effect
+	std::shared_ptr<Location> get_effect_location() {
+		return (loc);
+	}
 
-    /// Sets effect location
-    void set_effect_location(shared_ptr<Location> location) {
-        this->loc = location;
-    }
+	/// Sets effect location
+	void set_effect_location(std::shared_ptr<Location> location) {
+		this->loc = location;
+	}
 };
 
 /**
@@ -939,24 +1006,24 @@ public:
  */
 class Assignment : public Effect {
 private:
-    /// The expression that should become the new value of the state.
-    shared_ptr<Exp> rhs;
+	/// The expression that should become the new value of the state.
+	std::shared_ptr<Exp> rhs;
 public:
-    Assignment(shared_ptr<Location> state_loc, shared_ptr<Exp> rhs)
-        : Effect(state_loc), rhs {rhs} {}
-    shared_ptr<Exp> get_rhs() {
-        return (rhs);
-    }
+	Assignment(std::shared_ptr<Location> state_loc, std::shared_ptr<Exp> rhs)
+		: Effect(state_loc), rhs {rhs} {}
+	std::shared_ptr<Exp> get_rhs() {
+		return (rhs);
+	}
 
-    void set_rhs(shared_ptr<Exp> rhs) {
-        this->rhs = rhs;
-    }
+	void set_rhs(std::shared_ptr<Exp> rhs) {
+		this->rhs = rhs;
+	}
 
-    bool is_assignment() override {
-        return (true);
-    }
-    /// Assignment
-    virtual void accept(Visitor& visit) override;
+	bool is_assignment() override {
+		return (true);
+	}
+	/// Assignment
+	virtual void accept(Visitor& visit) override;
 };
 
 /**
@@ -965,63 +1032,63 @@ public:
  */
 class ClockReset : public Effect {
 private:
-    /// The probability distribution of the clock
-    shared_ptr<class Dist> dist;
+	/// The probability distribution of the clock
+	std::shared_ptr<class Dist> dist;
 public:
-    ClockReset(shared_ptr<Location> clock_loc, shared_ptr<Dist> dist):
-        Effect (clock_loc),  dist {dist} {}
-    shared_ptr<Dist> get_dist() {
-        return (dist);
-    }
-    bool is_clock_reset() override {
-        return (true);
-    }
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	ClockReset(std::shared_ptr<Location> clock_loc, std::shared_ptr<Dist> dist):
+		Effect (clock_loc),  dist {dist} {}
+	std::shared_ptr<Dist> get_dist() {
+		return (dist);
+	}
+	bool is_clock_reset() override {
+		return (true);
+	}
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 };
 
 /** @brief Probability distributions */
 class Dist : public ModelAST {
 private:
-    /// Distribution type
-    DistType type;
+	/// Distribution type
+	DistType type;
 
 protected:
-    /// Protected constructor.
-    Dist(DistType type) : type {type} {}
+	/// Protected constructor.
+	Dist(DistType type) : type {type} {}
 
-    Dist(const Dist &) = delete;
-    void operator=(const Dist &) = delete;
+	Dist(const Dist &) = delete;
+	void operator=(const Dist &) = delete;
 
 public:
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 
-    DistType get_type() {
-        return (type);
-    }
+	DistType get_type() {
+		return (type);
+	}
 
-    virtual bool has_single_parameter() {
-        return (false);
-    }
+	virtual bool has_single_parameter() {
+		return (false);
+	}
 
-    virtual bool has_multiple_parameters() {
-        return (false);
-    }
+	virtual bool has_multiple_parameters() {
+		return (false);
+	}
 
 	virtual size_t num_parameters() {
 		return 0ul;
 	}
 
-    shared_ptr<class SingleParameterDist> to_single_parameter() {
-        assert(has_single_parameter());
-        return std::static_pointer_cast<SingleParameterDist>(shared_from_this());
-    }
+	std::shared_ptr<class SingleParameterDist> to_single_parameter() {
+		assert(has_single_parameter());
+		return std::static_pointer_cast<SingleParameterDist>(shared_from_this());
+	}
 
-    shared_ptr<class MultipleParameterDist> to_multiple_parameter() {
-        assert(has_multiple_parameters());
-        return std::static_pointer_cast<MultipleParameterDist>(shared_from_this());
-    }
+	std::shared_ptr<class MultipleParameterDist> to_multiple_parameter() {
+		assert(has_multiple_parameters());
+		return std::static_pointer_cast<MultipleParameterDist>(shared_from_this());
+	}
 };
 
 /**
@@ -1030,29 +1097,29 @@ public:
  */
 class SingleParameterDist : public Dist {
 private:
-    shared_ptr<Exp> param;
+	std::shared_ptr<Exp> param;
 public:
-    SingleParameterDist(DistType type, shared_ptr<Exp> param):
-        Dist(type), param {param} {}
+	SingleParameterDist(DistType type, std::shared_ptr<Exp> param):
+		Dist(type), param {param} {}
 
-    shared_ptr<Exp> get_parameter() {
-        return (param);
-    }
+	std::shared_ptr<Exp> get_parameter() {
+		return (param);
+	}
 
-    void set_parameter(shared_ptr<Exp> exp) {
-        this->param = exp;
-    }
+	void set_parameter(std::shared_ptr<Exp> exp) {
+		this->param = exp;
+	}
 
-    virtual bool has_single_parameter() override {
-        return (true);
-    }
+	virtual bool has_single_parameter() override {
+		return (true);
+	}
 
 	size_t num_parameters() override {
 		return 1ul;
 	}
 
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 };
 
 /**
@@ -1063,38 +1130,38 @@ public:
  */
 class MultipleParameterDist : public Dist {
 private:
-    shared_ptr<Exp> param1;
-    shared_ptr<Exp> param2;
+	std::shared_ptr<Exp> param1;
+	std::shared_ptr<Exp> param2;
 public:
-    MultipleParameterDist(DistType type,
-                        shared_ptr<Exp> param1, shared_ptr<Exp> param2) :
-        Dist(type), param1 {param1}, param2 {param2} {}
+	MultipleParameterDist(DistType type,
+						std::shared_ptr<Exp> param1, std::shared_ptr<Exp> param2) :
+		Dist(type), param1 {param1}, param2 {param2} {}
 
-    shared_ptr<Exp> get_first_parameter() {
-        return (param1);
-    }
+	std::shared_ptr<Exp> get_first_parameter() {
+		return (param1);
+	}
 
-    shared_ptr<Exp> get_second_parameter() {
-        return (param2);
-    }
+	std::shared_ptr<Exp> get_second_parameter() {
+		return (param2);
+	}
 
-    void set_first_parameter(shared_ptr<Exp> exp) {
-        this->param1 = exp;
-    }
+	void set_first_parameter(std::shared_ptr<Exp> exp) {
+		this->param1 = exp;
+	}
 
-    void set_second_parameter(shared_ptr<Exp> exp) {
-        this->param2 = exp;
-    }
+	void set_second_parameter(std::shared_ptr<Exp> exp) {
+		this->param2 = exp;
+	}
 
-    virtual bool has_multiple_parameters() override {
-        return (true);
-    }
+	virtual bool has_multiple_parameters() override {
+		return (true);
+	}
 
 	size_t num_parameters() override {
 		return 2ul;
 	}
 
-    virtual void accept(Visitor& visit) override;
+	virtual void accept(Visitor& visit) override;
 };
 
 /**
@@ -1103,29 +1170,29 @@ public:
  */
 class Location : public ModelAST {
 private:
-    /// The identifier
-    string id;
+	/// The identifier
+	string id;
 
-    /// Convenient pointer to identifier declaration
+	/// Convenient pointer to identifier declaration
 	/// @note set by ModelReductor
-    shared_ptr<Decl> decl;
+	std::shared_ptr<Decl> decl;
 
 public:
-    Location(const string& id) : id {id} {}
-    Location(const Location &) = delete;
-    void operator=(const Location &) = delete;
+	Location(const string& id) : id {id} {}
+	Location(const Location &) = delete;
+	void operator=(const Location &) = delete;
 
 public:
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 
-    /// The identifier
+	/// The identifier
 	string get_identifier() const {
-        return (id);
+		return (id);
 	}
 
 	/// Is this an indexed array? (e.g. x[4])
-    virtual bool is_array_position() const {
+	virtual bool is_array_position() const {
 		return (false);
 	}
 
@@ -1133,23 +1200,23 @@ public:
 		return that.id == id;
 	}
 
-    /// Converts this location into an ArrayPosition
-    shared_ptr<class ArrayPosition> to_array_position() {
-        assert(is_array_position());
-        return std::dynamic_pointer_cast<ArrayPosition>(shared_from_this());
-    }
+	/// Converts this location into an ArrayPosition
+	std::shared_ptr<class ArrayPosition> to_array_position() {
+		assert(is_array_position());
+		return std::dynamic_pointer_cast<ArrayPosition>(shared_from_this());
+	}
 
-    void set_decl(shared_ptr<Decl> decl) {
-        this->decl = decl;
-    }
+	void set_decl(std::shared_ptr<Decl> decl) {
+		this->decl = decl;
+	}
 
-    shared_ptr<Decl> get_decl() {
-        return (decl);
-    }
+	std::shared_ptr<Decl> get_decl() {
+		return (decl);
+	}
 
-    virtual std::string to_string() const noexcept {
-        return (this->id);
-    }
+	virtual std::string to_string() const noexcept {
+		return (this->id);
+	}
 
 };
 
@@ -1159,37 +1226,37 @@ public:
  */
 class ArrayPosition : public Location {
 private:
-    /// Expression used to compute the index
-    shared_ptr<Exp> index;
+	/// Expression used to compute the index
+	std::shared_ptr<Exp> index;
 
 public:
-    ArrayPosition(const string &id, shared_ptr<Exp> index)
-        : Location(id), index {index} {}
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	ArrayPosition(const string &id, std::shared_ptr<Exp> index)
+		: Location(id), index {index} {}
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 
-    ArrayPosition(const ArrayPosition &pos) = delete;
-    ArrayPosition(ArrayPosition &&pos) = delete;
+	ArrayPosition(const ArrayPosition &pos) = delete;
+	ArrayPosition(ArrayPosition &&pos) = delete;
 
-    shared_ptr<Exp> get_index() {
-        return (index);
-    }
-
-    void set_index(shared_ptr<Exp> exp) {
-        this->index = exp;
+	std::shared_ptr<Exp> get_index() {
+		return (index);
 	}
 
-    bool is_array_position() const override {
+	void set_index(std::shared_ptr<Exp> exp) {
+		this->index = exp;
+	}
+
+	bool is_array_position() const override {
 		return (true);
 	}
 
 	bool operator ==(const Location& that) const override {
 		return  that == *this &&
-                that.is_array_position() &&
+				that.is_array_position() &&
 				static_cast<const ArrayPosition&>(that).index == index;
 	}
 
-    virtual std::string to_string() const noexcept override;
+	virtual std::string to_string() const noexcept override;
 };
 
 /**
@@ -1197,38 +1264,38 @@ public:
  */
 class Exp : public ModelAST {
 protected:
-    /// Type of the expression
+	/// Type of the expression
 	/// @note This member is set by ModelTC (typechecking)
-    /// or by the parser when the type is inferred by the syntax,
-    /// by default is equal to Type::tunknown
-    Type type;
-    Exp() : type{Type::tunknown} {}
+	/// or by the parser when the type is inferred by the syntax,
+	/// by default is equal to Type::tunknown
+	Type type;
+	Exp() : type{Type::tunknown} {}
 public:
-    Exp(const Exp &) = delete;
-    void operator=(const Exp &) = delete;
+	Exp(const Exp &) = delete;
+	void operator=(const Exp &) = delete;
 
-    /// Acceptor
-    virtual void accept(Visitor& visit) override;
+	/// Acceptor
+	virtual void accept(Visitor& visit) override;
 
 	Type get_type() const {
-        return (type);
-    }
+		return (type);
+	}
 
-    virtual void set_type(Type type) {
-        this->type = type;
-    }
+	virtual void set_type(Type type) {
+		this->type = type;
+	}
 
 	virtual bool is_constant() const {
-        return (false);
-    }
+		return (false);
+	}
 
 	virtual bool is_binary_operator() const {
-        return (false);
-    }
+		return (false);
+	}
 
 	virtual bool is_unary_operator() const {
-        return (false);
-    }
+		return (false);
+	}
 
 	virtual bool operator==(const Exp& that) const = 0;
 
@@ -1236,7 +1303,7 @@ public:
 		return !(that == *this);
 	}
 
-    virtual std::string to_string() const noexcept = 0;
+	virtual std::string to_string() const noexcept = 0;
 };
 
 /**
@@ -1244,31 +1311,31 @@ public:
  */
 class IConst : public Exp {
 private:
-    int value;
+	int value;
 public:
-    /// Construct the constant
-    IConst(int value) : value {value} {
-        type = Type::tint;
-    }
+	/// Construct the constant
+	IConst(int value) : value {value} {
+		type = Type::tint;
+	}
 
-    IConst(const IConst &) = delete;
-    void operator=(const IConst &) = delete;
+	IConst(const IConst &) = delete;
+	void operator=(const IConst &) = delete;
 
-    /// Acceptor
+	/// Acceptor
 	void accept(Visitor& visit) override;
 
 	int get_value() const {
-        return (value);
-    }
+		return (value);
+	}
 
 	void set_type(Type type) override {
-        assert(type == Type::tint);
-        this->type = type;
-    }
+		assert(type == Type::tint);
+		this->type = type;
+	}
 
 	bool is_constant() const override {
-        return (true);
-    }
+		return (true);
+	}
 
 	bool operator==(const Exp& that) const override {
 		return  that.is_constant() &&
@@ -1276,9 +1343,9 @@ public:
 				static_cast<const IConst&>(that).value == value;
 	}
 
-    std::string to_string() const noexcept override {
-        return (std::to_string(value));
-    }
+	std::string to_string() const noexcept override {
+		return (std::to_string(value));
+	}
 };
 
 /**
@@ -1286,26 +1353,26 @@ public:
  */
 class BConst : public Exp {
 private:
-    bool value;
+	bool value;
 public:
-    /// Create the boolean constant from its value
+	/// Create the boolean constant from its value
 	BConst(bool value = false) : value {value} {
-        type = Type::tbool;
-    }
+		type = Type::tbool;
+	}
 
-    BConst(const BConst &) = delete;
-    void operator=(const BConst &) = delete;
+	BConst(const BConst &) = delete;
+	void operator=(const BConst &) = delete;
 
-    /// Acceptor
+	/// Acceptor
 	void accept(Visitor& visit) override;
 
 	bool get_value() const {
-        return (value);
-    }
+		return (value);
+	}
 
 	bool is_constant() const override {
-        return (true);
-    }
+		return (true);
+	}
 
 	bool operator==(const Exp& that) const override {
 		return  that.is_constant() &&
@@ -1313,9 +1380,9 @@ public:
 				static_cast<const BConst&>(that).value == value;
 	}
 
-    std::string to_string() const noexcept override {
-        return (value ? "true" : "false");
-    }
+	std::string to_string() const noexcept override {
+		return (value ? "true" : "false");
+	}
 };
 
 /**
@@ -1323,26 +1390,26 @@ public:
  */
 class FConst : public Exp {
 private:
-    float value;
+	float value;
 public:
-    /// Create the float constant from its value
-    FConst(float value) : value {value} {
-        type = Type::tfloat;
-    }
+	/// Create the float constant from its value
+	FConst(float value) : value {value} {
+		type = Type::tfloat;
+	}
 
-    FConst(const FConst &) = delete;
-    void operator=(const FConst &) = delete;
+	FConst(const FConst &) = delete;
+	void operator=(const FConst &) = delete;
 
-    /// Acceptor
+	/// Acceptor
 	void accept(Visitor& visit) override;
 
 	float get_value() const {
-        return (value);
-    }
+		return (value);
+	}
 
 	bool is_constant() const override {
-        return (true);
-    }
+		return (true);
+	}
 
 	bool operator==(const Exp& that) const override {
 		return  that.is_constant() &&
@@ -1350,9 +1417,9 @@ public:
 				static_cast<const FConst&>(that).value == value;
 	}
 
-    std::string to_string() const noexcept override {
-        return (std::to_string(value));
-    }
+	std::string to_string() const noexcept override {
+		return (std::to_string(value));
+	}
 };
 
 /**
@@ -1360,23 +1427,23 @@ public:
  */
 class LocExp : public Exp {
 private:
-    /// The location that should be read
-    /// to obtain the value of this expression
-    shared_ptr<Location> location;
+	/// The location that should be read
+	/// to obtain the value of this expression
+	std::shared_ptr<Location> location;
 public:
-    /// Create a location expression
-    LocExp(shared_ptr<Location> location) : location {location} {}
+	/// Create a location expression
+	LocExp(std::shared_ptr<Location> location) : location {location} {}
 	LocExp(string id) : location(make_shared<Location>(std::forward<string>(id))) {}
 
-    LocExp(const LocExp &) = delete;
-    void operator=(const LocExp &) = delete;
+	LocExp(const LocExp &) = delete;
+	void operator=(const LocExp &) = delete;
 
-    /// Acceptor
+	/// Acceptor
 	void accept(Visitor& visit) override;
 
-    shared_ptr<Location> get_exp_location() {
-        return (location);
-    }
+	std::shared_ptr<Location> get_exp_location() {
+		return (location);
+	}
 
 	bool operator==(const Exp& that) const override {
 		return  !that.is_constant() &&
@@ -1385,9 +1452,9 @@ public:
 				static_cast<const LocExp&>(that).location == location;
 	}
 
-    std::string to_string() const noexcept override {
-        return (location->to_string());
-    }
+	std::string to_string() const noexcept override {
+		return (location->to_string());
+	}
 };
 
 /**
@@ -1395,31 +1462,31 @@ public:
  */
 class OpExp : public Exp {
 protected:
-    /// Operator
-    ExpOp op;
+	/// Operator
+	ExpOp op;
 
 protected: //Protected.
-    OpExp(ExpOp op) : op {op} {}
+	OpExp(ExpOp op) : op {op} {}
 
-    OpExp(const OpExp&) = delete;
-    void operator=(const OpExp &) = delete;
+	OpExp(const OpExp&) = delete;
+	void operator=(const OpExp &) = delete;
 
 public:
-    /// Acceptor
+	/// Acceptor
 	void accept(Visitor& visit) override;
 
 	ExpOp get_operator() const {
-        return (op);
-    }
+		return (op);
+	}
 
 	bool operator==(const Exp& that) const override {
 		return  (that.is_binary_operator() || that.is_unary_operator()) &&
 				static_cast<const OpExp&>(that).op == op;
 	}
 
-    virtual std::string to_string() const noexcept override {
-        return (Operator::operator_string(op));
-    }
+	virtual std::string to_string() const noexcept override {
+		return (Operator::operator_string(op));
+	}
 };
 
 /**
@@ -1429,59 +1496,59 @@ public:
  */
 class BinOpExp : public OpExp {
 private:
-    shared_ptr<BinaryOpTy> inferred_type = nullptr;
-    shared_ptr<Exp> left;
-    shared_ptr<Exp> right;
-    // When adding new members, remember to update ExpReductor visitor!
-    // @todo make a proper copy constructor for that visitor
+	std::shared_ptr<BinaryOpTy> inferred_type = nullptr;
+	std::shared_ptr<Exp> left;
+	std::shared_ptr<Exp> right;
+	// When adding new members, remember to update ExpReductor visitor!
+	// @todo make a proper copy constructor for that visitor
 
 public:
-    BinOpExp(ExpOp op, shared_ptr<Exp> left, shared_ptr<Exp> right) :
-        OpExp(op), left {left}, right {right} {}
+	BinOpExp(ExpOp op, std::shared_ptr<Exp> left, std::shared_ptr<Exp> right) :
+		OpExp(op), left {left}, right {right} {}
 
-    BinOpExp(const BinOpExp&) = delete;
-    void operator=(const BinOpExp &) = delete;
+	BinOpExp(const BinOpExp&) = delete;
+	void operator=(const BinOpExp &) = delete;
 
 
-    /// Create a expression that represents the
-    /// conjuction of the given arguments
-    static shared_ptr<Exp> make_andd(shared_ptr<Exp> exp1,
-                                     shared_ptr<Exp> exp2) {
-        return make_shared<BinOpExp>(ExpOp::andd, exp1, exp2);
-    }
+	/// Create a expression that represents the
+	/// conjuction of the given arguments
+	static std::shared_ptr<Exp> make_andd(std::shared_ptr<Exp> exp1,
+									 std::shared_ptr<Exp> exp2) {
+		return make_shared<BinOpExp>(ExpOp::andd, exp1, exp2);
+	}
 
-    shared_ptr<Exp> get_first_argument() {
-        return (left);
-    }
+	std::shared_ptr<Exp> get_first_argument() {
+		return (left);
+	}
 
-    shared_ptr<Exp> get_second_argument() {
-        return (right);
-    }
+	std::shared_ptr<Exp> get_second_argument() {
+		return (right);
+	}
 
-    void set_first_argument(shared_ptr<Exp> exp) {
-        this->left = exp;
-    }
+	void set_first_argument(std::shared_ptr<Exp> exp) {
+		this->left = exp;
+	}
 
-    void set_second_argument(shared_ptr<Exp> exp) {
-        this->right = exp;
-    }
+	void set_second_argument(std::shared_ptr<Exp> exp) {
+		this->right = exp;
+	}
 
-    void set_inferred_type(BinaryOpTy type) {
-        inferred_type = make_shared<BinaryOpTy>(type);
-    }
+	void set_inferred_type(BinaryOpTy type) {
+		inferred_type = make_shared<BinaryOpTy>(type);
+	}
 
 	bool has_inferred_type() const {
-        return (inferred_type != nullptr);
-    }
+		return (inferred_type != nullptr);
+	}
 
-    BinaryOpTy get_inferred_type() {
-        assert(inferred_type != nullptr);
-        return (*inferred_type);
-    }
+	BinaryOpTy get_inferred_type() {
+		assert(inferred_type != nullptr);
+		return (*inferred_type);
+	}
 
 	bool is_binary_operator() const override {
-        return (true);
-    }
+		return (true);
+	}
 
 	void accept(Visitor& visit) override;
 
@@ -1494,18 +1561,18 @@ public:
 				thatBinOpExpr.right == right;
 	}
 
-    std::string to_string() const noexcept override {
-        std::string res = "";
-        const std::string & lStr  = left->to_string();
-        const std::string & rStr  = right->to_string();
-        const std::string & opStr = Operator::operator_string(op);
-        if (Operator::is_infix_operator(op)) {
-            res = lStr + opStr + rStr;
-        } else {
-            res = opStr + "(" + lStr + ", " + rStr + ")";
-        }
-        return (res);
-    }
+	std::string to_string() const noexcept override {
+		std::string res = "";
+		const std::string & lStr  = left->to_string();
+		const std::string & rStr  = right->to_string();
+		const std::string & opStr = Operator::operator_string(op);
+		if (Operator::is_infix_operator(op)) {
+			res = lStr + opStr + rStr;
+		} else {
+			res = opStr + "(" + lStr + ", " + rStr + ")";
+		}
+		return (res);
+	}
 };
 
 /**
@@ -1515,47 +1582,47 @@ public:
  */
 class UnOpExp : public OpExp {
 private:
-    shared_ptr<UnaryOpTy> inferred_type = nullptr;
-    shared_ptr<Exp> argument;
+	std::shared_ptr<UnaryOpTy> inferred_type = nullptr;
+	std::shared_ptr<Exp> argument;
 
 public:
-    UnOpExp(ExpOp op, shared_ptr<Exp> argument) :
-       OpExp(op), argument {argument} {}
+	UnOpExp(ExpOp op, std::shared_ptr<Exp> argument) :
+	   OpExp(op), argument {argument} {}
 
-    UnOpExp(const UnOpExp&) = delete;
-    void operator=(const UnOpExp &) = delete;
+	UnOpExp(const UnOpExp&) = delete;
+	void operator=(const UnOpExp &) = delete;
 
-    shared_ptr<Exp> get_argument() {
-        return (argument);
-    }
+	std::shared_ptr<Exp> get_argument() {
+		return (argument);
+	}
 
-    void set_argument(shared_ptr<Exp> exp) {
-        this->argument = exp;
-    }
+	void set_argument(std::shared_ptr<Exp> exp) {
+		this->argument = exp;
+	}
 
-    /// Create a expression that represents the negation of the given argument
-    static shared_ptr<Exp> make_nott(shared_ptr<Exp> exp) {
-        return make_shared<UnOpExp>(ExpOp::nott, exp);
-    }
+	/// Create a expression that represents the negation of the given argument
+	static std::shared_ptr<Exp> make_nott(std::shared_ptr<Exp> exp) {
+		return make_shared<UnOpExp>(ExpOp::nott, exp);
+	}
 
-    void set_inferred_type(UnaryOpTy type) {
-        inferred_type = make_shared<UnaryOpTy>(type);
-    }
+	void set_inferred_type(UnaryOpTy type) {
+		inferred_type = make_shared<UnaryOpTy>(type);
+	}
 
-    UnaryOpTy get_inferred_type() {
-        assert(inferred_type != nullptr);
-        return (*inferred_type);
-    }
+	UnaryOpTy get_inferred_type() {
+		assert(inferred_type != nullptr);
+		return (*inferred_type);
+	}
 
-    bool has_inferred_type() {
-        return (inferred_type != nullptr);
-    }
+	bool has_inferred_type() {
+		return (inferred_type != nullptr);
+	}
 
 	bool is_unary_operator() const override {
-        return (true);
-    }
+		return (true);
+	}
 
-    /// Acceptor
+	/// Acceptor
 	void accept(Visitor& visit) override;
 
 	bool operator==(const Exp& that) const override {
@@ -1566,10 +1633,10 @@ public:
 				thatUnOpExpr.argument == argument;
 	}
 
-    std::string to_string() const noexcept override {
-        const std::string &opStr = Operator::operator_string(op);
-        return (opStr + "(" + argument->to_string() + ")");
-    }
+	std::string to_string() const noexcept override {
+		const std::string &opStr = Operator::operator_string(op);
+		return (opStr + "(" + argument->to_string() + ")");
+	}
 };
 
 /**
@@ -1579,130 +1646,132 @@ public:
  */
 class Visitor {
 protected:
-    /// An error message to show to the user, also used to stop AST traversing
-    /// when an error is found.
-    shared_ptr<class ErrorMessage> message;
+	/// An error message to show to the user, also used to stop AST traversing
+	/// when an error is found.
+	std::shared_ptr<class ErrorMessage> message;
 
-    /// Signal an error, store the message to show to the
-    /// user when the AST traversing is finished.
-    void put_error(const string &msg);
-    void put_warning(const string &msg);
+	/// Signal an error, store the message to show to the
+	/// user when the AST traversing is finished.
+	void put_error(const string &msg);
+	void put_warning(const string &msg);
 
-    /// Ignore errors, has_errors() will be "false" after calling
-    /// this method
-    void ignore_errors();
+	/// Ignore errors, has_errors() will be "false" after calling
+	/// this method
+	void ignore_errors();
 
 public:
-    /// Default constructor
-    Visitor();
+	/// Default constructor
+	Visitor();
 
-    /// Has this visitor an error? Is the AST traversing incomplete?
-    bool has_errors();
-    bool has_warnings();
+	/// Has this visitor an error? Is the AST traversing incomplete?
+	bool has_errors();
+	bool has_warnings();
 
-    /// Returns a string with the error message.
-    /// @note call only if has_errors() or has_warnings() is true.
-    string get_messages();
+	/// Returns a string with the error message.
+	/// @note call only if has_errors() or has_warnings() is true.
+	string get_messages();
 
-    /// Visitor functions, one for each node
-    /// @note These aren't pure-virtual to avoid forcing implementation.
-    /// @note Default implementation is to call the visitor function
-    /// for the inmediate superclass. This is useful, for example,
-    /// for a subclass to override visitor(TransitionAST) to implement
-    /// the same behaviour for all the TransitionAST subclasses.
-    virtual void visit(shared_ptr<ModelAST>);
+	/// Visitor functions, one for each node
+	/// @note These aren't pure-virtual to avoid forcing implementation.
+	/// @note Default implementation is to call the visitor function
+	/// for the inmediate superclass. This is useful, for example,
+	/// for a subclass to override visitor(TransitionAST) to implement
+	/// the same behaviour for all the TransitionAST subclasses.
+	virtual void visit(std::shared_ptr<ModelAST>);
 
-    //Model
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<Model>);
+	//Model
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<Model>);
 
-    // Module
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<ModuleAST>);
+	// Module
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<ModuleAST>);
 
-    // Properties
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<Prop>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<TransientProp>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<RateProp>);
+	// Properties
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<Prop>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<TransientProp>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<RateProp>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<TBoundSSProp>);
 
-    // Declarations
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<Decl>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<InitializedDecl>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<RangedDecl>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<ClockDecl>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<ArrayDecl>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<InitializedArray>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<MultipleInitializedArray>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<RangedInitializedArray>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<RangedMultipleInitializedArray>);
+	// Declarations
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<Decl>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<InitializedDecl>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<RangedDecl>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<ClockDecl>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<ArrayDecl>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<InitializedArray>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<MultipleInitializedArray>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<RangedInitializedArray>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<RangedMultipleInitializedArray>);
 
-    //Transitions
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<TransitionAST>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<OutputTransition>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<TauTransition>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<InputTransition>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<WildcardInputTransition>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<InputCommittedTransition>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<OutputCommittedTransition>);
+	//Transitions
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<TransitionAST>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<OutputTransition>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<TauTransition>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<InputTransition>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<WildcardInputTransition>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<InputCommittedTransition>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<OutputCommittedTransition>);
 
-    //Effects
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<Effect>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<Assignment>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<ClockReset>);
+	//Effects
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<Effect>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<Assignment>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<ClockReset>);
 
-    //Distributions
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<Dist>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<SingleParameterDist>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<MultipleParameterDist>);
+	//Distributions
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<Dist>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<SingleParameterDist>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<MultipleParameterDist>);
 
-    //Locations
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<Location>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<ArrayPosition>);
+	//Locations
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<Location>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<ArrayPosition>);
 
-    //Expressions
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<Exp>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<IConst>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<BConst>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<FConst>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<LocExp>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<OpExp>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<BinOpExp>);
-    /// @copydoc visit(shared_ptr<ModelAST>)
-    virtual void visit(shared_ptr<UnOpExp>);
+	//Expressions
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<Exp>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<IConst>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<BConst>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<FConst>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<LocExp>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<OpExp>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<BinOpExp>);
+	/// @copydoc visit(std::shared_ptr<ModelAST>)
+	virtual void visit(std::shared_ptr<UnOpExp>);
 };
 
 #endif

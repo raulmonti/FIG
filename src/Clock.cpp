@@ -187,7 +187,7 @@ std::unordered_map< std::string, std::shared_ptr< BasicRNG > > RNGs =
 };
 
 /// Current RNG
-std::string rngType(fig::Clock::DEFAULT_RNG);
+std::string rngType(fig::Clock::DEFAULT_RNG.first);
 
 /// RNG instance
 auto rng = RNGs[rngType];

@@ -298,14 +298,14 @@ enum PropertyType
 	/// P( expr1 U expr2 )
 	TRANSIENT = 0,
 
-	/// S( label / total_time )
-	THROUGHPUT,
-
 	/// S( expr / total_time )
 	RATE,
 
 	/// S( expr1 / expr2 )
 	RATIO,
+
+	/// "S[ Tlow : Tupp ]( expr / (Tupp-Tlow) )"
+	TBOUNDED_SS,
 
 	/// P( F[<=time] goal )
 	BOUNDED_REACHABILITY

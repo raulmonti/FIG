@@ -500,8 +500,8 @@ build_IOSA_model_from_AST(Model& modelAST,
 	}
 
 	// Success iff the ModelSuite can be sealed
-	ModelSuite::get_instance().seal();
-	return ModelSuite::get_instance().sealed();
+	fig::ModelSuite::get_instance().seal();
+	return fig::ModelSuite::get_instance().sealed();
 }
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //

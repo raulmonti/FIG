@@ -147,18 +147,16 @@ build_empty_ci(const fig::PropertyType& propertyType,
 		} break;
 
     case fig::PropertyType::RATE:
+	case fig::PropertyType::TBOUNDED_SS:
 		ci_ptr.reset(new fig::ConfidenceIntervalRate(confidenceCo,
 													 precision,
 													 dynamicPrecision,
 													 timeBoundSim));
 		break;
 
-	case fig::PropertyType::THROUGHPUT:
 	case fig::PropertyType::RATIO:
     case fig::PropertyType::BOUNDED_REACHABILITY:
         throw_FigException("property type isn't supported yet");
-//	default:
-//		throw_FigException("unrecognized property type");
     }
 
 	return ci_ptr;

@@ -73,13 +73,13 @@ public:
 	static constexpr size_t NUM_RNGS = 3ul;
 
 	/// Default RNG algorithm
-	static const constexpr char* DEFAULT_RNG =
+	static constexpr std::pair<const char*,const char*> DEFAULT_RNG =
 #ifndef PCG_RNG
-		"mt64";
+	    std::make_pair("mt64", "64-bit STL's Mersenne-Twister");
 #elif !defined NDEBUG
-		"pcg64";
+	    std::make_pair("pcg64", "64-bit PCG-family generator");
 #else
-		"pcg32";
+	    std::make_pair("pcg32", "32-bit PCG-family generator with huge period");
 #endif
 
 	/// Default seed for the RNG

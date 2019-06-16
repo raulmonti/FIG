@@ -1,10 +1,41 @@
 /* Leonardo Rodríguez */
 
+// C++
 #include <tuple>
+#include <memory>  // std::dynamic_pointer_cast<>
 #include <cassert>
+#include <cstdlib>  // std::strtoul
+// fig
+#include <Util.h>
+#include <FigLog.h>
+#include <Label.h>
+#include <State.h>
+#include <Clock.h>
 #include <ModelBuilder.h>
 #include <ExpEvaluator.h>
 #include <ModelPrinter.h>
+#include <ModuleInstance.h>
+#include <Transition.h>
+#include <Property.h>
+#include <PropertyTransient.h>
+#include <PropertyRate.h>
+#include <PropertyTBoundSS.h>
+
+
+using std::set;
+using std::shared_ptr;
+using std::unique_ptr;
+using fig::figTechLog;
+using fig::Label;
+using fig::Precondition;
+using fig::Postcondition;
+using fig::Property;
+using fig::PropertyRate;
+using fig::PropertyTransient;
+using fig::PropertyTBoundSS;
+using fig::ModuleInstance;
+using fig::ModelSuite;
+using fig::State;
 
 
 namespace  // // // // // // // // // // // // // // // // // // // // // //
@@ -82,7 +113,7 @@ inline float ModelBuilder::get_float_or_error(shared_ptr<Exp> exp,
     if (ev.has_type_float()) {
         res = ev.get_float();
     } else if (ev.has_type_int()) {
-        res = (float) ev.get_int();
+		res = static_cast<float>(ev.get_int());
     } else {
         put_error(msg);
     }
@@ -103,36 +134,37 @@ inline bool ModelBuilder::get_bool_or_error(shared_ptr<Exp> exp,
 }
 
 namespace {
+
 inline void dump_precondition_info(const string &expr,
                                    const vector<string> &names) {
-    std::cout << "Precondition" << std::endl;
-    std::cout << "Expr = " << expr << std::endl;
-    std::cout << "Names = ";
+	figTechLog << "Precondition" << std::endl;
+	figTechLog << "Expr = " << expr << std::endl;
+	figTechLog << "Names = ";
     for (auto &name : names) {
-        std::cout << name << " ";
+		figTechLog << name << " ";
     }
-    std::cout << std::endl;
-    std::cout << "EndPrecondition" << std::endl;
-    std::cout << std::endl;
+	figTechLog << std::endl;
+	figTechLog << "EndPrecondition" << std::endl;
+	figTechLog << std::endl;
 }
 
 inline void dump_postcondition_info(const string &updates,
                                     const vector<string> &updates_names,
                                     const vector<string> &vars_to_change) {
-    std::cout << "Postcondition" << std::endl;
-    std::cout << "Updates = " << updates << std::endl;
-    std::cout << "Updates Names = ";
+	figTechLog << "Postcondition" << std::endl;
+	figTechLog << "Updates = " << updates << std::endl;
+	figTechLog << "Updates Names = ";
     for (auto &name : updates_names) {
-        std::cout << name << " ";
+		figTechLog << name << " ";
     }
-    std::cout << std::endl;
-    std::cout << "Vars to change = ";
+	figTechLog << std::endl;
+	figTechLog << "Vars to change = ";
     for (auto &name : vars_to_change) {
-        std::cout << name << " ";
+		figTechLog << name << " ";
     }
-    std::cout << std::endl;
-    std::cout << "EndPostcondition" << std::endl;
-    std::cout << std::endl;
+	figTechLog << std::endl;
+	figTechLog << "EndPostcondition" << std::endl;
+	figTechLog << std::endl;
 }
 
 inline void dump_transition_info(const string &label,
@@ -143,73 +175,75 @@ inline void dump_transition_info(const string &label,
                                  const vector<string> &post_update_names,
                                  const vector<string> &post_vars_to_change,
                                  const set<string> &clocks_to_reset) {
-    std::cout << "Transition" << std::endl;
-    std::cout << "Label = " << label << std::endl;
-    std::cout << "Clock = " << clock_trigger << std::endl;
+	figTechLog << "Transition" << std::endl;
+	figTechLog << "Label = " << label << std::endl;
+	figTechLog << "Clock = " << clock_trigger << std::endl;
     dump_precondition_info(pre_str, pre_names);
     dump_postcondition_info(post_update,
                             post_update_names, post_vars_to_change);
-    std::cout << "Clocks to reset = ";
+	figTechLog << "Clocks to reset = ";
     for (auto clock_n : clocks_to_reset) {
-        std::cout << clock_n << " ";
+		figTechLog << clock_n << " ";
     }
-    std::cout << std::endl;
-    std::cout << "EndTransition" << std::endl;
-    std::cout << std::endl;
+	figTechLog << std::endl;
+	figTechLog << "EndTransition" << std::endl;
+	figTechLog << std::endl;
 }
 
 inline void dump_exp_info(const string &expr, const vector<string> &names) {
-    std::cout << "Expr = " << expr << std::endl;
-    std::cout << "Names = ";
+	figTechLog << "Expr = " << expr << std::endl;
+	figTechLog << "Names = ";
     for (auto name : names) {
-        std::cout << name << " ";
+		figTechLog << name << " ";
     }
-    std::cout << std::endl;
+	figTechLog << std::endl;
 }
 
 inline void dump_transient_info(const string &left_expr,
                                 const vector<string> &left_vec,
                                 const string &right_expr,
                                 const vector<string> &right_vec) {
-    std::cout << "Property Transient" << std::endl;
+	figTechLog << "Property Transient" << std::endl;
     dump_exp_info(left_expr, left_vec);
     dump_exp_info(right_expr, right_vec);
-    std::cout << "EndProperty" << std::endl;
-    std::cout << std::endl;
+	figTechLog << "EndProperty" << std::endl;
+	figTechLog << std::endl;
 }
 
 inline void dump_rate_info(const string &expr, const vector<string> &vec) {
-    std::cout << "Property Rate" << std::endl;
+	figTechLog << "Property Rate" << std::endl;
     dump_exp_info(expr, vec);
-    std::cout << "EndProperty" << std::endl;
-    std::cout << std::endl;
+	figTechLog << "EndProperty" << std::endl;
+	figTechLog << std::endl;
 }
 
 inline void dump_var_info(const string &module, const string &var,
                           int low, int up,
                           int init) {
-    std::cout << "Variable of Module " << module << std::endl;
-    std::cout << "Name = " << var << std::endl;
-    std::cout << "Lower = " << low << std::endl;
-    std::cout << "Upper = " << up << std::endl;
-    std::cout << "Init  = " << init << std::endl;
-    std::cout << "EndVariable" << std::endl;
-    std::cout << std::endl;
+	figTechLog << "Variable of Module " << module << std::endl;
+	figTechLog << "Name = " << var << std::endl;
+	figTechLog << "Lower = " << low << std::endl;
+	figTechLog << "Upper = " << up << std::endl;
+	figTechLog << "Init  = " << init << std::endl;
+	figTechLog << "EndVariable" << std::endl;
+	figTechLog << std::endl;
 }
 
 inline void dump_clock_info(const string &module,
                             const string &name,
                             const string &dist_name,
                             float param1, float param2) {
-    std::cout << "Clock of Module " << module << std::endl;
-    std::cout << "Name = " << name << std::endl;
-    std::cout << "DistName = " << dist_name << std::endl;
-    std::cout << "Param1 = " << param1 << std::endl;
-    std::cout << "Param2 = " << param2 << std::endl;
-    std::cout << "EndClock" << std::endl;
-    std::cout << std::endl;
+	figTechLog << "Clock of Module " << module << std::endl;
+	figTechLog << "Name = " << name << std::endl;
+	figTechLog << "DistName = " << dist_name << std::endl;
+	figTechLog << "Param1 = " << param1 << std::endl;
+	figTechLog << "Param2 = " << param2 << std::endl;
+	figTechLog << "EndClock" << std::endl;
+	figTechLog << std::endl;
 }
-} //namespace
+
+} // namespace  // // // // // // // // // // // // // // // // // // // // //
+
 
 void ModelBuilder::visit(shared_ptr<Model> model) {
     auto& modules = model->get_modules();
@@ -362,9 +396,8 @@ Label build_label(string&& id, LabelType type) {
     case LabelType::out_committed: return Label::make_out_committed(id);
     case LabelType::in_committed: return Label::make_in_committed(id);
     case LabelType::tau: return Label::make_tau();
-    default:
-        throw_FigException("Unsupported label type");
     }
+	return Label::make_tau();
 }
 
 void ModelBuilder::visit(shared_ptr<TransitionAST> action) {
@@ -407,8 +440,23 @@ void ModelBuilder::visit(shared_ptr<TransientProp> prop) {
 }
 
 void ModelBuilder::visit(shared_ptr<RateProp> prop) {
-    shared_ptr<Property> property
-            = make_shared<PropertyRate>(prop->get_expression());
+	shared_ptr<Property> property
+	        = make_shared<PropertyRate>(prop->get_expression());
+	if (!has_errors()) {
+		int id = property->get_id();
+		assert(property_ast.find(id) == property_ast.end());
+		property_ast[id] = prop;
+		model_suite.add_property(property);
+	}
+}
+
+void ModelBuilder::visit(shared_ptr<TBoundSSProp> prop) {
+	auto tbound_low = std::dynamic_pointer_cast<IConst>(prop->get_tbound_low());
+	auto tbound_upp = std::dynamic_pointer_cast<IConst>(prop->get_tbound_upp());
+	shared_ptr<Property> property
+	        = make_shared<PropertyTBoundSS>(tbound_low,
+	                                        tbound_upp,
+	                                        prop->get_expression());
     if (!has_errors()) {
         int id = property->get_id();
         assert(property_ast.find(id) == property_ast.end());

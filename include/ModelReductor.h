@@ -38,12 +38,14 @@ private:
 
 public:
     ModelReductor() {}
+	virtual ~ModelReductor() {}
     void accept_cond(shared_ptr<ModelAST>);
     void visit(shared_ptr<Model>);
     void visit(shared_ptr<ModuleAST>);
     void visit(shared_ptr<TransientProp>);
     void visit(shared_ptr<RateProp>);
-    // Declarations
+	void visit(shared_ptr<TBoundSSProp>);
+	// Declarations
     void visit(shared_ptr<InitializedDecl>);
     void visit(shared_ptr<RangedDecl>);
     void visit(shared_ptr<ClockDecl>);

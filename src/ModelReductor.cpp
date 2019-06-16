@@ -64,6 +64,10 @@ void ModelReductor::visit(shared_ptr<TransientProp> node) {
 }
 
 void ModelReductor::visit(shared_ptr<RateProp> node) {
+	node->set_expression(reduce(node->get_expression()));
+}
+
+void ModelReductor::visit(shared_ptr<TBoundSSProp> node) {
     node->set_expression(reduce(node->get_expression()));
 }
 

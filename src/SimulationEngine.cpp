@@ -44,6 +44,7 @@
 #include <ImportanceFunctionConcrete.h>
 #include <Property.h>
 #include <PropertyRate.h>
+#include <PropertyTBoundSS.h>
 #include <PropertyTransient.h>
 #include <ConfidenceInterval.h>
 #include <ConfidenceIntervalRate.h>
@@ -371,13 +372,15 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 		} while ( ! (interrupted || ci.is_valid()) );
 		} break;
 
-	case PropertyType::THROUGHPUT:
+	case PropertyType::TBOUNDED_SS: {
+		    throw_FigException("TODO: implement time bounded steady-state simulations!");
+		    /// @todo TODO implement !!!
+	    } break;
+
 	case PropertyType::RATIO:
 	case PropertyType::BOUNDED_REACHABILITY:
 		throw_FigException("property type isn't supported by \"" + name_ +
 						   "\" simulation engine yet");
-	default:
-		throw_FigException("invalid property type");
 	}
 }
 
