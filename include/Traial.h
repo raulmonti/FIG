@@ -275,7 +275,7 @@ public:  // Utils
 	 */
 	template< typename size_type_1_, typename size_type_2_ >
 	inline void
-	kill_time(const size_type_1_& firstClock,
+	advance_time(const size_type_1_& firstClock,
 	          const size_type_2_& numClocks,
 			  const CLOCK_INTERNAL_TYPE& timeLapse)
 	    {
@@ -297,7 +297,7 @@ public:  // Utils
 	/// Single-clock version of the above to avoid loop (is this useful?)
 	template< typename size_type_ >
 	inline void
-	kill_time(const size_type_& clkPos,
+	advance_time(const size_type_& clkPos,
 	          const CLOCK_INTERNAL_TYPE& timeLapse)
 	    {
 		    // checks

@@ -313,8 +313,8 @@ ModuleInstance::jump(const Traial::Timeout& to,
 	const auto iter = transitions_by_clock_.find(to.name);
 	assert(end(transitions_by_clock_) != iter);  // deny foreign clocks
 	// Step 1: make time elapse in all clocks
-	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
-	traial.kill_time(to.gpos, 100.0f);  // mark this clock as 'expired'
+	traial.advance_time(firstClock_, num_clocks(), elapsedTime);
+	traial.advance_time(to.gpos, 100.0f);  // mark this clock as 'expired'
 	// Step 2: attend any enabled transition with matching clock name
 	return apply_postcondition(traial, iter->second);
 }
@@ -331,7 +331,7 @@ ModuleInstance::jump(const Label& label,
 #endif
     assert(label.is_output() || label.is_tau() || label.should_ignore());
 	// Step 1: make time elapse in all clocks
-	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
+	traial.advance_time(firstClock_, num_clocks(), elapsedTime);
 	if (label.should_ignore())
 		return;
 	// Step 2: attend any enabled transition with matching input label

@@ -48,6 +48,7 @@ class ImportanceFunctionConcrete;
 class Property;
 class PropertyRate;
 class PropertyTransient;
+class PropertyTBoundSS;
 class ModuleNetwork;
 class Traial;
 class ConfidenceInterval;
@@ -384,6 +385,28 @@ protected:  // Simulation helper functions
 					const size_t& runLength,
 					bool reinit = false) const = 0;
 
+	/**
+	 * @brief Perform a batched long-run simulation to estimate the value of a
+	 *        \ref PropertyTBoundSS "time bounded steady-state property"
+	 *
+	 *        Using the engine's simulation strategy, run a simulation that
+	 *        dicards the first property.tbound_low() time units (aka transient
+	 *        phase), and monitors the proportion of time that
+	 *        property.expr() is satisfied up to property.tbound_upp().
+	 *
+	 * @param property Property with the event of interest (expr) and the time bounds
+	 *
+	 * @return Amount of simulation-time spent on states that satisfy property.expr()
+	 *         The desired <i>rate</i>, i.e. the  proportion of simulation-time
+	 *         spent on rare states, is: returnValue / (tbound_upp()-tbound_low())
+	 *
+	 * @warning Implementations are currently <b>not thread-safe</b>.
+	 *
+	 * @see PropertyTBoundSS
+	 */
+	virtual double
+	tbound_ss_simulation(const PropertyTBoundSS& property) const = 0;
+
 protected:  // Traial observers/updaters
 
     /**
@@ -424,6 +447,21 @@ protected:  // Traial observers/updaters
                             Traial& traial,
                             Event& e) const = 0;
 
+	/**
+	 * @brief Discard a (transient) period: let time evolve in \p traial
+	 *        without keeping track of events.
+	 *
+	 * @param traial Embodiment of a simulation, forced to run through
+	 *               the system for \p simsLifetime time units
+	 *
+	 * @return Whether traial.lifeTime >= \p simsLifetime,
+	 *         or all simulations were interrupted at global scope.
+	 *
+	 * @note The amount of transient time to discard is taken from the
+	 *       current value of the \p simsLifetime class member
+	 */
+	bool kill_time(const Property&, Traial& traial, Event&) const;
+
 private:  // Class utils
 
 	/**
@@ -455,8 +493,25 @@ private:  // Class utils
 	 *       if such flag is set</b>
 	 */
 	void rate_update(ConfidenceIntervalRate& ci,
-					 const double& rareTime,
+	                 const double& rareTime,
 	                 size_t& simTime) const;
+
+	/**
+	 * @brief Update the ConfidenceInterval and the simulation effort
+	 *        for \ref PropertyTBoundSS "time bounded steady-state properties"
+	 *
+	 * @param ci       ConfidenceInterval to update <b>(modified)</b>
+	 * @param rareTime Simulation-time units spent on rare states in the last simulation
+	 * @param simTime  Total simulation-time units spent in last simulation
+	 *
+	 * @note Batch (time) size is determined by the time bounds of the property
+	 * @note Simulations can be truncated by external updates to the
+	 *       \ref interrupted "interrupted flag": <b>nothing will be done
+	 *       if such flag is set</b>
+	 */
+	void tbound_ss_update(ConfidenceIntervalRate& ci,
+	                      const double& rareTime,
+	                      const long& simTime) const;
 };
 
 } // namespace fig

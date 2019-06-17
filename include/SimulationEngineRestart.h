@@ -125,6 +125,10 @@ private:  // Simulation helper functions
 						   const size_t& runLength,
 						   bool reinit = false) const override;
 
+	inline double
+	tbound_ss_simulation(const PropertyTBoundSS&) const override
+	    { throw_FigException("TODO: implement!"); }
+
 private:  // Traial observers/updaters
 
 	/// @copydoc SimulationEngine::transient_event()

@@ -32,13 +32,15 @@
 #include <functional>  // std::placeholders
 // FIG
 #include <core_typedefs.h>
+#include <FigLog.h>
+#include <FigException.h>
 #include <SimulationEngineNosplit.h>
 #include <StoppingConditions.h>
-#include <FigException.h>
 #include <ImportanceFunctionConcrete.h>
+#include <PropertyRate.h>
+#include <PropertyTBoundSS.h>
 #include <PropertyTransient.h>
 #include <ConfidenceInterval.h>
-#include <FigLog.h>
 
 
 using namespace std::placeholders;  // _1, _2, _3, ...
@@ -149,6 +151,60 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 	assert(accTime <= runLength);
 #else
 	accTime = std::min<double>(accTime, runLength);
+#endif
+	return static_cast<double>(accTime);
+}
+
+
+double
+SimulationEngineNosplit::tbound_ss_simulation(const PropertyTBoundSS& property) const
+{
+	const auto transientTime = property.tbound_low();
+	const auto finishTime = property.tbound_upp();
+	assert(0 <= transientTime);
+	assert(transientTime < finishTime);
+	const auto batchTime = static_cast<double>(finishTime-transientTime);
+	double accTime(0.0);
+
+	// For the sake of efficiency, distinguish when operating with a concrete ifun
+	EventWatcher watch_events = impFun_->concrete_simulation()
+	        ? std::bind(&SimulationEngineNosplit::rate_event_concrete, this, _1, _2, _3)
+	        : std::bind(&SimulationEngineNosplit::rate_event,          this, _1, _2, _3);
+	EventWatcher register_time = impFun_->concrete_simulation()
+	        ? std::bind(&SimulationEngineNosplit::count_time_concrete, this, _1, _2, _3)
+	        : std::bind(&SimulationEngineNosplit::count_time,          this, _1, _2, _3);
+	EventWatcher discard_transient =
+	        std::bind(&SimulationEngineNosplit::kill_time, this, _1, _2, _3);
+
+	// Run a single standard Monte Carlo simulation:
+	oTraial_.initialise(*model_, *impFun_);
+
+	// - first discard transient phase
+	this->simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(transientTime);
+	model_->simulation_step(oTraial_, property, discard_transient);
+	assert(oTraial_.lifeTime >= transientTime);
+
+	// - and then register (time of) property satisfaction up to finishTime
+	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(finishTime);
+	do {
+		Event e = model_->simulation_step(oTraial_, property, watch_events);
+		if (!IS_RARE_EVENT(e))
+			break;  // reached EOS
+		const auto simLength(oTraial_.lifeTime);  // reduce fp prec. loss
+		oTraial_.lifeTime = 0.0;
+		model_->simulation_step(oTraial_, property, register_time);
+		assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < oTraial_.lifeTime);
+		oTraial_.lifeTime = std::min(oTraial_.lifeTime, simsLifetime);
+		accTime += static_cast<decltype(accTime)>(oTraial_.lifeTime);
+		oTraial_.lifeTime += simLength;
+	} while (oTraial_.lifeTime < simsLifetime && !interrupted);
+
+	// Return the simulation-time spent on rare states
+#ifndef NDEBUG
+	assert(0.0 <= accTime);
+	assert(accTime <= batchTime);
+#else
+	accTime = std::min<double>(accTime, batchTime);
 #endif
 	return static_cast<double>(accTime);
 }

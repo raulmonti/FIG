@@ -33,14 +33,14 @@
 #include <SimulationEngine.h>
 #include <ModuleNetwork.h>
 #include <State.h>
-#include <PropertyRate.h>
-#include <PropertyTransient.h>
 #include <ImportanceFunctionConcrete.h>
 
 
 namespace fig
 {
 
+class PropertyRate;
+class PropertyTBoundSS;
 class PropertyTransient;
 
 /**
@@ -90,6 +90,8 @@ protected:  // Simulation helper functions
 	double rate_simulation(const PropertyRate& property,
 						   const size_t& runLength,
 						   bool reinit = false) const override;
+
+	double tbound_ss_simulation(const PropertyTBoundSS &property) const override;
 
 public:  // Traial observers/updaters
 

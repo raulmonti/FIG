@@ -163,6 +163,23 @@ increase_run_length(const std::string& engineName,
 }
 
 
+/// Print batch size nicely aligned with other output
+template< typename T_ >
+void
+print_batchsize(std::ostream& out,
+                const T_& batchSize,
+                const std::string text = " · Batch (ini): ",
+                const unsigned numEndLines = 2u)
+{
+	static_assert(std::is_integral< T_ >::value, "ERROR: batch size must be integral type");
+	const auto numDigits = static_cast<size_t>(std::log10(batchSize)) + 1;
+	out << text;
+	out << std::setw(25-text.size()+numDigits) << batchSize;
+	for (auto i = 0u ; i < numEndLines ; i++)
+		out << std::endl;
+}
+
+
 /// Print in \p out stream the number of seconds elapsed
 /// since the beginning of the currently running estimation
 /// @see ModelSuite::get_running_time()
@@ -348,9 +365,7 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 		auto& ciTransient(dynamic_cast<ConfidenceIntervalTransient&>(ci));
 		size_t batchSize = batch_size() > 0ul ? batch_size()
 											  : min_batch_size(name(), impFun_->name());
-
-		figMainLog << " · Batch (ini):" << std::setw(12) << batchSize;
-		figMainLog << std::endl << std::endl;
+		print_batchsize(figMainLog, batchSize);
 		while ( ! (interrupted || ci.is_valid()) ) {
 			auto counts = transient_simulations(pTransient, batchSize);
 			transient_update(ciTransient, counts);
@@ -362,8 +377,7 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 		auto& ciRate(dynamic_cast<ConfidenceIntervalRate&>(ci));
 		size_t runLength = batch_size() > 0ul ? batch_size()
 											  : min_run_length(name(), impFun_->name());
-		figMainLog << " · Batch (ini):" << std::setw(12) << runLength;
-		figMainLog << std::endl << std::endl;
+		print_batchsize(figMainLog, runLength);
 		bool firstRun(true);
 		do {
 			auto value = rate_simulation(pRate, runLength, firstRun);  // use batch-means
@@ -373,8 +387,15 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 		} break;
 
 	case PropertyType::TBOUNDED_SS: {
-		    throw_FigException("TODO: implement time bounded steady-state simulations!");
-		    /// @todo TODO implement !!!
+		const auto& pTBSS(dynamic_cast<const PropertyTBoundSS&>(property));
+		auto& ciRate(dynamic_cast<ConfidenceIntervalRate&>(ci));
+		const long batchSimTime = pTBSS.tbound_upp()-pTBSS.tbound_low();
+		print_batchsize(figMainLog, pTBSS.tbound_low(), " · Transient time:", 1u);
+		print_batchsize(figMainLog, batchSimTime, " · Batch sim time:");
+		do {
+			auto value = tbound_ss_simulation(pTBSS);
+			tbound_ss_update(ciRate, value, batchSimTime);
+		} while ( ! (interrupted || ci.is_valid()) );
 	    } break;
 
 	case PropertyType::RATIO:
@@ -382,6 +403,16 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 		throw_FigException("property type isn't supported by \"" + name_ +
 						   "\" simulation engine yet");
 	}
+}
+
+
+bool
+SimulationEngine::kill_time(const Property&, Traial& t, Event&) const
+{
+	return interrupted ||
+	(
+	    t.lifeTime >= simsLifetime
+	);
 }
 
 
@@ -453,6 +484,40 @@ SimulationEngine::rate_update(ConfidenceIntervalRate& ci,
 	} else {
 		increase_run_length(name_, impFun_->name(), simTime);
 		figTechLog << "*";  // report "discarded"
+	}
+}
+
+
+void
+SimulationEngine::tbound_ss_update(ConfidenceIntervalRate& ci,
+                                   const double& rareTime,
+                                   const long& simTime) const
+{
+	if (interrupted)
+		return;  // don't update interrupted simulations
+
+	assert(0 <= rareTime);
+	assert(rareTime <= simTime);
+	// Reduce fp precision loss
+	const double thisRate(std::exp(std::log(rareTime)-std::log(simTime)));
+	assert(0.0 <= thisRate);
+	ci.update(thisRate);
+
+	if (ModelSuite::get_verbosity()) {
+		// Print updated CI, providing enough time elapsed since last print
+		static constexpr double TIMEOUT_PRINT(M_PI);  // in seconds
+		static unsigned cnt(0u);
+		const auto numSamples = static_cast<size_t>(ci.num_samples());
+		const bool newCI(numSamples <= min_batch_size(name(), impFun_->name()));
+		const double thisCallTime(omp_get_wtime());
+		static double lastCallTime(newCI ? thisCallTime : lastCallTime);
+		cnt = newCI ? 0u : cnt;
+		if (thisCallTime-lastCallTime > TIMEOUT_PRINT) {
+			figTechLog << "\n[" << cnt++ << "] ";
+			ci.print(figTechLog);
+			print_runtime(figTechLog, " time:", " samples:"+std::to_string(ci.num_samples()));
+			lastCallTime = thisCallTime;
+		}
 	}
 }
 
