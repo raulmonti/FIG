@@ -81,8 +81,8 @@ SimulationEngineNosplit::transient_simulations(const PropertyTransient& property
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	const EventWatcher& watch_events = impFun_->concrete_simulation()
-			? std::bind(&SimulationEngineNosplit::transient_event_concrete, this, _1, _2, _3)
-	        : std::bind(&SimulationEngineNosplit::transient_event,		  this, _1, _2, _3);
+	        ? std::bind(&SimulationEngineNosplit::transient_event_concrete, this, _1, _2, _3)
+	        : std::bind(&SimulationEngineNosplit::transient_event,          this, _1, _2, _3);
 
 	// Perform 'numRuns' independent standard Monte Carlo simulations
 	for (size_t i = 0ul ; i < numRuns && !interrupted ; i++) {
@@ -109,11 +109,11 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	EventWatcher watch_events = impFun_->concrete_simulation()
-			? std::bind(&SimulationEngineNosplit::rate_event_concrete, *this, _1, _2, _3)
-	        : std::bind(&SimulationEngineNosplit::rate_event,		   *this, _1, _2, _3);
+	        ? std::bind(&SimulationEngineNosplit::rate_event_concrete, this, _1, _2, _3)
+	        : std::bind(&SimulationEngineNosplit::rate_event,          this, _1, _2, _3);
 	EventWatcher register_time = impFun_->concrete_simulation()
-			? std::bind(&SimulationEngineNosplit::count_time_concrete, *this, _1, _2, _3)
-	        : std::bind(&SimulationEngineNosplit::count_time,		   *this, _1, _2, _3);
+	        ? std::bind(&SimulationEngineNosplit::count_time_concrete, this, _1, _2, _3)
+	        : std::bind(&SimulationEngineNosplit::count_time,          this, _1, _2, _3);
 
 	// Run a single standard Monte Carlo simulation for "runLength"
 	// simulation time units and starting from the last saved state...

@@ -296,10 +296,28 @@ return_t dirac(const params_t& params)
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
+const std::pair<const char*,const char*> Clock::DEFAULT_RNG =
+#ifndef PCG_RNG
+        std::make_pair("mt64", "64-bit STL's Mersenne-Twister");
+#elif !defined NDEBUG
+        std::make_pair("pcg64", "64-bit PCG-family generator");
+#else
+        std::make_pair("pcg32", "32-bit PCG-family generator with huge period");
+#endif
+
 #ifndef RANDOM_RNG_SEED
   bool Clock::randomSeed_ = false;
 #else
   bool Clock::randomSeed_ = true;
+#endif
+
+const size_t Clock::DEFAULT_RNG_SEED =
+#ifdef RANDOM_RNG_SEED
+        0ul;
+#elif !defined PCG_RNG
+        5489ul;  // C++ STL's random.h: class mersenne_twister_engine
+#else
+        0xCAFEF00DD15EA5E5ull;  // pcg_random.hpp: class engine ctor
 #endif
 
 

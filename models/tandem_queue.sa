@@ -69,7 +69,7 @@ endmodule
 
 
 properties
-	S[ 99:5000 ]( q2 == c )  // "rate with time-bound"
-	S( q2 == c )           // "rate"
-	P( q2 > 0 U q2 == c )  // "transient"
+	S( q2 == c )              // "rate"
+	S[ 60:30000 ]( q2 == c )  // "rate with time-bound"
+//	P( q2 > 0 U q2 == c )     // "transient"
 endproperties

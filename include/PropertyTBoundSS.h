@@ -46,7 +46,8 @@ namespace fig
  *               starts being monitored only after time > \p Tlow.
  *          </li>
  *          <li> the upper time value indicates the (time) length of a batch:
- *               a simulation is truncated as soon as it goes beyond time \p Tupp.
+ *               a simulation is truncated as soon as its time > \p Tupp,
+ *               so batches have (simulation) time length \p Tupp - \p Tlow.
  *          </li>
  *          </ul>
  *          This way, the \ref ConfidenceInterval "confidence interval"
