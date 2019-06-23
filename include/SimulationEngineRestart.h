@@ -32,8 +32,6 @@
 #include <SimulationEngine.h>
 #include <core_typedefs.h>
 #include <Traial.h>
-#include <PropertyRate.h>
-#include <PropertyTransient.h>
 #include <ImportanceFunctionConcrete.h>
 
 
@@ -41,6 +39,7 @@ namespace fig
 {
 
 class PropertyTransient;
+class PropertyRate;
 class TraialPool;
 
 /**
@@ -125,9 +124,23 @@ private:  // Simulation helper functions
 						   const size_t& runLength,
 						   bool reinit = false) const override;
 
-	inline double
-	tbound_ss_simulation(const PropertyTBoundSS&) const override
-	    { throw_FigException("TODO: implement!"); }
+	double tbound_ss_simulation(const PropertyTBoundSS&) const override;
+
+	/**
+	 * @brief Standard RESTART run, i.e. long run method
+	 *
+	 *        Run a single RESTART importance-splitting simulation for
+	 *        as many time units as previously set in simsLifetime.
+	 *        Simulations start from the last saved ssstack_.
+	 *
+	 *  @note Indended for steady-state-like simulations, e.g.
+	 *        \ref rate_simulation() "rate" and
+	 *        \ref tbound_ss_simulation() "time bounded steady-state"
+	 */
+	template< typename SSProperty >
+	double RESTART_run(const SSProperty& property,
+					   const EventWatcher& watch_events,
+					   const EventWatcher& register_time) const;
 
 private:  // Traial observers/updaters
 
@@ -203,8 +216,9 @@ private:  // Traial observers/updaters
 			traial.numLevelsCrossed = static_cast<int>(newThrLvl - traial.level);
 			traial.depth -= traial.numLevelsCrossed;
 			traial.level = newThrLvl;
-			if (traial.numLevelsCrossed < 0 &&
-				traial.depth > static_cast<short>(dieOutDepth_))
+			if (traial.numLevelsCrossed < 0 && (
+						traial.depth > static_cast<short>(dieOutDepth_)
+						|| (traial.depth > 0 && traial.level == 0)))
 				e = EventType::THR_DOWN;
 			else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 				e = EventType::THR_UP;
@@ -231,8 +245,9 @@ private:  // Traial observers/updaters
 			traial.numLevelsCrossed = static_cast<int>(newThrLvl - traial.level);
 			traial.depth -= traial.numLevelsCrossed;
 			traial.level = newThrLvl;
-			if (traial.numLevelsCrossed < 0 &&
-				traial.depth > static_cast<short>(dieOutDepth_))
+			if (traial.numLevelsCrossed < 0 && (
+						traial.depth > static_cast<short>(dieOutDepth_)
+						|| (traial.depth > 0 && traial.level == 0)))
 				SET_THR_DOWN_EVENT(e);
 			else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 				SET_THR_UP_EVENT(e);

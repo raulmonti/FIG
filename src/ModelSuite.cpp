@@ -29,6 +29,7 @@
 
 // C
 #include <cstdio>     // std::sprintf()
+#include <cstdlib>    // std::strtoul()
 #include <unistd.h>   // alarm(), exit()
 #include <pthread.h>  // pthread_cancel()
 #include <cmath>      // std::pow()
@@ -474,25 +475,32 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 	thrBuilders["hyb"] = std::make_shared< ThresholdsBuilderHybrid >();
 
 	// Build offered simulation engines
-	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
-	simulators["restart"] = std::make_shared< SimulationEngineRestart >(model);
-	simulators["sfe"]     = std::make_shared< SimulationEngineSFE >(model);
+	simulators["nosplit"]  = std::make_shared< SimulationEngineNosplit >(model);
+	simulators["sfe"]      = std::make_shared< SimulationEngineSFE >(model);
+	simulators["restart"]  = std::make_shared< SimulationEngineRestart >(model);
+	simulators["restart0"] = simulators["restart"];
+	simulators["restart1"] = simulators["restart"];
+	simulators["restart2"] = simulators["restart"];
+	simulators["restart3"] = simulators["restart"];
+	simulators["restart4"] = simulators["restart"];
+	simulators["restart5"] = simulators["restart"];
+	simulators["restart6"] = simulators["restart"];
 
 #ifndef NDEBUG
 	// Check all offered importance functions, thresholds builders and
 	// simulation engines were actually instantiated
 	for (const auto& ifunName: available_importance_functions())
 		if(end(impFuns) == impFuns.find(ifunName))
-            throw_FigException("Hey.  Hey you...  HEY, DEVELOPER! You forgot to "
-                               "create the '"+ifunName+"' importance function");
+			throw_FigException("importance function \"" + ifunName + "\" "
+							   "not created; check ModelSuite::seal()");
 	for (const auto& thrTechnique: available_threshold_techniques())
 		if(end(thrBuilders) == thrBuilders.find(thrTechnique))
-            throw_FigException("Hey.  Hey you...  HEY, DEVELOPER! You forgot to "
-							   "create the '"+thrTechnique+"' thresholds builder");
+			throw_FigException("thresholds builder \"" + thrTechnique + "\" "
+							   "not created; check ModelSuite::seal()");
 	for (const auto& engineName: available_simulators())
 		if (end(simulators) == simulators.find(engineName))
-            throw_FigException("Hey.  Hey you...  HEY, DEVELOPER! You forgot to "
-                               "create the '"+engineName+"' simulation engine");
+			throw_FigException("simulation engine \"" + engineName + "\" "
+							   "not created; check ModelSuite::seal()");
 #endif
 	pristineModel_ = false;
 }
@@ -1111,17 +1119,29 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
 	if (engine_ptr->bound() && !force)
 		throw_FigException("simulation engine \"" + engineName + "\" is still bound to "
 		                   "importance function \"" + engine_ptr->current_imp_fun() + "\"");
+
 	// Step 1: Couple the ImportanceFunction and SimulationEngine instances
 	techLog_ << "\nBinding simulation engine \"" << engineName << ""
 	         << "\" to importance function \"" << ifunName << "\"\n";
 	engine_ptr->bind(ifun_ptr);
 	assert(engine_ptr->bound());
 	assert(ifunName == engine_ptr->current_imp_fun());
-	assert(engineName == ifun_ptr->sim_engine_bound());
+	assert(is_prefix(engineName, ifun_ptr->sim_engine_bound()));  // support restart<n> names
 	pristineModel_ = false;
+
 	// Step 2: Build the thresholds from (and into) the ImportanceFunction
 	build_thresholds(thrTechnique, ifunName, property, force);
 	assert(ifun_ptr->ready());
+
+	// Step 3: for RESTART, test&set prolonged retrials
+	if (is_prefix(engineName, "restart")) {
+		auto RESTART = std::dynamic_pointer_cast<SimulationEngineRestart>(engine_ptr);
+		char* err(nullptr);
+		const auto tpSpec = std::string(&engineName.back()).c_str();
+		const auto traialProlongation = std::strtoul(tpSpec, &err, 10);
+		if ((nullptr == err || err[0] == '\0') && traialProlongation > 0)
+			RESTART->set_die_out_depth(static_cast<unsigned>(traialProlongation));
+	}
 	return engine_ptr;
 }
 

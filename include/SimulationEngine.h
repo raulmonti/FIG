@@ -71,7 +71,7 @@ public:
     /// Long story short: number of concrete derived classes.
     /// More in detail this is the size of the array returned by names(), i.e.
     /// how many SimualtionEngine implementations are offered to the end user.
-	static constexpr size_t NUM_NAMES = 3;
+	static constexpr size_t NUM_NAMES = 10;
 
 protected:  // Attributes for simulation update policies
 
@@ -96,17 +96,18 @@ protected:  // Attributes for simulation update policies
     /// @warning Value is arbitrary af
 	static constexpr long MAX_CPU_TIME = 8l;
 
-    /// Maximum simulation-time units any Traial is allowed to accumulate
-    /// before having its lifetime reset
-    /// @note Needed due to fp precision issues
-    /// @note Value chosen small enough to distinguish variations of 0.01
-    ///       simulation-time units when using fp single precision:
-    ///       mantissa 1, exponent 12, resulting in 1*2^12 == 4096.
-    ///       The corresponding C99 literal is 0x1p12.
-    /// @see <a href="http://www.cprogramming.com/tutorial/floating_point/understanding_floating_point_representation.html">
-    ///      Floating point arithmetic</a> and the <a href="http://stackoverflow.com/a/4825867">
-    ///      C99 fp literals</a>.
-    static constexpr CLOCK_INTERNAL_TYPE SIM_TIME_CHUNK = 4096.f;
+	/// @todo TODO delete deprecated code below
+//    /// Maximum simulation-time units any Traial is allowed to accumulate
+//    /// before having its lifetime reset
+//    /// @note Needed due to fp precision issues
+//    /// @note Value chosen small enough to distinguish variations of 0.01
+//    ///       simulation-time units when using fp single precision:
+//    ///       mantissa 1, exponent 12, resulting in 1*2^12 == 4096.
+//    ///       The corresponding C99 literal is 0x1p12.
+//    /// @see <a href="http://www.cprogramming.com/tutorial/floating_point/understanding_floating_point_representation.html">
+//    ///      Floating point arithmetic</a> and the <a href="http://stackoverflow.com/a/4825867">
+//    ///      C99 fp literals</a>.
+//    static constexpr CLOCK_INTERNAL_TYPE SIM_TIME_CHUNK = 4096.f;
 
 private:  // Instance attributes
 

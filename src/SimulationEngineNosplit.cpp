@@ -132,12 +132,13 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 		oTraial_.lifeTime = std::min(oTraial_.lifeTime, simsLifetime);
 		accTime += static_cast<decltype(accTime)>(oTraial_.lifeTime);
 		oTraial_.lifeTime += simLength;
-		if (oTraial_.lifeTime > SIM_TIME_CHUNK
-			&& simsLifetime > SIM_TIME_CHUNK) {
-			// reduce fp precision loss
-			oTraial_.lifeTime -= SIM_TIME_CHUNK;
-			simsLifetime -= SIM_TIME_CHUNK;
-		}
+		/// @todo TODO delete deprecated code below
+//		if (oTraial_.lifeTime > SIM_TIME_CHUNK
+//			&& simsLifetime > SIM_TIME_CHUNK) {
+//			// reduce fp precision loss
+//			oTraial_.lifeTime -= SIM_TIME_CHUNK;
+//			simsLifetime -= SIM_TIME_CHUNK;
+//		}
 	} while (oTraial_.lifeTime < simsLifetime && !interrupted);
 
 	// Allow next iteration of batch means
@@ -174,13 +175,13 @@ SimulationEngineNosplit::tbound_ss_simulation(const PropertyTBoundSS& property) 
 	        ? std::bind(&SimulationEngineNosplit::count_time_concrete, this, _1, _2, _3)
 	        : std::bind(&SimulationEngineNosplit::count_time,          this, _1, _2, _3);
 	EventWatcher discard_transient =
-	        std::bind(&SimulationEngineNosplit::kill_time, this, _1, _2, _3);
+			std::bind(&SimulationEngineNosplit::kill_time,             this, _1, _2, _3);
 
 	// Run a single standard Monte Carlo simulation:
 	oTraial_.initialise(*model_, *impFun_);
 
 	// - first discard transient phase
-	this->simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(transientTime);
+	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(transientTime);
 	model_->simulation_step(oTraial_, property, discard_transient);
 	assert(oTraial_.lifeTime >= transientTime);
 

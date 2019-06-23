@@ -37,10 +37,14 @@
 #include <functional>  // std::functional<>
 // FIG
 #include <SimulationEngineRestart.h>
+#include <FigLog.h>
+#include <FigException.h>
 #include <ModuleNetwork.h>
 #include <TraialPool.h>
 #include <FigException.h>
-#include <FigLog.h>
+#include <PropertyRate.h>
+#include <PropertyTBoundSS.h>
+#include <PropertyTransient.h>
 
 
 using namespace std::placeholders;  // _1, _2, _3, ...
@@ -173,8 +177,8 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	EventWatcher watch_events = impFun_->concrete_simulation()
-			? std::bind(&SimulationEngineRestart::transient_event_concrete, *this, _1, _2, _3)
-	        : std::bind(&SimulationEngineRestart::transient_event,		  *this, _1, _2, _3);
+	        ? std::bind(&SimulationEngineRestart::transient_event_concrete, this, _1, _2, _3)
+	        : std::bind(&SimulationEngineRestart::transient_event,          this, _1, _2, _3);
 
 	// Perform 'numRuns' independent RESTART simulations
 	for (size_t i = 0ul ; i < numRuns && !interrupted ; i++) {
@@ -276,14 +280,18 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	const EventWatcher& watch_events = impFun_->concrete_simulation()
 			? std::bind(&SimulationEngineRestart::rate_event_concrete, this, _1, _2, _3)
-	        : std::bind(&SimulationEngineRestart::rate_event,		  this, _1, _2, _3);
+			: std::bind(&SimulationEngineRestart::rate_event,          this, _1, _2, _3);
 	const EventWatcher& register_time = impFun_->concrete_simulation()
 			? std::bind(&SimulationEngineRestart::count_time_concrete, this, _1, _2, _3)
-	        : std::bind(&SimulationEngineRestart::count_time,		  this, _1, _2, _3);
+			: std::bind(&SimulationEngineRestart::count_time,          this, _1, _2, _3);
 
 	// Run a single RESTART importance-splitting simulation for "runLength"
 	// simulation time units and starting from the last saved ssstack_,
 	// or from the system's initial state if requested.
+	return RESTART_run(property, watch_events, register_time);
+
+	/// @todo TODO erase factored-out code below
+/*
 	while (!ssstack_.empty() && !interrupted) {
 		Event e(EventType::NONE);
 		Traial& traial = ssstack_.top();
@@ -347,6 +355,130 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	// Return the (weighed) simulation-time spent on rare states
 	assert(0.0 <= weighedAccTime);
 	return weighedAccTime;
+*/
 }
+
+
+double
+SimulationEngineRestart::tbound_ss_simulation(const PropertyTBoundSS& property) const
+{
+	const auto transientTime = property.tbound_low();
+	const auto finishTime = property.tbound_upp();
+	assert(0 <= transientTime);
+	assert(transientTime < finishTime);
+
+	// For the sake of efficiency, distinguish when operating with a concrete ifun
+	const EventWatcher& watch_events = impFun_->concrete_simulation()
+			? std::bind(&SimulationEngineRestart::rate_event_concrete, this, _1, _2, _3)
+			: std::bind(&SimulationEngineRestart::rate_event,          this, _1, _2, _3);
+	const EventWatcher& register_time = impFun_->concrete_simulation()
+			? std::bind(&SimulationEngineRestart::count_time_concrete, this, _1, _2, _3)
+			: std::bind(&SimulationEngineRestart::count_time,          this, _1, _2, _3);
+	EventWatcher discard_transient =
+			std::bind(&SimulationEngineRestart::kill_time,             this, _1, _2, _3);
+
+	// Run a single RESTART simulation:
+	decltype(reachCount_)().swap(reachCount_);
+	reinit_stack();
+	assert(ssstack_.size() == 1ul);
+	assert(&oTraial_ == &ssstack_.top().get());
+	oTraial_.initialise(*model_, *impFun_);
+
+	// - first discard transient phase
+	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(transientTime);
+	model_->simulation_step(oTraial_, property, discard_transient);
+	assert(oTraial_.lifeTime >= transientTime);
+
+	// - and then register (time of) property satisfaction up to finishTime,
+	//   using (a single run of) the RESTART importance splitting algorithm
+	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(finishTime);
+	return RESTART_run(property, watch_events, register_time);
+}
+
+
+template< class SSProperty >
+double
+SimulationEngineRestart::RESTART_run(const SSProperty& property,
+									 const EventWatcher& watch_events,
+									 const EventWatcher& register_time) const
+{
+	const unsigned numThresholds(impFun_->num_thresholds());
+	std::vector< double > raresCount(numThresholds+1, 0.0);
+	TraialPool& tpool(TraialPool::get_instance());
+
+	// Run a single RESTART importance-splitting simulation for "runLength"
+	// simulation time units and starting from the last saved ssstack_,
+	// or from the system's initial state if requested.
+	while (!ssstack_.empty() && !interrupted) {
+		Event e(EventType::NONE);
+		Traial& traial = ssstack_.top();
+		assert(traial.level <= numThresholds);
+		reachCount_[traial.level]++;
+#ifndef NDEBUG
+		if (&traial == &oTraial_ && ssstack_.size() > 1ul) {
+			std::stringstream errMsg;
+			errMsg << "[ERROR] Aliasing!!! Traials stack size: " << ssstack_.size()
+				   << " | State of \"original Traial\" from batch means: ";
+			oTraial_.print_out(errMsg);
+			throw_FigException(errMsg.str());
+		}
+#endif
+
+		// Check whether we're standing on a rare event
+		watch_events(property, traial, e);
+		if (IS_RARE_EVENT(e)) {
+			// We are? Then register rare time
+			assert(impFun_->importance_of(traial.state) > static_cast<ImportanceValue>(0)
+				   || impFun_->strategy() == "adhoc");
+			const auto simLength(traial.lifeTime);  // reduce fp prec. loss
+			traial.lifeTime = 0.0;
+			model_->simulation_step(traial, property, register_time);
+			assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < traial.lifeTime);
+			traial.lifeTime = std::min(traial.lifeTime, simsLifetime);
+			raresCount[traial.level] += traial.lifeTime;
+			traial.lifeTime += simLength;
+		}
+
+		// Check where are we and whether we should do another sprint
+		if (!watch_events(property, traial, e))
+			e = model_->simulation_step(traial, property, watch_events);
+
+		// Checking order of the following events is relevant!
+		if (traial.lifeTime > simsLifetime || IS_THR_DOWN_EVENT(e)) {
+			// Traial reached EOS or went down => kill it
+			assert(!(&traial==&oTraial_ && IS_THR_DOWN_EVENT(e)));
+			if (&traial != &oTraial_)  // avoid future aliasing!
+				tpool.return_traial(std::move(traial));
+			ssstack_.pop();
+
+		} else if (IS_THR_UP_EVENT(e)) {
+			// Could have gone up several thresholds => split accordingly
+			handle_lvl_up(traial, tpool, ssstack_);
+			assert(&(ssstack_.top().get()) != &oTraial_);
+			// Offsprings are on top of ssstack_ now: continue attending them
+		}
+		// RARE events are checked first thing in next iteration
+	}
+	if (ssstack_.empty())  // enable next iteration of batch means
+		ssstack_.push(oTraial_);
+
+	// To estimate, weigh times by the relative importance of their thresholds
+	double weighedAccTime(0.0);
+	unsigned long effort(1ul);
+	for (auto t = 0u ; t <= numThresholds ; t++) {
+		effort *= impFun_->effort_of(t);
+		weighedAccTime += raresCount[t] / effort;
+	}
+	// Return the (weighed) simulation-time spent on rare states
+	assert(0.0 <= weighedAccTime);
+	return weighedAccTime;
+}
+
+// SimulationEngineRestart::RESTART_run can only be invoked
+// with the following "DerivedProperties"
+template
+double SimulationEngineRestart::RESTART_run(const PropertyRate&, const EventWatcher&, const EventWatcher&) const;
+template
+double SimulationEngineRestart::RESTART_run(const PropertyTBoundSS&, const EventWatcher&, const EventWatcher&) const;
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

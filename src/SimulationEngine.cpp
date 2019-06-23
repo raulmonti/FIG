@@ -297,13 +297,22 @@ SimulationEngine::names() noexcept
 		// See SimualtionEngineNosplit class
 		"nosplit",
 
-	    // RESTART-like importance splitting, from the Villén-Altamirano brothers
+		// (Standard) Fixed Effort importance splitting, from Garvels' PhD thesis
+		// See SimualtionEngineSFE class
+		"sfe",
+
+		// RESTART importance splitting, from the Villén-Altamirano brothers
+		// A numeric suffix indicates degree of retrials prolongation,
+		// i.e. RESTART-Pj (notice RESTART-P0 == RESTART)
 	    // See SimualtionEngineRestart class
 	    "restart",
-
-	    // (Standard) Fixed Effort importance splitting, from Garvels' PhD thesis
-		// See SimualtionEngineSFE class
-		"sfe"
+		"restart0",
+		"restart1",
+		"restart2",
+		"restart3",
+		"restart4",
+		"restart5",
+		"restart6"
 	}};
 	return names;
 }
