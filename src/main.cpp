@@ -71,7 +71,7 @@ using fig_cli::modelFile;
 using fig_cli::propertiesFile;
 using fig_cli::engineName;
 using fig_cli::impFunSpec;
-using fig_cli::thrTechnique;
+using fig_cli::thrSpec;
 using fig_cli::globalEfforts;
 using fig_cli::estBounds;
 using fig_cli::simsTimeout;
@@ -149,7 +149,7 @@ int main(int argc, char** argv)
 		model.set_verbosity(verboseOutput);
 		model.process_batch(engineName,
 							impFunSpec,
-							thrTechnique,
+		                    thrSpec,
 							estBounds,
 		                    globalEfforts);
 	} catch (fig::FigException& e) {

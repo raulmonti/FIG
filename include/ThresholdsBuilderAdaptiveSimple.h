@@ -80,9 +80,11 @@ public:
 
 	bool uses_global_effort() const noexcept override { return true; }
 
+	/// @copydoc ThresholdsBuilder::setup()
+	/// @param globalEffort Splitting/effort to use in all ("threshold-") levels
 	void
 	setup(std::shared_ptr<const Property> property,
-	      const unsigned globalEffort) override;
+	      const void* globalEffort = nullptr) override;
 
 	ThresholdsVec
 	build_thresholds(std::shared_ptr<const ImportanceFunction> impFun) override;

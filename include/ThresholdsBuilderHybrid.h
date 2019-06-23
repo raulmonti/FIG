@@ -82,7 +82,7 @@ public:
 
 	void
 	setup(std::shared_ptr<const Property> prop = nullptr,
-	      const unsigned ge = 0u) override;
+	      const void* ge = nullptr) override;
 
 	ThresholdsVec
 	build_thresholds(std::shared_ptr<const ImportanceFunction> impFun) override;

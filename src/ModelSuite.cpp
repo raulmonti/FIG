@@ -28,6 +28,7 @@
 
 
 // C
+#include <cctype>
 #include <cstdio>     // std::sprintf()
 #include <cstdlib>    // std::strtoul()
 #include <unistd.h>   // alarm(), exit()
@@ -52,6 +53,7 @@
 #include <iomanip>      // std::setprecision()
 #include <thread>
 // FIG
+#include <string_utils.h>
 #include <ModelSuite.h>
 #include <ModelBuilder.h>
 #include <ModuleScope.h>
@@ -1034,19 +1036,21 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 
 
 bool
-ModelSuite::build_thresholds(const std::string& technique,
+ModelSuite::build_thresholds(const std::string& thrSpec,
                              const std::string& ifunName,
                              std::shared_ptr<const Property> property,
                              bool force)
 {
-	if (!exists_threshold_technique(technique))
-		throw_FigException("inexistent threshold building technique \"" + technique
+	const bool thresholdsGivenAdHoc = is_substring(thrSpec, ":");
+	if (!thresholdsGivenAdHoc && !exists_threshold_technique(thrSpec))
+		throw_FigException("inexistent threshold building technique \"" + thrSpec
 						   + "\". Call \"available_threshold_techniques()"
 							 "\" for a list of available options.");
 	if (!exists_importance_function(ifunName))
 		throw_FigException("inexistent importance function \"" + ifunName +
 						   "\". Call \"available_importance_functions()\" "
 						   "for a list of available options.");
+	const auto technique = thresholdsGivenAdHoc ? "fix" : thrSpec;
 	ImportanceFunction& ifun = *impFuns[ifunName];
 	ThresholdsBuilder& tb = *thrBuilders[technique];
 	if (!ifun.has_importance_info())
@@ -1065,23 +1069,26 @@ ModelSuite::build_thresholds(const std::string& technique,
 		}
 		techLog_ << std::endl;
 		const double startTime = omp_get_wtime();
-		tb.setup(property, globalEffort);
+		tb.setup(property, thresholdsGivenAdHoc ? static_cast<const void*>(&thrSpec)
+		                                        : static_cast<const void*>(&globalEffort));
 		ifun.build_thresholds(tb);
 		techLog_ << "Thresholds building time: "
 				 << std::fixed << std::setprecision(2)
-				 << omp_get_wtime()-startTime << " s\n"
+		         << omp_get_wtime()-startTime << " s\n\n"
 //				 << std::defaultfloat;
 				 << std::setprecision(6);
+		if (thresholdsGivenAdHoc)
+			globalEffort = 0;
 	}
     assert(ifun.ready());
-    assert(technique == ifun.thresholds_technique());
+	assert(technique == ifun.thresholds_technique());
 	pristineModel_ = false;
 	return true;
 }
 
 
 bool
-ModelSuite::build_thresholds(const std::string& technique,
+ModelSuite::build_thresholds(const std::string& thrSpec,
                              const std::string& ifunName,
                              const size_t& propertyIndex,
                              bool force)
@@ -1090,14 +1097,14 @@ ModelSuite::build_thresholds(const std::string& technique,
 	if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
 	else
-		return build_thresholds(technique, ifunName, propertyPtr, force);
+		return build_thresholds(thrSpec, ifunName, propertyPtr, force);
 }
 
 
 std::shared_ptr< SimulationEngine >
 ModelSuite::prepare_simulation_engine(const std::string& engineName,
                                       const std::string& ifunName,
-                                      const std::string& thrTechnique,
+                                      const std::string& thrSpec,
                                       std::shared_ptr<const Property> property,
                                       bool force)
 {
@@ -1130,17 +1137,25 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
 	pristineModel_ = false;
 
 	// Step 2: Build the thresholds from (and into) the ImportanceFunction
-	build_thresholds(thrTechnique, ifunName, property, force);
+	build_thresholds(thrSpec, ifunName, property, force);
 	assert(ifun_ptr->ready());
 
 	// Step 3: for RESTART, test&set prolonged retrials
 	if (is_prefix(engineName, "restart")) {
 		auto RESTART = std::dynamic_pointer_cast<SimulationEngineRestart>(engine_ptr);
-		char* err(nullptr);
-		const auto tpSpec = std::string(&engineName.back()).c_str();
-		const auto traialProlongation = std::strtoul(tpSpec, &err, 10);
-		if ((nullptr == err || err[0] == '\0') && traialProlongation > 0)
-			RESTART->set_die_out_depth(static_cast<unsigned>(traialProlongation));
+		long traialProlongation = 0;
+		if (std::isdigit(engineName.back())) {
+			char* err(nullptr);
+			const auto tpSpec = std::string(&engineName.back()).c_str();
+			traialProlongation = std::strtol(tpSpec, &err, 10);
+			if ((nullptr != err && err[0] != '\0') ||
+			        0 > traialProlongation || traialProlongation > 6)
+			throw_FigException("invalid RESTART retrial prolongation requested: "
+			                   + std::string(tpSpec));
+		} else {
+			traialProlongation = 0u;
+		}
+		RESTART->set_die_out_depth(static_cast<unsigned>(traialProlongation));
 	}
 	return engine_ptr;
 }
@@ -1149,7 +1164,7 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
 std::shared_ptr< SimulationEngine >
 ModelSuite::prepare_simulation_engine(const std::string& engineName,
                                       const std::string& ifunName,
-                                      const std::string& thrTechnique,
+                                      const std::string& thrSpec,
                                       const size_t& propertyIndex,
                                       bool force)
 {
@@ -1159,7 +1174,7 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
 	else
 		return prepare_simulation_engine(engineName,
 		                                 ifunName,
-		                                 thrTechnique,
+		                                 thrSpec,
 		                                 propertyPtr,
 		                                 force);
 }

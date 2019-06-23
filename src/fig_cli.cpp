@@ -73,7 +73,7 @@ string propertiesFile;
 string engineName;
 fig::JaniTranny janiSpec;
 fig::ImpFunSpec impFunSpec("no_name", "no_strategy");
-string thrTechnique;
+string thrSpec;
 std::set< unsigned > globalEfforts;
 std::list< fig::StoppingConditions > estBounds;
 std::chrono::seconds simsTimeout;
@@ -195,6 +195,17 @@ ValueArg<string> thrTechnique_(
 	"Default is \"" + thrTechDefault + "\"",
 	false, thrTechDefault,
 	&thrTechConstraints);
+
+ValueArg<string> thrAdHoc_(
+	"", "thresholds-ad-hoc",
+	"Use ad hoc thresholds (and corresponding effort) explicitly specified. "
+    "Format is \\[\\(t:e\\)[,\\(t:e\\)]+\\] where 't' are the threshold "
+	" importance values and 'e' is the effort to apply in that threshold. "
+    "E.g. [(2:4),(7:3)] sets importance values '2' and '7' as threshods, "
+    "where effort '4' and '3' is respectively used. "
+    "Brackets and parentheses are optional, e.g. [(2:4),(7:3)] == 2:4,7:3",
+	false, "",
+    "\\[\\(t:e\\)[,\\(t:e\\)]+\\]");
 
 // Translation from/to JANI specification format
 SwitchArg JANIimport_(
@@ -797,6 +808,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.xorAdd(ifun_or_JANI);
 		cmd_.add(engineName_);
 		cmd_.add(thrTechnique_);
+		cmd_.add(thrAdHoc_);
 		cmd_.add(confidenceCriteria);
 		cmd_.add(timeCriteria);
 		cmd_.add(impPostProc);
@@ -817,8 +829,9 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		// Fill in the objects that are offered globally
 		modelFile       = modelFile_.getValue();
 		propertiesFile  = propertiesFile_.getValue();
+		thrSpec         = thrAdHoc_.getValue().empty() ? thrTechnique_.getValue()
+													   : thrAdHoc_.getValue();
 		engineName      = engineName_.getValue();
-		thrTechnique    = thrTechnique_.getValue();
 		verboseOutput   = verboseOutput_.getValue();
 		forceOperation  = forceOperation_.getValue();
 		confluenceCheck = confluenceCheck_.getValue();

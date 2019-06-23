@@ -63,6 +63,9 @@ public:
 	/// Default max number of thresholds
 	static constexpr size_t MAX_NUM_THRESHOLDS = 200ul;
 
+	/// Default max effort per threshold
+	static constexpr size_t MAX_EFFORT = 333ul;
+
 	/// Long story short: number of concrete derived classes.
 	/// More in detail this is the size of the array returned by techniques(),
 	/// i.e. how many ThresholdsBuilder implementations are offered to the end user.
@@ -99,8 +102,9 @@ public:
 	 * @brief Depending on the thresholds builder sub-class,
 	 *        provide extra information required to select the thresholds.
 	 *
-	 * @param property     User property query being estimated
-	 * @param globalEffort Splitting/effort to use in all ("threshold-") levels
+	 * @param property User property query being estimated
+	 * @param extra    Additional data to build thresholds,
+	 *                 e.g. global splitting, or ad hoc thresholds/effort list
 	 *
 	 * @note @a gobalEffort means different things depending on
 	 *       the type of importance splitting used:
@@ -117,7 +121,7 @@ public:
 	 */
 	virtual void
 	setup(std::shared_ptr<const Property> property = nullptr,
-	      const unsigned globalEffort = 0u) = 0;
+	      const void* extra = nullptr) = 0;
 
 	/**
 	 * @brief Choose thresholds based on given importance function
