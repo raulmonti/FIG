@@ -8,7 +8,9 @@
 %require "3.0.4"
 %defines
 %define api.namespace {ModelParserGen}
-%define api.parser.class {ModelParser}
+%define parser_class_name {ModelParser}
+/*      ^^^    for Bison >= 3.3 define instead:
+%define api.parser.class {ModelParser}   */
 %define api.token.constructor
 %define api.value.type variant
 %define parse.assert

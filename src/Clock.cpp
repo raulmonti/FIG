@@ -43,6 +43,11 @@
 #include <FigException.h>
 
 
+#ifndef M_SQRT2f32
+#  define M_SQRT2f32 M_SQRT2
+#endif
+
+
 // ADL
 using std::find;
 using std::begin;

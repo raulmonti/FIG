@@ -539,7 +539,7 @@ ModelSuite::set_global_effort(const unsigned& ge,
 		tech_log("\nGlobal effort set to " + std::to_string(ge) + "\n");
 	else if (highVerbosity_ && 1u >= ge)
 		tech_log("\nGlobal effort set to default of engine \"" + engineName
-		        +"\" (i.e. " + std::to_string(globalEffort) + ")\n");
+                +"\" (== " + std::to_string(globalEffort) + ")\n");
 }
 
 
@@ -558,9 +558,9 @@ ModelSuite::set_timeout(const duration& timeLimit)
 	timeout_ = timeLimit;
 	// Show in tech log
 	if (timeLimit.count() > 0l)
-		tech_log("Timeout set to " + time_formatted_str(timeout_.count()) + "\n");
+        tech_log("Time-out set to " + time_formatted_str(timeout_.count()) + "\n");
 	else
-		tech_log("Timeout was unset\n");
+        tech_log("Time-out was unset\n");
 }
 
 
@@ -1262,13 +1262,13 @@ ModelSuite::estimate(const Property& property,
 			? ("(null)") : (ifun.post_processing().name + " "
 							+ to_string(ifun.post_processing().value)));
 
-	mainLog_ << "RNG algorithm used: " << Clock::rng_type() << "\n";
-	mainLog_ << "Property: " << property.to_string() << ",\n";
-	mainLog_ << " - importance function: " << user_friendly_ifun_name(ifunSpec) << "\n";
-	mainLog_ << " - post-processing:     " << postProcStr << "\n";
-	mainLog_ << " - threshold builder:   " << ifun.thresholds_technique() << "\n";
-	mainLog_ << " - simulation engine:   " << engine.name() << "\n";
-	mainLog_ << " - RNG seed:            " << Clock::rng_seed()
+	mainLog_ << "RNG algorithm used: " << Clock::rng_type() << "\n\n";
+	mainLog_ << "Property: " << property.to_string() << "\n";
+	mainLog_ << " + importance function: " << user_friendly_ifun_name(ifunSpec) << "\n";
+	mainLog_ << " + post-processing:     " << postProcStr << "\n";
+	mainLog_ << " + threshold builder:   " << ifun.thresholds_technique() << "\n";
+	mainLog_ << " + simulation engine:   " << engine.name() << "\n";
+	mainLog_ << " + RNG seed:            " << Clock::rng_seed()
 			 << (Clock::rng_seed_is_random() ? (" (randomized)\n") : ("\n"));
 	mainLog_ << " [ " << ifun.num_thresholds() << " thresholds | ";
 	mainLog_ << (globalEffort > 0ul
@@ -1322,7 +1322,7 @@ ModelSuite::estimate_for_times(const Property& property,
 		        ? std::min<long>(wallTimeInSeconds, timeout_.count())
 		        : wallTimeInSeconds);
 		mainLog_ << std::setprecision(0) << std::fixed;
-		mainLog_ << " · Estimation time bound: " << time_formatted_str(timeLimit.count()) << "\n";
+		mainLog_ << " - Estim. time bound:   " << time_formatted_str(timeLimit.count()) << "\n";
 
 		// Start timer
 		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),
@@ -1378,15 +1378,16 @@ ModelSuite::estimate_for_confs(const Property& property,
 		Clock::seed_rng();  // restart RNG sequence for this estimation
 
 		// Show simulation run info
-		mainLog_ << " · Confidence level:    "
+		mainLog_ << " - Confidence level:    "
 		         << std::setprecision(0) << std::fixed << 100*(confCo) << "%\n";
-		mainLog_ << " · Precision:           ";
+		mainLog_ << " - Precision:           ";
 		if (precRel)
 			mainLog_ << std::setprecision(0) << std::fixed << (100*precVal) << "%\n";
 		else
 			mainLog_ << std::setprecision(2) << std::scientific << (2*precVal) << "\n";
 		if (timeout_.count() > 0l)
-			mainLog_ << " · Timeout:        " << time_formatted_str(timeout_.count()) << "\n";
+			mainLog_ << " - Time-out:" << std::setw(20)
+			         << time_formatted_str(timeout_.count()) << "\n";
 
 		// Start timer
 		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),

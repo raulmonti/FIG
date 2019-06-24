@@ -184,13 +184,13 @@ template< typename T_ >
 void
 print_batchsize(std::ostream& out,
                 const T_& batchSize,
-                const std::string text = " · Batch (ini): ",
+                const std::string text = " - Batch (ini): ",
                 const unsigned numEndLines = 2u)
 {
 	static_assert(std::is_integral< T_ >::value, "ERROR: batch size must be integral type");
 	const auto numDigits = static_cast<size_t>(std::log10(batchSize)) + 1;
 	out << text;
-	out << std::setw(25-text.size()+numDigits) << batchSize;
+	out << std::setw(24-text.size()+numDigits) << batchSize;
 	for (auto i = 0u ; i < numEndLines ; i++)
 		out << std::endl;
 }
@@ -415,8 +415,8 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 		const auto& pTBSS(dynamic_cast<const PropertyTBoundSS&>(property));
 		auto& ciRate(dynamic_cast<ConfidenceIntervalRate&>(ci));
 		const long batchSimTime = pTBSS.tbound_upp()-pTBSS.tbound_low();
-		print_batchsize(figMainLog, pTBSS.tbound_low(), " · Transient time:", 1u);
-		print_batchsize(figMainLog, batchSimTime, " · Batch sim time:");
+		print_batchsize(figMainLog, pTBSS.tbound_low(), " - Transient time:", 1u);
+		print_batchsize(figMainLog, batchSimTime, " - Batch sim time:");
 		do {
 			auto value = tbound_ss_simulation(pTBSS);
 			tbound_ss_update(ciRate, value, batchSimTime);
