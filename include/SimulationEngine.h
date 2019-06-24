@@ -249,7 +249,7 @@ public:  // Accessors
 	static const std::array< std::string, NUM_NAMES >& names() noexcept;
 
     /// @copydoc name_
-    const std::string& name() const noexcept;
+	virtual const std::string& name() const noexcept;
 
 	/// Does this engine implement some sort of importance splitting?
 	virtual bool isplit() const noexcept = 0;

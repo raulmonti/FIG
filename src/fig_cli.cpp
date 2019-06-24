@@ -199,9 +199,9 @@ ValueArg<string> thrTechnique_(
 ValueArg<string> thrAdHoc_(
 	"", "thresholds-ad-hoc",
 	"Use ad hoc thresholds (and corresponding effort) explicitly specified. "
-    "Format is \\[\\(t:e\\)[,\\(t:e\\)]+\\] where 't' are the threshold "
+    "Format is \\[\\(t:e\\)[,\\(t:e\\)]*\\] where 't' are the threshold "
 	" importance values and 'e' is the effort to apply in that threshold. "
-    "E.g. [(2:4),(7:3)] sets importance values '2' and '7' as threshods, "
+    "E.g. [(2:4),(7:3)] sets importance values '2' and '7' as thresholds, "
     "where effort '4' and '3' is respectively used. "
     "Brackets and parentheses are optional, e.g. [(2:4),(7:3)] == 2:4,7:3",
 	false, "",

@@ -108,6 +108,10 @@ public:  // Attributes
 	/// Time span this Traial has been running around the system model
 	CLOCK_INTERNAL_TYPE lifeTime;
 
+	/// Should the Traial split next time it crosses a threshold upwards?
+	/// @note Relevant for RESTART with prolonged retrials
+	bool pregnant;
+
 	/// \ref Variable "Variables" values instantiation
 	/// (same order as in the system global state)
 	StateInstance state;

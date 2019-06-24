@@ -1080,6 +1080,7 @@ ModelSuite::build_thresholds(const std::string& thrSpec,
 		if (thresholdsGivenAdHoc)
 			globalEffort = 0;
 	}
+
     assert(ifun.ready());
 	assert(technique == ifun.thresholds_technique());
 	pristineModel_ = false;
@@ -1127,20 +1128,7 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
 		throw_FigException("simulation engine \"" + engineName + "\" is still bound to "
 		                   "importance function \"" + engine_ptr->current_imp_fun() + "\"");
 
-	// Step 1: Couple the ImportanceFunction and SimulationEngine instances
-	techLog_ << "\nBinding simulation engine \"" << engineName << ""
-	         << "\" to importance function \"" << ifunName << "\"\n";
-	engine_ptr->bind(ifun_ptr);
-	assert(engine_ptr->bound());
-	assert(ifunName == engine_ptr->current_imp_fun());
-	assert(is_prefix(engineName, ifun_ptr->sim_engine_bound()));  // support restart<n> names
-	pristineModel_ = false;
-
-	// Step 2: Build the thresholds from (and into) the ImportanceFunction
-	build_thresholds(thrSpec, ifunName, property, force);
-	assert(ifun_ptr->ready());
-
-	// Step 3: for RESTART, test&set prolonged retrials
+	// Step 1: for RESTART, test&set prolonged retrials
 	if (is_prefix(engineName, "restart")) {
 		auto RESTART = std::dynamic_pointer_cast<SimulationEngineRestart>(engine_ptr);
 		long traialProlongation = 0;
@@ -1157,6 +1145,20 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
 		}
 		RESTART->set_die_out_depth(static_cast<unsigned>(traialProlongation));
 	}
+
+	// Step 2: Couple the ImportanceFunction and SimulationEngine instances
+	techLog_ << "\nBinding simulation engine \"" << engineName << ""
+	         << "\" to importance function \"" << ifunName << "\"\n";
+	engine_ptr->bind(ifun_ptr);
+	assert(engine_ptr->bound());
+	assert(ifunName == engine_ptr->current_imp_fun());
+	assert(is_prefix(engineName, ifun_ptr->sim_engine_bound()));  // support restart<n> names
+	pristineModel_ = false;
+
+	// Step 3: Build the thresholds from (and into) the ImportanceFunction
+	build_thresholds(thrSpec, ifunName, property, force);
+	assert(ifun_ptr->ready());
+
 	return engine_ptr;
 }
 

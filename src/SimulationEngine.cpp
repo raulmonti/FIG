@@ -67,8 +67,12 @@ namespace  // // // // // // // // // // // // // // // // // // // // // // //
 /// to run) in order to estimate the value of transient-like properties.
 /// Fine tune for the specified SimulationEngine and ImportanceFunction pair
 size_t
-min_batch_size(const std::string& engineName, const std::string& ifunName)
+min_batch_size(const std::string&,  // engineName,
+               const std::string&) // ifunName)
 {
+	return 1ul<<6ul;
+	/// @todo TODO remove deprecated code below
+/*
 	// Build internal table once: rows follow engine names definition order
 	//                            cols follow impFun names definition order
 	constexpr size_t NUM_ENGINES(fig::SimulationEngine::NUM_NAMES);
@@ -94,6 +98,7 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 	// Return corresponding entry from table
 	return batch_sizes[std::distance(begin(engineNames), engineIt)]
 					  [std::distance(begin(ifunNames), ifunIt)];
+*/
 }
 
 
@@ -102,20 +107,25 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 /// Fine tune for the specified SimulationEngine and ImportanceFunction pair
 /// @see increase_run_length
 size_t
-min_run_length(const std::string& engineName, const std::string& ifunName)
+min_run_length(const std::string&,// engineName,
+               const std::string&)// ifunName)
 {
+	static const size_t run_length = 1ul<<12ul;
+	return run_length;
+	/// @todo TODO remove deprecated code below
+/*
 	// Build internal table once: rows follow engine names definition order
 	//                            cols follow impFun names definition order
 	constexpr size_t NUM_ENGINES(fig::SimulationEngine::NUM_NAMES);
 	constexpr size_t NUM_IMPFUNS(fig::ImportanceFunction::NUM_NAMES);
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
-	static const size_t run_lengths[NUM_ENGINES][NUM_IMPFUNS] = {
-		{ 1ul<<12, 1ul<<12, 1ul<<12 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 1ul<<12, 1ul<<12, 1ul<<12 },  // restart x {concrete_coupled, concrete_split, algebraic}
-		{ 1ul<<12, 1ul<<12, 1ul<<12 }   //     sfe x {concrete_coupled, concrete_split, algebraic}
-//		{ 1ul<<12, 1ul<<12, 1ul<<12 }   //     bfe x {concrete_coupled, concrete_split, algebraic}
-	};
+		static const size_t run_lengths[NUM_ENGINES][NUM_IMPFUNS] = {
+			{ 1ul<<12, 1ul<<12, 1ul<<12 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+			{ 1ul<<12, 1ul<<12, 1ul<<12 },  // restart x {concrete_coupled, concrete_split, algebraic}
+			{ 1ul<<12, 1ul<<12, 1ul<<12 }   //     sfe x {concrete_coupled, concrete_split, algebraic}
+	//		{ 1ul<<12, 1ul<<12, 1ul<<12 }   //     bfe x {concrete_coupled, concrete_split, algebraic}
+		};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
 	// Check given engine and importance function names are valid
@@ -126,6 +136,7 @@ min_run_length(const std::string& engineName, const std::string& ifunName)
 	// Return corresponding entry from table
 	return run_lengths[std::distance(begin(engineNames), engineIt)]
 					  [std::distance(begin(ifunNames), ifunIt)];
+*/
 }
 
 
@@ -134,10 +145,14 @@ min_run_length(const std::string& engineName, const std::string& ifunName)
 /// Fine tune for the specified SimulationEngine and ImportanceFunction pair
 /// @see min_run_length
 void
-increase_run_length(const std::string& engineName,
-					const std::string& ifunName,
+increase_run_length(const std::string&,// engineName,
+                    const std::string&,// ifunName,
 					size_t& runLength)
 {
+	static const float inc_length = 1.4f;
+	runLength *= inc_length;
+	/// @todo TODO remove deprecated code below
+/*
 	// Build internal table once: rows follow engine names definition order
 	//                            cols follow impFun names definition order
 	constexpr size_t NUM_ENGINES(fig::SimulationEngine::NUM_NAMES);
@@ -160,6 +175,7 @@ increase_run_length(const std::string& engineName,
 	// Update runLength with corresponding entry from table, rely on type promotion
 	runLength *= inc_length[std::distance(begin(engineNames), engineIt)]
 						   [std::distance(begin(ifunNames), ifunIt)];
+*/
 }
 
 
@@ -516,8 +532,7 @@ SimulationEngine::tbound_ss_update(ConfidenceIntervalRate& ci,
 		// Print updated CI, providing enough time elapsed since last print
 		static constexpr double TIMEOUT_PRINT(M_PI);  // in seconds
 		static unsigned cnt(0u);
-		const auto numSamples = static_cast<size_t>(ci.num_samples());
-		const bool newCI(numSamples <= min_batch_size(name(), impFun_->name()));
+		const bool newCI(ci.num_samples() <= 1l);
 		const double thisCallTime(omp_get_wtime());
 		static double lastCallTime(newCI ? thisCallTime : lastCallTime);
 		cnt = newCI ? 0u : cnt;

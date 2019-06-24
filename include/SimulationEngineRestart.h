@@ -65,7 +65,7 @@ class SimulationEngineRestart : public SimulationEngine
 
 	/// Number of importance thresholds a simulation run must cross downwards
 	/// (i.e. loosing on importance) to be discarded
-	unsigned dieOutDepth_;
+	decltype(Traial::depth) dieOutDepth_;
 
 	/// Original Traial for a batch means mechanism
 	Traial& oTraial_;
@@ -73,6 +73,9 @@ class SimulationEngineRestart : public SimulationEngine
 	/// Stack of \ref Traial "traials" for a batch means mechanism,
 	/// typically used for steady-state simulations
 	mutable std::stack< Reference< Traial > > ssstack_;
+
+	/// For fp manipulations intended to reduce precision loss
+	mutable CLOCK_INTERNAL_TYPE currentSimLength_;
 
 public:  // Ctor
 
@@ -84,13 +87,15 @@ public:  // Ctor
 
 public:  // Accessors
 
+	const std::string& name() const noexcept override;
+
 	inline bool isplit() const noexcept override final { return true; }
 
 	/// @copydoc DEFAULT_GLOBAL_EFFORT
 	inline unsigned global_effort_default() const noexcept override { return DEFAULT_GLOBAL_EFFORT; }
 
 	/// @copydoc dieOutDepth_
-	const unsigned& die_out_depth() const noexcept;
+	inline const decltype(dieOutDepth_)& die_out_depth() const noexcept { return dieOutDepth_; }
 
 public:  // Engine setup
 
@@ -156,12 +161,11 @@ private:  // Traial observers/updaters
 		    if (property.is_stop(traial.state)) {
 				e = EventType::STOP;
 			} else {
-				ImportanceValue newThrLvl = impFun_->level_of(traial.state);
-				traial.numLevelsCrossed = newThrLvl - traial.level;
+				const auto newThrLvl = static_cast<long>(impFun_->level_of(traial.state));
+				traial.numLevelsCrossed = static_cast<int>(newThrLvl - static_cast<long>(traial.level));
 				traial.depth -= traial.numLevelsCrossed;
-				traial.level = newThrLvl;
-				if (traial.numLevelsCrossed < 0 &&
-					traial.depth > static_cast<short>(dieOutDepth_))
+				traial.level = static_cast<decltype(traial.level)>(newThrLvl);
+				if (traial.numLevelsCrossed < 0 && traial.depth > dieOutDepth_)
 					e = EventType::THR_DOWN;
 				else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 					e = EventType::THR_UP;
@@ -187,12 +191,11 @@ private:  // Traial observers/updaters
 			auto newStateInfo = cImpFun_->info_of(traial.state);
 			e = MASK(newStateInfo);
 			if (!IS_STOP_EVENT(e)) {
-				const ImportanceValue newThrLvl = UNMASK(newStateInfo);
-				traial.numLevelsCrossed = newThrLvl - traial.level;
+				const auto newThrLvl = static_cast<long>(UNMASK(newStateInfo));
+				traial.numLevelsCrossed = static_cast<int>(newThrLvl - static_cast<long>(traial.level));
 				traial.depth -= traial.numLevelsCrossed;
-				traial.level = newThrLvl;
-				if (traial.numLevelsCrossed < 0 &&
-					traial.depth > static_cast<short>(dieOutDepth_))
+				traial.level = static_cast<decltype(traial.level)>(newThrLvl);
+				if (traial.numLevelsCrossed < 0 && traial.depth > dieOutDepth_)
 					SET_THR_DOWN_EVENT(e);
 				else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
 					SET_THR_UP_EVENT(e);
@@ -212,18 +215,32 @@ private:  // Traial observers/updaters
 		{
 			// Event marking is done in accordance with the checks performed
 			// in the rate_simulation() overriden member function
-		    const ImportanceValue newThrLvl(impFun_->level_of(traial.state));
-			traial.numLevelsCrossed = static_cast<int>(newThrLvl - traial.level);
+		    const auto newThrLvl = static_cast<long>(impFun_->level_of(traial.state));
+			traial.numLevelsCrossed = static_cast<int>(newThrLvl - static_cast<long>(traial.level));
 			traial.depth -= traial.numLevelsCrossed;
-			traial.level = newThrLvl;
-			if (traial.numLevelsCrossed < 0 && (
-						traial.depth > static_cast<short>(dieOutDepth_)
-						|| (traial.depth > 0 && traial.level == 0)))
-				e = EventType::THR_DOWN;
-			else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
-				e = EventType::THR_UP;
-			else if (property.is_rare(traial.state))
+			traial.level = static_cast<decltype(traial.level)>(newThrLvl);
+			if (traial.numLevelsCrossed > 0) {
+				if (traial.depth < -1)
+					e = EventType::THR_UP;  // event B[>i]
+				else if (traial.depth == -1 && traial.pregnant) {
+					e = EventType::THR_UP;  // event B[i]
+					traial.pregnant = false;
+				}
+			} else if (traial.numLevelsCrossed < 0) {
+				if (traial.level == impFun_->min_value()) {
+//				if (cImpFun_->min_value(true) == cImpFun_->importance_of(traial.state)) {
+					if (traial.depth > 0)
+						e = EventType::THR_DOWN;  // retrials that reach bottom threshold are truncated
+					else
+						traial.pregnant = true;  // the original traial instead gets renewed
+				} else if (traial.depth == die_out_depth()) {
+					traial.pregnant = true;  // can generate new events B[i]
+				} else if (traial.depth > die_out_depth()) {
+					e = EventType::THR_DOWN;  // D[i-j] event of RESTART-Pj
+				}
+			} else if (property.is_rare(traial.state)) {
 				e = EventType::RARE;
+			}
 			return interrupted ||
 			(
 			    traial.lifeTime > simsLifetime || EventType::NONE != e
@@ -241,16 +258,31 @@ private:  // Traial observers/updaters
 			// in the rate_simulation() overriden member function
 		    const auto newStateInfo = cImpFun_->info_of(traial.state);
 			e = MASK(newStateInfo);
-			const ImportanceValue newThrLvl = UNMASK(newStateInfo);
-			traial.numLevelsCrossed = static_cast<int>(newThrLvl - traial.level);
+			const auto newThrLvl = static_cast<long>(UNMASK(newStateInfo));
+			traial.numLevelsCrossed = static_cast<int>(newThrLvl - static_cast<long>(traial.level));
 			traial.depth -= traial.numLevelsCrossed;
-			traial.level = newThrLvl;
-			if (traial.numLevelsCrossed < 0 && (
-						traial.depth > static_cast<short>(dieOutDepth_)
-						|| (traial.depth > 0 && traial.level == 0)))
-				SET_THR_DOWN_EVENT(e);
-			else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
-				SET_THR_UP_EVENT(e);
+			traial.level = static_cast<decltype(traial.level)>(newThrLvl);
+			assert(static_cast<decltype(newThrLvl)>(traial.level) == newThrLvl);
+			if (traial.numLevelsCrossed > 0) {
+				if (traial.depth < -1)
+					SET_THR_UP_EVENT(e);
+				else if (traial.depth == -1 && traial.pregnant) {
+					SET_THR_UP_EVENT(e);
+					traial.pregnant = false;
+				}
+			} else if (traial.numLevelsCrossed < 0) {
+				if (traial.level == cImpFun_->min_value()) {
+//				if (cImpFun_->min_value(true) == cImpFun_->importance_of(traial.state)) {
+					if (traial.depth > 0)
+						SET_THR_DOWN_EVENT(e);  // retrials that reach bottom threshold are truncated
+					else
+						traial.pregnant = true;  // the original traial instead gets renewed
+				} else if (traial.depth == die_out_depth()) {
+					traial.pregnant = true;  // can generate new events B[i]
+				} else if (traial.depth > die_out_depth()) {
+					SET_THR_DOWN_EVENT(e);  // D[i-j] event of RESTART-Pj
+				}
+			}
 			// else: rare event info is already marked inside 'e'
 			return interrupted ||
 			(
@@ -265,7 +297,8 @@ private:  // Traial observers/updaters
 		{
 		    return interrupted ||
 			(
-			    t.lifeTime > simsLifetime || !prop.is_rare(t.state)
+			    currentSimLength_ + t.lifeTime > simsLifetime
+			            || !prop.is_rare(t.state)
 			);
 		}
 
@@ -277,7 +310,8 @@ private:  // Traial observers/updaters
 		{
 		    return interrupted ||
 			(
-			    t.lifeTime > simsLifetime || !IS_RARE_EVENT(cImpFun_->info_of(t.state))
+			    currentSimLength_ + t.lifeTime > simsLifetime
+			            || !IS_RARE_EVENT(cImpFun_->info_of(t.state))
 			);
 		}
 };
