@@ -199,8 +199,8 @@ auto rng = RNGs[rngType];
 
 
 /// Random deviate ~ Uniform[a,b]<br>
-///  where 'a' = params[0] is the lower bound<br>
-///    and 'b' = params[1] is the upper bound.<br>
+///  where \par a = params[0] is the lower bound,<br>
+///    and \par b = params[1] is the upper bound.<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)">the wiki</a>
 return_t uniform(const params_t& params)
 {
@@ -210,7 +210,7 @@ return_t uniform(const params_t& params)
 
 
 /// Random deviate ~ Exponential(lambda)<br>
-///  where 'lambda' = params[0] is the rate.<br>
+///  where \par lambda = params[0] is the rate.<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Exponential_distribution">the wiki</a>
 return_t exponential(const params_t& params)
 {
@@ -219,9 +219,47 @@ return_t exponential(const params_t& params)
 }
 
 
+/// Random deviate ~ Hyper-Exponential(p:lambda1,1-p:lambda2)<br>
+///  where \par p = params[0] is the probability of choosing the first rate,<br>
+///    and 1 - \par p is the probability of choosing the second rate,<br>
+///    and \par lambda1 = params[1] is the first  possible rate,<br>
+///    and \par lambda2 = params[2] is the second possible rate.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Hyperexponential_distribution">the wiki</a>
+return_t hyperexponential2(const params_t& params)
+{
+	assert(static_cast<fig::CLOCK_INTERNAL_TYPE>(0.0) < params[0]);
+	assert(params[0] < static_cast<fig::CLOCK_INTERNAL_TYPE>(1.0));
+	static std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uni(0.0,1.0);
+	if (uni(*rng) < params[0]) {
+		std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > exp(params[1]);
+		return exp(*rng);
+	} else {
+		std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > exp(params[2]);
+		return exp(*rng);
+	}
+}
+
+
+//	Hyper-Exponential-3 distribution would require at least 5 parameters,
+//	and currently NUM_DISTRIBUTION_PARAMS == 4 in core_typedefs.h
+//	/// Random deviate ~ Hyper-Exponential(p1:lambda1,p2:lambda2,1-p1-p2:lambda3)<br>
+//	///  where \par p1 = params[0] is the probability of choosing the first rate,<br>
+//	///    and \par p1 = params[1] is the probability of choosing the second rate,<br>
+//	///    and 1 - \par p1 - \par p2 is the probability of choosing the third rate,<br>
+//	///    and \par lambda1 = params[2] is the first  possible rate,<br>
+//	///    and \par lambda2 = params[3] is the second possible rate,<br>
+//	///    and \par lambda3 = params[4] is the third  possible rate.<br>
+//	/// Check <a href="https://en.wikipedia.org/wiki/HyperExponential_distribution">the wiki</a>
+//	return_t hyperexponential3(const params_t& params)
+//	{
+//		std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > exp(params[0]);
+//		return exp(*rng);
+//	}
+
+
 /// Random deviate ~ Normal(m,sd)<br>
-///  where  'm' = params[0] is the mean<br>
-///    and 'sd' = params[1] is the standard deviation.<br>
+///  where \par  m = params[0] is the mean,<br>
+///    and \par sd = params[1] is the standard deviation.<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Normal_distribution">the wiki</a>
 return_t normal(const params_t& params)
 {
@@ -231,8 +269,8 @@ return_t normal(const params_t& params)
 
 
 /// Random deviate ~ Lognormal(m,sd)<br>
-///  where  'm' = params[0] is the mean<br>
-///    and 'sd' = params[1] is the standard deviation<br>
+///  where \par  m = params[0] is the mean,<br>
+///    and \par sd = params[1] is the standard deviation<br>
 /// of the inherent normally distributed random variable.<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Log-normal_distribution">the wiki</a>
 return_t lognormal(const params_t& params)
@@ -243,8 +281,8 @@ return_t lognormal(const params_t& params)
 
 
 /// Random deviate ~ Weibull(a,b)<br>
-///  where 'a' = params[0] is the shape parameter<br>
-///    and 'b' = params[1] is the scale parameter.<br>
+///  where \par a = params[0] is the shape parameter,<br>
+///    and \par b = params[1] is the scale parameter.<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Weibull_distribution">the wiki</a>
 return_t weibull(const params_t& params)
 {
@@ -254,7 +292,7 @@ return_t weibull(const params_t& params)
 
 
 /// Random deviate ~ Rayleigh(s) ~ Weibull(2,s*sqrt(2))<br>
-///  where 's' = params[0] is the scale parameter.<br>
+///  where \par s = params[0] is the scale parameter.<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Rayleigh_distribution">the wiki</a>
 return_t rayleigh(const params_t& params)
 {
@@ -264,8 +302,8 @@ return_t rayleigh(const params_t& params)
 
 
 /// Random deviate ~ Gamma(a,b)<br>
-///  where 'a' = params[0] is the shape parameter<br>
-///    and 'b' = params[1] is the scale parameter (aka reciprocal of the rate)<br>
+///  where \par a = params[0] is the shape parameter,<br>
+///    and \par b = params[1] is the scale parameter (aka reciprocal of the rate)<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Gamma_distribution">the wiki</a>
 return_t gamma(const params_t& params)
 {
@@ -275,8 +313,8 @@ return_t gamma(const params_t& params)
 
 
 /// Random deviate ~ Erlang(k,l) ~ Gamma(k,1/l)<br>
-///  where 'k' = params[0] is the <em>integral</em> shape parameter<br>
-///    and 'l' = params[1] is the rate parameter (aka reciprocal of the scale)<br>
+///  where \par k = params[0] is the <em>integral</em> shape parameter,<br>
+///    and \par l = params[1] is the rate parameter (aka reciprocal of the scale)<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Erlang_distribution">the wiki</a>
 return_t erlang(const params_t& params)
 {
@@ -287,7 +325,7 @@ return_t erlang(const params_t& params)
 
 
 /// (Non-) Random deviate ~ Dirac(x)<br>
-///  where [x,x] is the <em>point-wise</em> support of the distribution<br>
+///  where \par [x,x] is the <em>point-wise</em> support of the distribution<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Dirac_delta_function">the wiki</a>
 return_t dirac(const params_t& params)
 {
@@ -400,6 +438,7 @@ std::unordered_map< std::string, Distribution > distributions_list =
 	{"gamma",       gamma      },
 	{"erlang",      erlang     },
     {"dirac",       dirac      },
+	{"hyperexponential2", hyperexponential2},
 };
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

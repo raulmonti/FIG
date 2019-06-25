@@ -451,8 +451,15 @@ ModuleInstance::jump(const Label& label,
 void
 ModuleInstance::markovian_check()
 {
+	static std::set< std::string > memorylessDistributions = {
+		// check for available distributions in src/Clock.cpp
+		"exponential",
+		"hyperexponential2",
+		"erlang"
+	};
 	for (const Clock& clk: lClocks_) {
-		if (clk.dist_name() != "exponential") {
+		if (end(memorylessDistributions) ==
+				memorylessDistributions.find(clk.dist_name())) {
 			markovian_ = false;
 			break;
 		}

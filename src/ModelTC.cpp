@@ -149,6 +149,20 @@ inline const string TC_WRONG_DIST_FST_PARAM(
 }
 
 inline const string TC_WRONG_DIST_SND_PARAM(
+		const shared_ptr<ModuleScope> &curr,
+		const shared_ptr<Dist> &dist,
+		const Type last_type) {
+	stringstream ss;
+	ss << PREFIX(curr);
+	ss << " - Distribution ";
+	ss << ModelPrinter::to_str(dist->get_type());
+	ss << *dist;
+	ss << " - Second parameter is ill typed";
+	ss << " - " << UNEXPECTED_TYPE(Type::tfloat, last_type);
+	return (ss.str());
+}
+
+inline const string TC_WRONG_DIST_TRD_PARAM(
         const shared_ptr<ModuleScope> &curr,
         const shared_ptr<Dist> &dist,
         const Type last_type) {
@@ -157,7 +171,7 @@ inline const string TC_WRONG_DIST_SND_PARAM(
     ss << " - Distribution ";
     ss << ModelPrinter::to_str(dist->get_type());
     ss << *dist;
-    ss << " - Second parameter is ill typed";
+	ss << " - Third parameter is ill typed";
     ss << " - " << UNEXPECTED_TYPE(Type::tfloat, last_type);
     return (ss.str());
 }
@@ -807,9 +821,14 @@ void ModelTC::visit(shared_ptr<MultipleParameterDist> dist) {
     accept_exp(Type::tfloat, dist->get_first_parameter());
     check_type(Type::tfloat,
                TC_WRONG_DIST_FST_PARAM(current_scope, dist, last_type));
-    accept_exp(Type::tfloat, dist->get_second_parameter());
-    check_type(Type::tfloat,
-               TC_WRONG_DIST_SND_PARAM(current_scope, dist, last_type));
+	accept_exp(Type::tfloat, dist->get_second_parameter());
+	check_type(Type::tfloat,
+			   TC_WRONG_DIST_SND_PARAM(current_scope, dist, last_type));
+	if (dist->num_parameters() == 3ul) {
+		accept_exp(Type::tfloat, dist->get_third_parameter());
+		check_type(Type::tfloat,
+				   TC_WRONG_DIST_TRD_PARAM(current_scope, dist, last_type));
+	}
 }
 
 void ModelTC::visit(shared_ptr<SingleParameterDist> dist) {

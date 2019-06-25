@@ -63,7 +63,8 @@ protected:
 	///       e.g. when building auto ifun
 	std::vector< Transition > transitions_;
 
-	/// Whether all clocks distributions' are exponential
+	/// Whether all clocks distributions' are memoryless,
+	/// e.g. exponential, hyper-exponential, Erlang
 	bool markovian_;
 
 public:  // Dtor

@@ -49,8 +49,11 @@ string ModelPrinter::to_str(DistType type) {
     case DistType::normal:
         result = "normal";
         break;
-    case DistType::exponential:
-        result = "exponential";
+	case DistType::exponential:
+		result = "exponential";
+		break;
+	case DistType::hyperexponential2:
+		result = "hyperexponential2";
         break;
     case DistType::lognormal:
         result = "lognormal";
@@ -391,11 +394,17 @@ void ModelPrinter::visit(shared_ptr<MultipleParameterDist> dist) {
 		accept_idented(dist->get_first_parameter());
 		print_idented("Parameter2:");
 		accept_idented(dist->get_second_parameter());
+		if (dist->num_parameters() == 3) {
+			print_idented("Parameter3:");
+			accept_idented(dist->get_third_parameter());
+		}
 	} else {
 		out << to_str(dist->get_type()) << "(";
 		dist->get_first_parameter()->accept(*this);
 		out << ",";
 		dist->get_second_parameter()->accept(*this);
+		if (dist->num_parameters() == 3)
+			dist->get_third_parameter()->accept(*this);
 		out << ")";
 	}
 }

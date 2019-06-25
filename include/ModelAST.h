@@ -54,7 +54,8 @@ using std::make_shared;
 /// @brief Type of labels allowed in transitions.
 enum class LabelType {in, out, out_committed, in_committed, tau};
 /// @brief Supported distributions
-enum class DistType {erlang, normal, lognormal, uniform, exponential,
+enum class DistType {erlang, normal, lognormal, uniform,
+					 exponential, hyperexponential2,
 					 weibull, rayleigh, gamma, dirac};
 /// @brief Supported properties
 enum class PropType {transient, rate, tboundss};
@@ -1126,16 +1127,24 @@ public:
  * @brief MultipleParameterDist
  * @example uniform(4, 10)
  * @note Leo, this is a lie, 2 != "multiple".
- * @note Carlos, ask to a woman.
+ * @note Carlos: extended to 3, which is the best I can do without
+ *               refactoring everything. @Leo: the opposite of thank you.
  */
 class MultipleParameterDist : public Dist {
 private:
 	std::shared_ptr<Exp> param1;
 	std::shared_ptr<Exp> param2;
+	std::shared_ptr<Exp> param3;
 public:
 	MultipleParameterDist(DistType type,
-						std::shared_ptr<Exp> param1, std::shared_ptr<Exp> param2) :
-		Dist(type), param1 {param1}, param2 {param2} {}
+						  shared_ptr<Exp> p1,
+						  shared_ptr<Exp> p2,
+						  shared_ptr<Exp> p3 = nullptr) :
+		Dist(type),
+		param1(p1),
+		param2(p2),
+		param3(p3)
+	{ /* Not much to do around here */ }
 
 	std::shared_ptr<Exp> get_first_parameter() {
 		return (param1);
@@ -1143,6 +1152,10 @@ public:
 
 	std::shared_ptr<Exp> get_second_parameter() {
 		return (param2);
+	}
+
+	std::shared_ptr<Exp> get_third_parameter() {
+		return (param3);
 	}
 
 	void set_first_parameter(std::shared_ptr<Exp> exp) {
@@ -1153,12 +1166,16 @@ public:
 		this->param2 = exp;
 	}
 
+	void set_third_parameter(shared_ptr<Exp> exp) {
+		this->param3 = exp;
+	}
+
 	virtual bool has_multiple_parameters() override {
 		return (true);
 	}
 
 	size_t num_parameters() override {
-		return 2ul;
+		return nullptr == param3 ? 2ul : 3ul;
 	}
 
 	virtual void accept(Visitor& visit) override;

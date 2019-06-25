@@ -81,6 +81,7 @@ blank  [ \t]
 "normal"      return ModelParser::make_NORMAL(loc);
 "uniform"     return ModelParser::make_UNIFORM(loc);
 "exponential" return ModelParser::make_EXP(loc);
+"hyperexponential2" return ModelParser::make_HEXP2(loc);
 "lognormal"   return ModelParser::make_LOGNORMAL(loc);
 "gamma"       return ModelParser::make_GAMMA(loc);
 "rayleigh"    return ModelParser::make_RAYLEIGH(loc);

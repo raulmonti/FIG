@@ -77,6 +77,7 @@ NORMAL "normal"
 LOGNORMAL "lognormal"
 UNIFORM "uniform"
 EXP "exponential"
+HEXP2 "hyperexponential2"
 WEIBULL "weibull"
 GAMMA "gamma"
 RAYLEIGH "rayleigh"
@@ -310,6 +311,9 @@ save_location($$, @$);}
 | "exponential" "(" exp[e] ")"
 {$$ = make_shared<SingleParameterDist>(DistType::exponential, $e);
     save_location($$, @$);}
+| "hyperexponential2" "(" exp[e1] "," exp[e2] "," exp[e3] ")"
+{$$ = make_shared<MultipleParameterDist>(DistType::hyperexponential2, $e1, $e2, $e3);
+	save_location($$, @$);}
 | "lognormal" "(" exp[e1] "," exp[e2] ")"
 {$$ = make_shared<MultipleParameterDist>(DistType::lognormal, $e1, $e2);
     save_location($$, @$);}

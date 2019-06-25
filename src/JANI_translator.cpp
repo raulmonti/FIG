@@ -118,6 +118,7 @@ const std::map< DistType, std::string > JANI_distribution =
 	{ DistType::gamma,       "Gamma"      },
     { DistType::erlang,      "Erlang"     },
     { DistType::dirac,       "Dirac"      },
+	{ DistType::hyperexponential2, "Hyper-Exponential-2"},
 };
 
 
@@ -133,6 +134,7 @@ const std::map< std::string, std::string > JANI_distribution_string =
 	{ "gamma",       "Gamma"      },
     { "erlang",      "Erlang"     },
     { "dirac",       "Dirac"      },
+	{ "hyperexponential2", "Hyper-Exponential-2"},
 };
 
 
@@ -220,6 +222,7 @@ const std::map< std::string, DistType > IOSA_distribution =
 	{ "Gamma",       DistType::gamma      },
     { "Erlang",      DistType::erlang     },
     { "Dirac",       DistType::dirac      },
+	{ "Hyper-Exponential-2", DistType::hyperexponential2},
 };
 
 
@@ -235,6 +238,7 @@ const std::map< std::string, std::string > IOSA_distribution_string =
 	{ "Gamma",       "gamma"      },
     { "Erlang",      "erlang"     },
     { "Dirac",       "dirac"      },
+	{ "Hyper-Exponential-2", "hyperexponential2"},
 };
 
 
@@ -1733,10 +1737,19 @@ JaniTranslator::build_IOSA_clock_reset(const std::string& clockName,
 		IOSAdist = make_shared<MultipleParameterDist>(distType->second,
 													  params[0], params[1]);
 		break;
-	default:
-		figTechLog << "[ERROR] Unhandled distribution type: "
-				   << static_cast<int>(distType->second) << std::endl;
+	case DistType::hyperexponential2:
+		if (3ul > params.size()) {
+			figTechLog << "[ERROR] Missing parameters for \"" << JANIdist
+					   << "\" distribution (two required).\n";
+			return nullptr;
+		}
+		IOSAdist = make_shared<MultipleParameterDist>(distType->second,
+													  params[0], params[1], params[2]);
 		break;
+//	default:
+//		figTechLog << "[ERROR] Unhandled distribution type: "
+//				   << static_cast<int>(distType->second) << std::endl;
+//		break;
 	}
 	return make_shared<ClockReset>(make_shared<Location>(clockName), IOSAdist);
 }

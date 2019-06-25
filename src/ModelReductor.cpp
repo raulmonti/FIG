@@ -292,11 +292,16 @@ void ModelReductor::visit(shared_ptr<SingleParameterDist> node) {
 
 void ModelReductor::visit(shared_ptr<MultipleParameterDist> node) {
     node->set_first_parameter(reduce(node->get_first_parameter()));
-    node->set_second_parameter(reduce(node->get_second_parameter()));
+	node->set_second_parameter(reduce(node->get_second_parameter()));
     if (!node->get_first_parameter()->is_constant()) {
         put_error("Distribution paremeters must be reducible at compilation time");
     }
-    if (!node->get_second_parameter()->is_constant()) {
-        put_error("Distribution paremeters must be reducible at compilation time");
-    }
+	if (!node->get_second_parameter()->is_constant()) {
+		put_error("Distribution paremeters must be reducible at compilation time");
+	}
+	if (node->num_parameters() == 3ul) {
+		node->set_third_parameter(reduce(node->get_third_parameter()));
+		if (!node->get_third_parameter()->is_constant())
+			put_error("Distribution paremeters must be reducible at compilation time");
+	}
 }

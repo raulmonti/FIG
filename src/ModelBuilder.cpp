@@ -47,12 +47,17 @@ inline const string mb_error_irr(const Type& type) {
 }
 
 inline const string mb_error_dist_1(const string &clock_id) {
-    return ("Fist distribution parameter of clock " + clock_id +
+	return ("First parameter for the distribution of clock " + clock_id +
             mb_error_irr(Type::tfloat));
 }
 
 inline const string mb_error_dist_2(const string &clock_id) {
-    return ("Second distribution parameter of clock " + clock_id +
+	return ("Second parameter for the distribution of clock " + clock_id +
+			mb_error_irr(Type::tfloat));
+}
+
+inline const string mb_error_dist_3(const string &clock_id) {
+	return ("Third parameter for the distribution of clock " + clock_id +
             mb_error_irr(Type::tfloat));
 }
 
@@ -308,9 +313,11 @@ Clock ModelBuilder::build_clock(const std::string& id) {
                                    mb_error_dist_1(id));
         params[1] = get_float_or_error(multiple->get_second_parameter(),
                                        mb_error_dist_2(id));
-        for (unsigned int i = 2; i < params.size(); i++) {
+		if (dist->num_parameters() == 3ul)
+			params[2] = get_float_or_error(multiple->get_third_parameter(),
+										   mb_error_dist_3(id));
+		for (auto i = dist->num_parameters(); i < params.size(); i++)
             params[i] = 0.0;
-        }
     }
     //todo: constructor should accept the Distribution object directly,
     //not the name.
