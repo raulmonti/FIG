@@ -219,24 +219,23 @@ private:  // Traial observers/updaters
 			traial.numLevelsCrossed = static_cast<int>(newThrLvl - static_cast<long>(traial.level));
 			traial.depth -= traial.numLevelsCrossed;
 			traial.level = static_cast<decltype(traial.level)>(newThrLvl);
-			if (traial.numLevelsCrossed > 0) {
-				if (traial.depth < -1)
-					e = EventType::THR_UP;  // event B[>i]
-				else if (traial.depth == -1 && traial.pregnant) {
-					e = EventType::THR_UP;  // event B[i]
-					traial.pregnant = false;
-				}
+			if (traial.numLevelsCrossed > 0 &&
+					traial.pregnancyLevel == traial.level) {
+					e = EventType::THR_UP;  // event B_i
+					traial.pregnancyLevel++;
 			} else if (traial.numLevelsCrossed < 0) {
 				if (traial.level == impFun_->min_value()) {
-//				if (cImpFun_->min_value(true) == cImpFun_->importance_of(traial.state)) {
 					if (traial.depth > 0)
-						e = EventType::THR_DOWN;  // retrials that reach bottom threshold are truncated
+						e = EventType::THR_DOWN;  // retrials that reach "threshold 0" die
 					else
-						traial.pregnant = true;  // the original traial instead gets renewed
-				} else if (traial.depth == die_out_depth()) {
-					traial.pregnant = true;  // can generate new events B[i]
+						traial.pregnancyLevel = 1;  // the original traial instead gets reborn
 				} else if (traial.depth > die_out_depth()) {
-					e = EventType::THR_DOWN;  // D[i-j] event of RESTART-Pj
+					e = EventType::THR_DOWN;  // D_i-j event in traial [B_i,D_i-j) of RESTART-Pj
+				} else {
+					traial.pregnancyLevel =  // can generate new events B_k
+							std::min<decltype(traial.pregnancyLevel)>(
+												 traial.pregnancyLevel,
+												 traial.level + die_out_depth() + 1);
 				}
 			} else if (property.is_rare(traial.state)) {
 				e = EventType::RARE;
@@ -263,24 +262,23 @@ private:  // Traial observers/updaters
 			traial.depth -= traial.numLevelsCrossed;
 			traial.level = static_cast<decltype(traial.level)>(newThrLvl);
 			assert(static_cast<decltype(newThrLvl)>(traial.level) == newThrLvl);
-			if (traial.numLevelsCrossed > 0) {
-				if (traial.depth < -1)
-					SET_THR_UP_EVENT(e);
-				else if (traial.depth == -1 && traial.pregnant) {
-					SET_THR_UP_EVENT(e);
-					traial.pregnant = false;
-				}
+			if (traial.numLevelsCrossed > 0 &&
+					traial.pregnancyLevel == traial.level) {
+				SET_THR_UP_EVENT(e);  // event B_i
+				traial.pregnancyLevel++;
 			} else if (traial.numLevelsCrossed < 0) {
 				if (traial.level == cImpFun_->min_value()) {
-//				if (cImpFun_->min_value(true) == cImpFun_->importance_of(traial.state)) {
 					if (traial.depth > 0)
 						SET_THR_DOWN_EVENT(e);  // retrials that reach bottom threshold are truncated
 					else
-						traial.pregnant = true;  // the original traial instead gets renewed
-				} else if (traial.depth == die_out_depth()) {
-					traial.pregnant = true;  // can generate new events B[i]
+						traial.pregnancyLevel = 1;  // the original traial instead gets reborn
 				} else if (traial.depth > die_out_depth()) {
-					SET_THR_DOWN_EVENT(e);  // D[i-j] event of RESTART-Pj
+					SET_THR_DOWN_EVENT(e);  // D_i-j event in traial [B_i,D_i-j) of RESTART-Pj
+				} else {
+					traial.pregnancyLevel =  // can generate new events B_k
+							std::min<decltype(traial.pregnancyLevel)>(
+												 traial.pregnancyLevel,
+												 traial.level + die_out_depth() + 1);
 				}
 			}
 			// else: rare event info is already marked inside 'e'

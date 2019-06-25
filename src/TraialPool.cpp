@@ -227,7 +227,7 @@ TraialPool::get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
 		available_traials_.pop_front();
 		t = traial;
 		t.depth = depth;
-		t.pregnant = true;
+		t.pregnancyLevel = 1 + static_cast<decltype(t.pregnancyLevel)>(traial.level);
 		cont.emplace(end(cont), std::ref(t));  // copy elision
 	}
 	if (0u < numCopies) {
@@ -266,7 +266,7 @@ TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
 		available_traials_.pop_front();
 		t = traial;
 		t.depth = depth;
-		t.pregnant = true;
+		t.pregnancyLevel = 1 + static_cast<decltype(t.pregnancyLevel)>(traial.level);
 		stack.push(std::ref(t));  // copy elision
 	}
 	if (0u < numCopies) {
@@ -294,7 +294,7 @@ TraialPool::get_traial_copies(std::stack< Reference< Traial >,
 		available_traials_.pop_front();
 		t = traial;
 		t.depth = depth;
-		t.pregnant = true;
+		t.pregnancyLevel = 1 + static_cast<decltype(t.pregnancyLevel)>(traial.level);
 		stack.push(std::ref(t));  // copy elision
 	}
 	if (0u < numCopies) {
@@ -320,7 +320,7 @@ TraialPool::get_traial_copies(std::forward_list< Reference<Traial> >& flist,
         available_traials_.pop_front();
         t = traial;
 		t.depth = depth;
-		t.pregnant = true;
+		t.pregnancyLevel = 1 + static_cast<decltype(t.pregnancyLevel)>(traial.level);
 		flist.push_front(std::ref(t));  // copy elision
     }
 	if (0u < numCopies) {
