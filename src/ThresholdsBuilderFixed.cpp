@@ -240,9 +240,9 @@ ThresholdsBuilderFixed::build_thresholds_heuristically(const ImportanceFunction&
 		stride_ = static_cast<unsigned>(choose_stride(IMP_RANGE));
 		figTechLog << "for 1 out of every " << stride_ << " importance value"
 		           << (stride_ > 1 ? ("s.\n") : (".\n"));
-		thresholds.push_back(impFun.initial_value());
+		thresholds.emplace_back(impFun.initial_value());
 		// Start above initial importance value? May reduce oversampling
-		const auto margin = static_cast<unsigned>(IMP_RANGE>>3);
+		const auto margin = std::min<unsigned>(IMP_RANGE, thresholds.back()+stride_);
 		build_thresholds(impFun, margin, stride_, thresholds);
 	}
 
@@ -253,6 +253,8 @@ build_thresholds_vec:
 	result.reserve(thresholds.size());
 	for (auto imp: thresholds)
 		result.emplace_back(imp, globEff_);
+	result.front().second = 1ul;
+	result.back().second = 1u;
 	return result;
 }
 
