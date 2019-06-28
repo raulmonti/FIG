@@ -1,0 +1,80 @@
+/*
+ * Tandem queue for the FIG tool
+ * Budde | 2019
+ *
+ * {-
+ * Jackson tandem queue network:
+ *
+ *           q1              q2   
+ * ---> [..@@@@] -----> [....@@] ----->
+ *  l             mu1             mu2
+ *
+ * Both queues (q1 and q2) have assumed infinite capacity
+ * New packets arrive at q1 following an exponential distribution with rate l
+ * Packets in q1 are served at rate mu1 (exponential distribution) and sent to q2
+ * Packets in q2 are served at rate mu2 (exponential distribution) and leave
+ * The 'load' of queue qi is: l/mui
+ * 
+ * Rare events: q2 reaching a predefined limiting capacity 'L'
+ * Stopping events (for transient analysis): q2 becoming empty
+ * Initial state: q1=0, q2=1
+ * 
+ * NOTE: for the event to be rare and interesting
+ *       it is important that the first queue be the bottleneck,
+ *       i.e. mu1 < mu2 ("the second queue serves packets faster")
+ * -}
+ */
+
+
+// Values taken from "RESTART vs. Splitting: A comparative study,"
+// José Villén-Altamirano, Performance Evaluation 121-122 (2018) 38-47
+
+const int L = 30;    // Queue limiting capacity
+const int c = L+99;  // Queues real capacity (mimic infinite size)
+const int   l = 1;   // rate(--> q1           )
+const int mu1 = 2;   // rate(    q1 --> q2    )
+const int mu2 = 3;   // rate(           q2 -->)
+
+// Importance function used in the aforementioned article: 0.63*q1 + q2
+// Importance function used for fig: 63*q1 + 100*q2
+// Thresholds used in the article: all importance values from 2-29, with splitting == 3
+//                                 for all except 3,4,8,14 which have splitting == 2
+//                                 and 29 which has splitting == 5
+// Thresholds used for fig: "200:3,300:2,400:2,500:3,600:3,700:3,800:2,900:3,1000:3,1100:3,1200:3,1300:3,1400:2,1500:3,1600:3,1700:3,1800:3,1900:3,2000:3,2100:3,2200:3,2300:3,2400:3,2500:3,2600:3,2700:3,2800:3,2900:5"
+
+
+module Arrivals
+        clk0: clock;  // External arrivals ~ Exponential(l)
+        [P0!] @ clk0 -> (clk0'= exponential(l));
+endmodule
+
+module Queue1
+        q1: [0..c];
+        clk1: clock;  // Queue1 processing ~ Exponential(mu1)
+        // Packet arrival
+        [P0?] q1 == 0          -> (q1'= q1+1) & (clk1'= exponential(mu1));
+        [P0?] q1  > 0 & q1 < c -> (q1'= q1+1);
+        [P0?] q1 == c          -> ;
+        // Packet processing
+        [P1!] q1 == 1 @ clk1 -> (q1'= q1-1);
+        [P1!] q1  > 1 @ clk1 -> (q1'= q1-1) & (clk1'= exponential(mu1));
+endmodule
+
+module Queue2
+        q2: [0..c];
+        clk2: clock;  // Queue2 processing ~ Exponential(mu2)
+        // Packet arrival
+        [P1?] q2 == 0          -> (q2'= q2+1) & (clk2'= exponential(mu2));
+        [P1?] q2  > 0 & q2 < c -> (q2'= q2+1);
+        [P1?] q2 == c          -> ;
+        // Packet processing
+        [P2!] q2 == 1 @ clk2 -> (q2'= q2-1);
+        [P2!] q2  > 1 @ clk2 -> (q2'= q2-1) & (clk2'= exponential(mu2));
+endmodule
+
+
+properties
+	S[ 60:30000 ]( q2 >= L )  // "rate with time-bound"
+//	S( q2 == L )              // "rate"
+//	P( q2 > 0 U q2 == L )     // "transient"
+endproperties
