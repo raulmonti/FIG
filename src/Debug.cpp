@@ -195,4 +195,33 @@ void ModelSuite::print_importance_function(std::ostream &out,
     out << "ENDOF-IMPORTANCE-FUNCTION" << std::endl;
 }
 
+void ModelSuite::print_current_importance_function(std::ostream &out) const {
+	if (nullptr == current_importance_function()) {
+		out << "IMPORTANCE-FUNCTION" << std::endl;
+		out << "(void)" << std::endl;
+		out << "ENDOF-IMPORTANCE-FUNCTION" << std::endl;
+	} else {
+		print_importance_function(out, *(ModelSuite::current_importance_function()));
+	}
+}
+
+void ModelSuite::print_current_thresholds(std::ostream &out) const {
+	out << "THRESHOLDS" << std::endl;
+	if (nullptr == current_thresholds_builder()) {
+		out << "(void)" << std::endl;
+	} else {
+		const auto& tb = *current_thresholds_builder();
+		out << "THRESHOLDS TECHNIQUE: " << tb.name << std::endl;
+		out << "IS-ADAPTIVE: " << (tb.adaptive() ? "YES" : "NO" ) << std::endl;
+		out << "USES-GLOBAL-EFFORT: " << (tb.uses_global_effort() ? "YES" : "NO" ) << std::endl;
+		out << "THRESHOLDS VECTOR:";
+		if (nullptr == current_importance_function())
+			out << "[ERROR] ImportanceFunction is void: no thresholds are currently stored" << std::endl;
+		else
+			tb.show_thresholds(current_importance_function()->thresholds());
+		out << std::endl;
+	}
+	out << "ENDOF-THRESHOLDS" << std::endl;
+}
+
 }

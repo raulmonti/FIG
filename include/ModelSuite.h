@@ -119,6 +119,18 @@ class ModelSuite
 		std::string,
 		std::shared_ptr< SimulationEngine > > simulators;
 
+	/// ImportanceFunction last used by
+	/// @note set by prepare_simulation_engine(); reset by clear()
+	static std::shared_ptr< ImportanceFunction > currentImpFun;
+
+	/// ThresholdsBuilder last used by prepare_simulation_engine
+	/// @note set by prepare_simulation_engine(); reset by clear()
+	static std::shared_ptr< ThresholdsBuilder > currentThrBuilder;
+
+	/// SimulationEngine last used by prepare_simulation_engine
+	/// @note set by prepare_simulation_engine(); reset by clear()
+	static std::shared_ptr< SimulationEngine > currentSimulator;
+
 	/// Main system log
 	static std::ostream& mainLog_;
 
@@ -359,7 +371,8 @@ public:  // Accessors
 	 *         nullptr otherwise.
 	 * @see add_property()
 	 */
-	std::shared_ptr< const Property > get_property(const size_t& i) const noexcept;
+	template< typename Integral >
+	std::shared_ptr< const Property > get_property(const Integral& i) const noexcept;
 
 	/// Get the global effort used by all Importance Splitting engines
 	/// @see set_global_effort()
@@ -394,6 +407,21 @@ public:  // Accessors
 	/// @copydoc Module::initial_state()
 	/// @throw FigException if there is no ModuleNetwork loaded
 	static State<STATE_INTERNAL_TYPE> get_initial_state();
+
+	/// Reference to the ImportanceFunction last used by prepare_simulation_engine()
+	/// @see currentImpFun
+	static inline shared_ptr< const ImportanceFunction > current_importance_function() noexcept
+	    { return currentImpFun; }
+
+	/// Reference to the ThresholdsBuilder last used by prepare_simulation_engine()
+	/// @see currentThrBuilder
+	static inline shared_ptr< const ThresholdsBuilder > current_thresholds_builder() noexcept
+	    { return currentThrBuilder; }
+
+	/// Reference to the SimulationEngine last used by prepare_simulation_engine()
+	/// @see currentSimulator
+	static shared_ptr< const SimulationEngine > current_simulation_engine() noexcept
+	    { return currentSimulator; }
 
 	/// Names of available simulation engines,
 	/// as they should be requested by the user.
@@ -523,9 +551,10 @@ public:  // Utils
 	/// added to the system in the specified index
 	/// @throw FigException if there's no property at index 'propertyIndex'
 	/// @see get_property()
+	template< typename Integral >
 	void
 	build_importance_function_flat(const std::string& ifunName,
-								   const size_t& propertyIndex,
+	                               const Integral& propertyIndex,
 								   bool force = false);
 
 	/**
@@ -564,9 +593,10 @@ public:  // Utils
 	/// added to the system in the specified index
 	/// @throw FigException if there's no property at index 'propertyIndex'
 	/// @see get_property()
+	template< typename Integral >
 	void
 	build_importance_function_adhoc(const ImpFunSpec& impFun,
-									const size_t& propertyIndex,
+	                                const Integral& propertyIndex,
 									bool force = false);
 
 	/**
@@ -604,9 +634,10 @@ public:  // Utils
 	/// added to the system in the specified index
 	/// @throw FigException if there's no property at index 'propertyIndex'
 	/// @see get_property()
+	template< typename Integral >
 	void
 	build_importance_function_auto(const ImpFunSpec& impFun,
-								   const size_t& propertyIndex,
+	                               const Integral& propertyIndex,
 								   bool force = false);
 
 private:  // Embedded into prepare_simulation_engine()
@@ -654,10 +685,11 @@ private:  // Embedded into prepare_simulation_engine()
 	/// added to the system in the specified index
 	/// @throw FigException if there's no property at index 'propertyIndex'
 	/// @see get_property()
+	template< typename Integral >
 	bool
 	build_thresholds(const std::string& thrSpec,
 	                 const std::string& ifunName,
-	                 const size_t& propertyIndex,
+	                 const Integral& propertyIndex,
 	                 bool force = true);
 
 public:  // Utils
@@ -704,11 +736,12 @@ public:  // Utils
 	/// added to the system in the specified index
 	/// @throw FigException if there's no property at index 'propertyIndex'
 	/// @see get_property()
+	template< typename Integral >
 	std::shared_ptr< SimulationEngine >
 	prepare_simulation_engine(const std::string& engineName,
 	                          const std::string& ifunName,
 	                          const std::string& thrSpec,
-	                          const size_t& propertyIndex,
+	                          const Integral& propertyIndex,
 	                          bool force = true);
 
 	/**
@@ -770,7 +803,8 @@ public:  // Simulation utils
 	/// Same as estimate() for the property added to the system in the requested index
 	/// @throw FigException if there's no property at index 'propertyIndex'
 	/// @see get_property()
-	void estimate(const size_t& propertyIndex,
+	template< typename Integral >
+	void estimate(const Integral& propertyIndex,
 				  SimulationEngine& engine,
 	              const StoppingConditions& bounds,
 	              const ImpFunSpec ifunSpec = ImpFunSpec("null","null")) const;
@@ -833,8 +867,9 @@ private:  // Class utils
 
 public: // Debug
         void print_info(std::ostream &out) const;
-        void print_importance_function(std::ostream &out,
-                                       const ImportanceFunction &imf) const;
+		void print_importance_function(std::ostream &out, const ImportanceFunction &imf) const;
+		void print_current_importance_function(std::ostream &out) const;
+		void print_current_thresholds(std::ostream &out) const;
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -913,7 +948,7 @@ ModelSuite::process_batch(const std::string& engineName,
 	}
 
 	// For each property ...
-	for (const auto& property: properties) {
+	for (std::shared_ptr<const Property> property: properties) {
 
 		// ... build the importance function ...
 		if ("flat" == impFunSpec.strategy)

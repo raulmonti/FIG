@@ -174,7 +174,7 @@ public:
 	ThresholdsVec
 	invert_thresholds_map(const ThresholdsVec &t2i) const;
 
-protected:  // Utils for the class and its kin
+public:  // Utils for the class and its kin
 
 	/// Print thresholds info in FIG's tech log
 	/// @param t2i threshold-to-importance map as returned by build_thresholds()

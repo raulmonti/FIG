@@ -329,6 +329,12 @@ std::unordered_map< std::string, std::shared_ptr< ThresholdsBuilder > >
 std::unordered_map< std::string, std::shared_ptr< SimulationEngine > >
 	ModelSuite::simulators;
 
+std::shared_ptr< ImportanceFunction > ModelSuite::currentImpFun;
+
+std::shared_ptr< ThresholdsBuilder > ModelSuite::currentThrBuilder;
+
+std::shared_ptr< SimulationEngine > ModelSuite::currentSimulator;
+
 std::ostream& ModelSuite::mainLog_(figMainLog);
 
 std::ostream& ModelSuite::techLog_(figTechLog);
@@ -599,14 +605,28 @@ ModelSuite::set_verbosity(bool verboseOutput) noexcept
 }
 
 
+template< typename Integral >
 std::shared_ptr< const Property >
-ModelSuite::get_property(const size_t& i) const noexcept
+ModelSuite::get_property(const Integral& i) const noexcept
 {
-	if (i >= num_properties())
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral propertyIndex");
+	auto iSigned = static_cast<long>(i);
+	assert(0 <= iSigned);
+	auto iUnSigned = static_cast<size_t>(i);
+	if (iUnSigned >= num_properties())
 		return nullptr;
 	else
-		return properties[i];
+		return properties[iUnSigned];
 }
+// Specialisation
+typedef std::shared_ptr< const Property > PtyPtr;
+template PtyPtr ModelSuite::get_property(const short&)          const noexcept;
+template PtyPtr ModelSuite::get_property(const int&)            const noexcept;
+template PtyPtr ModelSuite::get_property(const long&)           const noexcept;
+template PtyPtr ModelSuite::get_property(const unsigned short&) const noexcept;
+template PtyPtr ModelSuite::get_property(const unsigned int&)   const noexcept;
+template PtyPtr ModelSuite::get_property(const unsigned long&)  const noexcept;
 
 
 const unsigned&
@@ -863,16 +883,29 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
 }
 
 
+template< typename Integral >
 void
 ModelSuite::build_importance_function_flat(const std::string& ifunName,
-										   const size_t& propertyIndex,
-										   bool force)
+                                           const Integral& propertyIndex,
+                                           bool force)
 {
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral propertyIndex");
+	auto propertyIndexSigned = static_cast<long>(propertyIndex);
+	assert(0 <= propertyIndexSigned);
 	auto propertyPtr = get_property(propertyIndex);
 	if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
 	build_importance_function_flat(ifunName, *propertyPtr, force);
 }
+// Specialisation
+typedef const std::string& StrCR;
+template void ModelSuite::build_importance_function_flat(StrCR, const short&,          bool);
+template void ModelSuite::build_importance_function_flat(StrCR, const int&,            bool);
+template void ModelSuite::build_importance_function_flat(StrCR, const long&,           bool);
+template void ModelSuite::build_importance_function_flat(StrCR, const unsigned short&, bool);
+template void ModelSuite::build_importance_function_flat(StrCR, const unsigned int&,   bool);
+template void ModelSuite::build_importance_function_flat(StrCR, const unsigned long&,  bool);
 
 
 void
@@ -937,16 +970,28 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 }
 
 
+template< typename Integral >
 void
 ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
-											const size_t& propertyIndex,
-											bool force)
+                                            const Integral& propertyIndex,
+                                            bool force)
 {
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral propertyIndex");
+	auto propertyIndexSigned = static_cast<long>(propertyIndex);
+	assert(0 <= propertyIndexSigned);
 	auto propertyPtr = get_property(propertyIndex);
 	if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
 	build_importance_function_adhoc(impFun, *propertyPtr, force);
 }
+// Specialisations:
+template void ModelSuite::build_importance_function_adhoc(const ImpFunSpec&, const short&,          bool);
+template void ModelSuite::build_importance_function_adhoc(const ImpFunSpec&, const int&,            bool);
+template void ModelSuite::build_importance_function_adhoc(const ImpFunSpec&, const long&,           bool);
+template void ModelSuite::build_importance_function_adhoc(const ImpFunSpec&, const unsigned short&, bool);
+template void ModelSuite::build_importance_function_adhoc(const ImpFunSpec&, const unsigned int&,   bool);
+template void ModelSuite::build_importance_function_adhoc(const ImpFunSpec&, const unsigned long&,  bool);
 
 
 void
@@ -1023,16 +1068,28 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 }
 
 
+template< typename Integral >
 void
 ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
-										   const size_t& propertyIndex,
-										   bool force)
+                                           const Integral& propertyIndex,
+                                           bool force)
 {
-    auto propertyPtr = get_property(propertyIndex);
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral propertyIndex");
+	auto propertyIndexSigned = static_cast<long>(propertyIndex);
+	assert(0 <= propertyIndexSigned);
+	auto propertyPtr = get_property(propertyIndex);
     if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
 	build_importance_function_auto(impFun, *propertyPtr, force);
 }
+// Specialisations:
+template void ModelSuite::build_importance_function_auto(const ImpFunSpec&, const short&,          bool);
+template void ModelSuite::build_importance_function_auto(const ImpFunSpec&, const int&,            bool);
+template void ModelSuite::build_importance_function_auto(const ImpFunSpec&, const long&,           bool);
+template void ModelSuite::build_importance_function_auto(const ImpFunSpec&, const unsigned short&, bool);
+template void ModelSuite::build_importance_function_auto(const ImpFunSpec&, const unsigned int&,   bool);
+template void ModelSuite::build_importance_function_auto(const ImpFunSpec&, const unsigned long&,  bool);
 
 
 bool
@@ -1068,7 +1125,7 @@ ModelSuite::build_thresholds(const std::string& thrSpec,
 			set_global_effort(0);
 		}
 		techLog_ << std::endl;
-		const double startTime = omp_get_wtime();
+	const double startTime = omp_get_wtime();
 		tb.setup(property, thresholdsGivenAdHoc ? static_cast<const void*>(&thrSpec)
 		                                        : static_cast<const void*>(&globalEffort));
 		ifun.build_thresholds(tb);
@@ -1088,18 +1145,31 @@ ModelSuite::build_thresholds(const std::string& thrSpec,
 }
 
 
+template< typename Integral >
 bool
 ModelSuite::build_thresholds(const std::string& thrSpec,
                              const std::string& ifunName,
-                             const size_t& propertyIndex,
+                             const Integral& propertyIndex,
                              bool force)
 {
-	auto propertyPtr = get_property(propertyIndex);
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral propertyIndex");
+	auto propertyIndexSigned = static_cast<long>(propertyIndex);
+	assert(0 <= propertyIndexSigned);
+	auto propertyPtr = get_property(propertyIndexSigned);
 	if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
 	else
 		return build_thresholds(thrSpec, ifunName, propertyPtr, force);
 }
+// Specialisations:
+typedef const std::string& StrCR;
+template bool ModelSuite::build_thresholds(StrCR, StrCR, const short&,          bool);
+template bool ModelSuite::build_thresholds(StrCR, StrCR, const int&,            bool);
+template bool ModelSuite::build_thresholds(StrCR, StrCR, const long&,           bool);
+template bool ModelSuite::build_thresholds(StrCR, StrCR, const unsigned short&, bool);
+template bool ModelSuite::build_thresholds(StrCR, StrCR, const unsigned int&,   bool);
+template bool ModelSuite::build_thresholds(StrCR, StrCR, const unsigned long&,  bool);
 
 
 std::shared_ptr< SimulationEngine >
@@ -1159,18 +1229,28 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
 	build_thresholds(thrSpec, ifunName, property, force);
 	assert(ifun_ptr->ready());
 
+	// Register current simulation configuration
+	currentImpFun = ifun_ptr;
+	currentThrBuilder = thrBuilders[ifun_ptr->thresholds_technique()];
+	currentSimulator = engine_ptr;
+
 	return engine_ptr;
 }
 
 
+template< typename Integral >
 std::shared_ptr< SimulationEngine >
 ModelSuite::prepare_simulation_engine(const std::string& engineName,
                                       const std::string& ifunName,
                                       const std::string& thrSpec,
-                                      const size_t& propertyIndex,
+                                      const Integral& propertyIndex,
                                       bool force)
 {
-	auto propertyPtr = get_property(propertyIndex);
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral propertyIndex");
+	auto propertyIndexSigned = static_cast<long>(propertyIndex);
+	assert(0 <= propertyIndex);
+	auto propertyPtr = get_property(propertyIndexSigned);
 	if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
 	else
@@ -1180,6 +1260,15 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
 		                                 propertyPtr,
 		                                 force);
 }
+// Specialisations:
+typedef std::shared_ptr< SimulationEngine > SEptr;
+typedef const std::string& StrCR;
+template SEptr ModelSuite::prepare_simulation_engine(StrCR, StrCR, StrCR, const short&,          bool);
+template SEptr ModelSuite::prepare_simulation_engine(StrCR, StrCR, StrCR, const int&,            bool);
+template SEptr ModelSuite::prepare_simulation_engine(StrCR, StrCR, StrCR, const long&,           bool);
+template SEptr ModelSuite::prepare_simulation_engine(StrCR, StrCR, StrCR, const unsigned short&, bool);
+template SEptr ModelSuite::prepare_simulation_engine(StrCR, StrCR, StrCR, const unsigned int&,   bool);
+template SEptr ModelSuite::prepare_simulation_engine(StrCR, StrCR, StrCR, const unsigned long&,  bool);
 
 
 void
@@ -1213,6 +1302,9 @@ ModelSuite::clear() noexcept
 	std::make_shared<ModuleNetwork>().swap(model);
 	properties.clear();
 	globalEffort = 0u;
+	currentImpFun = nullptr;
+	currentThrBuilder = nullptr;
+	currentSimulator = nullptr;
 	lastEstimationStartTime_ = 0.0;
 	timeout_ = std::chrono::seconds::zero();
 	lastEstimates_.clear();
@@ -1288,17 +1380,33 @@ ModelSuite::estimate(const Property& property,
 }
 
 
+template< typename Integral >
 void
-ModelSuite::estimate(const size_t& propertyIndex,
-					 SimulationEngine &engine,
-					 const StoppingConditions& bounds,
-					 const ImpFunSpec ifunSpec) const
+ModelSuite::estimate(const Integral& propertyIndex,
+                     SimulationEngine &engine,
+                     const StoppingConditions& bounds,
+                     const ImpFunSpec ifunSpec) const
 {
-	auto propertyPtr = get_property(propertyIndex);
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral propertyIndex");
+	auto propertyIndexSigned = static_cast<long>(propertyIndex);
+	assert(0 <= propertyIndex);
+	auto propertyPtr = get_property(propertyIndexSigned);
 	if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
 	estimate(*propertyPtr, engine, bounds, ifunSpec);
 }
+// Specialisations:
+typedef const std::string& StrCR;
+typedef SimulationEngine& SER;
+typedef const StoppingConditions& SCCR;
+typedef const ImpFunSpec IFSC;
+template void ModelSuite::estimate(const short&,          SER, SCCR, IFSC) const;
+template void ModelSuite::estimate(const int&,            SER, SCCR, IFSC) const;
+template void ModelSuite::estimate(const long&,           SER, SCCR, IFSC) const;
+template void ModelSuite::estimate(const unsigned short&, SER, SCCR, IFSC) const;
+template void ModelSuite::estimate(const unsigned int&,   SER, SCCR, IFSC) const;
+template void ModelSuite::estimate(const unsigned long&,  SER, SCCR, IFSC) const;
 
 
 void
