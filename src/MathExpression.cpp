@@ -126,6 +126,8 @@ template MathExpression::MathExpression(str, std::unordered_set<std::string>&&);
 void
 MathExpression::compile_expression()
 {
+	expr_.release();
+	table_.clear();
 	for (size_t i = 0ul; i < NVARS_; i++)
         table_.add_variable(varsNames_[i], varsValues_[i]);
     expr_.register_symbol_table(table_);

@@ -76,7 +76,6 @@ ThresholdsBuilderFixed::setup(std::shared_ptr<const Property>, const void *info)
 	int ge(0);
 	try {
 		thrAdHoc_ = *static_cast<const std::string*>(info);
-		assert(!thrAdHoc_.empty());
 	} catch (const std::bad_alloc&) {
 		thrAdHoc_ = "";
 	} catch (const std::length_error&) {
@@ -85,7 +84,7 @@ ThresholdsBuilderFixed::setup(std::shared_ptr<const Property>, const void *info)
 	if (thrAdHoc_.empty())  // couldn't cast to string? try casting to int
 		ge = *static_cast<const int*>(info);
 	// 'info' must've been either a valid string, or a valid global effort
-	if (thrAdHoc_.empty() && (ge < 0 || ge > static_cast<int>(MAX_EFFORT)))
+	if (thrAdHoc_.empty() && (ge <= 0 || ge > static_cast<int>(MAX_EFFORT)))
 		throw_FigException("cannot build thresholds with \"" + name +
 		                   "\" from the information provided");
 	globEff_ = static_cast<decltype(globEff_)>(ge);
@@ -104,6 +103,8 @@ ThresholdsBuilderFixed::build_thresholds(std::shared_ptr<const ImportanceFunctio
 	assert(!result.empty());
 	assert(result.front().first == impFun->initial_value());
 	assert(result.back().first > impFun->max_value());
+	assert(result.front().second == static_cast<ImportanceValue>(1));
+	assert(result.back().second == static_cast<ImportanceValue>(1));
 	show_thresholds(result);
 	return result;
 }
