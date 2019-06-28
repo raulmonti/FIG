@@ -107,7 +107,7 @@ public:  // Attributes
 
 	/// At which level should the Traial split next time it crosses a threshold upwards?
 	/// @note Relevant for RESTART with prolonged retrials
-	int pregnancyLevel;
+	int nextSplitLevel;
 
 	/// Time span this Traial has been running around the system model
 	CLOCK_INTERNAL_TYPE lifeTime;

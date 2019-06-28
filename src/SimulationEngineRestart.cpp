@@ -293,73 +293,6 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	// simulation time units and starting from the last saved ssstack_,
 	// or from the system's initial state if requested.
 	return RESTART_run(property, watch_events, register_time);
-
-	/// @todo TODO erase factored-out code below
-/*
-	while (!ssstack_.empty() && !interrupted) {
-		Event e(EventType::NONE);
-		Traial& traial = ssstack_.top();
-		assert(traial.level <= numThresholds);
-		reachCount_[traial.level]++;
-#ifndef NDEBUG
-		if (&traial == &oTraial_ && ssstack_.size() > 1ul) {
-			std::stringstream errMsg;
-			errMsg << "[ERROR] Aliasing!!! Traials stack size: " << ssstack_.size()
-			       << " | State of \"original Traial\" from batch means: ";
-			oTraial_.print_out(errMsg);
-			throw_FigException(errMsg.str());
-		}
-#endif
-
-		// Check whether we're standing on a rare event
-		watch_events(property, traial, e);
-		if (IS_RARE_EVENT(e)) {
-			// We are? Then register rare time
-			assert(impFun_->importance_of(traial.state) > static_cast<ImportanceValue>(0)
-				   || impFun_->strategy() == "adhoc");
-			const auto simLength(traial.lifeTime);  // reduce fp prec. loss
-			traial.lifeTime = 0.0;
-			model_->simulation_step(traial, property, register_time);
-			assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < traial.lifeTime);
-			traial.lifeTime = std::min(traial.lifeTime, simsLifetime);
-			raresCount[traial.level] += traial.lifeTime;
-			traial.lifeTime += simLength;
-		}
-
-		// Check where are we and whether we should do another sprint
-		if (!watch_events(property, traial, e))
-			e = model_->simulation_step(traial, property, watch_events);
-
-		// Checking order of the following events is relevant!
-		if (traial.lifeTime > simsLifetime || IS_THR_DOWN_EVENT(e)) {
-			// Traial reached EOS or went down => kill it
-			assert(!(&traial==&oTraial_ && IS_THR_DOWN_EVENT(e)));
-			if (&traial != &oTraial_)  // avoid future aliasing!
-				tpool.return_traial(std::move(traial));
-			ssstack_.pop();
-
-		} else if (IS_THR_UP_EVENT(e)) {
-			// Could have gone up several thresholds => split accordingly
-			handle_lvl_up(traial, tpool, ssstack_);
-			assert(&(ssstack_.top().get()) != &oTraial_);
-			// Offsprings are on top of ssstack_ now: continue attending them
-		}
-		// RARE events are checked first thing in next iteration
-	}
-	if (ssstack_.empty())  // enable next iteration of batch means
-		ssstack_.push(oTraial_);
-
-	// To estimate, weigh times by the relative importance of their thresholds
-	double weighedAccTime(0.0);
-	unsigned long effort(1ul);
-	for (auto t = 0u ; t <= numThresholds ; t++) {
-		effort *= impFun_->effort_of(t);
-		weighedAccTime += raresCount[t] / effort;
-	}
-	// Return the (weighed) simulation-time spent on rare states
-	assert(0.0 <= weighedAccTime);
-	return weighedAccTime;
-*/
 }
 
 
@@ -459,8 +392,9 @@ SimulationEngineRestart::RESTART_run(const SSProperty& property,
 
 		} else if (IS_THR_UP_EVENT(e)) {
 			// Could have gone up several thresholds => split accordingly
+			assert(traial.numLevelsCrossed > 0);
 			handle_lvl_up(traial, tpool, ssstack_);
-			assert(!traial.pregnant);
+			assert(traial.level < static_cast<decltype(traial.level)>(traial.nextSplitLevel));
 			assert(&(ssstack_.top().get()) != &oTraial_);
 			// Offsprings are on top of ssstack_ now: continue attending them
 		}

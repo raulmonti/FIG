@@ -158,7 +158,8 @@ private:  // Traial observers/updaters
 		{
 			// Event marking is done in accordance with the checks performed
 			// in the transient_simulations() overriden member function
-		    if (property.is_stop(traial.state)) {
+		    e = EventType::NONE;
+			if (property.is_stop(traial.state)) {
 				e = EventType::STOP;
 			} else {
 				const auto newThrLvl = static_cast<long>(impFun_->level_of(traial.state));
@@ -215,27 +216,27 @@ private:  // Traial observers/updaters
 		{
 			// Event marking is done in accordance with the checks performed
 			// in the rate_simulation() overriden member function
-		    const auto newThrLvl = static_cast<long>(impFun_->level_of(traial.state));
+		    e = EventType::NONE;
+			const auto newThrLvl = static_cast<long>(impFun_->level_of(traial.state));
 			traial.numLevelsCrossed = static_cast<int>(newThrLvl - static_cast<long>(traial.level));
 			traial.depth -= traial.numLevelsCrossed;
 			traial.level = static_cast<decltype(traial.level)>(newThrLvl);
-			if (traial.numLevelsCrossed > 0 &&
-					traial.pregnancyLevel == traial.level) {
+			if (0 < traial.numLevelsCrossed &&
+			        traial.nextSplitLevel == static_cast<int>(traial.level)) {
 					e = EventType::THR_UP;  // event B_i
-					traial.pregnancyLevel++;
+					traial.nextSplitLevel++;
 			} else if (traial.numLevelsCrossed < 0) {
 				if (traial.level == impFun_->min_value()) {
 					if (traial.depth > 0)
 						e = EventType::THR_DOWN;  // retrials that reach "threshold 0" die
 					else
-						traial.pregnancyLevel = 1;  // the original traial instead gets reborn
+						traial.nextSplitLevel = 1;  // the original traial instead gets reborn
 				} else if (traial.depth > die_out_depth()) {
 					e = EventType::THR_DOWN;  // D_i-j event in traial [B_i,D_i-j) of RESTART-Pj
 				} else {
-					traial.pregnancyLevel =  // can generate new events B_k
-							std::min<decltype(traial.pregnancyLevel)>(
-												 traial.pregnancyLevel,
-												 traial.level + die_out_depth() + 1);
+					traial.nextSplitLevel =  // can generate new events B_k
+					        std::min(traial.nextSplitLevel,
+					                 static_cast<int>(traial.level)+die_out_depth()+1);
 				}
 			} else if (property.is_rare(traial.state)) {
 				e = EventType::RARE;
@@ -261,24 +262,22 @@ private:  // Traial observers/updaters
 			traial.numLevelsCrossed = static_cast<int>(newThrLvl - static_cast<long>(traial.level));
 			traial.depth -= traial.numLevelsCrossed;
 			traial.level = static_cast<decltype(traial.level)>(newThrLvl);
-			assert(static_cast<decltype(newThrLvl)>(traial.level) == newThrLvl);
 			if (traial.numLevelsCrossed > 0 &&
-					traial.pregnancyLevel == traial.level) {
+			        traial.nextSplitLevel == static_cast<int>(traial.level)) {
 				SET_THR_UP_EVENT(e);  // event B_i
-				traial.pregnancyLevel++;
+				traial.nextSplitLevel++;
 			} else if (traial.numLevelsCrossed < 0) {
 				if (traial.level == cImpFun_->min_value()) {
 					if (traial.depth > 0)
 						SET_THR_DOWN_EVENT(e);  // retrials that reach bottom threshold are truncated
 					else
-						traial.pregnancyLevel = 1;  // the original traial instead gets reborn
+						traial.nextSplitLevel = 1;  // the original traial instead gets reborn
 				} else if (traial.depth > die_out_depth()) {
 					SET_THR_DOWN_EVENT(e);  // D_i-j event in traial [B_i,D_i-j) of RESTART-Pj
 				} else {
-					traial.pregnancyLevel =  // can generate new events B_k
-							std::min<decltype(traial.pregnancyLevel)>(
-												 traial.pregnancyLevel,
-												 traial.level + die_out_depth() + 1);
+					traial.nextSplitLevel =  // can generate new events B_k
+					        std::min(traial.nextSplitLevel,
+					                 static_cast<int>(traial.level)+die_out_depth()+1);
 				}
 			}
 			// else: rare event info is already marked inside 'e'
