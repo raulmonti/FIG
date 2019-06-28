@@ -222,9 +222,9 @@ private:  // Traial observers/updaters
 			traial.depth -= traial.numLevelsCrossed;
 			traial.level = static_cast<decltype(traial.level)>(newThrLvl);
 			if (0 < traial.numLevelsCrossed &&
-			        traial.nextSplitLevel == static_cast<int>(traial.level)) {
+			        traial.nextSplitLevel <= static_cast<int>(traial.level)) {
 					e = EventType::THR_UP;  // event B_i
-					traial.nextSplitLevel++;
+					traial.nextSplitLevel = static_cast<int>(traial.level) + 1;
 			} else if (traial.numLevelsCrossed < 0) {
 				if (traial.level == impFun_->min_value()) {
 					if (traial.depth > 0)
@@ -263,9 +263,9 @@ private:  // Traial observers/updaters
 			traial.depth -= traial.numLevelsCrossed;
 			traial.level = static_cast<decltype(traial.level)>(newThrLvl);
 			if (traial.numLevelsCrossed > 0 &&
-			        traial.nextSplitLevel == static_cast<int>(traial.level)) {
+			        traial.nextSplitLevel <= static_cast<int>(traial.level)) {
 				SET_THR_UP_EVENT(e);  // event B_i
-				traial.nextSplitLevel++;
+				traial.nextSplitLevel = static_cast<int>(traial.level) + 1;
 			} else if (traial.numLevelsCrossed < 0) {
 				if (traial.level == cImpFun_->min_value()) {
 					if (traial.depth > 0)

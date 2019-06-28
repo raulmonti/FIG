@@ -84,7 +84,8 @@ ThresholdsBuilderFixed::setup(std::shared_ptr<const Property>, const void *info)
 	if (thrAdHoc_.empty())  // couldn't cast to string? try casting to int
 		ge = *static_cast<const int*>(info);
 	// 'info' must've been either a valid string, or a valid global effort
-	if (thrAdHoc_.empty() && (ge <= 0 || ge > static_cast<int>(MAX_EFFORT)))
+	// NOTE: global effort '0' is allowed for the flat "importance function"
+	if (thrAdHoc_.empty() && (ge < 0 || ge > static_cast<int>(MAX_EFFORT)))
 		throw_FigException("cannot build thresholds with \"" + name +
 		                   "\" from the information provided");
 	globEff_ = static_cast<decltype(globEff_)>(ge);
@@ -190,6 +191,8 @@ ThresholdsBuilderFixed::build_thresholds_ad_hoc(const ImportanceFunction& impFun
 		char* err(nullptr);
 		// Read next threshold and its effort
 		auto THR_EFF = split(pairStr, ':');
+		if (THR_EFF.size() != 2)
+			throw_FigException("invalid ad hoc threshold:splitting pair given: " + pairStr);
 		const auto THR = std::strtol(THR_EFF[0].c_str(), &err, 10);
 		if (nullptr != err && err[0] != '\0')
 			throw_FigException("invalid threshold value \"" + THR_EFF[0] + "\"");

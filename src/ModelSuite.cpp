@@ -953,6 +953,7 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 					 << "the expression you provided!)\n";
 		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
 		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
+		techLog_ << "Min importance of a rare event: " << ifun.min_rare_value() << std::endl;
 		techLog_ << "Importance function building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"
@@ -1050,6 +1051,7 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 
 		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
 		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
+		techLog_ << "Min importance of a rare event: " << ifun.min_rare_value() << std::endl;
 		techLog_ << "Importance function building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"
