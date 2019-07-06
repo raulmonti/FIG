@@ -93,7 +93,7 @@ IVert ModuleIOSA::process_edge(IVert st, shared_ptr<TransitionAST> transition) {
     IVert result = nullptr;
     shared_ptr<Exp> pre = transition->get_precondition();
     if (holds_expression(st, pre)) {
-        shared_vector<Assignment>& as = transition->get_assignments();
+		const auto& as = transition->get_assignments();
         IVert cpy = process_assignments(st, as);
         if (!cpy->is_valid()) {
             throw_FigException("Generated out-of-range state.");
@@ -110,7 +110,7 @@ IVert ModuleIOSA::process_edge(IVert st, shared_ptr<TransitionAST> transition) {
 }
 
 IVert ModuleIOSA::process_assignments(IVert st,
-                                      shared_vector<Assignment>& avec) {
+                                      const shared_vector<Assignment>& avec) {
     IVert copy = make_shared<State>(*st);
     for (shared_ptr<Assignment> as : avec) {
         shared_ptr<Exp> rhs = as->get_rhs();

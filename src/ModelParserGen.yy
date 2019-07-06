@@ -142,8 +142,9 @@ FSTEXCLUDE "fstexclude"
 %token <int>   INTL "int_literal"
 %token <float> FLOATL "float_literal"
 %type  <shared_ptr<Model>>         model
-%type  <shared_ptr<Exp>>           exp
 %type  <shared_ptr<Dist>>          dist
+%type  <shared_ptr<Exp>>           exp
+%type  <shared_vector<PBranch>>    pbranches
 %type  <shared_vector<Effect>>     effects
 %type  <shared_ptr<Location>>      location
 %type  <shared_ptr<Exp>>           guard
@@ -161,6 +162,7 @@ FSTEXCLUDE "fstexclude"
 %%
 %start begin;
 
+// FILE
 begin: model[m] {*result = $m; save_location(*result, @m);}
 |  model[m] "properties" proplist[v] "endproperties"
 {auto &res = $m; res->add_props($v); *result = res; save_location(*result, @m);}
@@ -172,6 +174,7 @@ begin: model[m] {*result = $m; save_location(*result, @m);}
     save_location(model, @v);
 }
 
+// MODEL
 model: decl[d] ";"
 {$$ = make_shared<Model>($d); save_location($$, @$);}
 | model[m] decl[d] ";"
@@ -194,6 +197,7 @@ model: decl[d] ";"
     save_location($$, @$);
 }
 
+// PROPERTIES
 prop: "P" "(" exp[l] "U" exp[r] ")" 
 { $$ = make_shared<TransientProp>($l, $r); save_location($$, @$);}
 | "S" "(" exp[r] ")"
@@ -201,11 +205,13 @@ prop: "P" "(" exp[l] "U" exp[r] ")"
 | "S" "[" exp[l] ":" exp[u] "]" "(" exp[r] ")"
 { $$ = make_shared<TBoundSSProp>($l,$u,$r); save_location($$, @$);}
 
+// PROPERTIES ENVIRONMENT
 proplist: prop[p]
 { $$ = vector<shared_ptr<Prop>>{$p};}
 | proplist[v] prop[p]
 { $$ = $v ; $$.push_back($p);}
 
+// TYPE
 type: "int"
 {$$ = Type::tint;}
 | "bool"
@@ -213,7 +219,7 @@ type: "int"
 | "float"
 {$$ = Type::tfloat;}
 
-
+// MODULE
 module: decl[d] ";"
 {$$ = make_shared<ModuleAST>($d); save_location($$, @$);}
 | transition[a] ";"
@@ -223,6 +229,7 @@ module: decl[d] ";"
 | module[mb] transition[a] ";"
 {$mb->add_transition($a); $$ = $mb; save_location($$, @$);}
 
+// CONST
 qualifier : "const" {$$ = DeclQualifier::constant;}
 
 qualifierlist :  qualifierlist[ql] qualifier[q]
@@ -237,18 +244,23 @@ decl: qualifierlist[ql] decl_body[d] {
     }
 }
 
+// VARIABLE DECLARATION
 decl_body:
 "id"[id] ":" "[" exp[low] ".." exp[upper] "]"
-{$$ = make_shared<RangedDecl>($id, $low, $upper); save_location($$, @$);}
+{$$ = make_shared<RangedDecl>($id, $low, $upper);
+	save_location($$, @$);}
 | "id"[id] ":" "[" exp[low] ".." exp[upper] "]" "init" exp[e]
 {$$ = make_shared<RangedDecl>($id, $low, $upper, $e);
     save_location($$, @$);}
 | "id"[id] ":" type[t] "init" exp[e]
-{$$ = make_shared<InitializedDecl>($t, $id, $e); save_location($$, @$);}
+{$$ = make_shared<InitializedDecl>($t, $id, $e);
+	save_location($$, @$);}
 | type[t] "id"[id] "=" exp[e]
-{$$ = make_shared<InitializedDecl>($t, $id, $e); save_location($$, @$);}
+{$$ = make_shared<InitializedDecl>($t, $id, $e);
+	save_location($$, @$);}
 | "id"[id] ":" "clock"
-{$$ = make_shared<ClockDecl>($id); save_location($$, @$);}
+{$$ = make_shared<ClockDecl>($id);
+	save_location($$, @$);}
 | "id"[id] "[" exp[size] "]" ":"
 "[" exp[lower] ".." exp[upper] "]" "init" exp[e]
 {$$ = make_shared<RangedInitializedArray>($id, $size, $lower, $upper, $e);}
@@ -261,44 +273,69 @@ decl_body:
 | "id"[id] "[" exp[size] "]" ":" type[t] "init" "{" exp_seq[seq] "}"
 {$$ = make_shared<MultipleInitializedArray>($t, $id, $size, $seq);}
 
+// SEQUENCE OF EXPRESSIONS
 exp_seq: exp_seq[es] "," exp[e]
 {$$ = concat($es, shared_vector<Exp>{$e});}
 | exp[e]
 {$$ = shared_vector<Exp>{$e};}
 
-transition: "[" "id"[id] "?" "]" guard[e] "->" effects[eff]
-{$$ = make_shared<InputTransition>($id, $e, $eff);
-save_location($$, @$);}
-| "[" "id"[id] "!" "]" guard[e] "@" location[loc] "->" effects[eff]
-{$$ = make_shared<OutputTransition>($id, $e, $eff, $loc);
+// TRANSITION
+transition: "[" "id"[id] "?" "]" guard[e] "->" pbranches[pb]
+{$$ = make_shared<InputTransition>($id, $e, $pb);
+	save_location($$, @$);}
+| "[" "id"[id] "!" "]" guard[e] "@" location[loc] "->" pbranches[pb]
+{$$ = make_shared<OutputTransition>($id, $e, $pb, $loc);
     save_location($$, @$);}
-| "[" "]" guard[e] "@" location[loc] "->" effects[eff]
-{$$ = make_shared<TauTransition>($e, $eff, $loc);
+| "[" "]" guard[e] "@" location[loc] "->" pbranches[pb]
+{$$ = make_shared<TauTransition>($e, $pb, $loc);
     save_location($$, @$);}
-| "[" "_" "?" "]" guard[e]  "->" effects[eff]
-{$$ = make_shared<WildcardInputTransition>($e, $eff);
+| "[" "_" "?" "]" guard[e]  "->" pbranches[pb]
+{$$ = make_shared<WildcardInputTransition>($e, $pb);
     save_location($$, @$);}
-| "[" "id"[id] "!" "!" "]" guard[e] "->" effects[eff]
-{$$ = make_shared<OutputCommittedTransition>($id, $e, $eff);
+| "[" "id"[id] "!" "!" "]" guard[e] "->" pbranches[pb]
+{$$ = make_shared<OutputCommittedTransition>($id, $e, $pb);
     save_location($$, @$);}
-| "[" "id" [id] "?" "?" "]" guard[e] "->" effects[eff]
-{$$ = make_shared<InputCommittedTransition>($id, $e, $eff); };
+| "[" "id"[id] "?" "?" "]" guard[e] "->" pbranches[pb]
+{$$ = make_shared<InputCommittedTransition>($id, $e, $pb);
+	save_location($$, @$);}
 
+// TRANSITION LABEL
+location: "id"[id]
+{$$ = make_shared<Location>($id);
+	save_location($$, @$);}
+| "id"[id] "[" exp[e] "]"
+{$$ = make_shared<ArrayPosition>($id, $e);
+	save_location($$, @$);}
 
+// TRANSITION PRECONDITION
 guard: %empty
-{$$ = make_shared<BConst>(true); save_location($$, @$);}
+{$$ = make_shared<BConst>(true);
+	save_location($$, @$);}
 | exp[e]
-{$$ = $e;}
+{$$ = $e;
+	save_location($$, @$);}
 
+// TRANSITION POSTCONDITION: CHOICE OF PROBABILISTIC BRANCH
+pbranches: %empty
+{$$ = shared_vector<PBranch>{make_shared<PBranch>(make_shared<FConst>(1.0), shared_vector<Effect>())};}
+| effects[e]
+{$$ = shared_vector<PBranch>{make_shared<PBranch>(make_shared<FConst>(1.0), $e)};}
+| exp[p] ":" effects[e]
+{$$ = shared_vector<PBranch>{make_shared<PBranch>($p, $e)};}
+| pbranches[pb1] "+" pbranches[pb2]
+{$$ = concat($pb1, $pb2);}
+
+// TRANSITION POSTCONDITION: EFFECTS OF A PROBABILISTIC BRANCH
 effects: %empty
 {$$ = shared_vector<Effect>(); }
-|"(" location[loc] "'" "=" exp[e] ")"
+| "(" location[loc] "'" "=" exp[e] ")"
 {$$ = shared_vector<Effect>{make_shared<Assignment>($loc, $e)};}
 | "(" location[loc] "'" "=" dist[d] ")"
 {$$ = shared_vector<Effect>{make_shared<ClockReset>($loc, $d)};}
 | effects[e1] "&" effects[e2]
 {$$ = concat($e1, $e2);}
 
+// CLOCK RNG DISTRIBUTIONS
 dist: "erlang" "(" exp[e1] "," exp[e2] ")"
 {$$ = make_shared<MultipleParameterDist>(DistType::erlang, $e1, $e2);
 save_location($$, @$);}
@@ -329,13 +366,6 @@ save_location($$, @$);}
 | "dirac" "(" exp[e] ")"
 {$$ = make_shared<SingleParameterDist>(DistType::dirac, $e);
     save_location($$, @$);}
-
-location: "id"[id]
-{$$ = make_shared<Location>($id);
-    save_location($$, @$);}
-| "id"[id] "[" exp[e] "]"
-{$$ = make_shared<ArrayPosition>($id, $e);
-    save_location($$, @$);}
 		 
 // Note on expressions types: a separation between int-exp and bool-exp
 // introduces reduce/reduce conflicts
@@ -346,6 +376,7 @@ location: "id"[id]
 // Expressions of type float are only allowed in distribution's parameters,
 // That should be checked during type-checking.
 
+// EXPRESSION
 exp : location[loc]
 {$$ = make_shared<LocExp>($loc); save_location($$, @$);}
 | INTL[i]

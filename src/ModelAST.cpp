@@ -1,7 +1,31 @@
-/**
- * @author Leonardo Rodríguez
- * @author Carlos E. Budde (June 2019 updates)
- */
+//==============================================================================
+//
+//  ModelAST.cpp
+//
+//  Copyleft 2016-
+//  Authors:
+//  - Leonardo Rodríguez (Universidad Nacional de Córdoba)
+//  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
+//
+//------------------------------------------------------------------------------
+//
+//  This file is part of FIG.
+//
+//  The Finite Improbability Generator (FIG) project is free software;
+//  you can redistribute it and/or modify it under the terms of the GNU
+//  General Public License as published by the Free Software Foundation;
+//  either version 3 of the License, or (at your option) any later version.
+//
+//  FIG is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//
+//	You should have received a copy of the GNU General Public License
+//	along with FIG; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//==============================================================================
 
 // C++
 #include <cstdlib>
@@ -11,6 +35,7 @@
 #include <ModelParser.hpp>
 #include <ErrorMessage.h>
 #include <FigLog.h>
+#include <FigException.h>
 
 using std::shared_ptr;
 using std::static_pointer_cast;
@@ -70,8 +95,8 @@ void ModelAST::on_scanner_error(const string &msg) {
 
 std::set<string> Model::get_labels() const {
 	std::set<string> result;
-	for (const auto m_ptr: modules) {
-		for (const auto t_ptr: m_ptr->get_transitions()) {
+	for (const auto& m_ptr: modules) {
+		for (const auto& t_ptr: m_ptr->get_transitions()) {
 			result.emplace(t_ptr->get_label());
 		}
 	}
@@ -154,21 +179,42 @@ void RangedInitializedArray::accept(Visitor& visit) {
 }
 
 void RangedMultipleInitializedArray::accept(Visitor& visit) {
-    visit.visit(
-       static_pointer_cast<RangedMultipleInitializedArray>(shared_from_this()));
+	visit.visit(static_pointer_cast<RangedMultipleInitializedArray>(shared_from_this()));
 }
 
-TransitionAST::TransitionAST(string label_id, LabelType type,
-                             shared_ptr<Exp> pre,
-                             const shared_vector<Effect> &effects) :
-id {label_id}, type {type}, precondition {pre} {
-    for (shared_ptr<Effect> effect : effects) {
-        if (effect->is_assignment()) {
-            assignments.push_back(static_pointer_cast<Assignment>(effect));
-        } else if (effect->is_clock_reset()) {
-            clock_resets.push_back(static_pointer_cast<ClockReset>(effect));
-        }
-    }
+const shared_vector<Assignment>&
+TransitionAST::get_assignments()
+{
+	if (allAssignments.empty() && !pBranches.empty())
+		for (const auto& pbranch: pBranches)
+			for (auto ass: pbranch->get_assignments())
+				allAssignments.emplace_back(ass);
+	return allAssignments;
+}
+
+const shared_vector<ClockReset>&
+TransitionAST::get_clock_resets()
+{
+	if (allClockResets.empty() && !pBranches.empty())
+		for (const auto& pbranch: pBranches)
+			for (auto creset: pbranch->get_clock_resets())
+				allClockResets.emplace_back(creset);
+	return allClockResets;
+}
+
+PBranch::PBranch(std::shared_ptr< Exp > probability,
+                 shared_vector< Effect > effects) :
+    pWeight(probability)
+{
+	for (auto effect: effects) {
+		if (effect->is_assignment()) {
+			assignments.push_back(static_pointer_cast<Assignment>(effect));
+		} else if (effect->is_clock_reset()) {
+			clockResets.push_back(static_pointer_cast<ClockReset>(effect));
+		} else {
+			throw_FigException("unknown RHS in probabilistic branch");
+		}
+	}
 }
 
 void TransitionAST::accept(Visitor& visit) {
@@ -193,6 +239,10 @@ void InputCommittedTransition::accept(Visitor& visit) {
 
 void OutputCommittedTransition::accept(Visitor& visit) {
     visit.visit(static_pointer_cast<OutputCommittedTransition>(shared_from_this()));
+}
+
+void PBranch::accept(Visitor& visit) {
+	visit.visit(static_pointer_cast<PBranch>(shared_from_this()));
 }
 
 void Effect::accept(Visitor& visit) {
@@ -286,9 +336,9 @@ void FConst::accept(Visitor& visit) {
 }
 
 //Default Visitor does nothing on his visitation ;)
-Visitor::Visitor() {
-    message = make_shared<ErrorMessage>();
-}
+Visitor::Visitor() :
+    message(make_shared<ErrorMessage>())
+{ /* Not much to do around here */ }
 
 void Visitor::ignore_errors() {
     message->ignore_errors();
@@ -396,6 +446,9 @@ void Visitor::visit(shared_ptr<OutputCommittedTransition> node) {
 }
 
 //Effects
+void Visitor::visit(shared_ptr<PBranch> node) {
+	visit(std::static_pointer_cast<ModelAST>(node));
+}
 void Visitor::visit(shared_ptr<Effect> node) {
     visit(std::static_pointer_cast<ModelAST>(node));
 }

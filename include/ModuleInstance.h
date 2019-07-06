@@ -31,6 +31,7 @@
 #define MODULEINSTANCE_H
 
 // C++
+#include <set>
 #include <vector>
 #include <iterator>     // std::begin(), std::end()
 #include <algorithm>    // std::find_if(), std::copy() range
@@ -129,6 +130,9 @@ private:  // Global info to be defined by the ModuleNetwork
     /// where the clocks from all the modules were placed contiguously.
     /// @note Needed by Traial for mantaining the clocks internal time.
 	int firstClock_;
+
+	/// Container for clocks values to update when taking transitions
+	std::vector< CLOCK_INTERNAL_TYPE > clocksValues_;
 
 	/// Is the module ready for simulations?
 	bool sealed_;
@@ -306,7 +310,8 @@ public:  // Ctors/Dtor and populating facilities
 	 * @param label           @copydoc Transition::label_
 	 * @param triggeringClock @copydoc Transition::triggeringClock
 	 * @param pre             @copydoc Transition::pre
-	 * @param pos             @copydoc Transition::pos
+	 * @param probabilities   @copydoc Transition::probabilities
+	 * @param posts           @copydoc Transition::posts
 	 * @param resetClocks     Names of the clocks to reset when transition is taken
 	 *
 	 * @warning Do not invoke after mark_added()
@@ -322,8 +327,20 @@ public:  // Ctors/Dtor and populating facilities
 	void add_transition(const Label& label,
 						const std::string& triggeringClock,
 						const Precondition& pre,
-						const Postcondition& pos,
+	                    const std::vector< float >& probabilities,
+	                    const std::vector< Postcondition >& posts,
 						const Container<ValueType, OtherContainerArgs...>& resetClocks);
+
+	/// @copydoc add_transition()
+	template< template< typename, typename... > class Container,
+	          typename ValueType,
+	          typename... OtherContainerArgs >
+	void add_transition(const Label& label,
+	                    const std::string& triggeringClock,
+	                    Precondition&& pre,
+	                    std::vector< float >&& probabilities,
+	                    std::vector< Postcondition >&& posts,
+	                    Container<ValueType, OtherContainerArgs...>&& resetClocks);
 
 public:  // Accessors
 
@@ -395,12 +412,12 @@ public:  // Utils
 	/**
 	 * @brief Active module jump caused by expiration of our clock "clockName"
 	 *
-	 * @param clockName    Name of the clock (from this model!) which expires
+	 * @param clockName    Name of the clock (from this model) which expires
 	 * @param elapsedTime  Time lapse for the clock to expire
 	 * @param traial       Instance of Traial to update
 	 *
 	 * @return Output label fired by the transition taken.
-	 *         If none was enabled then a "should_ignore" label is returned.
+	 *         If none was enabled then a \p should_ignore label is returned.
 	 *
 	 * @note <b>Complexity:</b> <i>O(t*v+c)</i>, where
 	 *       <ul>
@@ -423,7 +440,7 @@ public:  // Utils
 					  Traial& traial) const;
 
 	/**
-	 * @brief Passive module jump following a <i>timed</i> input \p label
+	 * @brief Passive module jump following a <em>timed</em> input \p label
 	 *
 	 * @param label        Output label triggered by current active jump
 	 * @param elapsedTime  Time lapse for the clock to expire
@@ -449,26 +466,6 @@ public:  // Utils
 	void jump(const Label& label,
 			  const CLOCK_INTERNAL_TYPE& elapsedTime,
 			  Traial& traial) const;
-
-	/**
-	 * Basically the same as the \ref jump(const Label&, const float&, Traial&)
-	 * "passive jump" but for reachability purposes only
-	 *
-	 * @param label Output label to which we may react
-	 * @param state State to update if we have a transition reacting to \p label
-	 *
-	 * @note Useful for ImportanceFunction construction, not for simulations
-	 * @note <b>Complexity:</b> <i>O(t*v)</i>, where
-	 *       <ul>
-	 *       <li> <i>t</i> is the number of transitions of this module,</li>
-	 *       <li> <i>v</i> is the number of  variables  of this module.</li>
-	 *       </ul>
-	 * @warning seal() must have been called beforehand
-	 * \ifnot NDEBUG
-	 *   @throw FigException if the module hasn't been sealed yet
-	 * \endif
-	 */
-	void jump(const Label& label, State<STATE_INTERNAL_TYPE>& state) const;
 
 	/**
 	 * @brief Active module jump executing an output-committed transition
@@ -522,9 +519,10 @@ private:  // Class utils
 	/**
 	 * @brief  Apply (first) enabled transition, if any.
 	 *
-	 *         Look for an enabled transition for this \p traial:
-	 *         if one is found then apply its postcondition and reset its clocks;
-	 *         otherwise nothing is done.
+	 *         Look for an enabled transition for this \p traial.
+	 *         If one is found then choose probabilistically a branch,
+	 *         apply its postcondition, and reset its clocks.
+	 *         If none is found nothing is done.
 	 *
 	 * @param traial       Instance of Traial to update
 	 * @param transitions  Transitions to consider
@@ -535,13 +533,6 @@ private:  // Class utils
 	const Label&
 	apply_postcondition(Traial &traial,
 	                    const transition_vector_t &transitions) const;
-
-	/// Apply postcondition of the (first) enabled transition, if any.
-	/// @param state        State to update
-	/// @param transitions  Transitions to consider
-	void
-	apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
-	                    const transition_vector_t& transitions) const;
 
 	/// Check whether all clocks have an exponential distribution
 	/// and update the markovian_ field correspondingly
@@ -560,6 +551,56 @@ private:  // Class utils
 	///   @throw FigException if seal() not called yet or the mapping failed
 	/// \endif
 	void order_transitions();
+
+private:  // Utilities for ImportanceFunction building
+
+	/**
+	 * Like the \ref jump(const Label&, const float&, Traial&) "passive jump"
+	 * for reachability purposes, where we follow all probabilistic branches
+	 *
+	 * @param label  Output label to which we may react
+	 * @param states States to update if we have a transition reacting to \p label
+	 *
+	 * @return All possible states reachable from the given \p states,
+	 *         by applying (all possible) postconditions of transitions
+	 *         labelled with \p label
+	 *
+	 * @note For each state, stops after finding the first enabled (label-)transition:
+	 *       IOSA are weakly deterministic so the resulting set of states
+	 *       should not be different for other enabled (label-)transitions
+	 * @note Useful for ImportanceFunction construction, not for simulations
+	 * @warning seal() must have been called beforehand
+	 * \ifnot NDEBUG
+	 *   @throw FigException if the module hasn't been sealed yet
+	 * \endif
+	 */
+	std::set< State < STATE_INTERNAL_TYPE > >
+	all_successors(const Label& label,
+	               const std::set< State<STATE_INTERNAL_TYPE> >& states) const;
+
+	/// Like all_successors() for a single initial \p state
+	inline std::set< State < STATE_INTERNAL_TYPE > >
+	all_successors(const Label& label,
+	               const State<STATE_INTERNAL_TYPE>& state) const
+	    {
+		    return all_successors(label, std::set<State<STATE_INTERNAL_TYPE>>({state}));
+	    }
+
+//	/**
+//	 * Apply postcondition of the (first) enabled transition, if any.
+//	 * @param state        State to update
+//	 * @param transitions  Transitions to consider
+//	 * @param branch       Apply this particular branch postcondition
+//	 * @return All possible states reachable from \p state, by applying the
+//	 *         postconditions of these \p transitions (considering all possible
+//	 *         probabilistic branches of each transition)
+//	 * @note Stops after finding the first enabled transition because IOSA
+//	 *       are weakly deterministic.
+//	 * @see all_successors()
+//	 */
+//	std::forward_list< State < STATE_INTERNAL_TYPE > >
+//	apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
+//	                    const transition_vector_t& transitions) const;
 
 private:  // Callback utilities offered to the ModuleNetwork
 
@@ -764,6 +805,52 @@ ModuleInstance::ModuleInstance(
 				  "ERROR: type mismatch. ModuleInstance ctor needs iterators "
 				  "poiting to Transition objects");
 	transitions_.insert(begin(transitions_), from, to);
+}
+
+
+template< template< typename, typename... > class Container,
+          typename ValueType,
+          typename... OtherContainerArgs >
+void
+ModuleInstance::add_transition(
+    const Label& label,
+    const std::string& triggeringClock,
+    const Precondition& pre,
+    const std::vector<float>& probabilities,
+    const std::vector<Postcondition>& posts,
+    const Container<ValueType, OtherContainerArgs...>& resetClocks)
+{
+	add_transition(Transition(
+	    std::forward<const Label&>(label),
+	    std::forward<const std::string&>(triggeringClock),
+	    std::forward<const Precondition&>(pre),
+	    std::forward<const std::vector<float>&>(probabilities),
+	    std::forward<const std::vector<Postcondition>&>(posts),
+	    std::forward<const Container<ValueType, OtherContainerArgs...>&>(resetClocks)
+	));
+}
+
+
+template< template< typename, typename... > class Container,
+          typename ValueType,
+          typename... OtherContainerArgs >
+void
+ModuleInstance::add_transition(
+    const Label& label,
+    const std::string& triggeringClock,
+    Precondition&& pre,
+    std::vector<float>&& probabilities,
+    std::vector<Postcondition>&& posts,
+    Container<ValueType, OtherContainerArgs...>&& resetClocks)
+{
+	add_transition(Transition(
+	    std::forward<const Label&>(label),
+	    std::forward<const std::string&>(triggeringClock),
+	    std::forward<Precondition&&>(pre),
+	    std::forward<std::vector<float>&&>(probabilities),
+	    std::forward<std::vector<Postcondition>&&>(posts),
+	    std::forward<Container<ValueType, OtherContainerArgs...>&&>(resetClocks)
+	));
 }
 
 } // namespace fig

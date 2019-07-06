@@ -106,7 +106,7 @@ ModuleInstance::add_transition(const Transition& transition)
 						   .append(transition.triggeringClock)
 						   .append("\" does not reside in module \"")
 						   .append(name).append("\""));
-	for (const auto& clockName: transition.resetClocksList())
+	for (const auto& clockName: transition.reset_clocks_names_list())
 		if (!is_our_clock(clockName))
 			throw_FigException(std::string("reset clock \"").append(clockName)
 							   .append("\" does not reside in module \"")
@@ -130,7 +130,7 @@ ModuleInstance::add_transition(Transition&& transition)
 						   .append(transition.triggeringClock)
 						   .append("\" does not reside in module \"")
 						   .append(name).append("\""));
-	for (const auto& clockName: transition.resetClocksList())
+	for (const auto& clockName: transition.reset_clocks_names_list())
 		if (!is_our_clock(clockName))
 			throw_FigException(std::string("reset clock \"").append(clockName)
 							   .append("\" does not reside in module \"")
@@ -141,39 +141,6 @@ ModuleInstance::add_transition(Transition&& transition)
 #endif
 	transitions_.emplace_back(transition);
 }
-
-
-template< template< typename, typename... > class Container,
-		  typename ValueType,
-		  typename... OtherContainerArgs >
-void
-ModuleInstance::add_transition(
-	const Label& label,
-	const std::string& triggeringClock,
-    const Precondition& pre,
-    const Postcondition& pos,
-	const Container<ValueType, OtherContainerArgs...>& resetClocks)
-{
-	add_transition(Transition(
-		std::forward<const Label&>(label),
-		std::forward<const std::string&>(triggeringClock),
-	    std::forward<const Precondition&>(pre),
-		std::forward<const Postcondition&>(pos),
-		std::forward<const Container<ValueType, OtherContainerArgs...>&>(resetClocks)
-	));
-}
-
-// ModuleInstance::add_transition(...) can only be invoked with the following containers
-using lab = const Label&;
-using str = const std::string&;
-using pre = const Precondition&;
-using pos = const Postcondition&;
-template void ModuleInstance::add_transition(lab, str, pre, pos, const std::set< std::string >&);
-template void ModuleInstance::add_transition(lab, str, pre, pos, const std::list< std::string >&);
-template void ModuleInstance::add_transition(lab, str, pre, pos, const std::deque< std::string >&);
-template void ModuleInstance::add_transition(lab, str, pre, pos, const std::vector< std::string >&);
-template void ModuleInstance::add_transition(lab, str, pre, pos, const std::forward_list< std::string >&);
-template void ModuleInstance::add_transition(lab, str, pre, pos, const std::unordered_set< std::string >&);
 
 
 State<STATE_INTERNAL_TYPE>
@@ -222,17 +189,12 @@ ModuleInstance::adjacent_states(const size_t& s) const
     for (const Transition& tr: transitions_) {
 	    // For each enabled transition of the module...
 	    if (tr.precondition()(state)) {
-		    // ...update variables...
-            try{
-		        tr.postcondition()(state);
-            }catch(const FigException &e){
-                continue;
-            }
-		    // ...and store resulting concrete state
-		    adjacentStates.push_front(state.encode());
-		    // Restore original state
-		    state.decode(s);
-	    }
+			// ...for each possible branch out the current transition...
+			for (auto b = 0ul ; b < tr.num_branches() ; b++) {
+				// ...apply its postcondition and store the resulting concrete state
+				adjacentStates.push_front(tr.apply_postcondition(state,b).encode());
+			}
+		}
     }
 	// Remove duplicates before returning
 	adjacentStates.sort();
@@ -274,6 +236,11 @@ ModuleInstance::apply_postcondition(Traial &traial,
 		// If the traial satisfies this precondition...
 		if (tr.pre(traial.state)) {
 #endif
+			// ...choose probabilistically a postcondition and apply it
+			tr.apply_postcondition(traial, lClocks_, firstClock_);
+/*
+ * code below is deprecated
+ *
 			// ...apply postcondition to its state...
 			tr.pos(traial.state);
 			// ...and reset corresponing clocks (the other clocks aint touched)
@@ -285,6 +252,8 @@ ModuleInstance::apply_postcondition(Traial &traial,
 				                            : traial.clock_value(i);
 			}
 			traial.update_clocks(firstClock_, NUM_CLOCKS, clockValues);
+ */
+
 #ifndef NDEBUG
 		}
 	}
@@ -381,74 +350,6 @@ ModuleInstance::jump_committed(const Label& label, Traial& traial) const
 
 
 void
-ModuleInstance::apply_postcondition(State<STATE_INTERNAL_TYPE>& state,
-                                    const transition_vector_t& transitions) const
-{
-#ifndef NDEBUG
-	// Check for nondeterminism only in DEBUG mode
-	std::string labStr;
-	typedef State<STATE_INTERNAL_TYPE> state_t;
-	state_t initialState(const_cast<const state_t&>(state));
-#endif
-	// iterate over transitions vector
-	for (const Transition &tr : transitions) {
-		// If the state satisfies this precondition
-#ifndef NDEBUG
-		if (tr.pre(initialState)) {
-#else
-		if (tr.pre(state)) {
-#endif
-			// Apply the postcondition
-			tr.pos(state);
-#ifndef NDEBUG
-			if (!labStr.empty()
-			        && !tr.label().is_in_committed()
-			        && !tr.label().is_out_committed()) {
-				std::stringstream errMsg;
-				errMsg << "[ERROR] Nondeterminism detected in Module "
-				       << name << ": Label of trans #1: "
-				       << labStr << " , Label of trans #2: "
-				       << tr.label().str;
-				throw_FigException(errMsg.str());
-			} else if (!labStr.empty() && highVerbosity) {
-				figTechLog << "\n[WARNING] Nondeterminism of committed actions "
-				              "detected in Module " << name
-				           << ": the transition labels are \"" << labStr
-				           << "\" and \"" << tr.label().str << "\"\n";
-			} else {
-				labStr = tr.label().str;
-			}
-#else
-			break;  // At most one transition should've been enabled
-#endif
-		}
-	}
-}
-
-
-void
-ModuleInstance::jump(const Label& label,
-                     State<STATE_INTERNAL_TYPE>& state) const
-{
-#ifndef NDEBUG
-	if (!sealed_)
-		throw_FigException("this module hasn't been sealed yet");
-#endif
-	if (label.is_input() || label.should_ignore())
-		return;  // none of our business
-	const auto trans = transitions_by_label_.find(label.str);
-	if (!label.is_tau() && end(transitions_by_label_) != trans) {
-		apply_postcondition(state, trans->second);
-	} else {
-		const auto trans = transitions_by_label_.find("_");
-		if (end(transitions_by_label_) != trans) {
-			apply_postcondition(state, trans->second);
-		}
-	}
-}
-
-
-void
 ModuleInstance::markovian_check()
 {
 	static std::set< std::string > memorylessDistributions = {
@@ -488,9 +389,9 @@ ModuleInstance::map_our_clocks() const
 		// mark_added() hasn't been called yet, there's nothing we can do
 		return localClocks;
 	localClocks.reserve(lClocks_.size());
-	unsigned clockGlobalPos = firstClock_;
+	auto clockGlobalPos = firstClock_;
 	for (const auto& clk: lClocks_)
-		localClocks[clk.name()] = clockGlobalPos++;
+		localClocks[clk.name()] = static_cast<size_t>(clockGlobalPos++);
 	return localClocks;
 }
 
@@ -543,6 +444,7 @@ ModuleInstance::seal(const PositionsMap& globalVars)
 #endif
 	// Reference them by clock and by label
 	order_transitions();
+	clocksValues_.resize(num_clocks(), static_cast<CLOCK_INTERNAL_TYPE>(0.0));
 }
 
 
@@ -564,6 +466,7 @@ ModuleInstance::seal(const fig::State<STATE_INTERNAL_TYPE>& globalState)
 		tr.callback(localClocks, globalState);
 	// Reference them by clock, by label, and by committment :p
 	order_transitions();
+	clocksValues_.resize(num_clocks(), static_cast<CLOCK_INTERNAL_TYPE>(0.0));
 }
 
 
@@ -604,6 +507,42 @@ ModuleInstance::order_transitions()
 								   + "\" and triggering clock \"" + tr1.triggeringClock
 								   + "\" isn't mapped in the labels list !!!");
 #endif
+}
+
+
+std::set< State < STATE_INTERNAL_TYPE > >
+ModuleInstance::all_successors(const Label& label,
+                               const std::set< State<STATE_INTERNAL_TYPE> >& states) const
+{
+	std::set< State < STATE_INTERNAL_TYPE > > allSuccessors;
+#ifndef NDEBUG
+	if (!sealed_)
+		throw_FigException("this module hasn't been sealed yet");
+#endif
+	if (label.is_input() || label.should_ignore())
+		return allSuccessors;  // none of our business
+	auto trans = transitions_by_label_.find(label.is_tau() ? std::string("_")
+	                                                       : label.str);
+	if (end(transitions_by_label_) == trans)
+		return allSuccessors;  // we have no transition listening to this label
+	// For each state we're considering...
+	for (const auto& state: states) {
+		// ...for each transition listening to the label given...
+		for (const Transition& tr : trans->second) {
+			// ...if the state satisfies the transition's precondition...
+			if (tr.pre(state)) {
+				// ...then for each possible probabilistic branch...
+				for (auto b = 0ul ; b < tr.num_branches() ; b++)
+					// ...apply its postcondition and store the resulting state
+					allSuccessors.insert(tr.apply_postcondition(state,b));
+				// An enabled transition was found for this state:
+				// the weak determinism of IOSA ensures that if we stop now,
+				// we don't miss anything that was reachable from this state
+				break;
+			}
+		}
+	}
+	return allSuccessors;
 }
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

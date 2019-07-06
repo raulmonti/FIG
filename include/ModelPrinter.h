@@ -47,9 +47,9 @@ class ModelPrinter : public Visitor {
 	/// Is the current declaration a constant value?
 	bool constant;
 	/// Dump to out stream with currently set indentation level
-	void print_idented(string str);
+	void print_indented(string str);
 	/// Print this module using one more level of indentation
-	void accept_idented(std::shared_ptr<ModelAST> node);
+	void accept_indented(std::shared_ptr<ModelAST> node);
 public:
 	ModelPrinter(std::ostream& sout = std::cout,
 				 bool debugp = false,
@@ -74,6 +74,7 @@ public:
 	void visit(std::shared_ptr<InputTransition> node);
 	void visit(std::shared_ptr<OutputTransition> node);
 	void visit(std::shared_ptr<TauTransition> node);
+	void visit(std::shared_ptr<PBranch> node);
 	void visit(std::shared_ptr<Effect> node);
 	void visit(std::shared_ptr<Assignment> node);
 	void visit(std::shared_ptr<ClockReset> node);

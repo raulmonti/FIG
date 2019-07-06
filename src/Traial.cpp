@@ -199,7 +199,7 @@ Traial::~Traial()
 
 
 std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >
-Traial::clocks_values(bool ordered) const
+Traial::copy_clocks_values(bool ordered) const
 {
 	std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >values(clocks_.size());
 	if (ordered)
@@ -280,10 +280,11 @@ Traial::reorder_clocks()
 		{ return clocks_[left].value < clocks_[right].value; }
 	);
 	// Find next clock to check, or record '-1' if all are negative
-	for (unsigned i=0u ; i < clocks_.size() || ((nextClock_ = -1) && false) ; i++) {
+	for (auto i = 0ul ; i < clocks_.size() || ((nextClock_ = -1) && false) ; i++) {
 		if (std::isfinite(clocks_[orderedIndex_[i]].value) &&
 				0.0f <= clocks_[orderedIndex_[i]].value) {
-			nextClock_ = orderedIndex_[i];
+			nextClock_ = static_cast<int>(orderedIndex_[i]);
+			assert(0 <= nextClock_);
 			break;
 		}
 	}

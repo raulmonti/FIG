@@ -47,11 +47,14 @@
 #include <TraialPool.h>
 #include <Traial.h>
 #include <FigLog.h>
-#include <Util.h>
 
 // ADL
 using std::begin;
 using std::end;
+
+#if __cplusplus >= 201402L
+using std::make_unique;
+#endif
 
 using PathCandidate = fig::SimulationEngineFixedEffort::ThresholdsPathCandidates;
 using PathContent = PathCandidate::value_type;
@@ -208,7 +211,7 @@ ThresholdsBuilderES::ThresholdsBuilderES(
     property_(nullptr),
     model_(nullptr),
 	impFun_(nullptr),
-	internalSimulator_(make_unique<SimulationEngineSFE>(model, true))
+    internalSimulator_(make_unique<SimulationEngineSFE>(model, true))
 { /* Not much to do around here */ }
 
 

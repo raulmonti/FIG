@@ -117,8 +117,23 @@ public:  // Modifiers
 
 public:  // Relational operators
 
-	bool operator==(const VariableInterval<T_>& that) const;
-	bool operator<=(const VariableInterval<T_>& that) const;
+	inline bool operator==(const VariableInterval<T_>& that) const
+	    {
+		    return Variable<T_>::name_ == that.name_ &&
+			       Variable<T_>::min_ == that.min_ &&
+			       Variable<T_>::max_ == that.max_ &&
+			       Variable<T_>::ini_ == that.ini_ &&
+			       Variable<T_>::offset_ == that.offset_;
+	    }
+
+	inline bool operator<=(const VariableInterval<T_>& that) const
+	    {
+		    return Variable<T_>::name_ == that.name_ &&
+			       Variable<T_>::min_ == that.min_ &&
+			       Variable<T_>::max_ == that.max_ &&
+			       Variable<T_>::ini_ == that.ini_ &&
+			       Variable<T_>::offset_ <= that.offset_;
+	    }
 
 	inline bool operator==(const Variable<T_>& that) const override
 	    {

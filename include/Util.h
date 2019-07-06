@@ -58,13 +58,13 @@ void sort_by_lt(shared_vector<T>& v) {
     std::sort(v.begin(), v.end(), by_lt);
 }
 
-//standard in c++14
-/// @todo: enclose definition with the apropiate directive
+#if __cplusplus < 201402L
 template<typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args)
 {
-    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+	return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
+#endif
 
 
 /// For point x return f(x), where \a "f : R -> R" is the linear function

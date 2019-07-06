@@ -17,8 +17,8 @@
 
 namespace iosa {
 
-class ConfluenceChecker : public Visitor {
-
+class ConfluenceChecker : public Visitor
+{
     /// Pairs of non-confluent actions on any of the modules.
     std::vector<NonConfluentPair> non_confluents;
 
@@ -41,8 +41,11 @@ class ConfluenceChecker : public Visitor {
 
 public:
 
+	ConfluenceChecker() {}
+	~ConfluenceChecker() override {}
+
     /// Runs the algorithm to the given model.
-    void visit(std::shared_ptr<Model> node);
+	void visit(std::shared_ptr<Model> node) override;
 
 private:
 

@@ -29,7 +29,7 @@ void ConfluenceChecker::debug_matrix() {
     for (auto entry : position) {
         std::cout << entry.first << "-> " << entry.second << std::endl;
     }
-    unsigned int size = position.size();
+	const auto size = position.size();
     for (unsigned int i = 0 ; i < size; i++) {
         for (unsigned int j = 0; j < size; j++) {
            std::cout << matrix[i][j] << " ";
@@ -137,7 +137,7 @@ void ConfluenceChecker::prepare_matrix() {
             i++;
         }
     }
-    unsigned int size = position.size();
+	const auto size = position.size();
     matrix.resize(size);
     for (std::vector<bool>& v : matrix) {
         v.resize(size, false);
@@ -152,7 +152,7 @@ void ConfluenceChecker::prepare_matrix() {
 }
 
 void ConfluenceChecker::warshall() {
-    unsigned int size = position.size();
+	const auto size = position.size();
     //transitive closure
     for (unsigned int k = 0; k < size; k++) {
         for (unsigned int i = 0; i < size; i++) {

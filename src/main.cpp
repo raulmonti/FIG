@@ -43,6 +43,7 @@
 #include <fig_cli.h>
 #include <FigConfig.h>
 #include <string_utils.h>
+#include <ModelSuite.h>
 #include <ModelBuilder.h>
 #include <ModelReductor.h>
 #include <ModelPrinter.h>
@@ -207,9 +208,9 @@ bool print_intro(const int& argc, const char** argv)
 	if (argc > 1 && trim(argv[1]) != "-h" && trim(argv[1]) != "--help") {
 		tech_log(std::string("\nFIG tool invoked on ") + std::ctime(&now));
 		tech_log("Build: " fig_CURRENT_BUILD "\n");
-		tech_log("Default RNG: " + std::string(Clock::DEFAULT_RNG.second) + ".\n");
+		tech_log("Default RNG: " + std::string(fig::Clock::DEFAULT_RNG.second) + ".\n");
 		tech_log("Default RNG seed: ");
-		if (Clock::rng_seed_is_random())
+		if (fig::Clock::rng_seed_is_random())
 			tech_log("randomized seeding.\n");
 		else
 			tech_log(std::to_string(fig::Clock::rng_seed()) + ".\n\n");

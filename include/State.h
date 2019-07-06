@@ -287,12 +287,32 @@ public:  // Accessors
 
 public:  // Relational operators
 	/**
-	 * @brief Whether 'this' and 'that' hold same variables with same values
+	 * Whether \p this and \p that have the same variables with same values
 	 * @note <b>Complexity:</b> <i>O(size())</i>
 	 */
-	bool operator==(const State< T_ >& that) const;
+	inline bool operator==(const State< T_ >& that) const
+	    {
+		    if (this->size() != that.size())
+				return false;
+			for (auto i = 0ul ; i < pvars_.size() ; i++)
+				if (*that[i] != *pvars_[i])
+					return false;
+			return true;
+	    }
+
+	/// Whether \p this and \p that have some different variable (or its value)
 	inline bool operator!=(const State< T_ >& that) const
 		{ return ( ! (that == *this) ); }
+
+	inline bool operator<(const State< T_ >& that) const
+	    {
+		    if (this->size() != that.size())
+				return false;
+			for (auto i = 0ul ; i < pvars_.size() ; i++)
+				if (*that[i] >= *pvars_[i])
+					return false;
+			return true;
+	    }
 
 public:  // Interaction with state instances
 

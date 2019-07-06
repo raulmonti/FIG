@@ -55,21 +55,18 @@ private:
 		LocationContainer locs;
 		locs.resize(assignments.size());
 		size_t i = 0;
-		for (std::shared_ptr<Assignment>& assign : assignments) {
-			locs[i] = assign->get_effect_location();
-			i++;
-		}
+		for (std::shared_ptr<Assignment>& assign : assignments)
+			locs[i++] = assign->get_effect_location();
 		return (locs);
 	}
 
-	static ExpContainer updateExps(AssignmentContainer assignments) {
+	static ExpContainer
+	updateExps(AssignmentContainer assignments) {
 		ExpContainer exps;
 		exps.resize(assignments.size());
 		size_t i = 0;
-		for (std::shared_ptr<Assignment>& assign : assignments) {
-			exps[i] = assign->get_rhs();
-			i++;
-		}
+		for (std::shared_ptr<Assignment>& assign : assignments)
+			exps[i++] = assign->get_rhs();
 		return (exps);
 	}
 

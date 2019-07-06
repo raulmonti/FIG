@@ -41,6 +41,7 @@
 // FIG
 #include <string_utils.h>
 #include <JANI_translator.h>
+#include <ModelSuite.h>
 #include <ModelVerifier.h>
 #include <ModelReductor.h>
 #include <ModelBuilder.h>
@@ -536,7 +537,7 @@ JaniTranslator::~JaniTranslator()
 	currentScope_.reset();
 	timeProgressInvariant_.reset();
 	modulesLabels_.clear();
-	modelLabels_.clear();;
+	modelLabels_.clear();
 }
 
 
@@ -716,15 +717,15 @@ JaniTranslator::build_JANI_constant(shared_ptr<InitializedDecl> node,
 
 	case Type::tfloat:
 		JANIobj["type"] = "real";
-		JANIobj["value"] = get_float_or_error(node->get_init(),
-								   "failed to reduce floating point value of "
-								   "constant \"" + node->get_id() + "\"\n");
+		JANIobj["value"] = static_cast<double>(
+		            get_float_or_error(node->get_init(),
+		                               "failed to reduce floating point value of "
+		                               "constant \"" + node->get_id() + "\"\n"));
 		break;
 
 	default:
 		throw_FigException("invalid initialized declaration type: " +
 						   std::to_string(static_cast<int>(node->get_type())));
-		break;
 	}
 }
 
@@ -1076,10 +1077,11 @@ JaniTranslator::visit(shared_ptr<IConst> node)
 void
 JaniTranslator::visit(shared_ptr<FConst> node)
 {
+	auto fconst = static_cast<double>(node->get_value());
 	if (JANIfield_->isArray())
-		JANIfield_->append(node->get_value());
+		JANIfield_->append(fconst);
 	else
-		(*JANIfield_) = node->get_value();
+		(*JANIfield_) = fconst;
 }
 
 
@@ -1208,11 +1210,9 @@ JaniTranslator::visit(shared_ptr<TransitionAST> node)
 		case LabelType::in_committed:
 		case LabelType::out_committed:
 			throw_FigException("committed acctions not yet supported in JANI");
-			break;
-		default:
-			throw_FigException("invalid label type: " + std::to_string(
-								   static_cast<int>(node->get_label_type())));
-			break;
+//		default:
+//			throw_FigException("invalid label type: " + std::to_string(
+//								   static_cast<int>(node->get_label_type())));
 		}
 	}
 
@@ -1536,7 +1536,6 @@ JaniTranslator::build_IOSA_expression(const Json::Value& JANIexpr)
 			break;
 		default:
 			throw_FigException("invalid expression operator: " + opStr);
-			break;
 		}
 	}
 	exit_point:
@@ -1799,10 +1798,11 @@ JaniTranslator::build_exponential_clock(const Json::Value& JANIedge,
 		auto clockLoc = std::make_shared<Location>("clk" + std::to_string(clkCounter++));
 		return make_shared<ClockReset>(clockLoc, clockDist);
 	}
-	default:
-		figTechLog << "[ERROR] Unhandled edge type.\n";
-		return nullptr;
+//	default:
+//		figTechLog << "[ERROR] Unhandled edge type.\n";
+//		return nullptr;
 	}
+	return nullptr;
 }
 
 
@@ -2140,25 +2140,29 @@ JaniTranslator::build_IOSA_transition_from_CTMC(const Json::Value& JANIedge,
 	else
 		pre = make_shared<BConst>(true);  // empty guard => "true"
 	// Build postcondition
-	auto pos = build_IOSA_postcondition(JANIedge["destinations"], moduleDecls);
-	pos.insert(end(pos), begin(allClocks), end(allClocks));  // reset all clocks
+	auto branches = build_IOSA_postcondition(JANIedge["destinations"], moduleDecls);
+	/// @warning Currently we only support a single branch, i.e. no probabilistic branching
+	assert(branches.size() == 1ul);
+	///////////////////////////////
+	auto& clockResets = branches.front()->get_clock_resets();
+	clockResets.insert(end(clockResets), begin(allClocks), end(allClocks));  // reset all clocks
 	// Build transition
 	if (nullptr == edgeClock) {
 		// Input
 		assert(JANIedge.isMember("action"));
 		auto label = sync_label(moduleName, JANIedge["action"].asString());
 		assert(label.is_input());
-		return make_shared<InputTransition>(label.str, pre, pos);
+		return make_shared<InputTransition>(label.str, pre, branches);
 	} else if (JANIedge.isMember("action")) {
 		// Output or Tau
 		auto label = sync_label(moduleName, JANIedge["action"].asString());
 		if (label.is_output())
-			return make_shared<OutputTransition>(label.str, pre, pos, edgeClock);
+			return make_shared<OutputTransition>(label.str, pre, branches, edgeClock);
 		else
-			return make_shared<TauTransition>(pre, pos, edgeClock);
+			return make_shared<TauTransition>(pre, branches, edgeClock);
 	} else {
 		// Tau
-		return make_shared<TauTransition>(pre, pos, edgeClock);
+		return make_shared<TauTransition>(pre, branches, edgeClock);
 	}
 }
 
@@ -2251,25 +2255,27 @@ JaniTranslator::build_IOSA_transition_from_STA(const Json::Value& JANIedge,
 		return nullptr;
 	}
 	// Build postcondition
-	auto pos = build_IOSA_postcondition(JANIedge["destinations"],
-										moduleVars, moduleClocks);
+	auto branches = build_IOSA_postcondition(JANIedge["destinations"], moduleVars, moduleClocks);
+	/// @warning Currently we only support a single branch, i.e. no probabilistic branching
+	assert(branches.size() == 1ul);
+	///////////////////////////////
 	// Build transition
 	if (nullptr == edgeClock) {
 		// Input
 		assert(JANIedge.isMember("action"));
 		auto label = sync_label(moduleName, JANIedge["action"].asString());
 		assert(label.is_input());
-		return make_shared<InputTransition>(label.str, pre, pos);
+		return make_shared<InputTransition>(label.str, pre, branches);
 	} else if (JANIedge.isMember("action")) {
 		// Output or Tau
 		auto label = sync_label(moduleName, JANIedge["action"].asString());
 		if (label.is_output())
-			return make_shared<OutputTransition>(label.str, pre, pos, edgeClock);
+			return make_shared<OutputTransition>(label.str, pre, branches, edgeClock);
 		else
-			return make_shared<TauTransition>(pre, pos, edgeClock);
+			return make_shared<TauTransition>(pre, branches, edgeClock);
 	} else {
 		// Tau
-		return make_shared<TauTransition>(pre, pos, edgeClock);
+		return make_shared<TauTransition>(pre, branches, edgeClock);
 	}
 }
 
@@ -2383,7 +2389,7 @@ JaniTranslator::build_IOSA_precondition_from_STA(const Json::Value& JANIguard,
 }
 
 
-shared_vector<Effect>
+shared_vector<PBranch>
 JaniTranslator::build_IOSA_postcondition(const Json::Value& JANIdest,
 										 const shared_vector<Decl>& moduleVars,
 										 const shared_vector<Decl>& moduleClocks)
@@ -2396,8 +2402,8 @@ JaniTranslator::build_IOSA_postcondition(const Json::Value& JANIdest,
 		if (!JANIdest[0].isMember("probability"))
 			figTechLog << "[ERROR] IOSA is incompatible with internal non-determinism.\n";
 		else
-			figTechLog << "[ERROR] FIG doesn't handle probabilities in edges yet.\n";
-		return shared_vector<Effect>();
+			figTechLog << "[ERROR] FIG cannot yet translate JANI probabilistic branching.\n";
+		return shared_vector<PBranch>();
 	}
 	auto is_valid_var = [&moduleVars] (const std::string& var) {
 		return std::find_if(begin(moduleVars), end(moduleVars),
@@ -2434,7 +2440,7 @@ JaniTranslator::build_IOSA_postcondition(const Json::Value& JANIdest,
 			if (!map_rv_to_dist(lvalue, ass["value"])) {
 				figTechLog << "[ERROR] Problems with distribution sampling "
 						   << "for real variable \"" << lvalue << "\"\n";
-				return shared_vector<Effect>();
+				return shared_vector<PBranch>();
 			}
 		} else {
 			throw_FigException("invalid assignment for lvalue \""+lvalue+"\"");
@@ -2451,12 +2457,12 @@ JaniTranslator::build_IOSA_postcondition(const Json::Value& JANIdest,
 		else {
 			figTechLog << "[ERROR] Failed to sample clock \"" << clk << "\" "
 					   << "(mapped to real var \"" << clk2rv_[clk] << "\")\n";
-			return shared_vector<Effect>();
+			return shared_vector<PBranch>();
 		}
 		postponedClockResets.pop();
 	}
-
-	return pos;
+	auto pb = std::make_shared<PBranch>(std::make_shared<FConst>(1.0f), pos);
+	return shared_vector<PBranch>(1, pb);
 }
 
 

@@ -1,4 +1,32 @@
-/* Leonardo Rodríguez */
+//==============================================================================
+//
+//  ModelReductor.cpp
+//
+//  Copyleft 2016-
+//  Authors:
+//  - Leonardo Rodríguez (Universidad Nacional de Córdoba)
+//  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
+//
+//------------------------------------------------------------------------------
+//
+//  This file is part of FIG.
+//
+//  The Finite Improbability Generator (FIG) project is free software;
+//  you can redistribute it and/or modify it under the terms of the GNU
+//  General Public License as published by the Free Software Foundation;
+//  either version 3 of the License, or (at your option) any later version.
+//
+//  FIG is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//
+//	You should have received a copy of the GNU General Public License
+//	along with FIG; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//==============================================================================
+
 
 #include "ModelReductor.h"
 #include "FigException.h"
@@ -138,7 +166,7 @@ void ModelReductor::check_data(const ArrayData& data) {
         put_error("Wrong range for array: lower > upper");
         return;
     }
-    if (data.data_inits.size() != (size_t) data.data_size) {
+	if (data.data_inits.size() != static_cast<size_t>(data.data_size)) {
         put_error("Wrong number of array initializations");
         return;
     }
@@ -169,9 +197,9 @@ void ModelReductor::visit(shared_ptr<RangedInitializedArray> node) {
 
     int x = 0;
     compute_int(x, node->get_init());
-    data.data_inits.resize(data.data_size);
+	data.data_inits.resize(static_cast<size_t>(data.data_size));
     //repeat the same initialization for every element
-    for (int i = 0; i < data.data_size; i++) {
+	for (auto i = 0ul; i < static_cast<size_t>(data.data_size); i++) {
         data.data_inits[i] = x;
     }
     check_data(data);
@@ -191,13 +219,13 @@ void ModelReductor::visit(shared_ptr<RangedMultipleInitializedArray> node) {
         return; //failed on arrays parameters reduction
     }
     std::vector<shared_ptr<Exp>>& exps = node->get_inits();
-    if (exps.size() != (size_t) data.data_size) {
+	if (exps.size() != static_cast<size_t>(data.data_size)) {
         put_error("Wrong number of initializations, "
                   "expected " + std::to_string(data.data_size));
         return;
     }
-    data.data_inits.resize(data.data_size);
-    for (int i = 0; i < data.data_size; i++) {
+	data.data_inits.resize(static_cast<size_t>(data.data_size));
+	for (auto i = 0ul; i < static_cast<size_t>(data.data_size); i++) {
         int x;
         compute_int(x, exps[i]);
         data.data_inits[i] = x;
@@ -214,10 +242,10 @@ void ModelReductor::visit(shared_ptr<InitializedArray> node) {
     //only boolean supported here:
     data.data_min = 0;
     data.data_max = 1;
-    data.data_inits.resize(data.data_size);
+	data.data_inits.resize(static_cast<size_t>(data.data_size));
     int x = 0;
     compute_int(x, node->get_init());
-    for (size_t i = 0; i < (size_t) data.data_size; i++) {
+	for (size_t i = 0; i < static_cast<size_t>(data.data_size); i++) {
         data.data_inits[i] = x;
     }
     check_data(data);
@@ -232,15 +260,15 @@ void ModelReductor::visit(shared_ptr<MultipleInitializedArray> node) {
     //only booleands supported here:
     data.data_min = 0;
     data.data_max = 1;
-    data.data_inits.resize(data.data_size);
+	data.data_inits.resize(static_cast<size_t>(data.data_size));
     std::vector<shared_ptr<Exp>>& exps = node->get_inits();
-    if (exps.size() != (size_t) data.data_size) {
+	if (exps.size() != static_cast<size_t>(data.data_size)) {
         put_error("Wrong number of initializations, "
                   "expected " + std::to_string(data.data_size));
         return;
     }
-    data.data_inits.resize(data.data_size);
-    for (size_t i = 0; i < (size_t) data.data_size; i++) {
+	data.data_inits.resize(static_cast<size_t>(data.data_size));
+	for (size_t i = 0; i < static_cast<size_t>(data.data_size); i++) {
         int x;
         compute_int(x, exps[i]);
         data.data_inits[i] = x;
@@ -249,15 +277,37 @@ void ModelReductor::visit(shared_ptr<MultipleInitializedArray> node) {
     node->set_data(data);
 }
 
-//Transitions
 void ModelReductor::visit(shared_ptr<TransitionAST> node) {
     node->set_precondition(reduce(node->get_precondition()));
-    for (auto a : node->get_assignments()) {
-        accept_cond(a);
-    }
-    for (auto c : node->get_clock_resets()) {
-        accept_cond(c);
-    }
+	probabilisticWeightAcc = 0.0f;
+	for (auto b : node->get_branches())
+		accept_cond(b);
+	if (probabilisticWeightAcc != 1.0f) {
+		put_error("The probabilistic weights in the branches of a transition "
+		          "with label '" + node->get_label() + "' don't add up to 1");
+		return;
+	}
+}
+
+void ModelReductor::visit(shared_ptr<PBranch> node) {
+	node->set_probability(reduce(node->get_probability()));
+	auto probExp = std::dynamic_pointer_cast<FConst>(node->get_probability());
+	if (nullptr == probExp) {
+		put_error("Bad probabilistic weight in a transition branch: "
+		          + node->get_probability()->to_string());
+		return;
+	}
+	auto probability = probExp->get_value();
+	if (0.0f >= probability || probability > 1.0f) {
+		put_error("Out-of-range probabilistic weight in a transition branch: "
+		          + std::to_string(probability));
+		return;
+	}
+	for (auto a : node->get_assignments())
+		accept_cond(a);
+	for (auto c : node->get_clock_resets())
+		accept_cond(c);
+	probabilisticWeightAcc += probability;
 }
 
 void ModelReductor::visit(shared_ptr<Assignment> node) {

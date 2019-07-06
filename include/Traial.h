@@ -129,7 +129,7 @@ private:
 
 	/// Projection of \ref Clock "clocks" valuations into a continuous array
 	/// @note Same order as clocks_ vector
-	std::vector< Reference< const CLOCK_INTERNAL_TYPE > > clocksValuations_;
+	std::vector< Reference< CLOCK_INTERNAL_TYPE > > clocksValuations_;
 
 	/// Position of smallest non-negative Clock value in clocks_.
 	/// Negative if all are null.
@@ -211,15 +211,19 @@ public:  // Accessors
 	inline const CLOCK_INTERNAL_TYPE& clock_value(const size_t& clkPos) const
 		{ assert(clkPos < clocks_.size()); return clocks_[clkPos].value; }
 
+	/// Get references to the current time value of all clocks
+	inline decltype(clocksValuations_)& clocks_values()
+	    { return clocksValuations_; }
+
 	/// Get the current time value of all clocks
 	inline const decltype(clocksValuations_)& clocks_values() const
-		{ return clocksValuations_; }
+	    { return clocksValuations_; }
 
 	/// Get the names and current time values of all the clocks in the system
 	/// @param ordered Whether to return the increasing-order view of the clocks
 	/// @return Fresh vector with names and values of clocks in this Traial
 	std::vector< std::pair< std::string, CLOCK_INTERNAL_TYPE > >
-	clocks_values(bool ordered = false) const;
+	copy_clocks_values(bool ordered = false) const;
 
 public:  // Utils
 
@@ -261,7 +265,7 @@ public:  // Utils
 				reorder_clocks();
 			if (0 > nextClock_)
 				report_timelock();
-			return clocks_[nextClock_];
+			return clocks_[static_cast<size_t>(nextClock_)];
 		}
 
     /**
@@ -373,7 +377,7 @@ private:  // Class utils
 	reorder_clocks();
 
 	/// Throw an exception showing current timelock state
-	/// @throw FigException Always throws
+	[[ noreturn ]]
 	void
 	report_timelock();
 };

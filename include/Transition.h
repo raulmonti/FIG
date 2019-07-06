@@ -94,18 +94,30 @@ private:
 	/// Guard regulating transition applicability
 	Precondition pre;
 
-	/// Updates to perform when transition is taken
-	Postcondition pos;
+	/// Probabilistic weights of the postcondition branches
+	/// that this transition could take
+	std::vector< float > probabilities;
+
+	/// Updates to perform when transition is taken,
+	/// divided in branches each with its own probabilistic weight
+	std::vector< Postcondition > posts;
+
+	/// Number of clocks to reset, considering all probabilistic branches
+	size_t numClocks;
 
 	/// Clocks to reset when transition is taken
+	/// divided in branches each with its own probabilistic weight
 	union {
-		std::vector< std::string > resetClocksList_;  // carbon version
-		Bitflag resetClocks_;  // crystal version
+		std::vector< std::set< std::string > > resetClocksList_;  // carbon version
+		std::vector< Bitflag > resetClocks_;                         // crystal version
 	} __attribute__((aligned(4)));
 	enum { CARBON, CRYSTAL } resetClocksData_ __attribute__((aligned(4)));
 
-	/// Dummy resetClocks_ bitflag prior crystallisation
-	static Bitflag emptyBitflag_;
+	/// Auxiliary for reset clocks over all branches
+	mutable std::vector< Bitflag > allResetClocks;
+
+	/// Auxiliary for reset clocks over all branches
+	mutable std::vector< string > allResetClocksNames;
 
 public:  // Ctors/Dtor
 
@@ -115,7 +127,8 @@ public:  // Ctors/Dtor
 	 * @param label            @copydoc label_
 	 * @param triggeringClock  @copydoc triggeringClock
 	 * @param pre              @copydoc pre
-	 * @param pos              @copydoc pos
+	 * @param probabilities    @copydoc probabilities
+	 * @param posts            @copydoc posts
 	 * @param resetClocks      Names of the clocks to reset when transition is taken
 	 *
 	 * @note Resulting transition isn't fit for simulations.
@@ -126,8 +139,9 @@ public:  // Ctors/Dtor
 			  typename... OtherContainerArgs >
 	Transition(const Label& label,
 			   const std::string& triggeringClock,
-			   const Precondition& pre,
-			   const Postcondition& pos,
+	           const Precondition& pre,
+	           const std::vector< float >& probabilities,
+	           const std::vector< Postcondition >& posts,
 			   const Container<ValueType, OtherContainerArgs...>& resetClocks);
 
 	/// @copydoc fig::Transition::Transition()
@@ -137,7 +151,8 @@ public:  // Ctors/Dtor
 	Transition(const Label& label,
 			   const std::string& triggeringClock,
 			   Precondition&& pre,
-			   Postcondition&& pos,
+	           std::vector< float >&& probabilities,
+	           std::vector< Postcondition >&& posts,
 			   const Container<ValueType, OtherContainerArgs...>& resetClocks);
 
 	/// Copy ctor
@@ -154,34 +169,76 @@ public:  // Ctors/Dtor
 	/// Dtor
 	~Transition();
 
-public:  // Read access to some attributes
+public:  // Accessors
 
 	/// @copydoc label_
 	inline const Label& label() const noexcept { return label_; }
 
-	/// @copydoc pre
-	inline const Precondition& precondition() const noexcept { return pre; }
+	/// Number of (probabilistic) branches leading out of this transition
+	inline size_t num_branches() const noexcept { return probabilities.size(); }
 
-	/// @copydoc pos
-	inline const Postcondition& postcondition() const noexcept { return pos; }
+	/// @copydoc numClocks
+	inline const decltype(numClocks)& num_clocks() const noexcept { return numClocks; }
+
+	/// @copydoc pre
+	inline const decltype(pre)& precondition() const noexcept { return pre; }
+
+	/// @copydoc posts
+	inline const decltype(posts)& postconditions() const noexcept { return posts; }
 
 	/// Clocks to reset when transition is taken, as a list of clocks names
-	inline const std::vector< std::string > resetClocksList() const noexcept
-		{
-			if (CARBON == resetClocksData_)
+	inline const std::vector< std::set< std::string > > reset_clocks_names() const noexcept
+	    {
+		    if (CARBON == resetClocksData_)
 				return resetClocksList_;
 			else
-				return std::vector< std::string >();
-		}
+				return std::vector< std::set< std::string >>();
+	    }
 
 	/// Clocks to reset when transition is taken, encoded as Bitflag
-	inline const Bitflag& resetClocks() const noexcept
-		{
-			if (CRYSTAL == resetClocksData_)
+	inline const std::vector< Bitflag >& reset_clocks() const noexcept
+	    {
+		    if (CRYSTAL == resetClocksData_)
 				return resetClocks_;
 			else
-				return emptyBitflag_;
-		}
+				return allResetClocks;
+	    }
+
+	/// Flattened version of resetClocksNames ("ignoring" probabilistic branching)
+	std::vector< std::string > reset_clocks_names_list() const noexcept;
+
+	/// Flattened version of resetClocks ("ignoring" probabilistic branching)
+	const Bitflag& reset_clocks_list() const noexcept;
+
+public:  // Utils
+
+	/**
+	 * Choose (probabilisitcally) a branch and apply its postcondition
+	 * @param t      Traial to update its state (variables) and clocks values
+	 * @param clocks Clocks of the ModuleInstance to which this Transition belongs
+	 * @param fClk   Global position of the first clock of the ModuleInstance
+	 * @note The state (variables) and clocks of the Traial are modified
+	 */
+	template< typename Integral >
+	void apply_postcondition(Traial& t,
+	                         const std::vector< Clock >& clocks,
+	                         Integral fClk) const;
+
+	/**
+	 * Like apply_postcondition() but ignoring clocks (only update state)
+	 * @param state   State to update with a possible postcondition
+	 * @param branch  If set and valid, apply that branch postcondition;
+	 *                else choose probabilistically which branch to follow
+	 * @return The state resulting from applying the chosen postcondition to \p state
+	 * @note Intended for state-space exploration purposes
+	 */
+	State< STATE_INTERNAL_TYPE >
+	apply_postcondition(const State<STATE_INTERNAL_TYPE> &state, int branch = -1) const;
+
+	/// States resulting from applying any possible postcondition to \p state,
+	/// i.e. considering all probabilistic branching
+	std::set< State< STATE_INTERNAL_TYPE > >
+	apply_postconditions(const State<STATE_INTERNAL_TYPE> &state) const;
 
 protected:  // Utilities offered to ModuleInstance
 
@@ -215,7 +272,8 @@ protected:  // Utilities offered to ModuleInstance
 		{
 			crystallize(globalClocks);
             pre.prepare(globalVars);
-            pos.prepare(globalVars);
+			for (auto& pbranch: posts)
+				pbranch.prepare(globalVars);
 		}
 
 	/**
@@ -241,7 +299,7 @@ protected:  // Utilities offered to ModuleInstance
 	 */
 #ifndef NRANGECHK
 	inline void callback(const PositionsMap& globalClocks,
-						 const State<STATE_INTERNAL_TYPE>& globalState)
+	                     const State<STATE_INTERNAL_TYPE>& globalState)
 #else
 	inline void callback(PositionsMap& globalClocks,
 						 const State<STATE_INTERNAL_TYPE>& globalState)
@@ -249,7 +307,8 @@ protected:  // Utilities offered to ModuleInstance
 		{
 			crystallize(globalClocks);
 			pre.prepare(globalState);
-			pos.prepare(globalState);
+			for (auto& pbranch: posts)
+				pbranch.prepare(globalState);
 		}
 
 private:  // Utils
@@ -276,9 +335,9 @@ private:  // Utils
 	void crystallize(PositionsMap& globalClocks);
 #endif
 
-public: //Debug
-        void print_info(std::ostream &out) const;
+public:  // Debug
 
+	void print_info(std::ostream &out) const;
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -294,24 +353,39 @@ Transition::Transition(
 	const Label& label,
 	const std::string& triggeringClock,
 	const Precondition& pre,
-	const Postcondition& pos,
+    const std::vector< float >& probs,
+    const std::vector<Postcondition>& posts,
 	const Container<ValueType, OtherContainerArgs...>& resetClocks) :
 		label_(label),
 		triggeringClock(triggeringClock),
 		pre(pre),
-		pos(pos),
+        probabilities(probs.size()),
+        posts(posts),
 		resetClocksList_(),
-		resetClocksData_(CARBON)
+        resetClocksData_(CARBON),
+        allResetClocks(1ul)
 {
-	static_assert(std::is_constructible< std::string, ValueType >::value,
-				  "ERROR: type mismatch. Transition ctor needs a "
-				  "container with the names of the resetting clocks");
+	static_assert(std::is_constructible< std::set< std::string >, ValueType >::value,
+	              "ERROR: type mismatch. Transition ctor needs a "
+	              "container with the names of the resetting clocks");
 	// Input enabledness: no triggering clock for input labels
 	assert(!label_.is_input() || triggeringClock.empty());
 	// Copy reset clocks names
-	resetClocksList_.insert(begin(resetClocksList_),
-							begin(resetClocks),
-							end(resetClocks));
+	if (std::distance(begin(resetClocks), end(resetClocks)) > 0) {
+		resetClocksList_.insert(begin(resetClocksList_),
+		                        begin(resetClocks),
+		                        end(resetClocks));
+		for (const auto& clockSet: resetClocksList_)
+			numClocks += clockSet.size();
+	} else {
+		resetClocksList_.emplace_back();  // no clocks reset in this transition
+	}
+	// Prepare probabilities vector for efficient branch selection
+	for (auto i = 0ul ; i < probs.size() ; i++)
+		probabilities[i] = probabilities[(i-1)%probs.size()] + probs[i];
+	// The probabilistic weigths of the branches must add up to 1.0
+	if (probabilities.back() != 1.0f)
+		throw_FigException("branch probabilities don't add up to 1.0");
 }
 
 
@@ -322,24 +396,40 @@ Transition::Transition(
 	const Label& label,
 	const std::string& triggeringClock,
 	Precondition&& pre,
-	Postcondition&& pos,
+    std::vector< float >&& probs,
+    std::vector< Postcondition >&& posts,
 	const Container<ValueType, OtherContainerArgs...>& resetClocks) :
 		label_(label),
 		triggeringClock(triggeringClock),
 		pre(std::forward<fig::Precondition&&>(pre)),
-		pos(std::forward<fig::Postcondition&&>(pos)),
+        probabilities(probs.size()),
+        posts(std::forward<std::vector<fig::Postcondition>&&>(posts)),
+        numClocks(0ul),
 		resetClocksList_(),
-		resetClocksData_(CARBON)
+        resetClocksData_(CARBON),
+        allResetClocks(1ul)
 {
-	static_assert(std::is_constructible< std::string, ValueType >::value,
+	static_assert(std::is_constructible< std::set< std::string >, ValueType >::value,
 				  "ERROR: type mismatch. Transition ctor needs a "
 				  "container with the names of the resetting clocks");
 	// Input enabledness: no triggering clock for input labels
 	assert(label_.is_input() == triggeringClock.empty());
 	// Copy reset clocks names
-	resetClocksList_.insert(begin(resetClocksList_),
-							begin(resetClocks),
-							end(resetClocks));
+	if (std::distance(begin(resetClocks), end(resetClocks)) > 0) {
+		resetClocksList_.insert(begin(resetClocksList_),
+		                        begin(resetClocks),
+		                        end(resetClocks));
+		for (const auto& clockSet: resetClocksList_)
+			numClocks += clockSet.size();
+	} else {
+		resetClocksList_.emplace_back();  // no clocks reset in this transition
+	}
+	// Prepare probabilities vector for efficient branch selection
+	for (auto i = 0ul ; i < probs.size() ; i++)
+		probabilities[i] = probabilities[(i-1)%probs.size()] + probs[i];
+	// The probabilistic weigths of the branches must add up to 1.0
+	if (probabilities.back() != 1.0f)
+		throw_FigException("branch probabilities don't add up to 1.0");
 }
 
 

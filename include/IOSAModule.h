@@ -104,7 +104,7 @@ private:
     void process_transitions();
     bool holds_expression(IVert st, shared_ptr<Exp> bexp) const;
     IVert process_edge(IVert st, shared_ptr<TransitionAST> transition);
-    IVert process_assignments(IVert st, shared_vector<Assignment>& avec);
+	IVert process_assignments(IVert st, const shared_vector<Assignment>& avec);
     IEdgeSet select_edges_of(IVert src, std::function<bool (const IEdge &)> prop);
     IEdgeSet committed_edges_of(IVert st);
     IEdgeSet labeled_edges_of(IVert st, const string &label);

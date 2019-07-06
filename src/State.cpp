@@ -198,7 +198,7 @@ State<T_>::operator[](const std::string& varname) const
 {
 	for (auto pvar: pvars_)
 		if (varname == pvar->name_)
-			return pvar;
+			return std::move(pvar);
 	return nullptr;
 }
 
@@ -292,19 +292,6 @@ State<T_>::print_out(std::ostream& out, bool condensed) const
 {
 	auto str = to_string(condensed);
 	out << str;
-}
-
-
-template< typename T_ >
-bool
-State<T_>::operator==(const State< T_ >& that) const
-{
-	if (this->size() != that.size())
-		return false;
-	for (size_t i=0 ; i < pvars_.size() ; i++)
-		if (*that[i] != *pvars_[i])
-			return false;
-	return true;
 }
 
 
@@ -463,7 +450,7 @@ void
 State<T_>::build_concrete_bound()
 {
 	maxConcreteState_ = uint128::uint128_1;
-	for(const auto pvar: pvars_)
+	for(const auto& pvar: pvars_)
 		maxConcreteState_ *= pvar->range_;  // ignore overflow :D
 }
 

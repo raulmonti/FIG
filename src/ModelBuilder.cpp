@@ -1,26 +1,30 @@
 /* Leonardo Rodríguez */
 
+// C
+#include <cassert>
+#include <cstdlib>  // std::strtoul
 // C++
 #include <tuple>
 #include <memory>  // std::dynamic_pointer_cast<>
-#include <cassert>
-#include <cstdlib>  // std::strtoul
+#include <type_traits>
 // fig
 #include <Util.h>
 #include <FigLog.h>
 #include <Label.h>
-#include <State.h>
-#include <Clock.h>
-#include <ModelBuilder.h>
-#include <ExpEvaluator.h>
-#include <ModelPrinter.h>
-#include <ModuleInstance.h>
-#include <Transition.h>
-#include <Property.h>
+#include <ModelSuite.h>
 #include <PropertyTransient.h>
 #include <PropertyRate.h>
 #include <PropertyTBoundSS.h>
+#include <ModelBuilder.h>
+#include <ExpEvaluator.h>
+#include <ModelPrinter.h>
 
+#if __cplusplus < 201103L
+#  error "C++11 standard required, please compile with -std=c++11 or greater\n"
+#endif
+#if __cplusplus >= 201402L
+using std::make_unique;
+#endif
 
 using std::set;
 using std::shared_ptr;
@@ -76,10 +80,18 @@ inline const string mb_error_init(const string &var_id, const Type& type) {
             mb_error_irr(type));
 }
 
+inline const string mb_error_pbranch() {
+	return ("In the probability value of a transition branch: "
+	        + mb_error_irr(Type::tfloat));
+}
+
 } // namespace  // // // // // // // // // // // // // // // // // // // // //
 
 
-ModelBuilder::ModelBuilder() {}
+ModelBuilder::ModelBuilder() :
+    model_suite(fig::ModelSuite::get_instance())
+{ /* Not much to do around here */ }
+
 ModelBuilder::~ModelBuilder() {}
 
 std::map<int, shared_ptr<Prop>> ModelBuilder::property_ast;
@@ -263,13 +275,12 @@ void ModelBuilder::visit(shared_ptr<Model> model) {
 }
 
 void ModelBuilder::visit(shared_ptr<ModuleAST> body) {
-    module_clocks = make_unique<vector<Clock>>();
-    module_transitions = make_unique<vector<Transition>>();
-    module_vars = make_unique<vector<Var>>();
-    module_arrays = make_unique<vector<Array>>();
-    for (auto &decl : body->get_local_decls()) {
+	module_clocks = make_unique<vector<fig::Clock>>();
+	module_transitions = make_unique<vector<fig::Transition>>();
+	module_vars = make_unique<vector<Var>>();
+	module_arrays = make_unique<vector<Array>>();
+	for (auto &decl : body->get_local_decls())
         accept_cond(decl);
-    }
     if (!has_errors()) {
         auto& clocks = *module_clocks;
         Vars state (*module_vars);
@@ -281,21 +292,19 @@ void ModelBuilder::visit(shared_ptr<ModuleAST> body) {
     }
     //Note: Transitions can't be copied, we need to add them directly to
     // the current_module instead of accumulate them in a vector
-    for (auto &transition : body->get_transitions()) {
+	for (auto &transition : body->get_transitions())
         accept_cond(transition);
-    }
-    if (body->has_committed_actions()) {
-        //hint that this module has committed actions
+	if (body->has_committed_actions())  // hint that this module has committed actions
         current_module->mark_with_committed();
-    }
-    if (!has_errors()) {
+	if (!has_errors())
         model_suite.add_module(current_module);
-    }
 }
 
-Clock ModelBuilder::build_clock(const std::string& id) {
+fig::Clock ModelBuilder::build_clock(const std::string& id) {
     shared_ptr<Dist> dist = current_scope->dist_by_clock_map().at(id);
     assert(dist != nullptr);
+	const auto distrName = ModelPrinter::to_str(dist->get_type());
+	assert(!distrName.empty());
     fig::DistributionParameters params;
     //reduce distribution parameters
     if (dist->has_single_parameter()) {
@@ -305,8 +314,7 @@ Clock ModelBuilder::build_clock(const std::string& id) {
         for (unsigned int i = 1; i < params.size(); i++) {
             params[i] = 0.0;
         }
-    }
-    if (dist->has_multiple_parameters()) {
+	} else if (dist->has_multiple_parameters()) {
         auto multiple = dist->to_multiple_parameter();
         params[0] =
                 get_float_or_error(multiple->get_first_parameter(),
@@ -318,10 +326,11 @@ Clock ModelBuilder::build_clock(const std::string& id) {
 										   mb_error_dist_3(id));
 		for (auto i = dist->num_parameters(); i < params.size(); i++)
             params[i] = 0.0;
-    }
-    //todo: constructor should accept the Distribution object directly,
-    //not the name.
-    return Clock(id, ModelPrinter::to_str(dist->get_type()), params);
+	} else {
+		throw_FigException("unknown distribution type (how many parameters?)");
+	}
+	// TODO: make ctor take the Distribution object directly, not its name.
+	return fig::Clock(id, distrName, params);
 }
 
 void ModelBuilder::visit(shared_ptr<ArrayDecl> decl) {
@@ -336,8 +345,8 @@ void ModelBuilder::visit(shared_ptr<ArrayDecl> decl) {
     }
     assert(size > 0);
     std::vector<Var> entries;
-    entries.reserve(size);
-    for (int i = 0; i < size; i++) {
+	entries.reserve(static_cast<size_t>(size));
+	for (auto i = 0ul; i < static_cast<size_t>(size); i++) {
         std::string name = arrayId + "[" + std::to_string(i) + "]";
         int initValue = data.data_inits[i];
         entries.push_back(std::make_tuple(name, lower, upper, initValue));
@@ -407,32 +416,54 @@ Label build_label(string&& id, LabelType type) {
 	return Label::make_tau();
 }
 
-void ModelBuilder::visit(shared_ptr<TransitionAST> action) {
+void ModelBuilder::visit(shared_ptr<TransitionAST> tra) {
 	assert(nullptr != current_module);
-	Label label = build_label(action->get_label(),  // rely on copy elision!
-	                          action->get_label_type());
-    //Transition constructor expects the id of the triggering
-    //clock,  let's get it:
-	string t_clock("");
-	if (action->has_triggering_clock())
-        t_clock = action->to_output()->get_triggering_clock()->get_identifier();
-    transition_clocks = make_unique<set<string>>();
-	for (shared_ptr<ClockReset> reset : action->get_clock_resets())
-        accept_cond(reset);
-	current_module->add_transition(
-	            label,
-	            t_clock,
-	            std::move(Precondition(action->get_precondition())),
-	            std::move(Postcondition(action->get_assignments())),
-	            *transition_clocks);
+	Label label = build_label(tra->get_label(), tra->get_label_type());  // copy elision
+	// Transition constructor expects the id of the triggering clock
+	string trigClkName("");
+	if (tra->has_triggering_clock())
+		trigClkName = tra->to_output()->get_triggering_clock()->get_identifier();
+	// Populate this transition fields by visiting all probabilistic branches
+	assert(0ul < tra->get_num_branches());
+	decltype(branches_probabilities)().swap(branches_probabilities);
+	decltype(branches_assignments)().swap(branches_assignments);
+	decltype(branches_reset_clocks)().swap(branches_reset_clocks);
+	for (auto& pbranch: tra->get_branches())
+		visit(pbranch);
+	assert(branches_probabilities.size() == tra->get_num_branches());
+	assert(branches_assignments.size() == tra->get_num_branches());
+	assert(branches_reset_clocks.size() == tra->get_num_branches());
+	// Build transition with gathered data
+	current_module->add_transition(label,
+	                               trigClkName,
+	                               Precondition(tra->get_precondition()),  // copy elision
+	                               std::move(branches_probabilities),
+	                               std::move(branches_assignments),
+	                               std::move(branches_reset_clocks));
+}
+
+void ModelBuilder::visit(shared_ptr<PBranch> pbranch) {
+	// Extract from this branch...
+	// ...its probability weight...
+	branches_probabilities.emplace_back(
+	            get_float_or_error(pbranch->get_probability(), mb_error_pbranch()));
+	// ...its variables assignments...
+	current_branch_assignments.clear();
+	for (const auto& ass: pbranch->get_assignments())
+		accept_cond(ass);
+	branches_assignments.emplace_back(fig::Postcondition(current_branch_assignments));
+	// ...its clocks (names) resets...
+	branches_reset_clocks.emplace_back();
+	for (shared_ptr<ClockReset> reset: pbranch->get_clock_resets())
+		accept_cond(reset);
 }
 
 void ModelBuilder::visit(shared_ptr<ClockReset> reset) {
-    transition_clocks->insert(reset->get_effect_location()->get_identifier());
+	branches_reset_clocks.back().insert(reset->get_effect_location()->get_identifier());
 }
 
-void ModelBuilder::visit(shared_ptr<Assignment> assig) {
-   (void) assig; //do nothing, resolved by parent node.
+void ModelBuilder::visit(shared_ptr<Assignment> assignment) {
+	current_branch_assignments.emplace_back(assignment);
 }
 
 void ModelBuilder::visit(shared_ptr<TransientProp> prop) {

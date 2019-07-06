@@ -201,31 +201,8 @@ VariableInterval<T_>::assign(const T_& value)
 		throw_FigException("can't assign " + std::to_string(value) + " to "
 						   "variable \"" + Variable<T_>::name_ + "\", invalid value");
 	else
-		Variable<T_>::offset_ = value - Variable<T_>::min_;
-}
-
-
-template< typename T_ >
-bool
-VariableInterval<T_>::operator==(const VariableInterval<T_>& that) const
-{
-	return Variable<T_>::name_ == that.name_ &&
-		   Variable<T_>::min_ == that.min_ &&
-		   Variable<T_>::max_ == that.max_ &&
-		   Variable<T_>::ini_ == that.ini_ &&
-		   Variable<T_>::offset_ == that.offset_;
-}
-
-
-template< typename T_ >
-bool
-VariableInterval<T_>::operator<=(const VariableInterval<T_>& that) const
-{
-	return Variable<T_>::name_ == that.name_ &&
-	       Variable<T_>::min_ == that.min_ &&
-	       Variable<T_>::max_ == that.max_ &&
-	       Variable<T_>::ini_ == that.ini_ &&
-	       Variable<T_>::offset_ <= that.offset_;
+		Variable<T_>::offset_ = static_cast<decltype(Variable<T_>::offset_)>(
+		            value - Variable<T_>::min_);
 }
 
 

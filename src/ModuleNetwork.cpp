@@ -156,7 +156,7 @@ ModuleNetwork::seal(const Container<ValueType, OtherContainerArgs...>& initialCl
 								   { return clk.name() == initClkName; });
 			// ... and if found, register position and distribution
 			if (clkIter != end(module_clocks)) {
-				size_t clockLocalPos = std::distance(begin(module_clocks), clkIter);
+				auto clockLocalPos = static_cast<size_t>(std::distance(begin(module_clocks), clkIter));
 				initialClocks.emplace(numClocksReviewed + clockLocalPos, *clkIter);
 			}
 		}
@@ -230,32 +230,34 @@ std::forward_list<size_t>
 ModuleNetwork::adjacent_states(const size_t& s) const
 {
 	assert(s < concrete_state_size());
-	std::forward_list<size_t> adjacentStates;
-	State<STATE_INTERNAL_TYPE> state(gState);
+	std::set< size_t > adjacentStates;
+	State< STATE_INTERNAL_TYPE > state(gState);
 	state.decode(s);
-	for (const auto module_ptr: modules) {
+	for (const auto& module_ptr: modules) {
 		for (const Transition& tr: module_ptr->transitions_) {
 			const Label& label = tr.label();
-			// For each 'active' and enabled transition of this module...
-            if ((label.is_output() || label.is_tau())
-                    && tr.precondition()(state)) {
-				// ...update the module variables...
-				tr.postcondition()(state);
-				// ...and those of other modules listening to this label...
-				for (const auto other_module_ptr: modules)
-					if (module_ptr->name != other_module_ptr->name)
-						other_module_ptr->jump(label, state);
-				// ...and store resulting concrete state
-				adjacentStates.push_front(state.encode());
-				// Restore original state
-				state.decode(s);
+			// For each (output & enabled) transition of this module...
+			// (IOSA ensures output labels are unique per module)
+			if ((label.is_output() || label.is_tau()) && tr.precondition()(state)) {
+				// ...update variables of this module following all prob. branches...
+				auto reachableStates = tr.apply_postconditions(state);
+				assert(!reachableStates.empty());
+				// ...and variables of other modules listening to this label...
+				for (const auto& other_module_ptr: modules) {
+					if (module_ptr->name != other_module_ptr->name) {
+						auto newStates = other_module_ptr->all_successors(label, reachableStates);
+						assert(newStates.empty() || newStates.size() >= reachableStates.size());
+						if (!newStates.empty())
+							reachableStates = newStates;
+					}
+				}
+				// ...and register all these new reachable states
+				for (const auto& s: reachableStates)
+					adjacentStates.emplace(s.encode());
 			}
-		}
-	}
-	// Remove duplicates before returning
-	adjacentStates.sort();
-	adjacentStates.unique();
-	return adjacentStates;
+		}  // <-- for each (output & enabled) transition ...
+	}      // <-- ... of each module in the network
+	return std::forward_list< size_t >(begin(adjacentStates), end(adjacentStates));
 }
 
 
@@ -285,9 +287,8 @@ ModuleNetwork::process_committed_once(Traial &traial) const
 
 void
 ModuleNetwork::process_committed(Traial &traial) const {
-    if (!this->has_committed_) {
+	if (!this->has_committed_)
         return;
-    }
 	while (process_committed_once(traial))
 		;  // repeat until no committed actions are enabled
 }

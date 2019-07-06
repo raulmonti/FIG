@@ -73,30 +73,27 @@ void Precondition::print_info(std::ostream &out) const {
 void Postcondition::print_info(std::ostream &out) const {
 	out << "POSTCONDITION" << std::endl;
 	::print_vec(out, "EXPRESSIONS:", this->to_string());
-/*	out << "NUM-VAR-UPDATES:" << this->NUPDATES_ << std::endl;
-    out << "NUM-VAR:" << this->NVARS_ << std::endl;
-    ::print_vec(out, "UPDATE-NAMES:", this->updatesNames_);
-    ::print_vec(out, "UPDATE-POSITIONS:", this->updatesPos_);
-    ::print_vec(out, "NAMES:", this->varsNames_);
-    ::print_vec(out, "POSITIONS:", this->varsPos_);
-    ::print_vec(out, "VALUES:", this->varsValues_);
-*/	out << "ENDOF-POSTCONDITION" << std::endl;
+	out << "ENDOF-POSTCONDITION" << std::endl;
 }
 
 void Transition::print_info(std::ostream &out) const {
-    out << "TRANSITION" << std::endl;
-    out << "LABEL:" << this->label().str << std::endl;
-    out << "TRIGGER-CLOCK:" << this->triggeringClock << std::endl;
-    this->pre.print_info(out);
-    this->pos.print_info(out);
-    if (this->resetClocksData_ == CRYSTAL) {
-        out << "RESET-CLOCKS-ENCODED:"
-            << this->resetClocks_.to_ullong()
-            << std::endl;
-    } else {
-        ::print_vec(out, "RESET-CLOCKS:", this->resetClocksList_);
-    }
-    out << "ENDOF-TRANSITION" << std::endl;
+	out << "TRANSITION" << std::endl;
+	out << "LABEL:" << this->label().str << std::endl;
+	out << "TRIGGER-CLOCK:" << this->triggeringClock << std::endl;
+	this->pre.print_info(out);
+	out << "PROBABILISTIC BRANCHES" << std::endl;
+	for (auto i = 0ul ; i < probabilities.size() ; i++) {
+		out << "WITH PROBABILITY == " << probabilities[i] << " : ";
+		posts[i].print_info(out);
+		if (this->resetClocksData_ == CRYSTAL) {
+			out << "RESET-CLOCKS-ENCODED:"
+			    << this->reset_clocks()[i].to_ullong()
+			    << std::endl;
+		} else {
+			::print_vec(out, "RESET-CLOCKS:", this->reset_clocks_names()[i]);
+		}
+	}
+	out << "ENDOF-TRANSITION" << std::endl;
 }
 
 void ModuleInstance::print_info(std::ostream &out) const {
@@ -177,9 +174,8 @@ void PropertyTBoundSS::print_info(std::ostream &out) const {
 void ModelSuite::print_info(std::ostream &out) const {
     out << "MODEL" << std::endl;
     out << "NUM-MODULES:" << this->num_modules() << std::endl;
-    out << "NUM-TRANSITION:" << this->num_clocks() << std::endl;
-    out << "NUM-PROPERTIES:" << this->num_properties() << std::endl;
-    out << "NUM-CLOCKS:" << this->num_clocks() << std::endl;
+	out << "NUM-CLOCKS:" << this->num_clocks() << std::endl;
+	out << "NUM-PROPERTIES:" << this->num_properties() << std::endl;
     this->model->print_info(out);
     out << "PROPERTIES:" << std::endl;
     for (const auto &prop : this->properties) {

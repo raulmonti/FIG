@@ -1,4 +1,31 @@
-/* Leonardo Rodríguez */
+//==============================================================================
+//
+//  ModelTC.h
+//
+//  Copyleft 2016-
+//  Authors:
+//  - Leonardo Rodríguez (Universidad Nacional de Córdoba)
+//  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
+//
+//------------------------------------------------------------------------------
+//
+//  This file is part of FIG.
+//
+//  The Finite Improbability Generator (FIG) project is free software;
+//  you can redistribute it and/or modify it under the terms of the GNU
+//  General Public License as published by the Free Software Foundation;
+//  either version 3 of the License, or (at your option) any later version.
+//
+//  FIG is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//
+//	You should have received a copy of the GNU General Public License
+//	along with FIG; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//==============================================================================
 
 #ifndef MODEL_TC_H
 #define MODEL_TC_H
@@ -101,7 +128,7 @@ public:
 
     ModelTC(const ModelTC& instance) = default;
 
-	virtual ~ModelTC() {}
+	~ModelTC() override {}
 
     /// Visitor functions
     void visit(shared_ptr<Model> node) override;
@@ -114,7 +141,8 @@ public:
     void visit(shared_ptr<MultipleInitializedArray> node) override;
     void visit(shared_ptr<ClockDecl> node) override;
     void visit(shared_ptr<TransitionAST> node) override;
-    void visit(shared_ptr<Assignment> node) override;
+	void visit(shared_ptr<PBranch> node) override;
+	void visit(shared_ptr<Assignment> node) override;
     void visit(shared_ptr<ClockReset> node) override;
     void visit(shared_ptr<MultipleParameterDist> node) override;
     void visit(shared_ptr<SingleParameterDist> node) override;

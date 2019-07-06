@@ -1,5 +1,34 @@
-/* Leonardo Rodríguez */
+//==============================================================================
+//
+//  ModelVerifier.cpp
+//
+//  Copyleft 2016-
+//  Authors:
+//  - Leonardo Rodríguez (Universidad Nacional de Córdoba)
+//  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
+//
+//------------------------------------------------------------------------------
+//
+//  This file is part of FIG.
+//
+//  The Finite Improbability Generator (FIG) project is free software;
+//  you can redistribute it and/or modify it under the terms of the GNU
+//  General Public License as published by the Free Software Foundation;
+//  either version 3 of the License, or (at your option) any later version.
+//
+//  FIG is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//
+//	You should have received a copy of the GNU General Public License
+//	along with FIG; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//==============================================================================
+
 #include <sstream>
+#include <memory>
 
 #include "ModelVerifier.h"
 #include "ExpReductor.h"
@@ -7,19 +36,28 @@
 #include "location.hh"
 #include "ModuleScope.h"
 
+#if __cplusplus >= 201402L
+using std::make_unique;
+#endif
 
-namespace {
-std::basic_ostream<char>& operator<<(std::basic_ostream<char> &ss, TransitionAST& model) {
-    if (model.get_file_location() != nullptr) {
+namespace
+{
+
+std::basic_ostream<char>&
+operator<<(std::basic_ostream<char> &ss, TransitionAST& model)
+{
+	if (model.get_file_location() != nullptr)
         ss << " [at " << *(model.get_file_location()) << "]";
-    }
     return ss;
 }
 
 //"operator%" not defined in z3++.h, let's improvise one.
-z3::expr z3mod(z3::expr const & a, z3::expr const & b) {
+z3::expr
+z3mod(z3::expr const & a,
+      z3::expr const & b)
+{
     check_context(a, b);
-    Z3_ast r = 0;
+	Z3_ast r = nullptr;
     if (a.is_arith() && b.is_arith()) {
         r = Z3_mk_mod(a.ctx(), a, b);
     }
@@ -34,12 +72,14 @@ z3::expr z3mod(z3::expr const & a, z3::expr const & b) {
     return z3::expr(a.ctx(), r);
 }
 
-shared_ptr<Exp> find_assignment_rhs(shared_ptr<TransitionAST> action,
-                                   const string &state_id) {
+shared_ptr<Exp>
+find_assignment_rhs(shared_ptr<TransitionAST> action,
+                    const string &state_id)
+{
     auto same_id = [state_id] (const shared_ptr<Assignment> &effect) -> bool {
         return (effect->get_effect_location()->get_identifier() == state_id);
     };
-    auto assignments = action->get_assignments();
+	const auto& assignments = action->get_assignments();
     auto begin = assignments.begin();
     auto end = assignments.end();
     auto res = std::find_if(begin, end, same_id);
@@ -52,7 +92,7 @@ bool resets_clock(shared_ptr<TransitionAST> action, const string &clock_id) {
             [clock_id] (const shared_ptr<ClockReset> &reset) -> bool {
         return (reset->get_effect_location()->get_identifier() == clock_id);
     };
-    auto clock_resets = action->get_clock_resets();
+	const auto& clock_resets = action->get_clock_resets();
     auto end = clock_resets.end();
     auto res = std::find_if(clock_resets.begin(), end, same_clock);
     return (res != end);
@@ -156,9 +196,12 @@ inline string warning_clock_exhaustation(const string &clock_id,
     return (ss.str());
 }
 
-} //namespace
+} // namespace
 
-z3::sort Z3Converter::type_to_sort(Type type, z3::context& ctx) {
+
+z3::sort
+Z3Converter::type_to_sort(Type type, z3::context& ctx)
+{
     switch (type) {
     case Type::tbool: return ctx.bool_sort();
     case Type::tint: return ctx.int_sort();
@@ -173,7 +216,9 @@ z3::sort Z3Converter::type_to_sort(Type type, z3::context& ctx) {
     }
 }
 
-std::function<z3::expr (z3::expr)> Z3Converter::uop_to_fun(ExpOp op) {
+std::function<z3::expr (z3::expr)>
+Z3Converter::uop_to_fun(ExpOp op)
+{
     switch(op) {
         case ExpOp::nott: return [] (const z3::expr &a) {return (! a);};
         case ExpOp::minus: return [] (const z3::expr &a) {return (- a);};
@@ -183,7 +228,8 @@ std::function<z3::expr (z3::expr)> Z3Converter::uop_to_fun(ExpOp op) {
 }
 
 std::function<z3::expr (z3::expr, z3::expr)>
-Z3Converter::bop_to_fun(ExpOp op) {
+Z3Converter::bop_to_fun(ExpOp op)
+{
     switch(op) {
     case ExpOp::andd: return [] (const z3::expr &a, const z3::expr &b) {
             return (a && b);
@@ -237,22 +283,30 @@ Z3Converter::bop_to_fun(ExpOp op) {
     }
 }
 
-void Z3Converter::visit(shared_ptr<IConst> node) {
+void
+Z3Converter::visit(shared_ptr<IConst> node)
+{
     expression = context->int_val(node->get_value());
 }
 
-void Z3Converter::visit(shared_ptr<BConst> node) {
+void
+Z3Converter::visit(shared_ptr<BConst> node)
+{
     expression = context->bool_val(node->get_value());
 }
 
-void Z3Converter::visit(shared_ptr<FConst> node) {
+void
+Z3Converter::visit(shared_ptr<FConst> node)
+{
     // context->real_val takes a fraction
     // @todo: convert the float to fraction.
     (void) node;
     throw_FigException("Unsupported float constants");
 }
 
-void Z3Converter::visit(shared_ptr<LocExp> node) {
+void
+Z3Converter::visit(shared_ptr<LocExp> node)
+{
     ExpEvaluator ev (scope);
     node->accept(ev);
     if (!ev.has_errors()) {
@@ -269,13 +323,17 @@ void Z3Converter::visit(shared_ptr<LocExp> node) {
     }
 }
 
-void Z3Converter::visit(shared_ptr<UnOpExp> node) {
+void
+Z3Converter::visit(shared_ptr<UnOpExp> node)
+{
     node->get_argument()->accept(*this);
     z3::expr left = expression;
     expression = uop_to_fun(node->get_operator()) (left);
 }
 
-void Z3Converter::visit(shared_ptr<BinOpExp> node) {
+void
+Z3Converter::visit(shared_ptr<BinOpExp> node)
+{
     node->get_first_argument()->accept(*this);
     z3::expr left = expression;
     node->get_second_argument()->accept(*this);
@@ -283,19 +341,32 @@ void Z3Converter::visit(shared_ptr<BinOpExp> node) {
     expression = bop_to_fun(node->get_operator()) (left, right);
 }
 
-std::set<string> Z3Converter::get_names() {
+std::set<string>
+Z3Converter::get_names()
+{
     return (names);
 }
 
-z3::expr Z3Converter::get_expression() {
+z3::expr
+Z3Converter::get_expression()
+{
     return (expression);
 }
 
-z3::sort Z3Converter::get_sort_of(const std::string &name) {
+z3::sort
+Z3Converter::get_sort_of(const std::string &name)
+{
     return sorts.at(name);
 }
 
-shared_ptr<Exp> ModelVerifier::eval_or_throw(shared_ptr<Exp> exp) {
+ModelVerifier::ModelVerifier() :
+    context(std::make_shared<z3::context>()),
+    solver(make_unique<z3::solver>(*context))
+{ /* Not much to do around here */ }
+
+shared_ptr<Exp>
+ModelVerifier::eval_or_throw(shared_ptr<Exp> exp)
+{
     ExpEvaluator ev (this->current_scope);
     exp->accept(ev);
     if (ev.has_errors()) {
@@ -304,19 +375,25 @@ shared_ptr<Exp> ModelVerifier::eval_or_throw(shared_ptr<Exp> exp) {
     return (ev.value_to_ast());
 }
 
-z3::expr ModelVerifier::eval_and_convert(shared_ptr<Exp> exp) {
+z3::expr
+ModelVerifier::eval_and_convert(shared_ptr<Exp> exp)
+{
     Z3Converter conv (context, current_scope);
     eval_or_throw(exp)->accept(conv);
     return (conv.get_expression());
 }
 
-z3::expr ModelVerifier::convert(shared_ptr<Exp> exp) {
+z3::expr
+ModelVerifier::convert(shared_ptr<Exp> exp)
+{
     Z3Converter conv (context, current_scope);
     exp->accept(conv);
     return (conv.get_expression());
 }
 
-z3::expr ModelVerifier::convert(shared_ptr<Exp> exp, std::set<string>& names) {
+z3::expr
+ModelVerifier::convert(shared_ptr<Exp> exp, std::set<string>& names)
+{
     Z3Converter conv (context, current_scope);
     exp->accept(conv);
     for (auto name : conv.get_names()) {
@@ -325,7 +402,9 @@ z3::expr ModelVerifier::convert(shared_ptr<Exp> exp, std::set<string>& names) {
     return (conv.get_expression());
 }
 
-void ModelVerifier::add_names_limits(const std::set<string> &names) {
+void
+ModelVerifier::add_names_limits(const std::set<string> &names)
+{
     for (const string& name : names) {
         shared_ptr<Decl> decl = current_scope->local_decls_map().at(name);
         if (decl->has_range()) {
@@ -340,14 +419,18 @@ void ModelVerifier::add_names_limits(const std::set<string> &names) {
     }
 }
 
-void ModelVerifier::debug_print_solver() {
+void
+ModelVerifier::debug_print_solver()
+{
     std::cout << "SOLVER:" <<
                  Z3_solver_to_string(*context, *solver) << std::endl;
     std::cout << std::endl;
     std::cout << "ENDOFSOLVER" << std::endl;
 }
 
-void ModelVerifier::check_output_determinism(const string &clock_id) {
+void
+ModelVerifier::check_output_determinism(const string &clock_id)
+{
     auto &tr_actions = current_scope->transition_by_clock_map();
     auto range = tr_actions.equal_range(clock_id);
     auto it1 = range.first;
@@ -394,7 +477,9 @@ void ModelVerifier::check_output_determinism(const string &clock_id) {
     }
 }
 
-void ModelVerifier::check_input_determinism(const string &label_id) {
+void
+ModelVerifier::check_input_determinism(const string &label_id)
+{
     auto &label_actions = current_scope->transition_by_label_map();
     auto range = label_actions.equal_range(label_id);
     auto it1 = range.first;
@@ -435,18 +520,23 @@ void ModelVerifier::check_input_determinism(const string &label_id) {
 }
 
 
-inline bool isCommitted(const LabelType lt){
+bool
+isCommitted(const LabelType lt)
+{
     return lt == LabelType::in_committed || lt == LabelType::out_committed;
 }
 
-inline bool isOutput(const LabelType lt){
+bool
+isOutput(const LabelType lt)
+{
     return  lt == LabelType::out ||
             lt == LabelType::out_committed ||
             lt == LabelType::tau;
 }
 
-void ModelVerifier::check_label_compatible(shared_ptr<Model> model){
-
+void
+ModelVerifier::check_label_compatible(shared_ptr<Model> model)
+{
     const std::vector<shared_ptr<ModuleAST>>& modules = model->get_modules();
 
     for(size_t i = 0; i < modules.size(); ++i){
@@ -470,9 +560,7 @@ void ModelVerifier::check_label_compatible(shared_ptr<Model> model){
                                  + " do not agree on whether label <" 
                                  + it.first + "> is committed or not.");
                     }
-				}catch(std::out_of_range&){
-                    ;
-                }
+				} catch (std::out_of_range&) {}
             }
         }
     }
@@ -549,7 +637,7 @@ void ModelVerifier::check_exhausted_clocks_all() {
 
 void ModelVerifier::check_rhs(shared_ptr<TransitionAST> a1,
                               shared_ptr<TransitionAST> a2) {
-    auto& assigs = a1->get_assignments();
+	const auto& assigs = a1->get_assignments();
     auto it = assigs.begin();
     while (it != assigs.end() && !has_warnings()) {
         shared_ptr<Assignment> effect = *it;

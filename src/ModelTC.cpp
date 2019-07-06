@@ -1,4 +1,31 @@
-/* Leonardo Rodríguez */
+//==============================================================================
+//
+//  ModelTC.cpp
+//
+//  Copyleft 2016-
+//  Authors:
+//  - Leonardo Rodríguez (Universidad Nacional de Córdoba)
+//  - Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
+//
+//------------------------------------------------------------------------------
+//
+//  This file is part of FIG.
+//
+//  The Finite Improbability Generator (FIG) project is free software;
+//  you can redistribute it and/or modify it under the terms of the GNU
+//  General Public License as published by the Free Software Foundation;
+//  either version 3 of the License, or (at your option) any later version.
+//
+//  FIG is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//
+//	You should have received a copy of the GNU General Public License
+//	along with FIG; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//==============================================================================
 
 #include <cassert>
 #include <sstream>
@@ -252,17 +279,29 @@ inline const string TC_WRONG_PRECONDITION(
         const shared_ptr<ModuleScope>& curr,
         const shared_ptr<TransitionAST>& action,
         Type last_type) {
+	stringstream ss;
+	ss << PREFIX(curr);
+	ss << " - Transition of label";
+	if (action->get_label().empty()) {
+		ss << " tau";
+	} else {
+		ss << " \"" << action->get_label() << "\"";
+	}
+	ss << " - Precondition is ill-typed";
+	ss << *(action->get_precondition());
+	ss << " - " << UNEXPECTED_TYPE(Type::tbool, last_type);
+	return (ss.str());
+}
+
+inline const string TC_WRONG_PROBABILITY(
+        const shared_ptr<ModuleScope>& curr,
+        const shared_ptr<PBranch>& pbranch,
+        Type last_type) {
     stringstream ss;
     ss << PREFIX(curr);
-    ss << " - Transition of label";
-    if (action->get_label().empty()) {
-        ss << " tau";
-    } else {
-        ss << " \"" << action->get_label() << "\"";
-    }
-    ss << " - Precondition is ill-typed";
-    ss << *(action->get_precondition());
-    ss << " - " << UNEXPECTED_TYPE(Type::tbool, last_type);
+	ss << " - A probability value in a transition branch is ill-typed";
+	ss << *(pbranch->get_probability());
+	ss << " - " << UNEXPECTED_TYPE(Type::tfloat, last_type);
     return (ss.str());
 }
 
@@ -746,26 +785,23 @@ void ModelTC::visit(shared_ptr<TransitionAST> action) {
     assert(current_scope != nullptr);
     const string &label = action->get_label();
     const LabelType &label_type = action->get_label_type();
-    current_scope->transition_by_label_map()
-            .insert(std::make_pair(label, action));
+	current_scope->transition_by_label_map().insert(std::make_pair(label, action));
     auto &labels = current_scope->type_by_label_map();
     if (label_type != LabelType::tau) {
         //check if label is already used with another type
         if (labels.find(label) != labels.end()) {
             LabelType &other = labels[label];
-            if (label_type != other) {
+			if (label_type != other)
                 put_error(TC_MULTIPLE_LABEL_TYPE(current_scope, label));
-            }
         } else {
             labels[label] = label_type;
         }
     }
-    //Note: output label has clock: ensured by grammar.
-    //Note: input label has no clock: ensured by grammar.
+	// NOTE: grammar of IOSA-U ensures that (a) output labels have a clock
+	//                                      (b) input labels have no clock
     assert(action->get_precondition() != nullptr);
     accept_exp(Type::tbool, action->get_precondition());
-    const string &msg
-            = TC_WRONG_PRECONDITION(current_scope, action, last_type);
+	const string &msg = TC_WRONG_PRECONDITION(current_scope, action, last_type);
     check_type(Type::tbool, msg) ;
     if (action->has_triggering_clock()) {
         shared_ptr<OutputTransition> output = action->to_output();
@@ -777,12 +813,30 @@ void ModelTC::visit(shared_ptr<TransitionAST> action) {
         current_scope->transition_by_clock_map().
                 insert(std::make_pair(clock_id, output));
     }
-    for (auto &effect : action->get_assignments()) {
-        accept_cond(effect);
-    }
-    for (auto &effect : action->get_clock_resets()) {
-        accept_cond(effect);
-    }
+	for (auto& pbranch: action->get_branches())
+		accept_cond(pbranch);
+}
+
+void ModelTC::visit(shared_ptr<PBranch> pbranch) {
+	assert(pbranch != nullptr);
+	assert(pbranch->get_probability() != nullptr);
+	accept_exp(Type::tfloat, pbranch->get_probability());
+	const string &msg = TC_WRONG_PROBABILITY(current_scope, pbranch, last_type);
+	check_type(Type::tfloat, msg) ;
+	for (auto &effect : pbranch->get_assignments())
+		accept_cond(effect);
+	for (auto &effect : pbranch->get_clock_resets())
+		accept_cond(effect);
+}
+
+void ModelTC::visit(shared_ptr<Assignment> effect) {
+	assert(effect != nullptr);
+	accept_cond(effect->get_effect_location());
+	Type loc_type = last_type;
+	accept_exp(loc_type, effect->get_rhs());
+	const string &msg =
+	        TC_WRONG_RHS(current_scope, effect, loc_type, last_type);
+	check_type(loc_type, msg);
 }
 
 void ModelTC::visit(shared_ptr<ClockReset> effect) {
@@ -804,16 +858,6 @@ void ModelTC::visit(shared_ptr<ClockReset> effect) {
     } else {
         clock_dists[clock_id] = effect->get_dist();
     }
-}
-
-void ModelTC::visit(shared_ptr<Assignment> effect) {
-    assert(effect != nullptr);
-    accept_cond(effect->get_effect_location());
-    Type loc_type = last_type;
-    accept_exp(loc_type, effect->get_rhs());
-    const string &msg =
-            TC_WRONG_RHS(current_scope, effect, loc_type, last_type);
-    check_type(loc_type, msg);
 }
 
 void ModelTC::visit(shared_ptr<MultipleParameterDist> dist) {

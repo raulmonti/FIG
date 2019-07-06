@@ -34,15 +34,23 @@
 #include <set>
 
 #include <ModelTC.h>
-#include <ModelSuite.h>
+#include <core_typedefs.h>
+#include <State.h>
 
 using std::string;
 using Vars  = fig::State<fig::STATE_INTERNAL_TYPE>;
 using Var   = fig::VariableDefinition<fig::STATE_INTERNAL_TYPE>;
 using ArrayEntries = fig::State<fig::STATE_INTERNAL_TYPE>;
 using Array = std::pair<std::string, ArrayEntries>;
-using fig::Clock;
-using fig::Transition;
+
+namespace fig
+{
+    class Clock;
+	class Postcondition;
+	class Transition;
+	class ModuleInstance;
+	class ModelSuite;
+}
 
 /**
  * @brief This class processes a ModelAST object and builds
@@ -51,7 +59,7 @@ using fig::Transition;
 class ModelBuilder : public Visitor {
 private:
     /// Alias for the global instance of the model.
-	fig::ModelSuite &model_suite = fig::ModelSuite::get_instance();
+	fig::ModelSuite& model_suite;
 
     /// Alias for the module scopes map
     shared_map<string, ModuleScope> &scopes  = ModuleScope::scopes;
@@ -66,16 +74,25 @@ private:
 	std::unique_ptr<vector<Array>> module_arrays;
 
     /// The clocks declared locally in the current module
-	std::unique_ptr<vector<Clock>> module_clocks;
+	std::unique_ptr<vector<fig::Clock>> module_clocks;
 
     /// The transitions of the current module
-	std::unique_ptr<vector<Transition>> module_transitions;
+	std::unique_ptr<vector<fig::Transition>> module_transitions;
 
     /// The symbol table of the current module in construction.
 	std::shared_ptr<ModuleScope> current_scope;
 
-    /// The clocks reseted by the transition in construction.
-	std::unique_ptr<std::set<string>> transition_clocks;
+	/// The probabilities of the branches of the transition under construction
+	std::vector< float > branches_probabilities;
+
+	/// Variable assignments in the branches of the transition under construction
+	std::vector< fig::Postcondition > branches_assignments;
+
+	/// @see branches_assignments
+	shared_vector< Assignment > current_branch_assignments;
+
+	/// Names of the clocks reset in the branches of the transition under construction
+	std::vector< std::set< std::string > > branches_reset_clocks;
 
     /// Accept only if there is no error message.
 	void accept_visitor(std::shared_ptr<ModelAST> node, Visitor& visitor);
@@ -84,7 +101,7 @@ private:
 	void accept_cond(std::shared_ptr<ModelAST> node);
 
     /// Build a clock with the given id.
-    Clock build_clock(const string &clock_id);
+	fig::Clock build_clock(const string &clock_id);
 
     /// Try to evaluate an expression or put an error message if it
     /// was not possible to reduce it.
@@ -118,6 +135,7 @@ public:
 	void visit(std::shared_ptr<InitializedDecl> node);
 	void visit(std::shared_ptr<ArrayDecl>       node);
 	void visit(std::shared_ptr<TransitionAST>   node);
+	void visit(std::shared_ptr<PBranch>         node);
 	void visit(std::shared_ptr<Assignment>      node);
 	void visit(std::shared_ptr<ClockReset>      node);
 	void visit(std::shared_ptr<TransientProp>   node);

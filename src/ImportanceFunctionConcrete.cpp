@@ -70,6 +70,22 @@ typedef ImportanceVec EventVec;
 typedef unsigned STATE_T;
 
 
+void
+debug_print_adjacency_list(const fig::State< fig::STATE_INTERNAL_TYPE >& globalState,
+                           const fig::AdjacencyList& reverseEdges)
+{
+	auto state = globalState;
+	fig::figTechLog << "Adjacency list:" << std::endl;
+	for (auto i = 0ul ; i < reverseEdges.size() ; i++ ) {
+		fig::figTechLog << state.decode(i).to_string() << " <-- {";
+		for (const auto& s: reverseEdges[i])
+			fig::figTechLog << state.decode(s).to_string() << " ; ";
+		fig::figTechLog << "\b\b\b}  \n";
+	}
+	fig::figTechLog << std::endl;
+}
+
+
 /**
  * @brief Impose a limit on the amount of memory the user can request.
  * @param concreteStateSize Size of the concrete state space of the module
@@ -221,7 +237,7 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 		statesToCheck.pop();
 		ImportanceValue levelBFS = fig::UNMASK(cStates[s]) + 1;
 		// For each state reaching 's'...
-		for (const STATE_T& reachingS: reverseEdges[s]) {
+		for (const auto& reachingS: reverseEdges[s]) {
             // ...if we're visiting it for the first time...
 			if (NOT_VISITED == fig::UNMASK(cStates[reachingS])) {
 				// ...label it with distance from rare set...
@@ -230,7 +246,7 @@ build_importance_BFS(const fig::AdjacencyList& reverseEdges,
 				if (initialState == reachingS)
 					initialReached = true;
 				else
-					statesToCheck.push(reachingS);
+					statesToCheck.push(static_cast<STATE_T>(reachingS));
 			}
 		}
 	}
@@ -497,6 +513,9 @@ assess_importance_auto(const fig::Module& module,
 
 	// Step 1: run DFS from initial state to compute reachable reversed edges
 	fig::AdjacencyList reverseEdges = reversed_edges_DFS(module, impVec);
+#ifndef NDEBUG
+	debug_print_adjacency_list(module.initial_state(), reverseEdges);
+#endif
 	/// @todo NOTE: there's a more memory friendly way,
 	///       without holding the whole adjacency list in a variable.
 	///       It requires to build the reaching states for each concrete state
@@ -643,6 +662,9 @@ bool ImportanceFunctionConcrete::assess_importance(
 
 	// Compute importance according to the chosen strategy
 	if ("flat" == strategy) {
+		do {  // dead code AFAIK
+			throw_FigException("why build a concrete importance function for --flat?");
+		} while (0);
 		check_mem_limits(module.concrete_state_size(), module.id());
 		maxValue_ = assess_importance_flat(module.initial_state(),
 										   modulesConcreteImportance[index],
@@ -709,9 +731,8 @@ ImportanceFunctionConcrete::post_process(const PostProcessing& postProc,
 	{
 	case (PostProcessing::NONE):
 		return;  // meh, called for nothing
-		break;
 	case (PostProcessing::SHIFT):
-		pp_shift(extrVals, std::round(postProc.value));
+		pp_shift(extrVals, static_cast<int>(std::round(postProc.value)));
 		break;
 	case (PostProcessing::EXP):
 		pp_exponentiate(extrVals, postProc.value);
@@ -719,7 +740,6 @@ ImportanceFunctionConcrete::post_process(const PostProcessing& postProc,
 	default:
 		throw_FigException("invalid post-processing specified (\""
 						  + postProc.name + "\")");
-		break;
 	}
 }
 
@@ -751,16 +771,25 @@ ImportanceFunctionConcrete::pp_shift(std::vector<ExtremeValues>& extrVals,
 			throw_FigException(flow+"flow while post-processing min importance value");
 		else if (!shiftOK(max, max+offset))
 			throw_FigException(flow+"flow while post-processing max importance value");
-		min  += offset;
-		max  += offset;
-		minR += offset;
+		if (offset < 0) {
+			auto decrement = static_cast<ImportanceValue>(-offset);
+			min  = std::min<ImportanceValue>(0, min-decrement);
+			max  = std::min<ImportanceValue>(0, max-decrement);
+			minR = std::min<ImportanceValue>(0, minR-decrement);
+		} else {
+			auto increment = static_cast<ImportanceValue>(offset);
+			min  += increment;
+			max  += increment;
+			minR += increment;
+		}
 	}
 
 main_loop_pp_shift:
-	// Now shift importance values (disregard {under,over}flows here)
+	// Now shift importance values (cast to signed values to avoid {under,over}flows)
 	for (ImportanceVec& vec: modulesConcreteImportance)
 		for (ImportanceValue& val: vec)
-			val = MASK(val) | (UNMASK(val)+offset);
+			val = MASK(val) | static_cast<ImportanceValue>(
+			                  static_cast<long>(UNMASK(val)) + offset);
 }
 
 

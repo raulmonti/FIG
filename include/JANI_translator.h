@@ -69,7 +69,7 @@ public:  // Ctor/Dtor
 	JaniTranslator();
 
 	/// Default dtor
-	~JaniTranslator();
+	~JaniTranslator() override;
 
 public:  // Translation facilities
 
@@ -525,10 +525,10 @@ private:  // Class utils: JANI -> IOSA
 	/// @param JANIdest     Json array with JANI edge-detinations to translate
 	/// @param moduleVars   All variables of the current automaton (no clocks)
 	/// @param moduleClocks All clock variables of the current automaton
-	/// @return IOSA transition postcondition or empty vector if translation
-	///         failed (or if JANIdest is has no assignments)
+	/// @return IOSA transition postconditions (probabilistic branches),
+	///         or empty vector if translation failed or JANIdest has no assignments.
 	/// @throw FigException if JANI edge-destinations specifiaction is badly formated
-	shared_vector<Effect> build_IOSA_postcondition(
+	shared_vector<PBranch> build_IOSA_postcondition(
 			const Json::Value& JANIdest,
 			const shared_vector<Decl>& moduleVars,
 			const shared_vector<Decl>& moduleClocks = shared_vector<Decl>());
