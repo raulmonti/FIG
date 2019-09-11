@@ -32,12 +32,12 @@
 // Winter Simulation Conference, 2009, pp. 1146-1154.
 // This model corresponds to the system described in Section 4.1
 
-const int alpha = 3;    // Service time shape parameter (all queues)
-const float beta1 = 4.5;    // Service time scale parameter (Queue1)
-const int beta2 = 6;    // Service time scale parameter (Queue2)
-const int beta3 = 9;    // Service time scale parameter (Queue3)
+const int alpha = 2;    // Service time shape parameter (all queues)
+const float beta1 = 3.0;    // Service time scale parameter (Queue1)
+const int beta2 = 4;    // Service time scale parameter (Queue2)
+const int beta3 = 6;    // Service time scale parameter (Queue3)
 const int L = 7;                // Threshold occupancy (Queue3)
-const int c = L+5;              // Queues capacity (all queues)
+const int c = L+0;              // Queues capacity (all queues)
 
 // Combinations tested in the aforementioned article:
 // 
@@ -96,6 +96,7 @@ endmodule
 
 
 properties
+	S[ 60:30000 ]( q3 >= L )  // "rate with time-bound"
 //	S( q3 >= L )  // "rate"
-	S( (q1 >= c/2 & q2 >= L) | q3 >= L )  // "rate"
+//	S( (q1 >= c/2 & q2 >= L) | q3 >= L )  // "rate"
 endproperties

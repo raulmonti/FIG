@@ -92,7 +92,7 @@ SECTION("Seal model and check consistency")
 	REQUIRE(model.num_threshold_techniques() > 0ul);
 	REQUIRE(model.num_RNGs() > 0ul);
 }
-
+/*
 SECTION("Steady-state: standard MC")
 {
 	const string nameEngine("nosplit");
@@ -142,7 +142,42 @@ SECTION("Steady-state: RESTART, ad hoc, es")
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 1234567890987ul);
 	const double confCo(.95);
-	const double prec(.4);
+	const double prec(.2);
+	fig::StoppingConditions confCrit;
+	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
+	// Estimate
+	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
+	auto results = model.get_last_estimates();
+	REQUIRE(results.size() == 1ul);
+	auto ci = results.front();
+	REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.8));
+	REQUIRE(ci.precision(confCo) > 0.0);
+	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB*prec).epsilon(SS_PROB*0.2));
+	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
+			  == Approx(SS_PROB*prec).epsilon(SS_PROB*0.2));
+}
+*/
+SECTION("Steady-state: RESTART-P3, ad hoc, ad hoc thresholds")
+{
+	const string nameEngine("restart0");
+	const fig::ImpFunSpec ifunSpec("algebraic", "adhoc", "q1+2*q2+5*q3");
+	//const string nameThr("es");
+	const string thrAdHoc("21:2,24:2,26:2,27:2,30:3,34:3,37:2,39:3,40:2,42:2");
+	REQUIRE(model.exists_simulator(nameEngine));
+	REQUIRE(model.exists_importance_function(ifunSpec.name));
+	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
+	// Prepare engine
+	model.build_importance_function_adhoc(ifunSpec, ssPropId, true);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, thrAdHoc, ssPropId);
+	//auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, ssPropId);
+	REQUIRE(engine->ready());
+	// Set estimation criteria
+	auto rng = model.available_RNGs().back();
+	REQUIRE(model.exists_rng(rng));
+	model.set_rng(rng, 314159265ul);
+	const double confCo(.95);
+	const double prec(.3);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
     model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
@@ -155,7 +190,7 @@ SECTION("Steady-state: RESTART, ad hoc, es")
 	REQUIRE(ci.precision(confCo) > 0.0);
 	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB*prec).epsilon(SS_PROB*0.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
+	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.25));
 }
 
 SECTION("Steady-state: RESTART, monolithic, hyb")
