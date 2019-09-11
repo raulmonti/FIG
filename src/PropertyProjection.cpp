@@ -145,18 +145,24 @@ void PropertyProjection::populate(const fig::Property& property) {
         rares_ = right_b.get_clauses();
         break;
     }
-    case PropType::rate:
+	case PropType::rate:
+	{
+		shared_ptr<RateProp> rprop = prop->to_rate();
+		ExprDNFBuilder left_b (CompositeModuleScope::get_instance());
+		rprop->get_expression()->accept(left_b);
+		rares_ = left_b.get_clauses();
+		break;
+	}
+	case PropType::tboundss:
     {
-        shared_ptr<RateProp> rprop = prop->to_rate();
+		shared_ptr<TBoundSSProp> tbssprop = prop->to_tboundss();
         ExprDNFBuilder left_b (CompositeModuleScope::get_instance());
-        rprop->get_expression()->accept(left_b);
+		tbssprop->get_expression()->accept(left_b);
         rares_ = left_b.get_clauses();
         break;
     }
-    default:
-    {
-        throw_FigException("invalid property type");
-    }
+//    default:
+//        throw_FigException("invalid property type");
     }
 }
 

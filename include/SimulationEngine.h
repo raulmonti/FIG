@@ -48,6 +48,7 @@ class ImportanceFunctionConcrete;
 class Property;
 class PropertyRate;
 class PropertyTransient;
+class PropertyTBoundSS;
 class ModuleNetwork;
 class Traial;
 class ConfidenceInterval;
@@ -70,7 +71,7 @@ public:
     /// Long story short: number of concrete derived classes.
     /// More in detail this is the size of the array returned by names(), i.e.
     /// how many SimualtionEngine implementations are offered to the end user.
-	static constexpr size_t NUM_NAMES = 3;
+	static constexpr size_t NUM_NAMES = 10;
 
 protected:  // Attributes for simulation update policies
 
@@ -95,17 +96,18 @@ protected:  // Attributes for simulation update policies
     /// @warning Value is arbitrary af
 	static constexpr long MAX_CPU_TIME = 8l;
 
-    /// Maximum simulation-time units any Traial is allowed to accumulate
-    /// before having its lifetime reset
-    /// @note Needed due to fp precision issues
-    /// @note Value chosen small enough to distinguish variations of 0.01
-    ///       simulation-time units when using fp single precision:
-    ///       mantissa 1, exponent 12, resulting in 1*2^12 == 4096.
-    ///       The corresponding C99 literal is 0x1p12.
-    /// @see <a href="http://www.cprogramming.com/tutorial/floating_point/understanding_floating_point_representation.html">
-    ///      Floating point arithmetic</a> and the <a href="http://stackoverflow.com/a/4825867">
-    ///      C99 fp literals</a>.
-    static constexpr CLOCK_INTERNAL_TYPE SIM_TIME_CHUNK = 4096.f;
+	/// @todo TODO delete deprecated code below
+//    /// Maximum simulation-time units any Traial is allowed to accumulate
+//    /// before having its lifetime reset
+//    /// @note Needed due to fp precision issues
+//    /// @note Value chosen small enough to distinguish variations of 0.01
+//    ///       simulation-time units when using fp single precision:
+//    ///       mantissa 1, exponent 12, resulting in 1*2^12 == 4096.
+//    ///       The corresponding C99 literal is 0x1p12.
+//    /// @see <a href="http://www.cprogramming.com/tutorial/floating_point/understanding_floating_point_representation.html">
+//    ///      Floating point arithmetic</a> and the <a href="http://stackoverflow.com/a/4825867">
+//    ///      C99 fp literals</a>.
+//    static constexpr CLOCK_INTERNAL_TYPE SIM_TIME_CHUNK = 4096.f;
 
 private:  // Instance attributes
 
@@ -247,7 +249,7 @@ public:  // Accessors
 	static const std::array< std::string, NUM_NAMES >& names() noexcept;
 
     /// @copydoc name_
-    const std::string& name() const noexcept;
+	virtual const std::string& name() const noexcept;
 
 	/// Does this engine implement some sort of importance splitting?
 	virtual bool isplit() const noexcept = 0;
@@ -384,6 +386,28 @@ protected:  // Simulation helper functions
 					const size_t& runLength,
 					bool reinit = false) const = 0;
 
+	/**
+	 * @brief Perform a batched long-run simulation to estimate the value of a
+	 *        \ref PropertyTBoundSS "time bounded steady-state property"
+	 *
+	 *        Using the engine's simulation strategy, run a simulation that
+	 *        dicards the first property.tbound_low() time units (aka transient
+	 *        phase), and monitors the proportion of time that
+	 *        property.expr() is satisfied up to property.tbound_upp().
+	 *
+	 * @param property Property with the event of interest (expr) and the time bounds
+	 *
+	 * @return Amount of simulation-time spent on states that satisfy property.expr()
+	 *         The desired <i>rate</i>, i.e. the  proportion of simulation-time
+	 *         spent on rare states, is: returnValue / (tbound_upp()-tbound_low())
+	 *
+	 * @warning Implementations are currently <b>not thread-safe</b>.
+	 *
+	 * @see PropertyTBoundSS
+	 */
+	virtual double
+	tbound_ss_simulation(const PropertyTBoundSS& property) const = 0;
+
 protected:  // Traial observers/updaters
 
     /**
@@ -424,6 +448,21 @@ protected:  // Traial observers/updaters
                             Traial& traial,
                             Event& e) const = 0;
 
+	/**
+	 * @brief Discard a (transient) period: let time evolve in \p traial
+	 *        without keeping track of events.
+	 *
+	 * @param traial Embodiment of a simulation, forced to run through
+	 *               the system for \p simsLifetime time units
+	 *
+	 * @return Whether traial.lifeTime >= \p simsLifetime,
+	 *         or all simulations were interrupted at global scope.
+	 *
+	 * @note The amount of transient time to discard is taken from the
+	 *       current value of the \p simsLifetime class member
+	 */
+	bool kill_time(const Property&, Traial& traial, Event&) const;
+
 private:  // Class utils
 
 	/**
@@ -455,8 +494,25 @@ private:  // Class utils
 	 *       if such flag is set</b>
 	 */
 	void rate_update(ConfidenceIntervalRate& ci,
-					 const double& rareTime,
+	                 const double& rareTime,
 	                 size_t& simTime) const;
+
+	/**
+	 * @brief Update the ConfidenceInterval and the simulation effort
+	 *        for \ref PropertyTBoundSS "time bounded steady-state properties"
+	 *
+	 * @param ci       ConfidenceInterval to update <b>(modified)</b>
+	 * @param rareTime Simulation-time units spent on rare states in the last simulation
+	 * @param simTime  Total simulation-time units spent in last simulation
+	 *
+	 * @note Batch (time) size is determined by the time bounds of the property
+	 * @note Simulations can be truncated by external updates to the
+	 *       \ref interrupted "interrupted flag": <b>nothing will be done
+	 *       if such flag is set</b>
+	 */
+	void tbound_ss_update(ConfidenceIntervalRate& ci,
+	                      const double& rareTime,
+	                      const long& simTime) const;
 };
 
 } // namespace fig

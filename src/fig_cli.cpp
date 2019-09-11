@@ -73,7 +73,7 @@ string propertiesFile;
 string engineName;
 fig::JaniTranny janiSpec;
 fig::ImpFunSpec impFunSpec("no_name", "no_strategy");
-string thrTechnique;
+string thrSpec;
 std::set< unsigned > globalEfforts;
 std::list< fig::StoppingConditions > estBounds;
 std::chrono::seconds simsTimeout;
@@ -106,14 +106,7 @@ const std::string versionStrLong(
 	"FIG tool version " + std::string(fig_VERSION_STR) + "\n\n"
 	"Build:       " + std::string(fig_CURRENT_BUILD) + "\n"
 	"Compiler:    " + std::string(fig_COMPILER_USED) + "\n"
-	"Default RNG: " + (
-		(0 == std::strncmp("mt64", fig::Clock::DEFAULT_RNG,  6ul))
-			? std::string("C++ STL's 64-bit Mersenne-Twister (") : (
-		(0 == std::strncmp("pcg32", fig::Clock::DEFAULT_RNG, 6ul))
-			? std::string("PCG-family 32-bit generator (")       : (
-		(0 == std::strncmp("pcg64", fig::Clock::DEFAULT_RNG, 6ul))
-			? std::string("PCG-family 64-bit generator (")       : (
-			std::string("Unknown! (") ) ) ) )
+    "Default RNG: " + std::string(fig::Clock::DEFAULT_RNG.second) + " ("
 #ifdef RANDOM_RNG_SEED
 		+ "randomized seeding"
 #elif defined PCG_RNG
@@ -202,6 +195,17 @@ ValueArg<string> thrTechnique_(
 	"Default is \"" + thrTechDefault + "\"",
 	false, thrTechDefault,
 	&thrTechConstraints);
+
+ValueArg<string> thrAdHoc_(
+	"", "thresholds-ad-hoc",
+	"Use ad hoc thresholds (and corresponding effort) explicitly specified. "
+    "Format is \\[\\(t:e\\)[,\\(t:e\\)]*\\] where 't' are the threshold "
+	" importance values and 'e' is the effort to apply in that threshold. "
+    "E.g. [(2:4),(7:3)] sets importance values '2' and '7' as thresholds, "
+    "where effort '4' and '3' is respectively used. "
+    "Brackets and parentheses are optional, e.g. [(2:4),(7:3)] == 2:4,7:3",
+	false, "",
+    "\\[\\(t:e\\)[,\\(t:e\\)]+\\]");
 
 // Translation from/to JANI specification format
 SwitchArg JANIimport_(
@@ -321,7 +325,7 @@ ValueArg<string> rngType_(
 	"r", "rng",
 	"Specify the pseudo Random Number Generator (aka RNG) to use for "
 	"sampling the time values of clocks",
-	false, fig::Clock::DEFAULT_RNG, &RNGConstraints);
+    false, fig::Clock::DEFAULT_RNG.first, &RNGConstraints);
 
 // User-specified seed for RNG
 ValueArg<string> rngSeed_(
@@ -804,6 +808,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.xorAdd(ifun_or_JANI);
 		cmd_.add(engineName_);
 		cmd_.add(thrTechnique_);
+		cmd_.add(thrAdHoc_);
 		cmd_.add(confidenceCriteria);
 		cmd_.add(timeCriteria);
 		cmd_.add(impPostProc);
@@ -824,8 +829,9 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		// Fill in the objects that are offered globally
 		modelFile       = modelFile_.getValue();
 		propertiesFile  = propertiesFile_.getValue();
+		thrSpec         = thrAdHoc_.getValue().empty() ? thrTechnique_.getValue()
+													   : thrAdHoc_.getValue();
 		engineName      = engineName_.getValue();
-		thrTechnique    = thrTechnique_.getValue();
 		verboseOutput   = verboseOutput_.getValue();
 		forceOperation  = forceOperation_.getValue();
 		confluenceCheck = confluenceCheck_.getValue();

@@ -73,24 +73,10 @@ public:
 	static constexpr size_t NUM_RNGS = 3ul;
 
 	/// Default RNG algorithm
-	static const constexpr char* DEFAULT_RNG =
-#ifndef PCG_RNG
-		"mt64";
-#elif !defined NDEBUG
-		"pcg64";
-#else
-		"pcg32";
-#endif
+	static const std::pair<const char*,const char*> DEFAULT_RNG;
 
 	/// Default seed for the RNG
-	static const constexpr size_t DEFAULT_RNG_SEED =
-#ifdef RANDOM_RNG_SEED
-	    0ul;
-#elif !defined PCG_RNG
-	    5489ul;  // C++ STL's random.h: class mersenne_twister_engine
-#else
-	    0xCAFEF00DD15EA5E5ull;  // pcg_random.hpp: class engine ctor
-#endif
+	static const size_t DEFAULT_RNG_SEED;
 
 private:
 

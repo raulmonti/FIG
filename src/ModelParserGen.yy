@@ -9,6 +9,8 @@
 %defines
 %define api.namespace {ModelParserGen}
 %define parser_class_name {ModelParser}
+/*      ^^^    for Bison >= 3.3 define instead:
+%define api.parser.class {ModelParser}   */
 %define api.token.constructor
 %define api.value.type variant
 %define parse.assert
@@ -75,6 +77,7 @@ NORMAL "normal"
 LOGNORMAL "lognormal"
 UNIFORM "uniform"
 EXP "exponential"
+HEXP2 "hyperexponential2"
 WEIBULL "weibull"
 GAMMA "gamma"
 RAYLEIGH "rayleigh"
@@ -101,6 +104,7 @@ TRUE "true"
 FALSE "false"
 PROPT "P"
 PROPS "S"
+PROPB "B"
 UNTIL "U"
 FLOOR "floor"
 CEIL  "ceil"
@@ -137,22 +141,22 @@ FSTEXCLUDE "fstexclude"
 %token <std::string> ID "id"
 %token <int>   INTL "int_literal"
 %token <float> FLOATL "float_literal"
-%type  <shared_ptr<Model>> model
-%type  <shared_ptr<Exp>>  exp
-%type  <shared_ptr<Dist>> dist
-%type  <shared_vector<Effect>> effects
-%type  <shared_ptr<Location>> location
-%type  <shared_ptr<Exp>> guard
+%type  <shared_ptr<Model>>         model
+%type  <shared_ptr<Exp>>           exp
+%type  <shared_ptr<Dist>>          dist
+%type  <shared_vector<Effect>>     effects
+%type  <shared_ptr<Location>>      location
+%type  <shared_ptr<Exp>>           guard
 %type  <shared_ptr<TransitionAST>> transition
-%type  <shared_vector<Exp>> exp_seq
-%type  <shared_ptr<Decl>> decl
-%type  <shared_ptr<Decl>> decl_body
-%type  <shared_ptr<ModuleAST>> module
-%type  <Type> type
-%type  <vector<DeclQualifier>> qualifierlist
-%type  <DeclQualifier> qualifier
-%type  <shared_ptr<Prop>> prop
-%type  <shared_vector<Prop>> proplist
+%type  <shared_vector<Exp>>        exp_seq
+%type  <shared_ptr<Decl>>          decl
+%type  <shared_ptr<Decl>>          decl_body
+%type  <shared_ptr<ModuleAST>>     module
+%type  <Type>                      type
+%type  <vector<DeclQualifier>>     qualifierlist
+%type  <DeclQualifier>             qualifier
+%type  <shared_ptr<Prop>>          prop
+%type  <shared_vector<Prop>>       proplist
 
 %%
 %start begin;
@@ -194,6 +198,8 @@ prop: "P" "(" exp[l] "U" exp[r] ")"
 { $$ = make_shared<TransientProp>($l, $r); save_location($$, @$);}
 | "S" "(" exp[r] ")"
 { $$ = make_shared<RateProp>($r); save_location($$, @$);}
+| "S" "[" exp[l] ":" exp[u] "]" "(" exp[r] ")"
+{ $$ = make_shared<TBoundSSProp>($l,$u,$r); save_location($$, @$);}
 
 proplist: prop[p]
 { $$ = vector<shared_ptr<Prop>>{$p};}
@@ -305,6 +311,9 @@ save_location($$, @$);}
 | "exponential" "(" exp[e] ")"
 {$$ = make_shared<SingleParameterDist>(DistType::exponential, $e);
     save_location($$, @$);}
+| "hyperexponential2" "(" exp[e1] "," exp[e2] "," exp[e3] ")"
+{$$ = make_shared<MultipleParameterDist>(DistType::hyperexponential2, $e1, $e2, $e3);
+	save_location($$, @$);}
 | "lognormal" "(" exp[e1] "," exp[e2] ")"
 {$$ = make_shared<MultipleParameterDist>(DistType::lognormal, $e1, $e2);
     save_location($$, @$);}

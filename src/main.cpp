@@ -71,7 +71,7 @@ using fig_cli::modelFile;
 using fig_cli::propertiesFile;
 using fig_cli::engineName;
 using fig_cli::impFunSpec;
-using fig_cli::thrTechnique;
+using fig_cli::thrSpec;
 using fig_cli::globalEfforts;
 using fig_cli::estBounds;
 using fig_cli::simsTimeout;
@@ -149,7 +149,7 @@ int main(int argc, char** argv)
 		model.set_verbosity(verboseOutput);
 		model.process_batch(engineName,
 							impFunSpec,
-							thrTechnique,
+		                    thrSpec,
 							estBounds,
 		                    globalEfforts);
 	} catch (fig::FigException& e) {
@@ -207,15 +207,7 @@ bool print_intro(const int& argc, const char** argv)
 	if (argc > 1 && trim(argv[1]) != "-h" && trim(argv[1]) != "--help") {
 		tech_log(std::string("\nFIG tool invoked on ") + std::ctime(&now));
 		tech_log("Build: " fig_CURRENT_BUILD "\n");
-		tech_log("Default RNG: ");
-		if (0 == std::strncmp("mt64", Clock::DEFAULT_RNG, 6ul))
-			tech_log("64-bit STL's Mersenne-Twister.\n");
-		else if (0 == std::strncmp("pcg32", Clock::DEFAULT_RNG, 6ul))
-			tech_log("32-bit PCG-family generator with huge period.\n");
-		else if (0 == std::strncmp("pcg64", Clock::DEFAULT_RNG, 6ul))
-			tech_log("64-bit PCG-family generator.\n");
-		else
-			tech_log("UNKNOWN!\n");
+		tech_log("Default RNG: " + std::string(Clock::DEFAULT_RNG.second) + ".\n");
 		tech_log("Default RNG seed: ");
 		if (Clock::rng_seed_is_random())
 			tech_log("randomized seeding.\n");
@@ -300,7 +292,7 @@ void compile_model(bool modelAlreadyBuilt)
 
 	if (modelAlreadyBuilt) {
 		// Parsing + model building already done during JANI interaction
-		assert(ModelSuite::get_instance().sealed());
+		assert(fig::ModelSuite::get_instance().sealed());
 		tech_log("- Model successfully compiled during JANI translation\n");
 		return;
 	}
@@ -395,7 +387,7 @@ void compile_model(bool modelAlreadyBuilt)
 	tech_log(" - Model building succeeded\n");
 
 	// Seal model
-	auto& modelInstance = ModelSuite::get_instance();
+	auto& modelInstance = fig::ModelSuite::get_instance();
 	if (0.0 <= failProbDFT)
 		modelInstance.set_DFT(failProbDFT);
 	modelInstance.seal();

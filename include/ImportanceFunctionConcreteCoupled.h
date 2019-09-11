@@ -69,7 +69,7 @@ public:  // Ctor/Dtor
 	ImportanceFunctionConcreteCoupled(const ModuleNetwork& model);
 
 	/// Dtor
-	virtual ~ImportanceFunctionConcreteCoupled();
+	~ImportanceFunctionConcreteCoupled() override;
 
 	/// Avoid accidental copies
 	ImportanceFunctionConcreteCoupled(const ImportanceFunctionConcreteCoupled&) = delete;

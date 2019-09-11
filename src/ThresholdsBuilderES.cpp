@@ -213,8 +213,7 @@ ThresholdsBuilderES::ThresholdsBuilderES(
 
 
 void
-ThresholdsBuilderES::setup(std::shared_ptr<const Property> property,
-                           const unsigned)
+ThresholdsBuilderES::setup(std::shared_ptr<const Property> property, const void *)
 {
 	property_ = property;
 }

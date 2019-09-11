@@ -55,10 +55,13 @@ ThresholdsBuilderAdaptiveSimple::ThresholdsBuilderAdaptiveSimple(
 
 void
 ThresholdsBuilderAdaptiveSimple::setup(std::shared_ptr<const Property> property,
-                                       const unsigned globalEffort)
+                                       const void *globalEffort)
 {
+	auto ge = *static_cast<const int*>(globalEffort);
+	assert(0 < ge);
+	assert(ge <= static_cast<decltype(ge)>(MAX_EFFORT));
 	property_ = property;
-	globEff_ = globalEffort;
+	globEff_ = static_cast<decltype(globEff_)>(ge);
 }
 
 
@@ -127,7 +130,8 @@ ThresholdsBuilderAdaptiveSimple::tune(const size_t& numTrans,
     // Heuristic for 'k_':
     //   splitsPerThr * levelUpProb == 1  ("balanced growth")
     //   where levelUpProb == k_/n_
-	k_ = std::round(n_ / static_cast<float>(globalEffort));
+	k_ = static_cast<decltype(k_)>(
+	            std::round(n_ / static_cast<float>(globalEffort)));
 
     assert(0u < k_ || static_cast<ImportanceValue>(1u) >= maxImportance);
     assert(k_ < n_ || static_cast<ImportanceValue>(1u) >= maxImportance);

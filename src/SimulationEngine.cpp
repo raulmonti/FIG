@@ -44,6 +44,7 @@
 #include <ImportanceFunctionConcrete.h>
 #include <Property.h>
 #include <PropertyRate.h>
+#include <PropertyTBoundSS.h>
 #include <PropertyTransient.h>
 #include <ConfidenceInterval.h>
 #include <ConfidenceIntervalRate.h>
@@ -66,8 +67,12 @@ namespace  // // // // // // // // // // // // // // // // // // // // // // //
 /// to run) in order to estimate the value of transient-like properties.
 /// Fine tune for the specified SimulationEngine and ImportanceFunction pair
 size_t
-min_batch_size(const std::string& engineName, const std::string& ifunName)
+min_batch_size(const std::string&,  // engineName,
+               const std::string&) // ifunName)
 {
+	return 1ul<<6ul;
+	/// @todo TODO remove deprecated code below
+/*
 	// Build internal table once: rows follow engine names definition order
 	//                            cols follow impFun names definition order
 	constexpr size_t NUM_ENGINES(fig::SimulationEngine::NUM_NAMES);
@@ -93,6 +98,7 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 	// Return corresponding entry from table
 	return batch_sizes[std::distance(begin(engineNames), engineIt)]
 					  [std::distance(begin(ifunNames), ifunIt)];
+*/
 }
 
 
@@ -101,20 +107,25 @@ min_batch_size(const std::string& engineName, const std::string& ifunName)
 /// Fine tune for the specified SimulationEngine and ImportanceFunction pair
 /// @see increase_run_length
 size_t
-min_run_length(const std::string& engineName, const std::string& ifunName)
+min_run_length(const std::string&,// engineName,
+               const std::string&)// ifunName)
 {
+	static const size_t run_length = 1ul<<12ul;
+	return run_length;
+	/// @todo TODO remove deprecated code below
+/*
 	// Build internal table once: rows follow engine names definition order
 	//                            cols follow impFun names definition order
 	constexpr size_t NUM_ENGINES(fig::SimulationEngine::NUM_NAMES);
 	constexpr size_t NUM_IMPFUNS(fig::ImportanceFunction::NUM_NAMES);
 	static const auto& engineNames(fig::SimulationEngine::names());
 	static const auto& ifunNames(fig::ImportanceFunction::names());
-	static const size_t run_lengths[NUM_ENGINES][NUM_IMPFUNS] = {
-		{ 1ul<<12, 1ul<<12, 1ul<<12 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-		{ 1ul<<12, 1ul<<12, 1ul<<12 },  // restart x {concrete_coupled, concrete_split, algebraic}
-		{ 1ul<<12, 1ul<<12, 1ul<<12 }   //     sfe x {concrete_coupled, concrete_split, algebraic}
-//		{ 1ul<<12, 1ul<<12, 1ul<<12 }   //     bfe x {concrete_coupled, concrete_split, algebraic}
-	};
+		static const size_t run_lengths[NUM_ENGINES][NUM_IMPFUNS] = {
+			{ 1ul<<12, 1ul<<12, 1ul<<12 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
+			{ 1ul<<12, 1ul<<12, 1ul<<12 },  // restart x {concrete_coupled, concrete_split, algebraic}
+			{ 1ul<<12, 1ul<<12, 1ul<<12 }   //     sfe x {concrete_coupled, concrete_split, algebraic}
+	//		{ 1ul<<12, 1ul<<12, 1ul<<12 }   //     bfe x {concrete_coupled, concrete_split, algebraic}
+		};
 	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
 	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
 	// Check given engine and importance function names are valid
@@ -125,6 +136,7 @@ min_run_length(const std::string& engineName, const std::string& ifunName)
 	// Return corresponding entry from table
 	return run_lengths[std::distance(begin(engineNames), engineIt)]
 					  [std::distance(begin(ifunNames), ifunIt)];
+*/
 }
 
 
@@ -133,10 +145,14 @@ min_run_length(const std::string& engineName, const std::string& ifunName)
 /// Fine tune for the specified SimulationEngine and ImportanceFunction pair
 /// @see min_run_length
 void
-increase_run_length(const std::string& engineName,
-					const std::string& ifunName,
+increase_run_length(const std::string&,// engineName,
+                    const std::string&,// ifunName,
 					size_t& runLength)
 {
+	static const float inc_length = 1.4f;
+	runLength *= inc_length;
+	/// @todo TODO remove deprecated code below
+/*
 	// Build internal table once: rows follow engine names definition order
 	//                            cols follow impFun names definition order
 	constexpr size_t NUM_ENGINES(fig::SimulationEngine::NUM_NAMES);
@@ -159,6 +175,24 @@ increase_run_length(const std::string& engineName,
 	// Update runLength with corresponding entry from table, rely on type promotion
 	runLength *= inc_length[std::distance(begin(engineNames), engineIt)]
 						   [std::distance(begin(ifunNames), ifunIt)];
+*/
+}
+
+
+/// Print batch size nicely aligned with other output
+template< typename T_ >
+void
+print_batchsize(std::ostream& out,
+                const T_& batchSize,
+                const std::string text = " - Batch (ini): ",
+                const unsigned numEndLines = 2u)
+{
+	static_assert(std::is_integral< T_ >::value, "ERROR: batch size must be integral type");
+	const auto numDigits = static_cast<size_t>(std::log10(batchSize)) + 1;
+	out << text;
+	out << std::setw(24-text.size()+numDigits) << batchSize;
+	for (auto i = 0u ; i < numEndLines ; i++)
+		out << std::endl;
 }
 
 
@@ -279,13 +313,22 @@ SimulationEngine::names() noexcept
 		// See SimualtionEngineNosplit class
 		"nosplit",
 
-	    // RESTART-like importance splitting, from the Villén-Altamirano brothers
+		// (Standard) Fixed Effort importance splitting, from Garvels' PhD thesis
+		// See SimualtionEngineSFE class
+		"sfe",
+
+		// RESTART importance splitting, from the Villén-Altamirano brothers
+		// A numeric suffix indicates degree of retrials prolongation,
+		// i.e. RESTART-Pj (notice RESTART-P0 == RESTART)
 	    // See SimualtionEngineRestart class
 	    "restart",
-
-	    // (Standard) Fixed Effort importance splitting, from Garvels' PhD thesis
-		// See SimualtionEngineSFE class
-		"sfe"
+		"restart0",
+		"restart1",
+		"restart2",
+		"restart3",
+		"restart4",
+		"restart5",
+		"restart6"
 	}};
 	return names;
 }
@@ -347,9 +390,7 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 		auto& ciTransient(dynamic_cast<ConfidenceIntervalTransient&>(ci));
 		size_t batchSize = batch_size() > 0ul ? batch_size()
 											  : min_batch_size(name(), impFun_->name());
-
-		figMainLog << " · Batch (ini):" << std::setw(12) << batchSize;
-		figMainLog << std::endl << std::endl;
+		print_batchsize(figMainLog, batchSize);
 		while ( ! (interrupted || ci.is_valid()) ) {
 			auto counts = transient_simulations(pTransient, batchSize);
 			transient_update(ciTransient, counts);
@@ -361,8 +402,7 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 		auto& ciRate(dynamic_cast<ConfidenceIntervalRate&>(ci));
 		size_t runLength = batch_size() > 0ul ? batch_size()
 											  : min_run_length(name(), impFun_->name());
-		figMainLog << " · Batch (ini):" << std::setw(12) << runLength;
-		figMainLog << std::endl << std::endl;
+		print_batchsize(figMainLog, runLength);
 		bool firstRun(true);
 		do {
 			auto value = rate_simulation(pRate, runLength, firstRun);  // use batch-means
@@ -371,14 +411,33 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 		} while ( ! (interrupted || ci.is_valid()) );
 		} break;
 
-	case PropertyType::THROUGHPUT:
+	case PropertyType::TBOUNDED_SS: {
+		const auto& pTBSS(dynamic_cast<const PropertyTBoundSS&>(property));
+		auto& ciRate(dynamic_cast<ConfidenceIntervalRate&>(ci));
+		const long batchSimTime = pTBSS.tbound_upp()-pTBSS.tbound_low();
+		print_batchsize(figMainLog, pTBSS.tbound_low(), " - Transient time:", 1u);
+		print_batchsize(figMainLog, batchSimTime, " - Batch sim time:");
+		do {
+			auto value = tbound_ss_simulation(pTBSS);
+			tbound_ss_update(ciRate, value, batchSimTime);
+		} while ( ! (interrupted || ci.is_valid()) );
+	    } break;
+
 	case PropertyType::RATIO:
 	case PropertyType::BOUNDED_REACHABILITY:
 		throw_FigException("property type isn't supported by \"" + name_ +
 						   "\" simulation engine yet");
-	default:
-		throw_FigException("invalid property type");
 	}
+}
+
+
+bool
+SimulationEngine::kill_time(const Property&, Traial& t, Event&) const
+{
+	return interrupted ||
+	(
+	    t.lifeTime >= simsLifetime
+	);
 }
 
 
@@ -450,6 +509,39 @@ SimulationEngine::rate_update(ConfidenceIntervalRate& ci,
 	} else {
 		increase_run_length(name_, impFun_->name(), simTime);
 		figTechLog << "*";  // report "discarded"
+	}
+}
+
+
+void
+SimulationEngine::tbound_ss_update(ConfidenceIntervalRate& ci,
+                                   const double& rareTime,
+                                   const long& simTime) const
+{
+	if (interrupted)
+		return;  // don't update interrupted simulations
+
+	assert(0 <= rareTime);
+	assert(rareTime <= simTime);
+	// Reduce fp precision loss
+	const double thisRate(std::exp(std::log(rareTime)-std::log(simTime)));
+	assert(0.0 <= thisRate);
+	ci.update(thisRate);
+
+	if (ModelSuite::get_verbosity()) {
+		// Print updated CI, providing enough time elapsed since last print
+		static constexpr double TIMEOUT_PRINT(M_PI);  // in seconds
+		static unsigned cnt(0u);
+		const bool newCI(ci.num_samples() <= 1l);
+		const double thisCallTime(omp_get_wtime());
+		static double lastCallTime(newCI ? thisCallTime : lastCallTime);
+		cnt = newCI ? 0u : cnt;
+		if (thisCallTime-lastCallTime > TIMEOUT_PRINT) {
+			figTechLog << "\n[" << cnt++ << "] ";
+			ci.print(figTechLog);
+			print_runtime(figTechLog, " time:", " samples:"+std::to_string(ci.num_samples()));
+			lastCallTime = thisCallTime;
+		}
 	}
 }
 

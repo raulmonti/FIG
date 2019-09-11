@@ -33,7 +33,6 @@
 #include <core_typedefs.h>
 #include <Property.h>
 
-using std::shared_ptr;
 
 namespace fig
 {
@@ -60,7 +59,6 @@ class PropertyRate : public Property
 {
     /// This identifies the special states whose visiting times are monitored
     Precondition condition_;
-    shared_ptr<Exp> expr_;
 
 public:  // Ctors
 
@@ -68,7 +66,6 @@ public:  // Ctors
      * @brief Data ctor from generic lvalue container
      *
      * @param expr     Mathematical expression for the only subformula
-     * @param exprVars Names of the variables ocurring in "expr"
      *
      * @throw FigException if "expr" isn't a valid expressions
      * \ifnot NRANGECHK
@@ -76,67 +73,68 @@ public:  // Ctors
      *                       in the expression string were passed
      * \endif
      */
-    PropertyRate(shared_ptr<Exp> expr) :
+	PropertyRate(std::shared_ptr<Exp> expr) :
         Property(PropertyType::RATE),
-        condition_{expr},
-        expr_ {expr}
-	{}
+	    condition_(expr)
+	{ /* Not much to do around here... */ }
 
     /// Copy/Move constructor deleted to avoid dealing with the unique id.
     PropertyRate(const PropertyRate& that) = delete;
     PropertyRate(PropertyRate&& that)      = delete;
 
-    /// Can't have empty ctor due to const data members from Property
+	/// No empty ctor due to const data members from Property
 	PropertyRate()                                    = delete;
-    /// Can't have copy assignment due to const data members from Property
+	/// No copy assignment due to const data members from Property
     PropertyRate& operator=(const PropertyRate& that) = delete;
-    /// Can't have move assignment due to const data members from Property
+	/// No move assignment due to const data members from Property
     PropertyRate& operator=(PropertyRate&& that)      = delete;
 
 	inline ~PropertyRate() override {}
 
-public:
+public:  // Utils
+
+	void prepare(const State<STATE_INTERNAL_TYPE>& state) override
+	    { condition_.prepare(state); }
+
+	void prepare(const PositionsMap& posMap) override
+	    { condition_.prepare(posMap); }
+
+	std::string to_string() const override
+	    {
+		    return "S( ("
+			        + condition_.get_expression()->to_string()
+			        + ") / total_time )";
+	    }
+
+public:  // Accessors
 
     /**
      * Is the subformula satisfied by the given variables valuation?
      * @param s Valuation of the system's global state
      * @note To work with local states from the \ref ModuleInstace
      *       "system modules" use the State variant
-     * @see PropertyRate::expr_
+	 * @see PropertyRate::condition
      */
-    inline bool expr(const StateInstance& s) const { return condition_(s); }
+	inline bool expr(const StateInstance& s) const
+	    { return condition_(s); }
 
     /**
      * Is the subformula satisfied by the given state?
      * @param s The state of any Module (ModuleInstace or ModuleNetwork)
      * @note Slower than the StateInstance variant
-     * @see PropertyRate::expr_
+	 * @see PropertyRate::condition
      */
-    inline bool expr(const State<STATE_INTERNAL_TYPE>& s) const {
-        return condition_(s);
-    }
+	inline bool expr(const State<STATE_INTERNAL_TYPE>& s) const
+	    { return condition_(s); }
 
-    inline bool is_rare(const StateInstance& s) const override {
-        return condition_(s);
-    }
+	inline bool is_rare(const StateInstance& s) const override
+	    { return condition_(s); }
 
-	inline bool is_rare(const State<STATE_INTERNAL_TYPE>& s) const override {
-        return condition_(s);
-    }
+	inline bool is_rare(const State<STATE_INTERNAL_TYPE>& s) const override
+	    { return condition_(s); }
 
-    std::string to_string() const override {
-        return ("S( (" + expr_->to_string() + ") / total_time )");
-    }
+public:  // Debug
 
-	void prepare(const State<STATE_INTERNAL_TYPE>& state) override {
-        condition_.prepare(state);
-    }
-
-	void prepare(const PositionsMap& posMap) override {
-        condition_.prepare(posMap);
-    }
-
-public: //Debug
     void print_info(std::ostream &out) const override;
 };
 

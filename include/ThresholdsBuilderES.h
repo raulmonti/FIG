@@ -113,7 +113,7 @@ public:
 	/// Register the Property being estimated, which may affect
 	/// the internal Fixed Effort runs of the thresholds selection algorithm.
 	void
-	setup(std::shared_ptr<const Property> property, const unsigned) override;
+	setup(std::shared_ptr<const Property> property, const void*) override;
 
 	ThresholdsVec
 	build_thresholds(std::shared_ptr<const ImportanceFunction>) override;

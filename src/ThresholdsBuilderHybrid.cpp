@@ -56,9 +56,11 @@ ThresholdsBuilderHybrid::ThresholdsBuilderHybrid(ImportanceValue minImpRange,
 
 void
 ThresholdsBuilderHybrid::setup(std::shared_ptr<const Property> prop,
-                               const unsigned ge)
+                               const void* ge)
 {
-	globEff_ = ge;  // opaqued from base classes to avoid ambiguity
+	globEff_ = static_cast<decltype(globEff_)>(*static_cast<const int*>(ge));
+	assert(0 < globEff_);
+	assert(globEff_ <= MAX_EFFORT);
 	ThresholdsBuilderFixed::setup(prop, ge);
 	ThresholdsBuilderAdaptiveSimple::setup(prop, ge);
 }

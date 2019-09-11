@@ -29,20 +29,30 @@
 
 // C
 #include <cmath>
+#include <cstdlib>
+#include <cstring>
 // C++
+#include <vector>
 #include <sstream>
+#include <utility>
 #include <numeric>    // std::iota()
 #include <iterator>
 #include <algorithm>  // std::sort(), std::unique()
+#include <exception>
 // FIG
 #include <ThresholdsBuilderFixed.h>
 #include <ImportanceFunction.h>
 #include <ImportanceFunctionConcreteSplit.h>
 #include <FigLog.h>
+#include <string_utils.h>
 
 // ADL
 using std::begin;
 using std::end;
+
+#ifndef strnlen
+#  define strnlen(s,n) std::strlen(s)
+#endif
 
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
@@ -54,69 +64,54 @@ ThresholdsBuilderFixed::ThresholdsBuilderFixed(ImportanceValue minImpRange,
 	MIN_IMP_RANGE(minImpRange),
     EXPAND_EVERY(expandEvery),
     globEff_(2ul),
+    thrAdHoc_(""),
     postPro_(),
     stride_(0)
 { /* Not much to do around here */ }
 
 
 void
-ThresholdsBuilderFixed::setup(std::shared_ptr<const Property>,
-                              const unsigned ge)
+ThresholdsBuilderFixed::setup(std::shared_ptr<const Property>, const void *info)
 {
-	globEff_ = ge;
+	int ge(0);
+	try {
+		thrAdHoc_ = *static_cast<const std::string*>(info);
+	} catch (const std::bad_alloc&) {
+		thrAdHoc_ = "";
+	} catch (const std::length_error&) {
+		thrAdHoc_ = "";
+	}
+	if (thrAdHoc_.empty())  // couldn't cast to string? try casting to int
+		ge = *static_cast<const int*>(info);
+	// 'info' must've been either a valid string, or a valid global effort
+	// NOTE: global effort '0' is allowed for the flat "importance function"
+	if (thrAdHoc_.empty() && (ge < 0 || ge > static_cast<int>(MAX_EFFORT)))
+		throw_FigException("cannot build thresholds with \"" + name +
+		                   "\" from the information provided");
+	globEff_ = static_cast<decltype(globEff_)>(ge);
 }
 
 
 ThresholdsVec
 ThresholdsBuilderFixed::build_thresholds(std::shared_ptr<const ImportanceFunction> impFun)
 {
-	assert(nullptr != impFun);
-
-	ImportanceVec thresholds;
-	const ImportanceValue IMP_RANGE(impFun->max_value()-impFun->initial_value());
-	postPro_ = impFun->post_processing();
-
-	figTechLog << "Building thresholds with \"" << name << "\" ";
-
-	if (globEff_ < 2u) {
-		// For flat importance function we need a dummy thresholds vector
-		ImportanceVec({impFun->initial_value(),impFun->max_value()+1}).swap(thresholds);
-		goto consistency_check;
-
-	} else if (IMP_RANGE < MIN_IMP_RANGE) {
-		stride_ = 1u;
-		figTechLog << "using all importance values as thresholds.\n";
-		thresholds.resize(2+impFun->max_value()-impFun->min_value());
-		ImportanceVec thresholds(2+impFun->max_value()-impFun->initial_value());
-		std::iota(begin(thresholds), end(thresholds), impFun->initial_value());
-
-	} else {
-		stride_ = choose_stride(IMP_RANGE);
-		figTechLog << "for 1 out of every " << stride_ << " importance value"
-				   << (stride_ > 1 ? ("s.\n") : (".\n"));
-		thresholds.push_back(impFun->initial_value());
-		// Start above initial importance value? May reduce oversampling
-		const unsigned margin(IMP_RANGE>>3);
-		build_thresholds(*impFun, margin, stride_, thresholds);
-	}
-
-	show_thresholds(thresholds);
-
-consistency_check:
-	assert(!thresholds.empty());
-	assert(thresholds[0] == impFun->initial_value());
-	assert(thresholds.back() == 1 + impFun->max_value());
-
-	// Build ThresholdsVec to return
 	ThresholdsVec result;
-	result.reserve(thresholds.size());
-	for (auto imp: thresholds)
-		result.emplace_back(imp, globEff_);
+	assert(nullptr != impFun);
+	if (!thrAdHoc_.empty())
+		result = build_thresholds_ad_hoc(*impFun);
+	else
+		result = build_thresholds_heuristically(*impFun);
+	assert(!result.empty());
+	assert(result.front().first == impFun->initial_value());
+	assert(result.back().first > impFun->max_value());
+	assert(result.front().second == static_cast<ImportanceValue>(1));
+	assert(result.back().second == static_cast<ImportanceValue>(1));
+	show_thresholds(result);
 	return result;
 }
 
 
-const ImportanceValue&
+const unsigned&
 ThresholdsBuilderFixed::stride() const noexcept
 {
 	return stride_;
@@ -133,7 +128,7 @@ ThresholdsBuilderFixed::min_imp_range() const noexcept
 ImportanceValue
 ThresholdsBuilderFixed::choose_stride(const size_t& impRange) const
 {
-	ImportanceValue basicStride(1u), expansionFactor(1u);
+	unsigned basicStride(1u), expansionFactor(1u);
 	assert(globEff_ > 1u);
 	if (impRange < MIN_IMP_RANGE)
 		return basicStride;  // Don't even bother
@@ -160,7 +155,8 @@ ThresholdsBuilderFixed::choose_stride(const size_t& impRange) const
 		expansionFactor = std::ceil(std::log(impRange) / EXPAND_EVERY);
 		// Make sure return type can represent the computed stride
 		assert(basicStride*expansionFactor < sizeof(decltype(basicStride))*8u);
-		return std::pow(postPro_.value, basicStride*expansionFactor);
+		return static_cast<ImportanceValue>(
+		            std::pow(postPro_.value, basicStride*expansionFactor));
 		break;
 
 	default:
@@ -171,11 +167,107 @@ ThresholdsBuilderFixed::choose_stride(const size_t& impRange) const
 }
 
 
+ThresholdsVec
+ThresholdsBuilderFixed::build_thresholds_ad_hoc(const ImportanceFunction& impFun)
+{
+	const auto MIN_THR = impFun.initial_value();
+	const auto MAX_THR = impFun.max_value() + 1;
+
+	figTechLog << "Building thresholds specified by the user; "
+	           << "ignore global effort if set."
+	           << std::endl;
+
+	auto list = thrAdHoc_;
+	delete_substring(list, "[");
+	delete_substring(list, "]");
+	delete_substring(list, "(");
+	delete_substring(list, ")");
+	auto pairStrVec = split(list, ',');
+
+	ThresholdsVec thresholds;
+	thresholds.reserve(pairStrVec.size()+2ul);
+	thresholds.emplace_back(MIN_THR, 1u);
+	for (const auto& pairStr: pairStrVec) {
+		char* err(nullptr);
+		// Read next threshold and its effort
+		auto THR_EFF = split(pairStr, ':');
+		if (THR_EFF.size() != 2)
+			throw_FigException("invalid ad hoc threshold:splitting pair given: " + pairStr);
+		const auto THR = std::strtol(THR_EFF[0].c_str(), &err, 10);
+		if (nullptr != err && err[0] != '\0')
+			throw_FigException("invalid threshold value \"" + THR_EFF[0] + "\"");
+		const auto EFF = std::strtol(THR_EFF[1].c_str(), &err, 10);
+		if (nullptr != err && err[0] != '\0')
+			throw_FigException("invalid effort value \"" + THR_EFF[1] + "\"");
+		// Check values consistency
+		if (THR <= static_cast<long>(MIN_THR))
+			throw_FigException("thresholds \"" + THR_EFF[0] + "\" is not greater "
+			        "than the min importance " + std::to_string(MIN_THR));
+		if (THR >= static_cast<long>(MAX_THR))
+			throw_FigException("thresholds \"" + THR_EFF[0] + "\" is greater "
+			        "than the max importance " + std::to_string(MAX_THR));
+		if (EFF <= 0l || EFF > static_cast<decltype(EFF)>(MAX_EFFORT))
+			throw_FigException("out-of-bounds effort value \"" + THR_EFF[1] + "\"");
+		// Store as (threshold,effort) pair
+		thresholds.emplace_back(THR,EFF);
+	}
+	thresholds.emplace_back(MAX_THR, 1u);
+
+	return thresholds;
+}
+
+
+ThresholdsVec
+ThresholdsBuilderFixed::build_thresholds_heuristically(const ImportanceFunction& impFun)
+{
+	ImportanceVec thresholds;
+	const ImportanceValue IMP_RANGE(impFun.max_value()-impFun.initial_value());
+	postPro_ = impFun.post_processing();
+
+	figTechLog << "Building thresholds heuristically according to "
+	           << "the global effort and the importance function."
+	           << std::endl;
+
+	if (globEff_ < 2u) {
+		// For flat importance function we need a dummy thresholds vector
+		ImportanceVec({impFun.initial_value(),impFun.max_value()+1}).swap(thresholds);
+		goto build_thresholds_vec;
+
+	} else if (IMP_RANGE < MIN_IMP_RANGE) {
+		stride_ = 1u;
+		figTechLog << "using all importance values as thresholds.\n";
+		thresholds.resize(2+impFun.max_value()-impFun.min_value());
+		ImportanceVec thresholds(2+impFun.max_value()-impFun.initial_value());
+		std::iota(begin(thresholds), end(thresholds), impFun.initial_value());
+
+	} else {
+		stride_ = static_cast<unsigned>(choose_stride(IMP_RANGE));
+		figTechLog << "for 1 out of every " << stride_ << " importance value"
+		           << (stride_ > 1 ? ("s.\n") : (".\n"));
+		thresholds.emplace_back(impFun.initial_value());
+		// Start above initial importance value? May reduce oversampling
+		const auto margin = std::min<unsigned>(IMP_RANGE, thresholds.back()+stride_);
+		build_thresholds(impFun, margin, stride_, thresholds);
+	}
+
+	//show_thresholds(thresholds);
+
+build_thresholds_vec:
+	ThresholdsVec result;
+	result.reserve(thresholds.size());
+	for (auto imp: thresholds)
+		result.emplace_back(imp, globEff_);
+	result.front().second = 1ul;
+	result.back().second = 1u;
+	return result;
+}
+
+
 void
 ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
-										 const unsigned& margin,
-										 const unsigned& stride,
-										 ImportanceVec& thresholds)
+                                         const unsigned& margin,
+                                         const unsigned& stride,
+                                         ImportanceVec& thresholds)
 {
 	assert(impFun.max_value() > impFun.initial_value() + margin);
 
@@ -194,28 +286,27 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 	{
 	case (PostProcessing::NONE):
 	case (PostProcessing::SHIFT):
-		{ const size_t SIZE(IMP_RANGE/stride+2ul), OLD_SIZE(thresholds.size());
+	    { const size_t SIZE(IMP_RANGE/stride+2ul), OLD_SIZE(thresholds.size());
 		thresholds.resize(OLD_SIZE+SIZE);
 		for (size_t i = OLD_SIZE, imp = FIRST_THR;
 			 i < thresholds.size() ;
-			 imp += stride, i++)
+		     imp += stride, i++)
 			thresholds[i] = static_cast<ImportanceValue>(imp);
-		}; break;
+	    } break;
 
 	case (PostProcessing::EXP):
 		{ size_t expStride(1ul);
 		for (ImportanceValue imp = FIRST_THR;
 			 imp < impFun.max_value();
-			 expStride *= stride, imp += expStride)
+		     expStride *= stride, imp += expStride)
 			thresholds.push_back(imp);
 		thresholds.push_back(impFun.max_value()+1u);
-		}; break;
+	    } break;
 
 	default:
 		throw_FigException("invalid post-processing \"" + postPro_.name
 		                  + "\" (" + std::to_string(postPro_.type) + ")");
-		break;
-	};
+	}
 
 	// Enforce consistency (remember thresholds may contain previous data)
 	std::sort(begin(thresholds), end(thresholds));
@@ -225,5 +316,6 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 	assert(thresholds.back() > impFun.max_value());
 	thresholds.back() = impFun.max_value() + static_cast<ImportanceValue>(1u);
 }
+
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

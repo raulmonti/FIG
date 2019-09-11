@@ -42,6 +42,10 @@
 // FIG
 #include <ModuleNetwork.h>
 #include <TraialPool.h>
+#include <Property.h>
+#include <PropertyRate.h>
+#include <PropertyTBoundSS.h>
+#include <PropertyTransient.h>
 #include <ImportanceFunction.h>
 #include <SimulationEngine.h>
 #include <SimulationEngineNosplit.h>
@@ -293,7 +297,7 @@ template< typename DerivedProperty,
           class TraialMonitor >
 Event ModuleNetwork::simulation_step(Traial& traial,
 									 const DerivedProperty& property,
-									 const TraialMonitor& watch_events) const
+                                     const TraialMonitor& watch_events) const
 {
 	using fig_cli::traceDump;
 	const auto defaultStreamFlags(traceDump != nullptr ? traceDump->flags()
@@ -343,8 +347,10 @@ using TraialMonitor = SimulationEngine::EventWatcher;
 template
 Event ModuleNetwork::simulation_step(Traial&, const Property&, const TraialMonitor&) const;
 template
-Event ModuleNetwork::simulation_step(Traial&, const PropertyTransient&, const TraialMonitor&) const;
-template
 Event ModuleNetwork::simulation_step(Traial&, const PropertyRate&, const TraialMonitor&) const;
+template
+Event ModuleNetwork::simulation_step(Traial&, const PropertyTBoundSS&, const TraialMonitor&) const;
+template
+Event ModuleNetwork::simulation_step(Traial&, const PropertyTransient&, const TraialMonitor&) const;
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

@@ -109,7 +109,7 @@ public:  // Ctors/Dtor
 	/// Can't move assign since Transitions can't
 	ModuleNetwork& operator=(ModuleNetwork&&) = delete;
 
-	~ModuleNetwork();
+	~ModuleNetwork() override;
 
 public:  // Populating facilities
 
@@ -220,7 +220,7 @@ public:  // Utils
 	          class TraialMonitor >
 	Event simulation_step(Traial& traial,
 	                      const DerivedProperty& property,
-						  const TraialMonitor& watch_events) const;
+	                      const TraialMonitor& watch_events) const;
 
 	/**
 	 * @brief Advance a traial and keep track of maximum importance reached

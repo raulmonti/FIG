@@ -119,6 +119,18 @@ class ModelSuite
 		std::string,
 		std::shared_ptr< SimulationEngine > > simulators;
 
+	/// ImportanceFunction last used by
+	/// @note set by prepare_simulation_engine(); reset by clear()
+	static std::shared_ptr< ImportanceFunction > currentImpFun;
+
+	/// ThresholdsBuilder last used by prepare_simulation_engine
+	/// @note set by prepare_simulation_engine(); reset by clear()
+	static std::shared_ptr< ThresholdsBuilder > currentThrBuilder;
+
+	/// SimulationEngine last used by prepare_simulation_engine
+	/// @note set by prepare_simulation_engine(); reset by clear()
+	static std::shared_ptr< SimulationEngine > currentSimulator;
+
 	/// Main system log
 	static std::ostream& mainLog_;
 
@@ -359,7 +371,8 @@ public:  // Accessors
 	 *         nullptr otherwise.
 	 * @see add_property()
 	 */
-	std::shared_ptr< const Property > get_property(const size_t& i) const noexcept;
+	template< typename Integral >
+	std::shared_ptr< const Property > get_property(const Integral& i) const noexcept;
 
 	/// Get the global effort used by all Importance Splitting engines
 	/// @see set_global_effort()
@@ -394,6 +407,21 @@ public:  // Accessors
 	/// @copydoc Module::initial_state()
 	/// @throw FigException if there is no ModuleNetwork loaded
 	static State<STATE_INTERNAL_TYPE> get_initial_state();
+
+	/// Reference to the ImportanceFunction last used by prepare_simulation_engine()
+	/// @see currentImpFun
+	static inline shared_ptr< const ImportanceFunction > current_importance_function() noexcept
+	    { return currentImpFun; }
+
+	/// Reference to the ThresholdsBuilder last used by prepare_simulation_engine()
+	/// @see currentThrBuilder
+	static inline shared_ptr< const ThresholdsBuilder > current_thresholds_builder() noexcept
+	    { return currentThrBuilder; }
+
+	/// Reference to the SimulationEngine last used by prepare_simulation_engine()
+	/// @see currentSimulator
+	static shared_ptr< const SimulationEngine > current_simulation_engine() noexcept
+	    { return currentSimulator; }
 
 	/// Names of available simulation engines,
 	/// as they should be requested by the user.
@@ -523,9 +551,10 @@ public:  // Utils
 	/// added to the system in the specified index
 	/// @throw FigException if there's no property at index 'propertyIndex'
 	/// @see get_property()
+	template< typename Integral >
 	void
 	build_importance_function_flat(const std::string& ifunName,
-								   const size_t& propertyIndex,
+	                               const Integral& propertyIndex,
 								   bool force = false);
 
 	/**
@@ -564,9 +593,10 @@ public:  // Utils
 	/// added to the system in the specified index
 	/// @throw FigException if there's no property at index 'propertyIndex'
 	/// @see get_property()
+	template< typename Integral >
 	void
 	build_importance_function_adhoc(const ImpFunSpec& impFun,
-									const size_t& propertyIndex,
+	                                const Integral& propertyIndex,
 									bool force = false);
 
 	/**
@@ -604,9 +634,10 @@ public:  // Utils
 	/// added to the system in the specified index
 	/// @throw FigException if there's no property at index 'propertyIndex'
 	/// @see get_property()
+	template< typename Integral >
 	void
 	build_importance_function_auto(const ImpFunSpec& impFun,
-								   const size_t& propertyIndex,
+	                               const Integral& propertyIndex,
 								   bool force = false);
 
 private:  // Embedded into prepare_simulation_engine()
@@ -620,7 +651,8 @@ private:  // Embedded into prepare_simulation_engine()
 	 *        After a successfull call the corresponding ImportanceFunction is
 	 *        \ref ImportanceFunction::ready() "ready for simulations".
 	 *
-	 * @param technique Any from available_threshold_techniques()
+	 * @param thrSpec   Any from available_threshold_techniques(),
+	 *                  or explicit thresholds if these are chosen ad hoc.
 	 * @param ifunName  Any from available_importance_functions(),
 	 *                  refering to an ImportanceFunction which has
 	 *                  \ref ImportanceFunction::has_importance_info()
@@ -644,7 +676,7 @@ private:  // Embedded into prepare_simulation_engine()
 	 * @see build_importance_function_adhoc()
 	 */
 	bool
-	build_thresholds(const std::string& technique,
+	build_thresholds(const std::string& thrSpec,
 	                 const std::string& ifunName,
 	                 std::shared_ptr<const Property> property,
 	                 bool force = true);
@@ -653,10 +685,11 @@ private:  // Embedded into prepare_simulation_engine()
 	/// added to the system in the specified index
 	/// @throw FigException if there's no property at index 'propertyIndex'
 	/// @see get_property()
+	template< typename Integral >
 	bool
-	build_thresholds(const std::string& technique,
+	build_thresholds(const std::string& thrSpec,
 	                 const std::string& ifunName,
-	                 const size_t& propertyIndex,
+	                 const Integral& propertyIndex,
 	                 bool force = true);
 
 public:  // Utils
@@ -671,12 +704,13 @@ public:  // Utils
 	 *        After a successfull call the returned engine can be used
 	 *        with estimate().
 	 *
-	 * @param engineName    Any from available_simulators()
-	 * @param ifunName      Any from available_importance_functions()
-	 * @param thrTechnique  Any from available_threshold_techniques()
-	 * @param property      User property query being estimated
-	 * @param force         Forcefully perform all operations even when
-	 *                      the engine is already ready
+	 * @param engineName  Any from available_simulators()
+	 * @param ifunName    Any from available_importance_functions()
+	 * @param thrSpec     Any from available_threshold_techniques(),
+	 *                    or explicit thresholds if these are chosen ad hoc.
+	 * @param property    User property query being estimated
+	 * @param force       Forcefully perform all operations even when
+	 *                    the engine is already ready
 	 *
 	 * @return Pointer to the SimulationEngine to be used for estimations
 	 *
@@ -694,7 +728,7 @@ public:  // Utils
 	std::shared_ptr< SimulationEngine >
 	prepare_simulation_engine(const std::string& engineName,
 	                          const std::string& ifunName,
-	                          const std::string& thrTechnique,
+	                          const std::string& thrSpec,
 	                          std::shared_ptr< const Property > property,
 	                          bool force = true);
 
@@ -702,11 +736,12 @@ public:  // Utils
 	/// added to the system in the specified index
 	/// @throw FigException if there's no property at index 'propertyIndex'
 	/// @see get_property()
+	template< typename Integral >
 	std::shared_ptr< SimulationEngine >
 	prepare_simulation_engine(const std::string& engineName,
 	                          const std::string& ifunName,
-	                          const std::string& thrTechnique,
-	                          const size_t& propertyIndex,
+	                          const std::string& thrSpec,
+	                          const Integral& propertyIndex,
 	                          bool force = true);
 
 	/**
@@ -768,7 +803,8 @@ public:  // Simulation utils
 	/// Same as estimate() for the property added to the system in the requested index
 	/// @throw FigException if there's no property at index 'propertyIndex'
 	/// @see get_property()
-	void estimate(const size_t& propertyIndex,
+	template< typename Integral >
+	void estimate(const Integral& propertyIndex,
 				  SimulationEngine& engine,
 	              const StoppingConditions& bounds,
 	              const ImpFunSpec ifunSpec = ImpFunSpec("null","null")) const;
@@ -788,7 +824,8 @@ public:  // Simulation utils
 	 * @param impFunSpec Specification of the importance function name,
 	 *                   strategy, and any additional parameter such as an user
 	 *                   defined algebraic function or the extreme values
-	 * @param thrTechnique Any from available_threshold_techniques()
+	 * @param thrSpec    Any from available_threshold_techniques(),
+	 *                   or explicit thresholds if these are chosen ad hoc.
 	 * @param estimationBounds List of stopping conditions to use for the
 	 *                         estimation of each property (all are used)
 	 * @param splittingValues List of splittings to test, used for
@@ -808,7 +845,7 @@ public:  // Simulation utils
 	>
 	void process_batch(const std::string& engineName,
 					   const ImpFunSpec& impFunSpec,
-					   const std::string& thrTechnique,
+	                   const std::string& thrSpec,
 					   const Container1<ValueType1, OtherArgs1...>& estimationBounds,
 	                   const Container2<ValueType2, OtherArgs2...>& globalEffortValues
 						   = std::vector<unsigned>());
@@ -830,8 +867,9 @@ private:  // Class utils
 
 public: // Debug
         void print_info(std::ostream &out) const;
-        void print_importance_function(std::ostream &out,
-                                       const ImportanceFunction &imf) const;
+		void print_importance_function(std::ostream &out, const ImportanceFunction &imf) const;
+		void print_current_importance_function(std::ostream &out) const;
+		void print_current_thresholds(std::ostream &out) const;
 };
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -851,7 +889,7 @@ template<
 void
 ModelSuite::process_batch(const std::string& engineName,
     const ImpFunSpec& impFunSpec,
-    const std::string& thrTechnique,
+    const std::string& thrSpec,
     const Container1<ValueType1, OtherArgs1...>& estimationBounds,
     const Container2<ValueType2, OtherArgs2...>& globalEffortValues)
 {
@@ -884,9 +922,10 @@ ModelSuite::process_batch(const std::string& engineName,
 						   impFunSpec.postProcessing.name + "\"Call \"available_"
 						   "importance_post_processings()\" for a list of "
 						   "available options.");
-	} else if (!exists_threshold_technique(thrTechnique)) {
-		log("Thresholds building technique \"" + thrTechnique + "\" doesn't exist.");
-		throw_FigException("inexistent threshold building technique \"" + thrTechnique +
+	} else if (!exists_threshold_technique(thrSpec) &&
+	           std::string::npos == thrSpec.find(":")) {
+		log("Thresholds building technique \"" + thrSpec + "\" doesn't exist.");
+		throw_FigException("inexistent threshold building technique \"" + thrSpec +
 						   "\". Call \"available_threshold_techniques()\" "
 						   "for a list of available options.");
 	} else if (!exists_simulator(engineName)) {
@@ -909,7 +948,7 @@ ModelSuite::process_batch(const std::string& engineName,
 	}
 
 	// For each property ...
-	for (const auto& property: properties) {
+	for (std::shared_ptr<const Property> property: properties) {
 
 		// ... build the importance function ...
 		if ("flat" == impFunSpec.strategy)
@@ -927,7 +966,7 @@ ModelSuite::process_batch(const std::string& engineName,
 			set_global_effort(ge, engineName);
 			auto engine = prepare_simulation_engine(engineName,
 			                                        impFunSpec.name,
-			                                        thrTechnique,
+			                                        thrSpec,
 			                                        property);
 			assert(impFuns[impFunSpec.name]->ready());
 			assert(engine->ready());

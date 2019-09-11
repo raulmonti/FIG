@@ -263,7 +263,7 @@ ConfidenceInterval::confidence_quantile(const double& cc) const
 //		double quantile = probit(significance);                  // old way
 //		double quantile = gsl_cdf_ugaussian_Pinv(significance);  // new way
 		quantile = gsl_cdf_tdist_Pinv(significance,              // correct way
-		                              numSamples_ < 1l ? 11.0 : numSamples_-1.0);
+		                              numSamples_ <= 1l ? 11.0 : numSamples_-1.0);
 		// ^^^ for the ctor of the CI, before estimations begin,
 		//     we emulate 10 degrees of freedom which symbolise 11 samples
 		significance += 0.000001;
