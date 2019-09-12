@@ -257,7 +257,7 @@ start_timer(ConfidenceInterval& ci,
 			bool& timeoutSignal,
 			const seconds& timeLimit,
 			std::ostream& out,
-            const double& startTime)
+			const double& startTime)
 {
 	std::this_thread::sleep_for(timeLimit);
 	timeoutSignal = true;  // this should stop computations
@@ -465,7 +465,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 		model->seal(initialClocksNames);
 	}
 	for (auto prop: properties)
-        prop->prepare(model->global_state());
+		prop->prepare(model->global_state());
 
 	// Build offered importance functions
 	impFuns["concrete_coupled"] =
@@ -853,7 +853,7 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
     if (force || !ifun.has_importance_info() || "flat" != ifun.strategy()) {
 		techLog_ << "\nBuilding importance function \"" << ifunName
 				 << "\" with \"flat\" assessment strategy.\n";
-        techLog_ << "Property: " << property.to_string() << std::endl;
+		techLog_ << "Property: " << property.to_string() << std::endl;
         ifun.clear();
 		const double startTime = omp_get_wtime();
 		if (ifun.concrete())
@@ -886,8 +886,8 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
 template< typename Integral >
 void
 ModelSuite::build_importance_function_flat(const std::string& ifunName,
-                                           const Integral& propertyIndex,
-                                           bool force)
+										   const Integral& propertyIndex,
+										   bool force)
 {
 	static_assert(std::is_integral<Integral>::value,
 	              "ERROR: type mismatch, expected integral propertyIndex");
@@ -928,7 +928,7 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 		techLog_ << "\nBuilding importance function \"" << impFun.name
 				 << "\" with \"adhoc\" assessment strategy (\""
 				 << impFun.algebraicFormula << "\")\n";
-        techLog_ << "Property: " << property.to_string() << std::endl;
+		techLog_ << "Property: " << property.to_string() << std::endl;
 		ifun.clear();
 		auto allVarnames = model->global_state().varnames();
 		const double startTime = omp_get_wtime();
@@ -1038,7 +1038,7 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 		}
 		try {
 			// Compute importance automatically -- here hides the magic!
-            static_cast<ImportanceFunctionConcrete&>(ifun)
+			static_cast<ImportanceFunctionConcrete&>(ifun)
 					.assess_importance(property, "auto", impFun.postProcessing);
 		} catch (std::bad_alloc&) {
 			throw_FigException("couldn't build importance function \""
@@ -1116,7 +1116,8 @@ ModelSuite::build_thresholds(const std::string& thrSpec,
 		throw_FigException("importance function \"" + ifunName + "\" doesn't "
 						   "have importance information yet. Call any of the "
 						   "\"build_importance_function_xxx()\" routines with "
-		                   "\"" + ifunName + "\" beforehand");
+						   "\"" + ifunName + "\" beforehand");
+
 	if (force || ifun.thresholds_technique() != technique) {
 		const auto geStr = tb.uses_global_effort()
 		            ? (" with global effort "+std::to_string(globalEffort)) : ("");
@@ -1133,7 +1134,7 @@ ModelSuite::build_thresholds(const std::string& thrSpec,
 		ifun.build_thresholds(tb);
 		techLog_ << "Thresholds building time: "
 				 << std::fixed << std::setprecision(2)
-		         << omp_get_wtime()-startTime << " s\n\n"
+				 << omp_get_wtime()-startTime << " s\n"
 //				 << std::defaultfloat;
 				 << std::setprecision(6);
 		if (thresholdsGivenAdHoc)
@@ -1291,6 +1292,7 @@ ModelSuite::release_resources(const std::string& ifunName,
 	}
 	techLog_ << msg.str();
 }
+
 
 void
 ModelSuite::clear() noexcept

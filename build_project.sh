@@ -171,6 +171,7 @@ fi
 COMPILER="`basename $CC`";
 
 
+
 # Check there's a CMake build file in the corresponding directory
 if [ ! -f ${DIR}/CMakeLists.txt ]; then
 	if [ -z $DIR ]; then DIR="current directory"; fi;
