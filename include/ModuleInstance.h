@@ -325,6 +325,16 @@ public:  // Ctors/Dtor and populating facilities
 						const Postcondition& pos,
 						const Container<ValueType, OtherContainerArgs...>& resetClocks);
 
+	/// Same as above but with forced move semantics for pre- and post-conditions
+	template< template< typename, typename... > class Container,
+	          typename ValueType,
+	          typename... OtherContainerArgs >
+	void add_transition(const Label& label,
+	                    const std::string& triggeringClock,
+	                    Precondition&& pre,
+	                    Postcondition&& pos,
+	                    const Container<ValueType, OtherContainerArgs...>& resetClocks);
+
 public:  // Accessors
 
 	inline std::string id() const noexcept override { return name; }

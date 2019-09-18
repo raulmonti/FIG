@@ -210,10 +210,13 @@ ValueArg<string> thrAdHoc_(
 // Translation from/to JANI specification format
 SwitchArg JANIimport_(
 	"", "from-jani",
-	"Don't estimate; create IOSA model file from JANI-spec model file.");
+    "Don't estimate; create IOSA model file from JANI exchange format file.");
 SwitchArg JANIexport_(
-	"", "to-jani",
-	"Don't estimate; create JANI-spec model file from IOSA model file.");
+    "", "to-jani",
+    "Don't estimate; create JANI exchange format file from IOSA model file.");
+SwitchArg JANIexportModest_(
+    "", "to-jani-modest",
+    "Don't estimate; create Modest-compatible JANI exchange format file from IOSA model file.");
 
 // Importance function specifications
 SwitchArg ifunFlat(
@@ -425,8 +428,10 @@ get_jani_spec()
 	using std::make_pair;
 
 	// Determine JANI interaction
-	bool fromJANI(JANIimport_.getValue()), toJANI(JANIexport_.getValue());
-	janiSpec.translateOnly = fromJANI || toJANI;
+	bool toModestJANI(JANIexportModest_.isSet()),
+	           toJANI(JANIexport_.isSet()),
+	         fromJANI(JANIimport_.isSet());
+	janiSpec.translateOnly = toModestJANI || toJANI || fromJANI;
 	if (janiSpec.translateOnly) {
 		janiSpec.janiInteraction = true;
 		janiSpec.translateDirection = fromJANI ? fig::JaniTranny::FROM_JANI
@@ -490,6 +495,7 @@ get_jani_spec()
 			janiSpec.modelFileJANI = regex_replace(iosaFile, iosaExt, "$1.jani");
 		else
 			janiSpec.modelFileJANI = iosaFile + ".jani";
+		janiSpec.modestCompatible = toModestJANI;
 	}
 
 	return true;
@@ -805,6 +811,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		auto ifun_or_JANI(impFunSpecs);  // jani spec XOR ifun
 		ifun_or_JANI.emplace_back(&JANIimport_);
 		ifun_or_JANI.emplace_back(&JANIexport_);
+		ifun_or_JANI.emplace_back(&JANIexportModest_);
 		cmd_.xorAdd(ifun_or_JANI);
 		cmd_.add(engineName_);
 		cmd_.add(thrTechnique_);

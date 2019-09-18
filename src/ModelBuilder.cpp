@@ -422,8 +422,8 @@ void ModelBuilder::visit(shared_ptr<TransitionAST> action) {
 	current_module->add_transition(
 	            label,
 	            t_clock,
-	            std::move(Precondition(action->get_precondition())),
-	            std::move(Postcondition(action->get_assignments())),
+	            Precondition(action->get_precondition()),
+	            Postcondition(action->get_assignments()),
 	            *transition_clocks);
 }
 

@@ -236,7 +236,7 @@ void interact_with_JANI()
 	fig::JaniTranslator translator;
 
 	if (fig::JaniTranny::FROM_JANI == janiSpec.translateDirection) {
-		log("Translating from JANI Specification format to IOSA model syntax\n");
+		log("Translating from the JANI exchange format to IOSA model syntax\n");
 		if (!file_exists(janiSpec.modelFileJANI)) {
 			log(" *** Error: JANI-spec model file \""
 				+ janiSpec.modelFileJANI +"\" not found! ***\n");
@@ -252,10 +252,11 @@ void interact_with_JANI()
 		}
 		translator.JANI_2_IOSA(janiSpec.modelFileJANI,
 							   janiSpec.modelFileIOSA,
-							   !janiSpec.translateOnly);
+		                       janiSpec.translateOnly);
 
 	} else if (fig::JaniTranny::TO_JANI == janiSpec.translateDirection) {
-		log("Translating from IOSA model syntax to JANI Specification format\n");
+		std::string furMeinFuhrer = janiSpec.modestCompatible ? " (Modest-compatible version)" : "";
+		log("Translating from IOSA model syntax to the JANI exchange format" +furMeinFuhrer+ "\n");
 		if (!file_exists(janiSpec.modelFileIOSA)) {
 			log(" *** Error: IOSA model file \""
 				+ janiSpec.modelFileIOSA +"\" not found! ***\n");
@@ -277,7 +278,8 @@ void interact_with_JANI()
 		translator.IOSA_2_JANI(janiSpec.modelFileIOSA,
 							   janiSpec.propsFileIOSA,
 							   janiSpec.modelFileJANI,
-							   checkIOSAcorrectness);
+		                       checkIOSAcorrectness,
+		                       janiSpec.modestCompatible);
 
 	} else {
 		log("Ill-defined JANI-IOSA interaction -- Skipping translation\n");
@@ -312,8 +314,8 @@ void compile_model(bool modelAlreadyBuilt)
 	}
 
 	// Build AST from files, viz. parse
-	shared_ptr<ModelAST> modelAST(nullptr);
-	modelAST = ModelAST::from_files(modelFile.c_str(), propertiesFile.c_str());
+	auto modelAST = ModelAST::from_files(modelFile.c_str(),
+	                                     propertiesFile.c_str());
 	if (nullptr == modelAST) {
 		log("[ERROR] Failed to parse the model.\n");
 		throw_FigException("failed parsing the model file");

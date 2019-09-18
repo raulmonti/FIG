@@ -460,7 +460,7 @@ first_ID_in_expr(std::shared_ptr<Exp> expr, const shared_vector<Decl>& IDs)
 /// @return Whether the IOSA model could be successfully built
 bool
 build_IOSA_model_from_AST(Model& modelAST,
-						  bool reduceExpressions = false,
+                          bool sealModel = true,
 						  bool verifyIOSA = true)
 {
 	// Check types
@@ -471,21 +471,17 @@ build_IOSA_model_from_AST(Model& modelAST,
 		fig::figTechLog << typechecker.get_messages() << std::endl;
 		return false;
 	}
-
-	// Reduce expressions if requested
-	if (reduceExpressions) {
-		ModelReductor reductor;
-		modelAST.accept(reductor);
-		if (reductor.has_errors()) {
-			fig::figTechLog << "[ERROR] Expressions reduction failed" << std::endl;
-			fig::figTechLog << reductor.get_messages() << std::endl;
-			return false;
-		}
+	// Reduce expressions
+	ModelReductor reductor(sealModel);
+	modelAST.accept(reductor);
+	if (reductor.has_errors()) {
+		fig::figTechLog << "[ERROR] Expressions reduction failed" << std::endl;
+		fig::figTechLog << reductor.get_messages() << std::endl;
+		return false;
 	}
-
 	// Check IOSA compliance if requested
 	if (verifyIOSA &&
-			ModuleScope::modules_size_bounded_by(ModelVerifier::NTRANS_BOUND)) {
+	        ModuleScope::modules_size_bounded_by(ModelVerifier::NTRANS_BOUND)) {
 		ModelVerifier verifier;
 		modelAST.accept(verifier);
 		if (verifier.has_errors() || verifier.has_warnings()) {
@@ -494,7 +490,6 @@ build_IOSA_model_from_AST(Model& modelAST,
 			return false;
 		}
 	}
-
 	// Build model (i.e. populate ModelSuite)
 	ModelBuilder builder;
 	modelAST.accept(builder);
@@ -503,10 +498,10 @@ build_IOSA_model_from_AST(Model& modelAST,
 		fig::figTechLog << builder.get_messages() << std::endl;
 		return false;
 	}
-
-	// Success iff the ModelSuite can be sealed
-	fig::ModelSuite::get_instance().seal();
-	return fig::ModelSuite::get_instance().sealed();
+	if (sealModel)
+		fig::ModelSuite::get_instance().seal();
+	// Success?
+	return !sealModel || fig::ModelSuite::get_instance().sealed();
 }
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
@@ -523,9 +518,11 @@ const Json::Value JaniTranslator::EMPTY_JSON_ARR = Json::Value(Json::arrayValue)
 
 
 JaniTranslator::JaniTranslator() :
-	JANIroot_(make_shared<Json::Value>(EMPTY_JSON_OBJ)),
+    SELF_SYNCING(false),
+    compatibilityMode_(IOSA),
+    JANIroot_(make_shared<Json::Value>(EMPTY_JSON_OBJ)),
 	JANIfield_(make_shared<Json::Value>(EMPTY_JSON_OBJ)),
-	currentModule_(),
+    currentModule_(),
     currentScope_(nullptr)
 { /* Not much to do around here */ }
 
@@ -633,10 +630,19 @@ JaniTranslator::get_float_or_error(shared_ptr<Exp> exp,
 
 std::string
 JaniTranslator::IOSA_2_JANI(const std::string& iosaModelFile,
-							const std::string& iosaPropsFile,
-							const std::string& janiFilename,
-							bool validityCheck)
+                            const std::string& iosaPropsFile,
+                            const std::string& janiFilename,
+                            bool validityCheck,
+                            bool modestCompat)
 {
+	if (modestCompat) {
+		compatibilityMode_ = Modest;
+		SELF_SYNCING = true;
+	} else {
+		compatibilityMode_ = IOSA;
+		SELF_SYNCING = false;
+	}
+
 	// Parse IOSA model file
 	parse_IOSA_model(iosaModelFile, iosaPropsFile, validityCheck);
 	if (IOSAroot_ == nullptr)
@@ -679,12 +685,12 @@ JaniTranslator::parse_IOSA_model(const string& iosaModelFile,
 			: ("files \"" + iosaModelFile + " and \"" + iosaPropsFile + "\"");
 
 	// Parse IOSA files
-	shared_ptr<ModelAST> modelAST = ModelAST::from_files(iosaModelFile.c_str(),
-														 iosaPropsFile.c_str());
+	auto modelAST = ModelAST::from_files(iosaModelFile.c_str(),
+	                                     iosaPropsFile.c_str());
 	if (nullptr != modelAST) {
 		// Populate ModelSuite
 		bool success = build_IOSA_model_from_AST(dynamic_cast<Model&>(*modelAST),
-												 false,  // let constants IDs alone
+		                                         false,  // do not resolve names
 												 validityCheck);
 		if (success)
 			IOSAroot_ = std::dynamic_pointer_cast<Model>(modelAST);
@@ -702,25 +708,33 @@ JaniTranslator::build_JANI_constant(shared_ptr<InitializedDecl> node,
 {
 	assert(node->is_constant());
 	assert(JANIobj.isObject());
+
+	// Avoid reducing locations (variable/constant names)
+	if (node->get_init()->is_location())
+		JANIobj["value"] = node->get_init()->to_string();
+
 	switch(node->get_type())
 	{
 	case Type::tbool:
 		JANIobj["type"] = "bool";
-		JANIobj["value"] = get_bool_or_error(node->get_init(),
+		if (!JANIobj.isMember("value"))
+			JANIobj["value"] = get_bool_or_error(node->get_init(),
 								   "failed to reduce boolean value of "
 								   "constant \"" + node->get_id() + "\"\n");
 		break;
 
 	case Type::tint:
 		JANIobj["type"] = "int";
-		JANIobj["value"] = get_int_or_error(node->get_init(),
-								   "failed to reduce integer value of "
-								   "constant \"" + node->get_id() + "\"\n");
+		if (!JANIobj.isMember("value"))
+			JANIobj["value"] = get_int_or_error(node->get_init(),
+			                       "failed to reduce integer value of "
+			                       "constant \"" + node->get_id() + "\"\n");
 		break;
 
 	case Type::tfloat:
 		JANIobj["type"] = "real";
-		JANIobj["value"] = get_float_or_error(node->get_init(),
+		if (!JANIobj.isMember("value"))
+			JANIobj["value"] = get_float_or_error(node->get_init(),
 								   "failed to reduce floating point value of "
 								   "constant \"" + node->get_id() + "\"\n");
 		break;
@@ -728,7 +742,6 @@ JaniTranslator::build_JANI_constant(shared_ptr<InitializedDecl> node,
 	default:
 		throw_FigException("invalid initialized declaration type: " +
 						   std::to_string(static_cast<int>(node->get_type())));
-		break;
 	}
 }
 
@@ -848,20 +861,22 @@ JaniTranslator::build_JANI_destinations(shared_ptr<TransitionAST> trans,
 		assert(rvar["value"].isMember("args"));
 		ass.append(rvar);
 
-		// Also add this clock reset to the initialisation edge
-		bool alreadyInitialised = false;
-		assert(initEdge["destinations"][0]["assignments"].isArray());
-		for (const auto& ass: initEdge["destinations"][0]["assignments"]) {
-			assert(ass.isObject());
-			assert(ass.isMember("ref"));
-			if (ass["ref"] == clockName) {
-				alreadyInitialised = true;
-				break;
+		if (compatibilityMode_ == Modest) {
+			// Also add this clock reset to the initialisation edge
+			bool alreadyInitialised = false;
+			assert(initEdge["destinations"][0]["assignments"].isArray());
+			for (const auto& ass: initEdge["destinations"][0]["assignments"]) {
+				assert(ass.isObject());
+				assert(ass.isMember("ref"));
+				if (ass["ref"] == clockName) {
+					alreadyInitialised = true;
+					break;
+				}
 			}
-		}
-		if (!alreadyInitialised) {
-			initEdge["destinations"][0]["assignments"].append(clk);
-			initEdge["destinations"][0]["assignments"].append(rvar);
+			if (!alreadyInitialised) {
+				initEdge["destinations"][0]["assignments"].append(clk);
+				initEdge["destinations"][0]["assignments"].append(rvar);
+			}
 		}
 	}
 }
@@ -927,14 +942,15 @@ JaniTranslator::build_JANI_synchronization(Json::Value& JANIobj)
 		}
 	}
 
-	// For compatibility with the Modest Toolset:
-	// An extra action to sync all modules from initial-location to location
-	auto initSync = EMPTY_JSON_OBJ;
-	initSync["result"] = INIT_CLOCKS;
-	initSync["synchronise"] = EMPTY_JSON_ARR;
-	for (auto i=0ul ; i<modulesLabels_.size() ; i++)
-		initSync["synchronise"].append(INIT_CLOCKS);
-	JANIobj["syncs"].append(initSync);
+	if (compatibilityMode_ == Modest) {
+		// An extra action to sync all modules from initial-location to location
+		auto initSync = EMPTY_JSON_OBJ;
+		initSync["result"] = INIT_CLOCKS;
+		initSync["synchronise"] = EMPTY_JSON_ARR;
+		for (auto i=0ul ; i<modulesLabels_.size() ; i++)
+			initSync["synchronise"].append(INIT_CLOCKS);
+		JANIobj["syncs"].append(initSync);
+	}
 
 	if (JANIobj["syncs"].empty())
 		JANIobj.removeMember("syncs");
@@ -960,7 +976,7 @@ JaniTranslator::build_JANI_sync_vector(const std::string& oLabel,
 			JANIarr.append(Json::nullValue);
 		}
 	}
-	if (noSync && !ALLOW_SELF_SYNCING)
+	if (noSync && !SELF_SYNCING)
 		JANIarr.clear();
 }
 
@@ -991,18 +1007,18 @@ JaniTranslator::visit(shared_ptr<Model> node)
 		module_ptr->accept(*this);
 	(*JANIroot_)["automata"] = *JANIfield_;
 
-	// For compatibility with the Modest Toolset:
-	// Store variables that appear in properties as *** global variables ***
-	// The resulting JANI file is no longer an IOSA !!!
-	(*JANIroot_)["variables"] = Json::arrayValue;
-	for (const auto& var: variablesInProperties_)
-		(*JANIroot_)["variables"].append(var);
-	variablesInProperties_.clear();
+	if (compatibilityMode_ == Modest) {
+		// Variables that appear in properties must be stored at global scope
+		(*JANIroot_)["variables"] = Json::arrayValue;
+		for (const auto& var: variablesInProperties_)
+			(*JANIroot_)["variables"].append(var);
+		variablesInProperties_.clear();
+	}
 
 	// Parse global constants
 	JANIfield_ = make_shared<Json::Value>(Json::arrayValue);
 	for (auto decl_ptr: node->get_globals()) {
-		assert(decl_ptr->is_constant());  // only global *constants* for now
+		assert(decl_ptr->is_constant());  // IOSA supports global *constants* only
 		decl_ptr->accept(*this);
 	}
 	(*JANIroot_)["constants"] = *JANIfield_;
@@ -1015,11 +1031,12 @@ JaniTranslator::visit(shared_ptr<Model> node)
 		(*JANIroot_)["actions"].append(action);
 	}
 
-	// For compatibility with the Modest Toolset:
-	// An extra action to sync all modules from initial-location to location
-	auto initAction = EMPTY_JSON_OBJ;
-	initAction["name"] = INIT_CLOCKS;
-	(*JANIroot_)["actions"].append(initAction);
+	if (compatibilityMode_ == Modest) {
+		// An extra action to sync all modules from initial-location to location
+		auto initAction = EMPTY_JSON_OBJ;
+		initAction["name"] = INIT_CLOCKS;
+		(*JANIroot_)["actions"].append(initAction);
+	}
 
 	// Compose the automata with synchronization vectors
 	build_JANI_synchronization((*JANIroot_)["system"]);
@@ -1044,7 +1061,14 @@ JaniTranslator::visit(shared_ptr<ModuleAST> node)
 	// Easy-to-guess module fields
 	JANIobj["name"] = node->get_name();
 	JANIobj["initial-locations"] = EMPTY_JSON_ARR;
-	JANIobj["initial-locations"].append("initial-location");
+	switch (compatibilityMode_) {
+	case IOSA:
+		JANIobj["initial-locations"].append("location");
+		break;
+	case Modest:
+		JANIobj["initial-locations"].append("initial-location");
+		break;
+	}
 
 	// Module variables + Real variables for clocks (STA)
 	(*JANIfield_) = EMPTY_JSON_ARR;
@@ -1054,23 +1078,27 @@ JaniTranslator::visit(shared_ptr<ModuleAST> node)
 	}
 	JANIobj["variables"] = *JANIfield_;
 
-	// For compatibility with the Modest Toolset:
-	// Prepare initialisation edge from initial-location to the "real location"
-	// that initialises all clocks and never goes back to the initial-location.
-	initEdge = EMPTY_JSON_OBJ;
-	initEdge["action"] = INIT_CLOCKS;
-	initEdge["location"] = "initial-location";
-	initEdge["destinations"] = EMPTY_JSON_ARR;
-	initEdge["destinations"].append(EMPTY_JSON_OBJ);
-	initEdge["destinations"][0]["location"] = "location";
-	initEdge["destinations"][0]["assignments"] = EMPTY_JSON_ARR;
+	if (compatibilityMode_ == Modest) {
+		// Prepare initialisation edge from initial-location to the "real location"
+		// that initialises all clocks and never goes back to the initial-location.
+		initEdge = EMPTY_JSON_OBJ;
+		initEdge["action"] = INIT_CLOCKS;
+		initEdge["location"] = "initial-location";
+		initEdge["destinations"] = EMPTY_JSON_ARR;
+		initEdge["destinations"].append(EMPTY_JSON_OBJ);
+		initEdge["destinations"][0]["location"] = "location";
+		initEdge["destinations"][0]["assignments"] = EMPTY_JSON_ARR;
+	}
 
 	// Module transitions
 	(*JANIfield_) = EMPTY_JSON_ARR;
 	for (auto tr_ptr: node->get_transitions())
 		tr_ptr->accept(*this);  // --> updates timeProgressInvariant_ and initEdge["destinations"][0]["assignments"]
 	JANIobj["edges"] = *JANIfield_;
-	JANIobj["edges"].append(initEdge);  // register also the initialisation edge
+	if (compatibilityMode_ == Modest) {
+		// register also the initialisation edge
+		JANIobj["edges"].append(initEdge);
+	}
 
 	// STA time-progress invariant:
 	// no time progress in "initial-location"
@@ -1125,10 +1153,9 @@ JaniTranslator::visit(shared_ptr<RangedDecl> node)
 
     // Store translated data in corresponding field
 	*JANIfield_ = tmp;
-	// For compatibility with the Modest Toolset,
-	// if the variable appears in a property,
-	// store as a *** global variable *** instead
-	if (varNamesRegister.find(node->get_id()) != end(varNamesRegister)) {
+	if (compatibilityMode_ == Modest &&
+	        varNamesRegister.find(node->get_id()) != end(varNamesRegister)) {
+		// Variables that appear in properties must be stored at global scope
 		variablesInProperties_.insert(JANIobj);
 	} else {
 		if (JANIfield_->isArray())
@@ -1162,10 +1189,9 @@ JaniTranslator::visit(shared_ptr<InitializedDecl> node)
 		throw_FigException("error translating declaration: " + get_messages());
 
 	// Store translated data in corresponding field
-	// For compatibility with the Modest Toolset,
-	// if the declaration is of a variable that appears in a property,
-	// store as a *** global variable *** instead
-	if (!node->is_constant() && varNamesRegister.find(name) != end(varNamesRegister)) {
+	if (compatibilityMode_ == Modest &&
+	        !node->is_constant() && varNamesRegister.find(name) != end(varNamesRegister)) {
+		// Variables that appear in properties must be stored at global scope
 		variablesInProperties_.insert(JANIobj);
 	} else {
 		if (JANIfield_->isArray())
@@ -1318,11 +1344,6 @@ JaniTranslator::visit(shared_ptr<TransitionAST> node)
 		case LabelType::in_committed:
 		case LabelType::out_committed:
 			throw_FigException("committed acctions not yet supported in JANI");
-			break;
-		default:
-			throw_FigException("invalid label type: " + std::to_string(
-								   static_cast<int>(node->get_label_type())));
-			break;
 		}
 	}
 
@@ -1428,7 +1449,7 @@ JaniTranslator::visit(shared_ptr<RateProp> node)
 std::string
 JaniTranslator::JANI_2_IOSA(const std::string& janiModelFile,
 							const std::string& iosaFilename,
-							bool skipFileDump)
+                            bool doFileDump)
 {
 	// Parse JANI model file
 	parse_JANI_model(janiModelFile);
@@ -1437,7 +1458,7 @@ JaniTranslator::JANI_2_IOSA(const std::string& janiModelFile,
 		throw_FigException("invalid JANI file given for translation to IOSA");
 
 	// Translate JANI to IOSA
-	const bool translated = build_IOSA_from_JANI();
+	const bool translated = build_IOSA_from_JANI(!doFileDump);
 	if (!translated) {
 #ifndef NDEBUG
 		figMainLog << "[ERROR] Invalid IOSA model file created !!!\n";
@@ -1449,7 +1470,7 @@ JaniTranslator::JANI_2_IOSA(const std::string& janiModelFile,
 	}
 
 	// Dump translated IOSA model to file and exit
-	bool dumpToFile( ! (skipFileDump && translated));
+	bool dumpToFile(doFileDump && translated);
 	std::string iosaFname;
 	if (dumpToFile) {
 		iosaFname = compose_iosa_fname(janiModelFile, iosaFilename);
@@ -1478,7 +1499,7 @@ JaniTranslator::parse_JANI_model(const std::string& janiModelFile)
 
 
 bool
-JaniTranslator::build_IOSA_from_JANI()
+JaniTranslator::build_IOSA_from_JANI(bool sealModel)
 {
 	// Fast consistency check and initializations
 	assert(nullptr != JANIroot_);
@@ -1561,7 +1582,7 @@ JaniTranslator::build_IOSA_from_JANI()
 		return false;
 	}
 
-	return ::build_IOSA_model_from_AST(iosaModel);
+	return ::build_IOSA_model_from_AST(iosaModel, sealModel);
 }
 
 

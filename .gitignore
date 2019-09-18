@@ -11,6 +11,8 @@
 *.creator
 *.files
 *.includes
+*.cflags
+*.cxxflags
 
 # Build
 fig

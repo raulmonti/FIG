@@ -144,22 +144,22 @@ ModuleInstance::add_transition(Transition&& transition)
 
 
 template< template< typename, typename... > class Container,
-		  typename ValueType,
-		  typename... OtherContainerArgs >
+          typename ValueType,
+          typename... OtherContainerArgs >
 void
 ModuleInstance::add_transition(
-	const Label& label,
-	const std::string& triggeringClock,
+    const Label& label,
+    const std::string& triggeringClock,
     const Precondition& pre,
     const Postcondition& pos,
-	const Container<ValueType, OtherContainerArgs...>& resetClocks)
+    const Container<ValueType, OtherContainerArgs...>& resetClocks)
 {
 	add_transition(Transition(
-		std::forward<const Label&>(label),
-		std::forward<const std::string&>(triggeringClock),
+	    std::forward<const Label&>(label),
+	    std::forward<const std::string&>(triggeringClock),
 	    std::forward<const Precondition&>(pre),
-		std::forward<const Postcondition&>(pos),
-		std::forward<const Container<ValueType, OtherContainerArgs...>&>(resetClocks)
+	    std::forward<const Postcondition&>(pos),
+	    std::forward<const Container<ValueType, OtherContainerArgs...>&>(resetClocks)
 	));
 }
 
@@ -174,6 +174,39 @@ template void ModuleInstance::add_transition(lab, str, pre, pos, const std::dequ
 template void ModuleInstance::add_transition(lab, str, pre, pos, const std::vector< std::string >&);
 template void ModuleInstance::add_transition(lab, str, pre, pos, const std::forward_list< std::string >&);
 template void ModuleInstance::add_transition(lab, str, pre, pos, const std::unordered_set< std::string >&);
+
+
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+void
+ModuleInstance::add_transition(
+	const Label& label,
+	const std::string& triggeringClock,
+    Precondition&& pre,
+    Postcondition&& pos,
+	const Container<ValueType, OtherContainerArgs...>& resetClocks)
+{
+	add_transition(Transition(
+		std::forward<const Label&>(label),
+		std::forward<const std::string&>(triggeringClock),
+	    std::move(pre),
+	    std::move(pos),
+		std::forward<const Container<ValueType, OtherContainerArgs...>&>(resetClocks)
+	));
+}
+
+// ModuleInstance::add_transition(...) can only be invoked with the following containers
+using lab = const Label&;
+using str = const std::string&;
+using mpre = Precondition&&;
+using mpos = Postcondition&&;
+template void ModuleInstance::add_transition(lab, str, mpre, mpos, const std::set< std::string >&);
+template void ModuleInstance::add_transition(lab, str, mpre, mpos, const std::list< std::string >&);
+template void ModuleInstance::add_transition(lab, str, mpre, mpos, const std::deque< std::string >&);
+template void ModuleInstance::add_transition(lab, str, mpre, mpos, const std::vector< std::string >&);
+template void ModuleInstance::add_transition(lab, str, mpre, mpos, const std::forward_list< std::string >&);
+template void ModuleInstance::add_transition(lab, str, mpre, mpos, const std::unordered_set< std::string >&);
 
 
 State<STATE_INTERNAL_TYPE>
