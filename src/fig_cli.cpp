@@ -253,7 +253,7 @@ ValueArg<string> ifunAutoCompositional(
 	"i.e. store information separately for each module. This stores in "
 	"memory one vector per module, and then uses the algebraic expression "
 	"provided to \"compose\" the global importance from these.",
-	false, "",
+	false, "+",
 	"composition_fun");
 std::vector< Arg* > impFunSpecs = {
 	&ifunFlat,
