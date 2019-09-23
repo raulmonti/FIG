@@ -75,14 +75,24 @@ ThresholdsBuilderFixed::setup(std::shared_ptr<const Property>, const void *info)
 {
 	int ge(0);
 	try {
-		thrAdHoc_ = *static_cast<const std::string*>(info);
+        // Does it make sense to interpret 'info' as an ad hoc list of thresholds?
+        auto thrAdHoc = static_cast<const std::string*>(info);
+        if (nullptr != thrAdHoc
+                && !thrAdHoc->empty()
+                && 666 > thrAdHoc->length())
+            thrAdHoc_ = *thrAdHoc;
+        else
+            thrAdHoc_ = "";
 	} catch (const std::bad_alloc&) {
 		thrAdHoc_ = "";
 	} catch (const std::length_error&) {
 		thrAdHoc_ = "";
 	}
-	if (thrAdHoc_.empty())  // couldn't cast to string? try casting to int
-		ge = *static_cast<const int*>(info);
+    if (thrAdHoc_.empty()) {
+        // couldn't cast to string? try casting to int
+        auto globalEffort = static_cast<const int*>(info);
+        ge = nullptr != globalEffort ? *globalEffort : 0;
+    }
 	// 'info' must've been either a valid string, or a valid global effort
 	// NOTE: global effort '0' is allowed for the flat "importance function"
 	if (thrAdHoc_.empty() && (ge < 0 || ge > static_cast<int>(MAX_EFFORT)))
