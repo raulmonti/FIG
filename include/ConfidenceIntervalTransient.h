@@ -41,12 +41,18 @@ namespace fig
 /**
  * @brief Confidence interval for estimates of transient-like simulations
  *
- *        The estimates this CI expects are binomial proportions.
- *        Internal computations are prepared to deal with a high amount of
- *        updates without significant precision loss due to fp arithmetic.
- *        The update(const std::vector<double>&) routine is designed to improve
- *        efficiency: perform several measurements and feed them all at once
- *        using this member function.
+ * @details Internal computations are prepared to deal with a high amount of
+ *          updates without significant precision loss due to fp arithmetic
+ *          (see <a href="https://goo.gl/wxYuzG">the wiki on this</a>)<br>
+ *          The update(const std::vector<double>&) routine is designed to improve
+ *          efficiency: perform several measurements and feed them all at once
+ *          using this member function.
+ *
+ * @note From a mathematical perspective this class is the same as
+ *       ConfidenceIntervalMean.<br>The difference with that class is that
+ *       ConfidenceIntervalTransient is designed to operate with a large
+ *       number of samples: it is assumed that update() will be called
+ *       very many times and therefore numSamples_ \f$\gg1\f$.
  */
 class ConfidenceIntervalTransient : public ConfidenceInterval
 {
@@ -63,12 +69,13 @@ public:  // Ctor
 public:  // Modifyers
 
 	/**
-	 * Update current estimation with a (single) new value,
-	 * i.e. only one experiment was run to come up with 'weighedNRE'
+	 * @deprecated Use the vector-input version update(const std::vector<double>&)
+	 *
+	 * @brief Update current estimation with a (single) new value,
+	 *        i.e. only one experiment was run to come up with 'weighedNRE'
 	 * @param weighedNRE Weighed number of rare events from last simulation
 	 * @throw FigException if detected possible overflow
 	 * @see update(const std::vector<double>&)
-	 * @deprecated Use the vector-input version
 	 */
 	void update(const double& weighedNRE) override;
 

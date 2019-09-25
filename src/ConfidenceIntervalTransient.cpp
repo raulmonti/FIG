@@ -60,7 +60,10 @@ ConfidenceIntervalTransient::ConfidenceIntervalTransient(double confidence,
 void
 ConfidenceIntervalTransient::update(const double& weighedNRE)
 {
-	assert(false);  // NOTE deprecated
+	// NOTE: single sample update is deprecated
+	if (std::isinf(std::log(0)))
+		throw_FigException("deprecated function called!");
+	assert(false);
 	prevEstimate_ = estimate_;
 	// Incremental (stable) computation of mean and variance (http://goo.gl/ytk6B)
 	const double delta = abs(weighedNRE - estimate_),
@@ -98,7 +101,10 @@ ConfidenceIntervalTransient::update(const std::vector<double>& weighedNREs)
 		assert(!(std::isnan(M2)||std::isinf(M2)));
 	}
 	logNumSamples_ = log(numSamples_);
-	logVariance_ = log(M2)-logNumSamples_;  // should use "numSamples_-1" for unbiasedness...
+	logVariance_ = log(M2)-logNumSamples_;
+	//    ^^^  we should use "numSamples_-1" for unbiasedness,
+	//         but this class assumes numSamples_ >> 1,
+	//         so using "numSamples_" is faster and shouldn't be noticeable
 	assert(!std::isnan(logVariance_));
 	if (0.0 < M2 && std::isinf(logVariance_))
 		throw_FigException("invalid internal value, overflow?");
@@ -119,7 +125,7 @@ ConfidenceIntervalTransient::min_samples_covered(bool considerEpsilon) const noe
 	// - for queueing and high reliability systems, it is the variance
 	//   rather than the num_samples what prolongues estimations.
 	const bool
-	    // 4K-CLT or considerations for binomial proportions
+	    // 4K*CLTrule || considerations for binomial proportions
 	    theoreticallySound = (1l<<12l)*30l <= numSamples_ ||
 	                         THEORETICAL_LBOUND < logNumSamples_+log(estimate_),
 		// If requested, ask also for little change w.r.t. the last estimate

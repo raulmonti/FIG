@@ -100,8 +100,8 @@ typedef std::chrono::duration<size_t> duration;
  * @brief Build a ConfidenceInterval of the required type
  *
  *        Each PropertyType must be estimated using a special kind of
- *        ConfidenceInterval. This helper function returns a new (i.e. without
- *        estimation data) interval of the correct kind for the property.
+ *        ConfidenceInterval. This helper function returns a new interval
+ *        (i.e. without estimation data) of the correct kind for the property.
  *
  * @param propertyType     Type of the property whose value is being estimated
  * @param confidenceCo     Interval's confidence coefficient ∈ (0.0, 1.0)
@@ -132,22 +132,21 @@ build_empty_ci(const fig::PropertyType& propertyType,
 
 	switch (propertyType)
 	{
-	case fig::PropertyType::TRANSIENT: {
+	case fig::PropertyType::TRANSIENT:
 		ci_ptr.reset(new fig::ConfidenceIntervalTransient(confidenceCo,
 														  precision,
 														  dynamicPrecision,
 														  timeBoundSim));
+//		// NOTE: the following was used by the binomial proportion CI,
+//		//       now deprecated in favour of ConfidenceIntervalTransient
 //		// The statistical oversampling incurred here is bounded:
-//		//  · from below by globalEffort ^ minRareValue,
-//		//  · from above by globalEffort ^ numThresholds.
-//		// NOTE: deprecated (this was used by the binomial proportion CI)
-//		double minStatOversamp = std::pow(globalEffort,
-//										  impFun.min_rare_value());
-//		double maxStatOversamp = std::pow(globalEffort,
-//										  impFun.num_thresholds());
+//		//  - from below by globalEffort ^ minRareValue,
+//		//  - from above by globalEffort ^ numThresholds.
+//		auto minStatOversamp = std::pow(globalEffort, impFun.min_rare_value());
+//		auto maxStatOversamp = std::pow(globalEffort, impFun.num_thresholds());
 //		ci_ptr->set_statistical_oversampling(maxStatOversamp);
 //		ci_ptr->set_variance_correction(minStatOversamp/maxStatOversamp);
-		} break;
+		break;
 
     case fig::PropertyType::RATE:
 	case fig::PropertyType::TBOUNDED_SS:
@@ -269,13 +268,17 @@ start_timer(ConfidenceInterval& ci,
 }
 
 
-/// Format time given in seconds as a hh:mm:ss string
+/// Format time given in seconds as a string "hh:mm:ss"
+template< typename Integral >
 std::string
-time_formatted_str(size_t timeInSeconds)
+time_formatted_str(Integral timeInSeconds)
 {
-	const size_t hours(timeInSeconds/3600ul);
-	const size_t minutes((timeInSeconds%3600ul)/60ul);
-	const size_t seconds(timeInSeconds%60ul);
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral timeInSeconds");
+	auto tis = static_cast<size_t>(timeInSeconds);  // ... but a flesh wound
+	const size_t hours(tis/3600ul);
+	const size_t minutes((tis%3600ul)/60ul);
+	const size_t seconds(tis%60ul);
 	char timeStr[23] = {'\0'};
 	std::sprintf(timeStr, "%02zu:%02zu:%02zu", hours, minutes, seconds);
 	return timeStr;
@@ -356,7 +359,7 @@ bool ModelSuite::pristineModel_(false);
 
 const ConfidenceInterval* ModelSuite::interruptCI_ = nullptr;
 
-const std::vector< float > ModelSuite::confCoToShow_ = {0.8, 0.9, 0.95, 0.99};
+const std::vector< float > ModelSuite::confCoToShow_ = {0.8f, 0.9f, 0.95f, 0.99f};
 
 SignalSetter ModelSuite::SIGINThandler_(SIGINT, [] (const int signal) {
 #ifndef NDEBUG

@@ -243,30 +243,39 @@ protected:
 	/**
 	 * Compute the quantile of given confidence coefficient.
 	 *
-	 * Given a desired confidence coefficient 'cc', and the corresponding
-	 * significance level 'a' := 1-cc, the confidence interval for an
-	 * estimated sample mean 'x' is computed as:
+	 * Given a confidence coefficient \p cc and corresponding significance level
+	 * a == 1-cc, the confidence interval for an estimated sample mean x is:
 	 * \code
-	 * x ± z_a * s / sqrt(n)
+	 * 		x ± z_a * s / sqrt(n)
 	 * \endcode
 	 * where 'n' is the number of observations, 's' is the sample standard
-	 * deviation, and 'z_a' is the "1-a/2" quantile of a unit normal variate,
-	 * i.e. a random variable with standard normal distribution. The quantile
-	 * is the inverse CDF of the unit normal variate, usually called
-	 * <a href="http://en.wikipedia.org/wiki/Probit">probit function</a>.
+	 * deviation, and 'z_a' is the "1-a/2" quantile.<br>
+	 * When the population (not the sample) variance is unknown, which is most
+	 * likely the case, the quantile is computed from a student-T distribution.
+	 * This functions thus returns the inverse of a student-T CDF evaluated
+	 * on 1-(1-cc)/2.
 	 *
 	 * @param cc Confidence coefficient for the desired confidence interval
+	 * @param nn New CI: assume numSamples_ == 0
 	 *
-	 * @return Confidence coefficient's quatile
+	 * @return Confidence coefficient quantile == inverse_CDF(1-(1-cc)/2)
 	 *
-	 * @note Since this uses the
-	 *       <a href="http://goo.gl/9jtSU3">Central Limit Theorem</a>,
-	 *       it is only valid for "sufficiently large" samples,
-	 *       typically n > 30.
+	 * @warning Since this relies on the
+	 *          <a href="http://goo.gl/9jtSU3">Central Limit Theorem</a>,
+	 *          it is only valid for "sufficiently large" samples,
+	 *          typically n > 30.
 	 *
 	 * @throw FigException if quantile couldn't be correctly computed
+	 *
+	 * @note Previous versions of this function used a unit normal variate for
+	 *       "1-a/2," i.e. a random variable with standard normal distribution.
+	 *       The returned quantile was thus the inverse CDF of the unit normal
+	 *       variate (called <a href="http://en.wikipedia.org/wiki/Probit">
+	 *       probit function</a>).<br>
+	 *       If for some reason the inverse CDF of the student-T distribution
+	 *       cannot be computed, this is actually the fallback behaviour.
 	 */
-	double confidence_quantile(const double& cc) const;
+	double confidence_quantile(const double& cc, const bool nn = true) const;
 
 private:
 

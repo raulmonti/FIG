@@ -23,6 +23,7 @@ bin_*/
 qtbin*/
 tests_bin*
 CMakeFiles*
+doc.html
 
 # Simulation/Cluster logs
 *.out
