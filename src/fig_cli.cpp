@@ -124,7 +124,7 @@ CmdLine cmd_("\nSample usage:\n"
 			 "Use an automatically computed \"monolithic\" importance function "
              "built on the global state space of the model, running a 5 minutes "
 			 "estimation which will employ the RESTART simulation engine "
-             "(default) for global effort (aka splitting for RESTART) == 2 "
+             "(default) for global effort (aka splitting for RESTART) == 3 "
              "(default) and the hybrid thresholds building technique "
              "i.e. \"hyb\" (default)\n"
              "~$ fig models/tandem.{sa,pp} --flat -e nosplit            \\"
@@ -197,12 +197,12 @@ ValueArg<string> thrTechnique_(
 	&thrTechConstraints);
 
 ValueArg<string> thrAdHoc_(
-	"", "thresholds-ad-hoc",
+    "", "thresholds-adhoc",
 	"Use ad hoc thresholds (and corresponding effort) explicitly specified. "
     "Format is \\[\\(t:e\\)[,\\(t:e\\)]*\\] where 't' are the threshold "
 	" importance values and 'e' is the effort to apply in that threshold. "
-    "E.g. [(2:4),(7:3)] sets importance values '2' and '7' as thresholds, "
-    "where effort '4' and '3' is respectively used. "
+    "E.g. [(2:4),(7:3)] sets thresholds at importance values '2' and '7', "
+    "using effort '4' and '3' resp. on each. "
     "Brackets and parentheses are optional, e.g. [(2:4),(7:3)] == 2:4,7:3",
 	false, "",
     "\\[\\(t:e\\)[,\\(t:e\\)]+\\]");
@@ -318,7 +318,7 @@ ValueArg<string> globalEfforts_(
     "g", "global-effort",
     "Global effort values to use with Importance Splitting simulation engines; "
     "this must be a comma-separated list of integral values greater than 1",
-	false, "2",
+    false, "3",
     "comma-separated-integral-values");
 
 // RNG to use

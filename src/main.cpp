@@ -173,6 +173,8 @@ int main(int argc, char** argv)
 
 bool print_intro(const int& argc, const char** argv)
 {
+	static const std::string STR_RELEASE("Release\n");
+	static const std::string STR_DEBUG("Debug\n");
 	auto main_log = fig::ModelSuite::main_log;
 	auto tech_log = fig::ModelSuite::tech_log;
 	using std::to_string;
@@ -185,22 +187,17 @@ bool print_intro(const int& argc, const char** argv)
 					  trim(argv[1]) == "--version-full"))
 		return true;
 
-	// Print the big fat greeting the user deserves
+	// Print the big, fat, cheesy greeting the user deserves
 	main_log("\n");
-	main_log(" ~~~~~~~~~ \n");
-	main_log("  · FIG ·  \n");
-	main_log(" ~~~~~~~~~ \n");
-	main_log("		   \n");
-	main_log(" This is the Finite Improbability Generator.\n");
-	main_log(" Version: " + std::string(fig_VERSION_STR) + "\n");
-	main_log(" Build:   ");
-	if (is_substring(fig_CURRENT_BUILD, "release", false))
-		main_log("Release\n");
-	else
-		main_log("Debug\n");
-	main_log(" Authors: Budde, Carlos E.  <cbudde@famaf.unc.edu.ar>\n");
-	main_log("          Monti, Raúl E.    <raulmonti88@gmail.com>\n");
-	main_log("          Rodriguez, Leo M. <leonardomatiasrodriguez@gmail.com>\n");
+	main_log("              This is the Finite Improbability Generator.\n");
+	main_log("      ,       Version: " + std::string(fig_VERSION_STR) + "\n");
+	main_log("    //^\\.     Build:   " +
+	         (is_substring(fig_CURRENT_BUILD, "release", false) ? STR_RELEASE
+	                                                            : STR_DEBUG));
+	main_log("   //   \\\\    Author:  Carlos E. Budde  <c.e.budde@utwente.nl>\n");
+	main_log("  {| FIG )|   Main contributors:\n");
+	main_log("  `%_  _,/    - Leo M. Rodriguez\n");
+	main_log("     ^^       - Raúl E. Monti  <r.e.monti@utwente.nl>\n");
 	main_log("\n");
 
 	// Print additional technical info if this is more than a query

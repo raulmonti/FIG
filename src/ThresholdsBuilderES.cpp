@@ -589,7 +589,7 @@ continue_artificial_selection:
 	assert(numReachedValues < Pup.size());
 	const auto& lastPup = Pup.at(numReachedValues);
 	assert(lastPup > 0.0f);
-	const auto MIN_PROB(lastPup/2.0f);  // bound max effort
+	const auto MIN_PROB(std::max(0.05f,lastPup/2.0f));  // bound max effort
 
 	if (highVerbosity && Pup.back() <= 0.0f)
 		ModelSuite::tech_log("!\nArtificial thresholds will be set above the ImportanceValue "
