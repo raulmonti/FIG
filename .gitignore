@@ -17,7 +17,8 @@
 # Build
 fig
 test
-bin
+build
+*_build/
 *_bin/
 bin_*/
 qtbin*/
