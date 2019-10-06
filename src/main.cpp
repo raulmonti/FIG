@@ -197,7 +197,7 @@ bool print_intro(const int& argc, const char** argv)
 	main_log("   //   \\\\    Author:  Carlos E. Budde  <c.e.budde@utwente.nl>\n");
 	main_log("  {| FIG )|   Main contributors:\n");
 	main_log("  `%_  _,/    - Leo M. Rodriguez\n");
-	main_log("     ^^       - Raúl E. Monti  <r.e.monti@utwente.nl>\n");
+	main_log("     ^^       - Raúl E. Monti\n");
 	main_log("\n");
 
 	// Print additional technical info if this is more than a query

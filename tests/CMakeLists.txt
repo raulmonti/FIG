@@ -63,7 +63,7 @@ SET(fig_CURRENT_BUILD "${CURRENT_TIME} (${fig_BUILD_TYPE})")
 SET(SOURCES_DIR ${PROJECT_SOURCE_DIR}/../src)
 SET(HEADERS_DIR ${PROJECT_SOURCE_DIR}/../include)
 SET(LIBRARIES_DIR ${PROJECT_SOURCE_DIR}/../lib)
-SET(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/../bin/.cmake_tests)
+SET(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/../build/.cmake_tests)
 SET(RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/..)
 
 # Allow subdirectories to append their files and dirs (https://goo.gl/xxIOAM)
