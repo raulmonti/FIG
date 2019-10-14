@@ -298,14 +298,14 @@ enum PropertyType
 	/// P( expr1 U expr2 )
 	TRANSIENT = 0,
 
-	/// S( label / total_time )
-	THROUGHPUT,
-
 	/// S( expr / total_time )
 	RATE,
 
 	/// S( expr1 / expr2 )
 	RATIO,
+
+	/// "S[ Tlow : Tupp ]( expr / (Tupp-Tlow) )"
+	TBOUNDED_SS,
 
 	/// P( F[<=time] goal )
 	BOUNDED_REACHABILITY
@@ -341,6 +341,9 @@ struct JaniTranny
 	bool janiInteraction;
 	/// Only translate from/to JANI to/from IOSA, viz. don't estimate
 	bool translateOnly;
+	/// Produce JANI compatible with the Modest Toolset
+	/// @warning This is incompatible with IOSA and FIG!
+	bool modestCompatible;
 	/// In which direction is the translation
 	enum {
 		UNDEFINED = 0,

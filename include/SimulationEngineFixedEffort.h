@@ -129,6 +129,10 @@ private:  // Simulation helper functions
 	rate_simulation(const PropertyRate&, const size_t&, bool) const override
 		{ throw_FigException("TODO: implement!"); }
 
+	inline double
+	tbound_ss_simulation(const PropertyTBoundSS&) const override
+	    { throw_FigException("TODO: implement!"); }
+
 protected:  // Utils for the class and its kin
 
 	/// Retrieve the member function, wrapped as std::function via std::bind(),

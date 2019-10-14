@@ -62,7 +62,7 @@ public:  // Ctor/Dtor
 	ImportanceFunctionAlgebraic();
 
 	/// Dtor
-	virtual ~ImportanceFunctionAlgebraic();
+	~ImportanceFunctionAlgebraic() override;
 
 public:  // Accessors
 

@@ -28,7 +28,9 @@
 
 
 // C
+#include <cctype>
 #include <cstdio>     // std::sprintf()
+#include <cstdlib>    // std::strtoul()
 #include <unistd.h>   // alarm(), exit()
 #include <pthread.h>  // pthread_cancel()
 #include <cmath>      // std::pow()
@@ -51,6 +53,7 @@
 #include <iomanip>      // std::setprecision()
 #include <thread>
 // FIG
+#include <string_utils.h>
 #include <ModelSuite.h>
 #include <ModelBuilder.h>
 #include <ModuleScope.h>
@@ -97,8 +100,8 @@ typedef std::chrono::duration<size_t> duration;
  * @brief Build a ConfidenceInterval of the required type
  *
  *        Each PropertyType must be estimated using a special kind of
- *        ConfidenceInterval. This helper function returns a new (i.e. without
- *        estimation data) interval of the correct kind for the property.
+ *        ConfidenceInterval. This helper function returns a new interval
+ *        (i.e. without estimation data) of the correct kind for the property.
  *
  * @param propertyType     Type of the property whose value is being estimated
  * @param confidenceCo     Interval's confidence coefficient ∈ (0.0, 1.0)
@@ -129,36 +132,33 @@ build_empty_ci(const fig::PropertyType& propertyType,
 
 	switch (propertyType)
 	{
-	case fig::PropertyType::TRANSIENT: {
+	case fig::PropertyType::TRANSIENT:
 		ci_ptr.reset(new fig::ConfidenceIntervalTransient(confidenceCo,
 														  precision,
 														  dynamicPrecision,
 														  timeBoundSim));
+//		// NOTE: the following was used by the binomial proportion CI,
+//		//       now deprecated in favour of ConfidenceIntervalTransient
 //		// The statistical oversampling incurred here is bounded:
-//		//  · from below by globalEffort ^ minRareValue,
-//		//  · from above by globalEffort ^ numThresholds.
-//		// NOTE: deprecated (this was used by the binomial proportion CI)
-//		double minStatOversamp = std::pow(globalEffort,
-//										  impFun.min_rare_value());
-//		double maxStatOversamp = std::pow(globalEffort,
-//										  impFun.num_thresholds());
+//		//  - from below by globalEffort ^ minRareValue,
+//		//  - from above by globalEffort ^ numThresholds.
+//		auto minStatOversamp = std::pow(globalEffort, impFun.min_rare_value());
+//		auto maxStatOversamp = std::pow(globalEffort, impFun.num_thresholds());
 //		ci_ptr->set_statistical_oversampling(maxStatOversamp);
 //		ci_ptr->set_variance_correction(minStatOversamp/maxStatOversamp);
-		} break;
+		break;
 
     case fig::PropertyType::RATE:
+	case fig::PropertyType::TBOUNDED_SS:
 		ci_ptr.reset(new fig::ConfidenceIntervalRate(confidenceCo,
 													 precision,
 													 dynamicPrecision,
 													 timeBoundSim));
 		break;
 
-	case fig::PropertyType::THROUGHPUT:
 	case fig::PropertyType::RATIO:
     case fig::PropertyType::BOUNDED_REACHABILITY:
         throw_FigException("property type isn't supported yet");
-//	default:
-//		throw_FigException("unrecognized property type");
     }
 
 	return ci_ptr;
@@ -256,7 +256,7 @@ start_timer(ConfidenceInterval& ci,
 			bool& timeoutSignal,
 			const seconds& timeLimit,
 			std::ostream& out,
-            const double& startTime)
+			const double& startTime)
 {
 	std::this_thread::sleep_for(timeLimit);
 	timeoutSignal = true;  // this should stop computations
@@ -268,13 +268,17 @@ start_timer(ConfidenceInterval& ci,
 }
 
 
-/// Format time given in seconds as a hh:mm:ss string
+/// Format time given in seconds as a string "hh:mm:ss"
+template< typename Integral >
 std::string
-time_formatted_str(size_t timeInSeconds)
+time_formatted_str(Integral timeInSeconds)
 {
-	const size_t hours(timeInSeconds/3600ul);
-	const size_t minutes((timeInSeconds%3600ul)/60ul);
-	const size_t seconds(timeInSeconds%60ul);
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral timeInSeconds");
+	auto tis = static_cast<size_t>(timeInSeconds);  // ... but a flesh wound
+	const size_t hours(tis/3600ul);
+	const size_t minutes((tis%3600ul)/60ul);
+	const size_t seconds(tis%60ul);
 	char timeStr[23] = {'\0'};
 	std::sprintf(timeStr, "%02zu:%02zu:%02zu", hours, minutes, seconds);
 	return timeStr;
@@ -328,6 +332,12 @@ std::unordered_map< std::string, std::shared_ptr< ThresholdsBuilder > >
 std::unordered_map< std::string, std::shared_ptr< SimulationEngine > >
 	ModelSuite::simulators;
 
+std::shared_ptr< ImportanceFunction > ModelSuite::currentImpFun;
+
+std::shared_ptr< ThresholdsBuilder > ModelSuite::currentThrBuilder;
+
+std::shared_ptr< SimulationEngine > ModelSuite::currentSimulator;
+
 std::ostream& ModelSuite::mainLog_(figMainLog);
 
 std::ostream& ModelSuite::techLog_(figTechLog);
@@ -349,7 +359,7 @@ bool ModelSuite::pristineModel_(false);
 
 const ConfidenceInterval* ModelSuite::interruptCI_ = nullptr;
 
-const std::vector< float > ModelSuite::confCoToShow_ = {0.8, 0.9, 0.95, 0.99};
+const std::vector< float > ModelSuite::confCoToShow_ = {0.8f, 0.9f, 0.95f, 0.99f};
 
 SignalSetter ModelSuite::SIGINThandler_(SIGINT, [] (const int signal) {
 #ifndef NDEBUG
@@ -458,7 +468,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 		model->seal(initialClocksNames);
 	}
 	for (auto prop: properties)
-        prop->prepare(model->global_state());
+		prop->prepare(model->global_state());
 
 	// Build offered importance functions
 	impFuns["concrete_coupled"] =
@@ -476,25 +486,32 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 	thrBuilders["hyb"] = std::make_shared< ThresholdsBuilderHybrid >();
 
 	// Build offered simulation engines
-	simulators["nosplit"] = std::make_shared< SimulationEngineNosplit >(model);
-	simulators["restart"] = std::make_shared< SimulationEngineRestart >(model);
-	simulators["sfe"]     = std::make_shared< SimulationEngineSFE >(model);
+	simulators["nosplit"]  = std::make_shared< SimulationEngineNosplit >(model);
+	simulators["sfe"]      = std::make_shared< SimulationEngineSFE >(model);
+	simulators["restart"]  = std::make_shared< SimulationEngineRestart >(model);
+	simulators["restart0"] = simulators["restart"];
+	simulators["restart1"] = simulators["restart"];
+	simulators["restart2"] = simulators["restart"];
+	simulators["restart3"] = simulators["restart"];
+	simulators["restart4"] = simulators["restart"];
+	simulators["restart5"] = simulators["restart"];
+	simulators["restart6"] = simulators["restart"];
 
 #ifndef NDEBUG
 	// Check all offered importance functions, thresholds builders and
 	// simulation engines were actually instantiated
 	for (const auto& ifunName: available_importance_functions())
 		if(end(impFuns) == impFuns.find(ifunName))
-            throw_FigException("Hey.  Hey you...  HEY, DEVELOPER! You forgot to "
-                               "create the '"+ifunName+"' importance function");
+			throw_FigException("importance function \"" + ifunName + "\" "
+							   "not created; check ModelSuite::seal()");
 	for (const auto& thrTechnique: available_threshold_techniques())
 		if(end(thrBuilders) == thrBuilders.find(thrTechnique))
-            throw_FigException("Hey.  Hey you...  HEY, DEVELOPER! You forgot to "
-							   "create the '"+thrTechnique+"' thresholds builder");
+			throw_FigException("thresholds builder \"" + thrTechnique + "\" "
+							   "not created; check ModelSuite::seal()");
 	for (const auto& engineName: available_simulators())
 		if (end(simulators) == simulators.find(engineName))
-            throw_FigException("Hey.  Hey you...  HEY, DEVELOPER! You forgot to "
-                               "create the '"+engineName+"' simulation engine");
+			throw_FigException("simulation engine \"" + engineName + "\" "
+							   "not created; check ModelSuite::seal()");
 #endif
 	pristineModel_ = false;
 }
@@ -531,7 +548,7 @@ ModelSuite::set_global_effort(const unsigned& ge,
 		tech_log("\nGlobal effort set to " + std::to_string(ge) + "\n");
 	else if (highVerbosity_ && 1u >= ge)
 		tech_log("\nGlobal effort set to default of engine \"" + engineName
-		        +"\" (i.e. " + std::to_string(globalEffort) + ")\n");
+                +"\" (== " + std::to_string(globalEffort) + ")\n");
 }
 
 
@@ -550,9 +567,9 @@ ModelSuite::set_timeout(const duration& timeLimit)
 	timeout_ = timeLimit;
 	// Show in tech log
 	if (timeLimit.count() > 0l)
-		tech_log("Timeout set to " + time_formatted_str(timeout_.count()) + "\n");
+        tech_log("Time-out set to " + time_formatted_str(timeout_.count()) + "\n");
 	else
-		tech_log("Timeout was unset\n");
+        tech_log("Time-out was unset\n");
 }
 
 
@@ -591,14 +608,28 @@ ModelSuite::set_verbosity(bool verboseOutput) noexcept
 }
 
 
+template< typename Integral >
 std::shared_ptr< const Property >
-ModelSuite::get_property(const size_t& i) const noexcept
+ModelSuite::get_property(const Integral& i) const noexcept
 {
-	if (i >= num_properties())
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral propertyIndex");
+	auto iSigned = static_cast<long>(i);
+	assert(0 <= iSigned);
+	auto iUnSigned = static_cast<size_t>(i);
+	if (iUnSigned >= num_properties())
 		return nullptr;
 	else
-		return properties[i];
+		return properties[iUnSigned];
 }
+// Specialisation
+typedef std::shared_ptr< const Property > PtyPtr;
+template PtyPtr ModelSuite::get_property(const short&)          const noexcept;
+template PtyPtr ModelSuite::get_property(const int&)            const noexcept;
+template PtyPtr ModelSuite::get_property(const long&)           const noexcept;
+template PtyPtr ModelSuite::get_property(const unsigned short&) const noexcept;
+template PtyPtr ModelSuite::get_property(const unsigned int&)   const noexcept;
+template PtyPtr ModelSuite::get_property(const unsigned long&)  const noexcept;
 
 
 const unsigned&
@@ -825,7 +856,7 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
     if (force || !ifun.has_importance_info() || "flat" != ifun.strategy()) {
 		techLog_ << "\nBuilding importance function \"" << ifunName
 				 << "\" with \"flat\" assessment strategy.\n";
-        techLog_ << "Property: " << property.to_string() << std::endl;
+		techLog_ << "Property: " << property.to_string() << std::endl;
         ifun.clear();
 		const double startTime = omp_get_wtime();
 		if (ifun.concrete())
@@ -855,16 +886,29 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
 }
 
 
+template< typename Integral >
 void
 ModelSuite::build_importance_function_flat(const std::string& ifunName,
-										   const size_t& propertyIndex,
+										   const Integral& propertyIndex,
 										   bool force)
 {
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral propertyIndex");
+	auto propertyIndexSigned = static_cast<long>(propertyIndex);
+	assert(0 <= propertyIndexSigned);
 	auto propertyPtr = get_property(propertyIndex);
 	if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
 	build_importance_function_flat(ifunName, *propertyPtr, force);
 }
+// Specialisation
+typedef const std::string& StrCR;
+template void ModelSuite::build_importance_function_flat(StrCR, const short&,          bool);
+template void ModelSuite::build_importance_function_flat(StrCR, const int&,            bool);
+template void ModelSuite::build_importance_function_flat(StrCR, const long&,           bool);
+template void ModelSuite::build_importance_function_flat(StrCR, const unsigned short&, bool);
+template void ModelSuite::build_importance_function_flat(StrCR, const unsigned int&,   bool);
+template void ModelSuite::build_importance_function_flat(StrCR, const unsigned long&,  bool);
 
 
 void
@@ -887,7 +931,7 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 		techLog_ << "\nBuilding importance function \"" << impFun.name
 				 << "\" with \"adhoc\" assessment strategy (\""
 				 << impFun.algebraicFormula << "\")\n";
-        techLog_ << "Property: " << property.to_string() << std::endl;
+		techLog_ << "Property: " << property.to_string() << std::endl;
 		ifun.clear();
 		auto allVarnames = model->global_state().varnames();
 		const double startTime = omp_get_wtime();
@@ -912,6 +956,7 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 					 << "the expression you provided!)\n";
 		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
 		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
+		techLog_ << "Min importance of a rare event: " << ifun.min_rare_value() << std::endl;
 		techLog_ << "Importance function building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"
@@ -929,16 +974,28 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 }
 
 
+template< typename Integral >
 void
 ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
-											const size_t& propertyIndex,
-											bool force)
+                                            const Integral& propertyIndex,
+                                            bool force)
 {
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral propertyIndex");
+	auto propertyIndexSigned = static_cast<long>(propertyIndex);
+	assert(0 <= propertyIndexSigned);
 	auto propertyPtr = get_property(propertyIndex);
 	if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
 	build_importance_function_adhoc(impFun, *propertyPtr, force);
 }
+// Specialisations:
+template void ModelSuite::build_importance_function_adhoc(const ImpFunSpec&, const short&,          bool);
+template void ModelSuite::build_importance_function_adhoc(const ImpFunSpec&, const int&,            bool);
+template void ModelSuite::build_importance_function_adhoc(const ImpFunSpec&, const long&,           bool);
+template void ModelSuite::build_importance_function_adhoc(const ImpFunSpec&, const unsigned short&, bool);
+template void ModelSuite::build_importance_function_adhoc(const ImpFunSpec&, const unsigned int&,   bool);
+template void ModelSuite::build_importance_function_adhoc(const ImpFunSpec&, const unsigned long&,  bool);
 
 
 void
@@ -984,7 +1041,7 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 		}
 		try {
 			// Compute importance automatically -- here hides the magic!
-            static_cast<ImportanceFunctionConcrete&>(ifun)
+			static_cast<ImportanceFunctionConcrete&>(ifun)
 					.assess_importance(property, "auto", impFun.postProcessing);
 		} catch (std::bad_alloc&) {
 			throw_FigException("couldn't build importance function \""
@@ -997,6 +1054,7 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 
 		techLog_ << "Initial state importance: " << ifun.initial_value() << std::endl;
 		techLog_ << "Max importance: " << ifun.max_value() << std::endl;
+		techLog_ << "Min importance of a rare event: " << ifun.min_rare_value() << std::endl;
 		techLog_ << "Importance function building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"
@@ -1015,39 +1073,54 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 }
 
 
+template< typename Integral >
 void
 ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
-										   const size_t& propertyIndex,
-										   bool force)
+                                           const Integral& propertyIndex,
+                                           bool force)
 {
-    auto propertyPtr = get_property(propertyIndex);
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral propertyIndex");
+	auto propertyIndexSigned = static_cast<long>(propertyIndex);
+	assert(0 <= propertyIndexSigned);
+	auto propertyPtr = get_property(propertyIndex);
     if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
 	build_importance_function_auto(impFun, *propertyPtr, force);
 }
+// Specialisations:
+template void ModelSuite::build_importance_function_auto(const ImpFunSpec&, const short&,          bool);
+template void ModelSuite::build_importance_function_auto(const ImpFunSpec&, const int&,            bool);
+template void ModelSuite::build_importance_function_auto(const ImpFunSpec&, const long&,           bool);
+template void ModelSuite::build_importance_function_auto(const ImpFunSpec&, const unsigned short&, bool);
+template void ModelSuite::build_importance_function_auto(const ImpFunSpec&, const unsigned int&,   bool);
+template void ModelSuite::build_importance_function_auto(const ImpFunSpec&, const unsigned long&,  bool);
 
 
 bool
-ModelSuite::build_thresholds(const std::string& technique,
+ModelSuite::build_thresholds(const std::string& thrSpec,
                              const std::string& ifunName,
                              std::shared_ptr<const Property> property,
                              bool force)
 {
-	if (!exists_threshold_technique(technique))
-		throw_FigException("inexistent threshold building technique \"" + technique
+	const bool thresholdsGivenAdHoc = is_substring(thrSpec, ":");
+	if (!thresholdsGivenAdHoc && !exists_threshold_technique(thrSpec))
+		throw_FigException("inexistent threshold building technique \"" + thrSpec
 						   + "\". Call \"available_threshold_techniques()"
 							 "\" for a list of available options.");
 	if (!exists_importance_function(ifunName))
 		throw_FigException("inexistent importance function \"" + ifunName +
 						   "\". Call \"available_importance_functions()\" "
 						   "for a list of available options.");
+	const auto technique = thresholdsGivenAdHoc ? "fix" : thrSpec;
 	ImportanceFunction& ifun = *impFuns[ifunName];
 	ThresholdsBuilder& tb = *thrBuilders[technique];
 	if (!ifun.has_importance_info())
 		throw_FigException("importance function \"" + ifunName + "\" doesn't "
 						   "have importance information yet. Call any of the "
 						   "\"build_importance_function_xxx()\" routines with "
-		                   "\"" + ifunName + "\" beforehand");
+						   "\"" + ifunName + "\" beforehand");
+
 	if (force || ifun.thresholds_technique() != technique) {
 		const auto geStr = tb.uses_global_effort()
 		            ? (" with global effort "+std::to_string(globalEffort)) : ("");
@@ -1058,40 +1131,57 @@ ModelSuite::build_thresholds(const std::string& technique,
 			set_global_effort(0);
 		}
 		techLog_ << std::endl;
-		const double startTime = omp_get_wtime();
-		tb.setup(property, globalEffort);
+	const double startTime = omp_get_wtime();
+		tb.setup(property, thresholdsGivenAdHoc ? static_cast<const void*>(&thrSpec)
+		                                        : static_cast<const void*>(&globalEffort));
 		ifun.build_thresholds(tb);
 		techLog_ << "Thresholds building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"
 //				 << std::defaultfloat;
 				 << std::setprecision(6);
+		if (thresholdsGivenAdHoc)
+			globalEffort = 0;
 	}
+
     assert(ifun.ready());
-    assert(technique == ifun.thresholds_technique());
+	assert(technique == ifun.thresholds_technique());
 	pristineModel_ = false;
 	return true;
 }
 
 
+template< typename Integral >
 bool
-ModelSuite::build_thresholds(const std::string& technique,
+ModelSuite::build_thresholds(const std::string& thrSpec,
                              const std::string& ifunName,
-                             const size_t& propertyIndex,
+                             const Integral& propertyIndex,
                              bool force)
 {
-	auto propertyPtr = get_property(propertyIndex);
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral propertyIndex");
+	auto propertyIndexSigned = static_cast<long>(propertyIndex);
+	assert(0 <= propertyIndexSigned);
+	auto propertyPtr = get_property(propertyIndexSigned);
 	if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
 	else
-		return build_thresholds(technique, ifunName, propertyPtr, force);
+		return build_thresholds(thrSpec, ifunName, propertyPtr, force);
 }
+// Specialisations:
+typedef const std::string& StrCR;
+template bool ModelSuite::build_thresholds(StrCR, StrCR, const short&,          bool);
+template bool ModelSuite::build_thresholds(StrCR, StrCR, const int&,            bool);
+template bool ModelSuite::build_thresholds(StrCR, StrCR, const long&,           bool);
+template bool ModelSuite::build_thresholds(StrCR, StrCR, const unsigned short&, bool);
+template bool ModelSuite::build_thresholds(StrCR, StrCR, const unsigned int&,   bool);
+template bool ModelSuite::build_thresholds(StrCR, StrCR, const unsigned long&,  bool);
 
 
 std::shared_ptr< SimulationEngine >
 ModelSuite::prepare_simulation_engine(const std::string& engineName,
                                       const std::string& ifunName,
-                                      const std::string& thrTechnique,
+                                      const std::string& thrSpec,
                                       std::shared_ptr<const Property> property,
                                       bool force)
 {
@@ -1113,38 +1203,78 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
 	if (engine_ptr->bound() && !force)
 		throw_FigException("simulation engine \"" + engineName + "\" is still bound to "
 		                   "importance function \"" + engine_ptr->current_imp_fun() + "\"");
-	// Step 1: Couple the ImportanceFunction and SimulationEngine instances
+
+	// Step 1: for RESTART, test&set prolonged retrials
+	if (is_prefix(engineName, "restart")) {
+		auto RESTART = std::dynamic_pointer_cast<SimulationEngineRestart>(engine_ptr);
+		long traialProlongation = 0;
+		if (std::isdigit(engineName.back())) {
+			char* err(nullptr);
+			const auto tpSpec = std::string(&engineName.back()).c_str();
+			traialProlongation = std::strtol(tpSpec, &err, 10);
+			if ((nullptr != err && err[0] != '\0') ||
+			        0 > traialProlongation || traialProlongation > 6)
+			throw_FigException("invalid RESTART retrial prolongation requested: "
+			                   + std::string(tpSpec));
+		} else {
+			traialProlongation = 0u;
+		}
+		RESTART->set_die_out_depth(static_cast<unsigned>(traialProlongation));
+	}
+
+	// Step 2: Couple the ImportanceFunction and SimulationEngine instances
 	techLog_ << "\nBinding simulation engine \"" << engineName << ""
 	         << "\" to importance function \"" << ifunName << "\"\n";
 	engine_ptr->bind(ifun_ptr);
 	assert(engine_ptr->bound());
 	assert(ifunName == engine_ptr->current_imp_fun());
-	assert(engineName == ifun_ptr->sim_engine_bound());
+	assert(is_prefix(engineName, ifun_ptr->sim_engine_bound()));  // support restart<n> names
 	pristineModel_ = false;
-	// Step 2: Build the thresholds from (and into) the ImportanceFunction
-	build_thresholds(thrTechnique, ifunName, property, force);
+
+	// Step 3: Build the thresholds from (and into) the ImportanceFunction
+	build_thresholds(thrSpec, ifunName, property, force);
 	assert(ifun_ptr->ready());
+
+	// Register current simulation configuration
+	currentImpFun = ifun_ptr;
+	currentThrBuilder = thrBuilders[ifun_ptr->thresholds_technique()];
+	currentSimulator = engine_ptr;
+
 	return engine_ptr;
 }
 
 
+template< typename Integral >
 std::shared_ptr< SimulationEngine >
 ModelSuite::prepare_simulation_engine(const std::string& engineName,
                                       const std::string& ifunName,
-                                      const std::string& thrTechnique,
-                                      const size_t& propertyIndex,
+                                      const std::string& thrSpec,
+                                      const Integral& propertyIndex,
                                       bool force)
 {
-	auto propertyPtr = get_property(propertyIndex);
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral propertyIndex");
+	auto propertyIndexSigned = static_cast<long>(propertyIndex);
+	assert(0 <= propertyIndex);
+	auto propertyPtr = get_property(propertyIndexSigned);
 	if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
 	else
 		return prepare_simulation_engine(engineName,
 		                                 ifunName,
-		                                 thrTechnique,
+		                                 thrSpec,
 		                                 propertyPtr,
 		                                 force);
 }
+// Specialisations:
+typedef std::shared_ptr< SimulationEngine > SEptr;
+typedef const std::string& StrCR;
+template SEptr ModelSuite::prepare_simulation_engine(StrCR, StrCR, StrCR, const short&,          bool);
+template SEptr ModelSuite::prepare_simulation_engine(StrCR, StrCR, StrCR, const int&,            bool);
+template SEptr ModelSuite::prepare_simulation_engine(StrCR, StrCR, StrCR, const long&,           bool);
+template SEptr ModelSuite::prepare_simulation_engine(StrCR, StrCR, StrCR, const unsigned short&, bool);
+template SEptr ModelSuite::prepare_simulation_engine(StrCR, StrCR, StrCR, const unsigned int&,   bool);
+template SEptr ModelSuite::prepare_simulation_engine(StrCR, StrCR, StrCR, const unsigned long&,  bool);
 
 
 void
@@ -1166,6 +1296,7 @@ ModelSuite::release_resources(const std::string& ifunName,
 	techLog_ << msg.str();
 }
 
+
 void
 ModelSuite::clear() noexcept
 {
@@ -1178,6 +1309,9 @@ ModelSuite::clear() noexcept
 	std::make_shared<ModuleNetwork>().swap(model);
 	properties.clear();
 	globalEffort = 0u;
+	currentImpFun = nullptr;
+	currentThrBuilder = nullptr;
+	currentSimulator = nullptr;
 	lastEstimationStartTime_ = 0.0;
 	timeout_ = std::chrono::seconds::zero();
 	lastEstimates_.clear();
@@ -1227,13 +1361,13 @@ ModelSuite::estimate(const Property& property,
 			? ("(null)") : (ifun.post_processing().name + " "
 							+ to_string(ifun.post_processing().value)));
 
-	mainLog_ << "RNG algorithm used: " << Clock::rng_type() << "\n";
-	mainLog_ << "Property: " << property.to_string() << ",\n";
-	mainLog_ << " - importance function: " << user_friendly_ifun_name(ifunSpec) << "\n";
-	mainLog_ << " - post-processing:     " << postProcStr << "\n";
-	mainLog_ << " - threshold builder:   " << ifun.thresholds_technique() << "\n";
-	mainLog_ << " - simulation engine:   " << engine.name() << "\n";
-	mainLog_ << " - RNG seed:            " << Clock::rng_seed()
+	mainLog_ << "RNG algorithm used: " << Clock::rng_type() << "\n\n";
+	mainLog_ << "Property: " << property.to_string() << "\n";
+	mainLog_ << " + importance function: " << user_friendly_ifun_name(ifunSpec) << "\n";
+	mainLog_ << " + post-processing:     " << postProcStr << "\n";
+	mainLog_ << " + threshold builder:   " << ifun.thresholds_technique() << "\n";
+	mainLog_ << " + simulation engine:   " << engine.name() << "\n";
+	mainLog_ << " + RNG seed:            " << Clock::rng_seed()
 			 << (Clock::rng_seed_is_random() ? (" (randomized)\n") : ("\n"));
 	mainLog_ << " [ " << ifun.num_thresholds() << " thresholds | ";
 	mainLog_ << (globalEffort > 0ul
@@ -1253,17 +1387,33 @@ ModelSuite::estimate(const Property& property,
 }
 
 
+template< typename Integral >
 void
-ModelSuite::estimate(const size_t& propertyIndex,
-					 SimulationEngine &engine,
-					 const StoppingConditions& bounds,
-					 const ImpFunSpec ifunSpec) const
+ModelSuite::estimate(const Integral& propertyIndex,
+                     SimulationEngine &engine,
+                     const StoppingConditions& bounds,
+                     const ImpFunSpec ifunSpec) const
 {
-	auto propertyPtr = get_property(propertyIndex);
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral propertyIndex");
+	auto propertyIndexSigned = static_cast<long>(propertyIndex);
+	assert(0 <= propertyIndex);
+	auto propertyPtr = get_property(propertyIndexSigned);
 	if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
 	estimate(*propertyPtr, engine, bounds, ifunSpec);
 }
+// Specialisations:
+typedef const std::string& StrCR;
+typedef SimulationEngine& SER;
+typedef const StoppingConditions& SCCR;
+typedef const ImpFunSpec IFSC;
+template void ModelSuite::estimate(const short&,          SER, SCCR, IFSC) const;
+template void ModelSuite::estimate(const int&,            SER, SCCR, IFSC) const;
+template void ModelSuite::estimate(const long&,           SER, SCCR, IFSC) const;
+template void ModelSuite::estimate(const unsigned short&, SER, SCCR, IFSC) const;
+template void ModelSuite::estimate(const unsigned int&,   SER, SCCR, IFSC) const;
+template void ModelSuite::estimate(const unsigned long&,  SER, SCCR, IFSC) const;
 
 
 void
@@ -1287,7 +1437,7 @@ ModelSuite::estimate_for_times(const Property& property,
 		        ? std::min<long>(wallTimeInSeconds, timeout_.count())
 		        : wallTimeInSeconds);
 		mainLog_ << std::setprecision(0) << std::fixed;
-		mainLog_ << " · Estimation time bound: " << time_formatted_str(timeLimit.count()) << "\n";
+		mainLog_ << " - Estim. time bound:   " << time_formatted_str(timeLimit.count()) << "\n";
 
 		// Start timer
 		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),
@@ -1343,15 +1493,16 @@ ModelSuite::estimate_for_confs(const Property& property,
 		Clock::seed_rng();  // restart RNG sequence for this estimation
 
 		// Show simulation run info
-		mainLog_ << " · Confidence level:    "
+		mainLog_ << " - Confidence level:    "
 		         << std::setprecision(0) << std::fixed << 100*(confCo) << "%\n";
-		mainLog_ << " · Precision:           ";
+		mainLog_ << " - Precision:           ";
 		if (precRel)
 			mainLog_ << std::setprecision(0) << std::fixed << (100*precVal) << "%\n";
 		else
 			mainLog_ << std::setprecision(2) << std::scientific << (2*precVal) << "\n";
 		if (timeout_.count() > 0l)
-			mainLog_ << " · Timeout:        " << time_formatted_str(timeout_.count()) << "\n";
+			mainLog_ << " - Time-out:" << std::setw(20)
+			         << time_formatted_str(timeout_.count()) << "\n";
 
 		// Start timer
 		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),

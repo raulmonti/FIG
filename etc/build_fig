@@ -41,5 +41,5 @@ _build_fig_tab_complete() {
 	return 0;
 }
 
-complete -F _build_fig_tab_complete build_project.sh;
+complete -F _build_fig_tab_complete build_fig.sh;
 

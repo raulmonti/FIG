@@ -118,6 +118,7 @@ const std::map< DistType, std::string > JANI_distribution =
 	{ DistType::gamma,       "Gamma"      },
     { DistType::erlang,      "Erlang"     },
     { DistType::dirac,       "Dirac"      },
+	{ DistType::hyperexponential2, "Hyper-Exponential-2"},
 };
 
 
@@ -133,6 +134,7 @@ const std::map< std::string, std::string > JANI_distribution_string =
 	{ "gamma",       "Gamma"      },
     { "erlang",      "Erlang"     },
     { "dirac",       "Dirac"      },
+	{ "hyperexponential2", "Hyper-Exponential-2"},
 };
 
 
@@ -220,6 +222,7 @@ const std::map< std::string, DistType > IOSA_distribution =
 	{ "Gamma",       DistType::gamma      },
     { "Erlang",      DistType::erlang     },
     { "Dirac",       DistType::dirac      },
+	{ "Hyper-Exponential-2", DistType::hyperexponential2},
 };
 
 
@@ -235,7 +238,22 @@ const std::map< std::string, std::string > IOSA_distribution_string =
 	{ "Gamma",       "gamma"      },
     { "Erlang",      "erlang"     },
     { "Dirac",       "dirac"      },
+	{ "Hyper-Exponential-2", "hyperexponential2"},
 };
+
+
+/// The edge from the initial-location of a module to its "real location,"
+/// to initialise all its clocks in the JANI file (implicitly done in IOSA)
+Json::Value initEdge;
+
+
+/// Register of variables' names parsed by visitor functions,
+/// for global variables implementation for the Modest Toolset
+std::set< std::string > varNamesRegister;
+
+
+/// Store in varNamesRegister all variables' names parsed from now on
+bool REGISTER_VARS_NAMES_ = false;
 
 
 /// Compose filename for JANI file translated from IOSA model
@@ -300,19 +318,6 @@ bool jani_is_valid_iosa(const Json::Value& JANIjson, bool fatal = true)
 	}
 	return true;
 }
-
-
-// /// Tell wether a property named "propertyName" is present
-// /// in the JSON array "propertiesArray" of JANI properties
-// bool present(const std::string& propertyName,
-// 			 const Json::Value& propertiesArray)
-// {
-// 	assert(propertiesArray.type() == Json::arrayValue);
-// 	for (const auto& p: propertiesArray)
-// 		if (p["name"] == propertyName)  // properties *must* be named in JANI
-// 			return true;
-// 	return false;
-// }
 
 
 /// Add default JANI header to JsonCPP object,
@@ -455,7 +460,7 @@ first_ID_in_expr(std::shared_ptr<Exp> expr, const shared_vector<Decl>& IDs)
 /// @return Whether the IOSA model could be successfully built
 bool
 build_IOSA_model_from_AST(Model& modelAST,
-						  bool reduceExpressions = false,
+                          bool sealModel = true,
 						  bool verifyIOSA = true)
 {
 	// Check types
@@ -466,21 +471,17 @@ build_IOSA_model_from_AST(Model& modelAST,
 		fig::figTechLog << typechecker.get_messages() << std::endl;
 		return false;
 	}
-
-	// Reduce expressions if requested
-	if (reduceExpressions) {
-		ModelReductor reductor;
-		modelAST.accept(reductor);
-		if (reductor.has_errors()) {
-			fig::figTechLog << "[ERROR] Expressions reduction failed" << std::endl;
-			fig::figTechLog << reductor.get_messages() << std::endl;
-			return false;
-		}
+	// Reduce expressions
+	ModelReductor reductor(sealModel);
+	modelAST.accept(reductor);
+	if (reductor.has_errors()) {
+		fig::figTechLog << "[ERROR] Expressions reduction failed" << std::endl;
+		fig::figTechLog << reductor.get_messages() << std::endl;
+		return false;
 	}
-
 	// Check IOSA compliance if requested
 	if (verifyIOSA &&
-			ModuleScope::modules_size_bounded_by(ModelVerifier::NTRANS_BOUND)) {
+	        ModuleScope::modules_size_bounded_by(ModelVerifier::NTRANS_BOUND)) {
 		ModelVerifier verifier;
 		modelAST.accept(verifier);
 		if (verifier.has_errors() || verifier.has_warnings()) {
@@ -489,7 +490,6 @@ build_IOSA_model_from_AST(Model& modelAST,
 			return false;
 		}
 	}
-
 	// Build model (i.e. populate ModelSuite)
 	ModelBuilder builder;
 	modelAST.accept(builder);
@@ -498,10 +498,10 @@ build_IOSA_model_from_AST(Model& modelAST,
 		fig::figTechLog << builder.get_messages() << std::endl;
 		return false;
 	}
-
-	// Success iff the ModelSuite can be sealed
-	ModelSuite::get_instance().seal();
-	return ModelSuite::get_instance().sealed();
+	if (sealModel)
+		fig::ModelSuite::get_instance().seal();
+	// Success?
+	return !sealModel || fig::ModelSuite::get_instance().sealed();
 }
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
@@ -512,16 +512,18 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 constexpr char JaniTranslator::REAL_VAR_FROM_CLOCK_PREFIX[];
+constexpr char JaniTranslator::INIT_CLOCKS[];
 const Json::Value JaniTranslator::EMPTY_JSON_OBJ = Json::Value(Json::objectValue);
 const Json::Value JaniTranslator::EMPTY_JSON_ARR = Json::Value(Json::arrayValue);
 
 
 JaniTranslator::JaniTranslator() :
-	JANIroot_(make_shared<Json::Value>(EMPTY_JSON_OBJ)),
+    SELF_SYNCING(false),
+    compatibilityMode_(IOSA),
+    JANIroot_(make_shared<Json::Value>(EMPTY_JSON_OBJ)),
 	JANIfield_(make_shared<Json::Value>(EMPTY_JSON_OBJ)),
-	currentModule_(),
-	currentScope_(nullptr),
-	timeProgressInvariant_(make_shared<Json::Value>(Json::nullValue))
+    currentModule_(),
+    currentScope_(nullptr)
 { /* Not much to do around here */ }
 
 
@@ -530,9 +532,10 @@ JaniTranslator::~JaniTranslator()
 	JANIroot_.reset();
 	JANIfield_.reset();
 	currentScope_.reset();
-	timeProgressInvariant_.reset();
+	timeProgressInvariant_.clear();
 	modulesLabels_.clear();
-	modelLabels_.clear();;
+	modelLabels_.clear();
+	variablesInProperties_.clear();
 }
 
 
@@ -611,6 +614,8 @@ JaniTranslator::get_float_or_error(shared_ptr<Exp> exp,
 	exp->accept(ev);
 	if (ev.has_type_float())
 		res = ev.get_float();
+	else if (ev.has_type_int())
+		res = static_cast<float>(ev.get_int());
 	else
 		put_error(msg);
 	return res;
@@ -625,10 +630,19 @@ JaniTranslator::get_float_or_error(shared_ptr<Exp> exp,
 
 std::string
 JaniTranslator::IOSA_2_JANI(const std::string& iosaModelFile,
-							const std::string& iosaPropsFile,
-							const std::string& janiFilename,
-							bool validityCheck)
+                            const std::string& iosaPropsFile,
+                            const std::string& janiFilename,
+                            bool validityCheck,
+                            bool modestCompat)
 {
+	if (modestCompat) {
+		compatibilityMode_ = Modest;
+		SELF_SYNCING = true;
+	} else {
+		compatibilityMode_ = IOSA;
+		SELF_SYNCING = false;
+	}
+
 	// Parse IOSA model file
 	parse_IOSA_model(iosaModelFile, iosaPropsFile, validityCheck);
 	if (IOSAroot_ == nullptr)
@@ -671,12 +685,12 @@ JaniTranslator::parse_IOSA_model(const string& iosaModelFile,
 			: ("files \"" + iosaModelFile + " and \"" + iosaPropsFile + "\"");
 
 	// Parse IOSA files
-	shared_ptr<ModelAST> modelAST = ModelAST::from_files(iosaModelFile.c_str(),
-														 iosaPropsFile.c_str());
+	auto modelAST = ModelAST::from_files(iosaModelFile.c_str(),
+	                                     iosaPropsFile.c_str());
 	if (nullptr != modelAST) {
 		// Populate ModelSuite
 		bool success = build_IOSA_model_from_AST(dynamic_cast<Model&>(*modelAST),
-												 false,  // let constants IDs alone
+		                                         false,  // do not resolve names
 												 validityCheck);
 		if (success)
 			IOSAroot_ = std::dynamic_pointer_cast<Model>(modelAST);
@@ -694,25 +708,33 @@ JaniTranslator::build_JANI_constant(shared_ptr<InitializedDecl> node,
 {
 	assert(node->is_constant());
 	assert(JANIobj.isObject());
+
+	// Avoid reducing locations (variable/constant names)
+	if (node->get_init()->is_location())
+		JANIobj["value"] = node->get_init()->to_string();
+
 	switch(node->get_type())
 	{
 	case Type::tbool:
 		JANIobj["type"] = "bool";
-		JANIobj["value"] = get_bool_or_error(node->get_init(),
+		if (!JANIobj.isMember("value"))
+			JANIobj["value"] = get_bool_or_error(node->get_init(),
 								   "failed to reduce boolean value of "
 								   "constant \"" + node->get_id() + "\"\n");
 		break;
 
 	case Type::tint:
 		JANIobj["type"] = "int";
-		JANIobj["value"] = get_int_or_error(node->get_init(),
-								   "failed to reduce integer value of "
-								   "constant \"" + node->get_id() + "\"\n");
+		if (!JANIobj.isMember("value"))
+			JANIobj["value"] = get_int_or_error(node->get_init(),
+			                       "failed to reduce integer value of "
+			                       "constant \"" + node->get_id() + "\"\n");
 		break;
 
 	case Type::tfloat:
 		JANIobj["type"] = "real";
-		JANIobj["value"] = get_float_or_error(node->get_init(),
+		if (!JANIobj.isMember("value"))
+			JANIobj["value"] = get_float_or_error(node->get_init(),
 								   "failed to reduce floating point value of "
 								   "constant \"" + node->get_id() + "\"\n");
 		break;
@@ -720,7 +742,6 @@ JaniTranslator::build_JANI_constant(shared_ptr<InitializedDecl> node,
 	default:
 		throw_FigException("invalid initialized declaration type: " +
 						   std::to_string(static_cast<int>(node->get_type())));
-		break;
 	}
 }
 
@@ -739,22 +760,24 @@ JaniTranslator::build_JANI_guard(shared_ptr<TransitionAST> trans,
 							   ->get_triggering_clock()->get_identifier();
 		// Add STA guard for the clock: "clk >= real_var"
 		auto guard(EMPTY_JSON_OBJ);
-		guard["left"]  = *JANIfield_;
-		guard["op"]    = JANI_operator_string.at(ExpOp::andd).c_str();
+		guard["left"] = *JANIfield_;
+		guard["op"]   = JANI_operator_string.at(ExpOp::andd).c_str();
 		build_JANI_clock_comp(clockName, ExpOp::ge, guard["right"]);
 		JANIfield_->swap(guard);  // now 'guard' has the "clean precondition"
 		// Add STA condition for time progress invariant: "guard implies clk <= real_var"
-		auto tmp(EMPTY_JSON_OBJ);
-		tmp["left"]  = *timeProgressInvariant_;
-		tmp["op"]    = JANI_operator_string.at(ExpOp::andd).c_str();
-		tmp["right"] = EMPTY_JSON_OBJ;
-		tmp["right"]["left"]  = guard;
-		tmp["right"]["op"]    = JANI_operator_string.at(ExpOp::implies).c_str();
-		build_JANI_clock_comp(clockName, ExpOp::le, tmp["right"]["right"]);
-		if (timeProgressInvariant_->isNull())
-			timeProgressInvariant_->swap(tmp["right"]);
-		else
-			timeProgressInvariant_->swap(tmp);
+		if (timeProgressInvariant_.find(clockName) == end(timeProgressInvariant_))
+			timeProgressInvariant_[clockName] = guard;
+		else {
+			// Group guards by clock, e.g. for IOSA edges
+			// [] cond1 @ clk -> ...
+			// [] cond2 @ clk ->
+			// we build the invariant ((cond1 || cond2) -> clk <= x_clk)
+			auto tmp(EMPTY_JSON_OBJ);
+			tmp["left"]  = timeProgressInvariant_[clockName];
+			tmp["op"]    = JANI_operator_string.at(ExpOp::orr).c_str();
+			tmp["right"] = guard;
+			timeProgressInvariant_[clockName] = tmp;
+		}
 	}
 	JANIobj["guard"] = EMPTY_JSON_OBJ;
 	JANIobj["guard"]["exp"] = *JANIfield_;
@@ -778,6 +801,31 @@ JaniTranslator::build_JANI_clock_comp(const std::string& clockName,
 }
 
 
+Json::Value
+JaniTranslator::build_JANI_time_progress()
+{
+	if (timeProgressInvariant_.empty())
+		return Json::Value(true);  // nothing to restrict, let time flow
+	// Time progress invariants: "guards -> clk <= x_clk" for clk in timeProgressInvariant_
+	auto tpinv = EMPTY_JSON_OBJ;
+	auto iter = begin(timeProgressInvariant_);
+	tpinv["left"] = iter->second;
+	tpinv["op"]   = JANI_operator_string.at(ExpOp::implies).c_str();
+	build_JANI_clock_comp(iter->first, ExpOp::le, tpinv["right"]);
+	for (++iter ; iter != end(timeProgressInvariant_) ; iter++) {
+		auto tmp = EMPTY_JSON_OBJ;
+		tmp["left"]  = tpinv;
+		tmp["op"]    = JANI_operator_string.at(ExpOp::andd).c_str();
+		tmp["right"] = EMPTY_JSON_OBJ;
+		tmp["right"]["left"]  = iter->second;
+		tmp["right"]["op"]    = JANI_operator_string.at(ExpOp::implies).c_str();
+		build_JANI_clock_comp(iter->first, ExpOp::le, tmp["right"]["right"]);
+		tpinv = tmp;
+	}
+	return tpinv;
+}
+
+
 void
 JaniTranslator::build_JANI_destinations(shared_ptr<TransitionAST> trans,
 										Json::Value& JANIobj)
@@ -795,21 +843,41 @@ JaniTranslator::build_JANI_destinations(shared_ptr<TransitionAST> trans,
 		ass_ptr->accept(*this);
 		ass.append(*JANIfield_);
 	}
+
 	// Clocks resets
 	for (auto reset_ptr: trans->get_clock_resets()) {
-		auto tmp(EMPTY_JSON_OBJ);
+		auto clk(EMPTY_JSON_OBJ), rvar(EMPTY_JSON_OBJ);
 		const auto clockName = reset_ptr->get_effect_location()->get_identifier();
+
 		// Clock value becomes zero...
-		tmp["ref"] = clockName.c_str();
-		tmp["value"] = 0;
-		ass.append(tmp);
+		clk["ref"] = clockName.c_str();
+		clk["value"] = 0;
+		ass.append(clk);
+
 		// ...and its real variable is sampled from the distribution
-		tmp.clear();
-		tmp["ref"] = rv_from(clockName).c_str();
-		build_JANI_distribution(reset_ptr->get_dist(), tmp["value"]);
-		assert(tmp["value"].isMember("distribution"));
-		assert(tmp["value"].isMember("args"));
-		ass.append(tmp);
+		rvar["ref"] = rv_from(clockName).c_str();
+		build_JANI_distribution(reset_ptr->get_dist(), rvar["value"]);
+		assert(rvar["value"].isMember("distribution"));
+		assert(rvar["value"].isMember("args"));
+		ass.append(rvar);
+
+		if (compatibilityMode_ == Modest) {
+			// Also add this clock reset to the initialisation edge
+			bool alreadyInitialised = false;
+			assert(initEdge["destinations"][0]["assignments"].isArray());
+			for (const auto& ass: initEdge["destinations"][0]["assignments"]) {
+				assert(ass.isObject());
+				assert(ass.isMember("ref"));
+				if (ass["ref"] == clockName) {
+					alreadyInitialised = true;
+					break;
+				}
+			}
+			if (!alreadyInitialised) {
+				initEdge["destinations"][0]["assignments"].append(clk);
+				initEdge["destinations"][0]["assignments"].append(rvar);
+			}
+		}
 	}
 }
 
@@ -873,6 +941,17 @@ JaniTranslator::build_JANI_synchronization(Json::Value& JANIobj)
 			}
 		}
 	}
+
+	if (compatibilityMode_ == Modest) {
+		// An extra action to sync all modules from initial-location to location
+		auto initSync = EMPTY_JSON_OBJ;
+		initSync["result"] = INIT_CLOCKS;
+		initSync["synchronise"] = EMPTY_JSON_ARR;
+		for (auto i=0ul ; i<modulesLabels_.size() ; i++)
+			initSync["synchronise"].append(INIT_CLOCKS);
+		JANIobj["syncs"].append(initSync);
+	}
+
 	if (JANIobj["syncs"].empty())
 		JANIobj.removeMember("syncs");
 }
@@ -897,7 +976,7 @@ JaniTranslator::build_JANI_sync_vector(const std::string& oLabel,
 			JANIarr.append(Json::nullValue);
 		}
 	}
-	if (noSync)
+	if (noSync && !SELF_SYNCING)
 		JANIarr.clear();
 }
 
@@ -912,19 +991,37 @@ JaniTranslator::visit(shared_ptr<Model> node)
 	modelLabels_.clear();
 	modulesLabels_.clear();
 
-	// Parse global constants
-	JANIfield_ = make_shared<Json::Value>(Json::arrayValue);
-	for (auto decl_ptr: node->get_globals()) {
-		assert(decl_ptr->is_constant());  // only global *constants* for now
-		decl_ptr->accept(*this);
+	// Parse all properties
+	REGISTER_VARS_NAMES_ = true;  // save names of variables appearing in properties
+	if (node->has_props()) {
+		JANIfield_ = make_shared<Json::Value>(Json::arrayValue);
+		for (auto prop_ptr: node->get_props())
+			prop_ptr->accept(*this);
+		(*JANIroot_)["properties"] = *JANIfield_;
 	}
-	(*JANIroot_)["constants"] = *JANIfield_;
+	REGISTER_VARS_NAMES_ = false;
 
 	// Parse all modules
 	JANIfield_ = make_shared<Json::Value>(Json::arrayValue);
 	for (auto module_ptr: node->get_modules())
 		module_ptr->accept(*this);
 	(*JANIroot_)["automata"] = *JANIfield_;
+
+	if (compatibilityMode_ == Modest) {
+		// Variables that appear in properties must be stored at global scope
+		(*JANIroot_)["variables"] = Json::arrayValue;
+		for (const auto& var: variablesInProperties_)
+			(*JANIroot_)["variables"].append(var);
+		variablesInProperties_.clear();
+	}
+
+	// Parse global constants
+	JANIfield_ = make_shared<Json::Value>(Json::arrayValue);
+	for (auto decl_ptr: node->get_globals()) {
+		assert(decl_ptr->is_constant());  // IOSA supports global *constants* only
+		decl_ptr->accept(*this);
+	}
+	(*JANIroot_)["constants"] = *JANIfield_;
 
 	// Get the labels from all modules
 	(*JANIroot_)["actions"] = Json::Value(Json::arrayValue);
@@ -934,21 +1031,95 @@ JaniTranslator::visit(shared_ptr<Model> node)
 		(*JANIroot_)["actions"].append(action);
 	}
 
+	if (compatibilityMode_ == Modest) {
+		// An extra action to sync all modules from initial-location to location
+		auto initAction = EMPTY_JSON_OBJ;
+		initAction["name"] = INIT_CLOCKS;
+		(*JANIroot_)["actions"].append(initAction);
+	}
+
 	// Compose the automata with synchronization vectors
 	build_JANI_synchronization((*JANIroot_)["system"]);
 	assert((*JANIroot_)["system"].isObject());
 	assert((*JANIroot_)["system"].isMember("elements"));
 	assert((*JANIroot_)["system"]["elements"].isArray());
-
-	// Parse all properties
-	if (node->has_props()) {
-		JANIfield_ = make_shared<Json::Value>(Json::arrayValue);
-		for (auto prop_ptr: node->get_props())
-			prop_ptr->accept(*this);
-		(*JANIroot_)["properties"] = *JANIfield_;
-	}
 }
 
+
+void
+JaniTranslator::visit(shared_ptr<ModuleAST> node)
+{
+	auto JANIobj(EMPTY_JSON_OBJ);
+	const auto tmp = *JANIfield_;
+
+	// Reference this module as "current"
+	currentModule_ = node->get_name();
+	currentScope_  = ModuleScope::scopes.at(currentModule_);
+	timeProgressInvariant_.clear();  // new module -> new time-progress
+	modulesLabels_[currentModule_] = std::make_pair(std::set<string>(),
+	                                                std::set<string>());
+	// Easy-to-guess module fields
+	JANIobj["name"] = node->get_name();
+	JANIobj["initial-locations"] = EMPTY_JSON_ARR;
+	switch (compatibilityMode_) {
+	case IOSA:
+		JANIobj["initial-locations"].append("location");
+		break;
+	case Modest:
+		JANIobj["initial-locations"].append("initial-location");
+		break;
+	}
+
+	// Module variables + Real variables for clocks (STA)
+	(*JANIfield_) = EMPTY_JSON_ARR;
+	for (auto decl_ptr: node->get_local_decls()) {
+		assert(!decl_ptr->is_constant());  // only local *variables* for now
+		decl_ptr->accept(*this);
+	}
+	JANIobj["variables"] = *JANIfield_;
+
+	if (compatibilityMode_ == Modest) {
+		// Prepare initialisation edge from initial-location to the "real location"
+		// that initialises all clocks and never goes back to the initial-location.
+		initEdge = EMPTY_JSON_OBJ;
+		initEdge["action"] = INIT_CLOCKS;
+		initEdge["location"] = "initial-location";
+		initEdge["destinations"] = EMPTY_JSON_ARR;
+		initEdge["destinations"].append(EMPTY_JSON_OBJ);
+		initEdge["destinations"][0]["location"] = "location";
+		initEdge["destinations"][0]["assignments"] = EMPTY_JSON_ARR;
+	}
+
+	// Module transitions
+	(*JANIfield_) = EMPTY_JSON_ARR;
+	for (auto tr_ptr: node->get_transitions())
+		tr_ptr->accept(*this);  // --> updates timeProgressInvariant_ and initEdge["destinations"][0]["assignments"]
+	JANIobj["edges"] = *JANIfield_;
+	if (compatibilityMode_ == Modest) {
+		// register also the initialisation edge
+		JANIobj["edges"].append(initEdge);
+	}
+
+	// STA time-progress invariant:
+	// no time progress in "initial-location"
+	JANIobj["locations"] = EMPTY_JSON_ARR;
+	JANIobj["locations"].append(EMPTY_JSON_OBJ);
+	JANIobj["locations"][0]["name"] = "initial-location";
+	JANIobj["locations"][0]["time-progress"] = EMPTY_JSON_OBJ;
+	JANIobj["locations"][0]["time-progress"]["exp"] = false;
+	// guards-constructed time progress in "location"
+	JANIobj["locations"].append(EMPTY_JSON_OBJ);
+	JANIobj["locations"][1]["name"] = "location";
+	JANIobj["locations"][1]["time-progress"] = EMPTY_JSON_OBJ;
+	JANIobj["locations"][1]["time-progress"]["exp"] = build_JANI_time_progress();
+
+	// Store translated data in corresponding field
+	*JANIfield_ = tmp;
+	if (JANIfield_->isArray())
+		JANIfield_->append(JANIobj);
+	else
+		(*JANIfield_) = JANIobj;
+}
 
 
 void
@@ -982,10 +1153,16 @@ JaniTranslator::visit(shared_ptr<RangedDecl> node)
 
     // Store translated data in corresponding field
 	*JANIfield_ = tmp;
-	if (JANIfield_->isArray())
-		JANIfield_->append(JANIobj);
-    else
-		(*JANIfield_) = JANIobj;
+	if (compatibilityMode_ == Modest &&
+	        varNamesRegister.find(node->get_id()) != end(varNamesRegister)) {
+		// Variables that appear in properties must be stored at global scope
+		variablesInProperties_.insert(JANIobj);
+	} else {
+		if (JANIfield_->isArray())
+			JANIfield_->append(JANIobj);
+		else
+			(*JANIfield_) = JANIobj;
+	}
 }
 
 
@@ -995,14 +1172,15 @@ JaniTranslator::visit(shared_ptr<InitializedDecl> node)
 	auto JANIobj(EMPTY_JSON_OBJ);
 	assert( ! (has_errors() || has_warnings()) );
 
-    JANIobj["name"] = node->get_id();
+	const auto name =  node->get_id();
+	JANIobj["name"] = name;
     if (!node->is_constant() && node->get_type() == Type::tbool) {
 		// Variable of type bool (not "ranged")
         JANIobj["type"] = "bool";
         JANIobj["initial-value"] = get_bool_or_error(node->get_init(),
                                       "failed to reduce initial value of \""
-                                      + node->get_id() + "\"\n");
-    } else {
+									  + name + "\"\n");
+	} else {
 		// Constant
 		build_JANI_constant(node, JANIobj);
     }
@@ -1011,10 +1189,16 @@ JaniTranslator::visit(shared_ptr<InitializedDecl> node)
 		throw_FigException("error translating declaration: " + get_messages());
 
 	// Store translated data in corresponding field
-	if (JANIfield_->isArray())
-		JANIfield_->append(JANIobj);
-	else
-		(*JANIfield_) = JANIobj;
+	if (compatibilityMode_ == Modest &&
+	        !node->is_constant() && varNamesRegister.find(name) != end(varNamesRegister)) {
+		// Variables that appear in properties must be stored at global scope
+		variablesInProperties_.insert(JANIobj);
+	} else {
+		if (JANIfield_->isArray())
+			JANIfield_->append(JANIobj);
+		else
+			(*JANIfield_) = JANIobj;
+	}
 }
 
 
@@ -1082,10 +1266,13 @@ JaniTranslator::visit(shared_ptr<FConst> node)
 void
 JaniTranslator::visit(shared_ptr<LocExp> node)
 {
+	const auto name = node->get_exp_location()->get_identifier().c_str();
 	if (JANIfield_->isArray())
-		JANIfield_->append(node->get_exp_location()->get_identifier().c_str());
+		JANIfield_->append(name);
 	else
-		(*JANIfield_) = node->get_exp_location()->get_identifier().c_str();
+		(*JANIfield_) = name;
+	if (REGISTER_VARS_NAMES_)
+		varNamesRegister.insert(name);
 }
 
 
@@ -1133,53 +1320,6 @@ JaniTranslator::visit(shared_ptr<BinOpExp> node)
 
 
 void
-JaniTranslator::visit(shared_ptr<ModuleAST> node)
-{
-	auto JANIobj(EMPTY_JSON_OBJ);
-	const auto tmp = *JANIfield_;
-
-	// Reference this module as "current"
-	currentModule_ = node->get_name();
-	currentScope_  = ModuleScope::scopes.at(currentModule_);
-	*timeProgressInvariant_ = Json::Value(Json::nullValue);
-	modulesLabels_[currentModule_] = std::make_pair(std::set<string>(),
-													std::set<string>());
-	// Easy-to-guess module fields
-	JANIobj["name"] = node->get_name();
-	JANIobj["initial-locations"] = EMPTY_JSON_ARR;
-	JANIobj["initial-locations"].append("location");
-
-	// Module variables + Real variables for clocks (STA)
-	(*JANIfield_) = EMPTY_JSON_ARR;
-	for (auto decl_ptr: node->get_local_decls()) {
-		assert(!decl_ptr->is_constant());  // only local *variables* for now
-		decl_ptr->accept(*this);
-	}
-	JANIobj["variables"] = *JANIfield_;
-
-	// Module transitions
-	(*JANIfield_) = EMPTY_JSON_ARR;
-	for (auto tr_ptr: node->get_transitions())
-		tr_ptr->accept(*this);  // timeProgressInvariant_ is updated
-	JANIobj["edges"] = *JANIfield_;
-
-	// STA time-progress invariant
-	JANIobj["locations"] = EMPTY_JSON_ARR;
-	JANIobj["locations"].append(EMPTY_JSON_OBJ);
-	JANIobj["locations"][0]["name"] = "location";
-	JANIobj["locations"][0]["time-progress"] = EMPTY_JSON_OBJ;
-	JANIobj["locations"][0]["time-progress"]["exp"] = *timeProgressInvariant_;
-
-	// Store translated data in corresponding field
-	*JANIfield_ = tmp;
-	if (JANIfield_->isArray())
-		JANIfield_->append(JANIobj);
-	else
-		(*JANIfield_) = JANIobj;
-}
-
-
-void
 JaniTranslator::visit(shared_ptr<TransitionAST> node)
 {
 	auto JANIobj(EMPTY_JSON_OBJ);
@@ -1204,11 +1344,6 @@ JaniTranslator::visit(shared_ptr<TransitionAST> node)
 		case LabelType::in_committed:
 		case LabelType::out_committed:
 			throw_FigException("committed acctions not yet supported in JANI");
-			break;
-		default:
-			throw_FigException("invalid label type: " + std::to_string(
-								   static_cast<int>(node->get_label_type())));
-			break;
 		}
 	}
 
@@ -1314,7 +1449,7 @@ JaniTranslator::visit(shared_ptr<RateProp> node)
 std::string
 JaniTranslator::JANI_2_IOSA(const std::string& janiModelFile,
 							const std::string& iosaFilename,
-							bool skipFileDump)
+                            bool doFileDump)
 {
 	// Parse JANI model file
 	parse_JANI_model(janiModelFile);
@@ -1323,7 +1458,7 @@ JaniTranslator::JANI_2_IOSA(const std::string& janiModelFile,
 		throw_FigException("invalid JANI file given for translation to IOSA");
 
 	// Translate JANI to IOSA
-	const bool translated = build_IOSA_from_JANI();
+	const bool translated = build_IOSA_from_JANI(!doFileDump);
 	if (!translated) {
 #ifndef NDEBUG
 		figMainLog << "[ERROR] Invalid IOSA model file created !!!\n";
@@ -1335,7 +1470,7 @@ JaniTranslator::JANI_2_IOSA(const std::string& janiModelFile,
 	}
 
 	// Dump translated IOSA model to file and exit
-	bool dumpToFile( ! (skipFileDump && translated));
+	bool dumpToFile(doFileDump && translated);
 	std::string iosaFname;
 	if (dumpToFile) {
 		iosaFname = compose_iosa_fname(janiModelFile, iosaFilename);
@@ -1364,7 +1499,7 @@ JaniTranslator::parse_JANI_model(const std::string& janiModelFile)
 
 
 bool
-JaniTranslator::build_IOSA_from_JANI()
+JaniTranslator::build_IOSA_from_JANI(bool sealModel)
 {
 	// Fast consistency check and initializations
 	assert(nullptr != JANIroot_);
@@ -1447,7 +1582,7 @@ JaniTranslator::build_IOSA_from_JANI()
 		return false;
 	}
 
-	return ::build_IOSA_model_from_AST(iosaModel);
+	return ::build_IOSA_model_from_AST(iosaModel, sealModel);
 }
 
 
@@ -1733,10 +1868,19 @@ JaniTranslator::build_IOSA_clock_reset(const std::string& clockName,
 		IOSAdist = make_shared<MultipleParameterDist>(distType->second,
 													  params[0], params[1]);
 		break;
-	default:
-		figTechLog << "[ERROR] Unhandled distribution type: "
-				   << static_cast<int>(distType->second) << std::endl;
+	case DistType::hyperexponential2:
+		if (3ul > params.size()) {
+			figTechLog << "[ERROR] Missing parameters for \"" << JANIdist
+					   << "\" distribution (two required).\n";
+			return nullptr;
+		}
+		IOSAdist = make_shared<MultipleParameterDist>(distType->second,
+													  params[0], params[1], params[2]);
 		break;
+//	default:
+//		figTechLog << "[ERROR] Unhandled distribution type: "
+//				   << static_cast<int>(distType->second) << std::endl;
+//		break;
 	}
 	return make_shared<ClockReset>(make_shared<Location>(clockName), IOSAdist);
 }

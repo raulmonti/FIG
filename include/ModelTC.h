@@ -128,6 +128,7 @@ public:
     void visit(shared_ptr<UnOpExp> node) override;
     void visit(shared_ptr<TransientProp> node) override;
     void visit(shared_ptr<RateProp> node) override;
+	void visit(shared_ptr<TBoundSSProp> node) override;
 };
 
 

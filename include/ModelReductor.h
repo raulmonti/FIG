@@ -35,15 +35,21 @@ private:
     void reduce_multiple_init(shared_ptr<MultipleInitialized> decl);
     void check_data(const ArrayData &data);
 
+	/// Should we resolve location identifiers (variable/constant names)
+	const bool reduceLocations_;
 
 public:
-    ModelReductor() {}
+	ModelReductor(bool reduceLocations = true) :
+	    reduceLocations_(reduceLocations)
+	{ /* Not much to do around here */ }
+	virtual ~ModelReductor() {}
     void accept_cond(shared_ptr<ModelAST>);
     void visit(shared_ptr<Model>);
     void visit(shared_ptr<ModuleAST>);
     void visit(shared_ptr<TransientProp>);
     void visit(shared_ptr<RateProp>);
-    // Declarations
+	void visit(shared_ptr<TBoundSSProp>);
+	// Declarations
     void visit(shared_ptr<InitializedDecl>);
     void visit(shared_ptr<RangedDecl>);
     void visit(shared_ptr<ClockDecl>);

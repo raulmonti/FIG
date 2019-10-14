@@ -1,0 +1,65 @@
+
+GSL extract for t-student & gaussian inverse CDF
+================================================
+
+All the code included here was taken from GSL: the GNU Scientific Library v2.5.
+This compilation was made by Carlos E. Budde on June 26, 2019.
+
+GSL is a collection of numerical routines for scientific computing.
+GSL is free software, you can redistribute it and/or modify it under the terms
+of the GNU General Public License.
+
+The GSL library, and also this extract from it, is distributed in the hope that
+it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+
+Usage
+=====
+
+#include "include/gsl_cdf.h"
+
+T-students CDF inverse: "gsl_cdf_tdist_Pinv()"
+Gaussian   CDF inverse: "gsl_cdf_gaussian_Pinv()"
+
+Both give the inverse CDF values for one-sided critical regions.
+For e.g. usage on confidence intervals the value should be transformed to:
+
+                        1-(1-P)/2
+
+where 'P' was the CDF value whose inverse was queried.
+
+Example:
+         Suppose we want a 90% confidence interval using the CLT,
+         from a sample with 'n' values whose (sample) mean is 'm'
+         and (sample) standard deviation is 's'. The CI is thus:
+                  [ m-t*s/sqrt(n) , m+t*s/sqrt(n) ]
+         where 't' is the inverse CDF for a t-student distribution
+         with n-1 degrees of freedom and significance 1-(1-0.9)/2.
+         The value of 't' is computed from this code by calling:
+              t = gsl_cdf_tdist_Pinv( 1-(1-0.9)/2, n-1)
+
+Validate correct usage comparing to the usual tables:
+https://en.wikipedia.org/wiki/Student%27s_t-distribution#Table_of_selected_values
+
+Several PDFs and CDFs are included along the desired functionality,
+as they are necessary for the computations of the above inverse CDFs:
+ · include/gsl_cdf.h     has a list of all available CDFs and their inverse,
+ · include/gsl_randist.h has a list of all available PDFs.
+
+
+More information about GSL
+==========================
+
+The project homepage is http://www.gnu.org/software/gsl/
+
+See the NEWS file for recent changes to the library.
+
+The GSL Manual has been published and can be ordered from most
+bookstores. The publication details are,
+
+  GNU Scientific Library Reference Manual - Revised Second Edition, 
+  M. Galassi et al, ISBN 0954161734 (620 pages, paperback).
+
+The money raised from sales of the manual helps support the
+development of GSL.

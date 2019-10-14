@@ -42,6 +42,7 @@
 #include <Transition.h>
 #include <Property.h>
 #include <PropertyRate.h>
+#include <PropertyTBoundSS.h>
 #include <PropertyTransient.h>
 #include <PropertyProjection.h>
 #include <Module.h>
@@ -360,18 +361,13 @@ label_local_states(const State& localState,
 		break;
 
 	case fig::PropertyType::RATE:
+	case fig::PropertyType::TBOUNDED_SS:
 		rares = label_local_rares(localState, cStates, rareClauses, true);
 		break;
 
-	case fig::PropertyType::THROUGHPUT:
 	case fig::PropertyType::RATIO:
 	case fig::PropertyType::BOUNDED_REACHABILITY:
 		throw_FigException("property type isn't supported yet");
-		break;
-
-	default:
-		throw_FigException("invalid property type");
-		break;
 	}
 
 	return std::queue<STATE_T>(std::deque<STATE_T>(begin(rares), end(rares)));
@@ -410,43 +406,41 @@ label_global_states(State globalState,
 	// Mark conditions according to the property
 	switch (property.type) {
 
-	case fig::PropertyType::TRANSIENT: {
-		const auto& transientProp = static_cast<const fig::PropertyTransient&>(property);
-		for (size_t i = 0ul ; i < cStates.size() ; i++) {
-			cStates[i] = fig::EventType::NONE;
-			const StateInstance valuation(globalState.decode(i).to_state_instance());
-			if ( transientProp.expr2(valuation)) {
-				fig::SET_RARE_EVENT(cStates[i]);
-				if (returnRares)
-					raresQueue.push(i);
+	case fig::PropertyType::TRANSIENT:
+	    {
+		    const auto& transientProp = static_cast<const fig::PropertyTransient&>(property);
+			for (auto i = 0u ; i < cStates.size() ; i++) {
+				cStates[i] = fig::EventType::NONE;
+				const StateInstance valuation(globalState.decode(i).to_state_instance());
+				if ( transientProp.expr2(valuation)) {
+					fig::SET_RARE_EVENT(cStates[i]);
+					if (returnRares)
+						raresQueue.push(i);
+				}
+				if (!transientProp.expr1(valuation))
+					fig::SET_STOP_EVENT(cStates[i]);
 			}
-			if (!transientProp.expr1(valuation))
-				fig::SET_STOP_EVENT(cStates[i]);
-		}
-		} break;
+	    }
+		break;
 
-	case fig::PropertyType::RATE: {
-		const auto& rateProp = static_cast<const fig::PropertyRate&>(property);
-		for (size_t i = 0ul ; i < cStates.size() ; i++) {
-			cStates[i] = fig::EventType::NONE;
-			const StateInstance valuation(globalState.decode(i).to_state_instance());
-			if (rateProp.expr(valuation)) {
-				fig::SET_RARE_EVENT(cStates[i]);
-				if (returnRares)
-					raresQueue.push(i);
+	case fig::PropertyType::RATE:
+	case fig::PropertyType::TBOUNDED_SS:
+	    {
+		    for (auto i = 0u ; i < cStates.size() ; i++) {
+				cStates[i] = fig::EventType::NONE;
+				const StateInstance valuation(globalState.decode(i).to_state_instance());
+				if (property.is_rare(valuation)) {
+					fig::SET_RARE_EVENT(cStates[i]);
+					if (returnRares)
+						raresQueue.push(i);
+				}
 			}
-		}
-		} break;
+	    }
+		break;
 
-	case fig::PropertyType::THROUGHPUT:
 	case fig::PropertyType::RATIO:
 	case fig::PropertyType::BOUNDED_REACHABILITY:
 		throw_FigException("property type isn't supported yet");
-		break;
-
-	default:
-		throw_FigException("invalid property type");
-		break;
 	}
 
 	return raresQueue;

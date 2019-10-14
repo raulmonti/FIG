@@ -144,22 +144,22 @@ ModuleInstance::add_transition(Transition&& transition)
 
 
 template< template< typename, typename... > class Container,
-		  typename ValueType,
-		  typename... OtherContainerArgs >
+          typename ValueType,
+          typename... OtherContainerArgs >
 void
 ModuleInstance::add_transition(
-	const Label& label,
-	const std::string& triggeringClock,
+    const Label& label,
+    const std::string& triggeringClock,
     const Precondition& pre,
     const Postcondition& pos,
-	const Container<ValueType, OtherContainerArgs...>& resetClocks)
+    const Container<ValueType, OtherContainerArgs...>& resetClocks)
 {
 	add_transition(Transition(
-		std::forward<const Label&>(label),
-		std::forward<const std::string&>(triggeringClock),
+	    std::forward<const Label&>(label),
+	    std::forward<const std::string&>(triggeringClock),
 	    std::forward<const Precondition&>(pre),
-		std::forward<const Postcondition&>(pos),
-		std::forward<const Container<ValueType, OtherContainerArgs...>&>(resetClocks)
+	    std::forward<const Postcondition&>(pos),
+	    std::forward<const Container<ValueType, OtherContainerArgs...>&>(resetClocks)
 	));
 }
 
@@ -174,6 +174,39 @@ template void ModuleInstance::add_transition(lab, str, pre, pos, const std::dequ
 template void ModuleInstance::add_transition(lab, str, pre, pos, const std::vector< std::string >&);
 template void ModuleInstance::add_transition(lab, str, pre, pos, const std::forward_list< std::string >&);
 template void ModuleInstance::add_transition(lab, str, pre, pos, const std::unordered_set< std::string >&);
+
+
+template< template< typename, typename... > class Container,
+		  typename ValueType,
+		  typename... OtherContainerArgs >
+void
+ModuleInstance::add_transition(
+	const Label& label,
+	const std::string& triggeringClock,
+    Precondition&& pre,
+    Postcondition&& pos,
+	const Container<ValueType, OtherContainerArgs...>& resetClocks)
+{
+	add_transition(Transition(
+		std::forward<const Label&>(label),
+		std::forward<const std::string&>(triggeringClock),
+	    std::move(pre),
+	    std::move(pos),
+		std::forward<const Container<ValueType, OtherContainerArgs...>&>(resetClocks)
+	));
+}
+
+// ModuleInstance::add_transition(...) can only be invoked with the following containers
+using lab = const Label&;
+using str = const std::string&;
+using mpre = Precondition&&;
+using mpos = Postcondition&&;
+template void ModuleInstance::add_transition(lab, str, mpre, mpos, const std::set< std::string >&);
+template void ModuleInstance::add_transition(lab, str, mpre, mpos, const std::list< std::string >&);
+template void ModuleInstance::add_transition(lab, str, mpre, mpos, const std::deque< std::string >&);
+template void ModuleInstance::add_transition(lab, str, mpre, mpos, const std::vector< std::string >&);
+template void ModuleInstance::add_transition(lab, str, mpre, mpos, const std::forward_list< std::string >&);
+template void ModuleInstance::add_transition(lab, str, mpre, mpos, const std::unordered_set< std::string >&);
 
 
 State<STATE_INTERNAL_TYPE>
@@ -313,8 +346,8 @@ ModuleInstance::jump(const Traial::Timeout& to,
 	const auto iter = transitions_by_clock_.find(to.name);
 	assert(end(transitions_by_clock_) != iter);  // deny foreign clocks
 	// Step 1: make time elapse in all clocks
-	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
-	traial.kill_time(to.gpos, 100.0f);  // mark this clock as 'expired'
+	traial.advance_time(firstClock_, num_clocks(), elapsedTime);
+	traial.advance_time(to.gpos, 100.0f);  // mark this clock as 'expired'
 	// Step 2: attend any enabled transition with matching clock name
 	return apply_postcondition(traial, iter->second);
 }
@@ -331,7 +364,7 @@ ModuleInstance::jump(const Label& label,
 #endif
     assert(label.is_output() || label.is_tau() || label.should_ignore());
 	// Step 1: make time elapse in all clocks
-	traial.kill_time(firstClock_, num_clocks(), elapsedTime);
+	traial.advance_time(firstClock_, num_clocks(), elapsedTime);
 	if (label.should_ignore())
 		return;
 	// Step 2: attend any enabled transition with matching input label
@@ -451,8 +484,15 @@ ModuleInstance::jump(const Label& label,
 void
 ModuleInstance::markovian_check()
 {
+	static std::set< std::string > memorylessDistributions = {
+		// check for available distributions in src/Clock.cpp
+		"exponential",
+		"hyperexponential2",
+		"erlang"
+	};
 	for (const Clock& clk: lClocks_) {
-		if (clk.dist_name() != "exponential") {
+		if (end(memorylessDistributions) ==
+				memorylessDistributions.find(clk.dist_name())) {
 			markovian_ = false;
 			break;
 		}

@@ -37,15 +37,18 @@ namespace fig
 /**
  * @brief Confidence interval for estimates of long-run simulations
  *
- *        The estimates this CI expects are time averages or proportions.
- *        It is irrelevant how these were measured, since no assumptions
- *        are made regarding the distribution of the samples.
- *        The <a href="https://goo.gl/wxYuzG">standard CLT theory for
- *        confidence intervals</a> with unknown standard deviation is used.
+ * @details The estimates this CI expects are time averages or proportions.
+ *          It is irrelevant how these were measured, since no assumptions
+ *          are made regarding the distribution of the samples.<br>
+ *          The <a href="https://goo.gl/wxYuzG">standard CLT theory for
+ *          confidence intervals</a> with unknown standard deviation is used.
  *
- * @warning Useful for "few" updates, ideally < 2^11 samples.
+ * @warning Useful for "few" updates, e.g. \f$ < 2^{11} \f$ samples.
  *          Feeding too many samples may incurr in floating-point precision
- *          loss, see <a href="https://goo.gl/wxYuzG">the wiki</a> on this.
+ *          loss (see <a href="https://goo.gl/wxYuzG">the wiki on this</a>)
+ *
+ * @note To work with a large number of updates (e.g. \f$ > 2^{11} \f$),
+ *       use rather the ConfidenceIntervalTransient class
  *
  * @see ConfidenceIntervalMean
  */
@@ -53,15 +56,13 @@ class ConfidenceIntervalRate : public ConfidenceIntervalMean
 {
 public:
 	/// @copydoc ConfidenceInterval::ConfidenceInterval()
-	ConfidenceIntervalRate(double confidence,
+	ConfidenceIntervalRate(double conf,
 						   double precision,
 						   bool dynamicPrecision = false,
 						   bool neverStop = false) :
-		ConfidenceInterval("rate", confidence, precision, dynamicPrecision, neverStop),
-		ConfidenceIntervalMean(confidence, precision, dynamicPrecision, neverStop)
+	    ConfidenceInterval("rate", conf, precision, dynamicPrecision, neverStop),
+	    ConfidenceIntervalMean(conf, precision, dynamicPrecision, neverStop)
 		{ /* Not much to do around here... */ }
-
-	virtual ~ConfidenceIntervalRate() {}
 };
 
 }

@@ -83,8 +83,8 @@ extern std::string engineName;
 extern fig::ImpFunSpec impFunSpec;
 
 /// Name of the FIG's \ref fig::ThresholdsBuilder "thresholds building
-/// technique" to use for estimations
-extern std::string thrTechnique;
+/// technique" to use for estimations, or explicit thresholds if chosen ad hoc
+extern std::string thrSpec;
 
 /// Global effort values to use with Importance Splitting simulation engines,
 /// valid only when a global-effort thresholds selection algorithm is used,

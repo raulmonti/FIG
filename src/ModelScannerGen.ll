@@ -81,6 +81,7 @@ blank  [ \t]
 "normal"      return ModelParser::make_NORMAL(loc);
 "uniform"     return ModelParser::make_UNIFORM(loc);
 "exponential" return ModelParser::make_EXP(loc);
+"hyperexponential2" return ModelParser::make_HEXP2(loc);
 "lognormal"   return ModelParser::make_LOGNORMAL(loc);
 "gamma"       return ModelParser::make_GAMMA(loc);
 "rayleigh"    return ModelParser::make_RAYLEIGH(loc);
@@ -101,6 +102,7 @@ blank  [ \t]
 "|"           return ModelParser::make_MID(loc);
 "P"           return ModelParser::make_PROPT(loc);
 "S"           return ModelParser::make_PROPS(loc);
+"B"           return ModelParser::make_PROPB(loc);
 "U"           return ModelParser::make_UNTIL(loc);
 "floor"       return ModelParser::make_FLOOR(loc);
 "ceil"        return ModelParser::make_CEIL(loc);
@@ -138,7 +140,7 @@ int parse_int() {
 }
 
 float parse_float() {
-    //TODO: check precision, overflow, ....
+	// #TODO: check precision, overflow, ....
     float n = strtof(yytext, NULL);
     return n;
 }

@@ -1,4 +1,7 @@
-/* Leonardo Rodríguez */
+/**
+ * @author Leonardo Rodríguez
+ * @author Carlos E. Budde (June 2019 updates)
+ */
 
 #include "ModelPrinter.h"
 #include "FigException.h"
@@ -30,9 +33,6 @@ string ModelPrinter::to_str(LabelType type) {
     case LabelType::tau:
         result = "Tau";
         break;
-	default:
-		throw_FigException("invalid label type");
-		break;
 	}
     return result;
 }
@@ -49,8 +49,11 @@ string ModelPrinter::to_str(DistType type) {
     case DistType::normal:
         result = "normal";
         break;
-    case DistType::exponential:
-        result = "exponential";
+	case DistType::exponential:
+		result = "exponential";
+		break;
+	case DistType::hyperexponential2:
+		result = "hyperexponential2";
         break;
     case DistType::lognormal:
         result = "lognormal";
@@ -67,9 +70,6 @@ string ModelPrinter::to_str(DistType type) {
 	case DistType::dirac:
 		result = "dirac";
         break;
-	default:
-		throw_FigException("invalid clock distribution");
-		break;
 	}
     return result;
 }
@@ -80,9 +80,17 @@ string ModelPrinter::to_str(ExpOp op) {
 
 string ModelPrinter::to_str(PropType prop_type) {
     string result;
-    switch(prop_type) {
-    case PropType::transient: result = "Transient"; break;
-    case PropType::rate: result = "Rate"; break;
+	switch(prop_type)
+	{
+	case PropType::transient:
+		result = "Transient";
+		break;
+	case PropType::rate:
+		result = "Rate";
+		break;
+	case PropType::tboundss:
+		result = "TimeBoundedSS";
+		break;
     }
     return (result);
 }
@@ -386,11 +394,17 @@ void ModelPrinter::visit(shared_ptr<MultipleParameterDist> dist) {
 		accept_idented(dist->get_first_parameter());
 		print_idented("Parameter2:");
 		accept_idented(dist->get_second_parameter());
+		if (dist->num_parameters() == 3) {
+			print_idented("Parameter3:");
+			accept_idented(dist->get_third_parameter());
+		}
 	} else {
 		out << to_str(dist->get_type()) << "(";
 		dist->get_first_parameter()->accept(*this);
 		out << ",";
 		dist->get_second_parameter()->accept(*this);
+		if (dist->num_parameters() == 3)
+			dist->get_third_parameter()->accept(*this);
 		out << ")";
 	}
 }
@@ -538,6 +552,26 @@ void ModelPrinter::visit(shared_ptr<RateProp> prop) {
 		print_idented("S( ");
 		prop->get_expression()->accept(*this);
 		out << " )\n";
+	}
+}
+
+void ModelPrinter::visit(shared_ptr<TBoundSSProp> prop) {
+	if (debug) {
+		visit(std::static_pointer_cast<Prop>(prop));
+		print_idented("Time-bound low:");
+		accept_idented(prop->get_tbound_low());
+		print_idented("Time-bound upp:");
+		accept_idented(prop->get_tbound_upp());
+		print_idented("Expression:");
+		accept_idented(prop->get_expression());
+	} else {
+		print_idented("B( ");
+		prop->get_expression()->accept(*this);
+		out << " ) [ ";
+		prop->get_tbound_low()->accept(*this);
+		out << ":";
+		prop->get_tbound_upp()->accept(*this);
+		out << " ]\n";
 	}
 }
 

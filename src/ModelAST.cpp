@@ -1,10 +1,16 @@
-/* Leonardo Rodríguez */
-#include "ModelAST.h"
-#include "ModelParser.hpp"
-#include "ErrorMessage.h"
-#include <FigLog.h>
+/**
+ * @author Leonardo Rodríguez
+ * @author Carlos E. Budde (June 2019 updates)
+ */
+
+// C++
 #include <cstdlib>
 #include <cstring>
+// fig
+#include <ModelAST.h>
+#include <ModelParser.hpp>
+#include <ErrorMessage.h>
+#include <FigLog.h>
 
 using std::shared_ptr;
 using std::static_pointer_cast;
@@ -234,7 +240,11 @@ void TransientProp::accept(Visitor& visit) {
 }
 
 void RateProp::accept(Visitor& visit) {
-    visit.visit(static_pointer_cast<RateProp>(shared_from_this()));
+	visit.visit(static_pointer_cast<RateProp>(shared_from_this()));
+}
+
+void TBoundSSProp::accept(Visitor& visit) {
+	visit.visit(static_pointer_cast<TBoundSSProp>(shared_from_this()));
 }
 
 //Exp
@@ -324,6 +334,9 @@ void Visitor::visit(shared_ptr<TransientProp> node) {
     visit(std::static_pointer_cast<Prop>(node));
 }
 void Visitor::visit(shared_ptr<RateProp> node) {
+	visit(std::static_pointer_cast<Prop>(node));
+}
+void Visitor::visit(shared_ptr<TBoundSSProp> node) {
     visit(std::static_pointer_cast<Prop>(node));
 }
 

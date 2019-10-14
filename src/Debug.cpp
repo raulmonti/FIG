@@ -1,17 +1,20 @@
 /* Leonardo Rodríguez */
 
+// C++
 #include <fstream>
 #include <string>
-#include "Clock.h"
-#include "State.h"
-#include "Precondition.h"
-#include "Postcondition.h"
-#include "Transition.h"
-#include "ModuleInstance.h"
-#include "ModuleNetwork.h"
-#include "ModelSuite.h"
-#include "PropertyTransient.h"
-#include "PropertyRate.h"
+// fig
+#include <Clock.h>
+#include <State.h>
+#include <Precondition.h>
+#include <Postcondition.h>
+#include <Transition.h>
+#include <ModuleInstance.h>
+#include <ModuleNetwork.h>
+#include <ModelSuite.h>
+#include <PropertyTransient.h>
+#include <PropertyRate.h>
+#include <PropertyTBoundSS.h>
 
 using std::string;
 
@@ -156,7 +159,18 @@ void PropertyTransient::print_info(std::ostream &out) const {
 void PropertyRate::print_info(std::ostream &out) const {
 	out << "PROPERTY-RATE" << std::endl;
 	out << "EXPRESSION:" << std::endl;
-	out << this->expr_->to_string() << std::endl;
+	out << condition_.get_expression()->to_string() << std::endl;
+	out << "ENDOF-PROPERTY-RATE" << std::endl;
+}
+
+void PropertyTBoundSS::print_info(std::ostream &out) const {
+	out << "PROPERTY-TBOUND-SS" << std::endl;
+	out << "TBOUND_LOW:" << std::endl;
+	out << tbound_low() << std::endl;
+	out << "TBOUND_UPP:" << std::endl;
+	out << tbound_upp() << std::endl;
+	out << "EXPRESSION:" << std::endl;
+	out << condition_.get_expression()->to_string() << std::endl;
 	out << "ENDOF-PROPERTY-RATE" << std::endl;
 }
 
@@ -179,6 +193,35 @@ void ModelSuite::print_importance_function(std::ostream &out,
     out << "IMPORTANCE-FUNCTION" << std::endl;
     imf.print_out(out, this->modules_network()->global_state());
     out << "ENDOF-IMPORTANCE-FUNCTION" << std::endl;
+}
+
+void ModelSuite::print_current_importance_function(std::ostream &out) const {
+	if (nullptr == current_importance_function()) {
+		out << "IMPORTANCE-FUNCTION" << std::endl;
+		out << "(void)" << std::endl;
+		out << "ENDOF-IMPORTANCE-FUNCTION" << std::endl;
+	} else {
+		print_importance_function(out, *(ModelSuite::current_importance_function()));
+	}
+}
+
+void ModelSuite::print_current_thresholds(std::ostream &out) const {
+	out << "THRESHOLDS" << std::endl;
+	if (nullptr == current_thresholds_builder()) {
+		out << "(void)" << std::endl;
+	} else {
+		const auto& tb = *current_thresholds_builder();
+		out << "THRESHOLDS TECHNIQUE: " << tb.name << std::endl;
+		out << "IS-ADAPTIVE: " << (tb.adaptive() ? "YES" : "NO" ) << std::endl;
+		out << "USES-GLOBAL-EFFORT: " << (tb.uses_global_effort() ? "YES" : "NO" ) << std::endl;
+		out << "THRESHOLDS VECTOR:";
+		if (nullptr == current_importance_function())
+			out << "[ERROR] ImportanceFunction is void: no thresholds are currently stored" << std::endl;
+		else
+			tb.show_thresholds(current_importance_function()->thresholds());
+		out << std::endl;
+	}
+	out << "ENDOF-THRESHOLDS" << std::endl;
 }
 
 }

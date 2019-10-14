@@ -52,15 +52,25 @@ class Label;
 
 
 
-/// Transform Stochastic Automata model specification files between
-/// <a href="http://jani-spec.org/">JANI format</a> and IOSA syntax.<br>
-/// From JANI's point of view the files correspond to
-/// <a href="http://goo.gl/vros8C">Stochatic Timed Automata</a> (STA),
-/// of which only a deterministic subset (viz. without non-determinism)
-/// is valid for translation.<br>
-/// From FIG's point of view the files correspond to
-/// <a href="http://dsg.famaf.unc.edu.ar/node/643">Input/Output Stochastic
-/// Automata</a> (IOSA).
+/**
+ * @brief Transform between IOSA syntax and JANI format
+ *
+ *        Transform Stochastic Automata model specification files between the
+ *        <a href="http://jani-spec.org/">JANI exchange format</a> and the
+ *        (fig-standard) IOSA model syntax.<br>
+ *        From JANI's point of view the files correspond to
+ *        <a href="http://goo.gl/vros8C">Stochatic Timed Automata</a> (STA),
+ *        of which only a deterministic subset (viz. without non-determinism)
+ *        is valid for translation.<br>
+ *        From FIG's point of view the files correspond to
+ *        <a href="http://dsg.famaf.unc.edu.ar/node/643">Input/Output Stochastic
+ *        Automata</a> (IOSA).
+ *
+ * @note  When translating IOSA to JANI direction, it is possible to produce
+ *        <a href="http://www.modestchecker.net/#tools">Modest-compatible</a>
+ *        JANI. This is incompatible with the IOSA input of FIG,
+ *        so translating the resulting JANI back to IOSA will fail.
+ */
 class JaniTranslator : public Visitor
 {
 public:  // Ctor/Dtor
@@ -69,7 +79,7 @@ public:  // Ctor/Dtor
 	JaniTranslator();
 
 	/// Default dtor
-	~JaniTranslator();
+	virtual ~JaniTranslator();
 
 public:  // Translation facilities
 
@@ -78,10 +88,11 @@ public:  // Translation facilities
 	 * JANI specification format</a>. If specified, include also all properties
 	 * defined in the properties file.
 	 *
-	 * @param iosaModelFile Path to (or name of) file with the IOSA model
-	 * @param iosaPropsFile Path to (or name of) file with properties to check
-	 * @param janiFilename  Desired name of the translated JANI file to create
-	 * @param validityCheck Whether to validate the IOSA syntax of the model file
+	 * @param iosaModelFile  Path to (or name of) file with the IOSA model
+	 * @param iosaPropsFile  Path to (or name of) file with properties to check
+	 * @param janiFilename   Desired name of the translated JANI file to create
+	 * @param validityCheck  Whether to validate the IOSA syntax of the model file
+	 * @param modestCompat   Produce JANI comaptible with the Modest Toolset
 	 *
 	 * @return Name of file with the model translated to an STA written in
 	 *         the JANI specification format (see notes)
@@ -93,30 +104,33 @@ public:  // Translation facilities
 	 * @note If 'janiFilename' was passed then the JANI file generated will
 	 *       have that name. Otherwise a name related to 'iosaModelFile' is
 	 *       automatically generated.
+	 * @warning If \p modestCompat is specified, the resulting JANI file
+	 *          cannot be translated back to IOSA.
 	 */
 	std::string
 	IOSA_2_JANI(const std::string& iosaModelFile,
 				const std::string& iosaPropsFile = "",
 				const std::string& janiFilename = "",
-				bool validityCheck = true);
+	            bool validityCheck = true,
+	            bool modestCompat = false);
 
 	/**
-	 * Translate model file specified in <a href="http://jani-spec.org/">
-	 * JANI format</a> to IOSA syntax. Properties, if present, will be included
-	 * inside a "properties...endproperties" section in the IOSA file.
+	 * Translate model file specified in the <a href="http://jani-spec.org/">
+	 * JANI exchange format</a> to IOSA syntax. Properties, if present, will be
+	 * included inside a "properties...endproperties" section in the IOSA file.
 	 *
 	 * @param janiModelFile Path to (or name of) file with STA model
-	 *                      written in valid JANI-spec format
+	 *                      written in valid JANI exchange format
 	 * @param iosaFilename  Desired name of the translated IOSA file to create
-	 * @param skipFileDump  Don't write result to file; just keep the model
-	 *                      compiled in memory (in the ModelSuite singleton)
+	 * @param doFileDump    After successfully compiling the model in memory,
+	 *                      dump the result in a file (using IOSA model syntax)
 	 *
 	 * @return Name of file with the model translated to IOSA syntax (see notes)
 	 *
 	 * @throw FigException if we couldn't generate a valid IOSA translation,
 	 *                     e.g. when the JANI model wasn't a deterministic STA
 	 *
-	 * @note If 'skiṕFileDump' then an empty string is returned.
+	 * @note If not 'doFileDump' then an empty string is returned.
 	 *       Otherwise if 'iosaFilename' was specified the IOSA file will
 	 *       have that name. Otherwise a name related to 'janiModelFile' is
 	 *       automatically generated.
@@ -124,7 +138,7 @@ public:  // Translation facilities
 	std::string
 	JANI_2_IOSA(const std::string& janiModelFile,
 				const std::string& iosaFilename = "",
-				bool skipFileDump = false);
+	            bool doFileDump = true);
 
 private:  // Class attributes
 
@@ -132,11 +146,27 @@ private:  // Class attributes
 	/// @note Used for IOSA -> STA translation
 	static constexpr char REAL_VAR_FROM_CLOCK_PREFIX[] = "x_";
 
+	/// Label used to synchronise modules when moving from their
+	/// initial-location to their "real location"
+	/// @note For compatibility with the Modest Toolset
+	static constexpr char INIT_CLOCKS[] = "init_clocks";
+
 	/// An empty Json::Value of "object" type
 	static const Json::Value EMPTY_JSON_OBJ;
 
 	/// An empty Json::Value of "array" type
 	static const Json::Value EMPTY_JSON_ARR;
+
+	/// If a label in a module doesn't synchronise with another module,
+	/// still create a sync-array for it where the module talks to itself
+	/// @note For compatibility with the Modest Toolset
+	bool SELF_SYNCING;
+
+	/// Compatibility mode (default: IOSA)
+	enum {
+		IOSA,
+		Modest
+	} compatibilityMode_;
 
 	/// ModelAST of the last parsed model
 	shared_ptr< Model > IOSAroot_;
@@ -144,7 +174,7 @@ private:  // Class attributes
 	/// JsonCPP of the last parsed model, in JANI Specifiaction format
 	shared_ptr< Json::Value > JANIroot_;
 
-	/// Current JSON field to fill in with info from last parsed IOSA model
+	/// Current JSON field to fill in with info from just-parsed IOSA model
 	shared_ptr< Json::Value > JANIfield_;
 
 	/// Name of the module currently translated (visited)
@@ -167,14 +197,20 @@ private:  // Class attributes
 	/// Labels of each module split in I/O
 	std::map< std::string, LabelSets > modulesLabels_;
 
-	/// All model labels grouped together without discrimination
+	/// Labels from all modules
 	std::set< std::string > modelLabels_;
+
+	/// Variables that appear in the properties
+	/// @note when compatibilityMode_ == Modest
+	///       these will be stored as <b>global variables</b>
+	/// @warning The resulting JANI file is no longer an IOSA !!!
+	std::set< Json::Value > variablesInProperties_;
 
 	/// Invariant needed by STA to make time progress
 	/// @note Updated by build_JANI_guard()
 	/// @note Reset by visit(shared_ptr<ModuleAST>)
 	/// @note Used for IOSA -> STA translation
-	shared_ptr< Json::Value> timeProgressInvariant_;
+	std::map< std::string, Json::Value > timeProgressInvariant_;
 
 	/// Real variables defined in a JANI Specification file,
 	/// used to sample the distributions that IOSA maps to clocks
@@ -274,6 +310,11 @@ private:  // Class utils: IOSA -> JANI
 							   ExpOp op,
 							   Json::Value& JANIobj);
 
+	/// Process the time-progress conditions extracted during guards parsing,
+	/// and build a "condensed" time-progress invariant that groups
+	/// preconditions by clocks
+	Json::Value build_JANI_time_progress();
+
 	/// Add to JANIobj the "JANI destination fields" translated from
 	/// the corresponding data inside the IOSA transition 'trans'
 	/// @warning JANIfield_ is used and invalidated
@@ -287,12 +328,11 @@ private:  // Class utils: IOSA -> JANI
 								 Json::Value& JANIobj);
 
 	/// Add to JANIobj the "JANI automata composition fields" translated
-	/// from the info gathered into modulesLabels_ from the current model
+	/// from the info gathered into modulesLabels_
 	void build_JANI_synchronization(Json::Value& JANIobj);
 
 	/// Append to JANIarr the "JANI synchronization vector" corresponding to
 	/// this output label, using the info gathered into modulesLabels_
-	/// from the current model under translation
 	void build_JANI_sync_vector(const std::string& oLabel,
 								Json::Value& JANIarr);
 
@@ -302,6 +342,9 @@ private:  // Visitor overrides for parsing
 	/// @warning If there's some previously parsed model information
 	///	         then JANIroot will be cleared from all data
 	void visit(shared_ptr<Model> node) override;
+
+	/// Append/assign to JANIfield the JANI translation of this IOSA module
+	void visit(shared_ptr<ModuleAST> node) override;
 
 	/// Append/assign to JANIfield the JANI translation of this IOSA constant
 	/// (or boolean variable)
@@ -341,9 +384,6 @@ private:  // Visitor overrides for parsing
 	/// binary operator.
 	void visit(shared_ptr<BinOpExp> node) override;
 
-	/// Append/assign to JANIfield the JANI translation of this IOSA module
-	void visit(shared_ptr<ModuleAST> node) override;
-
 	/// Append/assign to JANIfield the JANI translation of this IOSA transition
 	/// @note Specialization'd be pointless, right?
 	void visit(shared_ptr<TransitionAST> node) override;
@@ -367,9 +407,10 @@ private:  // Class utils: JANI -> IOSA
 	void parse_JANI_model(const string& janiModelFile);
 
 	/// Translate the current JANI specification in JANIroot_, if possible
+	/// @param sealModel Whether the model will be used for experimentation
 	/// @return Whether a valid IOSA model could be built
 	/// @throw FigException if JANI specification is badly formated
-	bool build_IOSA_from_JANI();
+	bool build_IOSA_from_JANI(bool sealModel = true);
 
 	/// Get IOSA translation of this JANI expression
 	/// @param JANIexpr Json object with the Expression to translate

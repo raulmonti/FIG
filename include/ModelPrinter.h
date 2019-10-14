@@ -34,8 +34,6 @@
 #include "ModelAST.h"
 
 
-using std::shared_ptr;
-
 /** Visitor to print the Model's AST **/
 class ModelPrinter : public Visitor {
 	/// Print for debugging?  (won't be parseable!)
@@ -51,7 +49,7 @@ class ModelPrinter : public Visitor {
 	/// Dump to out stream with currently set indentation level
 	void print_idented(string str);
 	/// Print this module using one more level of indentation
-    void accept_idented(shared_ptr<ModelAST> node);
+	void accept_idented(std::shared_ptr<ModelAST> node);
 public:
 	ModelPrinter(std::ostream& sout = std::cout,
 				 bool debugp = false,
@@ -65,36 +63,37 @@ public:
 
 	virtual ~ModelPrinter() {}
 
-	void visit(shared_ptr<Model> node);
-	void visit(shared_ptr<ModuleAST> node);
-	void visit(shared_ptr<Decl> node);
-    void visit(shared_ptr<RangedDecl> node);
-    void visit(shared_ptr<InitializedDecl> node);
-	void visit(shared_ptr<ClockDecl> node);
-	void visit(shared_ptr<ArrayDecl> node);
-    void visit(shared_ptr<TransitionAST> node);
-	void visit(shared_ptr<InputTransition> node);
-	void visit(shared_ptr<OutputTransition> node);
-	void visit(shared_ptr<TauTransition> node);
-	void visit(shared_ptr<Effect> node);
-    void visit(shared_ptr<Assignment> node);
-    void visit(shared_ptr<ClockReset> node);
-    void visit(shared_ptr<Dist> node);
-    void visit(shared_ptr<SingleParameterDist> node);
-    void visit(shared_ptr<MultipleParameterDist> node);
-    void visit(shared_ptr<Location> node);
-    void visit(shared_ptr<ArrayPosition> node);
-    void visit(shared_ptr<IConst> node);
-    void visit(shared_ptr<BConst> node);
-    void visit(shared_ptr<FConst> node);
-    void visit(shared_ptr<LocExp> node);
-    void visit(shared_ptr<OpExp> node);
-    void visit(shared_ptr<BinOpExp> node);
-    void visit(shared_ptr<UnOpExp> node);
-	void visit(shared_ptr<Prop> node);
-    void visit(shared_ptr<TransientProp> node);
-    void visit(shared_ptr<RateProp> node);
-    static string to_str(Type type);
+	void visit(std::shared_ptr<Model> node);
+	void visit(std::shared_ptr<ModuleAST> node);
+	void visit(std::shared_ptr<Decl> node);
+	void visit(std::shared_ptr<RangedDecl> node);
+	void visit(std::shared_ptr<InitializedDecl> node);
+	void visit(std::shared_ptr<ClockDecl> node);
+	void visit(std::shared_ptr<ArrayDecl> node);
+	void visit(std::shared_ptr<TransitionAST> node);
+	void visit(std::shared_ptr<InputTransition> node);
+	void visit(std::shared_ptr<OutputTransition> node);
+	void visit(std::shared_ptr<TauTransition> node);
+	void visit(std::shared_ptr<Effect> node);
+	void visit(std::shared_ptr<Assignment> node);
+	void visit(std::shared_ptr<ClockReset> node);
+	void visit(std::shared_ptr<Dist> node);
+	void visit(std::shared_ptr<SingleParameterDist> node);
+	void visit(std::shared_ptr<MultipleParameterDist> node);
+	void visit(std::shared_ptr<Location> node);
+	void visit(std::shared_ptr<ArrayPosition> node);
+	void visit(std::shared_ptr<IConst> node);
+	void visit(std::shared_ptr<BConst> node);
+	void visit(std::shared_ptr<FConst> node);
+	void visit(std::shared_ptr<LocExp> node);
+	void visit(std::shared_ptr<OpExp> node);
+	void visit(std::shared_ptr<BinOpExp> node);
+	void visit(std::shared_ptr<UnOpExp> node);
+	void visit(std::shared_ptr<Prop> node);
+	void visit(std::shared_ptr<TransientProp> node);
+	void visit(std::shared_ptr<RateProp> node);
+	void visit(std::shared_ptr<TBoundSSProp> node);
+	static string to_str(Type type);
     static string to_str(LabelType type);
     static string to_str(DistType type);
     static string to_str(PropType type);
