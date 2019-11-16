@@ -299,7 +299,7 @@ ModuleNetwork::peak_simulation(Traial& traial,
 		// (that could've reset clocks and changed next timeout)
 		while ( pred(traial) ) {
 			// Process timed actions
-			const Traial::Timeout& to = traial.next_timeout();
+			const Traial::Timeout& to = traial.next_timeout(true, true);
 			const float elapsedTime(to.value);
 			assert(0.0f <= elapsedTime);
 			// Active jump in the module whose clock timed-out:

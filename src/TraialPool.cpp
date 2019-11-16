@@ -448,7 +448,9 @@ TraialPool::get_timeouts(const Traial& t)
 void
 TraialPool::set_timeouts(Traial& t, std::vector<Traial::Timeout> clocks)
 {
+	assert(t.clocks_.size() == clocks.size());
 	t.clocks_.swap(clocks);
+	//t.clocks_ = clocks;
 }
 
 

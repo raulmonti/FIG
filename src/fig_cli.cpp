@@ -798,8 +798,8 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 	// Called with no arguments? Print briefest help and exit gracefully
 	if (argc==1) {
 		// Mimic TCLAP's messages style
-		figTechLog << "For complete USAGE and HELP type:\n";
-		figTechLog << "   " << argv[0] << " --help\n\n";
+		figTechLog << "For complete USAGE and HELP type:"
+		           << "  " << argv[0] << " --help\n\n";
 		exit(EXIT_SUCCESS);
 	}
 

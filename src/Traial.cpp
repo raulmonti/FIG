@@ -274,28 +274,38 @@ Traial::print_out(std::ostream& ostr, bool flush) const
 void
 Traial::reorder_clocks()
 {
+	assert(!orderedIndex_.empty());
+	assert(!clocks_.empty());
+	assert(orderedIndex_.size() == clocks_.size());
+	assert(orderedIndex_.size() == 24ul);
 	// Sort orderedIndex_ vector according to our current clock values
 	std::sort(begin(orderedIndex_), end(orderedIndex_),
-		[&](const unsigned& left, const unsigned& right)
-		{ return clocks_[left].value < clocks_[right].value; }
+	    [&](const unsigned& left, const unsigned& right) {
+#ifndef NDEBUG
+			return clocks_.at(left).value < clocks_.at(right).value;
+#else
+			return clocks_[left].value < clocks_[right].value;
+#endif
+	    }
 	);
 	// Find next clock to check, or record '-1' if all are negative
-	for (unsigned i=0u ; i < clocks_.size() || ((nextClock_ = -1) && false) ; i++) {
+	for (auto i=0u ; i < clocks_.size() || ((nextClock_ = -1) && false) ; i++) {
 		if (std::isfinite(clocks_[orderedIndex_[i]].value) &&
 				0.0f <= clocks_[orderedIndex_[i]].value) {
-			nextClock_ = orderedIndex_[i];
+			nextClock_ = static_cast<int>(orderedIndex_[i]);
 			break;
 		}
 	}
 }
 
 
-void
-Traial::report_timelock()
+[[noreturn]] void
+Traial::report_timelock(bool quiet)
 {
 	std::stringstream errMsg;
 	errMsg << "all clocks are expired, aka timelock! ";
-	print_out(errMsg, false);
+	if (!quiet)
+		print_out(errMsg, false);
 	throw_FigException(errMsg.str());
 }
 

@@ -206,7 +206,7 @@ public:  // Utils
 	size_t num_resources() const noexcept;
 
 	/// Allow our friend ModuleNetwork to get the time-state of a Traial
-	/// @return The Timeouts vector of the Traial (aka its active clocks)
+	/// @return (a copy of) The Timeouts vector of the Traial, i.e. its active clocks
 	/// @note Used by ModuleNetwork::peak_simulation()
 	/// @note Using the friend of a friend to access private data is nasty,
 	///       don't do this at home

@@ -249,18 +249,19 @@ public:  // Utils
 	/**
 	 * @brief Retrieve next expiring clock
 	 * @param reorder  Whether to reorder internal clocks prior the retrieval
+	 * @param quiet    Do not print state when a timelock is found
 	 * @note  <b>Complexity:</b> <i>O(m log(m))</i> if reorder, <i>O(1)</i>
 	 *        otherwise, where 'm' is the number of clocks in the system.
 	 * @note  Attempted inlined for efficiency, canadian sorry
 	 * @throw FigException if all clocks are expired
 	 */
 	inline const Timeout&
-	next_timeout(bool reorder = true)
+	next_timeout(bool reorder = true, bool quiet = false)
 		{
 			if (reorder)
 				reorder_clocks();
 			if (0 > nextClock_)
-				report_timelock();
+				report_timelock(quiet);
 			return clocks_[nextClock_];
 		}
 
@@ -373,9 +374,10 @@ private:  // Class utils
 	reorder_clocks();
 
 	/// Throw an exception showing current timelock state
+	/// @param  quiet  Do not show current state before throwing
 	/// @throw FigException Always throws
-	void
-	report_timelock();
+	[[noreturn]] void
+	report_timelock(bool quiet = false);
 };
 
 } // namespace fig
