@@ -40,7 +40,7 @@ const string MODEL(tests::models_dir() + "3tandem_queue.sa");
 fig::ModelSuite& model(fig::ModelSuite::get_instance());
 
 // Steady-state query: S ( q3 >= 7 )
-const double SS_PROB(4.30e-6);  // expected result of steady-state query
+const double SS_PROB(4.15e-6);  // expected result of steady-state query
 int ssPropId(-1);               // index of the query within our TAD
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
@@ -158,16 +158,53 @@ SECTION("Steady-state: RESTART, ad hoc, es")
 			  == Approx(SS_PROB*prec).epsilon(SS_PROB*0.2));
 }
 */
-SECTION("Steady-state: RESTART-P3, ad hoc, ad hoc thresholds")
+SECTION("Steady-state: RESTART-P0, ad hoc, ad hoc thresholds")
 {
-	const string nameEngine("restart0");
+	const string nameEngine("restart");
 	const fig::ImpFunSpec ifunSpec("algebraic", "adhoc", "q1+2*q2+5*q3");
-	//const string nameThr("es");
+	//const string nameThr("fix");
 	const string thrAdHoc("21:2,24:2,26:2,27:2,30:3,34:3,37:2,39:3,40:2,42:2");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	// Prepare engine
+	model.set_global_effort(3);
+	model.build_importance_function_adhoc(ifunSpec, ssPropId, true);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, thrAdHoc, ssPropId);
+	//auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, ssPropId);
+	REQUIRE(engine->ready());
+	// Set estimation criteria
+	auto rng = model.available_RNGs().back();
+	REQUIRE(model.exists_rng(rng));
+	model.set_rng(rng, 314159265ul);
+	const double confCo(.95);
+	const double prec(.3);
+	fig::StoppingConditions confCrit;
+	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
+	// Estimate
+	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
+	auto results = model.get_last_estimates();
+	REQUIRE(results.size() == 1ul);
+	auto ci = results.front();
+	REQUIRE(ci.point_estimate() == Approx(SS_PROB).epsilon(SS_PROB*.8));
+	REQUIRE(ci.precision(confCo) > 0.0);
+	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB*prec).epsilon(SS_PROB*0.2));
+	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
+	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.25));
+}
+
+SECTION("Steady-state: RESTART-P3, ad hoc, ad hoc thresholds")
+{
+	const string nameEngine("restart3");
+	const fig::ImpFunSpec ifunSpec("algebraic", "adhoc", "q1+2*q2+5*q3");
+	//const string nameThr("fix");
+	const string thrAdHoc("21:2,24:2,26:2,27:2,30:3,34:3,37:2,39:3,40:2,42:2");
+	REQUIRE(model.exists_simulator(nameEngine));
+	REQUIRE(model.exists_importance_function(ifunSpec.name));
+	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
+	// Prepare engine
+	model.set_global_effort(3);
 	model.build_importance_function_adhoc(ifunSpec, ssPropId, true);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, thrAdHoc, ssPropId);
 	//auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, ssPropId);
@@ -261,6 +298,7 @@ SECTION("Steady-state: RESTART, compositional, es")
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          <= Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
+
 
 } // TEST_CASE [triple-tandem-queue]
 

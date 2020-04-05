@@ -404,8 +404,10 @@ ImportanceFunction::level_of(const ImportanceValue& imp) const
 #endif
 	assert(imp >= minValue_);
 	assert(imp <= maxValue_);
-	if (importance2threshold_.size() > 0ul)  // Do we have the direct map?
+	// If we have the direct map, use it
+	if (!importance2threshold_.empty())
 		return importance2threshold_[imp].first;
+	// Else do a binary search
 	ImportanceValue tlvl(threshold2importance_.size()/2ul), step(tlvl/2);
 	while (imp <  threshold2importance_[tlvl].first ||
 	       imp >= threshold2importance_[tlvl+1].first) {

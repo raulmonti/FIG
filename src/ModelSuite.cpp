@@ -270,12 +270,16 @@ start_timer(ConfidenceInterval& ci,
 
 
 /// Format time given in seconds as a hh:mm:ss string
+template< typename SECONDS >
 std::string
-time_formatted_str(size_t timeInSeconds)
+time_formatted_str(SECONDS timeInSeconds)
 {
-	const size_t hours(timeInSeconds/3600ul);
-	const size_t minutes((timeInSeconds%3600ul)/60ul);
-	const size_t seconds(timeInSeconds%60ul);
+	static_assert(std::is_integral<SECONDS>::value,
+	              "ERROR: type mismatch, expected integral timeInSeconds");
+	const auto tis(static_cast<size_t>(timeInSeconds));
+	const size_t hours(tis/3600ul);
+	const size_t minutes((tis%3600ul)/60ul);
+	const size_t seconds(tis%60ul);
 	char timeStr[23] = {'\0'};
 	std::sprintf(timeStr, "%02zu:%02zu:%02zu", hours, minutes, seconds);
 	return timeStr;
@@ -564,7 +568,7 @@ ModelSuite::set_timeout(const duration& timeLimit)
 	timeout_ = timeLimit;
 	// Show in tech log
 	if (timeLimit.count() > 0l)
-        tech_log("Time-out set to " + time_formatted_str(timeout_.count()) + "\n");
+		tech_log("Time-out set to " + time_formatted_str(timeout_.count()) + "\n");
 	else
         tech_log("Time-out was unset\n");
 }

@@ -294,17 +294,18 @@ ModuleNetwork::peak_simulation(Traial& traial,
 	std::vector<Traial::Timeout> maxImportanceClocks(TraialPool::get_timeouts(traial));
 
 	try {
-		// Start up processing the initial commited actions
+		// Start by processing the initial urgent actions
 		process_committed(traial);
 		// (that could've reset clocks and changed next timeout)
 		while ( pred(traial) ) {
-			// Process timed actions
+			// Now process timed actions
 			const Traial::Timeout& to = traial.next_timeout();
 			const float elapsedTime(to.value);
 			assert(0.0f <= elapsedTime);
-			// Active jump in the module whose clock timed-out:
+			assert(nullptr != to.module);
+			// Do active jump in the module whose clock timed-out:
 			const Label& label = to.module->jump(to, traial);
-			// Passive jumps in the modules listening to label:
+			// Do passive jumps in the modules listening to label:
 			for (auto module_ptr: modules)
 				if (module_ptr->name != to.module->name)
 					module_ptr->jump(label, elapsedTime, traial);
@@ -316,7 +317,7 @@ ModuleNetwork::peak_simulation(Traial& traial,
 				maxImportanceState = traial.state;
 				maxImportanceClocks = TraialPool::get_timeouts(traial);
 			}
-			// Process any newly activated committed action
+			// Process any newly activated urgent action
 			process_committed(traial);
 		}
 	} catch (const FigException& e) {

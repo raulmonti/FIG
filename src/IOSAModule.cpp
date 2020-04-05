@@ -258,7 +258,7 @@ void ModuleIOSA::search_triggering_pairs(std::vector<TriggeringPair>& result) {
         visited.insert(current);
         //committed edges only or any edge if there are no committed.
         IEdgeSet redges = reachable_edges_of(current);
-        //Note: non-commited edges are ignores when "current" has commited
+		//Note: non-urgent edges are ignores when "current" has urgent
         //actions, since they are non stocascally reachable
         triggering_pairs_on(redges, result);
         for (IEdge &edge : redges) {
@@ -329,7 +329,7 @@ void ModuleIOSA::spontaneous_on(IEdgeSet &edges, IEdgeSet &result) {
             result.push_back(edge);
         }
         //if edge.get_src is not stable, "edges" does not contain
-        //non commited output edges.
+		//non urgent output edges.
     };
     std::for_each(edges.cbegin(), edges.cend(), op);
 }

@@ -243,7 +243,7 @@ private:  // Traial observers/updaters
 				if (traial.depth > die_out_depth()) {
 					// Event D_i-j in traial [B_i,D_i-j): this retrial dies
 					e = EventType::THR_DOWN;
-				} else if (newImportance == minImportance_) {  // (traial.level == impFun_->min_value())
+				} else if (traial.level == impFun_->min_value()) {  // (newImportance == minImportance_)
 					// Went down to threshold 0:
 					if (traial.depth > 0)
 						e = EventType::THR_DOWN;  // this retrial dies
@@ -287,7 +287,7 @@ private:  // Traial observers/updaters
 				if (traial.depth > die_out_depth()) {
 					// Event D_i-j in traial [B_i,D_i-j): this retrial dies
 					SET_THR_DOWN_EVENT(e);
-				} else if (cImpFun_->importance_of(traial.state) == minImportance_) {  // (traial.level == cImpFun_->min_value())
+				} else if (traial.level == cImpFun_->min_value()) {  // (cImpFun_->importance_of(traial.state) == minImportance_)
 					// Went down to threshold 0:
 					if (traial.depth > 0)
 						SET_THR_DOWN_EVENT(e);  // this retrial dies

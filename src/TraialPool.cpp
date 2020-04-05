@@ -227,7 +227,7 @@ TraialPool::get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
 		available_traials_.pop_front();
 		t = traial;
 		t.depth = depth;
-		t.nextSplitLevel = 1 + static_cast<decltype(t.nextSplitLevel)>(traial.level);
+		t.nextSplitLevel = static_cast<decltype(t.nextSplitLevel)>(traial.level) + 1;
 		cont.emplace(end(cont), std::ref(t));  // copy elision
 	}
 	if (0u < numCopies) {

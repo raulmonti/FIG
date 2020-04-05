@@ -48,7 +48,7 @@ const double SS_PROB(6.23e-5);  // expected result of steady-state query (C=10: 
 int ssPropId(-1);               // index of the query within our TAD
 
 // Time bounded steady-state query: S[ 60:30000 ]( q2 == 8 )
-const double BS_PROB(6.31e-5);  // expected result of steady-state query (for C=8)
+const double BS_PROB(6.01e-5);  // expected result of steady-state query
 int bsPropId(-1);               // index of the query within our TAD
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
@@ -110,7 +110,7 @@ SECTION("Seal model and check consistency")
 	REQUIRE(model.num_threshold_techniques() > 0ul);
 	REQUIRE(model.num_RNGs() > 0ul);
 }
-
+/*
 SECTION("Transient: standard MC")
 {
 	const string nameEngine("nosplit");
@@ -176,7 +176,7 @@ SECTION("Steady-state: RESTART, ad hoc, hyb")
 			  == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 	model.release_resources(ifunSpec.name, nameEngine);
 }
-
+*/
 SECTION("Steady-state: RESTART, monolithic, hyb")
 {
 	const string nameEngine("restart");
@@ -211,6 +211,43 @@ SECTION("Steady-state: RESTART, monolithic, hyb")
 	REQUIRE(ci.precision(confCo) <= Approx(SS_PROB*prec).epsilon(SS_PROB*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
+	model.release_resources(ifunSpec.name, nameEngine);
+}
+
+SECTION("Time bounded steady-state: RESTART, compositional (+ operator), fix")
+{
+	const string nameEngine("restart");
+	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "+");
+	const string nameThr("fix");
+	REQUIRE(model.exists_simulator(nameEngine));
+	REQUIRE(model.exists_importance_function(ifunSpec.name));
+	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
+	REQUIRE(model.exists_threshold_technique(nameThr));
+	// Prepare engine
+	model.release_resources(ifunSpec.name);
+	model.set_global_effort(3, nameEngine);
+	model.build_importance_function_auto(ifunSpec, bsPropId, true);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, bsPropId);
+	REQUIRE(engine->ready());
+	// Set estimation criteria
+	auto rng = model.available_RNGs().front();
+	REQUIRE(model.exists_rng(rng));
+	model.set_rng(rng, 314159265);
+	const double confCo(.95);
+	const double prec(.1);
+	fig::StoppingConditions confCrit;
+	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(TIMEOUT_(std::chrono::seconds(45)));
+	// Estimate
+	model.estimate(bsPropId, *engine, confCrit, ifunSpec);
+	auto results = model.get_last_estimates();
+	REQUIRE(results.size() == 1ul);
+	auto ci = results.front();
+	REQUIRE(ci.point_estimate() == Approx(BS_PROB).epsilon(BS_PROB*.5));
+	REQUIRE(ci.precision(confCo) > 0.0);
+	REQUIRE(ci.precision(confCo) <= Approx(BS_PROB*prec).epsilon(BS_PROB*.3));
+	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
+			  == Approx(BS_PROB*prec).epsilon(BS_PROB*0.15));
 	model.release_resources(ifunSpec.name, nameEngine);
 }
 
@@ -324,7 +361,7 @@ SECTION("Time bounded steady-state: RESTART, monolithic, ad hoc thresholds")
 	          == Approx(BS_PROB*prec).epsilon(BS_PROB*0.1));
 	model.release_resources(ifunSpec.name, nameEngine);
 }
-
+/*
 SECTION("Transient: RESTART, compositional (+ operator), es")
 {
 	const string nameEngine("restart");
@@ -429,7 +466,7 @@ SECTION("Transient: Fixed Effort, compositional (max operator), es")
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          == Approx(TR_PROB*prec).epsilon(TR_PROB*0.1));
 }
-
+*/
 } // TEST_CASE [tandem-queue]
 
 } // namespace tests   // // // // // // // // // // // // // // // // // // //
