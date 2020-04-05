@@ -394,7 +394,7 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 		size_t batchSize = batch_size() > 0ul ? batch_size()
 											  : min_batch_size(name(), impFun_->name());
 		print_batchsize(figMainLog, batchSize);
-		while ( ! (interrupted || ci.is_valid()) ) {
+		while ( !interrupted && !ci.is_valid() ) {
 			auto counts = transient_simulations(pTransient, batchSize);
 			transient_update(ciTransient, counts);
 		}
@@ -411,7 +411,7 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 			auto value = rate_simulation(pRate, runLength, firstRun);
 			rate_update(ciRate, value, runLength);
 			firstRun = false;  // batch means: will continue where we left
-		} while ( ! (interrupted || ci.is_valid()) );
+		} while ( !interrupted && !ci.is_valid() );
 		} break;
 
 	case PropertyType::TBOUNDED_SS: {
@@ -423,7 +423,7 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 		do {
 			auto value = tbound_ss_simulation(pTBSS);
 			tbound_ss_update(ciRate, value, batchSimTime);
-		} while ( ! (interrupted || ci.is_valid()) );
+		} while ( !interrupted && !ci.is_valid() );
 		} break;
 
 	case PropertyType::RATIO:

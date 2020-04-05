@@ -32,7 +32,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11)
 PROJECT (fig)
 
 SET(fig_VERSION_MAJOR 1)
-SET(fig_VERSION_MINOR 1)
+SET(fig_VERSION_MINOR 2)
 
 STRING(TIMESTAMP CURRENT_TIME "%H:%M:%S %d.%m.%Y")
 
@@ -64,7 +64,7 @@ SET(fig_CURRENT_BUILD "${CURRENT_TIME} (${fig_BUILD_TYPE})")
 SET(SOURCES_DIR ${PROJECT_SOURCE_DIR}/src)
 SET(HEADERS_DIR ${PROJECT_SOURCE_DIR}/include)
 SET(LIBRARIES_DIR ${PROJECT_SOURCE_DIR}/lib)
-SET(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin/.cmake_fig)
+SET(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/build/.cmake_fig)
 SET(RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/..)
 
 # Allow subdirectories to append their files and dirs (https://goo.gl/xxIOAM)
@@ -246,9 +246,14 @@ IF(NOT RELEASE)
 	# Avoid warnings due to deprecated function
 	SET_SOURCE_FILES_PROPERTIES(${SOURCES_DIR}/ConfidenceInterval.cpp
 	                            PROPERTIES COMPILE_FLAGS -Wno-unused-function)
-	# Avoid warnings due to decltype() in static function header
+	# Avoid warnings due to decltype() in specific files
 	SET_SOURCE_FILES_PROPERTIES(${HEADERS_DIR}/TraialPool.h
 	                            PROPERTIES COMPILE_FLAGS -Wno-ignored-qualifiers)
+	SET_SOURCE_FILES_PROPERTIES(${SOURCES_DIR}/ThresholdsBuilderFixed.cpp
+	                            PROPERTIES COMPILE_FLAGS -Wno-ignored-qualifiers)
+	# As of Apr 2020, GCC and CLANG differ in the following warning
+	SET_SOURCE_FILES_PROPERTIES(${SOURCES_DIR}/State.cpp
+	                            PROPERTIES COMPILE_FLAGS -Wno-redundant-move)
 ENDIF()
 
 

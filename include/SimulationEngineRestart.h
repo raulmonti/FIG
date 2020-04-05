@@ -59,9 +59,9 @@ class TraialPool;
 class SimulationEngineRestart : public SimulationEngine
 {
 
-	/// Default number of replicas made of a Traial when it crosses
-	/// a threshold upwards
-	static constexpr unsigned DEFAULT_GLOBAL_EFFORT = 2u;
+	/// Default number of replicas (minus one)
+	/// made of a Traial when it crosses a threshold upwards
+	static constexpr unsigned DEFAULT_GLOBAL_EFFORT = 3u;
 
 	/// Number of importance thresholds a simulation run must cross downwards
 	/// (i.e. loosing on importance) to be discarded

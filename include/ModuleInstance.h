@@ -331,7 +331,7 @@ public:  // Ctors/Dtor and populating facilities
 	                    const std::vector< Postcondition >& posts,
 						const Container<ValueType, OtherContainerArgs...>& resetClocks);
 
-	/// @copydoc add_transition()
+	/// Same as above but with forced move semantics for pre- and post-conditions
 	template< template< typename, typename... > class Container,
 	          typename ValueType,
 	          typename... OtherContainerArgs >
@@ -412,7 +412,7 @@ public:  // Utils
 	/**
 	 * @brief Active module jump caused by expiration of our clock "clockName"
 	 *
-	 * @param clockName    Name of the clock (from this model) which expires
+	 * @param clockName    Name of the clock (from this model!) which expires
 	 * @param elapsedTime  Time lapse for the clock to expire
 	 * @param traial       Instance of Traial to update
 	 *

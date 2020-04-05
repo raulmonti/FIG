@@ -39,14 +39,13 @@ namespace fig
  * @brief ConfidenceInterval for unknown magnitudes or proportions (default)
  *
  * Using the <a href="http://goo.gl/9jtSU3">Central Limit Theorem</a>,
- * the confidence interval for a sample mean 'x' is given by
- * \code
- *                   x ± z_a * s / sqrt(n)
- * \endcode
- * where 'z_a' is the "1-a/2" quantile of a unit normal variate, 's^2' is the
- * sample variance and 'n' is the sample size. For the z_a quantile, 'a' is
- * the significance level defined as a=1-cc for the confidence coefficient
- * 'cc' inherent to the confidence interval.
+ * the confidence interval for a sample mean \f$x\f$ is given by
+ * $$ x \pm z_a \frac{s}{\sqrt{n}} $$
+ * where \f$z_a\f$ is the \f$1-\frac{a}{2}\f$ quantile of a student-T or
+ * unit normal variate, \f$s^2\f$ is the sample variance, and \f$n\f$ is the
+ * sample size.<br>
+ * For the \f$z_a\f$ quantile, \f$a=1-cc\f$ is the <em>significance level</em>
+ * for the confidence coefficient \f$cc\f$ inherent to the confidence interval.
  */
 class ConfidenceIntervalMean : public virtual ConfidenceInterval
 {
@@ -59,8 +58,6 @@ public:  // Ctor
 						   double precision,
 						   bool dynamicPrecision = false,
 						   bool neverStop = false);
-
-	virtual ~ConfidenceIntervalMean() {}
 
 public:  // Modifyers
 

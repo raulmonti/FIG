@@ -12,6 +12,9 @@
  */
 class ExpReductor : public Visitor {
 private:
+	/// Whether locations (variables/constant names) should also be reduced
+	bool reduceLocations_;
+
     /// ModuleScope to evaluate the expression variables
     shared_ptr<ModuleScope> scope = nullptr;
     /// The reduced expression.
@@ -26,7 +29,11 @@ private:
     bool is_not_supported_op(ExpOp op);
 
 public:
-    ExpReductor(shared_ptr<ModuleScope> scope) : scope {scope} {}
+	ExpReductor(shared_ptr<ModuleScope> scope,
+	            bool reduceLocations = true) :
+	    reduceLocations_(reduceLocations),
+	    scope {scope}
+	{ /* Not much to do around here */ }
     void visit(shared_ptr<IConst> node);
     void visit(shared_ptr<BConst> node);
     void visit(shared_ptr<FConst> node);

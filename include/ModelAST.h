@@ -1472,16 +1472,24 @@ public:
 		this->type = type;
 	}
 
-	virtual bool is_constant() const {
+	/// The expression is a constant value (int,bool,float)
+	virtual bool is_constant() const noexcept {
 		return (false);
 	}
 
-	virtual bool is_binary_operator() const {
+	/// The expression is a binary operator (+,*,max,and,==,...)
+	virtual bool is_binary_operator() const noexcept {
 		return (false);
 	}
 
-	virtual bool is_unary_operator() const {
+	/// The expression is a unary operator (-,not)
+	virtual bool is_unary_operator() const noexcept {
 		return (false);
+	}
+
+	/// The expression is an identifyer (the name of a variable/constant)
+	inline bool is_location() const noexcept {
+		return !is_constant() && !is_unary_operator() && !is_binary_operator();
 	}
 
 	virtual bool operator==(const Exp& that) const = 0;
@@ -1520,7 +1528,7 @@ public:
 		this->type = t;
 	}
 
-	bool is_constant() const override {
+	bool is_constant() const noexcept override {
 		return (true);
 	}
 
@@ -1557,7 +1565,7 @@ public:
 		return (value);
 	}
 
-	bool is_constant() const override {
+	bool is_constant() const noexcept override {
 		return (true);
 	}
 
@@ -1594,7 +1602,7 @@ public:
 		return (value);
 	}
 
-	bool is_constant() const override {
+	bool is_constant() const noexcept override {
 		return (true);
 	}
 
@@ -1733,7 +1741,7 @@ public:
 		return (*inferred_type);
 	}
 
-	bool is_binary_operator() const override {
+	bool is_binary_operator() const noexcept override {
 		return (true);
 	}
 
@@ -1805,7 +1813,7 @@ public:
 		return (inferred_type != nullptr);
 	}
 
-	bool is_unary_operator() const override {
+	bool is_unary_operator() const noexcept override {
 		return (true);
 	}
 

@@ -18,6 +18,12 @@
 #include <ModelBuilder.h>
 #include <ExpEvaluator.h>
 #include <ModelPrinter.h>
+#include <ModuleInstance.h>
+#include <Transition.h>
+#include <Property.h>
+#include <PropertyTransient.h>
+#include <PropertyRate.h>
+#include <PropertyTBoundSS.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11 or greater\n"
@@ -294,7 +300,7 @@ void ModelBuilder::visit(shared_ptr<ModuleAST> body) {
     // the current_module instead of accumulate them in a vector
 	for (auto &transition : body->get_transitions())
         accept_cond(transition);
-	if (body->has_committed_actions())  // hint that this module has committed actions
+	if (body->has_committed_actions())  // hint that this module has urgent actions
         current_module->mark_with_committed();
 	if (!has_errors())
         model_suite.add_module(current_module);
@@ -311,9 +317,8 @@ fig::Clock ModelBuilder::build_clock(const std::string& id) {
         auto single = dist->to_single_parameter();
         params[0] =
                 get_float_or_error(single->get_parameter(), mb_error_dist_1(id));
-        for (unsigned int i = 1; i < params.size(); i++) {
+        for (unsigned int i = 1; i < params.size(); i++)
             params[i] = 0.0;
-        }
 	} else if (dist->has_multiple_parameters()) {
         auto multiple = dist->to_multiple_parameter();
         params[0] =

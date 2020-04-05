@@ -627,7 +627,7 @@ ImportanceFunctionConcreteSplit::special_case(const ModuleInstance& module) cons
 		return Indices();  // irrelevant module
 
 	if (is_prefix(moduleName, "BE_")) {
-		// Basic Event
+		// Basic Element
 		return fetch_concrete_states("brokenFlag_",
 		                             [&s](const std::string& var, size_t cs) {
 			    const auto varPtr(s.decode(cs)[var]);  // var value in conrete state
@@ -648,7 +648,7 @@ ImportanceFunctionConcreteSplit::special_case(const ModuleInstance& module) cons
 				return nullptr != varPtr && (*varPtr) == 4;
 		    });
 	} else {
-		// All other DFT gates/components need no local ifun
+		// No other node in the tree needs a local ifun
 		return Indices();
 	}
 }

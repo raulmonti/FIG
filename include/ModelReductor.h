@@ -65,9 +65,13 @@ private:
     void reduce_multiple_init(shared_ptr<MultipleInitialized> decl);
     void check_data(const ArrayData &data);
 
+	/// Should we resolve location identifiers (variable/constant names)
+	const bool reduceLocations_;
 
 public:
-    ModelReductor() {}
+	ModelReductor(bool reduceLocations = true) :
+	    reduceLocations_(reduceLocations)
+	{ /* Not much to do around here */ }
 	~ModelReductor() override {}
     void accept_cond(shared_ptr<ModelAST>);
 	void visit(shared_ptr<Model>) override;

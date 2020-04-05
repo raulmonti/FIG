@@ -25,7 +25,9 @@ bool ExpReductor::is_not_supported_op(ExpOp op) {
 }
 
 shared_ptr<Exp> ExpReductor::eval_if_possible(shared_ptr<Exp> exp) {
-    ExpEvaluator ev(this->scope);
+	if (!reduceLocations_)
+		return exp;  // avoid reductions altogether!
+	ExpEvaluator ev(this->scope);//, reduceLocations_);
     exp->accept(ev);
     return (ev.has_errors() ? exp : ev.value_to_ast());
 }
@@ -55,9 +57,9 @@ void ExpReductor::visit(shared_ptr<LocExp> node) {
 		decl = ModuleScope::find_in_all_modules(id);  // may be a property referring to a module-local variable
 	assert(decl != nullptr);
     loc->set_decl(decl);
-    if (!loc->is_array_position()) {
-        reduced_exp = eval_if_possible(node);
-        return;
+	if (!loc->is_array_position()) {
+		reduced_exp = eval_if_possible(node);
+		return;
     }
     //is array position
     assert(decl->to_array() != nullptr);

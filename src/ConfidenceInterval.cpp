@@ -137,14 +137,14 @@ ConfidenceInterval::ConfidenceInterval(const std::string& thename,
 	statOversample_(1.0),
 	varCorrection_(1.0)
 {
-	assert(std::isfinite(quantile));
 	assert(gsl_finite(quantile));
+	assert(std::isfinite(quantile));
 	if (0.0 >= precision)
-		throw_FigException("requires precision > 0.0");
+		throw_FigException("a CI requires precision > 0.0");
 //	if (percent && 1.0 <= precision)
 //		throw_FigException("dynamic precision must ∈ (0.0, 1.0)");
 	if (0.0 >= confidence || 1.0 <= confidence)
-		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
+		throw_FigException("a CI requires confidence coefficient ∈ (0.0, 1.0)");
 	// Turn off error messages from GSL
 	gsl_set_error_handler_off();
 }
@@ -172,7 +172,7 @@ ConfidenceInterval::set_variance_correction(const double& varCorrection)
 bool
 ConfidenceInterval::is_valid(bool safeguard) const noexcept
 {
-	// NOTE variable definition forced due to issue #17
+	// NOTE: variable definition forced due to issue #17
 	// (https://git.cs.famaf.unc.edu.ar/dsg/fig/issues/17)
 	const bool finished =
 		   !alwaysInvalid && 0.0 < estimate_ && estimate_ < 1.0 &&
@@ -251,7 +251,8 @@ void ConfidenceInterval::print(std::ostream& out,
 
 
 double
-ConfidenceInterval::confidence_quantile(const double& cc) const
+ConfidenceInterval::confidence_quantile(const double& cc,
+                                        const bool nn) const
 {
 #ifndef NDEBUG
 	if (0.0 >= cc || 1.0 <= cc)
@@ -264,7 +265,8 @@ ConfidenceInterval::confidence_quantile(const double& cc) const
 //		double quantile = probit(significance);                  // old way
 //		double quantile = gsl_cdf_ugaussian_Pinv(significance);  // new way
 		quantile = gsl_cdf_tdist_Pinv(significance,              // correct way
-		                              numSamples_ <= 1l ? 11.0 : numSamples_-1.0);
+		                              numSamples_ <= 1l || nn ? 11.0
+		                                                      : numSamples_-1.0);
 		// ^^^ for the ctor of the CI, before estimations begin,
 		//     we emulate 10 degrees of freedom which symbolise 11 samples
 		significance += 0.000001;
@@ -273,7 +275,7 @@ ConfidenceInterval::confidence_quantile(const double& cc) const
 			  significance < 0.50001*(1.0+cc));
 
 	if ( ! (std::isfinite(quantile) && gsl_finite(quantile)) ) {
-		// GSL T-distribution failed, try using the gaussian
+		// GSL T-distribution failed, try using Gaussian
 		quantile = gsl_cdf_ugaussian_Pinv(0.5*(1.0+cc));
 		if ( ! (std::isfinite(quantile) && gsl_finite(quantile)) )
 			throw_FigException("error computing confidence quantile");

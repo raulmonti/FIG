@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ##==============================================================================
 ##
-##  build_project.sh
+##  build_fig.sh
 ##	
 ##	Copyleft 2018-
 ##	Authors:
@@ -94,7 +94,7 @@ while true; do
 done
 # Handle non-option arguments
 if [[ $# -ge 1 ]]; then
-	echo "$0: You passed the extra options \"$@\"; thank you!";
+	echo "$0: You passed your made-up option \"$@\"; thank you!";
 	exit 3;
 fi
 [[ ! "$v" =~ "y" ]] && (echo "Will build $p in $m mode with $c compiler"; echo);
@@ -171,6 +171,7 @@ fi
 COMPILER="`basename $CC`";
 
 
+
 # Check there's a CMake build file in the corresponding directory
 if [ ! -f ${DIR}/CMakeLists.txt ]; then
 	if [ -z $DIR ]; then DIR="current directory"; fi;
@@ -193,7 +194,7 @@ else
 fi
 
 # Set CMake's build subdir (create a neat build tree)
-BUILD_BASE=./bin;
+BUILD_BASE=./build;
 BUILD_DIR=$BUILD_BASE/${BUILD}_files_${MODE}_${COMPILER};
 NJOBS=$(2>/dev/null bc <<< "2*`nproc --all`");
 if [ -z "$NJOBS" ]; then

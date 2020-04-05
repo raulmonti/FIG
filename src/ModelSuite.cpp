@@ -100,8 +100,8 @@ typedef std::chrono::duration<size_t> duration;
  * @brief Build a ConfidenceInterval of the required type
  *
  *        Each PropertyType must be estimated using a special kind of
- *        ConfidenceInterval. This helper function returns a new (i.e. without
- *        estimation data) interval of the correct kind for the property.
+ *        ConfidenceInterval. This helper function returns a new interval
+ *        (i.e. without estimation data) of the correct kind for the property.
  *
  * @param propertyType     Type of the property whose value is being estimated
  * @param confidenceCo     Interval's confidence coefficient ∈ (0.0, 1.0)
@@ -132,22 +132,21 @@ build_empty_ci(const fig::PropertyType& propertyType,
 
 	switch (propertyType)
 	{
-	case fig::PropertyType::TRANSIENT: {
+	case fig::PropertyType::TRANSIENT:
 		ci_ptr.reset(new fig::ConfidenceIntervalTransient(confidenceCo,
 														  precision,
 														  dynamicPrecision,
 														  timeBoundSim));
+//		// NOTE: the following was used by the binomial proportion CI,
+//		//       now deprecated in favour of ConfidenceIntervalTransient
 //		// The statistical oversampling incurred here is bounded:
-//		//  · from below by globalEffort ^ minRareValue,
-//		//  · from above by globalEffort ^ numThresholds.
-//		// NOTE: deprecated (this was used by the binomial proportion CI)
-//		double minStatOversamp = std::pow(globalEffort,
-//										  impFun.min_rare_value());
-//		double maxStatOversamp = std::pow(globalEffort,
-//										  impFun.num_thresholds());
+//		//  - from below by globalEffort ^ minRareValue,
+//		//  - from above by globalEffort ^ numThresholds.
+//		auto minStatOversamp = std::pow(globalEffort, impFun.min_rare_value());
+//		auto maxStatOversamp = std::pow(globalEffort, impFun.num_thresholds());
 //		ci_ptr->set_statistical_oversampling(maxStatOversamp);
 //		ci_ptr->set_variance_correction(minStatOversamp/maxStatOversamp);
-		} break;
+		break;
 
     case fig::PropertyType::RATE:
 	case fig::PropertyType::TBOUNDED_SS:
@@ -257,7 +256,7 @@ start_timer(ConfidenceInterval& ci,
 			bool& timeoutSignal,
 			const seconds& timeLimit,
 			std::ostream& out,
-            const double& startTime)
+			const double& startTime)
 {
 	std::this_thread::sleep_for(timeLimit);
 	timeoutSignal = true;  // this should stop computations
@@ -269,14 +268,14 @@ start_timer(ConfidenceInterval& ci,
 }
 
 
-/// Format time given in seconds as a hh:mm:ss string
+/// Format time given in seconds as a string "hh:mm:ss"
 template< typename SECONDS >
 std::string
 time_formatted_str(SECONDS timeInSeconds)
 {
 	static_assert(std::is_integral<SECONDS>::value,
 	              "ERROR: type mismatch, expected integral timeInSeconds");
-	const auto tis(static_cast<size_t>(timeInSeconds));
+	const auto tis(static_cast<size_t>(timeInSeconds));  // ... but a flesh wound
 	const size_t hours(tis/3600ul);
 	const size_t minutes((tis%3600ul)/60ul);
 	const size_t seconds(tis%60ul);
@@ -360,7 +359,7 @@ bool ModelSuite::pristineModel_(false);
 
 const ConfidenceInterval* ModelSuite::interruptCI_ = nullptr;
 
-const std::vector< float > ModelSuite::confCoToShow_ = {0.8, 0.9, 0.95, 0.99};
+const std::vector< float > ModelSuite::confCoToShow_ = {0.8f, 0.9f, 0.95f, 0.99f};
 
 SignalSetter ModelSuite::SIGINThandler_(SIGINT, [] (const int signal) {
 #ifndef NDEBUG
@@ -469,7 +468,7 @@ ModelSuite::seal(const Container<ValueType, OtherContainerArgs...>& initialClock
 		model->seal(initialClocksNames);
 	}
 	for (auto prop: properties)
-        prop->prepare(model->global_state());
+		prop->prepare(model->global_state());
 
 	// Build offered importance functions
 	impFuns["concrete_coupled"] =
@@ -857,7 +856,7 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
     if (force || !ifun.has_importance_info() || "flat" != ifun.strategy()) {
 		techLog_ << "\nBuilding importance function \"" << ifunName
 				 << "\" with \"flat\" assessment strategy.\n";
-        techLog_ << "Property: " << property.to_string() << std::endl;
+		techLog_ << "Property: " << property.to_string() << std::endl;
         ifun.clear();
 		const double startTime = omp_get_wtime();
 		if (ifun.concrete())
@@ -890,8 +889,8 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
 template< typename Integral >
 void
 ModelSuite::build_importance_function_flat(const std::string& ifunName,
-                                           const Integral& propertyIndex,
-                                           bool force)
+										   const Integral& propertyIndex,
+										   bool force)
 {
 	static_assert(std::is_integral<Integral>::value,
 	              "ERROR: type mismatch, expected integral propertyIndex");
@@ -932,7 +931,7 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 		techLog_ << "\nBuilding importance function \"" << impFun.name
 				 << "\" with \"adhoc\" assessment strategy (\""
 				 << impFun.algebraicFormula << "\")\n";
-        techLog_ << "Property: " << property.to_string() << std::endl;
+		techLog_ << "Property: " << property.to_string() << std::endl;
 		ifun.clear();
 		auto allVarnames = model->global_state().varnames();
 		const double startTime = omp_get_wtime();
@@ -1042,7 +1041,7 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 		}
 		try {
 			// Compute importance automatically -- here hides the magic!
-            static_cast<ImportanceFunctionConcrete&>(ifun)
+			static_cast<ImportanceFunctionConcrete&>(ifun)
 					.assess_importance(property, "auto", impFun.postProcessing);
 		} catch (std::bad_alloc&) {
 			throw_FigException("couldn't build importance function \""
@@ -1120,7 +1119,8 @@ ModelSuite::build_thresholds(const std::string& thrSpec,
 		throw_FigException("importance function \"" + ifunName + "\" doesn't "
 						   "have importance information yet. Call any of the "
 						   "\"build_importance_function_xxx()\" routines with "
-		                   "\"" + ifunName + "\" beforehand");
+						   "\"" + ifunName + "\" beforehand");
+
 	if (force || ifun.thresholds_technique() != technique) {
 		const auto geStr = tb.uses_global_effort()
 		            ? (" with global effort "+std::to_string(globalEffort)) : ("");
@@ -1137,7 +1137,7 @@ ModelSuite::build_thresholds(const std::string& thrSpec,
 		ifun.build_thresholds(tb);
 		techLog_ << "Thresholds building time: "
 				 << std::fixed << std::setprecision(2)
-		         << omp_get_wtime()-startTime << " s\n\n"
+				 << omp_get_wtime()-startTime << " s\n"
 //				 << std::defaultfloat;
 				 << std::setprecision(6);
 		if (thresholdsGivenAdHoc)
@@ -1295,6 +1295,7 @@ ModelSuite::release_resources(const std::string& ifunName,
 	}
 	techLog_ << msg.str();
 }
+
 
 void
 ModelSuite::clear() noexcept

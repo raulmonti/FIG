@@ -11,16 +11,20 @@
 *.creator
 *.files
 *.includes
+*.cflags
+*.cxxflags
 
 # Build
 fig
 test
-bin
+build
+*_build/
 *_bin/
 bin_*/
 qtbin*/
 tests_bin*
 CMakeFiles*
+doc.html
 
 # Simulation/Cluster logs
 *.out

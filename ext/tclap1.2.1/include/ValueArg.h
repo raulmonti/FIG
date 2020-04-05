@@ -17,7 +17,13 @@
  *  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
  *  DEALINGS IN THE SOFTWARE.  
  *  
- *****************************************************************************/ 
+ *****************************************************************************
+ *
+ *  Modified by Carlos E. Budde on September 2019 <c.e.budde@utwente.nl>,
+ *  FMT, University of Twente, The Netherlands.
+ *  All rights go to Michael E. Smoot.
+ *
+ *****************************************************************************/
 
 
 #ifndef TCLAP_VALUE_ARGUMENT_H
@@ -237,6 +243,8 @@ class ValueArg : public Arg
         
         virtual void reset() ;
 
+        virtual bool defaultSet() const;
+
 private:
        /**
         * Prevent accidental copying
@@ -360,11 +368,28 @@ bool ValueArg<T>::processArg(int *i, std::vector<std::string>& args)
         if ( value == "" )
         {
             (*i)++;
-            if ( static_cast<unsigned int>(*i) < args.size() ) 
-				_extractValue( args[*i] );
-            else
-				throw( ArgParseException("Missing a value for this argument!",
+            const auto& nextVal(args[*i]);
+            if (std::is_same<T,std::string>::value  // If reading a string
+                    && nextVal.length() >= 2ul      // with at least 2 chars
+                    && nextVal[0] == '-'            // that starts with '-'
+                    && (nextVal[1] == '-'           // followed by another '-'
+                        || isalpha(nextVal[1]))) {  // or by a letter:
+                // Assume the user did not pass the value for this option,
+                // but we're incorrectly consuming the next option as such value
+                (*i)--;
+                if (defaultSet()) {
+                    std::stringstream defaultValue;
+                    defaultValue << getValue();
+                    _extractValue(defaultValue.str());
+                } else {
+                    return false;
+                }
+            } else if ( static_cast<unsigned int>(*i) < args.size() )  {
+                _extractValue( args[*i] );
+            } else {
+                throw( ArgParseException("Missing a value for this argument!",
                                                     toString() ) );
+            }
         }
         else
 			_extractValue( value );
@@ -398,30 +423,18 @@ std::string ValueArg<T>::longID(const std::string& val) const
 }
 
 template<class T>
-void ValueArg<T>::_extractValue( const std::string& val ) 
+void ValueArg<T>::_extractValue( const std::string& val )
 {
-	try {
-		ExtractValue(_value, val, typename ArgTraits<T>::ValueCategory());
-	} catch( ArgParseException &e) {
-		throw ArgParseException(e.error(), toString());
-	}
-
-	if (std::is_same<T,std::string>::value   &&  // parsing for a string
-		val.length() >= 2ul && val[0] == '-' &&  // it starts with '-'
-		(val[1] == '-' || isalpha(val[1])))      // followed by '-' or a letter
-		// I bet my ass the user forgot to pass the value for this argument
-		// and we're incorrectly taking the next argument name as such value
-		throw CmdLineParseException("Parsed '" + val + "' as the value for "
-									"argument \"--" + _name + "\". Did you "
-									"remember to pass the value this argument "
-									"requires?");
-
-    if ( _constraint != NULL )
-	if ( ! _constraint->check( _value ) )
-	    throw( CmdLineParseException( "Value '" + val + 
-					  + "' does not meet constraint: " 
-					  + _constraint->description(),
-					  toString() ) );
+    try {
+        ExtractValue(_value, val, typename ArgTraits<T>::ValueCategory());
+    } catch( ArgParseException &e) {
+        throw ArgParseException(e.error(), toString());
+    }
+    if ( _constraint != NULL && !_constraint->check( _value ) )
+        throw( CmdLineParseException( "Value '" + val +
+                      + "' does not meet constraint: "
+                      + _constraint->description(),
+                      toString() ) );
 }
 
 template<class T>
@@ -430,6 +443,17 @@ void ValueArg<T>::reset()
 	Arg::reset();
 	_value = _default;
 }
+
+/// This implementation may be too arbitrary!!
+template<> bool ValueArg<bool>::defaultSet() const { return true; }
+template<> bool ValueArg<int>::defaultSet() const { return _value != 0; }
+template<> bool ValueArg<long>::defaultSet() const { return _value != 0; }
+template<> bool ValueArg<unsigned>::defaultSet() const { return _value != 0; }
+template<> bool ValueArg<unsigned long>::defaultSet() const { return _value != 0; }
+template<> bool ValueArg<float>::defaultSet() const { return _value != 0.0f; }
+template<> bool ValueArg<double>::defaultSet() const { return _value != 0.0; }
+template<> bool ValueArg<char>::defaultSet() const { return _value != '\0'; }
+template<> bool ValueArg<std::string>::defaultSet() const { return !_value.empty(); }
 
 } // namespace TCLAP
 

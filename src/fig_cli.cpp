@@ -124,7 +124,7 @@ CmdLine cmd_("\nSample usage:\n"
 			 "Use an automatically computed \"monolithic\" importance function "
              "built on the global state space of the model, running a 5 minutes "
 			 "estimation which will employ the RESTART simulation engine "
-             "(default) for global effort (aka splitting for RESTART) == 2 "
+             "(default) for global effort (aka splitting for RESTART) == 3 "
              "(default) and the hybrid thresholds building technique "
              "i.e. \"hyb\" (default)\n"
              "~$ fig models/tandem.{sa,pp} --flat -e nosplit            \\"
@@ -197,12 +197,12 @@ ValueArg<string> thrTechnique_(
 	&thrTechConstraints);
 
 ValueArg<string> thrAdHoc_(
-	"", "thresholds-ad-hoc",
+    "", "thresholds-adhoc",
 	"Use ad hoc thresholds (and corresponding effort) explicitly specified. "
     "Format is \\[\\(t:e\\)[,\\(t:e\\)]*\\] where 't' are the threshold "
 	" importance values and 'e' is the effort to apply in that threshold. "
-    "E.g. [(2:4),(7:3)] sets importance values '2' and '7' as thresholds, "
-    "where effort '4' and '3' is respectively used. "
+    "E.g. [(2:4),(7:3)] sets thresholds at importance values '2' and '7', "
+    "using effort '4' and '3' resp. on each. "
     "Brackets and parentheses are optional, e.g. [(2:4),(7:3)] == 2:4,7:3",
 	false, "",
     "\\[\\(t:e\\)[,\\(t:e\\)]+\\]");
@@ -210,10 +210,13 @@ ValueArg<string> thrAdHoc_(
 // Translation from/to JANI specification format
 SwitchArg JANIimport_(
 	"", "from-jani",
-	"Don't estimate; create IOSA model file from JANI-spec model file.");
+    "Don't estimate; create IOSA model file from JANI exchange format file.");
 SwitchArg JANIexport_(
-	"", "to-jani",
-	"Don't estimate; create JANI-spec model file from IOSA model file.");
+    "", "to-jani",
+    "Don't estimate; create JANI exchange format file from IOSA model file.");
+SwitchArg JANIexportModest_(
+    "", "to-jani-modest",
+    "Don't estimate; create Modest-compatible JANI exchange format file from IOSA model file.");
 
 // Importance function specifications
 SwitchArg ifunFlat(
@@ -250,7 +253,7 @@ ValueArg<string> ifunAutoCompositional(
 	"i.e. store information separately for each module. This stores in "
 	"memory one vector per module, and then uses the algebraic expression "
 	"provided to \"compose\" the global importance from these.",
-	false, "",
+	false, "+",
 	"composition_fun");
 std::vector< Arg* > impFunSpecs = {
 	&ifunFlat,
@@ -315,7 +318,7 @@ ValueArg<string> globalEfforts_(
     "g", "global-effort",
     "Global effort values to use with Importance Splitting simulation engines; "
     "this must be a comma-separated list of integral values greater than 1",
-	false, "2",
+    false, "3",
     "comma-separated-integral-values");
 
 // RNG to use
@@ -425,8 +428,10 @@ get_jani_spec()
 	using std::make_pair;
 
 	// Determine JANI interaction
-	bool fromJANI(JANIimport_.getValue()), toJANI(JANIexport_.getValue());
-	janiSpec.translateOnly = fromJANI || toJANI;
+	bool toModestJANI(JANIexportModest_.isSet()),
+	           toJANI(JANIexport_.isSet()),
+	         fromJANI(JANIimport_.isSet());
+	janiSpec.translateOnly = toModestJANI || toJANI || fromJANI;
 	if (janiSpec.translateOnly) {
 		janiSpec.janiInteraction = true;
 		janiSpec.translateDirection = fromJANI ? fig::JaniTranny::FROM_JANI
@@ -490,6 +495,7 @@ get_jani_spec()
 			janiSpec.modelFileJANI = regex_replace(iosaFile, iosaExt, "$1.jani");
 		else
 			janiSpec.modelFileJANI = iosaFile + ".jani";
+		janiSpec.modestCompatible = toModestJANI;
 	}
 
 	return true;
@@ -792,8 +798,8 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 	// Called with no arguments? Print briefest help and exit gracefully
 	if (argc==1) {
 		// Mimic TCLAP's messages style
-		figTechLog << "For complete USAGE and HELP type:\n";
-		figTechLog << "   " << argv[0] << " --help\n\n";
+		figTechLog << "For complete USAGE and HELP type:"
+		           << "  " << argv[0] << " --help\n\n";
 		exit(EXIT_SUCCESS);
 	}
 
@@ -805,6 +811,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		auto ifun_or_JANI(impFunSpecs);  // jani spec XOR ifun
 		ifun_or_JANI.emplace_back(&JANIimport_);
 		ifun_or_JANI.emplace_back(&JANIexport_);
+		ifun_or_JANI.emplace_back(&JANIexportModest_);
 		cmd_.xorAdd(ifun_or_JANI);
 		cmd_.add(engineName_);
 		cmd_.add(thrTechnique_);

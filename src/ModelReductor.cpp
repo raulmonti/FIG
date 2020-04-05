@@ -32,7 +32,6 @@
 #include "FigException.h"
 #include "ExpReductor.h"
 #include <algorithm>
-#include <iostream>
 
 void ModelReductor::accept_cond(shared_ptr<ModelAST> node) {
     if (!has_errors()) {
@@ -41,7 +40,7 @@ void ModelReductor::accept_cond(shared_ptr<ModelAST> node) {
 }
 
 shared_ptr<Exp> ModelReductor::reduce(shared_ptr<Exp> node) {
-	ExpReductor reductor (current_scope);
+	ExpReductor reductor(current_scope, reduceLocations_);
     node->accept(reductor);
     if (reductor.has_errors()) {
         put_error(reductor.get_messages());
@@ -100,10 +99,10 @@ void ModelReductor::visit(shared_ptr<TBoundSSProp> node) {
 }
 
 // Declarations
-void ModelReductor::visit(shared_ptr<InitializedDecl> decl){
+void ModelReductor::visit(shared_ptr<InitializedDecl> decl) {
     decl->set_init(reduce(decl->get_init()));
     if (decl->is_constant()) {
-        if (!decl->get_init()->is_constant()) {
+		if (!decl->get_init()->is_constant() && reduceLocations_) {
             put_error("Constant \"" + decl->get_id()
                       + "\" is not reducible at compilation time.");
         }
@@ -123,10 +122,9 @@ void ModelReductor::visit(shared_ptr<ClockDecl>) {
 void ModelReductor::visit(shared_ptr<ArrayDecl> node) {
     node->set_size(reduce(node->get_size()));
 }
-
 void ModelReductor::compute_int(int &to,
                                 shared_ptr<Exp> exp) {
-    ExpEvaluator ev (current_scope);
+	ExpEvaluator ev(current_scope);
     exp->accept(ev);
     if (ev.has_errors()) {
         put_error(ev.get_messages() + "Reduction error, setting value to 0");
@@ -199,7 +197,7 @@ void ModelReductor::visit(shared_ptr<RangedInitializedArray> node) {
     compute_int(x, node->get_init());
 	data.data_inits.resize(static_cast<size_t>(data.data_size));
     //repeat the same initialization for every element
-	for (auto i = 0ul; i < static_cast<size_t>(data.data_size); i++) {
+	for (auto i = 0ul ; i < static_cast<size_t>(data.data_size) ; i++) {
         data.data_inits[i] = x;
     }
     check_data(data);
@@ -245,7 +243,7 @@ void ModelReductor::visit(shared_ptr<InitializedArray> node) {
 	data.data_inits.resize(static_cast<size_t>(data.data_size));
     int x = 0;
     compute_int(x, node->get_init());
-	for (size_t i = 0; i < static_cast<size_t>(data.data_size); i++) {
+	for (auto i = 0ul ; i < static_cast<size_t>(data.data_size) ; i++) {
         data.data_inits[i] = x;
     }
     check_data(data);
@@ -268,7 +266,7 @@ void ModelReductor::visit(shared_ptr<MultipleInitializedArray> node) {
         return;
     }
 	data.data_inits.resize(static_cast<size_t>(data.data_size));
-	for (size_t i = 0; i < static_cast<size_t>(data.data_size); i++) {
+	for (auto i = 0ul ; i < static_cast<size_t>(data.data_size) ; i++) {
         int x;
         compute_int(x, exps[i]);
         data.data_inits[i] = x;
@@ -335,7 +333,7 @@ void ModelReductor::visit(shared_ptr<ClockReset> node) {
 //Distributions
 void ModelReductor::visit(shared_ptr<SingleParameterDist> node) {
     node->set_parameter(reduce(node->get_parameter()));
-    if (!node->get_parameter()->is_constant()) {
+	if (!node->get_parameter()->is_constant() && reduceLocations_) {
         put_error("Distribution paremeters must be reducible at compilation time");
     }
 }
@@ -343,15 +341,15 @@ void ModelReductor::visit(shared_ptr<SingleParameterDist> node) {
 void ModelReductor::visit(shared_ptr<MultipleParameterDist> node) {
     node->set_first_parameter(reduce(node->get_first_parameter()));
 	node->set_second_parameter(reduce(node->get_second_parameter()));
-    if (!node->get_first_parameter()->is_constant()) {
+	if (!node->get_first_parameter()->is_constant() && reduceLocations_) {
         put_error("Distribution paremeters must be reducible at compilation time");
     }
-	if (!node->get_second_parameter()->is_constant()) {
+	if (!node->get_second_parameter()->is_constant() && reduceLocations_) {
 		put_error("Distribution paremeters must be reducible at compilation time");
 	}
 	if (node->num_parameters() == 3ul) {
 		node->set_third_parameter(reduce(node->get_third_parameter()));
-		if (!node->get_third_parameter()->is_constant())
+		if (!node->get_third_parameter()->is_constant() && reduceLocations_)
 			put_error("Distribution paremeters must be reducible at compilation time");
 	}
 }

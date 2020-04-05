@@ -413,7 +413,7 @@ Transition::Transition(
 				  "ERROR: type mismatch. Transition ctor needs a "
 				  "container with the names of the resetting clocks");
 	// Input enabledness: no triggering clock for input labels
-	assert(label_.is_input() == triggeringClock.empty());
+	assert(!label_.is_input() || triggeringClock.empty());
 	// Copy reset clocks names
 	if (std::distance(begin(resetClocks), end(resetClocks)) > 0) {
 		resetClocksList_.insert(begin(resetClocksList_),

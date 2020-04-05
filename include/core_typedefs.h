@@ -341,6 +341,9 @@ struct JaniTranny
 	bool janiInteraction;
 	/// Only translate from/to JANI to/from IOSA, viz. don't estimate
 	bool translateOnly;
+	/// Produce JANI compatible with the Modest Toolset
+	/// @warning This is incompatible with IOSA and FIG!
+	bool modestCompatible;
 	/// In which direction is the translation
 	enum {
 		UNDEFINED = 0,

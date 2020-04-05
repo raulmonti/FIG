@@ -130,8 +130,8 @@ inline int XorHandler::check( const Arg* a )
 					      (*it)->toString()));
 
 			// go through and set each arg that is not 'a':
-			//   ·  OR => no more values will be required for this list
-			//   · XOR => no more values will be allowed  for this list
+            //   -  OR: no more values REQUIRED for this list
+            //   - XOR: no more values ALLOWED  for this list
 			for ( ArgVectorIterator it = _orList[i].first.begin();
 				  it != _orList[i].first.end();
 				  it++ )
