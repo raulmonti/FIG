@@ -67,6 +67,12 @@ class SimulationEngineRestart : public SimulationEngine
 	/// (i.e. loosing on importance) to be discarded
 	decltype(Traial::depth) dieOutDepth_;
 
+	/// Minimum importance value of the ImportanceFunction currently bound
+	ImportanceValue minImportance_;
+
+	/// Maximum importance value of the ImportanceFunction currently bound
+	ImportanceValue maxImportance_;
+
 	/// Original Traial for a batch means mechanism
 	Traial& oTraial_;
 
@@ -104,12 +110,18 @@ public:  // Engine setup
 	/// @see reinit_stack()
 	void bind(std::shared_ptr< const ImportanceFunction >) override;
 
+	/// @copydoc SimulationEngine::unbind()
+	/// @note Deletes local information about the ImportanceFunction
+	void unbind() override;
+
 	/// @see die_out_depth()
 	/// @throw FigException if the value is invalid
 	/// @throw FigException if the engine was \ref lock() "locked"
 	void set_die_out_depth(unsigned dieOutDepth);
 
 private:  // Simulation helper functions
+
+	void reset() const override;
 
 	/// Do a clean in the \ref ssstack_ "internal ADT" used for batch means,
 	/// forcing the next simulation to be <i>fresh</i>.
@@ -217,26 +229,31 @@ private:  // Traial observers/updaters
 			// Event marking is done in accordance with the checks performed
 			// in the rate_simulation() overriden member function
 		    e = EventType::NONE;
-			const auto newThrLvl = static_cast<long>(impFun_->level_of(traial.state));
+			//const auto newThrLvl = static_cast<long>(impFun_->level_of(traial.state));
+			const auto newImportance = impFun_->importance_of(traial.state);
+			const auto newThrLvl = static_cast<long>(impFun_->level_of(newImportance));
 			traial.numLevelsCrossed = static_cast<int>(newThrLvl - static_cast<long>(traial.level));
 			traial.depth -= traial.numLevelsCrossed;
 			traial.level = static_cast<decltype(traial.level)>(newThrLvl);
 			if (0 < traial.numLevelsCrossed &&
 			        traial.nextSplitLevel <= static_cast<int>(traial.level)) {
 					e = EventType::THR_UP;  // event B_i
-					traial.nextSplitLevel = static_cast<int>(traial.level) + 1;
+					// NOTE: traial.nextSplitLevel is updated after splitting
 			} else if (traial.numLevelsCrossed < 0) {
-				if (traial.level == impFun_->min_value()) {
+				if (traial.depth > die_out_depth()) {
+					// Event D_i-j in traial [B_i,D_i-j): this retrial dies
+					e = EventType::THR_DOWN;
+				} else if (newImportance == minImportance_) {  // (traial.level == impFun_->min_value())
+					// Went down to threshold 0:
 					if (traial.depth > 0)
-						e = EventType::THR_DOWN;  // retrials that reach "threshold 0" die
+						e = EventType::THR_DOWN;  // this retrial dies
 					else
-						traial.nextSplitLevel = 1;  // the original traial instead gets reborn
-				} else if (traial.depth > die_out_depth()) {
-					e = EventType::THR_DOWN;  // D_i-j event in traial [B_i,D_i-j) of RESTART-Pj
+						traial.nextSplitLevel = 1;  // the main traial is reborn
 				} else {
-					traial.nextSplitLevel =  // can generate new events B_k
-					        std::min(traial.nextSplitLevel,
-					                 static_cast<int>(traial.level)+die_out_depth()+1);
+					// Event D_i-k in traial [B_i,D_i-j) where k<j:
+					// it may be possible to generate new events B_k
+					traial.nextSplitLevel = std::min(traial.nextSplitLevel,
+					                                 static_cast<int>(traial.level)+die_out_depth()+1);
 				}
 			} else if (property.is_rare(traial.state)) {
 				e = EventType::RARE;
@@ -263,21 +280,24 @@ private:  // Traial observers/updaters
 			traial.depth -= traial.numLevelsCrossed;
 			traial.level = static_cast<decltype(traial.level)>(newThrLvl);
 			if (traial.numLevelsCrossed > 0 &&
-			        traial.nextSplitLevel <= static_cast<int>(traial.level)) {
+			    traial.nextSplitLevel <= static_cast<int>(traial.level)) {
 				SET_THR_UP_EVENT(e);  // event B_i
-				traial.nextSplitLevel = static_cast<int>(traial.level) + 1;
+				// NOTE: traial.nextSplitLevel is updated after splitting
 			} else if (traial.numLevelsCrossed < 0) {
-				if (traial.level == cImpFun_->min_value()) {
+				if (traial.depth > die_out_depth()) {
+					// Event D_i-j in traial [B_i,D_i-j): this retrial dies
+					SET_THR_DOWN_EVENT(e);
+				} else if (cImpFun_->importance_of(traial.state) == minImportance_) {  // (traial.level == cImpFun_->min_value())
+					// Went down to threshold 0:
 					if (traial.depth > 0)
-						SET_THR_DOWN_EVENT(e);  // retrials that reach bottom threshold are truncated
+						SET_THR_DOWN_EVENT(e);  // this retrial dies
 					else
-						traial.nextSplitLevel = 1;  // the original traial instead gets reborn
-				} else if (traial.depth > die_out_depth()) {
-					SET_THR_DOWN_EVENT(e);  // D_i-j event in traial [B_i,D_i-j) of RESTART-Pj
+						traial.nextSplitLevel = 1;  // the main traial is reborn
 				} else {
-					traial.nextSplitLevel =  // can generate new events B_k
-					        std::min(traial.nextSplitLevel,
-					                 static_cast<int>(traial.level)+die_out_depth()+1);
+					// Event D_i-k in traial [B_i,D_i-j) where k<j:
+					// it may be possible to generate new events B_k
+					traial.nextSplitLevel = std::min(traial.nextSplitLevel,
+					                                 static_cast<int>(traial.level)+die_out_depth()+1);
 				}
 			}
 			// else: rare event info is already marked inside 'e'

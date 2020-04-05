@@ -103,8 +103,18 @@ SimulationEngineRestart::bind(std::shared_ptr< const ImportanceFunction > ifun_p
 	else if (ifun_ptr->strategy() == "flat")
 		throw_FigException("RESTART simulation engine requires an importance "
 						   "building strategy other than \"flat\"");
-	reinit_stack();
 	SimulationEngine::bind(ifun_ptr);
+	minImportance_ = ifun_ptr->min_value(true);
+	maxImportance_ = ifun_ptr->max_value(true);
+}
+
+
+void
+SimulationEngineRestart::unbind()
+{
+	minImportance_ = static_cast<ImportanceValue>(0);
+	maxImportance_ = static_cast<ImportanceValue>(0);
+	SimulationEngine::unbind();
 }
 
 
@@ -115,6 +125,14 @@ SimulationEngineRestart::set_die_out_depth(unsigned dieOutDepth)
 		throw_FigException("engine \"" + name() + "\" is currently locked "
 		                   "in \"simulation mode\"");
 	dieOutDepth_ = static_cast<decltype(dieOutDepth_)>(dieOutDepth);
+}
+
+
+void
+SimulationEngineRestart::reset() const
+{
+	SimulationEngine::reset();
+	reinit_stack();
 }
 
 
@@ -138,25 +156,28 @@ SimulationEngineRestart::handle_lvl_up(
     std::stack< Reference < Traial > >& stack) const
 {
 	typedef decltype(traial.level) tl_type;
+	auto nLvlCross = static_cast<tl_type>(traial.numLevelsCrossed);
 
 	assert(0 < traial.level);
 	assert(0 < traial.numLevelsCrossed);
 	assert(traial.level >= static_cast<tl_type>(traial.numLevelsCrossed));
 	assert(traial.depth < 0);
 
-	const auto previousLvl = traial.level-static_cast<tl_type>(traial.numLevelsCrossed);
+	const auto previousLvl = traial.level-static_cast<tl_type>(nLvlCross);
 	unsigned long prevEffort(1ul), currEffort(1ul);
 
 	// Could have gone up several thresholds => split accordingly
-	for (auto i = 1 ; i <= traial.numLevelsCrossed ; i++) {
-		assert(impFun_->max_value() >= static_cast<ImportanceValue>(previousLvl+i));
+	for (auto i = 1ul ; i <= nLvlCross ; i++) {
+		if (static_cast<int>(previousLvl+i) < traial.nextSplitLevel)
+			continue;  // skip this level
+		assert(impFun_->max_value() >= static_cast<tl_type>(previousLvl+i));
 		prevEffort *= currEffort;
 		currEffort = impFun_->effort_of(previousLvl+i);
 		assert(1ul < currEffort);
 		tpool.get_traial_copies(stack,
 		                        traial,
-		                        prevEffort*(currEffort-1),
-		                        i-traial.numLevelsCrossed);
+		                        static_cast<uint>(prevEffort*(currEffort-1)),
+		                        static_cast<short>(i-nLvlCross));
 	}
 }
 
@@ -177,9 +198,6 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 		                   "using RESTART with prolonged retrials (requested "
 		                   "RESTART-P" +std::to_string(die_out_depth())+
 		                   ") - Aborting estimations");
-
-	if (reachCount_.size() != numThresholds+1)
-		reachCount_.clear();
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	EventWatcher watch_events = impFun_->concrete_simulation()
@@ -222,6 +240,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			} else if (IS_THR_UP_EVENT(e)) {
 				// Could have gone up several thresholds => split accordingly
 				handle_lvl_up(traial, tpool, stack);
+				traial.nextSplitLevel = static_cast<decltype(traial.nextSplitLevel)>(traial.level+1);
 				// Offsprings are on top of stack now: continue attending them
 			}
 			// RARE events are checked first thing in next iteration
@@ -252,11 +271,6 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 										 bool reinit) const
 {
 	assert(0u < runLength);
-	const unsigned numThresholds(impFun_->num_thresholds());
-
-	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
-	if (reachCount_.size() != numThresholds+1 || reinit)
-		decltype(reachCount_)().swap(reachCount_);
 
 	// Reset batch or run with batch means?
 	if (reinit || ssstack_.empty()) {
@@ -292,6 +306,7 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	// Run a single RESTART importance-splitting simulation for "runLength"
 	// simulation time units and starting from the last saved ssstack_,
 	// or from the system's initial state if requested.
+	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 	return RESTART_run(property, watch_events, register_time);
 }
 
@@ -300,9 +315,9 @@ double
 SimulationEngineRestart::tbound_ss_simulation(const PropertyTBoundSS& property) const
 {
 	const auto transientTime = property.tbound_low();
-	const auto finishTime = property.tbound_upp();
+	const auto runLength = property.tbound_upp();
 	assert(0 <= transientTime);
-	assert(transientTime < finishTime);
+	assert(transientTime < runLength);
 
 	// For the sake of efficiency, distinguish when operating with a concrete ifun
 	const EventWatcher& watch_events = impFun_->concrete_simulation()
@@ -315,7 +330,6 @@ SimulationEngineRestart::tbound_ss_simulation(const PropertyTBoundSS& property) 
 			std::bind(&SimulationEngineRestart::kill_time,             this, _1, _2, _3);
 
 	// Run a single RESTART simulation:
-	decltype(reachCount_)().swap(reachCount_);
 	reinit_stack();
 	assert(ssstack_.size() == 1ul);
 	assert(&oTraial_ == &ssstack_.top().get());
@@ -330,7 +344,7 @@ SimulationEngineRestart::tbound_ss_simulation(const PropertyTBoundSS& property) 
 
 	// - and then register (time of) property satisfaction up to finishTime,
 	//   using (a single run of) the RESTART importance splitting algorithm
-	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(finishTime);
+	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
 	return RESTART_run(property, watch_events, register_time);
 }
 
@@ -383,9 +397,10 @@ SimulationEngineRestart::RESTART_run(const SSProperty& property,
 			e = model_->simulation_step(traial, property, watch_events);
 
 		// Checking order of the following events is relevant!
-		if (traial.lifeTime > simsLifetime || IS_THR_DOWN_EVENT(e)) {
+		if (traial.lifeTime >= simsLifetime || IS_THR_DOWN_EVENT(e)) {
 			// Traial reached EOS or went down => kill it
 			assert(!(&traial==&oTraial_ && IS_THR_DOWN_EVENT(e)));
+			assert(&traial != &oTraial_ || ssstack_.size() == 1ul);
 			if (&traial != &oTraial_)  // avoid future aliasing!
 				tpool.return_traial(std::move(traial));
 			ssstack_.pop();
@@ -394,7 +409,7 @@ SimulationEngineRestart::RESTART_run(const SSProperty& property,
 			// Could have gone up several thresholds => split accordingly
 			assert(traial.numLevelsCrossed > 0);
 			handle_lvl_up(traial, tpool, ssstack_);
-			assert(traial.level < static_cast<decltype(traial.level)>(traial.nextSplitLevel));
+			traial.nextSplitLevel = static_cast<decltype(traial.nextSplitLevel)>(traial.level+1);
 			assert(&(ssstack_.top().get()) != &oTraial_);
 			// Offsprings are on top of ssstack_ now: continue attending them
 		}
@@ -403,7 +418,8 @@ SimulationEngineRestart::RESTART_run(const SSProperty& property,
 	if (ssstack_.empty())  // enable next iteration of batch means
 		ssstack_.push(oTraial_);
 
-	// To estimate, weigh times by the relative importance of their thresholds
+	// To estimate, weigh the accumulated times by the relative importance of
+	// the thresholds-levels where they were registered
 	double weighedAccTime(0.0);
 	unsigned long effort(1ul);
 	for (auto t = 0u ; t <= numThresholds ; t++) {

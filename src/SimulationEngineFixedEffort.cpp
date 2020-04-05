@@ -87,11 +87,8 @@ SimulationEngineFixedEffort::transient_simulations(
 		                   "this instance of SimulationEngineFixedEffort "
 		                   "was created to build thresholds");
 
-	if (nullptr == property_ || property_->get_id() != property.get_id()) {
-		// New property, reset counters
-		property_ = &property;
-		reachCount_.clear();
-	}
+	if (nullptr == property_ || property_->get_id() != property.get_id())
+		property_ = &property;  // bind new property
 
 	// Perform 'numRuns' independent Fixed Effort simulations
 	for (size_t i = 0ul ; i < numRuns ; i++) {

@@ -382,6 +382,9 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 		throw_FigException("engine isn't bound to any importance function");
 	if (interrupted)
 		throw_FigException("called with an interrupted simulation");
+	assert(ci.num_samples() == 0ul);
+
+	this->reset();
 
 	switch (property.type)
 	{
@@ -403,11 +406,11 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 		size_t runLength = batch_size() > 0ul ? batch_size()
 											  : min_run_length(name(), impFun_->name());
 		print_batchsize(figMainLog, runLength);
-		bool firstRun(true);
+		bool firstRun = true;
 		do {
-			auto value = rate_simulation(pRate, runLength, firstRun);  // use batch-means
+			auto value = rate_simulation(pRate, runLength, firstRun);
 			rate_update(ciRate, value, runLength);
-			firstRun = false;
+			firstRun = false;  // batch means: will continue where we left
 		} while ( ! (interrupted || ci.is_valid()) );
 		} break;
 
@@ -421,13 +424,20 @@ SimulationEngine::simulate(const Property& property, ConfidenceInterval& ci) con
 			auto value = tbound_ss_simulation(pTBSS);
 			tbound_ss_update(ciRate, value, batchSimTime);
 		} while ( ! (interrupted || ci.is_valid()) );
-	    } break;
+		} break;
 
 	case PropertyType::RATIO:
 	case PropertyType::BOUNDED_REACHABILITY:
 		throw_FigException("property type isn't supported by \"" + name_ +
 						   "\" simulation engine yet");
-	}
+		}
+}
+
+
+void
+SimulationEngine::reset() const
+{
+	reachCount_.clear();
 }
 
 
@@ -481,7 +491,7 @@ SimulationEngine::rate_update(ConfidenceIntervalRate& ci,
 	static constexpr size_t NHITS_REQUIRED = 3u;  // #{"successes"} to acnowledge steady-state behaviour
 	static size_t NHITS(0ul);  // #{"successes"} observed in last simulations
 	static unsigned cnt(0u);
-	const bool newCI(ci.num_samples() <= 1l);
+	const bool newCI(ci.num_samples() < 1l);
 	const bool RESET(newCI && NHITS >= NHITS_REQUIRED);
 	cnt = newCI ? 0u : cnt;
 	NHITS = RESET ? 0ul : NHITS;

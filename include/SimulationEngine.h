@@ -162,7 +162,6 @@ protected:
 	/// @note Useful for debugging purposes
 	/// @note Only applicable to \ref isplit() "engines implementing
 	///       some sort of importance splitting"
-//	mutable std::vector< size_t > reachCount_;
 	mutable ReachabilityCount reachCount_;
 
 public:  // Ctors/Dtor
@@ -209,7 +208,7 @@ protected:  // Engine setup (by ModelSuite)
 	/// Deregister the last ImportanceFunction coupled to us
 	/// @throw FigException if the engine was \ref lock() "locked"
 	/// @see bind()
-	void unbind();
+	virtual void unbind();
 
 private:  // Engine setup (by ModelSuite)
 
@@ -326,6 +325,9 @@ public:  // Simulation functions
     void simulate(const Property& property, ConfidenceInterval& ci) const;
 
 protected:  // Simulation helper functions
+
+	/// Clean internal ADTs (prior to incoming simulations)
+	virtual void reset() const;
 
 	/**
 	 * @brief Run independent transient-like simulations to estimate
