@@ -192,6 +192,9 @@ public:  // Copy/Assign/Dtor
 			clocks_          = that.clocks_;
 			orderedIndex_    = that.orderedIndex_;
 			nextClock_       = that.nextClock_;
+#		ifndef NDEBUG
+			check_internal_consistency();
+#		endif
 			return *this;
 	    }
 
@@ -366,6 +369,10 @@ public:  // Utils
 	/// Show Traial contents on stream
 	/// @param flush Extra-verbose and flush before and after use
 	void print_out(std::ostream& ostr = figTechLog, bool flush = true) const;
+
+	/// Corroborate all internal references among ADTs are still valid
+	/// @throw FigException if something fishy is found, e.g. bad references
+	void check_internal_consistency() const;
 
 private:  // Class utils
 

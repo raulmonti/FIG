@@ -92,6 +92,10 @@ ThresholdsBuilderAdaptive::get_traials(const unsigned& numTraials,
 	if (initialise)
 		for (fig::Traial& t: traials)
 			t.initialise(*ModelSuite::get_instance().modules_network(), impFun);
+#ifndef NDEBUG
+	for (const Traial& t: traials)
+		t.check_internal_consistency();
+#endif
 	return traials;
 }
 

@@ -79,11 +79,7 @@ Traial::Traial(const size_t& stateSize, const size_t& numClocks) :
 	}
 	clocks_.shrink_to_fit();
 	clocksValuations_.shrink_to_fit();
-#ifndef NDEBUG
-	assert(clocks_.size() == clocksValuations_.size());
-	for (auto i = 0ul ; i < clocks_.size() ; i++)
-		assert(&(clocksValuations_[i].get()) == &(clocks_[i].value));
-#endif
+	check_internal_consistency();
 }
 
 
@@ -122,11 +118,7 @@ Traial::Traial(const size_t& stateSize,
 		reorder_clocks();
 	clocks_.shrink_to_fit();
 	clocksValuations_.shrink_to_fit();
-#ifndef NDEBUG
-	assert(clocks_.size() == clocksValuations_.size());
-	for (auto i = 0ul ; i < clocks_.size() ; i++)
-		assert(&(clocksValuations_[i].get()) == &(clocks_[i].value));
-#endif
+	check_internal_consistency();
 }
 
 
@@ -172,11 +164,7 @@ Traial::Traial(const size_t& stateSize,
 		reorder_clocks();
 	clocks_.shrink_to_fit();
 	clocksValuations_.shrink_to_fit();
-#ifndef NDEBUG
-	assert(clocks_.size() == clocksValuations_.size());
-	for (auto i = 0ul ; i < clocks_.size() ; i++)
-		assert(&(clocksValuations_[i].get()) == &(clocks_[i].value));
-#endif
+	check_internal_consistency();
 }
 // Traial() template ctor can only be invoked with the following containers
 template Traial::Traial(const size_t&, const size_t&, const std::set<std::string>&, bool);
@@ -268,6 +256,23 @@ Traial::print_out(std::ostream& ostr, bool flush) const
 		ostr << " | Depth: " << depth;
 		ostr << std::endl << "* Missing clocks are NaN/inf." << std::endl;
 	}
+}
+
+
+void
+Traial::check_internal_consistency() const
+{
+#ifndef NDEBUG
+	assert(clocks_.size() == clocksValuations_.size());
+	for (auto i = 0ul ; i < clocks_.size() ; i++)
+		assert(&(clocksValuations_[i].get()) == &(clocks_[i].value));
+#else
+	if (clocks_.size() != clocksValuations_.size())
+		throw_FigException("Invalid Traial: clock references corrupted");
+	for (auto i = 0ul ; i < clocks_.size() ; i++)
+		if (&(clocksValuations_[i].get()) != &(clocks_[i].value))
+			throw_FigException("Invalid Traial: clock references corrupted");
+#endif
 }
 
 

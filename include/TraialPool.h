@@ -199,7 +199,8 @@ public:  // Utils
 	/// Make sure at least 'requiredResources' \ref Traial "traials" are
 	/// available, without the need for in-between allocations when requested.
 	/// @note <b>Complexity:</b> <i>O(max(requiredResources,num_resources()))</i>
-	void ensure_resources(const size_t& requiredResources);
+	template< typename Integral >
+	void ensure_resources(const Integral& requiredResources);
 
 	/// How many \ref Traial "traials" are currently available?
 	/// @note <b>Complexity:</b> <i>O(num_resources())</i>

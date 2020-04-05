@@ -161,7 +161,7 @@ retrieve_traials:
 		available_traials_.pop_front();
 	}
 	if (0u < numTraials) {
-		ensure_resources(std::max<unsigned>(numTraials+1, increment_size()));
+		ensure_resources(std::max(numTraials+1ul, increment_size()));
 		goto retrieve_traials;
 	}
 }
@@ -184,7 +184,7 @@ TraialPool::get_traials(std::stack< Reference<Traial> >& stack,
 		available_traials_.pop_front();
 	}
 	if (0u < numTraials) {
-		ensure_resources(std::max<unsigned>(numTraials++, increment_size()));
+		ensure_resources(std::max<size_t>(numTraials++, increment_size()));
 		goto retrieve_traials;
 	}
 }
@@ -203,7 +203,7 @@ TraialPool::get_traials(std::forward_list< Reference<Traial> >& flist,
 		available_traials_.pop_front();
 	}
 	if (0u < numTraials) {
-		ensure_resources(std::max<unsigned>(numTraials++, increment_size()));
+		ensure_resources(std::max<size_t>(numTraials++, increment_size()));
 		goto retrieve_traials;
 	}
 }
@@ -231,7 +231,7 @@ TraialPool::get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
 		cont.emplace(end(cont), std::ref(t));  // copy elision
 	}
 	if (0u < numCopies) {
-		ensure_resources(std::max<unsigned>(numCopies++, increment_size()));
+		ensure_resources(std::max<size_t>(numCopies++, increment_size()));
 		goto retrieve_traials;
 	}
 }
@@ -270,7 +270,7 @@ TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
 		stack.push(std::ref(t));  // copy elision
 	}
 	if (0u < numCopies) {
-		ensure_resources(std::max<unsigned>(numCopies++, increment_size()));
+		ensure_resources(std::max<size_t>(numCopies++, increment_size()));
 		goto retrieve_traials;
 	}
 }
@@ -298,7 +298,7 @@ TraialPool::get_traial_copies(std::stack< Reference< Traial >,
 		stack.push(std::ref(t));  // copy elision
 	}
 	if (0u < numCopies) {
-		ensure_resources(std::max<unsigned>(numCopies++, increment_size()));
+		ensure_resources(std::max<size_t>(numCopies++, increment_size()));
 		goto retrieve_traials;
 	}
 }
@@ -324,7 +324,7 @@ TraialPool::get_traial_copies(std::forward_list< Reference<Traial> >& flist,
 		flist.push_front(std::ref(t));  // copy elision
     }
 	if (0u < numCopies) {
-		ensure_resources(std::max<unsigned>(numCopies++, increment_size()));
+		ensure_resources(std::max<size_t>(numCopies++, increment_size()));
 		goto retrieve_traials;
 	}
 }
@@ -383,13 +383,15 @@ TraialPool::return_traials(std::forward_list< Reference< Traial > >& list)
 	}
 }
 
+template< typename Integral >
 void
-TraialPool::ensure_resources(const size_t& requiredResources)
+TraialPool::ensure_resources(const Integral& requiredResources)
 {
+	static_assert(std::is_integral< Integral >::value,
+	              "ERROR: type mismatch, was expecting an integral");
 	const size_t oldSize = traials_.size();
-	const size_t newSize = (oldSize == 0ul)
-	        ? initial_size()
-	        : oldSize + std::max(0l, static_cast<long>(requiredResources) - static_cast<long>(num_resources()));
+	const size_t newSize = (oldSize == 0ul) ? initial_size()
+	                                        : oldSize + static_cast<size_t>(std::max(0l, static_cast<long>(requiredResources) - static_cast<long>(num_resources())));
 
 	if (newSize <= oldSize)
 		return;  // nothing to do!
@@ -429,6 +431,12 @@ TraialPool::ensure_resources(const size_t& requiredResources)
 	 * after sufficient new resources requests.
 	 */
 }
+// TraialPool::ensure_resources() instantiations
+template void TraialPool::ensure_resources(const short& requiredResources);
+template void TraialPool::ensure_resources(const int& requiredResources);
+template void TraialPool::ensure_resources(const long& requiredResources);
+template void TraialPool::ensure_resources(const unsigned& requiredResources);
+template void TraialPool::ensure_resources(const unsigned long& requiredResources);
 
 
 size_t
@@ -450,7 +458,12 @@ TraialPool::set_timeouts(Traial& t, std::vector<Traial::Timeout> clocks)
 {
 	assert(t.clocks_.size() == clocks.size());
 	t.clocks_.swap(clocks);
-	//t.clocks_ = clocks;
+	t.clocksValuations_.clear();
+	for (auto &to: t.clocks_)
+		t.clocksValuations_.emplace_back(to.value);
+#ifndef NDEBUG
+	t.check_internal_consistency();
+#endif
 }
 
 

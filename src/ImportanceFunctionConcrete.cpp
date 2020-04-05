@@ -79,7 +79,7 @@ debug_print_adjacency_list(const fig::State< fig::STATE_INTERNAL_TYPE >& globalS
 	for (auto i = 0ul ; i < reverseEdges.size() ; i++ ) {
 		fig::figTechLog << state.decode(i).to_string() << " <-- {";
 		for (const auto& s: reverseEdges[i])
-			fig::figTechLog << state.decode(s).to_string() << " ; ";
+			fig::figTechLog << state.decode(s).to_string() << "; ";
 		fig::figTechLog << "\b\b\b}  \n";
 	}
 	fig::figTechLog << std::endl;
