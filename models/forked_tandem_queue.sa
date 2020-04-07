@@ -1,0 +1,93 @@
+/*
+ * Forked tandem queue for the FIG tool
+ * Budde | 2020
+ *
+ * {-
+ * Forked tandem queue concept:
+ *
+ *                           +---> [.....@] ---->
+ *                          /  p       (q2)  mu2    
+ * -------> [..@@@@] ----->(    
+ *  lambda      (q1)  mu1   \ 1-p      (q3)  mu3
+ *                           +---> [....@@] ---->
+ * 
+ * All queues (q1,q2,q3) have the same max-capacity 'c'
+ * New packets arrive at q1: inter-arrival times are exponentially
+ *                           distributed with rate parameter 'lambda'
+ * Packets in q1 are served at rate 'mu1' and sent:
+ *  - with probability   p to q2, where they are served at rate 'mu2'
+ *  - with probability 1-p to q3, where they are served at rate 'mu3'
+ * After being served in either queue, a packet leaves the system
+ * 
+ * Rare events: q2 >= L, for predefined limiting capacity 'L'
+ * Stopping events (for transient analysis): q2 becoming empty
+ * Initial state: q1=q3=0, q2=1
+ * 
+ * NOTE: for the event to be rare and interesting
+ *       it is important that each queue is a bottleneck of the next,
+ *       i.e. mu1 < mu2,mu3 ("earlier queues serve packets slowlier")
+ * -}
+ */
+
+const int L = 8;        // Limiting capacity that defines the rare event
+const int c = L+0;      // Queues capacity
+const float p = 0.999;  // Probability of routing q1 --> q2
+const int lambda = 3;   // rate(--> q1             )
+const int    mu1 = 2;   // rate(    q1 --> {q2,q3} )
+const int    mu2 = 6;   // rate(            q2 --> )
+const int    mu3 = 5;   // rate(            q3 --> )
+
+module Arrivals
+	clk0: clock;  // External arrivals ~ Exponential(lambda)
+	[P1!] @ clk0 -> (clk0'= exponential(lambda));
+endmodule
+
+module Queue1
+	q1: [0..c];
+	clk1: clock;  // Queue1 service time ~ Exponential(mu1)
+	rst1:  bool init false;
+	q1_q2: bool init false;
+	q1_q3: bool init false;
+	// Reset service clock
+	[X!!] rst1 -> (clk1'=exponential(mu1)) & (rst1'=false);
+	// Packet arrival
+	[P1?] q1 == 0          -> (q1'= q1+1) & (rst1'=true);
+	[P1?] q1  > 0 & q1 < c -> (q1'= q1+1);
+	[P1?] q1 == c          -> ;
+	// Packet service
+	[] q1 > 0 @ clk1 ->     p : (q1_q2'=true)
+	                  + 1.0-p : (q1_q3'=true);
+	[P2!!] q1_q2 -> (q1'= q1-1) & (rst1'=true) & (q1_q2'=false);
+	[P3!!] q1_q3 -> (q1'= q1-1) & (rst1'=true) & (q1_q3'=false);
+endmodule
+
+module Queue2
+	q2: [0..c];
+	clk2: clock;  // Queue2 service time ~ Exponential(mu2)
+	// Packet arrival
+	[P2??] q2 == 0          -> (q2'= q2+1) & (clk2'= exponential(mu2));
+	[P2??] q2  > 0 & q2 < c -> (q2'= q2+1);
+	[P2??] q2 == c          -> ;
+	// Packet service
+	[] q2 == 1 @ clk2 -> (q2'= q2-1);
+	[] q2  > 1 @ clk2 -> (q2'= q2-1) & (clk2'= exponential(mu2));
+endmodule
+
+module Queue3
+	q3: [0..c];
+	clk3: clock;  // Queue3 service time ~ Exponential(mu3)
+	// Packet arrival
+	[P3??] q3 == 0          -> (q3'= q3+1) & (clk3'= exponential(mu3));
+	[P3??] q3  > 0 & q3 < c -> (q3'= q3+1);
+	[P3??] q3 == c          -> ;
+	// Packet service
+	[] q3 == 1 @ clk3 -> (q3'= q3-1);
+	[] q3  > 1 @ clk3 -> (q3'= q3-1) & (clk3'= exponential(mu3));
+endmodule
+
+
+properties
+	S( q2 >= L )              // "rate"
+	S[ 60:30000 ]( q2 >= L )  // "rate with time-bound"
+	P( q2 > 0 U q2 >= L )     // "transient"
+endproperties

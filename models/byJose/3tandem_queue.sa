@@ -27,7 +27,7 @@
  */
 
 // Values taken from "RESTART vs. Splitting: A comparative study,"
-// José Villén-Altamirano, Performance Evaluation 121-122 (2018) 38-47
+// Jose Villen-Altamirano, Performance Evaluation 121-122 (2018) 38-47
 
 const int L = 14;      // Queue limiting capacity
 const int c = L+99;    // Queues real capacity (mimic infinite size)

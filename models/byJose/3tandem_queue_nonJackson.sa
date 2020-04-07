@@ -28,17 +28,17 @@
  */
 
 // Values taken from "RESTART vs. Splitting: A comparative study,"
-// José Villén-Altamirano, Performance Evaluation 121-122 (2018) 38-47
+// Jose Villen-Altamirano, Performance Evaluation 121-122 (2018) 38-47
                         
 const int L = 14;          // Queue limiting capacity
 const int c = L+99;        // Queues real capacity (mimic infinite size)
 const float  p = 0.5;      // probability of arrival with rate l1
-const float l1 = 7.0/1.0;  // rate(--> q1           ) first  possibility 
-const float l2 = 7.0/6.0;  // rate(--> q1           ) second possibility 
-const int alpha =  3;      // Shape parameter of the Erlang service times
+const float l1 = 7.0/1.0;  // rate(--> q1                  ) first  possibility 
+const float l2 = 7.0/6.0;  // rate(--> q1                  ) second possibility 
 const int beta1 =  9;      // rate(    q1 --> q2           ) of Erlang-alpha
 const int beta2 = 12;      // rate(           q2 --> q3    ) of Erlang-alpha
 const int beta3 = 18;      // rate(                  q3 -->) of Erlang-alpha
+const int alpha =  3;      // Shape parameter of the Erlang service times
 
 // Importance function used in the aforementioned article: 0.13*q1 + 0.5*q2 + q3
 // Importance function used for fig: 13*q1 + 50*q2 + 100*q3

@@ -93,7 +93,6 @@ namespace  // // // // // // // // // // // // // // // // // // // // // // //
 
 using fig::ConfidenceInterval;
 using std::chrono::seconds;
-typedef std::chrono::duration<size_t> duration;
 
 
 /**
@@ -559,25 +558,56 @@ ModelSuite::set_DFT(double failProbDFT)
 }
 
 
+template< typename _T > using duration = std::chrono::duration<_T>;
+//
+template<typename Integral>
 void
-ModelSuite::set_timeout(const duration& timeLimit)
+ModelSuite::set_timeout(const duration<Integral>& timeLimit)
 {
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral base type");
 	if (!sealed())
 		throw_FigException("ModelSuite hasn't been sealed yet");
+	//
 	timeout_ = timeLimit;
-	// Show in tech log
-	if (timeLimit.count() > 0l)
-		tech_log("Time-out set to " + time_formatted_str(timeout_.count()) + "\n");
-	else
-        tech_log("Time-out was unset\n");
+	//
+	// Show in tech log?
+	if (get_verbosity()) {
+		if (timeout_.count() > 0l)
+			tech_log("Time-out set to " + time_formatted_str(timeout_.count()) + "\n");
+		else
+			tech_log("Time-out was unset\n");
+	}
 }
+// Specialisation
+template void fig::ModelSuite::set_timeout(const duration<short>&);
+template void fig::ModelSuite::set_timeout(const duration<int>&);
+template void fig::ModelSuite::set_timeout(const duration<long>&);
+template void fig::ModelSuite::set_timeout(const duration<unsigned short>&);
+template void fig::ModelSuite::set_timeout(const duration<unsigned int>&);
+template void fig::ModelSuite::set_timeout(const duration<unsigned long>&);
 
 
+template< typename Integral >
 void
-ModelSuite::set_timeout(const size_t& timeLimitSeconds)
+ModelSuite::set_timeout(Integral timeLimitSeconds)
 {
-	set_timeout(seconds(timeLimitSeconds));
+	/// @note Alternatively we could use "if constexpr() {code}" from C++17
+	///       to conditionally compile "{code}",
+	///       and thus avoid code duplication for set_timeout()
+	///       https://riptutorial.com/cplusplus/example/28625/static-if-statement
+	static_assert(std::is_integral<Integral>::value,
+	              "ERROR: type mismatch, expected integral timeLimitSeconds");
+	assert(0 <= static_cast<long>(timeLimitSeconds));
+	set_timeout(std::chrono::seconds(timeLimitSeconds));
 }
+// Specialisation
+template void ModelSuite::set_timeout(short);
+template void ModelSuite::set_timeout(int);
+template void ModelSuite::set_timeout(long);
+template void ModelSuite::set_timeout(unsigned short);
+template void ModelSuite::set_timeout(unsigned int);
+template void ModelSuite::set_timeout(unsigned long);
 
 
 void
@@ -1313,7 +1343,7 @@ ModelSuite::clear() noexcept
 	currentThrBuilder = nullptr;
 	currentSimulator = nullptr;
 	lastEstimationStartTime_ = 0.0;
-	timeout_ = std::chrono::seconds::zero();
+	timeout_ = seconds::zero();
 	lastEstimates_.clear();
 	interruptCI_ = nullptr;
 	// Release more complex resources (ifuns, thr. builders, sim. engines)

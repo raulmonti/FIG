@@ -306,12 +306,14 @@ public:  // Populating facilities and other modifyers
 	 * @warning The ModelSuite must have been \ref seal() "sealed" beforehand
 	 * @throw FigException if the model isn't \ref sealed() "sealed" yet
 	 */
-	void set_timeout(const std::chrono::duration<size_t>& timeLimit);
+	template< typename Integral >
+	void set_timeout(const std::chrono::duration<Integral>& timeLimit);
 
 	/// @brief Set a wall-clock-time limit for simulations (in seconds)
 	/// @copydetails set_timeout(const std::chrono::duration&)
 	/// @see set_timeout(const std::chrono::duration&)
-	void set_timeout(const size_t& timeLimitSeconds);
+	template< typename Integral >
+	void set_timeout(Integral timeLimitSeconds);
 
 	/**
 	 * @brief Set RNG specs for time sampling
