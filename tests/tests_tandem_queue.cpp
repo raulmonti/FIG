@@ -48,7 +48,7 @@ const double SS_PROB(6.23e-5);  // expected result of steady-state query (C=10: 
 int ssPropId(-1);               // index of the query within our TAD
 
 // Time bounded steady-state query: S[ 60:30000 ]( q2 == 8 )
-const double BS_PROB(6.01e-5);  // expected result of steady-state query
+const double BS_PROB(6.15e-5);  // expected result of steady-state query
 int bsPropId(-1);               // index of the query within our TAD
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
@@ -80,14 +80,14 @@ SECTION("Compile model file")
 	ssPropId = -1;
 	bsPropId = -1;
 	REQUIRE(model.num_properties() >= 3ul);
-	for (size_t i = 0ul ; i < model.num_properties() ; i++) {
+	for (auto i = 0ul ; i < model.num_properties() ; i++) {
 		auto prop = model.get_property(i);
 		if (prop->type == fig::PropertyType::TRANSIENT)
-			trPropId = i;
+			trPropId = static_cast<decltype(trPropId)>( i );
 		else if (prop->type == fig::PropertyType::RATE)
-			ssPropId = i;
+			ssPropId = static_cast<decltype(ssPropId)>( i );
 		else if (prop->type == fig::PropertyType::TBOUNDED_SS)
-			bsPropId = i;
+			bsPropId = static_cast<decltype(bsPropId)>( i );
 		if (0 <= trPropId && 0 <= ssPropId && 0 <= bsPropId)
 			break;  // already got one of each kind
 	}
@@ -176,7 +176,7 @@ SECTION("Steady-state: RESTART, ad hoc, hyb")
 			  == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 	model.release_resources(ifunSpec.name, nameEngine);
 }
-*/
+
 SECTION("Steady-state: RESTART, monolithic, hyb")
 {
 	const string nameEngine("restart");
@@ -213,7 +213,7 @@ SECTION("Steady-state: RESTART, monolithic, hyb")
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 	model.release_resources(ifunSpec.name, nameEngine);
 }
-
+*/
 SECTION("Time bounded steady-state: RESTART, compositional (+ operator), fix")
 {
 	const string nameEngine("restart");
@@ -237,7 +237,7 @@ SECTION("Time bounded steady-state: RESTART, compositional (+ operator), fix")
 	const double prec(.1);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(TIMEOUT_(std::chrono::seconds(45)));
+	model.set_timeout(TIMEOUT_(45));
 	// Estimate
 	model.estimate(bsPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -250,6 +250,7 @@ SECTION("Time bounded steady-state: RESTART, compositional (+ operator), fix")
 			  == Approx(BS_PROB*prec).epsilon(BS_PROB*0.15));
 	model.release_resources(ifunSpec.name, nameEngine);
 }
+
 
 SECTION("Time bounded steady-state: RESTART-P2, compositional (+ operator), fix")
 {
@@ -274,7 +275,8 @@ SECTION("Time bounded steady-state: RESTART-P2, compositional (+ operator), fix"
 	const double prec(.1);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(TIMEOUT_(std::chrono::seconds(45)));
+	model.set_timeout(TIMEOUT_(45));
+	//model.set_timeout(TIMEOUT_(9));  /// @todo TODO erase
 	// Estimate
 	model.estimate(bsPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -287,7 +289,7 @@ SECTION("Time bounded steady-state: RESTART-P2, compositional (+ operator), fix"
 	          == Approx(BS_PROB*prec).epsilon(BS_PROB*0.15));
 	model.release_resources(ifunSpec.name, nameEngine);
 }
-
+/*
 SECTION("Time bounded steady-state: RESTART-P1, ad hoc, ad hoc thresholds")
 {
 	const string nameEngine("restart1");
@@ -346,7 +348,7 @@ SECTION("Time bounded steady-state: RESTART, monolithic, ad hoc thresholds")
 	const double prec(.15);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(TIMEOUT_(std::chrono::seconds(45)));
+	model.set_timeout(TIMEOUT_(45));
 	// Estimate
 	model.set_verbosity(true);
 	model.estimate(bsPropId, *engine, confCrit, ifunSpec);
@@ -361,7 +363,7 @@ SECTION("Time bounded steady-state: RESTART, monolithic, ad hoc thresholds")
 	          == Approx(BS_PROB*prec).epsilon(BS_PROB*0.1));
 	model.release_resources(ifunSpec.name, nameEngine);
 }
-/*
+
 SECTION("Transient: RESTART, compositional (+ operator), es")
 {
 	const string nameEngine("restart");

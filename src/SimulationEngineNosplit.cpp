@@ -183,7 +183,7 @@ SimulationEngineNosplit::tbound_ss_simulation(const PropertyTBoundSS& property) 
 	// - first discard transient phase
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(transientTime);
 	model_->simulation_step(oTraial_, property, discard_transient);
-	assert(oTraial_.lifeTime >= transientTime);
+	assert(oTraial_.lifeTime >= transientTime || interrupted);
 
 	// - and then register (time of) property satisfaction up to finishTime
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(finishTime);
