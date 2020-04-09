@@ -160,16 +160,18 @@ Transition::apply_postcondition(Traial& traial,
 	const size_t fClk = static_cast<size_t>(firstClock),
 	             nClk = clocks.size();
 	// Choose a branch...
-	const auto p = uniform(RNG);
-	assert(0.0f < p);
-	assert(p < 1.0f);
 	auto branch = 0ul;
-	while (branch+1 < num_branches() && p < probabilities[branch+1])
-		branch++;
+	if (num_branches() > 1) {
+		const auto p = uniform(RNG);
+		assert(0.0f < p);
+		assert(p < 1.0f);
+		while (p > probabilities[branch])
+			branch++;
 #ifndef NDEBUG
-	if (branch >= num_branches())
-		throw_FigException("Invalid branch chosen, bad probabilistic weights?");
+		if (branch >= num_branches())
+			throw_FigException("Invalid branch chosen, bad probabilistic weights?");
 #endif
+	}
 	// ...apply its postcondition...
 	posts[branch](traial.state);
 	// ...and reset (only) the corresponing clocks
