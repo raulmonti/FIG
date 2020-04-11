@@ -296,7 +296,7 @@ void ModelReductor::visit(shared_ptr<PBranch> node) {
 		return;
 	}
 	auto probability = probExp->get_value();
-	if (0.0f >= probability || probability > 1.0f) {
+	if (0.0f > probability || probability > 1.0f) {
 		put_error("Out-of-range probabilistic weight in a transition branch: "
 		          + std::to_string(probability));
 		return;
