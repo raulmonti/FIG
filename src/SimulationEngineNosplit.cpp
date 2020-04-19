@@ -186,7 +186,7 @@ SimulationEngineNosplit::tbound_ss_simulation(const PropertyTBoundSS& property) 
 	assert(oTraial_.lifeTime >= transientTime || interrupted);
 
 	// - and then register (time of) property satisfaction up to finishTime
-	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(finishTime);
+	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(finishTime-transientTime);
 	do {
 		Event e = model_->simulation_step(oTraial_, property, watch_events);
 		if (!IS_RARE_EVENT(e))

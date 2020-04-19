@@ -344,7 +344,7 @@ SimulationEngineRestart::tbound_ss_simulation(const PropertyTBoundSS& property) 
 
 	// - and then register (time of) property satisfaction up to finishTime,
 	//   using (a single run of) the RESTART importance splitting algorithm
-	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength);
+	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(runLength-transientTime);
 	return RESTART_run(property, watch_events, register_time);
 }
 
