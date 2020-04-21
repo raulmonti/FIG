@@ -30,11 +30,11 @@
  */
 
 const int L = 8;        // Limiting capacity that defines the rare event
-const int c = L+0;      // Queues capacity
-const float p = 0.999;  // Probability of routing q1 --> q2
+const int c = L+3;      // Queues capacity
+const float p = 0.400;  // Probability of routing q1 --> q2
 const int lambda = 3;   // rate(--> q1             )
 const int    mu1 = 2;   // rate(    q1 --> {q2,q3} )
-const int    mu2 = 6;   // rate(            q2 --> )
+const int    mu2 = 3;   // rate(            q2 --> )
 const int    mu3 = 5;   // rate(            q3 --> )
 
 module Arrivals
@@ -87,7 +87,7 @@ endmodule
 
 
 properties
-	S( q2 >= L )              // "rate"
+//	S( q2 >= L )              // "rate"
 	S[ 60:30000 ]( q2 >= L )  // "rate with time-bound"
-	P( q2 > 0 U q2 >= L )     // "transient"
+//	P( q2 > 0 U q2 >= L )     // "transient"
 endproperties

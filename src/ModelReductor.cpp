@@ -32,6 +32,9 @@
 #include "FigException.h"
 #include "ExpReductor.h"
 #include <algorithm>
+#include <string>
+#include <cmath>
+
 
 void ModelReductor::accept_cond(shared_ptr<ModelAST> node) {
     if (!has_errors()) {
@@ -276,13 +279,16 @@ void ModelReductor::visit(shared_ptr<MultipleInitializedArray> node) {
 }
 
 void ModelReductor::visit(shared_ptr<TransitionAST> node) {
+	using std::to_string;
+	using std::fabs;
     node->set_precondition(reduce(node->get_precondition()));
 	probabilisticWeightAcc = 0.0f;
 	for (auto b : node->get_branches())
 		accept_cond(b);
-	if (probabilisticWeightAcc != 1.0f) {
+	if (fabs(probabilisticWeightAcc-1.0f) > __FLT_EPSILON__) {
 		put_error("The probabilistic weights in the branches of a transition "
-		          "with label '" + node->get_label() + "' don't add up to 1");
+		          "with label '" + node->get_label() + "' add up to " +
+		          to_string(probabilisticWeightAcc) + " (and not to 1.0!)");
 		return;
 	}
 }

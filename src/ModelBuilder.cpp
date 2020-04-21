@@ -17,6 +17,7 @@
 #include <PropertyTBoundSS.h>
 #include <ModelBuilder.h>
 #include <ExpEvaluator.h>
+#include <ExpStateEvaluator.h>
 #include <ModelPrinter.h>
 #include <ModuleInstance.h>
 #include <Transition.h>
@@ -285,6 +286,8 @@ void ModelBuilder::visit(shared_ptr<ModuleAST> body) {
 	module_transitions = make_unique<vector<fig::Transition>>();
 	module_vars = make_unique<vector<Var>>();
 	module_arrays = make_unique<vector<Array>>();
+//	std::cerr << "\n\nBuilding module " << unique_id() << "\n\n";  /// @todo TODO erase dbg
+//	fig::ExpTranslatorVisitor::locationsPrefix = unique_id();
 	for (auto &decl : body->get_local_decls())
         accept_cond(decl);
     if (!has_errors()) {
@@ -296,14 +299,15 @@ void ModelBuilder::visit(shared_ptr<ModuleAST> body) {
         current_module = make_shared<ModuleInstance>
                 (current_scope->get_module_name(), state, clocks);
     }
-    //Note: Transitions can't be copied, we need to add them directly to
-    // the current_module instead of accumulate them in a vector
+	// Transitions can't be copied: we add them directly to the
+	// current_module instead of accumulating them in a vector
 	for (auto &transition : body->get_transitions())
         accept_cond(transition);
 	if (body->has_committed_actions())  // hint that this module has urgent actions
         current_module->mark_with_committed();
 	if (!has_errors())
         model_suite.add_module(current_module);
+//	fig::ExpTranslatorVisitor::locationsPrefix = "";
 }
 
 fig::Clock ModelBuilder::build_clock(const std::string& id) {
@@ -334,29 +338,38 @@ fig::Clock ModelBuilder::build_clock(const std::string& id) {
 	} else {
 		throw_FigException("unknown distribution type (how many parameters?)");
 	}
+//	std::cerr << "Building clock " << unique_id(id) << "\n";  /// @todo TODO erase dbg
 	// TODO: make ctor take the Distribution object directly, not its name.
-	return fig::Clock(id, distrName, params);
+	return fig::Clock(unique_id(id), distrName, params);
+}
+
+std::string ModelBuilder::unique_id(const string& id) const noexcept {
+	if (nullptr == current_scope)
+		return id;
+	else
+		//return current_scope->get_module_name()+"."+id;
+		return id;  /// @todo TODO ^^^ module-unique names: the hard part is changing locations names in Expressions, interpreted by Exprtk while building Pre/Postconditions
 }
 
 void ModelBuilder::visit(shared_ptr<ArrayDecl> decl) {
-    assert(current_scope != nullptr);
-    const std::string& arrayId = decl->get_id();
-    ArrayData data = decl->get_data();
-    int size = data.data_size;
-    int lower = data.data_min;
-    int upper = data.data_max;
-    if(has_errors()) {
-        return;
-    }
-    assert(size > 0);
-    std::vector<Var> entries;
+	assert(current_scope != nullptr);
+	const std::string uniqueID(unique_id(decl->get_id()));
+//	const std::string& arrayId = decl->get_id();
+	ArrayData data = decl->get_data();
+	int size = data.data_size;
+	int lower = data.data_min;
+	int upper = data.data_max;
+	if(has_errors())
+		return;
+	assert(size > 0);
+	std::vector<Var> entries;
 	entries.reserve(static_cast<size_t>(size));
 	for (auto i = 0ul; i < static_cast<size_t>(size); i++) {
-        std::string name = arrayId + "[" + std::to_string(i) + "]";
-        int initValue = data.data_inits[i];
-        entries.push_back(std::make_tuple(name, lower, upper, initValue));
-    }
-    module_arrays->push_back(std::make_pair(arrayId, entries));
+		std::string name = uniqueID + "[" + std::to_string(i) + "]";
+		int initValue = data.data_inits[i];
+		entries.push_back(std::make_tuple(name, lower, upper, initValue));
+	}
+	module_arrays->push_back(std::make_pair(uniqueID, entries));
 }
 
 void ModelBuilder::visit(shared_ptr<RangedDecl> decl) {
@@ -367,24 +380,24 @@ void ModelBuilder::visit(shared_ptr<RangedDecl> decl) {
                                  mb_error_range_2(decl->get_id()));
     int value = get_int_or_error(decl->get_init(), decl->get_id());
     if (!has_errors()) {
-        const auto &var = make_tuple(decl->get_id(), lower, upper, value);
+//		std::cerr << "Building variable " << unique_id(decl->get_id()) << "\n";  /// @todo TODO erase dbg
+		const auto &var = make_tuple(unique_id(decl->get_id()), lower, upper, value);
         assert(module_vars != nullptr);
         module_vars->push_back(var);
     }
 }
 
 void ModelBuilder::visit(shared_ptr<InitializedDecl> decl) {
-    if (decl->is_constant()) {
-        //constans where already reduced. ignore them.
-        return;
-    }
+	if (decl->is_constant())
+		return;  // constans where already reduced. ignore them.
     int lower = 0;
     int upper = 0;
     int value = 0;
     Type type = decl->get_type();
     shared_ptr<Exp> initexp = decl->get_init();
-    if (type == Type::tint) {
-        value = get_int_or_error(initexp, mb_error_init(decl->get_id(), type));
+	const auto uniqueID(unique_id(decl->get_id()));
+	if (type == Type::tint) {
+		value = get_int_or_error(initexp, mb_error_init(uniqueID, type));
         //kind of a constant.
         // q : int init 0;
         lower = value;
@@ -392,33 +405,35 @@ void ModelBuilder::visit(shared_ptr<InitializedDecl> decl) {
     } else if (type == Type::tbool) {
         lower = 0;
         upper = 1;
-        bool res =
-                get_bool_or_error(initexp, mb_error_init(decl->get_id(), type));
+		bool res = get_bool_or_error(initexp, mb_error_init(uniqueID, type));
         value = res ? 1 : 0;
     } else if (type == Type::tfloat) {
-        throw_FigException("Declaration of float"
-                           " unsupported: \"" + decl->get_id() + "\"");
+		throw_FigException("Declaration of float"
+		                   " unsupported: \"" + uniqueID + "\"");
     }
     if (!has_errors()) {
-        const auto &var = make_tuple(decl->get_id(), lower, upper, value);
+//		std::cerr << "Building initialised variable " << uniqueID << "\n";  /// @todo TODO erase dbg
+		const auto &var = make_tuple(uniqueID, lower, upper, value);
         assert(module_vars != nullptr);
         module_vars->push_back(var);
     }
 }
 
 void ModelBuilder::visit(shared_ptr<ClockDecl> decl) {
-    module_clocks->push_back(build_clock(decl->get_id()));
+//	const auto uniqueID(current_scope->get_module_name()+decl->get_id());
+	// NOTE: the current_module name is prepended to the clock's in build_clock
+	module_clocks->push_back(build_clock(decl->get_id()));
 }
 
 Label build_label(string&& id, LabelType type) {
     switch(type) {
     case LabelType::in : return Label::make_input(id);
     case LabelType::out: return Label::make_output(id);
-    case LabelType::out_committed: return Label::make_out_committed(id);
-    case LabelType::in_committed: return Label::make_in_committed(id);
-    case LabelType::tau: return Label::make_tau();
-    }
-	return Label::make_tau();
+	case LabelType::tau: return Label::make_tau();
+	case LabelType::in_committed : return Label::make_in_committed(id);
+	case LabelType::out_committed: return Label::make_out_committed(id);
+	}
+	throw_FigException("Unknown type for label "+id);
 }
 
 void ModelBuilder::visit(shared_ptr<TransitionAST> tra) {
@@ -427,7 +442,7 @@ void ModelBuilder::visit(shared_ptr<TransitionAST> tra) {
 	// Transition constructor expects the id of the triggering clock
 	string trigClkName("");
 	if (tra->has_triggering_clock())
-		trigClkName = tra->to_output()->get_triggering_clock()->get_identifier();
+		trigClkName = unique_id(tra->to_output()->get_triggering_clock()->get_identifier());
 	// Populate this transition fields by visiting all probabilistic branches
 	assert(0ul < tra->get_num_branches());
 	decltype(branches_probabilities)().swap(branches_probabilities);
@@ -438,6 +453,7 @@ void ModelBuilder::visit(shared_ptr<TransitionAST> tra) {
 	assert(branches_probabilities.size() == tra->get_num_branches());
 	assert(branches_assignments.size() == tra->get_num_branches());
 	assert(branches_reset_clocks.size() == tra->get_num_branches());
+//	std::cerr << "Building trans. for trigClk " << trigClkName << "\n";  /// @todo TODO erase dbg
 	// Build transition with gathered data
 	current_module->add_transition(label,
 	                               trigClkName,
@@ -464,7 +480,9 @@ void ModelBuilder::visit(shared_ptr<PBranch> pbranch) {
 }
 
 void ModelBuilder::visit(shared_ptr<ClockReset> reset) {
-	branches_reset_clocks.back().insert(reset->get_effect_location()->get_identifier());
+//	std::cerr << "Building reset clk " << unique_id(reset->get_effect_location()->get_identifier()) << "\n";  /// @todo TODO erase dbg
+	branches_reset_clocks.back().insert(
+	            unique_id(reset->get_effect_location()->get_identifier()));
 }
 
 void ModelBuilder::visit(shared_ptr<Assignment> assignment) {

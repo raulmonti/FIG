@@ -67,7 +67,7 @@ protected:
     triggered_map triggered_transitions;
 
 public:
-    virtual string get_module_name() {
+	virtual const string& get_module_name() const {
         return (id);
     }
 
@@ -203,7 +203,7 @@ public:
 		triggered_transitions.clear();
 	}
 
-    string get_module_name() override {
+	virtual const string& get_module_name() const override {
         throw_FigException("Not implemented");
     }
 

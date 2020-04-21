@@ -384,8 +384,10 @@ Transition::Transition(
 	for (auto i = 0ul ; i < probs.size() ; i++)
 		probabilities[i] = probabilities[(i-1)%probs.size()] + probs[i];
 	// The probabilistic weigths of the branches must add up to 1.0
-	if (probabilities.back() != 1.0f)
-		throw_FigException("branch probabilities don't add up to 1.0");
+	if (std::fabs(probabilities.back()-1.0f) > __FLT_EPSILON__)
+		throw_FigException("branch probabilities add up to " +
+		                   std::to_string(probabilities.back()) +
+		                   " (and not to 1.0!)");
 }
 
 
@@ -428,8 +430,10 @@ Transition::Transition(
 	for (auto i = 0ul ; i < probs.size() ; i++)
 		probabilities[i] = probabilities[(i-1)%probs.size()] + probs[i];
 	// The probabilistic weigths of the branches must add up to 1.0
-	if (probabilities.back() != 1.0f)
-		throw_FigException("branch probabilities don't add up to 1.0");
+	if (std::fabs(probabilities.back()-1.0f) > __FLT_EPSILON__)
+		throw_FigException("branch probabilities add up to " +
+		                   std::to_string(probabilities.back()) +
+		                   " (and not to 1.0!)");
 }
 
 

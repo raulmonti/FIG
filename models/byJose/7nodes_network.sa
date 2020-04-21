@@ -41,14 +41,14 @@
 // Values taken from "RESTART vs. Splitting: A comparative study,"
 // Jose Villen-Altamirano, Performance Evaluation 121-122 (2018) 38-47
 
-const int L = 30;    // Queue limiting capacity
-const int c = L+99;  // Queues real capacity (mimic infinite size)
+const int L = 8;//30;   // Queue limiting capacity
+const int C = 2*L;  // Queues real capacity (mimic infinite size)
 const float l_a = 4.5;
 const float l_b = 5.73;
 const float l_c = 5.55;
 const int mu_a =  9;
 const int mu_b = 14;
-const int mu_c = 17;
+const int mu_c = 1; //17;
 const float l1 = l_a;    // overall arrival rate at node n1
 const float l2 = l_a;    // overall arrival rate at node n2
 const float l3 = l_a;    // overall arrival rate at node n3
@@ -142,111 +142,349 @@ const float p7_0 = 0.2;
 
 
 module Node1
-	n1:      [0..c];
-	dest:    [0..7];
-	choose:    bool init false;
-	arrival:   bool init false;
-	departure: bool init false;
-	clk_arr: clock;  // extern arrival ~ exponential(1.0)
-	clk_ser: clock;  // packet service ~ exponential(mu1)
+	n1:    [0..C];
+	dest1: [0..7];  // 0=out   i=Nodei for i>0
+	todo1: [0..3];  // 0=idle  1=arrival  2=choose  3=departure
+	c_arr1: clock;  // extern arrival ~ exponential(1.0)
+	c_ser1: clock;  // packet service ~ exponential(mu1)
 	//
 	// Packet arrival, from the exterior or from another node
-	[] @ clk_arr -> (arrival'=true);
-//	[n1_n1?]     -> (arrival'=true);  // self-loop
-	[n2_n1?]     -> (arrival'=true);
-	[n3_n1?]     -> (arrival'=true);
-	[n4_n1?]     -> (arrival'=true);
-	[n5_n1?]     -> (arrival'=true);
-	[n6_n1?]     -> (arrival'=true);
-	[n7_n1?]     -> (arrival'=true);
-	[arr1!!] arrival & n1 == 0     -> (n1'= n1+1) & (choose'=true)
-	                                & (clk_arr'= exponential(1.0))
-	                                & (clk_ser'= exponential(mu1))
-	                                & (arrival'=false);
-	[arr1!!] arrival & n1>0 & n1<c -> (n1'= n1+1)
-	                                & (clk_arr'= exponential(1.0))
-	                                & (arrival'=false);
-	[arr1!!] arrival & n1 == c     -> (clk_arr'= exponential(1.0))
-	                                & (arrival'=false);
-	// Choose next packet destination
-	[choose1!!] choose -> p1_0 : (dest'=0) & (choose'=false)
-	                    + p1_1 : (dest'=1) & (choose'=false)
-	                    + p1_2 : (dest'=2) & (choose'=false)
-	                    + p1_3 : (dest'=3) & (choose'=false)
-	                    + p1_4 : (dest'=4) & (choose'=false)
-	                    + p1_5 : (dest'=5) & (choose'=false)
-	                    + p1_6 : (dest'=6) & (choose'=false)
-	                    + p1_7 : (dest'=7) & (choose'=false);
+	[] @ c_arr1 -> (todo1'=1) & (c_arr1'= exponential(1.0));
+//	[n1_n1?]    -> (todo1'=1);  // self-loop
+	[n2_n1?]    -> (todo1'=1);
+	[n3_n1?]    -> (todo1'=1);
+	[n4_n1?]    -> (todo1'=1);
+	[n5_n1?]    -> (todo1'=1);
+	[n6_n1?]    -> (todo1'=1);
+	[n7_n1?]    -> (todo1'=1);
+	[arr1!!] todo1==1 & n1 == 0     -> (todo1'=2)
+	                                 & (n1'= n1+1)
+	                                 & (c_ser1'= exponential(mu1));
+	[arr1!!] todo1==1 & n1>0 & n1<C -> (todo1'=0)
+	                                 & (n1'= n1+1);
+	[arr1!!] todo1==1 & n1 == C     -> (todo1'=0);
+	// Choose next packet dest1ination
+	[choose1!!] todo1==2 -> p1_0 : (dest1'=0) & (todo1'=0)
+	                      + p1_1 : (dest1'=1) & (todo1'=0)
+	                      + p1_2 : (dest1'=2) & (todo1'=0)
+	                      + p1_3 : (dest1'=3) & (todo1'=0)
+	                      + p1_4 : (dest1'=4) & (todo1'=0)
+	                      + p1_5 : (dest1'=5) & (todo1'=0)
+	                      + p1_6 : (dest1'=6) & (todo1'=0)
+	                      + p1_7 : (dest1'=7) & (todo1'=0);
 	// Packet service
-	[      ] dest==0 @ clk_ser -> (departure'=true);
-	[n1_n1!] dest==1 @ clk_ser -> (clk_ser'= exponential(mu1));  // self
-	[n1_n2!] dest==2 @ clk_ser -> (departure'=true);
-	[n1_n3!] dest==3 @ clk_ser -> (departure'=true);
-	[n1_n4!] dest==4 @ clk_ser -> (departure'=true);
-	[n1_n5!] dest==5 @ clk_ser -> (departure'=true);
-	[n1_n6!] dest==6 @ clk_ser -> (departure'=true);
-	[n1_n7!] dest==7 @ clk_ser -> (departure'=true);
-	[n1_dep!!] departure & n1 == 1 -> (n1'= n1-1)
-	                                & (departure'=false);
-	[n1_dep!!] departure & n1  > 1 -> (n1'= n1-1)
-	                                & (departure'=false)
-	                                & (clk_ser'= exponential(mu1));
+	[n1_  !] n1>0 & dest1==0 @ c_ser1 -> (todo1'=3);
+	[n1_n1!] n1>0 & dest1==1 @ c_ser1 -> (todo1'=2)  // self-loop
+	                                   & (c_ser1'= exponential(mu1)); 
+	[n1_n2!] n1>0 & dest1==2 @ c_ser1 -> (todo1'=3);
+	[n1_n3!] n1>0 & dest1==3 @ c_ser1 -> (todo1'=3);
+	[n1_n4!] n1>0 & dest1==4 @ c_ser1 -> (todo1'=3);
+	[n1_n5!] n1>0 & dest1==5 @ c_ser1 -> (todo1'=3);
+	[n1_n6!] n1>0 & dest1==6 @ c_ser1 -> (todo1'=3);
+	[n1_n7!] n1>0 & dest1==7 @ c_ser1 -> (todo1'=3);
+	[dep1!!] todo1==3 & n1 == 1 -> (n1'= 0)
+	                             & (todo1'=0);
+	[dep1!!] todo1==3 & n1  > 1 -> (n1'= n1-1)
+	                             & (todo1'=2)
+	                             & (c_ser1'= exponential(mu1));
 endmodule
+
 
 module Node2
-	n2:      [0..c];
-	dest:    [0..7];
-	choose:    bool init false;
-	arrival:   bool init false;
-	departure: bool init false;
-	clk_arr: clock;  // extern arrival ~ exponential(1.0)
-	clk_ser: clock;  // packet service ~ exponential(mu2)
+	n2:    [0..C];
+	dest2: [0..7];  // 0=out   i=Nodei for i>0
+	todo2: [0..3];  // 0=idle  1=arrival  2=choose  3=departure
+	c_arr2: clock;  // extern arrival ~ exponential(1.0)
+	c_ser2: clock;  // packet service ~ exponential(mu1)
 	//
 	// Packet arrival, from the exterior or from another node
-	[] @ clk_arr -> (arrival'=true);
-	[n1_n2?]     -> (arrival'=true);
-//	[n2_n2?]     -> (arrival'=true);  // self-loop
-	[n3_n2?]     -> (arrival'=true);
-	[n4_n2?]     -> (arrival'=true);
-	[n5_n2?]     -> (arrival'=true);
-	[n6_n2?]     -> (arrival'=true);
-	[n7_n2?]     -> (arrival'=true);
-	[arr2!!] arrival & n2 == 0     -> (n2'= n2+1) & (choose'=true)
-	                                & (clk_arr'= exponential(1.0))
-	                                & (clk_ser'= exponential(mu2))
-	                                & (arrival'=false);
-	[arr2!!] arrival & n2>0 & n2<c -> (n2'= n2+1)
-	                                & (clk_arr'= exponential(1.0))
-	                                & (arrival'=false);
-	[arr2!!] arrival & n2 == c     -> (clk_arr'= exponential(1.0))
-	                                & (arrival'=false);
-	// Choose next packet destination
-	[choose2!!] choose -> p2_0 : (dest'=0) & (choose'=false)
-	                    + p2_1 : (dest'=1) & (choose'=false)
-	                    + p2_2 : (dest'=2) & (choose'=false)
-	                    + p2_3 : (dest'=3) & (choose'=false)
-	                    + p2_4 : (dest'=4) & (choose'=false)
-	                    + p2_5 : (dest'=5) & (choose'=false)
-	                    + p2_6 : (dest'=6) & (choose'=false)
-	                    + p2_7 : (dest'=7) & (choose'=false);
+	[] @ c_arr2 -> (todo2'=1) & (c_arr2'= exponential(1.0));
+	[n1_n2?]    -> (todo2'=1);
+//	[n2_n2?]    -> (todo2'=1);  // self-loop
+	[n3_n2?]    -> (todo2'=1);
+	[n4_n2?]    -> (todo2'=1);
+	[n5_n2?]    -> (todo2'=1);
+	[n6_n2?]    -> (todo2'=1);
+	[n7_n2?]    -> (todo2'=1);
+	[arr2!!] todo2==1 & n2 == 0     -> (todo2'=2)
+	                                 & (n2'= n2+1)
+	                                 & (c_ser2'= exponential(mu2));
+	[arr2!!] todo2==1 & n2>0 & n2<C -> (todo2'=0)
+	                                 & (n2'= n2+1);
+	[arr2!!] todo2==1 & n2 == C     -> (todo2'=0);
+	// Choose next packet dest2ination
+	[choose2!!] todo2==2 -> p2_0 : (dest2'=0) & (todo2'=0)
+	                      + p2_1 : (dest2'=1) & (todo2'=0)
+	                      + p2_2 : (dest2'=2) & (todo2'=0)
+	                      + p2_3 : (dest2'=3) & (todo2'=0)
+	                      + p2_4 : (dest2'=4) & (todo2'=0)
+	                      + p2_5 : (dest2'=5) & (todo2'=0)
+	                      + p2_6 : (dest2'=6) & (todo2'=0)
+	                      + p2_7 : (dest2'=7) & (todo2'=0);
 	// Packet service
-	[      ] dest==0 @ clk_ser -> (departure'=true);
-	[n2_n1!] dest==1 @ clk_ser -> (departure'=true);
-	[n2_n2!] dest==2 @ clk_ser -> (clk_ser'= exponential(mu2));  // self
-	[n2_n3!] dest==3 @ clk_ser -> (departure'=true);
-	[n2_n4!] dest==4 @ clk_ser -> (departure'=true);
-	[n2_n5!] dest==5 @ clk_ser -> (departure'=true);
-	[n2_n6!] dest==6 @ clk_ser -> (departure'=true);
-	[n2_n7!] dest==7 @ clk_ser -> (departure'=true);
-	[n2_dep!!] departure & n2 == 1 -> (n2'= n2-1)
-	                                & (departure'=false);
-	[n2_dep!!] departure & n2  > 1 -> (n2'= n2-1)
-	                                & (departure'=false)
-	                                & (clk_ser'= exponential(mu2));
+	[n2_  !] n2>0 & dest2==0 @ c_ser2 -> (todo2'=3);
+	[n2_n1!] n2>0 & dest2==1 @ c_ser2 -> (todo2'=3);
+	[n2_n2!] n2>0 & dest2==2 @ c_ser2 -> (todo2'=2)  // self-loop
+	                                   & (c_ser2'= exponential(mu2)); 
+	[n2_n3!] n2>0 & dest2==3 @ c_ser2 -> (todo2'=3);
+	[n2_n4!] n2>0 & dest2==4 @ c_ser2 -> (todo2'=3);
+	[n2_n5!] n2>0 & dest2==5 @ c_ser2 -> (todo2'=3);
+	[n2_n6!] n2>0 & dest2==6 @ c_ser2 -> (todo2'=3);
+	[n2_n7!] n2>0 & dest2==7 @ c_ser2 -> (todo2'=3);
+	[dep2!!] todo2==3 & n2 == 1 -> (n2'= 0)
+	                             & (todo2'=0);
+	[dep2!!] todo2==3 & n2  > 1 -> (n2'= n2-1)
+	                             & (todo2'=2)
+	                             & (c_ser2'= exponential(mu2));
 endmodule
 
+
+module Node3
+	n3:    [0..C];
+	dest3: [0..7];  // 0=out   i=Nodei for i>0
+	todo3: [0..3];  // 0=idle  1=arrival  2=choose  3=departure
+	c_arr3: clock;  // extern arrival ~ exponential(1.0)
+	c_ser3: clock;  // packet service ~ exponential(mu1)
+	//
+	// Packet arrival, from the exterior or from another node
+	[] @ c_arr3 -> (todo3'=1) & (c_arr3'= exponential(1.0));
+	[n1_n3?]    -> (todo3'=1);
+	[n2_n3?]    -> (todo3'=1);
+//	[n3_n3?]    -> (todo3'=1);  // self-loop
+	[n4_n3?]    -> (todo3'=1);
+	[n5_n3?]    -> (todo3'=1);
+	[n6_n3?]    -> (todo3'=1);
+	[n7_n3?]    -> (todo3'=1);
+	[arr3!!] todo3==1 & n3 == 0     -> (todo3'=2)
+	                                 & (n3'= n3+1)
+	                                 & (c_ser3'= exponential(mu3));
+	[arr3!!] todo3==1 & n3>0 & n3<C -> (todo3'=0)
+	                                 & (n3'= n3+1);
+	[arr3!!] todo3==1 & n3 == C     -> (todo3'=0);
+	// Choose next packet dest3ination
+	[choose3!!] todo3==2 -> p3_0 : (dest3'=0) & (todo3'=0)
+	                      + p3_1 : (dest3'=1) & (todo3'=0)
+	                      + p3_2 : (dest3'=2) & (todo3'=0)
+	                      + p3_3 : (dest3'=3) & (todo3'=0)
+	                      + p3_4 : (dest3'=4) & (todo3'=0)
+	                      + p3_5 : (dest3'=5) & (todo3'=0)
+	                      + p3_6 : (dest3'=6) & (todo3'=0)
+	                      + p3_7 : (dest3'=7) & (todo3'=0);
+	// Packet service
+	[n3_  !] n3>0 & dest3==0 @ c_ser3 -> (todo3'=3);
+	[n3_n1!] n3>0 & dest3==1 @ c_ser3 -> (todo3'=3);
+	[n3_n2!] n3>0 & dest3==2 @ c_ser3 -> (todo3'=3);
+	[n3_n3!] n3>0 & dest3==3 @ c_ser3 -> (todo3'=2)  // self-loop
+	                                   & (c_ser3'= exponential(mu3)); 
+	[n3_n4!] n3>0 & dest3==4 @ c_ser3 -> (todo3'=3);
+	[n3_n5!] n3>0 & dest3==5 @ c_ser3 -> (todo3'=3);
+	[n3_n6!] n3>0 & dest3==6 @ c_ser3 -> (todo3'=3);
+	[n3_n7!] n3>0 & dest3==7 @ c_ser3 -> (todo3'=3);
+	[dep3!!] todo3==3 & n3 == 1 -> (n3'= 0)
+	                             & (todo3'=0);
+	[dep3!!] todo3==3 & n3  > 1 -> (n3'= n3-1)
+	                             & (todo3'=2)
+	                             & (c_ser3'= exponential(mu3));
+endmodule
+
+
+module Node4
+	n4:    [0..C];
+	dest4: [0..7];  // 0=out   i=Nodei for i>0
+	todo4: [0..3];  // 0=idle  1=arrival  2=choose  3=departure
+	c_arr4: clock;  // extern arrival ~ exponential(1.0)
+	c_ser4: clock;  // packet service ~ exponential(mu1)
+	//
+	// Packet arrival, from the exterior or from another node
+	[] @ c_arr4 -> (todo4'=1) & (c_arr4'= exponential(1.0));
+	[n1_n4?]    -> (todo4'=1);
+	[n2_n4?]    -> (todo4'=1);
+	[n3_n4?]    -> (todo4'=1);
+//	[n4_n4?]    -> (todo4'=1);  // self-loop
+	[n5_n4?]    -> (todo4'=1);
+	[n6_n4?]    -> (todo4'=1);
+	[n7_n4?]    -> (todo4'=1);
+	[arr4!!] todo4==1 & n4 == 0     -> (todo4'=2)
+	                                 & (n4'= n4+1)
+	                                 & (c_ser4'= exponential(mu4));
+	[arr4!!] todo4==1 & n4>0 & n4<C -> (todo4'=0)
+	                                 & (n4'= n4+1);
+	[arr4!!] todo4==1 & n4 == C     -> (todo4'=0);
+	// Choose next packet destination
+	[choose4!!] todo4==2 -> p4_0 : (dest4'=0) & (todo4'=0)
+	                      + p4_1 : (dest4'=1) & (todo4'=0)
+	                      + p4_2 : (dest4'=2) & (todo4'=0)
+	                      + p4_3 : (dest4'=3) & (todo4'=0)
+	                      + p4_4 : (dest4'=4) & (todo4'=0)
+	                      + p4_5 : (dest4'=5) & (todo4'=0)
+	                      + p4_6 : (dest4'=6) & (todo4'=0)
+	                      + p4_7 : (dest4'=7) & (todo4'=0);
+	// Packet service
+	[n4_  !] n4>0 & dest4==0 @ c_ser4 -> (todo4'=3);
+	[n4_n1!] n4>0 & dest4==1 @ c_ser4 -> (todo4'=3);
+	[n4_n2!] n4>0 & dest4==2 @ c_ser4 -> (todo4'=3);
+	[n4_n3!] n4>0 & dest4==3 @ c_ser4 -> (todo4'=3);
+	[n4_n4!] n4>0 & dest4==4 @ c_ser4 -> (todo4'=2)  // self-loop
+	                                   & (c_ser4'= exponential(mu4)); 
+	[n4_n5!] n4>0 & dest4==5 @ c_ser4 -> (todo4'=3);
+	[n4_n6!] n4>0 & dest4==6 @ c_ser4 -> (todo4'=3);
+	[n4_n7!] n4>0 & dest4==7 @ c_ser4 -> (todo4'=3);
+	[dep4!!] todo4==3 & n4 == 1 -> (n4'= 0)
+	                             & (todo4'=0);
+	[dep4!!] todo4==3 & n4  > 1 -> (n4'= n4-1)
+	                             & (todo4'=2)
+	                             & (c_ser4'= exponential(mu4));
+endmodule
+
+
+module Node5
+	n5:    [0..C];
+	dest5: [0..7];  // 0=out   i=Nodei for i>0
+	todo5: [0..3];  // 0=idle  1=arrival  2=choose  3=departure
+	c_arr5: clock;  // extern arrival ~ exponential(1.0)
+	c_ser5: clock;  // packet service ~ exponential(mu1)
+	//
+	// Packet arrival, from the exterior or from another node
+	[] @ c_arr5 -> (todo5'=1) & (c_arr5'= exponential(1.0));
+	[n1_n5?]    -> (todo5'=1);
+	[n2_n5?]    -> (todo5'=1);
+	[n3_n5?]    -> (todo5'=1);
+	[n4_n5?]    -> (todo5'=1);
+//	[n5_n5?]    -> (todo5'=1);  // self-loop
+	[n6_n5?]    -> (todo5'=1);
+	[n7_n5?]    -> (todo5'=1);
+	[arr5!!] todo5==1 & n5 == 0     -> (todo5'=2)
+	                                 & (n5'= n5+1)
+	                                 & (c_ser5'= exponential(mu5));
+	[arr5!!] todo5==1 & n5>0 & n5<C -> (todo5'=0)
+	                                 & (n5'= n5+1);
+	[arr5!!] todo5==1 & n5 == C     -> (todo5'=0);
+	// Choose next packet destination
+	[choose5!!] todo5==2 -> p5_0 : (dest5'=0) & (todo5'=0)
+	                      + p5_1 : (dest5'=1) & (todo5'=0)
+	                      + p5_2 : (dest5'=2) & (todo5'=0)
+	                      + p5_3 : (dest5'=3) & (todo5'=0)
+	                      + p5_4 : (dest5'=4) & (todo5'=0)
+	                      + p5_5 : (dest5'=5) & (todo5'=0)
+	                      + p5_6 : (dest5'=6) & (todo5'=0)
+	                      + p5_7 : (dest5'=7) & (todo5'=0);
+	// Packet service
+	[n5_  !] n5>0 & dest5==0 @ c_ser5 -> (todo5'=3);
+	[n5_n1!] n5>0 & dest5==1 @ c_ser5 -> (todo5'=3);
+	[n5_n2!] n5>0 & dest5==2 @ c_ser5 -> (todo5'=3);
+	[n5_n3!] n5>0 & dest5==3 @ c_ser5 -> (todo5'=3);
+	[n5_n4!] n5>0 & dest5==4 @ c_ser5 -> (todo5'=3);
+	[n5_n5!] n5>0 & dest5==5 @ c_ser5 -> (todo5'=2)  // self-loop
+	                                   & (c_ser5'= exponential(mu5)); 
+	[n5_n6!] n5>0 & dest5==6 @ c_ser5 -> (todo5'=3);
+	[n5_n7!] n5>0 & dest5==7 @ c_ser5 -> (todo5'=3);
+	[dep5!!] todo5==3 & n5 == 1 -> (n5'= 0)
+	                             & (todo5'=0);
+	[dep5!!] todo5==3 & n5  > 1 -> (n5'= n5-1)
+	                             & (todo5'=2)
+	                             & (c_ser5'= exponential(mu5));
+endmodule
+
+
+module Node6
+	n6:    [0..C];
+	dest6: [0..7];  // 0=out   i=Nodei for i>0
+	todo6: [0..3];  // 0=idle  1=arrival  2=choose  3=departure
+	c_arr6: clock;  // extern arrival ~ exponential(1.0)
+	c_ser6: clock;  // packet service ~ exponential(mu1)
+	//
+	// Packet arrival, from the exterior or from another node
+	[] @ c_arr6 -> (todo6'=1) & (c_arr6'= exponential(1.0));
+	[n1_n6?]    -> (todo6'=1);
+	[n2_n6?]    -> (todo6'=1);
+	[n3_n6?]    -> (todo6'=1);
+	[n4_n6?]    -> (todo6'=1);
+	[n5_n6?]    -> (todo6'=1);
+//	[n6_n6?]    -> (todo6'=1);  // self-loop
+	[n7_n6?]    -> (todo6'=1);
+	[arr6!!] todo6==1 & n6 == 0     -> (todo6'=2)
+	                                 & (n6'= n6+1)
+	                                 & (c_ser6'= exponential(mu6));
+	[arr6!!] todo6==1 & n6>0 & n6<C -> (todo6'=0)
+	                                 & (n6'= n6+1);
+	[arr6!!] todo6==1 & n6 == C     -> (todo6'=0);
+	// Choose next packet destination
+	[choose6!!] todo6==2 -> p6_0 : (dest6'=0) & (todo6'=0)
+	                      + p6_1 : (dest6'=1) & (todo6'=0)
+	                      + p6_2 : (dest6'=2) & (todo6'=0)
+	                      + p6_3 : (dest6'=3) & (todo6'=0)
+	                      + p6_4 : (dest6'=4) & (todo6'=0)
+	                      + p6_5 : (dest6'=5) & (todo6'=0)
+	                      + p6_6 : (dest6'=6) & (todo6'=0)
+	                      + p6_7 : (dest6'=7) & (todo6'=0);
+	// Packet service
+	[n6_  !] n6>0 & dest6==0 @ c_ser6 -> (todo6'=3);
+	[n6_n1!] n6>0 & dest6==1 @ c_ser6 -> (todo6'=3);
+	[n6_n2!] n6>0 & dest6==2 @ c_ser6 -> (todo6'=3);
+	[n6_n3!] n6>0 & dest6==3 @ c_ser6 -> (todo6'=3);
+	[n6_n4!] n6>0 & dest6==4 @ c_ser6 -> (todo6'=3);
+	[n6_n5!] n6>0 & dest6==5 @ c_ser6 -> (todo6'=3);
+	[n6_n6!] n6>0 & dest6==6 @ c_ser6 -> (todo6'=2)  // self-loop
+	                                   & (c_ser6'= exponential(mu6)); 
+	[n6_n7!] n6>0 & dest6==7 @ c_ser6 -> (todo6'=3);
+	[dep6!!] todo6==3 & n6 == 1 -> (n6'= 0)
+	                             & (todo6'=0);
+	[dep6!!] todo6==3 & n6  > 1 -> (n6'= n6-1)
+	                             & (todo6'=2)
+	                             & (c_ser6'= exponential(mu6));
+endmodule
+
+
+module Node7
+	n7:    [0..C];
+	dest7: [0..7];  // 0=out   i=Nodei for i>0
+	todo7: [0..3];  // 0=idle  1=arrival  2=choose  3=departure
+	c_arr7: clock;  // extern arrival ~ exponential(1.0)
+	c_ser7: clock;  // packet service ~ exponential(mu1)
+	//
+	// Packet arrival, from the exterior or from another node
+	[] @ c_arr7 -> (todo7'=1) & (c_arr7'= exponential(1.0));
+	[n1_n7?]    -> (todo7'=1);
+	[n2_n7?]    -> (todo7'=1);
+	[n3_n7?]    -> (todo7'=1);
+	[n4_n7?]    -> (todo7'=1);
+	[n5_n7?]    -> (todo7'=1);
+	[n6_n7?]    -> (todo7'=1);
+//	[n7_n7?]    -> (todo7'=1);  // self-loop
+	[arr7!!] todo7==1 & n7 == 0     -> (todo7'=2)
+	                                 & (n7'= n7+1)
+	                                 & (c_ser7'= exponential(mu7));
+	[arr7!!] todo7==1 & n7>0 & n7<C -> (todo7'=0)
+	                                 & (n7'= n7+1);
+	[arr7!!] todo7==1 & n7 == C     -> (todo7'=0);
+	// Choose next packet destination
+	[choose7!!] todo7==2 -> p7_0 : (dest7'=0) & (todo7'=0)
+	                      + p7_1 : (dest7'=1) & (todo7'=0)
+	                      + p7_2 : (dest7'=2) & (todo7'=0)
+	                      + p7_3 : (dest7'=3) & (todo7'=0)
+	                      + p7_4 : (dest7'=4) & (todo7'=0)
+	                      + p7_5 : (dest7'=5) & (todo7'=0)
+	                      + p7_6 : (dest7'=6) & (todo7'=0)
+	                      + p7_7 : (dest7'=7) & (todo7'=0);
+	// Packet service
+	[n7_  !] n7>0 & dest7==0 @ c_ser7 -> (todo7'=3);
+	[n7_n1!] n7>0 & dest7==1 @ c_ser7 -> (todo7'=3);
+	[n7_n2!] n7>0 & dest7==2 @ c_ser7 -> (todo7'=3);
+	[n7_n3!] n7>0 & dest7==3 @ c_ser7 -> (todo7'=3);
+	[n7_n4!] n7>0 & dest7==4 @ c_ser7 -> (todo7'=3);
+	[n7_n5!] n7>0 & dest7==5 @ c_ser7 -> (todo7'=3);
+	[n7_n6!] n7>0 & dest7==6 @ c_ser7 -> (todo7'=3);
+	[n7_n7!] n7>0 & dest7==7 @ c_ser7 -> (todo7'=2)  // self-loop
+	                                   & (c_ser7'= exponential(mu7)); 
+	[dep7!!] todo7==3 & n7 == 1 -> (n7'= 0)
+	                             & (todo7'=0);
+	[dep7!!] todo7==3 & n7  > 1 -> (n7'= n7-1)
+	                             & (todo7'=2)
+	                             & (c_ser7'= exponential(mu7));
+endmodule
 
 
 properties
-  S[ 60:30000 ]( n2 >= L )
+	S[ 60:3000 ]( n7 >= L )
+//	S[ 60:30000 ]( n7 >= L )
 endproperties

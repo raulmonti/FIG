@@ -101,7 +101,10 @@ private:
 	void accept_cond(std::shared_ptr<ModelAST> node);
 
     /// Build a clock with the given id.
-	fig::Clock build_clock(const string &clock_id);
+	fig::Clock build_clock(const string& clock_id);
+
+	/// Build module-local id from given \p id using the current_module name
+	std::string unique_id(const string& id = "") const noexcept;
 
     /// Try to evaluate an expression or put an error message if it
     /// was not possible to reduce it.

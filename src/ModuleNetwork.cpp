@@ -41,6 +41,7 @@
 #include <unordered_set>
 // FIG
 #include <ModuleNetwork.h>
+#include <FigLog.h>
 #include <TraialPool.h>
 #include <Property.h>
 #include <PropertyRate.h>
@@ -52,7 +53,6 @@
 #include <SimulationEngineRestart.h>
 #include <SimulationEngineFixedEffort.h>
 #include <ThresholdsBuilderES.h>
-#include <fig_cli.h>
 
 #if __cplusplus < 201103L
 #  error "C++11 standard required, please compile with -std=c++11\n"

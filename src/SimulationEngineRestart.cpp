@@ -341,6 +341,8 @@ SimulationEngineRestart::tbound_ss_simulation(const PropertyTBoundSS& property) 
 	assert(ssstack_.size() == 1ul);
 	assert(&oTraial_ == &ssstack_.top().get());
 	assert(oTraial_.lifeTime >= transientTime);
+	if (nullptr != fig_cli::traceDump)
+		(*fig_cli::traceDump) << "\n\nEnd of (user-defined) transient phase\n";
 
 	// - and then register (time of) property satisfaction up to finishTime,
 	//   using (a single run of) the RESTART importance splitting algorithm

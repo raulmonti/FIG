@@ -133,11 +133,6 @@ public:  // Traial observers/updaters
 		{
 		    e = property.is_rare(traial.state) ? EventType::RARE
 			                                   : EventType::NONE;
-			/// @todo TODO delete deprecated code below
-//			if (traial.lifeTime > SIM_TIME_CHUNK) {  // reduce fp precision loss
-//				traial.lifeTime -= SIM_TIME_CHUNK;
-//				simsLifetime -= SIM_TIME_CHUNK;
-//			}
 			return interrupted ||
 			(
 			    traial.lifeTime > simsLifetime || IS_RARE_EVENT(e)
@@ -152,11 +147,6 @@ public:  // Traial observers/updaters
 									Event& e) const
 		{
 			e = MASK(cImpFun_->info_of(traial.state));
-			/// @todo TODO delete deprecated code below
-//			if (traial.lifeTime > SIM_TIME_CHUNK) {  // reduce fp precision loss
-//				traial.lifeTime -= SIM_TIME_CHUNK;
-//				simsLifetime -= SIM_TIME_CHUNK;
-//			}
 			return interrupted ||
 			(
 			    traial.lifeTime > simsLifetime || IS_RARE_EVENT(e)

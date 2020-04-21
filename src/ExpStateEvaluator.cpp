@@ -12,6 +12,8 @@ namespace fig {
 
 // Definitions of ExpTranslatorVisitor:
 
+thread_local std::string ExpTranslatorVisitor::locationsPrefix = "";
+
 inline std::string
 ExpTranslatorVisitor::exprtk_name(ExpOp op) {
     switch (op) {
@@ -111,8 +113,9 @@ ExpTranslatorVisitor::visit(shared_ptr<LocExp> node) noexcept {
         loc->to_array_position()->get_index()->accept(*this);
         exprStr = loc->get_identifier() + "[" + exprStr + "]";
     } else {
-        const std::string &id = loc->get_identifier();
-        exprStr = id;
+		const std::string &id = locationsPrefix + loc->get_identifier();
+//		std::cerr << "LocExp: " << id << "" << std::endl;/// @todo TODO erase dbg
+		exprStr = id;
     }
 }
 
@@ -228,32 +231,30 @@ STYPE
 ExpStateEvaluator::eval(const State<STATE_INTERNAL_TYPE> &state) const noexcept {
     expState.project_values(state);
 	assert(exprVec.size() == 1ul);  // TODO erase?
-	return exprVec[0].value();
+	return static_cast<STYPE>(exprVec[0].value());
 }
 
 STYPE
 ExpStateEvaluator::eval(const StateInstance &state) const noexcept {
     expState.project_values(state);
 	assert(exprVec.size() == 1ul);  // TODO erase?
-	return exprVec[0].value();
+	return static_cast<STYPE>(exprVec[0].value());
 }
 
 
 std::vector<STYPE> &
 ExpStateEvaluator::eval_all(const StateInstance& state) const noexcept {
     expState.project_values(state);
-    for (size_t i = 0; i < numExp; i++) {
-        valuation[i] = (STYPE) exprVec[i].value();
-    }
+	for (size_t i = 0; i < numExp; i++)
+		valuation[i] = static_cast<STYPE>(exprVec[i].value());
     return (valuation);
 }
 
 std::vector<STYPE> &
 ExpStateEvaluator::eval_all(const State<STYPE>& state) const noexcept {
     expState.project_values(state);
-    for (size_t i = 0; i < numExp; i++) {
-        valuation[i] = exprVec[i].value();
-    }
+	for (size_t i = 0; i < numExp; i++)
+		valuation[i] = static_cast<STYPE>(exprVec[i].value());
     return (valuation);
 }
 

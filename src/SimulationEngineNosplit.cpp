@@ -132,13 +132,6 @@ SimulationEngineNosplit::rate_simulation(const PropertyRate& property,
 		oTraial_.lifeTime = std::min(oTraial_.lifeTime, simsLifetime);
 		accTime += static_cast<decltype(accTime)>(oTraial_.lifeTime);
 		oTraial_.lifeTime += simLength;
-		/// @todo TODO delete deprecated code below
-//		if (oTraial_.lifeTime > SIM_TIME_CHUNK
-//			&& simsLifetime > SIM_TIME_CHUNK) {
-//			// reduce fp precision loss
-//			oTraial_.lifeTime -= SIM_TIME_CHUNK;
-//			simsLifetime -= SIM_TIME_CHUNK;
-//		}
 	} while (oTraial_.lifeTime < simsLifetime && !interrupted);
 
 	// Allow next iteration of batch means
@@ -184,9 +177,11 @@ SimulationEngineNosplit::tbound_ss_simulation(const PropertyTBoundSS& property) 
 	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(transientTime);
 	model_->simulation_step(oTraial_, property, discard_transient);
 	assert(oTraial_.lifeTime >= transientTime || interrupted);
+	if (nullptr != fig_cli::traceDump)
+		(*fig_cli::traceDump) << "\n\nEnd of (user-defined) transient phase\n";
 
 	// - and then register (time of) property satisfaction up to finishTime
-	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(finishTime-transientTime);
+	simsLifetime = static_cast<CLOCK_INTERNAL_TYPE>(batchTime);
 	do {
 		Event e = model_->simulation_step(oTraial_, property, watch_events);
 		if (!IS_RARE_EVENT(e))

@@ -17,6 +17,8 @@
 typedef exprtk::expression<NTYPE> expression_t;
 typedef exprtk::symbol_table<NTYPE> symbol_table_t;
 
+class ModelBuilder;
+
 namespace fig {
 
 ///@todo template the hell out.
@@ -30,9 +32,19 @@ enum class OpKind {
     FUN //e.g min(4,5)
 };
 
+
 /// @brief Translates an AST expression into a string parseable
 /// by the Exprtk library
-class ExpTranslatorVisitor : public Visitor {
+class ExpTranslatorVisitor : public Visitor
+{
+private:
+	friend class ::ModelBuilder;
+
+	/// Prefix for locations' names, to keep names unique per module
+	/// @note Handled by the ModelBuilder when it builds the modules
+	/// @see ModelBuilder::unique_id()
+	static thread_local std::string locationsPrefix;
+
 private:
     /// The resulting string
     std::string exprStr;

@@ -40,4 +40,11 @@ extern std::ostream& figTechLog;
 
 }
 
+namespace fig_cli
+{
+
+extern std::ostream* traceDump;
+
+}
+
 #endif // FIGLOG_H
