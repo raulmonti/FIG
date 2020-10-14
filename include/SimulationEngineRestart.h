@@ -266,7 +266,7 @@ private:  // Traial observers/updaters
 
 	/// @copydoc SimulationEngine::rate_event()
 	/// @note This function assumes a \ref ImportanceFunctionConcrete
-	///	   "concrete importance function" is currently bound to the engine
+	///	      "concrete importance function" is currently bound to the engine
 	inline bool rate_event_concrete(const Property&,
 									Traial& traial,
 									Event& e) const

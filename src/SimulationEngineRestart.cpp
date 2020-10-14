@@ -155,16 +155,14 @@ SimulationEngineRestart::handle_lvl_up(
 	TraialPool& tpool,
     std::stack< Reference < Traial > >& stack) const
 {
-	typedef decltype(traial.level) tl_type;
-	auto nLvlCross = static_cast<tl_type>(traial.numLevelsCrossed);
+	const decltype(traial.level)& nLvlCross = traial.numLevelsCrossed;
+	const auto previousLvl = traial.level - nLvlCross;
+	unsigned long prevEffort(1ul), currEffort(1ul);
 
 	assert(0 < traial.level);
-	assert(0 < traial.numLevelsCrossed);
-	assert(traial.level >= static_cast<tl_type>(traial.numLevelsCrossed));
+	assert(0 < nLvlCross);
+	assert(traial.level >= nLvlCross);
 	assert(traial.depth < 0);
-
-	const auto previousLvl = traial.level-static_cast<tl_type>(nLvlCross);
-	unsigned long prevEffort(1ul), currEffort(1ul);
 
 	// Could have gone up several thresholds => split accordingly
 	for (auto i = 1ul ; i <= nLvlCross ; i++) {
@@ -385,12 +383,14 @@ SimulationEngineRestart::RESTART_run(const SSProperty& property,
 			assert(property.is_rare(traial.state));
 			assert(impFun_->importance_of(traial.state) > static_cast<ImportanceValue>(0)
 				   || impFun_->strategy() == "adhoc");
+			const auto rareEventLevel = traial.level + (traial.depth > 0 ? traial.depth : 0);
+			// ^^^ count rare-time in Traial's last going-up level
 			currentSimLength_ = traial.lifeTime;  // reduce fp prec. loss
 			traial.lifeTime = 0.0;
 			model_->simulation_step(traial, property, register_time);
 			assert(static_cast<CLOCK_INTERNAL_TYPE>(0.0) < traial.lifeTime);
 			traial.lifeTime = std::min(traial.lifeTime, simsLifetime-currentSimLength_);
-			raresCount[traial.level] += static_cast<double>(traial.lifeTime);
+			raresCount[rareEventLevel] += static_cast<double>(traial.lifeTime);
 			traial.lifeTime += currentSimLength_;
 		}
 
