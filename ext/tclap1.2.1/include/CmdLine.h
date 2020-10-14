@@ -563,7 +563,7 @@ inline void CmdLine::missingArgsException()
 			}
 		}
 		// Check for OR/XOR arguments
-		for (const std::pair<std::vector<Arg*>,bool> pair: _xorHandler.getXorList()) {
+		for (const std::pair<std::vector<Arg*>,bool>& pair: _xorHandler.getXorList()) {
 			bool set(false);
 			for (const Arg* arg: pair.first)
 				set |= arg->isSet();

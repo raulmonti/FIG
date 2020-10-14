@@ -1268,13 +1268,13 @@ JaniTranslator::visit(shared_ptr<FConst> node)
 void
 JaniTranslator::visit(shared_ptr<LocExp> node)
 {
-	const auto name = node->get_exp_location()->get_identifier().c_str();
+	const auto name = node->get_exp_location()->get_identifier();
 	if (JANIfield_->isArray())
-		JANIfield_->append(name);
+		JANIfield_->append(name.c_str());
 	else
-		(*JANIfield_) = name;
+		(*JANIfield_) = name.c_str();
 	if (REGISTER_VARS_NAMES_)
-		varNamesRegister.insert(name);
+		varNamesRegister.insert(name.c_str());
 }
 
 

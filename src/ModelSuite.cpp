@@ -644,8 +644,7 @@ ModelSuite::get_property(const Integral& i) const noexcept
 {
 	static_assert(std::is_integral<Integral>::value,
 	              "ERROR: type mismatch, expected integral propertyIndex");
-	auto iSigned = static_cast<long>(i);
-	assert(0 <= iSigned);
+	assert(0 <= static_cast<long>(i));
 	auto iUnSigned = static_cast<size_t>(i);
 	if (iUnSigned >= num_properties())
 		return nullptr;
@@ -924,8 +923,7 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
 {
 	static_assert(std::is_integral<Integral>::value,
 	              "ERROR: type mismatch, expected integral propertyIndex");
-	auto propertyIndexSigned = static_cast<long>(propertyIndex);
-	assert(0 <= propertyIndexSigned);
+	assert(0 <= static_cast<long>(propertyIndex));
 	auto propertyPtr = get_property(propertyIndex);
 	if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
@@ -1012,8 +1010,7 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 {
 	static_assert(std::is_integral<Integral>::value,
 	              "ERROR: type mismatch, expected integral propertyIndex");
-	auto propertyIndexSigned = static_cast<long>(propertyIndex);
-	assert(0 <= propertyIndexSigned);
+	assert(0 <= static_cast<long>(propertyIndex));
 	auto propertyPtr = get_property(propertyIndex);
 	if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
@@ -1111,8 +1108,7 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 {
 	static_assert(std::is_integral<Integral>::value,
 	              "ERROR: type mismatch, expected integral propertyIndex");
-	auto propertyIndexSigned = static_cast<long>(propertyIndex);
-	assert(0 <= propertyIndexSigned);
+	assert(0 <= static_cast<long>(propertyIndex));
 	auto propertyPtr = get_property(propertyIndex);
     if (nullptr == propertyPtr)
 		throw_FigException("no property at index " + to_string(propertyIndex));
@@ -1240,7 +1236,8 @@ ModelSuite::prepare_simulation_engine(const std::string& engineName,
 		long traialProlongation = 0;
 		if (std::isdigit(engineName.back())) {
 			char* err(nullptr);
-			const auto tpSpec = std::string(&engineName.back()).c_str();
+			const auto tpSpec = &engineName.back();
+			//const char* tpSpec = std::string(&engineName.back()).c_str();
 			traialProlongation = std::strtol(tpSpec, &err, 10);
 			if ((nullptr != err && err[0] != '\0') ||
 			        0 > traialProlongation || traialProlongation > 6)

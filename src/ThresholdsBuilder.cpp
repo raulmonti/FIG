@@ -115,7 +115,7 @@ ThresholdsBuilder::invert_thresholds_map(const ThresholdsVec& t2i) const
 
 
 void
-ThresholdsBuilder::show_thresholds(const ThresholdsVec &t2i) const
+ThresholdsBuilder::show_thresholds(const ThresholdsVec &t2i)
 {
 	figTechLog << "Thresholds chosen (and corresp. effort):";
 	for (size_t i = 1ul ; i < t2i.size()-1 ; i++)
@@ -125,7 +125,7 @@ ThresholdsBuilder::show_thresholds(const ThresholdsVec &t2i) const
 
 
 void
-ThresholdsBuilder::show_thresholds(const ImportanceVec& t2i) const
+ThresholdsBuilder::show_thresholds(const ImportanceVec& t2i)
 {
 	figTechLog << "Thresholds chosen:";
 	for (size_t i = 1ul ; i < t2i.size()-1 ; i++)

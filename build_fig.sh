@@ -138,7 +138,7 @@ if [[ "$c" == "clang" ]] && [ ! "`which clang 2>/dev/null`" ]; then
 	echo "          Switching to gcc";
 elif [[ "$c" == "clang" ]]; then
 	# We need version 3.7 or later
-	CLANG_VERSION_MAJOR=$(clang --version | grep -o "[0-9]\.[0-9.]*" | head -1);
+	CLANG_VERSION_MAJOR=$(clang --version | grep -o "[0-9]\+\.[0-9.]\+" | head -1);
 	CLANG_VERSION_MINOR=$(echo $CLANG_VERSION_MAJOR | cut -d"." -f 2);
 	CLANG_VERSION_MAJOR=$(echo $CLANG_VERSION_MAJOR | cut -d"." -f 1);
 	if [ $CLANG_VERSION_MAJOR -ge 4 ] ||

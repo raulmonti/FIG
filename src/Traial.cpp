@@ -254,6 +254,7 @@ Traial::print_out(std::ostream& ostr, bool flush) const
 		ostr << " | Ltime: " << lifeTime;
 		ostr << " | LCrss: " << numLevelsCrossed;
 		ostr << " | Depth: " << depth;
+		ostr << " | Nsplt: " << nextSplitLevel;
 		ostr << std::endl << "* Missing clocks are NaN/inf." << std::endl;
 	}
 }

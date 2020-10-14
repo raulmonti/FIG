@@ -174,16 +174,16 @@ public:
 	ThresholdsVec
 	invert_thresholds_map(const ThresholdsVec &t2i) const;
 
-public:  // Utils for the class and its kin
+public:  // Utils
 
 	/// Print thresholds info in FIG's tech log
 	/// @param t2i threshold-to-importance map as returned by build_thresholds()
-	void show_thresholds(const ThresholdsVec& t2i) const;
+	static void show_thresholds(const ThresholdsVec& t2i);
 
 	/// Print thresholds info in FIG's tech log
 	/// @param t2i threshold-to-importance map as returned by build_thresholds()
 	///            but without the per-level-effort
-	void show_thresholds(const ImportanceVec& t2i) const;
+	static void show_thresholds(const ImportanceVec& t2i);
 };
 
 } // namespace fig
