@@ -58,6 +58,7 @@ ConfidenceIntervalMean::update(const double& newMean)
 	M2 += delta*(newMean-estimate_);
 	variance_ = numSamples_ < 2l ? variance_ : M2/(numSamples_-1l);
 	// Half-width of the new confidence interval
+	quantile = confidence_quantile(confidence, numSamples_);
 	halfWidth_ = quantile * std::sqrt(variance_/numSamples_);
 }
 

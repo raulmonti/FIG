@@ -127,12 +127,12 @@ ConfidenceInterval::ConfidenceInterval(const std::string& thename,
 	errorMargin(precision/2.0),
 	percent(dynamicPrecision),
 	confidence(confidence),
-    quantile(confidence_quantile(confidence)),
 	alwaysInvalid(neverStop),
 	numSamples_(0),
 	estimate_(0.0),
 	prevEstimate_(0.0),
 	variance_(std::numeric_limits<double>::infinity()),
+	quantile(confidence_quantile(confidence)),
 	halfWidth_(std::numeric_limits<double>::infinity()),
 	statOversample_(1.0),
 	varCorrection_(1.0)
@@ -252,7 +252,7 @@ void ConfidenceInterval::print(std::ostream& out,
 
 double
 ConfidenceInterval::confidence_quantile(const double& cc,
-                                        const bool nn) const
+										const unsigned long& N)
 {
 #ifndef NDEBUG
 	if (0.0 >= cc || 1.0 <= cc)
@@ -265,8 +265,8 @@ ConfidenceInterval::confidence_quantile(const double& cc,
 //		double quantile = probit(significance);                  // old way
 //		double quantile = gsl_cdf_ugaussian_Pinv(significance);  // new way
 		quantile = gsl_cdf_tdist_Pinv(significance,              // correct way
-		                              numSamples_ <= 1l || nn ? 11.0
-		                                                      : numSamples_-1.0);
+									  std::max(N-1.0, 10.0));
+
 		// ^^^ for the ctor of the CI, before estimations begin,
 		//     we emulate 10 degrees of freedom which symbolise 11 samples
 		significance += 0.000001;

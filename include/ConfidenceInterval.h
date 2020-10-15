@@ -66,9 +66,6 @@ public:  // Attributes: CI fingerprint
 	/// Desired confidence coefficient
 	const double confidence;
 
-	/// Probit value for chosen confidence
-	const double quantile;
-
 	/// Whether the interval will never be considered \ref is_valid() "valid"
 	/// @note Intended for time bound simulations which should keep on updating
 	///       the interval regardless of the confidence and precision achieved
@@ -87,6 +84,9 @@ protected:  // Attributes: estimation thus far
 
 	/// Variance corresponding to the current estimation
 	double variance_;
+
+	/// Probit value for chosen confidence
+	double quantile;
 
 	/// Semi-precision corresponding to the current estimation
 	double halfWidth_;
@@ -238,8 +238,6 @@ public:  // Utils
 			   bool printScientific = true,
 			   int printPrecision = 6u);
 
-protected:
-
 	/**
 	 * Compute the quantile of given confidence coefficient.
 	 *
@@ -256,7 +254,7 @@ protected:
 	 * on 1-(1-cc)/2.
 	 *
 	 * @param cc Confidence coefficient for the desired confidence interval
-	 * @param nn New CI: assume numSamples_ == 0
+	 * @param N  Number of samples (degrees of freedom == N-1)
 	 *
 	 * @return Confidence coefficient quantile == inverse_CDF(1-(1-cc)/2)
 	 *
@@ -275,7 +273,8 @@ protected:
 	 *       If for some reason the inverse CDF of the student-T distribution
 	 *       cannot be computed, this is actually the fallback behaviour.
 	 */
-	double confidence_quantile(const double& cc, const bool nn = true) const;
+	static double confidence_quantile(const double& cc,
+									  const unsigned long& N = 0ul);
 
 private:
 
