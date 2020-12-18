@@ -168,7 +168,7 @@ SimulationEngineRestart::handle_lvl_up(
 	for (auto i = 1ul ; i <= nLvlCross ; i++) {
 		if (static_cast<int>(previousLvl+i) < traial.nextSplitLevel)
 			continue;  // skip this level
-		assert(impFun_->max_value() >= static_cast<tl_type>(previousLvl+i));
+		assert(impFun_->max_value() >= previousLvl+i);
 		prevEffort *= currEffort;
 		currEffort = impFun_->effort_of(previousLvl+i);
 		assert(1ul < currEffort);

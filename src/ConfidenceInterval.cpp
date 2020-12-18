@@ -239,7 +239,7 @@ void ConfidenceInterval::print(std::ostream& out,
                                int printPrecision)
 {
 	if (printScientific)
-		out << std::setprecision(2) << std::scientific;
+		out << std::setprecision(3) << std::scientific;
 	else
 		out << std::setprecision(printPrecision);
 	out << "Estimate: " << point_estimate()

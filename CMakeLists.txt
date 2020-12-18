@@ -27,7 +27,7 @@
 ##
 ##==============================================================================
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.13)
 
 PROJECT (fig)
 
@@ -175,7 +175,8 @@ ENDIF()
 IF(RELEASE)
 	# As much automatic optimization as we can get
 	IF(COMPILER_IS_GCC)
-		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 --fast-math -march=native")
+		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -fno-unsafe-math-optimizations")
+		# WARNING: don't use --fast-math: it enables -funsafe-math-optimizations and causes bias
 	ELSE()
 		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 	ENDIF()

@@ -644,12 +644,10 @@ ModelSuite::get_property(const Integral& i) const noexcept
 {
 	static_assert(std::is_integral<Integral>::value,
 	              "ERROR: type mismatch, expected integral propertyIndex");
-	assert(0 <= static_cast<long>(i));
-	auto iUnSigned = static_cast<size_t>(i);
-	if (iUnSigned >= num_properties())
+	if (0 < i || num_properties() <= static_cast<size_t>(i))
 		return nullptr;
 	else
-		return properties[iUnSigned];
+		return properties[i];
 }
 // Specialisation
 typedef std::shared_ptr< const Property > PtyPtr;

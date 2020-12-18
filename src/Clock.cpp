@@ -35,6 +35,7 @@
 #include <iterator>   // std::begin(), std::end()
 #include <algorithm>  // std::find()
 #include <unordered_map>
+#include <map>
 // External code
 #include <pcg_random.hpp>
 // FIG
@@ -58,8 +59,9 @@ using std::end;
 namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
-typedef  fig::CLOCK_INTERNAL_TYPE                       return_t;
-typedef  fig::DistributionParameters                    params_t;
+typedef  fig::CLOCK_INTERNAL_TYPE     time_t;
+typedef  time_t                       return_t;
+typedef  fig::DistributionParameters  params_t;
 typedef  pcg_extras::seed_seq_from<std::random_device>  PCGSeedSeq;
 
 typedef  std::mt19937_64   MT64_t;
@@ -197,6 +199,17 @@ std::string rngType(fig::Clock::DEFAULT_RNG.first);
 /// RNG instance
 auto rng = RNGs[rngType];
 
+/// For home-made random deviates
+thread_local std::uniform_real_distribution< float > Unif01(0.0f,1.0f);
+thread_local std::normal_distribution< float > Z(0.0f,1.0f);
+struct GammaHash { std::size_t operator()(const params_t& p) const { return p[0]*p[0]*3 + p[1]*p[1]*100; } };
+struct GammaEq { bool operator()(const params_t& p1, const params_t& p2) const { return p1[0]==p2[0] && p1[1]==p2[1]; } };
+struct GammaFun {
+	std::gamma_distribution<time_t> fun;
+	GammaFun(const params_t& params) : fun(params[0], params[1]) {}
+};
+thread_local std::unordered_map< params_t, GammaFun, GammaHash, GammaEq > stored_Gammas;
+
 
 /// Random deviate ~ Uniform[a,b]<br>
 ///  where \par a = params[0] is the lower bound,<br>
@@ -204,8 +217,12 @@ auto rng = RNGs[rngType];
 /// Check <a href="https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)">the wiki</a>
 return_t uniform(const params_t& params)
 {
-	std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uni(params[0], params[1]);
-	return uni(*rng);
+
+//	std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uni(params[0], params[1]);
+//	return uni(*rng);
+
+	assert(params[0] < params[1]);
+	return (params[1]-params[0]) * static_cast<time_t>(Unif01(*rng)) + params[0];
 }
 
 
@@ -214,8 +231,16 @@ return_t uniform(const params_t& params)
 /// Check <a href="https://en.wikipedia.org/wiki/Exponential_distribution">the wiki</a>
 return_t exponential(const params_t& params)
 {
-	std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > exp(params[0]);
-	return exp(*rng);
+
+//	std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > exp(params[0]);
+//	return exp(*rng);
+
+	assert(static_cast< time_t >(0) < params[0]);
+	__volatile__ float u;
+	do {
+		u = Unif01(*rng);
+	} while (u <= 0.0f);
+	return static_cast<time_t>(-1.0*std::log(u)) / params[0];
 }
 
 
@@ -227,16 +252,17 @@ return_t exponential(const params_t& params)
 /// Check <a href="https://en.wikipedia.org/wiki/Hyperexponential_distribution">the wiki</a>
 return_t hyperexponential2(const params_t& params)
 {
-	assert(static_cast<fig::CLOCK_INTERNAL_TYPE>(0.0) < params[0]);
-	assert(params[0] < static_cast<fig::CLOCK_INTERNAL_TYPE>(1.0));
-	static std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uni(0.0,1.0);
-	if (uni(*rng) < params[0]) {
-		std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > exp(params[1]);
-		return exp(*rng);
-	} else {
-		std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > exp(params[2]);
-		return exp(*rng);
-	}
+	assert(static_cast<time_t>(0) < params[2]);
+	assert(static_cast<time_t>(0) < params[1]);
+	assert(static_cast<time_t>(0) < params[0]);
+	assert(params[0] < static_cast<time_t>(1.0));
+	__volatile__ float u;
+	do {
+		u = Unif01(*rng);
+	} while (u <= 0.0f);
+	return static_cast<time_t>(-std::log(u)) /
+	    (static_cast<time_t>(Unif01(*rng)) < params[0] ? params[1]
+	                                                   : params[2]);
 }
 
 
@@ -261,10 +287,18 @@ return_t hyperexponential2(const params_t& params)
 ///  where \par  m = params[0] is the mean,<br>
 ///    and \par sd = params[1] is the standard deviation.<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Normal_distribution">the wiki</a>
+/// @bug BUG: when taking the max with 0.000001 (to avoid sampling non-positive
+///           time delays) we lose probability mass. This mass must be added to
+///           the remaining (positively-supported) mass of the distribution.
 return_t normal(const params_t& params)
 {
-	std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal(params[0], params[1]);
-	return std::max(0.000001f, normal(*rng));
+
+//	std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal(params[0], params[1]);
+//	return std::max(0.000001f, normal(*rng));
+
+	assert(static_cast<time_t>(0) < params[1]);
+	return std::max(static_cast<time_t>(0.000001f),
+	                params[0] + params[1] * static_cast<time_t>(Z(*rng)));
 }
 
 
@@ -275,19 +309,32 @@ return_t normal(const params_t& params)
 /// Check <a href="https://en.wikipedia.org/wiki/Log-normal_distribution">the wiki</a>
 return_t lognormal(const params_t& params)
 {
-	std::lognormal_distribution< fig::CLOCK_INTERNAL_TYPE > lognormal(params[0], params[1]);
-	return lognormal(*rng);
+
+//	std::lognormal_distribution< fig::CLOCK_INTERNAL_TYPE > lognormal(params[0], params[1]);
+//	return lognormal(*rng);
+
+	assert(static_cast<time_t>(0) < params[1]);
+	return static_cast<time_t>(std::exp(params[0] + params[1] * static_cast<time_t>(Z(*rng))));
 }
 
 
 /// Random deviate ~ Weibull(a,b)<br>
-///  where \par a = params[0] is the shape parameter,<br>
-///    and \par b = params[1] is the scale parameter.<br>
+///  where \par a = params[0] is the shape parameter, aka \par k,<br>
+///    and \par b = params[1] is the scale parameter, aka \par lambda.<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Weibull_distribution">the wiki</a>
 return_t weibull(const params_t& params)
 {
-	std::weibull_distribution< fig::CLOCK_INTERNAL_TYPE > weibull(params[0], params[1]);
-	return weibull(*rng);
+
+//	std::weibull_distribution< fig::CLOCK_INTERNAL_TYPE > weibull(params[0], params[1]);
+//	return weibull(*rng);
+
+	assert(static_cast<time_t>(0) < params[0]);
+	assert(static_cast<time_t>(0) < params[1]);
+	__volatile__ float u;
+	do {
+		u = Unif01(*rng);
+	} while (u <= 0.0f);
+	return params[1] * std::pow<time_t>(-std::log(u), 1.0f/static_cast<float>(params[0]));
 }
 
 
@@ -296,31 +343,53 @@ return_t weibull(const params_t& params)
 /// Check <a href="https://en.wikipedia.org/wiki/Rayleigh_distribution">the wiki</a>
 return_t rayleigh(const params_t& params)
 {
-	std::weibull_distribution< fig::CLOCK_INTERNAL_TYPE > rayleigh(2.0, params[0]*M_SQRT2f32);
-	return rayleigh(*rng);
+
+//	std::weibull_distribution< fig::CLOCK_INTERNAL_TYPE > rayleigh(2.0, params[0]*M_SQRT2f32);
+//	return rayleigh(*rng);
+
+	assert(static_cast<time_t>(0) < params[0]);
+	__volatile__ float u;
+	do {
+		u = Unif01(*rng);
+	} while (u <= 0.0f);
+	return params[0] * std::sqrt(-2.0f * std::log(u));
 }
 
 
 /// Random deviate ~ Gamma(a,b)<br>
 ///  where \par a = params[0] is the shape parameter,<br>
-///    and \par b = params[1] is the scale parameter (aka reciprocal of the rate)<br>
+///    and \par b = params[1] is the scale parameter, aka reciprocal of the rate.<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Gamma_distribution">the wiki</a>
 return_t gamma(const params_t& params)
 {
-	std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > gamma(params[0], params[1]);
-	return gamma(*rng);
+
+//	std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > gamma(params[0], params[1]);
+//	return gamma(*rng);
+
+	// If requested Gamma doesn't exists yet, create it
+	if (end(stored_Gammas) == stored_Gammas.find(params))
+		stored_Gammas.emplace(params, params);
+	return stored_Gammas.at(params).fun(*rng);
 }
 
 
 /// Random deviate ~ Erlang(k,l) ~ Gamma(k,1/l)<br>
 ///  where \par k = params[0] is the <em>integral</em> shape parameter,<br>
-///    and \par l = params[1] is the rate parameter (aka reciprocal of the scale)<br>
+///    and \par l = params[1] is the rate parameter, aka reciprocal of the scale.<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Erlang_distribution">the wiki</a>
 return_t erlang(const params_t& params)
 {
+
+//	const int k(static_cast<int>(std::round(params[0])));
+//	std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > erlang(k, 1.0f/params[1]);
+//	return erlang(*rng);
+
 	const int k(static_cast<int>(std::round(params[0])));
-	std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > erlang(k, 1.0f/params[1]);
-	return erlang(*rng);
+	assert(0 < k);
+	__volatile__ float acum = 1.0f;
+	for (int i=0 ; i<k ; i++)
+		acum *= Unif01(*rng);
+	return static_cast<time_t>(-log(acum)) / params[1];
 }
 
 
@@ -329,7 +398,7 @@ return_t erlang(const params_t& params)
 /// Check <a href="https://en.wikipedia.org/wiki/Dirac_delta_function">the wiki</a>
 return_t dirac(const params_t& params)
 {
-	return static_cast<return_t>(params[0]);
+	return params[0];
 }
 
 } // namespace  // // // // // // // // // // // // // // // // // // // // //
