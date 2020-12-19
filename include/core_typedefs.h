@@ -68,17 +68,28 @@ namespace fig
   typedef  double                                        CLOCK_INTERNAL_TYPE;
 #endif
 
+
 /// Fixed-size array of distribution parameters, needed to sample Distributions
 typedef std::array< CLOCK_INTERNAL_TYPE , NUM_DISTRIBUTION_PARAMS >
 ///
 													  DistributionParameters;
-
-/// Arbitrary stochastic distribution mapping to the real line
-/// @note To sample a Distribution the only argument needed is a single
-///       \ref DistributionParameters "distribution parameter array",
-///       regardless of the actual number of parameters the mathematical
-///       entity may need.
-typedef CLOCK_INTERNAL_TYPE(*Distribution)(const DistributionParameters&);
+/// Arbitrary stochastic distribution
+/// @note To build a Distribution, the only argument needed is a single
+///       \ref DistributionParameters "array of parameters", regardless of the
+///       actual number of parameters that the mathematical entity may need.
+/// @see Clock
+struct Distribution {
+	std::string name;
+	DistributionParameters params;
+	Distribution(const std::string& name_,
+	             const DistributionParameters& params_)
+	                : name(name_)
+	                , params(params_)
+	    { /* Not much to do around here */ }
+	virtual ~Distribution() {}
+	inline CLOCK_INTERNAL_TYPE operator()() const { return sample(); }
+	virtual CLOCK_INTERNAL_TYPE sample() const = 0;
+};
 
 //
 //
@@ -107,8 +118,8 @@ template< typename T_ > using                              VariableDefinition
 typedef  short                                           STATE_INTERNAL_TYPE;
 
 /// Assignment of values to Variables (a logical <i>valuation</i>)
-/// following the order given in some State. A StateInstance can be
-/// compared to the State it comes from to check consistency.
+/// following the order given in some State. To check consistency,
+/// a StateInstance can be compared to the State it comes from.
 typedef  std::vector< STATE_INTERNAL_TYPE >                    StateInstance;
 
 /// Adjacency list for concrete states transitions graph

@@ -235,6 +235,25 @@ Traial::initialise(const ModuleNetwork& network,
 	return *this;
 }
 
+void
+Traial::copyResampling(const Traial& that)
+{
+	static auto globalClocks = ModelSuite::get_instance().modules_network()->clocks();
+
+	level            = that.level;
+	depth            = that.depth;
+	numLevelsCrossed = that.numLevelsCrossed;
+	lifeTime         = that.lifeTime;
+	state            = that.state;
+	orderedIndex_    = that.orderedIndex_;
+	nextClock_       = that.nextClock_;
+	clocks_          = that.clocks_;
+	for (auto i = 0ul ; i < clocks_.size() ; i++)
+		clocks_[i].value = globalClocks[i].get().sample();
+#	ifndef NDEBUG
+	check_internal_consistency();
+#	endif
+}
 
 void
 Traial::print_out(std::ostream& ostr, bool flush) const

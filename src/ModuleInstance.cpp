@@ -365,6 +365,7 @@ ModuleInstance::markovian_check()
 			break;
 		}
 	}
+	markovian_ = true;
 }
 
 

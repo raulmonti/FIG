@@ -47,9 +47,6 @@
 namespace fig
 {
 
-/// Global container with distributions offered for time sampling
-extern std::unordered_map< std::string, Distribution > distributions_list;
-
 /**
  * @brief Internal stochastic time passage mechanism for IOSA modules
  *
@@ -86,14 +83,8 @@ private:
 	/// Clock name
 	std::string name_;
 
-	/// Clock's distribution name
-	std::string distName_;
-
 	/// Clock's distribution
-	Distribution dist_;  // *copy* of one from distribution_list
-
-	/// Clock's distribution parameters
-	DistributionParameters distParams_;
+	std::shared_ptr<Distribution> dist_;
 
 public:  // Class' RNG observers
 
@@ -148,14 +139,9 @@ public:  // Ctors
 
 	Clock(const std::string& clockName,
 		  const std::string& distName,
-		  const DistributionParameters& params) :
-			name_(clockName),
-			distName_(distName),
-			dist_(distributions_list.at(distName)),  // may throw out_of_range
-			distParams_(params)
-		{
-			assert(!clockName.empty());
-		}
+	      const DistributionParameters& params);
+
+	virtual ~Clock() { }
 
 	Clock(const Clock& that)            = default;
 	Clock(Clock&& that)                 = default;
@@ -168,17 +154,17 @@ public:  // Accessors
 	const std::string& name() const noexcept { return name_; }
 
 	/// @copydoc distName_
-	const std::string& dist_name() const noexcept { return distName_; }
+	const std::string& dist_name() const noexcept { return dist_->name; }
 
 	/// @copydoc distParams_
 	inline const DistributionParameters& distribution_params() const noexcept
-		{ return distParams_; }
+	    { return dist_->params; }
 
 public:  // Utils
 
 	/// @brief Sample our distribution function
-	inline CLOCK_INTERNAL_TYPE sample()     const { return dist_(distParams_); }
-	inline CLOCK_INTERNAL_TYPE operator()() const { return dist_(distParams_); }
+	inline CLOCK_INTERNAL_TYPE sample()     const { return dist_->sample(); }
+	inline CLOCK_INTERNAL_TYPE operator()() const { return (*dist_)(); }
 
 public:  // Debugging info
 	void print_info(std::ostream &out) const;

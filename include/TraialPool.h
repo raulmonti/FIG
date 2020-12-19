@@ -172,6 +172,7 @@ public:  // Access to resources (viz Traials)
 	 * @param traial    Traial instance whose internals will be copied
      * @param numCopies Number of \ref Traial "traials" requested
      * @param depth     Depth assigned to the delivered \ref Traial "traials"
+	 * @param resampleClocks Whether to resample the clock values from traial
      *
      * @note <b>Complexity:</b> <i>O(numCopies)</i> if enough free resources
 	 *       are available, <i>O(max(numCopies,INCREMENT_SIZE))</i>
@@ -182,7 +183,8 @@ public:  // Access to resources (viz Traials)
     void get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
                            const Traial& traial,
                            unsigned numCopies,
-                           short depth = 0);
+	                       short depth = 0,
+	                       bool resampleClocks = false);
 
 	/**
 	 * @brief Give back a bunch of \ref Traial "traials" to the pool

@@ -422,7 +422,8 @@ void ModelBuilder::visit(shared_ptr<InitializedDecl> decl) {
 void ModelBuilder::visit(shared_ptr<ClockDecl> decl) {
 //	const auto uniqueID(current_scope->get_module_name()+decl->get_id());
 	// NOTE: the current_module name is prepended to the clock's in build_clock
-	module_clocks->push_back(build_clock(decl->get_id()));
+	module_clocks->emplace_back(build_clock(decl->get_id()));
+	//module_clocks->push_back(build_clock(decl->get_id()));
 }
 
 Label build_label(string&& id, LabelType type) {

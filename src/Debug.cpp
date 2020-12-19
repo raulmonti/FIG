@@ -49,9 +49,9 @@ namespace fig {
 void Clock::print_info(std::ostream &out) const {
     out << "CLOCK" << std::endl;
     out << "NAME:" << name_ << std::endl;
-    out << "DISTNAME:" << distName_ << std::endl;
+	out << "DISTNAME:" << dist_->name << std::endl;
     out << "CLOCK-SEED:" << this->rng_seed() << std::endl;
-    ::print_vec(out, "DISTPARAMETERS:", distParams_.begin(), distParams_.end());
+	::print_vec(out, "DISTPARAMETERS:", dist_->params.begin(), dist_->params.end());
     out << "ENDOF-CLOCK:" << name_ << std::endl;
 }
 

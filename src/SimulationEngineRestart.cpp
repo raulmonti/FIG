@@ -175,7 +175,8 @@ SimulationEngineRestart::handle_lvl_up(
 		tpool.get_traial_copies(stack,
 		                        traial,
 		                        static_cast<uint>(prevEffort*(currEffort-1)),
-		                        static_cast<short>(i-nLvlCross));
+		                        static_cast<short>(i-nLvlCross),
+		                        model_->is_markovian());
 	}
 }
 

@@ -215,7 +215,8 @@ void
 TraialPool::get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
 							  const Traial& traial,
 							  unsigned numCopies,
-							  short depth)
+                              short depth,
+                              bool resampleClocks)
 {
 	if (!positive_num_traials(numCopies))
 		return;
@@ -225,7 +226,10 @@ TraialPool::get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
 	while (!available_traials_.empty() && 0u < --numCopies) {
 		Traial& t = available_traials_.front();
 		available_traials_.pop_front();
-		t = traial;
+		if (resampleClocks)
+			t.copyResampling(traial);
+		else
+			t = traial;
 		t.depth = depth;
 		t.nextSplitLevel = static_cast<decltype(t.nextSplitLevel)>(traial.level) + 1;
 		cont.emplace(end(cont), std::ref(t));  // copy elision
@@ -239,22 +243,26 @@ TraialPool::get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
 template void TraialPool::get_traial_copies(std::list< Reference<Traial> >&,
                                             const Traial&,
 											unsigned,
-											short);
+											short,
+											bool);
 template void TraialPool::get_traial_copies(std::deque< Reference<Traial> >&,
                                             const Traial&,
 											unsigned,
-											short);
+											short,
+											bool);
 template void TraialPool::get_traial_copies(std::vector< Reference<Traial> >&,
                                             const Traial&,
 											unsigned,
-											short);
+											short,
+											bool);
 
 // TraialPool::get_traial_copies() specialization for STL std::stack<>
 template<> void
 TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
                               const Traial& traial,
 							  unsigned numCopies,
-							  short depth)
+							  short depth,
+							  bool resampleClocks)
 {
 	if (!positive_num_traials(numCopies))
 		return;
@@ -264,7 +272,10 @@ TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
 	while (!available_traials_.empty() && 0u < --numCopies) {
 		Traial& t = available_traials_.front();
 		available_traials_.pop_front();
-		t = traial;
+		if (resampleClocks)
+			t.copyResampling(traial);
+		else
+			t = traial;
 		t.depth = depth;
 		t.nextSplitLevel = 1 + static_cast<decltype(t.nextSplitLevel)>(traial.level);
 		stack.push(std::ref(t));  // copy elision
@@ -282,7 +293,8 @@ TraialPool::get_traial_copies(std::stack< Reference< Traial >,
 										>& stack,
 							  const Traial& traial,
 							  unsigned numCopies,
-							  short depth)
+							  short depth,
+							  bool resampleClocks)
 {
 	if (!positive_num_traials(numCopies))
 		return;
@@ -292,7 +304,10 @@ TraialPool::get_traial_copies(std::stack< Reference< Traial >,
 	while (!available_traials_.empty() && 0u < --numCopies) {
 		Traial& t = available_traials_.front();
 		available_traials_.pop_front();
-		t = traial;
+		if (resampleClocks)
+			t.copyResampling(traial);
+		else
+			t = traial;
 		t.depth = depth;
 		t.nextSplitLevel = 1 + static_cast<decltype(t.nextSplitLevel)>(traial.level);
 		stack.push(std::ref(t));  // copy elision
@@ -308,7 +323,8 @@ template<> void
 TraialPool::get_traial_copies(std::forward_list< Reference<Traial> >& flist,
                               const Traial& traial,
 							  unsigned numCopies,
-							  short depth)
+							  short depth,
+							  bool resampleClocks)
 {
 	if (!positive_num_traials(numCopies))
 		return;
@@ -318,7 +334,10 @@ TraialPool::get_traial_copies(std::forward_list< Reference<Traial> >& flist,
 	while (!available_traials_.empty() && 0u < --numCopies) {
 		Traial& t = available_traials_.front();
         available_traials_.pop_front();
-        t = traial;
+		if (resampleClocks)
+			t.copyResampling(traial);
+		else
+			t = traial;
 		t.depth = depth;
 		t.nextSplitLevel = 1 + static_cast<decltype(t.nextSplitLevel)>(traial.level);
 		flist.push_front(std::ref(t));  // copy elision
@@ -421,6 +440,7 @@ TraialPool::ensure_resources(const Integral& requiredResources)
 	 *
 	 * Using move semantics to offer the Traial instances may cause system
 	 * malfunctions derived from memory remapings.
+	 *
 	 * When new resources are needed the OS may choose to reallocate the whole
 	 * 'traials_' vector in a different memory page, which would invalidate
 	 * all the references held by the users of the TraialPool.

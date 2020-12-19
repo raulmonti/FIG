@@ -69,26 +69,26 @@ typedef  pcg32_k16384     PCG32_t;
 typedef  pcg64_oneseq     PCG64_t;
 
 
-/**
- * @brief RNG interface offered to clocks for time sampling
- *
- *        BasicRNG offers an interface matching the
- *       \ref http://en.cppreference.com/w/cpp/concept/UniformRandomBitGenerator
- *       "UniformRandomBitGenerator C++ concept".
- *        Implementing classes which derive from this interface
- *        allows an easy switch between RNG types upon the user's request.
- */
-class BasicRNG
-{
-public:
-	virtual ~BasicRNG() {}
-public:
-	typedef unsigned long result_type;
-	virtual result_type min() const = 0;
-	virtual result_type max() const = 0;
-	virtual result_type operator()() = 0;
-	virtual void seed(result_type s) = 0;
-};
+    /**
+	 * @brief RNG interface offered to clocks for time sampling
+	 *
+	 *        BasicRNG offers an interface matching the
+	 *       \ref http://en.cppreference.com/w/cpp/concept/UniformRandomBitGenerator
+	 *       "UniformRandomBitGenerator C++ concept".
+	 *        Implementing classes which derive from this interface
+	 *        allows an easy switch between RNG types upon the user's request.
+	 */
+    class BasicRNG
+	{
+	public:
+		virtual ~BasicRNG() {}
+	public:
+		typedef unsigned long result_type;
+		virtual result_type min() const = 0;
+		virtual result_type max() const = 0;
+		virtual result_type operator()() = 0;
+		virtual void seed(result_type s) = 0;
+	};
 
 
 /// BasicRNG instance for C++ STL's 64 bit Mersenne-Twister RNG
@@ -199,6 +199,210 @@ std::string rngType(fig::Clock::DEFAULT_RNG.first);
 /// RNG instance
 auto rng = RNGs[rngType];
 
+
+/// Default ctor for unimplemented distributions
+struct unknown_distribution : public fig::Distribution
+{
+	unknown_distribution(const std::string& name, const params_t& params)
+	    : Distribution(name, params)
+	{
+		throw_FigException("unknown distribution requested: " + name);
+	}
+	inline return_t sample() const override { return -1; }
+};
+
+
+/// Random deviate ~ Uniform[a,b]<br>
+///  where \par a = params[0] is the lower bound,<br>
+///    and \par b = params[1] is the upper bound.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)">the wiki</a>
+struct uniform : public fig::Distribution
+{
+	mutable std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > f;
+	uniform(const params_t& params)
+	    : Distribution("uniform", params)
+	    , f(params[0], params[1])  // this line creates the function
+	{
+		assert(params[0] < params[1]);
+	}
+	inline return_t sample() const override { return f(*rng); }
+};
+
+
+/// Random deviate ~ Exponential(lambda)<br>
+///  where \par lambda = params[0] is the rate.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Exponential_distribution">the wiki</a>
+struct exponential : public fig::Distribution
+{
+	mutable std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > f;
+	exponential(const params_t& params)
+	    : Distribution("exponential", params)
+	    , f(params[0])  // this line creates the function
+	{
+		assert(static_cast< time_t >(0) < params[0]);
+	}
+	inline return_t sample() const override { return f(*rng); }
+};
+
+
+/// Random deviate ~ Hyper-Exponential(p:lambda1,1-p:lambda2)<br>
+///  where \par p = params[0] is the probability of choosing the first rate,<br>
+///    and 1 - \par p is the probability of choosing the second rate,<br>
+///    and \par lambda1 = params[1] is the first  possible rate,<br>
+///    and \par lambda2 = params[2] is the second possible rate.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Hyperexponential_distribution">the wiki</a>
+struct hyperexponential2 : public fig::Distribution
+{
+	const float p;
+	mutable std::uniform_real_distribution< float > U;
+	mutable std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > l1;
+	mutable std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > l2;
+	hyperexponential2(const params_t& params)
+	    : Distribution("hyperexponential2", params)
+	    , p(params[0])
+	    , U(0.0f,1.0f)   // Uniform([0,1])
+	    , l1(params[1])  // first  exponential
+	    , l2(params[2])  // second exponential
+	{
+		assert(static_cast<time_t>(1) > p);
+		assert(static_cast<time_t>(0) < p);
+		assert(static_cast<time_t>(0) < params[1]);
+		assert(static_cast<time_t>(0) < params[2]);
+	}
+	inline return_t sample() const override { return U(*rng) < p ? l1(*rng) : l2(*rng); }
+};
+
+
+/// Random deviate ~ Normal(m,sd)<br>
+///  where \par  m = params[0] is the mean,<br>
+///    and \par sd = params[1] is the standard deviation.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Normal_distribution">the wiki</a>
+/// @bug BUG: when taking the max with 0.000001 (to avoid sampling non-positive
+///           time delays) we lose probability mass. This mass must be added to
+///           the remaining (positively-supported) mass of the distribution.
+struct normal : public fig::Distribution
+{
+	mutable std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > f;
+	normal(const params_t& params)
+	    : Distribution("normal", params)
+	    , f(params[0], params[1])
+	{
+		assert(static_cast<time_t>(0) < params[1]);
+	}
+	inline return_t sample() const override { return std::max(0.000001f, f(*rng)); }
+};
+
+
+/// Random deviate ~ Lognormal(m,sd)<br>
+///  where \par  m = params[0] is the mean,<br>
+///    and \par sd = params[1] is the standard deviation<br>
+/// of the inherent normally distributed random variable.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Log-normal_distribution">the wiki</a>
+struct lognormal : public fig::Distribution
+{
+	mutable std::lognormal_distribution< fig::CLOCK_INTERNAL_TYPE > f;
+	lognormal(const params_t& params)
+	    : Distribution("lognormal", params)
+	    , f(params[0], params[1])
+	{
+		assert(static_cast<time_t>(0) < params[1]);
+	}
+	inline return_t sample() const override { return f(*rng); }
+};
+
+
+/// Random deviate ~ Weibull(a,b)<br>
+///  where \par a = params[0] is the shape parameter, aka \par k,<br>
+///    and \par b = params[1] is the scale parameter, aka \par lambda.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Weibull_distribution">the wiki</a>
+struct weibull : public fig::Distribution
+{
+	mutable std::weibull_distribution< fig::CLOCK_INTERNAL_TYPE > f;
+	weibull(const params_t& params)
+	    : Distribution("weibull", params)
+	    , f(params[0], params[1])
+	{
+		assert(static_cast<time_t>(0) < params[0]);
+		assert(static_cast<time_t>(0) < params[1]);
+	}
+	inline return_t sample() const override { return f(*rng); }
+};
+
+
+/// Random deviate ~ Rayleigh(s) ~ Weibull(2,s*sqrt(2))<br>
+///  where \par s = params[0] is the scale parameter.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Rayleigh_distribution">the wiki</a>
+struct rayleigh : public fig::Distribution
+{
+	mutable std::weibull_distribution< fig::CLOCK_INTERNAL_TYPE > f;
+	rayleigh(const params_t& params)
+	    : Distribution("rayleigh", params)
+	    , f(2.0, params[0]*M_SQRT2f32)
+	{
+		assert(static_cast<time_t>(0) < params[0]);
+	}
+	inline return_t sample() const override { return f(*rng); }
+};
+
+
+/// Random deviate ~ Gamma(a,b)<br>
+///  where \par a = params[0] is the shape parameter,<br>
+///    and \par b = params[1] is the scale parameter, aka reciprocal of the rate.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Gamma_distribution">the wiki</a>
+struct Gamma : public fig::Distribution
+{
+	mutable std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > f;
+	Gamma(const params_t& params)
+	    : Distribution("gamma", params)
+	    , f(params[0], params[1])
+	{
+		assert(static_cast<time_t>(0) < params[0]);
+		assert(static_cast<time_t>(0) < params[1]);
+	}
+	inline return_t sample() const override { return f(*rng); }
+};
+
+
+/// Random deviate ~ Erlang(k,l) ~ Gamma(k,1/l)<br>
+///  where \par k = params[0] is the <em>integral</em> shape parameter,<br>
+///    and \par l = params[1] is the rate parameter, aka reciprocal of the scale.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Erlang_distribution">the wiki</a>
+struct erlang : public fig::Distribution
+{
+	const int k;
+	mutable std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > f;
+	erlang(const params_t& params)
+	    : Distribution("erlang", params)
+	    , k(std::round(params[0]))
+	    , f(k, 1.0f/params[1])
+	{
+		assert(static_cast<time_t>(0) < params[0]);
+		assert(static_cast<time_t>(0) < params[1]);
+	}
+	inline return_t sample() const override { return f(*rng); }
+};
+
+
+/// (Non-) Random deviate ~ Dirac(x)<br>
+///  where \par [x,x] is the <em>point-wise</em> support of the distribution<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Dirac_delta_function">the wiki</a>
+struct dirac : public fig::Distribution
+{
+	const time_t x;
+	dirac(const params_t& params)
+	    : Distribution("dirac", params)
+	    , x(std::round(params[0]))
+	{
+		assert(static_cast<time_t>(0) < params[0]);
+	}
+	inline return_t sample() const override { return x; }
+};
+
+
+
+
+/*
+
 /// For home-made random deviates
 thread_local std::uniform_real_distribution< float > Unif01(0.0f,1.0f);
 thread_local std::normal_distribution< float > Z(0.0f,1.0f);
@@ -209,7 +413,6 @@ struct GammaFun {
 	GammaFun(const params_t& params) : fun(params[0], params[1]) {}
 };
 thread_local std::unordered_map< params_t, GammaFun, GammaHash, GammaEq > stored_Gammas;
-
 
 /// Random deviate ~ Uniform[a,b]<br>
 ///  where \par a = params[0] is the lower bound,<br>
@@ -400,6 +603,7 @@ return_t dirac(const params_t& params)
 {
 	return params[0];
 }
+*/
 
 } // namespace  // // // // // // // // // // // // // // // // // // // // //
 
@@ -496,18 +700,23 @@ void Clock::seed_rng()
 }
 
 
-std::unordered_map< std::string, Distribution > distributions_list =
+Clock::Clock(const std::string& clockName,
+             const std::string& distName,
+             const DistributionParameters& params) :
+        name_(clockName),
+        dist_(distName == "uniform"           ? dynamic_cast<Distribution*>(new uniform(params)) :
+              distName == "exponential"       ? dynamic_cast<Distribution*>(new exponential(params)) :
+              distName == "hyperexponential2" ? dynamic_cast<Distribution*>(new hyperexponential2(params)) :
+              distName == "normal"            ? dynamic_cast<Distribution*>(new normal(params)) :
+              distName == "lognormal"         ? dynamic_cast<Distribution*>(new lognormal(params)) :
+              distName == "weibull"           ? dynamic_cast<Distribution*>(new weibull(params)) :
+              distName == "rayleigh"          ? dynamic_cast<Distribution*>(new rayleigh(params)) :
+              distName == "gamma"             ? dynamic_cast<Distribution*>(new Gamma(params)) :
+              distName == "erlang"            ? dynamic_cast<Distribution*>(new erlang(params)) :
+              distName == "dirac"             ? dynamic_cast<Distribution*>(new dirac(params)) :
+              dynamic_cast<Distribution*>(new unknown_distribution(distName, params)))
 {
-	{"uniform",     uniform    },
-	{"exponential", exponential},
-	{"normal",      normal     },
-	{"lognormal",   lognormal  },
-	{"weibull",     weibull    },
-	{"rayleigh",    rayleigh   },
-	{"gamma",       gamma      },
-	{"erlang",      erlang     },
-    {"dirac",       dirac      },
-	{"hyperexponential2", hyperexponential2},
-};
+	assert(!clockName.empty());
+}
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

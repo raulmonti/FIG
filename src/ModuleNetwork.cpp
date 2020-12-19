@@ -117,7 +117,7 @@ ModuleNetwork::add_module(std::shared_ptr< ModuleInstance >& module)
 	transitions_.reserve(transitions_.size() + module->transitions_.size());
 	for (const Transition& tr: module->transitions_)
 		transitions_.emplace_back(tr);
-	markovian_ &= module->is_markovian();
+	markovian_ = markovian_ && module->is_markovian();
     has_committed_ = has_committed_ || module->has_committed_actions();
 	module = nullptr;
 }

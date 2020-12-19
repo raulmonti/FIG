@@ -366,6 +366,12 @@ public:  // Utils
 			}
 		}
 
+	/// Copy assignment with clocks resampling
+	/// @warning Implemented for Markovian models only!
+	/// @todo Implement conditional probability sampling,
+	///       to allow resampling of non-exponential distributions
+	void copyResampling(const Traial& that);
+
 	/// Show Traial contents on stream
 	/// @param flush Extra-verbose and flush before and after use
 	void print_out(std::ostream& ostr = figTechLog, bool flush = true) const;
