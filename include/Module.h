@@ -67,8 +67,9 @@ protected:
 	/// e.g. exponential, hyper-exponential, Erlang
 	bool markovian_;
 
-public:  // Dtor
+public:  // Ctor/Dtor
 
+	Module(bool markovian) : markovian_(markovian) {}
 	virtual ~Module() {}
 
 public:  // Accessors

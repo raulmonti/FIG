@@ -110,7 +110,7 @@ private:  // Instance variables
 	/// Transitions whose \ref Label "labels" are in-committed
 	transition_vector_t transitions_in_committed_;
 
-	/// Has committed transitions ?  Setted by \ref ModuleBuilder
+	/// Has committed transitions? Set by \ref ModuleBuilder
 	bool has_committed_ = false;
 
 public:
@@ -679,6 +679,7 @@ ModuleInstance::ModuleInstance(
 	const State< STATE_INTERNAL_TYPE >& state,
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 	const Container2< ValueType2, OtherContainerArgs2... >& transitions) :
+        Module(false),  // non-Markovian until proven otherwise
 		lState_(state),
 		name(thename),
 		globalIndex_(-1),
@@ -712,7 +713,8 @@ ModuleInstance::ModuleInstance(
 	const State< STATE_INTERNAL_TYPE >& state,
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 	Container2< ValueType2, OtherContainerArgs2... >&& transitions) :
-		lState_(state),
+        Module(false),  // non-Markovian until proven otherwise
+        lState_(state),
 		name(thename),
 		globalIndex_(-1),
         firstVar_(-1),
@@ -747,7 +749,8 @@ ModuleInstance::ModuleInstance(
 	const State< STATE_INTERNAL_TYPE >& state,
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks,
 	Container2< ValueType2*, OtherContainerArgs2... >&& transitions) :
-		lState_(state),
+        Module(false),  // non-Markovian until proven otherwise
+        lState_(state),
 		name(thename),
 		globalIndex_(-1),
         firstVar_(-1),
@@ -787,7 +790,8 @@ ModuleInstance::ModuleInstance(
 	const Container< ValueTypeContainer, OtherContainerArgs... >& clocks,
 	Iterator< ValueTypeIterator, OtherIteratorArgs... > from,
 	Iterator< ValueTypeIterator, OtherIteratorArgs... > to) :
-		lState_(state),
+        Module(false),  // non-Markovian until proven otherwise
+        lState_(state),
 		name(thename),
 		globalIndex_(-1),
         firstVar_(-1),

@@ -70,6 +70,7 @@ ModuleInstance::ModuleInstance(
 	const std::string& thename,
 	const State< STATE_INTERNAL_TYPE >& state,
 	const Container1< ValueType1, OtherContainerArgs1... >& clocks) :
+        Module(false),  // non-Markovian until proven otherwise
 		lState_(state),
 		name(thename),
 		globalIndex_(-1),
@@ -355,9 +356,10 @@ ModuleInstance::markovian_check()
 	static std::set< std::string > memorylessDistributions = {
 		// check for available distributions in src/Clock.cpp
 		"exponential",
-		"hyperexponential2",
-		"erlang"
+	    //"hyperexponential2",
+	    //"erlang"
 	};
+	markovian_ = true;
 	for (const Clock& clk: lClocks_) {
 		if (end(memorylessDistributions) ==
 				memorylessDistributions.find(clk.dist_name())) {
@@ -365,7 +367,6 @@ ModuleInstance::markovian_check()
 			break;
 		}
 	}
-	markovian_ = true;
 }
 
 

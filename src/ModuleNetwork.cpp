@@ -68,15 +68,14 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
 ModuleNetwork::ModuleNetwork() :
+    Module(true),  // Markovian! (empty range of "forall")
 	numClocks_(0u),
 	sealed_(false)
-{
-	// Empty range of "forall" is:
-	markovian_ = true;
-}
+{}
 
 
 ModuleNetwork::ModuleNetwork(const ModuleNetwork& that) :
+    Module(that.markovian_),
 	gState(that.gState),
 	initialClocks(that.initialClocks),
 	numClocks_(that.numClocks_),
