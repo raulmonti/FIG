@@ -106,6 +106,9 @@ extern std::string rngType;
 /// Seed for the RNG
 extern size_t rngSeed;
 
+/// Whether to resample clock values on RESTART splits (default = true)
+extern bool resampleOnSplit;
+
 /// Verbose mode (default is OFF for release build, ON for debug build)
 extern bool verboseOutput;
 

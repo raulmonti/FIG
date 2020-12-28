@@ -37,6 +37,7 @@
 #include <unordered_set>
 #include <iterator>    // std::begin(), std::end()
 #include <functional>  // std::ref()
+#include <type_traits>
 // FIG
 #include <TraialPool.h>
 #include <FigLog.h>
@@ -73,6 +74,8 @@ positive_num_traials(const unsigned& numTraials)
 
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
+
+using TraialRef = Reference< Traial >;
 
 // Static variables initialization
 
@@ -140,7 +143,7 @@ TraialPool::return_traial(Traial&& traial)
 
 
 void
-TraialPool::return_traial(Reference<Traial> traial)
+TraialPool::return_traial(TraialRef traial)
 {
 	available_traials_.push_front(traial);
 }
@@ -149,7 +152,7 @@ TraialPool::return_traial(Reference<Traial> traial)
 template< template< typename... > class Container,
 		  typename... OtherArgs >
 void
-TraialPool::get_traials(Container<Reference<Traial>, OtherArgs...>& cont,
+TraialPool::get_traials(Container<TraialRef, OtherArgs...>& cont,
 						unsigned numTraials)
 {
 	if (!positive_num_traials(numTraials))
@@ -166,13 +169,13 @@ retrieve_traials:
 	}
 }
 // TraialPool::get_traials() generic version can only be invoked with the following containers
-template void TraialPool::get_traials(std::list< Reference<Traial> >&, unsigned);
-template void TraialPool::get_traials(std::deque< Reference<Traial> >&, unsigned);
-template void TraialPool::get_traials(std::vector< Reference<Traial> >&, unsigned);
+template void TraialPool::get_traials(std::list< TraialRef >&, unsigned);
+template void TraialPool::get_traials(std::deque< TraialRef >&, unsigned);
+template void TraialPool::get_traials(std::vector< TraialRef >&, unsigned);
 
 // TraialPool::get_traials() specialization for STL std::stack<>
 template<> void
-TraialPool::get_traials(std::stack< Reference<Traial> >& stack,
+TraialPool::get_traials(std::stack< TraialRef >& stack,
 						unsigned numTraials)
 {
 	if (!positive_num_traials(numTraials))
@@ -191,7 +194,7 @@ TraialPool::get_traials(std::stack< Reference<Traial> >& stack,
 
 // TraialPool::get_traials() specialization for STL std::forward_list<>
 template<> void
-TraialPool::get_traials(std::forward_list< Reference<Traial> >& flist,
+TraialPool::get_traials(std::forward_list< TraialRef >& flist,
 						unsigned numTraials)
 {
 	if (!positive_num_traials(numTraials))
@@ -209,27 +212,24 @@ TraialPool::get_traials(std::forward_list< Reference<Traial> >& flist,
 }
 
 
-template< template< typename... > class Container,
-          typename... OtherArgs >
+template< typename Container >
 void
-TraialPool::get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
-							  const Traial& traial,
-							  unsigned numCopies,
-                              short depth,
-                              bool resampleClocks)
+TraialPool::get_traial_copies(Container& cont,
+                              const Traial& traial,
+                              unsigned numCopies,
+                              short depth)
 {
+	static_assert(std::is_same<typename Container::value_type,Reference<Traial>>::value,
+	              "ERROR: type mismatch, expected Reference<Traial> value_type in container");
+	assert(0 >= depth);  // we're typically called on a threshold-level-up
 	if (!positive_num_traials(numCopies))
 		return;
-	assert(0 >= depth);  // we're typically called on a threshold-level-up
 	numCopies++;  // loop guard condition requires this increment
-	retrieve_traials:
+    retrieve_traials:
 	while (!available_traials_.empty() && 0u < --numCopies) {
 		Traial& t = available_traials_.front();
 		available_traials_.pop_front();
-		if (resampleClocks)
-			t.copyResampling(traial);
-		else
-			t = traial;
+		t.copyResampling(traial);  // resampling
 		t.depth = depth;
 		t.nextSplitLevel = static_cast<decltype(t.nextSplitLevel)>(traial.level) + 1;
 		cont.emplace(end(cont), std::ref(t));  // copy elision
@@ -240,42 +240,53 @@ TraialPool::get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
 	}
 }
 // TraialPool::get_traial_copies() generic version can only be invoked with the following containers
-template void TraialPool::get_traial_copies(std::list< Reference<Traial> >&,
-                                            const Traial&,
-											unsigned,
-											short,
-											bool);
-template void TraialPool::get_traial_copies(std::deque< Reference<Traial> >&,
-                                            const Traial&,
-											unsigned,
-											short,
-											bool);
-template void TraialPool::get_traial_copies(std::vector< Reference<Traial> >&,
-                                            const Traial&,
-											unsigned,
-											short,
-											bool);
-
+template void TraialPool::get_traial_copies(std::list< TraialRef >&, const Traial&, unsigned, short);
+template void TraialPool::get_traial_copies(std::deque< TraialRef >&, const Traial&, unsigned, short);
+template void TraialPool::get_traial_copies(std::vector< TraialRef >&, const Traial&, unsigned, short);
+//template void TraialPool::get_traial_copies(std::forward_list< TraialRef >&, const Traial&, unsigned, short);
+//
 // TraialPool::get_traial_copies() specialization for STL std::stack<>
 template<> void
-TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
+TraialPool::get_traial_copies(std::stack< TraialRef >& stack,
                               const Traial& traial,
-							  unsigned numCopies,
-							  short depth,
-							  bool resampleClocks)
+                              unsigned numCopies,
+                              short depth)
 {
 	if (!positive_num_traials(numCopies))
 		return;
 	assert(0 >= depth);  // we're typically called on a threshold-level-up
 	numCopies++;  // loop guard condition requires this increment
-	retrieve_traials:
+    retrieve_traials:
 	while (!available_traials_.empty() && 0u < --numCopies) {
 		Traial& t = available_traials_.front();
 		available_traials_.pop_front();
-		if (resampleClocks)
-			t.copyResampling(traial);
-		else
-			t = traial;
+		t.copyResampling(traial);  // resampling
+		t.depth = depth;
+		t.nextSplitLevel = 1 + static_cast<decltype(t.nextSplitLevel)>(traial.level);
+		stack.push(std::ref(t));  // copy elision
+	}
+	if (0u < numCopies) {
+		ensure_resources(std::max<size_t>(numCopies++, increment_size()));
+		goto retrieve_traials;
+	}
+}
+//
+// TraialPool::get_traial_copies() specialization for STL std::stack<vector>
+template<> void
+TraialPool::get_traial_copies(std::stack< TraialRef,std::vector<TraialRef> >& stack,
+                              const Traial& traial,
+                              unsigned numCopies,
+                              short depth)
+{
+	if (!positive_num_traials(numCopies))
+		return;
+	assert(0 >= depth);  // we're typically called on a threshold-level-up
+	numCopies++;  // loop guard condition requires this increment
+    retrieve_traials:
+	while (!available_traials_.empty() && 0u < --numCopies) {
+		Traial& t = available_traials_.front();
+		available_traials_.pop_front();
+		t.copyResampling(traial);  // resampling
 		t.depth = depth;
 		t.nextSplitLevel = 1 + static_cast<decltype(t.nextSplitLevel)>(traial.level);
 		stack.push(std::ref(t));  // copy elision
@@ -286,64 +297,113 @@ TraialPool::get_traial_copies(std::stack< Reference<Traial> >& stack,
 	}
 }
 
-// TraialPool::get_traial_copies() specialization for STL std::stack<>
-template<> void
-TraialPool::get_traial_copies(std::stack< Reference< Traial >,
-										  std::vector< Reference< Traial > >
-										>& stack,
-							  const Traial& traial,
-							  unsigned numCopies,
-							  short depth,
-							  bool resampleClocks)
+
+template< typename Container >
+void
+TraialPool::get_traial_clones(Container& cont,
+                              const Traial& traial,
+                              unsigned numClones,
+                              short depth)
 {
-	if (!positive_num_traials(numCopies))
+	static_assert(std::is_same<typename Container::value_type,Reference<Traial>>::value,
+	              "ERROR: type mismatch, expected Reference<Traial> value_type in container");
+	if (!positive_num_traials(numClones))
 		return;
 	assert(0 >= depth);  // we're typically called on a threshold-level-up
-	numCopies++;  // loop guard condition requires this increment
+	numClones++;  // loop guard condition requires this increment
 	retrieve_traials:
-	while (!available_traials_.empty() && 0u < --numCopies) {
+	while (!available_traials_.empty() && 0u < --numClones) {
 		Traial& t = available_traials_.front();
 		available_traials_.pop_front();
-		if (resampleClocks)
-			t.copyResampling(traial);
-		else
-			t = traial;
+		t = traial;
+		t.depth = depth;
+		t.nextSplitLevel = static_cast<decltype(t.nextSplitLevel)>(traial.level) + 1;
+		cont.emplace(end(cont), std::ref(t));  // copy elision
+	}
+	if (0u < numClones) {
+		ensure_resources(std::max<size_t>(numClones++, increment_size()));
+		goto retrieve_traials;
+	}
+}
+// TraialPool::get_traial_clones() generic version can only be invoked with the following containers
+template void TraialPool::get_traial_clones(std::list< TraialRef >&, const Traial&, unsigned, short);
+template void TraialPool::get_traial_clones(std::deque< TraialRef >&, const Traial&, unsigned, short);
+template void TraialPool::get_traial_clones(std::vector< TraialRef >&, const Traial&, unsigned, short);
+//
+// TraialPool::get_traial_clones() specialization for STL std::stack<>
+template<> void
+TraialPool::get_traial_clones(std::stack< TraialRef >& stack,
+                              const Traial& traial,
+                              unsigned numClones,
+                              short depth)
+{
+	if (!positive_num_traials(numClones))
+		return;
+	assert(0 >= depth);  // we're typically called on a threshold-level-up
+	numClones++;  // loop guard condition requires this increment
+	retrieve_traials:
+	while (!available_traials_.empty() && 0u < --numClones) {
+		Traial& t = available_traials_.front();
+		available_traials_.pop_front();
+		t = traial;
 		t.depth = depth;
 		t.nextSplitLevel = 1 + static_cast<decltype(t.nextSplitLevel)>(traial.level);
 		stack.push(std::ref(t));  // copy elision
 	}
-	if (0u < numCopies) {
-		ensure_resources(std::max<size_t>(numCopies++, increment_size()));
+	if (0u < numClones) {
+		ensure_resources(std::max<size_t>(numClones++, increment_size()));
 		goto retrieve_traials;
 	}
 }
-
-// TraialPool::get_traial_copies() specialization for STL std::forward_list<>
+//
+// TraialPool::get_traial_clones() specialization for STL std::stack<>
 template<> void
-TraialPool::get_traial_copies(std::forward_list< Reference<Traial> >& flist,
+TraialPool::get_traial_clones(std::stack< TraialRef,std::vector<TraialRef> >& stack,
                               const Traial& traial,
-							  unsigned numCopies,
-							  short depth,
-							  bool resampleClocks)
+                              unsigned numClones,
+                              short depth)
 {
-	if (!positive_num_traials(numCopies))
+	if (!positive_num_traials(numClones))
 		return;
 	assert(0 >= depth);  // we're typically called on a threshold-level-up
-	numCopies++;  // loop guard condition requires this increment
+	numClones++;  // loop guard condition requires this increment
 	retrieve_traials:
-	while (!available_traials_.empty() && 0u < --numCopies) {
+	while (!available_traials_.empty() && 0u < --numClones) {
 		Traial& t = available_traials_.front();
-        available_traials_.pop_front();
-		if (resampleClocks)
-			t.copyResampling(traial);
-		else
-			t = traial;
+		available_traials_.pop_front();
+		t = traial;
+		t.depth = depth;
+		t.nextSplitLevel = 1 + static_cast<decltype(t.nextSplitLevel)>(traial.level);
+		stack.push(std::ref(t));  // copy elision
+	}
+	if (0u < numClones) {
+		ensure_resources(std::max<size_t>(numClones++, increment_size()));
+		goto retrieve_traials;
+	}
+}
+//
+// TraialPool::get_traial_clones() specialization for STL std::forward_list<>
+template<> void
+TraialPool::get_traial_clones(std::forward_list< TraialRef >& flist,
+                              const Traial& traial,
+                              unsigned numClones,
+                              short depth)
+{
+	if (!positive_num_traials(numClones))
+		return;
+	assert(0 >= depth);  // we're typically called on a threshold-level-up
+	numClones++;  // loop guard condition requires this increment
+	retrieve_traials:
+	while (!available_traials_.empty() && 0u < --numClones) {
+		Traial& t = available_traials_.front();
+		available_traials_.pop_front();
+		t = traial;
 		t.depth = depth;
 		t.nextSplitLevel = 1 + static_cast<decltype(t.nextSplitLevel)>(traial.level);
 		flist.push_front(std::ref(t));  // copy elision
     }
-	if (0u < numCopies) {
-		ensure_resources(std::max<size_t>(numCopies++, increment_size()));
+	if (0u < numClones) {
+		ensure_resources(std::max<size_t>(numClones++, increment_size()));
 		goto retrieve_traials;
 	}
 }
@@ -352,7 +412,7 @@ TraialPool::get_traial_copies(std::forward_list< Reference<Traial> >& flist,
 template< template< typename... > class Container,
 		  typename... OtherArgs >
 void
-TraialPool::return_traials(Container<Reference<Traial>, OtherArgs...>& traials)
+TraialPool::return_traials(Container< TraialRef,OtherArgs... >& traials)
 {
 	for (Traial& t: traials)
 		available_traials_.push_front(t);
@@ -360,15 +420,15 @@ TraialPool::return_traials(Container<Reference<Traial>, OtherArgs...>& traials)
 }
 
 // TraialPool::return_traials() generic version can only be invoked with the following containers
-template void TraialPool::return_traials(std::set< Reference<Traial> >&);
-template void TraialPool::return_traials(std::list< Reference<Traial> >&);
-template void TraialPool::return_traials(std::deque< Reference<Traial> >&);
-template void TraialPool::return_traials(std::vector< Reference<Traial> >&);
+template void TraialPool::return_traials(std::set< TraialRef >&);
+template void TraialPool::return_traials(std::list< TraialRef >&);
+template void TraialPool::return_traials(std::deque< TraialRef >&);
+template void TraialPool::return_traials(std::vector< TraialRef >&);
 
 // TraialPool::return_traials() specialization for STL std::stack<>, up to 2x faster
 template <>
 void
-TraialPool::return_traials(std::stack< Reference< Traial > >& stack)
+TraialPool::return_traials(std::stack< TraialRef >& stack)
 {
 	const size_t numTraials(stack.size());
 	for (size_t i = 0ul ; i < numTraials ; i++) {
@@ -380,9 +440,7 @@ TraialPool::return_traials(std::stack< Reference< Traial > >& stack)
 // TraialPool::return_traials() specialization for STL std::stack<>, up to 2x faster
 template <>
 void
-TraialPool::return_traials(std::stack< Reference< Traial >,
-									   std::vector< Reference< Traial > >
-									 >& stack)
+TraialPool::return_traials(std::stack< TraialRef, std::vector<TraialRef> >& stack)
 {
 	const size_t numTraials(stack.size());
 	for (size_t i = 0ul ; i < numTraials ; i++) {
@@ -394,7 +452,7 @@ TraialPool::return_traials(std::stack< Reference< Traial >,
 // TraialPool::return_traials() specialization for STL std::forward_list<>, up to 2x faster
 template <>
 void
-TraialPool::return_traials(std::forward_list< Reference< Traial > >& list)
+TraialPool::return_traials(std::forward_list< TraialRef >& list)
 {
 	for (auto it = list.begin() ; it != list.end() ; it = list.begin()) {
 		available_traials_.push_front(*it);

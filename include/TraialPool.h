@@ -160,31 +160,35 @@ public:  // Access to resources (viz Traials)
 	 *       are available, <i>O(max(numTraials,INCREMENT_SIZE))</i>
      *       if new resources need to be allocated.
      */
-    template< template< typename... > class Container,
-              typename... OtherArgs >
-    void get_traials(Container< Reference<Traial>, OtherArgs...>& cont,
-                     unsigned numTraials);
+	template< template< typename... > class Container,
+	          typename... OtherArgs >
+	void get_traials(Container< Reference<Traial>, OtherArgs...>& cont,
+	                 unsigned numTraials);
 
 	/**
-	 * Obtain specified amount of copies of given Traial instance with 0 depth
-     *
+	 * Get copies of given Traial instance, resampling all clocks
+	 *
 	 * @param cont      Container where Traial copies will be stored (added/emplaced)
 	 * @param traial    Traial instance whose internals will be copied
-     * @param numCopies Number of \ref Traial "traials" requested
-     * @param depth     Depth assigned to the delivered \ref Traial "traials"
-	 * @param resampleClocks Whether to resample the clock values from traial
-     *
-     * @note <b>Complexity:</b> <i>O(numCopies)</i> if enough free resources
+	 * @param numCopies Number of \ref Traial "traials" requested
+	 * @param depth     Depth assigned to the delivered \ref Traial "traials"
+	 *
+	 * @note <b>Complexity:</b> <i>O(numCopies)</i> if enough free resources
 	 *       are available, <i>O(max(numCopies,INCREMENT_SIZE))</i>
-     *       if new resources need to be allocated.
-     */
-	template< template< typename... > class Container,
-			  typename... OtherArgs >
-    void get_traial_copies(Container< Reference<Traial>, OtherArgs...>& cont,
-                           const Traial& traial,
-                           unsigned numCopies,
-	                       short depth = 0,
-	                       bool resampleClocks = false);
+	 *       if new resources need to be allocated.
+	 */
+	template< typename Container >
+	void get_traial_copies(Container& cont,
+	                       const Traial& traial,
+	                       unsigned numCopies,
+	                       short depth = 0);
+
+	/// Same as get_traial_copies() but without resampling
+	template< typename Container >
+	void get_traial_clones(Container& cont,
+	                       const Traial& traial,
+	                       unsigned numClones,
+	                       short depth = 0);
 
 	/**
 	 * @brief Give back a bunch of \ref Traial "traials" to the pool

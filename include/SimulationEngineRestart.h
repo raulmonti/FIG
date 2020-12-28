@@ -40,7 +40,6 @@ namespace fig
 
 class PropertyTransient;
 class PropertyRate;
-class TraialPool;
 
 /**
  * @brief Engine for RESTART importance-splitting simulations
@@ -80,14 +79,18 @@ class SimulationEngineRestart : public SimulationEngine
 	/// typically used for steady-state simulations
 	mutable std::stack< Reference< Traial > > ssstack_;
 
-	/// For fp manipulations intended to reduce precision loss
+	/// For floating point operations (to reduce precision loss)
 	mutable CLOCK_INTERNAL_TYPE currentSimLength_;
+
+	/// Whether to resample clock values every time a Traial is split
+	bool resampleOnSplit_;
 
 public:  // Ctor
 
 	/// Data ctor
 	SimulationEngineRestart(std::shared_ptr<const ModuleNetwork> model,
-	                        bool thresholds = false);
+	                        bool thresholds = false,
+	                        bool resampling = true);
 
 	~SimulationEngineRestart() override;
 
@@ -102,6 +105,9 @@ public:  // Accessors
 
 	/// @copydoc dieOutDepth_
 	inline const decltype(dieOutDepth_)& die_out_depth() const noexcept { return dieOutDepth_; }
+
+	/// @copydoc resampleOnSplit_
+	inline bool get_resampling() const noexcept { return resampleOnSplit_; };
 
 public:  // Engine setup
 
@@ -119,19 +125,23 @@ public:  // Engine setup
 	/// @throw FigException if the engine was \ref lock() "locked"
 	void set_die_out_depth(unsigned dieOutDepth);
 
+	/// @copydoc resampleOnSplit_
+	void set_resampling(bool resampling = true);
+
 private:  // Simulation helper functions
 
 	void reset() const override;
 
-	/// Do a clean in the \ref ssstack_ "internal ADT" used for batch means,
+	/// Flush the \ref ssstack_ "internal ADT" used for batch means,
 	/// forcing the next simulation to be <i>fresh</i>.
 	void reinit_stack() const;
 
-	/// Fill \a stack with clones of \a traial due to level-up splitting
+	/// Fill \a stack with copies of \a traial due to level-up splitting
 	/// @note Can handle several-levels-up situations
+	template< typename TraialCopier >
 	void handle_lvl_up(const Traial &traial,
-					   TraialPool& tpool,
-					   std::stack< Reference< Traial > >& stack) const;
+	                   TraialCopier copy_traials,
+	                   std::stack< Reference< Traial > >& stack) const;
 
 	std::vector<double>
 	transient_simulations(const PropertyTransient& property,

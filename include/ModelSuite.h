@@ -331,6 +331,11 @@ public:  // Populating facilities and other modifyers
 	 */
 	void set_rng(const std::string& rngType, const size_t& rngSeed = Clock::rng_seed());
 
+	/// @copydoc SimulationEngineaRestart::set_resampling()
+	/// @note Affects RESTART simulations only
+	/// @throw FigException if the model isn't \ref sealed() "sealed" yet
+	void set_resampling(bool resampling);
+
 	/// Set (high) verbosity output printing in logs
 	static void set_verbosity(bool verboseOutput) noexcept;
 
@@ -338,6 +343,10 @@ public:  // Accessors
 
 	/// Is output printing in logs highly verbose?
 	static inline bool get_verbosity() noexcept { return highVerbosity_; }
+
+	/// Do RESTART simulations resample clock values upon splitting?
+	/// @throw FigException if the model isn't \ref sealed() "sealed" yet
+	bool get_resampling() const noexcept;
 
 	/// @copydoc ModuleNetwork::sealed()
 	inline bool sealed() const noexcept { return (nullptr != model) && model->sealed(); }

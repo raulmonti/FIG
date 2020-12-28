@@ -162,9 +162,12 @@ public:  // Accessors
 
 public:  // Utils
 
-	/// @brief Sample our distribution function
-	inline CLOCK_INTERNAL_TYPE sample()     const { return dist_->sample(); }
-	inline CLOCK_INTERNAL_TYPE operator()() const { return (*dist_)(); }
+	/// @brief Sample new time, distributed according to our distribution PDF
+	inline CLOCK_INTERNAL_TYPE sample()   const { return dist_->sample(); }
+	/// @brief Sample new time from distribution, conditioned on the given \par elapsedTime
+	inline CLOCK_INTERNAL_TYPE resample(const CLOCK_INTERNAL_TYPE& elapsedTime) const
+	    { return dist_->sample_conditional(elapsedTime); }
+//	inline CLOCK_INTERNAL_TYPE operator()() const { return (*dist_)(); }
 
 public:  // Debugging info
 	void print_info(std::ostream &out) const;

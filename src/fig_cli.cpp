@@ -79,6 +79,7 @@ std::list< fig::StoppingConditions > estBounds;
 std::chrono::seconds simsTimeout;
 string rngType;
 size_t rngSeed;
+bool resampleOnSplit;
 bool verboseOutput;
 bool forceOperation;
 bool confluenceCheck;
@@ -344,6 +345,12 @@ ValueArg<size_t> batchSize_(
 	"of independent runs performed for each CI update; for steady-state "
 	"properties this is the simulation time of each batch.",
 	false, 0ul, "A (big!) positive integral");
+
+// (Avoid) Clock resampling for RESTART; resampling reduces variance
+SwitchArg noResampling_(
+    "", "no-resampling",
+    "Do not resample clock values when RESTART simulations split.",
+    false);
 
 // Verbose output printing (default ON for debug build, OFF for release build)
 ValueArg<bool> verboseOutput_(
@@ -741,7 +748,7 @@ get_global_effort_values()
 {
 	if (globalEfforts_.isSet()) {
 		char* err(nullptr);
-		for (auto strValue: split(globalEfforts_.getValue(), ',')) {
+		for (auto& strValue: split(globalEfforts_.getValue(), ',')) {
 			unsigned value = std::strtoul(strValue.data(), &err, 10);
 			if (nullptr == err || err[0] == '\0') {
 				globalEfforts.emplace(value);
@@ -824,6 +831,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		cmd_.add(rngType_);
 		cmd_.add(rngSeed_);
 		cmd_.add(batchSize_);
+		cmd_.add(noResampling_);
 		cmd_.add(verboseOutput_);
 		cmd_.add(forceOperation_);
 		cmd_.add(confluenceCheck_);
@@ -839,6 +847,7 @@ parse_arguments(const int& argc, const char** argv, bool fatalError)
 		thrSpec         = thrAdHoc_.getValue().empty() ? thrTechnique_.getValue()
 													   : thrAdHoc_.getValue();
 		engineName      = engineName_.getValue();
+		resampleOnSplit = !noResampling_.getValue();  // double negation
 		verboseOutput   = verboseOutput_.getValue();
 		forceOperation  = forceOperation_.getValue();
 		confluenceCheck = confluenceCheck_.getValue();

@@ -66,6 +66,7 @@ static void compile_model(bool modelAlreadyBuilt);
 using fig_cli::confluenceCheck;
 using fig_cli::forceOperation;
 using fig_cli::verboseOutput;
+using fig_cli::resampleOnSplit;
 using fig_cli::janiSpec;
 using fig_cli::failProbDFT;
 using fig_cli::modelFile;
@@ -147,6 +148,7 @@ int main(int argc, char** argv)
 		auto model = fig::ModelSuite::get_instance();
 		model.set_rng(rngType, rngSeed);
 		model.set_timeout(simsTimeout);
+		model.set_resampling(resampleOnSplit);
 		model.set_verbosity(verboseOutput);
 		model.process_batch(engineName,
 							impFunSpec,

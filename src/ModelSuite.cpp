@@ -630,6 +630,20 @@ ModelSuite::set_rng(const std::string& rngType, const size_t& rngSeed)
 
 
 void
+ModelSuite::set_resampling(bool resampling)
+{
+    static_cast<SimulationEngineRestart&>(*simulators["restart"]).set_resampling(resampling);
+}
+
+
+bool
+ModelSuite::get_resampling() const noexcept
+{
+	return static_cast<SimulationEngineRestart&>(*simulators["restart"]).get_resampling();
+}
+
+
+void
 ModelSuite::set_verbosity(bool verboseOutput) noexcept
 {
 	highVerbosity_ = verboseOutput;

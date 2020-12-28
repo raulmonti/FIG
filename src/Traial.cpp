@@ -235,6 +235,7 @@ Traial::initialise(const ModuleNetwork& network,
 	return *this;
 }
 
+
 void
 Traial::copyResampling(const Traial& that)
 {
@@ -249,11 +250,12 @@ Traial::copyResampling(const Traial& that)
 	nextClock_       = that.nextClock_;
 	clocks_          = that.clocks_;
 	for (auto i = 0ul ; i < clocks_.size() ; i++)
-		clocks_[i].value = globalClocks[i].get().sample();
+		clocks_[i].value = globalClocks[i].get().resample(clocks_[i].value);
 #	ifndef NDEBUG
 	check_internal_consistency();
 #	endif
 }
+
 
 void
 Traial::print_out(std::ostream& ostr, bool flush) const

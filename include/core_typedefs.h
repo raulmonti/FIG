@@ -87,8 +87,12 @@ struct Distribution {
 	                , params(params_)
 	    { /* Not much to do around here */ }
 	virtual ~Distribution() {}
-	inline CLOCK_INTERNAL_TYPE operator()() const { return sample(); }
+	/// Sample an (independent) random value with \par this distribution
 	virtual CLOCK_INTERNAL_TYPE sample() const = 0;
+	/// Sample a random value conditioned on the given "previous" \par value
+	virtual CLOCK_INTERNAL_TYPE sample_conditional(const CLOCK_INTERNAL_TYPE& value) const = 0;
+	/// @copydoc sample()
+	inline CLOCK_INTERNAL_TYPE operator()() const { return sample(); }
 };
 
 //

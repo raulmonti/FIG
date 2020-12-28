@@ -63,11 +63,13 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 // Available engine names in SimulationEngine::names
 SimulationEngineRestart::SimulationEngineRestart(
     std::shared_ptr<const ModuleNetwork> model,
-    bool thresholds) :
+    bool thresholds,
+    bool resampling) :
         SimulationEngine("restart", model, thresholds),
         dieOutDepth_(0u),
         oTraial_(TraialPool::get_instance().get_traial()),
-        currentSimLength_(0.0)
+        currentSimLength_(0.0),
+        resampleOnSplit_(resampling)
 {
 	if (thresholds)
 		throw_FigException("RESTART engine has not yet been implemented "
@@ -80,7 +82,7 @@ SimulationEngineRestart::~SimulationEngineRestart()
 {
 	//TraialPool::get_instance().return_traials(ssstack_);
 	// ^^^ pointless, and besides the TraialPool might be dead already,
-	//	 so this would trigger a re-creation of the pool or something worse
+	//     so this would trigger a re-creation of the pool or something worse
 }
 
 
@@ -129,6 +131,16 @@ SimulationEngineRestart::set_die_out_depth(unsigned dieOutDepth)
 
 
 void
+SimulationEngineRestart::set_resampling(bool resampling)
+{
+	if (locked())
+		throw_FigException("engine \"" + name() + "\" is currently locked "
+		                   "in \"simulation mode\"");
+	resampleOnSplit_ = resampling;
+}
+
+
+void
 SimulationEngineRestart::reset() const
 {
 	SimulationEngine::reset();
@@ -149,10 +161,14 @@ SimulationEngineRestart::reinit_stack() const
 }
 
 
-void
+using TraialCopier = std::function< void (std::stack< Reference<Traial> >&,
+                                          const Traial&,
+                                          unsigned,
+                                          short) >;
+template<> void
 SimulationEngineRestart::handle_lvl_up(
     const Traial& traial,
-	TraialPool& tpool,
+    TraialCopier copy_traials,
     std::stack< Reference < Traial > >& stack) const
 {
 	const decltype(traial.level)& nLvlCross = traial.numLevelsCrossed;
@@ -172,11 +188,10 @@ SimulationEngineRestart::handle_lvl_up(
 		prevEffort *= currEffort;
 		currEffort = impFun_->effort_of(previousLvl+i);
 		assert(1ul < currEffort);
-		tpool.get_traial_copies(stack,
-		                        traial,
-		                        static_cast<uint>(prevEffort*(currEffort-1)),
-		                        static_cast<short>(i-nLvlCross),
-		                        model_->is_markovian());
+		copy_traials(stack,
+		             traial,
+		             static_cast<uint>(prevEffort*(currEffort-1)),
+		             static_cast<short>(i-nLvlCross));
 	}
 }
 
@@ -198,10 +213,15 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 		                   "RESTART-P" +std::to_string(die_out_depth())+
 		                   ") - Aborting estimations");
 
-	// For the sake of efficiency, distinguish when operating with a concrete ifun
+	// For efficiency (sigh) distinguish when operating with a concrete ifun
 	EventWatcher watch_events = impFun_->concrete_simulation()
 	        ? std::bind(&SimulationEngineRestart::transient_event_concrete, this, _1, _2, _3)
 	        : std::bind(&SimulationEngineRestart::transient_event,          this, _1, _2, _3);
+
+	// For efficiency (sigh) define here whether we resample upon splitting
+	TraialCopier copy_traials = resampleOnSplit_
+	        ? std::bind(&TraialPool::get_traial_copies<decltype(stack)>, &tpool, _1, _2, _3, _4)
+	        : std::bind(&TraialPool::get_traial_clones<decltype(stack)>, &tpool, _1, _2, _3, _4);
 
 	// Perform 'numRuns' independent RESTART simulations
 	for (size_t i = 0ul ; i < numRuns && !interrupted ; i++) {
@@ -238,7 +258,7 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 
 			} else if (IS_THR_UP_EVENT(e)) {
 				// Could have gone up several thresholds => split accordingly
-				handle_lvl_up(traial, tpool, stack);
+				handle_lvl_up(traial, copy_traials, stack);
 				traial.nextSplitLevel = static_cast<decltype(traial.nextSplitLevel)>(traial.level+1);
 				// Offsprings are on top of stack now: continue attending them
 			}
@@ -280,17 +300,16 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 	} else {
 		// Batch means, but reset life times
 		std::stack< Reference< Traial > > tmp;
-		const auto numTraialsBatchMeans(ssstack_.size());
 		while (!ssstack_.empty()) {
 			ssstack_.top().get().lifeTime = 0.0;
 			tmp.push(std::move(ssstack_.top()));
 			ssstack_.pop();
-			assert(tmp.size()+ssstack_.size() == numTraialsBatchMeans);
+			assert(tmp.size()+ssstack_.size() == ssstack_.size());
 		}
 		while (!tmp.empty()) {
 			ssstack_.push(std::move(tmp.top()));
 			tmp.pop();
-			assert(tmp.size()+ssstack_.size() == numTraialsBatchMeans);
+			assert(tmp.size()+ssstack_.size() == ssstack_.size());
 		}
 	}
 
@@ -318,7 +337,7 @@ SimulationEngineRestart::tbound_ss_simulation(const PropertyTBoundSS& property) 
 	assert(0 <= transientTime);
 	assert(transientTime < runLength);
 
-	// For the sake of efficiency, distinguish when operating with a concrete ifun
+	// For efficiency (sigh) distinguish when operating with a concrete ifun
 	const EventWatcher& watch_events = impFun_->concrete_simulation()
 			? std::bind(&SimulationEngineRestart::rate_event_concrete, this, _1, _2, _3)
 			: std::bind(&SimulationEngineRestart::rate_event,          this, _1, _2, _3);
@@ -359,6 +378,11 @@ SimulationEngineRestart::RESTART_run(const SSProperty& property,
 	const unsigned numThresholds(impFun_->num_thresholds());
 	std::vector< double > raresCount(numThresholds+1, 0.0);
 	TraialPool& tpool(TraialPool::get_instance());
+
+	// For efficiency (sigh) define here whether we resample upon splitting
+	TraialCopier copy_traials = resampleOnSplit_
+	        ? std::bind(&TraialPool::get_traial_copies<decltype(ssstack_)>, &tpool, _1, _2, _3, _4)
+	        : std::bind(&TraialPool::get_traial_clones<decltype(ssstack_)>, &tpool, _1, _2, _3, _4);
 
 	// Run a single RESTART simulation for this->simsLifeTime
 	// simulation time units and starting from the last saved ssstack_
@@ -411,7 +435,7 @@ SimulationEngineRestart::RESTART_run(const SSProperty& property,
 		} else if (IS_THR_UP_EVENT(e)) {
 			// Could have gone up several thresholds => split accordingly
 			assert(traial.numLevelsCrossed > 0);
-			handle_lvl_up(traial, tpool, ssstack_);
+			handle_lvl_up(traial, copy_traials, ssstack_);
 			traial.nextSplitLevel = static_cast<decltype(traial.nextSplitLevel)>(traial.level+1);
 			assert(&(ssstack_.top().get()) != &oTraial_);
 			// Offsprings are on top of ssstack_ now: continue attending them
