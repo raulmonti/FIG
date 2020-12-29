@@ -538,7 +538,7 @@ TraialPool::set_timeouts(Traial& t, std::vector<Traial::Timeout> clocks)
 	t.clocks_.swap(clocks);
 	t.clocksValuations_.clear();
 	for (auto &to: t.clocks_)
-		t.clocksValuations_.emplace_back(to.value);
+		t.clocksValuations_.emplace_back(to.sampled,to.value);
 #ifndef NDEBUG
 	t.check_internal_consistency();
 #endif

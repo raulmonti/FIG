@@ -178,13 +178,24 @@ Transition::apply_postcondition(Traial& traial,
 	auto& clocksValues = traial.clocks_values();
 	assert(fClk+nClk <= clocksValues.size());
 	for (auto i = fClk ; i < fClk + nClk ; i++) {
+		clocksValues[i].first.get() =
 #ifndef NDEBUG
-		clocksValues[i].get() = resetClocks_[branch].test(i) ? clocks[i-fClk].sample()
-		                                                     : clocksValues[i].get();
+		    resetClocks_[branch].test(i)
 #else
-		clocksValues[i].get() = resetClocks_[branch][i] ? clocks[i-fClk].sample()
-		                                                : clocksValues[i].get();
+		    resetClocks_[branch][i]
 #endif
+		        ? clocks[i-fClk].sample()       // yep, sample anew
+		        : clocksValues[i].first.get();  // nope
+	}
+	for (auto i = fClk ; i < fClk + nClk ; i++) {
+		clocksValues[i].second.get() =
+#ifndef NDEBUG
+		    resetClocks_[branch].test(i)
+#else
+		    resetClocks_[branch][i]
+#endif
+		        ? clocksValues[i].first.get()   // yep, take new sample
+		        : clocksValues[i].second.get(); // nope
 	}
 }
 // Specialisations

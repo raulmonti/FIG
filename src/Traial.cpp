@@ -74,7 +74,8 @@ Traial::Traial(const size_t& stateSize, const size_t& numClocks) :
 			// following assumes we're iterating a vector
 			// and thus the access to the clocks is sequentially ordered
 			clocks_.emplace_back(module_ptr, clock.name(), 0.0f, clkPos++);
-			clocksValuations_.emplace_back(clocks_.back().value);
+			clocksValuations_.emplace_back(clocks_.back().sampled,
+			                               clocks_.back().value);
 		}
 	}
 	clocks_.shrink_to_fit();
@@ -110,7 +111,8 @@ Traial::Traial(const size_t& stateSize,
 								 clock.name(),
 								 whichClocks[clkPos] ? clock.sample() : 0.0f,
 								 clkPos);
-			clocksValuations_.emplace_back(clocks_.back().value);
+			clocksValuations_.emplace_back(clocks_.back().sampled,
+			                               clocks_.back().value);
 			clkPos++;
 		}
 	}
@@ -151,14 +153,16 @@ Traial::Traial(const size_t& stateSize,
 	for (const auto& module_ptr: ModelSuite::get_instance().model->modules) {
 		int firstClock = module_ptr->first_clock_gpos();
 		assert(0 <= firstClock);
-		for (const auto& clock: module_ptr->clocks())
+		for (const auto& clock: module_ptr->clocks()) {
 			// following assumes we're iterating a vector
 			// and thus the access to the clocks is sequentially ordered
 			clocks_.emplace_back(module_ptr,
 								 clock.name(),
 								 must_reset(clock.name()) ? clock.sample() : 0.0f,
 								 firstClock++);
-		    clocksValuations_.emplace_back(clocks_.back().value);
+			clocksValuations_.emplace_back(clocks_.back().sampled,
+			                               clocks_.back().value);
+		}
 	}
 	if (orderTimeouts)
 		reorder_clocks();
@@ -222,10 +226,14 @@ Traial::initialise(const ModuleNetwork& network,
 	// initialise variables value
 	network.instantiate_initial_state(state);
 	// initialise clocks (reset all and then resample initials)
-	for (auto& timeout : clocks_)
+	for (auto& timeout : clocks_) {
+		timeout.sampled = 0.0f;
 		timeout.value = 0.0f;
-	for (const auto& posCLK: network.initialClocks)
-		clocks_[posCLK.first].value = posCLK.second.sample();  // should be non-negative
+	}
+	for (const auto& posCLK: network.initialClocks) {
+		clocks_[posCLK.first].sampled = posCLK.second.sample();  // should be non-negative
+		clocks_[posCLK.first].value = clocks_[posCLK.first].sampled;
+	}
 	// initialise importance and simulation time
 	level = impFun.ready() ? impFun.level_of(state)
 						   : impFun.importance_of(state);
@@ -249,8 +257,10 @@ Traial::copyResampling(const Traial& that)
 	orderedIndex_    = that.orderedIndex_;
 	nextClock_       = that.nextClock_;
 	clocks_          = that.clocks_;
-	for (auto i = 0ul ; i < clocks_.size() ; i++)
-		clocks_[i].value = globalClocks[i].get().resample(clocks_[i].value);
+	for (auto i = 0ul ; i < clocks_.size() ; i++) {
+//		clocks_[i].value = globalClocks[i].get().resample(clocks_[i].sampled - clocks_[i].value);
+		globalClocks[i].get().resample(clocks_[i].sampled, clocks_[i].value);
+	}
 #	ifndef NDEBUG
 	check_internal_consistency();
 #	endif
@@ -286,14 +296,19 @@ Traial::check_internal_consistency() const
 {
 #ifndef NDEBUG
 	assert(clocks_.size() == clocksValuations_.size());
-	for (auto i = 0ul ; i < clocks_.size() ; i++)
-		assert(&(clocksValuations_[i].get()) == &(clocks_[i].value));
+	for (auto i = 0ul ; i < clocks_.size() ; i++) {
+		assert(&(clocksValuations_[i].first.get()) == &(clocks_[i].sampled));
+		assert(&(clocksValuations_[i].second.get()) == &(clocks_[i].value));
+	}
 #else
 	if (clocks_.size() != clocksValuations_.size())
 		throw_FigException("Invalid Traial: clock references corrupted");
-	for (auto i = 0ul ; i < clocks_.size() ; i++)
-		if (&(clocksValuations_[i].get()) != &(clocks_[i].value))
-			throw_FigException("Invalid Traial: clock references corrupted");
+	for (auto i = 0ul ; i < clocks_.size() ; i++) {
+		if (&(clocksValuations_[i].first.get()) != &(clocks_[i].sampled))
+			throw_FigException("Invalid Traial: clock sampled references corrupted");
+		if (&(clocksValuations_[i].second.get()) != &(clocks_[i].value))
+			throw_FigException("Invalid Traial: clock values references corrupted");
+	}
 #endif
 }
 
@@ -331,7 +346,7 @@ void
 Traial::report_timelock(bool quiet)
 {
 	std::stringstream errMsg;
-	errMsg << "all clocks are expired, aka timelock! ";
+	errMsg << "all clocks expired: timelock! ";
 	if (!quiet)
 		print_out(errMsg, false);
 	throw_FigException(errMsg.str());

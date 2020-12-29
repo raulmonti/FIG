@@ -89,8 +89,10 @@ struct Distribution {
 	virtual ~Distribution() {}
 	/// Sample an (independent) random value with \par this distribution
 	virtual CLOCK_INTERNAL_TYPE sample() const = 0;
-	/// Sample a random value conditioned on the given "previous" \par value
-	virtual CLOCK_INTERNAL_TYPE sample_conditional(const CLOCK_INTERNAL_TYPE& value) const = 0;
+	/// Sample a random value conditioned on this "previous" \par value sampled,
+	/// and update the \par currentTimeLeft correspondingly
+	virtual void sample_conditional(const CLOCK_INTERNAL_TYPE& value,
+	                                CLOCK_INTERNAL_TYPE& currentTimeLeft) const = 0;
 	/// @copydoc sample()
 	inline CLOCK_INTERNAL_TYPE operator()() const { return sample(); }
 };

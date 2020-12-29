@@ -80,9 +80,11 @@ public:
 	{
 		/// Module where the expired clock exists
 		std::shared_ptr<const ModuleInstance> module;
-		/// Clock's name
+		/// Name of the \ref Clock "clock"
 		std::string name;
-		/// Clock's time value
+		/// Last time-value sampled with this \ref Clock "clock"
+		float sampled;
+		/// Current time-value of this \ref Clock "clock"
 		float value;
 		/// Clock's position in Traial's global state
 		unsigned gpos;
@@ -124,12 +126,17 @@ private:
 	std::vector< Timeout > clocks_;
 
 	/// Time-increasing-ordered view of 'clocks_' vector.
-	/// Access for friends is safely granted through next_timeout()
+	/// @note Public access is granted through next_timeout()
 	std::vector< unsigned > orderedIndex_;
 
-	/// Projection of \ref Clock "clocks" valuations into a continuous array
+	/// Projection of \ref Clock "clocks" value pairs
+	/// (sampled_time,current_time) into a continuous array
+	/// @details "sampled_time" is the last value sampled from the distribution,
+	///          "current_time" is that sampled-time minus time already elapsed
 	/// @note Same order as clocks_ vector
-	std::vector< Reference< CLOCK_INTERNAL_TYPE > > clocksValuations_;
+	/// @note Public access is granted through clocks_values()
+	std::vector< std::pair< Reference<CLOCK_INTERNAL_TYPE>,
+	                        Reference<CLOCK_INTERNAL_TYPE> > > clocksValuations_;
 
 	/// Position of smallest non-negative Clock value in clocks_.
 	/// Negative if all are null.
