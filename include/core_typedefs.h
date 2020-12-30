@@ -89,10 +89,14 @@ struct Distribution {
 	virtual ~Distribution() {}
 	/// Sample an (independent) random value with \par this distribution
 	virtual CLOCK_INTERNAL_TYPE sample() const = 0;
-	/// Sample a random value conditioned on this "previous" \par value sampled,
-	/// and update the \par currentTimeLeft correspondingly
-	virtual void sample_conditional(const CLOCK_INTERNAL_TYPE& value,
-	                                CLOCK_INTERNAL_TYPE& currentTimeLeft) const = 0;
+	/// Sample a random value conditioned on the time already elapsed
+	/// @details Update the \a current time value, sampling a new value
+	///          from this distribution tha depends on \a previous - \a current
+	/// @param previous Previous (time) value sampled by this Distribution
+	/// @param current  Current time left in the clock that owns this Distribution
+	/// @note Do nothing if \a current <= 0, i.e. Clock is expired
+	virtual void sample_conditional(CLOCK_INTERNAL_TYPE& previous,
+	                                CLOCK_INTERNAL_TYPE& current) const = 0;
 	/// @copydoc sample()
 	inline CLOCK_INTERNAL_TYPE operator()() const { return sample(); }
 };

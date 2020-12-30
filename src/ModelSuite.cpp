@@ -1390,13 +1390,14 @@ ModelSuite::estimate(const Property& property,
 	lastEstimates_.clear();
 	lastEstimates_.reserve(bounds.size());
 
+	const auto engineName = engine.name();
 	if (!engine.ready())
-		throw_FigException("SimulationEngine \"" + engine.name()
-						  +"\" isn't ready for simulations");
+		throw_FigException("SimulationEngine \"" + engineName + "\" isn't ready for simulations");
 	else
 		engine.set_batch_size(bounds.batch_size());
 	const ImportanceFunction& ifun(*impFuns[engine.current_imp_fun()]);
-	const std::string postProcStr(ifun.post_processing().name.empty()
+	const auto resample = ((engineName.find("restart")!=std::string::npos) && get_resampling()) ? "yes" : "no";
+	const auto postProcStr(ifun.post_processing().name.empty()
 			? ("(null)") : (ifun.post_processing().name + " "
 							+ to_string(ifun.post_processing().value)));
 
@@ -1405,7 +1406,8 @@ ModelSuite::estimate(const Property& property,
 	mainLog_ << " + importance function: " << user_friendly_ifun_name(ifunSpec) << "\n";
 	mainLog_ << " + post-processing:     " << postProcStr << "\n";
 	mainLog_ << " + threshold builder:   " << ifun.thresholds_technique() << "\n";
-	mainLog_ << " + simulation engine:   " << engine.name() << "\n";
+	mainLog_ << " + simulation engine:   " << engineName << "\n";
+	mainLog_ << " + resample on split:   " << resample << "\n";
 	mainLog_ << " + RNG seed:            " << Clock::rng_seed()
 			 << (Clock::rng_seed_is_random() ? (" (randomized)\n") : ("\n"));
 	mainLog_ << " [ " << ifun.num_thresholds() << " thresholds | ";

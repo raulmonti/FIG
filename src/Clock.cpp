@@ -200,6 +200,16 @@ std::string rngType(fig::Clock::DEFAULT_RNG.first);
 auto rng = RNGs[rngType];
 
 
+[[noreturn]]
+void
+Fthis(const std::string& distName)
+{
+	throw_FigException("conditional sampling not implemented for " + distName
+	                   + " distribution, aborting computations. Perhaps try"
+	                   + " again with the \"--no-resampling\" switch");
+}
+
+
 /// Default ctor for unimplemented distributions
 struct unknown_distribution : public fig::Distribution
 {
@@ -209,7 +219,7 @@ struct unknown_distribution : public fig::Distribution
 		throw_FigException("unknown distribution requested: " + name);
 	}
 	inline return_t sample() const override { return -1; }
-	inline void sample_conditional(const time_t&, time_t&) const override {}
+	void sample_conditional(time_t&, time_t&) const override { Fthis(name); }
 };
 
 
@@ -227,18 +237,19 @@ struct uniform : public fig::Distribution
 		assert(params[0] < params[1]);
 	}
 	inline return_t sample() const override { return f(*rng); }
-	/// Sample from Uniform[value,b],
-	/// i.e. discard the probability mass in [a,value], which is elapsed time
-	void sample_conditional(const time_t& previous, time_t& value) const override
+	/// Sample from Uniform[a-t,b-t], where t = previous-value = elapsed time
+	void sample_conditional(time_t& previous, time_t& current) const override
 	{
-		assert(previous >= params[0]);
+		if (static_cast<time_t>(0) >= current)
+			return;  // expired Clock: do nothing
 		assert(previous <= params[1]);
-		/// @bug BUG: the following makes --no-resampling differ from resampling
-		///           Is the error in the implementation, or in the theory?
-//		throw_FigException("implementation for resampling of uniform "
-//		                   "distributions is biased! Aborting");
-		std::uniform_real_distribution<fig::CLOCK_INTERNAL_TYPE> g(previous, params[1]);
-		value += g(*rng) - previous;
+		assert(previous >= params[0]);
+		assert(previous > current);
+		const auto elapsed = previous-current;
+		std::uniform_real_distribution<fig::CLOCK_INTERNAL_TYPE>
+		        f_cond(std::max(0.0f,params[0]-elapsed), params[1]-elapsed);
+		current = f_cond(*rng);
+		previous = current + elapsed;
 	}
 };
 
@@ -257,7 +268,12 @@ struct exponential : public fig::Distribution
 	}
 	inline return_t sample() const override { return f(*rng); }
 	/// Memoryless is the best
-	inline void sample_conditional(const time_t&, time_t& value) const override { value = f(*rng); }
+	inline void sample_conditional(time_t&, time_t& current) const override
+	{
+		if (static_cast<time_t>(0) < current)
+			current = f(*rng);
+		// else: expired Clock, so do nothing
+	}
 };
 
 
@@ -286,10 +302,8 @@ struct hyperexponential2 : public fig::Distribution
 		assert(static_cast<time_t>(0) < params[2]);
 	}
 	inline return_t sample() const override { return U(*rng) < p ? l1(*rng) : l2(*rng); }
-	void sample_conditional(const time_t&, time_t&) const override
-	{
-		throw_FigException("conditional sampling not implemented for " + name + " distribution");
-	}
+	/// Not implemented yet
+	void sample_conditional(time_t&, time_t&) const override { Fthis(name); }
 };
 
 
@@ -310,10 +324,8 @@ struct normal : public fig::Distribution
 		assert(static_cast<time_t>(0) < params[1]);
 	}
 	inline return_t sample() const override { return std::max(0.000001f, f(*rng)); }
-	void sample_conditional(const time_t&, time_t&) const override
-	{
-		throw_FigException("conditional sampling not implemented for " + name + " distribution");
-	}
+	/// Not implemented yet
+	void sample_conditional(time_t&, time_t&) const override { Fthis(name); }
 };
 
 
@@ -332,10 +344,8 @@ struct lognormal : public fig::Distribution
 		assert(static_cast<time_t>(0) < params[1]);
 	}
 	inline return_t sample() const override { return f(*rng); }
-	void sample_conditional(const time_t&, time_t&) const override
-	{
-		throw_FigException("conditional sampling not implemented for " + name + " distribution");
-	}
+	/// Not implemented yet
+	void sample_conditional(time_t&, time_t&) const override { Fthis(name); }
 };
 
 
@@ -354,10 +364,8 @@ struct weibull : public fig::Distribution
 		assert(static_cast<time_t>(0) < params[1]);
 	}
 	inline return_t sample() const override { return f(*rng); }
-	void sample_conditional(const time_t&, time_t&) const override
-	{
-		throw_FigException("conditional sampling not implemented for " + name + " distribution");
-	}
+	/// Not implemented yet
+	void sample_conditional(time_t&, time_t&) const override { Fthis(name); }
 };
 
 
@@ -374,10 +382,8 @@ struct rayleigh : public fig::Distribution
 		assert(static_cast<time_t>(0) < params[0]);
 	}
 	inline return_t sample() const override { return f(*rng); }
-	void sample_conditional(const time_t&, time_t&) const override
-	{
-		throw_FigException("conditional sampling not implemented for " + name + " distribution");
-	}
+	/// Not implemented yet
+	void sample_conditional(time_t&, time_t&) const override { Fthis(name); }
 };
 
 
@@ -396,10 +402,8 @@ struct Gamma : public fig::Distribution
 		assert(static_cast<time_t>(0) < params[1]);
 	}
 	inline return_t sample() const override { return f(*rng); }
-	void sample_conditional(const time_t&, time_t&) const override
-	{
-		throw_FigException("conditional sampling not implemented for " + name + " distribution");
-	}
+	/// Not implemented yet
+	void sample_conditional(time_t&, time_t&) const override { Fthis(name); }
 };
 
 
@@ -420,10 +424,8 @@ struct erlang : public fig::Distribution
 		assert(static_cast<time_t>(0) < params[1]);
 	}
 	inline return_t sample() const override { return f(*rng); }
-	void sample_conditional(const time_t&, time_t&) const override
-	{
-		throw_FigException("conditional sampling not implemented for " + name + " distribution");
-	}
+	/// Not implemented yet
+	void sample_conditional(time_t&, time_t&) const override { Fthis(name); }
 };
 
 
@@ -440,13 +442,15 @@ struct dirac : public fig::Distribution
 		assert(static_cast<time_t>(0) < params[0]);
 	}
 	inline return_t sample() const override { return x; }
-	inline void sample_conditional(const time_t&, time_t&) const override { }
+	inline void sample_conditional(time_t&, time_t&) const override { }
 };
 
 
 
 
-/*
+/*  Home-made random deviates
+ *
+ *  Kept in case we need to recycle for conditional (re-)sampling
 
 /// For home-made random deviates
 thread_local std::uniform_real_distribution< float > Unif01(0.0f,1.0f);

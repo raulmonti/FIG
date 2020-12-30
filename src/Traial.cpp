@@ -257,10 +257,8 @@ Traial::copyResampling(const Traial& that)
 	orderedIndex_    = that.orderedIndex_;
 	nextClock_       = that.nextClock_;
 	clocks_          = that.clocks_;
-	for (auto i = 0ul ; i < clocks_.size() ; i++) {
-//		clocks_[i].value = globalClocks[i].get().resample(clocks_[i].sampled - clocks_[i].value);
+	for (auto i = 0ul ; i < clocks_.size() ; i++)
 		globalClocks[i].get().resample(clocks_[i].sampled, clocks_[i].value);
-	}
 #	ifndef NDEBUG
 	check_internal_consistency();
 #	endif
