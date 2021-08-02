@@ -24,6 +24,9 @@ bin_*/
 qtbin*/
 tests_bin*
 CMakeFiles*
+CMakeCache.txt
+Makefile
+cmake_install.cmake
 doc.html
 
 # Simulation/Cluster logs

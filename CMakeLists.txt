@@ -234,9 +234,6 @@ ELSEIF(COMPILER_IS_GCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
 	# From jsoncpp 1.7.4: this statement may fall through
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wimplicit-fallthrough=0")
 ENDIF()
-# From MuParser-2.2.5 library -- http://muparser.beltoforion.de/:
-# "auto_ptr is deprecated" (TODO: update library ourselves?)
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 # Debug mode has some known harmless warnings: turn these off
 IF(NOT RELEASE)
 	# From Z3 library "check_context()" and others: "unused parameter 'a'"...

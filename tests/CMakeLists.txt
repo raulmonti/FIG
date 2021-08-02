@@ -26,7 +26,7 @@
 ##
 ##==============================================================================
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.13)
 
 PROJECT (fig_tests)
 
@@ -176,7 +176,8 @@ ENDIF()
 IF(RELEASE)
 	# As much automatic optimization as we can get
 	IF(COMPILER_IS_GCC)
-		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 --fast-math -march=native")
+		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -fno-unsafe-math-optimizations")
+		# WARNING: don't use --fast-math: it enables -funsafe-math-optimizations and causes bias
 	ELSE()
 		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 	ENDIF()
@@ -304,7 +305,6 @@ ADD_CUSTOM_COMMAND(
 SET (ALL_SOURCES ${ALL_SOURCES} ${PARSER_CODE} ${LEXER_CODE})
 
 # Build executable
-#CMAKE_POLICY(SET CMP0037 OLD)  # avoid warning "test is a reserved target name"
 ADD_EXECUTABLE(test ${ALL_SOURCES})
 
 
