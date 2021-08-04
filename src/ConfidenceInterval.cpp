@@ -98,7 +98,7 @@ double erf_inv(const double& y)
  * @return Standard normal inverse CDF of 'y', or 'NaN' on error
  * @deprecated Now we use GSL's "gsl_cdf_XXXXX_Pinv" functions instead
  */
-//[[ deprecated("use the GSL instead, e.g. gsl_cdf_tdist_Pinv") ]]
+[[ deprecated("use the GSL instead, e.g. gsl_cdf_tdist_Pinv") ]]
 double probit(const double& y)
 {
 	if (0.0 > y || 1.0 < y)

@@ -164,7 +164,8 @@ public:  // Utils
 
 	/// @brief Sample new time, distributed according to our distribution PDF
 	inline CLOCK_INTERNAL_TYPE sample() const { return dist_->sample(); }
-	/// @brief Sample new time from distribution, conditioned on the given \par elapsedTime
+	/// @brief Sample new time from distribution, conditioned on it falling in
+	///        the interval ( \a currentRemainingTime, \a previousSampledTime ]
 	inline void resample(CLOCK_INTERNAL_TYPE& previousSampledTime,
 	                     CLOCK_INTERNAL_TYPE& currentRemainingTime) const
 	    { dist_->sample_conditional(previousSampledTime, currentRemainingTime); }

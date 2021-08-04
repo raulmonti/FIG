@@ -54,9 +54,6 @@ using std::begin;
 using std::end;
 
 
-namespace { const fig::Label NoLabel = fig::Label::make_ignored();}
-
-
 namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 {
 
@@ -208,6 +205,9 @@ const Label&
 ModuleInstance::apply_postcondition(Traial &traial,
                                     const transition_vector_t& transitions) const
 {
+
+	static const auto NoLabel = fig::Label::make_ignored();
+
 #ifndef NDEBUG  // Check for nondeterminism only in DEBUG mode
 	const Label* labPtr(nullptr);
 	StateInstance traialState = traial.state;
@@ -259,14 +259,14 @@ ModuleInstance::apply_postcondition(Traial &traial,
 		}
 	}
 	if (nullptr == labPtr)
-		return ::NoLabel;  // No enabled transition found
+		return NoLabel;  // No enabled transition found
 	else
 		return *labPtr;
 #else
 			return tr.label();  // At most one transition should've been enabled
 		}
 	}
-	return ::NoLabel;  // No enabled transition found
+	return NoLabel;  // No enabled transition found
 #endif
 }
 

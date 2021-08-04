@@ -30,6 +30,8 @@
 #ifndef CORE_TYPEDEFS_H
 #define CORE_TYPEDEFS_H
 
+// C
+#include <cassert>
 // C++
 #include <tuple>
 #include <array>
@@ -68,35 +70,68 @@ namespace fig
   typedef  double                                        CLOCK_INTERNAL_TYPE;
 #endif
 
-
 /// Fixed-size array of distribution parameters, needed to sample Distributions
-typedef std::array< CLOCK_INTERNAL_TYPE , NUM_DISTRIBUTION_PARAMS >
+typedef std::array< float , NUM_DISTRIBUTION_PARAMS >
 ///
 													  DistributionParameters;
+
+/// Max tolerable number of resamplings when using rejection sampling to
+/// compute a conditional sample
+static constexpr auto MAX_RESAMPLING = 4ul;
+
+/// Probabilistic threshold to decide whether to do rejection sampling:
+/// if F(current) < RESAMPLING_THR then go for it; else do not resample.
+static constexpr auto RESAMPLING_THR = (MAX_RESAMPLING-1.0f)/MAX_RESAMPLING;
+
 /// Arbitrary stochastic distribution
 /// @note To build a Distribution, the only argument needed is a single
 ///       \ref DistributionParameters "array of parameters", regardless of the
 ///       actual number of parameters that the mathematical entity may need.
 /// @see Clock
-struct Distribution {
+struct Distribution
+{
 	std::string name;
 	DistributionParameters params;
+
 	Distribution(const std::string& name_,
 	             const DistributionParameters& params_)
 	                : name(name_)
 	                , params(params_)
 	    { /* Not much to do around here */ }
+
 	virtual ~Distribution() {}
-	/// Sample an (independent) random value with \par this distribution
+
+	/// Sample an (independent) random value from \p this distribution
 	virtual CLOCK_INTERNAL_TYPE sample() const = 0;
+
 	/// Sample a random value conditioned on the time already elapsed
-	/// @details Update the \a current time value, sampling a new value
-	///          from this distribution tha depends on \a previous - \a current
-	/// @param previous Previous (time) value sampled by this Distribution
+	/// @details This is used to update the \p current (and \p previous) times.
+	///          Such new value comes from the same distribution, but it is
+	///          conditioned to be greater than the \p current time value.
+	/// @param previous Previous (expiration) time sampled by this Distribution
 	/// @param current  Current time left in the clock that owns this Distribution
-	/// @note Do nothing if \a current <= 0, i.e. Clock is expired
+	/// @note Do nothing if \p current <= 0, i.e. Clock is expired
+	/// @note By default this is implemented with rejection sampling, but may
+	///       be overriden by a more efficient per-distribution inverse method
 	virtual void sample_conditional(CLOCK_INTERNAL_TYPE& previous,
-	                                CLOCK_INTERNAL_TYPE& current) const = 0;
+									CLOCK_INTERNAL_TYPE& current) const
+		{
+			if (static_cast<time_t>(0) >= current)
+				return;  // expired Clock: do nothing
+			assert(previous > current);
+			const auto elapsed = previous - current;
+			if (CDF(elapsed) > RESAMPLING_THR)
+				return;  // nah, not worth it
+			do {  // rejection sampling
+				previous = sample();
+			} while (previous < elapsed);
+			current = previous - elapsed;
+		}
+
+	/// Cumulative Density Function = integral of \p this PDF < \p x
+	/// @note Useful for bounding the effort of rejection sampling
+	virtual float CDF(float x) const = 0;
+
 	/// @copydoc sample()
 	inline CLOCK_INTERNAL_TYPE operator()() const { return sample(); }
 };

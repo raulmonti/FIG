@@ -1,0 +1,36 @@
+// Tests for conditional (re)sampling of clocks
+// Budde, Monti, D'Argenio | 2021
+//
+// Queue with exponential arrivals, and service times ~ Erlang(4,7.654321)
+//
+// Sample command line:
+//
+// $ fig --parlare 1 --stop-time 15s --rng-seed 1874644214 --amono -e restart --thresholds-adhoc "6:2,7:2,8:2,9:3,10:3,11:2,12:3,13:3,14:2,15:3" Erlang.sa
+//
+// Compare against flag "--no-resampling"
+
+
+module Arrivals
+	clkArr: clock;
+	[Arr!] @ clkArr -> (clkArr'= exponential(1.0));
+endmodule
+
+const int k = 4 ;          // shape of the Erlang
+const float l = 7.654321;  // rate  of the Erlang
+const int C = 19;
+
+module Queue
+	clkSer: clock;
+	q: [0..C];
+	// Packet arrival
+	[Arr?] q == 0          -> (q'= q+1) & (clkSer'= erlang(k,l));
+	[Arr?] q  > 0 & q < C  -> (q'= q+1);
+	[Arr?] q == C          -> ;
+	// Packet service
+	[Ser!] q == 1 @ clkSer -> (q'= q-1);
+	[Ser!] q  > 1 @ clkSer -> (q'= q-1) & (clkSer'= erlang(k,l));
+endmodule
+
+properties
+	S[ 60:6060 ]( q >= C )
+endproperties

@@ -320,11 +320,11 @@ public:  // Utils
 	          const CLOCK_INTERNAL_TYPE& timeLapse)
 	    {
 		    // checks
-		    static_assert (std::is_integral<size_type_>::value,
-			               "ERROR: type mismatch, size types must be "
-			               "(non-negative) integrals");
+			static_assert(std::is_integral<size_type_>::value,
+						  "ERROR: type mismatch, size types must be "
+						  "(non-negative) integrals");
 			assert(static_cast<size_type_>(0) <= clkPos);
-			//code
+			// code
 			clocks_[clkPos].value -= timeLapse;
 	    }
 

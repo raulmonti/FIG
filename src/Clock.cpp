@@ -38,6 +38,7 @@
 #include <map>
 // External code
 #include <pcg_random.hpp>
+#include <gsl_cdf.h>  // gsl_cdf_ugaussian_P(), gsl_cdf_gamma_P(), etc.
 // FIG
 #include <Clock.h>
 #include <core_typedefs.h>
@@ -53,6 +54,9 @@
 using std::find;
 using std::begin;
 using std::end;
+using std::pow;
+using std::log;
+using std::exp;
 
 
 /// @brief RNG and distributions available for time sampling of the clocks
@@ -199,14 +203,25 @@ std::string rngType(fig::Clock::DEFAULT_RNG.first);
 /// RNG instance
 auto rng = RNGs[rngType];
 
+/// Random deviate for hand-made conditional resampling
+thread_local std::uniform_real_distribution< float > Unif01(0.0f,1.0f);
 
 [[noreturn]]
 void
-Fthis(const std::string& distName)
+no_CDF_implementation(const std::string& distName)
+{
+	throw_FigException("the CDF for the " + distName + " distribution has not "
+					   + "been implemented yet, aborting computations. Perhaps "
+					   + "try again with the \"--no-resampling\" switch");
+}
+
+[[noreturn]]
+void
+no_conditional_sampling(const std::string& distName)
 {
 	throw_FigException("conditional sampling not implemented for " + distName
-	                   + " distribution, aborting computations. Perhaps try"
-	                   + " again with the \"--no-resampling\" switch");
+					   + " distribution, aborting computations. Try again"
+					   + " with the \"--no-resampling\" switch");
 }
 
 
@@ -218,36 +233,73 @@ struct unknown_distribution : public fig::Distribution
 	{
 		throw_FigException("unknown distribution requested: " + name);
 	}
+	inline float CDF(float) const override { no_CDF_implementation(name); }
 	inline return_t sample() const override { return -1; }
-	void sample_conditional(time_t&, time_t&) const override { Fthis(name); }
+	inline void sample_conditional(time_t&, time_t&) const override { no_conditional_sampling(name); }
 };
 
 
 /// Random deviate ~ Uniform[a,b]<br>
-///  where \par a = params[0] is the lower bound,<br>
-///    and \par b = params[1] is the upper bound.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)">the wiki</a>
+///  where \p a = params[0] is the lower bound,<br>
+///    and \p b = params[1] is the upper bound.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)"><b>the wiki</a>
 struct uniform : public fig::Distribution
 {
+	const float range;
 	mutable std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > f;
 	uniform(const params_t& params)
 	    : Distribution("uniform", params)
-	    , f(params[0], params[1])  // this line creates the function
+		, range(params[1] - params[0])
+		, f(params[0], params[1])  // this line creates the function object
 	{
+		assert(0 <= params[0]);
 		assert(params[0] < params[1]);
 	}
+
+	/// Don't need it for conditional sampling,
+	/// which we implement with the inverse method
+	inline float CDF(float x) const override
+	{
+		return x <= params[0] ? 0.0f :
+			   x >= params[1] ? 1.0f :
+			   (x-params[0]) / range;
+	}
+
 	inline return_t sample() const override { return f(*rng); }
-	/// Sample from Uniform[a-t,b-t], where t = previous-value = elapsed time
-	void sample_conditional(time_t& previous, time_t& current) const override
+
+	/// @copydoc fig::Distribution::sample_conditional
+	/// @details <b>Implementation:</b><br>
+	/// Inverse method for conditional probability (copyleft Pedro D'Argenio):
+	/// `F_inv_elapsed(u) = F_inv( u + (1-u)*F(elapsed) ) - elapsed`
+	/// where u ~ Uniform[0,1].<br>
+	/// For F ~ Uniform this yields two cases:
+	/// `... = u(b-elapsed)    `   if `elapsed > a`;
+	/// `... = u(b-a)+a-elapsed`   if `elapsed < a`.
+	inline void sample_conditional(time_t& previous, time_t& current) const override
 	{
 		if (static_cast<time_t>(0) >= current)
 			return;  // expired Clock: do nothing
 		assert(previous <= params[1]);
 		assert(previous >= params[0]);
 		assert(previous > current);
-		const auto elapsed = previous-current;
+		const auto elapsed = previous - current;
+		const auto u = Unif01(*rng);
+		current = elapsed >= params[0] ? u * (params[1] - elapsed)
+									   : u * range + params[0] - elapsed;
+		previous = current + elapsed;
+	}
+
+	/// Alternative way: sample from Uniform[max(0,a-elapsed),b-elapsed]
+	inline void sample_conditional_alt(time_t& previous, time_t& current) const
+	{
+		if (static_cast<time_t>(0) >= current)
+			return;  // expired Clock: do nothing
+		assert(previous <= params[1]);
+		assert(previous >= params[0]);
+		assert(previous > current);
+		const auto elapsed = previous - current;
 		std::uniform_real_distribution<fig::CLOCK_INTERNAL_TYPE>
-		        f_cond(std::max(0.0f,params[0]-elapsed), params[1]-elapsed);
+				f_cond(std::max(0.0f,params[0]-elapsed), params[1]-elapsed);
 		current = f_cond(*rng);
 		previous = current + elapsed;
 	}
@@ -255,183 +307,235 @@ struct uniform : public fig::Distribution
 
 
 /// Random deviate ~ Exponential(lambda)<br>
-///  where \par lambda = params[0] is the rate.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Exponential_distribution">the wiki</a>
+///  where \p lambda = params[0] is the rate.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Exponential_distribution"><b>the wiki</a>
 struct exponential : public fig::Distribution
 {
 	mutable std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > f;
 	exponential(const params_t& params)
 	    : Distribution("exponential", params)
-	    , f(params[0])  // this line creates the function
+		, f(params[0])  // this line creates the function object
 	{
-		assert(static_cast< time_t >(0) < params[0]);
+		assert(0 < params[0]);
 	}
+
+	/// Don't need it for conditional sampling,
+	/// which we implement by doing nothing (memoryless is the best)
+	inline float CDF(float x) const override { return 1-exp(-params[0]*x); }
+
 	inline return_t sample() const override { return f(*rng); }
-	/// Memoryless is the best
+
+	/// @copydoc fig::Distribution::sample_conditional
+	/// @details <b>Implementation:</b><br>
+	/// Sample from same distribution (memoryless is the best)
 	inline void sample_conditional(time_t&, time_t& current) const override
 	{
-		if (static_cast<time_t>(0) < current)
-			current = f(*rng);
-		// else: expired Clock, so do nothing
+		if (static_cast<time_t>(0) >= current)
+			return;  // expired Clock: do nothing
+		current = f(*rng);
+		// memoryless: no need to do "previous = current + elapsed;"
+		// thus, we can't include the check "assert(previous > current);"
 	}
 };
 
 
 /// Random deviate ~ Hyper-Exponential(p:lambda1,1-p:lambda2)<br>
-///  where \par p = params[0] is the probability of choosing the first rate,<br>
-///    and 1 - \par p is the probability of choosing the second rate,<br>
-///    and \par lambda1 = params[1] is the first  possible rate,<br>
-///    and \par lambda2 = params[2] is the second possible rate.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Hyperexponential_distribution">the wiki</a>
+///  where \p p = params[0] is the probability of choosing the first rate,<br>
+///    and 1 - \p p is the probability of choosing the second rate,<br>
+///    and \p lambda1 = params[1] is the first  possible rate,<br>
+///    and \p lambda2 = params[2] is the second possible rate.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Hyperexponential_distribution"><b>the wiki</a>
 struct hyperexponential2 : public fig::Distribution
 {
 	const float p;
-	mutable std::uniform_real_distribution< float > U;
 	mutable std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > l1;
 	mutable std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > l2;
 	hyperexponential2(const params_t& params)
 	    : Distribution("hyperexponential2", params)
 	    , p(params[0])
-	    , U(0.0f,1.0f)   // Uniform([0,1])
 	    , l1(params[1])  // first  exponential
 	    , l2(params[2])  // second exponential
 	{
-		assert(static_cast<time_t>(1) > p);
-		assert(static_cast<time_t>(0) < p);
-		assert(static_cast<time_t>(0) < params[1]);
-		assert(static_cast<time_t>(0) < params[2]);
+		assert(1 > p);
+		assert(0 < p);
+		assert(0 < params[1]);
+		assert(0 < params[2]);
 	}
-	inline return_t sample() const override { return U(*rng) < p ? l1(*rng) : l2(*rng); }
-	/// Not implemented yet
-	void sample_conditional(time_t&, time_t&) const override { Fthis(name); }
+	inline float CDF(float x) const override { return p*(1-exp(-params[1]*x)) + (1-p)*(1-exp(-params[2]*x)); }
+	inline return_t sample() const override { return Unif01(*rng) < p ? l1(*rng) : l2(*rng); }
 };
 
 
 /// Random deviate ~ Normal(m,sd)<br>
-///  where \par  m = params[0] is the mean,<br>
-///    and \par sd = params[1] is the standard deviation.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Normal_distribution">the wiki</a>
+///  where \p  m = params[0] is the mean,<br>
+///    and \p sd = params[1] is the standard deviation.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Normal_distribution"><b>the wiki</a>
 /// @bug BUG: when taking the max with 0.000001 (to avoid sampling non-positive
 ///           time delays) we lose probability mass. This mass must be added to
 ///           the remaining (positively-supported) mass of the distribution.
+/// @todo TODO Replace by the <a href="https://en.wikipedia.org/wiki/Normal_distribution"><b>
+///            folded normal distribution<b></a>, which is exactly what we need.
 struct normal : public fig::Distribution
 {
 	mutable std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > f;
 	normal(const params_t& params)
 	    : Distribution("normal", params)
-	    , f(params[0], params[1])
+		, f(params[0], params[1])  // this line creates the function object
 	{
-		assert(static_cast<time_t>(0) < params[1]);
+		assert(0 < params[1]);
 	}
+	inline float CDF(float x) const override { return gsl_cdf_ugaussian_P((x-params[0])/params[1]); }
 	inline return_t sample() const override { return std::max(0.000001f, f(*rng)); }
-	/// Not implemented yet
-	void sample_conditional(time_t&, time_t&) const override { Fthis(name); }
 };
 
 
 /// Random deviate ~ Lognormal(m,sd)<br>
-///  where \par  m = params[0] is the mean,<br>
-///    and \par sd = params[1] is the standard deviation<br>
+///  where \p  m = params[0] is the mean,<br>
+///    and \p sd = params[1] is the standard deviation<br>
 /// of the inherent normally distributed random variable.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Log-normal_distribution">the wiki</a>
+/// Check <a href="https://en.wikipedia.org/wiki/Log-normal_distribution"><b>the wiki</a>
 struct lognormal : public fig::Distribution
 {
 	mutable std::lognormal_distribution< fig::CLOCK_INTERNAL_TYPE > f;
 	lognormal(const params_t& params)
 	    : Distribution("lognormal", params)
-	    , f(params[0], params[1])
+		, f(params[0], params[1])  // this line creates the function object
 	{
-		assert(static_cast<time_t>(0) < params[1]);
+		assert(0 < params[1]);
 	}
+	inline float CDF(float x) const override { return gsl_cdf_lognormal_P(x, params[0], params[1]); }
 	inline return_t sample() const override { return f(*rng); }
-	/// Not implemented yet
-	void sample_conditional(time_t&, time_t&) const override { Fthis(name); }
 };
 
 
 /// Random deviate ~ Weibull(a,b)<br>
-///  where \par a = params[0] is the shape parameter, aka \par k,<br>
-///    and \par b = params[1] is the scale parameter, aka \par lambda.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Weibull_distribution">the wiki</a>
+///  where \p a = params[0] is the shape parameter, aka \p k,<br>
+///    and \p b = params[1] is the scale parameter, aka \p lambda.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Weibull_distribution"><b>the wiki</a>
 struct weibull : public fig::Distribution
 {
+	const float k_inv;  // for conditional sampling
+	const float l_inv;  // for conditional sampling
 	mutable std::weibull_distribution< fig::CLOCK_INTERNAL_TYPE > f;
 	weibull(const params_t& params)
 	    : Distribution("weibull", params)
-	    , f(params[0], params[1])
+		, k_inv(1.0/params[0])
+		, l_inv(1.0/params[1])
+		, f(params[0], params[1])  // this line creates the function object
 	{
-		assert(static_cast<time_t>(0) < params[0]);
-		assert(static_cast<time_t>(0) < params[1]);
+		assert(0 < params[0]);
+		assert(0 < params[1]);
 	}
+
+	/// Don't need it for conditional sampling,
+	/// which we implement with the inverse method
+	inline float CDF(float x) const override { return gsl_cdf_weibull_P(x, params[0], params[1]); }
+
 	inline return_t sample() const override { return f(*rng); }
-	/// Not implemented yet
-	void sample_conditional(time_t&, time_t&) const override { Fthis(name); }
+
+	/// @copydoc fig::Distribution::sample_conditional
+	/// @details <b>Implementation:</b><br>
+	/// Inverse method for conditional probability (copyleft Pedro D'Argenio):
+	/// `F_inv_elapsed(u) = F_inv( u + (1-u)*F(elapsed) ) - elapsed`
+	/// where u ~ Uniform[0,1].<br>
+	/// For F ~ Weibull this yields: `lambda*(-ln(u*e^-((elapsed/lambda)^k)))^(1/k) - elapsed`
+	inline void sample_conditional(time_t& previous, time_t& current) const override
+	{
+		if (static_cast<time_t>(0) >= current)
+			return;  // expired Clock: do nothing
+		assert(previous > current);
+		const auto elapsed = previous - current;
+		current = params[1] * pow(-log(Unif01(*rng)*exp(-pow(elapsed*l_inv,params[0]))), k_inv) - elapsed;
+		previous = current + elapsed;
+	}
 };
 
 
 /// Random deviate ~ Rayleigh(s) ~ Weibull(2,s*sqrt(2))<br>
-///  where \par s = params[0] is the scale parameter.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Rayleigh_distribution">the wiki</a>
+///  where \p s = params[0] is the scale parameter.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Rayleigh_distribution"><b>the wiki</a>
 struct rayleigh : public fig::Distribution
 {
+	const float s_s_2;  // for conditional sampling
 	mutable std::weibull_distribution< fig::CLOCK_INTERNAL_TYPE > f;
 	rayleigh(const params_t& params)
-	    : Distribution("rayleigh", params)
-	    , f(2.0, params[0]*M_SQRT2f32)
+		: Distribution("rayleigh", params)
+		, s_s_2(params[0]*params[0]*2.0f)
+		, f(2.0, params[0]*M_SQRT2f32)  // this line creates the function object
 	{
-		assert(static_cast<time_t>(0) < params[0]);
+		assert(0 < params[0]);
 	}
+
+	/// Don't need it for conditional sampling,
+	/// which we implement with the inverse method
+	inline float CDF(float x) const override { return gsl_cdf_rayleigh_P(x, params[0]); }
+
 	inline return_t sample() const override { return f(*rng); }
-	/// Not implemented yet
-	void sample_conditional(time_t&, time_t&) const override { Fthis(name); }
+
+	/// @copydoc fig::Distribution::sample_conditional
+	/// @details <b>Implementation:</b><br>
+	/// Inverse method for conditional probability (copyleft Pedro D'Argenio):
+	/// `F_inv_elapsed(u) = F_inv( u + (1-u)*F(elapsed) ) - elapsed`
+	/// where u ~ Uniform[0,1].<br>
+	/// For F ~ Rayleigh this yields: `sqrt(elapsed^2-2*s^2*ln(u)) - elapsed`
+	inline void sample_conditional(time_t& previous, time_t& current) const override
+	{
+		if (static_cast<time_t>(0) >= current)
+			return;  // expired Clock: do nothing
+		assert(previous > current);
+		const auto elapsed = previous - current;
+		current = sqrtf(elapsed*elapsed - s_s_2*log(Unif01(*rng))) - elapsed;
+		previous = current + elapsed;
+	}
 };
 
 
 /// Random deviate ~ Gamma(a,b)<br>
-///  where \par a = params[0] is the shape parameter,<br>
-///    and \par b = params[1] is the scale parameter, aka reciprocal of the rate.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Gamma_distribution">the wiki</a>
+///  where \p a = params[0] is the shape parameter,<br>
+///    and \p b = params[1] is the scale parameter, aka theta, aka reciprocal of the rate.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Gamma_distribution"><b>the wiki</a>
 struct Gamma : public fig::Distribution
 {
 	mutable std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > f;
 	Gamma(const params_t& params)
 	    : Distribution("gamma", params)
-	    , f(params[0], params[1])
+		, f(params[0], params[1])  // this line creates the function object
 	{
-		assert(static_cast<time_t>(0) < params[0]);
-		assert(static_cast<time_t>(0) < params[1]);
+		assert(0 < params[0]);
+		assert(0 < params[1]);
 	}
+	inline float CDF(float x) const override { return gsl_cdf_gamma_P(x, params[0], params[1]); }
 	inline return_t sample() const override { return f(*rng); }
-	/// Not implemented yet
-	void sample_conditional(time_t&, time_t&) const override { Fthis(name); }
 };
 
 
 /// Random deviate ~ Erlang(k,l) ~ Gamma(k,1/l)<br>
-///  where \par k = params[0] is the <em>integral</em> shape parameter,<br>
-///    and \par l = params[1] is the rate parameter, aka reciprocal of the scale.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Erlang_distribution">the wiki</a>
+///  where \p k = params[0] is the <em>integral</em> shape parameter,<br>
+///    and \p l = params[1] is the rate parameter, aka reciprocal of the scale.<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Erlang_distribution"><b>the wiki</a>
+/// @note Erlang = Gamma iff the shape parameter is integral
 struct erlang : public fig::Distribution
 {
 	const int k;
+	const float l;
 	mutable std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > f;
 	erlang(const params_t& params)
 	    : Distribution("erlang", params)
 	    , k(std::round(params[0]))
-	    , f(k, 1.0f/params[1])
+		, l(1.0f/params[1])
+		, f(k,l)  // this line creates the function object
 	{
-		assert(static_cast<time_t>(0) < params[0]);
-		assert(static_cast<time_t>(0) < params[1]);
+		assert(0 < params[0]);
+		assert(0 < params[1]);
 	}
+	inline float CDF(float x) const override { return gsl_cdf_gamma_P(x, k, l); }
 	inline return_t sample() const override { return f(*rng); }
-	/// Not implemented yet
-	void sample_conditional(time_t&, time_t&) const override { Fthis(name); }
 };
 
 
 /// (Non-) Random deviate ~ Dirac(x)<br>
-///  where \par [x,x] is the <em>point-wise</em> support of the distribution<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Dirac_delta_function">the wiki</a>
+///  where \p [x,x] is the <em>point-wise</em> support of the distribution<br>
+/// Check <a href="https://en.wikipedia.org/wiki/Dirac_delta_function"><b>the wiki</a>
 struct dirac : public fig::Distribution
 {
 	const time_t x;
@@ -439,220 +543,13 @@ struct dirac : public fig::Distribution
 	    : Distribution("dirac", params)
 	    , x(std::round(params[0]))
 	{
-		assert(static_cast<time_t>(0) < params[0]);
+		assert(0 < params[0]);
 	}
+	inline float CDF(float y) const override { return y < x ? 0.0f : 1.0f; }
 	inline return_t sample() const override { return x; }
 	inline void sample_conditional(time_t&, time_t&) const override { }
 };
 
-
-
-
-/*  Home-made random deviates
- *
- *  Kept in case we need to recycle for conditional (re-)sampling
-
-/// For home-made random deviates
-thread_local std::uniform_real_distribution< float > Unif01(0.0f,1.0f);
-thread_local std::normal_distribution< float > Z(0.0f,1.0f);
-struct GammaHash { std::size_t operator()(const params_t& p) const { return p[0]*p[0]*3 + p[1]*p[1]*100; } };
-struct GammaEq { bool operator()(const params_t& p1, const params_t& p2) const { return p1[0]==p2[0] && p1[1]==p2[1]; } };
-struct GammaFun {
-	std::gamma_distribution<time_t> fun;
-	GammaFun(const params_t& params) : fun(params[0], params[1]) {}
-};
-thread_local std::unordered_map< params_t, GammaFun, GammaHash, GammaEq > stored_Gammas;
-
-/// Random deviate ~ Uniform[a,b]<br>
-///  where \par a = params[0] is the lower bound,<br>
-///    and \par b = params[1] is the upper bound.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)">the wiki</a>
-return_t uniform(const params_t& params)
-{
-
-//	std::uniform_real_distribution< fig::CLOCK_INTERNAL_TYPE > uni(params[0], params[1]);
-//	return uni(*rng);
-
-	assert(params[0] < params[1]);
-	return (params[1]-params[0]) * static_cast<time_t>(Unif01(*rng)) + params[0];
-}
-
-
-/// Random deviate ~ Exponential(lambda)<br>
-///  where \par lambda = params[0] is the rate.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Exponential_distribution">the wiki</a>
-return_t exponential(const params_t& params)
-{
-
-//	std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > exp(params[0]);
-//	return exp(*rng);
-
-	assert(static_cast< time_t >(0) < params[0]);
-	__volatile__ float u;
-	do {
-		u = Unif01(*rng);
-	} while (u <= 0.0f);
-	return static_cast<time_t>(-1.0*std::log(u)) / params[0];
-}
-
-
-/// Random deviate ~ Hyper-Exponential(p:lambda1,1-p:lambda2)<br>
-///  where \par p = params[0] is the probability of choosing the first rate,<br>
-///    and 1 - \par p is the probability of choosing the second rate,<br>
-///    and \par lambda1 = params[1] is the first  possible rate,<br>
-///    and \par lambda2 = params[2] is the second possible rate.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Hyperexponential_distribution">the wiki</a>
-return_t hyperexponential2(const params_t& params)
-{
-	assert(static_cast<time_t>(0) < params[2]);
-	assert(static_cast<time_t>(0) < params[1]);
-	assert(static_cast<time_t>(0) < params[0]);
-	assert(params[0] < static_cast<time_t>(1.0));
-	__volatile__ float u;
-	do {
-		u = Unif01(*rng);
-	} while (u <= 0.0f);
-	return static_cast<time_t>(-std::log(u)) /
-	    (static_cast<time_t>(Unif01(*rng)) < params[0] ? params[1]
-	                                                   : params[2]);
-}
-
-
-//	Hyper-Exponential-3 distribution would require at least 5 parameters,
-//	and currently NUM_DISTRIBUTION_PARAMS == 4 in core_typedefs.h
-//	/// Random deviate ~ Hyper-Exponential(p1:lambda1,p2:lambda2,1-p1-p2:lambda3)<br>
-//	///  where \par p1 = params[0] is the probability of choosing the first rate,<br>
-//	///    and \par p1 = params[1] is the probability of choosing the second rate,<br>
-//	///    and 1 - \par p1 - \par p2 is the probability of choosing the third rate,<br>
-//	///    and \par lambda1 = params[2] is the first  possible rate,<br>
-//	///    and \par lambda2 = params[3] is the second possible rate,<br>
-//	///    and \par lambda3 = params[4] is the third  possible rate.<br>
-//	/// Check <a href="https://en.wikipedia.org/wiki/HyperExponential_distribution">the wiki</a>
-//	return_t hyperexponential3(const params_t& params)
-//	{
-//		std::exponential_distribution< fig::CLOCK_INTERNAL_TYPE > exp(params[0]);
-//		return exp(*rng);
-//	}
-
-
-/// Random deviate ~ Normal(m,sd)<br>
-///  where \par  m = params[0] is the mean,<br>
-///    and \par sd = params[1] is the standard deviation.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Normal_distribution">the wiki</a>
-/// @bug BUG: when taking the max with 0.000001 (to avoid sampling non-positive
-///           time delays) we lose probability mass. This mass must be added to
-///           the remaining (positively-supported) mass of the distribution.
-return_t normal(const params_t& params)
-{
-
-//	std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > normal(params[0], params[1]);
-//	return std::max(0.000001f, normal(*rng));
-
-	assert(static_cast<time_t>(0) < params[1]);
-	return std::max(static_cast<time_t>(0.000001f),
-	                params[0] + params[1] * static_cast<time_t>(Z(*rng)));
-}
-
-
-/// Random deviate ~ Lognormal(m,sd)<br>
-///  where \par  m = params[0] is the mean,<br>
-///    and \par sd = params[1] is the standard deviation<br>
-/// of the inherent normally distributed random variable.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Log-normal_distribution">the wiki</a>
-return_t lognormal(const params_t& params)
-{
-
-//	std::lognormal_distribution< fig::CLOCK_INTERNAL_TYPE > lognormal(params[0], params[1]);
-//	return lognormal(*rng);
-
-	assert(static_cast<time_t>(0) < params[1]);
-	return static_cast<time_t>(std::exp(params[0] + params[1] * static_cast<time_t>(Z(*rng))));
-}
-
-
-/// Random deviate ~ Weibull(a,b)<br>
-///  where \par a = params[0] is the shape parameter, aka \par k,<br>
-///    and \par b = params[1] is the scale parameter, aka \par lambda.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Weibull_distribution">the wiki</a>
-return_t weibull(const params_t& params)
-{
-
-//	std::weibull_distribution< fig::CLOCK_INTERNAL_TYPE > weibull(params[0], params[1]);
-//	return weibull(*rng);
-
-	assert(static_cast<time_t>(0) < params[0]);
-	assert(static_cast<time_t>(0) < params[1]);
-	__volatile__ float u;
-	do {
-		u = Unif01(*rng);
-	} while (u <= 0.0f);
-	return params[1] * std::pow<time_t>(-std::log(u), 1.0f/static_cast<float>(params[0]));
-}
-
-
-/// Random deviate ~ Rayleigh(s) ~ Weibull(2,s*sqrt(2))<br>
-///  where \par s = params[0] is the scale parameter.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Rayleigh_distribution">the wiki</a>
-return_t rayleigh(const params_t& params)
-{
-
-//	std::weibull_distribution< fig::CLOCK_INTERNAL_TYPE > rayleigh(2.0, params[0]*M_SQRT2f32);
-//	return rayleigh(*rng);
-
-	assert(static_cast<time_t>(0) < params[0]);
-	__volatile__ float u;
-	do {
-		u = Unif01(*rng);
-	} while (u <= 0.0f);
-	return params[0] * std::sqrt(-2.0f * std::log(u));
-}
-
-
-/// Random deviate ~ Gamma(a,b)<br>
-///  where \par a = params[0] is the shape parameter,<br>
-///    and \par b = params[1] is the scale parameter, aka reciprocal of the rate.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Gamma_distribution">the wiki</a>
-return_t gamma(const params_t& params)
-{
-
-//	std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > gamma(params[0], params[1]);
-//	return gamma(*rng);
-
-	// If requested Gamma doesn't exists yet, create it
-	if (end(stored_Gammas) == stored_Gammas.find(params))
-		stored_Gammas.emplace(params, params);
-	return stored_Gammas.at(params).fun(*rng);
-}
-
-
-/// Random deviate ~ Erlang(k,l) ~ Gamma(k,1/l)<br>
-///  where \par k = params[0] is the <em>integral</em> shape parameter,<br>
-///    and \par l = params[1] is the rate parameter, aka reciprocal of the scale.<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Erlang_distribution">the wiki</a>
-return_t erlang(const params_t& params)
-{
-
-//	const int k(static_cast<int>(std::round(params[0])));
-//	std::gamma_distribution< fig::CLOCK_INTERNAL_TYPE > erlang(k, 1.0f/params[1]);
-//	return erlang(*rng);
-
-	const int k(static_cast<int>(std::round(params[0])));
-	assert(0 < k);
-	__volatile__ float acum = 1.0f;
-	for (int i=0 ; i<k ; i++)
-		acum *= Unif01(*rng);
-	return static_cast<time_t>(-log(acum)) / params[1];
-}
-
-
-/// (Non-) Random deviate ~ Dirac(x)<br>
-///  where \par [x,x] is the <em>point-wise</em> support of the distribution<br>
-/// Check <a href="https://en.wikipedia.org/wiki/Dirac_delta_function">the wiki</a>
-return_t dirac(const params_t& params)
-{
-	return params[0];
-}
-*/
 
 } // namespace  // // // // // // // // // // // // // // // // // // // // //
 

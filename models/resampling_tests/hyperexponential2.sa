@@ -1,0 +1,37 @@
+// Tests for conditional (re)sampling of clocks
+// Budde, Monti, D'Argenio | 2021
+//
+// Queue with exponential arrivals, and service times ~ hyperexponential(p,l1,l2)
+//
+// Sample command line:
+//
+// $ fig --parlare 1 --stop-time 15s --amono -e restart --thresholds-adhoc "6:2,7:2,8:3,9:2,10:2,11:2,12:2,13:3,14:3,15:2" hyperexponential2.sa
+//
+// Compare against flag "--no-resampling"
+
+
+module Arrivals
+	clkArr: clock;
+	[Arr!] @ clkArr -> (clkArr'= exponential(1.0));
+endmodule
+
+const float p  = 0.333333;  // prob. of choosing rate 1
+const float l1 = 1.761016;  // rate 1
+const float l2 = 42.0*l1;   // rate 2
+const int C = 19;
+
+module Queue
+	clkSer: clock;
+	q: [0..C];
+	// Packet arrival
+	[Arr?] q == 0          -> (q'= q+1) & (clkSer'= hyperexponential2(p,l1,l2));
+	[Arr?] q  > 0 & q < C  -> (q'= q+1);
+	[Arr?] q == C          -> ;
+	// Packet service
+	[Ser!] q == 1 @ clkSer -> (q'= q-1);
+	[Ser!] q  > 1 @ clkSer -> (q'= q-1) & (clkSer'= hyperexponential2(p,l1,l2));
+endmodule
+
+properties
+	S[ 60:6060 ]( q >= C )
+endproperties

@@ -49,7 +49,9 @@ ConfidenceIntervalMean::ConfidenceIntervalMean(double confidence,
 void
 ConfidenceIntervalMean::update(const double& newMean)
 {
-	// Incremental computation of mean and variance (http://goo.gl/ytk6B)
+	// Incremental computation of mean and variance,
+	// aka "Welford's online algorithm"
+	// From the wiki [http://goo.gl/ytk6B]
 	double delta = newMean - estimate_;
 	if (++numSamples_ < 0l)
 		throw_FigException("numSamples_ became negative, overflow?");

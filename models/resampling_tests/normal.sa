@@ -1,0 +1,36 @@
+// Tests for conditional (re)sampling of clocks
+// Budde, Monti, D'Argenio | 2021
+//
+// Queue with exponential arrivals, and service times ~ normal(0.607,0.153)
+//
+// Sample command line:
+//
+// $ fig --parlare 1 --stop-time 15s --amono -e restart --thresholds-adhoc "6:2,8:3,9:2,10:2,11:3,12:3,13:2,14:2,15:3,16:2" normal.sa
+//
+// Compare against flag "--no-resampling"
+
+
+module Arrivals
+	clkArr: clock;
+	[Arr!] @ clkArr -> (clkArr'= exponential(1.0));
+endmodule
+
+const float m = 0.607;  // mean of the Gaussian
+const float s = 0.153;  // standard deviation of the Gaussian
+const int C = 19;
+
+module Queue
+	clkSer: clock;
+	q: [0..C];
+	// Packet arrival
+	[Arr?] q == 0          -> (q'= q+1) & (clkSer'= normal(m,s));
+	[Arr?] q  > 0 & q < C  -> (q'= q+1);
+	[Arr?] q == C          -> ;
+	// Packet service
+	[Ser!] q == 1 @ clkSer -> (q'= q-1);
+	[Ser!] q  > 1 @ clkSer -> (q'= q-1) & (clkSer'= normal(m,s));
+endmodule
+
+properties
+	S[ 60:6060 ]( q >= C )
+endproperties

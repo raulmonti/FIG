@@ -37,8 +37,8 @@ public:
 
     virtual const char* what() const throw()
     {
-        string buff("BadSymbol Exception!\n");
-        buff += string(except);
+		std::string buff("BadSymbol Exception!\n");
+		buff += std::string(except);
         return buff.c_str();
     }
 
@@ -59,8 +59,8 @@ public:
 
     FigBaseException(std::string s, int l = -1, int c = -1): e_(s)
     {
-        e_ += string("At line ") + std::to_string(l) 
-            + string(", column ") + std::to_string(c) + string(".");
+		e_ += std::string("At line ") + std::to_string(l)
+			+ std::string(", column ") + std::to_string(c) + std::string(".");
     }
     virtual ~FigBaseException() throw() {}
 
@@ -87,8 +87,8 @@ public:
 
     FigSyntaxError(std::string s = "", int l = -1, int c = -1): e_(s)
     {
-        e_ += string("At line ") + std::to_string(l) 
-            + string(", column ") + std::to_string(c) + string(".");
+		e_ += std::string("At line ") + std::to_string(l)
+			+ std::string(", column ") + std::to_string(c) + std::string(".");
     }
 
     virtual ~FigSyntaxError() throw() {}
@@ -113,8 +113,8 @@ public:
 
     FigNotConstant(std::string s = "", int l = -1, int c = -1): e_(s)
     {
-        e_ += string(" At line ") + std::to_string(l) 
-            + string(", column ") + std::to_string(c) + string(".");
+		e_ += std::string(" At line ") + std::to_string(l)
+			+ std::string(", column ") + std::to_string(c) + std::string(".");
     }
 
     virtual ~FigNotConstant() throw() {}

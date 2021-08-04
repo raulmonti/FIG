@@ -229,7 +229,7 @@ TraialPool::get_traial_copies(Container& cont,
 	while (!available_traials_.empty() && 0u < --numCopies) {
 		Traial& t = available_traials_.front();
 		available_traials_.pop_front();
-		t.copyResampling(traial);  // resampling
+		t.copyResampling(traial);  // copy, but resample clock times
 		t.depth = depth;
 		t.nextSplitLevel = static_cast<decltype(t.nextSplitLevel)>(traial.level) + 1;
 		cont.emplace(end(cont), std::ref(t));  // copy elision
@@ -260,7 +260,7 @@ TraialPool::get_traial_copies(std::stack< TraialRef >& stack,
 	while (!available_traials_.empty() && 0u < --numCopies) {
 		Traial& t = available_traials_.front();
 		available_traials_.pop_front();
-		t.copyResampling(traial);  // resampling
+		t.copyResampling(traial);  // copy, but resample clock times
 		t.depth = depth;
 		t.nextSplitLevel = 1 + static_cast<decltype(t.nextSplitLevel)>(traial.level);
 		stack.push(std::ref(t));  // copy elision
@@ -286,7 +286,7 @@ TraialPool::get_traial_copies(std::stack< TraialRef,std::vector<TraialRef> >& st
 	while (!available_traials_.empty() && 0u < --numCopies) {
 		Traial& t = available_traials_.front();
 		available_traials_.pop_front();
-		t.copyResampling(traial);  // resampling
+		t.copyResampling(traial);  // copy, but resample clock times
 		t.depth = depth;
 		t.nextSplitLevel = 1 + static_cast<decltype(t.nextSplitLevel)>(traial.level);
 		stack.push(std::ref(t));  // copy elision
@@ -315,7 +315,7 @@ TraialPool::get_traial_clones(Container& cont,
 	while (!available_traials_.empty() && 0u < --numClones) {
 		Traial& t = available_traials_.front();
 		available_traials_.pop_front();
-		t = traial;
+		t = traial;  // copy without resampling times
 		t.depth = depth;
 		t.nextSplitLevel = static_cast<decltype(t.nextSplitLevel)>(traial.level) + 1;
 		cont.emplace(end(cont), std::ref(t));  // copy elision
@@ -345,7 +345,7 @@ TraialPool::get_traial_clones(std::stack< TraialRef >& stack,
 	while (!available_traials_.empty() && 0u < --numClones) {
 		Traial& t = available_traials_.front();
 		available_traials_.pop_front();
-		t = traial;
+		t = traial;  // copy without resampling times
 		t.depth = depth;
 		t.nextSplitLevel = 1 + static_cast<decltype(t.nextSplitLevel)>(traial.level);
 		stack.push(std::ref(t));  // copy elision
@@ -371,7 +371,7 @@ TraialPool::get_traial_clones(std::stack< TraialRef,std::vector<TraialRef> >& st
 	while (!available_traials_.empty() && 0u < --numClones) {
 		Traial& t = available_traials_.front();
 		available_traials_.pop_front();
-		t = traial;
+		t = traial;  // copy without resampling times
 		t.depth = depth;
 		t.nextSplitLevel = 1 + static_cast<decltype(t.nextSplitLevel)>(traial.level);
 		stack.push(std::ref(t));  // copy elision
