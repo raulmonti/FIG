@@ -19,7 +19,7 @@
 
 #include <config.h>
 #include <stdlib.h>
-#include <gsl/gsl_rng.h>
+#include <gsl_rng.h>
 
 /* MINSTD is Park and Miller's minimal standard generator (i.e. it's
    not particularly good).

@@ -19,8 +19,8 @@
 
 #include <config.h>
 #include <stdio.h>
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_rng.h>
+#include <gsl_errno.h>
+#include <gsl_rng.h>
 
 int
 gsl_rng_fread (FILE * stream, gsl_rng * r)

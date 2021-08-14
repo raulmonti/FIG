@@ -31,7 +31,7 @@
 
 #include <config.h>
 #include <stdlib.h>
-#include <gsl/gsl_rng.h>
+#include <gsl_rng.h>
 
 #include "schrage.c"
 

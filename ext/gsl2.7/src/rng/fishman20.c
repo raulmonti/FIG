@@ -33,7 +33,7 @@
 
 #include <config.h>
 #include <stdlib.h>
-#include <gsl/gsl_rng.h>
+#include <gsl_rng.h>
 
 static inline unsigned long int ran_get (void *vstate);
 static double ran_get_double (void *vstate);

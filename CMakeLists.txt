@@ -184,8 +184,7 @@ IF(RELEASE)
 	## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorize")
 ELSE()
 	# Optimize without obfuscating the assembly so much
-#    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")
 	# Highly defensive compile flags
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 	# Add debug info (used by gdb and pals)

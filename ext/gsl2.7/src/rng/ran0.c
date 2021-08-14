@@ -19,8 +19,8 @@
 
 #include <config.h>
 #include <stdlib.h>
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_rng.h>
+#include <gsl_errno.h>
+#include <gsl_rng.h>
 
 /* This is an implementation of the algorithm used in Numerical
    Recipe's ran0 generator. It is the same as MINSTD with an XOR mask

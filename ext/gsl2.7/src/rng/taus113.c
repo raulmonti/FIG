@@ -57,7 +57,7 @@
 
 #include <config.h>
 #include <stdlib.h>
-#include <gsl/gsl_rng.h>
+#include <gsl_rng.h>
 
 #define LCG(n) ((69069UL * n) & 0xffffffffUL)
 #define MASK 0xffffffffUL

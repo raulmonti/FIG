@@ -33,7 +33,7 @@
 
 #include <config.h>
 #include <stdlib.h>
-#include <gsl/gsl_rng.h>
+#include <gsl_rng.h>
 
 #define AA 1812433253UL
 #define MM 0xffffffffUL         /* 2 ^ 32 - 1 */

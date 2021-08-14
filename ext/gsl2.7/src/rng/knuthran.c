@@ -33,7 +33,7 @@
 
 #include <config.h>
 #include <stdlib.h>
-#include <gsl/gsl_rng.h>
+#include <gsl_rng.h>
 
 #define BUFLEN 2009             /* [Brian]: length of the buffer aa[] */
 #define KK 100                  /* the long lag */

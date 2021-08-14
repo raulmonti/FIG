@@ -19,7 +19,7 @@
 
 #include <config.h>
 #include <stdlib.h>
-#include <gsl/gsl_rng.h>
+#include <gsl_rng.h>
 
 /* This is a lagged fibonacci generator with skipping developed by Luescher.
    The sequence is a series of 24-bit integers, x_n, 

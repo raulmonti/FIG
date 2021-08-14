@@ -19,7 +19,7 @@
 
 #include <config.h>
 #include <stdlib.h>
-#include <gsl/gsl_rng.h>
+#include <gsl_rng.h>
 
 /* This is a maximally equidistributed combined Tausworthe
    generator. The sequence is,

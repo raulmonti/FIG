@@ -27,7 +27,7 @@
 #include <gsl_sf_gamma.h>
 #include <gsl_sf_zeta.h>
 #include <gsl_sf_psi.h>
-#include <gsl/gsl_complex_math.h>
+#include <gsl_complex_math.h>
 
 #include <stdio.h>
 

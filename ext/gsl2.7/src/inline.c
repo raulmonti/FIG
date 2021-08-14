@@ -21,4 +21,4 @@
 
 #define COMPILE_INLINE_STATIC
 #include "build.h"
-#include <gsl/gsl_complex_math.h>
+#include <gsl_complex_math.h>

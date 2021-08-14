@@ -19,7 +19,7 @@
 
 #include <config.h>
 #include <stdlib.h>
-#include <gsl/gsl_rng.h>
+#include <gsl_rng.h>
 
 /* This is an implementation of Martin Luescher's second generation
    double-precision (48-bit) version of the RANLUX generator. 

@@ -19,7 +19,7 @@
 
 #include <config.h>
 #include <stdlib.h>
-#include <gsl/gsl_rng.h>
+#include <gsl_rng.h>
 
 /* This is an implementation of M. Luescher's second generation
    version of the RANLUX generator.

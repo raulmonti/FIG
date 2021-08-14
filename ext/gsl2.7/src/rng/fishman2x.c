@@ -33,7 +33,7 @@
 
 #include <config.h>
 #include <stdlib.h>
-#include <gsl/gsl_rng.h>
+#include <gsl_rng.h>
 
 /* Fishman */
 #define AAA_F 48271UL
