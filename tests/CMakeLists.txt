@@ -163,7 +163,13 @@ MESSAGE("Using ${CMAKE_CXX_COMPILER_ID} compiler "
 INCLUDE(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 IF(COMPILER_SUPPORTS_CXX11)
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+	# Optionally set c++14 standard if available
+	CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
+	IF(COMPILER_SUPPORTS_CXX14)
+		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+	ELSE()
+		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+	ENDIF()
 ELSE()
 	MESSAGE(FATAL_ERROR "Compiler ${CMAKE_CXX_COMPILER} has no C++11 support.")
 ENDIF()
@@ -185,7 +191,7 @@ IF(RELEASE)
 	## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorize")
 ELSE()
 	# Optimize without obfuscating the assembly so much
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
 	# Highly defensive compile flags
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 	# Add debug info (used by gdb and pals)
@@ -234,9 +240,6 @@ ELSEIF(COMPILER_IS_GCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
 	# From jsoncpp 1.7.4: this statement may fall through
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wimplicit-fallthrough=0")
 ENDIF()
-# From MuParser-2.2.5 library -- http://muparser.beltoforion.de/:
-# "auto_ptr is deprecated" (TODO: update library ourselves?)
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 # Debug mode has some known harmless warnings: turn these off
 IF(NOT RELEASE)
 	# From Z3 library "check_context()" and others: "unused parameter 'a'"...

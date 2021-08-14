@@ -92,7 +92,7 @@ SECTION("Seal model and check consistency")
 	REQUIRE(model.num_threshold_techniques() > 0ul);
 	REQUIRE(model.num_RNGs() > 0ul);
 }
-/*
+
 SECTION("Steady-state: standard MC")
 {
 	const string nameEngine("nosplit");
@@ -113,7 +113,7 @@ SECTION("Steady-state: standard MC")
 	const double prec(.6);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-    model.set_timeout(TIMEOUT_(std::chrono::minutes(1)));  // don't waste too much time...
+	model.set_timeout(std::chrono::minutes(TIMEOUT_(1)));  // don't waste too much time...
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, fig::ImpFunSpec(nameIFun, "flat"));
 	auto results = model.get_last_estimates();
@@ -157,7 +157,7 @@ SECTION("Steady-state: RESTART, ad hoc, es")
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 			  == Approx(SS_PROB*prec).epsilon(SS_PROB*0.2));
 }
-*/
+
 SECTION("Steady-state: RESTART-P0, ad hoc, ad hoc thresholds")
 {
 	const string nameEngine("restart");
@@ -205,10 +205,8 @@ SECTION("Steady-state: RESTART-P3, ad hoc, ad hoc thresholds")
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	// Prepare engine
-	model.set_global_effort(3);
 	model.build_importance_function_adhoc(ifunSpec, ssPropId, true);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, thrAdHoc, ssPropId);
-	//auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, ssPropId);
 	REQUIRE(engine->ready());
 	// Set estimation criteria
 	auto rng = model.available_RNGs().back();
@@ -231,7 +229,7 @@ SECTION("Steady-state: RESTART-P3, ad hoc, ad hoc thresholds")
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.25));
 }
-/*
+
 SECTION("Steady-state: RESTART, monolithic, hyb")
 {
 	const string nameEngine("restart");
@@ -254,7 +252,7 @@ SECTION("Steady-state: RESTART, monolithic, hyb")
 	const double prec(.3);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-    model.set_timeout(TIMEOUT_(std::chrono::minutes(2)));  // estimate for 2 min max
+	model.set_timeout(std::chrono::minutes(TIMEOUT_(2)));  // estimate for 2 min max
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -300,7 +298,7 @@ SECTION("Steady-state: RESTART, compositional, es")
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          <= Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
-*/
+
 
 } // TEST_CASE [triple-tandem-queue]
 

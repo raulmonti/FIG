@@ -277,11 +277,12 @@ struct uniform : public fig::Distribution
 	/// `... = u(b-a)+a-elapsed`   if `elapsed < a`.
 	inline void sample_conditional(time_t& previous, time_t& current) const override
 	{
-		if (static_cast<time_t>(0) >= current)
+		if (static_cast<time_t>(0) >= current ||
+			static_cast<time_t>(0) >= previous )
 			return;  // expired Clock: do nothing
 		assert(previous <= params[1]);
 		assert(previous >= params[0]);
-		assert(previous > current);
+		assert(previous >= current);
 		const auto elapsed = previous - current;
 		const auto u = Unif01(*rng);
 		current = elapsed >= params[0] ? u * (params[1] - elapsed)
@@ -292,11 +293,12 @@ struct uniform : public fig::Distribution
 	/// Alternative way: sample from Uniform[max(0,a-elapsed),b-elapsed]
 	inline void sample_conditional_alt(time_t& previous, time_t& current) const
 	{
-		if (static_cast<time_t>(0) >= current)
+		if (static_cast<time_t>(0) >= current ||
+			static_cast<time_t>(0) >= previous )
 			return;  // expired Clock: do nothing
 		assert(previous <= params[1]);
 		assert(previous >= params[0]);
-		assert(previous > current);
+		assert(previous >= current);
 		const auto elapsed = previous - current;
 		std::uniform_real_distribution<fig::CLOCK_INTERNAL_TYPE>
 				f_cond(std::max(0.0f,params[0]-elapsed), params[1]-elapsed);
@@ -330,11 +332,11 @@ struct exponential : public fig::Distribution
 	/// Sample from same distribution (memoryless is the best)
 	inline void sample_conditional(time_t&, time_t& current) const override
 	{
-		if (static_cast<time_t>(0) >= current)
-			return;  // expired Clock: do nothing
-		current = f(*rng);
 		// memoryless: no need to do "previous = current + elapsed;"
-		// thus, we can't include the check "assert(previous > current);"
+		// thus, we can't check "assert(previous >= current);"
+		if (static_cast<time_t>(0) < current)
+			current = f(*rng);
+		// else: expired Clock, do nothing
 	}
 };
 
@@ -373,7 +375,7 @@ struct hyperexponential2 : public fig::Distribution
 /// @bug BUG: when taking the max with 0.000001 (to avoid sampling non-positive
 ///           time delays) we lose probability mass. This mass must be added to
 ///           the remaining (positively-supported) mass of the distribution.
-/// @todo TODO Replace by the <a href="https://en.wikipedia.org/wiki/Normal_distribution"><b>
+/// @todo TODO Replace by the <a href="https://en.wikipedia.org/wiki/folded_normal_distribution"><b>
 ///            folded normal distribution<b></a>, which is exactly what we need.
 struct normal : public fig::Distribution
 {
@@ -441,9 +443,10 @@ struct weibull : public fig::Distribution
 	/// For F ~ Weibull this yields: `lambda*(-ln(u*e^-((elapsed/lambda)^k)))^(1/k) - elapsed`
 	inline void sample_conditional(time_t& previous, time_t& current) const override
 	{
-		if (static_cast<time_t>(0) >= current)
+		if (static_cast<time_t>(0) >= current ||
+			static_cast<time_t>(0) >= previous )
 			return;  // expired Clock: do nothing
-		assert(previous > current);
+		assert(previous >= current);
 		const auto elapsed = previous - current;
 		current = params[1] * pow(-log(Unif01(*rng)*exp(-pow(elapsed*l_inv,params[0]))), k_inv) - elapsed;
 		previous = current + elapsed;
@@ -480,9 +483,10 @@ struct rayleigh : public fig::Distribution
 	/// For F ~ Rayleigh this yields: `sqrt(elapsed^2-2*s^2*ln(u)) - elapsed`
 	inline void sample_conditional(time_t& previous, time_t& current) const override
 	{
-		if (static_cast<time_t>(0) >= current)
+		if (static_cast<time_t>(0) >= current ||
+			static_cast<time_t>(0) >= previous )
 			return;  // expired Clock: do nothing
-		assert(previous > current);
+		assert(previous >= current);
 		const auto elapsed = previous - current;
 		current = sqrtf(elapsed*elapsed - s_s_2*log(Unif01(*rng))) - elapsed;
 		previous = current + elapsed;

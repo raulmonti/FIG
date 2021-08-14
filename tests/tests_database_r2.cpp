@@ -234,7 +234,7 @@ SECTION("Steady-state: RESTART, compositional (coarse ifun), hyb")
 	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-    model.set_timeout(TIMEOUT_(std::chrono::minutes(2)));  // estimate for 2 min max
+	model.set_timeout(std::chrono::minutes(TIMEOUT_(2)));  // estimate for 2 min max
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -273,7 +273,7 @@ SECTION("Steady-state: RESTART, compositional ([+,*] ring), es")
 	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-    model.set_timeout(TIMEOUT_(std::chrono::minutes(8)));
+	model.set_timeout(std::chrono::minutes(TIMEOUT_(8)));
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();

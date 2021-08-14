@@ -1,0 +1,36 @@
+// Tests for conditional (re)sampling of clocks
+// Budde, Monti, D'Argenio | 2021
+//
+// Queue with exponential arrivals, and service times ~ Weibull(k,l)
+//
+// Sample command line:
+//
+// $ fig --parlare 1 --stop-time 15s --amono -e restart --thresholds-adhoc "6:3,7:2,8:4,9:3,10:3,11:3,12:3,13:3,14:3" Weibull.sa
+//
+// Compare against flag "--no-resampling"
+
+
+module Arrivals
+	clkArr: clock;
+	[Arr!] @ clkArr -> (clkArr'= exponential(1.0));
+endmodule
+
+const float k = 2.718282;  // shape parameter Weibull
+const float l = 0.555555;  // scale parameter Weibull
+const int C = 19;
+
+module Queue
+	clkSer: clock;
+	q: [0..C];
+	// Packet arrival
+	[Arr?] q == 0          -> (q'= q+1) & (clkSer'= weibull(k,l));
+	[Arr?] q  > 0 & q < C  -> (q'= q+1);
+	[Arr?] q == C          -> ;
+	// Packet service
+	[Ser!] q == 1 @ clkSer -> (q'= q-1);
+	[Ser!] q  > 1 @ clkSer -> (q'= q-1) & (clkSer'= weibull(k,l));
+endmodule
+
+properties
+	S[ 60:6060 ]( q >= C )
+endproperties

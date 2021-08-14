@@ -45,7 +45,11 @@
 // Prolongue timeouts for DEBUG builds
 #ifndef TIMEOUT_
 #  ifndef NDEBUG
-#    define TIMEOUT_(x) (3*x)
+	 template<typename I> I TIMEOUT_(const I& x)
+	 {
+		static_assert(std::is_integral<I>::value, "ERROR: expected integral type");
+		return 3*x;
+	 }
 #  else
 #    define TIMEOUT_(x) (x)
 #  endif

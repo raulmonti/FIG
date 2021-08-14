@@ -116,9 +116,10 @@ struct Distribution
 	virtual void sample_conditional(CLOCK_INTERNAL_TYPE& previous,
 									CLOCK_INTERNAL_TYPE& current) const
 		{
-			if (static_cast<time_t>(0) >= current)
+			if (static_cast<CLOCK_INTERNAL_TYPE>(0) >= current ||
+				static_cast<CLOCK_INTERNAL_TYPE>(0) >= previous )
 				return;  // expired Clock: do nothing
-			assert(previous > current);
+			assert(previous >= current);
 			const auto elapsed = previous - current;
 			if (CDF(elapsed) > RESAMPLING_THR)
 				return;  // nah, not worth it

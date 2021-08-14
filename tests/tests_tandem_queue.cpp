@@ -110,7 +110,7 @@ SECTION("Seal model and check consistency")
 	REQUIRE(model.num_threshold_techniques() > 0ul);
 	REQUIRE(model.num_RNGs() > 0ul);
 }
-/*
+
 SECTION("Transient: standard MC")
 {
 	const string nameEngine("nosplit");
@@ -200,7 +200,7 @@ SECTION("Steady-state: RESTART, monolithic, hyb")
 	const double prec(.3);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-    model.set_timeout(TIMEOUT_(std::chrono::minutes(1)));  // estimate for a min max
+	model.set_timeout(std::chrono::minutes(TIMEOUT_(1)));  // estimate for a min max
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -213,7 +213,7 @@ SECTION("Steady-state: RESTART, monolithic, hyb")
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 	model.release_resources(ifunSpec.name, nameEngine);
 }
-*/
+
 SECTION("Time bounded steady-state: RESTART, compositional (+ operator), fix")
 {
 	const string nameEngine("restart");
@@ -289,7 +289,7 @@ SECTION("Time bounded steady-state: RESTART-P2, compositional (+ operator), fix"
 	          == Approx(BS_PROB*prec).epsilon(BS_PROB*0.15));
 	model.release_resources(ifunSpec.name, nameEngine);
 }
-/*
+
 SECTION("Time bounded steady-state: RESTART-P1, ad hoc, ad hoc thresholds")
 {
 	const string nameEngine("restart1");
@@ -312,7 +312,7 @@ SECTION("Time bounded steady-state: RESTART-P1, ad hoc, ad hoc thresholds")
 	const double prec(.05);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(TIMEOUT_(std::chrono::minutes(2)));
+	model.set_timeout(std::chrono::minutes(TIMEOUT_(2)));
 	// Estimate
 	model.set_verbosity(true);
 	model.estimate(bsPropId, *engine, confCrit, ifunSpec);
@@ -385,7 +385,7 @@ SECTION("Transient: RESTART, compositional (+ operator), es")
 	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(TIMEOUT_(std::chrono::minutes(2)));
+	model.set_timeout(std::chrono::minutes(TIMEOUT_(2)));
 	// Estimate
 	model.estimate(trPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -468,7 +468,7 @@ SECTION("Transient: Fixed Effort, compositional (max operator), es")
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          == Approx(TR_PROB*prec).epsilon(TR_PROB*0.1));
 }
-*/
+
 } // TEST_CASE [tandem-queue]
 
 } // namespace tests   // // // // // // // // // // // // // // // // // // //

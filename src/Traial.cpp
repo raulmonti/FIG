@@ -247,8 +247,6 @@ Traial::initialise(const ModuleNetwork& network,
 void
 Traial::copyResampling(const Traial& that)
 {
-	static auto globalClocks = ModelSuite::get_instance().modules_network()->clocks();
-
 	level            = that.level;
 	depth            = that.depth;
 	numLevelsCrossed = that.numLevelsCrossed;
@@ -257,6 +255,7 @@ Traial::copyResampling(const Traial& that)
 	orderedIndex_    = that.orderedIndex_;
 	nextClock_       = that.nextClock_;
 	clocks_          = that.clocks_;
+	const auto globalClocks = ModelSuite::get_instance().modules_network()->clocks();
 	for (auto i = 0ul ; i < clocks_.size() ; i++)
 		globalClocks[i].get().resample(clocks_[i].sampled, clocks_[i].value);
 #	ifndef NDEBUG

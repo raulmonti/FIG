@@ -22,25 +22,19 @@
 class BadSymbol: public std::exception
 {
 
+protected:
+
+	std::string except;
+
 public:
 
-    const char* except;
-
-public:
-
-    BadSymbol(const char* msg)
-    {
-        except = msg;
-    }
+	BadSymbol(const char* msg) :
+		except(std::string("BadSymbol Exception!\n") + msg)
+	{}
 
     virtual ~BadSymbol()throw(){};
 
-    virtual const char* what() const throw()
-    {
-		std::string buff("BadSymbol Exception!\n");
-		buff += std::string(except);
-        return buff.c_str();
-    }
+	virtual const char* what() const throw() { return except.c_str(); }
 
 };
 

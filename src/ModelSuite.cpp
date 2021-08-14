@@ -558,11 +558,14 @@ ModelSuite::set_DFT(double failProbDFT)
 }
 
 
-template< typename _T > using duration = std::chrono::duration<_T>;
+template< typename _T, typename _Q > using TO_duration = std::chrono::duration<_T,_Q>;
+template< typename _T > using TO_seconds = TO_duration<_T, std::ratio<1l,1l>>;
+template< typename _T > using TO_minutes = TO_duration<_T, std::ratio<60l,1l>>;
+template< typename _T > using TO_hours = TO_duration<_T, std::ratio<3600l,1l>>;
 //
-template<typename Integral>
+template<typename Integral, typename Ratio>
 void
-ModelSuite::set_timeout(const duration<Integral>& timeLimit)
+ModelSuite::set_timeout(const TO_duration<Integral,Ratio>& timeLimit)
 {
 	static_assert(std::is_integral<Integral>::value,
 	              "ERROR: type mismatch, expected integral base type");
@@ -580,12 +583,24 @@ ModelSuite::set_timeout(const duration<Integral>& timeLimit)
 	}
 }
 // Specialisation
-template void fig::ModelSuite::set_timeout(const duration<short>&);
-template void fig::ModelSuite::set_timeout(const duration<int>&);
-template void fig::ModelSuite::set_timeout(const duration<long>&);
-template void fig::ModelSuite::set_timeout(const duration<unsigned short>&);
-template void fig::ModelSuite::set_timeout(const duration<unsigned int>&);
-template void fig::ModelSuite::set_timeout(const duration<unsigned long>&);
+template void fig::ModelSuite::set_timeout(const TO_seconds<short>&);
+template void fig::ModelSuite::set_timeout(const TO_seconds<int>&);
+template void fig::ModelSuite::set_timeout(const TO_seconds<long>&);
+template void fig::ModelSuite::set_timeout(const TO_seconds<unsigned short>&);
+template void fig::ModelSuite::set_timeout(const TO_seconds<unsigned int>&);
+template void fig::ModelSuite::set_timeout(const TO_seconds<unsigned long>&);
+template void fig::ModelSuite::set_timeout(const TO_minutes<short>&);
+template void fig::ModelSuite::set_timeout(const TO_minutes<int>&);
+template void fig::ModelSuite::set_timeout(const TO_minutes<long>&);
+template void fig::ModelSuite::set_timeout(const TO_minutes<unsigned short>&);
+template void fig::ModelSuite::set_timeout(const TO_minutes<unsigned int>&);
+template void fig::ModelSuite::set_timeout(const TO_minutes<unsigned long>&);
+template void fig::ModelSuite::set_timeout(const TO_hours<short>&);
+template void fig::ModelSuite::set_timeout(const TO_hours<int>&);
+template void fig::ModelSuite::set_timeout(const TO_hours<long>&);
+template void fig::ModelSuite::set_timeout(const TO_hours<unsigned short>&);
+template void fig::ModelSuite::set_timeout(const TO_hours<unsigned int>&);
+template void fig::ModelSuite::set_timeout(const TO_hours<unsigned long>&);
 
 
 template< typename Integral >
