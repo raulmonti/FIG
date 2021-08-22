@@ -514,7 +514,8 @@ assess_importance_auto(const fig::Module& module,
 	// Step 1: run DFS from initial state to compute reachable reversed edges
 	fig::AdjacencyList reverseEdges = reversed_edges_DFS(module, impVec);
 #ifndef NDEBUG
-	debug_print_adjacency_list(module.initial_state(), reverseEdges);
+	if (reverseEdges.size() < 111ul)
+		debug_print_adjacency_list(module.initial_state(), reverseEdges);
 #endif
 	/// @todo NOTE: there's a more memory friendly way,
 	///       without holding the whole adjacency list in a variable.

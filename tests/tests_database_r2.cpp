@@ -59,7 +59,7 @@ namespace tests  // // // // // // // // // // // // // // // // // // // // //
 
 TEST_CASE("Database with R=2 tests", "[database-R2]")
 {
-
+/*
 SECTION("Compile model file")
 {
     preamble_testcase(fig::figTechLog, "database-R2");
@@ -285,7 +285,7 @@ SECTION("Steady-state: RESTART, compositional ([+,*] ring), es")
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
-
+*/
 } // TEST_CASE [database-R2]
 
 } // namespace tests   // // // // // // // // // // // // // // // // // // //

@@ -189,8 +189,11 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
         for (auto i = 0ul ; i < LVL_EFFORT ; i++) {
             const bool useFresh(i >= traialsNext.size());
 			Traial& traial(useFresh ? tpool.get_traial() : traialsNext[i].get());
-			if (useFresh)
-				traial = traialsNext[i%traialsNext.size()].get();  // copy *contents*
+			// if we want a fresh Traial, copy *contents*
+			if (useFresh && resampleOnSplit_)
+				traial.copyResampling(traialsNext[i%traialsNext.size()].get());
+			else if (useFresh)
+				traial = traialsNext[i%traialsNext.size()].get();
             assert(traial.level == l);
             traial.depth = 0;
 			traialsNow.push_back(traial);

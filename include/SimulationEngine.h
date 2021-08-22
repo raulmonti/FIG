@@ -146,6 +146,9 @@ protected:
 	mutable CLOCK_INTERNAL_TYPE simsLifetime;
 //	mutable thread_local CLOCK_INTERNAL_TYPE simsLifetime;
 
+	/// Whether to resample clock values every time a Traial is split/replicated
+	bool resampleOnSplit_;
+
 public:
 
 	/// Count how many Traials make it to each importance/threshold level
@@ -176,7 +179,8 @@ public:  // Ctors/Dtor
      */
 	SimulationEngine(const std::string& name,
 					 std::shared_ptr<const ModuleNetwork> model,
-					 const bool thresholds = false);
+					 const bool thresholds = false,
+					 const bool resampling = true);
     /// Default copy ctor
     SimulationEngine(const SimulationEngine& that) = default;
     /// Default move ctor
@@ -216,6 +220,9 @@ private:  // Engine setup (by ModelSuite)
 	/// @see StoppingConditions::batch_size()
 	inline void set_batch_size(size_t batchSize) noexcept
 		{ userDefinedBatchSize_ = batchSize; }
+
+	/// @copydoc resampleOnSplit_
+	void set_resampling(bool resampling = true);
 
     /**
      * @brief Lock this engine into "simulation mode"
@@ -294,6 +301,9 @@ public:  // Accessors
 	 * @see ThresholdsBuilderES
 	 */
 	virtual unsigned global_effort_default() const noexcept = 0;
+
+	/// @copydoc resampleOnSplit_
+	inline bool get_resampling() const noexcept { return resampleOnSplit_; };
 
 	/// @copydoc reachCount_
 	inline decltype(reachCount_) get_reach_counts() const noexcept { return reachCount_; }

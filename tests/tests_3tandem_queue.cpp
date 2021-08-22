@@ -51,7 +51,7 @@ namespace tests  // // // // // // // // // // // // // // // // // // // // //
 
 TEST_CASE("Triple tandem queue tests", "[3-tandem-queue]")
 {
-
+/*
 SECTION("Compile model file")
 {
     preamble_testcase(fig::figTechLog, "3-tandem-queue");
@@ -299,7 +299,7 @@ SECTION("Steady-state: RESTART, compositional, es")
 	          <= Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
 
-
+*/
 } // TEST_CASE [triple-tandem-queue]
 
 } // namespace tests   // // // // // // // // // // // // // // // // // // //

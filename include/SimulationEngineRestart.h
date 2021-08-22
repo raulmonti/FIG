@@ -82,9 +82,6 @@ class SimulationEngineRestart : public SimulationEngine
 	/// For floating point operations (to reduce precision loss)
 	mutable CLOCK_INTERNAL_TYPE currentSimLength_;
 
-	/// Whether to resample clock values every time a Traial is split
-	bool resampleOnSplit_;
-
 public:  // Ctor
 
 	/// Data ctor
@@ -106,9 +103,6 @@ public:  // Accessors
 	/// @copydoc dieOutDepth_
 	inline const decltype(dieOutDepth_)& die_out_depth() const noexcept { return dieOutDepth_; }
 
-	/// @copydoc resampleOnSplit_
-	inline bool get_resampling() const noexcept { return resampleOnSplit_; };
-
 public:  // Engine setup
 
 	/// @copydoc SimulationEngine::bind()
@@ -124,9 +118,6 @@ public:  // Engine setup
 	/// @throw FigException if the value is invalid
 	/// @throw FigException if the engine was \ref lock() "locked"
 	void set_die_out_depth(unsigned dieOutDepth);
-
-	/// @copydoc resampleOnSplit_
-	void set_resampling(bool resampling = true);
 
 private:  // Simulation helper functions
 
@@ -168,6 +159,24 @@ private:  // Simulation helper functions
 	double RESTART_run(const SSProperty& property,
 					   const EventWatcher& watch_events,
 					   const EventWatcher& register_time) const;
+
+
+	/**
+	 * @brief Calculate one estimate from the values of all levels
+	 *
+	 *        The final estimate is a weighed sum of the rare-event time/hits
+	 *        accumulated in all thresholds-levels. They weighing factor of a
+	 *        level is its relative importance, i.e. the amount of splitting
+	 *        that a simulation must undergo to reach it.
+	 *
+	 * @param raresCount     Rare time/hits accumulated in each threshold-level
+	 * @param numThresholds  Number of thresholds = size of raresCount-1
+	 *
+	 * @return (Weighed) rare-event simulation time/hits
+	 */
+	template< typename Numeric >
+	double aggregate_estimates(const std::vector<Numeric>& raresCount,
+							   unsigned numThresholds) const;
 
 private:  // Traial observers/updaters
 

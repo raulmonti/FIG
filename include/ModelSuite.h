@@ -281,16 +281,25 @@ public:  // Populating facilities and other modifyers
 	void set_global_effort(const unsigned& ge,
 	                       const std::string& defaultFromEngine = "");
 	
+
 	/// @brief Inform the system model was translated from a Dynamic Fault Tree
-	/// @param failProbDFT A <i>rough and unified</i> probability of observing
-	///                    a failure in a system component before any repairs
-	///                    occurs; if == 0.0 then an automatic choice is used.
-	/// isDFT Whether the IOSA comes from a DFT translation
 	/// @warning This is used to trigger mechanism that rely on a specific
 	///          naming of the IOSA modules and their variables,
 	///          viz. <b>this is implementation-specific</b> to the DFT-->IOSA-C
 	///          translation applied, which was developed by Monti et al.
-	void set_DFT(double failProbDFT = 0.0);
+	inline void set_DFT(bool modelIsDFT = true)
+	{
+		if (modelIsDFT)
+			set_DFT(0.0f);
+		else
+			set_DFT(-1.0f);
+	}
+
+	/// @brief Inform the system model was translated from a Dynamic Fault Tree
+	/// @param failProbDFT A <i>rough and unified</i> probability of observing
+	///                    a failure in a system component before any repairs
+	///                    occurs; if == 0.0 then an automatic choice is used.
+	void set_DFT(double failProbDFT);
 
 	/**
 	 * @brief Set a wall-clock-time limit for simulations
@@ -331,10 +340,14 @@ public:  // Populating facilities and other modifyers
 	 */
 	void set_rng(const std::string& rngType, const size_t& rngSeed = Clock::rng_seed());
 
-	/// @copydoc SimulationEngineaRestart::set_resampling()
-	/// @note Affects RESTART simulations only
+	/// @copydoc SimulationEngine::set_resampling()
+	/// @param resampling
+	/// @param engine      Simulation engine where resampling is turned on/off.
+	///                    An empty string affects all splitting engines,
+	///                    i.e. Fixed Effort and all variants of RESTART.
 	/// @throw FigException if the model isn't \ref sealed() "sealed" yet
-	void set_resampling(bool resampling);
+	/// @throw FigException if the simulation \p engine doesn't exist
+	void set_resampling(bool resampling = true, const std::string& engine = "");
 
 	/// Set (high) verbosity output printing in logs
 	static void set_verbosity(bool verboseOutput) noexcept;
@@ -344,9 +357,10 @@ public:  // Accessors
 	/// Is output printing in logs highly verbose?
 	static inline bool get_verbosity() noexcept { return highVerbosity_; }
 
-	/// Do RESTART simulations resample clock values upon splitting?
-	/// @throw FigException if the model isn't \ref sealed() "sealed" yet
-	bool get_resampling() const noexcept;
+	/// In splitting simulations, will clock values be resampled upon Traial replication?
+	/// @param engine Simulation engine to query
+	/// @throw FigException if the simulation \p engine doesn't exist
+	bool get_resampling(const std::string& engine) const;
 
 	/// @copydoc ModuleNetwork::sealed()
 	inline bool sealed() const noexcept { return (nullptr != model) && model->sealed(); }
@@ -490,27 +504,27 @@ public:  // Accessors
 
 public:  // Utils
 
-	/// Is \a engineName the name of an available simulation engine?
+	/// Is \p engineName the name of an available simulation engine?
 	/// @see available_simulators()
 	static bool exists_simulator(const std::string& engineName) noexcept;
 
-	/// Is \a ifunName the name of an available importance function?
+	/// Is \p ifunName the name of an available importance function?
 	/// @see available_importance_functions()
 	static bool exists_importance_function(const std::string& ifunName) noexcept;
 
-	/// Is \a ifunStrategy an available importance assessment strategy?
+	/// Is \p ifunStrategy an available importance assessment strategy?
 	/// @see available_importance_strategies()
 	static bool exists_importance_strategy(const std::string& impStrategy) noexcept;
 
-	/// Is \a postProc an available pos-processing for ImportanceFunctionConcrete?
+	/// Is \p postProc an available pos-processing for ImportanceFunctionConcrete?
 	/// @see available_importance_post_processings()
 	static bool exists_importance_post_processing(const std::string& postProc) noexcept;
 
-	/// Is \a thrTechnique an available thresholds building technique?
+	/// Is \p thrTechnique an available thresholds building technique?
 	/// @see available_threshold_techniques()
 	static bool exists_threshold_technique(const std::string& thrTechnique) noexcept;
 
-	/// Is \a rng an available thresholds building technique?
+	/// Is \p rng an available thresholds building technique?
 	/// @see available_RNGs()
 	static bool exists_rng(const std::string& rng) noexcept;
 

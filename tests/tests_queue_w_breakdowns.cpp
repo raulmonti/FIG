@@ -40,8 +40,8 @@ const string MODEL(tests::models_dir() + "queue_w_breakdowns.sa");
 fig::ModelSuite& model(fig::ModelSuite::get_instance());
 
 // Transient query: P ( !reset U buf == 50 )
-const double TR_PROB(7.53e-5);  // expected result of transient query
-int trPropId(-1);               // index of the query within our TAD
+constexpr double TR_PROB = 7.743994e-5;  // from PRISM :D
+int trPropId(-1);  // index of the query within our TAD
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
 
@@ -92,7 +92,7 @@ SECTION("Seal model and check consistency")
 	REQUIRE(model.num_threshold_techniques() > 0ul);
 	REQUIRE(model.num_RNGs() > 0ul);
 }
-
+/*
 SECTION("Transient: standard MC")
 {
 	const string nameEngine("nosplit");
@@ -109,10 +109,11 @@ SECTION("Transient: standard MC")
 	auto rng = model.available_RNGs().back();
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng);
-	const double confCo(.77);
-	const double prec(.6);
+	const double confCo(.9);
+	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(TIMEOUT_(90));  // truncate sims after 1.5 min
 	// Estimate
 	model.estimate(trPropId, *engine, confCrit, fig::ImpFunSpec(nameIFun, "flat"));
 	auto results = model.get_last_estimates();
@@ -133,6 +134,7 @@ SECTION("Transient: RESTART, ad hoc, es")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
+	model.set_resampling(false);
 	model.set_global_effort(2, nameEngine);
 	model.build_importance_function_adhoc(ifunSpec, trPropId, true);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, trPropId);
@@ -141,11 +143,11 @@ SECTION("Transient: RESTART, ad hoc, es")
 	auto rng = model.available_RNGs().back();
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 911);
-	const double confCo(.9);
-	const double prec(.333);
+	const double confCo(.95);
+	const double prec(.05);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-    model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
+	model.set_timeout(TIMEOUT_(90));  // truncate sims after 1.5 min
 	// Estimate
 	model.estimate(trPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -155,7 +157,7 @@ SECTION("Transient: RESTART, ad hoc, es")
 	REQUIRE(ci.precision(confCo) > 0.0);
 	REQUIRE(ci.precision(confCo) <= Approx(TR_PROB*prec).epsilon(TR_PROB*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-	          == Approx(TR_PROB*prec).epsilon(TR_PROB*0.1));
+			  == Approx(TR_PROB*prec).epsilon(TR_PROB*.6));
 }
 
 SECTION("Transient: Fixed Effort, monolithic, hyb")
@@ -168,7 +170,8 @@ SECTION("Transient: Fixed Effort, monolithic, hyb")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-    model.set_global_effort(4, nameEngine);
+	model.set_resampling(true);
+	model.set_global_effort(4, nameEngine);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, trPropId);
 	REQUIRE(engine->ready());
@@ -185,10 +188,10 @@ SECTION("Transient: Fixed Effort, monolithic, hyb")
 	auto ci = results.front();
 	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.8));
 	REQUIRE(ci.precision(.8) > 0.0);
-	REQUIRE(ci.precision(.8) <= Approx(TR_PROB*.5).epsilon(TR_PROB*0.4));
+	REQUIRE(ci.precision(.8) <= Approx(TR_PROB).epsilon(TR_PROB*.2));
 }
 
-SECTION("Transient: RESTART, compositional (max operator), es")
+SECTION("Transient: RESTART, compositional (max), es")
 {
 	const string nameEngine("restart");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "max");
@@ -198,6 +201,7 @@ SECTION("Transient: RESTART, compositional (max operator), es")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
+	model.set_resampling(false);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, trPropId);
 	REQUIRE(engine->ready());
@@ -206,9 +210,10 @@ SECTION("Transient: RESTART, compositional (max operator), es")
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 666);
 	const double confCo(.95);
-	const double prec(.4);
+	const double prec(.11);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(std::chrono::minutes(TIMEOUT_(2)));  // truncate sims after 2 min
 	// Estimate
 	model.estimate(trPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -216,12 +221,12 @@ SECTION("Transient: RESTART, compositional (max operator), es")
 	auto ci = results.front();
 	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.8));
 	REQUIRE(ci.precision(confCo) > 0.0);
-	REQUIRE(ci.precision(confCo) <= Approx(TR_PROB*prec).epsilon(TR_PROB*0.2));
+	REQUIRE(ci.precision(confCo) <= Approx(TR_PROB*prec).epsilon(TR_PROB*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-	          == Approx(TR_PROB*prec).epsilon(TR_PROB*0.2));
+			  == Approx(TR_PROB*prec).epsilon(TR_PROB*.6));
 }
 
-SECTION("Transient: Fixed Effort, compositional (+ operator), hyb")
+SECTION("Transient: Fixed Effort, compositional (+), hyb")
 {
 	const string nameEngine("sfe");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "+");
@@ -231,6 +236,7 @@ SECTION("Transient: Fixed Effort, compositional (+ operator), hyb")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
+	model.set_resampling(true);
 	model.set_global_effort(3, nameEngine);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, trPropId);
@@ -240,9 +246,10 @@ SECTION("Transient: Fixed Effort, compositional (+ operator), hyb")
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 666);
 	const double confCo(.95);
-	const double prec(.4);
+	const double prec(.11);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(std::chrono::minutes(TIMEOUT_(2)));  // truncate sims after 2 min
 	// Estimate
 	model.estimate(trPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -250,9 +257,179 @@ SECTION("Transient: Fixed Effort, compositional (+ operator), hyb")
 	auto ci = results.front();
 	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.8));
 	REQUIRE(ci.precision(confCo) > 0.0);
-	REQUIRE(ci.precision(confCo) <= Approx(TR_PROB*prec).epsilon(TR_PROB*0.2));
+	REQUIRE(ci.precision(confCo) <= Approx(TR_PROB*prec).epsilon(TR_PROB*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
-	          == Approx(TR_PROB*prec).epsilon(TR_PROB*0.2));
+			  == Approx(TR_PROB*prec).epsilon(TR_PROB*.6));
+}
+*/
+
+//	SECTION("Compile model 4: resampling " + M4)
+//	{
+//		preamble_testcase(fig::figTechLog, "resampling-" + M4);
+//
+//		// If this is not the first test then we need to clean
+//		// the ModelSuite singleton before loading the new model
+//		if (model.sealed())
+//			model.clear();
+//		REQUIRE_FALSE(model.sealed());
+//		REQUIRE(compile_model(MODEL_4));
+//		// XXX ModelSuite is a singleton: the compiled model is available
+//		//                                to all following SECTION blocks
+//		REQUIRE_FALSE(model.sealed());
+//		CHECK(model.num_modules() > 0ul);
+//
+//		// Register one transient property
+//		propId = -1;
+//		REQUIRE(model.num_properties() >= 1ul);
+//		for (size_t i = 0ul ; i < model.num_properties() ; i++) {
+//			auto prop = model.get_property(i);
+//			if (prop->type == fig::PropertyType::TRANSIENT) {
+//				propId = i;
+//				break;
+//			}
+//		}
+//		REQUIRE(0 <= propId);
+//		REQUIRE(nullptr != model.get_property(propId));
+//	}
+//
+//	SECTION("Seal model and check consistency")
+//	{
+//		REQUIRE(seal_model());
+//		REQUIRE(model.num_modules() > 0ul);
+//		REQUIRE(model.num_properties() >= 1ul);
+//		REQUIRE(model.num_simulators() > 0ul);
+//		REQUIRE(model.num_importance_functions() > 0ul);
+//		REQUIRE(model.num_importance_strategies() > 0ul);
+//		REQUIRE(model.num_threshold_techniques() > 0ul);
+//		REQUIRE(model.num_RNGs() > 0ul);
+//	}
+
+
+SECTION("Transient: no resampling, RESTART, compositional (+), ad hoc thresholds")
+{
+	const string nameEngine("restart");
+	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "+");
+	const string thrAdHoc("1:2,3:2,6:2,9:2,13:2,17:2,20:2,24:2,28:2,33:2,39:2,43:2,48:2");
+	REQUIRE(model.exists_simulator(nameEngine));
+	REQUIRE(model.exists_importance_function(ifunSpec.name));
+	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
+	// Prepare engine
+	model.set_resampling(false);
+	model.build_importance_function_auto(ifunSpec, trPropId, true);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, thrAdHoc, trPropId);
+	REQUIRE(engine->ready());
+	// Set estimation criteria
+	auto rng = model.available_RNGs().front();
+	REQUIRE(model.exists_rng(rng));
+	model.set_rng(rng, 590433664ul);
+	fig::StoppingConditions timeBound;
+	timeBound.add_time_budget(TIMEOUT_(90));
+	// Estimate
+	model.estimate(trPropId, *engine, timeBound, ifunSpec);
+	auto results = model.get_last_estimates();
+	REQUIRE(results.size() == 1ul);
+	auto ci = results.front();
+	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.3));
+	REQUIRE(ci.precision(.1) > 0.0);
+	REQUIRE(ci.precision(.1) <= Approx(TR_PROB*.5).epsilon(TR_PROB*.2));
+}
+
+/// @todo TODO revise, and rename as above
+SECTION("M4 with resampling (transient, RESTART, compositional (+), ad hoc thresholds)")
+{
+	const string nameEngine("restart");
+	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "+");
+	const string thrAdHoc("1:2,3:2,6:2,9:2,13:2,17:2,20:2,24:2,28:2,33:2,39:2,43:2,48:2");
+	REQUIRE(model.exists_simulator(nameEngine));
+	REQUIRE(model.exists_importance_function(ifunSpec.name));
+	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
+	// Prepare engine
+	model.set_resampling(true);
+	model.build_importance_function_auto(ifunSpec, trPropId, true);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, thrAdHoc, trPropId);
+	REQUIRE(engine->ready());
+	// Set estimation criteria
+	auto rng = model.available_RNGs().front();
+	REQUIRE(model.exists_rng(rng));
+	model.set_rng(rng, 590433664ul);
+	fig::StoppingConditions timeBound;
+	timeBound.add_time_budget(TIMEOUT_(90));
+	// Estimate
+	model.estimate(trPropId, *engine, timeBound, ifunSpec);
+	auto results = model.get_last_estimates();
+	REQUIRE(results.size() == 1ul);
+	auto ci = results.front();
+	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.3));
+	REQUIRE(ci.precision(.1) > 0.0);
+	REQUIRE(ci.precision(.1) <= Approx(TR_PROB*.5).epsilon(TR_PROB*.2));
+}
+
+/// @todo TODO revise, and rename as above
+SECTION("M4 without resampling (transient, Fixed Effort, compositional (+), ad hoc thresholds)")
+{
+	const string nameEngine("sfe");
+	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "+");
+	const string thrAdHoc("3:3,4:3,7:3,8:3,9:3,10:3,11:3,12:3,13:3,14:3,18:3,24:3,25:3,27:3,31:3,43:3,45:3,47:3,49:3");
+	REQUIRE(model.exists_simulator(nameEngine));
+	REQUIRE(model.exists_importance_function(ifunSpec.name));
+	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
+	// Prepare engine
+	model.set_resampling(false);
+	model.build_importance_function_auto(ifunSpec, trPropId, true);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, thrAdHoc, trPropId);
+	REQUIRE(engine->ready());
+	// Set estimation criteria
+	auto rng = model.available_RNGs().front();
+	REQUIRE(model.exists_rng(rng));
+	model.set_rng(rng, std::mt19937_64::default_seed);
+	fig::StoppingConditions timeBound;
+	timeBound.add_time_budget(TIMEOUT_(90));
+	// Estimate
+	model.estimate(trPropId, *engine, timeBound, ifunSpec);
+	auto results = model.get_last_estimates();
+	REQUIRE(results.size() == 1ul);
+	auto ci = results.front();
+	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.3));
+	REQUIRE(ci.precision(.1) > 0.0);
+	REQUIRE(ci.precision(.1) <= Approx(TR_PROB*.5).epsilon(TR_PROB*.2));
+}
+
+/// @todo TODO revise, and rename as above
+SECTION("M4 with resampling (transient, Fixed Effort, compositional (+), ad hoc thresholds)")
+{
+	const string nameEngine("sfe");
+	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "+");
+	const string thrAdHoc("3:3,4:3,7:3,8:3,9:3,10:3,11:3,12:3,13:3,14:3,18:3,24:3,25:3,27:3,31:3,43:3,45:3,47:3,49:3");
+	REQUIRE(model.exists_simulator(nameEngine));
+	REQUIRE(model.exists_importance_function(ifunSpec.name));
+	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
+	// Prepare engine
+	model.set_resampling(true);
+	model.build_importance_function_auto(ifunSpec, trPropId, true);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, thrAdHoc, trPropId);
+	REQUIRE(engine->ready());
+	// Set estimation criteria
+	auto rng = model.available_RNGs().front();
+	REQUIRE(model.exists_rng(rng));
+	model.set_rng(rng, std::mt19937_64::default_seed);
+	fig::StoppingConditions timeBound;
+	timeBound.add_time_budget(TIMEOUT_(90));
+	// Estimate
+	model.estimate(trPropId, *engine, timeBound, ifunSpec);
+	auto results = model.get_last_estimates();
+	REQUIRE(results.size() == 1ul);
+	auto ci = results.front();
+	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.3));
+	REQUIRE(ci.precision(.1) > 0.0);
+	REQUIRE(ci.precision(.1) <= Approx(TR_PROB*.5).epsilon(TR_PROB*.2));
+}
+
+SECTION("Reset default value of resampling for all engines")
+{
+	model.set_resampling();
+
+	///@todo TODO remove debug stop
+	exit(EXIT_SUCCESS);
 }
 
 } // TEST_CASE [queue-w-breakdowns]

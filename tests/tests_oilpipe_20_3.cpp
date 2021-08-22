@@ -71,7 +71,7 @@ namespace tests  // // // // // // // // // // // // // // // // // // // // //
 
 TEST_CASE("Oil pipeline (EXP) tests, for N=20 and K=3", "[oilpipes-EXP-N20-K3]")
 {
-
+/*
 SECTION("Compile model file")
 {
     preamble_testcase(fig::figTechLog, "oilpipes-EXP-N20-K3");
@@ -373,8 +373,7 @@ SECTION("Steady-state: RESTART, compositional ([+,*] ring), hyb")
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.3));
 }
-
+*/
 } // TEST_CASE [oilpipes-RAY-N20-K3]
-
 
 } // namespace tests   // // // // // // // // // // // // // // // // // // //

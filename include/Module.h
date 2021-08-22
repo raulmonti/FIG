@@ -64,7 +64,7 @@ protected:
 	std::vector< Transition > transitions_;
 
 	/// Whether all clocks distributions' are memoryless,
-	/// e.g. exponential, hyper-exponential, Erlang
+	/// i.e. they are instances of the exponential family of distributions
 	bool markovian_;
 
 public:  // Ctor/Dtor

@@ -25,7 +25,7 @@ const int C = 19;
 
 module Queue
 	clkSer: clock;
-	q: [0..C];
+	q: [0..C+2];
 	// Packet arrival
 	[Arr?] q == 0          -> (q'= q+1) & (clkSer'= uniform(a,b));
 	[Arr?] q  > 0 & q < C  -> (q'= q+1);

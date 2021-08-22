@@ -65,11 +65,10 @@ SimulationEngineRestart::SimulationEngineRestart(
     std::shared_ptr<const ModuleNetwork> model,
     bool thresholds,
     bool resampling) :
-        SimulationEngine("restart", model, thresholds),
+		SimulationEngine("restart", model, thresholds, resampling),
         dieOutDepth_(0u),
         oTraial_(TraialPool::get_instance().get_traial()),
-        currentSimLength_(0.0),
-        resampleOnSplit_(resampling)
+		currentSimLength_(0.0)
 {
 	if (thresholds)
 		throw_FigException("RESTART engine has not yet been implemented "
@@ -131,16 +130,6 @@ SimulationEngineRestart::set_die_out_depth(unsigned dieOutDepth)
 
 
 void
-SimulationEngineRestart::set_resampling(bool resampling)
-{
-	if (locked())
-		throw_FigException("engine \"" + name() + "\" is currently locked "
-		                   "in \"simulation mode\"");
-	resampleOnSplit_ = resampling;
-}
-
-
-void
 SimulationEngineRestart::reset() const
 {
 	SimulationEngine::reset();
@@ -191,7 +180,7 @@ SimulationEngineRestart::handle_lvl_up(
 		copy_traials(stack,
 		             traial,
 		             static_cast<uint>(prevEffort*(currEffort-1)),
-		             static_cast<short>(i-nLvlCross));
+					 static_cast<short>(i-nLvlCross));
 	}
 }
 
@@ -203,9 +192,20 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	assert(0u < numRuns);
 	const unsigned numThresholds(impFun_->num_thresholds());
 	std::vector< unsigned > raresCount(numThresholds+1, 0u);
-	std::vector< double > weighedRaresCount(numRuns, 0.0l);
+	std::vector< double > weighedRaresCount(numRuns, 0.0);
 	std::stack< Reference< Traial > > stack;
 	TraialPool& tpool(TraialPool::get_instance());
+
+	/// @todo TODO erase debug print
+	static bool printed = false;
+	if (!printed) {
+		printed = true;
+		std::cout << std::endl << "thresholds:";
+		for (const auto t: impFun_->thresholds())
+			std::cout << " " << t.first << ":" << t.second;
+		std::cout << std::endl;
+	}
+	/////////////////////////////////
 
 	if (die_out_depth() > 0)
 		throw_FigException("There is no support yet for transient analysis "
@@ -241,7 +241,15 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			watch_events(property, traial, e);
 			if (IS_RARE_EVENT(e)) {
 				// We are? Then count and kill
-				raresCount[traial.level]++;
+				////////////////////////////////////////////////////////////////
+				/// @bug BUG According to VA'98, we should count according to
+				///          the original creation level of the traial, so not
+				///          necessarily on traial.level but possibly lower.
+				///          But now we overestimate (both with and without that
+				///          correction!), e.g. tandem queue & queue with breakdowns
+				//raresCount[traial.level]++;
+				raresCount[traial.level+traial.depth]++;
+				////////////////////////////////////////////////////////////////
 				tpool.return_traial(std::move(traial));
 				stack.pop();
 				continue;
@@ -267,15 +275,18 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 
 		// Save weighed RE counts of this run, downscaling the # of RE observed
 		// by the relative importance of the threshold level they belong to
-		weighedRaresCount[i] = 0.0l;
-		double effort(1.0);
-		for (auto t = 0u ; t <= numThresholds ; t++) {
-			effort *= impFun_->effort_of(t);
-			weighedRaresCount[i] += raresCount[t] / effort;
-		}
-		assert(!std::isnan(weighedRaresCount.back()));
-		assert(!std::isinf(weighedRaresCount.back()));
-		assert(0.0 <= weighedRaresCount.back());
+		weighedRaresCount[i] = aggregate_estimates(raresCount, numThresholds);
+
+		/// @todo TODO erase deprecated code
+//		weighedRaresCount[i] = 0.0l;
+//		double effort(1.0);
+//		for (auto t = 0u ; t <= numThresholds ; t++) {
+//			effort *= impFun_->effort_of(t);
+//			weighedRaresCount[i] += raresCount[t] / effort;
+//		}
+//		assert(!std::isnan(weighedRaresCount.back()));
+//		assert(!std::isinf(weighedRaresCount.back()));
+//		assert(0.0 <= weighedRaresCount.back());
 	}
 	// Return any Traial still on the loose
 	tpool.return_traials(stack);
@@ -299,17 +310,18 @@ SimulationEngineRestart::rate_simulation(const PropertyRate& property,
 		oTraial_.initialise(*model_, *impFun_);
 	} else {
 		// Batch means, but reset life times
+		const auto BATCH_SIZE = ssstack_.size();
 		std::stack< Reference< Traial > > tmp;
 		while (!ssstack_.empty()) {
 			ssstack_.top().get().lifeTime = 0.0;
 			tmp.push(std::move(ssstack_.top()));
 			ssstack_.pop();
-			assert(tmp.size()+ssstack_.size() == ssstack_.size());
+			assert(tmp.size()+ssstack_.size() == BATCH_SIZE);
 		}
 		while (!tmp.empty()) {
 			ssstack_.push(std::move(tmp.top()));
 			tmp.pop();
-			assert(tmp.size()+ssstack_.size() == ssstack_.size());
+			assert(tmp.size()+ssstack_.size() == BATCH_SIZE);
 		}
 	}
 
@@ -445,17 +457,32 @@ SimulationEngineRestart::RESTART_run(const SSProperty& property,
 	if (ssstack_.empty())  // enable next iteration of batch means
 		ssstack_.push(oTraial_);
 
-	// To estimate, weigh the accumulated times by the relative importance of
-	// the thresholds-levels where they were registered
-	double weighedAccTime(0.0);
-	unsigned long effort(1ul);
-	for (auto t = 0u ; t <= numThresholds ; t++) {
-		effort *= impFun_->effort_of(t);
-		weighedAccTime += raresCount[t] / effort;
-	}
-	// Return the (weighed) simulation-time spent on rare states
-	assert(0.0 <= weighedAccTime);
-	return weighedAccTime;
+	return aggregate_estimates(raresCount, numThresholds);
+
+	/// @todo TODO erase deprecated code
+//		// Save weighed RE counts of this run, downscaling the # of RE observed
+//		// by the relative importance of the threshold level they belong to
+//		weighedRaresCount[i] = 0.0l;
+//		double effort(1.0);
+//		for (auto t = 0u ; t <= numThresholds ; t++) {
+//			effort *= impFun_->effort_of(t);
+//			weighedRaresCount[i] += raresCount[t] / effort;
+//		}
+//		assert(!std::isnan(weighedRaresCount.back()));
+//		assert(!std::isinf(weighedRaresCount.back()));
+//		assert(0.0 <= weighedRaresCount.back());
+//
+//	// To estimate, weigh the accumulated times by the relative importance of
+//	// the thresholds-levels where they were registered
+//	double weighedAccTime(0.0);
+//	unsigned long effort(1ul);
+//	for (auto t = 0u ; t <= numThresholds ; t++) {
+//		effort *= impFun_->effort_of(t);
+//		weighedAccTime += raresCount[t] / effort;
+//	}
+//	// Return the (weighed) simulation-time spent on rare states
+//	assert(0.0 <= weighedAccTime);
+//	return weighedAccTime;
 }
 
 // SimulationEngineRestart::RESTART_run can only be invoked
@@ -464,5 +491,53 @@ template
 double SimulationEngineRestart::RESTART_run(const PropertyRate&, const EventWatcher&, const EventWatcher&) const;
 template
 double SimulationEngineRestart::RESTART_run(const PropertyTBoundSS&, const EventWatcher&, const EventWatcher&) const;
+
+
+template< typename Numeric >
+double
+SimulationEngineRestart::aggregate_estimates(const std::vector<Numeric>& raresCount,
+											 unsigned numThresholds) const
+{
+	static_assert(std::is_arithmetic<Numeric>::value,
+				  "ERROR: raresCount vector must contain numbers");
+	assert(0u < numThresholds);
+	assert(raresCount.size() >= numThresholds);
+	const double N = std::round(numThresholds);
+	double weighedAccTime = 0.0,
+		   effort = 1.0;
+	for (auto t = 0u ; t <= N ; t++) {
+		effort *= impFun_->effort_of(t);
+		weighedAccTime += raresCount[t] / effort;
+	}
+	/// @todo TODO erase debug print
+	static auto numPrint = 0u;
+	if (weighedAccTime > 0 & numPrint < 10) {
+		numPrint++;
+		effort = 1.0;
+		std::cout << std::endl;
+		for (auto t = 0u ; t <= N ; t++) {
+			effort *= impFun_->effort_of(t);
+			std::cout << raresCount[t] << "(" << effort << ") ";
+		}
+	} //////////////////////////////
+	assert(!std::isnan(weighedAccTime));
+	assert(!std::isinf(weighedAccTime));
+	assert(0.0 <= weighedAccTime);
+	return weighedAccTime;
+}
+
+// SimulationEngineRestart::aggregate_estimates can be invoked with these types
+template
+double SimulationEngineRestart::aggregate_estimates(const std::vector<short>&,unsigned) const;
+template
+double SimulationEngineRestart::aggregate_estimates(const std::vector<int>&,unsigned) const;
+template
+double SimulationEngineRestart::aggregate_estimates(const std::vector<long>&,unsigned) const;
+template
+double SimulationEngineRestart::aggregate_estimates(const std::vector<unsigned short>&,unsigned) const;
+template
+double SimulationEngineRestart::aggregate_estimates(const std::vector<unsigned int>&,unsigned) const;
+template
+double SimulationEngineRestart::aggregate_estimates(const std::vector<unsigned long>&,unsigned) const;
 
 } // namespace fig  // // // // // // // // // // // // // // // // // // // //

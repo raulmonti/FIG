@@ -330,13 +330,16 @@ struct exponential : public fig::Distribution
 	/// @copydoc fig::Distribution::sample_conditional
 	/// @details <b>Implementation:</b><br>
 	/// Sample from same distribution (memoryless is the best)
-	inline void sample_conditional(time_t&, time_t& current) const override
+	inline void sample_conditional(time_t& previous, time_t& current) const override
 	{
 		// memoryless: no need to do "previous = current + elapsed;"
 		// thus, we can't check "assert(previous >= current);"
+		assert(previous >= current);
+		const auto elapsed = previous - current;
 		if (static_cast<time_t>(0) < current)
 			current = f(*rng);
 		// else: expired Clock, do nothing
+		previous = current + elapsed;
 	}
 };
 

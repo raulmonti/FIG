@@ -228,7 +228,7 @@ endmodule
 
 module BufferedServer
 
-        buf: [0..K] init 1;
+		buf: [0..K] init 1;
         clkF: clock;  // -- Server 'F'ailure    ~ exp(gama)
         clkR: clock;  // -- Server 'R'epair     ~ exp(delta)
         clkP: clock;  // -- Server 'P'rocessing ~ exp(mu)

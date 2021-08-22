@@ -645,16 +645,29 @@ ModelSuite::set_rng(const std::string& rngType, const size_t& rngSeed)
 
 
 void
-ModelSuite::set_resampling(bool resampling)
+ModelSuite::set_resampling(bool resampling, const std::string& engine)
 {
-    static_cast<SimulationEngineRestart&>(*simulators["restart"]).set_resampling(resampling);
+	if (engine.empty()) {
+		simulators["sfe"]->set_resampling(resampling);
+		simulators["restart"]->set_resampling(resampling);
+	} else if (exists_simulator(engine)) {
+		simulators[engine]->set_resampling(resampling);
+	} else {
+		throw_FigException("inexistent simulation engine \"" + engine +
+						   "\". Call \"available_simulators()\" for a list "
+						   "of available options.");
+	}
 }
 
 
 bool
-ModelSuite::get_resampling() const noexcept
+ModelSuite::get_resampling(const std::string& engine) const
 {
-	return static_cast<SimulationEngineRestart&>(*simulators["restart"]).get_resampling();
+	if (!exists_simulator(engine))
+		throw_FigException("inexistent simulation engine \"" + engine +
+						   "\". Call \"available_simulators()\" for a list "
+						   "of available options.");
+	return simulators[engine]->get_resampling();
 }
 
 
@@ -673,7 +686,7 @@ ModelSuite::get_property(const Integral& i) const noexcept
 {
 	static_assert(std::is_integral<Integral>::value,
 	              "ERROR: type mismatch, expected integral propertyIndex");
-	if (0 < i || num_properties() <= static_cast<size_t>(i))
+	if (0 > i || num_properties() <= static_cast<size_t>(i))
 		return nullptr;
 	else
 		return properties[i];
@@ -1411,7 +1424,7 @@ ModelSuite::estimate(const Property& property,
 	else
 		engine.set_batch_size(bounds.batch_size());
 	const ImportanceFunction& ifun(*impFuns[engine.current_imp_fun()]);
-	const auto resample = ((engineName.find("restart")!=std::string::npos) && get_resampling()) ? "yes" : "no";
+	const auto resample = (get_resampling(engineName)) ? "yes" : "no";
 	const auto postProcStr(ifun.post_processing().name.empty()
 			? ("(null)") : (ifun.post_processing().name + " "
 							+ to_string(ifun.post_processing().value)));

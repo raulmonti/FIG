@@ -220,14 +220,16 @@ namespace fig  // // // // // // // // // // // // // // // // // // // // // //
 SimulationEngine::SimulationEngine(
     const std::string& name,
     std::shared_ptr< const ModuleNetwork> model,
-    const bool thresholds) :
+	const bool thresholds,
+	const bool resampling) :
 		name_(name),
 		locked_(false),
         model_(model),
 		impFun_(nullptr),
 		cImpFun_(nullptr),
         interrupted(false),
-        toBuildThresholds_(thresholds),
+		toBuildThresholds_(thresholds),
+		resampleOnSplit_(resampling),
         reachCount_()
 {
 	if (std::find(begin(names()), end(names()), name) == end(names())) {
@@ -284,6 +286,16 @@ SimulationEngine::unbind()
 		impFun_->unbind_sim_engine();
 	impFun_.reset();
     cImpFun_.reset();
+}
+
+
+void
+SimulationEngine::set_resampling(bool resampling)
+{
+	if (locked())
+		throw_FigException("engine \"" + name() + "\" is currently locked "
+						   "in \"simulation mode\"");
+	resampleOnSplit_ = resampling;
 }
 
 

@@ -82,6 +82,7 @@ SECTION("Compile model file")
 	REQUIRE(model.num_properties() >= 3ul);
 	for (auto i = 0ul ; i < model.num_properties() ; i++) {
 		auto prop = model.get_property(i);
+		assert(nullptr != prop.get());
 		if (prop->type == fig::PropertyType::TRANSIENT)
 			trPropId = static_cast<decltype(trPropId)>( i );
 		else if (prop->type == fig::PropertyType::RATE)
