@@ -48,10 +48,10 @@ int ssPropId(-1);               // index of the query within our TAD
 
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
-
+/*
 TEST_CASE("Triple tandem queue tests", "[3-tandem-queue]")
 {
-/*
+
 SECTION("Compile model file")
 {
     preamble_testcase(fig::figTechLog, "3-tandem-queue");
@@ -109,8 +109,8 @@ SECTION("Steady-state: standard MC")
 	REQUIRE(engine->ready());
 	// Set estimation criteria
 	model.set_rng(rng);
-	const double confCo(.7);
-	const double prec(.6);
+	const double confCo(.9);
+	const double prec(.4);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
 	model.set_timeout(std::chrono::minutes(TIMEOUT_(1)));  // don't waste too much time...
@@ -182,7 +182,6 @@ SECTION("Steady-state: RESTART-P0, ad hoc, ad hoc thresholds")
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
 	model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
-	//model.set_timeout(TIMEOUT_(6));  /// @todo TODO erase
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -217,7 +216,6 @@ SECTION("Steady-state: RESTART-P3, ad hoc, ad hoc thresholds")
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
     model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
-	//model.set_timeout(TIMEOUT_(12));  /// @todo TODO erase
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -299,7 +297,6 @@ SECTION("Steady-state: RESTART, compositional, es")
 	          <= Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
 
-*/
 } // TEST_CASE [triple-tandem-queue]
-
+*/
 } // namespace tests   // // // // // // // // // // // // // // // // // // //

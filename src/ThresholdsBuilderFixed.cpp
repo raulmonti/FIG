@@ -216,7 +216,7 @@ ThresholdsBuilderFixed::build_thresholds_ad_hoc(const ImportanceFunction& impFun
 		if (THR >= static_cast<long>(MAX_THR))
 			throw_FigException("thresholds \"" + THR_EFF[0] + "\" is greater "
 			        "than the max importance " + std::to_string(MAX_THR));
-		if (EFF <= 0l || EFF > static_cast<decltype(EFF)>(MAX_EFFORT))
+		if (EFF <= 0l || EFF > static_cast<long>(MAX_EFFORT))
 			throw_FigException("out-of-bounds effort value \"" + THR_EFF[1] + "\"");
 		// Store as (threshold,effort) pair
 		thresholds.emplace_back(THR,EFF);

@@ -165,7 +165,7 @@ private:  // Simulation helper functions
 	 * @brief Calculate one estimate from the values of all levels
 	 *
 	 *        The final estimate is a weighed sum of the rare-event time/hits
-	 *        accumulated in all thresholds-levels. They weighing factor of a
+	 *        accumulated in all thresholds-levels. The weighing factor of a
 	 *        level is its relative importance, i.e. the amount of splitting
 	 *        that a simulation must undergo to reach it.
 	 *

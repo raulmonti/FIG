@@ -191,7 +191,12 @@ IF(RELEASE)
 	## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorize")
 ELSE()
 	# Optimize without obfuscating the assembly so much
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
+	IF(COMPILER_IS_GCC)
+		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -march=native -fno-unsafe-math-optimizations")
+		# WARNING: don't use --fast-math: it enables -funsafe-math-optimizations and causes bias
+	ELSE()
+		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")
+	ENDIF()
 	# Highly defensive compile flags
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 	# Add debug info (used by gdb and pals)

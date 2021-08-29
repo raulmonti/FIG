@@ -68,10 +68,10 @@ int ssPropId(-1);                   // index of the query within our TAD
 
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
-
+/*
 TEST_CASE("Oil pipeline (EXP) tests, for N=20 and K=3", "[oilpipes-EXP-N20-K3]")
 {
-/*
+
 SECTION("Compile model file")
 {
     preamble_testcase(fig::figTechLog, "oilpipes-EXP-N20-K3");
@@ -99,6 +99,10 @@ SECTION("Compile model file")
 	}
 	REQUIRE(0 <= ssPropId);
 	REQUIRE(nullptr != model.get_property(ssPropId));
+
+	// This is no DFT but some module names resemble one, which causes harmless
+	// (but annoying and fake) error messages: we better turn DFT support off
+	model.set_DFT(false);
 }
 
 SECTION("Seal model and check consistency")
@@ -373,7 +377,7 @@ SECTION("Steady-state: RESTART, compositional ([+,*] ring), hyb")
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          <= Approx(SS_PROB_EXP*prec).epsilon(SS_PROB_EXP*.3));
 }
-*/
-} // TEST_CASE [oilpipes-RAY-N20-K3]
 
+} // TEST_CASE [oilpipes-RAY-N20-K3]
+*/
 } // namespace tests   // // // // // // // // // // // // // // // // // // //

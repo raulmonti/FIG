@@ -109,7 +109,7 @@ void
 State<T_>::append(const State<T_>& tail)
 {
 #ifndef NDEBUG
-	for (const auto var_ptr: tail)
+	for (const auto& var_ptr: tail)
 		if (is_our_var(var_ptr->name()))
 			throw_FigException(std::string("variable \"")
 							   .append(var_ptr->name())
@@ -198,7 +198,7 @@ State<T_>::operator[](const std::string& varname) const
 {
 	for (auto pvar: pvars_)
 		if (varname == pvar->name_)
-			return std::move(pvar);
+			return pvar;
 	return nullptr;
 }
 

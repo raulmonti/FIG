@@ -412,26 +412,32 @@ TraialPool::get_traial_clones(std::forward_list< TraialRef >& flist,
 template< template< typename... > class Container,
 		  typename... OtherArgs >
 void
-TraialPool::return_traials(Container< TraialRef,OtherArgs... >& traials)
+TraialPool::return_traials(Container< TraialRef,OtherArgs... >& traials,
+						   const size_t num)
 {
-	for (Traial& t: traials)
-		available_traials_.push_front(t);
-	traials.clear();  // keep user from tampering with those references
+	const auto numTraials = (num == 0 || num >= traials.size()) ? traials.size() : num;
+	auto numReturned = 0ul;
+	auto it = begin(traials);
+	for ( ; numReturned < numTraials ; it++, numReturned++ )
+		available_traials_.push_front(it->get());
+	// remove from traials all those extracted references
+	traials.erase(begin(traials), it);
 }
 
 // TraialPool::return_traials() generic version can only be invoked with the following containers
-template void TraialPool::return_traials(std::set< TraialRef >&);
-template void TraialPool::return_traials(std::list< TraialRef >&);
-template void TraialPool::return_traials(std::deque< TraialRef >&);
-template void TraialPool::return_traials(std::vector< TraialRef >&);
+template void TraialPool::return_traials(std::set< TraialRef >&, const size_t);
+template void TraialPool::return_traials(std::list< TraialRef >&, const size_t);
+template void TraialPool::return_traials(std::deque< TraialRef >&, const size_t);
+template void TraialPool::return_traials(std::vector< TraialRef >&, const size_t);
 
 // TraialPool::return_traials() specialization for STL std::stack<>, up to 2x faster
 template <>
 void
-TraialPool::return_traials(std::stack< TraialRef >& stack)
+TraialPool::return_traials(std::stack< TraialRef >& stack,
+						   const size_t num)
 {
-	const size_t numTraials(stack.size());
-	for (size_t i = 0ul ; i < numTraials ; i++) {
+	const auto numTraials = num > 0ul ? num : stack.size();
+	for (size_t i = 0ul ; !stack.empty() && i < numTraials ; i++) {
 		available_traials_.push_front(stack.top());
 		stack.pop();
 	}
@@ -440,10 +446,11 @@ TraialPool::return_traials(std::stack< TraialRef >& stack)
 // TraialPool::return_traials() specialization for STL std::stack<>, up to 2x faster
 template <>
 void
-TraialPool::return_traials(std::stack< TraialRef, std::vector<TraialRef> >& stack)
+TraialPool::return_traials(std::stack< TraialRef, std::vector<TraialRef> >& stack,
+						   const size_t num)
 {
-	const size_t numTraials(stack.size());
-	for (size_t i = 0ul ; i < numTraials ; i++) {
+	const auto numTraials = num > 0ul ? num : stack.size();
+	for (size_t i = 0ul ; !stack.empty() && i < numTraials ; i++) {
 		available_traials_.push_front(stack.top());
 		stack.pop();
 	}
@@ -452,9 +459,14 @@ TraialPool::return_traials(std::stack< TraialRef, std::vector<TraialRef> >& stac
 // TraialPool::return_traials() specialization for STL std::forward_list<>, up to 2x faster
 template <>
 void
-TraialPool::return_traials(std::forward_list< TraialRef >& list)
+TraialPool::return_traials(std::forward_list< TraialRef >& list,
+						   const size_t num)
 {
-	for (auto it = list.begin() ; it != list.end() ; it = list.begin()) {
+	auto numReturned = 0ul;
+	for (auto it = list.begin()
+		; it != list.end()  &&  (num > 0ul && numReturned++ < num)
+		; it = list.begin())
+	{
 		available_traials_.push_front(*it);
 		list.pop_front();  // 'it' got invalidated
 	}

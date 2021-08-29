@@ -191,14 +191,18 @@ public:  // Access to resources (viz Traials)
 	                       short depth = 0);
 
 	/**
-	 * @brief Give back a bunch of \ref Traial "traials" to the pool
-	 * @param traials  Container with the references to the returned traials
-	 * @note The container is devoided to avoid potential memory corruption issues
+	 * @brief Give back (up to) \p num \ref Traial "traials" to the pool
+	 * @param traials  Container with the references to the returned Traials
+	 * @param num      Amount of Traials to return
+	 * @note Traials are removed from the beginning of the \p traials container
+	 * @note If <tt> num == 0 || num >= size(traials) </tt>
+	 *       then every Traial from \p traials is returned.
 	 * @note <b>Complexity:</b> <i>O(size(traials))</i>
 	 */
 	template< template< typename... > class Container,
 			  typename... OtherArgs >
-	void return_traials(Container< Reference<Traial>, OtherArgs...>& traials);
+	void return_traials(Container< Reference<Traial>, OtherArgs...>& traials,
+						const size_t num = 0ul);
 
 public:  // Utils
 

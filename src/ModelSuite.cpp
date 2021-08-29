@@ -1431,13 +1431,13 @@ ModelSuite::estimate(const Property& property,
 
 	mainLog_ << "RNG algorithm used: " << Clock::rng_type() << "\n\n";
 	mainLog_ << "Property: " << property.to_string() << "\n";
+	mainLog_ << " + RNG & seed:          " << Clock::rng_type() << " & " << Clock::rng_seed()
+			 << (Clock::rng_seed_is_random() ? (" (randomized)\n") : ("\n"));
 	mainLog_ << " + importance function: " << user_friendly_ifun_name(ifunSpec) << "\n";
 	mainLog_ << " + post-processing:     " << postProcStr << "\n";
 	mainLog_ << " + threshold builder:   " << ifun.thresholds_technique() << "\n";
 	mainLog_ << " + simulation engine:   " << engineName << "\n";
 	mainLog_ << " + resample on split:   " << resample << "\n";
-	mainLog_ << " + RNG seed:            " << Clock::rng_seed()
-			 << (Clock::rng_seed_is_random() ? (" (randomized)\n") : ("\n"));
 	mainLog_ << " [ " << ifun.num_thresholds() << " thresholds | ";
 	mainLog_ << (globalEffort > 0ul
 	             ? ("global effort = " + std::to_string(globalEffort))

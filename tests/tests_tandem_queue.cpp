@@ -111,7 +111,7 @@ SECTION("Seal model and check consistency")
 	REQUIRE(model.num_threshold_techniques() > 0ul);
 	REQUIRE(model.num_RNGs() > 0ul);
 }
-
+/*
 SECTION("Transient: standard MC")
 {
 	const string nameEngine("nosplit");
@@ -277,7 +277,6 @@ SECTION("Time bounded steady-state: RESTART-P2, compositional (+ operator), fix"
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
 	model.set_timeout(TIMEOUT_(45));
-	//model.set_timeout(TIMEOUT_(9));  /// @todo TODO erase
 	// Estimate
 	model.estimate(bsPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -362,6 +361,44 @@ SECTION("Time bounded steady-state: RESTART, monolithic, ad hoc thresholds")
 	REQUIRE(ci.precision(confCo) <= Approx(BS_PROB*prec).epsilon(BS_PROB*.2));
 	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
 	          == Approx(BS_PROB*prec).epsilon(BS_PROB*0.1));
+	model.release_resources(ifunSpec.name, nameEngine);
+}
+*/
+SECTION("Transient: RESTART, ad hoc, hyb")
+{
+	const string nameEngine("restart");
+	const fig::ImpFunSpec ifunSpec("algebraic", "adhoc", "q2");//,fig::PostProcessing(fig::PostProcessing::SHIFT, "shift", 42));
+	const string nameThr("hyb");
+	const string thrAdHoc("2:2,3:2,4:3,5:2,6:2,7:2");
+	REQUIRE(model.exists_simulator(nameEngine));
+	REQUIRE(model.exists_importance_function(ifunSpec.name));
+	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
+	REQUIRE(model.exists_threshold_technique(nameThr));
+	// Prepare engine
+	model.release_resources(ifunSpec.name);
+	model.set_global_effort(2, nameEngine);
+	model.build_importance_function_adhoc(ifunSpec, trPropId, true);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, thrAdHoc, trPropId);
+	REQUIRE(engine->ready());
+	// Set estimation criteria
+	auto rng = model.available_RNGs().front();
+	REQUIRE(model.exists_rng(rng));
+	model.set_rng(rng, 127);
+	const double confCo(.97);
+	const double prec(.2);
+	fig::StoppingConditions confCrit;
+	confCrit.add_confidence_criterion(confCo, prec);
+	model.set_timeout(std::chrono::minutes(TIMEOUT_(1)));
+	// Estimate
+	model.estimate(trPropId, *engine, confCrit, ifunSpec);
+	auto results = model.get_last_estimates();
+	REQUIRE(results.size() == 1ul);
+	auto ci = results.front();
+	REQUIRE(ci.point_estimate() == Approx(TR_PROB).epsilon(TR_PROB*.3));
+	REQUIRE(ci.precision(confCo) > 0.0);
+	REQUIRE(ci.precision(confCo) <= Approx(TR_PROB*prec).epsilon(TR_PROB*.2));
+	REQUIRE(static_cast<fig::ConfidenceInterval&>(ci).precision()
+			  == Approx(TR_PROB*prec).epsilon(TR_PROB*0.1));
 	model.release_resources(ifunSpec.name, nameEngine);
 }
 

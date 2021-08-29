@@ -259,9 +259,9 @@ void
 SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun)
 {
 	assert(nullptr != ifun);
-    if (locked())
-        throw_FigException("engine \"" + name() + "\" is currently locked "
-                           "in \"simulation mode\"");
+	if (locked())
+		throw_FigException("engine \"" + name() + "\" is currently locked "
+						   "in \"simulation mode\"");
 	// NOTE: bind/unbind are now exclusive for ModelSuite use,
 	//       thus we omit the "ready()" check
 	//       which would cause a circular dependency with build_thresholds
@@ -279,9 +279,9 @@ SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun)
 void
 SimulationEngine::unbind()
 {
-    if (locked())
-        throw_FigException("engine \"" + name() + "\" is currently locked "
-                           "in \"simulation mode\"");
+	if (locked())
+		throw_FigException("engine \"" + name() + "\" is currently locked "
+						   "in \"simulation mode\"");
 	if (nullptr != impFun_)
 		impFun_->unbind_sim_engine();
 	impFun_.reset();

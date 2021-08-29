@@ -169,13 +169,13 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 	seedTraial.initialise(*model_, *impFun_);
 	traialsNext.push_back(seedTraial);
 	size_t numSuccesses;
-	ImportanceValue l = LVL_INI;
+	ImportanceValue lvl = LVL_INI;
 
-	// Run Fixed Effort: For each threshold level 'l' ...
+	// Run Fixed Effort: For each threshold level 'lvl' ...
 	do {
         // ... prepare the Traials to run the simulations ...
         numSuccesses = 0ul;
-		const auto LE = toBuildThresholds_ ? l : std::max<size_t>(lvl_effort_min(), impFun_->effort_of(l));
+		const auto LE = toBuildThresholds_ ? lvl : std::max<size_t>(lvl_effort_min(), impFun_->effort_of(lvl));
 		const size_t LVL_EFFORT = lvl_effort(static_cast<unsigned>(LE));
 		if (LVL_EFFORT == 0ul && toBuildThresholds_) {
 			// we deviate from a designated path: abort simulation
@@ -187,22 +187,23 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
         assert(traialsNow.empty());
         assert(!traialsNext.empty());
         for (auto i = 0ul ; i < LVL_EFFORT ; i++) {
-            const bool useFresh(i >= traialsNext.size());
-			Traial& traial(useFresh ? tpool.get_traial() : traialsNext[i].get());
-			// if we want a fresh Traial, copy *contents*
-			if (useFresh && resampleOnSplit_)
-				traial.copyResampling(traialsNext[i%traialsNext.size()].get());
-			else if (useFresh)
-				traial = traialsNext[i%traialsNext.size()].get();
-            assert(traial.level == l);
+			const bool getFresh(i >= traialsNext.size());
+			Traial& traial(getFresh ? tpool.get_traial() : traialsNext[i].get());
+			if (getFresh) {  // copy *contents* from a previous-run
+				if (resampleOnSplit_)
+					traial.copyResampling(traialsNext[i%traialsNext.size()].get());
+				else
+					traial = traialsNext[i%traialsNext.size()].get();
+			}
+			assert(traial.level == lvl);
             traial.depth = 0;
 			traialsNow.push_back(traial);
         }
 		assert(traialsNow.size() == LVL_EFFORT);
 		traialsNext.erase(begin(traialsNext),
-		                  begin(traialsNext)+std::min(traialsNext.size(),LVL_EFFORT));
-		std::move(begin(traialsNext), end(traialsNext), std::back_inserter(traials_));
-		traialsNext.clear();
+						  begin(traialsNext)+std::min(traialsNext.size(),LVL_EFFORT));
+		tpool.return_traials(traialsNext);
+		assert(traialsNext.empty());
 		reachCountLocal.clear();
 		// ... run Fixed Effort until any level > 'l' ...
 		for (auto i = 0ul ; i < LVL_EFFORT ; i++) {
@@ -210,9 +211,9 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
 			traialsNow.pop_back();
 			assert(traial.level < LVL_MAX+(toBuildThresholds_?0:1));
 			model_->simulation_step(traial, *property_, watch_events);
-			if (traial.level > l || property_->is_rare(traial.state))
+			if (traial.level > lvl || property_->is_rare(traial.state))
 				numSuccesses++;
-			if (traial.level > l) {
+			if (traial.level > lvl) {
 				traialsNext.push_back(traial);
 				reachCount_[traial.level]++;
 				reachCountLocal[traial.level]++;
@@ -222,19 +223,19 @@ SimulationEngineSFE::fixed_effort(ThresholdsPathCandidates& result,
         }
 		assert(traialsNow.empty());
 		// ... and interpret the results
-		pathToRare.emplace_back(l, static_cast<double>(numSuccesses)/LVL_EFFORT);
+		pathToRare.emplace_back(lvl, static_cast<double>(numSuccesses)/LVL_EFFORT);
 		if (!traialsNext.empty()) {
 			auto nextLvl = filter_next_value(traialsNext, reachCountLocal);
-			assert(l < nextLvl);
+			assert(lvl < nextLvl);
 			if (LVL_MAX < nextLvl && LVL_MAX == arbitraryMaxLevel)
 				nextLvl = LVL_MAX;  // patch for badly chosen arbitraryMaxLevel
 			assert(nextLvl <= LVL_MAX);
-			l = nextLvl;
-			if (toBuildThresholds_ && l == LVL_MAX)
-				pathToRare.emplace_back(l,1.0);
+			lvl = nextLvl;
+			if (toBuildThresholds_ && lvl == LVL_MAX)
+				pathToRare.emplace_back(lvl,1.0);
 		}
 	} while (!traialsNext.empty() &&
-			 l < LVL_MAX + (toBuildThresholds_ ? 0 : 1 ));
+			 lvl < LVL_MAX + (toBuildThresholds_ ? 0 : 1 ));
 
 	tpool.return_traials(traialsNow);
 	tpool.return_traials(traialsNext);

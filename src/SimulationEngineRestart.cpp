@@ -196,6 +196,12 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 	std::stack< Reference< Traial > > stack;
 	TraialPool& tpool(TraialPool::get_instance());
 
+	if (die_out_depth() > 0)
+		throw_FigException("There is no support yet for transient analysis "
+		                   "using RESTART with prolonged retrials (requested "
+		                   "RESTART-P" +std::to_string(die_out_depth())+
+						   ") - Aborting estimations");
+
 	/// @todo TODO erase debug print
 	static bool printed = false;
 	if (!printed) {
@@ -206,12 +212,6 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 		std::cout << std::endl;
 	}
 	/////////////////////////////////
-
-	if (die_out_depth() > 0)
-		throw_FigException("There is no support yet for transient analysis "
-		                   "using RESTART with prolonged retrials (requested "
-		                   "RESTART-P" +std::to_string(die_out_depth())+
-		                   ") - Aborting estimations");
 
 	// For efficiency (sigh) distinguish when operating with a concrete ifun
 	EventWatcher watch_events = impFun_->concrete_simulation()
@@ -242,13 +242,13 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			if (IS_RARE_EVENT(e)) {
 				// We are? Then count and kill
 				////////////////////////////////////////////////////////////////
-				/// @bug BUG According to VA'98, we should count according to
-				///          the original creation level of the traial, so not
-				///          necessarily on traial.level but possibly lower.
-				///          But now we overestimate (both with and without that
-				///          correction!), e.g. tandem queue & queue with breakdowns
+				/// @bug BUG According to VA'98, we should count in the original
+				///          level of creation of the Traial, so not necessarily
+				///          in the current traial.level but possibly lower.
+				///          But this makes RESTART overestimate sometimes,
+				///          most remarkably on the queue with breakdowns
 				//raresCount[traial.level]++;
-				raresCount[traial.level+traial.depth]++;
+				raresCount[static_cast<long>(traial.level)+traial.depth]++;
 				////////////////////////////////////////////////////////////////
 				tpool.return_traial(std::move(traial));
 				stack.pop();
@@ -277,16 +277,9 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 		// by the relative importance of the threshold level they belong to
 		weighedRaresCount[i] = aggregate_estimates(raresCount, numThresholds);
 
-		/// @todo TODO erase deprecated code
-//		weighedRaresCount[i] = 0.0l;
-//		double effort(1.0);
-//		for (auto t = 0u ; t <= numThresholds ; t++) {
-//			effort *= impFun_->effort_of(t);
-//			weighedRaresCount[i] += raresCount[t] / effort;
-//		}
-//		assert(!std::isnan(weighedRaresCount.back()));
-//		assert(!std::isinf(weighedRaresCount.back()));
-//		assert(0.0 <= weighedRaresCount.back());
+		assert(!std::isnan(weighedRaresCount.back()));
+		assert(!std::isinf(weighedRaresCount.back()));
+		assert(0.0 <= weighedRaresCount.back());
 	}
 	// Return any Traial still on the loose
 	tpool.return_traials(stack);
@@ -458,31 +451,6 @@ SimulationEngineRestart::RESTART_run(const SSProperty& property,
 		ssstack_.push(oTraial_);
 
 	return aggregate_estimates(raresCount, numThresholds);
-
-	/// @todo TODO erase deprecated code
-//		// Save weighed RE counts of this run, downscaling the # of RE observed
-//		// by the relative importance of the threshold level they belong to
-//		weighedRaresCount[i] = 0.0l;
-//		double effort(1.0);
-//		for (auto t = 0u ; t <= numThresholds ; t++) {
-//			effort *= impFun_->effort_of(t);
-//			weighedRaresCount[i] += raresCount[t] / effort;
-//		}
-//		assert(!std::isnan(weighedRaresCount.back()));
-//		assert(!std::isinf(weighedRaresCount.back()));
-//		assert(0.0 <= weighedRaresCount.back());
-//
-//	// To estimate, weigh the accumulated times by the relative importance of
-//	// the thresholds-levels where they were registered
-//	double weighedAccTime(0.0);
-//	unsigned long effort(1ul);
-//	for (auto t = 0u ; t <= numThresholds ; t++) {
-//		effort *= impFun_->effort_of(t);
-//		weighedAccTime += raresCount[t] / effort;
-//	}
-//	// Return the (weighed) simulation-time spent on rare states
-//	assert(0.0 <= weighedAccTime);
-//	return weighedAccTime;
 }
 
 // SimulationEngineRestart::RESTART_run can only be invoked
@@ -511,15 +479,17 @@ SimulationEngineRestart::aggregate_estimates(const std::vector<Numeric>& raresCo
 	}
 	/// @todo TODO erase debug print
 	static auto numPrint = 0u;
-	if (weighedAccTime > 0 & numPrint < 10) {
+	if (weighedAccTime > 0 && numPrint < 5) {
 		numPrint++;
 		effort = 1.0;
 		std::cout << std::endl;
 		for (auto t = 0u ; t <= N ; t++) {
 			effort *= impFun_->effort_of(t);
-			std::cout << raresCount[t] << "(" << effort << ") ";
+			std::cout << "x" << impFun_->effort_of(t) << "=" << effort
+					  << "(" << raresCount[t] << ") ";
 		}
-	} //////////////////////////////
+	}
+	//////////////////////////////
 	assert(!std::isnan(weighedAccTime));
 	assert(!std::isinf(weighedAccTime));
 	assert(0.0 <= weighedAccTime);
