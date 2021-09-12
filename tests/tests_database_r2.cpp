@@ -56,7 +56,7 @@ int ssPropId(-1);               // index of the query within our TAD
 
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
-/*
+
 TEST_CASE("Database with R=2 tests", "[database-R2]")
 {
 
@@ -287,5 +287,5 @@ SECTION("Steady-state: RESTART, compositional ([+,*] ring), es")
 }
 
 } // TEST_CASE [database-R2]
-*/
+
 } // namespace tests   // // // // // // // // // // // // // // // // // // //

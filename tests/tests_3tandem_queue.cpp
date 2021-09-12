@@ -48,7 +48,7 @@ int ssPropId(-1);               // index of the query within our TAD
 
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
-/*
+
 TEST_CASE("Triple tandem queue tests", "[3-tandem-queue]")
 {
 
@@ -298,5 +298,5 @@ SECTION("Steady-state: RESTART, compositional, es")
 }
 
 } // TEST_CASE [triple-tandem-queue]
-*/
+
 } // namespace tests   // // // // // // // // // // // // // // // // // // //

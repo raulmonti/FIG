@@ -40,7 +40,7 @@ const string MODEL(tests::models_dir() + "queue_w_breakdowns.sa");
 fig::ModelSuite& model(fig::ModelSuite::get_instance());
 
 // Transient query: P ( !reset U buf == 50 )
-constexpr double TR_PROB = 7.743994e-5;  // from PRISM :D
+constexpr double TR_PROB = 7.743994e-5;  // from PRISM
 int trPropId(-1);  // index of the query within our TAD
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
@@ -48,7 +48,7 @@ int trPropId(-1);  // index of the query within our TAD
 
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
-/*
+
 TEST_CASE("Queue with breakdowns tests", "[queue-w-breakdowns]")
 {
 
@@ -382,5 +382,5 @@ SECTION("Reset default value of resampling for all engines")
 }
 
 } // TEST_CASE [queue-w-breakdowns]
-*/
+
 } // namespace tests   // // // // // // // // // // // // // // // // // // //

@@ -128,9 +128,10 @@ private:  // Simulation helper functions
 	void reinit_stack() const;
 
 	/// Fill \a stack with copies of \a traial due to level-up splitting
+	/// @return Whether some splitting was actually performed
 	/// @note Can handle several-levels-up situations
 	template< typename TraialCopier >
-	void handle_lvl_up(const Traial &traial,
+	bool handle_lvl_up(const Traial &traial,
 	                   TraialCopier copy_traials,
 	                   std::stack< Reference< Traial > >& stack) const;
 
@@ -199,7 +200,7 @@ private:  // Traial observers/updaters
 				traial.level = static_cast<decltype(traial.level)>(newThrLvl);
 				if (traial.numLevelsCrossed < 0 && traial.depth > dieOutDepth_)
 					e = EventType::THR_DOWN;
-				else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
+				else if (traial.numLevelsCrossed > 0)
 					e = EventType::THR_UP;
 				else if (property.is_rare(traial.state))
 					e = EventType::RARE;
@@ -229,7 +230,7 @@ private:  // Traial observers/updaters
 				traial.level = static_cast<decltype(traial.level)>(newThrLvl);
 				if (traial.numLevelsCrossed < 0 && traial.depth > dieOutDepth_)
 					SET_THR_DOWN_EVENT(e);
-				else if (traial.numLevelsCrossed > 0 && traial.depth < 0)
+				else if (traial.numLevelsCrossed > 0)
 					SET_THR_UP_EVENT(e);
 				// else: rare event info is already marked inside 'e'
 			}

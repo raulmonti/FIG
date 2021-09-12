@@ -52,7 +52,7 @@ constexpr ulong M1_SECONDS = 30ul;
 // M2: Time-bounded steady-state: S [ 60:6060 ]( q >= 19)
 constexpr double M2_PROB = 3.89e-10;
 constexpr double M2_PROB_EXTRA = 1.58e-9;
-constexpr ulong M2_SECONDS = 30ul;
+constexpr ulong M2_SECONDS = 45ul;
 // M3: Transient: P ( ReliabilityTimeOut<2 U count_5==3 )
 constexpr double M3_PROB = 2.65e-4;
 constexpr ulong M3_SECONDS = 120ul;
@@ -65,7 +65,7 @@ int propIdExtra(-1);
 
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
-/*
+
 TEST_CASE("Resampling of clock values upon Traial copy", "[resampling]")
 {
 
@@ -480,5 +480,5 @@ SECTION("Reset default value of resampling for all engines")
 }
 
 } // TEST_CASE [resampling]
-*/
+
 } // namespace tests   // // // // // // // // // // // // // // // // // // //

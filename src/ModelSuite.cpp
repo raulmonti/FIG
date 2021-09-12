@@ -31,6 +31,7 @@
 #include <cctype>
 #include <cstdio>     // std::sprintf()
 #include <cstdlib>    // std::strtoul()
+#include <ctime>      // std::time()
 #include <unistd.h>   // alarm(), exit()
 #include <pthread.h>  // pthread_cancel()
 #include <cmath>      // std::pow()
@@ -281,6 +282,24 @@ time_formatted_str(SECONDS timeInSeconds)
 	char timeStr[23] = {'\0'};
 	std::sprintf(timeStr, "%02zu:%02zu:%02zu", hours, minutes, seconds);
 	return timeStr;
+}
+
+
+/// Add given time (in seconds) to current time of day, and return as
+/// string in the same format than time_formatted_str()
+/// @see time_formatted_str
+template< typename SECONDS >
+std::string
+datetime_formatted_str(SECONDS timeInSeconds)
+{
+	static_assert(std::is_integral<SECONDS>::value,
+	              "ERROR: type mismatch, expected integral timeInSeconds");
+	const auto endTime = std::time(nullptr) + timeInSeconds;
+	const auto endTimePoint = std::localtime(&endTime);
+	char endTimeStr[23] = {'\0'};
+	std::sprintf(endTimeStr, "%02d:%02d:%02d", endTimePoint->tm_hour,
+	             endTimePoint->tm_min, endTimePoint->tm_sec);
+	return endTimeStr;
 }
 
 
@@ -1506,7 +1525,8 @@ ModelSuite::estimate_for_times(const Property& property,
 		        ? std::min<long>(wallTimeInSeconds, timeout_.count())
 		        : wallTimeInSeconds);
 		mainLog_ << std::setprecision(0) << std::fixed;
-		mainLog_ << " - Estim. time bound:   " << time_formatted_str(timeLimit.count()) << "\n";
+		mainLog_ << " - Requested runtime:   " << time_formatted_str(timeLimit.count()) << "\n";
+		mainLog_ << " - Ends at:             " << datetime_formatted_str(timeout_.count()) << "\n";
 
 		// Start timer
 		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),
@@ -1569,9 +1589,13 @@ ModelSuite::estimate_for_confs(const Property& property,
 			mainLog_ << std::setprecision(0) << std::fixed << (100*precVal) << "%\n";
 		else
 			mainLog_ << std::setprecision(2) << std::scientific << (2*precVal) << "\n";
-		if (timeout_.count() > 0l)
+		if (timeout_.count() > 0l) {
+			// print timeout duration and also (max expected) end time
 			mainLog_ << " - Time-out:" << std::setw(20)
 			         << time_formatted_str(timeout_.count()) << "\n";
+			mainLog_ << " - Ends before:" << std::setw(17)
+			         << datetime_formatted_str(timeout_.count()) << "\n";
+		}
 
 		// Start timer
 		std::thread timer(start_timer, std::ref(*ci_ptr), std::ref(engine.interrupted),

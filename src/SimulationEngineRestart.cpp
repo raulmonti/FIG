@@ -154,7 +154,7 @@ using TraialCopier = std::function< void (std::stack< Reference<Traial> >&,
                                           const Traial&,
                                           unsigned,
                                           short) >;
-template<> void
+template<> bool
 SimulationEngineRestart::handle_lvl_up(
     const Traial& traial,
     TraialCopier copy_traials,
@@ -172,7 +172,7 @@ SimulationEngineRestart::handle_lvl_up(
 	// Could have gone up several thresholds => split accordingly
 	for (auto i = 1ul ; i <= nLvlCross ; i++) {
 		if (static_cast<int>(previousLvl+i) < traial.nextSplitLevel)
-			continue;  // skip this level
+			return false;  // no splitting to do: skip this level
 		assert(impFun_->max_value() >= previousLvl+i);
 		prevEffort *= currEffort;
 		currEffort = impFun_->effort_of(previousLvl+i);
@@ -182,6 +182,7 @@ SimulationEngineRestart::handle_lvl_up(
 		             static_cast<uint>(prevEffort*(currEffort-1)),
 					 static_cast<short>(i-nLvlCross));
 	}
+	return true;
 }
 
 
@@ -201,17 +202,6 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 		                   "using RESTART with prolonged retrials (requested "
 		                   "RESTART-P" +std::to_string(die_out_depth())+
 						   ") - Aborting estimations");
-
-	/// @todo TODO erase debug print
-	static bool printed = false;
-	if (!printed) {
-		printed = true;
-		std::cout << std::endl << "thresholds:";
-		for (const auto t: impFun_->thresholds())
-			std::cout << " " << t.first << ":" << t.second;
-		std::cout << std::endl;
-	}
-	/////////////////////////////////
 
 	// For efficiency (sigh) distinguish when operating with a concrete ifun
 	EventWatcher watch_events = impFun_->concrete_simulation()
@@ -241,15 +231,10 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 			watch_events(property, traial, e);
 			if (IS_RARE_EVENT(e)) {
 				// We are? Then count and kill
-				////////////////////////////////////////////////////////////////
-				/// @bug BUG According to VA'98, we should count in the original
-				///          level of creation of the Traial, so not necessarily
-				///          in the current traial.level but possibly lower.
-				///          But this makes RESTART overestimate sometimes,
-				///          most remarkably on the queue with breakdowns
-				//raresCount[traial.level]++;
-				raresCount[static_cast<long>(traial.level)+traial.depth]++;
-				////////////////////////////////////////////////////////////////
+				raresCount[traial.level+traial.depth]++;
+				// ^^^ count in Traial's creation level; see Villen-Altamirano
+				//     "RESTART method for the case where rare events can occur
+				//      in retrials from any threshold" (1998)
 				tpool.return_traial(std::move(traial));
 				stack.pop();
 				continue;
@@ -264,11 +249,14 @@ SimulationEngineRestart::transient_simulations(const PropertyTransient& property
 				tpool.return_traial(std::move(traial));  // alternative way: tpool.return_traial(stack.top());
 				stack.pop();
 
-			} else if (IS_THR_UP_EVENT(e)) {
+			} else if (IS_THR_UP_EVENT(e) && !IS_RARE_EVENT(e)) {
 				// Could have gone up several thresholds => split accordingly
-				handle_lvl_up(traial, copy_traials, stack);
-				traial.nextSplitLevel = static_cast<decltype(traial.nextSplitLevel)>(traial.level+1);
-				// Offsprings are on top of stack now: continue attending them
+				assert(traial.numLevelsCrossed > 0);
+				if (handle_lvl_up(traial, copy_traials, stack)) {
+					// we actually used the splitting mechanism
+					traial.nextSplitLevel = static_cast<decltype(traial.nextSplitLevel)>(traial.level+1);
+					// Offsprings are on top of stack now: continue attending them
+				}
 			}
 			// RARE events are checked first thing in next iteration
 		}
@@ -437,13 +425,15 @@ SimulationEngineRestart::RESTART_run(const SSProperty& property,
 				tpool.return_traial(std::move(traial));
 			ssstack_.pop();
 
-		} else if (IS_THR_UP_EVENT(e)) {
+		} else if (IS_THR_UP_EVENT(e) && !IS_RARE_EVENT(e)) {
 			// Could have gone up several thresholds => split accordingly
 			assert(traial.numLevelsCrossed > 0);
-			handle_lvl_up(traial, copy_traials, ssstack_);
-			traial.nextSplitLevel = static_cast<decltype(traial.nextSplitLevel)>(traial.level+1);
-			assert(&(ssstack_.top().get()) != &oTraial_);
-			// Offsprings are on top of ssstack_ now: continue attending them
+			if (handle_lvl_up(traial, copy_traials, ssstack_)) {
+				// we actually used the splitting mechanism
+				traial.nextSplitLevel = static_cast<decltype(traial.nextSplitLevel)>(traial.level+1);
+				// Offsprings are on top of ssstack_ now: continue attending them
+				assert(&(ssstack_.top().get()) != &oTraial_);
+			}
 		}
 		// RARE events are checked first thing in next iteration
 	}
@@ -477,19 +467,6 @@ SimulationEngineRestart::aggregate_estimates(const std::vector<Numeric>& raresCo
 		effort *= impFun_->effort_of(t);
 		weighedAccTime += raresCount[t] / effort;
 	}
-	/// @todo TODO erase debug print
-	static auto numPrint = 0u;
-	if (weighedAccTime > 0 && numPrint < 5) {
-		numPrint++;
-		effort = 1.0;
-		std::cout << std::endl;
-		for (auto t = 0u ; t <= N ; t++) {
-			effort *= impFun_->effort_of(t);
-			std::cout << "x" << impFun_->effort_of(t) << "=" << effort
-					  << "(" << raresCount[t] << ") ";
-		}
-	}
-	//////////////////////////////
 	assert(!std::isnan(weighedAccTime));
 	assert(!std::isinf(weighedAccTime));
 	assert(0.0 <= weighedAccTime);

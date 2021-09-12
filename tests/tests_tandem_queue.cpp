@@ -40,15 +40,15 @@ const string MODEL(tests::models_dir() + "tandem_queue.sa");
 fig::ModelSuite& model(fig::ModelSuite::get_instance());
 
 // Transient query: P ( q2 > 0 U q2 == 8 )
-const double TR_PROB(5.59e-6);  // expected result of transient query
+const double TR_PROB(5.59e-6);  // expected result of transient query, from PRISM
 int trPropId(-1);               // index of the query within our TAD
 
 // Steady-state query: S ( q2 == 8 )
-const double SS_PROB(6.23e-5);  // expected result of steady-state query (C=10: 7.25e-6)
+const double SS_PROB(6.23e-5);  // expected result of steady-state query, from PRISM (C=10: 7.25e-6)
 int ssPropId(-1);               // index of the query within our TAD
 
 // Time bounded steady-state query: S[ 60:30000 ]( q2 == 8 )
-const double BS_PROB(6.15e-5);  // expected result of steady-state query
+const double BS_PROB(6.23e-5);  // expected result of steady-state query, from PRISM
 int bsPropId(-1);               // index of the query within our TAD
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
@@ -111,7 +111,7 @@ SECTION("Seal model and check consistency")
 	REQUIRE(model.num_threshold_techniques() > 0ul);
 	REQUIRE(model.num_RNGs() > 0ul);
 }
-/*
+
 SECTION("Transient: standard MC")
 {
 	const string nameEngine("nosplit");
@@ -363,7 +363,7 @@ SECTION("Time bounded steady-state: RESTART, monolithic, ad hoc thresholds")
 	          == Approx(BS_PROB*prec).epsilon(BS_PROB*0.1));
 	model.release_resources(ifunSpec.name, nameEngine);
 }
-*/
+
 SECTION("Transient: RESTART, ad hoc, hyb")
 {
 	const string nameEngine("restart");
