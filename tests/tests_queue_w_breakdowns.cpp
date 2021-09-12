@@ -134,7 +134,6 @@ SECTION("Transient: RESTART, ad hoc, es")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_resampling(false);
 	model.set_global_effort(2, nameEngine);
 	model.build_importance_function_adhoc(ifunSpec, trPropId, true);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, trPropId);
@@ -170,7 +169,6 @@ SECTION("Transient: Fixed Effort, monolithic, hyb")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_resampling(true);
 	model.set_global_effort(4, nameEngine);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, trPropId);
@@ -201,7 +199,6 @@ SECTION("Transient: RESTART, compositional (max), es")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_resampling(false);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, trPropId);
 	REQUIRE(engine->ready());
@@ -236,7 +233,6 @@ SECTION("Transient: Fixed Effort, compositional (+), hyb")
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_resampling(true);
 	model.set_global_effort(3, nameEngine);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, trPropId);

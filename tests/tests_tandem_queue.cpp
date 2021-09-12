@@ -161,7 +161,7 @@ SECTION("Steady-state: RESTART, ad hoc, hyb")
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 12);
 	const double confCo(.95);
-	const double prec(.4);
+	const double prec(.1);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
     model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
@@ -198,7 +198,7 @@ SECTION("Steady-state: RESTART, monolithic, hyb")
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 42);
 	const double confCo(.95);
-	const double prec(.3);
+	const double prec(.1);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
 	model.set_timeout(std::chrono::minutes(TIMEOUT_(1)));  // estimate for a min max
