@@ -178,7 +178,7 @@ SECTION("Steady-state: RESTART-P0, ad hoc, ad hoc thresholds")
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 314159265ul);
 	const double confCo(.95);
-	const double prec(.3);
+	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
 	model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
@@ -212,7 +212,7 @@ SECTION("Steady-state: RESTART-P3, ad hoc, ad hoc thresholds")
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 314159265ul);
 	const double confCo(.95);
-	const double prec(.3);
+	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
     model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
@@ -247,7 +247,7 @@ SECTION("Steady-state: RESTART, monolithic, hyb")
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 42);
 	const double confCo(.95);
-	const double prec(.3);
+	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
 	model.set_timeout(std::chrono::minutes(TIMEOUT_(2)));  // estimate for 2 min max
@@ -281,7 +281,7 @@ SECTION("Steady-state: RESTART, compositional, es")
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 0);
 	const double confCo(.95);
-	const double prec(.35);
+	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
     model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary

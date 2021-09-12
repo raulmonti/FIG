@@ -281,7 +281,8 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 {
 	assert(impFun.max_value() > impFun.initial_value() + margin);
 
-	const size_t IMP_RANGE(impFun.max_value() - impFun.initial_value() - margin),
+	const auto ifunMaxValue = impFun.max_value();
+	const size_t IMP_RANGE(ifunMaxValue - impFun.initial_value() - margin),
 	             FIRST_THR(impFun.initial_value() + margin);
 
 	// Importance function concrete split (aka compositional ifun)
@@ -306,11 +307,10 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 
 	case (PostProcessing::EXP):
 		{ size_t expStride(1ul);
-		for (ImportanceValue imp = FIRST_THR;
-			 imp < impFun.max_value();
+		for (ImportanceValue imp = FIRST_THR ;
+		     imp < ifunMaxValue ;
 		     expStride *= stride, imp += expStride)
 			thresholds.push_back(imp);
-		thresholds.push_back(impFun.max_value()+1u);
 	    } break;
 
 	default:
@@ -322,9 +322,11 @@ ThresholdsBuilderFixed::build_thresholds(const ImportanceFunction& impFun,
 	std::sort(begin(thresholds), end(thresholds));
 	auto newEnd = std::unique(begin(thresholds), end(thresholds));
 	thresholds.erase(newEnd, end(thresholds));
+	auto posIfunMaxValue = find(begin(thresholds), end(thresholds), ifunMaxValue);
+	if (end(thresholds) != posIfunMaxValue)
+		thresholds.erase(posIfunMaxValue);
 	thresholds.shrink_to_fit();
-	assert(thresholds.back() > impFun.max_value());
-	thresholds.back() = impFun.max_value() + static_cast<ImportanceValue>(1u);
+	thresholds.back() = ifunMaxValue + static_cast<ImportanceValue>(1u);
 }
 
 

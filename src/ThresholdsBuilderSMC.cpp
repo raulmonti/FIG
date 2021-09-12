@@ -230,7 +230,6 @@ find_new_threshold(const fig::ModuleNetwork& network,
     using std::to_string;
 	unsigned jumpsLeft, fails(0u), simEffort(SIM_EFFORT);
 	const ImportanceValue MAX_IMP(impFun.max_value());
-    ImportanceValue newThr(lastThr);
 
 	// Function pointers matching ModuleNetwork::peak_simulation() signatures
 	auto predicate = [&jumpsLeft,&MAX_IMP,&property](const Traial& t) -> bool {
@@ -254,6 +253,7 @@ find_new_threshold(const fig::ModuleNetwork& network,
 		return true;
 	};
 
+	ImportanceValue newThr;
 	do {
 		// Run 'n' simulations
 		for (size_t i = 0ul ; i < n && !halt ; i++) {
@@ -309,14 +309,14 @@ ThresholdsBuilderSMC::rng_seed() noexcept
 void
 ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 {
-	const ImportanceValue IMP_RANGE = impFun.max_value() - impFun.min_value();
+	const auto IMP_MAX_VAL = impFun.max_value();
+	const ImportanceValue IMP_RANGE = IMP_MAX_VAL - impFun.min_value();
 	if (IMP_RANGE < static_cast<ImportanceValue>(2u)) {
 		// Too few importance levels: default to max possible # of thresholds
 		std::vector< ImportanceValue >(IMP_RANGE+2u).swap(thresholds_);
 		thresholds_[0u] = impFun.min_value();
-		thresholds_[1u] = impFun.max_value();
-		thresholds_[IMP_RANGE+1u] = impFun.max_value()
-		                            + static_cast<ImportanceValue>(1u);
+		thresholds_[1u] = IMP_MAX_VAL;
+		thresholds_[IMP_RANGE+1u] = IMP_MAX_VAL + 1;
 		return;
 	}
 
@@ -337,8 +337,8 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 
 	// SMC initialization
 	thresholds_.push_back(impFun.initial_value());  // start from initial state importance
-	assert(thresholds_.back() < impFun.max_value());
-	ImportanceValue newThreshold(thresholds_.back());
+	assert(thresholds_.back() < IMP_MAX_VAL);
+	ImportanceValue newThreshold;
 	do {
 		newThreshold = find_new_threshold(network,
 										  impFun,
@@ -350,14 +350,14 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 										  halted_);
 	} while (newThreshold <= thresholds_.back()
 			 && increase_simulation_effort(n_, k_, traials));
-	if (impFun.max_value() <= newThreshold && highVerbosity)
+	if (IMP_MAX_VAL <= newThreshold && highVerbosity)
 		ModelSuite::tech_log("\nFirst iteration of SMC reached max importance!\n");
 	else if (newThreshold <= thresholds_.back())
 		goto exit_with_fail;  // couldn't make it
 	thresholds_.push_back(newThreshold);
 
 	// SMC main loop
-	while (thresholds_.back() < impFun.max_value()) {
+	while (thresholds_.back() < IMP_MAX_VAL) {
 		const ImportanceValue lastThr = thresholds_.back();
 		// Find "initial states" (and clocks valuations) realizing last threshold
 		if (!build_states_distribution(network, impFun, traials, n_, k_, lastThr, halted_)
@@ -397,7 +397,8 @@ ThresholdsBuilderSMC::build_thresholds_vector(const ImportanceFunction& impFun)
 	}
 
 	TraialPool::get_instance().return_traials(traials);
-	thresholds_.push_back(impFun.max_value() + static_cast<ImportanceValue>(1u));
+	if (thresholds_.back() == IMP_MAX_VAL)
+		thresholds_.back() += 1;
 	ModelSuite::tech_log("\n");
 	return;
 

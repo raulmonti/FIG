@@ -267,7 +267,7 @@ SECTION("Transient: no resampling, RESTART, compositional (+), ad hoc thresholds
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	// Prepare engine
-	model.set_resampling(false, "restart");
+	model.set_resampling(false, nameEngine);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, thrAdHoc, trPropId);
 	REQUIRE(engine->ready());
@@ -296,7 +296,7 @@ SECTION("Transient: resampling, RESTART, compositional (+), ad hoc thresholds")
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	// Prepare engine
-	model.set_resampling(true, "restart");
+	model.set_resampling(true, nameEngine);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, thrAdHoc, trPropId);
 	REQUIRE(engine->ready());
@@ -325,7 +325,7 @@ SECTION("Transient: no resampling, Fixed Effort, compositional (+), ad hoc thres
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	// Prepare engine
-	model.set_resampling(false, "sfe");
+	model.set_resampling(false, nameEngine);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, thrAdHoc, trPropId);
 	REQUIRE(engine->ready());
@@ -353,7 +353,7 @@ SECTION("Transient: resampling, Fixed Effort, compositional (+), ad hoc threshol
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	// Prepare engine
-	model.set_resampling(true, "sfe");
+	model.set_resampling(true, nameEngine);
 	model.build_importance_function_auto(ifunSpec, trPropId, true);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, thrAdHoc, trPropId);
 	REQUIRE(engine->ready());
