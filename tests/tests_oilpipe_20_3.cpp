@@ -323,7 +323,7 @@ SECTION("Steady-state: RESTART, compositional ([max,+] semiring), es")
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 111ul);
 	const double confCo(.95);
-	const double prec(.3);
+	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
     model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
@@ -362,7 +362,7 @@ SECTION("Steady-state: RESTART, compositional ([+,*] ring), hyb")
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 3444057033415490ul);
 	const double confCo(.95);
-	const double prec(.3);
+	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
     model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary

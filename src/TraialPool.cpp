@@ -488,37 +488,36 @@ TraialPool::ensure_resources(const Integral& requiredResources)
 	traials_.reserve(newSize);
 	if (0ul == oldSize)  // called by ctor? register mem address
 		::TRAIALS_MEM_ADDR = traials_.data();
-	else if (traials_.data() != ::TRAIALS_MEM_ADDR)  // we're fucked [*]
+	else if (traials_.data() != ::TRAIALS_MEM_ADDR)  // we're fucked (*)
 		throw_FigException("memory corrupted after reallocation of the "
 		                   "Traials vector; ABORTING");
 
-	// A reservation could have moved the memory segment: reproduce references
-	/// @bug FIXME: references in users' ADTs would still be corrupted [*]
+	// First reproduce old references
 	available_traials_.clear();
 	for (size_t i = 0ul ; i < oldSize ; i++)
 		available_traials_.emplace_front(std::ref(traials_[i]));
-	// Now create and reference the new Traial instances
+	// Then create and reference the new Traial instances
 	for (size_t i = oldSize ; i < newSize ; i++) {
-//		traials_.push_back(Traial(numVariables, numClocks));  // copy elision
-		traials_.emplace_back(numVariables, numClocks);
+		traials_.emplace_back(numVariables, numClocks);  // a Traial is born
 		available_traials_.emplace_front(std::ref(traials_[i]));
 	}
 
 	assert(traials_.data() == ::TRAIALS_MEM_ADDR);
 
-	/* [*] Important note for developers
+	/* (*) IMPORTANT NOTE FOR DEVELOPERS
 	 *
 	 * Using move semantics to offer the Traial instances may cause system
 	 * malfunctions derived from memory remapings.
 	 *
-	 * When new resources are needed the OS may choose to reallocate the whole
-	 * 'traials_' vector in a different memory page, which would invalidate
-	 * all the references held by the users of the TraialPool.
+	 * When new resources are needed and we invoke traials_.reserve(),
+	 * the OS may reallocate the whole vector in a different memory segment,
+	 * invalidating all the references held by the users of the TraialPool.
 	 *
-	 * We're trying to dodge the problem by reserving a memory space
-	 * for 'traials_' greater than the creation 'INITIAL_SIZE'.
-	 * This is a flimsy workaround: the problem will still arise
-	 * after sufficient new resources requests.
+	 * THIS ERROR IS UNRECOVERABLE AND FORCES US TO ABORT ALL COMPUTATIONS.
+	 *
+	 * This problem is postponed by reserving a memory space for 'traials_'
+	 * greater than the creation 'INITIAL_SIZE'. But the problem will still
+	 * arise after sufficient requests for new resources.
 	 */
 }
 // TraialPool::ensure_resources() instantiations

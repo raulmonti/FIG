@@ -218,9 +218,6 @@ ENDIF()
 
 # Turn some warnings off
 IF(COMPILER_IS_CLANG)
-	# From MuParser-2.2.5 library -- http://muparser.beltoforion.de/:
-	# "anonymous types declared in an anonymous union"
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-nested-anon-types")
 	# From flex generated file "lex.yy.cc":
 	# 'register' storage class specifier is deprecated
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register")

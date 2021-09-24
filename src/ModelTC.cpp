@@ -980,8 +980,8 @@ void ModelTC::visit(shared_ptr<BinOpExp> exp) {
         Type inferred2 = last_type;
         BinaryOpTy inf (inferred1, inferred2, type_expected);
 //		if (ty <= inf && ok1 && ok2) {
-		/// @bug FIXME Enforced type *equality* due to Issue #12
-		///            [https://git.cs.famaf.unc.edu.ar/dsg/fig/issues/12]
+		/// @note NOTE: enforced type *equality* due to Issue #12
+		///       [git.cs.famaf.unc.edu.ar/dsg/fig/issues/12]
 		if (ty == inf && ok1 && ok2) {
 			selected = make_shared<BinaryOpTy>(ty);
         }

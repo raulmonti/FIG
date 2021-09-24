@@ -373,11 +373,11 @@ struct hyperexponential2 : public fig::Distribution
 ///  where \p  m = params[0] is the mean,<br>
 ///    and \p sd = params[1] is the standard deviation.<br>
 /// Check <a href="https://en.wikipedia.org/wiki/Normal_distribution"><b>the wiki</a>
-/// @bug BUG: when taking the max with 0.000001 (to avoid sampling non-positive
-///           time delays) we lose probability mass. This mass must be added to
-///           the remaining (positively-supported) mass of the distribution.
-/// @todo TODO Replace by the <a href="https://en.wikipedia.org/wiki/folded_normal_distribution"><b>
-///            folded normal distribution<b></a>, which is exactly what we need.
+/// @bug FIXME: when taking the max with 0.000001 (to avoid sampling non-positive
+///             time delays) we lose probability mass. This mass must be added to
+///             the remaining (positively-supported) mass of the distribution.
+/// @todo TODO: Replace by the <a href="https://en.wikipedia.org/wiki/folded_normal_distribution"><b>
+///             folded normal distribution<b></a>, which is exactly what we need.
 struct normal : public fig::Distribution
 {
 	mutable std::normal_distribution< fig::CLOCK_INTERNAL_TYPE > f;
@@ -591,7 +591,7 @@ const size_t Clock::DEFAULT_RNG_SEED =
 const std::array<std::string, Clock::NUM_RNGS >&
 Clock::RNGs() noexcept
 {
-	// NOTE: this must reflect the key values of the ::RNGs unordered map
+	// NOTE: this must reflect the keys of the ::RNGs unordered map
 	static const std::array< std::string, NUM_RNGS > RNGs =
 	{{
 		// 64 bit Mersenne-Twister (C++ STL)

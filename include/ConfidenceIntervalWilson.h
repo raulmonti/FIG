@@ -43,12 +43,17 @@ namespace fig
  * approximation interval for binomial proportions".
  * In particular, this kind of interval has good properties when dealing with
  * extreme probability values, e.g. for rare events whose probability is ~0.
- *
- * @deprecated Real value coverage and performance issues rendered this class
- *             useless. ConfidenceIntervalTransient is now used to build the
- *             interval around the estimates of transient-like properties.
  */
-class ConfidenceIntervalWilson: public ConfidenceInterval
+class
+#if __cplusplus >= 201402L
+[[
+    deprecated(
+    "Real value coverage and performance issues rendered this class useless. "
+    "ConfidenceIntervalTransient is now used to build the interval "
+    "around the estimates of transient-like properties.")
+]]
+#endif
+ConfidenceIntervalWilson: public ConfidenceInterval
 {
 	/// Squared quantile of the confidence coefficient
 	const double squantile_;

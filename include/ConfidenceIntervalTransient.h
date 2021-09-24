@@ -69,14 +69,15 @@ public:  // Ctor
 public:  // Modifyers
 
 	/**
-	 * @deprecated Use the vector-input version update(const std::vector<double>&)
-	 *
 	 * @brief Update current estimation with a (single) new value,
 	 *        i.e. only one experiment was run to come up with 'weighedNRE'
 	 * @param weighedNRE Weighed number of rare events from last simulation
 	 * @throw FigException if detected possible overflow
 	 * @see update(const std::vector<double>&)
 	 */
+#if __cplusplus >= 201402L
+	[[ deprecated("Use the vector-input version update(const std::vector<double>&)") ]]
+#endif
 	void update(const double& weighedNRE) override;
 
 	/**

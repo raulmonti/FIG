@@ -100,11 +100,11 @@ increase_simulation_effort(unsigned& n, unsigned& k, TraialsVec& traials)
 
 
 /**
- * @brief Choose reachable states realizing the last threshold chosen
+ * @brief Choose reachable states with equal importance to the last chosen threshold
  *
- *        Starting from the previous initial states stored in the last 'k'
- *        positions of 'traials', look for states with importance == 'lastThr'
- *        Store them in the last 'k' positions of traials (overwriting previous
+ *        Starting from the previous initial states stored in the last \p k
+ *        positions of \p traials, look for states with importance == \p lastThr.
+ *        Store them in the last \p k positions of traials (overwriting previous
  *        information) to use them as initial states in simulations to come.
  *
  * @param network User's system model, i.e. a network of modules
@@ -112,19 +112,20 @@ increase_simulation_effort(unsigned& n, unsigned& k, TraialsVec& traials)
  *                \ref ImportanceFunction::has_importance_info()
  *                "importance info" for all concrete states
  * @param traials Vector of size >= n+k with references to Traials;
- *                the first 'n' are used to reach states realizing 'lastThr',
- *                the last  'k' are updated with that info to be used later as
+ *                the first \p n are used to reach states realizing \p lastThr,
+ *                the last  \p k are updated with that info to be used later as
  *                initial states<b>(modified)</b>
- * @param n       Number of traials to use for reaching states realizing 'lastThr'
+ * @param n       Number of traials to use for reaching states realizing \p lastThr
  * @param k       Number of traials where initial states to start simulations from
  * @param lastThr ImportanceValue of last chosen threshold
  * @param halt    For external (thread-parallel) signalling: halt computation
  *
- * @return Whether the run was successfull
+ * @return Whether the run was successful
  *
- * @note The first 'n' positions of 'traials' are left in states with importance
- *       equal to 'lastThr'. The user can therefore run simulations using those
- *       first 'n' traials <b>without the need to intialize them beforehand</b>.
+ * @note On successful return, the first \p n positions of \p traials will hold
+ *       states with importance equal to \p lastThr. The user can therefore run
+ *       simulations using those first \p n traials
+ *       <b>without the need to intialize them beforehand</b>.
  */
 bool
 build_states_distribution(const fig::ModuleNetwork& network,
@@ -163,7 +164,6 @@ build_states_distribution(const fig::ModuleNetwork& network,
         do {
 			jumpsLeft = SIM_LENGTH * (1u+fails);
 			t = traials[n + uniK(RNG)];  // choose randomly among last 'k'
-//			assert(lastThr <= t.level);  // FIXME is this check logical?
             network.peak_simulation(t, update, predicate);
 		} while (!halt && lastThr != t.level && ++fails < TOLERANCE);
 	}
@@ -423,7 +423,7 @@ ThresholdsBuilderSMC::tune(const size_t& numTrans,
 	float scaleFactor(1.0f);
 	ThresholdsBuilderAdaptiveSimple::tune(numTrans, maxImportance, globalEffort);
 
-	/// @note NOTE can we change for "theoretic optimal" p_i ~ e^-1  forall i ?
+	/// @note NOTE we could change for "theoretic optimal" p_i ~ 1/e  forall i.
 	///            See analysis by Garvels (PhD thesis) and Rubino&Tuffin (RES book)
 	///            which derive this constant for optimal p_i = p^(-T) forall i
 	///            where 'T' is the number of threshold levels and 'p_i' the

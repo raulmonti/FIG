@@ -181,11 +181,11 @@ ImportanceFunction::Formula::operator()(const StateInstance& state) const
 	// Copy the useful part of 'state'...
 	for (size_t i = 0ul ; i < NVARS_ ; i++)
 		varsValues_[i] = state[varsPos_[i]];  // ugly motherfucker
-	/// @todo NOTE As an alternative we could use memcpy() to copy the values,
-	///            but that means bringing a whole chunk of memory of which
-	///            only a few variables will be used. To lighten that we could
-	///            impose an upper bound on the number of variables/modules,
-	///            but then the language's flexibility will be compromised.
+	/// @note NOTE: As an alternative we could use memcpy() to copy the values,
+	///             but that means bringing a whole chunk of memory of which
+	///             only a few variables will be used. To lighten that we could
+	///             impose an upper bound on the number of variables/modules,
+	///             but then the language's flexibility will be compromised.
 	// ...and evaluate
 	return static_cast<ImportanceValue>(expr_.value());
 }
@@ -201,7 +201,7 @@ ImportanceFunction::Formula::operator()(const ImportanceVec& localImportances) c
 	// Copy the values internally...
 	for (size_t i = 0ul ; i < NVARS_ ; i++) {
 		assert(!IS_SOME_EVENT(localImportances[varsPos_[i]]));
-		varsValues_[i] = localImportances[varsPos_[i]];  // NOTE see other note
+		varsValues_[i] = localImportances[varsPos_[i]];  // NOTE: see other note on memcpy()
 	}
 	// ...and evaluate
     return static_cast<ImportanceValue>(expr_.value());
@@ -620,7 +620,7 @@ ImportanceFunction::find_extreme_values(State<STATE_INTERNAL_TYPE> state,
 		maxI = std::max(maxI, importance);
 		if (property.is_rare(symbState) && importance < minrI) {
 			minrI = importance;
-			/// @bug FIXME This rare state may be unreachable; how to know?
+			/// @warning WARNING: if the rare state is unreachable, this is wrong
 		}
 	}
 //	NOTE: A separate loop for 'maxI' is only needed when OpenMP is used

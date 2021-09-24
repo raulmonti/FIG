@@ -291,7 +291,7 @@ SECTION("M2 without resampling (transient, Fixed Effort, monolithic, ad hoc thre
 	// Set estimation criteria
 	auto rng = model.available_RNGs().back();
 	REQUIRE(model.exists_rng(rng));
-	model.set_rng(rng, 249633327ul);
+	model.set_rng(rng, 0XCAFEF00DD15EA5E5ULL);
 	fig::StoppingConditions timeBound;
 	timeBound.add_time_budget(TIMEOUT_(M2_SECONDS));
 	// Estimate
@@ -320,7 +320,7 @@ SECTION("M2 with resampling (transient, Fixed Effort, monolithic, ad hoc thresho
 	// Set estimation criteria
 	auto rng = model.available_RNGs().back();
 	REQUIRE(model.exists_rng(rng));
-	model.set_rng(rng, 249633327ul);
+	model.set_rng(rng, 0XCAFEF00DD15EA5E5ULL);
 	fig::StoppingConditions timeBound;
 	timeBound.add_time_budget(TIMEOUT_(M2_SECONDS));
 	// Estimate
@@ -376,38 +376,38 @@ SECTION("Seal model and check consistency")
 	REQUIRE(model.num_RNGs() > 0ul);
 }
 
-//	SECTION("M3 without resampling (transient, RESTART, compositional (DFT), ad hoc thresholds)")
-//	{
-//		const string nameEngine("restart");
-//		const string ifunCompDFT("BE_0+max(BE_1,BE_2)+BE_4");
-//		const fig::ImpFunSpec ifunSpec("concrete_split", "auto", ifunCompDFT,
-//									   fig::PostProcessing(), 0, 3);
-//		const string thrAdHoc("1:3,2:6");
-//		REQUIRE(model.exists_simulator(nameEngine));
-//		REQUIRE(model.exists_importance_function(ifunSpec.name));
-//		REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
-//		// Prepare engine
-//		model.set_resampling(false);
-//		model.set_DFT(true);
-//		model.build_importance_function_auto(ifunSpec, propId, true);
-//		auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, thrAdHoc, propId);
-//		REQUIRE(engine->ready());
-//		// Set estimation criteria
-//		auto rng = model.available_RNGs().back();
-//		REQUIRE(model.exists_rng(rng));
-//		model.set_rng(rng, 909250341ul);
-//		fig::StoppingConditions timeBound;
-//		timeBound.add_time_budget(TIMEOUT_(M3_SECONDS));
-//		// Estimate
-//		model.estimate(propId, *engine, timeBound, ifunSpec);
-//		auto results = model.get_last_estimates();
-//		REQUIRE(results.size() == 1ul);
-//		auto ci = results.front();
-//		REQUIRE(ci.point_estimate() == Approx(M3_PROB).epsilon(M3_PROB*.3));
-//		REQUIRE(ci.precision(.1) > 0.0);
-//		REQUIRE(ci.precision(.1) <= Approx(M3_PROB*.4).epsilon(M3_PROB*.2));
-//		model.set_DFT(false);
-//	}
+SECTION("M3 without resampling (transient, RESTART, compositional (DFT), ad hoc thresholds)")
+{
+	const string nameEngine("restart");
+	const string ifunCompDFT("BE_0+max(BE_1,BE_2)+BE_4");
+	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", ifunCompDFT,
+	                               fig::PostProcessing(), 0, 3);
+	const string thrAdHoc("1:3,2:6");
+	REQUIRE(model.exists_simulator(nameEngine));
+	REQUIRE(model.exists_importance_function(ifunSpec.name));
+	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
+	// Prepare engine
+	model.set_resampling(false);
+	model.set_DFT(true);
+	model.build_importance_function_auto(ifunSpec, propId, true);
+	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, thrAdHoc, propId);
+	REQUIRE(engine->ready());
+	// Set estimation criteria
+	auto rng = model.available_RNGs().back();
+	REQUIRE(model.exists_rng(rng));
+	model.set_rng(rng, 909250341ul);
+	fig::StoppingConditions timeBound;
+	timeBound.add_time_budget(TIMEOUT_(M3_SECONDS));
+	// Estimate
+	model.estimate(propId, *engine, timeBound, ifunSpec);
+	auto results = model.get_last_estimates();
+	REQUIRE(results.size() == 1ul);
+	auto ci = results.front();
+	REQUIRE(ci.point_estimate() == Approx(M3_PROB).epsilon(M3_PROB*.3));
+	REQUIRE(ci.precision(.1) > 0.0);
+	REQUIRE(ci.precision(.1) <= Approx(M3_PROB*.4).epsilon(M3_PROB*.2));
+	model.set_DFT(false);
+}
 
 SECTION("M3 with resampling (transient, RESTART, compositional (DFT), ad hoc thresholds)")
 {

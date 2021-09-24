@@ -75,13 +75,6 @@ public:
 
 protected:  // Attributes for simulation update policies
 
-    /// Minimum amount of generated rare events to consider a simulation "good"
-    /// @note Relevant for transient-like simulations only
-    /// @warning Value is arbitrary af
-    /// @deprecated Current transient policies use fixed batch sizes,
-    ///             so this value isn't used
-    static constexpr unsigned MIN_COUNT_RARE_EVENTS = 3u;
-
     /// Minimum amount of simulation-time units which has to be spent
     /// in rare states to consider a simulation "good"
     /// @note Relevant for steady-state-like simulations only
@@ -95,19 +88,6 @@ protected:  // Attributes for simulation update policies
     ///       MAX_CPU_TIME seconds <b>won't</b> be stopped prematurely.
     /// @warning Value is arbitrary af
 	static constexpr long MAX_CPU_TIME = 8l;
-
-	/// @todo TODO delete deprecated code below
-//    /// Maximum simulation-time units any Traial is allowed to accumulate
-//    /// before having its lifetime reset
-//    /// @note Needed due to fp precision issues
-//    /// @note Value chosen small enough to distinguish variations of 0.01
-//    ///       simulation-time units when using fp single precision:
-//    ///       mantissa 1, exponent 12, resulting in 1*2^12 == 4096.
-//    ///       The corresponding C99 literal is 0x1p12.
-//    /// @see <a href="http://www.cprogramming.com/tutorial/floating_point/understanding_floating_point_representation.html">
-//    ///      Floating point arithmetic</a> and the <a href="http://stackoverflow.com/a/4825867">
-//    ///      C99 fp literals</a>.
-//    static constexpr CLOCK_INTERNAL_TYPE SIM_TIME_CHUNK = 4096.f;
 
 private:  // Instance attributes
 

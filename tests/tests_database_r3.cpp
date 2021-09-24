@@ -1,8 +1,8 @@
 //==============================================================================
 //
-//  tests_database_r2.cpp
+//  tests_database_r3.cpp
 //	
-//	Copyleft 2017-
+//	Copyleft 2021-
 //	Authors:
 //  * Carlos E. Budde <cbudde@famaf.unc.edu.ar> (Universidad Nacional de Córdoba)
 //
@@ -34,21 +34,77 @@ namespace  // // // // // // // // // // // // // // // // // // // // // // //
 {
 
 // Model file (full path to)
-const string MODEL(tests::models_dir() + "database_r2.sa");
+const string MODEL(tests::models_dir() + "database_r3.sa");
 
 // TAD which will contain the compiled model
 fig::ModelSuite& model(fig::ModelSuite::get_instance());
 
 // Steady-state query:
-// S((d11f & d12f) | (d11f & d13f) | (d11f & d14f) | (d12f & d13f) | (d12f & d14f) | (d13f & d14f) |
-//   (d21f & d22f) | (d21f & d23f) | (d21f & d24f) | (d22f & d23f) | (d22f & d24f) | (d23f & d24f) |
-//   (d31f & d32f) | (d31f & d33f) | (d31f & d34f) | (d32f & d33f) | (d32f & d34f) | (d33f & d34f) |
-//   (d41f & d42f) | (d41f & d43f) | (d41f & d44f) | (d42f & d43f) | (d42f & d44f) | (d43f & d44f) |
-//   (d51f & d52f) | (d51f & d53f) | (d51f & d54f) | (d52f & d53f) | (d52f & d54f) | (d53f & d54f) |
-//   (d61f & d62f) | (d61f & d63f) | (d61f & d64f) | (d62f & d63f) | (d62f & d64f) | (d63f & d64f) |
-//   (c11f & c12f) | (c21f & c22f) |
-//   (p11f & p12f) | (p21f & p22f) )
-const double SS_PROB(6.84e-3);  // expected result of steady-state query
+//	S( (d11f & d12f & d13f)
+//	 | (d11f & d12f & d14f)
+//	 | (d11f & d12f & d15f)
+//	 | (d11f & d13f & d14f)
+//	 | (d11f & d13f & d15f)
+//	 | (d11f & d14f & d15f)
+//	 | (d12f & d13f & d14f)
+//	 | (d12f & d13f & d15f)
+//	 | (d12f & d14f & d15f)
+//	 | (d13f & d14f & d15f)
+//	 | (d21f & d22f & d23f)
+//	 | (d21f & d22f & d24f)
+//	 | (d21f & d22f & d25f)
+//	 | (d21f & d23f & d24f)
+//	 | (d21f & d23f & d25f)
+//	 | (d21f & d24f & d25f)
+//	 | (d22f & d23f & d24f)
+//	 | (d22f & d23f & d25f)
+//	 | (d22f & d24f & d25f)
+//	 | (d23f & d24f & d25f)
+//	 | (d31f & d32f & d33f)
+//	 | (d31f & d32f & d34f)
+//	 | (d31f & d32f & d35f)
+//	 | (d31f & d33f & d34f)
+//	 | (d31f & d33f & d35f)
+//	 | (d31f & d34f & d35f)
+//	 | (d32f & d33f & d34f)
+//	 | (d32f & d33f & d35f)
+//	 | (d32f & d34f & d35f)
+//	 | (d33f & d34f & d35f)
+//	 | (d41f & d42f & d43f)
+//	 | (d41f & d42f & d44f)
+//	 | (d41f & d42f & d45f)
+//	 | (d41f & d43f & d44f)
+//	 | (d41f & d43f & d45f)
+//	 | (d41f & d44f & d45f)
+//	 | (d42f & d43f & d44f)
+//	 | (d42f & d43f & d45f)
+//	 | (d42f & d44f & d45f)
+//	 | (d43f & d44f & d45f)
+//	 | (d51f & d52f & d53f)
+//	 | (d51f & d52f & d54f)
+//	 | (d51f & d52f & d55f)
+//	 | (d51f & d53f & d54f)
+//	 | (d51f & d53f & d55f)
+//	 | (d51f & d54f & d55f)
+//	 | (d52f & d53f & d54f)
+//	 | (d52f & d53f & d55f)
+//	 | (d52f & d54f & d55f)
+//	 | (d53f & d54f & d55f)
+//	 | (d61f & d62f & d63f)
+//	 | (d61f & d62f & d64f)
+//	 | (d61f & d62f & d65f)
+//	 | (d61f & d63f & d64f)
+//	 | (d61f & d63f & d65f)
+//	 | (d61f & d64f & d65f)
+//	 | (d62f & d63f & d64f)
+//	 | (d62f & d63f & d65f)
+//	 | (d62f & d64f & d65f)
+//	 | (d63f & d64f & d65f)
+//	 | (c11f & c12f & c13f)
+//	 | (c21f & c22f & c23f)
+//	 | (p11f & p12f & p13f)
+//	 | (p21f & p22f & p23f) )
+const double SS_PROB(4.74e-5);  // expected result of steady-state query
 int ssPropId(-1);               // index of the query within our TAD
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
@@ -57,12 +113,12 @@ int ssPropId(-1);               // index of the query within our TAD
 namespace tests  // // // // // // // // // // // // // // // // // // // // //
 {
 
-TEST_CASE("Database with R=2 tests", "[database-R2]")
+TEST_CASE("Database with R=3 tests", "[database-R3]")
 {
 
 SECTION("Compile model file")
 {
-    preamble_testcase(fig::figTechLog, "database-R2");
+	preamble_testcase(fig::figTechLog, "database-R3");
 
     // If this is not the first test then we need to clean
 	// the ModelSuite singleton before loading the new model
@@ -118,10 +174,10 @@ SECTION("Steady-state: standard MC")
 	// Set estimation criteria
 	model.set_rng(rng, 0ul);
 	const double confCo(.9);
-	const double prec(.2);
+	const double prec(.3);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-    model.set_timeout(TIMEOUT_(15));  // don't estimate for that long a time
+	model.set_timeout(std::chrono::minutes(TIMEOUT_(1)));  // estimate for 1 min max
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, fig::ImpFunSpec(nameIFun, "flat"));
 	auto results = model.get_last_estimates();
@@ -135,11 +191,11 @@ SECTION("Steady-state: standard MC")
 SECTION("Steady-state: RESTART, ad hoc, hyb")
 {
 	const string nameEngine("restart");
-	const string ifunAdHoc("max(d11f+d12f+d13f+d14f+0,max(d21f+d22f+d23f+d24f+0,max(d31f+d32f+d33f+d34f+0,max(d41f+d42f+d43f+d44f+0,max(d51f+d52f+d53f+d54f+0,max(d61f+d62f+d63f+d64f+0,max(c11f+c12f+0,max(c21f+c22f+0,max(p11f+p12f+0,max(p21f+p22f+0,0))))))))))");
+	const string ifunAdHoc("max(d11f+d12f+d13f,max(d11f+d12f+d14f,max(d11f+d12f+d15f,max(d11f+d13f+d14f,max(d11f+d13f+d15f,max(d11f+d14f+d15f,max(d12f+d13f+d14f,max(d12f+d13f+d15f,max(d12f+d14f+d15f,max(d13f+d14f+d15f,max(d21f+d22f+d23f,max(d21f+d22f+d24f,max(d21f+d22f+d25f,max(d21f+d23f+d24f,max(d21f+d23f+d25f,max(d21f+d24f+d25f,max(d22f+d23f+d24f,max(d22f+d23f+d25f,max(d22f+d24f+d25f,max(d23f+d24f+d25f,max(d31f+d32f+d33f,max(d31f+d32f+d34f,max(d31f+d32f+d35f,max(d31f+d33f+d34f,max(d31f+d33f+d35f,max(d31f+d34f+d35f,max(d32f+d33f+d34f,max(d32f+d33f+d35f,max(d32f+d34f+d35f,max(d33f+d34f+d35f,max(d41f+d42f+d43f,max(d41f+d42f+d44f,max(d41f+d42f+d45f,max(d41f+d43f+d44f,max(d41f+d43f+d45f,max(d41f+d44f+d45f,max(d42f+d43f+d44f,max(d42f+d43f+d45f,max(d42f+d44f+d45f,max(d43f+d44f+d45f,max(d51f+d52f+d53f,max(d51f+d52f+d54f,max(d51f+d52f+d55f,max(d51f+d53f+d54f,max(d51f+d53f+d55f,max(d51f+d54f+d55f,max(d52f+d53f+d54f,max(d52f+d53f+d55f,max(d52f+d54f+d55f,max(d53f+d54f+d55f,max(d61f+d62f+d63f,max(d61f+d62f+d64f,max(d61f+d62f+d65f,max(d61f+d63f+d64f,max(d61f+d63f+d65f,max(d61f+d64f+d65f,max(d62f+d63f+d64f,max(d62f+d63f+d65f,max(d62f+d64f+d65f,max(d63f+d64f+d65f,max(c11f+c12f+c13f,max(c21f+c22f+c23f,max(p11f+p12f+p13f,max(p21f+p22f+p23f))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))");
 	const fig::ImpFunSpec ifunSpec("algebraic", "adhoc",
 								   ifunAdHoc,
 								   fig::PostProcessing(),
-								   0, 2);
+	                               0, 3);
 	const string nameThr("hyb");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
@@ -155,10 +211,10 @@ SECTION("Steady-state: RESTART, ad hoc, hyb")
 	REQUIRE(model.exists_rng(rng));
 	model.set_rng(rng, 0ul);
 	const double confCo(.9);
-	const double prec(.4);
+	const double prec(.3);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-    model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
+	model.set_timeout(std::chrono::minutes(TIMEOUT_(1)));  // estimate for 1 min max
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -176,7 +232,7 @@ SECTION("Steady-state: RESTART, compositional (+ operator), es")
 	const string nameEngine("restart");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto", "+",
 								   fig::PostProcessing(),
-								   0, 32, 0);
+	                               0, 42, 0);
 	const string nameThr("es");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
@@ -195,7 +251,7 @@ SECTION("Steady-state: RESTART, compositional (+ operator), es")
 	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-    model.set_timeout(TIMEOUT_(0));  // unset timeout; estimate for as long as necessary
+	model.set_timeout(std::chrono::minutes(TIMEOUT_(1)));  // estimate for 2 min max
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -211,11 +267,11 @@ SECTION("Steady-state: RESTART, compositional (+ operator), es")
 SECTION("Steady-state: RESTART, compositional (coarse ifun), hyb")
 {
 	const string nameEngine("restart");
-	const string ifunComp("(Disk11*Disk12*Disk13*Disk14*Disk21*Disk22*Disk23*Disk24*Disk31*Disk32*Disk33*Disk34*Disk41*Disk42*Disk43*Disk44*Disk51*Disk52*Disk53*Disk54*Disk61*Disk62*Disk63*Disk64)+(Controller11*Controller12*Controller21*Controller22)+(Processor11*Processor12*Processor21*Processor22)");
+	const string ifunComp("(Disk11*Disk12*Disk13*Disk14*Disk15*Disk21*Disk22*Disk23*Disk24*Disk25*Disk31*Disk32*Disk33*Disk34*Disk35*Disk41*Disk42*Disk43*Disk44*Disk45*Disk51*Disk52*Disk53*Disk54*Disk55*Disk61*Disk62*Disk63*Disk64*Disk65)+(Controller11*Controller12*Controller13*Controller21*Controller22*Controller23)+(Processor11*Processor12*Processor13*Processor21*Processor22*Processor23)");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto",
 								   ifunComp,
 								   fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0),
-								   3, 16777248, 1);
+	                               3, 1073741952, 1);
 	const string nameThr("hyb");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
@@ -249,19 +305,19 @@ SECTION("Steady-state: RESTART, compositional (coarse ifun), hyb")
 
 SECTION("Steady-state: RESTART, compositional ([+,*] ring), es")
 {
-	const string nameEngine("restart");
-	const string ifunComp("(Disk11*Disk12)+(Disk11*Disk13)+(Disk11*Disk14)+(Disk12*Disk13)+(Disk12*Disk14)+(Disk13*Disk14)+(Disk21*Disk22)+(Disk21*Disk23)+(Disk21*Disk24)+(Disk22*Disk23)+(Disk22*Disk24)+(Disk23*Disk24)+(Disk31*Disk32)+(Disk31*Disk33)+(Disk31*Disk34)+(Disk32*Disk33)+(Disk32*Disk34)+(Disk33*Disk34)+(Disk41*Disk42)+(Disk41*Disk43)+(Disk41*Disk44)+(Disk42*Disk43)+(Disk42*Disk44)+(Disk43*Disk44)+(Disk51*Disk52)+(Disk51*Disk53)+(Disk51*Disk54)+(Disk52*Disk53)+(Disk52*Disk54)+(Disk53*Disk54)+(Disk61*Disk62)+(Disk61*Disk63)+(Disk61*Disk64)+(Disk62*Disk63)+(Disk62*Disk64)+(Disk63*Disk64)+(Controller11*Controller12)+(Controller21*Controller22)+(Processor11*Processor12)+(Processor21*Processor22)");
+	const string nameEngine("restart1");
+	const string ifunComp("(Disk11*Disk12*Disk13)+(Disk11*Disk12*Disk14)+(Disk11*Disk12*Disk15)+(Disk11*Disk13*Disk14)+(Disk11*Disk13*Disk15)+(Disk11*Disk14*Disk15)+(Disk12*Disk13*Disk14)+(Disk12*Disk13*Disk15)+(Disk12*Disk14*Disk15)+(Disk13*Disk14*Disk15)+(Disk21*Disk22*Disk23)+(Disk21*Disk22*Disk24)+(Disk21*Disk22*Disk25)+(Disk21*Disk23*Disk24)+(Disk21*Disk23*Disk25)+(Disk21*Disk24*Disk25)+(Disk22*Disk23*Disk24)+(Disk22*Disk23*Disk25)+(Disk22*Disk24*Disk25)+(Disk23*Disk24*Disk25)+(Disk31*Disk32*Disk33)+(Disk31*Disk32*Disk34)+(Disk31*Disk32*Disk35)+(Disk31*Disk33*Disk34)+(Disk31*Disk33*Disk35)+(Disk31*Disk34*Disk35)+(Disk32*Disk33*Disk34)+(Disk32*Disk33*Disk35)+(Disk32*Disk34*Disk35)+(Disk33*Disk34*Disk35)+(Disk41*Disk42*Disk43)+(Disk41*Disk42*Disk44)+(Disk41*Disk42*Disk45)+(Disk41*Disk43*Disk44)+(Disk41*Disk43*Disk45)+(Disk41*Disk44*Disk45)+(Disk42*Disk43*Disk44)+(Disk42*Disk43*Disk45)+(Disk42*Disk44*Disk45)+(Disk43*Disk44*Disk45)+(Disk51*Disk52*Disk53)+(Disk51*Disk52*Disk54)+(Disk51*Disk52*Disk55)+(Disk51*Disk53*Disk54)+(Disk51*Disk53*Disk55)+(Disk51*Disk54*Disk55)+(Disk52*Disk53*Disk54)+(Disk52*Disk53*Disk55)+(Disk52*Disk54*Disk55)+(Disk53*Disk54*Disk55)+(Disk61*Disk62*Disk63)+(Disk61*Disk62*Disk64)+(Disk61*Disk62*Disk65)+(Disk61*Disk63*Disk64)+(Disk61*Disk63*Disk65)+(Disk61*Disk64*Disk65)+(Disk62*Disk63*Disk64)+(Disk62*Disk63*Disk65)+(Disk62*Disk64*Disk65)+(Disk63*Disk64*Disk65)+(Controller11*Controller12*Controller13)+(Controller21*Controller22*Controller23)+(Processor11*Processor12*Processor13)+(Processor21*Processor22*Processor23)");
 	const fig::ImpFunSpec ifunSpec("concrete_split", "auto",
 	                               ifunComp,
-	                               fig::PostProcessing(fig::PostProcessing::EXP, "exp", 2.0),
-	                               40, 160, 1);
-	const string nameThr("es");
+	                               fig::PostProcessing(fig::PostProcessing::SHIFT, "shift", 1),
+	                               64, 512, 1);
+	const string nameThr("hyb");
 	REQUIRE(model.exists_simulator(nameEngine));
 	REQUIRE(model.exists_importance_function(ifunSpec.name));
 	REQUIRE(model.exists_importance_strategy(ifunSpec.strategy));
 	REQUIRE(model.exists_threshold_technique(nameThr));
 	// Prepare engine
-	model.set_global_effort(2, nameEngine);
+	model.set_global_effort(3, nameEngine);
 	model.build_importance_function_auto(ifunSpec, ssPropId, true);
 	auto engine = model.prepare_simulation_engine(nameEngine, ifunSpec.name, nameThr, ssPropId);
 	REQUIRE(engine->ready());
@@ -273,7 +329,7 @@ SECTION("Steady-state: RESTART, compositional ([+,*] ring), es")
 	const double prec(.2);
 	fig::StoppingConditions confCrit;
 	confCrit.add_confidence_criterion(confCo, prec);
-	model.set_timeout(std::chrono::minutes(TIMEOUT_(8)));
+	model.set_timeout(std::chrono::minutes(TIMEOUT_(3)));
 	// Estimate
 	model.estimate(ssPropId, *engine, confCrit, ifunSpec);
 	auto results = model.get_last_estimates();
@@ -286,6 +342,6 @@ SECTION("Steady-state: RESTART, compositional ([+,*] ring), es")
 	          == Approx(SS_PROB*prec).epsilon(SS_PROB*0.1));
 }
 
-} // TEST_CASE [database-R2]
+} // TEST_CASE [database-R3]
 
 } // namespace tests   // // // // // // // // // // // // // // // // // // //

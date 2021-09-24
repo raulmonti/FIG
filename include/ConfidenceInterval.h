@@ -131,11 +131,17 @@ public:  // Accessors
 	inline const double& estimation_variance() const noexcept { return variance_; }
 
 	/// @copydoc statOversample_
-	/// @deprecated Used by binomial proportion CIs (e.g. Wilson score interval)
+#if __cplusplus >= 201402L
+	[[ deprecated("used by binomial proportion CIs, e.g. Wilson score interval; "
+	              "now deprecated in favour of ConfidenceIntervalTransient") ]]
+#endif
 	inline const double& statistical_oversampling() const noexcept { return statOversample_; }
 
 	/// @copydoc varCorrection_
-	/// @deprecated Used by binomial proportion CIs (e.g. Wilson score interval)
+#if __cplusplus >= 201402L
+	[[ deprecated("used by binomial proportion CIs, e.g. Wilson score interval; "
+	              "now deprecated in favour of ConfidenceIntervalTransient") ]]
+#endif
 	inline const double& variance_correction() const noexcept { return varCorrection_; }
 
 public:  // Modifyers
@@ -143,13 +149,19 @@ public:  // Modifyers
 	/// Increase the statistical oversampling factor for event counting.
 	/// @note Typically needed when rare events can occur in any threshold level
 	/// @see statistical_oversampling()
-	/// @deprecated Used by binomial proportion CIs (e.g. Wilson score interval)
+#if __cplusplus >= 201402L
+	[[ deprecated("used by binomial proportion CIs, e.g. Wilson score interval; "
+	              "now deprecated in favour of ConfidenceIntervalTransient") ]]
+#endif
 	virtual void set_statistical_oversampling(const double& statOversamp);
 
 	/// Set the variance correction factor for interval precision computation.
 	/// @note Typically needed when rare events can occur in any threshold level
 	/// @see variance_correction()
-	/// @deprecated Used by binomial proportion CIs (e.g. Wilson score interval)
+#if __cplusplus >= 201402L
+	[[ deprecated("used by binomial proportion CIs, e.g. Wilson score interval; "
+	              "now deprecated in favour of ConfidenceIntervalTransient") ]]
+#endif
 	virtual void set_variance_correction(const double& varCorrection);
 
 	/**

@@ -66,39 +66,11 @@ namespace  // // // // // // // // // // // // // // // // // // // // // // //
 /// Choose minimum batch size (i.e. requested number of consecutive simulations
 /// to run) in order to estimate the value of transient-like properties.
 /// Fine tune for the specified SimulationEngine and ImportanceFunction pair
-size_t
+inline size_t
 min_batch_size(const std::string&,  // engineName,
                const std::string&) // ifunName)
 {
 	return 1ul<<6ul;
-	/// @todo TODO remove deprecated code below
-/*
-	// Build internal table once: rows follow engine names definition order
-	//                            cols follow impFun names definition order
-	constexpr size_t NUM_ENGINES(fig::SimulationEngine::NUM_NAMES);
-	constexpr size_t NUM_IMPFUNS(fig::ImportanceFunction::NUM_NAMES);
-	static const auto& engineNames(fig::SimulationEngine::names());
-	static const auto& ifunNames(fig::ImportanceFunction::names());
-	// NOTE: optimal batch size == 2^8 was chosen via experimentation with
-	//       the tandem queue and the queue with breaks models, using the
-	//       "ConfidenceIntervalTransient" class for interval construction.
-	static const size_t batch_sizes[NUM_ENGINES][NUM_IMPFUNS] = {
-		{ 1ul<<6, 1ul<<6, 1ul<<6 },  // nosplit x {concrete_coupled, concrete_split, algebraic
-		{ 1ul<<6, 1ul<<6, 1ul<<6 },  // restart x {concrete_coupled, concrete_split, algebraic}
-		{ 1ul<<6, 1ul<<6, 1ul<<6 }   //     sfe x {concrete_coupled, concrete_split, algebraic}
-//		{ 1ul<<6, 1ul<<6, 1ul<<6 }   //     bfe x {concrete_coupled, concrete_split, algebraic}
-	};
-	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
-	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
-	// Check given engine and importance function names are valid
-	if (engineIt == end(engineNames))
-		throw_FigException("invalid engine name \""+engineName+"\"");
-	if (ifunIt == end(ifunNames))
-		throw_FigException("invalid importance function name \""+ifunName+"\"");
-	// Return corresponding entry from table
-	return batch_sizes[std::distance(begin(engineNames), engineIt)]
-					  [std::distance(begin(ifunNames), ifunIt)];
-*/
 }
 
 
@@ -106,37 +78,12 @@ min_batch_size(const std::string&,  // engineName,
 /// in order to estimate the value of steady-state-like properties.
 /// Fine tune for the specified SimulationEngine and ImportanceFunction pair
 /// @see increase_run_length
-size_t
+inline size_t
 min_run_length(const std::string&,// engineName,
                const std::string&)// ifunName)
 {
 	static const size_t run_length = 1ul<<12ul;
 	return run_length;
-	/// @todo TODO remove deprecated code below
-/*
-	// Build internal table once: rows follow engine names definition order
-	//                            cols follow impFun names definition order
-	constexpr size_t NUM_ENGINES(fig::SimulationEngine::NUM_NAMES);
-	constexpr size_t NUM_IMPFUNS(fig::ImportanceFunction::NUM_NAMES);
-	static const auto& engineNames(fig::SimulationEngine::names());
-	static const auto& ifunNames(fig::ImportanceFunction::names());
-		static const size_t run_lengths[NUM_ENGINES][NUM_IMPFUNS] = {
-			{ 1ul<<12, 1ul<<12, 1ul<<12 },  // nosplit x {concrete_coupled, concrete_split, algebraic}
-			{ 1ul<<12, 1ul<<12, 1ul<<12 },  // restart x {concrete_coupled, concrete_split, algebraic}
-			{ 1ul<<12, 1ul<<12, 1ul<<12 }   //     sfe x {concrete_coupled, concrete_split, algebraic}
-	//		{ 1ul<<12, 1ul<<12, 1ul<<12 }   //     bfe x {concrete_coupled, concrete_split, algebraic}
-		};
-	const auto engineIt = find(begin(engineNames), end(engineNames), engineName);
-	const auto ifunIt = find(begin(ifunNames), end(ifunNames), ifunName);
-	// Check given engine and importance function names are valid
-	if (engineIt == end(engineNames))
-		throw_FigException("invalid engine name \""+engineName+"\"");
-	if (ifunIt == end(ifunNames))
-		throw_FigException("invalid importance function name \""+ifunName+"\"");
-	// Return corresponding entry from table
-	return run_lengths[std::distance(begin(engineNames), engineIt)]
-					  [std::distance(begin(ifunNames), ifunIt)];
-*/
 }
 
 
@@ -151,7 +98,7 @@ increase_run_length(const std::string&,// engineName,
 {
 	static const float inc_length = 1.4f;
 	runLength *= inc_length;
-	/// @todo TODO remove deprecated code below
+	/// @todo TODO: remove deprecated code below
 /*
 	// Build internal table once: rows follow engine names definition order
 	//                            cols follow impFun names definition order
@@ -206,7 +153,12 @@ print_runtime(std::ostream& out,
 {
 	auto runtime = fig::ModelSuite::get_instance().get_running_time();
 	out << prefix;
-	out << std::setprecision(1) << std::fixed << runtime << "s" << std::defaultfloat;
+	out << std::setprecision(1) << std::fixed << runtime << "s";
+#if __cplusplus >= 201103L
+	out << std::defaultfloat;
+#else
+	out << std::setprecision(6) << std::fixed;
+#endif
 	out << suffix;
 }
 
@@ -262,11 +214,6 @@ SimulationEngine::bind(std::shared_ptr< const ImportanceFunction > ifun)
 	if (locked())
 		throw_FigException("engine \"" + name() + "\" is currently locked "
 						   "in \"simulation mode\"");
-	// NOTE: bind/unbind are now exclusive for ModelSuite use,
-	//       thus we omit the "ready()" check
-	//       which would cause a circular dependency with build_thresholds
-	// if (!ifun->ready() && !toBuildThresholds_)
-	//        throw_FigException("ImportanceFunction isn't ready for simulations");
 	if (bound())
 		unbind();
 	impFun_ = ifun;

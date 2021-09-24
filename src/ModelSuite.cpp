@@ -202,9 +202,12 @@ interrupt_print(const ConfidenceInterval& ci,
 		out << std::setprecision(2) << std::fixed;
 		out << "   · Estimation time: " << omp_get_wtime()-startTime << " s\n";
 	}
-//	out << std::defaultfloat;
-    out << std::setprecision(6) << std::fixed;
-    out << std::endl;
+#if __cplusplus >= 201103L
+	out << std::defaultfloat;
+#else
+	out << std::setprecision(6) << std::fixed;
+#endif
+	out << std::endl;
 }
 
 
@@ -232,9 +235,12 @@ estimate_print(const ConfidenceInterval& ci,
 										  << ci.upper_limit() << " ] " << std::endl;
 	out << std::setprecision(2) << std::fixed;
 	out << "   · Estimation time: " << time << " s\n";
-//	out << std::defaultfloat;
-    out << std::setprecision(6) << std::fixed;
-    out << std::endl;
+#if __cplusplus >= 201103L
+	out << std::defaultfloat;
+#else
+	out << std::setprecision(6) << std::fixed;
+#endif
+	out << std::endl;
 }
 
 
@@ -960,8 +966,11 @@ ModelSuite::build_importance_function_flat(const std::string& ifunName,
 		techLog_ << "Importance function building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"
-//				 << std::defaultfloat;
-				 << std::setprecision(6);
+#if __cplusplus >= 201103L
+		         << std::defaultfloat;
+#else
+		         << std::setprecision(6) << std::fixed;
+#endif
 	}
 
 #ifndef NDEBUG
@@ -1047,8 +1056,11 @@ ModelSuite::build_importance_function_adhoc(const ImpFunSpec& impFun,
 		techLog_ << "Importance function building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"
-//				 << std::defaultfloat;
-				 << std::setprecision(6);
+#if __cplusplus >= 201103L
+		         << std::defaultfloat;
+#else
+		         << std::setprecision(6) << std::fixed;
+#endif
 	}
 
 #ifndef NDEBUG
@@ -1144,8 +1156,11 @@ ModelSuite::build_importance_function_auto(const ImpFunSpec& impFun,
 		techLog_ << "Importance function building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"
-//				 << std::defaultfloat;
-				 << std::setprecision(6);
+#if __cplusplus >= 201103L
+		         << std::defaultfloat;
+#else
+		         << std::setprecision(6) << std::fixed;
+#endif
 	}
 #ifndef NDEBUG
     assert(ifun.has_importance_info());
@@ -1223,8 +1238,12 @@ ModelSuite::build_thresholds(const std::string& thrSpec,
 		techLog_ << "Thresholds building time: "
 				 << std::fixed << std::setprecision(2)
 				 << omp_get_wtime()-startTime << " s\n"
-//				 << std::defaultfloat;
-				 << std::setprecision(6);
+#if __cplusplus >= 201103L
+		         << std::defaultfloat;
+#else
+		         << std::setprecision(6) << std::fixed;
+#endif
+
 		if (thresholdsGivenAdHoc)
 			globalEffort = 0;
 	}
@@ -1470,8 +1489,11 @@ ModelSuite::estimate(const Property& property,
 		// Simulation bounds are confidence criteria
 		estimate_for_confs(property, engine, bounds);
 
-//	mainLog_ << std::defaultfloat;
-	mainLog_ << std::setprecision(6);
+#if __cplusplus >= 201103L
+	mainLog_ << std::defaultfloat;
+#else
+	mainLog_ << std::setprecision(6) << std::fixed;
+#endif
 }
 
 

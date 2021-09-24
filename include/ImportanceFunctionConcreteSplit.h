@@ -198,11 +198,12 @@ private:
 
 	/// ImportanceFunctionConcreteSplit for 'adhoc' assessment strategy is
 	/// currently unavailable
-	/// @deprecated The idea is too complicated and little rewarding:
-	///   it'd require the user's algebraic formula for importance computation
-	///   *plus* another algebraic formula to compose the modules importance.
-	///   Symbolic storage (i.e. ImportanceFunctionAlgebraic) is all the
-	///   'adhoc' importance assessment strategy needs. Go bother them.
+	/// @note Useless for this class: too complicated and little rewarding.
+	///       More in detail, it'd require the user's algebraic formula
+	///       for importance computation *plus* another algebraic formula
+	///       to compose the modules importance.
+	///       Symbolic storage (i.e. ImportanceFunctionAlgebraic) is all the
+	///       'adhoc' importance assessment strategy needs. Go bother them.
 	inline void assess_importance(const Property&,
 								  const std::string&,
 								  const std::vector<std::string>&) override

@@ -69,7 +69,7 @@ ConfidenceIntervalWilson::update(const double& newResult)
 		throw_FigException("numSamples_ became negative, overflow?");
 	numRares_ += newResult;
 	prevEstimate_ = estimate_;
-	estimate_ = numRares_/numSamples_;  // what about fp precision loss !!??
+	estimate_ = numRares_/numSamples_;  // what about fp precision loss ?
 	variance_ = estimate_*(1.0-estimate_);
 	const double
 		logVarianceN(log(numSamples_-1)+log(varCorrection_)),
@@ -115,18 +115,6 @@ ConfidenceIntervalWilson::min_samples_covered(bool) const noexcept
 	// Even though the Wilson score interval has lax bounds (http://goo.gl/B86Dc),
 	// they've been tailored to meet experimental quality standards
 	return numSamples_ > 5l && numSamples_*estimate_ > 1.0;
-//	static constexpr long LBOUND(1l<<7l), LBOUNDR(1l<<9l);
-//	static const double LOG_LBOUNDR(log(LBOUNDR));
-//	const bool theoreticallySound =
-//			LBOUND < numSamples_ && LBOUNDR < numRares_ && (
-//			  log(30l*statOversample_) < logNumSamples_ || (
-//				LOG_LBOUNDR < logNumSamples_+log(estimate_) &&  // n*p
-//				LOG_LBOUNDR < logNumSamples_+log1p(-estimate_)  // n*(1-p)
-//			  )
-//			);
-//	// Ask also for little change w.r.t. the last outcome
-//	const bool practicallySound = abs(prevEstimate_-estimate_) < 0.02*estimate_;
-//	return theoreticallySound && practicallySound;
 }
 
 
@@ -151,7 +139,7 @@ void
 ConfidenceIntervalWilson::reset(bool fullReset) noexcept
 {
 	ConfidenceInterval::reset(fullReset);
-    numRares_ = 0.0;
+	numRares_ = 0.0;
     logNumSamples_ = 0.0;
 }
 

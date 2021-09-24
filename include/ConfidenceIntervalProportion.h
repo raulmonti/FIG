@@ -48,12 +48,17 @@ namespace fig
  * sample size. For the z quantile, 'a' is the significance level defined as
  * a=1-cc for the confidence coefficient 'cc' inherent to the confidence
  * interval.
- *
- * @deprecated Real value coverage and performance issues rendered this class
- *             useless. ConfidenceIntervalTransient is now used to build the
- *             interval around the estimates of transient-like properties.
  */
-class ConfidenceIntervalProportion : public ConfidenceInterval
+class
+#if __cplusplus >= 201402L
+[[
+    deprecated(
+    "Real value coverage and performance issues rendered this class useless. "
+    "ConfidenceIntervalTransient is now used to build the interval "
+    "around the estimates of transient-like properties.")
+]]
+#endif
+ConfidenceIntervalProportion : public ConfidenceInterval
 {
 	/// Count of the successes registered so far
 	double numRares_;

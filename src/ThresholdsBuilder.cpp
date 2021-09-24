@@ -127,7 +127,7 @@ ThresholdsBuilder::show_thresholds(const ThresholdsVec &t2i)
 void
 ThresholdsBuilder::show_thresholds(const ImportanceVec& t2i)
 {
-	figTechLog << "Thresholds chosen:";
+	figTechLog << "Thresholds chosen (" << (t2i.size()-2ul) << "):";
 	for (size_t i = 1ul ; i < t2i.size()-1 ; i++)
 		figTechLog << " " << t2i[i];
 	figTechLog << "\n";

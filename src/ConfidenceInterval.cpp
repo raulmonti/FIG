@@ -63,11 +63,12 @@ double erf_inv(const double& y)
 	static const double d[2] = { 3.543889200,  1.637067800};
 	double x, z;
 
-	if (-1.0 > y || 1.0 < y)  // Argument out of range
-		x = std::numeric_limits<double>::quiet_NaN();
+//	NOTE: conditiouns below would make this value of x never to be read
+//	if (-1.0 > y || 1.0 < y)  // Argument out of range
+//		x = std::numeric_limits<double>::quiet_NaN();
 
 	if (1.0 == std::abs(y)) {
-		// We're not in for extremes, ask Billy Joel for that
+		// We're not in for extremes (go ask Billy Joel)
 		x = std::numeric_limits<double>::quiet_NaN();
 
 	} else if (y < -y0) {
@@ -88,23 +89,6 @@ double erf_inv(const double& y)
 	}
 
 	return x;
-}
-
-/**
- * @brief Quantile function for the standard normal distribution.
- * @details Check out the definition in the
- *          <a href="http://en.wikipedia.org/wiki/Probit#Computation">
- *          wiki</a>.
- * @return Standard normal inverse CDF of 'y', or 'NaN' on error
- * @deprecated Now we use GSL's "gsl_cdf_XXXXX_Pinv" functions instead
- */
-[[ deprecated("use the GSL instead, e.g. gsl_cdf_tdist_Pinv") ]]
-double probit(const double& y)
-{
-	if (0.0 > y || 1.0 < y)
-		return std::numeric_limits<double>::quiet_NaN();
-	else
-		return M_SQRT2 * erf_inv(2.0 * y - 1.0);
 }
 
 } // namespace   // // // // // // // // // // // // // // // // // // // // //
@@ -133,9 +117,9 @@ ConfidenceInterval::ConfidenceInterval(const std::string& thename,
 	prevEstimate_(0.0),
 	variance_(std::numeric_limits<double>::infinity()),
 	quantile(confidence_quantile(confidence)),
-	halfWidth_(std::numeric_limits<double>::infinity()),
-	statOversample_(1.0),
-	varCorrection_(1.0)
+    halfWidth_(std::numeric_limits<double>::infinity()),
+    statOversample_(1.0),
+    varCorrection_(1.0)
 {
 	assert(gsl_finite(quantile));
 	assert(std::isfinite(quantile));
@@ -155,7 +139,7 @@ ConfidenceInterval::set_statistical_oversampling(const double& statOversamp)
 {
 	if (1.0 > statOversamp)
 		throw_FigException("the statistical oversampling factor should scale "
-						   "*up* the minimum # of experimental samples needed");
+		                   "*up* the minimum # of experimental samples needed");
 	statOversample_ = statOversamp;
 }
 
@@ -173,7 +157,7 @@ bool
 ConfidenceInterval::is_valid(bool safeguard) const noexcept
 {
 	// NOTE: variable definition forced due to issue #17
-	// (https://git.cs.famaf.unc.edu.ar/dsg/fig/issues/17)
+	//       [git.cs.famaf.unc.edu.ar/dsg/fig/issues/17]
 	const bool finished =
 		   !alwaysInvalid && 0.0 < estimate_ && estimate_ < 1.0 &&
 		   min_samples_covered(safeguard) &&
@@ -245,8 +229,11 @@ void ConfidenceInterval::print(std::ostream& out,
 	out << "Estimate: " << point_estimate()
 	    << " (var="  << estimation_variance()
 	    << ",prec=" << precision(confidence) << ")";
+#if __cplusplus >= 201103L
 	out << std::defaultfloat;
-	//out << std::setprecision(6) << std::fixed;
+#else
+	out << std::setprecision(6) << std::fixed;
+#endif
 }
 
 
@@ -259,11 +246,10 @@ ConfidenceInterval::confidence_quantile(const double& cc,
 		throw_FigException("requires confidence coefficient ∈ (0.0, 1.0)");
 #endif
 	double significance(0.5*(1.0+cc));  // == 1-(1-cc)/2
-	double quantile = gsl_nan();
+	double quantile;
 	// Following usually runs once, but Murphy has showed his face around here
 	do {
-//		double quantile = probit(significance);                  // old way
-//		double quantile = gsl_cdf_ugaussian_Pinv(significance);  // new way
+//		double quantile = gsl_cdf_ugaussian_Pinv(significance);  // easy way
 		quantile = gsl_cdf_tdist_Pinv(significance,              // correct way
 									  std::max(N-1.0, 10.0));
 

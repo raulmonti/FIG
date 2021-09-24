@@ -138,9 +138,9 @@ find_extreme_values(const Formula& f, const ExtremeValuesVec& moduleValues)
 	// Play it safe and assume minRareValue_ == minValue_
 	return std::make_tuple(min, max, min);
 
-	/// @todo TODO The general solution is to use ILP on userFun_
-	///            That'd also compute the real minRareValue_ (and fast!)
-	///            Use <a href="http://dlib.net/">dlib</a> maybe?
+	/// @todo TODO: The general solution is to use ILP on userFun_
+	///             That'd also compute the real minRareValue_ (and fast!)
+	///             Use <a href="http://dlib.net/">dlib</a> maybe?
 }
 
 
@@ -589,8 +589,8 @@ ImportanceFunctionConcreteSplit::assess_importance(const Property& prop,
 }
 
 
-/// @warning Hardcoded for DFT --> IOSA translation by Monti et al.
-/// @todo Generalise to per-module decorations as suggested by Marco Biagi
+/// @warning WARNING: Hardcoded for DFT --> IOSA translation by Monti et al.
+/// @todo TODO: Generalise to per-module decorations as suggested by Marco Biagi
 ImportanceFunctionConcrete::Indices
 ImportanceFunctionConcreteSplit::special_case(const ModuleInstance& module) const
 {
